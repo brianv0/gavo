@@ -1,0 +1,13 @@
+This is an infrastructure for parsing plain text sources into a database
+and possibly into VOTables.  It is used by gavoimp.
+
+The basic structure is:  A grammar (e.g. CFGrammar) produces a dictionary
+mapping rather arbitrary keys to values.  These dictionaries are shipped
+to the grammar's row processor, which already resides in the semantics.
+
+The semantics have field definitions and thus knows about, e.g., types and
+ucds.  Based on that information, it builds a dictionary mapping data
+bases names to values appropriate for inserting into a database.  The
+semantics can also be queried for the table structure, which is used
+during SQL import.  All that is collected within a DataSet (which 
+corresponds to one table).

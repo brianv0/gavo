@@ -1,0 +1,15 @@
+This directory contains support code for the querulator, a mechanism
+to quickly generate canned queries.  Basically, you embed something like
+
+<?query SELECT
+	{{date_obs|Observation date|date}}, 
+	{{object|Target object|date}}, 
+	{{filename|File name|string}},
+	{{datapath|Image|url}}
+FROM maidanak.rawframes WHERE 
+{{Object observed|object=choiceFromDb("select distinct object from maidanak.rawframes")}} AND
+{{Observation after|date>date()}}  AND
+{{Observation before|date<date()}} ?>
+
+into a html page and get automated forms and automated querying of a
+database.
