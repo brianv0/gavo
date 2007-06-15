@@ -1,1 +1,22 @@
-Build-Depends: python-setuptools (>= 0.6a9)
+Source: pyenchant
+Maintainer: Markus Demleitner <msdemlei@ari.uni-heidelberg.de>
+Section: python
+Priority: optional
+Build-Depends: debhelper (>= 5.0.38), python (>= 2.3.5-7), python-all-dev, python-central (>= 0.5.6), python-setuptools (>= 0.6b3-1), 
+Standards-Version: 3.7.2
+XS-Python-Version: all
+XS-Vcs-Svn: https://svn.ari.uni-heidelberg.de/svn/gavo/python/trunk/
+
+Package: python-gavo
+Architecture: any
+Depends: ${python:Depends}, ${shlibs:Depends}
+XB-Python-Version: ${python:Versions}
+Provides: ${python:Provides}
+Description: Gavo support routines for python
+ Gavo is the German part of the International Virtual Observatory.  This
+ module contains rather assorted items developed while developing software
+ for Gavo.  It is probably not interesting to persons outside the VO
+ community.
+ .
+
+
