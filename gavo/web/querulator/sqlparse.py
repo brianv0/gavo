@@ -15,9 +15,12 @@ TODO: We need a test suite badly, since grammars are always tricky...
 """
 
 import sys
+import operator
 from pyparsing import Word, Literal, Optional, alphas, CaselessKeyword,\
 	ZeroOrMore, OneOrMore, SkipTo, srange, StringEnd, Or, MatchFirst,\
-	Suppress, Keyword, Forward, QuotedString, Group, printables
+	Suppress, Keyword, Forward, QuotedString, Group, printables, nums,\
+	CaselessLiteral
+
 import pyparsing
 
 from gavo.web import querulator
@@ -36,10 +39,18 @@ def _joinChildrenBlank(s, loc, toks):
 	return " ".join(toks)
 
 
+def debugConstructor(cons, *args):
+	print ">>>>", cons.__name__, args
+	return cons(*args)
+
+
 # SQL literals
 literalSelect = CaselessKeyword("SELECT")
 literalWhere = CaselessKeyword("WHERE")
 literalFrom = CaselessKeyword("FROM")
+between = CaselessKeyword("BETWEEN")
+andOp = CaselessKeyword("AND")
+orOp = CaselessKeyword("OR")
 
 # Literals for templating
 fieldStart = Literal("{{")
@@ -57,7 +68,6 @@ condTitle = SkipTo("|")
 pythonCode = SkipTo("}}")
 relation = (Literal("<=") | Literal(">=") | Literal(">") | Literal("<") 
 	| Literal("=") | CaselessKeyword("in") | CaselessKeyword("like"))
-between = CaselessKeyword("BETWEEN")
 eqTest = sqlId + relation + pythonCode
 betweenTest = sqlId + between + pythonCode
 conditionDescription=condTitle + Suppress("|") + (eqTest | betweenTest)
@@ -79,38 +89,49 @@ selectItems = selectItemField + ZeroOrMore(Suppress(",") + selectItemField)
 
 # production for parsing literal SQL conditions (those are just copied
 # over)
+sqlNumber = Word(nums+".Ee")
 sqlAtom = sqlId | QuotedString(quoteChar='"', escChar="\\",
 	unquoteResults=False) | QuotedString(quoteChar="'", escChar="\\",
-	unquoteResults=False)
+	unquoteResults=False) | sqlNumber
 literalCondition = sqlAtom + relation + sqlAtom
 
 # productions leading up to clauses (which matches anything after a WHERE)
-condition = processedCondition | literalCondition
-whereExpr = Forward()
-exprTail = ( CaselessKeyword("AND") | CaselessKeyword("OR")) + whereExpr 
-binaryExpr = condition + exprTail
-whereExpr << ( binaryExpr | condition )
+
+clauses = Forward()
+parenExpr = Suppress('(') + clauses + Suppress(')')
+clause = processedCondition | literalCondition | parenExpr
+
+andExpr = clause + ZeroOrMore( andOp + clause ) 
+clauses << andExpr + ZeroOrMore( orOp + andExpr )
+
+whereClauses = clauses.copy()
 
 # toplevel productions
 dbName = sqlId
 simpleSql = (Suppress(literalSelect) + selectItems + Suppress(literalFrom) + 
-	dbName + Suppress(literalWhere) + whereExpr + StringEnd())
+	dbName + Suppress(literalWhere) + whereClauses + StringEnd())
 
 
 # Cosmetics for debugging purposes
-condition.setName("Condition")
-whereExpr.setName("WHERE expression")
-exprTail.setName("Expression tail")
+clause.setName("Condition")
+clauses.setName("WHERE expression")
+andExpr.setName("AND expression")
 literalCondition.setName("Literal condition")
+processedCondition.setName("Processed condition")
 sqlId.setName("Sql identifier")
-
+simpleSql.setName("SQL statement")
+parenExpr.setName("()")
 
 if False:
-	whereExpr.setDebug(True)
-	exprTail.setDebug(True)
-	condition.setDebug(True)
+	clauses.setDebug(True)
+	parenExpr.setDebug(True)
+	andExpr.setDebug(True)
+	clause.setDebug(True)
+	literalCondition.setDebug(True)
+	processedCondition.setDebug(True)
 	simpleSql.setDebug(True)
-
+	andOp.setDebug(True)
+	orOp.setDebug(True)
 
 
 class ParseNode:
@@ -240,7 +261,6 @@ class Condition(ParseNode):
 	def asSql(self, availableKeys):
 		return self.condTest.asSql(availableKeys)
 	
-
 processedCondition.setParseAction(lambda s, loc, toks: Condition(*toks))
 
 
@@ -264,41 +284,74 @@ class LiteralCondition(ParseNode):
 literalCondition.setParseAction(lambda s, loc, toks: LiteralCondition(*toks))
 
 
-class BinaryExpression(ParseNode):
-	"""is a binary expression
-	"""
-	def __init__(self, left, junctor, right):
-		self.left, self.right = left, right
-		self.junctor = junctor
-		self.children = [self.left, self.junctor, self.right]
-	
-	def __repr__(self):
-		return "<%s %s %s>"%(repr(self.left), self.junctor, repr(self.right))
-	
-	def _buildExpConditional(self, left, right, op):
-		"""returns the "short-circuit" form of left op right.
+class CExpression(ParseNode):
+	"""is a homogenous expression with an operator and operands.
 
-		Plainly, it builds an expression such that empty elements vanish,
-		and, in the presence of empty elements, op vanishes as well.
+	Homogenous is meant to mean that all operands are joined
+	with the same operator.  Also, we do not accept "degenerated" expression
+	without an operator.
+
+	It is constructed with a nested list that is quite directly
+	produced by the parser.  I can't construct the objects while
+ 	the parser is running because that messes up the backtracking.
+	"""
+	def __init__(self, *args):
+		try:
+			self.operator = args[1]
+			assert(reduce(operator.__and__, [args[i]==self.operator 
+				for i in range(1, len(args), 2)]))
+			self._expandOperands([args[i] for i in range(0, len(args), 2)])
+			self.children = [self.operator,]+self.operands
+		except Exception, msg: 
+			# old pyparsing swallows the exception and behaves strangely.
+			# and I want something strange out on the screen :-)
+			print ">>>>>>>>>>>>>", msg, args
+			raise
+
+	def _expandOperands(self, rawOperands):
+		"""folds in nested lists in the operands.
 		"""
-		if left and right:
-			op = " %s "%op
+		self.operands = []
+		for op in rawOperands:
+			if isinstance(op, CExpression) and op.operator==self.operator:
+				self.operands.extend(op.operands)
+			else:
+				self.operands.append(op)
+
+	def __repr__(self):
+		return "<%s>"%((" %s "%self.operator).join(
+			[repr(operand) for operand in self.operands]))
+
+	def _rebuildExpression(self, parts, joiner):
+		if not parts:
+			return ""
 		else:
-			op = ""
-		return "%s%s%s"%(left, op, right)
+			return joiner.join(parts)
 
 	def asHtml(self):
-		leftHtml, rightHtml = self.left.asHtml(), self.right.asHtml()
-		return '<div class="binaryQ">%s</div>'%(
-			self._buildExpConditional(leftHtml, rightHtml,
-				'<span class="junctor">%s</span>'%self.junctor))
-
+		parts = [o.asHtml() for o in self.operands]
+		return '<div class="subExpr">%s</div>'%self._rebuildExpression(
+			parts,'<span class="junctor">%s</span>'%self.operator)
 
 	def asSql(self, aks):
-		leftSql, rightSql = self.left.asSql(aks), self.right.asSql(aks)
-		return self._buildExpConditional(leftSql, rightSql, self.junctor)
+		parts = [part for part in [o.asSql(aks) for o in self.operands]
+			if part]
+		template = "%s"
+		if self.operator=="OR":
+			template = "(%s)"
+		return template%self._rebuildExpression(parts, " %s "%self.operator)
 
-binaryExpr.setParseAction(lambda s, loc, toks: BinaryExpression(*toks))
+
+def buildExpression(args):
+	if len(args)==1:
+		return args[0]
+	else:
+		return CExpression(*args)
+
+clauses.setParseAction(lambda s, loc, toks: buildExpression(toks))
+andExpr.setParseAction(lambda s, loc, toks: buildExpression(toks))
+parenExpr.setParseAction(lambda s, loc, toks: buildExpression(toks))
+whereClauses.setParseAction(lambda s, loc, toks: buildExpression(toks))
 
 
 class SelectItems(ParseNode):
@@ -379,20 +432,14 @@ class Query(ParseNode):
 	def getConditions(self):
 		return self.tests
 
-
 simpleSql.setParseAction(lambda s, loc, toks: Query(*toks))
 
 
+def parse(sqlStatement):
+	return simpleSql.parseString(sqlStatement)[0]
+
+
 if __name__=="__main__":
-	simpleSql.validate()
-	p = simpleSql.parseString("""
-SELECT 
-	{{dec \|\| " " \|\| ra|Observation date|date}}, 
-	{{filename|File name|string}},
-	{{dataurl|Image|url}}
-FROM maidanak_raw WHERE 
-{{Observation after|date>date()}}  AND
-{{Observation before|date<date()}}  AND
-"type"='FLAT'""")[0]
-	print p.asHtml()
-	print p.asSql({})
+	termclauses = whereClauses+StringEnd()
+	print parse("""
+select select x from b where a=b""")

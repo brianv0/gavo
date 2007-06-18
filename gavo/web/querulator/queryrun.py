@@ -316,6 +316,7 @@ def processQuery(template):
 		raise querulator.Error("No valid query parameter found.")
 
 	vals = template.getQueryArguments(form)
+	sys.stderr.write(">>>>> %s %s\n"%(sqlQuery, vals))
 	querier = sqlsupport.SimpleQuerier()
 	result = querier.query(sqlQuery, vals)
 
@@ -348,4 +349,3 @@ def getProduct(context):
 			gavo.inputsDir, accessPath)).read(), {
 		"Content-disposition": 'attachment; filename="%s"'%os.path.basename(
 			form.getfirst("path")),}
-
