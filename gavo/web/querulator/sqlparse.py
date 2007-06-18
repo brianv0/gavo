@@ -273,7 +273,7 @@ class LiteralCondition(ParseNode):
 		self.children = [self.name, self.relation, self.value]
 	
 	def __repr__(self):
-		return self.name+self.relation+self.value
+		return "LiteralCondition('%s')"%self.name+self.relation+self.value
 	
 	def asHtml(self):
 		return ""
@@ -431,6 +431,15 @@ class Query(ParseNode):
 	
 	def getConditions(self):
 		return self.tests
+	
+	def addConjunction(self, sqlCondition):
+		"""adds the sql search condition as an AND clause to the current Query.
+
+		sqlCondition has to match the clauses production in sqlparse.
+		"""
+		newConditions = clauses.parseString(sqlCondition)[0]
+		self.tests = CExpression(self.tests, "AND", newConditions)
+
 
 simpleSql.setParseAction(lambda s, loc, toks: Query(*toks))
 

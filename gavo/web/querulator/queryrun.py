@@ -144,6 +144,7 @@ def _doQuery(template, form):
 	if sqlQuery.strip().endswith("WHERE"):
 		raise querulator.Error("No valid query parameter found.")
 
+	sys.stderr.write(">>>>> %s\n"%sqlQuery)
 	vals = template.getQueryArguments(form)
 	querier = sqlsupport.SimpleQuerier()
 	return querier.query(sqlQuery, vals).fetchall()
@@ -284,6 +285,11 @@ def _formatAsTarStream(template, context):
 	This assumes that the query supports the "product interface", i.e.,
 	has columns owner and embargo.
 	"""
+	if context.loggedUser:
+		template.addConjunction(
+			"embargo<=current_date OR owner='%s'"%context.loggedUser)
+	else:
+		template.addConjunction("embargo<=current_date AND")
 	queryResult = _doQuery(template, context.form)
 	productCols = template.getProductCols()
 	productRoot = os.path.join(gavo.rootDir, template.getMeta("PRODUCT_ROOT"))

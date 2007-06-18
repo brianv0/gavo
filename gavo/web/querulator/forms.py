@@ -216,7 +216,14 @@ class Template:
 				if tx:
 					condTexts.append(tx)
 		return condTexts
-			
+	
+	def addConjunction(self, sqlCondition):
+		"""adds the sql search condition as an AND clause to the current Query.
+
+		sqlCondition has to match the clauses production in sqlparse.
+		"""
+		self.query.addConjunction(sqlCondition)
+
 
 def getForm(template):
 	"""returns templateTxt with the a form for the sqlparse.Query
