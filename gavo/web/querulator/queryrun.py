@@ -240,6 +240,15 @@ def _formatAsHtml(template, context):
 			doc.append('</form>')
 		return "\n".join(doc)
 
+	if template.getProductCols():
+		# if there's a product col, we assume the table supports the product
+		# interface.
+		if context.loggedUser:
+			template.addConjunction(
+				"embargo<=current_date OR owner='%s'"%context.loggedUser)
+		else:
+			template.addConjunction("embargo<=current_date AND")
+
 	queryResult = _doQuery(template, context.form)
 	tarForm = makeTarForm(template)
 	headerRow = _getHeaderRow(template)
