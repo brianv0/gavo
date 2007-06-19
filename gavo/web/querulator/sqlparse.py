@@ -476,6 +476,16 @@ class Query(ParseNode):
 	def getConditions(self):
 		return self.tests
 	
+	def setSelectItems(self, items):
+		"""replaces the current query columns with items.
+
+		items may be a string that matches the selectItems production,
+		or it may be an object that does what we want from seletItems.
+		"""
+		if isinstance(items, basestring):
+			items = selectItems.parseString(items)[0]
+		self.qColumns = items
+
 	def addConjunction(self, sqlCondition):
 		"""adds the sql search condition as an AND clause to the current Query.
 

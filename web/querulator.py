@@ -97,8 +97,7 @@ def getProductThumbnail(context, subPath):
 	template = forms.Template(subPath)
 	form = cgi.FieldStorage()
 	path = querulator.resolvePath(
-		os.path.join(gavo.rootDir, template.getMeta("PRODUCT_ROOT")),
-		form.getfirst("path"))
+		gavo.inputsDir, form.getfirst("path"))
 	return "image/jpg", _computeThumbnail(path), {}
 
 

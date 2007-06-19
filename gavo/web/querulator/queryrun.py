@@ -300,9 +300,16 @@ def _formatAsTarStream(template, context):
 			"embargo<=current_date OR owner='%s'"%context.loggedUser)
 	else:
 		template.addConjunction("embargo<=current_date AND")
-	queryResult = _doQuery(template, context)
+	template.setSelectItems("{{datapath||product}}")
+	### Ugly ugly ugly -- I really need a good interface to
+	### the grammar (or do I just need to improve the grammar and
+	### feed in text?
+	querier = sqlsupport.SimpleQuerier()
+	queryResult = querier.query("SELECT accessPath FROM products"
+			" WHERE key in (%s)"%template.asSql(context),
+		template.getQueryArguments(context)).fetchall()
 	productCols = template.getProductCols()
-	productRoot = os.path.join(gavo.rootDir, template.getMeta("PRODUCT_ROOT"))
+	productRoot = gavo.inputsDir
 	
 	def produceOutput(outputFile):
 		outputTar = tarfile.TarFile("results.tar", "w", outputFile)

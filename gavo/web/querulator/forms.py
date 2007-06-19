@@ -211,11 +211,11 @@ class Template:
 		"""
 		formItems = []
 		for name, value in self.getQueryArguments(context).iteritems():
-			if len(value)>1:
+			if isinstance(value, list):
 				for item in value:
 					formItems.append('<input type="hidden" name="%s" value=%s>'%(
 						name, repr(str(item))) )
-			elif len(value)==1:
+			else:
 				formItems.append('<input type="hidden" name="%s" value=%s>'%(
 					name, repr(str(value))) )
 		return "\n".join(formItems)
@@ -255,11 +255,15 @@ class Template:
 		return condTexts
 	
 	def addConjunction(self, sqlCondition):
-		"""adds the sql search condition as an AND clause to the current Query.
-
-		sqlCondition has to match the clauses production in sqlparse.
+		"""see Query.addConjunction
 		"""
 		self.query.addConjunction(sqlCondition)
+
+	def setSelectItems(self, items):
+		"""see Query.setSelectItems
+		"""
+		self.query.setSelectItems(items)
+
 
 
 def getForm(template):
