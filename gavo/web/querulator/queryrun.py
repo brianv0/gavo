@@ -41,6 +41,7 @@ _thumbTarget = """
 	style="position:fixed;top:0px;left:0px">
 """%(querulator.staticURL)
 
+
 class Formatter:
 	"""is a container for functions that format values from the
 	database for the various output formats.
@@ -139,13 +140,13 @@ class Formatter:
 		return formatter(cooker(value))
 
 
-def _doQuery(template, form):
-	sqlQuery = template.asSql(set(form.keys()))
+def _doQuery(template, context):
+	sqlQuery = template.asSql(context)
 	if sqlQuery.strip().endswith("WHERE"):
 		raise querulator.Error("No valid query parameter found.")
 
 	sys.stderr.write(">>>>> %s\n"%sqlQuery)
-	vals = template.getQueryArguments(form)
+	vals = template.getQueryArguments(context)
 	querier = sqlsupport.SimpleQuerier()
 	return querier.query(sqlQuery, vals).fetchall()
 
@@ -153,7 +154,7 @@ def _doQuery(template, form):
 def _formatAsVoTable(template, context, stream=False):
 	"""returns a callable that writes queryResult as VOTable.
 	"""
-	queryResult = _doQuery(template, context.form)
+	queryResult = _doQuery(template, context)
 	colDesc = []
 	metaTable = sqlsupport.MetaTableHandler()
 	defaultTableName = template.getDefaultTable()
@@ -229,10 +230,10 @@ def _formatAsHtml(template, context):
 		if template.getProductCols():
 			doc.append('<form action="%s/run/%s" method="post" class="tarForm">\n'%(
 				querulator.rootURL, template.getPath()))
-			doc.append(template.getHiddenForm(context.form))
+			doc.append(template.getHiddenForm(context))
 			try:
 				sizeEstimate = ' (approx. %s)'%_formatSize(
-					template.getProductSizes(context.form))
+					template.getProductSizes(context))
 			except sqlsupport.OperationalError:
 				sizeEstimate = ""
 			doc.append('<input type="submit" name="tar" value="Get tar of '
@@ -249,7 +250,7 @@ def _formatAsHtml(template, context):
 		else:
 			template.addConjunction("embargo<=current_date AND")
 
-	queryResult = _doQuery(template, context.form)
+	queryResult = _doQuery(template, context)
 	tarForm = makeTarForm(template)
 	headerRow = _getHeaderRow(template)
 	doc = ["<head><title>Result of your query</title>",
@@ -264,7 +265,7 @@ def _formatAsHtml(template, context):
 	else:
 		doc.append("<p>No data matched your query.</p></body>")
 	doc.append('<ul class="queries">%s</ul>'%("\n".join([
-		"<li>%s</li>"%qf for qf in template.getConditionsAsText(context.form)])))
+		"<li>%s</li>"%qf for qf in template.getConditionsAsText(context)])))
 	doc.append("</div>")
 	if not numberMatched:
 		return "\n".join(doc+["</body>\n"])
@@ -299,7 +300,7 @@ def _formatAsTarStream(template, context):
 			"embargo<=current_date OR owner='%s'"%context.loggedUser)
 	else:
 		template.addConjunction("embargo<=current_date AND")
-	queryResult = _doQuery(template, context.form)
+	queryResult = _doQuery(template, context)
 	productCols = template.getProductCols()
 	productRoot = os.path.join(gavo.rootDir, template.getMeta("PRODUCT_ROOT"))
 	
@@ -321,21 +322,20 @@ def processQuery(template, context):
 
 	The return value is for direct plugin into querulator's "framework".
 	"""
-
-	if context.form.has_key("submit"):
+	if context.hasArgument("submit"):
 		return "text/html", _formatAsHtml(template, context), {}
-	elif context.form.has_key("votable"):
+	elif context.hasArgument("votable"):
 		return "application/x-votable", _formatAsVoTable(template, context
 			), {"Content-disposition": 'attachment; filename="result.xml"'}
-	elif context.form.has_key("tar"):
+	elif context.hasArgument("tar"):
 		return "application/tar", _formatAsTarStream(template, context), {
 			"Content-disposition": 'attachment; filename="result.tar"'}
-
+	raise querulator.Error("Invalid query.")
 
 def getProduct(context):
 	"""returns all data necessary to deliver one product to the user.
 	"""
-	prodKey = context.form.getfirst("path")
+	prodKey = context.getfirst("path")
 	querier = sqlsupport.SimpleQuerier()
 	matches = querier.query("select owner, embargo, accessPath from products"
 		" where key=%(key)s", {"key": prodKey}).fetchall()
@@ -349,4 +349,4 @@ def getProduct(context):
 	return "image/fits", open(os.path.join(
 			gavo.inputsDir, accessPath)).read(), {
 		"Content-disposition": 'attachment; filename="%s"'%os.path.basename(
-			context.form.getfirst("path")),}
+			context.getfirst("path")),}

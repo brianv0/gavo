@@ -40,7 +40,8 @@ rdTemplate="""
 
 
 def makeItemXML(itemDef):
-	return '<Field dest="%s" source="%s" unit="%s" ucd="%s" description="%s">'%(
+	return ('<Field dest="%s" source="%s" unit="%s" ucd="%s" description="%s"'
+		' dbtype="text"/>')%(
 		itemDef.get_dest(), itemDef.get_source(), itemDef.get_unit(),
 		itemDef.get_ucd(), itemDef.get_description())
 

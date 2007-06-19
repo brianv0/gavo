@@ -15,6 +15,7 @@ from gavo import textui
 from gavo import sqlsupport
 from gavo import utils
 from gavo import config
+from gavo import parsing
 from gavo.parsing import importparser
 from gavo.parsing import resource
 
@@ -44,14 +45,12 @@ def parseCmdline():
 	parser.add_option("-p", "--debug-productions", help="enable debugging for"
 		" the given productions", dest="debugProductions", default="", 
 		metavar="productions")
-	parser.add_option("-s", "--only-parse", help="only parse src ID",
-		metavar="ID", dest="parseOnlyId", default=None)
 	parser.add_option("-n", "--fake-only", help="don't talk to the db engine,"
 		" only spit out raw SQL", dest="fakeonly", action="store_true")
 	parser.add_option("-m", "--max-rows", help="only import MAX_ROWS"
 		" rows of every source", dest="maxRows", default=None,
 		type="int", action="store")
-	parser.add_option("-v", "--verbose", help="talk while you work",
+	parser.add_option("-v", "--verbose", help="talk a lot while working",
 		dest="verbose", action="store_true")
 	parser.add_option("-o", "--output-method", help="output destination, one of"
 		" sql, plain, votable, none.  Default: sql (XXX not implemented XXX)",
@@ -59,6 +58,7 @@ def parseCmdline():
 	(opts, args) = parser.parse_args()
 	opts.debugProductions = [s.strip() 
 		for s in opts.debugProductions.split(",") if s.strip()]
+	parsing.verbose = opts.verbose
 	if not args:
 		parser.print_help()
 		sys.exit(1)

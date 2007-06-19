@@ -11,7 +11,9 @@ always take token lists generated from pyparsing, usually flattened into
 argument lists (i.e., *args).  Thus, their constructors are used as
 parseActions for pyparsing (with a trivial lambda wrapper).
 
-TODO: We need a test suite badly, since grammars are always tricky...
+Note that there is a test suite for that grammar -- expand it, and run
+it each time you change something on the grammar.  It's easy to get this
+stuff wrong.
 """
 
 import sys
@@ -70,11 +72,13 @@ relation = (Literal("<=") | Literal(">=") | Literal(">") | Literal("<")
 	| Literal("=") | CaselessKeyword("in") | CaselessKeyword("like"))
 eqTest = sqlId + relation + pythonCode
 betweenTest = sqlId + between + pythonCode
-conditionDescription=condTitle + Suppress("|") + (eqTest | betweenTest)
+predefinedTest = pythonCode.copy()
+conditionDescription = condTitle + Suppress("|") + ( eqTest | betweenTest
+	| predefinedTest )
 processedCondition = (Suppress(fieldStart) + conditionDescription + 
 	Suppress(fieldEnd))
 
-# we should probably be a bit more careful parsing sql expressions
+# very simple minded SQL expressions within select lists
 escapeSeq = Literal("\\") + Word(printables+" ", exact=1)
 escapeSeq.setParseAction(lambda s, p, toks: toks[1])
 noEscapeStuff = SkipTo( escapeSeq | "|")
@@ -87,7 +91,7 @@ selectItem = (sqlExpression + Suppress("|") + SkipTo("|") + Suppress("|")+
 selectItemField = Suppress(fieldStart)+selectItem+Suppress(fieldEnd)
 selectItems = selectItemField + ZeroOrMore(Suppress(",") + selectItemField)
 
-# production for parsing literal SQL conditions (those are just copied
+# productions for parsing literal SQL conditions (those are just copied
 # over)
 sqlNumber = Word(nums+".Ee")
 sqlAtom = sqlId | QuotedString(quoteChar='"', escChar="\\",
@@ -96,10 +100,9 @@ sqlAtom = sqlId | QuotedString(quoteChar='"', escChar="\\",
 literalCondition = sqlAtom + relation + sqlAtom
 
 # productions leading up to clauses (which matches anything after a WHERE)
-
 clauses = Forward()
 parenExpr = Suppress('(') + clauses + Suppress(')')
-clause = processedCondition | literalCondition | parenExpr
+clause = ( processedCondition | literalCondition | parenExpr)
 
 andExpr = clause + ZeroOrMore( andOp + clause ) 
 clauses << andExpr + ZeroOrMore( orOp + andExpr )
@@ -165,6 +168,16 @@ class ParseNode:
 				for grandchild in child:
 					yield grandchild
 
+	def copy(self):
+		"""returns a (typically shallow) copy of self.
+
+		This default implementation tries to construct the copy with
+		the children as arguments.  If that won't work because children
+		is somehow computed, the deriving class must provide an implementation
+		of its own.
+		"""
+		return self.__class__(*self.children)
+
 
 class CondTest(ParseNode):
 	"""is a base class for a row tests.
@@ -193,7 +206,6 @@ class CondTest(ParseNode):
 		self.fieldBase = fieldBase
 
 	def asHtml(self):
-		import sys
 		return eval(self.generationCode, htmlgenfuncs.__dict__)%{
 			"fieldName": self.fieldBase
 		}
@@ -208,6 +220,9 @@ class CondTest(ParseNode):
 		if self.fieldBase in availableKeys:
 			return "%s %s %%(%s)s"%(self.colName, self.relation, self.fieldBase)
 		return ""
+
+	def asCondition(self, availableKeys):
+		return self.asSql(availableKeys)
 
 eqTest.setParseAction(lambda s, loc, toks: CondTest(*toks))
 
@@ -239,6 +254,39 @@ class TwoFieldTest(CondTest):
 
 betweenTest.setParseAction(lambda s, loc, toks: TwoFieldTest(*toks))
 
+
+class PredefinedTest(CondTest):
+	"""is a test the SQL generation of which is done via querybuilders.
+
+	This currently is a test bed for a move of htmlgenfuncs to classes
+	that know how to produce their own SQL and stuff.
+
+	So, we don't really inherit from CondTest right now, but CondTest
+	should probably eventually move in the direction this class gives.
+	"""
+	def __init__(self, generationCode):
+		self.generator = eval(generationCode, htmlgenfuncs.__dict__)
+		self.children = [generationCode]
+	
+	def __repr__(self):
+		return "PredefinedTest(%s)"%self.children[0]
+
+	def setFieldBase(self, fieldBase):
+		pass  # this won't be necessary any more
+
+	def asHtml(self):
+		return self.generator()
+
+	def getQueryInfo(self):
+		return {}
+
+	def asSql(self, availableKeys):
+		return ""
+	
+	def asCondition(self, context):
+		return self.generator.asCondition(context)
+
+predefinedTest.setParseAction(lambda s, loc, toks: PredefinedTest(*toks))
 
 class Condition(ParseNode):
 	"""is a single condition for the query, consisting of a test and
@@ -273,7 +321,7 @@ class LiteralCondition(ParseNode):
 		self.children = [self.name, self.relation, self.value]
 	
 	def __repr__(self):
-		return "LiteralCondition('%s')"%self.name+self.relation+self.value
+		return self.name+self.relation+self.value
 	
 	def asHtml(self):
 		return ""
@@ -290,10 +338,6 @@ class CExpression(ParseNode):
 	Homogenous is meant to mean that all operands are joined
 	with the same operator.  Also, we do not accept "degenerated" expression
 	without an operator.
-
-	It is constructed with a nested list that is quite directly
-	produced by the parser.  I can't construct the objects while
- 	the parser is running because that messes up the backtracking.
 	"""
 	def __init__(self, *args):
 		try:
@@ -301,7 +345,7 @@ class CExpression(ParseNode):
 			assert(reduce(operator.__and__, [args[i]==self.operator 
 				for i in range(1, len(args), 2)]))
 			self._expandOperands([args[i] for i in range(0, len(args), 2)])
-			self.children = [self.operator,]+self.operands
+			self.children = list(args)
 		except Exception, msg: 
 			# old pyparsing swallows the exception and behaves strangely.
 			# and I want something strange out on the screen :-)
@@ -435,11 +479,23 @@ class Query(ParseNode):
 	def addConjunction(self, sqlCondition):
 		"""adds the sql search condition as an AND clause to the current Query.
 
-		sqlCondition has to match the clauses production in sqlparse.
+		sqlCondition may be a string that matches the clauses production 
+		in sqlparse or ParseNode with asHtml and asSql methods returning
+		output "good enough" for a where clause.
 		"""
-		newConditions = clauses.parseString(sqlCondition)[0]
-		self.tests = CExpression(self.tests, "AND", newConditions)
+		if isinstance(sqlCondition, basestring):
+			sqlCondition = clauses.parseString(sqlCondition)[0]
+		self.tests = CExpression(self.tests, "AND", sqlCondition)
 
+	def copy(self):
+		"""returns a semi-deep copy of the query.
+
+		Semi-deep is supposed to mean that shallow copies of tests and
+		qColumns are included; all other children are just references to
+		the original.  The idea is that you probably want to add to tests
+		and qColumns but leave the rest of the query as it is.
+		"""
+		return Query(self.qColumns.copy(), self.defaultTable, self.tests.copy())
 
 simpleSql.setParseAction(lambda s, loc, toks: Query(*toks))
 

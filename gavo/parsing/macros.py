@@ -16,7 +16,6 @@ a resource descriptor.
 """
 
 
-from math import sin, cos
 import time
 from mx import DateTime
 import os
@@ -61,22 +60,10 @@ class EquatorialPositionConverter(Macro):
 	"""is a macro to compute all kinds of derived quantities from 
 	conventional equatorial coordinates.
 
-	The preterminals it adds have the following semantics (change dest
-	as required):
+	The field structure generated here is reflected in 
+	__common__/positionfields.template.  If you change anything here,
+	change it there, too.  And use that template when you use this macro.
 
-	<Field  dest="alphaFloat" unit="deg" dbtype="double" ucd="pos.eq.ra"
-		literalForm="do not touch" source="alphaFloat"/>
-	<Field  dest="deltaFloat" unit="deg" dbtype="double" ucd="pos.eq.dec"
-		literalForm="do not touch" source="deltaFloat"/>
-	<Field  dest="c_x" dbtype="float" literalForm="do not touch"
-		source="c_x"/>
-	<Field  dest="c_y" dbtype="float" literalForm="do not touch"
-		source="c_y"/>
-	<Field  dest="c_z" dbtype="float" literalForm="do not touch"
-		source="c_z"/>
-	<Field  dest="htmid" dbtype="long" literalForm="do not touch"
-		source="htmid"/>
-	
 	>>> m = EquatorialPositionConverter()
 	>>> map(str, m._computeCoos("00 02 32", "+45 30.6"))
 	['0.633333333333', '45.51', '0.700741955529', '0.00774614323406', '0.713372770034']
@@ -100,22 +87,10 @@ class EquatorialPositionConverter(Macro):
 		record["c_z"] = c_z
 		record["htmid"] = pyhtm.lookup(alphaFloat, deltaFloat)
 
-	def _computeUnitSphereCoos(self, alpha, delta):
-		"""returns the 3d coordinates of the interseciton of the direction
-		vector given by the spherical coordinates alpha and delta with the
-		unit sphere.
-
-		alpha and delta are given in degrees.
-		"""
-		alpha, delta = utils.degToRad(alpha), utils.degToRad(delta)
-		return (cos(alpha)*cos(delta),
-			sin(alpha)*cos(delta),
-			sin(delta))
-
 	def _computeCoos(self, alpha, delta, alphaSepChar=" ", deltaSepChar=" "):
 		alphaFloat = coords.hourangleToDeg(alpha, alphaSepChar)
 		deltaFloat = coords.dmsToDeg(delta, deltaSepChar)
-		return (alphaFloat, deltaFloat)+self._computeUnitSphereCoos(
+		return (alphaFloat, deltaFloat)+coords.computeUnitSphereCoords(
 			alphaFloat, deltaFloat)
 
 
@@ -281,9 +256,9 @@ class ProductValueCollector(Macro):
 		return "setProdtblValues"
 
 	def _changeRecord(self, record, prodtblKey, prodtblOwner, prodtblEmbargo,
-			prodtblPath):
+			prodtblPath, prodtblFsize=None):
 		for keyName in ["prodtblKey", "prodtblOwner", "prodtblEmbargo", 
-				"prodtblPath"]:
+				"prodtblPath", "prodtblFsize"]:
 			record[keyName] = locals()[keyName]
 
 

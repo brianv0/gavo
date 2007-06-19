@@ -16,6 +16,7 @@ import gavo
 from gavo.web import querulator
 from gavo.web.querulator import forms
 from gavo.web.querulator import queryrun
+from gavo.web.querulator import context
 
 fitspreviewLocation = os.path.join(gavo.rootDir, "web", "bin", "fitspreview")
 
@@ -23,18 +24,18 @@ class Error(gavo.Error):
 	pass
 
 
-def showAvailableQueries(subdir):
+def showAvailableQueries(context, subdir):
 	queries, folders = forms.getAvailableQueries(subdir)
-	formattedQueries = "\n".join(['<li><a href="%s/query/%s">%s</a></li>'%(
+	formattedQueries = "\n".join(sorted(['<li><a href="%s/query/%s">%s</a></li>'%(
 			querulator.rootURL, qPath, title)
-		for title, qPath in queries])
+		for title, qPath in queries]))
 	if not formattedQueries.strip():
 		formattedQueries = "<p>None.</p>"
 	else:
 		formattedQueries = "<ul>%s</ul>"%formattedQueries
-	formattedFolders = "\n".join(['<li><a href="%s/list/%s">%s</a></li>'%(
+	formattedFolders = "\n".join(sorted(['<li><a href="%s/list/%s">%s</a></li>'%(
 			querulator.rootURL, path, title)
-		for title, path in folders])
+		for title, path in folders]))
 	if not formattedFolders.strip():
 		formattedFolders = "<p>None.</p>"
 	else:
@@ -54,7 +55,7 @@ def showAvailableQueries(subdir):
 		), {}
 
 
-def getProductObsoleteAndStinking(subPath):
+def getProductObsoleteAndStinking(context, subPath):
 	template = forms.Template(subPath)
 	form = cgi.FieldStorage()
 	path = querulator.resolvePath(
@@ -65,7 +66,7 @@ def getProductObsoleteAndStinking(subPath):
 			form.getfirst("path")),}
 
 
-def getProduct(subPath):
+def getProduct(context, subPath):
 	return queryrun.getProduct(context)
 
 
@@ -92,7 +93,7 @@ else:
 		return data
 
 
-def getProductThumbnail(subPath):
+def getProductThumbnail(context, subPath):
 	template = forms.Template(subPath)
 	form = cgi.FieldStorage()
 	path = querulator.resolvePath(
@@ -101,12 +102,12 @@ def getProductThumbnail(subPath):
 	return "image/jpg", _computeThumbnail(path), {}
 
 
-def getForm(subPath):
+def getForm(context, subPath):
 	template = forms.Template(subPath)
 	return "text/html", forms.getForm(template), {}
 
 
-def processQuery(subPath):
+def processQuery(context, subPath):
 	template = forms.Template(subPath)
 	return queryrun.processQuery(template, context)
 
@@ -174,25 +175,15 @@ def main():
 	Yes, we want a real framework, but as long as I don't know
 	what I'm going to do, I can't really choose one...
 	"""
-	global context
-	context = Context()
+	global qContext
+	qContext = context.Context()
 	_checkForBlock()
 	pathParts = os.environ.get("PATH_INFO", "").strip("/").split("/")
 	func = _procConfig.get(pathParts[0],
 		lambda _: showAvailableQueries("/".join(pathParts)))
 	queryPath = "/".join(pathParts[1:])
 	try:
-		contentType, content, headers = func(queryPath)
+		contentType, content, headers = func(qContext, queryPath)
 		_doHtmlResponse(contentType, content, headers)
 	except querulator.Error, msg:
 		_doErrorResponse(msg)
-
-
-class Context:
-	"""will be taken over by the context of a real framework.
-	"""
-	def __init__(self):
-		self.loggedUser = None
-		if 	os.environ.get("AUTH_TYPE") and os.environ.get("REMOTE_USER"):
-			self.loggedUser = os.environ.get("REMOTE_USER")
-		self.form = cgi.FieldStorage()

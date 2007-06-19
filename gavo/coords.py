@@ -3,6 +3,10 @@ This module contains code to handle coordinate systems and transform
 between them.
 """
 
+from gavo import utils
+from math import sin, cos
+
+
 class CooSys:
 	"""models a single coordinate system.
 
@@ -82,6 +86,20 @@ def dmsToDeg(dmsAngle, sepChar=" "):
 		sec = 0
 	arcSecs = sign*(int(deg)*3600+float(min)*60+float(sec))
 	return arcSecs/3600
+
+
+def computeUnitSphereCoords(alpha, delta):
+	"""returns the 3d coordinates of the intersection of the direction
+	vector given by the spherical coordinates alpha and delta with the
+	unit sphere.
+
+	alpha and delta are given in degrees.
+	"""
+	alpha, delta = utils.degToRad(alpha), utils.degToRad(delta)
+	return (cos(alpha)*cos(delta),
+		sin(alpha)*cos(delta),
+		sin(delta))
+
 
 def _test():
 	import doctest, coords

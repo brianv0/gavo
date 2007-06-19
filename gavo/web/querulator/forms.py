@@ -7,17 +7,52 @@ This needs only the clauses -- the basic idea is that conditions come as
 
 The python expression is evaluated, its result is pasted into the form.
 This expression will usually be a function call.  All evaluations take
-place in the namespace of the quhtmlgenfuncs module.  For the available
+place in the namespace of the htmlgenfuncs module.  For the available
 functions, see there.  The magic for that is happening in 
-qusqlparse.CondTest.asHtml.
+sqlparse.<whatever>.asHtml.
+
+This module also contains querybuilders.  These are functions that check the
+context for certain standard keys and modify the query to make it perform
+the desired operations.  For example, buildConeSearchQuery looks for RA, DEC,
+and SR and, if found, creates a c_x, c_y, c_z-based search.
+
+XXX TODO: we probably want a querybuilder for products that automatically
+includes owner and embaro fields.  However, since we copy the query,
+adding fields doesn't make sense right now.  Not copying the query would
+be a pain, too, since ensuring idempotency would be a nightmare and fiddling
+around with instance variables in that way is uncool anyway.  We probably
+want an abstract similar to querybuilder for adding "magic" fields; that
+would probably happen at construction time.
 """
 
 import re
 import os
 
 from gavo import sqlsupport
+from gavo import coords
 from gavo.web import querulator
 from gavo.web.querulator import sqlparse
+
+
+def _buildConeSearchQuery(query, context):
+	"""adds a global conjunction to ensure all matches are within a cone.
+
+	This is supposed to implement the simple cone search spec of IVOA.
+	Trouble in the moment: We don't look at equinoxes. This could probably
+	be solved by storing equinox info in the context as necessary.
+	"""
+	if not context.checkArguments(["RA", "DEC", "SR"]):
+		return
+	c_x, c_y, c_z = coords.computeUnitSphereCoords(
+		float(context.getfirst("RA")), float(context.getfirst("DEC")))
+	query.addConjunction(sqlparse.LiteralCondition(
+		"sqrt((%f-c_x)^2+(%f-c_y)^2+(%f-c_z)^2)"%(c_x, c_y, c_z),
+		"<=", str(float(context.getfirst("SR"))/360)))
+
+
+_querybuilders = [
+	_buildConeSearchQuery,
+]
 
 
 def getAvailableQueries(path):
@@ -126,8 +161,11 @@ class Template:
 				querulator.queryElementPat.sub(
 					lambda mat: formTemplate%self.query.asHtml(), self.rawText)))
 
-	def asSql(self, availableItems):
-		return self.query.asSql(availableItems)
+	def asSql(self, context):
+		query = self.query.copy()
+		for querybuilder in _querybuilders:
+			querybuilder(query, context)
+		return query.asSql(context.keys())
 
 	def getItemdefs(self):
 		return self.query.getItemdefs()
@@ -149,35 +187,35 @@ class Template:
 				pass
 		return varInfos
 	
-	def getQueryArguments(self, form):
+	def getQueryArguments(self, context):
 		"""returns a dictionary suitable as argument for dbapi2 cursor.execute
-		from the values of the cgi-compatible form.
+		from the values given in context.
 		"""
 		varInfos = self._getVarInfos()
 		valDict = {}
 		getterDict = {
-			'l': form.getlist,
-			'a': form.getfirst,
+			'l': context.getlist,
+			'a': context.getfirst,
 		}
-		for key in form.keys():
+		for key in context.keys():
 			if varInfos.has_key(key):
 				valDict[key] = getterDict[varInfos[key][0]](key)
 		return valDict
 	
-	def getHiddenForm(self, form):
+	def getHiddenForm(self, context):
 		"""returns an html form body setting all relevant query parameters
-		from form in hidden fields.
+		from context in hidden fields.
 
 		This can be used to reproduce queries with different meta parameters.
 		("this stuff as tar", "this stuff as votable").
 		"""
 		formItems = []
-		for name, value in self.getQueryArguments(form).iteritems():
-			if isinstance(value, list):
+		for name, value in self.getQueryArguments(context).iteritems():
+			if len(value)>1:
 				for item in value:
 					formItems.append('<input type="hidden" name="%s" value=%s>'%(
 						name, repr(str(item))) )
-			else:
+			elif len(value)==1:
 				formItems.append('<input type="hidden" name="%s" value=%s>'%(
 					name, repr(str(value))) )
 		return "\n".join(formItems)
@@ -202,17 +240,16 @@ class Template:
 			self.getQueryArguments(form))
 		return sum([int(size[0]) for size in res.fetchall() if size[0]])
 	
-	def getConditionsAsText(self, form):
+	def getConditionsAsText(self, context):
 		"""returns a "barely-user-compatible" form of the query.
 
 		I guess we should have methods rendering this at some point.
 		"""
 		condTexts = []
-		availableKeys = set(form.keys())
-		pars = self.getQueryArguments(form)
+		pars = self.getQueryArguments(context)
 		for node in self.query.getConditions():
 			if isinstance(node, sqlparse.CondTest):
-				tx = node.asSql(availableKeys)%pars
+				tx = node.asCondition(context)%pars
 				if tx:
 					condTexts.append(tx)
 		return condTexts

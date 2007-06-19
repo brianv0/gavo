@@ -383,10 +383,7 @@ class Resource:
 		"""reads all data sources and applies all resource processors to them.
 		"""
 		for dataSrc in self.desc.get_dataSrcs():
-			if opts.parseOnlyId and dataSrc.get_id()!=opts.parseOnlyId:
-				continue
-			if opts.verbose:
-				gavo.ui.displayMessage("Importing %s"%dataSrc.get_id())
+			gavo.ui.displayMessage("Importing %s"%dataSrc.get_id())
 			self.addDataset(self.parseOne(dataSrc, 
 				debugProductions=opts.debugProductions, maxRows=opts.maxRows))
 		for processor in self.desc.get_processors():

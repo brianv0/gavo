@@ -25,20 +25,24 @@ class ObjectCache:
 		except IOError:
 			self.cache = {}
 	
-	def _saveCache(self):
-		handle, name = tempfile.mkstemp(dir=gavo.cacheDir)
-		f = os.fdopen(handle, "w")
-		cPickle.dump(self.cache, f)
-		f.close()
-		os.rename(name, self._getCacheName())
+	def _saveCache(self, silent=False):
+		try:
+			handle, name = tempfile.mkstemp(dir=gavo.cacheDir)
+			f = os.fdopen(handle, "w")
+			cPickle.dump(self.cache, f)
+			f.close()
+			os.rename(name, self._getCacheName())
+		except (IOError, os.error):
+			if not silent:
+				raise
 
 	def addItem(self, key, record, save=True):
 		self.cache[key] = record
 		if save:
-			self._saveCache()
+			self._saveCache(silent=True)
 	
 	def sync(self):
-		self._saveCache()
+		self._saveCache(silent=True)
 	
 	def getItem(self, key):
 		return self.cache[key]
@@ -212,7 +216,6 @@ class Sesame:
 		self.cache = ObjectCache(id)
 
 	def _parseSimbadXML(self, xmlText):
-		print ">>>>", xmlText
 		parser = SesameParser()
 		xml.sax.parseString(xmlText, parser)
 		return parser.getData()

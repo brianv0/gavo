@@ -4,6 +4,7 @@ This module defines an abstract superclass for all grammars.
 
 from gavo import utils
 from gavo import logger
+from gavo import parsing
 import gavo
 
 
@@ -100,8 +101,18 @@ class Grammar(utils.Record):
 		respective production (not implemented yet).
 		"""
 		for row in self._runProcessors(rowdict, procType):
-			self._expandMacros(rowdict, procType)
-			yield rowdict
+			try:
+				self._expandMacros(rowdict, procType)
+				yield rowdict
+			except KeyboardInterrupt:
+				raise
+			except Exception, msg:
+				if parsing.verbose:
+					import traceback
+					traceback.print_exc()
+				raise gavo.Error("Invalid macro expansion (%s, %s) -- ignoring"%(
+					msg.__class__.__name__, str(msg)))
+
 
 	def parse(self, inputFile):
 		"""parses the inputFile and returns the parse result.
