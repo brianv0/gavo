@@ -235,7 +235,7 @@ def _formatAsHtml(template, context):
 					template.getProductSizes(context))
 			except sqlsupport.OperationalError:
 				sizeEstimate = ""
-			doc.append('<input type="submit" name="tar" value="Get tar of '
+			doc.append('<input type="submit" name="submit-tar" value="Get tar of '
 				' matched products%s">\n'%sizeEstimate)
 			doc.append('</form>')
 		return "\n".join(doc)
@@ -298,11 +298,11 @@ def _formatAsTarStream(template, context):
 		template.addConjunction(
 			"embargo<=current_date OR owner='%s'"%context.loggedUser)
 	else:
-		template.addConjunction("embargo<=current_date AND")
+		template.addConjunction("embargo<=current_date")
 	template.setSelectItems("{{datapath||product}}")
 	### Ugly ugly ugly -- I really need a good interface to
 	### the grammar (or do I just need to improve the grammar and
-	### feed in text?
+	### feed in text?)
 	querier = sqlsupport.SimpleQuerier()
 	query, args = template.asSql(context)
 	queryResult = querier.query("SELECT accessPath FROM products"

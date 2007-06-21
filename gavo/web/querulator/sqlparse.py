@@ -289,7 +289,7 @@ class CExpression(ParseNode):
 
 	def asSql(self, aks):
 		parts = [part for part in [o.asSql(aks) for o in self.operands]
-			if part[1]]
+			if part[0]]
 		return self._rebuildSQL(parts, " %s "%self.operator)
 
 
@@ -393,6 +393,7 @@ class Query(ParseNode):
 		if isinstance(items, basestring):
 			items = selectItems.parseString(items)[0]
 		self.qColumns = items
+		self.children[0] = self.qColumns
 
 	def addConjunction(self, sqlCondition):
 		"""adds the sql search condition as an AND clause to the current Query.
@@ -404,6 +405,7 @@ class Query(ParseNode):
 		if isinstance(sqlCondition, basestring):
 			sqlCondition = clauses.parseString(sqlCondition)[0]
 		self.tests = CExpression(self.tests, "AND", sqlCondition)
+		self.children[2] = self.tests
 
 	def copy(self):
 		"""returns a semi-deep copy of the query.

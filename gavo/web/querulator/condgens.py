@@ -124,8 +124,6 @@ class Choice(OperatorCondGen):
 	  what the form recipient gets and title is what the user sees.
 	* size -- an int saying how many rows are visible.
 	"""
-
-
 	def __init__(self, name, sqlExpr, operator, choices, size=1):
 		OperatorCondGen.__init__(self, name, sqlExpr, operator)
 		self.choices, self.size = choices, size
@@ -135,11 +133,16 @@ class Choice(OperatorCondGen):
 		selOpt = " size='%d'"%self.size
 		if self.takesSets:
 			selOpt += " multiple='yes'"
-		return '<select name="%s" %s>\n%s\n</select>'%(
+		formItem = '<select name="%s" %s>\n%s\n</select>'%(
 			self.name,
 			selOpt,
 			"\n".join(["<option value=%s>%s</option>"%(repr(val), opt) 
 				for opt, val in self.choices]))
+		doc = ""
+		if self.takesSets:
+			doc = ('<div class="legend">(Zero or more choices allowed; '
+				'try shift-click, control-click)</div>')
+		return formItem+doc
 
 
 class SimpleChoice(Choice):
@@ -180,11 +183,13 @@ class StringField(OperatorCondGen):
 	def asHtml(self):
 		return '<input type="text" size="%d" name="%s">'%(self.size, self.name)
 
+
 class PatternField(StringField):
 	def asHtml(self):
 		return ('<input type="text" size="%d" name="%s">'
 			'<div class="legend">(_ for any char, %% for'
 			' any sequence of chars)</div>')%(self.size, self.name)
+
 
 class IntField(OperatorCondGen):
 	def asHtml(self):
@@ -300,8 +305,6 @@ class SexagConeSearch(CondGen):
 	
 	def asSql(self, context):
 		if not self._contextMatches(context):
-			import sys
-			sys.stderr.write("No shit here: %s %s\n"%(context.arguments, self.expectedKeys))
 			return "", {}
 		pos = context.getfirst("%ssexagMixedPos"%self.name)
 		mat = re.match("(.*)([+-].*)", pos)
