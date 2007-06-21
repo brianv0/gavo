@@ -137,6 +137,9 @@ if False:
 	orOp.setDebug(True)
 
 
+processedCondition.setParseAction(condgens.buildCongen)
+
+
 class ParseNode:
 	"""is an abstract base class for nodes in the SQL parse tree.
 
@@ -178,115 +181,6 @@ class ParseNode:
 		"""
 		return self.__class__(*self.children)
 
-
-class CondTest(ParseNode):
-	"""is a base class for a row tests.
-
-	It already implements everything you need for "simple" tests
-	requiring just one input.
-
-	To make this work when multiple CondTests for the same column are
-	in one form, you can (and should) set the fieldBase.  Within
-	Querulator, Condition does this.
-	"""
-	relationsOnSets = set(["in"])
-
-	def __init__(self, colName, relation, generationCode):
-		self.colName, self.relation, self.generationCode = \
-			colName, relation, generationCode
-		self.fieldBase = colName
-		self.children = [self.colName, self.relation, self.generationCode]
-		self.wantsSet = self.relation.lower() in self.relationsOnSets
-
-	def __repr__(self):
-		return "%s %s %s"%(self.colName, self.relation, 
-			self.generationCode)
-
-	def setFieldBase(self, fieldBase):
-		self.fieldBase = fieldBase
-
-	def asHtml(self):
-		return eval(self.generationCode, htmlgenfuncs.__dict__)%{
-			"fieldName": self.fieldBase
-		}
-
-	def getQueryInfo(self):
-		if self.wantsSet:
-			return {self.fieldBase: ('l',)}
-		else:
-			return {self.fieldBase: ('a',)}
-
-	def asSql(self, availableKeys):
-		if self.fieldBase in availableKeys:
-			return "%s %s %%(%s)s"%(self.colName, self.relation, self.fieldBase)
-		return ""
-
-	def asCondition(self, availableKeys):
-		return self.asSql(availableKeys)
-
-eqTest.setParseAction(lambda s, loc, toks: CondTest(*toks))
-
-
-class TwoFieldTest(CondTest):
-	"""is a test for operators requiring two input fields.
-
-	This typically is a BETWEEN or something like that.  We require
-	user cooperation to make that work, in that the htmlgen function
-	needs to produce xxx-lower and xxx-upper keys; the XXXrange functions
-	do this, and only they should be used with tests like this.
-
-	Maybe we should to a decorator based sanity checking here.
-	"""
-	def asSql(self, availableKeys):
-		lowerKey, upperKey = "%s-lower"%self.fieldBase, "%s-upper"%self.fieldBase
-		if lowerKey in availableKeys and upperKey in availableKeys:
-			return "%s BETWEEN %%(%s-lower)s AND %%(%s-upper)s"%(
-				self.colName, self.fieldBase, self.fieldBase)
-		elif lowerKey in availableKeys:
-			return "%s >= %%(%s-lower)s"%(self.colName, self.fieldBase)
-		elif upperKey in availableKeys:
-			return "%s <= %%(%s-upper)s"%(self.colName, self.fieldBase)
-		return ""
-
-	def getQueryInfo(self):
-		return {"%s-lower"%self.fieldBase: ('a',),
-			"%s-upper"%self.fieldBase: ('a',)}
-
-betweenTest.setParseAction(lambda s, loc, toks: TwoFieldTest(*toks))
-
-
-class PredefinedTest(CondTest):
-	"""is a test the SQL generation of which is done via querybuilders.
-
-	This currently is a test bed for a move of htmlgenfuncs to classes
-	that know how to produce their own SQL and stuff.
-
-	So, we don't really inherit from CondTest right now, but CondTest
-	should probably eventually move in the direction this class gives.
-	"""
-	def __init__(self, generationCode):
-		self.generator = eval(generationCode, htmlgenfuncs.__dict__)
-		self.children = [generationCode]
-	
-	def __repr__(self):
-		return "PredefinedTest(%s)"%self.children[0]
-
-	def setFieldBase(self, fieldBase):
-		pass  # this won't be necessary any more
-
-	def asHtml(self):
-		return self.generator()
-
-	def getQueryInfo(self):
-		return {}
-
-	def asSql(self, availableKeys):
-		return ""
-	
-	def asCondition(self, context):
-		return self.generator.asCondition(context)
-
-predefinedTest.setParseAction(lambda s, loc, toks: PredefinedTest(*toks))
 
 class Condition(ParseNode):
 	"""is a single condition for the query, consisting of a test and

@@ -99,7 +99,7 @@ class Context:
 		queries.
 
 		This is done by calling the handlers in _predefinedQueryHandlers.
-		These then change or add.  
+		These then change or add arguments.  
 		"""
 		for handler in _predefinedQueryHandlers:
 			handler(self)

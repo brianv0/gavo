@@ -1,29 +1,116 @@
 """
-This module contains html generator functions.
+This module contains condition generator classes.
 
-These functions generate the form items for HTML forms within the querulator.
-They are called from qusqlparse.CondText.asHtml, which in turn gets
-their names and arguments from {{...}}-fields within the query template.
+Instances of these classes know how to emit HTML for forms giving values
+to them and how to emit SQL for queries in which they participate.
+
+They will usually end up within the expression trees generated in
+sqlparse.
 """
 
+import gavo
 from gavo import sqlsupport
 
 
-def choice(choices, allowMulti=False, size=1):
+class ArgumentError(gavo.Error):
+	"""is raised when improper arguments are given to a CondGen constructor.
+	"""
+
+
+class CondGen:
+	"""is a condition generator.
+
+	Condition generators are instanciated with a varying number of arguments,
+	mostly by the SQL parser.  It is the responsibility of the parser to
+	make sure the arguments are "good".  
+	
+	The only argument strictly necessary is a "name".  This can be any string
+	(including the empty string).  It is used to identify the arguments
+	across a form->user->query cycle.  It is probably a good idea to keep
+	these names uniqe within a query, but this is left to the user.  Classes
+	that use these names directly should probably raise an Error on empty
+	names.
+
+	All classes derived from CondGen should add to the set expectedKeys
+	so that it reflects what 
+	"""
+	def __init__(self, name):
+		self.name = name
+		self.expectedKeys = set()
+
+	def _ensureNonEmptyName(self):
+		if not self.name:
+			raise ArgumentError("%s needs non-empty name"%self.__class__.__name__)
+
+	def getExpectedKeys(self):
+		return self.expectedKeys
+
+
+class OperatorCondGen(CondGen):
+	"""is a CondGen using some kind of operator.
+
+	It is not useful in itself (it's abstract, if you will).
+
+	This covers cases like foo in Bla, bar<Baz.
+
+	Classes deriving from this need not implement an asSql method but
+	just a _getSqlOperand method.  This should return a string for the
+	second operand.
+	"""
+	def __init__(self, name, sqlExpr, operator):
+		CondGen.__init__(self, name)
+		self.sqlExpr = sqlExpr
+		self.operator = operator
+
+	def asSql(self, context):
+		for key in self.expectedKeys:
+			if not key in availableKeys:
+				return ""
+		return "%s %s %s"%(self.sqlExpr, self.operator, 
+			self._getSqlOperand(context))
+
+	def _getSqlOperand(self, context):
+		return %%(%s)s"%self.name
+
+
+class Choice(OperatorCondGen):
 	"""returns a form element to choose from args.
 
-	choice is a sequence of 2-tuples of (value, title), where value is what the
-	form recipient gets and title is what the user sees.
+	If the operator is one accepting sets (like IN), you will be able
+	to select multiple items.
 
-	If allowMulti is True, 
+	Additional Arguments:
+	
+	* choices --a sequence of 2-tuples of (value, title), where value is 
+	  what the form recipient gets and title is what the user sees.
+	* size -- an int saying how many rows are visible.
 	"""
-	selOpt = " size='%d'"%size
-	if allowMulti:
-		selOpt += " multiple='yes'"
-	return '<select name="%%(fieldName)s" %s>\n%s\n</select>'%(
-		selOpt,
-		"\n".join(["<option value=%s>%s</option>"%(repr(val), opt) 
-			for opt, val in choices]))
+
+	setOperators = set(["in"])
+
+	def __init__(self, name, sqlExpr, operator, choices, size=1):
+		OperatorCondGen.__init__(self, name, sqlExpr, operator)
+		self.choices, self.size = choices, size
+		if self.operator in self.setOperators:
+			self.allowMulti = True
+		self._ensureNonEmptyName()
+		self.expectedKeys.add(self.name)
+
+	def asHtml(self):
+		selOpt = " size='%d'"%size
+		if self.allowMulti:
+			selOpt += " multiple='yes'"
+		return '<select name="%s" %s>\n%s\n</select>'%(
+			self.name,
+			selOpt,
+			"\n".join(["<option value=%s>%s</option>"%(repr(val), opt) 
+				for opt, val in choices]))
+
+	def _getSqlOperand(self, context):
+		if self.allowMulti:
+			return "(%%(%s)s)"%self.name
+		else:
+			return "%%(%s)s"%self.name
 
 
 def simpleChoice(*choices):
