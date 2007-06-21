@@ -141,14 +141,13 @@ class Formatter:
 
 
 def _doQuery(template, context):
-	sqlQuery = template.asSql(context)
-	if sqlQuery.strip().endswith("WHERE"):
+	sqlQuery, args = template.asSql(context)
+	if not args:
 		raise querulator.Error("No valid query parameter found.")
 
-	sys.stderr.write(">>>>> %s\n"%sqlQuery)
-	vals = template.getQueryArguments(context)
+	sys.stderr.write(">>>>> %s %s\n"%(sqlQuery, args))
 	querier = sqlsupport.SimpleQuerier()
-	return querier.query(sqlQuery, vals).fetchall()
+	return querier.query(sqlQuery, args).fetchall()
 
 
 def _formatAsVoTable(template, context, stream=False):
@@ -305,9 +304,9 @@ def _formatAsTarStream(template, context):
 	### the grammar (or do I just need to improve the grammar and
 	### feed in text?
 	querier = sqlsupport.SimpleQuerier()
+	query, args = template.asSql(context)
 	queryResult = querier.query("SELECT accessPath FROM products"
-			" WHERE key in (%s)"%template.asSql(context),
-		template.getQueryArguments(context)).fetchall()
+			" WHERE key in (%s)"%query, args).fetchall()
 	productCols = template.getProductCols()
 	productRoot = gavo.inputsDir
 	
@@ -331,10 +330,10 @@ def processQuery(template, context):
 	"""
 	if context.hasArgument("submit"):
 		return "text/html", _formatAsHtml(template, context), {}
-	elif context.hasArgument("votable"):
+	elif context.hasArgument("submit-votable"):
 		return "application/x-votable", _formatAsVoTable(template, context
 			), {"Content-disposition": 'attachment; filename="result.xml"'}
-	elif context.hasArgument("tar"):
+	elif context.hasArgument("submit-tar"):
 		return "application/tar", _formatAsTarStream(template, context), {
 			"Content-disposition": 'attachment; filename="result.tar"'}
 	raise querulator.Error("Invalid query.")

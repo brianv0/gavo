@@ -26,7 +26,7 @@ from pyparsing import Word, Literal, Optional, alphas, CaselessKeyword,\
 import pyparsing
 
 from gavo.web import querulator
-from gavo.web.querulator import htmlgenfuncs
+from gavo.web.querulator import condgens
 
 
 def _joinChildren(s, loc, toks):
@@ -51,6 +51,8 @@ literalSelect = CaselessKeyword("SELECT")
 literalWhere = CaselessKeyword("WHERE")
 literalFrom = CaselessKeyword("FROM")
 between = CaselessKeyword("BETWEEN")
+inOp = CaselessKeyword("IN")
+likeOp = CaselessKeyword("LIKE")
 andOp = CaselessKeyword("AND")
 orOp = CaselessKeyword("OR")
 
@@ -69,11 +71,10 @@ sqlId.setParseAction(_joinChildren)
 condTitle = SkipTo("|")
 pythonCode = SkipTo("}}")
 relation = (Literal("<=") | Literal(">=") | Literal(">") | Literal("<") 
-	| Literal("=") | CaselessKeyword("in") | CaselessKeyword("like"))
-eqTest = sqlId + relation + pythonCode
-betweenTest = sqlId + between + pythonCode
+	| Literal("=") | likeOp | inOp | between )
+sqlOpTest = sqlId + relation + pythonCode
 predefinedTest = pythonCode.copy()
-conditionDescription = condTitle + Suppress("|") + ( eqTest | betweenTest
+conditionDescription = condTitle + Suppress("|") + ( sqlOpTest 
 	| predefinedTest )
 processedCondition = (Suppress(fieldStart) + conditionDescription + 
 	Suppress(fieldEnd))
@@ -137,7 +138,10 @@ if False:
 	orOp.setDebug(True)
 
 
-processedCondition.setParseAction(condgens.buildCongen)
+predefinedTest.setParseAction(lambda s, loc, toks:
+	[("predefined", toks)])
+sqlOpTest.setParseAction(lambda s, loc, toks:
+	[("operator", toks)])
 
 
 class ParseNode:
@@ -147,7 +151,8 @@ class ParseNode:
 	 * __repr__
 	 * asHtml -- returns a string containing HTML for use in a form
 	   to set variables within the node
-	 * asSql -- returns a string containing an SQL query fragment
+	 * asSql -- returns a string containing an SQL query fragment and a
+	   dictionary with the values to fill in suitable for cursor.execute
 	 * getChildren -- returns a list of all children (either ParseNodes or
 	   string instances).
 	
@@ -186,9 +191,11 @@ class Condition(ParseNode):
 	"""is a single condition for the query, consisting of a test and
 	a description.
 	"""
-	def __init__(self, description, condTest):
-		self.description, self.condTest = description, condTest
-		self.condTest.setFieldBase(self.description.encode("hex"))
+	def __init__(self, description, testDescr):
+		cType, toks = testDescr
+		self.description = description
+		defaultBase = self.description.encode("hex")
+		self.condTest = condgens.makeCondGen(defaultBase, cType, toks)
 		self.children = [self.description, self.condTest]
 
 	def __repr__(self):
@@ -200,8 +207,8 @@ class Condition(ParseNode):
 			self.description,
 			self.condTest.asHtml())
 
-	def asSql(self, availableKeys):
-		return self.condTest.asSql(availableKeys)
+	def asSql(self, context):
+		return self.condTest.asSql(context)
 	
 processedCondition.setParseAction(lambda s, loc, toks: Condition(*toks))
 
@@ -220,8 +227,8 @@ class LiteralCondition(ParseNode):
 	def asHtml(self):
 		return ""
 	
-	def asSql(self, availableKeys):
-		return self.name+self.relation+self.value
+	def asSql(self, context):
+		return self.name+self.relation+self.value, {}
 
 literalCondition.setParseAction(lambda s, loc, toks: LiteralCondition(*toks))
 
@@ -271,13 +278,19 @@ class CExpression(ParseNode):
 		return '<div class="subExpr">%s</div>'%self._rebuildExpression(
 			parts,'<span class="junctor">%s</span>'%self.operator)
 
+	def _rebuildSQL(self, parts, joiner):
+		allArgs = {}
+		for args in [part[1] for part in parts]:
+			allArgs.update(args)
+		newExpr = self._rebuildExpression([part[0] for part in parts], joiner)
+		if self.operator=="OR":
+			newExpr = "(%s)"%newExpr
+		return newExpr, allArgs
+
 	def asSql(self, aks):
 		parts = [part for part in [o.asSql(aks) for o in self.operands]
-			if part]
-		template = "%s"
-		if self.operator=="OR":
-			template = "(%s)"
-		return template%self._rebuildExpression(parts, " %s "%self.operator)
+			if part[1]]
+		return self._rebuildSQL(parts, " %s "%self.operator)
 
 
 def buildExpression(args):
@@ -305,7 +318,7 @@ class SelectItems(ParseNode):
 		return ""
 	
 	def asSql(self):
-		return ", ".join([item.asSql() for item in self.children])
+		return ", ".join([item.asSql()[0] for item in self.children]), {}
 
 	def getItems(self):
 		return self.children
@@ -328,7 +341,7 @@ class SelectItem(ParseNode):
 		return ""
 	
 	def asSql(self):
-		return self.columnName
+		return self.columnName, {}
 
 	def getDef(self):
 		return {
@@ -355,9 +368,10 @@ class Query(ParseNode):
 	def asHtml(self):
 		return self.tests.asHtml()
 
-	def asSql(self, availableKeys):
-		return "SELECT %s FROM %s WHERE %s"%(self.qColumns.asSql(),
-			self.defaultTable, self.tests.asSql(availableKeys))
+	def asSql(self, context):
+		testSql, args = self.tests.asSql(context)
+		return "SELECT %s FROM %s WHERE %s"%(self.qColumns.asSql()[0],
+			self.defaultTable, testSql), args
 	
 	def getItemdefs(self):
 		return [col.getDef() for col in self.qColumns.getItems()]

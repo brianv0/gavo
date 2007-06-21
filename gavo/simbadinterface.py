@@ -230,6 +230,17 @@ class Sesame:
 			return newOb
 
 
+def getSimbadPositions(identifier):
+	"""returns ra and dec from Simbad for identifier.
+
+	It raises a KeyError if Simbad doesn't know identifier.
+	"""
+	data = Sesame().query(identifier)
+	if not data:
+		raise KeyError(identifier)
+	return float(data["RA"]), float(data["dec"])
+
+
 if __name__=="__main__":
 	s = Sesame(debug=True)
 	print s.query("SA109-")

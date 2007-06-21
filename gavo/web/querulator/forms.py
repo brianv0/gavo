@@ -29,29 +29,13 @@ import re
 import os
 
 from gavo import sqlsupport
-from gavo import coords
 from gavo.web import querulator
 from gavo.web.querulator import sqlparse
+from gavo.web.querulator import condgens
 
 
-def _buildConeSearchQuery(query, context):
-	"""adds a global conjunction to ensure all matches are within a cone.
-
-	This is supposed to implement the simple cone search spec of IVOA.
-	Trouble in the moment: We don't look at equinoxes. This could probably
-	be solved by storing equinox info in the context as necessary.
-	"""
-	if not context.checkArguments(["RA", "DEC", "SR"]):
-		return
-	c_x, c_y, c_z = coords.computeUnitSphereCoords(
-		float(context.getfirst("RA")), float(context.getfirst("DEC")))
-	query.addConjunction(sqlparse.LiteralCondition(
-		"sqrt((%f-c_x)^2+(%f-c_y)^2+(%f-c_z)^2)"%(c_x, c_y, c_z),
-		"<=", str(float(context.getfirst("SR"))/360)))
-
-
+# I doubt we want these.  Punt this at some point
 _querybuilders = [
-	_buildConeSearchQuery,
 ]
 
 
@@ -162,10 +146,13 @@ class Template:
 					lambda mat: formTemplate%self.query.asHtml(), self.rawText)))
 
 	def asSql(self, context):
+		"""returns a pair of query, arguments for the currenty query plus
+		any automatic queries and the values in context.
+		"""
 		query = self.query.copy()
 		for querybuilder in _querybuilders:
 			querybuilder(query, context)
-		return query.asSql(context.keys())
+		return query.asSql(context)
 
 	def getItemdefs(self):
 		return self.query.getItemdefs()
@@ -178,39 +165,21 @@ class Template:
 			for index, itemdef in enumerate(self.getItemdefs())
 				if itemdef["hint"]=="product"]
 	
-	def _getVarInfos(self):
-		varInfos = {}
-		for node in self.query:
-			try:
-				varInfos.update(node.getQueryInfo())
-			except AttributeError:
-				pass
-		return varInfos
-	
-	def getQueryArguments(self, context):
-		"""returns a dictionary suitable as argument for dbapi2 cursor.execute
-		from the values given in context.
-		"""
-		varInfos = self._getVarInfos()
-		valDict = {}
-		getterDict = {
-			'l': context.getlist,
-			'a': context.getfirst,
-		}
-		for key in context.keys():
-			if varInfos.has_key(key):
-				valDict[key] = getterDict[varInfos[key][0]](key)
-		return valDict
-	
 	def getHiddenForm(self, context):
 		"""returns an html form body setting all relevant query parameters
 		from context in hidden fields.
 
 		This can be used to reproduce queries with different meta parameters.
 		("this stuff as tar", "this stuff as votable").
+
+		As a special hack, query arguments with names starting with "submit"
+		will not be included.  This is done because we use these to
+		distinguish between various products.
 		"""
 		formItems = []
-		for name, value in self.getQueryArguments(context).iteritems():
+		for name, value in context.iteritems():
+			if name.startswith("submit"):
+				continue
 			if isinstance(value, list):
 				for item in value:
 					formItems.append('<input type="hidden" name="%s" value=%s>'%(
@@ -220,24 +189,16 @@ class Template:
 					name, repr(str(value))) )
 		return "\n".join(formItems)
 
-	def getProductSizes(self, form):
+	def getProductSizes(self, context):
 		"""returns the total size of all products.
 
-		This is a major hack -- we assume that, if there's a product
-		in the query, there's also an fsize field that gives the size
-		of the product.  This is what we sum and return.
-
-		To do this, we need to do major surgery on the query object.
-		It's one big pain in the neck.
-
-		We ought to figure out a better way to do this, but that would
-		probably require a much better description of the data set.
+		This, of course, will only work for tables actually implementing
+		the product interface (in this case, the fsize field is used).
 		"""
 		newquery = sqlparse.Query(sqlparse.selectItems.parseString(
 			"{{fsize||int}}")[0], self.query.defaultTable, self.query.tests)
 		querier = sqlsupport.SimpleQuerier()
-		res = querier.query(newquery.asSql(set(form.keys())), 
-			self.getQueryArguments(form))
+		res = querier.query(*newquery.asSql(context))
 		return sum([int(size[0]) for size in res.fetchall() if size[0]])
 	
 	def getConditionsAsText(self, context):
@@ -246,10 +207,9 @@ class Template:
 		I guess we should have methods rendering this at some point.
 		"""
 		condTexts = []
-		pars = self.getQueryArguments(context)
 		for node in self.query.getConditions():
-			if isinstance(node, sqlparse.CondTest):
-				tx = node.asCondition(context)%pars
+			if isinstance(node, condgens.CondGen):
+				tx = node.asCondition(context)
 				if tx:
 					condTexts.append(tx)
 		return condTexts
@@ -265,17 +225,19 @@ class Template:
 		self.query.setSelectItems(items)
 
 
-
 def getForm(template):
 	"""returns templateTxt with the a form for the sqlparse.Query
 	instance query filled in.
+
+	The submit buttons need names so we can later distinguish what
+	type of product was requested.  To avoid their inclusion into
+	the hidden forms used for resubmitting a query, these names all
+	have to start with "submit".  It's a hack, but I think it's not
+	a bad one.
 	"""
 	moreFormMaterial = []
-#	if template.getProductCols():
-#		moreFormMaterial.append(
-#			'\n<input type="submit" value="Products as tar" name="tar">\n')
-	moreFormMaterial.append(
-		'\n<input type="submit" value="Table as VOTable" name="votable">\n')
+	moreFormMaterial.append('\n<input type="submit" value="Table as VOTable"'
+		' name="submit-votable">\n')
 	formTemplate = ('\n<form class="querulator" method="post"'
 		' action="%(rootUrl)s/run/%(templatePath)s">\n'
 		'%%s'
