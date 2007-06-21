@@ -3,6 +3,7 @@ This module contains code to handle coordinate systems and transform
 between them.
 """
 
+import gavo
 from gavo import utils
 from math import sin, cos
 
@@ -58,9 +59,16 @@ def hourangleToDeg(hourAngle, sepChar=None):
 	'335.84708333'
 	>>> "%3.8f"%hourangleToDeg("22:23:23.3", ":")
 	'335.84708333'
+	>>> hourangleToDeg("junk")
+	Traceback (most recent call last):
+	Error: Invalid hourangle with sepchar None: 'junk'
 	"""
-	hours, minutes, seconds = hourAngle.split(sepChar)
-	timeSeconds = int(hours)*3600+int(minutes)*60+float(seconds)
+	try:
+		hours, minutes, seconds = hourAngle.split(sepChar)
+		timeSeconds = int(hours)*3600+int(minutes)*60+float(seconds)
+	except ValueError:
+		raise gavo.Error("Invalid hourangle with sepchar %s: %s"%(
+			repr(sepChar), repr(hourAngle)))
 	return timeSeconds/3600/24*360
 
 def dmsToDeg(dmsAngle, sepChar=" "):
@@ -73,6 +81,9 @@ def dmsToDeg(dmsAngle, sepChar=" "):
 	'45.51000000'
 	>>> "%3.8f"%dmsToDeg("-45 30 7.6")
 	'-45.50211111'
+	>>> dmsToDeg("junk")
+	Traceback (most recent call last):
+	Error: Invalid dms declination with sepchar ' ': 'junk'
 	"""
 	sign = 1
 	if dmsAngle.startswith("+"):
@@ -80,11 +91,15 @@ def dmsToDeg(dmsAngle, sepChar=" "):
 	elif dmsAngle.startswith("-"):
 		sign, dmsAngle = -1, dmsAngle[1:].strip()
 	try:
-		deg, min, sec = dmsAngle.split(sepChar)
-	except ValueError:  # only deg and min given
-		deg, min = dmsAngle.split(sepChar)
-		sec = 0
-	arcSecs = sign*(int(deg)*3600+float(min)*60+float(sec))
+		try:
+			deg, min, sec = dmsAngle.split(sepChar)
+		except ValueError:  # only deg and min given
+			deg, min = dmsAngle.split(sepChar)
+			sec = 0
+		arcSecs = sign*(int(deg)*3600+float(min)*60+float(sec))
+	except ValueError:
+		raise gavo.Error("Invalid dms declination with sepchar %s: %s"%(
+			repr(sepChar), repr(dmsAngle)))
 	return arcSecs/3600
 
 

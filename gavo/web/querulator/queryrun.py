@@ -339,6 +339,7 @@ def processQuery(template, context):
 			"Content-disposition": 'attachment; filename="result.tar"'}
 	raise querulator.Error("Invalid query.")
 
+
 def getProduct(context):
 	"""returns all data necessary to deliver one product to the user.
 	"""

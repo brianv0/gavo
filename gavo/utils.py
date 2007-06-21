@@ -373,12 +373,16 @@ class NameMap:
 	
 	def _parseSrc(self, src):
 		self.namesDict = {}
-		for ln in open(src).readlines():
-			if ln.startswith("#") or not ln.strip():
-				continue
-			ob, names = re.split("\t+", ln)
-			for name in names.lower().split():
-				self.namesDict[name.decode("quoted-printable")] = ob
+		try:
+			for ln in open(src).readlines():
+				if ln.startswith("#") or not ln.strip():
+					continue
+				ob, names = re.split("\t+", ln)
+				for name in names.lower().split():
+					self.namesDict[name.decode("quoted-printable")] = ob
+		except ValueError:
+			raise gavo.Error("Syntax error in %s: Line %s not understood."%(
+				src, repr(ln)))
 	
 	def resolve(self, name):
 		return self.namesDict[name.lower()]
