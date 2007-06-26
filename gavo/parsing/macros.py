@@ -51,6 +51,13 @@ class Macro(parsehelpers.RowFunction):
 
 	_changeRecord methods work through side effects (well, changing
 	the record...).  Any return values are discarded.
+
+	Macros should, as a rule, be None-clear, i.e. shouldn't crap out
+	on Nones as values (that can conceivably come from the grammar) but 
+	just "propagate" the None in an appropriate way.  If there's no
+	other way to cope, they should raise a gavo.Error and not let
+	other exceptions escape.  It is not the macro's job to validate
+	non-null constraints.
 	"""
 	def __call__(self, record):
 		self._changeRecord(record, **self._buildArgDict(record))
@@ -182,6 +189,9 @@ class ValueCatter(Macro):
 	"""is a macro that concatenates values from various rows and puts
 	the resulting value in destinationRow.
 
+	Null values are ignored.  If all source elements are None, the
+	destination will be None.
+
 	Construction Argument:
 	
 	* joiner -- a string used to glue the individual values together.  Optional,
@@ -211,9 +221,11 @@ class ValueCatter(Macro):
 		return [src.strip() for src in sources.split(",")]
 
 	def _changeRecord(self, record, destination, sources):
-		record[destination] = self.joiner.join(
-			[record[src] for src in self._parseSources(sources)
-				if record[src]!=None])
+		items = [record[src] for src in self._parseSources(sources)
+				if record[src]!=None]
+		record[destination] = None
+		if items:
+			record[destination] = self.joiner.join(items)
 
 
 class NullValuator(Macro):
@@ -326,8 +338,11 @@ class StringInterpolator(Macro):
 		return [src.strip() for src in sources.split(",")]
 
 	def _changeRecord(self, record, destination, format, sources):
-		record[destination] = format%tuple([record[src] 
-			for src in self._parseSources(sources)])
+		try:
+			record[destination] = format%tuple([record[src] 
+				for src in self._parseSources(sources)])
+		except (TypeError, ValueError), msg:
+			raise Error("interpolateStrings macro failure: %s"%msg)
 
 
 class ReSubstitutor(Macro):
@@ -358,7 +373,10 @@ class ReSubstitutor(Macro):
 		return "subsRe"
 	
 	def _changeRecord(self, record, destination, data, srcRe, destRe):
-		record[destination] = re.sub(srcRe, destRe, data)
+		if data==None:
+			record[destination] = None
+		else:
+			record[destination] = re.sub(srcRe, destRe, data)
 
 
 class ProductValueCollector(Macro):

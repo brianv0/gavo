@@ -201,10 +201,15 @@ class Condition(ParseNode):
 		return "<Condition '%s', %s>"%(self.description, repr(self.condTest))
 	
 	def asHtml(self, context):
+		subordinateHtml = self.condTest.asHtml(context)
+		if subordinateHtml==None:
+			return ""
+		if 'class="condition"' in subordinateHtml:
+			return subordinateHtml
 		return ('<div class="condition"><div class="clabel">%s</div> '
 			'<div class="quwidget">%s</div></div>')%(
 			self.description,
-			self.condTest.asHtml(context))
+			subordinateHtml)
 
 	def asSql(self, context):
 		return self.condTest.asSql(context)

@@ -8,7 +8,7 @@ import gavo
 from gavo import utils
 from gavo.parsing import grammar
 
-class Error(Exception):
+class Error(gavo.Error):
 	pass
 
 

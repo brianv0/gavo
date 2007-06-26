@@ -63,26 +63,33 @@ class Grammar(utils.Record):
 			row = self._getDocumentRow()
 			self.handleDocument(row)
 
-			for row in self._iterRows():
+			lines = self._iterRows()
+			# We use this funny loop to handle exceptions raised while the
+			# grammar matches a row in the exception handlers below (it would
+			# be hard to get an appropriate row count otherwise)
+			while 1:
 				try:
+					row = lines.next()
 					self.handleRow(row)
 					counter.hit()
-				except gavo.StopOperation:
-					raise
-				except KeyboardInterrupt:
+				except StopIteration:
+					break
+				except (gavo.StopOperation, KeyboardInterrupt):
 					raise
 				except gavo.InfoException, msg:
 					logger.info(msg)
 				except gavo.Error, msg:
-					logger.error(msg)
+					logger.error(str(msg)+" -- ignoring row %s"%row)
 					counter.hitBad()
 				except Exception, msg:
 					counter.hitBad()
 					if parsing.verbose:
 						import traceback
 						traceback.print_exc()
-					raise gavo.Error("Internal Error (%s, %s) -- run with -v to see traceback."%(
-						msg.__class__.__name__, str(msg)))
+					msg = ("Internal Error (%s, %s) -- run with -v to"
+						" see traceback."%(msg.__class__.__name__, str(msg)))
+					gavo.ui.displayError(msg)
+					raise gavo.Error()
 		finally:
 			getattr(self, "_cleanupParse", lambda: None)()
 			counter.close()

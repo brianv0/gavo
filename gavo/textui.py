@@ -38,7 +38,7 @@ class TextUi:
 		print msg
 	
 	def displayError(self, msg):
-		print "*** Nonfatal error:", msg
+		print "\n***\n*** Error: %s\n***"%msg
 
 	def getGoodBadCounter(self, title, updateInterval):
 		return _GoodBadCounter(title, updateInterval)
