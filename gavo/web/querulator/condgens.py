@@ -16,6 +16,7 @@ import compiler.pycodegen
 import gavo
 from gavo import sqlsupport
 from gavo import coords
+from gavo import utils
 from gavo.web import querulator
 
 
@@ -415,6 +416,8 @@ def buildConeSearchQuery(prefix, ra, dec, sr):
 
 	This does not have any idea of equinoxes and the like.  That would
 	have to be handled on a higher level.
+
+	ra, dec, and sr are all in decimal degrees.
 	"""
 	c_x, c_y, c_z = coords.computeUnitSphereCoords(float(ra), float(dec))
 	return ("sqrt((%%(%sc_x)s-c_x)^2+(%%(%sc_y)s-c_y)^2+"
@@ -423,14 +426,14 @@ def buildConeSearchQuery(prefix, ra, dec, sr):
 			"%sc_x"%prefix: c_x,
 			"%sc_y"%prefix: c_y,
 			"%sc_z"%prefix: c_z,
-			"%ssr"%prefix: sr}
+			"%ssr"%prefix: utils.degToRad(sr)}
 
 
 class SexagConeSearch(CondGen):
 	"""is a CondGen that does a cone search on sexagesimal coordinates.
 	
-	These assume the table supports the product interface, i.e., has c_x, c_y, c_z
-	field.
+	These assume the table supports the positions interface, i.e., 
+	has c_x, c_y, c_z fields.
 
 	Instead of coordinates, you can also give Simbad identifiers.
 
@@ -520,13 +523,25 @@ class FeedbackSearch(CondGen):
 					for name, type, info in self.fieldDefs
 				if name in fields]
 
-	def _getKeyFor(self, name, info):
-		"""returns a proper field name with info.
-
+	def _getTitleFor(self, name, info):
+		"""returns a proper field title for presentation purposes for the field
+		name with info (from fieldDefs)
+		
 		name and info are the first and third components of a fieldDef,
 		respectively.
 		"""
-		return "%s"%(info.get("tablehead") or name)
+		unitStr = info.get("unit")
+		if unitStr:
+			unitStr = " [%s]"%unitStr
+		else:
+			unitStr = ""
+		return "%s %s"%(info.get("tablehead") or name, unitStr)
+
+	def _getKeyFor(self, name):
+		"""returns a form key name for the field name
+
+		"""
+		return "%s%s"%(self.queryKey, name)
 
 	def _buildExpression(self):
 		"""returns an sqlparse.CExpression for the feedback query.
@@ -534,10 +549,11 @@ class FeedbackSearch(CondGen):
 		from gavo.web.querulator import sqlparse
 		children = []
 		for name, dbtype, info in self.fieldDefs:
-			title = self._getKeyFor(name, info)
+			title, key = self._getTitleFor(name, info), self._getKeyFor(name)
 			if dbtype=="real":
-				children.append(sqlparse.Condition(title, ("operator",
-					(name, "BETWEEN", "FloatFieldWithTolerance()"))))
+				children.append(sqlparse.Condition(title,
+					("operator",
+						(name, "BETWEEN", "FloatFieldWithTolerance()")), key))
 				children.append("AND")
 		self.expression = sqlparse.CExpression(*children[:-1])
 
@@ -550,7 +566,7 @@ class FeedbackSearch(CondGen):
 				{"val": context.get(self.queryKey)}).fetchall()[0]
 		localContext = {}
 		for (name, dbtype, info), value in zip(self.fieldDefs, qValues):
-			localContext[self._getKeyFor(name, info).encode("hex")] = value
+			localContext[self._getKeyFor(name)] = value
 		return localContext
 	
 	def asHtml(self, context):

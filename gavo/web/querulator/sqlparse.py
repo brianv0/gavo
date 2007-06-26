@@ -189,11 +189,22 @@ class ParseNode:
 class Condition(ParseNode):
 	"""is a single condition for the query, consisting of a test and
 	a description.
+
+	You can give a key which will be used as the base field name
+	in HTML forms.  The grammar currently doesn't allow this (it wouldn't
+	be hard to make it understand it, though), but it's useful when
+	using this from python code.
+
+	If you don't give a key, a hex encoding of description will be used
+	as base field name.
 	"""
-	def __init__(self, description, testDescr):
+	def __init__(self, description, testDescr, key=None):
 		cType, toks = testDescr
 		self.description = description
-		defaultBase = self.description.encode("hex")
+		if key==None:
+			defaultBase = self.description.encode("hex")
+		else:
+			defaultBase = key
 		self.condTest = condgens.makeCondGen(defaultBase, cType, toks)
 		self.children = [self.description, self.condTest]
 
@@ -201,6 +212,13 @@ class Condition(ParseNode):
 		return "<Condition '%s', %s>"%(self.description, repr(self.condTest))
 	
 	def asHtml(self, context):
+		"""returns html for the condition.
+
+		The HTML consists usually consists of the field title (the first
+		item in this Condition's {{...}} literal), except when the embedded
+		CondGen already returns such a label (which is identified by the
+		class="condition" literal -- we should come up with a better way...).
+		"""
 		subordinateHtml = self.condTest.asHtml(context)
 		if subordinateHtml==None:
 			return ""
@@ -278,7 +296,8 @@ class CExpression(ParseNode):
 			return joiner.join(parts)
 
 	def asHtml(self, context):
-		parts = [o.asHtml(context) for o in self.operands]
+		parts = [html for html in [o.asHtml(context) for o in self.operands]
+			if html]
 		return '<div class="subExpr">%s</div>'%self._rebuildExpression(
 			parts,'<span class="junctor">%s</span>'%self.operator)
 

@@ -5,7 +5,7 @@ between them.
 
 import gavo
 from gavo import utils
-from math import sin, cos
+from math import sin, cos, pi
 
 
 class CooSys:
