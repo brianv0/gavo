@@ -58,13 +58,13 @@ class FitsGrammar(grammar.Grammar):
 			f = open(fName)
 		header = fitstools.readPrimaryHeaderQuick(f)
 		f.close()
-		self.documentHandler(dict([(key, header[key]) 
+		self.handleDocument(dict([(key, header[key]) 
 			for key in header.ascardlist().keys()]))
 
 	def _parseSlow(self):
 		hdus = fitstools.openFits(self.getCurFileName())
 		header = hdus[int(self.get_hduIndex())].header
-		self.documentHandler(dict([(key, header[key]) 
+		self.handleDocument(dict([(key, header[key]) 
 			for key in header.ascardlist().keys()]))
 		hdus.close()
 	

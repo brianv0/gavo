@@ -1,6 +1,8 @@
 """ 
 This module contains code to handle context free (currently pyparsing)
 grammars for data parsing.
+
+CURRENTLY OUT OF ORDER
 """
 
 import re
@@ -11,7 +13,6 @@ from gavo.parsing import grammar
 
 class Error(Exception):
 	pass
-
 
 
 def flattenAndJoin(nestedStrings):
@@ -97,7 +98,6 @@ def fixIndentation(rawCode):
 	return "\n".join([ln[indentWidth:] for ln in lines])
 
 
-
 class CFGrammar(grammar.Grammar):
 	"""is a container for the Grammar of a source with semi-structured
 	Data.
@@ -138,24 +138,7 @@ class CFGrammar(grammar.Grammar):
 	def _parse(self, inputFile):
 		res = self.productions[self.get_documentProduction()].parseString(
 			inputFile.read())
-		if self.documentHandler:
-			self.documentHandler(dict(res.items()))
 	
-	def setRowHandler(self, callable):
-		"""causes callable to be called whenever a table line has been
-		parsed.
-
-		Callable has to accept a dictionary mapping the names of the 
-		nonterminals found to their expansions in the table line.
-		"""
-		grammar.Grammar.setRowHandler(self, callable)
-		self.productions[self.get_rowProduction()].setParseAction(
-			self._masqueradingRowHandler)
-
-	def _masqueradingRowHandler(self, s, l, toks):
-		self.rowHandler(dict([(key, flattenAndJoin(val))
-			for key, val in toks.items()]))
-
 
 def _test():
 	import doctest, cfgrammar

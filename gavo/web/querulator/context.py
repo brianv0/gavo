@@ -79,7 +79,9 @@ class Context:
 
 	def getfirst(self, name):
 		return self.arguments.get(name, [None])[0]
-	
+
+	get = getfirst
+
 	def getlist(self, name):
 		return self.arguments.get(name, [])
 

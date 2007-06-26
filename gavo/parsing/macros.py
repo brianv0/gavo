@@ -415,48 +415,8 @@ def compileMacro(name, code, fieldComputer):
 	exec(macCode)
 	return Newmacro(fieldComputer)
 
-getMacro = utils._buildClassResolver(Macro, globals().values())
+getMacro = utils.buildClassResolver(Macro, globals().values())
 
-
-def _makeDocs():
-	"""returns hopefully RST-formatted docs for the macros currently defined.
-	"""
-	def formatDocstring(docstring):
-		"""returns a docstring with a consistent indentation.
-
-		Rule (1): any whitespace in front of the first line is discarded.
-		Rule (2): if there is a second line, any whitespace at its front
-		  is the "governing whitespace"
-		Rule (3): any governing whitespace in front of the following lines
-		  is removed
-		Rule (4): All lines are indented by 2 blanks.
-		"""
-		lines = docstring.split("\n")
-		newLines = [lines.pop(0).lstrip()]
-		if lines:
-			whitespacePat = re.compile("^"+re.match(r"\s*", lines[0]).group())
-			for line in lines:
-				newLines.append(whitespacePat.sub("", line))
-		return "  "+("\n  ".join(newLines))
-
-	def formatDocs(docList):
-		docLines = []
-		for title, body in docList:
-			docLines.extend([title, "."*len(title), "", "::", "",
-				formatDocstring(body), ""])
-		docLines.append("\n.. END AUTO\n")
-		return "\n".join(docLines)
-
-	docs = []
-	for cls in globals().values():
-		try:
-			if issubclass(cls, Macro) and not cls is Macro:
-				docs.append((cls.getName(), cls.__doc__))
-		except TypeError:
-			pass
-	docs.sort()
-	print formatDocs(docs)
-	
 
 def _test():
 	import doctest, macros
@@ -466,6 +426,6 @@ def _test():
 if __name__=="__main__":	
 	import sys
 	if len(sys.argv)==2 and sys.argv[1]=="docs":
-		_makeDocs()
+		utils.makeClassDocs(Macro, globals().values())
 	else:
 		_test()

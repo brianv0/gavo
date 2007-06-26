@@ -26,6 +26,6 @@ def resolveTemplate(relpath):
 	return resolvePath(templateRoot, relpath)
 
 
-queryElementPat = re.compile(r"(?s)<\?query(.*?)\?>")
+queryElementPat = re.compile(r"(?s)<\?(\w*)query (.*?)\?>")
 metaElementPat = re.compile(r"(?s)<\?meta(.*?)\?>")
 macroPat = re.compile(r"(?s)<\?macro(.*?)\?>")

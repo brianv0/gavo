@@ -45,4 +45,4 @@ class RowExpander(RowProcessor):
 		return res
 
 
-getProcessor = utils._buildClassResolver(RowProcessor, globals().values())
+getProcessor = utils.buildClassResolver(RowProcessor, globals().values())

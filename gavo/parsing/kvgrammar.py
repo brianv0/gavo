@@ -37,7 +37,7 @@ class KeyValueGrammar(grammar.Grammar):
 			if rec.strip():
 				key, value = pairSplitter.match(rec).groups()
 				items[key.strip()] = value.strip()
-		self.documentHandler(items)
+		self.handleDocument(items)
 	
 	def setRowHandler(self, callable):
 		if callable:

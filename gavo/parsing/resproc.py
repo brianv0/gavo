@@ -174,4 +174,4 @@ class DatasetRemover(ResourceProcessor):
 		resource.removeDataset(id)
 
 
-getResproc = utils._buildClassResolver(ResourceProcessor, globals().values())
+getResproc = utils.buildClassResolver(ResourceProcessor, globals().values())

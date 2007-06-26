@@ -18,7 +18,7 @@ from gavo.web import querulator
 
 
 _resultsJs = """
-<script type="text/javascript">
+<script type="text/javascript" language="javascript">
 emptyImage = new Image();
 emptyImage.src = "%(staticURL)s/empty.png";
 
@@ -65,7 +65,6 @@ class Formatter:
 	def _htmlEscape(self, value):
 		return str(value).replace("&", "&amp;").replace("<", "&lt;")
 
-
 	def _cook_date(self, value):
 		"""(should check if value is a datetime instance...)
 		"""
@@ -97,6 +96,13 @@ class Formatter:
 			"%s/getproduct/%s?path=%s"%(querulator.rootURL, 
 			self.template.getPath(), urllib.quote(path)))
 
+	def _cook_feedback(self, key, targetTemplate=None):
+		if targetTemplate==None:
+			targetTemplate = self.template.getPath()
+		return urlparse.urljoin(querulator.serverURL,
+			"%s/query/%s?feedback=%s"%(querulator.rootURL, targetTemplate,
+				urllib.quote(key)))
+
 	def _product_to_html(self, args):
 		prodUrl, thumbUrl, title = args
 		return ('<a href="%s">%s</a><br>'
@@ -111,9 +117,13 @@ class Formatter:
 	def _product_to_votable(self, args):
 		return args[0]
 			
-	def _url_to_html(self, url):
-		return '<a href="%s">[%s]</a>'%(self._htmlEscape(url), 
-			self._htmlEscape(urlparse.urlparse(value)[1]))
+	def _url_to_html(self, url, title=None):
+		if title==None:
+			title = "[%s]"%self._htmlEscape(urlparse.urlparse(value)[1])
+		return '<a href="%s">%s</a>'%(self._htmlEscape(url), title)
+
+	def _feedback_to_html(self, url):
+		return self._url_to_html(url, "[Find similar]")
 
 	def _aladinquery_to_html(self, value):
 		aladinPrefix = ("http://aladin.u-strasbg.fr/java/nph-aladin.pl"
@@ -142,10 +152,10 @@ class Formatter:
 
 def _doQuery(template, context):
 	sqlQuery, args = template.asSql(context)
+	sys.stderr.write(">>>>> %s %s\n"%(sqlQuery, args))
 	if not args:
 		raise querulator.Error("No valid query parameter found.")
 
-	sys.stderr.write(">>>>> %s %s\n"%(sqlQuery, args))
 	querier = sqlsupport.SimpleQuerier()
 	return querier.query(sqlQuery, args).fetchall()
 

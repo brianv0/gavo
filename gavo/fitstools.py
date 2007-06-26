@@ -11,22 +11,10 @@ import re
 import pyfits
 
 import gavo
+from gavo import utils
 
 
 blockLen = 2880
-
-
-def _silent(fun, *args, **kwargs):
-	"""executes fun(*args, **kwargs) with stdout redirected to /dev/null.
-
-	We do this here to silence the silly prints from pyfits.
-	This would be a classic for context managers once we have python 2.5.
-	"""
-	realstdout = sys.stdout
-	sys.stdout = open("/dev/null", "w")
-	fun(*args, **kwargs)
-	sys.stdout.close()
-	sys.stdout = realstdout
 
 
 def readPrimaryHeaderQuick(f):
@@ -91,7 +79,7 @@ def writeGz(hdus, fitsName, compressLevel=5, mode=0664):
 	have to live with this kludge for a while.
 	"""
 	handle, pathname = tempfile.mkstemp(suffix="fits", dir=gavo.tempDir)
-	_silent(hdus.writeto, pathname, clobber=True)
+	utils.silence(hdus.writeto, pathname, clobber=True)
 	os.close(handle)
 	rawFitsData = open(pathname).read()
 	os.unlink(pathname)

@@ -68,12 +68,13 @@ class CondGen:
 
 
 class OperatorCondGen(CondGen):
-	"""is a CondGen using some kind of operator.
+	"""is a condition generator for a generic SQL operator with one
+	operand.
+	
+	It is not useful in itself (it's abstract, if you will), so don't
+	use it.
 
-	It is not useful in itself (it's abstract, if you will).
-
-	This covers cases like foo in Bla, bar<Baz.
-
+	(Technical information:)
 	The default implementation assumes you only have one key called
 	name.  If that is not true for your case, you need to override
 	at least _getSqlOperand and asCondition.
@@ -113,26 +114,41 @@ class OperatorCondGen(CondGen):
 
 
 class Choice(OperatorCondGen):
-	"""returns a form element to choose from args.
-
+	"""is a condition generator for multiple choice boxes.
+	
 	If the operator is one accepting sets (like IN), you will be able
 	to select multiple items.
 
-	Additional Arguments:
+	Arguments:
 	
 	* choices --a sequence of 2-tuples of (value, title), where value is 
 	  what the form recipient gets and title is what the user sees.
-	* size -- an int saying how many rows are visible.
+	* size -- an int saying how many rows are visible (optional).
+
+	Examples:
+
+	filter = Choice([("Filter 1", "Johnson U"), ("Filter 2", "Johnson B")])
+
+	  will create a pull-down box to select the two Johnson filters, and
+	  the DB will be queried for "Filter 1" if Johnson U is selected, and
+	  for "Filter 2" if Johnson B is selected.
+	
+	filter in Choice([("Filter 1", "Johnson U"), ("Filter 2", "Johnson B")], 
+	  size=2)
+
+	  is the same, only you'll be seeing both choices at the same time.
+		Additionally, since there's an "in" operator governing the condGen,
+		you can select both entries (which is an implicit "OR").
 	"""
 	def __init__(self, name, sqlExpr, operator, choices, size=1):
 		OperatorCondGen.__init__(self, name, sqlExpr, operator)
 		self.choices, self.size = choices, size
 		self.expectedKeys.add(self.name)
 
-	def asHtml(self):
+	def asHtml(self, context=None):
 		selOpt = " size='%d'"%self.size
 		if self.takesSets:
-			selOpt += " multiple='yes'"
+			selOpt += " multiple='multiple'"
 		formItem = '<select name="%s" %s>\n%s\n</select>'%(
 			self.name,
 			selOpt,
@@ -146,12 +162,44 @@ class Choice(OperatorCondGen):
 
 
 class SimpleChoice(Choice):
+	"""is a condition generator for simple choice boxes.
+	
+	Choice boxes are simple if (a) they're always "pull down", i.e., you'll
+	only see one entry and (b) what you select is what the db sees.
+
+	Argument:
+
+	* choice -- a sequence of items listed in the choice box
+
+	Example:
+
+	obsType = SimpleChoice(["SCIENCE", "CALIB", "BIAS", "FLAT"])
+	"""
 	def __init__(self, name, sqlExpr, operator, choices):
 		Choice.__init__(self, name, sqlExpr, operator,
 			[(choice, choice) for choice in choices])
 
 
 class ChoiceFromDb(Choice):
+	"""is a condition generator for building choice boxes from database
+	queries.
+	
+	If the operator before the ChoiceFromDb wants sets as the second
+	operand ("IN"), you will be able to select multiple items.
+
+	Arguments:
+
+	* query -- an SQL query the result rows of which make up the choices.
+	* prependAny -- prepends an "ANY" entry to the list of choices.  That
+	  is not strictly necessary because deselecting all entries would
+	  have the same effect, but it may be nice anyway (XXX doesn't quite
+	  work as expected right now) (optional, default False)
+	* size -- as for Choice
+
+	Example:
+
+	objects in ChoiceFromDb("select distinct objects from observations.frames")
+	"""
 	def __init__(self, name, sqlExpr, operator, query, 
 			prependAny=False, size=1):
 		Choice.__init__(self, name, sqlExpr, operator, self._buildChoices(
@@ -170,51 +218,141 @@ class ChoiceFromDb(Choice):
 
 
 class Date(OperatorCondGen):
-	def asHtml(self):
+	"""is a condition generator for dates.
+	
+	The main effect of using this rather than a StringField is that
+	you get a nice little help in the legend.
+
+	Date takes no arguments.
+
+	Example:
+
+	obsDate = Date()
+	"""
+	def asHtml(self, context=None):
 		return ('<input type="text" size="20" name="%s"> '
 			'<div class="legend">(YYYY-MM-DD)</div>')%self.name
 
 
 class StringField(OperatorCondGen):
-	def __init__(self, name, sqlExpr, operator, size=30):
-		self.size = size
+	"""is a condition generator for just any odd value.
+	
+	Use this if you have no reason to do otherwise.
+
+	Arguments:
+
+	* size -- the width of the field in chars (optional, default 30)
+	* doc -- stuff to put into legend (optional, default "")
+
+	Examples:
+
+	specType = StringField(size=4)
+
+	flag = StringField(size=1, doc="a for left, b for center, c for right")
+	"""
+	def __init__(self, name, sqlExpr, operator, size=30, doc=""):
+		self.size, self.doc = size, doc
 		OperatorCondGen.__init__(self, name, sqlExpr, operator)
 
-	def asHtml(self):
-		return '<input type="text" size="%d" name="%s">'%(self.size, self.name)
+	def asHtml(self, context=None):
+		return ('<input type="text" size="%d" name="%s">'
+			'<div class="legend">%s</div>')%(self.size, self.name, self.doc)
 
 
 class PatternField(StringField):
-	def asHtml(self):
+	"""is a StringField with built-in help for SQL patterns.
+	
+	Arguments:
+	
+	* size -- as for StringField
+	* doc -- is ignored
+
+	Example:
+
+	specType like PatternField(size=7)
+	"""
+	def asHtml(self, context=None):
 		return ('<input type="text" size="%d" name="%s">'
 			'<div class="legend">(_ for any char, %% for'
 			' any sequence of chars)</div>')%(self.size, self.name)
 
 
 class IntField(OperatorCondGen):
-	def asHtml(self):
+	"""is a condition generator for integer fields.
+	
+	IntFields have no arguments.
+
+	At some point, I might add input validation, so use this when you
+	actually expect ints.
+	"""
+	def asHtml(self, context=None):
 		return '<input type="text" size="5" name="%s">'%self.name
 
 
 class FloatField(OperatorCondGen):
+	"""is a condition generator for float fields.
+	
+	Argument:
+
+	* default -- an intial value to set into the field (optional, default "")
+
+	At some point, I might add input validation, so use this when you
+	actually expect floats.
+	"""
 	def __init__(self, name, sqlExpr, operator, default=""):
 		self.default = default
 		OperatorCondGen.__init__(self, name, sqlExpr, operator)
 	
-	def asHtml(self):
+	def asHtml(self, context={}):
 		return '<input type="text" size="10" name="%s" value="%s">'%(
-			self.name, self.default)
+			self.name, self.default or context.get(self.name) or "")
+
+
+class FloatFieldWithTolerance(OperatorCondGen):
+	"""is a condition generator for float fields having an adjustable
+	tolerance.
+	"""
+	def __init__(self, name, sqlExpr, operator):
+		assert(operator.lower, "between")
+		OperatorCondGen.__init__(self, name, sqlExpr, operator)
+		self.expectedKeys.add("%s-tolerance"%self.name)
+	
+	def asHtml(self, context):
+		default = context.get(self.name)
+		if default==None:
+			default = ""
+		return ('<input type="text" size="10" name="%s" value="%s">'
+			' &plusmn; <input type="text" size="5" name="%s-tolerance">')%(
+			self.name, default, self.name)
+
+	def asSql(self, context):
+		if not self._contextMatches(context):
+			return "", {}
+		mid = float(context.getfirst(self.name))
+		tolerance = float(context.getfirst("%s-tolerance"%self.name))
+		return "%s BETWEEN %%(%s)s AND %%(%s)s"%(self.sqlExpr,
+			"%s-lower"%self.name, "%s-upper"%self.name), {
+				"%s-lower"%self.name: mid-tolerance,
+				"%s-upper"%self.name: mid+tolerance,}
+	
+	def asCondition(self, context):
+		if not self._contextMatches(context):
+			return ""
+		return "%s=%s &plusmn; %s"%(self.sqlExpr, context.getfirst(self.name),
+			context.getfirst("%s-tolerance"%self.name))
 
 
 class BetweenCondGen(CondGen):
-	"""is a base for CodeGens that generate upper and lower bounds.
+	"""is a condition generator for generic ranges.
+	
+	In SQL, this becomes a BETWEEN expression if both upper and lower
+	bounds are given, falling back to simple comparsions otherwise.
 
-	Both upper and lower bounds are optional, the queries will fall
-	back to simple comparisons if one is empty.
+	BeetweenConds take no arguments.
 
-	This class currently only supports the BETWEEN operator.
+	Example:
 
-	This should work for any ranges of ints, floats, etc.
+	pm BETWEEN BetweenCondGen()
 	"""
 	def __init__(self, name, sqlExpr, operator):
 		CondGen.__init__(self, name)
@@ -242,7 +380,7 @@ class BetweenCondGen(CondGen):
 			qString = "%s <= %%(%s)s"%(self.sqlExpr, upperKey)
 		return qString, argDict
 
-	def asHtml(self):
+	def asHtml(self, context=None):
 		return ('<input type="text" size="10" name="%s-lower">'
 				' and <input type="text" size="10" name="%s-upper">'
 				'<div class="legend">Leave any empty for open range.</div>'%(
@@ -254,7 +392,15 @@ class BetweenCondGen(CondGen):
 
 
 class DateRange(BetweenCondGen):
-	def asHtml(self):
+	"""is a condition generator for date ranges.
+	
+	This currently is just a BetweenCondGen, with an amended legend.
+
+	Example:
+
+	date between DateRange()
+	"""
+	def asHtml(self, context=None):
 		return ('<input type="text" size="10" name="%s-lower">'
 			' and <input type="text" size="10" name="%s-upper">'
 			'<div class="legend">Leave any empty for open range.  Use'
@@ -282,13 +428,22 @@ def buildConeSearchQuery(prefix, ra, dec, sr):
 
 class SexagConeSearch(CondGen):
 	"""is a CondGen that does a cone search on sexagesimal coordinates.
+	
+	These assume the table supports the product interface, i.e., has c_x, c_y, c_z
+	field.
+
+	Instead of coordinates, you can also give Simbad identifiers.
+
+	Example:
+
+	SexagConeSearch() -- and that's the only way to use it.
 	"""
 	def __init__(self, name=""):
 		CondGen.__init__(self, name)
 		self.expectedKeys.add("%sSRminutes"%self.name)
 		self.expectedKeys.add("%ssexagMixedPos"%self.name)
 
-	def asHtml(self):
+	def asHtml(self, context=None):
 		return ('<input type="text" size="5" name="%sSRminutes" value="1">'
 			' arcminutes around<br>'
 			'<input type="text" size="30" name="%ssexagMixedPos">'
@@ -328,6 +483,92 @@ class SexagConeSearch(CondGen):
 		return buildConeSearchQuery(self.name, ra, dec, sr)
 
 
+class FeedbackSearch(CondGen):
+	"""is a CondGen that enables feedback fields.
+	
+	This is really only useful in connection with the feedback format
+	hint that produces links that define what we are to feedback on.
+
+	Arguments:
+
+	* tableName -- the table to query
+	* fields -- a sequence of field names to do feedback on (optional,
+	  defaults to all usable fields in the table).
+	* name -- a desambiguator if you want to provide more than one
+	  feedback query in one form (optional, defaults to "")
+
+	Examples:
+
+	localid=FeedbackSearch("cns4.data")
+
+	localid=FeedbackSearch("cns4.data", ["u_x", "u_y", "u_z"], "spacevel")
+	"""
+	def __init__(self, name, targetField, ignored, tableName, fields=None, 
+			prefix=""):
+		self.tableName = tableName
+		self.queryKey = "%sfeedback"%prefix
+		self.targetField = targetField
+		self._buildFields(fields)
+		self._buildExpression()
+
+	def _buildFields(self, fields):
+		self.fieldDefs = sqlsupport.MetaTableHandler(
+			).getFieldDefs(self.tableName)
+		if fields:
+			fields = set(fields)
+			self.fieldDefs = [(name, type, info) 
+					for name, type, info in self.fieldDefs
+				if name in fields]
+
+	def _getKeyFor(self, name, info):
+		"""returns a proper field name with info.
+
+		name and info are the first and third components of a fieldDef,
+		respectively.
+		"""
+		return "%s"%(info.get("tablehead") or name)
+
+	def _buildExpression(self):
+		"""returns an sqlparse.CExpression for the feedback query.
+		"""
+		from gavo.web.querulator import sqlparse
+		children = []
+		for name, dbtype, info in self.fieldDefs:
+			title = self._getKeyFor(name, info)
+			if dbtype=="real":
+				children.append(sqlparse.Condition(title, ("operator",
+					(name, "BETWEEN", "FloatFieldWithTolerance()"))))
+				children.append("AND")
+		self.expression = sqlparse.CExpression(*children[:-1])
+
+	def _getLocalContext(self, context):
+		querier = sqlsupport.SimpleQuerier()
+		selectItems = ", ".join([name for name, type, info in
+			self.fieldDefs])
+		qValues = querier.query("SELECT %s FROM %s WHERE"
+			" %s=%%(val)s"%(selectItems, self.tableName, self.targetField), 
+				{"val": context.get(self.queryKey)}).fetchall()[0]
+		localContext = {}
+		for (name, dbtype, info), value in zip(self.fieldDefs, qValues):
+			localContext[self._getKeyFor(name, info).encode("hex")] = value
+		return localContext
+	
+	def asHtml(self, context):
+		if self.queryKey in context:
+			try:
+				return '<div class="feedback">%s</div>'%(
+					self.expression.asHtml(self._getLocalContext(context)))
+			except IndexError:
+				raise querulator.Error("Could not use %s as specifier for feedback"
+					" query"%repr(context.get(self.queryKey)))
+	
+	def asSql(self, context):
+		return self.expression.asSql(context)
+
+
+import sys, traceback
+
+
 def makeCondGen(name, cType, toks):
 	"""generates a CondGen.
 
@@ -353,19 +594,28 @@ def makeCondGen(name, cType, toks):
 		funcNode = findFuncNode(pythonExpr)
 		funcNode.args[0:0] = additionalArgs
 		return pythonExpr
-	
-	if cType=="operator":
-		ast = getConstructionCode(toks[-1], [compiler.ast.Const(value=name),
-			compiler.ast.Const(value=toks[0]), compiler.ast.Const(value=toks[1])])
-	else:
-		ast = getConstructionCode(toks[-1], [compiler.ast.Const(name)])
-	ast.filename = "<Generated>"  # Silly fix for gotcha in compiler
-	gen = compiler.pycodegen.ExpressionCodeGenerator(ast)
-	return eval(gen.getCode())
+
+	try:
+		if cType=="operator":
+			ast = getConstructionCode(toks[-1], [compiler.ast.Const(value=name),
+				compiler.ast.Const(value=toks[0]), compiler.ast.Const(value=toks[1])])
+		else:
+			ast = getConstructionCode(toks[-1], [compiler.ast.Const(name)])
+		ast.filename = "<Generated>"  # Silly fix for gotcha in compiler
+		gen = compiler.pycodegen.ExpressionCodeGenerator(ast)
+		return eval(gen.getCode())
+	except:
+		# I'm spitting out something to sys.stderr since pyparsing will
+		# swallow this exception
+		sys.stderr.write("Exception happened during CondGen construction.\n")
+		sys.stderr.write("Pyparsing will swallow it, so you'll need to read it\n")
+		sys.stderr.write("here.")
+		traceback.print_exc()
+		raise
+
 
 
 if __name__=="__main__":
-	import operator
-	print makeCondGen("foo", "operator", ['targName', 'in',
-		'ChoiceFromDb("select distinct targName from sophie.data", size=6)'])
-
+	if len(sys.argv)==2 and sys.argv[1]=="docs":
+		from gavo.utils import makeClassDocs
+		makeClassDocs(CondGen, globals().values())

@@ -15,19 +15,18 @@ class ParseError(gavo.Error):
 class Grammar(utils.Record):
 	"""is an abstract grammar.
 
-	The grammar protocol is simple: You set a rowHandler and/or
-	documentHandler to a function accepting a dictionary mapping
+	The grammar protocol is simple: You add a rowHandler(s) and/or
+	documentHandler(s) to functions accepting a dictionary mapping
 	preterminal names to their values, and then you pass an open
 	file or a file name to parse.
 
 	Implementations of Grammars should not override any of the
 	public methods, but they may override the built-in _parse.
 	The _parse method of the implementation then has to arrange
-	it so that the documentHandler is called with the preterminal
-	values of the entire document in a dict, and the rowHandler
+	it so that the documentHandlers are called with the preterminal
+	values of the entire document in a dict, and the rowHandlers
 	with the preterminal values of each row, again in a dictionary.
-	The dicts map strings to strings.  Grammar classes have to be
-	able to cope with either of the handlers being None.
+	The dicts map strings to strings.
 
 	If they don't override the _parse method, they have to provide
 	methods 
@@ -59,21 +58,31 @@ class Grammar(utils.Record):
 
 	def _parse(self, inputFile):
 		getattr(self, "_setupParse", lambda: None)()
-		rowHandler = self.rowHandler or (lambda row: None)
 		counter = gavo.ui.getGoodBadCounter("Importing rows", 100)
 		try:
 			row = self._getDocumentRow()
-			self.documentHandler(row)
+			self.handleDocument(row)
 
 			for row in self._iterRows():
-				counter.hit()
 				try:
-					rowHandler(row)
+					self.handleRow(row)
+					counter.hit()
+				except gavo.StopOperation:
+					raise
+				except KeyboardInterrupt:
+					raise
 				except gavo.InfoException, msg:
 					logger.info(msg)
 				except gavo.Error, msg:
 					logger.error(msg)
 					counter.hitBad()
+				except Exception, msg:
+					counter.hitBad()
+					if parsing.verbose:
+						import traceback
+						traceback.print_exc()
+					raise gavo.Error("Internal Error (%s, %s) -- run with -v to see traceback."%(
+						msg.__class__.__name__, str(msg)))
 		finally:
 			getattr(self, "_cleanupParse", lambda: None)()
 			counter.close()
@@ -101,17 +110,8 @@ class Grammar(utils.Record):
 		respective production (not implemented yet).
 		"""
 		for row in self._runProcessors(rowdict, procType):
-			try:
-				self._expandMacros(rowdict, procType)
-				yield rowdict
-			except KeyboardInterrupt:
-				raise
-			except Exception, msg:
-				if parsing.verbose:
-					import traceback
-					traceback.print_exc()
-				raise gavo.Error("Invalid macro expansion (%s, %s) -- ignoring"%(
-					msg.__class__.__name__, str(msg)))
+			self._expandMacros(rowdict, procType)
+			yield rowdict
 
 
 	def parse(self, inputFile):
@@ -154,17 +154,16 @@ class Grammar(utils.Record):
 		"""
 		self.documentHandlers.append(callable)
 
-	def documentHandler(self, docdict):
+	def handleDocument(self, docdict):
 		"""should be called by derived classes whenever a new document
 		has been parsed.
 
 		The argument is a dict mapping preterminal names to their values.
 		"""
-		for processedDict in self._process(docdict, "doc"):
-			for handler in self.documentHandlers:
-				handler(processedDict)
+		for handler in self.documentHandlers:
+			handler(docdict)
 
-	def rowHandler(self, rowdict):
+	def handleRow(self, rowdict):
 		"""should be called by derived classes whenever a new row
 		has been parsed.
 

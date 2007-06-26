@@ -3,9 +3,7 @@ This module contains code to parse SQL templates for the querulator
 
 The fragment of SQL we understand is still quite small.
 
-Externally, you probably only want to see Query.
-
-Otherwise, all relevant parts of the query are parsed into classes that embed
+All relevant parts of the query are parsed into classes that embed
 one another and have asSql and asHtml methods.  Their constructors
 always take token lists generated from pyparsing, usually flattened into
 argument lists (i.e., *args).  Thus, their constructors are used as
@@ -21,10 +19,11 @@ import operator
 from pyparsing import Word, Literal, Optional, alphas, CaselessKeyword,\
 	ZeroOrMore, OneOrMore, SkipTo, srange, StringEnd, Or, MatchFirst,\
 	Suppress, Keyword, Forward, QuotedString, Group, printables, nums,\
-	CaselessLiteral
+	CaselessLiteral, ParseException
 
 import pyparsing
 
+from gavo import utils
 from gavo.web import querulator
 from gavo.web.querulator import condgens
 
@@ -201,11 +200,11 @@ class Condition(ParseNode):
 	def __repr__(self):
 		return "<Condition '%s', %s>"%(self.description, repr(self.condTest))
 	
-	def asHtml(self):
-		return ('<div class="condition"><div class="Clabel">%s</div> '
+	def asHtml(self, context):
+		return ('<div class="condition"><div class="clabel">%s</div> '
 			'<div class="quwidget">%s</div></div>')%(
 			self.description,
-			self.condTest.asHtml())
+			self.condTest.asHtml(context))
 
 	def asSql(self, context):
 		return self.condTest.asSql(context)
@@ -224,7 +223,7 @@ class LiteralCondition(ParseNode):
 	def __repr__(self):
 		return self.name+self.relation+self.value
 	
-	def asHtml(self):
+	def asHtml(self, context):
 		return ""
 	
 	def asSql(self, context):
@@ -273,8 +272,8 @@ class CExpression(ParseNode):
 		else:
 			return joiner.join(parts)
 
-	def asHtml(self):
-		parts = [o.asHtml() for o in self.operands]
+	def asHtml(self, context):
+		parts = [o.asHtml(context) for o in self.operands]
 		return '<div class="subExpr">%s</div>'%self._rebuildExpression(
 			parts,'<span class="junctor">%s</span>'%self.operator)
 
@@ -314,7 +313,7 @@ class SelectItems(ParseNode):
 	def __repr__(self):
 		return "<Items: %s>"%(", ".join([repr(item) for item in self.children]))
 	
-	def asHtml(self):
+	def asHtml(self, context):
 		return ""
 	
 	def asSql(self):
@@ -335,9 +334,9 @@ class SelectItem(ParseNode):
 		self.children = [self.columnName, self.columnTitle, self.displayHint]
 
 	def __repr__(self):
-		return self.columnName
+		return '"%s"'%self.columnName
 
-	def asHtml(self):
+	def asHtml(self, context):
 		return ""
 	
 	def asSql(self):
@@ -354,7 +353,7 @@ selectItem.setParseAction(lambda s, loc, toks: SelectItem(*toks))
 
 
 class Query(ParseNode):
-	"""is a container for all information pertaining to an SQL query.
+	"""is a parsed SQL statement.
 	"""
 	def __init__(self, qColumns, defaultTable, tests):
 		self.qColumns, self.defaultTable, self.tests = \
@@ -365,8 +364,8 @@ class Query(ParseNode):
 		return "<Query for %s, %s -- %s>"%(self.defaultTable, self.qColumns,
 			repr(self.tests))
 
-	def asHtml(self):
-		return self.tests.asHtml()
+	def asHtml(self, context):
+		return self.tests.asHtml(context)
 
 	def asSql(self, context):
 		testSql, args = self.tests.asSql(context)
@@ -420,8 +419,12 @@ class Query(ParseNode):
 simpleSql.setParseAction(lambda s, loc, toks: Query(*toks))
 
 
-def parse(sqlStatement):
-	return simpleSql.parseString(sqlStatement)[0]
+def parse(sqlStatement, production=simpleSql):
+	try:
+		return utils.silence(production.parseString, sqlStatement)[0]
+	except ParseException, msg:
+		raise querulator.Error("Parse error in SQL (line %s): %s"%(msg.line,
+			msg))
 
 
 if __name__=="__main__":

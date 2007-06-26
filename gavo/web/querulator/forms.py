@@ -80,8 +80,8 @@ class MacroHandler:
 		selectDict = {True: ' selected="selected"', False: ""}
 		queries = [(title, path, selectDict[path==curPath])
 			for title, path in queries]
-		return ('<script language="javascript">%s</script>\n'
-			'<form><select name="qselect" size="1" %s>%s</select></form>'%(
+		return ('<script type="text/javascript" language="javascript">%s</script>\n'
+			'<form action=""><select name="qselect" size="1" %s>%s</select></form>'%(
 			jsFun,
 			jsHack,
 			"\n".join(['<option value="%s"%s>%s</option>'%(path, isdefault, title)
@@ -94,26 +94,25 @@ class MacroHandler:
 class Template:
 	"""is a template with embedded configuration and SQL queries.
 	"""
-	def __init__(self, templatePath):
+	def __init__(self, templatePath, rawText):
 		self.path = templatePath
-		self.rawText = open(querulator.resolveTemplate(templatePath)).read()
+		self.rawText = rawText
 		self._parse()
 
-	def _parseMeta(self, rawMetas):
-		self.metaItems = dict([(key.strip(), value.strip())
-			for key, value in
-				[kv.split("=", 1) 
-					for kv in rawMetas.strip().split("\n")]])
-
-	def _parse(self):
-		self.query = sqlparse.simpleSql.parseString(
-			querulator.queryElementPat.search(
-				self.rawText).group(1))[0]
+	def _parseMeta(self):
+		self.metaItems = {}
 		mat = querulator.metaElementPat.search(self.rawText)
 		if mat:
-			self._parseMeta(mat.group(1))
-		else:
-			self.metaItems = {}
+			self.metaItems = dict([(key.strip(), value.strip())
+				for key, value in
+					[kv.split("=", 1) 
+						for kv in mat.group(1).strip().split("\n")]])
+
+	def _parse(self):
+		self.query = sqlparse.parse(
+			querulator.queryElementPat.search(
+				self.rawText).group(2))
+		self._parseMeta()
 	
 	def getPath(self):
 		return self.path
@@ -139,11 +138,11 @@ class Template:
 		return re.sub(querulator.macroPat, lambda mat, m=macroHandler: eval(
 			"m."+mat.group(1).strip()), rawTx)
 	
-	def asHtml(self, formTemplate):
+	def asHtml(self, formTemplate, context):
 		return self._handleMacros(
 			querulator.metaElementPat.sub("",
 				querulator.queryElementPat.sub(
-					lambda mat: formTemplate%self.query.asHtml(), self.rawText)))
+					lambda mat: formTemplate%self.query.asHtml(context), self.rawText)))
 
 	def asSql(self, context):
 		"""returns a pair of query, arguments for the currenty query plus
@@ -225,7 +224,18 @@ class Template:
 		self.query.setSelectItems(items)
 
 
-def getForm(template):
+def makeTemplate(templatePath):
+	"""returns a template instance for the template in templatePath.
+
+	This indirection is present because at some point we may want to
+	instanciate different kinds of templates, depending on, e.g.,
+	path, extension or content of the template.
+	"""
+	rawTxt = open(querulator.resolveTemplate(templatePath)).read()
+	return Template(templatePath, rawTxt)
+
+
+def getForm(template, context):
 	"""returns templateTxt with the a form for the sqlparse.Query
 	instance query filled in.
 
@@ -248,4 +258,4 @@ def getForm(template):
 			"rootUrl": querulator.rootURL,
 			"moreFormMaterial": "\n".join(moreFormMaterial),
 			}
-	return template.asHtml(formTemplate)
+	return template.asHtml(formTemplate, context)

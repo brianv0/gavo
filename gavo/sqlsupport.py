@@ -330,6 +330,7 @@ class SimpleQuerier(StandardQueryMixin):
 
 	def query(self, query, data={}):
 		import sys
+		sys.stderr.write(">>>>>>>>>>%s %s\n"%(query, data))
 		return self.runOneQuery(query, data)
 
 	def commit(self):
@@ -374,6 +375,7 @@ class ScriptRunner:
 	
 	def commit(self):
 		self.connection.commit()
+
 
 
 class MetaTableHandler:

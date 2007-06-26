@@ -194,7 +194,17 @@ class Record(object):
 		getattr(self, "set_"+key)(value)
 
 
-def _buildClassResolver(baseClass, objects):
+def _iterDerivedClasses(baseClass, objects):
+	"""iterates over all subclasses of baseClass in the sequence objects.
+	"""
+	for cand in objects:
+		try:
+			if issubclass(cand, baseClass) and cand is not baseClass:
+				yield cand
+		except TypeError:  # issubclass wants a class
+			pass
+
+def buildClassResolver(baseClass, objects):
 	"""returns a function resolving classes deriving from baseClass
 	in the sequence objects by their names.
 
@@ -204,15 +214,54 @@ def _buildClassResolver(baseClass, objects):
 	objects would usually be something like globals().values()
 	"""
 	registry = {}
-	for cand in objects:
-		try:
-			if issubclass(cand, baseClass) and cand is not baseClass:
-				registry[cand.getName()] = cand
-		except TypeError:  # issubclass wants a class
-			pass
+	for cls in _iterDerivedClasses(baseClass, objects):
+		registry[cls.getName()] = cls
 	def resolve(name, registry=registry):
 		return registry[name]
 	return resolve
+
+
+def makeClassDocs(baseClass, objects):
+	"""prints hopefully RST-formatted docs for all subclasses
+	of baseClass in objects.
+
+	objects would usually be something like globals().values().
+	"""
+	def formatDocstring(docstring):
+		"""returns a docstring with a consistent indentation.
+
+		Rule (1): any whitespace in front of the first line is discarded.
+		Rule (2): if there is a second line, any whitespace at its front
+		  is the "governing whitespace"
+		Rule (3): any governing whitespace in front of the following lines
+		  is removed
+		Rule (4): All lines are indented by 2 blanks.
+		"""
+		lines = docstring.split("\n")
+		newLines = [lines.pop(0).lstrip()]
+		if lines:
+			whitespacePat = re.compile("^"+re.match(r"\s*", lines[0]).group())
+			for line in lines:
+				newLines.append(whitespacePat.sub("", line))
+		return "  "+("\n  ".join(newLines))
+
+	def formatDocs(docList):
+		docLines = []
+		for title, body in docList:
+			docLines.extend([title, "."*len(title), "", "::", "",
+				formatDocstring(body), ""])
+		docLines.append("\n.. END AUTO\n")
+		return "\n".join(docLines)
+
+	docs = []
+	for cls in _iterDerivedClasses(baseClass, objects):
+		try:
+			title = cls.getName()
+		except AttributeError:
+			title = cls.__name__
+		docs.append((title, cls.__doc__))
+	docs.sort()
+	print formatDocs(docs)
 
 
 def fatalError(message, exc_info=True):
@@ -393,10 +442,29 @@ def degToRad(deg):
 	"""
 	return deg/360.*2*math.pi
 
+
 def radToDeg(rad):
 	"""returns the angle rad (in radians) in degrees.
 	"""
 	return rad/2./math.pi*360
+
+
+def silence(fun, *args, **kwargs):
+	"""executes fun(*args, **kwargs) with stdout redirected to /dev/null.
+
+	This would be a classic for context managers once we have python 2.5.
+
+	This is necessary to shut up silly output from libraries like pyparsing
+	and pyfits.
+	"""
+	realstdout = sys.stdout
+	sys.stdout = open("/dev/null", "w")
+	try:
+		res = fun(*args, **kwargs)
+	finally:
+		sys.stdout.close()
+		sys.stdout = realstdout
+	return res
 
 
 def _test():

@@ -56,7 +56,7 @@ def showAvailableQueries(context, subdir):
 
 
 def getProductObsoleteAndStinking(context, subPath):
-	template = forms.Template(subPath)
+	template = forms.makeTemplate(subPath)
 	form = cgi.FieldStorage()
 	path = querulator.resolvePath(
 		os.path.join(gavo.rootDir, template.getMeta("PRODUCT_ROOT")),
@@ -94,25 +94,27 @@ else:
 
 
 def getProductThumbnail(context, subPath):
-	template = forms.Template(subPath)
+	template = forms.makeTemplate(subPath)
 	form = cgi.FieldStorage()
 	path = querulator.resolvePath(
 		gavo.inputsDir, form.getfirst("path"))
-	return "image/jpg", _computeThumbnail(path), {}
+	return "image/jpeg", _computeThumbnail(path), {}
 
 
 def getForm(context, subPath):
-	template = forms.Template(subPath)
-	return "text/html", forms.getForm(template), {}
+	template = forms.makeTemplate(subPath)
+	return "text/html", forms.getForm(template, context), {}
 
 
 def processQuery(context, subPath):
-	template = forms.Template(subPath)
+	template = forms.makeTemplate(subPath)
 	return queryrun.processQuery(template, context)
 
 
 def _doErrorResponse(msg):
 	print "Content-type: text/html\n"
+	print ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"'
+			' "http://www.w3.org/TR/html4/loose.dtd">')
 	print "<head><title>Error</title></head>"
 	print "<body><h1>An error as occurred</h1>"
 	print "<p>We are sorry, but we cannot fulfil your request.  The"
@@ -133,12 +135,22 @@ _procConfig = {
 	"run": processQuery,
 }
 
-def _doHtmlResponse(contentType, content, moreHeaders={}):
+
+def _fixDoctype(aString):
+	"""adds a transitional html doctype if none is present.
+	"""
+	if not aString.startswith("<!DOCTYPE"):
+		aString = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"'
+			' "http://www.w3.org/TR/html4/loose.dtd">')+aString
+	return aString
+
+
+def _doHttpResponse(contentType, content, moreHeaders={}):
 	print "Content-type: %s"%contentType
-	try:
+	if contentType.startswith("text/html"):
+		content = _fixDoctype(content)
+	if isinstance(content, basestring):
 		print "Content-length: %d"%len(content)
-	except TypeError:
-		pass
 	print "Connection: close"
 	for key, value in moreHeaders.iteritems():
 		print "%s: %s"%(key, value)
@@ -160,7 +172,7 @@ def _checkForBlock():
 		if remoteAddr.startswith("127") or remoteAddr=="129.206.110.59":
 			return
 		sys.stderr.write("%s\n"%os.environ)
-		_doHtmlResponse("text/html", """<head><title>Down for
+		_doHttpResponse("text/html", """<head><title>Down for
 			maintainance</title></head><body><h1>Down for
 			maintainance</h1><p>Sorry -- we're down for maintainance.  If
 			this persists for longer than, say, an hour, please complain to
@@ -183,6 +195,6 @@ def main():
 	queryPath = "/".join(pathParts[1:])
 	try:
 		contentType, content, headers = func(qContext, queryPath)
-		_doHtmlResponse(contentType, content, headers)
+		_doHttpResponse(contentType, content, headers)
 	except querulator.Error, msg:
 		_doErrorResponse(msg)

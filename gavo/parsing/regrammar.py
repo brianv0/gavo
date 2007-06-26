@@ -243,7 +243,7 @@ class REGrammar(grammar.Grammar):
 		src = self.inputFile.read()
 		mat = self.documentRe.match(src)
 		self.tabularData = mat.group(self.get_tabularDataProduction())
-		return mat.groups()
+		return mat.groupdict()
 
 
 if __name__=="__main__":
