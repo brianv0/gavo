@@ -1,0 +1,80 @@
+body {
+	background: #DDDDFF;
+}
+
+div#querysel {
+	position:absolute;
+	top: 0%;
+	right: 0%;
+	background: #FFFFFF;
+	padding-right:5px;
+	padding-left:5px;
+}
+
+p.description {
+	font-size: 120%;
+	font-weight: bold;
+	background: #EEDDDD;
+}
+
+div.clabel {
+	font-weight: bold;
+	background: white;
+	width: 250px;
+	display: table-cell;
+	vertical-align:top;
+}
+
+div.legend {
+	padding: 2px;
+	display: table-cell;
+	vertical-align: bottom;
+	font-size:80%;
+	text-align:right;
+}
+
+div.quwidget {
+	display: table-row;
+	vertical-align:top;
+}
+
+div.condition {
+	padding: 10px;
+	display: table-row;
+}
+
+form.querulator {
+	border: 1px dotted black;
+	background: #EEEEFF;
+	padding:3px;
+}
+
+div.legal {
+	padding-top: 10px;
+	font-size: 72%;
+	max-width: 400px;
+}
+
+table.results {
+	background: white;
+}
+
+.results tr td {
+	padding-left: 2px;
+	padding-right: 2px;
+}
+
+.tarForm {
+	padding: 5px;
+}
+
+.resultMeta {
+	background: #EEEEFF;
+}
+
+pre.query {
+	margin-top: -2px;
+	padding-top: 0px;
+	overflow: auto;
+	width:800px;
+}

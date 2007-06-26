@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- This is a semantics fragment to amend the product table for sources
+that define products.
+
+It has to match the definition in products/products.vord 
+
+To use this, copy 
+
+	<!ENTITY producttable SYSTEM "producttable">
+	<!ENTITY prodtbl-sourcetable "XXX">
+
+into your internal subset, adapt XXX to the name of the table containing the
+product metadata, write &producttable; into the source table's Semantics element
+*above* the table that contains the product (or otherwise you can't insert the
+records because of a foreign key violation).  
+
+Then use the setProdtblValues macro to set the values required in the rowdict
+(prodtblKey, prodtblEmbargo, prodtblPath, prodtblOwner).  This could look like
+this:
+
+			<Macro name="setProdtblValues">
+				<arg name="prodtblKey" value="@inputRelativePath"/>
+				<arg name="prodtblOwner" value="apo"/>
+				<arg name="prodtblEmbargo" source="computedEmbargo"/>
+				<arg name="prodtblPath" value="@inputRelativePath"/>
+				<arg name="prodtblFsize" value="@inputSize"/>
+			</Macro>
+
+(you do not need prodtblFsize for the product table, but it's part of the
+product interface for tables, so you'll probably want it anyway).  You'll
+need to fix value or source to what your source gives.
+
+You'll probably also want to use productfields.template if you use this.
+
+If you have more than one table containing products in your source, this 
+evidently won't work and you'll have to write the table definitions yourself.
+-->
+
+			<SharedRecord table="products">
+				<owningCondition colName="sourceTable" value="&prodtbl-sourcetable;"/>
+
+				<Field dest="key" primary="True" source="prodtblKey"
+					dbtype="text"/>
+				<Field dest="owner" source="prodtblOwner" dbtype="text"/>
+				<Field dest="embargo" dbtype="date" source="prodtblEmbargo"/>
+				<Field dest="accessPath" source="prodtblPath" dbtype="text"/>
+				<Field dest="sourceTable" default="&prodtbl-sourcetable;" 
+					dbtype="text"/>
+			</SharedRecord>
