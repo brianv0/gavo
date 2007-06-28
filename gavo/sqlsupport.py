@@ -329,8 +329,6 @@ class SimpleQuerier(StandardQueryMixin):
 			client_encoding="utf-8")
 
 	def query(self, query, data={}):
-		import sys
-		sys.stderr.write(">>>>>>>>>>%s %s\n"%(query, data))
 		return self.runOneQuery(query, data)
 
 	def commit(self):

@@ -332,11 +332,20 @@ class SelectItems(ParseNode):
 	"""is a container for items in a select list.
 	"""
 	def __init__(self, *items):
-		self.children = items
+		self.children = list(items)
 	
 	def __repr__(self):
 		return "<Items: %s>"%(", ".join([repr(item) for item in self.children]))
-	
+
+	def __iter__(self):
+		return iter(self.children)
+
+	def __getitem__(self, index):
+		return self.children.__getitem__(index)
+
+	def append(self, item):
+		self.children.append(item)
+
 	def asHtml(self, context):
 		return ""
 	
@@ -351,24 +360,28 @@ selectItems.setParseAction(lambda s, loc, toks: SelectItems(*toks))
 
 class SelectItem(ParseNode):
 	"""is a model for an item in a select list.
+
+	columnTitle may be empty, the field should then be formatted
+	with data from the meta table.	as for displayHint, see
+	queryrun.Formatter.
 	"""
-	def __init__(self, columnName, columnTitle, displayHint):
-		self.columnName, self.columnTitle, self.displayHint = \
-			columnName, columnTitle, displayHint
-		self.children = [self.columnName, self.columnTitle, self.displayHint]
+	def __init__(self, sqlExpr, columnTitle, displayHint):
+		self.sqlExpr, self.columnTitle, self.displayHint = \
+			sqlExpr, columnTitle, displayHint
+		self.children = [self.sqlExpr, self.columnTitle, self.displayHint]
 
 	def __repr__(self):
-		return '"%s"'%self.columnName
+		return '"%s"'%self.sqlExpr
 
 	def asHtml(self, context):
 		return ""
 	
 	def asSql(self):
-		return self.columnName, {}
+		return self.sqlExpr, {}
 
 	def getDef(self):
 		return {
-			"name": self.columnName,
+			"name": self.sqlExpr,
 			"title": self.columnTitle,
 			"hint": self.displayHint,
 		}
@@ -379,13 +392,14 @@ selectItem.setParseAction(lambda s, loc, toks: SelectItem(*toks))
 class Query(ParseNode):
 	"""is a parsed SQL statement.
 	"""
-	def __init__(self, qColumns, defaultTable, tests):
-		self.qColumns, self.defaultTable, self.tests = \
-			qColumns, defaultTable, tests
-		self.children = [self.qColumns, self.defaultTable, self.tests]
+	def __init__(self, selectItems, defaultTable, tests):
+		self.selectItems, self.defaultTable, self.tests = \
+			selectItems, defaultTable, tests
+		self.children = [self.selectItems, self.defaultTable, self.tests]
+		self.colIndexCache = {}
 
 	def __repr__(self):
-		return "<Query for %s, %s -- %s>"%(self.defaultTable, self.qColumns,
+		return "<Query for %s, %s -- %s>"%(self.defaultTable, self.selectItems,
 			repr(self.tests))
 
 	def asHtml(self, context):
@@ -393,11 +407,11 @@ class Query(ParseNode):
 
 	def asSql(self, context):
 		testSql, args = self.tests.asSql(context)
-		return "SELECT %s FROM %s WHERE %s"%(self.qColumns.asSql()[0],
+		return "SELECT %s FROM %s WHERE %s"%(self.selectItems.asSql()[0],
 			self.defaultTable, testSql), args
 	
 	def getItemdefs(self):
-		return [col.getDef() for col in self.qColumns.getItems()]
+		return [col.getDef() for col in self.selectItems.getItems()]
 
 	def getDefaultTable(self):
 		"""returns the default table for resolving column names.
@@ -406,17 +420,60 @@ class Query(ParseNode):
 	
 	def getConditions(self):
 		return self.tests
-	
+
+	def getColIndexFor(self, colExpr):
+		"""returns the column index for the selectItem querying for colExpr.
+
+		Actually, we check against the sql expression, so if you're mad you
+		might even locate select fields with expressions using this.  At
+		any rate, the index you get back can be used to retrieve the value from
+		result rows.
+
+		The method returns None if no select item querying for colExpr
+		exists.  In most use cases that's more convenient than having to
+		handle an exception.
+		"""
+		try:
+			return self.colIndexCache[colExpr]
+		except KeyError:
+			for index, sI in enumerate(self.selectItems):
+				if colExpr==sI.sqlExpr:
+					self.colIndexCache[colExpr] = index
+					break
+			else:
+				self.colIndexCache[colExpr] = None
+		return self.colIndexCache[colExpr]
+
+	def getSelectItems(self):
+		return self.selectItems
+
 	def setSelectItems(self, items):
 		"""replaces the current query columns with items.
 
 		items may be a string that matches the selectItems production,
-		or it may be an object that does what we want from seletItems.
+		or it may be an object that does what we want from selectItems.
 		"""
 		if isinstance(items, basestring):
 			items = selectItems.parseString(items)[0]
-		self.qColumns = items
-		self.children[0] = self.qColumns
+		self.selectItems = items
+		self.children[0] = self.selectItems
+		self.colIndexCache = {}
+
+	def addSelectItem(self, item, force=False):
+		"""adds item to the list of select items.
+
+		item may be a string that matches the selectItem production,
+		or it may be an object that does what we want from a selectItem.
+
+		item will not be added if a field querying for the same thing is
+		already present in the selectItems unless you say force=True.
+		"""
+		if isinstance(item, basestring):
+			item = selectItem.parseString(item)[0]
+		if force or self.getColIndexFor(item.sqlExpr)==None:
+			self.selectItems.append(item)
+			if item.sqlExpr in self.colIndexCache:
+				del self.colIndexCache[item.sqlExpr]
 
 	def addConjunction(self, sqlCondition):
 		"""adds the sql search condition as an AND clause to the current Query.
@@ -434,11 +491,12 @@ class Query(ParseNode):
 		"""returns a semi-deep copy of the query.
 
 		Semi-deep is supposed to mean that shallow copies of tests and
-		qColumns are included; all other children are just references to
+		selectItems are included; all other children are just references to
 		the original.  The idea is that you probably want to add to tests
-		and qColumns but leave the rest of the query as it is.
+		and selectItems but leave the rest of the query as it is.
 		"""
-		return Query(self.qColumns.copy(), self.defaultTable, self.tests.copy())
+		return Query(self.selectItems.copy(), self.defaultTable, 
+			self.tests.copy())
 
 simpleSql.setParseAction(lambda s, loc, toks: Query(*toks))
 

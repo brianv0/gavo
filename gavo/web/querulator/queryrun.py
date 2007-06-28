@@ -4,6 +4,7 @@ querulator templates.
 """
 
 import os
+import re
 import sys
 import urllib
 import urlparse
@@ -57,65 +58,87 @@ class Formatter:
 
 	_xxx_to_fff brings a value with format hint xxx to format fff.
 
-	If a method is not defined, the value is not touched.
+	If any method does not exist, the value is not touched except for
+	suppressed hints and/or None values.
+
+	There is a special hint "suppressed" that makes any call to format
+	return None.  Formatter clients are supposed to ignore such fields,
+	whatever that may mean for the formatter.
+
+	This means that format may never return None for non-suppressed fields.
+	The format method substitutes any None by "N/A".
 	"""
-	def __init__(self, template):
+	def __init__(self, template, context):
 		self.template = template
+		self.context = context
 
 	def _htmlEscape(self, value):
 		return str(value).replace("&", "&amp;").replace("<", "&lt;")
 
-	def _cook_date(self, value):
+	def _cook_date(self, value, row):
 		"""(should check if value is a datetime instance...)
 		"""
 		return str(value).split()[0]
 
-	def _cook_juliandate(self, value):
+	def _cook_juliandate(self, value, row):
 		"""(should check if value really is mx.DateTime)
 		"""
 		return value.jdn
 
-	def _cook_product(self, path):
+	def _cook_product(self, path, row):
 		"""returns pieces to format a product URL.
 		
 		Specifically, it qualifies path to a complete URL for the product and
 		returns this together with a relative URL for a thumbnail and a
 		sufficiently sensible title.
 		"""
-		return urlparse.urljoin(querulator.serverURL,
+		owner, embargo = row[self.template.getColIndexFor("owner")
+			],row[self.template.getColIndexFor("embargo")]
+		if self.context.isAuthorizedProduct(embargo, owner):
+			productUrl = urlparse.urljoin(querulator.serverURL,
 			"%s/getproduct/%s?path=%s"%(querulator.rootURL, 
-			self.template.getPath(), urllib.quote(path))), \
+			self.template.getPath(), urllib.quote(path)))
+			title = os.path.basename(path)
+		else:
+			productUrl = None
+			title = "Embargoed through %s"%embargo.strftime("%Y-%m-%d")
+		return productUrl, \
 			"%s/thumbnail/%s?path=%s"%(querulator.rootURL, 
 			self.template.getPath(), urllib.quote(path)),\
-			os.path.basename(path)
+			title
 
-	def _cook_aladinload(self, path):
+	def _cook_aladinload(self, path, row):
 		"""wraps path into a URL that can be sent to aladin for loading the image.
 		"""
 		return urlparse.urljoin(querulator.serverURL,
 			"%s/getproduct/%s?path=%s"%(querulator.rootURL, 
 			self.template.getPath(), urllib.quote(path)))
 
-	def _cook_feedback(self, key, targetTemplate=None):
-		if targetTemplate==None:
-			targetTemplate = self.template.getPath()
+	def _cook_feedback(self, key, row):
+		targetTemplate = self.template.getPath()
 		return urlparse.urljoin(querulator.serverURL,
 			"%s/query/%s?feedback=%s"%(querulator.rootURL, targetTemplate,
 				urllib.quote(key)))
 
 	def _product_to_html(self, args):
 		prodUrl, thumbUrl, title = args
-		return ('<a href="%s">%s</a><br>'
-			'<a href="%s"  target="thumbs"'
-			' onMouseover="showThumbnail(\''
-			'%s\')" onMouseout="clearThumbnail()">'
-			'[preview]</a>')%(
-			prodUrl,
-			title,
-			thumbUrl, thumbUrl)
+		if prodUrl==None:
+			return title
+		else:
+			return ('<a href="%s">%s</a><br>'
+				'<a href="%s"  target="thumbs"'
+				' onMouseover="showThumbnail(\''
+				'%s\')" onMouseout="clearThumbnail()">'
+				'[preview]</a>')%(
+				prodUrl,
+				title,
+				thumbUrl, thumbUrl)
 
 	def _product_to_votable(self, args):
-		return args[0]
+		if args[0]==None:
+			return "Embargoed"
+		else:
+			return args[0]
 			
 	def _url_to_html(self, url, title=None):
 		if title==None:
@@ -143,16 +166,45 @@ class Formatter:
 	def _string_to_html(self, value):
 		return self._htmlEscape(value)
 
-	def format(self, hint, targetFormat, value):
-		cooker = getattr(self, "_cook_%s"%hint, lambda a: a)
+	def format(self, hint, targetFormat, value, row):
+		if hint=="suppressed":
+			return None
+		cooker = getattr(self, "_cook_%s"%hint, lambda a, row: a)
 		formatter = getattr(self, "_%s_to_%s"%(hint, targetFormat),
-			lambda a:a)
-		return formatter(cooker(value))
+			lambda *a: a[0])
+		res = formatter(cooker(value, row))
+		if res==None:
+			return "N/A"
+		return res
+
+
+class UniqueNameGenerator:
+	"""is a factory to build unique file names from possibly ambiguous ones.
+
+	If the lower case of a name is not known to an instance, it just returns
+	that name.  Otherwise, it disambiguates by adding characters in front
+	of the extension.
+	"""
+	def __init__(self):
+		self.knownNames = set()
+
+	def _buildNames(self, baseName):
+		base, ext = os.path.splitext(baseName)
+		yield baseName
+		i = 1
+		while True:
+			yield "%s-%03d%s"%(base, i, ext)
+			i += 1
+
+	def makeName(self, baseName):
+		for name in self._buildNames(baseName):
+			if name.lower() not in self.knownNames:
+				self.knownNames.add(name)
+				return name
 
 
 def _doQuery(template, context):
 	sqlQuery, args = template.asSql(context)
-	sys.stderr.write(">>>>> %s %s\n"%(sqlQuery, args))
 	if not args:
 		raise querulator.Error("No valid query parameter found.")
 
@@ -173,12 +225,12 @@ def _formatAsVoTable(template, context, stream=False):
 				itemdef["name"], defaultTableName))
 		except sqlsupport.FieldError:
 			colDesc.append({"fieldName": "ignore", "type": "text"})
-	formatter = Formatter(template)
+	formatter = Formatter(template, context)
 	hints = [itemdef["hint"] for itemdef in template.getItemdefs()]
 	rows = []
 	for row in queryResult:
 		rows.append([formatter.format(
-				hint, "votable", item)
+				hint, "votable", item, row)
 			for item, hint in zip(row, hints)])
 
 	if stream:
@@ -193,17 +245,50 @@ def _formatAsVoTable(template, context, stream=False):
 		return f.getvalue()
 
 
-def _getHeaderRow(template):
-	"""returns a header row for HTML table output.
+def _makeSortButton(fieldName, template, context):
+	"""returns a form asking for the content re-sorted to fieldName.
 	"""
-	res = ['<tr>']
+	# for now, only allow sorting on atomic values
+	if not re.match("\w+$", fieldName):
+		return "&nbsp;"
+	buttonTemplate = ('<img src="%s/%%(img)s" alt="%%(alt)s"'
+		' title="%%(title)s" class="sortButton">')%querulator.staticURL
+	if context.getfirst("sortby")==fieldName:
+		buttonImage = buttonTemplate%{"img": "sortedArrow.png", "alt": "V",
+			"title": "Sorted by %s"%fieldName.replace('"', '')}
+	else:
+		buttonImage = buttonTemplate%{"img": "toSortArrow.png", "alt": "v",
+			"title": "Sort by %s"%fieldName.replace('"', '')}
+	return ('<form action="%(rootUrl)s/run/%(tPath)s" method="post"'
+		' class="sortArrow">'
+		'%(hiddenform)s'
+		'<input type="hidden" name="sortby" value="%(keyname)s">'
+		'<button type="submit" name="submit" class="transparent" value="resort">'
+		'%(buttonImage)s</button>'
+		'</form>'
+	)%{
+		"rootUrl": querulator.rootURL,
+		"tPath": template.getPath(),
+		"hiddenform": template.getHiddenForm(context),
+		"keyname": urllib.quote(fieldName),
+		"buttonImage": buttonImage,
+	}
+
+
+def _getHeaderRow(template, context):
+	"""returns a header row and a row with sort buttons for HTML table output.
+	"""
+	plainHeader = ['<tr>']
+	sortLine = ['<tr>']
 	itemdefs = template.getItemdefs()
 	metaTable = sqlsupport.MetaTableHandler()
 	defaultTableName = template.getDefaultTable()
 	for itemdef in itemdefs:
+		if itemdef.get("hint")=="suppressed":
+			continue
 		additionalTag, additionalContent = "", ""
 		if itemdef["title"]:
-			title = itemdef["title"]
+			title =  itemdef["title"]
 		else:
 			fieldInfo = metaTable.getFieldInfo(itemdef["name"], defaultTableName)
 			title = fieldInfo["tablehead"]
@@ -211,9 +296,13 @@ def _getHeaderRow(template):
 				additionalTag += " title=%s"%repr(fieldInfo["description"])
 			if fieldInfo["unit"]:
 				additionalContent += "<br>[%s]</br>"%fieldInfo["unit"]
-		res.append("<th%s>%s%s</th>"%(additionalTag, title, additionalContent))
-	res.append("</tr>")
-	return res
+		plainHeader.append("<th%s>%s%s</th>"%(
+			additionalTag, title, additionalContent))
+		sortLine.append("<td>%s</td>"%(_makeSortButton(itemdef["name"], 
+			template, context)))
+	plainHeader.append("</tr>")
+	sortLine.append("</tr>")
+	return "".join(plainHeader), "".join(sortLine)
 
 
 def _formatSize(anInt):
@@ -228,46 +317,39 @@ def _formatSize(anInt):
 	return "%dG"%(anInt/1000000000)
 
 
+def _makeTarForm(template, context, queryResult):
+	"""returns html for a form to get products as tar.
+	"""
+	doc = []
+	if template.getProductCol()!=None:
+		doc.append('<form action="%s/run/%s" method="post" class="tarForm">\n'%(
+			querulator.rootURL, template.getPath()))
+		doc.append(template.getHiddenForm(context))
+		sizeEstimate = template.getProductsSize(queryResult, context)
+		if not sizeEstimate:
+			return ""
+		sizeEstimate = ' (approx. %s)'%_formatSize(sizeEstimate)
+		doc.append('<input type="submit" name="submit-tar" value="Get tar of '
+			' matched products%s">\n'%sizeEstimate)
+		doc.append('</form>')
+	return "\n".join(doc)
+
+
 def _formatAsHtml(template, context):
 	"""returns an HTML formatted table showing the result of a query for
 	template using the arguments specified in context.
 
 	TODO: Refactor, use to figure out a smart way to do templating.
 	"""
-	def makeTarForm(template):
-		doc = []
-		if template.getProductCols():
-			doc.append('<form action="%s/run/%s" method="post" class="tarForm">\n'%(
-				querulator.rootURL, template.getPath()))
-			doc.append(template.getHiddenForm(context))
-			try:
-				sizeEstimate = ' (approx. %s)'%_formatSize(
-					template.getProductSizes(context))
-			except sqlsupport.OperationalError:
-				sizeEstimate = ""
-			doc.append('<input type="submit" name="submit-tar" value="Get tar of '
-				' matched products%s">\n'%sizeEstimate)
-			doc.append('</form>')
-		return "\n".join(doc)
-
-	if template.getProductCols():
-		# if there's a product col, we assume the table supports the product
-		# interface.
-		if context.loggedUser:
-			template.addConjunction(
-				"embargo<=current_date OR owner='%s'"%context.loggedUser)
-		else:
-			template.addConjunction("embargo<=current_date AND")
-
 	queryResult = _doQuery(template, context)
-	tarForm = makeTarForm(template)
-	headerRow = _getHeaderRow(template)
+	numberMatched = len(queryResult)
+	tarForm = _makeTarForm(template, context, queryResult)
+	headerRow, sortButtons = _getHeaderRow(template, context)
 	doc = ["<head><title>Result of your query</title>",
 		_resultsJs,
 		'<link rel="stylesheet" type="text/css"'
 			'href="%s/querulator.css">'%querulator.staticURL,
 		"</head><body><h1>Result of your query</h1>", _thumbTarget]
-	numberMatched = len(queryResult)
 	doc.append('<div class="resultMeta">')
 	if numberMatched:
 		doc.append('<p>Selected items: %d</p>'%numberMatched)
@@ -283,14 +365,15 @@ def _formatAsHtml(template, context):
 	if numberMatched>20:
 		doc.append(tarForm)
 	doc.append('<table border="1" class="results">')
+	doc.append(sortButtons)
 	hints = [itemdef["hint"] for itemdef in template.getItemdefs()]
-	formatter = Formatter(template)
+	formatter = Formatter(template, context)
 	for count, row in enumerate(queryResult):
 		if not count%20:
-			doc.extend(headerRow)
+			doc.append(headerRow)
 		doc.append("<tr>%s</tr>"%("".join(["<td>%s</td>"%formatter.format(
-				hint, "html", item)
-			for item, hint in zip(row, hints)])))
+				hint, "html", item, row)
+			for item, hint in zip(row, hints) if hint!="suppressed"])))
 	doc.append("</table>\n")
 	doc.append(tarForm)
 	doc.append("</body>")
@@ -304,29 +387,52 @@ def _formatAsTarStream(template, context):
 	This assumes that the query supports the "product interface", i.e.,
 	has columns owner and embargo.
 	"""
-	if context.loggedUser:
-		template.addConjunction(
-			"embargo<=current_date OR owner='%s'"%context.loggedUser)
-	else:
-		template.addConjunction("embargo<=current_date")
-	template.setSelectItems("{{datapath||product}}")
-	### Ugly ugly ugly -- I really need a good interface to
-	### the grammar (or do I just need to improve the grammar and
-	### feed in text?)
-	querier = sqlsupport.SimpleQuerier()
-	query, args = template.asSql(context)
-	queryResult = querier.query("SELECT accessPath FROM products"
-			" WHERE key in (%s)"%query, args).fetchall()
-	productCols = template.getProductCols()
-	productRoot = gavo.inputsDir
-	
+	def getProducts(template, context):
+		"""returns a list of (productKey, targetName) tuples.
+		"""
+		queryResult = _doQuery(template, context)
+		ownerCol, embargoCol = template.getColIndexFor("owner"
+			), template.getColIndexFor("embargo")
+		productCol = template.getProductCol()
+		productKeys = []
+		nameGen = UniqueNameGenerator()
+		for row in queryResult:
+			if context.isAuthorizedProduct(row[embargoCol], row[ownerCol]):
+				productKeys.append((row[productCol], 
+					nameGen.makeName(os.path.basename(row[productCol]))))
+			else:
+				productKeys.append((None,
+					nameGen.makeName(os.path.basename(row[productCol]))))
+		return productKeys
+
+	def resolveProductKeys(productKeys):
+		"""resolves product keys to file names in the (productKey, targetName) list
+		productKeys.
+		"""
+		foundKeys = [key for key, name in productKeys if key!=None]
+		querier = sqlsupport.SimpleQuerier()
+		keyResolver = dict(querier.query("SELECT key, accessPath FROM"
+			" products WHERE key in %(keys)s", {"keys": foundKeys}).fetchall())
+		return [(keyResolver[key], name) for key, name in productKeys]
+
+	def getEmbargoedFile(name):
+		"""returns a tarInfo for an embargoed file.
+		"""
+		b = TarInfo(name)
+		stuff = cStringIO.StringIO("This file is embargoed.  Sorry.")
+		return b, stuff
+
+	tarContent = resolveProductKeys(
+		getProducts(template, context))
+
 	def produceOutput(outputFile):
 		outputTar = tarfile.TarFile("results.tar", "w", outputFile)
-		for rowInd, row in enumerate(queryResult):
-			for colInd in productCols:
-				path = querulator.resolvePath(productRoot, row[colInd])
-				outputTar.add(path, "%d%04d_%s"%(colInd, 
-					rowInd, os.path.basename(path)))
+		for srcPath, name in tarContent:
+			if srcPath!=None:
+				path = os.path.join(gavo.inputsDir, srcPath)
+				outputTar.add(path, name)
+			else:
+				outputTar.addfile(*getEmbargoedFile(name))
 		outputTar.close()
 
 	return produceOutput
@@ -360,7 +466,7 @@ def getProduct(context):
 		raise querulator.Error("No product %s known -- you're not guessing,"
 			" are you?"%prodKey)
 	owner, embargo, accessPath = matches[0]
-	if embargo>DateTime.today() and owner!=context.loggedUser:
+	if not context.isAuthorizedProduct(embargo, owner):
 		raise querulator.Error("The product %s still is under embargo.  The "
 			" embargo will be lifted on %s"%(prodKey, embargo))
 	return "image/fits", open(os.path.join(

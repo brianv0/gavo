@@ -167,8 +167,9 @@ class Grammar(utils.Record):
 
 		The argument is a dict mapping preterminal names to their values.
 		"""
-		for handler in self.documentHandlers:
-			handler(docdict)
+		for processedDict in self._process(docdict, "doc"):
+			for handler in self.documentHandlers:
+				handler(docdict)
 
 	def handleRow(self, rowdict):
 		"""should be called by derived classes whenever a new row

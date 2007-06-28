@@ -2,6 +2,22 @@ body {
 	background: #DDDDFF;
 }
 
+th {
+	vertical-align: top;
+}
+
+
+form.sortArrow {
+	text-align:center;
+}
+
+button.transparent {
+	background: white;
+	display:inline;
+	border-style:None;
+}
+
+
 div#querysel {
 	position:absolute;
 	top: 0%;

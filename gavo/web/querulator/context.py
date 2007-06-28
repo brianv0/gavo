@@ -15,6 +15,8 @@ import re
 import os
 import sys
 
+from mx import DateTime
+
 from gavo.web import querulator
 
 
@@ -87,3 +89,10 @@ class Context:
 
 	def getUser(self):
 		return self.loggedUser
+	
+	def isAuthorizedProduct(self, embargo, owner):
+		"""returns true if a product with owner and embargo may currently be
+		accessed.
+		"""
+		return (embargo<DateTime.today() or owner==self.getUser())
+
