@@ -23,16 +23,15 @@ import re
 
 import gavo
 from gavo import logger
-try:
-	import pyhtm
-except ImportError:
-	logger.warning("Pyhtm module not found, coordinate conversion macros"
-		" will not work.")
 from gavo import utils
 from gavo import coords
 from gavo.parsing import parsehelpers
 from gavo.parsing import resource
 
+supportHtm = False
+
+if supportHtm:
+	import pyhtm
 
 class Error(gavo.Error):
 	pass
@@ -65,7 +64,7 @@ class Macro(parsehelpers.RowFunction):
 
 class EquatorialPositionConverter(Macro):
 	"""is a macro that compute several derived quantities from 
-	sexagesimal equatorial coordinates.
+	literal equatorial coordinates.
 
 	Specifically, it generates alphaFloat, deltaFloat as well as
 	c_x, c_y, c_z (cartesian coordinates of the intersection of the 
@@ -74,13 +73,22 @@ class EquatorialPositionConverter(Macro):
 
 	TODO: Equinox handling (this will probably be handled through an
 	optional arguments srcEquinox and destEquinox, both J2000.0 by default).
+	
+	Constructor arguments:
+
+	* raFormat -- the literal format of Right Ascension.  By default,
+	  a sexagesimal hour angle is expected.  Supported formats include
+		mas (hour angle in milliarcsecs), ...
+	* decFormat -- as raFormat, only the default is sexagesimal angle.
+	* sepChar (optional) -- seperator for alpha, defaults to whitespace
+	
+	If alpha and delta use different seperators, you'll have to fix
+	this using preprocessing macros.
 
 	Arguments: 
 	 
-	 * alpha -- sexagesimal right ascension as hour angle
-	 * delta -- sexagesimal declination as dms
-	 * alphaSepChar (optional) -- seperator for alpha, defaults to whitespace
-	 * deltaSepChar (optional) -- seperator for delta, defaults to whitespace
+	* alpha -- sexagesimal right ascension as hour angle
+	* delta -- sexagesimal declination as dms
 
 	The field structure generated here is reflected in 
 	__common__/positionfields.template.  If you change anything here,
@@ -88,40 +96,62 @@ class EquatorialPositionConverter(Macro):
 
 	>>> m = EquatorialPositionConverter(None, [("alpha", "alphaRaw", ""),
 	... ("delta", "deltaRaw", "")])
-	>>> r = {"alphaRaw": "00 02 32", "deltaRaw": "+45 30.6"}
+	>>> r = {"alphaRaw": "00 02 32", "deltaRaw": "+45 30.6"} 
 	>>> m(r)
 	>>> str(r["alphaFloat"]), str(r["deltaFloat"]), str(r["c_x"]), str(r["c_y"])
 	('0.633333333333', '45.51', '0.700741955529', '0.00774614323406')
 	>>> m = EquatorialPositionConverter(None, [("alpha", "alphaRaw", ""),
-	... ("delta", "deltaRaw", ""), ("alphaSepChar", "", "-"), 
-	... ("deltaSepChar", "", ":")])
-	>>> r = {"alphaRaw": "10-37-19.544070", "deltaRaw": "+35:34:20.45713"}
-	>>> m(r)
+	... ("delta", "deltaRaw", ""),], sepChar=":")
+	>>> r = {"alphaRaw": "10:37:19.544070", "deltaRaw": "+35:34:20.45713"}; m(r)
 	>>> str(r["alphaFloat"]), str(r["deltaFloat"]), str(r["c_z"])
 	('159.331433625', '35.5723492028', '0.581730502028')
-	>>> r = {"alphaRaw": "4-38-54", "deltaRaw": "-12:7.4"}
-	>>> m(r)
+	>>> r = {"alphaRaw": "4:38:54", "deltaRaw": "-12:7.4"}; m(r)
 	>>> str(r["alphaFloat"]), str(r["deltaFloat"])
 	('69.725', '-12.1233333333')
+	>>> m = EquatorialPositionConverter(None, [("alpha", "alphaRaw", ""), 
+	... ("delta", "deltaRaw", "")], alphaFormat="mas", deltaFormat="mas")
+	>>> r = {"alphaRaw": "5457266", "deltaRaw": "-184213905"}; m(r)
+	>>> str(r["alphaFloat"]), str(r["deltaFloat"])
+	('1.51590722222', '-51.1705291667')
 	"""
+	def __init__(self, fieldComputer, argTuples=[], alphaFormat="hour", 
+			deltaFormat="sexag", sepChar=None, *args, **kwargs):
+		self.alphaFormat, self.deltaFormat = alphaFormat, deltaFormat
+		self.sepChar = sepChar
+		Macro.__init__(self, fieldComputer, argTuples, *args, **kwargs)
+		self.coordComputer = {
+			"hour": self._hourangleToDeg,
+			"sexag": self._dmsToDeg,
+			"mas": lambda mas: float(mas)/3.6e6,
+		}
+
 	@staticmethod
 	def getName():
 		return "handleEquatorialPosition"
 
-	def _changeRecord(self, record, alpha, delta, alphaSepChar=None, 
-			deltaSepChar=None):
+	def _changeRecord(self, record, alpha, delta):
 		alphaFloat, deltaFloat, c_x, c_y, c_z = self._computeCoos(
-			alpha, delta, alphaSepChar, deltaSepChar)
+			alpha, delta)
 		record["alphaFloat"] = alphaFloat
 		record["deltaFloat"] = deltaFloat
 		record["c_x"] = c_x
 		record["c_y"] = c_y
 		record["c_z"] = c_z
-		record["htmid"] = pyhtm.lookup(alphaFloat, deltaFloat)
+		if supportHtm:
+			record["htmid"] = pyhtm.lookup(alphaFloat, deltaFloat)
 
-	def _computeCoos(self, alpha, delta, alphaSepChar, deltaSepChar):
-		alphaFloat = coords.hourangleToDeg(alpha, alphaSepChar)
-		deltaFloat = coords.dmsToDeg(delta, deltaSepChar)
+	def _hourangleToDeg(self, literal):
+		return coords.hourangleToDeg(literal, self.sepChar)
+
+	def _dmsToDeg(self, literal):
+		return coords.dmsToDeg(literal, self.sepChar)
+
+	def _convertCoo(self, literalForm, literal):
+		return self.coordComputer[literalForm](literal)
+
+	def _computeCoos(self, alpha, delta):
+		alphaFloat = self._convertCoo(self.alphaFormat, alpha)
+		deltaFloat = self._convertCoo(self.deltaFormat, delta)
 		return (alphaFloat, deltaFloat)+coords.computeUnitSphereCoords(
 			alphaFloat, deltaFloat)
 

@@ -24,6 +24,7 @@ from gavo.parsing import typeconversion
 from gavo.parsing import parsehelpers
 from gavo.parsing.cfgrammar import CFGrammar
 from gavo.parsing.regrammar import REGrammar
+from gavo.parsing.columngrammar import ColumnGrammar
 from gavo.parsing.kvgrammar import KeyValueGrammar
 from gavo.parsing.nullgrammar import NullGrammar
 from gavo.parsing.fitsgrammar import FitsGrammar
@@ -223,6 +224,8 @@ class DataDescriptor(utils.Record):
 			                # for single-file sources
 			"sourcePat": None, # resdir-relative shell pattern of sources for
 			                   # one-row-per-file sources
+			"fileIsRow": utils.TristateBooleanField, # overrides decision if 
+				# each file is a row (default for sourcePat) or not
 			"encoding": "iso-8859-1",
 			"Grammar": utils.RequiredField,
 			"Semantics": utils.RequiredField,
@@ -257,11 +260,14 @@ class DataDescriptor(utils.Record):
 
 		At this point we need to decide whether a document produces a
 		row (e.g., for fits files or most key value data) or if the
-		whatever is defined as a row in the file does this.  We currently
-		take the presence of sourcePat to mean one row per file.
-		We probably want something better.
+		whatever is defined as a row in the file does this.  The default
+		is that we parse a file as row if we have a source pattern (as
+		opposed to a single source name).  This can be overridden
+		by the fileIsRow attribute.
 		"""
-		fileIsRow=self.get_sourcePat()
+		fileIsRow = self.get_fileIsRow()
+		if fileIsRow==None:
+			fileIsRow = self.get_sourcePat()
 		rb = RecordBuilder(
 			table.getRecordDef(),
 			table.addData,
@@ -322,6 +328,7 @@ class RdParser(utils.StartEndHandler):
 		self.curDD = DataDescriptor(self.rd)
 		self.curDD.set_source(attrs.get("source"))
 		self.curDD.set_sourcePat(attrs.get("sourcePat"))
+		self.curDD.set_fileIsRow(attrs.get("fileIsRow"))
 		self.curDD.set_id(attrs.get("id"))
 		self.rd.addto_dataSrcs(self.curDD)
 		self.dataSrcStack.append(self.curDD)
@@ -335,6 +342,12 @@ class RdParser(utils.StartEndHandler):
 
 	def _start_REGrammar(self, name, attrs):
 		self.curGrammar = REGrammar()
+		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
+
+	def _start_ColumnGrammar(self, name, attrs):
+		self.curGrammar = ColumnGrammar()
+		self.curGrammar.set_topIgnoredLines(attrs.get(
+			"topIgnoredLines", 0))
 		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
 
 	def _start_KeyValueGrammar(self, name, attrs):

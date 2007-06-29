@@ -429,6 +429,24 @@ def buildConeSearchQuery(prefix, ra, dec, sr):
 			"%ssr"%prefix: utils.degToRad(sr)}
 
 
+def buildQ3ConeSearchQuery(prefix, ra, dec, sr):
+	"""returns an SQL fragment for a cone search around the given
+	coordinates.
+
+	This only works if you have the q3c extension in your postgres engine.
+	If you used the q3cscript.template, the queries should be *much*
+	faster than with a standard cone search query.
+
+	This assumes the table being queried satisfies the positions interface.
+
+	This does not have any idea of equinoxes and the like.  That would
+	have to be handled on a higher level.
+
+	ra, dec, and sr are all in decimal degrees.
+	"""
+	return "q3c_radial_query(alphaFloat, deltaFloat, %f, %f, %f)"%(
+		ra, dec, sr)
+
 class SexagConeSearch(CondGen):
 	"""is a CondGen that does a cone search on sexagesimal coordinates.
 	
@@ -437,9 +455,16 @@ class SexagConeSearch(CondGen):
 
 	Instead of coordinates, you can also give Simbad identifiers.
 
-	Example:
+	Arguments:
 
-	SexagConeSearch() -- and that's the only way to use it.
+	* useQ3C -- if True, the SQL will use the q3c extension.  See docs.
+	  Optional, defaults to False.  You can only use this when you have
+	  q3c installed.
+
+	Examples:
+
+	SexagConeSearch()
+	SexagConeSearch(q3c=True)
 	"""
 	def __init__(self, name=""):
 		CondGen.__init__(self, name)

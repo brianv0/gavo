@@ -249,33 +249,44 @@ class Table:
 		counter.close()
 		feed.close()
 
-	def _exportOwnedTable(self, schema):
-		"""recreates a table to an SQL database.
-
-		cf. exportToSql.
-		"""
+	def _getOwnedTableWriter(self, schema):
 		tableName = "%s.%s"%(schema, self.recordDef.get_table())
 		tableExporter = sqlsupport.TableWriter(tableName,
 			self.recordDef.getSqlFielddef())
 		tableExporter.ensureSchema(schema)
 		tableExporter.createTable()
+		self._exportToMetaTable(schema)
+		return tableExporter
+
+	def _exportOwnedTable(self, schema):
+		"""recreates a table to an SQL database.
+
+		cf. exportToSql.
+		"""
+		tableExporter = self._getOwnedTableWriter(schema)
 		gavo.ui.displayMessage("Exporting %s to table %s"%(
 			self.getId(), tableName))
 		self._feedData(tableExporter.getFeeder())
-		self._exportToMetaTable(schema)
+
+	def _getSharedTableWriter(self):
+		"""returns a sqlsupportTableWriter instance for this data set's
+		target Table.
+		"""
+		tableName = self.recordDef.get_table()
+		tableWriter = sqlsupport.TableWriter(tableName,
+			self.recordDef.getSqlFielddef())
+		tableWriter.deleteMatching(self.recordDef.get_owningCondition())
+		return tableWriter
 
 	def _exportSharedTable(self):
 		"""updates data owned by this data set.
 
 		cf. exportToSql
 		"""
-		tableName = self.recordDef.get_table()
-		tableExporter = sqlsupport.TableWriter(tableName,
-			self.recordDef.getSqlFielddef())
-		tableExporter.deleteMatching(self.recordDef.get_owningCondition())
+		tableWriter = self._getSharedTableWriter()
 		gavo.ui.displayMessage("Exporting %s to table %s"%(
 			self.getId(), tableName))
-		self._feedData(tableExporter.getFeeder())
+		self._feedData(tableWriter.getFeeder())
 
 	def exportToSql(self, schema):
 		"""writes the data table to an SQL database.
@@ -289,6 +300,41 @@ class Table:
 		else:
 			self._exportOwnedTable(schema)
 
+
+class DirectWritingTable(Table):
+	"""is a table that doesn't keep data of its own but dumps everything
+	into an sql table right away.
+
+	This is evidently handy when you're talking large data sets.
+
+	To make this working, we need to know the sql schema name
+	up front, so the Table and DirectWritingTable have different constructor
+	interfaces.  Also, getRow and friends don't work (though one
+	could, in principle, grab the stuff from the DB if it were really
+	necessary at some point).
+
+	You need to call an instance's close method when done with it.
+	"""
+	def __init__(self, id, recordDef, schema):
+		Table.__init__(self, id, recordDef)
+		if self.recordDef.get_shared():
+			self.tableWriter = self._getSharedTableWriter()
+		else:
+			self.tableWriter = self._getOwnedTableWriter(schema)
+		self.feeder = self.tableWriter.getFeeder()
+	
+	def addData(self, record):
+		self.feeder(record)
+
+	def getRow(self, key):
+		raise "DirectWritingTables cannot retrieve rows."
+
+	def close(self):
+		self.feeder.close()
+
+	def exportToSql(self, schema):
+		return
+		
 
 class DataSet:
 	"""is a collection of all Tables coming from one source.
@@ -345,14 +391,20 @@ class Resource:
 		return ds
 
 	def parseOne(self, descriptor, dumpOnly=False, debugProductions=[],
-			maxRows=None):
+			maxRows=None, directWriting=False):
 		"""parses the data source described by descriptor returns a DataSet 
 		containing the data and the governing semantics.
 		"""
 		grammar = descriptor.get_Grammar()
 		grammar.enableDebug(debugProductions)
-		data = DataSet(descriptor.get_id(), [Table(descriptor.get_id(), recordDef)
-			for recordDef in descriptor.get_Semantics().get_recordDefs()])
+		if directWriting:
+			tables = [DirectWritingTable(descriptor.get_id(), recordDef, 
+					self.desc.get_schema())
+				for recordDef in descriptor.get_Semantics().get_recordDefs()]
+		else:
+			tables = [Table(descriptor.get_id(), recordDef)
+				for recordDef in descriptor.get_Semantics().get_recordDefs()]
+		data = DataSet(descriptor.get_id(), tables)
 		data.setHandlers(descriptor, maxRows)
 
 		counter = gavo.ui.getGoodBadCounter("Parsing source(s)", 5)
@@ -361,11 +413,11 @@ class Resource:
 				grammar.parse(open(src))
 			except gavo.StopOperation, msg:
 				gavo.logger.warning("Prematurely aborted %s (%s)."%(
-					src, msg))
+					src, str(msg).decode("utf-8")))
 				break
 			except gavo.Error, msg:
 				logger.error("Error while parsing %s (%s) -- ignoring source."%(
-					src, msg))
+					src, str(msg).decode("utf-8")))
 				counter.hitBad()
 			except KeyboardInterrupt:
 				logger.warning("Interrupted while processing %s.  Quitting"
@@ -377,6 +429,9 @@ class Resource:
 				counter.hitBad()
 			counter.hit()
 		counter.close()
+		if directWriting:
+			for table in tables:
+				table.close()
 		return data
 
 	def importData(self, opts):
@@ -385,7 +440,8 @@ class Resource:
 		for dataSrc in self.desc.get_dataSrcs():
 			gavo.ui.displayMessage("Importing %s"%dataSrc.get_id())
 			self.addDataset(self.parseOne(dataSrc, 
-				debugProductions=opts.debugProductions, maxRows=opts.maxRows))
+				debugProductions=opts.debugProductions, maxRows=opts.maxRows,
+				directWriting=opts.directWriting))
 		for processor in self.desc.get_processors():
 			processor(self)
 

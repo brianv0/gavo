@@ -66,7 +66,18 @@ class LiteralParser:
 			None: lambda a: a,
 			"truefalse": self._parse_TrueFalse,
 			"spuriousBlanks": self._parse_spuriousBlanks,
+			"1e3": self._makeDivider(1000),
 		}
+
+	def _makeDivider(self, factor):
+		"""is a mogrifier factory that returns literal parsers dividing
+		floats.
+		"""
+		def parseLiteral(literal, divider=factor):
+			if literal==None:
+				return literal
+			return float(literal)/factor
+		return parseLiteral
 
 	def _parse_TrueFalse(self, literal):
 		"""is a literalForm parser for boolean values.

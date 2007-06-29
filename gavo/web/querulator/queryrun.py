@@ -413,7 +413,7 @@ def _formatAsTarStream(template, context):
 		querier = sqlsupport.SimpleQuerier()
 		keyResolver = dict(querier.query("SELECT key, accessPath FROM"
 			" products WHERE key in %(keys)s", {"keys": foundKeys}).fetchall())
-		return [(keyResolver[key], name) for key, name in productKeys]
+		return [(keyResolver[key], name) for key, name in productKeys if key!=None]
 
 	def getEmbargoedFile(name):
 		"""returns a tarInfo for an embargoed file.

@@ -76,6 +76,18 @@ class TrueBooleanField:
 	pass
 
 
+class TristateBooleanField:
+	"""is a sentinel class to signal a field that takes 
+	boolean values, defaulting to undefined (None).
+
+	The setters of boolean fields parse true, false, yes, no, on, off
+	in any capitalization to booleans.
+
+	Do not instantiate it.  Instances of the class are *never* used.
+	"""
+	pass
+
+
 class Record(object):
 	"""is a container for structured data.
 
@@ -120,6 +132,7 @@ class Record(object):
 			ListField: self._getListMethods,
 			BooleanField: self._getBooleanMethods,
 			TrueBooleanField: self._getBooleanMethods,
+			TristateBooleanField: self._getBooleanMethods,
 		}
 		self.keys = legalKeys
 		for key, default in self.keys.iteritems():
@@ -163,16 +176,22 @@ class Record(object):
 			self.dataStore[key] = False
 		elif default is TrueBooleanField:
 			self.dataStore[key] = True
+		elif default is TristateBooleanField:
+			self.dataStore[key] = None
 		else:
 			assert(False)
 		def setter(value):
 			if isinstance(value, bool):
 				self.dataStore[key] = value
+			elif value==None:
+				self.dataStore[key] = None
 			else:
 				if value.lower() in ["true", "yes", "on"]:
 					self.dataStore[key] = True
 				elif value.lower() in ["false", "no", "off"]:
 					self.dataStore[key] = False
+				elif value.lower()=="none":
+					self.dataStore[key] = None
 				else:
 					raise Error("%s is an invalid expression for a boolean"%value)
 		def getter():

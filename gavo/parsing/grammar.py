@@ -55,14 +55,27 @@ class Grammar(utils.Record):
 		self.curInputFileName = None
 		self.rowHandlers = []
 		self.documentHandlers = []
+	
+	def _handleInternalError(self, exc, row):
+		if parsing.verbose:
+			import traceback
+			traceback.print_exc()
+		msg = ("Internal Error (%s, %s) while parsing row %s -- run with -v to"
+			" see traceback."%(exc.__class__.__name__, str(exc), row))
+		gavo.ui.displayError(msg)
+		raise gavo.Error(msg)
 
 	def _parse(self, inputFile):
 		getattr(self, "_setupParse", lambda: None)()
 		counter = gavo.ui.getGoodBadCounter("Importing rows", 100)
 		try:
 			row = self._getDocumentRow()
-			self.handleDocument(row)
-
+			try:
+				self.handleDocument(row)
+			except gavo.Error:
+				raise
+			except Exception, msg:
+				self._handleInternalError(msg)
 			lines = self._iterRows()
 			# We use this funny loop to handle exceptions raised while the
 			# grammar matches a row in the exception handlers below (it would
@@ -74,6 +87,8 @@ class Grammar(utils.Record):
 					counter.hit()
 				except StopIteration:
 					break
+				except KeyboardInterrupt:
+					raise
 				except (gavo.StopOperation, KeyboardInterrupt):
 					raise
 				except gavo.InfoException, msg:
@@ -83,13 +98,7 @@ class Grammar(utils.Record):
 					counter.hitBad()
 				except Exception, msg:
 					counter.hitBad()
-					if parsing.verbose:
-						import traceback
-						traceback.print_exc()
-					msg = ("Internal Error (%s, %s) -- run with -v to"
-						" see traceback."%(msg.__class__.__name__, str(msg)))
-					gavo.ui.displayError(msg)
-					raise gavo.Error()
+					self._handleInternalError(msg, row)
 		finally:
 			getattr(self, "_cleanupParse", lambda: None)()
 			counter.close()
@@ -167,6 +176,8 @@ class Grammar(utils.Record):
 
 		The argument is a dict mapping preterminal names to their values.
 		"""
+		if not self.documentHandlers:
+			return
 		for processedDict in self._process(docdict, "doc"):
 			for handler in self.documentHandlers:
 				handler(docdict)
@@ -177,6 +188,8 @@ class Grammar(utils.Record):
 
 		The argument is a dict mapping preterminal names to their values.
 		"""
+		if not self.rowHandlers:
+			return
 		for processedDict in self._process(rowdict, "row"):
 			for handler in self.rowHandlers:
 				handler(processedDict)

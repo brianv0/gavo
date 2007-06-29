@@ -21,9 +21,10 @@ class _GoodBadCounter:
 
 	def hitBad(self):
 		self.badCounter += 1
+		self._updateDisplay(force=True)
 
-	def _updateDisplay(self):
-		if not self.counter%self.updateInterval:
+	def _updateDisplay(self, force=False):
+		if force or not self.counter%self.updateInterval:
 			sys.stdout.write(self.formatString%(self.counter, 
 				self.badCounter))
 			sys.stdout.flush()

@@ -5,7 +5,7 @@ ez_setup.use_setuptools()
 from setuptools import setup, find_packages
 
 install_requires = ["pyfits", "pyPgSQL", "VOTable", "numarray", "elementtree",
-	"pyparsing", "egenix-mx-base", "pyhtm"],
+	"pyparsing", "egenix-mx-base"],
 if "develop" in sys.argv:
 	# No stinkin' wrapper scripts, please
 	install_requires = []

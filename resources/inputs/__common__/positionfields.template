@@ -29,6 +29,7 @@ You'll also need to call the macro in your grammar, somewhat like this:
 					source="c_y"/>
 				<Field  dest="c_z" dbtype="real" literalForm="do not touch"
 					source="c_z"/>
+<!-- see top-level README for info on HTM support.
 				<Field  dest="htmid" dbtype="bigint" literalForm="do not touch"
 					source="htmid"/>
-
+-->

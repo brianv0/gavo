@@ -47,6 +47,8 @@ def parseCmdline():
 		metavar="productions")
 	parser.add_option("-n", "--fake-only", help="don't talk to the db engine,"
 		" only spit out raw SQL", dest="fakeonly", action="store_true")
+	parser.add_option("-w", "--direct-write", help="dump rows to db"
+		" directly", dest="directWriting", action="store_true")
 	parser.add_option("-m", "--max-rows", help="only import MAX_ROWS"
 		" rows of every source", dest="maxRows", default=None,
 		type="int", action="store")
