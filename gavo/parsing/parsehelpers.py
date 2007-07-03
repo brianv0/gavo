@@ -31,9 +31,9 @@ class RowFunction:
 		"""adds an argument that is filled from a field of current record.
 		"""
 		if srcName:
-			self.colArguments.append((argName, srcName))
+			self.colArguments.append((argName.encode("ascii"), srcName))
 		else:
-			self.constants.append((argName, value))
+			self.constants.append((argName.encode("ascii"), value))
 
 	def addArguments(self, argTuples):
 		"""adds arguments from the sequence argTuples.
@@ -47,10 +47,10 @@ class RowFunction:
 	def _buildArgDict(self, rowdict):
 		args = {}
 		for name, src in self.colArguments:
-			args[name.encode("ascii")] = rowdict.get(atExpand(src, 
+			args[name] = rowdict.get(atExpand(src, 
 				rowdict, self.fieldComputer))
 		for name, val in self.constants:
-			args[name.encode("ascii")] = atExpand(val, rowdict, self.fieldComputer)
+			args[name] = atExpand(val, rowdict, self.fieldComputer)
 		return args
 
 

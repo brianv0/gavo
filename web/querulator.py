@@ -55,17 +55,6 @@ def showAvailableQueries(context, subdir):
 		), {}
 
 
-def getProductObsoleteAndStinking(context, subPath):
-	template = forms.makeTemplate(subPath)
-	form = cgi.FieldStorage()
-	path = querulator.resolvePath(
-		os.path.join(gavo.rootDir, template.getMeta("PRODUCT_ROOT")),
-		form.getfirst("path"))
-	return "image/fits", open(path).read(), {
-		"Content-disposition": 'attachment; filename="%s"'%os.path.basename(
-			form.getfirst("path")),}
-
-
 def getProduct(context, subPath):
 	return queryrun.getProduct(context)
 
@@ -186,10 +175,9 @@ def main():
 	Yes, we want a real framework, but as long as I don't know
 	what I'm going to do, I can't really choose one...
 	"""
-	global qContext
-	qContext = context.Context()
+	qContext = context.CGIContext()
 	_checkForBlock()
-	pathParts = os.environ.get("PATH_INFO", "").strip("/").split("/")
+	pathParts = qContext.getPathInfo().split("/")
 	func = _procConfig.get(pathParts[0],
 		lambda _: showAvailableQueries("/".join(pathParts)))
 	queryPath = "/".join(pathParts[1:])

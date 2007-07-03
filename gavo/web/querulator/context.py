@@ -21,7 +21,19 @@ from gavo.web import querulator
 
 
 class Context:
-	"""is a collection of context parameters for responding to a query.
+	"""is a model for the context the query runs in.
+
+	This is an abstract class -- concrete derivations have to fill in
+	the _initArguments, _initUser, and _initPathinfo methods.
+
+	_initArguments has to fill out the arguments dictionary, mapping
+	query arguments to lists of their values.  Empty arguments must
+	be suppressed.
+
+	_initPathinfo has to fill in the pathInfo attribute with the
+	relative path to the request with no leading or trailing slashes.
+
+	_initUser has to fill in the loggedUser attribute.
 
 	Ideally, it should abstract away the details of the framework needed.
 	It could be subclassed to provide WsgiContext, CgiContext, etc.  For
@@ -30,24 +42,7 @@ class Context:
 	def __init__(self):
 		self._initUser()
 		self._initArguments()
-	
-	def _initUser(self):
-		"""sets the loggedUser attribute from the environment.
-		"""
-		self.loggedUser = None
-		if 	os.environ.get("AUTH_TYPE") and os.environ.get("REMOTE_USER"):
-			self.loggedUser = os.environ.get("REMOTE_USER")
-
-	def _initArguments(self):
-		"""computes the dictionary of query arguments.
-
-		In this CGI implementation, this may only run once (in other words,
-		it would be an error to instanciate more than one Context object).
-		"""
-		self.arguments = {}
-		self.form = cgi.FieldStorage()
-		for key in self.form.keys():
-			self.arguments[key] = self.form.getlist(key)
+		self._initPathinfo()
 	
 	def __contains__(self, element):
 		return element in self.arguments
@@ -90,9 +85,38 @@ class Context:
 	def getUser(self):
 		return self.loggedUser
 	
+	def getPathInfo(self):
+		return self.pathInfo
+	
 	def isAuthorizedProduct(self, embargo, owner):
 		"""returns true if a product with owner and embargo may currently be
 		accessed.
 		"""
 		return (embargo<DateTime.today() or owner==self.getUser())
+
+
+class CGIContext(Context):
+	"""is a context for CGIs.
+	"""
+	def _initArguments(self):
+		"""computes the dictionary of query arguments.
+
+		In this CGI implementation, this may only run once (in other words,
+		it would be an error to instanciate more than one Context object).
+		"""
+		self.arguments = {}
+		self.form = cgi.FieldStorage()
+		for key in self.form.keys():
+			self.arguments[key] = self.form.getlist(key)
+	
+	def _initPathinfo(self):
+		self.pathInfo = os.environ.get("PATH_INFO", "").strip("/")
+
+	def _initUser(self):
+		"""sets the loggedUser attribute from the environment.
+		"""
+		self.loggedUser = None
+		if 	os.environ.get("AUTH_TYPE") and os.environ.get("REMOTE_USER"):
+			self.loggedUser = os.environ.get("REMOTE_USER")
+
 

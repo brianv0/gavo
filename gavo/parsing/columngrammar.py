@@ -22,7 +22,7 @@ class ColumnExtractor:
 	"""
 	def __init__(self, row):
 		self.row = row
-		self.moreValues = {}
+		self.precomputed = {}
 
 	def __str__(self):
 		return "<<%s>>"%self.row
@@ -32,13 +32,14 @@ class ColumnExtractor:
 
 	def __getitem__(self, indexSpec):
 		try:
-			if indexSpec in self.moreValues:
-				return self.moreValues[indexSpec]
+			if indexSpec in self.precomputed:
+				return self.precomputed[indexSpec]
 			if "-" in indexSpec:
 				start, end = [int(s) for s in indexSpec.split("-")]
 				val = self.row[start-1:end].strip()
 			else:
 				val = self.row[int(indexSpec)-1].strip()
+			self.precomputed[indexSpec] = val or None
 			return val or None
 		except (IndexError, ValueError):
 			raise KeyError(indexSpec)
@@ -51,7 +52,7 @@ class ColumnExtractor:
 		return val
 
 	def __setitem__(self, key, value):
-		self.moreValues[key] = value
+		self.precomputed[key] = value
 
 
 class ColumnGrammar(grammar.Grammar):

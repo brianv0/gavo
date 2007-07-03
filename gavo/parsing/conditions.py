@@ -86,8 +86,19 @@ class _PreterminalNotEqualCondition(_Condition):
 			return True
 
 
+class _PreterminalPresentCondition(_Condition):
+	"""is a condition that a certain value is present in a preterminal.
+	"""
+	def __init__(self, name):
+		self.name = name
+
+	def check(self, rowdict, record):
+		return rowdict.has_key(self.name)
+
+
 _conditionsRegistry = {
 	"preterminalNotEqual": (_PreterminalNotEqualCondition, ["name", "value"]),
+	"preterminalPresent": (_PreterminalPresentCondition, ["name"]),
 }
 
 def makeCondition(attrs):

@@ -153,18 +153,20 @@ class Products(Interface):
 		"""sets up exporting the products to the product table by
 		prepending a shared record definition to the current recordDef.
 		"""
+		qualifiedTableName ="%s.%s"%(rdParser.rd.get_schema(), 
+			rdParser.curRecordDef.get_table())
 		productTable = resource.RecordDef()
 		productTable.set_shared(True)
 		productTable.set_table("products")
-		productTable.set_owningCondition(("sourceTable", 
-			"%s.%s"%(rdParser.rd.get_schema(), rdParser.curRecordDef.get_table())))
+		productTable.set_owningCondition(("sourceTable", qualifiedTableName))
+			
 		for fieldDict in [
 				{"dest": "key", "primary": "True", "source": "prodtblKey",
 					"dbtype": "text"},
 				{"dest": "owner", "source": "prodtblOwner", "dbtype": "text"},
 				{"dest": "embargo", "dbtype": "date", "source": "prodtblEmbargo"},
 				{"dest": "accessPath", "source": "prodtblPath", "dbtype": "text"},
-				{"dest": "sourceTable", "default": rdParser.curRecordDef.get_table(),
+				{"dest": "sourceTable", "default": qualifiedTableName,
 					"dbtype": "text"}]:
 			productTable.addto_items(DataField(**fieldDict))
 		rdParser.curSemantics.addto_recordDefs(productTable, infront=True)
