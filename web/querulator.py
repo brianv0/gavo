@@ -100,19 +100,22 @@ def processQuery(context, subPath):
 	return queryrun.processQuery(template, context)
 
 
-def _doErrorResponse(msg):
-	print "Content-type: text/html\n"
-	print ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"'
-			' "http://www.w3.org/TR/html4/loose.dtd">')
-	print "<head><title>Error</title></head>"
-	print "<body><h1>An error as occurred</h1>"
-	print "<p>We are sorry, but we cannot fulfil your request.  The"
-	print "reason given by the program is:</p><pre>"
-	print "\n".join(textwrap.wrap(str(msg)))
-	print "</pre>"
-	print "<p>If you believe what you were trying to do should have worked,"
-	print "please contact gavo@ari.uni-heidelberg.de.</p>"
-	print "</body>"
+def _doErrorResponse(msg, context):
+	statusCode = 500
+	if hasattr(msg, "statusCode"):
+		statusCode = msg.statusCode
+	context.doHttpResponse("text/html",  "\n".join(
+		'<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"'
+		' "http://www.w3.org/TR/html4/loose.dtd">'
+		"<head><title>Error</title></head>"
+		"<body><h1>An error as occurred</h1>"
+		"<p>We are sorry, but we cannot fulfil your request.  The"
+		"reason given by the program is:</p><pre>",
+		"\n".join(textwrap.wrap(str(msg))),
+		"</pre>"
+		"<p>If you believe what you were trying to do should have worked,"
+		"please contact gavo@ari.uni-heidelberg.de.</p>"
+		"</body>"), statusCode=statusCode)
 
 
 _procConfig = {
@@ -125,32 +128,7 @@ _procConfig = {
 }
 
 
-def _fixDoctype(aString):
-	"""adds a transitional html doctype if none is present.
-	"""
-	if not aString.startswith("<!DOCTYPE"):
-		aString = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"'
-			' "http://www.w3.org/TR/html4/loose.dtd">')+aString
-	return aString
-
-
-def _doHttpResponse(contentType, content, moreHeaders={}):
-	print "Content-type: %s"%contentType
-	if contentType.startswith("text/html"):
-		content = _fixDoctype(content)
-	if isinstance(content, basestring):
-		print "Content-length: %d"%len(content)
-	print "Connection: close"
-	for key, value in moreHeaders.iteritems():
-		print "%s: %s"%(key, value)
-	print ""
-	if isinstance(content, basestring):
-		sys.stdout.write(content)
-	else:
-		content(sys.stdout)
-
-
-def _checkForBlock():
+def _checkForBlock(context):
 	"""checks if we are in maintainance mode and rejects queries if so.
 
 	Maintainance mode is signified by the presence of a "MAINTAINANCE"
@@ -161,7 +139,7 @@ def _checkForBlock():
 		if remoteAddr.startswith("127") or remoteAddr=="129.206.110.59":
 			return
 		sys.stderr.write("%s\n"%os.environ)
-		_doHttpResponse("text/html", """<head><title>Down for
+		context.doHttpResponse("text/html", """<head><title>Down for
 			maintainance</title></head><body><h1>Down for
 			maintainance</h1><p>Sorry -- we're down for maintainance.  If
 			this persists for longer than, say, an hour, please complain to
@@ -169,20 +147,33 @@ def _checkForBlock():
 		sys.exit(0)
 
 
-def main():
+def dispatch(context):
 	"""dispatches the queries and outputs the results.
 
 	Yes, we want a real framework, but as long as I don't know
 	what I'm going to do, I can't really choose one...
 	"""
-	qContext = context.CGIContext()
-	_checkForBlock()
-	pathParts = qContext.getPathInfo().split("/")
+	_checkForBlock(context)
+	pathParts = context.getPathInfo().split("/")
 	func = _procConfig.get(pathParts[0],
 		lambda _: showAvailableQueries("/".join(pathParts)))
 	queryPath = "/".join(pathParts[1:])
 	try:
-		contentType, content, headers = func(qContext, queryPath)
-		_doHttpResponse(contentType, content, headers)
+		contentType, content, headers = func(context, queryPath)
+		context.doHttpResponse(contentType, content, headers)
 	except querulator.Error, msg:
-		_doErrorResponse(msg)
+		_doErrorResponse(msg, context)
+
+
+def main():
+	"""is the entry point for CGIs.
+	"""
+	dispatch(context.CGIContext())
+
+
+def handler(req):
+	"""is the entry point for naked modpython.
+	"""
+	from mod_python import apache
+	dispatch(context.ModpyContext(req))
+	return apache.OK

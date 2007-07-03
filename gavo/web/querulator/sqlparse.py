@@ -270,9 +270,9 @@ class CExpression(ParseNode):
 			self._expandOperands([args[i] for i in range(0, len(args), 2)])
 			self.children = list(args)
 		except Exception, msg: 
-			# old pyparsing swallows the exception and behaves strangely.
+			# pyparsing swallows the exception and yields mysterious parsing errors.
 			# and I want something strange out on the screen :-)
-			print ">>>>>>>>>>>>>", msg, args
+			sys.stderr.write(">>>> INTERNAL PARSER ERROR >>>>> %s %s\n"%(msg, args))
 			raise
 
 	def _expandOperands(self, rawOperands):

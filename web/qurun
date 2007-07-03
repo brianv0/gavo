@@ -9,7 +9,7 @@ import textwrap
 import traceback
 
 try:
-	import querulator
+	from gavo.web.querulator import querulator
 	querulator.main()
 except SystemExit:
 	pass

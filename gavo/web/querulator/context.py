@@ -1,13 +1,6 @@
 """ 
 This module contains the context class used to pass around data
 describing the query and providing an abstraction of the input parameters.
-
-In the module, there are also "predefined query handlers". These are
-functions that take a context and change it according to the need of
-predefined queries (usually defined in htmlgenfuncs).  An example for
-this is the sexagesimal cone search (see htmlgenfuncs) that provides
-sexagMixedPos and SRminutes.  Its handler converts this to the predefined
-RA, DEC and SR values requried for a predefined cone search.
 """
 
 import cgi
@@ -17,7 +10,23 @@ import sys
 
 from mx import DateTime
 
+try:
+	import mod_python.util
+	from mod_python import apache
+except ImportError:
+	# So, you can't use ModpythonContext.  What did you expect?
+	pass
+
 from gavo.web import querulator
+
+
+def _fixDoctype(aString):
+	"""adds a transitional html doctype if none is present.
+	"""
+	if not aString.startswith("<!DOCTYPE"):
+		aString = ('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"'
+			' "http://www.w3.org/TR/html4/loose.dtd">')+aString
+	return aString
 
 
 class Context:
@@ -105,9 +114,9 @@ class CGIContext(Context):
 		it would be an error to instanciate more than one Context object).
 		"""
 		self.arguments = {}
-		self.form = cgi.FieldStorage()
-		for key in self.form.keys():
-			self.arguments[key] = self.form.getlist(key)
+		form = cgi.FieldStorage()
+		for key in form.keys():
+			self.arguments[key] = form.getlist(key)
 	
 	def _initPathinfo(self):
 		self.pathInfo = os.environ.get("PATH_INFO", "").strip("/")
@@ -118,5 +127,68 @@ class CGIContext(Context):
 		self.loggedUser = None
 		if 	os.environ.get("AUTH_TYPE") and os.environ.get("REMOTE_USER"):
 			self.loggedUser = os.environ.get("REMOTE_USER")
+	
+	def doHttpResponse(self, contentType, content, moreHeaders={}, 
+			statusCode=200):
+		"""does a CGI http response.
+
+		statusCode is ignored, since we're not nph.
+		"""
+		print "Content-type: %s"%contentType
+		if contentType.startswith("text/html"):
+			content = _fixDoctype(content)
+		if isinstance(content, basestring):
+			print "Content-length: %d"%len(content)
+		print "Connection: close"
+		for key, value in moreHeaders.iteritems():
+			print "%s: %s"%(key, value)
+		print ""
+		if isinstance(content, basestring):
+			sys.stdout.write(content)
+		else:
+			content(sys.stdout)
 
 
+class ModpyContext(Context):
+	"""is a context for naked modpython.
+	"""
+	def __init__(self, req):
+		self.modpyReq = req
+		Context.__init__(self)
+	
+	def _initArguments(self):
+		self.arguments = {}
+		form = mod_python.util.FieldStorage(self.modpyReq)
+		for key in form.keys():
+			if istinstance(form[key], basestring):
+				self.arguments[key] = [form[key]]
+			else:
+				self.arguments[key] = form[key]
+	
+	def _initPathinfo(self):
+		self.pathInfo = self.modpyReq.path_info.strip("/")
+	
+	def _initUser(self):
+		self.loggedUser = None
+		self.modpyReq.get_basic_auth_pw()
+		if apache.mp_conn.ap_auth_type and apache.mp_conn.user:
+			self.loggedUser = apache.mp_conn.user
+	
+	def doHttpResponse(self, contentType, content, moreHeaders={},
+			statusCode=200):
+		"""does a http response through mod_python.
+		"""
+		if contentType.startswith("text/html"):
+			content = _fixDoctype(content)
+		if isinstance(content, basestring):
+			req.headers_out["Content-length"] = "%d"%len(content)
+		req.content_type = "text/plain"
+		req.status = statusCode
+		for key, value in moreHeaders.iteritems():
+			req.headers_out[key] = value
+		req.send_http_header()
+		if req.method!="HEAD":
+			if isinstance(content, basestring):
+				req.write(content)
+			else:
+				content(req)
