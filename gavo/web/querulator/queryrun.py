@@ -96,7 +96,7 @@ class Formatter:
 		owner, embargo = row[self.template.getColIndexFor("owner")
 			],row[self.template.getColIndexFor("embargo")]
 		if self.context.isAuthorizedProduct(embargo, owner):
-			productUrl = urlparse.urljoin(querulator.serverURL,
+			productUrl = urlparse.urljoin(self.context.getServerURL(),
 			"%s/getproduct/%s?path=%s"%(querulator.rootURL, 
 			self.template.getPath(), urllib.quote(path)))
 			title = os.path.basename(path)
@@ -111,13 +111,13 @@ class Formatter:
 	def _cook_aladinload(self, path, row):
 		"""wraps path into a URL that can be sent to aladin for loading the image.
 		"""
-		return urlparse.urljoin(querulator.serverURL,
+		return urlparse.urljoin(self.context.getServerURL(),
 			"%s/getproduct/%s?path=%s"%(querulator.rootURL, 
 			self.template.getPath(), urllib.quote(path)))
 
 	def _cook_feedback(self, key, row):
 		targetTemplate = self.template.getPath()
-		return urlparse.urljoin(querulator.serverURL,
+		return urlparse.urljoin(self.context.getServerURL(),
 			"%s/query/%s?feedback=%s"%(querulator.rootURL, targetTemplate,
 				urllib.quote(key)))
 
@@ -229,7 +229,7 @@ def _doQuery(template, context):
 	if sqlQuery.lower().endswith("where"):
 		raise querulator.Error("No valid query parameter found.")
 
-	querier = sqlsupport.SimpleQuerier()
+	querier = context.getQuerier()
 	return querier.query(sqlQuery, args).fetchall()
 
 
@@ -238,7 +238,7 @@ def _formatAsVoTable(template, context, stream=False):
 	"""
 	queryResult = _doQuery(template, context)
 	colDesc = []
-	metaTable = sqlsupport.MetaTableHandler()
+	metaTable = sqlsupport.MetaTableHandler(context.getQuerier())
 	defaultTableName = template.getDefaultTable()
 	for itemdef in template.getItemdefs():
 		try:
@@ -306,7 +306,7 @@ def _getHeaderRow(template, context):
 	plainHeader = ['<tr>']
 	sortLine = ['<tr>']
 	itemdefs = template.getItemdefs()
-	metaTable = sqlsupport.MetaTableHandler()
+	metaTable = sqlsupport.MetaTableHandler(context.getQuerier())
 	defaultTableName = template.getDefaultTable()
 	for itemdef in itemdefs:
 		if itemdef.get("hint")=="suppressed":
@@ -430,12 +430,12 @@ def _formatAsTarStream(template, context):
 					nameGen.makeName(os.path.basename(row[productCol]))))
 		return productKeys
 
-	def resolveProductKeys(productKeys):
+	def resolveProductKeys(productKeys, context):
 		"""resolves product keys to file names in the (productKey, targetName) list
 		productKeys.
 		"""
 		foundKeys = [key for key, name in productKeys if key!=None]
-		querier = sqlsupport.SimpleQuerier()
+		querier = context.getQuerier()
 		keyResolver = dict(querier.query("SELECT key, accessPath FROM"
 			" products WHERE key in %(keys)s", {"keys": foundKeys}).fetchall())
 		return [(keyResolver[key], name) for key, name in productKeys if key!=None]
@@ -448,7 +448,7 @@ def _formatAsTarStream(template, context):
 		return b, stuff
 
 	tarContent = resolveProductKeys(
-		getProducts(template, context))
+		getProducts(template, context), context)
 
 	def produceOutput(outputFile):
 		outputTar = tarfile.TarFile("results.tar", "w", outputFile)
@@ -484,7 +484,7 @@ def getProduct(context):
 	"""returns all data necessary to deliver one product to the user.
 	"""
 	prodKey = context.getfirst("path")
-	querier = sqlsupport.SimpleQuerier()
+	querier = context.getQuerier()
 	matches = querier.query("select owner, embargo, accessPath from products"
 		" where key=%(key)s", {"key": prodKey}).fetchall()
 	if not matches:

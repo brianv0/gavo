@@ -137,7 +137,7 @@ class Choice(OperatorCondGen):
 	filter in Choice([("Filter 1", "Johnson U"), ("Filter 2", "Johnson B")], 
 	  size=2)
 
-	  is the same, only you'll be seeing both choices at the same time.
+	  is about the same, only you'll be seeing both choices at the same time.
 		Additionally, since there's an "in" operator governing the condGen,
 		you can select both entries (which is an implicit "OR").
 	"""
@@ -146,7 +146,7 @@ class Choice(OperatorCondGen):
 		self.choices, self.size = choices, size
 		self.expectedKeys.add(self.name)
 
-	def asHtml(self, context=None):
+	def asHtml(self, context):
 		selOpt = " size='%d'"%self.size
 		if self.takesSets:
 			selOpt += " multiple='multiple'"
@@ -203,20 +203,28 @@ class ChoiceFromDb(Choice):
 	"""
 	def __init__(self, name, sqlExpr, operator, query, 
 			prependAny=False, size=1):
-		Choice.__init__(self, name, sqlExpr, operator, self._buildChoices(
-			query, prependAny), size=size)
+		# this is a bit of a hack: since I have no context at construction
+		# time, I'm construction the Choice with the query instead of
+		# a list of options and only put in the real list at asHtml time.
+		Choice.__init__(self, name, sqlExpr, operator, query, size=size)
+		self.prependAny = prependAny
 		if self.takesSets and size==1:
 			self.size=3
 	
-	def _buildChoices(self, query, prependAny):
-		querier = sqlsupport.SimpleQuerier()
+	def _buildChoices(self, context, query, prependAny):
+		querier = context.getQuerier()
 		validOptions = [(opt[0], opt[0]) 
 			for opt in querier.query(query).fetchall()]
 		validOptions.sort()
 		if prependAny:
 			validOptions.insert(0, ("ANY", ""))
 		return validOptions
-
+	
+	def asHtml(self, context):
+		if isinstance(self.choices, basestring):
+			self.choices = self._buildChoices(context, self.choices, 
+				self.prependAny)
+		return Choice.asHtml(self, context)
 
 class Date(OperatorCondGen):
 	"""is a condition generator for dates.
@@ -541,11 +549,10 @@ class FeedbackSearch(CondGen):
 		self.tableName = tableName
 		self.queryKey = "%sfeedback"%prefix
 		self.targetField = targetField
-		self._buildFields(fields)
-		self._buildExpression()
+		self.fields = fields
 
-	def _buildFields(self, fields):
-		self.fieldDefs = sqlsupport.MetaTableHandler(
+	def _buildFields(self, fields, context):
+		self.fieldDefs = sqlsupport.MetaTableHandler(context.getQuerier()
 			).getFieldDefs(self.tableName)
 		if fields:
 			fields = set(fields)
@@ -588,7 +595,7 @@ class FeedbackSearch(CondGen):
 		self.expression = sqlparse.CExpression(*children[:-1])
 
 	def _getLocalContext(self, context):
-		querier = sqlsupport.SimpleQuerier()
+		querier = context.getQuerier()
 		selectItems = ", ".join([name for name, type, info in
 			self.fieldDefs])
 		qValues = querier.query("SELECT %s FROM %s WHERE"
@@ -598,8 +605,18 @@ class FeedbackSearch(CondGen):
 		for (name, dbtype, info), value in zip(self.fieldDefs, qValues):
 			localContext[self._getKeyFor(name)] = value
 		return localContext
-	
+
+	def _build(self, context):
+		"""actually makes the sql tree.
+
+		This doesn't take place in the constructor since we need a
+		context for that.
+		"""
+		self._buildFields(self.fields, context)
+		self._buildExpression()
+
 	def asHtml(self, context):
+		self._build(context)
 		if self.queryKey in context:
 			try:
 				return '<div class="feedback">%s</div>'%(
@@ -609,6 +626,7 @@ class FeedbackSearch(CondGen):
 					" query"%repr(context.get(self.queryKey)))
 	
 	def asSql(self, context):
+		self._build(context)
 		return self.expression.asSql(context)
 
 

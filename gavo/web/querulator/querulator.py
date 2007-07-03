@@ -175,9 +175,8 @@ def handler(req):
 	"""is the entry point for naked modpython.
 	"""
 	from mod_python import apache
+	# fix bad environment we got at import time.
 	querulator.evaluateEnvironment(req.subprocess_env)
-	from gavo import config
-	config.loadSettings(req.subprocess_env["GAVOSETTINGS"])
 	qContext = context.ModpyContext(req)
 	try:
 		dispatch(qContext)

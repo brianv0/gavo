@@ -386,9 +386,12 @@ class MetaTableHandler:
 	The meta table holds information on all columns of all user tables
 	in the database.  Its definition is given in metaTableFields.
 	"""
-	def __init__(self):
+	def __init__(self, querier=None):
 		self.writer = TableWriter(metaTableName, metaTableFields)
-		self.querier = SimpleQuerier()
+		if querier==None:
+			self.querier = SimpleQuerier()
+		else:
+			self.querier = querier
 		self._ensureTable()
 	
 	def _ensureTable(self):

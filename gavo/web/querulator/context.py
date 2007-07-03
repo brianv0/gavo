@@ -17,6 +17,7 @@ except ImportError:
 	# So, you can't use ModpythonContext.  What did you expect?
 	pass
 
+from gavo import sqlsupport
 from gavo.web import querulator
 
 
@@ -43,6 +44,13 @@ class Context:
 	relative path to the request with no leading or trailing slashes.
 
 	_initUser has to fill in the loggedUser attribute.
+
+	They also have to provide 
+
+	* a getQuerier method that returns an sqlsupport.SimpleQuerier instance.
+	* a debugOutput method that has a printf-like interface and writes
+	  the message into the server log.
+	* a getServerURL method that returns the URL of the server.
 
 	Ideally, it should abstract away the details of the framework needed.
 	It could be subclassed to provide WsgiContext, CgiContext, etc.  For
@@ -107,6 +115,10 @@ class Context:
 class CGIContext(Context):
 	"""is a context for CGIs.
 	"""
+	def __init__(self):
+		Context.__init__(self)
+		self.querier = sqlsupport.SimpleQuerier()
+
 	def _initArguments(self):
 		"""computes the dictionary of query arguments.
 
@@ -149,7 +161,13 @@ class CGIContext(Context):
 			content(sys.stdout)
 	
 	def debugOutput(self, msg, *args):
-		sys.stderr.write(msg%args)
+		sys.stderr.write((msg+"\n")%args)
+
+	def getQuerier(self):
+		return self.querier
+	
+	def getServerURL(self):
+		return "http://"+os.environ["SERVER_NAME"]
 
 
 class ModpyContext(Context):
@@ -203,5 +221,17 @@ class ModpyContext(Context):
 				content(req)
 	
 	def debugOutput(self, msg, *args):
-		sys.stderr.write(msg%args)
+		sys.stderr.write((msg+"\n")%args)
 		sys.stderr.flush()
+	
+	def getQuerier(self):
+		if not hasattr(self, "querier"):
+			# We need a hack here since the environment variables probably
+			# were "wrong" when config got imported.
+			from gavo import config
+			config.loadSettings(self.modpyReq.subprocess_env["GAVOSETTINGS"])
+			self.querier = sqlsupport.SimpleQuerier()
+		return self.querier
+
+	def getServerURL(self):
+		return "http://"+self.modpyReq.connection.server.server_hostname
