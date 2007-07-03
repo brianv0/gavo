@@ -16,7 +16,7 @@ def evaluateEnvironment(environ):
 	querulator, or where these variables are not in os.environ.
 	"""
 	global templateRoot, rootURL, staticURL
-	templateRoot = os.path.join(environ.get("GAVO_HOME", gavo.defaultRoot),
+	templateRoot = os.path.join(gavo.rootDir,
 		"web", "querulator", "templates")
 	rootURL = environ.get("QU_ROOT", "/db")
 	staticURL = environ.get("QU_STATIC", "/qstatic")

@@ -169,6 +169,9 @@ class CGIContext(Context):
 	def getServerURL(self):
 		return "http://"+os.environ["SERVER_NAME"]
 
+	def getRemote(self):
+		return os.environ["REMOTE_ADDR"]
+
 
 class ModpyContext(Context):
 	"""is a context for naked modpython.
@@ -234,4 +237,11 @@ class ModpyContext(Context):
 		return self.querier
 
 	def getServerURL(self):
-		return "http://"+self.modpyReq.connection.server.server_hostname
+		try:
+			return "http://"+self.modpyReq.connection.server.server_hostname
+		except AttributeError:
+			# why would connection have no server attribute?
+			return ""
+	
+	def getRemote(self):
+		return self.modpyReq.connection.remote_ip

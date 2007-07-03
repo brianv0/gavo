@@ -47,8 +47,11 @@ class StopOperation(Error):
 
 
 defaultRoot = "/var/gavo"
-rootDir = os.environ.get("GAVO_HOME", defaultRoot)
-inputsDir = os.path.join(rootDir, "inputs")
-cacheDir = os.path.join(rootDir, "cache")
-logDir = os.environ.get("GAVO_LOGDIR", os.path.join(rootDir, "logs"))
-tempDir = os.path.join("/tmp")
+def evaluateEnvironment(environ):
+	global rootDir, inputsDir, cacheDir, logDir, tempDir
+	rootDir = environ.get("GAVO_HOME", defaultRoot)
+	inputsDir = os.path.join(rootDir, "inputs")
+	cacheDir = os.path.join(rootDir, "cache")
+	logDir = environ.get("GAVO_LOGDIR", os.path.join(rootDir, "logs"))
+	tempDir = os.path.join("/tmp")
+evaluateEnvironment(os.environ)

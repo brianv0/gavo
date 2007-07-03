@@ -6,10 +6,10 @@ this, though I'm not really sure what kind of framework (or just
 templating engine) we'd want.
 """
 
-import cgi
 import os
 import sys
 import textwrap
+import traceback
 
 from gavo import utils
 import gavo
@@ -18,7 +18,6 @@ from gavo.web.querulator import forms
 from gavo.web.querulator import queryrun
 from gavo.web.querulator import context
 
-fitspreviewLocation = os.path.join(gavo.rootDir, "web", "bin", "fitspreview")
 
 class Error(gavo.Error):
 	pass
@@ -59,35 +58,36 @@ def getProduct(context, subPath):
 	return queryrun.getProduct(context)
 
 
-if os.path.exists(fitspreviewLocation):
 
-	def _computeThumbnail(path):
-		pipe = os.popen("%s '%s'"%(fitspreviewLocation, path))
-		data = pipe.read()
-		if pipe.close():
-			raise Error("Image generation failed for %s"%path)
-		return data
+def _computeThumbnailFp(fpPath, path):
+	pipe = os.popen("%s '%s'"%(fpPath, path))
+	data = pipe.read()
+	if pipe.close():
+		raise Error("Image generation failed for %s"%path)
+	return data
 
-else:
 
-	def _computeThumbnail(path):
-		if path.lower().endswith(".gz"):
-			firststage = "zcat '%s' | fitstopnm "%path
-		else:
-			firststage = "fitstopnm -scanmax '%s' "%path
-		pipe = os.popen(firststage+"| pnmscale -xsize 200 | cjpeg 2>/dev/null")
-		data = pipe.read()
-		if pipe.close():
-			raise Error("Image generation failed for %s"%path)
-		return data
+def _computeThumbnailNetpbm(path):
+	if path.lower().endswith(".gz"):
+		firststage = "zcat '%s' | fitstopnm "%path
+	else:
+		firststage = "fitstopnm -scanmax '%s' "%path
+	pipe = os.popen(firststage+"| pnmscale -xsize 200 | cjpeg 2>/dev/null")
+	data = pipe.read()
+	if pipe.close():
+		raise Error("Image generation failed for %s"%path)
+	return data
 
 
 def getProductThumbnail(context, subPath):
 	template = forms.makeTemplate(subPath)
-	form = cgi.FieldStorage()
 	path = querulator.resolvePath(
-		gavo.inputsDir, form.getfirst("path"))
-	return "image/jpeg", _computeThumbnail(path), {}
+		gavo.inputsDir, context.getfirst("path"))
+	fitspreviewLocation = os.path.join(gavo.rootDir, "web", "bin", "fitspreview")
+	if os.path.exists(fitspreviewLocation):
+		return "image/jpeg", _computeThumbnailFp(fitspreviewLocation, path), {}
+	else:
+		return "image/jpeg", _computeThumbnailNetpbm(path), {}
 
 
 def getForm(context, subPath):
@@ -110,11 +110,11 @@ def _doErrorResponse(msg, context):
 		"<head><title>Error</title></head>"
 		"<body><h1>An error as occurred</h1>"
 		"<p>We are sorry, but we cannot fulfil your request.  The"
-		"reason given by the program is:</p><pre>",
+		" reason given by the program is:</p><pre>",
 		"\n".join(textwrap.wrap(str(msg))),
 		"</pre>"
 		"<p>If you believe what you were trying to do should have worked,"
-		"please contact gavo@ari.uni-heidelberg.de.</p>"
+		" please contact gavo@ari.uni-heidelberg.de.</p>"
 		"</body>"]), statusCode=statusCode)
 
 
@@ -135,7 +135,7 @@ def _checkForBlock(context):
 	file in templateRoot.
 	"""
 	if os.path.exists(os.path.join(querulator.templateRoot, "MAINTAINANCE")):
-		remoteAddr = os.environ.get("REMOTE_ADDR", "")
+		remoteAddr = context.getRemote()
 		if remoteAddr.startswith("127") or remoteAddr=="129.206.110.59":
 			return
 		sys.stderr.write("%s\n"%os.environ)
@@ -162,6 +162,8 @@ def dispatch(context):
 		contentType, content, headers = func(context, queryPath)
 		context.doHttpResponse(contentType, content, headers)
 	except querulator.Error, msg:
+		traceback.print_exc()
+		sys.stderr.flush()
 		_doErrorResponse(msg, context)
 
 
@@ -176,11 +178,14 @@ def handler(req):
 	"""
 	from mod_python import apache
 	# fix bad environment we got at import time.
+	gavo.evaluateEnvironment(req.subprocess_env)
 	querulator.evaluateEnvironment(req.subprocess_env)
+
 	qContext = context.ModpyContext(req)
 	try:
 		dispatch(qContext)
 	except Exception, msg:
+		traceback.print_exc()
 		sys.stderr.flush()
 		_doErrorResponse(msg, qContext)
 	return apache.OK
