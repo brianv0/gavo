@@ -5,6 +5,7 @@ This module defines an abstract superclass for all grammars.
 from gavo import utils
 from gavo import logger
 from gavo import parsing
+from gavo import sqlsupport
 import gavo
 
 
@@ -96,6 +97,11 @@ class Grammar(utils.Record):
 				except gavo.Error, msg:
 					logger.error(str(msg)+" -- ignoring row %s"%row)
 					counter.hitBad()
+				except sqlsupport.OperationalError, msg:
+					logger.error("Row %s bad (%s).  Ignoring."%(row, msg))
+					gavo.ui.displayError("Import of row %s failed (%s). ABORTING"
+						" OPERATION."%(row, msg))
+					raise  # XXXXXXXXX should emit err msg wherever this is caught.
 				except Exception, msg:
 					counter.hitBad()
 					self._handleInternalError(msg, row)

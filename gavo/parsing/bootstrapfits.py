@@ -11,6 +11,7 @@ helps and then think again.
 import sys
 
 from gavo import fitstools
+from gavo import datadef
 from gavo.parsing import resource
 
 ignoredHeaders = set(["COMMENT", "SIMPLE", "CRPIX1", "CRVAL1",
@@ -70,7 +71,7 @@ def makeRecord(cardList):
 	for index, card in enumerate(cardList):
 		if card.key in ignoredHeaders:
 			continue
-		record.addto_items(resource.DataField(dest="$fieldname%02d$"%index, 
+		record.addto_items(datadef.DataField(dest="$fieldname%02d$"%index, 
 			source=card.key, unit="$fillin$", ucd="$fillin$", 
 			description=card.comment))
 	return record

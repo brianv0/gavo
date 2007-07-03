@@ -14,6 +14,8 @@ import gavo
 from gavo import utils
 from gavo import coords
 from gavo import logger
+from gavo import interfaces
+from gavo import datadef
 import gavo.parsing
 from gavo.parsing import resource
 from gavo.parsing import macros
@@ -382,7 +384,7 @@ class RdParser(utils.StartEndHandler):
 		self.curRecordDef.set_owningCondition((attrs["colName"], attrs["value"]))
 
 	def _start_Field(self, name, attrs):
-		f = resource.DataField()
+		f = datadef.DataField()
 		for key, val in attrs.items():
 			f.set(key, val)
 		self.curRecordDef.addto_items(f)
@@ -452,7 +454,14 @@ class RdParser(utils.StartEndHandler):
 			attrs.get("system"))
 
 	def _end_script(self, name, attrs, content):
-		self.rd.addto_scripts((attrs["type"], content.strip()))
+		self.rd.addto_scripts((attrs["type"], attrs.get("name", "<anonymous>"),
+			content.strip()))
+
+	def _start_implements(self, name, attrs):
+		args = dict([(key, val) for key, val in attrs.items()])
+		interfaceName = args["name"]
+		del args["name"]
+		interfaces.getInterface(interfaceName).changeRd(self, **args)
 
 	def _start_constraints(self, name, attrs):
 		self.curConstraints = conditions.Constraints()

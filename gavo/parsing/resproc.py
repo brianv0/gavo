@@ -150,6 +150,7 @@ class FielddocBuilder(ResourceProcessor):
 
 	def _execute(self, resource, newTableId="fielddoc", srcId="main",
 			**kwargs):
+		raise gavo.Error("OBSOLETE -- adapt to meta table & Co")
 		newDataset = self._makeFielddocDataset(newTableId)
 		self._getDataFromMainSource(newDataset, 
 			resource.getDatasetById(srcId))

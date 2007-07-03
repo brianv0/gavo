@@ -3,6 +3,7 @@
 This module contains basic support for manual SQL generation.
 """
 
+import re
 
 from pyPgSQL import PgSQL
 
@@ -314,6 +315,9 @@ class TableWriter(StandardQueryMixin):
 		return _Feeder(self.connection.cursor(), self.connection.commit,
 			cmdString)
 
+	def getTableName(self):
+		return self.tableName
+
 	def close(self):
 		self.connection.commit()
 		self.connection.close()
@@ -338,9 +342,9 @@ class SimpleQuerier(StandardQueryMixin):
 class ScriptRunner:
 	"""is an interface to run simple static scripts on the SQL data base.
 
-	The script should be a string containing one command per line.  We
-	should define a continuation character, but I'm not yet decided what
-	a good choice would be.
+	The script should be a string containing one command per line.  You
+	can use the backslash as a continuation character.  Leading whitespace
+	on a continued line is ignored, the linefeed becomes a single blank.
 
 	Also, we abort and raise an exception on any error in the script.
 	We will probably define some syntax to have errors ignored.
@@ -352,6 +356,7 @@ class ScriptRunner:
 			client_encoding="utf-8")
 
 	def run(self, script):
+		script = re.sub(r"\\\n\s*", " ", script)
 		cursor = self.connection.cursor()
 		for query in script.split("\n"):
 			failOk = False
@@ -373,7 +378,6 @@ class ScriptRunner:
 	
 	def commit(self):
 		self.connection.commit()
-
 
 
 class MetaTableHandler:

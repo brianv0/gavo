@@ -166,29 +166,40 @@ class TimestampCombiner(Macro):
 
 	(where myTimestamp was the value of destination).
 
+	Constructor Arguments:
+	* destination -- the name of the field the result is to be put in
+	  (default: timestamp)
+	* dateFormat -- format of date using strptime(3)-compatible conversions
+	  (default: "%d.%m.%Y")
+	* timeFormat -- format of time using strptime(3)-compatible conversions
+	  (default: "%H:%M:%S")
+
+	The macro understands the special timeFormat !!secondsSinceMidnight.
+
 	Arguments:
 
-	* destination -- the name of the field the result is to be put in
 	* date -- a date literal
 	* time -- a time literal
-	* dateFormat -- format of date using strptime(3)-compatible conversions
-	* timeFormat -- format of time using strptime(3)-compatible conversions
 
-	>>> m = TimestampCombiner(None, [("destination", "", "stamp"),
-	...   ("date", "date", ""), ("dateFormat", "", "%d.%m.%Y"),
-	...   ("time", "time", ""), ("timeFormat", "", "%H:%M:%S")])
+	>>> m = TimestampCombiner(None, [("date", "date", ""), ("time", "time", "")],
+	... destination="stamp")
 	>>> rec = {"date": "4.6.1969", "time": "4:22:33"}
 	>>> m(rec)
 	>>> rec["stamp"].strftime()
 	'Wed Jun  4 04:22:33 1969'
-	>>> m = TimestampCombiner(None, [("destination", "", "stamp"),
-	...   ("date", "date", ""), ("dateFormat", "", "%d.%m.%Y"),
-	...   ("time", "time", ""), ("timeFormat", "", "!!secondsSinceMidnight")])
+	>>> m = TimestampCombiner(None, [("date", "date", ""), ("time", "time", "")],
+	... timeFormat="!!secondsSinceMidnight")
 	>>> rec = {"date": "4.6.1969", "time": "32320"}
 	>>> m(rec)
-	>>> rec["stamp"].strftime()
+	>>> rec["timestamp"].strftime()
 	'Wed Jun  4 08:58:40 1969'
 	"""
+	def __init__(self, fieldComputer, argTuples=[], destination="timestamp",
+			dateFormat="%d.%m.%Y", timeFormat="%H:%M:%S"):
+		Macro.__init__(self, fieldComputer, argTuples)
+		self.destination = destination
+		self.timeFormat, self.dateFormat = timeFormat, dateFormat
+
 	@staticmethod
 	def getName():
 		return "combineTimestamps"
@@ -207,12 +218,10 @@ class TimestampCombiner(Macro):
 	def _processDate(self, literal, format):
 		return DateTime.Date(*time.strptime(literal, format)[:3])
 
-	def _changeRecord(self, record, destination, date, time, 
-			dateFormat, timeFormat):
-		assert destination!=""
-		timeObj = self._processTime(time, timeFormat)
-		dateObj = self._processDate(date, dateFormat)
-		record[destination] = dateObj+timeObj
+	def _changeRecord(self, record, date, time):
+		timeObj = self._processTime(time, self.timeFormat)
+		dateObj = self._processDate(date, self.dateFormat)
+		record[self.destination] = dateObj+timeObj
 
 
 class ValueCatter(Macro):
@@ -222,26 +231,26 @@ class ValueCatter(Macro):
 	Null values are ignored.  If all source elements are None, the
 	destination will be None.
 
-	Construction Argument:
+	Construction Arguments:
 	
 	* joiner -- a string used to glue the individual values together.  Optional,
 	  defaults to the empty string.
-
-	Arguments:
-	
 	* destination -- a name under which the concatenated value should be stored
+
+	Argument:
+	
 	* sources -- a comma seperated list of source field names
 
-	>>> v = ValueCatter(None, joiner="<>", argTuples=[("destination", "", "cat"),
-	... ("sources", "", "src1,src2,src3")])
+	>>> v = ValueCatter(None, joiner="<>", argTuples=[
+	... ("sources", "", "src1,src2,src3")], destination="cat")
 	>>> r = {"src1": "opener", "src2": "catfood", "src3": "can"}
 	>>> v(r)
 	>>> r["cat"]
 	'opener<>catfood<>can'
 	"""
-	def __init__(self, fieldComputer, joiner="", *args, **kwargs):
-		Macro.__init__(self, fieldComputer, *args, **kwargs)
-		self.joiner = joiner
+	def __init__(self, fieldComputer, argTuples=[], joiner="", destination=""):
+		Macro.__init__(self, fieldComputer, argTuples)
+		self.joiner, self.destination = joiner, destination
 
 	@staticmethod
 	def getName():
@@ -250,12 +259,12 @@ class ValueCatter(Macro):
 	def _parseSources(self, sources):
 		return [src.strip() for src in sources.split(",")]
 
-	def _changeRecord(self, record, destination, sources):
+	def _changeRecord(self, record, sources):
 		items = [record[src] for src in self._parseSources(sources)
 				if record[src]!=None]
-		record[destination] = None
+		record[self.destination] = None
 		if items:
-			record[destination] = self.joiner.join(items)
+			record[self.destination] = self.joiner.join(items)
 
 
 class NullValuator(Macro):
@@ -265,13 +274,14 @@ class NullValuator(Macro):
 	However, when another macro needs Nones to signify null values, you need
 	this macro, because macros are applied before fields are even looked at.
 
-	Arguments:
+	Constructor Argument:
 
-	* colName -- the name of the column to operate on
 	* nullvalue -- the value that should be mapped to Null
+	* colName -- the name of the column to operate on
 
-	>>> n = NullValuator(None, [("colName", "", "foo"), ("nullvalue", "",
-	... "EMPTY")])
+	mapToNone takes no arguments.
+
+	>>> n = NullValuator(None, colName="foo", nullvalue="EMPTY")
 	>>> r = {"foo": "bar", "baz": "bang"}
 	>>> n(r); r["foo"]
 	'bar'
@@ -279,13 +289,19 @@ class NullValuator(Macro):
 	>>> n(r); print r["foo"]
 	None
 	"""
+	def __init__(self, fieldComputer, argTuples=[], nullvalue="NULL", 
+			colName=""):
+		Macro.__init__(self, fieldComputer, argTuples)
+		self.nullvalue = nullvalue
+		self.colName = colName
+
 	@staticmethod
 	def getName():
 		return "mapToNone"
 	
-	def _changeRecord(self, record, colName, nullvalue):
-		if record[colName]==nullvalue:
-			record[colName] = None
+	def _changeRecord(self, record):
+		if record[self.colName]==self.nullvalue:
+			record[self.colName] = None
 
 
 class ValueMapper(Macro):
@@ -296,11 +312,11 @@ class ValueMapper(Macro):
 	* sourceName -- an inputsDir-relative path to the NameMap source file,
 	* logFailures (optional) -- if somehow true, non-resolved names will 
 	  be logged
+	* destination -- the field the mapped value should be written into.
 
-	Arguments:
+	Argument:
 
 	* value -- the value to be mapped.
-	* destination -- the field the mapped value should be written into.
 
 	If an object cannot be resolved, a null value is entered (i.e., you
 	shouldn't get an exception out of this macro but can weed out "bad"
@@ -320,30 +336,31 @@ class ValueMapper(Macro):
 	matter except when it contains whitespace (a blank becomes =20) or equal
 	signs (which become =3D).
 	"""
-	def __init__(self, fieldComputer, sourceName, 
-			logFailures=False, failuresAreNone=True):
-		Macro.__init__(self, fieldComputer)
+	def __init__(self, fieldComputer, argTuples=[], sourceName="", 
+			destination="", logFailures=False, failuresAreNone=True):
+		Macro.__init__(self, fieldComputer, argTuples)
 		self.map = utils.NameMap(os.path.join(gavo.inputsDir, sourceName))
 		self.logFailures = logFailures
 		self.failuresAreNone = failuresAreNone
+		self.destination = destination
 
 	@staticmethod
 	def getName():
 		return "mapValue"
 	
-	def _changeRecord(self, record, value, destination):
+	def _changeRecord(self, record, value):
 		try:
-			record[destination] = self.map.resolve(str(value))
+			record[self.destination] = self.map.resolve(str(value))
 		except KeyError:
 			if self.logFailures:
 				gavo.logger.warning("Name %s could not be mapped"%value)
-			record[destination] = None
+			record[self.destination] = None
 
 
 class StringInterpolator(Macro):
 	"""is a macro that exposes %-type string interpolations.
 	
-	Arguments:
+	Constructor arguments:
 
 	* destination: name of the field the result should be put in
 	* format: a format with %-conversions (see the python manual.
@@ -354,12 +371,21 @@ class StringInterpolator(Macro):
 	
 	Clearly, you have to have as many items in sources as you have conversions 
 	in format.
-	>>> s = StringInterpolator(None, [("destination", "", "baz"), 
-	... ("format", "", "no %s in %s"), ("sources", "", "bar,foo")])
+
+	StringInterpolators have no runtime arguments.
+
+	>>> s = StringInterpolator(None, [], destination="baz",
+	... format="no %s in %s", sources="bar,foo")
 	>>> r = {"foo": "42", "bar": "23"}
 	>>> s(r); r["baz"]
 	'no 23 in 42'
 	"""
+	def __init__(self, fieldComputer, argTuples=[], destination="",
+			format="", sources=""):
+		Macro.__init__(self, fieldComputer, argTuples)
+		self.sources = self._parseSources(sources)
+		self.format, self.destination = format, destination
+
 	@staticmethod
 	def getName():
 		return "interpolateStrings"
@@ -367,10 +393,10 @@ class StringInterpolator(Macro):
 	def _parseSources(self, sources):
 		return [src.strip() for src in sources.split(",")]
 
-	def _changeRecord(self, record, destination, format, sources):
+	def _changeRecord(self, record):
 		try:
-			record[destination] = format%tuple([record[src] 
-				for src in self._parseSources(sources)])
+			record[self.destination] = self.format%tuple([record[src] 
+				for src in self.sources])
 		except (TypeError, ValueError), msg:
 			raise Error("interpolateStrings macro failure: %s"%msg)
 
@@ -381,16 +407,18 @@ class ReSubstitutor(Macro):
 	In short, you can substitue PCRE-compatible regular expressions in a
 	string, complete with backreferences and all.  Don't overdo it.
 
-	Arguments:
+	Constructor arguments:
 
 	* destination -- the name of the field the result should be put in
-	* data -- the value the re should be applied to
 	* srcRe -- the source regular expression
 	* destRe -- the replacement pattern
 
-	>>> m = ReSubstitutor(None, [("destination", "", "fixed"),
-	... ("data", "broken", ""), ("srcRe", "", r"(.) \(([^)]*)\)"),
-	... ("destRe", "", r"\2 \1")])
+	Argument:
+
+	* data -- the value the re should be applied to
+
+	>>> m = ReSubstitutor(None, [("data", "broken", "")], 
+	... srcRe=r"(.) \(([^)]*)\)", destRe=r"\2 \1", destination="fixed")
 	>>> r = {"broken": "r (Gunn)"}
 	>>> m(r); r["fixed"]
 	'Gunn r'
@@ -398,15 +426,21 @@ class ReSubstitutor(Macro):
 	>>> m(r); r["fixed"]
 	"Any ol' junk"
 	"""
+	def __init__(self, fieldComputer, argTuples=[], destination="",
+			srcRe="", destRe=""):
+		Macro.__init__(self, fieldComputer, argTuples)
+		self.destination = destination
+		self.srcPat, self.destRe = re.compile(srcRe), destRe
+
 	@staticmethod
 	def getName():
 		return "subsRe"
 	
-	def _changeRecord(self, record, destination, data, srcRe, destRe):
+	def _changeRecord(self, record, data):
 		if data==None:
-			record[destination] = None
+			record[self.destination] = None
 		else:
-			record[destination] = re.sub(srcRe, destRe, data)
+			record[self.destination] = self.srcPat.sub(self.destRe, data)
 
 
 class ProductValueCollector(Macro):
@@ -433,6 +467,44 @@ class ProductValueCollector(Macro):
 		for keyName in ["prodtblKey", "prodtblOwner", "prodtblEmbargo", 
 				"prodtblPath", "prodtblFsize"]:
 			record[keyName] = locals()[keyName]
+
+
+class LinearMapper(Macro):
+	"""is a macro that applies a linear mapping to floating point data.
+
+	The result is a float, computed as factor*data+offset
+
+	Constructor arguments:
+
+	* factor
+	* offset
+	* destination -- the name of the field the result should be put in.
+
+	Argument:
+
+	* val -- the value to be mapped.
+
+	>>> m = LinearMapper(None, [("val", "src", "")], destination="dest",
+	... factor="7.4", offset="33")
+	>>> rec = {"src": "22.3"}; m(rec)
+	>>> str(rec["dest"])
+	'198.02'
+	"""
+	def __init__(self, fieldComputer, argTuples=[], destination="",
+			factor=0, offset=0):
+		Macro.__init__(self, fieldComputer, argTuples)
+		self.destination = destination
+		self.factor, self.offset = float(factor), float(offset)
+
+	@staticmethod
+	def getName():
+		return "linearMap"
+	
+	def _changeRecord(self, record, val):
+		if val==None:
+			record[self.destination] = None
+		else:
+			record[self.destination] = self.factor*float(val)+self.offset
 
 
 def _fixIndentation(code, newIndent):

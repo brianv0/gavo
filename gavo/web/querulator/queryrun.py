@@ -10,6 +10,7 @@ import urllib
 import urlparse
 import cStringIO
 import tarfile
+import math
 from mx import DateTime
 
 import gavo
@@ -120,6 +121,20 @@ class Formatter:
 			"%s/query/%s?feedback=%s"%(querulator.rootURL, targetTemplate,
 				urllib.quote(key)))
 
+	def _cook_hourangle(self, deg, row):
+		"""converts a float angle in degrees to an hour angle.
+		"""
+		rest, hours = math.modf(deg/360.*24)
+		rest, minutes = math.modf(rest*60)
+		return "%d %02d %2.2f"%(int(hours), int(minutes), rest*60)
+
+	def _cook_sexagesimal(self, deg, row):
+		"""converts a float angle in degrees to a sexagesimal angle.
+		"""
+		rest, degs = math.modf(deg)
+		rest, minutes = math.modf(rest*60)
+		return "%d %02d %2.1f"%(int(degs), int(minutes), rest*60)
+
 	def _product_to_html(self, args):
 		prodUrl, thumbUrl, title = args
 		if prodUrl==None:
@@ -162,6 +177,10 @@ class Formatter:
 			"?frame=launching&script=load%20")
 		return '<a href="%s%s" target="aladin">[Aladin]</a>'%(
 			aladinPrefix, urllib.quote(value))
+	
+	def _hourangle_to_html(self, value):
+		return value.replace(" ", "&nbsp;")
+	_sexagesimal_to_html = _hourangle_to_html
 
 	def _string_to_html(self, value):
 		return self._htmlEscape(value)
@@ -205,7 +224,9 @@ class UniqueNameGenerator:
 
 def _doQuery(template, context):
 	sqlQuery, args = template.asSql(context)
-	if not args:
+	# the following is a lousy hack.  It's not too easy coming up with
+	# something better, though
+	if sqlQuery.lower().endswith("where"):
 		raise querulator.Error("No valid query parameter found.")
 
 	querier = sqlsupport.SimpleQuerier()
@@ -254,16 +275,19 @@ def _makeSortButton(fieldName, template, context):
 	buttonTemplate = ('<img src="%s/%%(img)s" alt="%%(alt)s"'
 		' title="%%(title)s" class="sortButton">')%querulator.staticURL
 	if context.getfirst("sortby")==fieldName:
+		title = "Sorted by %s"%fieldName.replace('"', '')
 		buttonImage = buttonTemplate%{"img": "sortedArrow.png", "alt": "V",
-			"title": "Sorted by %s"%fieldName.replace('"', '')}
+			"title": title}
 	else:
+		title = "Sort by %s"%fieldName.replace('"', '')
 		buttonImage = buttonTemplate%{"img": "toSortArrow.png", "alt": "v",
-			"title": "Sort by %s"%fieldName.replace('"', '')}
+			"title": title}
 	return ('<form action="%(rootUrl)s/run/%(tPath)s" method="post"'
 		' class="sortArrow">'
 		'%(hiddenform)s'
 		'<input type="hidden" name="sortby" value="%(keyname)s">'
-		'<button type="submit" name="submit" class="transparent" value="resort">'
+		'<button type="submit" name="submit" class="transparent" value="resort"'
+		' title="%(title)s">'
 		'%(buttonImage)s</button>'
 		'</form>'
 	)%{
@@ -272,6 +296,7 @@ def _makeSortButton(fieldName, template, context):
 		"hiddenform": template.getHiddenForm(context),
 		"keyname": urllib.quote(fieldName),
 		"buttonImage": buttonImage,
+		"title": title,
 	}
 
 

@@ -167,8 +167,11 @@ class Record(object):
 		self.dataStore[key] = []
 		def getter():
 			return self.dataStore[key]
-		def adder(value):
-			self.dataStore[key].append(value)
+		def adder(value, infront=False):
+			if infront:
+				self.dataStore[key].insert(0, value)
+			else:
+				self.dataStore[key].append(value)
 		return [("get_", getter), ("addto_", adder)]
 
 	def _getBooleanMethods(self, key, default):
@@ -198,6 +201,20 @@ class Record(object):
 			return self.dataStore[key]
 		return [("get_", getter), ("set_", setter)]
 
+	def immutilize(self):
+		"""makes this record "read-only".
+
+		In other words, all setters are deleted.
+		"""
+		for name in self.__dict__.keys():
+			if name.startswith("set_") or name.startswith("addto_"):
+				delattr(self, name)
+
+	def copy(self):
+		"""returns a shallow copy of the record.
+		"""
+		return Record(self.keys, self.dataStore)
+
 	def isValid(self):
 		"""returns true if all mandatory (non-default) fields have been set.
 		"""
@@ -223,7 +240,7 @@ def _iterDerivedClasses(baseClass, objects):
 		except TypeError:  # issubclass wants a class
 			pass
 
-def buildClassResolver(baseClass, objects):
+def buildClassResolver(baseClass, objects, instances=False):
 	"""returns a function resolving classes deriving from baseClass
 	in the sequence objects by their names.
 
@@ -231,10 +248,16 @@ def buildClassResolver(baseClass, objects):
 	classes in question have to support static getName methods.
 
 	objects would usually be something like globals().values()
+
+	If instances is True the function will return instances instead
+	of classes.
 	"""
 	registry = {}
 	for cls in _iterDerivedClasses(baseClass, objects):
-		registry[cls.getName()] = cls
+		if instances:
+			registry[cls.getName()] = cls()
+		else:
+			registry[cls.getName()] = cls
 	def resolve(name, registry=registry):
 		return registry[name]
 	return resolve

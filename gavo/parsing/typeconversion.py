@@ -8,6 +8,7 @@ literal to whatever the database holds.
 """
 
 from mx import DateTime
+import math
 import re
 
 import gavo
@@ -20,6 +21,8 @@ def _make_dateFromString(datestr, datePatterns=[
 		]):
 	"""
 	"""
+	if not isinstance(datestr, basestring):
+		return datestr
 	for pat in datePatterns:
 		mat = pat.search(datestr)
 		if mat:
@@ -36,6 +39,8 @@ def _make_dateFromString(datestr, datePatterns=[
 def _make_dateTimeFromString(literal):
 	"""returns a mx.DateTime object from an ISO timestamp.
 	"""
+	if not isinstance(literal, basestring):
+		return literal
 	return DateTime.Parser.DateTimeFromString(literal)
 
 
@@ -65,22 +70,18 @@ class LiteralParser:
 		self.literalMogrifiers = {
 			None: lambda a: a,
 			"truefalse": self._parse_TrueFalse,
+			"emptyfalse": self._parse_emptyfalse,
 			"spuriousBlanks": self._parse_spuriousBlanks,
-			"1e3": self._makeDivider(1000),
+			"JYear": self._parse_JYear,
 		}
 
-	def _makeDivider(self, factor):
-		"""is a mogrifier factory that returns literal parsers dividing
-		floats.
+	def _parse_emptyfalse(self, literal):
+		"""returns true if literal has characters other than whitespace.
 		"""
-		def parseLiteral(literal, divider=factor):
-			if literal==None:
-				return literal
-			return float(literal)/factor
-		return parseLiteral
+		return not not literal.strip()
 
 	def _parse_TrueFalse(self, literal):
-		"""is a literalForm parser for boolean values.
+		"""returns boolean values from literals like True, yes, no, False.
 		"""
 		if literal.lower()=="true" or literal.lower()=="yes":
 			return True
@@ -88,6 +89,21 @@ class LiteralParser:
 			return False
 		else:
 			raise gavo.Error("%s is not a valid truefalse boolean literal")
+
+	def _parse_JYear(self, literal):
+		"""returns a DateTime instance for a fractional (julian) year.
+
+		This refers to time specifications like J2001.32.
+
+		XXX TODO: We should be using JulianDateTime here.
+		"""
+		frac, year = math.modf(float(literal))
+		# Workaround for crazy bug giving dates like 1997-13-1 on some
+		# mx.DateTime versions
+		if year<0:
+			frac += 1
+			year -= 1
+		return DateTime.DateTime(int(year))+365.25*frac
 
 	def _parse_spuriousBlanks(self, literal):
 		"""is a literalForm parser for values with blanks that should be
@@ -132,7 +148,6 @@ class LiteralParser:
 			" identity."%sqlType)
 		return lambda a: a
 
-
 	def makePythonVal(self, literal, sqlType, literalForm=None):
 		"""returns a python value suitable for later ingestion as sqlType.
 
@@ -145,5 +160,9 @@ class LiteralParser:
 			return None
 		if literalForm=="do not touch":
 			return literal
-		literal = self.literalMogrifiers[literalForm](literal)
+		try:
+			literal = self.literalMogrifiers[literalForm](literal)
+		except KeyError, msg:
+			raise gavo.Error("Invalid or unknown literal form %s (%s)"%(
+				literalForm, msg))
 		return self._computeConverter(sqlType)(literal)

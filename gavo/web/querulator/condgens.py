@@ -445,7 +445,8 @@ def buildQ3ConeSearchQuery(prefix, ra, dec, sr):
 	ra, dec, and sr are all in decimal degrees.
 	"""
 	return "q3c_radial_query(alphaFloat, deltaFloat, %f, %f, %f)"%(
-		ra, dec, sr)
+		ra, dec, sr), {}
+
 
 class SexagConeSearch(CondGen):
 	"""is a CondGen that does a cone search on sexagesimal coordinates.
@@ -464,10 +465,11 @@ class SexagConeSearch(CondGen):
 	Examples:
 
 	SexagConeSearch()
-	SexagConeSearch(q3c=True)
+	SexagConeSearch(useQ3C=True)
 	"""
-	def __init__(self, name=""):
+	def __init__(self, name="", useQ3C=False):
 		CondGen.__init__(self, name)
+		self.useQ3C = useQ3C
 		self.expectedKeys.add("%sSRminutes"%self.name)
 		self.expectedKeys.add("%ssexagMixedPos"%self.name)
 
@@ -508,7 +510,10 @@ class SexagConeSearch(CondGen):
 		except ValueError:
 			raise querulator.Error("Search radius must be given as arcminutes"
 				" float. %s is invalid."%repr(context.getfirst("SRminutes")))
-		return buildConeSearchQuery(self.name, ra, dec, sr)
+		if self.useQ3C:
+			return buildQ3ConeSearchQuery(self.name, ra, dec, sr)
+		else:
+			return buildConeSearchQuery(self.name, ra, dec, sr)
 
 
 class FeedbackSearch(CondGen):
