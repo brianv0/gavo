@@ -197,8 +197,8 @@ class ModpyContext(Context):
 		req = self.modpyReq
 		req.get_basic_auth_pw()
 		try:
-			if req.connection.ap_auth_type and req.connection.user:
-				self.loggedUser = req.connection.user
+			if req.ap_auth_type and req.user:
+				self.loggedUser = req.user
 		except AttributeError:
 			# no login info, probably
 			pass
