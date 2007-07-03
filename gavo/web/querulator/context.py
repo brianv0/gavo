@@ -147,6 +147,9 @@ class CGIContext(Context):
 			sys.stdout.write(content)
 		else:
 			content(sys.stdout)
+	
+	def debugOutput(self, msg, *args):
+		sys.stderr.write(msg%args)
 
 
 class ModpyContext(Context):
@@ -160,7 +163,7 @@ class ModpyContext(Context):
 		self.arguments = {}
 		form = mod_python.util.FieldStorage(self.modpyReq)
 		for key in form.keys():
-			if istinstance(form[key], basestring):
+			if isinstance(form[key], basestring):
 				self.arguments[key] = [form[key]]
 			else:
 				self.arguments[key] = form[key]
@@ -170,9 +173,14 @@ class ModpyContext(Context):
 	
 	def _initUser(self):
 		self.loggedUser = None
-		self.modpyReq.get_basic_auth_pw()
-		if apache.mp_conn.ap_auth_type and apache.mp_conn.user:
-			self.loggedUser = apache.mp_conn.user
+		req = self.modpyReq
+		req.get_basic_auth_pw()
+		try:
+			if req.connection.ap_auth_type and req.connection.user:
+				self.loggedUser = req.connection.user
+		except AttributeError:
+			# no login info, probably
+			pass
 	
 	def doHttpResponse(self, contentType, content, moreHeaders={},
 			statusCode=200):
@@ -180,9 +188,10 @@ class ModpyContext(Context):
 		"""
 		if contentType.startswith("text/html"):
 			content = _fixDoctype(content)
+		req = self.modpyReq
 		if isinstance(content, basestring):
 			req.headers_out["Content-length"] = "%d"%len(content)
-		req.content_type = "text/plain"
+		req.content_type = contentType
 		req.status = statusCode
 		for key, value in moreHeaders.iteritems():
 			req.headers_out[key] = value
@@ -192,3 +201,7 @@ class ModpyContext(Context):
 				req.write(content)
 			else:
 				content(req)
+	
+	def debugOutput(self, msg, *args):
+		sys.stderr.write(msg%args)
+		sys.stderr.flush()

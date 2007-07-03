@@ -53,15 +53,20 @@ class Settings(utils.Record):
 			if s.strip()]
 
 
-def _parseSettings(srcfile=".gavosettings"):
+def _parseSettings(srcfile=None):
 	p = ConfigParser.ConfigParser()
 	s = Settings()
-	p.read(os.environ.get("GAVOSETTINGS", os.path.join(
-		os.environ.get("HOME", "/no_home"), srcfile)))
+	if srcfile==None:
+		srcfile = os.environ.get("GAVOSETTINGS", os.path.join(
+			os.environ.get("HOME", "/no_home"), ".gavosettings"))
+	p.read(srcfile)
 	for sect in p.sections():
 		for name, value in p.items(sect):
 			s.set("%s_%s"%(sect, name), value)
 	return s
 
+def loadSettings(srcfile):
+	global settings
+	settings = _parseSettings(srcfile)
 
 settings = _parseSettings()

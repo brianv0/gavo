@@ -5,10 +5,24 @@ import os
 class Error(Exception):
 	pass
 
-templateRoot = os.path.join(gavo.rootDir, "web", "querulator", "templates")
-rootURL = os.environ.get("QU_ROOT", "/db")
-staticURL = os.environ.get("QU_STATIC", "/qstatic")
-serverURL = "http://"+os.environ.get("SERVER_NAME", "")
+import sys
+
+def evaluateEnvironment(environ):
+	"""sets a couple of global attributes.
+
+	This is moved to a function since the querulator may run with
+	"deferred" environments (i.e., modpython), where the "true" values
+	of the environment variables are not available while importing
+	querulator, or where these variables are not in os.environ.
+	"""
+	global templateRoot, rootURL, staticURL, serverURL
+	templateRoot = os.path.join(environ.get("GAVO_HOME", gavo.defaultRoot),
+		"web", "querulator", "templates")
+	rootURL = environ.get("QU_ROOT", "/db")
+	staticURL = environ.get("QU_STATIC", "/qstatic")
+	serverURL = "http://"+environ.get("SERVER_NAME", "")
+
+evaluateEnvironment(os.environ)
 
 
 def resolvePath(rootPath, relpath):
