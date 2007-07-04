@@ -17,7 +17,6 @@ button.transparent {
 	border-style:None;
 }
 
-
 div#querysel {
 	position:absolute;
 	top: 0%;
@@ -93,4 +92,17 @@ pre.query {
 	padding-top: 0px;
 	overflow: auto;
 	width:800px;
+}
+
+div#autofields {
+	margin-top: 15px;
+	border-top: 1px dotted black;
+	padding-top: 15px;
+	padding-bottom: 10px;
+}
+
+div.autofield {
+	padding: 2px;
+	display: inline;
+	margin-right: 30px;
 }

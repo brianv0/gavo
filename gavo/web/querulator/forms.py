@@ -176,7 +176,8 @@ class Template:
 		return '<select name="sortby">%s</select>'%(
 			"\n".join(['<option value=%s>%s</option>'%(repr(item.sqlExpr),
 					item.sqlExpr)
-				for item in self.query.getSelectItems()]))
+				for item in self.query.getSelectItems() 
+					if not item.displayHint=="suppressed"]))
 
 	def _getLimitForm(self, context):
 		items = [
@@ -193,7 +194,8 @@ class Template:
 
 		This includes sort order and match limit.
 		"""
-		return "<p>Sort by: %s -- Match limit: %s</p>"%(
+		return ('<div id="autofields"><div class="autofield">Sort by: %s</div>'
+				'<div class="autofield">Match limit: %s</div></div>')%(
 			self._getSortForm(context),
 			self._getLimitForm(context))
 
