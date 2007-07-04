@@ -1,0 +1,4 @@
+This directory contains a scripts useful within the gavo environment.
+
+They are not currently installed anywhere and probably need adaption
+outside the build environment.

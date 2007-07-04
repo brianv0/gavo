@@ -385,7 +385,7 @@ def _formatAsHtml(template, context):
 	doc = ["<head><title>Result of your query</title>",
 		_resultsJs,
 		'<link rel="stylesheet" type="text/css"'
-			'href="%s/querulator.css">'%querulator.staticURL,
+			' href="%s/querulator.css">'%querulator.staticURL,
 		"</head><body><h1>Result of your query</h1>", _thumbTarget]
 	doc.append('<div class="resultMeta">')
 	if numberMatched:
