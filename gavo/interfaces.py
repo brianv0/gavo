@@ -113,9 +113,9 @@ class Q3CPositions(Positions):
 
 	def changeRd(self, rdParser):
 		Positions.changeRd(self, rdParser)
-		schema = parser.rd.get_schema()
-		tableName = "%s.%s"%(schema, parser.curRecordDef.get_table())
-		parser.rd.addto_scripts(("postCreation", "q3cindex",
+		schema = rdParser.rd.get_schema()
+		tableName = "%s.%s"%(schema, rdParser.curRecordDef.get_table())
+		rdParser.rd.addto_scripts(("postCreation", "q3cindex",
 			"\n".join([
 				r"CREATE INDEX %(indexName)s ON %(tableName)s "
 				"(q3c_ang2ipix(alphaFloat, deltaFloat))",

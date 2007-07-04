@@ -9,11 +9,15 @@ In section db:
 * dsn -- the dsn of the target database as <host>:<port>:<dbname>
 * user -- username for db auth
 * password -- password for user
-* allRoles -- when creating tables and schemas, all users in this 
+* allroles -- when creating tables and schemas, all users in this 
 comma separated list are granted all privileges on them
-* readRoles -- when creating tables and schemas, all users in this 
+* readroles -- when creating tables and schemas, all users in this 
 comma separated list are granted read/usage privileges on them
-* msgEncoding -- the encoding the DB uses for its messages
+* msgencoding -- the encoding the DB uses for its messages
+
+in section querulator:
+
+* defaultmaxmatches -- the default limit of matched rows in querulator
 """
 
 import os
@@ -42,6 +46,7 @@ class Settings(utils.Record):
 			"db_allroles": "",
 			"db_readroles": "",
 			"db_msgEncoding": "utf-8",
+			"querulator_defaultmaxmatches": 1000,
 		})
 
 	def get_db_allroles(self):

@@ -170,7 +170,12 @@ def dispatch(context):
 def main():
 	"""is the entry point for CGIs.
 	"""
-	dispatch(context.CGIContext())
+	qContext = context.CGIContext()
+	try:
+		dispatch(qContext)
+	except Exception, msg:
+		traceback.print_exc()
+		_doErrorResponse(msg, qContext)
 
 
 def handler(req):

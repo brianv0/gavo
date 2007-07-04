@@ -3,6 +3,8 @@ import unittest
 import pyparsing
 
 import sqlparse
+from gavo.web import querulator
+
 
 class TestSqlparser(unittest.TestCase):
 	def testValidGrammar(self):
@@ -42,30 +44,43 @@ class TestSqlparser(unittest.TestCase):
 			"select {{x|y|z}}, from b where a=b AND c=d",
 		]
 		for botchedStatement in badSql:
-			self.assertRaises(pyparsing.ParseException, 
+			self.assertRaises(querulator.Error,
 				sqlparse.parse, botchedStatement) 
-				
+
+	def _runStatementTests(self, statements):
+		for statement, expectation in statements:
+			self.assertEqual(repr(sqlparse.parse(statement)), expectation)
+
 	def testPredefinedTests(self):
 		"""predefined Tests in where conditions.
 		"""
 		statements = [
 			("select {{x|x|x}} from y where {{bla|SexagConeSearch()}}",
 				 "<Query for y, <Items: x> -- <Condition 'bla', "
-				 	"PredefinedTest(SexagConeSearch())>>"),
+				 	"SexagConeSearch(...)>>"),
 		]
-		for statement, expectation in statements:
-			self.assertEqual(repr(sqlparse.parse(statement)), expectation)
+		self._runStatementTests(statements)
 
 	def testClauses(self):
 		"""tests for various forms of where clauses.
 		"""
 		statements = [
-			("select {{x|x|x}} from y where {{bla|foo<intfield()}}",
-				"<Query for y, <Items: x> -- <Condition 'bla', foo < intfield()>>"),
+			("select {{x|x|x}} from y where {{bla|foo<IntField()}}",
+				"<Query for y, <Items: x> -- <Condition 'bla', foo < IntField()>>"),
 		]
-		for statement, expectation in statements:
-			self.assertEqual(repr(sqlparse.parse(statement)), expectation)
+		self._runStatementTests(statements)
 
+	def testCompoundLvalues(self):
+		"""tests for compound expressions left of a where operator.
+		"""
+		statements = [
+			("select {{x|x|x}} from y where {{bla|a+b<IntField()}}",
+				"<Query for y, <Items: x> -- <Condition 'bla', a+b < IntField()>>"),
+			("select {{x|x|x}} from y where {{bla|sqrt(a^2+b^2)<IntField()}}",
+				"<Query for y, <Items: x> -- <Condition 'bla', sqrt(a^2+b^2) <"
+					" IntField()>>"),
+		]
+		self._runStatementTests(statements)
 
 if __name__ == '__main__':
     unittest.main()

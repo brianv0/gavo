@@ -65,13 +65,31 @@ qualifiedSqlName = sqlName + "." + sqlName
 sqlId = qualifiedSqlName | sqlName
 sqlId.setParseAction(_joinChildren)
 
+relation = (Literal("<=") | Literal(">=") | Literal(">") | Literal("<") 
+	| Literal("=") | likeOp | inOp | between )
+
+# productions for parsing literal SQL conditions (those are just copied
+# over)
+sqlNumber = Word(nums+".Ee")
+sqlAtom = sqlId | QuotedString(quoteChar='"', escChar="\\",
+	unquoteResults=False) | QuotedString(quoteChar="'", escChar="\\",
+	unquoteResults=False) | sqlNumber
+literalCondition = sqlAtom + relation + sqlAtom
+
 # productions for parsing WHERE clauses -- leading up to processedCondition
 # that describes a {{...}}-fragment in WHERE
 condTitle = SkipTo("|")
 pythonCode = SkipTo("}}")
-relation = (Literal("<=") | Literal(">=") | Literal(">") | Literal("<") 
-	| Literal("=") | likeOp | inOp | between )
-sqlOpTest = sqlId + relation + pythonCode
+
+expressionOperators = Word("+-*/^", exact=1)
+unparsedExpressionSoup = sqlAtom + ZeroOrMore(expressionOperators + sqlAtom)
+whereLvalue = Forward()
+unparsedESParens = "(" + whereLvalue + ")" 
+unparsedESFuncall = sqlId + "(" + whereLvalue + ")" 
+whereLvalue << ( unparsedESFuncall | unparsedExpressionSoup |
+	unparsedESParens ) 
+whereLvalue.setParseAction(_joinChildren)
+sqlOpTest = whereLvalue + relation + pythonCode
 predefinedTest = pythonCode.copy()
 conditionDescription = condTitle + Suppress("|") + ( sqlOpTest 
 	| predefinedTest )
@@ -91,13 +109,6 @@ selectItem = (sqlExpression + Suppress("|") + SkipTo("|") + Suppress("|")+
 selectItemField = Suppress(fieldStart)+selectItem+Suppress(fieldEnd)
 selectItems = selectItemField + ZeroOrMore(Suppress(",") + selectItemField)
 
-# productions for parsing literal SQL conditions (those are just copied
-# over)
-sqlNumber = Word(nums+".Ee")
-sqlAtom = sqlId | QuotedString(quoteChar='"', escChar="\\",
-	unquoteResults=False) | QuotedString(quoteChar="'", escChar="\\",
-	unquoteResults=False) | sqlNumber
-literalCondition = sqlAtom + relation + sqlAtom
 
 # productions leading up to clauses (which matches anything after a WHERE)
 clauses = Forward()
@@ -124,6 +135,9 @@ processedCondition.setName("Processed condition")
 sqlId.setName("Sql identifier")
 simpleSql.setName("SQL statement")
 parenExpr.setName("()")
+sqlOpTest.setName("SQL operator test")
+whereLvalue.setName("Lvalue for operator test")
+unparsedExpressionSoup.setName("Unparsed SQL expression")
 
 if False:
 	clauses.setDebug(True)
@@ -371,7 +385,7 @@ class SelectItem(ParseNode):
 		self.children = [self.sqlExpr, self.columnTitle, self.displayHint]
 
 	def __repr__(self):
-		return '"%s"'%self.sqlExpr
+		return '%s'%self.sqlExpr
 
 	def asHtml(self, context):
 		return ""
@@ -511,5 +525,11 @@ def parse(sqlStatement, production=simpleSql):
 
 if __name__=="__main__":
 	termclauses = whereClauses+StringEnd()
-	print parse("""
-select select x from b where a=b""")
+	sqlOpTest.setDebug(True)
+	whereLvalue.setDebug(True)
+	unparsedExpressionSoup.setDebug(True)
+	unparsedESParens.setDebug(True)
+	unparsedESFuncall.setDebug(True)
+	predefinedTest.setDebug(True)
+	print termclauses.parseString("""
+{{bla|sqrt(a^2+b^2)<IntField()}}""")

@@ -46,6 +46,11 @@ class CondGen:
 		self.name = name
 		self.expectedKeys = set()
 
+	def __repr__(self):
+		""" -- define reprs of your own for unit tests and such...
+		"""
+		return "%s(...)"%self.__class__.__name__
+
 	def _ensureNonEmptyName(self):
 		if not self.name:
 			raise ArgumentError("%s needs non-empty name"%self.__class__.__name__)
@@ -90,6 +95,9 @@ class OperatorCondGen(CondGen):
 		self.operator = operator
 		self.takesSets = self.operator.lower() in self.setOperators
 		self.expectedKeys.add(self.name)
+
+	def __repr__(self):
+		return "%s %s %s()"%(self.sqlExpr, self.operator, self.__class__.__name__)
 
 	def asSql(self, context):
 		if not self._contextMatches(context):
@@ -153,7 +161,7 @@ class Choice(OperatorCondGen):
 		formItem = '<select name="%s" %s>\n%s\n</select>'%(
 			self.name,
 			selOpt,
-			"\n".join(["<option value=%s>%s</option>"%(repr(val), opt) 
+			"\n".join(['<option value=%s>%s</option>'%(repr(val), opt) 
 				for opt, val in self.choices]))
 		doc = ""
 		if self.takesSets:
@@ -225,6 +233,7 @@ class ChoiceFromDb(Choice):
 			self.choices = self._buildChoices(context, self.choices, 
 				self.prependAny)
 		return Choice.asHtml(self, context)
+
 
 class Date(OperatorCondGen):
 	"""is a condition generator for dates.

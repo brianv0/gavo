@@ -222,8 +222,16 @@ class UniqueNameGenerator:
 				return name
 
 
+def _isTruncated(queryResult, context):
+	"""returns true if queryResult is likely to be truncated due to a limit
+	clause.
+	"""
+	return len(queryResult)==context.getfirst("used_limit")
+
+
 def _doQuery(template, context):
 	sqlQuery, args = template.asSql(context)
+	#sys.stderr.write(">>>>>>>> %s %s\n"%(sqlQuery, args))
 	# the following is a lousy hack.  It's not too easy coming up with
 	# something better, though
 	if sqlQuery.lower().endswith("where"):
@@ -269,9 +277,6 @@ def _formatAsVoTable(template, context, stream=False):
 def _makeSortButton(fieldName, template, context):
 	"""returns a form asking for the content re-sorted to fieldName.
 	"""
-	# for now, only allow sorting on atomic values
-	if not re.match("\w+$", fieldName):
-		return "&nbsp;"
 	buttonTemplate = ('<img src="%s/%%(img)s" alt="%%(alt)s"'
 		' title="%%(title)s" class="sortButton">')%querulator.staticURL
 	if context.getfirst("sortby")==fieldName:
@@ -378,6 +383,10 @@ def _formatAsHtml(template, context):
 	doc.append('<div class="resultMeta">')
 	if numberMatched:
 		doc.append('<p>Selected items: %d</p>'%numberMatched)
+		if _isTruncated(queryResult, context):
+			doc.append("<p>It is likely that your result was truncated"
+				" due to reaching the match limit.  You may want to re-run it"
+				" using a higher limit.</p>")
 	else:
 		doc.append("<p>No data matched your query.</p></body>")
 	doc.append('<ul class="queries">%s</ul>'%("\n".join([
@@ -450,8 +459,13 @@ def _formatAsTarStream(template, context):
 	tarContent = resolveProductKeys(
 		getProducts(template, context), context)
 
+	if self._isTruncated(tarContent, context):
+		resultsName = "results_truncated.tar"
+	else:
+		resultsName = "results.tar"
+
 	def produceOutput(outputFile):
-		outputTar = tarfile.TarFile("results.tar", "w", outputFile)
+		outputTar = tarfile.TarFile(resultsName, "w", outputFile)
 		for srcPath, name in tarContent:
 			if srcPath!=None:
 				path = os.path.join(gavo.inputsDir, srcPath)

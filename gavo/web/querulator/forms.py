@@ -14,6 +14,7 @@ import re
 import os
 
 from gavo import sqlsupport
+from gavo import config
 from gavo.web import querulator
 from gavo.web.querulator import sqlparse
 from gavo.web.querulator import condgens
@@ -170,7 +171,38 @@ class Template:
 		macroHandler = MacroHandler(self)
 		return re.sub(querulator.macroPat, lambda mat, m=macroHandler: eval(
 			"m."+mat.group(1).strip()), rawTx)
-	
+
+	def _getSortForm(self, context):
+		return '<select name="sortby">%s</select>'%(
+			"\n".join(['<option value=%s>%s</option>'%(repr(item.sqlExpr),
+					item.sqlExpr)
+				for item in self.query.getSelectItems()]))
+
+	def _getLimitForm(self, context):
+		items = [
+			(100, 100, ""),
+			(1000, 1000, ' selected="selected"'),
+			(5000, 5000, ""),
+			("all", "No limit", ""),]
+		return '<select name="limitto">%s</select>'%(
+			"\n".join(['<option value="%s"%s>%s</option>'%(val, opt, title)
+				for val, title, opt in items]))
+
+	def _getAutoFields(self, context):
+		"""returns form fields for the "built-in" query aspects.
+
+		This includes sort order and match limit.
+		"""
+		return "<p>Sort by: %s -- Match limit: %s</p>"%(
+			self._getSortForm(context),
+			self._getLimitForm(context))
+
+	def _getFormContent(self, context):
+		"""returns a standard query form for the query.
+		"""
+		return "%s\n%s\n"%(self.query.asHtml(context), 
+			self._getAutoFields(context))
+
 	def asHtml(self, formTemplate, context):
 		"""returns html for the complete page.
 
@@ -183,7 +215,8 @@ class Template:
 		return self._handleMacros(
 			querulator.metaElementPat.sub("",
 				querulator.queryElementPat.sub(
-					lambda mat: formTemplate%self.query.asHtml(context), self.rawText)))
+					lambda mat: formTemplate%self._getFormContent(context),
+				self.rawText)))
 
 	def _getOrderClause(self, context):
 		"""returns an appropriate "ORDER BY" clause for the current query.
@@ -202,7 +235,27 @@ class Template:
 		else:
 			raise querulator.Error("The sort expression you gave (%s)"
 				" is not in the set of allowed query keys.")
-		
+	
+	def _getLimitClause(self, context):
+		"""returns an appropriate "LIMIT" clause for the current query.
+
+		We first see if theres a "limitto" parameter in the context that's
+		either a number or all.  If it's given, we use that.  Otherwise
+		the config's querulator.defaultMaxMatches parameter kicks in.
+
+		As a side effect, this method leaves the limit given to postgresql
+		in a used_limit context argument, so table builders can check
+		against it and warn if the limit has been reached.
+		"""
+		limit = context.getfirst("limitto")
+		if limit==None or not re.match(r"\d+$|all", limit.lower()):
+			limit = config.settings.get_querulator_defaultmaxmatches()
+		if limit=="all":
+			context.addArgument("used_limit", 1e30) # ok, it's a hack
+		else:
+			context.addArgument("used_limit", int(limit))
+		return "LIMIT %s"%limit
+
 	def asSql(self, context):
 		"""returns a pair of query, arguments for the currenty query plus
 		any automatic queries and the values in context.
@@ -211,7 +264,8 @@ class Template:
 		for querybuilder in _querybuilders:
 			querybuilder(query, context)
 		q, args = query.asSql(context)
-		return q+self._getOrderClause(context), args
+		return "%s %s %s"%(q, self._getOrderClause(context), 
+			self._getLimitClause(context)), args
 
 	def getItemdefs(self):
 		"""returns a list of (name, dbtype, info) tuples for all items in
