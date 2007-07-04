@@ -20,6 +20,7 @@ import time
 from mx import DateTime
 import os
 import re
+import math
 
 import gavo
 from gavo import logger
@@ -154,6 +155,56 @@ class EquatorialPositionConverter(Macro):
 		deltaFloat = self._convertCoo(self.deltaFormat, delta)
 		return (alphaFloat, deltaFloat)+coords.computeUnitSphereCoords(
 			alphaFloat, deltaFloat)
+
+
+class PMCombiner(Macro):
+	"""is a macro that combines proper motions in RA and Dec to a total
+	proper motion and position angle.
+
+	It creates fields with the fixed names pm_total, angle_pm.  A field 
+	definition could be:
+
+	<Field dest="pm_total" source="pm_total" dbtype="real"
+		tablehead="PM" description="Total proper motion" 
+		unit="arcsec/yr"/>
+	<Field dest="angle_pm" dbtype="real" source="angle_pm"
+		unit="deg" tablehead="PA of PM"
+		description="Position angle of total proper motion"/>
+
+	Constructor Arguments:
+
+	* alphaFactor, deltaFactor -- factors to multiply with in alpha and delta
+	  to get to arcsecs/year.
+
+	Arguments:
+
+	* pmAlpha -- proper motion in RA
+	* pmDelta -- proper motion in Declination
+
+	Both arguments have to be angles as floats or float literals, with pmAlpha
+	already multiplied with cos(delta).  Use other macros to convert fields if
+	they don't have that format already.
+	"""
+	@staticmethod
+	def getName():
+		return "combinePM"
+
+	def __init__(self, fieldComputer, argTuples=[], alphaFactor="1", 
+			deltaFactor="1"):
+		Macro.__init__(self, fieldComputer, argTuples)
+		self.alphaFactor, self.deltaFactor = float(alphaFactor), float(deltaFactor)
+	
+	def _changeRecord(self, record, pmAlpha, pmDelta):
+		if pmAlpha==None or pmDelta==None:
+			tpm = pmpa = None
+		else:
+			pma = pmAlpha*self.alphaFactor
+			pmd = pmDelta*self.deltaFactor
+			tpm = math.sqrt(pma**2+pmd**2)
+			pmpa = math.atan2(pma, pmd)*360/2/math.pi
+		record["pm_total"] = tpm
+		record["angle_pm"] = pmpa
+
 
 
 class TimestampCombiner(Macro):

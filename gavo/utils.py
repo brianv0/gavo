@@ -56,9 +56,6 @@ class BooleanField:
 	"""is a sentinel class to signal a field that only takes 
 	boolean values, defaulting to False.
 
-	The setters of boolean fields parse true, false, yes, no, on, off
-	in any capitalization to booleans.
-
 	Do not instantiate it.  Instances of the class are *never* used.
 	"""
 	pass
@@ -68,9 +65,6 @@ class TrueBooleanField:
 	"""is a sentinel class to signal a field that only takes 
 	boolean values, defaulting to True.
 
-	The setters of boolean fields parse true, false, yes, no, on, off
-	in any capitalization to booleans.
-
 	Do not instantiate it.  Instances of the class are *never* used.
 	"""
 	pass
@@ -79,9 +73,6 @@ class TrueBooleanField:
 class TristateBooleanField:
 	"""is a sentinel class to signal a field that takes 
 	boolean values, defaulting to undefined (None).
-
-	The setters of boolean fields parse true, false, yes, no, on, off
-	in any capitalization to booleans.
 
 	Do not instantiate it.  Instances of the class are *never* used.
 	"""
@@ -184,19 +175,7 @@ class Record(object):
 		else:
 			assert(False)
 		def setter(value):
-			if isinstance(value, bool):
-				self.dataStore[key] = value
-			elif value==None:
-				self.dataStore[key] = None
-			else:
-				if value.lower() in ["true", "yes", "on"]:
-					self.dataStore[key] = True
-				elif value.lower() in ["false", "no", "off"]:
-					self.dataStore[key] = False
-				elif value.lower()=="none":
-					self.dataStore[key] = None
-				else:
-					raise Error("%s is an invalid expression for a boolean"%value)
+			self.dataStore[key] = parseBooleanLiteral(value)
 		def getter():
 			return self.dataStore[key]
 		return [("get_", getter), ("set_", setter)]
@@ -230,6 +209,27 @@ class Record(object):
 		getattr(self, "set_"+key)(value)
 
 
+def parseBooleanLiteral(literal):
+	"""returns a boolean from some string.
+
+	It parses true, false, yes, no, on, off in any capitalization to booleans.
+	If literal already is a boolean, it is handed back.
+	It also allows "None" or None as literal, which makes it return None (so,
+	this really is tristate).
+	"""
+	if isinstance(literal, bool):
+		return literal
+	if literal==None:
+		return None
+	if literal.lower() in ["true", "yes", "on"]:
+		return True
+	elif literal.lower() in ["false", "no", "off"]:
+		return False
+	elif literal.lower()=="none":
+		return None
+	raise Error("%s is an invalid expression for a boolean"%value)
+
+
 def _iterDerivedClasses(baseClass, objects):
 	"""iterates over all subclasses of baseClass in the sequence objects.
 	"""
@@ -239,6 +239,7 @@ def _iterDerivedClasses(baseClass, objects):
 				yield cand
 		except TypeError:  # issubclass wants a class
 			pass
+
 
 def buildClassResolver(baseClass, objects, instances=False):
 	"""returns a function resolving classes deriving from baseClass

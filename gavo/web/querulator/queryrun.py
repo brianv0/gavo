@@ -133,7 +133,7 @@ class Formatter:
 		"""
 		rest, degs = math.modf(deg)
 		rest, minutes = math.modf(rest*60)
-		return "%d %02d %2.1f"%(int(degs), int(minutes), rest*60)
+		return "%+d %02d %2.1f"%(int(degs), int(minutes), rest*60)
 
 	def _product_to_html(self, args):
 		prodUrl, thumbUrl, title = args
@@ -178,6 +178,13 @@ class Formatter:
 		return '<a href="%s%s" target="aladin">[Aladin]</a>'%(
 			aladinPrefix, urllib.quote(value))
 	
+	def _simbad_to_html(self, value):
+		value = re.sub(r"(\d)\s+(\d)", r"\1+\2", value.strip())
+		value = re.sub("[+-]", r"d\g<0>", value)+"d"
+		simbadURL = ("http://simbad.u-strasbg.fr/simbad/sim-coo?Coord=%s"
+			"&Radius=1")%urllib.quote(value)
+		return '<a href="%s">[Simbad]</a>'%self._htmlEscape(simbadURL)
+
 	def _hourangle_to_html(self, value):
 		return value.replace(" ", "&nbsp;")
 	_sexagesimal_to_html = _hourangle_to_html
