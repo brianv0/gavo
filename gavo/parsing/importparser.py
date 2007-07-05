@@ -350,6 +350,8 @@ class RdParser(utils.StartEndHandler):
 		self.curGrammar = ColumnGrammar()
 		self.curGrammar.set_topIgnoredLines(attrs.get(
 			"topIgnoredLines", 0))
+		self.curGrammar.set_booster(attrs.get(
+			"booster"))
 		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
 
 	def _start_KeyValueGrammar(self, name, attrs):

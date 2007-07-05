@@ -186,8 +186,6 @@ class TableWriter(StandardQueryMixin):
 
 	def _sendSQL(self, cmd, args={}, failok=False):
 		"""sends raw SQL, using a new cursor.
-
-		We probably need more abstraction here:-)
 		"""
 		cursor = self.connection.cursor()
 		try:
@@ -212,8 +210,32 @@ class TableWriter(StandardQueryMixin):
 			items.append("REFERENCES %s ON DELETE CASCADE"%options["references"])
 		return " ".join(items)
 
+	def getIndices(self):
+		indices = {}
+		for fieldName, _, options in self.fieldDef:
+			if "index" in options:
+				indices.setdefault(options["index"], []).append(fieldName)
+		return indices
+
+	def dropIndices(self):
+		print ">>>>> dropIndices"
+		try:
+			schema, _ = self.tableName.split(".")
+		except ValueError:
+			schema = "public"
+		for indexName, members in self.getIndices().iteritems():
+			self._sendSQL("DROP INDEX %s.%s"%(schema,
+				indexName), failok=True)
+
+	def makeIndices(self):
+		print ">>>>> makeIndices"
+		for indexName, members in self.getIndices().iteritems():
+			self._sendSQL("CREATE INDEX %s ON %s (%s)"%(
+				indexName, self.tableName, ", ".join(
+					members)))
+
 	def createTable(self, delete=True, create=True, privs=True,
-			primaryDef=True, indices=True):
+			primaryDef=True):
 		"""creates a new table for dataset.
 
 		An existing table is dropped before creating the new one if delete is
@@ -238,16 +260,6 @@ class TableWriter(StandardQueryMixin):
 			else:
 				return ""
 
-		def makeIndices():
-			indices = {}
-			for fieldName, _, options in self.fieldDef:
-				if "index" in options:
-					indices.setdefault(options["index"], []).append(fieldName)
-			for indexName, members in indices.iteritems():
-				self._sendSQL("CREATE INDEX %s ON %s (%s)"%(
-					indexName, self.tableName, ", ".join(
-						members)))
-
 		if delete:
 			self._sendSQL("DROP TABLE %s CASCADE"%(self.tableName),
 				failok=True)
@@ -260,8 +272,6 @@ class TableWriter(StandardQueryMixin):
 				))
 		if privs:
 			setPrivileges()
-		if indices:
-			makeIndices()
 
 	def createIfNew(self):
 		"""creates the target table if it does not yet exist.
@@ -308,19 +318,24 @@ class TableWriter(StandardQueryMixin):
 		The callable object has a close method that must be called after
 		all db feeding is done.
 		"""
+		self.dropIndices()
 		cmdString = "INSERT INTO %s (%s) VALUES (%s)"%(
 			self.tableName, 
 			", ".join([name for name, _, _ in self.fieldDef]),
 			", ".join(["%%(%s)s"%name for name, _, _ in self.fieldDef]))
-		return _Feeder(self.connection.cursor(), self.connection.commit,
+		return _Feeder(self.connection.cursor(), self.commit,
 			cmdString)
 
 	def getTableName(self):
 		return self.tableName
 
 	def close(self):
-		self.connection.commit()
+		self.commit()
 		self.connection.close()
+	
+	def commit(self):
+		self.makeIndices()
+		self.connection.commit()
 
 
 class SimpleQuerier(StandardQueryMixin):
