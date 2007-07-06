@@ -53,7 +53,7 @@ metaTableFields = [
 class Error(Exception):
 	pass
 
-from pyPgSQL.PgSQL import OperationalError
+from pyPgSQL.PgSQL import OperationalError, DatabaseError
 
 def encodeDbMsg(msg):
 	"""returns the string or sql exception msg in ascii.
@@ -218,7 +218,6 @@ class TableWriter(StandardQueryMixin):
 		return indices
 
 	def dropIndices(self):
-		print ">>>>> dropIndices"
 		try:
 			schema, _ = self.tableName.split(".")
 		except ValueError:
@@ -228,7 +227,8 @@ class TableWriter(StandardQueryMixin):
 				indexName), failok=True)
 
 	def makeIndices(self):
-		print ">>>>> makeIndices"
+		gavo.ui.displayMessage("Creating indices on %s.  This may take a while."%
+			self.tableName)
 		for indexName, members in self.getIndices().iteritems():
 			self._sendSQL("CREATE INDEX %s ON %s (%s)"%(
 				indexName, self.tableName, ", ".join(
@@ -323,17 +323,17 @@ class TableWriter(StandardQueryMixin):
 			self.tableName, 
 			", ".join([name for name, _, _ in self.fieldDef]),
 			", ".join(["%%(%s)s"%name for name, _, _ in self.fieldDef]))
-		return _Feeder(self.connection.cursor(), self.commit,
+		return _Feeder(self.connection.cursor(), self.finalizeFeeder,
 			cmdString)
 
 	def getTableName(self):
 		return self.tableName
 
 	def close(self):
-		self.commit()
+		self.connection.commit()
 		self.connection.close()
 	
-	def commit(self):
+	def finalizeFeeder(self):
 		self.makeIndices()
 		self.connection.commit()
 

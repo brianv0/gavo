@@ -134,17 +134,17 @@ def _checkForBlock(context):
 	Maintainance mode is signified by the presence of a "MAINTAINANCE"
 	file in templateRoot.
 	"""
-	if os.path.exists(os.path.join(querulator.templateRoot, "MAINTAINANCE")):
+	if os.path.exists(os.path.join(querulator.templateRoot, "MAINTAINANCE"))\
+			or context.getQuerier()==None:
 		remoteAddr = context.getRemote()
 		if remoteAddr.startswith("127") or remoteAddr=="129.206.110.59":
-			return
-		sys.stderr.write("%s\n"%os.environ)
+			return False
 		context.doHttpResponse("text/html", """<head><title>Down for
 			maintainance</title></head><body><h1>Down for
 			maintainance</h1><p>Sorry -- we're down for maintainance.  If
 			this persists for longer than, say, an hour, please complain to
 			gavo@ari.uni-heidelberg.de.  Thanks.</p></body>""")
-		sys.exit(0)
+		return True
 
 
 def dispatch(context):
@@ -153,7 +153,8 @@ def dispatch(context):
 	Yes, we want a real framework, but as long as I don't know
 	what I'm going to do, I can't really choose one...
 	"""
-	_checkForBlock(context)
+	if _checkForBlock(context):
+		return
 	pathParts = context.getPathInfo().split("/")
 	func = _procConfig.get(pathParts[0],
 		lambda _: showAvailableQueries("/".join(pathParts)))

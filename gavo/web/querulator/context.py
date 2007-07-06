@@ -117,7 +117,10 @@ class CGIContext(Context):
 	"""
 	def __init__(self):
 		Context.__init__(self)
-		self.querier = sqlsupport.SimpleQuerier()
+		try:
+			self.querier = sqlsupport.SimpleQuerier()
+		except sqlsupport.DatabaseError:
+			self.querier = None
 
 	def _initArguments(self):
 		"""computes the dictionary of query arguments.
@@ -228,12 +231,15 @@ class ModpyContext(Context):
 		sys.stderr.flush()
 	
 	def getQuerier(self):
-		if not hasattr(self, "querier"):
+		if not hasattr(self, "querier") or self.querier==None:
 			# We need a hack here since the environment variables probably
 			# were "wrong" when config got imported.
 			from gavo import config
 			config.loadSettings(self.modpyReq.subprocess_env["GAVOSETTINGS"])
-			self.querier = sqlsupport.SimpleQuerier()
+			try:
+				self.querier = sqlsupport.SimpleQuerier()
+			except sqlsupport.DatabaseError:
+				self.querier = None
 		return self.querier
 
 	def getServerURL(self):

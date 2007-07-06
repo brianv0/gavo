@@ -1,27 +1,12 @@
 """
 A grammar that just splits the source into input lines and then
 exposes the fields as character ranges.
-
-XXX TODO: The whole booster stuff is a mess right now.  We mess up
-any transaction processing, and fiddling in the connection info to
-the booster isn't cool either.
 """
 
 import gavo
-import grammar
+from gavo import utils
+from gavo.parsing import grammar
 
-
-class BoosterException(gavo.Error):
-	pass
-
-class BoosterNotDefined(BoosterException):
-	pass
-
-class BoosterNotAvailable(BoosterException):
-	pass
-
-class BoosterFailed(BoosterException):
-	pass
 
 
 class ColumnExtractor:
@@ -91,6 +76,7 @@ class ColumnGrammar(grammar.Grammar):
 		grammar.Grammar.__init__(self, {
 			"topIgnoredLines": 0,
 			"booster": None,
+			"local": utils.BooleanField,
 		})
 
 	def _iterRows(self):
@@ -104,46 +90,6 @@ class ColumnGrammar(grammar.Grammar):
 
 	def _getDocumentRow(self):
 		return {}
-
-	def _tryBooster(self, inputFile, tableName="ppmx.data"):
-		from gavo import config
-		import os
-		if isinstance(inputFile, file):
-			inputFile = inputFile.name
-		host, port, dbname = config.settings.get_db_dsn().split(":")
-		connDesc = "host=%s port=%s user=%s password=%s dbname=%s\n"%(
-			host, port, config.settings.get_db_user(), 
-			config.settings.get_db_password(), dbname)
-		booster = self.get_booster()
-		if booster==None:
-			raise BoosterNotDefined
-		f = os.popen("%s '%s' '%s'"%(booster, inputFile, tableName), "w")
-		f.write(connDesc)
-		f.flush()
-		retval = f.close()
-		if retval!=None:
-			retval = (retval&0xff00)<<16
-		if retval==126: 
-			raise BoosterNotAvailable("Invalid binary format")
-		if retval==127:
-			raise BoosterNotAvailable("Binary not found")
-		if retval:
-			raise BoosterFailed()
-
-	def parse(self, inputFile):
-		"""is overridden because we may want to run a booster here.
-		"""
-		try:
-			self._tryBooster(inputFile)
-		except BoosterNotDefined:
-			Grammar.parse(self, inputFile)
-		except BoosterNotAvailable, msg:
-			gavo.ui.displayMessage("Column grammar defined, but booster not"
-				" available (%s).  Running python code."%msg)
-			Grammar.parse(self, inputFile)
-		except BoosterFailed:
-			raise gavo.Error("Booster failed, giving up")
-
 
 
 def _test():
