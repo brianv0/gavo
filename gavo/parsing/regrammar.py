@@ -6,9 +6,10 @@ import re
 
 import gavo
 from gavo import utils
+import gavo.parsing
 from gavo.parsing import grammar
 
-class Error(gavo.Error):
+class Error(gavo.parsing.ParseError):
 	pass
 
 
@@ -84,9 +85,10 @@ class REGrammar(grammar.Grammar):
 		curLine = []
 		for l in lines:
 			if l.endswith("\\"):
-				curLine.append(l)
+				curLine.append(l[:-1])
 			else:
-				newLines.append(" ".join([s[:-1] for s in curLine])+l)
+				newLines.append(" ".join([s for s in curLine])+l)
+				curLine = []
 		return newLines
 
 	def _getSymbols(self, lines):
@@ -127,16 +129,6 @@ class REGrammar(grammar.Grammar):
 		"""
 		return self._expandRE(self.symbolTable[production])
 			
-	def _mangleRE(self, expression):
-		"""returns a version of expression with convenience manipulations done.
-
-		Right now, this 
-		 * replaces any white space with \\s* and
-		 * makes the res dotall-matching (so we don't have to worry about
-		   lines).
-		"""
-		return "(?s)"+re.sub("[ \t]", "\\s*", expression)
-
 	def _getCleanedText(self, text):
 		"""returns a list of lines, stripped and with #-on-a-line comments 
 		removed.
@@ -162,7 +154,7 @@ class REGrammar(grammar.Grammar):
 	def set_tokenSequence(self, rawTokenSequence):
 		try:
 			self.dataStore["tokenSequence"] = [re.compile(
-					self._mangleRE(self._expandRE(tokD+' $')))
+					self._expandRE(tokD+'$'))
 				for tokD in self._getCleanedText(rawTokenSequence)]
 		except (IndexError, re.error), msg:
 			raise Error("Bad input: RE %s not well-formed (%s)"%(tokD, msg))
@@ -170,7 +162,7 @@ class REGrammar(grammar.Grammar):
 	def set_tokenizer(self, splitRE, tokenizerType="split"):
 		if tokenizerType=="split":
 			splitRE = re.compile(splitRE)
-			self.dataStore["tokenizer"] = lambda line: splitRE.split(line)
+			self.dataStore["tokenizer"] = lambda line: splitRE.split(line.strip())
 		elif tokenizerType=="match":
 			self.dataStore["tokenizer"] = makeMatchTokenizer(splitRE)
 		elif tokenizerType=="colranges":
@@ -181,44 +173,33 @@ class REGrammar(grammar.Grammar):
 	def _buildREs(self):
 		"""compiles the global regular expressions into attributes.
 		"""
-		self.documentRe = re.compile(self._mangleRE(
-			self._getRE(self.get_documentProduction())))
-		self.rowRe = re.compile(self._mangleRE(
-			self._getRE(self.get_rowProduction())))
-
-	def _generateDebugInfo(self, src, curPos):
-		"""returns a string containing the last item that matches the row 
-		production when applied at curPos in src.
-
-		OBSOLETE (python's RE engine choked on those long REs).
-		"""
-		def getLastMatchedExpr(parts, matchFailIndex):
-			lastMatched = "<none>"
-			for index, p in enumerate(parts):
-				if p.startswith("@"):
-					lastMatched = p
-				if index>=matchFailIndex:
-					break
-			return lastMatched
-
-		reParts = re.split("(@\([^)]*\)[^@]*)",
-			self.symbolTable[self.get_rowProduction()])
-		for cutoffIndex in range(1, len(reParts)):
-			shortRE = self._mangleRE(
-				self._expandRE("".join(reParts[:cutoffIndex])))
-			if not re.match(shortRE, src, curPos):
-				break
-		return "Match failure at or after: %s"%getLastMatchedExpr(
-			reParts, cutoffIndex)
+		self.documentRe = re.compile(
+			self._getRE(self.get_documentProduction()))
+		self.rowRe = re.compile(
+			self._getRE(self.get_rowProduction()))
+		self.recoverRe = re.compile("[^\n]*\n")
+		try:
+			self.preRowDebrisRe = re.compile(
+				self._getRE("preRowDebris"))
+		except KeyError:
+			self.preRowDebrisRe = None
+		try:
+			self.postRowDebrisRe = re.compile(
+				self._getRE("postRowDebris"))
+		except KeyError:
+			self.postRowDebrisRe = None
 
 	def _matchRow(self, rawRow):
 		rowdict = {}
 		tokens = self.get_tokenizer()(rawRow)
+		if len(tokens)!=len(self.get_tokenSequence()):
+			raise Error("Found %d tokens in %s, but expected %d"%(len(tokens),
+				repr(rawRow), len(self.get_tokenSequence())))
 		for token, tokDef in zip(tokens, self.get_tokenSequence()):
 			mat = tokDef.match(token)
 			if not mat:
-				raise Error("Could not match %s with %s in row %s"%(tokDef.pattern,
-					repr(token), repr(rawRow)))
+				raise Error("Could not match %s with %s in row %s"%(
+					tokDef.pattern, repr(token), repr(rawRow)))
 			rowdict.update(mat.groupdict())
 		return rowdict
 
@@ -228,13 +209,29 @@ class REGrammar(grammar.Grammar):
 		src = self.tabularData
 		curPos = 0
 		while curPos<len(src):
+			if self.preRowDebrisRe:
+				mat = self.preRowDebrisRe.match(src, curPos)
+				if mat:
+					curPos = mat.end()
 			mat = self.rowRe.match(src, curPos)
 			if not mat:
-				self._generateDebugInfo(src, curPos)
 				raise Error("No row found near %s."%(repr(
 					src[curPos:curPos+40])))
-			yield self._matchRow(mat.group())
+			try:
+				if mat.lastindex:
+					yield self._matchRow(mat.group(mat.lastindex))
+				else:
+					yield self._matchRow(mat.group())
+			except Error:
+				# recover by advancing to the next newline (or whatever recoverRe is)
+				mat = self.recoverRe.match(src, curPos)
+				raise
 			curPos = mat.end()
+			if self.postRowDebrisRe:
+				mat = self.postRowDebrisRe.match(src, curPos)
+				if mat:
+					curPos = mat.end()
+
 
 	def _setupParse(self):
 		self._buildREs()

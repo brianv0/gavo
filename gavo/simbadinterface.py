@@ -36,10 +36,10 @@ class ObjectCache:
 			if not silent:
 				raise
 
-	def addItem(self, key, record, save=True):
+	def addItem(self, key, record, save, silent=False):
 		self.cache[key] = record
 		if save:
-			self._saveCache(silent=True)
+			self._saveCache(silent)
 	
 	def sync(self):
 		self._saveCache(silent=True)
@@ -206,8 +206,9 @@ class Sesame:
 				 </wsdl:service>
 			</wsdl:definitions>"""
 
-	def __init__(self, id="simbad", debug=False):
+	def __init__(self, id="simbad", debug=False, saveNew=False):
 		self.proxy = SOAPpy.WSDL.Proxy(self.wsdl)
+		self.saveNew = saveNew
 		if debug:
 			pass
 		self._getCache(id)
@@ -226,9 +227,9 @@ class Sesame:
 		except KeyError:
 			newOb = self._parseSimbadXML(self.proxy.sesame(name=ident, 
 				resultType="SNx"))
-			self.cache.addItem(ident, newOb)
+			self.cache.addItem(ident, newOb, save=self.saveNew)
 			return newOb
-
+	
 
 def getSimbadPositions(identifier):
 	"""returns ra and dec from Simbad for identifier.

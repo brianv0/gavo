@@ -280,10 +280,6 @@ def _parseSources(grammar, srcDesc, descriptor, tables):
 			gavo.logger.warning("Prematurely aborted %s (%s)."%(
 				src, str(msg).decode("utf-8")))
 			break
-		except gavo.Error, msg:
-			logger.error("Error while parsing %s (%s) -- aborting source."%(
-				src, str(msg).decode("utf-8")))
-			counter.hitBad()
 		except KeyboardInterrupt:
 			logger.warning("Interrupted while processing %s.  Quitting"
 				" on user request"%src)
@@ -292,10 +288,14 @@ def _parseSources(grammar, srcDesc, descriptor, tables):
 			# these are most likely due to direct writing
 			logger.error("Error while exporting %s (%s) -- aborting source."%(
 				src, str(msg)))
-		except Exception, msg:
-			logger.error("Unexpected exception while parsing %s.  See"
-				" log.  Source is ignored."%src, exc_info=sys.exc_info())
 			counter.hitBad()
+		except (gavo.Error, Exception), msg:
+			errMsg = ("Error while parsing %s (%s) -- aborting source."%(
+				src, str(msg).decode("utf-8")))
+			logger.error(errMsg, exc_info=True)
+			gavo.ui.displayError(errMsg)
+			counter.hitBad()
+
 		counter.hit()
 	counter.close()
 

@@ -28,6 +28,8 @@ def process(opts, rd):
 	res = resource.Resource(rd)
 	res.importData(opts)
 #	print res.dataSets[0].rows
+	if opts.fakeonly:
+		return
 	if opts.outputMethod=="sql":
 		res.exportToSql()
 	res.rebuildDependents()
@@ -45,8 +47,9 @@ def parseCmdline():
 	parser.add_option("-p", "--debug-productions", help="enable debugging for"
 		" the given productions", dest="debugProductions", default="", 
 		metavar="productions")
-	parser.add_option("-n", "--fake-only", help="don't talk to the db engine,"
-		" only spit out raw SQL", dest="fakeonly", action="store_true")
+	parser.add_option("-n", "--fake-only", help="just parse, don't"
+		" write anything (largely ignored with -w)", dest="fakeonly", 
+		action="store_true")
 	parser.add_option("-w", "--direct-write", help="dump rows to db"
 		" directly", dest="directWriting", action="store_true")
 	parser.add_option("-m", "--max-rows", help="only import MAX_ROWS"

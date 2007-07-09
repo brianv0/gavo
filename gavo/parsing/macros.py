@@ -124,6 +124,7 @@ class EquatorialPositionConverter(Macro):
 			"hour": self._hourangleToDeg,
 			"sexag": self._dmsToDeg,
 			"mas": lambda mas: float(mas)/3.6e6,
+			"binary": lambda a: a,
 		}
 
 	@staticmethod
@@ -131,8 +132,11 @@ class EquatorialPositionConverter(Macro):
 		return "handleEquatorialPosition"
 
 	def _changeRecord(self, record, alpha, delta):
-		alphaFloat, deltaFloat, c_x, c_y, c_z = self._computeCoos(
-			alpha, delta)
+		if alpha==None or delta==None:
+			alphaFloat, deltaFloat, c_x, c_y, c_z = [None]*5
+		else:
+			alphaFloat, deltaFloat, c_x, c_y, c_z = self._computeCoos(
+				alpha, delta)
 		record["alphaFloat"] = alphaFloat
 		record["deltaFloat"] = deltaFloat
 		record["c_x"] = c_x
@@ -204,7 +208,6 @@ class PMCombiner(Macro):
 			pmpa = math.atan2(pma, pmd)*360/2/math.pi
 		record["pm_total"] = tpm
 		record["angle_pm"] = pmpa
-
 
 
 class TimestampCombiner(Macro):
@@ -287,21 +290,22 @@ class ValueCatter(Macro):
 	* joiner -- a string used to glue the individual values together.  Optional,
 	  defaults to the empty string.
 	* destination -- a name under which the concatenated value should be stored
-
-	Argument:
-	
 	* sources -- a comma seperated list of source field names
 
-	>>> v = ValueCatter(None, joiner="<>", argTuples=[
-	... ("sources", "", "src1,src2,src3")], destination="cat")
+	concat takes no arguments.
+
+	>>> v = ValueCatter(None, joiner="<>", argTuples=[],
+	... sources="src1,src2,src3", destination="cat")
 	>>> r = {"src1": "opener", "src2": "catfood", "src3": "can"}
 	>>> v(r)
 	>>> r["cat"]
 	'opener<>catfood<>can'
 	"""
-	def __init__(self, fieldComputer, argTuples=[], joiner="", destination=""):
+	def __init__(self, fieldComputer, argTuples=[], joiner="", destination="",
+			sources=""):
 		Macro.__init__(self, fieldComputer, argTuples)
 		self.joiner, self.destination = joiner, destination
+		self.sources = self._parseSources(sources)
 
 	@staticmethod
 	def getName():
@@ -310,8 +314,8 @@ class ValueCatter(Macro):
 	def _parseSources(self, sources):
 		return [src.strip() for src in sources.split(",")]
 
-	def _changeRecord(self, record, sources):
-		items = [record[src] for src in self._parseSources(sources)
+	def _changeRecord(self, record):
+		items = [record[src] for src in self.sources
 				if record[src]!=None]
 		record[self.destination] = None
 		if items:
@@ -556,6 +560,48 @@ class LinearMapper(Macro):
 			record[self.destination] = None
 		else:
 			record[self.destination] = self.factor*float(val)+self.offset
+
+
+class SimbadResolver(Macro):
+	"""is a macro that resolves identifiers to simbad positions.
+
+	This code caches query results (positive as well as negative ones) in
+	gavo.tempDir.  To avoid flooding simbad with repetetive requests, it
+	raises an error if this directory is not writable.
+
+	It leaves J2000.0 float positions simbadAlpha and simbadDelta in 
+	the record.
+
+	Constructor Arguments:
+
+	* ignoreUnknowns -- don't raise an exception if the object can't be
+	  resolved.
+	
+	Argument:
+
+	* identifier -- something Simbad can resolve.  See macros like 
+	  interpolateString to morph your inputs.
+	"""
+	def __init__(self, fieldComputer, argTuples=[], ignoreUnknowns=False):
+		self.ignoreUnknowns = ignoreUnknowns
+		Macro.__init__(self, fieldComputer, argTuples)
+		from gavo.simbadinterface import Sesame
+		self.resolver = Sesame(saveNew=True)
+	
+	@staticmethod
+	def getName():
+		return "resolveObject"
+	
+	def _changeRecord(self, record, identifier):
+		try:
+			simbadData = self.resolver.query(identifier)
+		except KeyError:
+			if not self.ignoreUnknowns:
+				raise gavo.Error("resolveObject macro could not resolve object"
+					" %s."%identifier)
+		else:
+			record["simbadAlpha"] = simbadData.get("jradeg")
+			record["simbadDelta"] = simbadData.get("jdedeg")
 
 
 def _fixIndentation(code, newIndent):

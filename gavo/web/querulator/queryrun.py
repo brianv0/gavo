@@ -133,7 +133,7 @@ class Formatter:
 		"""
 		rest, degs = math.modf(deg)
 		rest, minutes = math.modf(rest*60)
-		return "%+d %02d %2.1f"%(int(degs), int(minutes), rest*60)
+		return "%+d %02d %2.1f"%(int(degs), abs(int(minutes)), abs(rest*60))
 
 	def _product_to_html(self, args):
 		prodUrl, thumbUrl, title = args

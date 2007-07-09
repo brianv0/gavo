@@ -1,6 +1,6 @@
 """
 This module provides a function to convert strings into python types
-that in turn are ingestable by common dbapi2 application for input into
+that in turn are ingestable by common dbapi2 applications for input into
 SQL databases.  The types themselves are described through SQL types.
 
 Basically, the idea is to control the conversion from some kind of
@@ -13,6 +13,7 @@ import re
 
 import gavo
 from gavo import logger
+from gavo import coords
 
 def _make_dateFromString(datestr, datePatterns=[
 		re.compile("(?P<y>\d\d\d\d)-(?P<m>\d\d)-(?P<d>\d\d)$"),
@@ -72,9 +73,28 @@ class LiteralParser:
 			"truefalse": self._parse_TrueFalse,
 			"emptyfalse": self._parse_emptyfalse,
 			"spuriousBlanks": self._parse_spuriousBlanks,
+			"hourangle": self._parse_hourangle,
+			"sexagesimal": self._parse_sexagesimal,
 			"JYear": self._parse_JYear,
 		}
 
+	def _parse_hourangle(self, literal):
+		"""returns a float in degrees from an h:m:s.sss literal (various
+		separators supported).
+		"""
+		sepChar = None
+		if ":" in literal:
+			sepChar = ":"
+		return coords.hourangleToDeg(literal, sepChar)
+	
+	def _parse_sexagesimal(self, literal):
+		"""returns a float in degrees from a dms literal.
+		"""
+		sepChar = None
+		if ":" in literal:
+			sepChar = ":"
+		return coords.dmsToDeg(literal, sepChar)
+	
 	def _parse_emptyfalse(self, literal):
 		"""returns true if literal has characters other than whitespace.
 		"""

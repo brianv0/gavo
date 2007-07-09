@@ -141,11 +141,13 @@ class RecordBuilder:
 	a record that's ready for ingestion into a db table or a VOTable.
 	"""
 	def __init__(self, recordDef, adderCallback, fieldComputer, 
-			literalParser, maxRows=None):
+			literalParser, dataDef, maxRows=None):
 		self.recordDef, self.adderCallback = recordDef, adderCallback
 		self.fieldComputer, self.literalParser = fieldComputer, literalParser
 		self.maxRows = maxRows
 		self.rowsProcessed = 0
+		self.dataDef = dataDef
+		self.docRec = {}
 
 	def processRowdict(self, rowdict):
 		"""is called by the grammar when a table line has been parsed.
@@ -166,13 +168,22 @@ class RecordBuilder:
 		self.adderCallback(record)
 		self.rowsProcessed += 1
 
+	def processDocdict(self, docdict):
+		for macro in self.dataDef.get_macros():
+			macro(docdict)
+		for field in self.dataDef.get_items():
+			self.docRec[field.get_dest().encode("ascii")] = self.strToVal(
+				field, docdict)
+
 	def strToVal(self, field, rowdict):
 		"""returns a python value appropriate for field's type
 		from the values in rowdict.
 		"""
 		preVal = None
-		if field.get_source() is not None:
+		if field.get_source()!=None:
 			preVal = rowdict.get(field.get_source(), None)
+			if preVal==None and self.docRec:
+				preVal = self.docRec.get(field.get_source(), None)
 		if preVal==field.get_nullvalue():
 			preVal = None
 		if preVal==None:
@@ -233,6 +244,8 @@ class DataDescriptor(utils.Record):
 			"Semantics": utils.RequiredField,
 			"id": utils.RequiredField,        # internal id of the data set.
 			"FieldComputer": utils.ComputedField,  # for @-expansion
+			"items": utils.ListField,
+			"macros": utils.ListField,
 		}, initvals)
 		self.resource = weakref.proxy(parentResource)
 		self.fieldComputer = FieldComputer(self)
@@ -275,10 +288,12 @@ class DataDescriptor(utils.Record):
 			table.addData,
 			self.get_FieldComputer(),
 			typeconversion.LiteralParser(self.get_encoding()),
+			self,
 			maxRows=maxRows)
 		if fileIsRow:
 			self.get_Grammar().addDocumentHandler(rb.processRowdict)
 		else:
+			self.get_Grammar().addDocumentHandler(rb.processDocdict)
 			self.get_Grammar().addRowHandler(rb.processRowdict)
 
 
@@ -318,6 +333,8 @@ class RdParser(utils.StartEndHandler):
 		utils.StartEndHandler.__init__(self)
 		self.dataSrcStack = []
 		self.callableStack = []
+		self.fieldContainerStack = []
+		self.macroContainerStack = []
 
 	def _start_ResourceDescriptor(self, name, attrs):
 		self.rd = ResourceDescriptor()
@@ -334,17 +351,23 @@ class RdParser(utils.StartEndHandler):
 		self.curDD.set_id(attrs.get("id"))
 		self.rd.addto_dataSrcs(self.curDD)
 		self.dataSrcStack.append(self.curDD)
+		self.fieldContainerStack.append(self.curDD)
+		self.macroContainerStack.append(self.curDD)
 
 	def _end_Data(self, name, attrs, content):
 		self.dataSrcStack.pop()
+		self.fieldContainerStack.pop()
+		self.macroContainerStack.pop()
 
 	def _start_CFGrammar(self, name, attrs):
 		self.curGrammar = CFGrammar()
 		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
+		self.macroContainerStack.append(self.curGrammar)
 
 	def _start_REGrammar(self, name, attrs):
 		self.curGrammar = REGrammar()
 		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
+		self.macroContainerStack.append(self.curGrammar)
 
 	def _start_ColumnGrammar(self, name, attrs):
 		self.curGrammar = ColumnGrammar()
@@ -353,19 +376,29 @@ class RdParser(utils.StartEndHandler):
 		self.curGrammar.set_booster(attrs.get(
 			"booster"))
 		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
+		self.macroContainerStack.append(self.curGrammar)
 
 	def _start_KeyValueGrammar(self, name, attrs):
 		self.curGrammar = KeyValueGrammar()
 		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
+		self.macroContainerStack.append(self.curGrammar)
 
 	def _start_FitsGrammar(self, name, attrs):
 		self.curGrammar = FitsGrammar()
 		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
 		self.curGrammar.set_qnd(attrs.get("qnd", "False"))
+		self.macroContainerStack.append(self.curGrammar)
 
 	def _start_NullGrammar(self, name, attrs):
 		self.curGrammar = NullGrammar()
 		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
+		self.macroContainerStack.append(self.curGrammar)
+
+	def _end_CFGrammar(self, name, attrs, content):
+		self.macroContainerStack.pop()
+	
+	_end_REGrammar = _end_ColumnGrammar = _end_KeyValueGrammar = \
+		_end_FitsGrammar = _end_NullGrammar = _end_CFGrammar
 
 	def _start_Semantics(self, name, attrs):
 		self.curSemantics = Semantics()
@@ -374,13 +407,15 @@ class RdParser(utils.StartEndHandler):
 	def _start_Record(self, name, attrs):
 		self.curRecordDef = resource.RecordDef()
 		self.curRecordDef.set_table(attrs["table"])
+		if name=="SharedRecord":
+			self.curRecordDef.set_shared(True)
+		self.fieldContainerStack.append(self.curRecordDef)
 		self.curSemantics.addto_recordDefs(self.curRecordDef)
 
-	def _start_SharedRecord(self, name, attrs):
-		self.curRecordDef = resource.RecordDef()
-		self.curRecordDef.set_shared(True)
-		self.curRecordDef.set_table(attrs["table"])
-		self.curSemantics.addto_recordDefs(self.curRecordDef)
+	_start_SharedRecord = _start_Record
+
+	def _end_Record(self, name, attrs, content):
+		self.fieldContainerStack.pop()
 
 	def _start_owningCondition(self, name, attrs):
 		self.curRecordDef.set_owningCondition((attrs["colName"], attrs["value"]))
@@ -389,7 +424,7 @@ class RdParser(utils.StartEndHandler):
 		f = datadef.DataField()
 		for key, val in attrs.items():
 			f.set(key, val)
-		self.curRecordDef.addto_items(f)
+		self.fieldContainerStack[-1].addto_items(f)
 		self.currentField = f
 
 	def _end_longdescr(self, name, attrs, content):
@@ -403,7 +438,7 @@ class RdParser(utils.StartEndHandler):
 		mac = macros.getMacro(attrs["name"])(self.curDD.get_FieldComputer(),
 			**initArgs)
 		self.callableStack.append(mac)
-		self.curGrammar.addto_macros(mac)
+		self.macroContainerStack[-1].addto_macros(mac)
 
 	def _end_Macro(self, name, attrs, content):
 		mac = self.callableStack.pop()

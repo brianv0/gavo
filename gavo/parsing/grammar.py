@@ -62,7 +62,7 @@ class Grammar(utils.Record):
 			import traceback
 			traceback.print_exc()
 		msg = ("Internal Error (%s, %s) while parsing row %s -- run with -v to"
-			" see traceback."%(exc.__class__.__name__, str(exc), row))
+			" see traceback."%(exc.__class__.__name__, str(exc), str(row)[:120]))
 		gavo.ui.displayError(msg)
 		raise gavo.Error(msg)
 
@@ -76,7 +76,7 @@ class Grammar(utils.Record):
 			except gavo.Error:
 				raise
 			except Exception, msg:
-				self._handleInternalError(msg)
+				self._handleInternalError(msg, row)
 			lines = self._iterRows()
 			# We use this funny loop to handle exceptions raised while the
 			# grammar matches a row in the exception handlers below (it would
@@ -88,19 +88,20 @@ class Grammar(utils.Record):
 					counter.hit()
 				except StopIteration:
 					break
-				except KeyboardInterrupt:
-					raise
 				except (gavo.StopOperation, KeyboardInterrupt):
 					raise
 				except gavo.InfoException, msg:
 					logger.info(msg)
-				except gavo.Error, msg:
-					logger.error(str(msg)+" -- ignoring row %s"%row)
+				except gavo.parsing.ParseError, msg:
+					errmsg = "Parse failure, aborting source (%s). See log."%msg
 					counter.hitBad()
+					logger.error(errmsg, exc_info=True)
+					raise gavo.Error(errmsg)
 				except sqlsupport.OperationalError, msg:
 					logger.error("Row %s bad (%s).  Ignoring."%(row, msg))
 					gavo.ui.displayError("Import of row %s failed (%s). ABORTING"
 						" OPERATION."%(row, msg))
+					counter.hitBad()
 					raise  # XXXXXXXXX should emit err msg wherever this is caught.
 				except Exception, msg:
 					counter.hitBad()
@@ -109,7 +110,7 @@ class Grammar(utils.Record):
 			getattr(self, "_cleanupParse", lambda: None)()
 			counter.close()
 
-	def _runProcessors(self, rowdict, procType):
+	def _runProcessors(self, rowdict):
 		"""processes rowdict with all row processors and returns all
 		resulting rows.
 		"""
@@ -121,18 +122,15 @@ class Grammar(utils.Record):
 			currentRows = newRows
 		return currentRows
 
-	def _expandMacros(self, rowdict, procType):
+	def _expandMacros(self, rowdict):
 		for macro in self.get_macros():
 			macro(rowdict)
 
-	def _process(self, rowdict, procType):
+	def _process(self, rowdict):
 		"""runs row processors and macros on rowdict.
-
-		procType may be row or doc to select only processors for the
-		respective production (not implemented yet).
 		"""
-		for row in self._runProcessors(rowdict, procType):
-			self._expandMacros(rowdict, procType)
+		for row in self._runProcessors(rowdict):
+			self._expandMacros(rowdict)
 			yield rowdict
 
 
@@ -184,9 +182,8 @@ class Grammar(utils.Record):
 		"""
 		if not self.documentHandlers:
 			return
-		for processedDict in self._process(docdict, "doc"):
-			for handler in self.documentHandlers:
-				handler(docdict)
+		for handler in self.documentHandlers:
+			handler(docdict)
 
 	def handleRow(self, rowdict):
 		"""should be called by derived classes whenever a new row
@@ -196,7 +193,7 @@ class Grammar(utils.Record):
 		"""
 		if not self.rowHandlers:
 			return
-		for processedDict in self._process(rowdict, "row"):
+		for processedDict in self._process(rowdict):
 			for handler in self.rowHandlers:
 				handler(processedDict)
 
