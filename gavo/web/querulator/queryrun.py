@@ -193,15 +193,18 @@ class Formatter:
 	def _string_to_html(self, value):
 		return self._htmlEscape(value)
 
+	def _null_to_html(self):
+		return "N/A"
+
 	def format(self, hint, targetFormat, value, row):
 		if hint[0]=="suppressed":
 			return None
+		if value==None:
+			return getattr(self, "_null_to_%s"%targetFormat)()
 		cooker = getattr(self, "_cook_%s"%hint[0], lambda a, row: a)
 		formatter = getattr(self, "_%s_to_%s"%(hint[0], targetFormat),
 			lambda *a: a[0])
 		res = formatter(cooker(value, row, *hint[1:]))
-		if res==None:
-			return "N/A"
 		return res
 
 
