@@ -80,8 +80,25 @@ class Interface:
 class Positions(Interface):
 	"""is an interface for positions.
 
-	This should almost always be used in combination with the 
-	handleEquatorialPosition macro.
+	It consists of the fields alphaFloat, deltaFloat (float angles
+	in degrees, J2000.0) and c_x, c_y, c_z (intersection of the radius
+	vector to alphaFloat, deltaFloat with the unit sphere).
+
+	You will usually use it in conjunction with the handleEquatorialPosition
+	macro that prepares these fields for you.  So, you might say:
+
+		<Grammar...>
+      <Macro name="handleEquatorialPosition"
+          alphaFormat="mas" deltaFormat="mas">
+        <arg name="alpha" source="18-27"/>
+        <arg name="delta" source="29-38"/>
+      </Macro>
+		<Grammar>
+		<Semantics>
+			<Record table="data">
+				<implements name="positions"/>
+			</Record>
+		</Semantics>
 	"""
 	@staticmethod
 	def getName():
@@ -106,6 +123,11 @@ class Positions(Interface):
 
 class Q3CPositions(Positions):
 	"""is an interface for positions indexed using q3c.
+	
+	This works exactly like the positions interface, except that behind
+	the scenes some magic code generates a q3c index on alphaFloat and
+	deltaFloat.  This will fail if you don't have the q3c extension to
+	postgres.
 	"""
 	@staticmethod
 	def getName():
@@ -128,9 +150,33 @@ class Q3CPositions(Positions):
 class Products(Interface):
 	"""is an interface for handling products.
 
-	You should use this in combination with the setProdtblValues macro.
+	The interface requires the fields datapath, owner, embargo, and
+	fsize.
 
-	This structure must reflect whatever is given in inputs/products
+	Tables providing products must also enter their data into the product
+	table, a system-global table mapping keys to files (which is usually
+	trivial, since the product key is the path in most of the cases).
+	The main point of the product table is to allow programs to check the
+	ownership status (i.e., who owns the thing and when will it become free) 
+	of a product without needing more information than the key.  
+	
+	The producttable itself is defined in gavo.inputsDir/products, and
+	you'll need to gavoimp the resource descriptor in there once before
+	importing anything implementing the products interface.  The interface
+	will then take care of inserting your data into that table as well.
+
+	You will usually want to use this in conjunction with the setProdtblValues
+	macro that fills some "magic fields" the interface needs.  This might
+	look like this:
+
+        <Macro name="setProdtblValues">
+          <arg name="prodtblKey" value="@inputRelativePath"/>
+          <arg name="prodtblOwner" value="XXXXXX"/>
+          <arg name="prodtblEmbargo" value="XXXX-12-31"/>
+          <arg name="prodtblPath" value="@inputRelativePath"/>
+          <arg name="prodtblFsize" value="@inputSize"/>
+        </Macro>
+
 	"""
 	@staticmethod
 	def getName():
@@ -178,3 +224,9 @@ class Products(Interface):
 
 getInterface = utils.buildClassResolver(Interface, globals().values(),
 	instances=True)
+
+
+if __name__=="__main__":
+	import sys
+	if not utils.makeClassDocs(Interface, globals().values()):
+		_test()

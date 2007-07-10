@@ -65,7 +65,7 @@ class FieldComputer:
 	
 	def _fc_srcstem(self, rows):
 		"""returns the stem of the source file currently parsed.
-
+		
 		Example: if you're currently parsing /tmp/foo.bar, the stem is foo.
 		"""
 		return os.path.splitext(
@@ -89,6 +89,9 @@ class FieldComputer:
 		return os.path.join(*newPath)
 
 	def _getRelativePath(self, fullPath, rootPath):
+		"""returns rest if fullPath has the form rootPath/rest and raises an
+		exception otherwise.
+		"""
 		if not fullPath.startswith(rootPath):
 			raise Error("Full path %s does not start with resource root %s"%
 				(fullPath, rootPath))
@@ -115,6 +118,13 @@ class FieldComputer:
 		"""
 		fullPath = self.dataDescriptor.get_Grammar().getCurFileName()
 		return os.path.getsize(fullPath)
+
+	def getDocs(self, underliner):
+		docItems = []
+		for name in dir(self):
+			if name.startswith("_fc_"):
+				docItems.append((name[4:], getattr(self, name).__doc__))
+		return utils.formatDocs(docItems, underliner)
 
 
 class RecordBuilder:
@@ -410,6 +420,7 @@ class RdParser(utils.StartEndHandler):
 	def _start_Record(self, name, attrs):
 		self.curRecordDef = resource.RecordDef()
 		self.curRecordDef.set_table(attrs["table"])
+		self.curRecordDef.set_create(attrs.get("create", "True"))
 		if name=="SharedRecord":
 			self.curRecordDef.set_shared(True)
 		self.fieldContainerStack.append(self.curRecordDef)
@@ -555,4 +566,12 @@ def _test():
 
 
 if __name__=="__main__":
-	_test()
+	import sys
+	if len(sys.argv)>1 and sys.argv[1]=="docs":
+		underliner = "."
+		if len(sys.argv)>2:
+			underliner = sys.argv[2]
+		print FieldComputer(DataDescriptor(ResourceDescriptor())
+			).getDocs(underliner)
+	else:
+		_test()

@@ -49,6 +49,7 @@ class RecordDef(utils.Record):
 			"owningCondition": None,    # a condition to select our data from
 			                            # shared tables.
 			"shared": utils.BooleanField,  # is this a shared table?
+			"create": utils.BooleanField,  # create table?
 		})
 		self.fieldIndexDict = {}
 

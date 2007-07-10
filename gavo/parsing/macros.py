@@ -641,8 +641,5 @@ def _test():
 
 
 if __name__=="__main__":	
-	import sys
-	if len(sys.argv)==2 and sys.argv[1]=="docs":
-		utils.makeClassDocs(Macro, globals().values())
-	else:
+	if not utils.makeClassDocs(Macro, globals().values()):
 		_test()

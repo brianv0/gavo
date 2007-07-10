@@ -264,11 +264,11 @@ def buildClassResolver(baseClass, objects, instances=False):
 	return resolve
 
 
-def makeClassDocs(baseClass, objects):
-	"""prints hopefully RST-formatted docs for all subclasses
-	of baseClass in objects.
+def formatDocs(docItems, underliner):
+	"""returns RST-formatted docs for docItems.
 
-	objects would usually be something like globals().values().
+	docItems is a list of (title, doc) tuples.  doc is currently
+	rendered in a preformatted block.
 	"""
 	def formatDocstring(docstring):
 		"""returns a docstring with a consistent indentation.
@@ -288,14 +288,35 @@ def makeClassDocs(baseClass, objects):
 				newLines.append(whitespacePat.sub("", line))
 		return "  "+("\n  ".join(newLines))
 
-	def formatDocs(docList):
-		docLines = []
-		for title, body in docList:
-			docLines.extend([title, "."*len(title), "", "::", "",
-				formatDocstring(body), ""])
-		docLines.append("\n.. END AUTO\n")
-		return "\n".join(docLines)
+	docLines = []
+	for title, body in docItems:
+		docLines.extend([title, underliner*len(title), "", "::", "",
+			formatDocstring(body), ""])
+	docLines.append("\n.. END AUTO\n")
+	return "\n".join(docLines)
 
+
+def makeClassDocs(baseClass, objects):
+	"""prints hopefully RST-formatted docs for all subclasses
+	of baseClass in objects.
+
+	The function returns True if it finds arguments it expects ("docs"
+	and optionally a char to build underlines from) in the command line,
+	False if not (and it doesn't print anything in this case) if not.
+
+	Thus, you'll usually use it like this:
+
+	if __name__=="__main__":	
+		if not utils.makeClassDocs(Macro, globals().values()):
+			_test()
+	"""
+	if len(sys.argv) in [2,3] and sys.argv[1]=="docs":
+		if len(sys.argv)==3:
+			underliner = sys.argv[2][0]
+		else:
+			underliner = "."
+	else:
+		return False
 	docs = []
 	for cls in _iterDerivedClasses(baseClass, objects):
 		try:
@@ -304,7 +325,8 @@ def makeClassDocs(baseClass, objects):
 			title = cls.__name__
 		docs.append((title, cls.__doc__))
 	docs.sort()
-	print formatDocs(docs)
+	print formatDocs(docs, underliner)
+	return True
 
 
 def fatalError(message, exc_info=True):

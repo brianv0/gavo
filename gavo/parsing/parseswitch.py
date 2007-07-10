@@ -132,7 +132,7 @@ class Table:
 		tableExporter = sqlsupport.TableWriter(tableName,
 			self.recordDef.getSqlFielddef())
 		tableExporter.ensureSchema(schema)
-		tableExporter.createTable()
+		tableExporter.createTable(create=self.recordDef.get_create())
 		self._exportToMetaTable(schema)
 		return tableExporter
 

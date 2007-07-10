@@ -1,0 +1,5 @@
+This is just the record definition for the global product table (in the
+public schema).
+
+Be very careful when rebuilding it -- you will probably need to re-run
+all imports with products in them.

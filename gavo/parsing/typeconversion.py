@@ -12,8 +12,10 @@ import math
 import re
 
 import gavo
+from gavo import utils
 from gavo import logger
 from gavo import coords
+
 
 def _make_dateFromString(datestr, datePatterns=[
 		re.compile("(?P<y>\d\d\d\d)-(?P<m>\d\d)-(?P<d>\d\d)$"),
@@ -112,10 +114,8 @@ class LiteralParser:
 
 	def _parse_JYear(self, literal):
 		"""returns a DateTime instance for a fractional (julian) year.
-
+		
 		This refers to time specifications like J2001.32.
-
-		XXX TODO: We should be using JulianDateTime here.
 		"""
 		frac, year = math.modf(float(literal))
 		# Workaround for crazy bug giving dates like 1997-13-1 on some
@@ -126,8 +126,8 @@ class LiteralParser:
 		return DateTime.DateTime(int(year))+365.25*frac
 
 	def _parse_spuriousBlanks(self, literal):
-		"""is a literalForm parser for values with blanks that should be
-		ignored.
+		"""removes all blanks from a literal (use it if, e.g. people
+		inserted blanks into long numbers.
 		"""
 		return literal.replace(" ", "")
 
@@ -186,3 +186,18 @@ class LiteralParser:
 			raise gavo.Error("Invalid or unknown literal form %s (%s)"%(
 				literalForm, msg))
 		return self._computeConverter(sqlType)(literal)
+	
+	def getLiteralDocs(self, underliner):
+		return utils.formatDocs([(literalForm, method.__doc__)
+			for literalForm, method in self.literalMogrifiers.iteritems()
+				if literalForm],
+			underliner)
+
+
+if __name__=="__main__":
+	import sys
+	if len(sys.argv)>1 and sys.argv[1]=="docs":
+		underliner = "."
+		if len(sys.argv)>2:
+			underliner = sys.argv[2]
+		print LiteralParser().getLiteralDocs(underliner)

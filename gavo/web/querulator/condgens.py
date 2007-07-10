@@ -691,6 +691,5 @@ def makeCondGen(name, cType, toks):
 
 
 if __name__=="__main__":
-	if len(sys.argv)==2 and sys.argv[1]=="docs":
-		from gavo.utils import makeClassDocs
-		makeClassDocs(CondGen, globals().values())
+	from gavo.utils import makeClassDocs
+	makeClassDocs(CondGen, globals().values())

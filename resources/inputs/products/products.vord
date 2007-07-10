@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ResourceDescriptor srcdir="products">
+	<schema>public</schema>
+	<Data id="nothing">
+		<NullGrammar/>
+
+		<Semantics>
+<!-- This has to match the ProductValueCollector macro in macros.py
+and the products interface.
+
+It is somewhat unfortunate that this definition is reflected in so many
+places, but the alternatives are even more unattractive (to me).
+-->
+			<Record table="products">
+				<Field dest="key" primary="True" dbtype="text"
+					tablehead="Unique product key"/>
+				<Field dest="owner" dbtype="text" tablehead="Data owner"/>
+				<Field dest="embargo" dbtype="date"
+					tablehead="Ends date of embargo"/>
+				<Field dest="accessPath" dbtype="text" 
+					tablehead="Path to access data" optional="False"/>
+				<Field dest="sourceTable" dbtype="text"
+					tablehead="Name of table containing metadata" optional="False"/>
+			</Record>
+		</Semantics>
+	</Data>
+</ResourceDescriptor>
