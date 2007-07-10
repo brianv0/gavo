@@ -82,5 +82,21 @@ class TestSqlparser(unittest.TestCase):
 		]
 		self._runStatementTests(statements)
 
+	def testSelectLists(self):
+		"""tests various valid select lists.
+		"""
+		statements = [
+			("select {{field|title with space|simplehint}} from u where x=y",
+				"<Query for u, <Items: field> -- x=y>"),
+			("select {{a+b||simplehint}} from u where x=y",
+				"<Query for u, <Items: a+b> -- x=y>"),
+			("select {{a||hint,'arg1',2,'arg blank'}} from u where x=y",
+				"<Query for u, <Items: a> -- x=y>"),
+			("select {{a+b/c|crazy stuff|hint,'arg1',2}} from u where x=y",
+				"<Query for u, <Items: a+b/c> -- x=y>"),
+		]
+		self._runStatementTests(statements)
+
+
 if __name__ == '__main__':
     unittest.main()

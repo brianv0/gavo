@@ -231,10 +231,16 @@ def _tryBooster(grammar, inputFileName, tableName, descriptor):
 		connDesc = "host=%s port=%s user=%s password=%s dbname=%s\n"%(
 			host, port, config.settings.get_db_user(), 
 			config.settings.get_db_password(), dbname)
-	f = os.popen("%s '%s' '%s'"%(booster, inputFileName, tableName), "w")
-	f.write(connDesc)
-	f.flush()
-	retval = f.close()
+	try:
+		f = os.popen("%s '%s' '%s'"%(booster, inputFileName, tableName), "w")
+		f.write(connDesc)
+		f.flush()
+		retval = f.close()
+	except IOError, msg:
+		if msg.errno==32:
+			raise BoosterNotAvailable("Broken pipe")
+		else:
+			raise
 	if retval!=None:
 		retval = (retval&0xff00)>>8
 	if retval==126: 
@@ -298,6 +304,7 @@ def _parseSources(grammar, srcDesc, descriptor, tables):
 
 		counter.hit()
 	counter.close()
+
 
 def getDataset(srcDesc, descriptor, dumpOnly=False, debugProductions=[],
 			maxRows=None, directWriting=False):

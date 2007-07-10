@@ -100,12 +100,13 @@ processedCondition = (Suppress(fieldStart) + conditionDescription +
 escapeSeq = Literal("\\") + Word(printables+" ", exact=1)
 escapeSeq.setParseAction(lambda s, p, toks: toks[1])
 noEscapeStuff = SkipTo( escapeSeq | "|")
-sqlExpression = noEscapeStuff + ZeroOrMore(escapeSeq + noEscapeStuff)
+sqlExpression = noEscapeStuff + ZeroOrMore( escapeSeq + noEscapeStuff )
 sqlExpression.setParseAction(_joinChildren)
 
 # productions for parsing select lists
+formatHint = sqlId + ZeroOrMore( Suppress(Literal(',')) + sqlAtom )
 selectItem = (sqlExpression + Suppress("|") + SkipTo("|") + Suppress("|")+
-	sqlId)
+	Group(formatHint))
 selectItemField = Suppress(fieldStart)+selectItem+Suppress(fieldEnd)
 selectItems = selectItemField + ZeroOrMore(Suppress(",") + selectItemField)
 
@@ -380,6 +381,7 @@ class SelectItem(ParseNode):
 	queryrun.Formatter.
 	"""
 	def __init__(self, sqlExpr, columnTitle, displayHint):
+		displayHint = [displayHint[0]]+map(eval, displayHint[1:])
 		self.sqlExpr, self.columnTitle, self.displayHint = \
 			sqlExpr, columnTitle, displayHint
 		self.children = [self.sqlExpr, self.columnTitle, self.displayHint]
@@ -524,12 +526,8 @@ def parse(sqlStatement, production=simpleSql):
 
 
 if __name__=="__main__":
-	termclauses = whereClauses+StringEnd()
-	sqlOpTest.setDebug(True)
-	whereLvalue.setDebug(True)
-	unparsedExpressionSoup.setDebug(True)
-	unparsedESParens.setDebug(True)
-	unparsedESFuncall.setDebug(True)
-	predefinedTest.setDebug(True)
-	print termclauses.parseString("""
-{{bla|sqrt(a^2+b^2)<IntField()}}""")
+	formatHint.setDebug(True)
+	sqlId.setDebug(True)
+	sqlAtom.setDebug(True)
+	print selectItemField.parseString("""
+{{a||hint,arg1,2,'arg blank'}}""")

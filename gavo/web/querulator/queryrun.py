@@ -121,19 +121,20 @@ class Formatter:
 			"%s/query/%s?feedback=%s"%(querulator.rootURL, targetTemplate,
 				urllib.quote(key)))
 
-	def _cook_hourangle(self, deg, row):
+	def _cook_hourangle(self, deg, row, secondFracs=2):
 		"""converts a float angle in degrees to an hour angle.
 		"""
 		rest, hours = math.modf(deg/360.*24)
 		rest, minutes = math.modf(rest*60)
-		return "%d %02d %2.2f"%(int(hours), int(minutes), rest*60)
+		return "%d %02d %2.*f"%(int(hours), int(minutes), secondFracs, rest*60)
 
-	def _cook_sexagesimal(self, deg, row):
+	def _cook_sexagesimal(self, deg, row, secondFracs=1):
 		"""converts a float angle in degrees to a sexagesimal angle.
 		"""
 		rest, degs = math.modf(deg)
 		rest, minutes = math.modf(rest*60)
-		return "%+d %02d %2.1f"%(int(degs), abs(int(minutes)), abs(rest*60))
+		return "%+d %02d %2.*f"%(int(degs), abs(int(minutes)), secondFracs,
+			abs(rest*60))
 
 	def _product_to_html(self, args):
 		prodUrl, thumbUrl, title = args
@@ -193,12 +194,12 @@ class Formatter:
 		return self._htmlEscape(value)
 
 	def format(self, hint, targetFormat, value, row):
-		if hint=="suppressed":
+		if hint[0]=="suppressed":
 			return None
-		cooker = getattr(self, "_cook_%s"%hint, lambda a, row: a)
-		formatter = getattr(self, "_%s_to_%s"%(hint, targetFormat),
+		cooker = getattr(self, "_cook_%s"%hint[0], lambda a, row: a)
+		formatter = getattr(self, "_%s_to_%s"%(hint[0], targetFormat),
 			lambda *a: a[0])
-		res = formatter(cooker(value, row))
+		res = formatter(cooker(value, row, *hint[1:]))
 		if res==None:
 			return "N/A"
 		return res
@@ -321,7 +322,7 @@ def _getHeaderRow(template, context):
 	metaTable = sqlsupport.MetaTableHandler(context.getQuerier())
 	defaultTableName = template.getDefaultTable()
 	for itemdef in itemdefs:
-		if itemdef.get("hint")=="suppressed":
+		if itemdef.get("hint")[0]=="suppressed":
 			continue
 		additionalTag, additionalContent = "", ""
 		if itemdef["title"]:
@@ -414,7 +415,7 @@ def _formatAsHtml(template, context):
 			doc.append(headerRow)
 		doc.append("<tr>%s</tr>"%("".join(["<td>%s</td>"%formatter.format(
 				hint, "html", item, row)
-			for item, hint in zip(row, hints) if hint!="suppressed"])))
+			for item, hint in zip(row, hints) if hint[0]!="suppressed"])))
 	doc.append("</table>\n")
 	doc.append(tarForm)
 	doc.append("</body>")
