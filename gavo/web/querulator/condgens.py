@@ -607,9 +607,10 @@ class FeedbackSearch(CondGen):
 		querier = context.getQuerier()
 		selectItems = ", ".join([name for name, type, info in
 			self.fieldDefs])
-		qValues = querier.query("SELECT %s FROM %s WHERE"
+		qRes = querier.query("SELECT %s FROM %s WHERE"
 			" %s=%%(val)s"%(selectItems, self.tableName, self.targetField), 
-				{"val": context.get(self.queryKey)}).fetchall()[0]
+				{"val": context.get(self.queryKey)}).fetchall()
+		qValues = qRes[0]
 		localContext = {}
 		for (name, dbtype, info), value in zip(self.fieldDefs, qValues):
 			localContext[self._getKeyFor(name)] = value
@@ -631,6 +632,8 @@ class FeedbackSearch(CondGen):
 				return '<div class="feedback">%s</div>'%(
 					self.expression.asHtml(self._getLocalContext(context)))
 			except IndexError:
+				import traceback
+				traceback.print_exc()
 				raise querulator.Error("Could not use %s as specifier for feedback"
 					" query"%repr(context.get(self.queryKey)))
 	

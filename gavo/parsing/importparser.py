@@ -261,6 +261,9 @@ class DataDescriptor(utils.Record):
 	def iterSources(self):
 		if self.get_source():
 			yield self.get_source()
+		if not os.path.isdir(self.resource.get_resdir()):
+			raise Error("Resource directory %s does not exist or is"
+				" not a directory."%self.resource.get_resdir())
 		if self.get_sourcePat():
 			for path, dirs, files in os.walk(self.resource.get_resdir()):
 				for fName in glob.glob(os.path.join(path, self.get_sourcePat())):

@@ -239,7 +239,6 @@ def _isTruncated(queryResult, context):
 
 def _doQuery(template, context):
 	sqlQuery, args = template.asSql(context)
-	#sys.stderr.write(">>>>>>>> %s %s\n"%(sqlQuery, args))
 	# the following is a lousy hack.  It's not too easy coming up with
 	# something better, though
 	if sqlQuery.lower().endswith("where"):

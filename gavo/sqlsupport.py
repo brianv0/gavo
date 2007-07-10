@@ -4,6 +4,7 @@ This module contains basic support for manual SQL generation.
 """
 
 import re
+import sys
 
 from pyPgSQL import PgSQL
 
@@ -27,9 +28,9 @@ metaTableName = "fielddescriptions"
 # change anything here, you'll probably have to change 
 # parsing.resource.getMetaRow as well.
 metaTableFields = [
-	("tableName", "text", {"primary": True, "index": "meta_fields",
+	("tableName", "text", {"primary": True, 
 		"description": "Name of the table the column is in"}),
-	("fieldName", "text", {"primary": True, "index": "meta_fields",
+	("fieldName", "text", {"primary": True,
 		"description": "SQL identifier for the column"}),
 	("unit", "text", {"description": "Unit for the value"}),
 	("ucd", "text", {"description": "UCD for the colum"}),
@@ -348,6 +349,7 @@ class SimpleQuerier(StandardQueryMixin):
 			client_encoding="utf-8")
 
 	def query(self, query, data={}):
+		#sys.stderr.write(">>>>>> %s %s\n"%(query, data))
 		return self.runOneQuery(query, data)
 
 	def commit(self):
