@@ -403,6 +403,7 @@ class RdParser(utils.StartEndHandler):
 
 	def _start_REGrammar(self, name, attrs):
 		self._startGrammar(REGrammar, attrs)
+		self.curGrammar.set_numericGroups(attrs.get("numericGroups", "False"))
 
 	def _start_ColumnGrammar(self, name, attrs):
 		self._startGrammar(ColumnGrammar, attrs)

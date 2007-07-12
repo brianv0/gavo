@@ -15,6 +15,7 @@ import os
 
 from gavo import sqlsupport
 from gavo import config
+from gavo.web import common
 from gavo.web import querulator
 from gavo.web.querulator import sqlparse
 from gavo.web.querulator import condgens
@@ -77,21 +78,18 @@ class MacroHandler:
 		return self.template.getLegal()
 
 
-class Template:
-	"""is a template with embedded configuration and SQL queries.
+class AbstractTemplate:
+	"""is a model for a template.
 
-	Templates should know about interfaces.  Currently, only the product
-	interface is relevant, so it's handled by hand.  If there is any
-	formatting hint "product" present in the select list, it is assumed
-	that the table supports the product interface and suppressed fields
-	owner, embargo, and fsize are added.
+	A template is HTML with embedded stuff in <?...?> pseudo elements.
+	This HTML is read from the full path srcPath.
 	"""
-	def __init__(self, templatePath, rawText):
-		self.path = templatePath
-		self.rawText = rawText
-		self._parseQuery()
+	def __init__(self, srcPath):
+		self.fullPath = srcPath
+		f = open(srcPath)
+		self.rawText = f.read()
+		f.close()
 		self._parseMeta()
-		self._handleInterfaces()
 
 	def _parseMeta(self):
 		"""adds a metaItems attribute filled from the ?meta element in the source.
@@ -105,6 +103,77 @@ class Template:
 				for key, value in
 					[kv.split("=", 1) 
 						for kv in mat.group(1).strip().split("\n")]])
+
+	def getFullPath(self):
+		"""returns the relative path to the template source.
+		"""
+		return self.fullPath
+
+	def getMeta(self, key):
+		"""returns the meta item key.
+
+		It raises a KeyError if the key is not given.
+		"""
+		return self.metaItems[key]
+
+	def getLegal(self):
+		"""returns the content of the file pointed to by the
+		LEGAL item in meta.
+
+		The value of LEGAL is supposed to be relative to the
+		location of the template source.
+		"""
+		try:
+			legalpath = os.path.join(os.path.dirname(
+					self.getFullPath()),
+				self.getMeta("LEGAL"))
+			return '<div class="legal">%s</div>'%open(legalpath).read()
+		except KeyError:
+			pass
+		return ""
+
+	def _handleMacros(self, rawTx):
+		"""expands "macros" in the source.
+
+		See MacroHandler's doc for more information.
+		"""
+		macroHandler = MacroHandler(self)
+		return re.sub(querulator.macroPat, lambda mat, m=macroHandler: eval(
+			"m."+mat.group(1).strip()), rawTx)
+
+	def asHtml(self, context):
+		"""returns html for a query page.
+
+		This method will call _handlePrivateElements -- this method
+		has to be filled in by deriving classes.  It has to take
+		a context and some text and must return a string in which the
+		elements specific to the derived template class are substituted
+		by forms or whatever the deriving class desires.
+		"""
+		return self._handleMacros(
+			querulator.metaElementPat.sub("",
+				self._handlePrivateElements(self.rawText, context)))
+
+
+class Template(AbstractTemplate):
+	"""is a template for querulator (i.e. support for <?query ...?>)
+
+	The content of query is an SQL select statement with embedded markup.
+
+	Templates should know about interfaces.  Currently, only the product
+	interface is relevant, so it's handled by hand.  If there is any
+	formatting hint "product" present in the select list, it is assumed
+	that the table supports the product interface and suppressed fields
+	owner, embargo, and fsize are added.
+	"""
+	def __init__(self, templatePath):
+		self.path = templatePath
+		AbstractTemplate.__init__(self, querulator.resolveTemplate(templatePath))
+		self._parseQuery()
+		self._handleInterfaces()
+
+	def getPath(self):
+		return self.path
 
 	def _parseQuery(self):
 		"""parses the sql query source, setting the query attribute to
@@ -134,43 +203,6 @@ class Template:
 			self.addSelectItem("owner||suppressed")
 			self.addSelectItem("embargo||suppressed")
 			self.addSelectItem("fsize||suppressed")
-
-	def getPath(self):
-		"""returns the relative path to the template source.
-		"""
-		return self.path
-
-	def getMeta(self, key):
-		"""returns the meta item key.
-
-		It raises a KeyError if the key is not given.
-		"""
-		return self.metaItems[key]
-
-	def getLegal(self):
-		"""returns the content of the file pointed to by the
-		LEGAL item in meta.
-
-		The value of LEGAL is supposed to be relative to the
-		location of the template source.
-		"""
-		try:
-			legalpath = os.path.join(os.path.dirname(
-					querulator.resolveTemplate(self.getPath())),
-				self.getMeta("LEGAL"))
-			return '<div class="legal">%s</div>'%open(legalpath).read()
-		except KeyError:
-			pass
-		return ""
-
-	def _handleMacros(self, rawTx):
-		"""expands "macros" in the source.
-
-		See MacroHandler's doc for more information.
-		"""
-		macroHandler = MacroHandler(self)
-		return re.sub(querulator.macroPat, lambda mat, m=macroHandler: eval(
-			"m."+mat.group(1).strip()), rawTx)
 
 	def _getSortForm(self, context):
 		return '<select name="sortby">%s</select>'%(
@@ -205,20 +237,26 @@ class Template:
 		return "%s\n%s\n"%(self.query.asHtml(context), 
 			self._getAutoFields(context))
 
-	def asHtml(self, formTemplate, context):
-		"""returns html for the complete page.
-
-		formTemplate is a string containing a single %s that will be substituted
-		by the form fields generated by self.query.  It should, in general,
-		provide <form>-container and any submit buttons you need.  The
-		formTemplate with the substituted string is then pasted in in place of
-		the <?query?> in the template source.
+	def _getForm(self, context):
+		"""returns HTML for a form containing all fields required by the
+		condition generators of self.query.
 		"""
-		return self._handleMacros(
-			querulator.metaElementPat.sub("",
-				querulator.queryElementPat.sub(
-					lambda mat: formTemplate%self._getFormContent(context),
-				self.rawText)))
+		return ('\n<form class="querulator" method="post"'
+			' action="%(rootUrl)s/run/%(templatePath)s">\n'
+			'%(formItems)s'
+			'%(submitButtons)s'
+			'</form>')%{
+				"formItems": self._getFormContent(context),
+				"templatePath" : self.getPath(),
+				"rootUrl": querulator.rootURL,
+				"submitButtons": common.getSubmitButtons(),
+				}
+
+	def _handlePrivateElements(self, rawText, context):
+		"""returns rawText with any <?query ?> elements substituted
+		by a form generating a query for the the sql statement in there.
+		"""
+		return querulator.queryElementPat.sub(self._getForm(context), rawText)
 
 	def _getOrderClause(self, context):
 		"""returns an appropriate "ORDER BY" clause for the current query.
@@ -294,7 +332,7 @@ class Template:
 		"""
 		productCols = [index 
 			for index, itemdef in enumerate(self.getItemdefs())
-				if itemdef["hint"]=="product"]
+				if "product" in itemdef["hint"]]
 		if len(productCols)==0:
 			return None
 		elif len(productCols)==1:
@@ -374,39 +412,13 @@ class Template:
 		"""
 		return self.query.getColIndexFor(colExpr)
 
+	def runQuery(self, context):
+		sqlQuery, args = template.asSql(context)
+		# the following is a lousy hack.  It's not too easy coming up with
+		# something better, though
+		if sqlQuery.lower().endswith("where"):
+			raise querulator.Error("No valid query parameter found.")
 
-def makeTemplate(templatePath):
-	"""returns a template instance for the template in templatePath.
+		querier = context.getQuerier()
+		return querier.query(sqlQuery, args).fetchall()
 
-	This indirection is present because at some point we may want to
-	instanciate different kinds of templates, depending on, e.g.,
-	path, extension or content of the template.
-	"""
-	rawTxt = open(querulator.resolveTemplate(templatePath)).read()
-	return Template(templatePath, rawTxt)
-
-
-def getForm(template, context):
-	"""returns templateTxt with the a form for the sqlparse.Query
-	instance query filled in.
-
-	The submit buttons need names so we can later distinguish what
-	type of product was requested.  To avoid their inclusion into
-	the hidden forms used for resubmitting a query, these names all
-	have to start with "submit".  It's a hack, but I think it's not
-	a bad one.
-	"""
-	moreFormMaterial = []
-	moreFormMaterial.append('\n<input type="submit" value="Table as VOTable"'
-		' name="submit-votable">\n')
-	formTemplate = ('\n<form class="querulator" method="post"'
-		' action="%(rootUrl)s/run/%(templatePath)s">\n'
-		'%%s'
-		'\n<p><input type="submit" value="Table as HTML" name="submit">\n'
-		'%(moreFormMaterial)s</p>'
-		'</form>')%{
-			"templatePath" : template.getPath(),
-			"rootUrl": querulator.rootURL,
-			"moreFormMaterial": "\n".join(moreFormMaterial),
-			}
-	return template.asHtml(formTemplate, context)

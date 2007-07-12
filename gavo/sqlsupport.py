@@ -375,6 +375,8 @@ class ScriptRunner:
 		script = re.sub(r"\\\n\s*", " ", script)
 		cursor = self.connection.cursor()
 		for query in script.split("\n"):
+			if not query.strip():
+				continue
 			failOk = False
 			query = query.strip()
 			if query.startswith("-"):
@@ -391,6 +393,7 @@ class ScriptRunner:
 						" aborting script."%(query, encodeDbMsg(msg)))
 					raise
 		cursor.close()
+		self.commit()
 	
 	def commit(self):
 		self.connection.commit()

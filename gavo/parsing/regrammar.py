@@ -3,6 +3,7 @@ This module contains code to handle regular grammars for data parsing.
 """
 
 import re
+import sys
 
 import gavo
 from gavo import utils
@@ -66,6 +67,7 @@ class REGrammar(grammar.Grammar):
 		grammar.Grammar.__init__(self, {
 			"rules": utils.RequiredField,
 			"documentProduction": "document",
+			"numericGroups": utils.BooleanField,
 			"rowProduction": "tableLine",
 			"tabularDataProduction": "tabularData",
 			"tokenizer": utils.RequiredField,
@@ -203,9 +205,19 @@ class REGrammar(grammar.Grammar):
 			rowdict.update(mat.groupdict())
 		return rowdict
 
+	def _matchRowIndex(self, rawRow):
+		"""this row matcher kicks in for REGrammars with numericGroups.
+		"""
+		tokens = self.get_tokenizer()(rawRow)
+		return dict((str(ct), token) for ct, token in enumerate(tokens))
+
 	def _iterRows(self):
 		"""applies the RE for rows to src until its end is reached.
 		"""
+		if self.get_numericGroups():
+			matchRow = self._matchRowIndex
+		else:
+			matchRow = self._matchRow
 		src = self.tabularData
 		curPos = 0
 		while curPos<len(src):
@@ -219,9 +231,9 @@ class REGrammar(grammar.Grammar):
 					src[curPos:curPos+40])))
 			try:
 				if mat.lastindex:
-					yield self._matchRow(mat.group(mat.lastindex))
+					yield matchRow(mat.group(mat.lastindex))
 				else:
-					yield self._matchRow(mat.group())
+					yield matchRow(mat.group())
 			except Error:
 				# recover by advancing to the next newline (or whatever recoverRe is)
 				mat = self.recoverRe.match(src, curPos)

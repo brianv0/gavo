@@ -3,10 +3,14 @@ The main entry point to the masquerator.
 """
 
 import os
+import sys
 import popen2
 import select
 import fcntl
 import itertools
+import re
+import urllib
+import cStringIO
 
 import gavo
 from gavo import utils
@@ -16,7 +20,11 @@ from gavo.parsing import grammar
 from gavo.parsing import resource
 from gavo.parsing import importparser
 
-from gavo.web.querulator import context
+from gavo.web import common
+from gavo.web import querulator
+from gavo.web.querulator import forms
+from gavo.web.querulator import queryrun
+
 
 def runChild(childName, args, inputs):
 	"""runs childName with args and input, returning its output in a
@@ -65,6 +73,29 @@ def runChild(childName, args, inputs):
 	return "".join(outputItems)
 
 
+class ContextKey(utils.Record):
+	"""is a key for a ContextGrammar.
+
+	Both docKeys and rowKeys are modelled by this class.
+	"""
+	def __init__(self, initvals):
+		utils.Record.__init__(self, {
+				"label": None,      # Human-readable label for display purposes
+				"widgetHint": None, # Hint for building a widget
+				"type": "real",     # The type of this key
+				"name": utils.RequiredField, # the "preterminal" we provide
+				"default": "",    # a string containing a proper default value
+			}, initvals)
+
+	def asHtml(self, context):
+		return ('<div class="condition"><div class="clabel">%s</div>'
+			' <div class="quwidget"><input type="text" name="%s"'
+			' value="%s"></div></div>'%(
+				self.get_label(),
+				self.get_name(), 
+				urllib.quote(self.get_default())))
+
+
 class ContextGrammar(grammar.Grammar):
 	"""is a grammar that gets values from a context.
 
@@ -84,18 +115,19 @@ class ContextGrammar(grammar.Grammar):
 		})
 
 	def _iterRows(self):
-		inputs = [self.inputFile.getlist(key) for key in self.get_rowKeys()]
+		names = [k.get_name() for k in self.get_rowKeys()]
+		inputs = [self.inputFile.getlist(name) 
+			for name in names]
 		baseLen = len(inputs[0])
 		if sum([abs(len(i)-baseLen) for i in inputs]):
 			raise gavo.Error("Input sequences have unequal lengths")
-		names = self.get_rowKeys()
 		for tuple in itertools.izip(*inputs):
 			yield dict(itertools.izip(names, tuple))
 	
 	def _getDocumentRow(self):
 		docdict = {}
 		for key in self.get_docKeys():
-			docdict[key] = self.inputFile.getfirst(key)
+			docdict[key.get_name()] = self.inputFile.getfirst(key.get_name())
 		return docdict
 	
 	def parse(self, context):
@@ -122,15 +154,21 @@ class Service:
 	A service satisfies the the table protocol, i.e. it can stand
 	in as a table in a parsing.importparser.DataDescriptor.
 	"""
-	def __init__(self, descriptor):
+	def __init__(self, descriptor, serviceName):
 		self.descriptor = descriptor
+		self.serviceName = serviceName
 		self.computer = descriptor.get_computer()
-		self.inputDesc = descriptor.getDataById("input")
-		self.inputRecordDef = self.inputDesc.get_Semantics(
-			).getRecordDefByName("input")
+		self.inputDesc = descriptor.getDataById(self.serviceName)
+		self.recordDef = self.inputDesc.get_Semantics(
+			).getRecordDefByName("default")
 
 	def getRecordDef(self):
-		return self.inputRecordDef
+		return self.recordDef
+
+	def getItemdefs(self):
+		return [{"name": field.get_dest(), "title": field.get_tablehead() or
+				field.get_dest(), "hint": ["string"]}
+			for field in self.getRecordDef().get_items()]
 
 	def addData(self, rowdict):
 		args = [(int(ct), val) for ct, val in rowdict.iteritems()]
@@ -153,7 +191,7 @@ class Service:
 		to their values.
 		"""
 		self.rb = self.inputDesc.setHandlers(self)
-# Nasty -- not thread safe.  Improve changing setHandler's signature
+# NASTY -- not thread safe.  Improve changing setHandler's signature
 # or some other nice trick.
 		self.inputs = []
 		self.inputDesc.get_Grammar().parse(context)
@@ -170,6 +208,24 @@ class Service:
 			raise gavo.Error("Service computer %s failed (%s)"%(computer,
 				msg))
 
+	def getFormItems(self, context):
+		allFields = (self.inputDesc.get_Grammar().get_docKeys()+
+			self.inputDesc.get_Grammar().get_rowKeys())
+		return "\n".join([field.asHtml(context)
+			for field in allFields])
+
+	def asHtml(self, serviceLocation, context):
+		"""returns HTML for a from querying this service.
+		"""
+		return ('<form action="%(serviceLocation)s"'
+			' method="get" class="masquerator">%(form)s'
+			' %(submitButtons)s</form>'
+			)%{
+				"serviceLocation": serviceLocation,
+				"form": self.getFormItems(context),
+				"submitButtons": common.getSubmitButtons(),
+				}
+
 
 class ServiceDescriptor(importparser.ResourceDescriptor):
 	def __init__(self):
@@ -179,7 +235,7 @@ class ServiceDescriptor(importparser.ResourceDescriptor):
 		})
 
 
-class ServiceParser(importparser.RdParser):
+class ServiceDescriptorParser(importparser.RdParser):
 	"""is an xml.sax content handler to parse service resource descriptors.
 
 	Unfortunately, we have to mush around in RdParser's guts for quite
@@ -205,19 +261,128 @@ class ServiceParser(importparser.RdParser):
 	_end_ContextGrammar = importparser.RdParser._endGrammar
 
 	def _end_docKey(self, name, attrs, content):
-		self.curGrammar.addto_docKeys(content.strip())
+		if name=="docKey":
+			adder = self.curGrammar.addto_docKeys
+		elif name=="rowKey":
+			adder = self.curGrammar.addto_rowKeys
+		else:
+			raise gavo.Error("Unknown key type: %s"%name)
+		adder(ContextKey({"label": attrs.get("label"),
+			"widgetHint": attrs.get("widgetHint"),
+			"default": attrs.get("default", ""),
+			"name": content.strip()}))
 
-	def _end_rowKey(self, name, attrs, content):
-		self.curGrammar.addto_rowKeys(content.strip())
+	_end_rowKey = _end_docKey
 
 
-def parseService(srcFile):
-	return importparser.getRd(srcFile, ServiceParser)
+def parseServiceDescriptor(srcFile):
+	return importparser.getRd(srcFile, ServiceDescriptorParser)
 
 
-service = Service(parseService("/auto/gavo/inputs/apfs/res/apfs_dyn"))
-ctx = context.DebugContext(args={"alpha": 219.90206583333332,
-	"delta": -60.833974722222223,	"mu_alpha": -3678.08, 
-	"mu_delta": 482.87, "parallax": 0.742, "rv": -21.6
-	"year": 2008, "month": 10, "day": 5, "hour": 3})
-print service.run(ctx)
+class RecordBuilder:
+	"""is a class that makes stuff that looks like it's coming from
+	a dbapi2 reader from records from our parsing infrastructure.
+	"""
+	def __init__(self, recordDef):
+		self.recordDef = recordDef
+		self.indexDict = dict([(field.get_dest(), index) 
+			for index, field in enumerate(recordDef.get_items())])
+		self.recordWidth = max(self.indexDict.values())+1
+		self.data = []
+
+	def getRecordDef(self):
+		return self.recordDef
+
+	def addData(self, record):
+		newRec = [None]*self.recordWidth
+		for key, val in record.iteritems():
+			newRec[self.indexDict[key]] = val
+		self.data.append(newRec)
+	
+	def getData(self):
+		return self.data
+
+
+class ServiceTemplate(forms.AbstractTemplate):
+	"""is a template for a service collection.
+
+	The context passed at construction time is only used for resolving
+	paths -- you can later pass in different ones.
+	"""
+	servicePat = re.compile(r"<\?service\s+(\w+)\s*\?>")
+
+	def __init__(self, templatePath, context):
+		self.path = templatePath
+		forms.AbstractTemplate.__init__(self, 
+			querulator.resolvePath(context.getEnv("MASQ_TPL_ROOT"), templatePath))
+		self._parseServices(context)
+	
+	def getPath(self):
+		return self.path
+	
+	def _parseServices(self, context):
+		self.descriptor = parseServiceDescriptor(querulator.resolvePath(
+			context.getEnv("GAVO_HOME"), self.getMeta("DESCRIPTOR")))
+
+	def _handlePrivateElements(self, src, context):
+		locationTpl = "%s/masqrun/%s/%%s"%(context.getEnv("ROOT_URL"),
+			self.getPath())
+		return self.servicePat.sub(lambda mat: 
+				Service(self.descriptor, mat.group(1)).asHtml(
+					locationTpl%mat.group(1), context), 
+			src)
+
+	def _parseAnswer(self, rawResult):
+# XXX TODO: pull into Service
+		reader = Service(self.descriptor, "output")
+		data = RecordBuilder(reader.getRecordDef())
+		reader.inputDesc.setHandlers(data)
+		reader.inputDesc.get_Grammar().parse(cStringIO.StringIO(rawResult))
+		return data.getData()
+
+	def runQuery(self, context):
+		# NASTY -- not thread-safe -- we'll probably want to insert
+		# another class in here and have that passed by processMasqQuery
+# but let's first see if we need curService at all.
+		self.curService = Service(self.descriptor,
+			context.getfirst("masq_service"))
+		return self._parseAnswer(self.curService.run(context))
+
+	def getDefaultTable(self):
+		return "%s.%s"%(self.descriptor.get_schema(), 
+			self.curService.serviceName)
+
+	def getHiddenForm(self, context):
+		return None
+
+	def getProductCol(self):
+		return None
+	
+	def getItemdefs(self):
+		return Service(self.descriptor, "output").getItemdefs()
+
+	def getConditionsAsText(self, context):
+		return []
+
+
+def getMasqForm(context, subPath):
+	tpl = ServiceTemplate(subPath, context)
+	return "text/html", tpl.asHtml(context), {}
+
+
+def processMasqQuery(context, subPath):
+	subPath = subPath.rstrip("/")
+	context.addArgument("masq_service", os.path.basename(subPath))
+	tpl = ServiceTemplate(os.path.dirname(subPath), context)
+	return queryrun.processQuery(tpl, context)
+
+if __name__=="__main__":
+#	service = Service(parseService("/auto/gavo/inputs/apfs/res/apfs_dyn", 
+#		"single"))
+	from gavo.web.querulator import context
+	ctx = context.DebugContext(args={"alpha": 219.90206583333332,
+		"delta": -60.833974722222223,	"mu_alpha": -3678.08, 
+		"mu_delta": 482.87, "parallax": 0.742, "rv": -21.6,
+		"year": 2008, "month": 10, "day": 5, "hour": 3})
+	tpl = ServiceTemplate("apfs.cq", ctx)
+	print tpl.asHtml(ctx)

@@ -80,7 +80,7 @@ def _computeThumbnailNetpbm(path):
 
 
 def getProductThumbnail(context, subPath):
-	template = forms.makeTemplate(subPath)
+	template = forms.Template(subPath)
 	path = querulator.resolvePath(
 		gavo.inputsDir, context.getfirst("path"))
 	fitspreviewLocation = os.path.join(gavo.rootDir, "web", "bin", "fitspreview")
@@ -91,13 +91,23 @@ def getProductThumbnail(context, subPath):
 
 
 def getForm(context, subPath):
-	template = forms.makeTemplate(subPath)
-	return "text/html", forms.getForm(template, context), {}
+	template = forms.Template(subPath)
+	return "text/html", template.asHtml(context), {}
 
 
 def processQuery(context, subPath):
-	template = forms.makeTemplate(subPath)
+	template = forms.Template(subPath)
 	return queryrun.processQuery(template, context)
+
+
+def getMasqForm(context, subPath):
+	from gavo.web.masquerator import main
+	return main.getMasqForm(context, subPath)
+
+
+def processMasqQuery(context, subPath):
+	from gavo.web.masquerator import main
+	return main.processMasqQuery(context, subPath)
 
 
 def _doErrorResponse(msg, context):
@@ -108,7 +118,7 @@ def _doErrorResponse(msg, context):
 		'<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"'
 		' "http://www.w3.org/TR/html4/loose.dtd">'
 		"<head><title>Error</title></head>"
-		"<body><h1>An error as occurred</h1>"
+		"<body><h1>An error has occurred</h1>"
 		"<p>We are sorry, but we cannot fulfil your request.  The"
 		" reason given by the program is:</p><pre>",
 		"\n".join(textwrap.wrap(str(msg))),
@@ -125,6 +135,8 @@ _procConfig = {
 	"thumbnail": getProductThumbnail,
 	"query": getForm,
 	"run": processQuery,
+	"masq": getMasqForm,
+	"masqrun": processMasqQuery,
 }
 
 

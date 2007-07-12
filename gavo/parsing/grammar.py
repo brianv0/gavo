@@ -143,7 +143,10 @@ class Grammar(utils.Record):
 			self.curInputFileName = inputFile
 			inputFile = open(inputFile)
 		else:
-			self.curInputFileName = inputFile.name
+			try:
+				self.curInputFileName = inputFile.name
+			except AttributeError:
+				self.curInputFileName = "<not a disk file>"
 		self.inputFile = inputFile
 		self._parse(inputFile)
 		self.inputFile = None

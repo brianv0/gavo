@@ -17,6 +17,7 @@ except ImportError:
 	# So, you can't use ModpythonContext.  What did you expect?
 	pass
 
+import gavo
 from gavo import sqlsupport
 from gavo.web import querulator
 
@@ -57,12 +58,29 @@ class Context:
 	now, this is for CGI.
 	"""
 	def __init__(self):
+		self._initEnv()
 		self._initUser()
 		self._initArguments()
 		self._initPathinfo()
 	
 	def __contains__(self, element):
 		return element in self.arguments
+
+	def _initEnv(self):
+		gavoHome = os.environ.get("GAVO_HOME", gavo.rootDir)
+		self.environment = {
+			"GAVO_HOME": gavoHome,
+			"GAVO_INPUTS": os.path.join(gavoHome, "inputs"),
+			"QERL_TPL_ROOT": os.path.join(gavoHome, "web", "querulator", 
+				"templates"),
+			"MASQ_TPL_ROOT": os.path.join(gavoHome, "web", "masquerator", 
+				"templates"),
+			"ROOT_URL": os.environ.get("QU_ROOT", "/db"),
+			"STATIC_URL": os.environ.get("QU_STATIC", "/qstatic"),
+		}
+	
+	def getEnv(self, key):
+		return self.environment[key]
 
 	def keys(self):
 		return self.arguments.keys()
@@ -257,6 +275,7 @@ class DebugContext(CGIContext):
 	"""is a context you can stuff with your own values.
 	"""
 	def __init__(self, args={}, pathinfo="", user=None, remoteAddr="127.0.0.1"):
+		CGIContext.__init__(self)
 		self.arguments = {}
 		for key, arg in args.iteritems():
 			if isinstance(arg, list):

@@ -240,21 +240,10 @@ def _isTruncated(queryResult, context):
 	return len(queryResult)==context.getfirst("used_limit")
 
 
-def _doQuery(template, context):
-	sqlQuery, args = template.asSql(context)
-	# the following is a lousy hack.  It's not too easy coming up with
-	# something better, though
-	if sqlQuery.lower().endswith("where"):
-		raise querulator.Error("No valid query parameter found.")
-
-	querier = context.getQuerier()
-	return querier.query(sqlQuery, args).fetchall()
-
-
 def _formatAsVoTable(template, context, stream=False):
 	"""returns a callable that writes queryResult as VOTable.
 	"""
-	queryResult = _doQuery(template, context)
+	queryResult = template.runQuery(context)
 	colDesc = []
 	metaTable = sqlsupport.MetaTableHandler(context.getQuerier())
 	defaultTableName = template.getDefaultTable()
@@ -287,6 +276,9 @@ def _formatAsVoTable(template, context, stream=False):
 def _makeSortButton(fieldName, template, context):
 	"""returns a form asking for the content re-sorted to fieldName.
 	"""
+	hiddenForm = template.getHiddenForm(context)
+	if not hiddenForm:
+		return ""
 	buttonTemplate = ('<img src="%s/%%(img)s" alt="%%(alt)s"'
 		' title="%%(title)s" class="sortButton">')%querulator.staticURL
 	if context.getfirst("sortby")==fieldName:
@@ -308,7 +300,7 @@ def _makeSortButton(fieldName, template, context):
 	)%{
 		"rootUrl": querulator.rootURL,
 		"tPath": template.getPath(),
-		"hiddenform": template.getHiddenForm(context),
+		"hiddenform": hiddenForm,
 		"keyname": urllib.quote(fieldName),
 		"buttonImage": buttonImage,
 		"title": title,
@@ -381,7 +373,7 @@ def _formatAsHtml(template, context):
 
 	TODO: Refactor, use to figure out a smart way to do templating.
 	"""
-	queryResult = _doQuery(template, context)
+	queryResult = template.runQuery(context)
 	numberMatched = len(queryResult)
 	tarForm = _makeTarForm(template, context, queryResult)
 	headerRow, sortButtons = _getHeaderRow(template, context)
@@ -434,7 +426,7 @@ def _formatAsTarStream(template, context):
 	def getProducts(template, context):
 		"""returns a list of (productKey, targetName) tuples.
 		"""
-		queryResult = _doQuery(template, context)
+		queryResult = template.runQuery(context)
 		ownerCol, embargoCol = template.getColIndexFor("owner"
 			), template.getColIndexFor("embargo")
 		productCol = template.getProductCol()

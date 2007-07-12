@@ -10,6 +10,9 @@ import sys
 def evaluateEnvironment(environ):
 	"""sets a couple of global attributes.
 
+	Don't use these attribute any more, get a context and take their
+	counterparts from there.
+
 	This is moved to a function since the querulator may run with
 	"deferred" environments (i.e., modpython), where the "true" values
 	of the environment variables are not available while importing
