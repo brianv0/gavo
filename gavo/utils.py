@@ -180,6 +180,15 @@ class Record(object):
 			return self.dataStore[key]
 		return [("get_", getter), ("set_", setter)]
 
+	def _extendFields(self, newFields):
+		"""adds new fields to the record.
+
+		This is for excusive use in constructors of derived classes.
+		"""
+		self.keys.update(newFields)
+		for key, default in newFields.iteritems():
+			self._createMethods(key, default)
+
 	def immutilize(self):
 		"""makes this record "read-only".
 

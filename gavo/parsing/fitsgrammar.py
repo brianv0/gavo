@@ -34,6 +34,7 @@ class FitsGrammar(grammar.Grammar):
 			"hduIndex": 0,
 			"qnd": utils.BooleanField,
 		})
+		self.set_docIsRow(True)
 	
 	def _parse(self, inputFile):
 		"""opens the fits file and calls the document handler with the header

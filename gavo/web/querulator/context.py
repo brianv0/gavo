@@ -251,3 +251,30 @@ class ModpyContext(Context):
 	
 	def getRemote(self):
 		return self.modpyReq.connection.remote_ip
+
+
+class DebugContext(CGIContext):
+	"""is a context you can stuff with your own values.
+	"""
+	def __init__(self, args={}, pathinfo="", user=None, remoteAddr="127.0.0.1"):
+		self.arguments = {}
+		for key, arg in args.iteritems():
+			if isinstance(arg, list):
+				self.arguments[key] = arg
+			else:
+				self.arguments[key] = [arg]
+		self.pathinfo = ""
+		self.loggedUser = None
+		self.remoteAddr = remoteAddr
+	
+	def doHttpResponse(self, contentType, content, moreHeaders):
+		print "Content-type:", contentType
+		print "Additional Headers:", moreHeaders
+		print ""
+		print content
+
+	def getServerUrl(self):
+		return "fake://fake.fake.fake"
+	
+	def getRemote(self):
+		return self.remote

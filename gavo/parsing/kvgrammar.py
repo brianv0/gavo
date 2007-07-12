@@ -22,6 +22,7 @@ class KeyValueGrammar(grammar.Grammar):
 			"pairSeparators": "\n",
 			"commentPattern": "(?m)#.*",
 		})
+		self.set_docIsRow(True)
 	
 	def _parse(self, inputFile):
 		"""parses the inputFile and returns the parse result as suitable for

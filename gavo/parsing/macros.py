@@ -60,7 +60,11 @@ class Macro(parsehelpers.RowFunction):
 	non-null constraints.
 	"""
 	def __call__(self, record):
-		self._changeRecord(record, **self._buildArgDict(record))
+		try:
+			self._changeRecord(record, **self._buildArgDict(record))
+		except TypeError, msg:
+			raise gavo.Error("Illegal call to macro %s (%s)"%(
+				self.getName(), msg))
 
 
 class EquatorialPositionConverter(Macro):

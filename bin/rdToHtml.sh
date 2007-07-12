@@ -6,7 +6,7 @@
 execDir=`dirname $0`
 stylesheet=$execDir/../docs/rd.xslt
 export GAVO_HOME=${GAVO_HOME:-/var/gavo}
-targetDir=$GAVO_HOME/rddocs
+targetDir=$GAVO_HOME/web/rddocs
 mkdir -p $targetDir
 
 while [ ! -z "$1" ]

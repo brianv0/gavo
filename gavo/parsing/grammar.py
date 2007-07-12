@@ -51,6 +51,7 @@ class Grammar(utils.Record):
 		fieldDefs.update({
 			"macros": utils.ListField,     # macros to be applied
 			"rowProcs": utils.ListField,   # row processors to be applied
+			"docIsRow": utils.BooleanField, # apply row macros to docdict and ship it?
 		})
 		utils.Record.__init__(self, fieldDefs)
 		self.curInputFileName = None
@@ -133,7 +134,6 @@ class Grammar(utils.Record):
 			self._expandMacros(rowdict)
 			yield rowdict
 
-
 	def parse(self, inputFile):
 		"""parses the inputFile and returns the parse result.
 
@@ -146,7 +146,8 @@ class Grammar(utils.Record):
 			self.curInputFileName = inputFile.name
 		self.inputFile = inputFile
 		self._parse(inputFile)
-		self.curInputFile = None
+		self.inputFile = None
+		self.curInputFileName = None
 
 	def getCurFileName(self):
 		"""returns the name of the file that's currently being parsed.
@@ -180,10 +181,13 @@ class Grammar(utils.Record):
 
 		The argument is a dict mapping preterminal names to their values.
 		"""
-		if not self.documentHandlers:
-			return
-		for handler in self.documentHandlers:
-			handler(docdict)
+		if self.get_docIsRow():
+			self.handleRow(docdict)
+		else:
+			if not self.documentHandlers:
+				return
+			for handler in self.documentHandlers:
+				handler(docdict)
 
 	def handleRow(self, rowdict):
 		"""should be called by derived classes whenever a new row

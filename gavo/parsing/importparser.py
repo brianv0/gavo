@@ -179,11 +179,15 @@ class RecordBuilder:
 		self.rowsProcessed += 1
 
 	def processDocdict(self, docdict):
+		self.docRec = {}
 		for macro in self.dataDef.get_macros():
 			macro(docdict)
 		for field in self.dataDef.get_items():
 			self.docRec[field.get_dest().encode("ascii")] = self.strToVal(
 				field, docdict)
+
+	def getDocRec(self):
+		return self.docRec
 
 	def strToVal(self, field, rowdict):
 		"""returns a python value appropriate for field's type
@@ -232,9 +236,13 @@ class Semantics(utils.Record):
 			"recordDefs": utils.ListField,
 		})
 
-
-	def get_dataItems(self):
-		return self.get_recordDef().get_items()
+	def getRecordDefByName(self, tablename):
+		"""returns the RecordDef for table tablename.
+		"""
+		for recDef in self.get_recordDefs():
+			if recDef.get_table()==tablename:
+				return recDef
+		raise KeyError(tablename)
 
 
 class DataDescriptor(utils.Record):
@@ -247,8 +255,6 @@ class DataDescriptor(utils.Record):
 			                # for single-file sources
 			"sourcePat": None, # resdir-relative shell pattern of sources for
 			                   # one-row-per-file sources
-			"fileIsRow": utils.TristateBooleanField, # overrides decision if 
-				# each file is a row (default for sourcePat) or not
 			"encoding": "iso-8859-1",
 			"Grammar": utils.RequiredField,
 			"Semantics": utils.RequiredField,
@@ -286,16 +292,9 @@ class DataDescriptor(utils.Record):
 		"""builds a RecordBuilder that feeds into table and connects
 		it with the grammar.
 
-		At this point we need to decide whether a document produces a
-		row (e.g., for fits files or most key value data) or if the
-		whatever is defined as a row in the file does this.  The default
-		is that we parse a file as row if we have a source pattern (as
-		opposed to a single source name).  This can be overridden
-		by the fileIsRow attribute.
+		The function returns the record builder instance used to 
+		make the records from the rowdicts.
 		"""
-		fileIsRow = self.get_fileIsRow()
-		if fileIsRow==None:
-			fileIsRow = self.get_sourcePat()
 		rb = RecordBuilder(
 			table.getRecordDef(),
 			table.addData,
@@ -303,11 +302,24 @@ class DataDescriptor(utils.Record):
 			typeconversion.LiteralParser(self.get_encoding()),
 			self,
 			maxRows=maxRows)
-		if fileIsRow:
-			self.get_Grammar().addDocumentHandler(rb.processRowdict)
-		else:
-			self.get_Grammar().addDocumentHandler(rb.processDocdict)
-			self.get_Grammar().addRowHandler(rb.processRowdict)
+		self.get_Grammar().addDocumentHandler(rb.processDocdict)
+		self.get_Grammar().addRowHandler(rb.processRowdict)
+		return rb
+
+	def validate(self, record):
+		"""checks that record complies with all known constraints on
+		the data set.
+
+		The function raises a resource.ValidationError with an appropriate message
+		if not.
+
+		TODO: Refactor, using common stuff from RecordDef and DataSet (macros,
+		validate &c).
+		"""
+		for field in self.get_items():
+			if not field.get_optional() and record.get(field.get_dest())==None:
+				raise resource.ValidationError(
+					"%s is None but non-optional"%field.get_dest())
 
 
 class ResourceDescriptor(utils.Record):
@@ -339,6 +351,14 @@ class ResourceDescriptor(utils.Record):
 	def get_schema(self):
 		return self.dataStore["schema"] or os.path.basename(
 			self.dataStore["resdir"])
+	
+	def getDataById(self, id):
+		"""returns the data source with id or raises a KeyError.
+		"""
+		for dataSrc in self.get_dataSrcs():
+			if dataSrc.get_id()==id:
+				return dataSrc
+		raise KeyError(id)
 
 
 class RdParser(utils.StartEndHandler):
@@ -360,7 +380,6 @@ class RdParser(utils.StartEndHandler):
 		self.curDD = DataDescriptor(self.rd)
 		self.curDD.set_source(attrs.get("source"))
 		self.curDD.set_sourcePat(attrs.get("sourcePat"))
-		self.curDD.set_fileIsRow(attrs.get("fileIsRow"))
 		self.curDD.set_id(attrs.get("id"))
 		self.rd.addto_dataSrcs(self.curDD)
 		self.dataSrcStack.append(self.curDD)
@@ -372,46 +391,41 @@ class RdParser(utils.StartEndHandler):
 		self.fieldContainerStack.pop()
 		self.macroContainerStack.pop()
 
-	def _start_CFGrammar(self, name, attrs):
-		self.curGrammar = CFGrammar()
+	def _startGrammar(self, grammarClass, attrs):
+		self.curGrammar = grammarClass()
+		if attrs.has_key("docIsRow"):
+			self.curGrammar.set_docIsRow(attrs["docIsRow"])
 		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
 		self.macroContainerStack.append(self.curGrammar)
+
+	def _start_CFGrammar(self, name, attrs):
+		self._startGrammar(CFGrammar, attrs)
 
 	def _start_REGrammar(self, name, attrs):
-		self.curGrammar = REGrammar()
-		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
-		self.macroContainerStack.append(self.curGrammar)
+		self._startGrammar(REGrammar, attrs)
 
 	def _start_ColumnGrammar(self, name, attrs):
-		self.curGrammar = ColumnGrammar()
+		self._startGrammar(ColumnGrammar, attrs)
 		self.curGrammar.set_topIgnoredLines(attrs.get(
 			"topIgnoredLines", 0))
 		self.curGrammar.set_booster(attrs.get(
 			"booster"))
-		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
-		self.macroContainerStack.append(self.curGrammar)
 
 	def _start_KeyValueGrammar(self, name, attrs):
-		self.curGrammar = KeyValueGrammar()
-		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
-		self.macroContainerStack.append(self.curGrammar)
+		self._startGrammar(KeyValueGrammar, attrs)
 
 	def _start_FitsGrammar(self, name, attrs):
-		self.curGrammar = FitsGrammar()
-		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
+		self._startGrammar(FitsGrammar, attrs)
 		self.curGrammar.set_qnd(attrs.get("qnd", "False"))
-		self.macroContainerStack.append(self.curGrammar)
 
 	def _start_NullGrammar(self, name, attrs):
-		self.curGrammar = NullGrammar()
-		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
-		self.macroContainerStack.append(self.curGrammar)
+		self._startGrammar(NullGrammar, attrs)
 
-	def _end_CFGrammar(self, name, attrs, content):
+	def _endGrammar(self, name, attrs, content):
 		self.macroContainerStack.pop()
 	
-	_end_REGrammar = _end_ColumnGrammar = _end_KeyValueGrammar = \
-		_end_FitsGrammar = _end_NullGrammar = _end_CFGrammar
+	_end_CFGrammar = _end_REGrammar = _end_ColumnGrammar = \
+		_end_KeyValueGrammar = _end_FitsGrammar = _end_NullGrammar = _endGrammar
 
 	def _start_Semantics(self, name, attrs):
 		self.curSemantics = Semantics()
@@ -539,12 +553,12 @@ class InputEntityResolver(EntityResolver):
 			systemId+".template"))
 
 
-def getRd(srcPath):
+def getRd(srcPath, parserClass=RdParser):
 	"""returns a ResourceDescriptor from the source in srcPath
 	"""
 	if not os.path.exists(srcPath):
 		srcPath = srcPath+".vord"
-	contentHandler = RdParser()
+	contentHandler = parserClass()
 	parser = make_parser()
 	parser.setContentHandler(contentHandler)
 	parser.setEntityResolver(InputEntityResolver())

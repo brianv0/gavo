@@ -41,7 +41,7 @@ def getMetaTableRecordDef(tableName):
 class RecordDef(utils.Record):
 	"""is a specification for the semantics of a table line.
 	"""
-	def __init__(self):
+	def __init__(self, initvals={}):
 		utils.Record.__init__(self, {
 			"table": utils.RequiredField,  # name of destination table
 			"items": utils.ListField,      # list of FieldDefs for this record
@@ -50,7 +50,7 @@ class RecordDef(utils.Record):
 			                            # shared tables.
 			"shared": utils.BooleanField,  # is this a shared table?
 			"create": utils.BooleanField,  # create table?
-		})
+		}, initvals)
 		self.fieldIndexDict = {}
 
 	def _validate(self, record):

@@ -235,8 +235,7 @@ class TableWriter(StandardQueryMixin):
 				indexName, self.tableName, ", ".join(
 					members)))
 
-	def createTable(self, delete=True, create=True, privs=True,
-			primaryDef=True):
+	def createTable(self, delete=True, create=True, privs=True):
 		"""creates a new table for dataset.
 
 		An existing table is dropped before creating the new one if delete is
