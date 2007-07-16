@@ -109,8 +109,8 @@ class Context:
 				return False
 		return True
 
-	def getfirst(self, name):
-		return self.arguments.get(name, [None])[0]
+	def getfirst(self, name, default=None):
+		return self.arguments.get(name, [default])[0]
 
 	get = getfirst
 

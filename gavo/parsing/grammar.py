@@ -131,8 +131,8 @@ class Grammar(utils.Record):
 		"""runs row processors and macros on rowdict.
 		"""
 		for row in self._runProcessors(rowdict):
-			self._expandMacros(rowdict)
-			yield rowdict
+			self._expandMacros(row)
+			yield row
 
 	def parse(self, inputFile):
 		"""parses the inputFile and returns the parse result.

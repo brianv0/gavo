@@ -124,6 +124,7 @@ class Formatter:
 	def _cook_hourangle(self, deg, row, secondFracs=2):
 		"""converts a float angle in degrees to an hour angle.
 		"""
+		secondFracs = int(secondFracs)
 		rest, hours = math.modf(deg/360.*24)
 		rest, minutes = math.modf(rest*60)
 		return "%d %02d %2.*f"%(int(hours), int(minutes), secondFracs, rest*60)
@@ -131,6 +132,7 @@ class Formatter:
 	def _cook_sexagesimal(self, deg, row, secondFracs=1):
 		"""converts a float angle in degrees to a sexagesimal angle.
 		"""
+		secondFracs = int(secondFracs)
 		rest, degs = math.modf(deg)
 		rest, minutes = math.modf(rest*60)
 		return "%+d %02d %2.*f"%(int(degs), abs(int(minutes)), secondFracs,

@@ -105,12 +105,7 @@ class LiteralParser:
 	def _parse_TrueFalse(self, literal):
 		"""returns boolean values from literals like True, yes, no, False.
 		"""
-		if literal.lower()=="true" or literal.lower()=="yes":
-			return True
-		elif literal.lower()=="false" or literal.lower()=="no":
-			return False
-		else:
-			raise gavo.Error("%s is not a valid truefalse boolean literal")
+		return utils.parseBooleanLiteral(literal)
 
 	def _parse_JYear(self, literal):
 		"""returns a DateTime instance for a fractional (julian) year.
@@ -141,6 +136,7 @@ class LiteralParser:
 		"float32": float,
 		"float64": float,
 		"double": float,
+		"double precision": float,
 		"boolean": bool,
 		"date": _make_dateFromString,
 		"timestamp": _make_dateTimeFromString,

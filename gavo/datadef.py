@@ -33,6 +33,7 @@ class DataField(utils.Record):
 			"primary": utils.BooleanField,  # is part of the table's primary key
 			"references": None,  # becomes a foreign key in SQL
 			"index": None,       # if given, name of index field is part of
+			"displayHint": "string", # suggested presentation, see queryrun.Format
 		})
 		for key, val in initvals.iteritems():
 			self.set(key, val)
@@ -57,4 +58,5 @@ class DataField(utils.Record):
 			"literalForm": self.get_literalForm(),
 			"utype": self.get_utype(),
 			"type": self.get_dbtype(),
+			"displayHint": self.get_displayHint(),
 		}

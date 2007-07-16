@@ -38,6 +38,23 @@ class Error(gavo.Error):
 	pass
 
 
+def _parseAssignments(assignments):
+	"""returns a name mapping dictionary from a list of assignments.
+
+	This is the preferred form of communicating a mapping from external names
+	to field names in records to macros -- in a string that contains
+	":"-seprated pairs seperated by whitespace, like "a:b  b:c", where
+	the incoming names are leading, the desired names are trailing.
+
+	This function parses a dictionary mapping original names to desired names.
+
+	>>> _parseAssignments("a:b  b:c")
+	{'a': 'b', 'b': 'c'}
+	"""
+	return dict([(lead, trail) for lead, trail in
+		[litPair.split(":") for litPair in assignments.split()]])
+
+
 class Macro(parsehelpers.RowFunction):
 	"""is an abstract base class for Macros.
 
@@ -541,7 +558,9 @@ class LinearMapper(Macro):
 
 	Argument:
 
-	* val -- the value to be mapped.
+	* val -- the value to be mapped; any blanks are removed before trying
+	  an interpretation as float literal.  It is an error to pass in
+	  non-NULL values that don't work as float literals.
 
 	>>> m = LinearMapper(None, [("val", "src", "")], destination="dest",
 	... factor="7.4", offset="33")
@@ -563,7 +582,8 @@ class LinearMapper(Macro):
 		if val==None:
 			record[self.destination] = None
 		else:
-			record[self.destination] = self.factor*float(val)+self.offset
+			record[self.destination] = self.factor*float(val.replace(" ", "")
+				)+self.offset
 
 
 class SimbadResolver(Macro):
@@ -606,6 +626,110 @@ class SimbadResolver(Macro):
 		else:
 			record["simbadAlpha"] = simbadData.get("jradeg")
 			record["simbadDelta"] = simbadData.get("jdedeg")
+
+
+class MxDateParser(Macro):
+	"""is a macro that can insert parts of mxDateTime instances into records.
+
+	Constructor Argument:
+
+	* assignments -- a string specifiying what should go where.
+
+	The assignments is a whitespace-seperated sequence of pairs of
+	names seperated by colons.  A pair day:startDay, e.g., says that
+	the attribute day of the DateTime instance should go into the
+	startDay field of the record.  Available fields include (at least):
+	year, month, day, hour, minute, second, jdn (the julian date).
+
+	Argument:
+
+	* date -- the date that should be parsed, either an mxDateTime instance
+	  from a previous macro application or a string containing something
+	  mxDateTime.Parse can cope with.
+	
+	>>> m = MxDateParser(None, [("date", "startDate", "")], assignments=
+	...   "day:startDay month:startMonth")
+	>>> r = {"startDate": "2007-07-16"}
+	>>> m(r); r
+	{'startDate': '2007-07-16', 'startDay': 16, 'startMonth': 7}
+	>>> m = MxDateParser(None, [("date", "", "1067-10-12 13:12:00")], 
+	... assignments="day:day hour:hour")
+	>>> r = {}; m(r); r
+	{'day': 12, 'hour': 13}
+	>>> m = MxDateParser(None, [("date", "foo", "")], 
+	... assignments="jdn:jd")
+	>>> r = {"foo": DateTime.DateTime(2038, 12, 12, 11)}; m(r); str(r["jd"])
+	'2465769.95833'
+	"""
+	def __init__(self, fieldComputer, argTuples=[], assignments="year:year"):
+		Macro.__init__(self, fieldComputer, argTuples)
+		self.assignments = _parseAssignments(assignments)
+	
+	@staticmethod
+	def getName():
+		return "parsemxdate"
+	
+	def _changeRecord(self, record, date):
+		if date==None:
+			for fieldName in self.assignments.itervalues():
+				record[fieldName] = None
+			return
+
+		if isinstance(date, basestring):
+			date = DateTime.Parser.DateTimeFromString(date)
+		for attName, fieldName in self.assignments.iteritems():
+			record[fieldName] = getattr(date, attName)
+
+
+class SimpleQuerier(Macro):
+	"""is a macro that does a simple select query on a database and
+	stuffs the resulting values (in whatever type they come) into
+	the record.
+	
+	Constructor Arguments
+
+	* items -- an assignments list like in MxDateParser; here, before
+	  the colon are the column names in the db.
+	* table -- the table to query
+	* column -- the column to run the test against
+
+	Argument:
+
+	* val -- the value that column must be equal to in the query.
+
+	You'd use this macro like this:
+
+	<Macro name="simplequery" items="alpha:cat_alpha delta:cat_delta"
+	    table="fk5.data" column="localid">
+	  <arg name="val" source="star"/>
+	</Macro>
+
+	If your record were {"star": "8894"}, we'd gernerate a query
+
+	SELECT cat_alpha, cat_delta FROM fk5.data where localid='8894',
+
+	and assign the first item of the first response row to alpha,
+	and the second to delta.
+	"""
+	def __init__(self, fieldComputer, argTuples=[], assignments=None,
+			table=None, column=None):
+		from gavo import sqlsupport
+		self.querier = sqlsupport.SimpleQuerier()
+		Macro.__init__(self, fieldComputer, argTuples)
+		self.assignments = _parseAssignments(assignments)
+		self.table, self.column = table, column
+	
+	@staticmethod
+	def getName():
+		return "simplequery"
+	
+	def _changeRecord(self, record, val):
+		dbNames, recNames = self.assignments.keys(), self.assignments.values()
+		query = "select %s from %s where %s=%%(val)s"%(
+			", ".join(dbNames), self.table, self.column)
+		res = self.querier.query(query, {"val": val}).fetchall()[0]
+		for name, resVal in zip(recNames, res):
+			record[name] = resVal
 
 
 def _fixIndentation(code, newIndent):

@@ -6,8 +6,10 @@ GAVO resources.
 import sys
 import re
 import weakref
+import new
 from xml.sax.handler import ContentHandler
 import math
+import copy
 
 import gavo
 from gavo import logger
@@ -106,15 +108,19 @@ class Record(object):
 	for the additional key, of course), that is, illegal keys raise
 	AttributeErrors.
 
-	>>> r = Record({"a": 7, "b": [4, 4], "c": RequiredField})
-	>>> r.get_a()
-	7
+	>>> r = Record({"a": 7, "b": ListField, "c": RequiredField})
+	>>> r.addto_b(4); r.get_a(), r.get_b()
+	(7, [4])
 	>>> r.get_c()
 	Traceback (most recent call last):
 	KeyError: 'c'
 	>>> r.get_anything()
 	Traceback (most recent call last):
 	AttributeError: 'Record' object has no attribute 'get_anything'
+	>>> s = r.copy(); s.addto_b(5); s.get_b()
+	[4, 5]
+	>>> r.get_b()
+	[4]
 	"""
 	def __init__(self, legalKeys, initvals={}):
 		self.dataStore = {}
@@ -125,6 +131,8 @@ class Record(object):
 			TrueBooleanField: self._getBooleanMethods,
 			TristateBooleanField: self._getBooleanMethods,
 		}
+		# We need to remember which methods we created to support copying
+		self.createdMethods = []
 		self.keys = legalKeys
 		for key, default in self.keys.iteritems():
 			self._createMethods(key, default)
@@ -137,33 +145,52 @@ class Record(object):
 	def __repr__(self):
 		return "<%s %s>"%(self.__class__.__name__, str(self.dataStore)[:30])
 
+	def copy(self):
+		"""returns a shallow copy of the record.
+
+		It's an incredible hack, but we need to replace the access methods,
+		since they contain lexical bindings, and we can't really call
+		a constructor since we don't know their arguments...
+		"""
+		theCopy = copy.copy(self)
+		theCopy.dataStore = self.dataStore.copy()
+		for key, value in self.keys.iteritems():
+			if value is ListField:
+				theCopy.set(key, self.get(key))
+		for name, callable in self.createdMethods:
+			setattr(theCopy, name, new.instancemethod(callable, theCopy))
+		return theCopy
+
 	def _createMethods(self, key, value):
 		for prefix, callable in self.specialTypeHandlers.get(
 				value, self._getAtomicMethods)(key, value):
 			if not hasattr(self, prefix+key):
-				setattr(self, prefix+key, callable)
+				self.createdMethods.append((prefix+key, callable))
+				setattr(self, prefix+key, new.instancemethod(callable, self))
 
 	def _getAtomicMethods(self, key, default):
 		"""returns methods to manage normal atomic attributes.
 		"""
 		if default is not RequiredField:
 			self.dataStore[key] = default
-		def getter():
+		def getter(self):
 			return self.dataStore[key]
-		def setter(value):
+		def setter(self, value):
 			self.dataStore[key] = value
 		return [("get_", getter), ("set_", setter)]
 
 	def _getListMethods(self, key, _):
 		self.dataStore[key] = []
-		def getter():
+		def getter(self):
 			return self.dataStore[key]
-		def adder(value, infront=False):
+		def adder(self, value, infront=False):
 			if infront:
 				self.dataStore[key].insert(0, value)
 			else:
 				self.dataStore[key].append(value)
-		return [("get_", getter), ("addto_", adder)]
+		def setter(self, value):
+			self.dataStore[key] = value[:]
+		return [("get_", getter), ("addto_", adder), ("set_", setter)]
 
 	def _getBooleanMethods(self, key, default):
 		if default is BooleanField:
@@ -174,9 +201,9 @@ class Record(object):
 			self.dataStore[key] = None
 		else:
 			assert(False)
-		def setter(value):
+		def setter(self, value):
 			self.dataStore[key] = parseBooleanLiteral(value)
-		def getter():
+		def getter(self):
 			return self.dataStore[key]
 		return [("get_", getter), ("set_", setter)]
 
@@ -198,11 +225,6 @@ class Record(object):
 			if name.startswith("set_") or name.startswith("addto_"):
 				delattr(self, name)
 
-	def copy(self):
-		"""returns a shallow copy of the record.
-		"""
-		return Record(self.keys, self.dataStore)
-
 	def isValid(self):
 		"""returns true if all mandatory (non-default) fields have been set.
 		"""
@@ -212,7 +234,7 @@ class Record(object):
 		return True
 
 	def get(self, key):
-		getattr(self, "get_"+key)()
+		return getattr(self, "get_"+key)()
 	
 	def set(self, key, value):
 		getattr(self, "set_"+key)(value)

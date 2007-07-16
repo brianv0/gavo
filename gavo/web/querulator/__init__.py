@@ -1,4 +1,5 @@
 import gavo
+from gavo.web import common
 import re
 import os
 
@@ -27,19 +28,8 @@ def evaluateEnvironment(environ):
 evaluateEnvironment(os.environ)
 
 
-def resolvePath(rootPath, relpath):
-	relpath = relpath.lstrip("/")
-	fullpath = os.path.realpath(os.path.join(rootPath, relpath))
-	if not fullpath.startswith(rootPath):
-		raise Error("I believe you are cheating -- you just tried to"
-			" access %s, which I am not authorized to give you."%fullpath)
-	if not os.path.exists(fullpath):
-		raise Error("Invalid path %s.  This should not happen."%fullpath)
-	return fullpath
-
-
 def resolveTemplate(relpath):
-	return resolvePath(templateRoot, relpath)
+	return common.resolvePath(templateRoot, relpath)
 
 
 queryElementPat = re.compile(r"(?s)<\?(\w*)query (.*?)\?>")

@@ -5,6 +5,22 @@ Common functions and classes for gavo web interfaces.
 We'll move the stuff as we see fit...)
 """
 
+import os
+
+def resolvePath(rootPath, relPath):
+	"""joins relPath to rootPath and makes sure the result really is
+	in rootPath.
+	"""
+	relPath = relPath.lstrip("/")
+	fullPath = os.path.realpath(os.path.join(rootPath, relPath))
+	if not fullPath.startswith(rootPath):
+		raise Error("I believe you are cheating -- you just tried to"
+			" access %s, which I am not authorized to give you."%fullPath)
+	if not os.path.exists(fullPath):
+		raise Error("Invalid path %s.  This should not happen."%fullPath)
+	return fullPath
+
+
 def getSubmitButtons():
 	"""returns HTML for submit buttons for the various formats we can do.
 	"""

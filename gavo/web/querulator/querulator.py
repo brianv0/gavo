@@ -13,6 +13,7 @@ import traceback
 
 from gavo import utils
 import gavo
+from gavo.web import common
 from gavo.web import querulator
 from gavo.web.querulator import forms
 from gavo.web.querulator import queryrun
@@ -81,7 +82,7 @@ def _computeThumbnailNetpbm(path):
 
 def getProductThumbnail(context, subPath):
 	template = forms.Template(subPath)
-	path = querulator.resolvePath(
+	path = common.resolvePath(
 		gavo.inputsDir, context.getfirst("path"))
 	fitspreviewLocation = os.path.join(gavo.rootDir, "web", "bin", "fitspreview")
 	if os.path.exists(fitspreviewLocation):

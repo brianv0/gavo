@@ -26,7 +26,7 @@ metaTableName = "fielddescriptions"
 
 # This is a schema for the field description table.  WARNING: If you
 # change anything here, you'll probably have to change 
-# parsing.resource.getMetaRow as well.
+# datadef.DataField, too
 metaTableFields = [
 	("tableName", "text", {"primary": True, 
 		"description": "Name of the table the column is in"}),
@@ -41,10 +41,7 @@ metaTableFields = [
 	("longdescr", "text", {"description": "A possibly long information on"
 		" the values"}),
 	("longmime", "text", {"description": "Mime type of longdescr"}),
-# We probably don't want this in here -- it should be used for
-# parsing exclusively.
-	("literalForm", "text", {"description": "Information on special literal"
-		" forms (e.g., blanks within float literals)"}),
+	("displayHint", "text", {"description": "Suggested presentation format"}),
 	("utype", "text", {"description": "A utype for the column"}),
 	("colInd", "integer", {"description": 
 		"Index of the column within the table"}),

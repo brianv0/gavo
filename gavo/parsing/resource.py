@@ -53,6 +53,9 @@ class RecordDef(utils.Record):
 		}, initvals)
 		self.fieldIndexDict = {}
 
+	def __repr__(self):
+		return "<RecordDef %s, %s>"%(id(self), id(self.get_items()))
+
 	def _validate(self, record):
 		"""checks that record complies with all known constraints on
 		the data set.
@@ -104,6 +107,10 @@ class RecordDef(utils.Record):
 		"""
 		return self.fieldIndexDict[fieldName]
 
+	def copy(self):
+		theCopy = utils.Record.copy(self)
+		theCopy.fieldIndexDict = self.fieldIndexDict.copy()
+		return theCopy
 
 class DataSet:
 	"""is a collection of all Tables coming from one source.

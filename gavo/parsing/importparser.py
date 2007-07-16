@@ -7,6 +7,8 @@ import re
 import weakref
 import glob
 import time
+import traceback
+import copy
 from xml.sax import make_parser
 from xml.sax.handler import EntityResolver
 
@@ -244,6 +246,15 @@ class Semantics(utils.Record):
 				return recDef
 		raise KeyError(tablename)
 
+	def clear_recordDefs(self):
+		"""deletes all RecordDefs defined so far.
+
+		This is necessary due to our crappy inheritance semantics for data
+		descriptors and a clear sign that we should be doing the inheritance
+		stuff differently...
+		"""
+		self.dataStore["recordDefs"] = []
+
 
 class DataDescriptor(utils.Record):
 	"""is a container for all information necessary
@@ -263,8 +274,39 @@ class DataDescriptor(utils.Record):
 			"items": utils.ListField,
 			"macros": utils.ListField,
 		}, initvals)
-		self.resource = weakref.proxy(parentResource)
+		self.resource = parentResource
 		self.fieldComputer = FieldComputer(self)
+
+	def __repr__(self):
+		return "<DataDescriptor id=%s>"%self.get_id()
+
+	def copy(self):
+		"""returns a semi-deep copy of self.
+
+		semi-deep means that the local lists are copied over, but
+		mutables in dependent data structure (in particular grammar and
+		semantics) are not.  We may want to change this when we get an
+		idea of how to notate the intent of changing them in the resource
+		descriptor.
+
+		Until that time, changing anything in Grammar or Semantics will
+		affect the original owner.
+		"""
+		nd = DataDescriptor(self.resource, 
+			source=self.get_source(),
+			sourcePat=self.get_sourcePat(),
+			encoding=self.get_encoding())
+		for item in self.get_items(): nd.addto_items(item)
+		for macro in self.get_macros(): nd.addto_macros(macro)
+		try:
+			nd.set_Grammar(self.get_Grammar())
+		except KeyError:
+			pass
+		try:
+			nd.set_Semantics(self.get_Semantics())
+		except KeyError:
+			pass
+		return nd
 
 	def get_FieldComputer(self):
 		return self.fieldComputer
@@ -314,7 +356,8 @@ class DataDescriptor(utils.Record):
 		if not.
 
 		TODO: Refactor, using common stuff from RecordDef and DataSet (macros,
-		validate &c).
+		validate &c) -- no, crap.  Documents shouldn't be validated, only
+		rows should, since documents never go into the db.
 		"""
 		for field in self.get_items():
 			if not field.get_optional() and record.get(field.get_dest())==None:
@@ -360,14 +403,39 @@ class ResourceDescriptor(utils.Record):
 				return dataSrc
 		raise KeyError(id)
 
+def catchErrors(fun):
+	def wrappedFun(self, *args, **kwargs):
+		try:
+			return fun(self, *args, **kwargs)
+		except Exception, msg:
+			if gavo.parsing.verbose:
+				traceback.print_exc()
+			raise gavo.Error("Parse error in resource descriptor at"
+				" %d:%d (%s)"%(self.locator.getLineNumber(), 
+					self.locator.getColumnNumber(), msg))
+	return wrappedFun
+
 
 class RdParser(utils.StartEndHandler):
 	def __init__(self):
 		utils.StartEndHandler.__init__(self)
+		self.locator = None
 		self.dataSrcStack = []
 		self.callableStack = []
 		self.fieldContainerStack = []
 		self.macroContainerStack = []
+
+	def _keepInherited(self, attrs):
+		"""returns true if attrs has a field keep with a true boolean literal.
+
+		This is used by all mutable elements that can be inherited in
+		a data descriptor to decide if a new element is to be instanciated
+		or if a copy should be inserted.
+		"""
+		return utils.parseBooleanLiteral(attrs.get("keep", "False"))
+
+	def setDocumentLocator(self, locator):
+		self.locator = locator
 
 	def _start_ResourceDescriptor(self, name, attrs):
 		self.rd = ResourceDescriptor()
@@ -377,7 +445,10 @@ class RdParser(utils.StartEndHandler):
 		self.rd.set_schema(content)
 
 	def _start_Data(self, name, attrs):
-		self.curDD = DataDescriptor(self.rd)
+		if attrs.has_key("extends"):
+			self.curDD = self.rd.getDataById(attrs["extends"]).copy()
+		else:
+			self.curDD = DataDescriptor(self.rd)
 		self.curDD.set_source(attrs.get("source"))
 		self.curDD.set_sourcePat(attrs.get("sourcePat"))
 		self.curDD.set_id(attrs.get("id"))
@@ -391,10 +462,14 @@ class RdParser(utils.StartEndHandler):
 		self.fieldContainerStack.pop()
 		self.macroContainerStack.pop()
 
+	@catchErrors
 	def _startGrammar(self, grammarClass, attrs):
-		self.curGrammar = grammarClass()
-		if attrs.has_key("docIsRow"):
-			self.curGrammar.set_docIsRow(attrs["docIsRow"])
+		if self._keepInherited(attrs):
+			self.curGrammar = self.curDD.get_Grammar().copy()
+		else:
+			self.curGrammar = grammarClass()
+			if attrs.has_key("docIsRow"):
+				self.curGrammar.set_docIsRow(attrs["docIsRow"])
 		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
 		self.macroContainerStack.append(self.curGrammar)
 
@@ -428,18 +503,27 @@ class RdParser(utils.StartEndHandler):
 	_end_CFGrammar = _end_REGrammar = _end_ColumnGrammar = \
 		_end_KeyValueGrammar = _end_FitsGrammar = _end_NullGrammar = _endGrammar
 
+	@catchErrors
 	def _start_Semantics(self, name, attrs):
-		self.curSemantics = Semantics()
+		if self._keepInherited(attrs):
+			self.curSemantics = self.curDD.get_Semantics().copy()
+		else:
+			self.curSemantics = Semantics()
 		self.dataSrcStack[-1].set_Semantics(self.curSemantics)
-	
+
+	@catchErrors
 	def _start_Record(self, name, attrs):
-		self.curRecordDef = resource.RecordDef()
+		if self._keepInherited(attrs):
+			self.curRecordDef = self.curSemantics.get_recordDefs()[0].copy()
+			self.curSemantics.clear_recordDefs()
+		else:
+			self.curRecordDef = resource.RecordDef()
+		self.curSemantics.addto_recordDefs(self.curRecordDef)
 		self.curRecordDef.set_table(attrs["table"])
 		self.curRecordDef.set_create(attrs.get("create", "True"))
 		if name=="SharedRecord":
 			self.curRecordDef.set_shared(True)
 		self.fieldContainerStack.append(self.curRecordDef)
-		self.curSemantics.addto_recordDefs(self.curRecordDef)
 
 	_start_SharedRecord = _start_Record
 
@@ -449,6 +533,7 @@ class RdParser(utils.StartEndHandler):
 	def _start_owningCondition(self, name, attrs):
 		self.curRecordDef.set_owningCondition((attrs["colName"], attrs["value"]))
 
+	@catchErrors
 	def _start_Field(self, name, attrs):
 		f = datadef.DataField()
 		for key, val in attrs.items():
@@ -460,6 +545,7 @@ class RdParser(utils.StartEndHandler):
 		self.currentField.set_longdescription(content)
 		self.currentField.set_longmime(attrs.get("type", "text/plain"))
 
+	@catchErrors
 	def _start_Macro(self, name, attrs):
 		initArgs = dict([(str(key), value) 
 				for key, value in attrs.items()
@@ -472,10 +558,12 @@ class RdParser(utils.StartEndHandler):
 	def _end_Macro(self, name, attrs, content):
 		mac = self.callableStack.pop()
 
+	@catchErrors
 	def _end_macrodef(self, name, attrs, code):
 		self.curGrammar.addto_macros(
 			macros.compileMacro(attrs["name"], code, self.curDD.get_FieldComputer()))
 
+	@catchErrors
 	def _start_RowProcessor(self, name, attrs):
 		proc = processors.getProcessor(attrs["name"])(
 			self.curDD.get_FieldComputer())
@@ -485,6 +573,7 @@ class RdParser(utils.StartEndHandler):
 	def _end_RowProcessor(self, name, attrs, content):
 		self.callableStack.pop()
 
+	@catchErrors
 	def _start_ResourceProcessor(self, name, attrs):
 		proc = resproc.getResproc(attrs["name"])()
 		self.callableStack.append(proc)
@@ -569,6 +658,8 @@ def getRd(srcPath, parserClass=RdParser):
 		utils.fatalError("Could not open descriptor %s (%s)."%(
 			srcPath, msg))
 	except Exception, msg:
+		if gavo.parsing.verbose:
+			traceback.print_exc()
 		logger.error("Exception while parsing:", exc_info=True)
 		utils.fatalError("Unexpected Exception while parsing Desriptor %s: %s."
 			"  Please check input validity."%(srcPath, msg))

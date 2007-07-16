@@ -37,7 +37,7 @@ def getAvailableQueries(path):
 	"""
 	queries = []
 	folders = []
-	templatePath = querulator.resolvePath(querulator.templateRoot, path)
+	templatePath = common.resolvePath(querulator.templateRoot, path)
 	for fName in os.listdir(templatePath):
 		if os.path.isfile(os.path.join(templatePath, fName)):
 			if fName.endswith(".cq"):
@@ -413,7 +413,7 @@ class Template(AbstractTemplate):
 		return self.query.getColIndexFor(colExpr)
 
 	def runQuery(self, context):
-		sqlQuery, args = template.asSql(context)
+		sqlQuery, args = self.asSql(context)
 		# the following is a lousy hack.  It's not too easy coming up with
 		# something better, though
 		if sqlQuery.lower().endswith("where"):
