@@ -7,6 +7,7 @@ import cgi
 import re
 import os
 import sys
+import string
 
 from mx import DateTime
 
@@ -54,20 +55,22 @@ class Context:
 	* a getServerURL method that returns the URL of the server.
 
 	Ideally, it should abstract away the details of the framework needed.
-	It could be subclassed to provide WsgiContext, CgiContext, etc.  For
-	now, this is for CGI.
+	It could be subclassed to provide WsgiContext, CgiContext, etc. 
+
+	Deriving classes should call _initEnv(environ) with a dictionary
+	containing the current environment information.
 	"""
 	def __init__(self):
-		self._initEnv()
 		self._initUser()
 		self._initArguments()
 		self._initPathinfo()
+		self.uidsGivenOut = set()
 	
 	def __contains__(self, element):
 		return element in self.arguments
 
-	def _initEnv(self):
-		gavoHome = os.environ.get("GAVO_HOME", gavo.rootDir)
+	def _initEnv(self, environ):
+		gavoHome = environ.get("GAVO_HOME", gavo.rootDir)
 		self.environment = {
 			"GAVO_HOME": gavoHome,
 			"GAVO_INPUTS": os.path.join(gavoHome, "inputs"),
@@ -75,8 +78,8 @@ class Context:
 				"templates"),
 			"MASQ_TPL_ROOT": os.path.join(gavoHome, "web", "masquerator", 
 				"templates"),
-			"ROOT_URL": os.environ.get("QU_ROOT", "/db"),
-			"STATIC_URL": os.environ.get("QU_STATIC", "/qstatic"),
+			"ROOT_URL": environ.get("QU_ROOT", "/db"),
+			"STATIC_URL": environ.get("QU_STATIC", "/qstatic"),
 		}
 	
 	def getEnv(self, key):
@@ -129,11 +132,28 @@ class Context:
 		"""
 		return (embargo<DateTime.today() or owner==self.getUser())
 
+	def getUid(self, hint=None):
+		"""returns a string that is unique within this context suitable as
+		an SQL identifier.
+
+		Right now, this is not terribly efficient if you don't provide a
+		hint, so don't go getting hundreds of these.
+		"""
+		nukeNumbers = string.maketrans("0123456789", "abcdefghij")
+		def makeUid(hint):
+			return str(id(hint)).encode("hex").translate(nukeNumbers)
+		uid = makeUid(hint)
+		while uid in self.uidsGivenOut or uid in self.arguments:
+			uid = makeUid(uid)
+		self.uidsGivenOut.add(uid)
+		return uid
+
 
 class CGIContext(Context):
 	"""is a context for CGIs.
 	"""
 	def __init__(self):
+		self._initEnv(os.environ)
 		Context.__init__(self)
 		try:
 			self.querier = sqlsupport.SimpleQuerier()
@@ -199,6 +219,7 @@ class ModpyContext(Context):
 	"""
 	def __init__(self, req):
 		self.modpyReq = req
+		self._initEnv(self.modpyReq.subprocess_env)
 		Context.__init__(self)
 	
 	def _initArguments(self):

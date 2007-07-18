@@ -7,6 +7,12 @@ We'll move the stuff as we see fit...)
 
 import os
 
+import gavo
+
+class Error(gavo.Error):
+	pass
+
+
 def resolvePath(rootPath, relPath):
 	"""joins relPath to rootPath and makes sure the result really is
 	in rootPath.

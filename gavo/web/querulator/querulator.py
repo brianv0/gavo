@@ -122,6 +122,7 @@ def _doErrorResponse(msg, context):
 		"<body><h1>An error has occurred</h1>"
 		"<p>We are sorry, but we cannot fulfil your request.  The"
 		" reason given by the program is:</p><pre>",
+		"%s\n"%msg.__class__.__name__,
 		"\n".join(textwrap.wrap(str(msg))),
 		"</pre>"
 		"<p>If you believe what you were trying to do should have worked,"

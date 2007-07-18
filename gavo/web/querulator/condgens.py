@@ -533,6 +533,56 @@ class SexagConeSearch(CondGen):
 			return buildConeSearchQuery(self.name, ra, dec, sr)
 
 
+class Q3Join(OperatorCondGen):
+	"""is a CondGen that selects stars that have a neighbour within a defined
+	distance.
+
+	This uses Q3C.  It works by selecting a certain column from the matches
+	which is then entered into the matching process.  That column should
+	usually be the primary key.  The only supported operator is "in".
+
+	Argument:
+
+	* tableName -- the name of the table to perform autocorrelation on.
+	  This table must implement the q3cpositions interface.
+
+	Example:
+
+	localid in Q3Join()
+	"""
+	def __init__(self, name, sqlId, operator, tableName):
+		if operator.lower()!="in":
+			raise ArgumentError("Q3Join only works with the in operator")
+		self.tableName = tableName
+		OperatorCondGen.__init__(self, name, sqlId, operator)
+	
+	def asHtml(self, context=None):
+		return ('<input type="text" size="10" name="%s">')%(self.name)
+
+	def asSql(self, context):
+		if not self._contextMatches(context):
+			return "", {}
+		aliasBase = context.getUid(self)
+		aliasA, aliasB = aliasBase+"A", aliasBase+"B"
+		args = {self.name: float(context.getfirst(self.name))/3600.}
+		return ("%(key)s in (select %(aliasA)s.%(key)s"
+			" from %(table)s as %(aliasA)s,"
+			" %(table)s as %(aliasB)s where %(aliasA)s.%(key)s!=%(aliasB)s.%(key)s"
+			" AND q3c_join(%(aliasA)s.alphaFloat,"
+			" %(aliasA)s.deltaFloat, %(aliasB)s.alphaFloat, %(aliasB)s.deltaFloat,"
+			" %%(%(name)s)s))")%{
+				"key": self.sqlExpr,
+				"table": self.tableName,
+				"aliasA": aliasA,
+				"aliasB": aliasB,
+				"name": self.name}, args
+
+	def asCondition(self, context):
+		if not self._contextMatches(context):
+			return ""
+		return "Another object within %s arcsecs"%(context.getfirst(self.name))
+
+
 class FeedbackSearch(CondGen):
 	"""is a CondGen that enables feedback fields.
 	

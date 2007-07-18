@@ -79,7 +79,7 @@ class Interface:
 
 class Positions(Interface):
 	"""is an interface for positions.
-
+	
 	It consists of the fields alphaFloat, deltaFloat (float angles
 	in degrees, J2000.0) and c_x, c_y, c_z (intersection of the radius
 	vector to alphaFloat, deltaFloat with the unit sphere).
@@ -149,7 +149,7 @@ class Q3CPositions(Positions):
 
 class Products(Interface):
 	"""is an interface for handling products.
-
+	
 	The interface requires the fields datapath, owner, embargo, and
 	fsize.
 
