@@ -9,6 +9,7 @@ sqlparse.
 """
 
 import re
+import weakref
 import compiler
 import compiler.ast
 import compiler.pycodegen
@@ -40,7 +41,12 @@ class CondGen:
 	names.
 
 	All classes derived from CondGen should add to the set expectedKeys
-	so that it reflects what 
+	whatever keys they want to see in the context.  You can then use the
+	_contextMatches method to see if the CondGen should "fire".
+
+	CondGens implement a setParent method used by the SQL parser.  Thus,
+	if the CondGen is in an SQL parse tree, you can use that method *after*
+	the constructor is finished to traverse that tree.
 	"""
 	def __init__(self, name):
 		self.name = name
@@ -50,6 +56,12 @@ class CondGen:
 		""" -- define reprs of your own for unit tests and such...
 		"""
 		return "%s(...)"%self.__class__.__name__
+
+	def setParent(self, parent):
+		self.parent = weakref.proxy(parent)
+	
+	def getParent(self):
+		return self.parent
 
 	def _ensureNonEmptyName(self):
 		if not self.name:
@@ -548,7 +560,7 @@ class Q3Join(OperatorCondGen):
 
 	Example:
 
-	localid in Q3Join()
+	localid in Q3Join("ppmx.data")
 	"""
 	def __init__(self, name, sqlId, operator, tableName):
 		if operator.lower()!="in":
@@ -559,20 +571,34 @@ class Q3Join(OperatorCondGen):
 	def asHtml(self, context=None):
 		return ('<input type="text" size="10" name="%s">')%(self.name)
 
+	def _getMasterTableName(self):
+		"""returns the name of the table the innermost SELECT queries.
+		"""
+		node = self.getParent()
+		while node:
+			try:
+				return node.getDefaultTable()
+			except AttributeError:
+				node = node.getParent()
+		raise Error("Q3Join cannot find table name")
+
 	def asSql(self, context):
 		if not self._contextMatches(context):
 			return "", {}
+		masterTableName = self._getMasterTableName()
 		aliasBase = context.getUid(self)
 		aliasA, aliasB = aliasBase+"A", aliasBase+"B"
 		args = {self.name: float(context.getfirst(self.name))/3600.}
 		return ("%(key)s in (select %(aliasA)s.%(key)s"
-			" from %(table)s as %(aliasA)s,"
-			" %(table)s as %(aliasB)s where %(aliasA)s.%(key)s!=%(aliasB)s.%(key)s"
+			" from %(masterTable)s as %(aliasA)s,"
+			" %(otherTable)s as %(aliasB)s"
+			" where %(aliasA)s.%(key)s!=%(aliasB)s.%(key)s"
 			" AND q3c_join(%(aliasA)s.alphaFloat,"
 			" %(aliasA)s.deltaFloat, %(aliasB)s.alphaFloat, %(aliasB)s.deltaFloat,"
 			" %%(%(name)s)s))")%{
 				"key": self.sqlExpr,
-				"table": self.tableName,
+				"masterTable": masterTableName,
+				"otherTable": self.tableName,
 				"aliasA": aliasA,
 				"aliasB": aliasB,
 				"name": self.name}, args

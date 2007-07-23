@@ -16,6 +16,7 @@ stuff wrong.
 
 import sys
 import operator
+import weakref
 from pyparsing import Word, Literal, Optional, alphas, CaselessKeyword,\
 	ZeroOrMore, OneOrMore, SkipTo, srange, StringEnd, Or, MatchFirst,\
 	Suppress, Keyword, Forward, QuotedString, Group, printables, nums,\
@@ -169,15 +170,16 @@ class ParseNode:
 	   dictionary with the values to fill in suitable for cursor.execute
 	 * getChildren -- returns a list of all children (either ParseNodes or
 	   string instances).
-	
-	You'll get getChildren for free when you define the children attribute.
-
-	Nodes that expect input must also define getQueryInfo.  It should return
-	a dictionary mapping query keys to tuples.  The first element of the tuple 
-	must be either 'a' (atomic) or 'l' (list) depending on whether the SQL
-	query expects a single or a compound value.  Further elements may be defined
-	as necessary.
 	"""
+	def __init__(self, children):
+		self.children = children
+		for child in self.children:
+			try:
+				child.setParent(self)
+			except AttributeError:
+				# child is some "literal"
+				pass
+
 	def getChildren(self):
 		return self.children
 	
@@ -199,6 +201,22 @@ class ParseNode:
 		of its own.
 		"""
 		return self.__class__(*self.children)
+	
+	def setParent(self, parent):
+		"""informs the object of its parent.
+
+		This is usually called by the constructor of the parent.
+		"""
+		self.parent = weakref.proxy(parent)
+	
+	def getParent(self):
+		"""returns the element's parent node (or None, if none has been
+		set yet.
+		"""
+		try:
+			return getattr(self, "parent")
+		except AttributeError:
+			return None
 
 
 class Condition(ParseNode):
@@ -221,7 +239,7 @@ class Condition(ParseNode):
 		else:
 			defaultBase = key
 		self.condTest = condgens.makeCondGen(defaultBase, cType, toks)
-		self.children = [self.description, self.condTest]
+		ParseNode.__init__(self, [self.description, self.condTest])
 
 	def __repr__(self):
 		return "<Condition '%s', %s>"%(self.description, repr(self.condTest))
@@ -256,7 +274,7 @@ class LiteralCondition(ParseNode):
 	"""
 	def __init__(self, name, relation, value):
 		self.name, self.relation, self.value = name, relation, value
-		self.children = [self.name, self.relation, self.value]
+		Condition.__init__([self.name, self.relation, self.value])
 	
 	def __repr__(self):
 		return self.name+self.relation+self.value
@@ -283,7 +301,7 @@ class CExpression(ParseNode):
 			assert(reduce(operator.__and__, [args[i]==self.operator 
 				for i in range(1, len(args), 2)]))
 			self._expandOperands([args[i] for i in range(0, len(args), 2)])
-			self.children = list(args)
+			ParseNode.__init__(self, list(args))
 		except Exception, msg: 
 			# pyparsing swallows the exception and yields mysterious parsing errors.
 			# and I want something strange out on the screen :-)
@@ -347,7 +365,7 @@ class SelectItems(ParseNode):
 	"""is a container for items in a select list.
 	"""
 	def __init__(self, *items):
-		self.children = list(items)
+		ParseNode.__init__(self, list(items))
 	
 	def __repr__(self):
 		return "<Items: %s>"%(", ".join([repr(item) for item in self.children]))
@@ -384,7 +402,7 @@ class SelectItem(ParseNode):
 		displayHint = [displayHint[0]]+map(eval, displayHint[1:])
 		self.sqlExpr, self.columnTitle, self.displayHint = \
 			sqlExpr, columnTitle, displayHint
-		self.children = [self.sqlExpr, self.columnTitle, self.displayHint]
+		ParseNode.__init__(self, [self.sqlExpr, self.columnTitle, self.displayHint])
 
 	def __repr__(self):
 		return '%s'%self.sqlExpr
@@ -411,7 +429,7 @@ class Query(ParseNode):
 	def __init__(self, selectItems, defaultTable, tests):
 		self.selectItems, self.defaultTable, self.tests = \
 			selectItems, defaultTable, tests
-		self.children = [self.selectItems, self.defaultTable, self.tests]
+		ParseNode.__init__(self, [self.selectItems, self.defaultTable, self.tests])
 		self.colIndexCache = {}
 
 	def __repr__(self):
