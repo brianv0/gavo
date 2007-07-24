@@ -767,7 +767,6 @@ class FeedbackSearch(CondGen):
 		if self.hasPositions:
 			localContext["RA"] = localContext[self._getKeyFor("alphaFloat")]
 			localContext["DEC"] = localContext[self._getKeyFor("deltaFloat")]
-		sys.stderr.write(">>>>>%s\n"%localContext)
 		return localContext
 
 	def _build(self, context):

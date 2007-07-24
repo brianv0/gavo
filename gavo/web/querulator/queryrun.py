@@ -115,8 +115,9 @@ class Formatter:
 			"%s/getproduct/%s?path=%s"%(querulator.rootURL, 
 			self.template.getPath(), urllib.quote(path)))
 
-	def _cook_feedback(self, key, row):
-		targetTemplate = self.template.getPath()
+	def _cook_feedback(self, key, row, targetTemplate=None):
+		if targetTemplate==None:
+			targetTemplate = self.template.getPath()
 		return urlparse.urljoin(self.context.getServerURL(),
 			"%s/query/%s?feedback=%s"%(querulator.rootURL, targetTemplate,
 				urllib.quote(key)))

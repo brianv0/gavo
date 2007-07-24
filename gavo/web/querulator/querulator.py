@@ -120,8 +120,8 @@ def _doErrorResponse(msg, context):
 		' "http://www.w3.org/TR/html4/loose.dtd">'
 		"<head><title>Error</title></head>"
 		"<body><h1>An error has occurred</h1>"
-		"<p>We are sorry, but we cannot fulfil your request.  The"
-		" reason given by the program is:</p><pre>",
+		"<p>We are sorry we cannot fulfil your request.  The"
+		" error message given by the program is:</p><pre>",
 		"%s\n"%msg.__class__.__name__,
 		"\n".join(textwrap.wrap(str(msg))),
 		"</pre>"
