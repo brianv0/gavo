@@ -563,6 +563,15 @@ def silence(fun, *args, **kwargs):
 	return res
 
 
+def getMatchingTuple(tupList, key, matchIndex):
+	"""returns the first tuple from tupList that hat tuple[matchIndex]=key.
+	"""
+	for t in tupList:
+		if t[matchIndex]==key:
+			return t
+	raise KeyError(key)
+
+
 def _test():
 	import doctest, utils
 	doctest.testmod(utils)

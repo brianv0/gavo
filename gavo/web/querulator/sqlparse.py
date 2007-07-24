@@ -274,7 +274,7 @@ class LiteralCondition(ParseNode):
 	"""
 	def __init__(self, name, relation, value):
 		self.name, self.relation, self.value = name, relation, value
-		Condition.__init__([self.name, self.relation, self.value])
+		ParseNode.__init__(self, [self.name, self.relation, self.value])
 	
 	def __repr__(self):
 		return self.name+self.relation+self.value
@@ -292,8 +292,8 @@ class CExpression(ParseNode):
 	"""is a homogenous expression with an operator and operands.
 
 	Homogenous is meant to mean that all operands are joined
-	with the same operator.  Also, we do not accept "degenerated" expression
-	without an operator.
+	with the same operator.  Also, we do not accept "degenerated" expressions
+	without an operator (these raise an IndexError).
 	"""
 	def __init__(self, *args):
 		try:

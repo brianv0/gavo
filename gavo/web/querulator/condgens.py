@@ -477,6 +477,64 @@ def buildQ3ConeSearchQuery(prefix, ra, dec, sr):
 		ra, dec, sr), {}
 
 
+class StandardConeSearch(CondGen):
+	"""is a CondGen that inserts a VO-compatible cone search.
+	
+	These assume the table supports the positions interface, i.e., 
+	has c_x, c_y, c_z fields.
+
+	Instead of coordinates, you can also give Simbad identifiers.
+
+	Arguments:
+
+	* useQ3C -- if True, the SQL will use the q3c extension.  See docs.
+	  Optional, defaults to False.  You can only use this when you have
+	  q3c installed.
+
+	Examples:
+
+	StandardConeSearch()
+	StandardConeSearch(useQ3C=True)
+	"""
+	def __init__(self, name="", useQ3C=False):
+		CondGen.__init__(self, name)
+		self.useQ3C = useQ3C
+		self.expectedKeys.add("SR")  # all in decimal degrees
+		self.expectedKeys.add("RA")
+		self.expectedKeys.add("DEC")
+
+	def asHtml(self, context=None):
+		return ('<input type="text" size="5" name="SR" value="%s">'
+			' degrees around<br>'
+			'&alpha; <input type="text" size="10" name="RA" value="%s"><br>'
+			'&delta; <input type="text" size="10" name="DEC" value="%s">'
+			'<div class="legend">(&alpha;, &delta; decimal degrees in J2000.0)'
+			'</div>')%(context.get("SR", ""), context.get("RA", ""),
+				context.get("DEC", ""))
+	
+	def asCondition(self, context):
+		if self._contextMatches(context):
+			return "Position %s degrees around &alpha; %s, &delta; %s"%(
+				context.getfirst("SR"),
+				context.getfirst("RA"),
+				context.getfirst("DEC"))
+		return ""
+	
+	def asSql(self, context):
+		if not self._contextMatches(context):
+			return "", {}
+		try:
+			ra, dec = float(context.getfirst("RA")), float(context.getfirst("DEC"))
+			sr = float(context.getfirst("SR"))
+		except ValueError, msg:
+			raise querulator.Error("RA, DEC, and search radius must be given"
+				" as decimal floats in degrees")
+		if self.useQ3C:
+			return buildQ3ConeSearchQuery(self.name, ra, dec, sr)
+		else:
+			return buildConeSearchQuery(self.name, ra, dec, sr)
+
+
 class SexagConeSearch(CondGen):
 	"""is a CondGen that does a cone search on sexagesimal coordinates.
 	
@@ -635,6 +693,7 @@ class FeedbackSearch(CondGen):
 		self.queryKey = "%sfeedback"%prefix
 		self.targetField = targetField
 		self.fields = fields
+		self.hasPositions = True # XXX TODO: Get this from some meta table
 
 	def _buildFields(self, fields, context):
 		self.fieldDefs = sqlsupport.MetaTableHandler(context.getQuerier()
@@ -661,7 +720,6 @@ class FeedbackSearch(CondGen):
 
 	def _getKeyFor(self, name):
 		"""returns a form key name for the field name
-
 		"""
 		return "%s%s"%(self.queryKey, name)
 
@@ -670,16 +728,32 @@ class FeedbackSearch(CondGen):
 		"""
 		from gavo.web.querulator import sqlparse
 		children = []
+		availableFields = set()
 		for name, dbtype, info in self.fieldDefs:
 			title, key = self._getTitleFor(name, info), self._getKeyFor(name)
+			availableFields.add(name)
 			if dbtype=="real":
 				children.append(sqlparse.Condition(title,
 					("operator",
 						(name, "BETWEEN", "FloatFieldWithTolerance()")), key))
 				children.append("AND")
-		self.expression = sqlparse.CExpression(*children[:-1])
+		if self.hasPositions:
+			children.append(sqlparse.Condition("Cone around",
+				("predefined",
+					("StandardConeSearch(useQ3C=True)",)), self._getKeyFor("cone")))
+			children.append("AND")
+
+		if len(children)==0:
+			self.expression = sqlparse.LiteralCondition("1", "=", "1")
+		elif len(children)==1:
+			self.expression = children[0]
+		else:
+			self.expression = sqlparse.CExpression(*children[:-1])
 
 	def _getLocalContext(self, context):
+		"""returns a context containing the values from the selected
+		object.
+		"""
 		querier = context.getQuerier()
 		selectItems = ", ".join([name for name, type, info in
 			self.fieldDefs])
@@ -690,6 +764,10 @@ class FeedbackSearch(CondGen):
 		localContext = {}
 		for (name, dbtype, info), value in zip(self.fieldDefs, qValues):
 			localContext[self._getKeyFor(name)] = value
+		if self.hasPositions:
+			localContext["RA"] = localContext[self._getKeyFor("alphaFloat")]
+			localContext["DEC"] = localContext[self._getKeyFor("deltaFloat")]
+		sys.stderr.write(">>>>>%s\n"%localContext)
 		return localContext
 
 	def _build(self, context):

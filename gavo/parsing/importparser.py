@@ -444,9 +444,23 @@ class RdParser(utils.StartEndHandler):
 	def _end_schema(self, name, attrs, content):
 		self.rd.set_schema(content)
 
+	def _getDDById(self, id):
+		"""returns the data descriptor that has id.
+
+		If there's a : in id, the stuff in front of the colon is
+		an inputs-relative path to another resource descriptor,
+		and the id then refers to one of its data descriptors.
+		"""
+		if ":" in id:
+			rdPath, id = id.split(":", 1)
+			rd = getRd(os.path.join(gavo.inputsDir, rdPath))
+		else:
+			rd = self.rd
+		return rd.getDataById(id)
+
 	def _start_Data(self, name, attrs):
 		if attrs.has_key("extends"):
-			self.curDD = self.rd.getDataById(attrs["extends"]).copy()
+			self.curDD = self._getDDById(attrs["extends"]).copy()
 		else:
 			self.curDD = DataDescriptor(self.rd)
 		self.curDD.set_source(attrs.get("source"))
@@ -608,7 +622,10 @@ class RdParser(utils.StartEndHandler):
 		self.rd.get_systems().defineSystem(content, attrs.get("epoch"),
 			attrs.get("system"))
 
+	scriptTypes = set(["postCreation"])
+
 	def _end_script(self, name, attrs, content):
+		assert attrs["type"] in self.scriptTypes # Just a quick hack
 		self.rd.addto_scripts((attrs["type"], attrs.get("name", "<anonymous>"),
 			content.strip()))
 
