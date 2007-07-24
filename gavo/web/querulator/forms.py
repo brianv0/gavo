@@ -12,6 +12,7 @@ methods).  This condgen is then used to construct forms and queries.
 
 import re
 import os
+import urllib
 
 from gavo import sqlsupport
 from gavo import config
@@ -339,32 +340,23 @@ class Template(AbstractTemplate):
 			return productCols[0]
 		else:
 			raise querulator.Error("More than one product hint in query")
-	
+
 	def getHiddenForm(self, context):
 		"""returns an html form body setting all relevant query parameters
 		from context in hidden fields.
 
 		This can be used to reproduce queries with different meta parameters.
 		("this stuff as tar", "this stuff as votable").
-
-		As a special hack, query arguments with names starting with "submit"
-		will not be included.  This is done because we use these to
-		distinguish between various products.
 		"""
-		formItems = []
-		for name, value in context.iteritems():
-			if name.startswith("submit"):
-				continue
-			if name=="sortby":
-				continue
-			if isinstance(value, list):
-				for item in value:
-					formItems.append('<input type="hidden" name="%s" value=%s>'%(
-						name, repr(str(item))) )
-			else:
-				formItems.append('<input type="hidden" name="%s" value=%s>'%(
-					name, repr(str(value))) )
-		return "\n".join(formItems)
+		return "\n".join(['<input type="hidden" name="%s" value=%s>'%(
+				name, repr(value))
+			for name, value in context.getQueryItems()])
+
+	def getQueryArgs(self, context):
+		"""returns a query tag (url?query) to reproduce this query.
+		"""
+		return "&".join(["%s=%s"%(name, urllib.quote(value))
+			for name, value in context.getQueryItems()])
 
 	def getProductsSize(self, queryResult, context):
 		"""returns the total size of all products in queryResult.

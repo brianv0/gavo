@@ -184,7 +184,7 @@ class Formatter:
 	
 	def _simbad_to_html(self, value):
 		value = re.sub(r"(\d)\s+(\d)", r"\1+\2", value.strip())
-		value = re.sub("[+-]", r"d\g<0>", value)+"d"
+		value = re.sub("\s*[+-]s\*", r"d\g<0>", value)+"d"
 		simbadURL = ("http://simbad.u-strasbg.fr/simbad/sim-coo?Coord=%s"
 			"&Radius=1")%urllib.quote(value)
 		return '<a href="%s">[Simbad]</a>'%self._htmlEscape(simbadURL)
@@ -198,6 +198,9 @@ class Formatter:
 
 	def _null_to_html(self):
 		return "N/A"
+
+	def _null_to_votable(self):
+		return None
 
 	def format(self, hint, targetFormat, value, row):
 		if hint[0]=="suppressed":
@@ -414,6 +417,9 @@ def _formatAsHtml(template, context):
 				hint, "html", item, row)
 			for item, hint in zip(row, hints) if hint[0]!="suppressed"])))
 	doc.append("</table>\n")
+	doc.append('<p id="querylink"><a href="%s">Link to VOTable</a></p>'%
+		"%s/run/%s?%s"%(querulator.rootURL, template.getPath(), 
+			template.getQueryArgs(context)))
 	doc.append(tarForm)
 	doc.append("</body>")
 	return "\n".join(doc)
@@ -496,7 +502,9 @@ def processQuery(template, context):
 	elif context.hasArgument("submit-tar"):
 		return "application/tar", _formatAsTarStream(template, context), {
 			"Content-disposition": 'attachment; filename="result.tar"'}
-	raise querulator.Error("Invalid query.")
+	# Default votable
+	return "application/x-votable", _formatAsVoTable(template, context
+		), {"Content-disposition": 'attachment; filename="result.xml"'}
 
 
 def getProduct(context):

@@ -53,7 +53,7 @@ def _getFieldItemsFor(colInd, colOpts):
 		"ID": "col%02d"%colInd,
 	}
 	type, size = _getVoTypeForSqlType(colOpts["type"])
-	fieldItems["type"] = type
+	fieldItems["datatype"] = type
 	if size!="1":
 		fieldItems["arraysize"] = size
 	for fieldName in ["ucd", "utype", "unit", "width", "precision"]:

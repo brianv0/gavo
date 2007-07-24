@@ -20,6 +20,7 @@ except ImportError:
 
 import gavo
 from gavo import sqlsupport
+from gavo import simbadinterface
 from gavo.web import querulator
 
 
@@ -81,7 +82,7 @@ class Context:
 			"ROOT_URL": environ.get("QU_ROOT", "/db"),
 			"STATIC_URL": environ.get("QU_STATIC", "/qstatic"),
 		}
-	
+
 	def getEnv(self, key):
 		return self.environment[key]
 
@@ -125,7 +126,29 @@ class Context:
 	
 	def getPathInfo(self):
 		return self.pathInfo
-	
+
+	def getQueryItems(self):
+		"""returns a list of (name, value) tuples to characterize the
+		query.
+
+		All values are serialized into strings.
+
+		This filters out a few keys that are internal to querulator (submit-X,
+		sortby, etc.
+		"""
+		items = []
+		for name, value in self.iteritems():
+			if name.startswith("submit"):
+				continue
+			if name=="sortby":
+				continue
+			if isinstance(value, list):
+				for item in value:
+					items.append((name, str(item)))
+			else:
+				items.append((name, str(value)))
+		return items
+
 	def isAuthorizedProduct(self, embargo, owner):
 		"""returns true if a product with owner and embargo may currently be
 		accessed.
@@ -147,6 +170,14 @@ class Context:
 			uid = makeUid(uid)
 		self.uidsGivenOut.add(uid)
 		return uid
+
+	def _initSesame(self):
+		self.sesame = simbadinterface.Sesame(id="sim_querulator", saveNew=True)
+
+	def getSesame(self):
+		if not hasattr(self, "sesame"):
+			self._initSesame()
+		return self.sesame
 
 
 class CGIContext(Context):

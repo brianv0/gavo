@@ -209,8 +209,7 @@ class Sesame:
 	def __init__(self, id="simbad", debug=False, saveNew=False):
 		self.proxy = SOAPpy.WSDL.Proxy(self.wsdl)
 		self.saveNew = saveNew
-		if debug:
-			pass
+		self.debug = debug
 		self._getCache(id)
 
 	def _getCache(self, id):
@@ -218,6 +217,8 @@ class Sesame:
 
 	def _parseSimbadXML(self, xmlText):
 		parser = SesameParser()
+		if self.debug:
+			print xmlText
 		xml.sax.parseString(xmlText, parser)
 		return parser.getData()
 

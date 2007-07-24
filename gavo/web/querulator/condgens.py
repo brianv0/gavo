@@ -585,8 +585,10 @@ class SexagConeSearch(CondGen):
 				mat.group(2))
 		except (AttributeError, ValueError):
 			try:
-				from gavo import simbadinterface
-				ra, dec = simbadinterface.getSimbadPositions(pos)
+				data = context.getSesame().query(pos)
+				if not data:
+					raise KeyError(pos)
+				ra, dec = float(data["RA"]), float(data["dec"])
 			except KeyError:
 				raise querulator.Error("Sexagesimal mixed positions must"
 					" have a format like hh mm ss[.ddd] [+-]dd mm ss[.mmm] (the"
