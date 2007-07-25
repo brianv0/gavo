@@ -1,6 +1,13 @@
 # -*- encoding: iso-8859-1 -*-
 """
 This module contains basic support for manual SQL generation.
+
+A word on the fieldInfos that are used here: python-gavo has two ways of
+defining fields: The DataField from datadef and the fieldInfos from 
+sqlsupport.  DataFields are utils.records containing much the same
+data that fieldInfos hold in dicts.  The reason that the two are distinct
+is historical (DataFields were originally exclusively for parsing), and at 
+some point we should probably make sqlsupport use DataFields as well.
 """
 
 import re
@@ -12,6 +19,7 @@ import gavo
 from gavo import utils
 from gavo import config
 from gavo import logger
+from gavo import datadef
 
 
 class FieldError(gavo.Error):
@@ -24,29 +32,6 @@ class FieldError(gavo.Error):
 # etc for all table rows of user tables
 metaTableName = "fielddescriptions"
 
-# This is a schema for the field description table.  WARNING: If you
-# change anything here, you'll probably have to change 
-# datadef.DataField, too
-metaTableFields = [
-	("tableName", "text", {"primary": True, 
-		"description": "Name of the table the column is in"}),
-	("fieldName", "text", {"primary": True,
-		"description": "SQL identifier for the column"}),
-	("unit", "text", {"description": "Unit for the value"}),
-	("ucd", "text", {"description": "UCD for the colum"}),
-	("description", "text", {"description": "A one-line characterization of"
-		" the value"}),
-	("tablehead", "text", {"description": "A string suitable as a table heading"
-		" for the values"}),
-	("longdescr", "text", {"description": "A possibly long information on"
-		" the values"}),
-	("longmime", "text", {"description": "Mime type of longdescr"}),
-	("displayHint", "text", {"description": "Suggested presentation format"}),
-	("utype", "text", {"description": "A utype for the column"}),
-	("colInd", "integer", {"description": 
-		"Index of the column within the table"}),
-	("type", "text", {"description": "SQL type of this column"}),
-]
 
 class Error(Exception):
 	pass
@@ -151,36 +136,16 @@ class TableWriter(StandardQueryMixin):
 	Table names are not parsed.  If they include a schema, you need
 	to make sure it exists (ensureSchema) before creating the table.
 
-	The table definition is through a list of triples (fieldname,
-	type, options), where options is a dictionary.
-
-	Keywords recognized in options include
-
-	 * default -- the value has to be a valid SQL expression for a
-	 column's default
-
-	 * notnull -- if the key notnull is defined regardless of its
-	 value, NULL values are forbidden for that field.
-
-	 * primary -- if the key primary is defined regardless of its
-	 value, the field will be added to the fields comprising the primary key
-
-	 * index -- tablewriter will request an index on the field.
-	 The value is name of the index (and thus has to be a valid
-	 SQL identifier), fields with identical strings will be
-	 indexed together.  These names are db global and will *not*
-	 be prefixed by the scheme.  You should therefore use a prefix
-	 like schema_table_ or something.
-
-	 * references -- the same as in SQL, the value has to legal SQL
-	 """
-	def __init__(self, tableName, fieldDef):
+	The table definition is through a sequence of datadef.DataField
+	instances.
+	"""
+	def __init__(self, tableName, fields):
 		self.connection = PgSQL.connect(dsn=config.settings.get_db_dsn(),
 			user=config.settings.get_db_user(), 
 			password=config.settings.get_db_password(),
 			client_encoding="utf-8")
 		self.tableName = tableName
-		self.fieldDef = fieldDef
+		self.fields = fields
 
 	def _sendSQL(self, cmd, args={}, failok=False):
 		"""sends raw SQL, using a new cursor.
@@ -197,22 +162,25 @@ class TableWriter(StandardQueryMixin):
 		cursor.close()
 		self.connection.commit()
 
-	def _getSqlFieldDesc(self, fieldDef):
-		name, type, options = fieldDef
-		items = [name, type]
-		if "notnull" in options:
+	def _getDDLDefinition(self, field):
+		"""returns an sql fragment for defining the field described by the 
+		DataField field.
+		"""
+		items = [field.get_dest(), field.get_dbtype()]
+		if not field.get_optional():
 			items.append("NOT NULL")
-		if "default" in options:
-			items.append("DEFAULT %s"%options["default"])
-		if "references" in options:
-			items.append("REFERENCES %s ON DELETE CASCADE"%options["references"])
+		if field.get_default()!=None:
+			items.append("DEFAULT %s"%repr(field.get_default()))
+		if field.get_references():
+			items.append("REFERENCES %s ON DELETE CASCADE"%field.get_references())
 		return " ".join(items)
 
 	def getIndices(self):
 		indices = {}
-		for fieldName, _, options in self.fieldDef:
-			if "index" in options:
-				indices.setdefault(options["index"], []).append(fieldName)
+		for field in self.fields:
+			if field.get_index():
+				indices.setdefault(field.get_index(), []).append(
+					field.get_dest())
 		return indices
 
 	def dropIndices(self):
@@ -249,9 +217,8 @@ class TableWriter(StandardQueryMixin):
 					role))
 		
 		def computePrimaryDef():
-			primaryCols = [fieldName 
-					for fieldName, _, options in self.fieldDef
-				if "primary" in options]
+			primaryCols = [field.get_dest()
+					for field in self.fields if field.get_primary()]
 			if primaryCols:
 				return ", PRIMARY KEY (%s)"%(",".join(primaryCols))
 			else:
@@ -263,8 +230,8 @@ class TableWriter(StandardQueryMixin):
 		if create:
 			self._sendSQL("CREATE TABLE %s (%s%s)"%(
 				self.tableName,
-				", ".join([self._getSqlFieldDesc(fd)
-					for fd in self.fieldDef]),
+				", ".join([self._getDDLDefinition(field)
+					for field in self.fields]),
 				computePrimaryDef(),
 				))
 		if privs:
@@ -318,8 +285,8 @@ class TableWriter(StandardQueryMixin):
 		self.dropIndices()
 		cmdString = "INSERT INTO %s (%s) VALUES (%s)"%(
 			self.tableName, 
-			", ".join([name for name, _, _ in self.fieldDef]),
-			", ".join(["%%(%s)s"%name for name, _, _ in self.fieldDef]))
+			", ".join([f.get_dest() for f in self.fields]),
+			", ".join(["%%(%s)s"%f.get_dest() for f in self.fields]))
 		return _Feeder(self.connection.cursor(), self.finalizeFeeder,
 			cmdString)
 
@@ -400,10 +367,10 @@ class MetaTableHandler:
 	"""is an interface to the meta table.
 
 	The meta table holds information on all columns of all user tables
-	in the database.  Its definition is given in metaTableFields.
+	in the database.  Its definition is given in datadef.metaTableFields.
 	"""
 	def __init__(self, querier=None):
-		self.writer = TableWriter(metaTableName, metaTableFields)
+		self.writer = TableWriter(metaTableName, datadef.metaTableFields)
 		if querier==None:
 			self.querier = SimpleQuerier()
 		else:
@@ -427,9 +394,12 @@ class MetaTableHandler:
 			feed(items)
 		feed.close()
 
-	def _fixColumnHead(self, resDict):
-		"""computes a suitable table heading for the column description resDict
-		if necessary.
+	def _fixFieldInfo(self, resDict):
+		"""does some ad-hoc changes to amend fieldInfos coming
+		from the database.
+
+		Right now, it only computes a suitable table heading
+		for the column description resDict if necessary.
 		"""
 		if resDict["tablehead"]:
 			return
@@ -447,6 +417,14 @@ class MetaTableHandler:
 		usually include a schema.
 		"""
 		resDict = {}
+		parts = fieldName.split(".")
+		if len(parts)==2:
+			tableName, fieldName = parts
+		elif len(parts)==3:
+			tableName = ".".join(parts[:2])
+			fieldName = parts[2]
+		elif len(parts)!=1:
+			raise FieldError("Invalid column specification: %s"%fieldName)
 		try:
 			res = self.querier.query("SELECT * FROM %s WHERE tableName=%%(tableName)s"
 				" AND fieldName=%%(fieldName)s"%metaTableName, {
@@ -458,26 +436,26 @@ class MetaTableHandler:
 		if len(matches)==0:
 			raise FieldError("No info for %s in %s"%(fieldName, tableName))
 		# since we're querying the primary key, len>1 can't happen
-		for fieldDef, val in zip(metaTableFields, matches[0]):
-			resDict[fieldDef[0]] = val
-		self._fixColumnHead(resDict)
+		for fieldDef, val in zip(datadef.metaTableFields, matches[0]):
+			resDict[fieldDef.get_dest()] = val
+		self._fixFieldInfo(resDict)
 		return resDict
 	
-	def getFieldDefs(self, tableName):
+	def getFieldInfos(self, tableName):
 		"""returns a field definition list for tableName.
 		
 		Each field definition is a dictionary, the keys of which are given by
-		metaTableFields above.
+		datadef.metaTableFields.  The sequence is in database column order.
 		"""
 		res = self.querier.query("SELECT * FROM %s WHERE tableName=%%(tableName)s"%
 			metaTableName, {"tableName": tableName})
-		fieldDefs = []
+		fieldInfos = []
 		for row in res.fetchall():
-			valdict = dict([(fieldDef[0], val) 
-				for fieldDef, val in zip(metaTableFields, row)])
-			fieldDefs.append((valdict["fieldName"], valdict["type"], valdict))
-		fieldDefs.sort(lambda a, b: cmp(a[2]["colInd"], b[2]["colInd"]))
-		return fieldDefs
+			fieldInfos.append(dict([(metaFieldInfo.get_dest(), val) 
+				for metaFieldInfo, val in zip(datadef.metaTableFields, row)]))
+			self._fixFieldInfo(fieldInfos[-1])
+		fieldInfos.sort(lambda a, b: cmp(a["colInd"], b["colInd"]))
+		return fieldInfos
 
 
 if __name__=="__main__":

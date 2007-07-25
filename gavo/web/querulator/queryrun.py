@@ -17,6 +17,7 @@ import gavo
 from gavo import sqlsupport
 from gavo import votable
 from gavo.web import querulator
+from gavo.web.querulator import sqlparse
 
 
 _resultsJs = """
@@ -246,22 +247,57 @@ def _isTruncated(queryResult, context):
 	return len(queryResult)==context.getfirst("used_limit")
 
 
-def _formatAsVoTable(template, context, stream=False):
+def _formatAsVoTable(template, context, stream=False, verbosity=None):
 	"""returns a callable that writes queryResult as VOTable.
+
+	Verbosity is an integer or None.  If it's None or <=0, the select items
+	given in the query are used to decide which fields to include
+	into the VOTable and how to format them.  If it's an integer>0,
+	we return all fields from the primary table with fields with
+	votImportance >= verbosity.
+
+	Regardless of verbosity, if a VERB is in the context, verbosity will
+	be set to VERB*10.
 	"""
+	def getSelectItemFieldInfos(template, context):
+		fieldInfos = []
+		metaTable = sqlsupport.MetaTableHandler(context.getQuerier())
+		defaultTableName = template.getDefaultTable()
+		newSelectItems = []
+		for itemDef in template.getItemdefs():
+			try:
+				fieldInfos.append(metaTable.getFieldInfo(
+					itemDef["name"], defaultTableName))
+				newSelectItems.append(sqlparse.SelectItem(itemDef["name"],
+					itemDef["title"], itemDef["hint"]))
+			except sqlsupport.FieldError:
+				# ignore this field for a VOTable
+				pass
+		template.setSelectItems(sqlparse.SelectItems(
+			*newSelectItems))
+		return fieldInfos
+
+	def getFieldInfos(template, context, verbosity):
+		metaTable = sqlsupport.MetaTableHandler(context.getQuerier())
+		fieldInfos = []
+		for info in metaTable.getFieldInfos(template.getDefaultTable()):
+			if info["verbLevel"]==None or info["verbLevel"]<=verbosity:
+				fieldInfos.append(info)
+		template.setSelectItems(sqlparse.SelectItems(
+			*[sqlparse.SelectItem(info["fieldName"], "",
+				info.get("hint", ["string"])) for info in fieldInfos]))
+		return fieldInfos
+
+	if context.hasArgument("VERB"):
+		verbosity = int(context.getfirst("VERB"))*10
+	if verbosity==None or verbosity<=0:
+		fieldInfos = getSelectItemFieldInfos(template, context)
+	else:
+		fieldInfos = getFieldInfos(template, context, verbosity)
 	queryResult = template.runQuery(context)
-	colDesc = []
-	metaTable = sqlsupport.MetaTableHandler(context.getQuerier())
-	defaultTableName = template.getDefaultTable()
-	for itemdef in template.getItemdefs():
-		try:
-			colDesc.append(metaTable.getFieldInfo(
-				itemdef["name"], defaultTableName))
-		except sqlsupport.FieldError:
-			colDesc.append({"fieldName": "ignore", "type": "text"})
 	formatter = Formatter(template, context)
-	hints = [itemdef["hint"] for itemdef in template.getItemdefs()]
 	rows = []
+	hints = [itemdef["hint"] for itemdef in template.getItemdefs()]
 	for row in queryResult:
 		rows.append([formatter.format(
 				hint, "votable", item, row)
@@ -269,20 +305,20 @@ def _formatAsVoTable(template, context, stream=False):
 
 	if stream:
 		def produceOutput(outputFile):
-			votable.writeSimpleTable(colDesc, rows, {}, 
+			votable.writeSimpleTable(fieldInfos, rows, {}, 
 				outputFile)
 		return produceOutput
 	
 	else:
 		f = cStringIO.StringIO()
-		votable.writeSimpleTable(colDesc, rows, {}, f)
+		votable.writeSimpleTable(fieldInfos, rows, {}, f)
 		return f.getvalue()
 
 
 def _makeSortButton(fieldName, template, context):
 	"""returns a form asking for the content re-sorted to fieldName.
 	"""
-	hiddenForm = template.getHiddenForm(context)
+	hiddenForm = template.getHiddenForm(context, suppress="sort_by")
 	if not hiddenForm:
 		return ""
 	buttonTemplate = ('<img src="%s/%%(img)s" alt="%%(alt)s"'
@@ -362,13 +398,14 @@ def _makeTarForm(template, context, queryResult):
 	if template.getProductCol()!=None:
 		doc.append('<form action="%s/run/%s" method="post" class="tarForm">\n'%(
 			querulator.rootURL, template.getPath()))
-		doc.append(template.getHiddenForm(context))
+		doc.append(template.getHiddenForm(context, suppress=["outputFormat"]))
 		sizeEstimate = template.getProductsSize(queryResult, context)
 		if not sizeEstimate:
 			return ""
 		sizeEstimate = ' (approx. %s)'%_formatSize(sizeEstimate)
-		doc.append('<input type="submit" name="submit-tar" value="Get tar of '
-			' matched products%s">\n'%sizeEstimate)
+		doc.append('<input type="hidden" name="outputFormat" value="tar">')
+		doc.append('<input type="submit" value="Get tar of matched products%s">\n'
+			%sizeEstimate)
 		doc.append('</form>')
 	return "\n".join(doc)
 
@@ -470,7 +507,7 @@ def _formatAsTarStream(template, context):
 	tarContent = resolveProductKeys(
 		getProducts(template, context), context)
 
-	if self._isTruncated(tarContent, context):
+	if _isTruncated(tarContent, context):
 		resultsName = "results_truncated.tar"
 	else:
 		resultsName = "results.tar"
@@ -488,23 +525,52 @@ def _formatAsTarStream(template, context):
 	return produceOutput
 
 
+def _parseOutputFormat(context):
+	"""returns output format and verbosity from a context.
+
+	The rules are: 
+
+	* The default output format is a full VOTable (verbosity 30)
+	* If there's a outputFormat parameter, we try to parse it into verbosity
+	  and a format specifier.
+	* If there's a VERB specifier, it overrides any verbosity established 
+	  before to int(VERB)*10.
+
+	outputFormat must look like <format>[ <number>], where format may be
+	stuff like HTML, VOT, or tar (anything processQuery is prepared to handle).
+
+	Verbosity is ignored for anything but VOTable.
+	"""
+	format, verbosity = "VOTable", 30
+	if context.hasArgument("outputFormat"):
+		mat = re.match("(\w+) (\d+)$", context.getfirst("outputFormat"))
+		if mat:
+			format, verbosity = mat.group(1), int(mat.group(2))
+		else:
+			format = context.getfirst("outputFormat")
+	if context.hasArgument("VERB"):
+		verbosity = int(context.getfirst("VERB"))*10
+	return format, verbosity
+
+
 def processQuery(template, context):
 	"""returns a content type, the result of the query and a dictionary of
 	additional headers for a cgi query.
 
 	The return value is for direct plugin into querulator's "framework".
 	"""
-	if context.hasArgument("submit"):
+	outputFormat, verbosity = _parseOutputFormat(context)
+	if outputFormat=="HTML":
 		return "text/html", _formatAsHtml(template, context), {}
-	elif context.hasArgument("submit-votable"):
-		return "application/x-votable", _formatAsVoTable(template, context
-			), {"Content-disposition": 'attachment; filename="result.xml"'}
-	elif context.hasArgument("submit-tar"):
+	elif outputFormat=="VOTable":
+		return "application/x-votable", _formatAsVoTable(template, context,
+			verbosity=verbosity), {
+				"Content-disposition": 'attachment; filename="result.xml"'}
+	elif outputFormat=="tar":
 		return "application/tar", _formatAsTarStream(template, context), {
 			"Content-disposition": 'attachment; filename="result.tar"'}
-	# Default votable
-	return "application/x-votable", _formatAsVoTable(template, context
-		), {"Content-disposition": 'attachment; filename="result.xml"'}
+	else:
+		raise querulator.Error("Invalid output format: %s"%outputFormat)
 
 
 def getProduct(context):

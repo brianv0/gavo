@@ -49,11 +49,12 @@ class Table:
 	(corresponding to dest in DataField) to values (which usually
 	come from the parser).
 	"""
-	def __init__(self, id, recordDef):
+	def __init__(self, id, recordDef, metaOnly=False):
 		self.id = id
 		self.recordDef = recordDef
 		self.rows = []
 		self.dumpOnly = False
+		self.metaOnly = metaOnly
 
 	def __iter__(self):
 		return iter(self.rows)
@@ -130,11 +131,10 @@ class Table:
 	def _getOwnedTableWriter(self, schema):
 		tableName = "%s.%s"%(schema, self.recordDef.get_table())
 		tableExporter = sqlsupport.TableWriter(tableName,
-			self.recordDef.getSqlFielddef())
+			self.recordDef.get_items())
 		tableExporter.ensureSchema(schema)
 		tableExporter.createTable(create=self.recordDef.get_create(),
 			privs=self.recordDef.get_create())
-		self._exportToMetaTable(schema)
 		return tableExporter
 
 	def _exportOwnedTable(self, schema):
@@ -142,10 +142,12 @@ class Table:
 
 		cf. exportToSql.
 		"""
-		tableWriter = self._getOwnedTableWriter(schema)
-		gavo.ui.displayMessage("Exporting %s to table %s"%(
-			self.getId(), tableWriter.getTableName()))
-		self._feedData(tableWriter.getFeeder())
+		self._exportToMetaTable(schema)
+		if not self.metaOnly:
+			tableWriter = self._getOwnedTableWriter(schema)
+			gavo.ui.displayMessage("Exporting %s to table %s"%(
+				self.getId(), tableWriter.getTableName()))
+			self._feedData(tableWriter.getFeeder())
 
 	def _getSharedTableWriter(self):
 		"""returns a sqlsupportTableWriter instance for this data set's
@@ -153,7 +155,7 @@ class Table:
 		"""
 		tableName = self.recordDef.get_table()
 		tableWriter = sqlsupport.TableWriter(tableName,
-			self.recordDef.getSqlFielddef())
+			self.recordDef.get_items())
 		tableWriter.deleteMatching(self.recordDef.get_owningCondition())
 		return tableWriter
 
@@ -162,10 +164,11 @@ class Table:
 
 		cf. exportToSql
 		"""
-		tableWriter = self._getSharedTableWriter()
-		gavo.ui.displayMessage("Exporting %s to table %s"%(
-			self.getId(), tableWriter.getTableName()))
-		self._feedData(tableWriter.getFeeder())
+		if not self.metaOnly:
+			tableWriter = self._getSharedTableWriter()
+			gavo.ui.displayMessage("Exporting %s to table %s"%(
+				self.getId(), tableWriter.getTableName()))
+			self._feedData(tableWriter.getFeeder())
 
 	def exportToSql(self, schema):
 		"""writes the data table to an SQL database.
@@ -308,7 +311,7 @@ def _parseSources(grammar, srcDesc, descriptor, tables):
 
 
 def getDataset(srcDesc, descriptor, dumpOnly=False, debugProductions=[],
-			maxRows=None, directWriting=False):
+			maxRows=None, directWriting=False, metaOnly=False):
 	"""parses the data source described by descriptor returns a DataSet.
 	containing the data and the governing semantics.
 	"""
@@ -319,12 +322,13 @@ def getDataset(srcDesc, descriptor, dumpOnly=False, debugProductions=[],
 				descriptor.get_schema())
 			for recordDef in srcDesc.get_Semantics().get_recordDefs()]
 	else:
-		tables = [Table(srcDesc.get_id(), recordDef)
+		tables = [Table(srcDesc.get_id(), recordDef, metaOnly)
 			for recordDef in srcDesc.get_Semantics().get_recordDefs()]
 	data = resource.DataSet(srcDesc.get_id(), tables)
-	data.setHandlers(srcDesc, maxRows)
-	_parseSources(grammar, srcDesc, descriptor, tables)
-	if directWriting:
-		for table in tables:
-			table.close()
+	if not metaOnly:
+		data.setHandlers(srcDesc, maxRows)
+		_parseSources(grammar, srcDesc, descriptor, tables)
+		if directWriting:
+			for table in tables:
+				table.close()
 	return data

@@ -441,7 +441,9 @@ class Query(ParseNode):
 
 	def asSql(self, context):
 		testSql, args = self.tests.asSql(context)
-		return "SELECT %s FROM %s WHERE %s"%(self.selectItems.asSql()[0],
+		if testSql.strip():
+			testSql = "WHERE %s"%testSql
+		return "SELECT %s FROM %s %s"%(self.selectItems.asSql()[0],
 			self.defaultTable, testSql), args
 	
 	def getItemdefs(self):

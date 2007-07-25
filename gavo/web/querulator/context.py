@@ -127,20 +127,18 @@ class Context:
 	def getPathInfo(self):
 		return self.pathInfo
 
-	def getQueryItems(self):
+	def getQueryItems(self, suppress=[]):
 		"""returns a list of (name, value) tuples to characterize the
 		query.
 
 		All values are serialized into strings.
 
-		This filters out a few keys that are internal to querulator (submit-X,
-		sortby, etc.
+		Suppress is something that one can check with in and contains
+		keys that should not be included.
 		"""
 		items = []
 		for name, value in self.iteritems():
-			if name.startswith("submit"):
-				continue
-			if name=="sortby":
+			if name in suppress:
 				continue
 			if isinstance(value, list):
 				for item in value:

@@ -24,9 +24,11 @@ class Error(Exception):
 def _getVoTypeForSqlType(dbtype, simpleMap={
 		"smallint": ("short", "1"),
 		"integer": ("int", "1"),
+		"int": ("int", "1"),
 		"bigint": ("long", "1"),
 		"real": ("float", "1"),
 		"float": ("float", "1"),
+		"boolean": ("boolean", "1"),
 		"double precision": ("double", "1"),
 		"text": ("char", "*"),
 		"date": ("double", "1"),
@@ -37,7 +39,7 @@ def _getVoTypeForSqlType(dbtype, simpleMap={
 	if dbtype in simpleMap:
 		return simpleMap[dbtype]
 	else:
-		mat = re.match(r"(.*)\(\d+\)", dbtype)
+		mat = re.match(r"(.*)\((\d+)\)", dbtype)
 		if mat:
 			if mat.group(1) in ["character varying", "varchar", "character",
 					"char"]:

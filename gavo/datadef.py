@@ -34,29 +34,59 @@ class DataField(utils.Record):
 			"references": None,  # becomes a foreign key in SQL
 			"index": None,       # if given, name of index field is part of
 			"displayHint": "string", # suggested presentation, see queryrun.Format
+			"verbLevel": 30,     # hint for building VOTables
 		})
 		for key, val in initvals.iteritems():
 			self.set(key, val)
 
+	metaColMapping = {
+		"fieldName": "dest",
+		"longdescr": "longdescription",
+		"type": "dbtype",
+	}
+	externallyManagedColumns = set(["tableName", "colInd"])
+
 	def getMetaRow(self):
 		"""returns a dictionary ready for inclusion into the meta table.
 
-		The keys have to match the definition sqlsupport.metaTableFields,
-		so if these change, you will have to mirror these changes here.
-
-		Since MetaTableHandler adds the tableName itself, we don't return
-		it (also, we simply don't know it...).
+		Since MetaTableHandler adds tableName and colInd, we don't return
+		them (also, we simply don't know them...).
 		"""
-		return {
-			"fieldName": self.get_dest(),
-			"unit": self.get_unit(),
-			"ucd": self.get_ucd(),
-			"description": self.get_description(),
-			"tablehead": self.get_tablehead(),
-			"longdescr": self.get_longdescription(),
-			"longmime": self.get_longmime(),
-			"literalForm": self.get_literalForm(),
-			"utype": self.get_utype(),
-			"type": self.get_dbtype(),
-			"displayHint": self.get_displayHint(),
-		}
+		row = {}
+		for fInfo in metaTableFields:
+			colName = fInfo.get_dest()
+			if colName in self.externallyManagedColumns:
+				continue
+			row[colName] = self.get(self.metaColMapping.get(colName, colName))
+		return row
+
+
+# This is a schema for the field description table used by
+# sqlsupport.MetaTableHandler.  WARNING: If you change anything here, you'll
+# probably have to change DataField, too (plus, of course, the schema of
+# any meta tables you may already have).
+
+metaTableFields = [
+	DataField(dest="tableName", dbtype="text", primary=True, 
+		description="Name of the table the column is in"),
+	DataField(dest="fieldName", dbtype="text", primary=True,
+		description="SQL identifier for the column"),
+	DataField(dest="unit", dbtype="text", description="Unit for the value"),
+	DataField(dest="ucd", dbtype="text", description="UCD for the colum"),
+	DataField(dest="description", dbtype="text", 
+		description="A one-line characterization of the value"),
+	DataField(dest="tablehead", dbtype="text", 
+		description="A string suitable as a table heading for the values"),
+	DataField(dest="longdescr", dbtype="text", 
+		description="A possibly long information on the values"),
+	DataField(dest="longmime", dbtype="text", 
+		description="Mime type of longdescr"),
+	DataField(dest="displayHint", dbtype="text", 
+		description="Suggested presentation format"),
+	DataField(dest="utype", dbtype="text", description="A utype for the column"),
+	DataField(dest="colInd", dbtype="integer", description=
+		"Index of the column within the table"),
+	DataField(dest="type", dbtype="text", description="SQL type of this column"),
+	DataField(dest="verbLevel", dbtype="integer", 
+		description="Level of verbosity at which to include this column"),
+]

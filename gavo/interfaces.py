@@ -108,16 +108,16 @@ class Positions(Interface):
 		Interface.__init__(self, [ 
 			{"dest": "alphaFloat", "unit": "deg", "dbtype": "double precision", 
 				"ucd": "pos.eq.ra", "literalForm": "do not touch", 
-				"source": "alphaFloat"},
+				"source": "alphaFloat", "verbLevel": 1},
 			{"dest": "deltaFloat", "unit": "deg", "dbtype": "double precision", 
 				"ucd": "pos.eq.dec", "literalForm": "do not touch", 
-				"source": "deltaFloat"},
+				"source": "deltaFloat", "verbLevel": 1},
 			{"dest": "c_x", "dbtype": "real", "literalForm": "do not touch", 
-				"source": "c_x"},
+				"source": "c_x", "verbLevel": 30},
 			{"dest": "c_y", "dbtype": "real", "literalForm": "do not touch", 
-				"source": "c_y"},
+				"source": "c_y", "verbLevel": 30},
 			{"dest": "c_z", "dbtype": "real", "literalForm": "do not touch", 
-				"source": "c_z"},
+				"source": "c_z", "verbLevel": 30},
 			])
 
 
@@ -139,7 +139,7 @@ class Q3CPositions(Positions):
 		tableName = "%s.%s"%(schema, rdParser.curRecordDef.get_table())
 		rdParser.rd.addto_scripts(("postCreation", "q3cindex",
 			"\n".join([
-				r"CREATE INDEX %(indexName)s ON %(tableName)s "
+				r"-CREATE INDEX %(indexName)s ON %(tableName)s "
 				"(q3c_ang2ipix(alphaFloat, deltaFloat))",
 				"CLUSTER %(indexName)s ON %(tableName)s",
 				"ANALYZE %(tableName)s"])%{

@@ -275,7 +275,7 @@ class Template(AbstractTemplate):
 				return " ORDER BY "+passedExpr
 		else:
 			raise querulator.Error("The sort expression you gave (%s)"
-				" is not in the set of allowed query keys.")
+				" is not in the set of allowed query keys."%passedExpr)
 	
 	def _getLimitClause(self, context):
 		"""returns an appropriate "LIMIT" clause for the current query.
@@ -341,7 +341,7 @@ class Template(AbstractTemplate):
 		else:
 			raise querulator.Error("More than one product hint in query")
 
-	def getHiddenForm(self, context):
+	def getHiddenForm(self, context, suppress=[]):
 		"""returns an html form body setting all relevant query parameters
 		from context in hidden fields.
 
@@ -350,7 +350,7 @@ class Template(AbstractTemplate):
 		"""
 		return "\n".join(['<input type="hidden" name="%s" value=%s>'%(
 				name, repr(value))
-			for name, value in context.getQueryItems()])
+			for name, value in context.getQueryItems(suppress=suppress)])
 
 	def getQueryArgs(self, context):
 		"""returns a query tag (url?query) to reproduce this query.
@@ -385,22 +385,22 @@ class Template(AbstractTemplate):
 		return condTexts
 	
 	def addConjunction(self, sqlCondition):
-		"""see Query.addConjunction.
+		"""see sqlparse.Query.addConjunction.
 		"""
 		self.query.addConjunction(sqlCondition)
 
 	def setSelectItems(self, items):
-		"""see Query.setSelectItems.
+		"""see sqlparse.Query.setSelectItems.
 		"""
 		self.query.setSelectItems(items)
 
 	def addSelectItem(self, item):
-		"""see Query.addSelectItem.
+		"""see sqlparse.Query.addSelectItem.
 		"""
 		self.query.addSelectItem(item)
 	
 	def getColIndexFor(self, colExpr):
-		"""see Query.getcolIndexFor.
+		"""see sqlparse.Query.getcolIndexFor.
 		"""
 		return self.query.getColIndexFor(colExpr)
 

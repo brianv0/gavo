@@ -698,27 +698,24 @@ class FeedbackSearch(CondGen):
 		self.hasPositions = True # XXX TODO: Get this from some meta table
 
 	def _buildFields(self, fields, context):
-		self.fieldDefs = sqlsupport.MetaTableHandler(context.getQuerier()
-			).getFieldDefs(self.tableName)
+		self.fieldInfos = sqlsupport.MetaTableHandler(context.getQuerier()
+			).getFieldInfos(self.tableName)
 		if fields:
 			fields = set(fields)
-			self.fieldDefs = [(name, type, info) 
-					for name, type, info in self.fieldDefs
+			self.fieldInfos = [info
+					for name, type, info in self.fieldInfos
 				if name in fields]
 
-	def _getTitleFor(self, name, info):
+	def _getTitleFor(self, info):
 		"""returns a proper field title for presentation purposes for the field
-		name with info (from fieldDefs)
-		
-		name and info are the first and third components of a fieldDef,
-		respectively.
+		name with fieldInfo info
 		"""
 		unitStr = info.get("unit")
 		if unitStr:
 			unitStr = " [%s]"%unitStr
 		else:
 			unitStr = ""
-		return "%s %s"%(info.get("tablehead") or name, unitStr)
+		return "%s %s"%(info.get("tablehead") or info.get("fieldName"), unitStr)
 
 	def _getKeyFor(self, name):
 		"""returns a form key name for the field name
@@ -731,14 +728,17 @@ class FeedbackSearch(CondGen):
 		from gavo.web.querulator import sqlparse
 		children = []
 		availableFields = set()
-		for name, dbtype, info in self.fieldDefs:
-			title, key = self._getTitleFor(name, info), self._getKeyFor(name)
+		for info in self.fieldInfos:
+			name, dbtype = info["fieldName"], info["type"]
+			title, key = self._getTitleFor(info), self._getKeyFor(name)
 			availableFields.add(name)
 			if dbtype=="real":
 				children.append(sqlparse.Condition(title,
 					("operator",
 						(name, "BETWEEN", "FloatFieldWithTolerance()")), key))
 				children.append("AND")
+		# Ugly -- we need to come up with a good idea how to handle "standard"
+		# queries like that.
 		if self.hasPositions:
 			children.append(sqlparse.Condition("Cone around",
 				("predefined",
@@ -757,15 +757,15 @@ class FeedbackSearch(CondGen):
 		object.
 		"""
 		querier = context.getQuerier()
-		selectItems = ", ".join([name for name, type, info in
-			self.fieldDefs])
+		selectItems = ", ".join([info["fieldName"] for info in
+			self.fieldInfos])
 		qRes = querier.query("SELECT %s FROM %s WHERE"
 			" %s=%%(val)s"%(selectItems, self.tableName, self.targetField), 
 				{"val": context.get(self.queryKey)}).fetchall()
 		qValues = qRes[0]
 		localContext = {}
-		for (name, dbtype, info), value in zip(self.fieldDefs, qValues):
-			localContext[self._getKeyFor(name)] = value
+		for info, value in zip(self.fieldInfos, qValues):
+			localContext[self._getKeyFor(info["fieldName"])] = value
 		if self.hasPositions:
 			localContext["RA"] = localContext[self._getKeyFor("alphaFloat")]
 			localContext["DEC"] = localContext[self._getKeyFor("deltaFloat")]

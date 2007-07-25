@@ -50,6 +50,8 @@ def parseCmdline():
 	parser.add_option("-n", "--fake-only", help="just parse, don't"
 		" write anything (largely ignored with -w)", dest="fakeonly", 
 		action="store_true")
+	parser.add_option("-u", "--meta-only", help="just update meta data,"
+		" don't parse source.", dest="metaOnly", action="store_true")
 	parser.add_option("-w", "--direct-write", help="dump rows to db"
 		" directly", dest="directWriting", action="store_true")
 	parser.add_option("-m", "--max-rows", help="only import MAX_ROWS"

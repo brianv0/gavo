@@ -30,8 +30,14 @@ def resolvePath(rootPath, relPath):
 def getSubmitButtons():
 	"""returns HTML for submit buttons for the various formats we can do.
 	"""
+	votChoices = "\n".join(['<option value="%s">%s</option>'%(val, label)
+		for label, val in [
+			("HTML", "HTML"), 
+			("Full VOTable", "VOTable 30"), 
+			("Medium VOTable", "VOTable 20"), 
+			("Terse VOTable", "VOTable 10"), 
+			("Predefined VOTable", "VOTable 0")]])
 	return ('<p class="submitbuttons">'
-		'<input type="submit" value="Table as HTML" name="submit">\n'
-		'\n<input type="submit" value="Table as VOTable"'
-		' name="submit-votable">\n'
-		'</p>')
+		'Output Format: <select name="outputFormat" size="1">%s</select>\n'
+		'<input type="submit" value="Submit">\n'
+		'</p>')%votChoices

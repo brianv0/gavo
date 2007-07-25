@@ -81,27 +81,6 @@ class RecordDef(utils.Record):
 			raise Error("No primary field defined.")
 		return field
 
-	def getSqlFielddef(self):
-		"""returns a field definiton suitable for sqlsupport.TableWriter.
-		"""
-		def makeOpts(field):
-			opts = {}
-			if not field.get_optional():
-				opts["notnull"] = True
-			if field.get_index():
-				opts["index"] = field.get_index()
-			if field.get_references():
-				opts["references"] = field.get_references()
-			if field.get_primary():
-				opts["primary"] = True
-			return opts
-
-		sqlFields = []
-		for field in self.get_items():
-			sqlFields.append((field.get_dest(), field.get_dbtype(),
-			 makeOpts(field)))
-		return sqlFields
-
 	def getFieldIndex(self, fieldName):
 		"""returns the index of the field named fieldName.
 		"""
@@ -111,6 +90,7 @@ class RecordDef(utils.Record):
 		theCopy = utils.Record.copy(self)
 		theCopy.fieldIndexDict = self.fieldIndexDict.copy()
 		return theCopy
+
 
 class DataSet:
 	"""is a collection of all Tables coming from one source.
@@ -181,7 +161,7 @@ class Resource:
 			gavo.ui.displayMessage("Importing %s"%dataSrc.get_id())
 			self.addDataset(parseswitch.getDataset(dataSrc, self.getDescriptor(),
 				debugProductions=opts.debugProductions, maxRows=opts.maxRows,
-				directWriting=opts.directWriting))
+				directWriting=opts.directWriting, metaOnly=opts.metaOnly))
 		for processor in self.getDescriptor().get_processors():
 			processor(self)
 
