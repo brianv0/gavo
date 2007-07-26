@@ -97,6 +97,7 @@ def getSubmitButtons(context):
 			("Full VOTable", "VOTable 30"), 
 			("Medium VOTable", "VOTable 20"), 
 			("Terse VOTable", "VOTable 10"), 
+			("VOPlot", "VOPlot"), 
 			("Predefined VOTable", "VOTable 0")]])
 	return _linkGeneratingJs+('<p class="submitbuttons">'
 		'Output Format: <select name="outputFormat" size="1">%s</select>\n'

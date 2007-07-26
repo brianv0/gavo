@@ -16,6 +16,7 @@ from mx import DateTime
 import gavo
 from gavo import sqlsupport
 from gavo import votable
+from gavo.web import voplot
 from gavo.web import querulator
 from gavo.web.querulator import sqlparse
 
@@ -567,6 +568,8 @@ def processQuery(template, context):
 		return "application/x-votable", _formatAsVoTable(template, context,
 			verbosity=verbosity), {
 				"Content-disposition": 'attachment; filename="result.xml"'}
+	elif outputFormat=="VOPlot":
+		return "text/html", voplot.getVOPlotPage(template, context), {}
 	elif outputFormat=="tar":
 		return "application/tar", _formatAsTarStream(template, context), {
 			"Content-disposition": 'attachment; filename="result.tar"'}

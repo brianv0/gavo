@@ -14,14 +14,14 @@ _htmlTemplate = """
 <body>
 <center>
             <EMBED 
-                  type = "application/x-java-applet;version=1.3"
-                  code = "%(applet_code)s"
-                  codebase = "%(applet_codebase)s"
-                  votablepath = "%(votable_prefix)s"
+                  type = "application/x-java-applet"
+                  code = "com.jvt.applets.PlotVOApplet"
+                  codebase = "%(codebase)s"
+                  votablepath = "%(votablepath)s"
                   userguideURL = "%(userguide_url)s"
-                  archive = "%(archive_url)s"
+                  archive = "%(archive)s"
                   width = "850"
-                  height = "500"
+                  height = "650"
                   parameters = "%(parameters)s"
                   MAYSCRIPT = true
                   background = "#faf0e6"
@@ -36,11 +36,12 @@ _htmlTemplate = """
 </html>
 """
 
-def getVOPlotPage(context):
+def getVOPlotPage(template, context):
 	return _htmlTemplate%{
-		"applet_code": "com.jvt.applets.PlotVOApplet",
 		"codebase": "/soft/VOPlot",
-		"votablepath": "/ql/run",
+		"votablepath": "%s/%s/run/%s?"%(context.getServerURL(),
+			context.getEnv("ROOT_URL"), 
+			template.getPath()),
 		"userguide_url": "/docs/JVTUserGuide.html",
 		"archive": ("voplot.jar,voplot_3rdParty/Aladin.jar,voplot_3rdParty/"
 			"cern.jar,voplot_3rdParty/fits-0.99.1-1.4-compiled.jar,"
@@ -49,5 +50,6 @@ def getVOPlotPage(context):
 			"voplot_3rdParty/axis.jar,voplot_3rdParty/jaxrpc.jar,"
 			"voplot_3rdParty/log4j-1.2.8.jar,voplot_3rdParty/saaj.jar,"
 			"voplot_3rdParty/wsdl4j-1.5.1.jar"),
-		"parameters": computeParameters(context)
+		"parameters": "outputFormat=VOTable%2030&"+context.getQueryArgs(
+			suppress=["outputFormat"]),
 	}
