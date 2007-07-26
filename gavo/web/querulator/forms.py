@@ -250,7 +250,7 @@ class Template(AbstractTemplate):
 				"formItems": self._getFormContent(context),
 				"templatePath" : self.getPath(),
 				"rootUrl": querulator.rootURL,
-				"submitButtons": common.getSubmitButtons(),
+				"submitButtons": common.getSubmitButtons(context),
 				}
 
 	def _handlePrivateElements(self, rawText, context):
@@ -340,23 +340,6 @@ class Template(AbstractTemplate):
 			return productCols[0]
 		else:
 			raise querulator.Error("More than one product hint in query")
-
-	def getHiddenForm(self, context, suppress=[]):
-		"""returns an html form body setting all relevant query parameters
-		from context in hidden fields.
-
-		This can be used to reproduce queries with different meta parameters.
-		("this stuff as tar", "this stuff as votable").
-		"""
-		return "\n".join(['<input type="hidden" name="%s" value=%s>'%(
-				name, repr(value))
-			for name, value in context.getQueryItems(suppress=suppress)])
-
-	def getQueryArgs(self, context):
-		"""returns a query tag (url?query) to reproduce this query.
-		"""
-		return "&".join(["%s=%s"%(name, urllib.quote(value))
-			for name, value in context.getQueryItems()])
 
 	def getProductsSize(self, queryResult, context):
 		"""returns the total size of all products in queryResult.

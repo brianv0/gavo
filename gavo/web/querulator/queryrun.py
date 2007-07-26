@@ -318,7 +318,7 @@ def _formatAsVoTable(template, context, stream=False, verbosity=None):
 def _makeSortButton(fieldName, template, context):
 	"""returns a form asking for the content re-sorted to fieldName.
 	"""
-	hiddenForm = template.getHiddenForm(context, suppress="sort_by")
+	hiddenForm = context.getHiddenForm(suppress=["sort_by"])
 	if not hiddenForm:
 		return ""
 	buttonTemplate = ('<img src="%s/%%(img)s" alt="%%(alt)s"'
@@ -398,7 +398,7 @@ def _makeTarForm(template, context, queryResult):
 	if template.getProductCol()!=None:
 		doc.append('<form action="%s/run/%s" method="post" class="tarForm">\n'%(
 			querulator.rootURL, template.getPath()))
-		doc.append(template.getHiddenForm(context, suppress=["outputFormat"]))
+		doc.append(context.getHiddenForm(suppress=["outputFormat"]))
 		sizeEstimate = template.getProductsSize(queryResult, context)
 		if not sizeEstimate:
 			return ""
@@ -455,8 +455,9 @@ def _formatAsHtml(template, context):
 			for item, hint in zip(row, hints) if hint[0]!="suppressed"])))
 	doc.append("</table>\n")
 	doc.append('<p id="querylink"><a href="%s">Link to VOTable</a></p>'%
-		"%s/run/%s?%s"%(querulator.rootURL, template.getPath(), 
-			template.getQueryArgs(context)))
+		"%s/run/%s?%s&outputFormat=VOTable%%2030"%(
+			querulator.rootURL, template.getPath(), 
+			context.getQueryArgs(suppress=["outputFormat"])))
 	doc.append(tarForm)
 	doc.append("</body>")
 	return "\n".join(doc)

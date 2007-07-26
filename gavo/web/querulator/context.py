@@ -8,6 +8,7 @@ import re
 import os
 import sys
 import string
+import urllib
 
 from mx import DateTime
 
@@ -146,6 +147,23 @@ class Context:
 			else:
 				items.append((name, str(value)))
 		return items
+
+	def getHiddenForm(self, suppress=[]):
+		"""returns an html form body setting all relevant query parameters
+		from context in hidden fields.
+
+		This can be used to reproduce queries with different meta parameters.
+		("this stuff as tar", "this stuff as votable").
+		"""
+		return "\n".join(['<input type="hidden" name="%s" value=%s>'%(
+				name, repr(value))
+			for name, value in self.getQueryItems(suppress)])
+
+	def getQueryArgs(self, suppress=[]):
+		"""returns a query tag (url?query) to reproduce this query.
+		"""
+		return "&".join(["%s=%s"%(name, urllib.quote(value))
+			for name, value in self.getQueryItems(suppress)])
 
 	def isAuthorizedProduct(self, embargo, owner):
 		"""returns true if a product with owner and embargo may currently be

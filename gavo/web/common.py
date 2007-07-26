@@ -27,7 +27,68 @@ def resolvePath(rootPath, relPath):
 	return fullPath
 
 
-def getSubmitButtons():
+_linkGeneratingJs = """<script type="text/javascript"><!--
+
+function getSelectedEntries(selectElement) {
+// returns an array of all selected entries from a select element 
+// in url encoded form
+	var result = new Array();
+	var i;
+
+	for (i=0; i<selectElement.length; i++) {
+		if (selectElement.options[i].selected) {
+			result.push(selectElement.name+"="+encodeURI(
+				selectElement.options[i].value))
+		}
+	}
+	return result;
+}
+
+function makeQueryItem(element) {
+// returns an url-encoded query tag item out of a form element
+	var val=null;
+
+	switch (element.nodeName) {
+		case "INPUT":
+			if (element.name && element.value) {
+				val = element.name+"="+encodeURI(element.value);
+			}
+			break;
+		case "SELECT":
+			return getSelectedEntries(element).join("&");
+			break;
+		default:
+			alert("No handler for "+element.nodeName);
+	}
+	if (val) {
+		return val;
+	} else {
+		return element.NodeName;
+	}
+}
+
+function makeResultLink(form) {
+	// returns a link to the result sending the HTML form form would
+	// yield.
+	var fragments = new Array();
+	var fragment;
+	var i;
+
+	items = form.elements;
+	for (i=0; i<items.length; i++) {
+		fragment = makeQueryItem(items[i]);
+		if (fragment) {
+			fragments.push(fragment);
+		}
+	}
+	return form.getAttribute("action")+"?"+fragments.join("&");
+}
+
+// -->
+</script>
+"""
+
+def getSubmitButtons(context):
 	"""returns HTML for submit buttons for the various formats we can do.
 	"""
 	votChoices = "\n".join(['<option value="%s">%s</option>'%(val, label)
@@ -37,7 +98,9 @@ def getSubmitButtons():
 			("Medium VOTable", "VOTable 20"), 
 			("Terse VOTable", "VOTable 10"), 
 			("Predefined VOTable", "VOTable 0")]])
-	return ('<p class="submitbuttons">'
+	return _linkGeneratingJs+('<p class="submitbuttons">'
 		'Output Format: <select name="outputFormat" size="1">%s</select>\n'
 		'<input type="submit" value="Submit">\n'
+		' <a class="resultlink" href="" onMouseOver="this.href=makeResultLink('
+			'this.parentNode.parentNode)">[Query]</a>'
 		'</p>')%votChoices
