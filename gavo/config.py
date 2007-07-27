@@ -29,7 +29,9 @@ xmlFragmentPath: %(inputsDir)s/__common__
 dbDefaultProfile: feed
 
 [web]
-voplotLocation: http://ara.ari.uni-heidelberg.de/soft/VOPlot
+voplotEnable: True
+voplotCodeBase: http://ara.ari.uni-heidelberg.de/soft/VOPlot
+voplotUserman: http://ara.ari.uni-heidelberg.de/docs/VOPlot_user.html
 staticURL: /qstatic
 rootURL: /ql
 
@@ -150,7 +152,8 @@ class ProfileParser:
 			fqName = os.path.join(dir, fName)
 			if os.path.exists(fqName):
 				return fqName
-		self._raiseError("db profile %s does not exist"%repr(fName))
+		raise ProfileParseError("Requested db profile %s does not exist"%
+			repr(fName))
 
 	def _state_include(self, token):
 		if token=="\n":
@@ -236,6 +239,14 @@ class Settings:
 	_parse_DEFAULT_configdir = _parse_DEFAULT_inputsdir =\
 		_parse_DEFAULT_cachedir = _parse_DEFAULT_logdir =\
 		_parse_DEFAULT_tempdir = _cookPath
+
+	def _parse_voplotenable(self, val):
+		return record.parseBooleanLiteral(val)
+
+	def _parse_DEFAULT_rootdir(self, val):
+		if val.startswith("~"):
+			val = self._getHome()+val[1:]
+		return val
 
 	def _parse_db_profilepath(self, val):
 		res = []

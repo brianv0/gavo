@@ -291,7 +291,7 @@ class Template(AbstractTemplate):
 		"""
 		limit = context.getfirst("limitto")
 		if limit==None or not re.match(r"\d+$|all", limit.lower()):
-			limit = config.settings.get_querulator_defaultmaxmatches()
+			limit = config.get("querulator", "defaultMaxMatches")
 		if limit=="all":
 			context.addArgument("used_limit", 1e30) # ok, it's a hack
 		else:

@@ -8,6 +8,7 @@ We'll move the stuff as we see fit...)
 import os
 
 import gavo
+from gavo import config
 
 class Error(gavo.Error):
 	pass
@@ -91,14 +92,18 @@ function makeResultLink(form) {
 def getSubmitButtons(context):
 	"""returns HTML for submit buttons for the various formats we can do.
 	"""
-	votChoices = "\n".join(['<option value="%s">%s</option>'%(val, label)
-		for label, val in [
-			("HTML", "HTML"), 
-			("Full VOTable", "VOTable 30"), 
-			("Medium VOTable", "VOTable 20"), 
-			("Terse VOTable", "VOTable 10"), 
-			("VOPlot", "VOPlot"), 
-			("Predefined VOTable", "VOTable 0")]])
+	if config.get("web", "voplotEnable"):
+		voplotAttr = ""
+	else:
+		voplotAttr = ' disabled="disabled"'
+	votChoices = "\n".join(['<option value="%s"%s>%s</option>'%(val, attrs, label)
+		for label, val, attrs in [
+			("HTML", "HTML", ""), 
+			("Full VOTable", "VOTable 30", ""), 
+			("Medium VOTable", "VOTable 20", ""), 
+			("Terse VOTable", "VOTable 10", ""), 
+			("VOPlot", "VOPlot", voplotAttr),
+			("Predefined VOTable", "VOTable 0", "")]])
 	return _linkGeneratingJs+('<p class="submitbuttons">'
 		'Output Format: <select name="outputFormat" size="1">%s</select>\n'
 		'<input type="submit" value="Submit">\n'

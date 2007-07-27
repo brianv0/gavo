@@ -233,8 +233,8 @@ def _tryBooster(grammar, inputFileName, tableName, descriptor):
 		connDesc = "dbname=%s\n"%dbname
 	else:
 		connDesc = "host=%s port=%s user=%s password=%s dbname=%s\n"%(
-			host, port, config.settings.get_db_user(), 
-			config.settings.get_db_password(), dbname)
+			host, port, config.getDbProfile().get_user(), 
+			config.getDbProfile().get_password(), dbname)
 	try:
 		f = os.popen("%s '%s' '%s'"%(booster, inputFileName, tableName), "w")
 		f.write(connDesc)

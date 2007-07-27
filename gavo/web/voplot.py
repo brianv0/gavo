@@ -6,6 +6,9 @@ http://vo.iucaa.ernet.in/~voi/voplot.htm
 and set the variables below accordingly.
 """
 
+from gavo import config
+
+
 _htmlTemplate = """
 <html>
 <head>
@@ -38,11 +41,11 @@ _htmlTemplate = """
 
 def getVOPlotPage(template, context):
 	return _htmlTemplate%{
-		"codebase": "/soft/VOPlot",
+		"codebase": config.get("web", "voplotCodebase"),
 		"votablepath": "%s/%s/run/%s?"%(context.getServerURL(),
 			context.getEnv("ROOT_URL"), 
 			template.getPath()),
-		"userguide_url": "/docs/JVTUserGuide.html",
+		"userguide_url": config.get("web", "voplotUserman"),
 		"archive": ("voplot.jar,voplot_3rdParty/Aladin.jar,voplot_3rdParty/"
 			"cern.jar,voplot_3rdParty/fits-0.99.1-1.4-compiled.jar,"
 			"voplot_3rdParty/commons-discovery-0.2.jar,"
