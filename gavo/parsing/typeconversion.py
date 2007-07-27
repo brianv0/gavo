@@ -13,6 +13,7 @@ import re
 
 import gavo
 from gavo import utils
+from gavo import record
 from gavo import logger
 from gavo import coords
 
@@ -105,7 +106,7 @@ class LiteralParser:
 	def _parse_TrueFalse(self, literal):
 		"""returns boolean values from literals like True, yes, no, False.
 		"""
-		return utils.parseBooleanLiteral(literal)
+		return record.parseBooleanLiteral(literal)
 
 	def _parse_JYear(self, literal):
 		"""returns a DateTime instance for a fractional (julian) year.

@@ -9,6 +9,7 @@ import SOAPpy.WSDL
 
 import gavo
 from gavo import utils
+from gavo import config
 
 
 class ObjectCache:
@@ -17,7 +18,7 @@ class ObjectCache:
 		self._loadCache()
 
 	def _getCacheName(self):
-		return os.path.join(gavo.cacheDir, "oc"+self.id)
+		return os.path.join(config.get("cacheDir"), "oc"+self.id)
 
 	def _loadCache(self):
 		try:
@@ -27,7 +28,7 @@ class ObjectCache:
 	
 	def _saveCache(self, silent=False):
 		try:
-			handle, name = tempfile.mkstemp(dir=gavo.cacheDir)
+			handle, name = tempfile.mkstemp(dir=config.get("cacheDir"))
 			f = os.fdopen(handle, "w")
 			cPickle.dump(self.cache, f)
 			f.close()

@@ -6,21 +6,21 @@ import urllib
 import itertools
 
 import gavo
-from gavo import utils
+from gavo import record
 from gavo.parsing import grammar
 from gavo.web.querulator import condgens
 
 
-class ContextKey(utils.Record):
+class ContextKey(record.Record):
 	"""is a key for a ContextGrammar.
 	"""
 	def __init__(self, initvals):
-		utils.Record.__init__(self, {
+		record.Record.__init__(self, {
 				"label": None,      # Human-readable label for display purposes
 				"widgetHint": None, # Hint for building a widget
 				"type": "real",     # The type of this key
 				"condgen": None,    # Condition Generator to use
-				"name": utils.RequiredField, # the "preterminal" we provide
+				"name": record.RequiredField, # the "preterminal" we provide
 				"default": "",    # a string containing a proper default value
 			}, initvals)
 
@@ -49,8 +49,8 @@ class ContextGrammar(grammar.Grammar):
 	"""
 	def __init__(self):
 		grammar.Grammar.__init__(self, {
-			"docKeys": utils.ListField,
-			"rowKeys": utils.ListField,
+			"docKeys": record.ListField,
+			"rowKeys": record.ListField,
 		})
 
 	def _iterRows(self):

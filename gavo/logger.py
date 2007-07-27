@@ -9,9 +9,10 @@ import sys
 import logging
 
 import gavo
+from gavo import config
 
 logger = logging.getLogger("gavo")
-_logFile = os.path.join(gavo.logDir, "gavoops")
+_logFile = os.path.join(config.get("logDir"), "gavoops")
 try:
 	_handler = logging.FileHandler(_logFile)
 except IOError:

@@ -38,7 +38,8 @@ def getAvailableQueries(path):
 	"""
 	queries = []
 	folders = []
-	templatePath = common.resolvePath(querulator.templateRoot, path)
+	templatePath = common.resolvePath(config.get(
+		"querulator", "templateRoot"), path)
 	for fName in os.listdir(templatePath):
 		if os.path.isfile(os.path.join(templatePath, fName)):
 			if fName.endswith(".cq"):
@@ -61,7 +62,7 @@ class MacroHandler:
 			'this.form.qselect.options.selectedIndex].value)"')
 		jsFun = ('function setQuery(qpath) {'
 			'document.location.href="%s/query/"+qpath;'
-			'}'%querulator.rootURL)
+			'}'%config.get("web", "rootURL"))
 		queries, _ = getAvailableQueries(
 			os.path.dirname(self.template.getPath()))
 		curPath = self.template.getPath()
@@ -243,13 +244,13 @@ class Template(AbstractTemplate):
 		condition generators of self.query.
 		"""
 		return ('\n<form class="querulator" method="post"'
-			' action="%(rootUrl)s/run/%(templatePath)s">\n'
+			' action="%(rootURL)s/run/%(templatePath)s">\n'
 			'%(formItems)s'
 			'%(submitButtons)s'
 			'</form>')%{
 				"formItems": self._getFormContent(context),
 				"templatePath" : self.getPath(),
-				"rootUrl": querulator.rootURL,
+				"rootURL": config.get("web", "rootURL"),
 				"submitButtons": common.getSubmitButtons(context),
 				}
 

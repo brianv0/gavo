@@ -2,9 +2,9 @@
 Classes to define properties of data.
 """
 
-from gavo import utils
+from gavo import record
 
-class DataField(utils.Record):
+class DataField(record.Record):
 	"""is a description of a data field.
 
 	The primary feature of a data field is dest, which is used for, e.g.,
@@ -14,8 +14,8 @@ class DataField(utils.Record):
 	be derivable from them, I guess.
 	"""
 	def __init__(self, **initvals):
-		utils.Record.__init__(self, {
-			"dest": utils.RequiredField,   # Name (used as column name in sql)
+		record.Record.__init__(self, {
+			"dest": record.RequiredField,   # Name (used as column name in sql)
 			"source": None,      # preterminal name to fill field from
 			"default": None,     # constant value to fill field with
 			"dbtype": "real",    # SQL type of this field
@@ -27,10 +27,10 @@ class DataField(utils.Record):
 			"tablehead": None,   # name to be used as table heading
 			"utype": None,       # a utype
 			"nullvalue": "",     # value to interpret as NULL/None
-			"optional": utils.TrueBooleanField,  # NULL values in this field 
+			"optional": record.TrueBooleanField,  # NULL values in this field 
 			                                     # don't invalidate record
 			"literalForm": None, # special literal form that needs preprocessing
-			"primary": utils.BooleanField,  # is part of the table's primary key
+			"primary": record.BooleanField,  # is part of the table's primary key
 			"references": None,  # becomes a foreign key in SQL
 			"index": None,       # if given, name of index field is part of
 			"displayHint": "string", # suggested presentation, see queryrun.Format

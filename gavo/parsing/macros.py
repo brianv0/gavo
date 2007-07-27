@@ -26,6 +26,7 @@ import gavo
 from gavo import logger
 from gavo import utils
 from gavo import coords
+from gavo import config
 from gavo.parsing import parsehelpers
 from gavo.parsing import resource
 
@@ -415,7 +416,7 @@ class ValueMapper(Macro):
 	def __init__(self, fieldComputer, argTuples=[], sourceName="", 
 			destination="", logFailures=False, failuresAreNone=True):
 		Macro.__init__(self, fieldComputer, argTuples)
-		self.map = utils.NameMap(os.path.join(gavo.inputsDir, sourceName))
+		self.map = utils.NameMap(os.path.join(config.get("inputsDir"), sourceName))
 		self.logFailures = logFailures
 		self.failuresAreNone = failuresAreNone
 		self.destination = destination
@@ -590,7 +591,7 @@ class SimbadResolver(Macro):
 	"""is a macro that resolves identifiers to simbad positions.
 
 	This code caches query results (positive as well as negative ones) in
-	gavo.tempDir.  To avoid flooding simbad with repetetive requests, it
+	cacheDir.  To avoid flooding simbad with repetetive requests, it
 	raises an error if this directory is not writable.
 
 	It leaves J2000.0 float positions simbadAlpha and simbadDelta in 

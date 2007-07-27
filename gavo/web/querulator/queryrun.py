@@ -16,6 +16,7 @@ from mx import DateTime
 import gavo
 from gavo import sqlsupport
 from gavo import votable
+from gavo import config
 from gavo.web import voplot
 from gavo.web import querulator
 from gavo.web.querulator import sqlparse
@@ -37,13 +38,13 @@ function clearThumbnail() {
 }
 </script>
 """%{
-	"staticURL": querulator.staticURL,
+	"staticURL": config.get("web", "staticURL"),
 }
 
 _thumbTarget = """
 <img src="%s/empty.png" id="thumbtarget" 
 	style="position:fixed;top:0px;left:0px">
-"""%(querulator.staticURL)
+"""%(config.get("web", "staticURL"))
 
 
 class Formatter:
@@ -99,14 +100,14 @@ class Formatter:
 			],row[self.template.getColIndexFor("embargo")]
 		if self.context.isAuthorizedProduct(embargo, owner):
 			productUrl = urlparse.urljoin(self.context.getServerURL(),
-			"%s/getproduct/%s?path=%s"%(querulator.rootURL, 
+			"%s/getproduct/%s?path=%s"%(config.get("web", "rootURL"), 
 			self.template.getPath(), urllib.quote(path)))
 			title = os.path.basename(path)
 		else:
 			productUrl = None
 			title = "Embargoed through %s"%embargo.strftime("%Y-%m-%d")
 		return productUrl, \
-			"%s/thumbnail/%s?path=%s"%(querulator.rootURL, 
+			"%s/thumbnail/%s?path=%s"%(config.get("web", "rootURL"),
 			self.template.getPath(), urllib.quote(path)),\
 			title
 
@@ -114,14 +115,14 @@ class Formatter:
 		"""wraps path into a URL that can be sent to aladin for loading the image.
 		"""
 		return urlparse.urljoin(self.context.getServerURL(),
-			"%s/getproduct/%s?path=%s"%(querulator.rootURL, 
+			"%s/getproduct/%s?path=%s"%(config.get("web", "rootURL"),
 			self.template.getPath(), urllib.quote(path)))
 
 	def _cook_feedback(self, key, row, targetTemplate=None):
 		if targetTemplate==None:
 			targetTemplate = self.template.getPath()
 		return urlparse.urljoin(self.context.getServerURL(),
-			"%s/query/%s?feedback=%s"%(querulator.rootURL, targetTemplate,
+			"%s/query/%s?feedback=%s"%(config.get("web", "rootURL"), targetTemplate,
 				urllib.quote(key)))
 
 	def _cook_hourangle(self, deg, row, secondFracs=2):
@@ -323,7 +324,7 @@ def _makeSortButton(fieldName, template, context):
 	if not hiddenForm:
 		return ""
 	buttonTemplate = ('<img src="%s/%%(img)s" alt="%%(alt)s"'
-		' title="%%(title)s" class="sortButton">')%querulator.staticURL
+		' title="%%(title)s" class="sortButton">')%config.get("web", "staticURL")
 	if context.getfirst("sortby")==fieldName:
 		title = "Sorted by %s"%fieldName.replace('"', '')
 		buttonImage = buttonTemplate%{"img": "sortedArrow.png", "alt": "V",
@@ -332,7 +333,7 @@ def _makeSortButton(fieldName, template, context):
 		title = "Sort by %s"%fieldName.replace('"', '')
 		buttonImage = buttonTemplate%{"img": "toSortArrow.png", "alt": "v",
 			"title": title}
-	return ('<form action="%(rootUrl)s/run/%(tPath)s" method="post"'
+	return ('<form action="%(rootURL)s/run/%(tPath)s" method="post"'
 		' class="sortArrow">'
 		'%(hiddenform)s'
 		'<input type="hidden" name="sortby" value="%(keyname)s">'
@@ -341,7 +342,7 @@ def _makeSortButton(fieldName, template, context):
 		'%(buttonImage)s</button>'
 		'</form>'
 	)%{
-		"rootUrl": querulator.rootURL,
+		"rootURL": config.get("web", "rootURL"),
 		"tPath": template.getPath(),
 		"hiddenform": hiddenForm,
 		"keyname": urllib.quote(fieldName),
@@ -398,7 +399,7 @@ def _makeTarForm(template, context, queryResult):
 	doc = []
 	if template.getProductCol()!=None:
 		doc.append('<form action="%s/run/%s" method="post" class="tarForm">\n'%(
-			querulator.rootURL, template.getPath()))
+			config.get("web", "rootURL"), template.getPath()))
 		doc.append(context.getHiddenForm(suppress=["outputFormat"]))
 		sizeEstimate = template.getProductsSize(queryResult, context)
 		if not sizeEstimate:
@@ -424,7 +425,7 @@ def _formatAsHtml(template, context):
 	doc = ["<head><title>Result of your query</title>",
 		_resultsJs,
 		'<link rel="stylesheet" type="text/css"'
-			' href="%s/querulator.css">'%querulator.staticURL,
+			' href="%s/querulator.css">'%config.get("web", "staticURL"),
 		"</head><body><h1>Result of your query</h1>", _thumbTarget]
 	doc.append('<div class="resultMeta">')
 	if numberMatched:
@@ -457,7 +458,7 @@ def _formatAsHtml(template, context):
 	doc.append("</table>\n")
 	doc.append('<p id="querylink"><a href="%s">Link to VOTable</a></p>'%
 		"%s/run/%s?%s&outputFormat=VOTable%%2030"%(
-			querulator.rootURL, template.getPath(), 
+			config.get("web", "rootURL"), template.getPath(), 
 			context.getQueryArgs(suppress=["outputFormat"])))
 	doc.append(tarForm)
 	doc.append("</body>")
@@ -518,7 +519,7 @@ def _formatAsTarStream(template, context):
 		outputTar = tarfile.TarFile(resultsName, "w", outputFile)
 		for srcPath, name in tarContent:
 			if srcPath!=None:
-				path = os.path.join(gavo.inputsDir, srcPath)
+				path = os.path.join(config.get("inputsDir"), srcPath)
 				outputTar.add(path, name)
 			else:
 				outputTar.addfile(*getEmbargoedFile(name))
@@ -592,6 +593,6 @@ def getProduct(context):
 		raise querulator.Error("The product %s still is under embargo.  The "
 			" embargo will be lifted on %s"%(prodKey, embargo))
 	return "image/fits", open(os.path.join(
-			gavo.inputsDir, accessPath)).read(), {
+			config.get("inputsDir"), accessPath)).read(), {
 		"Content-disposition": 'attachment; filename="%s"'%os.path.basename(
 			context.getfirst("path")),}

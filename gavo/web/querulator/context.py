@@ -20,6 +20,7 @@ except ImportError:
 	pass
 
 import gavo
+from gavo import config
 from gavo import sqlsupport
 from gavo import simbadinterface
 from gavo.web import querulator
@@ -72,7 +73,7 @@ class Context:
 		return element in self.arguments
 
 	def _initEnv(self, environ):
-		gavoHome = environ.get("GAVO_HOME", gavo.rootDir)
+		gavoHome = config.get("rootDir")
 		self.environment = {
 			"GAVO_HOME": gavoHome,
 			"GAVO_INPUTS": os.path.join(gavoHome, "inputs"),
@@ -80,8 +81,8 @@ class Context:
 				"templates"),
 			"MASQ_TPL_ROOT": os.path.join(gavoHome, "web", "masquerator", 
 				"templates"),
-			"ROOT_URL": environ.get("QU_ROOT", "/db"),
-			"STATIC_URL": environ.get("QU_STATIC", "/qstatic"),
+			"ROOT_URL": config.get("web", "rootURL"),
+			"STATIC_URL": config.get("web", "staticURL"),
 		}
 
 	def getEnv(self, key):
@@ -365,3 +366,4 @@ class DebugContext(CGIContext):
 	
 	def getRemote(self):
 		return self.remote
+

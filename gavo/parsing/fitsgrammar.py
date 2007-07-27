@@ -7,7 +7,7 @@ import re
 import pyfits
 import gzip
 
-from gavo import utils
+from gavo import record
 from gavo import fitstools
 from gavo.parsing import grammar
 
@@ -32,7 +32,7 @@ class FitsGrammar(grammar.Grammar):
 	def __init__(self):
 		grammar.Grammar.__init__(self, {
 			"hduIndex": 0,
-			"qnd": utils.BooleanField,
+			"qnd": record.BooleanField,
 		})
 		self.set_docIsRow(True)
 	

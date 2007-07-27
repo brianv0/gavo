@@ -19,6 +19,7 @@ In general, a somewhat more declarative approach would be nice...
 """
 
 from gavo import utils
+from gavo import config
 from gavo.datadef import DataField
 from gavo.parsing import resource
 
@@ -160,7 +161,7 @@ class Products(Interface):
 	ownership status (i.e., who owns the thing and when will it become free) 
 	of a product without needing more information than the key.  
 	
-	The producttable itself is defined in gavo.inputsDir/products, and
+	The producttable itself is defined in inputsDir/products, and
 	you'll need to gavoimp the resource descriptor in there once before
 	importing anything implementing the products interface.  The interface
 	will then take care of inserting your data into that table as well.

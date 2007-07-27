@@ -2,7 +2,7 @@
 This module defines an abstract superclass for all grammars.
 """
 
-from gavo import utils
+from gavo import record
 from gavo import logger
 from gavo import parsing
 from gavo import sqlsupport
@@ -13,7 +13,7 @@ class ParseError(gavo.Error):
 	pass
 
 
-class Grammar(utils.Record):
+class Grammar(record.Record):
 	"""is an abstract grammar.
 
 	The grammar protocol is simple: You add a rowHandler(s) and/or
@@ -49,11 +49,11 @@ class Grammar(utils.Record):
 	"""
 	def __init__(self, fieldDefs):
 		fieldDefs.update({
-			"macros": utils.ListField,     # macros to be applied
-			"rowProcs": utils.ListField,   # row processors to be applied
-			"docIsRow": utils.BooleanField, # apply row macros to docdict and ship it?
+			"macros": record.ListField,     # macros to be applied
+			"rowProcs": record.ListField,   # row processors to be applied
+			"docIsRow": record.BooleanField, # apply row macros to docdict and ship it?
 		})
-		utils.Record.__init__(self, fieldDefs)
+		record.Record.__init__(self, fieldDefs)
 		self.curInputFileName = None
 		self.rowHandlers = []
 		self.documentHandlers = []

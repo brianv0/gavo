@@ -14,10 +14,12 @@ from xml.sax.handler import EntityResolver
 
 import gavo
 from gavo import utils
+from gavo import record
 from gavo import coords
 from gavo import logger
 from gavo import interfaces
 from gavo import datadef
+from gavo import config
 import gavo.parsing
 from gavo.parsing import resource
 from gavo.parsing import macros
@@ -108,11 +110,11 @@ class FieldComputer:
 		return self._getRelativePath(fullPath, rootPath)
 
 	def _fc_inputRelativePath(self, rows):
-		"""returns the current source's path relative to gavo.inputsDir
+		"""returns the current source's path relative to inputsDir
 		(or raises an error if it's not from there).
 		"""
 		fullPath = self.dataDescriptor.get_Grammar().getCurFileName()
-		rootPath = gavo.inputsDir
+		rootPath = config.get("inputsDir")
 		return self._getRelativePath(fullPath, rootPath)
 
 	def _fc_inputSize(self, rows):
@@ -226,7 +228,7 @@ class RecordBuilder:
 		return record
 
 
-class Semantics(utils.Record):
+class Semantics(record.Record):
 	"""is a specification for the semantics of nonterminals defined
 	by the grammar.
 
@@ -234,8 +236,8 @@ class Semantics(utils.Record):
 	and a recordDef (which defines what each record should look like).
 	"""
 	def __init__(self):
-		utils.Record.__init__(self, {
-			"recordDefs": utils.ListField,
+		record.Record.__init__(self, {
+			"recordDefs": record.ListField,
 		})
 
 	def getRecordDefByName(self, tablename):
@@ -256,23 +258,23 @@ class Semantics(utils.Record):
 		self.dataStore["recordDefs"] = []
 
 
-class DataDescriptor(utils.Record):
+class DataDescriptor(record.Record):
 	"""is a container for all information necessary
 	to parse one source data file.
 	"""
 	def __init__(self, parentResource, **initvals):
-		utils.Record.__init__(self, {
+		record.Record.__init__(self, {
 			"source": None, # resdir-relative filename of source
 			                # for single-file sources
 			"sourcePat": None, # resdir-relative shell pattern of sources for
 			                   # one-row-per-file sources
 			"encoding": "iso-8859-1",
-			"Grammar": utils.RequiredField,
-			"Semantics": utils.RequiredField,
-			"id": utils.RequiredField,        # internal id of the data set.
-			"FieldComputer": utils.ComputedField,  # for @-expansion
-			"items": utils.ListField,
-			"macros": utils.ListField,
+			"Grammar": record.RequiredField,
+			"Semantics": record.RequiredField,
+			"id": record.RequiredField,        # internal id of the data set.
+			"FieldComputer": record.ComputedField,  # for @-expansion
+			"items": record.ListField,
+			"macros": record.ListField,
 		}, initvals)
 		self.resource = parentResource
 		self.fieldComputer = FieldComputer(self)
@@ -365,17 +367,17 @@ class DataDescriptor(utils.Record):
 					"%s is None but non-optional"%field.get_dest())
 
 
-class ResourceDescriptor(utils.Record):
+class ResourceDescriptor(record.Record):
 	"""is a container for all information necessary to import a resource into
 	a VO data pool.
 	"""
 	def __init__(self):
-		utils.Record.__init__(self, {
-			"resdir": utils.RequiredField, # base directory for source files
-			"dataSrcs": utils.ListField,   # list of data sources
-			"processors": utils.ListField, # list of resource processors
-			"dependents": utils.ListField, # list of projects to recreate
-			"scripts": utils.ListField,    # pairs of (script type, script)
+		record.Record.__init__(self, {
+			"resdir": record.RequiredField, # base directory for source files
+			"dataSrcs": record.ListField,   # list of data sources
+			"processors": record.ListField, # list of resource processors
+			"dependents": record.ListField, # list of projects to recreate
+			"scripts": record.ListField,    # pairs of (script type, script)
 			"schema": None,    # Name of schema for that resource, defaults
 			                   # to basename(resdir)
 			"systems": coords.CooSysRegistry(),
@@ -388,7 +390,7 @@ class ResourceDescriptor(utils.Record):
 		We don't want that trailing slash because some names
 		fall back to basename(resdir).
 		"""
-		self.dataStore["resdir"] = os.path.join(gavo.inputsDir, 
+		self.dataStore["resdir"] = os.path.join(config.get("inputsDir"), 
 			relPath.rstrip("/"))
 
 	def get_schema(self):
@@ -432,7 +434,7 @@ class RdParser(utils.StartEndHandler):
 		a data descriptor to decide if a new element is to be instanciated
 		or if a copy should be inserted.
 		"""
-		return utils.parseBooleanLiteral(attrs.get("keep", "False"))
+		return record.parseBooleanLiteral(attrs.get("keep", "False"))
 
 	def setDocumentLocator(self, locator):
 		self.locator = locator
@@ -453,7 +455,7 @@ class RdParser(utils.StartEndHandler):
 		"""
 		if ":" in id:
 			rdPath, id = id.split(":", 1)
-			rd = getRd(os.path.join(gavo.inputsDir, rdPath))
+			rd = getRd(os.path.join(config.get("inputsDir"), rdPath))
 		else:
 			rd = self.rd
 		return rd.getDataById(id)
@@ -656,7 +658,7 @@ class RdParser(utils.StartEndHandler):
 
 class InputEntityResolver(EntityResolver):
 	def resolveEntity(self, publicId, systemId):
-		return open(os.path.join(gavo.parsing.xmlFragmentPath, 
+		return open(os.path.join(config.get("parsing", "xmlFragmentPath"), 
 			systemId+".template"))
 
 

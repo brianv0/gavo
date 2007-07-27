@@ -1,9 +1,5 @@
 """
 This is the web interface to the querulator, a rapid simple service deployer.
-
-The code *currently* assumes it's running as a cgi.  We should change
-this, though I'm not really sure what kind of framework (or just
-templating engine) we'd want.
 """
 
 import os
@@ -13,6 +9,7 @@ import traceback
 
 from gavo import utils
 import gavo
+from gavo import config
 from gavo.web import common
 from gavo.web import querulator
 from gavo.web.querulator import forms
@@ -27,14 +24,14 @@ class Error(gavo.Error):
 def showAvailableQueries(context, subdir):
 	queries, folders = forms.getAvailableQueries(subdir)
 	formattedQueries = "\n".join(sorted(['<li><a href="%s/query/%s">%s</a></li>'%(
-			querulator.rootURL, qPath, title)
+			config.get("web", "rootURL"), qPath, title)
 		for title, qPath in queries]))
 	if not formattedQueries.strip():
 		formattedQueries = "<p>None.</p>"
 	else:
 		formattedQueries = "<ul>%s</ul>"%formattedQueries
 	formattedFolders = "\n".join(sorted(['<li><a href="%s/list/%s">%s</a></li>'%(
-			querulator.rootURL, path, title)
+			config.get("web", "rootURL"), path, title)
 		for title, path in folders]))
 	if not formattedFolders.strip():
 		formattedFolders = "<p>None.</p>"
@@ -84,7 +81,7 @@ def getProductThumbnail(context, subPath):
 	template = forms.Template(subPath)
 	path = common.resolvePath(
 		gavo.inputsDir, context.getfirst("path"))
-	fitspreviewLocation = os.path.join(gavo.rootDir, "web", "bin", "fitspreview")
+	fitspreviewLocation = config.get("querulator", "fitspreview")
 	if os.path.exists(fitspreviewLocation):
 		return "image/jpeg", _computeThumbnailFp(fitspreviewLocation, path), {}
 	else:
@@ -148,8 +145,9 @@ def _checkForBlock(context):
 	Maintainance mode is signified by the presence of a "MAINTAINANCE"
 	file in templateRoot.
 	"""
-	if os.path.exists(os.path.join(querulator.templateRoot, "MAINTAINANCE"))\
-			or context.getQuerier()==None:
+	if (os.path.exists(os.path.join(
+				config.get("querulator", "templateRoot"), "MAINTAINANCE"))
+			or context.getQuerier()==None):
 		remoteAddr = context.getRemote()
 		if remoteAddr.startswith("127") or remoteAddr=="129.206.110.59":
 			return False
@@ -185,6 +183,7 @@ def dispatch(context):
 def main():
 	"""is the entry point for CGIs.
 	"""
+	config.setDbProfile(config.get("querulator", "dbProfile"))
 	qContext = context.CGIContext()
 	try:
 		dispatch(qContext)
@@ -197,9 +196,7 @@ def handler(req):
 	"""is the entry point for naked modpython.
 	"""
 	from mod_python import apache
-	# fix bad environment we got at import time.
-	gavo.evaluateEnvironment(req.subprocess_env)
-	querulator.evaluateEnvironment(req.subprocess_env)
+	config.setDbProfile(config.get("querulator", "dbProfile"))
 
 	qContext = context.ModpyContext(req)
 	try:

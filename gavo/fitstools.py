@@ -12,6 +12,7 @@ import pyfits
 
 import gavo
 from gavo import utils
+from gavo import config
 
 
 blockLen = 2880
@@ -60,7 +61,7 @@ def openGz(fitsName):
 	Scrap that as soon as we have gzipped fits support (i.e. newer pyfits)
 	in debian.
 	"""
-	handle, pathname = tempfile.mkstemp(suffix="fits", dir=gavo.tempDir)
+	handle, pathname = tempfile.mkstemp(suffix="fits", dir=config.get("tempDir"))
 	f = os.fdopen(handle, "w")
 	f.write(gzip.open(fitsName).read())
 	f.close()
@@ -78,7 +79,7 @@ def writeGz(hdus, fitsName, compressLevel=5, mode=0664):
 	zipped files (which is a bit tricky, admittedly).  So, we'll probably
 	have to live with this kludge for a while.
 	"""
-	handle, pathname = tempfile.mkstemp(suffix="fits", dir=gavo.tempDir)
+	handle, pathname = tempfile.mkstemp(suffix="fits", dir=config.get("tempDir"))
 	utils.silence(hdus.writeto, pathname, clobber=True)
 	os.close(handle)
 	rawFitsData = open(pathname).read()
@@ -134,7 +135,7 @@ class GzHeaderManipulator(PlainHeaderManipulator):
 	def __init__(self, fName, compressLevel=5):
 		self.origFile = fName
 		handle, self.uncompressedName = tempfile.mkstemp(
-			suffix="fits", dir=gavo.tempDir)
+			suffix="fits", dir=config.get("tempDir"))
 		destFile = os.fdopen(handle, "w")
 		destFile.write(gzip.open(fName).read())
 		destFile.close()

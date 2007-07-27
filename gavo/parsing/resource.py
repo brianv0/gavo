@@ -7,7 +7,7 @@ import sys
 import weakref
 
 import gavo
-from gavo import utils
+from gavo import record
 from gavo import sqlsupport
 from gavo import logger
 from gavo.datadef import DataField
@@ -38,18 +38,18 @@ def getMetaTableRecordDef(tableName):
 	return metaDef
 
 
-class RecordDef(utils.Record):
+class RecordDef(record.Record):
 	"""is a specification for the semantics of a table line.
 	"""
 	def __init__(self, initvals={}):
-		utils.Record.__init__(self, {
-			"table": utils.RequiredField,  # name of destination table
-			"items": utils.ListField,      # list of FieldDefs for this record
+		record.Record.__init__(self, {
+			"table": record.RequiredField,  # name of destination table
+			"items": record.ListField,      # list of FieldDefs for this record
 			"constraints": None,        # a Constraints object rows have to satisfy
 			"owningCondition": None,    # a condition to select our data from
 			                            # shared tables.
-			"shared": utils.BooleanField,  # is this a shared table?
-			"create": utils.BooleanField,  # create table?
+			"shared": record.BooleanField,  # is this a shared table?
+			"create": record.BooleanField,  # create table?
 		}, initvals)
 		self.fieldIndexDict = {}
 
@@ -87,7 +87,7 @@ class RecordDef(utils.Record):
 		return self.fieldIndexDict[fieldName]
 
 	def copy(self):
-		theCopy = utils.Record.copy(self)
+		theCopy = record.Record.copy(self)
 		theCopy.fieldIndexDict = self.fieldIndexDict.copy()
 		return theCopy
 
@@ -194,4 +194,5 @@ class Resource:
 		make linestorm.
 		"""
 		for dep in self.getDescriptor().get_dependents():
-			os.system("cd %s; make update"%(os.path.join(gavo.inputsDir, dep)))
+			os.system("cd %s; make update"%(os.path.join(
+				config.get("inputsDir"), dep)))

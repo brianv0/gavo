@@ -4,7 +4,7 @@ exposes the fields as character ranges.
 """
 
 import gavo
-from gavo import utils
+from gavo import record
 from gavo.parsing import grammar
 
 
@@ -76,7 +76,7 @@ class ColumnGrammar(grammar.Grammar):
 		grammar.Grammar.__init__(self, {
 			"topIgnoredLines": 0,
 			"booster": None,
-			"local": utils.BooleanField,
+			"local": record.BooleanField,
 		})
 
 	def _iterRows(self):

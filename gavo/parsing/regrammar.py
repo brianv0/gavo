@@ -6,7 +6,7 @@ import re
 import sys
 
 import gavo
-from gavo import utils
+from gavo import record
 import gavo.parsing
 from gavo.parsing import grammar
 
@@ -65,13 +65,13 @@ class REGrammar(grammar.Grammar):
 	"""
 	def __init__(self):
 		grammar.Grammar.__init__(self, {
-			"rules": utils.RequiredField,
+			"rules": record.RequiredField,
 			"documentProduction": "document",
-			"numericGroups": utils.BooleanField,
+			"numericGroups": record.BooleanField,
 			"rowProduction": "tableLine",
 			"tabularDataProduction": "tabularData",
-			"tokenizer": utils.RequiredField,
-			"tokenSequence": utils.RequiredField,
+			"tokenizer": record.RequiredField,
+			"tokenSequence": record.RequiredField,
 		})
 
 	groupRe = re.compile(r"@\(([^,)]+)\)")

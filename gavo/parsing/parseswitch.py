@@ -224,7 +224,7 @@ class DirectWritingTable(Table):
 def _tryBooster(grammar, inputFileName, tableName, descriptor):
 	if not isinstance(grammar, columngrammar.ColumnGrammar):
 		raise BoosterNotDefined("Boosters only work for ColumnGrammars")
-	host, port, dbname = config.settings.get_db_dsn().split(":")
+	host, port, dbname = config.getDbProfile().get_dsn().split(":")
 	booster = grammar.get_booster()
 	if booster==None:
 		raise BoosterNotDefined

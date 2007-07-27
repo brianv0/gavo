@@ -12,6 +12,7 @@ import pyparsing
 
 import gavo
 from gavo import textui
+from gavo import config
 from gavo import sqlsupport
 from gavo import utils
 from gavo import config
@@ -44,7 +45,7 @@ def processAll(opts, args):
 
 def parseCmdline():
 	parser = OptionParser(usage = "%prog [options] <rd-name>+")
-	parser.add_option("-p", "--debug-productions", help="enable debugging for"
+	parser.add_option("-d", "--debug-productions", help="enable debugging for"
 		" the given productions", dest="debugProductions", default="", 
 		metavar="productions")
 	parser.add_option("-n", "--fake-only", help="just parse, don't"
@@ -57,6 +58,9 @@ def parseCmdline():
 	parser.add_option("-m", "--max-rows", help="only import MAX_ROWS"
 		" rows of every source", dest="maxRows", default=None,
 		type="int", action="store")
+	parser.add_option("-p", "--profile", help="use PROFILE to access db",
+		dest="dbProfile", action="store", type="str", 
+		default=config.get("parsing", "dbDefaultProfile"), metavar="PROFILE")
 	parser.add_option("-v", "--verbose", help="talk a lot while working",
 		dest="verbose", action="store_true")
 	parser.add_option("-o", "--output-method", help="output destination, one of"
@@ -66,6 +70,7 @@ def parseCmdline():
 	opts.debugProductions = [s.strip() 
 		for s in opts.debugProductions.split(",") if s.strip()]
 	parsing.verbose = opts.verbose
+	config.setDbProfile(opts.dbProfile)
 	if not args:
 		parser.print_help()
 		sys.exit(1)

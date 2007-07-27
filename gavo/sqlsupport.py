@@ -41,7 +41,7 @@ from pyPgSQL.PgSQL import OperationalError, DatabaseError
 def encodeDbMsg(msg):
 	"""returns the string or sql exception msg in ascii.
 	"""
-	return str(msg).decode(config.settings.get_db_msgEncoding()
+	return str(msg).decode(config.get("db", "msgEncoding")
 		).encode("ascii", "replace")
 
 
@@ -124,9 +124,6 @@ class TableWriter(StandardQueryMixin):
 	"""is a moderately high-level interface to feeding data into an
 	SQL database.
 
-	The access parameters are taken from config, which usually gets
-	them from ~/.gavosettings (or $GAVOSETTINGS).
-
 	At construction time, you define the database and the table.
 	The table definition is used by createTable, but if you do not
 	call createTable, there are no checks that the table structure in
@@ -140,9 +137,10 @@ class TableWriter(StandardQueryMixin):
 	instances.
 	"""
 	def __init__(self, tableName, fields):
-		self.connection = PgSQL.connect(dsn=config.settings.get_db_dsn(),
-			user=config.settings.get_db_user(), 
-			password=config.settings.get_db_password(),
+		profile = config.getDbProfile()
+		self.connection = PgSQL.connect(dsn=profile.get_dsn(),
+			user=profile.get_user(), 
+			password=profile.get_password(),
 			client_encoding="utf-8")
 		self.tableName = tableName
 		self.fields = fields
@@ -209,10 +207,10 @@ class TableWriter(StandardQueryMixin):
 		By default. everything is done.
 		"""
 		def setPrivileges():
-			for role in config.settings.get_db_allroles():
+			for role in config.getDbProfile().get_allRoles():
 				self._sendSQL("GRANT ALL PRIVILEGES ON %s TO %s"%(self.tableName,
 					role))
-			for role in config.settings.get_db_readroles():
+			for role in config.getDbProfile().get_readRoles():
 				self._sendSQL("GRANT SELECT ON %s TO %s"%(self.tableName,
 					role))
 		
@@ -254,10 +252,10 @@ class TableWriter(StandardQueryMixin):
 		if not self.schemaExists(schemaName):
 			self._sendSQL("CREATE SCHEMA %(schemaName)s"%locals(),
 				failok=False)
-			for role in config.settings.get_db_allroles():
+			for role in config.getDbProfile().get_allRoles():
 				self._sendSQL("GRANT USAGE, CREATE ON SCHEMA %s TO %s"%(schemaName,
 					role))
-			for role in config.settings.get_db_readroles():
+			for role in config.getDbProfile().get_readRoles():
 				self._sendSQL("GRANT USAGE ON SCHEMA %s TO %s"%(schemaName,
 					role))
 	
@@ -306,9 +304,10 @@ class SimpleQuerier(StandardQueryMixin):
 	"""is a tiny interface to querying the standard database.
 	"""
 	def __init__(self):
-		self.connection = PgSQL.connect(dsn=config.settings.get_db_dsn(),
-			user=config.settings.get_db_user(), 
-			password=config.settings.get_db_password(),
+		profile = config.getDbProfile()
+		self.connection = PgSQL.connect(dsn=profile.get_dsn(),
+			user=profile.get_user(), 
+			password=profile.get_password(),
 			client_encoding="utf-8")
 
 	def query(self, query, data={}):
@@ -330,9 +329,10 @@ class ScriptRunner:
 	We will probably define some syntax to have errors ignored.
 	"""
 	def __init__(self):
-		self.connection = PgSQL.connect(dsn=config.settings.get_db_dsn(),
-			user=config.settings.get_db_user(), 
-			password=config.settings.get_db_password(),
+		profile = config.getDbProfile()
+		self.connection = PgSQL.connect(dsn=profile.get_dsn(),
+			user=profile.get_user(), 
+			password=profile.get_password(),
 			client_encoding="utf-8")
 
 	def run(self, script):

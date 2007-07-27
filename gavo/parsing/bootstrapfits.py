@@ -59,7 +59,7 @@ def makeRdXML(recordDef):
 	"""returns the XML for a FitsGrammar resource descriptor for recordDef.
 
 	This should probably go into XML/DOM generating methods within the
-	classes themselves (or even utils.Record itself).  For now, we want it
+	classes themselves (or even record.Record itself).  For now, we want it
 	quick.
 	"""
 	return rdTemplate%makeRecXML(recordDef)
