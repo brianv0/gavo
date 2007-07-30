@@ -29,9 +29,9 @@ xmlFragmentPath: %(inputsDir)s/__common__
 dbDefaultProfile: feed
 
 [web]
-voplotEnable: True
-voplotCodeBase: http://ara.ari.uni-heidelberg.de/soft/VOPlot
-voplotUserman: http://ara.ari.uni-heidelberg.de/docs/VOPlot_user.html
+voplotEnable: False
+voplotCodeBase: /soft/VOPlot
+voplotUserman: /docs/VOPlot_UserGuide_1_4.html
 staticURL: /qstatic
 rootURL: /ql
 
@@ -214,7 +214,9 @@ class Settings:
 	section, or gavo.confGet(section, item) for items from named sections.
 	All keys are case insensitive.
 	"""
+	__sharedState = {}
 	def __init__(self):
+		self.__dict__ = self.__sharedState
 		self.rawVals = self._parse()
 		self.valueCache = {}
 		self.dbProfileCache = {}
@@ -290,7 +292,6 @@ class Settings:
 		if not hasattr(self, "dbProfile"):
 			raise Error("Attempt to access database without having set a profile")
 		return self.dbProfile
-
 
 _config = Settings()
 get = _config.get

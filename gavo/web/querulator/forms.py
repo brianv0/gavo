@@ -275,8 +275,10 @@ class Template(AbstractTemplate):
 			if selItem.sqlExpr==passedExpr:
 				return " ORDER BY "+passedExpr
 		else:
-			raise querulator.Error("The sort expression you gave (%s)"
-				" is not in the set of allowed query keys."%passedExpr)
+			context.addWarning("The sort expression you gave (%s)"
+				" was not in the set of allowed query keys.  Results"
+				" cropped by the query limit may be inconsistent."%passedExpr)
+			return ""
 	
 	def _getLimitClause(self, context):
 		"""returns an appropriate "LIMIT" clause for the current query.

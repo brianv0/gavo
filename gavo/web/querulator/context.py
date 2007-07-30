@@ -68,6 +68,7 @@ class Context:
 		self._initArguments()
 		self._initPathinfo()
 		self.uidsGivenOut = set()
+		self.warnings = []
 	
 	def __contains__(self, element):
 		return element in self.arguments
@@ -114,6 +115,12 @@ class Context:
 			if not self.hasArgument(name):
 				return False
 		return True
+
+	def addWarning(self, warning):
+		self.warnings.append(warning)
+	
+	def getWarnings(self):
+		return self.warnings
 
 	def getfirst(self, name, default=None):
 		return self.arguments.get(name, [default])[0]
@@ -280,7 +287,10 @@ class ModpyContext(Context):
 				self.arguments[key] = form[key]
 	
 	def _initPathinfo(self):
-		self.pathInfo = self.modpyReq.path_info.strip("/")
+		pathinfo = self.modpyReq.path_info
+		if pathinfo.startswith(config.get("web", "rootURL")):
+			pathinfo = pathinfo[len(config.get("web", "rootURL")):]
+		self.pathInfo = pathinfo.strip("/")
 	
 	def _initUser(self):
 		self.loggedUser = None
@@ -319,10 +329,6 @@ class ModpyContext(Context):
 	
 	def getQuerier(self):
 		if not hasattr(self, "querier") or self.querier==None:
-			# We need a hack here since the environment variables probably
-			# were "wrong" when config got imported.
-			from gavo import config
-			config.loadSettings(self.modpyReq.subprocess_env["GAVOSETTINGS"])
 			try:
 				self.querier = sqlsupport.SimpleQuerier()
 			except sqlsupport.DatabaseError:
@@ -331,10 +337,11 @@ class ModpyContext(Context):
 
 	def getServerURL(self):
 		try:
-			return "http://"+self.modpyReq.connection.server.server_hostname
+			return ("http://"+
+				self.modpyReq.connection.base_server.server_hostname).strip("/")
 		except AttributeError:
 			# why would connection have no server attribute?
-			return ""
+			return "http://bad.error"
 	
 	def getRemote(self):
 		return self.modpyReq.connection.remote_ip

@@ -38,7 +38,7 @@ function getSelectedEntries(selectElement) {
 
 	for (i=0; i<selectElement.length; i++) {
 		if (selectElement.options[i].selected) {
-			result.push(selectElement.name+"="+encodeURI(
+			result.push(selectElement.name+"="+encodeURIComponent(
 				selectElement.options[i].value))
 		}
 	}

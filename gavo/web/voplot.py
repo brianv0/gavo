@@ -29,7 +29,7 @@ _htmlTemplate = """
                   MAYSCRIPT = true
                   background = "#faf0e6"
                   scriptable = "true"
-                  pluginspage = "http://java.sun.com/products/plugin/1.3.1/plugin-install.html"
+                  pluginspage = "http://java.sun.com/products/plugin/1.3.1/plugin-install.html">
             <NOEMBED> 
                     No Java Plug-in support for applet, see, e.g., <a href="http://java.sun.com/products/plugin/">http://java.sun.com/products/plugin/</a>
             </NOEMBED>

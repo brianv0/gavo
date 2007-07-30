@@ -80,7 +80,7 @@ def _computeThumbnailNetpbm(path):
 def getProductThumbnail(context, subPath):
 	template = forms.Template(subPath)
 	path = common.resolvePath(
-		gavo.inputsDir, context.getfirst("path"))
+		config.get("inputsDir"), context.getfirst("path"))
 	fitspreviewLocation = config.get("querulator", "fitspreview")
 	if os.path.exists(fitspreviewLocation):
 		return "image/jpeg", _computeThumbnailFp(fitspreviewLocation, path), {}
@@ -128,7 +128,6 @@ def _doErrorResponse(msg, context):
 
 
 _procConfig = {
-	"": showAvailableQueries,
 	"list": showAvailableQueries,
 	"getproduct": getProduct,
 	"thumbnail": getProductThumbnail,
@@ -168,8 +167,10 @@ def dispatch(context):
 	if _checkForBlock(context):
 		return
 	pathParts = context.getPathInfo().split("/")
-	func = _procConfig.get(pathParts[0],
-		lambda _: showAvailableQueries("/".join(pathParts)))
+	try:
+		func = _procConfig[pathParts[0]]
+	except KeyError:
+		raise Error("You requested an undefined service (%s)"%repr(pathParts[0]))
 	queryPath = "/".join(pathParts[1:])
 	try:
 		contentType, content, headers = func(context, queryPath)
