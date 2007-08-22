@@ -86,6 +86,29 @@ def encodeDbMsg(msg):
 		).encode("ascii", "replace")
 
 
+def getTablePrivSQL(tableName):
+	"""returns a sequence of SQL statements that grant the default privileges 
+	for the installation on table tableName.
+	"""
+	dbProfile = config.getDbProfile()
+	return [
+		"GRANT ALL PRIVILEGES ON %s TO %s"%(tableName,
+			", ".join(dbProfile.get_allRoles())),
+		"GRANT SELECT ON %s TO %s"%(tableName,
+			", ".join(dbProfile.get_readRoles()))]
+
+def getSchemaPrivSQL(schema):
+	"""returns a sequence of SQL statements that grant the default privileges 
+	for the installation to schema.
+	"""
+	dbProfile = config.getDbProfile()
+	return [
+		"GRANT USAGE, CREATE ON SCHEMA %s TO %s"%(schema,
+			", ".join(dbProfile.get_allRoles())),
+		"GRANT USAGE ON SCHEMA %s TO %s"%(schema,
+			", ".join(dbProfile.get_readRoles()))]
+
+
 class _Feeder:
 	"""is a callable used for feeding data into a table.
 
@@ -249,12 +272,8 @@ class TableWriter(StandardQueryMixin):
 		By default. everything is done.
 		"""
 		def setPrivileges():
-			for role in config.getDbProfile().get_allRoles():
-				self._sendSQL("GRANT ALL PRIVILEGES ON %s TO %s"%(self.tableName,
-					role))
-			for role in config.getDbProfile().get_readRoles():
-				self._sendSQL("GRANT SELECT ON %s TO %s"%(self.tableName,
-					role))
+			for stmt in getTablePrivSQL(self.tableName):
+				self._sendSQL(stmt)
 		
 		def computePrimaryDef():
 			primaryCols = [field.get_dest()
@@ -292,14 +311,9 @@ class TableWriter(StandardQueryMixin):
 		privileges.
 		"""
 		if not self.schemaExists(schemaName):
-			self._sendSQL("CREATE SCHEMA %(schemaName)s"%locals(),
-				failok=False)
-			for role in config.getDbProfile().get_allRoles():
-				self._sendSQL("GRANT USAGE, CREATE ON SCHEMA %s TO %s"%(schemaName,
-					role))
-			for role in config.getDbProfile().get_readRoles():
-				self._sendSQL("GRANT USAGE ON SCHEMA %s TO %s"%(schemaName,
-					role))
+			self._sendSQL("CREATE SCHEMA %(schemaName)s"%locals())
+			for stmt in getSchemaPrivSQL(schemaName):
+				self._sendSQL(stmt)
 	
 	def deleteMatching(self, matchCondition):
 		"""deletes all rows matching matchCondition.
@@ -355,6 +369,20 @@ class SimpleQuerier(StandardQueryMixin):
 		self.connection.commit()
 
 
+class ScriptMacros:
+	"""is a collection of "Macros" that can be used in SQL scripts.
+
+	The "class" here is just used as a namespace provider.   If, and
+	let's hope that's not necessary, we'll get complex macros, this
+	should go into a module.
+	"""
+	def TABLERIGHTS(tableName):
+		return "\n".join(getTablePrivSQL(tableName))
+	
+	def SCHEMARIGHTS(schema):
+		return "\n".join(getSchemaPrivSQL(schema))
+
+
 class ScriptRunner:
 	"""is an interface to run simple static scripts on the SQL data base.
 
@@ -367,13 +395,21 @@ class ScriptRunner:
 	"""
 	def __init__(self):
 		self.connection = getDbConnection(config.getDbProfile())
-			
+
+	def _expandScriptMacro(self, matob):
+		return eval(matob.group(1), ScriptMacros.__dict__)
+
+	def _expandScriptMacros(self, script):
+		"""expands %%%...%%% macro calls in SQL scripts
+		"""
+		return re.sub("%%%(.*?)%%%", self._expandScriptMacro, script)
 
 	def run(self, script):
-		script = re.sub(r"\\\n\s*", " ", script)
+		script = self._expandScriptMacros(re.sub(r"\\\n\s*", " ", script))
 		cursor = self.connection.cursor()
 		for query in script.split("\n"):
-			if not query.strip():
+			query = query.strip()
+			if not query:
 				continue
 			failOk = False
 			query = query.strip()
