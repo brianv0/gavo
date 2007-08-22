@@ -7,14 +7,22 @@ The module primarily defines a member logger which is a
 import os
 import sys
 import logging
+import logging.handlers
 
 import gavo
 from gavo import config
 
+_logLevelDict = {
+	"debug": logging.DEBUG,
+	"info": logging.INFO,
+	"warning": logging.WARNING,
+	"error": logging.ERROR,
+}
+
 logger = logging.getLogger("gavo")
 _logFile = os.path.join(config.get("logDir"), "gavoops")
 try:
-	_handler = logging.FileHandler(_logFile)
+	_handler = logging.handlers.RotatingFileHandler(_logFile, "a", 1000000, 10)
 except IOError:
 	#sys.stderr.write("Could not open logfile %s, writing to stderr.\n"%
 	#	_logFile)
@@ -22,7 +30,7 @@ except IOError:
 _handler.setFormatter(
 	logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
 logger.addHandler(_handler)
-logger.setLevel(logging.INFO)
+logger.setLevel(_logLevelDict[config.get("logLevel")])
 
 critical = logger.critical
 error = logger.error

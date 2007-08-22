@@ -7,6 +7,7 @@ import sys
 import weakref
 
 import gavo
+from gavo import config
 from gavo import record
 from gavo import sqlsupport
 from gavo import logger

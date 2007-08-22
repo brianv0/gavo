@@ -4,22 +4,39 @@ Functions for parsing and generating VOTables to and from data and metadata.
 This module also serves as a q'n'd interface to VOTable.DataModel in that
 it imports all names from there.  Thus, you can get DataModel.Table as
 votable.Table.
+
+The module provides the glue between the row lists and the DataField
+based description from the core modules and pyvotable.  
+
+An important task is the mapping of values.  To do this, we define coder
+factories.  These are functions receiving an instance of a value to pack and a
+description of the target field.  They return either None (meaning they don't
+know how to do the conversion) or a callable that does the conversion.
+They may change the description of the target field, e.g., to fix types
+(see datetime) or to add nullvalues (see ints).  Note that the type we
+operate on here still are python and/or SQL types.
+
+The first factory providing such a callable wins.  The factories register
+with a ValueEncoderFactoryRegistry object that's used by getCoder.
 """
 
 import sys
 import re
 import itertools
 try:
-    import cElementTree as ElementTree
-except:
-    from elementtree import ElementTree
+	import cElementTree as ElementTree
+except ImportError:
+	sys.stderr.write("Warning: Falling back to python elementtree\n")
+	from elementtree import ElementTree
 
 from VOTable import Writer
 from VOTable.DataModel import *
+from VOTable import Encoders
 
 
 class Error(Exception):
 	pass
+
 
 class ValueEncoderFactoryRegistry(object):
 	"""is a container for functions encoding single values to text.
@@ -41,15 +58,18 @@ class ValueEncoderFactoryRegistry(object):
 	def addCoderFactory(self, factory):
 		self.factories.insert(0, factory)
 	
-	def getCoder(self, type, destType, unit, ucd):
-		"""returns a coder for values with the python data type type, given in
-		unit and with ucd.
+	def getCoder(self, instance, colProps):
+		"""returns a coder for values with the python value instance, 
+		according to colDesc.
+
+		This method may change colProps (which is the usual dictionary
+		mapping column property names to their values).
 
 		We do a linear search here, so you shouldn't call this function too
 		frequently.
 		"""
 		for factory in self.factories:
-			handler = factory(type, destType, unit, ucd)
+			handler = factory(instance, colProps)
 			if handler:
 				break
 		else:
@@ -63,22 +83,22 @@ registerCoderFactory = _coderRegistry.addCoderFactory
 getCoder = _coderRegistry.getCoder
 
 
-def _catchallFactory(srcType, destType, unit, ucd):
-	return str, destType
+def _catchallFactory(srcType, colProps):
+	return lambda x:x
 registerCoderFactory(_catchallFactory)
 
 try:
 	from mx import DateTime
 
-	def _datetimeCoderFactory(srcType, destType, unit, ucd):
+	def _mxDatetimeCoderFactory(srcInstance, colProps):
 		"""returns coders for mxDateTime objects.
 
 		Unit may be yr or a (produces julian fractional years like J2000.34),
 		d (produces julian days), s (produces a unix timestamp, for whatever
 		that's good), "Y:M:D" (produces an iso date).
 		"""
-		if isinstance(srcType, DateTime.DateTimeType):
-			fun = None
+		unit = colProps["unit"]
+		if isinstance(srcInstance, DateTime.DateTimeType):
 			if unit=="yr" or unit=="a":
 				fun, destType = lambda val: val and val.jdn/365.25-4712, "double"
 			elif unit=="d":
@@ -89,11 +109,89 @@ try:
 				fun, destType = lambda val: val and val.date, "text"
 			else:   # Fishy, but not our fault
 				fun, destType = lambda val: val and val.jdn, "double"
-			return fun, destType
-	
-	registerCoderFactory(_datetimeCoderFactory)
+			colProps["type"] = destType
+			return fun
+	registerCoderFactory(_mxDatetimeCoderFactory)
+
 except ImportError:
 	pass
+
+import datetime
+
+def _datetimeCoderFactory(srcInstance, colProps):
+	import time
+
+	def dtToJdn(val):
+		"""returns a julian day number for the dateTime instance val.
+		"""
+		a = (14-val.month)//12
+		y = val.year+4800-a
+		m = val.month+12*a-3
+		return val.day+(153*m)//5+365*y+y//4-y//100+y//400-32045
+
+	if isinstance(srcInstance, datetime.date):
+		unit = colProps["unit"]
+		if unit=="yr" or unit=="a":
+			fun, destType = lambda val: val and dtToJdn(val)/365.25-4712, "double"
+		elif unit=="d":
+			fun, destType = lambda val: val and val.jdn, "double"
+		elif unit=="s":
+			fun, destType = lambda val: val and time.mktime(val.timetuple()), "double"
+		elif unit=="Y:M:D":
+			fun, destType = lambda val: val and val.isoformat(), "text"
+		else:   # Fishy, but not our fault
+			fun, destType = lambda val: val and dtToJdn(val), "double"
+		colProps["type"] = destType
+		return fun
+registerCoderFactory(_datetimeCoderFactory)
+
+
+def _booleanCoderFactory(srcInstance, colProps):
+	if colProps["type"]=="boolean":
+		def coder(val):
+			if val:
+				return "1"
+			else:
+				return "0"
+		return coder
+registerCoderFactory(_booleanCoderFactory)
+
+
+def _floatCoderFactory(srcInstance, colProps):
+	if colProps["type"]=="real" or colProps["type"].startswith("double"):
+		naN = float("NaN")
+		def coder(val):
+			if val==None:
+				return naN
+			return val
+		return coder
+registerCoderFactory(_floatCoderFactory)
+
+
+# XXX FIXME
+# This is a bad hack that fixes nullvalues to some random values.
+# I can't see a good way of doing this without first having a pass
+# through the data -- which probably is what we'll need to have in 
+# the end.
+# Then again, this currently isn't supported by pyvotable anyway,
+# so let's first fix VALUES there.
+NULLVALUE_HACK = {
+	"smallint": 255,
+	"int": -9999,
+	"integer": -99999999,
+	"bigint": -99999999,
+}
+
+def _intCoderFactory(srcInstance, colProps):
+	if colProps["type"] in NULLVALUE_HACK:
+		nullvalue = NULLVALUE_HACK[colProps["type"]]
+		def coder(val):
+			if val==None:
+				return nullvalue
+			return val
+		colProps["nullvalue"] = NULLVALUE_HACK[colProps["type"]]
+		return coder
+registerCoderFactory(_intCoderFactory)
 
 
 def _getValSeq(data):
@@ -150,20 +248,20 @@ def _getVoTypeForSqlType(dbtype, simpleMap={
 		raise Error("No VOTable type for %s"%dbtype)
 
 
-def _getFieldItemsFor(colInd, colOpts):
+def _getFieldItemsFor(colInd, colProps):
 	"""returns a dictionary with keys for a DataModel.Field constructor.
 	"""
 	fieldItems = {
-		"name": colOpts["fieldName"],
+		"name": colProps["fieldName"],
 		"ID": "col%02d"%colInd,
 	}
-	type, size = _getVoTypeForSqlType(colOpts["type"])
+	type, size = _getVoTypeForSqlType(colProps["type"])
 	fieldItems["datatype"] = type
 	if size!="1":
 		fieldItems["arraysize"] = size
 	for fieldName in ["ucd", "utype", "unit", "width", "precision"]:
-		if colOpts.get(fieldName)!=None:
-			fieldItems[fieldName] = colOpts[fieldName]
+		if colProps.get(fieldName)!=None:
+			fieldItems[fieldName] = colProps[fieldName]
 	return fieldItems
 
 
@@ -171,9 +269,9 @@ def _defineFields(colDesc, dataTable):
 	"""adds the field descriptions from colDesc dicts to the DataModel.Table
 	instance dataTable.
 	"""
-	for colInd, colOpts in enumerate(colDesc):
+	for colInd, colProps in enumerate(colDesc):
 		dataTable.fields.append(
-			Field(**_getFieldItemsFor(colInd, colOpts)))
+			Field(**_getFieldItemsFor(colInd, colProps)))
 
 
 def _mapValues(colDesc, data):
@@ -183,19 +281,16 @@ def _mapValues(colDesc, data):
 	"""
 	colTypes = _getValSeq(data)
 	handlers = []
-	for colType, colOpts in zip(colTypes, colDesc):
-		handler, newType = getCoder(colType, colOpts["type"], colOpts["unit"],
-			colOpts["ucd"])
-		colOpts["type"] = newType
+	for colType, colProps in zip(colTypes, colDesc):
+		handler = getCoder(colType, colProps)
 		handlers.append(handler)
 	if data:
-		rowIndices = range(len(data[0]))
-		for row in data:
-			for ind in rowIndices:
-				row[ind] = handlers[ind](row[ind])
+		colInds = range(len(data[0]))
+		for rowInd, row in enumerate(data):
+			data[rowInd] = [handlers[colInd](row[colInd]) for colInd in colInds]
 	
 
-def buildTable(colDesc, data, metaInfo):
+def buildTable(colDesc, data, metaInfo, tdEncoding=False):
 	"""returns a DataModel.Table instance for data.
 
 	This function can only handle 2d tables.
@@ -211,8 +306,12 @@ def buildTable(colDesc, data, metaInfo):
 	* id
 	Unknown keys are silently ignored.
 	"""
+	if tdEncoding:
+		votEncoder = Encoders.TableDataEncoder
+	else:
+		votEncoder = Encoders.BinaryEncoder
 	dataTable = Table(name=metaInfo.get("name", "data"),
-		description=metaInfo.get("description", ""))
+		description=metaInfo.get("description", ""), coder=votEncoder)
 	if metaInfo.has_key("id"):
 		dataTable.id = id
 	_mapValues(colDesc, data)
@@ -235,7 +334,7 @@ def writeTable(resources, metaInfo, destination):
 	writer.write(table, destination)
 
 
-def writeSimpleTable(colDesc, data, metaInfo, destination):
+def writeSimpleTable(colDesc, data, metaInfo, destination, tdEncoding=False):
 	"""writes a single-table, single-resource VOTable to destination.
 
 	Arguments:
@@ -247,7 +346,7 @@ def writeSimpleTable(colDesc, data, metaInfo, destination):
 	* destination -- a file-like object to write the XML to
 	"""
 	writeTable([Resource(tables=[
-			buildTable(colDesc, data, metaInfo)])],
+			buildTable(colDesc, data, metaInfo, tdEncoding)])],
 		{}, destination)
 
 
@@ -267,10 +366,11 @@ def _profilerun():
 	querier = sqlsupport.SimpleQuerier()
 	result = querier.query(
 		"SELECT * from ppmx.autocorr").fetchall()
+	print result[0]
 	writeSimpleTable(getFieldInfos(querier, "ppmx.autocorr"),
 		result, {}, open("/dev/null", "w"))
 
-	
 
 if __name__=="__main__":
-	_test()
+	#_test()
+	_profilerun()

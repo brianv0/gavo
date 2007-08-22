@@ -249,7 +249,7 @@ def _isTruncated(queryResult, context):
 	return len(queryResult)==context.getfirst("used_limit")
 
 
-def _formatAsVoTable(template, context, stream=False, verbosity=None):
+def _formatAsVoTable(template, context, stream=True, verbosity=None):
 	"""returns a callable that writes queryResult as VOTable.
 
 	Verbosity is an integer or None.  If it's None or <=0, the select items
@@ -262,6 +262,12 @@ def _formatAsVoTable(template, context, stream=False, verbosity=None):
 	be set to VERB*10.
 	"""
 	def getSelectItemFieldInfos(template, context):
+		"""returns the field infos for the response columns when they
+		are given by the SQL query.
+
+		As a side effect, fields unsuitable for VOTables are purged from
+		the SQL select items.
+		"""
 		fieldInfos = []
 		metaTable = sqlsupport.MetaTableHandler(context.getQuerier())
 		defaultTableName = template.getDefaultTable()
@@ -280,6 +286,12 @@ def _formatAsVoTable(template, context, stream=False, verbosity=None):
 		return fieldInfos
 
 	def getFieldInfos(template, context, verbosity):
+		"""returns the field infos for the response columns when they are
+		computed from the verbosity.
+
+		As a side effect, the select items of the SQL query are set
+		to what the desired verbosity suggests.
+		"""
 		metaTable = sqlsupport.MetaTableHandler(context.getQuerier())
 		fieldInfos = []
 		for info in metaTable.getFieldInfos(template.getDefaultTable()):
@@ -304,23 +316,25 @@ def _formatAsVoTable(template, context, stream=False, verbosity=None):
 		rows.append([formatter.format(
 				hint, "votable", item, row)
 			for item, hint in zip(row, hints)])
+	sys.stderr.write(">>>>>>>>< %d\n"%len(rows))
 
+	tdEncoding = not not context.get("tabledataEnc")
 	if stream:
 		def produceOutput(outputFile):
 			votable.writeSimpleTable(fieldInfos, rows, {}, 
-				outputFile)
+				outputFile, tdEncoding)
 		return produceOutput
 	
 	else:
 		f = cStringIO.StringIO()
-		votable.writeSimpleTable(fieldInfos, rows, {}, f)
+		votable.writeSimpleTable(fieldInfos, rows, {}, f, tdEncoding)
 		return f.getvalue()
 
 
 def _makeSortButton(fieldName, template, context):
 	"""returns a form asking for the content re-sorted to fieldName.
 	"""
-	hiddenForm = context.getHiddenForm(suppress=["sort_by"])
+	hiddenForm = context.getHiddenForm(suppress=["sortby"])
 	if not hiddenForm:
 		return ""
 	buttonTemplate = ('<img src="%s/%%(img)s" alt="%%(alt)s"'
@@ -337,7 +351,7 @@ def _makeSortButton(fieldName, template, context):
 		' class="sortArrow">'
 		'%(hiddenform)s'
 		'<input type="hidden" name="sortby" value="%(keyname)s">'
-		'<button type="submit" name="submit" class="transparent" value="resort"'
+		'<button type="submit" name="submit" class="transparent"'
 		' title="%(title)s">'
 		'%(buttonImage)s</button>'
 		'</form>'
@@ -570,6 +584,7 @@ def processQuery(template, context):
 			verbosity=verbosity), {
 				"Content-disposition": 'attachment; filename="result.xml"'}
 	elif outputFormat=="VOPlot":
+		context.addArgument("VERB", verbosity/10)
 		return "text/html", voplot.getVOPlotPage(template, context), {}
 	elif outputFormat=="tar":
 		return "application/tar", _formatAsTarStream(template, context), {

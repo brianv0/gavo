@@ -53,6 +53,6 @@ def getVOPlotPage(template, context):
 			"voplot_3rdParty/axis.jar,voplot_3rdParty/jaxrpc.jar,"
 			"voplot_3rdParty/log4j-1.2.8.jar,voplot_3rdParty/saaj.jar,"
 			"voplot_3rdParty/wsdl4j-1.5.1.jar"),
-		"parameters": "outputFormat=VOTable%2030&"+context.getQueryArgs(
-			suppress=["outputFormat"]),
+		"parameters": "outputFormat=VOTable%2030&tabledataEnc=true&"+
+			context.getQueryArgs(suppress=["outputFormat"]),
 	}

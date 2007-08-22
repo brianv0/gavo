@@ -46,6 +46,14 @@ class DataField(record.Record):
 	}
 	externallyManagedColumns = set(["tableName", "colInd"])
 
+	def set_primary(self, val):
+		"""implies a verbLevel of 1 if verbLevel has not been set otherwise.
+		"""
+		self.dataStore["primary"] = record.parseBooleanLiteral(val)
+		if self.get_primary():
+			if self.get_verbLevel()==30:
+				self.set_verbLevel(1)
+
 	def getMetaRow(self):
 		"""returns a dictionary ready for inclusion into the meta table.
 
@@ -72,7 +80,7 @@ metaTableFields = [
 	DataField(dest="fieldName", dbtype="text", primary=True,
 		description="SQL identifier for the column"),
 	DataField(dest="unit", dbtype="text", description="Unit for the value"),
-	DataField(dest="ucd", dbtype="text", description="UCD for the colum"),
+	DataField(dest="ucd", dbtype="text", description="UCD for the column"),
 	DataField(dest="description", dbtype="text", 
 		description="A one-line characterization of the value"),
 	DataField(dest="tablehead", dbtype="text", 

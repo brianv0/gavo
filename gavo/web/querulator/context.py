@@ -177,7 +177,7 @@ class Context:
 		"""returns true if a product with owner and embargo may currently be
 		accessed.
 		"""
-		return (embargo<DateTime.today() or owner==self.getUser())
+		return (DateTime.now()>embargo or owner==self.getUser())
 
 	def getUid(self, hint=None):
 		"""returns a string that is unique within this context suitable as

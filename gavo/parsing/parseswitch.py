@@ -2,7 +2,7 @@
 Code to decide how to parse with a given grammar.
 
 Right now, we either simply call the parse method of the grammar or
-start a cgbooster.  More special handling of this kind may be necessary
+start a cgbooster.  More special handling may be necessary
 in the future.
 
 cgboosters are C programs that are supposed to implement what ColumnGrammars

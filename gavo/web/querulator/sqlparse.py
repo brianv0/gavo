@@ -264,7 +264,11 @@ class Condition(ParseNode):
 
 	def asSql(self, context):
 		return self.condTest.asSql(context)
-	
+
+	def copy(self):
+		"""Conditions are supposed to be immutable.
+		"""
+		return self
 processedCondition.setParseAction(lambda s, loc, toks: Condition(*toks))
 
 

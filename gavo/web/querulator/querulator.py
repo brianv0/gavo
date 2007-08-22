@@ -167,10 +167,11 @@ def dispatch(context):
 	if _checkForBlock(context):
 		return
 	pathParts = context.getPathInfo().split("/")
+	reqFunction = pathParts[0].strip() or "list"
 	try:
-		func = _procConfig[pathParts[0]]
+		func = _procConfig[reqFunction]
 	except KeyError:
-		raise Error("You requested an undefined service (%s)"%repr(pathParts[0]))
+		raise Error("You requested an undefined function (%s)"%repr(reqFunction))
 	queryPath = "/".join(pathParts[1:])
 	try:
 		contentType, content, headers = func(context, queryPath)

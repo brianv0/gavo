@@ -140,12 +140,17 @@ class Q3CPositions(Positions):
 		tableName = "%s.%s"%(schema, rdParser.curRecordDef.get_table())
 		rdParser.rd.addto_scripts(("postCreation", "q3cindex",
 			"\n".join([
-				r"-CREATE INDEX %(indexName)s ON %(tableName)s "
+				"BEGIN",
+				"-DROP INDEX %(schema)s.%(indexName)s",
+				"COMMIT",
+				r"CREATE INDEX %(indexName)s ON %(tableName)s "
 				"(q3c_ang2ipix(alphaFloat, deltaFloat))",
 				"CLUSTER %(indexName)s ON %(tableName)s",
 				"ANALYZE %(tableName)s"])%{
-					"indexName": tableName.replace(".", "_"),
-					"tableName": tableName}))
+					"indexName": "q3c_"+tableName.replace(".", "_"),
+					"tableName": tableName,
+					"schema": schema,
+					}))
 
 
 class Products(Interface):

@@ -4,8 +4,8 @@ ez_setup.use_setuptools()
 
 from setuptools import setup, find_packages
 
-install_requires = ["pyfits", "pyPgSQL", "VOTable", "numarray", "elementtree",
-	"pyparsing", "egenix-mx-base"],
+install_requires = ["pyfits", "pyPgSQL", "VOTable", 
+	"numarray", "elementtree", "pyparsing", "egenix-mx-base"]
 if "develop" in sys.argv:
 	# No stinkin' wrapper scripts, please
 	install_requires = []
@@ -19,7 +19,7 @@ setup(name="gavo",
 	packages=find_packages(),
 	py_modules=["ez_setup"],
 	install_requires=install_requires,
-	dependency_links=["http://ara.ari.uni-heidelberg.de/soft/python",
+	dependency_links=["http://vo.ari.uni-heidelberg.de/soft/python",
 		"http://sourceforge.net/project/showfiles.php?group_id=16528",
 		"http://sourceforge.net/project/showfiles.php?group_id=1369",
 		"http://www.stsci.edu/resources/software_hardware/pyfits/Download"],

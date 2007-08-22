@@ -9,7 +9,7 @@ It may also come in handy when we want to support free-form SQL queries.
 """
 
 
-from gavo import utils
+from gavo import record
 from gavo import parsing
 from gavo.parsing import importparser
 import contextgrammar
@@ -18,7 +18,7 @@ class ServiceDescriptor(importparser.ResourceDescriptor):
 	def __init__(self):
 		importparser.ResourceDescriptor.__init__(self)
 		self._extendFields({
-			"computer": utils.RequiredField,
+			"computer": record.RequiredField,
 		})
 
 

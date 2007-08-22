@@ -13,11 +13,52 @@ some point we should probably make sqlsupport use DataFields as well.
 import re
 import sys
 
-from pyPgSQL import PgSQL
+
+from gavo import config
+
+usePgSQL = config.get("db", "interface")=="pgsql"
+
+if usePgSQL:
+	from pyPgSQL import PgSQL
+	from pyPgSQL.PgSQL import OperationalError, DatabaseError
+	from pyPgSQL.PgSQL import Error as DbError
+
+	def getDbConnection(profile):
+		dsn = "%s:%s:%s"%(profile.get_host(), profile.get_port(), 
+			profile.get_database())
+		return PgSQL.connect(dsn=dsn, user=profile.get_user(), 
+			password=profile.get_password(), client_encoding="utf-8")
+else:
+	import psycopg2
+	import psycopg2.extensions
+	try:
+		psycopg2.extensions.register_type(psycopg2._psycopg.MXDATETIME)
+		psycopg2.extensions.register_type(psycopg2._psycopg.MXINTERVAL)
+		psycopg2.extensions.register_type(psycopg2._psycopg.MXDATE)
+		psycopg2.extensions.register_type(psycopg2._psycopg.MXTIME)
+	except AttributeError:
+		sys.stderr.write("WARNING: Your psycopg2 was compiled without"
+			" mxDateTime support.\n  Expect trouble when processing dates"
+			" or set interface=pgsql\n in your ~/.gavorc.\n")
+	try:
+		import mod_python.util
+		psycopg2.extensions.register_adapter(mod_python.util.StringField, 
+			psycopg2.extensions.QuotedString)
+	except ImportError:
+		pass
+	from psycopg2 import OperationalError, DatabaseError
+	from psycopg2 import Error as DbError
+
+	def getDbConnection(profile):
+		return psycopg2.connect("dbname='%s' port='%s' host='%s'"
+			" user='%s' password='%s'"%(profile.get_database(), 
+				profile.get_port(), profile.get_host(), profile.get_user(), 
+				profile.get_password()))
+
+
 
 import gavo
 from gavo import utils
-from gavo import config
 from gavo import logger
 from gavo import datadef
 
@@ -36,7 +77,7 @@ metaTableName = "fielddescriptions"
 class Error(Exception):
 	pass
 
-from pyPgSQL.PgSQL import OperationalError, DatabaseError
+
 
 def encodeDbMsg(msg):
 	"""returns the string or sql exception msg in ascii.
@@ -78,8 +119,14 @@ class StandardQueryMixin:
 
 		You need to commit yourself if the query changed anything.
 		"""
+		#sys.stderr.write(">>>>>> %s %s\n"%(query, data))
 		cursor = self.connection.cursor()
-		cursor.execute(query, data)
+		try:
+			cursor.execute(query, data)
+		except DatabaseError:
+			sys.stderr.write("Failed query %s with"
+				" arguments %s\n"%(repr(query), data))
+			raise
 		return cursor
 
 	def tableExists(self, tableName, schema=None):
@@ -137,11 +184,8 @@ class TableWriter(StandardQueryMixin):
 	instances.
 	"""
 	def __init__(self, tableName, fields):
-		profile = config.getDbProfile()
-		self.connection = PgSQL.connect(dsn=profile.get_dsn(),
-			user=profile.get_user(), 
-			password=profile.get_password(),
-			client_encoding="utf-8")
+		self.connection = getDbConnection(config.getDbProfile())
+			
 		self.tableName = tableName
 		self.fields = fields
 
@@ -151,7 +195,7 @@ class TableWriter(StandardQueryMixin):
 		cursor = self.connection.cursor()
 		try:
 			cursor.execute(cmd, args)
-		except PgSQL.Error, msg:
+		except DbError, msg:
 			if not failok:
 				raise Error("Bad SQL in %s (%s)"%(repr(cmd), msg))
 			else:
@@ -167,8 +211,6 @@ class TableWriter(StandardQueryMixin):
 		items = [field.get_dest(), field.get_dbtype()]
 		if not field.get_optional():
 			items.append("NOT NULL")
-		if field.get_default()!=None:
-			items.append("DEFAULT %s"%repr(field.get_default()))
 		if field.get_references():
 			items.append("REFERENCES %s ON DELETE CASCADE"%field.get_references())
 		return " ".join(items)
@@ -304,14 +346,9 @@ class SimpleQuerier(StandardQueryMixin):
 	"""is a tiny interface to querying the standard database.
 	"""
 	def __init__(self):
-		profile = config.getDbProfile()
-		self.connection = PgSQL.connect(dsn=profile.get_dsn(),
-			user=profile.get_user(), 
-			password=profile.get_password(),
-			client_encoding="utf-8")
+		self.connection = getDbConnection(config.getDbProfile())
 
 	def query(self, query, data={}):
-		#sys.stderr.write(">>>>>> %s %s\n"%(query, data))
 		return self.runOneQuery(query, data)
 
 	def commit(self):
@@ -329,11 +366,8 @@ class ScriptRunner:
 	We will probably define some syntax to have errors ignored.
 	"""
 	def __init__(self):
-		profile = config.getDbProfile()
-		self.connection = PgSQL.connect(dsn=profile.get_dsn(),
-			user=profile.get_user(), 
-			password=profile.get_password(),
-			client_encoding="utf-8")
+		self.connection = getDbConnection(config.getDbProfile())
+			
 
 	def run(self, script):
 		script = re.sub(r"\\\n\s*", " ", script)
@@ -348,7 +382,7 @@ class ScriptRunner:
 				query = query[1:]
 			try:
 				cursor.execute(query)
-			except OperationalError, msg:
+			except DatabaseError, msg:
 				if failOk:
 					gavo.logger.debug("SQL script operation %s failed (%s) -- ignoring"
 						" error on your request."%(query, encodeDbMsg(msg)))

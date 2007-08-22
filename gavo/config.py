@@ -23,6 +23,7 @@ inputsDir: inputs
 cacheDir: cache
 logDir: logs
 tempDir: tmp
+logLevel: info
 
 [parsing]
 xmlFragmentPath: %(inputsDir)s/__common__
@@ -42,6 +43,8 @@ templateRoot: %(rootDir)s/web/querulator/templates
 fitspreview: %(rootDir)s/web/bin/fitspreview
 
 [db]
+interface: pgsql
+# or psycopg2
 profilePath: ~/.gavo:%(configdir)s
 msgEncoding: utf-8
 
@@ -68,9 +71,11 @@ class DbProfile(record.Record):
 	"""
  	def __init__(self):
 		record.Record.__init__(self, {
-			"dsn": None,
-			"user": None,
-			"password": None,
+			"host": "",
+			"port": "",
+			"database": record.RequiredField,
+			"user": record.RequiredField,
+			"password": record.RequiredField,
 			"allRoles": record.ListField,
 			"readRoles": record.ListField,
 		})
@@ -228,7 +233,7 @@ class Settings:
 		confParser =  ConfigParser.ConfigParser()
 		confParser.readfp(cStringIO.StringIO(_builtinConfig))
 		confParser.read([
-			os.environ.get("GAVOSETTNGS", "/etc/gavo.rc"),
+			os.environ.get("GAVOSETTINGS", "/etc/gavo.rc"),
 			os.environ.get("GAVOCUSTOM", os.path.join(
 				self._getHome(), ".gavorc"))])
 		return confParser
