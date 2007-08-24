@@ -14,6 +14,7 @@ from gavo import parsing
 from gavo.parsing import importparser
 import contextgrammar
 
+
 class ServiceDescriptor(importparser.ResourceDescriptor):
 	def __init__(self):
 		importparser.ResourceDescriptor.__init__(self)

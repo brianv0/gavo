@@ -167,6 +167,11 @@ class Template(AbstractTemplate):
 	formatting hint "product" present in the select list, it is assumed
 	that the table supports the product interface and suppressed fields
 	owner, embargo, and fsize are added.
+
+	XXX TODO: Template should be immutable, i.e., all the crap manipulating
+	query should go.  Instead, templates should return a query object with
+	all the manipulation methods.  The query object can be discarded,
+	the template could live on.
 	"""
 	def __init__(self, templatePath):
 		self.path = templatePath
@@ -176,6 +181,9 @@ class Template(AbstractTemplate):
 
 	def getPath(self):
 		return self.path
+
+	def getName(self):
+		return os.path.splitext(self.getPath())[0]
 
 	def _parseQuery(self):
 		"""parses the sql query source, setting the query attribute to
@@ -369,7 +377,21 @@ class Template(AbstractTemplate):
 				if tx:
 					condTexts.append(tx)
 		return condTexts
-	
+
+	def getConditionsAsFieldInfos(self, context):
+		"""returns a sequence of fieldInfos for the condition generators
+		defined here.
+
+		Of course, CondGens know nowhere near enough about what to expect
+		to make these fieldInfos really useful, but for simple WSDL generation
+		it should do.
+		"""
+		fieldInfos = []
+		for node in self.query.getConditions():
+			if isinstance(node, condgens.CondGen):
+				fieldInfos.extend(node.getFieldInfos())
+		return fieldInfos
+
 	def addConjunction(self, sqlCondition):
 		"""see sqlparse.Query.addConjunction.
 		"""
@@ -392,11 +414,6 @@ class Template(AbstractTemplate):
 
 	def runQuery(self, context):
 		sqlQuery, args = self.asSql(context)
-		# the following is a lousy hack.  It's not too easy coming up with
-		# something better, though
-		if sqlQuery.lower().endswith("where"):
-			raise querulator.Error("No valid query parameter found.")
-
 		querier = context.getQuerier()
 		return querier.query(sqlQuery, args).fetchall()
 

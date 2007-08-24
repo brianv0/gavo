@@ -57,7 +57,6 @@ def runChild(args, inputs):
 	This won't work on non-Posix systems.  It's not very beautiful anyway,
 	so maybe we'll want to revisit it at some point.
 	"""
-	sys.stderr.write(">>>>> %s %s\n"%(args, inputs))
 	os.chdir(os.path.dirname(args[0]))
 	pipe = popen2.Popen3([str(a) for a in args])
 	childOutput, childInput = pipe.fromchild, pipe.tochild

@@ -11,6 +11,7 @@ from gavo import utils
 import gavo
 from gavo import config
 from gavo.web import common
+from gavo.web import wsdl
 from gavo.web import querulator
 from gavo.web.querulator import forms
 from gavo.web.querulator import queryrun
@@ -88,6 +89,23 @@ def getProductThumbnail(context, subPath):
 		return "image/jpeg", _computeThumbnailNetpbm(path), {}
 
 
+def getWsdl(context, subPath):
+	"""returns very simple-minded WSDL for the given template.
+	"""
+	template = forms.Template(subPath)
+	fieldInfos = template.getConditionsAsFieldInfos(context)
+	portBinding, elements = wsdl.makeHTTPBinding(template.getName()+"votable", 
+		"run/"+template.getPath(), 
+		fieldInfos, "application/x-votable")
+	wsdlTree = wsdl.makeWSDLDefinitions(template.getName(), [
+		wsdl.makeService(template.getName(), 
+			context.getServerURL()+config.get("web", "rootURL"),
+			[portBinding])]+elements)
+	def produceOutput(outputFile):
+		wsdlTree.write(outputFile)
+	return "text/xml", produceOutput, {}
+		
+
 def getForm(context, subPath):
 	template = forms.Template(subPath)
 	return "text/html", template.asHtml(context), {}
@@ -133,6 +151,7 @@ _procConfig = {
 	"thumbnail": getProductThumbnail,
 	"query": getForm,
 	"run": processQuery,
+	"wsdl": getWsdl,
 	"masq": getMasqForm,
 	"masqrun": processMasqQuery,
 }

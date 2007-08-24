@@ -316,7 +316,6 @@ def _formatAsVoTable(template, context, stream=True, verbosity=None):
 		rows.append([formatter.format(
 				hint, "votable", item, row)
 			for item, hint in zip(row, hints)])
-	sys.stderr.write(">>>>>>>>< %d\n"%len(rows))
 
 	tdEncoding = not not context.get("tabledataEnc")
 	if stream:

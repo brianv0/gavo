@@ -76,6 +76,9 @@ class CondGen:
 	def _contextMatches(self, context):
 		return context.checkArguments(self.expectedKeys)
 
+	def getFieldInfos(self):
+		return [{"fieldName": key, "type": "text"} for key in self.expectedKeys]
+
 	def __iter__(self):
 		"""stops any iteration.
 

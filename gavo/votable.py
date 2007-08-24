@@ -29,6 +29,8 @@ except ImportError:
 	sys.stderr.write("Warning: Falling back to python elementtree\n")
 	from elementtree import ElementTree
 
+from gavo import typesystems
+
 from VOTable import Writer
 from VOTable.DataModel import *
 from VOTable import Encoders
@@ -220,34 +222,6 @@ def _getValSeq(data):
 	return vals
 
 
-def _getVoTypeForSqlType(dbtype, simpleMap={
-		"smallint": ("short", "1"),
-		"integer": ("int", "1"),
-		"int": ("int", "1"),
-		"bigint": ("long", "1"),
-		"real": ("float", "1"),
-		"float": ("float", "1"),
-		"boolean": ("boolean", "1"),
-		"double precision": ("double", "1"),
-		"double": ("double", "1"),
-		"text": ("char", "*"),
-		"char": ("char", "1"),
-		"date": ("char", "*"),
-		"timestamp": ("char", "*"),
-	}):
-	"""returns a VOTable type and a length for an SQL type description.
-	"""
-	if dbtype in simpleMap:
-		return simpleMap[dbtype]
-	else:
-		mat = re.match(r"(.*)\((\d+)\)", dbtype)
-		if mat:
-			if mat.group(1) in ["character varying", "varchar", "character",
-					"char"]:
-				return "char", mat.group(2)
-		raise Error("No VOTable type for %s"%dbtype)
-
-
 def _getFieldItemsFor(colInd, colProps):
 	"""returns a dictionary with keys for a DataModel.Field constructor.
 	"""
@@ -255,7 +229,7 @@ def _getFieldItemsFor(colInd, colProps):
 		"name": colProps["fieldName"],
 		"ID": "col%02d"%colInd,
 	}
-	type, size = _getVoTypeForSqlType(colProps["type"])
+	type, size = typesystems.sqlToVOTable(colProps["type"])
 	fieldItems["datatype"] = type
 	if size!="1":
 		fieldItems["arraysize"] = size

@@ -583,8 +583,9 @@ class LinearMapper(Macro):
 		if val==None:
 			record[self.destination] = None
 		else:
-			record[self.destination] = self.factor*float(val.replace(" ", "")
-				)+self.offset
+			if isinstance(val, basestring):
+				val = val.replace(" ", "")
+			record[self.destination] = self.factor*float(val)+self.offset
 
 
 class SimbadResolver(Macro):
