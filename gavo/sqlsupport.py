@@ -142,7 +142,6 @@ class StandardQueryMixin:
 
 		You need to commit yourself if the query changed anything.
 		"""
-		#sys.stderr.write(">>>>>> %s %s\n"%(query, data))
 		cursor = self.connection.cursor()
 		try:
 			cursor.execute(query, data)
@@ -369,19 +368,6 @@ class SimpleQuerier(StandardQueryMixin):
 		self.connection.commit()
 
 
-class ScriptMacros:
-	"""is a collection of "Macros" that can be used in SQL scripts.
-
-	The "class" here is just used as a namespace provider.   If, and
-	let's hope that's not necessary, we'll get complex macros, this
-	should go into a module.
-	"""
-	def TABLERIGHTS(tableName):
-		return "\n".join(getTablePrivSQL(tableName))
-	
-	def SCHEMARIGHTS(schema):
-		return "\n".join(getSchemaPrivSQL(schema))
-
 
 class ScriptRunner:
 	"""is an interface to run simple static scripts on the SQL data base.
@@ -396,16 +382,8 @@ class ScriptRunner:
 	def __init__(self):
 		self.connection = getDbConnection(config.getDbProfile())
 
-	def _expandScriptMacro(self, matob):
-		return eval(matob.group(1), ScriptMacros.__dict__)
-
-	def _expandScriptMacros(self, script):
-		"""expands %%%...%%% macro calls in SQL scripts
-		"""
-		return re.sub("%%%(.*?)%%%", self._expandScriptMacro, script)
-
 	def run(self, script):
-		script = self._expandScriptMacros(re.sub(r"\\\n\s*", " ", script))
+		script = re.sub(r"\\\n\s*", " ", script)
 		cursor = self.connection.cursor()
 		for query in script.split("\n"):
 			query = query.strip()
@@ -418,7 +396,7 @@ class ScriptRunner:
 				query = query[1:]
 			try:
 				cursor.execute(query)
-			except DatabaseError, msg:
+			except DbError, msg:
 				if failOk:
 					gavo.logger.debug("SQL script operation %s failed (%s) -- ignoring"
 						" error on your request."%(query, encodeDbMsg(msg)))

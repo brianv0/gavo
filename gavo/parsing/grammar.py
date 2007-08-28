@@ -51,7 +51,8 @@ class Grammar(record.Record):
 		fieldDefs.update({
 			"macros": record.ListField,     # macros to be applied
 			"rowProcs": record.ListField,   # row processors to be applied
-			"docIsRow": record.BooleanField, # apply row macros to docdict and ship it?
+			"docIsRow": record.BooleanField, # apply row macros to docdict 
+																			# and ship it?
 		})
 		record.Record.__init__(self, fieldDefs)
 		self.curInputFileName = None

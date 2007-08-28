@@ -46,6 +46,9 @@ class DataField(record.Record):
 	}
 	externallyManagedColumns = set(["tableName", "colInd"])
 
+	def __repr__(self):
+		return "<DataField %s>"%self.get_dest()
+
 	def set_primary(self, val):
 		"""implies a verbLevel of 1 if verbLevel has not been set otherwise.
 		"""
@@ -53,6 +56,18 @@ class DataField(record.Record):
 		if self.get_primary():
 			if self.get_verbLevel()==30:
 				self.set_verbLevel(1)
+
+	def set_longdescription(self, txt, mime=None):
+		if mime==None:
+			if isinstance(txt, tuple):
+				self.dataStore["longdescription"] = txt[0]
+				self.set_longmime(txt[1])
+			else:
+				self.dataStore["longdescription"] = txt
+				self.set_longmime("text/plain")
+		else:
+			self.dataStore["longdescription"] = txt
+			self.set_longmime(mime)
 
 	def getMetaRow(self):
 		"""returns a dictionary ready for inclusion into the meta table.

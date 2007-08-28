@@ -173,6 +173,161 @@ class StartEndHandler(ContentHandler):
 		self.contentsStack[-1].append(chars)
 
 
+class NamedNode:
+	"""is a helper class for NodeBuilder to change node names from
+	handling functions.
+	"""
+	def __init__(self, name, node):
+		self.name, self.node = name, node
+
+
+class NodeBuilder(ContentHandler):
+	"""a node builder is a content handler working more along the lines
+	of conventional parse tree builders.
+
+	This means that for every element we want handled, there is a method
+	_make_<elementname>(name, attrs, children) that receives the name
+	of the element (so you can reuse implementations for elements
+	behaving analogously), the attributes of the element and a list
+	of children.  The children come in a list of tuples (name, content),
+	where name is the element name and content is whatever the _build_x
+	method returned for that element.  Text nodes have a name of None.
+
+	In some cases, you want parents provide information to their children
+	while they are constructed.  This is a bit clumsy, but for such cases,
+	you can define a _start_<element> method that can leave something
+	in a dictionary through the pushProperty method that can be retrieved
+	by children through the getProperty method.  When constructing the
+	parent node, you must call popProperty on this.
+
+	As an added hack, you can register nodes for addition to the nearest
+	enclosing element of a type via registerDelayedChildren.  This is
+	provided to allow methods change the tree higher up if necessary;
+	in the context of gavo, this is used by interfaces.  Here's an
+	example:  You have <foo><bar><baz/></bar></foo>, and the handler
+	for baz decides it wants to have a Bla sibling.  It can then
+	call registerDelayedChild("bar", Bla()).
+
+	On errors during node construction, the class will call a handleError
+	method with a sys.exc_info tuple.
+	"""
+	def __init__(self):
+		ContentHandler.__init__(self)
+		self.elementStack = []
+		self.childStack = [[]]
+		self.delayedChildren = {}
+		self.properties = {}
+		self.locator = None
+
+	def registerDelayedChild(self, parentName, child, atfront=False):
+		"""adds child for addition to the next enclosing parentName element.
+		"""
+		if not self.delayedChildren.has_key(parentName):
+			self.delayedChildren[parentName] = ([], [])
+		if atfront:
+			self.delayedChildren[parentName][0].append(child)
+		else:
+			self.delayedChildren[parentName][1].append(child)
+
+	def pushProperty(self, propName, value):
+		"""makes value available to node constructors under the name propName.
+
+		It is recommended to use <element>.<name> as propname.
+		"""
+		self.properties.setdefault(propName, []).append(value)
+	
+	def popProperty(self, propName):
+		"""retrieves (and removes) the last value pushed as propName.
+		"""
+		return self.properties[propName].pop()
+	
+	def getProperty(self, propName):
+		"""returns the current value of the property propName.
+		"""
+		return self.properties[propName][-1]
+	
+	def handleError(self, exc_info):
+		raise gavo.Error("Error while parsing XML at"
+			" %d:%d (%s)"%(self.locator.getLineNumber(), 
+				self.locator.getColumnNumber(), exc_info[1]))
+	
+	def setDocumentLocator(self, locator):
+		self.locator = locator
+
+	def startElement(self, name, attrs):
+		self.elementStack.append((name, attrs))
+		self.childStack.append([])
+		if hasattr(self, "_start_"+name):
+			getattr(self, "_start_"+name)(name, attrs)
+	
+	def endElement(self, name):
+		_, attrs = self.elementStack.pop()
+		try:
+			children = self.childStack.pop()
+			if self.delayedChildren.has_key(name):
+				children[:0] = self.delayedChildren[name][0]
+				children.extend(self.delayedChildren[name][1])
+				del self.delayedChildren[name]
+			children = self._cleanTextNodes(children)
+			newNode = getattr(self, "_make_"+name)(name, attrs, children)
+			if newNode==None:
+				pass
+			elif isinstance(newNode, NamedNode):
+				self.childStack[-1].append((newNode.name, newNode.node))
+			else:
+				self.childStack[-1].append((name, newNode))
+		except:
+			self.handleError(sys.exc_info())
+
+	def characters(self, content):
+		self.childStack[-1].append((None, content))
+
+	def getResult(self):
+		return self.childStack[0][0][1]
+	
+	def getNodesDict(self, children):
+		"""returns children as a dictionary of lists.
+
+		children is a list of the type passed to the _make_xxx methods.
+		"""
+		res = {}
+		for name, val in children:
+			res.setdefault(name, []).append(val)
+
+	def getContent(self, children):
+		"""returns the entire text content of the node in a string.
+
+		This proabably won't do what you want in mixed-content models.
+		"""
+		return "".join([n[1] for n in children if n[0]==None]).strip()
+
+	def _cleanTextNodes(self, children):
+		"""joins adjacent text nodes and prunes whitespace-only nodes.
+		"""
+		cleanedChildren, text = [], []
+		for type, node in children:
+			if type==None:
+				text.append(node)
+			else:
+				if text:
+					chars = "".join(text)
+					if chars.strip():
+						cleanedChildren.append((None, chars))
+					text = []
+				cleanedChildren.append((type, node))
+		chars = "".join(text)
+		if chars.strip():
+			cleanedChildren.append((None, chars))
+		return cleanedChildren
+
+	def filterChildren(self, children, targetNode):
+		"""returns a list of children that are of type targetNode, and a
+		list of all other children.
+		"""
+		return [child for child in children if child[0]==targetNode
+			], [child for child in children if child[0]!=targetNode]
+
+
 class DummyClass:
 	"""is a class that just prints out all method calls with their arguments.
 

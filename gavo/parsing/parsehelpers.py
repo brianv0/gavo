@@ -27,9 +27,16 @@ class RowFunction:
 	def getName():
 		return "Uncallable abstract row function"
 
-	def addArgument(self, argName, srcName, value):
+	def addArgument(self, argName, srcName=None, value=None):
 		"""adds an argument that is filled from a field of current record.
+
+		There are two calling conventions here for historical reasons:
+		Either you give the name of the argument, the name of the source
+		field and a constant value separately (with None for the source
+		field to use value), or you pass one tuple with the complete information.
 		"""
+		if isinstance(argName, tuple):
+			argName, srcName, value = argName
 		if srcName:
 			self.colArguments.append((argName.encode("ascii"), srcName))
 		else:

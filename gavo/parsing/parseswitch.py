@@ -19,6 +19,7 @@ from gavo import config
 from gavo import sqlsupport
 from gavo import logger
 from gavo.parsing import columngrammar
+from gavo.parsing import parsehelpers
 from gavo.parsing import resource
 
 
@@ -156,7 +157,9 @@ class Table:
 		tableName = self.recordDef.get_table()
 		tableWriter = sqlsupport.TableWriter(tableName,
 			self.recordDef.get_items())
-		tableWriter.deleteMatching(self.recordDef.get_owningCondition())
+		colName, colVal = self.recordDef.get_owningCondition()
+		tableWriter.deleteMatching((colName, parsehelpers.atExpand(colVal, {},
+			self.recordDef.get_FieldComputer())))
 		return tableWriter
 
 	def _exportSharedTable(self):

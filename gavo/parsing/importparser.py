@@ -20,7 +20,7 @@ from gavo import logger
 from gavo import interfaces
 from gavo import datadef
 from gavo import config
-import gavo.parsing
+from gavo import parsing
 from gavo.parsing import resource
 from gavo.parsing import macros
 from gavo.parsing import processors
@@ -28,6 +28,7 @@ from gavo.parsing import resproc
 from gavo.parsing import conditions
 from gavo.parsing import typeconversion
 from gavo.parsing import parsehelpers
+from gavo.parsing.grammar import Grammar
 from gavo.parsing.cfgrammar import CFGrammar
 from gavo.parsing.regrammar import REGrammar
 from gavo.parsing.columngrammar import ColumnGrammar
@@ -48,21 +49,25 @@ class FieldComputer:
 	"""is a container for various functions computing field values.
 
 	The idea is that you can say ...source="@bla" in your field
-	definiton and RecordBuilder.strToVal will call bla to obtain a literal
-	for the field value, passing it the entire row dictionary as
-	produced by the parser.
+	definiton and RecordBuilder.strToVal will call bla to obtain a
+	literal for the field value, passing it the entire row dictionary
+	as produced by the parser.
 
-	The FieldComputer has a (weak) reference to the data descriptor
-	and thus to the full grammar and the full semantics, so you
-	should be able to compute quite a wide range of values.  However:
-	If there's an alternative, steer clear of computed fields...
+	The FieldComputer must be bound to a data descriptor through
+	the bind method.  Through it, it can access the full grammar
+	and the full semantics, so you should be able to compute quite
+	a wide range of values.  However: If there's an alternative,
+	steer clear of computed fields...
 
 	To define new field computing functions, just add a method named
 	_fc_<your name> receiving the row dictionary in this class.
 	"""
-	def __init__(self, dataDescriptor):
-		self.dataDescriptor = weakref.proxy(dataDescriptor)
+	def __init__(self):
+		self.dataDescriptor = None
 		self.curFile = None
+
+	def bind(self, dataDescriptor):
+		self.dataDescriptor = weakref.proxy(dataDescriptor)
 
 	def compute(self, cfname, rows, *args):
 		return getattr(self, "_fc_"+cfname)(rows, *args)
@@ -122,6 +127,12 @@ class FieldComputer:
 		"""
 		fullPath = self.dataDescriptor.get_Grammar().getCurFileName()
 		return os.path.getsize(fullPath)
+
+	def _fc_schemaq(self, rows, tableName):
+		"""returns the argument qualified with the resource's schema.
+		"""
+		return "%s.%s"%(self.dataDescriptor.getResource().get_schema(),
+			tableName)
 
 	def getDocs(self, underliner):
 		docItems = []
@@ -272,27 +283,17 @@ class DataDescriptor(record.Record):
 			"Grammar": record.RequiredField,
 			"Semantics": record.RequiredField,
 			"id": record.RequiredField,        # internal id of the data set.
-			"FieldComputer": record.ComputedField,  # for @-expansion
+			"FieldComputer": None,  # for @-expansion
 			"items": record.ListField,
 			"macros": record.ListField,
 		}, initvals)
 		self.resource = parentResource
-		self.fieldComputer = FieldComputer(self)
 
 	def __repr__(self):
 		return "<DataDescriptor id=%s>"%self.get_id()
 
 	def copy(self):
-		"""returns a semi-deep copy of self.
-
-		semi-deep means that the local lists are copied over, but
-		mutables in dependent data structure (in particular grammar and
-		semantics) are not.  We may want to change this when we get an
-		idea of how to notate the intent of changing them in the resource
-		descriptor.
-
-		Until that time, changing anything in Grammar or Semantics will
-		affect the original owner.
+		"""returns a deep copy of self.
 		"""
 		nd = DataDescriptor(self.resource, 
 			source=self.get_source(),
@@ -301,18 +302,20 @@ class DataDescriptor(record.Record):
 		for item in self.get_items(): nd.addto_items(item)
 		for macro in self.get_macros(): nd.addto_macros(macro)
 		try:
-			nd.set_Grammar(self.get_Grammar())
+			nd.set_Grammar(self.get_Grammar().copy())
 		except KeyError:
 			pass
 		try:
-			nd.set_Semantics(self.get_Semantics())
+			nd.set_Semantics(self.get_Semantics().copy())
 		except KeyError:
 			pass
+		nd.set_FieldComputer(FieldComputer())
 		return nd
 
-	def get_FieldComputer(self):
-		return self.fieldComputer
-
+	def set_FieldComputer(self, fieldComputer):
+		fieldComputer.bind(self)
+		self.dataStore["FieldComputer"] = fieldComputer
+		
 	def get_source(self):
 		if self.dataStore["source"]:
 			return os.path.join(self.resource.get_resdir(), 
@@ -356,11 +359,10 @@ class DataDescriptor(record.Record):
 
 		The function raises a resource.ValidationError with an appropriate message
 		if not.
-
-		TODO: Refactor, using common stuff from RecordDef and DataSet (macros,
-		validate &c) -- no, crap.  Documents shouldn't be validated, only
-		rows should, since documents never go into the db.
 		"""
+		# TODO: Refactor, using common stuff from RecordDef and DataSet (macros,
+		# validate &c) -- no, crap.  Documents shouldn't be validated, only
+		# rows should, since documents never go into the db.
 		for field in self.get_items():
 			if not field.get_optional() and record.get(field.get_dest())==None:
 				raise resource.ValidationError(
@@ -371,7 +373,7 @@ class ResourceDescriptor(record.Record):
 	"""is a container for all information necessary to import a resource into
 	a VO data pool.
 	"""
-	def __init__(self):
+	def __init__(self, **initvals):
 		record.Record.__init__(self, {
 			"resdir": record.RequiredField, # base directory for source files
 			"dataSrcs": record.ListField,   # list of data sources
@@ -381,7 +383,7 @@ class ResourceDescriptor(record.Record):
 			"schema": None,    # Name of schema for that resource, defaults
 			                   # to basename(resdir)
 			"systems": coords.CooSysRegistry(),
-		})
+		}, initvals)
 		
 	def set_resdir(self, relPath):
 		"""sets resource directory, qualifing it and making sure
@@ -405,49 +407,19 @@ class ResourceDescriptor(record.Record):
 				return dataSrc
 		raise KeyError(id)
 
-def catchErrors(fun):
-	def wrappedFun(self, *args, **kwargs):
-		try:
-			return fun(self, *args, **kwargs)
-		except Exception, msg:
-			if gavo.parsing.verbose:
-				traceback.print_exc()
-			raise gavo.Error("Parse error in resource descriptor at"
-				" %d:%d (%s)"%(self.locator.getLineNumber(), 
-					self.locator.getColumnNumber(), msg))
-	return wrappedFun
 
-
-class RdParser(utils.StartEndHandler):
+class RdParser(utils.NodeBuilder):
 	def __init__(self):
-		utils.StartEndHandler.__init__(self)
-		self.locator = None
-		self.dataSrcStack = []
-		self.callableStack = []
-		self.fieldContainerStack = []
-		self.macroContainerStack = []
-
-	def _keepInherited(self, attrs):
-		"""returns true if attrs has a field keep with a true boolean literal.
-
-		This is used by all mutable elements that can be inherited in
-		a data descriptor to decide if a new element is to be instanciated
-		or if a copy should be inserted.
-		"""
-		return record.parseBooleanLiteral(attrs.get("keep", "False"))
-
-	def setDocumentLocator(self, locator):
-		self.locator = locator
-
-	def _start_ResourceDescriptor(self, name, attrs):
+		utils.NodeBuilder.__init__(self)
 		self.rd = ResourceDescriptor()
-		self.rd.set_resdir(attrs["srcdir"])
-	
-	def _end_schema(self, name, attrs, content):
-		self.rd.set_schema(content)
+
+	def handleError(self, exc_info):
+		if parsing.verbose:
+			traceback.print_exception(*exc_info)
+		utils.NodeBuilder.handleError(self, exc_info)
 
 	def _getDDById(self, id):
-		"""returns the data descriptor that has id.
+		"""returns the data descriptor with id.
 
 		If there's a : in id, the stuff in front of the colon is
 		an inputs-relative path to another resource descriptor,
@@ -460,200 +432,226 @@ class RdParser(utils.StartEndHandler):
 			rd = self.rd
 		return rd.getDataById(id)
 
+	def _processChildren(self, parent, name, childMap, children):
+		"""adds children to parent.
+
+		Parent is some class (usually a record.Record instance),
+		childMap maps child names to methods to call the children with,
+		and children is a sequence as passed to the _make_xxx methods.
+
+		The function returns parent for convenience.
+		"""
+		for childName, val in children:
+			try:
+				childMap[childName](val)
+			except KeyError:
+				raise Error("%s elements may not have %s children"%(
+					name, childName))
+		return parent
+
+	def _make_ResourceDescriptor(self, name, attrs, children):
+		self.rd.set_resdir(attrs["srcdir"])
+		self._processChildren(self.rd, name, {
+			"Data": self.rd.addto_dataSrcs,
+			"DataProcessor": self.rd.addto_processors,
+			"recreateAfter": self.rd.addto_dependents,
+			"script": self.rd.addto_scripts,
+			"schema": self.rd.set_schema,
+		}, children)
+		# XXX todo: coordinate systems
+		return self.rd
+
 	def _start_Data(self, name, attrs):
+		# Macros and such need a field computer that has to reside in
+		# a DataDescriptor instance.  Since that does not exist when they
+		# are constructed, we leave an unbound FieldComputer in the property
+		# Data.fieldComputer and bind it when we construct the DataDescriptor
+		self.pushProperty("Data.fieldComputer", FieldComputer())
+
+	def _make_Data(self, name, attrs, children):
 		if attrs.has_key("extends"):
-			self.curDD = self._getDDById(attrs["extends"]).copy()
+			dd = self._getDDById(attrs["extends"]).copy()
 		else:
-			self.curDD = DataDescriptor(self.rd)
-		self.curDD.set_source(attrs.get("source"))
-		self.curDD.set_sourcePat(attrs.get("sourcePat"))
-		self.curDD.set_id(attrs.get("id"))
-		self.rd.addto_dataSrcs(self.curDD)
-		self.dataSrcStack.append(self.curDD)
-		self.fieldContainerStack.append(self.curDD)
-		self.macroContainerStack.append(self.curDD)
-
-	def _end_Data(self, name, attrs, content):
-		self.dataSrcStack.pop()
-		self.fieldContainerStack.pop()
-		self.macroContainerStack.pop()
-
-	@catchErrors
-	def _startGrammar(self, grammarClass, attrs):
-		if self._keepInherited(attrs):
-			self.curGrammar = self.curDD.get_Grammar().copy()
-		else:
-			self.curGrammar = grammarClass()
-			if attrs.has_key("docIsRow"):
-				self.curGrammar.set_docIsRow(attrs["docIsRow"])
-		self.dataSrcStack[-1].set_Grammar(self.curGrammar)
-		self.macroContainerStack.append(self.curGrammar)
-
-	def _start_CFGrammar(self, name, attrs):
-		self._startGrammar(CFGrammar, attrs)
-
-	def _start_REGrammar(self, name, attrs):
-		self._startGrammar(REGrammar, attrs)
-		self.curGrammar.set_numericGroups(attrs.get("numericGroups", "False"))
-
-	def _start_ColumnGrammar(self, name, attrs):
-		self._startGrammar(ColumnGrammar, attrs)
-		self.curGrammar.set_topIgnoredLines(attrs.get(
-			"topIgnoredLines", 0))
-		self.curGrammar.set_booster(attrs.get(
-			"booster"))
-
-	def _start_KeyValueGrammar(self, name, attrs):
-		self._startGrammar(KeyValueGrammar, attrs)
-
-	def _start_FitsGrammar(self, name, attrs):
-		self._startGrammar(FitsGrammar, attrs)
-		self.curGrammar.set_qnd(attrs.get("qnd", "False"))
-
-	def _start_NullGrammar(self, name, attrs):
-		self._startGrammar(NullGrammar, attrs)
-
-	def _endGrammar(self, name, attrs, content):
-		self.macroContainerStack.pop()
+			dd = DataDescriptor(self.rd)
+		dd.set_source(attrs.get("source"))
+		dd.set_sourcePat(attrs.get("sourcePat"))
+		dd.set_FieldComputer(self.popProperty("Data.fieldComputer"))
+		dd.set_id(attrs.get("id"))
+		return self._processChildren(dd, name, {
+			"Field": dd.addto_items,
+			"Semantics": dd.set_Semantics,
+			"Macro": dd.addto_macros,
+			"Grammar": dd.set_Grammar,
+		}, children)
 	
-	_end_CFGrammar = _end_REGrammar = _end_ColumnGrammar = \
-		_end_KeyValueGrammar = _end_FitsGrammar = _end_NullGrammar = _endGrammar
+	def _makeGrammar(self, grammarClass, attrs, children):
+		"""internal base method for all grammar producing elements.
+		"""
+		grammar = grammarClass()
+		grammar.setExtensionFlag(attrs.get("keep", "False"))
+		if attrs.has_key("docIsRow"):
+			grammar.set_docIsRow(attrs["docIsRow"])
+		return self._processChildren(grammar, grammarClass.__name__, {
+			"Macro": grammar.addto_macros,
+		}, children)
+	
+	def _make_CFGrammar(self, name, attrs, children):
+		return utils.NamedNode("Grammar",
+			self._makeGrammar(CFGrammar, attrs, children))
+	
+	def _make_REGrammar(self, name, attrs, children):
+		grammar = self._makeGrammar(REGrammar, attrs, children)
+		grammar.set_numericGroups(attrs.get("numericGroups", "False"))
+		return utils.NamedNodes("Grammar",
+			self._processChildren(grammar, name, {
+				"rules": grammar.set_rules,
+				"documentProduction": grammar.set_documentProduction,
+				"tabularDataProduction": grammar.set_documentProduction,
+				"rowProduction": grammar.set_rowProduction,
+				"tokenizer": grammar.set_tokenizer,
+			}, children))
 
-	@catchErrors
-	def _start_Semantics(self, name, attrs):
-		if self._keepInherited(attrs):
-			self.curSemantics = self.curDD.get_Semantics().copy()
-		else:
-			self.curSemantics = Semantics()
-		self.dataSrcStack[-1].set_Semantics(self.curSemantics)
+	def _make_FitsGrammar(self, name, attrs, children):
+		grammar = self._makeGrammar(FitsGrammar, attrs, children)
+		grammar.set_qnd(attrs.get("qnd", "False"))
+		return utils.NamedNode("Grammar", grammar)
 
-	@catchErrors
-	def _start_Record(self, name, attrs):
-		if self._keepInherited(attrs):
-			self.curRecordDef = self.curSemantics.get_recordDefs()[0].copy()
-			self.curSemantics.clear_recordDefs()
-		else:
-			self.curRecordDef = resource.RecordDef()
-		self.curSemantics.addto_recordDefs(self.curRecordDef)
-		self.curRecordDef.set_table(attrs["table"])
-		self.curRecordDef.set_create(attrs.get("create", "True"))
+	def _make_ColumnGrammar(self, name, attrs, children):
+		grammar = self._makeGrammar(ColumnGrammar, attrs, children)
+		grammar.set_topIgnoredLines(attrs.get("topIgnoredLines", 0))
+		grammar.set_booster(attrs.get("booster"))
+		return utils.NamedNode("Grammar", grammar)
+
+	def _make_NullGrammar(self, name, attrs, children):
+		return utils.NamedNode("Grammar",
+			self._makeGrammar(NullGrammar, attrs, children))
+
+	def _make_KeyValueGrammar(self, name, attrs, children):
+		return utils.NamedNode("Grammar",
+			self._makeGrammar(KeyValueGrammar, attrs, children))
+	
+	def _make_Semantics(self, name, attrs, children):
+		semantics = Semantics()
+		semantics.setExtensionFlag(attrs.get("keep", "False"))
+		return self._processChildren(semantics, name, {
+			"Record": semantics.addto_recordDefs,
+		}, children)
+	
+	def _make_Record(self, name, attrs, children):
+		recDef = resource.RecordDef()
+		recDef.setExtensionFlag(attrs.get("keep", "False"))
+		recDef.set_table(attrs["table"])
+		recDef.set_create(attrs.get("create", "True"))
+		recDef.set_FieldComputer(self.getProperty("Data.fieldComputer"))
 		if name=="SharedRecord":
-			self.curRecordDef.set_shared(True)
-		self.fieldContainerStack.append(self.curRecordDef)
+			recDef.set_shared(True)
+		
+		interfaceNodes, children = self.filterChildren(children, "implements")
+		for _, (interface, args) in interfaceNodes:
+			children.extend(interface.getNodes(recDef, **args))
+			for nodeDesc in interface.getDelayedNodes(
+					recDef, **args):
+				self.registerDelayedChild(*nodeDesc)
 
-	_start_SharedRecord = _start_Record
+		record = self._processChildren(recDef, name, {
+			"Field": recDef.addto_items,
+			"constraints": recDef.set_constraints,
+			"owningCondition": recDef.set_owningCondition,
+		}, children)
 
-	def _end_Record(self, name, attrs, content):
-		self.fieldContainerStack.pop()
-
-	def _start_owningCondition(self, name, attrs):
-		self.curRecordDef.set_owningCondition((attrs["colName"], attrs["value"]))
-
-	@catchErrors
-	def _start_Field(self, name, attrs):
-		f = datadef.DataField()
-		for key, val in attrs.items():
-			f.set(key, val)
-		self.fieldContainerStack[-1].addto_items(f)
-		self.currentField = f
-
-	def _end_longdescr(self, name, attrs, content):
-		self.currentField.set_longdescription(content)
-		self.currentField.set_longmime(attrs.get("type", "text/plain"))
-
-	@catchErrors
-	def _start_Macro(self, name, attrs):
-		initArgs = dict([(str(key), value) 
-				for key, value in attrs.items()
-			if key!="name"])
-		mac = macros.getMacro(attrs["name"])(self.curDD.get_FieldComputer(),
-			**initArgs)
-		self.callableStack.append(mac)
-		self.macroContainerStack[-1].addto_macros(mac)
-
-	def _end_Macro(self, name, attrs, content):
-		mac = self.callableStack.pop()
-
-	@catchErrors
-	def _end_macrodef(self, name, attrs, code):
-		self.curGrammar.addto_macros(
-			macros.compileMacro(attrs["name"], code, self.curDD.get_FieldComputer()))
-
-	@catchErrors
-	def _start_RowProcessor(self, name, attrs):
-		proc = processors.getProcessor(attrs["name"])(
-			self.curDD.get_FieldComputer())
-		self.callableStack.append(proc)
-		self.curGrammar.addto_rowProcs(proc)
-
-	def _end_RowProcessor(self, name, attrs, content):
-		self.callableStack.pop()
-
-	@catchErrors
-	def _start_ResourceProcessor(self, name, attrs):
-		proc = resproc.getResproc(attrs["name"])()
-		self.callableStack.append(proc)
-		self.rd.addto_processors(proc)
+		return utils.NamedNode("Record", record)
 	
-	def _end_ResourceProcessor(self, name, attrs, content):
-		self.callableStack.pop()
+	_make_SharedRecord = _make_Record
 
-	def _end_arg(self, name, attrs, content):
-		self.callableStack[-1].addArgument(attrs["name"], attrs.get("source"),
-			attrs.get("value"))
-	
-	def _end_rules(self, name, attrs, contents):
-		self.curGrammar.set_rules(contents)
-	
-	def _end_documentProduction(self, name, attrs, content):
-		self.curGrammar.set_documentProduction(content.strip())
-
-	def _end_rowProduction(self, name, attrs, content):
-		self.curGrammar.set_rowProduction(content.strip())
-
-	def _end_tabularDataProduction(self, name, attrs, content):
-		self.curGrammar.set_tabularDataProduction(content.strip())
-
-	def _end_tokenizer(self, name, attrs, content):
-		self.curGrammar.set_tokenizer(content.strip(), attrs["type"])
-	
-	def _end_tokenSequence(self, name, attrs, content):
-		self.curGrammar.set_tokenSequence(content.strip())
-
-	def _end_coosys(self, name, attrs, content):
-		self.rd.get_systems().defineSystem(content, attrs.get("epoch"),
-			attrs.get("system"))
-
-	scriptTypes = set(["postCreation"])
-
-	def _end_script(self, name, attrs, content):
-		assert attrs["type"] in self.scriptTypes # Just a quick hack
-		self.rd.addto_scripts((attrs["type"], attrs.get("name", "<anonymous>"),
-			content.strip()))
-
-	def _start_implements(self, name, attrs):
+	def _make_implements(self, name, attrs, children):
 		args = dict([(key, val) for key, val in attrs.items()])
 		interfaceName = args["name"]
 		del args["name"]
-		interfaces.getInterface(interfaceName).changeRd(self, **args)
+		return interfaces.getInterface(interfaceName), args
 
-	def _start_constraints(self, name, attrs):
-		self.curConstraints = conditions.Constraints()
-		self.curRecordDef.set_constraints(self.curConstraints)
+	def _make_owningCondition(self, name, attrs, children):
+		return attrs["colName"], attrs["value"]
 
-	def _start_constraint(self, name, attrs):
-		self.curConstraint = conditions.Constraint(attrs["name"])
-		self.curConstraints.addConstraint(self.curConstraint)
+	def _make_Field(self, name, attrs, children):
+		field = datadef.DataField()
+		for key, val in attrs.items():
+			field.set(key, val)
+		return self._processChildren(field, name, {
+			"longdescr": field.set_longdescription,
+		}, children)
+	
+	def _make_longdescr(self, name, attrs, children):
+		return attrs.get("type", "text/plain"), self.getContent(children)
+	
+	def _make_Macro(self, name, attrs, children):
+		initArgs = dict([(str(key), value) 
+			for key, value in attrs.items()
+		if key!="name"])
+		macro = macros.getMacro(attrs["name"])(
+			self.getProperty("Data.fieldComputer"), **initArgs)
+		return self._processChildren(macro, name, {
+			"arg": macro.addArgument,
+		}, children)
 
-	def _start_condition(self, name, attrs):
-		self.curConstraint.addCondition(
-			conditions.makeCondition(attrs))
+	def _make_macrodef(self, name, attrs, children):
+		code = children[0][1]
+		return utils.NamedNode("Macro", macros.compileMacro(attrs["name"], code, 
+			self.getProperty("Data.fieldComputer")))
 
-	def _start_recreateAfter(self, name, attrs):
-		self.rd.addto_dependents(attrs["project"])
+	def _make_RowProcessor(self, name, attrs, children):
+		proc = processors.getProcessor(attrs["name"])(
+			self.getProperty("Data.fieldComputer"))
+		return self._processChildren(macro, name, {
+			"arg": proc.addArgument,
+		}, children)
 
-	def getResult(self):
-		return self.rd
+	def _make_arg(self, name, attrs, children):
+		return attrs["name"], attrs.get("source"), attrs.get("value")
+
+	def _make_tokenizer(self, name, attrs, children):
+		return self.getContent(children), attrs["type"]
+
+	scriptTypes = set(["postCreation"])
+
+	def _make_script(self, name, attrs, children):
+		assert attrs["type"] in self.scriptTypes # Just a quick hack
+		return (attrs["type"], attrs.get("name", "<anonymous>"),
+			self.getContent(children))
+
+	def _make_constraints(self, name, attrs, children):
+		constraints = conditions.Constraints()
+		return self._processChildren(constraints, name, {
+			"constraint": constraints.addConstraint,
+		}, children)
+	
+	def _make_constraint(self, name, attrs, children):
+		constraint = conditions.Constraint(attrs.get("name", "<anonymous>"))
+		return self._processChildren(constraint, name, {
+			"condition": constraint.addCondition,
+		}, children)
+	
+	def _make_condition(self, name, attrs, children):
+		return conditions.makeCondition(attrs)
+	
+	def _make_recreateAfter(self, name, attrs, children):
+		return attrs["project"]
+
+	def _make_coosys(self, name, attrs, children):
+		self.rd.get_systems().defineSystem(children[0][1].strip(), 
+			attrs.get("epoch"), attrs.get("system"))
+
+	def _makeTextNode(self, name, attrs, children):
+		if len(children)!=1 or children[0][0]!=None:
+			raise Error("%s nodes have text content only"%name)
+		return children[0][1]
+
+	_make_rules = \
+	_make_documentProduction = \
+	_make_rowProduction = \
+	_make_tabularDataProduction = \
+	_make_tokenSequence = \
+	_make_schema = \
+	_makeTextNode
 
 
 class InputEntityResolver(EntityResolver):
@@ -677,7 +675,7 @@ def getRd(srcPath, parserClass=RdParser):
 		utils.fatalError("Could not open descriptor %s (%s)."%(
 			srcPath, msg))
 	except Exception, msg:
-		if gavo.parsing.verbose:
+		if parsing.verbose:
 			traceback.print_exc()
 		logger.error("Exception while parsing:", exc_info=True)
 		utils.fatalError("Unexpected Exception while parsing Desriptor %s: %s."
@@ -696,7 +694,6 @@ if __name__=="__main__":
 		underliner = "."
 		if len(sys.argv)>2:
 			underliner = sys.argv[2]
-		print FieldComputer(DataDescriptor(ResourceDescriptor())
-			).getDocs(underliner)
+		print FieldComputer().getDocs(underliner)
 	else:
 		_test()

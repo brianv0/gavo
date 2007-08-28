@@ -104,6 +104,13 @@ class Record(object):
 	for the additional key, of course), that is, illegal keys raise
 	AttributeErrors.
 
+	Records also have a slightly silly inheritance mechanism.  If you
+	call setExtensionFlag(True) on a Record, you mark it as an extension.
+	When, later, this record would be overrwriting a value in an existing
+	record, it will not replace it but instead create a copy of the original
+	one and just overwrite the fields defined in the new one.  Confusing?
+	Sure.  I don't like it either.
+
 	>>> r = Record({"a": 7, "b": ListField, "c": RequiredField})
 	>>> r.addto_b(4); r.get_a(), r.get_b()
 	(7, [4])
@@ -134,12 +141,19 @@ class Record(object):
 			self._createMethods(key, default)
 		for key, value in initvals.iteritems():
 			self.set(key, value)
+		self.extensionFlag = False
 
 	def __str__(self):
 		return "<%s %s>"%(self.__class__.__name__, str(self.dataStore))
 	
 	def __repr__(self):
 		return "<%s %s>"%(self.__class__.__name__, str(self.dataStore)[:30])
+
+	def setExtensionFlag(self, extensionFlag):
+		self.extensionFlag = extensionFlag
+
+	def isExtension(self):
+		return self.extensionFlag
 
 	def copy(self):
 		"""returns a shallow copy of the record.
@@ -172,6 +186,11 @@ class Record(object):
 		def getter(self):
 			return self.dataStore[key]
 		def setter(self, value):
+			if isinstance(value, Record) and isinstance(
+					self.dataStore.get(key), Record):
+				if value.isExtension():
+					self.dataStore[key] = self.dataStore[key].copy()
+					self.dataStore[key].updateFrom(value)
 			self.dataStore[key] = value
 		return [("get_", getter), ("set_", setter)]
 
@@ -211,6 +230,18 @@ class Record(object):
 		self.keys.update(newFields)
 		for key, default in newFields.iteritems():
 			self._createMethods(key, default)
+
+	def updateFrom(self, other):
+		"""tries to update self from the other record's data store.
+
+		Updating works by extending lists and overwriting everything
+		else.
+		"""
+		for key, val in other.dataStore.iteritems():
+			if isinstance(self.dataStore.get(key), list):
+				self.dataStore[key].extend(other.dataStore[key])
+			else:
+				self.dataStore[key] = other.dataStore[key]
 
 	def immutilize(self):
 		"""makes this record "read-only".

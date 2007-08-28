@@ -3,6 +3,7 @@ This module contains code defining and processing resources.
 """
 
 import os
+import re
 import sys
 import weakref
 
@@ -47,6 +48,8 @@ class RecordDef(record.Record):
 			"table": record.RequiredField,  # name of destination table
 			"items": record.ListField,      # list of FieldDefs for this record
 			"constraints": None,        # a Constraints object rows have to satisfy
+			"FieldComputer": None,      # a FieldComputer instance of the parent
+				# data set
 			"owningCondition": None,    # a condition to select our data from
 			                            # shared tables.
 			"shared": record.BooleanField,  # is this a shared table?
@@ -114,6 +117,37 @@ class DataSet:
 			descriptor.setHandlers(table, maxRows=maxRows)
 
 
+class SqlMacroExpander(object):
+	"""is a collection of "Macros" that can be used in SQL scripts.
+
+	This is a terrible hack, but there's little in the way of alternatives
+	as far as I can see.
+	"""
+	def __init__(self, rd):
+		self.rd = rd
+		self.macrodict = {}
+		for name in dir(self):
+			if name.isupper():
+				self.macrodict[name] = getattr(self, name)
+	
+	def _expandScriptMacro(self, matob):
+		return eval(matob.group(1), self.macrodict)
+
+	def expand(self, script):
+		"""expands @@@...@@@ macro calls in SQL scripts
+		"""
+		return re.sub("@@@(.*?)@@@", self._expandScriptMacro, script)
+
+	def TABLERIGHTS(self, tableName):
+		return "\n".join(sqlsupport.getTablePrivSQL(tableName))
+	
+	def SCHEMARIGHTS(self, schema):
+		return "\n".join(sqlsupport.getSchemaPrivSQL(schema))
+	
+	def SCHEMA(self):
+		return self.rd.get_schema()
+
+
 class Resource:
 	"""is a model for a resource containing data sets and metadata.
 
@@ -179,10 +213,11 @@ class Resource:
 		for dataSet in self:
 			dataSet.exportToSql(self.getDescriptor().get_schema())
 		sqlRunner = sqlsupport.ScriptRunner()
+		sqlMacroExpander = SqlMacroExpander(self.desc)
 		for scriptType, scriptName, script in self.getDescriptor().get_scripts():
 			gavo.ui.displayMessage("Running script %s"%scriptName)
 			if scriptType=="postCreation":
-				sqlRunner.run(script)
+				sqlRunner.run(sqlMacroExpander.expand(script))
 		sqlRunner.commit()
 	
 	def rebuildDependents(self):

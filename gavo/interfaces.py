@@ -29,6 +29,13 @@ class Interface:
 
 	It is constructed with a list of dictionaries that define the fields
 	expected as (keyword) arguments to a DataField constructor.
+
+	This is used for the "default" action of interfaces: Adding new nodes
+	to RecordDefs; this is done when importparser calls the getNodes
+	method.  However, interfaces will frequently want to amend the
+	resource descriptor in other parts.  Therefore, they can register
+	delayed children (see NodeBuilder) through their getDelayedNodes
+	method.
 	"""
 	def __init__(self, fieldDicts):
 		self.fields = []
@@ -61,21 +68,22 @@ class Interface:
 				return False
 		return True
 	
-	def changeRd(self, rdParser, fieldDefs=None):
-		"""adds the interface's data field to the currently active recordDef
-		in the importparser.RdParser instance rdParser.
+	def getNodes(self, recordNode, fieldDefs=None):
+		"""returns the fields defined by this interface as list
+		of nodes suitable for a NodeBuilder.
 
-		For most interfaces, this won't be enough, so you'll probably want
-		to override it.
+		This default implementation should usually do.
 
-		If you pass the fieldDefs argument, the DataFields in there will
-		be added instead of the the DataFields defining the interface.  This
-		is convenient when you need to set defaults on fields depending
-		on the table the fields end up in.
+		If you pass the fieldDefs argument evaluating to True,
+		the DataFields in there will be added instead of the the
+		DataFields defining the interface.  This is convenient
+		when you need to set defaults on fields depending on
+		the table the fields end up in.
 		"""
-		recordDef = rdParser.curRecordDef
-		for f in fieldDefs or self.fields:
-			recordDef.addto_items(f)
+		return [("Field", f) for f in fieldDefs or self.fields]
+	
+	def getDelayedNodes(self, recordNode):
+		return []
 
 
 class Positions(Interface):
@@ -134,23 +142,19 @@ class Q3CPositions(Positions):
 	def getName():
 		return "q3cpositions"
 
-	def changeRd(self, rdParser):
-		Positions.changeRd(self, rdParser)
-		schema = rdParser.rd.get_schema()
-		tableName = "%s.%s"%(schema, rdParser.curRecordDef.get_table())
-		rdParser.rd.addto_scripts(("postCreation", "q3cindex",
+	def changeRd(self, recordNode):
+		yield "script", ("postCreation", "q3cindex",
 			"\n".join([
 				"BEGIN",
-				"-DROP INDEX %(schema)s.%(indexName)s",
+				"-DROP INDEX @@@SCHEMA()@@@.%(indexName)s",
 				"COMMIT",
 				r"CREATE INDEX %(indexName)s ON %(tableName)s "
 				"(q3c_ang2ipix(alphaFloat, deltaFloat))",
 				"CLUSTER %(indexName)s ON %(tableName)s",
 				"ANALYZE %(tableName)s"])%{
 					"indexName": "q3c_"+tableName.replace(".", "_"),
-					"tableName": tableName,
-					"schema": schema,
-					}))
+					"tableName": recordNode.get_table(),
+					})
 
 
 class Products(Interface):
@@ -201,16 +205,16 @@ class Products(Interface):
 				"tablehead": "File size"},
 		])
 
-	def _insertProductTable(self, rdParser):
+	def getDelayedNodes(self, recordNode):
 		"""sets up exporting the products to the product table by
 		prepending a shared record definition to the current recordDef.
 		"""
-		qualifiedTableName ="%s.%s"%(rdParser.rd.get_schema(), 
-			rdParser.curRecordDef.get_table())
+		sourceTable = "@schemaq,%s"%recordNode.get_table()
 		productTable = resource.RecordDef()
 		productTable.set_shared(True)
 		productTable.set_table("products")
-		productTable.set_owningCondition(("sourceTable", qualifiedTableName))
+		productTable.set_FieldComputer(recordNode.get_FieldComputer())
+		productTable.set_owningCondition(("sourceTable", sourceTable))
 			
 		for fieldDict in [
 				{"dest": "key", "primary": "True", "source": "prodtblKey",
@@ -218,15 +222,9 @@ class Products(Interface):
 				{"dest": "owner", "source": "prodtblOwner", "dbtype": "text"},
 				{"dest": "embargo", "dbtype": "date", "source": "prodtblEmbargo"},
 				{"dest": "accessPath", "source": "prodtblPath", "dbtype": "text"},
-				{"dest": "sourceTable", "default": qualifiedTableName,
-					"dbtype": "text"}]:
+				{"dest": "sourceTable", "default": sourceTable, "dbtype": "text"}]:
 			productTable.addto_items(DataField(**fieldDict))
-		rdParser.curSemantics.addto_recordDefs(productTable, infront=True)
-
-	def changeRd(self, rdParser):
-		Interface.changeRd(self, rdParser)
-		self._insertProductTable(rdParser)
-
+		yield "Semantics", ("Record", productTable), True
 
 getInterface = utils.buildClassResolver(Interface, globals().values(),
 	instances=True)
