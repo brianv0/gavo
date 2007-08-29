@@ -213,7 +213,7 @@ class REGrammar(grammar.Grammar):
 		tokens = self.get_tokenizer()(rawRow)
 		return dict((str(ct), token) for ct, token in enumerate(tokens))
 
-	def _iterRows(self):
+	def _iterRows(self, parseContext):
 		"""applies the RE for rows to src until its end is reached.
 		"""
 		if self.get_numericGroups():
@@ -247,11 +247,11 @@ class REGrammar(grammar.Grammar):
 					curPos = mat.end()
 
 
-	def _setupParse(self):
+	def _setupParse(self, parseContext):
 		self._buildREs()
 	
-	def _getDocumentRow(self):
-		src = self.inputFile.read()
+	def _getDocdict(self, parseContext):
+		src = parseContext.sourceFile.read()
 		mat = self.documentRe.match(src)
 		self.tabularData = mat.group(self.get_tabularDataProduction())
 		return mat.groupdict()
@@ -316,5 +316,3 @@ if __name__=="__main__":
 					@(individualnotenr,cardLit)? \|\s*
 """)
 	import sys
-	g.setRowHandler(lambda d:sys.stdout.write(str(d)+"\n"))
-	g.parse("../../inputs/arihcp01/arihcp01.part")

@@ -79,16 +79,16 @@ class ColumnGrammar(grammar.Grammar):
 			"local": record.BooleanField,
 		})
 
-	def _iterRows(self):
+	def _iterRows(self, parseContext):
 		for i in range(int(self.get_topIgnoredLines())):
-			self.inputFile.readline()
+			parseContext.sourceFile.readline()
 		while True:
-			ln = self.inputFile.readline()
+			ln = parseContext.sourceFile.readline()
 			if not ln:
 				break
 			yield ColumnExtractor(ln[:-1])
 
-	def _getDocumentRow(self):
+	def _getDocdict(self, parseContext):
 		return {}
 
 

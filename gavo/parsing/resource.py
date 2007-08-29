@@ -48,8 +48,6 @@ class RecordDef(record.Record):
 			"table": record.RequiredField,  # name of destination table
 			"items": record.ListField,      # list of FieldDefs for this record
 			"constraints": None,        # a Constraints object rows have to satisfy
-			"FieldComputer": None,      # a FieldComputer instance of the parent
-				# data set
 			"owningCondition": None,    # a condition to select our data from
 			                            # shared tables.
 			"shared": record.BooleanField,  # is this a shared table?
@@ -97,24 +95,44 @@ class RecordDef(record.Record):
 
 
 class DataSet:
-	"""is a collection of all Tables coming from one source.
+	"""is a collection of the data coming from one source.
+
+	Think of a DataSet as the concrete object instanciated from a
+	DataDescriptor (a Data element in a resource desciptor).
+
+	As such, it contains the tables (which are "instances" of the
+	Records in Semantics elements) and the global data parsed from
+	the document (docRec with metadata docFields).
 	"""
-	def __init__(self, id, tables):
+	def __init__(self, dataDescriptor, tables):
+		self.dataDescriptor = dataDescriptor
+		self.id = self.dataDescriptor.get_id()
 		self.tables = tables
-		self.id = id
+		self.docFields = self.dataDescriptor.get_items()
+		self.docRec = {}
 
 	def getId(self):
-		return self.id
+		return self.dataDescriptor.get_id()
+
+	def getTables(self):
+		return self.tables
+
+	def getDescriptor(self):
+		return self.dataDescriptor
+
+	def updateDocRec(self, docRec):
+		self.docRec.update(docRec)
+
+	def getDocRec(self):
+		return self.docRec
+	
+	def iterParseContexts(self):
+		return self.dataDescriptor.iterParseContexts(self)
 
 	def exportToSql(self, schema):
 		for table in self.tables:
 			table.exportToSql(schema)
 
-	def setHandlers(self, descriptor, maxRows):
-		"""makes descriptor set up handlers for all tables belonging to self.
-		"""
-		for table in self.tables:
-			descriptor.setHandlers(table, maxRows=maxRows)
 
 
 class SqlMacroExpander(object):

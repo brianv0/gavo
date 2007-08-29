@@ -24,25 +24,18 @@ class KeyValueGrammar(grammar.Grammar):
 		})
 		self.set_docIsRow(True)
 	
-	def _parse(self, inputFile):
-		"""parses the inputFile and returns the parse result as suitable for
-		row handlers.
-		"""
+	def parse(self, parseContext):
 		recSplitter = re.compile("[%s]"%self.get_pairSeparators())
 		pairSplitter = re.compile("([^%s]+)[%s](.*)"%(
 			self.get_kvSeparators(), self.get_kvSeparators()))
-		data = inputFile.read()
+		data = parseContext.sourceFile.read()
 		re.sub(self.get_commentPattern(), "", data)
 		items = {}
 		for rec in recSplitter.split(data):
 			if rec.strip():
 				key, value = pairSplitter.match(rec).groups()
 				items[key.strip()] = value.strip()
-		self.handleDocument(items)
-	
-	def setRowHandler(self, callable):
-		if callable:
-			raise Error("KvGrammars can have no row handlers (yet)")
+		self.handleDocdict(items, parseContext)
 	
 	def enableDebug(self, debugProductions):
 		pass

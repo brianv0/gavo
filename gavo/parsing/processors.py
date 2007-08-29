@@ -16,9 +16,7 @@ from gavo.parsing import parsehelpers
 class RowProcessor(parsehelpers.RowFunction):
 	"""is an abstract base class for all row processors.
 	"""
-	def __call__(self, record):
-		kwargs = self._buildArgDict(record)
-		return self._makeRecords(record, **kwargs)
+	pass
 
 
 class RowExpander(RowProcessor):
@@ -36,7 +34,7 @@ class RowExpander(RowProcessor):
 	def getName():
 		return "expandRow"
 	
-	def _makeRecords(self, record, lowerInd, upperInd, fieldName):
+	def _compute(self, record, lowerInd, upperInd, fieldName):
 		try:
 			lowerInd = int(lowerInd)
 			upperInd = int(upperInd)
@@ -69,20 +67,20 @@ class DateExpander(RowProcessor):
 	* end -- the end date
 	* hrInterval -- a float literal specifying how many hours should be between
 	  the generated timestamps
-	>>> m = DateExpander(None, [("start", "start", ""), ("end", "end", ""),
+	>>> m = DateExpander([("start", "start", ""), ("end", "end", ""),
 	...  ("hrInterval", "", "24")], destination="genDate")
 	>>> r = {"start": "1067-10-1", "end": "1067-10-3"}
-	>>> m(r); r
+	>>> m(None, r); r
 	"""
 	@staticmethod
 	def getName():
 		return "expandDateRange"
 	
-	def __init__(self, fieldComputer, argTuples=[], destination="genDate"):
-		RowProcessor.__init__(self, fieldComputer, argTuples)
+	def __init__(self, argTuples=[], destination="genDate"):
+		RowProcessor.__init__(self, argTuples)
 		self.destination = destination
 	
-	def _makeRecords(self, record, start=None, end=None, hrInterval=24):
+	def _compute(self, record, start=None, end=None, hrInterval=24):
 		stampTime = DateTime.Parser.DateTimeFromString(start)
 		endTime = DateTime.Parser.DateTimeFromString(end)
 		interval = DateTime.TimeDelta(hours=float(hrInterval))

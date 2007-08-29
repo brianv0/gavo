@@ -63,11 +63,11 @@ class Macro(parsehelpers.RowFunction):
 	to row dictionaries (i.e. the output of a grammar).
 
 	A Macro is used by calling it with the rowdict it is to change as
-	its single argument.  Derived classes must define a _changeRecord
+	its single argument.  Derived classes must define a _compute
 	method that receives the RowFunction's arguments as keyword
 	arguments.
 
-	_changeRecord methods work through side effects (well, changing
+	_compute methods work through side effects (well, changing
 	the record...).  Any return values are discarded.
 
 	Macros should, as a rule, be None-clear, i.e. shouldn't crap out
@@ -77,12 +77,7 @@ class Macro(parsehelpers.RowFunction):
 	other exceptions escape.  It is not the macro's job to validate
 	non-null constraints.
 	"""
-	def __call__(self, record):
-		try:
-			self._changeRecord(record, **self._buildArgDict(record))
-		except TypeError, msg:
-			raise gavo.Error("Illegal call to macro %s (%s)"%(
-				self.getName(), msg))
+	pass
 
 
 class EquatorialPositionConverter(Macro):
@@ -117,31 +112,32 @@ class EquatorialPositionConverter(Macro):
 	__common__/positionfields.template.  If you change anything here,
 	change it there, too.  And use that template when you use this macro.
 
-	>>> m = EquatorialPositionConverter(None, [("alpha", "alphaRaw", ""),
+	>>> m = EquatorialPositionConverter([("alpha", "alphaRaw", ""),
 	... ("delta", "deltaRaw", "")])
 	>>> r = {"alphaRaw": "00 02 32", "deltaRaw": "+45 30.6"} 
-	>>> m(r)
+	>>> m(None, r)
 	>>> str(r["alphaFloat"]), str(r["deltaFloat"]), str(r["c_x"]), str(r["c_y"])
 	('0.633333333333', '45.51', '0.700741955529', '0.00774614323406')
-	>>> m = EquatorialPositionConverter(None, [("alpha", "alphaRaw", ""),
+	>>> m = EquatorialPositionConverter([("alpha", "alphaRaw", ""),
 	... ("delta", "deltaRaw", ""),], sepChar=":")
-	>>> r = {"alphaRaw": "10:37:19.544070", "deltaRaw": "+35:34:20.45713"}; m(r)
+	>>> r = {"alphaRaw": "10:37:19.544070", "deltaRaw": "+35:34:20.45713"}
+	>>> m(None, r)
 	>>> str(r["alphaFloat"]), str(r["deltaFloat"]), str(r["c_z"])
 	('159.331433625', '35.5723492028', '0.581730502028')
-	>>> r = {"alphaRaw": "4:38:54", "deltaRaw": "-12:7.4"}; m(r)
+	>>> r = {"alphaRaw": "4:38:54", "deltaRaw": "-12:7.4"}; m(None, r)
 	>>> str(r["alphaFloat"]), str(r["deltaFloat"])
 	('69.725', '-12.1233333333')
-	>>> m = EquatorialPositionConverter(None, [("alpha", "alphaRaw", ""), 
+	>>> m = EquatorialPositionConverter([("alpha", "alphaRaw", ""), 
 	... ("delta", "deltaRaw", "")], alphaFormat="mas", deltaFormat="mas")
-	>>> r = {"alphaRaw": "5457266", "deltaRaw": "-184213905"}; m(r)
+	>>> r = {"alphaRaw": "5457266", "deltaRaw": "-184213905"}; m(None, r)
 	>>> str(r["alphaFloat"]), str(r["deltaFloat"])
 	('1.51590722222', '-51.1705291667')
 	"""
-	def __init__(self, fieldComputer, argTuples=[], alphaFormat="hour", 
+	def __init__(self, argTuples=[], alphaFormat="hour", 
 			deltaFormat="sexag", sepChar=None, *args, **kwargs):
 		self.alphaFormat, self.deltaFormat = alphaFormat, deltaFormat
 		self.sepChar = sepChar
-		Macro.__init__(self, fieldComputer, argTuples, *args, **kwargs)
+		Macro.__init__(self, argTuples, *args, **kwargs)
 		self.coordComputer = {
 			"hour": self._hourangleToDeg,
 			"sexag": self._dmsToDeg,
@@ -153,7 +149,7 @@ class EquatorialPositionConverter(Macro):
 	def getName():
 		return "handleEquatorialPosition"
 
-	def _changeRecord(self, record, alpha, delta):
+	def _compute(self, record, alpha, delta):
 		if alpha==None or delta==None:
 			alphaFloat, deltaFloat, c_x, c_y, c_z = [None]*5
 		else:
@@ -215,12 +211,12 @@ class PMCombiner(Macro):
 	def getName():
 		return "combinePM"
 
-	def __init__(self, fieldComputer, argTuples=[], alphaFactor="1", 
+	def __init__(self, argTuples=[], alphaFactor="1", 
 			deltaFactor="1"):
-		Macro.__init__(self, fieldComputer, argTuples)
+		Macro.__init__(self, argTuples)
 		self.alphaFactor, self.deltaFactor = float(alphaFactor), float(deltaFactor)
 	
-	def _changeRecord(self, record, pmAlpha, pmDelta):
+	def _compute(self, record, pmAlpha, pmDelta):
 		if pmAlpha==None or pmDelta==None:
 			tpm = pmpa = None
 		else:
@@ -257,22 +253,22 @@ class TimestampCombiner(Macro):
 	* date -- a date literal
 	* time -- a time literal
 
-	>>> m = TimestampCombiner(None, [("date", "date", ""), ("time", "time", "")],
+	>>> m = TimestampCombiner([("date", "date", ""), ("time", "time", "")],
 	... destination="stamp")
 	>>> rec = {"date": "4.6.1969", "time": "4:22:33"}
-	>>> m(rec)
+	>>> m(None, rec)
 	>>> rec["stamp"].strftime()
 	'Wed Jun  4 04:22:33 1969'
-	>>> m = TimestampCombiner(None, [("date", "date", ""), ("time", "time", "")],
+	>>> m = TimestampCombiner([("date", "date", ""), ("time", "time", "")],
 	... timeFormat="!!secondsSinceMidnight")
 	>>> rec = {"date": "4.6.1969", "time": "32320"}
-	>>> m(rec)
+	>>> m(None, rec)
 	>>> rec["timestamp"].strftime()
 	'Wed Jun  4 08:58:40 1969'
 	"""
-	def __init__(self, fieldComputer, argTuples=[], destination="timestamp",
+	def __init__(self, argTuples=[], destination="timestamp",
 			dateFormat="%d.%m.%Y", timeFormat="%H:%M:%S"):
-		Macro.__init__(self, fieldComputer, argTuples)
+		Macro.__init__(self, argTuples)
 		self.destination = destination
 		self.timeFormat, self.dateFormat = timeFormat, dateFormat
 
@@ -294,7 +290,7 @@ class TimestampCombiner(Macro):
 	def _processDate(self, literal, format):
 		return DateTime.Date(*time.strptime(literal, format)[:3])
 
-	def _changeRecord(self, record, date, time):
+	def _compute(self, record, date, time):
 		timeObj = self._processTime(time, self.timeFormat)
 		dateObj = self._processDate(date, self.dateFormat)
 		record[self.destination] = dateObj+timeObj
@@ -316,16 +312,16 @@ class ValueCatter(Macro):
 
 	concat takes no arguments.
 
-	>>> v = ValueCatter(None, joiner="<>", argTuples=[],
+	>>> v = ValueCatter(joiner="<>", argTuples=[],
 	... sources="src1,src2,src3", destination="cat")
 	>>> r = {"src1": "opener", "src2": "catfood", "src3": "can"}
-	>>> v(r)
+	>>> v(None, r)
 	>>> r["cat"]
 	'opener<>catfood<>can'
 	"""
-	def __init__(self, fieldComputer, argTuples=[], joiner="", destination="",
+	def __init__(self, argTuples=[], joiner="", destination="",
 			sources=""):
-		Macro.__init__(self, fieldComputer, argTuples)
+		Macro.__init__(self, argTuples)
 		self.joiner, self.destination = joiner, destination
 		self.sources = self._parseSources(sources)
 
@@ -336,7 +332,7 @@ class ValueCatter(Macro):
 	def _parseSources(self, sources):
 		return [src.strip() for src in sources.split(",")]
 
-	def _changeRecord(self, record):
+	def _compute(self, record):
 		items = [record[src] for src in self.sources
 				if record[src]!=None]
 		record[self.destination] = None
@@ -358,17 +354,17 @@ class NullValuator(Macro):
 
 	mapToNone takes no arguments.
 
-	>>> n = NullValuator(None, colName="foo", nullvalue="EMPTY")
+	>>> n = NullValuator(colName="foo", nullvalue="EMPTY")
 	>>> r = {"foo": "bar", "baz": "bang"}
-	>>> n(r); r["foo"]
+	>>> n(None, r); r["foo"]
 	'bar'
 	>>> r["foo"] = "EMPTY"
-	>>> n(r); print r["foo"]
+	>>> n(None, r); print r["foo"]
 	None
 	"""
-	def __init__(self, fieldComputer, argTuples=[], nullvalue="NULL", 
+	def __init__(self, argTuples=[], nullvalue="NULL", 
 			colName=""):
-		Macro.__init__(self, fieldComputer, argTuples)
+		Macro.__init__(self, argTuples)
 		self.nullvalue = nullvalue
 		self.colName = colName
 
@@ -376,7 +372,7 @@ class NullValuator(Macro):
 	def getName():
 		return "mapToNone"
 	
-	def _changeRecord(self, record):
+	def _compute(self, record):
 		if record[self.colName]==self.nullvalue:
 			record[self.colName] = None
 
@@ -413,9 +409,9 @@ class ValueMapper(Macro):
 	matter except when it contains whitespace (a blank becomes =20) or equal
 	signs (which become =3D).
 	"""
-	def __init__(self, fieldComputer, argTuples=[], sourceName="", 
+	def __init__(self, argTuples=[], sourceName="", 
 			destination="", logFailures=False, failuresAreNone=True):
-		Macro.__init__(self, fieldComputer, argTuples)
+		Macro.__init__(self, argTuples)
 		self.map = utils.NameMap(os.path.join(config.get("inputsDir"), sourceName))
 		self.logFailures = logFailures
 		self.failuresAreNone = failuresAreNone
@@ -425,7 +421,7 @@ class ValueMapper(Macro):
 	def getName():
 		return "mapValue"
 	
-	def _changeRecord(self, record, value):
+	def _compute(self, record, value):
 		try:
 			record[self.destination] = self.map.resolve(str(value))
 		except KeyError:
@@ -451,15 +447,15 @@ class StringInterpolator(Macro):
 
 	StringInterpolators have no runtime arguments.
 
-	>>> s = StringInterpolator(None, [], destination="baz",
+	>>> s = StringInterpolator([], destination="baz",
 	... format="no %s in %s", sources="bar,foo")
 	>>> r = {"foo": "42", "bar": "23"}
-	>>> s(r); r["baz"]
+	>>> s(None, r); r["baz"]
 	'no 23 in 42'
 	"""
-	def __init__(self, fieldComputer, argTuples=[], destination="",
+	def __init__(self, argTuples=[], destination="",
 			format="", sources=""):
-		Macro.__init__(self, fieldComputer, argTuples)
+		Macro.__init__(self, argTuples)
 		self.sources = self._parseSources(sources)
 		self.format, self.destination = format, destination
 
@@ -470,7 +466,7 @@ class StringInterpolator(Macro):
 	def _parseSources(self, sources):
 		return [src.strip() for src in sources.split(",")]
 
-	def _changeRecord(self, record):
+	def _compute(self, record):
 		try:
 			record[self.destination] = self.format%tuple([record[src] 
 				for src in self.sources])
@@ -494,18 +490,18 @@ class ReSubstitutor(Macro):
 
 	* data -- the value the re should be applied to
 
-	>>> m = ReSubstitutor(None, [("data", "broken", "")], 
+	>>> m = ReSubstitutor([("data", "broken", "")], 
 	... srcRe=r"(.) \(([^)]*)\)", destRe=r"\2 \1", destination="fixed")
 	>>> r = {"broken": "r (Gunn)"}
-	>>> m(r); r["fixed"]
+	>>> m(None, r); r["fixed"]
 	'Gunn r'
 	>>> r = {"broken": "Any ol' junk"}
-	>>> m(r); r["fixed"]
+	>>> m(None, r); r["fixed"]
 	"Any ol' junk"
 	"""
-	def __init__(self, fieldComputer, argTuples=[], destination="",
+	def __init__(self, argTuples=[], destination="",
 			srcRe="", destRe=""):
-		Macro.__init__(self, fieldComputer, argTuples)
+		Macro.__init__(self, argTuples)
 		self.destination = destination
 		self.srcPat, self.destRe = re.compile(srcRe), destRe
 
@@ -513,7 +509,7 @@ class ReSubstitutor(Macro):
 	def getName():
 		return "subsRe"
 	
-	def _changeRecord(self, record, data):
+	def _compute(self, record, data):
 		if data==None:
 			record[self.destination] = None
 		else:
@@ -539,7 +535,7 @@ class ProductValueCollector(Macro):
 	def getName():
 		return "setProdtblValues"
 
-	def _changeRecord(self, record, prodtblKey, prodtblOwner, prodtblEmbargo,
+	def _compute(self, record, prodtblKey, prodtblOwner, prodtblEmbargo,
 			prodtblPath, prodtblFsize=None):
 		for keyName in ["prodtblKey", "prodtblOwner", "prodtblEmbargo", 
 				"prodtblPath", "prodtblFsize"]:
@@ -563,15 +559,15 @@ class LinearMapper(Macro):
 	  an interpretation as float literal.  It is an error to pass in
 	  non-NULL values that don't work as float literals.
 
-	>>> m = LinearMapper(None, [("val", "src", "")], destination="dest",
+	>>> m = LinearMapper([("val", "src", "")], destination="dest",
 	... factor="7.4", offset="33")
-	>>> rec = {"src": "22.3"}; m(rec)
+	>>> rec = {"src": "22.3"}; m(None, rec)
 	>>> str(rec["dest"])
 	'198.02'
 	"""
-	def __init__(self, fieldComputer, argTuples=[], destination="",
+	def __init__(self, argTuples=[], destination="",
 			factor=0, offset=0):
-		Macro.__init__(self, fieldComputer, argTuples)
+		Macro.__init__(self, argTuples)
 		self.destination = destination
 		self.factor, self.offset = float(factor), float(offset)
 
@@ -579,7 +575,7 @@ class LinearMapper(Macro):
 	def getName():
 		return "linearMap"
 	
-	def _changeRecord(self, record, val):
+	def _compute(self, record, val):
 		if val==None:
 			record[self.destination] = None
 		else:
@@ -608,9 +604,9 @@ class SimbadResolver(Macro):
 	* identifier -- something Simbad can resolve.  See macros like 
 	  interpolateString to morph your inputs.
 	"""
-	def __init__(self, fieldComputer, argTuples=[], ignoreUnknowns=False):
+	def __init__(self, argTuples=[], ignoreUnknowns=False):
 		self.ignoreUnknowns = ignoreUnknowns
-		Macro.__init__(self, fieldComputer, argTuples)
+		Macro.__init__(self, argTuples)
 		from gavo.simbadinterface import Sesame
 		self.resolver = Sesame(saveNew=True)
 	
@@ -618,7 +614,7 @@ class SimbadResolver(Macro):
 	def getName():
 		return "resolveObject"
 	
-	def _changeRecord(self, record, identifier):
+	def _compute(self, record, identifier):
 		try:
 			simbadData = self.resolver.query(identifier)
 		except KeyError:
@@ -649,29 +645,29 @@ class MxDateParser(Macro):
 	  from a previous macro application or a string containing something
 	  mxDateTime.Parse can cope with.
 	
-	>>> m = MxDateParser(None, [("date", "startDate", "")], assignments=
+	>>> m = MxDateParser([("date", "startDate", "")], assignments=
 	...   "day:startDay month:startMonth")
 	>>> r = {"startDate": "2007-07-16"}
-	>>> m(r); r
+	>>> m(None, r); r
 	{'startDate': '2007-07-16', 'startDay': 16, 'startMonth': 7}
-	>>> m = MxDateParser(None, [("date", "", "1067-10-12 13:12:00")], 
+	>>> m = MxDateParser([("date", "", "1067-10-12 13:12:00")], 
 	... assignments="day:day hour:hour")
-	>>> r = {}; m(r); r
+	>>> r = {}; m(None, r); r
 	{'day': 12, 'hour': 13}
-	>>> m = MxDateParser(None, [("date", "foo", "")], 
+	>>> m = MxDateParser([("date", "foo", "")], 
 	... assignments="jdn:jd")
-	>>> r = {"foo": DateTime.DateTime(2038, 12, 12, 11)}; m(r); str(r["jd"])
+	>>> r = {"foo": DateTime.DateTime(2038, 12, 12, 11)}; m(None, r); str(r["jd"])
 	'2465769.95833'
 	"""
-	def __init__(self, fieldComputer, argTuples=[], assignments="year:year"):
-		Macro.__init__(self, fieldComputer, argTuples)
+	def __init__(self, argTuples=[], assignments="year:year"):
+		Macro.__init__(self, argTuples)
 		self.assignments = _parseAssignments(assignments)
 	
 	@staticmethod
 	def getName():
 		return "parsemxdate"
 	
-	def _changeRecord(self, record, date):
+	def _compute(self, record, date):
 		if date==None:
 			for fieldName in self.assignments.itervalues():
 				record[fieldName] = None
@@ -713,11 +709,11 @@ class SimpleQuerier(Macro):
 	and assign the first item of the first response row to alpha,
 	and the second to delta.
 	"""
-	def __init__(self, fieldComputer, argTuples=[], assignments=None,
+	def __init__(self, argTuples=[], assignments=None,
 			table=None, column=None):
 		from gavo import sqlsupport
 		self.querier = sqlsupport.SimpleQuerier()
-		Macro.__init__(self, fieldComputer, argTuples)
+		Macro.__init__(self, argTuples)
 		self.assignments = _parseAssignments(assignments)
 		self.table, self.column = table, column
 	
@@ -725,7 +721,7 @@ class SimpleQuerier(Macro):
 	def getName():
 		return "simplequery"
 	
-	def _changeRecord(self, record, val):
+	def _compute(self, record, val):
 		dbNames, recNames = self.assignments.keys(), self.assignments.values()
 		query = "select %s from %s where %s=%%(val)s"%(
 			", ".join(dbNames), self.table, self.column)
@@ -748,8 +744,8 @@ def _fixIndentation(code, newIndent):
 	return "\n".join(fixedLines)
 
 
-def compileMacro(name, code, fieldComputer):
-	"""returns a macro of name name and code as _changeRecord body.
+def compileMacro(name, code):
+	"""returns a macro of name name and code as _compute body.
 	"""
 	code = _fixIndentation(code, "			")
 	macCode = """class Newmacro(Macro):
@@ -757,10 +753,10 @@ def compileMacro(name, code, fieldComputer):
 		def getName():
 			return "%(name)s"
 
-		def _changeRecord(self, record):
+		def _compute(self, record):
 %(code)s\n"""%vars()
 	exec(macCode)
-	return Newmacro(fieldComputer)
+	return Newmacro()
 
 getMacro = utils.buildClassResolver(Macro, globals().values())
 

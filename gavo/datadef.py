@@ -113,3 +113,50 @@ metaTableFields = [
 	DataField(dest="verbLevel", dbtype="integer", 
 		description="Level of verbosity at which to include this column"),
 ]
+
+
+class DataTransformer(record.Record):
+	"""is a generic description of a class receiving data in some format
+	and generating data in a different format.
+
+	The transformation is done through a grammar that describes how to
+	get a dictionary of global properties of the data and a list of dictionaries
+	for the "rows" of the data (the "rowdicts"), and a semantics part that says 
+	how to produce output rows complete with metadata for these rows.
+	"""
+	def __init__(self, parentResource, additionalFields={}, initvals={}):
+		baseFields = {
+			"Grammar": record.RequiredField,
+			"Semantics": record.RequiredField,
+			"id": record.RequiredField,        # internal id of the data set.
+			"items": record.ListField,
+			"macros": record.ListField,
+		}
+		baseFields.update(additionalFields)
+		record.Record.__init__(self, baseFields, initvals)
+		self.resource = parentResource
+
+	def __repr__(self):
+		return "<DataDescriptor id=%s>"%self.get_id()
+
+	def copy(self):
+		"""returns a deep copy of self.
+		"""
+		nd = DataDescriptor(self.resource, 
+			source=self.get_source(),
+			sourcePat=self.get_sourcePat(),
+			encoding=self.get_encoding())
+		for item in self.get_items(): nd.addto_items(item)
+		for macro in self.get_macros(): nd.addto_macros(macro)
+		try:
+			nd.set_Grammar(self.get_Grammar().copy())
+		except KeyError:
+			pass
+		try:
+			nd.set_Semantics(self.get_Semantics().copy())
+		except KeyError:
+			pass
+		return nd
+
+	def getResource(self):
+		return self.resource

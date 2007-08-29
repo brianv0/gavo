@@ -1,4 +1,7 @@
 """
+CURRENTLY SUSPENDED.  This isn't currently used (for lack of a use case)
+and has not been updated to reflect severe architectural changes.
+
 This module contains resource processors and their infrastructure.
 """
 

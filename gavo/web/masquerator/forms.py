@@ -41,7 +41,6 @@ class DataAdaptor:
 
 class ServiceAdaptor(DataAdaptor):
 	def _makeArguments(self, recordBuilder):
-		self.dd.validate(recordBuilder.getDocRec())
 		args = [(int(ct), val) for ct, val in recordBuilder.getDocRec().items()]
 		args.sort()
 		return [val for ct, val in args if val!=None]

@@ -36,42 +36,38 @@ class FitsGrammar(grammar.Grammar):
 		})
 		self.set_docIsRow(True)
 	
-	def _parse(self, inputFile):
+	def parse(self, parseContext):
 		"""opens the fits file and calls the document handler with the header
 		dict.
 
-		It's a major pain that we want an open file as an argument, since pyfits
-		insists on opening the files on disk.  We have to rely on the fact
-		that inputFile really correspondes to a file on disk and use Grammar's
-		getCurFileName method after closing inputFile.
+		Unfortunately, pyfits insists on getting a file name as opposed to
+		an open file as provided by parseContext.  We fix this by assuming
+		that parseContext really talks about a disk file and contains a
+		valid file name.
 		"""
-		inputFile.close()
+		parseContext.sourceFile.close()
 		if self.get_qnd():
-			self._parseFast()
+			self._parseFast(parseContext)
 		else:
-			self._parseSlow()
+			self._parseSlow(parseContext)
 
-	def _parseFast(self):
-		fName = self.getCurFileName()
+	def _parseFast(self, parseContext):
+		fName = parseContext.sourceName
 		if fName.endswith(".gz"):
 			f = gzip.open(fName)
 		else:
 			f = open(fName)
 		header = fitstools.readPrimaryHeaderQuick(f)
 		f.close()
-		self.handleDocument(dict([(key, header[key]) 
-			for key in header.ascardlist().keys()]))
+		self.handleDocdict(dict([(key, header[key]) 
+			for key in header.ascardlist().keys()]), parseContext)
 
-	def _parseSlow(self):
-		hdus = fitstools.openFits(self.getCurFileName())
+	def _parseSlow(self, parseContext):
+		hdus = fitstools.openFits(parseContext.sourceName)
 		header = hdus[int(self.get_hduIndex())].header
-		self.handleDocument(dict([(key, header[key]) 
-			for key in header.ascardlist().keys()]))
+		self.handleDocdict(dict([(key, header[key]) 
+			for key in header.ascardlist().keys()]), parseContext)
 		hdus.close()
-	
-	def setRowHandler(self, callable):
-		if callable:
-			raise gavo.Error("FitsGrammars can have no row handlers")
 	
 	def enableDebug(self, debugProductions):
 		pass

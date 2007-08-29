@@ -1,5 +1,5 @@
 """
-Code to decide how to parse with a given grammar.
+Code that abstracts the parsing process.
 
 Right now, we either simply call the parse method of the grammar or
 start a cgbooster.  More special handling may be necessary
@@ -35,7 +35,7 @@ class BoosterNotAvailable(BoosterException):
 class BoosterFailed(BoosterException):
 	pass
 
-
+# XXX TODO: Split off SQL related stuff, into Table, leave the rest as BaseTable
 class Table:
 	"""is a container for essentially homogenous data.
 
@@ -50,8 +50,9 @@ class Table:
 	(corresponding to dest in DataField) to values (which usually
 	come from the parser).
 	"""
-	def __init__(self, id, recordDef, metaOnly=False):
-		self.id = id
+	def __init__(self, dataId, recordDef, resourceDescriptor, metaOnly=False):
+		self.rd = resourceDescriptor
+		self.dataId = dataId
 		self.recordDef = recordDef
 		self.rows = []
 		self.dumpOnly = False
@@ -89,8 +90,8 @@ class Table:
 	def getRecordDef(self):
 		return self.recordDef
 
-	def getId(self):
-		return self.id
+	def getDataId(self):
+		return self.dataId
 
 	def getRow(self, key):
 		"""returns the row with the primary key key.
@@ -147,7 +148,7 @@ class Table:
 		if not self.metaOnly:
 			tableWriter = self._getOwnedTableWriter(schema)
 			gavo.ui.displayMessage("Exporting %s to table %s"%(
-				self.getId(), tableWriter.getTableName()))
+				self.getDataId(), tableWriter.getTableName()))
 			self._feedData(tableWriter.getFeeder())
 
 	def _getSharedTableWriter(self):
@@ -158,8 +159,8 @@ class Table:
 		tableWriter = sqlsupport.TableWriter(tableName,
 			self.recordDef.get_items())
 		colName, colVal = self.recordDef.get_owningCondition()
-		tableWriter.deleteMatching((colName, parsehelpers.atExpand(colVal, {},
-			self.recordDef.get_FieldComputer())))
+		tableWriter.deleteMatching((colName, parsehelpers.atExpand(
+			colVal, {}, self.rd.get_atExpander())))
 		return tableWriter
 
 	def _exportSharedTable(self):
@@ -170,7 +171,7 @@ class Table:
 		if not self.metaOnly:
 			tableWriter = self._getSharedTableWriter()
 			gavo.ui.displayMessage("Exporting %s to table %s"%(
-				self.getId(), tableWriter.getTableName()))
+				self.getDataId(), tableWriter.getTableName()))
 			self._feedData(tableWriter.getFeeder())
 
 	def exportToSql(self, schema):
@@ -192,20 +193,19 @@ class DirectWritingTable(Table):
 
 	This is evidently handy when you're talking large data sets.
 
-	To make this work, we need to know the sql schema name
-	up front, so the Table and DirectWritingTable have different constructor
-	interfaces.  Also, getRow and friends don't work (though one
+	Right now, getRow and friends don't work for these (though one
 	could, in principle, grab the stuff from the DB if it were really
 	necessary at some point).
 
 	You need to call an instance's close method when done with it.
 	"""
-	def __init__(self, id, recordDef, schema):
+	def __init__(self, id, recordDef, rd):
 		Table.__init__(self, id, recordDef)
+		self.rd = rd
 		if self.recordDef.get_shared():
 			self.tableWriter = self._getSharedTableWriter()
 		else:
-			self.tableWriter = self._getOwnedTableWriter(schema)
+			self.tableWriter = self._getOwnedTableWriter(self.rd.get_schema())
 		self.feeder = self.tableWriter.getFeeder()
 
 	def getTableName(self):
@@ -258,53 +258,51 @@ def _tryBooster(grammar, inputFileName, tableName, descriptor):
 		raise BoosterFailed()
 
 
-def _parseSource(src, grammar, descriptor, tables):
-	"""uses grammar to parse src.
+def _parseSource(parseContext):
+	"""actually executes the parse process described by parseContext.
 
 	This is the place to teach the program special tricks to bypass
 	the usual source processing using grammars.
+
+	XXX TODO: fiddle in boosting again
 	"""
-	if len(tables)==1 and isinstance(tables[0], DirectWritingTable):
-		try:
-			_tryBooster(grammar, src, tables[0].getTableName(), descriptor)
-			return
-		except BoosterNotDefined:
-			pass
-		except BoosterNotAvailable, msg:
-			gavo.ui.displayMessage("Booster defined, but not available"
-				" (%s).  Falling back to normal parse."%msg)
-		except BoosterFailed:
-			raise gavo.Error("Booster failed.")
-	grammar.parse(src)
+#	if len(tables)==1 and isinstance(tables[0], DirectWritingTable):
+#		try:
+#			_tryBooster(grammar, src, tables[0].getTableName(), descriptor)
+#			return
+#		except BoosterNotDefined:
+#			pass
+#		except BoosterNotAvailable, msg:
+#			gavo.ui.displayMessage("Booster defined, but not available"
+#				" (%s).  Falling back to normal parse."%msg)
+#		except BoosterFailed:
+#			raise gavo.Error("Booster failed.")
+	parseContext.parse()
 
 
-def _parseSources(grammar, srcDesc, descriptor, tables):
-	"""applies grammar to all sources given by descriptor.
-
-	In the standard case, neither descriptor nor tables is actually
-	needed, since everything has been set up before.  However, to
-	enable tricks in _parseSource, we pass these things through.
+def _parseSources(data):
+	"""parses all sources requrired to fill the DataSet data.
 	"""
 	counter = gavo.ui.getGoodBadCounter("Parsing source(s)", 5)
-	for src in srcDesc.iterSources():
+	for context in data.iterParseContexts():
 		try:
-			_parseSource(src, grammar, descriptor, tables)
+			_parseSource(context)
 		except gavo.StopOperation, msg:
 			gavo.logger.warning("Prematurely aborted %s (%s)."%(
-				src, str(msg).decode("utf-8")))
+				context.sourceName, str(msg).decode("utf-8")))
 			break
 		except KeyboardInterrupt:
 			logger.warning("Interrupted while processing %s.  Quitting"
-				" on user request"%src)
+				" on user request"%context.sourceName)
 			raise
 		except (UnicodeDecodeError, sqlsupport.OperationalError), msg:
 			# these are most likely due to direct writing
 			logger.error("Error while exporting %s (%s) -- aborting source."%(
-				src, str(msg)))
+				context.sourceName, str(msg)))
 			counter.hitBad()
 		except (gavo.Error, Exception), msg:
 			errMsg = ("Error while parsing %s (%s) -- aborting source."%(
-				src, str(msg).decode("utf-8")))
+				context.sourceName, str(msg).decode("utf-8")))
 			logger.error(errMsg, exc_info=True)
 			gavo.ui.displayError(errMsg)
 			counter.hitBad()
@@ -322,15 +320,14 @@ def getDataset(srcDesc, descriptor, dumpOnly=False, debugProductions=[],
 	grammar.enableDebug(debugProductions)
 	if directWriting:
 		tables = [DirectWritingTable(srcDesc.get_id(), recordDef, 
-				descriptor.get_schema())
+				descriptor)
 			for recordDef in srcDesc.get_Semantics().get_recordDefs()]
 	else:
-		tables = [Table(srcDesc.get_id(), recordDef, metaOnly)
+		tables = [Table(srcDesc.get_id(), recordDef, descriptor, metaOnly)
 			for recordDef in srcDesc.get_Semantics().get_recordDefs()]
-	data = resource.DataSet(srcDesc.get_id(), tables)
+	data = resource.DataSet(srcDesc, tables)
 	if not metaOnly:
-		data.setHandlers(srcDesc, maxRows)
-		_parseSources(grammar, srcDesc, descriptor, tables)
+		_parseSources(data)
 		if directWriting:
 			for table in tables:
 				table.close()

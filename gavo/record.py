@@ -50,6 +50,18 @@ class ListField:
 	pass
 
 
+class DictField:
+	"""is a sentinel class to signal a "registry field".
+
+	Registries are really dicts.  You have a register_<key> method taking
+	a name and a value, and a get_<key> method returning the value for
+	a key.
+
+	Do not instantiate it.  Instances of the class are *never* used.
+	"""
+	pass
+
+
 class BooleanField:
 	"""is a sentinel class to signal a field that only takes 
 	boolean values, defaulting to False.
@@ -130,6 +142,7 @@ class Record(object):
 		self.specialTypeHandlers = {
 			ComputedField: lambda key, val: [],
 			ListField: self._getListMethods,
+			DictField: self._getDictMethods,
 			BooleanField: self._getBooleanMethods,
 			TrueBooleanField: self._getBooleanMethods,
 			TristateBooleanField: self._getBooleanMethods,
@@ -156,17 +169,23 @@ class Record(object):
 		return self.extensionFlag
 
 	def copy(self):
-		"""returns a shallow copy of the record.
+		"""returns a semi-shallow copy of the record.
 
 		It's an incredible hack, but we need to replace the access methods,
 		since they contain lexical bindings, and we can't really call
 		a constructor since we don't know their arguments...
+
+		semi-shallow means that if you have mutable atomic values, these
+		will not be copied.  ListFields and DictFields are copied (shallowly),
+		though.
 		"""
 		theCopy = copy.copy(self)
 		theCopy.dataStore = self.dataStore.copy()
 		for key, value in self.keys.iteritems():
 			if value is ListField:
-				theCopy.set(key, self.get(key))
+				theCopy.dataStore[key] = self.dataStore[key][:]
+			if value is DictField:
+				theCopy.dataStore[key] = self.dataStore[key].copy()
 		for name, callable in self.createdMethods:
 			setattr(theCopy, name, new.instancemethod(callable, theCopy))
 		return theCopy
@@ -206,6 +225,14 @@ class Record(object):
 		def setter(self, value):
 			self.dataStore[key] = value[:]
 		return [("get_", getter), ("addto_", adder), ("set_", setter)]
+
+	def _getDictMethods(self, key, _):
+		self.dataStore[key] = {}
+		def getter(self, regKey):
+			return self.dataStore[key][regKey]
+		def setter(self, regKey, value):
+			self.dataStore[key][regKey] = value
+		return [("get_", getter), ("register_", setter)]
 
 	def _getBooleanMethods(self, key, default):
 		if default is BooleanField:

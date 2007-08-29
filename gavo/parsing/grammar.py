@@ -16,32 +16,23 @@ class ParseError(gavo.Error):
 class Grammar(record.Record):
 	"""is an abstract grammar.
 
-	The grammar protocol is simple: You add a rowHandler(s) and/or
-	documentHandler(s) to functions accepting a dictionary mapping
-	preterminal names to their values, and then you pass an open
-	file or a file name to parse.
+	Grammars communicate with the rest of the world through their parse
+	method that receives a ParseContext instance.
 
-	Implementations of Grammars should not override any of the
-	public methods, but they may override the built-in _parse.
-	The _parse method of the implementation then has to arrange
-	it so that the documentHandlers are called with the preterminal
-	values of the entire document in a dict, and the rowHandlers
-	with the preterminal values of each row, again in a dictionary.
-	The dicts map strings to strings.
+	Grammars not overriding parse need to define:
 
-	If they don't override the _parse method, they have to provide
-	methods 
-		* _getDocumentRow() -- returns a dict of toplevel productions
-		* _iterRows() -- iterates over all rows in the document, should
+		* _getDocdict() -- returns a dict of toplevel productions
+		* _iterRows(parseContext) -- iterates over all rows in the document, should
 		  raise a ParseError for malformed rows.
 	
 	They may provide methods
-	 * _setupParse()
-	 * _cleanupParse()
+	 * _setupParse(parseContext)
+	 * _cleanupParse(parseContext)
 	
-	The file that is to be parsed is available (as a file instance)
-	in self.inputFile.  The built-in _parse first calls _setupParse,
-	then _getDocumentRow, then _iterRows, 
+	The built-in _parse first calls _setupParse, then _getDocdict, then
+	_iterRows. 
+
+	Hand-rolled parse methods must call handleRowdict and handleDocdict.
 
 	Grammar classes should also provide an enableDebug method that
 	accepts a list of symbol names that they should print some sort
@@ -49,15 +40,13 @@ class Grammar(record.Record):
 	"""
 	def __init__(self, fieldDefs):
 		fieldDefs.update({
-			"macros": record.ListField,     # macros to be applied
-			"rowProcs": record.ListField,   # row processors to be applied
+			"macros": record.ListField,      # macros to be applied
+			"rowProcs": record.ListField,    # row processors to be applied
 			"docIsRow": record.BooleanField, # apply row macros to docdict 
-																			# and ship it?
+                                       # and ship it as a row?
 		})
 		record.Record.__init__(self, fieldDefs)
 		self.curInputFileName = None
-		self.rowHandlers = []
-		self.documentHandlers = []
 	
 	def _handleInternalError(self, exc, row):
 		if parsing.verbose:
@@ -68,25 +57,25 @@ class Grammar(record.Record):
 		gavo.ui.displayError(msg)
 		raise gavo.Error(msg)
 
-	def _parse(self, inputFile):
-		getattr(self, "_setupParse", lambda: None)()
+	def parse(self, parseContext):
+		getattr(self, "_setupParse", lambda _: None)(parseContext)
 		counter = gavo.ui.getGoodBadCounter("Importing rows", 100)
 		try:
-			row = self._getDocumentRow()
 			try:
-				self.handleDocument(row)
+				row = self._getDocdict(parseContext)
+				self.handleDocdict(row, parseContext)
 			except gavo.Error:
 				raise
 			except Exception, msg:
 				self._handleInternalError(msg, row)
-			lines = self._iterRows()
+			lines = self._iterRows(parseContext)
 			# We use this funny loop to handle exceptions raised while the
 			# grammar matches a row in the exception handlers below (it would
 			# be hard to get an appropriate row count otherwise)
 			while 1:
 				try:
 					row = lines.next()
-					self.handleRow(row)
+					self.handleRowdict(row, parseContext)
 					counter.hit()
 				except StopIteration:
 					break
@@ -109,10 +98,10 @@ class Grammar(record.Record):
 					counter.hitBad()
 					self._handleInternalError(msg, row)
 		finally:
-			getattr(self, "_cleanupParse", lambda: None)()
+			getattr(self, "_cleanupParse", lambda _: None)(parseContext)
 			counter.close()
 
-	def _runProcessors(self, rowdict):
+	def _runProcessors(self, rowdict, parseContext):
 		"""processes rowdict with all row processors and returns all
 		resulting rows.
 		"""
@@ -120,90 +109,40 @@ class Grammar(record.Record):
 		for proc in self.get_rowProcs():
 			newRows = []
 			for row in currentRows:
-				newRows.extend(proc(rowdict))
+				newRows.extend(proc(parseContext.atExpand, rowdict))
 			currentRows = newRows
 		return currentRows
 
-	def _expandMacros(self, rowdict):
+	def _expandMacros(self, rowdict, parseContext):
 		for macro in self.get_macros():
-			macro(rowdict)
+			macro(parseContext.atExpand, rowdict)
 
-	def _process(self, rowdict):
+	def _process(self, rowdict, parseContext):
 		"""runs row processors and macros on rowdict.
 		"""
-		for row in self._runProcessors(rowdict):
-			self._expandMacros(row)
+		for row in self._runProcessors(rowdict, parseContext):
+			self._expandMacros(row, parseContext)
 			yield row
 
-	def parse(self, inputFile):
-		"""parses the inputFile and returns the parse result.
-
-		inputFile may be an open file or a file name.
-		"""
-		if isinstance(inputFile, basestring):
-			self.curInputFileName = inputFile
-			inputFile = open(inputFile)
-		else:
-			try:
-				self.curInputFileName = inputFile.name
-			except AttributeError:
-				self.curInputFileName = "<not a disk file>"
-		self.inputFile = inputFile
-		self._parse(inputFile)
-		self.inputFile = None
-		self.curInputFileName = None
-
-	def getCurFileName(self):
-		"""returns the name of the file that's currently being parsed.
-
-		Of course, all kinds of funny race conditions are possible here.
-		You shouldn't care about the name anyway, and if you have to, you're
-		hosed anyway.
-
-		The function returns None if no parsing is going on.
-		"""
-		return self.curInputFileName
-
-	def addRowHandler(self, callable):
-		"""causes callable to be called whenever a table line has been
-		parsed.
-
-		Callable has to accept a dictionary mapping the names of the 
-		nonterminals found to their expansions in the table line.
-		"""
-		self.rowHandlers.append(callable)
-	
-	def addDocumentHandler(self, callable):
-		"""causes callable to be called with a dictionary of the preterminals
-		attached to the global document.
-		"""
-		self.documentHandlers.append(callable)
-
-	def handleDocument(self, docdict):
+	def handleDocdict(self, docdict, parseContext):
 		"""should be called by derived classes whenever a new document
 		has been parsed.
 
 		The argument is a dict mapping preterminal names to their values.
 		"""
 		if self.get_docIsRow():
-			self.handleRow(docdict)
+			self.handleRowdict(docdict, parseContext)
 		else:
-			if not self.documentHandlers:
-				return
-			for handler in self.documentHandlers:
-				handler(docdict)
+			parseContext.processDocdict(docdict)
 
-	def handleRow(self, rowdict):
+	def handleRowdict(self, rowdict, parseContext):
 		"""should be called by derived classes whenever a new row
 		has been parsed.
 
 		The argument is a dict mapping preterminal names to their values.
 		"""
-		if not self.rowHandlers:
-			return
-		for processedDict in self._process(rowdict):
-			for handler in self.rowHandlers:
-				handler(processedDict)
+		for processedDict in self._process(rowdict, parseContext):
+			parseContext.processRowdict(processedDict)
 
 	def enableDebug(self, aList):
 		pass

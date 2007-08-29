@@ -213,7 +213,6 @@ class Products(Interface):
 		productTable = resource.RecordDef()
 		productTable.set_shared(True)
 		productTable.set_table("products")
-		productTable.set_FieldComputer(recordNode.get_FieldComputer())
 		productTable.set_owningCondition(("sourceTable", sourceTable))
 			
 		for fieldDict in [

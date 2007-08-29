@@ -2,23 +2,33 @@
 This module contains utility classes for resource parsing.
 """
 
+import weakref
+import os
+import time
+
+from gavo import utils
+from gavo import config
+
+
 class RowFunction:
 	"""is something that operates on table rows.
 
-	Examples for this are Macros and RowProcessors.
+	Macros and RowProcessors are RowFunctions.
 
-	The addArgument(name, src, val)
-	method adds a named argument.  If src is given, the value of
-	the argument is that taken from the corresponding field in the
-	record, otherwise the argument is constant val.
+	Implementing classes have to define a method _compute taking
+	a rowdict and keyword arguments.  The names of these arguments
+	have to be defined in calls to the addArgument(name, src, val)
+	method (or addArguments).  If src is given, the value of the
+	argument is that taken from the corresponding field in the record,
+	otherwise the argument is constant val.
 
-	When given a record, _buildArgDict fills out a dictionary of the
-	required arguments.  Actually doing something with it is left to
-	the derived classes.
+	When a row function is called together with a rowdict, RowFunction
+	will compute the named arguments (including @-expansions) and
+	then call _compute with the requested arguments.  It returns
+	whatever _compute returns.
 	"""
 
-	def __init__(self, fieldComputer, argTuples=[]):
-		self.fieldComputer = fieldComputer
+	def __init__(self, argTuples=[]):
 		self.colArguments = []
 		self.constants = []
 		self.addArguments(argTuples)
@@ -51,24 +61,153 @@ class RowFunction:
 		for args in argTuples:
 			self.addArgument(*args)
 	
-	def _buildArgDict(self, rowdict):
+	def _buildArgDict(self, atExpand, rowdict):
 		args = {}
 		for name, src in self.colArguments:
-			args[name] = rowdict.get(atExpand(src, 
-				rowdict, self.fieldComputer))
+			if src[0]=="@":
+				args[name] = rowdict.get(atExpand(src, rowdict))
+			else:
+				args[name] = rowdict.get(src)
 		for name, val in self.constants:
-			args[name] = atExpand(val, rowdict, self.fieldComputer)
+			if val[0]=="@":
+				args[name] = atExpand(val, rowdict)
+			else:
+				args[name] = val
 		return args
+	
+	def __call__(self, atExpand, rowdict):
+		return self._compute(rowdict, **self._buildArgDict(atExpand, rowdict))
+
+class RDComputer:
+	"""is a container computing values of @-expansions.
+
+	The idea is that you can say "@bla, par" in some attribute values,
+	and whatever processes this will replace it with the result of
+	fc_bla(rowdict, par).
+
+	The RDComputer can substitute "general" values global to the
+	resource descriptor, like the current date, the root path of
+	the resource, the schema name.
+
+	To define new field computing functions, just add a method
+	named _fc_<your name> receiving the row dictionary and possibly
+	further string arguments (separated with commas in the call)
+	in this class.  If you deperately need to, you can do this on
+	instanciated RDComputers.
+	"""
+	def __init__(self, rd):
+		self.rd = rd
+
+	def compute(self, cfname, rows, *args):
+		return getattr(self, "_fc_"+cfname)(rows, *args)
+
+	def _fc_today(self, rows):
+		"""returns the current date.
+
+		This is available in general @-expansions.
+		"""
+		return time.strftime("%Y-%m-%d")
+
+	def _fc_schemaq(self, rows, tableName):
+		"""returns the argument qualified with the resource's schema.
+
+		This is available in general @-expansions.
+		"""
+		return "%s.%s"%(self.rd.get_schema(),
+			tableName)
+
+	def _getRelativePath(self, fullPath, rootPath):
+		"""returns rest if fullPath has the form rootPath/rest and raises an
+		exception otherwise.
+		"""
+		if not fullPath.startswith(rootPath):
+			raise Error("Full path %s does not start with resource root %s"%
+				(fullPath, rootPath))
+		return fullPath[len(rootPath):].lstrip("/")
+
+	def _fc_inputRelativePath(self, rows):
+		"""returns the current source's path relative to inputsDir
+		(or raises an error if it's not from there).
+
+		This is available in general @-expansions.
+		"""
+		fullPath = self.context.sourceName
+		rootPath = config.get("inputsDir")
+		return self._getRelativePath(fullPath, rootPath)
+
+
+class FieldComputer(RDComputer):
+	"""is a container for various functions computing field values.
+
+	The FieldComputer works like an RDComputer except that it is bound
+	to a parse context. Through it, it can access the full grammar
+	and the full semantics, so you should be able to compute quite
+	a wide range of values.
+	"""
+	def __init__(self, parseContext):
+		if parseContext==None:
+			# This is for the benefit of doc generation.  A FieldComputer without
+			# resource descriptor is pretty useless anywhere else
+			RDComputer.__init__(self, None)
+			self.context = parseContext
+		else:
+			RDComputer.__init__(self, parseContext.getDataSet().
+				getDescriptor().getResource())
+			self.context = weakref.proxy(parseContext)
+
+	def _fc_srcstem(self, rows):
+		"""returns the stem of the source file currently parsed.
+		
+		Example: if you're currently parsing /tmp/foo.bar, the stem is foo.
+		"""
+		return os.path.splitext(os.path.basename(self.context.sourceName))[0]
+
+	def _fc_lastSourceElements(self, rows, numElements):
+		"""returns the last numElements items of the current source's path.
+		"""
+		newPath = []
+		fullPath = self.context.sourceName
+		for i in range(int(numElements)):
+			fullPath, part = os.path.split(fullPath)
+			newPath.append(part)
+		newPath.reverse()
+		return os.path.join(*newPath)
+
+	def _fc_rootlessPath(self, rows):
+		"""returns the the current source's path with the resource descriptor's
+		root removed.
+		"""
+		fullPath = self.context.sourceName
+		rootPath = self.rd.get_resdir()
+		return self._getRelativePath(fullPath, rootPath)
+
+	def _fc_inputSize(self, rows):
+		"""returns the size of the current source.
+		"""
+		fullPath = self.context.sourceName
+		return os.path.getsize(fullPath)
+
+	def _fc_docField(self, rows, fieldName):
+		"""returns the value of the field fieldName in the document record.
+		"""
+		return self.context.getData().getDocRec()[fieldName]
+
+	def getDocs(self, underliner):
+		docItems = []
+		for name in dir(self):
+			if name.startswith("_fc_"):
+				docItems.append((name[4:], getattr(self, name).__doc__))
+		return utils.formatDocs(docItems, underliner)
 
 
 def atExpand(val, rowdict, fieldComputer):
 	"""expands computed fields.
 
-	If val is a string and starts with an @, the rest is
-	interpreted as a field computer function, the value of
-	which is returned, unless val starts with two @ signs,
-	in which case the first of these ats is stripped (poor
-	man's escaping).  Other values are returned unchanged.
+	If val is a string and starts with an @, the rest is passed to
+	computeFunc (which mostly is the compute method of a FieldComputer
+	instance), the value of which is returned, unless val starts with
+	two @ signs, in which case the first of these ats is stripped
+	(poor man's escaping).	Other values are returned unchanged.
 	"""
 	if not isinstance(val, basestring):
 		return val
@@ -81,3 +220,11 @@ def atExpand(val, rowdict, fieldComputer):
 		return fieldComputer.compute(desc[0], rowdict, *desc[1:])
 	return val
 
+
+if __name__=="__main__":
+	import sys
+	if len(sys.argv)>1 and sys.argv[1]=="docs":
+		underliner = "."
+		if len(sys.argv)>2:
+			underliner = sys.argv[2]
+		print FieldComputer(None).getDocs(underliner)
