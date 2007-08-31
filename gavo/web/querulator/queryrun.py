@@ -155,17 +155,21 @@ def _formatAsVoTable(template, context, stream=True, verbosity=None):
 	
 	mapperFactory = votable.getMapperRegistry()
 	mapperFactory.registerFactory(productMapperFactory)
-	tdEncoding = not not context.get("tabledataEnc")
+	if context.get("tabledataEnc"):
+		tablecoding = "td"
+	else:
+		tablecoding = "binary"
 	if stream:
 		def produceOutput(outputFile):
-			votable.writeSimpleTable(fieldInfos, rows, {}, 
-				outputFile, tdEncoding=tdEncoding, mapperFactory=mapperFactory)
+			votable.writeSimpleTableColdesc(fieldInfos, rows, {}, 
+				outputFile, tablecoding=tablecoding, 
+				mapperFactoryRegistry=mapperFactory)
 		return produceOutput
 	
 	else:
 		f = cStringIO.StringIO()
-		votable.writeSimpleTable(fieldInfos, rows, {}, f, tdEncoding=tdEncoding,
-			mapperFactory=mapperFactory)
+		votable.writeSimpleTableColdesc(fieldInfos, rows, {}, f, 
+			tablecoding=tablecoding, mapperFactory=mapperFactory)
 		return f.getvalue()
 
 

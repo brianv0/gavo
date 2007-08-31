@@ -13,6 +13,8 @@ protype (for ppmx) runs.
 
 import os
 import sys
+import weakref
+import compiler
 
 import gavo
 from gavo import config
@@ -49,24 +51,28 @@ class Table:
 	The addData method takes a record, i.e., a dictionary mapping keys
 	(corresponding to dest in DataField) to values (which usually
 	come from the parser).
+
+	When done adding data to a table, call its finishBuild method.
 	"""
-	def __init__(self, dataId, recordDef, resourceDescriptor, metaOnly=False):
-		self.rd = resourceDescriptor
-		self.dataId = dataId
+	def __init__(self, dataSet, recordDef, metaOnly=False):
+		self.dataSet = weakref.proxy(dataSet)
 		self.recordDef = recordDef
-		self.rows = []
 		self.dumpOnly = False
 		self.metaOnly = metaOnly
+		self.rows = []
 
 	def __iter__(self):
 		return iter(self.rows)
+
+	def finishBuild(self):
+		#		Not worth it: self._buildRowIndex()
+		pass
 
 	def setDumpOnly(self, dumpOnly):
 		self.dumpOnly = dumpOnly
 
 	def _buildRowIndex(self):
-		primaryIndex = self.recordDef.getFieldIndex(
-			self.recordDef.getPrimary().get_dest())
+		primaryIndex = self.recordDef.getPrimary().get_dest()
 		self.rowIndex = dict([(row[primaryIndex], row)
 			for row in self])
 
@@ -87,11 +93,14 @@ class Table:
 		"""
 		return self.recordDef.get_items()
 
+	def getName(self):
+		return self.recordDef.get_table()
+
 	def getRecordDef(self):
 		return self.recordDef
 
 	def getDataId(self):
-		return self.dataId
+		return self.dataSet.getId()
 
 	def getRow(self, key):
 		"""returns the row with the primary key key.
@@ -101,6 +110,12 @@ class Table:
 		except AttributeError:
 			self._buildRowIndex()
 			return self.rowIndex["key"]
+
+	def getRowsAsTuples(self):
+		makeTuple = compiler.compile(",".join(
+			["row[%s]"%repr(f.get_dest()) for f in self.getFieldDefs()]),
+			"<tupledef>", "eval")
+		return [eval(makeTuple) for row in self.rows]
 
 	def _exportToMetaTable(self, schema=None):
 		"""writes the column definitions to the sqlsupport-defined meta table.
@@ -160,7 +175,7 @@ class Table:
 			self.recordDef.get_items())
 		colName, colVal = self.recordDef.get_owningCondition()
 		tableWriter.deleteMatching((colName, parsehelpers.atExpand(
-			colVal, {}, self.rd.get_atExpander())))
+			colVal, {}, self.dataSet.getDescriptor().getRD().get_atExpander())))
 		return tableWriter
 
 	def _exportSharedTable(self):
@@ -197,15 +212,16 @@ class DirectWritingTable(Table):
 	could, in principle, grab the stuff from the DB if it were really
 	necessary at some point).
 
-	You need to call an instance's close method when done with it.
+	Calling the finishBuild method is particularly important here -- if you
+	don't the table will remain empty.
 	"""
-	def __init__(self, id, recordDef, rd):
-		Table.__init__(self, id, recordDef)
-		self.rd = rd
+	def __init__(self, dataSet, recordDef):
+		Table.__init__(self, dataSet, recordDef)
 		if self.recordDef.get_shared():
 			self.tableWriter = self._getSharedTableWriter()
 		else:
-			self.tableWriter = self._getOwnedTableWriter(self.rd.get_schema())
+			self.tableWriter = self._getOwnedTableWriter(
+				self.dataSet.getRd().get_schema())
 		self.feeder = self.tableWriter.getFeeder()
 
 	def getTableName(self):
@@ -217,7 +233,7 @@ class DirectWritingTable(Table):
 	def getRow(self, key):
 		raise "DirectWritingTables cannot retrieve rows."
 
-	def close(self):
+	def finishBuild(self):
 		self.feeder.close()
 
 	def exportToSql(self, schema):
@@ -282,56 +298,19 @@ def _parseSource(parseContext):
 	if not _tryBooster(parseContext):
 		parseContext.parse()
 
-
-def _parseSources(data):
-	"""parses all sources requrired to fill the DataSet data.
-	"""
-	counter = gavo.ui.getGoodBadCounter("Parsing source(s)", 5)
-	for context in data.iterParseContexts():
-		try:
-			_parseSource(context)
-		except gavo.StopOperation, msg:
-			gavo.logger.warning("Prematurely aborted %s (%s)."%(
-				context.sourceName, str(msg).decode("utf-8")))
-			break
-		except KeyboardInterrupt:
-			logger.warning("Interrupted while processing %s.  Quitting"
-				" on user request"%context.sourceName)
-			raise
-		except (UnicodeDecodeError, sqlsupport.OperationalError), msg:
-			# these are most likely due to direct writing
-			logger.error("Error while exporting %s (%s) -- aborting source."%(
-				context.sourceName, str(msg)))
-			counter.hitBad()
-		except (gavo.Error, Exception), msg:
-			errMsg = ("Error while parsing %s (%s) -- aborting source."%(
-				context.sourceName, str(msg).decode("utf-8")))
-			logger.error(errMsg, exc_info=True)
-			gavo.ui.displayError(errMsg)
-			counter.hitBad()
-
-		counter.hit()
-	counter.close()
-
+def _createTable(dataSet, recordDef):
+	if recordDef.get_onDisk():
+		TableClass = DirectWritingTable
+	else:
+		TableClass = Table
+	return TableClass(dataSet, recordDef)
 
 def getDataset(srcDesc, descriptor, dumpOnly=False, debugProductions=[],
-			maxRows=None, directWriting=False, metaOnly=False):
+			maxRows=None, metaOnly=False):
 	"""parses the data source described by descriptor returns a DataSet.
 	containing the data and the governing semantics.
 	"""
 	grammar = srcDesc.get_Grammar()
 	grammar.enableDebug(debugProductions)
-	if directWriting:
-		tables = [DirectWritingTable(srcDesc.get_id(), recordDef, 
-				descriptor)
-			for recordDef in srcDesc.get_Semantics().get_recordDefs()]
-	else:
-		tables = [Table(srcDesc.get_id(), recordDef, descriptor, metaOnly)
-			for recordDef in srcDesc.get_Semantics().get_recordDefs()]
-	data = resource.DataSet(srcDesc, tables)
-	if not metaOnly:
-		_parseSources(data)
-		if directWriting:
-			for table in tables:
-				table.close()
+	data = resource.DataSet(srcDesc, _createTable, _parseSource)
 	return data

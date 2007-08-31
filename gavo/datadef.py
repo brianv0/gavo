@@ -124,7 +124,7 @@ class DataTransformer(record.Record):
 	for the "rows" of the data (the "rowdicts"), and a semantics part that says 
 	how to produce output rows complete with metadata for these rows.
 	"""
-	def __init__(self, parentResource, additionalFields={}, initvals={}):
+	def __init__(self, parentRD, additionalFields={}, initvals={}):
 		baseFields = {
 			"Grammar": record.RequiredField,
 			"Semantics": record.RequiredField,
@@ -134,15 +134,27 @@ class DataTransformer(record.Record):
 		}
 		baseFields.update(additionalFields)
 		record.Record.__init__(self, baseFields, initvals)
-		self.resource = parentResource
+		self.rD = parentRD
 
 	def __repr__(self):
 		return "<DataDescriptor id=%s>"%self.get_id()
 
+	def _validate(self, record):
+		"""checks that the docRec record satisfies the constraints given
+		by self.items.
+
+		This method reflects that DataTransformers are RecordDefs for
+		the toplevel productions.
+		"""
+		for field in self.get_items():
+			if not field.get_optional() and record.get(field.get_dest())==None:
+				raise resource.ValidationError(
+					"%s is None but non-optional"%field.get_dest())
+
 	def copy(self):
 		"""returns a deep copy of self.
 		"""
-		nd = DataDescriptor(self.resource, 
+		nd = DataDescriptor(self.rD,
 			source=self.get_source(),
 			sourcePat=self.get_sourcePat(),
 			encoding=self.get_encoding())
@@ -158,5 +170,12 @@ class DataTransformer(record.Record):
 			pass
 		return nd
 
-	def getResource(self):
-		return self.resource
+	def getRD(self):
+		return self.rD
+	
+	def getRecordDefByName(self, name):
+		"""returns the record definition for the table name.
+
+		It raises a KeyError if the table name is not known.
+		"""
+		return self.get_Semantics().getRecordDefByName(name)

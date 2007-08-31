@@ -50,6 +50,11 @@ errorTemplate = """<?xml version="1.0" encoding="utf-8"?>
 </VOTABLE>"""
 
 
+_tableEncoders = {
+	"td": Encoders.TableDataEncoder,
+	"binary": Encoders.BinaryEncoder,
+}
+
 class ValueMapperFactoryRegistry(object):
 	"""is an object clients can ask for functions fixing up values
 	for encoding.
@@ -109,8 +114,8 @@ class ValueMapperFactoryRegistry(object):
 		return mapper
 
 
-_defaultMapperRegistry = ValueMapperFactoryRegistry()
-_registerDefaultMF = _defaultMapperRegistry.registerFactory
+_defaultMFRegistry = ValueMapperFactoryRegistry()
+_registerDefaultMF = _defaultMFRegistry.registerFactory
 
 
 try:
@@ -224,7 +229,7 @@ def getMapperRegistry():
 	"""returns a copy of the default value mapper registry.
 	"""
 	return ValueMapperFactoryRegistry(
-		_defaultMapperRegistry.getFactories())
+		_defaultMFRegistry.getFactories())
 
 
 def _getValSeq(data):
@@ -253,6 +258,37 @@ def _getValSeq(data):
 	return vals
 
 
+
+def _mapValues(colDesc, data, mapperFactory):
+	"""fixes the values of data to match what is required by colDesc.
+
+	As a side effect, the types given in colDesc may change.
+	"""
+	colTypes = _getValSeq(data)
+	handlers = []
+	for colType, colProps in zip(colTypes, colDesc):
+		handler = mapperFactory.getMapper(colType, colProps)
+		handlers.append(handler)
+	if data:
+		colInds = range(len(data[0]))
+		for rowInd, row in enumerate(data):
+			data[rowInd] = [handlers[colInd](row[colInd]) for colInd in colInds]
+	
+
+def writeTable(resources, metaInfo, destination):
+	"""writes a VOTable for all DataModel.Resource instances in resource to
+	destination.
+
+	destination may be a file or a file name.
+
+	metaInfo is currently ignored.
+	"""
+	table = VOTable()
+	table.resources = resources
+	writer = Writer()
+	writer.write(table, destination)
+
+
 def _getFieldItemsFor(colInd, colProps):
 	"""returns a dictionary with keys for a DataModel.Field constructor.
 	"""
@@ -279,30 +315,13 @@ def _defineFields(colDesc, dataTable):
 			Field(**_getFieldItemsFor(colInd, colProps)))
 
 
-def _mapValues(colDesc, data, mapperFactory):
-	"""fixes the values of data to match what is required by colDesc.
-
-	As a side effect, the types given in colDesc may change.
-	"""
-	colTypes = _getValSeq(data)
-	handlers = []
-	for colType, colProps in zip(colTypes, colDesc):
-		handler = mapperFactory.getMapper(colType, colProps)
-		handlers.append(handler)
-	if data:
-		colInds = range(len(data[0]))
-		for rowInd, row in enumerate(data):
-			data[rowInd] = [handlers[colInd](row[colInd]) for colInd in colInds]
-	
-
-def buildTable(colDesc, data, metaInfo, tdEncoding=False, 
-		mapperFactory=_defaultMapperRegistry):
+def buildTableColdesc(colDesc, data, metaInfo, tablecoding="binary", 
+		mapperFactoryRegistry=_defaultMFRegistry):
 	"""returns a DataModel.Table instance for data.
 
 	This function can only handle 2d tables.
 
-	target is either a file or a name,  colDesc is a list of triples
-	(name, type, optDict) like in sqlsupport, data is a sequence of
+	target is either a file or a name, data is a sequence of
 	sequence containing the data described by colDesc, with data values
 	in the sequence defined by colDesc.
 
@@ -312,36 +331,23 @@ def buildTable(colDesc, data, metaInfo, tdEncoding=False,
 	* id
 	Unknown keys are silently ignored.
 	"""
-	if tdEncoding:
-		votEncoder = Encoders.TableDataEncoder
-	else:
-		votEncoder = Encoders.BinaryEncoder
+	try:
+		votEncoder = _tableEncoders[tablecoding]
+	except KeyError:
+		raise Error("Invalid table coding: %s"%tablecoding)
 	dataTable = Table(name=metaInfo.get("name", "data"),
 		description=metaInfo.get("description", ""), coder=votEncoder)
 	if metaInfo.has_key("id"):
 		dataTable.id = id
-	_mapValues(colDesc, data, mapperFactory)
+	_mapValues(colDesc, data, mapperFactoryRegistry)
 	_defineFields(colDesc, dataTable)
 	dataTable.data = data
 	return dataTable
 
 
-def writeTable(resources, metaInfo, destination):
-	"""writes a VOTable for all DataModel.Resource instances in resource to
-	destination.
-
-	destination may be a file or a file name.
-
-	metaInfo is currently ignored.
-	"""
-	table = VOTable()
-	table.resources = resources
-	writer = Writer()
-	writer.write(table, destination)
-
-
-def writeSimpleTable(colDesc, data, metaInfo, destination, tdEncoding=False,
-		mapperFactory=_defaultMapperRegistry):
+def writeSimpleTableColdesc(colDesc, data, metaInfo, destination, 
+		tablecoding="binary",
+		mapperFactoryRegistry=_defaultMFRegistry):
 	"""writes a single-table, single-resource VOTable to destination.
 
 	Arguments:
@@ -354,7 +360,8 @@ def writeSimpleTable(colDesc, data, metaInfo, destination, tdEncoding=False,
 	"""
 	try:
 		writeTable([Resource(tables=[
-				buildTable(colDesc, data, metaInfo, tdEncoding, mapperFactory)])],
+				buildTableColdesc(colDesc, data, metaInfo, tablecoding, 
+					mapperFactoryRegistry)])],
 			{}, destination)
 	except Exception, msg:
 		import traceback
@@ -366,6 +373,41 @@ def writeSimpleTable(colDesc, data, metaInfo, destination, tdEncoding=False,
 					msg.__class__.__name__,
 					str(msg),
 					config.get("operator"))})
+
+
+def writeVOTableFromTable(dataSet, table, destination, 
+		tablecoding="binary", mapperFactoryRegistry=_defaultMFRegistry):
+	"""returns a DataModel.Table constructed from a parseswitch.Table.
+	"""
+	colDesc = [df.getMetaRow() for df in table.getFieldDefs()]
+	metaInfo = {
+		"id": table.getName(),
+		"name": "%s.%s"%(dataSet.getId(), table.getName()),
+		"description": table.getRecordDef().get_Meta("description"),
+	}
+	writeSimpleTableColdesc(colDesc, table.getRowsAsTuples(), metaInfo, 
+		destination, tablecoding, mapperFactoryRegistry)
+
+
+def getFieldItemsForDataField(dataField):
+	"""returns constructor arguments for a DataModel.Field from a
+	datadef.DataField.
+	"""
+	# This isn't a DataField method to avoid cross-imports.
+	# Also, we don't currently use this, since DataFields are supposed to be
+	# immutable and we may want to change the type when mapping values.
+	fieldItems = {
+		"name": dataField.get_dest(),
+		"ID": dataField.get_dest(),
+	}
+	type, size = typesystems.sqltypeToVOTable(dataField.get("dbtype"))
+	fieldItems["datatype"] = type
+	if size!="1":
+		fieldItems["arraysize"] = size
+	for fieldName in ["ucd", "utype", "unit"]:
+		if dataField.get(fieldName)!=None:
+			fieldItems[fieldName] = dataField.get(fieldName)
+	return fieldItems
 
 
 def _test():
@@ -385,7 +427,7 @@ def _profilerun():
 	result = querier.query(
 		"SELECT * from ppmx.autocorr").fetchall()
 	print result[0]
-	writeSimpleTable(getFieldInfos(querier, "ppmx.autocorr"),
+	writeSimpleTableColDesc(getFieldInfos(querier, "ppmx.autocorr"),
 		result, {}, open("/dev/null", "w"))
 
 

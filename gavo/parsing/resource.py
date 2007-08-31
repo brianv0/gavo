@@ -12,7 +12,10 @@ from gavo import config
 from gavo import record
 from gavo import sqlsupport
 from gavo import logger
+from gavo import votable
 from gavo.datadef import DataField
+from gavo.parsing import typeconversion
+from gavo.parsing import parsehelpers
 
 class Error(gavo.Error):
 	pass
@@ -48,10 +51,12 @@ class RecordDef(record.Record):
 			"table": record.RequiredField,  # name of destination table
 			"items": record.ListField,      # list of FieldDefs for this record
 			"constraints": None,        # a Constraints object rows have to satisfy
+			"Meta": record.DictField,   # misc. meta info
 			"owningCondition": None,    # a condition to select our data from
 			                            # shared tables.
 			"shared": record.BooleanField,  # is this a shared table?
 			"create": record.BooleanField,  # create table?
+			"onDisk": record.BooleanField,  # write parsed data directly?
 		}, initvals)
 		self.fieldIndexDict = {}
 
@@ -76,7 +81,7 @@ class RecordDef(record.Record):
 		self.get_items().append(item)
 
 	def getPrimary(self):
-		for field in self.items:
+		for field in self.get_items():
 			if field.get_primary():
 				break
 		else:
@@ -94,6 +99,122 @@ class RecordDef(record.Record):
 		return theCopy
 
 
+class ParseContext:
+	"""encapsulates the data specific to parsing one source and provides
+	the methods for exporting data.
+
+	Parse contexts provide the following items to grammars:
+
+	* The attributes sourceFile and sourceName
+	* The methods processDocdict and processRowdict to ship out
+	  toplevel and row dictionaries
+	* The function atExpand that provides @-expansions 
+
+	For clarity: Grammars deliver dictionaries mapping keys (the
+	preterminals) to values (which are strings), the rowdicts, to
+	processRow (and analogously similar a similar dictionary to
+	processDoc).  These have to be processed in multiple ways:
+
+	* certain values may need to be computed using meta information
+	  not available from the source itself (e.g., dates, paths).
+	  Field computers are used for this.
+	* string literals have to be converted to python values.  This
+	  is done by the literal parser.
+	
+	After these manipulations, we have another dictionary mapping
+	the dests of DataFields to python values.  This is what we call
+	a record that's ready for ingestion into a db table or a VOTable.
+	"""
+	def __init__(self, sourceFile, grammar, dataSet, literalParser):
+		if isinstance(sourceFile, basestring):
+			self.sourceName = sourceFile
+			self.sourceFile = open(self.sourceName)
+		else:  # we assume it's a file
+			self.sourceFile = sourceFile
+			self.sourceName = "<anonymous>"
+		self.dataSet = dataSet
+		self.grammar = grammar
+		self.literalParser = literalParser
+		self.rowsProcessed = 0
+		self.fieldComputer = parsehelpers.FieldComputer(self)
+		self.rowTargets = self._makeRowTargets()
+
+	def getDataSet(self):
+		return self.dataSet
+
+	def _makeRowTargets(self):
+		return [(targetTable, targetTable.getRecordDef())
+			for targetTable in self.dataSet.getTables()]
+
+	def processRowdict(self, rowdict):
+		"""is called by the grammar when a table line has been parsed.
+
+		This method arranges for the record to be built, validates the
+		finished record (i.e., makes sure all the non-optional fields are
+		in place), checks constraints that may be defined and finally
+		ships out the record.
+		"""
+# XXX TODO retrofit the max rows mechanism (keep it in grammar, I guess)
+#		if self.maxRows and self.rowsProcessed>=self.maxRows:
+#			raise gavo.StopOperation("Limit of %d rows reached"%self.maxRows)
+		for targetTable, recordDef in self.rowTargets:
+			targetTable.addData(self._buildRecord(recordDef, rowdict))
+		self.rowsProcessed += 1
+	
+	def processDocdict(self, docdict):
+		descriptor = self.dataSet.getDescriptor()
+		for macro in descriptor.get_macros():
+			macro(self.atExpand, docdict)
+		self.dataSet.updateDocRec(self._buildRecord(descriptor, docdict))
+	
+	def _strToVal(self, field, rowdict):
+		"""returns a python value appropriate for field's type
+		from the values in rowdict (which may be a docdict as well).
+		"""
+		preVal = None
+		if field.get_source()!=None:
+			preVal = rowdict.get(field.get_source(), None)
+		if preVal==field.get_nullvalue():
+			preVal = None
+		if preVal==None:
+			preVal = self.atExpand(field.get_default(), rowdict)
+		return self.literalParser.makePythonVal(preVal, 
+			field.get_dbtype(), field.get_literalForm())
+
+	def _buildRecord(self, recordDef, rowdict):
+		"""returns a record built from rowdict and recordDef's item definition.
+		"""
+		# Actually, this is being used for docdicts as well, which is a bit
+		# clumsy because of the error message...
+		record = {}
+		try:
+			for field in recordDef.get_items():
+				record[field.get_dest()] = self._strToVal(field, rowdict)
+		except Exception, msg:
+			if parsing.verbose:
+				traceback.print_exc()
+			raise Error("Cannot convert row %s, field %s probably doesn't match its"
+				" type %s (root cause: %s)"%(str(rowdict), field.get_dest(), 
+					field.get_dbtype(), msg))
+		self._checkRecord(recordDef, record)
+		return record
+	
+	def _checkRecord(self, recordDef, record):
+		"""raises some kind of exception there is something wrong the record.
+		"""
+		recordDef._validate(record)
+		if recordDef.get_constraints():
+			if not recordDef.get_constraints().check(rowdict, record):
+				raise gavo.InfoException("Record %s doesn't satisfy constraints,"
+					" skipping."%record)
+
+	def atExpand(self, val, rowdict):
+		return parsehelpers.atExpand(val, rowdict, self.fieldComputer)
+
+	def parse(self):
+		self.grammar.parse(self)
+
+
 class DataSet:
 	"""is a collection of the data coming from one source.
 
@@ -103,22 +224,82 @@ class DataSet:
 	As such, it contains the tables (which are "instances" of the
 	Records in Semantics elements) and the global data parsed from
 	the document (docRec with metadata docFields).
+
+	A data set is constructed with the data descriptor, a function
+	that returns empty table instances and optionally a function
+	that does the actual parsing (which can override the parse
+	function of the ParseContext).
+
+	The tableMaker is a function receiving the dataSet and the record
+	definition, the parseSwitcher, if defined, simply takes a parse
+	context and arranges for the parse context's table to be filled.
 	"""
-	def __init__(self, dataDescriptor, tables):
-		self.dataDescriptor = dataDescriptor
-		self.id = self.dataDescriptor.get_id()
-		self.tables = tables
-		self.docFields = self.dataDescriptor.get_items()
+	def __init__(self, dataDescriptor, tableMaker, parseSwitcher=None):
+		self.dD = dataDescriptor
+		self.docFields = self.dD.get_items()
 		self.docRec = {}
+		self.tables = []
+		self._fillTables(tableMaker, parseSwitcher)
+
+	def _parseSources(self, parseSwitcher):
+		"""parses all sources requrired to fill self.
+
+		This will spew out a lot of stuff unless you set gavo.ui to NullUi
+		or something similar.
+		"""
+		counter = gavo.ui.getGoodBadCounter("Parsing source(s)", 5)
+		for context in self._iterParseContexts():
+			try:
+				if parseSwitcher:
+					parseSwitcher(context)
+				else:
+					context.parse()
+			except gavo.StopOperation, msg:
+				gavo.logger.warning("Prematurely aborted %s (%s)."%(
+					context.sourceName, str(msg).decode("utf-8")))
+				break
+			except KeyboardInterrupt:
+				logger.warning("Interrupted while processing %s.  Quitting"
+					" on user request"%context.sourceName)
+				raise
+			except (UnicodeDecodeError, sqlsupport.OperationalError), msg:
+				# these are most likely due to direct writing
+				logger.error("Error while exporting %s (%s) -- aborting source."%(
+					context.sourceName, str(msg)))
+				counter.hitBad()
+			except (gavo.Error, Exception), msg:
+				errMsg = ("Error while parsing %s (%s) -- aborting source."%(
+					context.sourceName, str(msg).decode("utf-8")))
+				logger.error(errMsg, exc_info=True)
+				gavo.ui.displayError(errMsg)
+				counter.hitBad()
+			counter.hit()
+		counter.close()
+
+	def _fillTables(self, tableMaker, parseSwitcher):
+		for recordDef in self.dD.get_Semantics().get_recordDefs():
+			self.tables.append(tableMaker(self, recordDef))
+		self._parseSources(parseSwitcher)
+		for table in self.tables:
+			table.finishBuild()
+
+	def _iterParseContexts(self):
+		"""iterates over ParseContexts for all sources the descriptor
+		returns.
+		"""
+		literalParser = typeconversion.LiteralParser(self.dD.get_encoding())
+		for src in self.dD.iterSources():
+			yield ParseContext(src, self.dD.get_Grammar(),
+				self, literalParser)
 
 	def getId(self):
-		return self.dataDescriptor.get_id()
+		return self.dD.get_id()
 
 	def getTables(self):
 		return self.tables
 
 	def getDescriptor(self):
-		return self.dataDescriptor
+		return self.dD
 
 	def updateDocRec(self, docRec):
 		self.docRec.update(docRec)
@@ -126,13 +307,23 @@ class DataSet:
 	def getDocRec(self):
 		return self.docRec
 	
-	def iterParseContexts(self):
-		return self.dataDescriptor.iterParseContexts(self)
-
 	def exportToSql(self, schema):
 		for table in self.tables:
 			table.exportToSql(schema)
 
+	def exportToVOTable(self, destination, tableNames=None, tablecoding="td",
+			mapperFactories=[]):
+		if tableNames==None:
+			tableNames = [table.getName() for table in self.tables]
+#		if len(tableNames)!=1:
+#			raise Error("DataSets can't yet export to VOTable when containing"
+#				" more than one table.")
+		mapperFactoryRegistry = votable.getMapperRegistry()
+		for mf in mapperFactories:
+			mapperFactoryRegistry.registerFactory(mf)
+		votable.writeVOTableFromTable(self,
+			self.tables[0], destination, tablecoding,
+			mapperFactoryRegistry=mapperFactoryRegistry)
 
 
 class SqlMacroExpander(object):
@@ -209,12 +400,11 @@ class Resource:
 		"""reads all data sources and applies all resource processors to them.
 		"""
 		from gavo.parsing import parseswitch
-
 		for dataSrc in self.getDescriptor().get_dataSrcs():
 			gavo.ui.displayMessage("Importing %s"%dataSrc.get_id())
 			self.addDataset(parseswitch.getDataset(dataSrc, self.getDescriptor(),
 				debugProductions=opts.debugProductions, maxRows=opts.maxRows,
-				directWriting=opts.directWriting, metaOnly=opts.metaOnly))
+				metaOnly=opts.metaOnly))
 		for processor in self.getDescriptor().get_processors():
 			processor(self)
 
@@ -237,6 +427,24 @@ class Resource:
 			if scriptType=="postCreation":
 				sqlRunner.run(sqlMacroExpander.expand(script))
 		sqlRunner.commit()
+		self.rebuildDependents()
+
+	def exportNone(self):
+		pass
+	
+	def exportToVOTable(self):
+		for dataSet in self:
+			dataSet.exportToVOTable(sys.stdout, tablecoding="td")
+
+	def export(self, outputFormat):
+		try: {
+				"sql": self.exportToSql,
+				"none": self.exportNone,
+				"votable": self.exportToVOTable,
+			}[outputFormat]()
+		except KeyError:
+			raise Error("Invalid export format: %s"%outputFormat)
+
 	
 	def rebuildDependents(self):
 		"""executes the appropriate make commands to build everything that

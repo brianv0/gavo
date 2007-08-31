@@ -73,122 +73,6 @@ class Semantics(record.Record):
 		self.dataStore["recordDefs"] = []
 
 
-class ParseContext:
-	"""encapsulates the data specific to parsing one source and provides
-	the methods for exporting data.
-
-	Parse contexts provide the following items to grammars:
-
-	* The attributes sourceFile and sourceName
-	* The methods processDocdict and processRowdict to ship out
-	  toplevel and row dictionaries
-	* The function atExpand that provides @-expansions 
-
-	For clarity: Grammars deliver dictionaries mapping keys (the
-	preterminals) to values (which are strings), the rowdicts, to
-	processRow (and analogously similar a similar dictionary to
-	processDoc).  These have to be processed in multiple ways:
-
-	* certain values may need to be computed using meta information
-	  not available from the source itself (e.g., dates, paths).
-	  Field computers are used for this.
-	* string literals have to be converted to python values.  This
-	  is done by the literal parser.
-	
-	After these manipulations, we have another dictionary mapping
-	the dests of DataFields to python values.  This is what we call
-	a record that's ready for ingestion into a db table or a VOTable.
-	"""
-	def __init__(self, sourceFile, grammar, dataSet, literalParser):
-		if isinstance(sourceFile, basestring):
-			self.sourceName = sourceFile
-			self.sourceFile = open(self.sourceName)
-		else:  # we assume it's a file
-			self.sourceFile = sourceFile
-			self.sourceName = "<anonymous>"
-		self.dataSet = dataSet
-		self.grammar = grammar
-		self.literalParser = literalParser
-		self.rowsProcessed = 0
-		self.fieldComputer = parsehelpers.FieldComputer(self)
-		self.rowTargets = self._makeRowTargets()
-
-	def getDataSet(self):
-		return self.dataSet
-
-	def _makeRowTargets(self):
-		return [(targetTable, targetTable.getRecordDef())
-			for targetTable in self.dataSet.getTables()]
-
-	def processRowdict(self, rowdict):
-		"""is called by the grammar when a table line has been parsed.
-
-		This method arranges for the record to be built, validates the
-		finished record (i.e., makes sure all the non-optional fields are
-		in place), checks constraints that may be defined and finally
-		ships out the record.
-		"""
-# XXX TODO retrofit the max rows mechanism (keep it in grammar, I guess)
-#		if self.maxRows and self.rowsProcessed>=self.maxRows:
-#			raise gavo.StopOperation("Limit of %d rows reached"%self.maxRows)
-		for targetTable, recordDef in self.rowTargets:
-			targetTable.addData(self._buildRecord(recordDef, rowdict))
-		self.rowsProcessed += 1
-	
-	def processDocdict(self, docdict):
-		descriptor = self.dataSet.getDescriptor()
-		for macro in descriptor.get_macros():
-			macro(self.atExpand, docdict)
-		self.dataSet.updateDocRec(self._buildRecord(descriptor, docdict))
-	
-	def _strToVal(self, field, rowdict):
-		"""returns a python value appropriate for field's type
-		from the values in rowdict (which may be a docdict as well).
-		"""
-		preVal = None
-		if field.get_source()!=None:
-			preVal = rowdict.get(field.get_source(), None)
-		if preVal==field.get_nullvalue():
-			preVal = None
-		if preVal==None:
-			preVal = self.atExpand(field.get_default(), rowdict)
-		return self.literalParser.makePythonVal(preVal, 
-			field.get_dbtype(), field.get_literalForm())
-
-	def _buildRecord(self, recordDef, rowdict):
-		"""returns a record built from rowdict and recordDef's item definition.
-		"""
-		# Actually, this is being used for docdicts as well, which is a bit
-		# clumsy because of the error message...
-		record = {}
-		try:
-			for field in recordDef.get_items():
-				record[field.get_dest()] = self._strToVal(field, rowdict)
-		except Exception, msg:
-			if parsing.verbose:
-				traceback.print_exc()
-			raise Error("Cannot convert row %s, field %s probably doesn't match its"
-				" type %s (root cause: %s)"%(str(rowdict), field.get_dest(), 
-					field.get_dbtype(), msg))
-		self._checkRecord(recordDef, record)
-		return record
-	
-	def _checkRecord(self, recordDef, record):
-		"""raises some kind of exception there is something wrong the record.
-		"""
-		recordDef._validate(record)
-		if recordDef.get_constraints():
-			if not recordDef.get_constraints().check(rowdict, record):
-				raise gavo.InfoException("Record %s doesn't satisfy constraints,"
-					" skipping."%record)
-
-	def atExpand(self, val, rowdict):
-		return parsehelpers.atExpand(val, rowdict, self.fieldComputer)
-
-	def parse(self):
-		self.grammar.parse(self)
-
-
 class DataDescriptor(datadef.DataTransformer):
 	"""is a DataTransformer for reading data from files.
 	"""
@@ -206,38 +90,19 @@ class DataDescriptor(datadef.DataTransformer):
 
 	def get_source(self):
 		if self.dataStore["source"]:
-			return os.path.join(self.resource.get_resdir(), 
+			return os.path.join(self.rD.get_resdir(), 
 				self.dataStore["source"])
 
 	def iterSources(self):
 		if self.get_source():
 			yield self.get_source()
-		if not os.path.isdir(self.resource.get_resdir()):
+		if not os.path.isdir(self.rD.get_resdir()):
 			raise Error("Resource directory %s does not exist or is"
-				" not a directory."%self.resource.get_resdir())
+				" not a directory."%self.rD.get_resdir())
 		if self.get_sourcePat():
-			for path, dirs, files in os.walk(self.resource.get_resdir()):
+			for path, dirs, files in os.walk(self.rD.get_resdir()):
 				for fName in glob.glob(os.path.join(path, self.get_sourcePat())):
 					yield fName
-
-	def iterParseContexts(self, dataSet):
-		literalParser = typeconversion.LiteralParser(self.get_encoding())
-		for src in self.iterSources():
-			yield ParseContext(src, self.get_Grammar(),
-				dataSet, literalParser)
-
-	def _validate(self, record):
-		"""checks that the docRec record satisfies the constraints given
-		by self.items.
-
-		This method reflects that DataDescriptors are RecordDefs for
-		the toplevel productions.
-		"""
-		for field in self.get_items():
-			if not field.get_optional() and record.get(field.get_dest())==None:
-				raise resource.ValidationError(
-					"%s is None but non-optional"%field.get_dest())
-
 
 
 class ResourceDescriptor(record.Record):
@@ -411,6 +276,7 @@ class RdParser(utils.NodeBuilder):
 		recDef = resource.RecordDef()
 		recDef.setExtensionFlag(attrs.get("keep", "False"))
 		recDef.set_table(attrs["table"])
+		recDef.set_onDisk(attrs.get("onDisk", "False"))
 		recDef.set_create(attrs.get("create", "True"))
 		if name=="SharedRecord":
 			recDef.set_shared(True)

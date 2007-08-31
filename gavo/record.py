@@ -55,7 +55,7 @@ class DictField:
 
 	Registries are really dicts.  You have a register_<key> method taking
 	a name and a value, and a get_<key> method returning the value for
-	a key.
+	a key.  get_<key> returns an empty string for non-existing keys.
 
 	Do not instantiate it.  Instances of the class are *never* used.
 	"""
@@ -229,7 +229,7 @@ class Record(object):
 	def _getDictMethods(self, key, _):
 		self.dataStore[key] = {}
 		def getter(self, regKey):
-			return self.dataStore[key][regKey]
+			return self.dataStore[key].get(regKey, "")
 		def setter(self, regKey, value):
 			self.dataStore[key][regKey] = value
 		return [("get_", getter), ("register_", setter)]

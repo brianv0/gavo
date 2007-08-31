@@ -31,9 +31,7 @@ def process(opts, rd):
 #	print res.dataSets[0].rows
 	if opts.fakeonly:
 		return
-	if opts.outputMethod=="sql":
-		res.exportToSql()
-	res.rebuildDependents()
+	res.export(opts.outputMethod)
 
 
 def processAll(opts, args):
@@ -53,8 +51,6 @@ def parseCmdline():
 		action="store_true")
 	parser.add_option("-u", "--meta-only", help="just update meta data,"
 		" don't parse source.", dest="metaOnly", action="store_true")
-	parser.add_option("-w", "--direct-write", help="dump rows to db"
-		" directly", dest="directWriting", action="store_true")
 	parser.add_option("-m", "--max-rows", help="only import MAX_ROWS"
 		" rows of every source", dest="maxRows", default=None,
 		type="int", action="store")
@@ -64,7 +60,7 @@ def parseCmdline():
 	parser.add_option("-v", "--verbose", help="talk a lot while working",
 		dest="verbose", action="store_true")
 	parser.add_option("-o", "--output-method", help="output destination, one of"
-		" sql, plain, votable, none.  Default: sql (XXX not implemented XXX)",
+		" sql, votable, none.  Default: sql",
 		action="store", default="sql", dest="outputMethod")
 	(opts, args) = parser.parse_args()
 	opts.debugProductions = [s.strip() 

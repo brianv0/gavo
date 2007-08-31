@@ -152,7 +152,7 @@ class FieldComputer(RDComputer):
 			self.context = parseContext
 		else:
 			RDComputer.__init__(self, parseContext.getDataSet().
-				getDescriptor().getResource())
+				getDescriptor().getRD())
 			self.context = weakref.proxy(parseContext)
 
 	def _fc_srcstem(self, rows):
