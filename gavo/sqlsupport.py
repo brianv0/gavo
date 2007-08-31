@@ -46,6 +46,30 @@ else:
 			psycopg2.extensions.QuotedString)
 	except ImportError:
 		pass
+
+	class SqlSetAdapter(object):
+		"""is an adapter that formats python sequences as SQL sets.
+
+		-- as opposed to psycopg2's apparent default of building arrays
+		out of them.
+		"""
+		def __init__(self, seq):
+			self._seq = seq
+
+		def prepare(self, conn):
+			pass
+
+		def getquoted(self):
+			qobjs = [str(psycopg2.extensions.adapt(o).getquoted()) 
+				for o in self._seq]
+			return '(%s)'%(", ".join(qobjs))
+
+		__str__ = getquoted
+
+	psycopg2.extensions.register_adapter(tuple, SqlSetAdapter)
+	psycopg2.extensions.register_adapter(list, SqlSetAdapter)
+	psycopg2.extensions.register_adapter(set, SqlSetAdapter)
+
 	from psycopg2 import OperationalError, DatabaseError
 	from psycopg2 import Error as DbError
 
@@ -148,6 +172,7 @@ class StandardQueryMixin:
 		except DatabaseError:
 			sys.stderr.write("Failed query %s with"
 				" arguments %s\n"%(repr(query), data))
+			sys.stderr.write(">>>>>> %s\n"%cursor.query)
 			raise
 		return cursor
 

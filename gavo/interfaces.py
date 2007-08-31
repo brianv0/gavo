@@ -2,18 +2,15 @@
 Definitions of sets of fields a table has to have to be useful for a certain
 purpose.
 
-Examples:
+Example:
 
 positions -- clients will want alphaFloat, deltaFloat and some helper fields
 products -- clients will want a key to find the image, ownership, embargo,
   plus the products need to be in an accompanying table.
 
-Interfaces may need additional actions for ingestion.  Right now,
-we solve this by providing changeRd methods.  These expect an
-importparser.RdParser as argument and heavily murk around in it.
-This isn't nice, but they have to have access to many aspects of
-the XML parsing process.  I guess we'll want a different design at
-some point.  Let's see what happens if we have more interfaces.
+Interfaces may need additional actions for ingestion.  This is done
+by returning delayed nodes to the utils.NodeBuilder parsing the resource
+descriptor.
 
 In general, a somewhat more declarative approach would be nice...
 """
@@ -195,14 +192,15 @@ class Products(Interface):
 	def __init__(self):
 		Interface.__init__(self, [
 			{"dest": "datapath", "source": "prodtblKey", "dbtype": "text",
-				"ucd": "meta.ref;obs.image;meta.fits",
+				"ucd": "meta.ref;obs.image;meta.fits", "displayHint": "product",
 				"references": "products", "tablehead": "Product", "optional": "False"},
 			{"dest": "owner", "source": "prodtblOwner", "dbtype": "text",
-				"tablehead": "Product owner"},
+				"tablehead": "Product owner", "displayHint": "suppress"},
 			{"dest": "embargo", "source": "prodtblEmbargo", "dbtype": "date",
-				"tablehead": "Embargo ends"},
+				"tablehead": "Embargo ends", "displayHint": "isodate",
+				"unit": "Y-M-D"},
 			{"dest": "fsize", "source": "prodtblFsize", "dbtype": "int",
-				"tablehead": "File size"},
+				"tablehead": "File size", "displayHint": "filesize", "unit": "byte"},
 		])
 
 	def getDelayedNodes(self, recordNode):
@@ -224,6 +222,7 @@ class Products(Interface):
 				{"dest": "sourceTable", "default": sourceTable, "dbtype": "text"}]:
 			productTable.addto_items(DataField(**fieldDict))
 		yield "Semantics", ("Record", productTable), True
+
 
 getInterface = utils.buildClassResolver(Interface, globals().values(),
 	instances=True)

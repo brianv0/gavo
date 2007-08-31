@@ -35,7 +35,7 @@ class BoosterNotAvailable(BoosterException):
 class BoosterFailed(BoosterException):
 	pass
 
-# XXX TODO: Split off SQL related stuff, into Table, leave the rest as BaseTable
+# XXX TODO: Split off SQL related stuff into Table, leave the rest as BaseTable
 class Table:
 	"""is a container for essentially homogenous data.
 
@@ -225,19 +225,11 @@ class DirectWritingTable(Table):
 		
 
 def _tryBooster(grammar, inputFileName, tableName, descriptor):
-	if not isinstance(grammar, columngrammar.ColumnGrammar):
-		raise BoosterNotDefined("Boosters only work for ColumnGrammars")
-	host, port, dbname = config.getDbProfile().get_dsn().split(":")
 	booster = grammar.get_booster()
 	if booster==None:
 		raise BoosterNotDefined
+	connDesc = config.getDbProfile().getDsn()
 	booster = os.path.join(descriptor.get_resdir(), booster)
-	if grammar.get_local():
-		connDesc = "dbname=%s\n"%dbname
-	else:
-		connDesc = "host=%s port=%s user=%s password=%s dbname=%s\n"%(
-			host, port, config.getDbProfile().get_user(), 
-			config.getDbProfile().get_password(), dbname)
 	try:
 		f = os.popen("%s '%s' '%s'"%(booster, inputFileName, tableName), "w")
 		f.write(connDesc)
@@ -257,27 +249,38 @@ def _tryBooster(grammar, inputFileName, tableName, descriptor):
 	if retval:
 		raise BoosterFailed()
 
+def _tryBooster(parseContext):
+	"""checks if we can run a booster and returns True if a booster
+	was run successfully and False if not.
+	"""
+	try:
+		grammar = parseContext.getDataSet().getDescriptor().get_Grammar()
+		if not isinstance(grammar, columngrammar.ColumnGrammar):
+			raise BoosterNotDefined("Boosters only work for ColumnGrammars")
+		tables = parseContext.getDataSet().getTables() 
+		if len(tables)!=1 or not isinstance(tables[0], DirectWritingTable):
+			raise BoosterNotDefined("Boosters only work for for single direct"
+				" writing tables")
+		_runBooster(grammar, src, tables[0].getTableName(), descriptor)
+	except BoosterNotDefined:
+		return False
+	except BoosterNotAvailable, msg:
+		gavo.ui.displayMessage("Booster defined, but not available"
+			" (%s).  Falling back to normal parse."%msg)
+		return False
+	except BoosterFailed:
+		raise gavo.Error("Booster failed.")
+	return True
+
 
 def _parseSource(parseContext):
 	"""actually executes the parse process described by parseContext.
 
 	This is the place to teach the program special tricks to bypass
 	the usual source processing using grammars.
-
-	XXX TODO: fiddle in boosting again
 	"""
-#	if len(tables)==1 and isinstance(tables[0], DirectWritingTable):
-#		try:
-#			_tryBooster(grammar, src, tables[0].getTableName(), descriptor)
-#			return
-#		except BoosterNotDefined:
-#			pass
-#		except BoosterNotAvailable, msg:
-#			gavo.ui.displayMessage("Booster defined, but not available"
-#				" (%s).  Falling back to normal parse."%msg)
-#		except BoosterFailed:
-#			raise gavo.Error("Booster failed.")
-	parseContext.parse()
+	if not _tryBooster(parseContext):
+		parseContext.parse()
 
 
 def _parseSources(data):

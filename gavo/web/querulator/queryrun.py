@@ -47,176 +47,6 @@ _thumbTarget = """
 """%(config.get("web", "staticURL"))
 
 
-class Formatter:
-	"""is a container for functions that format values from the
-	database for the various output formats.
-
-	The idea is that formatting has two phases -- one common to all
-	output formats, called preprocessing (useful for completing URLs,
-	unserializing stuff, etc), and one that does the real conversion.
-
-	The converters are simply methods with defined names:
-
-	_cook_xxx takes some value from the database and returns another
-	value for format hint xxx.
-
-	_xxx_to_fff brings a value with format hint xxx to format fff.
-
-	If any method does not exist, the value is not touched except for
-	suppressed hints and/or None values.
-
-	There is a special hint "suppressed" that makes any call to format
-	return None.  Formatter clients are supposed to ignore such fields,
-	whatever that may mean for the formatter.
-
-	This means that format may never return None for non-suppressed fields.
-	The format method substitutes any None by "N/A".
-	"""
-	def __init__(self, template, context):
-		self.template = template
-		self.context = context
-
-	def _htmlEscape(self, value):
-		return str(value).replace("&", "&amp;").replace("<", "&lt;")
-
-	def _cook_date(self, value, row):
-		"""(should check if value is a datetime instance...)
-		"""
-		return str(value).split()[0]
-
-	def _cook_juliandate(self, value, row):
-		"""(should check if value really is mx.DateTime)
-		"""
-		return value.jdn
-
-	def _cook_product(self, path, row):
-		"""returns pieces to format a product URL.
-		
-		Specifically, it qualifies path to a complete URL for the product and
-		returns this together with a relative URL for a thumbnail and a
-		sufficiently sensible title.
-		"""
-		owner, embargo = row[self.template.getColIndexFor("owner")
-			],row[self.template.getColIndexFor("embargo")]
-		if self.context.isAuthorizedProduct(embargo, owner):
-			productUrl = urlparse.urljoin(self.context.getServerURL(),
-			"%s/getproduct/%s?path=%s"%(config.get("web", "rootURL"), 
-			self.template.getPath(), urllib.quote(path)))
-			title = os.path.basename(path)
-		else:
-			productUrl = None
-			title = "Embargoed through %s"%embargo.strftime("%Y-%m-%d")
-		return productUrl, \
-			"%s/thumbnail/%s?path=%s"%(config.get("web", "rootURL"),
-			self.template.getPath(), urllib.quote(path)),\
-			title
-
-	def _cook_aladinload(self, path, row):
-		"""wraps path into a URL that can be sent to aladin for loading the image.
-		"""
-		return urlparse.urljoin(self.context.getServerURL(),
-			"%s/getproduct/%s?path=%s"%(config.get("web", "rootURL"),
-			self.template.getPath(), urllib.quote(path)))
-
-	def _cook_feedback(self, key, row, targetTemplate=None):
-		if targetTemplate==None:
-			targetTemplate = self.template.getPath()
-		return urlparse.urljoin(self.context.getServerURL(),
-			"%s/query/%s?feedback=%s"%(config.get("web", "rootURL"), targetTemplate,
-				urllib.quote(key)))
-
-	def _cook_hourangle(self, deg, row, secondFracs=2):
-		"""converts a float angle in degrees to an hour angle.
-		"""
-		secondFracs = int(secondFracs)
-		rest, hours = math.modf(deg/360.*24)
-		rest, minutes = math.modf(rest*60)
-		return "%d %02d %2.*f"%(int(hours), int(minutes), secondFracs, rest*60)
-
-	def _cook_sexagesimal(self, deg, row, secondFracs=1):
-		"""converts a float angle in degrees to a sexagesimal angle.
-		"""
-		secondFracs = int(secondFracs)
-		rest, degs = math.modf(deg)
-		rest, minutes = math.modf(rest*60)
-		return "%+d %02d %2.*f"%(int(degs), abs(int(minutes)), secondFracs,
-			abs(rest*60))
-
-	def _product_to_html(self, args):
-		prodUrl, thumbUrl, title = args
-		if prodUrl==None:
-			return title
-		else:
-			return ('<a href="%s">%s</a><br>'
-				'<a href="%s"  target="thumbs"'
-				' onMouseover="showThumbnail(\''
-				'%s\')" onMouseout="clearThumbnail()">'
-				'[preview]</a>')%(
-				prodUrl,
-				title,
-				thumbUrl, thumbUrl)
-
-	def _product_to_votable(self, args):
-		if args[0]==None:
-			return "Embargoed"
-		else:
-			return args[0]
-			
-	def _url_to_html(self, url, title=None):
-		if title==None:
-			title = "[%s]"%self._htmlEscape(urlparse.urlparse(value)[1])
-		return '<a href="%s">%s</a>'%(self._htmlEscape(url), title)
-
-	def _feedback_to_html(self, url):
-		return self._url_to_html(url, "[Find similar]")
-
-	def _aladinquery_to_html(self, value):
-		aladinPrefix = ("http://aladin.u-strasbg.fr/java/nph-aladin.pl"
-			"?frame=launching&script=get%20aladin%28%29%20")
-		return '<a href="%s%s" target="aladin">[Aladin]</a>'%(
-			aladinPrefix, urllib.quote(value))
-
-	def _aladinquery_to_votable(self, value):
-		return ""
-
-	def _aladinload_to_html(self, value):
-		aladinPrefix = ("http://aladin.u-strasbg.fr/java/nph-aladin.pl"
-			"?frame=launching&script=load%20")
-		return '<a href="%s%s" target="aladin">[Aladin]</a>'%(
-			aladinPrefix, urllib.quote(value))
-	
-	def _simbad_to_html(self, value):
-		value = re.sub(r"(\d)\s+(\d)", r"\1+\2", value.strip())
-		value = re.sub("\s*[+-]s\*", r"d\g<0>", value)+"d"
-		simbadURL = ("http://simbad.u-strasbg.fr/simbad/sim-coo?Coord=%s"
-			"&Radius=1")%urllib.quote(value)
-		return '<a href="%s">[Simbad]</a>'%self._htmlEscape(simbadURL)
-
-	def _hourangle_to_html(self, value):
-		return value.replace(" ", "&nbsp;")
-	_sexagesimal_to_html = _hourangle_to_html
-
-	def _string_to_html(self, value):
-		return self._htmlEscape(value)
-
-	def _null_to_html(self):
-		return "N/A"
-
-	def _null_to_votable(self):
-		return None
-
-	def format(self, hint, targetFormat, value, row):
-		if hint[0]=="suppressed":
-			return None
-		if value==None:
-			return getattr(self, "_null_to_%s"%targetFormat)()
-		cooker = getattr(self, "_cook_%s"%hint[0], lambda a, row: a)
-		formatter = getattr(self, "_%s_to_%s"%(hint[0], targetFormat),
-			lambda *a: a[0])
-		res = formatter(cooker(value, row, *hint[1:]))
-		return res
-
-
 class UniqueNameGenerator:
 	"""is a factory to build unique file names from possibly ambiguous ones.
 
@@ -261,6 +91,18 @@ def _formatAsVoTable(template, context, stream=True, verbosity=None):
 	Regardless of verbosity, if a VERB is in the context, verbosity will
 	be set to VERB*10.
 	"""
+# XXXXXXXX TODO: I guess this belongs into the context.  We'd just need
+# a sane way to store junk like this.
+	def productMapperFactory(srcInstance, colProps):
+		if colProps.get("displayHint")=="product":
+			def coder(val):
+				if val==None:
+					return "Embargoed"
+				return urlparse.urljoin(context.getServerURL(),
+					"%s/getproduct?path=%s"%(config.get("web", "rootURL"), 
+					urllib.quote(val)))
+			return coder
+
 	def getSelectItemFieldInfos(template, context):
 		"""returns the field infos for the response columns when they
 		are given by the SQL query.
@@ -299,7 +141,8 @@ def _formatAsVoTable(template, context, stream=True, verbosity=None):
 				fieldInfos.append(info)
 		template.setSelectItems(sqlparse.SelectItems(
 			*[sqlparse.SelectItem(info["fieldName"], "",
-				info.get("hint", ["string"])) for info in fieldInfos]))
+					info.get("displayHint", "string").split(",")) 
+				for info in fieldInfos]))
 		return fieldInfos
 
 	if context.hasArgument("VERB"):
@@ -308,25 +151,21 @@ def _formatAsVoTable(template, context, stream=True, verbosity=None):
 		fieldInfos = getSelectItemFieldInfos(template, context)
 	else:
 		fieldInfos = getFieldInfos(template, context, verbosity)
-	queryResult = template.runQuery(context)
-	formatter = Formatter(template, context)
-	rows = []
-	hints = [itemdef["hint"] for itemdef in template.getItemdefs()]
-	for row in queryResult:
-		rows.append([formatter.format(
-				hint, "votable", item, row)
-			for item, hint in zip(row, hints)])
-
+	rows = template.runQuery(context)
+	
+	mapperFactory = votable.getMapperRegistry()
+	mapperFactory.registerFactory(productMapperFactory)
 	tdEncoding = not not context.get("tabledataEnc")
 	if stream:
 		def produceOutput(outputFile):
 			votable.writeSimpleTable(fieldInfos, rows, {}, 
-				outputFile, tdEncoding)
+				outputFile, tdEncoding=tdEncoding, mapperFactory=mapperFactory)
 		return produceOutput
 	
 	else:
 		f = cStringIO.StringIO()
-		votable.writeSimpleTable(fieldInfos, rows, {}, f, tdEncoding)
+		votable.writeSimpleTable(fieldInfos, rows, {}, f, tdEncoding=tdEncoding,
+			mapperFactory=mapperFactory)
 		return f.getvalue()
 
 
@@ -425,6 +264,147 @@ def _makeTarForm(template, context, queryResult):
 	return "\n".join(doc)
 
 
+class HtmlValueFormatter:
+	"""is a container for functions that format values from the
+	database for HTML.
+
+	There is a special hint "suppressed" that makes any call to format
+	return None.  Formatter clients are supposed to ignore such fields,
+	whatever that may mean for the formatter.
+
+	This means that format may never return None for non-suppressed fields.
+	The format method substitutes any None by "N/A".
+	"""
+	def __init__(self, template, context):
+		self.template = template
+		self.context = context
+
+	def _htmlEscape(self, value):
+		return str(value).replace("&", "&amp;").replace("<", "&lt;")
+
+	def _cook_date(self, value, row):
+		"""(should check if value is a datetime instance...)
+		"""
+		return str(value).split()[0]
+
+	def _cook_juliandate(self, value, row):
+		"""(should check if value really is mx.DateTime)
+		"""
+		return value.jdn
+
+	def _cook_product(self, path, row):
+		"""returns pieces to format a product URL.
+		
+		Specifically, it qualifies path to a complete URL for the product and
+		returns this together with a relative URL for a thumbnail and a
+		sufficiently sensible title.
+		"""
+		owner, embargo = row[self.template.getColIndexFor("owner")
+			],row[self.template.getColIndexFor("embargo")]
+		if self.context.isAuthorizedProduct(embargo, owner):
+			productUrl = urlparse.urljoin(self.context.getServerURL(),
+			"%s/getproduct/%s?path=%s"%(config.get("web", "rootURL"), 
+			self.template.getPath(), urllib.quote(path)))
+			title = os.path.basename(path)
+		else:
+			productUrl = None
+			title = "Embargoed through %s"%embargo.strftime("%Y-%m-%d")
+		return productUrl, \
+			"%s/thumbnail/%s?path=%s"%(config.get("web", "rootURL"),
+			self.template.getPath(), urllib.quote(path)),\
+			title
+
+	def _cook_aladinload(self, path, row):
+		"""wraps path into a URL that can be sent to aladin for loading the image.
+		"""
+		return urlparse.urljoin(self.context.getServerURL(),
+			"%s/getproduct/%s?path=%s"%(config.get("web", "rootURL"),
+			self.template.getPath(), urllib.quote(path)))
+
+	def _cook_feedback(self, key, row, targetTemplate=None):
+		if targetTemplate==None:
+			targetTemplate = self.template.getPath()
+		return urlparse.urljoin(self.context.getServerURL(),
+			"%s/query/%s?feedback=%s"%(config.get("web", "rootURL"), targetTemplate,
+				urllib.quote(key)))
+
+	def _cook_hourangle(self, deg, row, secondFracs=2):
+		"""converts a float angle in degrees to an hour angle.
+		"""
+		secondFracs = int(secondFracs)
+		rest, hours = math.modf(deg/360.*24)
+		rest, minutes = math.modf(rest*60)
+		return "%d %02d %2.*f"%(int(hours), int(minutes), secondFracs, rest*60)
+
+	def _cook_sexagesimal(self, deg, row, secondFracs=1):
+		"""converts a float angle in degrees to a sexagesimal angle.
+		"""
+		secondFracs = int(secondFracs)
+		rest, degs = math.modf(deg)
+		rest, minutes = math.modf(rest*60)
+		return "%+d %02d %2.*f"%(int(degs), abs(int(minutes)), secondFracs,
+			abs(rest*60))
+
+	def _product_to_html(self, args):
+		prodUrl, thumbUrl, title = args
+		if prodUrl==None:
+			return title
+		else:
+			return ('<a href="%s">%s</a><br>'
+				'<a href="%s"  target="thumbs"'
+				' onMouseover="showThumbnail(\''
+				'%s\')" onMouseout="clearThumbnail()">'
+				'[preview]</a>')%(
+				prodUrl,
+				title,
+				thumbUrl, thumbUrl)
+
+	def _url_to_html(self, url, title=None):
+		if title==None:
+			title = "[%s]"%self._htmlEscape(urlparse.urlparse(value)[1])
+		return '<a href="%s">%s</a>'%(self._htmlEscape(url), title)
+
+	def _feedback_to_html(self, url):
+		return self._url_to_html(url, "[Find similar]")
+
+	def _aladinquery_to_html(self, value):
+		aladinPrefix = ("http://aladin.u-strasbg.fr/java/nph-aladin.pl"
+			"?frame=launching&script=get%20aladin%28%29%20")
+		return '<a href="%s%s" target="aladin">[Aladin]</a>'%(
+			aladinPrefix, urllib.quote(value))
+
+	def _aladinload_to_html(self, value):
+		aladinPrefix = ("http://aladin.u-strasbg.fr/java/nph-aladin.pl"
+			"?frame=launching&script=load%20")
+		return '<a href="%s%s" target="aladin">[Aladin]</a>'%(
+			aladinPrefix, urllib.quote(value))
+	
+	def _simbad_to_html(self, value):
+		value = re.sub(r"(\d)\s+(\d)", r"\1+\2", value.strip())
+		value = re.sub("\s*[+-]s\*", r"d\g<0>", value)+"d"
+		simbadURL = ("http://simbad.u-strasbg.fr/simbad/sim-coo?Coord=%s"
+			"&Radius=1")%urllib.quote(value)
+		return '<a href="%s">[Simbad]</a>'%self._htmlEscape(simbadURL)
+
+	def _hourangle_to_html(self, value):
+		return value.replace(" ", "&nbsp;")
+	_sexagesimal_to_html = _hourangle_to_html
+
+	def _string_to_html(self, value):
+		return self._htmlEscape(value)
+
+	def format(self, hint, value, row):
+		if hint[0]=="suppressed":
+			return None
+		if value==None:
+			return "N/A"
+		cooker = getattr(self, "_cook_%s"%hint[0], lambda a, row: a)
+		formatter = getattr(self, "_%s_to_html"%(hint[0]),
+			lambda *a: a[0])
+		res = formatter(cooker(value, row, *hint[1:]))
+		return res
+
+
 def _formatAsHtml(template, context):
 	"""returns an HTML formatted table showing the result of a query for
 	template using the arguments specified in context.
@@ -461,12 +441,12 @@ def _formatAsHtml(template, context):
 	doc.append('<table border="1" class="results">')
 	doc.append(sortButtons)
 	hints = [itemdef["hint"] for itemdef in template.getItemdefs()]
-	formatter = Formatter(template, context)
+	formatter = HtmlValueFormatter(template, context)
 	for count, row in enumerate(queryResult):
 		if not count%20:
 			doc.append(headerRow)
 		doc.append("<tr>%s</tr>"%("".join(["<td>%s</td>"%formatter.format(
-				hint, "html", item, row)
+				hint, item, row)
 			for item, hint in zip(row, hints) if hint[0]!="suppressed"])))
 	doc.append("</table>\n")
 	doc.append('<p id="querylink"><a href="%s">Link to VOTable</a></p>'%

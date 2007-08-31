@@ -24,6 +24,7 @@ cacheDir: cache
 logDir: logs
 tempDir: tmp
 logLevel: info
+operator: gavo@ari.uni-heidelberg.de
 
 [parsing]
 xmlFragmentPath: %(inputsDir)s/__common__
@@ -74,11 +75,19 @@ class DbProfile(record.Record):
 			"host": "",
 			"port": "",
 			"database": record.RequiredField,
-			"user": record.RequiredField,
-			"password": record.RequiredField,
+			"user": "",
+			"password": "",
 			"allRoles": record.ListField,
 			"readRoles": record.ListField,
 		})
+	
+	def getDsn(self):
+		parts = []
+		for key, part in [("host", "host"), ("port", "port"), 
+				("database", "dbname"), ("user", "user"), ("password", "password")]:
+			if self.get(part):
+				parts.append("%s=%s"%(key, self.get(part)))
+		return " ".join(parts)
 
 
 class ProfileParser:
@@ -297,6 +306,7 @@ class Settings:
 		if not hasattr(self, "dbProfile"):
 			raise Error("Attempt to access database without having set a profile")
 		return self.dbProfile
+
 
 _config = Settings()
 get = _config.get

@@ -30,6 +30,7 @@ except ImportError:
 	from elementtree import ElementTree
 
 from gavo import typesystems
+from gavo import config
 
 from VOTable import Writer
 from VOTable.DataModel import *
@@ -40,29 +41,58 @@ class Error(Exception):
 	pass
 
 
-class ValueEncoderFactoryRegistry(object):
-	"""is a container for functions encoding single values to text.
+errorTemplate = """<?xml version="1.0" encoding="utf-8"?>
+<VOTABLE version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xsi:noNamespaceSchemaLocation="xmlns=http://www.ivoa.net/xml/VOTable/v1.1">
+	<RESOURCE>
+		<INFO>%(errmsg)s</INFO>
+	</RESOURCE>
+</VOTABLE>"""
 
-	To register a coder factory, call addCoderFactory.  A coder
-	factory usually is just a function that takes a type object,
-	a unit and a ucd.  It should return either None (for "I don't
-	know how to make a function for this combination of type, unit
-	and ucd") or a callable that takes a value of the given type
-	and returns a string serializing the value.
+
+class ValueMapperFactoryRegistry(object):
+	"""is an object clients can ask for functions fixing up values
+	for encoding.
+
+	A mapper factory is just a function that takes a "representative"
+	instance and the column properties It must return either None
+	(for "I don't know how to make a function for this combination
+	of value and column properties") or a callable that takes a
+	value of the given type and returns a mapped value.
+
+	To add a mapper, call registerFactory.  To find a mapper for a
+	given combination of value and column properties, call getMapper.
 
 	Coder factories are tried in the reverse order of registration,
 	and the first that returns non-None wins, i.e., you should
-	register more general coder factories first.
+	register coder factories first.  If no registred mapper declares
+	itself responsible, getMapper returns an identity function.  If
+	you want to catch such a situation, you can use somthing like
+	res = vmfr.getMapper(...); if res is vmfr.identity ...
 	"""
-	def __init__(self):
-		self.factories = []
-	
-	def addCoderFactory(self, factory):
+	def __init__(self, factories=None):
+		if factories==None:
+			self.factories = []
+		else:
+			self.factories = factories[:]
+
+	def getFactories(self):
+		"""returns the list of factories.
+
+		This is *not* a copy.  It may be manipulated to remove or add
+		factories.
+		"""
+		return self.factories
+
+	def registerFactory(self, factory):
 		self.factories.insert(0, factory)
-	
-	def getCoder(self, instance, colProps):
-		"""returns a coder for values with the python value instance, 
-		according to colDesc.
+
+	def identity(self, val):
+		return val
+
+	def getMapper(self, instance, colProps):
+		"""returns a mapper for values with the python value instance, 
+		according to colProps.
 
 		This method may change colProps (which is the usual dictionary
 		mapping column property names to their values).
@@ -71,29 +101,23 @@ class ValueEncoderFactoryRegistry(object):
 		frequently.
 		"""
 		for factory in self.factories:
-			handler = factory(instance, colProps)
-			if handler:
+			mapper = factory(instance, colProps)
+			if mapper:
 				break
 		else:
-			handler = str
-		return handler
+			mapper = self.identity
+		return mapper
 
 
-_coderRegistry = ValueEncoderFactoryRegistry()
+_defaultMapperRegistry = ValueMapperFactoryRegistry()
+_registerDefaultMF = _defaultMapperRegistry.registerFactory
 
-registerCoderFactory = _coderRegistry.addCoderFactory
-getCoder = _coderRegistry.getCoder
-
-
-def _catchallFactory(srcType, colProps):
-	return lambda x:x
-registerCoderFactory(_catchallFactory)
 
 try:
 	from mx import DateTime
 
-	def _mxDatetimeCoderFactory(srcInstance, colProps):
-		"""returns coders for mxDateTime objects.
+	def _mxDatetimeMapperFactory(srcInstance, colProps):
+		"""returns mapper for mxDateTime objects.
 
 		Unit may be yr or a (produces julian fractional years like J2000.34),
 		d (produces julian days), s (produces a unix timestamp, for whatever
@@ -113,14 +137,14 @@ try:
 				fun, destType = lambda val: val and val.jdn, "double"
 			colProps["type"] = destType
 			return fun
-	registerCoderFactory(_mxDatetimeCoderFactory)
+	_registerDefaultMF(_mxDatetimeMapperFactory)
 
 except ImportError:
 	pass
 
 import datetime
 
-def _datetimeCoderFactory(srcInstance, colProps):
+def _datetimeMapperFactory(srcInstance, colProps):
 	import time
 
 	def dtToJdn(val):
@@ -145,10 +169,10 @@ def _datetimeCoderFactory(srcInstance, colProps):
 			fun, destType = lambda val: val and dtToJdn(val), "double"
 		colProps["type"] = destType
 		return fun
-registerCoderFactory(_datetimeCoderFactory)
+_registerDefaultMF(_datetimeMapperFactory)
 
 
-def _booleanCoderFactory(srcInstance, colProps):
+def _booleanMapperFactory(srcInstance, colProps):
 	if colProps["type"]=="boolean":
 		def coder(val):
 			if val:
@@ -156,10 +180,10 @@ def _booleanCoderFactory(srcInstance, colProps):
 			else:
 				return "0"
 		return coder
-registerCoderFactory(_booleanCoderFactory)
+_registerDefaultMF(_booleanMapperFactory)
 
 
-def _floatCoderFactory(srcInstance, colProps):
+def _floatMapperFactory(srcInstance, colProps):
 	if colProps["type"]=="real" or colProps["type"].startswith("double"):
 		naN = float("NaN")
 		def coder(val):
@@ -167,7 +191,7 @@ def _floatCoderFactory(srcInstance, colProps):
 				return naN
 			return val
 		return coder
-registerCoderFactory(_floatCoderFactory)
+_registerDefaultMF(_floatMapperFactory)
 
 
 # XXX FIXME
@@ -184,7 +208,7 @@ NULLVALUE_HACK = {
 	"bigint": -99999999,
 }
 
-def _intCoderFactory(srcInstance, colProps):
+def _intMapperFactory(srcInstance, colProps):
 	if colProps["type"] in NULLVALUE_HACK:
 		nullvalue = NULLVALUE_HACK[colProps["type"]]
 		def coder(val):
@@ -193,7 +217,14 @@ def _intCoderFactory(srcInstance, colProps):
 			return val
 		colProps["nullvalue"] = NULLVALUE_HACK[colProps["type"]]
 		return coder
-registerCoderFactory(_intCoderFactory)
+_registerDefaultMF(_intMapperFactory)
+
+
+def getMapperRegistry():
+	"""returns a copy of the default value mapper registry.
+	"""
+	return ValueMapperFactoryRegistry(
+		_defaultMapperRegistry.getFactories())
 
 
 def _getValSeq(data):
@@ -229,7 +260,7 @@ def _getFieldItemsFor(colInd, colProps):
 		"name": colProps["fieldName"],
 		"ID": "col%02d"%colInd,
 	}
-	type, size = typesystems.sqlToVOTable(colProps["type"])
+	type, size = typesystems.sqltypeToVOTable(colProps["type"])
 	fieldItems["datatype"] = type
 	if size!="1":
 		fieldItems["arraysize"] = size
@@ -248,7 +279,7 @@ def _defineFields(colDesc, dataTable):
 			Field(**_getFieldItemsFor(colInd, colProps)))
 
 
-def _mapValues(colDesc, data):
+def _mapValues(colDesc, data, mapperFactory):
 	"""fixes the values of data to match what is required by colDesc.
 
 	As a side effect, the types given in colDesc may change.
@@ -256,7 +287,7 @@ def _mapValues(colDesc, data):
 	colTypes = _getValSeq(data)
 	handlers = []
 	for colType, colProps in zip(colTypes, colDesc):
-		handler = getCoder(colType, colProps)
+		handler = mapperFactory.getMapper(colType, colProps)
 		handlers.append(handler)
 	if data:
 		colInds = range(len(data[0]))
@@ -264,7 +295,8 @@ def _mapValues(colDesc, data):
 			data[rowInd] = [handlers[colInd](row[colInd]) for colInd in colInds]
 	
 
-def buildTable(colDesc, data, metaInfo, tdEncoding=False):
+def buildTable(colDesc, data, metaInfo, tdEncoding=False, 
+		mapperFactory=_defaultMapperRegistry):
 	"""returns a DataModel.Table instance for data.
 
 	This function can only handle 2d tables.
@@ -288,7 +320,7 @@ def buildTable(colDesc, data, metaInfo, tdEncoding=False):
 		description=metaInfo.get("description", ""), coder=votEncoder)
 	if metaInfo.has_key("id"):
 		dataTable.id = id
-	_mapValues(colDesc, data)
+	_mapValues(colDesc, data, mapperFactory)
 	_defineFields(colDesc, dataTable)
 	dataTable.data = data
 	return dataTable
@@ -308,7 +340,8 @@ def writeTable(resources, metaInfo, destination):
 	writer.write(table, destination)
 
 
-def writeSimpleTable(colDesc, data, metaInfo, destination, tdEncoding=False):
+def writeSimpleTable(colDesc, data, metaInfo, destination, tdEncoding=False,
+		mapperFactory=_defaultMapperRegistry):
 	"""writes a single-table, single-resource VOTable to destination.
 
 	Arguments:
@@ -319,9 +352,20 @@ def writeSimpleTable(colDesc, data, metaInfo, destination, tdEncoding=False):
 	* metaInfo -- a dictionary containing meta information (more info coming up)
 	* destination -- a file-like object to write the XML to
 	"""
-	writeTable([Resource(tables=[
-			buildTable(colDesc, data, metaInfo, tdEncoding)])],
-		{}, destination)
+	try:
+		writeTable([Resource(tables=[
+				buildTable(colDesc, data, metaInfo, tdEncoding, mapperFactory)])],
+			{}, destination)
+	except Exception, msg:
+		import traceback
+		traceback.print_exc()
+		destination.write(errorTemplate%{
+			"errmsg": "The creation of this resource failed.  The reason given"
+				" by the program is: %s (%s).  You should report this failure"
+				" to the operator of this site, %s"%(
+					msg.__class__.__name__,
+					str(msg),
+					config.get("operator"))})
 
 
 def _test():
