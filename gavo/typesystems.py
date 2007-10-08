@@ -1,12 +1,13 @@
 """
 Conversions between type systems.
 
-GAVO has to deal with at least four type systems:
+GAVO has to deal with a quite a few type systems:
 
- * python's
- * SQL's
- * VOTable's
- * XSD's
+ * Python
+ * SQL
+ * VOTable
+ * XSD
+ * Twisted formal
 
 In general, we keep metadata in the SQL type system (although one could
 argue one should use the richest one...).  In this module, we want to
@@ -100,6 +101,41 @@ class ToXSDConverter(FromSQLConverter):
 		if type in self._charTypes:
 			return "string"
 
+
+try:
+	import formal
+
+	class ToFormalConverter(FromSQLConverter):
+		"""is a converter from SQL types to Formal type specifications.
+
+		The result of the conversion is a tuple of formal type.
+		"""
+		typeSystem = "Formal"
+		simpleMap = {
+			"smallint": (formal.Integer, formal.TextInput),
+			"integer": (formal.Integer, formal.TextInput),
+			"int": (formal.Integer, formal.TextInput),
+			"bigint": (formal.Integer, formal.TextInput),
+			"real": (formal.Float, formal.TextInput),
+			"float": (formal.Float, formal.TextInput),
+			"boolean": (formal.Boolean, formal.Checkbox),
+			"double precision": (formal.Float, formal.TextInput),
+			"double": (formal.Float, formal.TextInput),
+			"text": (formal.String, formal.TextInput),
+			"char": (formal.String, formal.TextInput),
+			"date": (formal.Date, formal.widgetFactory(formal.DatePartsInput,
+				twoCharCutoffYear=50, dayFirst=True)),
+			"timestamp": (formal.Date, formal.widgetFactory(formal.DatePartsInput,
+				twoCharCutoffYear=50, dayFirst=True)),
+		}
+
+		def mapComplex(self, type, length):
+			if type in self._charTypes:
+				return formal.String
+
+	sqltypeToFormal = ToFormalConverter().convert
+except ImportError:
+	pass
 
 sqltypeToVOTable = ToVOTableConverter().convert
 sqltypeToXSD = ToXSDConverter().convert

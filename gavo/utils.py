@@ -5,9 +5,9 @@ GAVO resources.
 
 import sys
 import re
-from xml.sax.handler import ContentHandler
 import math
 import copy
+from xml.sax.handler import ContentHandler
 
 import gavo
 from gavo import logger
@@ -193,6 +193,12 @@ class NodeBuilder(ContentHandler):
 	where name is the element name and content is whatever the _build_x
 	method returned for that element.  Text nodes have a name of None.
 
+	NodeBuilders support a limited id/idref mechanism.  Nodes with
+	id will get entered in a dictionary and can be retrieved
+	(as name/node pairs) via getById.  However, this only is
+	possible after the element with the id has been closed.  There
+	is no forward declaration.
+
 	In some cases, you want parents provide information to their children
 	while they are constructed.  This is a bit clumsy, but for such cases,
 	you can define a _start_<element> method that can leave something
@@ -218,6 +224,7 @@ class NodeBuilder(ContentHandler):
 		self.delayedChildren = {}
 		self.properties = {}
 		self.locator = None
+		self.elementsById = {}
 
 	def registerDelayedChild(self, parentName, child, atfront=False):
 		"""adds child for addition to the next enclosing parentName element.
@@ -247,9 +254,11 @@ class NodeBuilder(ContentHandler):
 		return self.properties[propName][-1]
 	
 	def handleError(self, exc_info):
-		raise gavo.Error("Error while parsing XML at"
+		msg = ("Error while parsing XML at"
 			" %d:%d (%s)"%(self.locator.getLineNumber(), 
 				self.locator.getColumnNumber(), exc_info[1]))
+		logger.error(msg, exc_info=True)
+		raise gavo.Error(msg)
 	
 	def setDocumentLocator(self, locator):
 		self.locator = locator
@@ -259,7 +268,18 @@ class NodeBuilder(ContentHandler):
 		self.childStack.append([])
 		if hasattr(self, "_start_"+name):
 			getattr(self, "_start_"+name)(name, attrs)
-	
+
+	def _enterNewNode(self, name, attrs, newNode):
+			if isinstance(newNode, NamedNode):
+				newChild = (newNode.name, newNode.node)
+			else:
+				newChild = (name, newNode)
+			self.childStack[-1].append(newChild)
+			if attrs.has_key("id"):
+				if attrs["id"] in self.elementsById:
+					raise Error("Duplicate id: %s"%attrs["id"])
+				self.elementsById[attrs["id"]] = newChild
+
 	def endElement(self, name):
 		_, attrs = self.elementStack.pop()
 		try:
@@ -270,17 +290,16 @@ class NodeBuilder(ContentHandler):
 				del self.delayedChildren[name]
 			children = self._cleanTextNodes(children)
 			newNode = getattr(self, "_make_"+name)(name, attrs, children)
-			if newNode==None:
-				pass
-			elif isinstance(newNode, NamedNode):
-				self.childStack[-1].append((newNode.name, newNode.node))
-			else:
-				self.childStack[-1].append((name, newNode))
+			if newNode!=None:
+				self._enterNewNode(name, attrs, newNode)
 		except:
 			self.handleError(sys.exc_info())
 
 	def characters(self, content):
 		self.childStack[-1].append((None, content))
+
+	def getById(self, id):
+		return self.elementsById[id]
 
 	def getResult(self):
 		return self.childStack[0][0][1]

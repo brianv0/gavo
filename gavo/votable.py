@@ -199,6 +199,16 @@ def _floatMapperFactory(srcInstance, colProps):
 _registerDefaultMF(_floatMapperFactory)
 
 
+def _stringMapperFactory(srcInstance, colProps):
+	if colProps.get("optional", True) and ("char(*)" in colProps["type"] or 
+			colProps["type"]=="text"):
+		def coder(val):
+			if val==None:
+				return ""
+			return val
+		return coder
+_registerDefaultMF(_stringMapperFactory)
+
 # XXX FIXME
 # This is a bad hack that fixes nullvalues to some random values.
 # I can't see a good way of doing this without first having a pass
@@ -207,6 +217,7 @@ _registerDefaultMF(_floatMapperFactory)
 # Then again, this currently isn't supported by pyvotable anyway,
 # so let's first fix VALUES there.
 NULLVALUE_HACK = {
+	"char(1)": '\xff',
 	"smallint": 255,
 	"int": -9999,
 	"integer": -99999999,
@@ -294,7 +305,7 @@ def _getFieldItemsFor(colInd, colProps):
 	"""
 	fieldItems = {
 		"name": colProps["fieldName"],
-		"ID": "col%02d"%colInd,
+		"ID": "%03d-%s"%(colInd, colProps["fieldName"]),
 	}
 	type, size = typesystems.sqltypeToVOTable(colProps["type"])
 	fieldItems["datatype"] = type
@@ -377,7 +388,7 @@ def writeSimpleTableColdesc(colDesc, data, metaInfo, destination,
 
 def writeVOTableFromTable(dataSet, table, destination, 
 		tablecoding="binary", mapperFactoryRegistry=_defaultMFRegistry):
-	"""returns a DataModel.Table constructed from a parseswitch.Table.
+	"""returns a DataModel.Table constructed from a table.Table.
 	"""
 	colDesc = [df.getMetaRow() for df in table.getFieldDefs()]
 	metaInfo = {

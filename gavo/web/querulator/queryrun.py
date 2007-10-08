@@ -99,8 +99,8 @@ def _formatAsVoTable(template, context, stream=True, verbosity=None):
 				if val==None:
 					return "Embargoed"
 				return urlparse.urljoin(context.getServerURL(),
-					"%s/getproduct?path=%s"%(config.get("web", "rootURL"), 
-					urllib.quote(val)))
+					"%s/getproduct/%s?path=%s"%(config.get("web", "rootURL"), 
+					template.getPath(), urllib.quote(val)))
 			return coder
 
 	def getSelectItemFieldInfos(template, context):

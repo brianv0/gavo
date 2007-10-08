@@ -12,7 +12,7 @@ some point we should probably make sqlsupport use DataFields as well.
 
 import re
 import sys
-
+import operator
 
 from gavo import config
 
@@ -110,27 +110,36 @@ def encodeDbMsg(msg):
 		).encode("ascii", "replace")
 
 
+def _makePrivInstruction(instruction, argList):
+	"""returns instruction with argList filled into %s, or None if argList is
+	empty.
+	"""
+	if argList:
+		return instruction%(", ".join(argList))
+
+
 def getTablePrivSQL(tableName):
 	"""returns a sequence of SQL statements that grant the default privileges 
 	for the installation on table tableName.
 	"""
 	dbProfile = config.getDbProfile()
-	return [
-		"GRANT ALL PRIVILEGES ON %s TO %s"%(tableName,
-			", ".join(dbProfile.get_allRoles())),
-		"GRANT SELECT ON %s TO %s"%(tableName,
-			", ".join(dbProfile.get_readRoles()))]
+	return filter(operator.truth, [
+		_makePrivInstruction("GRANT ALL PRIVILEGES ON %s TO %%s"%tableName,
+			dbProfile.get_allRoles()),
+		_makePrivInstruction("GRANT SELECT ON %s TO %%s"%tableName,
+			dbProfile.get_readRoles())])
+
 
 def getSchemaPrivSQL(schema):
 	"""returns a sequence of SQL statements that grant the default privileges 
 	for the installation to schema.
 	"""
 	dbProfile = config.getDbProfile()
-	return [
-		"GRANT USAGE, CREATE ON SCHEMA %s TO %s"%(schema,
-			", ".join(dbProfile.get_allRoles())),
-		"GRANT USAGE ON SCHEMA %s TO %s"%(schema,
-			", ".join(dbProfile.get_readRoles()))]
+	return filter(operator.truth, [
+		_makePrivInstruction("GRANT USAGE, CREATE ON SCHEMA %s TO %%s"%schema,
+			dbProfile.get_allRoles()),
+		_makePrivInstruction("GRANT USAGE ON SCHEMA %s TO %%s"%schema,
+			dbProfile.get_readRoles())])
 
 
 class _Feeder:
@@ -169,10 +178,9 @@ class StandardQueryMixin:
 		cursor = self.connection.cursor()
 		try:
 			cursor.execute(query, data)
-		except DatabaseError:
+		except DatabaseError, msg:
 			sys.stderr.write("Failed query %s with"
-				" arguments %s\n"%(repr(query), data))
-			sys.stderr.write(">>>>>> %s\n"%cursor.query)
+				" arguments %s (%s)\n"%(repr(query), data, msg))
 			raise
 		return cursor
 
@@ -391,7 +399,6 @@ class SimpleQuerier(StandardQueryMixin):
 
 	def commit(self):
 		self.connection.commit()
-
 
 
 class ScriptRunner:

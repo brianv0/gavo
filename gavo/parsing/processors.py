@@ -8,6 +8,8 @@ by other row processors or added to a row set.
 On NULL arguments, RowProcessors should, as a rule, fail.
 """
 
+import datetime
+
 from mx import DateTime
 
 from gavo import utils
@@ -79,10 +81,20 @@ class DateExpander(RowProcessor):
 	def __init__(self, argTuples=[], destination="genDate"):
 		RowProcessor.__init__(self, argTuples)
 		self.destination = destination
-	
+
+	def _mkDateTime(self, val):
+		if isinstance(val, basestring):
+			val = DateTime.Parser.DateTimeFromString(val)
+		if isinstance(val, datetime.datetime):
+			val = DateTime.DateTime(val.year, val.month, val.day, 
+				val.hour, val.minute, val.second)
+		if isinstance(val, datetime.date):
+			val = DateTime.DateTime(val.year, val.month, val.day)
+		return val
+
 	def _compute(self, record, start=None, end=None, hrInterval=24):
-		stampTime = DateTime.Parser.DateTimeFromString(start)
-		endTime = DateTime.Parser.DateTimeFromString(end)
+		stampTime = self._mkDateTime(start)
+		endTime = self._mkDateTime(end)
 		interval = DateTime.TimeDelta(hours=float(hrInterval))
 		while stampTime<=endTime:
 			newRec = record.copy()

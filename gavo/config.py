@@ -9,6 +9,7 @@ import cStringIO
 import ConfigParser
 import shlex
 
+import gavo
 from gavo import record
 
 
@@ -53,10 +54,11 @@ msgEncoding: utf-8
 feed:feed
 querulator:trustedquery
 foreignsql:untrustedquery
+writable:worldwritable
 """
 
 
-class Error(Exception):
+class Error(gavo.Error):
 	pass
 
 class ProfileParseError(Error):

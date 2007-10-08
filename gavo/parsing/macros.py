@@ -712,7 +712,16 @@ class SimpleQuerier(Macro):
 	def __init__(self, argTuples=[], assignments=None,
 			table=None, column=None):
 		from gavo import sqlsupport
-		self.querier = sqlsupport.SimpleQuerier()
+		try:
+			self.querier = sqlsupport.SimpleQuerier()
+		except config.Error:
+			# we probably have no db connectivity.  Don't bring down the
+			# whole program without knowing we actually need it -- raise an error
+			# as soon as someone tries to use the connection
+			class Raiser:
+				def __getattr__(self, name):
+					raise gavo.Error("No db connectivity available.")
+			self.querier = Raiser()
 		Macro.__init__(self, argTuples)
 		self.assignments = _parseAssignments(assignments)
 		self.table, self.column = table, column
@@ -723,11 +732,49 @@ class SimpleQuerier(Macro):
 	
 	def _compute(self, record, val):
 		dbNames, recNames = self.assignments.keys(), self.assignments.values()
-		query = "select %s from %s where %s=%%(val)s"%(
+		query = "SELECT %s FROM %s WHERE %s=%%(val)s"%(
 			", ".join(dbNames), self.table, self.column)
 		res = self.querier.query(query, {"val": val}).fetchall()[0]
 		for name, resVal in zip(recNames, res):
 			record[name] = resVal
+
+
+class BBoxCalculator(Macro):
+	"""is a macro that computes the approximate bounding box of a WCS-specified
+	sky region in c_x, c_y, c_z.
+
+	It takes no arguments but expects WCS-like keywords in record, i.e.,
+	CRVAL1, CRVAL2 (interpreted as float deg), CRPIX1, CRPIX2 (pixel
+	corresponding to CRVAL1, CRVAL2), CUNIT1, CUNIT2 (pixel scale unit,
+	we bail out if it isn't deg), CDn_n (the transformation matrix), NAXIS1,
+	NAXIS2 (the image size).
+
+	For now, we only implement a tiny subset of WCS.  We'll make up as we go.
+	"""
+	@staticmethod
+	def getName():
+		return "calculateBbox"
+
+	def _getAlphaUnit(self, cPos):
+		"""returns the unit vector for RA at cPos.
+
+		The unit vector for RA u for a point p on the unit sphere cPos is the one
+		tangential to the sphere with a zero z component and a non-negative
+		y component (XXX check that...).
+
+		We compute it by solving u_1*p_1+u_2*p_2=0 (we already know that
+		u_3=0) simultaneously with u_1^2+u_2^2=1.
+
+		This becomes degenerate for p_1*p_2=0.  XXXXX fix
+		"""
+		u_1 = math.sqrt(cPos[1]/cPos[0]+(1+cPos[1]/cPos[0]))
+		u_2 = -u_1*cPos[0]/cPos[1]
+
+	def _compute(self, record):
+		cPos = coords.computeUnitSphereCoords(float(record[CRVAL1]),
+			float(record[CRVAL2]))
+		alphaUnit = self._getAlphaUnit(cPos)
+		deltaUnit = self._getDeltaUnit(cPos)
 
 
 def _fixIndentation(code, newIndent):

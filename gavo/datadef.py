@@ -3,6 +3,7 @@ Classes to define properties of data.
 """
 
 from gavo import record
+from gavo.parsing import meta
 
 class DataField(record.Record):
 	"""is a description of a data field.
@@ -35,6 +36,8 @@ class DataField(record.Record):
 			"index": None,       # if given, name of index field is part of
 			"displayHint": "string", # suggested presentation, see queryrun.Format
 			"verbLevel": 30,     # hint for building VOTables
+			"id": None,          # Just so the field can be referenced within XML
+			"copy": record.BooleanField,  # Used with TableGrammars
 		})
 		for key, val in initvals.iteritems():
 			self.set(key, val)
@@ -68,6 +71,23 @@ class DataField(record.Record):
 		else:
 			self.dataStore["longdescription"] = txt
 			self.set_longmime(mime)
+
+	def getValueIn(self, aDict, atExpand=lambda val, _: val):
+		"""returns the value the field has within aDict.
+
+		This involves handling nullvalues and such.  atExpand,
+		if passed, has to be a callable receiving and returning
+		one value (usually, it's going to be the embedding
+		descriptor's atExpander)
+		"""
+		preVal = None
+		if self.get_source()!=None:
+			preVal = aDict.get(self.get_source())
+		if preVal==self.get_nullvalue():
+			preVal = None
+		if preVal==None:
+			preVal = atExpand(self.get_default(), aDict)
+		return preVal
 
 	def getMetaRow(self):
 		"""returns a dictionary ready for inclusion into the meta table.
@@ -115,7 +135,7 @@ metaTableFields = [
 ]
 
 
-class DataTransformer(record.Record):
+class DataTransformer(record.Record, meta.MetaMixin):
 	"""is a generic description of a class receiving data in some format
 	and generating data in a different format.
 
@@ -151,6 +171,12 @@ class DataTransformer(record.Record):
 				raise resource.ValidationError(
 					"%s is None but non-optional"%field.get_dest())
 
+	def registerAsMetaParent(self):
+		# This is called by the MetaMixin
+		if self.get_Semantics():
+			for recDef in self.get_Semantics().get_recordDefs():
+				recDef.setMetaParent(self)
+
 	def copy(self):
 		"""returns a deep copy of self.
 		"""
@@ -179,3 +205,13 @@ class DataTransformer(record.Record):
 		It raises a KeyError if the table name is not known.
 		"""
 		return self.get_Semantics().getRecordDefByName(name)
+
+	def getInputFields(self):
+		"""returns a sequence of dataFields if this data descriptor takes
+		fielded input.
+
+		The method will raise an AttributeError if the grammar does not take
+		fielded input.
+		"""
+		return self.get_Grammar().getInputFields()
+

@@ -162,7 +162,7 @@ class REGrammar(grammar.Grammar):
 			raise Error("Bad input: RE %s not well-formed (%s)"%(tokD, msg))
 
 	def set_tokenizer(self, splitRE, tokenizerType="split"):
-		if isinstance(splitRe, tuple):
+		if isinstance(splitRE, tuple):
 			splitRE, tokenizerType = splitRE
 		if tokenizerType=="split":
 			splitRE = re.compile(splitRE)

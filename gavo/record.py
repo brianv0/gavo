@@ -232,7 +232,14 @@ class Record(object):
 			return self.dataStore[key].get(regKey, "")
 		def setter(self, regKey, value):
 			self.dataStore[key][regKey] = value
-		return [("get_", getter), ("register_", setter)]
+		def checker(self, regKey):
+			return self.dataStore[key].has_key(regKey)
+		def counter(self):
+			return len(self.dataStore[key])
+		def itemgetter(self):
+			return self.dataStore[key].keys()
+		return [("get_", getter), ("register_", setter), ("has_", checker),
+			("count_", counter), ("itemsof_", itemgetter)]
 
 	def _getBooleanMethods(self, key, default):
 		if default is BooleanField:

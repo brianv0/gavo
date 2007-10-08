@@ -19,6 +19,7 @@ from gavo import interfaces
 from gavo import datadef
 from gavo import config
 from gavo import parsing
+from gavo.parsing import meta
 from gavo.web import service
 from gavo.parsing import resource
 from gavo.parsing import macros
@@ -33,6 +34,8 @@ from gavo.parsing.columngrammar import ColumnGrammar
 from gavo.parsing.kvgrammar import KeyValueGrammar
 from gavo.parsing.nullgrammar import NullGrammar
 from gavo.parsing.fitsgrammar import FitsGrammar
+from gavo.parsing import tablegrammar
+from gavo.parsing import contextgrammar
 
 
 class Error(gavo.Error):
@@ -74,16 +77,19 @@ class Semantics(record.Record):
 
 
 class DataDescriptor(datadef.DataTransformer):
-	"""is a DataTransformer for reading data from files.
+	"""is a DataTransformer for reading data from files or external processes.
 	"""
 	def __init__(self, parentResource, **initvals):
 		datadef.DataTransformer.__init__(self, parentResource, 
 			additionalFields = {
-				"source": None, # resdir-relative filename of source
-												# for single-file sources
+				"source": None,    # resdir-relative filename of source
+				                   # for single-file sources
 				"sourcePat": None, # resdir-relative shell pattern of sources for
-													 # one-row-per-file sources
+				                   # one-row-per-file sources
+				"computer": None,  # rootdir-relative path of an executable producing 
+				                   # the data
 				"encoding": "ascii", # of the source files
+				"name": None,      # a terse human-readable description of this data
 				"constraints": None, # ignored, present for RecordDef interface
 			},
 			initvals=initvals)
@@ -105,7 +111,7 @@ class DataDescriptor(datadef.DataTransformer):
 					yield fName
 
 
-class ResourceDescriptor(record.Record):
+class ResourceDescriptor(record.Record, meta.MetaMixin):
 	"""is a container for all information necessary to import a resource into
 	a VO data pool.
 	"""
@@ -120,6 +126,7 @@ class ResourceDescriptor(record.Record):
 			"service": record.DictField,    # ...services for the data contained.
 			"schema": None,    # Name of schema for that resource, defaults
 			                   # to basename(resdir)
+			"profile": None,   # override db profile used to create resource
 			"atExpander": parsehelpers.RDComputer(self),
 			"systems": coords.CooSysRegistry(),
 		}, initvals)
@@ -146,6 +153,21 @@ class ResourceDescriptor(record.Record):
 				return dataSrc
 		raise KeyError(id)
 
+	def notfiyParseFinished(self):
+		for ds in self.get_dataSrcs():
+			ds.setMetaParent(self)
+		for key in self.itemsof_adapter():
+			self.get_adapter(key).setMetaParent(self)
+		for key in self.itemsof_service():
+			self.get_service(key).setMetaParent(self)
+	
+
+def makeAttDict(attrs):
+	"""returns a dictionary suitable as keyword arguments from a sax attribute
+	dictionary.
+	"""
+	return dict([(str(key), val) for key, val in attrs.items()])
+
 
 class RdParser(utils.NodeBuilder):
 	def __init__(self):
@@ -166,12 +188,13 @@ class RdParser(utils.NodeBuilder):
 		"""
 		if ":" in id:
 			rdPath, id = id.split(":", 1)
-			rd = getRd(os.path.join(config.get("inputsDir"), rdPath))
+			rd = getRd(rdPath)
 		else:
 			rd = self.rd
 		return rd.getDataById(id)
 
-	def _processChildren(self, parent, name, childMap, children):
+	def _processChildren(self, parent, name, childMap, children, 
+			ignoreUnknownElements=False):
 		"""adds children to parent.
 
 		Parent is some class (usually a record.Record instance),
@@ -184,12 +207,14 @@ class RdParser(utils.NodeBuilder):
 			try:
 				childMap[childName](val)
 			except KeyError:
-				raise Error("%s elements may not have %s children"%(
-					name, childName))
+				if not ignoreUnknownElements:
+					raise Error("%s elements may not have %s children"%(
+						name, childName))
 		return parent
 
 	def _make_ResourceDescriptor(self, name, attrs, children):
 		self.rd.set_resdir(attrs["srcdir"])
+		self.rd.set_profile(attrs.get("profile"))
 		self._processChildren(self.rd, name, {
 			"DataProcessor": self.rd.addto_processors,
 			"recreateAfter": self.rd.addto_dependents,
@@ -198,6 +223,7 @@ class RdParser(utils.NodeBuilder):
 			"Data": lambda val:0,      # these register themselves
 			"Adapter": lambda val: 0,  # these register themselves
 			"Service": lambda val: 0,  # these register themselves
+			"meta": self.rd.addMeta,
 		}, children)
 		# XXX todo: coordinate systems
 		return self.rd
@@ -209,6 +235,7 @@ class RdParser(utils.NodeBuilder):
 			dd = DataDescriptor(self.rd)
 		dd.set_source(attrs.get("source"))
 		dd.set_sourcePat(attrs.get("sourcePat"))
+		dd.set_computer(attrs.get("computer"))
 		dd.set_encoding(attrs.get("encoding", "ascii"))
 		dd.set_id(attrs.get("id"))
 		self.rd.addto_dataSrcs(dd)
@@ -217,54 +244,80 @@ class RdParser(utils.NodeBuilder):
 			"Semantics": dd.set_Semantics,
 			"Macro": dd.addto_macros,
 			"Grammar": dd.set_Grammar,
+			"meta": dd.addMeta,
 		}, children)
 	
-	def _makeGrammar(self, grammarClass, attrs, children):
-		"""internal base method for all grammar producing elements.
+	def _fillGrammarNode(self, grammar, attrs, children, classHandlers):
+		"""handles children and attributes common to all grammar classes.
+
+		grammar is an instance of the desired grammar class.
+
+		classHandlers is a dict of _processChildren-like handlers for the
+		children of the concrete grammar.
+
+		For convenience, the function returns the instance passed in.
 		"""
-		grammar = grammarClass()
 		grammar.setExtensionFlag(attrs.get("keep", "False"))
 		if attrs.has_key("docIsRow"):
 			grammar.set_docIsRow(attrs["docIsRow"])
-		return self._processChildren(grammar, grammarClass.__name__, {
+		handlers = {
 			"Macro": grammar.addto_macros,
-		}, children)
+			"RowProcessor": grammar.addto_rowProcs,
+		}
+		handlers.update(classHandlers)
+		return self._processChildren(grammar, grammar.__class__.__name__, 	
+			handlers, children)
 	
 	def _make_CFGrammar(self, name, attrs, children):
 		return utils.NamedNode("Grammar",
-			self._makeGrammar(CFGrammar, attrs, children))
+			self._fillGrammarNode(CFGrammar(), attrs, children, {}))
 	
 	def _make_REGrammar(self, name, attrs, children):
-		grammar = self._makeGrammar(REGrammar, attrs, children)
-		grammar.set_numericGroups(attrs.get("numericGroups", "False"))
-		return utils.NamedNodes("Grammar",
-			self._processChildren(grammar, name, {
+		grammar = REGrammar()
+		self._fillGrammarNode(grammar, attrs, children, {
 				"rules": grammar.set_rules,
 				"documentProduction": grammar.set_documentProduction,
 				"tabularDataProduction": grammar.set_documentProduction,
 				"rowProduction": grammar.set_rowProduction,
 				"tokenizer": grammar.set_tokenizer,
-			}, children))
+			})
+		grammar.set_numericGroups(attrs.get("numericGroups", "False"))
+		return utils.NamedNode("Grammar", grammar)
 
 	def _make_FitsGrammar(self, name, attrs, children):
-		grammar = self._makeGrammar(FitsGrammar, attrs, children)
+		grammar = self._fillGrammarNode(FitsGrammar(), attrs, children, {})
 		grammar.set_qnd(attrs.get("qnd", "False"))
 		return utils.NamedNode("Grammar", grammar)
 
 	def _make_ColumnGrammar(self, name, attrs, children):
-		grammar = self._makeGrammar(ColumnGrammar, attrs, children)
+		grammar = self._fillGrammarNode(ColumnGrammar(), attrs, children, {})
 		grammar.set_topIgnoredLines(attrs.get("topIgnoredLines", 0))
 		grammar.set_booster(attrs.get("booster"))
 		return utils.NamedNode("Grammar", grammar)
 
 	def _make_NullGrammar(self, name, attrs, children):
 		return utils.NamedNode("Grammar",
-			self._makeGrammar(NullGrammar, attrs, children))
+			self._fillGrammarNode(NullGrammar(), attrs, children, {}))
 
 	def _make_KeyValueGrammar(self, name, attrs, children):
 		return utils.NamedNode("Grammar",
-			self._makeGrammar(KeyValueGrammar, attrs, children))
+			self._fillGrammarNode(KeyValueGrammar(), attrs, children, {}))
+
+	def _make_TableGrammar(self, name, attrs, children):
+		return utils.NamedNode("Grammar",
+			self._fillGrammarNode(tablegrammar.TableGrammar(), attrs, children, {}))
+
+	def _make_inputKey(self, name, attrs, children):
+		inputKey = contextgrammar.InputKey(makeAttDict(attrs))
+		return self._processChildren(inputKey, name, {}, children)
 	
+	def _make_ContextGrammar(self, name, attrs, children):
+		grammar = contextgrammar.ContextGrammar()
+		return utils.NamedNode("Grammar",
+			self._fillGrammarNode(grammar, attrs, children, {
+				"inputKey": grammar.addto_inputKeys,
+			}))
+
 	def _make_Semantics(self, name, attrs, children):
 		semantics = Semantics()
 		semantics.setExtensionFlag(attrs.get("keep", "False"))
@@ -292,6 +345,7 @@ class RdParser(utils.NodeBuilder):
 			"Field": recDef.addto_items,
 			"constraints": recDef.set_constraints,
 			"owningCondition": recDef.set_owningCondition,
+			"meta": recDef.addMeta,
 		}, children)
 
 		return utils.NamedNode("Record", record)
@@ -314,7 +368,10 @@ class RdParser(utils.NodeBuilder):
 		return self._processChildren(field, name, {
 			"longdescr": field.set_longdescription,
 		}, children)
-	
+
+	def _make_copyof(self, name, attrs, children):
+		return utils.NamedNode(*self.getById(attrs["idref"]))
+
 	def _make_longdescr(self, name, attrs, children):
 		return attrs.get("type", "text/plain"), self.getContent(children)
 	
@@ -335,7 +392,7 @@ class RdParser(utils.NodeBuilder):
 		initArgs = dict([(str(key), value) 
 			for key, value in attrs.items() if key!="name"])
 		proc = processors.getProcessor(attrs["name"])(**initArgs)
-		return self._processChildren(macro, name, {
+		return self._processChildren(proc, name, {
 			"arg": proc.addArgument,
 		}, children)
 
@@ -375,36 +432,46 @@ class RdParser(utils.NodeBuilder):
 			attrs.get("epoch"), attrs.get("system"))
 
 	def _make_Adapter(self, name, attrs, children):
-		adapter = service.Adapter(name=attrs["name"], id=attrs["id"])
+		adapter = DataDescriptor(self.rd, id=attrs["id"])
+		adapter.set_name(attrs["name"])
 		self.rd.register_adapter(adapter.get_id(), adapter)
 		return self._processChildren(adapter, name, {
 			"Field": adapter.addto_items,
 			"Semantics": adapter.set_Semantics,
 			"Macro": adapter.addto_macros,
 			"Grammar": adapter.set_Grammar,
+			"meta": adapter.addMeta,
 		}, children)
 
-	def _makeService(self, name, attrs, children):
-		service = service.Service(id=attrs["id"])
-		self.rd.register_service(service.get_id(), service)
-		return self._processChildren(service, name, {
-			"inputFilter": service.addto_inputFilters,
-			"core": serive.set_core,
-			"outputTable": lambda val: 
-				service.register_output(val[0], (val[1], val[2])),
+	def _make_Service(self, name, attrs, children):
+		svc = service.Service({"id": attrs["id"]})
+		self.rd.register_service(svc.get_id(), svc)
+		return self._processChildren(svc, name, {
+			"inputFilter": svc.addto_inputFilters,
+			"core": svc.set_core,
+			"outputFilter": lambda val: 
+				svc.register_output(val.get_id(), val),
+			"meta": svc.addMeta,
 		}, children)
 
 	def _make_inputFilter(self, name, attrs, children):
 		return self.rd.get_adapter(attrs["idref"])
 	
-	def _make_outputTable(self, name, attrs, children):
-		return (attrs["id"], self.rd.get_adapter(attrs["idref"]), 
-			attrs["table"])
+	def _make_outputFilter(self, name, attrs, children):
+		return self.rd.get_adapter(attrs["idref"])
 
 	def _make_core(self, name, attrs, children):
 		return self._getDDById(attrs["idref"])
 
+	def _make_meta(self, name, attrs, children):
+		content = self._makeTextNode(name, attrs, children)
+		res = makeAttDict(attrs)
+		res["content"] = content
+		return res
+
 	def _makeTextNode(self, name, attrs, children):
+		if len(children)==0:
+			return ""
 		if len(children)!=1 or children[0][0]!=None:
 			raise Error("%s nodes have text content only"%name)
 		return children[0][1]
@@ -427,6 +494,7 @@ class InputEntityResolver(EntityResolver):
 def getRd(srcPath, parserClass=RdParser):
 	"""returns a ResourceDescriptor from the source in srcPath
 	"""
+	srcPath = os.path.join(config.get("inputsDir"), srcPath)
 	if not os.path.exists(srcPath):
 		srcPath = srcPath+".vord"
 	contentHandler = parserClass()
@@ -436,7 +504,7 @@ def getRd(srcPath, parserClass=RdParser):
 	try:
 		parser.parse(open(srcPath))
 	except IOError, msg:
-		utils.fatalError("Could not open descriptor %s (%s)."%(
+		raise Error("Could not open descriptor %s (%s)."%(
 			srcPath, msg))
 	except Exception, msg:
 		if parsing.verbose:
@@ -453,4 +521,6 @@ def _test():
 
 
 if __name__=="__main__":
-	_test()
+#	_test()
+	parsing.verbose = True
+	getRd("apfs/res/apfs_new.vord")

@@ -38,7 +38,9 @@ class Grammar(record.Record):
 	accepts a list of symbol names that they should print some sort
 	of debug info for.
 	"""
-	def __init__(self, fieldDefs):
+	def __init__(self, fieldDefs=None):
+		if fieldDefs==None:
+			fieldDefs = {}
 		fieldDefs.update({
 			"macros": record.ListField,      # macros to be applied
 			"rowProcs": record.ListField,    # row processors to be applied
@@ -60,6 +62,7 @@ class Grammar(record.Record):
 	def parse(self, parseContext):
 		getattr(self, "_setupParse", lambda _: None)(parseContext)
 		counter = gavo.ui.getGoodBadCounter("Importing rows", 100)
+		row = "<unparsed docrow>"
 		try:
 			try:
 				row = self._getDocdict(parseContext)

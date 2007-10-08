@@ -78,6 +78,7 @@ class RowFunction:
 	def __call__(self, atExpand, rowdict):
 		return self._compute(rowdict, **self._buildArgDict(atExpand, rowdict))
 
+
 class RDComputer:
 	"""is a container computing values of @-expansions.
 
@@ -149,7 +150,7 @@ class FieldComputer(RDComputer):
 			# This is for the benefit of doc generation.  A FieldComputer without
 			# resource descriptor is pretty useless anywhere else
 			RDComputer.__init__(self, None)
-			self.context = parseContext
+			self.context = None
 		else:
 			RDComputer.__init__(self, parseContext.getDataSet().
 				getDescriptor().getRD())

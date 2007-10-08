@@ -112,12 +112,16 @@ class PlainHeaderManipulator:
 	This class exists because pyfits insists on scaling scaled image data
 	on reading it.  While we can scale back on writing, this is something
 	I'd rather not do.  So, I have this base class to facilate the 
-	HeaderManipulator that can handle gzipped fits files as well.	
+	HeaderManipulator that can handle gzipped fits files as well.
 	"""
 	def __init__(self, fName):
 		self.hdus = pyfits.open(fName, "update")
+		self.add_comment = self.hdus[0].header.add_comment
+		self.add_history = self.hdus[0].header.add_history
+		self.add_blank = self.hdus[0].header.add_blank
+		self.update = self.hdus[0].header.update
 	
-	def update(self, kvcList):
+	def updateFromList(self, kvcList):
 		for key, value, comment in kvcList:
 			self.hdus[0].header.update(key, value, comment=comment)
 

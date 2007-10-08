@@ -5,7 +5,7 @@ This module contains code defining and processing resources.
 import os
 import re
 import sys
-import weakref
+import traceback
 
 import gavo
 from gavo import config
@@ -13,7 +13,10 @@ from gavo import record
 from gavo import sqlsupport
 from gavo import logger
 from gavo import votable
+from gavo import table
+from gavo import parsing
 from gavo.datadef import DataField
+from gavo.parsing import meta
 from gavo.parsing import typeconversion
 from gavo.parsing import parsehelpers
 
@@ -43,7 +46,7 @@ def getMetaTableRecordDef(tableName):
 	return metaDef
 
 
-class RecordDef(record.Record):
+class RecordDef(record.Record, meta.MetaMixin):
 	"""is a specification for the semantics of a table line.
 	"""
 	def __init__(self, initvals={}):
@@ -51,7 +54,6 @@ class RecordDef(record.Record):
 			"table": record.RequiredField,  # name of destination table
 			"items": record.ListField,      # list of FieldDefs for this record
 			"constraints": None,        # a Constraints object rows have to satisfy
-			"Meta": record.DictField,   # misc. meta info
 			"owningCondition": None,    # a condition to select our data from
 			                            # shared tables.
 			"shared": record.BooleanField,  # is this a shared table?
@@ -79,6 +81,12 @@ class RecordDef(record.Record):
 			raise Error("Duplicate field name: %s"%item.get_dest())
 		self.fieldIndexDict[item.get_dest()] = len(self.get_items())
 		self.get_items().append(item)
+
+	def set_items(self, items):
+		self.fieldIndexDict = {}
+		self.dataStore["items"] = []
+		for item in items:
+			self.addto_items(item)
 
 	def getPrimary(self):
 		for field in self.get_items():
@@ -125,13 +133,22 @@ class ParseContext:
 	the dests of DataFields to python values.  This is what we call
 	a record that's ready for ingestion into a db table or a VOTable.
 	"""
+# actually, the sourceName/ sourceFile interface is bad.  We need 
+# abstraction, because basically, grammars should be able to read from
+# anything.
 	def __init__(self, sourceFile, grammar, dataSet, literalParser):
 		if isinstance(sourceFile, basestring):
 			self.sourceName = sourceFile
 			self.sourceFile = open(self.sourceName)
-		else:  # we assume it's a file
+		elif isinstance(sourceFile, dict):
+			self.sourceName = "<dictionary>"
 			self.sourceFile = sourceFile
+		elif isinstance(sourceFile, table.Table):
+			self.sourceName = "<parsed table>"
+			self.sourceFile = sourceFile
+		else:  # we assume it's something file-like
 			self.sourceName = "<anonymous>"
+			self.sourceFile = sourceFile
 		self.dataSet = dataSet
 		self.grammar = grammar
 		self.literalParser = literalParser
@@ -171,15 +188,10 @@ class ParseContext:
 		"""returns a python value appropriate for field's type
 		from the values in rowdict (which may be a docdict as well).
 		"""
-		preVal = None
-		if field.get_source()!=None:
-			preVal = rowdict.get(field.get_source(), None)
-		if preVal==field.get_nullvalue():
-			preVal = None
-		if preVal==None:
-			preVal = self.atExpand(field.get_default(), rowdict)
-		return self.literalParser.makePythonVal(preVal, 
-			field.get_dbtype(), field.get_literalForm())
+		return self.literalParser.makePythonVal(
+			field.getValueIn(rowdict, self.atExpand), 
+			field.get_dbtype(), 
+			field.get_literalForm())
 
 	def _buildRecord(self, recordDef, rowdict):
 		"""returns a record built from rowdict and recordDef's item definition.
@@ -233,8 +245,12 @@ class DataSet:
 	The tableMaker is a function receiving the dataSet and the record
 	definition, the parseSwitcher, if defined, simply takes a parse
 	context and arranges for the parse context's table to be filled.
+	If no parseSwitcher is given, the parse method of the parse
+	context will be called.
 	"""
-	def __init__(self, dataDescriptor, tableMaker, parseSwitcher=None):
+	def __init__(self, dataDescriptor, tableMaker, parseSwitcher=None, 
+			tablesToBuild=[]):
+		self.tablesToBuild = set(tablesToBuild)
 		self.dD = dataDescriptor
 		self.docFields = self.dD.get_items()
 		self.docRec = {}
@@ -278,6 +294,9 @@ class DataSet:
 
 	def _fillTables(self, tableMaker, parseSwitcher):
 		for recordDef in self.dD.get_Semantics().get_recordDefs():
+			if (self.tablesToBuild and \
+					not recordDef.get_table() in self.tablesToBuild):
+				continue
 			self.tables.append(tableMaker(self, recordDef))
 		self._parseSources(parseSwitcher)
 		for table in self.tables:
@@ -306,7 +325,10 @@ class DataSet:
 
 	def getDocRec(self):
 		return self.docRec
-	
+
+	def getDocFields(self):
+		return self.docFields
+
 	def exportToSql(self, schema):
 		for table in self.tables:
 			table.exportToSql(schema)
@@ -324,6 +346,27 @@ class DataSet:
 		votable.writeVOTableFromTable(self,
 			self.tables[0], destination, tablecoding,
 			mapperFactoryRegistry=mapperFactoryRegistry)
+
+
+class InternalDataSet(DataSet):
+	"""is a data set that has a non-disk input.
+
+	It is constructed with the data descriptor governing the data set,
+	a class for generating tables (usually parseswitch.Table, a
+	data source (anything ParseContext can handle) and optionally
+	a sequence of table ids -- if this is given, only the specified tables
+	are built.
+	"""
+	def __init__(self, dataDescriptor, tableMaker, dataSource, 
+			tablesToBuild=[]):
+		self.dataSource = dataSource
+		DataSet.__init__(self, dataDescriptor, tableMaker, 
+			tablesToBuild=tablesToBuild)
+	
+	def _iterParseContexts(self):
+		literalParser = typeconversion.LiteralParser(self.dD.get_encoding())
+		yield ParseContext(self.dataSource, self.dD.get_Grammar(), self,
+			literalParser)
 
 
 class SqlMacroExpander(object):
@@ -418,6 +461,8 @@ class Resource:
 		return self.desc
 
 	def exportToSql(self):
+		if self.getDescriptor().get_profile():
+			config.setDbProfile(self.getDescriptor().get_profile())
 		for dataSet in self:
 			dataSet.exportToSql(self.getDescriptor().get_schema())
 		sqlRunner = sqlsupport.ScriptRunner()
