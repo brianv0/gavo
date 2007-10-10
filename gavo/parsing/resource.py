@@ -46,6 +46,36 @@ def getMetaTableRecordDef(tableName):
 	return metaDef
 
 
+class Semantics(record.Record):
+	"""is a specification for the semantics of nonterminals defined
+	by the grammar.
+
+	Basically, we have dataItems (which are global for the data source),
+	and a recordDef (which defines what each record should look like).
+	"""
+	def __init__(self, initvals={}):
+		record.Record.__init__(self, {
+			"recordDefs": record.ListField,
+		}, initvals=initvals)
+
+	def getRecordDefByName(self, tablename):
+		"""returns the RecordDef for table tablename.
+		"""
+		for recDef in self.get_recordDefs():
+			if recDef.get_table()==tablename:
+				return recDef
+		raise KeyError(tablename)
+
+	def clear_recordDefs(self):
+		"""deletes all RecordDefs defined so far.
+
+		This is necessary due to our crappy inheritance semantics for data
+		descriptors and a clear sign that we should be doing the inheritance
+		stuff differently...
+		"""
+		self.dataStore["recordDefs"] = []
+
+
 class RecordDef(record.Record, meta.MetaMixin):
 	"""is a specification for the semantics of a table line.
 	"""

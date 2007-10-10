@@ -17,16 +17,16 @@ The interface of a service is built through:
 """
 
 import cStringIO
+import weakref
 
 from twisted.internet import defer
 
+from gavo import datadef
 from gavo import record
 from gavo import table
-from gavo import datadef
-from gavo import table
-from gavo.parsing import resource
+from gavo.parsing import contextgrammar
 from gavo.parsing import meta
-from gavo.web import runner
+from gavo.parsing import resource
 
 
 class Service(record.Record, meta.MetaMixin):
@@ -46,16 +46,41 @@ class Service(record.Record, meta.MetaMixin):
 	a sequence of datadef.DataField instances describing what input it
 	requries.
 	"""
-# XXX TODO: We only use the first item of the inputFilters.
-# Either implement filter chaining or rebuild to allow only one
-# input filter.
-	def __init__(self, initvals):
+	def __init__(self, rd, initvals):
+		self.rd = weakref.proxy(rd)
 		record.Record.__init__(self, {
-			"inputFilters": record.ListField,
+			"inputFilter": None,
 			"output": record.DictField,
 			"core": record.RequiredField,
 			"id": record.RequiredField,
 		}, initvals)
+
+	def _getDefaultInputFilter(self):
+		"""returns an input filter from a web context implied by the service.
+		"""
+		# XXX TODO: id and table name is not unique, ask rd for an id.
+		if not hasattr(self, "_defaultInputFilter"):
+			self._defaultInputFilter = datadef.DataTransformer(self.rd,
+				initvals={
+					"Grammar": contextgrammar.ContextGrammar(initvals={
+							"inputKeys": self.get_core().getInputFields()
+						}),
+					"Semantics": resource.Semantics(initvals={
+							"recordDefs": [resource.RecordDef(initvals={
+								"table": "NULL",
+								})]
+						}),
+					"id": "<generated>", 
+					"items": self.get_core().getInputFields(),
+				})
+		return self._defaultInputFilter
+
+	def get_inputFilter(self):
+		# The default input filter is given by the core
+		if self.dataStore["inputFilter"]==None:
+			return self._getDefaultInputFilter()
+		else:
+			return self.dataStore["inputFilter"]
 
 	def register_output(self, key, value):
 		# the first key added becomes the default.
@@ -65,18 +90,15 @@ class Service(record.Record, meta.MetaMixin):
 			self.dataStore["output"][key] = value
 
 	def getInputFields(self):
-		return self.get_inputFilters()[0].getInputFields()
+		return self.get_inputFilter().getInputFields()
 	
 	def _getInputData(self, inputData):
-		dD = self.get_inputFilters()[0]
+		dD = self.get_inputFilter()
 		curData = resource.InternalDataSet(dD, table.Table, inputData)
 		return curData
 
 	def _runCore(self, inputTable):
-		core = self.get_core()
-		if not core.get_computer():
-			raise gavo.Error("Can only run executable cores yet.")
-		return runner.run(core, inputTable)
+		return self.get_core().run(inputTable)
 
 	def _parseResult(self, input, outputFilter):
 		"""sends the result of the core process through the core parser and
@@ -85,9 +107,8 @@ class Service(record.Record, meta.MetaMixin):
 		input must match core's grammar, i.e. needs to be a string for 
 		text-processing grammars.
 		"""
-		result = resource.InternalDataSet(self.get_core(), table.Table, 
-			cStringIO.StringIO(input), tablesToBuild=["output"])
-		if outputFilter:
+		result = self.get_core().parseOutput(input)
+		if outputFilter and self.get_output(outputFilter):
 			result = resource.InternalDataSet(self.get_output(outputFilter), 
 				result.getTables()[0].getInheritingTable, result)
 		return result
@@ -102,3 +123,4 @@ class Service(record.Record, meta.MetaMixin):
 			retVal.callback(self._parseResult(res, outputFilter)))
 		data.addErrback(lambda res: retVal.errback(res))
 		return retVal
+

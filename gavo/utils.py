@@ -346,6 +346,25 @@ class NodeBuilder(ContentHandler):
 		return [child for child in children if child[0]==targetNode
 			], [child for child in children if child[0]!=targetNode]
 
+	def _processChildren(self, parent, name, childMap, children, 
+			ignoreUnknownElements=False):
+		"""adds children to parent.
+
+		Parent is some class (usually a record.Record instance),
+		childMap maps child names to methods to call the children with,
+		and children is a sequence as passed to the _make_xxx methods.
+
+		The function returns parent for convenience.
+		"""
+		for childName, val in children:
+			try:
+				childMap[childName](val)
+			except KeyError:
+				if not ignoreUnknownElements:
+					raise Error("%s elements may not have %s children"%(
+						name, childName))
+		return parent
+
 
 class DummyClass:
 	"""is a class that just prints out all method calls with their arguments.

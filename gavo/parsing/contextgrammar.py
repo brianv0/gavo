@@ -38,10 +38,10 @@ class ContextGrammar(grammar.Grammar):
 	once as docdict, and a second time as rowdict.  This is done in order
 	to let macros operate on the context values to generate more rows.
 	"""
-	def __init__(self):
+	def __init__(self, initvals={}):
 		grammar.Grammar.__init__(self, {
 			"inputKeys": record.ListField,
-		})
+		}, initvals)
 
 	def _iterRows(self, ctx):
 		yield self._getDocdict(ctx)

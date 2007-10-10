@@ -14,7 +14,6 @@ class Reloader(rend.Page):
     def locateChild(self, ctx, segments):
         reload(dispatcher)
         reload(resource)
-        reload(tablegrammar)
         page = dispatcher.ArchiveService()
         return page.locateChild(ctx, segments)
 

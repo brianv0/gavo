@@ -6,6 +6,7 @@ between them.
 import gavo
 from gavo import utils
 from math import sin, cos, pi
+import math
 
 
 class CooSys:
@@ -71,6 +72,7 @@ def hourangleToDeg(hourAngle, sepChar=None):
 			repr(sepChar), repr(hourAngle)))
 	return timeSeconds/3600/24*360
 
+
 def dmsToDeg(dmsAngle, sepChar=" "):
 	"""returns the degree minutes seconds-specified dmsAngle as a 
 	float in degrees.
@@ -111,9 +113,96 @@ def computeUnitSphereCoords(alpha, delta):
 	alpha and delta are given in degrees.
 	"""
 	alpha, delta = utils.degToRad(alpha), utils.degToRad(delta)
-	return (cos(alpha)*cos(delta),
+	return Vector3(cos(alpha)*cos(delta),
 		sin(alpha)*cos(delta),
 		sin(delta))
+
+
+# let's do a tiny vector type.  It's really not worth getting some dependency
+# for this.
+class Vector3(object):
+	def __init__(self, x, y=None, z=None):
+		if isinstance(x, tuple):
+			self.coos = x
+		else:
+			self.coos = (x, y, z)
+
+	def __str__(self):
+		return "[%s,%s,%s]"%tuple(self.coos)
+
+	def __getitem__(self, index):
+		return self.coos[index]
+
+	def __mul__(self, other):
+		"""does either scalar multiplication if other is not a Vector3, or
+		a scalar product.
+		"""
+		if isinstance(other, Vector3):
+			return self.x*other.x+self.y*other.y+self.z*other.z
+		else:
+			return Vector3(self.x*other, self.y*other, self.z*other)
+	
+	__rmul__ = __mul__
+
+	def __add__(self, other):
+		return Vector3(self.x+other.x, self.y+other.y, self.z+other.z)
+
+	def __sub__(self, other):
+		return Vector3(self.x-other.x, self.y-other.y, self.z-other.z)
+
+	def cross(self, other):
+		return Vector3(self.y*other.z-self.z*other.y,
+			self.z*other.x-self.x*other.z,
+			self.x*other.y-self.y*other.x)
+
+	def getx(self): return self.coos[0]
+	def setx(self, x): self.coos[0] = x
+	x = property(getx, setx)
+	def gety(self): return self.coos[1]
+	def sety(self, y): self.coos[1] = x
+	y = property(gety, sety)
+	def getz(self): return self.coos[2]
+	def setz(self, z): self.coos[2] = z
+	z = property(getz, setz)
+
+
+def sgn(a):
+	if a<0:
+		return -1
+	elif a>0:
+		return 1
+	else:
+		return 0
+
+
+def getTangentialUnits(cPos):
+	"""returns the unit vectors for RA and Dec at the unit circle position cPos.
+
+	We compute them by solving u_1*p_1+u_2*p_2=0 (we already know that
+	u_3=0) simultaneously with u_1^2+u_2^2=1 for RA, and by computing the
+	cross product of the RA unit and the radius vector for dec.
+
+	This becomes degenerate at the poles.  If we're exactly on a pole,
+	we *define* the unit vectors as (1,0,0) and (0,1,0).
+	"""
+	try:
+		normalizer = 1/math.sqrt(cPos.x**2+cPos.y**2)
+	except ZeroDivisionError:
+		return Vector3(1,0,0), Vector3(0,1,0)
+	alphaUnit = normalizer*Vector3(cPos.y, -cPos.x, 0)
+	deltaUnit = normalizer*Vector3(cPos.x*cPos.z, cPos.y*cPos.z,
+		-cPos.x**2-cPos.y**2)
+	# now orient the vectors: in delta, we always look towards the pole
+	if sgn(cPos.z)!=sgn(deltaUnit.z):
+		deltaUnit = -1*deltaUnit  # XXX this breaks on the equator
+	# The orientation of alphaUnit depends on the hemisphere
+	if cPos.z<0:  # south
+		if deltaUnit.cross(alphaUnit)*cPos>0:
+			alphaUnit = -1*alphaUnit
+	else:
+		if deltaUnit.cross(alphaUnit)*cPos<0:
+			alphaUnit = -1*alphaUnit
+	return alphaUnit, deltaUnit
 
 
 def _test():

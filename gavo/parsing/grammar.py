@@ -38,16 +38,16 @@ class Grammar(record.Record):
 	accepts a list of symbol names that they should print some sort
 	of debug info for.
 	"""
-	def __init__(self, fieldDefs=None):
-		if fieldDefs==None:
-			fieldDefs = {}
-		fieldDefs.update({
+	def __init__(self, additionalFields=None, initvals={}):
+		fields = {
 			"macros": record.ListField,      # macros to be applied
 			"rowProcs": record.ListField,    # row processors to be applied
 			"docIsRow": record.BooleanField, # apply row macros to docdict 
                                        # and ship it as a row?
-		})
-		record.Record.__init__(self, fieldDefs)
+		}
+		if additionalFields!=None:
+			fields.update(additionalFields)
+		record.Record.__init__(self, fields, initvals=initvals)
 		self.curInputFileName = None
 	
 	def _handleInternalError(self, exc, row):

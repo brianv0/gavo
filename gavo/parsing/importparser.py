@@ -19,8 +19,11 @@ from gavo import interfaces
 from gavo import datadef
 from gavo import config
 from gavo import parsing
+from gavo import resourcecache
+from gavo import table
 from gavo.parsing import meta
 from gavo.web import service
+from gavo.web import standardcores
 from gavo.parsing import resource
 from gavo.parsing import macros
 from gavo.parsing import processors
@@ -42,40 +45,6 @@ class Error(gavo.Error):
 	pass
 
 
-class ResourceDescriptorError(Error):
-	pass
-
-
-class Semantics(record.Record):
-	"""is a specification for the semantics of nonterminals defined
-	by the grammar.
-
-	Basically, we have dataItems (which are global for the data source),
-	and a recordDef (which defines what each record should look like).
-	"""
-	def __init__(self):
-		record.Record.__init__(self, {
-			"recordDefs": record.ListField,
-		})
-
-	def getRecordDefByName(self, tablename):
-		"""returns the RecordDef for table tablename.
-		"""
-		for recDef in self.get_recordDefs():
-			if recDef.get_table()==tablename:
-				return recDef
-		raise KeyError(tablename)
-
-	def clear_recordDefs(self):
-		"""deletes all RecordDefs defined so far.
-
-		This is necessary due to our crappy inheritance semantics for data
-		descriptors and a clear sign that we should be doing the inheritance
-		stuff differently...
-		"""
-		self.dataStore["recordDefs"] = []
-
-
 class DataDescriptor(datadef.DataTransformer):
 	"""is a DataTransformer for reading data from files or external processes.
 	"""
@@ -88,9 +57,7 @@ class DataDescriptor(datadef.DataTransformer):
 				                   # one-row-per-file sources
 				"computer": None,  # rootdir-relative path of an executable producing 
 				                   # the data
-				"encoding": "ascii", # of the source files
 				"name": None,      # a terse human-readable description of this data
-				"constraints": None, # ignored, present for RecordDef interface
 			},
 			initvals=initvals)
 
@@ -109,6 +76,22 @@ class DataDescriptor(datadef.DataTransformer):
 			for path, dirs, files in os.walk(self.rD.get_resdir()):
 				for fName in glob.glob(os.path.join(path, self.get_sourcePat())):
 					yield fName
+	
+	def run(self, inputTable):
+		"""starts the computing process if this is a computed data set.
+		"""
+		# XXX This doesn't really belong here.  We probably want a wrapper (or,
+		# maybe, and adapter?) for this in gavo.web
+		from gavo.web import runner
+		runner.run(self, inputTable)
+
+	def parseOutput(self, rawOutput):
+		"""parses the output of a computing process and returns a table
+		if this is a computed dataSet.
+		"""
+		# see run.
+		return resource.InternalDataSet(self, table.Table, 
+			cStringIO.StringIO(input), tablesToBuild=["output"])
 
 
 class ResourceDescriptor(record.Record, meta.MetaMixin):
@@ -160,7 +143,18 @@ class ResourceDescriptor(record.Record, meta.MetaMixin):
 			self.get_adapter(key).setMetaParent(self)
 		for key in self.itemsof_service():
 			self.get_service(key).setMetaParent(self)
-	
+
+	def getTableDefByName(self, name):
+		"""returns the first RecordDef found with the matching name.
+
+		This is a bit of a mess since right now we don't actually enforce
+		unique table names and in some cases even force non-unique names.
+		"""
+		for ds in self.get_dataSrcs():
+			for tableDef in ds.get_Semantics().get_recordDefs():
+				if tableDef.get_table()==name:
+					return tableDef
+
 
 def makeAttDict(attrs):
 	"""returns a dictionary suitable as keyword arguments from a sax attribute
@@ -192,25 +186,6 @@ class RdParser(utils.NodeBuilder):
 		else:
 			rd = self.rd
 		return rd.getDataById(id)
-
-	def _processChildren(self, parent, name, childMap, children, 
-			ignoreUnknownElements=False):
-		"""adds children to parent.
-
-		Parent is some class (usually a record.Record instance),
-		childMap maps child names to methods to call the children with,
-		and children is a sequence as passed to the _make_xxx methods.
-
-		The function returns parent for convenience.
-		"""
-		for childName, val in children:
-			try:
-				childMap[childName](val)
-			except KeyError:
-				if not ignoreUnknownElements:
-					raise Error("%s elements may not have %s children"%(
-						name, childName))
-		return parent
 
 	def _make_ResourceDescriptor(self, name, attrs, children):
 		self.rd.set_resdir(attrs["srcdir"])
@@ -319,7 +294,7 @@ class RdParser(utils.NodeBuilder):
 			}))
 
 	def _make_Semantics(self, name, attrs, children):
-		semantics = Semantics()
+		semantics = resource.Semantics()
 		semantics.setExtensionFlag(attrs.get("keep", "False"))
 		return self._processChildren(semantics, name, {
 			"Record": semantics.addto_recordDefs,
@@ -396,6 +371,22 @@ class RdParser(utils.NodeBuilder):
 			"arg": proc.addArgument,
 		}, children)
 
+	def _collectArguments(self, children):
+		"""returns a dictionary mapping names to values for all arg elements
+		in children.
+		"""
+		res = {}
+		for childName, node in children:
+			if childName!="arg":
+				continue
+			name, src, val = node
+			if src or val.startswith("@"):
+				# XXX we should at least support @-expansions.
+				raise Error("RdParser doesn't know what to do with computed"
+					" arguments")
+			res[str(name)] = val
+		return res
+
 	def _make_arg(self, name, attrs, children):
 		return attrs["name"], attrs.get("source"), attrs.get("value")
 
@@ -444,10 +435,10 @@ class RdParser(utils.NodeBuilder):
 		}, children)
 
 	def _make_Service(self, name, attrs, children):
-		svc = service.Service({"id": attrs["id"]})
+		svc = service.Service(self.rd, {"id": attrs["id"]})
 		self.rd.register_service(svc.get_id(), svc)
 		return self._processChildren(svc, name, {
-			"inputFilter": svc.addto_inputFilters,
+			"inputFilter": svc.set_inputFilter,
 			"core": svc.set_core,
 			"outputFilter": lambda val: 
 				svc.register_output(val.get_id(), val),
@@ -461,8 +452,13 @@ class RdParser(utils.NodeBuilder):
 		return self.rd.get_adapter(attrs["idref"])
 
 	def _make_core(self, name, attrs, children):
-		return self._getDDById(attrs["idref"])
-
+		if attrs.has_key("builtin"):
+			core = standardcores.getStandardCore(attrs["builtin"])(self.rd,
+				**self._collectArguments(children))
+		else:
+			core = self._getDDById(attrs["idref"])
+		return core
+	
 	def _make_meta(self, name, attrs, children):
 		content = self._makeTextNode(name, attrs, children)
 		res = makeAttDict(attrs)
@@ -513,6 +509,9 @@ def getRd(srcPath, parserClass=RdParser):
 		utils.fatalError("Unexpected Exception while parsing Desriptor %s: %s."
 			"  Please check input validity."%(srcPath, msg))
 	return contentHandler.getResult()
+
+
+resourcecache.makeCache("getRd", getRd)
 
 
 def _test():

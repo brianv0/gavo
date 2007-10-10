@@ -5,6 +5,7 @@ Classes to define properties of data.
 from gavo import record
 from gavo.parsing import meta
 
+
 class DataField(record.Record):
 	"""is a description of a data field.
 
@@ -29,7 +30,7 @@ class DataField(record.Record):
 			"utype": None,       # a utype
 			"nullvalue": "",     # value to interpret as NULL/None
 			"optional": record.TrueBooleanField,  # NULL values in this field 
-			                                     # don't invalidate record
+			                                      # don't invalidate record
 			"literalForm": None, # special literal form that needs preprocessing
 			"primary": record.BooleanField,  # is part of the table's primary key
 			"references": None,  # becomes a foreign key in SQL
@@ -37,6 +38,8 @@ class DataField(record.Record):
 			"displayHint": "string", # suggested presentation, see queryrun.Format
 			"verbLevel": 30,     # hint for building VOTables
 			"id": None,          # Just so the field can be referenced within XML
+			"widgetFactory": None, # Python code to generate a formal widget factory
+			                       # for this field.
 			"copy": record.BooleanField,  # Used with TableGrammars
 		})
 		for key, val in initvals.iteritems():
@@ -149,6 +152,8 @@ class DataTransformer(record.Record, meta.MetaMixin):
 			"Grammar": record.RequiredField,
 			"Semantics": record.RequiredField,
 			"id": record.RequiredField,        # internal id of the data set.
+			"encoding": "ascii", # of string literals coming in
+			"constraints": None, # ignored, present for RecordDef interface
 			"items": record.ListField,
 			"macros": record.ListField,
 		}

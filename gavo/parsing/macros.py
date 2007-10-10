@@ -175,8 +175,8 @@ class EquatorialPositionConverter(Macro):
 	def _computeCoos(self, alpha, delta):
 		alphaFloat = self._convertCoo(self.alphaFormat, alpha)
 		deltaFloat = self._convertCoo(self.deltaFormat, delta)
-		return (alphaFloat, deltaFloat)+coords.computeUnitSphereCoords(
-			alphaFloat, deltaFloat)
+		return (alphaFloat, deltaFloat)+tuple(coords.computeUnitSphereCoords(
+			alphaFloat, deltaFloat))
 
 
 class PMCombiner(Macro):
@@ -749,32 +749,64 @@ class BBoxCalculator(Macro):
 	we bail out if it isn't deg), CDn_n (the transformation matrix), NAXIS1,
 	NAXIS2 (the image size).
 
-	For now, we only implement a tiny subset of WCS.  We'll make up as we go.
+	It leaves the six values bbox_[xyz](max|min) in the record.
+
+	For now, we only implement a tiny subset of WCS.  I guess we should
+	at some point wrap wcslib or something similar.
+
+	>>> m = BBoxCalculator()
+	>>> r = {"NAXIS1": "100", "NAXIS2": "150", "CRVAL1": "138", "CRVAL2": 53,
+	...   "CRPIX1": "70", "CRPIX2": "50", "CUNIT1": "deg", "CUNIT2": "deg",
+	...   "CD1_1": 0.0002, "CD1_2": 3e-8, "CD2_1": 3e-8, "CD2_2": "-0.0002"}
+	>>> m(None, r); "%f %f"%(r["bbox_zmax"], r["bbox_zmin"])
+	'0.798741 0.798425'
 	"""
 	@staticmethod
 	def getName():
-		return "calculateBbox"
-
-	def _getAlphaUnit(self, cPos):
-		"""returns the unit vector for RA at cPos.
-
-		The unit vector for RA u for a point p on the unit sphere cPos is the one
-		tangential to the sphere with a zero z component and a non-negative
-		y component (XXX check that...).
-
-		We compute it by solving u_1*p_1+u_2*p_2=0 (we already know that
-		u_3=0) simultaneously with u_1^2+u_2^2=1.
-
-		This becomes degenerate for p_1*p_2=0.  XXXXX fix
-		"""
-		u_1 = math.sqrt(cPos[1]/cPos[0]+(1+cPos[1]/cPos[0]))
-		u_2 = -u_1*cPos[0]/cPos[1]
+		return "calculateSimpleBbox"
 
 	def _compute(self, record):
-		cPos = coords.computeUnitSphereCoords(float(record[CRVAL1]),
-			float(record[CRVAL2]))
-		alphaUnit = self._getAlphaUnit(cPos)
-		deltaUnit = self._getDeltaUnit(cPos)
+		if record["CUNIT1"].strip()!="deg" or record["CUNIT2"].strip()!="deg":
+			raise Error("Bbox can only handle deg units")
+
+		def ptte(val):
+			"""parses an element of the transformation matrix.
+
+			val has the unit degrees/pixel, we return radians/pixel for
+			our unit sphere scheme.
+			"""
+			return float(val)/360.*2*math.pi
+
+		cPos = coords.computeUnitSphereCoords(float(record["CRVAL1"]),
+			float(record["CRVAL2"]))
+		alphaUnit, deltaUnit = coords.getTangentialUnits(cPos)
+		refpixX, refpixY = float(record["CRPIX1"]), float(record["CRPIX2"])
+		caa, cad = ptte(record["CD1_1"]), ptte(record["CD1_2"]) 
+		cda, cdd = ptte(record["CD2_1"]), ptte(record["CD2_2"]) 
+		xPixelDirection = caa*alphaUnit+cad*deltaUnit
+		yPixelDirection = cda*alphaUnit+cdd*deltaUnit
+
+		def pixelToSphere(x, y):
+			"""returns unit sphere coordinates for pixel coordinates x,y.
+			"""
+			return cPos+(x-refpixX)*xPixelDirection+(y-refpixY)*yPixelDirection
+
+		width, height = float(record.get("NAXIS1", 2030)), float(
+			record.get("NAXIS2", "800"))
+		cornerPoints = [pixelToSphere(0, 0),
+			pixelToSphere(0, height), pixelToSphere(width, 0),
+			pixelToSphere(width, height)]
+		xCoos, yCoos, zCoos = [[cp[i] for cp in cornerPoints] 
+			for i in range(3)]
+		record["bbox_xmin"] = min(xCoos)
+		record["bbox_xmax"] = max(xCoos)
+		record["bbox_ymin"] = min(yCoos)
+		record["bbox_ymax"] = max(yCoos)
+		record["bbox_zmin"] = min(zCoos)
+		record["bbox_zmax"] = max(zCoos)
+		record["bbox_centerx"] = (record["bbox_xmax"]+record["bbox_xmin"])/2
+		record["bbox_centery"] = (record["bbox_ymax"]+record["bbox_ymin"])/2
+		record["bbox_centerz"] = (record["bbox_zmax"]+record["bbox_zmin"])/2
 
 
 def _fixIndentation(code, newIndent):

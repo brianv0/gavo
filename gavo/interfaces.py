@@ -224,6 +224,32 @@ class Products(Interface):
 		yield "Semantics", ("Record", productTable), True
 
 
+class UnitSphereBbox(Interface):
+	"""is an interface for simple support of SIAP.
+
+	The input consists of the bbox_[xy](min|max) fields computable from
+	FITS WCS headers by the calculateSimpleBbox macro plus XXX (I'll need
+	to see what I need for SIAP).  Tables satisfying this interface can
+	be used for SIAP querying.
+
+	You'll usually want to use a FITS grammar with tame WCS (the macro
+	currently doesn't know too much about WCS) and the macro call
+
+		<Macro name="calculateSimpleBbox"/>
+	"""
+	@staticmethod
+	def getName():
+		return "unitSphereBbox"
+	
+	def __init__(self):
+		copiedFields = [{"dest": n, "source": n, "dbtype": "real",
+				"displayHint": "suppress", "literalForm": "do not touch"}
+			for n in ["bbox_xmin", "bbox_xmax", "bbox_ymin", "bbox_ymax",
+				"bbox_zmin", "bbox_zmax", "bbox_centerx", "bbox_centery",
+				"bbox_centerz",]]
+		Interface.__init__(self, copiedFields)
+
+
 getInterface = utils.buildClassResolver(Interface, globals().values(),
 	instances=True)
 
