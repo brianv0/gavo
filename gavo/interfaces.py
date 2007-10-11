@@ -242,12 +242,15 @@ class UnitSphereBbox(Interface):
 		return "unitSphereBbox"
 	
 	def __init__(self):
-		copiedFields = [{"dest": n, "source": n, "dbtype": "real",
+		Interface.__init__(self, self._getInterfaceFields())
+	
+	def _getInterfaceFields(self):
+		return [{"dest": n, "source": n, "dbtype": "real",
 				"displayHint": "suppress", "literalForm": "do not touch"}
 			for n in ["bbox_xmin", "bbox_xmax", "bbox_ymin", "bbox_ymax",
 				"bbox_zmin", "bbox_zmax", "bbox_centerx", "bbox_centery",
 				"bbox_centerz",]]
-		Interface.__init__(self, copiedFields)
+
 
 
 getInterface = utils.buildClassResolver(Interface, globals().values(),

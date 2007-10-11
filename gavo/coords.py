@@ -105,30 +105,40 @@ def dmsToDeg(dmsAngle, sepChar=" "):
 	return arcSecs/3600
 
 
-def computeUnitSphereCoords(alpha, delta):
-	"""returns the 3d coordinates of the intersection of the direction
-	vector given by the spherical coordinates alpha and delta with the
-	unit sphere.
-
-	alpha and delta are given in degrees.
-	"""
-	alpha, delta = utils.degToRad(alpha), utils.degToRad(delta)
-	return Vector3(cos(alpha)*cos(delta),
-		sin(alpha)*cos(delta),
-		sin(delta))
-
-
 # let's do a tiny vector type.  It's really not worth getting some dependency
 # for this.
 class Vector3(object):
+	"""is a 3d vector that responds to both .x... and [0]...
+
+	>>> x, y = Vector3(1,2,3), Vector3(2,3,4)
+	>>> x+y
+	Vector3(3.000000,5.000000,7.000000)
+	>>> 4*x
+	Vector3(4.000000,8.000000,12.000000)
+	>>> x*4
+	Vector3(4.000000,8.000000,12.000000)
+	>>> x*y
+	20
+	>>> "%.6f"%abs(x)
+	'3.741657'
+	"""
 	def __init__(self, x, y=None, z=None):
 		if isinstance(x, tuple):
 			self.coos = x
 		else:
 			self.coos = (x, y, z)
 
+	def __repr__(self):
+		return "Vector3(%f,%f,%f)"%tuple(self.coos)
+
 	def __str__(self):
-		return "[%s,%s,%s]"%tuple(self.coos)
+		def cutoff(c):
+			if abs(c)<1e-10:
+				return 0
+			else:
+				return c
+		rounded = [cutoff(c) for c in self.coos]
+		return "[%.2g,%.2g,%.2g]"%tuple(rounded)
 
 	def __getitem__(self, index):
 		return self.coos[index]
@@ -149,6 +159,9 @@ class Vector3(object):
 
 	def __sub__(self, other):
 		return Vector3(self.x-other.x, self.y-other.y, self.z-other.z)
+	
+	def __abs__(self):
+		return math.sqrt(self.x**2+self.y**2+self.z**2)
 
 	def cross(self, other):
 		return Vector3(self.y*other.z-self.z*other.y,
@@ -175,6 +188,30 @@ def sgn(a):
 		return 0
 
 
+def computeUnitSphereCoords(alpha, delta):
+	"""returns the 3d coordinates of the intersection of the direction
+	vector given by the spherical coordinates alpha and delta with the
+	unit sphere.
+
+	alpha and delta are given in degrees.
+
+	>>> print computeUnitSphereCoords(0,0)
+	[1,0,0]
+	>>> print computeUnitSphereCoords(0, 90)
+	[0,0,1]
+	>>> print computeUnitSphereCoords(90, 90)
+	[0,0,1]
+	>>> print computeUnitSphereCoords(90, 0)
+	[0,1,0]
+	>>> print computeUnitSphereCoords(180, -45)
+	[-0.71,0,-0.71]
+	"""
+	alpha, delta = utils.degToRad(alpha), utils.degToRad(delta)
+	return Vector3(cos(alpha)*cos(delta),
+		sin(alpha)*cos(delta),
+		sin(delta))
+
+
 def getTangentialUnits(cPos):
 	"""returns the unit vectors for RA and Dec at the unit circle position cPos.
 
@@ -184,6 +221,25 @@ def getTangentialUnits(cPos):
 
 	This becomes degenerate at the poles.  If we're exactly on a pole,
 	we *define* the unit vectors as (1,0,0) and (0,1,0).
+
+	Orientation is a pain -- the convention used here is that unit delta
+	always points to the pole.
+
+	>>> cPos = computeUnitSphereCoords(45, -45)
+	>>> ua, ud = getTangentialUnits(cPos)
+	>>> print abs(ua), abs(ud), cPos*ua, cPos*ud
+	1.0 1.0 0.0 0.0
+	>>> print ua, ud
+	[-0.71,0.71,0] [-0.5,-0.5,-0.71]
+	>>> ua, ud = getTangentialUnits(computeUnitSphereCoords(180, 60))
+	>>> print ua, ud
+	[0,-1,0] [0.87,0,0.5]
+	>>> ua, ud = getTangentialUnits(computeUnitSphereCoords(0, 60))
+	>>> print ua, ud
+	[0,1,0] [-0.87,0,0.5]
+	>>> ua, ud = getTangentialUnits(computeUnitSphereCoords(0, -60))
+	>>> print ua, ud
+	[0,1,0] [-0.87,0,-0.5]
 	"""
 	try:
 		normalizer = 1/math.sqrt(cPos.x**2+cPos.y**2)
@@ -197,10 +253,10 @@ def getTangentialUnits(cPos):
 		deltaUnit = -1*deltaUnit  # XXX this breaks on the equator
 	# The orientation of alphaUnit depends on the hemisphere
 	if cPos.z<0:  # south
-		if deltaUnit.cross(alphaUnit)*cPos>0:
-			alphaUnit = -1*alphaUnit
-	else:
 		if deltaUnit.cross(alphaUnit)*cPos<0:
+			alphaUnit = -1*alphaUnit
+	else:  # north
+		if deltaUnit.cross(alphaUnit)*cPos>0:
 			alphaUnit = -1*alphaUnit
 	return alphaUnit, deltaUnit
 

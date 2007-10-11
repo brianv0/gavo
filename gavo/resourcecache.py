@@ -27,6 +27,27 @@ _ = _DbConnection()
 getDbConnection = _.getConnection
 
 
+class CacheRegistry:
+	"""is a registry for caches kept to be able to clear them.
+
+	A cache is assumed to be a dicitonary here.
+	"""
+	def __init__(self):
+		self.knownCaches = []
+	
+	def clearall(self):
+		for cache in self.knownCaches:
+			for key in cache.keys():
+				del cache[key]
+	
+	def register(self, cache):
+		self.knownCaches.append(cache)
+
+
+_cacheRegistry = CacheRegistry()
+clearCaches = _cacheRegistry.clearall
+
+
 def _makeCache(creator):
 	"""returns a callable that returns a resource and caches its results.
 
@@ -34,6 +55,7 @@ def _makeCache(creator):
 	designated object.
 	"""
 	cache = {}
+	_cacheRegistry.register(cache)
 	def func(id):
 		if not id in cache:
 			cache[id] = creator(id)

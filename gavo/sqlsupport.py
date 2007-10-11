@@ -399,6 +399,9 @@ class SimpleQuerier(StandardQueryMixin):
 
 	def commit(self):
 		self.connection.commit()
+	
+	def close(self):
+		self.connection.close()
 
 
 class ScriptRunner:

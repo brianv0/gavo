@@ -29,6 +29,7 @@ from gavo import coords
 from gavo import config
 from gavo.parsing import parsehelpers
 from gavo.parsing import resource
+from gavo.web import siap
 
 supportHtm = False
 
@@ -739,7 +740,7 @@ class SimpleQuerier(Macro):
 			record[name] = resVal
 
 
-class BBoxCalculator(Macro):
+class BboxCalculator(Macro):
 	"""is a macro that computes the approximate bounding box of a WCS-specified
 	sky region in c_x, c_y, c_z.
 
@@ -754,7 +755,7 @@ class BBoxCalculator(Macro):
 	For now, we only implement a tiny subset of WCS.  I guess we should
 	at some point wrap wcslib or something similar.
 
-	>>> m = BBoxCalculator()
+	>>> m = BboxCalculator()
 	>>> r = {"NAXIS1": "100", "NAXIS2": "150", "CRVAL1": "138", "CRVAL2": 53,
 	...   "CRPIX1": "70", "CRPIX2": "50", "CUNIT1": "deg", "CUNIT2": "deg",
 	...   "CD1_1": 0.0002, "CD1_2": 3e-8, "CD2_1": 3e-8, "CD2_2": "-0.0002"}
@@ -796,14 +797,10 @@ class BBoxCalculator(Macro):
 		cornerPoints = [pixelToSphere(0, 0),
 			pixelToSphere(0, height), pixelToSphere(width, 0),
 			pixelToSphere(width, height)]
-		xCoos, yCoos, zCoos = [[cp[i] for cp in cornerPoints] 
-			for i in range(3)]
-		record["bbox_xmin"] = min(xCoos)
-		record["bbox_xmax"] = max(xCoos)
-		record["bbox_ymin"] = min(yCoos)
-		record["bbox_ymax"] = max(yCoos)
-		record["bbox_zmin"] = min(zCoos)
-		record["bbox_zmax"] = max(zCoos)
+		xbb, ybb, zbb = siap.getBbox(cornerPoints)
+		record["bbox_xmin"], record["bbox_xmax"] = xbb
+		record["bbox_ymin"], record["bbox_ymax"] = ybb
+		record["bbox_zmin"], record["bbox_zmax"] = zbb
 		record["bbox_centerx"] = (record["bbox_xmax"]+record["bbox_xmin"])/2
 		record["bbox_centery"] = (record["bbox_ymax"]+record["bbox_ymin"])/2
 		record["bbox_centerz"] = (record["bbox_zmax"]+record["bbox_zmin"])/2
