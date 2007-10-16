@@ -187,6 +187,76 @@ class Vector3(object):
 	z = property(getz, setz)
 
 
+class Box(object):
+	"""is a 2D box.
+
+	The can be constructed either with two tuples, giving two points
+	delimiting the box, or with four arguments x0, x1, y0, y1.
+
+	To access the thing, you can either access the x[01], y[01] attributes
+	or use getitem to retrieve the upper right and lower left corner.
+
+	The slightly silly ordering of the bounding points (larger values
+	first) is for consistency with Postgresql.
+
+	Boxes can be serialized to/from Postgresql BOXes.
+
+	>>> b1 = Box(0, 1, 0, 1)
+	>>> b2 = Box((0.5, 0.5), (1.5, 1.5))
+	>>> b1.overlaps(b2)
+	True
+	>>> b2.contains(b1)
+	False
+	>>> b2.contains(None)
+	False
+	>>> b2[0]
+	(1.5, 1.5)
+	"""
+	def __init__(self, x0, x1, y0=None, y1=None):
+		if y0==None:
+			x0, y0 = x0
+			x1, y1 = x1
+		lowerLeft = (min(x0, x1), min(y0, y1))
+		upperRight = (max(x0, x1), max(y0, y1))
+		self.x0, self.y0 = upperRight
+		self.x1, self.y1 = lowerLeft
+	
+	def __getitem__(self, index):
+		if index==0 or index==-2:
+			return (self.x0, self.y0)
+		elif index==1 or index==-1:
+			return (self.x1, self.y1)
+		else:
+			raise IndexError("len(box) is always 2")
+
+	def __str__(self):
+		return "((%g,%g), (%g,%g))"%(self.x0, self.y0, self.x1, self.y1)
+
+	def __repr__(self):
+		return "Box(%s)"%str(self)
+
+	def overlaps(self, other):
+		if other==None:
+			return False
+		return not (
+			(self.x1>other.x0 or self.x0<other.x1) or
+			(self.y1>other.y0 or self.y0<other.y1))
+
+	def contains(self, other):
+		if other==None:
+			return False
+		if isinstance(other, Box):
+			return (self.x0>=other.x0 and self.x1<=other.x1 and
+				self.y0>=other.y0 and self.y1<=other.y1)
+		else: # other is assumed to be a 2-sequence interpreted as a point.
+			x, y = other
+			return self.x0>=x>=self.x1 and self.y0>=y>=self.y1
+	
+	def translate(self, vec):
+		dx, dy = vec
+		return Box((self.x0+dx, self.y0+dy), (self.x1+dx, self.y1+dy))
+
+
 def sgn(a):
 	if a<0:
 		return -1

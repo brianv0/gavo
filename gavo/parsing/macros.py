@@ -759,22 +759,23 @@ class BboxCalculator(Macro):
 	>>> r = {"NAXIS1": "100", "NAXIS2": "150", "CRVAL1": "138", "CRVAL2": 53,
 	...   "CRPIX1": "70", "CRPIX2": "50", "CUNIT1": "deg", "CUNIT2": "deg",
 	...   "CD1_1": 0.0002, "CD1_2": 3e-8, "CD2_1": 3e-8, "CD2_2": "-0.0002"}
-	>>> m(None, r); "%f %f"%(r["bbox_zmax"], r["bbox_zmin"])
-	'0.798741 0.798425'
+	>>> m(None, r); r["primaryBbox"], r["secondaryBbox"]
+	(Box(((138.006,53.01), (137.986,52.98))), None)
+	>>> r["CRVAL1"] = 0
+	>>> m(None, r); r["primaryBbox"], r["secondaryBbox"]
+	(Box(((360,53.01), (359.986,52.98))), Box(((0.006003,53.01), (0,52.98))))
+	>>> str(r["centerAlpha"]), str(r["centerDelta"])
+	('-0.00399925', '52.9949994')
 	"""
 	@staticmethod
 	def getName():
 		return "calculateSimpleBbox"
 
 	def _compute(self, record):
-		bbox, center = siap.getBboxFromWCSFields(record)
-		xbb, ybb, zbb = bbox
-		record["bbox_xmin"], record["bbox_xmax"] = xbb
-		record["bbox_ymin"], record["bbox_ymax"] = ybb
-		record["bbox_zmin"], record["bbox_zmax"] = zbb
-		record["bbox_centerx"] = center.x
-		record["bbox_centery"] = center.y
-		record["bbox_centerz"] = center.z
+		record["primaryBbox"], record["secondaryBbox"] = siap.splitCrossingBox(
+			siap.getBboxFromWCSFields(record))
+		record["centerAlpha"], record["centerDelta"] = siap.getCenterFromWCSFields(
+			record)
 
 
 def _fixIndentation(code, newIndent):

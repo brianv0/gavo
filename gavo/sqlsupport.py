@@ -69,6 +69,43 @@ else:
 	psycopg2.extensions.register_adapter(tuple, SqlSetAdapter)
 	psycopg2.extensions.register_adapter(list, SqlSetAdapter)
 	psycopg2.extensions.register_adapter(set, SqlSetAdapter)
+	
+	from gavo import coords
+
+	class BoxAdapter(object):
+		"""is an adapter for coords.Box instances to SQL boxes.
+		"""
+		def __init__(self, box):
+			self._box = box
+
+		def prepare(self, conn):
+			pass
+
+		def getquoted(self):
+			# "'(%s,%s)'"%self._box would work as well, but let's be conservative
+			# here
+			res = "'((%f, %f), (%f, %f))'"%(self._box.x0, self._box.y0,
+				self._box.x1, self._box.y1)
+			return res
+
+	psycopg2.extensions.register_adapter(coords.Box, BoxAdapter)
+
+	# XXX TODO: I'm using a fixed oid here because I don't want to do
+	# a db connection during import to find out OIDs.  This *should*
+	# work fine, but really it should be delegated into a "connection set-up"
+	# type thing.  I'll do it when I really have persistent db connections.
+	BOX_OID = 603
+
+	def castBox(value, cursor):
+		"""makes coords.Box instances from SQL boxes.
+		"""
+		if value:
+			vals = map(float, re.match(r"\(([\d.+eE-]+),([\d.+eE-]+)\),"
+				"\(([\d.+eE-]+),([\d.+eE-]+)\)", value).groups())
+			return coords.Box(vals[0], vals[2], vals[1], vals[3])
+	
+	_SQLBOX = psycopg2.extensions.new_type((BOX_OID,), "BOX", castBox)
+	psycopg2.extensions.register_type(_SQLBOX)
 
 	from psycopg2 import OperationalError, DatabaseError
 	from psycopg2 import Error as DbError

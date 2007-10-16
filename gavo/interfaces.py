@@ -224,33 +224,44 @@ class Products(Interface):
 		yield "Semantics", ("Record", productTable), True
 
 
-class UnitSphereBbox(Interface):
+class BboxSiap(Interface):
 	"""is an interface for simple support of SIAP.
 
-	The input consists of the bbox_[xy](min|max) fields computable from
-	FITS WCS headers by the calculateSimpleBbox macro plus XXX (I'll need
-	to see what I need for SIAP).  Tables satisfying this interface can
-	be used for SIAP querying.
+	The input consists of (certain) FITS WCS headers and the primaryBbox,
+	secondaryBbox, centerAlpha and centerDelta fields added by the 
+	calculateBboxes macro. 
+	
+	Tables satisfying this interface can be used for bbox-based SIAP querying.
 
-	You'll usually want to use a FITS grammar with tame WCS (the macro
-	currently doesn't know too much about WCS) and the macro call
+	The interface automatically adds the appropriate macro call to compute
+	the bboxes from FITS fields.
 
-		<Macro name="calculateSimpleBbox"/>
+	In grammars feeding such tables, you should probably have 
+
+	<Macro name="calculateSimpleBbox"/>
 	"""
 	@staticmethod
 	def getName():
-		return "unitSphereBbox"
+		return "bboxSiap"
 	
 	def __init__(self):
 		Interface.__init__(self, self._getInterfaceFields())
 	
 	def _getInterfaceFields(self):
-		return [{"dest": n, "source": n, "dbtype": "real",
-				"displayHint": "suppress", "literalForm": "do not touch"}
-			for n in ["bbox_xmin", "bbox_xmax", "bbox_ymin", "bbox_ymax",
-				"bbox_zmin", "bbox_zmax", "bbox_centerx", "bbox_centery",
-				"bbox_centerz",]]
-
+		return [
+			{"dest": "primaryBbox", "source": "primaryBbox", 
+				"dbtype": "box",
+				"displayHint": "suppress", "literalForm": "do not touch"},
+			{"dest": "secondaryBbox", "source": "secondaryBbox", 
+				"dbtype": "box",
+				"displayHint": "suppress", "literalForm": "do not touch"},
+			{"dest": "centerAlpha", "source": "centerAlpha", 
+				"dbtype": "real", "displayHint": "hourangle", 
+				"literalForm": "do not touch", "unit": "deg"},
+			{"dest": "centerDelta", "source": "centerDelta",
+				"dbtype": "real", "displayHint": "sexag", 
+				"literalForm": "do not touch", "unit": "deg"},
+		]
 
 
 getInterface = utils.buildClassResolver(Interface, globals().values(),
