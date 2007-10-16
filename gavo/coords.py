@@ -121,6 +121,8 @@ class Vector3(object):
 	20
 	>>> "%.6f"%abs(x)
 	'3.741657'
+	>>> print abs((x+y).normalized())
+	1.0
 	"""
 	def __init__(self, x, y=None, z=None):
 		if isinstance(x, tuple):
@@ -154,12 +156,15 @@ class Vector3(object):
 	
 	__rmul__ = __mul__
 
+	def __div__(self, scalar):
+		return Vector3(self.x/scalar, self.y/scalar, self.z/scalar)
+
 	def __add__(self, other):
 		return Vector3(self.x+other.x, self.y+other.y, self.z+other.z)
 
 	def __sub__(self, other):
 		return Vector3(self.x-other.x, self.y-other.y, self.z-other.z)
-	
+
 	def __abs__(self):
 		return math.sqrt(self.x**2+self.y**2+self.z**2)
 
@@ -167,6 +172,9 @@ class Vector3(object):
 		return Vector3(self.y*other.z-self.z*other.y,
 			self.z*other.x-self.x*other.z,
 			self.x*other.y-self.y*other.x)
+
+	def normalized(self):
+		return self/abs(self)
 
 	def getx(self): return self.coos[0]
 	def setx(self, x): self.coos[0] = x

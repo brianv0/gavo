@@ -767,43 +767,14 @@ class BboxCalculator(Macro):
 		return "calculateSimpleBbox"
 
 	def _compute(self, record):
-		if record["CUNIT1"].strip()!="deg" or record["CUNIT2"].strip()!="deg":
-			raise Error("Bbox can only handle deg units")
-
-		def ptte(val):
-			"""parses an element of the transformation matrix.
-
-			val has the unit degrees/pixel, we return radians/pixel for
-			our unit sphere scheme.
-			"""
-			return float(val)/360.*2*math.pi
-
-		cPos = coords.computeUnitSphereCoords(float(record["CRVAL1"]),
-			float(record["CRVAL2"]))
-		alphaUnit, deltaUnit = coords.getTangentialUnits(cPos)
-		refpixX, refpixY = float(record["CRPIX1"]), float(record["CRPIX2"])
-		caa, cad = ptte(record["CD1_1"]), ptte(record["CD1_2"]) 
-		cda, cdd = ptte(record["CD2_1"]), ptte(record["CD2_2"]) 
-		xPixelDirection = caa*alphaUnit+cad*deltaUnit
-		yPixelDirection = cda*alphaUnit+cdd*deltaUnit
-
-		def pixelToSphere(x, y):
-			"""returns unit sphere coordinates for pixel coordinates x,y.
-			"""
-			return cPos+(x-refpixX)*xPixelDirection+(y-refpixY)*yPixelDirection
-
-		width, height = float(record.get("NAXIS1", 2030)), float(
-			record.get("NAXIS2", "800"))
-		cornerPoints = [pixelToSphere(0, 0),
-			pixelToSphere(0, height), pixelToSphere(width, 0),
-			pixelToSphere(width, height)]
-		xbb, ybb, zbb = siap.getBbox(cornerPoints)
+		bbox, center = siap.getBboxFromWCSFields(record)
+		xbb, ybb, zbb = bbox
 		record["bbox_xmin"], record["bbox_xmax"] = xbb
 		record["bbox_ymin"], record["bbox_ymax"] = ybb
 		record["bbox_zmin"], record["bbox_zmax"] = zbb
-		record["bbox_centerx"] = (record["bbox_xmax"]+record["bbox_xmin"])/2
-		record["bbox_centery"] = (record["bbox_ymax"]+record["bbox_ymin"])/2
-		record["bbox_centerz"] = (record["bbox_zmax"]+record["bbox_zmin"])/2
+		record["bbox_centerx"] = center.x
+		record["bbox_centery"] = center.y
+		record["bbox_centerz"] = center.z
 
 
 def _fixIndentation(code, newIndent):

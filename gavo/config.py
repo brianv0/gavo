@@ -106,18 +106,18 @@ class ProfileParser:
 	  read (e.g., select, usage) privileges to all items created
 
 	>>> p = ProfileParser()
-	>>> p.parse("x", "dsn=foo:bar\n").get_dsn()
-	'foo:bar'
-	>>> p.parse("x", "addAllRole foo\n").get_allRoles()
-	['foo']
+	>>> p.parse("x", "host=foo.bar\n").get_host()
+	'foo.bar'
+	>>> p.parse("x", "addAllRole foo\naddAllRole bar\n").get_allRoles()
+	['foo', 'bar']
 	>>> p.parse("x", "")!=None
 	True
-	>>> p.parse("x", "dsn=\n").get_dsn()
+	>>> p.parse("x", "host=\n").get_host()
 	''
 	>>> p.parse("x", "=bla\n")
 	Traceback (most recent call last):
 	ProfileParseError: "x", line 1: invalid identifier '='
-	>>> p.parse("x", "dsn=bla")
+	>>> p.parse("x", "host=bla")
 	Traceback (most recent call last):
 	ProfileParseError: "x", line 1: unexpected end of file (missing line feed?)
 	>>> p.parse("x", "includeAllRole=bla\n")
@@ -135,8 +135,8 @@ class ProfileParser:
 	def parse(self, sourceName, stream=None):
 		self.tokenStack = []
 		self.stateFun = self._state_init
-		sourceName = self._resolveSource(sourceName)
 		if stream==None:
+			sourceName = self._resolveSource(sourceName)
 			stream = open(sourceName)
 		elif isinstance(stream, basestring):
 			stream = cStringIO.StringIO(stream)

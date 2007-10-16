@@ -2,6 +2,8 @@
 Generic support for querying for areas, SIAP-style
 """
 
+import math
+
 from gavo import coords
 from gavo import utils
 
@@ -22,27 +24,92 @@ def getBbox(points):
 		(min(zCoos), max(zCoos))]
 
 
-def getBboxFromSiapPars(raDec, sizes):
-	"""returns a cartesian bBox for a position and a size.
-
-	Both parameters are pairs in decimal degrees.
-	>>> ["%.4f, %.4f"%t for t in getBboxFromSiapPars((0, 0), (1, 1))]
-	['1.0000, 1.0000', '-0.0087, 0.0087', '-0.0087, 0.0087']
-	>>> ["%.4f, %.4f"%t for t in getBboxFromSiapPars((0, 90), (1, 1))]
-	['-0.0087, 0.0087', '-0.0087, 0.0087', '1.0000, 1.0000']
-	>>> ["%.4f, %.4f"%t for t in getBboxFromSiapPars((45, -45), (5, 5))]
-	['0.4473, 0.5527', '0.4473, 0.5527', '-0.7380, -0.6763']
-	"""
+def getCornerPointsFromSiapPars(raDec, sizes, applyCosD=False):
 	cPos = coords.computeUnitSphereCoords(*raDec)
 	sizeAlpha, sizeDelta = map(utils.degToRad, sizes)
 	unitAlpha, unitDelta = coords.getTangentialUnits(cPos)
+	if applyCosD:
+		unitAlpha = unitAlpha*math.cos(utils.degToRad(raDec[1]))
 	cornerPoints = [
 		cPos-sizeAlpha/2*unitAlpha-sizeDelta/2*unitDelta,
 		cPos+sizeAlpha/2*unitAlpha-sizeDelta/2*unitDelta,
 		cPos-sizeAlpha/2*unitAlpha+sizeDelta/2*unitDelta,
 		cPos+sizeAlpha/2*unitAlpha+sizeDelta/2*unitDelta
 	]
-	return getBbox(cornerPoints)
+	return cornerPoints, cPos
+
+
+def getBboxFromSiapPars(raDec, sizes, applyCosD=False):
+	"""returns a cartesian bbox and a field center for a position and a size.
+
+	Both parameters are pairs in decimal degrees.
+
+	This uses an "almost-flat" assumption: We compute  normal
+	vectors of the tangential plane at raDec and scale them with sizes
+	to obtain a candidate rectangle.  The final bounding box is amended
+	by adding the intersection points of the four corner vectors with
+	the unit sphere.
+
+	>>> ["%.4f, %.4f"%t for t in getBboxFromSiapPars((0, 0), (1, 1))[0]]
+	['0.9999, 1.0000', '-0.0087, 0.0087', '-0.0087, 0.0087']
+	>>> ["%.4f, %.4f"%t for t in getBboxFromSiapPars((0, 0), (10, 10))[0]]
+	['0.9925, 1.0000', '-0.0873, 0.0873', '-0.0873, 0.0873']
+	>>> ["%.4f, %.4f"%t for t in getBboxFromSiapPars((0, 0), (10, 1))[0]]
+	['0.9962, 1.0000', '-0.0873, 0.0873', '-0.0087, 0.0087']
+	>>> ["%.4f, %.4f"%t for t in getBboxFromSiapPars((0, 90), (1, 1))[0]]
+	['-0.0087, 0.0087', '-0.0087, 0.0087', '0.9999, 1.0000']
+	>>> ["%.4f, %.4f"%t for t in getBboxFromSiapPars((45, -45), (5, 5))[0]]
+	['0.4465, 0.5527', '0.4465, 0.5527', '-0.7380, -0.6750']
+	"""
+	cornerPoints, cPos = getCornerPointsFromSiapPars(raDec, sizes,
+		applyCosD)
+	cornerPoints = cornerPoints+[v.normalized() for v in cornerPoints]
+	return getBbox(cornerPoints), cPos
+
+
+def getCornerPointsFromWCSFields(wcsFields):
+	if wcsFields["CUNIT1"].strip()!="deg" or wcsFields["CUNIT2"].strip()!="deg":
+		raise Error("Can only handle deg units")
+
+	def ptte(val):
+		"""parses an element of the transformation matrix.
+
+		val has the unit degrees/pixel, we return radians/pixel for
+		our unit sphere scheme.
+		"""
+		return utils.degToRad(float(val))
+
+	cPos = coords.computeUnitSphereCoords(float(wcsFields["CRVAL1"]),
+		float(wcsFields["CRVAL2"]))
+	alphaUnit, deltaUnit = coords.getTangentialUnits(cPos)
+	refpixX, refpixY = float(wcsFields["CRPIX1"]), float(wcsFields["CRPIX2"])
+	caa, cad = ptte(wcsFields["CD1_1"]), ptte(wcsFields["CD1_2"]) 
+	cda, cdd = ptte(wcsFields["CD2_1"]), ptte(wcsFields["CD2_2"]) 
+	xPixelDirection = caa*alphaUnit+cad*deltaUnit
+	yPixelDirection = cda*alphaUnit+cdd*deltaUnit
+
+	def pixelToSphere(x, y):
+		"""returns unit sphere coordinates for pixel coordinates x,y.
+		"""
+		return cPos+(x-refpixX)*xPixelDirection+(y-refpixY)*yPixelDirection
+
+	width, height = float(wcsFields.get("NAXIS1", 2030)), float(
+			wcsFields.get("NAXIS2", "800"))
+	cornerPoints = [pixelToSphere(0, 0),
+		pixelToSphere(0, height), pixelToSphere(width, 0),
+		pixelToSphere(width, height)]
+	return cornerPoints, pixelToSphere(width/2, height/2)
+
+
+def getBboxFromWCSFields(wcsFields):
+	"""returns a cartesian bbox and a field center for (fairly simple) WCS
+	FITS header fields.
+
+	For caveats, see getBboxFromSiapPars.
+	"""
+	cornerPoints, center = getCornerPointsFromWCSFields(wcsFields)
+	cornerPoints = cornerPoints+[v.normalized() for v in cornerPoints]
+	return getBbox(cornerPoints), center
 
 
 _intersectQueries = {
@@ -60,15 +127,15 @@ _intersectQueries = {
 		" OR %(PREFIXzmin)s>bbox_zmax OR %(PREFIXzmax)s<bbox_zmin)"}
 
 
-def getBboxQueryFromBbox(intersect, bbox, prefix):
+def getBboxQueryFromBbox(intersect, bbox, center, prefix):
 	xbb, ybb, zbb = bbox
 	return _intersectQueries[intersect].replace("PREFIX", prefix), {
 		prefix+"xmin": xbb[0], prefix+"xmax": xbb[1],
 		prefix+"ymin": ybb[0], prefix+"ymax": ybb[1],
 		prefix+"zmin": zbb[0], prefix+"zmax": zbb[1],
-		prefix+"xcenter": (xbb[0]+xbb[1])/2., 
-		prefix+"ycenter": (ybb[0]+ybb[1])/2., 
-		prefix+"zcenter": (zbb[0]+zbb[1])/2., }
+		prefix+"xcenter": center.x,
+		prefix+"ycenter": center.y,
+		prefix+"zcenter": center.z, }
 
 
 def getBboxQuery(parameters, prefix="sia"):
@@ -84,9 +151,9 @@ def getBboxQuery(parameters, prefix="sia"):
 	sizes = map(float, parameters["SIZE"].split(","))
 	if len(sizes)==1:
 		sizes = sizes*2
-	bbox = getBboxFromSiapPars(raDec, sizes)
+	bbox, center = getBboxFromSiapPars(raDec, sizes)
 	intersect = parameters.get("INTERSECT", "OVERLAPS")
-	return getBboxQueryFromBbox(intersect, bbox, prefix)
+	return getBboxQueryFromBbox(intersect, bbox, center, prefix)
 
 
 def _test():

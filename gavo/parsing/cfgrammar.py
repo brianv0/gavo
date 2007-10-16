@@ -66,12 +66,6 @@ decWithBlanks = Group(One(sign) + One(cardLit) + One(cardLit) + One(fracLit))
 def getProductions(rawGrammar):
 	r"""returns a dictionary containing the productions of the grammar
 	in the form of pyparsing ParserElements.
-
-	>>> pd = getProductions("a = fracLit\nb=digit\nz=a+'x'+b")
-	>>> type(pd["z"])
-	<class 'pyparsing.And'>
-	>>> pd["z"].parseString("0.1 x 5")
-	(['0.1', 'x', '5'], {})
 	"""
 	productionDict = {}
 	exec commonPreterminals+"\n"+rawGrammar in productionDict
@@ -139,11 +133,6 @@ class CFGrammar(grammar.Grammar):
 		res = self.productions[self.get_documentProduction()].parseString(
 			inputFile.read())
 	
-
-def _test():
-	import doctest, cfgrammar
-	doctest.testmod(cfgrammar)
-
 
 if __name__=="__main__":
 	_test()
