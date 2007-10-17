@@ -17,6 +17,9 @@ import re
 import textwrap
 
 
+from gavo import config
+
+
 class MetaItem:
 	"""is a piece of meta information about a resource.
 
@@ -47,7 +50,7 @@ class MetaItem:
 			compute=None, combine=None):
 		self.name = name
 		self.content = content
-		self.format = format
+		self.format = format or "literal"
 		self.compute = compute
 		self.combine = combine
 		self.parent = weakref.ref(parent)
@@ -67,9 +70,12 @@ class MetaItem:
 				del desc[-1]
 			return self.parent().get_computer().compute(desc[0], None, desc[1:])
 		return self.content
-	
+
+	def encode(self, enc):
+		return str(self).encode(enc)
+
 	def asHtml(self):
-		if self.format==None or self.format=="literal":
+		if self.format=="literal":
 			return "<pre>%s</pre>"%str(self)
 		elif self.format=="plain":
 			return "\n".join(["<p>%s</p>"%para for para in str(self).split("\n\n")])
@@ -122,15 +128,25 @@ class MetaMixin(object):
 		except AttributeError:
 			pass
 
-	def getMeta(self, key):
+	def getMeta(self, key, propagate=True):
 		self.__ensureMetaDict()
 		if self.__metaDict.has_key(key):
 			return self.__metaDict[key]
-		else:
+		if propagate:
 			if self.__hasMetaParent():
 				return self.__metaParent.getMeta(key)
-	
-	def addMeta(self, attDict):
+			else:
+				return config.getMeta(key)
+
+	def addMeta(self, *args, **kwargs):
+		if len(args)>1:
+			raise TypeError("addMeta takes only up to one positional argument"
+				" (%d given)"%len(args))
+		elif len(args)==0:
+			attDict = kwargs
+		else:
+			attDict = args[0].copy()
+			attDict.update(kwargs)
 		self.__ensureMetaDict()
 		newItem = MetaItem(self, **attDict)
 		self.__metaDict[newItem.getName()] = newItem

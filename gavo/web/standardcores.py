@@ -25,12 +25,13 @@ class DbBasedCore(object):
 	It provides for querying the database and returning a table from it.
 	"""
 	def parseOutput(self, dbResponse, tableDef):
-		"""builds an InternalDataSet out of the RecordDef tableDef and the
-		row set dbResponse.
+		"""builds an InternalDataSet out of the RecordDef tableDef
+		and the row set dbResponse.
 
-		Note that this method is *not* suitable for cooperation with Service
-		since service doesn't provide tableDef.  You'll have to override
-		this method in derived classes and fill in table.
+		Note that this method is *not* immediately suitable
+		for cooperation with Service since service doesn't
+		provide tableDef.  You'll have to override this method
+		in derived classes and fill in tableDef.
 		"""
 		outputDef = resource.RecordDef()
 		outputDef.updateFrom(tableDef)
@@ -51,7 +52,7 @@ class DbBasedCore(object):
 class SiapCore(DbBasedCore):
 	"""is a core doing simple image access protocol queries.
 	"""
-	def __init__(self, rd, tableName):
+	def __init__(self, rd, tableName="images"):
 		self.tableName = tableName
 		self.rd = weakref.proxy(rd)
 
@@ -81,8 +82,10 @@ class SiapCore(DbBasedCore):
 		return resourcecache.getDbConnection().runQuery(query, pars)
 
 	def parseOutput(self, dbResponse):
-		return super(SiapCore, self).parseOutput(dbResponse, 
-			self.rd.getTableDefByName("images"))
+		result = super(SiapCore, self).parseOutput(dbResponse, 
+			self.rd.getTableDefByName(self.tableName))
+		result.setMeta("_type", "result")
+		result.setMeta("_query_status", "OK")
 
 
 _coresRegistry = {

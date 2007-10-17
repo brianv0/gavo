@@ -1,0 +1,99 @@
+Writing VOTables with pyvotable
+===============================
+
+
+Building the Tree
+-----------------
+
+First, you need to build the tree.  To do that, you just use the objects
+provided in VOTable.DataModel.  They are configured through attribute
+access.  Elements available are
+
+* VOTable
+* Resource
+* Table
+* Field
+* Param
+* Info
+* CooSys
+
+Let's look at their attributes one by one:
+
+VOTable
+.......
+
+Attributes: 
+* ID -- a string
+* description -- a string
+* info -- ???
+* coosys -- a list of CooSys instances (CHANGE: this used to be a single one!)
+* params -- a list of Param instances
+* resources -- a list of Resource instances
+
+Resource
+........
+
+Attributes: 
+* info -- a list of Info instances
+* coosys -- a CooSys instance
+* link -- ???
+* description, name, ID, type, utype -- strings as in the spec
+* resources, tables, params -- lists of corresponding instances
+
+Table
+.....
+
+* name, ID, ucd, utype, description -- strings as in the spec
+* nrows -- an int as in the spec
+* link -- ???
+* params, fields -- lists of corresponding instances
+* data -- currently has to be a sequence of sequences
+* groups -- currently ignored.
+
+Field
+.....
+
+* name, ID, ucd, datatype, arraysize, precision, unit, utype, ref, type
+  width, description -- strings as in the spec
+* data -- ???
+* link -- ???
+* values -- not supported yet
+
+Param
+.....
+
+These work like fields, except for the additional value attribute (a
+string).
+
+
+Info
+....
+
+These objects have the string attributes name, id, value, and text 
+as in the spec.
+
+CooSys
+......
+
+These objects have the string attributes ID, equinox, epoch, and system
+as in the spec.
+
+
+Writing the XML
+---------------
+
+This one's easy -- just generate an ElementTree and write it.
+Basically, you do
+
+from VOTable import DataModel, Writer
+import cElementTree as ElementTree
+import sys
+
+table = DataModel.VOTable()
+... fill the table ...
+
+writer = Writer()
+writer.write(table, "foo.xml")
+
+By default, writer generates utf-8 encoded output.  You can pass a keyword
+argument encoding to change that.

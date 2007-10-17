@@ -9,12 +9,13 @@ import compiler
 import gavo
 from gavo import sqlsupport
 from gavo import logger
+from gavo.parsing import meta
 
 class NoParent(gavo.Error):
 	pass
 
 
-class BaseTable:
+class BaseTable(meta.MetaMixin):
 	"""is container for essentially homogenous data with
 	metadata.
 
@@ -39,6 +40,7 @@ class BaseTable:
 	def __init__(self, dataSet, fieldDefs, name):
 		if dataSet:
 			self.dataSet = weakref.proxy(dataSet)
+			self.setMetaParent(self.dataSet)
 		else:
 			self.dataSet = None
 		self.fieldDefs = fieldDefs

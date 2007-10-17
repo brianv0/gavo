@@ -257,7 +257,7 @@ class ParseContext:
 		self.grammar.parse(self)
 
 
-class DataSet:
+class DataSet(meta.MetaMixin):
 	"""is a collection of the data coming from one source.
 
 	Think of a DataSet as the concrete object instanciated from a
@@ -282,6 +282,7 @@ class DataSet:
 			tablesToBuild=[]):
 		self.tablesToBuild = set(tablesToBuild)
 		self.dD = dataDescriptor
+		self.setMetaParent(self.dD)
 		self.docFields = self.dD.get_items()
 		self.docRec = {}
 		self.tables = []

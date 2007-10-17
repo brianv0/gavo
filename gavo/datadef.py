@@ -160,6 +160,7 @@ class DataTransformer(record.Record, meta.MetaMixin):
 		baseFields.update(additionalFields)
 		record.Record.__init__(self, baseFields, initvals)
 		self.rD = parentRD
+		self.setMetaParent(parentRD)
 
 	def __repr__(self):
 		return "<DataDescriptor id=%s>"%self.get_id()

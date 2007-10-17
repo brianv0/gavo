@@ -39,10 +39,10 @@ class CooSysRegistry:
 	def __iter__(self):
 		"""iterates over tuples of (id, equ, epoch, system).
 		"""
-		for id, system in self.systems:
+		for id, system in self.systems.items():
 			yield (id,)+system.getSystem()
 	
-	def defineSystem(self, equinox, epoch, system):
+	def defineSystem(self, equinox="J2000", epoch=None, system="eq.FK5"):
 		"""adds a new coordinate system and returns a computed id for it.
 		"""
 		newId = "coo%03d"%len(self.systems)

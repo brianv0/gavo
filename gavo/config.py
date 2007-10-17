@@ -55,6 +55,15 @@ feed:feed
 querulator:trustedquery
 foreignsql:untrustedquery
 writable:worldwritable
+
+[meta]
+curation.publisher: unknown
+curation.creator.name: unknown
+curation.creator.logo:
+curation.contact.name: unknown
+curation.contact.address: unknown
+curation.contact.email: gavo@ari.uni-heidelberg.de
+curation.contact.telephone: 
 """
 
 
@@ -289,6 +298,15 @@ class Settings:
 			self.valueCache[section, key] = self._computeValueFor(section, key)
 		return self.valueCache[section, key]
 
+	def getMeta(self, key):
+		try:
+			return self.rawVals.get("meta", key)
+		except ConfigParser.NoOptionError:
+			return None
+
+	def setMeta(self, key, value):
+		self.rawVals.set("meta", key, value)
+		
 	def _getProfileParser(self):
 		if not hasattr(self, "__profileParser"):
 			self.__profileParser = ProfileParser(
@@ -312,6 +330,8 @@ class Settings:
 
 _config = Settings()
 get = _config.get
+getMeta = _config.getMeta
+setMeta = _config.setMeta
 setDbProfile = _config.setDbProfile
 getDbProfile = _config.getDbProfile
 

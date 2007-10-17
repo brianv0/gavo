@@ -1,20 +1,21 @@
 """
 Functions for parsing and generating VOTables to and from data and metadata.
 
-This module also serves as a q'n'd interface to VOTable.DataModel in that
+This module also serves as an interface to VOTable.DataModel in that
 it imports all names from there.  Thus, you can get DataModel.Table as
 votable.Table.
 
 The module provides the glue between the row lists and the DataField
 based description from the core modules and pyvotable.  
 
-An important task is the mapping of values.  To do this, we define coder
-factories.  These are functions receiving an instance of a value to pack and a
-description of the target field.  They return either None (meaning they don't
-know how to do the conversion) or a callable that does the conversion.
-They may change the description of the target field, e.g., to fix types
-(see datetime) or to add nullvalues (see ints).  Note that the type we
-operate on here still are python and/or SQL types.
+An important task is the mapping of values.  To do this, we define mapper
+factories.  These are functions receiving instances of ColProperties that
+they can query of properties of the target field.  
+
+They then return either None (meaning they don't know how to do the conversion)
+or a callable that does the conversion.  They may change the description of the
+target field, e.g., to fix types (see datetime) or to add nullvalues (see
+ints).
 
 The first factory providing such a callable wins.  The factories register
 with a ValueEncoderFactoryRegistry object that's used by getCoder.
@@ -32,9 +33,9 @@ except ImportError:
 from gavo import typesystems
 from gavo import config
 
-from VOTable import Writer
-from VOTable.DataModel import *
-from VOTable import Encoders
+from gavo.imp.VOTable import Writer
+from gavo.imp.VOTable.DataModel import *
+from gavo.imp.VOTable import Encoders
 
 
 class Error(Exception):
@@ -66,7 +67,12 @@ class ValueMapperFactoryRegistry(object):
 	value of the given type and returns a mapped value.
 
 	To add a mapper, call registerFactory.  To find a mapper for a
-	given combination of value and column properties, call getMapper.
+	set of column properties, call getMapper -- column properties should
+	be an instance of ColProperties, but for now a dictionary with the
+	right keys should mostly do.
+
+	Mappers have both the sql type (in the sqltype entry) and the votable type
+	(in the datatype and arraysize entries) to base their decision on.
 
 	Coder factories are tried in the reverse order of registration,
 	and the first that returns non-None wins, i.e., you should
@@ -95,7 +101,7 @@ class ValueMapperFactoryRegistry(object):
 	def identity(self, val):
 		return val
 
-	def getMapper(self, instance, colProps):
+	def getMapper(self, colProps):
 		"""returns a mapper for values with the python value instance, 
 		according to colProps.
 
@@ -106,7 +112,7 @@ class ValueMapperFactoryRegistry(object):
 		frequently.
 		"""
 		for factory in self.factories:
-			mapper = factory(instance, colProps)
+			mapper = factory(colProps)
 			if mapper:
 				break
 		else:
@@ -121,7 +127,7 @@ _registerDefaultMF = _defaultMFRegistry.registerFactory
 try:
 	from mx import DateTime
 
-	def _mxDatetimeMapperFactory(srcInstance, colProps):
+	def _mxDatetimeMapperFactory(colProps):
 		"""returns mapper for mxDateTime objects.
 
 		Unit may be yr or a (produces julian fractional years like J2000.34),
@@ -129,7 +135,7 @@ try:
 		that's good), "Y:M:D" (produces an iso date).
 		"""
 		unit = colProps["unit"]
-		if isinstance(srcInstance, DateTime.DateTimeType):
+		if isinstance(colProps["sample"], DateTime.DateTimeType):
 			if unit=="yr" or unit=="a":
 				fun, destType = lambda val: val and val.jdn/365.25-4712, "double"
 			elif unit=="d":
@@ -140,7 +146,7 @@ try:
 				fun, destType = lambda val: val and val.date, "text"
 			else:   # Fishy, but not our fault
 				fun, destType = lambda val: val and val.jdn, "double"
-			colProps["type"] = destType
+			colProps["sqltype"] = destType
 			return fun
 	_registerDefaultMF(_mxDatetimeMapperFactory)
 
@@ -149,7 +155,7 @@ except ImportError:
 
 import datetime
 
-def _datetimeMapperFactory(srcInstance, colProps):
+def _datetimeMapperFactory(colProps):
 	import time
 
 	def dtToJdn(val):
@@ -160,7 +166,7 @@ def _datetimeMapperFactory(srcInstance, colProps):
 		m = val.month+12*a-3
 		return val.day+(153*m)//5+365*y+y//4-y//100+y//400-32045
 
-	if isinstance(srcInstance, datetime.date):
+	if isinstance(colProps["sample"], datetime.date):
 		unit = colProps["unit"]
 		if unit=="yr" or unit=="a":
 			fun, destType = lambda val: val and dtToJdn(val)/365.25-4712, "double"
@@ -172,13 +178,13 @@ def _datetimeMapperFactory(srcInstance, colProps):
 			fun, destType = lambda val: val and val.isoformat(), "text"
 		else:   # Fishy, but not our fault
 			fun, destType = lambda val: val and dtToJdn(val), "double"
-		colProps["type"] = destType
+		colProps["sqltype"] = destType
 		return fun
 _registerDefaultMF(_datetimeMapperFactory)
 
 
-def _booleanMapperFactory(srcInstance, colProps):
-	if colProps["type"]=="boolean":
+def _booleanMapperFactory(colProps):
+	if colProps["sqltype"]=="boolean":
 		def coder(val):
 			if val:
 				return "1"
@@ -188,8 +194,8 @@ def _booleanMapperFactory(srcInstance, colProps):
 _registerDefaultMF(_booleanMapperFactory)
 
 
-def _floatMapperFactory(srcInstance, colProps):
-	if colProps["type"]=="real" or colProps["type"].startswith("double"):
+def _floatMapperFactory(colProps):
+	if colProps["sqltype"]=="real" or colProps["sqltype"].startswith("double"):
 		naN = float("NaN")
 		def coder(val):
 			if val==None:
@@ -199,9 +205,9 @@ def _floatMapperFactory(srcInstance, colProps):
 _registerDefaultMF(_floatMapperFactory)
 
 
-def _stringMapperFactory(srcInstance, colProps):
-	if colProps.get("optional", True) and ("char(*)" in colProps["type"] or 
-			colProps["type"]=="text"):
+def _stringMapperFactory(colProps):
+	if colProps.get("optional", True) and ("char(*)" in colProps["sqltype"] or 
+			colProps["sqltype"]=="text"):
 		def coder(val):
 			if val==None:
 				return ""
@@ -209,29 +215,28 @@ def _stringMapperFactory(srcInstance, colProps):
 		return coder
 _registerDefaultMF(_stringMapperFactory)
 
-# XXX FIXME
-# This is a bad hack that fixes nullvalues to some random values.
-# I can't see a good way of doing this without first having a pass
-# through the data -- which probably is what we'll need to have in 
-# the end.
-# Then again, this currently isn't supported by pyvotable anyway,
-# so let's first fix VALUES there.
-NULLVALUE_HACK = {
-	"char(1)": '\xff',
-	"smallint": 255,
-	"int": -9999,
-	"integer": -99999999,
-	"bigint": -99999999,
+# Default nullvalues we use when we don't know anything about the ranges,
+# by VOTable types.  The nullvalues should never be used, but the keys
+# are used to recognize types with special nullvalue handling.
+_defaultNullvalues = {
+	"unsignedByte": 255,
+	"short": -9999,
+	"int": -999999999,
+	"long": -9999999999,
 }
 
-def _intMapperFactory(srcInstance, colProps):
-	if colProps["type"] in NULLVALUE_HACK:
-		nullvalue = NULLVALUE_HACK[colProps["type"]]
-		def coder(val):
+def _intMapperFactory(colProps):
+	if colProps["datatype"] in _defaultNullvalues:
+		if not colProps.get("hasNulls"):
+			return
+		try:
+			colProps.computeNullvalue()
+		except AttributeError:
+			colProps["nullvalue"] = _defaultNullvalues[colProps["datatype"]]
+		def coder(val, nullvalue=colProps["nullvalue"]):
 			if val==None:
 				return nullvalue
 			return val
-		colProps["nullvalue"] = NULLVALUE_HACK[colProps["type"]]
 		return coder
 _registerDefaultMF(_intMapperFactory)
 
@@ -242,6 +247,8 @@ def getMapperRegistry():
 	return ValueMapperFactoryRegistry(
 		_defaultMFRegistry.getFactories())
 
+
+############# everything from here till XXX is deprecated
 
 def _getValSeq(data):
 	"""returns a sequence of python values for the columns of data.
@@ -269,7 +276,6 @@ def _getValSeq(data):
 	return vals
 
 
-
 def _mapValues(colDesc, data, mapperFactory):
 	"""fixes the values of data to match what is required by colDesc.
 
@@ -278,13 +284,15 @@ def _mapValues(colDesc, data, mapperFactory):
 	colTypes = _getValSeq(data)
 	handlers = []
 	for colType, colProps in zip(colTypes, colDesc):
-		handler = mapperFactory.getMapper(colType, colProps)
+		colProps["sample"] = colType
+		handler = mapperFactory.getMapper(colProps)
 		handlers.append(handler)
 	if data:
 		colInds = range(len(data[0]))
 		for rowInd, row in enumerate(data):
 			data[rowInd] = [handlers[colInd](row[colInd]) for colInd in colInds]
 	
+
 
 def writeTable(resources, metaInfo, destination):
 	"""writes a VOTable for all DataModel.Resource instances in resource to
@@ -307,7 +315,7 @@ def _getFieldItemsFor(colInd, colProps):
 		"name": colProps["fieldName"],
 		"ID": "%03d-%s"%(colInd, colProps["fieldName"]),
 	}
-	type, size = typesystems.sqltypeToVOTable(colProps["type"])
+	type, size = typesystems.sqltypeToVOTable(colProps["sqltype"])
 	fieldItems["datatype"] = type
 	if size!="1":
 		fieldItems["arraysize"] = size
@@ -350,6 +358,8 @@ def buildTableColdesc(colDesc, data, metaInfo, tablecoding="binary",
 		description=metaInfo.get("description", ""), coder=votEncoder)
 	if metaInfo.has_key("id"):
 		dataTable.id = id
+	colDesc["datatype"], colDesc["arraysize"] =\
+		typesystems.sqltypeToVOTable(colProps["sqltype"])
 	_mapValues(colDesc, data, mapperFactoryRegistry)
 	_defineFields(colDesc, dataTable)
 	dataTable.data = data
@@ -411,6 +421,7 @@ def getFieldItemsForDataField(dataField):
 		"name": dataField.get_dest(),
 		"ID": dataField.get_dest(),
 	}
+	fieldItems["sqltype"] = dataField.get_dbtype()
 	type, size = typesystems.sqltypeToVOTable(dataField.get("dbtype"))
 	fieldItems["datatype"] = type
 	if size!="1":
@@ -419,6 +430,235 @@ def getFieldItemsForDataField(dataField):
 		if dataField.get(fieldName)!=None:
 			fieldItems[fieldName] = dataField.get(fieldName)
 	return fieldItems
+
+################# XXXXX end of deprecated section
+
+
+class Minimum:
+	"""is something smaller than anything.
+
+	This will only work as the first operand.
+	"""
+	def __cmp__(self, other):
+		return -1
+_minimum = Minimum()
+
+
+class Maximum:
+	"""is something larger than anything.
+
+	This will only work as the first operand.
+	"""
+	def __cmp__(self, other):
+		return -1
+_maximum = Maximum()
+
+
+class ColProperties(dict):
+	"""is a container for properties of columns in a table.
+
+	Specifically, it gives maxima, minima and if null values occur.
+	"""
+	_nullvalueRanges = {
+		"unsignedByte": (0, 255),
+		"short": (-2**15, 2**15-1),
+		"int": (-2**31, 2**31-1),
+		"long": (-2**63, 2**63-1),
+	}
+	def __init__(self, fieldDef):
+		self["min"], self["max"] = _maximum, _minimum
+		self["hasNulls"] = False
+		self["sample"] = None
+		self["name"] = fieldDef.get_dest()
+		self["sqltype"] = fieldDef.get_dbtype()
+		self["description"] = fieldDef.get_description()
+		self["ID"] = fieldDef.get_dest()  # XXX TODO: qualify this guy
+		type, size = typesystems.sqltypeToVOTable(fieldDef.get_dbtype())
+		self["datatype"] = type
+		self["arraysize"] = size
+		for fieldName in ["ucd", "utype", "unit", "description"]:
+			self[fieldName] = fieldDef.get(fieldName)
+
+	def feed(self, val):
+		if val is None:
+			self["hasNulls"] = True
+		else:
+			if self["min"]>val:
+				self["min"] = val
+			if self["max"]<val:
+				self["max"] = val
+			self["sample"] = val
+
+	def computeNullvalue(self):
+		"""tries to come up with a null value for integral data.
+
+		The nullvalue is entered as the nullvalue property.  This
+		isn't nice, but at least you'll get a KeyError if you try to
+		access it without having called computeNullvalue first.
+		"""
+		if self["datatype"] not in self._nullvalueRanges:
+			raise Error("Cannot compute nullvalues for %s values"%self["datatype"])
+		if self["min"]>self._nullvalueRanges[self["datatype"]][0]:
+			self["nullvalue"] = self._nullvalueRanges[self["datatype"]][0]
+		elif self["max"]<self._nullvalueRanges[self["datatype"]][1]:
+			self["nullvalue"] = self._nullvalueRanges[self["datatype"]][1]
+		else:
+			raise Error("Cannot compute nullvalue for column %s, range is"
+				" %s..%s"%(self["name"], self["min"], self["max"]))
+
+	_voFieldCopyKeys = ["name", "ID", "datatype", "ID", "ucd",
+		"utype", "unit", "description"]
+
+	def getVOFieldArgs(self):
+		"""returns a dictionary suitable for construction a VOTable field
+		that defines the instance's column.
+		"""
+#	XXXXXXXXX todo: add values element
+		res = {}
+		for key in self._voFieldCopyKeys:
+			res[key] = self[key]
+		if self["arraysize"]!="1":
+			res["arraysize"] = self["arraysize"]
+		return res
+
+
+class TableData:
+	"""is a tabular data for VOTables.
+
+	It is constructed from a table.Table instance and
+	a MapperFactoryRegistry.  It will do two sweeps through
+	the complete data, first to establish value ranges including
+	finding out if there's NULL values.  Then, it does another sweep
+	converting the sequence of dicts to a sequence of properly typed
+	and formatted tuples.
+	"""
+	def __init__(self, table, mFRegistry):
+		self.table = table
+		self.mFRegistry = mFRegistry
+		self.colProperties = self._getColProperties()
+	
+	def _getColProperties(self):
+		"""inspects self.table to find out types and ranges of the data
+		living in it.
+
+		The method returns a sequence of ColProperty instances containing
+		all information necessary to set up VOTable Field definitions.
+		"""
+		colProps = {}
+		for field in self.table.getFieldDefs():
+			colProps[field.get_dest()] = ColProperties(field)
+		for row in self.table:
+			for key, value in row.iteritems():
+				colProps[key].feed(value)
+		return colProps
+
+	def getColProperties(self):
+		"""returns a sequence of ColProperties instances in the order of the
+		VOTable row.
+		"""
+		return [self.colProperties[field.get_dest()] 
+			for field in self.table.getFieldDefs()]
+
+	def get(self):
+		fieldNames = tuple(field.get_dest()
+			for field in self.table.getFieldDefs())
+		mappers = tuple(self.mFRegistry.getMapper(self.colProperties[fieldName])
+			for fieldName in fieldNames)
+		colIndices = range(len(fieldNames))
+		def row2Tuple(row):
+			return tuple(mappers[i](row[fieldNames[i]]) for i in colIndices)
+		return [row2Tuple(row) for row in self.table]
+
+
+class VOTableMaker:
+	"""is a facade wrapping the process of writing a VOTable.
+
+	Its main method is makeVOT turning a DataSet into a VOTable.
+
+	You should usually use this to produce VOTables -- the other
+	functions in the module are just q'n'd hacks.
+	"""
+	def __init__(self, tablecoding="binary",
+			mapperFactoryRegistry=_defaultMFRegistry):
+		self.tablecoding = tablecoding
+		self.mFRegistry = mapperFactoryRegistry
+
+	def _addInfo(self, name, content, node, value=None):
+		"""adds info item "name" containing content having value to node
+		unless both content and value are empty.
+		"""
+		if content or value:
+			i = Info(name=name, text=content)
+			if value:
+				i.value = value
+			node.info.append(i)
+
+	def _addLink(self, href, node, contentRole=None, title=None,
+			value=None):
+		"""adds a link item with href to node.
+
+		Apart from title, the further arguments are ignored right now.
+		"""
+		if href:
+			l = Link(href=href, title=title)
+			node.links.append(l)
+
+	def _defineFields(self, tableNode, colProperties):
+		"""defines the fields in colProperties within the VOTable tableNode.
+
+		colProperties is a sequence of colProperties instances.
+		"""
+		for colProp in colProperties:
+			tableNode.fields.append(
+				Field(**colProp.getVOFieldArgs()))
+
+	def _makeTable(self, res, table):
+		"""returns a Table node for the table.Table instance table.
+		"""
+		t = Table(name=table.getName(), coder=_tableEncoders[self.tablecoding],
+			description=table.getMeta("description", propagate=False))
+		data = TableData(table, self.mFRegistry)
+		self._defineFields(t, data.getColProperties())
+		t.data = data.get()
+		return t
+	
+	def _addResourceMeta(self, res, dataSet):
+		"""adds resource metadata to the Resource res.
+		"""
+		res.description = dataSet.getMeta("description", propagate=False)
+		foo = dataSet.getMeta("_legal") 
+		self._addInfo("legal", dataSet.getMeta("_legal"), res)
+		self._addLink(dataSet.getMeta("_infolink"), res)
+
+	def _makeResource(self, dataSet):
+		"""returns a Resource node for dataSet.
+		"""
+		res = Resource()
+		self._addResourceMeta(res, dataSet)
+		for table in dataSet.getTables():
+			res.tables.append(self._makeTable(res, table))
+		return res
+
+	def _setGlobalMeta(self, vot, dataSet):
+		"""add meta elements from the resource descriptor to vot.
+		"""
+		rd = dataSet.getDescriptor().getRD()
+		vot.description = rd.getMeta("description")
+		for id, equ, epoch, system in rd.get_systems():
+			vot.coosys.append(CooSys(ID=id, equinox=equ, epoch=epoch, system=system))
+		self._addInfo("legal", rd.getMeta("_legal"), vot)
+
+	def makeVOT(self, dataSet):
+		"""returns a VOTable object representing dataSet.
+		"""
+		vot = VOTable()
+		self._setGlobalMeta(vot, dataSet)
+		vot.resources.append(self._makeResource(dataSet))
+		return vot
+
+	def writeVOT(self, vot, destination, encoding="utf-8"):
+		writer = Writer(encoding)
+		writer.write(vot, destination)
 
 
 def _test():
