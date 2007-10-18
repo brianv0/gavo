@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A resource descriptor for various unit tests -->
+
+<ResourceDescriptor srcdir="tests">
+	<meta name="test.inRd">from Rd</meta>
+	<schema>test</schema>
+
+	<Data id="metatest">
+		<NullGrammar/>
+		<Semantics>
+			<Record table="noname">
+				<Field dest="1" source="alpha" 
+					dbtype="double precision" optional="false"/>
+				<meta name="test.inRec">from Rec</meta>
+			</Record>
+		</Semantics>
+	</Data>
+
+</ResourceDescriptor>
+

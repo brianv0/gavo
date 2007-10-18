@@ -41,6 +41,8 @@ class TableDataEncoder(GenericEncoder):
     Warning: cElementTree's write performance sucks (at least as of version
     1.0.5).  This makes this thing spectacularly slow.
     """
+    naN = float("NaN")
+
     def encode(self, fields, data):
         """
         TABLEDATA encoder.
@@ -56,7 +58,7 @@ class TableDataEncoder(GenericEncoder):
                     td = ElementTree.Element('TD')
                     
                     # Create a text representation of each element.
-                    if(el == None):
+                    if(el == None or el!=el): # 2nd catches NaN
                         td.text = ''
                     elif(isinstance(el, list) or isinstance(el, tuple)):
                         td.text = self._arrayRepr(el)

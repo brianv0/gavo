@@ -16,6 +16,8 @@ import DataModel
 import Encoders
 
 
+namespace = "http://www.ivoa.net/xml/VOTable/v1.1"
+
 class Writer(object):
     """is a facade to writing VOTables.
 
@@ -26,9 +28,9 @@ class Writer(object):
     """
     preamble = '<?xml version="1.0" encoding="%(encoding)s"?>'
     rootAttrs = {
-      "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
-      "xsi:noNamespaceSchemaLocation": "xmlns=http://www.ivoa.net/"
-        "xml/VOTable/v1.1",
+        "xmlns": namespace,
+        "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+        "xsi:schemaLocation": namespace,
     }
 
     def __init__(self, encoding="utf-8"):

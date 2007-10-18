@@ -36,11 +36,14 @@ from gavo import config
 from gavo.imp.VOTable import Writer
 from gavo.imp.VOTable.DataModel import *
 from gavo.imp.VOTable import Encoders
+from gavo.imp.VOTable.Writer import namespace
 
 
 class Error(Exception):
 	pass
 
+
+namespace = "http://www.ivoa.net/xml/VOTable/v1.1"
 
 errorTemplate = """<?xml version="1.0" encoding="utf-8"?>
 <VOTABLE version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
@@ -49,6 +52,10 @@ errorTemplate = """<?xml version="1.0" encoding="utf-8"?>
 		<INFO>%(errmsg)s</INFO>
 	</RESOURCE>
 </VOTABLE>"""
+
+
+def voTag(tag):
+	return "{%s}%s"%(namespace, tag)
 
 
 _tableEncoders = {
@@ -434,24 +441,50 @@ def getFieldItemsForDataField(dataField):
 ################# XXXXX end of deprecated section
 
 
-class Minimum:
-	"""is something smaller than anything.
+class _CmpType(type):
+	"""is a metaclass for *classes* that always compare in one way.
+	"""
+# Ok, that's just posing.  It's fun anyway.
+	def __cmp__(cls, other):
+		return cls.cmpRes
+
+class _Comparer(object):
+	__metaclass__ = _CmpType
+	def __init__(self, *args, **kwargs):
+		raise Error("%s classes can't be instanciated."%self.__class__.__name__)
+
+class _Infimum(_Comparer):
+	"""is a *class* smaller than anything.
 
 	This will only work as the first operand.
+
+	>>> _Infimum<-2333
+	True
+	>>> _Infimum<""
+	True
+	>>> _Infimum<None
+	True
+	>>> _Infimum<_Infimum
+	True
 	"""
-	def __cmp__(self, other):
-		return -1
-_minimum = Minimum()
+	cmpRes = -1
 
 
-class Maximum:
-	"""is something larger than anything.
+class _Supremum(_Comparer):
+	"""is a *class* larger than anything.
 
 	This will only work as the first operand.
+
+	>>> _Supremum>1e300
+	True
+	>>> _Supremum>""
+	True
+	>>> _Supremum>None
+	True
+	>>> _Supremum>_Supremum
+	True
 	"""
-	def __cmp__(self, other):
-		return -1
-_maximum = Maximum()
+	cmpRes = 1
 
 
 class ColProperties(dict):
@@ -466,8 +499,9 @@ class ColProperties(dict):
 		"long": (-2**63, 2**63-1),
 	}
 	def __init__(self, fieldDef):
-		self["min"], self["max"] = _maximum, _minimum
-		self["hasNulls"] = False
+		self["min"], self["max"] = _Supremum, _Infimum
+		self["hasNulls"] = True # Safe default
+		self.nullSeen = False
 		self["sample"] = None
 		self["name"] = fieldDef.get_dest()
 		self["sqltype"] = fieldDef.get_dbtype()
@@ -481,7 +515,7 @@ class ColProperties(dict):
 
 	def feed(self, val):
 		if val is None:
-			self["hasNulls"] = True
+			self.nullSeen = True
 		else:
 			if self["min"]>val:
 				self["min"] = val
@@ -489,22 +523,47 @@ class ColProperties(dict):
 				self["max"] = val
 			self["sample"] = val
 
+	def finish(self):
+		"""has to be called after feeding is done.
+		"""
+		self.computeNullvalue()
+		self["hasNulls"] = self.nullSeen
+
 	def computeNullvalue(self):
 		"""tries to come up with a null value for integral data.
 
-		The nullvalue is entered as the nullvalue property.  This
-		isn't nice, but at least you'll get a KeyError if you try to
-		access it without having called computeNullvalue first.
+		This is called by finish(), but you could call it yourself to find out
+		if a nullvalue can be computed.
 		"""
 		if self["datatype"] not in self._nullvalueRanges:
-			raise Error("Cannot compute nullvalues for %s values"%self["datatype"])
+			return
 		if self["min"]>self._nullvalueRanges[self["datatype"]][0]:
 			self["nullvalue"] = self._nullvalueRanges[self["datatype"]][0]
 		elif self["max"]<self._nullvalueRanges[self["datatype"]][1]:
 			self["nullvalue"] = self._nullvalueRanges[self["datatype"]][1]
 		else:
-			raise Error("Cannot compute nullvalue for column %s, range is"
-				" %s..%s"%(self["name"], self["min"], self["max"]))
+			raise Error("Cannot compute nullvalue for column %s,"
+				"range is %s..%s"%(self["name"], self["min"], self["max"]))
+
+	def _addValuesKey(self, fieldArgs):
+		"""adds a VOTable VALUES node to fieldArgs when interesting.
+		"""
+		valArgs = {}
+		if self["min"] is not _Supremum:
+			valArgs["min"] = Min(value=str(self["min"]))
+		if self["max"] is not _Infimum:
+			valArgs["max"] = Max(value=str(self["max"]))
+		if self["hasNulls"]:
+			if self.has_key("nullvalue"):
+				valArgs["null"] = str(self["nullvalue"])
+		if valArgs:
+			valArgs["type"] = "actual"
+			vals = Values(**valArgs)
+			# hasNulls could help the encoder optimize if necessary.
+			# Since VOTable.VOObject doesn't serialize booleans, this won't show
+			# in the final XML.
+			vals.hasNulls = self.nullSeen
+			fieldArgs["values"] = vals
 
 	_voFieldCopyKeys = ["name", "ID", "datatype", "ID", "ucd",
 		"utype", "unit", "description"]
@@ -513,12 +572,12 @@ class ColProperties(dict):
 		"""returns a dictionary suitable for construction a VOTable field
 		that defines the instance's column.
 		"""
-#	XXXXXXXXX todo: add values element
 		res = {}
 		for key in self._voFieldCopyKeys:
 			res[key] = self[key]
 		if self["arraysize"]!="1":
 			res["arraysize"] = self["arraysize"]
+		self._addValuesKey(res)
 		return res
 
 
@@ -536,7 +595,11 @@ class TableData:
 		self.table = table
 		self.mFRegistry = mFRegistry
 		self.colProperties = self._getColProperties()
-	
+
+	# Don't compute min, max, etc for these types
+	_noValuesTypes = set(["boolean", "bit", "char", "unicodeChar",
+		"floatComplex", "doubleComplex"])
+
 	def _getColProperties(self):
 		"""inspects self.table to find out types and ranges of the data
 		living in it.
@@ -547,9 +610,14 @@ class TableData:
 		colProps = {}
 		for field in self.table.getFieldDefs():
 			colProps[field.get_dest()] = ColProperties(field)
+		valDesiredCols = [colProp["name"] for colProp in colProps.values()
+			if colProp["datatype"] not in self._noValuesTypes and
+				colProp["arraysize"]=="1"]
 		for row in self.table:
-			for key, value in row.iteritems():
-				colProps[key].feed(value)
+			for key in valDesiredCols:
+				colProps[key].feed(row[key])
+		for colProp in colProps.values():
+			colProp.finish()
 		return colProps
 
 	def getColProperties(self):
@@ -583,14 +651,13 @@ class VOTableMaker:
 		self.tablecoding = tablecoding
 		self.mFRegistry = mapperFactoryRegistry
 
-	def _addInfo(self, name, content, node, value=None):
+	def _addInfo(self, name, content, node, value=""):
 		"""adds info item "name" containing content having value to node
 		unless both content and value are empty.
 		"""
 		if content or value:
 			i = Info(name=name, text=content)
-			if value:
-				i.value = value
+			i.value = value
 			node.info.append(i)
 
 	def _addLink(self, href, node, contentRole=None, title=None,
@@ -683,5 +750,5 @@ def _profilerun():
 
 
 if __name__=="__main__":
-	#_test()
-	_profilerun()
+	_test()
+	#_profilerun()

@@ -213,6 +213,7 @@ class Link(VOObject):
         return repr
 
 
+
 class Field(VOObject):
     def __init__(self, **kwargs):
         # Attributes
@@ -248,9 +249,8 @@ class Field(VOObject):
         for l in self.links:
           repr.append(l.xml())
 
-        # FIXME: Add support for VALUES
-        # values = ElementTree.Element('VALUES', note='Not supported yet.')
-        # repr.append(values)
+        if self.values:
+            repr.append(self.values.xml())
         return(repr)
 
 
@@ -295,4 +295,53 @@ class CooSys(VOObject):
         return
 
 
-# vim:et:ts=4:sta:
+
+class MinMax(VOObject):
+    """is either a Min or a Max element.
+    """
+    def __init__(self, **kwargs):
+        self.value = None
+        self.inclusive = None
+        self.setFromDict(kwargs)
+
+
+
+class Min(MinMax):
+    pass
+
+
+class Max(MinMax):
+    pass
+
+
+class Options(VOObject):
+    def __init__(self, **kwargs):
+        self.value = None
+        self.name = None
+        self.setFromDict(kwargs)
+
+
+
+class Values(VOObject):
+    def __init__(self, **kwargs):
+        self.ID = None
+        self.ref = None
+        self.min = None
+        self.max = None
+        self.null = None
+        self.type = None
+        self.options = []
+        self.setFromDict(kwargs)
+
+    def xml(self):
+        repr = super(Values, self).xml()
+        if self.min:
+            repr.append(self.min.xml())
+        if self.max:
+            repr.append(self.max.xml())
+        for opt in self.options:
+            repr.append(opt.xml())
+        return repr
+    
+  
+# vim:et:ts=4:sta:sw=4:

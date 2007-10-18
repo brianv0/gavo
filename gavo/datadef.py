@@ -178,10 +178,12 @@ class DataTransformer(record.Record, meta.MetaMixin):
 					"%s is None but non-optional"%field.get_dest())
 
 	def registerAsMetaParent(self):
-		# This is called by the MetaMixin
-		if self.get_Semantics():
-			for recDef in self.get_Semantics().get_recordDefs():
-				recDef.setMetaParent(self)
+		try:
+			if self.get_Semantics():
+				for recDef in self.get_Semantics().get_recordDefs():
+					recDef.setMetaParent(self)
+		except (AttributeError, KeyError):  # No children yet
+			pass
 
 	def copy(self):
 		"""returns a deep copy of self.
