@@ -227,10 +227,21 @@ class Products(Interface):
 class BboxSiap(Interface):
 	"""is an interface for simple support of SIAP.
 
-	The input consists of (certain) FITS WCS headers and the primaryBbox,
-	secondaryBbox, centerAlpha and centerDelta fields added by the 
-	calculateBboxes macro. 
-	
+	This currently only handles two-dimensional images.
+
+	The input consists of 
+	* (certain) FITS WCS headers 
+	* the primaryBbox, secondaryBbox, centerAlpha and centerDelta, nAxes, 
+		pixelSize, pixelScale, imageFormat, wcs* fields calculated by the 
+		computeBboxSiapFields macro.   
+	* ImageTitle (interpolateString should come in handy for these)
+	* InstId -- some id for the instrument used
+	* DateObs -- a timestamp of the "characteristic" observation time
+	* the bandpass* values.  You're on your own with them...
+	* the values of the product interface.  Note that bboxSiap doesn't
+	  automatically enable products.  Maybe it should, but maybe we'll
+	  have more than one products interface...
+
 	Tables satisfying this interface can be used for bbox-based SIAP querying.
 
 	The interface automatically adds the appropriate macro call to compute
@@ -238,7 +249,7 @@ class BboxSiap(Interface):
 
 	In grammars feeding such tables, you should probably have 
 
-	<Macro name="calculateSimpleBbox"/>
+	<Macro name="computeBboxSiapFields"/>
 	"""
 	@staticmethod
 	def getName():
@@ -255,12 +266,55 @@ class BboxSiap(Interface):
 			{"dest": "secondaryBbox", "source": "secondaryBbox", 
 				"dbtype": "box",
 				"displayHint": "suppress", "literalForm": "do not touch"},
-			{"dest": "centerAlpha", "source": "centerAlpha", 
-				"dbtype": "real", "displayHint": "hourangle", 
-				"literalForm": "do not touch", "unit": "deg"},
-			{"dest": "centerDelta", "source": "centerDelta",
-				"dbtype": "real", "displayHint": "sexag", 
-				"literalForm": "do not touch", "unit": "deg"},
+			{"dest": "imageTitle", "source": "imageTitle", "ucd": "VOX:Image_Title",
+				"dbtype": "text", "tablehead": "Title", "optional": "False"},
+			{"dest": "instId", "source": "instId", "ucd": "INST_ID",
+				"dbtype": "text", "tablehead": "Instrument"},
+			{"dest": "dateObs", "source": "dateObs", "ucd": "VOX:Image_MJDateObs",
+				"dbtype": "timestamp", "unit": "d", "tablehead": "Obs. date",
+				"displayHint": "mjd"},
+			{"dest": "centerAlpha", "source": "centerAlpha", "ucd": "PO_EQ_RA_MAIN",
+				"dbtype": "double precision", "unit": "deg", "tablehead": "alpha",
+				"displayHint": "hourangle", "optional": "False"},
+			{"dest": "centerDelta", "source": "centerDelta", "ucd": "PO_EQ_DEC_MAIN",
+				"dbtype": "double precision", "unit": "deg", "tablehead": "delta",
+				"displayHint": "sexagesimal", "optional": "False"},
+			{"dest": "nAxes", "source": "NAXIS", "ucd": "VOX:Image_Naxes", 
+				"dbtype": "integer", "displayHint": "suppress", "optional": "False"},
+			{"dest": "pixelSize", "source": "pixelSize", "ucd": "VOX:Image_Naxis",
+				"dbtype": "integer[]", "optional": "False"},
+			{"dest": "pixelScale", "source": "pixelSize", "ucd": "VOX:Image_Scale",
+				"dbtype": "real[]", "optional": "False"},
+			{"dest": "imageFormat", "source": "imageFormat", "dbtype": "text",
+				"ucd": "VOX:Image_Format"},
+			{"dest": "refFrame", "source": "RADESYS", "dbtype": "text",
+				"ucd": "VOX:STC_CoordRefFrame"},
+			{"dest": "wcs_equinox", "ucd": "VOX:STC_CoordEquinox",
+				"source": "wcs_equinox"},
+			{"dest": "wcs_projection", "ucd": "VOX:WCS_CoordProjection",
+				"source": "wcs_projection", "dbtype": "text"},
+			{"dest": "wcs_refPixel", "ucd": "VOX:WCS_CoordRefPixel",
+				"source": "wcs_refPixel", "dbtype": "real[]"},
+			{"dest": "wcs_refValues", "ucd": "VOX:WCS_CoordRefValue",
+				"source": "wcs_refValues", "dbtype": "double precision[]"},
+			{"dest": "wcs_cdmatrix", "ucd": "VOX:CDMatrix",
+				"source": "wcs_cdmatrix", "dbtype": "real[]"},
+			{"dest": "bandpassId", "ucd": "VOX:Bandpass_ID",
+				"source": "bandpassId", "dbtype": "text"},
+			{"dest": "bandpassUnit", "ucd": "VOX:BandPass_Unit",
+				"source": "bandpassUnit", "dbtype": "text"},
+			{"dest": "bandpassRefval", "ucd": "VOX:BandPass_RefValue",
+				"source": "bandpassRefval"},
+			{"dest": "bandpassHi", "ucd": "VOX:BandPass_HiLimit",
+				"source": "bandpassHi"},
+			{"dest": "bandpassLo", "ucd": "VOX:BandPass_LoLimit",
+				"source": "bandpassLo"},
+			{"dest": "pixflags", "ucd": "VOX:Image_PixFlags",
+				"source": "pixflags", "default": "C", "dbtype": "text"},
+			{"dest": "accref", "ucd": "VOX:Image_AccessReference",
+				"source": "prodtblKey", "dbtype": "text"},
+			{"dest": "accsize", "ucd": "VOX:Image_FileSize",
+				"source": "prodtblFsize", "dbtype": "integer"},
 		]
 
 

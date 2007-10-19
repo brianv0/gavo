@@ -143,6 +143,28 @@ class LiteralParser:
 		"timestamp": _make_dateTimeFromString,
 	}
 
+	def _buildArrayParser(self, type, length):
+		"""returns a function parsing an array of type.  Length so far is
+		ignored.
+
+		Arrays literals are, for now, represented as whitespace-seperated 
+		entities.
+
+		It is not clear what a sane handling of length should look like --
+		postgres ignores it as sell.
+		"""
+		# XXX TODO: I guess we should parse SQL serializations here.  For now, this
+		# isn't really used in the first place because any array-like things
+		# zipping past here will be a python sequence already.
+		if not type in self.simpleConverters:
+			return None
+		atomicConverter = self.simpleConverters[type]
+		def convertArray(literal):
+			if not isinstance(literal, basestring):
+				return literal
+			return [atomicConverter(v) for v in literal.split()]
+		return convertArray
+
 	def _make_string(self, literal):
 		if self.encoding:
 			return str(literal).decode(self.encoding)
@@ -161,6 +183,11 @@ class LiteralParser:
 				or sqlType.startswith("character") or sqlType.startswith("char")
 				or sqlType=="text"):
 			return self._make_string
+		mat = re.match(r"(.*)[[(](\d+|\*|)[])]", sqlType)
+		if mat:
+			conv = self._buildArrayParser(mat.group(1), mat.group(2))
+			if conv:
+				return conv
 		logger.warning("Conversion to unknown type %s requested.  Returning"
 			" identity."%sqlType)
 		return lambda a: a

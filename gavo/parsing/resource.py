@@ -279,10 +279,11 @@ class DataSet(meta.MetaMixin):
 	context will be called.
 	"""
 	def __init__(self, dataDescriptor, tableMaker, parseSwitcher=None, 
-			tablesToBuild=[]):
+			tablesToBuild=[], maxRows=None, bail=False):
 		self.tablesToBuild = set(tablesToBuild)
 		self.dD = dataDescriptor
 		self.setMetaParent(self.dD)
+		self.maxRows, self.bail = maxRows, bail
 		self.docFields = self.dD.get_items()
 		self.docRec = {}
 		self.tables = []
@@ -314,12 +315,16 @@ class DataSet(meta.MetaMixin):
 				logger.error("Error while exporting %s (%s) -- aborting source."%(
 					context.sourceName, str(msg)))
 				counter.hitBad()
+				if self.bail:
+					raise
 			except (gavo.Error, Exception), msg:
 				errMsg = ("Error while parsing %s (%s) -- aborting source."%(
 					context.sourceName, str(msg).decode("utf-8")))
 				logger.error(errMsg, exc_info=True)
 				gavo.ui.displayError(errMsg)
 				counter.hitBad()
+				if self.bail:
+					raise
 			counter.hit()
 		counter.close()
 
@@ -329,6 +334,8 @@ class DataSet(meta.MetaMixin):
 					not recordDef.get_table() in self.tablesToBuild):
 				continue
 			self.tables.append(tableMaker(self, recordDef))
+			if self.maxRows:
+				self.tables[-1].setMaxRows(self.maxRows)
 		self._parseSources(parseSwitcher)
 		for table in self.tables:
 			table.finishBuild()
@@ -477,8 +484,10 @@ class Resource:
 		for dataSrc in self.getDescriptor().get_dataSrcs():
 			gavo.ui.displayMessage("Importing %s"%dataSrc.get_id())
 			self.addDataset(parseswitch.getDataset(dataSrc, self.getDescriptor(),
-				debugProductions=opts.debugProductions, maxRows=opts.maxRows,
-				metaOnly=opts.metaOnly))
+				debugProductions=getattr(opts, "debugProductions", None), 
+				maxRows=getattr(opts, "maxRows", None),
+				metaOnly=getattr(opts, "metaOnly", False), 
+				bail=getattr(opts, "bail", False)))
 		for processor in self.getDescriptor().get_processors():
 			processor(self)
 

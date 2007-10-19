@@ -23,8 +23,8 @@ def readPrimaryHeaderQuick(f):
 
 	This is mostly code lifted from pyfits._File._readHDU.  The way
 	that class is made, it's hard to use it with stuff from a gzipped
-	source, and that's why this function is here.  It is used in quick
-	mode.
+	source, and that's why this function is here.  It is used in the quick
+	mode of fits grammars.
 	"""
 	end_RE = re.compile('END'+' '*77)
 	block = f.read(blockLen)
@@ -46,13 +46,13 @@ def readPrimaryHeaderQuick(f):
 			break
 		hdu._raw += block
 
-		_size, hdu.name = hdu._getsize(hdu._raw)
+	_size, hdu.name = hdu._getsize(hdu._raw)
 
-		hdu._extver = 1  # We only do PRIMARY
+	hdu._extver = 1  # We only do PRIMARY
 
-		hdu._new = 0
-		hdu = hdu.setupHDU()
-		return hdu.header
+	hdu._new = 0
+	hdu = hdu.setupHDU()
+	return hdu.header
 
 
 def openGz(fitsName):

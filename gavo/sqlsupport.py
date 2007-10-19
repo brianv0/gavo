@@ -66,7 +66,27 @@ else:
 
 		__str__ = getquoted
 
-	psycopg2.extensions.register_adapter(tuple, SqlSetAdapter)
+
+	class SqlArrayAdapter(object):
+		"""is an adapter that formats python sequences as SQL arrays
+		"""
+		def __init__(self, seq):
+			self._seq = seq
+
+		def prepare(self, conn):
+			pass
+
+		def getquoted(self):
+			print ">>>>>", self._seq
+			if not self._seq:
+				return 'NULL'
+			qobjs = [str(psycopg2.extensions.adapt(o).getquoted()) 
+				for o in self._seq]
+			return 'ARRAY[ %s ]'%(", ".join(qobjs))
+
+		__str__ = getquoted
+
+	psycopg2.extensions.register_adapter(tuple, SqlArrayAdapter)
 	psycopg2.extensions.register_adapter(list, SqlSetAdapter)
 	psycopg2.extensions.register_adapter(set, SqlSetAdapter)
 	

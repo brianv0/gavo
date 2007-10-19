@@ -166,6 +166,7 @@ def _datetimeMapperFactory(colProps):
 	import time
 
 	def dtToJdn(val):
+		# XXX TODO: add fractional days from time
 		"""returns a julian day number for the dateTime instance val.
 		"""
 		a = (14-val.month)//12
@@ -173,9 +174,17 @@ def _datetimeMapperFactory(colProps):
 		m = val.month+12*a-3
 		return val.day+(153*m)//5+365*y+y//4-y//100+y//400-32045
 
+	def dtToMJdn(val):
+		"""returns the modified julian date number for the dateTime instance val.
+		"""
+		return dtToJdn(val)-2400000.5
+
 	if isinstance(colProps["sample"], datetime.date):
 		unit = colProps["unit"]
-		if unit=="yr" or unit=="a":
+		if "MJD" in colProps.get("ucd", ""):  # like VOX:Image_MJDateObs
+			colProps["unit"] = "d"
+			fun, destType = lambda val: val and dtToMJdn(val), "double"
+		elif unit=="yr" or unit=="a":
 			fun, destType = lambda val: val and dtToJdn(val)/365.25-4712, "double"
 		elif unit=="d":
 			fun, destType = lambda val: val and val.jdn, "double"

@@ -42,7 +42,7 @@ class FromSQLConverter:
 		if sqlType in self.simpleMap:
 			res = self.simpleMap[sqlType]
 		else:
-			mat = re.match(r"(.*)\((\d+)\)", sqlType)
+			mat = re.match(r"(.*)[[(](\d+|\*|)[])]", sqlType)
 			if mat:
 				res = self.mapComplex(mat.group(1), mat.group(2))
 		if res==None:
@@ -74,8 +74,13 @@ class ToVOTableConverter(FromSQLConverter):
 	}
 
 	def mapComplex(self, type, length):
+		if length=='':
+			length = '*'
 		if type in self._charTypes:
 			return "char", length
+		elif type in self.simpleMap:
+			return self.simpleMap[type][0], length
+
 
 
 class ToXSDConverter(FromSQLConverter):

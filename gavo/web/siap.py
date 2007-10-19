@@ -178,6 +178,7 @@ _intersectQueries = {
 		" (%(<p>roiSecondary)s IS NOT NULL AND %(<p>roiSecondary)s && primaryBbox)",
 	}
 
+
 def getBboxQueryFromBbox(intersect, bbox, center, prefix):
 	bboxes = splitCrossingBox(bbox)
 	return _intersectQueries[intersect].replace("<p>", prefix), {

@@ -740,9 +740,8 @@ class SimpleQuerier(Macro):
 			record[name] = resVal
 
 
-class BboxCalculator(Macro):
-	"""is a macro that computes the approximate bounding box of a WCS-specified
-	sky region in c_x, c_y, c_z.
+class BboxSiapFieldsComputer(Macro):
+	"""is a macro that computes fields for the bboxSiap interface.
 
 	It takes no arguments but expects WCS-like keywords in record, i.e.,
 	CRVAL1, CRVAL2 (interpreted as float deg), CRPIX1, CRPIX2 (pixel
@@ -750,7 +749,8 @@ class BboxCalculator(Macro):
 	we bail out if it isn't deg), CDn_n (the transformation matrix), NAXIS1,
 	NAXIS2 (the image size).
 
-	It leaves the six values bbox_[xyz](max|min) in the record.
+	It leaves the primaryBbbox, secondaryBbox (see siap.py for an explanation),
+	centerDelta, centerAlpha, nAxes, pixelSize, pixelScale and imageFormat.
 
 	For now, we only implement a tiny subset of WCS.  I guess we should
 	at some point wrap wcslib or something similar.
@@ -769,13 +769,38 @@ class BboxCalculator(Macro):
 	"""
 	@staticmethod
 	def getName():
-		return "calculateSimpleBbox"
+		return "computeBboxSiapFields"
 
 	def _compute(self, record):
+		def seqAbs(seq):
+			return math.sqrt(sum(v**2 for v in seq))
+
 		record["primaryBbox"], record["secondaryBbox"] = siap.splitCrossingBox(
 			siap.getBboxFromWCSFields(record))
 		record["centerAlpha"], record["centerDelta"] = siap.getCenterFromWCSFields(
 			record)
+		record["nAxes"] = int(record["NAXIS"])
+		axeInds = range(1, record["nAxes"]+1)
+		assert len(axeInds)==2   # probably not exactly necessary
+		record["pixelSize"] = tuple(int(record["NAXIS%d"%i]) 
+			for i in axeInds)
+		assert(record["CUNIT1"], "deg")  # XXX TODO: see what else can be there.
+		record["pixelScale"] = tuple(
+				seqAbs(record["CD%d_%d"%(i, j)] for j in axeInds)
+			for i in axeInds)
+		record["imageFormat"] = "image/fits"
+
+		# XXX TODO: siap only wants one value for projection.  I admit
+		# that I don't really know what I'm doing here.
+		record["wcs_projection"] = record.get("CTYPE1")
+		if record["wcs_projection"]:
+			record["wcs_projection"] = record["wcs_projection"][5:8]
+		record["wcs_refPixel"] = tuple(float(record["CRPIX%d"%i]) 
+			for i in axeInds)
+		record["wcs_refValues"] = tuple(float(record["CRVAL%d"%i]) 
+			for i in axeInds)
+		record["wcs_cdmatrix"] = tuple(float(record["CD%d_%d"%(i, j)])
+			for i in axeInds for j in axeInds)
 
 
 def _fixIndentation(code, newIndent):

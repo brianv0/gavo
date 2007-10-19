@@ -7,9 +7,10 @@ import warnings
 import compiler
 
 import gavo
-from gavo import sqlsupport
 from gavo import logger
+from gavo import sqlsupport
 from gavo.parsing import meta
+from gavo.parsing import parsehelpers
 
 class NoParent(gavo.Error):
 	pass
@@ -43,13 +44,22 @@ class BaseTable(meta.MetaMixin):
 			self.setMetaParent(self.dataSet)
 		else:
 			self.dataSet = None
+		self.maxRows = None
 		self.fieldDefs = fieldDefs
 		self.name = name
 		self.rows = []
 	
 	def __iter__(self):
 		return iter(self.rows)
-	
+
+	def setMaxRows(self, maxRows):
+		"""sets after how many rows an attempt to add a row will raise a
+		gavo.StopOperation exception.
+
+		This is for debugging (e.g., of resource descriptors) only.
+		"""
+		self.maxRows = maxRows
+
 	def finishBuild(self):
 		pass
 
@@ -60,6 +70,8 @@ class BaseTable(meta.MetaMixin):
 
 	def addData(self, record):
 		self.rows.append(record)
+		if self.maxRows and len(self.rows)>=self.maxRows:
+			raise gavo.StopOperation("Abort due to maxRows=%d"%self.maxRows)
 
 	def getFieldDefs(self):
 		"""returns the field definitions as a list of DataField instances.

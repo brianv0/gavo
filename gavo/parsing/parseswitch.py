@@ -100,11 +100,12 @@ def _createTable(dataSet, recordDef):
 	return TableClass(dataSet, recordDef)
 
 def getDataset(srcDesc, descriptor, dumpOnly=False, debugProductions=[],
-			maxRows=None, metaOnly=False):
+			maxRows=None, metaOnly=False, bail=False):
 	"""parses the data source described by descriptor returns a DataSet.
 	containing the data and the governing semantics.
 	"""
 	grammar = srcDesc.get_Grammar()
 	grammar.enableDebug(debugProductions)
-	data = resource.DataSet(srcDesc, _createTable, _parseSource)
+	data = resource.DataSet(srcDesc, _createTable, _parseSource, 
+		maxRows=maxRows, bail=False)
 	return data
