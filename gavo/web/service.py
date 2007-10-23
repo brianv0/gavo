@@ -20,13 +20,69 @@ import cStringIO
 import weakref
 
 from twisted.internet import defer
+from twisted.python import components
+from nevow import inevow
+from zope.interface import implements
 
 from gavo import datadef
 from gavo import record
 from gavo import table
+from gavo import record
 from gavo.parsing import contextgrammar
 from gavo.parsing import meta
 from gavo.parsing import resource
+
+
+class DataSetAdapter(object):
+	"""is an adapter to make DataSets work as nevow.IContainers
+	"""
+	implements(inevow.IContainer)
+
+	def __init__(self, original):
+		self.original = original
+		for n in dir(self.original):
+			if not n.startswith("_"):
+				setattr(self, n, getattr(self.original, n))
+
+	def data_resultmeta(self, ctx):
+		result = self.original.getTables()[0]
+		return {
+			"itemsMatched": len(result.rows),
+		}
+
+	def child(self, ctx, name):
+		if name=="table":
+			return self.original.getTables()[0]
+		else:
+			return getattr(self, "data_"+name)(ctx)
+
+components.registerAdapter(DataSetAdapter, resource.InternalDataSet,
+	inevow.IContainer)
+
+
+
+
+class QueryMeta(dict):
+	"""is a class keeping all data *about* a query, e.g., the requested
+	output format.
+
+	It is constructed with the dictionary-like thing mapping form keys
+	to values.
+	"""
+	def __init__(self, formData):
+		self._fillOutputOptions(formData)
+		self._fillOutputFilter(formData)
+	
+	def _fillOutputOptions(self, formData):
+		"""interprets values left by gwidget.OutputOptions.
+		"""
+		outputOptions = formData.get("output", {})
+		self["format"] = outputOptions.get("format", "VOTable")
+		self["verbosity"] = int(outputOptions.get("verbosity", '2'))*10
+		self["tdEnc"] = outputOptions.get("tdEnc", False)
+	
+	def _fillOutputFilter(self, formData):
+		self["outputFilter"] = formData.get("FILTER", "default")
 
 
 class Service(record.Record, meta.MetaMixin):
@@ -37,7 +93,8 @@ class Service(record.Record, meta.MetaMixin):
 	 * a list of Adapter instances for input (inputFilters)
 	 * a dict mapping output ids to pairs of adapters and names of tables
 	   within those adapters.
-	 * a Data instance as the core.
+	 * a core, i.e., an object having getInputFields, run, and parseOutput
+	   methods.
 	
 	The inputFilters are processed sequentially, while only exactly one of
 	the outputs is selected when a service runs.
@@ -97,30 +154,32 @@ class Service(record.Record, meta.MetaMixin):
 		curData = resource.InternalDataSet(dD, table.Table, inputData)
 		return curData
 
-	def _runCore(self, inputTable):
-		return self.get_core().run(inputTable)
+	def _runCore(self, inputTable, queryMeta):
+		return self.get_core().run(inputTable, queryMeta)
 
-	def _parseResult(self, input, outputFilter):
+	def _parseResult(self, input, queryMeta):
 		"""sends the result of the core process through the core parser and
 		the output filter, returning a result table.
 
 		input must match core's grammar, i.e. needs to be a string for 
 		text-processing grammars.
 		"""
-		result = self.get_core().parseOutput(input)
+		result = self.get_core().parseOutput(input, queryMeta)
+		outputFilter = queryMeta["outputFilter"]
 		if outputFilter and self.get_output(outputFilter):
 			result = resource.InternalDataSet(self.get_output(outputFilter), 
 				result.getTables()[0].getInheritingTable, result)
-		return result
+		return DataSetAdapter(result)
 
 	def getResult(self, rawInput, outputFilter=None):
 		"""returns a Deferred for the raw output of core.
 		"""
+		queryMeta = QueryMeta(rawInput)
 		inputData = self._getInputData(rawInput)
 		retVal = defer.Deferred()
-		data = self._runCore(inputData)
+		data = self._runCore(inputData, queryMeta)
 		data.addCallback(lambda res: 
-			retVal.callback(self._parseResult(res, outputFilter)))
+			retVal.callback(self._parseResult(res, queryMeta)))
 		data.addErrback(lambda res: retVal.errback(res))
 		return retVal
 

@@ -8,6 +8,7 @@ responsibility of the wrapper to produce standards-compliant output.
 """
 
 import weakref
+import cStringIO
 
 from gavo import coords
 from gavo import datadef
@@ -16,7 +17,28 @@ from gavo import table
 from gavo import utils
 from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
+from gavo.web import runner
 from gavo.web import siap
+
+
+class ComputedCore(object):
+	"""is a core based on a DataDescriptor with a compute attribute.
+	"""
+	def __init__(self, dd):
+		self.dd = dd
+	
+	def run(self, inputTable, queryMeta):
+		"""starts the computing process if this is a computed data set.
+		"""
+		runner.run(dd, inputTable)
+	
+	def parseOutput(self, rawOutput, queryMeta):
+		"""parses the output of a computing process and returns a table
+		if this is a computed dataSet.
+		"""
+		return resource.InternalDataSet(self, table.Table, 
+			cStringIO.StringIO(input), tablesToBuild=["output"])
+
 
 
 class DbBasedCore(object):
@@ -24,7 +46,23 @@ class DbBasedCore(object):
 
 	It provides for querying the database and returning a table from it.
 	"""
-	def parseOutput(self, dbResponse, tableDef):
+	def _getFields(self, tableDef, queryMeta):
+		"""returns a sequence of field definitions in tableDef suitable for
+		queryMeta.
+		"""
+		def makeCopyingField(field):
+			newField = datadef.DataField()
+			newField.updateFrom(field)
+			newField.set_source(field.get_dest())
+			return newField
+		if queryMeta["format"]=="HTML":
+			return [makeCopyingField(f) for f in tableDef.get_items()
+				if f.get_displayHint() and f.get_displayHint()!="suppress"]
+		else:  # Some sort of VOTable
+			return [makeCopyingField(f) for f in tableDef.get_items()
+				if f.get_verbLevel()<=queryMeta["verbosity"]]
+
+	def parseOutput(self, dbResponse, tableDef, queryMeta):
 		"""builds an InternalDataSet out of the RecordDef tableDef
 		and the row set dbResponse.
 
@@ -35,12 +73,7 @@ class DbBasedCore(object):
 		"""
 		outputDef = resource.RecordDef()
 		outputDef.updateFrom(tableDef)
-		outputDef.set_items([])
-		for field in tableDef.get_items():
-			newField = datadef.DataField()
-			newField.updateFrom(field)
-			newField.set_source(field.get_dest())
-			outputDef.addto_items(newField)
+		outputDef.set_items(self._getFields(tableDef, queryMeta))
 		dd = datadef.DataTransformer(self.rd, initvals={
 			"Grammar": rowsetgrammar.RowsetGrammar(tableDef),
 			"Semantics": resource.Semantics(initvals={
@@ -51,6 +84,9 @@ class DbBasedCore(object):
 
 class SiapCore(DbBasedCore):
 	"""is a core doing simple image access protocol queries.
+
+	As an extension to the standard, we automatically resolve simbad objects
+	to positions.
 	"""
 	def __init__(self, rd, tableName="images"):
 		self.tableName = tableName
@@ -75,17 +111,18 @@ class SiapCore(DbBasedCore):
 				source="INTERSECT"),
 		]
 
-	def run(self, inputTable):
+	def run(self, inputTable, queryMeta):
 		fragment, pars = siap.getBboxQuery(inputTable.getDocRec())
 		query = "SELECT * FROM %s.%s WHERE "%(self.rd.get_schema(), 
 			self.tableName)+fragment
 		return resourcecache.getDbConnection().runQuery(query, pars)
 
-	def parseOutput(self, dbResponse):
+	def parseOutput(self, dbResponse, queryMeta):
 		result = super(SiapCore, self).parseOutput(dbResponse, 
-			self.rd.getTableDefByName(self.tableName))
-		result.setMeta("_type", "result")
-		result.setMeta("_query_status", "OK")
+			self.rd.getTableDefByName(self.tableName), queryMeta)
+		result.addMeta(name="_type", content="result")
+		result.addMeta(name="_query_status", content="OK")
+		return result
 
 
 _coresRegistry = {

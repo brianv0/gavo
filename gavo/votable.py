@@ -153,7 +153,7 @@ try:
 				fun, destType = lambda val: val and val.date, "text"
 			else:   # Fishy, but not our fault
 				fun, destType = lambda val: val and val.jdn, "double"
-			colProps["sqltype"] = destType
+			colProps["dbtype"] = destType
 			return fun
 	_registerDefaultMF(_mxDatetimeMapperFactory)
 
@@ -194,13 +194,13 @@ def _datetimeMapperFactory(colProps):
 			fun, destType = lambda val: val and val.isoformat(), "text"
 		else:   # Fishy, but not our fault
 			fun, destType = lambda val: val and dtToJdn(val), "double"
-		colProps["sqltype"] = destType
+		colProps["dbtype"] = destType
 		return fun
 _registerDefaultMF(_datetimeMapperFactory)
 
 
 def _booleanMapperFactory(colProps):
-	if colProps["sqltype"]=="boolean":
+	if colProps["dbtype"]=="boolean":
 		def coder(val):
 			if val:
 				return "1"
@@ -211,7 +211,7 @@ _registerDefaultMF(_booleanMapperFactory)
 
 
 def _floatMapperFactory(colProps):
-	if colProps["sqltype"]=="real" or colProps["sqltype"].startswith("double"):
+	if colProps["dbtype"]=="real" or colProps["dbtype"].startswith("double"):
 		naN = float("NaN")
 		def coder(val):
 			if val==None:
@@ -222,8 +222,8 @@ _registerDefaultMF(_floatMapperFactory)
 
 
 def _stringMapperFactory(colProps):
-	if colProps.get("optional", True) and ("char(*)" in colProps["sqltype"] or 
-			colProps["sqltype"]=="text"):
+	if colProps.get("optional", True) and ("char(*)" in colProps["dbtype"] or 
+			colProps["dbtype"]=="text"):
 		def coder(val):
 			if val==None:
 				return ""
@@ -309,7 +309,6 @@ def _mapValues(colDesc, data, mapperFactory):
 			data[rowInd] = [handlers[colInd](row[colInd]) for colInd in colInds]
 	
 
-
 def writeTable(resources, metaInfo, destination):
 	"""writes a VOTable for all DataModel.Resource instances in resource to
 	destination.
@@ -326,12 +325,15 @@ def writeTable(resources, metaInfo, destination):
 
 def _getFieldItemsFor(colInd, colProps):
 	"""returns a dictionary with keys for a DataModel.Field constructor.
+
+	For compatibility with newer code, this changes colProps.  Pain.
 	"""
 	fieldItems = {
 		"name": colProps["fieldName"],
 		"ID": "%03d-%s"%(colInd, colProps["fieldName"]),
 	}
-	type, size = typesystems.sqltypeToVOTable(colProps["sqltype"])
+	type, size = typesystems.sqltypeToVOTable(colProps["dbtype"])
+	colProps["datatype"], colProps["arraysize"] = type, size
 	fieldItems["datatype"] = type
 	if size!="1":
 		fieldItems["arraysize"] = size
@@ -374,10 +376,8 @@ def buildTableColdesc(colDesc, data, metaInfo, tablecoding="binary",
 		description=metaInfo.get("description", ""), coder=votEncoder)
 	if metaInfo.has_key("id"):
 		dataTable.id = id
-	colDesc["datatype"], colDesc["arraysize"] =\
-		typesystems.sqltypeToVOTable(colProps["sqltype"])
-	_mapValues(colDesc, data, mapperFactoryRegistry)
 	_defineFields(colDesc, dataTable)
+	_mapValues(colDesc, data, mapperFactoryRegistry)
 	dataTable.data = data
 	return dataTable
 
@@ -417,35 +417,16 @@ def writeVOTableFromTable(dataSet, table, destination,
 	"""returns a DataModel.Table constructed from a table.Table.
 	"""
 	colDesc = [df.getMetaRow() for df in table.getFieldDefs()]
+	for df in colDesc:
+		df["dbtype"] = df["type"]
 	metaInfo = {
 		"id": table.getName(),
 		"name": "%s.%s"%(dataSet.getId(), table.getName()),
-		"description": table.getRecordDef().get_Meta("description"),
+		"description": table.getRecordDef().getMeta("description"),
 	}
 	writeSimpleTableColdesc(colDesc, table.getRowsAsTuples(), metaInfo, 
 		destination, tablecoding, mapperFactoryRegistry)
 
-
-def getFieldItemsForDataField(dataField):
-	"""returns constructor arguments for a DataModel.Field from a
-	datadef.DataField.
-	"""
-	# This isn't a DataField method to avoid cross-imports.
-	# Also, we don't currently use this, since DataFields are supposed to be
-	# immutable and we may want to change the type when mapping values.
-	fieldItems = {
-		"name": dataField.get_dest(),
-		"ID": dataField.get_dest(),
-	}
-	fieldItems["sqltype"] = dataField.get_dbtype()
-	type, size = typesystems.sqltypeToVOTable(dataField.get("dbtype"))
-	fieldItems["datatype"] = type
-	if size!="1":
-		fieldItems["arraysize"] = size
-	for fieldName in ["ucd", "utype", "unit"]:
-		if dataField.get(fieldName)!=None:
-			fieldItems[fieldName] = dataField.get(fieldName)
-	return fieldItems
 
 ################# XXXXX end of deprecated section
 
@@ -513,7 +494,7 @@ class ColProperties(dict):
 		self.nullSeen = False
 		self["sample"] = None
 		self["name"] = fieldDef.get_dest()
-		self["sqltype"] = fieldDef.get_dbtype()
+		self["dbtype"] = fieldDef.get_dbtype()
 		self["description"] = fieldDef.get_description()
 		self["ID"] = fieldDef.get_dest()  # XXX TODO: qualify this guy
 		type, size = typesystems.sqltypeToVOTable(fieldDef.get_dbtype())

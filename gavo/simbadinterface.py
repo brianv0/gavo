@@ -10,6 +10,7 @@ import SOAPpy.WSDL
 import gavo
 from gavo import utils
 from gavo import config
+from gavo import resourcecache
 
 
 class ObjectCache:
@@ -238,10 +239,13 @@ def getSimbadPositions(identifier):
 
 	It raises a KeyError if Simbad doesn't know identifier.
 	"""
-	data = Sesame().query(identifier)
+	data = resourcecache.getSesame("simbad").query(identifier)
 	if not data:
 		raise KeyError(identifier)
 	return float(data["RA"]), float(data["dec"])
+
+
+resourcecache.makeCache("getSesame", lambda key: Sesame(key, saveNew=True))
 
 
 if __name__=="__main__":

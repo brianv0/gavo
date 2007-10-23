@@ -77,7 +77,6 @@ else:
 			pass
 
 		def getquoted(self):
-			print ">>>>>", self._seq
 			if not self._seq:
 				return 'NULL'
 			qobjs = [str(psycopg2.extensions.adapt(o).getquoted()) 

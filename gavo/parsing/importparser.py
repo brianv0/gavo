@@ -77,22 +77,6 @@ class DataDescriptor(datadef.DataTransformer):
 				for fName in glob.glob(os.path.join(path, self.get_sourcePat())):
 					yield fName
 	
-	def run(self, inputTable):
-		"""starts the computing process if this is a computed data set.
-		"""
-		# XXX This doesn't really belong here.  We probably want a wrapper (or,
-		# maybe, and adapter?) for this in gavo.web
-		from gavo.web import runner
-		runner.run(self, inputTable)
-
-	def parseOutput(self, rawOutput):
-		"""parses the output of a computing process and returns a table
-		if this is a computed dataSet.
-		"""
-		# see run.
-		return resource.InternalDataSet(self, table.Table, 
-			cStringIO.StringIO(input), tablesToBuild=["output"])
-
 
 class ResourceDescriptor(record.Record, meta.MetaMixin):
 	"""is a container for all information necessary to import a resource into
@@ -455,8 +439,10 @@ class RdParser(utils.NodeBuilder):
 		if attrs.has_key("builtin"):
 			core = standardcores.getStandardCore(attrs["builtin"])(self.rd,
 				**self._collectArguments(children))
+		elif attrs.has_key("computer"):
+			core = standardcores.ComputedCore(self._getDDById(attrs["computer"]))
 		else:
-			core = self._getDDById(attrs["idref"])
+			raise Error("Invalid core specification")
 		return core
 	
 	def _make_meta(self, name, attrs, children):

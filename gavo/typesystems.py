@@ -71,6 +71,7 @@ class ToVOTableConverter(FromSQLConverter):
 		"char": ("char", "1"),
 		"date": ("char", "*"),
 		"timestamp": ("char", "*"),
+		"box": ("double", "*"),
 	}
 
 	def mapComplex(self, type, length):

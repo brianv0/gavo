@@ -197,7 +197,7 @@ class Products(Interface):
 			{"dest": "owner", "source": "prodtblOwner", "dbtype": "text",
 				"tablehead": "Product owner", "displayHint": "suppress"},
 			{"dest": "embargo", "source": "prodtblEmbargo", "dbtype": "date",
-				"tablehead": "Embargo ends", "displayHint": "isodate",
+				"tablehead": "Embargo ends", "displayHint": "date",
 				"unit": "Y-M-D"},
 			{"dest": "fsize", "source": "prodtblFsize", "dbtype": "int",
 				"tablehead": "File size", "displayHint": "filesize", "unit": "byte"},

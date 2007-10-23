@@ -5,6 +5,7 @@ import cStringIO
 import new
 
 from twisted.internet import defer
+from twisted.python import components
 
 from nevow import rend, loaders, wsgi, inevow, static, url, flat
 from nevow import tags as T, entities as E
@@ -12,19 +13,20 @@ import formal
 from formal import form
 from zope.interface import implements
 
-from gavo import Error
 from gavo import config
 from gavo import resourcecache
 from gavo import typesystems
+from gavo import votable
+from gavo.parsing import importparser
+from gavo.parsing import resource
 from gavo.web import gwidgets
 from gavo.web.querulator import queryrun
-from gavo.parsing import importparser
 
+from gavo import Error
 
 class UnknownURI(Error):
 	"""signifies that a http 404 should be returned to the dispatcher.
 	"""
-
 
 
 def parseServicePath(serviceParts):
@@ -120,6 +122,12 @@ class FormatterFactory:
 	def __call__(self, format, args):
 		return getattr(self, "_make_%s_formatter"%format)(*args)
 
+	def _make_product_formatter(self):
+		return str
+
+	def _make_filesize_formatter(self):
+		return str
+
 	def _make_string_formatter(self):
 		return str
 
@@ -151,7 +159,16 @@ class FormatterFactory:
 
 	def _make_juliandate_formatter(self, fracFigs=1):
 		def format(date):
+			if data=="None":
+				return "N/A"
 			return date.jdn
+		return format
+
+	def _make_mjd_formatter(self, fracFigs=1):
+		def format(date):
+			if date==None:
+				return "N/A"
+			return date.jdn-2400000.5
 		return format
 
 	def _make_suppress_formatter(self):
@@ -227,17 +244,15 @@ class BaseResponse(ResourceBasedRenderer):
 		self.data = data
 
 	def data_query(self, ctx, data):
-		if ctx:
-			return self.service.getResult(self.data, ctx.arg("FILTER", "default"))
-		else:
-			return self.service.getResult(self.data, "default")
+# XXX maybe stick form input into data special?
+		return self.service.getResult(self.data)
 
 
 class HtmlResponse(BaseResponse):
 	"""is a renderer for queries for HTML tables.
 	"""
 	def render_resulttable(self, ctx, data):
-		return HtmlTableFragment(data.getTables()[0])
+		return HtmlTableFragment(data.child(ctx, "table"))
 
 	docFactory = loaders.stan(T.html[
 		T.head[
@@ -245,15 +260,28 @@ class HtmlResponse(BaseResponse):
 			T.link(rel="stylesheet", href="/formal.css", type="text/css"),
 			T.script(type='text/javascript', src='/js/formal.js'),
 		],
-		T.body[
+		T.body(data=T.directive("query"))[
 			T.h1["Query Result"],
-			T.div(class_="result", data=T.directive("query"))[
+			T.div(class_="resmeta", render=T.directive("mapping"), 
+					data=T.directive("resultmeta"))[
+				T.p[
+					"Matched: ", 
+					T.slot(name="itemsMatched"),
+				],
+			],
+			T.div(class_="result")[
 				T.invisible(render=T.directive("resulttable")),
 			]
 		]])
 
 
 class VOTableResponse(BaseResponse):
+	def __init__(self, serviceParts, data, tdEnc=False):
+		BaseResponse.__init__(self, serviceParts, data)
+		self.tablecoding = "binary"
+		if tdEnc:
+			self.tablecoding = "td"
+
 	def renderHTTP(self, ctx):
 		data = defer.maybeDeferred(self.data_query, ctx, None)
 		request = inevow.IRequest(ctx)
@@ -270,8 +298,10 @@ class VOTableResponse(BaseResponse):
 		request.finish()
 
 	def _makeTable(self, request, data):
+		tablemaker = votable.VOTableMaker(tablecoding=self.tablecoding)
+		vot = tablemaker.makeVOT(data)
 		f = cStringIO.StringIO()
-		data.exportToVOTable(f)
+		tablemaker.writeVOT(vot, f)
 		request.write(f.getvalue())
 		request.finish()
 
@@ -328,11 +358,13 @@ class Form(formal.ResourceMixin, ResourceBasedRenderer):
 		return super(Form, self).renderHTTP(ctx)
 
 	def submitAction(self, ctx, form, data):
-		format = ctx.arg("FORMAT", "VOTable")
+# XXX TODO: defer this decision until actually formatting the output
+		format = data["output"]["format"]
 		if format=="HTML":
 			return HtmlResponse(self.serviceParts, data)
 		elif format=="VOTable":
-			return VOTableResponse(self.serviceParts, data)
+			return VOTableResponse(self.serviceParts, data, 
+				tdEnc=data["output"]["tdEnc"])
 		else:
 			return ErrorResponse("Invalid output format: %s"%format)
 
@@ -375,11 +407,35 @@ class DebugPage(rend.Page):
 	])
 
 
+class ErrorPage(rend.Page):
+	implements(inevow.ICanHandleException)
+
+	docFactory = loaders.xmlstr("""<html
+    xmlns:n='http://nevow.com/ns/nevow/0.1'>
+    <head><title>500 error</title>
+    <style type="text/css">
+    body { border: 6px solid red; padding: 1em; }
+    </style>
+    </head>
+    <body><h1>Ouchie. Server error.</h1>
+    <p>The server is down.</p>
+    <p><em>Ohhh. The server.</em></p>
+    </body></html>
+    """)
+
+	def renderHTTP_exception(self, ctx, failure):
+		print dir(ctx)
+		inevow.IRequest(ctx).setResponseCode(500)
+		ctx2 = context.PageContext(tag=self, parent=ctx)
+		return self.renderHTTP(ctx2)
+
+error500 = ErrorPage()
+
+
 renderClasses = {
 	"form": Form,
 	"debug": DebugPage,
 }
-
 
 class ArchiveService(rend.Page):
 
@@ -397,6 +453,7 @@ class ArchiveService(rend.Page):
 	])
 
 	def locateChild(self, ctx, segments):
+		ctx.remember(error500, inevow.ICanHandleException)
 		if not segments or not segments[0]:
 			res = self
 		else:

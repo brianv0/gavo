@@ -7,6 +7,7 @@ See develNotes for info on our SIAP implementation
 import math
 
 from gavo import coords
+from gavo import simbadinterface
 from gavo import utils
 
 
@@ -133,7 +134,6 @@ def getCenterFromWCSFields(wcsFields):
 			wcsFields.get("NAXIS2", "800"))/2.)
 
 
-
 def normalizeBox(bbox):
 	"""returns bbox with the left corner x between 0 and 360.
 	"""
@@ -198,13 +198,16 @@ def getBboxQuery(parameters, prefix="sia"):
 	parameters is a dictionary that maps the SIAP keywords to the
 	values in the query.  Parameters not defined by SIAP are ignored.
 	"""
-	raDec = map(float, parameters["POS"].split(","))
+	try:
+		ra, dec = map(float, parameters["POS"].split(","))
+	except (ValueError, TypeError):
+		ra, dec = simbadinterface.getSimbadPositions(parameters["POS"])
 	sizes = map(float, parameters["SIZE"].split(","))
 	if len(sizes)==1:
 		sizes = sizes*2
-	bbox = getBboxFromSiapPars(raDec, sizes)
+	bbox = getBboxFromSiapPars((ra, dec), sizes)
 	intersect = parameters.get("INTERSECT", "OVERLAPS")
-	return getBboxQueryFromBbox(intersect, bbox, raDec, prefix)
+	return getBboxQueryFromBbox(intersect, bbox, (ra, dec), prefix)
 
 
 def _test():

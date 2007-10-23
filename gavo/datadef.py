@@ -35,7 +35,7 @@ class DataField(record.Record):
 			"primary": record.BooleanField,  # is part of the table's primary key
 			"references": None,  # becomes a foreign key in SQL
 			"index": None,       # if given, name of index field is part of
-			"displayHint": "string", # suggested presentation, see queryrun.Format
+			"displayHint": None, # suggested presentation
 			"verbLevel": 30,     # hint for building VOTables
 			"id": None,          # Just so the field can be referenced within XML
 			"widgetFactory": None, # Python code to generate a formal widget factory
