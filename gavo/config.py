@@ -35,8 +35,13 @@ dbDefaultProfile: feed
 voplotEnable: False
 voplotCodeBase: /soft/VOPlot
 voplotUserman: /docs/VOPlot_UserGuide_1_4.html
+# serverName is used to qualify relative URLs where necessary.
+serverURL: http://localhost:8080
 staticURL: /qstatic
+# This one's for the old querulator and should die in the end.
 rootURL: /ql
+# This one's for the new nevow-based service
+nevowRoot: 
 
 [querulator]
 defaultMaxMatches: 1000

@@ -52,6 +52,12 @@ class BaseTable(meta.MetaMixin):
 	def __iter__(self):
 		return iter(self.rows)
 
+	def __len__(self):
+		return len(self.rows)
+
+	def __getitem__(self, index):
+		return self.rows[index]
+
 	def setMaxRows(self, maxRows):
 		"""sets after how many rows an attempt to add a row will raise a
 		gavo.StopOperation exception.

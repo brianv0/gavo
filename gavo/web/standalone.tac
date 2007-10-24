@@ -1,22 +1,20 @@
 from twisted.application import service, internet
 from nevow import rend, loaders, appserver
 
-import dispatcher
-import standardcores
 from gavo import parsing
 from gavo import resourcecache
-from gavo import votable
-from gavo.parsing import resource
-from gavo.parsing import tablegrammar
+from gavo.web import dispatcher
+from gavo.web import htmltable
+from gavo.web import product
 
 parsing.verbose = True
 
 class Reloader(rend.Page):
 	def locateChild(self, ctx, segments):
 		resourcecache.clearCaches()
-		reload(standardcores)
 		reload(dispatcher)
-		reload(resource)
+		reload(htmltable)
+		reload(product)
 		page = dispatcher.ArchiveService()
 		return page.locateChild(ctx, segments)
 

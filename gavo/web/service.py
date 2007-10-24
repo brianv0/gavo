@@ -31,6 +31,7 @@ from gavo import record
 from gavo.parsing import contextgrammar
 from gavo.parsing import meta
 from gavo.parsing import resource
+from gavo.web import common
 
 
 class DataSetAdapter(object):
@@ -62,27 +63,6 @@ components.registerAdapter(DataSetAdapter, resource.InternalDataSet,
 
 
 
-class QueryMeta(dict):
-	"""is a class keeping all data *about* a query, e.g., the requested
-	output format.
-
-	It is constructed with the dictionary-like thing mapping form keys
-	to values.
-	"""
-	def __init__(self, formData):
-		self._fillOutputOptions(formData)
-		self._fillOutputFilter(formData)
-	
-	def _fillOutputOptions(self, formData):
-		"""interprets values left by gwidget.OutputOptions.
-		"""
-		outputOptions = formData.get("output", {})
-		self["format"] = outputOptions.get("format", "VOTable")
-		self["verbosity"] = int(outputOptions.get("verbosity", '2'))*10
-		self["tdEnc"] = outputOptions.get("tdEnc", False)
-	
-	def _fillOutputFilter(self, formData):
-		self["outputFilter"] = formData.get("FILTER", "default")
 
 
 class Service(record.Record, meta.MetaMixin):
@@ -174,7 +154,7 @@ class Service(record.Record, meta.MetaMixin):
 	def getResult(self, rawInput, outputFilter=None):
 		"""returns a Deferred for the raw output of core.
 		"""
-		queryMeta = QueryMeta(rawInput)
+		queryMeta = common.QueryMeta(rawInput)
 		inputData = self._getInputData(rawInput)
 		retVal = defer.Deferred()
 		data = self._runCore(inputData, queryMeta)

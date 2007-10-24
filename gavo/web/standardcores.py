@@ -40,11 +40,20 @@ class ComputedCore(object):
 			cStringIO.StringIO(input), tablesToBuild=["output"])
 
 
-
 class DbBasedCore(object):
 	"""is a base class for cores doing database queries.
 
-	It provides for querying the database and returning a table from it.
+	It provides for querying the database and returning a table
+	from it.
+
+	To use the methods, your deriving class currently needs to provide a
+	tableName attribute (since an RD can provide more than one table).  That's a
+	bad wart that needs to be fixed.
+
+	Note that the methods provided here (run, parseOutput) are *not*
+	immediately suitable for cooperation with Service since service
+	doesn't provide tableDef or query.  You'll have to override this
+	method in derived classes and fill in tableDef.
 	"""
 	def _getFields(self, tableDef, queryMeta):
 		"""returns a sequence of field definitions in tableDef suitable for
@@ -58,24 +67,39 @@ class DbBasedCore(object):
 		if queryMeta["format"]=="HTML":
 			return [makeCopyingField(f) for f in tableDef.get_items()
 				if f.get_displayHint() and f.get_displayHint()!="suppress"]
+		elif queryMeta["format"]=="internal":
+			return [makeCopyingField(f) for f in tableDef.get_items()]
 		else:  # Some sort of VOTable
 			return [makeCopyingField(f) for f in tableDef.get_items()
-				if f.get_verbLevel()<=queryMeta["verbosity"]]
+				if f.get_verbLevel()<=queryMeta["verbosity"] and 
+					f.get_displayHint!="suppress"]
+
+	def run(self, condition, pars, queryMeta):
+		schema = self.rd.get_schema()
+		if schema:
+			tableName = "%s.%s"%(schema, self.tableName)
+		else:
+			tableName = self.tableName
+		tableDef = self.rd.getTableDefByName(self.tableName)
+		fields = ", ".join([f.get_dest() 
+			for f in self._getFields(tableDef, queryMeta)])
+		return resourcecache.getDbConnection().runQuery(
+			"SELECT %(fields)s from %(table)s WHERE %(condition)s"%{
+				"fields": fields,
+				"table": tableName,
+				"condition": condition}, pars)
 
 	def parseOutput(self, dbResponse, tableDef, queryMeta):
 		"""builds an InternalDataSet out of the RecordDef tableDef
 		and the row set dbResponse.
 
-		Note that this method is *not* immediately suitable
-		for cooperation with Service since service doesn't
-		provide tableDef.  You'll have to override this method
-		in derived classes and fill in tableDef.
 		"""
 		outputDef = resource.RecordDef()
 		outputDef.updateFrom(tableDef)
-		outputDef.set_items(self._getFields(tableDef, queryMeta))
+		qFields = self._getFields(tableDef, queryMeta)
+		outputDef.set_items(qFields)
 		dd = datadef.DataTransformer(self.rd, initvals={
-			"Grammar": rowsetgrammar.RowsetGrammar(tableDef),
+			"Grammar": rowsetgrammar.RowsetGrammar(qFields),
 			"Semantics": resource.Semantics(initvals={
 				"recordDefs": [outputDef]}),
 			"id": "<generated>"})
@@ -113,9 +137,7 @@ class SiapCore(DbBasedCore):
 
 	def run(self, inputTable, queryMeta):
 		fragment, pars = siap.getBboxQuery(inputTable.getDocRec())
-		query = "SELECT * FROM %s.%s WHERE "%(self.rd.get_schema(), 
-			self.tableName)+fragment
-		return resourcecache.getDbConnection().runQuery(query, pars)
+		return super(SiapCore, self).run(fragment, pars, queryMeta)
 
 	def parseOutput(self, dbResponse, queryMeta):
 		result = super(SiapCore, self).parseOutput(dbResponse, 

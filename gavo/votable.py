@@ -24,6 +24,9 @@ with a ValueEncoderFactoryRegistry object that's used by getCoder.
 import sys
 import re
 import itertools
+import urllib
+import urlparse
+
 try:
 	import cElementTree as ElementTree
 except ImportError:
@@ -255,6 +258,25 @@ def _intMapperFactory(colProps):
 			return val
 		return coder
 _registerDefaultMF(_intMapperFactory)
+
+
+def _productMapperFactory(colProps):
+	"""is a factory for columns containing product keys.
+
+	The result are links to the product delivery.
+	"""
+	from nevow import url
+	if colProps["ucd"]=="VOX:Image_AccessReference":
+		def mapper(val):
+			if val==None:
+				return ""
+			else:
+				return urlparse.urljoin(
+					urlparse.urljoin(config.get("web", "serverURL"),
+						config.get("web", "nevowRoot")),
+					"getproduct?key=%s&siap=true"%urllib.quote(val))
+		return mapper
+_registerDefaultMF(_productMapperFactory)
 
 
 def getMapperRegistry():

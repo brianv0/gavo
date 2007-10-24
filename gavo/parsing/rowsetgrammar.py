@@ -14,8 +14,8 @@ class RowsetGrammar(grammar.Grammar):
 	data.  It gets it from a RecordDef instance it receives during 
 	construction.
 	"""
-	def __init__(self, recordDef):
-		self.colNames = [f.get_dest() for f in recordDef.get_items()]
+	def __init__(self, dbFields):
+		self.colNames = [f.get_dest() for f in dbFields]
 		grammar.Grammar.__init__(self)
 
 	def _getDocdict(self, parseContext):
