@@ -23,10 +23,6 @@ from nevow import inevow
 from nevow import static
 from nevow import tags as T, entities as E
 
-from twisted.cred import portal
-from twisted.cred import checkers
-from twisted.cred import credentials
-
 from zope.interface import implements
 
 from gavo import config
@@ -37,26 +33,6 @@ from gavo.web import resourcebased
 from gavo.web.querulator import queryrun
 
 from gavo.web.common import Error, UnknownURI
-
-
-class DCRealm:
-	"""is the realm for the data center, used for nevow cred.
-	"""
-	implements(portal.IRealm)
-
-	def requestAvatar(self, avatarId, mind, *interfaces):
-		for iface in interfaces:
-			if iface is inevow.IResource:
-				if avatarId is checkers.ANONYMOUS:
-					resc = NotLoggedIn()
-					resc.realm = self
-					return (inevow.IResource, resc, noLogout)
-				else:
-					resc = LoggedIn(avatarId)
-					resc.realm = self
-					return (inevow.IResource, resc, resc.logout)
-		raise NotImplementedError("Can't support these interfaces.")
-
 
 
 class DebugPage(rend.Page):
@@ -157,11 +133,6 @@ setattr(ArchiveService, 'child_js', formal.formsJS)
 
 from gavo import nullui
 config.setDbProfile("querulator")
-
-
-realm = DCRealm()
-porta = portal.Portal(realm)
-porta.registerChecker()
 
 root = ArchiveService()
 # wsgiApp = wsgi.createWSGIApplication(root)

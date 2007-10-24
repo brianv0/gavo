@@ -126,7 +126,7 @@ else:
 	_SQLBOX = psycopg2.extensions.new_type((BOX_OID,), "BOX", castBox)
 	psycopg2.extensions.register_type(_SQLBOX)
 
-	from psycopg2 import OperationalError, DatabaseError
+	from psycopg2 import OperationalError, DatabaseError, IntegrityError
 	from psycopg2 import Error as DbError
 
 	def getDbConnection(profile):

@@ -56,6 +56,13 @@ class Product(standardcores.DbBasedCore):
 			raise Error("More than one item matched the key.  Honestly, this"
 				" can't happen.")
 		item = result[0]
+		if not isFree(item):
+			return requireAuthentication(ctx, item["owner"], 
+				lambda: self._deliverFile(ctx, item))
+		else:
+			return self._deliverFile(ctx, item)
+	
+	def _deliverFile(self, ctx, item):
 		targetPath = os.path.join(config.get("inputsDir"), item["accessPath"])
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/octet-stream")
