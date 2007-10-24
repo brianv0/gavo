@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ResourceDescriptor srcdir="users">
+	<schema>users</schema>
+	<Data id="nothing">
+		<NullGrammar/>
+
+		<Semantics>
+<!-- This has to match whatever is done in gavo.web.creds.
+-->
+			<Record table="users">
+				<Field dest="username" primary="True" dbtype="text"
+					tablehead="Username"/>
+				<Field dest="password" dbtype="text" displayHint="suppress"/>
+				<!-- This is a plain text password.  We could store md5s, but
+					then I guess it's more likely that people will ask for pws
+					than that any unauthorized entity will be interested in them.
+					If that assessment changes, by all means store md5s, since
+					this table is largely unprotected -->
+				<Field dest="remarks" dbtype="text"/>
+			</Record>
+
+			<Record table="groups">
+				<Field dest="username" dbtype="text" references="users.users"/>
+				<Field dest="groupname" dbtype="text"/>
+			</Record>
+		</Semantics>
+	</Data>
+</ResourceDescriptor>

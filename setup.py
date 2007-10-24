@@ -26,6 +26,7 @@ setup(name="gavo",
 	entry_points={
 		'console_scripts': [
 			'gavoimp = gavo.parsing.commandline:main',
+			'gavocred = gavo.web.creds:main',
 			'gavomkrd = gavo.parsing.bootstrapfits:main',
 		]
 	},
