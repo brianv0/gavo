@@ -4,6 +4,8 @@ Code dealing with product (i.e., fits file) delivery.
 
 import os
 
+from mx import DateTime
+
 from nevow import inevow
 from nevow import static
 
@@ -11,15 +13,22 @@ from zope.interface import implements
 
 from gavo import config
 from gavo import resourcecache
-from gavo.web import standardcores
-from gavo.web import common
 from gavo.web.common import Error, UnknownURI
+from gavo.web import common
+from gavo.web import creds
+from gavo.web import standardcores
 
 class ItemNotFound(Error):
 	pass
 
 
+def isFree(item):
+	return DateTime.now()>item["embargo"]
+
+
 class Product(standardcores.DbBasedCore):
+	"""is a core delivering single products.
+	"""
 
 	implements(inevow.IResource)
 
@@ -57,7 +66,7 @@ class Product(standardcores.DbBasedCore):
 				" can't happen.")
 		item = result[0]
 		if not isFree(item):
-			return requireAuthentication(ctx, item["owner"], 
+			return creds.runAuthenticated(ctx, item["owner"], 
 				lambda: self._deliverFile(ctx, item))
 		else:
 			return self._deliverFile(ctx, item)

@@ -147,16 +147,17 @@ try:
 		unit = colProps["unit"]
 		if isinstance(colProps["sample"], DateTime.DateTimeType):
 			if unit=="yr" or unit=="a":
-				fun, destType = lambda val: val and val.jdn/365.25-4712, "double"
+				fun, destType = lambda val: val and val.jdn/365.25-4712, ("double", 
+					None)
 			elif unit=="d":
-				fun, destType = lambda val: val and val.jdn, "double"
+				fun, destType = lambda val: val and val.jdn, ("double", None)
 			elif unit=="s":
-				fun, destType = lambda val: val and val.ticks(), "double"
+				fun, destType = lambda val: val and val.ticks(), ("double", None)
 			elif unit=="Y:M:D":
-				fun, destType = lambda val: val and val.date, "text"
+				fun, destType = lambda val: val and val.date, ("char", "*")
 			else:   # Fishy, but not our fault
-				fun, destType = lambda val: val and val.jdn, "double"
-			colProps["dbtype"] = destType
+				fun, destType = lambda val: val and val.jdn, ("double", None)
+			colProps["datatype"], colProps["arraysize"] = destType
 			return fun
 	_registerDefaultMF(_mxDatetimeMapperFactory)
 
@@ -186,18 +187,20 @@ def _datetimeMapperFactory(colProps):
 		unit = colProps["unit"]
 		if "MJD" in colProps.get("ucd", ""):  # like VOX:Image_MJDateObs
 			colProps["unit"] = "d"
-			fun, destType = lambda val: val and dtToMJdn(val), "double"
+			fun, destType = lambda val: val and dtToMJdn(val), ("double", None)
 		elif unit=="yr" or unit=="a":
-			fun, destType = lambda val: val and dtToJdn(val)/365.25-4712, "double"
+			fun, destType = lambda val: val and dtToJdn(val)/365.25-4712, ("double",
+				None)
 		elif unit=="d":
-			fun, destType = lambda val: val and val.jdn, "double"
+			fun, destType = lambda val: val and val.jdn, ("double", None)
 		elif unit=="s":
-			fun, destType = lambda val: val and time.mktime(val.timetuple()), "double"
+			fun, destType = lambda val: val and time.mktime(val.timetuple()), (
+				"double", None)
 		elif unit=="Y:M:D":
-			fun, destType = lambda val: val and val.isoformat(), "text"
+			fun, destType = lambda val: val and val.isoformat(), ("char", "*")
 		else:   # Fishy, but not our fault
-			fun, destType = lambda val: val and dtToJdn(val), "double"
-		colProps["dbtype"] = destType
+			fun, destType = lambda val: val and dtToJdn(val), ("double", "*")
+		colProps["datatype"], colProps["arraysize"] = destType
 		return fun
 _registerDefaultMF(_datetimeMapperFactory)
 
@@ -345,6 +348,12 @@ def writeTable(resources, metaInfo, destination):
 	writer.write(table, destination)
 
 
+def _mapTypes(colDesc):
+	for colProps in colDesc:
+		type, size = typesystems.sqltypeToVOTable(colProps["dbtype"])
+		colProps["datatype"], colProps["arraysize"] = type, size
+
+
 def _getFieldItemsFor(colInd, colProps):
 	"""returns a dictionary with keys for a DataModel.Field constructor.
 
@@ -354,12 +363,8 @@ def _getFieldItemsFor(colInd, colProps):
 		"name": colProps["fieldName"],
 		"ID": "%03d-%s"%(colInd, colProps["fieldName"]),
 	}
-	type, size = typesystems.sqltypeToVOTable(colProps["dbtype"])
-	colProps["datatype"], colProps["arraysize"] = type, size
-	fieldItems["datatype"] = type
-	if size!="1":
-		fieldItems["arraysize"] = size
-	for fieldName in ["ucd", "utype", "unit", "width", "precision"]:
+	for fieldName in ["ucd", "utype", "unit", "width", "precision", "datatype",
+			"arraysize"]:
 		if colProps.get(fieldName)!=None:
 			fieldItems[fieldName] = colProps[fieldName]
 	return fieldItems
@@ -398,8 +403,9 @@ def buildTableColdesc(colDesc, data, metaInfo, tablecoding="binary",
 		description=metaInfo.get("description", ""), coder=votEncoder)
 	if metaInfo.has_key("id"):
 		dataTable.id = id
-	_defineFields(colDesc, dataTable)
+	_mapTypes(colDesc)
 	_mapValues(colDesc, data, mapperFactoryRegistry)
+	_defineFields(colDesc, dataTable)
 	dataTable.data = data
 	return dataTable
 
@@ -439,8 +445,6 @@ def writeVOTableFromTable(dataSet, table, destination,
 	"""returns a DataModel.Table constructed from a table.Table.
 	"""
 	colDesc = [df.getMetaRow() for df in table.getFieldDefs()]
-	for df in colDesc:
-		df["dbtype"] = df["type"]
 	metaInfo = {
 		"id": table.getName(),
 		"name": "%s.%s"%(dataSet.getId(), table.getName()),

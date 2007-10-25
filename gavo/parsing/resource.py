@@ -238,10 +238,10 @@ class ParseContext:
 			raise Error("Cannot convert row %s, field %s probably doesn't match its"
 				" type %s (root cause: %s)"%(str(rowdict), field.get_dest(), 
 					field.get_dbtype(), msg))
-		self._checkRecord(recordDef, record)
+		self._checkRecord(recordDef, rowdict, record)
 		return record
 	
-	def _checkRecord(self, recordDef, record):
+	def _checkRecord(self, recordDef, rowdict, record):
 		"""raises some kind of exception there is something wrong the record.
 		"""
 		recordDef._validate(record)

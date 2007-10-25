@@ -78,9 +78,9 @@ class ErrorPage(rend.Page):
 
 	def renderHTTP_exception(self, ctx, failure):
 		self.failure = failure
-#		print ">>>>>>>>>>>>>>", dir(ctx)
-		print ctx.getErrorMessage()
-		print ctx.getTraceback()
+		print ">>>>>>>>>>>>>>", dir(failure)
+		print failure.getErrorMessage()
+		print failure.getTraceback()
 		inevow.IRequest(ctx).setResponseCode(500)
 		ctx2 = context.PageContext(tag=self, parent=ctx)
 		return self.renderHTTP(ctx2)

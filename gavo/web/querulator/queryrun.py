@@ -93,7 +93,7 @@ def _formatAsVoTable(template, context, stream=True, verbosity=None):
 	"""
 # XXXXXXXX TODO: I guess this belongs into the context.  We'd just need
 # a sane way to store junk like this.
-	def productMapperFactory(srcInstance, colProps):
+	def productMapperFactory(colProps):
 		if colProps.get("displayHint")=="product":
 			def coder(val):
 				if val==None:
@@ -137,6 +137,8 @@ def _formatAsVoTable(template, context, stream=True, verbosity=None):
 		metaTable = sqlsupport.MetaTableHandler(context.getQuerier())
 		fieldInfos = []
 		for info in metaTable.getFieldInfos(template.getDefaultTable()):
+			info["dbtype"] = info["type"]  # hacks for forward compatibility
+			info["displayHint"] = info["displayHint"] or "string"
 			if info["verbLevel"]==None or info["verbLevel"]<=verbosity:
 				fieldInfos.append(info)
 		template.setSelectItems(sqlparse.SelectItems(

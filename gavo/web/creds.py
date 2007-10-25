@@ -7,6 +7,7 @@ with sessions.  twisted.cred is a different issue but probably only complicates
 matters unnecessarily.
 """
 
+from nevow import inevow
 try:
     from twisted.web import http
 except ImportError:
@@ -22,32 +23,48 @@ def checkCredentials(user, password, reqGroup):
 	"""returns true if user and password match the db entry and the user
 	is in the reqGroup.
 	"""
+	# XXX TODO: Maybe keep a hash for login attempts per connection
+	# and shut off after too many attempts?
+	def checkMembership(dbRes):
+		"""receives the reslt of the query for (user, group) tuples.
+		"""
+		return not not dbRes
+
+	def queryGroups(dbRes):
+		"""receives the result of the query for the user password.
+		"""
+		dbPw = dbRes[0][0]
+		if dbPw!=password:
+			return False
+		return conn.runQuery("select groupname from users.groups where"
+			" username=%(user)s and groupname=%(group)s", {
+				"user": user,
+				"group": reqGroup,
+			}).addCallbacks(checkMembership, lambda f:f)
+	
 	conn = resourcecache.getDbConnection()
 	dbPw = conn.runQuery("select password from users.users where"
 		" username=%(user)s", {
-			"user": user})[0][0]
-	if dbPw!=password:
-		return False
-	hasGroup = conn.runQuery("select groupname from users.groups where"
-		" username=%(user)s and groupname=%(group)s", {
-			"user": user,
-			"group": reqGroup,
-		})
-	return not not hasGroup
+			"user": user}).addCallbacks(queryGroups, lambda f: f)
+	return dbPw
 
 
-def doAuthenticate(ctx, reqGroup, fun):
+def runAuthenticated(ctx, reqGroup, fun):
 	"""returns the value of run() if the logged in user is in reqGroup,
 	requests authentication otherwise.
 	"""
 	request = inevow.IRequest(ctx)
-	if not checkCredentials(
-			request.getUser(), request.getPassword(), reqGroup):
-		request.setHeader('WWW-Authenticate', 'Basic realm="Whatever"')
-		request.setResponseCode(http.UNAUTHORIZED)
-		return "Authorization required"
-	return fun()
-
+	def authenticateOrRun(isAuthorizedUser):
+		if isAuthorizedUser:
+			return fun()
+		else:
+			request.setHeader('WWW-Authenticate', 'Basic realm="Gavo"')
+			request.setResponseCode(http.UNAUTHORIZED)
+			return "Authorization required"
+	return checkCredentials(
+		request.getUser(), request.getPassword(), reqGroup).addCallback(
+			authenticateOrRun).addErrback(
+			lambda f: f)
 
 # command line interface to manage users and groups
 # XXX TODO: This would be a nice playground for single-row manipulators

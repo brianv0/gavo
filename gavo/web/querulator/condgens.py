@@ -123,7 +123,7 @@ class OperatorCondGen(CondGen):
 
 	def _getVal(self, context):
 		if self.takesSets:
-			return tuple(context.getlist(self.name))
+			return set(context.getlist(self.name))
 		else:
 			return context.getfirst(self.name)
 

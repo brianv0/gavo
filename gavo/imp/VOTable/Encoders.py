@@ -158,7 +158,7 @@ class StreamEncoder(GenericEncoder):
         
     def _makeEncoderForField(self, type, length):
         typeCode = self.typedefs[type][0]
-        if length=="1" or length==None:
+        if length=="1" or length==1 or length==None:
             # Gruesome workaround for struct bug; side effect: python<2.5
             # can't pack NULL floats in arrays (who cares?)
             if sys.hexversion<=0x20404f0:
