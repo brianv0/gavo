@@ -6,7 +6,10 @@ within a twisted event loop.
 import sys
 import os
 
-from twisted.internet import protocol, reactor, defer
+from twisted.internet import protocol
+from twisted.internet import reactor 
+from twisted.internet import defer
+from twisted.python import threadable
 from twisted.python.failure import Failure
 
 import gavo
@@ -15,6 +18,59 @@ from gavo import config
 
 class RunnerError(gavo.Error):
 	pass
+
+
+class StreamingRunner(protocol.ProcessProtocol):
+	"""is a connector of a program writing to stdout and the consumer interface
+	of a nevow request.
+	"""
+	def __init__(self, prog, args, request):
+		self.buffer = []
+		self.request = request
+		self.isPaused = False
+		self.allDataIsIn = False
+		reactor.spawnProcess(self, prog,
+			args=[prog]+args, path=os.path.dirname(prog))
+		request.registerProducer(self, True)
+
+	def outReceived(self, data):
+		if self.isPaused:
+			self.buffer.append(data)
+			return
+		self.request.write(data)
+
+	def errReceived(self, data):
+		sys.stderr.write(data)
+
+	def processEnded(self, status):
+		if status.value.exitCode!=0:
+			# XXX figure out how to make request emit an error
+			pass
+		else:
+			self.allDataIsIn = True
+			self.resumeProducing()
+
+	def resumeProducing(self):
+		self.isPaused = False
+		if self.buffer:
+			self.request.write("".join(self.buffer))
+			self.buffer = []
+		if self.allDataIsIn:
+			self.request.unregisterProducer()
+			self.request.finish()
+			self.request = None
+
+	def pauseProducing(self):
+		self.isPaused = False
+
+	def stopProducing(self):
+# XXX TODO: Kill child if necessary
+		self.buffer = []
+		self.request = None
+
+	synchronized = ['resumeProducing', 'stopProducing']
+
+threadable.synchronize(StreamingRunner)
 
 
 class StdioProtocol(protocol.ProcessProtocol):
@@ -43,18 +99,40 @@ class StdioProtocol(protocol.ProcessProtocol):
 			self.result.callback("".join(self.dataReceived))
 	
 
+def getBinaryName(baseName):
+	"""returns the name of a binary it thinks is appropriate for the platform.
+
+	To do this, it asks config for the platform name, sees if there's a binary
+	<bin>-<platname> if platform is nonempty.  If it exists, it returns that name,
+	in all other cases, it returns baseName unchanged.
+	"""
+	platform = config.get("platform")
+	if platform:
+		platName = baseName+"-"+platform
+		if os.path.exists(platName):
+			return platName
+	return baseName
+
+
 def run(coreDescriptor, inputData):
 	"""returns a table generated from running the computed data descriptor
 	coreDescriptor on the DataSet inputData.
 	"""
-	result = defer.Deferred()
 	inputString = _makeInputs(coreDescriptor, inputData)
 	args = _makeArguments(coreDescriptor, inputData)
+	computerPath = getBinaryName(os.path.join(config.get("rootDir"),
+		coreDescriptor.get_computer()))
+	return runWithData(computerPath, inputString, args)
+
+
+def runWithData(prog, inputString, args):
+	"""returns a deferred firing the complete result of running prog with
+	args and inputString.
+	"""
+	result = defer.Deferred()
 	fetchOutputProtocol = StdioProtocol(inputString, result)
-	computerPath = os.path.join(config.get("rootDir"),
-		coreDescriptor.get_computer())
-	reactor.spawnProcess(fetchOutputProtocol, computerPath,
-		args=[computerPath]+args, path=os.path.dirname(computerPath))
+	reactor.spawnProcess(fetchOutputProtocol, prog,
+		args=[prog]+args, path=os.path.dirname(prog))
 	return result
 
 

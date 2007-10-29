@@ -13,7 +13,6 @@ class Reloader(rend.Page):
 	def locateChild(self, ctx, segments):
 		resourcecache.clearCaches()
 		reload(dispatcher)
-		reload(htmltable)
 		reload(product)
 		page = dispatcher.ArchiveService()
 		return page.locateChild(ctx, segments)

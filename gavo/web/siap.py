@@ -78,11 +78,6 @@ def getWCSTrafo(wcsFields):
 		raise Error("Can only handle deg units")
 
 	def ptte(val):
-		"""parses an element of the transformation matrix.
-
-		val has the unit degrees/pixel, we return radians/pixel for
-		our unit sphere scheme.
-		"""
 		return float(val)
 
 	alpha, delta = float(wcsFields["CRVAL1"]), float(wcsFields["CRVAL2"])
@@ -91,11 +86,34 @@ def getWCSTrafo(wcsFields):
 	cda, cdd = ptte(wcsFields["CD2_1"]), ptte(wcsFields["CD2_2"]) 
 
 	def pixelToSphere(x, y):
-		"""returns unit sphere coordinates for pixel coordinates x,y.
-		"""
 		return (alpha+(x-refpixX)*caa+(y-refpixY)*cad,
 			clampDelta(delta+(x-refpixX)*cda+(y-refpixY)*cdd))
 	return pixelToSphere
+
+
+def getInvWCSTrafo(wcsFields):
+	"""returns a callable transforming physical to pixel coordinates.
+
+	XXX TODO: see getWCSTrafo.
+	"""
+	if wcsFields["CUNIT1"].strip()!="deg" or wcsFields["CUNIT2"].strip()!="deg":
+		raise Error("Can only handle deg units")
+
+	def ptte(val):
+		"""parses an element of the transformation matrix.
+		"""
+		return float(val)
+
+	alphaC, deltaC = float(wcsFields["CRVAL1"]), float(wcsFields["CRVAL2"])
+	refpixX, refpixY = float(wcsFields["CRPIX1"]), float(wcsFields["CRPIX2"])
+	caa, cad = ptte(wcsFields["CD1_1"]), ptte(wcsFields["CD1_2"]) 
+	cda, cdd = ptte(wcsFields["CD2_1"]), ptte(wcsFields["CD2_2"]) 
+	norm = 1/float(caa*cdd-cad*cda)
+
+	def sphereToPixel(alpha, delta):
+		ap, dp = (alpha-alphaC), (delta-deltaC)
+		return (ap*cdd-dp*cad)*norm+refpixX, (-cda*ap+caa*dp)*norm+refpixY
+	return sphereToPixel
 
 
 def getCornerPointsFromWCSFields(wcsFields):
@@ -207,7 +225,17 @@ def getBboxQuery(parameters, prefix="sia"):
 		sizes = sizes*2
 	bbox = getBboxFromSiapPars((ra, dec), sizes)
 	intersect = parameters.get("INTERSECT", "OVERLAPS")
-	return getBboxQueryFromBbox(intersect, bbox, (ra, dec), prefix)
+	query, pars = getBboxQueryFromBbox(intersect, bbox, (ra, dec), prefix)
+	# the following are for the benefit of cutout queries.
+	pars["_ra"], pars["_dec"] = ra, dec
+	pars["_sra"], pars["_sdec"] = sizes
+	return query, pars
+
+
+def getPixelCoords(wcsHeader, center, size):
+	"""returns x, y, w, h in pixels for a square of size around center in
+	wcsHeader.
+	"""
 
 
 def _test():

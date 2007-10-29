@@ -201,9 +201,6 @@ class ParseContext:
 		in place), checks constraints that may be defined and finally
 		ships out the record.
 		"""
-# XXX TODO retrofit the max rows mechanism (keep it in grammar, I guess)
-#		if self.maxRows and self.rowsProcessed>=self.maxRows:
-#			raise gavo.StopOperation("Limit of %d rows reached"%self.maxRows)
 		for targetTable, recordDef in self.rowTargets:
 			targetTable.addData(self._buildRecord(recordDef, rowdict))
 		self.rowsProcessed += 1
@@ -354,6 +351,9 @@ class DataSet(meta.MetaMixin):
 
 	def getTables(self):
 		return self.tables
+
+	def getPrimaryTable(self):
+		return self.tables[0]
 
 	def getDescriptor(self):
 		return self.dD

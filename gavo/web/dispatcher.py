@@ -105,6 +105,8 @@ class ArchiveService(rend.Page):
 				T.a(href="apfs/res/apfs_new/catquery/form")["Here"],
 				" or ",
 				T.a(href="maidanak/res/positions/siap/form")["Here"],
+				" or ",
+				T.a(href="lswscans/res/positions/siap/form")["Here"],
 			]
 		]
 	])

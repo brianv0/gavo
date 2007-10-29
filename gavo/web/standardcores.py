@@ -10,6 +10,7 @@ responsibility of the wrapper to produce standards-compliant output.
 import weakref
 import cStringIO
 
+from gavo import config
 from gavo import coords
 from gavo import datadef
 from gavo import resourcecache
@@ -30,9 +31,11 @@ class ComputedCore(object):
 	def run(self, inputTable, queryMeta):
 		"""starts the computing process if this is a computed data set.
 		"""
-		runner.run(dd, inputTable)
+		return runner.run(dd, inputTable).addCallback(
+			self._parseOutput, queryMeta).addErrback(
+			lambda failure: failure)
 	
-	def parseOutput(self, rawOutput, queryMeta):
+	def _parseOutput(self, rawOutput, queryMeta):
 		"""parses the output of a computing process and returns a table
 		if this is a computed dataSet.
 		"""
@@ -45,55 +48,47 @@ class DbBasedCore(object):
 
 	It provides for querying the database and returning a table
 	from it.
-
-	To use the methods, your deriving class currently needs to provide a
-	tableName attribute (since an RD can provide more than one table).  That's a
-	bad wart that needs to be fixed.
-
-	Note that the methods provided here (run, parseOutput) are *not*
-	immediately suitable for cooperation with Service since service
-	doesn't provide tableDef or query.  You'll have to override this
-	method in derived classes and fill in tableDef.
 	"""
 	def _getFields(self, tableDef, queryMeta):
 		"""returns a sequence of field definitions in tableDef suitable for
 		queryMeta.
 		"""
-		def makeCopyingField(field):
-			newField = datadef.DataField()
-			newField.updateFrom(field)
-			newField.set_source(field.get_dest())
-			return newField
 		if queryMeta["format"]=="HTML":
-			return [makeCopyingField(f) for f in tableDef.get_items()
+			return [datadef.makeCopyingField(f) for f in tableDef.get_items()
 				if f.get_displayHint() and f.get_displayHint()!="suppress"]
 		elif queryMeta["format"]=="internal":
 			return [makeCopyingField(f) for f in tableDef.get_items()]
 		else:  # Some sort of VOTable
-			return [makeCopyingField(f) for f in tableDef.get_items()
+			return [datadef.makeCopyingField(f) for f in tableDef.get_items()
 				if f.get_verbLevel()<=queryMeta["verbosity"] and 
 					f.get_displayHint!="suppress"]
 
-	def run(self, condition, pars, queryMeta):
+
+	def runDbQuery(self, condition, pars, recordDef):
+		"""runs a db query with condition and pars to fill a table
+		having the columns specified in recordDef.
+
+		It returns a deferred firing when the result is in.
+		"""
 		schema = self.rd.get_schema()
 		if schema:
-			tableName = "%s.%s"%(schema, self.tableName)
+			tableName = "%s.%s"%(schema, recordDef.get_table())
 		else:
-			tableName = self.tableName
-		tableDef = self.rd.getTableDefByName(self.tableName)
-		fields = ", ".join([f.get_dest() 
-			for f in self._getFields(tableDef, queryMeta)])
+			tableName = recordDef.get_table()
 		return resourcecache.getDbConnection().runQuery(
 			"SELECT %(fields)s from %(table)s WHERE %(condition)s"%{
-				"fields": fields,
+				"fields": ", ".join([f.get_dest() for f in recordDef.get_items()]),
 				"table": tableName,
 				"condition": condition}, pars)
 
-	def parseOutput(self, dbResponse, tableDef, queryMeta):
-		"""builds an InternalDataSet out of the RecordDef tableDef
-		and the row set dbResponse.
+	def run(self, inputTable, queryMeta):
+		"""returns an InternalDataSet containing the result of the
+		query.
 
+		It requires a method _getQuery returning a RecordDef defining
+		the result, an SQL WHERE-clause and its parameters.
 		"""
+		tableDef, fragment, pars = self._getQuery(inputTable, queryMeta)
 		outputDef = resource.RecordDef()
 		outputDef.updateFrom(tableDef)
 		qFields = self._getFields(tableDef, queryMeta)
@@ -103,7 +98,19 @@ class DbBasedCore(object):
 			"Semantics": resource.Semantics(initvals={
 				"recordDefs": [outputDef]}),
 			"id": "<generated>"})
-		return resource.InternalDataSet(dd, table.Table, dbResponse)
+		return self.runDbQuery(fragment, pars, 
+				dd.getPrimaryRecordDef()).addCallback(
+			self._parseOutput, dd, pars, queryMeta).addErrback(
+			lambda failure: failure)
+
+	def _parseOutput(self, dbResponse, outputDef, sqlPars, queryMeta):
+		"""builds an InternalDataSet out of the DataDef outputDef
+		and the row sequence dbResponse.
+
+		You can retrieve the values used in the SQL query from the dictionary
+		sqlPars.
+		"""
+		return resource.InternalDataSet(outputDef, table.Table, dbResponse)
 
 
 class SiapCore(DbBasedCore):
@@ -113,8 +120,8 @@ class SiapCore(DbBasedCore):
 	to positions.
 	"""
 	def __init__(self, rd, tableName="images"):
-		self.tableName = tableName
 		self.rd = weakref.proxy(rd)
+		self.table = self.rd.getTableDefByName(tableName)
 
 	def getInputFields(self):
 		return [
@@ -135,20 +142,34 @@ class SiapCore(DbBasedCore):
 				source="INTERSECT"),
 		]
 
-	def run(self, inputTable, queryMeta):
-		fragment, pars = siap.getBboxQuery(inputTable.getDocRec())
-		return super(SiapCore, self).run(fragment, pars, queryMeta)
+	def _getQuery(self, inputTable, queryMeta):
+		return (self.table,)+siap.getBboxQuery(inputTable.getDocRec())
 
-	def parseOutput(self, dbResponse, queryMeta):
-		result = super(SiapCore, self).parseOutput(dbResponse, 
-			self.rd.getTableDefByName(self.tableName), queryMeta)
+	def _parseOutput(self, dbResponse, outputDef, sqlPars, queryMeta):
+		result = super(SiapCore, self)._parseOutput(dbResponse, outputDef,
+			sqlPars, queryMeta)
 		result.addMeta(name="_type", content="result")
 		result.addMeta(name="_query_status", content="OK")
 		return result
 
 
+class SiapCutoutCore(SiapCore):
+	"""is a core doing siap and handing through query parameters to
+	the product delivery asking it to only retrieve certain portions
+	of images.
+	"""
+	def _parseOutput(self, dbResponse, outputDef, sqlPars, queryMeta):
+		res = super(SiapCutoutCore, self)._parseOutput(
+			dbResponse, outputDef, sqlPars, queryMeta)
+		for row in res.getPrimaryTable():
+			row["datapath"] = row["datapath"]+"&ra=%s&dec=%s&sra=%s&sdec=%s"%(
+				sqlPars["_ra"], sqlPars["_dec"], sqlPars["_sra"], sqlPars["_sdec"])
+		return res
+
+
 _coresRegistry = {
 	"siap": SiapCore,
+	"siapcutout": SiapCutoutCore,
 }
 
 

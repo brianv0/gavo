@@ -3,6 +3,7 @@ A renderer for DataSets to HTML/stan
 """
 
 import math
+import re
 import urlparse
 import urllib
 import os
@@ -69,7 +70,7 @@ class FormatterFactory:
 			else:
 				return T.a(href=urlparse.urljoin(config.get("web", "nevowRoot"),
 						"./getproduct?key=%s&siap=true"%urllib.quote(val)),
-					class_="productlink")[os.path.basename(val)]
+					class_="productlink")[re.sub("&.*", "", os.path.basename(val))]
 		return format
 
 	def _make_filesize_formatter(self):

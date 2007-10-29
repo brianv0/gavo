@@ -26,6 +26,7 @@ logDir: logs
 tempDir: tmp
 logLevel: info
 operator: gavo@ari.uni-heidelberg.de
+platform:
 
 [parsing]
 xmlFragmentPath: %(inputsDir)s/__common__

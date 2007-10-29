@@ -755,10 +755,11 @@ class BboxSiapFieldsComputer(Macro):
 	For now, we only implement a tiny subset of WCS.  I guess we should
 	at some point wrap wcslib or something similar.
 
-	>>> m = BboxCalculator()
+	>>> m = BboxSiapFieldsComputer()
 	>>> r = {"NAXIS1": "100", "NAXIS2": "150", "CRVAL1": "138", "CRVAL2": 53,
 	...   "CRPIX1": "70", "CRPIX2": "50", "CUNIT1": "deg", "CUNIT2": "deg",
-	...   "CD1_1": 0.0002, "CD1_2": 3e-8, "CD2_1": 3e-8, "CD2_2": "-0.0002"}
+	...   "CD1_1": 0.0002, "CD1_2": 3e-8, "CD2_1": 3e-8, "CD2_2": "-0.0002",
+	...   "NAXIS": 2}
 	>>> m(None, r); r["primaryBbox"], r["secondaryBbox"]
 	(Box(((138.006,53.01), (137.986,52.98))), None)
 	>>> r["CRVAL1"] = 0
@@ -773,7 +774,7 @@ class BboxSiapFieldsComputer(Macro):
 
 	def _compute(self, record):
 		def seqAbs(seq):
-			return math.sqrt(sum(v**2 for v in seq))
+			return math.sqrt(sum(float(v)**2 for v in seq))
 
 		record["primaryBbox"], record["secondaryBbox"] = siap.splitCrossingBox(
 			siap.getBboxFromWCSFields(record))

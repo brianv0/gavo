@@ -107,6 +107,20 @@ class DataField(record.Record):
 		return row
 
 
+def makeCopyingField(field):
+	"""returns a copy of field that has field.dest as field.source as well.
+
+	Also, it sets all literalForms to "do not touch".
+
+	That kind of thing is needed with rowsetGrammars.
+	"""
+	newField = DataField()
+	newField.updateFrom(field)
+	newField.set_source(field.get_dest())
+	newField.set_literalForm("do not touch")
+	return newField
+
+
 # This is a schema for the field description table used by
 # sqlsupport.MetaTableHandler.  WARNING: If you change anything here, you'll
 # probably have to change DataField, too (plus, of course, the schema of
@@ -213,6 +227,9 @@ class DataTransformer(record.Record, meta.MetaMixin):
 		It raises a KeyError if the table name is not known.
 		"""
 		return self.get_Semantics().getRecordDefByName(name)
+
+	def getPrimaryRecordDef(self):
+		return self.get_Semantics().get_recordDefs()[0]
 
 	def getInputFields(self):
 		"""returns a sequence of dataFields if this data descriptor takes

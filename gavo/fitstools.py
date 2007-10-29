@@ -44,7 +44,7 @@ def readPrimaryHeaderQuick(f):
 				break
 		else:
 			break
-		hdu._raw += block
+	hdu._raw += block
 
 	_size, hdu.name = hdu._getsize(hdu._raw)
 

@@ -20,8 +20,43 @@ def raCorr(dec):
 	return math.cos(utils.degToRad(dec))
 
 
+class TestWCSTrafos(unittest.TestCase):
+	"""Tests for transformations between WCS and pixel coordinates.
+	"""
+	wcs = {
+		"CRVAL1": 0,   "CRVAL2": 0,
+		"CRPIX1": 50,  "CRPIX2": 50,
+		"CD1_1": 0.01, "CD1_2": 0,
+		"CD2_1": 0,    "CD2_2": 0.01,
+		"NAXIS1": 100, "NAXIS2": 100,
+		"CUNIT1": "deg", "CUNIT2": "deg",
+		"NAXIS": 2,
+	}
+
+	def _testInvertibilityReal(self):
+		for crvals in [(0,0), (40,60), (125,-60), (238,70)]:
+			self.wcs["CRVAL1"], self.wcs["CRVAL2"] = crvals
+			for crpixs in [(0,0), (50,50), (100,100), (150,0)]:
+				self.wcs["CRPIX1"], self.wcs["CRPIX2"] = crpixs
+				for pixpos in [(0,0), (50, 50), (0, 100), (100, 0)]:
+					fwTrafo = siap.getWCSTrafo(self.wcs)
+					bwTrafo = siap.getInvWCSTrafo(self.wcs)
+					x, y = bwTrafo(*fwTrafo(*pixpos))
+					self.assertAlmostEqual(x, pixpos[0])
+					self.assertAlmostEqual(y, pixpos[1])
+
+	def testInvertibility(self):
+		"""tests if transformations from/to WCS are invertible.
+		"""
+		self._testInvertibilityReal()
+		self.wcs["CD2_1"] = 0.001
+		self._testInvertibilityReal()
+		self.wcs["CD1_2"] = -0.001
+		self._testInvertibilityReal()
+
+
 class TestWCSBbox(unittest.TestCase):
-	"""Tests conversion from WCS coordinates to bboxes and box relations.
+	"""Tests for conversion from WCS coordinates to bboxes and box relations.
 
 	These tests do cos(delta) manipulations on alpha widths despite
 	SIAP's prescription that no cos(delta) is done to make test cases
@@ -41,6 +76,7 @@ class TestWCSBbox(unittest.TestCase):
 			"CD2_1": 0,    "CD2_2": 0.01,
 			"NAXIS1": 100, "NAXIS2": 100,
 			"CUNIT1": "deg", "CUNIT2": "deg",
+			"NAXIS": 2,
 		}
 		def encloses(bbox1, bbox2):
 			"""returns true if bbox1 encloses bbox2.
@@ -86,6 +122,7 @@ class TestWCSBbox(unittest.TestCase):
 			"CD2_1": 0,    "CD2_2": 0.01,
 			"NAXIS1": 100, "NAXIS2": 100,
 			"CUNIT1": "deg", "CUNIT2": "deg",
+			"NAXIS": 2,
 		}
 
 		def overlaps(bbox1, bbox2):
@@ -127,7 +164,7 @@ class TestCoordinateQueries(unittest.TestCase):
 		"""fills a database table with test data.
 		"""
 		from gavo.parsing import macros
-		makeBbox = macros.BboxCalculator()
+		makeBbox = macros.getMacro("computeBboxSiapFields")()
 		def computeWCSKeys(pos, size):
 			imgPix = (1000., 1000.)
 			return {
@@ -143,6 +180,20 @@ class TestCoordinateQueries(unittest.TestCase):
 				"CD2_1": 0,
 				"NAXIS1": imgPix[0],
 				"NAXIS2": imgPix[1],
+				"NAXIS": 2,
+				"imageTitle": None,
+				"instId": None,
+				"dateObs": None,
+				"refFrame": None,
+				"wcs_equinox": None,
+				"bandpassId": None,
+				"bandpassUnit": None,
+				"bandpassRefval": None,
+				"bandpassHi": None,
+				"bandpassLo": None,
+				"pixflags": None,
+				"accref": None,
+				"accsize": None,
 			}
 		config.setDbProfile("test")
 		tw = sqlsupport.TableWriter("simplewcs", 

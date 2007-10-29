@@ -34,13 +34,15 @@ from gavo.parsing import resource
 from gavo.web import common
 
 
-class DataSetAdapter(object):
-	"""is an adapter to make DataSets work as nevow.IContainers
+class CoreResult(object):
+	"""is a nevow.IContainer that has the result and also makes the input
+	dataset accessible.
 	"""
 	implements(inevow.IContainer)
 
-	def __init__(self, original):
-		self.original = original
+	def __init__(self, resultTable, inputTable):
+		self.original = resultTable
+		self.inputTable = inputTable
 		for n in dir(self.original):
 			if not n.startswith("_"):
 				setattr(self, n, getattr(self.original, n))
@@ -54,15 +56,10 @@ class DataSetAdapter(object):
 	def child(self, ctx, name):
 		if name=="table":
 			return self.original.getTables()[0]
+		elif name=="input":
+			return self.inputTable
 		else:
 			return getattr(self, "data_"+name)(ctx)
-
-components.registerAdapter(DataSetAdapter, resource.InternalDataSet,
-	inevow.IContainer)
-
-
-
-
 
 
 class Service(record.Record, meta.MetaMixin):
@@ -137,29 +134,28 @@ class Service(record.Record, meta.MetaMixin):
 	def _runCore(self, inputTable, queryMeta):
 		return self.get_core().run(inputTable, queryMeta)
 
-	def _parseResult(self, input, queryMeta):
-		"""sends the result of the core process through the core parser and
-		the output filter, returning a result table.
-
-		input must match core's grammar, i.e. needs to be a string for 
-		text-processing grammars.
+	def _postProcess(self, coreOutput, queryMeta):
+		"""sends the result of the core through the output filter.
 		"""
-		result = self.get_core().parseOutput(input, queryMeta)
 		outputFilter = queryMeta["outputFilter"]
 		if outputFilter and self.get_output(outputFilter):
 			result = resource.InternalDataSet(self.get_output(outputFilter), 
 				result.getTables()[0].getInheritingTable, result)
-		return DataSetAdapter(result)
+		else:
+			result = coreOutput
+		return result
 
-	def getResult(self, rawInput, outputFilter=None):
-		"""returns a Deferred for the raw output of core.
+	def run(self, rawInput, outputFilter=None):
+		"""runs the input filter, the core, and the output filter and returns a
+		deferred firing an adapted result table.
+
+		The adapted result table has an additional method getInput returning the
+		processed input data.
 		"""
 		queryMeta = common.QueryMeta(rawInput)
 		inputData = self._getInputData(rawInput)
-		retVal = defer.Deferred()
-		data = self._runCore(inputData, queryMeta)
-		data.addCallback(lambda res: 
-			retVal.callback(self._parseResult(res, queryMeta)))
-		data.addErrback(lambda res: retVal.errback(res))
-		return retVal
-
+		return self._runCore(inputData, queryMeta).addCallback(
+			self._postProcess, queryMeta).addErrback(
+			lambda failure: failure).addCallback(
+			CoreResult, inputData).addErrback(
+			lambda failure: failure)

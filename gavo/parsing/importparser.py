@@ -76,7 +76,7 @@ class DataDescriptor(datadef.DataTransformer):
 			for path, dirs, files in os.walk(self.rD.get_resdir()):
 				for fName in glob.glob(os.path.join(path, self.get_sourcePat())):
 					yield fName
-	
+
 
 class ResourceDescriptor(record.Record, meta.MetaMixin):
 	"""is a container for all information necessary to import a resource into
@@ -138,7 +138,6 @@ class ResourceDescriptor(record.Record, meta.MetaMixin):
 			for tableDef in ds.get_Semantics().get_recordDefs():
 				if tableDef.get_table()==name:
 					return tableDef
-
 
 def makeAttDict(attrs):
 	"""returns a dictionary suitable as keyword arguments from a sax attribute

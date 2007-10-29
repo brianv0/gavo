@@ -47,11 +47,11 @@ class BaseResponse(ResourceBasedRenderer):
 	"""
 	def __init__(self, serviceParts, data):
 		super(BaseResponse, self).__init__(serviceParts)
-		self.data = data
+		self.queryResult = self.service.run(data)
 
 	def data_query(self, ctx, data):
 # XXX maybe stick form input into data special?
-		return self.service.getResult(self.data)
+		return self.queryResult
 
 
 class HtmlResponse(BaseResponse):

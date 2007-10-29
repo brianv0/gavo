@@ -251,6 +251,8 @@ class BboxSiap(Interface):
 
 	<Macro name="computeBboxSiapFields"/>
 	"""
+	# XXX TODO: Seperate the stuff necessary for searching from all the 
+	# XXX SIAP cruft.
 	@staticmethod
 	def getName():
 		return "bboxSiap"
@@ -262,6 +264,12 @@ class BboxSiap(Interface):
 		# everything required in the standard must have verbLevel<=20,
 		# because by default, you'll get verb=2
 		return [
+			{"dest": "centerAlpha", "source": "centerAlpha", "ucd": "PO_EQ_RA_MAIN",
+				"dbtype": "double precision", "unit": "deg", "tablehead": "alpha",
+				"displayHint": "hourangle", "verbLevel": 0},
+			{"dest": "centerDelta", "source": "centerDelta", "ucd": "PO_EQ_DEC_MAIN",
+				"dbtype": "double precision", "unit": "deg", "tablehead": "delta",
+				"displayHint": "sexagesimal", "verbLevel": 0},
 			{"dest": "primaryBbox", "source": "primaryBbox", 
 				"dbtype": "box",
 				"displayHint": "suppress", "literalForm": "do not touch"},
@@ -269,27 +277,18 @@ class BboxSiap(Interface):
 				"dbtype": "box",
 				"displayHint": "suppress", "literalForm": "do not touch"},
 			{"dest": "imageTitle", "source": "imageTitle", "ucd": "VOX:Image_Title",
-				"dbtype": "text", "tablehead": "Title", "optional": "False",
-				"verbLevel": 0},
+				"dbtype": "text", "tablehead": "Title", "verbLevel": 0},
 			{"dest": "instId", "source": "instId", "ucd": "INST_ID",
 				"dbtype": "text", "tablehead": "Instrument", "verbLevel":15},
 			{"dest": "dateObs", "source": "dateObs", "ucd": "VOX:Image_MJDateObs",
 				"dbtype": "timestamp", "unit": "d", "tablehead": "Obs. date",
 				"displayHint": "mjd", "verbLevel": 0},
-			{"dest": "centerAlpha", "source": "centerAlpha", "ucd": "PO_EQ_RA_MAIN",
-				"dbtype": "double precision", "unit": "deg", "tablehead": "alpha",
-				"displayHint": "hourangle", "optional": "False", "verbLevel": 0},
-			{"dest": "centerDelta", "source": "centerDelta", "ucd": "PO_EQ_DEC_MAIN",
-				"dbtype": "double precision", "unit": "deg", "tablehead": "delta",
-				"displayHint": "sexagesimal", "optional": "False", "verbLevel": 0},
 			{"dest": "nAxes", "source": "NAXIS", "ucd": "VOX:Image_Naxes", 
-				"dbtype": "integer", "displayHint": "suppress", "optional": "False",
-				"verbLevel": 20},
+				"dbtype": "integer", "displayHint": "suppress", "verbLevel": 20},
 			{"dest": "pixelSize", "source": "pixelSize", "ucd": "VOX:Image_Naxis",
-				"dbtype": "integer[]", "optional": "False",
-				"verbLevel": 15},
+				"dbtype": "integer[]", "verbLevel": 15},
 			{"dest": "pixelScale", "source": "pixelSize", "ucd": "VOX:Image_Scale",
-				"dbtype": "real[]", "optional": "False", "verbLevel": 12},
+				"dbtype": "real[]", "verbLevel": 12},
 			{"dest": "imageFormat", "source": "imageFormat", "dbtype": "text",
 				"ucd": "VOX:Image_Format", "verbLevel": 20},
 			{"dest": "refFrame", "source": "RADESYS", "dbtype": "text",
