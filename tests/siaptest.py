@@ -274,7 +274,7 @@ class TestCoordinateQueries(unittest.TestCase):
 		"""drops the test table.
 		"""
 		querier = sqlsupport.SimpleQuerier()
-	#	querier.query("DROP TABLE simplewcs CASCADE")
+		querier.query("DROP TABLE simplewcs CASCADE")
 		querier.commit()
 
 

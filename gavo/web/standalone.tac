@@ -6,6 +6,7 @@ from gavo import resourcecache
 from gavo.web import dispatcher
 from gavo.web import htmltable
 from gavo.web import product
+from gavo.web import resourcebased
 
 parsing.verbose = True
 
@@ -13,7 +14,7 @@ class Reloader(rend.Page):
 	def locateChild(self, ctx, segments):
 		resourcecache.clearCaches()
 		reload(dispatcher)
-		reload(product)
+		reload(htmltable)
 		page = dispatcher.ArchiveService()
 		return page.locateChild(ctx, segments)
 

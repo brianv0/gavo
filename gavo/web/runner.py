@@ -14,6 +14,8 @@ from twisted.python.failure import Failure
 
 import gavo
 from gavo import config
+from gavo import table
+from gavo.parsing import resource
 
 
 class RunnerError(gavo.Error):
@@ -114,14 +116,14 @@ def getBinaryName(baseName):
 	return baseName
 
 
-def run(coreDescriptor, inputData):
+def run(coreDataDef, inputData):
 	"""returns a table generated from running the computed data descriptor
-	coreDescriptor on the DataSet inputData.
+	coreDataDef on the DataSet inputData.
 	"""
-	inputString = _makeInputs(coreDescriptor, inputData)
-	args = _makeArguments(coreDescriptor, inputData)
+	inputString = _makeInputs(coreDataDef, inputData)
+	args = _makeArguments(coreDataDef, inputData)
 	computerPath = getBinaryName(os.path.join(config.get("rootDir"),
-		coreDescriptor.get_computer()))
+		coreDataDef.get_computer()))
 	return runWithData(computerPath, inputString, args)
 
 
@@ -136,31 +138,13 @@ def runWithData(prog, inputString, args):
 	return result
 
 
-def _makeArguments(coreDescriptor, inputData):
-	"""returns a list of command line arguments for coreDescriptor taken
-	from (the docrec of) inputData
-	"""
-	clItems = coreDescriptor.getRecordDefByName("commandline").get_items()
-	docRec = inputData.getDocRec()
-# TODO: get and @-expander here?
-# TODO: Validation!
-	args = [(int(item.get_dest()), item.getValueIn(docRec)) 
-		for item in clItems]
-	args.sort()
-	return [str(val) for ct, val in args if val!=None]
+def _makeArguments(coreDataDef, inputData):
+	return [str(v[1]) for v in sorted(inputData.getDocRec().iteritems())]
 
-
-def _makeInputs(coreDescriptor, inputData):
-	"""returns a string suitable as input to coreDescriptor's executable
-	from inputData's first table's rows.
-	"""
-	res = []
-	fields = coreDescriptor.getRecordDefByName("inputline").get_items()[:]
-	fields.sort(lambda a, b: cmp(int(a.get_dest()), int(b.get_dest())))
-# TODO: get and @-expander here?
-	for row in inputData.getTables()[0]:
-		res.append(" ".join([repr(field.getValueIn(row)) for field in fields]))
-	return "\n".join(res)
+def _makeInputs(coreDataDef, inputData):
+	return "\n".join([
+			" ".join([repr(v[1]) for v in sorted(row.iteritems())])
+		for row in inputData.getPrimaryTable().rows])
 
 
 if __name__=="__main__":

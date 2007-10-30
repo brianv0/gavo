@@ -233,16 +233,19 @@ class Sesame:
 			self.cache.addItem(ident, newOb, save=self.saveNew)
 			return newOb
 	
+	def getPositionFor(self, identifier):
+		data = self.query(identifier)
+		if not data:
+			raise KeyError(identifier)
+		return float(data["RA"]), float(data["dec"])
+	
 
 def getSimbadPositions(identifier):
 	"""returns ra and dec from Simbad for identifier.
 
 	It raises a KeyError if Simbad doesn't know identifier.
 	"""
-	data = resourcecache.getSesame("simbad").query(identifier)
-	if not data:
-		raise KeyError(identifier)
-	return float(data["RA"]), float(data["dec"])
+	return resourcecache.getSesame("simbad").getPositionFor(identifier)
 
 
 resourcecache.makeCache("getSesame", lambda key: Sesame(key, saveNew=True))

@@ -179,7 +179,7 @@ class DataTransformer(record.Record, meta.MetaMixin):
 	def __repr__(self):
 		return "<DataDescriptor id=%s>"%self.get_id()
 
-	def _validate(self, record):
+	def validate(self, record):
 		"""checks that the docRec record satisfies the constraints given
 		by self.items.
 

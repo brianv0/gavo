@@ -3,7 +3,7 @@ Classes and functions to build "services".
 
 Roughly, a service consists of 
 
- * a nonempty sequence of input adapters
+ * an optional input adapter
  * a Data instance (the "core")
  * a (possibly empty) registry of output filters
 
@@ -40,18 +40,24 @@ class CoreResult(object):
 	"""
 	implements(inevow.IContainer)
 
-	def __init__(self, resultTable, inputTable):
+	def __init__(self, resultTable, inputTable, queryPars):
 		self.original = resultTable
+		self.queryPars = queryPars
 		self.inputTable = inputTable
 		for n in dir(self.original):
 			if not n.startswith("_"):
 				setattr(self, n, getattr(self.original, n))
 
 	def data_resultmeta(self, ctx):
+		print ">>>>>>>>>>>> res queried"
 		result = self.original.getTables()[0]
 		return {
 			"itemsMatched": len(result.rows),
 		}
+
+	def data_querypars(self, ctx):
+		print ">>>>>>>>>>", self.queryPars.items()
+		return self.queryPars.items()
 
 	def child(self, ctx, name):
 		if name=="table":
@@ -157,5 +163,5 @@ class Service(record.Record, meta.MetaMixin):
 		return self._runCore(inputData, queryMeta).addCallback(
 			self._postProcess, queryMeta).addErrback(
 			lambda failure: failure).addCallback(
-			CoreResult, inputData).addErrback(
+			CoreResult, inputData, rawInput).addErrback(
 			lambda failure: failure)

@@ -2,10 +2,11 @@
 This module defines an abstract superclass for all grammars.
 """
 
-from gavo import record
 from gavo import logger
 from gavo import parsing
+from gavo import record
 from gavo import sqlsupport
+from gavo import utils
 import gavo
 
 

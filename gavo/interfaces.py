@@ -15,8 +15,10 @@ descriptor.
 In general, a somewhat more declarative approach would be nice...
 """
 
-from gavo import utils
 from gavo import config
+from gavo import coords
+from gavo import sqlsupport
+from gavo import utils
 from gavo.datadef import DataField
 from gavo.parsing import resource
 
@@ -153,6 +155,30 @@ class Q3CPositions(Positions):
 					"tableName": recordNode.get_table(),
 					})
 
+	@staticmethod
+	def findNClosest(alpha, delta, tableName, n, fields, searchRadius=5):
+		"""returns the n objects closest around alpha, delta in table.
+
+		n is the number of items returned, with the closest ones at the
+		top, fields is a sequence of desired field names, searchRadius
+		is a radius for the initial q3c search and will need to be
+		lowered for dense catalogues and possibly raised for sparse ones.
+
+		The last item of each row is the distance of the object from
+		the query center in radians (in a flat approximation).
+		"""
+		# XXX TODO: make this ansynchronous
+		q = sqlsupport.SimpleQuerier()
+		c_x, c_y, c_z = coords.computeUnitSphereCoords(alpha, delta)
+		res = q.query("SELECT %s,"
+			" sqrt((c_x-%%(c_x)s)^2+(c_y-%%(c_y)s)^2+(c_z-%%(c_z)s)^2) AS dist"
+			" FROM %s WHERE"
+			" q3c_radial_query(alphaFloat, deltaFloat, %%(alpha)s, %%(delta)s,"
+			" %%(searchRadius)s)"
+			" ORDER BY dist LIMIT %d"%
+				(",".join(fields), tableName, n),
+			locals()).fetchall()
+		return res
 
 class Products(Interface):
 	"""is an interface for handling products.

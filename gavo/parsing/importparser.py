@@ -20,7 +20,6 @@ from gavo import datadef
 from gavo import config
 from gavo import parsing
 from gavo import resourcecache
-from gavo import table
 from gavo.parsing import meta
 from gavo.web import service
 from gavo.web import standardcores
@@ -45,100 +44,6 @@ class Error(gavo.Error):
 	pass
 
 
-class DataDescriptor(datadef.DataTransformer):
-	"""is a DataTransformer for reading data from files or external processes.
-	"""
-	def __init__(self, parentResource, **initvals):
-		datadef.DataTransformer.__init__(self, parentResource, 
-			additionalFields = {
-				"source": None,    # resdir-relative filename of source
-				                   # for single-file sources
-				"sourcePat": None, # resdir-relative shell pattern of sources for
-				                   # one-row-per-file sources
-				"computer": None,  # rootdir-relative path of an executable producing 
-				                   # the data
-				"name": None,      # a terse human-readable description of this data
-			},
-			initvals=initvals)
-
-	def get_source(self):
-		if self.dataStore["source"]:
-			return os.path.join(self.rD.get_resdir(), 
-				self.dataStore["source"])
-
-	def iterSources(self):
-		if self.get_source():
-			yield self.get_source()
-		if not os.path.isdir(self.rD.get_resdir()):
-			raise Error("Resource directory %s does not exist or is"
-				" not a directory."%self.rD.get_resdir())
-		if self.get_sourcePat():
-			for path, dirs, files in os.walk(self.rD.get_resdir()):
-				for fName in glob.glob(os.path.join(path, self.get_sourcePat())):
-					yield fName
-
-
-class ResourceDescriptor(record.Record, meta.MetaMixin):
-	"""is a container for all information necessary to import a resource into
-	a VO data pool.
-	"""
-	def __init__(self, **initvals):
-		record.Record.__init__(self, {
-			"resdir": record.RequiredField, # base directory for source files
-			"dataSrcs": record.ListField,   # list of data sources
-			"processors": record.ListField, # list of resource processors
-			"dependents": record.ListField, # list of projects to recreate
-			"scripts": record.ListField,    # pairs of (script type, script)
-			"adapter": record.DictField,    # data adapters and...
-			"service": record.DictField,    # ...services for the data contained.
-			"schema": None,    # Name of schema for that resource, defaults
-			                   # to basename(resdir)
-			"profile": None,   # override db profile used to create resource
-			"atExpander": parsehelpers.RDComputer(self),
-			"systems": coords.CooSysRegistry(),
-		}, initvals)
-		
-	def set_resdir(self, relPath):
-		"""sets resource directory, qualifing it and making sure
-		there's no trailing slash.
-
-		We don't want that trailing slash because some names
-		fall back to basename(resdir).
-		"""
-		self.dataStore["resdir"] = os.path.join(config.get("inputsDir"), 
-			relPath.rstrip("/"))
-
-	def get_schema(self):
-		return self.dataStore["schema"] or os.path.basename(
-			self.dataStore["resdir"])
-	
-	def getDataById(self, id):
-		"""returns the data source with id or raises a KeyError.
-		"""
-		for dataSrc in self.get_dataSrcs():
-			if dataSrc.get_id()==id:
-				return dataSrc
-		raise KeyError(id)
-
-	def notfiyParseFinished(self):
-		for ds in self.get_dataSrcs():
-			ds.setMetaParent(self)
-		for key in self.itemsof_adapter():
-			self.get_adapter(key).setMetaParent(self)
-		for key in self.itemsof_service():
-			self.get_service(key).setMetaParent(self)
-
-	def getTableDefByName(self, name):
-		"""returns the first RecordDef found with the matching name.
-
-		This is a bit of a mess since right now we don't actually enforce
-		unique table names and in some cases even force non-unique names.
-		"""
-		for ds in self.get_dataSrcs():
-			for tableDef in ds.get_Semantics().get_recordDefs():
-				if tableDef.get_table()==name:
-					return tableDef
-
 def makeAttDict(attrs):
 	"""returns a dictionary suitable as keyword arguments from a sax attribute
 	dictionary.
@@ -149,7 +54,7 @@ def makeAttDict(attrs):
 class RdParser(utils.NodeBuilder):
 	def __init__(self):
 		utils.NodeBuilder.__init__(self)
-		self.rd = ResourceDescriptor()
+		self.rd = resource.ResourceDescriptor()
 
 	def _getDDById(self, id):
 		"""returns the data descriptor with id.
@@ -185,7 +90,7 @@ class RdParser(utils.NodeBuilder):
 		if attrs.has_key("extends"):
 			dd = self._getDDById(attrs["extends"]).copy()
 		else:
-			dd = DataDescriptor(self.rd)
+			dd = resource.DataDescriptor(self.rd)
 		dd.set_source(attrs.get("source"))
 		dd.set_sourcePat(attrs.get("sourcePat"))
 		dd.set_computer(attrs.get("computer"))
@@ -401,7 +306,7 @@ class RdParser(utils.NodeBuilder):
 			attrs.get("epoch"), attrs.get("system"))
 
 	def _make_Adapter(self, name, attrs, children):
-		adapter = DataDescriptor(self.rd, id=attrs["id"])
+		adapter = resource.DataDescriptor(self.rd, id=attrs["id"])
 		adapter.set_name(attrs["name"])
 		self.rd.register_adapter(adapter.get_id(), adapter)
 		return self._processChildren(adapter, name, {

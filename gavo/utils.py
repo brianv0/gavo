@@ -9,8 +9,14 @@ import math
 import copy
 from xml.sax.handler import ContentHandler
 
+from twisted.python.failure import Failure
+
 import gavo
 from gavo import logger
+
+
+class Error(gavo.Error):
+	pass
 
 
 def _iterDerivedClasses(baseClass, objects):
@@ -511,14 +517,20 @@ def getMatchingTuple(tupList, key, matchIndex):
 	raise KeyError(key)
 
 
-def raiseTb(exCls, *args):
+def raiseTb(exCls, msg, *args):
 	"""raises an exception exCls(*args) furnished with the current traceback
 
 	This is supposed to be used when re-raising exceptions.  It's bad that
 	this function shows up in the traceback, but without macros, there's
 	little I can do about it.
+
+	msg may be a twisted Failure instance.  In that case, the traceback
+	and the message are taken from it.
 	"""
-	raise exCls, args, sys.exc_info()[-1]
+	if isinstance(msg, Failure):
+		raise exCls, (msg.getErrorMessage(),)+args, msg.tb
+	else:
+		raise exCls, (msg,)+args, sys.exc_info()[-1]
 
 
 def _test():

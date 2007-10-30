@@ -8,7 +8,9 @@ import sys
 import traceback
 
 import gavo
+from gavo import coords
 from gavo import config
+from gavo import datadef
 from gavo import record
 from gavo import sqlsupport
 from gavo import logger
@@ -19,6 +21,7 @@ from gavo import parsing
 from gavo.datadef import DataField
 from gavo.parsing import meta
 from gavo.parsing import typeconversion
+from gavo.parsing import tablegrammar
 from gavo.parsing import parsehelpers
 
 class Error(gavo.Error):
@@ -96,7 +99,7 @@ class RecordDef(record.Record, meta.MetaMixin):
 	def __repr__(self):
 		return "<RecordDef %s, %s>"%(id(self), id(self.get_items()))
 
-	def _validate(self, record):
+	def validate(self, record):
 		"""checks that record complies with all known constraints on
 		the data set.
 
@@ -240,7 +243,7 @@ class ParseContext:
 	def _checkRecord(self, recordDef, rowdict, record):
 		"""raises some kind of exception there is something wrong the record.
 		"""
-		recordDef._validate(record)
+		recordDef.validate(record)
 		if recordDef.get_constraints():
 			if not recordDef.get_constraints().check(rowdict, record):
 				raise gavo.InfoException("Record %s doesn't satisfy constraints,"
@@ -275,11 +278,11 @@ class DataSet(meta.MetaMixin):
 	context will be called.
 	"""
 	def __init__(self, dataDescriptor, tableMaker, parseSwitcher=None, 
-			tablesToBuild=[], maxRows=None, bail=False):
+			tablesToBuild=[], maxRows=None, ignoreBadSources=False):
 		self.tablesToBuild = set(tablesToBuild)
 		self.dD = dataDescriptor
 		self.setMetaParent(self.dD)
-		self.maxRows, self.bail = maxRows, bail
+		self.maxRows, self.ignoreBadSources = maxRows, ignoreBadSources
 		self.docFields = self.dD.get_items()
 		self.docRec = {}
 		self.tables = []
@@ -311,13 +314,13 @@ class DataSet(meta.MetaMixin):
 				logger.error("Error while exporting %s (%s) -- aborting source."%(
 					context.sourceName, str(msg)))
 				counter.hitBad()
-				if self.bail:
+				if not self.ignoreBadSources:
 					raise
 			except (gavo.Error, Exception), msg:
 				errMsg = ("Error while parsing %s (%s) -- aborting source."%(
 					context.sourceName, str(msg).decode("utf-8")))
 				counter.hitBad()
-				if self.bail:
+				if not self.ignoreBadSources:
 					raise
 			counter.hit()
 		counter.close()
@@ -342,6 +345,9 @@ class DataSet(meta.MetaMixin):
 		for src in self.dD.iterSources():
 			yield ParseContext(src, self.dD.get_Grammar(),
 				self, literalParser)
+
+	def validate(self):
+		self.dD.validate(self.docRec)
 
 	def getId(self):
 		return self.dD.get_id()
@@ -484,7 +490,7 @@ class Resource:
 				debugProductions=getattr(opts, "debugProductions", None), 
 				maxRows=getattr(opts, "maxRows", None),
 				metaOnly=getattr(opts, "metaOnly", False), 
-				bail=getattr(opts, "bail", False)))
+				ignoreBadSources=getattr(opts, "ignoreBadSources", False)))
 		for processor in self.getDescriptor().get_processors():
 			processor(self)
 
@@ -528,7 +534,6 @@ class Resource:
 			raise utils.raiseTb(gavo.Error,
 				"Invalid export format: %s"%outputFormat)
 
-	
 	def rebuildDependents(self):
 		"""executes the appropriate make commands to build everything that
 		may have changed due to the current import.
@@ -541,3 +546,112 @@ class Resource:
 		for dep in self.getDescriptor().get_dependents():
 			os.system("cd %s; make update"%(os.path.join(
 				config.get("inputsDir"), dep)))
+
+
+class ResourceDescriptor(record.Record, meta.MetaMixin):
+	"""is a container for all information necessary to import a resource into
+	a VO data pool.
+	"""
+	def __init__(self, **initvals):
+		record.Record.__init__(self, {
+			"resdir": record.RequiredField, # base directory for source files
+			"dataSrcs": record.ListField,   # list of data sources
+			"processors": record.ListField, # list of resource processors
+			"dependents": record.ListField, # list of projects to recreate
+			"scripts": record.ListField,    # pairs of (script type, script)
+			"adapter": record.DictField,    # data adapters and...
+			"service": record.DictField,    # ...services for the data contained.
+			"schema": None,    # Name of schema for that resource, defaults
+			                   # to basename(resdir)
+			"profile": None,   # override db profile used to create resource
+			"atExpander": parsehelpers.RDComputer(self),
+			"systems": coords.CooSysRegistry(),
+		}, initvals)
+		
+	def set_resdir(self, relPath):
+		"""sets resource directory, qualifing it and making sure
+		there's no trailing slash.
+
+		We don't want that trailing slash because some names
+		fall back to basename(resdir).
+		"""
+		self.dataStore["resdir"] = os.path.join(config.get("inputsDir"), 
+			relPath.rstrip("/"))
+
+	def get_schema(self):
+		return self.dataStore["schema"] or os.path.basename(
+			self.dataStore["resdir"])
+	
+	def getDataById(self, id):
+		"""returns the data source with id or raises a KeyError.
+		"""
+		for dataSrc in self.get_dataSrcs():
+			if dataSrc.get_id()==id:
+				return dataSrc
+		raise KeyError(id)
+
+	def notfiyParseFinished(self):
+		for ds in self.get_dataSrcs():
+			ds.setMetaParent(self)
+		for key in self.itemsof_adapter():
+			self.get_adapter(key).setMetaParent(self)
+		for key in self.itemsof_service():
+			self.get_service(key).setMetaParent(self)
+
+	def getTableDefByName(self, name):
+		"""returns the first RecordDef found with the matching name.
+
+		This is a bit of a mess since right now we don't actually enforce
+		unique table names and in some cases even force non-unique names.
+		"""
+		for ds in self.get_dataSrcs():
+			for tableDef in ds.get_Semantics().get_recordDefs():
+				if tableDef.get_table()==name:
+					return tableDef
+
+class DataDescriptor(datadef.DataTransformer):
+	"""is a DataTransformer for reading data from files or external processes.
+	"""
+	def __init__(self, parentResource, **initvals):
+		datadef.DataTransformer.__init__(self, parentResource, 
+			additionalFields = {
+				"source": None,    # resdir-relative filename of source
+				                   # for single-file sources
+				"sourcePat": None, # resdir-relative shell pattern of sources for
+				                   # one-row-per-file sources
+				"computer": None,  # rootdir-relative path of an executable producing 
+				                   # the data
+				"name": None,      # a terse human-readable description of this data
+			},
+			initvals=initvals)
+
+	def get_source(self):
+		if self.dataStore["source"]:
+			return os.path.join(self.rD.get_resdir(), 
+				self.dataStore["source"])
+
+	def iterSources(self):
+		if self.get_source():
+			yield self.get_source()
+		if not os.path.isdir(self.rD.get_resdir()):
+			raise Error("Resource directory %s does not exist or is"
+				" not a directory."%self.rD.get_resdir())
+		if self.get_sourcePat():
+			for path, dirs, files in os.walk(self.rD.get_resdir()):
+				for fName in glob.glob(os.path.join(path, self.get_sourcePat())):
+					yield fName
+
+
+def parseFromTable(tableDef, inputData, rd=None):
+	"""returns an InternalDataSet generated from letting tableDef parse
+	from inputData's primary table.
+	"""
+	if rd is None:
+		rd = ResourceDescriptor()
+		rd.set_resdir("NULL")
+	dataDesc = datadef.DataTransformer(rd, initvals={
+		"id": "invalid",
+		"Grammar": tablegrammar.TableGrammar(),
+		"Semantics": Semantics(initvals={
+			"recordDefs": [tableDef]})})
+	return InternalDataSet(dataDesc, table.Table, inputData)

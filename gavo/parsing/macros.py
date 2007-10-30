@@ -27,6 +27,8 @@ from gavo import logger
 from gavo import utils
 from gavo import coords
 from gavo import config
+from gavo import interfaces
+from gavo import resourcecache
 from gavo.parsing import parsehelpers
 from gavo.parsing import resource
 from gavo.web import siap
@@ -735,9 +737,14 @@ class SimpleQuerier(Macro):
 		dbNames, recNames = self.assignments.keys(), self.assignments.values()
 		query = "SELECT %s FROM %s WHERE %s=%%(val)s"%(
 			", ".join(dbNames), self.table, self.column)
-		res = self.querier.query(query, {"val": val}).fetchall()[0]
-		for name, resVal in zip(recNames, res):
-			record[name] = resVal
+		try:
+			res = self.querier.query(query, {"val": val}).fetchall()[0]
+			for name, resVal in zip(recNames, res):
+				record[name] = resVal
+		except IndexError:
+			utils.raiseTb(Error, "The item %s didn't match"
+				" any data.  Since this data is required for further"
+				" operations, I'm giving up"%val)
 
 
 class BboxSiapFieldsComputer(Macro):

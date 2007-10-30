@@ -16,6 +16,7 @@ from gavo import datadef
 from gavo import resourcecache
 from gavo import table
 from gavo import utils
+from gavo import web
 from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
 from gavo.web import runner
@@ -28,19 +29,21 @@ class ComputedCore(object):
 	def __init__(self, dd):
 		self.dd = dd
 	
-	def run(self, inputTable, queryMeta):
+	def run(self, inputData, queryMeta):
 		"""starts the computing process if this is a computed data set.
 		"""
-		return runner.run(dd, inputTable).addCallback(
+		inputData.validate()
+		return runner.run(self.dd, inputData).addCallback(
 			self._parseOutput, queryMeta).addErrback(
-			lambda failure: failure)
+			lambda failure:
+				utils.raiseTb(web.Error, failure))
 	
 	def _parseOutput(self, rawOutput, queryMeta):
 		"""parses the output of a computing process and returns a table
 		if this is a computed dataSet.
 		"""
-		return resource.InternalDataSet(self, table.Table, 
-			cStringIO.StringIO(input), tablesToBuild=["output"])
+		return resource.InternalDataSet(self.dd, table.Table, 
+			cStringIO.StringIO(rawOutput), tablesToBuild=["output"])
 
 
 class DbBasedCore(object):

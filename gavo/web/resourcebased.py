@@ -60,6 +60,9 @@ class HtmlResponse(BaseResponse):
 	def render_resulttable(self, ctx, data):
 		return htmltable.HtmlTableFragment(data.child(ctx, "table"))
 
+	def render_parpair(self, ctx, data):
+		return ctx.tag["%s: %s"%data]
+
 	docFactory = loaders.stan(T.html[
 		T.head[
 			T.title["Query Result"],
@@ -68,15 +71,22 @@ class HtmlResponse(BaseResponse):
 		],
 		T.body(data=T.directive("query"))[
 			T.h1["Query Result"],
-			T.div(class_="resmeta", render=T.directive("mapping"), 
-					data=T.directive("resultmeta"))[
-				T.p[
-					"Matched: ", 
-					T.slot(name="itemsMatched"),
-				],
+			T.div(class_="querypars", data=T.directive("querypars"))[
+				T.h2["Parameters"],
+				T.ul(render=rend.sequence)[
+					T.li(pattern="item", render=T.directive("parpair"))
+				]
 			],
-			T.div(class_="result")[
-				T.invisible(render=T.directive("resulttable")),
+			T.div(class_="result") [
+				T.div(class_="resmeta", data=T.directive("resultmeta"),
+					render=T.directive("mapping"))[
+					T.p[
+						"Matched: ", T.slot(name="itemsMatched"),
+					],
+				],
+				T.div(class_="result")[
+					T.invisible(render=T.directive("resulttable")),
+				]
 			]
 		]])
 

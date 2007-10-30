@@ -59,8 +59,8 @@ def parseCmdline():
 		default=config.get("parsing", "dbDefaultProfile"), metavar="PROFILE")
 	parser.add_option("-v", "--verbose", help="talk a lot while working",
 		dest="verbose", action="store_true")
-	parser.add_option("-b", "--bail", help="bail out on failed source",
-		dest="verbose", action="store_true")
+	parser.add_option("-c", "--continue-bad", help="go on after a source had",
+		" an error", dest="ignoreBadSources", action="store_true")
 	parser.add_option("-o", "--output-method", help="output destination, one of"
 		" sql, votable, none.  Default: sql",
 		action="store", default="sql", dest="outputMethod")
