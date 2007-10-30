@@ -7,6 +7,7 @@ CURRENTLY OUT OF ORDER
 
 import re
 
+import gavo
 from gavo import utils
 from gavo.parsing import grammar
 
@@ -127,7 +128,8 @@ class CFGrammar(grammar.Grammar):
 			self.productions = getProductions(
 				fixIndentation(rawGrammar))
 		except Error, msg:
-			utils.fatalError("Grammar could not be compiled: %s"%msg)
+			raise utils.raiseTb(gavo.FatalError, 
+				"Grammar could not be compiled: %s"%msg)
 
 	def _parse(self, inputFile):
 		res = self.productions[self.get_documentProduction()].parseString(

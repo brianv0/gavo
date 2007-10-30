@@ -16,10 +16,11 @@ import formal
 from twisted.internet import defer
 from twisted.python import components
 
-from nevow import rend
-from nevow import loaders
+from nevow import appserver
 from nevow import context
 from nevow import inevow
+from nevow import loaders
+from nevow import rend
 from nevow import static
 from nevow import tags as T, entities as E
 
@@ -73,19 +74,13 @@ class ErrorPage(rend.Page):
     """)
 
 	def data_failure(self, ctx, data):
-		print dir(self.failure)
 		return str(self.failure)
 
 	def renderHTTP_exception(self, ctx, failure):
 		self.failure = failure
-		print ">>>>>>>>>>>>>>", dir(failure)
-		print failure.getErrorMessage()
-		print failure.getTraceback()
 		inevow.IRequest(ctx).setResponseCode(500)
 		ctx2 = context.PageContext(tag=self, parent=ctx)
 		return self.renderHTTP(ctx2)
-
-error500 = ErrorPage()
 
 
 renderClasses = {
@@ -112,7 +107,6 @@ class ArchiveService(rend.Page):
 	])
 
 	def locateChild(self, ctx, segments):
-		ctx.remember(error500, inevow.ICanHandleException)
 		if not segments or not segments[0]:
 			res = self
 		else:
@@ -124,11 +118,9 @@ class ArchiveService(rend.Page):
 			try:
 				res = renderClasses[act](segments[:-1])
 			except UnknownURI:
-				res = rend.FourOhFour()
-			except:
-				traceback.print_exc()
-				res = rend.FourOhFour()
+				res = None
 		return res, ()
+
 
 setattr(ArchiveService, 'child_formal.css', formal.defaultCSS)
 setattr(ArchiveService, 'child_js', formal.formsJS)
@@ -136,5 +128,6 @@ setattr(ArchiveService, 'child_js', formal.formsJS)
 from gavo import nullui
 config.setDbProfile("querulator")
 
+appserver.DefaultExceptionHandler = ErrorPage
 root = ArchiveService()
 # wsgiApp = wsgi.createWSGIApplication(root)

@@ -151,11 +151,6 @@ class RdParser(utils.NodeBuilder):
 		utils.NodeBuilder.__init__(self)
 		self.rd = ResourceDescriptor()
 
-	def handleError(self, exc_info):
-		if parsing.verbose:
-			traceback.print_exception(*exc_info)
-		utils.NodeBuilder.handleError(self, exc_info)
-
 	def _getDDById(self, id):
 		"""returns the data descriptor with id.
 
@@ -485,13 +480,10 @@ def getRd(srcPath, parserClass=RdParser):
 	try:
 		parser.parse(open(srcPath))
 	except IOError, msg:
-		raise Error("Could not open descriptor %s (%s)."%(
+		utils.raiseTb(IOError, "Could not open descriptor %s (%s)."%(
 			srcPath, msg))
 	except Exception, msg:
-		if parsing.verbose:
-			traceback.print_exc()
-		logger.error("Exception while parsing:", exc_info=True)
-		utils.fatalError("Unexpected Exception while parsing Desriptor %s: %s."
+		utils.raiseTb(gavo.FatalError, "While parsing Desriptor %s: %s."
 			"  Please check input validity."%(srcPath, msg))
 	return contentHandler.getResult()
 

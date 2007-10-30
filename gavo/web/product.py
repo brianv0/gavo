@@ -64,8 +64,7 @@ class Product(standardcores.DbBasedCore):
 		return self, ()
 
 	def _parseOutput(self, res, ctx, sqlPars, queryMeta):
-# XXX TODO: self.__class__ -> Product when done debugging
-		result = super(self.__class__, self)._parseOutput(
+		result = super(Product, self)._parseOutput(
 			res, self.dataDef, sqlPars, queryMeta).getPrimaryTable()
 		if len(result)==0:
 			raise common.UnknownURI()

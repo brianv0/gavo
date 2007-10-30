@@ -11,7 +11,11 @@ class Error(Exception):
 
 	Modules should usually derive their exceptions from this.
 	"""
-	pass
+
+class FatalError(Error):
+	"""should be called whenever the current operation can't be sensibly
+	completed and must be aborted.
+	"""
 
 
 class InfoException(Error):
@@ -19,11 +23,9 @@ class InfoException(Error):
 	want to know about.  When catching exceptions, these not lead to an
 	abort.
 	"""
-	pass
 
 
 class StopOperation(Error):
-	"""should be used when the governing operation should be aborted for some
-	reason.
+	"""should be used when the governing operation should be aborted due
+	to some sort of user request.
 	"""
-	pass

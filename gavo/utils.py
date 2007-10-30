@@ -112,11 +112,6 @@ def makeClassDocs(baseClass, objects):
 	return True
 
 
-def fatalError(message, exc_info=True):
-	logger.critical(message, exc_info=exc_info)
-	sys.exit("Fatal: %s"%message)
-
-
 class StartEndHandler(ContentHandler):
 	"""is a ContentHandler that translates certain Sax events to method
 	calls.
@@ -257,8 +252,7 @@ class NodeBuilder(ContentHandler):
 		msg = ("Error while parsing XML at"
 			" %d:%d (%s)"%(self.locator.getLineNumber(), 
 				self.locator.getColumnNumber(), exc_info[1]))
-		logger.error(msg, exc_info=True)
-		raise gavo.Error(msg)
+		raise raiseTb(gavo.Error, msg)
 	
 	def setDocumentLocator(self, locator):
 		self.locator = locator
@@ -515,6 +509,16 @@ def getMatchingTuple(tupList, key, matchIndex):
 		if t[matchIndex]==key:
 			return t
 	raise KeyError(key)
+
+
+def raiseTb(exCls, *args):
+	"""raises an exception exCls(*args) furnished with the current traceback
+
+	This is supposed to be used when re-raising exceptions.  It's bad that
+	this function shows up in the traceback, but without macros, there's
+	little I can do about it.
+	"""
+	raise exCls, args, sys.exc_info()[-1]
 
 
 def _test():

@@ -50,15 +50,6 @@ class Grammar(record.Record):
 		record.Record.__init__(self, fields, initvals=initvals)
 		self.curInputFileName = None
 	
-	def _handleInternalError(self, exc, row):
-		if parsing.verbose:
-			import traceback
-			traceback.print_exc()
-		msg = ("Internal Error (%s, %s) while parsing row %s -- run with -v to"
-			" see traceback."%(exc.__class__.__name__, str(exc), str(row)[:120]))
-		gavo.ui.displayError(msg)
-		raise gavo.Error(msg)
-
 	def parse(self, parseContext):
 		getattr(self, "_setupParse", lambda _: None)(parseContext)
 		counter = gavo.ui.getGoodBadCounter("Importing rows", 100)
@@ -70,7 +61,8 @@ class Grammar(record.Record):
 			except gavo.Error:
 				raise
 			except Exception, msg:
-				self._handleInternalError(msg, row)
+				utils.raiseTb(gavo.Error, "Failure while parsing doc %s (%s)"%(
+					row, msg))
 			lines = self._iterRows(parseContext)
 			# We use this funny loop to handle exceptions raised while the
 			# grammar matches a row in the exception handlers below (it would
@@ -87,19 +79,18 @@ class Grammar(record.Record):
 				except gavo.InfoException, msg:
 					logger.info(msg)
 				except gavo.parsing.ParseError, msg:
-					errmsg = "Parse failure, aborting source (%s). See log."%msg
+					errmsg = "Parse failure, aborting source (%s)."%msg
 					counter.hitBad()
-					logger.error(errmsg, exc_info=True)
-					raise gavo.Error(errmsg)
+					raise utils.raiseTb(gavo.Error, errmsg)
 				except sqlsupport.OperationalError, msg:
-					logger.error("Row %s bad (%s).  Ignoring."%(row, msg))
 					gavo.ui.displayError("Import of row %s failed (%s). ABORTING"
 						" OPERATION."%(row, msg))
 					counter.hitBad()
-					raise  # XXXXXXXXX should emit err msg wherever this is caught.
+					raise
 				except Exception, msg:
 					counter.hitBad()
-					self._handleInternalError(msg, row)
+					utils.raiseTb(gavo.Error, "Failure while parsing doc %s (%s)"%(
+						row, msg))
 		finally:
 			getattr(self, "_cleanupParse", lambda _: None)(parseContext)
 			counter.close()

@@ -12,6 +12,7 @@ from gavo import config
 from gavo import record
 from gavo import sqlsupport
 from gavo import logger
+from gavo import utils
 from gavo import votable
 from gavo import table
 from gavo import parsing
@@ -230,11 +231,9 @@ class ParseContext:
 			for field in recordDef.get_items():
 				record[field.get_dest()] = self._strToVal(field, rowdict)
 		except Exception, msg:
-			if parsing.verbose:
-				traceback.print_exc()
-			raise Error("Cannot convert row %s, field %s probably doesn't match its"
-				" type %s (root cause: %s)"%(str(rowdict), field.get_dest(), 
-					field.get_dbtype(), msg))
+			utils.raiseTb(gavo.Error, "Cannot convert row %s, field %s "
+				" probably doesn't match its type %s (root cause: %s)"%(
+					str(rowdict), field.get_dest(), field.get_dbtype(), msg))
 		self._checkRecord(recordDef, rowdict, record)
 		return record
 	
@@ -317,8 +316,6 @@ class DataSet(meta.MetaMixin):
 			except (gavo.Error, Exception), msg:
 				errMsg = ("Error while parsing %s (%s) -- aborting source."%(
 					context.sourceName, str(msg).decode("utf-8")))
-				logger.error(errMsg, exc_info=True)
-				gavo.ui.displayError(errMsg)
 				counter.hitBad()
 				if self.bail:
 					raise
@@ -528,7 +525,8 @@ class Resource:
 				"votable": self.exportToVOTable,
 			}[outputFormat]()
 		except KeyError:
-			raise Error("Invalid export format: %s"%outputFormat)
+			raise utils.raiseTb(gavo.Error,
+				"Invalid export format: %s"%outputFormat)
 
 	
 	def rebuildDependents(self):
