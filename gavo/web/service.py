@@ -45,10 +45,11 @@ class CoreResult(object):
 	"""
 	implements(inevow.IContainer)
 
-	def __init__(self, resultData, inputData, queryPars):
+	def __init__(self, resultData, inputData, queryPars, queryMeta):
 		self.original = resultData
 		self.queryPars = queryPars
 		self.inputData = inputData
+		self.queryMeta = queryMeta
 		for n in dir(self.original):
 			if not n.startswith("_"):
 				setattr(self, n, getattr(self.original, n))
@@ -59,8 +60,12 @@ class CoreResult(object):
 			"itemsMatched": len(result.rows),
 		}
 
+	def data_queryseq(self, ctx):
+		return [(k, str(v)) for k, v in self.queryPars.iteritems()
+			if not k in common.QueryMeta.metaKeys]
+
 	def data_querypars(self, ctx):
-		return dict([(k, str(v)) for k, v in self.queryPars.iteritems()])
+		return dict(self.data_queryseq())
 
 	def data_inputRec(self, ctx):
 		return self.inputData.getDocRec()
@@ -156,6 +161,40 @@ class Service(record.Record, meta.MetaMixin):
 			result = coreOutput
 		return result
 
+	def getOutputFields(self, queryMeta):
+		"""returns a sequence of DataField instances matching the output table
+		if known, or None otherwise.
+
+		queryMeta may be none, but then we'll only know the output fields if
+		there is not more than one output filter (because these usually change
+		output fields).
+
+		This can only be expected to work on database based cores (really, it's
+		supposed to be used for a sort-by-type widget).
+		"""
+		# XXX this function shows there's something fundamentally wrong with my
+		# design...  Not sure what to do about it.
+		if self.count_output()>1:
+			# find out what filter is requested from queryMeta
+			if queryMeta:
+				filterName = queryMeta["outputFilter"]
+				if outputFilter and self.get_output(filterName):
+					outputFilter = self.get_output(filterName)
+					return outputFilter.getPrimaryTableDef().get_items()
+		else:
+			if self.get_output("default"):
+				# There is an output filter
+				outputFilter = self.get_output("default")
+				return outputFilter.getPrimaryTableDef().get_items()
+			else:
+				# get output fields from core
+				if queryMeta==None:
+					queryMeta = {"format": "HTML"}
+				try:
+					return self.get_core().getOutputFields(queryMeta)
+				except AttributeError:
+					pass
+
 	def run(self, rawInput, outputFilter=None):
 		"""runs the input filter, the core, and the output filter and returns a
 		deferred firing an adapted result table.
@@ -168,5 +207,5 @@ class Service(record.Record, meta.MetaMixin):
 		return self._runCore(inputData, queryMeta).addCallback(
 			self._postProcess, queryMeta).addErrback(
 			lambda failure: failure).addCallback(
-			CoreResult, inputData, rawInput).addErrback(
+			CoreResult, inputData, rawInput, queryMeta).addErrback(
 			lambda failure: failure)

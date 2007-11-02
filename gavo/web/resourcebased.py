@@ -22,6 +22,7 @@ from gavo import votable
 from gavo.web import common
 from gavo.web import htmltable
 from gavo.web import gwidgets
+from gavo.web import standardcores
 
 from gavo.web.common import Error
 
@@ -41,7 +42,6 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 		self.service = self.rd.get_service(serviceId)
 		super(ResourceBasedRenderer, self).__init__()
 
-	
 
 class BaseResponse(ResourceBasedRenderer):
 	"""is a base class for renderers rendering responses to standard
@@ -68,6 +68,15 @@ class HtmlResponse(BaseResponse):
 
 	def render_parpair(self, ctx, data):
 		return ctx.tag["%s: %s"%data]
+	
+	def render_warnTrunc(self, ctx, data):
+		if data.queryMeta.get("Overflow"):
+			return ctx.tag["Your query limit of %d rows was reached.  You may"
+				" want to resubmit your query with a higher match limit."
+				" Note that truncated queries without sorting are not"
+				" reproducible."%data.queryMeta["dbLimit"]]
+		else:
+			return ""
 
 	defaultDocFactory = loaders.stan(T.html[
 		T.head[
@@ -77,7 +86,8 @@ class HtmlResponse(BaseResponse):
 		],
 		T.body(data=T.directive("query"))[
 			T.h1["Query Result"],
-			T.div(class_="querypars", data=T.directive("querypars"))[
+			T.p(class_="warning", render=T.directive("warnTrunc")),
+			T.div(class_="querypars", data=T.directive("queryseq"))[
 				T.h2["Parameters"],
 				T.ul(render=rend.sequence)[
 					T.li(pattern="item", render=T.directive("parpair"))
@@ -167,14 +177,20 @@ class Form(formal.ResourceMixin, ResourceBasedRenderer):
 			if data and data.has_key(field.get_dest()):
 				form.data[field.get_dest()] = data[field.get_dest()]
 		if self.service.count_output()>1:
-			form.addField("FILTER", formal.String(), formal.widgetFactory(
+			form.addField("_FILTER", formal.String(), formal.widgetFactory(
 				formal.SelectChoice, 
 				options=[(k, self.service.get_output(k).get_name()) 
 					for k in self.service.itemsof_output() if k!="default"],
 				noneOption=("default", self.service.get_output("default").get_name())),
 				label="Output form")
-		form.addField("output", gwidgets.FormalDict, 
-			gwidgets.OutputOptions, label="Output")
+		if isinstance(self.service.get_core(), standardcores.DbBasedCore):
+			form.addField("_DBOPTIONS", gwidgets.FormalDict,
+				formal.widgetFactory(gwidgets.DbOptions, self.service),
+				label="Table", description="Sort keys are only relevant for HTML"
+					" output.  Queries hitting the match limit are only reproducible"
+					" with sorting.")
+		form.addField("_OUTPUT", gwidgets.FormalDict, 
+			gwidgets.OutputOptions, label="Output format")
 		form.addAction(self.submitAction, label="Go")
 		return form
 
@@ -186,7 +202,8 @@ class Form(formal.ResourceMixin, ResourceBasedRenderer):
 		return super(Form, self).renderHTTP(ctx)
 
 	def submitAction(self, ctx, form, data):
-		format = data["output"]["format"]
+		# XXX instanciate QueryMeta here?
+		format = data["_OUTPUT"]["format"]
 		if format=="HTML":
 			return HtmlResponse(self.serviceParts, data)
 		elif format=="VOTable":

@@ -43,6 +43,10 @@ staticURL: /qstatic
 rootURL: /ql
 # This one's for the new nevow-based service
 nevowRoot: 
+# match limit for the db when no limit was given
+defaultlimit: 100
+# hard match limit for the db (empty for no limit)
+hardlimit: 1000000
 
 [querulator]
 defaultMaxMatches: 1000

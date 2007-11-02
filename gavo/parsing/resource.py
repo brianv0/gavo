@@ -5,6 +5,7 @@ This module contains code defining and processing resources.
 import os
 import re
 import sys
+import glob
 import traceback
 
 import gavo

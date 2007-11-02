@@ -51,10 +51,19 @@ class DbBasedCore(object):
 
 	It provides for querying the database and returning a table
 	from it.
+
+	Db cores must define a _getQuery(inputTable, queryMeta) method that
+	returns a data descriptor for the expected SQL output, an SQL fragment 
+	and a dictionary mapping the parameters of that
+	query to values understandable by the DB interface.
+
+	Db cores should try to define a getOutputFields(queryMeta) method returning
+	the field defintions of the output fields, but clients should not rely
+	on their presence.
 	"""
-	def _getFields(self, tableDef, queryMeta):
+	def getFields(self, tableDef, queryMeta):
 		"""returns a sequence of field definitions in tableDef suitable for
-		queryMeta.
+		what is given in queryMeta.
 		"""
 		if queryMeta["format"]=="HTML":
 			return [datadef.makeCopyingField(f) for f in tableDef.get_items()
@@ -67,7 +76,7 @@ class DbBasedCore(object):
 					f.get_displayHint!="suppress"]
 
 
-	def runDbQuery(self, condition, pars, recordDef):
+	def runDbQuery(self, condition, pars, recordDef, queryMeta):
 		"""runs a db query with condition and pars to fill a table
 		having the columns specified in recordDef.
 
@@ -78,11 +87,15 @@ class DbBasedCore(object):
 			tableName = "%s.%s"%(schema, recordDef.get_table())
 		else:
 			tableName = recordDef.get_table()
+		limtagsFrag, limtagsPars = queryMeta.asSql()
+		pars.update(limtagsPars)
 		return resourcecache.getDbConnection().runQuery(
-			"SELECT %(fields)s from %(table)s WHERE %(condition)s"%{
+			"SELECT %(fields)s from %(table)s WHERE %(condition)s %(limtags)s"%{
 				"fields": ", ".join([f.get_dest() for f in recordDef.get_items()]),
 				"table": tableName,
-				"condition": condition}, pars)
+				"condition": condition,
+				"limtags": limtagsFrag,
+				}, pars)
 
 	def run(self, inputTable, queryMeta):
 		"""returns an InternalDataSet containing the result of the
@@ -94,7 +107,7 @@ class DbBasedCore(object):
 		tableDef, fragment, pars = self._getQuery(inputTable, queryMeta)
 		outputDef = resource.RecordDef()
 		outputDef.updateFrom(tableDef)
-		qFields = self._getFields(tableDef, queryMeta)
+		qFields = self.getFields(tableDef, queryMeta)
 		outputDef.set_items(qFields)
 		dd = datadef.DataTransformer(self.rd, initvals={
 			"Grammar": rowsetgrammar.RowsetGrammar(qFields),
@@ -102,7 +115,7 @@ class DbBasedCore(object):
 				"recordDefs": [outputDef]}),
 			"id": "<generated>"})
 		return self.runDbQuery(fragment, pars, 
-				dd.getPrimaryRecordDef()).addCallback(
+				dd.getPrimaryRecordDef(), queryMeta).addCallback(
 			self._parseOutput, dd, pars, queryMeta).addErrback(
 			lambda failure: failure)
 
@@ -113,7 +126,12 @@ class DbBasedCore(object):
 		You can retrieve the values used in the SQL query from the dictionary
 		sqlPars.
 		"""
-		return resource.InternalDataSet(outputDef, table.Table, dbResponse)
+		res = resource.InternalDataSet(outputDef, table.Table, dbResponse)
+		if queryMeta.get("dbLimit"):
+			if len(res.getPrimaryTable().rows)>queryMeta.get("dbLimit"):
+				del res.getPrimaryTable().rows[-1]
+				queryMeta["Overflow"] = True
+		return res
 
 
 class SiapCore(DbBasedCore):
@@ -144,6 +162,9 @@ class SiapCore(DbBasedCore):
 					'"COVERS", "ENCLOSED", "CENTER"], "OVERLAPS")',
 				source="INTERSECT"),
 		]
+
+	def getOutputFields(self, queryMeta):
+		return self.getFields(self.table, queryMeta)
 
 	def _getQuery(self, inputTable, queryMeta):
 		return (self.table,)+siap.getBboxQuery(inputTable.getDocRec())

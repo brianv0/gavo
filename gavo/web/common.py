@@ -1,10 +1,8 @@
 """
 Common functions and classes for gavo web interfaces.
-
-(Much of what would belong here currently lives within querulator.
-We'll move the stuff as we see fit...)
 """
 
+import re
 import os
 
 from nevow import tags as T, entities as E
@@ -169,20 +167,46 @@ class QueryMeta(dict):
 	the qwidget.OutputOptions (and possibly more) to their values.
 	If you pass an empty dict, some safe defaults will be used.
 	"""
+
+	# a list of keys handled by query meta
+	metaKeys = ["_DBOPTIONS", "_FILTER", "_OUTPUT"]
+
 	def __init__(self, formData):
-		self._fillOutputOptions(formData)
+		self._fillOutput(formData)
 		self._fillOutputFilter(formData)
+		self._fillDbOptions(formData)
 	
-	def _fillOutputOptions(self, formData):
+	def _fillOutput(self, formData):
 		"""interprets values left by gwidget.OutputOptions.
 		"""
-		outputOptions = formData.get("output", {})
-		self["format"] = outputOptions.get("format", "VOTable")
-		self["verbosity"] = int(outputOptions.get("verbosity", '2'))*10
-		self["tdEnc"] = outputOptions.get("tdEnc", False)
+		output = formData.get("_OUTPUT", {})
+		self["format"] = output.get("format", "VOTable")
+		self["verbosity"] = int(output.get("verbosity", '2'))*10
+		self["tdEnc"] = output.get("tdEnc", False)
 	
 	def _fillOutputFilter(self, formData):
-		self["outputFilter"] = formData.get("FILTER", "default") or "default"
+		self["outputFilter"] = formData.get("_FILTER", "default") or "default"
+
+	def _fillDbOptions(self, formData):
+		dbOptions = formData.get("_DBOPTIONS", {})
+		self["dbLimit"] = dbOptions.get("limit", 100)
+		self["dbSortKey"] = dbOptions.get("order", None)
+
+	def asSql(self):
+		"""returns the dbLimit and dbSortKey values as an SQL fragment.
+		"""
+		frag, pars = [], {}
+		if self["dbSortKey"]:
+			# Ok, we need to do some emergency securing here.  There should be
+			# pre-validation that we're actually seeing column key, but
+			# just in case let's make sure we're seeing an SQL identifier.
+			# (We can't rely on dbapi's escaping since we're not talking values here)
+			key = re.sub("[^A-Za-z_]+", "", self["dbSortKey"])
+			frag.append("ORDER BY %s"%key)
+		if self["dbLimit"]:
+			frag.append("LIMIT %(_matchLimit)s")
+			pars["_matchLimit"] = self["dbLimit"]+1
+		return " ".join(frag), pars
 
 
 class CustomTemplateMixin(object):

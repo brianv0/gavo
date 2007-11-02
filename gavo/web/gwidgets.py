@@ -6,6 +6,7 @@ from nevow import tags as T, entities as E
 from formal import iformal
 from formal import types as formaltypes
 from formal import validation
+from formal import widget
 from formal.util import render_cssid
 from zope.interface import implements
 
@@ -113,18 +114,18 @@ class OutputOptions(object):
 			verbosity = "2"
 		if not tdEnc or tdEnc=="False":
 			tdEnc = False
-		formatEl = T.select(type="text", name='FORMAT',
+		formatEl = T.select(type="text", name='_FORMAT',
 			onChange='adjustOutputFields(this)',
 			onMouseOver='adjustOutputFields(this)',
 			id=render_cssid(key, "FORMAT"),
 			data=[("HTML", "HTML"), ("VOTable", "VOTable"), 
 				("VOPlot", "VOPlot")])[
 			getOptionRenderer(format)]
-		verbosityEl = T.select(type="text", name='VERB',
+		verbosityEl = T.select(type="text", name='_VERB',
 			id=render_cssid(key, "VERB"), style="width: auto",
 			data=[("1","1"), ("2","2"), ("3","3")])[
 				getOptionRenderer(verbosity)]
-		tdEncEl = T.input(type="checkbox", id=render_cssid(key, "TDENC"),
+		tdEncEl = T.input(type="checkbox", id=render_cssid(key, "_TDENC"),
 			name="TDENC", class_="field boolean checkbox", value="True",
 			style="width: auto")
 		if tdEnc:
@@ -175,9 +176,9 @@ class OutputOptions(object):
 
 	def _getArgDict(self, key, args):
 		return {
-			"format": args.get("FORMAT", [''])[0],
-			"verbosity": args.get("VERB", ['2'])[0],
-			"tdEnc": args.get("TDENC", ["False"])[0]}
+			"format": args.get("_FORMAT", [''])[0],
+			"verbosity": args.get("_VERB", ['2'])[0],
+			"tdEnc": args.get("_TDENC", ["False"])[0]}
 
 	def render(self, ctx, key, args, errors):
 		return self._renderTag(key, False, **self._getArgDict(key, args))
@@ -200,6 +201,48 @@ class OutputOptions(object):
 			raise validation.FieldValidationError("tdEnc can only be True"
 				" or False")
 		value["tdEnc"] = value["tdEnc"]=="True"
+		return value
+
+
+class DbOptions(object):
+	"""a widget that offers limit and sort options for db based cores.
+
+	This is for use in a formal form and goes together with the FormalDict
+	type below.
+	"""
+	implements(iformal.IWidget)
+
+	def __init__(self, typeOb, service):
+		self.service = service
+		self.typeOb = typeOb
+		self.sortWidget = self._makeSortWidget(service)
+		self.limitWidget = self._makeLimitWidget(service)
+		
+	def _makeSortWidget(self, service):
+		keys = [f.get_dest() for f in self.service.getOutputFields(None)]
+		return widget.SelectChoice(formaltypes.String(), options=
+			[(key, key) for key in keys])
+	
+	def _makeLimitWidget(self, service):
+		keys = [(str(i), i) for i in [1000, 5000, 10000]]
+		return widget.SelectChoice(formaltypes.Integer(), options=keys,
+			noneOption=("100", 100))
+
+	def render(self, ctx, key, args, errors):
+		return T.span["Sort by ",
+			self.sortWidget.render(ctx, "_DBOPTIONS_ORDER", args, errors),
+			";  limit to ",
+			self.limitWidget.render(ctx, "_DBOPTIONS_LIMIT", args, errors),
+			" items."]
+
+	# XXX TODO: make this immutable.
+	renderImmutable = render
+
+	def processInput(self, ctx, key, args):
+		value = {
+			"order": self.sortWidget.processInput(ctx, "_DBOPTIONS_ORDER", args),
+			"limit": self.limitWidget.processInput(ctx, "_DBOPTIONS_LIMIT", args),
+		}
 		return value
 
 

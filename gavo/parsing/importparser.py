@@ -4,9 +4,6 @@ This module contains code for reading raw resources and their descriptors.
 
 import os
 import re
-import glob
-import traceback
-import copy
 from xml.sax import make_parser
 from xml.sax.handler import EntityResolver
 
