@@ -38,7 +38,7 @@ class VotableTest(unittest.TestCase):
 				description="This ain't &alpha; for sure."),
 			datadef.DataField(dest="bla", source="11-13", dbtype="text"),
 		]
-		rd = importparser.ResourceDescriptor()
+		rd = resource.ResourceDescriptor()
 		rd.set_resdir(os.path.abspath("data"))
 		grammar = columngrammar.ColumnGrammar()
 		grammar.set_topIgnoredLines(1)

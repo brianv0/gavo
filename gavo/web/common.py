@@ -8,6 +8,7 @@ We'll move the stuff as we see fit...)
 import os
 
 from nevow import tags as T, entities as E
+from nevow import loaders
 
 import gavo
 from gavo import config
@@ -181,4 +182,24 @@ class QueryMeta(dict):
 		self["tdEnc"] = outputOptions.get("tdEnc", False)
 	
 	def _fillOutputFilter(self, formData):
-		self["outputFilter"] = formData.get("FILTER", "default")
+		self["outputFilter"] = formData.get("FILTER", "default") or "default"
+
+
+class CustomTemplateMixin(object):
+	"""is a mixin providing for customized templates.
+
+	This works by making docFactory a property first checking if the instance has
+	a customTemplate attribute evaluating to true.  If it has, its content is
+	used as a resdir-relative path to a nevow XML template, if not, the
+	defaultDocFactory attribute of the instance is used.
+	"""
+	customTemplate = None
+
+	def getDocFactory(self):
+		if self.customTemplate:
+			res = loaders.xmlfile(self.customTemplate)
+		else:
+			res = self.defaultDocFactory
+		return res
+	
+	docFactory = property(getDocFactory)

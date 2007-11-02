@@ -139,7 +139,20 @@ def runWithData(prog, inputString, args):
 
 
 def _makeArguments(coreDataDef, inputData):
-	return [str(v[1]) for v in sorted(inputData.getDocRec().iteritems())]
+	"""returns an argument list from inputData.
+
+	The argument list is generated from all fields in the document record
+	having a numeric dest in the sequence of these numeric dests.
+	"""
+# XXX TODO: what do we do with gaps in the arg sequence?
+	args = []
+	for item in inputData.getDocRec().iteritems():
+		try:
+			args.append((int(item[0]), str(item[1])) )
+		except ValueError:
+			# Ignore non-intable keys
+			pass
+	return [v[1] for v in sorted(args)]
 
 def _makeInputs(coreDataDef, inputData):
 	return "\n".join([

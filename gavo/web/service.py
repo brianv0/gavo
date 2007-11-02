@@ -34,44 +34,48 @@ from gavo.parsing import resource
 from gavo.web import common
 
 
+class TableContainer(object):
+	"""is a nevow.IContainer exposing tables.
+	"""
+	pass
+
 class CoreResult(object):
 	"""is a nevow.IContainer that has the result and also makes the input
 	dataset accessible.
 	"""
 	implements(inevow.IContainer)
 
-	def __init__(self, resultTable, inputTable, queryPars):
-		self.original = resultTable
+	def __init__(self, resultData, inputData, queryPars):
+		self.original = resultData
 		self.queryPars = queryPars
-		self.inputTable = inputTable
+		self.inputData = inputData
 		for n in dir(self.original):
 			if not n.startswith("_"):
 				setattr(self, n, getattr(self.original, n))
 
 	def data_resultmeta(self, ctx):
-		print ">>>>>>>>>>>> res queried"
 		result = self.original.getTables()[0]
 		return {
 			"itemsMatched": len(result.rows),
 		}
 
 	def data_querypars(self, ctx):
-		print ">>>>>>>>>>", self.queryPars.items()
-		return self.queryPars.items()
+		return dict([(k, str(v)) for k, v in self.queryPars.iteritems()])
+
+	def data_inputRec(self, ctx):
+		return self.inputData.getDocRec()
+
+	def data_table(self, ctx):
+		return self.original.getPrimaryTable()
 
 	def child(self, ctx, name):
-		if name=="table":
-			return self.original.getTables()[0]
-		elif name=="input":
-			return self.inputTable
-		else:
-			return getattr(self, "data_"+name)(ctx)
+		return getattr(self, "data_"+name)(ctx)
 
 
 class Service(record.Record, meta.MetaMixin):
 	"""is a model for a service.
 
-	It contains:
+	It mainly contains:
 
 	 * a list of Adapter instances for input (inputFilters)
 	 * a dict mapping output ids to pairs of adapters and names of tables
@@ -93,6 +97,7 @@ class Service(record.Record, meta.MetaMixin):
 			"output": record.DictField,
 			"core": record.RequiredField,
 			"id": record.RequiredField,
+			"template": record.DictField,
 		}, initvals)
 
 	def _getDefaultInputFilter(self):
@@ -146,7 +151,7 @@ class Service(record.Record, meta.MetaMixin):
 		outputFilter = queryMeta["outputFilter"]
 		if outputFilter and self.get_output(outputFilter):
 			result = resource.InternalDataSet(self.get_output(outputFilter), 
-				result.getTables()[0].getInheritingTable, result)
+				coreOutput.getPrimaryTable().getInheritingTable, coreOutput)
 		else:
 			result = coreOutput
 		return result

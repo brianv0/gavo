@@ -4,6 +4,7 @@ Resource descriptor-based pages.
 
 import cStringIO
 import new
+import os
 
 import formal
 from formal import form
@@ -25,21 +26,22 @@ from gavo.web import gwidgets
 from gavo.web.common import Error
 
 
-class ResourceBasedRenderer(rend.Page, common.MetaRenderMixin):
+class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page, 
+		common.MetaRenderMixin):
 	"""is a page based on a resource descriptor.
 
 	It is constructed with service parts of the form path/to/rd/service_name
 	"""
 	def __init__(self, serviceParts):
-		rend.Page.__init__(self)
 		self.serviceParts = serviceParts
 		descriptorId, serviceId = common.parseServicePath(serviceParts)
-		super(ResourceBasedRenderer, self).__init__()
 		self.rd = resourcecache.getRd(descriptorId)
 		if not self.rd.has_service(serviceId):
 			raise common.UnknownURI("The service %s is not defined"%serviceId)
 		self.service = self.rd.get_service(serviceId)
+		super(ResourceBasedRenderer, self).__init__()
 
+	
 
 class BaseResponse(ResourceBasedRenderer):
 	"""is a base class for renderers rendering responses to standard
@@ -48,10 +50,14 @@ class BaseResponse(ResourceBasedRenderer):
 	def __init__(self, serviceParts, data):
 		super(BaseResponse, self).__init__(serviceParts)
 		self.queryResult = self.service.run(data)
+		if self.service.get_template("response"):
+			self.customTemplate = os.path.join(self.rd.get_resdir(),
+				self.service.get_template("response"))
 
 	def data_query(self, ctx, data):
-# XXX maybe stick form input into data special?
 		return self.queryResult
+
+	data_result = data_query
 
 
 class HtmlResponse(BaseResponse):
@@ -63,7 +69,7 @@ class HtmlResponse(BaseResponse):
 	def render_parpair(self, ctx, data):
 		return ctx.tag["%s: %s"%data]
 
-	docFactory = loaders.stan(T.html[
+	defaultDocFactory = loaders.stan(T.html[
 		T.head[
 			T.title["Query Result"],
 			T.link(rel="stylesheet", href="/formal.css", type="text/css"),
@@ -139,6 +145,12 @@ def _formBehaviour_renderHTTP(self, ctx):
 class Form(formal.ResourceMixin, ResourceBasedRenderer):
 	"""is a page that provides a search form for the selected service.
 	"""
+	def __init__(self, serviceParts):
+		super(Form, self).__init__(serviceParts)
+		if self.service.get_template("form"):
+			self.customTemplate = os.path.join(self.rd.get_resdir(),
+				self.service.get_template("form"))
+
 	def form_genForm(self, ctx=None, data={}):
 		form = formal.Form()
 		for field in self.service.getInputFields():
@@ -174,7 +186,6 @@ class Form(formal.ResourceMixin, ResourceBasedRenderer):
 		return super(Form, self).renderHTTP(ctx)
 
 	def submitAction(self, ctx, form, data):
-# XXX TODO: defer this decision until actually formatting the output
 		format = data["output"]["format"]
 		if format=="HTML":
 			return HtmlResponse(self.serviceParts, data)
@@ -187,7 +198,7 @@ class Form(formal.ResourceMixin, ResourceBasedRenderer):
 	def process(self, ctx):
 		super(Form, self).process(ctx)
 
-	docFactory = loaders.stan(T.html[
+	defaultDocFactory = loaders.stan(T.html[
 		T.head[
 			T.title(render=T.directive("meta"))["_title"],
 			T.link(rel="stylesheet", href="/formal.css", type="text/css"),

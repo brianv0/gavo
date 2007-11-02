@@ -537,7 +537,6 @@ class ColProperties(dict):
 				self["min"] = val
 			if self["max"]<val:
 				self["max"] = val
-			self["sample"] = val
 
 	def finish(self):
 		"""has to be called after feeding is done.
@@ -581,7 +580,7 @@ class ColProperties(dict):
 			vals.hasNulls = self.nullSeen
 			fieldArgs["values"] = vals
 
-	_voFieldCopyKeys = ["name", "ID", "datatype", "ID", "ucd",
+	_voFieldCopyKeys = ["name", "ID", "datatype", "ucd",
 		"utype", "unit", "description"]
 
 	def getVOFieldArgs(self):
@@ -610,13 +609,18 @@ class TableData:
 	def __init__(self, table, mFRegistry):
 		self.table = table
 		self.mFRegistry = mFRegistry
-		self.colProperties = self._getColProperties()
+		self.fieldNames = tuple(field.get_dest()
+			for field in self.table.getFieldDefs())
+		self.colProperties = self._computeColProperties()
+		self.mappers = tuple(self.mFRegistry.getMapper(
+				self.colProperties[fieldName])
+			for fieldName in self.fieldNames)
 
 	# Don't compute min, max, etc for these types
 	_noValuesTypes = set(["boolean", "bit", "char", "unicodeChar",
 		"floatComplex", "doubleComplex"])
 
-	def _getColProperties(self):
+	def _computeColProperties(self):
 		"""inspects self.table to find out types and ranges of the data
 		living in it.
 
@@ -629,9 +633,17 @@ class TableData:
 		valDesiredCols = [colProp["name"] for colProp in colProps.values()
 			if colProp["datatype"] not in self._noValuesTypes and
 				colProp["arraysize"]=="1"]
+		noSampleCols = set(colProps)
 		for row in self.table:
 			for key in valDesiredCols:
 				colProps[key].feed(row[key])
+			if noSampleCols:
+				newSampleCols = set()
+				for key in noSampleCols:
+					if row[key]!=None:
+						colProps[key]["sample"] = row[key]
+						newSampleCols.add(key)
+				noSampleCols.difference_update(newSampleCols)
 		for colProp in colProps.values():
 			colProp.finish()
 		return colProps
@@ -640,17 +652,13 @@ class TableData:
 		"""returns a sequence of ColProperties instances in the order of the
 		VOTable row.
 		"""
-		return [self.colProperties[field.get_dest()] 
-			for field in self.table.getFieldDefs()]
+		return [self.colProperties[name] for name in self.fieldNames]
 
 	def get(self):
-		fieldNames = tuple(field.get_dest()
-			for field in self.table.getFieldDefs())
-		mappers = tuple(self.mFRegistry.getMapper(self.colProperties[fieldName])
-			for fieldName in fieldNames)
-		colIndices = range(len(fieldNames))
+		colIndices = range(len(self.fieldNames))
 		def row2Tuple(row):
-			return tuple(mappers[i](row[fieldNames[i]]) for i in colIndices)
+			return tuple(self.mappers[i](
+				row[self.fieldNames[i]]) for i in colIndices)
 		return [row2Tuple(row) for row in self.table]
 
 

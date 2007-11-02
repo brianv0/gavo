@@ -444,9 +444,8 @@ class SqlMacroExpander(object):
 class Resource:
 	"""is a model for a resource containing data sets and metadata.
 
-	The real definition is contained in the descriptor -- Resource
-	mainly defines the operations governed by the information in
-	that file.
+	This, it is a concrete instance of data described by a 
+	resource descriptor.
 
 	It and the objects embedded roughly correspond to a VOTable.
 	We may want to replace this class by some VOTable implementation.
@@ -608,6 +607,7 @@ class ResourceDescriptor(record.Record, meta.MetaMixin):
 			for tableDef in ds.get_Semantics().get_recordDefs():
 				if tableDef.get_table()==name:
 					return tableDef
+
 
 class DataDescriptor(datadef.DataTransformer):
 	"""is a DataTransformer for reading data from files or external processes.

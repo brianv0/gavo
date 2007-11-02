@@ -41,7 +41,7 @@ class VOObject(object):
             if(val != None and 
                attr != 'text' and 
                attr != 'description' and
-               isinstance(val, str)):
+               isinstance(val, basestring)):
                 repr.set(attr, val)
         return(repr)
 

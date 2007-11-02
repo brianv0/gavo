@@ -171,12 +171,12 @@ class Q3CPositions(Positions):
 		q = sqlsupport.SimpleQuerier()
 		c_x, c_y, c_z = coords.computeUnitSphereCoords(alpha, delta)
 		res = q.query("SELECT %s,"
-			" sqrt((c_x-%%(c_x)s)^2+(c_y-%%(c_y)s)^2+(c_z-%%(c_z)s)^2) AS dist"
-			" FROM %s WHERE"
-			" q3c_radial_query(alphaFloat, deltaFloat, %%(alpha)s, %%(delta)s,"
-			" %%(searchRadius)s)"
-			" ORDER BY dist LIMIT %d"%
-				(",".join(fields), tableName, n),
+				" sqrt((%%(c_x)s-c_x)^2+(%%(c_y)s-c_y)^2+(%%(c_z)s-c_z)^2) AS dist"
+				" FROM %s WHERE"
+				" q3c_radial_query(alphaFloat, deltaFloat, %%(alpha)s, %%(delta)s,"
+				" %%(searchRadius)s)"
+				" ORDER BY dist LIMIT %%(n)s"%
+					(",".join(fields), tableName),
 			locals()).fetchall()
 		return res
 

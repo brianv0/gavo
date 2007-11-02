@@ -236,7 +236,7 @@ class StandardQueryMixin:
 			cursor.execute(query, data)
 		except DatabaseError, msg:
 			sys.stderr.write("Failed query %s with"
-				" arguments %s (%s)\n"%(repr(query), data, msg))
+				" arguments %s (%s)\n"%(repr(cursor.query), data, msg))
 			raise
 		return cursor
 

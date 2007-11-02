@@ -326,6 +326,7 @@ class RdParser(utils.NodeBuilder):
 			"outputFilter": lambda val: 
 				svc.register_output(val.get_id(), val),
 			"meta": svc.addMeta,
+			"template": lambda val: svc.register_template(*val),
 		}, children)
 
 	def _make_inputFilter(self, name, attrs, children):
@@ -333,6 +334,9 @@ class RdParser(utils.NodeBuilder):
 	
 	def _make_outputFilter(self, name, attrs, children):
 		return self.rd.get_adapter(attrs["idref"])
+
+	def _make_template(self, name, attrs, children):
+		return (attrs["type"], attrs["src"])
 
 	def _make_core(self, name, attrs, children):
 		if attrs.has_key("builtin"):
