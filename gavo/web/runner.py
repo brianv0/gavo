@@ -173,7 +173,7 @@ if __name__=="__main__":
 		print "Error:", err.getErrorMessage()
 	rd = resourcecache.getRd("apfs/res/apfs_new")
 	srv = rd.get_service("catquery")
-	inputData = srv._getInputData({u'startDate': datetime.date(2008, 12, 10), 
+	inputData = srv.getInputData({u'startDate': datetime.date(2008, 12, 10), 
 		u'hrInterval': 24, u'star': u'56', 
 		u'endDate': datetime.date(2008, 12, 14)})
 	val = run(srv.get_core(), inputData)

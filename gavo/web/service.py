@@ -45,9 +45,9 @@ class CoreResult(object):
 	"""
 	implements(inevow.IContainer)
 
-	def __init__(self, resultData, inputData, queryPars, queryMeta):
+	def __init__(self, resultData, inputData, queryMeta):
 		self.original = resultData
-		self.queryPars = queryPars
+		self.queryPars = queryMeta.queryPars
 		self.inputData = inputData
 		self.queryMeta = queryMeta
 		for n in dir(self.original):
@@ -65,7 +65,7 @@ class CoreResult(object):
 			if not k in common.QueryMeta.metaKeys]
 
 	def data_querypars(self, ctx):
-		return dict(self.data_queryseq())
+		return dict(self.data_queryseq(ctx))
 
 	def data_inputRec(self, ctx):
 		return self.inputData.getDocRec()
@@ -142,7 +142,7 @@ class Service(record.Record, meta.MetaMixin):
 	def getInputFields(self):
 		return self.get_inputFilter().getInputFields()
 	
-	def _getInputData(self, inputData):
+	def getInputData(self, inputData):
 		dD = self.get_inputFilter()
 		curData = resource.InternalDataSet(dD, table.Table, inputData)
 		return curData
@@ -178,7 +178,7 @@ class Service(record.Record, meta.MetaMixin):
 			# find out what filter is requested from queryMeta
 			if queryMeta:
 				filterName = queryMeta["outputFilter"]
-				if outputFilter and self.get_output(filterName):
+				if filterName and self.get_output(filterName):
 					outputFilter = self.get_output(filterName)
 					return outputFilter.getPrimaryTableDef().get_items()
 		else:
@@ -195,17 +195,15 @@ class Service(record.Record, meta.MetaMixin):
 				except AttributeError:
 					pass
 
-	def run(self, rawInput, outputFilter=None):
+	def run(self, inputData, queryMeta=None):
 		"""runs the input filter, the core, and the output filter and returns a
 		deferred firing an adapted result table.
 
 		The adapted result table has an additional method getInput returning the
 		processed input data.
 		"""
-		queryMeta = common.QueryMeta(rawInput)
-		inputData = self._getInputData(rawInput)
 		return self._runCore(inputData, queryMeta).addCallback(
 			self._postProcess, queryMeta).addErrback(
 			lambda failure: failure).addCallback(
-			CoreResult, inputData, rawInput, queryMeta).addErrback(
+			CoreResult, inputData, queryMeta).addErrback(
 			lambda failure: failure)

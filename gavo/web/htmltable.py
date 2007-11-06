@@ -14,6 +14,7 @@ from nevow import tags as T, entities as E
 
 
 from gavo import config
+from gavo.web import common
 
 # This is only used by HtmlTableFragmentPreformat.  Thus, it shouldn't
 # be used either
@@ -68,8 +69,8 @@ class FormatterFactory:
 			if val==None:
 				return ""
 			else:
-				return T.a(href=urlparse.urljoin(config.get("web", "nevowRoot"),
-						"./getproduct?key=%s&siap=true"%urllib.quote(val)),
+				return T.a(href=common.makeSitePath(
+						"/getproduct?key=%s&siap=true"%urllib.quote(val)),
 					class_="productlink")[re.sub("&.*", "", os.path.basename(val))]
 		return format
 

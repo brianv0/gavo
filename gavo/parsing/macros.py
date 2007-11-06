@@ -22,6 +22,8 @@ import os
 import re
 import math
 
+import formal
+
 import gavo
 from gavo import logger
 from gavo import utils

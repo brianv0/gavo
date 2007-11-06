@@ -29,9 +29,9 @@ from zope.interface import implements
 from gavo import config
 # need importparser to register its resourcecache
 from gavo.parsing import importparser
+from gavo.web import common
 from gavo.web import product
 from gavo.web import resourcebased
-from gavo.web.querulator import queryrun
 
 from gavo.web.common import Error, UnknownURI
 
@@ -57,7 +57,7 @@ class DebugPage(rend.Page):
 	])
 
 
-class ErrorPage(rend.Page):
+class ErrorPageDebug(rend.Page):
 	implements(inevow.ICanHandleException)
 
 	docFactory = loaders.xmlstr("""<html
@@ -67,7 +67,7 @@ class ErrorPage(rend.Page):
     body { border: 6px solid red; padding: 1em; }
     </style>
     </head>
-    <body><h1>Ouchie. Server error.</h1>
+    <body><h1>Server error.</h1>
     <p>This is the traceback:</p>
     <pre n:render="data" n:data="failure"></pre>
     </body></html>
@@ -78,9 +78,26 @@ class ErrorPage(rend.Page):
 
 	def renderHTTP_exception(self, ctx, failure):
 		self.failure = failure
-		inevow.IRequest(ctx).setResponseCode(500)
-		ctx2 = context.PageContext(tag=self, parent=ctx)
-		return self.renderHTTP(ctx2)
+		request = inevow.IRequest(ctx)
+		request.setResponseCode(500)
+		return defer.maybeDeferred(self.renderHTTP, ctx).addCallback(
+			lambda _: request.finishRequest(False)).addErrback(
+			lambda failure: failure)
+
+
+class ErrorPage(ErrorPageDebug):
+	implements(inevow.ICanHandleException)
+
+	def renderHTTP_exception(self, ctx, failure):
+		request = inevow.IRequest(ctx)
+		request.setResponseCode(500)
+		msg = ("<html><head><title>Internal Error</title></head>"
+			"<body><h1>Internal Error</h1><p>The error message is: %s</p>"
+			"<p>If you do not know how to work around this, please contact"
+			" gavo@ari.uni-heidelberg.de</p></body></html>"%failure.getErrorMessage())
+		request.write(msg)
+		request.finishRequest(False)
+
 
 
 renderClasses = {
@@ -89,7 +106,13 @@ renderClasses = {
 	"debug": DebugPage,
 }
 
-class ArchiveService(rend.Page):
+class ArchiveService(rend.Page, common.GavoRenderMixin):
+
+	def __init__(self):
+		rend.Page.__init__(self)
+		self.rootSegments = tuple(s for s in 
+			config.get("web", "nevowRoot").split("/") if s)
+		self.rootLen = len(self.rootSegments)
 
 	docFactory = loaders.stan(T.html[
 		T.head[
@@ -97,16 +120,22 @@ class ArchiveService(rend.Page):
 		],
 		T.body[
 			T.p[
-				T.a(href="apfs/res/apfs_new/catquery/form")["Here"],
+				T.a(href="/apfs/res/apfs_new/catquery/form",
+					render=T.directive("rootlink"))["Here"],
 				" or ",
-				T.a(href="maidanak/res/positions/siap/form")["Here"],
+				T.a(href="/maidanak/res/positions/siap/form",
+					render=T.directive("rootlink"))["Here"],
 				" or ",
-				T.a(href="lswscans/res/positions/siap/form")["Here"],
+				T.a(href="/lswscans/res/positions/siap/form",
+					render=T.directive("rootlink"))["Here"],
 			]
 		]
 	])
 
 	def locateChild(self, ctx, segments):
+		if segments[:self.rootLen]!=self.rootSegments:
+			return None, ()
+		segments = segments[self.rootLen:]
 		if not segments or not segments[0]:
 			res = self
 		else:
@@ -128,6 +157,6 @@ setattr(ArchiveService, 'child_js', formal.formsJS)
 from gavo import nullui
 config.setDbProfile("querulator")
 
-appserver.DefaultExceptionHandler = ErrorPage
+appserver.DefaultExceptionHandler = ErrorPageDebug
 root = ArchiveService()
 # wsgiApp = wsgi.createWSGIApplication(root)

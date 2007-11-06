@@ -134,7 +134,7 @@ class Product(standardcores.DbBasedCore):
 		sqlPars = dict([(k, v[0]) 
 			for k, v in cgi.parse_qs("key="+ctx.arg("key")).items()])
 		return self.runDbQuery("key=%(key)s", sqlPars, 
-				self.dataDef.getPrimaryRecordDef()).addCallback(
+				self.dataDef.getPrimaryRecordDef(), queryMeta).addCallback(
 			self._parseOutput, ctx, sqlPars, queryMeta).addErrback(
 			lambda f: f)
 

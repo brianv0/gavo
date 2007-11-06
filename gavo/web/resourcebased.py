@@ -28,7 +28,7 @@ from gavo.web.common import Error
 
 
 class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page, 
-		common.MetaRenderMixin):
+		common.GavoRenderMixin):
 	"""is a page based on a resource descriptor.
 
 	It is constructed with service parts of the form path/to/rd/service_name
@@ -47,9 +47,9 @@ class BaseResponse(ResourceBasedRenderer):
 	"""is a base class for renderers rendering responses to standard
 	service queries.
 	"""
-	def __init__(self, serviceParts, data):
+	def __init__(self, serviceParts, inputData, queryMeta):
 		super(BaseResponse, self).__init__(serviceParts)
-		self.queryResult = self.service.run(data)
+		self.queryResult = self.service.run(inputData, queryMeta)
 		if self.service.get_template("response"):
 			self.customTemplate = os.path.join(self.rd.get_resdir(),
 				self.service.get_template("response"))
@@ -81,8 +81,10 @@ class HtmlResponse(BaseResponse):
 	defaultDocFactory = loaders.stan(T.html[
 		T.head[
 			T.title["Query Result"],
-			T.link(rel="stylesheet", href="/formal.css", type="text/css"),
-			T.script(type='text/javascript', src='/js/formal.js'),
+			T.link(rel="stylesheet", href=common.makeSitePath("/formal.css"), 
+				type="text/css"),
+			T.script(type='text/javascript', 
+				src=common.makeSitePath('/js/formal.js')),
 		],
 		T.body(data=T.directive("query"))[
 			T.h1["Query Result"],
@@ -108,11 +110,8 @@ class HtmlResponse(BaseResponse):
 
 
 class VOTableResponse(BaseResponse):
-	def __init__(self, serviceParts, data, tdEnc=False):
+	def __init__(self, serviceParts, data):
 		BaseResponse.__init__(self, serviceParts, data)
-		self.tablecoding = "binary"
-		if tdEnc:
-			self.tablecoding = "td"
 
 	def renderHTTP(self, ctx):
 		data = defer.maybeDeferred(self.data_query, ctx, None)
@@ -130,7 +129,9 @@ class VOTableResponse(BaseResponse):
 		request.finish()
 
 	def _makeTable(self, request, data):
-		tablemaker = votable.VOTableMaker(tablecoding=self.tablecoding)
+		tablemaker = votable.VOTableMaker({
+			True: "td",
+			False: "binary"}[data.queryMeta["tdEnc"]])
 		vot = tablemaker.makeVOT(data)
 		f = cStringIO.StringIO()
 		tablemaker.writeVOT(vot, f)
@@ -192,6 +193,7 @@ class Form(formal.ResourceMixin, ResourceBasedRenderer):
 		form.addField("_OUTPUT", gwidgets.FormalDict, 
 			gwidgets.OutputOptions, label="Output format")
 		form.addAction(self.submitAction, label="Go")
+		self.form = form
 		return form
 
 	def renderHTTP(self, ctx):
@@ -202,13 +204,25 @@ class Form(formal.ResourceMixin, ResourceBasedRenderer):
 		return super(Form, self).renderHTTP(ctx)
 
 	def submitAction(self, ctx, form, data):
-		# XXX instanciate QueryMeta here?
-		format = data["_OUTPUT"]["format"]
+		queryMeta = common.QueryMeta(data)
+		d = defer.maybeDeferred(self.service.getInputData, data
+			).addCallback(self._formatResult, queryMeta
+			).addErrback(self._handleInputError, queryMeta)
+		return d
+
+	def _handleInputError(self, failure, queryMeta):
+		failure.trap(formal.FieldError)
+		self.form.errors.add(failure.value)
+		return self.form.errors
+
+	# XXX TODO: add a custom error self._handleInputError(failure, queryMeta)
+	# to catch FieldErrors and display a proper form on such errors.
+	def _formatResult(self, inputData, queryMeta):
+		format = queryMeta["format"]
 		if format=="HTML":
-			return HtmlResponse(self.serviceParts, data)
+			return HtmlResponse(self.serviceParts, inputData, queryMeta)
 		elif format=="VOTable":
-			return VOTableResponse(self.serviceParts, data, 
-				tdEnc=data["output"]["tdEnc"])
+			return VOTableResponse(self.serviceParts, inputData, queryMeta)
 		else:
 			raise Error("Invalid output format: %s"%format)
 
@@ -218,7 +232,8 @@ class Form(formal.ResourceMixin, ResourceBasedRenderer):
 	defaultDocFactory = loaders.stan(T.html[
 		T.head[
 			T.title(render=T.directive("meta"))["_title"],
-			T.link(rel="stylesheet", href="/formal.css", type="text/css"),
+			T.link(rel="stylesheet", href=common.makeSitePath("/formal.css"), 
+				type="text/css"),
 			T.script(type='text/javascript', src='/js/formal.js'),
 		],
 		T.body[

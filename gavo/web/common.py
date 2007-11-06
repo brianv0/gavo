@@ -118,7 +118,7 @@ def getSubmitButtons(context):
 			'this.parentNode.parentNode)">[Query]</a>'
 		'</p>')%votChoices
 
-
+########### End of stinky querulator related code
 
 class UnknownURI(Error):
 	"""signifies that a http 404 should be returned to the dispatcher.
@@ -138,7 +138,7 @@ def parseServicePath(serviceParts):
 	return "/".join(serviceParts[:-1]), serviceParts[-1]
 
 
-class MetaRenderMixin(object):
+class GavoRenderMixin(object):
 	"""is a mixin that allows inclusion of meta information.
 
 	To do that, you say <tag render="meta">METAKEY</tag> or
@@ -158,6 +158,15 @@ class MetaRenderMixin(object):
 	def render_metahtml(self, ctx, data):
 		return self._doRenderMeta(ctx, lambda c: T.xml(c.asHtml()))
 
+	def render_rootlink(self, ctx, data):
+		tag = ctx.tag
+		def munge(key):
+			if tag.attributes.has_key(key):
+			 tag.attributes[key] = config.get("web", "nevowRoot")+tag.attributes[key]
+		munge("src")
+		munge("href")
+		return tag
+
 
 class QueryMeta(dict):
 	"""is a class keeping all data *about* a query, e.g., the requested
@@ -172,6 +181,7 @@ class QueryMeta(dict):
 	metaKeys = ["_DBOPTIONS", "_FILTER", "_OUTPUT"]
 
 	def __init__(self, formData):
+		self.queryPars = formData
 		self._fillOutput(formData)
 		self._fillOutputFilter(formData)
 		self._fillDbOptions(formData)
@@ -227,3 +237,12 @@ class CustomTemplateMixin(object):
 		return res
 	
 	docFactory = property(getDocFactory)
+
+
+def makeSitePath(uri):
+	"""adapts uri for use in an off-root environment.
+
+	uri itself needs to be server-absolute (i.e., start with a slash).
+	"""
+	assert uri[0]=="/"
+	return config.get("web", "nevowRoot")+uri
