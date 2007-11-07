@@ -2,11 +2,6 @@
 This module defines an abstract superclass for all grammars.
 """
 
-# the following is needed to be able to ignore validation errors in context
-# grammars.  I know it's a pain.  I probably shouldn't be mucking about
-# with these exceptions in the first place...
-import formal
-
 from gavo import logger
 from gavo import parsing
 from gavo import record
@@ -64,7 +59,7 @@ class Grammar(record.Record):
 			try:
 				row = self._getDocdict(parseContext)
 				self.handleDocdict(row, parseContext)
-			except (gavo.Error, formal.FieldError):
+			except gavo.Error:
 				raise
 			except Exception, msg:
 				utils.raiseTb(gavo.Error, "Failure while parsing doc %s (%s)"%(

@@ -16,6 +16,7 @@ from nevow import tags as T, entities as E
 
 from twisted.internet import defer
 
+import gavo
 from gavo import resourcecache
 from gavo import typesystems
 from gavo import votable
@@ -211,8 +212,14 @@ class Form(formal.ResourceMixin, ResourceBasedRenderer):
 		return d
 
 	def _handleInputError(self, failure, queryMeta):
-		failure.trap(formal.FieldError)
-		self.form.errors.add(failure.value)
+		if isinstance(failure.value, formal.FormError):
+			self.form.errors.add(failure.value)
+		elif isinstance(failure.value, gavo.ValidationError):
+			self.form.errors.add(formal.FieldValidationError(str(failure.value),
+				self.service.translateFieldName(failure.value.fieldName)))
+		else:
+			failure.printTraceback()
+			raise failure.value
 		return self.form.errors
 
 	# XXX TODO: add a custom error self._handleInputError(failure, queryMeta)

@@ -16,5 +16,31 @@
 		</Semantics>
 	</Data>
 
+	<Data id="valuestest">
+		<NullGrammar/>
+		<Semantics>
+			<Record table="valspec">
+				<Field dest="numeric" optional="False">
+					<Values min="10" max="15"/>
+				</Field>
+				<Field dest="enum" dbtype="text">
+					<Values>
+						<option>abysimal</option>
+						<option>horrific</option>
+						<option>gruesome</option>
+						<option>bad</option>
+						<option>acceptable</option>
+					</Values>
+				</Field>
+			</Record>
+		</Semantics>
+		<Field dest="docLowBound">
+			<Values min="-10"/>
+		</Field>
+		<Field dest="docHiBound">
+			<Values max="-10"/>
+		</Field>
+		<Field dest="docReq" optional="False" dbtype="text"/>
+	</Data>
 </ResourceDescriptor>
 

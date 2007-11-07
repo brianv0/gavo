@@ -39,6 +39,7 @@ class TableContainer(object):
 	"""
 	pass
 
+
 class CoreResult(object):
 	"""is a nevow.IContainer that has the result and also makes the input
 	dataset accessible.
@@ -103,6 +104,8 @@ class Service(record.Record, meta.MetaMixin):
 			"core": record.RequiredField,
 			"id": record.RequiredField,
 			"template": record.DictField,
+# temporary hack: map field names to ones known to the form.
+			"fieldNameTranslations": None,   
 		}, initvals)
 
 	def _getDefaultInputFilter(self):
@@ -138,6 +141,14 @@ class Service(record.Record, meta.MetaMixin):
 			self.dataStore["output"]["default"] = value
 		else:
 			self.dataStore["output"][key] = value
+
+	def translateFieldName(self, name):
+		"""returns a field name present in the input for a field name
+		that may only have been introduced in later processing stages.
+		"""
+		if self.get_fieldNameTranslations():
+			return self.get_fieldNameTranslations().get(name, name)
+		return name
 
 	def getInputFields(self):
 		return self.get_inputFilter().getInputFields()

@@ -74,7 +74,23 @@ class RowFunction:
 			else:
 				args[name] = val
 		return args
-	
+
+	def getArgument(self, argName):
+		"""returns source or value for the argument called argName.
+
+		This is mainly for introspection of macros, which again should only
+		be necessary for error handling.
+
+		If the argument doesn't exist, a KeyError is raised.
+		"""
+		for name, val in self.colArguments:
+			if name==argName:
+				return val
+		for name, val in self.constants:
+			if name==argName:
+				return val
+		raise KeyError("No argument named %s"%argName)
+
 	def __call__(self, atExpand, rowdict):
 		return self._compute(rowdict, **self._buildArgDict(atExpand, rowdict))
 

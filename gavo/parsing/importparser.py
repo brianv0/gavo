@@ -164,8 +164,10 @@ class RdParser(utils.NodeBuilder):
 
 	def _make_inputKey(self, name, attrs, children):
 		inputKey = contextgrammar.InputKey(makeAttDict(attrs))
-		return self._processChildren(inputKey, name, {}, children)
-	
+		return self._processChildren(inputKey, name, {
+			"Values": inputKey.set_values,
+		}, children)
+
 	def _make_ContextGrammar(self, name, attrs, children):
 		grammar = contextgrammar.ContextGrammar()
 		return utils.NamedNode("Grammar",
@@ -222,6 +224,7 @@ class RdParser(utils.NodeBuilder):
 			field.set(key, val)
 		return self._processChildren(field, name, {
 			"longdescr": field.set_longdescription,
+			"Values": field.set_values,
 		}, children)
 
 	def _make_copyof(self, name, attrs, children):
@@ -229,7 +232,15 @@ class RdParser(utils.NodeBuilder):
 
 	def _make_longdescr(self, name, attrs, children):
 		return attrs.get("type", "text/plain"), self.getContent(children)
-	
+
+	def _make_Values(self, name, attrs, children):
+		vals = datadef.Values()
+		for key, val in attrs.items():
+			vals.set(key, val)
+		return self._processChildren(vals, name, {
+			"option": vals.addto_options,
+		}, children)
+
 	def _make_Macro(self, name, attrs, children):
 		initArgs = dict([(str(key), value) 
 			for key, value in attrs.items() if key!="name"])
@@ -324,7 +335,15 @@ class RdParser(utils.NodeBuilder):
 				svc.register_output(val.get_id(), val),
 			"meta": svc.addMeta,
 			"template": lambda val: svc.register_template(*val),
+			"fieldNameTranslation": svc.set_fieldNameTranslations,
 		}, children)
+
+	def _make_fieldNameTranslation(self, name, attrs, children):
+		"""temporary hack: use attributes as translation dictionary.
+
+		We need to come up with something better...
+		"""
+		return makeAttDict(attrs)
 
 	def _make_inputFilter(self, name, attrs, children):
 		return self.rd.get_adapter(attrs["idref"])
@@ -364,6 +383,7 @@ class RdParser(utils.NodeBuilder):
 	_make_tabularDataProduction = \
 	_make_tokenSequence = \
 	_make_schema = \
+	_make_option = \
 	_makeTextNode
 
 

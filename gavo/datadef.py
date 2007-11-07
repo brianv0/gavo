@@ -2,8 +2,10 @@
 Classes to define properties of data.
 """
 
+import gavo
 from gavo import record
 from gavo.parsing import meta
+from gavo.parsing import typeconversion
 
 
 class DataField(record.Record):
@@ -28,7 +30,6 @@ class DataField(record.Record):
 			"longmime": None,    # mime-type of contents of longdescription
 			"tablehead": None,   # name to be used as table heading
 			"utype": None,       # a utype
-			"nullvalue": "",     # value to interpret as NULL/None
 			"optional": record.TrueBooleanField,  # NULL values in this field 
 			                                      # don't invalidate record
 			"literalForm": None, # special literal form that needs preprocessing
@@ -40,6 +41,7 @@ class DataField(record.Record):
 			"id": None,          # Just so the field can be referenced within XML
 			"widgetFactory": None, # Python code to generate a formal widget factory
 			                       # for this field.
+			"values": None,      # a datadef.Values instance (see below)
 			"copy": record.BooleanField,  # Used with TableGrammars
 		})
 		for key, val in initvals.iteritems():
@@ -75,6 +77,12 @@ class DataField(record.Record):
 			self.dataStore["longdescription"] = txt
 			self.set_longmime(mime)
 
+	def set_values(self, values):
+		# The values attribute needs to convert the literals it is constructed
+		# with to self's dbtype.
+		values.convert(self)
+		self.dataStore["values"] = values
+
 	def getValueIn(self, aDict, atExpand=lambda val, _: val):
 		"""returns the value the field has within aDict.
 
@@ -86,7 +94,7 @@ class DataField(record.Record):
 		preVal = None
 		if self.get_source()!=None:
 			preVal = aDict.get(self.get_source())
-		if preVal==self.get_nullvalue():
+		if self.get_values() and preVal==self.get_values().get_nullLiteral():
 			preVal = None
 		if preVal==None:
 			preVal = atExpand(self.get_default(), aDict)
@@ -105,6 +113,27 @@ class DataField(record.Record):
 				continue
 			row[colName] = self.get(self.metaColMapping.get(colName, colName))
 		return row
+
+	def validate(self, value):
+		"""raises a ValidationError if value does not match the constraints
+		given here.
+		"""
+		if not self.get_optional() and value==None:
+			raise gavo.ValidationError("Field is empty but non-optional",
+				self.get_dest())
+		vals = self.get_values()
+		if vals:
+			if vals.get_options():
+				if value and not value in vals.get_options():
+					raise gavo.ValidationError("Value %s is not in legal values %s"%
+						(value, vals.get_options()), self.get_dest())
+			else:
+				if vals.get_min() and value<vals.get_min():
+					raise gavo.ValidationError("%s too small (must be at least %s)"%(
+						value, vals.get_min()), self.get_dest())
+				if vals.get_max() and value>vals.get_max():
+					raise gavo.ValidationError("%s too large (must be less than %s)"%(
+						value, vals.get_max()), self.get_dest())
 
 
 def makeCopyingField(field):
@@ -186,10 +215,10 @@ class DataTransformer(record.Record, meta.MetaMixin):
 		This method reflects that DataTransformers are RecordDefs for
 		the toplevel productions.
 		"""
+# XXX TODO: This should probably be unified with RecordDef.validate.
 		for field in self.get_items():
-			if not field.get_optional() and record.get(field.get_dest())==None:
-				raise resource.ValidationError(
-					"%s is None but non-optional"%field.get_dest())
+			field.validate(record.get(field.get_dest()))
+
 
 	def registerAsMetaParent(self):
 		try:
@@ -239,4 +268,49 @@ class DataTransformer(record.Record, meta.MetaMixin):
 		fielded input.
 		"""
 		return self.get_Grammar().getInputFields()
+
+
+# Once we need values with non-ascii characters, we'll need to create
+# encoding-aware LiteralParsers, but for now that's too much stress.
+makePythonVal = typeconversion.asciiLiteralParser.makePythonVal
+
+class Values(record.Record):
+	"""models domains and properties of the values of data fields.
+
+	This is quite like the values element in a VOTable, except that nullLiterals
+	of course are strings, where in VOTables nullvalues have the type of
+	their field.
+	"""
+	def __init__(self, **initvals):
+		record.Record.__init__(self, {
+			"min": None,   # a *python* value of the minimum acceptable value
+			"max": None,   # a *python* value of the maximum acceptable value
+			"options": record.ListField, # python values acceptable
+			"nullLiteral": None, # a string representing null in literals
+		})
+	
+	def convert(self, dataField):
+		"""converts min, max, and options from string literals to python
+		objects.
+
+		This is called by the parent DataDef when it adopts a Values instance.
+		"""
+		# It would be nicer if we could handle this in set_min etc, but
+		# unfortunately we don't know our parent DataDef then.  The only
+		# way around that would have been delegations from datadef, and that's
+		# not very attractive either.
+		if self.get_min():
+			self.set_min(makePythonVal(self.get_min(), dataField.get_dbtype(),
+				dataField.get_literalForm()))
+		if self.get_max():
+			self.set_max(makePythonVal(self.get_max(), dataField.get_dbtype(),
+				dataField.get_literalForm()))
+		if self.get_options():
+			dbt, lf = dataField.get_dbtype(), dataField.get_literalForm()
+			# It's evil to stuff a set into a list field, but we look up
+			# quite a bit in it and I don't want to add a set type to
+			# record yet.
+			self.dataStore["options"] = set([makePythonVal(opt, dbt, lf)
+				for opt in self.get_options()])
+
 

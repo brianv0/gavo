@@ -240,6 +240,8 @@ class CustomTemplateMixin(object):
 
 
 def makeSitePath(uri):
+# XXX TODO: scrap that, GavoRenderMixin.render_rootlink is a better place
+# for this functionality.
 	"""adapts uri for use in an off-root environment.
 
 	uri itself needs to be server-absolute (i.e., start with a slash).

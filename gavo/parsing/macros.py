@@ -22,8 +22,6 @@ import os
 import re
 import math
 
-import formal
-
 import gavo
 from gavo import logger
 from gavo import utils
@@ -744,9 +742,9 @@ class SimpleQuerier(Macro):
 			for name, resVal in zip(recNames, res):
 				record[name] = resVal
 		except IndexError:
-			utils.raiseTb(Error, "The item %s didn't match"
+			utils.raiseTb(gavo.ValidationError, "The item %s didn't match"
 				" any data.  Since this data is required for further"
-				" operations, I'm giving up"%val)
+				" operations, I'm giving up"%val, self.getArgument("val"))
 
 
 class BboxSiapFieldsComputer(Macro):

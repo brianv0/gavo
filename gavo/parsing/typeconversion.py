@@ -218,10 +218,13 @@ class LiteralParser:
 			underliner)
 
 
+asciiLiteralParser = LiteralParser()
+
+
 if __name__=="__main__":
 	import sys
 	if len(sys.argv)>1 and sys.argv[1]=="docs":
 		underliner = "."
 		if len(sys.argv)>2:
 			underliner = sys.argv[2]
-		print LiteralParser().getLiteralDocs(underliner)
+		print asciiLiteralParser.getLiteralDocs(underliner)

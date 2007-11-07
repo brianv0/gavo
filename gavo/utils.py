@@ -387,7 +387,7 @@ class DummyClass:
 
 
 class Conversions:
-	"""is a container for converters from parsed literals to real
+	"""is a container for converters from parsed literals to python
 	values.
 
 	A converter has the signature

@@ -29,3 +29,14 @@ class StopOperation(Error):
 	"""should be used when the governing operation should be aborted due
 	to some sort of user request.
 	"""
+
+
+class ValidationError(Error):
+	"""is raised when the validation of a field fails.  It has a field
+	attribute containing the field name and an optional record attribute
+	saying which record caused the error.
+	"""
+	def __init__(self, msg, fieldName, record=None):
+		Error.__init__(self, msg)
+		self.fieldName, self.record = fieldName, record
+

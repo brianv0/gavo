@@ -28,9 +28,6 @@ from gavo.parsing import parsehelpers
 class Error(gavo.Error):
 	pass
 
-class ValidationError(Error):
-	pass
-
 
 def getMetaTableRecordDef(tableName):
 	"""returns a RecordDef suitable for meta tables.
@@ -105,12 +102,11 @@ class RecordDef(record.Record, meta.MetaMixin):
 		the data set.
 
 		The function raises a ValidationError with an appropriate message
-		if not.
+		and the relevant field if not.
 		"""
 		for field in self.get_items():
-			if not field.get_optional() and record.get(field.get_dest())==None:
-				raise ValidationError("%s is None but non-optional"%field.get_dest())
-
+			field.validate(record.get(field.get_dest()))
+	
 	def addto_items(self, item):
 		if self.fieldIndexDict.has_key(item.get_dest()):
 			raise Error("Duplicate field name: %s"%item.get_dest())
