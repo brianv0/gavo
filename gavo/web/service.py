@@ -21,8 +21,6 @@ import weakref
 
 from twisted.internet import defer
 from twisted.python import components
-from nevow import inevow
-from zope.interface import implements
 
 from gavo import datadef
 from gavo import record
@@ -38,44 +36,6 @@ class TableContainer(object):
 	"""is a nevow.IContainer exposing tables.
 	"""
 	pass
-
-
-class CoreResult(object):
-	"""is a nevow.IContainer that has the result and also makes the input
-	dataset accessible.
-	"""
-	implements(inevow.IContainer)
-
-	def __init__(self, resultData, inputData, queryMeta):
-		self.original = resultData
-		self.queryPars = queryMeta.queryPars
-		self.inputData = inputData
-		self.queryMeta = queryMeta
-		for n in dir(self.original):
-			if not n.startswith("_"):
-				setattr(self, n, getattr(self.original, n))
-
-	def data_resultmeta(self, ctx):
-		result = self.original.getTables()[0]
-		return {
-			"itemsMatched": len(result.rows),
-		}
-
-	def data_queryseq(self, ctx):
-		return [(k, str(v)) for k, v in self.queryPars.iteritems()
-			if not k in common.QueryMeta.metaKeys]
-
-	def data_querypars(self, ctx):
-		return dict(self.data_queryseq(ctx))
-
-	def data_inputRec(self, ctx):
-		return self.inputData.getDocRec()
-
-	def data_table(self, ctx):
-		return self.original.getPrimaryTable()
-
-	def child(self, ctx, name):
-		return getattr(self, "data_"+name)(ctx)
 
 
 class Service(record.Record, meta.MetaMixin):
@@ -216,5 +176,5 @@ class Service(record.Record, meta.MetaMixin):
 		return self._runCore(inputData, queryMeta).addCallback(
 			self._postProcess, queryMeta).addErrback(
 			lambda failure: failure).addCallback(
-			CoreResult, inputData, queryMeta).addErrback(
+			common.CoreResult, inputData, queryMeta).addErrback(
 			lambda failure: failure)

@@ -414,6 +414,30 @@ def getRd(srcPath, parserClass=RdParser):
 	return contentHandler.getResult()
 
 
+def forAllSources(rdId, dataId, callable, *callableArgs):
+	"""runs callable for all sources covered by DataDefinition dataId in the
+	rd at rdId.
+
+	callable will receive an absolute path to the source and callableArgs.
+	"""
+	datadef = resourcecache.getRd(rdId
+		).getDataById(dataId)
+	counter = gavo.ui.getGoodBadCounter("Processing sources", 1)
+	for fName in datadef.iterSources():
+		try:
+			counter.hit()
+			callable(fName, *callableArgs)
+		except KeyboardInterrupt:
+			counter.unhit()
+			break
+		except Exception, msg:
+			counter.hitBad()
+			logger.error("Error while processing %s: %s\n"%(fName, str(msg)),
+				exc_info=True)
+			gavo.ui.displayError("Processing %s failed: %s\n"%(fName, str(msg)))
+	counter.close()
+
+
 resourcecache.makeCache("getRd", getRd)
 
 

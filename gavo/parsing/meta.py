@@ -20,7 +20,22 @@ import textwrap
 from gavo import config
 
 
-class MetaItem:
+class InfoItem(object):
+	"""is a container for VOTable info elements that you can stick into
+	a MetaItem.
+
+	The assumption is that the info value item usually is from a controlled
+	vocabulary that non-VOTable clients won't want to see, so the str() doesn't
+	return it.
+	"""
+	def __init__(self, value, content):
+		self.value, self.content = value, content
+
+	def __str__(self):
+		return str(self.content)
+
+
+class MetaItem(object):
 	"""is a piece of meta information about a resource.
 
 	The trouble with meta items is that they're used for so many things that
@@ -54,22 +69,19 @@ class MetaItem:
 		self.compute = compute
 		self.combine = combine
 		self.parent = weakref.ref(parent)
-		self._normalizeContent()
-
-	def _normalizeContent(self):
-		"""does as much preformatting as we can at construction time.
-		"""
-		if self.format=="plain":
-			self.content = "\n\n".join(["\n".join(textwrap.wrap(para))
-				for para in re.split("\n\s*\n", self.content)])
 
 	def __str__(self):
 		if self.compute:
 			desc = self.compute.split(",")
 			if not desc[-1].strip():
 				del desc[-1]
-			return self.parent().get_computer().compute(desc[0], None, desc[1:])
-		return self.content
+			content = self.parent().get_computer().compute(desc[0], None, desc[1:])
+		else: 
+			content = str(self.content)
+		if self.format=="plain":
+			content = "\n\n".join(["\n".join(textwrap.wrap(para))
+				for para in re.split("\n\s*\n", str(content))])
+		return content
 
 	def encode(self, enc):
 		return str(self).encode(enc)

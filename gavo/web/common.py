@@ -7,6 +7,9 @@ import os
 
 from nevow import tags as T, entities as E
 from nevow import loaders
+from nevow import inevow
+
+from zope.interface import implements
 
 import gavo
 from gavo import config
@@ -55,7 +58,7 @@ function makeQueryItem(element) {
 	switch (element.nodeName) {
 		case "INPUT":
 			if (element.name && element.value) {
-				val = element.name+"="+encodeURI(element.value);
+				val = element.name+"="+encodeURIComponent(element.value);
 			}
 			break;
 		case "SELECT":
@@ -217,6 +220,45 @@ class QueryMeta(dict):
 			frag.append("LIMIT %(_matchLimit)s")
 			pars["_matchLimit"] = self["dbLimit"]+1
 		return " ".join(frag), pars
+
+
+class CoreResult(object):
+	"""is a nevow.IContainer that has the result and also makes the input
+	dataset accessible.
+	"""
+	implements(inevow.IContainer)
+
+	def __init__(self, resultData, inputData, queryMeta):
+		self.original = resultData
+		self.queryPars = queryMeta.queryPars
+		self.inputData = inputData
+		self.queryMeta = queryMeta
+		for n in dir(self.original):
+			if not n.startswith("_"):
+				setattr(self, n, getattr(self.original, n))
+
+	def data_resultmeta(self, ctx):
+		result = self.original.getTables()[0]
+		return {
+			"itemsMatched": len(result.rows),
+		}
+
+	def data_queryseq(self, ctx):
+		return [(k, str(v)) for k, v in self.queryPars.iteritems()
+			if not k in QueryMeta.metaKeys]
+
+	def data_querypars(self, ctx):
+		return dict(self.data_queryseq(ctx))
+
+	def data_inputRec(self, ctx):
+		return self.inputData.getDocRec()
+
+	def data_table(self, ctx):
+		return self.original.getPrimaryTable()
+
+	def child(self, ctx, name):
+		return getattr(self, "data_"+name)(ctx)
+
 
 
 class CustomTemplateMixin(object):

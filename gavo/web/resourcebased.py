@@ -5,6 +5,7 @@ Resource descriptor-based pages.
 import cStringIO
 import new
 import os
+import traceback
 
 import formal
 from formal import form
@@ -110,34 +111,73 @@ class HtmlResponse(BaseResponse):
 		]])
 
 
-class VOTableResponse(BaseResponse):
-	def __init__(self, serviceParts, data):
-		BaseResponse.__init__(self, serviceParts, data)
+def writeVOTable(request, dataSet, tableMaker):
+	"""writes the VOTable representation  of the DataSet instance
+	dataSet as created by tableMaker to request.
+	"""
+# XXX TODO: Make this asynchronous (else slow clients with big tables
+# will bring you to a grinding halt)
+	try:
+		vot = tableMaker.makeVOT(dataSet)
+		f = cStringIO.StringIO()
+		tableMaker.writeVOT(vot, f)
+		request.write(f.getvalue())
+		request.finish()
+	except:
+# XXX TODO: emit some sensible emergency stuff here
+		traceback.print_exc()
+		request.write("<<< >>>PANIC: INTERNAL ERROR, DATA NOT COMPLETE")
+	return ""  # shut off further rendering
 
+
+def serveAsVOTable(request, data):
+	"""writes a VOTable representation of the CoreResult instance data
+	to request.
+	"""
+	tableMaker = votable.VOTableMaker({
+		True: "td",
+		False: "binary"}[data.queryMeta["tdEnc"]])
+	return writeVOTable(request, data.original, tableMaker)
+
+
+class VOTableResponse(BaseResponse):
+	"""is a renderer for queries for VOTables.  
+	
+	It's not immediately suitable for "real" VO services since it will return
+	HTML error pages and re-display forms if their values don't validate.
+
+	An example for a "real" VO service is siapservice.SiapService.
+	"""
 	def renderHTTP(self, ctx):
-		data = defer.maybeDeferred(self.data_query, ctx, None)
+		request = inevow.IRequest(ctx)
+		defer.maybeDeferred(self.data_query, ctx, None
+			).addCallback(self._handleData, ctx
+			).addErrback(self._handleError, ctx)
+		return request.deferred
+
+	def _handleData(self, data, ctx):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
 		request.setHeader('content-disposition', 
 			'attachment; filename=votable.xml')
-		data.addCallback(lambda data: self._makeTable(request, data))
-		data.addErrback(lambda err: self._makeErrorTable(request, err))
+		serveAsVOTable(request, data
+			).addCallback(self._tableWritten, ctx
+			).addErrback(self._handleError, ctx)
 		return request.deferred
 
-	def _makeErrorTable(self, request, err):
-		f = cStringIO.StringIO("<xml>%s</xml>"%(str(err).replace("<","&lt;")))
-		request.write(f.getvalue())
-		request.finish()
+	def _tableWritten(self, dummy, ctx):
+		pass
+	
+	def _handleError(self, failure, ctx):
+# XXX TODO Work on this
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", "text/html")
+		request.setHeader('content-disposition', 'inline')
+		request.setResponseCode(500)
+		print ">>>>>>>>>>>>>>>> Error, will hang, find out why"
+		failure.printTraceback()
+		return failure
 
-	def _makeTable(self, request, data):
-		tablemaker = votable.VOTableMaker({
-			True: "td",
-			False: "binary"}[data.queryMeta["tdEnc"]])
-		vot = tablemaker.makeVOT(data)
-		f = cStringIO.StringIO()
-		tablemaker.writeVOT(vot, f)
-		request.write(f.getvalue())
-		request.finish()
 
 
 def _formBehaviour_renderHTTP(self, ctx):
@@ -157,7 +197,7 @@ def _formBehaviour_renderHTTP(self, ctx):
 class Form(formal.ResourceMixin, ResourceBasedRenderer):
 	"""is a page that provides a search form for the selected service.
 	"""
-	def __init__(self, serviceParts):
+	def __init__(self, ctx, serviceParts):
 		super(Form, self).__init__(serviceParts)
 		if self.service.get_template("form"):
 			self.customTemplate = os.path.join(self.rd.get_resdir(),
@@ -188,9 +228,7 @@ class Form(formal.ResourceMixin, ResourceBasedRenderer):
 		if isinstance(self.service.get_core(), standardcores.DbBasedCore):
 			form.addField("_DBOPTIONS", gwidgets.FormalDict,
 				formal.widgetFactory(gwidgets.DbOptions, self.service),
-				label="Table", description="Sort keys are only relevant for HTML"
-					" output.  Queries hitting the match limit are only reproducible"
-					" with sorting.")
+				label="Table")
 		form.addField("_OUTPUT", gwidgets.FormalDict, 
 			gwidgets.OutputOptions, label="Output format")
 		form.addAction(self.submitAction, label="Go")
@@ -208,10 +246,10 @@ class Form(formal.ResourceMixin, ResourceBasedRenderer):
 		queryMeta = common.QueryMeta(data)
 		d = defer.maybeDeferred(self.service.getInputData, data
 			).addCallback(self._formatResult, queryMeta
-			).addErrback(self._handleInputError, queryMeta)
+			).addErrback(self._handleInputError, ctx, queryMeta)
 		return d
 
-	def _handleInputError(self, failure, queryMeta):
+	def _handleInputError(self, failure, ctx, queryMeta):
 		if isinstance(failure.value, formal.FormError):
 			self.form.errors.add(failure.value)
 		elif isinstance(failure.value, gavo.ValidationError):
@@ -229,7 +267,8 @@ class Form(formal.ResourceMixin, ResourceBasedRenderer):
 		if format=="HTML":
 			return HtmlResponse(self.serviceParts, inputData, queryMeta)
 		elif format=="VOTable":
-			return VOTableResponse(self.serviceParts, inputData, queryMeta)
+			res = VOTableResponse(self.serviceParts, inputData, queryMeta)
+			return res
 		else:
 			raise Error("Invalid output format: %s"%format)
 

@@ -118,6 +118,8 @@ class StreamEncoder(GenericEncoder):
             padding = [None]
         if length=="*":
             def encoder(data):
+                if data is None:
+                    data = ""
                 l = len(data)
                 return struct.pack("!i%d%s"%(l, typeCode), l,
                     *data)
@@ -200,6 +202,11 @@ class StreamEncoder(GenericEncoder):
 
 
     def encode(self, fields, data):
+        """returns data as base64 encoded STREAM element.
+
+        Fields must not be empty.  You have to make sure that whatever
+        makes your TABLE elements won't try to make empty ones.
+        """
         encSrc, encFunc = self._makeEncodingFunc(fields)
         try:
             encodedData = "".join([encFunc(row) for row in data])

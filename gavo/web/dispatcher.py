@@ -1,6 +1,5 @@
 """
-Dispatcher and much that should go in different modules for the new
-nevow-based web interface.
+The dispatcher for the new nevow-based web interface.
 """
 
 
@@ -32,6 +31,7 @@ from gavo.parsing import importparser
 from gavo.web import common
 from gavo.web import product
 from gavo.web import resourcebased
+from gavo.web import siapservice
 
 from gavo.web.common import Error, UnknownURI
 
@@ -102,6 +102,7 @@ class ErrorPage(ErrorPageDebug):
 
 renderClasses = {
 	"form": resourcebased.Form,
+	"siap": siapservice.SiapService,
 	"getproduct": product.Product,
 	"debug": DebugPage,
 }
@@ -145,8 +146,8 @@ class ArchiveService(rend.Page, common.GavoRenderMixin):
 			
 			act = segments[-1]
 			try:
-				res = renderClasses[act](segments[:-1])
-			except UnknownURI:
+				res = renderClasses[act](ctx, segments[:-1])
+			except (UnknownURI, KeyError):
 				res = None
 		return res, ()
 
@@ -158,5 +159,4 @@ from gavo import nullui
 config.setDbProfile("querulator")
 
 appserver.DefaultExceptionHandler = ErrorPageDebug
-root = ArchiveService()
-# wsgiApp = wsgi.createWSGIApplication(root)
+#root = ArchiveService()

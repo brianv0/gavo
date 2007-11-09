@@ -2,13 +2,19 @@
 Tests for resource descriptor handling
 """
 
-import unittest
+import cStringIO
 import os
+import unittest
 
-import gavo
 from gavo import config
-import gavo.parsing
+from gavo import datadef
+from gavo import nullui
+from gavo.parsing import columngrammar
 from gavo.parsing import importparser
+from gavo.parsing import meta
+from gavo.parsing import resource
+import gavo
+import gavo.parsing
 
 gavo.parsing.verbose = True
 
@@ -28,6 +34,18 @@ class MetaTest(unittest.TestCase):
 		self.assert_(str(recDef.getMeta("test.fromConfig")), "from Config")
 		self.assertEqual(recDef.getMeta("test.doesNotExist"), None)
 
+	def testComplexMeta(self):
+		"""tests for handling of complex meta items.
+		"""
+		data = self.rd.getDataById("metatest")
+		data.addMeta(name="testStatus", content=meta.InfoItem(
+			"OK", "I'm so well I could cry"))
+		self.assert_(isinstance(data.getMeta("testStatus").content, meta.InfoItem))
+		self.assertEqual(data.getMeta("testStatus").content.value, "OK")
+		self.assertEqual(data.getMeta("testStatus").content.content, 
+			"I'm so well I could cry")
+		self.assertEqual(str(data.getMeta("testStatus")),
+			"I'm so well I could cry")
 
 class ValidationTest(unittest.TestCase):
 	"""Test for validation of values.
@@ -80,7 +98,28 @@ class ValidationTest(unittest.TestCase):
 		self.assert_(recDef.validate(rec)==None)
 
 
+class SimpleDataTest(unittest.TestCase):
+	"""Test for building of simple tables.
+	"""
+	def setUp(self):
+		self.rd = importparser.getRd(os.path.abspath("test.vord"))
 	
+	def testEmptySimpleDataDesc(self):
+		dataDesc = resource.makeSimpleDataDesc(self.rd, [])
+		self.assertEqual(str(dataDesc.getMeta("test.inRd")), "from Rd")
+
+	def testSimpleDataDescWithParse(self):
+		dataDesc = resource.makeSimpleDataDesc(self.rd, [
+			datadef.DataField(dest="foo", source="1-4"),
+			datadef.DataField(dest="bar", source="5-7")])
+		dataDesc.set_Grammar(columngrammar.ColumnGrammar())
+		inData = resource.InternalDataSet(dataDesc, 
+			dataSource=cStringIO.StringIO("12.35.3\n0.120.7\n"))
+		self.assertAlmostEqual(inData.getPrimaryTable().rows[0]["foo"], 12.3)
+		outData = resource.parseFromTable([
+			datadef.DataField(dest="baz", source="bar")],
+			inData)
+		self.assertAlmostEqual(outData.getPrimaryTable().rows[0]["baz"], 5.3)
 
 if __name__=="__main__":
 	unittest.main()

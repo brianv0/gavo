@@ -7,3 +7,6 @@ class NullGrammar(grammar.Grammar):
 	"""
 	def __init__(self):
 		grammar.Grammar.__init__(self, {})
+	
+	def parse(self, *args):
+		pass

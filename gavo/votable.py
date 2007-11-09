@@ -40,6 +40,7 @@ from gavo.imp.VOTable import Writer
 from gavo.imp.VOTable.DataModel import *
 from gavo.imp.VOTable import Encoders
 from gavo.imp.VOTable.Writer import namespace
+from gavo.parsing import meta
 
 
 class Error(Exception):
@@ -679,6 +680,9 @@ class VOTableMaker:
 		"""adds info item "name" containing content having value to node
 		unless both content and value are empty.
 		"""
+		if isinstance(content, meta.MetaItem) and isinstance(content.content,
+				meta.InfoItem):
+			content, value = content.content.content, content.content.value
 		if content or value:
 			i = Info(name=name, text=content)
 			i.value = value
@@ -719,6 +723,7 @@ class VOTableMaker:
 		res.description = dataSet.getMeta("description", propagate=False)
 		foo = dataSet.getMeta("_legal") 
 		self._addInfo("legal", dataSet.getMeta("_legal"), res)
+		self._addInfo("QUERY_STATUS", dataSet.getMeta("_query_status"), res)
 		self._addLink(dataSet.getMeta("_infolink"), res)
 
 	def _makeResource(self, dataSet):
@@ -727,7 +732,8 @@ class VOTableMaker:
 		res = Resource()
 		self._addResourceMeta(res, dataSet)
 		for table in dataSet.getTables():
-			res.tables.append(self._makeTable(res, table))
+			if table.rows and table.getFieldDefs():
+				res.tables.append(self._makeTable(res, table))
 		return res
 
 	def _setGlobalMeta(self, vot, dataSet):

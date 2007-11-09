@@ -43,7 +43,7 @@ class Product(standardcores.DbBasedCore):
 
 	implements(inevow.IResource)
 
-	def __init__(self, segments):
+	def __init__(self, ctx, segments):
 		self.rd = resourcecache.getRd("products/products")
 		origDD = self.rd.getDataById("data")
 		inputDef = resource.RecordDef()

@@ -1,5 +1,5 @@
 """
-This module contains code defining and processing resources.
+This module contains classes defining, processing and containing resources.
 """
 
 import os
@@ -23,6 +23,7 @@ from gavo.datadef import DataField
 from gavo.parsing import meta
 from gavo.parsing import typeconversion
 from gavo.parsing import tablegrammar
+from gavo.parsing import nullgrammar
 from gavo.parsing import parsehelpers
 
 class Error(gavo.Error):
@@ -395,7 +396,7 @@ class InternalDataSet(DataSet):
 	a sequence of table ids -- if this is given, only the specified tables
 	are built.
 	"""
-	def __init__(self, dataDescriptor, tableMaker, dataSource, 
+	def __init__(self, dataDescriptor, tableMaker=table.Table, dataSource=None, 
 			tablesToBuild=[]):
 		self.dataSource = dataSource
 		DataSet.__init__(self, dataDescriptor, tableMaker, 
@@ -646,9 +647,30 @@ def parseFromTable(tableDef, inputData, rd=None):
 	if rd is None:
 		rd = ResourceDescriptor()
 		rd.set_resdir("NULL")
-	dataDesc = datadef.DataTransformer(rd, initvals={
-		"id": "invalid",
-		"Grammar": tablegrammar.TableGrammar(),
-		"Semantics": Semantics(initvals={
-			"recordDefs": [tableDef]})})
-	return InternalDataSet(dataDesc, table.Table, inputData)
+	dataDesc = makeSimpleDataDesc(rd, tableDef)
+	dataDesc.set_Grammar(tablegrammar.TableGrammar())
+	return InternalDataSet(dataDesc, dataSource=inputData)
+
+
+def makeSimpleDataDesc(rd, tableDef):
+	"""returns a simple DataTransformer item with fields in the primary table
+	definition.
+
+	There is a NullGrammar on what's returned, so you'll probably want to 
+	override that.
+	"""
+	dd = datadef.DataTransformer(rd, initvals={
+		"Grammar": nullgrammar.NullGrammar(),
+		"Semantics": Semantics(
+				initvals={
+					"recordDefs": [
+						RecordDef(initvals={
+							"table": None,
+							"items": tableDef,
+						})
+					]
+			 })
+		})
+	dd.set_id(str(id(dd)))
+	return dd
+

@@ -44,7 +44,7 @@ function makeQueryItem(element) {
 	switch (element.nodeName) {
 		case "INPUT":
 			if (element.name && element.value) {
-				val = element.name+"="+encodeURI(element.value);
+				val = element.name+"="+encodeURIComponent(element.value);
 			}
 			break;
 		case "SELECT":
@@ -126,7 +126,7 @@ class OutputOptions(object):
 			data=[("1","1"), ("2","2"), ("3","3")])[
 				getOptionRenderer(verbosity)]
 		tdEncEl = T.input(type="checkbox", id=render_cssid(key, "_TDENC"),
-			name="TDENC", class_="field boolean checkbox", value="True",
+			name="_TDENC", class_="field boolean checkbox", value="True",
 			style="width: auto")
 		if tdEnc:
 			tdEncEl(checked="checked")
@@ -188,7 +188,7 @@ class OutputOptions(object):
 
 	def processInput(self, ctx, key, args):
 		value = self._getArgDict(key, args)
-		if not value["format"] in ["HTML", "VOTable", "VOPlot"]:
+		if not value["format"] in ["HTML", "VOTable", "VOPlot", ""]:
 			raise validation.FieldValidationError("Unsupported output format")
 		try:
 			if not 1<=int(value["verbosity"])<=3:

@@ -6,6 +6,7 @@ See develNotes for info on our SIAP implementation
 
 import math
 
+import gavo
 from gavo import coords
 from gavo import simbadinterface
 from gavo import utils
@@ -219,8 +220,16 @@ def getBboxQuery(parameters, prefix="sia"):
 	try:
 		ra, dec = map(float, parameters["POS"].split(","))
 	except (ValueError, TypeError):
-		ra, dec = simbadinterface.getSimbadPositions(parameters["POS"])
-	sizes = map(float, parameters["SIZE"].split(","))
+		try:
+			ra, dec = simbadinterface.getSimbadPositions(parameters["POS"])
+		except KeyError:
+			raise gavo.ValidationError("%s is neither a RA,DEC nor a simbad"
+				" resolvable object"%parameters["POS"], "POS")
+	try:
+		sizes = map(float, parameters["SIZE"].split(","))
+	except ValueError:
+		raise gavo.ValidationError("Size specification has to be <degs> or"
+			" <degs>,<degs>", "SIZE")
 	if len(sizes)==1:
 		sizes = sizes*2
 	bbox = getBboxFromSiapPars((ra, dec), sizes)
