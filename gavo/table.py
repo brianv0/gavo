@@ -188,6 +188,9 @@ class Table(RecordBasedTable):
 
 	Basically, you fill in data and then call exportToSQL.
 	"""
+	dbConnection = None
+	create = True
+
 #XXX TODO: nuke metaOnly from constructor and move it to exportToSQL
 	def __init__(self, dataSet, recordDef, metaOnly=False):
 		self.metaOnly = metaOnly
@@ -224,10 +227,11 @@ class Table(RecordBasedTable):
 	def _getOwnedTableWriter(self, schema):
 		tableName = "%s.%s"%(schema, self.recordDef.get_table())
 		tableExporter = sqlsupport.TableWriter(tableName,
-			self.recordDef.get_items())
+			self.recordDef.get_items(), self.dbConnection)
 		tableExporter.ensureSchema(schema)
-		tableExporter.createTable(create=self.recordDef.get_create(),
-			privs=self.recordDef.get_create())
+		if self.create:
+			tableExporter.createTable(create=self.recordDef.get_create(),
+				privs=self.recordDef.get_create())
 		return tableExporter
 
 	def _exportOwnedTable(self, schema):
@@ -248,11 +252,17 @@ class Table(RecordBasedTable):
 		"""
 		tableName = self.recordDef.get_table()
 		tableWriter = sqlsupport.TableWriter(tableName,
-			self.recordDef.get_items())
-		colName, colVal = self.recordDef.get_owningCondition()
-		tableWriter.deleteMatching((colName, parsehelpers.atExpand(
-			colVal, {}, self.dataSet.getDescriptor().getRD().get_atExpander())))
+			self.recordDef.get_items(), self.dbConnection)
+		if self.recordDef.get_owningCondition():
+			colName, colVal = self.recordDef.get_owningCondition()
+			tableWriter.deleteMatching((colName, parsehelpers.atExpand(
+				colVal, {}, self.dataSet.getDescriptor().getRD().get_atExpander())))
 		return tableWriter
+
+	def _getTableUpdater(self, schema):
+		tableName = "%s.%s"%(schema, self.recordDef.get_table())
+		return sqlsupport.TableUpdater(tableName,
+			self.recordDef.get_items(), self.dbConnection)
 
 	def _exportSharedTable(self):
 		"""updates data owned by this data set.
@@ -291,13 +301,21 @@ class DirectWritingTable(Table):
 	Calling the finishBuild method is particularly important here -- if you
 	don't the table will remain empty.
 	"""
-	def __init__(self, dataSet, recordDef):
+	nUpdated = None
+	def __init__(self, dataSet, recordDef, dbConnection=None, create=True,
+			doUpdates=False):
+		self.create = create
+		self.dbConnection = dbConnection
 		Table.__init__(self, dataSet, recordDef)
-		if self.recordDef.get_shared():
-			self.tableWriter = self._getSharedTableWriter()
-		else:
-			self.tableWriter = self._getOwnedTableWriter(
+		if doUpdates:
+			self.tableWriter = self._getTableUpdater(
 				self.dataSet.getRd().get_schema())
+		else:
+			if self.recordDef.get_shared():
+				self.tableWriter = self._getSharedTableWriter()
+			else:
+				self.tableWriter = self._getOwnedTableWriter(
+					self.dataSet.getRd().get_schema())
 		self.feeder = self.tableWriter.getFeeder()
 
 	def getTableName(self):
@@ -307,7 +325,7 @@ class DirectWritingTable(Table):
 		self.feeder(record)
 
 	def finishBuild(self):
-		self.feeder.close()
+		self.nUpdated = self.feeder.close()
 		Table.finishBuild(self)
 
 	def exportToSql(self, schema):

@@ -32,6 +32,7 @@ from gavo.web import common
 from gavo.web import product
 from gavo.web import resourcebased
 from gavo.web import siapservice
+from gavo.web import uploadservice
 
 from gavo.web.common import Error, UnknownURI
 
@@ -104,6 +105,7 @@ renderClasses = {
 	"form": resourcebased.Form,
 	"siap": siapservice.SiapService,
 	"getproduct": product.Product,
+	"upload": uploadservice.Uploader,
 	"debug": DebugPage,
 }
 

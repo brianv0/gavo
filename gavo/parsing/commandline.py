@@ -75,6 +75,29 @@ def parseCmdline():
 	return opts, args
 
 
+def makeEllipsis(aStr, maxLen):
+	if len(aStr)>maxLen:
+		return aStr[:maxLen-3]+"..."
+	return aStr
+
+
+def displayError(exc):
+	if isinstance(exc, gavo.Error):
+		prefix = "*** Operation failed:"
+	else:
+		prefix = "*** Uncaught exception:"
+	if hasattr(exc, "gavoData"):
+		data = str(exc.gavoData)
+	else:
+		data = ""
+	msg = "%s: %s"%(prefix, str(exc))
+	gavo.logger.error(msg, exc_info=True)
+	sys.stderr.write("\n%s\nA traceback should be available in the log.\n"%(msg))
+	if data:
+		gavo.logger.error("Pertaining data: %s\n"%data)
+		sys.stderr.write("Pertaining data: %s\n"%makeEllipsis(data, 60))
+
+
 def main():
 	try:
 		processAll(*parseCmdline())
@@ -82,10 +105,5 @@ def main():
 		sys.exit(1)
 	except SystemExit, msg:
 		sys.exit(msg.code)
-	except gavo.Error, msg:
-		gavo.logger.error("Operation failed:", exc_info=True)
-		sys.stderr.write("Error: %s\n(more information may be available"
-			" in the log)"%msg)
 	except Exception, msg:
-		gavo.logger.error("Uncaught exception in gavoimp:", exc_info=True)
-		sys.stderr.write("Uncaught exception (see log for details): %s\n"%(msg))
+		displayError(msg)

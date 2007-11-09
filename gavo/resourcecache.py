@@ -12,17 +12,24 @@ from gavo import config
 
 
 class _DbConnection:
-	def __init__(self):
-		self.connPool = None
-	def getConnection(self):
-		if self.connPool==None:
-			profile = config.getDbProfile()
-			connStr = ("dbname='%s' port='%s' host='%s'"
-				" user='%s' password='%s'")%(profile.get_database(), 
-				profile.get_port(), profile.get_host(), profile.get_user(), 
-				profile.get_password())
-			self.connPool = adbapi.ConnectionPool("psycopg2", connStr)
-		return self.connPool
+	connPools = {}
+	def _makeConnPool(self, profile):
+		connStr = ("dbname='%s' port='%s' host='%s'"
+			" user='%s' password='%s'")%(profile.get_database(), 
+			profile.get_port(), profile.get_host(), profile.get_user(), 
+			profile.get_password())
+		return adbapi.ConnectionPool("psycopg2", connStr)
+
+# XXX ugly -- if the default profile changes, we'd have to delete
+# connPools[None] but we don't...
+	def getConnection(self, profileName=None):
+		if not self.connPools.has_key(profileName):
+			if profileName:
+				profile = config.getDbProfileByName(profileName)
+			else:
+				profile = config.getDbProfile()
+			self.connPools[profileName] = self._makeConnPool(profile)
+		return self.connPools[profileName]
 _ = _DbConnection()
 getDbConnection = _.getConnection
 

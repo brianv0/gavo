@@ -78,6 +78,7 @@ class RdParser(utils.NodeBuilder):
 			"Data": lambda val:0,      # these register themselves
 			"Adapter": lambda val: 0,  # these register themselves
 			"Service": lambda val: 0,  # these register themselves
+			"property": lambda val: dd.register_property(*val),
 			"meta": self.rd.addMeta,
 		}, children)
 		# XXX todo: coordinate systems
@@ -100,6 +101,7 @@ class RdParser(utils.NodeBuilder):
 			"Macro": dd.addto_macros,
 			"Grammar": dd.set_Grammar,
 			"meta": dd.addMeta,
+			"property": lambda val: dd.register_property(*val),
 		}, children)
 	
 	def _fillGrammarNode(self, grammar, attrs, children, classHandlers):
@@ -376,6 +378,9 @@ class RdParser(utils.NodeBuilder):
 		if len(children)!=1 or children[0][0]!=None:
 			raise Error("%s nodes have text content only"%name)
 		return children[0][1]
+
+	def _make_property(self, name, attrs, children):
+		return (attrs["name"], self._makeTextNode(name, attrs, children))
 
 	_make_rules = \
 	_make_documentProduction = \

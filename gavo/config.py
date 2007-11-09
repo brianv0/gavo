@@ -323,16 +323,21 @@ class Settings:
 				self.get("db", "profilePath"))
 		return self.__profileParser
 
-	def setDbProfile(self, profileName):
+	def getDbProfileByName(self, profileName):
 		if not self.dbProfileCache.has_key(profileName):
 			try:
 				self.dbProfileCache[profileName] = self._getProfileParser().parse(
 					self.get("profiles", profileName))
 			except ConfigParser.NoOptionError:
 				raise Error("Undefined DB profile: %s"%profileName)
-		self.dbProfile = self.dbProfileCache[profileName]
+		return self.dbProfileCache[profileName]
+
+	def setDbProfile(self, profileName):
+		self.dbProfile = self.getDbProfileByName(profileName)
 
 	def getDbProfile(self):
+		"""returns the *default* db profile.
+		"""
 		if not hasattr(self, "dbProfile"):
 			raise Error("Attempt to access database without having set a profile")
 		return self.dbProfile
@@ -344,6 +349,7 @@ getMeta = _config.getMeta
 setMeta = _config.setMeta
 setDbProfile = _config.setDbProfile
 getDbProfile = _config.getDbProfile
+getDbProfileByName = _config.getDbProfileByName
 
 
 def _test():

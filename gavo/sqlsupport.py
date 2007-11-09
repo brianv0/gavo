@@ -209,12 +209,18 @@ class _Feeder:
 		self.feedCommand = feedCommand
 	
 	def __call__(self, data):
-		self.cursor.execute(self.feedCommand, data)
+		try:
+			self.cursor.execute(self.feedCommand, data)
+		except Exception, exc:
+			exc.gavoData = data
+			raise
 	
 	def close(self):
 		self.commitFunc()
+		nAffected = self.cursor.rowcount
 		self.cursor.close()
 		self.cursor = None
+		return nAffected
 	
 	def __del__(self):
 		if self.cursor is not None:
@@ -294,8 +300,11 @@ class TableWriter(StandardQueryMixin):
 	The table definition is through a sequence of datadef.DataField
 	instances.
 	"""
-	def __init__(self, tableName, fields):
-		self.connection = getDbConnection(config.getDbProfile())
+	def __init__(self, tableName, fields, dbConnection=None):
+		if dbConnection:
+			self.connection = dbConnection
+		else:
+			self.connection = getDbConnection(config.getDbProfile())
 			
 		self.tableName = tableName
 		self.fields = fields
@@ -442,6 +451,27 @@ class TableWriter(StandardQueryMixin):
 	def finalizeFeeder(self):
 		self.makeIndices()
 		self.connection.commit()
+
+
+class TableUpdater(TableWriter):
+	"""is a TableWriter that does update request rather than insers on
+	feed.
+	"""
+# XXX TODO: refactor so TableWriter and this have a common base class
+	def getFeeder(self):
+		"""returns a callable object that takes dictionaries that will
+		replace records with the same primary key.
+		"""
+		self.dropIndices()
+		primaryCols = [field.get_dest()
+			for field in self.fields if field.get_primary()]
+		cmdString = "UPDATE %s SET %s WHERE %s"%(
+			self.tableName,
+			", ".join(["%s=%%(%s)s"%(f.get_dest(), f.get_dest())
+				for f in self.fields]),
+			" AND ".join(["%s=%%(%s)s"%(n, n) for n in primaryCols]))
+		return _Feeder(self.connection.cursor(), self.finalizeFeeder,
+			cmdString)
 
 
 class SimpleQuerier(StandardQueryMixin):

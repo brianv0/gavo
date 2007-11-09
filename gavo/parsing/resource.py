@@ -359,6 +359,9 @@ class DataSet(meta.MetaMixin):
 	def getDescriptor(self):
 		return self.dD
 
+	def getRd(self):
+		return self.dD.getRD()
+
 	def updateDocRec(self, docRec):
 		self.docRec.update(docRec)
 
@@ -401,7 +404,7 @@ class InternalDataSet(DataSet):
 		self.dataSource = dataSource
 		DataSet.__init__(self, dataDescriptor, tableMaker, 
 			tablesToBuild=tablesToBuild)
-	
+
 	def _iterParseContexts(self):
 		literalParser = typeconversion.LiteralParser(self.dD.get_encoding())
 		yield ParseContext(self.dataSource, self.dD.get_Grammar(), self,
@@ -563,6 +566,7 @@ class ResourceDescriptor(record.Record, meta.MetaMixin):
 			"profile": None,   # override db profile used to create resource
 			"atExpander": parsehelpers.RDComputer(self),
 			"systems": coords.CooSysRegistry(),
+			"property": record.DictField,
 		}, initvals)
 		
 	def set_resdir(self, relPath):
@@ -620,6 +624,7 @@ class DataDescriptor(datadef.DataTransformer):
 				"computer": None,  # rootdir-relative path of an executable producing 
 				                   # the data
 				"name": None,      # a terse human-readable description of this data
+				"property": record.DictField,
 			},
 			initvals=initvals)
 

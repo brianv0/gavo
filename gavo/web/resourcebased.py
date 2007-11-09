@@ -33,19 +33,42 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 		common.GavoRenderMixin):
 	"""is a page based on a resource descriptor.
 
-	It is constructed with service parts of the form path/to/rd/service_name
+	It is constructed with service parts of the form path/to/rd/sub_id
+
+	It leaves the resource descriptor in the rd attribute, and the sub_id
+	(which is usually a service or data id) in the subId attribute.
 	"""
 	def __init__(self, serviceParts):
 		self.serviceParts = serviceParts
-		descriptorId, serviceId = common.parseServicePath(serviceParts)
+		descriptorId, self.subId = common.parseServicePath(serviceParts)
 		self.rd = resourcecache.getRd(descriptorId)
-		if not self.rd.has_service(serviceId):
-			raise common.UnknownURI("The service %s is not defined"%serviceId)
-		self.service = self.rd.get_service(serviceId)
 		super(ResourceBasedRenderer, self).__init__()
 
 
-class BaseResponse(ResourceBasedRenderer):
+class ServiceBasedRenderer(ResourceBasedRenderer):
+	"""is a resource based renderer using subId as a service id.
+
+	These have the Service instance they should use in the service attribute.
+	"""
+	def __init__(self, serviceParts):
+		super(ServiceBasedRenderer, self).__init__(serviceParts)
+		if not self.rd.has_service(self.subId):
+			raise common.UnknownURI("The service %s is not defined"%self.subId)
+		self.service = self.rd.get_service(self.subId)
+
+
+class DataBasedRenderer(ResourceBasedRenderer):
+	"""is a resource based renderer using subId as a data id.
+
+	These have the DataDescriptor instance they should operate on
+	in the dataDesc attribute.
+	"""
+	def __init__(self, serviceParts):
+		super(DataBasedRenderer, self).__init__(serviceParts)
+		self.dataDesc = self.rd.getDataById(self.subId)
+
+
+class BaseResponse(ServiceBasedRenderer):
 	"""is a base class for renderers rendering responses to standard
 	service queries.
 	"""
@@ -179,6 +202,34 @@ class VOTableResponse(BaseResponse):
 		return failure
 
 
+class GavoFormMixin(formal.ResourceMixin, object):
+	"""is a mixin providing some desirable common behaviour for formal forms
+	in the context of the archive service.
+	"""
+	def translateFieldName(self, name):
+		"""returns the "root" source of errors in name.
+
+		service.translateFieldName is a possible source of this data.
+
+		You'll need to override this method in deriving classes that
+		have fields derived from others.
+		"""
+		return name
+
+	def _handleInputError(self, failure, ctx, queryMeta):
+		"""goes as an errback to form handling code to allow correction form
+		rendering at later stages than validation.
+		"""
+		if isinstance(failure.value, formal.FormError):
+			self.form.errors.add(failure.value)
+		elif isinstance(failure.value, gavo.ValidationError):
+			self.form.errors.add(formal.FieldValidationError(str(failure.value),
+				self.translateFieldName(failure.value.fieldName)))
+		else:
+			failure.printTraceback()
+			raise failure.value
+		return self.form.errors
+
 
 def _formBehaviour_renderHTTP(self, ctx):
 	# This function is monkeypatched into the resource.__behaviour to
@@ -194,7 +245,7 @@ def _formBehaviour_renderHTTP(self, ctx):
 	return d
 
 
-class Form(formal.ResourceMixin, ResourceBasedRenderer):
+class Form(GavoFormMixin, ServiceBasedRenderer):
 	"""is a page that provides a search form for the selected service.
 	"""
 	def __init__(self, ctx, serviceParts):
@@ -202,6 +253,9 @@ class Form(formal.ResourceMixin, ResourceBasedRenderer):
 		if self.service.get_template("form"):
 			self.customTemplate = os.path.join(self.rd.get_resdir(),
 				self.service.get_template("form"))
+
+	def translateFieldName(self, name):
+		return self.service.translateFieldName(name)
 
 	def form_genForm(self, ctx=None, data={}):
 		form = formal.Form()
@@ -249,16 +303,6 @@ class Form(formal.ResourceMixin, ResourceBasedRenderer):
 			).addErrback(self._handleInputError, ctx, queryMeta)
 		return d
 
-	def _handleInputError(self, failure, ctx, queryMeta):
-		if isinstance(failure.value, formal.FormError):
-			self.form.errors.add(failure.value)
-		elif isinstance(failure.value, gavo.ValidationError):
-			self.form.errors.add(formal.FieldValidationError(str(failure.value),
-				self.service.translateFieldName(failure.value.fieldName)))
-		else:
-			failure.printTraceback()
-			raise failure.value
-		return self.form.errors
 
 	# XXX TODO: add a custom error self._handleInputError(failure, queryMeta)
 	# to catch FieldErrors and display a proper form on such errors.
