@@ -1,0 +1,10 @@
+This directory contains some scripts used outside of the gavo library 
+proper that we believe are a bit more than ephemeral hacks (but usually
+not much more either:-)
+
+They should contain their location in a "structured" comment in the head
+-- maybe at some point I'll do some automated deployment/retrieval
+of these things.  This should look like this:
+
+# ** ARI-Location: alnilam:/data/gavo/inputs/rauchspectra/bin/uploadspec.py
+

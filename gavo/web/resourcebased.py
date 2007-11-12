@@ -216,7 +216,7 @@ class GavoFormMixin(formal.ResourceMixin, object):
 		"""
 		return name
 
-	def _handleInputError(self, failure, ctx, queryMeta):
+	def _handleInputError(self, failure, ctx):
 		"""goes as an errback to form handling code to allow correction form
 		rendering at later stages than validation.
 		"""
@@ -300,11 +300,11 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		queryMeta = common.QueryMeta(data)
 		d = defer.maybeDeferred(self.service.getInputData, data
 			).addCallback(self._formatResult, queryMeta
-			).addErrback(self._handleInputError, ctx, queryMeta)
+			).addErrback(self._handleInputError, ctx)
 		return d
 
 
-	# XXX TODO: add a custom error self._handleInputError(failure, queryMeta)
+	# XXX TODO: add a custom error self._handleInputError(failure, ctx)
 	# to catch FieldErrors and display a proper form on such errors.
 	def _formatResult(self, inputData, queryMeta):
 		format = queryMeta["format"]

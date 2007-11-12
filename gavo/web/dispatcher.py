@@ -38,11 +38,11 @@ from gavo.web.common import Error, UnknownURI
 
 
 class DebugPage(rend.Page):
-	def __init__(self, *args, **kwargs):
+	def __init__(self, ctx, *args, **kwargs):
 		self.args, self.kwargs = args, kwargs
 
 	def data_args(self, ctx, data):
-		return self.args
+		return tuple((k, str(v)) for k, v in inevow.IRequest(ctx).args.iteritems())
 
 	docFactory = loaders.stan(T.html[
 		T.head[
@@ -106,6 +106,7 @@ renderClasses = {
 	"siap": siapservice.SiapService,
 	"getproduct": product.Product,
 	"upload": uploadservice.Uploader,
+	"mupload": uploadservice.MachineUploader,
 	"debug": DebugPage,
 }
 

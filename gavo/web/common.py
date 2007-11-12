@@ -5,9 +5,15 @@ Common functions and classes for gavo web interfaces.
 import re
 import os
 
+import formal
+
 from nevow import tags as T, entities as E
 from nevow import loaders
 from nevow import inevow
+from nevow import util as nevowutil
+
+from twisted.python import failure
+from twisted.internet import defer
 
 from zope.interface import implements
 
@@ -141,6 +147,78 @@ def parseServicePath(serviceParts):
 	return "/".join(serviceParts[:-1]), serviceParts[-1]
 
 
+class CustomErrorMixin:
+	"""is a mixin for renderers containing formal forms to emit
+	custom error messages.
+
+	This mixin expects to see "the" form as self.form and relies on
+	the presence of a method _generateForm that arranges for that .
+	This can usually be an alias for the form_xy method you need for
+	formal (we actually pass a nevow context object to that function),
+	but make sure you actually set self.form in there.
+
+	You furthermore need to define methods:
+
+	* _getInputData -- receives the form data and returns something
+	* _handleInputData -- receives the result of _getInputData and the context
+	  and returns something renderable (the result of renderHTTP)
+	
+	Both may return deferreds.
+	"""
+	implements(inevow.ICanHandleException)
+
+	def renderHTTP(self, ctx):
+		# This is mainly an extract of what we need of formal.Form.process
+		# generate the form
+		try:
+			self._generateForm(ctx)
+			request = inevow.IRequest(ctx)
+			charset = nevowutil.getPOSTCharset(ctx)
+			# Get the request args and decode the arg names
+			args = dict([(k.decode(charset),v) for k,v in request.args.items()])
+			self.form.errors.data = args
+			# Iterate the items and collect the form data and/or errors.
+			for item in self.form.items:
+				item.process(ctx, self.form, args, self.form.errors)
+			# format validation errors
+			if self.form.errors:
+				return self._handleInputErrors(self.form.errors.errors, ctx)
+			return defer.maybeDeferred(self._getInputData, self.form.data
+				).addCallback(self._handleInputData, ctx
+				).addErrback(self._handleError, ctx)
+		except:
+			return self.renderHTTP_exception(ctx, failure.Failure())
+
+	def renderHTTP_exception(self, ctx, failure):
+		"""override for to emit custom errors for general failures.
+
+		You'll usually want to do all writing yourself, finishRequest(False) your
+		request and return appserver.errMarker here.
+		"""
+		failure.printTraceback()
+
+	def _handleInputErrors(self, errors, ctx):
+		"""override to emit custom error messages for formal validation errors.
+		"""
+		if isinstance(errors, formal.FormError):
+			msg = "Error(s) in given Parameters: %s"%"; ".join(
+				[str(e) for e in errors])
+		else:
+			try:
+				msg = errors.getErrorMessage()
+			except AttributeError:
+				msg = str(errors)
+		return msg
+
+	def _handleError(self, failure, ctx):
+		"""use or override this to handle errors occurring during processing
+		"""
+		if isinstance(failure.value, gavo.ValidationError):
+			return self._handleInputErrors(["Parameter %s: %s"%(
+				failure.value.fieldName, failure.getErrorMessage())], ctx)
+		return self.renderHTTP_exception(ctx, failure)
+
+
 class GavoRenderMixin(object):
 	"""is a mixin that allows inclusion of meta information.
 
@@ -258,7 +336,6 @@ class CoreResult(object):
 
 	def child(self, ctx, name):
 		return getattr(self, "data_"+name)(ctx)
-
 
 
 class CustomTemplateMixin(object):
