@@ -57,7 +57,7 @@ class Product(standardcores.DbBasedCore):
 				"recordDefs": [inputDef]}),
 			"id": "<generated>",
 		})
-		self.queryMeta = common.QueryMeta({})
+		self.queryMeta = common.QueryMeta(ctx)
 		self.queryMeta["format"] = "internal"
 		
 	def locateChild(self, ctx, segments):
@@ -82,7 +82,7 @@ class Product(standardcores.DbBasedCore):
 		if "sra" in sqlPars:
 			return self._deliverCutout(sqlPars, ctx, item)
 		else:
-			return self._deliverFileAsIs(self, ctx, item)
+			return self._deliverFileAsIs(ctx, item)
 
 	def _makeFitsRequest(self, ctx, fName, fSize):
 		request = inevow.IRequest(ctx)
@@ -127,10 +127,13 @@ class Product(standardcores.DbBasedCore):
 			os.path.getsize(targetPath))
 		if request.method == 'HEAD':
 			return ''
-		static.FileTransfer(open(targetPath, "r"), fsize, request)
+		static.FileTransfer(open(targetPath, "r"), os.path.getsize(targetPath), 
+			request)
 		return request.deferred
 	
 	def run(self, ctx, queryMeta):
+		# Note that ctx.arg only returns the first arg of a name, but that's what
+		# we want here
 		sqlPars = dict([(k, v[0]) 
 			for k, v in cgi.parse_qs("key="+ctx.arg("key")).items()])
 		return self.runDbQuery("key=%(key)s", sqlPars, 
@@ -139,8 +142,6 @@ class Product(standardcores.DbBasedCore):
 			lambda f: f)
 
 	def renderHTTP(self, ctx):
-		# Note that ctx.arg only returns the first arg of a name, but that's what
-		# we want here
-		queryMeta = common.QueryMeta(inevow.IRequest(ctx).args)
+		queryMeta = common.QueryMeta(ctx)
 		return self.run(ctx, queryMeta)
 	

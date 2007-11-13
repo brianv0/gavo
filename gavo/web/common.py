@@ -19,6 +19,8 @@ from zope.interface import implements
 
 import gavo
 from gavo import config
+from gavo import record
+
 
 class Error(gavo.Error):
 	pass
@@ -250,38 +252,66 @@ class GavoRenderMixin(object):
 
 
 class QueryMeta(dict):
-	"""is a class keeping all data *about* a query, e.g., the requested
-	output format.
+	"""is a class keeping all data *about* a query, e.g., the
+	requested output format.
 
-	It is constructed with the dictionary-like thing mapping keys from
-	the qwidget.OutputOptions (and possibly more) to their values.
-	If you pass an empty dict, some safe defaults will be used.
+	It is constructed with either a nevow context (we'll look
+	at the args of the embedded request) or a plain dictionary.  Note,
+	however, that the values obtained from the net must be in *sequences*
+	(of course, they're usually length 1).  This is what IRequest delivers,
+	and there's no sense in special-casing this, even more since having
+	a sequence might come in handy at some point (e.g., for sort keys).
+	If you pass an empty dict, some sane defaults will be used.  You
+	can get that "empty" query meta as common.emptyQueryMeta
+
+	Not all services need to interpret all meta items; e.g., things writing
+	fits files or VOTables only will ignore _FORMAT, and the dboptions
+	won't make sense for many applications.
+
+	If you're using nevow formal, you should set the formal_data item
+	to the dictionary created by formal.  This will let people use
+	the parsed parameters in templates.
 	"""
 
-	# a list of keys handled by query meta
-	metaKeys = ["_DBOPTIONS", "_FILTER", "_OUTPUT"]
+	# a list of keys handled by query meta to be ignored in parameter
+	# lists because they are used internally.  This covers everything 
+	# QueryMeta interprets, but also keys by introduced by certain gwidgets
+	# and the nevow infrastructure
+	metaKeys = set(["_DBOPTIONS", "_FILTER", "_OUTPUT", "_charset_",
+		"__nevow_form__", "_FORMAT", "_VERB", "_TDENC", "formal_data"])
 
-	def __init__(self, formData):
-		self.queryPars = formData
-		self._fillOutput(formData)
-		self._fillOutputFilter(formData)
-		self._fillDbOptions(formData)
+	def __init__(self, ctxArgs):
+		try:
+			ctxArgs = inevow.IRequest(ctxArgs).args
+		except TypeError:
+			pass
+		self._fillOutput(ctxArgs)
+		self._fillOutputFilter(ctxArgs)
+		self._fillDbOptions(ctxArgs)
 	
-	def _fillOutput(self, formData):
+	def _fillOutput(self, ctxArgs):
 		"""interprets values left by gwidget.OutputOptions.
 		"""
-		output = formData.get("_OUTPUT", {})
-		self["format"] = output.get("format", "VOTable")
-		self["verbosity"] = int(output.get("verbosity", '2'))*10
-		self["tdEnc"] = output.get("tdEnc", False)
+		self["format"] = ctxArgs.get("_FORMAT", ["VOTable"])[0]
+		try:
+			self["verbosity"] = int(ctxArgs.get("_VERB", ['2'])[0])*10
+		except ValueError:
+			self["verbosity"] = 20
+		try:
+			self["tdEnc"] = record.parseBooleanLiteral(
+				ctxArgs.get("tdEnc", ["False"])[0])
+		except gavo.Error:
+			self["tdEnc"] = False
 	
-	def _fillOutputFilter(self, formData):
-		self["outputFilter"] = formData.get("_FILTER", "default") or "default"
+	def _fillOutputFilter(self, ctxArgs):
+		self["outputFilter"] = ctxArgs.get("_FILTER", ["default"])[0] or "default"
 
-	def _fillDbOptions(self, formData):
-		dbOptions = formData.get("_DBOPTIONS", {})
-		self["dbLimit"] = dbOptions.get("limit", 100)
-		self["dbSortKey"] = dbOptions.get("order", None)
+	def _fillDbOptions(self, ctxArgs):
+		try:
+			self["dbLimit"] = int(ctxArgs.get("_DBOPTIONS_LIMIT", [100])[0])
+		except ValueError:
+			self["dbLimit"] = 100
+		self["dbSortKey"] = ctxArgs.get("_DBOPTIONS_ORDER", [None])[0]
 
 	def asSql(self):
 		"""returns the dbLimit and dbSortKey values as an SQL fragment.
@@ -289,7 +319,7 @@ class QueryMeta(dict):
 		frag, pars = [], {}
 		if self["dbSortKey"]:
 			# Ok, we need to do some emergency securing here.  There should be
-			# pre-validation that we're actually seeing column key, but
+			# pre-validation that we're actually seeing a column key, but
 			# just in case let's make sure we're seeing an SQL identifier.
 			# (We can't rely on dbapi's escaping since we're not talking values here)
 			key = re.sub("[^A-Za-z_]+", "", self["dbSortKey"])
@@ -299,6 +329,7 @@ class QueryMeta(dict):
 			pars["_matchLimit"] = self["dbLimit"]+1
 		return " ".join(frag), pars
 
+emptyQueryMeta = QueryMeta({})
 
 class CoreResult(object):
 	"""is a nevow.IContainer that has the result and also makes the input
@@ -308,7 +339,7 @@ class CoreResult(object):
 
 	def __init__(self, resultData, inputData, queryMeta):
 		self.original = resultData
-		self.queryPars = queryMeta.queryPars
+		self.queryPars = queryMeta.get("formal_data", {})
 		self.inputData = inputData
 		self.queryMeta = queryMeta
 		for n in dir(self.original):

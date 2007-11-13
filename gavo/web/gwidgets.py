@@ -13,6 +13,9 @@ from zope.interface import implements
 from formal.widget import *
 from formal import widgetFactory
 
+from gavo import record
+
+
 _linkGeneratingJs = """
 function getEnclosingForm(element) {
 // returns the form element immediately enclosing element.
@@ -197,10 +200,11 @@ class OutputOptions(object):
 		except ValueError:
 			raise validation.FieldValidationError("Verbosity must be between"
 					" 1 and 3")
-		if value["tdEnc"] not in ["True", "False", None]:
+		try:
+			value["tdEnc"] = record.parseBooleanLiteral(value["tdEnc"])
+		except gavo.Error:
 			raise validation.FieldValidationError("tdEnc can only be True"
 				" or False")
-		value["tdEnc"] = value["tdEnc"]=="True"
 		return value
 
 

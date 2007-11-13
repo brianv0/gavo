@@ -36,15 +36,16 @@ class SiapService(common.CustomErrorMixin, resourcebased.Form):
 		data = resource.InternalDataSet(dataDesc)
 		data.addMeta(name="_query_status", content=meta.InfoItem(
 			"ERROR", errmsg))
-# XXX TODO: See if there's any chance we can get at QueryMeta here.
-		result = common.CoreResult(data, {}, common.QueryMeta({}))
+		result = common.CoreResult(data, {}, common.QueryMeta(ctx))
 		return resourcebased.writeVOTable(request, result, votable.VOTableMaker())
 
 	def _getInputData(self, formData):
 		return self.service.getInputData(formData)
 
 	def _handleInputData(self, inputData, ctx):
-		return self.service.run(inputData, common.QueryMeta(self.form.data)
+		queryMeta = common.QueryMeta(ctx)
+		queryMeta["formal_data"] = self.form.data
+		return self.service.run(inputData, queryMeta
 			).addCallback(self._handleOutputData, ctx
 			).addErrback(self._handleError, ctx)
 

@@ -26,7 +26,7 @@ from gavo.web import htmltable
 from gavo.web import gwidgets
 from gavo.web import standardcores
 
-from gavo.web.common import Error
+from gavo.web.common import Error, UnknownURI
 
 
 class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page, 
@@ -41,7 +41,10 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 	def __init__(self, serviceParts):
 		self.serviceParts = serviceParts
 		descriptorId, self.subId = common.parseServicePath(serviceParts)
-		self.rd = resourcecache.getRd(descriptorId)
+		try:
+			self.rd = resourcecache.getRd(descriptorId)
+		except IOError:
+			raise UnknownURI("/".join(serviceParts))
 		super(ResourceBasedRenderer, self).__init__()
 
 
@@ -216,7 +219,7 @@ class GavoFormMixin(formal.ResourceMixin, object):
 		"""
 		return name
 
-	def _handleInputError(self, failure, ctx):
+	def _handleInputErrors(self, failure, ctx):
 		"""goes as an errback to form handling code to allow correction form
 		rendering at later stages than validation.
 		"""
@@ -297,14 +300,15 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		return super(Form, self).renderHTTP(ctx)
 
 	def submitAction(self, ctx, form, data):
-		queryMeta = common.QueryMeta(data)
+		queryMeta = common.QueryMeta(ctx)
+		queryMeta["formal_data"] = data
 		d = defer.maybeDeferred(self.service.getInputData, data
 			).addCallback(self._formatResult, queryMeta
-			).addErrback(self._handleInputError, ctx)
+			).addErrback(self._handleInputErrors, ctx)
 		return d
 
 
-	# XXX TODO: add a custom error self._handleInputError(failure, ctx)
+	# XXX TODO: add a custom error self._handleInputErrors(failure, ctx)
 	# to catch FieldErrors and display a proper form on such errors.
 	def _formatResult(self, inputData, queryMeta):
 		format = queryMeta["format"]

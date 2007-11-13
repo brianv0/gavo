@@ -33,6 +33,8 @@ def checkCredentials(user, password, reqGroup):
 	def queryGroups(dbRes):
 		"""receives the result of the query for the user password.
 		"""
+		if not dbRes or not dbRes[0]:
+			return False
 		dbPw = dbRes[0][0]
 		if dbPw!=password:
 			return False

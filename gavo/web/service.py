@@ -166,7 +166,7 @@ class Service(record.Record, meta.MetaMixin):
 				except AttributeError:
 					pass
 
-	def run(self, inputData, queryMeta=None):
+	def run(self, inputData, queryMeta=common.emptyQueryMeta):
 		"""runs the input filter, the core, and the output filter and returns a
 		deferred firing an adapted result table.
 
