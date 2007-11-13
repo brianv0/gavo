@@ -80,7 +80,8 @@ class DataField(record.Record):
 	def set_values(self, values):
 		# The values attribute needs to convert the literals it is constructed
 		# with to self's dbtype.
-		values.convert(self)
+		if values is not None:
+			values.convert(self)
 		self.dataStore["values"] = values
 
 	def getValueIn(self, aDict, atExpand=lambda val, _: val):

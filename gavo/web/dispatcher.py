@@ -103,7 +103,7 @@ class ErrorPage(ErrorPageDebug):
 
 renderClasses = {
 	"form": resourcebased.Form,
-	"siap": siapservice.SiapService,
+	"siap.xml": siapservice.SiapService,
 	"getproduct": product.Product,
 	"upload": uploadservice.Uploader,
 	"mupload": uploadservice.MachineUploader,

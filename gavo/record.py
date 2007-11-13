@@ -39,13 +39,13 @@ class ComputedField:
 
 
 class ListField:
-	"""is a sentinel class to signal a field that is a list and cannot
-	be assigned, just added to.
+	"""is a sentinel class to signal a field that is a list and
+	cannot be assigned, just added to.
 
-	List fields have no setter. They have a getter returning a list, and
-	an addto_<key> method that appends data to the list.
+	They have a getter returning a list, and an addto_<key> method
+	that appends data to the list.
 
-	Do not instantiate it.  Instances of the class are *never* used.
+	Do not instantiate it.	Instances of the class are *never* used.
 	"""
 	pass
 

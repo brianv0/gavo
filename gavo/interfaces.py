@@ -267,6 +267,7 @@ class BboxSiap(Interface):
 	* the values of the product interface.  Note that bboxSiap doesn't
 	  automatically enable products.  Maybe it should, but maybe we'll
 	  have more than one products interface...
+	* mimetype -- the mime type of the product.
 
 	Tables satisfying this interface can be used for bbox-based SIAP querying.
 
@@ -316,7 +317,7 @@ class BboxSiap(Interface):
 			{"dest": "pixelScale", "source": "pixelSize", "ucd": "VOX:Image_Scale",
 				"dbtype": "real[]", "verbLevel": 12},
 			{"dest": "imageFormat", "source": "imageFormat", "dbtype": "text",
-				"ucd": "VOX:Image_Format", "verbLevel": 20},
+				"ucd": "VOX:Image_Format", "verbLevel": 20, "default": "image/fits"},
 			{"dest": "refFrame", "source": "RADESYS", "dbtype": "text",
 				"ucd": "VOX:STC_CoordRefFrame", "verbLevel": 20},
 			{"dest": "wcs_equinox", "ucd": "VOX:STC_CoordEquinox",

@@ -593,6 +593,8 @@ class ColProperties(dict):
 			res[key] = self[key]
 		if self["arraysize"]!="1":
 			res["arraysize"] = self["arraysize"]
+		if self.has_key("value"):  # for PARAMs
+			res["value"] = str(self["value"])   # XXX TODO: use value mappers
 		self._addValuesKey(res)
 		return res
 
@@ -707,6 +709,13 @@ class VOTableMaker:
 			tableNode.fields.append(
 				Field(**colProp.getVOFieldArgs()))
 
+	def _defineParams(self, resourceNode, items, values):
+		for item in items:
+			cp = ColProperties(item)
+			if values.has_key(item.get_dest()):
+				cp["value"] = values[item.get_dest()]
+			resourceNode.params.append(Param(**cp.getVOFieldArgs()))
+				
 	def _makeTable(self, res, table):
 		"""returns a Table node for the table.Table instance table.
 		"""
@@ -730,9 +739,10 @@ class VOTableMaker:
 		"""returns a Resource node for dataSet.
 		"""
 		res = Resource()
+		self._defineParams(res, dataSet.getDocFields(), dataSet.getDocRec())
 		self._addResourceMeta(res, dataSet)
 		for table in dataSet.getTables():
-			if table.rows and table.getFieldDefs():
+			if table.getFieldDefs():
 				res.tables.append(self._makeTable(res, table))
 		return res
 

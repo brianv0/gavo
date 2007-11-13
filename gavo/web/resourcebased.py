@@ -261,6 +261,10 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		return self.service.translateFieldName(name)
 
 	def form_genForm(self, ctx=None, data={}):
+		# XXX TODO: the widgetFactory business is extremely fishy.  It's also
+		# mainly a thing for dates and select lists.  For the select lists,
+		# we could just use values.  For dates, we might use unit to choose
+		# an appropriate widget.
 		form = formal.Form()
 		for field in self.service.getInputFields():
 			type, widgetFactory = typesystems.sqltypeToFormal(field.get_dbtype())

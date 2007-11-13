@@ -13,6 +13,7 @@ from twisted.python import failure
 from zope.interface import implements
 
 import gavo
+from gavo import datadef
 from gavo import votable
 from gavo.parsing import meta
 from gavo.parsing import resource
@@ -29,7 +30,27 @@ class SiapService(common.CustomErrorMixin, resourcebased.Form):
 
 	_generateForm = resourcebased.Form.form_genForm
 
-	def writeErrorTable(self, ctx, errmsg):
+	def renderHTTP(self, ctx):
+		args = inevow.IRequest(ctx).args
+		if args.get("FORMAT")==["METADATA"]:
+			return self._serveMetadata(ctx)
+		return super(SiapService, self).renderHTTP(ctx)
+
+	def _serveMetadata(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", "application/x-votable")
+		inputFields = [datadef.DataField(**f.dataStore) 
+			for f in self.service.getInputFields()]
+		for f in inputFields:
+			f.set_dest("INPUT:"+f.get_dest())
+		dataDesc = resource.makeSimpleDataDesc(self.rd, 
+			self.service.getOutputFields(common.QueryMeta(ctx)))
+		dataDesc.set_items(inputFields)
+		data = resource.InternalDataSet(dataDesc)
+		result = common.CoreResult(data, {}, common.QueryMeta(ctx))
+		return resourcebased.writeVOTable(request, result, votable.VOTableMaker())
+
+	def _writeErrorTable(self, ctx, errmsg):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
 		dataDesc = resource.makeSimpleDataDesc(self.rd, [])
@@ -37,7 +58,10 @@ class SiapService(common.CustomErrorMixin, resourcebased.Form):
 		data.addMeta(name="_query_status", content=meta.InfoItem(
 			"ERROR", errmsg))
 		result = common.CoreResult(data, {}, common.QueryMeta(ctx))
-		return resourcebased.writeVOTable(request, result, votable.VOTableMaker())
+		return defer.maybeDeferred(resourcebased.writeVOTable, request, 
+				result, votable.VOTableMaker()
+			).addCallback(lambda _: request.finishRequest(False)
+			).addErrback(lambda _: request.finishRequest(False))
 
 	def _getInputData(self, formData):
 		return self.service.getInputData(formData)
@@ -56,10 +80,10 @@ class SiapService(common.CustomErrorMixin, resourcebased.Form):
 
 	def renderHTTP_exception(self, ctx, failure):
 		failure.printTraceback()
-		return self.writeErrorTable(ctx,
+		return self._writeErrorTable(ctx,
 			"Unexpected failure, error message: %s"%failure.getErrorMessage())
 
 	def _handleInputErrors(self, errors, ctx):
 		msg = "Error(s) in given Parameters: %s"%"; ".join(
 			[str(e) for e in errors])
-		return self.writeErrorTable(ctx, msg)
+		return self._writeErrorTable(ctx, msg)

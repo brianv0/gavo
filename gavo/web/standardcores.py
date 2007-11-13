@@ -161,13 +161,20 @@ class SiapCore(DbBasedCore):
 				widgetFactory='widgetFactory(SimpleSelectChoice, ['
 					'"COVERS", "ENCLOSED", "CENTER"], "OVERLAPS")',
 				source="INTERSECT"),
+			datadef.DataField(dest="FORMAT", dbtype="text", 
+				description="Requested format of the image data",
+				tablehead="Output format", default="image/fits",
+				widgetFactory='Hidden', source="FORMAT"),
 		]
 
 	def getOutputFields(self, queryMeta):
 		return self.getFields(self.table, queryMeta)
 
 	def _getQuery(self, inputTable, queryMeta):
-		return (self.table,)+siap.getBboxQuery(inputTable.getDocRec())
+		fragment, pars = siap.getBboxQuery(inputTable.getDocRec())
+		fragment = "(%s) AND imageFormat=%%(imageFormat)s"%fragment
+		pars["imageFormat"] = inputTable.getDocRec()["FORMAT"]
+		return (self.table,)+(fragment, pars)
 
 	def _parseOutput(self, dbResponse, outputDef, sqlPars, queryMeta):
 		result = super(SiapCore, self)._parseOutput(dbResponse, outputDef,

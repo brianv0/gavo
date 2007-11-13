@@ -166,6 +166,8 @@ class CustomErrorMixin:
 	  and returns something renderable (the result of renderHTTP)
 	
 	Both may return deferreds.
+
+	You need to ctx.remember(self, inevow.ICanHandleException) in your __init__.
 	"""
 	implements(inevow.ICanHandleException)
 
@@ -285,6 +287,7 @@ class QueryMeta(dict):
 			ctxArgs = inevow.IRequest(ctxArgs).args
 		except TypeError:
 			pass
+		self["formal_data"] = {}
 		self._fillOutput(ctxArgs)
 		self._fillOutputFilter(ctxArgs)
 		self._fillDbOptions(ctxArgs)
@@ -330,6 +333,7 @@ class QueryMeta(dict):
 		return " ".join(frag), pars
 
 emptyQueryMeta = QueryMeta({})
+
 
 class CoreResult(object):
 	"""is a nevow.IContainer that has the result and also makes the input

@@ -257,9 +257,8 @@ class Field(VOObject):
 
 class Param(Field):
     def __init__(self, **kwargs):
-        super(Param, self).__init__(**kwargs)
-        # Attributes
         self.value = None
+        super(Param, self).__init__(**kwargs)
     
     def xml(self):
         repr = super(Param, self).xml()
