@@ -18,12 +18,17 @@ class InputKey(datadef.DataField):
 	def __init__(self, initvals):
 		datadef.DataField.__init__(self, **initvals)
 
+# XXX TODO: remove the next two methods
 	def _makeWidget(self, context):
+		"""DEPRECATED.
+		"""
 		return ('<input type="text" name="%s"'
 		' value="%s">')%(self.get_name(), 
 			self.get_default())
 
 	def asHtml(self, context):
+		"""DEPRECATED.
+		"""
 		widget = self._makeWidget(context)
 		return ('<div class="condition"><div class="clabel">%s</div>'
 			' <div class="quwidget">%s</div></div>'%(

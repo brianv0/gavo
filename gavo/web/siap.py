@@ -8,8 +8,10 @@ import math
 
 import gavo
 from gavo import coords
+from gavo import datadef
 from gavo import simbadinterface
 from gavo import utils
+from gavo.web import vizierexprs
 
 
 def clampAlpha(alpha):
@@ -184,6 +186,8 @@ def splitCrossingBox(bbox):
 	return leftBox, rightBox
 
 
+# XXX TODO: Maybe rework this to make it use vizierexprs.getSQLKey?
+# (caution: that unfortunately messes up many unit tests...)
 _intersectQueries = {
 	"COVERS": "primaryBbox ~ %(<p>roiPrimary)s AND (secondaryBbox IS NULL OR"
 	  " secondaryBbox ~ %(<p>roiSecondary)s)",
@@ -245,6 +249,42 @@ def getPixelCoords(wcsHeader, center, size):
 	"""returns x, y, w, h in pixels for a square of size around center in
 	wcsHeader.
 	"""
+
+
+class SiapCondition(vizierexprs.CondDesc):
+	"""is a condition descriptor for a plain SIAP query.
+
+	WARNING: Only one of those will work in any given query.
+	"""
+	def __init__(self):
+		super(SiapCondition, self).__init__()
+		self.inputFields = [
+			datadef.DataField(dest="POS", dbtype="text", unit="deg,deg",
+				ucd="pos.eq", description="J2000.0 Position, RA,DEC decimal degrees"
+				" (e.g., 234.234,-32.45)", tablehead="Position", optional=False,
+				source="POS"),
+			datadef.DataField(dest="SIZE", dbtype="text", unit="deg,deg",
+				description="Size in decimal degrees"
+				" (e.g., 0.2 or 1,0.1)", tablehead="Field size", optional=False,
+				source="SIZE"),
+			datadef.DataField(dest="INTERSECT", dbtype="text", 
+				description="Should the image cover, enclose, overlap the ROI or"
+				" contain its center?",
+				tablehead="Intersection type", default="OVERLAPS", 
+				widgetFactory='widgetFactory(SimpleSelectChoice, ['
+					'"COVERS", "ENCLOSED", "CENTER"], "OVERLAPS")',
+				source="INTERSECT"),
+			datadef.DataField(dest="FORMAT", dbtype="text", 
+				description="Requested format of the image data",
+				tablehead="Output format", default="image/fits",
+				widgetFactory='Hidden', source="FORMAT"),
+		]
+	
+	def getQueryFrag(self, inPars, sqlPars, queryMeta):
+		fragment, pars = getBboxQuery(inPars)
+		sqlPars.update(pars)
+		return "(%s) AND imageFormat=%%(%s)s"%(fragment,
+			vizierexprs.getSQLKey("imageFormat", inPars["FORMAT"], sqlPars))
 
 
 def _test():

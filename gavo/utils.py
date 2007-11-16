@@ -533,6 +533,16 @@ def raiseTb(exCls, msg, *args):
 		raise exCls, (msg,)+args, sys.exc_info()[-1]
 
 
+def getErrorField():
+	"""returns the field attribute of the current exception or "<unknown>"
+	if it does not have one.
+
+	This is for use when re-raising gavo.ValidationErrors.
+	"""
+	_, val, _ = sys.exc_info()
+	return getattr(val, "fieldName", "<unknown>")
+
+
 def _test():
 	import doctest, utils
 	doctest.testmod(utils)

@@ -346,6 +346,7 @@ class BboxSiap(Interface):
 			{"dest": "accref", "ucd": "VOX:Image_AccessReference",
 				"source": "prodtblKey", "dbtype": "text", "verbLevel": 0},
 			{"dest": "accsize", "ucd": "VOX:Image_FileSize",
+				"tablehead": "File size", "description": "Size of the image in bytes",
 				"source": "prodtblFsize", "dbtype": "integer", "verbLevel": 11},
 		]
 

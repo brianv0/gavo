@@ -2,6 +2,8 @@
 Code dealing with product (i.e., fits file) delivery.
 """
 
+# XXXX TODO: turn this into a core?
+
 import os
 import cgi
 

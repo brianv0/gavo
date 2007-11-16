@@ -47,6 +47,8 @@ class SiapService(common.CustomErrorMixin, resourcebased.Form):
 			self.service.getOutputFields(common.QueryMeta(ctx)))
 		dataDesc.set_items(inputFields)
 		data = resource.InternalDataSet(dataDesc)
+		data.addMeta(name="_type", content="metadata")
+		data.addMeta(name="_query_status", content="OK")
 		result = common.CoreResult(data, {}, common.QueryMeta(ctx))
 		return resourcebased.writeVOTable(request, result, votable.VOTableMaker())
 
@@ -76,6 +78,8 @@ class SiapService(common.CustomErrorMixin, resourcebased.Form):
 	def _handleOutputData(self, data, ctx):
 		request = inevow.IRequest(ctx)
 		data.addMeta(name="_query_status", content=meta.InfoItem("OK", ""))
+		data.addMeta(name="_type", content="result")
+		data.addMeta(name="_query_status", content="OK")
 		return resourcebased.serveAsVOTable(request, data)
 
 	def renderHTTP_exception(self, ctx, failure):

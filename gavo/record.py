@@ -224,7 +224,10 @@ class Record(object):
 				self.dataStore[key].append(value)
 		def setter(self, value):
 			self.dataStore[key] = value[:]
-		return [("get_", getter), ("addto_", adder), ("set_", setter)]
+		def prepender(self, value):
+			self.dataStore[key].insert(0, value)
+		return [("get_", getter), ("addto_", adder), ("set_", setter),
+			("prependto_", prepender)]
 
 	def _getDictMethods(self, key, _):
 		self.dataStore[key] = {}

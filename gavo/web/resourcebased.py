@@ -21,6 +21,7 @@ import gavo
 from gavo import resourcecache
 from gavo import typesystems
 from gavo import votable
+from gavo.parsing import contextgrammar
 from gavo.web import common
 from gavo.web import htmltable
 from gavo.web import gwidgets
@@ -95,6 +96,8 @@ class HtmlResponse(BaseResponse):
 		return htmltable.HtmlTableFragment(data.child(ctx, "table"))
 
 	def render_parpair(self, ctx, data):
+		if data==None or data[1]==None or data[1]=='None':
+			return ""
 		return ctx.tag["%s: %s"%data]
 	
 	def render_warnTrunc(self, ctx, data):
@@ -226,8 +229,13 @@ class GavoFormMixin(formal.ResourceMixin, object):
 		if isinstance(failure.value, formal.FormError):
 			self.form.errors.add(failure.value)
 		elif isinstance(failure.value, gavo.ValidationError):
-			self.form.errors.add(formal.FieldValidationError(str(failure.value),
-				self.translateFieldName(failure.value.fieldName)))
+			if failure.value.fieldName!="<unknown>":# XXX TODO: check if field exists.
+				self.form.errors.add(formal.FieldValidationError(str(failure.value),
+					self.translateFieldName(failure.value.fieldName)))
+			else:
+				failure.printTraceback()
+				self.form.errors.add(formal.FormError("Problem with input"
+					" in some field: %s"%failure.getErrorMessage()))
 		else:
 			failure.printTraceback()
 			raise failure.value
@@ -260,25 +268,49 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 	def translateFieldName(self, name):
 		return self.service.translateFieldName(name)
 
-	def form_genForm(self, ctx=None, data={}):
-		# XXX TODO: the widgetFactory business is extremely fishy.  It's also
-		# mainly a thing for dates and select lists.  For the select lists,
-		# we could just use values.  For dates, we might use unit to choose
-		# an appropriate widget.
-		form = formal.Form()
+	def _addDataField(self, form, field, data):
+		"""adds a form field for the datadef.DataField to the form.
+		"""
+		type, widgetFactory = typesystems.sqltypeToFormal(field.get_dbtype())
+		if field.get_widgetFactory():
+			widgetFactory = gwidgets.makeWidgetFactory(field.get_widgetFactory())
+		form.addField(field.get_dest(), 
+			type(required=not field.get_optional()),
+			widgetFactory,
+			label=field.get_tablehead(),
+			description=field.get_description())
+	
+	def _addInputKey(self, form, field, data):
+		"""adds a form field for the contextgrammar.InputKey to the form.
+
+		In contrast to DataFields, for InputKeys we assume all validation
+		is done in later stages of processing, i.e., we'll always have
+		string as the nevow formal type and plain widgets (unless we have
+		an enumerated type).
+		"""
+# XXX todo: make a widget that provides context-sensitive syntax help
+		form.addField(field.get_source() or field.get_dest(),
+			formal.String(required=not field.get_optional()),
+			label=field.get_tablehead(),
+			description=field.get_description())
+
+	def _addQueryFields(self, form, data):
+		"""adds the inputFields of the service to form, setting proper defaults
+		from the field or from data.
+		"""
 		for field in self.service.getInputFields():
-			type, widgetFactory = typesystems.sqltypeToFormal(field.get_dbtype())
-			if field.get_widgetFactory():
-				widgetFactory = gwidgets.makeWidgetFactory(field.get_widgetFactory())
-			form.addField(field.get_dest(), 
-				type(required=not field.get_optional()),
-				widgetFactory,
-				label=field.get_tablehead(),
-				description=field.get_description())
+			if isinstance(field, contextgrammar.InputKey):
+				self._addInputKey(form, field, data)
+			else:
+				self._addDataField(form, field, data)
 			if field.get_default():
 				form.data[field.get_dest()] = field.get_default()
 			if data and data.has_key(field.get_dest()):
 				form.data[field.get_dest()] = data[field.get_dest()]
+
+	def _addMetaFields(self, form):
+		"""adds fields to choose output properties to form.
+		"""
 		if self.service.count_output()>1:
 			form.addField("_FILTER", formal.String(), formal.widgetFactory(
 				formal.SelectChoice, 
@@ -290,6 +322,11 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 			form.addField("_DBOPTIONS", gwidgets.FormalDict,
 				formal.widgetFactory(gwidgets.DbOptions, self.service),
 				label="Table")
+
+	def form_genForm(self, ctx=None, data={}):
+		form = formal.Form()
+		self._addQueryFields(form, data)
+		self._addMetaFields(form)
 		form.addField("_OUTPUT", gwidgets.FormalDict, 
 			gwidgets.OutputOptions, label="Output format")
 		form.addAction(self.submitAction, label="Go")
@@ -310,7 +347,6 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 			).addCallback(self._formatResult, queryMeta
 			).addErrback(self._handleInputErrors, ctx)
 		return d
-
 
 	# XXX TODO: add a custom error self._handleInputErrors(failure, ctx)
 	# to catch FieldErrors and display a proper form on such errors.

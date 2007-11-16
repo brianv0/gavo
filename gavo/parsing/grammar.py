@@ -62,8 +62,9 @@ class Grammar(record.Record):
 			except gavo.Error:
 				raise
 			except Exception, msg:
-				utils.raiseTb(gavo.Error, "Failure while parsing doc %s (%s)"%(
-					row, msg))
+				utils.raiseTb(gavo.ValidationError, 
+					"Failure while parsing doc %s (%s)"%(row, msg),
+					utils.getErrorField())
 			lines = self._iterRows(parseContext)
 			# We use this funny loop to handle exceptions raised while the
 			# grammar matches a row in the exception handlers below (it would
@@ -77,12 +78,15 @@ class Grammar(record.Record):
 					break
 				except (gavo.StopOperation, KeyboardInterrupt):
 					raise
+				except gavo.ValidationError:
+					raise
 				except gavo.InfoException, msg:
 					logger.info(msg)
 				except gavo.parsing.ParseError, msg:
 					errmsg = "Parse failure, aborting source (%s)."%msg
 					counter.hitBad()
-					raise utils.raiseTb(gavo.Error, errmsg)
+					raise utils.raiseTb(gavo.ValidationError, errmsg,
+						utils.getErrorField())
 				except sqlsupport.OperationalError, msg:
 					gavo.ui.displayError("Import of row %s failed (%s). ABORTING"
 						" OPERATION."%(row, msg))
@@ -90,8 +94,9 @@ class Grammar(record.Record):
 					raise
 				except Exception, msg:
 					counter.hitBad()
-					utils.raiseTb(gavo.Error, "Failure while parsing doc %s (%s)"%(
-						row, msg))
+					utils.raiseTb(gavo.ValidationError, 
+						"Failure while parsing rec %s (%s)"%(row, msg), 
+						utils.getErrorField())
 		finally:
 			getattr(self, "_cleanupParse", lambda _: None)(parseContext)
 			counter.close()

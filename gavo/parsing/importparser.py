@@ -274,7 +274,7 @@ class RdParser(utils.NodeBuilder):
 				continue
 			name, src, val = node
 			if src or val.startswith("@"):
-				# XXX we should at least support @-expansions.
+				# XXX TODO we should at least support @-expansions.
 				raise Error("RdParser doesn't know what to do with computed"
 					" arguments")
 			res[str(name)] = val
@@ -359,12 +359,21 @@ class RdParser(utils.NodeBuilder):
 	def _make_core(self, name, attrs, children):
 		if attrs.has_key("builtin"):
 			core = standardcores.getStandardCore(attrs["builtin"])(self.rd,
-				**self._collectArguments(children))
+				self._collectArguments(children))
 		elif attrs.has_key("computer"):
 			core = standardcores.ComputedCore(self._getDDById(attrs["computer"]))
 		else:
 			raise Error("Invalid core specification")
-		return core
+		return self._processChildren(core, name, {
+			"condDesc": core.addto_condDescs,
+			"arg": lambda *args: None,  # Already handled above
+		}, children)
+	
+	def _make_condDesc(self, name, attrs, children):
+		if attrs.has_key("name"):
+			return attrs["name"]
+		else:
+			return "fromOutput"
 	
 	def _make_meta(self, name, attrs, children):
 		content = self._makeTextNode(name, attrs, children)

@@ -78,6 +78,7 @@ class ErrorPageDebug(rend.Page):
 		return str(self.failure)
 
 	def renderHTTP_exception(self, ctx, failure):
+		failure.printTraceback()
 		self.failure = failure
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(500)
@@ -90,6 +91,7 @@ class ErrorPage(ErrorPageDebug):
 	implements(inevow.ICanHandleException)
 
 	def renderHTTP_exception(self, ctx, failure):
+		failure.printTraceback()
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(500)
 		msg = ("<html><head><title>Internal Error</title></head>"

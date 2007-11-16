@@ -10,24 +10,48 @@ responsibility of the wrapper to produce standards-compliant output.
 import weakref
 import cStringIO
 
+from twisted.python import log
+
 from gavo import config
 from gavo import coords
 from gavo import datadef
 from gavo import resourcecache
+from gavo import record
 from gavo import table
 from gavo import utils
 from gavo import web
 from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
+from gavo.parsing import contextgrammar
+from gavo.web import common
 from gavo.web import runner
 from gavo.web import siap
+from gavo.web import vizierexprs
 
 
-class ComputedCore(object):
+class Core(record.Record):
+	"""is something that does computations for a service.
+	"""
+	def __init__(self, additionalFields={}, initvals={}):
+		fields = {
+			"table": record.RequiredField,
+			"condDescs": record.ListField,
+		}
+		fields.update(additionalFields)
+		super(Core, self).__init__(fields, initvals=initvals)
+
+	def run(self, inputData, queryMeta):
+		"""returns a twisted deferred firing the result of running the core on
+		inputData.
+		"""
+
+
+class ComputedCore(Core):
 	"""is a core based on a DataDescriptor with a compute attribute.
 	"""
 	def __init__(self, dd):
 		self.dd = dd
+		super(ComputedCore, self).__init__()
 	
 	def run(self, inputData, queryMeta):
 		"""starts the computing process if this is a computed data set.
@@ -46,7 +70,7 @@ class ComputedCore(object):
 			cStringIO.StringIO(rawOutput), tablesToBuild=["output"])
 
 
-class DbBasedCore(object):
+class DbBasedCore(Core):
 	"""is a base class for cores doing database queries.
 
 	It provides for querying the database and returning a table
@@ -61,20 +85,59 @@ class DbBasedCore(object):
 	the field defintions of the output fields, but clients should not rely
 	on their presence.
 	"""
-	def getFields(self, tableDef, queryMeta):
+	def __init__(self, rd, initvals):
+		self.rd = weakref.proxy(rd)
+		super(DbBasedCore, self).__init__(initvals=initvals)
+	
+	def set_table(self, val):
+		self.dataStore["table"] = val
+		self.tableDef = self.rd.getTableDefByName(self.get_table())
+
+	def addto_condDescs(self, val):
+		if isinstance(val, vizierexprs.CondDesc):
+			self.dataStore["condDescs"].append(val)
+		elif val=="fromOutput":
+			for f in self.getOutputFields(common.QueryMeta({})):
+				cd = vizierexprs.getAutoCondDesc(f)
+				if cd:
+					self.dataStore["condDescs"].append(cd)
+		else:  # argument is field name
+			self.dataStore["condDescs"].append(
+				vizierexprs.FieldCondDesc(val, self.tableDef.getFieldByName(val)))
+
+	def getInputFields(self):
+		if not hasattr(self, "_inputFields"):
+			self._inputFields = []
+			for cd in self.get_condDescs():
+				self._inputFields.extend(cd.getInputFields())
+		return self._inputFields
+
+	def _getFilteredOutputFields(self, tableDef, queryMeta=None):
 		"""returns a sequence of field definitions in tableDef suitable for
 		what is given in queryMeta.
 		"""
-		if queryMeta["format"]=="HTML":
+		if queryMeta and queryMeta["format"]=="HTML":
 			return [datadef.makeCopyingField(f) for f in tableDef.get_items()
 				if f.get_displayHint() and f.get_displayHint()!="suppress"]
-		elif queryMeta["format"]=="internal":
+		elif queryMeta and queryMeta["format"]=="internal":
 			return [makeCopyingField(f) for f in tableDef.get_items()]
 		else:  # Some sort of VOTable
 			return [datadef.makeCopyingField(f) for f in tableDef.get_items()
 				if f.get_verbLevel()<=queryMeta["verbosity"] and 
 					f.get_displayHint!="suppress"]
 
+	def _getSQLWhere(self, inputTable, queryMeta):
+		"""returns a where fragment and the appropriate parameters
+		for the query defined by inputTable and queryMeta.
+		"""
+		pars, frags = {}, []
+		docRec = inputTable.getDocRec()
+		return vizierexprs.joinOperatorExpr("AND",
+			[condDesc.getQueryFrag(docRec, pars, queryMeta)
+				for condDesc in self.get_condDescs()]), pars
+		
+	def getOutputFields(self, queryMeta):
+		return self._getFilteredOutputFields(self.tableDef, queryMeta)
 
 	def runDbQuery(self, condition, pars, recordDef, queryMeta):
 		"""runs a db query with condition and pars to fill a table
@@ -89,8 +152,12 @@ class DbBasedCore(object):
 			tableName = recordDef.get_table()
 		limtagsFrag, limtagsPars = queryMeta.asSql()
 		pars.update(limtagsPars)
+		if condition:
+			condition = "WHERE %s"%condition
+		else:
+			condition = ""
 		return resourcecache.getDbConnection().runQuery(
-			"SELECT %(fields)s from %(table)s WHERE %(condition)s %(limtags)s"%{
+			"SELECT %(fields)s from %(table)s %(condition)s %(limtags)s"%{
 				"fields": ", ".join([f.get_dest() for f in recordDef.get_items()]),
 				"table": tableName,
 				"condition": condition,
@@ -104,20 +171,24 @@ class DbBasedCore(object):
 		It requires a method _getQuery returning a RecordDef defining
 		the result, an SQL WHERE-clause and its parameters.
 		"""
-		tableDef, fragment, pars = self._getQuery(inputTable, queryMeta)
 		outputDef = resource.RecordDef()
-		outputDef.updateFrom(tableDef)
-		qFields = self.getFields(tableDef, queryMeta)
+		outputDef.updateFrom(self.tableDef)
+		qFields = self.getOutputFields(queryMeta)
 		outputDef.set_items(qFields)
 		dd = datadef.DataTransformer(self.rd, initvals={
 			"Grammar": rowsetgrammar.RowsetGrammar(qFields),
 			"Semantics": resource.Semantics(initvals={
 				"recordDefs": [outputDef]}),
 			"id": "<generated>"})
+		fragment, pars = self._getSQLWhere(inputTable, queryMeta)
 		return self.runDbQuery(fragment, pars, 
 				dd.getPrimaryRecordDef(), queryMeta).addCallback(
 			self._parseOutput, dd, pars, queryMeta).addErrback(
-			lambda failure: failure)
+			self._logFailedQuery)
+
+	def _logFailedQuery(self, failure):
+		log.msg("Failed DB query: %s"%failure.value.cursor.query)
+		return failure
 
 	def _parseOutput(self, dbResponse, outputDef, sqlPars, queryMeta):
 		"""builds an InternalDataSet out of the DataDef outputDef
@@ -140,48 +211,9 @@ class SiapCore(DbBasedCore):
 	As an extension to the standard, we automatically resolve simbad objects
 	to positions.
 	"""
-	def __init__(self, rd, tableName="images"):
-		self.rd = weakref.proxy(rd)
-		self.table = self.rd.getTableDefByName(tableName)
-
-	def getInputFields(self):
-		return [
-			datadef.DataField(dest="POS", dbtype="text", unit="deg,deg",
-				ucd="pos.eq", description="J2000.0 Position, RA,DEC decimal degrees"
-				" (e.g., 234.234,-32.45)", tablehead="Position", optional=False,
-				source="POS"),
-			datadef.DataField(dest="SIZE", dbtype="text", unit="deg,deg",
-				description="Size in decimal degrees"
-				" (e.g., 0.2 or 1,0.1)", tablehead="Field size", optional=False,
-				source="SIZE"),
-			datadef.DataField(dest="INTERSECT", dbtype="text", 
-				description="Should the image cover, enclose, overlap the ROI or"
-				" contain its center?",
-				tablehead="Intersection type", default="OVERLAPS", 
-				widgetFactory='widgetFactory(SimpleSelectChoice, ['
-					'"COVERS", "ENCLOSED", "CENTER"], "OVERLAPS")',
-				source="INTERSECT"),
-			datadef.DataField(dest="FORMAT", dbtype="text", 
-				description="Requested format of the image data",
-				tablehead="Output format", default="image/fits",
-				widgetFactory='Hidden', source="FORMAT"),
-		]
-
-	def getOutputFields(self, queryMeta):
-		return self.getFields(self.table, queryMeta)
-
-	def _getQuery(self, inputTable, queryMeta):
-		fragment, pars = siap.getBboxQuery(inputTable.getDocRec())
-		fragment = "(%s) AND imageFormat=%%(imageFormat)s"%fragment
-		pars["imageFormat"] = inputTable.getDocRec()["FORMAT"]
-		return (self.table,)+(fragment, pars)
-
-	def _parseOutput(self, dbResponse, outputDef, sqlPars, queryMeta):
-		result = super(SiapCore, self)._parseOutput(dbResponse, outputDef,
-			sqlPars, queryMeta)
-		result.addMeta(name="_type", content="result")
-		result.addMeta(name="_query_status", content="OK")
-		return result
+	def __init__(self, rd, args):
+		super(SiapCore, self).__init__(rd, args)
+		self.addto_condDescs(siap.SiapCondition())
 
 
 class SiapCutoutCore(SiapCore):

@@ -5,6 +5,8 @@ A row processor is some python code that takes a right row after parsing
 and produces zero or more new rows from it that are then either processed
 by other row processors or added to a row set.
 
+Do *not* return generators here, or you'll break error reporting.
+
 On NULL arguments, RowProcessors should, as a rule, fail.
 """
 
@@ -12,8 +14,10 @@ import datetime
 
 from mx import DateTime
 
+import gavo
 from gavo import utils
 from gavo.parsing import parsehelpers
+
 
 class RowProcessor(parsehelpers.RowFunction):
 	"""is an abstract base class for all row processors.
@@ -85,22 +89,29 @@ class DateExpander(RowProcessor):
 	def _mkDateTime(self, val):
 		if isinstance(val, basestring):
 			val = DateTime.Parser.DateTimeFromString(val)
-		if isinstance(val, datetime.datetime):
+		elif isinstance(val, datetime.datetime):
 			val = DateTime.DateTime(val.year, val.month, val.day, 
 				val.hour, val.minute, val.second)
-		if isinstance(val, datetime.date):
+		elif isinstance(val, datetime.date):
 			val = DateTime.DateTime(val.year, val.month, val.day)
+		else:
+			gavo.Error("Can't make a timestamp out of a %s object"%(
+				type(val)))
 		return val
 
 	def _compute(self, record, start=None, end=None, hrInterval=24):
+		self.errorField = "start"
 		stampTime = self._mkDateTime(start)
+		self.errorField = "end"
 		endTime = self._mkDateTime(end)
+		self.errorField = "hrInterval"
 		interval = DateTime.TimeDelta(hours=float(hrInterval))
+		res = []
 		while stampTime<=endTime:
 			newRec = record.copy()
 			newRec[self.destination] = stampTime
-			yield newRec
+			res.append(newRec)
 			stampTime = stampTime+interval
-
+		return res
 
 getProcessor = utils.buildClassResolver(RowProcessor, globals().values())

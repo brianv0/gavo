@@ -133,6 +133,9 @@ class RecordDef(record.Record, meta.MetaMixin):
 		"""
 		return self.fieldIndexDict[fieldName]
 
+	def getFieldByName(self, fieldName):
+		return self.get_items()[self.fieldIndexDict[fieldName]]
+
 	def copy(self):
 		theCopy = record.Record.copy(self)
 		theCopy.fieldIndexDict = self.fieldIndexDict.copy()
@@ -232,6 +235,7 @@ class ParseContext:
 			for field in recordDef.get_items():
 				record[field.get_dest()] = self._strToVal(field, rowdict)
 		except Exception, msg:
+			msg.field = field.get_dest()
 			utils.raiseTb(gavo.Error, "Cannot convert row %s, field %s "
 				" probably doesn't match its type %s (root cause: %s)"%(
 					str(rowdict), field.get_dest(), field.get_dbtype(), msg))

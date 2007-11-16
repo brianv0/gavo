@@ -18,7 +18,7 @@ from gavo import logger
 from gavo import coords
 
 
-def _make_dateFromString(datestr, datePatterns=[
+def make_dateFromString(datestr, datePatterns=[
 		re.compile("(?P<y>\d\d\d\d)-(?P<m>\d\d)-(?P<d>\d\d)$"),
 		re.compile("(?P<m>\d\d)/(?P<d>\d\d)/(?P<y>\d\d\d\d)$"),
 		re.compile("(?P<m>\d\d)/(?P<d>\d\d)/(?P<y>\d\d)$"),
@@ -40,7 +40,7 @@ def _make_dateFromString(datestr, datePatterns=[
 	return dateobj
 
 
-def _make_dateTimeFromString(literal):
+def make_dateTimeFromString(literal):
 	"""returns a mx.DateTime object from an ISO timestamp.
 	"""
 	if not isinstance(literal, basestring):
@@ -139,8 +139,8 @@ class LiteralParser:
 		"double": float,
 		"double precision": float,
 		"boolean": bool,
-		"date": _make_dateFromString,
-		"timestamp": _make_dateTimeFromString,
+		"date": make_dateFromString,
+		"timestamp": make_dateTimeFromString,
 	}
 
 	def _buildArrayParser(self, type, length):

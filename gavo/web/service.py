@@ -118,9 +118,6 @@ class Service(record.Record, meta.MetaMixin):
 		curData = resource.InternalDataSet(dD, table.Table, inputData)
 		return curData
 
-	def _runCore(self, inputTable, queryMeta):
-		return self.get_core().run(inputTable, queryMeta)
-
 	def _postProcess(self, coreOutput, queryMeta):
 		"""sends the result of the core through the output filter.
 		"""
@@ -173,7 +170,7 @@ class Service(record.Record, meta.MetaMixin):
 		The adapted result table has an additional method getInput returning the
 		processed input data.
 		"""
-		return self._runCore(inputData, queryMeta).addCallback(
+		return self.get_core().run(inputData, queryMeta).addCallback(
 			self._postProcess, queryMeta).addErrback(
 			lambda failure: failure).addCallback(
 			common.CoreResult, inputData, queryMeta).addErrback(
