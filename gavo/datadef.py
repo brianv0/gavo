@@ -39,10 +39,12 @@ class DataField(record.Record):
 			"displayHint": None, # suggested presentation
 			"verbLevel": 30,     # hint for building VOTables
 			"id": None,          # Just so the field can be referenced within XML
-			"widgetFactory": None, # Python code to generate a formal widget factory
-			                       # for this field.
 			"values": None,      # a datadef.Values instance (see below)
 			"copy": record.BooleanField,  # Used with TableGrammars
+# XXX The following's a bad hack.  I'd like to deprecate it, but it's too 
+# convenient for now.
+			"widgetFactory": None, # Python code to generate a formal widget factory
+			                       # for this field.
 		})
 		for key, val in initvals.iteritems():
 			self.set(key, val)
@@ -53,6 +55,9 @@ class DataField(record.Record):
 		"type": "dbtype",
 	}
 	externallyManagedColumns = set(["tableName", "colInd"])
+
+	def isEnumerated(self):
+		return self.get_values() and self.get_values().get_options()
 
 	def __repr__(self):
 		return "<DataField %s>"%self.get_dest()
@@ -287,8 +292,10 @@ class Values(record.Record):
 			"min": None,   # a *python* value of the minimum acceptable value
 			"max": None,   # a *python* value of the maximum acceptable value
 			"options": record.ListField, # python values acceptable
+			"default": None, # if options are set, this will be the first one 
+				# in there unless set explicitely
 			"nullLiteral": None, # a string representing null in literals
-		})
+		}, initvals)
 	
 	def convert(self, dataField):
 		"""converts min, max, and options from string literals to python
@@ -307,6 +314,8 @@ class Values(record.Record):
 			self.set_max(makePythonVal(self.get_max(), dataField.get_dbtype(),
 				dataField.get_literalForm()))
 		if self.get_options():
+			if self.get_default()==None and isinstance(self.get_options(), list):
+				self.set_default(self.get_options()[0])
 			dbt, lf = dataField.get_dbtype(), dataField.get_literalForm()
 			# It's evil to stuff a set into a list field, but we look up
 			# quite a bit in it and I don't want to add a set type to

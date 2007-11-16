@@ -62,8 +62,8 @@ class SiapService(common.CustomErrorMixin, resourcebased.Form):
 		result = common.CoreResult(data, {}, common.QueryMeta(ctx))
 		return defer.maybeDeferred(resourcebased.writeVOTable, request, 
 				result, votable.VOTableMaker()
-			).addCallback(lambda _: request.finishRequest(False)
-			).addErrback(lambda _: request.finishRequest(False))
+			).addCallback(lambda _: request.finishRequest(False) or ""
+			).addErrback(lambda _: request.finishRequest(False) or "")
 
 	def _getInputData(self, formData):
 		return self.service.getInputData(formData)

@@ -268,15 +268,32 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 	def translateFieldName(self, name):
 		return self.service.translateFieldName(name)
 
+	def _makeWidgetFactory(self, field, type):
+		"""returns a widget appropriate for field.
+
+		The type is a *nevow formal* type, which is not necessarily
+		inferable from the db type (see InputKeys vs. data fields).
+
+		Really, right now we only see if we have an enumerated type,
+		in which case we generate a selection box.
+		"""
+		if field.get_widgetFactory():
+			return gwidgets.makeWidgetFactory(field.get_widgetFactory())
+		if field.isEnumerated():
+			items = field.get_values().get_options().copy()
+			items.remove(field.get_values().get_default())
+			return formal.widgetFactory(gwidgets.SimpleSelectChoice,
+				[str(i) for i in items], str(field.get_values().get_default()))
+		else:
+			return None
+
 	def _addDataField(self, form, field, data):
 		"""adds a form field for the datadef.DataField to the form.
 		"""
 		type, widgetFactory = typesystems.sqltypeToFormal(field.get_dbtype())
-		if field.get_widgetFactory():
-			widgetFactory = gwidgets.makeWidgetFactory(field.get_widgetFactory())
 		form.addField(field.get_dest(), 
 			type(required=not field.get_optional()),
-			widgetFactory,
+			self._makeWidgetFactory(field, type) or widgetFactory,
 			label=field.get_tablehead(),
 			description=field.get_description())
 	
@@ -291,6 +308,7 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 # XXX todo: make a widget that provides context-sensitive syntax help
 		form.addField(field.get_source() or field.get_dest(),
 			formal.String(required=not field.get_optional()),
+			self._makeWidgetFactory(field, formal.String),
 			label=field.get_tablehead(),
 			description=field.get_description())
 

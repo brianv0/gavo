@@ -271,12 +271,13 @@ class SiapCondition(vizierexprs.CondDesc):
 				description="Should the image cover, enclose, overlap the ROI or"
 				" contain its center?",
 				tablehead="Intersection type", default="OVERLAPS", 
-				widgetFactory='widgetFactory(SimpleSelectChoice, ['
-					'"COVERS", "ENCLOSED", "CENTER"], "OVERLAPS")',
+				values=datadef.Values(options=["OVERLAPS", "COVERS", "ENCLOSED", 
+					"CENTER"]), 
 				source="INTERSECT"),
 			datadef.DataField(dest="FORMAT", dbtype="text", 
 				description="Requested format of the image data",
 				tablehead="Output format", default="image/fits",
+				values=datadef.Values(options=["image/fits", "METADATA"]),
 				widgetFactory='Hidden', source="FORMAT"),
 		]
 	
