@@ -163,5 +163,8 @@ setattr(ArchiveService, 'child_js', formal.formsJS)
 from gavo import nullui
 config.setDbProfile("querulator")
 
-appserver.DefaultExceptionHandler = ErrorPageDebug
+if config.get("web", "errorPage")=="debug":
+	appserver.DefaultExceptionHandler = ErrorPageDebug
+else:
+	appserver.DefaultExceptionHandler = ErrorPage
 #root = ArchiveService()

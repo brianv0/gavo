@@ -47,6 +47,8 @@ nevowRoot:
 defaultlimit: 100
 # hard match limit for the db (empty for no limit)
 hardlimit: 1000000
+# error page for nv service (debug or something else)
+errorPage: debug
 
 [querulator]
 defaultMaxMatches: 1000
