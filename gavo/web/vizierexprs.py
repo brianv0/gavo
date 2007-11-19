@@ -2,10 +2,11 @@
 Classes and methods to support vizier-type specifications on fields.
 """
 
+import re
 
 from pyparsing import Word, Literal, Optional, Forward, Group,\
 	ZeroOrMore, nums, Suppress, ParseException, StringEnd, Regex,\
-	OneOrMore, Or, MatchFirst
+	OneOrMore, Or, MatchFirst, CharsNotIn
 
 import gavo
 from gavo import typesystems
@@ -47,7 +48,10 @@ class ParseNode(object):
 		else:
 			return self._sqlEmitters[self.operator](self, key, sqlPars)
 
-	# the following methods are used at used at class construction time
+
+class NumericNode(ParseNode):
+	"""is a node containing numeric operands (floats or dates).
+	"""
 	def _emitBinop(self, key, sqlPars):
 		return joinOperatorExpr(self.operator,
 			[c.asSQL(key, sqlPars) for c in self.children])
@@ -57,6 +61,11 @@ class ParseNode(object):
 		if operand:
 			return "%s (%s)"%(self.operator, operand)
 
+	def _emitEnum(self, key, sqlPars):
+		return "%s IN (%s)"%(key, ", ".join([
+					"%%(%s)s"%self._insertChild(i, key, sqlPars) 
+				for i in range(len(self.children))]))
+
 	_standardOperators = set(["=", ">=", ">", "<=", "<"])
 	_sqlEmitters = {
 		'..': lambda self, key, sqlPars: "%s BETWEEN %%(%s)s AND %%(%s)s"%(key, 
@@ -64,15 +73,62 @@ class ParseNode(object):
 		'AND': _emitBinop,
 		'OR': _emitBinop,
 		'NOT': _emitUnop,
-		',': lambda self, key, sqlPars: "%s IN (%s)"%(key, ", ".join([
-					"%%(%s)s"%self._insertChild(i, key, sqlPars) 
-				for i in range(len(self.children))])),
+		',': _emitEnum,
 	}
 
 
-def _getNodeFactory(op):
+class StringNode(ParseNode):
+	def asSQL(self, key, sqlPars):
+		if self.operator=="[":
+			return "[%s]"%self.children[0]
+		if self.operator in self._nullOperators:
+			return self._nullOperators[self.operator]
+		else:
+			return super(StringNode, self).asSQL(key, sqlPars)
+	
+	def _makePattern(self, key, sqlPars):
+		parts = []
+		for child in self.children:
+			if isinstance(child, basestring):
+				parts.append(re.escape(child))
+			else:
+				parts.append(child.asSQL(key, sqlPars))
+		return "".join(parts)
+
+	_patOps = {
+		"~": "~*",
+		"=": "~",
+		"!~": "!~*",
+		"!": "!~",
+	}
+	def _emitPatOp(self, key, sqlPars):
+		pattern = self._makePattern(key, sqlPars)
+		return "%s %s %%(%s)s"%(key, self._patOps[self.operator],
+			getSQLKey(key, pattern, sqlPars))
+
+	def _emitEnum(self, key, sqlPars):
+		query = "%s IN (%s)"%(key, ", ".join([
+					"%%(%s)s"%self._insertChild(i, key, sqlPars) 
+				for i in range(len(self.children))]))
+		if self.operator=="!=,":
+			query = "NOT (%s)"%query
+		return query
+	
+	_nullOperators = {"*": ".*", "?": "."}
+	_standardOperators = set(["<", ">", "<=", ">=", "==", "!="])
+	_sqlEmitters = {
+		"~": _emitPatOp,
+		"=": _emitPatOp,
+		"!~": _emitPatOp,
+		"!": _emitPatOp,
+		"=,": _emitEnum,
+		"=|": _emitEnum,
+		"!=,": _emitEnum,
+		}
+
+def _getNodeFactory(op, nodeClass):
 	def _(s, loc, toks):
-		return ParseNode(toks, op)
+		return nodeClass(toks, op)
 	return _
 
 
@@ -80,20 +136,20 @@ def _makeNotNode(s, loc, toks):
 	if len(toks)==1:
 		return toks[0]
 	elif len(toks)==2:
-		return ParseNode(toks[1:], "NOT")
+		return NumericNode(toks[1:], "NOT")
 	else: # Can't happen :-)
 		raise Exception("Busted by not")
 
 
 def _makePmNode(s, loc, toks):
-	return ParseNode([toks[0]-toks[1], toks[0]+toks[1]], "..")
+	return NumericNode([toks[0]-toks[1], toks[0]+toks[1]], "..")
 
 
 def _makeDatePmNode(s, loc, toks):
 	"""returns a +/- node for dates, i.e., toks[1] is a float in days.
 	"""
 	days = typeconversion.make_timeDelta(days=toks[1])
-	return ParseNode([toks[0]-days, toks[0]+days], "..")
+	return NumericNode([toks[0]-days, toks[0]+days], "..")
 
 
 def _getBinopFactory(op):
@@ -101,15 +157,16 @@ def _getBinopFactory(op):
 		if len(toks)==1:
 			return toks[0]
 		else:
-			return ParseNode(toks, op)
+			return NumericNode(toks, op)
 	return _
 
 
 def _makeSimpleExprNode(s, loc, toks):
 	if len(toks)==1:
-		return ParseNode(toks[0:], "=")
+		return NumericNode(toks[0:], "=")
 	else:
-		return ParseNode(toks[1:], toks[0])
+		return NumericNode(toks[1:], toks[0])
+
 
 
 def getComplexGrammar(baseLiteral, pmBuilder, errorLiteral=None):
@@ -157,9 +214,9 @@ def getComplexGrammar(baseLiteral, pmBuilder, errorLiteral=None):
 	simpleExpr.setName("simpleEx")
 
 	preopExpr.setParseAction(_makeSimpleExprNode)
-	rangeExpr.setParseAction(_getNodeFactory(".."))
+	rangeExpr.setParseAction(_getNodeFactory("..", NumericNode))
 	pmExpr.setParseAction(pmBuilder)
-	valList.setParseAction(_getNodeFactory(","))
+	valList.setParseAction(_getNodeFactory(",", NumericNode))
 	notExpr.setParseAction(_makeNotNode)
 	andExpr.setParseAction(_getBinopFactory("AND"))
 	orExpr.setParseAction(_getBinopFactory("OR"))
@@ -191,9 +248,72 @@ def parseDateExpr(str, baseSymbol=getComplexGrammar(dateLiteral,
 	return baseSymbol.parseString(str)[0]
 
 
+def _makeOpNode(s, loc, toks):
+	return StringNode(toks[1:], toks[0])
+
+
+def getStringGrammar():
+	"""returns a grammar for parsing vizier-like string expressions.
+	"""
+# XXX TODO: should we cut at =| (which is currently parsed as (= |)?
+	simpleOperator = Literal("==") | Literal("!=") | Literal(">=") |\
+		Literal(">") | Literal("<=") | Literal("<")
+	simpleOperand = Regex(".*")
+	simpleExpr = simpleOperator + simpleOperand
+	
+	commaOperand = Regex("[^,]+")
+	barOperand = Regex("[^|]+")
+	commaEnum = Literal("=,") + commaOperand + ZeroOrMore(
+		Suppress(",") + commaOperand)
+	exclusionEnum = Literal("!=,") + commaOperand + ZeroOrMore(
+		Suppress(",") + commaOperand)
+	barEnum = Literal("=|") + barOperand + ZeroOrMore(
+		Suppress("|") + barOperand)
+	enumExpr = exclusionEnum | commaEnum | barEnum
+
+	patLiterals = CharsNotIn("[*?")
+	wildStar = Literal("*")
+	wildQmark = Literal("?")
+	setElems = CharsNotIn("]")
+	setSpec = Suppress("[") + setElems + Suppress("]")
+	pattern = OneOrMore(setSpec | wildStar | wildQmark | patLiterals)
+
+	patternOperator = Literal("~") | Literal("=") | Literal("!~") |\
+		Literal("!") | Literal("=")
+	patternExpr = patternOperator + pattern
+
+	nakedExpr = pattern.copy()
+
+	stringExpr = enumExpr | simpleExpr | patternExpr | nakedExpr
+	
+	doc = stringExpr + StringEnd()
+
+	stringExpr.setName("StringExpr")
+	enumExpr.setName("EnumExpr")
+
+	debug = False
+	stringExpr.setDebug(debug)
+	patLiterals.setDebug(debug)
+
+	simpleExpr.setParseAction(_makeOpNode)
+	patternExpr.setParseAction(_makeOpNode)
+	enumExpr.setParseAction(_makeOpNode)
+	nakedExpr.setParseAction(_getNodeFactory("~", StringNode))
+	wildStar.setParseAction(_makeOpNode)
+	wildQmark.setParseAction(_makeOpNode)
+	setElems.setParseAction(_getNodeFactory("[", StringNode))
+
+	return doc
+
+
+def parseStringExpr(str, baseSymbol=getStringGrammar()):
+	return baseSymbol.parseString(str)[0]
+
+
 parsers = {
 	"vexpr-float": parseNumericExpr,
 	"vexpr-date": parseDateExpr,
+	"vexpr-string": parseStringExpr,
 }
 
 def getParserForType(dbtype):
@@ -336,11 +456,4 @@ if __name__=="__main__":
 	if True:
 		_test()
 	else:
-		debug = True
-		notExpr.setDebug(debug)
-		andExpr.setDebug(debug)
-		andOp.setDebug(debug)
-		orExpr.setDebug(debug)
-		simpleExpr.setDebug(debug)
-		expr.setDebug(debug)
-		print numericExpr.parseString("! 1 & 2 | < 0")
+		print parseStringExpr("NGC*")

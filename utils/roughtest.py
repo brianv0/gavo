@@ -115,15 +115,17 @@ myTests = [
 			"Required</li>",
 			"NV APFS formal argument validation"),
 		GetHasStringTest(nv_root+"/apfs/res/apfs_new/"
-			"catquery/form?__nevow_form__=genForm&object=fdsfa&startDate="
-			"2008-12-01&endDate=2008-12-30&hrInterval=24&_FILTER=default"
-			"&_FORMAT=HTML&_VERB=2&_TDENC=True&submit=Go",
+			"catquery/form?__nevow_form__=genForm&object=fdsfa&startDate__day=12&"
+			"startDate__month=12&startDate__year=2006&endDate__day=20&"
+			"endDate__month=12&endDate__year=2006&hrInterval=24&_FILTER=default"
+			"&_FORMAT=HTML&_VERB=2&TDENC=True&submit=Go",
 			"known by simbad",
 			"NV APFS custom argument validation"),
 		GetHasStringTest(nv_root+"/apfs/res/apfs_new/catquery/form?"
-			"__nevow_form__=genForm&object=56&startDate=2006-12-12&"
-			"endDate=2006-12-20&hrInterval=24&_FILTER=default&_FORMAT=HTML"
-			"&_VERB=2&_TDENC=True&submit=Go",
+			"__nevow_form__=genForm&object=56&startDate__day=12&startDate__month=12"
+			"&startDate__year=2006&endDate__day=20&endDate__month=12&endDate__year"
+			"=2006&hrInterval=24&_FILTER=default&_FORMAT=HTML&_VERB=2&TDENC=True"
+			"&submit=Go",
 			"+5 31 28.714",
 			"NV APFS computation")),
 	TestGroup("maidanak-siap",

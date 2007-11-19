@@ -26,6 +26,8 @@ class MacroErrorTest(unittest.TestCase):
 			l = p(None, {"startDate": "2000-01-01", "endDate": "2000-12-31",
 				"intv": "a00"})
 		except Exception, msg:
+			self.assertEqual(msg.fieldName, "intv")
+		else:
 			self.fail("a00 is regarded as a valid integer...")
 
 

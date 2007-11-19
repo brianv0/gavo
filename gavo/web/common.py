@@ -357,8 +357,10 @@ class CoreResult(object):
 		}
 
 	def data_queryseq(self, ctx):
-		return [(k, v) for k, v in self.queryPars.iteritems()
+		s = [(k, str(v)) for k, v in self.queryPars.iteritems()
 			if not k in QueryMeta.metaKeys]
+		s.sort()
+		return s
 
 	def data_querypars(self, ctx):
 		return dict(self.data_queryseq(ctx))

@@ -4,7 +4,9 @@
 Tests for correct interpretation of vizier-type expressions.
 """
 
+import sys
 import unittest
+
 import testhelpers
 
 from gavo import datadef
@@ -19,6 +21,9 @@ class GrammarTest(testhelpers.VerboseTest):
 				self.assertEqual(str(self.parse(expr)), res)
 			except vizierexprs.ParseException:
 				raise AssertionError("%s doesn't parse"%expr)
+			except:
+				sys.stderr.write("\nFailed example is %s\n"%expr)
+				raise
 
 	def _assertFailures(self, *examples):
 		for expr in examples:
@@ -167,11 +172,62 @@ class ComplexDateExpresionTest(GrammarTest):
 		)
 
 
+class StringParsesText(GrammarTest):
+	def parse(self, val):
+		return vizierexprs.parseStringExpr(val)
+	
+	def testSimpleExprs(self):
+		"""tests for correct parsing of non-pattern string expressions.
+		"""
+		self._assertResults(
+			("==NGC", "(== NGC)"),
+			("!=     NGC", "(!= NGC)"),
+			(">= M 51", "(>= M 51)"),
+			("<= B*", "(<= B*)"),
+			("< B*", "(< B*)"),
+			("> Q3489+2901", "(> Q3489+2901)"),
+			("> >foo<", "(> >foo<)"),
+		)
+
+	def testEnumerations(self):
+		"""tests for correct parsing of enumerated string expressions.
+		"""
+		self._assertResults(
+			("=,A,B,C", "(=, A B C)"),
+			("!=,A,B,C", "(!=, A B C)"),
+			("=|A|B|C", "(=| A B C)"),
+			("=|1,2,3|B|C", "(=| 1,2,3 B C)"),
+			("=|1, 2, 3|B|C", "(=| 1, 2, 3 B C)"),
+			("=,1, 2, 3|B|C", "(=, 1 2 3|B|C)"),
+		)
+	
+	def testEnumerationFailures(self):
+		self._assertFailures("=,a,b,")
+
+	def testPatternExprs(self):
+		"""tests for correct parsing of pattern expresssions.
+		"""
+		self._assertResults(
+			("NGC*", "(~ NGC (* ))"),
+			("~NGC*", "(~ NGC (* ))"),
+			("~ NGC*", "(~ NGC (* ))"),
+			("NG?*", "(~ NG (? ) (* ))"),
+			("NG[A-Z]*", "(~ NG ([ A-Z) (* ))"),
+			("NG[^A-Za-z]*", "(~ NG ([ ^A-Za-z) (* ))"),
+			("NG[^ -A]*", "(~ NG ([ ^ -A) (* ))"),
+		)
+	
+	def testPatternFailures(self):
+		"""tests for rejection of malformed pattern expressions.
+		"""
+		self._assertFailures("[a")
+			
+
 class SQLGenerTest(unittest.TestCase):
 	"""Tests for SQL fragments making out of simple vizier-like expressions.
 	"""
 	def testSQLGenerationSimple(self):
-		field = datadef.DataField(dest="foo", source="bar")
+		field = datadef.DataField(dest="foo", source="bar", dbtype="vexpr-float")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field, {"bar": "8"}, sqlPars),
 			"foo = %(foo0)s")
@@ -186,7 +242,7 @@ class SQLGenerTest(unittest.TestCase):
 	def testSQLGenerationComplex(self):
 		"""Tests for SQL fragments making out of complex vizier-like expressions.
 		"""
-		field = datadef.DataField(dest="foo", source="bar")
+		field = datadef.DataField(dest="foo", source="bar", dbtype="vexpr-float")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field, {"bar": "< 8 | > 15"}, sqlPars),
 			"(foo < %(foo0)s) OR (foo > %(foo1)s)")
@@ -215,7 +271,7 @@ class SQLGenerTest(unittest.TestCase):
 	def testDateSQLGeneration(self):
 		"""tests for SQL fragments making for date expressions.
 		"""
-		field = datadef.DataField(dest="foo", source="bar", dbtype="date")
+		field = datadef.DataField(dest="foo", source="bar", dbtype="vexpr-date")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field, {"bar": "2001-05-12"}, 
 			sqlPars), "foo = %(foo0)s")
@@ -231,14 +287,60 @@ class SQLGenerTest(unittest.TestCase):
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field, {"bar": "2001-05-12 +/- 2.5"}, 
 			sqlPars), 'foo BETWEEN %(foo0)s AND %(foo1)s')
+		self.assertEqual(str(sqlPars["foo0"]), "2001-05-09 12:00:00.00")
 
 	def testWithNones(self):
 		"""tests for SQL fragments generation with NULL items.
 		"""
-		field1 = datadef.DataField(dest="foo", source="foo")
+		field1 = datadef.DataField(dest="foo", source="foo", dbtype="vexpr-float")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": None}, sqlPars),
 			None)
+
+	def testPatterns(self):
+		"""tests for SQL generation with string patterns.
+		"""
+		field1 = datadef.DataField(dest="foo", source="foo", dbtype="vexpr-string")
+		sqlPars = {}
+		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "star"}, sqlPars),
+			"foo ~* %(foo0)s")
+		self.assertEqual(sqlPars["foo0"], "star")
+
+		sqlPars = {}
+		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "sta?"}, sqlPars),
+			"foo ~* %(foo0)s")
+		self.assertEqual(sqlPars["foo0"], "sta.")
+
+		sqlPars = {}
+		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "s*ta?"}, sqlPars),
+			"foo ~* %(foo0)s")
+		self.assertEqual(sqlPars["foo0"], "s.*ta.")
+
+		sqlPars = {}
+		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "=s*ta?"}, sqlPars),
+			"foo ~ %(foo0)s")
+		self.assertEqual(sqlPars["foo0"], "s.*ta.")
+
+		sqlPars = {}
+		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "a+b*"}, sqlPars),
+			"foo ~* %(foo0)s")
+		self.assertEqual(sqlPars["foo0"], r"a\+b.*")
+
+		sqlPars = {}
+		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "!a+b\*"}, sqlPars),
+			"foo !~ %(foo0)s")
+		self.assertEqual(sqlPars["foo0"], r"a\+b\\.*")
+
+		sqlPars = {}
+		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "!~[a-z]"}, sqlPars),
+			"foo !~* %(foo0)s")
+		self.assertEqual(sqlPars["foo0"], r"[a-z]")
+
+		sqlPars = {}
+		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "!~[a-z]"}, sqlPars),
+			"foo !~* %(foo0)s")
+		self.assertEqual(sqlPars["foo0"], r"[a-z]")
+
 
 
 if __name__=="__main__":
