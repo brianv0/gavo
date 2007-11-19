@@ -446,7 +446,7 @@ class StringInterpolator(Macro):
 	  the conversions from.
 	
 	Clearly, you have to have as many items in sources as you have conversions 
-	in format.
+	in format.  Non-existing keys are substituted by the empty string.
 
 	StringInterpolators have no runtime arguments.
 
@@ -471,8 +471,8 @@ class StringInterpolator(Macro):
 
 	def _compute(self, record):
 		try:
-			record[self.destination] = self.format%tuple([record[src] 
-				for src in self.sources])
+			record[self.destination] = self.format%tuple(record.get(src, "")
+				for src in self.sources)
 		except (TypeError, ValueError), msg:
 			raise Error("interpolateStrings macro failure: %s"%msg)
 
@@ -762,6 +762,9 @@ class BboxSiapFieldsComputer(Macro):
 	For now, we only implement a tiny subset of WCS.  I guess we should
 	at some point wrap wcslib or something similar.
 
+	Records without or with insufficient wcs keys are furnished with
+	all-NULL wcs info.
+
 	>>> m = BboxSiapFieldsComputer()
 	>>> r = {"NAXIS1": "100", "NAXIS2": "150", "CRVAL1": "138", "CRVAL2": 53,
 	...   "CRPIX1": "70", "CRPIX2": "50", "CUNIT1": "deg", "CUNIT2": "deg",
@@ -779,36 +782,68 @@ class BboxSiapFieldsComputer(Macro):
 	def getName():
 		return "computeBboxSiapFields"
 
+	wcskeys = ["primaryBbox", "secondaryBbox", "centerAlpha", "centerDelta",
+		"nAxes",  "pixelSize", "pixelScale", "imageFormat", "wcs_projection",
+		"wcs_refPixel", "wcs_refValues", "wcs_cdmatrix"]
+
 	def _compute(self, record):
 		def seqAbs(seq):
 			return math.sqrt(sum(float(v)**2 for v in seq))
 
-		record["primaryBbox"], record["secondaryBbox"] = siap.splitCrossingBox(
-			siap.getBboxFromWCSFields(record))
-		record["centerAlpha"], record["centerDelta"] = siap.getCenterFromWCSFields(
-			record)
-		record["nAxes"] = int(record["NAXIS"])
-		axeInds = range(1, record["nAxes"]+1)
-		assert len(axeInds)==2   # probably not exactly necessary
-		record["pixelSize"] = tuple(int(record["NAXIS%d"%i]) 
-			for i in axeInds)
-		assert(record["CUNIT1"], "deg")  # XXX TODO: see what else can be there.
-		record["pixelScale"] = tuple(
-				seqAbs(record["CD%d_%d"%(i, j)] for j in axeInds)
-			for i in axeInds)
 		record["imageFormat"] = "image/fits"
+		try:
+			record["primaryBbox"], record["secondaryBbox"] = siap.splitCrossingBox(
+				siap.getBboxFromWCSFields(record))
+			record["centerAlpha"], record["centerDelta"
+				] = siap.getCenterFromWCSFields(record)
+			record["nAxes"] = int(record["NAXIS"])
+			axeInds = range(1, record["nAxes"]+1)
+			assert len(axeInds)==2   # probably not exactly necessary
+			record["pixelSize"] = tuple(int(record["NAXIS%d"%i]) 
+				for i in axeInds)
+			assert(record["CUNIT1"], "deg")  # XXX TODO: see what else can be there.
+			record["pixelScale"] = tuple(
+					seqAbs(record["CD%d_%d"%(i, j)] for j in axeInds)
+				for i in axeInds)
 
-		# XXX TODO: siap only wants one value for projection.  I admit
-		# that I don't really know what I'm doing here.
-		record["wcs_projection"] = record.get("CTYPE1")
-		if record["wcs_projection"]:
-			record["wcs_projection"] = record["wcs_projection"][5:8]
-		record["wcs_refPixel"] = tuple(float(record["CRPIX%d"%i]) 
-			for i in axeInds)
-		record["wcs_refValues"] = tuple(float(record["CRVAL%d"%i]) 
-			for i in axeInds)
-		record["wcs_cdmatrix"] = tuple(float(record["CD%d_%d"%(i, j)])
-			for i in axeInds for j in axeInds)
+			# XXX TODO: siap only wants one value for projection.  I admit
+			# that I don't really know what I'm doing here.
+			record["wcs_projection"] = record.get("CTYPE1")
+			if record["wcs_projection"]:
+				record["wcs_projection"] = record["wcs_projection"][5:8]
+			record["wcs_refPixel"] = tuple(float(record["CRPIX%d"%i]) 
+				for i in axeInds)
+			record["wcs_refValues"] = tuple(float(record["CRVAL%d"%i]) 
+				for i in axeInds)
+			record["wcs_cdmatrix"] = tuple(float(record["CD%d_%d"%(i, j)])
+				for i in axeInds for j in axeInds)
+		except KeyError:
+			for key in self.wcskeys:
+				record[key] = None
+
+
+class SiapMetaSetter(Macro):
+	"""is a macro that sets siap meta fields.
+
+	This is common stuff for all SIAP implementations.
+
+	The destinations available are: siapTitle, siapInstrument, siapObsDate,
+	siapImageFormat, siapBandpassId.
+	"""
+	@staticmethod
+	def getName():
+		return "setSiapMeta"
+
+	targetKeys = set(["siapTitle", "siapInstrument", "siapObsDate",
+		"siapImageFormat", "siapBandpassId"])
+
+	def _compute(self, record,  **kwargs):
+		if not kwargs.has_key("siapImageFormat"):
+			kwargs["siapImageFormat"] ="image/fits",
+		for key, value in kwargs.iteritems():
+			if key not in self.targetKeys:
+				raise gavo.Error("Invalid key for setSiapMeta: %s"%key)
+			record[key] = value
 
 
 def _fixIndentation(code, newIndent):

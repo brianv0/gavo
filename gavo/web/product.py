@@ -76,7 +76,7 @@ class Product(standardcores.DbBasedCore):
 		item = result[0]
 		if not isFree(item):
 			return creds.runAuthenticated(ctx, item["owner"], 
-				lambda: self._deliverFile(ctx, item))
+				lambda: self._deliverFile(sqlPars, ctx, item))
 		else:
 			return self._deliverFile(sqlPars, ctx, item)
 	

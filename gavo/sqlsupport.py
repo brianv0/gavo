@@ -232,7 +232,7 @@ class StandardQueryMixin:
 
 	The mixin assumes an attribute connection from the parent.
 	"""
-	def runOneQuery(self, query, data={}):
+	def runOneQuery(self, query, data={}, silent=False):
 		"""runs a query and returns the cursor used.
 
 		You need to commit yourself if the query changed anything.
@@ -241,8 +241,9 @@ class StandardQueryMixin:
 		try:
 			cursor.execute(query, data)
 		except DatabaseError, msg:
-			sys.stderr.write("Failed query %s with"
-				" arguments %s (%s)\n"%(repr(cursor.query), data, msg))
+			if not silent:
+				sys.stderr.write("Failed query %s with"
+					" arguments %s (%s)\n"%(repr(cursor.query), data, str(msg).strip()))
 			raise
 		return cursor
 
@@ -312,16 +313,13 @@ class TableWriter(StandardQueryMixin):
 	def _sendSQL(self, cmd, args={}, failok=False):
 		"""sends raw SQL, using a new cursor.
 		"""
-		cursor = self.connection.cursor()
 		try:
-			cursor.execute(cmd, args)
+			cursor = self.runOneQuery(cmd, args, silent=failok)
 		except DbError, msg:
-			if not failok:
-				raise Error("Bad SQL in %s (%s)"%(repr(cmd), msg))
-			else:
-				logger.warning("Ignoring SQL error %s for %s since you asked"
-					" me to."%(msg, repr(cmd)))
-		cursor.close()
+			logger.warning("Ignoring SQL error %s for %s since you asked"
+				" me to."%(msg, repr(cmd)))
+		else:
+			cursor.close()
 		self.connection.commit()
 
 	def _getDDLDefinition(self, field):
@@ -353,7 +351,7 @@ class TableWriter(StandardQueryMixin):
 				indexName), failok=True)
 
 	def makeIndices(self):
-		gavo.ui.displayMessage("Creating indices on %s.  This may take a while."%
+		gavo.ui.displayMessage("Creating indices on %s."%
 			self.tableName)
 		for indexName, members in self.getIndices().iteritems():
 			self._sendSQL("CREATE INDEX %s ON %s (%s)"%(
@@ -421,7 +419,12 @@ class TableWriter(StandardQueryMixin):
 
 		If at some point we need more complex conditions, we should probably
 		create an SqlExpression object and accept these too.
+
+		WARNING: This drops all indices on the table without restoring them.
+		That shouldn't be a problem since you'll usually get a feeder of
+		the table later on.
 		"""
+		self.dropIndices()
 		colName, value = matchCondition
 		self._sendSQL("DELETE FROM %s WHERE %s=%%(value)s"%(self.tableName,
 			colName), {"value": value})

@@ -173,6 +173,10 @@ class DbBasedCore(Core):
 		"""
 		outputDef = resource.RecordDef()
 		outputDef.updateFrom(self.tableDef)
+# XXX TODO: It's possible that at some point we'd want constraints in
+# query interpretation, and it'd ugly to remove them anyway.  I think
+# they should go into the grammar.
+		outputDef.set_constraints([])
 		qFields = self.getOutputFields(queryMeta)
 		outputDef.set_items(qFields)
 		dd = datadef.DataTransformer(self.rd, initvals={
@@ -187,7 +191,8 @@ class DbBasedCore(Core):
 			self._logFailedQuery)
 
 	def _logFailedQuery(self, failure):
-		log.msg("Failed DB query: %s"%failure.value.cursor.query)
+		if hasattr(failure.value, "cursor"):
+			log.msg("Failed DB query: %s"%failure.value.cursor.query)
 		return failure
 
 	def _parseOutput(self, dbResponse, outputDef, sqlPars, queryMeta):

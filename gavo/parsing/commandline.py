@@ -6,6 +6,7 @@ This script is the interface to importing resources into the VO.
 
 import sys
 import os
+import traceback
 from optparse import OptionParser
 
 import pyparsing

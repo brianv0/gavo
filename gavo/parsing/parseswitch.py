@@ -83,7 +83,7 @@ def _tryBooster(parseContext):
 		raise gavo.Error("Booster failed.")
 	return True
 
-def _parseSource(parseContext):
+def parseSource(parseContext):
 	"""actually executes the parse process described by parseContext.
 
 	This is the place to teach the program special tricks to bypass
@@ -92,20 +92,9 @@ def _parseSource(parseContext):
 	if not _tryBooster(parseContext):
 		parseContext.parse()
 
-def _createTable(dataSet, recordDef):
+def createTable(dataSet, recordDef):
 	if recordDef.get_onDisk():
 		TableClass = table.DirectWritingTable
 	else:
 		TableClass = table.Table
 	return TableClass(dataSet, recordDef)
-
-def getDataset(srcDesc, descriptor, dumpOnly=False, debugProductions=[],
-			maxRows=None, metaOnly=False, ignoreBadSources=False):
-	"""parses the data source described by descriptor returns a DataSet.
-	containing the data and the governing semantics.
-	"""
-	grammar = srcDesc.get_Grammar()
-	grammar.enableDebug(debugProductions)
-	data = resource.DataSet(srcDesc, _createTable, _parseSource, 
-		maxRows=maxRows, ignoreBadSources=False)
-	return data

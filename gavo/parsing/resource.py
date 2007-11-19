@@ -310,15 +310,16 @@ class DataSet(meta.MetaMixin):
 					" on user request"%context.sourceName)
 				raise
 			except (UnicodeDecodeError, sqlsupport.OperationalError), msg:
-				# these are most likely due to direct writing
+				# these are most likely due to direct writing, the transaction is
+				# botched, let's bail out
 				logger.error("Error while exporting %s (%s) -- aborting source."%(
 					context.sourceName, str(msg)))
 				counter.hitBad()
-				if not self.ignoreBadSources:
-					raise
+				raise
 			except (gavo.Error, Exception), msg:
 				errMsg = ("Error while parsing %s (%s) -- aborting source."%(
 					context.sourceName, str(msg).decode("utf-8")))
+				logger.error(errMsg, exc_info=True)
 				counter.hitBad()
 				if not self.ignoreBadSources:
 					raise
@@ -374,6 +375,13 @@ class DataSet(meta.MetaMixin):
 		return self.docFields
 
 	def exportToSql(self, schema):
+# Drop all indices on all tables affected.  This is necessary to
+# avoid horrible run times with e.g., product tables.  In general,
+# all affected tables should be written to afterwards, so the indices
+# will be restored.  If they aren't we're in trouble.
+		for table in self.tables:
+			sqlsupport.TableWriter("%s.%s"%(schema, table.getName()),
+				table.getFieldDefs()).dropIndices()
 		for table in self.tables:
 			table.exportToSql(schema)
 
@@ -486,12 +494,12 @@ class Resource:
 		"""reads all data sources and applies all resource processors to them.
 		"""
 		from gavo.parsing import parseswitch
-		for dataSrc in self.getDescriptor().get_dataSrcs():
-			gavo.ui.displayMessage("Importing %s"%dataSrc.get_id())
-			self.addDataset(parseswitch.getDataset(dataSrc, self.getDescriptor(),
-				debugProductions=getattr(opts, "debugProductions", None), 
-				maxRows=getattr(opts, "maxRows", None),
-				metaOnly=getattr(opts, "metaOnly", False), 
+		for dataDesc in self.getDescriptor().get_dataSrcs():
+			gavo.ui.displayMessage("Importing %s"%dataDesc.get_id())
+			dataDesc.get_Grammar().enableDebug(
+				getattr(opts, "debugProductions", None))
+			self.addDataset(DataSet(dataDesc, parseswitch.createTable, 
+				parseswitch.parseSource, maxRows=getattr(opts, "maxRows", None),
 				ignoreBadSources=getattr(opts, "ignoreBadSources", False)))
 		for processor in self.getDescriptor().get_processors():
 			processor(self)

@@ -219,7 +219,10 @@ class Products(Interface):
 		Interface.__init__(self, [
 			{"dest": "datapath", "source": "prodtblKey", "dbtype": "text",
 				"ucd": "meta.ref;obs.image;meta.fits", "displayHint": "product",
-				"references": "products", "tablehead": "Product", "optional": "False"},
+				"tablehead": "Product", "optional": "False"},
+# XXX TODO: it would be smart to have "references": "products", here,
+# but that causes the remove of the items to take forever.  See if
+# we can figure out a way to avoid that penalty.
 			{"dest": "owner", "source": "prodtblOwner", "dbtype": "text",
 				"tablehead": "Product owner", "displayHint": "suppress"},
 			{"dest": "embargo", "source": "prodtblEmbargo", "dbtype": "date",
@@ -277,6 +280,16 @@ class BboxSiap(Interface):
 	In grammars feeding such tables, you should probably have 
 
 	<Macro name="computeBboxSiapFields"/>
+
+	and something like
+
+	<Macro name="setSiapMeta">
+		<arg name="siapTitle" source="imageTitle"/>
+		<arg name="siapInstrument" source="TELESCOP"/>
+		<arg name="siapObsDate" source="DATE-OBS"/>
+		<arg name="siapImageFormat" value="image/fits"/>
+		<arg name="siapBandpassId" source="FILTER"/>
+	</Macro>
 	"""
 	# XXX TODO: Seperate the stuff necessary for searching from all the 
 	# XXX SIAP cruft.

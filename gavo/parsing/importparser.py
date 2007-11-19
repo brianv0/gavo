@@ -236,9 +236,16 @@ class RdParser(utils.NodeBuilder):
 		return attrs.get("type", "text/plain"), self.getContent(children)
 
 	def _make_Values(self, name, attrs, children):
+		def getOptionsFromDb(table, key):
+			return [a[0] for a in
+				sqlsupport.SimpleQuerier().query("SELECT DISTINCT %s FROM %s"%(
+					key, table)).fetchall()]
 		vals = datadef.Values()
 		for key, val in attrs.items():
-			vals.set(key, val)
+			if key=="fromdb":
+				vals.set_options(getOptionsFromDb(value))
+			else:
+				vals.set(key, val)
 		return self._processChildren(vals, name, {
 			"option": vals.addto_options,
 		}, children)
