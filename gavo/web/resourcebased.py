@@ -297,30 +297,12 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 			label=field.get_tablehead(),
 			description=field.get_description())
 	
-	def _addInputKey(self, form, field, data):
-		"""adds a form field for the contextgrammar.InputKey to the form.
-
-		In contrast to DataFields, for InputKeys we assume all validation
-		is done in later stages of processing, i.e., we'll always have
-		string as the nevow formal type and plain widgets (unless we have
-		an enumerated type).
-		"""
-# XXX todo: make a widget that provides context-sensitive syntax help
-		form.addField(field.get_source() or field.get_dest(),
-			formal.String(required=not field.get_optional()),
-			self._makeWidgetFactory(field, formal.String),
-			label=field.get_tablehead(),
-			description=field.get_description())
-
 	def _addQueryFields(self, form, data):
 		"""adds the inputFields of the service to form, setting proper defaults
 		from the field or from data.
 		"""
 		for field in self.service.getInputFields():
-			if isinstance(field, contextgrammar.InputKey):
-				self._addInputKey(form, field, data)
-			else:
-				self._addDataField(form, field, data)
+			self._addDataField(form, field, data)
 			if field.get_default():
 				form.data[field.get_dest()] = field.get_default()
 			if data and data.has_key(field.get_dest()):

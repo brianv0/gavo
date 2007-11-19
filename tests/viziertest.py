@@ -162,6 +162,8 @@ class ComplexDateExpresionTest(GrammarTest):
 			("2003-11-19", "(= 2003-11-19 00:00:00.00)"),
 			("2003-11-19..2003-12-15", 
 				"(.. 2003-11-19 00:00:00.00 2003-12-15 00:00:00.00)"),
+			("2003-11-19 +/- 3", 
+				"(.. 2003-11-16 00:00:00.00 2003-11-22 00:00:00.00)"),
 		)
 
 
@@ -215,10 +217,20 @@ class SQLGenerTest(unittest.TestCase):
 		"""
 		field = datadef.DataField(dest="foo", source="bar", dbtype="date")
 		sqlPars = {}
+		self.assertEqual(vizierexprs.getSQL(field, {"bar": "2001-05-12"}, 
+			sqlPars), "foo = %(foo0)s")
+		self.assertEqual(sqlPars["foo0"], typeconversion.make_dateTimeFromString(
+			"2001-05-12"))
+
+		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field, {"bar": "< 2001-05-12"}, 
 			sqlPars), "foo < %(foo0)s")
 		self.assertEqual(sqlPars["foo0"], typeconversion.make_dateTimeFromString(
 			"2001-05-12"))
+
+		sqlPars = {}
+		self.assertEqual(vizierexprs.getSQL(field, {"bar": "2001-05-12 +/- 2.5"}, 
+			sqlPars), 'foo BETWEEN %(foo0)s AND %(foo1)s')
 
 	def testWithNones(self):
 		"""tests for SQL fragments generation with NULL items.

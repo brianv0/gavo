@@ -18,6 +18,10 @@ from gavo import logger
 from gavo import coords
 
 
+def make_timeDelta(days=0, hours=0, minutes=0, seconds=0):
+	return DateTime.DateTimeDelta(days, hours, minutes, seconds)
+
+
 def make_dateFromString(datestr, datePatterns=[
 		re.compile("(?P<y>\d\d\d\d)-(?P<m>\d\d)-(?P<d>\d\d)$"),
 		re.compile("(?P<m>\d\d)/(?P<d>\d\d)/(?P<y>\d\d\d\d)$"),

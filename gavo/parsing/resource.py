@@ -236,9 +236,7 @@ class ParseContext:
 				record[field.get_dest()] = self._strToVal(field, rowdict)
 		except Exception, msg:
 			msg.field = field.get_dest()
-			utils.raiseTb(gavo.Error, "Cannot convert row %s, field %s "
-				" probably doesn't match its type %s (root cause: %s)"%(
-					str(rowdict), field.get_dest(), field.get_dbtype(), msg))
+			utils.raiseTb(gavo.ValidationError, msg, field.get_dest(), rowdict)
 		self._checkRecord(recordDef, rowdict, record)
 		return record
 	

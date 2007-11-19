@@ -8,6 +8,7 @@ from pyparsing import Word, Literal, Optional, Forward, Group,\
 	OneOrMore, Or, MatchFirst
 
 import gavo
+from gavo import typesystems
 from gavo.parsing import contextgrammar
 from gavo.parsing import typeconversion
 
@@ -69,7 +70,6 @@ class ParseNode(object):
 	}
 
 
-
 def _getNodeFactory(op):
 	def _(s, loc, toks):
 		return ParseNode(toks, op)
@@ -89,6 +89,13 @@ def _makePmNode(s, loc, toks):
 	return ParseNode([toks[0]-toks[1], toks[0]+toks[1]], "..")
 
 
+def _makeDatePmNode(s, loc, toks):
+	"""returns a +/- node for dates, i.e., toks[1] is a float in days.
+	"""
+	days = typeconversion.make_timeDelta(days=toks[1])
+	return ParseNode([toks[0]-days, toks[0]+days], "..")
+
+
 def _getBinopFactory(op):
 	def _(s, loc, toks):
 		if len(toks)==1:
@@ -105,10 +112,18 @@ def _makeSimpleExprNode(s, loc, toks):
 		return ParseNode(toks[1:], toks[0])
 
 
-def getComplexGrammar(baseLiteral):
-	"""returns the root element of a grammar parsing vizier-like expressions
-	with operands matching baseLiteral.
+def getComplexGrammar(baseLiteral, pmBuilder, errorLiteral=None):
+	"""returns the root element of a grammar parsing numeric vizier-like 
+	expressions.
+
+	This is used for both dates and floats, use baseLiteral to match the
+	operand terminal.  The trouble with dates is that the +/- operator
+	has a simple float as the second operand, and that's why you can
+	pass in an errorLiteral and and pmBuilder.
 	"""
+	if errorLiteral==None:
+		errorLiteral = baseLiteral
+
 	preOp = Literal("=") |  Literal(">=") | Literal(">"
 		) | Literal("<=") | Literal("<")
 	rangeOp = Literal("..")
@@ -121,7 +136,7 @@ def getComplexGrammar(baseLiteral):
 	preopExpr = Optional(preOp) + baseLiteral
 	rangeExpr = baseLiteral + Suppress(rangeOp) + baseLiteral
 	valList = baseLiteral + OneOrMore( Suppress(commaOp) + baseLiteral)
-	pmExpr = baseLiteral + Suppress(pmOp) + baseLiteral
+	pmExpr = baseLiteral + Suppress(pmOp) + errorLiteral
 	simpleExpr = rangeExpr | pmExpr | valList | preopExpr
 
 	expr = Forward()
@@ -143,7 +158,7 @@ def getComplexGrammar(baseLiteral):
 
 	preopExpr.setParseAction(_makeSimpleExprNode)
 	rangeExpr.setParseAction(_getNodeFactory(".."))
-	pmExpr.setParseAction(_makePmNode)
+	pmExpr.setParseAction(pmBuilder)
 	valList.setParseAction(_getNodeFactory(","))
 	notExpr.setParseAction(_makeNotNode)
 	andExpr.setParseAction(_getBinopFactory("AND"))
@@ -152,19 +167,22 @@ def getComplexGrammar(baseLiteral):
 	return exprInString
 
 
-def parseNumericExpr(str, baseSymbol=getComplexGrammar(
-		Regex(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?").setParseAction(
-			lambda s, pos, tok: float(tok[0])))
-		):
+floatLiteral = Regex(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?").setParseAction(
+			lambda s, pos, tok: float(tok[0]))
+# XXX TODO: be a bit more lenient in what you accept as a date
+dateLiteral = Regex(r"\d\d\d\d-\d\d-\d\d").setParseAction(
+			lambda s, pos, tok: typeconversion.make_dateTimeFromString(tok[0]))
+
+
+def parseNumericExpr(str, baseSymbol=getComplexGrammar(floatLiteral, 
+		_makePmNode)):
 	"""returns a parse tree for vizier-like expressions over floats.
 	"""
 	return baseSymbol.parseString(str)[0]
 
 
-def parseDateExpr(str, baseSymbol=getComplexGrammar(
-		Regex(r"\d\d\d\d-\d\d-\d\d").setParseAction(
-			lambda s, pos, tok: typeconversion.make_dateTimeFromString(tok[0])))
-		):
+def parseDateExpr(str, baseSymbol=getComplexGrammar(dateLiteral,
+		_makeDatePmNode, floatLiteral)):
 	"""returns a parse tree for vizier-like expressions over ISO dates.
 
 	Note that the semantic validity of the date (like, month<13) is not
@@ -174,16 +192,8 @@ def parseDateExpr(str, baseSymbol=getComplexGrammar(
 
 
 parsers = {
-	"real": parseNumericExpr,
-	"float": parseNumericExpr,
-	"double": parseNumericExpr,
-	"double precision": parseNumericExpr,
-	"smallint": parseNumericExpr,
-	"integer": parseNumericExpr,
-	"int": parseNumericExpr,
-	"bigint": parseNumericExpr,
-	"date": parseDateExpr,
-	"timestamp": parseDateExpr,
+	"vexpr-float": parseNumericExpr,
+	"vexpr-date": parseDateExpr,
 }
 
 def getParserForType(dbtype):
@@ -241,6 +251,29 @@ class CondDesc(object):
 		return joinOperatorExpr("AND", frags)
 
 
+class ToVexprConverter(typesystems.FromSQLConverter):
+	simpleMap = {
+		"smallint": "vexpr-float",
+		"integer": "vexpr-float",
+		"int": "vexpr-float",
+		"bigint": "vexpr-float",
+		"real": "vexpr-float",
+		"float": "vexpr-float",
+		"double precision": "vexpr-float",
+		"double": "vexpr-float",
+		"text": "vexpr-string",
+		"char": "vexpr-string",
+		"date": "vexpr-date",
+		"timestamp": "vexpr-date",
+	}
+
+	def mapComplex(self, sqlType, length):
+		if sqlType=="char":
+			return "vexpr-string"
+
+getVexprFor = ToVexprConverter().convert
+
+
 class FieldCondDesc(CondDesc):
 	"""is a condition descriptor based on a datadef.DataField.
 	"""
@@ -248,6 +281,7 @@ class FieldCondDesc(CondDesc):
 		super(FieldCondDesc, self).__init__()
 		self.field = contextgrammar.InputKey(initvals=field.dataStore)
 		self.field.set_source(key)
+		self.field.set_dbtype(getVexprFor(self.field.get_dbtype()))
 		self.parseVExpr = getParserForType(self.field.get_dbtype())
 		self.inputFields = [self.field]
 	

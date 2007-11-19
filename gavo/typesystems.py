@@ -133,6 +133,9 @@ try:
 				twoCharCutoffYear=50, dayFirst=True)),
 			"timestamp": (formal.Date, formal.widgetFactory(formal.DatePartsInput,
 				twoCharCutoffYear=50, dayFirst=True)),
+			"vexpr-float": (formal.String, formal.TextInput),
+			"vexpr-date": (formal.String, formal.TextInput),
+			"vexpr-string": (formal.String, formal.TextInput),
 		}
 
 		def mapComplex(self, type, length):
