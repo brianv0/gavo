@@ -31,7 +31,7 @@ from gavo.parsing import importparser
 from gavo.web import common
 from gavo.web import product
 from gavo.web import resourcebased
-from gavo.web import siapservice
+from gavo.web import siaprenderer
 from gavo.web import uploadservice
 
 from gavo.web.common import Error, UnknownURI
@@ -105,7 +105,7 @@ class ErrorPage(ErrorPageDebug):
 
 renderClasses = {
 	"form": resourcebased.Form,
-	"siap.xml": siapservice.SiapRenderer,
+	"siap.xml": siaprenderer.SiapRenderer,
 	"getproduct": product.Product,
 	"upload": uploadservice.Uploader,
 	"mupload": uploadservice.MachineUploader,

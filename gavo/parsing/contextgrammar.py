@@ -26,6 +26,15 @@ class InputKey(datadef.DataField):
 		"showitems": 3    # items to show in selections
 	}
 
+	def get_formalType(self):
+		if self.dataStore.get("formalType"):
+			return self.dataStore["formalType"]
+		if self.isEnumerated():
+			formalType = typesystems.sqltypeToFormal(self.get_dbtype())[0]
+		else:
+			formalType = formal.String
+		return formalType(required=not self.get_optional())
+
 	def set_widgetFactory(self, widgetFactory):
 		"""sets the widget factory either from source code or from a formal
 		WidgetFactory object.
@@ -36,34 +45,29 @@ class InputKey(datadef.DataField):
 		else:
 			self.dataStore["widgetFactory"] = widgetFactory
 
-	def get_formalType(self):
-		return self.dataStore.get("formalType") or typesystems.sqltypeToFormal(
-			self.get_dbtype())[0](required=not self.get_optional())
-
-	def _setAutoWidget(self):
+	def get_widgetFactory(self):
 		"""returns a widget factory appropriate for dbtype and values.
 
 		For non-enumerated fields, this is always formal.TextInput, since we 
 		accept vizier-like expressions for them on auto.
 # XXX TODO: handle booleans
 		"""
+		if self.dataStore.get("widgetFactory"):
+			return self.dataStore["widgetFactory"]
 		if self.isEnumerated():
-			self.set_formalType(
-				typesystems.sqltypeToFormal(self.get_dbtype())[0]())
 			if self.get_values().get_multiOk():
-				self.set_widgetFactory(formal.widgetFactory(
+				return formal.widgetFactory(
 					gwidgets.SimpleMultiSelectChoice,
 					[str(i) for i in self.get_values().get_options()],
-					self.get_showitems()))
+					self.get_showitems())
 			else:
 				items = self.get_values().get_options().copy()
 				items.remove(self.get_values().get_default())
-				self.set_widgetFactory(formal.widgetFactory(
+				return formal.widgetFactory(
 					gwidgets.SimpleSelectChoice,
-					[str(i) for i in items], self.get_default()))
-		else:
-			self.set_formalType(formal.String())
-			self.set_widgetFactory(formal.TextInput)
+					[str(i) for i in items], self.get_default())
+		else:  # it's a vexpr
+			return formal.TextInput
 
 	@classmethod
 	def fromDataField(cls, dataField):
@@ -74,7 +78,6 @@ class InputKey(datadef.DataField):
 			instance.set_values(instance.get_values().copy())
 		instance.set_dbtype(vizierexprs.getVexprFor(instance.get_dbtype()))
 		instance.set_source(instance.get_dest())
-		instance._setAutoWidget()
 		return instance
 
 	@classmethod

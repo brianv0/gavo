@@ -58,6 +58,7 @@ class Service(record.Record, meta.MetaMixin):
 	"""
 	def __init__(self, rd, initvals):
 		self.rd = weakref.proxy(rd)
+		self.setMetaParent(self.rd)
 		record.Record.__init__(self, {
 			"inputFilter": None,
 			"output": record.DictField,
@@ -73,10 +74,11 @@ class Service(record.Record, meta.MetaMixin):
 		"""
 		# XXX TODO: id and table name is not unique, ask rd for an id.
 		if not hasattr(self, "_defaultInputFilter"):
+			coreFields = self.get_core().getInputFields()
 			self._defaultInputFilter = datadef.DataTransformer(self.rd,
 				initvals={
 					"Grammar": contextgrammar.ContextGrammar(initvals={
-							"inputKeys": self.get_core().getInputFields()
+							"inputKeys": coreFields,
 						}),
 					"Semantics": resource.Semantics(initvals={
 							"recordDefs": [resource.RecordDef(initvals={
@@ -84,7 +86,7 @@ class Service(record.Record, meta.MetaMixin):
 								})]
 						}),
 					"id": "<generated>", 
-					"items": self.get_core().getInputFields(),
+					"items": coreFields,
 				})
 		return self._defaultInputFilter
 

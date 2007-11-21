@@ -41,7 +41,10 @@ class CondDesc(record.Record):
 		}
 		fields.update(additionalFields)
 		super(CondDesc, self).__init__(fields, initvals=initvals)
-	
+
+	def addto_inputKeys(self, val):
+		self.dataStore["inputKeys"].append(val)
+
 	def asSQL(self, inPars, sqlPars):
 		res = []
 		for ik in self.get_inputKeys():
