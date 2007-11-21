@@ -23,6 +23,7 @@ from gavo import typesystems
 from gavo import votable
 from gavo.parsing import contextgrammar
 from gavo.web import common
+from gavo.web import creds
 from gavo.web import htmltable
 from gavo.web import gwidgets
 from gavo.web import standardcores
@@ -59,6 +60,16 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 		if not self.rd.has_service(self.subId):
 			raise common.UnknownURI("The service %s is not defined"%self.subId)
 		self.service = self.rd.get_service(self.subId)
+
+	def renderHTTP(self, ctx):
+		if self.service.get_requiredGroup():
+			return creds.runAuthenticated(ctx, self.service.get_requiredGroup(),
+				self.startRender, ctx)
+		else:
+			return self.startRender(ctx)
+
+	def startRender(self, ctx):
+		return super(ServiceBasedRenderer, self).renderHTTP(ctx)
 
 
 class DataBasedRenderer(ResourceBasedRenderer):
@@ -118,7 +129,7 @@ class HtmlResponse(BaseResponse):
 				src=common.makeSitePath('/js/formal.js')),
 		],
 		T.body(data=T.directive("query"))[
-			T.h1["Query Result"],
+			T.h1(render=T.directive("meta"))["_title"],
 			T.p(class_="warning", render=T.directive("warnTrunc")),
 			T.div(class_="querypars", data=T.directive("queryseq"))[
 				T.h2["Parameters"],
@@ -126,6 +137,7 @@ class HtmlResponse(BaseResponse):
 					T.li(pattern="item", render=T.directive("parpair"))
 				]
 			],
+			T.h2["Result"],
 			T.div(class_="result") [
 				T.div(class_="resmeta", data=T.directive("resultmeta"),
 					render=T.directive("mapping"))[
@@ -178,7 +190,7 @@ class VOTableResponse(BaseResponse):
 
 	An example for a "real" VO service is siapservice.SiapService.
 	"""
-	def renderHTTP(self, ctx):
+	def startRender(self, ctx):
 		request = inevow.IRequest(ctx)
 		defer.maybeDeferred(self.data_query, ctx, None
 			).addCallback(self._handleData, ctx
@@ -313,12 +325,12 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		self.form = form
 		return form
 
-	def renderHTTP(self, ctx):
+	def startRender(self, ctx):
 		# XXX extreme pain: monkeypatch the resourceMixin's renderHTTP method
 		self._ResourceMixin__behaviour().renderHTTP = new.instancemethod(
 			_formBehaviour_renderHTTP, self._ResourceMixin__behaviour(),
 			form.FormsResourceBehaviour)
-		return super(Form, self).renderHTTP(ctx)
+		return super(Form, self).startRender(ctx)
 
 	def submitAction(self, ctx, form, data):
 		queryMeta = common.QueryMeta(ctx)

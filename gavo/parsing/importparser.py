@@ -375,7 +375,11 @@ class RdParser(utils.NodeBuilder):
 			"meta": svc.addMeta,
 			"template": lambda val: svc.register_template(*val),
 			"fieldNameTranslation": svc.set_fieldNameTranslations,
+			"protect": lambda v: svc.set_requiredGroup(v["group"]),
 		}, children)
+
+	def _make_protect(self, name, attrs, children):
+		return self._processChildren(makeAttDict(attrs), name, {}, children)
 
 	def _make_fieldNameTranslation(self, name, attrs, children):
 		"""temporary hack: use attributes as translation dictionary.
@@ -413,7 +417,13 @@ class RdParser(utils.NodeBuilder):
 	
 	def _make_condDesc(self, name, attrs, children):
 		if attrs.has_key("predefined"):
-			return core.getCondDesc(attrs["predefined"])
+			return self._processChildren(core.getCondDesc(attrs["predefined"]),
+				name, {}, children)
+		elif attrs.has_key("original"):
+			return self._processChildren(standardcores.CondDesc.fromInputKey(
+					contextgrammar.InputKey.fromDataField(
+						self._grabField(attrs["original"]))),
+				name, {}, children)
 		else:
 			condDesc = standardcores.CondDescFromRd(initvals=makeAttDict(attrs))
 			return self._processChildren(condDesc, name, {

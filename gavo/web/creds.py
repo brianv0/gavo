@@ -51,14 +51,14 @@ def checkCredentials(user, password, reqGroup):
 	return dbPw
 
 
-def runAuthenticated(ctx, reqGroup, fun):
-	"""returns the value of run() if the logged in user is in reqGroup,
+def runAuthenticated(ctx, reqGroup, fun, *args):
+	"""returns the value of fun(*args) if the logged in user is in reqGroup,
 	requests authentication otherwise.
 	"""
 	request = inevow.IRequest(ctx)
 	def authenticateOrRun(isAuthorizedUser):
 		if isAuthorizedUser:
-			return fun()
+			return fun(*args)
 		else:
 			request.setHeader('WWW-Authenticate', 'Basic realm="Gavo"')
 			request.setResponseCode(http.UNAUTHORIZED)
