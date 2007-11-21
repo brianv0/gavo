@@ -17,8 +17,9 @@ class DataField(record.Record):
 	rather, postgresql), in dbtype.  Types for python or VOTables should
 	be derivable from them, I guess.
 	"""
+	additionalFields = {}
 	def __init__(self, **initvals):
-		record.Record.__init__(self, {
+		myFields={
 			"dest": record.RequiredField,   # Name (used as column name in sql)
 			"source": None,      # preterminal name to fill field from
 			"default": None,     # constant value to fill field with
@@ -41,13 +42,12 @@ class DataField(record.Record):
 			"id": None,          # Just so the field can be referenced within XML
 			"values": None,      # a datadef.Values instance (see below)
 			"copy": record.BooleanField,  # Used with TableGrammars
-# XXX The following's a bad hack.  I'd like to deprecate it, but it's too 
-# convenient for now.
-			"widgetFactory": None, # Python code to generate a formal widget factory
-			                       # for this field.
-		})
-		for key, val in initvals.iteritems():
-			self.set(key, val)
+		}
+# Another bad hack, but I need to inherit from this and want additional
+# fields without messing up the constructor signature that's used all over
+# the place.
+		myFields.update(self.additionalFields)
+		super(DataField, self).__init__(myFields, initvals=initvals)
 
 	metaColMapping = {
 		"fieldName": "dest",
@@ -130,9 +130,9 @@ class DataField(record.Record):
 		vals = self.get_values()
 		if vals:
 			if vals.get_options():
-				if value and not value in vals.get_options():
-					raise gavo.ValidationError("Value %s is not in legal values %s"%
-						(value, vals.get_options()), self.get_dest())
+				if value and not vals.validateOptions(value):
+					raise gavo.ValidationError("Value %s not consistent with"
+						" legal values %s"%(value, vals.get_options()), self.get_dest())
 			else:
 				if vals.get_min() and value<vals.get_min():
 					raise gavo.ValidationError("%s too small (must be at least %s)"%(
@@ -225,7 +225,6 @@ class DataTransformer(record.Record, meta.MetaMixin):
 		for field in self.get_items():
 			field.validate(record.get(field.get_dest()))
 
-
 	def registerAsMetaParent(self):
 		try:
 			if self.get_Semantics():
@@ -295,6 +294,7 @@ class Values(record.Record):
 			"default": None, # if options are set, this will be the first one 
 				# in there unless set explicitely
 			"nullLiteral": None, # a string representing null in literals
+			"multiOk": record.BooleanField,
 		}, initvals)
 	
 	def convert(self, dataField):
@@ -323,4 +323,14 @@ class Values(record.Record):
 			self.dataStore["options"] = set([makePythonVal(opt, dbt, lf)
 				for opt in self.get_options()])
 
-
+	def validateOptions(self, value):
+		"""returns false if value isn't either in options or doesn't consist of
+		items in options.
+		"""
+		if isinstance(value, (list, tuple)):
+			for val in value:
+				if val and not val in self.get_options():
+					return False
+		else:
+			return value in self.get_options()
+		return True

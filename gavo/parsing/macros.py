@@ -834,12 +834,12 @@ class SiapMetaSetter(Macro):
 	def getName():
 		return "setSiapMeta"
 
-	targetKeys = set(["siapTitle", "siapInstrument", "siapObsDate",
-		"siapImageFormat", "siapBandpassId"])
+	targetKeys = set(["imageTitle", "instId", "dateObs",
+		"imageFormat", "bandpassId"])
 
 	def _compute(self, record,  **kwargs):
-		if not kwargs.has_key("siapImageFormat"):
-			kwargs["siapImageFormat"] ="image/fits",
+		if not kwargs.has_key("imageFormat"):
+			kwargs["imageFormat"] ="image/fits",
 		for key, value in kwargs.iteritems():
 			if key not in self.targetKeys:
 				raise gavo.Error("Invalid key for setSiapMeta: %s"%key)

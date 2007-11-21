@@ -17,8 +17,11 @@ from gavo import datadef
 from gavo import config
 from gavo import parsing
 from gavo import resourcecache
+from gavo import sqlsupport
 from gavo.parsing import meta
+from gavo.web import core
 from gavo.web import service
+from gavo.web import siap
 from gavo.web import standardcores
 from gavo.parsing import resource
 from gavo.parsing import macros
@@ -49,7 +52,13 @@ def makeAttDict(attrs):
 
 
 class RdParser(utils.NodeBuilder):
-	def __init__(self):
+	"""is a builder for a resource descriptor.
+
+	When constructing, give forImport=True if the corresponding resource may
+	not exist yet (i.e., when importing).
+	"""
+	def __init__(self, forImport=False):
+		self.forImport = forImport
 		utils.NodeBuilder.__init__(self)
 		self.rd = resource.ResourceDescriptor()
 
@@ -164,8 +173,28 @@ class RdParser(utils.NodeBuilder):
 		return utils.NamedNode("Grammar",
 			self._fillGrammarNode(tablegrammar.TableGrammar(), attrs, children, {}))
 
+	def _grabField(self, fieldPath):
+		"""returns the field pointed to by fieldPath.
+
+		fieldPath is a dot-seperated triple dataDesc.Table.fieldName.
+		"""
+		try:
+			dataId, tableName, fieldName = fieldPath.split(".")
+		except ValueError:
+			raise Error("Invalid field path %s"%fieldPath)
+		return self.rd.getDataById(dataId).getRecordDefByName(tableName
+			).getFieldByName(fieldName)
+
 	def _make_inputKey(self, name, attrs, children):
-		inputKey = contextgrammar.InputKey(makeAttDict(attrs))
+		attrs = makeAttDict(attrs)
+		if attrs.has_key("original"):
+			inputKey = contextgrammar.InputKey.fromDataField(
+				self._grabField(attrs["original"]))
+			del attrs["original"]
+		else:
+			inputKey = contextgrammar.InputKey()
+		for key, val in attrs.items():
+			inputKey.set(key, val)
 		return self._processChildren(inputKey, name, {
 			"Values": inputKey.set_values,
 		}, children)
@@ -236,14 +265,15 @@ class RdParser(utils.NodeBuilder):
 		return attrs.get("type", "text/plain"), self.getContent(children)
 
 	def _make_Values(self, name, attrs, children):
-		def getOptionsFromDb(table, key):
+		def getOptionsFromDb(expr):
 			return [a[0] for a in
-				sqlsupport.SimpleQuerier().query("SELECT DISTINCT %s FROM %s"%(
-					key, table)).fetchall()]
+				sqlsupport.SimpleQuerier().query("SELECT DISTINCT %s"%(
+					expr)).fetchall()]
 		vals = datadef.Values()
 		for key, val in attrs.items():
-			if key=="fromdb":
-				vals.set_options(getOptionsFromDb(value))
+			if key=="fromdb": 
+				if not self.forImport:
+					vals.set_options(getOptionsFromDb(val))
 			else:
 				vals.set(key, val)
 		return self._processChildren(vals, name, {
@@ -364,24 +394,35 @@ class RdParser(utils.NodeBuilder):
 		return (attrs["type"], attrs["src"])
 
 	def _make_core(self, name, attrs, children):
-		if attrs.has_key("builtin"):
-			core = standardcores.getStandardCore(attrs["builtin"])(self.rd,
-				self._collectArguments(children))
-		elif attrs.has_key("computer"):
-			core = standardcores.ComputedCore(self._getDDById(attrs["computer"]))
+		handlers = {
+			"arg": lambda *args: None,  # Handled by core constructor
+		}
+		args = self._collectArguments(children)
+		if attrs.has_key("builtin"):  # db based cores
+			curCore = core.getStandardCore(attrs["builtin"])(self.rd, initvals=args)
+			handlers.update({
+				"condDesc": curCore.addto_condDescs,
+				"autoCondDescs": curCore.addDefaultCondDescs,
+			})
+		elif attrs.has_key("computer"): # computed cores
+			curCore = standardcores.ComputedCore(self._getDDById(attrs["computer"]),
+				initvals=args)
 		else:
 			raise Error("Invalid core specification")
-		return self._processChildren(core, name, {
-			"condDesc": core.addto_condDescs,
-			"arg": lambda *args: None,  # Already handled above
-		}, children)
+		return self._processChildren(curCore, name, handlers, children)
 	
 	def _make_condDesc(self, name, attrs, children):
-		if attrs.has_key("name"):
-			return attrs["name"]
+		if attrs.has_key("predefined"):
+			return core.getCondDesc(attrs["predefined"])
 		else:
-			return "fromOutput"
-	
+			condDesc = standardcores.CondDescFromRd(initvals=makeAttDict(attrs))
+			return self._processChildren(condDesc, name, {
+				"inputKey": condDesc.addto_inputKeys,
+			}, children)
+
+	def _make_autoCondDescs(self, name, attrs, children):
+		return ""
+
 	def _make_meta(self, name, attrs, children):
 		content = self._makeTextNode(name, attrs, children)
 		res = makeAttDict(attrs)
@@ -414,13 +455,13 @@ class InputEntityResolver(EntityResolver):
 			systemId+".template"))
 
 
-def getRd(srcPath, parserClass=RdParser):
+def getRd(srcPath, parserClass=RdParser, forImport=False):
 	"""returns a ResourceDescriptor from the source in srcPath
 	"""
 	srcPath = os.path.join(config.get("inputsDir"), srcPath)
 	if not os.path.exists(srcPath):
 		srcPath = srcPath+".vord"
-	contentHandler = parserClass()
+	contentHandler = parserClass(forImport=forImport)
 	parser = make_parser()
 	parser.setContentHandler(contentHandler)
 	parser.setEntityResolver(InputEntityResolver())

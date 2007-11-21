@@ -183,7 +183,7 @@ class Record(object):
 		theCopy.dataStore = self.dataStore.copy()
 		for key, value in self.keys.iteritems():
 			if value is ListField:
-				theCopy.dataStore[key] = self.dataStore[key][:]
+				theCopy.dataStore[key] = list(self.dataStore[key])
 			if value is DictField:
 				theCopy.dataStore[key] = self.dataStore[key].copy()
 		for name, callable in self.createdMethods:
@@ -322,7 +322,7 @@ def parseBooleanLiteral(literal):
 		return False
 	elif literal.lower()=="none":
 		return None
-	raise gavo.Error("%s is an invalid expression for a boolean"%value)
+	raise gavo.Error("%s is an invalid expression for a boolean"%literal)
 
 
 def _test():

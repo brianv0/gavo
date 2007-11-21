@@ -3,6 +3,7 @@ Special gavo widgets and their corresponding types based on nevow formal.
 """
 
 from nevow import tags as T, entities as E
+import formal
 from formal import iformal
 from formal import types as formaltypes
 from formal import validation
@@ -261,6 +262,11 @@ class SimpleSelectChoice(SelectChoice):
 		super(SimpleSelectChoice, self).__init__(original,
 			[(o,o) for o in options], (noneOption, noneOption))
 
+class SimpleMultiSelectChoice(formal.MultiselectChoice):
+	def __init__(self, original, options, showitems):
+# XXXXXX TODO: implement showitems
+		super(formal.MultiselectChoice, self).__init__(original,
+			[(o,o) for o in options])
 
 def makeWidgetFactory(code):
 	return eval(code)

@@ -10,7 +10,6 @@ from pyparsing import Word, Literal, Optional, Forward, Group,\
 
 import gavo
 from gavo import typesystems
-from gavo.parsing import contextgrammar
 from gavo.parsing import typeconversion
 
 
@@ -125,6 +124,7 @@ class StringNode(ParseNode):
 		"=|": _emitEnum,
 		"!=,": _emitEnum,
 		}
+
 
 def _getNodeFactory(op, nodeClass):
 	def _(s, loc, toks):
@@ -321,11 +321,22 @@ def getParserForType(dbtype):
 
 
 def getSQL(field, inPars, sqlPars):
+# XXX TODO refactor, sanitize
 	try:
 		val = inPars[field.get_source()]
 		if val!=None:
-			return parsers[field.get_dbtype()](val).asSQL(
-				field.get_dest(), sqlPars)
+			if field.get_dbtype().startswith("vexpr") and isinstance(val, basestring):
+				return parsers[field.get_dbtype()](val).asSQL(
+					field.get_dest(), sqlPars)
+			else:
+				if isinstance(val, (list, tuple)):
+					if len(val)==1 and val[0]==None:
+						return ""
+					return "%s IN %%(%s)s"%(field.get_dest(), getSQLKey(field.get_dest(),
+						val, sqlPars))
+				else:
+					return "%s=%%(%s)s"%(field.get_dest(), getSQLKey(field.get_dest(),
+						val, sqlPars))
 	except ParseException:
 		raise gavo.ValidationError(
 			"Invalid input (see help on search expressions)", field.get_source())
@@ -345,33 +356,8 @@ def joinOperatorExpr(operator, operands):
 		return operator.join([" (%s) "%op for op in operands]).strip()
 
 
-class CondDesc(object):
-	"""is a condition descriptor for DB based cores.
-
-	CondDescs know what input to take from a dictionary (usually the
-	docRec) and how to make SQL conditions out of them.
-
-	inputFields should be a sequence of contextgrammar.InputKeys or
-	datadef.DataFields.  If they're InputKeys, no validation will be done
-	by formal.  This is probably what you want if you want vizier-like
-	expressions, macros, or similar tricks.
-	"""
-	inputFields = []
-
-	def __init__(self):
-		pass
-	
-	def getInputFields(self):
-		return self.inputFields
-
-	def getQueryFrag(self, inPars, sqlPars, queryMeta):
-		frags = []
-		for field in self.inputFields:
-			frags.append(getSQL(field, inPars, sqlPars))
-		return joinOperatorExpr("AND", frags)
-
-
 class ToVexprConverter(typesystems.FromSQLConverter):
+	typeSystem = "vizerexpr"
 	simpleMap = {
 		"smallint": "vexpr-float",
 		"integer": "vexpr-float",
@@ -392,29 +378,6 @@ class ToVexprConverter(typesystems.FromSQLConverter):
 			return "vexpr-string"
 
 getVexprFor = ToVexprConverter().convert
-
-
-class FieldCondDesc(CondDesc):
-	"""is a condition descriptor based on a datadef.DataField.
-	"""
-	def __init__(self, key, field):
-		super(FieldCondDesc, self).__init__()
-		self.field = contextgrammar.InputKey(initvals=field.dataStore)
-		self.field.set_source(key)
-		self.field.set_dbtype(getVexprFor(self.field.get_dbtype()))
-		self.parseVExpr = getParserForType(self.field.get_dbtype())
-		self.inputFields = [self.field]
-	
-
-def getAutoCondDesc(field):
-	"""returns a FieldCondDesc for the DataField field if it can be handled
-	automatically, None otherwise.
-	"""
-	if field.get_displayHint()=="suppress":
-		return
-	if not getParserForType(field.get_dbtype()):
-		return
-	return FieldCondDesc(field.get_dest(), field)
 
 
 def getSQLKey(key, value, sqlPars):

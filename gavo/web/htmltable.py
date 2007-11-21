@@ -84,6 +84,8 @@ class FormatterFactory:
 		def format(deg):
 			"""converts a float angle in degrees to an hour angle.
 			"""
+			if deg==None:
+				return "N/A"
 			rest, hours = math.modf(deg/360.*24)
 			rest, minutes = math.modf(rest*60)
 			return "%d %02d %2.*f"%(int(hours), int(minutes), secondFracs, rest*60)
@@ -93,6 +95,8 @@ class FormatterFactory:
 		def format(deg):
 			"""converts a float angle in degrees to a sexagesimal angle.
 			"""
+			if deg==None:
+				return "N/A"
 			rest, degs = math.modf(deg)
 			rest, minutes = math.modf(rest*60)
 			return "%+d %02d %2.*f"%(int(degs), abs(int(minutes)), secondFracs,
@@ -108,7 +112,7 @@ class FormatterFactory:
 
 	def _make_juliandate_formatter(self, fracFigs=1):
 		def format(date):
-			if data=="None":
+			if data==None:
 				return "N/A"
 			return date.jdn
 		return format

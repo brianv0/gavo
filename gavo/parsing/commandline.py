@@ -39,7 +39,8 @@ def processAll(opts, args):
 	for src in args:
 		gavo.ui.displayMessage("Working on %s"%src)
 		gavo.logger.info("Processing %s"%src)
-		process(opts, importparser.getRd(os.path.join(os.getcwd(), src)))
+		process(opts, importparser.getRd(os.path.join(os.getcwd(), src), 
+			forImport=True))
 
 
 def parseCmdline():

@@ -7,7 +7,7 @@ Roughly, a service consists of
  * a Data instance (the "core")
  * a (possibly empty) registry of output filters
 
-Filters and the core all have Semantics and a (possibly null grammar)
+Filters and the core all have Semantics and a (possibly null) grammar
 
 The interface of a service is built through:
 

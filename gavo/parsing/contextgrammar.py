@@ -5,35 +5,105 @@ A grammar that takes values from web contexts.
 import urllib
 import itertools
 
+import formal
+
 import gavo
 from gavo import record
 from gavo import datadef
+from gavo import typesystems
 from gavo.parsing import grammar
-from gavo.web.querulator import condgens
+from gavo.web import gwidgets
+from gavo.web import vizierexprs
 
 
 class InputKey(datadef.DataField):
 	"""is a key for a ContextGrammar.
 	"""
-	def __init__(self, initvals):
-		datadef.DataField.__init__(self, **initvals)
+	additionalFields = {
+		"formalType":    None, # nevow formal type to use.
+		"widgetFactory": None, # Python code to generate a formal widget factory
+		                       # for this field.
+		"showitems": 3    # items to show in selections
+	}
+
+	def set_widgetFactory(self, widgetFactory):
+		"""sets the widget factory either from source code or from a formal
+		WidgetFactory object.
+		"""
+		if isinstance(widgetFactory, basestring):
+			self.dataStore["widgetFactory"] = gwidgets.makeWidgetFactory(
+				widgetFactory)
+		else:
+			self.dataStore["widgetFactory"] = widgetFactory
+
+	def get_formalType(self):
+		return self.dataStore.get("formalType") or typesystems.sqltypeToFormal(
+			self.get_dbtype())[0](required=not self.get_optional())
+
+	def _setAutoWidget(self):
+		"""returns a widget factory appropriate for dbtype and values.
+
+		For non-enumerated fields, this is always formal.TextInput, since we 
+		accept vizier-like expressions for them on auto.
+# XXX TODO: handle booleans
+		"""
+		if self.isEnumerated():
+			self.set_formalType(
+				typesystems.sqltypeToFormal(self.get_dbtype())[0]())
+			if self.get_values().get_multiOk():
+				self.set_widgetFactory(formal.widgetFactory(
+					gwidgets.SimpleMultiSelectChoice,
+					[str(i) for i in self.get_values().get_options()],
+					self.get_showitems()))
+			else:
+				items = self.get_values().get_options().copy()
+				items.remove(self.get_values().get_default())
+				self.set_widgetFactory(formal.widgetFactory(
+					gwidgets.SimpleSelectChoice,
+					[str(i) for i in items], self.get_default()))
+		else:
+			self.set_formalType(formal.String())
+			self.set_widgetFactory(formal.TextInput)
+
+	@classmethod
+	def fromDataField(cls, dataField):
+		"""returns an InputKey for query input to dataField
+		"""
+		instance = cls(**dataField.dataStore)
+		if instance.get_values():
+			instance.set_values(instance.get_values().copy())
+		instance.set_dbtype(vizierexprs.getVexprFor(instance.get_dbtype()))
+		instance.set_source(instance.get_dest())
+		instance._setAutoWidget()
+		return instance
+
+	@classmethod
+	def makeAuto(cls, dataField, queryMeta):
+		"""returns an InputKey if dataField is "queriable", None otherwise.
+		"""
+		if dataField.get_displayHint()=="suppress":
+			return
+		try:
+			hasVexprType = vizierexprs.getVexprFor(dataField.get_dbtype())
+		except gavo.Error:
+			return
+		return cls.fromDataField(dataField)
 
 # XXX TODO: remove the next two methods
+"""
 	def _makeWidget(self, context):
-		"""DEPRECATED.
-		"""
 		return ('<input type="text" name="%s"'
 		' value="%s">')%(self.get_name(), 
 			self.get_default())
 
 	def asHtml(self, context):
-		"""DEPRECATED.
-		"""
 		widget = self._makeWidget(context)
 		return ('<div class="condition"><div class="clabel">%s</div>'
 			' <div class="quwidget">%s</div></div>'%(
 				self.get_label(),
 				widget))
+"""
+
 
 
 class ContextGrammar(grammar.Grammar):
@@ -59,35 +129,4 @@ class ContextGrammar(grammar.Grammar):
 
 	def getInputFields(self):
 		return self.get_inputKeys()
-
-
-if __name__=="__main__":
-	from gavo import textui
-	from gavo import parsing
-	parsing.verbose = True
-	cg = ContextGrammar()
-	cg.addto_inputKeys(InputKey({"tablehead": "FK6 Number", "default": "56", 
-		"dest": "star", "dbtype": "text", "optional": "False"}))
-	cg.addto_inputKeys(InputKey({"tablehead": "Start date",
-		"default": "", "dest": "startDate", "dbtype": "date"}))
-	cg.addto_inputKeys(InputKey({"tablehead": "End date",
-		"default": "", "dest": "endDate", "dbtype": "date"}))
-	cg.addto_inputKeys(InputKey({"tablehead": "Interval of generation (hrs)",
-		"default": "24", "dest": "hrInterval", "dbtype": "integer", 
-		"optional": "False"}))
-	import processors
-	cg.addto_rowProcs(
-		processors.DateExpander([("start", "startDate", ""),
-			("end", "endDate", ""), ("hrInterval", "hrInterval", "")]))
-	class FakeContext:
-		sourceFile = {"star": "22", "startDate": "2008-12-12", 
-			"endDate": "2008-12-24", "hrInterval": "24"}
-		sourceName = "<fake>"
-		def processRowdict(self, rowdict):
-			print rowdict
-		def processDocdict(self, docdict):
-			pass
-		def atExpand(self, val):
-			return val
-	cg.parse(FakeContext())
 

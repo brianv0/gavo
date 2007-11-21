@@ -15,18 +15,19 @@ from zope.interface import implements
 import gavo
 from gavo import datadef
 from gavo import votable
+from gavo.parsing import contextgrammar
 from gavo.parsing import meta
 from gavo.parsing import resource
 from gavo.web import common
 from gavo.web import resourcebased
 
 
-class SiapService(common.CustomErrorMixin, resourcebased.Form):
+class SiapRenderer(common.CustomErrorMixin, resourcebased.Form):
 	implements(inevow.ICanHandleException)
 
 	def __init__(self, ctx, *args, **kwargs):
 		ctx.remember(self, inevow.ICanHandleException)
-		resourcebased.Form.__init__(self, ctx, *args, **kwargs)
+		super(SiapRenderer, self).__init__(ctx, *args, **kwargs)
 
 	_generateForm = resourcebased.Form.form_genForm
 
@@ -34,12 +35,12 @@ class SiapService(common.CustomErrorMixin, resourcebased.Form):
 		args = inevow.IRequest(ctx).args
 		if args.get("FORMAT")==["METADATA"]:
 			return self._serveMetadata(ctx)
-		return super(SiapService, self).renderHTTP(ctx)
+		return super(SiapRenderer, self).renderHTTP(ctx)
 
 	def _serveMetadata(self, ctx):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
-		inputFields = [datadef.DataField(**f.dataStore) 
+		inputFields = [contextgrammar.InputKey(**f.dataStore) 
 			for f in self.service.getInputFields()]
 		for f in inputFields:
 			f.set_dest("INPUT:"+f.get_dest())
@@ -77,6 +78,8 @@ class SiapService(common.CustomErrorMixin, resourcebased.Form):
 
 	def _handleOutputData(self, data, ctx):
 		request = inevow.IRequest(ctx)
+		request.setHeader('content-disposition', 
+			'attachment; filename="votable.xml"')
 		data.addMeta(name="_query_status", content=meta.InfoItem("OK", ""))
 		data.addMeta(name="_type", content="result")
 		data.addMeta(name="_query_status", content="OK")

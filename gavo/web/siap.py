@@ -11,7 +11,10 @@ from gavo import coords
 from gavo import datadef
 from gavo import simbadinterface
 from gavo import utils
+from gavo.parsing.contextgrammar import InputKey
+from gavo.web import core
 from gavo.web import vizierexprs
+from gavo.web import standardcores
 
 
 def clampAlpha(alpha):
@@ -251,41 +254,58 @@ def getPixelCoords(wcsHeader, center, size):
 	"""
 
 
-class SiapCondition(vizierexprs.CondDesc):
+class SiapCondition(standardcores.CondDesc):
 	"""is a condition descriptor for a plain SIAP query.
-
-	WARNING: Only one of those will work in any given query.
 	"""
 	def __init__(self):
-		super(SiapCondition, self).__init__()
-		self.inputFields = [
-			datadef.DataField(dest="POS", dbtype="text", unit="deg,deg",
-				ucd="pos.eq", description="J2000.0 Position, RA,DEC decimal degrees"
-				" (e.g., 234.234,-32.45)", tablehead="Position", optional=False,
-				source="POS"),
-			datadef.DataField(dest="SIZE", dbtype="text", unit="deg,deg",
-				description="Size in decimal degrees"
-				" (e.g., 0.2 or 1,0.1)", tablehead="Field size", optional=False,
-				source="SIZE"),
-			datadef.DataField(dest="INTERSECT", dbtype="text", 
-				description="Should the image cover, enclose, overlap the ROI or"
-				" contain its center?",
-				tablehead="Intersection type", default="OVERLAPS", 
-				values=datadef.Values(options=["OVERLAPS", "COVERS", "ENCLOSED", 
-					"CENTER"]), 
-				source="INTERSECT"),
-			datadef.DataField(dest="FORMAT", dbtype="text", 
-				description="Requested format of the image data",
-				tablehead="Output format", default="image/fits",
-				values=datadef.Values(options=["image/fits", "METADATA"]),
-				widgetFactory='Hidden', source="FORMAT"),
-		]
+		super(SiapCondition, self).__init__(initvals={
+			"inputKeys": [ InputKey(dest="POS", dbtype="text", unit="deg,deg",
+					ucd="pos.eq", description="J2000.0 Position, RA,DEC decimal degrees"
+					" (e.g., 234.234,-32.45)", tablehead="Position", optional=False,
+					source="POS"),
+				InputKey(dest="SIZE", dbtype="text", unit="deg,deg",
+					description="Size in decimal degrees"
+					" (e.g., 0.2 or 1,0.1)", tablehead="Field size", optional=False,
+					source="SIZE"),
+				InputKey.fromDataField(datadef.DataField(dest="INTERSECT", 
+					dbtype="text", 
+					description="Should the image cover, enclose, overlap the ROI or"
+					" contain its center?",
+					tablehead="Intersection type", default="OVERLAPS", 
+					values=datadef.Values(options=["OVERLAPS", "COVERS", "ENCLOSED", 
+						"CENTER"]), 
+					source="INTERSECT")),
+				InputKey(dest="FORMAT", dbtype="text", 
+					description="Requested format of the image data",
+					tablehead="Output format", default="image/fits",
+					values=datadef.Values(options=["image/fits", "METADATA"]),
+					widgetFactory='Hidden', source="FORMAT"),
+			]})
 	
-	def getQueryFrag(self, inPars, sqlPars, queryMeta):
+	def asSQL(self, inPars, sqlPars):
 		fragment, pars = getBboxQuery(inPars)
 		sqlPars.update(pars)
 		return "(%s) AND imageFormat=%%(%s)s"%(fragment,
 			vizierexprs.getSQLKey("imageFormat", inPars["FORMAT"], sqlPars))
+
+core.registerCondDesc("siap", SiapCondition())
+
+
+# XXX TODO: this should be handled by an output filter
+class SiapCutoutCore(standardcores.DbBasedCore):
+	"""is a core doing siap and handing through query parameters to
+	the product delivery asking it to only retrieve certain portions
+	of images.
+	"""
+	def _parseOutput(self, dbResponse, outputDef, sqlPars, queryMeta):
+		res = super(SiapCutoutCore, self)._parseOutput(
+			dbResponse, outputDef, sqlPars, queryMeta)
+		for row in res.getPrimaryTable():
+			row["datapath"] = row["datapath"]+"&ra=%s&dec=%s&sra=%s&sdec=%s"%(
+				sqlPars["_ra"], sqlPars["_dec"], sqlPars["_sra"], sqlPars["_sdec"])
+		return res
+
+core.registerCore("siapcutout", SiapCutoutCore)
 
 
 def _test():

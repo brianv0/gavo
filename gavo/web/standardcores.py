@@ -23,35 +23,51 @@ from gavo import web
 from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
 from gavo.parsing import contextgrammar
+from gavo.web import core
 from gavo.web import common
 from gavo.web import runner
-from gavo.web import siap
 from gavo.web import vizierexprs
 
 
-class Core(record.Record):
-	"""is something that does computations for a service.
+class CondDesc(record.Record):
+	"""a CondDesc is part of the semantics of a DbBasedCore.  
+	
+	It defines inputs as InputKeys, so they can be used "naked" if necessary,
+	and provide an asSQL method that returns a query fragment.
 	"""
 	def __init__(self, additionalFields={}, initvals={}):
 		fields = {
-			"table": record.RequiredField,
-			"condDescs": record.ListField,
+			"inputKeys": record.ListField,
 		}
 		fields.update(additionalFields)
-		super(Core, self).__init__(fields, initvals=initvals)
+		super(CondDesc, self).__init__(fields, initvals=initvals)
+	
+	def asSQL(self, inPars, sqlPars):
+		res = []
+		for ik in self.get_inputKeys():
+			res.append(vizierexprs.getSQL(ik, inPars, sqlPars))
+		return vizierexprs.joinOperatorExpr("AND", res)
 
-	def run(self, inputData, queryMeta):
-		"""returns a twisted deferred firing the result of running the core on
-		inputData.
-		"""
+	@classmethod
+	def fromInputKey(cls, ik):
+		return cls(initvals={
+			"inputKeys": [ik],
+		})
 
 
-class ComputedCore(Core):
+class CondDescFromRd(CondDesc):
+	"""is a CondDesc defined in the resource descriptor.
+	"""
+	pass
+
+
+class ComputedCore(core.Core):
 	"""is a core based on a DataDescriptor with a compute attribute.
 	"""
-	def __init__(self, dd):
+# XXX TODO: This needs to pass the table name to the constructor
+	def __init__(self, dd, initvals):
 		self.dd = dd
-		super(ComputedCore, self).__init__()
+		super(ComputedCore, self).__init__(initvals=initvals)
 	
 	def run(self, inputData, queryMeta):
 		"""starts the computing process if this is a computed data set.
@@ -70,7 +86,7 @@ class ComputedCore(Core):
 			cStringIO.StringIO(rawOutput), tablesToBuild=["output"])
 
 
-class DbBasedCore(Core):
+class DbBasedCore(core.Core):
 	"""is a base class for cores doing database queries.
 
 	It provides for querying the database and returning a table
@@ -87,30 +103,29 @@ class DbBasedCore(Core):
 	"""
 	def __init__(self, rd, initvals):
 		self.rd = weakref.proxy(rd)
-		super(DbBasedCore, self).__init__(initvals=initvals)
+		super(DbBasedCore, self).__init__(additionalFields={
+				"condDescs": record.ListField,
+			}, initvals=initvals)
 	
 	def set_table(self, val):
 		self.dataStore["table"] = val
 		self.tableDef = self.rd.getTableDefByName(self.get_table())
 
-	def addto_condDescs(self, val):
-		if isinstance(val, vizierexprs.CondDesc):
-			self.dataStore["condDescs"].append(val)
-		elif val=="fromOutput":
-			for f in self.getOutputFields(common.QueryMeta({})):
-				cd = vizierexprs.getAutoCondDesc(f)
-				if cd:
-					self.dataStore["condDescs"].append(cd)
-		else:  # argument is field name
-			self.dataStore["condDescs"].append(
-				vizierexprs.FieldCondDesc(val, self.tableDef.getFieldByName(val)))
+	def addDefaultCondDescs(self, *ignored):
+		queryMeta = common.QueryMeta({})
+		for f in self.getOutputFields(queryMeta):
+			ik = contextgrammar.InputKey.makeAuto(f, queryMeta)
+			if ik:
+				self.addto_condDescs(CondDesc.fromInputKey(ik))
+
+	def addto_condDescs(self, item):
+		self.dataStore["condDescs"].append(item)
 
 	def getInputFields(self):
-		if not hasattr(self, "_inputFields"):
-			self._inputFields = []
-			for cd in self.get_condDescs():
-				self._inputFields.extend(cd.getInputFields())
-		return self._inputFields
+		res = []
+		for cd in self.get_condDescs():
+			res.extend(cd.get_inputKeys())
+		return res
 
 	def _getFilteredOutputFields(self, tableDef, queryMeta=None):
 		"""returns a sequence of field definitions in tableDef suitable for
@@ -133,8 +148,8 @@ class DbBasedCore(Core):
 		pars, frags = {}, []
 		docRec = inputTable.getDocRec()
 		return vizierexprs.joinOperatorExpr("AND",
-			[condDesc.getQueryFrag(docRec, pars, queryMeta)
-				for condDesc in self.get_condDescs()]), pars
+			[cd.asSQL(docRec, pars)
+				for cd in self.get_condDescs()]), pars
 		
 	def getOutputFields(self, queryMeta):
 		return self._getFilteredOutputFields(self.tableDef, queryMeta)
@@ -210,36 +225,4 @@ class DbBasedCore(Core):
 		return res
 
 
-class SiapCore(DbBasedCore):
-	"""is a core doing simple image access protocol queries.
-
-	As an extension to the standard, we automatically resolve simbad objects
-	to positions.
-	"""
-	def __init__(self, rd, args):
-		super(SiapCore, self).__init__(rd, args)
-		self.addto_condDescs(siap.SiapCondition())
-
-
-class SiapCutoutCore(SiapCore):
-	"""is a core doing siap and handing through query parameters to
-	the product delivery asking it to only retrieve certain portions
-	of images.
-	"""
-	def _parseOutput(self, dbResponse, outputDef, sqlPars, queryMeta):
-		res = super(SiapCutoutCore, self)._parseOutput(
-			dbResponse, outputDef, sqlPars, queryMeta)
-		for row in res.getPrimaryTable():
-			row["datapath"] = row["datapath"]+"&ra=%s&dec=%s&sra=%s&sdec=%s"%(
-				sqlPars["_ra"], sqlPars["_dec"], sqlPars["_sra"], sqlPars["_sdec"])
-		return res
-
-
-_coresRegistry = {
-	"siap": SiapCore,
-	"siapcutout": SiapCutoutCore,
-}
-
-
-def getStandardCore(coreName):
-	return _coresRegistry[coreName]
+core.registerCore("db", DbBasedCore)

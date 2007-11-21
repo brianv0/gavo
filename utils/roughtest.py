@@ -129,12 +129,12 @@ myTests = [
 			"+5 31 28.714",
 			"NV APFS computation")),
 	TestGroup("maidanak-siap",
-		GetHasStringTest(nv_root+"/maidanak/res/positions/siap/siap.xml?"
+		GetHasStringTest(nv_root+"/maidanak/res/rawframes/siap/siap.xml?"
 			"POS=q2237%2B0305&SIZE=0.1&INTERSECT=OVERLAPS&_TDENC=True&"
 			"_DBOPTIONS_LIMIT=10",
 			'<VALUES type="actual">',
 			"NV Maidanak SIAP successful query"),
-		GetHasStringTest(nv_root+"/maidanak/res/positions/siap/siap.xml?"
+		GetHasStringTest(nv_root+"/maidanak/res/rawframes/siap/siap.xml?"
 			"POS=q2237%2B0305&SIZE=0.a1&INTERSECT=OVERLAPS&_TDENC=True&"
 			"_DBOPTIONS_LIMIT=10",
 			'name="QUERY_STATUS" value="ERROR"',
@@ -142,11 +142,16 @@ myTests = [
 		GetHasStringTest(nv_root+"/getproduct?key=maidanak/wcs/cd029/oct1603"
 			"/q2237/mj160043.gz&siap=true",
 			'60043\x00\xec\xbdip\x9e\xd7\x95\xdf\x99T*\x93\x9at',
-			"MV Maidanak product delivery"),
+			"NV Maidanak product delivery"),
 		HeadStatusTest(nv_root+"/getproduct?key=maidanak/wcs/cd002/aug1305/"
 			"q2237_ogak/oh130102.gz&siap=true",
 			401,
-			"MV Maidanak auth test (will fail starting 2008-12-31)"),
+			"NV Maidanak auth test (will fail starting 2008-12-31)"),
+		GetHasStringTest(nv_root+"/maidanak/res/rawframes/siap/siap.xml"
+			"?FORMAT=METADATA",
+			'<FIELD ID="wcs_refValues" arraysize="*" datatype="double"'
+				' name="wcs_refValues"',
+			"NV Maidanak metadata query"),
 	)
 ]
 

@@ -355,7 +355,7 @@ class BboxSiap(Interface):
 			{"dest": "bandpassLo", "ucd": "VOX:BandPass_LoLimit",
 				"source": "bandpassLo", "verbLevel": 20},
 			{"dest": "pixflags", "ucd": "VOX:Image_PixFlags", "verbLevel": 20,
-				"source": "pixflags", "default": "C", "dbtype": "text"},
+				"source": "pixflags", "dbtype": "text"},
 			{"dest": "accref", "ucd": "VOX:Image_AccessReference",
 				"source": "prodtblKey", "dbtype": "text", "verbLevel": 0},
 			{"dest": "accsize", "ucd": "VOX:Image_FileSize",

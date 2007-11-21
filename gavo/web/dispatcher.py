@@ -105,7 +105,7 @@ class ErrorPage(ErrorPageDebug):
 
 renderClasses = {
 	"form": resourcebased.Form,
-	"siap.xml": siapservice.SiapService,
+	"siap.xml": siapservice.SiapRenderer,
 	"getproduct": product.Product,
 	"upload": uploadservice.Uploader,
 	"mupload": uploadservice.MachineUploader,
@@ -129,7 +129,7 @@ class ArchiveService(rend.Page, common.GavoRenderMixin):
 				T.a(href="/apfs/res/apfs_new/catquery/form",
 					render=T.directive("rootlink"))["Here"],
 				" or ",
-				T.a(href="/maidanak/res/positions/siap/form",
+				T.a(href="/maidanak/res/rawframes/siap/form",
 					render=T.directive("rootlink"))["Here"],
 				" or ",
 				T.a(href="/lswscans/res/positions/siap/form",
