@@ -457,7 +457,7 @@ class TableWriter(StandardQueryMixin):
 
 
 class TableUpdater(TableWriter):
-	"""is a TableWriter that does update request rather than insers on
+	"""is a TableWriter that does update request rather than inserts on
 	feed.
 	"""
 # XXX TODO: refactor so TableWriter and this have a common base class

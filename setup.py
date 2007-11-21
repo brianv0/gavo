@@ -28,6 +28,7 @@ setup(name="gavo",
 			'gavoimp = gavo.parsing.commandline:main',
 			'gavocred = gavo.web.creds:main',
 			'gavomkrd = gavo.parsing.bootstrapfits:main',
+			'gavopublish = gavo.web.servicelist:main',
 		]
 	},
 	version="0.2")

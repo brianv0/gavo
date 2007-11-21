@@ -75,12 +75,13 @@ class MetaItem(object):
 			desc = self.compute.split(",")
 			if not desc[-1].strip():
 				del desc[-1]
-			content = self.parent().get_computer().compute(desc[0], None, desc[1:])
+			content = unicode(self.parent().get_computer().compute(
+				desc[0], None, desc[1:])).encode("utf-8")
 		else: 
-			content = str(self.content)
+			content = unicode(self.content).encode("utf-8")
 		if self.format=="plain":
 			content = "\n\n".join(["\n".join(textwrap.wrap(para))
-				for para in re.split("\n\s*\n", str(content))])
+				for para in re.split("\n\s*\n", content)])
 		return content
 
 	def encode(self, enc):

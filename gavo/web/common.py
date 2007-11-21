@@ -226,8 +226,8 @@ class CustomErrorMixin:
 class GavoRenderMixin(object):
 	"""is a mixin that allows inclusion of meta information.
 
-	To do that, you say <tag render="meta">METAKEY</tag> or
-	<tag render="metahtml">METAKEY</tag>
+	To do that, you say <tag n:render="meta">METAKEY</tag> or
+	<tag n:render="metahtml">METAKEY</tag>
 	"""
 	def _doRenderMeta(self, ctx, flattenerFunc):
 		metaKey = ctx.tag.children[0]

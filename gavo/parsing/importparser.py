@@ -57,10 +57,10 @@ class RdParser(utils.NodeBuilder):
 	When constructing, give forImport=True if the corresponding resource may
 	not exist yet (i.e., when importing).
 	"""
-	def __init__(self, forImport=False):
+	def __init__(self, sourcePath, forImport=False):
 		self.forImport = forImport
 		utils.NodeBuilder.__init__(self)
-		self.rd = resource.ResourceDescriptor()
+		self.rd = resource.ResourceDescriptor(sourcePath)
 
 	def _getDDById(self, id):
 		"""returns the data descriptor with id.
@@ -376,9 +376,13 @@ class RdParser(utils.NodeBuilder):
 			"template": lambda val: svc.register_template(*val),
 			"fieldNameTranslation": svc.set_fieldNameTranslations,
 			"protect": lambda v: svc.set_requiredGroup(v["group"]),
+			"publish": svc.addto_publications,
 		}, children)
 
 	def _make_protect(self, name, attrs, children):
+		return self._processChildren(makeAttDict(attrs), name, {}, children)
+
+	def _make_publish(self, name, attrs, children):
 		return self._processChildren(makeAttDict(attrs), name, {}, children)
 
 	def _make_fieldNameTranslation(self, name, attrs, children):
@@ -471,7 +475,7 @@ def getRd(srcPath, parserClass=RdParser, forImport=False):
 	srcPath = os.path.join(config.get("inputsDir"), srcPath)
 	if not os.path.exists(srcPath):
 		srcPath = srcPath+".vord"
-	contentHandler = parserClass(forImport=forImport)
+	contentHandler = parserClass(srcPath, forImport=forImport)
 	parser = make_parser()
 	parser.setContentHandler(contentHandler)
 	parser.setEntityResolver(InputEntityResolver())

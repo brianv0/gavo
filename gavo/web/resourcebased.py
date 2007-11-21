@@ -147,8 +147,9 @@ class HtmlResponse(BaseResponse):
 				],
 				T.div(class_="result")[
 					T.invisible(render=T.directive("resulttable")),
-				]
-			]
+				],
+			],
+			T.div(class_="copyright", render=T.directive("metahtml"))["_copyright"],
 		]])
 
 

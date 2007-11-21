@@ -65,6 +65,7 @@ class Service(record.Record, meta.MetaMixin):
 			"core": record.RequiredField,
 			"id": record.RequiredField,
 			"template": record.DictField,
+			"publications": record.ListField,
 			"requiredGroup": None,
 # temporary hack: map field names to ones known to the form.
 			"fieldNameTranslations": None,   

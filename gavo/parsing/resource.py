@@ -562,7 +562,8 @@ class ResourceDescriptor(record.Record, meta.MetaMixin):
 	"""is a container for all information necessary to import a resource into
 	a VO data pool.
 	"""
-	def __init__(self, **initvals):
+	def __init__(self, sourcePath="InMemory", **initvals):
+		self.sourceId = self._getSourceId(sourcePath)
 		record.Record.__init__(self, {
 			"resdir": record.RequiredField, # base directory for source files
 			"dataSrcs": record.ListField,   # list of data sources
@@ -578,7 +579,17 @@ class ResourceDescriptor(record.Record, meta.MetaMixin):
 			"systems": coords.CooSysRegistry(),
 			"property": record.DictField,
 		}, initvals)
-		
+
+	def _getSourceId(self, sourcePath):
+		"""returns the inputsDir-relative path to the rd.
+
+		Any extension is purged, too.  This value can be accessed as the
+		sourceId attribute.
+		"""
+		if sourcePath.startswith(config.get("inputsDir")):
+			sourcePath = sourcePath[len(config.get("inputsDir")):].lstrip("/")
+		return os.path.splitext(sourcePath)[0]
+
 	def set_resdir(self, relPath):
 		"""sets resource directory, qualifing it and making sure
 		there's no trailing slash.
@@ -660,7 +671,7 @@ def parseFromTable(tableDef, inputData, rd=None):
 	from inputData's primary table.
 	"""
 	if rd is None:
-		rd = ResourceDescriptor()
+		rd = ResourceDescriptor("inMemory")
 		rd.set_resdir("NULL")
 	dataDesc = makeSimpleDataDesc(rd, tableDef)
 	dataDesc.set_Grammar(tablegrammar.TableGrammar())
