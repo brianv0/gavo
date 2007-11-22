@@ -92,6 +92,9 @@ class RecordDef(record.Record, meta.MetaMixin):
 			"shared": record.BooleanField,  # is this a shared table?
 			"create": record.BooleanField,  # create table?
 			"onDisk": record.BooleanField,  # write parsed data directly?
+			"forceUnique": record.BooleanField,  # enforce uniqueness of 
+			                      #primary key by throwing away repeated records?
+			"transparent": record.BooleanField,  # get fields from (rowset)grammar
 		}, initvals)
 		self.fieldIndexDict = {}
 
@@ -375,6 +378,8 @@ class DataSet(meta.MetaMixin):
 		return self.docFields
 
 	def exportToSql(self, schema):
+		if self.getDescriptor().get_virtual():
+			return
 # Drop all indices on all tables affected.  This is necessary to
 # avoid horrible run times with e.g., product tables.  In general,
 # all affected tables should be written to afterwards, so the indices
@@ -580,6 +585,12 @@ class ResourceDescriptor(record.Record, meta.MetaMixin):
 			"property": record.DictField,
 		}, initvals)
 
+	def __iter__(self):
+		"""iterates over all embedded data descriptors.
+		"""
+		for dd in self.get_dataSrcs():
+			yield dd
+
 	def _getSourceId(self, sourcePath):
 		"""returns the inputsDir-relative path to the rd.
 
@@ -646,6 +657,8 @@ class DataDescriptor(datadef.DataTransformer):
 				                   # the data
 				"name": None,      # a terse human-readable description of this data
 				"property": record.DictField,
+				"virtual": record.BooleanField,  # virtual data is never written
+				                                 # to the DB.
 			},
 			initvals=initvals)
 

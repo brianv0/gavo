@@ -26,7 +26,7 @@ import sys
 
 
 voServer = "vo.ari.uni-heidelberg.de"
-archURI = "/rauchspectra/theospectra/data/mupload"
+archURI = "/nv/rauchspectra/theospectra/data/mupload"
 
 
 def _genForm(fName, mode):

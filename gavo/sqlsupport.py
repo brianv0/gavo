@@ -630,6 +630,16 @@ class MetaTableHandler:
 		return fieldInfos
 
 
+def makeRowsetFromDicts(dictList, fieldDefs):
+	"""returns a rowset for a list of dicts.
+	"""
+# Well, maybe we should switch the whole thing to the dict interface to
+# the database, then all this crazy dict<->tuple converting wouldn't
+# be necessary...  Sigh.
+	fieldNames = [f.get_dest() for f in fieldDefs]
+	return [tuple(d[name] for name in fieldNames) for d in dictList]
+
+
 if __name__=="__main__":
 	t = TableWriter("test.test", [("f1", "text", {}), ("f2", "text", {})])
 	t.ensureSchema("test")

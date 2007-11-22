@@ -160,6 +160,35 @@ class RDComputer:
 		rootPath = config.get("inputsDir")
 		return self._getRelativePath(fullPath, rootPath)
 
+	def _fc_rdId(self, rows):
+		"""returns the id of the resource descriptor.
+
+		This is the input-relative path of the rd source file, minus any
+		extensions.
+		"""
+		return self.rd.sourceId
+
+	def _fc_attr(self, rows, attName):
+		"""returns the attribute attName of the resource descriptor.
+
+		This is a last-resort affair if some program needs to smuggle in data
+		through a resource descriptor.  One example is the service list in
+		which you need to know what resource descriptor you operate on.
+
+		Don't use it.  The properties on data desriptors are a slightly
+		more structured way to achieve most of what this could do.
+		"""
+# Clearly, this is a bad hack -- just don't use it.
+		return getattr(self.rd, attName)
+
+	def _fc_property(self, rows, property):
+		"""returns the named property of the data descriptor.
+
+		Properties can be set using the property element or the register_property
+		method (but don't modify data descriptors you got from the cache...)
+		"""
+		return self.rd.get_property(property)
+
 
 class FieldComputer(RDComputer):
 	"""is a container for various functions computing field values.
@@ -172,13 +201,21 @@ class FieldComputer(RDComputer):
 	def __init__(self, parseContext):
 		if parseContext==None:
 			# This is for the benefit of doc generation.  A FieldComputer without
-			# resource descriptor is pretty useless anywhere else
+			# resource descriptor is pretty useless anywhere else.
 			RDComputer.__init__(self, None)
 			self.context = None
 		else:
 			RDComputer.__init__(self, parseContext.getDataSet().
 				getDescriptor().getRD())
 			self.context = weakref.proxy(parseContext)
+
+	def _fc_property(self, rows, property):
+		"""returns the named property of the data descriptor.
+
+		Properties can be set using the property element or the register_property
+		method (but don't modify data descriptors you got from the cache...)
+		"""
+		return self.context.getDescriptor.get_property(property)
 
 	def _fc_srcstem(self, rows):
 		"""returns the stem of the source file currently parsed.

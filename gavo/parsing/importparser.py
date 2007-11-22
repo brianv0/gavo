@@ -7,37 +7,38 @@ import re
 from xml.sax import make_parser
 from xml.sax.handler import EntityResolver
 
-import gavo
-from gavo import utils
-from gavo import record
-from gavo import coords
-from gavo import logger
-from gavo import interfaces
-from gavo import datadef
 from gavo import config
+from gavo import coords
+from gavo import datadef
+from gavo import interfaces
+from gavo import logger
 from gavo import parsing
+from gavo import record
 from gavo import resourcecache
 from gavo import sqlsupport
+from gavo import utils
+from gavo.parsing.cfgrammar import CFGrammar
+from gavo.parsing.columngrammar import ColumnGrammar
+from gavo.parsing.fitsgrammar import FitsGrammar
+from gavo.parsing.grammar import Grammar
+from gavo.parsing import conditions
+from gavo.parsing import contextgrammar
+from gavo.parsing import macros
 from gavo.parsing import meta
+from gavo.parsing import parsehelpers
+from gavo.parsing import processors
+from gavo.parsing import resource
+from gavo.parsing import tablegrammar
+from gavo.parsing import typeconversion
+from gavo.parsing.kvgrammar import KeyValueGrammar
+from gavo.parsing.nullgrammar import NullGrammar
+from gavo.parsing.regrammar import REGrammar
+from gavo.parsing.rowsetgrammar import RowsetGrammar
 from gavo.web import core
 from gavo.web import service
 from gavo.web import siap
 from gavo.web import standardcores
-from gavo.parsing import resource
-from gavo.parsing import macros
-from gavo.parsing import processors
-from gavo.parsing import conditions
-from gavo.parsing import typeconversion
-from gavo.parsing import parsehelpers
-from gavo.parsing.grammar import Grammar
-from gavo.parsing.cfgrammar import CFGrammar
-from gavo.parsing.regrammar import REGrammar
-from gavo.parsing.columngrammar import ColumnGrammar
-from gavo.parsing.kvgrammar import KeyValueGrammar
-from gavo.parsing.nullgrammar import NullGrammar
-from gavo.parsing.fitsgrammar import FitsGrammar
-from gavo.parsing import tablegrammar
-from gavo.parsing import contextgrammar
+import gavo
 
 
 class Error(gavo.Error):
@@ -103,6 +104,7 @@ class RdParser(utils.NodeBuilder):
 		dd.set_computer(attrs.get("computer"))
 		dd.set_encoding(attrs.get("encoding", "ascii"))
 		dd.set_id(attrs.get("id"))
+		dd.set_virtual(attrs.get("virtual", "False"))
 		self.rd.addto_dataSrcs(dd)
 		return self._processChildren(dd, name, {
 			"Field": dd.addto_items,
@@ -173,6 +175,13 @@ class RdParser(utils.NodeBuilder):
 		return utils.NamedNode("Grammar",
 			self._fillGrammarNode(tablegrammar.TableGrammar(), attrs, children, {}))
 
+	def _make_RowsetGrammar(self, name, attrs, children):
+		grammar = RowsetGrammar()
+		return utils.NamedNode("Grammar",
+			self._fillGrammarNode(grammar, attrs, children, {
+				"Field": grammar.addto_dbFields
+			}))
+
 	def _grabField(self, fieldPath):
 		"""returns the field pointed to by fieldPath.
 
@@ -185,6 +194,7 @@ class RdParser(utils.NodeBuilder):
 		return self.rd.getDataById(dataId).getRecordDefByName(tableName
 			).getFieldByName(fieldName)
 
+# XXX TODO: Unify with _make_Field
 	def _make_inputKey(self, name, attrs, children):
 		attrs = makeAttDict(attrs)
 		if attrs.has_key("original"):
@@ -218,9 +228,16 @@ class RdParser(utils.NodeBuilder):
 		recDef.setExtensionFlag(attrs.get("keep", "False"))
 		recDef.set_table(attrs["table"])
 		recDef.set_onDisk(attrs.get("onDisk", "False"))
+		recDef.set_forceUnique(attrs.get("forceUnique", "False"))
 		recDef.set_create(attrs.get("create", "True"))
 		if name=="SharedRecord":
 			recDef.set_shared(True)
+
+		if attrs.has_key("fieldsFrom"):
+			for field in self.getById(attrs["fieldsFrom"])[1].get_items():
+				newField = field.copy()
+				newField.set_source(newField.get_dest())
+				recDef.addto_items(newField)
 		
 		interfaceNodes, children = self.filterChildren(children, "implements")
 		for _, (interface, args) in interfaceNodes:
@@ -240,6 +257,9 @@ class RdParser(utils.NodeBuilder):
 	
 	_make_SharedRecord = _make_Record
 
+	def _make_fromgrammar(self, name, attrs, children):
+		return self._processChildren("", name, {}, children)
+
 	def _make_implements(self, name, attrs, children):
 		args = dict([(key, val) for key, val in attrs.items()])
 		interfaceName = args["name"]
@@ -250,7 +270,13 @@ class RdParser(utils.NodeBuilder):
 		return attrs["colName"], attrs["value"]
 
 	def _make_Field(self, name, attrs, children):
-		field = datadef.DataField()
+		attrs = makeAttDict(attrs)
+		if attrs.has_key("original"):
+			field = datadef.DataField.fromDataField(
+				self._grabField(attrs["original"]))
+			del attrs["original"]
+		else:
+			field = datadef.DataField()
 		for key, val in attrs.items():
 			field.set(key, val)
 		return self._processChildren(field, name, {

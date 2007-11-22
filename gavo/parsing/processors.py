@@ -114,4 +114,27 @@ class DateExpander(RowProcessor):
 			stampTime = stampTime+interval
 		return res
 
+
+class CommaExpander(RowProcessor):
+	"""is a row processor that reads comma seperated values from a
+	field and returns one row with a new field for each of them.
+	"""
+	@staticmethod
+	def getName():
+		return "expandComma"
+	
+	def _compute(self, record, srcField, targetField):
+		res = []
+		src = record[srcField]
+		if src!=None and src.strip():
+			for item in src.split(","):
+				item = item.strip()
+				if not item:
+					continue
+				newRec = record.copy()
+				newRec[targetField] = item
+				res.append(newRec)
+		return res
+
+
 getProcessor = utils.buildClassResolver(RowProcessor, globals().values())

@@ -125,7 +125,8 @@ class DataField(record.Record):
 		given here.
 		"""
 		if not self.get_optional() and value==None:
-			raise gavo.ValidationError("Field is empty but non-optional",
+			raise gavo.ValidationError(
+				"Field %s is empty but non-optional"%self.get_dest(),
 				self.get_dest())
 		vals = self.get_values()
 		if vals:
@@ -140,6 +141,13 @@ class DataField(record.Record):
 				if vals.get_max() and value>vals.get_max():
 					raise gavo.ValidationError("%s too large (must be less than %s)"%(
 						value, vals.get_max()), self.get_dest())
+
+	@classmethod
+	def fromDataField(cls, dataField):
+		instance = cls(**dataField.dataStore)
+		if instance.get_values():
+			instance.set_values(instance.get_values().copy())
+		return instance
 
 
 def makeCopyingField(field):
@@ -214,6 +222,12 @@ class DataTransformer(record.Record, meta.MetaMixin):
 	def __repr__(self):
 		return "<DataDescriptor id=%s>"%self.get_id()
 
+	def __iter__(self):
+		"""iterates over all embedded RecordDefs.
+		"""
+		for recDef in self.get_Semantics().get_recordDefs():
+			yield recDef
+
 	def validate(self, record):
 		"""checks that the docRec record satisfies the constraints given
 		by self.items.
@@ -236,7 +250,7 @@ class DataTransformer(record.Record, meta.MetaMixin):
 	def copy(self):
 		"""returns a deep copy of self.
 		"""
-		nd = DataDescriptor(self.rD,
+		nd = self.__class__(self.rD,
 			source=self.get_source(),
 			sourcePat=self.get_sourcePat(),
 			encoding=self.get_encoding())
@@ -278,6 +292,7 @@ class DataTransformer(record.Record, meta.MetaMixin):
 # Once we need values with non-ascii characters, we'll need to create
 # encoding-aware LiteralParsers, but for now that's too much stress.
 makePythonVal = typeconversion.asciiLiteralParser.makePythonVal
+
 
 class Values(record.Record):
 	"""models domains and properties of the values of data fields.

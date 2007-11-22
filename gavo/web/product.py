@@ -46,15 +46,15 @@ class Product(standardcores.DbBasedCore):
 	implements(inevow.IResource)
 
 	def __init__(self, ctx, segments):
-		self.rd = resourcecache.getRd("products/products")
+		self.rd = resourcecache.getRd("__system__/products/products")
 		origDD = self.rd.getDataById("data")
 		inputDef = resource.RecordDef()
 		inputDef.updateFrom(origDD.getPrimaryRecordDef())
 		inputDef.set_items([datadef.makeCopyingField(f) 
 			for f in inputDef.get_items()])
 		self.dataDef = datadef.DataTransformer(self.rd, initvals={
-			"Grammar": rowsetgrammar.RowsetGrammar(
-				origDD.getPrimaryRecordDef().get_items()),
+			"Grammar": rowsetgrammar.RowsetGrammar(initvals={
+				"dbFields": origDD.getPrimaryRecordDef().get_items()}),
 			"Semantics": resource.Semantics(initvals={
 				"recordDefs": [inputDef]}),
 			"id": "<generated>",

@@ -27,6 +27,10 @@ class Abort(Exception):
 
 
 def process(opts, rd):
+	if opts.createShared:
+		for dataDesc in rd:
+			for recordDef in dataDesc:
+				recordDef.set_shared(False)
 	res = resource.Resource(rd)
 	res.importData(opts)
 #	print res.dataSets[0].rows
@@ -59,6 +63,8 @@ def parseCmdline():
 	parser.add_option("-p", "--profile", help="use PROFILE to access db",
 		dest="dbProfile", action="store", type="str", 
 		default=config.get("parsing", "dbDefaultProfile"), metavar="PROFILE")
+	parser.add_option("-s", "--system", help="create shared tables",
+		dest="createShared", action="store_true")
 	parser.add_option("-v", "--verbose", help="talk a lot while working",
 		dest="verbose", action="store_true")
 	parser.add_option("-c", "--continue-bad", help="go on after a source had"

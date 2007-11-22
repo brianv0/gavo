@@ -25,10 +25,28 @@ class InputKey(datadef.DataField):
 		                       # for this field.
 		"showitems": 3    # items to show in selections
 	}
+	
+	def set_formalType(self, formalType):
+		"""sets the nevow formal type for the input field.
+
+		The argument can either be a string, in which case it is interpreted
+		as an *SQL* type and translated to the corresponding formal type,
+		or a formal type.
+		"""
+		if isinstance(formalType, basestring):
+			defaultType, defaultWidget = typesystems.sqltypeToFormal(
+				formalType)
+			if not self.dataStore["formalType"]:
+				self.dataStore["formalType"] = defaultType
+			if not self.dataStore["widgetFactory"]:
+				self.set_widgetFactory(defaultWidget)
+		else:
+			self.dataStore["formalType"] = formalType
 
 	def get_formalType(self):
 		if self.dataStore.get("formalType"):
-			return self.dataStore["formalType"]
+			return self.dataStore["formalType"](
+				required=not self.get_optional())
 		if self.isEnumerated():
 			formalType = typesystems.sqltypeToFormal(self.get_dbtype())[0]
 		else:
@@ -73,9 +91,7 @@ class InputKey(datadef.DataField):
 	def fromDataField(cls, dataField):
 		"""returns an InputKey for query input to dataField
 		"""
-		instance = cls(**dataField.dataStore)
-		if instance.get_values():
-			instance.set_values(instance.get_values().copy())
+		instance = super(InputKey, cls).fromDataField(dataField)
 		instance.set_dbtype(vizierexprs.getVexprFor(instance.get_dbtype()))
 		instance.set_source(instance.get_dest())
 		return instance

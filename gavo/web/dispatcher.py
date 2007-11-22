@@ -3,12 +3,13 @@ The dispatcher for the new nevow-based web interface.
 """
 
 
-import urllib
+import cStringIO
+import math
+import new
+import os
 import re
 import traceback
-import math
-import cStringIO
-import new
+import urllib
 
 import formal
 
@@ -26,11 +27,14 @@ from nevow import tags as T, entities as E
 from zope.interface import implements
 
 from gavo import config
+from gavo import resourcecache
 # need importparser to register its resourcecache
 from gavo.parsing import importparser
 from gavo.web import common
 from gavo.web import product
 from gavo.web import resourcebased
+# need servicelist to register its resourcecache
+from gavo.web import servicelist
 from gavo.web import siaprenderer
 from gavo.web import uploadservice
 
@@ -112,29 +116,46 @@ renderClasses = {
 	"debug": DebugPage,
 }
 
-class ArchiveService(rend.Page, common.GavoRenderMixin):
+class ArchiveService(common.CustomTemplateMixin, rend.Page, 
+		common.GavoRenderMixin):
 
 	def __init__(self):
+		self.customTemplate = os.path.join(config.get("web", "templateDir"),
+			"root.html")
 		rend.Page.__init__(self)
 		self.rootSegments = tuple(s for s in 
 			config.get("web", "nevowRoot").split("/") if s)
 		self.rootLen = len(self.rootSegments)
 
-	docFactory = loaders.stan(T.html[
+	def data_chunkedServiceList(self, ctx, data):
+		"""returns a service list alphabetically chunked.
+		"""
+# XXX cache this?  but if, how do we get rid of the cache on updates?
+		srvList = resourcecache.getWebServiceList(None)[:]
+		chunks = {}
+		for srv in srvList:
+			key = srv.get("title", ".")[0].upper()
+			chunks.setdefault(key, []).append(srv)
+		return [{"char": key, "chunk": val} for key, val in chunks.iteritems()]
+
+	def render_serviceURL(self, ctx, data):
+		#XXX TODO: figure out how to get slots into attributes and scap this.
+		return ctx.tag(href=data["accessURL"])[data["title"]]
+
+	def render_ifprotected(self, ctx, data):
+		if data["owner"]:
+			return ctx.tag
+		else:
+			return ""
+
+	defaultDocFactory = loaders.stan(T.html[
 		T.head[
 			T.title["Archive Service"]
 		],
 		T.body[
-			T.p[
-				T.a(href="/apfs/res/apfs_new/catquery/form",
-					render=T.directive("rootlink"))["Here"],
-				" or ",
-				T.a(href="/maidanak/res/rawframes/siap/form",
-					render=T.directive("rootlink"))["Here"],
-				" or ",
-				T.a(href="/lswscans/res/positions/siap/form",
-					render=T.directive("rootlink"))["Here"],
-			]
+			T.h1["Archive Service"],
+			T.p["The operators of this site did not create a root.html template."
+				"  So, you're seeing this fallback page."],
 		]
 	])
 

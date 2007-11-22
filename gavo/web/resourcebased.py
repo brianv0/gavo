@@ -277,6 +277,9 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		if self.service.get_template("form"):
 			self.customTemplate = os.path.join(self.rd.get_resdir(),
 				self.service.get_template("form"))
+		self._ResourceMixin__behaviour().renderHTTP = new.instancemethod(
+			_formBehaviour_renderHTTP, self._ResourceMixin__behaviour(),
+			form.FormsResourceBehaviour)
 
 	def translateFieldName(self, name):
 		return self.service.translateFieldName(name)
@@ -326,12 +329,6 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		self.form = form
 		return form
 
-	def startRender(self, ctx):
-		# XXX extreme pain: monkeypatch the resourceMixin's renderHTTP method
-		self._ResourceMixin__behaviour().renderHTTP = new.instancemethod(
-			_formBehaviour_renderHTTP, self._ResourceMixin__behaviour(),
-			form.FormsResourceBehaviour)
-		return super(Form, self).startRender(ctx)
 
 	def submitAction(self, ctx, form, data):
 		queryMeta = common.QueryMeta(ctx)

@@ -42,5 +42,22 @@
 		</Field>
 		<Field dest="docReq" optional="False" dbtype="text"/>
 	</Data>
+
+	<Data id="processortest">
+		<RowsetGrammar>
+			<Field dest="constant" source="constant"/>
+			<Field dest="foo" source="foo" dbtype="text"/>
+			<RowProcessor name="expandComma">
+				<arg name="srcField" value="foo"/>
+				<arg name="targetField" value="indiv"/>
+			</RowProcessor>
+		</RowsetGrammar>
+		<Semantics>
+			<Record table="proctest">
+				<Field dest="tf" source="indiv" dbtype="text"/>
+				<Field dest="c" source="constant"/>
+			</Record>
+		</Semantics>
+	</Data>
 </ResourceDescriptor>
 

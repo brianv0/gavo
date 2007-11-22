@@ -288,6 +288,45 @@ class Table(RecordBasedTable):
 			self._exportOwnedTable(schema)
 
 
+class UniqueForcedTable(Table):
+	"""is a table that enforces primary key uniqueness.
+
+	This means that we keep an index of seen primary keys, and if a
+	record comes the with a duplicate primary key, we check if it's
+	the same record as the one we have.  If it is, it is discarded,
+	if it is not, an error is raised.
+
+	For now, this only works for atomic primary keys.
+	"""
+	def __init__(self, *args, **kwargs):
+		Table.__init__(self, *args, **kwargs)
+		self.primaryName = self.recordDef.getPrimary().get_dest()
+		self.primaryIndex = {}
+
+	def _ensureRecordIdentity(self, record, key):
+		"""raises an exception if record is not equivalent to the record stored
+		for key.
+		"""
+		storedRec = self.primaryIndex[key]
+		if record.keys()!=storedRec.keys():
+			raise gavo.Error("Differing records for primary key %s: %s vs. %s"%(
+				key, self.primaryIndex[key], record))
+		for fieldName in record:
+			if record[fieldName]!=storedRec[fieldName]:
+				raise gavo.Error("Differing records for primary key %s, field %s;"
+					" %s vs. %s"%(key, fieldName, record[fieldName],
+						storedRec[fieldName]))
+
+	def addData(self, record):
+		key = record[self.primaryName]
+		if key in self.primaryIndex:
+			self._ensureRecordIdentity(record, key)
+			return
+		else:
+			self.primaryIndex[key] = record
+		return Table.addData(self, record)
+
+
 class DirectWritingTable(Table):
 	"""is a table that doesn't keep data of its own but dumps everything
 	into an sql table right away.

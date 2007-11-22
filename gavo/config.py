@@ -24,6 +24,7 @@ inputsDir: inputs
 cacheDir: cache
 logDir: logs
 tempDir: tmp
+webDir: %(rootDir)s/web
 logLevel: info
 operator: gavo@ari.uni-heidelberg.de
 platform:
@@ -49,6 +50,8 @@ defaultlimit: 100
 hardlimit: 1000000
 # error page for nv service (debug or something else)
 errorPage: debug
+# location of global nevow templates in the file system
+templateDir=%(webDir)s/templates
 
 [querulator]
 defaultMaxMatches: 1000
@@ -277,7 +280,7 @@ class Settings:
 	
 	_parse_DEFAULT_configdir = _parse_DEFAULT_inputsdir =\
 		_parse_DEFAULT_cachedir = _parse_DEFAULT_logdir =\
-		_parse_DEFAULT_tempdir = _cookPath
+		_parse_DEFAULT_tempdir = _parse_DEFAULT_webdir = _cookPath
 
 	def _parse_voplotenable(self, val):
 		return record.parseBooleanLiteral(val)

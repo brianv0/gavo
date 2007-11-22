@@ -17,7 +17,12 @@ import re
 import textwrap
 
 
+import gavo
 from gavo import config
+
+
+class MetaError(gavo.Error):
+	pass
 
 
 class InfoItem(object):
@@ -141,7 +146,7 @@ class MetaMixin(object):
 		except AttributeError:
 			pass
 
-	def getMeta(self, key, propagate=True):
+	def getMeta(self, key, propagate=True, raiseOnFail=False):
 		self.__ensureMetaDict()
 		if self.__metaDict.has_key(key):
 			return self.__metaDict[key]
@@ -150,6 +155,8 @@ class MetaMixin(object):
 				return self.__metaParent.getMeta(key)
 			else:
 				return config.getMeta(key)
+		if raiseOnFail:
+			raise MetaError("No meta item %s"%key)
 
 	def addMeta(self, *args, **kwargs):
 		if len(args)>1:

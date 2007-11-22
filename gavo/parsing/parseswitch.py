@@ -92,9 +92,17 @@ def parseSource(parseContext):
 	if not _tryBooster(parseContext):
 		parseContext.parse()
 
-def createTable(dataSet, recordDef):
+def getTableClassForRecordDef(recordDef):
 	if recordDef.get_onDisk():
+		if recordDef.get_forceUnique():
+			raise gavo.Error(
+				"Tables can't be onDisk and forceUnique at the same time.")
 		TableClass = table.DirectWritingTable
+	elif recordDef.get_forceUnique():
+		TableClass = table.UniqueForcedTable
 	else:
 		TableClass = table.Table
-	return TableClass(dataSet, recordDef)
+	return TableClass
+
+def createTable(dataSet, recordDef):
+	return getTableClassForRecordDef(recordDef)(dataSet, recordDef)

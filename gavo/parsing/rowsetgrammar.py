@@ -5,6 +5,7 @@ A grammar that takes standard dbapi2 rowsets (as from fetchall) as input.
 import itertools
 
 import gavo
+from gavo import record
 from gavo.parsing import grammar
 
 class RowsetGrammar(grammar.Grammar):
@@ -14,13 +15,19 @@ class RowsetGrammar(grammar.Grammar):
 	data.  It gets it from a RecordDef instance it receives during 
 	construction.
 	"""
-	def __init__(self, dbFields):
-		self.colNames = [f.get_dest() for f in dbFields]
-		grammar.Grammar.__init__(self)
+	def __init__(self, initvals={}):
+		grammar.Grammar.__init__(self, additionalFields={
+			"dbFields": record.ListField,
+			}, initvals=initvals)
+
+	# make this work with the fieldsfrom attribute of Record elements
+	def get_items(self):
+		return self.get_dbFields()
 
 	def _getDocdict(self, parseContext):
 		return {}
 
 	def _iterRows(self, parseContext):
+		colNames = [f.get_dest() for f in self.get_dbFields()]
 		for row in parseContext.sourceFile:
-			yield dict(itertools.izip(self.colNames, row))
+			yield dict(itertools.izip(colNames, row))

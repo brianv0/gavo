@@ -198,7 +198,8 @@ class DbBasedCore(core.Core):
 		qFields = self.getOutputFields(queryMeta)
 		outputDef.set_items(qFields)
 		dd = datadef.DataTransformer(self.rd, initvals={
-			"Grammar": rowsetgrammar.RowsetGrammar(qFields),
+			"Grammar": rowsetgrammar.RowsetGrammar(initvals={
+				"dbFields": qFields}),
 			"Semantics": resource.Semantics(initvals={
 				"recordDefs": [outputDef]}),
 			"id": "<generated>"})
