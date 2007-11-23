@@ -217,14 +217,14 @@ class DbOptions(object):
 	"""
 	implements(iformal.IWidget)
 
-	def __init__(self, typeOb, service):
+	def __init__(self, typeOb, service, queryMeta):
 		self.service = service
 		self.typeOb = typeOb
-		self.sortWidget = self._makeSortWidget(service)
+		self.sortWidget = self._makeSortWidget(service, queryMeta)
 		self.limitWidget = self._makeLimitWidget(service)
 		
-	def _makeSortWidget(self, service):
-		keys = [f.get_dest() for f in self.service.getOutputFields(None)]
+	def _makeSortWidget(self, service, queryMeta):
+		keys = [f.get_dest() for f in self.service.getOutputFields(queryMeta)]
 		return widget.SelectChoice(formaltypes.String(), options=
 			[(key, key) for key in keys])
 	

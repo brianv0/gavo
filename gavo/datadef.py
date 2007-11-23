@@ -93,6 +93,9 @@ class DataField(record.Record):
 			values.convert(self)
 		self.dataStore["values"] = values
 
+	def set_verbLevel(self, value):
+		self.dataStore["verbLevel"] = int(value)
+
 	def getValueIn(self, aDict, atExpand=lambda val, _: val):
 		"""returns the value the field has within aDict.
 
@@ -151,6 +154,19 @@ class DataField(record.Record):
 		instance = cls(**dataField.dataStore)
 		if instance.get_values():
 			instance.set_values(instance.get_values().copy())
+		return instance
+
+
+class OutputField(DataField):
+	"""is a DataField for output purposes.
+	"""
+	@classmethod
+	def fromDataField(cls, dataField):
+		instance = cls(**dataField.dataStore)
+		if instance.get_values():
+			instance.set_values(instance.get_values().copy())
+		instance.set_source(instance.get_dest())
+		instance.set_optional(True)
 		return instance
 
 

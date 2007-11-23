@@ -34,6 +34,7 @@ from gavo.parsing.kvgrammar import KeyValueGrammar
 from gavo.parsing.nullgrammar import NullGrammar
 from gavo.parsing.regrammar import REGrammar
 from gavo.parsing.rowsetgrammar import RowsetGrammar
+from gavo.web import common as webcommon
 from gavo.web import core
 from gavo.web import service
 from gavo.web import siap
@@ -183,33 +184,6 @@ class RdParser(utils.NodeBuilder):
 				"Field": grammar.addto_dbFields
 			}))
 
-	def _grabField(self, fieldPath):
-		"""returns the field pointed to by fieldPath.
-
-		fieldPath is a dot-seperated triple dataDesc.Table.fieldName.
-		"""
-		try:
-			dataId, tableName, fieldName = fieldPath.split(".")
-		except ValueError:
-			raise Error("Invalid field path %s"%fieldPath)
-		return self.rd.getDataById(dataId).getRecordDefByName(tableName
-			).getFieldByName(fieldName)
-
-# XXX TODO: Unify with _make_Field
-	def _make_inputKey(self, name, attrs, children):
-		attrs = makeAttDict(attrs)
-		if attrs.has_key("original"):
-			inputKey = contextgrammar.InputKey.fromDataField(
-				self._grabField(attrs["original"]))
-			del attrs["original"]
-		else:
-			inputKey = contextgrammar.InputKey()
-		for key, val in attrs.items():
-			inputKey.set(key, val)
-		return self._processChildren(inputKey, name, {
-			"Values": inputKey.set_values,
-		}, children)
-
 	def _make_ContextGrammar(self, name, attrs, children):
 		grammar = contextgrammar.ContextGrammar()
 		return utils.NamedNode("Grammar",
@@ -270,20 +244,53 @@ class RdParser(utils.NodeBuilder):
 	def _make_owningCondition(self, name, attrs, children):
 		return attrs["colName"], attrs["value"]
 
-	def _make_Field(self, name, attrs, children):
+	def _grabField(self, fieldPath):
+		"""returns the field pointed to by fieldPath.
+
+		fieldPath is a dot-seperated triple dataDesc.Table.fieldName.
+
+		If fieldPath starts with a dot, it is interpreted relative to
+		the fieldPath property.
+		"""
+		if fieldPath.startswith("."):
+			fieldPath = self.getProperty("fieldPath")+fieldPath
+		try:
+			dataId, tableName, fieldName = fieldPath.split(".")
+		except ValueError:
+			raise Error("Invalid field path %s"%fieldPath)
+		return self.rd.getDataById(dataId).getRecordDefByName(tableName
+			).getFieldByName(fieldName)
+
+	def _makeFieldNode(self, fieldClass, name, attrs, children, nodeHandlers):
+		"""creates an instance of the datafield.DataDef-derived class fieldClass
+		according to attrs and children.
+		"""
 		attrs = makeAttDict(attrs)
 		if attrs.has_key("original"):
-			field = datadef.DataField.fromDataField(
+			field = fieldClass.fromDataField(
 				self._grabField(attrs["original"]))
 			del attrs["original"]
 		else:
-			field = datadef.DataField()
+			field = fieldClass()
 		for key, val in attrs.items():
 			field.set(key, val)
-		return self._processChildren(field, name, {
+		handlers = {
 			"longdescr": field.set_longdescription,
 			"Values": field.set_values,
-		}, children)
+		}
+		handlers.update(nodeHandlers)
+		return self._processChildren(field, name, handlers, children)
+
+	def _make_Field(self, name, attrs, children):
+		return self._makeFieldNode(datadef.DataField, "Field", attrs, children, {})
+
+	def _make_outputField(self, name, attrs, children):
+		return self._makeFieldNode(datadef.OutputField, "outputField", 
+			attrs, children, {})
+
+	def _make_inputKey(self, name, attrs, children):
+		return self._makeFieldNode(contextgrammar.InputKey, "inputKey",
+			attrs, children, {})
 
 	def _make_copyof(self, name, attrs, children):
 		return utils.NamedNode(*self.getById(attrs["idref"]))
@@ -391,10 +398,14 @@ class RdParser(utils.NodeBuilder):
 			"meta": adapter.addMeta,
 		}, children)
 
+	def _start_Service(self, name, attrs):
+		if attrs.has_key("fieldPath"):
+			self.pushProperty("fieldPath", attrs["fieldPath"])
+
 	def _make_Service(self, name, attrs, children):
 		svc = service.Service(self.rd, {"id": attrs["id"]})
 		self.rd.register_service(svc.get_id(), svc)
-		return self._processChildren(svc, name, {
+		res = self._processChildren(svc, name, {
 			"inputFilter": svc.set_inputFilter,
 			"core": svc.set_core,
 			"outputFilter": lambda val: 
@@ -406,6 +417,8 @@ class RdParser(utils.NodeBuilder):
 			"publish": svc.addto_publications,
 			"renderers": svc.set_allowedRenderers,
 		}, children)
+		self.popProperty("fieldPath")
+		return res
 
 	def _make_protect(self, name, attrs, children):
 		return self._processChildren(makeAttDict(attrs), name, {}, children)
@@ -443,6 +456,8 @@ class RdParser(utils.NodeBuilder):
 			curCore = core.getStandardCore(attrs["builtin"])(self.rd, initvals=args)
 			handlers.update({
 				"condDesc": curCore.addto_condDescs,
+				"outputField": curCore.addto_outputFields,
+				"autoOutputFields": curCore.addAutoOutputFields,
 				"autoCondDescs": curCore.addDefaultCondDescs,
 			})
 		elif attrs.has_key("computer"): # computed cores
@@ -451,7 +466,19 @@ class RdParser(utils.NodeBuilder):
 		else:
 			raise Error("Invalid core specification")
 		return self._processChildren(curCore, name, handlers, children)
-	
+
+
+
+	def _make_autoOutputFields(self, name, attrs, children):
+		"""returns a web.common.QueryMeta instance out of attrs.
+		"""
+		return self._processChildren(webcommon.QueryMeta(
+				dict((key, [attrs[key]]) for key in attrs.keys())),
+			name, {}, children)
+
+	def _make_autoCondDescs(self, name, attrs, children):
+		return self._processChildren("", name, {}, children)
+
 	def _make_condDesc(self, name, attrs, children):
 		if attrs.has_key("predefined"):
 			return self._processChildren(core.getCondDesc(attrs["predefined"]),
@@ -467,14 +494,14 @@ class RdParser(utils.NodeBuilder):
 				"inputKey": condDesc.addto_inputKeys,
 			}, children)
 
-	def _make_autoCondDescs(self, name, attrs, children):
-		return ""
-
 	def _make_meta(self, name, attrs, children):
 		content = self._makeTextNode(name, attrs, children)
 		res = makeAttDict(attrs)
 		res["content"] = content
 		return res
+
+	def _make_property(self, name, attrs, children):
+		return (attrs["name"], self._makeTextNode(name, attrs, children))
 
 	def _makeTextNode(self, name, attrs, children):
 		if len(children)==0:
@@ -482,9 +509,6 @@ class RdParser(utils.NodeBuilder):
 		if len(children)!=1 or children[0][0]!=None:
 			raise Error("%s nodes have text content only"%name)
 		return children[0][1]
-
-	def _make_property(self, name, attrs, children):
-		return (attrs["name"], self._makeTextNode(name, attrs, children))
 
 	_make_rules = \
 	_make_documentProduction = \

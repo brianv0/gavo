@@ -95,10 +95,11 @@ class InputKey(datadef.DataField):
 		instance = super(InputKey, cls).fromDataField(dataField)
 		instance.set_dbtype(vizierexprs.getVexprFor(instance.get_dbtype()))
 		instance.set_source(instance.get_dest())
+		instance.set_optional(True)
 		return instance
 
 	@classmethod
-	def makeAuto(cls, dataField, queryMeta):
+	def makeAuto(cls, dataField, queryMeta={}):
 		"""returns an InputKey if dataField is "queriable", None otherwise.
 		"""
 		if dataField.get_displayHint()=="suppress":

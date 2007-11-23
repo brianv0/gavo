@@ -313,7 +313,7 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 			if data and data.has_key(field.get_dest()):
 				form.data[field.get_dest()] = data[field.get_dest()]
 
-	def _addMetaFields(self, form):
+	def _addMetaFields(self, form, queryMeta):
 		"""adds fields to choose output properties to form.
 		"""
 		if self.service.count_output()>1:
@@ -325,13 +325,14 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 				label="Output form")
 		if isinstance(self.service.get_core(), standardcores.DbBasedCore):
 			form.addField("_DBOPTIONS", gwidgets.FormalDict,
-				formal.widgetFactory(gwidgets.DbOptions, self.service),
+				formal.widgetFactory(gwidgets.DbOptions, self.service, queryMeta),
 				label="Table")
 
 	def form_genForm(self, ctx=None, data={}):
+		queryMeta = common.QueryMeta(ctx)
 		form = formal.Form()
 		self._addQueryFields(form, data)
-		self._addMetaFields(form)
+		self._addMetaFields(form, queryMeta)
 		form.addField("_OUTPUT", gwidgets.FormalDict, 
 			gwidgets.OutputOptions, label="Output format")
 		form.addAction(self.submitAction, label="Go")

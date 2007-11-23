@@ -171,7 +171,7 @@ class Service(record.Record, meta.MetaMixin):
 				if queryMeta==None:
 					queryMeta = {"format": "HTML"}
 				try:
-					return self.get_core().getOutputFields(queryMeta)
+					return self.get_core().get_outputFields()
 				except AttributeError:
 					pass
 

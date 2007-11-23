@@ -78,7 +78,7 @@ class QueryingCore(core.Core):
 		super(QueryingCore, self).__init__(additionalFields=fields,
 			initvals=initvals)
 
-	def addDefaultCondDescs(self):
+	def addDefaultCondDescs(self, queryMeta):
 		pass
 
 	def getInputFields(self):
@@ -126,10 +126,6 @@ class DbBasedCore(QueryingCore):
 	returns a data descriptor for the expected SQL output, an SQL fragment 
 	and a dictionary mapping the parameters of that
 	query to values understandable by the DB interface.
-
-	Db cores should try to define a getOutputFields(queryMeta) method returning
-	the field defintions of the output fields, but clients should not rely
-	on their presence.
 	"""
 	def __init__(self, rd, initvals):
 		super(DbBasedCore, self).__init__(rd, additionalFields={
@@ -141,28 +137,30 @@ class DbBasedCore(QueryingCore):
 		self.tableDef = self.rd.getTableDefByName(self.get_table())
 
 	def addDefaultCondDescs(self, *ignored):
-		queryMeta = common.QueryMeta({})
-		for f in self.getOutputFields(queryMeta):
-			ik = contextgrammar.InputKey.makeAuto(f, queryMeta)
+		for f in self.get_outputFields():
+			ik = contextgrammar.InputKey.makeAuto(f)
 			if ik:
 				self.addto_condDescs(CondDesc.fromInputKey(ik))
 
-	def _getFilteredOutputFields(self, tableDef, queryMeta=None):
-		"""returns a sequence of field definitions in tableDef suitable for
-		what is given in queryMeta.
+	def addAutoOutputFields(self, queryMeta):
+		"""adds field definitions in tableDef suitable for what is given in 
+		queryMeta.
 		"""
+		tableDef = self.tableDef
+		if queryMeta:
+			verbLevel = queryMeta.get("verbosity", 20)
 		if queryMeta and queryMeta["format"]=="HTML":
-			return [datadef.makeCopyingField(f) for f in tableDef.get_items()
-				if f.get_displayHint() and f.get_displayHint()!="suppress"]
+			fieldList = [datadef.makeCopyingField(f) for f in tableDef.get_items()
+				if not (f.get_displayHint()=="suppress" or 
+						f.get_verbLevel()>verbLevel)]
 		elif queryMeta and queryMeta["format"]=="internal":
-			return [makeCopyingField(f) for f in tableDef.get_items()]
+			fieldList = [makeCopyingField(f) for f in tableDef.get_items()]
 		else:  # Some sort of VOTable
-			return [datadef.makeCopyingField(f) for f in tableDef.get_items()
-				if f.get_verbLevel()<=queryMeta["verbosity"] and 
-					f.get_displayHint!="suppress"]
-
-	def getOutputFields(self, queryMeta):
-		return self._getFilteredOutputFields(self.tableDef, queryMeta)
+			fieldList = [datadef.makeCopyingField(f) for f in tableDef.get_items()
+				if f.get_verbLevel()<=verbLevel and 
+					f.get_displayHint()!="suppress"]
+		for f in fieldList:
+			self.addto_outputFields(f)
 
 	def _getSQLWhere(self, inputTable, queryMeta):
 		"""returns a where fragment and the appropriate parameters
@@ -212,7 +210,7 @@ class DbBasedCore(QueryingCore):
 # query interpretation, and it'd ugly to remove them anyway.  I think
 # they should go into the grammar.
 		outputDef.set_constraints([])
-		qFields = self.getOutputFields(queryMeta)
+		qFields = self.get_outputFields()
 		outputDef.set_items(qFields)
 		dd = datadef.DataTransformer(self.rd, initvals={
 			"Grammar": rowsetgrammar.RowsetGrammar(initvals={

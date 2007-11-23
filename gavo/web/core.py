@@ -15,15 +15,16 @@ class Core(record.Record):
 	"""
 	def __init__(self, additionalFields={}, initvals={}):
 		fields = {
+			"outputFields": record.ListField,
 		}
 		fields.update(additionalFields)
 		super(Core, self).__init__(fields, initvals=initvals)
-
 
 	def run(self, inputData, queryMeta):
 		"""returns a twisted deferred firing the result of running the core on
 		inputData.
 		"""
+		defer.succeed("Core without run")
 
 _coresRegistry = {}
 
