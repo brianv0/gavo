@@ -82,6 +82,10 @@ class DataField(record.Record):
 			self.dataStore["longdescription"] = txt
 			self.set_longmime(mime)
 
+	def set_name(self, name):
+		self.set_dest(name)
+		self.set_source(name)
+
 	def set_values(self, values):
 		# The values attribute needs to convert the literals it is constructed
 		# with to self's dbtype.

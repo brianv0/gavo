@@ -67,6 +67,7 @@ class Service(record.Record, meta.MetaMixin):
 			"template": record.DictField,
 			"publications": record.ListField,
 			"requiredGroup": None,
+			"allowedRenderers": None,
 # temporary hack: map field names to ones known to the form.
 			"fieldNameTranslations": None,   
 		}, initvals)
@@ -98,6 +99,13 @@ class Service(record.Record, meta.MetaMixin):
 			return self._getDefaultInputFilter()
 		else:
 			return self.dataStore["inputFilter"]
+
+	defaultAllowedRenderers = set(["form"])
+	def get_allowedRenderers(self):
+		if self.dataStore["allowedRenderers"]==None:
+			return self.defaultAllowedRenderers
+		else:
+			return self.dataStore["allowedRenderers"]
 
 	def register_output(self, key, value):
 		# the first key added becomes the default.

@@ -38,6 +38,7 @@ from gavo.web import core
 from gavo.web import service
 from gavo.web import siap
 from gavo.web import standardcores
+from gavo.web import uploadservice  # to register the cores
 import gavo
 
 
@@ -403,10 +404,16 @@ class RdParser(utils.NodeBuilder):
 			"fieldNameTranslation": svc.set_fieldNameTranslations,
 			"protect": lambda v: svc.set_requiredGroup(v["group"]),
 			"publish": svc.addto_publications,
+			"renderers": svc.set_allowedRenderers,
 		}, children)
 
 	def _make_protect(self, name, attrs, children):
 		return self._processChildren(makeAttDict(attrs), name, {}, children)
+
+	def _make_allow(self, name, attrs, children):
+		if attrs.has_key("renderers"):
+			return utils.NamedNode("renderers", 
+				set([s.strip() for s in attrs["renderers"].split(",")]))
 
 	def _make_publish(self, name, attrs, children):
 		return self._processChildren(makeAttDict(attrs), name, {}, children)

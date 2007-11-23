@@ -71,21 +71,22 @@ class InputKey(datadef.DataField):
 # XXX TODO: handle booleans
 		"""
 		if self.dataStore.get("widgetFactory"):
-			return self.dataStore["widgetFactory"]
-		if self.isEnumerated():
+			res = self.dataStore["widgetFactory"]
+		elif self.isEnumerated():
 			if self.get_values().get_multiOk():
-				return formal.widgetFactory(
+				res = formal.widgetFactory(
 					gwidgets.SimpleMultiSelectChoice,
 					[str(i) for i in self.get_values().get_options()],
 					self.get_showitems())
 			else:
 				items = self.get_values().get_options().copy()
 				items.remove(self.get_values().get_default())
-				return formal.widgetFactory(
+				res = formal.widgetFactory(
 					gwidgets.SimpleSelectChoice,
 					[str(i) for i in items], self.get_default())
-		else:  # it's a vexpr
-			return formal.TextInput
+		else:  # let formal figure it out
+			res = None
+		return res
 
 	@classmethod
 	def fromDataField(cls, dataField):

@@ -64,10 +64,37 @@ class CondDescFromRd(CondDesc):
 	pass
 
 
+class QueryingCore(core.Core):
+	"""is an abstract core for anything working on a resource descriptor
+	
+	At the very least, you need to provide a run method to make this useful.
+	"""
+	def __init__(self, rd, initvals={}, additionalFields={}):
+		self.rd = weakref.proxy(rd)
+		fields = {
+			"condDescs": record.ListField,
+		}
+		fields.update(additionalFields)
+		super(QueryingCore, self).__init__(additionalFields=fields,
+			initvals=initvals)
+
+	def addDefaultCondDescs(self):
+		pass
+
+	def getInputFields(self):
+		res = []
+		for cd in self.get_condDescs():
+			res.extend(cd.get_inputKeys())
+		return res
+
+
+	
 class ComputedCore(core.Core):
 	"""is a core based on a DataDescriptor with a compute attribute.
 	"""
-# XXX TODO: This needs to pass the table name to the constructor
+# XXX TODO: make this inherit from querying core, i.e., it's constructed
+# with an RD, and the data descriptor is passed in by name, pretty much
+# like UploadCore
 	def __init__(self, dd, initvals):
 		self.dd = dd
 		super(ComputedCore, self).__init__(initvals=initvals)
@@ -89,7 +116,7 @@ class ComputedCore(core.Core):
 			cStringIO.StringIO(rawOutput), tablesToBuild=["output"])
 
 
-class DbBasedCore(core.Core):
+class DbBasedCore(QueryingCore):
 	"""is a base class for cores doing database queries.
 
 	It provides for querying the database and returning a table
@@ -105,9 +132,8 @@ class DbBasedCore(core.Core):
 	on their presence.
 	"""
 	def __init__(self, rd, initvals):
-		self.rd = weakref.proxy(rd)
-		super(DbBasedCore, self).__init__(additionalFields={
-				"condDescs": record.ListField,
+		super(DbBasedCore, self).__init__(rd, additionalFields={
+				"table": record.RequiredField,
 			}, initvals=initvals)
 	
 	def set_table(self, val):
@@ -120,15 +146,6 @@ class DbBasedCore(core.Core):
 			ik = contextgrammar.InputKey.makeAuto(f, queryMeta)
 			if ik:
 				self.addto_condDescs(CondDesc.fromInputKey(ik))
-
-	def addto_condDescs(self, item):
-		self.dataStore["condDescs"].append(item)
-
-	def getInputFields(self):
-		res = []
-		for cd in self.get_condDescs():
-			res.extend(cd.get_inputKeys())
-		return res
 
 	def _getFilteredOutputFields(self, tableDef, queryMeta=None):
 		"""returns a sequence of field definitions in tableDef suitable for
@@ -144,6 +161,9 @@ class DbBasedCore(core.Core):
 				if f.get_verbLevel()<=queryMeta["verbosity"] and 
 					f.get_displayHint!="suppress"]
 
+	def getOutputFields(self, queryMeta):
+		return self._getFilteredOutputFields(self.tableDef, queryMeta)
+
 	def _getSQLWhere(self, inputTable, queryMeta):
 		"""returns a where fragment and the appropriate parameters
 		for the query defined by inputTable and queryMeta.
@@ -153,9 +173,6 @@ class DbBasedCore(core.Core):
 		return vizierexprs.joinOperatorExpr("AND",
 			[cd.asSQL(docRec, pars)
 				for cd in self.get_condDescs()]), pars
-		
-	def getOutputFields(self, queryMeta):
-		return self._getFilteredOutputFields(self.tableDef, queryMeta)
 
 	def runDbQuery(self, condition, pars, recordDef, queryMeta):
 		"""runs a db query with condition and pars to fill a table

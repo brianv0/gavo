@@ -25,6 +25,7 @@ from gavo.web import resourcebased
 class SiapRenderer(common.CustomErrorMixin, resourcebased.Form):
 	implements(inevow.ICanHandleException)
 
+	name="siap.xml"
 	def __init__(self, ctx, *args, **kwargs):
 		ctx.remember(self, inevow.ICanHandleException)
 		super(SiapRenderer, self).__init__(ctx, *args, **kwargs)

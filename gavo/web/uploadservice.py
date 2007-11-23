@@ -16,99 +16,134 @@ from twisted.internet import defer
 
 import gavo
 from gavo import config
+from gavo import datadef
+from gavo import record
 from gavo import sqlsupport
 from gavo import table
 from gavo.parsing import resource
+from gavo.parsing import contextgrammar
+from gavo.parsing import nullgrammar
 from gavo.web import common
+from gavo.web import core
+from gavo.web import standardcores
 from gavo.web import resourcebased
 
 
-def _writeFile(srcFile, fName, dataDesc):
-	"""writes the contents of srcFile to fName in dataDesc's staging dir.
-	"""
-	targetDir = os.path.join(dataDesc.getRD().get_resdir(), 
-		dataDesc.get_property("stagingDir"))
-	if not targetDir:
-		raise gavo.ValidationError("Uploading is only supported for data having"
-			" a staging directory.", "File")
-	if not os.path.exists(targetDir):
-		raise gavo.Error("Staging directory does not exist.")
-	targetFName = fName.split("/")[-1].encode("iso-8859-1")
-	if not targetFName:
-		raise gavo.ValidationError("Bad file name", "File")
-	targetPath = os.path.join(targetDir, targetFName)
-	f = open(targetPath, "w")
-	f.write(srcFile.read())
-	f.close()
-	return targetPath
+class UploadCore(standardcores.QueryingCore):
+	def __init__(self, rd, initvals):
+		super(UploadCore, self).__init__(rd, initvals=initvals, additionalFields={
+			"dataName": record.RequiredField})
+		self.addto_condDescs(
+			standardcores.CondDesc.fromInputKey(
+				contextgrammar.InputKey(dest="File", formalType=formal.File,
+					source="File", dbtype="file", optional=False)))
+		self.addto_condDescs(
+			standardcores.CondDesc.fromInputKey(
+				contextgrammar.InputKey(dest="Mode", formalType=formal.String,
+					source="Mode", dbtype="text", optional=False,
+					values=datadef.Values(options=['i', 'u']),
+					widgetFactory=formal.widgetFactory(formal.RadioChoice, 
+						options=[("i", "insert"), ("u", "update")]))))
 
+	def set_dataName(self, dataName):
+		self.dataStore["dataName"] = dataName
+		self.dataDesc = self.rd.getDataById(dataName)
 
-def _importData(sourcePath, mode, dataDesc):
-	try:
-		dbConn = sqlsupport.getDbConnection(config.getDbProfileByName("feed"))
-		def makeSharedTable(dataSet, recordDef):
-			return table.DirectWritingTable(dataSet,recordDef, dbConn, 
-				create=False, doUpdates=mode=="u")
-		r = resource.InternalDataSet(dataDesc, tableMaker=makeSharedTable,
-			dataSource=sourcePath)
-	except sqlsupport.DatabaseError, msg:
-		raise gavo.ValidationError("Cannot enter %s in database: %s"%
-			(os.path.basename(sourcePath), str(msg)), "File")
-	return r.getPrimaryTable().nUpdated
+	def _writeFile(self, srcFile, fName):
+		"""writes the contents of srcFile to fName in dataDesc's staging dir.
+		"""
+		targetDir = os.path.join(self.rd.get_resdir(), 
+			self.dataDesc.get_property("stagingDir"))
+		if not targetDir:
+			raise gavo.ValidationError("Uploading is only supported for data having"
+				" a staging directory.", "File")
+		if not os.path.exists(targetDir):
+			raise gavo.Error("Staging directory does not exist.")
+		targetFName = fName.split("/")[-1].encode("iso-8859-1")
+		if not targetFName:
+			raise gavo.ValidationError("Bad file name", "File")
+		targetPath = os.path.join(targetDir, targetFName)
+		f = open(targetPath, "w")
+		f.write(srcFile.read())
+		f.close()
+		return targetPath
 
+	def _importData(self, sourcePath, mode):
+		"""parses the input file at sourcePath and writes the result to the DB.
+		"""
+		try:
+			dbConn = sqlsupport.getDbConnection(config.getDbProfileByName("feed"))
+			def makeSharedTable(dataSet, recordDef):
+				return table.DirectWritingTable(dataSet, recordDef, dbConn, 
+					create=False, doUpdates=mode=="u")
+			r = resource.InternalDataSet(self.dataDesc, tableMaker=makeSharedTable,
+				dataSource=sourcePath)
+		except sqlsupport.DatabaseError, msg:
+			raise gavo.ValidationError("Cannot enter %s in database: %s"%
+				(os.path.basename(sourcePath), str(msg)), "File")
+		resDD = datadef.DataTransformer(self.rd, initvals={
+			"Grammar": nullgrammar.NullGrammar(),
+			"Semantics": resource.Semantics(),
+			"items": [
+				datadef.DataField(name="nUpdated", dbtype="integer")]})
+		resData = resource.InternalDataSet(resDD)
+		resData.getDocRec()["nUpdated"] = r.getPrimaryTable().nUpdated
+		return resData
 
-def saveData(srcFile, fName, mode, dataDesc):
-	"""saves data read from srcFile to both fNames staging dir and to the
-	database table(s) described by dataDesc.
+	def saveData(self, srcFile, fName, mode):
+		"""saves data read from srcFile to both fNames staging dir and to the
+		database table(s) described by dataDesc.
 
-	mode can be "u" (for update) or "i" for insert.
+		mode can be "u" (for update) or "i" for insert.
 
-	If parsing or the database operations fail, the saved file will be removed.
-	Errors will ususally be gavo.ValidationErrors on either File or Mode.
+		If parsing or the database operations fail, the saved file will be removed.
+		Errors will ususally be gavo.ValidationErrors on either File or Mode.
 
-	The function returns the number of items modified.  However, you should
-	always use this with maybeDeferred since I'm quite sure we'll make this
-	async at some point.
-	"""
+		The function returns the number of items modified.  However, you should
+		always use this with maybeDeferred since I'm quite sure we'll make this
+		async at some point.
+		"""
 # XXX TODO: this should be done asynchronously, but currently is not
-	targetPath = _writeFile(srcFile, fName, dataDesc)
-	try:
-		nUpdated = _importData(targetPath, mode, dataDesc)
-	except:
-		os.unlink(targetPath)
-		raise
-	return nUpdated
+		targetPath = self._writeFile(srcFile, fName)
+		try:
+			nUpdated = self._importData(targetPath, mode)
+		except:
+			os.unlink(targetPath)
+			raise
+		return nUpdated
 
-	
-class Uploader(resourcebased.GavoFormMixin, resourcebased.DataBasedRenderer):
-	"""is a renderer allowing for updates to individual records.
-	"""
-	def __init__(self, ctx, serviceParts):
-		self.uploadInfo = {}
-		super(Uploader, self).__init__(serviceParts)
-
-	def form_upload(self, ctx, data={}):
-		form = formal.Form()
-		form.addField('File', formal.File(required=True))
-		form.addField('Mode', formal.String(required=True),
-    	formal.widgetFactory(formal.RadioChoice, 
-				options=[("i", "insert"), ("u", "update")]))
-		form.addAction(self.uploadItem)
-		self.form = form
-		return form
-
-	def uploadItem(self, ctx, form, data):
-		self.uploadInfo = {}
+	def run(self, inputData, queryMeta):
+# Do we want to interpret the primary table here as well?
+		data = inputData.getDocRec()
 		fName, srcFile = data["File"]
 		mode = data["Mode"]
-		return defer.maybeDeferred(saveData, srcFile, fName, mode, self.dataDesc
-			).addCallback(self.contentParsed, ctx, data
+		return defer.maybeDeferred(self.saveData, srcFile, fName, mode)
+
+
+core.registerCore("upload", UploadCore)
+
+	
+class Uploader(resourcebased.Form):
+	"""is a renderer allowing for updates to individual records.
+	"""
+
+	name = "upload"
+
+	def __init__(self, ctx, serviceParts):
+		self.uploadInfo = {}
+		super(Uploader, self).__init__(ctx, serviceParts)
+
+	def _runService(self, inputData, queryMeta, ctx):
+		return defer.maybeDeferred(self.service.run, inputData, queryMeta
+			).addCallback(self._processOutput, inputData, queryMeta, ctx
 			).addErrback(self._handleInputErrors, ctx)
 
-	def contentParsed(self, nUpdated, ctx, data):
-		self.uploadInfo["nUpdated"] = nUpdated
-		# ignore POSTed stuff to avoid infinite recusion
-		inevow.IRequest(ctx).method = "GET"  
+	def _processOutput(self, outputData, inputData, queryMeta, ctx):
+		self.uploadInfo["nUpdated"] = outputData.getDocRec()["nUpdated"]
+		# remove form identification to prevent infinite recursion
+		del inevow.IRequest(ctx).args["__nevow_form__"]
+		del inevow.IRequest(ctx).args["Mode"]
+		inevow.IRequest(ctx).args = {}
 		return self
 
 	def render_uploadInfo(self, ctx, data):
@@ -132,18 +167,21 @@ class Uploader(resourcebased.GavoFormMixin, resourcebased.DataBasedRenderer):
 				T.slot(name="nUpdated"),
 				" record(s) modified."
 			],
-			T.invisible(render=T.directive("form upload"))
+			T.invisible(render=T.directive("form genForm"))
 		]
 	])
 
 
-class MachineUploader(common.CustomErrorMixin, Uploader):
+class MachineUploader(Uploader):
 	"""is a renderer allowing for updates to individual records.
 
 	The difference to Uploader is that no form-redisplay will be done.
 	All errors are reported through HTTP response codes and text strings.
 	"""
-	_generateForm = Uploader.form_upload
+
+	name = "mupload"
+
+	_generateForm = Uploader.form_genForm
 
 	def renderHTTP_exception(self, ctx, failure):
 		failure.printTraceback()
@@ -163,12 +201,7 @@ class MachineUploader(common.CustomErrorMixin, Uploader):
 		request.finishRequest(False)
 		return appserver.errorMarker
 
-	def _getInputData(self, data):
-		return data
-	
-	def _handleInputData(self, data, ctx):
-		return Uploader.uploadItem(self, ctx, self.form, data)
-
-	def contentParsed(self, nUpdated, ctx, data):
+	def _processOutput(self, outputData, inputData, queryMeta, ctx):
 		return str("%s uploaded, %d records modified\n"%(
-			data["File"][0], nUpdated))
+			inputData.getDocRec()["File"][0], 
+			outputData.getDocRec()["nUpdated"]))

@@ -52,6 +52,8 @@ hardlimit: 1000000
 errorPage: debug
 # location of global nevow templates in the file system
 templateDir=%(webDir)s/templates
+# the admin password, leave empty to disable
+adminpasswd:
 
 [querulator]
 defaultMaxMatches: 1000
@@ -281,6 +283,9 @@ class Settings:
 	_parse_DEFAULT_configdir = _parse_DEFAULT_inputsdir =\
 		_parse_DEFAULT_cachedir = _parse_DEFAULT_logdir =\
 		_parse_DEFAULT_tempdir = _parse_DEFAULT_webdir = _cookPath
+
+	def _parse_adminpasswd(self, val):
+		return val.strip()
 
 	def _parse_voplotenable(self, val):
 		return record.parseBooleanLiteral(val)

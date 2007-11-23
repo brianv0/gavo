@@ -63,6 +63,9 @@ def runAuthenticated(ctx, reqGroup, fun, *args):
 			request.setHeader('WWW-Authenticate', 'Basic realm="Gavo"')
 			request.setResponseCode(http.UNAUTHORIZED)
 			return "Authorization required"
+	if request.getUser()=="gavoadmin" and config.get("web", "adminpasswd"
+			) and request.getPassword()==config.get("web", "adminpasswd"):
+		return authenticateOrRun(True)
 	return checkCredentials(
 		request.getUser(), request.getPassword(), reqGroup).addCallback(
 			authenticateOrRun).addErrback(
@@ -89,6 +92,7 @@ def _addUser(querier, user, password, remarks=""):
 	querier.query("INSERT INTO users.groups (username, groupname)"
 		" VALUES (%(user)s, %(user)s)", locals())
 
+
 def _changeUser(querier, user, password, remarks=None):
 		if remarks==None:
 			c = querier.query("UPDATE users.users SET password=%(password)s"
@@ -108,6 +112,18 @@ def _addGroup(querier, user, group):
 		raise ArgError("User %s doesn't exist."%user)
 
 
+def _listUsers(querier):
+	data = querier.query("SELECT username, groupname, remarks"
+		" FROM users.users NATURAL JOIN users.groups"
+		" GROUP BY username, groupname, remarks").fetchall()
+	curUser = None
+	for user, group, remark in data:
+		if user!=curUser:
+			print "\n%s (%s) --"%(user, remark),
+			curUser = user
+		print group,
+	print
+
 
 _actions = {
 	"add": (_addUser, "<user> <password> [<remark>] --"
@@ -115,6 +131,7 @@ _actions = {
 	"change": (_changeUser, "<user> <password> [<remark>] --"
 		" changes user's data"),
 	"addgroup": (_addGroup, "<user> <group> -- adds user to group"),
+	"list": (_listUsers, "-- lists known users with groups"),
 }
 
 def _usage():

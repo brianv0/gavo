@@ -15,7 +15,6 @@ class Core(record.Record):
 	"""
 	def __init__(self, additionalFields={}, initvals={}):
 		fields = {
-			"table": record.RequiredField,
 		}
 		fields.update(additionalFields)
 		super(Core, self).__init__(fields, initvals=initvals)

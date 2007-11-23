@@ -42,8 +42,11 @@ class Product(standardcores.DbBasedCore):
 	would want to reference it from resource descriptors, and thus it's not in
 	the cores registry.
 	"""
-
+# XXX TODO factor core and renderer here and make this a service based on
+# the product table
 	implements(inevow.IResource)
+
+	name = "getproduct"
 
 	def __init__(self, ctx, segments):
 		self.rd = resourcecache.getRd("__system__/products/products")

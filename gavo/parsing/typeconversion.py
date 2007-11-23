@@ -145,6 +145,10 @@ class LiteralParser:
 		"boolean": bool,
 		"date": make_dateFromString,
 		"timestamp": make_dateTimeFromString,
+		"vexpr-string": lambda a: a,
+		"vexpr-date": lambda a: a,
+		"vexpr-float": lambda a: a,
+		"file": lambda a: a,
 	}
 
 	def _buildArrayParser(self, type, length):

@@ -12,7 +12,15 @@ GAVO has to deal with a quite a few type systems:
 In general, we keep metadata in the SQL type system (although one could
 argue one should use the richest one...).  In this module, we want to
 collect functionality to get types in other type systems from these
-types (and possibly the other way round).  
+types (and possibly the other way round).
+
+In fact, we use a couple of extensions:
+
+* file -- this corresponds to a file upload from the web (i.e., a pair
+  (filename, file object)).  It would be conceivable to turn this into
+  blobs at some point, but right now we simply don't touch it.
+* vexpr-float, -text, -date -- vizier-like expressions coming in from
+  the web.  These are always strings.
 
 We should move all type conversion code here, and probably figure out
 a sane way to concentrate value conversion here as well (though that's
@@ -139,6 +147,7 @@ try:
 			"vexpr-float": (formal.String, formal.TextInput),
 			"vexpr-date": (formal.String, formal.TextInput),
 			"vexpr-string": (formal.String, formal.TextInput),
+			"file": (formal.File, None),
 		}
 
 		def mapComplex(self, type, length):

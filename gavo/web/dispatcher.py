@@ -42,6 +42,9 @@ from gavo.web.common import Error, UnknownURI
 
 
 class DebugPage(rend.Page):
+
+	name = "debug"
+
 	def __init__(self, ctx, *args, **kwargs):
 		self.args, self.kwargs = args, kwargs
 

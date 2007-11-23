@@ -55,11 +55,16 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 
 	These have the Service instance they should use in the service attribute.
 	"""
+	name = None
+
 	def __init__(self, serviceParts):
 		super(ServiceBasedRenderer, self).__init__(serviceParts)
 		if not self.rd.has_service(self.subId):
 			raise common.UnknownURI("The service %s is not defined"%self.subId)
 		self.service = self.rd.get_service(self.subId)
+		if not self.name in self.service.get_allowedRenderers():
+			raise gavo.Error("The renderer %s is not allowed on this service."%
+				self.name)
 
 	def renderHTTP(self, ctx):
 		if self.service.get_requiredGroup():
@@ -103,6 +108,8 @@ class BaseResponse(ServiceBasedRenderer):
 class HtmlResponse(BaseResponse):
 	"""is a renderer for queries for HTML tables.
 	"""
+	name = "form"
+
 	def render_resulttable(self, ctx, data):
 		return htmltable.HtmlTableFragment(data.child(ctx, "table"))
 
@@ -191,6 +198,7 @@ class VOTableResponse(BaseResponse):
 
 	An example for a "real" VO service is siapservice.SiapService.
 	"""
+	name = "form"
 	def startRender(self, ctx):
 		request = inevow.IRequest(ctx)
 		defer.maybeDeferred(self.data_query, ctx, None
@@ -272,6 +280,7 @@ def _formBehaviour_renderHTTP(self, ctx):
 class Form(GavoFormMixin, ServiceBasedRenderer):
 	"""is a page that provides a search form for the selected service.
 	"""
+	name = "form"
 	def __init__(self, ctx, serviceParts):
 		super(Form, self).__init__(serviceParts)
 		if self.service.get_template("form"):
@@ -329,18 +338,17 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		self.form = form
 		return form
 
-
 	def submitAction(self, ctx, form, data):
 		queryMeta = common.QueryMeta(ctx)
 		queryMeta["formal_data"] = data
 		d = defer.maybeDeferred(self.service.getInputData, data
-			).addCallback(self._formatResult, queryMeta
+			).addCallback(self._runService, queryMeta, ctx
 			).addErrback(self._handleInputErrors, ctx)
 		return d
 
 	# XXX TODO: add a custom error self._handleInputErrors(failure, ctx)
 	# to catch FieldErrors and display a proper form on such errors.
-	def _formatResult(self, inputData, queryMeta):
+	def _runService(self, inputData, queryMeta, ctx):
 		format = queryMeta["format"]
 		if format=="HTML":
 			return HtmlResponse(self.serviceParts, inputData, queryMeta)
