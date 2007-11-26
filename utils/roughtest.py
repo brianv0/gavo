@@ -152,7 +152,30 @@ myTests = [
 			'<FIELD ID="wcs_refValues" arraysize="*" datatype="double"'
 				' name="wcs_refValues"',
 			"NV Maidanak metadata query"),
-	)
+	),
+	TestGroup("auth",
+		HeadStatusTest(nv_root+"/rauchspectra/theospectra/upload/upload",
+			401,
+			"Auth required for protected upload."),
+		HeadStatusTest(nv_root+"/rauchspectra/theospectra/"
+			"upload/mupload",
+			401,
+			"Auth required for protected machine upload."),
+		HeadStatusTest(nv_root+"/maidanak/res/rawframes/q/form",
+			401,
+			"Auth required for protected form."),
+		HeadStatusTest(nv_root+"/maidanak/res/rawframes/q/form",
+			401,
+			"Auth required for protected form."),
+		HeadStatusTest(nv_root+"/maidanak/res/rawframes/q/form"
+			"?__nevow_form__=genForm&object=H1413%2B117&_DBOPTIONS_ORDER=&"
+			"_DBOPTIONS_LIMIT=100&_FORMAT=HTML&_VERB=2&_TDENC=True&submit=Go",
+			401,
+			"Auth requried for protected form result."),
+		HeadStatusTest(nv_root+"/apfs/res/apfs_new/catquery/upload",
+			404,
+			"Disallowed renderer yields 404."),
+	),
 ]
 
 

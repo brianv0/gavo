@@ -79,8 +79,14 @@ class QueryingCore(core.Core):
 			initvals=initvals)
 
 	def addDefaultCondDescs(self, queryMeta):
-		pass
+		"""adds condition descriptors matching what is currently defined as
+		output fields.
+		"""
 
+	def addAutoOutputFields(self, queryMeta):
+		"""adds field definitions in tableDef suitable for what is given in 
+		queryMeta.
+		"""
 	def getInputFields(self):
 		res = []
 		for cd in self.get_condDescs():

@@ -30,6 +30,10 @@ from gavo.web import resourcebased
 
 
 class UploadCore(standardcores.QueryingCore):
+	"""is a core handling uploads of data to the database.
+
+	It uses the standard parsing architecture to do that.
+	"""
 	def __init__(self, rd, initvals):
 		super(UploadCore, self).__init__(rd, initvals=initvals, additionalFields={
 			"dataName": record.RequiredField})
@@ -129,9 +133,9 @@ class Uploader(resourcebased.Form):
 
 	name = "upload"
 
-	def __init__(self, ctx, serviceParts):
+	def __init__(self, ctx, service):
 		self.uploadInfo = {}
-		super(Uploader, self).__init__(ctx, serviceParts)
+		super(Uploader, self).__init__(ctx, service)
 
 	def _runService(self, inputData, queryMeta, ctx):
 		return defer.maybeDeferred(self.service.run, inputData, queryMeta
@@ -172,7 +176,7 @@ class Uploader(resourcebased.Form):
 	])
 
 
-class MachineUploader(Uploader):
+class MachineUploader(common.CustomErrorMixin, Uploader):
 	"""is a renderer allowing for updates to individual records.
 
 	The difference to Uploader is that no form-redisplay will be done.
@@ -200,6 +204,14 @@ class MachineUploader(Uploader):
 		request.write(msg)
 		request.finishRequest(False)
 		return appserver.errorMarker
+
+	def _getInputData(self, formData):
+		return self.service.getInputData(formData)
+	
+	def _handleInputData(self, inputData, ctx):
+		queryMeta = common.QueryMeta(ctx)
+		queryMeta["formal_data"] = self.form.data
+		return self._runService(inputData, queryMeta, ctx)
 
 	def _processOutput(self, outputData, inputData, queryMeta, ctx):
 		return str("%s uploaded, %d records modified\n"%(

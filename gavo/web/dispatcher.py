@@ -111,12 +111,12 @@ class ErrorPage(ErrorPageDebug):
 
 
 renderClasses = {
-	"form": resourcebased.Form,
-	"siap.xml": siaprenderer.SiapRenderer,
-	"getproduct": product.Product,
-	"upload": uploadservice.Uploader,
-	"mupload": uploadservice.MachineUploader,
-	"debug": DebugPage,
+	"form": (resourcebased.getServiceRend, resourcebased.Form),
+	"siap.xml": (resourcebased.getServiceRend, siaprenderer.SiapRenderer),
+	"getproduct": (lambda ctx, segs, cls: cls(ctx, segs), product.Product),
+	"upload": (resourcebased.getServiceRend, uploadservice.Uploader),
+	"mupload": (resourcebased.getServiceRend, uploadservice.MachineUploader),
+	"debug": (lambda ctx, segs, cls: cls(ctx, segs), DebugPage),
 }
 
 class ArchiveService(common.CustomTemplateMixin, rend.Page, 
@@ -175,7 +175,8 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 			
 			act = segments[-1]
 			try:
-				res = renderClasses[act](ctx, segments[:-1])
+				fFunc, cls = renderClasses[act]
+				res = fFunc(ctx, segments[:-1], cls)
 			except (UnknownURI, KeyError):
 				res = None
 		return res, ()

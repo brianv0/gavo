@@ -401,6 +401,9 @@ class RdParser(utils.NodeBuilder):
 	def _start_Service(self, name, attrs):
 		if attrs.has_key("fieldPath"):
 			self.pushProperty("fieldPath", attrs["fieldPath"])
+		else:
+# XXX TODO: maybe build some sane default?
+			self.pushProperty("fieldPath", "")
 
 	def _make_Service(self, name, attrs, children):
 		svc = service.Service(self.rd, {"id": attrs["id"]})

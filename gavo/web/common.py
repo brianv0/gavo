@@ -149,7 +149,7 @@ def parseServicePath(serviceParts):
 	return "/".join(serviceParts[:-1]), serviceParts[-1]
 
 
-class CustomErrorMixin:
+class CustomErrorMixin(object):
 	"""is a mixin for renderers containing formal forms to emit
 	custom error messages.
 

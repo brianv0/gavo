@@ -35,18 +35,12 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 		common.GavoRenderMixin):
 	"""is a page based on a resource descriptor.
 
-	It is constructed with service parts of the form path/to/rd/sub_id
+	It is constructed with a resource descriptor.
 
-	It leaves the resource descriptor in the rd attribute, and the sub_id
-	(which is usually a service or data id) in the subId attribute.
+	It leaves the resource descriptor in the rd attribute.
 	"""
-	def __init__(self, serviceParts):
-		self.serviceParts = serviceParts
-		descriptorId, self.subId = common.parseServicePath(serviceParts)
-		try:
-			self.rd = resourcecache.getRd(descriptorId)
-		except IOError:
-			raise UnknownURI("/".join(serviceParts))
+	def __init__(self, ctx, rd):
+		self.rd = rd
 		super(ResourceBasedRenderer, self).__init__()
 
 
@@ -57,43 +51,43 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 	"""
 	name = None
 
-	def __init__(self, serviceParts):
-		super(ServiceBasedRenderer, self).__init__(serviceParts)
-		if not self.rd.has_service(self.subId):
-			raise common.UnknownURI("The service %s is not defined"%self.subId)
-		self.service = self.rd.get_service(self.subId)
+	def __init__(self, ctx, service):
+		super(ServiceBasedRenderer, self).__init__(ctx, service.rd)
+		self.service = service
 		if not self.name in self.service.get_allowedRenderers():
-			raise gavo.Error("The renderer %s is not allowed on this service."%
+			raise UnknownURI("The renderer %s is not allowed on this service."%
 				self.name)
 
-	def renderHTTP(self, ctx):
-		if self.service.get_requiredGroup():
-			return creds.runAuthenticated(ctx, self.service.get_requiredGroup(),
-				self.startRender, ctx)
-		else:
-			return self.startRender(ctx)
 
-	def startRender(self, ctx):
-		return super(ServiceBasedRenderer, self).renderHTTP(ctx)
+def getServiceRend(ctx, serviceParts, rendClass):
+	"""returns a renderer for the service described by serviceParts.
 
-
-class DataBasedRenderer(ResourceBasedRenderer):
-	"""is a resource based renderer using subId as a data id.
-
-	These have the DataDescriptor instance they should operate on
-	in the dataDesc attribute.
+	This is the function you should use to construct renderers.  It will
+	construct the service, check auth, etc.
 	"""
-	def __init__(self, serviceParts):
-		super(DataBasedRenderer, self).__init__(serviceParts)
-		self.dataDesc = self.rd.getDataById(self.subId)
+	def makeRenderer(service):
+		return rendClass(ctx, service)
+	descriptorId, subId = common.parseServicePath(serviceParts)
+	try:
+		rd = resourcecache.getRd(descriptorId)
+	except IOError:
+		raise UnknownURI("/".join(serviceParts))
+	if not rd.has_service(subId):
+		raise UnknownURI("The service %s is not defined"%subId)
+	service = rd.get_service(subId)
+	if service.get_requiredGroup():
+		return creds.runAuthenticated(ctx, service.get_requiredGroup(),
+			makeRenderer, service)
+	else:
+		return makeRenderer(service)
 
 
 class BaseResponse(ServiceBasedRenderer):
 	"""is a base class for renderers rendering responses to standard
 	service queries.
 	"""
-	def __init__(self, serviceParts, inputData, queryMeta):
-		super(BaseResponse, self).__init__(serviceParts)
+	def __init__(self, ctx, service, inputData, queryMeta):
+		super(BaseResponse, self).__init__(ctx, service)
 		self.queryResult = self.service.run(inputData, queryMeta)
 		if self.service.get_template("response"):
 			self.customTemplate = os.path.join(self.rd.get_resdir(),
@@ -199,7 +193,7 @@ class VOTableResponse(BaseResponse):
 	An example for a "real" VO service is siapservice.SiapService.
 	"""
 	name = "form"
-	def startRender(self, ctx):
+	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		defer.maybeDeferred(self.data_query, ctx, None
 			).addCallback(self._handleData, ctx
@@ -281,8 +275,8 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 	"""is a page that provides a search form for the selected service.
 	"""
 	name = "form"
-	def __init__(self, ctx, serviceParts):
-		super(Form, self).__init__(serviceParts)
+	def __init__(self, ctx, service):
+		super(Form, self).__init__(ctx, service)
 		if self.service.get_template("form"):
 			self.customTemplate = os.path.join(self.rd.get_resdir(),
 				self.service.get_template("form"))
@@ -352,9 +346,9 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 	def _runService(self, inputData, queryMeta, ctx):
 		format = queryMeta["format"]
 		if format=="HTML":
-			return HtmlResponse(self.serviceParts, inputData, queryMeta)
+			return HtmlResponse(ctx, self.service, inputData, queryMeta)
 		elif format=="VOTable":
-			res = VOTableResponse(self.serviceParts, inputData, queryMeta)
+			res = VOTableResponse(ctx, self.service, inputData, queryMeta)
 			return res
 		else:
 			raise Error("Invalid output format: %s"%format)
