@@ -317,7 +317,8 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 					for k in self.service.itemsof_output() if k!="default"],
 				noneOption=("default", self.service.get_output("default").get_name())),
 				label="Output form")
-		if isinstance(self.service.get_core(), standardcores.DbBasedCore):
+		if (isinstance(self.service.get_core(), standardcores.DbBasedCore) and
+				self.service.get_core().wantsTableWidget()):
 			form.addField("_DBOPTIONS", gwidgets.FormalDict,
 				formal.widgetFactory(gwidgets.DbOptions, self.service, queryMeta),
 				label="Table")
@@ -327,8 +328,9 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		form = formal.Form()
 		self._addQueryFields(form, data)
 		self._addMetaFields(form, queryMeta)
-		form.addField("_OUTPUT", gwidgets.FormalDict, 
-			gwidgets.OutputOptions, label="Output format")
+		if self.name=="form":
+			form.addField("_OUTPUT", gwidgets.FormalDict, 
+				gwidgets.OutputOptions, label="Output format")
 		form.addAction(self.submitAction, label="Go")
 		self.form = form
 		return form

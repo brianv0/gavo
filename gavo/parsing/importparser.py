@@ -415,6 +415,7 @@ class RdParser(utils.NodeBuilder):
 				svc.register_output(val.get_id(), val),
 			"meta": svc.addMeta,
 			"template": lambda val: svc.register_template(*val),
+			"property": lambda val: svc.register_property(*val),
 			"fieldNameTranslation": svc.set_fieldNameTranslations,
 			"protect": lambda v: svc.set_requiredGroup(v["group"]),
 			"publish": svc.addto_publications,
@@ -482,17 +483,26 @@ class RdParser(utils.NodeBuilder):
 	def _make_autoCondDescs(self, name, attrs, children):
 		return self._processChildren("", name, {}, children)
 
+	_condDescAttrs = set(["predefined", "original", "silent"])
+
 	def _make_condDesc(self, name, attrs, children):
-		if attrs.has_key("predefined"):
-			return self._processChildren(core.getCondDesc(attrs["predefined"]),
+		fieldAttrs, cdAttrs = {}, {}
+		for key, val in attrs.items():
+			if key in self._condDescAttrs:
+				cdAttrs[key] = val
+			else:
+				fieldAttrs[key] = val
+		if cdAttrs.has_key("predefined"):
+			return self._processChildren(core.getCondDesc(cdAttrs["predefined"]),
 				name, {}, children)
-		elif attrs.has_key("original"):
+		elif cdAttrs.has_key("original"):
+			original = cdAttrs.pop("original")
 			return self._processChildren(standardcores.CondDesc.fromInputKey(
 					contextgrammar.InputKey.fromDataField(
-						self._grabField(attrs["original"]))),
+						self._grabField(original), fieldAttrs), cdAttrs),
 				name, {}, children)
 		else:
-			condDesc = standardcores.CondDescFromRd(initvals=makeAttDict(attrs))
+			condDesc = standardcores.CondDescFromRd(initvals=cdAttrs)
 			return self._processChildren(condDesc, name, {
 				"inputKey": condDesc.addto_inputKeys,
 			}, children)

@@ -38,6 +38,7 @@ class CondDesc(record.Record):
 	def __init__(self, additionalFields={}, initvals={}):
 		fields = {
 			"inputKeys": record.ListField,
+			"silent": record.BooleanField,
 		}
 		fields.update(additionalFields)
 		super(CondDesc, self).__init__(fields, initvals=initvals)
@@ -46,16 +47,20 @@ class CondDesc(record.Record):
 		self.dataStore["inputKeys"].append(val)
 
 	def asSQL(self, inPars, sqlPars):
+		if self.get_silent():
+			return ""
 		res = []
 		for ik in self.get_inputKeys():
 			res.append(vizierexprs.getSQL(ik, inPars, sqlPars))
 		return vizierexprs.joinOperatorExpr("AND", res)
 
 	@classmethod
-	def fromInputKey(cls, ik):
-		return cls(initvals={
+	def fromInputKey(cls, ik, attrs={}):
+		initvals={
 			"inputKeys": [ik],
-		})
+		}
+		initvals.update(attrs)
+		return cls(initvals=initvals)
 
 
 class CondDescFromRd(CondDesc):
@@ -92,7 +97,6 @@ class QueryingCore(core.Core):
 		for cd in self.get_condDescs():
 			res.extend(cd.get_inputKeys())
 		return res
-
 
 	
 class ComputedCore(core.Core):
@@ -136,11 +140,16 @@ class DbBasedCore(QueryingCore):
 	def __init__(self, rd, initvals):
 		super(DbBasedCore, self).__init__(rd, additionalFields={
 				"table": record.RequiredField,
+				"sortOrder": None,
+				"limit": None,
 			}, initvals=initvals)
 	
 	def set_table(self, val):
 		self.dataStore["table"] = val
 		self.tableDef = self.rd.getTableDefByName(self.get_table())
+
+	def wantsTableWidget(self):
+		return self.get_sortOrder()==None or self.get_limit()==None
 
 	def addDefaultCondDescs(self, *ignored):
 		for f in self.get_outputFields():
@@ -189,7 +198,8 @@ class DbBasedCore(QueryingCore):
 			tableName = "%s.%s"%(schema, recordDef.get_table())
 		else:
 			tableName = recordDef.get_table()
-		limtagsFrag, limtagsPars = queryMeta.asSql()
+		limtagsFrag, limtagsPars = queryMeta.asSql(limitOverride=self.get_limit(),
+			orderOverride=self.get_sortOrder())
 		pars.update(limtagsPars)
 		if condition:
 			condition = "WHERE %s"%condition

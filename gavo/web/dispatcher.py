@@ -15,6 +15,9 @@ import formal
 
 from twisted.internet import defer
 from twisted.python import components
+# we put some calculations into threads.
+from twisted.python import threadable
+threadable.init()
 
 from nevow import appserver
 from nevow import context
@@ -36,6 +39,7 @@ from gavo.web import resourcebased
 # need servicelist to register its resourcecache
 from gavo.web import servicelist
 from gavo.web import siaprenderer
+from gavo.web import jpegrenderer
 from gavo.web import uploadservice
 
 from gavo.web.common import Error, UnknownURI
@@ -65,6 +69,17 @@ class DebugPage(rend.Page):
 	])
 
 
+def handleUnknownURI(ctx, failure):
+	if isinstance(failure.value, common.UnknownURI):
+		request = inevow.IRequest(ctx)
+		request.setResponseCode(404)
+		request.setHeader("content-type", "text/plain")
+		request.write("The resource you requested was not found on the server.\n\n")
+		request.write(failure.getErrorMessage()+"\n")
+		request.finishRequest(False)
+		return True
+
+
 class ErrorPageDebug(rend.Page):
 	implements(inevow.ICanHandleException)
 
@@ -85,6 +100,8 @@ class ErrorPageDebug(rend.Page):
 		return str(self.failure)
 
 	def renderHTTP_exception(self, ctx, failure):
+		if handleUnknownURI(ctx, failure):
+			return appserver.errorMarker
 		failure.printTraceback()
 		self.failure = failure
 		request = inevow.IRequest(ctx)
@@ -98,6 +115,8 @@ class ErrorPage(ErrorPageDebug):
 	implements(inevow.ICanHandleException)
 
 	def renderHTTP_exception(self, ctx, failure):
+		if handleUnknownURI(ctx, failure):
+			return appserver.errorMarker
 		failure.printTraceback()
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(500)
@@ -116,6 +135,7 @@ renderClasses = {
 	"getproduct": (lambda ctx, segs, cls: cls(ctx, segs), product.Product),
 	"upload": (resourcebased.getServiceRend, uploadservice.Uploader),
 	"mupload": (resourcebased.getServiceRend, uploadservice.MachineUploader),
+	"img.jpeg": (resourcebased.getServiceRend, jpegrenderer.JpegRenderer),
 	"debug": (lambda ctx, segs, cls: cls(ctx, segs), DebugPage),
 }
 

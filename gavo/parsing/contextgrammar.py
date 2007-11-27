@@ -89,13 +89,15 @@ class InputKey(datadef.DataField):
 		return res
 
 	@classmethod
-	def fromDataField(cls, dataField):
+	def fromDataField(cls, dataField, attrs={}):
 		"""returns an InputKey for query input to dataField
 		"""
 		instance = super(InputKey, cls).fromDataField(dataField)
 		instance.set_dbtype(vizierexprs.getVexprFor(instance.get_dbtype()))
 		instance.set_source(instance.get_dest())
 		instance.set_optional(True)
+		for key, val in attrs.iteritems():
+			instance.set(key, val)
 		return instance
 
 	@classmethod

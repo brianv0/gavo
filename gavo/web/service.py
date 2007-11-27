@@ -65,6 +65,7 @@ class Service(record.Record, meta.MetaMixin):
 			"core": record.RequiredField,
 			"id": record.RequiredField,
 			"template": record.DictField,
+			"property": record.DictField,
 			"publications": record.ListField,
 			"requiredGroup": None,
 			"allowedRenderers": None,

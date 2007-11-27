@@ -226,7 +226,7 @@ class LiteralParser:
 			underliner)
 
 
-asciiLiteralParser = LiteralParser()
+asciiLiteralParser = LiteralParser(encoding="utf-8")
 
 
 if __name__=="__main__":

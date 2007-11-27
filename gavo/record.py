@@ -231,8 +231,8 @@ class Record(object):
 
 	def _getDictMethods(self, key, _):
 		self.dataStore[key] = {}
-		def getter(self, regKey):
-			return self.dataStore[key].get(regKey, "")
+		def getter(self, regKey, default=""):
+			return self.dataStore[key].get(regKey, default)
 		def setter(self, regKey, value):
 			self.dataStore[key][regKey] = value
 		def checker(self, regKey):

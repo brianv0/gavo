@@ -139,11 +139,11 @@ myTests = [
 			"_DBOPTIONS_LIMIT=10",
 			'name="QUERY_STATUS" value="ERROR"',
 			"NV Maidanak error document"),
-		GetHasStringTest(nv_root+"/getproduct?key=maidanak/wcs/cd029/oct1603"
+		GetHasStringTest(nv_root+"/getproduct?key=maidanak/raw/cd029/oct1603"
 			"/q2237/mj160043.gz&siap=true",
 			'60043\x00\xec\xbdip\x9e\xd7\x95\xdf\x99T*\x93\x9at',
 			"NV Maidanak product delivery"),
-		HeadStatusTest(nv_root+"/getproduct?key=maidanak/wcs/cd002/aug1305/"
+		HeadStatusTest(nv_root+"/getproduct?key=maidanak/raw/cd002/aug1305/"
 			"q2237_ogak/oh130102.gz&siap=true",
 			401,
 			"NV Maidanak auth test (will fail starting 2008-12-31)"),

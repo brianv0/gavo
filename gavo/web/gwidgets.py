@@ -217,11 +217,16 @@ class DbOptions(object):
 	"""
 	implements(iformal.IWidget)
 
+	sortWidget = None
+	limitWidget = None
+
 	def __init__(self, typeOb, service, queryMeta):
 		self.service = service
 		self.typeOb = typeOb
-		self.sortWidget = self._makeSortWidget(service, queryMeta)
-		self.limitWidget = self._makeLimitWidget(service)
+		if self.service.get_core().get_sortOrder()==None:
+			self.sortWidget = self._makeSortWidget(service, queryMeta)
+		if self.service.get_core().get_limit()==None:
+			self.limitWidget = self._makeLimitWidget(service)
 		
 	def _makeSortWidget(self, service, queryMeta):
 		keys = [f.get_dest() for f in self.service.getOutputFields(queryMeta)]
@@ -244,11 +249,15 @@ class DbOptions(object):
 	renderImmutable = render
 
 	def processInput(self, ctx, key, args):
-		value = {
-			"order": self.sortWidget.processInput(ctx, "_DBOPTIONS_ORDER", args),
-			"limit": self.limitWidget.processInput(ctx, "_DBOPTIONS_LIMIT", args),
+		order, limit = None, None
+		if self.sortWidget:
+			order = self.sortWidget.processInput(ctx, "_DBOPTIONS_ORDER", args)
+		if self.limitWidget:
+			limit = self.limitWidget.processInput(ctx, "_DBOPTIONS_LIMIT", args),
+		return {
+			"order": order,
+			"limit": limit,
 		}
-		return value
 
 
 class FormalDict(formaltypes.Type):

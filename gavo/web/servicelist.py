@@ -2,6 +2,8 @@
 Code dealing with the service list.
 """
 
+import os
+
 import gavo
 from gavo import config
 from gavo import resourcecache
@@ -87,19 +89,35 @@ def queryServicesList(whereClause="", pars={}):
 resourcecache.makeCache("getWebServiceList", 
 	lambda ignored: queryServicesList("srv_interfaces.type='web'"))
 
+def parseCommandLine():
+	import optparse
+	parser = optparse.OptionParser(usage="%prog [options] [<rd-name>]+")
+	parser.add_option("-a", "--all", help="search everything below inputsDir"
+		" for publications.", dest="all", action="store_true")
+	return parser.parse_args()
+
+def findAllRDs():
+	rds = []
+	for dir, dirs, files in os.walk(config.get("inputsDir")):
+		for file in files:
+			if file.endswith(".vord"):
+				rds.append(os.path.join(dir, file))
+	return rds
 
 def main():
-	import os
-	import sys
 	from gavo import textui
 	from gavo.parsing import commandline
 	config.setDbProfile("feed")
-	try:
-		updateServiceList(
-			importparser.getRd(os.path.join(os.getcwd(), sys.argv[1]), 
-				forImport=True))
-	except Exception, msg:
-		commandline.displayError(msg)
+	opts, args = parseCommandLine()
+	if opts.all:
+		args = findAllRDs()
+	for rdPath in args:
+		try:
+			updateServiceList(
+				importparser.getRd(os.path.join(os.getcwd(), rdPath), 
+					forImport=True))
+		except Exception, msg:
+			commandline.displayError(msg)
 
 
 if __name__=="__main__":

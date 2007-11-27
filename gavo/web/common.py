@@ -197,7 +197,7 @@ class CustomErrorMixin(object):
 		"""override for to emit custom errors for general failures.
 
 		You'll usually want to do all writing yourself, finishRequest(False) your
-		request and return appserver.errMarker here.
+		request and return appserver.errorMarker here.
 		"""
 		failure.printTraceback()
 
@@ -316,20 +316,22 @@ class QueryMeta(dict):
 			self["dbLimit"] = 100
 		self["dbSortKey"] = ctxArgs.get("_DBOPTIONS_ORDER", [None])[0]
 
-	def asSql(self):
+	def asSql(self, limitOverride=None, orderOverride=None):
 		"""returns the dbLimit and dbSortKey values as an SQL fragment.
 		"""
 		frag, pars = [], {}
-		if self["dbSortKey"]:
+		sortKey = orderOverride or self["dbSortKey"]
+		dbLimit = int(limitOverride or self["dbLimit"])
+		if sortKey:
 			# Ok, we need to do some emergency securing here.  There should be
 			# pre-validation that we're actually seeing a column key, but
 			# just in case let's make sure we're seeing an SQL identifier.
 			# (We can't rely on dbapi's escaping since we're not talking values here)
-			key = re.sub("[^A-Za-z_]+", "", self["dbSortKey"])
-			frag.append("ORDER BY %s"%key)
-		if self["dbLimit"]:
+			sortKey = re.sub("[^A-Za-z_]+", "", sortKey)
+			frag.append("ORDER BY %s"%sortKey)
+		if dbLimit:
 			frag.append("LIMIT %(_matchLimit)s")
-			pars["_matchLimit"] = self["dbLimit"]+1
+			pars["_matchLimit"] = dbLimit+1
 		return " ".join(frag), pars
 
 emptyQueryMeta = QueryMeta({})
@@ -356,19 +358,19 @@ class CoreResult(object):
 			"itemsMatched": len(result.rows),
 		}
 
-	def data_queryseq(self, ctx):
+	def data_queryseq(self, ctx=None):
 		s = [(k, str(v)) for k, v in self.queryPars.iteritems()
 			if not k in QueryMeta.metaKeys]
 		s.sort()
 		return s
 
-	def data_querypars(self, ctx):
+	def data_querypars(self, ctx=None):
 		return dict(self.data_queryseq(ctx))
 
-	def data_inputRec(self, ctx):
+	def data_inputRec(self, ctx=None):
 		return self.inputData.getDocRec()
 
-	def data_table(self, ctx):
+	def data_table(self, ctx=None):
 		return self.original.getPrimaryTable()
 
 	def child(self, ctx, name):
