@@ -34,6 +34,7 @@ from gavo import resourcecache
 # need importparser to register its resourcecache
 from gavo.parsing import importparser
 from gavo.web import common
+from gavo.web import creds
 from gavo.web import product
 from gavo.web import resourcebased
 # need servicelist to register its resourcecache
@@ -67,6 +68,27 @@ class DebugPage(rend.Page):
 			]
 		]
 	])
+
+
+class ReloadPage(common.GavoRenderMixin, rend.Page):
+	def __init__(self, ctx, *args, **kwargs):
+		super(ReloadPage, self).__init__()
+		
+	def renderHTTP(self, ctx):
+		return creds.runAuthenticated(ctx, "admin", self._reload, ctx)
+	
+	def _reload(self, ctx):
+		resourcecache.clearCaches()
+		return self._renderHTTP(ctx)
+	
+	docFactory = loaders.xmlstr("""<html xmlns:n='http://nevow.com/ns/nevow/0.1'>
+    <head><title>Caches cleared</title>
+    </head>
+    <body><h1>Caches cleared</h1>
+		<p>The caches were cleared successfully.</p>
+		<p><a href="/" n:render="rootlink">Main Page</a></p>
+    </body></html>
+    """)
 
 
 def handleUnknownURI(ctx, failure):
@@ -138,6 +160,7 @@ renderClasses = {
 	"img.jpeg": (resourcebased.getServiceRend, jpegrenderer.JpegRenderer),
 	"mimg.jpeg": (resourcebased.getServiceRend, jpegrenderer.MachineJpegRenderer),
 	"debug": (lambda ctx, segs, cls: cls(ctx, segs), DebugPage),
+	"reload": (lambda ctx, segs, cls: cls(ctx, segs), ReloadPage),
 }
 
 class ArchiveService(common.CustomTemplateMixin, rend.Page, 
@@ -160,7 +183,9 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		for srv in srvList:
 			key = srv.get("title", ".")[0].upper()
 			chunks.setdefault(key, []).append(srv)
-		return [{"char": key, "chunk": val} for key, val in chunks.iteritems()]
+		sList = [{"char": key, "chunk": val} for key, val in chunks.iteritems()]
+		sList.sort(lambda a,b: cmp(a["char"], b["char"]))
+		return sList
 
 	def render_serviceURL(self, ctx, data):
 		#XXX TODO: figure out how to get slots into attributes and scap this.

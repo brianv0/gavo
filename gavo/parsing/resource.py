@@ -623,6 +623,14 @@ class ResourceDescriptor(record.Record, meta.MetaMixin):
 				return dataSrc
 		raise KeyError(id)
 
+	def getById(self, id):
+		"""returns a child item with the appropriate id.
+		"""
+		return self.idMap[id]
+
+	def setIdMap(self, idMap):
+		self.idMap = idMap.copy()
+
 	def notfiyParseFinished(self):
 		for ds in self.get_dataSrcs():
 			ds.setMetaParent(self)

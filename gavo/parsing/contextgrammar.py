@@ -23,7 +23,8 @@ class InputKey(datadef.DataField):
 		"formalType":    None, # nevow formal type to use.
 		"widgetFactory": None, # Python code to generate a formal widget factory
 		                       # for this field.
-		"showitems": 3    # items to show in selections
+		"showitems": 3,        # #items to show in multi selections
+		"value": None,         # value in a constant field (rendered hidden)
 	}
 	
 	def set_formalType(self, formalType):
@@ -72,6 +73,8 @@ class InputKey(datadef.DataField):
 		"""
 		if self.dataStore.get("widgetFactory"):
 			res = self.dataStore["widgetFactory"]
+		elif self.get_value():
+			return formal.Hidden
 		elif self.isEnumerated():
 			if self.get_values().get_multiOk():
 				res = formal.widgetFactory(
@@ -81,12 +84,20 @@ class InputKey(datadef.DataField):
 			else:
 				items = self.get_values().get_options().copy()
 				items.remove(self.get_values().get_default())
+				noneLabel = None
+				if self.get_optional():
+					noneLabel = "ANY"
 				res = formal.widgetFactory(
 					gwidgets.SimpleSelectChoice,
 					[str(i) for i in items], self.get_default())
 		else:  # let formal figure it out
 			res = None
 		return res
+
+	def getValueIn(self, *args, **kwargs):
+		if self.get_value()!=None:
+			return self.get_value()
+		return super(InputKey, self).getValueIn(*args, **kwargs)
 
 	@classmethod
 	def fromDataField(cls, dataField, attrs={}):
@@ -111,22 +122,6 @@ class InputKey(datadef.DataField):
 		except gavo.Error:
 			return
 		return cls.fromDataField(dataField)
-
-# XXX TODO: remove the next two methods
-"""
-	def _makeWidget(self, context):
-		return ('<input type="text" name="%s"'
-		' value="%s">')%(self.get_name(), 
-			self.get_default())
-
-	def asHtml(self, context):
-		widget = self._makeWidget(context)
-		return ('<div class="condition"><div class="clabel">%s</div>'
-			' <div class="quwidget">%s</div></div>'%(
-				self.get_label(),
-				widget))
-"""
-
 
 
 class ContextGrammar(grammar.Grammar):

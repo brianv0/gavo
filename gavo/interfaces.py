@@ -219,17 +219,19 @@ class Products(Interface):
 		Interface.__init__(self, [
 			{"dest": "datapath", "source": "prodtblKey", "dbtype": "text",
 				"ucd": "meta.ref;obs.image;meta.fits", "displayHint": "product",
-				"tablehead": "Product", "optional": "False"},
+				"tablehead": "Product", "optional": "False", "verbLevel": 5},
 # XXX TODO: it would be smart to have "references": "products", here,
 # but that causes the remove of the items to take forever.  See if
 # we can figure out a way to avoid that penalty.
 			{"dest": "owner", "source": "prodtblOwner", "dbtype": "text",
-				"tablehead": "Product owner", "displayHint": "suppress"},
+				"tablehead": "Product owner", "displayHint": "suppress",
+				"verbLevel": 25},
 			{"dest": "embargo", "source": "prodtblEmbargo", "dbtype": "date",
 				"tablehead": "Embargo ends", "displayHint": "date",
-				"unit": "Y-M-D"},
+				"unit": "Y-M-D", "verbLevel": 25},
 			{"dest": "fsize", "source": "prodtblFsize", "dbtype": "int",
-				"tablehead": "File size", "displayHint": "filesize", "unit": "byte"},
+				"tablehead": "File size", "displayHint": "filesize", "unit": "byte",
+				"verbLevel": 15},
 		])
 
 	def getDelayedNodes(self, recordNode):

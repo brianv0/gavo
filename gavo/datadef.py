@@ -362,6 +362,8 @@ class Values(record.Record):
 		"""returns false if value isn't either in options or doesn't consist of
 		items in options.
 		"""
+		if value=="None":
+			return True
 		if isinstance(value, (list, tuple)):
 			for val in value:
 				if val and not val in self.get_options():

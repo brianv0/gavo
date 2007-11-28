@@ -267,9 +267,13 @@ class FormalDict(formaltypes.Type):
 
 
 class SimpleSelectChoice(SelectChoice):
-	def __init__(self, original, options, noneOption):
+	def __init__(self, original, options, noneLabel=None):
+		if noneLabel==None:
+			noneOption = None
+		else:
+			noneOption = (noneLabel, noneLabel)
 		super(SimpleSelectChoice, self).__init__(original,
-			[(o,o) for o in options], (noneOption, noneOption))
+			[(o,o) for o in options], noneOption)
 
 
 # The multichoice code mostly stolen from formal -- their widget had no
@@ -369,9 +373,11 @@ class MultiselectChoice(MultichoiceBase):
 
 
 class SimpleMultiSelectChoice(MultiselectChoice):
+	noneOption = ("ANY", "ANY")
 	def __init__(self, original, options, showitems):
 		super(MultiselectChoice, self).__init__(original,
 			[(o,o) for o in options], size=showitems)
+
 
 def makeWidgetFactory(code):
 	return eval(code)

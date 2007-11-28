@@ -205,13 +205,13 @@ class DbBasedCore(QueryingCore):
 			condition = "WHERE %s"%condition
 		else:
 			condition = ""
-		return resourcecache.getDbConnection().runQuery(
-			"SELECT %(fields)s from %(table)s %(condition)s %(limtags)s"%{
-				"fields": ", ".join([f.get_dest() for f in recordDef.get_items()]),
-				"table": tableName,
-				"condition": condition,
-				"limtags": limtagsFrag,
-				}, pars)
+		query = "SELECT %(fields)s from %(table)s %(condition)s %(limtags)s"%{
+			"fields": ", ".join([f.get_dest() for f in recordDef.get_items()]),
+			"table": tableName,
+			"condition": condition,
+			"limtags": limtagsFrag,
+		}
+		return resourcecache.getDbConnection().runQuery(query, pars)
 
 	def run(self, inputTable, queryMeta):
 		"""returns an InternalDataSet containing the result of the

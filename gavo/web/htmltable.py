@@ -112,7 +112,7 @@ class FormatterFactory:
 
 	def _make_juliandate_formatter(self, fracFigs=1):
 		def format(date):
-			if data==None:
+			if date==None:
 				return "N/A"
 			return date.jdn
 		return format

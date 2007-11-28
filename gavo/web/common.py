@@ -302,7 +302,7 @@ class QueryMeta(dict):
 			self["verbosity"] = 20
 		try:
 			self["tdEnc"] = record.parseBooleanLiteral(
-				ctxArgs.get("tdEnc", ["False"])[0])
+				ctxArgs.get("_TDENC", ["False"])[0])
 		except gavo.Error:
 			self["tdEnc"] = False
 	
@@ -353,14 +353,14 @@ class CoreResult(object):
 				setattr(self, n, getattr(self.original, n))
 
 	def data_resultmeta(self, ctx):
-		result = self.original.getTables()[0]
+		result = self.original.getPrimaryTable()
 		return {
 			"itemsMatched": len(result.rows),
 		}
 
 	def data_queryseq(self, ctx=None):
 		s = [(k, str(v)) for k, v in self.queryPars.iteritems()
-			if not k in QueryMeta.metaKeys]
+			if not k in QueryMeta.metaKeys and v and v!=[None]]
 		s.sort()
 		return s
 

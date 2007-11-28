@@ -324,19 +324,20 @@ def getSQL(field, inPars, sqlPars):
 # XXX TODO refactor, sanitize
 	try:
 		val = inPars[field.get_source()]
-		if val!=None:
-			if field.get_dbtype().startswith("vexpr") and isinstance(val, basestring):
-				return parsers[field.get_dbtype()](val).asSQL(
-					field.get_dest(), sqlPars)
+		if val==None:
+			return None
+		if field.get_dbtype().startswith("vexpr") and isinstance(val, basestring):
+			return parsers[field.get_dbtype()](val).asSQL(
+				field.get_dest(), sqlPars)
+		else:
+			if isinstance(val, (list, tuple)):
+				if len(val)==1 and val[0]==None:
+					return ""
+				return "%s IN %%(%s)s"%(field.get_dest(), getSQLKey(field.get_dest(),
+					val, sqlPars))
 			else:
-				if isinstance(val, (list, tuple)):
-					if len(val)==1 and val[0]==None:
-						return ""
-					return "%s IN %%(%s)s"%(field.get_dest(), getSQLKey(field.get_dest(),
-						val, sqlPars))
-				else:
-					return "%s=%%(%s)s"%(field.get_dest(), getSQLKey(field.get_dest(),
-						val, sqlPars))
+				return "%s=%%(%s)s"%(field.get_dest(), getSQLKey(field.get_dest(),
+					val, sqlPars))
 	except ParseException:
 		raise gavo.ValidationError(
 			"Invalid input (see help on search expressions)", field.get_source())

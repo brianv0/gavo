@@ -65,23 +65,28 @@ class RdParser(utils.NodeBuilder):
 		utils.NodeBuilder.__init__(self)
 		self.rd = resource.ResourceDescriptor(sourcePath)
 
-	def _getDDById(self, id):
+	def resolveItemReference(self, id):
 		"""returns the data descriptor with id.
 
 		If there's a : in id, the stuff in front of the colon is
 		an inputs-relative path to another resource descriptor,
 		and the id then refers to one of its data descriptors.
 		"""
-		if ":" in id:
-			rdPath, id = id.split(":", 1)
-			rd = getRd(rdPath)
+		if "#" in id:
+			rdPath, id = id.split("#", 1)
+			if rdPath.startswith("./"):
+				rdPath = os.path.join(os.path.dirname(self.rd.sourceId), rdPath)
+			rd = resourcecache.getRd(rdPath)
 		else:
 			rd = self.rd
-		return rd.getDataById(id)
+		element = rd.getById(id)[1].copy()
+		element.setExtensionFlag(True)
+		return element
 
 	def _make_ResourceDescriptor(self, name, attrs, children):
 		self.rd.set_resdir(attrs["srcdir"])
 		self.rd.set_profile(attrs.get("profile"))
+		self.rd.setIdMap(self.elementsById)
 		self._processChildren(self.rd, name, {
 			"DataProcessor": self.rd.addto_processors,
 			"recreateAfter": self.rd.addto_dependents,
@@ -97,10 +102,7 @@ class RdParser(utils.NodeBuilder):
 		return self.rd
 
 	def _make_Data(self, name, attrs, children):
-		if attrs.has_key("extends"):
-			dd = self._getDDById(attrs["extends"]).copy()
-		else:
-			dd = resource.DataDescriptor(self.rd)
+		dd = resource.DataDescriptor(self.rd)
 		dd.set_source(attrs.get("source"))
 		dd.set_sourcePat(attrs.get("sourcePat"))
 		dd.set_computer(attrs.get("computer"))
@@ -127,7 +129,6 @@ class RdParser(utils.NodeBuilder):
 
 		For convenience, the function returns the instance passed in.
 		"""
-		grammar.setExtensionFlag(attrs.get("keep", "False"))
 		if attrs.has_key("docIsRow"):
 			grammar.set_docIsRow(attrs["docIsRow"])
 		handlers = {
@@ -193,14 +194,15 @@ class RdParser(utils.NodeBuilder):
 
 	def _make_Semantics(self, name, attrs, children):
 		semantics = resource.Semantics()
-		semantics.setExtensionFlag(attrs.get("keep", "False"))
 		return self._processChildren(semantics, name, {
 			"Record": semantics.addto_recordDefs,
 		}, children)
 	
 	def _make_Record(self, name, attrs, children):
-		recDef = resource.RecordDef()
-		recDef.setExtensionFlag(attrs.get("keep", "False"))
+		if attrs.has_key("original"):
+			recDef = self.resolveItemReference(attrs["original"])
+		else:
+			recDef = resource.RecordDef()
 		recDef.set_table(attrs["table"])
 		recDef.set_onDisk(attrs.get("onDisk", "False"))
 		recDef.set_forceUnique(attrs.get("forceUnique", "False"))
@@ -257,7 +259,8 @@ class RdParser(utils.NodeBuilder):
 		try:
 			dataId, tableName, fieldName = fieldPath.split(".")
 		except ValueError:
-			raise Error("Invalid field path %s"%fieldPath)
+			raise Error("Invalid field path '%s'.  Did you forget a leading dot?"%
+				fieldPath)
 		return self.rd.getDataById(dataId).getRecordDefByName(tableName
 			).getFieldByName(fieldName)
 
@@ -465,7 +468,7 @@ class RdParser(utils.NodeBuilder):
 				"autoCondDescs": curCore.addDefaultCondDescs,
 			})
 		elif attrs.has_key("computer"): # computed cores
-			curCore = standardcores.ComputedCore(self._getDDById(attrs["computer"]),
+			curCore = standardcores.ComputedCore(self.getById(attrs["computer"])[1],
 				initvals=args)
 		else:
 			raise Error("Invalid core specification")

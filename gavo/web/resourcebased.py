@@ -108,7 +108,7 @@ class HtmlResponse(BaseResponse):
 		return htmltable.HtmlTableFragment(data.child(ctx, "table"))
 
 	def render_parpair(self, ctx, data):
-		if data==None or data[1]==None or data[1]=='None':
+		if data==None or data[1]==None:
 			return ""
 		return ctx.tag["%s: %s"%data]
 	
@@ -178,6 +178,7 @@ def serveAsVOTable(request, data):
 	to request.
 	"""
 	request.setHeader("content-type", "application/x-votable")
+	print ">>>>>>", data.queryMeta
 	tableMaker = votable.VOTableMaker({
 		True: "td",
 		False: "binary"}[data.queryMeta["tdEnc"]])
@@ -204,7 +205,7 @@ class VOTableResponse(BaseResponse):
 		request = inevow.IRequest(ctx)
 		request.setHeader('content-disposition', 
 			'attachment; filename=votable.xml')
-		serveAsVOTable(request, data
+		defer.maybeDeferred(serveAsVOTable, request, data
 			).addCallback(self._tableWritten, ctx
 			).addErrback(self._handleError, ctx)
 		return request.deferred

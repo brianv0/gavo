@@ -116,6 +116,7 @@ class Product(standardcores.DbBasedCore):
 		"""transfers a cutout image defined by ctx["key"] and the ra, dec, sra, 
 		and sdec parameters in sqlPars.
 		"""
+# XXX todo: this should be based on the cutout resource descriptor.
 		targetPath = str(os.path.join(config.get("inputsDir"), item["accessPath"]))
 		args = self._computeGetfitsArgs(sqlPars, targetPath)
 		request = self._makeFitsRequest(ctx, "cutout-"+os.path.basename(
@@ -123,7 +124,7 @@ class Product(standardcores.DbBasedCore):
 		if request.method == 'HEAD':
 			return ''
 		prog = runner.getBinaryName(os.path.join(config.get("inputsDir"),
-			"cutout", "bin", "getfits"))
+			"__system__", "cutout", "bin", "getfits"))
 		runner.StreamingRunner(prog, args, request)
 		return request.deferred
 
