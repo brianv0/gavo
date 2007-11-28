@@ -136,6 +136,7 @@ renderClasses = {
 	"upload": (resourcebased.getServiceRend, uploadservice.Uploader),
 	"mupload": (resourcebased.getServiceRend, uploadservice.MachineUploader),
 	"img.jpeg": (resourcebased.getServiceRend, jpegrenderer.JpegRenderer),
+	"mimg.jpeg": (resourcebased.getServiceRend, jpegrenderer.MachineJpegRenderer),
 	"debug": (lambda ctx, segs, cls: cls(ctx, segs), DebugPage),
 }
 
