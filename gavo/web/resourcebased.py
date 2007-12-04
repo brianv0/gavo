@@ -178,7 +178,6 @@ def serveAsVOTable(request, data):
 	to request.
 	"""
 	request.setHeader("content-type", "application/x-votable")
-	print ">>>>>>", data.queryMeta
 	tableMaker = votable.VOTableMaker({
 		True: "td",
 		False: "binary"}[data.queryMeta["tdEnc"]])

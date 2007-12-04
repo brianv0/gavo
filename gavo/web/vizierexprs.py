@@ -168,7 +168,6 @@ def _makeSimpleExprNode(s, loc, toks):
 		return NumericNode(toks[1:], toks[0])
 
 
-
 def getComplexGrammar(baseLiteral, pmBuilder, errorLiteral=None):
 	"""returns the root element of a grammar parsing numeric vizier-like 
 	expressions.
@@ -279,7 +278,7 @@ def getStringGrammar():
 	pattern = OneOrMore(setSpec | wildStar | wildQmark | patLiterals)
 
 	patternOperator = Literal("~") | Literal("=") | Literal("!~") |\
-		Literal("!") | Literal("=")
+		Literal("!")
 	patternExpr = patternOperator + pattern
 
 	nakedExpr = pattern.copy()

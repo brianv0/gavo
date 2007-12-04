@@ -15,6 +15,7 @@ from formal.widget import *
 from formal import widgetFactory
 
 from gavo import record
+from gavo.web import common
 
 
 _linkGeneratingJs = """
@@ -223,9 +224,9 @@ class DbOptions(object):
 	def __init__(self, typeOb, service, queryMeta):
 		self.service = service
 		self.typeOb = typeOb
-		if self.service.get_core().get_sortOrder()==None:
+		if self.service.get_core().get_sortOrder() is common.Undefined:
 			self.sortWidget = self._makeSortWidget(service, queryMeta)
-		if self.service.get_core().get_limit()==None:
+		if self.service.get_core().get_limit() is common.Undefined:
 			self.limitWidget = self._makeLimitWidget(service)
 		
 	def _makeSortWidget(self, service, queryMeta):

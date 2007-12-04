@@ -176,6 +176,12 @@ myTests = [
 			404,
 			"Disallowed renderer yields 404."),
 	),
+	TestGroup("misc",
+		GetHasStringTest(nv_root+"/inflight/res/lc1/img/mimg.jpeg?"
+			"startLine=20&endLine=30",
+			'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00',
+			"Infinite Lightcurve image delivery"),
+	)
 ]
 
 

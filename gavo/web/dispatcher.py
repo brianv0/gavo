@@ -150,6 +150,31 @@ class ErrorPage(ErrorPageDebug):
 		request.finishRequest(False)
 
 
+def _replaceConfigStrings(srcPath, registry):
+	src = open(srcPath).read()
+	src = src.replace("__site_path__", config.get("web", "nevowRoot"))
+	return src
+
+class StaticServer(static.File):
+	"""is a server for various static files.
+
+	There's only one hack in here: We register a processor for .phtml
+	files.  In them, certain strings are replaced with *site-global*
+	values.  This probably should only be used for the server URL and
+	the application prefix.  Anything more dynamic should be done properly
+	via renderers.
+	"""
+	def __init__(self, *args, **kwargs):
+		if not args:
+			static.File.__init__(self, os.path.join(config.get("webDir"), "nv_static"))
+		else:
+			static.File.__init__(self, *args, **kwargs)
+
+	processors = {
+		".shtml": _replaceConfigStrings,
+	}
+
+_staticServer = StaticServer()
 
 renderClasses = {
 	"form": (resourcebased.getServiceRend, resourcebased.Form),
@@ -208,24 +233,30 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		]
 	])
 
+	def _locateRenderChild(self, ctx, segments):
+		name = segments[0]
+		if hasattr(self, "child_"+name):
+			return getattr(self, "child_"+name), segments[1:]
+		
+		act = segments[-1]
+		try:
+			fFunc, cls = renderClasses[act]
+			res = fFunc(ctx, segments[:-1], cls)
+		except (UnknownURI, KeyError):
+			res = None
+		return res
+
 	def locateChild(self, ctx, segments):
 		if segments[:self.rootLen]!=self.rootSegments:
 			return None, ()
 		segments = segments[self.rootLen:]
 		if not segments or not segments[0]:
-			res = self
+			res = self, ()
+		elif segments[0]=="static":
+			res = _staticServer, segments[1:]
 		else:
-			name = segments[0]
-			if hasattr(self, "child_"+name):
-				return getattr(self, "child_"+name), segments[1:]
-			
-			act = segments[-1]
-			try:
-				fFunc, cls = renderClasses[act]
-				res = fFunc(ctx, segments[:-1], cls)
-			except (UnknownURI, KeyError):
-				res = None
-		return res, ()
+			res = self._locateRenderChild(ctx, segments), ()
+		return res
 
 
 setattr(ArchiveService, 'child_formal.css', formal.defaultCSS)

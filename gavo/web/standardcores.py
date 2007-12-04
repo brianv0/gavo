@@ -140,8 +140,8 @@ class DbBasedCore(QueryingCore):
 	def __init__(self, rd, initvals):
 		super(DbBasedCore, self).__init__(rd, additionalFields={
 				"table": record.RequiredField,
-				"sortOrder": None,
-				"limit": None,
+				"sortOrder": common.Undefined,
+				"limit": common.Undefined,
 			}, initvals=initvals)
 	
 	def set_table(self, val):
@@ -149,7 +149,8 @@ class DbBasedCore(QueryingCore):
 		self.tableDef = self.rd.getTableDefByName(self.get_table())
 
 	def wantsTableWidget(self):
-		return self.get_sortOrder()==None or self.get_limit()==None
+		return (self.get_sortOrder()==common.Undefined or 
+			self.get_limit()==common.Undefined)
 
 	def addDefaultCondDescs(self, *ignored):
 		for f in self.get_outputFields():
@@ -198,8 +199,9 @@ class DbBasedCore(QueryingCore):
 			tableName = "%s.%s"%(schema, recordDef.get_table())
 		else:
 			tableName = recordDef.get_table()
-		limtagsFrag, limtagsPars = queryMeta.asSql(limitOverride=self.get_limit(),
-			orderOverride=self.get_sortOrder())
+		queryMeta.overrideDbOptions(limit=self.get_limit(), 
+			sortKey=self.get_sortOrder())
+		limtagsFrag, limtagsPars = queryMeta.asSql()
 		pars.update(limtagsPars)
 		if condition:
 			condition = "WHERE %s"%condition

@@ -26,6 +26,10 @@ class Error(gavo.Error):
 	pass
 
 
+#A sentinel for QueryMeta, mainly.
+Undefined = object()
+
+
 def resolvePath(rootPath, relPath):
 	"""joins relPath to rootPath and makes sure the result really is
 	in rootPath.
@@ -311,17 +315,23 @@ class QueryMeta(dict):
 
 	def _fillDbOptions(self, ctxArgs):
 		try:
-			self["dbLimit"] = int(ctxArgs.get("_DBOPTIONS_LIMIT", [100])[0])
+			self["dbLimit"] = ctxArgs.get("_DBOPTIONS_LIMIT", [None])[0]
 		except ValueError:
 			self["dbLimit"] = 100
 		self["dbSortKey"] = ctxArgs.get("_DBOPTIONS_ORDER", [None])[0]
 
-	def asSql(self, limitOverride=None, orderOverride=None):
+	def overrideDbOptions(self, sortKey=Undefined, limit=Undefined):
+		if sortKey is not Undefined:
+			self["dbSortKey"] = sortKey
+		if limit is not Undefined:
+			self["dbLimit"] = limit
+
+	def asSql(self):
 		"""returns the dbLimit and dbSortKey values as an SQL fragment.
 		"""
 		frag, pars = [], {}
-		sortKey = orderOverride or self["dbSortKey"]
-		dbLimit = int(limitOverride or self["dbLimit"])
+		sortKey = self["dbSortKey"]
+		dbLimit = self["dbLimit"]
 		if sortKey:
 			# Ok, we need to do some emergency securing here.  There should be
 			# pre-validation that we're actually seeing a column key, but
@@ -331,7 +341,7 @@ class QueryMeta(dict):
 			frag.append("ORDER BY %s"%sortKey)
 		if dbLimit:
 			frag.append("LIMIT %(_matchLimit)s")
-			pars["_matchLimit"] = dbLimit+1
+			pars["_matchLimit"] = int(dbLimit)+1
 		return " ".join(frag), pars
 
 emptyQueryMeta = QueryMeta({})
