@@ -70,3 +70,63 @@ class DalRenderer(common.CustomErrorMixin, resourcebased.Form):
 		msg = "Error(s) in given Parameters: %s"%"; ".join(
 			[str(e) for e in errors])
 		return self._writeErrorTable(ctx, msg)
+
+
+class ScsRenderer(DalRenderer):
+	"""is a renderer for the Simple Cone Search protocol.
+
+	These do their error signaling in the value attribute of an
+	INFO child of RESOURCE.
+	"""
+	name = "scs.xml"
+
+	def _makeErrorTable(self, ctx, msg):
+		dataDesc = resource.makeSimpleDataDesc(self.rd, [])
+		data = resource.InternalDataSet(dataDesc)
+		data.addMeta(name="_error", content=meta.InfoItem(msg, ""))
+		return common.CoreResult(data, {}, common.QueryMeta(ctx))
+
+
+class SiapRenderer(DalRenderer):
+	"""is a renderer for a the Simple Image Access Protocol.
+
+	These have errors in the content of an info element, and they support
+	metadata queries.
+	"""
+	name = "siap.xml"
+
+	def renderHTTP(self, ctx):
+		args = inevow.IRequest(ctx).args
+		if args.get("FORMAT")==["METADATA"]:
+			return self._serveMetadata(ctx)
+		return super(SiapRenderer, self).renderHTTP(ctx)
+
+	def _serveMetadata(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", "application/x-votable")
+		inputFields = [contextgrammar.InputKey(**f.dataStore) 
+			for f in self.service.getInputFields()]
+		for f in inputFields:
+			f.set_dest("INPUT:"+f.get_dest())
+		dataDesc = resource.makeSimpleDataDesc(self.rd, 
+			self.service.getOutputFields(common.QueryMeta(ctx)))
+		dataDesc.set_items(inputFields)
+		data = resource.InternalDataSet(dataDesc)
+		data.addMeta(name="_type", content="metadata")
+		data.addMeta(name="_query_status", content="OK")
+		result = common.CoreResult(data, {}, common.QueryMeta(ctx))
+		return resourcebased.writeVOTable(request, result, votable.VOTableMaker())
+
+	def _handleOutputData(self, data, ctx):
+		data.addMeta(name="_query_status", content=meta.InfoItem("OK", ""))
+		data.addMeta(name="_type", content="result")
+		data.addMeta(name="_query_status", content="OK")
+		return super(SiapRenderer, self)._handleOutputData(data, ctx)
+	
+	def _makeErrorTable(self, ctx, msg):
+		dataDesc = resource.makeSimpleDataDesc(self.rd, [])
+		data = resource.InternalDataSet(dataDesc)
+		data.addMeta(name="_query_status", content=meta.InfoItem(
+			"ERROR", str(msg)))
+		return common.CoreResult(data, {}, common.QueryMeta(ctx))
+

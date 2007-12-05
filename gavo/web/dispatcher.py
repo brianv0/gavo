@@ -39,10 +39,11 @@ from gavo.web import product
 from gavo.web import resourcebased
 # need servicelist to register its resourcecache
 from gavo.web import servicelist
-from gavo.web import siaprenderer
+# need scs to register its CondDescs
 from gavo.web import scs
 from gavo.web import jpegrenderer
 from gavo.web import uploadservice
+from gavo.web import vodal
 
 from gavo.web.common import Error, UnknownURI
 
@@ -202,8 +203,8 @@ _staticServer = StaticServer()
 
 renderClasses = {
 	"form": (resourcebased.getServiceRend, resourcebased.Form),
-	"siap.xml": (resourcebased.getServiceRend, siaprenderer.SiapRenderer),
-	"scs.xml": (resourcebased.getServiceRend, scs.ScsRenderer),
+	"siap.xml": (resourcebased.getServiceRend, vodal.SiapRenderer),
+	"scs.xml": (resourcebased.getServiceRend, vodal.ScsRenderer),
 	"getproduct": (lambda ctx, segs, cls: cls(ctx, segs), product.Product),
 	"upload": (resourcebased.getServiceRend, uploadservice.Uploader),
 	"mupload": (resourcebased.getServiceRend, uploadservice.MachineUploader),

@@ -1,5 +1,5 @@
 """
-Code to support simple cone search -- condition and SCS renderer.
+Code to support simple cone search.
 """
 
 from nevow import inevow
@@ -81,11 +81,3 @@ class HumanScsCondition(ScsCondition):
 			"RA": ra, "DEC": dec, "SR": sr}, sqlPars)
 
 core.registerCondDesc("humanScs", HumanScsCondition())
-
-class ScsRenderer(vodal.DalRenderer):
-	def _makeErrorTable(self, ctx, msg):
-		dataDesc = resource.makeSimpleDataDesc(self.rd, [])
-		data = resource.InternalDataSet(dataDesc)
-		data.addMeta(name="_error", content=meta.InfoItem(msg, ""))
-		return common.CoreResult(data, {}, common.QueryMeta(ctx))
-			
