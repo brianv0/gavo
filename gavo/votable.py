@@ -229,7 +229,7 @@ _registerDefaultMF(_floatMapperFactory)
 
 
 def _stringMapperFactory(colProps):
-	if colProps.get("optional", True) and ("char(*)" in colProps["dbtype"] or 
+	if colProps.get("optional", True) and ("char(" in colProps["dbtype"] or 
 			colProps["dbtype"]=="text"):
 		def coder(val):
 			if val==None:
@@ -678,7 +678,7 @@ class VOTableMaker:
 		self.tablecoding = tablecoding
 		self.mFRegistry = mapperFactoryRegistry
 
-	def _addInfo(self, name, content, node, value=""):
+	def _addInfo(self, name, content, node, value="", id=None):
 		"""adds info item "name" containing content having value to node
 		unless both content and value are empty.
 		"""
@@ -688,6 +688,8 @@ class VOTableMaker:
 		if content or value:
 			i = Info(name=name, text=content)
 			i.value = value
+			if id:
+				i.ID = id
 			node.info.append(i)
 
 	def _addLink(self, href, node, contentRole=None, title=None,
@@ -733,6 +735,7 @@ class VOTableMaker:
 		foo = dataSet.getMeta("_legal") 
 		self._addInfo("legal", dataSet.getMeta("_legal"), res)
 		self._addInfo("QUERY_STATUS", dataSet.getMeta("_query_status"), res)
+		self._addInfo("Error", dataSet.getMeta("_error"), res, id="Error")
 		self._addLink(dataSet.getMeta("_infolink"), res)
 
 	def _makeResource(self, dataSet):

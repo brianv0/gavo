@@ -121,11 +121,12 @@ class ToXSDConverter(FromSQLConverter):
 
 try:
 	import formal
+	from web import gwidgets
 
 	class ToFormalConverter(FromSQLConverter):
 		"""is a converter from SQL types to Formal type specifications.
 
-		The result of the conversion is a tuple of formal type.
+		The result of the conversion is a tuple of formal type and widget factory.
 		"""
 		typeSystem = "Formal"
 		simpleMap = {
@@ -144,9 +145,9 @@ try:
 				twoCharCutoffYear=50, dayFirst=True)),
 			"timestamp": (formal.Date, formal.widgetFactory(formal.DatePartsInput,
 				twoCharCutoffYear=50, dayFirst=True)),
-			"vexpr-float": (formal.String, formal.TextInput),
-			"vexpr-date": (formal.String, formal.TextInput),
-			"vexpr-string": (formal.String, formal.TextInput),
+			"vexpr-float": (formal.String, gwidgets.NumericExpressionField),
+			"vexpr-date": (formal.String, gwidgets.DateExpressionField),
+			"vexpr-string": (formal.String, gwidgets.StringExpressionField),
 			"file": (formal.File, None),
 		}
 

@@ -55,6 +55,15 @@ class GetHasStringTest:
 		assert self.sentinel in urllib.urlopen(self.url).read()
 	
 
+class GetHasStringsTest(GetHasStringTest):
+	"""is a test that the GET of a URL contains each in a sequence of strings.
+	"""
+	def run(self):
+		tx = urllib.urlopen(self.url).read()
+		for phrase in self.sentinel:
+			assert phrase in tx
+
+
 class HeadStatusTest:
 	"""is a test that issues a HEAD request for a URL and checks that it
 	has the given query status.
@@ -176,11 +185,30 @@ myTests = [
 			404,
 			"Disallowed renderer yields 404."),
 	),
+	TestGroup("cns-siap",
+		GetHasStringsTest(nv_root+"/cns/res/cns/scs/scs.xml",
+			["VOTABLE", "in given Parameters"],
+			"SCS error reporting 1"),
+		GetHasStringsTest(nv_root+"/cns/res/cns/scs/scs.xml?RA=17.0&DEC=30&SR=a",
+			["VOTABLE", "invalid literal"],
+			"SCS error reporting 2"),
+# The following two are probably too fragile
+		GetHasStringsTest(nv_root+"/cns/res/cns/scs/scs.xml?RA=17.0&DEC=30&SR=2",
+			["VOTABLE", 'encoding="base64">A'],
+			"SCS successful query, binary"),
+		GetHasStringsTest(nv_root+"/cns/res/cns/scs/scs.xml?RA=17.0&DEC=30&SR=2"
+			"&_TDENC=True",
+			["VOTABLE", "TABLEDATA><TR><TD>21029"],
+			"SCS successful query, binary"),
+		),
 	TestGroup("misc",
 		GetHasStringTest(nv_root+"/inflight/res/lc1/img/mimg.jpeg?"
 			"startLine=20&endLine=30",
 			'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00',
 			"Infinite Lightcurve image delivery"),
+		GetHasStringTest(nv_root,
+			"L...",
+			"Home page shows services"),
 	)
 ]
 

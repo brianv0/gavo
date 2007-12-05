@@ -228,10 +228,17 @@ class CustomErrorMixin(object):
 
 
 class GavoRenderMixin(object):
-	"""is a mixin that allows inclusion of meta information.
+	"""is a mixin with renderers useful throughout the data center.
 
-	To do that, you say <tag n:render="meta">METAKEY</tag> or
+	Rendering of meta information:
+	<tag n:render="meta">METAKEY</tag> or
 	<tag n:render="metahtml">METAKEY</tag>
+
+	Rendering internal links (important of off-root operation):
+	<tag href|src="/foo" n:render="rootlink"/>
+
+	Including standard stylesheets/js/whatever:
+	<head>...<n:invisible n:render="commonhead"/>...</head>
 	"""
 	def _doRenderMeta(self, ctx, flattenerFunc):
 		metaKey = ctx.tag.children[0]
@@ -256,6 +263,14 @@ class GavoRenderMixin(object):
 		munge("href")
 		return tag
 
+	def render_commonhead(self, ctx, data):
+		return ctx.tag[
+			T.link(rel="stylesheet", href=makeSitePath("/formal.css"), 
+				type="text/css"),
+			T.link(rel="stylesheet", href=makeSitePath("/static/css/gavo_dc.css"), 
+				type="text/css"),
+			T.script(type='text/javascript', src=makeSitePath('/js/formal.js')),
+		]
 
 class QueryMeta(dict):
 	"""is a class keeping all data *about* a query, e.g., the
@@ -316,6 +331,8 @@ class QueryMeta(dict):
 	def _fillDbOptions(self, ctxArgs):
 		try:
 			self["dbLimit"] = ctxArgs.get("_DBOPTIONS_LIMIT", [None])[0]
+			if self["dbLimit"]:
+				self["dbLimit"] = int(self["dbLimit"])
 		except ValueError:
 			self["dbLimit"] = 100
 		self["dbSortKey"] = ctxArgs.get("_DBOPTIONS_ORDER", [None])[0]
@@ -324,7 +341,7 @@ class QueryMeta(dict):
 		if sortKey is not Undefined:
 			self["dbSortKey"] = sortKey
 		if limit is not Undefined:
-			self["dbLimit"] = limit
+			self["dbLimit"] = int(limit)
 
 	def asSql(self):
 		"""returns the dbLimit and dbSortKey values as an SQL fragment.
@@ -344,6 +361,7 @@ class QueryMeta(dict):
 			pars["_matchLimit"] = int(dbLimit)+1
 		return " ".join(frag), pars
 
+
 emptyQueryMeta = QueryMeta({})
 
 
@@ -353,11 +371,12 @@ class CoreResult(object):
 	"""
 	implements(inevow.IContainer)
 
-	def __init__(self, resultData, inputData, queryMeta):
+	def __init__(self, resultData, inputData, queryMeta, service=None):
 		self.original = resultData
 		self.queryPars = queryMeta.get("formal_data", {})
 		self.inputData = inputData
 		self.queryMeta = queryMeta
+		self.service = service
 		for n in dir(self.original):
 			if not n.startswith("_"):
 				setattr(self, n, getattr(self.original, n))
@@ -368,14 +387,26 @@ class CoreResult(object):
 			"itemsMatched": len(result.rows),
 		}
 
+	def data_querypars(self, ctx=None):
+		return dict((k, str(v)) for k, v in self.queryPars.iteritems()
+			if not k in QueryMeta.metaKeys and v and v!=[None])
+
 	def data_queryseq(self, ctx=None):
-		s = [(k, str(v)) for k, v in self.queryPars.iteritems()
-			if not k in QueryMeta.metaKeys and v and v!=[None]]
+		if self.service:
+			fieldDict = dict((f.get_dest(), f) 
+				for f in self.service.getInputFields())
+		else:
+			fieldDict = {}
+
+		def getTitle(key):
+			title = None
+			if key in fieldDict:
+				title = fieldDict[key].get_tablehead()
+			return title or key
+		
+		s = [(getTitle(k), v) for k, v in self.data_querypars().iteritems()]
 		s.sort()
 		return s
-
-	def data_querypars(self, ctx=None):
-		return dict(self.data_queryseq(ctx))
 
 	def data_inputRec(self, ctx=None):
 		return self.inputData.getDocRec()
@@ -408,8 +439,7 @@ class CustomTemplateMixin(object):
 
 
 def makeSitePath(uri):
-# XXX TODO: scrap that, GavoRenderMixin.render_rootlink is a better place
-# for this functionality.
+# XXX TODO: unify with GavoRenderMixin.render_rootlink 
 	"""adapts uri for use in an off-root environment.
 
 	uri itself needs to be server-absolute (i.e., start with a slash).

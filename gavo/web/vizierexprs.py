@@ -84,12 +84,18 @@ class StringNode(ParseNode):
 			return self._nullOperators[self.operator]
 		else:
 			return super(StringNode, self).asSQL(key, sqlPars)
-	
+
+	def _escapeSpecials(self, aString):
+		"""returns aString with SQL SIMILAR TO characters escaped.
+		"""
+# XXX TODO: re.escape doesn't cut it, fix it.
+		return re.escape(aString)
+
 	def _makePattern(self, key, sqlPars):
 		parts = []
 		for child in self.children:
 			if isinstance(child, basestring):
-				parts.append(re.escape(child))
+				parts.append(self._escapeSpecials(child))
 			else:
 				parts.append(child.asSQL(key, sqlPars))
 		return "".join(parts)
@@ -223,7 +229,7 @@ def getComplexGrammar(baseLiteral, pmBuilder, errorLiteral=None):
 	return exprInString
 
 
-floatLiteral = Regex(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?").setParseAction(
+floatLiteral = Regex(gavo.floatRE).setParseAction(
 			lambda s, pos, tok: float(tok[0]))
 # XXX TODO: be a bit more lenient in what you accept as a date
 dateLiteral = Regex(r"\d\d\d\d-\d\d-\d\d").setParseAction(
@@ -325,7 +331,8 @@ def getSQL(field, inPars, sqlPars):
 		val = inPars[field.get_source()]
 		if val==None:
 			return None
-		if field.get_dbtype().startswith("vexpr") and isinstance(val, basestring):
+		if (field.get_dbtype().startswith("vexpr") and isinstance(val, basestring)
+				and not field.isEnumerated()):
 			return parsers[field.get_dbtype()](val).asSQL(
 				field.get_dest(), sqlPars)
 		else:

@@ -1,3 +1,4 @@
+"""
 Authority ID
 Resource Key
 >General
@@ -30,3 +31,4 @@ Relationship
 Related
 > Reg. Interface
 Access URL
+"""

@@ -2,13 +2,15 @@
 This module contains utility classes for resource parsing.
 """
 
-import weakref
 import os
+import re
 import time
+import weakref
 
-import gavo
-from gavo import utils
 from gavo import config
+from gavo import coords
+from gavo import utils
+import gavo
 
 
 class RowFunction:
@@ -283,6 +285,62 @@ def atExpand(val, rowdict, fieldComputer):
 	return val
 
 
+def parseCooPair(soup):
+	"""returns a pair of RA, DEC floats if they can be made out in soup
+	or raises a value error.
+
+	No range checking is done (yet), i.e., as long as two numbers can be
+	made out, the function is happy.
+
+	>>> parseCooPair("23 12")
+	(23.0, 12.0)
+	>>> parseCooPair("3.75 -12.125")
+	(3.75, -12.125)
+	>>> parseCooPair("3 25,-12 30")
+	(51.25, -12.5)
+	>>> map(str, parseCooPair("12 15 30.5 +52 18 27.5"))
+	['183.877083333', '52.3076388889']
+	>>> parseCooPair("3.39 -12 39")
+	Traceback (most recent call last):
+	ValueError: Invalid hourangle with sepchar ' ': '3.39'
+	>>> parseCooPair("12 15 30.5 +52 18 27.5e")
+	Traceback (most recent call last):
+	ValueError: 12 15 30.5 +52 18 27.5e has no discernible position in it
+	>>> parseCooPair("QSO2230+44.3")
+	Traceback (most recent call last):
+	ValueError: QSO2230+44.3 has no discernible position in it
+	"""
+	soup = soup.strip()
+
+	def parseFloatPair(soup):
+		mat = re.match("(%s)\s*[\s,/]\s*(%s)$"%(gavo.floatRE, gavo.floatRE),
+			soup)
+		if mat:
+			return float(mat.group(1)), float(mat.group(2))
+
+	def parseHourangleDms(soup):
+		hourangleRE = r"(?:\d+\s+)?(?:\d+\s+)?\d+(?:\.\d*)?"
+		dmsRE = "[+-]?\s*(?:\d+\s+)?(?:\d+\s+)?\d+(?:\.\d*)?"
+		mat = re.match("(%s)\s*[\s,/]?\s*(%s)$"%(hourangleRE, dmsRE), soup)
+		if mat:
+			try:
+				return coords.hourangleToDeg(mat.group(1)), coords.dmsToDeg(
+					mat.group(2))
+			except gavo.Error, msg:
+				raise ValueError(str(msg))
+
+	for func in [parseFloatPair, parseHourangleDms]:
+		res = func(soup)
+		if res:
+			return res
+	raise ValueError("%s has no discernible position in it"%soup)
+
+
+def _test():
+	import doctest, parsehelpers
+	doctest.testmod(parsehelpers)
+
+
 if __name__=="__main__":
 	import sys
 	if len(sys.argv)>1 and sys.argv[1]=="docs":
@@ -290,3 +348,5 @@ if __name__=="__main__":
 		if len(sys.argv)>2:
 			underliner = sys.argv[2]
 		print FieldComputer(None).getDocs(underliner)
+	else:
+		_test()

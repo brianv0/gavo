@@ -40,6 +40,7 @@ from gavo.web import resourcebased
 # need servicelist to register its resourcecache
 from gavo.web import servicelist
 from gavo.web import siaprenderer
+from gavo.web import scs
 from gavo.web import jpegrenderer
 from gavo.web import uploadservice
 
@@ -71,14 +72,29 @@ class DebugPage(rend.Page):
 
 
 class ReloadPage(common.GavoRenderMixin, rend.Page):
+
+	modsToReload = ["gavo.web.dispatcher", "gavo.web.gwidgets", "gavo.web.scs"]
+
 	def __init__(self, ctx, *args, **kwargs):
 		super(ReloadPage, self).__init__()
-		
+		self.modulesReloaded = []
+	
+	def data_reloadedModules(self, ctx, data):
+		return self.modulesReloaded
+
 	def renderHTTP(self, ctx):
 		return creds.runAuthenticated(ctx, "admin", self._reload, ctx)
-	
+
+	def _reloadModules(self):
+		for modPath in self.modsToReload:
+			parts = modPath.split(".")
+			exec "from %s import %s;reload(%s)"%(".".join(parts[:-1]), parts[-1],
+				parts[-1])
+			self.modulesReloaded.append(modPath)
+
 	def _reload(self, ctx):
 		resourcecache.clearCaches()
+		self._reloadModules()
 		return self._renderHTTP(ctx)
 	
 	docFactory = loaders.xmlstr("""<html xmlns:n='http://nevow.com/ns/nevow/0.1'>
@@ -86,6 +102,11 @@ class ReloadPage(common.GavoRenderMixin, rend.Page):
     </head>
     <body><h1>Caches cleared</h1>
 		<p>The caches were cleared successfully.</p>
+		<p>Modules reloaded: 
+			<span n:render="sequence" n:data="reloadedModules">
+				<span n:pattern="item"><n:invisible n:render="data"/>, </span>
+			</span>
+		</p>
 		<p><a href="/" n:render="rootlink">Main Page</a></p>
     </body></html>
     """)
@@ -155,6 +176,7 @@ def _replaceConfigStrings(srcPath, registry):
 	src = src.replace("__site_path__", config.get("web", "nevowRoot"))
 	return src
 
+
 class StaticServer(static.File):
 	"""is a server for various static files.
 
@@ -166,7 +188,8 @@ class StaticServer(static.File):
 	"""
 	def __init__(self, *args, **kwargs):
 		if not args:
-			static.File.__init__(self, os.path.join(config.get("webDir"), "nv_static"))
+			static.File.__init__(self, os.path.join(config.get("webDir"), 
+				"nv_static"))
 		else:
 			static.File.__init__(self, *args, **kwargs)
 
@@ -176,9 +199,11 @@ class StaticServer(static.File):
 
 _staticServer = StaticServer()
 
+
 renderClasses = {
 	"form": (resourcebased.getServiceRend, resourcebased.Form),
 	"siap.xml": (resourcebased.getServiceRend, siaprenderer.SiapRenderer),
+	"scs.xml": (resourcebased.getServiceRend, scs.ScsRenderer),
 	"getproduct": (lambda ctx, segs, cls: cls(ctx, segs), product.Product),
 	"upload": (resourcebased.getServiceRend, uploadservice.Uploader),
 	"mupload": (resourcebased.getServiceRend, uploadservice.MachineUploader),
@@ -234,10 +259,6 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 	])
 
 	def _locateRenderChild(self, ctx, segments):
-		name = segments[0]
-		if hasattr(self, "child_"+name):
-			return getattr(self, "child_"+name), segments[1:]
-		
 		act = segments[-1]
 		try:
 			fFunc, cls = renderClasses[act]
@@ -250,7 +271,12 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		if segments[:self.rootLen]!=self.rootSegments:
 			return None, ()
 		segments = segments[self.rootLen:]
-		if not segments or not segments[0]:
+		if not segments or segments[0]=='':
+			return self, ()
+		name = segments[0]
+		if hasattr(self, "child_"+name):
+			res = getattr(self, "child_"+name), segments[1:]
+		elif not segments or not segments[0]:
 			res = self, ()
 		elif segments[0]=="static":
 			res = _staticServer, segments[1:]

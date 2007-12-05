@@ -16,45 +16,6 @@ from nevow import tags as T, entities as E
 from gavo import config
 from gavo.web import common
 
-# This is only used by HtmlTableFragmentPreformat.  Thus, it shouldn't
-# be used either
-from gavo.web.querulator import queryrun
-
-class HtmlTableFragmentPreformat(rend.Fragment):
-	"""renders a table in HTML doing the value formatting before rendering.
-
-	Don't use.
-	"""
-	def __init__(self, table):
-		self.table = table
-		super(HtmlTableFragment, self).__init__()
-
-	def data_formatted(self, ctx, data):
-		def makeHint(literalHint):
-			parts = literalHint.split(",")
-			return [parts[0]]+map(eval, parts[1:])
-		formatter = queryrun.HtmlValueFormatter(None, None)
-		formattedRows = []
-		fieldProps = [(f.get_dest(), makeHint(f.get_displayHint()))
-			for index, f in enumerate(self.table.getFieldDefs())]
-		for row in self.table:
-			newRow = {}
-			for dest, hint in fieldProps:
-				newRow[dest] = formatter.format(hint, row[dest], row)
-			formattedRows.append(newRow)
-		return formattedRows
-
-	def _getDefaultHtmlRow(self):
-		row = T.tr(render=rend.mapping, pattern="item")
-		for f in self.table.getFieldDefs():
-			row[T.td(data=T.slot(f.get_dest()), render=rend.data)]
-		return row
-
-	def rend(self, ctx, data):
-		return T.table(border="1", render=rend.sequence, 
-				data=self.data_formatted(None, None)) [
-			self._getDefaultHtmlRow()]
-
 
 class FormatterFactory:
 	"""is a factory for functions mapping values to stan elements representing
@@ -176,13 +137,14 @@ class HtmlTableFragment(rend.Fragment):
 	def data_fielddefs(self, ctx, data):
 		return self.table.getFieldDefs()
 
-	docFactory = loaders.stan(T.table(border="1")[
+	docFactory = loaders.stan(T.table(class_="results")[
 		T.tr(data=T.directive("fielddefs"), render=rend.sequence) [
 			T.th(pattern="item", render=T.directive("headCell"))
 		],
 		T.invisible(
 				render=rend.sequence,
 				data=T.directive("table")) [
-			T.tr(pattern="item", render=T.directive("defaultRow"))
+			T.tr(pattern="item", render=T.directive("defaultRow")),
+			T.tr(pattern="item", render=T.directive("defaultRow"), class_="even"),
 		]
 	])

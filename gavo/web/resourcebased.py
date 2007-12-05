@@ -124,10 +124,7 @@ class HtmlResponse(BaseResponse):
 	defaultDocFactory = loaders.stan(T.html[
 		T.head[
 			T.title["Query Result"],
-			T.link(rel="stylesheet", href=common.makeSitePath("/formal.css"), 
-				type="text/css"),
-			T.script(type='text/javascript', 
-				src=common.makeSitePath('/js/formal.js')),
+			T.invisible(render=T.directive("commonhead")),
 		],
 		T.body(data=T.directive("query"))[
 			T.h1(render=T.directive("meta"))["_title"],
@@ -361,9 +358,7 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 	defaultDocFactory = loaders.stan(T.html[
 		T.head[
 			T.title(render=T.directive("meta"))["_title"],
-			T.link(rel="stylesheet", href=common.makeSitePath("/formal.css"), 
-				type="text/css"),
-			T.script(type='text/javascript', src='/js/formal.js'),
+			T.invisible(render=T.directive("commonhead")),
 		],
 		T.body[
 			T.h1(render=T.directive("meta"))["_title"],

@@ -380,5 +380,33 @@ class SimpleMultiSelectChoice(MultiselectChoice):
 			[(o,o) for o in options], size=showitems)
 
 
+class StringFieldWithBlurb(widget.TextInput):
+	"""is a text input widget with additional material at the side.
+	"""
+	additionalMaterial = ""
+
+	def _renderTag(self, ctx, key, value, readonly):
+		plainTag = super(StringFieldWithBlurb, self)._renderTag(ctx, key, value,
+			readonly)
+		return T.span[plainTag, " ", 
+			T.span(class_="fieldlegend")[self.additionalMaterial]]
+
+
+class NumericExpressionField(StringFieldWithBlurb):
+	additionalMaterial = T.a(href=common.makeSitePath(
+			"/static/help_vizier.shtml#floats"))[
+		"[?num. expr.]"]
+
+class DateExpressionField(StringFieldWithBlurb):
+	additionalMaterial = T.a(href=common.makeSitePath(
+			"/static/help_vizier.shtml#dates"))[
+		"[?date expr.]"]
+
+class StringExpressionField(StringFieldWithBlurb):
+	additionalMaterial = T.a(href=common.makeSitePath(
+			"/static/help_vizier.shtml#string"))[
+		"[?char expr.]"]
+
+
 def makeWidgetFactory(code):
 	return eval(code)

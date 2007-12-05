@@ -6,6 +6,7 @@ VOTable::Encoders
 
 import struct
 import itertools
+import traceback
 import sys
 
 try:
@@ -121,12 +122,16 @@ class StreamEncoder(GenericEncoder):
                 if data is None:
                     data = ""
                 l = len(data)
+                if isinstance(data, unicode):
+                    data = data.encode("utf-8")
                 return struct.pack("!i%d%s"%(l, typeCode), l,
                     *data)
         else:
             length = int(length)
             formatString = "!%d%s"%(length, typeCode)
             def encoder(data):
+                if isinstance(data, unicode):
+                    data = data.encode("utf-8")
                 if len(data)!=length:
                     data = data[:length]+padding*(length-len(data))
                 try:
@@ -197,7 +202,7 @@ class StreamEncoder(GenericEncoder):
         if curCodes:
             pythonCode.append("struct.pack('!%s', *row[%d:%d])"%
                 ("".join(curCodes), curInd+1-len(curCodes), curInd+1))
-        src = "lambda row: %s"%"+".join(pythonCode)
+        src = "lambda row: ''.join([%s])"%",".join(pythonCode)
         return src, eval(src, funcDict)
 
 
@@ -211,6 +216,7 @@ class StreamEncoder(GenericEncoder):
         try:
             encodedData = "".join([encFunc(row) for row in data])
         except (struct.error, SystemError), msg:
+            traceback.print_exc()
             raise ValueError("Error while encoding row %s to VOTable:"
                 " %s; encoding with %s"%(row, msg, encSrc))
         el = ElementTree.Element("STREAM", encoding="base64")

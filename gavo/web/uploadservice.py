@@ -160,11 +160,8 @@ class Uploader(resourcebased.Form):
 
 	docFactory = loaders.stan(T.html[
 		T.head[
-			T.title["Upload to Foo"],
-			T.link(render=T.directive("rootlink"), rel="stylesheet", 
-				href="/formal.css", type="text/css"),
-			T.script(render=T.directive("rootlink"), type='text/javascript', 
-				src='/js/formal.js'),
+			T.title["Upload"],
+			T.invisible(render=T.directive("commonhead")),
 		],
 		T.body[
 			T.p(class_="procMessage", render=T.directive("uploadInfo"))[

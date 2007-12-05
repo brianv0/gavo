@@ -230,7 +230,7 @@ def getBboxQuery(parameters, prefix="sia"):
 		try:
 			ra, dec = simbadinterface.getSimbadPositions(parameters["POS"])
 		except KeyError:
-			raise gavo.ValidationError("%s is neither a RA,DEC nor a simbad"
+			raise gavo.ValidationError("%s is neither a RA,DEC pair nor a simbad"
 				" resolvable object"%parameters["POS"], "POS")
 	try:
 		sizes = map(float, parameters["SIZE"].split(","))
@@ -259,7 +259,8 @@ class SiapCondition(standardcores.CondDesc):
 	"""
 	def __init__(self):
 		super(SiapCondition, self).__init__(initvals={
-			"inputKeys": [ InputKey(dest="POS", dbtype="text", unit="deg,deg",
+			"inputKeys": [ 
+				InputKey(dest="POS", dbtype="text", unit="deg,deg",
 					ucd="pos.eq", description="J2000.0 Position, RA,DEC decimal degrees"
 					" (e.g., 234.234,-32.45)", tablehead="Position", optional=False,
 					source="POS"),

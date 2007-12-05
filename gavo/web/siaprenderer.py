@@ -20,17 +20,13 @@ from gavo.parsing import meta
 from gavo.parsing import resource
 from gavo.web import common
 from gavo.web import resourcebased
+from gavo.web import vodal
 
 
-class SiapRenderer(common.CustomErrorMixin, resourcebased.Form):
+class SiapRenderer(vodal.DalRenderer):
 	implements(inevow.ICanHandleException)
 
 	name="siap.xml"
-	def __init__(self, ctx, *args, **kwargs):
-		ctx.remember(self, inevow.ICanHandleException)
-		super(SiapRenderer, self).__init__(ctx, *args, **kwargs)
-
-	_generateForm = resourcebased.Form.form_genForm
 
 	def renderHTTP(self, ctx):
 		args = inevow.IRequest(ctx).args
@@ -54,44 +50,16 @@ class SiapRenderer(common.CustomErrorMixin, resourcebased.Form):
 		result = common.CoreResult(data, {}, common.QueryMeta(ctx))
 		return resourcebased.writeVOTable(request, result, votable.VOTableMaker())
 
-	def _writeErrorTable(self, ctx, errmsg):
-		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", "application/x-votable")
-		dataDesc = resource.makeSimpleDataDesc(self.rd, [])
-		data = resource.InternalDataSet(dataDesc)
-		data.addMeta(name="_query_status", content=meta.InfoItem(
-			"ERROR", errmsg))
-		result = common.CoreResult(data, {}, common.QueryMeta(ctx))
-		return defer.maybeDeferred(resourcebased.writeVOTable, request, 
-				result, votable.VOTableMaker()
-			).addCallback(lambda _: request.finishRequest(False) or ""
-			).addErrback(lambda _: request.finishRequest(False) or "")
-
-	def _getInputData(self, formData):
-		return self.service.getInputData(formData)
-
-	def _handleInputData(self, inputData, ctx):
-		queryMeta = common.QueryMeta(ctx)
-		queryMeta["formal_data"] = self.form.data
-		return self.service.run(inputData, queryMeta
-			).addCallback(self._handleOutputData, ctx
-			).addErrback(self._handleError, ctx)
-
 	def _handleOutputData(self, data, ctx):
-		request = inevow.IRequest(ctx)
-		request.setHeader('content-disposition', 
-			'attachment; filename="votable.xml"')
 		data.addMeta(name="_query_status", content=meta.InfoItem("OK", ""))
 		data.addMeta(name="_type", content="result")
 		data.addMeta(name="_query_status", content="OK")
-		return resourcebased.serveAsVOTable(request, data)
+		return super(SiapRenderer, self)._handleOutputData(data, ctx)
+	
+	def _makeErrorTable(self, ctx, msg):
+		dataDesc = resource.makeSimpleDataDesc(self.rd, [])
+		data = resource.InternalDataSet(dataDesc)
+		data.addMeta(name="_query_status", content=meta.InfoItem(
+			"ERROR", str(msg)))
+		return common.CoreResult(data, {}, common.QueryMeta(ctx))
 
-	def renderHTTP_exception(self, ctx, failure):
-		failure.printTraceback()
-		return self._writeErrorTable(ctx,
-			"Unexpected failure, error message: %s"%failure.getErrorMessage())
-
-	def _handleInputErrors(self, errors, ctx):
-		msg = "Error(s) in given Parameters: %s"%"; ".join(
-			[str(e) for e in errors])
-		return self._writeErrorTable(ctx, msg)

@@ -46,6 +46,14 @@ class CondDesc(record.Record):
 	def addto_inputKeys(self, val):
 		self.dataStore["inputKeys"].append(val)
 
+	def inputReceived(self, inPars):
+		"""returns True if all inputKeys can be filled from inPars.
+		"""
+		for f in self.get_inputKeys():
+			if not inPars.has_key(f.get_source()) or inPars[f.get_source()]==None:
+				return False
+		return True
+
 	def asSQL(self, inPars, sqlPars):
 		if self.get_silent():
 			return ""
@@ -213,6 +221,7 @@ class DbBasedCore(QueryingCore):
 			"condition": condition,
 			"limtags": limtagsFrag,
 		}
+		print ">>>>>>>>>>>", query, pars
 		return resourcecache.getDbConnection().runQuery(query, pars)
 
 	def run(self, inputTable, queryMeta):

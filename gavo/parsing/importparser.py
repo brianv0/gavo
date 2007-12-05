@@ -36,10 +36,11 @@ from gavo.parsing.regrammar import REGrammar
 from gavo.parsing.rowsetgrammar import RowsetGrammar
 from gavo.web import common as webcommon
 from gavo.web import core
+from gavo.web import scs  # for registration
 from gavo.web import service
 from gavo.web import siap
 from gavo.web import standardcores
-from gavo.web import uploadservice  # to register the cores
+from gavo.web import uploadservice  # for registration
 import gavo
 
 

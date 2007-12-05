@@ -186,5 +186,5 @@ class Service(record.Record, meta.MetaMixin):
 		return self.get_core().run(inputData, queryMeta).addCallback(
 			self._postProcess, queryMeta).addErrback(
 			lambda failure: failure).addCallback(
-			common.CoreResult, inputData, queryMeta).addErrback(
+			common.CoreResult, inputData, queryMeta, self).addErrback(
 			lambda failure: failure)

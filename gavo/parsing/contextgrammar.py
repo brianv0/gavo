@@ -66,11 +66,8 @@ class InputKey(datadef.DataField):
 
 	def get_widgetFactory(self):
 		"""returns a widget factory appropriate for dbtype and values.
-
-		For non-enumerated fields, this is always formal.TextInput, since we 
-		accept vizier-like expressions for them on auto.
-# XXX TODO: handle booleans
 		"""
+# XXX TODO: handle booleans
 		if self.dataStore.get("widgetFactory"):
 			res = self.dataStore["widgetFactory"]
 		elif self.get_value():
@@ -90,8 +87,8 @@ class InputKey(datadef.DataField):
 				res = formal.widgetFactory(
 					gwidgets.SimpleSelectChoice,
 					[str(i) for i in items], self.get_default())
-		else:  # let formal figure it out
-			res = None
+		else:
+			_, res = typesystems.sqltypeToFormal(self.get_dbtype())
 		return res
 
 	def getValueIn(self, *args, **kwargs):

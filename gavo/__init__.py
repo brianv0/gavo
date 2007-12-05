@@ -40,3 +40,5 @@ class ValidationError(Error):
 		Error.__init__(self, msg)
 		self.fieldName, self.record = fieldName, record
 
+
+floatRE = r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?"
