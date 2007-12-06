@@ -9,7 +9,11 @@ import unittest
 
 import testhelpers
 
+from gavo import config
 from gavo import datadef
+from gavo import nullui
+from gavo import sqlsupport
+from gavo.parsing import contextgrammar
 from gavo.parsing import typeconversion
 from gavo.web import vizierexprs
 
@@ -304,45 +308,135 @@ class SQLGenerTest(unittest.TestCase):
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "star"}, sqlPars),
 			"foo ~* %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], "star")
+		self.assertEqual(sqlPars["foo0"], "^star$")
 
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "sta?"}, sqlPars),
 			"foo ~* %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], "sta.")
+		self.assertEqual(sqlPars["foo0"], "^sta.$")
 
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "s*ta?"}, sqlPars),
 			"foo ~* %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], "s.*ta.")
+		self.assertEqual(sqlPars["foo0"], "^s.*ta.$")
 
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "=s*ta?"}, sqlPars),
 			"foo ~ %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], "s.*ta.")
+		self.assertEqual(sqlPars["foo0"], "^s.*ta.$")
 
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "a+b*"}, sqlPars),
 			"foo ~* %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], r"a\+b.*")
+		self.assertEqual(sqlPars["foo0"], r"^a\+b.*$")
 
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "!a+b\*"}, sqlPars),
 			"foo !~ %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], r"a\+b\\.*")
+		self.assertEqual(sqlPars["foo0"], r"^a\+b\\.*$")
 
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "!~[a-z]"}, sqlPars),
 			"foo !~* %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], r"[a-z]")
+		self.assertEqual(sqlPars["foo0"], r"^[a-z]$")
 
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "!~[a-z]"}, sqlPars),
 			"foo !~* %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], r"[a-z]")
+		self.assertEqual(sqlPars["foo0"], r"^[a-z]$")
 
+
+class StringQueryTest(unittest.TestCase):
+	"""Tests for string vizier-expressions in a database.
+	"""
+	def setUp(self):
+		config.setDbProfile("test")
+		tw = sqlsupport.TableWriter("vizierstrings",
+			[datadef.DataField(source="s", dest="s", dbtype="text"),])
+		tw.createTable()
+		feed = tw.getFeeder()
+		feed({"s": ""})
+		feed({"s": "a"})
+		feed({"s": "A"})
+		feed({"s": "aaab"})
+		feed({"s": "baaab"})
+		feed({"s": "BAaab"})
+		feed({"s": "B*"})
+		feed({"s": "X33+4"})
+		feed({"s": "a,b"})
+		feed({"s": "a|b"})
+		feed({"s": r"\it"})
+		feed.close()
+
+	def _runCountTests(self, tests):
+		querier = sqlsupport.SimpleQuerier()
+		ik = contextgrammar.InputKey(source="s", dest="s", dbtype="vexpr-string")
+		try:
+			for vExpr, numberExpected in tests:
+				pars = {}
+				query = "SELECT * FROM vizierstrings WHERE %s"%vizierexprs.getSQL(
+					ik, {"s": vExpr}, pars)
+				res = querier.query(query, pars).fetchall()
+				self.assertEqual(len(res), numberExpected,
+					"Query %s with parameters %s didn't yield exactly %d result(s).\n"
+					"Result is %s."%(
+						query, pars, numberExpected, res))
+		finally:
+			querier.close()
+
+	def testExactMatches(self):
+		self._runCountTests([
+			("== a", 1),
+			("!= a", 10),
+			("== ", 1),
+			("<a", 1),
+			("<A", 2),
+			("<=A", 3),
+			("<=b", 6),
+			("<b", 6),
+			(">b", 5),
+			("== \it", 1),
+			("== B*", 1),
+			("=~ a", 2),
+			("=~ x33+4", 1),
+			("=, a,b,a|b", 2),
+			("=| a,b,a|b", 0),
+			("=| a,b|b", 1),
+		])
+	
+	def testPatternMatches(self):
+		self._runCountTests([
+			("= a", 1),
+			("~ a", 2),
+			("a", 2),
+			("X*", 1),
+			("a*", 5),
+			("= *a*", 6),
+			("*+*", 1),
+			("*|*", 1),
+			("\*", 1),
+			("!\*", 10),
+			("B*", 3),
+			("= B*", 2),
+			("B?", 1),
+			("!B?", 10),
+			("! *a*", 5),
+			("!~*a*", 4),
+		])
+
+	def tearDown(self):
+		querier = sqlsupport.SimpleQuerier()
+#		querier.query("DROP TABLE vizierstrings CASCADE")
+		querier.commit()
+
+
+def singleTest():
+	suite = unittest.makeSuite(StringQueryTest, "test")
+	runner = unittest.TextTestRunner()
+	runner.run(suite)
 
 
 if __name__=="__main__":
-	unittest.main()
+#	unittest.main()
+	singleTest()
 

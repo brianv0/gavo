@@ -85,11 +85,27 @@ class StringNode(ParseNode):
 		else:
 			return super(StringNode, self).asSQL(key, sqlPars)
 
+	_metaEscapes = {
+		"|": r"\|",
+		"*": r"\*",
+		"+": r"\+",
+		"(": r"\(",
+		")": r"\)",
+		"[": r"\[",
+		"%": r"\%",
+		"_": r"\_",
+		"\\\\": "\\\\",
+	}
+	_escapeRE = re.compile("[%s]"%"".join(_metaEscapes.keys()))
+	# The backslash in _metaEscapes is escaped to make _escapeRE work,
+	# but of course I need to replace the unescaped version.
+	_metaEscapes.update({"\\": "\\\\"})
+
 	def _escapeSpecials(self, aString):
-		"""returns aString with SQL SIMILAR TO characters escaped.
+		"""returns aString with SQL RE metacharacters escaped.
 		"""
-# XXX TODO: re.escape doesn't cut it, fix it.
-		return re.escape(aString)
+		return self._escapeRE.sub(lambda mat: self._metaEscapes[mat.group()],
+			aString)
 
 	def _makePattern(self, key, sqlPars):
 		parts = []
@@ -98,13 +114,14 @@ class StringNode(ParseNode):
 				parts.append(self._escapeSpecials(child))
 			else:
 				parts.append(child.asSQL(key, sqlPars))
-		return "".join(parts)
+		return "^%s$"%("".join(parts))
 
 	_patOps = {
 		"~": "~*",
 		"=": "~",
 		"!~": "!~*",
 		"!": "!~",
+		"=~": "~*",
 	}
 	def _emitPatOp(self, key, sqlPars):
 		pattern = self._makePattern(key, sqlPars)
@@ -118,17 +135,25 @@ class StringNode(ParseNode):
 		if self.operator=="!=,":
 			query = "NOT (%s)"%query
 		return query
-	
+
+	_translatedOps = {
+		"==": "=",
+	}
+	def _emitTranslatedOp(self, key, sqlPars):
+		return "%s = %%(%s)s"%(key, self._insertChild(0, key, sqlPars))
+
 	_nullOperators = {"*": ".*", "?": "."}
-	_standardOperators = set(["<", ">", "<=", ">=", "==", "!="])
+	_standardOperators = set(["<", ">", "<=", ">=", "!="])
 	_sqlEmitters = {
 		"~": _emitPatOp,
 		"=": _emitPatOp,
 		"!~": _emitPatOp,
 		"!": _emitPatOp,
+		"=~": _emitPatOp,  # this happens to work because of pattern escaping
 		"=,": _emitEnum,
 		"=|": _emitEnum,
 		"!=,": _emitEnum,
+		"==": _emitTranslatedOp,
 		}
 
 
@@ -262,7 +287,7 @@ def getStringGrammar():
 	"""
 # XXX TODO: should we cut at =| (which is currently parsed as (= |)?
 	simpleOperator = Literal("==") | Literal("!=") | Literal(">=") |\
-		Literal(">") | Literal("<=") | Literal("<")
+		Literal(">") | Literal("<=") | Literal("<") | Literal("=~")
 	simpleOperand = Regex(".*")
 	simpleExpr = simpleOperator + simpleOperand
 	
@@ -328,7 +353,7 @@ def getParserForType(dbtype):
 def getSQL(field, inPars, sqlPars):
 # XXX TODO refactor, sanitize
 	try:
-		val = inPars[field.get_source()]
+		val = field.getValueIn(inPars)
 		if val==None:
 			return None
 		if (field.get_dbtype().startswith("vexpr") and isinstance(val, basestring)
