@@ -54,6 +54,8 @@ errorPage: debug
 templateDir=%(webDir)s/templates
 # the admin password, leave empty to disable
 adminpasswd:
+# A short name of your site
+sitename=GAVO data center
 
 [querulator]
 defaultMaxMatches: 1000
@@ -73,13 +75,28 @@ querulator:trustedquery
 foreignsql:untrustedquery
 writable:worldwritable
 
+[ivoa]
+# You need these if you want to register your services with a VO Registry
+# The root id (used to create identifiers)
+rootId:
+# The namespace used for services withing the DC software
+managedAuthority:
+
 [meta]
-curation.publisher: unknown
-curation.creator.name: unknown
+# Default identity, MUST BE OVERRIDDEN BY CONCRETE RESOURCES!
+identity.title: Unnamed resource
+identity.shortName: Unnamed
+identity.identifier:
+
+# Default curation
+curation.publisher: 
+curation.publisher.name: 
+curation.publisher.email: 
+curation.creator.name: 
 curation.creator.logo:
-curation.contact.name: unknown
-curation.contact.address: unknown
-curation.contact.email: gavo@ari.uni-heidelberg.de
+curation.contact.name:
+curation.contact.address:
+curation.contact.email:
 curation.contact.telephone: 
 """
 

@@ -437,6 +437,6 @@ def singleTest():
 
 
 if __name__=="__main__":
-#	unittest.main()
-	singleTest()
+	unittest.main()
+#	singleTest()
 
