@@ -3,11 +3,16 @@ This module contains various helper functions and classes for processing
 GAVO resources.
 """
 
-import sys
-import re
-import math
 import copy
+import datetime
+import math
+import re
+import sys
+import time
+
 from xml.sax.handler import ContentHandler
+
+from mx import DateTime
 
 from twisted.python.failure import Failure
 
@@ -251,8 +256,13 @@ class NodeBuilder(ContentHandler):
 	
 	def getProperty(self, propName):
 		"""returns the current value of the property propName.
+
+		Non-existing properties will be signalled by raising an IndexError.
 		"""
-		return self.properties[propName][-1]
+		try:
+			return self.properties[propName][-1]
+		except (IndexError, KeyError):
+			raise IndexError("Property %s is not set"%propName)
 	
 	def handleError(self, exc_info):
 		msg = ("Error while parsing XML at"

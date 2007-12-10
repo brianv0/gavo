@@ -1,6 +1,7 @@
 import sys
 
 import gavo
+from gavo import nullui
 
 class _GoodBadCounter:
 	"""is a progress counter that allows counting bad items in progress.
@@ -35,14 +36,20 @@ class _GoodBadCounter:
 
 
 class TextUi:
+	silence = False
+
 	def displayMessage(self, msg):
-		print msg
+		if not self.silence:
+			print msg
 	
 	def displayError(self, msg):
 		print "\n***\n*** Error: %s\n***"%msg
 
 	def getGoodBadCounter(self, title, updateInterval):
-		return _GoodBadCounter(title, updateInterval)
+		if self.silence:
+			return nullui.NullCounter()
+		else:
+			return _GoodBadCounter(title, updateInterval)
 
 
 gavo.ui = TextUi()

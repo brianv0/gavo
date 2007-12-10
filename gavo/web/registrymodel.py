@@ -4,10 +4,17 @@ Data model for the VO registry interface.
 
 from elementtree import ElementTree
 
+import gavo
+from gavo import utils
+
+class Error(gavo.Error):
+	pass
+
 
 OAINamespace = "http://www.openarchives.org/OAI/2.0/"
 VOGNamespace = "http://www.ivoa.net/xml/VORegistry/v1.0"
 VORNamespace = "http://www.ivoa.net/xml/VOResource/v1.0"
+DCNamespace = "http://purl.org/dc/elements/1.1/"
 
 # Since we usually have the crappy namespaced attribute values (yikes!),
 # we need this mapping badly.  Don't change it without making sure the
@@ -15,6 +22,7 @@ VORNamespace = "http://www.ivoa.net/xml/VOResource/v1.0"
 ElementTree._namespace_map[VORNamespace] = "vr"
 ElementTree._namespace_map[VOGNamespace] = "vg"
 ElementTree._namespace_map[OAINamespace] = "oai"
+ElementTree._namespace_map[DCNamespace] = "dc"
 
 encoding = "utf-8"
 XML_HEADER = '<?xml version="1.0" encoding="%s"?>'%encoding
@@ -77,7 +85,9 @@ class Element(object):
 
 	def isEmpty(self):
 		for c in self.children:
-			if isinstance(c, basestring):
+			if c is None:
+				continue
+			elif isinstance(c, basestring):
 				if c.strip():
 					return False
 			elif not c.isEmpty():
@@ -94,20 +104,26 @@ class Element(object):
 	def asETree(self, parent=None):
 		"""returns an ElementTree instance for this node.
 		"""
-		if not self.mayBeEmpty and self.isEmpty():
-			return
-		elName = ElementTree.QName(self.namespace, self.name)
-		attrs = self._makeAttrDict()
-		if parent==None:
-			node = ElementTree.Element(elName, attrs)
-		else:
-			node = ElementTree.SubElement(parent, elName, attrs)
-		for child in self.children:
-			if isinstance(child, basestring):
-				node.text = child.encode(encoding)
+		try:
+			if not self.mayBeEmpty and self.isEmpty():
+				return
+			elName = ElementTree.QName(self.namespace, self.name)
+			attrs = self._makeAttrDict()
+			if parent==None:
+				node = ElementTree.Element(elName, attrs)
 			else:
-				child.asETree(node)
-		return node
+				node = ElementTree.SubElement(parent, elName, attrs)
+			for child in self.children:
+				if isinstance(child, basestring):
+					node.text = child.encode(encoding)
+				else:
+					child.asETree(node)
+			return node
+		except Error:
+			raise
+		except Exception, msg:
+			utils.raiseTb(Error, str(msg)+" while building %s node"
+				" with children %s"%(self.name, self.children))
 
 
 class OAI:
@@ -123,9 +139,26 @@ class OAI:
 
 	class request(OAIElement):
 		a_verb = None
+		a_metadataPrefix = None
+
+	class metadata(OAIElement): pass
 
 	class Identify(OAIElement): pass
+
+	class ListIdentifiers(OAIElement): pass
+
+	class ListRecords(OAIElement): pass
+
+	class header(OAIElement): pass
 	
+	class record(OAIElement): pass
+
+	class identifier(OAIElement): pass
+	
+	class datestamp(OAIElement): pass
+	
+	class setSpec(OAIElement): pass
+
 	class repositoryName(OAIElement): pass
 	
 	class baseURL(OAIElement): pass
@@ -142,7 +175,6 @@ class OAI:
 	
 	class protocolVersion(OAIElement): pass
 		
-
 
 class VOR:
 	"""is a container for classes modelling elements from VO Resource.
@@ -283,66 +315,39 @@ class VOG:
 		pass
 
 	
-import datetime
-import time
-from gavo import config
+class DC:
+	"""is a container for classes modelling elements from Dublin Core.
+	"""
+	class DCElement(Element):
+		namespace = DCNamespace
 
-def getRegistryURL():
-	return (config.get("web", "serverURL")+
-		config.get("web", "nevowRoot")+"/registry")
+	class contributor(DCElement): pass
 
-def getRegistryRecord():
-	return VOR.Resource(created="2007-08-24", status="active",
-		updated="2007-08-24", xsi_type="vg:Registry")[
-			VOR.title()["%s publishing registry"%config.get("web",
-				"sitename")],
-			VOR.identifier()[
-				config.get("ivoa", "rootId")+"/DCRegistry"],
-			VOR.curation()[
-				VOR.publisher()[
-					config.getMeta("curation.publisher")],
-				VOR.contact()[
-					VOR.name()[config.getMeta("curation.contact.name")],
-					VOR.email()[config.getMeta("curation.contact.email")],
-					VOR.telephone()[config.getMeta("curation.contact.telephone")],
-					VOR.address()[config.getMeta("curation.contact.address")],
-				],
-			],
-			VOR.content()[
-				VOR.subject()["registry"],
-				VOR.description()["%s publishing registry"%config.get("web",
-					"sitename")],
-				VOR.referenceURL()[getRegistryURL()],
-				VOR.type()["Archive"]
-			],
-			VOR.interface(xsi_type="WebBrowser")[
-				VOR.accessURL(use="full")[
-					config.get("web", "serverURL")+
-					config.get("web", "nevowRoot")+
-					"/__system__/services/services/q/form"]
-			],
-			VOG.managedAuthority()[config.get("ivoa", "managedAuthority")],
-		]
+	class coverage(DCElement): pass
 
+	class creator(DCElement): pass
 
-def getIdentifyTree():
-	return OAI.PMH()[
-		OAI.responseDate()[datetime.datetime.utcfromtimestamp(
-			time.time()).isoformat()],
-		OAI.request()(verb="Identify")[getRegistryURL()],
-		OAI.Identify()[
-			OAI.repositoryName()["%s publishing registry"%config.get("web",
-				"serverURL")],
-			OAI.baseURL()[getRegistryURL()],
-			OAI.protocolVersion()["2.0"],
-			OAI.adminEmail()[config.get("operator")],
-			OAI.earliestDatestamp()["1970-01-01"],
-			OAI.deletedRecord()["no"],
-			OAI.granularity()["YYYY-MM-DDThh:mm:ssZ"],
-		],
-		OAI.description()[
-			getRegistryRecord(),
-		],
-	]
+	class date(DCElement): pass
 
-print ElementTree.tostring(getIdentifyTree().asETree())
+	class description(DCElement): pass
+
+	class format(DCElement): pass
+
+	class identifier(DCElement): pass
+
+	class language(DCElement): pass
+
+	class publisher(DCElement): pass
+
+	class relation(DCElement): pass
+
+	class rights(DCElement): pass
+
+	class source(DCElement): pass
+
+	class subject(DCElement): pass
+
+	class title(DCElement): pass
+
+	class type(DCElement): pass
+

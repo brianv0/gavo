@@ -85,7 +85,7 @@ class MetaItem(object):
 		else: 
 			content = unicode(self.content).encode("utf-8")
 		if self.format=="plain":
-			content = "\n\n".join(["\n".join(textwrap.wrap(para))
+			content = "\n\n".join([re.sub("\s+", " ", para)
 				for para in re.split("\n\s*\n", content)])
 		return content
 

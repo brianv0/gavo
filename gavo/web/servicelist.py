@@ -21,6 +21,7 @@ def makeRecord(publication, service):
 	rec = {}
 	rec["shortName"] = str(service.getMeta("shortName", raiseOnFail=True))
 	rec["sourceRd"] = service.rd.sourceId
+	rec["internalId"] = service.get_id()
 	rec["title"] = (str(service.getMeta("title") or service.getMeta("_title"))
 		or rec["shortName"])
 	rec["description"] = str(service.getMeta("description") or service.getMeta(
@@ -37,9 +38,9 @@ def makeRecord(publication, service):
 		publication["render"]])
 	rec["owner"] = service.get_requiredGroup()
 	rec["type"] = publication["type"]
-	rec["sets"] = str(service.getMeta("sets"))
-	if not rec["sets"]:
-		rec["sets"] = "local"
+	rec["sets"] = service.getMeta("sets")
+	if rec["sets"]:
+		rec["sets"] = str(rec["sets"])
 	return rec
 
 
@@ -64,13 +65,50 @@ def updateServiceList(rd):
 	serviceRd.register_property("srcRdId", rd.sourceId)
 	inputData = sqlsupport.makeRowsetFromDicts(
 		getServiceRecsFromRd(rd), dd.get_Grammar().get_dbFields())
+	gavo.ui.silence = True
 	dataSet = resource.InternalDataSet(dd, tableMaker=parseswitch.createTable,
 		dataSource=inputData)
 	dataSet.exportToSql(serviceRd.get_schema())
+	gavo.ui.silence = False
 
+
+def getShortNamesForSets(queriedSets):
+	"""returns the list of service shortNames that are assigned to any of
+	the set names mentioned in the list queriedSets.
+	"""
+	dd = resourcecache.getRd("__system__/services/services").getDataById("sets")
+	tableDef = dd.getPrimaryRecordDef()
+	data = sqlsupport.SimpleQuerier().query(
+		"SELECT * FROM %s WHERE setName in %%(sets)s"%(tableDef.get_table()),
+		{"sets": queriedSets}).fetchall()
+	return [str(r["shortName"]) for r in
+		resource.InternalDataSet(dd, dataSource=data).getPrimaryTable().rows]
+
+
+def getSetsForService(shortName):
+	"""returns the list of set names the service shortName belongs to.
+	"""
+	dd = resourcecache.getRd("__system__/services/services").getDataById("sets")
+	tableDef = dd.getPrimaryRecordDef()
+	data = sqlsupport.SimpleQuerier().query(
+		"SELECT * FROM %s WHERE shortName = %%(name)s"%(tableDef.get_table()),
+		{"name": shortName}).fetchall()
+	return [str(r["setName"]) for r in 
+		resource.InternalDataSet(dd, dataSource=data).getPrimaryTable().rows]
+
+
+def getMatchingServices(whereClause="", pars={}):
+	"""queries the services table.
+	"""
+	dd = resourcecache.getRd("__system__/services/services"
+		).getDataById("servicelist")
+	return resource.getMatchingData(dd, "services", 
+		whereClause, pars).getPrimaryTable()
 
 def queryServicesList(whereClause="", pars={}):
-	"""returns the current list or form based service. 
+	"""returns the current list of form based services.
+
+	This is mainly for the benefit of the portal page.
 	"""
 	rd = resourcecache.getRd("__system__/services/services")
 	dd = rd.getDataById("services").copy()
@@ -124,4 +162,4 @@ if __name__=="__main__":
 	from gavo import textui
 	import pprint
 	config.setDbProfile("querulator")
-	pprint.pprint(queryServicesList())
+	pprint.pprint(getShortNamesForSets(["ivo_managed"]))

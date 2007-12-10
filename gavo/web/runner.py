@@ -154,6 +154,7 @@ def _makeArguments(coreDataDef, inputData):
 			pass
 	return [v[1] for v in sorted(args)]
 
+
 def _makeInputs(coreDataDef, inputData):
 	return "\n".join([
 			" ".join([repr(v[1]) for v in sorted(row.iteritems())])

@@ -24,12 +24,13 @@ class NullCounter:
 
 
 class NullUi:
+	silence = True
 	def displayMessage(*args):
 		pass
 	displayError = displayMessage
 	
 	def getGoodBadCounter(self, *args):
 		return NullCounter()
-
+	
 
 gavo.ui = NullUi()

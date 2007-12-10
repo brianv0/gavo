@@ -84,6 +84,21 @@ class RdParser(utils.NodeBuilder):
 		element.setExtensionFlag(True)
 		return element
 
+	def _pushFieldPath(self, name, attrs):
+		"""pushes a fieldPath property on the stack.
+
+		This is supposed to be used as a _start method for all elements supporting
+		a fieldPath.  Right now, they all have to pop the fieldPath in their
+		_make methods.
+		"""
+		if attrs.has_key("fieldPath"):
+			self.pushProperty("fieldPath", attrs["fieldPath"])
+		else:
+			try:
+				self.pushProperty("fieldPath", self.getProperty("fieldPath"))
+			except IndexError:
+				self.pushProperty("fieldPath", "")
+
 	def _make_ResourceDescriptor(self, name, attrs, children):
 		self.rd.set_resdir(attrs["srcdir"])
 		self.rd.set_profile(attrs.get("profile"))
@@ -179,12 +194,21 @@ class RdParser(utils.NodeBuilder):
 		return utils.NamedNode("Grammar",
 			self._fillGrammarNode(tablegrammar.TableGrammar(), attrs, children, {}))
 
+	_start_RowsetGrammar = _pushFieldPath
+
 	def _make_RowsetGrammar(self, name, attrs, children):
 		grammar = RowsetGrammar()
-		return utils.NamedNode("Grammar",
+		res = utils.NamedNode("Grammar",
 			self._fillGrammarNode(grammar, attrs, children, {
 				"Field": grammar.addto_dbFields
 			}))
+		if attrs.has_key("fieldsFrom"):
+			for field in self.getById(attrs["fieldsFrom"])[1].get_items():
+				newField = field.copy()
+				newField.set_source(newField.get_dest())
+				res.node.addto_dbFields(newField)
+		self.popProperty("fieldPath")
+		return res
 
 	def _make_ContextGrammar(self, name, attrs, children):
 		grammar = contextgrammar.ContextGrammar()
@@ -402,12 +426,7 @@ class RdParser(utils.NodeBuilder):
 			"meta": adapter.addMeta,
 		}, children)
 
-	def _start_Service(self, name, attrs):
-		if attrs.has_key("fieldPath"):
-			self.pushProperty("fieldPath", attrs["fieldPath"])
-		else:
-# XXX TODO: maybe build some sane default?
-			self.pushProperty("fieldPath", "")
+	_start_Service = _pushFieldPath
 
 	def _make_Service(self, name, attrs, children):
 		svc = service.Service(self.rd, {"id": attrs["id"]})

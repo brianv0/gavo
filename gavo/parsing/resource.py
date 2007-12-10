@@ -9,22 +9,23 @@ import glob
 import traceback
 
 import gavo
-from gavo import coords
+from gavo.datadef import DataField
 from gavo import config
+from gavo import coords
 from gavo import datadef
+from gavo import logger
+from gavo import parsing
 from gavo import record
 from gavo import sqlsupport
-from gavo import logger
+from gavo import table
 from gavo import utils
 from gavo import votable
-from gavo import table
-from gavo import parsing
-from gavo.datadef import DataField
 from gavo.parsing import meta
-from gavo.parsing import typeconversion
-from gavo.parsing import tablegrammar
 from gavo.parsing import nullgrammar
 from gavo.parsing import parsehelpers
+from gavo.parsing import rowsetgrammar
+from gavo.parsing import tablegrammar
+from gavo.parsing import typeconversion
 
 class Error(gavo.Error):
 	pass
@@ -721,3 +722,30 @@ def makeSimpleDataDesc(rd, tableDef):
 	dd.set_id(str(id(dd)))
 	return dd
 
+
+def makeRowsetDataDesc(rd, tableDef):
+	"""returns a simple DataTransformer with a grammar parsing tableDef
+	out of what the db engine returns for a query.
+	"""
+	dd = makeSimpleDataDesc(rd, tableDef)
+	items = [f.copy() for f in tableDef]
+	for f in items:
+		f.set_source(f.get_dest())
+	dd.set_Grammar(rowsetgrammar.RowsetGrammar(initvals={
+		"dbFields": items}))
+	return dd
+
+
+def getMatchingData(dataDesc, tableName, whereClause, pars):
+	"""returns a single-table data set containing all rows matching 
+	whereClause/pars in tableName of dataDef.
+	"""
+	tableDef = dataDesc.getRecordDefByName(tableName)
+	if whereClause:
+		whereClause = "WHERE "+whereClause
+	data = sqlsupport.SimpleQuerier().query(
+		"SELECT * FROM %s %s"%(tableDef.get_table(), whereClause),
+		pars).fetchall()
+	return InternalDataSet(
+		makeRowsetDataDesc(dataDesc.getRD(), tableDef.get_items()), 
+		dataSource=data)

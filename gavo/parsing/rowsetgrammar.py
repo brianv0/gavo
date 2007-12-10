@@ -29,5 +29,14 @@ class RowsetGrammar(grammar.Grammar):
 
 	def _iterRows(self, parseContext):
 		colNames = [f.get_dest() for f in self.get_dbFields()]
+		# this defaults process sucks -- we'd really want to use getValueIn,
+		# but then we'd first have to build the dict and still do nothing more
+		# than with this most of the time.  Hm.
+		defaults = [(f.get_dest(), f.get_default())
+			for f in self.get_dbFields() if f.get_default()!=None]
 		for row in parseContext.sourceFile:
-			yield dict(itertools.izip(colNames, row))
+			res = dict(itertools.izip(colNames, row))
+			for name, default in defaults:
+				if res[name]==None:
+					res[name] = default
+			yield res
