@@ -22,6 +22,7 @@ import weakref
 from twisted.internet import defer
 from twisted.python import components
 
+from gavo import config
 from gavo import datadef
 from gavo import record
 from gavo import table
@@ -188,3 +189,21 @@ class Service(record.Record, meta.MetaMixin):
 			lambda failure: failure).addCallback(
 			common.CoreResult, inputData, queryMeta, self).addErrback(
 			lambda failure: failure)
+	
+	def getURL(self, renderer, method="POST"):
+		"""returns the full access URL of this service together with renderer.
+		"""
+		qSep = ""
+		if method=="GET":
+			qSep = "?"
+		return "".join([
+			config.get("web", "serverURL"),
+			config.get("web", "nevowRoot"),
+			"/",
+			self.rd.sourceId,
+			"/",
+			self.get_id(),
+			"/",
+			renderer,
+			qSep])
+

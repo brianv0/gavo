@@ -6,26 +6,50 @@ from elementtree import ElementTree
 
 import gavo
 from gavo import utils
+from gavo.parsing import meta
+
 
 class Error(gavo.Error):
 	pass
 
+# We need that bugger on the top element since we allow xsi:type attributes.
+XSINamespace = "http://www.w3.org/2001/XMLSchema-instance"
 
 OAINamespace = "http://www.openarchives.org/OAI/2.0/"
+RINamespace = "http://www.ivoa.net/xml/RegistryInterface/v0.1"
 VOGNamespace = "http://www.ivoa.net/xml/VORegistry/v1.0"
 VORNamespace = "http://www.ivoa.net/xml/VOResource/v1.0"
 DCNamespace = "http://purl.org/dc/elements/1.1/"
+VODNamespace ="http://www.ivoa.net/xml/VODataService/v0.5"
+SCSNamespace = "http://www.ivoa.net/xml/ConeSearch/v0.3" 
+SIANamespace="http://www.ivoa.net/xml/SIA/v0.7" 
 
 # Since we usually have the crappy namespaced attribute values (yikes!),
-# we need this mapping badly.  Don't change it without making sure the
-# namespaces aren't referenced in attributes.
+# and ElementTree is (IMHO rightly) unaware of schemata, we need this 
+# mapping badly.  Don't change it without making sure the namespaces 
+# in question aren't referenced in attributes.
+ElementTree._namespace_map[XSINamespace] = "xsi"
 ElementTree._namespace_map[VORNamespace] = "vr"
 ElementTree._namespace_map[VOGNamespace] = "vg"
 ElementTree._namespace_map[OAINamespace] = "oai"
 ElementTree._namespace_map[DCNamespace] = "dc"
+ElementTree._namespace_map[RINamespace] = "ri"
+ElementTree._namespace_map[VODNamespace] = "vod"
+ElementTree._namespace_map[SCSNamespace] = "cs"
+ElementTree._namespace_map[SIANamespace] = "sia"
 
 encoding = "utf-8"
 XML_HEADER = '<?xml version="1.0" encoding="%s"?>'%encoding
+
+
+class _Autoconstructor(type):
+	"""is a metaclass that constructs an instance of itself on getitem.
+
+	We want this so we save a parentheses pair on Elements without
+	attributes.
+	"""
+	def __getitem__(cls, items):
+		return cls()[items]
 
 
 class Element(object):
@@ -45,13 +69,25 @@ class Element(object):
 	having an empty text and having no non-empty children) are usually
 	discarded.  If you need such an element (e.g., for attributes), set
 	mayBeEmpty to True.
+
+	Since insane XSD mandates that local elements must not be qualified when
+	elementFormDefault is unqualified, you need to set local=True on
+	such local elements to suppress the namespace prefix.  Attribute names
+	are never qualified here.  If you need qualified attributes, you'll
+	have to use attribute name translation.
+
+	Local elements like this will only work properly if you give the parent 
+	elements the appropriate xmlns attribute.
 	"""
+	__metaclass__ = _Autoconstructor
+
 	name = None
 	namespace = ""
 	mayBeEmpty = False
+	local = False
 
 	a_xsi_type = None
-	xsi_type_name = "xsi-type"
+	xsi_type_name = ElementTree.QName(XSINamespace, "type")
 
 	def __init__(self, **kwargs):
 		self.children = []
@@ -59,10 +95,28 @@ class Element(object):
 			self.name = self.__class__.__name__.split(".")[-1]
 		self(**kwargs)
 
+	def addChild(self, child):
+		"""adds child to the list of children.
+
+		Child may be an Element, a string, or a list or tuple of Elements and
+		strings.  Finally, child may be None, in which case nothing will be
+		added.
+		"""
+		if child is None:
+			pass
+		elif isinstance(child, (basestring, Element)):
+			self.children.append(child)
+		elif isinstance(child, meta.MetaItem):
+			self.children.append(str(child))
+		elif isinstance(child, (list, tuple)):
+			for c in child:
+				self.addChild(c)
+		else:
+			raise Error("%s element %s cannot be added to %s node"%(
+				type(child), repr(child), self.name))
+
 	def __getitem__(self, children):
-		if not isinstance(children, (list, tuple)):
-			children = [children]
-		self.children.extend(children)
+		self.addChild(children)
 		return self
 
 	def __call__(self, **kw):
@@ -85,9 +139,7 @@ class Element(object):
 
 	def isEmpty(self):
 		for c in self.children:
-			if c is None:
-				continue
-			elif isinstance(c, basestring):
+			if isinstance(c, basestring):
 				if c.strip():
 					return False
 			elif not c.isEmpty():
@@ -107,7 +159,10 @@ class Element(object):
 		try:
 			if not self.mayBeEmpty and self.isEmpty():
 				return
-			elName = ElementTree.QName(self.namespace, self.name)
+			if self.local:
+				elName = self.name
+			else:
+				elName = ElementTree.QName(self.namespace, self.name)
 			attrs = self._makeAttrDict()
 			if parent==None:
 				node = ElementTree.Element(elName, attrs)
@@ -181,12 +236,26 @@ class VOR:
 	"""
 	class VORElement(Element):
 		namespace = VORNamespace
+		local = True
 
 	class Resource(VORElement):
+		local = False
 		a_created = None
 		a_updated = None
 		a_status = None
-	
+		a_xmlns = VORNamespace
+		
+		c_title = None
+		c_curation = None
+		c_identifier = None
+		c_shortName = None
+		c_title = None
+
+	class Organisation(Resource):
+		c_facility = []
+		c_instrument = []
+		
+
 	class validationLevel(VORElement): pass
 	
 	class title(VORElement): pass
@@ -253,6 +322,7 @@ class VOR:
 	class interface(VORElement):
 		a_version = None
 		a_role = None
+		a_qtype = None
 
 	class accessURL(VORElement):
 		a_use = None
@@ -350,4 +420,145 @@ class DC:
 	class title(DCElement): pass
 
 	class type(DCElement): pass
+
+
+class RI:
+	"""is a container for classes modelling elements from IVOA Registry Interface.
+	"""
+	class RIElement(Element):
+		namespace = RINamespace
+	
+	class VOResources(RIElement): pass
+
+# XXX TODO: Resource is almost certainly wrong.
+	class Resource(VOR.VORElement): pass
+	
+
+class VOD:
+	"""is a container for classes modelling elements from IVOA VO data services.
+	"""
+	class VODElement(Element):
+		namespace = VODNamespace
+		local = True
+	
+	class Resource(VODElement):
+		local = False
+		a_xmlns = VODNamespace
+		
+	class facility(VODElement): pass
+	
+	class instrument(VODElement): pass
+	
+	class coverage(VODElement): pass
+	
+	class format(VODElement): 
+		a_isMIMEType = None
+	
+	class rights(VODElement): pass
+	
+	class accessURL(VODElement): pass
+	
+	class facility(VODElement): pass
+
+	class interface(VODElement):
+		a_qtype = None
+
+	class ParamHTTP(interface):
+		c_resultType = None
+		c_param = []
+
+	class resultType(VODElement): pass
+	
+	class param(VODElement): pass
+	
+	class name(VODElement): pass
+	
+	class description(VODElement): pass
+	
+	class dataType(VODElement):
+		a_arraysize = None
+	
+	class unit(VODElement): pass
+	
+	class ucd(VODElement): pass
+
+	class DataCollection(VOR.Resource):
+		c_facility = []
+		c_instrument = []
+		c_coverage = []
+		c_format = []
+		c_rights = []
+		c_accessURL = []
+
+	class Service(VOR.Resource):
+		c_interface = []
+	
+	class SkyService(Service):
+		c_facility = []
+		c_instrument = []
+		c_coverage = []
+	
+	class TabularSkyService(SkyService):
+		c_table = []
+	
+	class table(VODElement):
+		a_role = None
+
+		c_column = []
+		c_description = None
+		c_name = None
+
+	class column(VODElement):
+		c_dataType = None
+		c_description = None
+		c_name = None
+		c_ucd = None
+		c_unit = None
+
+
+class SIA:
+	"""is a container for classes modelling elements for describing simple
+	image access services.
+	"""
+	class SIAElement(Element):
+		namespace = SIANamespace
+		local = True
+	
+	class capability(SIAElement):
+		a_xmlns = SIANamespace
+		local = False
+	
+	class imageServiceType(SIAElement): pass
+	
+	class maxQueryRegionSize(SIAElement): pass
+	
+	class maxImageExtent(SIAElement): pass
+	
+	class maxImageSize(SIAElement): pass
+
+	class maxFileSize(SIAElement): pass
+
+	class maxRecords(SIAElement): pass
+
+	class long(SIAElement): pass
+	
+	class lat(SIAElement): pass
+	
+	
+class SCS:
+	"""is a container for elements describing Simple Cone Search services.
+	"""
+	class SCSElement(Element):
+		namespace = SCSNamespace
+		local = True
+	
+	class capability(SCSElement):
+		a_xmlns = SCSNamespace
+		local = False
+	
+	class maxSR(SCSElement): pass
+	
+	class maxRecords(SCSElement): pass
+	
+	class verbosity(SCSElement): pass
 

@@ -27,15 +27,7 @@ def makeRecord(publication, service):
 	rec["description"] = str(service.getMeta("description") or service.getMeta(
 		"_description"))
 	rec["renderer"] = publication["render"]
-	rec["accessURL"] = "".join([
-		config.get("web", "serverURL"),
-		config.get("web", "nevowRoot"),
-		"/",
-		service.rd.sourceId,
-		"/",
-		service.get_id(),
-		"/",
-		publication["render"]])
+	rec["accessURL"] = service.getURL(publication["render"])
 	rec["owner"] = service.get_requiredGroup()
 	rec["type"] = publication["type"]
 	rec["sets"] = service.getMeta("sets")

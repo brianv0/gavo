@@ -146,7 +146,7 @@ class MetaMixin(object):
 		except AttributeError:
 			pass
 
-	def getMeta(self, key, propagate=True, raiseOnFail=False):
+	def getMeta(self, key, propagate=True, raiseOnFail=False, default=None):
 		self.__ensureMetaDict()
 		if self.__metaDict.has_key(key):
 			return self.__metaDict[key]
@@ -157,6 +157,7 @@ class MetaMixin(object):
 				return config.getMeta(key)
 		if raiseOnFail:
 			raise MetaError("No meta item %s"%key)
+		return default
 
 	def addMeta(self, *args, **kwargs):
 		if len(args)>1:
