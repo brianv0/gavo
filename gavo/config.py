@@ -107,6 +107,9 @@ class Error(gavo.Error):
 class ProfileParseError(Error):
 	pass
 
+class MetaError(gavo.Error):  # Note: gavo.Error!
+	pass
+
 
 def _identity(val):
 	return val
@@ -335,11 +338,15 @@ class Settings:
 			self.valueCache[section, key] = self._computeValueFor(section, key)
 		return self.valueCache[section, key]
 
-	def getMeta(self, key):
+	def getMeta(self, key, raiseOnFail=False, default=None):
 		try:
 			return self.rawVals.get("meta", key)
 		except ConfigParser.NoOptionError:
-			return None
+			if default!=None:
+				return default
+			if raiseOnFail:
+				raise MetaError("No meta item %s"%key)
+			return default
 
 	def setMeta(self, key, value):
 		self.rawVals.set("meta", key, value)

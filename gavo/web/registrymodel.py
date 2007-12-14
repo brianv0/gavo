@@ -12,31 +12,45 @@ from gavo.parsing import meta
 class Error(gavo.Error):
 	pass
 
-# We need that bugger on the top element since we allow xsi:type attributes.
+# That bugger is never defined and has a fixed map to xsi
 XSINamespace = "http://www.w3.org/2001/XMLSchema-instance"
+ElementTree._namespace_map[XSINamespace] = "xsi"
 
 OAINamespace = "http://www.openarchives.org/OAI/2.0/"
-RINamespace = "http://www.ivoa.net/xml/RegistryInterface/v0.1"
+RINamespace = "http://www.ivoa.net/xml/RegistryInterface/v1.0"
 VOGNamespace = "http://www.ivoa.net/xml/VORegistry/v1.0"
 VORNamespace = "http://www.ivoa.net/xml/VOResource/v1.0"
 DCNamespace = "http://purl.org/dc/elements/1.1/"
-VODNamespace ="http://www.ivoa.net/xml/VODataService/v0.5"
-SCSNamespace = "http://www.ivoa.net/xml/ConeSearch/v0.3" 
-SIANamespace="http://www.ivoa.net/xml/SIA/v0.7" 
+VSNamespace ="http://www.ivoa.net/xml/VODataService/v1.0"
+SCSNamespace = "http://www.ivoa.net/xml/ConeSearch/v1.0" 
+SIANamespace="http://www.ivoa.net/xml/SIA/v1.0" 
 
 # Since we usually have the crappy namespaced attribute values (yikes!),
 # and ElementTree is (IMHO rightly) unaware of schemata, we need this 
 # mapping badly.  Don't change it without making sure the namespaces 
 # in question aren't referenced in attributes.
-ElementTree._namespace_map[XSINamespace] = "xsi"
 ElementTree._namespace_map[VORNamespace] = "vr"
 ElementTree._namespace_map[VOGNamespace] = "vg"
 ElementTree._namespace_map[OAINamespace] = "oai"
 ElementTree._namespace_map[DCNamespace] = "dc"
 ElementTree._namespace_map[RINamespace] = "ri"
-ElementTree._namespace_map[VODNamespace] = "vod"
+ElementTree._namespace_map[VSNamespace] = "vs"
 ElementTree._namespace_map[SCSNamespace] = "cs"
 ElementTree._namespace_map[SIANamespace] = "sia"
+
+def _schemaURL(xsdName):
+	return "http://vo.ari.uni-heidelberg.de/docs/schemata/"+xsdName
+
+_schemaLocations = {
+	OAINamespace: _schemaURL("OAI-PMH.xsd"),
+	VORNamespace: _schemaURL("VOResource-v1.0.xsd"),
+	VOGNamespace: _schemaURL("VORegistry-v1.0.xsd"),
+	DCNamespace: _schemaURL("simpledc20021212.xsd"),
+	RINamespace: _schemaURL("RegistryInterface-v1.0.xsd"),
+	VSNamespace: _schemaURL("VODataService-v1.0.xsd"),
+	SCSNamespace: _schemaURL("ConeSearch-v1.0.xsd"),
+	SIANamespace: _schemaURL("SIA-v1.0.xsd"),
+}
 
 encoding = "utf-8"
 XML_HEADER = '<?xml version="1.0" encoding="%s"?>'%encoding
@@ -87,7 +101,7 @@ class Element(object):
 	local = False
 
 	a_xsi_type = None
-	xsi_type_name = ElementTree.QName(XSINamespace, "type")
+	xsi_type_name = "xsi:type"
 
 	def __init__(self, **kwargs):
 		self.children = []
@@ -138,6 +152,8 @@ class Element(object):
 		raise NotImplementedError, "Element instances are not iterable."
 
 	def isEmpty(self):
+		if self.mayBeEmpty:  # We definitely want this item rendered.
+			return False
 		for c in self.children:
 			if isinstance(c, basestring):
 				if c.strip():
@@ -189,10 +205,22 @@ class OAI:
 
 	class PMH(OAIElement):
 		name = "OAI-PMH"
-	
+		a_xsi_schemaLocation = " ".join(["%s %s"%(ns, xs) 
+			for ns, xs in _schemaLocations.iteritems()])
+		xsi_schemaLocation_name = "xsi:schemaLocation"
+		a_xmlns_xsi = XSINamespace
+		xmlns_xsi_name = "xmlns:xsi"
+		a_xmlns_sia = SIANamespace
+		xmlns_sia_name = "xmlns:sia"
+		a_xmlns_cs = SCSNamespace
+		xmlns_cs_name = "xmlns:cs"
+		a_xmlns_vs = VSNamespace
+		xmlns_vs_name = "xmlns:vs"
+
 	class responseDate(OAIElement): pass
 
 	class request(OAIElement):
+		mayBeEmpty = True
 		a_verb = None
 		a_metadataPrefix = None
 
@@ -239,11 +267,12 @@ class VOR:
 		local = True
 
 	class Resource(VORElement):
-		local = False
+# This is "abstract" in that only derived elements may be present
+# in an instance document (since VOR doesn't define any global elements).
+# Typically, this will be ri:Resource elements with some funky xsi:type
 		a_created = None
 		a_updated = None
 		a_status = None
-		a_xmlns = VORNamespace
 		
 		c_title = None
 		c_curation = None
@@ -255,6 +284,7 @@ class VOR:
 		c_facility = []
 		c_instrument = []
 		
+	class Service(Resource): pass
 
 	class validationLevel(VORElement): pass
 	
@@ -264,6 +294,7 @@ class VOR:
 
 	class ResourceName(VORElement):
 		a_ivo_id = None
+		ivo_id_name = "ivo-id"
 
 	class identifier(VORElement): pass
 
@@ -327,14 +358,30 @@ class VOR:
 	class accessURL(VORElement):
 		a_use = None
 	
-	class securityMethod(VORElement): pass
+	class securityMethod(VORElement):
+		def isEmpty(self):
+			return self.a_standardId==None
+		a_standardId = None
 	
+
+class RI:
+	"""is a container for classes modelling elements from IVOA Registry Interface.
+	"""
+	class RIElement(Element):
+		namespace = RINamespace
+	
+	class VOResources(RIElement): pass
+
+	class Resource(VOR.Resource):
+		name = ElementTree.QName(RINamespace, "Resource")
+
 
 class VOG:
 	"""is a container for classes modelling elements from VO Registry.
 	"""
 	class VOGElement(Element):
 		namespace = VOGNamespace
+		local = True
 
 	class Registry(VOGElement):
 		pass
@@ -422,67 +469,51 @@ class DC:
 	class type(DCElement): pass
 
 
-class RI:
-	"""is a container for classes modelling elements from IVOA Registry Interface.
-	"""
-	class RIElement(Element):
-		namespace = RINamespace
-	
-	class VOResources(RIElement): pass
-
-# XXX TODO: Resource is almost certainly wrong.
-	class Resource(VOR.VORElement): pass
-	
-
-class VOD:
+class VS:
 	"""is a container for classes modelling elements from IVOA VO data services.
 	"""
-	class VODElement(Element):
-		namespace = VODNamespace
+	class VSElement(Element):
+		namespace = VSNamespace
 		local = True
 	
-	class Resource(VODElement):
-		local = False
-		a_xmlns = VODNamespace
-		
-	class facility(VODElement): pass
+	class facility(VSElement): pass
 	
-	class instrument(VODElement): pass
+	class instrument(VSElement): pass
 	
-	class coverage(VODElement): pass
+	class coverage(VSElement): pass
 	
-	class format(VODElement): 
+	class format(VSElement): 
 		a_isMIMEType = None
 	
-	class rights(VODElement): pass
+	class rights(VSElement): pass
 	
-	class accessURL(VODElement): pass
+	class accessURL(VSElement): pass
 	
-	class facility(VODElement): pass
+	class facility(VSElement): pass
 
-	class interface(VODElement):
+	class interface(VSElement):
 		a_qtype = None
 
 	class ParamHTTP(interface):
 		c_resultType = None
 		c_param = []
 
-	class resultType(VODElement): pass
+	class resultType(VSElement): pass
 	
-	class param(VODElement): pass
+	class param(VSElement): pass
 	
-	class name(VODElement): pass
+	class name(VSElement): pass
 	
-	class description(VODElement): pass
+	class description(VSElement): pass
 	
-	class dataType(VODElement):
+	class dataType(VSElement):
 		a_arraysize = None
 	
-	class unit(VODElement): pass
+	class unit(VSElement): pass
 	
-	class ucd(VODElement): pass
+	class ucd(VSElement): pass
 
-	class DataCollection(VOR.Resource):
+	class DataCollection(RI.Resource):
 		c_facility = []
 		c_instrument = []
 		c_coverage = []
@@ -490,25 +521,32 @@ class VOD:
 		c_rights = []
 		c_accessURL = []
 
-	class Service(VOR.Resource):
+	class Service(RI.Resource):
 		c_interface = []
-	
-	class SkyService(Service):
+
+	class DataService(Service):
+		c_table = []
+
+	class TableService(Service):
 		c_facility = []
 		c_instrument = []
-		c_coverage = []
-	
-	class TabularSkyService(SkyService):
 		c_table = []
-	
-	class table(VODElement):
+		a_xsi_type = "vs:TableService"
+		a_xmlns_vs = VSNamespace
+		xmlns_vs_name = "xmlns:vs"
+
+	class ServiceReference(VSElement):
+		a_ivo_id = None
+		ivo_id_name = "ivo-id"
+
+	class table(VSElement):
 		a_role = None
 
 		c_column = []
 		c_description = None
 		c_name = None
 
-	class column(VODElement):
+	class column(VSElement):
 		c_dataType = None
 		c_description = None
 		c_name = None
@@ -523,10 +561,18 @@ class SIA:
 	class SIAElement(Element):
 		namespace = SIANamespace
 		local = True
-	
-	class capability(SIAElement):
-		a_xmlns = SIANamespace
-		local = False
+
+	class interface(VOR.interface):
+		namespace = SIANamespace
+		a_xsi_type = "vs:ParamHTTP"
+		a_xmlns_vs = VSNamespace
+		xmlns_vs_name = "xmlns:vs"
+
+	class capability(VOR.capability):
+		a_standardID = 	"ivo://ivoa.net/std/SIA"
+		a_xsi_type = "sia:SimpleImageAccess"
+		a_xmlns_sia = SIANamespace
+		xmlns_sia_name = "xmlns:sia"
 	
 	class imageServiceType(SIAElement): pass
 	
@@ -543,6 +589,7 @@ class SIA:
 	class long(SIAElement): pass
 	
 	class lat(SIAElement): pass
+
 	
 	
 class SCS:
@@ -551,10 +598,13 @@ class SCS:
 	class SCSElement(Element):
 		namespace = SCSNamespace
 		local = True
-	
-	class capability(SCSElement):
-		a_xmlns = SCSNamespace
-		local = False
+
+	class Resource(RI.Resource):
+		a_xsi_type = "cs:ConeSearch"
+		a_xmlns_cs = SCSNamespace
+		xmlns_cs_name = "xmlns:cs"
+
+	class capability(SCSElement): pass
 	
 	class maxSR(SCSElement): pass
 	

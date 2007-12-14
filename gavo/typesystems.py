@@ -80,8 +80,8 @@ class ToVOTableConverter(FromSQLConverter):
 		"date": ("char", "*"),
 		"timestamp": ("char", "*"),
 		"box": ("double", "*"),
-		"vexpr-string": ("text", "*"),
-		"vexpr-date": ("text", "*"),
+		"vexpr-string": ("char", "*"),
+		"vexpr-date": ("char", "*"),
 		"vexpr-float": ("double", "1"),
 	}
 

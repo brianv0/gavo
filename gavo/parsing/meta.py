@@ -21,10 +21,6 @@ import gavo
 from gavo import config
 
 
-class MetaError(gavo.Error):
-	pass
-
-
 class InfoItem(object):
 	"""is a container for VOTable info elements that you can stick into
 	a MetaItem.
@@ -111,7 +107,8 @@ class MetaMixin(object):
 
 	* setMetaParent(m) -- sets the name of the meta container enclosing the
 	  current one.  m has to have the Meta mixin as well.
-	* getMeta(key) -- returns meta information for key or None.
+	* getMeta(key, propagate=True, raiseOnFail=False, default=None) -- returns 
+	  meta information for key or default.
 	* addMeta(attDict) -- adds a piece of meta information here.  attDict
 	  is a dictionary of keywords for MetaItem construction.
 
@@ -152,11 +149,12 @@ class MetaMixin(object):
 			return self.__metaDict[key]
 		if propagate:
 			if self.__hasMetaParent():
-				return self.__metaParent.getMeta(key)
+				return self.__metaParent.getMeta(key, raiseOnFail=raiseOnFail, 
+					default=default)
 			else:
-				return config.getMeta(key)
+				return config.getMeta(key, raiseOnFail=raiseOnFail, default=default)
 		if raiseOnFail:
-			raise MetaError("No meta item %s"%key)
+			raise config.MetaError("No meta item %s"%key)
 		return default
 
 	def addMeta(self, *args, **kwargs):
@@ -171,4 +169,3 @@ class MetaMixin(object):
 		self.__ensureMetaDict()
 		newItem = MetaItem(self, **attDict)
 		self.__metaDict[newItem.getName()] = newItem
-

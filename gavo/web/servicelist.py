@@ -14,6 +14,12 @@ from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
 from gavo.parsing import typeconversion
 
+
+# These keys must be present to ensure a valid VOResource record can be
+# built XXX TODO: Check for their presence when ivoa_managed is in sets.
+_voRequiredMeta = ["creationDate", "description", "subject", "referenceURL"]
+
+
 def makeRecord(publication, service):
 	"""returns a record suitable for importing into the service list for the
 	publication type of service.

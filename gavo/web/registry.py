@@ -4,6 +4,7 @@ Interface to the VO Registry.
 
 import datetime
 import time
+import sys
 
 from elementtree import ElementTree
 
@@ -14,9 +15,20 @@ from gavo import resourcecache
 from gavo import typesystems
 from gavo.parsing import importparser  # for registration of getRd
 from gavo.web import servicelist
-from gavo.web.registrymodel import OAI, VOR, VOG, DC, RI, VOD, SIA, SCS
+from gavo.web.registrymodel import OAI, VOR, VOG, DC, RI, VS, SIA, SCS
 from gavo.web.vizierexprs import getSQLKey  # getSQLKey should be moved.
 
+
+_isoTimestampFmt = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def getResponseHeaders(pars):
+	"""returns the OAI response header for a query with pars.
+	"""
+	return [
+		OAI.responseDate[DateTime.now().strftime(_isoTimestampFmt)],
+		OAI.request(verb=pars["verb"], 
+				metadataPrefix=pars["metadataPrefix"])]
 
 def getResourceHeaderTree(rec):
 	return OAI.header [
@@ -33,15 +45,16 @@ def getRegistryURL():
 
 
 def getRegistryDatestamp():
-	# XXX TODO: Implement this (probably last call of gavopublish
-	return "2007-12-13"
+	# XXX TODO: Implement this (probably last call of gavopublish)
+	return "2007-12-13T12:00:00Z"
 
 
 def getRegistryRecord():
-	return VOR.Resource(created="2007-08-24", status="active",
-		updated=getRegistryDatestamp(), xsi_type="vg:Registry")[
+	return VOG.Resource(created="2007-08-24T12:00:00Z", status="active",
+		updated=getRegistryDatestamp())[
 			VOR.title["%s publishing registry"%config.get("web",
 				"sitename")],
+			VOR.shortName["GAVO oai intf"],
 			VOR.identifier[
 				config.get("ivoa", "rootId")+"/DCRegistry"],
 			VOR.curation[
@@ -53,9 +66,9 @@ def getRegistryRecord():
 				],
 				VOR.contact[
 					VOR.name[config.getMeta("curation.contact.name")],
+					VOR.address[config.getMeta("curation.contact.address")],
 					VOR.email[config.getMeta("curation.contact.email")],
 					VOR.telephone[config.getMeta("curation.contact.telephone")],
-					VOR.address[config.getMeta("curation.contact.address")],
 				],
 			],
 			VOR.content[
@@ -65,35 +78,9 @@ def getRegistryRecord():
 				VOR.referenceURL[getRegistryURL()],
 				VOR.type["Archive"]
 			],
-			VOR.interface(xsi_type="WebBrowser")[
-				VOR.accessURL(use="full")[
-					config.get("web", "serverURL")+
-					config.get("web", "nevowRoot")+
-					"/__system__/services/services/q/form"]
-			],
+			VOG.full["false"],
 			VOG.managedAuthority[config.get("ivoa", "managedAuthority")],
 		]
-
-
-def getIdentifyTree(pars):
-	return OAI.PMH[
-		OAI.responseDate[DateTime.now().strftime("%Y-%m-%d")],
-		OAI.request(metadataPrefix=pars.get("metadataPrefix", "oai_dc"),
-			verb="Identify")[getRegistryURL()],
-		OAI.Identify[
-			OAI.repositoryName["%s publishing registry"%config.get("web",
-				"serverURL")],
-			OAI.baseURL[getRegistryURL()],
-			OAI.protocolVersion["2.0"],
-			OAI.adminEmail[config.get("operator")],
-			OAI.earliestDatestamp["1970-01-01"],
-			OAI.deletedRecord["no"],
-			OAI.granularity["YYYY-MM-DDThh:mm:ssZ"],
-		],
-		OAI.description[
-			getRegistryRecord(),
-		],
-	]
 
 
 def getMetadataNamespace(pars):
@@ -145,9 +132,6 @@ def getListIdentifiersTree(pars):
 	ns = getMetadataNamespace(pars)
 	recs = getMatchingRecords(pars)
 	return OAI.PMH[
-		OAI.responseDate[DateTime.now().strftime("%Y-%m-%d")],
-		OAI.request(verb="Identify", 
-				metadataPrefix=pars.get("metadataPrefix"))
 			[getRegistryURL()],
 		OAI.ListIdentifiers[
 			# the registry itself
@@ -175,7 +159,7 @@ def getDCResourceTree(rec):
 			DC.description[service.getMeta("description")],
 			DC.language[service.getMeta("language")],
 			DC.language[service.getMeta("rights")],
-			DC.publisher[service.getMeta("publisher")],
+			DC.publisher[service.getMeta("curation.publisher")],
 		]
 	]
 
@@ -188,140 +172,144 @@ def getStandardServiceTree(service):
 		VOR.identifier[config.get("ivoa", "rootId")+"/"+str(service.getMeta(
 			"shortName"))],
 		VOR.curation[
-			VOR.publisher[service.getMeta("publisher")],
+			VOR.publisher[service.getMeta("curation.publisher")],
 			VOR.creator[
 				VOR.name[service.getMeta("curation.creator.name")],
 				VOR.logo[service.getMeta("curation.creator.logo")],
 			],
 			VOR.contact[
 				VOR.name[service.getMeta("curation.contact.name")],
+				VOR.address[service.getMeta("curation.contact.address")],
 				VOR.email[service.getMeta("curation.contact.email")],
 				VOR.telephone[service.getMeta("curation.contact.telephone")],
-				VOR.address[service.getMeta("curation.contact.address")],
 			],
 		],
 		VOR.content[
 			VOR.subject[service.getMeta("subject")],
 			VOR.description[service.getMeta("description")],
-			VOR.referenceURL[service.getMeta("referenceURL")],
+			VOR.source[service.getMeta("source")],
+			VOR.referenceURL[service.getMeta("referenceURL", default=
+				service.getURL("form", "POST"))],
 			VOR.type[service.getMeta("type")],
+			VOR.contentLevel[service.getMeta("contentLevel")],
+			VOR.relationship[service.getMeta("relationship")],
 		]
 	]
 
 
-def getParamFromField(dataField, rootElement=VOD.param):
+def getParamFromField(dataField, rootElement=VS.param):
 	"""returns a param element for dataField.
 	"""
 	type, length = typesystems.sqltypeToVOTable(dataField.get_dbtype())
 	return rootElement[
-			VOD.description[dataField.get_description()],
-			VOD.name[dataField.get_source()],
-			VOD.ucd[dataField.get_ucd()],
-			VOD.unit[dataField.get_unit()],
-			VOD.dataType(arraysize=length)[type]]
+			VS.name[dataField.get_source()],
+			VS.description[dataField.get_description()],
+			VS.unit[dataField.get_unit()],
+			VS.ucd[dataField.get_ucd()],
+			VS.dataType(arraysize=length)[type]]
+
 
 def getParamItems(service):
 	"""returns a sequence of vs:param elements for the input of service.
 	"""
 	return [getParamFromField(f) for f in service.getInputFields()]
 
-
-rendererParameters = {
+_rendererParameters = {
 # qtype (GET/POST), xsi_type, urlComputer, resultType
 # where xsi_type includes cs:ConeSearch, vs:ParamHTTP, vs:WebService,
 # sia:SimpleImageAccess and potentially many others.
-	"siap.xml":  ("GET",  "sia:SimpleImageAccess", "application/x-votable"),
-	"scs.xml":   ("GET",  "cs:ConeSearch",         "application/x-votable"),
-	"form":      ("POST", "vs:ParamHTTP",          "text/html"),
-	"upload":    ("POST", "vs:ParamHTTP",          "text/html"),
-	"mupload":   ("POST", "vs:ParamHTTP",          "text/plain"),
-	"img.jpeg":  ("POST", "vs:ParamHTTP",          "image/jpeg"),
-	"mimg.jpeg": ("GET",  "vs:ParamHTTP",          "image/jpeg"),
+	"siap.xml":  ("GET",  SIA.interface, "application/x-votable"),
+#	"scs.xml":   ("GET",  "cs:ConeSearch",         "application/x-votable"),
+	"form":      ("POST", VS.ParamHTTP,          "text/html"),
+#	"upload":    ("POST", "vs:ParamHTTP",          "text/html"),
+#	"mupload":   ("POST", "vs:ParamHTTP",          "text/plain"),
+#	"img.jpeg":  ("POST", "vs:ParamHTTP",          "image/jpeg"),
+#	"mimg.jpeg": ("GET",  "vs:ParamHTTP",          "image/jpeg"),
 }
 
-def getInterfacesTree(service):
-	"""returns a sequence of the interfaces available on service.
-
-	Unfortunately, our model is a bit at odds with the data model here,
-	since, e.g., we don't really speak SIAP on the html renderers of a siap 
-	service.  We try to make good by specifying the result type (which
-	is silly since the html frontents can deliver VOTables) and the
-	qtype (which is silly since all services respond to POST as well as
-	GET).
-	"""
+def getInterfaceTree(service, renderer):
+	qtype, interfaceFactory, resultType = _rendererParameters[renderer]
+	use = "full"
+	if qtype=="GET":
+		use = "base"
 	params = getParamItems(service)
-	def getInterface(service, publication):
-		qtype, xsi_type, resultType = rendererParameters[
-			publication["render"]]
-		use = "full"
-		if qtype=="GET":
-			use = "base"
-		return VOR.interface(qtype=qtype, xsi_type=xsi_type)[
-			VOR.accessURL(use=use)[service.getURL(publication["render"], qtype)],
-			VOD.resultType[resultType],
-			params,
-		]
-	return [getInterface(service, publication) 
-		for publication in service.get_publications()]
+	return interfaceFactory[
+		VOR.accessURL(use=use)[service.getURL(renderer, qtype)],
+		VOR.securityMethod(standardId=service.getMeta("securityId")),
+		VS.resultType[resultType],
+		params,
+	]
 
 
 def getSiaCapabilitiesTree(service):
 	return SIA.capability[
+		getInterfaceTree(service, "siap.xml"),
 		SIA.imageServiceType[service.getMeta("sia.type")],
 			SIA.maxQueryRegionSize[
-				SIA.long[service.getMeta("sia.maxQueryRegionSize.long", default=360)],
-				SIA.lat[service.getMeta("sia.maxQueryRegionSize.lat", default=360)],
+				SIA.long[service.getMeta("sia.maxQueryRegionSize.long", default="360")],
+				SIA.lat[service.getMeta("sia.maxQueryRegionSize.lat", default="360")],
 			],
 			SIA.maxImageExtent[
-				SIA.long[service.getMeta("sia.maxImageExtent.long", default=360)],
-				SIA.lat[service.getMeta("sia.maxImageExtent.lat", default=360)],
+				SIA.long[service.getMeta("sia.maxImageExtent.long", default="360")],
+				SIA.lat[service.getMeta("sia.maxImageExtent.lat", default="360")],
 			],
 			SIA.maxImageSize[
-				SIA.long[service.getMeta("sia.maxImageSize.long")],
-				SIA.lat[service.getMeta("sia.maxImageSize.lat")],
+				SIA.long[service.getMeta("sia.maxImageSize.long", default="100000")],
+				SIA.lat[service.getMeta("sia.maxImageSize.lat", default="1000000")],
 			],
 			SIA.maxFileSize[
-				service.getMeta("sia.maxFileSize"),
+				service.getMeta("sia.maxFileSize", default="2000000000"),
 			],
 			SIA.maxRecords[
-				service.getMeta("sia.maxRecords"),
+				service.getMeta("sia.maxRecords", default="200000000"),
 			]
 		]
 
 
 def getResponseTableTree(service):
-	return VOD.table(role="out")[
-		[getParamFromField(f, rootElement=VOD.column)
+	return VS.table(role="out")[
+		[getParamFromField(f, rootElement=VS.column)
 			for f in service.getOutputFields(None)]
 	]
 
 
+def getResourceArgs(rec, service):
+	"""returns the mandatory attributes for constructing a Resource record
+	for service in a dictionary.
+	"""
+	return {
+		"created": service.getMeta("creationDate", default="2000-01-01T00:00:00Z"),
+		"updated": rec["dateUpdated"].strftime(_isoTimestampFmt),
+		"status": "active",
+	}
+
+
 def getSiapResourceTree(rec, service):
-	return VOR.Resource(xsi_type="sia:SimpleImageAccess")[
+	return VS.TableService(**getResourceArgs(rec, service))[
 		getStandardServiceTree(service),
-		getInterfacesTree(service),
+#		getTableCapabilitiesTree(service),
 		getSiaCapabilitiesTree(service),
 	]
 
 
 def getScsResourceTree(rec, service):
-	return VOR.Resource(xsi_type="scs:ConeSearch")[
+	return RI.Resource(**getResourceArgs(rec, service))[
 		getStandardServiceTree(service),
-		getInterfacesTree(service),
-		getScsCapabilitiesTree(service),
+#		getInterfacesTree(service),
+#		getScsCapabilitiesTree(service),
 	]
 
 
 def getTabularServiceResourceTree(rec, service):
-	return VOR.Resource(xsi_type="vs:TabularSkyService")[
+	return RI.Resource(**getResourceArgs(rec, service))[
 		getStandardServiceTree(service),
-		getInterfacesTree(service),
-		getResponseTableTree(service),
+#		getInterfacesTree(service),
+#		getResponseTableTree(service),
 	]
 
 
 def getOtherServiceResourceTree(rec, service):
-	return VOD.Resource[
+	return RI.Resource(**getResourceArgs(rec, service))[
 		getStandardServiceTree(service),
 		getInterfacesTree(service),
 	]
@@ -366,9 +354,7 @@ def getVOResourceTree(rec):
 
 def getDCResourceListTree(pars):
 	return OAI.PMH[
-		OAI.responseDate[DateTime.now().strftime("%Y-%m-%d")],
-		OAI.request(metadataPrefix="oai_dc", verb="ListRecords")[
-			getRegistryURL()],
+		getResponseHeaders(pars),
 # XXX TODO: include standard resources: registry, authority...
 		OAI.ListRecords[
 			[getDCResourceTree(rec)
@@ -377,18 +363,34 @@ def getDCResourceListTree(pars):
 
 def getVOResourceListTree(pars):
 	return OAI.PMH[
-		OAI.responseDate[DateTime.now().strftime("%Y-%m-%d")],
-		OAI.request(metadataPrefix="ivo_vor", verb="ListRecords")[
-			getRegistryURL()],
+		getResponseHeaders(pars),
 # XXX TODO: include standard resources: registry, authority...
 		OAI.ListRecords[
 			[getVOResourceTree(rec)
-				for rec in getMatchingRecords(pars)]]]
+				for rec in getMatchingRecords(pars)[:1]]]]
 			
+
+def getIdentifyTree(pars):
+	return OAI.PMH[
+		getResponseHeaders(pars),
+		OAI.Identify[
+			OAI.repositoryName["%s publishing registry"%config.get("web",
+				"sitename")],
+			OAI.baseURL[getRegistryURL()],
+			OAI.protocolVersion["2.0"],
+			OAI.adminEmail[config.get("operator")],
+			OAI.earliestDatestamp["1970-01-01"],
+			OAI.deletedRecord["no"],
+			OAI.granularity["YYYY-MM-DDThh:mm:ssZ"],
+			OAI.description[
+				getRegistryRecord(),
+			],
+		],
+	]
 
 
 if __name__=="__main__":
 	from gavo import config
 	from gavo import nullui
 	config.setDbProfile("querulator")
-	print ElementTree.tostring(getVOResourceListTree({}).asETree())
+	print ElementTree.tostring(getVOResourceListTree({"verb": "ListRecords", "metadataPrefix": "ivo_vor"}).asETree())
