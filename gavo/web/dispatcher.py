@@ -274,6 +274,11 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		segments = segments[self.rootLen:]
 		if not segments or segments[0]=='':
 			return self, ()
+		# Special case for service-specific static data
+		if ".static." in segments:
+			sPos = list(segments).index(".static.")
+			return resourcebased.getServiceRend(ctx, segments[:sPos], 
+				resourcebased.Static), segments[sPos+1:]
 		name = segments[0]
 		if hasattr(self, "child_"+name):
 			res = getattr(self, "child_"+name), segments[1:]

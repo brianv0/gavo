@@ -186,7 +186,7 @@ class Element(object):
 				node = ElementTree.SubElement(parent, elName, attrs)
 			for child in self.children:
 				if isinstance(child, basestring):
-					node.text = child.encode(encoding)
+					node.text = child
 				else:
 					child.asETree(node)
 			return node
@@ -286,7 +286,8 @@ class VOR:
 		
 	class Service(Resource): pass
 
-	class validationLevel(VORElement): pass
+	class validationLevel(VORElement):
+		a_validatedBy = None
 	
 	class title(VORElement): pass
 	
@@ -491,8 +492,10 @@ class VS:
 	
 	class facility(VSElement): pass
 
-	class interface(VSElement):
-		a_qtype = None
+	class interface(VOR.interface):
+		a_xsi_type = "vs:ParamHTTP"
+		a_xmlns_vs = VSNamespace
+		xmlns_vs_name = "xmlns:vs"
 
 	class ParamHTTP(interface):
 		c_resultType = None
@@ -532,6 +535,11 @@ class VS:
 		c_instrument = []
 		c_table = []
 		a_xsi_type = "vs:TableService"
+		a_xmlns_vs = VSNamespace
+		xmlns_vs_name = "xmlns:vs"
+
+	class CatalogService(Service):
+		a_xsi_type = "vs:CatalogService"
 		a_xmlns_vs = VSNamespace
 		xmlns_vs_name = "xmlns:vs"
 
@@ -604,7 +612,17 @@ class SCS:
 		a_xmlns_cs = SCSNamespace
 		xmlns_cs_name = "xmlns:cs"
 
-	class capability(SCSElement): pass
+	class interface(VOR.interface):
+		namespace = SCSNamespace
+		a_xsi_type = "vs:ParamHTTP"
+		a_xmlns_vs = VSNamespace
+		xmlns_vs_name = "xmlns:vs"
+
+	class capability(SCSElement):
+		a_standardID = 	"ivo://ivoa.net/std/ConeSearch"
+		a_xsi_type = "cs:ConeSearch"
+		a_xmlns_sia = SCSNamespace
+		xmlns_sia_name = "xmlns:cs"
 	
 	class maxSR(SCSElement): pass
 	

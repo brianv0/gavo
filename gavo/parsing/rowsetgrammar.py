@@ -12,8 +12,7 @@ class RowsetGrammar(grammar.Grammar):
 	"""is a grammar that receives data from a dbapi2 fetchall() result.
 
 	To add semantics to the field, it must know the "schema" of the
-	data.  It gets it from a RecordDef instance it receives during 
-	construction.
+	data.  It gets it from a sequence of DataFields in dbFields.
 	"""
 	def __init__(self, initvals={}):
 		grammar.Grammar.__init__(self, additionalFields={
@@ -29,7 +28,7 @@ class RowsetGrammar(grammar.Grammar):
 
 	def _iterRows(self, parseContext):
 		colNames = [f.get_dest() for f in self.get_dbFields()]
-		# this defaults process sucks -- we'd really want to use getValueIn,
+		# This defaults processing sucks -- we'd really want to use getValueIn,
 		# but then we'd first have to build the dict and still do nothing more
 		# than with this most of the time.  Hm.
 		defaults = [(f.get_dest(), f.get_default())

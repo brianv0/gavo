@@ -13,6 +13,7 @@ from formal import form
 from nevow import loaders
 from nevow import inevow
 from nevow import rend
+from nevow import static
 from nevow import tags as T, entities as E
 
 from twisted.internet import defer
@@ -367,3 +368,50 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 			T.div(id="bottominfo", render=T.directive("metahtml"))["_bottominfo"],
 			T.div(id="legal", render=T.directive("metahtml"))["_legal"],
 		]])
+
+
+class Static(GavoFormMixin, ServiceBasedRenderer):
+	"""is a renderer that just hands through files.
+
+	On this, you can either have a template "static" or have a static core
+	returning a table with with a column called "filename".  The
+	file designated in the first row will be used as-is.
+
+	Queries with remaining segments return files from the staticData
+	directory of the service.
+	"""
+	name = ".static."
+
+	def __init__(self, ctx, service):
+		ServiceBasedRenderer.__init__(self, ctx, service)
+		if not service.get_staticData():
+			raise UnknownURI("No static data on this service") # XXX TODO: FORBIDDEN
+		if self.service.get_template("static"):
+			self.customTemplate = os.path.join(self.rd.get_resdir(),
+				self.service.get_template("static"))
+		self.basePath = os.path.join(service.rd.get_resdir(),
+			service.get_staticData())
+		self.rend = static.File(self.basePath)
+	
+	def renderHTTP(self, ctx):
+		if inevow.ICurrentSegments(ctx)[-1] != '':
+			request = inevow.IRequest(ctx)
+			request.redirect(request.URLPath().child(''))
+			return ''
+		if self.customTemplate:
+			return super(Static, self).renderHTTP(ctx)
+		else:
+			return self.service.run(None).addCallback(self._renderResultDoc, ctx)
+	
+	def _renderResultDoc(self, coreResult, ctx):
+		rows = coreResult.original.getPrimaryTable().rows
+		if len(rows)==0:
+			raise UnknownURI("No matching resource")
+		relativeName = rows[0]["filename"]
+		return static.File(os.path.join(self.basePath, relativeName)
+			).renderHTTP(ctx)
+
+	def locateChild(self, ctx, segments):
+		if segments==('',):
+			return self, ()
+		return self.rend.locateChild(ctx, segments)

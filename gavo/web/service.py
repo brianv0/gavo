@@ -69,6 +69,7 @@ class Service(record.Record, meta.MetaMixin):
 			"property": record.DictField,
 			"publications": record.ListField,
 			"requiredGroup": None,
+			"staticData": None,
 			"allowedRenderers": None,
 # temporary hack: map field names to ones known to the form.
 			"fieldNameTranslations": None,   
@@ -176,6 +177,7 @@ class Service(record.Record, meta.MetaMixin):
 					return self.get_core().get_outputFields()
 				except AttributeError:
 					pass
+		return []
 
 	def run(self, inputData, queryMeta=common.emptyQueryMeta):
 		"""runs the input filter, the core, and the output filter and returns a

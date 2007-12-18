@@ -3,6 +3,7 @@ Code dealing with the service list.
 """
 
 import os
+import sys
 
 import gavo
 from gavo import config
@@ -15,15 +16,41 @@ from gavo.parsing import rowsetgrammar
 from gavo.parsing import typeconversion
 
 
+class MissingMeta(gavo.Error):
+	def __init__(self, msg, fields):
+		gavo.Error.__init__(self, msg)
+		self.fields = fields
+
+
 # These keys must be present to ensure a valid VOResource record can be
 # built XXX TODO: Check for their presence when ivoa_managed is in sets.
-_voRequiredMeta = ["creationDate", "description", "subject", "referenceURL"]
+_voRequiredMeta = [
+	"creationDate", 
+	"description", 
+	"subject", 
+	"referenceURL",
+	"shortName", # actually, that's in just because we need it.
+]
 
+
+def ensureSufficientMeta(service):
+	"""raises an MissingMeta if metadata absolutely necessary for registration
+	is missing from the service.
+	"""
+	missingKeys = []
+	for key in _voRequiredMeta:
+		try:
+			service.getMeta(key, raiseOnFail=True)
+		except config.MetaError:
+			missingKeys.append(key)
+	if missingKeys:
+		raise MissingMeta("Missing meta keys", missingKeys)
 
 def makeRecord(publication, service):
 	"""returns a record suitable for importing into the service list for the
 	publication type of service.
 	"""
+	ensureSufficientMeta(service)
 	rec = {}
 	rec["shortName"] = str(service.getMeta("shortName", raiseOnFail=True))
 	rec["sourceRd"] = service.rd.sourceId
@@ -49,7 +76,12 @@ def getServiceRecsFromRd(rd):
 	for svcId in rd.itemsof_service():
 		svc = rd.get_service(svcId)
 		for pub in svc.get_publications():
-			res.append(makeRecord(pub, svc))
+			try:
+				res.append(makeRecord(pub, svc))
+			except MissingMeta, err:
+				sys.stderr.write("%s in %s is missing the required meta field(s) %s."
+					"  Skipping.\n"%(svc.get_id(), svc.rd.sourceId, 
+					", ".join(err.fields)))
 	return res
 
 
@@ -103,6 +135,7 @@ def getMatchingServices(whereClause="", pars={}):
 	return resource.getMatchingData(dd, "services", 
 		whereClause, pars).getPrimaryTable()
 
+
 def queryServicesList(whereClause="", pars={}):
 	"""returns the current list of form based services.
 
@@ -125,12 +158,14 @@ def queryServicesList(whereClause="", pars={}):
 resourcecache.makeCache("getWebServiceList", 
 	lambda ignored: queryServicesList("srv_interfaces.type='web'"))
 
+
 def parseCommandLine():
 	import optparse
 	parser = optparse.OptionParser(usage="%prog [options] [<rd-name>]+")
 	parser.add_option("-a", "--all", help="search everything below inputsDir"
 		" for publications.", dest="all", action="store_true")
 	return parser.parse_args()
+
 
 def findAllRDs():
 	rds = []
@@ -139,6 +174,7 @@ def findAllRDs():
 			if file.endswith(".vord"):
 				rds.append(os.path.join(dir, file))
 	return rds
+
 
 def main():
 	from gavo import textui

@@ -429,7 +429,8 @@ class RdParser(utils.NodeBuilder):
 	_start_Service = _pushFieldPath
 
 	def _make_Service(self, name, attrs, children):
-		svc = service.Service(self.rd, {"id": attrs["id"]})
+		svc = service.Service(self.rd, {"id": attrs["id"],
+			"staticData": attrs.get("staticData")})
 		self.rd.register_service(svc.get_id(), svc)
 		res = self._processChildren(svc, name, {
 			"inputFilter": svc.set_inputFilter,
@@ -475,23 +476,34 @@ class RdParser(utils.NodeBuilder):
 		return (attrs["type"], attrs["src"])
 
 	def _make_core(self, name, attrs, children):
+
+		def handlerFactory(core, elName, methodName):
+			if hasattr(core, methodName):
+				return getattr(core, methodName)
+			else:
+				def raiseError(*args):
+					raise gavo.Error("No %s children on these cores"%elName)
+				return raiseError
+
 		handlers = {
 			"arg": lambda *args: None,  # Handled by core constructor
 		}
 		args = self._collectArguments(children)
-		if attrs.has_key("builtin"):  # db based cores
-			curCore = core.getStandardCore(attrs["builtin"])(self.rd, initvals=args)
-			handlers.update({
-				"condDesc": curCore.addto_condDescs,
-				"outputField": curCore.addto_outputFields,
-				"autoOutputFields": curCore.addAutoOutputFields,
-				"autoCondDescs": curCore.addDefaultCondDescs,
-			})
-		elif attrs.has_key("computer"): # computed cores
+# XXX TODO: Unify computedCore with others.
+		if attrs.has_key("computer"): # computed cores
 			curCore = standardcores.ComputedCore(self.getById(attrs["computer"])[1],
 				initvals=args)
 		else:
-			raise Error("Invalid core specification")
+			curCore = core.getStandardCore(attrs["builtin"])(self.rd, initvals=args)
+			handlers.update({
+				"condDesc": handlerFactory(curCore, "condDesc", "addto_condDescs"),
+				"outputField": handlerFactory(curCore, "outputField", 
+					"addto_outputFields"),
+				"autoOutputFields": handlerFactory(curCore, "autoOutputFields",
+					"addAutoOutputFields"),
+				"autoCondDescs": handlerFactory(curCore, "autoCondDescs",
+					"addDefaultCondDescs"),
+			})
 		return self._processChildren(curCore, name, handlers, children)
 
 

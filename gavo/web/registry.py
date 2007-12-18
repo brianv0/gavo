@@ -15,7 +15,8 @@ from gavo import resourcecache
 from gavo import typesystems
 from gavo.parsing import importparser  # for registration of getRd
 from gavo.web import servicelist
-from gavo.web.registrymodel import OAI, VOR, VOG, DC, RI, VS, SIA, SCS
+from gavo.web.registrymodel import OAI, VOR, VOG, DC, RI, VS, SIA, SCS,\
+	encoding
 from gavo.web.vizierexprs import getSQLKey  # getSQLKey should be moved.
 
 
@@ -29,6 +30,7 @@ def getResponseHeaders(pars):
 		OAI.responseDate[DateTime.now().strftime(_isoTimestampFmt)],
 		OAI.request(verb=pars["verb"], 
 				metadataPrefix=pars["metadataPrefix"])]
+
 
 def getResourceHeaderTree(rec):
 	return OAI.header [
@@ -164,11 +166,18 @@ def getDCResourceTree(rec):
 	]
 
 
-def getStandardServiceTree(service):
-	"""returns the standard items for a VOResource service description.
+def getServiceItems(service):
+	"""returns a sequence of elements making up a plain VOResource service 
+	description.
+
+	This returns all items up to but excluding capabilities.  These need to
+	be filled in by specialized functions depending on the service type.
 	"""
 	return [
+		VOR.validationLevel(validatedBy=service.getMeta("validatedBy"))[
+			service.getMeta("validationLevel")],
 		VOR.title[service.getMeta("title")],
+		VOR.shortName[service.getMeta("shortName")],
 		VOR.identifier[config.get("ivoa", "rootId")+"/"+str(service.getMeta(
 			"shortName"))],
 		VOR.curation[
@@ -193,7 +202,44 @@ def getStandardServiceTree(service):
 			VOR.type[service.getMeta("type")],
 			VOR.contentLevel[service.getMeta("contentLevel")],
 			VOR.relationship[service.getMeta("relationship")],
-		]
+		],
+		VOR.rights[
+			service.getMeta("rights"),
+		],
+	]
+
+
+def getResponseTableTree(service):
+	return VS.table(role="out")[
+		[getParamFromField(f, rootElement=VS.column)
+			for f in service.getOutputFields(None)]
+	]
+
+
+def getCatalogServiceItems(service, capabilities):
+	"""returns a sequence of elements for a CatalogService based on service
+	with capabilities.
+	"""
+	return getServiceItems(service)+[capabilities]+[
+		VOR.facility[ # XXX TODO: maybe look up ivo-ids?
+			service.getMeta("facility")],
+		VOR.instrument[service.getMeta("instrument")],
+		VS.coverage[service.getMeta("coverage")],  # XXX TODO: figure out how
+			# to splice in multiple structured elements.
+		getResponseTableTree(service),
+	]
+		
+
+def getDataServiceItems(service, capabilities):
+	"""returns a sequence of elements for a DataService based on service
+	with capabilities.
+	"""
+	return getServiceItems(service)+[capabilities]+[
+		VOR.facility[ # XXX TODO: maybe look up ivo-ids?
+			service.getMeta("facility")],
+		VOR.instrument[service.getMeta("instrument")],
+		VS.coverage[service.getMeta("coverage")],  # XXX TODO: figure out how
+			# to splice in multiple structured elements.
 	]
 
 
@@ -215,16 +261,13 @@ def getParamItems(service):
 	return [getParamFromField(f) for f in service.getInputFields()]
 
 _rendererParameters = {
-# qtype (GET/POST), xsi_type, urlComputer, resultType
-# where xsi_type includes cs:ConeSearch, vs:ParamHTTP, vs:WebService,
-# sia:SimpleImageAccess and potentially many others.
-	"siap.xml":  ("GET",  SIA.interface, "application/x-votable"),
-#	"scs.xml":   ("GET",  "cs:ConeSearch",         "application/x-votable"),
-	"form":      ("POST", VS.ParamHTTP,          "text/html"),
-#	"upload":    ("POST", "vs:ParamHTTP",          "text/html"),
-#	"mupload":   ("POST", "vs:ParamHTTP",          "text/plain"),
-#	"img.jpeg":  ("POST", "vs:ParamHTTP",          "image/jpeg"),
-#	"mimg.jpeg": ("GET",  "vs:ParamHTTP",          "image/jpeg"),
+	"siap.xml":  ("GET",  SIA.interface,  "application/x-votable"),
+	"scs.xml":   ("GET",  SCS.interface,   "application/x-votable"),
+	"form":      ("POST", VS.ParamHTTP,   "text/html"),
+	"upload":    ("POST", VS.ParamHTTP,   "text/html"),
+	"mupload":   ("POST", VS.ParamHTTP,   "text/plain"),
+	"img.jpeg":  ("POST", VS.ParamHTTP,   "image/jpeg"),
+	"mimg.jpeg": ("GET",  VS.ParamHTTP,   "image/jpeg"),
 }
 
 def getInterfaceTree(service, renderer):
@@ -239,6 +282,17 @@ def getInterfaceTree(service, renderer):
 		VS.resultType[resultType],
 		params,
 	]
+
+
+def getResourceArgs(rec, service):
+	"""returns the mandatory attributes for constructing a Resource record
+	for service in a dictionary.
+	"""
+	return {
+		"created": service.getMeta("creationDate", default="2000-01-01T00:00:00Z"),
+		"updated": rec["dateUpdated"].strftime(_isoTimestampFmt),
+		"status": "active",
+	}
 
 
 def getSiaCapabilitiesTree(service):
@@ -266,59 +320,43 @@ def getSiaCapabilitiesTree(service):
 		]
 
 
-def getResponseTableTree(service):
-	return VS.table(role="out")[
-		[getParamFromField(f, rootElement=VS.column)
-			for f in service.getOutputFields(None)]
-	]
-
-
-def getResourceArgs(rec, service):
-	"""returns the mandatory attributes for constructing a Resource record
-	for service in a dictionary.
-	"""
-	return {
-		"created": service.getMeta("creationDate", default="2000-01-01T00:00:00Z"),
-		"updated": rec["dateUpdated"].strftime(_isoTimestampFmt),
-		"status": "active",
-	}
-
-
 def getSiapResourceTree(rec, service):
-	return VS.TableService(**getResourceArgs(rec, service))[
-		getStandardServiceTree(service),
-#		getTableCapabilitiesTree(service),
-		getSiaCapabilitiesTree(service),
+	return VS.CatalogService(**getResourceArgs(rec, service))[
+		getCatalogServiceItems(service,
+			getSiaCapabilitiesTree(service)),
 	]
 
 
 def getScsResourceTree(rec, service):
-	return RI.Resource(**getResourceArgs(rec, service))[
-		getStandardServiceTree(service),
-#		getInterfacesTree(service),
-#		getScsCapabilitiesTree(service),
+	return VS.CatalogService(**getResourceArgs(rec, service))[
+		getCatalogServiceItems(service,
+			getScsCapabilitiesTree(service)),
 	]
 
 
-def getTabularServiceResourceTree(rec, service):
-	return RI.Resource(**getResourceArgs(rec, service))[
-		getStandardServiceTree(service),
-#		getInterfacesTree(service),
-#		getResponseTableTree(service),
+def getCatalogServiceCapabilityTree(service):
+	return VOR.capability[  
+		# XXX add local description item -- where should this come from?
+		getIterfaceTree("service", "form"),
+		# XXX local validationLevel???
 	]
 
 
-def getOtherServiceResourceTree(rec, service):
-	return RI.Resource(**getResourceArgs(rec, service))[
-		getStandardServiceTree(service),
-		getInterfacesTree(service),
+def getCatalogServiceResourceTree(rec, service):
+	return VS.CatalogService(**getResourceArgs(rec, service))[
+		getCatalogServiceItems(service, []),
+	]
+
+
+def getDataServiceResourceTree(rec, service):
+	return VS.DataService(**getResourceArgs(rec, service))[
+		getDataServiceItems(service, []),
 	]
 
 
 resourceMakers = {
-	"siap.xml": getSiapResourceTree,
-	"scs.xml": getScsResourceTree,
-	"form": getTabularServiceResourceTree,
+	"siap.xml": (getSiapResourceTree, "siap"),
+	"scs.xml": (getScsResourceTree, "cs"),
 }
 
 def getVOResourceTree(rec):
@@ -331,23 +369,25 @@ def getVOResourceTree(rec):
 	bad (who'd want to look at SIAP output?), so we simply take the first
 	renderer matching a standard DAL protocol. 
 
-	However, form renderers probably always count as TabularSkyServices,
-	so in these cases we simply "upgrade" the default from OtherService
-	to TabularSkyService.
+	However, form renderers probably always count as TableServices,
+	so in these cases we simply "upgrade" the default from DataService
+	to TableService. XXX TODO: That's rubbish.  What about jpeg, upload?
 	"""
 	service = resourcecache.getRd(rec["sourceRd"]).get_service(
 		rec["internalId"])
-	makeResource = getOtherServiceResourceTree
+	makeResource = getDataServiceResourceTree, "data"
 	for pub in service.get_publications():
 		if pub["render"] in resourceMakers:
 			makeResource = resourceMakers[pub["render"]]
 			break
 		if pub["render"]=="form":
-			makeResource = getTabularServiceResourceTree(rec, service)
+			makeResource = (getCatalogServiceResourceTree, "tabular")
+	sys.stderr.write(">>>> Returning %s service %s\n"%(makeResource[1], 
+		service.getMeta("shortName")))
 	return OAI.record[
 		getResourceHeaderTree(rec),
 		OAI.metadata[
-			makeResource(rec, service)
+			makeResource[0](rec, service)
 		]
 	]
 
@@ -367,7 +407,7 @@ def getVOResourceListTree(pars):
 # XXX TODO: include standard resources: registry, authority...
 		OAI.ListRecords[
 			[getVOResourceTree(rec)
-				for rec in getMatchingRecords(pars)[:1]]]]
+				for rec in getMatchingRecords(pars)]]]
 			
 
 def getIdentifyTree(pars):
@@ -393,4 +433,4 @@ if __name__=="__main__":
 	from gavo import config
 	from gavo import nullui
 	config.setDbProfile("querulator")
-	print ElementTree.tostring(getVOResourceListTree({"verb": "ListRecords", "metadataPrefix": "ivo_vor"}).asETree())
+	print ElementTree.tostring(getVOResourceListTree({"verb": "ListRecords", "metadataPrefix": "ivo_vor", "set": ["local", "ivo_managed"]}).asETree(), encoding)

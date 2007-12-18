@@ -10,6 +10,7 @@ responsibility of the wrapper to produce standards-compliant output.
 import weakref
 import cStringIO
 
+from twisted.internet import defer
 from twisted.python import log
 
 from gavo import config
@@ -75,6 +76,28 @@ class CondDescFromRd(CondDesc):
 	"""is a CondDesc defined in the resource descriptor.
 	"""
 	pass
+
+
+class StaticCore(core.Core):
+	"""is a core that always returns a static file.
+	"""
+	def __init__(self, rd, initvals={}, additionalFields={}):
+		self.rd = weakref.proxy(rd)
+		fields = {
+			"file": None,
+		}
+		fields.update(additionalFields)
+		super(StaticCore, self).__init__(initvals=initvals, 
+			additionalFields=fields)
+		self.addto_outputFields(datadef.DataField(dest="filename", dbtype="text",
+			source="filename", optional=False))
+
+	def run(self, inputData, queryMeta):
+		return defer.succeed(resource.InternalDataSet(
+			resource.makeRowsetDataDesc(self.rd, self.get_outputFields()),
+			dataSource=[(self.get_file(),)]))
+
+core.registerCore("static", StaticCore)
 
 
 class QueryingCore(core.Core):
