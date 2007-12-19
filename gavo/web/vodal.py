@@ -1,21 +1,26 @@
 """
-Support for IVOA DAL protocols.
+Support for IVOA DAL and registry protocols.
 """
 
+from nevow import appserver
 from nevow import inevow
+from nevow import rend
 
 from twisted.internet import defer
+from twisted.internet import threads
 from twisted.python import failure
 
 from zope.interface import implements
 
 import gavo
+from gavo import ElementTree
 from gavo import datadef
 from gavo import votable
 from gavo.parsing import contextgrammar
 from gavo.parsing import meta
 from gavo.parsing import resource
 from gavo.web import common
+from gavo.web import registry
 from gavo.web import resourcebased
 
 
@@ -130,3 +135,31 @@ class SiapRenderer(DalRenderer):
 			"ERROR", str(msg)))
 		return common.CoreResult(data, {}, common.QueryMeta(ctx))
 
+
+class RegistryRenderer(rend.Page):
+	def renderHTTP(self, ctx):
+		pars = dict((key, val[0]) 
+			for key, val in inevow.IRequest(ctx).args.iteritems())
+		return threads.deferToThread(registry.getPMHResponse, pars
+			).addCallback(self._renderResponse, ctx
+			).addErrback(self._renderError, ctx, pars)
+	
+	def _renderError(self, failure, ctx, pars):
+		try:
+			return self._renderResponse(registry.getErrorTree(failure.value, pars),
+				ctx)
+		except:
+			import traceback
+			traceback.print_exc()
+			failure.printTraceback()
+			request = inevow.IRequest(ctx)
+			request.setResponseCode(500)
+			request.setHeader("content-type", "text/plain")
+			request.write("Internal error.  Please notify site maintainer")
+			request.finishRequest(False)
+		return appserver.errorMarker
+			
+	def _renderResponse(self, etree, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", "text/xml")
+		return ElementTree.tostring(etree.getroot(), registry.encoding)

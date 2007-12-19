@@ -201,6 +201,45 @@ myTests = [
 			["VOTABLE", "TABLEDATA><TR><TD>21029"],
 			"SCS successful query, binary"),
 		),
+	TestGroup("registry",  # Maybe build xsd validation into these?
+		GetHasStringsTest(nv_root+"/oai.xml", [
+				"<oai:OAI-PMH", "Missing mandatory"],
+			"Credible PMH error message"),
+		GetHasStringsTest(nv_root+"/oai.xml?verb=ListSets", [
+				'verb="ListSets" />',
+				'ivo_managed'],
+			"PMH ListSets response looks all right"),
+		GetHasStringsTest(nv_root+"/oai.xml?verb=Identify", [
+				'xsi:type="vg:Registry',
+				'ivo://ivoa.net/std/Registry',
+				'OAIHTTP'],
+			"PMH Identify response looks all right"),
+		GetHasStringsTest(nv_root+"/oai.xml?verb=ListMetadataFormats", [
+				'metadataPrefix>oai_dc',
+				'ivo_vor</oai:metadataPrefix'],
+			"PMH ListMetadataFormats response looks all right"),
+		GetHasStringsTest(nv_root+"/oai.xml?verb=ListIdentifiers&"
+				"metadataPrefix=oai_dc", [
+					'oai:ListIdentifiers>',
+					'ivo_managed'],
+			"PMH ListIdentifiers response looks all right in oai_dc"),
+		GetHasStringsTest(nv_root+"/oai.xml?"
+				"verb=GetRecord&identifier=ivo://org.gavo/dc/lenses_web&"
+				"metadataPrefix=ivo_vor", [
+					'oai:GetRecord>',
+					'ri:Resource'],
+			"PMH GetRecord response looks all right in ivo_vor"),
+		GetHasStringsTest(nv_root+"/oai.xml?"
+				"verb=GetRecord&identifier=ivo://org.gavo/dc/lenses_web&"
+				"metadataPrefix=oai_dc", [
+					'oai:GetRecord>',
+					'dc:title'],
+			"PMH GetRecord response looks all right in oai_dc"),
+		GetHasStringTest(nv_root+"/oai.xml?"
+				"verb=ListRecords&to=2007-10-10&metadataPrefix=ivo_vor",
+					'<oai:ListRecords>', # Thik of something better, this may be empty
+			"PMH ListRecords response looks all right in ivo_vor"),
+		),
 	TestGroup("misc",
 		GetHasStringTest(nv_root+"/inflight/res/lc1/img/mimg.jpeg?"
 			"startLine=20&endLine=30",
@@ -209,7 +248,7 @@ myTests = [
 		GetHasStringTest(nv_root,
 			"L...",
 			"Home page shows services"),
-	)
+	),
 ]
 
 

@@ -9,7 +9,6 @@ import gavo
 from gavo import config
 from gavo import resourcecache
 from gavo import sqlsupport
-from gavo.parsing import importparser
 from gavo.parsing import parseswitch
 from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
@@ -203,6 +202,7 @@ def main():
 	from gavo import textui
 	from gavo.parsing import commandline
 	config.setDbProfile("feed")
+	from gavo.parsing import importparser
 	opts, args = parseCommandLine()
 	if opts.all:
 		args = findAllRDs()
@@ -219,4 +219,5 @@ if __name__=="__main__":
 	from gavo import textui
 	import pprint
 	config.setDbProfile("querulator")
+	from gavo.parsing import importparser
 	pprint.pprint(getSets())

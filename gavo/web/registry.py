@@ -14,7 +14,6 @@ import gavo
 from gavo import config
 from gavo import resourcecache
 from gavo import typesystems
-from gavo.parsing import importparser  # for registration of getRd
 from gavo.web import servicelist
 from gavo.web.registrymodel import OAI, VOR, VOG, DC, RI, VS, SIA, SCS,\
 	OAIDC, encoding
@@ -169,7 +168,7 @@ def getMatchingRecords(pars):
 			pars["from"], sqlPars))
 	if "to" in pars:
 		sqlFrags.append("services.dateUpdated > %%(%s)s"%getSQLKey("to",
-			pars["from"], sqlPars))
+			pars["to"], sqlPars))
 	if "set" in pars:
 		sqlFrags.append("services.shortName IN %%(%s)s"%(getSQLKey("set",
 			servicelist.getShortNamesForSets(pars["set"]), sqlPars)))
@@ -240,7 +239,7 @@ def getServiceItems(service):
 			],
 		],
 		VOR.content[
-			VOR.subject[service.getMeta("subject")],
+			[VOR.subject[subject] for subject in service.getAllMeta("subject")],
 			VOR.description[service.getMeta("description")],
 			VOR.source[service.getMeta("source")],
 			VOR.referenceURL[service.getMeta("referenceURL", default=
@@ -508,6 +507,7 @@ def getListIdentifiersTree(pars):
 	We don't have ivo specific metadata in the headers, so this ignores
 	the metadata prefix.
 	"""
+	_ = pars["metadataPrefix"]  # just make sure we bomb out if it's missing
 	ns = getMetadataNamespace(pars)
 	return OAI.PMH[
 		getResponseHeaders(pars),
@@ -593,6 +593,7 @@ def getListSetsTree(pars):
 		for set in servicelist.getSets()]]
 	]
 
+
 pmhHandlers = {
 	"GetRecord": dispatchGetRecordTree,
 	"Identify": getIdentifyTree,
@@ -602,16 +603,53 @@ pmhHandlers = {
 	"ListSets": getListSetsTree,
 }
 
+
 def getPMHResponse(pars):
 	"""returns an ElementTree containing a OAI-PMH response for the query 
 	described by pars.
 	"""
-	tree = pmhHandlers[pars["verb"]](pars)
-	return ElementTree.ElementTree(tree.asETree())
+	verb = pars["verb"]
+	try:
+		handler = pmhHandlers[verb]
+	except KeyError:
+		raise BadVerb("'%s' is an unsupported operation."%pars["verb"])
+	return ElementTree.ElementTree(handler(pars).asETree())
+
+
+def getErrorTree(exception, pars):
+	"""returns an ElementTree containing an OAI-PMH error response.
+
+	If exception is one of "our" exceptions, we translate them to error
+	messages, if it's a key error, we assume it's a parameter error (so
+	don't let them leak otherwise).  If None of all this works out, we
+	reraise the exception to an enclosing function may "handle" it.
+
+	Contrary to the recommendation in the OAI-PMH spec, this will only
+	return one error at a time.
+	"""
+	if isinstance(exception, OAIError):
+		code = exception.__class__.__name__
+		code = code[0].lower()+code[1:]
+		message = str(exception)
+	elif isinstance(exception, KeyError):
+		code = "badArgument"
+		message = "Missing mandatory argument %s"%str(exception)
+	else:
+		raise exception
+	return ElementTree.ElementTree(OAI.PMH[
+		OAI.responseDate[DateTime.now().strftime(_isoTimestampFmt)],
+		OAI.request(verb=pars.get("verb", "Identify"), 
+				metadataPrefix=pars.get("metadataPrefix")),
+		OAI.error(code=code)[
+			message
+		]
+	].asETree())
 
 
 if __name__=="__main__":
 	from gavo import config
 	from gavo import nullui
 	config.setDbProfile("querulator")
-	print ElementTree.tostring(getPMHResponse({"verb": "ListSets"}).getroot(), encoding)
+	from gavo.parsing import importparser  # for registration of getRd
+	print ElementTree.tostring(getPMHResponse({"verb": "ListRecords", 
+		"metadataPrefix": "ivo_vor", "set": ["local", "ivo_managed"]}).getroot(), encoding)

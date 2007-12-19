@@ -242,7 +242,10 @@ class OAI:
 	class ListSets(OAIElement): pass
 
 	class header(OAIElement): pass
-	
+
+	class error(OAIElement):
+		a_code = None
+
 	class record(OAIElement): pass
 
 	class identifier(OAIElement): pass

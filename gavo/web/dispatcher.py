@@ -203,6 +203,7 @@ _staticServer = StaticServer()
 
 renderClasses = {
 	"form": (resourcebased.getServiceRend, resourcebased.Form),
+	"oai.xml": (lambda ctx, segs, cls: cls(), vodal.RegistryRenderer),
 	"siap.xml": (resourcebased.getServiceRend, vodal.SiapRenderer),
 	"scs.xml": (resourcebased.getServiceRend, vodal.ScsRenderer),
 	"getproduct": (lambda ctx, segs, cls: cls(ctx, segs), product.Product),

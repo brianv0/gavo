@@ -73,8 +73,11 @@ if __name__=="__main__":
 	from gavo import config
 	from gavo import nullui
 	config.setDbProfile("querulator")
+	from gavo.parsing import importparser  # for registration of getRd
 	for test in _testSpecs:
 		runATest(*test)
-
-
-
+	try:
+		registry.getPMHResponse({})
+	except Exception, msg:
+		if not validateTree(registry.getErrorTree(msg, {})):
+			print "*** Error validating error response ***"

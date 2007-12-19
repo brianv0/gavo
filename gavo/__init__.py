@@ -6,6 +6,12 @@ import os
 import sys
 
 
+try:
+	import cElementTree as ElementTree
+except ImportError:
+	from elementtree import ElementTree
+
+
 class Error(Exception):
 	"""is the "master" exception type for gavo related stuff.
 

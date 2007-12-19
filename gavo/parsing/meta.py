@@ -143,14 +143,18 @@ class MetaMixin(object):
 		except AttributeError:
 			pass
 
-	def getMeta(self, key, propagate=True, raiseOnFail=False, default=None):
+	def getMeta(self, key, propagate=True, raiseOnFail=False, default=None,
+			all=False):
 		self.__ensureMetaDict()
 		if self.__metaDict.has_key(key):
-			return self.__metaDict[key][-1]
+			if all:
+				return self.__metaDict[key]
+			else:
+				return self.__metaDict[key][-1]
 		if propagate:
 			if self.__hasMetaParent():
 				return self.__metaParent.getMeta(key, raiseOnFail=raiseOnFail, 
-					default=default)
+					default=default, all=all)
 			else:
 				return config.getMeta(key, raiseOnFail=raiseOnFail, default=default)
 		if raiseOnFail:
@@ -158,8 +162,7 @@ class MetaMixin(object):
 		return default
 
 	def getAllMeta(self, key):
-		self.__ensureMetaDict()
-		return self.__metaDict.get(key, [])
+		return self.getMeta(key, all=True, default=[])
 
 	def addMeta(self, *args, **kwargs):
 		if len(args)>1:
@@ -170,6 +173,6 @@ class MetaMixin(object):
 		else:
 			attDict = args[0].copy()
 			attDict.update(kwargs)
-		self.__ensureMetaDict()
 		newItem = MetaItem(self, **attDict)
+		self.__ensureMetaDict()
 		self.__metaDict.setdefault(newItem.getName(), []).append(newItem)

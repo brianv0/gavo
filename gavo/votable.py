@@ -27,12 +27,7 @@ import itertools
 import urllib
 import urlparse
 
-try:
-	import cElementTree as ElementTree
-except ImportError:
-	sys.stderr.write("Warning: Falling back to python elementtree\n")
-	from elementtree import ElementTree
-
+from gavo import ElementTree
 from gavo import typesystems
 from gavo import config
 
