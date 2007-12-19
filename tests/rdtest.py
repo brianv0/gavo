@@ -47,6 +47,18 @@ class MetaTest(unittest.TestCase):
 		self.assertEqual(str(data.getMeta("testStatus")),
 			"I'm so well I could cry")
 
+	def testMetaSequence(self):
+		"""tests for sequenced meta items.
+		"""
+		data = self.rd.getDataById("metatest")
+		data.addMeta(name="aSeq", content="first")
+		self.assertEqual(str(data.getMeta("aSeq")), "first")
+		data.addMeta(name="aSeq", content="second")
+		self.assertEqual(str(data.getMeta("aSeq")), "second")
+		self.assertEqual(map(str, data.getAllMeta("aSeq")),
+			["first", "second"])
+
+
 class ValidationTest(unittest.TestCase):
 	"""Test for validation of values.
 	"""

@@ -98,7 +98,7 @@ class MetaItem(object):
 
 	def getName(self):
 		return self.name
-
+	
 
 class MetaMixin(object):
 	"""is a mixin for entities carrying meta information.
@@ -146,7 +146,7 @@ class MetaMixin(object):
 	def getMeta(self, key, propagate=True, raiseOnFail=False, default=None):
 		self.__ensureMetaDict()
 		if self.__metaDict.has_key(key):
-			return self.__metaDict[key]
+			return self.__metaDict[key][-1]
 		if propagate:
 			if self.__hasMetaParent():
 				return self.__metaParent.getMeta(key, raiseOnFail=raiseOnFail, 
@@ -156,6 +156,10 @@ class MetaMixin(object):
 		if raiseOnFail:
 			raise config.MetaError("No meta item %s"%key)
 		return default
+
+	def getAllMeta(self, key):
+		self.__ensureMetaDict()
+		return self.__metaDict.get(key, [])
 
 	def addMeta(self, *args, **kwargs):
 		if len(args)>1:
@@ -168,4 +172,4 @@ class MetaMixin(object):
 			attDict.update(kwargs)
 		self.__ensureMetaDict()
 		newItem = MetaItem(self, **attDict)
-		self.__metaDict[newItem.getName()] = newItem
+		self.__metaDict.setdefault(newItem.getName(), []).append(newItem)
