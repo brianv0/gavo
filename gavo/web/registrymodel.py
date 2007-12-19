@@ -17,6 +17,7 @@ XSINamespace = "http://www.w3.org/2001/XMLSchema-instance"
 ElementTree._namespace_map[XSINamespace] = "xsi"
 
 OAINamespace = "http://www.openarchives.org/OAI/2.0/"
+OAIDCNamespace = "http://www.openarchives.org/OAI/2.0/oai_dc/"
 RINamespace = "http://www.ivoa.net/xml/RegistryInterface/v1.0"
 VOGNamespace = "http://www.ivoa.net/xml/VORegistry/v1.0"
 VORNamespace = "http://www.ivoa.net/xml/VOResource/v1.0"
@@ -32,6 +33,7 @@ SIANamespace="http://www.ivoa.net/xml/SIA/v1.0"
 ElementTree._namespace_map[VORNamespace] = "vr"
 ElementTree._namespace_map[VOGNamespace] = "vg"
 ElementTree._namespace_map[OAINamespace] = "oai"
+ElementTree._namespace_map[OAIDCNamespace] = "oai_dc"
 ElementTree._namespace_map[DCNamespace] = "dc"
 ElementTree._namespace_map[RINamespace] = "ri"
 ElementTree._namespace_map[VSNamespace] = "vs"
@@ -43,6 +45,7 @@ def _schemaURL(xsdName):
 
 _schemaLocations = {
 	OAINamespace: _schemaURL("OAI-PMH.xsd"),
+	OAIDCNamespace: _schemaURL("oai_dc.xsd"),
 	VORNamespace: _schemaURL("VOResource-v1.0.xsd"),
 	VOGNamespace: _schemaURL("VORegistry-v1.0.xsd"),
 	DCNamespace: _schemaURL("simpledc20021212.xsd"),
@@ -232,6 +235,12 @@ class OAI:
 
 	class ListRecords(OAIElement): pass
 
+	class GetRecord(OAIElement): pass
+	
+	class ListMetadataFormats(OAIElement): pass
+
+	class ListSets(OAIElement): pass
+
 	class header(OAIElement): pass
 	
 	class record(OAIElement): pass
@@ -257,7 +266,31 @@ class OAI:
 	class description(OAIElement): pass
 	
 	class protocolVersion(OAIElement): pass
+
+	class metadataFormat(OAIElement): pass
+
+	class metadataPrefix(OAIElement): pass
+	
+	class schema(OAIElement): pass
+
+	class metadataNamespace(OAIElement): pass
+
+	class set(OAIElement): pass
+	
+	class setSpec(OAIElement): pass
+	
+	class setName(OAIElement): pass
 		
+
+class OAIDC:
+	"""is a container for OAI's Dublin Core metadata model.
+	"""
+	class OAIDCElement(Element):
+		namespace = OAIDCNamespace
+	
+	class dc(OAIDCElement):
+		pass
+
 
 class VOR:
 	"""is a container for classes modelling elements from VO Resource.
@@ -349,12 +382,24 @@ class VOR:
 	class rights(VORElement): pass
 	
 	class capability(VORElement): 
+		name = "capability"
 		a_standardID = None
 	
 	class interface(VORElement):
+		name = "interface"
 		a_version = None
 		a_role = None
 		a_qtype = None
+
+	class WebBrowser(interface):
+		a_xsi_type = "vr:WebBrowser"
+		a_xmlns_vr = VORNamespace
+		xmlns_vr_name = "xmlns:vr"
+	
+	class WebService(interface):
+		a_xsi_type = "vr:WebService"
+		a_xmlns_vr = VORNamespace
+		xmlns_vr_name = "xmlns:vr"
 
 	class accessURL(VORElement):
 		a_use = None
@@ -384,53 +429,51 @@ class VOG:
 		namespace = VOGNamespace
 		local = True
 
-	class Registry(VOGElement):
-		pass
-	
-	class full(VOGElement):
-		pass
-	
-	class managedAuthority(VOGElement):
-		pass
-	
-	class RegCapRestriction(VOGElement):
-		a_standardID = None
-	
-	class validationLevel(VOGElement):
-		pass
-	
-	class description(VOGElement):
-		pass
-	
-	class interface(VOGElement):
-		pass
-	
-	class Harvest(RegCapRestriction):
-		pass
-	
-	class Search(RegCapRestriction):
-		pass
+	class Resource(RI.Resource):
+		a_xsi_type = "vg:Registry"
+		a_xmlns_vg = VOGNamespace
+		xmlns_vg_name = "xmlns:vg"
 
-	class maxRecords(VOGElement):
-		pass
+	class capability(VOR.capability):
+		a_standardID = "ivo://ivoa.net/std/Registry"
+	
+	class Harvest(capability):
+		a_xsi_type = "vg:Harvest"
+		a_xmlns_vg = VOGNamespace
+		xmlns_vg_name = "xmlns:vg"
 
-	class extensionSearchSupport(VOGElement):
-		pass
+	class Search(VOGElement):
+		a_xsi_type = "vg:Search"
+		a_xmlns_vg = VOGNamespace
+		xmlns_vg_name = "xmlns:vg"
+
+	class OAIHTTP(VOR.interface):
+		a_xsi_type = "vg:OAIHTTP"
+		# namespace declaration has happened in enclosing element
+
+	class OAISOAP(VOR.interface):
+		a_xsi_type = "vg:OAISOAP"
+		# namespace declaration has happened in enclosing element
+
+	class description(VOGElement): pass
+		
+	class full(VOGElement): pass
 	
-	class optionalProtocol(VOGElement):
-		pass
+	class managedAuthority(VOGElement): pass
 	
-	class OAIHTTP(VOGElement):
-		pass
+	class validationLevel(VOGElement): pass
 	
-	class OAISOAP(VOGElement):
-		pass
+	class description(VOGElement): pass
 	
-	class Authority(VOGElement):
-		pass
+	class interface(VOGElement): pass
 	
-	class managingOrg(VOGElement):
-		pass
+	class maxRecords(VOGElement): pass
+
+	class extensionSearchSupport(VOGElement): pass
+	
+	class optionalProtocol(VOGElement): pass
+	
+	class managingOrg(VOGElement): pass
 
 	
 class DC:
@@ -492,14 +535,11 @@ class VS:
 	
 	class facility(VSElement): pass
 
-	class interface(VOR.interface):
+	class ParamHTTP(VOR.interface):
 		a_xsi_type = "vs:ParamHTTP"
 		a_xmlns_vs = VSNamespace
 		xmlns_vs_name = "xmlns:vs"
-
-	class ParamHTTP(interface):
-		c_resultType = None
-		c_param = []
+	
 
 	class resultType(VSElement): pass
 	
@@ -511,6 +551,26 @@ class VS:
 	
 	class dataType(VSElement):
 		a_arraysize = None
+	
+	class simpleDataType(VSElement):
+		name = "dataType"  # dataType with vs:SimpleDataType sounds so stupid
+			# that I must have misunderstood something.  Well, I just hack it and
+			# do an ad-hoc type translation at tree building time.  Yikes.
+		
+		typeMap = {
+			"char": "string",
+			"short": "integer",
+			"int": "integer",
+			"long": "integer",
+			"float": "real",
+			"double": "real",
+		}
+		def asETree(self, parent):
+			if self.isEmpty():
+				return
+			self.children = [self.typeMap.get(self.children[0], self.children[0])]
+			return super(VS.simpleDataType, self).asETree(parent)
+
 	
 	class unit(VSElement): pass
 	
@@ -528,6 +588,9 @@ class VS:
 		c_interface = []
 
 	class DataService(Service):
+		a_xsi_type = "vs:DataService"
+		a_xmlns_vs = VSNamespace
+		xmlns_vs_name = "xmlns:vs"
 		c_table = []
 
 	class TableService(Service):
@@ -629,4 +692,3 @@ class SCS:
 	class maxRecords(SCSElement): pass
 	
 	class verbosity(SCSElement): pass
-

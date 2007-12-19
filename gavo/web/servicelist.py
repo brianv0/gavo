@@ -25,10 +25,11 @@ class MissingMeta(gavo.Error):
 # These keys must be present to ensure a valid VOResource record can be
 # built XXX TODO: Check for their presence when ivoa_managed is in sets.
 _voRequiredMeta = [
+	"title",
 	"creationDate", 
 	"description", 
 	"subject", 
-	"referenceURL",
+#	"referenceURL", (would be necessary, but we default to service URL
 	"shortName", # actually, that's in just because we need it.
 ]
 
@@ -45,6 +46,7 @@ def ensureSufficientMeta(service):
 			missingKeys.append(key)
 	if missingKeys:
 		raise MissingMeta("Missing meta keys", missingKeys)
+
 
 def makeRecord(publication, service):
 	"""returns a record suitable for importing into the service list for the
@@ -127,6 +129,24 @@ def getSetsForService(shortName):
 		resource.InternalDataSet(dd, dataSource=data).getPrimaryTable().rows]
 
 
+def getSets():
+	"""returns a sequence of records for the known sets.  
+	
+	Right now, the records have the keys setName and services (containing
+	the short names of the services that are in the set).
+	"""
+	dd = resourcecache.getRd("__system__/services/services").getDataById("sets")
+	tableDef = dd.getPrimaryRecordDef()
+	data = sqlsupport.SimpleQuerier().query(
+		"SELECT * FROM %s"%(tableDef.get_table())).fetchall()
+	setMembers = {}
+	for rec in resource.InternalDataSet(dd, dataSource=data
+			).getPrimaryTable().rows:
+		setMembers.setdefault(rec["setName"], []).append(rec["shortName"])
+	return [{"setName": key, "services": value} 
+		for key, value in setMembers.iteritems()]
+
+
 def getMatchingServices(whereClause="", pars={}):
 	"""queries the services table.
 	"""
@@ -155,6 +175,7 @@ def queryServicesList(whereClause="", pars={}):
 			whereClause), pars).fetchall()
 	return resource.InternalDataSet(dd, dataSource=data).getPrimaryTable().rows
 
+
 resourcecache.makeCache("getWebServiceList", 
 	lambda ignored: queryServicesList("srv_interfaces.type='web'"))
 
@@ -177,6 +198,8 @@ def findAllRDs():
 
 
 def main():
+	"""handles the user interaction for gavopublish.
+	"""
 	from gavo import textui
 	from gavo.parsing import commandline
 	config.setDbProfile("feed")
@@ -196,4 +219,4 @@ if __name__=="__main__":
 	from gavo import textui
 	import pprint
 	config.setDbProfile("querulator")
-	pprint.pprint(getShortNamesForSets(["ivo_managed"]))
+	pprint.pprint(getSets())

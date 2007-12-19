@@ -98,6 +98,10 @@ curation.contact.name:
 curation.contact.address:
 curation.contact.email:
 curation.contact.telephone: 
+
+# registry interface
+registry.created: 2007-01-01T00:00:00Z
+registry.shortName: OAI-PMH
 """
 
 

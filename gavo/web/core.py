@@ -26,6 +26,9 @@ class Core(record.Record):
 		"""
 		defer.succeed("Core without run")
 
+	def getInputFields(self):
+		return []
+
 _coresRegistry = {}
 
 def registerCore(name, klass):

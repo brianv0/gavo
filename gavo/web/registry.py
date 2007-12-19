@@ -10,17 +10,64 @@ from elementtree import ElementTree
 
 from mx import DateTime
 
+import gavo
 from gavo import config
 from gavo import resourcecache
 from gavo import typesystems
 from gavo.parsing import importparser  # for registration of getRd
 from gavo.web import servicelist
 from gavo.web.registrymodel import OAI, VOR, VOG, DC, RI, VS, SIA, SCS,\
-	encoding
+	OAIDC, encoding
 from gavo.web.vizierexprs import getSQLKey  # getSQLKey should be moved.
 
 
+supportedMetadataPrefixes = [
+# (prefix, schema-location, namespace)
+	("oai_dc", "http://vo.ari.uni-heidelberg.de/docs/schemata/OAI-PMH.xsd",
+		"http://www.openarchives.org/OAI/2.0/oai_dc/"),
+	("ivo_vor", "http://vo.ari.uni-heidelberg.de/docs/schemata/"
+		"VOResource-v1.0.xsd", "http://www.ivoa.net/xml/VOResource/v1.0"),
+]
+
+class OAIError(gavo.Error):
+	"""is one of the standard OAI errors.
+	"""
+
+class BadArgument(OAIError): pass
+class BadResumptionToken(OAIError): pass
+class BadVerb(OAIError): pass
+class CannotDisseminateFormat(OAIError): pass
+class IdDoesNotExist(OAIError): pass
+class NoRecordsMatch(OAIError): pass
+class NoMetadataFormats(OAIError): pass
+class NoSetHierarchy(OAIError): pass
+
 _isoTimestampFmt = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def computeIdentifier(internalResource):
+	return config.get("ivoa", "rootId")+"/"+internalResource.getMeta("shortName")
+
+
+def getShortNameFromIdentifier(identifier):
+	prefix = config.get("ivoa", "rootId")+"/"
+	if not identifier.startswith(prefix):
+		raise IdDoesNotExist(identifier)
+	return identifier[len(prefix):]
+
+
+def getServiceRecForIdentifier(identifier):
+	"""returns the record for identifier in the services table.
+
+	identifier always has to be of the form ivoa://<dc identifier>/shortName.
+	"""
+# XXX TODO: Think of sth for built-in or non-service records.
+	matches = servicelist.getMatchingServices(
+		"shortName=%(shortName)s",
+		{"shortName": getShortNameFromIdentifier(identifier)})
+	if len(matches.rows)!=1:
+		raise IdDoesNotExist(identifier)
+	return matches.rows[0]
 
 
 def getResponseHeaders(pars):
@@ -29,7 +76,7 @@ def getResponseHeaders(pars):
 	return [
 		OAI.responseDate[DateTime.now().strftime(_isoTimestampFmt)],
 		OAI.request(verb=pars["verb"], 
-				metadataPrefix=pars["metadataPrefix"])]
+				metadataPrefix=pars.get("metadataPrefix"))]
 
 
 def getResourceHeaderTree(rec):
@@ -52,11 +99,11 @@ def getRegistryDatestamp():
 
 
 def getRegistryRecord():
-	return VOG.Resource(created="2007-08-24T12:00:00Z", status="active",
-		updated=getRegistryDatestamp())[
+	return VOG.Resource(created=str(config.getMeta("registry.created")),
+		status="active", updated=getRegistryDatestamp())[
 			VOR.title["%s publishing registry"%config.get("web",
 				"sitename")],
-			VOR.shortName["GAVO oai intf"],
+			VOR.shortName[config.getMeta("registry.shortName")],
 			VOR.identifier[
 				config.get("ivoa", "rootId")+"/DCRegistry"],
 			VOR.curation[
@@ -79,6 +126,14 @@ def getRegistryRecord():
 					"sitename")],
 				VOR.referenceURL[getRegistryURL()],
 				VOR.type["Archive"]
+			],
+			VOR.rights[config.getMeta("registry.rights")],
+			VOG.Harvest[
+				VOR.description[config.getMeta("registry.description")],
+				VOG.OAIHTTP[
+					VOR.accessURL[getRegistryURL()],
+				],
+				VOG.maxRecords["1000000"],
 			],
 			VOG.full["false"],
 			VOG.managedAuthority[config.get("ivoa", "managedAuthority")],
@@ -125,46 +180,37 @@ def getMatchingRecords(pars):
 		whereClause=" AND ".join(sqlFrags), pars=sqlPars)
 
 
-def getListIdentifiersTree(pars):
-	"""returns a registrymodel tree for a ListIdentifiers query.
-
-	pars is a dictionary mapping parameters to their values.
-	See getMatchingRecords for the standard ones.
-	"""
-	ns = getMetadataNamespace(pars)
-	recs = getMatchingRecords(pars)
-	return OAI.PMH[
-			[getRegistryURL()],
-		OAI.ListIdentifiers[
-			# the registry itself
-			OAI.header[
-				OAI.identifier[config.get("ivoa", "rootId")+"/DCRegistry"],
-				OAI.datestamp[getRegistryDatestamp()],
-				OAI.setSpec["ivo_managed"],
-			][ # concatenate
-			[getResourceHeaderTree(rec) for rec in recs]]
-		]
-	]
-
-
 def getDCResourceTree(rec):
 	service = resourcecache.getRd(rec["sourceRd"]).get_service(
 		rec["internalId"])
 	return OAI.record[
 		getResourceHeaderTree(rec),
 		OAI.metadata[
-			DC.title[rec["title"]],
-			DC.identifier[config.get("ivoa", "rootId")+"/"+rec["shortName"]],
-			DC.creator[service.getMeta("creator.name")],
-			DC.contributor[service.getMeta("contributor.name")],
-			DC.coverage[service.getMeta("coverage")],
-			DC.description[service.getMeta("description")],
-			DC.language[service.getMeta("language")],
-			DC.language[service.getMeta("rights")],
-			DC.publisher[service.getMeta("curation.publisher")],
+			OAIDC.dc[
+				DC.title[rec["title"]],
+				DC.identifier[config.get("ivoa", "rootId")+"/"+rec["shortName"]],
+				DC.creator[service.getMeta("creator.name")],
+				DC.contributor[service.getMeta("contributor.name")],
+				DC.coverage[service.getMeta("coverage")],
+				DC.description[service.getMeta("description")],
+				DC.language[service.getMeta("language")],
+				DC.language[service.getMeta("rights")],
+				DC.publisher[service.getMeta("curation.publisher")],
+			]
 		]
 	]
 
+
+def getDCResourceListTree(pars):
+	return OAI.PMH[
+		getResponseHeaders(pars),
+# XXX TODO: include standard resources: registry, authority...
+		OAI.ListRecords[
+			[getDCResourceTree(rec)
+				for rec in getMatchingRecords(pars)]]]
+
+
+################ Functions to generate VO Resources
 
 def getServiceItems(service):
 	"""returns a sequence of elements making up a plain VOResource service 
@@ -211,7 +257,7 @@ def getServiceItems(service):
 
 def getResponseTableTree(service):
 	return VS.table(role="out")[
-		[getParamFromField(f, rootElement=VS.column)
+		[getTableParamFromField(f)
 			for f in service.getOutputFields(None)]
 	]
 
@@ -243,8 +289,20 @@ def getDataServiceItems(service, capabilities):
 	]
 
 
-def getParamFromField(dataField, rootElement=VS.param):
-	"""returns a param element for dataField.
+def getInputParamFromField(dataField, rootElement=VS.param):
+	"""returns a InputParam element for dataField.
+	"""
+	type, length = typesystems.sqltypeToVOTable(dataField.get_dbtype())
+	return rootElement[
+			VS.name[dataField.get_source()],
+			VS.description[dataField.get_description()],
+			VS.unit[dataField.get_unit()],
+			VS.ucd[dataField.get_ucd()],
+			VS.simpleDataType[type]]
+
+
+def getTableParamFromField(dataField, rootElement=VS.column):
+	"""returns a InputParam element for dataField.
 	"""
 	type, length = typesystems.sqltypeToVOTable(dataField.get_dbtype())
 	return rootElement[
@@ -258,11 +316,11 @@ def getParamFromField(dataField, rootElement=VS.param):
 def getParamItems(service):
 	"""returns a sequence of vs:param elements for the input of service.
 	"""
-	return [getParamFromField(f) for f in service.getInputFields()]
+	return [getInputParamFromField(f) for f in service.getInputFields()]
 
 _rendererParameters = {
 	"siap.xml":  ("GET",  SIA.interface,  "application/x-votable"),
-	"scs.xml":   ("GET",  SCS.interface,   "application/x-votable"),
+	"scs.xml":   ("GET",  SCS.interface,  "application/x-votable"),
 	"form":      ("POST", VS.ParamHTTP,   "text/html"),
 	"upload":    ("POST", VS.ParamHTTP,   "text/html"),
 	"mupload":   ("POST", VS.ParamHTTP,   "text/plain"),
@@ -275,7 +333,14 @@ def getInterfaceTree(service, renderer):
 	use = "full"
 	if qtype=="GET":
 		use = "base"
-	params = getParamItems(service)
+	try:
+		params = getParamItems(service)
+	except Exception, msg:
+		# quite a few things can go wrong here.  Since probably nobody cares
+		# about these anyway, issue a warning and go on
+		gavo.logger.warning("Cannot create parameter items for service %s: %s"%(
+			service.getMeta("shortName"), str(msg)))
+		params = []
 	return interfaceFactory[
 		VOR.accessURL(use=use)[service.getURL(renderer, qtype)],
 		VOR.securityMethod(standardId=service.getMeta("securityId")),
@@ -334,23 +399,23 @@ def getScsResourceTree(rec, service):
 	]
 
 
-def getCatalogServiceCapabilityTree(service):
+def getPlainCapabilityTree(service):
 	return VOR.capability[  
 		# XXX add local description item -- where should this come from?
-		getIterfaceTree("service", "form"),
+		getInterfaceTree(service, "form"),
 		# XXX local validationLevel???
 	]
 
 
 def getCatalogServiceResourceTree(rec, service):
 	return VS.CatalogService(**getResourceArgs(rec, service))[
-		getCatalogServiceItems(service, []),
+		getCatalogServiceItems(service, getPlainCapabilityTree(service)),
 	]
 
 
 def getDataServiceResourceTree(rec, service):
 	return VS.DataService(**getResourceArgs(rec, service))[
-		getDataServiceItems(service, []),
+		getDataServiceItems(service, getPlainCapabilityTree(service)),
 	]
 
 
@@ -382,8 +447,8 @@ def getVOResourceTree(rec):
 			break
 		if pub["render"]=="form":
 			makeResource = (getCatalogServiceResourceTree, "tabular")
-	sys.stderr.write(">>>> Returning %s service %s\n"%(makeResource[1], 
-		service.getMeta("shortName")))
+#	sys.stderr.write(">>>> Returning %s service %s\n"%(makeResource[1], 
+#		service.getMeta("shortName")))
 	return OAI.record[
 		getResourceHeaderTree(rec),
 		OAI.metadata[
@@ -392,14 +457,23 @@ def getVOResourceTree(rec):
 	]
 
 
-def getDCResourceListTree(pars):
+############## End functions to generate VO Resources
+
+
+def getGetRecordTree(pars, rec, treeGenerator):
 	return OAI.PMH[
 		getResponseHeaders(pars),
-# XXX TODO: include standard resources: registry, authority...
-		OAI.ListRecords[
-			[getDCResourceTree(rec)
-				for rec in getMatchingRecords(pars)]]]
-			
+		OAI.GetRecord[
+			treeGenerator(rec),
+		]
+	]
+
+def getVOGetRecordTree(pars, rec):
+	return getGetRecordTree(pars, rec, getVOResourceTree)
+
+def getDCGetRecordTree(pars, rec):
+	return getGetRecordTree(pars, rec, getDCResourceTree)
+
 
 def getVOResourceListTree(pars):
 	return OAI.PMH[
@@ -408,9 +482,49 @@ def getVOResourceListTree(pars):
 		OAI.ListRecords[
 			[getVOResourceTree(rec)
 				for rec in getMatchingRecords(pars)]]]
-			
+
+
+def dispatchOnPrefix(pars, OAIBuilder, VORBuilder, *args):
+	"""dispatches to OAIBuilder or VORBuilder depending on metadataPrefix.
+	"""
+	if pars.get("metadataPrefix")=="ivo_vor":
+		return VORBuilder(pars, *args)
+	elif pars.get("metadataPrefix")=="oai_dc":
+		return OAIBuilder(pars, *args)
+	else:
+		if "metadataPrefix" in pars:
+			raise CannotDisseminateFormat("%s metadata are not supported"%pars[
+				"metadataPrefix"])
+		else:
+			raise BadArgument("metadataPrefix missing")
+
+
+############## Toplevel tree builders
+
+
+def getListIdentifiersTree(pars):
+	"""returns a tree of registrymodel Elements for a ListIdentifiers response.
+
+	We don't have ivo specific metadata in the headers, so this ignores
+	the metadata prefix.
+	"""
+	ns = getMetadataNamespace(pars)
+	return OAI.PMH[
+		getResponseHeaders(pars),
+		OAI.ListIdentifiers[
+			[# the registry itself
+			OAI.header[
+				OAI.identifier[config.get("ivoa", "rootId")+"/DCRegistry"],
+				OAI.datestamp[getRegistryDatestamp()],
+				OAI.setSpec["ivo_managed"]], # XXX TODO: use real sets
+			[getResourceHeaderTree(rec) for rec in getMatchingRecords(pars)]]
+		]
+	]
+
 
 def getIdentifyTree(pars):
+	"""returns a tree of registrymodel Elements for an Identify response.
+	"""
 	return OAI.PMH[
 		getResponseHeaders(pars),
 		OAI.Identify[
@@ -429,8 +543,75 @@ def getIdentifyTree(pars):
 	]
 
 
+def dispatchListRecordsTree(pars):
+	"""returns a tree of registrymodel Elements for a ListRecords response.
+	"""
+	return dispatchOnPrefix(pars, getDCResourceListTree,
+		getVOResourceListTree)
+
+
+def dispatchGetRecordTree(pars):
+	"""returns a tree of registrymodel Elements for a getRecord response.
+	"""
+	identifier = pars["identifier"]
+	return dispatchOnPrefix(pars, getDCGetRecordTree,
+		getVOGetRecordTree, getServiceRecForIdentifier(identifier))
+
+
+def getListMetadataFormatTree(pars):
+	"""returns a tree of registrymodel Elements for a
+	listMetadataFormats response.
+	"""
+	# identifier is not ignored since crooks may be trying to verify the
+	# existence of resource in this way, even though we should be able
+	# to provide both supported metadata formats for all records.
+	if pars.has_key("identifier"):
+		getServiceRecForIdentifier(pars["identifier"])
+	return OAI.PMH[
+		getResponseHeaders(pars),
+		OAI.ListMetadataFormats[[
+			OAI.metadataFormat[
+				OAI.metadataPrefix[prefix],
+				OAI.schema[schema],
+				OAI.metadataNamespace[ns],
+			] 
+		for prefix, schema, ns in supportedMetadataPrefixes]]
+	]
+
+
+def getListSetsTree(pars):
+	"""returns a tree of registrymodel Elements for a ListSets response.
+	"""
+	return OAI.PMH[
+		getResponseHeaders(pars),
+		OAI.ListSets[[
+			# Once we have better description of sets, add stuff here
+			OAI.set[
+				OAI.setSpec[set["setName"]],
+				OAI.setName[set["setName"]],
+			]
+		for set in servicelist.getSets()]]
+	]
+
+pmhHandlers = {
+	"GetRecord": dispatchGetRecordTree,
+	"Identify": getIdentifyTree,
+	"ListIdentifiers": getListIdentifiersTree,
+	"ListMetadataFormats": getListMetadataFormatTree,
+	"ListRecords": dispatchListRecordsTree,
+	"ListSets": getListSetsTree,
+}
+
+def getPMHResponse(pars):
+	"""returns an ElementTree containing a OAI-PMH response for the query 
+	described by pars.
+	"""
+	tree = pmhHandlers[pars["verb"]](pars)
+	return ElementTree.ElementTree(tree.asETree())
+
+
 if __name__=="__main__":
 	from gavo import config
 	from gavo import nullui
 	config.setDbProfile("querulator")
-	print ElementTree.tostring(getVOResourceListTree({"verb": "ListRecords", "metadataPrefix": "ivo_vor", "set": ["local", "ivo_managed"]}).asETree(), encoding)
+	print ElementTree.tostring(getPMHResponse({"verb": "ListSets"}).getroot(), encoding)

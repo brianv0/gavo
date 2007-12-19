@@ -244,7 +244,6 @@ class DbBasedCore(QueryingCore):
 			"condition": condition,
 			"limtags": limtagsFrag,
 		}
-		print ">>>>>>>>>>>", query, pars
 		return resourcecache.getDbConnection().runQuery(query, pars)
 
 	def run(self, inputTable, queryMeta):
