@@ -14,34 +14,43 @@ left out, it will bomb out.
 Only construct Conditions via the factory function makeCondition.
 """
 
+import gavo
+
+class SkipRecord(gavo.Error):
+	"""is raised when a non-fatal constraint is violated.
+	"""
+	def __init__(self, msg, constraint):
+		gavo.Error.__init__(self, msg)
+		self.constraint = constraint
+
+
 class Constraints:
 	"""is a set of constraints that, on evaluation, are combined in a
 	conjunction ("AND").
 	"""
-	def __init__(self):
+	def __init__(self, fatal="False"):
+		self.fatal = fatal
 		self.constraints = []
 	
 	def addConstraint(self, constraint):
 		self.constraints.append(constraint)
 	
-	def check(self, rowdict, record):
+	def check(self, aDict):
 		for constraint in self.constraints:
-			if not constraint.check(rowdict, record):
-				return False
+			if not constraint.check(aDict):
+				if self.fatal:
+					raise gavo.ValidationError("Constraint violated",
+						fieldName=constraint.name, record=aDict)
+				else:
+					raise SkipRecord("Constraint violated", constraint.name)
 		return True
 
 
 class Constraint:
-	"""is a (set of) condition(s) that must be satisfied if a record
-	is to be accepted for inclusion in the table.
+	"""is a (set of) condition(s) that must be satisfied if a dictionary
+	is to be accepted for inclusion in a table.
 
 	All conditions within a constraint are interpreted as a disjunction ("OR").
-
-	To be flexible in the conditions specified, conditions can work on
-	both the rowdict and the record.  That is why the check method needs
-	both of these.  Concrete conditions will usually need only one of
-	them -- maybe we should separate GrammarConditions and SemanticsConditions?
-	Bah, too complicated for now.
 	"""
 	def __init__(self, name):
 		self.conditions = []
@@ -53,11 +62,11 @@ class Constraint:
 	def addCondition(self, condition):
 		self.conditions.append(condition)
 	
-	def check(self, rowdict, record):
+	def check(self, aDict):
 		if not self.conditions:
 			return True
 		for cond in self.conditions:
-			if cond.check(rowdict, record):
+			if cond.check(aDict):
 				return True
 		return False
 
@@ -72,33 +81,33 @@ class _Condition:
 	pass
 
 
-class _PreterminalNotEqualCondition(_Condition):
+class _ValueNotEqualCondition(_Condition):
 	"""is a condition that a certain element of rowdict does not have a 
 	specified value.
 	"""
 	def __init__(self, name, value):
 		self.name, self.value = name, value
 	
-	def check(self, rowdict, record):
-		if rowdict.get(self.name)==self.value:
+	def check(self, aDict):
+		if aDict.get(self.name)==self.value:
 			return False
 		else:
 			return True
 
 
-class _PreterminalPresentCondition(_Condition):
+class _KeyPresentCondition(_Condition):
 	"""is a condition that a certain value is present in a preterminal.
 	"""
 	def __init__(self, name):
 		self.name = name
 
-	def check(self, rowdict, record):
-		return rowdict.has_key(self.name)
+	def check(self, aDict):
+		return aDict.has_key(self.name)
 
 
 _conditionsRegistry = {
-	"preterminalNotEqual": (_PreterminalNotEqualCondition, ["name", "value"]),
-	"preterminalPresent": (_PreterminalPresentCondition, ["name"]),
+	"valueNotEqual": (_ValueNotEqualCondition, ["name", "value"]),
+	"keyPresent": (_KeyPresentCondition, ["name"]),
 }
 
 def makeCondition(attrs):
@@ -113,3 +122,7 @@ def makeCondition(attrs):
 	for arg in args:
 		argdict[arg] = attrs[arg]
 	return cls(**argdict)
+
+
+if __name__=="__main__":
+	print "To be done."

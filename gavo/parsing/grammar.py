@@ -7,6 +7,7 @@ from gavo import parsing
 from gavo import record
 from gavo import sqlsupport
 from gavo import utils
+from gavo.parsing import conditions
 import gavo
 
 
@@ -43,6 +44,7 @@ class Grammar(record.Record):
 		fields = {
 			"macros": record.ListField,      # macros to be applied
 			"rowProcs": record.ListField,    # row processors to be applied
+			"constraints": None,             # constraints on rowdicts
 			"docIsRow": record.BooleanField, # apply row macros to docdict 
                                        # and ship it as a row?
 		}
@@ -141,6 +143,13 @@ class Grammar(record.Record):
 
 		The argument is a dict mapping preterminal names to their values.
 		"""
+		try:
+			if self.get_constraints():
+				self.get_constraints().check(rowdict)
+		except conditions.SkipRecord, err:
+			if parsing.verbose:
+				logger.info("Skipping rowdict %s because constraint %s failed to"
+					" satisfied"%(record, err.constraint))
 		for processedDict in self._process(rowdict, parseContext):
 			parseContext.processRowdict(processedDict)
 

@@ -185,7 +185,7 @@ myTests = [
 			404,
 			"Disallowed renderer yields 404."),
 	),
-	TestGroup("cns-siap",
+	TestGroup("cns-scs",
 		GetHasStringsTest(nv_root+"/cns/res/cns/scs/scs.xml",
 			["VOTABLE", "in given Parameters"],
 			"SCS error reporting 1"),
@@ -224,13 +224,15 @@ myTests = [
 					'ivo_managed'],
 			"PMH ListIdentifiers response looks all right in oai_dc"),
 		GetHasStringsTest(nv_root+"/oai.xml?"
-				"verb=GetRecord&identifier=ivo://org.gavo/dc/lenses_web&"
+				"verb=GetRecord&"
+				"identifier=ivo://org.gavo.dc/maidanak/res/rawframes/siap&"
 				"metadataPrefix=ivo_vor", [
 					'oai:GetRecord>',
 					'ri:Resource'],
 			"PMH GetRecord response looks all right in ivo_vor"),
 		GetHasStringsTest(nv_root+"/oai.xml?"
-				"verb=GetRecord&identifier=ivo://org.gavo/dc/lenses_web&"
+				"verb=GetRecord&"
+				"identifier=ivo://org.gavo.dc/maidanak/res/rawframes/siap&"
 				"metadataPrefix=oai_dc", [
 					'oai:GetRecord>',
 					'dc:title'],

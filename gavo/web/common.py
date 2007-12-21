@@ -272,6 +272,7 @@ class GavoRenderMixin(object):
 			T.script(type='text/javascript', src=makeSitePath('/js/formal.js')),
 		]
 
+
 class QueryMeta(dict):
 	"""is a class keeping all data *about* a query, e.g., the
 	requested output format.

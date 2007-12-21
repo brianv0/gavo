@@ -25,6 +25,7 @@ cacheDir: cache
 logDir: logs
 tempDir: tmp
 webDir: %(rootDir)s/web
+stateDir: %(rootDir)s/state
 logLevel: info
 operator: gavo@ari.uni-heidelberg.de
 platform:
@@ -76,18 +77,11 @@ foreignsql:untrustedquery
 writable:worldwritable
 
 [ivoa]
-# You need these if you want to register your services with a VO Registry
-# The root id (used to create identifiers)
-rootId:
-# The namespace used for services withing the DC software
-managedAuthority:
+# the authority id for this DC
+authority:
+registryIdentifier: ivo://org.gavo.dc/static/registryrecs/registry.rr
 
 [meta]
-# Default identity, MUST BE OVERRIDDEN BY CONCRETE RESOURCES!
-identity.title: Unnamed resource
-identity.shortName: Unnamed
-identity.identifier:
-
 # Default curation
 curation.publisher: 
 curation.publisher.name: 
@@ -98,10 +92,6 @@ curation.contact.name:
 curation.contact.address:
 curation.contact.email:
 curation.contact.telephone: 
-
-# registry interface
-registry.created: 2007-01-01T00:00:00Z
-registry.shortName: OAI-PMH
 """
 
 

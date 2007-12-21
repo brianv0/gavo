@@ -13,6 +13,9 @@ from gavo.parsing import parseswitch
 from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
 from gavo.parsing import typeconversion
+from gavo.web import staticresource
+
+from gavo.web.staticresource import rdId
 
 
 class MissingMeta(gavo.Error):
@@ -90,8 +93,8 @@ def updateServiceList(rd):
 	"""updates the services defined in rd in the services table in the database.
 	"""
 	# Don't use resourcecache here since we're going to mess with the rd
-	serviceRd = importparser.getRd("__system__/services/services", 
-		forImport=True)
+	from gavo.parsing import importparser
+	serviceRd = importparser.getRd(rdId, forImport=True)
 	dd = serviceRd.getDataById("servicelist")
 	serviceRd.register_property("srcRdId", rd.sourceId)
 	inputData = sqlsupport.makeRowsetFromDicts(
@@ -107,7 +110,7 @@ def getShortNamesForSets(queriedSets):
 	"""returns the list of service shortNames that are assigned to any of
 	the set names mentioned in the list queriedSets.
 	"""
-	dd = resourcecache.getRd("__system__/services/services").getDataById("sets")
+	dd = resourcecache.getRd(rdId).getDataById("sets")
 	tableDef = dd.getPrimaryRecordDef()
 	data = sqlsupport.SimpleQuerier().query(
 		"SELECT * FROM %s WHERE setName in %%(sets)s"%(tableDef.get_table()),
@@ -119,7 +122,7 @@ def getShortNamesForSets(queriedSets):
 def getSetsForService(shortName):
 	"""returns the list of set names the service shortName belongs to.
 	"""
-	dd = resourcecache.getRd("__system__/services/services").getDataById("sets")
+	dd = resourcecache.getRd(rdId).getDataById("sets")
 	tableDef = dd.getPrimaryRecordDef()
 	data = sqlsupport.SimpleQuerier().query(
 		"SELECT * FROM %s WHERE shortName = %%(name)s"%(tableDef.get_table()),
@@ -134,7 +137,7 @@ def getSets():
 	Right now, the records have the keys setName and services (containing
 	the short names of the services that are in the set).
 	"""
-	dd = resourcecache.getRd("__system__/services/services").getDataById("sets")
+	dd = resourcecache.getRd(rdId).getDataById("sets")
 	tableDef = dd.getPrimaryRecordDef()
 	data = sqlsupport.SimpleQuerier().query(
 		"SELECT * FROM %s"%(tableDef.get_table())).fetchall()
@@ -149,8 +152,7 @@ def getSets():
 def getMatchingServices(whereClause="", pars={}):
 	"""queries the services table.
 	"""
-	dd = resourcecache.getRd("__system__/services/services"
-		).getDataById("servicelist")
+	dd = resourcecache.getRd(rdId).getDataById("servicelist")
 	return resource.getMatchingData(dd, "services", 
 		whereClause, pars).getPrimaryTable()
 
@@ -160,7 +162,7 @@ def queryServicesList(whereClause="", pars={}):
 
 	This is mainly for the benefit of the portal page.
 	"""
-	rd = resourcecache.getRd("__system__/services/services")
+	rd = resourcecache.getRd(rdId)
 	dd = rd.getDataById("services").copy()
 	grammar = dd.get_Grammar()
 	sources = [f.get_source() for f in grammar.get_items()]
@@ -174,9 +176,25 @@ def queryServicesList(whereClause="", pars={}):
 			whereClause), pars).fetchall()
 	return resource.InternalDataSet(dd, dataSource=data).getPrimaryTable().rows
 
-
 resourcecache.makeCache("getWebServiceList", 
 	lambda ignored: queryServicesList("srv_interfaces.type='web'"))
+
+
+def getResourceForRec(rec):
+	"""returns a "resource" for the record rec.
+
+	rec at least has to contain the sourceRd and internalId fields.
+
+	The item that is being returned is either a service or a StaticResource
+	object.  All of these have a getMeta method and should be able to
+	return the standard DC metadata.  Everything else depends on the type
+	of StaticResource.
+	"""
+	sourceRd, internalId = rec["sourceRd"], rec["internalId"]
+	if sourceRd==rdId:
+		return staticresource.loadStaticResource(internalId)
+	else:
+		return resourcecache.getRd(sourceRd).get_service(internalId)
 
 
 def parseCommandLine():

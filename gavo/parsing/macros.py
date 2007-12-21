@@ -299,6 +299,40 @@ class TimestampCombiner(Macro):
 		record[self.destination] = dateObj+timeObj
 
 
+class ValueGetter(Macro):
+	"""is a macro that just enters a value into the rowdict.
+
+	This is mainly useful to get @-expanded values into the rowdict
+	for macros that want to read from fields.  It's also more convenient
+	than interpolateStrings and friends to set constants.
+
+	Construction Arguments:
+
+	* destination -- the name of the field the value should end up in
+
+	Arguments:
+
+	* value -- the value to be added
+
+	>>> v = ValueGetter(argTuples=[("value", "", "inserted")], 
+	...   destination="constant")
+	>>> r = {"bla": "foo"}
+	>>> v(None, r)
+	>>> r["constant"]
+	'inserted'
+	"""
+	def __init__(self, argTuples=[], destination=None):
+		Macro.__init__(self, argTuples)
+		self.destination = destination
+	
+	@staticmethod
+	def getName():
+		return "enterValue"
+	
+	def _compute(self, record, value):
+		record[self.destination] = value
+
+
 class ValueCatter(Macro):
 	"""is a macro that concatenates values from various rows and puts
 	the resulting value in destinationRow.

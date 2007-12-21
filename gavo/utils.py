@@ -553,6 +553,16 @@ def getErrorField():
 	return getattr(val, "fieldName", "<unknown>")
 
 
+def getRelativePath(fullPath, rootPath):
+	"""returns rest if fullPath has the form rootPath/rest and raises an
+	exception otherwise.
+	"""
+	if not fullPath.startswith(rootPath):
+		raise Error("Full path %s does not start with resource root %s"%
+			(fullPath, rootPath))
+	return fullPath[len(rootPath):].lstrip("/")
+
+
 def _test():
 	import doctest, utils
 	doctest.testmod(utils)

@@ -69,7 +69,7 @@ class RdParser(utils.NodeBuilder):
 	def resolveItemReference(self, id):
 		"""returns the data descriptor with id.
 
-		If there's a : in id, the stuff in front of the colon is
+		If there's a # in id, the stuff in front of it is
 		an inputs-relative path to another resource descriptor,
 		and the id then refers to one of its data descriptors.
 		"""
@@ -78,9 +78,9 @@ class RdParser(utils.NodeBuilder):
 			if rdPath.startswith("./"):
 				rdPath = os.path.join(os.path.dirname(self.rd.sourceId), rdPath)
 			rd = resourcecache.getRd(rdPath)
+			element = rd.getById(id)[1].copy()
 		else:
-			rd = self.rd
-		element = rd.getById(id)[1].copy()
+			element = self.getById(id)[1].copy()
 		element.setExtensionFlag(True)
 		return element
 
@@ -111,7 +111,7 @@ class RdParser(utils.NodeBuilder):
 			"Data": lambda val:0,      # these register themselves
 			"Adapter": lambda val: 0,  # these register themselves
 			"Service": lambda val: 0,  # these register themselves
-			"property": lambda val: dd.register_property(*val),
+			"property": lambda val: self.rd.register_property(*val),
 			"meta": self.rd.addMeta,
 		}, children)
 		# XXX todo: coordinate systems
@@ -150,6 +150,7 @@ class RdParser(utils.NodeBuilder):
 		handlers = {
 			"Macro": grammar.addto_macros,
 			"RowProcessor": grammar.addto_rowProcs,
+			"constraints": grammar.set_constraints,
 		}
 		handlers.update(classHandlers)
 		return self._processChildren(grammar, grammar.__class__.__name__, 	
@@ -226,12 +227,19 @@ class RdParser(utils.NodeBuilder):
 	def _make_Record(self, name, attrs, children):
 		if attrs.has_key("original"):
 			recDef = self.resolveItemReference(attrs["original"])
+			setDefaults = False
 		else:
 			recDef = resource.RecordDef()
-		recDef.set_table(attrs["table"])
-		recDef.set_onDisk(attrs.get("onDisk", "False"))
-		recDef.set_forceUnique(attrs.get("forceUnique", "False"))
-		recDef.set_create(attrs.get("create", "True"))
+			setDefaults = True
+		# Ouch -- if I have a copy, I don't want to overwrite attributes
+		# not given with defaults.  This sort of mess would be necessary
+		# wherever we deal with copies like this.  Yikes.
+		for attName, default in [("table", None), ("onDisk", "False"),
+				("forceUnique", "False"), ("create", "True")]:
+			if attrs.has_key(attName):
+				recDef.set(attName, attrs[attName])
+			elif setDefaults:
+				recDef.set(attName, default)
 		if name=="SharedRecord":
 			recDef.set_shared(True)
 
@@ -393,7 +401,8 @@ class RdParser(utils.NodeBuilder):
 			self.getContent(children))
 
 	def _make_constraints(self, name, attrs, children):
-		constraints = conditions.Constraints()
+		constraints = conditions.Constraints(fatal=record.parseBooleanLiteral(
+			attrs.get("fatal", "False")))
 		return self._processChildren(constraints, name, {
 			"constraint": constraints.addConstraint,
 		}, children)

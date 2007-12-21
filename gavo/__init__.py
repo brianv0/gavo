@@ -18,6 +18,7 @@ class Error(Exception):
 	Modules should usually derive their exceptions from this.
 	"""
 
+
 class FatalError(Error):
 	"""should be called whenever the current operation can't be sensibly
 	completed and must be aborted.
@@ -44,7 +45,15 @@ class ValidationError(Error):
 	"""
 	def __init__(self, msg, fieldName, record=None):
 		Error.__init__(self, msg)
+		self.msg = msg
 		self.fieldName, self.record = fieldName, record
+	
+	def __str__(self):
+		recStr = ""
+		if self.record:
+			recStr = ", record %s"%self.record
+		return "Validation failed on field %s (%s)%s"%(self.fieldName, self.msg,
+			recStr)
 
 
 floatRE = r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?"

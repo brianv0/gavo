@@ -20,6 +20,7 @@ from gavo import sqlsupport
 from gavo import table
 from gavo import utils
 from gavo import votable
+from gavo.parsing import conditions
 from gavo.parsing import meta
 from gavo.parsing import nullgrammar
 from gavo.parsing import parsehelpers
@@ -111,6 +112,8 @@ class RecordDef(record.Record, meta.MetaMixin):
 		"""
 		for field in self.get_items():
 			field.validate(record.get(field.get_dest()))
+		if self.get_constraints():
+			self.get_constraints().check(record)
 	
 	def addto_items(self, item):
 		if self.fieldIndexDict.has_key(item.get_dest()):
@@ -175,7 +178,7 @@ class ParseContext:
 # actually, the sourceName/ sourceFile interface is bad.  We need 
 # abstraction, because basically, grammars should be able to read from
 # anything.
-	def __init__(self, sourceFile, grammar, dataSet, literalParser):
+	def __init__(self, sourceFile, dataSet, literalParser):
 		if isinstance(sourceFile, basestring):
 			self.sourceName = sourceFile
 			self.sourceFile = open(self.sourceName)
@@ -189,7 +192,6 @@ class ParseContext:
 			self.sourceName = "<anonymous>"
 			self.sourceFile = sourceFile
 		self.dataSet = dataSet
-		self.grammar = grammar
 		self.literalParser = literalParser
 		self.rowsProcessed = 0
 		self.fieldComputer = parsehelpers.FieldComputer(self)
@@ -211,7 +213,14 @@ class ParseContext:
 		ships out the record.
 		"""
 		for targetTable, recordDef in self.rowTargets:
-			targetTable.addData(self._buildRecord(recordDef, rowdict))
+			record = self._buildRecord(recordDef, rowdict)
+			try:
+				recordDef.validate(record)
+				targetTable.addData(record)
+			except conditions.SkipRecord, err:
+				if parsing.verbose:
+					logger.info("Skipping record %s because constraint %s failed to"
+						" satisfied"%(record, err.constraint))
 		self.rowsProcessed += 1
 	
 	def processDocdict(self, docdict):
@@ -232,8 +241,6 @@ class ParseContext:
 	def _buildRecord(self, recordDef, rowdict):
 		"""returns a record built from rowdict and recordDef's item definition.
 		"""
-		# Actually, this is being used for docdicts as well, which is a bit
-		# clumsy because of the error message...
 		record = {}
 		try:
 			for field in recordDef.get_items():
@@ -241,23 +248,13 @@ class ParseContext:
 		except Exception, msg:
 			msg.field = field.get_dest()
 			utils.raiseTb(gavo.ValidationError, msg, field.get_dest(), rowdict)
-		self._checkRecord(recordDef, rowdict, record)
 		return record
 	
-	def _checkRecord(self, recordDef, rowdict, record):
-		"""raises some kind of exception there is something wrong the record.
-		"""
-		recordDef.validate(record)
-		if recordDef.get_constraints():
-			if not recordDef.get_constraints().check(rowdict, record):
-				raise gavo.InfoException("Record %s doesn't satisfy constraints,"
-					" skipping."%record)
-
 	def atExpand(self, val, rowdict):
 		return parsehelpers.atExpand(val, rowdict, self.fieldComputer)
 
 	def parse(self):
-		self.grammar.parse(self)
+		return self.dataSet.getDescriptor().get_Grammar().parse(self)
 
 
 class DataSet(meta.MetaMixin):
@@ -348,8 +345,7 @@ class DataSet(meta.MetaMixin):
 		"""
 		literalParser = typeconversion.LiteralParser(self.dD.get_encoding())
 		for src in self.dD.iterSources():
-			yield ParseContext(src, self.dD.get_Grammar(),
-				self, literalParser)
+			yield ParseContext(src, self, literalParser)
 
 	def validate(self):
 		self.dD.validate(self.docRec)
@@ -423,7 +419,7 @@ class InternalDataSet(DataSet):
 
 	def _iterParseContexts(self):
 		literalParser = typeconversion.LiteralParser(self.dD.get_encoding())
-		yield ParseContext(self.dataSource, self.dD.get_Grammar(), self,
+		yield ParseContext(self.dataSource, self,
 			literalParser)
 
 

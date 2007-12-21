@@ -50,7 +50,9 @@ def runATest(title, pars):
 		print "*** Error ***"
 	else:
 		print "Ok."
-	
+
+
+testId = "ivo://org.gavo.dc/maidanak/res/rawframes/siap"
 
 _testSpecs = [
 	("Identify", {"verb": "Identify", "metadataPrefix": "ivo_vor"}),
@@ -60,12 +62,12 @@ _testSpecs = [
 		"metadataPrefix": "oai_dc", "set": ["local", "ivo_managed"]}),
 	("ListRecords (ivo_vor)", {"verb": "ListRecords", 
 		"metadataPrefix": "ivo_vor", "set": ["local", "ivo_managed"]}),
-	("GetRecord (oai_dc)", {"verb": "GetRecord", "metadataPrefix": 
-		"oai_dc", "identifier": "ivo://org.gavo/dc/lenses_web"}),
-	("GetRecord (ivo_vor)", {"verb": "GetRecord", "metadataPrefix": 
-		"ivo_vor", "identifier": "ivo://org.gavo/dc/lenses_web"}),
+	("GetRecord (oai_dc)", {"verb": "GetRecord", "metadataPrefix": "oai_dc", 
+		"identifier": testId}),
+	("GetRecord (ivo_vor)", {"verb": "GetRecord", "metadataPrefix": "ivo_vor", 
+		"identifier": testId}),
 	("ListMetadataFormats with identifier", {"verb": "ListMetadataFormats", 
-		"identifier": "ivo://org.gavo/dc/lenses_web"}),
+		"identifier": testId}),
 	("ListSets", {"verb": "ListSets"}),
 ]
 

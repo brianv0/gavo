@@ -178,7 +178,7 @@ class Element(object):
 		try:
 			if not self.mayBeEmpty and self.isEmpty():
 				return
-			if self.local:
+			if self.local or isinstance(self.name, ElementTree.QName):
 				elName = self.name
 			else:
 				elName = ElementTree.QName(self.namespace, self.name)
@@ -310,6 +310,9 @@ class VOR:
 		a_updated = None
 		a_status = None
 		
+		name = ElementTree.QName(RINamespace, "Resource")
+		local = False
+
 		c_title = None
 		c_curation = None
 		c_identifier = None
@@ -317,6 +320,9 @@ class VOR:
 		c_title = None
 
 	class Organisation(Resource):
+		a_xsi_type = "vr:Organisation"
+		a_xmlns_vr = VORNamespace
+		xmlns_vr_name = "xmlns:vr"
 		c_facility = []
 		c_instrument = []
 		
@@ -341,7 +347,7 @@ class VOR:
 
 	class creator(VORElement): pass
 	
-	class contributor(VORElement): pass
+	class contributor(ResourceName): pass
 	
 	class date(VORElement):
 		a_role = None

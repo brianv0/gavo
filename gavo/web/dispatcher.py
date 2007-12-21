@@ -201,6 +201,20 @@ class StaticServer(static.File):
 _staticServer = StaticServer()
 
 
+class MaintPage(rend.Page):
+	"""will be displayed during maintenance.
+	"""
+	docFactory = loaders.stan(T.html[
+		T.head[
+			T.title["Archive Service"]
+		],
+		T.body[
+			T.h1["Maintenance"],
+			T.p["The archive service is currently shut down for maintenance."],
+		]
+	])
+
+
 renderClasses = {
 	"form": (resourcebased.getServiceRend, resourcebased.Form),
 	"oai.xml": (lambda ctx, segs, cls: cls(), vodal.RegistryRenderer),
@@ -219,6 +233,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		common.GavoRenderMixin):
 
 	def __init__(self):
+		self.maintFile = os.path.join(config.get("stateDir"), "MAINT")
 		self.customTemplate = os.path.join(config.get("web", "templateDir"),
 			"root.html")
 		rend.Page.__init__(self)
@@ -270,6 +285,8 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		return res
 
 	def locateChild(self, ctx, segments):
+		if os.path.exists(self.maintFile):
+			return MaintPage(), ()
 		if segments[:self.rootLen]!=self.rootSegments:
 			return None, ()
 		segments = segments[self.rootLen:]

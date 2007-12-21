@@ -7,6 +7,8 @@ import re
 import time
 import weakref
 
+from mx import DateTime
+
 from gavo import config
 from gavo import coords
 from gavo import utils
@@ -143,25 +145,6 @@ class RDComputer:
 		return "%s.%s"%(self.rd.get_schema(),
 			tableName)
 
-	def _getRelativePath(self, fullPath, rootPath):
-		"""returns rest if fullPath has the form rootPath/rest and raises an
-		exception otherwise.
-		"""
-		if not fullPath.startswith(rootPath):
-			raise Error("Full path %s does not start with resource root %s"%
-				(fullPath, rootPath))
-		return fullPath[len(rootPath):].lstrip("/")
-
-	def _fc_inputRelativePath(self, rows):
-		"""returns the current source's path relative to inputsDir
-		(or raises an error if it's not from there).
-
-		This is available in general @-expansions.
-		"""
-		fullPath = self.context.sourceName
-		rootPath = config.get("inputsDir")
-		return self._getRelativePath(fullPath, rootPath)
-
 	def _fc_rdId(self, rows):
 		"""returns the id of the resource descriptor.
 
@@ -219,12 +202,28 @@ class FieldComputer(RDComputer):
 		"""
 		return self.context.getDescriptor.get_property(property)
 
+	def _fc_sourceDate(self, rows):
+		"""returns the timestamp of the current source.
+		"""
+		return DateTime.TimestampFromTicks(
+			os.path.getmtime(self.context.sourceName))
+		
 	def _fc_srcstem(self, rows):
 		"""returns the stem of the source file currently parsed.
 		
 		Example: if you're currently parsing /tmp/foo.bar, the stem is foo.
 		"""
 		return os.path.splitext(os.path.basename(self.context.sourceName))[0]
+
+	def _fc_inputRelativePath(self, rows):
+		"""returns the current source's path relative to inputsDir
+		(or raises an error if it's not from there).
+
+		This is available in general @-expansions.
+		"""
+		fullPath = self.context.sourceName
+		rootPath = config.get("inputsDir")
+		return utils.getRelativePath(fullPath, rootPath)
 
 	def _fc_lastSourceElements(self, rows, numElements):
 		"""returns the last numElements items of the current source's path.
@@ -243,7 +242,7 @@ class FieldComputer(RDComputer):
 		"""
 		fullPath = self.context.sourceName
 		rootPath = self.rd.get_resdir()
-		return self._getRelativePath(fullPath, rootPath)
+		return utils.getRelativePath(fullPath, rootPath)
 
 	def _fc_inputSize(self, rows):
 		"""returns the size of the current source.
@@ -255,7 +254,7 @@ class FieldComputer(RDComputer):
 		"""returns the value of the field fieldName in the document record.
 		"""
 		return self.context.getData().getDocRec()[fieldName]
-
+	
 	def getDocs(self, underliner):
 		docItems = []
 		for name in dir(self):
