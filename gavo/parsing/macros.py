@@ -827,9 +827,9 @@ class BboxSiapFieldsComputer(Macro):
 		record["imageFormat"] = "image/fits"
 		try:
 			record["primaryBbox"], record["secondaryBbox"] = siap.splitCrossingBox(
-				siap.getBboxFromWCSFields(record))
+				coords.getBboxFromWCSFields(record))
 			record["centerAlpha"], record["centerDelta"
-				] = siap.getCenterFromWCSFields(record)
+				] = coords.getCenterFromWCSFields(record)
 			record["nAxes"] = int(record["NAXIS"])
 			axeInds = range(1, record["nAxes"]+1)
 			assert len(axeInds)==2   # probably not exactly necessary

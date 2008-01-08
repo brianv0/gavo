@@ -115,6 +115,139 @@ def dmsToDeg(dmsAngle, sepChar=" "):
 	return arcSecs/3600
 
 
+def degToHourangle(deg, sepChar=" ", secondFracs=3):
+	"""converts a float angle in radians to an hour angle.
+	"""
+	rest, hours = math.modf(deg/math.pi*12)
+	rest, minutes = math.modf(rest*60)
+	return sepChar.join(["%d"%int(hours), "%02d"%int(minutes), 
+		"%02.*f"%(secondFracs, rest*60)])
+
+
+def degToDms(deg, sepChar=" ", secondFracs=2):
+	"""converts a float angle in radians to a sexagesimal string.
+	"""
+	rest, degs = math.modf(deg/math.pi*180)
+	rest, minutes = math.modf(rest*60)
+	return sepChar.join(["%+d"%int(degs), "%02d"%abs(int(minutes)), 
+		"%02.*f"%(secondFracs, abs(rest*60))])
+
+
+_wcsTestDict = {
+	"CRVAL1": 0,   "CRVAL2": 0, "CRPIX1": 50,  "CRPIX2": 50,
+	"CD1_1": 0.01, "CD1_2": 0, "CD2_1": 0,    "CD2_2": 0.01,
+	"NAXIS1": 100, "NAXIS2": 100, "CUNIT1": "deg", "CUNIT2": "deg",
+}
+
+
+def getBbox(points):
+	"""returns a bounding box for the sequence of 2-sequences points.
+
+	The thing returned is a coords.Box.
+
+	>>> getBbox([(0.25, 1), (-3.75, 1), (-2, 4)])
+	Box(((0.25,4), (-3.75,1)))
+	"""
+	xCoos, yCoos = [[p[i] for p in points] for i in range(2)]
+	return Box(min(xCoos), max(xCoos), min(yCoos), max(yCoos))
+
+
+def clampAlpha(alpha):
+	while alpha>360:
+		alpha -= 360
+	while alpha<0:
+		alpha += 360
+	return alpha
+
+
+def clampDelta(delta):
+	return max(-90, min(90, delta))
+
+
+def getWCSTrafo(wcsFields):
+	"""returns a callable transforming pixel to physical coordinates.
+
+	XXX TODO: This doesn't yet evaluate the projection.
+	XXX TODO: This doesn't do anything sensible on the poles.
+	"""
+	if wcsFields["CUNIT1"].strip()!="deg" or wcsFields["CUNIT2"].strip()!="deg":
+		raise Error("Can only handle deg units")
+
+	def ptte(val):
+		return float(val)
+
+	alpha, delta = float(wcsFields["CRVAL1"]), float(wcsFields["CRVAL2"])
+	refpixX, refpixY = float(wcsFields["CRPIX1"]), float(wcsFields["CRPIX2"])
+	caa, cad = ptte(wcsFields["CD1_1"]), ptte(wcsFields["CD1_2"]) 
+	cda, cdd = ptte(wcsFields["CD2_1"]), ptte(wcsFields["CD2_2"]) 
+
+	def pixelToSphere(x, y):
+		return (alpha+(x-refpixX)*caa+(y-refpixY)*cad,
+			clampDelta(delta+(x-refpixX)*cda+(y-refpixY)*cdd))
+	return pixelToSphere
+
+
+def getInvWCSTrafo(wcsFields):
+	"""returns a callable transforming physical to pixel coordinates.
+
+	XXX TODO: see getWCSTrafo.
+	"""
+	if wcsFields["CUNIT1"].strip()!="deg" or wcsFields["CUNIT2"].strip()!="deg":
+		raise Error("Can only handle deg units")
+
+	def ptte(val):
+		"""parses an element of the transformation matrix.
+		"""
+		return float(val)
+
+	alphaC, deltaC = float(wcsFields["CRVAL1"]), float(wcsFields["CRVAL2"])
+	refpixX, refpixY = float(wcsFields["CRPIX1"]), float(wcsFields["CRPIX2"])
+	caa, cad = ptte(wcsFields["CD1_1"]), ptte(wcsFields["CD1_2"]) 
+	cda, cdd = ptte(wcsFields["CD2_1"]), ptte(wcsFields["CD2_2"]) 
+	norm = 1/float(caa*cdd-cad*cda)
+
+	def sphereToPixel(alpha, delta):
+		ap, dp = (alpha-alphaC), (delta-deltaC)
+		return (ap*cdd-dp*cad)*norm+refpixX, (-cda*ap+caa*dp)*norm+refpixY
+	return sphereToPixel
+
+
+def getCornerPointsFromWCSFields(wcsFields):
+	"""returns the corner points of the field defined by (fairly plain)
+	WCS values in the dict wcsFields.
+
+	>>> d = _wcsTestDict.copy()
+	>>> map(str, getCornerPointsFromWCSFields(d)[0])
+	['-0.5', '-0.5']
+	>>> d["CRVAL1"] = 50; map(str, getCornerPointsFromWCSFields(d)[0])
+	['49.5', '-0.5']
+	>>> d["CRVAL2"] = 30; map(str, getCornerPointsFromWCSFields(d)[0])
+	['49.5', '29.5']
+	"""
+	pixelToSphere = getWCSTrafo(wcsFields)
+	width, height = float(wcsFields.get("NAXIS1", 2030)), float(
+			wcsFields.get("NAXIS2", "800"))
+	cornerPoints = [pixelToSphere(0, 0),
+		pixelToSphere(0, height), pixelToSphere(width, 0),
+		pixelToSphere(width, height)]
+	return cornerPoints
+
+
+def getBboxFromWCSFields(wcsFields):
+	"""returns a cartesian bbox and a field center for (fairly simple) WCS
+	FITS header fields.
+	"""
+	return getBbox(getCornerPointsFromWCSFields(wcsFields))
+
+
+def getCenterFromWCSFields(wcsFields):
+	"""returns RA and Dec of the center of an image described by wcsFields.
+	"""
+	pixelToSphere = getWCSTrafo(wcsFields)
+	return pixelToSphere(float(wcsFields.get("NAXIS1", 2030))/2., float(
+			wcsFields.get("NAXIS2", "800"))/2.)
+
+
 # let's do a tiny vector type.  It's really not worth getting some dependency
 # for this.
 class Vector3(object):

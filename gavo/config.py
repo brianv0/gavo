@@ -29,6 +29,7 @@ stateDir: %(rootDir)s/state
 logLevel: info
 operator: gavo@ari.uni-heidelberg.de
 platform:
+gavoGroup: gavo
 
 [parsing]
 xmlFragmentPath: %(inputsDir)s/__common__
@@ -91,7 +92,7 @@ curation.creator.logo:
 curation.contact.name:
 curation.contact.address:
 curation.contact.email:
-curation.contact.telephone: 
+curation.contact.telephone:
 """
 
 

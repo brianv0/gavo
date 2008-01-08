@@ -15,6 +15,7 @@ from nevow import static
 from zope.interface import implements
 
 from gavo import config
+from gavo import coords
 from gavo import datadef
 from gavo import fitstools
 from gavo import resourcecache
@@ -24,7 +25,6 @@ from gavo.web.common import Error, UnknownURI
 from gavo.web import common
 from gavo.web import creds
 from gavo.web import runner
-from gavo.web import siap
 from gavo.web import standardcores
 
 class ItemNotFound(Error):
@@ -106,7 +106,7 @@ class Product(standardcores.DbBasedCore):
 		header = fitstools.readPrimaryHeaderQuick(f)
 		ra, dec = float(sqlPars["ra"]), float(sqlPars["dec"]),
 		sra, sdec = float(sqlPars["sra"]), float(sqlPars["sdec"]),
-		getPixCoo = siap.getInvWCSTrafo(header)
+		getPixCoo = coords.getInvWCSTrafo(header)
 		x, y = getPixCoo(ra, dec)
 		w = abs(getPixCoo(ra+sra/2, dec)[0]-getPixCoo(ra-sra/2, dec)[0])
 		h = abs(getPixCoo(ra, dec+sdec/2,)[1]-getPixCoo(ra, dec-sdec/2,)[1])

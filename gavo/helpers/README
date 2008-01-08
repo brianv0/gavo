@@ -1,0 +1,2 @@
+This directory contains code to help abstract special preprocessing
+(that usually needs to be done on FITS files).

@@ -49,7 +49,7 @@ class FormatterFactory:
 				return "N/A"
 			rest, hours = math.modf(deg/360.*24)
 			rest, minutes = math.modf(rest*60)
-			return "%d %02d %2.*f"%(int(hours), int(minutes), secondFracs, rest*60)
+			return "%d %02d %02.*f"%(int(hours), int(minutes), secondFracs, rest*60)
 		return format
 	
 	def _make_sexagesimal_formatter(self, secondFracs=1):
@@ -60,7 +60,7 @@ class FormatterFactory:
 				return "N/A"
 			rest, degs = math.modf(deg)
 			rest, minutes = math.modf(rest*60)
-			return "%+d %02d %2.*f"%(int(degs), abs(int(minutes)), secondFracs,
+			return "%+d %02d %02.*f"%(int(degs), abs(int(minutes)), secondFracs,
 				abs(rest*60))
 		return format
 

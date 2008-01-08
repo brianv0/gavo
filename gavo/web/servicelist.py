@@ -2,8 +2,10 @@
 Code dealing with the service list.
 """
 
+import grp
 import os
 import sys
+import traceback
 
 import gavo
 from gavo import config
@@ -214,6 +216,35 @@ def findAllRDs():
 	return rds
 
 
+def getStateFileName():
+	return os.path.join(config.get("stateDir"), "lastGavopub.stamp")
+
+
+def getLastRegistryUpdate():
+	"""returns the timestamp of the last update of the registry.
+	"""
+	try:
+		return os.path.getmtime(getStateFileName())
+	except os.error:
+		gavo.logger.error("No registry timestamp found.  Returning conservative"
+			" modification date")
+		return 946681200.0  # 2000-01-01T00:00:00Z
+
+
+def touchStateFile():
+	fn = getStateFileName()
+	try: os.unlink(fn)
+	except os.error: pass
+	f = open(fn, "w")
+	f.write("\n")
+	f.close()
+	os.chmod(fn, 0664)
+	try:
+		os.chown(fn, -1, grp.getgrnam(config.get("GavoGroup")[2]))
+	except (KeyError, os.error):
+		pass
+
+
 def main():
 	"""handles the user interaction for gavopublish.
 	"""
@@ -231,6 +262,12 @@ def main():
 					forImport=True))
 		except Exception, msg:
 			commandline.displayError(msg)
+	try:
+		touchStateFile()
+	except (IOError, os.error):
+		traceback.print_exc()
+		sys.stderr.write("Couldn't touch state file %s.  Please fix by hand.\n"%
+			getStateFileName())
 
 
 if __name__=="__main__":

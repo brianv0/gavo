@@ -97,12 +97,13 @@ def parseIdentifier(identifier):
 
 def getRegistryURL():
 	return (config.get("web", "serverURL")+
-		config.get("web", "nevowRoot")+"/registry")
+		config.get("web", "nevowRoot")+"/oai.xml")
 
 
 def getRegistryDatestamp():
-	# XXX TODO: Implement this (probably last call of gavopublish)
-	return "2007-12-13T12:00:00Z"
+	return time.strftime(_isoTimestampFmt, 
+		time.gmtime(
+			servicelist.getLastRegistryUpdate()))
 
 
 def getServiceRecForIdentifier(identifier):

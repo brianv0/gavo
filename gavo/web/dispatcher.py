@@ -74,7 +74,7 @@ class DebugPage(rend.Page):
 
 class ReloadPage(common.GavoRenderMixin, rend.Page):
 
-	modsToReload = ["gavo.web.dispatcher", "gavo.web.gwidgets", "gavo.web.scs"]
+	modsToReload = ["gavo.web.dispatcher"]
 
 	def __init__(self, ctx, *args, **kwargs):
 		super(ReloadPage, self).__init__()

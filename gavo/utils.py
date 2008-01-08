@@ -6,8 +6,11 @@ GAVO resources.
 import copy
 import datetime
 import math
+import os
 import re
+import shutil
 import sys
+import tempfile
 import time
 
 from xml.sax.handler import ContentHandler
@@ -561,6 +564,38 @@ def getRelativePath(fullPath, rootPath):
 		raise Error("Full path %s does not start with resource root %s"%
 			(fullPath, rootPath))
 	return fullPath[len(rootPath):].lstrip("/")
+
+
+def runInSandbox(setUp, func, tearDown, *args, **kwargs):
+	"""runs func in a temporary ("sandbox") directory.
+
+	func is called with args and kwargs.  setUp and tearDown are
+	two functions also called with args and kwargs; in addition, they
+	are passed the path of the tempdir (setUp) or the path of the
+	original directory (teardown) in the first argument.
+	
+	setUp is called after the directory has been created,
+	but the process is still in the current WD.
+	
+	tearDown is called before the temp dir is deleted and in this directory.
+	Its return value is the return value of runInSandbox, which is the
+	preferred way of getting data out of the sandbox.
+
+	If any of the handlers raise exceptions, the following handlers will not
+	be called.  The sandbox will be torn down, though.
+	"""
+	owd = os.getcwd()
+	wd = tempfile.mkdtemp("sandbox")
+	try:
+		if setUp:
+			setUp(wd, *args, **kwargs)
+		os.chdir(wd)
+		func(*args, **kwargs)
+		result = tearDown(owd, *args, **kwargs)
+	finally:
+		os.chdir(owd)
+		shutil.rmtree(wd)
+	return result
 
 
 def _test():

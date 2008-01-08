@@ -9,6 +9,7 @@ import math
 
 from gavo import nullui
 from gavo import config
+from gavo import coords
 from gavo import sqlsupport
 from gavo import interfaces
 from gavo import utils
@@ -39,8 +40,8 @@ class TestWCSTrafos(unittest.TestCase):
 			for crpixs in [(0,0), (50,50), (100,100), (150,0)]:
 				self.wcs["CRPIX1"], self.wcs["CRPIX2"] = crpixs
 				for pixpos in [(0,0), (50, 50), (0, 100), (100, 0)]:
-					fwTrafo = siap.getWCSTrafo(self.wcs)
-					bwTrafo = siap.getInvWCSTrafo(self.wcs)
+					fwTrafo = coords.getWCSTrafo(self.wcs)
+					bwTrafo = coords.getInvWCSTrafo(self.wcs)
 					x, y = bwTrafo(*fwTrafo(*pixpos))
 					self.assertAlmostEqual(x, pixpos[0])
 					self.assertAlmostEqual(y, pixpos[1])
@@ -86,17 +87,17 @@ class TestWCSBbox(unittest.TestCase):
 			return b11.contains(b21) and (not b12 or b12.contains(b22))
 
 		boxes = []
-		boxes.append(siap.getBboxFromWCSFields(wcs))
+		boxes.append(coords.getBboxFromWCSFields(wcs))
 		for i in range(10):
 			wcs["CD1_1"] *= 1.1
-			bbox = siap.getBboxFromWCSFields(wcs)
+			bbox = coords.getBboxFromWCSFields(wcs)
 			for oldBbox in boxes:
 				self.assert_(encloses(bbox, oldBbox), "enclose false negative"
 					" while growing in ra at %f, %f"%(ra, dec))
 			boxes.append(bbox)
 		for i in range(10):
 			wcs["CD2_2"] *= 1.1
-			bbox = siap.getBboxFromWCSFields(wcs)
+			bbox = coords.getBboxFromWCSFields(wcs)
 			for oldBbox in boxes:
 				self.assert_(encloses(bbox, oldBbox), "enclose false negative"
 					" while growing in dec at %f, %f"%(ra, dec))
@@ -133,19 +134,19 @@ class TestWCSBbox(unittest.TestCase):
 			return b11.overlaps(b21) or (b12 and b12.overlaps(b22)) or (
 				b12 and b12.overlaps(b21)) or (b22 and b22.overlaps(b11))
 
-		targBbox = siap.getBboxFromWCSFields(wcs)
+		targBbox = coords.getBboxFromWCSFields(wcs)
 		overlapOffsets = [(.1, .1), (.6, .6), (.6, -.6), (-.6, .6), 
 			(-.6, .6), (.9, .9), (.9, -.9), (-.9, .9), (-.9, .9)]
 		for da, dd in overlapOffsets:
 			wcs["CRVAL1"], wcs["CRVAL2"] = ra+da, dec+dd
-			bbox = siap.getBboxFromWCSFields(wcs)
+			bbox = coords.getBboxFromWCSFields(wcs)
 			self.assert_(overlaps(bbox, targBbox), "Overlap test false negative"
 				" at %s, offsets %s"%((ra, dec), (da, dd)))
 		notOverlapOffsets = [(0, 1.1), (2.4, 0), (0, -1.6), (-1.6, 0), 
 			(-0.8, -1.6)]
 		for da, dd in notOverlapOffsets:
 			wcs["CRVAL1"], wcs["CRVAL2"] = ra+da/raCorr(dec), dec+dd
-			bbox = siap.getBboxFromWCSFields(wcs)
+			bbox = coords.getBboxFromWCSFields(wcs)
 			self.failIf(overlaps(bbox, targBbox), "Overlap test false positive"
 				" at %s, offsets %s"%((ra, dec), (da, dd)))
 
