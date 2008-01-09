@@ -27,7 +27,7 @@ class MissingMeta(gavo.Error):
 
 
 # These keys must be present to ensure a valid VOResource record can be
-# built XXX TODO: Check for their presence when ivoa_managed is in sets.
+# built.
 _voRequiredMeta = [
 	"title",
 	"creationDate", 
@@ -69,9 +69,12 @@ def makeRecord(publication, service):
 	rec["accessURL"] = service.getURL(publication["render"])
 	rec["owner"] = service.get_requiredGroup()
 	rec["type"] = publication["type"]
-	rec["sets"] = service.getMeta("sets")
-	if rec["sets"]:
-		rec["sets"] = str(rec["sets"])
+	sets = set([s.strip() for s in publication.get("sets", "").split(",")])
+	if rec["type"]=="web":
+		sets.add("local")
+	elif rec["type"]=="vo":
+		sets.add("ivo_managed")
+	rec["sets"] = ",".join(sets)
 	return rec
 
 
@@ -201,9 +204,12 @@ def getResourceForRec(rec):
 
 def parseCommandLine():
 	import optparse
-	parser = optparse.OptionParser(usage="%prog [options] [<rd-name>]+")
+	parser = optparse.OptionParser(usage="%prog [options] {<rd-name>}")
 	parser.add_option("-a", "--all", help="search everything below inputsDir"
-		" for publications.", dest="all", action="store_true")
+		" for publications (implies -f).", dest="all", action="store_true")
+	parser.add_option("-f", "--fixed", help="also import fixed records"
+		" (this is equivalent to gavoimp services).", dest="doFixed",
+		action="store_true")
 	return parser.parse_args()
 
 
@@ -245,6 +251,19 @@ def touchStateFile():
 		pass
 
 
+def importFixed():
+	"""imports the fixed records.
+
+	This is more or less equivalent to gavoimp __system__/services/services.
+	"""
+	from gavo.parsing import importparser
+	gavo.ui.silence = True
+	rd = importparser.getRd("__system__/services/services")
+	res = resource.Resource(rd)
+	res.importData(None)
+	res.exportToSql()
+	gavo.ui.silence = False
+
 def main():
 	"""handles the user interaction for gavopublish.
 	"""
@@ -262,6 +281,8 @@ def main():
 					forImport=True))
 		except Exception, msg:
 			commandline.displayError(msg)
+	if opts.all or opts.doFixed:  # also import fixed registry records
+		importFixed()
 	try:
 		touchStateFile()
 	except (IOError, os.error):

@@ -313,9 +313,10 @@ class UniqueForcedTable(Table):
 				key, self.primaryIndex[key], record))
 		for fieldName in record:
 			if record[fieldName]!=storedRec[fieldName]:
-				raise gavo.Error("Differing records for primary key %s, field %s;"
-					" %s vs. %s"%(key, fieldName, record[fieldName],
-						storedRec[fieldName]))
+				raise gavo.ValidationError(
+					"Differing records for primary key %s;"
+					" %s vs. %s"%(key, record[fieldName],
+						storedRec[fieldName]), fieldName=fieldName, record=record)
 
 	def addData(self, record):
 		key = record[self.primaryName]
