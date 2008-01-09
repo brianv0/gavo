@@ -204,9 +204,11 @@ class RdParser(utils.NodeBuilder):
 				"Field": grammar.addto_dbFields
 			}))
 		if attrs.has_key("fieldsFrom"):
-			for field in self.getById(attrs["fieldsFrom"])[1].get_items():
+			fieldSrc = self.getById(attrs["fieldsFrom"])[1]
+			for field in fieldSrc.get_items():
 				newField = field.copy()
-				newField.set_source(newField.get_dest())
+				if not isinstance(fieldSrc, RowsetGrammar):
+					newField.set_source(newField.get_dest())
 				res.node.addto_dbFields(newField)
 		self.popProperty("fieldPath")
 		return res

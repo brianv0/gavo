@@ -739,6 +739,7 @@ def getMatchingData(dataDesc, tableName, whereClause, pars):
 	tableDef = dataDesc.getRecordDefByName(tableName)
 	if whereClause:
 		whereClause = "WHERE "+whereClause
+	print ">>>>>>>", tableDef.get_table()
 	data = sqlsupport.SimpleQuerier().query(
 		"SELECT * FROM %s %s"%(tableDef.get_table(), whereClause),
 		pars).fetchall()

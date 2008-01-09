@@ -21,6 +21,7 @@ import datetime
 import re
 import sys
 import time
+import traceback
 import urllib
 
 from mx import DateTime
@@ -30,6 +31,7 @@ from gavo import ElementTree
 
 from gavo import config
 from gavo import resourcecache
+from gavo import sqlsupport
 from gavo import typesystems
 from gavo import utils
 from gavo.web import servicelist
@@ -43,8 +45,8 @@ supportedMetadataPrefixes = [
 # (prefix, schema-location, namespace)
 	("oai_dc", "http://vo.ari.uni-heidelberg.de/docs/schemata/OAI-PMH.xsd",
 		"http://www.openarchives.org/OAI/2.0/oai_dc/"),
-	("ivo_vor", "http://vo.ari.uni-heidelberg.de/docs/schemata/"
-		"VOResource-v1.0.xsd", "http://www.ivoa.net/xml/VOResource/v1.0"),
+	("ivo_vor", "http://www.ivoa.net/xml/RegistryInterface/v1.0",
+		"http://www.ivoa.net/xml/RegistryInterface/v1.0"),
 ]
 
 class OAIError(gavo.Error):
@@ -60,6 +62,7 @@ class NoRecordsMatch(OAIError): pass
 class NoMetadataFormats(OAIError): pass
 class NoSetHierarchy(OAIError): pass
 
+
 _isoTimestampFmt = "%Y-%m-%dT%H:%M:%SZ"
 
 
@@ -70,7 +73,8 @@ def computeIdentifier(resource):
 	or a dictionary containing a record from the service table.
 	"""
 	if isinstance(resource, dict):
-		if resource["sourceRd"]=="<static resource>":
+		if (resource["sourceRd"]=="<static resource>" or 
+				resource["sourceRd"]==servicelist.rdId):
 			reskey = "static/%s"%resource["internalId"]
 		else:
 			reskey = "%s/%s"%(resource["sourceRd"], resource["internalId"])
@@ -80,6 +84,7 @@ def computeIdentifier(resource):
 	else:
 		reskey = "%s/%s"%(resource.rd.sourceId, resource.get_id())
 	return "ivo://%s/%s"%(config.get("ivoa", "authority"), reskey)
+
 
 def parseIdentifier(identifier):
 	"""returns a pair of authority, resource key for identifier.
@@ -117,12 +122,12 @@ def getServiceRecForIdentifier(identifier):
 		parts = resKey.split("/")
 		sourceRd = "/".join(parts[:-1])
 		internalId = parts[-1]
-	matches = servicelist.getMatchingServices(
+	matches = servicelist.queryServicesList(
 		"sourceRd=%(sourceRd)s AND internalId=%(internalId)s",
-		locals())
-	if len(matches.rows)!=1:
+		locals(), source="resources")
+	if len(matches)!=1:
 		raise IdDoesNotExist(identifier)
-	return matches.rows[0]
+	return matches[0]
 
 
 def getResponseHeaders(pars):
@@ -147,11 +152,16 @@ def getMetadataNamespace(pars):
 	"""returns an object that contains element definitions for resource
 	records according to the metadataPrefix item in pars.
 	"""
-	return {
-		"oai_dc": OAI,
-		"ivo_vor": VOR,
-	}[pars.get("metadataPrefix", "oai_dc")]
+	try:
+		return {
+			"oai_dc": OAI,
+			"ivo_vor": VOR,
+		}[pars.get("metadataPrefix", "not_given")]
+	except KeyError, md:
+		raise CannotDisseminateFormat("%s metadata are not supported"%md)
 
+
+dateRe = re.compile("\d\d\d\d-\d\d-\d\d$")
 
 def getMatchingRecords(pars):
 	"""returns a list of records from the service list matching pars.
@@ -168,19 +178,32 @@ def getMatchingRecords(pars):
 	"""
 	sqlPars, sqlFrags = {}, []
 	if "from" in pars:
-		sqlFrags.append("services.dateUpdated > %%(%s)s"%getSQLKey("from",
+		if not dateRe.match(pars["from"]):
+			raise BadArgument("from")
+		sqlFrags.append("services.dateUpdated >= %%(%s)s"%getSQLKey("from",
 			pars["from"], sqlPars))
-	if "to" in pars:
-		sqlFrags.append("services.dateUpdated > %%(%s)s"%getSQLKey("to",
-			pars["to"], sqlPars))
+	if "until" in pars:
+		if not dateRe.match(pars["until"]):
+			raise BadArgument("until")
+		sqlFrags.append("services.dateUpdated <= %%(%s)s"%getSQLKey("until",
+			pars["until"], sqlPars))
 	if "set" in pars:
-		sqlFrags.append("services.shortName IN %%(%s)s"%(getSQLKey("set",
-			servicelist.getShortNamesForSets(pars["set"]), sqlPars)))
+		setName = pars["set"]
 	else:
-		sqlFrags.append("services.shortName IN %%(%s)s"%(getSQLKey("set",
-			servicelist.getShortNamesForSets(["ivo_managed"]), sqlPars)))
-	return servicelist.getMatchingServices(
-		whereClause=" AND ".join(sqlFrags), pars=sqlPars)
+		setName = "ivo_managed"
+	sqlFrags.append("srv_sets.setName=%%(%s)s"%(getSQLKey("set", 
+		setName, sqlPars)))
+	try:
+		res = servicelist.queryServicesList(
+			whereClause=" AND ".join(sqlFrags), pars=sqlPars, source="resSet")
+	except sqlsupport.DatabaseError:
+		raise BadArgument("Bad syntax in some parameter value")
+	except KeyError, msg:
+		traceback.print_exc()
+		raise gavo.Error("Internal error, missing key: %s"%msg)
+	if not res:
+		raise NoRecordsMatch()
+	return res
 
 
 def getDCResourceTree(rec):
@@ -282,10 +305,9 @@ def getRegistryResourceTree(rec, resource):
 	return VOG.Resource(created=str(resource.getMeta("creationDate")),
 		status="active", updated=getRegistryDatestamp())[
 			getResourceItems(resource),
-			VOR.rights[resource.getMeta("rights")],
 			VOG.Harvest[
 				VOR.description[resource.getMeta("harvest.description")],
-				VOG.OAIHTTP[
+				VOG.OAIHTTP(role="std", version="1.0")[
 					VOR.accessURL[getRegistryURL()],
 				],
 				VOG.maxRecords["1000000"],
@@ -304,7 +326,18 @@ def getOrgResourceTree(rec, resource):
 		VOR.instrument[resource.getMeta("instrument")]]
 			
 
+
+def getAuthResourceTree(rec, resource):
+	"""returns a vg:Authority-typed Resource tree.
+	"""
+	return VOG.Authority(created=str(resource.getMeta("creationDate")),
+		status="active", updated=getRegistryDatestamp())[
+			getResourceItems(resource),
+			VOG.managingOrg[resource.getMeta("managingOrg")],
+	]
+
 staticResourceMakers = {
+	"authority": (getAuthResourceTree, "authority"),
 	"organization": (getOrgResourceTree, "organization"),
 	"registry": (getRegistryResourceTree, "registry"),
 }
@@ -559,6 +592,20 @@ def dispatchOnPrefix(pars, OAIBuilder, VORBuilder, *args):
 			raise BadArgument("metadataPrefix missing")
 
 
+def checkPars(pars, required, optional=[], ignored=set(["verb"])):
+	"""raises exceptions for missing or illegal parameters.
+	"""
+	if "resumptionToken" in pars:
+		raise BadResumptionToken(pars["resumptionToken"])
+	required, optional = set(required), set(optional)
+	for name in pars:
+		if name not in ignored and name not in required and name not in optional:
+			raise BadArgument(name)
+	for name in required:
+		if name not in pars:
+			raise BadArgument(name)
+
+
 ############## Toplevel tree builders
 
 
@@ -568,7 +615,7 @@ def getListIdentifiersTree(pars):
 	We don't have ivo specific metadata in the headers, so this ignores
 	the metadata prefix.
 	"""
-	_ = pars["metadataPrefix"]  # just make sure we bomb out if it's missing
+	checkPars(pars, ["metadataPrefix"], ["from", "until", "set"])
 	ns = getMetadataNamespace(pars)
 	return OAI.PMH[
 		getResponseHeaders(pars),
@@ -581,6 +628,7 @@ def getListIdentifiersTree(pars):
 def getIdentifyTree(pars):
 	"""returns a tree of registrymodel Elements for an Identify response.
 	"""
+	checkPars(pars, [])
 	rec = getServiceRecForIdentifier(
 		config.get("ivoa", "registryIdentifier"))
 	resource = servicelist.getResourceForRec(rec)
@@ -594,7 +642,7 @@ def getIdentifyTree(pars):
 			OAI.adminEmail[config.get("operator")],
 			OAI.earliestDatestamp["1970-01-01"],
 			OAI.deletedRecord["no"],
-			OAI.granularity["YYYY-MM-DDThh:mm:ssZ"],
+			OAI.granularity["YYYY-MM-DD"],
 			OAI.description[
 				getRegistryResourceTree(rec, resource)
 			],
@@ -605,6 +653,7 @@ def getIdentifyTree(pars):
 def dispatchListRecordsTree(pars):
 	"""returns a tree of registrymodel Elements for a ListRecords response.
 	"""
+	checkPars(pars, ["metadataPrefix"], ["from", "until", "set"])
 	return dispatchOnPrefix(pars, getDCResourceListTree,
 		getVOResourceListTree)
 
@@ -612,6 +661,7 @@ def dispatchListRecordsTree(pars):
 def dispatchGetRecordTree(pars):
 	"""returns a tree of registrymodel Elements for a getRecord response.
 	"""
+	checkPars(pars, ["identifier", "metadataPrefix"], [])
 	identifier = pars["identifier"]
 	return dispatchOnPrefix(pars, getDCGetRecordTree,
 		getVOGetRecordTree, getServiceRecForIdentifier(identifier))
@@ -624,6 +674,7 @@ def getListMetadataFormatTree(pars):
 	# identifier is not ignored since crooks may be trying to verify the
 	# existence of resource in this way, even though we should be able
 	# to provide both supported metadata formats for all records.
+	checkPars(pars, [], ["identifier"])
 	if pars.has_key("identifier"):
 		getServiceRecForIdentifier(pars["identifier"])
 	return OAI.PMH[
@@ -641,6 +692,7 @@ def getListMetadataFormatTree(pars):
 def getListSetsTree(pars):
 	"""returns a tree of registrymodel Elements for a ListSets response.
 	"""
+	checkPars(pars, [])
 	return OAI.PMH[
 		getResponseHeaders(pars),
 		OAI.ListSets[[
@@ -663,11 +715,20 @@ pmhHandlers = {
 }
 
 
-def getPMHResponse(pars):
+def getPMHResponse(args):
 	"""returns an ElementTree containing a OAI-PMH response for the query 
 	described by pars.
 	"""
-	verb = pars["verb"]
+	pars = {}
+	for argName, argVal in args.iteritems():
+		if len(argVal)!=1:
+			raise BadArgument(argName)
+		else:
+			pars[argName] = argVal[0]
+	try:
+		verb = pars["verb"]
+	except KeyError:
+		raise BadArgument("verb")
 	try:
 		handler = pmhHandlers[verb]
 	except KeyError:
@@ -678,10 +739,9 @@ def getPMHResponse(pars):
 def getErrorTree(exception, pars):
 	"""returns an ElementTree containing an OAI-PMH error response.
 
-	If exception is one of "our" exceptions, we translate them to error
-	messages, if it's a key error, we assume it's a parameter error (so
-	don't let them leak otherwise).  If None of all this works out, we
-	reraise the exception to an enclosing function may "handle" it.
+	If exception is one of "our" exceptions, we translate them to error messages.
+	Otherwise, we reraise the exception to an enclosing
+	function may "handle" it.
 
 	Contrary to the recommendation in the OAI-PMH spec, this will only
 	return one error at a time.
@@ -690,9 +750,6 @@ def getErrorTree(exception, pars):
 		code = exception.__class__.__name__
 		code = code[0].lower()+code[1:]
 		message = str(exception)
-	elif isinstance(exception, KeyError):
-		code = "badArgument"
-		message = "Missing mandatory argument %s"%str(exception)
 	else:
 		raise exception
 	return ElementTree.ElementTree(OAI.PMH[
@@ -710,5 +767,7 @@ if __name__=="__main__":
 	from gavo import nullui
 	config.setDbProfile("querulator")
 	from gavo.parsing import importparser  # for registration of getRd
-	print ElementTree.tostring(getPMHResponse({"verb": "GetRecord", "metadataPrefix": "oai_dc", 
-		"identifier": "ivo://org.gavo.dc/maidanak/res/rawframes/mdk_siap"}).getroot(), encoding)
+	try:
+		getPMHResponse({})
+	except Exception, msg:
+		getErrorTree(msg, {}).write(sys.stdout)

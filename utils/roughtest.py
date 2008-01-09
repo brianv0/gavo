@@ -203,7 +203,7 @@ myTests = [
 		),
 	TestGroup("registry",  # Maybe build xsd validation into these?
 		GetHasStringsTest(nv_root+"/oai.xml", [
-				"<oai:OAI-PMH", "Missing mandatory"],
+				"<oai:OAI-PMH", 'Argument">verb'],
 			"Credible PMH error message"),
 		GetHasStringsTest(nv_root+"/oai.xml?verb=ListSets", [
 				'verb="ListSets" />',
@@ -238,8 +238,8 @@ myTests = [
 					'dc:title'],
 			"PMH GetRecord response looks all right in oai_dc"),
 		GetHasStringTest(nv_root+"/oai.xml?"
-				"verb=ListRecords&to=2007-10-10&metadataPrefix=ivo_vor",
-					'<oai:ListRecords>', # Thik of something better, this may be empty
+				"verb=ListRecords&from=2007-10-10&metadataPrefix=ivo_vor",
+					'<oai:ListRecords>', # Think of something better, this may be empty
 			"PMH ListRecords response looks all right in ivo_vor"),
 		),
 	TestGroup("misc",

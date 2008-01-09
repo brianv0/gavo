@@ -68,7 +68,7 @@ def makeRecord(publication, service):
 	rec["renderer"] = publication["render"]
 	rec["accessURL"] = service.getURL(publication["render"])
 	rec["owner"] = service.get_requiredGroup()
-	rec["type"] = publication["type"]
+	rec["type"] = publication.get("type", "web")
 	sets = set([s.strip() for s in publication.get("sets", "").split(",")])
 	if rec["type"]=="web":
 		sets.add("local")
@@ -154,21 +154,17 @@ def getSets():
 		for key, value in setMembers.iteritems()]
 
 
-def getMatchingServices(whereClause="", pars={}):
-	"""queries the services table.
-	"""
-	dd = resourcecache.getRd(rdId).getDataById("servicelist")
-	return resource.getMatchingData(dd, "services", 
-		whereClause, pars).getPrimaryTable()
+def queryServicesList(whereClause="", pars={}, source="services"):
+	"""returns a list of services based on selection criteria in
+	whereClause
 
-
-def queryServicesList(whereClause="", pars={}):
-	"""returns the current list of form based services.
-
-	This is mainly for the benefit of the portal page.
+	Source is either resources, resSet, or services (actually,
+	any data in services.vord will do).  If you query for resSet,
+	no record will show up that has no set assigned.  If you query
+	for services, resources without interfaces will not be shown.
 	"""
 	rd = resourcecache.getRd(rdId)
-	dd = rd.getDataById("services").copy()
+	dd = rd.getDataById(source).copy()
 	grammar = dd.get_Grammar()
 	sources = [f.get_source() for f in grammar.get_items()]
 	tables = set([s.split(".")[0] for s in sources])
@@ -182,7 +178,7 @@ def queryServicesList(whereClause="", pars={}):
 	return resource.InternalDataSet(dd, dataSource=data).getPrimaryTable().rows
 
 resourcecache.makeCache("getWebServiceList", 
-	lambda ignored: queryServicesList("srv_interfaces.type='web'"))
+	lambda ignored: queryServicesList("srv_set.setName='local'"))
 
 
 def getResourceForRec(rec):
@@ -258,7 +254,7 @@ def importFixed():
 	"""
 	from gavo.parsing import importparser
 	gavo.ui.silence = True
-	rd = importparser.getRd("__system__/services/services")
+	rd = importparser.getRd(rdId)
 	res = resource.Resource(rd)
 	res.importData(None)
 	res.exportToSql()

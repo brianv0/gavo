@@ -244,6 +244,7 @@ class OAI:
 	class header(OAIElement): pass
 
 	class error(OAIElement):
+		mayBeEmpty = True
 		a_code = None
 
 	class record(OAIElement): pass
@@ -440,6 +441,11 @@ class VOG:
 
 	class Resource(RI.Resource):
 		a_xsi_type = "vg:Registry"
+		a_xmlns_vg = VOGNamespace
+		xmlns_vg_name = "xmlns:vg"
+
+	class Authority(RI.Resource):
+		a_xsi_type = "vg:Authority"
 		a_xmlns_vg = VOGNamespace
 		xmlns_vg_name = "xmlns:vg"
 
@@ -644,6 +650,7 @@ class SIA:
 
 	class interface(VOR.interface):
 		namespace = SIANamespace
+		a_role = "std"
 		a_xsi_type = "vs:ParamHTTP"
 		a_xmlns_vs = VSNamespace
 		xmlns_vs_name = "xmlns:vs"
@@ -686,6 +693,7 @@ class SCS:
 
 	class interface(VOR.interface):
 		namespace = SCSNamespace
+		a_role = "std"
 		a_xsi_type = "vs:ParamHTTP"
 		a_xmlns_vs = VSNamespace
 		xmlns_vs_name = "xmlns:vs"

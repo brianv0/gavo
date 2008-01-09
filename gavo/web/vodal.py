@@ -138,9 +138,12 @@ class SiapRenderer(DalRenderer):
 
 class RegistryRenderer(rend.Page):
 	def renderHTTP(self, ctx):
+		# Make a robust (unchecked) pars dict for error rendering; real
+		# parameter checking happens in getPMHResponse
 		pars = dict((key, val[0]) 
 			for key, val in inevow.IRequest(ctx).args.iteritems())
-		return threads.deferToThread(registry.getPMHResponse, pars
+		return threads.deferToThread(registry.getPMHResponse, 
+				inevow.IRequest(ctx).args
 			).addCallback(self._renderResponse, ctx
 			).addErrback(self._renderError, ctx, pars)
 	

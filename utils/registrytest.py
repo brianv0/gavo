@@ -35,6 +35,10 @@ def validateTree(aTree):
 		aTree.write(f, "utf-8")
 		f.close()
 		retval = validateFile(name)
+		if not retval:
+			f = open("lastBad.xml", "w")
+			aTree.write(f, "utf-8")
+			f.close()
 	finally:
 		os.unlink(name)
 	return retval
@@ -55,20 +59,22 @@ def runATest(title, pars):
 testId = "ivo://org.gavo.dc/maidanak/res/rawframes/siap"
 
 _testSpecs = [
-	("Identify", {"verb": "Identify", "metadataPrefix": "ivo_vor"}),
-	("ListIdentifiers", {"verb": "ListIdentifiers", "metadataPrefix": "ivo_vor"}),
-	("ListIdentifiers", {"verb": "ListIdentifiers", "metadataPrefix": "oai_dc"}),
-	("ListRecords (oai_dc)", {"verb": "ListRecords", 
-		"metadataPrefix": "oai_dc", "set": ["local", "ivo_managed"]}),
-	("ListRecords (ivo_vor)", {"verb": "ListRecords", 
-		"metadataPrefix": "ivo_vor", "set": ["local", "ivo_managed"]}),
-	("GetRecord (oai_dc)", {"verb": "GetRecord", "metadataPrefix": "oai_dc", 
-		"identifier": testId}),
-	("GetRecord (ivo_vor)", {"verb": "GetRecord", "metadataPrefix": "ivo_vor", 
-		"identifier": testId}),
-	("ListMetadataFormats with identifier", {"verb": "ListMetadataFormats", 
-		"identifier": testId}),
-	("ListSets", {"verb": "ListSets"}),
+	("Identify", {"verb": ["Identify"]}),
+	("ListIdentifiers", {"verb": ["ListIdentifiers"], 
+		"metadataPrefix": ["ivo_vor"]}),
+	("ListIdentifiers", {"verb": ["ListIdentifiers"], 
+		"metadataPrefix": ["oai_dc"]}),
+	("ListRecords (oai_dc)", {"verb": ["ListRecords"], 
+		"metadataPrefix": ["oai_dc"], "set": ["ivo_managed"]}),
+	("ListRecords (ivo_vor)", {"verb": ["ListRecords"], 
+		"metadataPrefix": ["ivo_vor"], "set": ["local"]}),
+	("GetRecord (oai_dc)", {"verb": ["GetRecord"], "metadataPrefix": ["oai_dc"], 
+		"identifier": [testId]}),
+	("GetRecord (ivo_vor)", {"verb": ["GetRecord"], 
+		"metadataPrefix": ["ivo_vor"], "identifier": [testId]}),
+	("ListMetadataFormats with identifier", {"verb": ["ListMetadataFormats"], 
+		"identifier": [testId]}),
+	("ListSets", {"verb": ["ListSets"]}),
 ]
 
 if __name__=="__main__":
