@@ -444,6 +444,11 @@ class TableWriter(StandardQueryMixin):
 		return _Feeder(self.connection.cursor(), self.finalizeFeeder,
 			cmdString)
 
+	def copyIn(self, inFile):
+		cursor = self.connection.cursor()
+		cursor.copy_expert("COPY %s FROM STDIN WITH BINARY"%self.tableName, inFile)
+		cursor.close()
+
 	def getTableName(self):
 		return self.tableName
 
@@ -480,8 +485,11 @@ class TableUpdater(TableWriter):
 class SimpleQuerier(StandardQueryMixin):
 	"""is a tiny interface to querying the standard database.
 	"""
-	def __init__(self):
-		self.connection = getDbConnection(config.getDbProfile())
+	def __init__(self, connection=None):
+		if connection:
+			self.connection = connection
+		else:
+			self.connection = getDbConnection(config.getDbProfile())
 
 	def query(self, query, data={}):
 		return self.runOneQuery(query, data)

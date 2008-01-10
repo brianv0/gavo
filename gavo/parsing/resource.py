@@ -220,7 +220,7 @@ class ParseContext:
 			except conditions.SkipRecord, err:
 				if parsing.verbose:
 					logger.info("Skipping record %s because constraint %s failed to"
-						" satisfied"%(record, err.constraint))
+						" satisfy"%(record, err.constraint))
 		self.rowsProcessed += 1
 	
 	def processDocdict(self, docdict):
@@ -377,13 +377,6 @@ class DataSet(meta.MetaMixin):
 	def exportToSql(self, schema):
 		if self.getDescriptor().get_virtual():
 			return
-# Drop all indices on all tables affected.  This is necessary to
-# avoid horrible run times with e.g., product tables.  In general,
-# all affected tables should be written to afterwards, so the indices
-# will be restored.  If they aren't we're in trouble.
-		for table in self.tables:
-			sqlsupport.TableWriter("%s.%s"%(schema, table.getName()),
-				table.getFieldDefs()).dropIndices()
 		for table in self.tables:
 			table.exportToSql(schema)
 
@@ -562,7 +555,7 @@ class Resource:
 
 class ResourceDescriptor(record.Record, meta.MetaMixin):
 	"""is a container for all information necessary to import a resource into
-	a VO data pool.
+	the DC.
 	"""
 	def __init__(self, sourcePath="InMemory", **initvals):
 		self.sourceId = self._getSourceId(sourcePath)

@@ -371,3 +371,8 @@ class DirectWritingTable(Table):
 	def exportToSql(self, schema):
 		return
 
+	def copyIn(self, copySrc):
+		"""initiates a binary copy from file copySrc to the table.
+		"""
+		cp = sqlsupport.Copier(self.name, self.dbConnection)
+		cp.copyIn(copySrc)

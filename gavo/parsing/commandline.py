@@ -83,29 +83,6 @@ def parseCmdline():
 	return opts, args
 
 
-def makeEllipsis(aStr, maxLen):
-	if len(aStr)>maxLen:
-		return aStr[:maxLen-3]+"..."
-	return aStr
-
-
-def displayError(exc):
-	if isinstance(exc, gavo.Error):
-		prefix = "*** Operation failed:"
-	else:
-		prefix = "*** Uncaught exception:"
-	if hasattr(exc, "gavoData"):
-		data = str(exc.gavoData)
-	else:
-		data = ""
-	msg = "%s: %s"%(prefix, str(exc))
-	gavo.logger.error(msg, exc_info=True)
-	sys.stderr.write("\n%s\nA traceback should be available in the log.\n"%(msg))
-	if data:
-		gavo.logger.error("Pertaining data: %s\n"%data)
-		sys.stderr.write("Pertaining data: %s\n"%makeEllipsis(data, 60))
-
-
 def main():
 	try:
 		processAll(*parseCmdline())
@@ -114,4 +91,4 @@ def main():
 	except SystemExit, msg:
 		sys.exit(msg.code)
 	except Exception, msg:
-		displayError(msg)
+		utils.displayError(msg)

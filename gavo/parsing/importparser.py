@@ -30,6 +30,7 @@ from gavo.parsing import processors
 from gavo.parsing import resource
 from gavo.parsing import tablegrammar
 from gavo.parsing import typeconversion
+from gavo.parsing.directgrammar import DirectGrammar
 from gavo.parsing.kvgrammar import KeyValueGrammar
 from gavo.parsing.nullgrammar import NullGrammar
 from gavo.parsing.regrammar import REGrammar
@@ -182,6 +183,12 @@ class RdParser(utils.NodeBuilder):
 		grammar.set_topIgnoredLines(attrs.get("topIgnoredLines", 0))
 		grammar.set_booster(attrs.get("booster"))
 		return utils.NamedNode("Grammar", grammar)
+
+	def _make_DirectGrammar(self, name, attrs, children):
+		attrs = makeAttDict(attrs)
+		grammar = DirectGrammar(**attrs)
+		return utils.NamedNode("Grammar", 
+			self._processChildren(grammar, name, {}, children))
 
 	def _make_NullGrammar(self, name, attrs, children):
 		return utils.NamedNode("Grammar",

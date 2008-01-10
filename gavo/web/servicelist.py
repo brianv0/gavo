@@ -178,7 +178,7 @@ def queryServicesList(whereClause="", pars={}, source="services"):
 	return resource.InternalDataSet(dd, dataSource=data).getPrimaryTable().rows
 
 resourcecache.makeCache("getWebServiceList", 
-	lambda ignored: queryServicesList("srv_set.setName='local'"))
+	lambda ignored: queryServicesList("srv_sets.setName='local'"))
 
 
 def getResourceForRec(rec):
