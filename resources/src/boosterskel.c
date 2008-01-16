@@ -181,6 +181,15 @@ void writeBoolean(Field *field, void *destination)
 	DATA_OUT(&(field->val.c_int8), 1, destination);
 }
 
+void writeShort(Field *field, void *destination)
+{
+	char *head="\0\0\0\002";
+	uint16_t val=htons(field->val.c_int16);
+
+	DATA_OUT(head, 4, destination);
+	DATA_OUT(&val, 2, destination);
+}
+
 void writeInteger(Field *field, void *destination)
 {
 	char *head="\0\0\0\004";
@@ -272,6 +281,9 @@ void writeField(Field *field, void *destination)
 		case VAL_CHAR:
 			writeBoolean(field, destination);
 			break;
+		case VAL_SHORT:
+			writeShort(field, destination);
+			break;
 		case VAL_INT:
 			writeInteger(field, destination);
 			break;
@@ -309,20 +321,40 @@ void createDumpfile(int argc, char **argv)
 	FILE *destination=stdout;
 	char inputLine[INPUT_LINE_MAX];
 	int lncount = 0;
+	int bytesRead = 0;
 
-	if (argc!=2) {
+	if (argc>2) {
 		die(USAGE);
 	}
-	if (!(inF = fopen(argv[1], "r"))) {
-		die(strerror(errno));
+	if (argc==2) {
+		if (!(inF = fopen(argv[1], "r"))) {
+			die(strerror(errno));
+		}
+	} else {
+		inF = stdin;
 	}
 	
+//	fprintf(stderr, "\nBooster importing %s:\n", argv[1]);
 	writeHeader(destination);
+#ifdef FIXED_RECORD_SIZE
+	while (1) {
+		bytesRead = fread(inputLine, 1, FIXED_RECORD_SIZE, inF);
+		if (bytesRead==0) {
+			break;
+		} else if (bytesRead!=FIXED_RECORD_SIZE) {
+			die("Short record: Only %d bytes read.", bytesRead);
+		}
+#else
 	while (fgets(inputLine, INPUT_LINE_MAX, inF)) {
+#endif
 		Field *tuple;
 		tuple = getTuple(inputLine);
 		if (!tuple) {
+#ifdef FIXED_RECORD_SIZE
+			die("Bad input line at record %d", lncount);
+#else
 			die("Bad input line: '%s'", inputLine);
+#endif
 		}
 		writeTuple(tuple, QUERY_N_PARS, destination);
 		lncount ++;

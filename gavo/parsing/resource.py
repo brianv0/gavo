@@ -143,6 +143,11 @@ class RecordDef(record.Record, meta.MetaMixin):
 	def getFieldByName(self, fieldName):
 		return self.get_items()[self.fieldIndexDict[fieldName]]
 
+	def getFieldsByUcd(self, ucd):
+		"""returns all fields having ucd.
+		"""
+		return [item for item in self.get_items() if item.get_ucd()==ucd]
+
 	def copy(self):
 		theCopy = record.Record.copy(self)
 		theCopy.fieldIndexDict = self.fieldIndexDict.copy()

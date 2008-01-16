@@ -261,9 +261,6 @@ class RdParser(utils.NodeBuilder):
 		interfaceNodes, children = self.filterChildren(children, "implements")
 		for _, (interface, args) in interfaceNodes:
 			children.extend(interface.getNodes(recDef, **args))
-			for nodeDesc in interface.getDelayedNodes(
-					recDef, **args):
-				self.registerDelayedChild(*nodeDesc)
 
 		record = self._processChildren(recDef, name, {
 			"Field": recDef.addto_items,
@@ -272,6 +269,9 @@ class RdParser(utils.NodeBuilder):
 			"meta": recDef.addMeta,
 		}, children)
 
+		for _, (interface, args) in interfaceNodes:
+			for nodeDesc in interface.getDelayedNodes(recDef, **args):
+				self.registerDelayedChild(*nodeDesc)
 		return utils.NamedNode("Record", record)
 	
 	_make_SharedRecord = _make_Record

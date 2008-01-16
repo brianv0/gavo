@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# ** ARI-Location: tucana.cl.uni-heidelberg.de:gavotest/
+# ** ARI-Location: ella.cl.uni-heidelberg.de:gavotest/
 
 """
 A script to run a series of tests on our local server to see if a software

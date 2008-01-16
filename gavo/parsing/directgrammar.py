@@ -29,11 +29,16 @@ class Error(gavo.Error):
 class CBooster:
 	"""is a wrapper for an import booster written in C using the DC booster
 	infrastructure.
+
+	Warning: If you change the booster description, you'll need to touch
+	the source to recompile.
 	"""
-	def __init__(self, srcName, dataDesc):
+	def __init__(self, srcName, recordSize, dataDesc, gzippedInput=False):
 		self.dataDesc = dataDesc
+		self.recordSize = recordSize
 		self.resdir = dataDesc.getRD().get_resdir()
 		self.srcName = os.path.join(self.resdir, srcName)
+		self.gzippedInput = gzippedInput
 		self.bindir = os.path.join(self.resdir, "bin")
 		self.binaryName = os.path.join(self.bindir,
 			os.path.splitext(os.path.basename(srcName))[0]+"-"+config.get(
@@ -57,12 +62,12 @@ class CBooster:
 			raise Error("Booster function doesn't define QUERY_N_PARS")
 		query_n_pars = mat.group(1)
 		f = open(os.path.join(wd, "Makefile"), "w")
-#		f.write("CFLAGS := $(CFLAGS) -Wall -I ${shell pg_config --includedir} -g\n"
-#			"LDFLAGS := $(LDFLAGS) -L ${shell pg_config --libdir} -lm -lpq\n")
 		f.write("LDFLAGS += -lm\n"
-			"CFLAGS += -DQUERY_N_PARS=%s\n"
-			"booster: boosterskel.c func.c\n"
-			"\t$(CC) $(CFLAGS) $(LDFLAGS) -o booster $^\n"%query_n_pars)
+			"CFLAGS += -DQUERY_N_PARS=%s\n"%query_n_pars)
+		if self.recordSize:
+			f.write("CFLAGS += -DFIXED_RECORD_SIZE=%s\n"%self.recordSize)
+		f.write("booster: boosterskel.c func.c\n"
+			"\t$(CC) $(CFLAGS) $(LDFLAGS) -o booster $^\n")
 		f.close()
 	
 	def _build(self):
@@ -71,6 +76,7 @@ class CBooster:
 	
 	def _retrieveBinary(self, od):
 		shutil.copyfile("booster", self.binaryName)
+		os.chmod(self.binaryName, 0775)
 
 	def _ensureBinary(self):
 		"""makes sure the booster binary exists and is up-to-date.
@@ -87,27 +93,37 @@ class CBooster:
 	def getOutput(self, argName):
 		"""returns a pipe you can read the booster's output from.
 		"""
-		return os.popen("%s '%s'"%(self.binaryName, argName))
+		if self.gzippedInput:
+			self.pipe = os.popen("zcat '%s' | %s"%(argName, self.binaryName))
+		else:
+			self.pipe = os.popen("%s '%s'"%(self.binaryName, argName))
+		return self.pipe
+	
+	def getStatus(self):
+		return self.pipe.close()
 
 
 class DirectGrammar(record.Record):
 	def __init__(self, **attrs):
-		if attrs.has_key("cbooster"):
-			self.boosterSrc = attrs["cbooster"]
-		else:
-			raise Error("DirectGrammars must have a cbooster attribute")
+		self.attrs = attrs
 		record.Record.__init__(self, {})
 
 	def _parseUsingCBooster(self, parseContext):
-		booster = CBooster(self.boosterSrc, 
-			parseContext.getDataSet().getDescriptor())
+		booster = CBooster(self.attrs["cbooster"], self.attrs.get("recordSize"),
+			parseContext.getDataSet().getDescriptor(), 
+			gzippedInput=self.attrs.has_key("gzippedInput") 
+				and record.parseBooleanLiteral(self.attrs ["gzippedInput"]))
 		targetTables = parseContext.getDataSet().getTables()
 		assert len(targetTables)==1
 		targetTables[0].tableWriter.copyIn(booster.getOutput(
 			parseContext.sourceName))
+		if booster.getStatus():
+			raise Error("Booster returned error signature.")
 
 	def parse(self, parseContext):
-		self._parseUsingCBooster(parseContext)
+		if self.attrs.has_key("cbooster"):
+			return self._parseUsingCBooster(parseContext)
+		raise Error("No sufficient DirectGrammar specification")
 
 	def enableDebug(*args, **kwargs):
 		pass
@@ -149,13 +165,17 @@ def buildSource(dd):
 	print "#define QUERY_N_PARS %d\n"%len(items)
 	print 'enum outputFields {'
 	for item in items:
+		desc = item.get_tablehead()
+		if not desc:
+			desc = item.get_description()
 		print "\t%-15s  /* %s, %s */"%(getNameForItem(item)+",",
-			item.get_tablehead(), item.get_dbtype())
-	print '}\n'
+			desc, item.get_dbtype())
+	print '};\n'
 	print "Field *getTuple(char *inputLine)\n{"
 	print "\tstatic Field vals[QUERY_N_PARS];\n"
 	for item in items:
 		print "\t%s;"%getParseCodeBoilerplate(item)
+	print "\treturn vals;"
 	print "}"
 
 

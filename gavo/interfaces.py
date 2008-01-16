@@ -15,12 +15,17 @@ descriptor.
 In general, a somewhat more declarative approach would be nice...
 """
 
+import gavo
 from gavo import config
 from gavo import coords
 from gavo import sqlsupport
 from gavo import utils
 from gavo.datadef import DataField
 from gavo.parsing import resource
+
+
+class Error(gavo.Error):
+	pass
 
 
 class Interface:
@@ -141,19 +146,20 @@ class Q3CPositions(Positions):
 	def getName():
 		return "q3cpositions"
 
-	def changeRd(self, recordNode):
-		yield "script", ("postCreation", "q3cindex",
+	def getDelayedNodes(self, recordNode):
+		tableName = recordNode.get_table()
+		yield "ResourceDescriptor", ("script", ("postCreation", "q3cindex",
 			"\n".join([
 				"BEGIN",
 				"-DROP INDEX @@@SCHEMA()@@@.%(indexName)s",
 				"COMMIT",
-				r"CREATE INDEX %(indexName)s ON %(tableName)s "
+				"CREATE INDEX %(indexName)s ON @@@SCHEMA()@@@.%(tableName)s "
 				"(q3c_ang2ipix(alphaFloat, deltaFloat))",
-				"CLUSTER %(indexName)s ON %(tableName)s",
-				"ANALYZE %(tableName)s"])%{
-					"indexName": "q3c_"+tableName.replace(".", "_"),
-					"tableName": recordNode.get_table(),
-					})
+				"CLUSTER %(indexName)s ON @@@SCHEMA()@@@.%(tableName)s",
+				"ANALYZE @@@SCHEMA()@@@.%(tableName)s"])%{
+					"indexName": "q3c_"+tableName,
+					"tableName": tableName,
+					}))
 
 	@staticmethod
 	def findNClosest(alpha, delta, tableName, n, fields, searchRadius=5):
@@ -179,6 +185,48 @@ class Q3CPositions(Positions):
 					(",".join(fields), tableName),
 			locals()).fetchall()
 		return res
+
+
+class Q3CIndex(Interface):
+	"""is an interface indexing the main positions of a table using Q3C
+
+	The difference to Q3CPositions is that no cartesian coordinates are
+	introduced into the table and the positions are taken from the
+	fields with the ucds pos.eq.ra;meta.main and pos.eq.dec;meta.main;
+	we will raise an error if there are not exactly one of these each
+	in the pertaining record.
+	"""
+	def __init__(self):
+		Interface.__init__(self, [])
+
+	@staticmethod
+	def getName():
+		return "q3cindex"
+
+	def getDelayedNodes(self, recordNode):
+		tableName = recordNode.get_table()
+		raFields = recordNode.getFieldsByUcd("pos.eq.ra;meta.main")
+		deFields = recordNode.getFieldsByUcd("pos.eq.dec;meta.main")
+		if len(raFields)!=1 or len(deFields)!=1:
+			raise Error("Table must have exactly one field with ucds"
+				" pos.eq.ra;meta.main and pos.eq.dec;meta.main each for the"
+				" q3cindex interface")
+		raName, deName = raFields[0].get_dest(), deFields[0].get_dest()
+		yield "ResourceDescriptor", ("script", ("postCreation", "q3cindex",
+			"\n".join([
+				"BEGIN",
+				"-DROP INDEX @@@SCHEMA()@@@.%(indexName)s",
+				"COMMIT",
+				"CREATE INDEX %(indexName)s ON @@@SCHEMA()@@@.%(tableName)s "
+				"(q3c_ang2ipix(%(raName)s, %(deName)s))",
+				"CLUSTER %(indexName)s ON @@@SCHEMA()@@@.%(tableName)s",
+				"ANALYZE @@@SCHEMA()@@@.%(tableName)s"])%{
+					"indexName": "q3c_"+tableName.replace(".", "_"),
+					"tableName": recordNode.get_table(),
+					"raName": raName,
+					"deName": deName,
+					}))
+
 
 class Products(Interface):
 	"""is an interface for handling products.
