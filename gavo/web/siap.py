@@ -137,8 +137,8 @@ def getBboxQuery(parameters, prefix="sia"):
 class SiapCondition(standardcores.CondDesc):
 	"""is a condition descriptor for a plain SIAP query.
 	"""
-	def __init__(self):
-		super(SiapCondition, self).__init__(initvals={
+	def __init__(self, initvals={}):
+		vals = {
 			"inputKeys": [ 
 				InputKey(dest="POS", dbtype="text", unit="deg,deg",
 					ucd="pos.eq", description="J2000.0 Position, RA,DEC decimal degrees"
@@ -161,7 +161,9 @@ class SiapCondition(standardcores.CondDesc):
 					tablehead="Output format", default="image/fits",
 					values=datadef.Values(options=["image/fits", "METADATA"]),
 					widgetFactory='Hidden', source="FORMAT"),
-			]})
+			]}
+		vals.update(initvals)
+		super(SiapCondition, self).__init__(initvals=vals)
 	
 	def asSQL(self, inPars, sqlPars):
 		fragment, pars = getBboxQuery(inPars)
@@ -169,7 +171,7 @@ class SiapCondition(standardcores.CondDesc):
 		return "(%s) AND imageFormat=%%(%s)s"%(fragment,
 			vizierexprs.getSQLKey("imageFormat", inPars["FORMAT"], sqlPars))
 
-core.registerCondDesc("siap", SiapCondition())
+core.registerCondDesc("siap", SiapCondition)
 
 
 # XXX TODO: this should be handled by an output filter

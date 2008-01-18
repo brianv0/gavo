@@ -88,6 +88,7 @@ class FormatterFactory:
 	def _make_suppress_formatter(self):
 		def format(val):
 			return T.span(style="color:#777777")[str(val)]
+		return format
 
 
 class HtmlTableFragment(rend.Fragment):
@@ -98,19 +99,25 @@ class HtmlTableFragment(rend.Fragment):
 		super(HtmlTableFragment, self).__init__()
 		self.formatterFactory = FormatterFactory()
 
+	def _defaultRenderFunc(self, val):
+		if val==None:
+			return "N/A"
+		else:
+			return str(val)
+
 	def _makeFormatFunction(self, hint):
 		if hint==None:
-			return str
+			return self._defaultRenderFunc
 		parts = hint.split(",")
 		return self.formatterFactory(parts[0], map(eval, parts[1:]))
 
 	def render_usehint(self, ctx, data):
-		atts = ctx.tag.attributes
-		formatVal = atts.get("formatter", None)
+		attrs = ctx.tag.attributes
+		formatVal = attrs.get("formatter", None)
 		if formatVal==None:
-			formatVal = self._makeFormatFunction(atts.get("hint", None))
-		if atts.has_key("formatter"): del ctx.tag.attributes["formatter"]
-		if atts.has_key("hint"): del ctx.tag.attributes["hint"]
+			formatVal = self._makeFormatFunction(attrs.get("hint", None))
+		if attrs.has_key("formatter"): del ctx.tag.attributes["formatter"]
+		if attrs.has_key("hint"): del ctx.tag.attributes["hint"]
 		return ctx.tag[formatVal(data)]
 
 	def render_headCell(self, ctx, fieldDef):

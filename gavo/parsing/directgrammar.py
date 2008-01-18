@@ -33,11 +33,13 @@ class CBooster:
 	Warning: If you change the booster description, you'll need to touch
 	the source to recompile.
 	"""
-	def __init__(self, srcName, recordSize, dataDesc, gzippedInput=False):
+	def __init__(self, srcName, recordSize, dataDesc, gzippedInput=False,
+			autoNull=None):
 		self.dataDesc = dataDesc
 		self.recordSize = recordSize
 		self.resdir = dataDesc.getRD().get_resdir()
 		self.srcName = os.path.join(self.resdir, srcName)
+		self.autoNull = autoNull
 		self.gzippedInput = gzippedInput
 		self.bindir = os.path.join(self.resdir, "bin")
 		self.binaryName = os.path.join(self.bindir,
@@ -66,6 +68,9 @@ class CBooster:
 			"CFLAGS += -DQUERY_N_PARS=%s\n"%query_n_pars)
 		if self.recordSize:
 			f.write("CFLAGS += -DFIXED_RECORD_SIZE=%s\n"%self.recordSize)
+		if self.autoNull:
+			f.write("CFLAGS += -DAUTO_NULL='%s'\n"%self.autoNull.replace(
+				"\\", "\\\\"))
 		f.write("booster: boosterskel.c func.c\n"
 			"\t$(CC) $(CFLAGS) $(LDFLAGS) -o booster $^\n")
 		f.close()
@@ -112,13 +117,15 @@ class DirectGrammar(record.Record):
 		booster = CBooster(self.attrs["cbooster"], self.attrs.get("recordSize"),
 			parseContext.getDataSet().getDescriptor(), 
 			gzippedInput=self.attrs.has_key("gzippedInput") 
-				and record.parseBooleanLiteral(self.attrs ["gzippedInput"]))
+				and record.parseBooleanLiteral(self.attrs ["gzippedInput"]),
+			autoNull=self.attrs.get("autoNull", None))
 		targetTables = parseContext.getDataSet().getTables()
 		assert len(targetTables)==1
 		targetTables[0].tableWriter.copyIn(booster.getOutput(
 			parseContext.sourceName))
 		if booster.getStatus():
-			raise Error("Booster returned error signature.")
+			raise Error("Booster returned error signature while processing %s."%
+				parseContext.sourceName)
 
 	def parse(self, parseContext):
 		if self.attrs.has_key("cbooster"):
@@ -138,30 +145,80 @@ def getNameForItem(item):
 	return "fi_"+item.get_dest().lower()
 
 
-def getParseCodeBoilerplate(item):
-	t = item.get_dbtype()
-	if "int" in t:
-		func = "parseInt"
-	elif t in ["real", "float"]:
-		func = "parseFloat"
-	elif "double" in t:
-		func = "parseDouble"
-	elif "char" in t:
-		func = "parseString"
-	elif "bool" in t:
-		func = "parseBlankBoolean"
+class ColCodeGenerator:
+	def __init__(self, option):
+		pass
+	
+	def getSetupCode(self):
+		return []
+
+	def getItemParser(self, item):
+		t = item.get_dbtype()
+		if "int" in t:
+			func = "parseInt"
+		elif t in ["real", "float"]:
+			func = "parseFloat"
+		elif "double" in t:
+			func = "parseDouble"
+		elif "char" in t:
+			func = "parseString"
+		elif "bool" in t:
+			func = "parseBlankBoolean"
+		else:
+			func = "parseWhatever"
+		return ["%s(inputLine, F(%s), start, end)"%(func, getNameForItem(item))]
+
+
+class SplitCodeGenerator:
+	def __init__(self, option):
+		self.splitChar = getattr(option, "split", "|")
+
+	def getSetupCode(self):
+		return ['char *curCont = strtok(inputLine, "%s");'%self.splitChar]
+
+	def getItemParser(self, item):
+		t = item.get_dbtype()
+		if t=="smallint":
+			cType = "VAL_SHORT"
+		elif t=="bigint":
+			cType = "VAL_INT_64"
+		elif "int" in t:
+			cType = "VAL_INT"
+		elif t in ["real", "float"]:
+			cType = "VAL_FLOAT"
+		elif "double" in t:
+			cType = "VAL_DOUBLE"
+		elif "char"==t:
+			cType = "VAL_CHAR"
+		elif "char" in t:
+			cType = "VAL_TEXT"
+		elif "bool" in t:
+			cType = "VAL_BOOL"
+		else:
+			cType = "###No appropriate type###"
+		return ["fieldscanf(curCont, %s, %s);"%(getNameForItem(item),
+			cType), 
+			'curCont = strtok(NULL, "%s");'%self.splitChar]
+
+
+def getCodeGen(opts):
+	if getattr(opts, "split", None):
+		return SplitCodeGenerator(opts)
 	else:
-		func = "parseWhatever"
-	return "%s(inputLine, F(%s), start, end)"%(func, getNameForItem(item))
+		return ColCodeGenerator(opts)
+
+def printIndented(stringList, indentChar):
+	print indentChar+('\n'+indentChar).join(stringList)
 
 
-def buildSource(dd):
+def buildSource(dd, opts):
+	codeGen = getCodeGen(opts)
 	recs = dd.get_Semantics().get_recordDefs()
 	if len(recs)!=1:
 		raise Error("Booster can only be defined on Data having exactly one"
 			"Record definition.")
 	items = recs[0].get_items()
-	print '#include <math.h>\n#include "boosterskel.h"\n'
+	print '#include <math.h>\n#include <string.h>\n#include "boosterskel.h"\n'
 	print "#define QUERY_N_PARS %d\n"%len(items)
 	print 'enum outputFields {'
 	for item in items:
@@ -173,8 +230,9 @@ def buildSource(dd):
 	print '};\n'
 	print "Field *getTuple(char *inputLine)\n{"
 	print "\tstatic Field vals[QUERY_N_PARS];\n"
+	printIndented(codeGen.getSetupCode(), "\t")
 	for item in items:
-		print "\t%s;"%getParseCodeBoilerplate(item)
+		printIndented(codeGen.getItemParser(item), "\t")
 	print "\treturn vals;"
 	print "}"
 
@@ -190,6 +248,9 @@ def getDataDesc(rdName, ddId):
 
 def parseCmdLine():
 	parser = OptionParser(usage = "%prog [options] <rd-name> <data-id>")
+	parser.add_option("-s", "--splitter", help="generate a split skeleton"
+		" with split string SPLITTER", metavar="SPLITTER", action="store",
+		type="string", dest="split")
 	(opts, args) = parser.parse_args()
 	if len(args)!=2:
 		parser.print_help()
@@ -201,7 +262,7 @@ def main():
 	try:
 		opts, (rdName, ddId) = parseCmdLine()
 		dd = getDataDesc(rdName, ddId)
-		src = buildSource(dd)
+		src = buildSource(dd, opts)
 	except SystemExit, msg:
 		sys.exit(msg.code)
 	except Exception, msg:

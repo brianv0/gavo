@@ -35,6 +35,9 @@ class CondDesc(record.Record):
 	
 	It defines inputs as InputKeys, so they can be used "naked" if necessary,
 	and provide an asSQL method that returns a query fragment.
+
+	"silent" condDescs do not contribute any widgets, just SQL -- this
+	can be used to provide constant arguments.
 	"""
 	def __init__(self, additionalFields={}, initvals={}):
 		fields = {

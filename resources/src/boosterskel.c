@@ -1,12 +1,19 @@
 /* A skeleton for an ingestion booster.
  */
 
+
+#define HAVE_INT64_TIMESTAMP  // read this from <pg-config --includes>/c.h ?
+
+#define _XOPEN_SOURCE
+#define _ISOC99_SOURCE
+
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
 #include <assert.h>
 #include <math.h>
+#include <time.h>
 #include <endian.h> 
 #include <stdlib.h>
 #include <errno.h>
@@ -16,6 +23,20 @@
 #define USAGE "Usage: don't."
 
 #define INPUT_LINE_MAX 2000
+
+/* Epoch of pq dumps.  Let's hope the don't change that frequently */
+static struct tm pqEpochParts = {
+	.tm_sec = 0,
+	.tm_min = 0,
+	.tm_hour = 0,
+	.tm_mday = 1,
+	.tm_mon = 0,
+	.tm_year = 100,
+	.tm_wday = -1,
+	.tm_yday = -1,
+	.tm_isdst = 0,
+};
+static time_t PqEpoch;
 
 void die(char *format, ...)
 {
@@ -30,6 +51,63 @@ void die(char *format, ...)
 
 #define DATA_OUT(data, nbytes, destination) \
 	fwrite(data, 1, nbytes, (FILE*)destination)
+
+
+void
+j2date(int jd, int *year, int *month, int *day)
+{  /* jd -> ymd, lifted from postgresql source */
+	unsigned int julian;
+	unsigned int quad;
+	unsigned int extra;
+	int			y;
+
+	julian = jd;
+	julian += 32044;
+	quad = julian / 146097;
+	extra = (julian - quad * 146097) * 4 + 3;
+	julian += 60 + quad * 3 + extra / 146097;
+	quad = julian / 1461;
+	julian -= quad * 1461;
+	y = julian * 4 / 1461;
+	julian = ((y != 0) ? ((julian + 305) % 365) : ((julian + 306) % 366))
+		+ 123;
+	y += quad * 4;
+	*year = y - 4800;
+	quad = julian * 2141 / 65536;
+	*day = julian - 7834 * quad / 256;
+	*month = (quad + 10) % 12 + 1;
+	return;
+}	/* j2date() */
+
+
+int julian2unixtime(double julian, time_t *result)
+{
+	struct tm datetime;
+	double hrs, mins;
+
+	julian += 0.5;
+	j2date((int)trunc(julian), &datetime.tm_year, &datetime.tm_mon,
+		&datetime.tm_mday);
+	datetime.tm_year -= 1900;  /* mktime wants it like this.  yuck. */
+	datetime.tm_mon -= 1;
+	hrs = (julian-trunc(julian))*24;
+	datetime.tm_hour = (int)trunc(hrs);
+	mins = (hrs-datetime.tm_hour)*60;
+	datetime.tm_min = (int)trunc(mins);
+	datetime.tm_sec = (int)trunc((mins-datetime.tm_min)*60);
+	datetime.tm_isdst = 0;
+	*result = mktime(&datetime);
+	return 0;
+}
+
+
+void makeTimeFromJd(Field *field)
+{ /* double field to date field */
+	assert(field->type==VAL_DOUBLE);
+	field->type = VAL_DATETIME;
+	julian2unixtime(field->val.c_double, &(field->val.time));
+}
+
 
 void linearTransform(Field *field, double offset, double factor)
 {
@@ -163,6 +241,66 @@ void parseChar(char *src, Field *field, int srcInd)
 	}
 }
 
+void real_fieldscanf(char *str, Field *f, valType type, char *fieldName, ...)
+{
+	int itemsMatched=1;
+	va_list ap;
+
+#ifdef AUTO_NULL
+	if (!strcmp(str, STRINGIFY_VAL(AUTO_NULL))) {
+		f->type = VAL_NULL;
+		return;
+	}
+#endif
+	va_start(ap, fieldName);
+	f->type = type;
+	switch (type) {
+		case VAL_NULL:
+			break;
+		case VAL_BOOL:
+			die("Can't fieldscanf bools at %s", fieldName);
+			break;
+		case VAL_CHAR:
+			f->val.c_int8 = *str;
+			break;
+		case VAL_SHORT:
+			itemsMatched = sscanf(str, "%hd", &(f->val.c_int16));
+			break;
+		case VAL_INT:
+			itemsMatched = sscanf(str, "%d", &(f->val.c_int32));
+			break;
+		case VAL_FLOAT:
+			itemsMatched = sscanf(str, "%f", &(f->val.c_float));
+			break;
+		case VAL_DOUBLE:
+			itemsMatched = sscanf(str, "%lf", &(f->val.c_double));
+			break;
+		case VAL_TEXT:
+			f->val.c_ptr = str;
+			break;
+		case VAL_DATETIME:
+		case VAL_DATE: {
+			char *dateFormat = va_arg(ap, char*);
+			struct tm timeParts;
+			char *res = strptime(str, dateFormat, &timeParts);
+			if (!res || *res) { /* strptime didn't consume string */
+				itemsMatched = 0;
+			} else {
+				f->val.time = mktime(&timeParts);
+			}}
+			break;
+		case VAL_JDATE:
+			die("Can't fieldscanf jdates at %s", fieldName);
+			break;
+	}
+	va_end(ap);
+	if (itemsMatched!=1) {
+		die("fieldscanf: Can't parse value '%s' for %s", str, fieldName);
+	}
+}
+
+
+
 void writeHeader(void *destination)
 {
 	char *header = "PGCOPY\n\377\r\n\0";
@@ -255,7 +393,7 @@ double round(double val)
 
 /* This one's bad.  Pq's dump has the number of days since the epoch 2000-1-1
  * in the dump format.  We estimate this from a julian float like this.  It's
- * not ideal but should work well enough.  I dread other date formats.
+ * not ideal but should work well enough.
  */
 void writeJdate(Field *field, void *destination)
 {
@@ -266,6 +404,36 @@ void writeJdate(Field *field, void *destination)
 	DATA_OUT(&size, 4, destination);
 	DATA_OUT(&daysSinceEpoch, sizeof(int32_t), destination);
 }
+
+
+void writeDate(Field *field, void *destination)
+{
+	/* field->time is a unix time_t */
+	int32_t daysSinceEpoch = htonl((int32_t)((field->val.time-PqEpoch)/86400));
+	uint32_t size=htonl(sizeof(int32_t));
+
+	DATA_OUT(&size, 4, destination);
+	DATA_OUT(&daysSinceEpoch, sizeof(int32_t), destination);
+}
+
+
+void writeDatetime(Field *field, void *destination)
+{ /* it seems postgres stores dates and times either in int64s or in
+  something else :-).  Well, I take the int64 thing here, and there,
+	I guess it's just the number of microseconds since the epoch. */
+#ifdef HAVE_INT64_TIMESTAMP
+	int64_t usecsSinceEpoch = (field->val.time-PqEpoch);
+	usecsSinceEpoch *= 1000000;
+#else
+	double usecsSinceEpoch = (field->val.time-PqEpoch);
+#endif
+	uint32_t size=htonl(sizeof(int64_t));
+
+	mirrorBytes((char*)&usecsSinceEpoch, 8);
+	DATA_OUT(&size, 4, destination);
+	DATA_OUT(&usecsSinceEpoch, 8, destination);
+}
+
 
 void writeField(Field *field, void *destination)
 {
@@ -298,6 +466,12 @@ void writeField(Field *field, void *destination)
 			break;
 		case VAL_JDATE:
 			writeJdate(field, destination);
+			break;
+		case VAL_DATE:
+			writeDate(field, destination);
+			break;
+		case VAL_DATETIME:
+			writeDatetime(field, destination);
 			break;
 		default:
 			die("Unknown type code: %d\n", field->type);
@@ -368,6 +542,7 @@ void createDumpfile(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
+	PqEpoch = mktime(&pqEpochParts);
 	createDumpfile(argc, argv);
 	return 0;
 }

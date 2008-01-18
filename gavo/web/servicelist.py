@@ -11,6 +11,7 @@ import gavo
 from gavo import config
 from gavo import resourcecache
 from gavo import sqlsupport
+from gavo import utils
 from gavo.parsing import parseswitch
 from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
@@ -260,11 +261,11 @@ def importFixed():
 	res.exportToSql()
 	gavo.ui.silence = False
 
+
 def main():
 	"""handles the user interaction for gavopublish.
 	"""
 	from gavo import textui
-	from gavo.parsing import commandline
 	config.setDbProfile("feed")
 	from gavo.parsing import importparser
 	opts, args = parseCommandLine()
@@ -276,7 +277,7 @@ def main():
 				importparser.getRd(os.path.join(os.getcwd(), rdPath), 
 					forImport=True))
 		except Exception, msg:
-			commandline.displayError(msg)
+			utils.displayError(msg)
 	if opts.all or opts.doFixed:  # also import fixed registry records
 		importFixed()
 	try:

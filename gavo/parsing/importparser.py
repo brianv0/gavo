@@ -536,19 +536,22 @@ class RdParser(utils.NodeBuilder):
 	def _make_autoCondDescs(self, name, attrs, children):
 		return self._processChildren("", name, {}, children)
 
-	_condDescAttrs = set(["predefined", "original", "silent"])
+	_condDescAttrs = set(["original", "silent"])
 
 	def _make_condDesc(self, name, attrs, children):
 		fieldAttrs, cdAttrs = {}, {}
+		if attrs.has_key("predefined"):
+			cdAttrs = dict(attrs.items())
+			del cdAttrs["predefined"]
+			return self._processChildren(core.getCondDesc(attrs["predefined"]
+					)(initvals=cdAttrs),
+				name, {}, children)
 		for key, val in attrs.items():
 			if key in self._condDescAttrs:
 				cdAttrs[key] = val
 			else:
 				fieldAttrs[key] = val
-		if cdAttrs.has_key("predefined"):
-			return self._processChildren(core.getCondDesc(cdAttrs["predefined"]),
-				name, {}, children)
-		elif cdAttrs.has_key("original"):
+		if cdAttrs.has_key("original"):
 			original = cdAttrs.pop("original")
 			return self._processChildren(standardcores.CondDesc.fromInputKey(
 					contextgrammar.InputKey.fromDataField(

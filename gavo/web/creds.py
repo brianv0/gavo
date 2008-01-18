@@ -134,27 +134,28 @@ _actions = {
 	"list": (_listUsers, "-- lists known users with groups"),
 }
 
-def _usage():
-	sys.stderr.write("Usage: %s <action> <args>\n"%sys.argv[0])
-	sys.stderr.write("where action may be:\n")
-	for action, (fun, usage) in _actions.items():
-		sys.stderr.write("%s %s\n"%(action, usage))
-	sys.exit(1)
+def _getUsage():
+	return ("%proc <action> <args>\n"
+		"where action may be:\n"+
+		"\n".join(["  %s %s"%(action, usage)
+				for action, (fun, usage) in _actions.items()]))
 
 
 def _parseCmdLine():
-	try:
-		action = sys.argv[1]
-		args = sys.argv[2:]
-	except IndexError:
-		_usage()
-	return action, args
+	from optparse import OptionParser
+	parser = OptionParser(usage=_getUsage())
+	opts, args = parser.parse_args()
+	if len(args)<1:
+		parser.print_help()
+		sys.exit(1)
+	return opts, args
 
 
 def main():
 	config.setDbProfile("feed")
 	querier = sqlsupport.SimpleQuerier()
-	action, args = _parseCmdLine()
+	opts, args = _parseCmdLine()
+	action, args = args[0], args[1:]
 	try:
 		_actions[action][0](querier, *args)
 		querier.commit()
@@ -169,4 +170,3 @@ def main():
 
 if __name__=="__main__":
 	main()
-	

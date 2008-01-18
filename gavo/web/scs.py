@@ -22,44 +22,52 @@ from gavo.web import vodal
 class ScsCondition(standardcores.CondDesc):
 	"""is a condition descriptor for a plain SCS query.
 	"""
-	def __init__(self):
-		super(ScsCondition, self).__init__(initvals={
+	def __init__(self, initvals={}):
+		vals = {
 			"inputKeys": [
 				InputKey(dest="RA", dbtype="double precision", unit="deg",
-					ucd="pos.eq.ra", description="ICRS right ascension",
+					ucd="pos.eq.ra", description="Right ascension (J2000.0)",
 					tablehead="Alpha (ICRS)", optional=False, source="RA"),
 				InputKey(dest="DEC", dbtype="double precision", unit="deg",
-					ucd="pos.eq.dec", description="ICRS declination",
+					ucd="pos.eq.dec", description="Declination (J2000.0)",
 					tablehead="Delta (ICRS)", optional=False, source="DEC"),
 				InputKey(dest="SR", dbtype="float", unit="deg",
 					description="Search radius in degrees", tablehead="Search Radius",
-					optional=False, source="SR")]})
+					optional=False, source="SR")],
+		}
+		vals.update(initvals)
+		super(ScsCondition, self).__init__(initvals=vals, additionalFields={
+			"alphaField": "alphaFloat",
+			"deltaField": "deltaFloat",})
 
 	def asSQL(self, inPars, sqlPars):
 # XXX TODO: implement fallback if there's no q3c index on the table
-		return ("q3c_radial_query(alphaFloat, deltaFloat, %%(%s)s, "
+		return ("q3c_radial_query(%s, %s, %%(%s)s, "
 			"%%(%s)s, %%(%s)s)")%(
+				self.get_alphaField(),
+				self.get_deltaField(),
 				vizierexprs.getSQLKey("RA", inPars["RA"], sqlPars),
 				vizierexprs.getSQLKey("DEC", inPars["DEC"], sqlPars),
 				vizierexprs.getSQLKey("SR", inPars["SR"], sqlPars))
 
-core.registerCondDesc("scs", ScsCondition())
+core.registerCondDesc("scs", ScsCondition)
 
 
 class HumanScsCondition(ScsCondition):
 	"""is a condition descriptor for a simbad-enabled cone search.
 	"""
-# We need to know quite a bit of the internals of ScsCondition here,
-# and we bypass its constructor so we don't get their InputKeys
-	def __init__(self):
-		standardcores.CondDesc.__init__(self, initvals={
+	def __init__(self, initvals={}):
+		vals={
 			"inputKeys": [
 				InputKey(dest="hscs_pos", dbtype="text", description=
 					"position as hourangle, sexagesimal dec or simbad-resolvable"
 					" object", tablehead="Position", source="hscs_pos"),
 				InputKey(dest="hscs_sr", dbtype="float", description=
 					"search radius in arcminutes", tablehead="search radius",
-					source="hscs_sr")]})
+					source="hscs_sr")],
+		}
+		vals.update(initvals)
+		super(HumanScsCondition, self).__init__(initvals=vals)
 	
 	def asSQL(self, inPars, sqlPars):
 		if not self.inputReceived(inPars):
@@ -80,4 +88,4 @@ class HumanScsCondition(ScsCondition):
 		return super(HumanScsCondition, self).asSQL({
 			"RA": ra, "DEC": dec, "SR": sr}, sqlPars)
 
-core.registerCondDesc("humanScs", HumanScsCondition())
+core.registerCondDesc("humanScs", HumanScsCondition)
