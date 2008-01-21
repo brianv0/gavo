@@ -13,6 +13,7 @@ import cStringIO
 from twisted.internet import defer
 from twisted.python import log
 
+import gavo
 from gavo import config
 from gavo import coords
 from gavo import datadef
@@ -43,6 +44,7 @@ class CondDesc(record.Record):
 		fields = {
 			"inputKeys": record.ListField,
 			"silent": record.BooleanField,
+			"optional": record.TrueBooleanField,
 		}
 		fields.update(additionalFields)
 		super(CondDesc, self).__init__(fields, initvals=initvals)
@@ -55,7 +57,11 @@ class CondDesc(record.Record):
 		"""
 		for f in self.get_inputKeys():
 			if not inPars.has_key(f.get_source()) or inPars[f.get_source()]==None:
-				return False
+				if self.get_optional():
+					return False
+				else:
+					raise gavo.ValidationError("A value is necessary here", 
+						fieldName=f.get_source())
 		return True
 
 	def asSQL(self, inPars, sqlPars):
@@ -75,12 +81,6 @@ class CondDesc(record.Record):
 		return cls(initvals=initvals)
 
 
-class CondDescFromRd(CondDesc):
-	"""is a CondDesc defined in the resource descriptor.
-	"""
-	pass
-
-
 class StaticCore(core.Core):
 	"""is a core that always returns a static file.
 	"""
@@ -97,7 +97,7 @@ class StaticCore(core.Core):
 
 	def run(self, inputData, queryMeta):
 		return defer.succeed(resource.InternalDataSet(
-			resource.makeRowsetDataDesc(self.rd, self.get_outputFields()),
+			resource.makeRowsetDataDesc(self.rd, self.getOutputFields(queryMeta)),
 			dataSource=[(self.get_file(),)]))
 
 core.registerCore("static", StaticCore)
@@ -126,6 +126,7 @@ class QueryingCore(core.Core):
 		"""adds field definitions in tableDef suitable for what is given in 
 		queryMeta.
 		"""
+
 	def getInputFields(self):
 		res = []
 		for cd in self.get_condDescs():
@@ -187,30 +188,65 @@ class DbBasedCore(QueryingCore):
 			self.get_limit()==common.Undefined)
 
 	def addDefaultCondDescs(self, *ignored):
+# XXX this is a pain.  Do away with it, thinking of something better
 		for f in self.get_outputFields():
 			ik = contextgrammar.InputKey.makeAuto(f)
 			if ik:
 				self.addto_condDescs(CondDesc.fromInputKey(ik))
 
 	def addAutoOutputFields(self, queryMeta):
-		"""adds field definitions in tableDef suitable for what is given in 
-		queryMeta.
+		"""adds all fields matching verbLevel<=queryMeta["verbosity"].
+
+		This is used by the import parser.
 		"""
-		tableDef = self.tableDef
-		if queryMeta:
-			verbLevel = queryMeta.get("verbosity", 20)
-		if queryMeta and queryMeta["format"]=="HTML":
-			fieldList = [datadef.makeCopyingField(f) for f in tableDef.get_items()
-				if not (f.get_displayHint()=="suppress" or 
-						f.get_verbLevel()>verbLevel)]
-		elif queryMeta and queryMeta["format"]=="internal":
-			fieldList = [makeCopyingField(f) for f in tableDef.get_items()]
-		else:  # Some sort of VOTable
-			fieldList = [datadef.makeCopyingField(f) for f in tableDef.get_items()
-				if f.get_verbLevel()<=verbLevel and 
-					f.get_displayHint()!="suppress"]
-		for f in fieldList:
-			self.addto_outputFields(f)
+		verbLimit = queryMeta.get("verbosity", 20)
+		for f in self.tableDef.get_items():
+			if f.get_verbLevel()<=verbLimit:
+				self.addto_outputFields(datadef.makeCopyingField(f))
+
+# XXX the whole makeCopyingField stuff should go away.  Construct these
+# Fields right and you won't need them.
+	def _getVOTableOutputFields(self, queryMeta):
+		"""returns a list of dataFields suitable for a VOTable response described
+		by queryMeta
+		"""
+		verbLevel = queryMeta.get("verbosity", 20)
+		fieldList = [datadef.makeCopyingField(f) for f in self.tableDef.get_items()
+			if f.get_verbLevel()<=verbLevel and 
+				f.get_displayHint()!="suppress"]
+		return fieldList
+
+	def _getHTMLOutputFields(self, queryMeta):
+		"""returns a list of dataFields suitable for an HTML response described
+		by queryMeta
+		"""
+		res = [datadef.makeCopyingField(f) for f in self.get_outputFields()]
+		for dest in queryMeta.get("additionalFields", []):
+			try:
+				res.append(datadef.makeCopyingField(
+					self.tableDef.getFieldByName(dest)))
+			except KeyError:  # ignore orders for non-existent fields
+				pass
+		return res
+
+	def _getAllOutputFields(self, queryMeta):
+		"""returns a list of all dataFields of the source table, with
+		their sources set to their dests.
+		"""
+		return [datadef.makeCopyingField(f) for f in self.tableDef]
+
+	def getOutputFields(self, queryMeta):
+		"""returns a list of dataFields suitable for a response described by
+		queryMeta.
+
+		This evaluates stuff like verbosity and additionalFields.
+		"""
+		format = queryMeta.get("format")
+		if format=="VOTable" or format=="VOPlot":
+			return self._getVOTableOutputFields(queryMeta)
+		elif format=="internal":
+			return self._getAllFields(queryMeta)
+		return self._getHTMLOutputFields(queryMeta)
 
 	def _getSQLWhere(self, inputTable, queryMeta):
 		"""returns a where fragment and the appropriate parameters
@@ -259,10 +295,10 @@ class DbBasedCore(QueryingCore):
 		outputDef = resource.RecordDef()
 		outputDef.updateFrom(self.tableDef)
 # XXX TODO: It's possible that at some point we'd want constraints in
-# query interpretation, and it'd ugly to remove them anyway.  I think
+# query interpretation, and it's ugly to remove them anyway.  I think
 # they should go into the grammar.
 		outputDef.set_constraints([])
-		qFields = self.get_outputFields()
+		qFields = self.getOutputFields(queryMeta)
 		outputDef.set_items(qFields)
 		dd = datadef.DataTransformer(self.rd, initvals={
 			"Grammar": rowsetgrammar.RowsetGrammar(initvals={

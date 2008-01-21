@@ -270,6 +270,8 @@ class GavoRenderMixin(object):
 			T.link(rel="stylesheet", href=makeSitePath("/static/css/gavo_dc.css"), 
 				type="text/css"),
 			T.script(type='text/javascript', src=makeSitePath('/js/formal.js')),
+			T.script(src=makeSitePath("/static/js/gavo.js"), 
+				type="text/javascript"),
 		]
 
 
@@ -299,7 +301,7 @@ class QueryMeta(dict):
 	# lists because they are used internally.  This covers everything 
 	# QueryMeta interprets, but also keys by introduced by certain gwidgets
 	# and the nevow infrastructure
-	metaKeys = set(["_DBOPTIONS", "_FILTER", "_OUTPUT", "_charset_",
+	metaKeys = set(["_DBOPTIONS", "_FILTER", "_OUTPUT", "_charset_", "_ADDFIELD",
 		"__nevow_form__", "_FORMAT", "_VERB", "_TDENC", "formal_data"])
 
 	def __init__(self, ctxArgs):
@@ -313,11 +315,19 @@ class QueryMeta(dict):
 		self._fillDbOptions(ctxArgs)
 	
 	def _fillOutput(self, ctxArgs):
-		"""interprets values left by gwidget.OutputOptions.
+		"""interprets values left by the OutputFormat widget.
 		"""
-		self["format"] = ctxArgs.get("_FORMAT", ["VOTable"])[0]
+		self["format"] = ctxArgs.get("_FORMAT", ["HTML"])[0]
 		try:
-			self["verbosity"] = int(ctxArgs.get("_VERB", ['2'])[0])*10
+# prefer fine-grained "verbosity" over _VERB or VERB
+			if ctxArgs.has_key("verbosity"):
+				self["verbosity"] = int(ctxArgs["verbosity"][0])
+			elif ctxArgs.has_key("_VERB"):
+				self["verbosity"] = int(ctxArgs["_VERB"][0])*10
+			elif ctxArgs.has_key("VERB"):
+				self["verbosity"] = int(ctxArgs["VERB"][0])*10
+			else:
+				self.verbosity = 20
 		except ValueError:
 			self["verbosity"] = 20
 		try:
@@ -325,6 +335,7 @@ class QueryMeta(dict):
 				ctxArgs.get("_TDENC", ["False"])[0])
 		except gavo.Error:
 			self["tdEnc"] = False
+		self["additionalFields"] = ctxArgs.get("_ADDITEM", [])
 	
 	def _fillOutputFilter(self, ctxArgs):
 		self["outputFilter"] = ctxArgs.get("_FILTER", ["default"])[0] or "default"
@@ -361,7 +372,7 @@ class QueryMeta(dict):
 			frag.append("LIMIT %(_matchLimit)s")
 			pars["_matchLimit"] = int(dbLimit)+1
 		return " ".join(frag), pars
-
+	
 
 emptyQueryMeta = QueryMeta({})
 

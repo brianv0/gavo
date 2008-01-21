@@ -558,7 +558,7 @@ class RdParser(utils.NodeBuilder):
 						self._grabField(original), fieldAttrs), cdAttrs),
 				name, {}, children)
 		else:
-			condDesc = standardcores.CondDescFromRd(initvals=cdAttrs)
+			condDesc = standardcores.CondDesc(initvals=cdAttrs)
 			return self._processChildren(condDesc, name, {
 				"inputKey": condDesc.addto_inputKeys,
 			}, children)

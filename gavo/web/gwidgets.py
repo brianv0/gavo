@@ -2,6 +2,8 @@
 Special gavo widgets and their corresponding types based on nevow formal.
 """
 
+import urllib
+
 from nevow import tags as T, entities as E
 import formal
 from formal import iformal
@@ -18,71 +20,6 @@ from gavo import record
 from gavo.web import common
 
 
-_linkGeneratingJs = """
-function getEnclosingForm(element) {
-// returns the form element immediately enclosing element.
-	if (element.nodeName=="FORM") {
-		return element;
-	}
-	return getEnclosingForm(element.parentNode);
-}
-
-function getSelectedEntries(selectElement) {
-// returns an array of all selected entries from a select element 
-// in url encoded form
-	var result = new Array();
-	var i;
-
-	for (i=0; i<selectElement.length; i++) {
-		if (selectElement.options[i].selected) {
-			result.push(selectElement.name+"="+encodeURIComponent(
-				selectElement.options[i].value))
-		}
-	}
-	return result;
-}
-
-function makeQueryItem(element) {
-// returns an url-encoded query tag item out of a form element
-	var val=null;
-
-	switch (element.nodeName) {
-		case "INPUT":
-			if (element.name && element.value) {
-				val = element.name+"="+encodeURIComponent(element.value);
-			}
-			break;
-		case "SELECT":
-			return getSelectedEntries(element).join("&");
-			break;
-		default:
-			alert("No handler for "+element.nodeName);
-	}
-	if (val) {
-		return val;
-	} else {
-		return element.NodeName;
-	}
-}
-
-function makeResultLink(form) {
-	// returns a link to the result sending the HTML form form would
-	// yield.
-	var fragments = new Array();
-	var fragment;
-	var i;
-
-	items = form.elements;
-	for (i=0; i<items.length; i++) {
-		fragment = makeQueryItem(items[i]);
-		if (fragment) {
-			fragments.push(fragment);
-		}
-	}
-	return form.getAttribute("action")+"?"+fragments.join("&");
-}
-"""
-
 
 def getOptionRenderer(initValue):
 	"""returns a generator for option fields within a select field.
@@ -97,121 +34,63 @@ def getOptionRenderer(initValue):
 	return renderOptions
 
 
-class OutputOptions(object):
-	"""a widget that offers various output formats for tables.
+class OutputFormat(object):
+	"""is a widget that offers various output options in close cooperation
+	with gavo.js and QueryMeta.
 
-	This is for use in a formal form and goes together with the FormalDict
-	type below.
+	The javascript provides options for customizing output that non-javascript
+	users will not see.  Also, formal doesn't see any of these.  See gavo.js
+	for details.
 	"""
-# OMG, what a ghastly hack.  Clearly, I'm doing this wrong.  Well, it's the
-# first thing I'm really trying with formal, so bear with me (and reimplement
-# at some point...)
-# Anyway: This is supposed to be a "singleton", i.e. the input key is ignored.
-	implements(iformal.IWidget)
+	def __init__(self, typeOb, service):
+		self.service = service
+		self.typeOb = typeOb
+		self._computeAvailableFields()
+	
+	def _computeAvailableFields(self):
+		"""computes the fields a DbBasedCore provides but doesn't 
+		output by default.
+		"""
+		self.availableFields = []
+		core = self.service.get_core()
+		if not hasattr(core, "tableDef"):
+			return
+		allItems = core.tableDef.get_items()
+		defaultNames = set([f.get_dest() 
+			for f in self.service.getOutputFields(common.emptyQueryMeta)])
+		for item in allItems:
+			if not item.get_dest() in defaultNames:
+				self.availableFields.append(item)
 
-	def __init__(self, original):
-		self.original = original
+	def _makeFieldDescs(self):
+		return "\n".join(["%s %s"%(f.get_dest(), urllib.quote(
+				f.get_tablehead() or f.get_description() or f.get_dest()))
+			for f in self.availableFields])
 
-	def _renderTag(self, key, readonly, format, verbosity, tdEnc):
-		if not format:
-			format = "HTML"
-		if not verbosity:
-			verbosity = "2"
-		if not tdEnc or tdEnc=="False":
-			tdEnc = False
-		formatEl = T.select(type="text", name='_FORMAT',
-			onChange='adjustOutputFields(this)',
-			onMouseOver='adjustOutputFields(this)',
-			id=render_cssid(key, "FORMAT"),
-			data=[("HTML", "HTML"), ("VOTable", "VOTable"), 
-				("VOPlot", "VOPlot")])[
-			getOptionRenderer(format)]
-		verbosityEl = T.select(type="text", name='_VERB',
-			id=render_cssid(key, "VERB"), style="width: auto",
-			data=[("1","1"), ("2","2"), ("3","3")])[
-				getOptionRenderer(verbosity)]
-		tdEncEl = T.input(type="checkbox", id=render_cssid(key, "_TDENC"),
-			name="_TDENC", class_="field boolean checkbox", value="True",
-			style="width: auto")
-		if tdEnc:
-			tdEncEl(checked="checked")
-		if readonly:
-			for el in (formatEl, verbosityEl, tdEncEl):
-				el(class_='readonly', readonly='readonly')
-		# This crap is reproduced in the JS below -- rats
-		if format=="HTML":
-			verbVis = tdVis = "hidden"
-		elif format=="VOPlot":
-			verbVis, tdVis = "visible", "hidden"
-		else:
-			verbVis = tdVis = "visible"
-
-		return T.div(class_="outputOptions")[
-			T.inlineJS(_linkGeneratingJs),
-			T.inlineJS('function adjustOutputFields(obj) {'
-				'verbNode = obj.parentNode.childNodes[4];'
-				'tdNode = obj.parentNode.childNodes[6];'
-				'switch (obj.value) {'
-					'case "HTML":'
-						'verbNode.style.visibility="hidden";'
-						'tdNode.style.visibility="hidden";'
-						'break;'
-					'case "VOPlot":'
-						'verbNode.style.visibility="visible";'
-						'tdNode.style.visibility="hidden";'
-						'break;'
-					'case "VOTable":'
-						'verbNode.style.visibility="visible";'
-						'tdNode.style.visibility="visible";'
-						'break;'
-					'}'
-				'}'
-			),
-			"Format ", formatEl,
-			T.span(id=render_cssid(key, "verbContainer"), style="visibility:%s"%
-				verbVis)[" Verbosity ", verbosityEl], " ",
-			T.span(id=render_cssid(key, "tdContainer"), style="visibility:%s"%
-				tdVis)[tdEncEl, " VOTables for humans "],
-			T.span(id=render_cssid(key, "QlinkContainer"))[
+	def render(self, ctx, key, args, errors):
+		return T.div(id="op_container")[
+			widget.SelectChoice(formaltypes.String(), 
+				options=[(s, s) for s in ["VOTable", "VOPlot"]],
+				noneOption=("HTML", "HTML")).render(ctx, "_FORMAT", args, errors)(
+					onChange="output_broadcast(this.value)"),
+			T.span(id=render_cssid(key, "QlinkContainer"), style="padding-left:200px")[
 				T.a(href="", class_="resultlink", onMouseOver=
 						"this.href=makeResultLink(getEnclosingForm(this))")
 					["[Result link]"]
 			],
-		]
-
-	def _getArgDict(self, key, args):
-		return {
-			"format": args.get("_FORMAT", [''])[0],
-			"verbosity": args.get("_VERB", ['2'])[0],
-			"tdEnc": args.get("_TDENC", ["False"])[0]}
-
-	def render(self, ctx, key, args, errors):
-		return self._renderTag(key, False, **self._getArgDict(key, args))
-
-	def renderImmutable(self, ctx, key, args, errors):
-		return self._renderTag(key, True, **self._getArgDict(key, args))
+			T.br,
+			T.div(id="op_selectItems", style="visibility:hidden;position:absolute;"
+					"bottom:-10px", title="ignore")[
+						self._makeFieldDescs()]]
+	
+	renderImmutable = render  # This is a lost case
 
 	def processInput(self, ctx, key, args):
-		value = self._getArgDict(key, args)
-		if not value["format"] in ["HTML", "VOTable", "VOPlot", ""]:
-			raise validation.FieldValidationError("Unsupported output format")
-		try:
-			if not 1<=int(value["verbosity"])<=3:
-				raise validation.FieldValidationError("Verbosity must be between"
-					" 1 and 3")
-		except ValueError:
-			raise validation.FieldValidationError("Verbosity must be between"
-					" 1 and 3")
-		try:
-			value["tdEnc"] = record.parseBooleanLiteral(value["tdEnc"])
-		except gavo.Error:
-			raise validation.FieldValidationError("tdEnc can only be True"
-				" or False")
-		return value
+		return args["_FORMAT"][0]
 
 
 class DbOptions(object):
-	"""a widget that offers limit and sort options for db based cores.
+	"""is a widget that offers limit and sort options for db based cores.
 
 	This is for use in a formal form and goes together with the FormalDict
 	type below.

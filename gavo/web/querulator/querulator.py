@@ -170,9 +170,12 @@ def _checkForBlock(context):
 		if remoteAddr.startswith("127") or remoteAddr=="129.206.110.59":
 			return False
 		context.doHttpResponse("text/html", """<head><title>Down for
-			maintainance</title></head><body><h1>Down for
-			maintainance</h1><p>Sorry -- we're down for maintainance.  If
-			this persists for longer than, say, an hour, please complain to
+			good</title></head><body><h1>Down for
+			good</h1><p>The querulator design study has been discontinued.
+			Please use the new interface at 
+			<a href="http://vo.ari.uni-heidelberg.de/nv">http://vo.ari.uni-heidelberg.de/nv</a>.
+			If you need anything from the querulator-based services that is
+			not yet available there, please contact
 			gavo@ari.uni-heidelberg.de.  Thanks.</p></body>""")
 		return True
 

@@ -514,7 +514,7 @@ class ScriptRunner:
 	def __init__(self):
 		self.connection = getDbConnection(config.getDbProfile())
 
-	def run(self, script):
+	def run(self, script, verbose=False):
 		script = re.sub(r"\\\n\s*", " ", script)
 		cursor = self.connection.cursor()
 		for query in script.split("\n"):

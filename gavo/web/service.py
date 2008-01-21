@@ -164,6 +164,7 @@ class Service(record.Record, meta.MetaMixin):
 				if filterName and self.get_output(filterName):
 					outputFilter = self.get_output(filterName)
 					return outputFilter.getPrimaryTableDef().get_items()
+				# else it's hard to say -- or should I ask the core?
 		else:
 			if self.get_output("default"):
 				# There is an output filter
@@ -174,10 +175,12 @@ class Service(record.Record, meta.MetaMixin):
 				if queryMeta==None:
 					queryMeta = {"format": "HTML"}
 				try:
-					return self.get_core().get_outputFields()
+					fields = self.get_core().getOutputFields(queryMeta)
+					fields.extend(self.get_core().getExtraOutputFields(queryMeta))
+					return fields
 				except AttributeError:
 					pass
-		return []
+		return self.get_core().get_outputFields()[:]
 
 	def run(self, inputData, queryMeta=common.emptyQueryMeta):
 		"""runs the input filter, the core, and the output filter and returns a

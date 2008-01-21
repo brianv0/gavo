@@ -166,6 +166,8 @@ class SiapCondition(standardcores.CondDesc):
 		super(SiapCondition, self).__init__(initvals=vals)
 	
 	def asSQL(self, inPars, sqlPars):
+		if not self.inputReceived(inPars):
+			return ""
 		fragment, pars = getBboxQuery(inPars)
 		sqlPars.update(pars)
 		return "(%s) AND imageFormat=%%(%s)s"%(fragment,

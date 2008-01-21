@@ -82,37 +82,6 @@ class HeadStatusTest:
 
 
 myTests = [
-	TestGroup("querulator",
-		GetHasStringTest(qu_root+"/list",
-			"Further Queries",
-			"Main query page"),
-		GetHasStringTest(qu_root+"/list/demo",
-			">objects<",
-			"Demo queries present"),
-		GetHasStringTest(qu_root+"/query/demo/objects.cq",
-			"Object observed",
-			"Demo object query is served"),
-		GetHasStringTest(qu_root+"/run/demo/"
-				"objects.cq?4f626a656374206f62736572766564=Q2237%2B0305&sortby="
-				"date_obs&limitto=100&outputFormat=HTML",
-			"truncated due to reaching the match limit.",
-			"Demo query somewhat runs"),
-		GetHasStringTest(qu_root+"/run/demo2/objects.cq?"
-				"4f626a656374206f62736572766564=APM%2008279%2B5255&46696c746572="
-				"Johnson%20B&46696c746572=Johnson%20I&46696c746572="
-				"Johnson%20R&46696c746572=Johnson%20U&46696c746572=Johnson%20V&"
-				"sortby=date_obs&limitto=1000&outputFormat=HTML",
-			"Selected items:",
-			"Multiple selection works"),
-		GetHasStringTest(qu_root+"/run/demo2/objects.cq?"
-				"4f626a656374206f62736572766564=Q2237%2B0305&sortby=date_obs&"
-				"limitto=100&outputFormat=VOTable%2030",
-			'name="datapath"',
-			"VOTable output"),
-		GetHasStringTest(qu_root+"/getproduct"
-			"/demo/objects.cq?path=apo/cd/9506/L2237_950602_r_01.fits",
-		"L2237_950602_R_01[1/1]",
-		"Basic product delivery")),
 	TestGroup("apfs",
 		GetHasStringTest(nv_root+"/apfs/res/"
 			"apfs_new/catquery/form",
@@ -250,6 +219,11 @@ myTests = [
 		GetHasStringTest(nv_root,
 			"L...",
 			"Home page shows services"),
+		GetHasStringTest(nv_root+"/lensdemo/view/q/form?__nevow_form__=genForm&"
+			"object=SBSS%200909%2B531&_DBOPTIONS_ORDER=&_DBOPTIONS_LIMIT=100"
+			"&_FORMAT=HTML&_ADDITEM=owner&submit=Go",
+			"Product owner</th>",
+			"Additional fields show up in HTML responses"),
 	),
 ]
 
@@ -261,6 +235,41 @@ def tally(groupsRun):
 		print "%d tests passed"%nOk
 	else:
 		print "********* %d tests of %d failed"%(nFail, nFail+nOk)
+
+
+""" Old querulator tests.
+	TestGroup("querulator",
+		GetHasStringTest(qu_root+"/list",
+			"Further Queries",
+			"Main query page"),
+		GetHasStringTest(qu_root+"/list/demo",
+			">objects<",
+			"Demo queries present"),
+		GetHasStringTest(qu_root+"/query/demo/objects.cq",
+			"Object observed",
+			"Demo object query is served"),
+		GetHasStringTest(qu_root+"/run/demo/"
+				"objects.cq?4f626a656374206f62736572766564=Q2237%2B0305&sortby="
+				"date_obs&limitto=100&outputFormat=HTML",
+			"truncated due to reaching the match limit.",
+			"Demo query somewhat runs"),
+		GetHasStringTest(qu_root+"/run/demo2/objects.cq?"
+				"4f626a656374206f62736572766564=APM%2008279%2B5255&46696c746572="
+				"Johnson%20B&46696c746572=Johnson%20I&46696c746572="
+				"Johnson%20R&46696c746572=Johnson%20U&46696c746572=Johnson%20V&"
+				"sortby=date_obs&limitto=1000&outputFormat=HTML",
+			"Selected items:",
+			"Multiple selection works"),
+		GetHasStringTest(qu_root+"/run/demo2/objects.cq?"
+				"4f626a656374206f62736572766564=Q2237%2B0305&sortby=date_obs&"
+				"limitto=100&outputFormat=VOTable%2030",
+			'name="datapath"',
+			"VOTable output"),
+		GetHasStringTest(qu_root+"/getproduct"
+			"/demo/objects.cq?path=apo/cd/9506/L2237_950602_r_01.fits",
+		"L2237_950602_R_01[1/1]",
+		"Basic product delivery")),
+"""
 
 
 if __name__=="__main__":

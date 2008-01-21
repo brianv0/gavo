@@ -327,8 +327,9 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		self._addQueryFields(form, data)
 		self._addMetaFields(form, queryMeta)
 		if self.name=="form":
-			form.addField("_OUTPUT", gwidgets.FormalDict, 
-				gwidgets.OutputOptions, label="Output format")
+			form.addField("_OUTPUT", formal.String, 
+				formal.widgetFactory(gwidgets.OutputFormat, self.service),
+				label="Output format")
 		form.addAction(self.submitAction, label="Go")
 		self.form = form
 		return form
