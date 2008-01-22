@@ -106,7 +106,7 @@ class HtmlResponse(BaseResponse):
 	name = "form"
 
 	def render_resulttable(self, ctx, data):
-		return htmltable.HtmlTableFragment(data.child(ctx, "table"))
+		return htmltable.HTMLTableFragment(data.child(ctx, "table"))
 
 	def render_parpair(self, ctx, data):
 		if data==None or data[1]==None:
@@ -359,11 +359,11 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 
 	defaultDocFactory = loaders.stan(T.html[
 		T.head[
-			T.title(render=T.directive("meta"))["_title"],
+			T.title(render=T.directive("meta"))["title"],
 			T.invisible(render=T.directive("commonhead")),
 		],
 		T.body[
-			T.h1(render=T.directive("meta"))["_title"],
+			T.h1(render=T.directive("meta"))["title"],
 			T.div(id="intro", render=T.directive("metahtml"))["_intro"],
 			T.invisible(render=T.directive("form genForm")),
 			T.div(id="bottominfo", render=T.directive("metahtml"))["_bottominfo"],

@@ -133,12 +133,12 @@ _registerDefaultMF = _defaultMFRegistry.registerFactory
 try:
 	from mx import DateTime
 
-	def _mxDatetimeMapperFactory(colProps):
+	def mxDatetimeMapperFactory(colProps):
 		"""returns mapper for mxDateTime objects.
 
 		Unit may be yr or a (produces julian fractional years like J2000.34),
 		d (produces julian days), s (produces a unix timestamp, for whatever
-		that's good), "Y:M:D" (produces an iso date).
+		that's good), "Y:M:D" or "Y-M-D" (produces an iso date).
 		"""
 		unit = colProps["unit"]
 		if isinstance(colProps["sample"], DateTime.DateTimeType):
@@ -149,20 +149,20 @@ try:
 				fun, destType = lambda val: val and val.jdn, ("double", None)
 			elif unit=="s":
 				fun, destType = lambda val: val and val.ticks(), ("double", None)
-			elif unit=="Y:M:D":
+			elif unit=="Y:M:D" or unit=="Y-M-D":
 				fun, destType = lambda val: val and val.date, ("char", "*")
 			else:   # Fishy, but not our fault
 				fun, destType = lambda val: val and val.jdn, ("double", None)
 			colProps["datatype"], colProps["arraysize"] = destType
 			return fun
-	_registerDefaultMF(_mxDatetimeMapperFactory)
+	_registerDefaultMF(mxDatetimeMapperFactory)
 
 except ImportError:
 	pass
 
 import datetime
 
-def _datetimeMapperFactory(colProps):
+def datetimeMapperFactory(colProps):
 	import time
 
 	def dtToJdn(val):
@@ -198,7 +198,7 @@ def _datetimeMapperFactory(colProps):
 			fun, destType = lambda val: val and dtToJdn(val), ("double", "*")
 		colProps["datatype"], colProps["arraysize"] = destType
 		return fun
-_registerDefaultMF(_datetimeMapperFactory)
+_registerDefaultMF(datetimeMapperFactory)
 
 
 def _booleanMapperFactory(colProps):
@@ -522,6 +522,7 @@ class ColProperties(dict):
 		type, size = typesystems.sqltypeToVOTable(fieldDef.get_dbtype())
 		self["datatype"] = type
 		self["arraysize"] = size
+		self["displayHint"] = fieldDef.get_displayHint()
 		for fieldName in ["ucd", "utype", "unit", "description"]:
 			self[fieldName] = fieldDef.get(fieldName)
 
@@ -658,6 +659,25 @@ class TableData:
 			return tuple(self.mappers[i](
 				row[self.fieldNames[i]]) for i in colIndices)
 		return [row2Tuple(row) for row in self.table]
+
+
+def acquireSamples(colPropsIndex, table):
+	"""fills the values in the colProps-valued dict colPropsIndex with non-null
+	values from tables.
+	"""
+# this is a q'n'd version of what's done in TableData._computeColProperties
+# -- that method should be refactored anyway.  You can then fold in this
+# function.
+	noSampleCols = set(colPropsIndex)
+	for row in table:
+		newSampleCols = set()
+		for col in noSampleCols:
+			if row[col]!=None:
+				newSampleCols.add(col)
+				colPropsIndex[col]["sample"] = row[col]
+		noSampleCols.difference_update(newSampleCols)
+		if not noSampleCols:
+			break
 
 
 class VOTableMaker:

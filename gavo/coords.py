@@ -116,21 +116,35 @@ def dmsToDeg(dmsAngle, sepChar=" "):
 
 
 def degToHourangle(deg, sepChar=" ", secondFracs=3):
-	"""converts a float angle in radians to an hour angle.
+	"""converts a float angle in degrees to an hour angle.
+	>>> degToHourangle(0)
+	'0 00 00.000'
+	>>> degToHourangle(122.056, secondFracs=1)
+	'8 08 13.4'
+	>>> degToHourangle(359.2222, secondFracs=4, sepChar=":")
+	'23:56:53.3280'
+	>>> "%.4f"%hourangleToDeg(degToHourangle(256.25, secondFracs=9))
+	'256.2500'
 	"""
-	rest, hours = math.modf(deg/math.pi*12)
+	rest, hours = math.modf(deg/360.*24)
 	rest, minutes = math.modf(rest*60)
 	return sepChar.join(["%d"%int(hours), "%02d"%int(minutes), 
-		"%02.*f"%(secondFracs, rest*60)])
+		"%0*.*f"%(secondFracs+3, secondFracs, rest*60)])
 
 
 def degToDms(deg, sepChar=" ", secondFracs=2):
-	"""converts a float angle in radians to a sexagesimal string.
+	"""converts a float angle in degrees to a sexagesimal string.
+	>>> degToDms(0)
+	'+0 00 00.00'
+	>>> degToDms(-23.50, secondFracs=4)
+	'-23 30 00.0000'
+	>>> "%.4f"%dmsToDeg(degToDms(-25.6835, sepChar=":"), sepChar=":")
+	'-25.6835'
 	"""
-	rest, degs = math.modf(deg/math.pi*180)
+	rest, degs = math.modf(deg)
 	rest, minutes = math.modf(rest*60)
 	return sepChar.join(["%+d"%int(degs), "%02d"%abs(int(minutes)), 
-		"%02.*f"%(secondFracs, abs(rest*60))])
+		"%0*.*f"%(secondFracs+3, secondFracs, abs(rest*60))])
 
 
 _wcsTestDict = {

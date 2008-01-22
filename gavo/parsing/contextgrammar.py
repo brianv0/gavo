@@ -112,7 +112,7 @@ class InputKey(datadef.DataField):
 	def makeAuto(cls, dataField, queryMeta={}):
 		"""returns an InputKey if dataField is "queriable", None otherwise.
 		"""
-		if dataField.get_displayHint()=="suppress":
+		if dataField.get_displayHint().get("type")=="suppress":
 			return
 		try:
 			hasVexprType = vizierexprs.getVexprFor(dataField.get_dbtype())

@@ -12,131 +12,162 @@ from nevow import rend
 from nevow import loaders
 from nevow import tags as T, entities as E
 
-
 from gavo import config
+from gavo import coords
+from gavo import votable
 from gavo.web import common
 
 
-class FormatterFactory:
-	"""is a factory for functions mapping values to stan elements representing
-	those values in HTML tables.
+_htmlMFRegistry = votable.ValueMapperFactoryRegistry()
+_registerHTMLMF = _htmlMFRegistry.registerFactory
+
+
+def _defaultMapperFactory(colProps):
+	def coder(val):
+		if val==None:
+			return "N/A"
+		return str(val)
+	return coder
+_registerHTMLMF(_defaultMapperFactory)
+
+
+
+def _hourangleMapperFactory(colProps):
+	if (colProps["unit"]!="hms" and 
+			colProps["displayHint"].get("type")!="hourangle"):
+		return
+	colProps["unit"] = "hms"
+	def coder(val):
+		if val==None:
+			return "N/A"
+		else:
+			return coords.degToHourangle(val, colProps["displayHint"].
+				get("sepChar", " "), int(colProps["displayHint"].get("sf", 2)))
+	return coder
+_registerHTMLMF(_hourangleMapperFactory)
+
+def _sexagesimalMapperFactory(colProps):
+	if (colProps["unit"]!="dms" and 
+			colProps["displayHint"].get("type")!="sexagesimal"):
+		return
+	colProps["unit"] = "dms"
+	def coder(val):
+		if val==None:
+			return "N/A"
+		return coords.degToDms(val, colProps["displayHint"].
+			get("sepChar", " "), int(colProps["displayHint"].get("sf", 2)))
+	return coder
+_registerHTMLMF(_sexagesimalMapperFactory)
+
+
+def _stringWrapMF(baseMF):
+	"""returns a factory that returns None when baseMF does but stringifies
+	any results from baseMF's handlers if they fire.
 	"""
-	def __call__(self, format, args):
-		return getattr(self, "_make_%s_formatter"%format)(*args)
-
-	def _make_product_formatter(self):
-		from nevow import url
-		def format(val):
-			if val==None:
-				return ""
-			else:
-				return T.a(href=common.makeSitePath(
-						"/getproduct?key=%s&siap=true"%urllib.quote(val)),
-					class_="productlink")[re.sub("&.*", "", os.path.basename(val))]
-		return format
-
-	def _make_filesize_formatter(self):
-		return str
-
-	def _make_string_formatter(self):
-		return str
-
-	def _make_hourangle_formatter(self, secondFracs=2):
-		def format(deg):
-			"""converts a float angle in degrees to an hour angle.
-			"""
-			if deg==None:
-				return "N/A"
-			rest, hours = math.modf(deg/360.*24)
-			rest, minutes = math.modf(rest*60)
-			return "%d %02d %02.*f"%(int(hours), int(minutes), secondFracs, rest*60)
-		return format
-	
-	def _make_sexagesimal_formatter(self, secondFracs=1):
-		def format(deg):
-			"""converts a float angle in degrees to a sexagesimal angle.
-			"""
-			if deg==None:
-				return "N/A"
-			rest, degs = math.modf(deg)
-			rest, minutes = math.modf(rest*60)
-			return "%+d %02d %02.*f"%(int(degs), abs(int(minutes)), secondFracs,
-				abs(rest*60))
-		return format
-
-	def _make_date_formatter(self, dateFormat="iso"):
-		def format(date):
-			if date==None:
-				return "N/A"
-			return date.strftime("%Y-%m-%d")
-		return format
-
-	def _make_juliandate_formatter(self, fracFigs=1):
-		def format(date):
-			if date==None:
-				return "N/A"
-			return date.jdn
-		return format
-
-	def _make_mjd_formatter(self, fracFigs=1):
-		def format(date):
-			if date==None:
-				return "N/A"
-			return date.jdn-2400000.5
-		return format
-
-	def _make_suppress_formatter(self):
-		def format(val):
-			return T.span(style="color:#777777")[str(val)]
-		return format
+	def factory(colProps):
+		fmtstr = "%s"
+		if colProps["displayHint"].get("sf"):
+			fmtstr = "%%.%df"%int(colProps["displayHint"]["sf"])
+		handler = baseMF(colProps)
+		if handler:
+			return lambda val: fmtstr%(handler(val))
+	return factory
 
 
-class HtmlTableFragment(rend.Fragment):
+try:
+	_registerHTMLMF(_stringWrapMF(votable.mxDatetimeMapperFactory))
+except AttributeError:
+	pass
+_registerHTMLMF(_stringWrapMF(votable.datetimeMapperFactory))
+
+
+def _sizeMapperFactory(colProps):
+	"""is a factory for formatters for file sizes and similar.
+	"""
+	if colProps["unit"]!="byte":
+		return
+	sf = int(colProps["displayHint"].get("sf", 1))
+	def coder(val):
+		if val<1e3:
+			return "%d"%int(val)
+		elif val<1e6:
+			return "%.*fk"%(sf, val/1024.)
+		elif val<1e9:
+			return "%.*fM"%(sf, val/1024./1024.)
+		else:
+			return "%.*fG"%(sf, val/1024./1024./1024)
+_registerHTMLMF(_sizeMapperFactory)
+
+
+def _productMapperFactory(colProps):
+	if colProps["displayHint"].get("type")!="product":
+		return
+	def coder(val):
+		if val:
+			return T.a(href=common.makeSitePath(
+					"/getproduct?key=%s&siap=true"%urllib.quote(val)),
+				class_="productlink")[re.sub("&.*", "", os.path.basename(val))]
+		else:
+			return ""
+	return coder
+_registerHTMLMF(_productMapperFactory)
+
+
+#  Insert new Factories here
+
+
+class HTMLTableFragment(rend.Fragment):
 	"""is an HTML renderer for gavo Tables.
 	"""
 	def __init__(self, table):
 		self.table = table
-		super(HtmlTableFragment, self).__init__()
-		self.formatterFactory = FormatterFactory()
+		super(HTMLTableFragment, self).__init__()
+		self._computeDefaultTds()
 
-	def _defaultRenderFunc(self, val):
-		if val==None:
-			return "N/A"
-		else:
-			return str(val)
+	def _computeDefaultTds(self):
+		"""leaves a sequence of children for each row in the
+		defaultTds attribute.
 
-	def _makeFormatFunction(self, hint):
-		if hint==None:
-			return self._defaultRenderFunc
-		parts = hint.split(",")
-		return self.formatterFactory(parts[0], map(eval, parts[1:]))
+		It also creates the attributes colProps and colPropsIndex
+		that should be used to obtain the units for the respective
+		columns since the formatters might have changed them.
+		"""
+		self.colProps = [votable.ColProperties(f)
+			for f in self.table.getFieldDefs()]
+		self.colPropsIndex = dict((props["name"], props) 
+			for props in self.colProps)
+		votable.acquireSamples(self.colPropsIndex, self.table)
+		self.defaultTds = [T.td(data=T.slot(props["name"]),
+				formatter=_htmlMFRegistry.getMapper(props),
+				render=T.directive("useformatter"))
+			for props in self.colProps]
 
-	def render_usehint(self, ctx, data):
+	def render_useformatter(self, ctx, data):
 		attrs = ctx.tag.attributes
 		formatVal = attrs.get("formatter", None)
 		if formatVal==None:
-			formatVal = self._makeFormatFunction(attrs.get("hint", None))
-		if attrs.has_key("formatter"): del ctx.tag.attributes["formatter"]
-		if attrs.has_key("hint"): del ctx.tag.attributes["hint"]
+			formatVal = str
+		del ctx.tag.attributes["formatter"]
 		return ctx.tag[formatVal(data)]
 
 	def render_headCell(self, ctx, fieldDef):
+		props = self.colPropsIndex[fieldDef.get_dest()]
 		cont = fieldDef.get_tablehead()
 		if cont==None:
-			cont = fieldDef.get_description()
+			cont = props["description"]
 		if cont==None:
 			cont = fieldDef.get_dest()
-		desc = fieldDef.get_description()
+		desc = props["description"]
 		if desc==None:
 			desc = cont
-		return ctx.tag(title=desc)[T.xml(cont)]
+		unit = props["unit"]
+		if unit:
+			return ctx.tag(title=desc)[T.xml(cont), T.br, "[%s]"%unit]
+		else:
+			return ctx.tag(title=desc)[T.xml(cont)]
 
 	def render_defaultRow(self, ctx, items):
-		for f in self.table.getFieldDefs():
-			ctx.tag(render=rend.mapping)[T.td(data=T.slot(f.get_dest()), 
-				formatter=self._makeFormatFunction(f.get_displayHint()), 
-				render=T.directive("usehint"))]
-		return ctx.tag
+		return ctx.tag(render=rend.mapping)[self.defaultTds]
 
 	def data_table(self, ctx, data):
 		return self.table

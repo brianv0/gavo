@@ -213,7 +213,7 @@ class DbBasedCore(QueryingCore):
 		verbLevel = queryMeta.get("verbosity", 20)
 		fieldList = [datadef.makeCopyingField(f) for f in self.tableDef.get_items()
 			if f.get_verbLevel()<=verbLevel and 
-				f.get_displayHint()!="suppress"]
+				f.get_displayHint().get("type")!="suppress"]
 		return fieldList
 
 	def _getHTMLOutputFields(self, queryMeta):

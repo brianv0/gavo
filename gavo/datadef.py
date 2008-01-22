@@ -8,6 +8,29 @@ from gavo.parsing import meta
 from gavo.parsing import typeconversion
 
 
+class RoEmptyDict:
+	"""is a read-only standin for a dict.
+
+	It's hashable, though, since it's always empty...
+	"""
+	def get(self, key, default=None):
+		return default
+
+	def has_key(self, key):
+		return False
+
+	def __hash__(self):
+		return hash(id(self))
+
+	def __getitem__(key):
+		raise KeyError(key)
+
+	def __setitem__(self, what, where):
+		raise TypeError("RoEmptyDicts are immutable")
+
+_roEmptyDict = RoEmptyDict()
+
+
 class DataField(record.Record):
 	"""is a description of a data field.
 
@@ -37,7 +60,7 @@ class DataField(record.Record):
 			"primary": record.BooleanField,  # is part of the table's primary key
 			"references": None,  # becomes a foreign key in SQL
 			"index": None,       # if given, name of index field is part of
-			"displayHint": None, # suggested presentation
+			"displayHint": _roEmptyDict, # suggested presentation
 			"verbLevel": 30,     # hint for building VOTables
 			"id": None,          # Just so the field can be referenced within XML
 			"values": None,      # a datadef.Values instance (see below)
@@ -61,6 +84,18 @@ class DataField(record.Record):
 
 	def __repr__(self):
 		return "<DataField %s>"%self.get_dest()
+
+	def set_displayHint(self, val):
+		if isinstance(val, dict) or val==_roEmptyDict:
+			dh = val
+		elif val:
+			try:
+				dh = dict([f.split("=") for f in val.split(",")])
+			except (ValueError, TypeError):
+				raise gavo.Error("Invalid display hint %s"%repr(val))
+		else:
+			dh = {}
+		self.dataStore["displayHint"] = dh
 
 	def set_primary(self, val):
 		"""implies a verbLevel of 1 if verbLevel has not been set otherwise.
@@ -204,8 +239,6 @@ metaTableFields = [
 		description="A possibly long information on the values"),
 	DataField(dest="longmime", dbtype="text", 
 		description="Mime type of longdescr"),
-	DataField(dest="displayHint", dbtype="text", 
-		description="Suggested presentation format"),
 	DataField(dest="utype", dbtype="text", description="A utype for the column"),
 	DataField(dest="colInd", dbtype="integer", description=
 		"Index of the column within the table"),
