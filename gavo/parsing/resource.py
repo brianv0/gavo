@@ -32,6 +32,19 @@ class Error(gavo.Error):
 	pass
 
 
+class PCToken(object):
+	"""is a sentinel class to tell ParseContexts to regard whatever is
+	the value a something opaque.
+
+	This is used to communicate things like Directories or URLs to Grammars.
+	"""
+	def __init__(self, value):
+		self.value = value
+	
+	def __str__(self):
+		return self.value
+
+
 def getMetaTableRecordDef(tableName):
 	"""returns a RecordDef suitable for meta tables.
 
@@ -193,6 +206,9 @@ class ParseContext:
 		elif isinstance(sourceFile, table.Table):
 			self.sourceName = "<parsed table>"
 			self.sourceFile = sourceFile
+		elif isinstance(sourceFile, PCToken):
+			self.sourceName = str(PCToken)
+			self.sourceFile = str(PCToken)
 		else:  # we assume it's something file-like
 			self.sourceName = "<anonymous>"
 			self.sourceFile = sourceFile
@@ -656,6 +672,7 @@ class DataDescriptor(datadef.DataTransformer):
 				                   # for single-file sources
 				"sourcePat": None, # resdir-relative shell pattern of sources for
 				                   # one-row-per-file sources
+				"token": None,     # Opaque string for source description
 				"computer": None,  # rootdir-relative path of an executable producing 
 				                   # the data
 				"name": None,      # a terse human-readable description of this data
@@ -680,6 +697,8 @@ class DataDescriptor(datadef.DataTransformer):
 			for path, dirs, files in os.walk(self.rD.get_resdir()):
 				for fName in glob.glob(os.path.join(path, self.get_sourcePat())):
 					yield fName
+		if self.get_token():
+			yield PCToken(self.get_token())
 
 
 def parseFromTable(tableDef, inputData, rd=None):
@@ -737,7 +756,6 @@ def getMatchingData(dataDesc, tableName, whereClause, pars):
 	tableDef = dataDesc.getRecordDefByName(tableName)
 	if whereClause:
 		whereClause = "WHERE "+whereClause
-	print ">>>>>>>", tableDef.get_table()
 	data = sqlsupport.SimpleQuerier().query(
 		"SELECT * FROM %s %s"%(tableDef.get_table(), whereClause),
 		pars).fetchall()

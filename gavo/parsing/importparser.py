@@ -19,6 +19,7 @@ from gavo import sqlsupport
 from gavo import utils
 from gavo.parsing.cfgrammar import CFGrammar
 from gavo.parsing.columngrammar import ColumnGrammar
+from gavo.parsing.customgrammar import CustomGrammar
 from gavo.parsing.fitsgrammar import FitsGrammar
 from gavo.parsing.grammar import Grammar
 from gavo.parsing import conditions
@@ -126,6 +127,7 @@ class RdParser(utils.NodeBuilder):
 		dd.set_encoding(attrs.get("encoding", "ascii"))
 		dd.set_id(attrs.get("id"))
 		dd.set_virtual(attrs.get("virtual", "False"))
+		dd.set_token(attrs.get("token", None))
 		self.rd.addto_dataSrcs(dd)
 		return self._processChildren(dd, name, {
 			"Field": dd.addto_items,
@@ -187,6 +189,12 @@ class RdParser(utils.NodeBuilder):
 	def _make_DirectGrammar(self, name, attrs, children):
 		attrs = makeAttDict(attrs)
 		grammar = DirectGrammar(**attrs)
+		return utils.NamedNode("Grammar", 
+			self._processChildren(grammar, name, {}, children))
+
+	def _make_CustomGrammar(self, name, attrs, children):
+		attrs = makeAttDict(attrs)
+		grammar = CustomGrammar(initvals=attrs)
 		return utils.NamedNode("Grammar", 
 			self._processChildren(grammar, name, {}, children))
 
