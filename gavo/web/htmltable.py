@@ -14,6 +14,7 @@ from nevow import tags as T, entities as E
 
 from gavo import config
 from gavo import coords
+from gavo import unitconv
 from gavo import votable
 from gavo.web import common
 
@@ -31,18 +32,41 @@ def _defaultMapperFactory(colProps):
 _registerHTMLMF(_defaultMapperFactory)
 
 
+# insert new general factories here
+
+def _unitMapperFactory(colProps):
+	"""returns a factory that converts between units for fields that have
+	a displayUnit displayHint.
+
+	The stuff done here has to be done for all factories handling unit-based
+	floating point values.  Maybe we want to do "decorating" meta-factories?
+	"""
+	if colProps["displayHint"].get("displayUnit") and \
+			colProps["displayHint"]["displayUnit"]!=colProps["unit"]:
+		factor = unitconv.getFactor(colProps["unit"], 
+			colProps["displayHint"]["displayUnit"])
+		colProps["unit"] = colProps["displayHint"]["displayUnit"]
+		fmtStr = "%%.%dg"%int(colProps["displayHint"].get("sf", 2))
+		def coder(val):
+			if val==None:
+				return "N/A"
+			return fmtStr%(val*factor)
+		return coder
+_registerHTMLMF(_unitMapperFactory)
+
 
 def _hourangleMapperFactory(colProps):
 	if (colProps["unit"]!="hms" and 
 			colProps["displayHint"].get("type")!="hourangle"):
 		return
 	colProps["unit"] = "hms"
+	sepChar = colProps["displayHint"].get("sepChar", " ")
+	sf = int(colProps["displayHint"].get("sf", 2))
 	def coder(val):
 		if val==None:
 			return "N/A"
 		else:
-			return coords.degToHourangle(val, colProps["displayHint"].
-				get("sepChar", " "), int(colProps["displayHint"].get("sf", 2)))
+			return coords.degToHourangle(val, sepChar, sf)
 	return coder
 _registerHTMLMF(_hourangleMapperFactory)
 
@@ -51,11 +75,12 @@ def _sexagesimalMapperFactory(colProps):
 			colProps["displayHint"].get("type")!="sexagesimal"):
 		return
 	colProps["unit"] = "dms"
+	sepChar = colProps["displayHint"].get("sepChar", " ")
+	sf = int(colProps["displayHint"].get("sf", 2))
 	def coder(val):
 		if val==None:
 			return "N/A"
-		return coords.degToDms(val, colProps["displayHint"].
-			get("sepChar", " "), int(colProps["displayHint"].get("sf", 2)))
+		return coords.degToDms(val, sepChar, sf)
 	return coder
 _registerHTMLMF(_sexagesimalMapperFactory)
 
@@ -113,7 +138,7 @@ def _productMapperFactory(colProps):
 _registerHTMLMF(_productMapperFactory)
 
 
-#  Insert new Factories here
+#  Insert new, more specific factories here
 
 
 class HTMLTableFragment(rend.Fragment):
