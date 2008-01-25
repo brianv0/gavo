@@ -75,7 +75,6 @@ class ColumnGrammar(grammar.Grammar):
 	def __init__(self):
 		grammar.Grammar.__init__(self, {
 			"topIgnoredLines": 0,
-			"booster": None,
 			"local": record.BooleanField,
 		})
 

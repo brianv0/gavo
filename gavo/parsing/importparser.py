@@ -183,7 +183,6 @@ class RdParser(utils.NodeBuilder):
 	def _make_ColumnGrammar(self, name, attrs, children):
 		grammar = self._fillGrammarNode(ColumnGrammar(), attrs, children, {})
 		grammar.set_topIgnoredLines(attrs.get("topIgnoredLines", 0))
-		grammar.set_booster(attrs.get("booster"))
 		return utils.NamedNode("Grammar", grammar)
 
 	def _make_DirectGrammar(self, name, attrs, children):
@@ -621,7 +620,10 @@ def getRd(srcPath, parserClass=RdParser, forImport=False):
 	except Exception, msg:
 		utils.raiseTb(gavo.FatalError, "While parsing Desriptor %s: %s."
 			"  Please check input validity."%(srcPath, msg))
-	return contentHandler.getResult()
+	rd = contentHandler.getResult()
+	if os.path.exists(srcPath+".blocked"):
+		rd.currently_blocked = True
+	return rd
 
 
 def forAllSources(rdId, dataId, callable, *callableArgs):

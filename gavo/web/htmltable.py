@@ -12,6 +12,8 @@ from nevow import rend
 from nevow import loaders
 from nevow import tags as T, entities as E
 
+from twisted.internet import reactor, defer
+
 from gavo import config
 from gavo import coords
 from gavo import unitconv
@@ -46,7 +48,7 @@ def _unitMapperFactory(colProps):
 		factor = unitconv.getFactor(colProps["unit"], 
 			colProps["displayHint"]["displayUnit"])
 		colProps["unit"] = colProps["displayHint"]["displayUnit"]
-		fmtStr = "%%.%dg"%int(colProps["displayHint"].get("sf", 2))
+		fmtStr = "%%.%df"%int(colProps["displayHint"].get("sf", 2))
 		def coder(val):
 			if val==None:
 				return "N/A"
@@ -141,6 +143,36 @@ _registerHTMLMF(_productMapperFactory)
 #  Insert new, more specific factories here
 
 
+class HeaderCells(rend.Page):
+	def __init__(self, fieldDefs, colPropsIndex):
+		self.fieldDefs = fieldDefs
+		self.colPropsIndex = colPropsIndex
+
+	def data_fielddefs(self, ctx, ignored):
+		return self.fieldDefs
+
+	def render_headCell(self, ctx, fieldDef):
+		props = self.colPropsIndex[fieldDef.get_dest()]
+		cont = fieldDef.get_tablehead()
+		if cont==None:
+			cont = props["description"]
+		if cont==None:
+			cont = fieldDef.get_dest()
+		desc = props["description"]
+		if desc==None:
+			desc = cont
+		unit = props["unit"]
+		if unit:
+			return ctx.tag(title=desc)[T.xml(cont), T.br, "[%s]"%unit]
+		else:
+			return ctx.tag(title=desc)[T.xml(cont)]
+
+	docFactory = loaders.stan(
+		T.tr(data=T.directive("fielddefs"), render=rend.sequence) [
+			T.th(pattern="item", render=T.directive("headCell"))
+		])
+
+
 class HTMLTableFragment(rend.Fragment):
 	"""is an HTML renderer for gavo Tables.
 	"""
@@ -148,6 +180,7 @@ class HTMLTableFragment(rend.Fragment):
 		self.table = table
 		super(HTMLTableFragment, self).__init__()
 		self._computeDefaultTds()
+		self._computeHeadCellsStan()
 
 	def _computeDefaultTds(self):
 		"""leaves a sequence of children for each row in the
@@ -175,21 +208,20 @@ class HTMLTableFragment(rend.Fragment):
 		del ctx.tag.attributes["formatter"]
 		return ctx.tag[formatVal(data)]
 
-	def render_headCell(self, ctx, fieldDef):
-		props = self.colPropsIndex[fieldDef.get_dest()]
-		cont = fieldDef.get_tablehead()
-		if cont==None:
-			cont = props["description"]
-		if cont==None:
-			cont = fieldDef.get_dest()
-		desc = props["description"]
-		if desc==None:
-			desc = cont
-		unit = props["unit"]
-		if unit:
-			return ctx.tag(title=desc)[T.xml(cont), T.br, "[%s]"%unit]
-		else:
-			return ctx.tag(title=desc)[T.xml(cont)]
+	def _computeHeadCellsStan(self):
+		self.headCellsStan = T.xml(HeaderCells(self.table.getFieldDefs(),
+				self.colPropsIndex).renderSynchronously())
+
+	def render_headCells(self, ctx, data):
+		"""returns the header line for this table as an XML string.
+		"""
+# The head cells are prerendered and memoized since they might occur 
+# quite frequently in long tables.  Also, we return a deferred to
+# give other requests a chance to be processed when we render
+# huge tables.
+		d = defer.Deferred()
+		reactor.callLater(0.05, d.callback, self.headCellsStan)
+		return d
 
 	def render_defaultRow(self, ctx, items):
 		return ctx.tag(render=rend.mapping)[self.defaultTds]
@@ -201,13 +233,51 @@ class HTMLTableFragment(rend.Fragment):
 		return self.table.getFieldDefs()
 
 	docFactory = loaders.stan(T.table(class_="results")[
-		T.tr(data=T.directive("fielddefs"), render=rend.sequence) [
-			T.th(pattern="item", render=T.directive("headCell"))
-		],
-		T.invisible(
-				render=rend.sequence,
+		T.invisible(render=rend.sequence,
 				data=T.directive("table")) [
+			T.invisible(pattern="header", render=T.directive("headCells")),
 			T.tr(pattern="item", render=T.directive("defaultRow")),
 			T.tr(pattern="item", render=T.directive("defaultRow"), class_="even"),
+			T.invisible(pattern="divider"),  # only put a header every bla divisions
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider"),
+			T.invisible(pattern="divider", render=T.directive("headCells")),
 		]
 	])

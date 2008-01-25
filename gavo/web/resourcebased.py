@@ -32,16 +32,23 @@ from gavo.web import standardcores
 from gavo.web.common import Error, UnknownURI
 
 
+class RdBlocked(Exception):
+	"""is raised when a ResourceDescriptor is blocked due to maintanence
+	and caught by the dispatcher.
+	"""
+
+
 class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page, 
 		common.GavoRenderMixin):
 	"""is a page based on a resource descriptor.
 
-	It is constructed with a resource descriptor.
-
-	It leaves the resource descriptor in the rd attribute.
+	It is constructed with a resource descriptor and leave it
+	in the rd attribute.
 	"""
 	def __init__(self, ctx, rd):
 		self.rd = rd
+		if hasattr(self.rd, "currently_blocked"):
+			raise RdBlocked()
 		super(ResourceBasedRenderer, self).__init__()
 
 

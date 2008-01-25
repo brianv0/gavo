@@ -215,6 +215,31 @@ class MaintPage(rend.Page):
 	])
 
 
+class BlockedPage(common.GavoRenderMixin, rend.Page):
+	"""will be displayed when a service on a blocked resource descriptor
+	is requested.
+	"""
+	def __init__(self, segments):
+		self.segments = segments
+		super(BlockedPage, self).__init__()
+
+	docFactory = loaders.stan(T.html[
+		T.head[
+			T.title["Service temporarily taken down"],
+			T.invisible(render=T.directive("commonhead")),
+		],
+		T.body[
+			T.h1["Service temporarily taken down"],
+			T.p["The service you requested is currently under maintanence."
+				" This could take from a few minutes to a day.  We are sorry for"
+				" any inconvenience."],
+			T.p["If the service hasn't come back within 24 hours, please"
+				" contact ",
+				T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
+					"gavo@ari.uni-heidelberg.de"],
+				".",]]])
+
+
 renderClasses = {
 	"form": (resourcebased.getServiceRend, resourcebased.Form),
 	"oai.xml": (lambda ctx, segs, cls: cls(), vodal.RegistryRenderer),
@@ -228,6 +253,7 @@ renderClasses = {
 	"debug": (lambda ctx, segs, cls: cls(ctx, segs), DebugPage),
 	"reload": (lambda ctx, segs, cls: cls(ctx, segs), ReloadPage),
 }
+
 
 class ArchiveService(common.CustomTemplateMixin, rend.Page, 
 		common.GavoRenderMixin):
@@ -282,6 +308,8 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 			res = fFunc(ctx, segments[:-1], cls)
 		except (UnknownURI, KeyError):
 			res = None
+		except resourcebased.RdBlocked:
+			return BlockedPage(segments)
 		return res
 
 	def locateChild(self, ctx, segments):

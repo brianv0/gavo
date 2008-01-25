@@ -49,6 +49,10 @@ typedef struct Field_s {
 #define MAKE_CHAR_NULL(fi, value, nullvalue) {\
 	if ((value)==(nullvalue)) { MAKE_NULL(fi); } else {MAKE_CHAR(fi, value);}}
 
+#define MAKE_WITH_NULL(type, fi, value, nullvalue) {\
+	if ((value)==(nullvalue)) { MAKE_NULL(fi); } else {\
+		MAKE_##type(fi, value);}}
+
 #define AS2DEG(field) linearTransform(F(field), 0, 1/3600.)
 #define MAS2DEG(field) linearTransform(F(field), 0, 1/3600./1000.)
 
