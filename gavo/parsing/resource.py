@@ -506,11 +506,13 @@ class Resource:
 		"""
 		grammar.parse(open(src))
 
-	def importData(self, opts):
+	def importData(self, opts, onlyDDs=None):
 		"""reads all data sources and applies all resource processors to them.
 		"""
 		from gavo.parsing import parseswitch
 		for dataDesc in self.getDescriptor().get_dataSrcs():
+			if onlyDDs and dataDesc.get_id() not in onlyDDs:
+				continue
 			gavo.ui.displayMessage("Importing %s"%dataDesc.get_id())
 			dataDesc.get_Grammar().enableDebug(
 				getattr(opts, "debugProductions", None))
@@ -529,33 +531,36 @@ class Resource:
 	def getDescriptor(self):
 		return self.desc
 
-	def exportToSql(self):
-		if self.getDescriptor().get_profile():
-			config.setDbProfile(self.getDescriptor().get_profile())
+	def exportToSql(self, onlyDDs=None):
+		rd = self.getDescriptor()
+		if rd.get_profile():
+			config.setDbProfile(rd.get_profile())
 		for dataSet in self:
-			dataSet.exportToSql(self.getDescriptor().get_schema())
+			if onlyDDs and dataSet.getDescriptor().get_id() not in onlyDDs:
+				continue
+			dataSet.exportToSql(rd.get_schema())
 		sqlRunner = sqlsupport.ScriptRunner()
 		sqlMacroExpander = SqlMacroExpander(self.desc)
-		for scriptType, scriptName, script in self.getDescriptor().get_scripts():
+		for scriptType, scriptName, script in rd.get_scripts():
 			gavo.ui.displayMessage("Running script %s"%scriptName)
 			if scriptType=="postCreation":
 				sqlRunner.run(sqlMacroExpander.expand(script))
 		sqlRunner.commit()
 		self.rebuildDependents()
 
-	def exportNone(self):
+	def exportNone(self, onlyDDs):
 		pass
 	
-	def exportToVOTable(self):
+	def exportToVOTable(self, onlyDDs):
 		for dataSet in self:
 			dataSet.exportToVOTable(sys.stdout, tablecoding="td")
 
-	def export(self, outputFormat):
+	def export(self, outputFormat, onlyDDs):
 		try: {
 				"sql": self.exportToSql,
 				"none": self.exportNone,
 				"votable": self.exportToVOTable,
-			}[outputFormat]()
+			}[outputFormat](onlyDDs)
 		except KeyError:
 			raise utils.raiseTb(gavo.Error,
 				"Invalid export format: %s"%outputFormat)

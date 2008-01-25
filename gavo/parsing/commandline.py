@@ -26,29 +26,24 @@ class Abort(Exception):
 	pass
 
 
-def process(opts, rd):
+def process(opts, args):
+	src, ddIds = args[0], args[1:]
+	rd = importparser.getRd(os.path.join(os.getcwd(), src), forImport=True)
 	if opts.createShared:
 		for dataDesc in rd:
 			for recordDef in dataDesc:
 				recordDef.set_shared(False)
 	res = resource.Resource(rd)
-	res.importData(opts)
-#	print res.dataSets[0].rows
+	res.importData(opts, set(ddIds))
 	if opts.fakeonly:
 		return
-	res.export(opts.outputMethod)
+	res.export(opts.outputMethod, set(ddIds))
 
 
-def processAll(opts, args):
-	for src in args:
-		gavo.ui.displayMessage("Working on %s"%src)
-		gavo.logger.info("Processing %s"%src)
-		process(opts, importparser.getRd(os.path.join(os.getcwd(), src), 
-			forImport=True))
-
+		
 
 def parseCmdline():
-	parser = OptionParser(usage = "%prog [options] <rd-name>+")
+	parser = OptionParser(usage = "%prog [options] <rd-name> {<data-id>}")
 	parser.add_option("-d", "--debug-productions", help="enable debugging for"
 		" the given productions", dest="debugProductions", default="", 
 		metavar="productions")
@@ -85,7 +80,7 @@ def parseCmdline():
 
 def main():
 	try:
-		processAll(*parseCmdline())
+		process(*parseCmdline())
 	except Abort, msg:
 		sys.exit(1)
 	except SystemExit, msg:

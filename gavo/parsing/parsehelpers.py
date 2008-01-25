@@ -194,6 +194,11 @@ class FieldComputer(RDComputer):
 				getDescriptor().getRD())
 			self.context = weakref.proxy(parseContext)
 
+	def _fc_rowsProcessed(self, rows):
+		"""returns the number of records already ingested for this source.
+		"""
+		return self.context.rowsProcessed
+
 	def _fc_property(self, rows, property):
 		"""returns the named property of the data descriptor.
 

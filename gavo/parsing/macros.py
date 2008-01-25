@@ -249,7 +249,8 @@ class TimestampCombiner(Macro):
 	* timeFormat -- format of time using strptime(3)-compatible conversions
 	  (default: "%H:%M:%S")
 
-	The macro understands the special timeFormat !!secondsSinceMidnight.
+	The macro understands the special timeFormats !!secondsSinceMidnight and
+	!!decimalHours and the special dateFormat !!julianEp (stuff like 1980.89).
 
 	Arguments:
 
@@ -268,6 +269,11 @@ class TimestampCombiner(Macro):
 	>>> m(None, rec)
 	>>> rec["timestamp"].strftime()
 	'Wed Jun  4 08:58:40 1969'
+	>>> m = TimestampCombiner([("date", "date", ""), ("time", "time", "")],
+	... dateFormat="!!julianEp", timeFormat="%M-%H")
+	>>> rec = {"date": "1969.0027378508", "time": "30-5"}; m(None,rec)
+	>>> rec['timestamp'].strftime()
+	'Thu Jan  2 05:30:00 1969'
 	"""
 	def __init__(self, argTuples=[], destination="timestamp",
 			dateFormat="%d.%m.%Y", timeFormat="%H:%M:%S"):
@@ -287,10 +293,18 @@ class TimestampCombiner(Macro):
 			minutes = (fullSecs%3600)/60
 			seconds = secs-hours*3600-minutes*60
 			return DateTime.Time(hours, minutes, seconds)
+		elif format=="!!decimalHours":
+			rest, hours = math.modf(float(literal))
+			rest, minutes = math.modf(rest*60)
+			return DateTime.Time(int(hours), int(minutes), rest*60)
 		else:
 			return DateTime.Time(*time.strptime(literal, format)[3:6])
 
 	def _processDate(self, literal, format):
+		if format=="!!julianEp":
+			rest, year = math.modf(float(literal))
+			delta = DateTime.DateTimeDeltaFromSeconds(rest*365.25*86400)
+			return DateTime.DateTime(int(year))+delta
 		return DateTime.Date(*time.strptime(literal, format)[:3])
 
 	def _compute(self, record, date, time):

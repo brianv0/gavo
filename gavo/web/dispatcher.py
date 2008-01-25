@@ -233,7 +233,7 @@ class BlockedPage(common.GavoRenderMixin, rend.Page):
 			T.p["The service you requested is currently under maintanence."
 				" This could take from a few minutes to a day.  We are sorry for"
 				" any inconvenience."],
-			T.p["If the service hasn't come back within 24 hours, please"
+			T.p["If the service has not come back within 24 hours, please"
 				" contact ",
 				T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
 					"gavo@ari.uni-heidelberg.de"],
