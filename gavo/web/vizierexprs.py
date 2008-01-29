@@ -389,7 +389,7 @@ def joinOperatorExpr(operator, operands):
 
 
 class ToVexprConverter(typesystems.FromSQLConverter):
-	typeSystem = "vizerexpr"
+	typeSystem = "vizierexpr"
 	simpleMap = {
 		"smallint": "vexpr-float",
 		"integer": "vexpr-float",
@@ -403,6 +403,9 @@ class ToVexprConverter(typesystems.FromSQLConverter):
 		"char": "vexpr-string",
 		"date": "vexpr-date",
 		"timestamp": "vexpr-date",
+		"vexpr-date": "vexpr-date",
+		"vexpr-float": "vexpr-float",
+		"vexpr-string": "vexpr-string",
 	}
 
 	def mapComplex(self, sqlType, length):

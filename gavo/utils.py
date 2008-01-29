@@ -190,7 +190,7 @@ class NamedNode:
 		self.name, self.node = name, node
 
 
-class NodeBuilder(ContentHandler):
+class BaseNodeBuilder(ContentHandler):
 	"""a node builder is a content handler working more along the lines
 	of conventional parse tree builders.
 
@@ -378,6 +378,46 @@ class NodeBuilder(ContentHandler):
 						name, childName))
 		return parent
 
+
+class NodeBuilder(BaseNodeBuilder):
+	"""is a BaseNodeBuilder that in addition knows how to handle 
+	ElementGenerators.
+
+	An ElementGenerator is a python generator that yields element descriptions.
+	Each item yielded can be:
+
+	* a tuple ("start", <Element Name>, <attributes>)
+	* a tuple ("end", <Element Name>)
+	* a tuple ("empty", <Element Name>, <attributes>)
+	* string (which is delivered as character data
+	"""
+	def _makeGenerator(self, code):
+		try:
+			exec "def gen():\n%s\n"%code in locals()
+		except SyntaxError, msg:
+			raise gavo.Error("Bad ElementGenerator source %s: %s"%(code, msg))
+		return gen
+
+	knownActions = set(["start", "end", "empty"])
+
+	def _handleTupleItem(self, tuple):
+		action = tuple[0]
+		if not action in self.knownActions:
+			raise gavo.Error("Bad action from element generator: %s"%action)
+		if action=="start" or action=="empty":
+			self.startElement(tuple[1], tuple[2])
+		if action=="end" or action=="empty":
+			self.endElement(tuple[1])
+
+	def _make_ElementGenerator(self, name, attrs, children):
+		generator = self._makeGenerator(children[0][1])
+		for item in generator():
+			if isinstance(item, basestring):
+				self.characters(item)
+			elif isinstance(item, tuple) and len(item)>0:
+				self._handleTupleItem(item)
+			else:
+				raise gavo.Error("Bad item from element generator: %s"%repr(item))
 
 class DummyClass:
 	"""is a class that just prints out all method calls with their arguments.
@@ -603,6 +643,7 @@ def makeEllipsis(aStr, maxLen):
 		return aStr[:maxLen-3]+"..."
 	return aStr
 
+
 def displayError(exc):
 	if isinstance(exc, gavo.Error):
 		prefix = "*** Operation failed:"
@@ -619,6 +660,18 @@ def displayError(exc):
 		gavo.logger.error("Pertaining data: %s\n"%data)
 		sys.stderr.write("Pertaining data: %s\n"%makeEllipsis(data, 60))
 
+
+def symlinkwalk(dir):
+	"""is os.path.walk following symlinks.  
+	
+	*Warning*: This will wreak havoc when a symlink points back to a parent.
+	"""
+	for root, dirs, files in os.walk(dir):
+		yield root, dirs, files
+		for child in dirs:
+			if os.path.islink(os.path.join(root, child)):
+				for v in symlinkwalk(os.path.join(root, child)):
+					yield v
 
 
 def _test():

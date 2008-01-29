@@ -33,20 +33,28 @@ from gavo.web import resourcebased
 class JpegRenderer(resourcebased.Form):
 	name="img.jpeg"
 
+	def __init__(self, *args):
+		super(JpegRenderer, self).__init__(*args)
+
 	def _runService(self, inputData, queryMeta, ctx):
+		pars = inputData.getDocRec()
+		if "plotField" in pars:
+			queryMeta.setdefault("additionalFields", []).append(
+						pars["plotField"])
 		return self.service.run(inputData, queryMeta
 			).addCallback(self._handleOutputData, ctx
 			).addErrback(self._handleError, ctx)
 
-	def _computeLinesWithCurve(self, rawRecs):
-		curveMax = int(self.service.get_property("curveMax"))
+	def _computeLinesWithCurve(self, rawRecs, plotField):
+		curveMin = float(self.service.get_property("curveMin", 0))
+		valRange = float(self.service.get_property("curveMax"))-curveMin
 		curveWidth = int(self.service.get_property("curveWidth", "200"))
+		def scale(v):
+			return max(0, min(curveWidth, int((v-curveMin)/valRange*curveWidth)))
 		curvePix = '\xff'*curveWidth
-		lastPos = dotPos = max(0, min(curveWidth-1, 
-				(rawRecs[0]["intensity"]*curveWidth)/curveMax))
+		lastPos = dotPos = scale(rawRecs[0][plotField])
 		for rec in rawRecs:
-			dotPos = max(0, min(curveWidth-1, 
-				(rec["intensity"]*curveWidth)/curveMax))
+			dotPos = scale(rec[plotField])
 			if lastPos<dotPos:
 				curveBytes = curvePix[:lastPos]+'\0'*(dotPos-lastPos
 					)+curvePix[dotPos:]
@@ -59,8 +67,10 @@ class JpegRenderer(resourcebased.Form):
 			yield rec["data"].decode("base64")+curveBytes
 
 	def _createImage(self, data):
-		if self.service.get_property("curveMax"):
-			lines = [l for l in self._computeLinesWithCurve(data.getPrimaryTable())]
+		if self.service.get_property("curveMax"
+				) and "plotField" in data.queryPars:
+			lines = [l for l in self._computeLinesWithCurve(data.getPrimaryTable(),
+				data.queryPars["plotField"])]
 		else:
 			lines = [rec["data"].decode("base64") for rec in data.getPrimaryTable()]
 		img = Image.fromstring("L", (len(lines[0]), len(lines)),

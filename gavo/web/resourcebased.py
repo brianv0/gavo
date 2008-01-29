@@ -165,16 +165,11 @@ def writeVOTable(request, dataSet, tableMaker):
 	"""
 # XXX TODO: Make this asynchronous (else slow clients with big tables
 # will bring you to a grinding halt)
-	try:
-		vot = tableMaker.makeVOT(dataSet)
-		f = cStringIO.StringIO()
-		tableMaker.writeVOT(vot, f)
-		request.write(f.getvalue())
-		request.finish()
-	except:
-# XXX TODO: emit some sensible emergency stuff here
-		traceback.print_exc()
-		request.write("<<< >>>PANIC: INTERNAL ERROR, DATA NOT COMPLETE")
+	vot = tableMaker.makeVOT(dataSet)
+	f = cStringIO.StringIO()
+	tableMaker.writeVOT(vot, f)
+	request.write(f.getvalue())
+	request.finish()
 	return ""  # shut off further rendering
 
 
@@ -211,21 +206,25 @@ class VOTableResponse(BaseResponse):
 			'attachment; filename=votable.xml')
 		defer.maybeDeferred(serveAsVOTable, request, data
 			).addCallback(self._tableWritten, ctx
-			).addErrback(self._handleError, ctx)
+			).addErrback(self._handleErrorDuringRender, ctx)
 		return request.deferred
 
 	def _tableWritten(self, dummy, ctx):
 		pass
 	
 	def _handleError(self, failure, ctx):
-# XXX TODO Work on this
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "text/html")
 		request.setHeader('content-disposition', 'inline')
 		request.setResponseCode(500)
-		print ">>>>>>>>>>>>>>>> Error, will hang, find out why"
-		failure.printTraceback()
 		return failure
+	
+	def _handleErrorDuringRender(self, failure, ctx):
+		print ">>>>>>>>>>>>< During Render"
+		failure.printTraceback()
+		request = inevow.IRequest(ctx)
+		request.write(">>>> INTERNAL ERROR, INVALID OUTPUT <<<<")
+		return request.finishRequest(False) or ""
 
 
 class GavoFormMixin(formal.ResourceMixin, object):

@@ -238,6 +238,7 @@ _registerDefaultMF(_stringMapperFactory)
 # are used to recognize types with special nullvalue handling.
 _defaultNullvalues = {
 	"unsignedByte": 255,
+	"char": '~',
 	"short": -9999,
 	"int": -999999999,
 	"long": -9999999999,
@@ -505,6 +506,7 @@ class ColProperties(dict):
 	Specifically, it gives maxima, minima and if null values occur.
 	"""
 	_nullvalueRanges = {
+		"char": (' ', '~'),
 		"unsignedByte": (0, 255),
 		"short": (-2**15, 2**15-1),
 		"int": (-2**31, 2**31-1),
@@ -616,7 +618,7 @@ class TableData:
 			for fieldName in self.fieldNames)
 
 	# Don't compute min, max, etc for these types
-	_noValuesTypes = set(["boolean", "bit", "char", "unicodeChar",
+	_noValuesTypes = set(["boolean", "bit", "unicodeChar",
 		"floatComplex", "doubleComplex"])
 
 	def _computeColProperties(self):

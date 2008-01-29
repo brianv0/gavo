@@ -79,8 +79,11 @@ class InputKey(datadef.DataField):
 					[str(i) for i in self.get_values().get_options()],
 					self.get_showitems())
 			else:
-				items = self.get_values().get_options().copy()
-				items.remove(self.get_values().get_default())
+				items = self.get_values().get_options()
+				try:
+					items.remove(self.get_values().get_default())
+				except ValueError:
+					pass
 				noneLabel = None
 				if self.get_optional():
 					noneLabel = "ANY"

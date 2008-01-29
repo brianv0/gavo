@@ -65,6 +65,7 @@ class DataField(record.Record):
 			"id": None,          # Just so the field can be referenced within XML
 			"values": None,      # a datadef.Values instance (see below)
 			"copy": record.BooleanField,  # Used with TableGrammars
+			"property": record.DictField, # User properties
 		}
 # Another bad hack, but I need to inherit from this and want additional
 # fields without messing up the constructor signature that's used all over
@@ -186,7 +187,15 @@ class DataField(record.Record):
 
 	@classmethod
 	def fromDataField(cls, dataField):
-		instance = cls(**dataField.dataStore)
+		"""constructs a DataField from another DataField.
+
+		This is basically like copy, but is specialized for DataFields.
+		It does not inherit properties.  I'm not sure yet if that's something
+		we want or something I should change.
+		"""
+		args = dataField.dataStore.copy()
+		del args["property"]
+		instance = cls(**args)
 		if instance.get_values():
 			instance.set_values(instance.get_values().copy())
 		return instance
@@ -197,7 +206,7 @@ class OutputField(DataField):
 	"""
 	@classmethod
 	def fromDataField(cls, dataField):
-		instance = cls(**dataField.dataStore)
+		instance = super(OutputField, cls).fromDataField(dataField)
 		if instance.get_values():
 			instance.set_values(instance.get_values().copy())
 		instance.set_source(instance.get_dest())
@@ -353,6 +362,9 @@ class Values(record.Record):
 	This is quite like the values element in a VOTable, except that nullLiterals
 	of course are strings, where in VOTables nullvalues have the type of
 	their field.
+
+	Warning: on the first validate, the options list is "frozen" into a set.
+	There currently is no way to re-evaluate options into such a set.
 	"""
 	def __init__(self, **initvals):
 		record.Record.__init__(self, {
@@ -364,6 +376,7 @@ class Values(record.Record):
 			"nullLiteral": None, # a string representing null in literals
 			"multiOk": record.BooleanField,
 		}, initvals)
+		self._optionsSet = None
 	
 	def convert(self, dataField):
 		"""converts min, max, and options from string literals to python
@@ -385,22 +398,21 @@ class Values(record.Record):
 			if self.get_default()==None and isinstance(self.get_options(), list):
 				self.set_default(self.get_options()[0])
 			dbt, lf = dataField.get_dbtype(), dataField.get_literalForm()
-			# It's evil to stuff a set into a list field, but we look up
-			# quite a bit in it and I don't want to add a set type to
-			# record yet.
-			self.dataStore["options"] = set([makePythonVal(opt, dbt, lf)
-				for opt in self.get_options()])
+			self.dataStore["options"] = [makePythonVal(opt, dbt, lf)
+				for opt in self.get_options()]
 
 	def validateOptions(self, value):
 		"""returns false if value isn't either in options or doesn't consist of
 		items in options.
 		"""
+		if self._optionsSet==None:
+			self._optionsSet = set(self.get_options())
 		if value=="None":
 			return True
 		if isinstance(value, (list, tuple)):
 			for val in value:
-				if val and not val in self.get_options():
+				if val and not val in self._optionsSet:
 					return False
 		else:
-			return value in self.get_options()
+			return value in self._optionsSet
 		return True

@@ -329,6 +329,7 @@ class RdParser(utils.NodeBuilder):
 		handlers = {
 			"longdescr": field.set_longdescription,
 			"Values": field.set_values,
+			"property": lambda val: field.register_property(*val),
 		}
 		handlers.update(nodeHandlers)
 		return self._processChildren(field, name, handlers, children)
@@ -577,7 +578,7 @@ class RdParser(utils.NodeBuilder):
 		return res
 
 	def _make_property(self, name, attrs, children):
-		return (attrs["name"], self._makeTextNode(name, attrs, children))
+		return (attrs["name"], self._makeTextNode(name, attrs, children).strip())
 
 	def _makeTextNode(self, name, attrs, children):
 		if len(children)==0:

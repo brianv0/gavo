@@ -699,7 +699,7 @@ class DataDescriptor(datadef.DataTransformer):
 			raise Error("Resource directory %s does not exist or is"
 				" not a directory."%self.rD.get_resdir())
 		if self.get_sourcePat():
-			for path, dirs, files in os.walk(self.rD.get_resdir()):
+			for path, dirs, files in utils.symlinkwalk(self.rD.get_resdir()):
 				for fName in glob.glob(os.path.join(path, self.get_sourcePat())):
 					yield fName
 		if self.get_token():

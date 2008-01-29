@@ -103,7 +103,7 @@ class Record(object):
 	Records are constructed with a dictionary legalKeys, the keys
 	of which give the fields of the records.  The value for a key
 	may have a magic value, which always is a class as defined above
-	(RequiredField, ComputedField ListField).  Otherwise, this value
+	(RequiredField, ComputedField, etc).  Otherwise, this value
 	is used as a default.
 
 	You access the fields of the record through get_<name> and

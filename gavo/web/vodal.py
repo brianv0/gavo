@@ -109,7 +109,7 @@ class SiapRenderer(DalRenderer):
 	def _serveMetadata(self, ctx):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
-		inputFields = [contextgrammar.InputKey(**f.dataStore) 
+		inputFields = [contextgrammar.InputKey.fromDataField(f) 
 			for f in self.service.getInputFields()]
 		for f in inputFields:
 			f.set_dest("INPUT:"+f.get_dest())
