@@ -136,6 +136,7 @@ class RdParser(utils.NodeBuilder):
 			"Grammar": dd.set_Grammar,
 			"meta": dd.addMeta,
 			"property": lambda val: dd.register_property(*val),
+			"script": dd.addto_scripts,
 		}, children)
 	
 	def _fillGrammarNode(self, grammar, attrs, children, classHandlers):

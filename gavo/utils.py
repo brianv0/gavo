@@ -419,6 +419,7 @@ class NodeBuilder(BaseNodeBuilder):
 			else:
 				raise gavo.Error("Bad item from element generator: %s"%repr(item))
 
+
 class DummyClass:
 	"""is a class that just prints out all method calls with their arguments.
 

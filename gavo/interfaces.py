@@ -148,7 +148,7 @@ class Q3CPositions(Positions):
 
 	def getDelayedNodes(self, recordNode):
 		tableName = recordNode.get_table()
-		yield "ResourceDescriptor", ("script", ("postCreation", "q3cindex",
+		yield "Data", ("script", ("postCreation", "q3cindex",
 			"\n".join([
 				"BEGIN",
 				"-DROP INDEX @@@SCHEMA()@@@.%(indexName)s",
@@ -212,7 +212,7 @@ class Q3CIndex(Interface):
 				" pos.eq.ra;meta.main and pos.eq.dec;meta.main each for the"
 				" q3cindex interface")
 		raName, deName = raFields[0].get_dest(), deFields[0].get_dest()
-		yield "ResourceDescriptor", ("script", ("postCreation", "q3cindex",
+		yield "Data", ("script", ("postCreation", "q3cindex",
 			"\n".join([
 				"BEGIN",
 				"-DROP INDEX @@@SCHEMA()@@@.%(indexName)s",

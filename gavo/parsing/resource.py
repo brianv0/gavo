@@ -2,11 +2,12 @@
 This module contains classes defining, processing and containing resources.
 """
 
+import glob
 import os
 import re
 import sys
-import glob
 import traceback
+import weakref
 
 import gavo
 from gavo.datadef import DataField
@@ -63,6 +64,70 @@ def getMetaTableRecordDef(tableName):
 		metaDef.addto_items(DataField(dest=fieldName, dbtype=dbtype))
 	return metaDef
 
+
+class SqlMacroExpander(object):
+	"""is a collection of "Macros" that can be used in SQL scripts.
+
+	This is a terrible hack, but there's little in the way of alternatives
+	as far as I can see.
+	"""
+	def __init__(self, rd):
+		self.rd = rd
+		self.macrodict = {}
+		for name in dir(self):
+			if name.isupper():
+				self.macrodict[name] = getattr(self, name)
+	
+	def _expandScriptMacro(self, matob):
+		return eval(matob.group(1), self.macrodict)
+
+	def expand(self, script):
+		"""expands @@@...@@@ macro calls in SQL scripts
+		"""
+		return re.sub("@@@(.*?)@@@", self._expandScriptMacro, script)
+
+	def TABLERIGHTS(self, tableName):
+		return "\n".join(sqlsupport.getTablePrivSQL(tableName))
+	
+	def SCHEMARIGHTS(self, schema):
+		return "\n".join(sqlsupport.getSchemaPrivSQL(schema))
+	
+	def SCHEMA(self):
+		return self.rd.get_schema()
+
+
+class ScriptHandler(object):
+	"""is a container for the logic of running scripts.
+
+	Objects like ResourceDescriptors and DatatDescriptors can have
+	scripts attached that may run at certain points in their lifetime.
+
+	This class provides a uniform interface to them.  Right now,
+	the have to be constructed just with a resource descriptor and
+	a parent.  I do hope that's enough.
+	"""
+	def __init__(self, parent, rd):
+		self.rd, self.parent = rd, weakref.proxy(parent)
+		self.expander = SqlMacroExpander(self.rd)
+
+	def _runSqlScript(self, script):
+		runner = sqlsupport.ScriptRunner()
+		runner.run(self.expander.expand(script))
+		runner.commit()
+	
+	handlers = {
+		"postCreation": _runSqlScript,
+	}
+	
+	def _runScript(self, scriptType, scriptName, script):
+		gavo.ui.displayMessage("Running %s script %s"%(scriptType, scriptName))
+		self.handlers[scriptType](self, script)
+
+	def runScripts(self, waypoint):
+		for scriptType, scriptName, script in self.parent.get_scripts():
+			if scriptType==waypoint:
+				self._runScript(scriptType, scriptName, script)
+	
 
 class Semantics(record.Record):
 	"""is a specification for the semantics of nonterminals defined
@@ -400,6 +465,7 @@ class DataSet(meta.MetaMixin):
 			return
 		for table in self.tables:
 			table.exportToSql(schema)
+		self.dD.scriptHandler.runScripts("postCreation")
 
 	def exportToVOTable(self, destination, tableNames=None, tablecoding="td",
 			mapperFactories=[]):
@@ -435,37 +501,6 @@ class InternalDataSet(DataSet):
 		literalParser = typeconversion.LiteralParser(self.dD.get_encoding())
 		yield ParseContext(self.dataSource, self,
 			literalParser)
-
-
-class SqlMacroExpander(object):
-	"""is a collection of "Macros" that can be used in SQL scripts.
-
-	This is a terrible hack, but there's little in the way of alternatives
-	as far as I can see.
-	"""
-	def __init__(self, rd):
-		self.rd = rd
-		self.macrodict = {}
-		for name in dir(self):
-			if name.isupper():
-				self.macrodict[name] = getattr(self, name)
-	
-	def _expandScriptMacro(self, matob):
-		return eval(matob.group(1), self.macrodict)
-
-	def expand(self, script):
-		"""expands @@@...@@@ macro calls in SQL scripts
-		"""
-		return re.sub("@@@(.*?)@@@", self._expandScriptMacro, script)
-
-	def TABLERIGHTS(self, tableName):
-		return "\n".join(sqlsupport.getTablePrivSQL(tableName))
-	
-	def SCHEMARIGHTS(self, schema):
-		return "\n".join(sqlsupport.getSchemaPrivSQL(schema))
-	
-	def SCHEMA(self):
-		return self.rd.get_schema()
 
 
 class Resource:
@@ -539,13 +574,7 @@ class Resource:
 			if onlyDDs and dataSet.getDescriptor().get_id() not in onlyDDs:
 				continue
 			dataSet.exportToSql(rd.get_schema())
-		sqlRunner = sqlsupport.ScriptRunner()
-		sqlMacroExpander = SqlMacroExpander(self.desc)
-		for scriptType, scriptName, script in rd.get_scripts():
-			gavo.ui.displayMessage("Running script %s"%scriptName)
-			if scriptType=="postCreation":
-				sqlRunner.run(sqlMacroExpander.expand(script))
-		sqlRunner.commit()
+		self.desc.scriptHandler.runScripts("postCreation")
 		self.rebuildDependents()
 
 	def exportNone(self, onlyDDs):
@@ -556,14 +585,16 @@ class Resource:
 			dataSet.exportToVOTable(sys.stdout, tablecoding="td")
 
 	def export(self, outputFormat, onlyDDs):
-		try: {
+		try: 
+			fun = {
 				"sql": self.exportToSql,
 				"none": self.exportNone,
 				"votable": self.exportToVOTable,
-			}[outputFormat](onlyDDs)
+			}[outputFormat]
 		except KeyError:
 			raise utils.raiseTb(gavo.Error,
 				"Invalid export format: %s"%outputFormat)
+		return fun(onlyDDs)
 
 	def rebuildDependents(self):
 		"""executes the appropriate make commands to build everything that
@@ -600,6 +631,7 @@ class ResourceDescriptor(record.Record, meta.MetaMixin):
 			"systems": coords.CooSysRegistry(),
 			"property": record.DictField,
 		}, initvals)
+		self.scriptHandler = ScriptHandler(self, self)
 
 	def __iter__(self):
 		"""iterates over all embedded data descriptors.
@@ -684,8 +716,10 @@ class DataDescriptor(datadef.DataTransformer):
 				"property": record.DictField,
 				"virtual": record.BooleanField,  # virtual data is never written
 				                                 # to the DB.
+				"scripts": record.ListField,
 			},
 			initvals=initvals)
+		self.scriptHandler = ScriptHandler(self, self.getRD())
 
 	def get_source(self):
 		if self.dataStore["source"]:
