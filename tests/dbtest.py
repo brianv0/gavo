@@ -24,6 +24,7 @@ class TestTypes(unittest.TestCase):
 		tw.createTable()
 		feed = tw.getFeeder()
 		feed({"box": coords.Box(1,2,3,4)})
+		tw.finish()
 
 	def testBoxUnpack(self):
 		querier = sqlsupport.SimpleQuerier()

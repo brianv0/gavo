@@ -793,6 +793,11 @@ class SimpleQuerier(Macro):
 			utils.raiseTb(gavo.ValidationError, "The item %s didn't match"
 				" any data.  Since this data is required for further"
 				" operations, I'm giving up"%val, self.getArgument("val"))
+		except sqlsupport.DbError, msg:
+			self.querier.close()
+			self.querier = sqlsupport.SimpleQuerier()
+			utils.raiseTb(gavo.ValidationError, "Internal error (%s)"%
+				sqlsupport.encodeDbMsg(msg), self.getArgument("val"))
 
 
 class BboxSiapFieldsComputer(Macro):

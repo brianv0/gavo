@@ -216,6 +216,7 @@ class TestCoordinateQueries(unittest.TestCase):
 			makeBbox(None, r)
 			feed(r)
 		feed.close()
+		tw.finish()
 
 	# queries with expected numbers of returned items
 	_testcases = [

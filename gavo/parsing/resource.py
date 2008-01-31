@@ -584,7 +584,7 @@ class Resource:
 		for dataSet in self:
 			dataSet.exportToVOTable(sys.stdout, tablecoding="td")
 
-	def export(self, outputFormat, onlyDDs):
+	def export(self, outputFormat, onlyDDs=None):
 		try: 
 			fun = {
 				"sql": self.exportToSql,
@@ -659,6 +659,17 @@ class ResourceDescriptor(record.Record, meta.MetaMixin):
 		self.dataStore["resdir"] = os.path.join(config.get("inputsDir"), 
 			relPath.rstrip("/"))
 
+	def prepareForSystemImport(self):
+		"""sets up all dependent data descriptors for an import of shared tables.
+
+		Shared tables are not created.  So, when we want to create them, they
+		must have their shared attribute set to false.  The --system option
+		to gavoimp causes this method to be called.
+		"""
+		for dataDesc in self:
+			for recordDef in dataDesc:
+				recordDef.set_shared(False)
+		
 	def get_schema(self):
 		return self.dataStore["schema"] or os.path.basename(
 			self.dataStore["resdir"])
@@ -795,9 +806,9 @@ def getMatchingData(dataDesc, tableName, whereClause, pars):
 	tableDef = dataDesc.getRecordDefByName(tableName)
 	if whereClause:
 		whereClause = "WHERE "+whereClause
-	data = sqlsupport.SimpleQuerier().query(
+	data = sqlsupport.SimpleQuerier().runIsolatedQuery(
 		"SELECT * FROM %s %s"%(tableDef.get_table(), whereClause),
-		pars).fetchall()
+		pars)
 	return InternalDataSet(
 		makeRowsetDataDesc(dataDesc.getRD(), tableDef.get_items()), 
 		dataSource=data)

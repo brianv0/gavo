@@ -79,7 +79,7 @@ class UploadCore(standardcores.QueryingCore):
 			dbConn = sqlsupport.getDbConnection(config.getDbProfileByName("feed"))
 			def makeSharedTable(dataSet, recordDef):
 				return table.DirectWritingTable(dataSet, recordDef, dbConn, 
-					create=False, doUpdates=mode=="u")
+					create=False, doUpdates=mode=="u", dropIndices=False)
 			r = resource.InternalDataSet(self.dataDesc, tableMaker=makeSharedTable,
 				dataSource=sourcePath)
 		except sqlsupport.DatabaseError, msg:

@@ -130,10 +130,11 @@ else:
 	from psycopg2 import Error as DbError
 
 	def getDbConnection(profile):
-		return psycopg2.connect("dbname='%s' port='%s' host='%s'"
+		conn = psycopg2.connect("dbname='%s' port='%s' host='%s'"
 			" user='%s' password='%s'"%(profile.get_database(), 
 				profile.get_port(), profile.get_host(), profile.get_user(), 
 				profile.get_password()))
+		return conn
 
 
 
@@ -144,13 +145,16 @@ from gavo import datadef
 
 
 class FieldError(gavo.Error):
-	"""is raised when some operation on fields/columns doesn't work out.
+	"""is raised by the MetaTableHandler when some operation on 
+	fields/columns doesn't work out.
 	"""
 	pass
 
 
 # This is the name of the (global) table containing units, ucds, descriptions,
 # etc for all table rows of user tables
+# XXX TODO: Do we still want this?  If yes, to a real table definition
+# through a resource descriptor
 metaTableName = "fielddescriptions"
 
 
@@ -223,8 +227,11 @@ class _Feeder:
 		return nAffected
 	
 	def __del__(self):
-		if self.cursor is not None:
-			self.close()
+		try:
+			if self.cursor is not None:
+				self.close()
+		except (DbError, gavo.Error): 
+			pass # someone else might have closed it
 
 
 class StandardQueryMixin:
@@ -232,68 +239,117 @@ class StandardQueryMixin:
 
 	The mixin assumes an attribute connection from the parent.
 	"""
-	def runOneQuery(self, query, data={}, silent=False):
-		"""runs a query and returns the cursor used.
+	def runIsolatedQuery(self, query, data={}, silent=False, raiseExc=True):
+		"""runs a query over a connection of its own and returns a rowset of 
+		the result if the query is successful.
 
-		You need to commit yourself if the query changed anything.
+		Mostly, you'll create all kinds of races if you think you need this.
+		Unfortunately, until postgres gets nested transactions, there's little
+		I can do.
 		"""
-		cursor = self.connection.cursor()
+		connection = getDbConnection(config.getDbProfile())
+		cursor = connection.cursor()
 		try:
 			cursor.execute(query, data)
-		except DatabaseError, msg:
+		except DbError, msg:
+			cursor.close()
+			connection.rollback()
+			connection.close()
 			if not silent:
 				sys.stderr.write("Failed query %s with"
 					" arguments %s (%s)\n"%(repr(cursor.query), data, str(msg).strip()))
+			if raiseExc:
+				raise
+		except:
+			connection.rollback()
+			connection.close()
 			raise
+		else:
+			try:
+				res = cursor.fetchall()
+			except DbError:  # No results to fetch
+				res = None
+			cursor.close()
+			connection.commit()
+			connection.close()
+			return res
+
+	def query(self, query, data={}):
+		"""runs a single query in a new cursor and returns that cursor.
+
+		You will see all exceptions, no transaction management will be
+		done.
+
+		Do not simply ignore errors you get from query.  To safely ignore
+		errors, use runIsolatedQuery.
+		"""
+		cursor = self.connection.cursor()
+		cursor.execute(query, data)
 		return cursor
 
-	def tableExists(self, tableName, schema=None):
-		"""returns True if a table tablename exists in schema.
+	def _parseTableName(self, tableName, schema=None):
+		"""returns schema, unqualified table name for the arguments.
 
 		schema=None selects the default schema (public for postgresql).
 
 		If tableName is qualified (i.e. schema.table), the schema given
 		in the name overrides the schema argument.
-
-		** Postgresql specific **
 		"""
 		if schema==None:
 			schema = "public"
 		if "." in tableName:
 			schema, tableName = tableName.split(".")
-		result = self.runOneQuery("SELECT table_name FROM"
+		return schema, tableName
+
+	def tableExists(self, tableName, schema=None):
+		"""returns True if a table tablename exists in schema.
+		
+		See _parseTableName on the meaning of the arguments.
+
+		** Postgresql specific **
+		"""
+		schema, tableName = self._parseTableName(tableName, schema)
+		matches = self.query("SELECT table_name FROM"
 			" information_schema.tables WHERE"
 			" table_schema=%(schemaName)s AND table_name=%(tableName)s", {
 					'tableName': tableName,
 					'schemaName': schema,
-			})
-		matches = result.fetchall()
-		result.close()
+			}).fetchall()
 		return len(matches)!=0
+
+	def hasIndex(self, tableName, indexName, schema=None):
+		"""returns True if table tablename has and index called indexName.
+
+		See _parseTableName on the meaning of the arguments.
+
+		** Postgresql specific **
+		"""
+		schema, tableName = self._parseTableName(tableName, schema)
+		res = self.query("SELECT indexname FROM"
+			" pg_indexes WHERE schemaname=%(schema)s AND"
+			" tablename=%(tableName)s AND"
+			" indexname=%(indexName)s", locals()).fetchall()
+		return len(res)>0
 
 	def schemaExists(self, schema):
 		"""returns True if the named schema exists in the database.
 
 		** Postgresql specific **
 		"""
-		result = self.runOneQuery("SELECT nspname FROM"
+		matches = self.query("SELECT nspname FROM"
 			" pg_namespace WHERE nspname=%(schemaName)s", {
 					'schemaName': schema,
-			})
-		numMatches = len(result.fetchall())
-		result.close()
-		return numMatches!=0
+			}).fetchall()
+		return len(matches)!=0
 
 
-class TableWriter(StandardQueryMixin):
-	"""is a moderately high-level interface to feeding data into an
-	SQL database.
+class TableInterface(StandardQueryMixin):
+	"""is a base class for table writers and updaters.
 
 	At construction time, you define the database and the table.
 	The table definition is used by createTable, but if you do not
 	call createTable, there are no checks that the table structure in
-	the database actually matches what you passed.	In particualar,
-	we don't touch any indices.
+	the database actually matches what you passed.
 
 	Table names are not parsed.  If they include a schema, you need
 	to make sure it exists (ensureSchema) before creating the table.
@@ -306,22 +362,111 @@ class TableWriter(StandardQueryMixin):
 			self.connection = dbConnection
 		else:
 			self.connection = getDbConnection(config.getDbProfile())
-			
 		self.tableName = tableName
 		self.fields = fields
 
-	def _sendSQL(self, cmd, args={}, failok=False):
-		"""sends raw SQL, using a new cursor.
-		"""
-		try:
-			cursor = self.runOneQuery(cmd, args, silent=failok)
-		except DbError, msg:
-			logger.warning("Ignoring SQL error %s for %s since you asked"
-				" me to."%(msg, repr(cmd)))
-		else:
-			cursor.close()
-		self.connection.commit()
+	def getIndices(self):
+		indices = {}
+		for field in self.fields:
+			if field.get_index():
+				indices.setdefault(field.get_index(), []).append(
+					field.get_dest())
+		return indices
 
+	def _computePrimaryDef(self):
+		primaryCols = [field.get_dest()
+			for field in self.fields if field.get_primary()]
+		if len(primaryCols)>0:
+			return "(%s)"%", ".join(primaryCols)
+
+	def _definePrimaryKey(self):
+		primary = self._computePrimaryDef()
+		if primary:
+			try:
+				self.query("ALTER TABLE %s ADD PRIMARY KEY %s"%(
+					self.tableName, primary))
+			except DbError, msg:
+				raise gavo.Error("Primary key %s could not be added (%s)"%(
+					primary, repr(str(msg))))
+
+	def _dropPrimaryKey(self):
+		"""drops a primary key if it exists.
+
+		*** Postgres specific ***
+		"""
+		primary = self._computePrimaryDef()
+		_, unqualified = self._parseTableName(self.tableName)
+		constraintName = "%s_pkey"%unqualified
+		if primary and self.hasIndex(self.tableName, constraintName):
+			self.query("ALTER TABLE %s DROP CONSTRAINT %s"%(
+				self.tableName, constraintName))
+
+	def dropIndices(self):
+		self._dropPrimaryKey()
+		schema, unqualified = self._parseTableName(self.tableName)
+		for indexName, members in self.getIndices().iteritems():
+			if self.hasIndex(self.tableName, indexName):
+				self.query("DROP INDEX %s.%s"%(schema,
+					indexName))
+
+	def makeIndices(self):
+		"""creates all indices on the table, including any definition of
+		a primary key.
+		"""
+		gavo.ui.displayMessage("Creating indices on %s."%
+			self.tableName)
+		self._definePrimaryKey()
+		for indexName, members in self.getIndices().iteritems():
+			self.query("CREATE INDEX %s ON %s (%s)"%(
+				indexName, self.tableName, ", ".join(
+					members)))
+
+	def deleteMatching(self, matchCondition):
+		"""deletes all rows matching matchCondition.
+
+		For now, matchCondition is a 2-tuple of column name and value.
+		A row will be deleted if the specified column name is equal to 
+		the supplied value.
+
+		If at some point we need more complex conditions, we should probably
+		create an SqlExpression object and accept these too.
+		"""
+		colName, value = matchCondition
+		self.query("DELETE FROM %s WHERE %s=%%(value)s"%(self.tableName,
+			colName), {"value": value})
+
+	def _getFeederForCmdStr(self, cmdStr, dropIndices):
+		if dropIndices:
+			self.dropIndices()
+		return _Feeder(self.connection.cursor(), self.getFeedFinalizer(
+				makeIndices=dropIndices), cmdStr)
+
+	def getFeedFinalizer(self, makeIndices=True):
+		def fun():
+			if makeIndices:
+				self.makeIndices()
+		return fun
+
+	def copyIn(self, inFile):
+		cursor = self.connection.cursor()
+		cursor.copy_expert("COPY %s FROM STDIN WITH BINARY"%self.tableName, inFile)
+		cursor.close()
+
+	def getTableName(self):
+		return self.tableName
+
+	def finish(self):
+		self.connection.commit()
+		self.connection.close()
+
+	def abort(self):
+		self.connection.close()
+
+
+class TableWriter(TableInterface):
+	"""is a moderately high-level interface to feeding data into an
+	SQL database.
+	"""
 	def _getDDLDefinition(self, field):
 		"""returns an sql fragment for defining the field described by the 
 		DataField field.
@@ -333,72 +478,32 @@ class TableWriter(StandardQueryMixin):
 			items.append("REFERENCES %s ON DELETE CASCADE"%field.get_references())
 		return " ".join(items)
 
-	def getIndices(self):
-		indices = {}
-		for field in self.fields:
-			if field.get_index():
-				indices.setdefault(field.get_index(), []).append(
-					field.get_dest())
-		return indices
-
-	def dropIndices(self):
-		try:
-			schema, _ = self.tableName.split(".")
-		except ValueError:
-			schema = "public"
-		for indexName, members in self.getIndices().iteritems():
-			self._sendSQL("DROP INDEX %s.%s"%(schema,
-				indexName), failok=True)
-
-	def makeIndices(self):
-		gavo.ui.displayMessage("Creating indices on %s."%
-			self.tableName)
-		for indexName, members in self.getIndices().iteritems():
-			self._sendSQL("CREATE INDEX %s ON %s (%s)"%(
-				indexName, self.tableName, ", ".join(
-					members)))
-
 	def createTable(self, delete=True, create=True, privs=True):
 		"""creates a new table for dataset.
 
 		An existing table is dropped before creating the new one if delete is
-		true; analoguosly, you can inhibit or enable the creation, setting of 
-		privileges, setting of the primary key, and definition of indices.
-		By default. everything is done.
+		true; analoguosly, you can inhibit or enable the creation or the setting of 
+		privileges.  By default. everything is done.
+
+		I don't think create=True without delete=True makes much sense,
+		but who knows.
 		"""
 		def setPrivileges():
 			for stmt in getTablePrivSQL(self.tableName):
-				self._sendSQL(stmt)
+				self.query(stmt)
 		
-		def computePrimaryDef():
-			primaryCols = [field.get_dest()
-					for field in self.fields if field.get_primary()]
-			if primaryCols:
-				return ", PRIMARY KEY (%s)"%(",".join(primaryCols))
-			else:
-				return ""
-
 		if delete:
-			self._sendSQL("DROP TABLE %s CASCADE"%(self.tableName),
-				failok=True)
+			if self.tableExists(self.tableName):
+				self.query("DROP TABLE %s CASCADE"%(self.tableName))
 		if create:
-			self._sendSQL("CREATE TABLE %s (%s%s)"%(
+			self.query("CREATE TABLE %s (%s)"%(
 				self.tableName,
 				", ".join([self._getDDLDefinition(field)
-					for field in self.fields]),
-				computePrimaryDef(),
+					for field in self.fields])
 				))
 		if privs:
 			setPrivileges()
-
-	def createIfNew(self):
-		"""creates the target table if it does not yet exist.
-
-		If it does, this is a no-op.
-		"""
-		if not self.tableExists(self.tableName):
-			self.createTable()
-
+	
 	def ensureSchema(self, schemaName):
 		"""makes sure a schema of schemaName exists.
 
@@ -406,84 +511,53 @@ class TableWriter(StandardQueryMixin):
 		privileges.
 		"""
 		if not self.schemaExists(schemaName):
-			self._sendSQL("CREATE SCHEMA %(schemaName)s"%locals())
+			self.query("CREATE SCHEMA %(schemaName)s"%locals())
 			for stmt in getSchemaPrivSQL(schemaName):
-				self._sendSQL(stmt)
+				self.query(stmt)
 	
-	def deleteMatching(self, matchCondition):
-		"""deletes all rows matching matchCondition.
-
-		For now, matchCondition is a 2-tuple of column name and value.
-		A row will be deleted if the specified column name is equal to 
-		the supplied value.
-
-		If at some point we need more complex conditions, we should probably
-		create an SqlExpression object and accept these too.
-
-		WARNING: This drops all indices on the table without restoring them.
-		That shouldn't be a problem since you'll usually get a feeder of
-		the table later on.
-		"""
-		self.dropIndices()
-		colName, value = matchCondition
-		self._sendSQL("DELETE FROM %s WHERE %s=%%(value)s"%(self.tableName,
-			colName), {"value": value})
-
-	def getFeeder(self):
+	def getFeeder(self, dropIndices=True):
 		"""returns a callable object that takes dictionaries containing
 		values for the database.
 
 		The callable object has a close method that must be called after
 		all db feeding is done.
 		"""
-		self.dropIndices()
-		cmdString = "INSERT INTO %s (%s) VALUES (%s)"%(
+		cmdStr = "INSERT INTO %s (%s) VALUES (%s)"%(
 			self.tableName, 
 			", ".join([f.get_dest() for f in self.fields]),
 			", ".join(["%%(%s)s"%f.get_dest() for f in self.fields]))
-		return _Feeder(self.connection.cursor(), self.finalizeFeeder,
-			cmdString)
-
-	def copyIn(self, inFile):
-		cursor = self.connection.cursor()
-		cursor.copy_expert("COPY %s FROM STDIN WITH BINARY"%self.tableName, inFile)
-		cursor.close()
-
-	def getTableName(self):
-		return self.tableName
-
-	def close(self):
-		self.connection.commit()
-		self.connection.close()
-	
-	def finalizeFeeder(self):
-		self.makeIndices()
-		self.connection.commit()
+		return self._getFeederForCmdStr(cmdStr, dropIndices)
 
 
-class TableUpdater(TableWriter):
-	"""is a TableWriter that does update request rather than inserts on
+class TableUpdater(TableInterface):
+	"""is a TableWriter that does updates rather than inserts on
 	feed.
 	"""
-# XXX TODO: refactor so TableWriter and this have a common base class
-	def getFeeder(self):
+	def getFeeder(self, dropIndices=True):
 		"""returns a callable object that takes dictionaries that will
 		replace records with the same primary key.
 		"""
-		self.dropIndices()
 		primaryCols = [field.get_dest()
 			for field in self.fields if field.get_primary()]
-		cmdString = "UPDATE %s SET %s WHERE %s"%(
+		cmdStr = "UPDATE %s SET %s WHERE %s"%(
 			self.tableName,
 			", ".join(["%s=%%(%s)s"%(f.get_dest(), f.get_dest())
 				for f in self.fields]),
 			" AND ".join(["%s=%%(%s)s"%(n, n) for n in primaryCols]))
-		return _Feeder(self.connection.cursor(), self.finalizeFeeder,
-			cmdString)
+		return self._getFeederForCmdStr(cmdStr, dropIndices)
 
 
 class SimpleQuerier(StandardQueryMixin):
 	"""is a tiny interface to querying the standard database.
+
+	You can query (which makes raises normal exceptions and renders
+	the connection unusable after an error), runIsolatedQuery (which
+	may catch exceptions and in any case uses a connection of its own
+	so your own connection remains usable; however, you'll have race
+	conditions with it).
+
+	You have to close() manually; you also have to commit() when you
+	change something, finish() does 'em both.
 	"""
 	def __init__(self, connection=None):
 		if connection:
@@ -491,15 +565,25 @@ class SimpleQuerier(StandardQueryMixin):
 		else:
 			self.connection = getDbConnection(config.getDbProfile())
 
-	def query(self, query, data={}):
-		return self.runOneQuery(query, data)
+	def rollback(self):
+		self.connection.rollback()
 
 	def commit(self):
 		self.connection.commit()
-	
-	def close(self):
-		self.connection.close()
 
+	def close(self):
+		if self.connection:
+			self.connection.close()
+			self.connection = None
+
+	def finish(self):
+		self.commit()
+		self.close()
+
+	def __del__(self):
+		if self.connection:
+			self.close()
+		
 
 class ScriptRunner:
 	"""is an interface to run simple static scripts on the SQL data base.
@@ -508,8 +592,8 @@ class ScriptRunner:
 	can use the backslash as a continuation character.  Leading whitespace
 	on a continued line is ignored, the linefeed becomes a single blank.
 
-	Also, we abort and raise an exception on any error in the script.
-	We will probably define some syntax to have errors ignored.
+	Also, we abort and raise an exception on any error in the script unless
+	the first character of the command is a "-" (which is ignored otherwise).
 	"""
 	def __init__(self):
 		self.connection = getDbConnection(config.getDbProfile())
@@ -567,7 +651,7 @@ class MetaTableHandler:
 			"DELETE FROM %s WHERE tableName=%%(tableName)s"%metaTableName,
 			{"tableName": tableName}).close()
 		self.querier.commit()
-		feed = self.writer.getFeeder()
+		feed = self.writer.getFeeder(dropIndices=False)
 		for colInd, colDesc in enumerate(columnDescriptions):
 			items = {"tableName": tableName, "colInd": colInd}
 			items.update(colDesc)

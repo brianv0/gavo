@@ -30,17 +30,13 @@ def process(opts, args):
 	src, ddIds = args[0], args[1:]
 	rd = importparser.getRd(os.path.join(os.getcwd(), src), forImport=True)
 	if opts.createShared:
-		for dataDesc in rd:
-			for recordDef in dataDesc:
-				recordDef.set_shared(False)
+		rd.prepareForSystemImport()
 	res = resource.Resource(rd)
 	res.importData(opts, set(ddIds))
 	if opts.fakeonly:
 		return
 	res.export(opts.outputMethod, set(ddIds))
 
-
-		
 
 def parseCmdline():
 	parser = OptionParser(usage = "%prog [options] <rd-name> {<data-id>}")

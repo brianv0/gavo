@@ -118,9 +118,9 @@ def getShortNamesForSets(queriedSets):
 	"""
 	dd = resourcecache.getRd(rdId).getDataById("sets")
 	tableDef = dd.getPrimaryRecordDef()
-	data = sqlsupport.SimpleQuerier().query(
+	data = sqlsupport.SimpleQuerier().runIsolatedQuery(
 		"SELECT * FROM %s WHERE setName in %%(sets)s"%(tableDef.get_table()),
-		{"sets": queriedSets}).fetchall()
+		{"sets": queriedSets})
 	return [str(r["shortName"]) for r in
 		resource.InternalDataSet(dd, dataSource=data).getPrimaryTable().rows]
 
@@ -130,9 +130,9 @@ def getSetsForService(shortName):
 	"""
 	dd = resourcecache.getRd(rdId).getDataById("sets")
 	tableDef = dd.getPrimaryRecordDef()
-	data = sqlsupport.SimpleQuerier().query(
+	data = sqlsupport.SimpleQuerier().runIsolatedQuery(
 		"SELECT * FROM %s WHERE shortName = %%(name)s"%(tableDef.get_table()),
-		{"name": shortName}).fetchall()
+		{"name": shortName})
 	return [str(r["setName"]) for r in 
 		resource.InternalDataSet(dd, dataSource=data).getPrimaryTable().rows]
 
@@ -145,8 +145,8 @@ def getSets():
 	"""
 	dd = resourcecache.getRd(rdId).getDataById("sets")
 	tableDef = dd.getPrimaryRecordDef()
-	data = sqlsupport.SimpleQuerier().query(
-		"SELECT * FROM %s"%(tableDef.get_table())).fetchall()
+	data = sqlsupport.SimpleQuerier().runIsolatedQuery(
+		"SELECT * FROM %s"%(tableDef.get_table()))
 	setMembers = {}
 	for rec in resource.InternalDataSet(dd, dataSource=data
 			).getPrimaryTable().rows:
@@ -171,11 +171,11 @@ def queryServicesList(whereClause="", pars={}, source="services"):
 	tables = set([s.split(".")[0] for s in sources])
 	if whereClause:
 		whereClause = "WHERE "+whereClause
-	data = sqlsupport.SimpleQuerier().query(
+	data = sqlsupport.SimpleQuerier().runIsolatedQuery(
 		"SELECT %s FROM %s %s"%(
 			",".join(sources),
 			" NATURAL JOIN ".join(tables),
-			whereClause), pars).fetchall()
+			whereClause), pars)
 	return resource.InternalDataSet(dd, dataSource=data).getPrimaryTable().rows
 
 resourcecache.makeCache("getWebServiceList", 

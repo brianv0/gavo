@@ -237,7 +237,7 @@ class Table(RecordBasedTable):
 	def _exportOwnedTable(self, schema):
 		"""recreates our data in an SQL database.
 
-		cf. exportToSql.
+		cf. exportToSQL.
 		"""
 		self._exportToMetaTable(schema)
 		if not self.metaOnly:
@@ -245,11 +245,17 @@ class Table(RecordBasedTable):
 			gavo.ui.displayMessage("Exporting %s to table %s"%(
 				self.getDataId(), tableWriter.getTableName()))
 			self._feedData(tableWriter.getFeeder())
+			tableWriter.finish()
 
 	def _getSharedTableWriter(self):
 		"""returns a sqlsupportTableWriter instance for this data set's
 		target Table.
+
+		These ignore the schema of the rd since it's in all likelihood
+		not theirs.  In other words: Shared tables must always lie in the
+		public schema.
 		"""
+# XXX do we want a "system" or "shared" schema for these?
 		tableName = self.recordDef.get_table()
 		tableWriter = sqlsupport.TableWriter(tableName,
 			self.recordDef.get_items(), self.dbConnection)
@@ -273,7 +279,9 @@ class Table(RecordBasedTable):
 			tableWriter = self._getSharedTableWriter()
 			gavo.ui.displayMessage("Exporting %s to table %s"%(
 				self.getDataId(), tableWriter.getTableName()))
-			self._feedData(tableWriter.getFeeder())
+	# XXX TODO: make dropIndices configurable
+			self._feedData(tableWriter.getFeeder(dropIndices=False))
+			tableWriter.finish()
 
 	def exportToSql(self, schema):
 		"""writes the data table to an SQL database.
@@ -343,7 +351,7 @@ class DirectWritingTable(Table):
 	"""
 	nUpdated = None
 	def __init__(self, dataSet, recordDef, dbConnection=None, create=True,
-			doUpdates=False):
+			doUpdates=False, dropIndices=False):
 		self.create = create
 		self.dbConnection = dbConnection
 		Table.__init__(self, dataSet, recordDef)
@@ -356,7 +364,7 @@ class DirectWritingTable(Table):
 			else:
 				self.tableWriter = self._getOwnedTableWriter(
 					self.dataSet.getRd().get_schema())
-		self.feeder = self.tableWriter.getFeeder()
+		self.feeder = self.tableWriter.getFeeder(dropIndices=dropIndices)
 
 	def getTableName(self):
 		return self.tableWriter.getTableName()
@@ -367,6 +375,7 @@ class DirectWritingTable(Table):
 	def finishBuild(self):
 		self.nUpdated = self.feeder.close()
 		Table.finishBuild(self)
+		self.tableWriter.finish()
 
 	def exportToSql(self, schema):
 		return

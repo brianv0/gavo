@@ -355,8 +355,8 @@ class RdParser(utils.NodeBuilder):
 	def _make_Values(self, name, attrs, children):
 		def getOptionsFromDb(expr):
 			return [a[0] for a in
-				sqlsupport.SimpleQuerier().query("SELECT DISTINCT %s"%(
-					expr)).fetchall()]
+				sqlsupport.SimpleQuerier().runIsolatedQuery("SELECT DISTINCT %s"%(
+					expr))]
 		vals = datadef.Values()
 		for key, val in attrs.items():
 			if key=="fromdb": 
