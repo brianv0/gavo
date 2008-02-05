@@ -254,8 +254,16 @@ def getComplexGrammar(baseLiteral, pmBuilder, errorLiteral=None):
 	return exprInString
 
 
-floatLiteral = Regex(gavo.floatRE).setParseAction(
-			lambda s, pos, tok: float(tok[0]))
+def parseFloat(s, pos, tok):
+# This one is important: If something looks like an int, return it as an
+# int -- otherwise, postgres won't use int-indices
+	try:
+		return int(tok[0])
+	except ValueError:
+		return float(tok[0])
+
+floatLiteral = Regex(gavo.floatRE).setParseAction(parseFloat)
+
 # XXX TODO: be a bit more lenient in what you accept as a date
 dateLiteral = Regex(r"\d\d\d\d-\d\d-\d\d").setParseAction(
 			lambda s, pos, tok: typeconversion.make_dateTimeFromString(tok[0]))

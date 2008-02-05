@@ -36,9 +36,6 @@ xmlFragmentPath: %(inputsDir)s/__common__
 dbDefaultProfile: feed
 
 [web]
-voplotEnable: False
-voplotCodeBase: /soft/VOPlot
-voplotUserman: /docs/VOPlot_UserGuide_1_4.html
 # serverName is used to qualify relative URLs where necessary.
 serverURL: http://localhost:8080
 staticURL: /qstatic
@@ -58,6 +55,10 @@ templateDir=%(webDir)s/templates
 adminpasswd:
 # A short name of your site
 sitename=GAVO data center
+voplotEnable: True
+voplotCodeBase: ~/static/voplot/VOPlot
+voplotUserman: ~/static/voplot/docs/VOPlot_UserGuide_1_4.html
+
 
 [querulator]
 defaultMaxMatches: 1000
@@ -79,7 +80,7 @@ writable:worldwritable
 
 [ivoa]
 # the authority id for this DC
-authority:
+authority: 
 registryIdentifier: ivo://org.gavo.dc/static/registryrecs/registry.rr
 
 [meta]
@@ -302,8 +303,16 @@ class Settings:
 	def _parse_adminpasswd(self, val):
 		return val.strip()
 
-	def _parse_voplotenable(self, val):
+	def _parse_web_voplotenable(self, val):
 		return record.parseBooleanLiteral(val)
+
+	def _parse_web_voplotcodebase(self, val):
+		if val.startswith("~"):
+			val = self.get("web", "serverUrl")+self.get("web", "nevowRoot"
+				)+val[1:]
+		return val
+	
+	_parse_web_voplotuserman = _parse_web_voplotcodebase
 
 	def _parse_DEFAULT_rootdir(self, val):
 		if val.startswith("~"):

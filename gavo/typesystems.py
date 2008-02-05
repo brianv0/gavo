@@ -8,6 +8,7 @@ GAVO has to deal with a quite a few type systems:
  * VOTable
  * XSD
  * Twisted formal
+ * numarray
 
 In general, we keep metadata in the SQL type system (although one could
 argue one should use the richest one...).  In this module, we want to
@@ -94,10 +95,9 @@ class ToVOTableConverter(FromSQLConverter):
 			return self.simpleMap[type][0], length
 
 
-
 class ToXSDConverter(FromSQLConverter):
 
-	typeSystem = "VOTable"
+	typeSystem = "XSD"
 	simpleMap = {
 		"smallint": "short",
 		"integer": "int",
@@ -118,6 +118,29 @@ class ToXSDConverter(FromSQLConverter):
 		if type in self._charTypes:
 			return "string"
 
+
+class ToNumarrayConverter(FromSQLConverter):
+
+	typeSystem = "numarray"
+	simpleMap = {
+		"smallint": "Int16",
+		"integer": "Int32",
+		"int": "Int32",
+		"bigint": "Int64",
+		"real": "Float32",
+		"float": "Float32",
+		"boolean": "Bool",
+		"double precision": "Float64",
+		"double": "Float64",
+		"text": "string",
+		"char": "string",
+		"date": "Float32",
+		"timestamp": "Float32",
+	}
+
+	def mapComplex(self, type, length):
+		if type in self._charTypes:
+			return "string"
 
 try:
 	import formal
@@ -161,3 +184,4 @@ except ImportError:
 
 sqltypeToVOTable = ToVOTableConverter().convert
 sqltypeToXSD = ToXSDConverter().convert
+sqltypeToNumarray = ToNumarrayConverter.convert

@@ -607,7 +607,7 @@ class TableData:
 	converting the sequence of dicts to a sequence of properly typed
 	and formatted tuples.
 	"""
-	def __init__(self, table, mFRegistry):
+	def __init__(self, table, mFRegistry=_defaultMFRegistry):
 		self.table = table
 		self.mFRegistry = mFRegistry
 		self.fieldNames = tuple(field.get_dest()

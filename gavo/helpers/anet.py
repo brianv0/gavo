@@ -193,12 +193,25 @@ def _retrieveWcs(srcDir, fName, **ignored):
 	return pyfits.getheader("out.wcs").ascard
 
 
-def getWCSFieldsFor(fName, solverParameters, sexScript=None):
+def _makeFieldsize(fName):
+	"""makes fieldw and fieldh statements for blind control files from the primary
+	header of a FITS file.
+	"""
+	f = open(fName)
+	header = fitstools.readPrimaryHeaderQuick(f)
+	f.close()
+	return "fieldw %d\nfieldh %d"%(header["NAXIS1"], header["NAXIS2"])
+
+
+def getWCSFieldsFor(fName, solverParameters, sexScript=None, objectFilter=None):
 	"""returns a pyfits cardlist for the WCS fields on fName.
 	"""
+	if not "fieldsize" in solverParameters:
+		solverParameters["fieldsize"] = _makeFieldsize(fName)
 	try:
 		res = utils.runInSandbox(_feedFile, _resolve, _retrieveWcs, fName,
-			solverParameters=solverParameters, sexScript=sexScript)
+			solverParameters=solverParameters, sexScript=sexScript,
+			objectFilter=objectFilter)
 	except NotSolved:
 		return None
 	return res

@@ -6,10 +6,13 @@ import cStringIO
 import new
 import os
 import traceback
+import urllib
+import urlparse
 
 import formal
 from formal import form
 
+from nevow import flat
 from nevow import loaders
 from nevow import inevow
 from nevow import rend
@@ -17,9 +20,12 @@ from nevow import static
 from nevow import tags as T, entities as E
 
 from twisted.internet import defer
+from twisted.internet import threads
 
 import gavo
+from gavo import config
 from gavo import resourcecache
+from gavo import fitstable
 from gavo import typesystems
 from gavo import votable
 from gavo.parsing import contextgrammar
@@ -36,6 +42,15 @@ class RdBlocked(Exception):
 	"""is raised when a ResourceDescriptor is blocked due to maintanence
 	and caught by the dispatcher.
 	"""
+
+
+class ErrorPage(common.GavoRenderMixin, rend.Page):
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setResponseCode(500)
+		return defer.maybeDeferred(super(ErrorPage, self).renderHTTP(ctx)
+			).addErrback(lambda _: request.finishRequest(False) or "")
+			
 
 
 class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page, 
@@ -94,6 +109,7 @@ class BaseResponse(ServiceBasedRenderer):
 	"""is a base class for renderers rendering responses to standard
 	service queries.
 	"""
+	name = "form"
 	def __init__(self, ctx, service, inputData, queryMeta):
 		super(BaseResponse, self).__init__(ctx, service)
 		self.queryResult = self.service.run(inputData, queryMeta)
@@ -101,62 +117,16 @@ class BaseResponse(ServiceBasedRenderer):
 			self.customTemplate = os.path.join(self.rd.get_resdir(),
 				self.service.get_template("response"))
 
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		return defer.maybeDeferred(self.data_query, ctx, None
+			).addCallback(self._handleData, ctx
+			).addErrback(self._handleError, ctx)
+
 	def data_query(self, ctx, data):
 		return self.queryResult
 
 	data_result = data_query
-
-
-class HtmlResponse(BaseResponse):
-	"""is a renderer for queries for HTML tables.
-	"""
-	name = "form"
-
-	def render_resulttable(self, ctx, data):
-		return htmltable.HTMLTableFragment(data.child(ctx, "table"))
-
-	def render_parpair(self, ctx, data):
-		if data==None or data[1]==None:
-			return ""
-		return ctx.tag["%s: %s"%data]
-	
-	def render_warnTrunc(self, ctx, data):
-		if data.queryMeta.get("Overflow"):
-			return ctx.tag["Your query limit of %d rows was reached.  You may"
-				" want to resubmit your query with a higher match limit."
-				" Note that truncated queries without sorting are not"
-				" reproducible."%data.queryMeta["dbLimit"]]
-		else:
-			return ""
-
-	defaultDocFactory = loaders.stan(T.html[
-		T.head[
-			T.title["Query Result"],
-			T.invisible(render=T.directive("commonhead")),
-		],
-		T.body(data=T.directive("query"))[
-			T.h1(render=T.directive("meta"))["_title"],
-			T.p(class_="warning", render=T.directive("warnTrunc")),
-			T.div(class_="querypars", data=T.directive("queryseq"))[
-				T.h2["Parameters"],
-				T.ul(render=rend.sequence)[
-					T.li(pattern="item", render=T.directive("parpair"))
-				]
-			],
-			T.h2["Result"],
-			T.div(class_="result") [
-				T.div(class_="resmeta", data=T.directive("resultmeta"),
-					render=T.directive("mapping"))[
-					T.p[
-						"Matched: ", T.slot(name="itemsMatched"),
-					],
-				],
-				T.div(class_="result")[
-					T.invisible(render=T.directive("resulttable")),
-				],
-			],
-			T.div(class_="copyright", render=T.directive("metahtml"))["_copyright"],
-		]])
 
 
 def writeVOTable(request, dataSet, tableMaker):
@@ -192,14 +162,6 @@ class VOTableResponse(BaseResponse):
 
 	An example for a "real" VO service is siapservice.SiapService.
 	"""
-	name = "form"
-	def renderHTTP(self, ctx):
-		request = inevow.IRequest(ctx)
-		defer.maybeDeferred(self.data_query, ctx, None
-			).addCallback(self._handleData, ctx
-			).addErrback(self._handleError, ctx)
-		return request.deferred
-
 	def _handleData(self, data, ctx):
 		request = inevow.IRequest(ctx)
 		request.setHeader('content-disposition', 
@@ -220,12 +182,123 @@ class VOTableResponse(BaseResponse):
 		return failure
 	
 	def _handleErrorDuringRender(self, failure, ctx):
-		print ">>>>>>>>>>>>< During Render"
 		failure.printTraceback()
 		request = inevow.IRequest(ctx)
 		request.write(">>>> INTERNAL ERROR, INVALID OUTPUT <<<<")
 		return request.finishRequest(False) or ""
 
+
+tag_embed = T.Proto("embed")
+tag_noembed = T.Proto("noembed")
+
+
+class VOPlotResponse(common.GavoRenderMixin, rend.Page):
+	"""returns a page embedding the VOPlot applet.
+
+	This doesn't inherit from BaseResponse since we don't need the
+	query results here, so computing them would be wasteful.
+	"""
+	name = "form"
+	def __init__(self, service):
+		self.service = service
+
+	def render_voplotArea(self, ctx, data):
+		request = inevow.IRequest(ctx)
+		parameters = request.args.copy()
+		parameters["_FORMAT"]=["VOTable"]
+		parameters["_TDENC"]=["True"]
+		return tag_embed(type = "application/x-java-applet",
+				code="com.jvt.applets.PlotVOApplet",
+				codebase=config.get("web", "voplotCodebase"),
+				votablepath=urlparse.urljoin(config.get("web", "serverURL"),
+					request.path),
+				userguideURL=config.get("web", "voplotUserman"),
+				archive=("voplot.jar,voplot_3rdParty/Aladin.jar,voplot_3rdParty/"
+					"cern.jar,voplot_3rdParty/fits-0.99.1-1.4-compiled.jar,"
+					"voplot_3rdParty/commons-discovery-0.2.jar,"
+					"voplot_3rdParty/commons-logging-1.0.4.jar,"
+					"voplot_3rdParty/axis.jar,voplot_3rdParty/jaxrpc.jar,"
+					"voplot_3rdParty/log4j-1.2.8.jar,voplot_3rdParty/saaj.jar,"
+					"voplot_3rdParty/wsdl4j-1.5.1.jar"),
+				width="850",
+				height="650",
+				parameters="?"+urllib.urlencode(parameters, doseq=True),
+				MAYSCRIPT="true",
+				background="#faf0e6",
+				scriptable="true",
+				pluginspage="http://java.sun.com/products/plugin/1.3.1/"
+					"plugin-install.html")[
+					tag_noembed["No Java Plug-in support for applet, see, e.g., ",
+						T.a(href="http://java.sun.com/products/plugin/")[
+							"http://java.sun.com/products/plugin"],
+						"."]]
+
+	docFactory = loaders.stan(T.html[
+		T.head[
+			T.title(render=T.directive("meta"))["title"],
+			T.invisible(render=T.directive("commonhead")),
+		],
+		T.body[
+			T.div(class_="voplotarea", render=T.directive("voplotArea"),
+				style="text-align:center"),
+		]
+	])
+
+
+class FITSTableResponse(BaseResponse):
+	def _handleData(self, data, ctx):
+		request = inevow.IRequest(ctx)
+		self.queryResult
+		return threads.deferToThread(fitstable.makeFITSTableFile, 
+				data.original
+			).addCallback(self._serveFits, request
+			).addErrback(self._handleError, ctx)
+	
+	def _realHandleError(self, failure, ctx):
+		failure.printTraceback()
+		errPg = ErrorPage(docFactory=loaders.stan(T.html[
+			T.head[
+				T.title["FITS generation failed"],
+				T.invisible(render=T.directive("commonhead")),
+			],
+			T.body[
+				T.h1["FITS generation failed"],
+				T.p["We're sorry, but the generation of the FITS file didn't work"
+					" out.  You're welcome to report this failure, but, frankly,"
+					" our main output format for structured data is the VOTable,"
+					" and you should consider using it.  Check out ",
+					T.a(href="http://www.star.bris.ac.uk/~mbt/topcat/")[
+						"topcat"],
+					" for starters."],
+				T.p["Anyway, here's the error message you should send in together"
+					" with the URL you were using with your bug report: ",
+					T.tt[str(failure.getErrorMessage())]],
+				T.p["Thanks."],
+			]]))
+		return errPg
+
+	def _handleError(self, failure, ctx):
+		try:
+			return self._realHandleError(failure, ctx)
+		except:
+			traceback.print_exc()
+			request = inevow.IRequest(ctx)
+			request.setHeader("content-type", "text/plain")
+			request.setResponseCode(500)
+			request.write("Yikes.  There was an error generating the FITS,\n"
+				"and another error rendering the error.\n"
+				"You should report this. Thanks.\n")
+		return request.finishRequest(False) or ""
+
+	def _serveFits(self, targetPath, request):
+		request.setHeader("content-type", "data/fits")
+		request.setHeader('content-disposition', 
+			'attachment; filename=data.fits')
+		static.FileTransfer(open(targetPath), os.path.getsize(targetPath),
+			request)
+		os.unlink(targetPath)
+		return request.deferred
+	
 
 class GavoFormMixin(formal.ResourceMixin, object):
 	"""is a mixin providing some desirable common behaviour for formal forms
@@ -287,6 +360,31 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		self._ResourceMixin__behaviour().renderHTTP = new.instancemethod(
 			_formBehaviour_renderHTTP, self._ResourceMixin__behaviour(),
 			form.FormsResourceBehaviour)
+		self.queryResult = None
+
+	# renderers for HTML tables
+	def render_resulttable(self, ctx, data):
+		return htmltable.HTMLTableFragment(data.child(ctx, "table"))
+
+	def render_parpair(self, ctx, data):
+		if data==None or data[1]==None:
+			return ""
+		return ctx.tag["%s: %s"%data]
+	
+	def render_warnTrunc(self, ctx, data):
+		if data.queryMeta.get("Overflow"):
+			return ctx.tag["Your query limit of %d rows was reached.  You may"
+				" want to resubmit your query with a higher match limit."
+				" Note that truncated queries without sorting are not"
+				" reproducible."%data.queryMeta["dbLimit"]]
+		else:
+			return ""
+	
+	def data_query(self, ctx, data):
+		return self.queryResult
+	
+	data_result = data_query
+	#end renderers for html tables
 
 	def translateFieldName(self, name):
 		return self.service.translateFieldName(name)
@@ -348,17 +446,31 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 			).addErrback(self._handleInputErrors, ctx)
 		return d
 
+	def _computeResult(self, ctx, service, inputData, queryMeta):
+		self.queryResult = self.service.run(inputData, queryMeta)
+		if self.service.get_template("response"):
+			self.customTemplate = os.path.join(self.rd.get_resdir(),
+				self.service.get_template("response"))
+		request = inevow.IRequest(ctx)
+		del request.args["__nevow_form__"]
+		return self
+
 	# XXX TODO: add a custom error self._handleInputErrors(failure, ctx)
 	# to catch FieldErrors and display a proper form on such errors.
 	def _runService(self, inputData, queryMeta, ctx):
 		format = queryMeta["format"]
 		if format=="HTML":
-			return HtmlResponse(ctx, self.service, inputData, queryMeta)
+			return self._computeResult(ctx, self.service, inputData, queryMeta)
 		elif format=="VOTable":
 			res = VOTableResponse(ctx, self.service, inputData, queryMeta)
 			return res
+		elif format=="VOPlot":
+			return VOPlotResponse(self.service)
+		elif format=="FITS":
+			return FITSTableResponse(ctx, self.service, inputData, queryMeta)
 		else:
-			raise Error("Invalid output format: %s"%format)
+			raise gavo.ValidationError("Invalid output format: %s"%format,
+				"_OUTPUT")
 
 	def process(self, ctx):
 		super(Form, self).process(ctx)
@@ -370,10 +482,31 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		],
 		T.body[
 			T.h1(render=T.directive("meta"))["title"],
+			T.div(class_="result", render=T.directive("ifdata"), 
+					data=T.directive("query")) [
+				T.div(class_="querypars", data=T.directive("queryseq"))[
+					T.h2[T.a(href="#_queryForm")["Parameters"]],
+					T.ul(render=rend.sequence)[
+						T.li(pattern="item", render=T.directive("parpair"))
+					],
+				],
+				T.h2["Result"],
+				T.div(class_="resmeta", data=T.directive("resultmeta"),
+					render=T.directive("mapping"))[
+					T.p[
+						"Matched: ", T.slot(name="itemsMatched"),
+					],
+				],
+				T.p(class_="warning", render=T.directive("warnTrunc")),
+				T.div(class_="result")[
+					T.invisible(render=T.directive("resulttable")),
+				],
+				T.h2[T.a(name="_queryForm")["Query Form"]],
+			],
 			T.div(id="intro", render=T.directive("metahtml"))["_intro"],
 			T.invisible(render=T.directive("form genForm")),
 			T.div(id="bottominfo", render=T.directive("metahtml"))["_bottominfo"],
-			T.div(id="legal", render=T.directive("metahtml"))["_legal"],
+			T.div(class_="copyright", render=T.directive("metahtml"))["_copyright"],
 		]])
 
 

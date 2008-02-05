@@ -211,6 +211,23 @@ myTests = [
 					'<oai:ListRecords>', # Think of something better, this may be empty
 			"PMH ListRecords response looks all right in ivo_vor"),
 		),
+	TestGroup("formats",
+		GetHasStringsTest(nv_root+"/inflight/res/lc1/table/form?"
+			"__nevow_form__=genForm&line=200%20..%20800&_DBOPTIONS_ORDER="
+			"&_DBOPTIONS_LIMIT=100&_FORMAT=VOPlot&_VERB=2", [
+				"<embed ",
+				"&amp;_TDENC=True&amp",
+				"&amp;line=200+..+800&amp;"],
+			"Roughly correct looking VOPlot container"),
+		GetHasStringsTest(nv_root+"/inflight/res/lc1/table/form?"
+			"__nevow_form__=genForm&line=2%20..%205&"
+			"&_DBOPTIONS_LIMIT=100&_FORMAT=FITS&_VERB=2", [
+				"'BINTABLE'",
+				"TTYPE1  = 'line    '  ",
+				"TFORM1  = 'J       '  ",],
+			"Lightcurve FITS looks like a binary FITS table"),
+		),
+
 	TestGroup("misc",
 		GetHasStringTest(nv_root+"/inflight/res/lc1/img/mimg.jpeg?"
 			"startLine=20&endLine=30",

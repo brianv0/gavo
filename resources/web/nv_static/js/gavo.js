@@ -150,7 +150,7 @@ function output_verbSelector(pars) {
 		}
 	}
 	root.appendChild(sel);
-	return output_BussedElement(root, "op_verb", ["VOTable", "VOPlot"]);
+	return output_BussedElement(root, "op_verb", ["VOTable", "VOPlot", "FITS"]);
 }
 
 

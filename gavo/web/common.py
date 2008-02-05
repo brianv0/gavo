@@ -263,6 +263,12 @@ class GavoRenderMixin(object):
 		munge("href")
 		return tag
 
+	def render_ifdata(self, ctx, data):
+		if data:
+			return ctx.tag
+		else:
+			return ""
+
 	def render_commonhead(self, ctx, data):
 		return ctx.tag[
 			T.link(rel="stylesheet", href=makeSitePath("/formal.css"), 

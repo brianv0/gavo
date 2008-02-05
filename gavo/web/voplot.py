@@ -6,6 +6,9 @@ http://vo.iucaa.ernet.in/~voi/voplot.htm
 and set the variables below accordingly.
 """
 
+# Deprecated, will go away (was used by querulator, but now that doesn't
+# exist any more.  Replaced by resourcebased.VOPlotResponse
+
 from gavo import config
 
 

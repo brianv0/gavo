@@ -43,13 +43,13 @@ class SimpleFloatParsesTest(GrammarTest):
 		"""tests for correct parsing of simple expressions
 		"""
 		self._assertResults(
-				("1", "(= 1.0)"),
-				("> 1", "(> 1.0)"),
-				(">1", "(> 1.0)"),
-				(">=1", "(>= 1.0)"),
-				("!=1", "(NOT (= 1.0))"),  # This one's complex in our implementation
-				("<1", "(< 1.0)"),
-				("<=1", "(<= 1.0)"),
+				("1", "(= 1)"),
+				("> 1.5", "(> 1.5)"),
+				(">-1", "(> -1)"),
+				(">=-4.5", "(>= -4.5)"),
+				("!=1", "(NOT (= 1))"),  # This one's complex in our implementation
+				("<1", "(< 1)"),
+				("<=1", "(<= 1)"),
 			)
 
 	def testMalformedSimpleExprs(self):
@@ -61,8 +61,8 @@ class SimpleFloatParsesTest(GrammarTest):
 		"""tests for correct parsing of ranges
 		"""
 		self._assertResults(
-				("1 .. 2", "(.. 1.0 2.0)"),
-				("1. .. 2", "(.. 1.0 2.0)"),
+				("1 .. 2", "(.. 1 2)"),
+				("1. .. 2", "(.. 1.0 2)"),
 			)
 
 	def testMalformedRanges(self):
@@ -75,7 +75,7 @@ class SimpleFloatParsesTest(GrammarTest):
 		"""tests for correct parsing of values with "errors"
 		"""
 		self._assertResults(
-				("1 +/- 2", "(.. -1.0 3.0)"),
+				("1 +/- 2", "(.. -1 3)"),
 				("1. +/-2", "(.. -1.0 3.0)"),
 				("1. ±  2".decode("iso-8859-1"), "(.. -1.0 3.0)"),
 			)
@@ -89,8 +89,8 @@ class SimpleFloatParsesTest(GrammarTest):
 		"""tests for correct parsing of value lists.
 		"""
 		self._assertResults(
-			("1,2", "(, 1.0 2.0)"),
-			("1,2,3", "(, 1.0 2.0 3.0)"),
+			("1,2", "(, 1 2)"),
+			("1,2,3", "(, 1 2 3)"),
 			)
 	
 	def _testMalformedValLists(self):
@@ -109,11 +109,11 @@ class ComplexFloatExpressionTest(GrammarTest):
 		"""tests for parses simple expressions with the not operator
 		"""
 		self._assertResults(
-			("! 1", "(NOT (= 1.0))"),
-			("! = 1", "(NOT (= 1.0))"),
-			("! 1 .. 2", "(NOT (.. 1.0 2.0))"),
-			("! < 1", "(NOT (< 1.0))"),
-			("!>=1", "(NOT (>= 1.0))"),
+			("! 1", "(NOT (= 1))"),
+			("! = 1", "(NOT (= 1))"),
+			("! 1 .. 2", "(NOT (.. 1 2))"),
+			("! < 1", "(NOT (< 1))"),
+			("!>=1", "(NOT (>= 1))"),
 		)
 	
 	def testSimpleNotFailures(self):
@@ -125,8 +125,8 @@ class ComplexFloatExpressionTest(GrammarTest):
 		"""tests for simple and expressions.
 		"""
 		self._assertResults(
-			(">1 & <3", "(AND (> 1.0) (< 3.0))"),
-			("1 .. 2 & 1.5 +/- 0.5", "(AND (.. 1.0 2.0) (.. 1.0 2.0))"),
+			(">1 & <3", "(AND (> 1) (< 3))"),
+			("1 .. 2 & 1.5 +/- 0.5", "(AND (.. 1 2) (.. 1.0 2.0))"),
 		)
 
 	def testSimpleAndFailures(self):
@@ -138,8 +138,8 @@ class ComplexFloatExpressionTest(GrammarTest):
 		"""tests for simple or expressions.
 		"""
 		self._assertResults(
-			(">1 | <3", "(OR (> 1.0) (< 3.0))"),
-			("1 .. 2 | 1.5 +/- 0.5", "(OR (.. 1.0 2.0) (.. 1.0 2.0))"),
+			(">1 | <3", "(OR (> 1) (< 3))"),
+			("1 .. 2 | 1.5 +/- 0.5", "(OR (.. 1 2) (.. 1.0 2.0))"),
 		)
 
 	def testSimpleOrFailures(self):
@@ -151,8 +151,8 @@ class ComplexFloatExpressionTest(GrammarTest):
 		"""tests for (unspecified by vizier) nested logic.
 		"""
 		self._assertResults(
-			("! 1 & 2", "(AND (NOT (= 1.0)) (= 2.0))"),
-			("! 1 & 2 | < 0", "(OR (AND (NOT (= 1.0)) (= 2.0)) (< 0.0))"),
+			("! 1 & 2", "(AND (NOT (= 1)) (= 2))"),
+			("! 1 & 2 | < 0", "(OR (AND (NOT (= 1)) (= 2)) (< 0))"),
 		)
 
 

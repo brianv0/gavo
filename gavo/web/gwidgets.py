@@ -70,10 +70,11 @@ class OutputFormat(object):
 	def render(self, ctx, key, args, errors):
 		return T.div(id="op_container")[
 			widget.SelectChoice(formaltypes.String(), 
-				options=[(s, s) for s in ["VOTable", "VOPlot"]],
+				options=[(s, s) for s in ["VOTable", "VOPlot", "FITS"]],
 				noneOption=("HTML", "HTML")).render(ctx, "_FORMAT", args, errors)(
 					onChange="output_broadcast(this.value)"),
-			T.span(id=render_cssid(key, "QlinkContainer"), style="padding-left:200px")[
+			T.span(id=render_cssid(key, "QlinkContainer"), 
+					style="padding-left:200px")[
 				T.a(href="", class_="resultlink", onMouseOver=
 						"this.href=makeResultLink(getEnclosingForm(this))")
 					["[Result link]"]

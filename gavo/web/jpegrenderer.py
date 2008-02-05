@@ -68,7 +68,7 @@ class JpegRenderer(resourcebased.Form):
 
 	def _createImage(self, data):
 		if self.service.get_property("curveMax"
-				) and "plotField" in data.queryPars:
+				) and "plotField" in data.queryPars and data.queryPars["plotField"]:
 			lines = [l for l in self._computeLinesWithCurve(data.getPrimaryTable(),
 				data.queryPars["plotField"])]
 		else:
@@ -124,6 +124,7 @@ class MachineJpegRenderer(common.CustomErrorMixin, JpegRenderer):
 			formalData["line"] = "%d .. %d"%(
 				int(args["startLine"][0]), int(args["endLine"][0]))
 			formalData["palette"] = str(args.get("palette", [""])[0])
+			formalData["plotField"] = str(args.get("plotField", [""])[0])
 		except:
 			traceback.print_exc()
 			raise gavo.ValidationError("Invalid input parameters %s"%args, "line")

@@ -1,10 +1,11 @@
 """
 Some standard cores for services.
 
-These implement IVOA or other standards, where communication with
-the rest is defined via dictionaries containing the defined parameters on
-input and Tables on output.  Thus, at least on output, it is the 
-responsibility of the wrapper to produce standards-compliant output.
+A core receives and "input table" (usually just containing the query 
+parameters in the doc rec) and returns an output data set (actually, a
+CoreResult object that wraps some additional info).
+
+These then have to be picked up by renderers and formatted for delivery.
 """
 
 import weakref
@@ -27,6 +28,7 @@ from gavo.parsing import rowsetgrammar
 from gavo.parsing import contextgrammar
 from gavo.web import core
 from gavo.web import common
+from gavo.web import dbhack # XXX remove once we know what's wrong with adbapi
 from gavo.web import runner
 from gavo.web import vizierexprs
 
@@ -55,14 +57,25 @@ class CondDesc(record.Record):
 	def inputReceived(self, inPars):
 		"""returns True if all inputKeys can be filled from inPars.
 		"""
+		keysFound, keysMissing = [], []
 		for f in self.get_inputKeys():
 			if not inPars.has_key(f.get_source()) or inPars[f.get_source()]==None:
-				if self.get_optional():
-					return False
-				else:
-					raise gavo.ValidationError("A value is necessary here", 
-						fieldName=f.get_source())
-		return True
+				keysMissing.append(f)
+			else:
+				keysFound.append(f)
+		if not keysMissing:
+			return True
+		# keys are missing.  That's ok if none were found and we're not optional
+		if self.get_optional() and not keysFound:
+			return False
+		if not self.get_optional():
+			raise gavo.ValidationError("A value is necessary here", 
+				fieldName=keysMissing[0].get_source())
+		# we're optional, but a value was given
+# XXX TODO: it'd be nicer if we'd complain about all missing keys at once.
+		raise gavo.ValidationError("When you give a value for %s,"
+			" you must give a value here, too"%keysFound[0].get_tablehead(), 
+				fieldName=keysMissing[0].get_source())
 
 	def asSQL(self, inPars, sqlPars):
 		if self.get_silent():
@@ -242,7 +255,7 @@ class DbBasedCore(QueryingCore):
 		This evaluates stuff like verbosity and additionalFields.
 		"""
 		format = queryMeta.get("format")
-		if format=="VOTable" or format=="VOPlot":
+		if format=="VOTable" or format=="VOPlot" or format=="FITS":
 			return self._getVOTableOutputFields(queryMeta)
 		elif format=="internal":
 			return self._getAllFields(queryMeta)
@@ -283,7 +296,8 @@ class DbBasedCore(QueryingCore):
 			"condition": condition,
 			"limtags": limtagsFrag,
 		}
-		return resourcecache.getDbConnection().runQuery(query, pars)
+#		return resourcecache.getDbConnection().runQuery(query, pars)
+		return dbhack.querySingle(query, pars)
 
 	def run(self, inputTable, queryMeta):
 		"""returns an InternalDataSet containing the result of the

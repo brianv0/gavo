@@ -55,6 +55,45 @@ def readPrimaryHeaderQuick(f):
 	return hdu.header
 
 
+def hdr2str(hdr):
+	repr = "".join(map(str, hdr.ascardlist()))
+	repr = repr+pyfits._pad('END')
+	repr = repr+pyfits._padLength(len(repr))*' '
+	return repr
+
+
+def replacePrimaryHeader(inputFile, newHeader, targetFile, bufSize=100000):
+	"""writes a FITS to targetFile having newHeader as the primary header,
+	where the rest of the data is taken from inputFile.
+
+	inputFile must be a file freshly opened for reading, targetFile one 
+	freshly opened for writing.
+
+	This function is a workaround for pyfits' misfeature of unscaling
+	scaled data in images when extending a header.
+	"""
+	readPrimaryHeaderQuick(inputFile)
+	targetFile.write(hdr2str(newHeader))
+	while True:
+		buf = inputFile.read(bufSize)
+		if not buf:
+			break
+		targetFile.write(buf)
+
+
+def replacePrimaryHeaderInPlace(fitsName, newHeader):
+	"""is a convenience wrapper around replacePrimaryHeader.
+	"""
+	targetDir = os.path.abspath(os.path.dirname(fitsName))
+	handle, tempName = tempfile.mkstemp(".temp", "", targetDir)
+	targetFile = os.fdopen(handle, "w")
+	inputFile = open(fitsName)
+	replacePrimaryHeader(inputFile, newHeader, targetFile)
+	inputFile.close()
+	targetFile.close()
+	os.rename(tempName, fitsName)
+
+
 def openGz(fitsName):
 	"""returns the hdus for the gzipped fits fitsName.
 

@@ -36,27 +36,6 @@ _registerHTMLMF(_defaultMapperFactory)
 
 # insert new general factories here
 
-def _unitMapperFactory(colProps):
-	"""returns a factory that converts between units for fields that have
-	a displayUnit displayHint.
-
-	The stuff done here has to be done for all factories handling unit-based
-	floating point values.  Maybe we want to do "decorating" meta-factories?
-	"""
-	if colProps["displayHint"].get("displayUnit") and \
-			colProps["displayHint"]["displayUnit"]!=colProps["unit"]:
-		factor = unitconv.getFactor(colProps["unit"], 
-			colProps["displayHint"]["displayUnit"])
-		colProps["unit"] = colProps["displayHint"]["displayUnit"]
-		fmtStr = "%%.%df"%int(colProps["displayHint"].get("sf", 2))
-		def coder(val):
-			if val==None:
-				return "N/A"
-			return fmtStr%(val*factor)
-		return coder
-_registerHTMLMF(_unitMapperFactory)
-
-
 def _hourangleMapperFactory(colProps):
 	if (colProps["unit"]!="hms" and 
 			colProps["displayHint"].get("type")!="hourangle"):
@@ -86,6 +65,25 @@ def _sexagesimalMapperFactory(colProps):
 	return coder
 _registerHTMLMF(_sexagesimalMapperFactory)
 
+def _unitMapperFactory(colProps):
+	"""returns a factory that converts between units for fields that have
+	a displayUnit displayHint.
+
+	The stuff done here has to be done for all factories handling unit-based
+	floating point values.  Maybe we want to do "decorating" meta-factories?
+	"""
+	if colProps["displayHint"].get("displayUnit") and \
+			colProps["displayHint"]["displayUnit"]!=colProps["unit"]:
+		factor = unitconv.getFactor(colProps["unit"], 
+			colProps["displayHint"]["displayUnit"])
+		colProps["unit"] = colProps["displayHint"]["displayUnit"]
+		fmtStr = "%%.%df"%int(colProps["displayHint"].get("sf", 2))
+		def coder(val):
+			if val==None:
+				return "N/A"
+			return fmtStr%(val*factor)
+		return coder
+_registerHTMLMF(_unitMapperFactory)
 
 def _stringWrapMF(baseMF):
 	"""returns a factory that returns None when baseMF does but stringifies
@@ -138,6 +136,16 @@ def _productMapperFactory(colProps):
 			return ""
 	return coder
 _registerHTMLMF(_productMapperFactory)
+
+
+def _sfMapperFactory(colProps):
+	"""is a mapper factory that just goes for the sf hint.
+	"""
+	if "sf" in colProps["displayHint"]:
+		fmtstr = "%%.%df"%int(colProps["displayHint"]["sf"])
+	def coder(val):
+		return fmtstr%val
+	return coder
 
 
 #  Insert new, more specific factories here

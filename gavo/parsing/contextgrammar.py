@@ -80,10 +80,11 @@ class InputKey(datadef.DataField):
 					self.get_showitems())
 			else:
 				items = self.get_values().get_options()
-				try:
-					items.remove(self.get_values().get_default())
-				except ValueError:
-					pass
+# XXX TODO sanitize the whole default/none option mess.
+#				try:
+#					items.remove(self.get_values().get_default())
+#				except ValueError:
+#					pass
 				noneLabel = None
 				if self.get_optional():
 					noneLabel = "ANY"
