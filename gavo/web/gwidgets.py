@@ -46,7 +46,22 @@ class OutputFormat(object):
 		self.service = service
 		self.typeOb = typeOb
 		self._computeAvailableFields()
-	
+		self._computeAvailableFormats()
+
+	def _computeAvailableFormats(self):
+		self.availableFormats = ["VOTable", "VOPlot", "FITS"]
+		core = self.service.get_core()
+		if not hasattr(core, "tableDef"):
+			return
+# XXX TODO: Once we have a real interface.isImplementedIn, do away with
+# this gruesome hack -- it's really supposed to check for products
+		td = core.tableDef
+		try:
+			td.getFieldIndex("datapath")
+			self.availableFormats.append("tar")
+		except KeyError:
+			pass
+
 	def _computeAvailableFields(self):
 		"""computes the fields a DbBasedCore provides but doesn't 
 		output by default.
@@ -70,7 +85,7 @@ class OutputFormat(object):
 	def render(self, ctx, key, args, errors):
 		return T.div(id="op_container")[
 			widget.SelectChoice(formaltypes.String(), 
-				options=[(s, s) for s in ["VOTable", "VOPlot", "FITS"]],
+				options=[(s, s) for s in self.availableFormats],
 				noneOption=("HTML", "HTML")).render(ctx, "_FORMAT", args, errors)(
 					onChange="output_broadcast(this.value)"),
 			T.span(id=render_cssid(key, "QlinkContainer"), 

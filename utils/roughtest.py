@@ -81,6 +81,23 @@ class HeadStatusTest:
 		assert self.status==resp.status
 
 
+class HeadFieldTest:
+	"""is a test that issues a HEAD request for a URL and checks that 
+	specified fields have the specified values.
+	"""
+	def __init__(self, url, expectedFields, description):
+		self.url, self.expectedFields = url, expectedFields
+		self.description = description
+
+	def run(self):
+		_, host, path, query, _ = urlparse.urlsplit(self.url)
+		conn = httplib.HTTPConnection(host)
+		conn.request("HEAD", path+"?"+query)
+		resp = conn.getresponse()
+		conn.close()
+		for key, value in self.expectedFields:
+			assert resp.getheader(key)==value
+
 myTests = [
 	TestGroup("apfs",
 		GetHasStringTest(nv_root+"/apfs/res/"
@@ -130,6 +147,20 @@ myTests = [
 			'<FIELD ID="wcs_refValues" arraysize="*" datatype="double"'
 				' name="wcs_refValues"',
 			"NV Maidanak metadata query"),
+		GetHasStringsTest(nv_root+"/maidanak/res/rawframes/siap/form?"
+			"__nevow_form__=genForm&POS=q2237%2B0305&SIZE=1&"
+			"INTERSECT=OVERLAPS&FORMAT=image%2Ffits&_DBOPTIONS_LIMIT=2&_FORMAT=tar", [
+				"\0\0\0\0\0\0",
+				"This file is embargoed"],
+			"Tar output looks like a tar output with embaroed files"
+				" (will fail starting 2008-12-31)"),
+		HeadFieldTest(nv_root+"/maidanak/res/rawframes/siap/form?"
+			"__nevow_form__=genForm&POS=q2237%2B0305&SIZE=1&INTERSECT=OVERLAPS&"
+			"FORMAT=image%2Ffits&dateObs=2003-01-01%20..%202003-10-10&"
+			"_DBOPTIONS_LIMIT=1&_FORMAT=tar", [
+				("content-disposition", "attachment; filename=truncated_data.tar"),
+				("content-type", "application/x-tar")],
+			"Tar output declared in header"),
 	),
 	TestGroup("auth",
 		HeadStatusTest(nv_root+"/rauchspectra/theospectra/upload/upload",

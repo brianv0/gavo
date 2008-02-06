@@ -296,8 +296,7 @@ class DbBasedCore(QueryingCore):
 			"condition": condition,
 			"limtags": limtagsFrag,
 		}
-#		return resourcecache.getDbConnection().runQuery(query, pars)
-		return dbhack.querySingle(query, pars)
+		return resourcecache.getDbConnection().runQuery(query, pars)
 
 	def run(self, inputTable, queryMeta):
 		"""returns an InternalDataSet containing the result of the

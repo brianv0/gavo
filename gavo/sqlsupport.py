@@ -284,7 +284,11 @@ class StandardQueryMixin:
 		errors, use runIsolatedQuery.
 		"""
 		cursor = self.connection.cursor()
-		cursor.execute(query, data)
+		try:
+			cursor.execute(query, data)
+		except DbError:
+			logger.warning("Failed db query: %s"%cursor.query)
+			raise
 		return cursor
 
 	def _parseTableName(self, tableName, schema=None):

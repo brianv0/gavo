@@ -33,6 +33,7 @@ from gavo.web import common
 from gavo.web import creds
 from gavo.web import htmltable
 from gavo.web import gwidgets
+from gavo.web import producttar
 from gavo.web import standardcores
 
 from gavo.web.common import Error, UnknownURI
@@ -45,12 +46,18 @@ class RdBlocked(Exception):
 
 
 class ErrorPage(common.GavoRenderMixin, rend.Page):
+	def __init__(self, failure, *args, **kwargs):
+		self.failure = failure
+		super(ErrorPage, self).__init__(*args, **kwargs)
+
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(500)
 		return defer.maybeDeferred(super(ErrorPage, self).renderHTTP(ctx)
 			).addErrback(lambda _: request.finishRequest(False) or "")
-			
+	
+	def render_errmsg(self, ctx, data):
+		return ctx.tag[str(self.failure.getErrorMessage())]
 
 
 class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page, 
@@ -164,8 +171,12 @@ class VOTableResponse(BaseResponse):
 	"""
 	def _handleData(self, data, ctx):
 		request = inevow.IRequest(ctx)
+		if data.queryMeta.get("Overflow"):
+			fName = "truncated_votable.xml"
+		else:
+			fName = "votable.xml"
 		request.setHeader('content-disposition', 
-			'attachment; filename=votable.xml')
+			'attachment; filename=%s'%fName)
 		defer.maybeDeferred(serveAsVOTable, request, data
 			).addCallback(self._tableWritten, ctx
 			).addErrback(self._handleErrorDuringRender, ctx)
@@ -245,18 +256,70 @@ class VOPlotResponse(common.GavoRenderMixin, rend.Page):
 	])
 
 
-class FITSTableResponse(BaseResponse):
+class FileResponse(BaseResponse):
+	"""is an abstract base class for responses calling out to generate
+	a file to be delivered.
+	"""
 	def _handleData(self, data, ctx):
+		self.coreResult = data
 		request = inevow.IRequest(ctx)
-		self.queryResult
-		return threads.deferToThread(fitstable.makeFITSTableFile, 
-				data.original
-			).addCallback(self._serveFits, request
+		return threads.deferToThread(self.generateFile, request
+			).addCallback(self._serveFile, request
 			).addErrback(self._handleError, ctx)
+
+	def generateFile(self, request):
+		"""has to return a file name containing the data to be delivered.
+
+		The data to operate on are in the coreResult attribute.
+		"""
 	
+	def getTargetName(self):
+		"""has to return a pair of file name, MIME type.
+		"""
+
+	# must be some stan that can be used to construct an ErrorPage
+	errorFactory = None
+
 	def _realHandleError(self, failure, ctx):
 		failure.printTraceback()
-		errPg = ErrorPage(docFactory=loaders.stan(T.html[
+		errPg = ErrorPage(failure, docFactory=self.errorFactory)
+		return errPg
+
+	def _handleError(self, failure, ctx):
+		try:
+			return self._realHandleError(failure, ctx)
+		except:
+			traceback.print_exc()
+			request = inevow.IRequest(ctx)
+			request.setHeader("content-type", "text/plain")
+			request.setResponseCode(500)
+			request.write("Yikes.  There was an error generating your file,\n"
+				"and another error rendering the error.\n"
+				"You should report this. Thanks.\n")
+		return request.finishRequest(False) or ""
+
+	def _serveFile(self, filePath, request):
+		name, mime = self.getTargetName()
+		request.setHeader("content-type", mime)
+		request.setHeader('content-disposition', 
+			'attachment; filename=%s'%name)
+		static.FileTransfer(open(filePath), os.path.getsize(filePath),
+			request)
+		os.unlink(filePath)
+		return request.deferred
+
+
+class FITSTableResponse(FileResponse):
+	def generateFile(self, request):
+		return fitstable.makeFITSTableFile(self.coreResult.original)
+	
+	def getTargetName(self):
+		if self.coreResult.queryMeta.get("Overflow"):
+			return "truncated_data.fits", "application/x-fits"
+		else:
+			return "data.fits", "application/x-fits"
+
+	errorFactory = loaders.stan(T.html[
 			T.head[
 				T.title["FITS generation failed"],
 				T.invisible(render=T.directive("commonhead")),
@@ -272,33 +335,38 @@ class FITSTableResponse(BaseResponse):
 					" for starters."],
 				T.p["Anyway, here's the error message you should send in together"
 					" with the URL you were using with your bug report: ",
-					T.tt[str(failure.getErrorMessage())]],
+					T.tt(render=T.directive("errmsg")),],
 				T.p["Thanks."],
-			]]))
-		return errPg
+			]])
 
-	def _handleError(self, failure, ctx):
-		try:
-			return self._realHandleError(failure, ctx)
-		except:
-			traceback.print_exc()
-			request = inevow.IRequest(ctx)
-			request.setHeader("content-type", "text/plain")
-			request.setResponseCode(500)
-			request.write("Yikes.  There was an error generating the FITS,\n"
-				"and another error rendering the error.\n"
-				"You should report this. Thanks.\n")
-		return request.finishRequest(False) or ""
 
-	def _serveFits(self, targetPath, request):
-		request.setHeader("content-type", "data/fits")
-		request.setHeader('content-disposition', 
-			'attachment; filename=data.fits')
-		static.FileTransfer(open(targetPath), os.path.getsize(targetPath),
-			request)
-		os.unlink(targetPath)
-		return request.deferred
+class TarResponse(FileResponse):
+	"""delivers a tar of products contained.
+	"""
+	def generateFile(self, request):
+		return producttar.getTarMaker().getTarFile(self.coreResult, 
+			request.getUser(), request.getPassword())
 	
+	def getTargetName(self):
+		if self.coreResult.queryMeta.get("Overflow"):
+			return "truncated_data.tar", "application/x-tar"
+		else:
+			return "data.tar", "application/x-tar"
+
+	errorFactory = loaders.stan(T.html[
+			T.head[
+				T.title["tar generation failed"],
+				T.invisible(render=T.directive("commonhead")),
+			],
+			T.body[
+				T.h1["tar generation failed"],
+				T.p["We're sorry, but the creation of the tar file didn't work"
+					" out.  Please report this failure to the operators"
+					" giving the URL you were using and the following message: ",
+					T.tt(render=T.directive("errmsg"))],
+				T.p["Thanks."],
+			]])
+
 
 class GavoFormMixin(formal.ResourceMixin, object):
 	"""is a mixin providing some desirable common behaviour for formal forms
@@ -468,6 +536,8 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 			return VOPlotResponse(self.service)
 		elif format=="FITS":
 			return FITSTableResponse(ctx, self.service, inputData, queryMeta)
+		elif format=="tar":
+			return TarResponse(ctx, self.service, inputData, queryMeta)
 		else:
 			raise gavo.ValidationError("Invalid output format: %s"%format,
 				"_OUTPUT")

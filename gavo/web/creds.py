@@ -19,6 +19,24 @@ from gavo import sqlsupport
 
 from gavo import Error
 
+def getGroupsForUser(username, password, async=True):
+	"""returns a deferred firing a set of all groups user username belongs to.
+
+	If username and password don't match, you'll get an empty set.
+	"""
+	def parseResponse(dbTable):
+		return set([a[0] for a in dbTable])
+	query = ("SELECT groupname FROM users.groups NATURAL JOIN users.users as u"
+		" where username=%(username)s AND u.password=%(password)s")
+	pars = {"username": username, "password": password}
+	if async: 
+		return resourcecache.getDbConnection().runQuery(query, pars
+			).addCallback(parseResponse)
+	else:
+		return parseResponse(
+			sqlsupport.SimpleQuerier().runIsolatedQuery(query, pars))
+
+
 def checkCredentials(user, password, reqGroup):
 	"""returns true if user and password match the db entry and the user
 	is in the reqGroup.
@@ -125,12 +143,34 @@ def _listUsers(querier):
 	print
 
 
+def _delUser(querier, user):
+	c = querier.query("DELETE FROM users.users WHERE username=%(user)s",
+		locals())
+	rowsAffected = c.rowcount
+	c = querier.query("DELETE FROM users.groups WHERE username=%(user)s",
+		locals())
+	rowsAffected += c.rowcount
+	if not rowsAffected:
+		sys.stderr.write("Warning: No rows deleted while deleting user %s\n"%user)
+
+
+def _delGroup(querier, group):
+	c = querier.query("DELETE FROM users.groups WHERE groupname=%(group)s",
+		locals())
+	if not c.rowcount:
+		sys.stderr.write("Warning: No rows deleted while deleting group %s\n"%
+			group)
+
+
 _actions = {
 	"add": (_addUser, "<user> <password> [<remark>] --"
 		" adds a user with password"),
 	"change": (_changeUser, "<user> <password> [<remark>] --"
 		" changes user's data"),
+	"del": (_delUser, "<user> --"
+		" deletes a user"),
 	"addgroup": (_addGroup, "<user> <group> -- adds user to group"),
+	"delgroup": (_delGroup, "<group> -- deletes a group"),
 	"list": (_listUsers, "-- lists known users with groups"),
 }
 

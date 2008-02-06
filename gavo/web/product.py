@@ -151,4 +151,3 @@ class Product(standardcores.DbBasedCore):
 	def renderHTTP(self, ctx):
 		queryMeta = common.QueryMeta(ctx)
 		return self.run(ctx, queryMeta)
-	

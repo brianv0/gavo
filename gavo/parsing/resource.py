@@ -790,10 +790,8 @@ def makeRowsetDataDesc(rd, tableDef):
 	"""returns a simple DataTransformer with a grammar parsing tableDef
 	out of what the db engine returns for a query.
 	"""
-	dd = makeSimpleDataDesc(rd, tableDef)
-	items = [f.copy() for f in tableDef]
-	for f in items:
-		f.set_source(f.get_dest())
+	items = [datadef.makeCopyingField(f) for f in tableDef]
+	dd = makeSimpleDataDesc(rd, items)
 	dd.set_Grammar(rowsetgrammar.RowsetGrammar(initvals={
 		"dbFields": items}))
 	return dd
