@@ -135,11 +135,16 @@ class DbOptions(object):
 			noneOption=("100", 100))
 
 	def render(self, ctx, key, args, errors):
-		return T.span["Sort by ",
-			self.sortWidget.render(ctx, "_DBOPTIONS_ORDER", args, errors),
-			";  limit to ",
-			self.limitWidget.render(ctx, "_DBOPTIONS_LIMIT", args, errors),
-			" items."]
+		children = []
+		if self.sortWidget:
+			children.extend(["Sort by ",
+				self.sortWidget.render(ctx, "_DBOPTIONS_ORDER", args, errors),
+				"   "])
+		if self.limitWidget:
+			children.extend(["Limit to ",
+				self.limitWidget.render(ctx, "_DBOPTIONS_LIMIT", args, errors),
+				" items."])
+		return T.span[children]
 
 	# XXX TODO: make this immutable.
 	renderImmutable = render

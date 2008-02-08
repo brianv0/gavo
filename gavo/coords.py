@@ -8,6 +8,8 @@ from gavo import utils
 from math import sin, cos, pi
 import math
 
+import _gavoext
+
 
 class CooSys:
 	"""models a single coordinate system.
@@ -60,12 +62,17 @@ def hourangleToDeg(hourAngle, sepChar=" "):
 	'335.84708333'
 	>>> "%3.8f"%hourangleToDeg("22:23:23.3", ":")
 	'335.84708333'
+	>>> "%3.8f"%hourangleToDeg("222323.3", "")
+	'335.84708333'
 	>>> hourangleToDeg("junk")
 	Traceback (most recent call last):
 	Error: Invalid hourangle with sepchar ' ': 'junk'
 	"""
 	try:
-		parts = hourAngle.split(sepChar)
+		if sepChar=="":
+			parts = hourAngle[:2], hourAngle[2:4], hourAngle[4:]
+		else:
+			parts = hourAngle.split(sepChar)
 		if len(parts)==3:
 			hours, minutes, seconds = parts
 		elif len(parts)==2:
@@ -100,7 +107,10 @@ def dmsToDeg(dmsAngle, sepChar=" "):
 	elif dmsAngle.startswith("-"):
 		sign, dmsAngle = -1, dmsAngle[1:].strip()
 	try:
-		parts = dmsAngle.split(sepChar)
+		if sepChar=="":
+			parts = dmsAngle[:2], dmsAngle[2:4], dmsAngle[4:]
+		else:
+			parts = dmsAngle.split(sepChar)
 		if len(parts)==3:
 			deg, min, sec = parts
 		elif len(parts)==2:
@@ -494,6 +504,33 @@ def getTangentialUnits(cPos):
 		if deltaUnit.cross(alphaUnit)*cPos>0:
 			alphaUnit = -1*alphaUnit
 	return alphaUnit, deltaUnit
+
+
+try:
+	import ephem
+
+	_sysConverters = {
+		("J2000", "B1950"): _gavoext.fk524,
+	}
+
+	def convertSys(alpha, delta, srcEq, destEq):
+		"""returns alpha and delta in the destination Equinox.
+
+		alpha and delta must be degrees, srcEq and destEq must come from
+		a controlled vocabulary (like "J2000" or "B1950"); see _sysConverters.
+		>>> "%.4f %.4f"%convertSys(82.1119567, -74.962704, "J2000", "B1950")
+		'82.5000 -75.0000'
+		>>> "%.4f %.4f"%convertSys(100.29064705, -20.048423505, "J2000", "B1950")
+		'99.7500 -20.0000'
+		"""
+		try:
+			return _sysConverters[srcEq, destEq](alpha, delta)
+		except KeyError:
+			raise gavo.Error("Don't know how to transform from %s to %s"%(
+				srcEq, destEq))
+
+except ImportError:  # pyephem not available
+	pass
 
 
 def _test():

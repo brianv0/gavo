@@ -1,8 +1,10 @@
+import os
 import sys
+
 import ez_setup
 ez_setup.use_setuptools()
 
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
 
 install_requires = ["pyfits", "pyPgSQL", "VOTable", 
 	"numarray", "elementtree", "pyparsing", "egenix-mx-base"]
@@ -18,6 +20,11 @@ setup(name="gavo",
 	author_email="msdemlei@ari.uni-heidelberg.de",
 	packages=find_packages(),
 	py_modules=["ez_setup"],
+	ext_modules = [
+		Extension("_gavoext", ["src/_gavoext.c", "src/slasubs.c", "src/wcscon.c"],
+			include_dirs=[os.path.join(os.getcwd(), "src/"),],
+			libraries=["m"]),
+	],
 	install_requires=install_requires,
 	dependency_links=["http://vo.ari.uni-heidelberg.de/soft/python",
 		"http://sourceforge.net/project/showfiles.php?group_id=16528",

@@ -1,5 +1,0 @@
-Stuff in here is supposed to be accessible from the web server.  I'll
-yet have to figure out how to do this nicely from within setuptools.
-
-For now, at ARI we use links into the source checkouts.  I admit that's not
-cool.

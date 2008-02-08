@@ -50,18 +50,20 @@ class GetHasStringTest:
 	def __init__(self, url, sentinel, description):
 		self.url, self.sentinel = url, sentinel
 		self.description = description
+		self.lastResult = ""
 	
 	def run(self):
-		assert self.sentinel in urllib.urlopen(self.url).read()
+		self.lastResult = urllib.urlopen(self.url).read()
+		assert self.sentinel in self.lastResult
 	
 
 class GetHasStringsTest(GetHasStringTest):
 	"""is a test that the GET of a URL contains each in a sequence of strings.
 	"""
 	def run(self):
-		tx = urllib.urlopen(self.url).read()
+		self.lastResult = urllib.urlopen(self.url).read()
 		for phrase in self.sentinel:
-			assert phrase in tx
+			assert phrase in self.lastResult
 
 
 class HeadStatusTest:
@@ -71,6 +73,7 @@ class HeadStatusTest:
 	def __init__(self, url, status, description):
 		self.url, self.status = url, status
 		self.description = description
+		self.lastResult = 0
 
 	def run(self):
 		_, host, path, query, _ = urlparse.urlsplit(self.url)
@@ -78,6 +81,7 @@ class HeadStatusTest:
 		conn.request("HEAD", path+"?"+query)
 		resp = conn.getresponse()
 		conn.close()
+		self.lastResult = resp
 		assert self.status==resp.status
 
 
@@ -95,6 +99,7 @@ class HeadFieldTest:
 		conn.request("HEAD", path+"?"+query)
 		resp = conn.getresponse()
 		conn.close()
+		self.lastResult = resp
 		for key, value in self.expectedFields:
 			assert resp.getheader(key)==value
 
@@ -123,6 +128,7 @@ myTests = [
 			"&submit=Go",
 			"+5 31 28.714",
 			"NV APFS computation")),
+
 	TestGroup("maidanak-siap",
 		GetHasStringTest(nv_root+"/maidanak/res/rawframes/siap/siap.xml?"
 			"POS=q2237%2B0305&SIZE=0.1&INTERSECT=OVERLAPS&_TDENC=True&"
@@ -152,7 +158,7 @@ myTests = [
 			"INTERSECT=OVERLAPS&FORMAT=image%2Ffits&_DBOPTIONS_LIMIT=2&_FORMAT=tar", [
 				"\0\0\0\0\0\0",
 				"This file is embargoed"],
-			"Tar output looks like a tar output with embaroed files"
+			"Tar output looks like a tar output with embargoed files"
 				" (will fail starting 2008-12-31)"),
 		HeadFieldTest(nv_root+"/maidanak/res/rawframes/siap/form?"
 			"__nevow_form__=genForm&POS=q2237%2B0305&SIZE=1&INTERSECT=OVERLAPS&"
@@ -162,6 +168,7 @@ myTests = [
 				("content-type", "application/x-tar")],
 			"Tar output declared in header"),
 	),
+
 	TestGroup("auth",
 		HeadStatusTest(nv_root+"/rauchspectra/theospectra/upload/upload",
 			401,
@@ -170,9 +177,6 @@ myTests = [
 			"upload/mupload",
 			401,
 			"Auth required for protected machine upload."),
-		HeadStatusTest(nv_root+"/maidanak/res/rawframes/q/form",
-			401,
-			"Auth required for protected form."),
 		HeadStatusTest(nv_root+"/maidanak/res/rawframes/q/form",
 			401,
 			"Auth required for protected form."),
@@ -185,6 +189,7 @@ myTests = [
 			404,
 			"Disallowed renderer yields 404."),
 	),
+
 	TestGroup("cns-scs",
 		GetHasStringsTest(nv_root+"/cns/res/cns/scs/scs.xml",
 			["VOTABLE", "in given Parameters"],
@@ -199,8 +204,9 @@ myTests = [
 		GetHasStringsTest(nv_root+"/cns/res/cns/scs/scs.xml?RA=17.0&DEC=30&SR=2"
 			"&_TDENC=True",
 			["VOTABLE", "TABLEDATA><TR><TD>21029"],
-			"SCS successful query, binary"),
+			"SCS successful query, tdenc"),
 		),
+
 	TestGroup("registry",  # Maybe build xsd validation into these?
 		GetHasStringsTest(nv_root+"/oai.xml", [
 				"<oai:OAI-PMH", 'Argument">verb'],
@@ -242,6 +248,7 @@ myTests = [
 					'<oai:ListRecords>', # Think of something better, this may be empty
 			"PMH ListRecords response looks all right in ivo_vor"),
 		),
+
 	TestGroup("formats",
 		GetHasStringsTest(nv_root+"/inflight/res/lc1/table/form?"
 			"__nevow_form__=genForm&line=200%20..%20800&_DBOPTIONS_ORDER="

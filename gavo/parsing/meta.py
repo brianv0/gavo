@@ -151,12 +151,16 @@ class MetaMixin(object):
 				return self.__metaDict[key]
 			else:
 				return self.__metaDict[key][-1]
-		if propagate:
-			if self.__hasMetaParent():
-				return self.__metaParent.getMeta(key, raiseOnFail=raiseOnFail, 
-					default=default, all=all)
-			else:
-				return config.getMeta(key, raiseOnFail=raiseOnFail, default=default)
+		try: # This is debugging code
+			if propagate:
+				if self.__hasMetaParent():
+					return self.__metaParent.getMeta(key, raiseOnFail=raiseOnFail, 
+						default=default, all=all)
+				else:
+					return config.getMeta(key, raiseOnFail=raiseOnFail, default=default)
+		except ReferenceError:
+			print ">>>>>> weakref'd parent of %s went away prematurely"%self
+			return config.getMeta(key, raiseOnFail=raiseOnFail, default=default)
 		if raiseOnFail:
 			raise config.MetaError("No meta item %s"%key)
 		return default
