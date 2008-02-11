@@ -515,6 +515,9 @@ class NameMap:
 	def __init__(self, src):
 		self._parseSrc(src)
 	
+	def __contains__(self, name):
+		return name in self.namesDict
+
 	def _parseSrc(self, src):
 		self.namesDict = {}
 		try:
@@ -530,6 +533,7 @@ class NameMap:
 	
 	def resolve(self, name):
 		return self.namesDict[name.lower()]
+	
 
 
 def degToRad(deg):

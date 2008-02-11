@@ -58,6 +58,8 @@ sitename=GAVO data center
 voplotEnable: True
 voplotCodeBase: ~/static/voplot/VOPlot
 voplotUserman: ~/static/voplot/docs/VOPlot_UserGuide_1_4.html
+# Location of the name map for vanity names
+vanityNames=vanitynames.txt
 
 
 [querulator]

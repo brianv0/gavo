@@ -3,8 +3,10 @@ Resource descriptor-based pages.
 """
 
 import cStringIO
+import mutex
 import new
 import os
+import time
 import traceback
 import urllib
 import urlparse
@@ -309,9 +311,19 @@ class FileResponse(BaseResponse):
 		return request.deferred
 
 
+# pyfits obviously is not thread-safe.  We put a mutex around it
+# and hope we'll be fine.
+_fitsTableMutex = mutex.mutex()
+
 class FITSTableResponse(FileResponse):
 	def generateFile(self, request):
-		return fitstable.makeFITSTableFile(self.coreResult.original)
+		while not _fitsTableMutex.testandset():
+			time.sleep(0.1)
+		try:
+			res = fitstable.makeFITSTableFile(self.coreResult.original)
+		finally:
+			_fitsTableMutex.unlock()
+		return res
 	
 	def getTargetName(self):
 		if self.coreResult.queryMeta.get("Overflow"):

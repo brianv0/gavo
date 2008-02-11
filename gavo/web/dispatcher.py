@@ -10,6 +10,7 @@ import os
 import re
 import traceback
 import urllib
+import urlparse
 
 import formal
 
@@ -26,11 +27,13 @@ from nevow import loaders
 from nevow import rend
 from nevow import static
 from nevow import tags as T, entities as E
+from nevow import url
 
 from zope.interface import implements
 
 from gavo import config
 from gavo import resourcecache
+from gavo import utils
 # need importparser to register its resourcecache
 from gavo.parsing import importparser
 from gavo.web import common
@@ -240,6 +243,26 @@ class BlockedPage(common.GavoRenderMixin, rend.Page):
 				".",]]])
 
 
+def _makeVanityMap():
+	"""returns the default map for vanity names.
+
+	Vanity names are shortcuts that lead to web pages.  They are not
+	intended for creating, e.g., "more beautiful" IVOA identifiers.
+
+	For now, the vanity names simply reside in a flat text file
+	given in the config in the key vanitynames that works as an
+	input for utils.NameMap.
+
+	The target URLs must *not* include nevowRoot and must *not* start
+	with a slash (unless you're going for special effects).
+	"""
+	srcF = os.path.join(config.get("webDir"), 
+		config.get("web", "vanitynames"))
+	return utils.NameMap(srcF)
+
+_vanityMap = _makeVanityMap()
+
+	
 renderClasses = {
 	"form": (resourcebased.getServiceRend, resourcebased.Form),
 	"oai.xml": (lambda ctx, segs, cls: cls(), vodal.RegistryRenderer),
@@ -281,8 +304,10 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		return sList
 
 	def render_serviceURL(self, ctx, data):
-		#XXX TODO: figure out how to get slots into attributes and scap this.
-		return ctx.tag(href=data["accessURL"])[data["title"]]
+		#XXX TODO: figure out how to get slots into attributes and scrap this.
+		parsed = urlparse.urlparse(data["accessURL"])
+		return ctx.tag(href=urlparse.urlunparse(("", "")+parsed[2:]))[
+			data["title"]]
 
 	def render_ifprotected(self, ctx, data):
 		if data["owner"]:
@@ -320,11 +345,19 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		segments = segments[self.rootLen:]
 		if not segments or segments[0]=='':
 			return self, ()
+		# redirect away vanity names
+		if 0<len(segments)<3 and segments[0] in _vanityMap:
+			root = config.get("web", "nevowRoot")
+			if not root:
+				root = "/"
+			return url.URL.fromContext(ctx).click(root+
+				_vanityMap.resolve(segments[0])), ()
 		# Special case for service-specific static data
 		if ".static." in segments:
 			sPos = list(segments).index(".static.")
 			return resourcebased.getServiceRend(ctx, segments[:sPos], 
 				resourcebased.Static), segments[sPos+1:]
+		# base handling
 		name = segments[0]
 		if hasattr(self, "child_"+name):
 			res = getattr(self, "child_"+name), segments[1:]

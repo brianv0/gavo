@@ -8,7 +8,6 @@ from gavo import utils
 from math import sin, cos, pi
 import math
 
-import _gavoext
 
 
 class CooSys:
@@ -507,7 +506,7 @@ def getTangentialUnits(cPos):
 
 
 try:
-	import ephem
+	import _gavoext
 
 	_sysConverters = {
 		("J2000", "B1950"): _gavoext.fk524,
@@ -529,8 +528,10 @@ try:
 			raise gavo.Error("Don't know how to transform from %s to %s"%(
 				srcEq, destEq))
 
-except ImportError:  # pyephem not available
-	pass
+except ImportError:  # _gavoext not available
+	def convertSys(*args):
+		raise gavo.Error("You need the _gavoext C extension for"
+			" coordinate transformations.")
 
 
 def _test():

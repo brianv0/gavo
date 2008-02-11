@@ -196,7 +196,8 @@ class Service(record.Record, meta.MetaMixin):
 			lambda failure: failure)
 	
 	def getURL(self, renderer, method="POST"):
-		"""returns the full access URL of this service together with renderer.
+		"""returns the full canonical access URL of this service together 
+		with renderer.
 		"""
 		qSep = ""
 		if method=="GET":
