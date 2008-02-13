@@ -280,6 +280,7 @@ class ParseContext:
 		self.dataSet = dataSet
 		self.literalParser = literalParser
 		self.rowsProcessed = 0
+		self.rowLimit = None
 		self.fieldComputer = parsehelpers.FieldComputer(self)
 		self.rowTargets = self._makeRowTargets()
 
@@ -308,6 +309,8 @@ class ParseContext:
 					logger.info("Skipping record %s because constraint %s failed to"
 						" satisfy"%(record, err.constraint))
 		self.rowsProcessed += 1
+		if self.rowLimit and self.rowsProcessed>=self.rowLimit:
+			raise gavo.StopOperation("Abort import, row limit reached")
 	
 	def processDocdict(self, docdict):
 		descriptor = self.dataSet.getDescriptor()
@@ -369,25 +372,29 @@ class DataSet(meta.MetaMixin):
 		self.tablesToBuild = set(tablesToBuild)
 		self.dD = dataDescriptor
 		self.setMetaParent(self.dD)
-		self.maxRows, self.ignoreBadSources = maxRows, ignoreBadSources
+		self.ignoreBadSources = ignoreBadSources
 		self.docFields = self.dD.get_items()
 		self.docRec = {}
 		self.tables = []
-		self._fillTables(tableMaker, parseSwitcher)
+		self._fillTables(tableMaker, parseSwitcher, maxRows)
 
-	def _parseSources(self, parseSwitcher):
+	def _parseSources(self, parseSwitcher, maxRows=None):
 		"""parses all sources requrired to fill self.
 
 		This will spew out a lot of stuff unless you set gavo.ui to NullUi
 		or something similar.
 		"""
 		counter = gavo.ui.getGoodBadCounter("Parsing source(s)", 5)
+		rowsParsed = 0
 		for context in self._iterParseContexts():
+			if maxRows:
+				context.rowLimit = maxRows-rowsParsed
 			try:
 				if parseSwitcher:
 					parseSwitcher(context)
 				else:
 					context.parse()
+				rowsParsed += context.rowsProcessed
 			except gavo.StopOperation, msg:
 				gavo.logger.warning("Prematurely aborted %s (%s)."%(
 					context.sourceName, str(msg).decode("utf-8")))
@@ -413,15 +420,13 @@ class DataSet(meta.MetaMixin):
 			counter.hit()
 		counter.close()
 
-	def _fillTables(self, tableMaker, parseSwitcher):
+	def _fillTables(self, tableMaker, parseSwitcher, maxRows):
 		for recordDef in self.dD.get_Semantics().get_recordDefs():
 			if (self.tablesToBuild and \
 					not recordDef.get_table() in self.tablesToBuild):
 				continue
 			self.tables.append(tableMaker(self, recordDef))
-			if self.maxRows:
-				self.tables[-1].setMaxRows(self.maxRows)
-		self._parseSources(parseSwitcher)
+		self._parseSources(parseSwitcher, maxRows)
 		for table in self.tables:
 			table.finishBuild()
 
@@ -744,9 +749,13 @@ class DataDescriptor(datadef.DataTransformer):
 			raise Error("Resource directory %s does not exist or is"
 				" not a directory."%self.rD.get_resdir())
 		if self.get_sourcePat():
+			sources = []
 			for path, dirs, files in utils.symlinkwalk(self.rD.get_resdir()):
 				for fName in glob.glob(os.path.join(path, self.get_sourcePat())):
-					yield fName
+					sources.append(fName)
+			sources.sort()
+			for s in sources:
+				yield s
 		if self.get_token():
 			yield PCToken(self.get_token())
 

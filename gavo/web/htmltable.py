@@ -36,9 +36,9 @@ _registerHTMLMF(_defaultMapperFactory)
 
 # insert new general factories here
 
-def _hourangleMapperFactory(colProps):
+def _timeangleMapperFactory(colProps):
 	if (colProps["unit"]!="hms" and 
-			colProps["displayHint"].get("type")!="hourangle"):
+			colProps["displayHint"].get("type")!="time"):
 		return
 	colProps["unit"] = "hms"
 	sepChar = colProps["displayHint"].get("sepChar", " ")
@@ -47,9 +47,9 @@ def _hourangleMapperFactory(colProps):
 		if val==None:
 			return "N/A"
 		else:
-			return coords.degToHourangle(val, sepChar, sf)
+			return coords.degToTimeangle(val, sepChar, sf)
 	return coder
-_registerHTMLMF(_hourangleMapperFactory)
+_registerHTMLMF(_timeangleMapperFactory)
 
 def _sexagesimalMapperFactory(colProps):
 	if (colProps["unit"]!="dms" and 

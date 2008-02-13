@@ -54,24 +54,24 @@ class CooSysRegistry:
 		self.systems[id] = CooSys(equinox, epoch, system)
 
 
-def hourangleToDeg(hourAngle, sepChar=" "):
-	"""returns the hour angle (h m s.decimals) as a float in degrees.
+def timeangleToDeg(timeangle, sepChar=" "):
+	"""returns the time angle (h m s.decimals) as a float in degrees.
 
-	>>> "%3.8f"%hourangleToDeg("22 23 23.3")
+	>>> "%3.8f"%timeangleToDeg("22 23 23.3")
 	'335.84708333'
-	>>> "%3.8f"%hourangleToDeg("22:23:23.3", ":")
+	>>> "%3.8f"%timeangleToDeg("22:23:23.3", ":")
 	'335.84708333'
-	>>> "%3.8f"%hourangleToDeg("222323.3", "")
+	>>> "%3.8f"%timeangleToDeg("222323.3", "")
 	'335.84708333'
-	>>> hourangleToDeg("junk")
+	>>> timeangleToDeg("junk")
 	Traceback (most recent call last):
-	Error: Invalid hourangle with sepchar ' ': 'junk'
+	Error: Invalid time with sepchar ' ': 'junk'
 	"""
 	try:
 		if sepChar=="":
-			parts = hourAngle[:2], hourAngle[2:4], hourAngle[4:]
+			parts = timeangle[:2], timeangle[2:4], timeangle[4:]
 		else:
-			parts = hourAngle.split(sepChar)
+			parts = timeangle.split(sepChar)
 		if len(parts)==3:
 			hours, minutes, seconds = parts
 		elif len(parts)==2:
@@ -81,8 +81,8 @@ def hourangleToDeg(hourAngle, sepChar=" "):
 			raise ValueError("Too many parts")
 		timeSeconds = int(hours)*3600+float(minutes)*60+float(seconds)
 	except ValueError:
-		raise gavo.Error("Invalid hourangle with sepchar %s: %s"%(
-			repr(sepChar), repr(hourAngle)))
+		raise gavo.Error("Invalid time with sepchar %s: %s"%(
+			repr(sepChar), repr(timeangle)))
 	return timeSeconds/3600/24*360
 
 
@@ -124,15 +124,16 @@ def dmsToDeg(dmsAngle, sepChar=" "):
 	return arcSecs/3600
 
 
-def degToHourangle(deg, sepChar=" ", secondFracs=3):
-	"""converts a float angle in degrees to an hour angle.
-	>>> degToHourangle(0)
+def degToTimeangle(deg, sepChar=" ", secondFracs=3):
+	"""converts a float angle in degrees to an time angle (hh:mm:ss.mmm).
+
+	>>> degToTimeangle(0)
 	'0 00 00.000'
-	>>> degToHourangle(122.056, secondFracs=1)
+	>>> degToTimeangle(122.056, secondFracs=1)
 	'8 08 13.4'
-	>>> degToHourangle(359.2222, secondFracs=4, sepChar=":")
+	>>> degToTimeangle(359.2222, secondFracs=4, sepChar=":")
 	'23:56:53.3280'
-	>>> "%.4f"%hourangleToDeg(degToHourangle(256.25, secondFracs=9))
+	>>> "%.4f"%timeangleToDeg(degToTimeangle(256.25, secondFracs=9))
 	'256.2500'
 	"""
 	rest, hours = math.modf(deg/360.*24)
@@ -510,6 +511,7 @@ try:
 
 	_sysConverters = {
 		("J2000", "B1950"): _gavoext.fk524,
+		("B1950", "J2000"): _gavoext.fk425,
 	}
 
 	def convertSys(alpha, delta, srcEq, destEq):

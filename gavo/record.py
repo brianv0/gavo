@@ -11,6 +11,10 @@ import copy
 import gavo
 
 
+class RecordError(gavo.Error):
+	pass
+
+
 class RequiredField:
 	"""is a sentinel class used to signal a defaultless field must be set
 	for a class to become valid.
@@ -292,10 +296,21 @@ class Record(object):
 	def isValid(self):
 		"""returns true if all mandatory (non-default) fields have been set.
 		"""
+		try:
+			self.validate()
+		except RecordError:
+			return False
+		return True
+
+	def validate(self):
+		"""raises an exception if there's something wrong with this record.
+
+		Currently, we only check if all RequiredFields actually have a value.
+		"""
 		for key, default in self.keys.iteritems():
 			if default==RequiredField and not self.dataStore.has_key(key):
-				return False
-		return True
+				raise RecordError("Required field %s has no value in %s"%(
+					repr(key), str(self)))
 
 	def get(self, key):
 		return getattr(self, "get_"+key)()

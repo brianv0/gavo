@@ -79,7 +79,10 @@ class Grammar(record.Record):
 					counter.hit()
 				except StopIteration:
 					break
-				except (gavo.StopOperation, KeyboardInterrupt):
+				except gavo.StopOperation:
+					counter.hit()
+					raise
+				except KeyboardInterrupt:
 					raise
 				except gavo.ValidationError:
 					raise

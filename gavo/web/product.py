@@ -50,7 +50,8 @@ class Product(standardcores.DbBasedCore):
 
 	def __init__(self, ctx, segments):
 		super(Product, self).__init__(
-			resourcecache.getRd("__system__/products/products"), {})
+			resourcecache.getRd("__system__/products/products"), 
+				{"table": "products"})
 		origDD = self.rd.getDataById("data")
 		inputDef = resource.RecordDef()
 		inputDef.updateFrom(origDD.getPrimaryRecordDef())

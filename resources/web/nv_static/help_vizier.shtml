@@ -24,7 +24,7 @@ of the field you are matching against.</p>
 <li>Comparisons: The operators &lt;, &lt;=, >, >=, =, != are prefixed
 and behave like their mathematical counterparts.</li>
 <li>Enumeration: You can enumerate values you are interested in using
-the comma (",") operator<./li>
+the comma (",") operator.</li>
 <li>Range: To specify a range of acceptable values, use the ".." operator.
 Note that you must surround this operator with whitespace; alternatively,
 you can give "value and error" with the "+/-" operator.</li>

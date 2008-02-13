@@ -356,7 +356,7 @@ class BboxSiap(Interface):
 		return [
 			{"dest": "centerAlpha", "source": "centerAlpha", "ucd": "PO_EQ_RA_MAIN",
 				"dbtype": "double precision", "unit": "deg", "tablehead": "alpha",
-				"displayHint": "type=hourangle", "verbLevel": 0},
+				"displayHint": "type=time", "verbLevel": 0},
 			{"dest": "centerDelta", "source": "centerDelta", "ucd": "PO_EQ_DEC_MAIN",
 				"dbtype": "double precision", "unit": "deg", "tablehead": "delta",
 				"displayHint": "type=sexagesimal", "verbLevel": 0},

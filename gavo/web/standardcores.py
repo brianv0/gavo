@@ -33,6 +33,8 @@ from gavo.web import runner
 from gavo.web import vizierexprs
 
 
+printQuery = False
+
 class CondDesc(record.Record):
 	"""a CondDesc is part of the semantics of a DbBasedCore.  
 	
@@ -191,6 +193,7 @@ class DbBasedCore(QueryingCore):
 				"sortOrder": common.Undefined,
 				"limit": common.Undefined,
 			}, initvals=initvals)
+		self.validate()
 	
 	def set_table(self, val):
 		self.dataStore["table"] = val
@@ -296,6 +299,8 @@ class DbBasedCore(QueryingCore):
 			"condition": condition,
 			"limtags": limtagsFrag,
 		}
+		if printQuery:
+			print ">>>>", query, pars
 		return resourcecache.getDbConnection().runQuery(query, pars)
 
 	def run(self, inputTable, queryMeta):

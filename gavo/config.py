@@ -15,7 +15,6 @@ from gavo import record
 
 defaultSettingsPath = "/etc/gavo.rc"
 
-
 _builtinConfig = """
 [DEFAULT]
 rootDir: /var/gavo
@@ -108,6 +107,7 @@ class ProfileParseError(Error):
 class MetaError(gavo.Error):  # Note: gavo.Error!
 	pass
 
+from ConfigParser import NoOptionError
 
 def _identity(val):
 	return val

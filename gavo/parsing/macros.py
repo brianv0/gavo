@@ -98,8 +98,8 @@ class EquatorialPositionConverter(Macro):
 	Constructor arguments:
 
 	* raFormat -- the literal format of Right Ascension.  By default,
-	  a sexagesimal hour angle is expected.  Supported formats include
-		mas (hour angle in milliarcsecs), ...
+	  a sexagesimal time angle is expected.  Supported formats include
+		mas (RA in milliarcsecs), ...
 	* decFormat -- as raFormat, only the default is sexagesimal angle.
 	* sepChar (optional) -- seperator for alpha, defaults to whitespace
 	
@@ -108,7 +108,7 @@ class EquatorialPositionConverter(Macro):
 
 	Arguments: 
 	 
-	* alpha -- sexagesimal right ascension as hour angle
+	* alpha -- sexagesimal right ascension as time angle
 	* delta -- sexagesimal declination as dms
 
 	The field structure generated here is reflected in 
@@ -142,7 +142,7 @@ class EquatorialPositionConverter(Macro):
 		self.sepChar = sepChar
 		Macro.__init__(self, argTuples, *args, **kwargs)
 		self.coordComputer = {
-			"hour": self._hourangleToDeg,
+			"hour": self._timeangleToDeg,
 			"sexag": self._dmsToDeg,
 			"mas": lambda mas: float(mas)/3.6e6,
 			"binary": lambda a: a,
@@ -166,8 +166,8 @@ class EquatorialPositionConverter(Macro):
 		if supportHtm:
 			record["htmid"] = pyhtm.lookup(alphaFloat, deltaFloat)
 
-	def _hourangleToDeg(self, literal):
-		return coords.hourangleToDeg(literal, self.sepChar)
+	def _timeangleToDeg(self, literal):
+		return coords.timeangleToDeg(literal, self.sepChar)
 
 	def _dmsToDeg(self, literal):
 		return coords.dmsToDeg(literal, self.sepChar)

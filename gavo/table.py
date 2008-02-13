@@ -44,7 +44,6 @@ class BaseTable(meta.MetaMixin):
 			self.setMetaParent(self.dataSet)
 		else:
 			self.dataSet = None
-		self.maxRows = None
 		self.fieldDefs = fieldDefs
 		self.name = name
 		self.rows = []
@@ -58,14 +57,6 @@ class BaseTable(meta.MetaMixin):
 	def __getitem__(self, index):
 		return self.rows[index]
 
-	def setMaxRows(self, maxRows):
-		"""sets after how many rows an attempt to add a row will raise a
-		gavo.StopOperation exception.
-
-		This is for debugging (e.g., of resource descriptors) only.
-		"""
-		self.maxRows = maxRows
-
 	def finishBuild(self):
 		pass
 
@@ -76,8 +67,6 @@ class BaseTable(meta.MetaMixin):
 
 	def addData(self, record):
 		self.rows.append(record)
-		if self.maxRows and len(self.rows)>=self.maxRows:
-			raise gavo.StopOperation("Abort due to maxRows=%d"%self.maxRows)
 
 	def getFieldDefs(self):
 		"""returns the field definitions as a list of DataField instances.
@@ -212,17 +201,20 @@ class Table(RecordBasedTable):
 		"""writes the rows through the sqlsupport feeder feed.
 		"""
 		counter = gavo.ui.getGoodBadCounter("Writing to db", 100)
-		for row in self.rows:
+		try:
 			try:
-				counter.hit()
-				feed(row)
-			except (UnicodeDecodeError, sqlsupport.OperationalError), msg:
+				for row in self.rows:
+					counter.hit()
+					feed(row)
+			except Exception, msg: 
 				logger.error("Row %s bad (%s).  Aborting."%(row, msg))
 				gavo.ui.displayError("Import of row %s failed (%s). ABORTING"
 					" OPERATION."%(row, msg))
+				feed.rollback()
 				raise
-		counter.close()
-		feed.close()
+			feed.close()
+		finally:
+			counter.close()
 
 	def _getOwnedTableWriter(self, schema):
 		tableName = "%s.%s"%(schema, self.recordDef.get_table())

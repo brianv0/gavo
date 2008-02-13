@@ -27,12 +27,17 @@ def parseSource(parseContext):
 	parseContext.parse()
 
 
+def FreshDirectWritingTable(*args, **kwargs):
+	"""is a factory for DirectWritingTables that have dropIndices=1.
+	"""
+	return table.DirectWritingTable(dropIndices=True, *args, **kwargs)
+
 def getTableClassForRecordDef(recordDef):
 	if recordDef.get_onDisk():
 		if recordDef.get_forceUnique():
 			raise gavo.Error(
 				"Tables can't be onDisk and forceUnique at the same time.")
-		TableClass = table.DirectWritingTable
+		TableClass = FreshDirectWritingTable
 	elif recordDef.get_forceUnique():
 		TableClass = table.UniqueForcedTable
 	else:

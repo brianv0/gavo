@@ -2,6 +2,7 @@
 Some unit tests that don't (yet) fit a section of their own.
 """
 
+import datetime
 import os
 import sys
 import unittest
@@ -18,6 +19,7 @@ from gavo import fitstable
 from gavo import nullui
 from gavo import sqlsupport
 from gavo import table
+from gavo import votable
 from gavo.parsing import importparser
 from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
@@ -136,5 +138,29 @@ class FitsWriterTest(unittest.TestCase):
 		os.unlink(fName)
 
 
+class MapperTest(unittest.TestCase):
+	"""collects tests for votable/html value mappers.
+	"""
+	def testJdMap(self):
+		colProps = {"sample": datetime.datetime(2005, 6, 4, 23, 12, 21),
+			"unit": "d"}
+		mapper = votable.datetimeMapperFactory(colProps)
+		self.assertAlmostEqual(2453526.4669097224,
+			mapper(datetime.datetime(2005, 6, 4, 23, 12, 21)))
+		self.assertAlmostEqual(2434014.6659837961,
+			mapper(datetime.datetime(1952, 1, 3, 3, 59, 1)))
+		self.assertAlmostEqual(2451910.0,
+			mapper(datetime.datetime(2000, 12, 31, 12, 00, 00)))
+		self.assertAlmostEqual(2451909.999988426,
+			mapper(datetime.datetime(2000, 12, 31, 11, 59, 59)))
+
+
+def singleTest():
+	suite = unittest.makeSuite(MapperTest, "test")
+	runner = unittest.TextTestRunner()
+	runner.run(suite)
+
+
 if __name__=="__main__":
-	unittest.main()
+#	unittest.main()
+	singleTest()

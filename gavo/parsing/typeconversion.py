@@ -80,19 +80,20 @@ class LiteralParser:
 			"truefalse": self._parse_TrueFalse,
 			"emptyfalse": self._parse_emptyfalse,
 			"spuriousBlanks": self._parse_spuriousBlanks,
-			"hourangle": self._parse_hourangle,
+			"hourangle": self._parse_timeangle,
+			"timeangle": self._parse_timeangle,
 			"sexagesimal": self._parse_sexagesimal,
 			"JYear": self._parse_JYear,
 		}
 
-	def _parse_hourangle(self, literal):
+	def _parse_timeangle(self, literal):
 		"""returns a float in degrees from an h:m:s.sss literal (various
 		separators supported).
 		"""
 		sepChar = None
 		if ":" in literal:
 			sepChar = ":"
-		return coords.hourangleToDeg(literal, sepChar)
+		return coords.timeangleToDeg(literal, sepChar)
 	
 	def _parse_sexagesimal(self, literal):
 		"""returns a float in degrees from a dms literal.
@@ -204,7 +205,7 @@ class LiteralParser:
 		"""returns a python value suitable for later ingestion as sqlType.
 
 		If literalForm is given, the literal may be preprocessed -- this
-		may be necessary for, e.g. crazy date formats or hour angles.
+		may be necessary for, e.g. crazy date formats or angles as time.
 
 		We let the NULL value (None) pass through.
 		"""

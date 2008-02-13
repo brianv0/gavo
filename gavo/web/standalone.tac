@@ -24,6 +24,10 @@ if ":" in _serverName:
 	_targetPort = int(_serverName.split(":")[1])
 else:
 	_targetPort = 80
+try:
+	_targetPort = int(config.get("web", "serverPort"))
+except config.NoOptionError:
+	pass
 application = service.Application("archive")
 internet.TCPServer(_targetPort, appserver.NevowSite(
 	Reloader())).setServiceParent(application)

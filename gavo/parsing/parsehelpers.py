@@ -306,7 +306,7 @@ def parseCooPair(soup):
 	['183.877083333', '52.3076388889']
 	>>> parseCooPair("3.39 -12 39")
 	Traceback (most recent call last):
-	ValueError: Invalid hourangle with sepchar ' ': '3.39'
+	ValueError: Invalid time with sepchar ' ': '3.39'
 	>>> parseCooPair("12 15 30.5 +52 18 27.5e")
 	Traceback (most recent call last):
 	ValueError: 12 15 30.5 +52 18 27.5e has no discernible position in it
@@ -322,18 +322,18 @@ def parseCooPair(soup):
 		if mat:
 			return float(mat.group(1)), float(mat.group(2))
 
-	def parseHourangleDms(soup):
-		hourangleRE = r"(?:\d+\s+)?(?:\d+\s+)?\d+(?:\.\d*)?"
+	def parseTimeangleDms(soup):
+		timeangleRE = r"(?:\d+\s+)?(?:\d+\s+)?\d+(?:\.\d*)?"
 		dmsRE = "[+-]?\s*(?:\d+\s+)?(?:\d+\s+)?\d+(?:\.\d*)?"
-		mat = re.match("(%s)\s*[\s,/]?\s*(%s)$"%(hourangleRE, dmsRE), soup)
+		mat = re.match("(%s)\s*[\s,/]?\s*(%s)$"%(timeangleRE, dmsRE), soup)
 		if mat:
 			try:
-				return coords.hourangleToDeg(mat.group(1)), coords.dmsToDeg(
+				return coords.timeangleToDeg(mat.group(1)), coords.dmsToDeg(
 					mat.group(2))
 			except gavo.Error, msg:
 				raise ValueError(str(msg))
 
-	for func in [parseFloatPair, parseHourangleDms]:
+	for func in [parseFloatPair, parseTimeangleDms]:
 		res = func(soup)
 		if res:
 			return res

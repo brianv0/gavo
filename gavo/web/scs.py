@@ -60,7 +60,7 @@ class HumanScsCondition(ScsCondition):
 		vals={
 			"inputKeys": [
 				InputKey(dest="hscs_pos", dbtype="text", description=
-					"position as hourangle, sexagesimal dec or simbad-resolvable"
+					"position as sexagesimal ra, dec or Simbad-resolvable"
 					" object", tablehead="Position", source="hscs_pos"),
 				InputKey(dest="hscs_sr", dbtype="float", description=
 					"search radius in arcminutes", tablehead="search radius",

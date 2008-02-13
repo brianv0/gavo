@@ -172,7 +172,12 @@ def datetimeMapperFactory(colProps):
 		a = (14-val.month)//12
 		y = val.year+4800-a
 		m = val.month+12*a-3
-		return val.day+(153*m)//5+365*y+y//4-y//100+y//400-32045
+		jdn = val.day+(153*m)//5+365*y+y//4-y//100+y//400-32045
+		secsOnDay = val.hour*3600+val.minute*60+val.second+val.microsecond/1000.
+		if secsOnDay>43200:
+			return jdn+secsOnDay/86400.+0.5
+		else:
+			return jdn+secsOnDay/86400.-0.5
 
 	def dtToMJdn(val):
 		"""returns the modified julian date number for the dateTime instance val.
@@ -188,7 +193,7 @@ def datetimeMapperFactory(colProps):
 			fun, destType = lambda val: val and dtToJdn(val)/365.25-4712, ("double",
 				None)
 		elif unit=="d":
-			fun, destType = lambda val: val and val.jdn, ("double", None)
+			fun, destType = lambda val: val and dtToJdn(val), ("double", None)
 		elif unit=="s":
 			fun, destType = lambda val: val and time.mktime(val.timetuple()), (
 				"double", None)

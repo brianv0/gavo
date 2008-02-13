@@ -208,9 +208,9 @@ class _Feeder:
 	Don't instanciate this yourself; TableWriter.getFeeder does this
 	for you.
 	"""
-	def __init__(self, cursor, commitFunc, feedCommand):
+	def __init__(self, cursor, commitFunc, rollbackFunc, feedCommand):
 		self.cursor, self.commitFunc = cursor, commitFunc
-		self.feedCommand = feedCommand
+		self.rollbackFunc, self.feedCommand = rollbackFunc, feedCommand
 	
 	def __call__(self, data):
 		try:
@@ -225,11 +225,16 @@ class _Feeder:
 		self.cursor.close()
 		self.cursor = None
 		return nAffected
-	
+
+	def rollback(self):
+		self.cursor.close()
+		self.rollbackFunc()
+
 	def __del__(self):
 		try:
 			if self.cursor is not None:
 				self.close()
+				# rollback behaviour is undefined at this point.  Close your cursors...
 		except (DbError, gavo.Error): 
 			pass # someone else might have closed it
 
@@ -443,7 +448,7 @@ class TableInterface(StandardQueryMixin):
 		if dropIndices:
 			self.dropIndices()
 		return _Feeder(self.connection.cursor(), self.getFeedFinalizer(
-				makeIndices=dropIndices), cmdStr)
+			makeIndices=dropIndices), self.connection.rollback, cmdStr)
 
 	def getFeedFinalizer(self, makeIndices=True):
 		def fun():
