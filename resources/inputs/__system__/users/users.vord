@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ResourceDescriptor srcdir="users">
+<ResourceDescriptor srcdir="__system__/users">
 	<schema>users</schema>
 	<Data id="nothing">
 		<NullGrammar/>
@@ -11,7 +11,7 @@
 			<Record table="users">
 				<Field dest="username" primary="True" dbtype="text"
 					tablehead="Username"/>
-				<Field dest="password" dbtype="text" displayHint="suppress"/>
+				<Field dest="password" dbtype="text" displayHint="type=suppress"/>
 				<!-- This is a plain text password.  We could store md5s, but
 					then I guess it's more likely that people will ask for pws
 					than that any unauthorized entity will be interested in them.

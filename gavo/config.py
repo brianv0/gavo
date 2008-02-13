@@ -3,11 +3,12 @@ This module contains a settings class and a way to fill it from a
 simple ini-style file .gavosettings
 """
 
+import ConfigParser
+import cStringIO
 import os
 import re
-import cStringIO
-import ConfigParser
 import shlex
+import sys
 
 import gavo
 from gavo import record
@@ -391,6 +392,19 @@ setDbProfile = _config.setDbProfile
 getDbProfile = _config.getDbProfile
 getDbProfileByName = _config.getDbProfileByName
 
+
+def main():
+	try:
+		if len(sys.argv)==2:
+			print get(sys.argv[1])
+		elif len(sys.argv)==3:
+			print get(sys.argv[1], sys.argv[2])
+		else:
+			sys.stderr.write("Usage: %s <sect> <key> | <key>\n")
+			sys.exit(1)
+	except NoOptionError:
+		print ""
+		sys.exit(2)
 
 def _test():
 	import doctest, config

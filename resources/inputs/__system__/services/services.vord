@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ResourceDescriptor srcdir="__system__/services">
+	<schema>public</schema>
+
+	<!-- this is for static resources imported via the fixedrecords data below.
+
+	It *must* match the id of this resource descriptor (properties can't do
+	field computing, so you need to maintain it by hand).
+	-->
+	<property name="srcRdId">__system__/services/services</property>
+
+	<!-- Tables related to services -->
+	<Data id="servicelist" encoding="utf-8">
+		<RowsetGrammar>
+			<Field dest="shortName" source="shortName" dbtype="text"/>
+			<Field dest="sourceRd" source="sourceRd" dbtype="text"/>
+			<!-- the internal id is the service id for service records,
+			the path to the source file for static RRs -->
+			<Field dest="internalId" source="internalId" dbtype="text"/>
+			<Field dest="title" source="title" dbtype="text"/>
+			<Field dest="description" source="description" dbtype="text"/>
+			<Field dest="accessURL" source="accessURL" dbtype="text"/>
+			<Field dest="owner" source="owner" dbtype="text"/>
+			<Field dest="renderer" source="renderer" dbtype="text"/>
+			<Field dest="type" source="type" dbtype="text"/>
+			<Field dest="sets" source="sets" dbtype="text" default="local"/>
+
+			<RowProcessor name="expandComma">
+				<arg name="srcField" value="sets"/>
+				<arg name="targetField" value="setName"/>
+			</RowProcessor>
+		</RowsetGrammar>
+
+		<Semantics id="servicestables">
+<!-- This has to match whatever is done in gavo.web.servicelist -->
+			<SharedRecord table="services" forceUnique="True" id="srvRecord">
+				<owningCondition colName="sourceRd" value="@property,srcRdId"/>
+				<Field dest="shortName" source="shortName" dbtype="text"
+					tablehead="Service ID" primary="True"/>
+				<Field dest="internalId" source="internalId" dbtype="text"
+					tablehead="Internal relative id" displayHint="type=hidden"/>
+				<Field dest="sourceRd" source="sourceRd" dbtype="text"
+					tablehead="Source RD" optional="False"/>
+				<Field dest="title" source="title" dbtype="text" optional="False"/>
+				<Field dest="description" source="description" dbtype="text"/>
+				<Field dest="owner" source="owner" dbtype="text"/>
+				<Field dest="dateUpdated" default="@today" source="dateUpdated"
+					dbtype="timestamp"/>
+			</SharedRecord>
+
+			<SharedRecord table="srv_interfaces" forceUnique="True" id="intfRecord">
+				<owningCondition colName="sourceRd" value="@property,srcRdId"/>
+				<Field dest="sourceRd" source="sourceRd" dbtype="text"
+					tablehead="Source RD"/>
+				<Field dest="shortName" source="shortName" dbtype="text"/>
+				<Field dest="accessURL" source="accessURL" dbtype="text"
+					optional="False" primary="True"/>
+				<Field dest="renderer" source="renderer" dbtype="text"/>
+<!-- scrap that field. It's currently only used to assign default sets, but
+we can do that based on the renderer, too -->
+				<Field dest="type" source="type" dbtype="text">
+					<Values>
+						<option>web</option>
+						<option>vo</option>
+					</Values>
+				</Field>
+			</SharedRecord>
+
+			<SharedRecord table="srv_sets" id="setsRecord">
+				<owningCondition colName="sourceRd" value="@property,srcRdId"/>
+				<Field dest="shortName" source="shortName" dbtype="text"/>
+				<Field dest="setName" source="setName" dbtype="text"/>
+				<Field dest="sourceRd" source="sourceRd" dbtype="text"
+					tablehead="Source RD"/>
+				<Field dest="internalId" source="internalId" dbtype="text"/>
+				<Field dest="renderer" source="renderer" dbtype="text"/>
+			</SharedRecord>
+		</Semantics>
+	</Data>
+
+	<!-- used by servicelist -->
+	<Data id="resources" encoding="utf-8" virtual="True">
+		<RowsetGrammar id="resourcesGrammar">
+			<Field original="servicelist.services.sourceRd" 
+				dest="sourceRd"
+				source="services.sourceRd"/>
+			<Field original="servicelist.services.shortName" 
+				dest="shortName"
+				source="services.shortName"/>
+			<Field original="servicelist.services.title" source="services.title"
+				dest="title"/>
+			<Field original="servicelist.services.description" dest="description"
+				source="services.description"/>
+			<Field original="servicelist.services.owner" source="services.owner"
+				dest="owner"/>
+			<Field original="servicelist.services.internalId" 
+				source="services.internalId" dest="internalId"/>
+			<Field original="servicelist.services.dateUpdated" dest="dateUpdated"
+				source="services.dateUpdated"/>
+		</RowsetGrammar>
+
+		<Semantics>
+			<Record table="resources" fieldsFrom="resourcesGrammar">
+			</Record>
+		</Semantics>
+	</Data>
+
+	<Data id="resSet" encoding="utf-8" virtual="True">
+		<RowsetGrammar id="resSetGrammar" fieldsFrom="resourcesGrammar">
+			<Field original="servicelist.srv_sets.setName" dest="setName"
+				source="srv_sets.setName"/>
+		</RowsetGrammar>
+		<Semantics>
+			<Record table="resSets" fieldsFrom="resSetGrammar">
+			</Record>
+		</Semantics>
+	</Data>
+
+	<!-- used by servicelist  -->
+	<Data id="services" encoding="utf-8" virtual="True">
+		<RowsetGrammar id="servicesGrammar" fieldsFrom="resSetGrammar">
+			<Field original="servicelist.srv_interfaces.accessURL" dest="accessURL"
+				source="srv_interfaces.accessURL"/>
+			<Field original="servicelist.srv_interfaces.renderer" dest="renderer"
+				source="srv_interfaces.renderer"/>
+			<Field original="servicelist.srv_interfaces.type" dest="type"
+				source="srv_interfaces.type"/>
+		</RowsetGrammar>
+
+		<Semantics>
+			<Record table="join" fieldsFrom="servicesGrammar">
+			</Record>
+		</Semantics>
+	</Data>
+
+	<!-- used by servicelist  -->
+	<Data id="sets" encoding="utf-8" virtual="True">
+		<RowsetGrammar id="setsGrammar" fieldsFrom="setsRecord">
+		</RowsetGrammar>
+		<Semantics>
+			<Record table="srv_sets" fieldsFrom="setsGrammar"/>
+		</Semantics>
+	</Data>
+
+	<!-- fixed records entered manually -->
+	<Data id="fixedrecords" sourcePat="*.rr" encoding="utf-8">
+		<KeyValueGrammar>
+			<Macro name="enterValue" destination="sourceRd">
+				<!-- this must match the srcRdId property above -->
+				<arg name="value" value="@rdId"/>
+			</Macro>
+			<Macro name="interpolateStrings" destination="description"
+				format="%s" sources="content.description">
+			</Macro>
+			<Macro name="enterValue" destination="internalId">
+				<arg name="value" value="@rootlessPath"/>
+			</Macro>
+			<Macro name="enterValue" destination="setName">
+			<!-- Records in here are for the VO exclusively for now (if that
+			ever changes, use the row processor from servicelist -->
+				<arg name="value" value="ivo_managed"/>
+			</Macro>
+			<Macro name="enterValue" destination="dateUpdated">
+				<arg name="value" value="@sourceDate"/>
+			</Macro>
+			<constraints fatal="True">
+				<constraint name="resType">
+					<condition type="keyPresent" name="resType"/>
+				</constraint>
+				<constraint name="subject">
+					<condition type="keyPresent" name="subject"/>
+				</constraint>
+				<constraint name="description">
+					<condition type="keyPresent" name="subject"/>
+				</constraint>
+				<constraint name="referenceURL">
+					<condition type="keyPresent" name="referenceURL"/>
+				</constraint>
+			</constraints>
+		</KeyValueGrammar>
+		<Semantics>
+			<SharedRecord original="srvRecord"/>
+			<!-- These guys usually don't have interfaces -->
+			<SharedRecord original="setsRecord"/>
+		</Semantics>
+	</Data>
+</ResourceDescriptor>
+

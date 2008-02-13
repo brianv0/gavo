@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ResourceDescriptor srcdir="products">
+<ResourceDescriptor srcdir="__system__/products">
 	<schema>public</schema>
-	<Data id="nothing">
+	<Data id="data">
 		<NullGrammar/>
 
 		<Semantics>
-<!-- This has to match the ProductValueCollector macro in macros.py
-and the products interface.
+<!-- This has to match the definition in __common__/producttable.template 
+and the ProductValueCollector macro in macros.py.
 
 It is somewhat unfortunate that this definition is reflected in so many
 places, but the alternatives are even more unattractive (to me).

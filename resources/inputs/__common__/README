@@ -1,5 +1,0 @@
-This is no source at all but a repository for resource descriptor fragment
-templates.  In short, these are XML fragments with string substitution
-for inclusion into resource descriptor XML serializations.
-
-Examples include product descriptions or standard macro fields.

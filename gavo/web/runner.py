@@ -46,7 +46,7 @@ class StreamingRunner(protocol.ProcessProtocol):
 
 	def processEnded(self, status):
 		if status.value.exitCode!=0:
-			# XXX figure out how to make request emit an error
+			# XXX TODO figure out how to make request emit an error
 			pass
 		else:
 			self.allDataIsIn = True
@@ -122,8 +122,8 @@ def run(coreDataDef, inputData):
 	"""
 	inputString = _makeInputs(coreDataDef, inputData)
 	args = _makeArguments(coreDataDef, inputData)
-	computerPath = getBinaryName(os.path.join(config.get("rootDir"),
-		coreDataDef.get_computer()))
+	computerPath = os.path.join(config.get("rootDir"),
+		coreDataDef.get_computer())
 	return runWithData(computerPath, inputString, args)
 
 
@@ -133,6 +133,7 @@ def runWithData(prog, inputString, args):
 	"""
 	result = defer.Deferred()
 	fetchOutputProtocol = StdioProtocol(inputString, result)
+	prog = getBinaryName(prog)
 	reactor.spawnProcess(fetchOutputProtocol, prog,
 		args=[prog]+args, path=os.path.dirname(prog))
 	return result

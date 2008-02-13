@@ -4,8 +4,9 @@ Code dealing with product (i.e., fits file) delivery.
 
 # XXXX TODO: turn this into a core?
 
-import os
+import cStringIO
 import cgi
+import os
 
 from mx import DateTime
 
@@ -81,15 +82,18 @@ class Product(standardcores.DbBasedCore):
 		item = result[0]
 		if not isFree(item):
 			return creds.runAuthenticated(ctx, item["owner"], 
-				lambda: self._deliverFile(sqlPars, ctx, item))
+				lambda: self._deliverFile(sqlPars, ctx, item, queryMeta))
 		else:
-			return self._deliverFile(sqlPars, ctx, item)
+			return self._deliverFile(sqlPars, ctx, item, queryMeta)
 	
-	def _deliverFile(self, sqlPars, ctx, item):
+	def _deliverFile(self, sqlPars, ctx, item, queryMeta):
 		if "sra" in sqlPars:
+			if queryMeta.ctxArgs.has_key("preview"):
+				raise gavo.Error("No previews on cutout images yet, sorry")
 			return self._deliverCutout(sqlPars, ctx, item)
 		else:
-			return self._deliverFileAsIs(ctx, item)
+			return self._deliverImageFile(ctx, item, 
+				queryMeta.ctxArgs.has_key("preview"))
 
 	def _makeFitsRequest(self, ctx, fName, fSize):
 		request = inevow.IRequest(ctx)
@@ -127,6 +131,27 @@ class Product(standardcores.DbBasedCore):
 		prog = runner.getBinaryName(os.path.join(config.get("inputsDir"),
 			"__system__", "cutout", "bin", "getfits"))
 		runner.StreamingRunner(prog, args, request)
+		return request.deferred
+
+	def _deliverImageFile(self, ctx, item, preview):
+		if preview:
+			return self._deliverPreview(ctx, item)
+		else:
+			return self._deliverFileAsIs(ctx, item)
+
+	def _deliverPreview(self, ctx, item):
+		targetPath = str(os.path.join(config.get("inputsDir"), item["accessPath"]))
+		previewName = os.path.join(config.get("inputsDir"), "__system__",
+			"products", "bin", "fitspreview")
+		runner.runWithData(previewName, [targetPath]
+			).addCallback(self._deliverJpeg, ctx
+			).addErrback(self._previewFailed, ctx)
+	
+	def _deliverJpeg(self, jpegString, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", "image/jpeg")
+		static.FileTransfer(cStringIO.StringIO(jpegString), len(jpegString), 
+			request)
 		return request.deferred
 
 	def _deliverFileAsIs(self, ctx, item):
