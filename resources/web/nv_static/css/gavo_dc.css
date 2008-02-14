@@ -142,7 +142,7 @@ h5 { font-size: 11pt; font-style: italic; }
 	background:none;
 	left:245px;
 	top:20px;
-	overflow:hide;
+	overflow:hidden;
 }
 
 table.results {

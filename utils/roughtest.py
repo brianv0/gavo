@@ -279,6 +279,10 @@ myTests = [
 			"&_FORMAT=HTML&_ADDITEM=owner&submit=Go",
 			"Product owner</th>",
 			"Additional fields show up in HTML responses"),
+		GetHasStringTest(nv_root+"/getproduct?key=maidanak/raw/cd037/jun_2003/"
+			"jun2603/q2237/mf260110.gz&siap=true&preview=True",
+			"JFIF",
+			"Preview looks like a JPEG"),
 	),
 ]
 

@@ -127,10 +127,15 @@ _registerHTMLMF(_sizeMapperFactory)
 def _productMapperFactory(colProps):
 	if colProps["displayHint"].get("type")!="product":
 		return
+	if colProps["displayHint"].get("nopreview"):
+		mouseoverHandler = None
+	else:
+		mouseoverHandler = "insertPreview(this)"
 	def coder(val):
 		if val:
 			return T.a(href=common.makeSitePath(
 					"/getproduct?key=%s&siap=true"%urllib.quote(val)),
+				onMouseOver=mouseoverHandler,
 				class_="productlink")[re.sub("&.*", "", os.path.basename(val))]
 		else:
 			return ""

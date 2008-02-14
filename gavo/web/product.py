@@ -32,6 +32,15 @@ class ItemNotFound(Error):
 	pass
 
 
+errorPng = ('iVBORw0KGgoAAAANSUhEUgAAAQAAAAAUAgMAAAAfLAvMAAAADFBM'
+'VEUkJCRfX1+ampr+/v4wizjb\nAAAA40lEQVQ4y+WTwQoBURiFPYaiPAGPwHvYyJqaJUoz'
+'D+ANqJmNiM3slJL7AIqdjTJpcJOFom7u\nHd3jzlhY/ykL/s05Z/N1/r97U/hwUj8KOI0T'
+'iV5piOgIaIcAeMxLsVyToBu4KqMWBYDcO2gGSCLg\nbgA6NiwBXKCMIzVghfSm2a6KbbbJ'
+'ZP62kyLokgBjeJ5rK87dIvRsohQPS7QGsMpeUa6HS9ucfyDF\neuTQjgirgpriWPZMA6kE'
+'1w6xgb+6dCSPwgV0S0yMI62w93XmyFZ76d8C3Ouj/mF6dnOfPWX2b7/x\nq4AnJhXSaagw'
+'wtEAAAAASUVORK5CYII=\n').decode("base64")
+
+
 def isFree(item):
 	return DateTime.now()>item["embargo"]
 
@@ -68,9 +77,6 @@ class Product(standardcores.DbBasedCore):
 		self.queryMeta = common.QueryMeta(ctx)
 		self.queryMeta["format"] = "internal"
 		
-	def locateChild(self, ctx, segments):
-		return self, ()
-
 	def _parseOutput(self, res, ctx, sqlPars, queryMeta):
 		result = super(Product, self)._parseOutput(
 			res, self.dataDef, sqlPars, queryMeta).getPrimaryTable()
@@ -93,7 +99,7 @@ class Product(standardcores.DbBasedCore):
 			return self._deliverCutout(sqlPars, ctx, item)
 		else:
 			return self._deliverImageFile(ctx, item, 
-				queryMeta.ctxArgs.has_key("preview"))
+				ctx.arg("preview"))
 
 	def _makeFitsRequest(self, ctx, fName, fSize):
 		request = inevow.IRequest(ctx)
@@ -143,7 +149,7 @@ class Product(standardcores.DbBasedCore):
 		targetPath = str(os.path.join(config.get("inputsDir"), item["accessPath"]))
 		previewName = os.path.join(config.get("inputsDir"), "__system__",
 			"products", "bin", "fitspreview")
-		runner.runWithData(previewName, [targetPath]
+		return runner.runWithData(previewName, "", [targetPath]
 			).addCallback(self._deliverJpeg, ctx
 			).addErrback(self._previewFailed, ctx)
 	
@@ -151,6 +157,14 @@ class Product(standardcores.DbBasedCore):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "image/jpeg")
 		static.FileTransfer(cStringIO.StringIO(jpegString), len(jpegString), 
+			request)
+		return request.deferred
+	
+	def _previewFailed(self, failure, ctx):
+		failure.printTraceback()
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", "image/png")
+		static.FileTransfer(cStringIO.StringIO(errorPng), len(errorPng), 
 			request)
 		return request.deferred
 
@@ -177,3 +191,6 @@ class Product(standardcores.DbBasedCore):
 	def renderHTTP(self, ctx):
 		queryMeta = common.QueryMeta(ctx)
 		return self.run(ctx, queryMeta)
+
+	def locateChild(self, ctx, segments):
+		return self, ()
