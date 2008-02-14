@@ -356,8 +356,59 @@ class TestMisc(unittest.TestCase):
 		sq.close()
 
 
+class TestScriptRunner(unittest.TestCase):
+	"""tests for ScriptRunner.
+	"""
+	def setUp(self):
+		config.setDbProfile("test")
+		sq = sqlsupport.SimpleQuerier()
+		sq.runIsolatedQuery("DROP TABLE scripttest", silent=True, raiseExc=False)
+		sq.close()
+	
+	def testWorkingScript(self):
+		"""tests for behaviour of scripts running without errors.
+		"""
+		sr = sqlsupport.ScriptRunner()
+		sr.run(r"""CREATE TABLE scripttest (a text, b int)
+			INSERT INTO scripttest (a, b) VALUES ('foo in\
+				two lines', 20)
+		""")
+		sq = sqlsupport.SimpleQuerier()
+		self.assertEqual("foo in two lines",
+			sq.runIsolatedQuery("SELECT a FROM scripttest")[0][0])
+		sq.runIsolatedQuery("DROP TABLE scripttest")
+		sq.close()
+
+	def testScriptRaises(self):
+		"""tests for an exception being thrown by bad scripts
+		"""
+		sr = sqlsupport.ScriptRunner()
+		self.assertRaises(sqlsupport.DbError, sr.run, "DROP TABLE scripttest")
+		self.assertRaises(sqlsupport.DbError, sr.run, "wroppa is blup---")
+
+	def testScriptWithIgnoredErrors(self):
+		"""tests for bad instructions being isolated and eliminated.
+		"""
+		sr = sqlsupport.ScriptRunner()
+		sr.run("-DROP TABLE scripttest\n"
+			"CREATE TABLE scripttest (a text primary key, b int)\n"
+			"-wroppa is blup---\n"
+			"INSERT INTO scripttest (a, b) VALUES ('foo', 3)\n"
+			"-INSERT INTO scripttest (a, b) VALUES ('foo', 4)\n"
+			"INSERT INTO scripttest (a, b) VALUES ('bar', 4)\n")
+		sq = sqlsupport.SimpleQuerier()
+		res = sq.runIsolatedQuery("SELECT b FROM scripttest WHERE a='foo'")
+		self.assertEqual(1, len(res))
+		self.assertEqual(3, res[0][0])
+		res = sq.runIsolatedQuery("SELECT b FROM scripttest WHERE a='bar'")
+		self.assertEqual(1, len(res))
+		self.assertEqual(4, res[0][0])
+		sq.runIsolatedQuery("DROP TABLE scripttest")
+		sq.close()
+
+
 def singleTest():
-	suite = unittest.makeSuite(TestImport, "test")
+	suite = unittest.makeSuite(TestScriptRunner, "test")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 

@@ -457,6 +457,23 @@ def computeUnitSphereCoords(alpha, delta):
 		sin(delta))
 
 
+def dirVecToCelCoos(dirVec):
+	"""returns alpha, delta in degrees for the direction vector dirVec.
+	>>> dirVecToCelCoos(computeUnitSphereCoords(25.25, 12.125))
+	(25.25, 12.125)
+	>>> dirVecToCelCoos(computeUnitSphereCoords(25.25, 12.125)*16)
+	(25.25, 12.125)
+	>>> "%g,%g"%dirVecToCelCoos(computeUnitSphereCoords(25.25, 12.125)+
+	...   computeUnitSphereCoords(30.75, 20.0))
+	'27.9455,16.0801'
+	"""
+	dirVec = dirVec.normalized()
+	alpha = math.atan2(dirVec.y, dirVec.x)
+	if alpha<0:
+		alpha += 2*math.pi
+	return alpha*180./math.pi, math.asin(dirVec.z)*180./math.pi
+
+
 def getTangentialUnits(cPos):
 	"""returns the unit vectors for RA and Dec at the unit circle position cPos.
 

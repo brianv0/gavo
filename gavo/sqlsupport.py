@@ -153,7 +153,7 @@ class FieldError(gavo.Error):
 
 # This is the name of the (global) table containing units, ucds, descriptions,
 # etc for all table rows of user tables
-# XXX TODO: Do we still want this?  If yes, to a real table definition
+# XXX TODO: Do we still want this?  If yes, do a real table definition
 # through a resource descriptor
 metaTableName = "fielddescriptions"
 
@@ -604,37 +604,50 @@ class ScriptRunner:
 	Also, we abort and raise an exception on any error in the script unless
 	the first character of the command is a "-" (which is ignored otherwise).
 	"""
-	def __init__(self):
-		self.connection = getDbConnection(config.getDbProfile())
-
-	def run(self, script, verbose=False):
+	def _parseScript(self, script):
 		script = re.sub(r"\\\n\s*", " ", script)
-		cursor = self.connection.cursor()
+		queries = []
 		for query in script.split("\n"):
-			query = query.strip()
-			if not query:
-				continue
 			failOk = False
-			query = query.strip()
 			if query.startswith("-"):
 				failOk = True
 				query = query[1:]
-			try:
-				cursor.execute(query)
-			except DbError, msg:
-				if failOk:
-					gavo.logger.debug("SQL script operation %s failed (%s) -- ignoring"
-						" error on your request."%(query, encodeDbMsg(msg)))
-				else:
-					gavo.logger.error("SQL script operation %s failed (%s) --"
-						" aborting script."%(query, encodeDbMsg(msg)))
-					raise
-		cursor.close()
-		self.commit()
-	
-	def commit(self):
-		self.connection.commit()
+			queries.append((failOk, query))
+		return queries
 
+	def run(self, script, verbose=False):
+		"""runs script in a transaction of its own.
+
+		The function will retry a script that fails if the failing command
+		was marked with a - as first char.
+		"""
+		connection = getDbConnection(config.getDbProfile())
+		queries = self._parseScript(script)
+		while 1:
+			cursor = connection.cursor()
+			for ct, (failOk, query) in enumerate(queries):
+				query = query.strip()
+				if not query:
+					continue
+				try:
+					cursor.execute(query)
+				except DbError, msg:
+					if failOk:
+						gavo.logger.debug("SQL script operation %s failed (%s) -- removing"
+							" instruction and trying again."%(query, encodeDbMsg(msg)))
+						queries = queries[:ct]+queries[ct+1:]
+						connection.rollback()
+						break
+					else:
+						gavo.logger.error("SQL script operation %s failed (%s) --"
+							" aborting script."%(query, encodeDbMsg(msg)))
+						raise
+			else:
+				break
+		cursor.close()
+		connection.commit()
+		connection.close()
+	
 
 class MetaTableHandler:
 	"""is an interface to the meta table.
