@@ -223,7 +223,8 @@ def makeCopyingField(field):
 	"""
 	newField = DataField()
 	newField.updateFrom(field)
-	newField.set_source(field.get_dest())
+	if newField.get_source()!="None":
+		newField.set_source(field.get_dest())
 	newField.set_literalForm("do not touch")
 	return newField
 

@@ -294,7 +294,8 @@ class DbBasedCore(QueryingCore):
 		else:
 			condition = ""
 		query = "SELECT %(fields)s from %(table)s %(condition)s %(limtags)s"%{
-			"fields": ", ".join([f.get_dest() for f in recordDef.get_items()]),
+			"fields": ", ".join([f.get_dest() 
+				for f in recordDef.get_items() if f.get_source()!="None"]),
 			"table": tableName,
 			"condition": condition,
 			"limtags": limtagsFrag,

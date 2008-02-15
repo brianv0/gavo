@@ -188,7 +188,25 @@ class GavoRenderMixin(object):
 			T.script(src=makeSitePath("/static/js/gavo.js"), 
 				type="text/javascript"),
 		]
-
+	
+	def render_withsidebar(self, ctx, data):
+		oldChildren = ctx.tag.children
+		ctx.tag.children = []
+		return ctx.tag[
+			T.div(id="chdr")[
+				T.a(href="/", render=T.directive("rootlink"))[
+					T.img(src="/static/img/logo_small.png", class_="silentlink",
+						render=T.directive("rootlink"))],
+				T.h1(render=T.directive("meta"))["title"],
+			],
+			T.div(id="body")[
+				oldChildren
+			],
+			T.div(id="sidebar")[
+				"Dis wil become da sidebar."
+			]
+		]
+				
 
 class QueryMeta(dict):
 	"""is a class keeping all data *about* a query, e.g., the

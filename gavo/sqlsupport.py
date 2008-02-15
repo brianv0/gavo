@@ -679,6 +679,7 @@ class MetaTableHandler:
 			items.update(colDesc)
 			feed(items)
 		feed.close()
+		self.writer.finish()
 
 	def _fixFieldInfo(self, resDict):
 		"""does some ad-hoc changes to amend fieldInfos coming

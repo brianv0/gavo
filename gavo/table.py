@@ -212,9 +212,9 @@ class Table(RecordBasedTable):
 					" OPERATION."%(row, msg))
 				feed.rollback()
 				raise
-			feed.close()
 		finally:
 			counter.close()
+			feed.close()
 
 	def _getOwnedTableWriter(self, schema):
 		tableName = "%s.%s"%(schema, self.recordDef.get_table())

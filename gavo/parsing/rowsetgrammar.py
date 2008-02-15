@@ -36,6 +36,6 @@ class RowsetGrammar(grammar.Grammar):
 		for row in parseContext.sourceFile:
 			res = dict(itertools.izip(colNames, row))
 			for name, default in defaults:
-				if res[name]==None:
+				if res.get(name)==None:
 					res[name] = default
 			yield res

@@ -153,6 +153,24 @@ def _sfMapperFactory(colProps):
 	return coder
 
 
+def _simbadMapperFactory(colProps):
+	if colProps["displayHint"].get("type")!="simbadlink":
+		return
+	alphaCol = colProps["displayHint"].get("alphaRow", "alphaFloat")
+	deltaCol = colProps["displayHint"].get("deltaRow", "deltaFloat")
+	radius = float(colProps["displayHint"].get("coneMins", "1"))
+	colProps["wantsRow"] = True
+	def coder(row):
+		alpha, delta = row[alphaCol], row[deltaCol]
+		if alpha and delta:
+			return T.a(href="http://simbad.u-strasbg.fr/simbad/sim-coo?Coord=%s"
+				"&Radius=%f"%(urllib.quote("%.5fd%+.5fd"%(alpha, delta)),
+					radius))["[Simbad]"]
+		else:
+			return ""
+	return coder
+_registerHTMLMF(_simbadMapperFactory)
+
 #  Insert new, more specific factories here
 
 
@@ -208,14 +226,20 @@ class HTMLTableFragment(rend.Fragment):
 		self.colPropsIndex = dict((props["name"], props) 
 			for props in self.colProps)
 		votable.acquireSamples(self.colPropsIndex, self.table)
-		self.defaultTds = [T.td(data=T.slot(props["name"]),
-				formatter=_htmlMFRegistry.getMapper(props),
-				render=T.directive("useformatter"))
-			for props in self.colProps]
+		self.defaultTds = []
+		for props in self.colProps:
+			formatter=_htmlMFRegistry.getMapper(props) # This may change props!
+			if props.has_key("wantsRow"):
+				self.defaultTds.append(
+					T.td(formatter=formatter, render=T.directive("useformatter")))
+			else:
+				self.defaultTds.append(T.td(data=T.slot(props["name"]),
+					formatter=formatter,
+					render=T.directive("useformatter")))
 
 	def render_useformatter(self, ctx, data):
 		attrs = ctx.tag.attributes
-		formatVal = attrs.get("formatter", None)
+		formatVal = attrs["formatter"]
 		if formatVal==None:
 			formatVal = str
 		del ctx.tag.attributes["formatter"]

@@ -558,9 +558,8 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		super(Form, self).process(ctx)
 
 	defaultDocFactory = loaders.stan(T.html[
-		T.head[
+		T.head(render=T.directive("commonhead"))[
 			T.title(render=T.directive("meta"))["title"],
-			T.invisible(render=T.directive("commonhead")),
 		],
 		T.body[
 			T.h1(render=T.directive("meta"))["title"],

@@ -73,7 +73,7 @@ class RdParser(utils.NodeBuilder):
 
 		If there's a # in id, the stuff in front of it is
 		an inputs-relative path to another resource descriptor,
-		and the id then refers to one of its data descriptors.
+		and the id then refers to one of its elements.
 		"""
 		if "#" in id:
 			rdPath, id = id.split("#", 1)

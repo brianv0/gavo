@@ -113,7 +113,6 @@ class ScriptHandler(object):
 	def _runSqlScript(self, script):
 		runner = sqlsupport.ScriptRunner()
 		runner.run(self.expander.expand(script))
-		runner.commit()
 	
 	handlers = {
 		"postCreation": _runSqlScript,
