@@ -419,6 +419,8 @@ class ToVexprConverter(typesystems.FromSQLConverter):
 	def mapComplex(self, sqlType, length):
 		if sqlType=="char":
 			return "vexpr-string"
+		if sqlType=="varchar":
+			return "vexpr-string"
 
 getVexprFor = ToVexprConverter().convert
 

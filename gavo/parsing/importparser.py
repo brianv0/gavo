@@ -411,12 +411,9 @@ class RdParser(utils.NodeBuilder):
 	def _make_tokenizer(self, name, attrs, children):
 		return self.getContent(children), attrs["type"]
 
-	scriptTypes = set(["postCreation"])
-
 	def _make_script(self, name, attrs, children):
-		assert attrs["type"] in self.scriptTypes # Just a quick hack
 		return (attrs["type"], attrs.get("name", "<anonymous>"),
-			self.getContent(children))
+			self.getContentWS(children))
 
 	def _make_constraints(self, name, attrs, children):
 		constraints = conditions.Constraints(fatal=record.parseBooleanLiteral(

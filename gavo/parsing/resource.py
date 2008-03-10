@@ -99,7 +99,7 @@ class SqlMacroExpander(object):
 class ScriptHandler(object):
 	"""is a container for the logic of running scripts.
 
-	Objects like ResourceDescriptors and DatatDescriptors can have
+	Objects like ResourceDescriptors and DataDescriptors can have
 	scripts attached that may run at certain points in their lifetime.
 
 	This class provides a uniform interface to them.  Right now,
@@ -113,9 +113,27 @@ class ScriptHandler(object):
 	def _runSqlScript(self, script):
 		runner = sqlsupport.ScriptRunner()
 		runner.run(self.expander.expand(script))
-	
+
+	def _runPythonDDProc(self, script):
+		"""compiles and run script to a python function working on a
+		data descriptor's table(s).
+
+		The function receives the data descriptor (as dataDesc) and a 
+		database connection (as connection) as arguments.  The script only
+		contains the body of the function, never the header.
+		"""
+		def makeFun(script):
+			ns = dict(globals())
+			code = ("def someFun(dataDesc, connection):\n"+
+				utils.fixIndentation(script, "      ")+"\n")
+			exec code in ns
+			return ns["someFun"]
+		makeFun(script)(self.parent, sqlsupport.getDefaultDbConnection())
+
 	handlers = {
+		"preCreation": _runSqlScript,
 		"postCreation": _runSqlScript,
+		"processTable": _runPythonDDProc,
 	}
 	
 	def _runScript(self, scriptType, scriptName, script):
@@ -467,8 +485,10 @@ class DataSet(meta.MetaMixin):
 	def exportToSql(self, schema):
 		if self.getDescriptor().get_virtual():
 			return
+		self.dD.scriptHandler.runScripts("preCreation")
 		for table in self.tables:
 			table.exportToSql(schema)
+		self.dD.scriptHandler.runScripts("processTable")
 		self.dD.scriptHandler.runScripts("postCreation")
 
 	def exportToVOTable(self, destination, tableNames=None, tablecoding="td",

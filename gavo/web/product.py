@@ -86,7 +86,9 @@ class Product(standardcores.DbBasedCore):
 			raise Error("More than one item matched the key.  Honestly, this"
 				" can't happen.")
 		item = result[0]
-		if not isFree(item):
+# XXX TODO: It's bad if the previews require a password, but this is nasty
+# as well.  Think of sth better.
+		if not ctx.arg("preview") and not isFree(item):
 			return creds.runAuthenticated(ctx, item["owner"], 
 				lambda: self._deliverFile(sqlPars, ctx, item, queryMeta))
 		else:

@@ -162,6 +162,9 @@ class Error(Exception):
 	pass
 
 
+def getDefaultDbConnection():
+	return getDbConnection(config.getDbProfile())
+
 
 def encodeDbMsg(msg):
 	"""returns the string or sql exception msg in ascii.
@@ -571,8 +574,10 @@ class SimpleQuerier(StandardQueryMixin):
 	def __init__(self, connection=None):
 		if connection:
 			self.connection = connection
+			self.ownedConnection = False
 		else:
 			self.connection = getDbConnection(config.getDbProfile())
+			self.ownedConnection = True
 
 	def rollback(self):
 		self.connection.rollback()
@@ -582,15 +587,17 @@ class SimpleQuerier(StandardQueryMixin):
 
 	def close(self):
 		if self.connection:
-			self.connection.close()
+			if self.ownedConnection:
+				self.connection.close()
 			self.connection = None
 
 	def finish(self):
 		self.commit()
-		self.close()
+		if self.ownedConnection:
+			self.close()
 
 	def __del__(self):
-		if self.connection:
+		if self.ownedConnection and self.connection:
 			self.close()
 		
 

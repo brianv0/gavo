@@ -126,6 +126,20 @@ def makeClassDocs(baseClass, objects):
 	return True
 
 
+def fixIndentation(code, newIndent):
+	"""returns code with all whitespace from the first line removed from
+	every line and newIndent prepended to every line.
+	"""
+	codeLines = [line for line in code.split("\n") if line.strip()]
+	firstIndent = re.match("^\s*", codeLines[0]).group()
+	fixedLines = []
+	for line in codeLines:
+		if line[:len(firstIndent)]!=firstIndent:
+			raise Error("Bad indent in line %s"%repr(line))
+		fixedLines.append(newIndent+line[len(firstIndent):])
+	return "\n".join(fixedLines)
+
+
 class StartEndHandler(ContentHandler):
 	"""is a ContentHandler that translates certain Sax events to method
 	calls.
@@ -326,12 +340,18 @@ class BaseNodeBuilder(ContentHandler):
 		for name, val in children:
 			res.setdefault(name, []).append(val)
 
+	def getContentWS(self, children):
+		"""returns the entire text content of the node in a string without doing
+		whitespace normalization.
+		"""
+		return "".join([n[1] for n in children if n[0]==None])
+
 	def getContent(self, children):
 		"""returns the entire text content of the node in a string.
 
-		This proabably won't do what you want in mixed-content models.
+		This probably won't do what you want in mixed-content models.
 		"""
-		return "".join([n[1] for n in children if n[0]==None]).strip()
+		return self.getContentWS(children).strip()
 
 	def _cleanTextNodes(self, children):
 		"""joins adjacent text nodes and prunes whitespace-only nodes.

@@ -899,24 +899,10 @@ class SiapMetaSetter(Macro):
 			record[key] = value
 
 
-def _fixIndentation(code, newIndent):
-	"""returns code with all whitespace from the first line removed from
-	every line and newIndent prepended to every line.
-	"""
-	codeLines = [line for line in code.split("\n") if line.strip()]
-	firstIndent = re.match("\s*", codeLines[0]).group()
-	fixedLines = []
-	for line in codeLines:
-		if line[:len(firstIndent)]!=firstIndent:
-			raise Error("Bad indent in line %s"%repr(line))
-		fixedLines.append(newIndent+line[len(firstIndent):])
-	return "\n".join(fixedLines)
-
-
 def compileMacro(name, code):
 	"""returns a macro of name name and code as _compute body.
 	"""
-	code = _fixIndentation(code, "			")
+	code = utils.fixIndentation(code, "			")
 	macCode = """class Newmacro(Macro):
 		@staticmethod
 		def getName():
