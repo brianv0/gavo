@@ -204,6 +204,16 @@ class DataField(record.Record):
 class OutputField(DataField):
 	"""is a DataField for output purposes.
 	"""
+	additionalFields = {
+		"select": None,    # a select clause to use instead of dest
+		"renderer": None,  # Python code for a renderer function body
+	}
+
+	def get_select(self):
+		if self.dataStore["select"]:
+			return "(%s) as %s"%(self.dataStore["select"], self.dataStore["dest"])
+		return self.dataStore["dest"]
+
 	@classmethod
 	def fromDataField(cls, dataField):
 		instance = super(OutputField, cls).fromDataField(dataField)

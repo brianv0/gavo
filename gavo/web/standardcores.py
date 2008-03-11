@@ -28,7 +28,6 @@ from gavo.parsing import rowsetgrammar
 from gavo.parsing import contextgrammar
 from gavo.web import core
 from gavo.web import common
-from gavo.web import dbhack # XXX remove once we know what's wrong with adbapi
 from gavo.web import runner
 from gavo.web import vizierexprs
 
@@ -218,41 +217,44 @@ class DbBasedCore(QueryingCore):
 		verbLimit = queryMeta.get("verbosity", 20)
 		for f in self.tableDef.get_items():
 			if f.get_verbLevel()<=verbLimit:
-				self.addto_outputFields(datadef.makeCopyingField(f))
+				self.addto_outputFields(datadef.OutputField.fromDataField(f))
 
-# XXX the whole makeCopyingField stuff should go away.  Construct these
-# Fields right and you won't need them.
 	def _getVOTableOutputFields(self, queryMeta):
-		"""returns a list of dataFields suitable for a VOTable response described
+		"""returns a list of OutputFields suitable for a VOTable response described
 		by queryMeta
 		"""
 		verbLevel = queryMeta.get("verbosity", 20)
-		fieldList = [datadef.makeCopyingField(f) for f in self.tableDef.get_items()
+		fieldList = [datadef.OutputField.fromDataField(f) 
+			for f in self.tableDef.get_items()
 			if f.get_verbLevel()<=verbLevel and 
 				f.get_displayHint().get("type")!="suppress"]
 		return fieldList
 
 	def _getHTMLOutputFields(self, queryMeta):
-		"""returns a list of dataFields suitable for an HTML response described
+		"""returns a list of OutputFields suitable for an HTML response described
 		by queryMeta
 		"""
-		res = [datadef.makeCopyingField(f) for f in self.get_outputFields()]
+		res = self.get_outputFields()
+		keysPresent = set([f.get_dest() for f in res])
 		for dest in queryMeta.get("additionalFields", []):
 			try:
-				res.append(datadef.makeCopyingField(
+				if dest in keysPresent:
+					continue
+				res.append(datadef.OutputField.fromDataField(
 					self.tableDef.getFieldByName(dest)))
+				keysPresent.add(dest)
 			except KeyError:  # ignore orders for non-existent fields
 				pass
 		return res
 
 	def _getAllOutputFields(self, queryMeta):
-		"""returns a list of all dataFields of the source table, with
+		"""returns a list of all OutputFields of the source table, with
 		their sources set to their dests.
 		"""
-		return [datadef.makeCopyingField(f) for f in self.tableDef]
+		return [datadef.OutputField.fromDataField(f) for f in self.tableDef]
 
 	def getOutputFields(self, queryMeta):
-		"""returns a list of dataFields suitable for a response described by
+		"""returns a list of OutputFields suitable for a response described by
 		queryMeta.
 
 		This evaluates stuff like verbosity and additionalFields.
@@ -274,6 +276,14 @@ class DbBasedCore(QueryingCore):
 			[cd.asSQL(docRec, pars)
 				for cd in self.get_condDescs()]), pars
 
+	def _getSelect(self, f):
+		# This should go -- the recordDefs passed in here should be comprised
+		# of OutputFields exclusively.
+		if isinstance(f, datadef.OutputField):
+			return f.get_select()
+		else:
+			return f.get_dest()
+
 	def runDbQuery(self, condition, pars, recordDef, queryMeta):
 		"""runs a db query with condition and pars to fill a table
 		having the columns specified in recordDef.
@@ -294,8 +304,7 @@ class DbBasedCore(QueryingCore):
 		else:
 			condition = ""
 		query = "SELECT %(fields)s from %(table)s %(condition)s %(limtags)s"%{
-			"fields": ", ".join([f.get_dest() 
-				for f in recordDef.get_items() if f.get_source()!="None"]),
+			"fields": ", ".join([self._getSelect(f) for f in recordDef.get_items()]),
 			"table": tableName,
 			"condition": condition,
 			"limtags": limtagsFrag,

@@ -314,7 +314,7 @@ class RdParser(utils.NodeBuilder):
 		return self.rd.getDataById(dataId).getRecordDefByName(tableName
 			).getFieldByName(fieldName)
 
-	def _makeFieldNode(self, fieldClass, name, attrs, children, nodeHandlers):
+	def _makeFieldInstance(self, fieldClass, name, attrs, children, nodeHandlers):
 		"""creates an instance of the datafield.DataDef-derived class fieldClass
 		according to attrs and children.
 		"""
@@ -332,18 +332,24 @@ class RdParser(utils.NodeBuilder):
 			"Values": field.set_values,
 			"property": lambda val: field.register_property(*val),
 		}
-		handlers.update(nodeHandlers)
+		for key, hdlr in nodeHandlers.iteritems():
+			handlers[key] = getattr(field, hdlr)
 		return self._processChildren(field, name, handlers, children)
 
 	def _make_Field(self, name, attrs, children):
-		return self._makeFieldNode(datadef.DataField, "Field", attrs, children, {})
+		return self._makeFieldInstance(datadef.DataField, 
+			"Field", attrs, children, {})
 
 	def _make_outputField(self, name, attrs, children):
-		return self._makeFieldNode(datadef.OutputField, "outputField", 
-			attrs, children, {})
+		f = self._makeFieldInstance(datadef.OutputField, "outputField", 
+			attrs, children, {
+				"renderer": "set_renderer"})
+		if not f.get_source():
+			f.set_source(f.get_dest())
+		return f
 
 	def _make_inputKey(self, name, attrs, children):
-		return self._makeFieldNode(contextgrammar.InputKey, "inputKey",
+		return self._makeFieldInstance(contextgrammar.InputKey, "inputKey",
 			attrs, children, {})
 
 	def _make_copyof(self, name, attrs, children):
@@ -414,6 +420,9 @@ class RdParser(utils.NodeBuilder):
 	def _make_script(self, name, attrs, children):
 		return (attrs["type"], attrs.get("name", "<anonymous>"),
 			self.getContentWS(children))
+
+	def _make_renderer(self,name, attrs, children):
+		return self.getContentWS(children)
 
 	def _make_constraints(self, name, attrs, children):
 		constraints = conditions.Constraints(fatal=record.parseBooleanLiteral(
@@ -500,7 +509,6 @@ class RdParser(utils.NodeBuilder):
 		return (attrs["type"], attrs["src"])
 
 	def _make_core(self, name, attrs, children):
-
 		def handlerFactory(core, elName, methodName):
 			if hasattr(core, methodName):
 				return getattr(core, methodName)
@@ -529,8 +537,6 @@ class RdParser(utils.NodeBuilder):
 					"addDefaultCondDescs"),
 			})
 		return self._processChildren(curCore, name, handlers, children)
-
-
 
 	def _make_autoOutputFields(self, name, attrs, children):
 		"""returns a web.common.QueryMeta instance out of attrs.

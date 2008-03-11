@@ -78,6 +78,10 @@ class ProductTarMaker:
 		_getProducts.
 		"""
 		sq = sqlsupport.SimpleQuerier()
+# We currently have a bit of an encoding mess in the various databases,
+# so pull the strings down to bytestring.  Don't use non-ascii chars
+# in your filenames...
+		keyList = [str(k) for k in keyList]
 		return resource.InternalDataSet(self.dd, table.Table, sq.query(
 			"SELECT %s FROM products WHERE key IN %%(keys)s"%(
 					", ".join([f.get_dest() for f in self.items])),

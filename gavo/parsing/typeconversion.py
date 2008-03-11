@@ -179,11 +179,16 @@ class LiteralParser:
 			return str(literal).decode(self.encoding)
 		return str(literal)
 
+	def _identity(self, a):
+		return a
+
 	def _computeConverter(self, sqlType):
 		"""returns a function converting a string into something suitable
 		for ingestion as sqlType.
 		"""
 		sqlType = sqlType.lower()
+		if sqlType=="raw":
+			return self._identity
 		if sqlType in self.simpleConverters:
 			return self.simpleConverters[sqlType]
 		if sqlType.startswith("numeric"):
@@ -199,7 +204,7 @@ class LiteralParser:
 				return conv
 		logger.warning("Conversion to unknown type %s requested.  Returning"
 			" identity."%sqlType)
-		return lambda a: a
+		return self._identity
 
 	def makePythonVal(self, literal, sqlType, literalForm=None):
 		"""returns a python value suitable for later ingestion as sqlType.

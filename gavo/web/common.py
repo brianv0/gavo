@@ -348,6 +348,8 @@ class CoreResult(object):
 		return dict((k, str(v)) for k, v in self.queryPars.iteritems()
 			if not k in QueryMeta.metaKeys and v and v!=[None])
 
+	suppressedParNames = set(["submit"])
+		
 	def data_queryseq(self, ctx=None):
 		if self.service:
 			fieldDict = dict((f.get_dest(), f) 
@@ -361,7 +363,8 @@ class CoreResult(object):
 				title = fieldDict[key].get_tablehead()
 			return title or key
 		
-		s = [(getTitle(k), v) for k, v in self.data_querypars().iteritems()]
+		s = [(getTitle(k), v) for k, v in self.data_querypars().iteritems()
+			if k not in self.suppressedParNames and not k.startswith("_")]
 		s.sort()
 		return s
 

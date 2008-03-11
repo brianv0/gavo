@@ -55,6 +55,8 @@ class FromSQLConverter:
 			if mat:
 				res = self.mapComplex(mat.group(1), mat.group(2))
 		if res==None:
+			if sqlType=="raw":
+				return "raw"
 			raise Error("No %s type for %s"%(self.typeSystem, sqlType))
 		return res
 
@@ -84,6 +86,7 @@ class ToVOTableConverter(FromSQLConverter):
 		"vexpr-string": ("char", "*"),
 		"vexpr-date": ("char", "*"),
 		"vexpr-float": ("double", "1"),
+		"raw": ("raw", "*"),
 	}
 
 	def mapComplex(self, type, length):

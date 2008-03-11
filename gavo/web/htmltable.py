@@ -17,6 +17,7 @@ from twisted.internet import reactor, defer
 from gavo import config
 from gavo import coords
 from gavo import unitconv
+from gavo import utils
 from gavo import votable
 from gavo.web import common
 
@@ -154,14 +155,19 @@ def _sfMapperFactory(colProps):
 
 
 def _simbadMapperFactory(colProps):
+	"""is a mapper yielding links to simbad.
+
+	To make this work, you need to furnish the OutputField with a
+	select="array[alphaFloat, deltaFloat]" or similar.
+
+	You can give a coneMins displayHint to specify the search radius in
+	minutes.
+	"""
 	if colProps["displayHint"].get("type")!="simbadlink":
 		return
-	alphaCol = colProps["displayHint"].get("alphaRow", "alphaFloat")
-	deltaCol = colProps["displayHint"].get("deltaRow", "deltaFloat")
 	radius = float(colProps["displayHint"].get("coneMins", "1"))
-	colProps["wantsRow"] = True
-	def coder(row):
-		alpha, delta = row[alphaCol], row[deltaCol]
+	def coder(data):
+		alpha, delta = data[0], data[1]
 		if alpha and delta:
 			return T.a(href="http://simbad.u-strasbg.fr/simbad/sim-coo?Coord=%s"
 				"&Radius=%f"%(urllib.quote("%.5fd%+.5fd"%(alpha, delta)),
@@ -213,6 +219,19 @@ class HTMLTableFragment(rend.Fragment):
 		self._computeDefaultTds()
 		self._computeHeadCellsStan()
 
+	def _compileRenderer(self, source):
+		"""returns a function object from source.
+
+		Source must be the function body of a renderer.  The variable data
+		contains the entire row, and the thing must return a string of at
+		least stan (it can use T.tag).
+		"""
+		ns = dict(globals())
+		code = ("def render(data):\n"+
+			utils.fixIndentation(source, "     ")+"\n")
+		exec code in ns
+		return ns["render"]
+
 	def _computeDefaultTds(self):
 		"""leaves a sequence of children for each row in the
 		defaultTds attribute.
@@ -227,8 +246,14 @@ class HTMLTableFragment(rend.Fragment):
 			for props in self.colProps)
 		votable.acquireSamples(self.colPropsIndex, self.table)
 		self.defaultTds = []
-		for props in self.colProps:
-			formatter=_htmlMFRegistry.getMapper(props) # This may change props!
+		for props, field in zip(self.colProps, self.table.getFieldDefs()):
+# the hasattr here is necessary since we allow plain data fields to be
+# passed in here.  We should really change that.
+			if hasattr(field, "get_renderer") and field.get_renderer():
+				formatter = self._compileRenderer(field.get_renderer())
+			else:
+				formatter=_htmlMFRegistry.getMapper(props) # This may change props!
+			# XXX the wantsRow mess is currently unused.  Maybe remove it again?
 			if props.has_key("wantsRow"):
 				self.defaultTds.append(
 					T.td(formatter=formatter, render=T.directive("useformatter")))
