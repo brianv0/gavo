@@ -62,6 +62,18 @@ def parseServicePath(serviceParts):
 	return "/".join(serviceParts[:-1]), serviceParts[-1]
 
 
+class doctypedStan(loaders.stan):
+	"""is the stan loader with a (transitional) doctype added.
+	"""
+
+	DOCTYPE = T.xml('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01'
+		' Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">')
+
+	def __init__(self, stan, pattern=None):
+		super(doctypedStan, self).__init__(T.invisible[self.DOCTYPE, stan], 
+			pattern)
+
+			
 class CustomErrorMixin(object):
 	"""is a mixin for renderers containing formal forms to emit
 	custom error messages.

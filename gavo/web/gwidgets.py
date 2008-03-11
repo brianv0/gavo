@@ -5,16 +5,16 @@ Special gavo widgets and their corresponding types based on nevow formal.
 import urllib
 
 from nevow import tags as T, entities as E
+from nevow import inevow
 import formal
 from formal import iformal
 from formal import types as formaltypes
 from formal import validation
 from formal import widget
 from formal.util import render_cssid
-from zope.interface import implements
-
 from formal.widget import *
 from formal import widgetFactory
+from zope.interface import implements
 
 from gavo import record
 from gavo.web import common
@@ -92,7 +92,13 @@ class OutputFormat(object):
 					style="padding-left:200px")[
 				T.a(href="", class_="resultlink", onMouseOver=
 						"this.href=makeResultLink(getEnclosingForm(this))")
-					["[Result link]"]
+					["[Result link]"],
+				" ",
+				T.a(href="", class_="resultlink", onMouseOver=
+						"this.href=makeBookmarkLink(getEnclosingForm(this))")[
+					T.img(src=common.makeSitePath("/static/img/bookmark.png"), 
+						class_="silentlink")
+				],
 			],
 			T.br,
 			T.div(id="op_selectItems", style="visibility:hidden;position:absolute;"
@@ -136,6 +142,8 @@ class DbOptions(object):
 
 	def render(self, ctx, key, args, errors):
 		children = []
+		args = {'_DBOPTIONS_ORDER': args.get("_DBOPTIONS_ORDER", [None])[0],
+			'_DBOPTIONS_LIMIT': int(args.get("_DBOPTIONS_LIMIT", [100])[0]),}
 		if self.sortWidget:
 			children.extend(["Sort by ",
 				self.sortWidget.render(ctx, "_DBOPTIONS_ORDER", args, errors),
@@ -144,7 +152,7 @@ class DbOptions(object):
 			children.extend(["Limit to ",
 				self.limitWidget.render(ctx, "_DBOPTIONS_LIMIT", args, errors),
 				" items."])
-		return T.span[children]
+		return T.span(id=render_cssid(key, "_DBOPTIONS"))[children]
 
 	# XXX TODO: make this immutable.
 	renderImmutable = render
@@ -234,7 +242,6 @@ class MultiselectChoice(MultichoiceBase):
 	noneOption = ('', '')
 
 	def _renderTag(self, ctx, key, value, converter, disabled):
-
 		def renderOptions(ctx, data):
 			if self.noneOption is not None and not self.original.required:
 				yield T.option(value=iformal.IKey(self.noneOption).key())[

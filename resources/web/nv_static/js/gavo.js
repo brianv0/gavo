@@ -4,11 +4,11 @@
 function decodeGetPars(queryString) {
 // an incredibly crappy approach to getting whatever was in the query string
 // into javascript.
-	var pars = new Array();
+	var pars = new Object();
   var pairs = queryString.slice(1).split("&");
   for (var ind in pairs) {
 		var pair = pairs[ind].split("=");
-		var key = unescape(pair[0]).replace("+", " ");
+		var key = 'arg'+unescape(pair[0]).replace("+", " ");
     var value = unescape(pair[1]).replace("+", " ");
 		if (pars[key]==undefined) {
 	    pars[key] = new Array(value);
@@ -92,7 +92,7 @@ function makeQueryItem(element) {
 	}
 }
 
-function makeResultLink(form) {
+function getFormQuery(form, ignoreNames) {
 	// returns a link to the result sending the HTML form form would
 	// yield.
 	var fragments = new Array();
@@ -102,11 +102,23 @@ function makeResultLink(form) {
 	items = form.elements;
 	for (i=0; i<items.length; i++) {
 		fragment = makeQueryItem(items[i]);
-		if (fragment) {
+		if (fragment && ignoreNames[items[i].name]==undefined) {
 			fragments.push(fragment);
+		} else {
+			window.status = "ignoring "+items[i].name;
 		}
 	}
 	return form.getAttribute("action")+"?"+fragments.join("&");
+}
+
+
+function makeResultLink(form) {
+	return getFormQuery(form, []);
+}
+
+
+function makeBookmarkLink(form) {
+	return getFormQuery(form, {'__nevow_form__': 1});
 }
 
 
@@ -148,8 +160,8 @@ function output_verbSelector(pars) {
 	root.class = "op_widget";
 	root.appendChild(document.createTextNode(" output verbosity "));
 	sel.name = "_VERB";
-	if (pars[sel.name]!=undefined) {
-		curSetting = pars[sel.name][0];
+	if (pars['arg'+sel.name]!=undefined) {
+		curSetting = pars['arg'+sel.name][0];
 	} else {
 		curSetting = "2";
 	}
@@ -174,8 +186,8 @@ function output_tdEncSelector(pars) {
 
 	root.class = "op_widget";
 	box.name = "_TDENC";
-	if (pars[box.name]!=undefined) {
-		curSetting = pars[box.name][0];
+	if (pars['arg'+box.name]!=undefined) {
+		curSetting = pars['arg'+box.name][0];
 	} else {
 		curSetting = "true";
 	}
@@ -219,7 +231,7 @@ function output_itemSelector(pars) {
 
 	root.class = "op_widget";
 	selector.name = "_ADDITEM";
-	var selected = pars[selector.name];
+	var selected = pars['arg'+selector.name];
 	if (selected==undefined) {
 		selected = new Array();
 	}
@@ -227,7 +239,7 @@ function output_itemSelector(pars) {
 	selector.style.maxWidth = 200;
 	selector.addEventListener("mouseover", output_expandSelectNode, false);
 	selector.addEventListener("mouseout", output_collapseSelectNode, false);
-selector.multiple = "multiple";
+	selector.multiple = "multiple";
 	var availableItems = output_getAvailableItems();
 	for (var ind in availableItems) {
 		var key = availableItems[ind][0];

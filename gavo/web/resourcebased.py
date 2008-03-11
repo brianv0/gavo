@@ -246,7 +246,7 @@ class VOPlotResponse(common.GavoRenderMixin, rend.Page):
 							"http://java.sun.com/products/plugin"],
 						"."]]
 
-	docFactory = loaders.stan(T.html[
+	docFactory = common.doctypedStan(T.html[
 		T.head[
 			T.title(render=T.directive("meta"))["title"],
 			T.invisible(render=T.directive("commonhead")),
@@ -331,7 +331,7 @@ class FITSTableResponse(FileResponse):
 		else:
 			return "data.fits", "application/x-fits"
 
-	errorFactory = loaders.stan(T.html[
+	errorFactory = common.doctypedStan(T.html[
 			T.head[
 				T.title["FITS generation failed"],
 				T.invisible(render=T.directive("commonhead")),
@@ -365,7 +365,7 @@ class TarResponse(FileResponse):
 		else:
 			return "data.tar", "application/x-tar"
 
-	errorFactory = loaders.stan(T.html[
+	errorFactory = common.doctypedStan(T.html[
 			T.head[
 				T.title["tar generation failed"],
 				T.invisible(render=T.directive("commonhead")),
@@ -484,10 +484,21 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		"""
 		for field in self.service.getInputFields():
 			self._addInputKey(form, field, data)
-			if field.get_default():
-				form.data[field.get_dest()] = field.get_default()
 			if data and data.has_key(field.get_dest()):
 				form.data[field.get_dest()] = data[field.get_dest()]
+			elif field.get_default():
+				form.data[field.get_dest()] = field.get_default()
+
+	def _fakeDefaults(self, form, ctx):
+		"""adds keys not yet in form.data but present in ctx to form.data.
+
+		The idea here is that you can bookmark template forms.  The
+		values in the bookmark are not normally picked up since _processForm 
+		doesn't run.
+		"""
+		for key, val in inevow.IRequest(ctx).args.iteritems():
+			if key not in form.data:
+				form.data[key] = val
 
 	def _addMetaFields(self, form, queryMeta):
 		"""adds fields to choose output properties to form.
@@ -510,6 +521,7 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		form = formal.Form()
 		self._addQueryFields(form, data)
 		self._addMetaFields(form, queryMeta)
+		self._fakeDefaults(form, ctx)
 		if self.name=="form":
 			form.addField("_OUTPUT", formal.String, 
 				formal.widgetFactory(gwidgets.OutputFormat, self.service),
@@ -557,7 +569,7 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 	def process(self, ctx):
 		super(Form, self).process(ctx)
 
-	defaultDocFactory = loaders.stan(T.html[
+	defaultDocFactory = common.doctypedStan(T.html[
 		T.head(render=T.directive("commonhead"))[
 			T.title(render=T.directive("meta"))["title"],
 		],
