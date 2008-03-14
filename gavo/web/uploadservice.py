@@ -53,6 +53,13 @@ class UploadCore(standardcores.QueryingCore):
 		self.dataStore["dataName"] = dataName
 		self.dataDesc = self.rd.getDataById(dataName)
 
+	def _fixPermissions(self, fName):
+		"""tries to chmod the newly created file to 0664 and change the group
+		to config.gavoGroup.
+		"""
+		os.chmod(fName, 0664)
+		os.chown(fName, -1, grp.getgrnam(config.get("gavoGroup")))
+
 	def _writeFile(self, srcFile, fName):
 		"""writes the contents of srcFile to fName in dataDesc's staging dir.
 		"""
@@ -70,6 +77,11 @@ class UploadCore(standardcores.QueryingCore):
 		f = open(targetPath, "w")
 		f.write(srcFile.read())
 		f.close()
+		try:
+			self._fixPermissions(targetPath)
+		except os.error:
+			# Nothing we can do, and it may not even hurt
+			pass
 		return targetPath
 
 	def _importData(self, sourcePath, mode):

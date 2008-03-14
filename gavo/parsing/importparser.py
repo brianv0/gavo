@@ -119,6 +119,8 @@ class RdParser(utils.NodeBuilder):
 		# XXX todo: coordinate systems
 		return self.rd
 
+	_start_Data = _pushFieldPath
+
 	def _make_Data(self, name, attrs, children):
 		dd = resource.DataDescriptor(self.rd)
 		dd.set_source(attrs.get("source"))
@@ -129,7 +131,7 @@ class RdParser(utils.NodeBuilder):
 		dd.set_virtual(attrs.get("virtual", "False"))
 		dd.set_token(attrs.get("token", None))
 		self.rd.addto_dataSrcs(dd)
-		return self._processChildren(dd, name, {
+		res = self._processChildren(dd, name, {
 			"Field": dd.addto_items,
 			"Semantics": dd.set_Semantics,
 			"Macro": dd.addto_macros,
@@ -138,6 +140,8 @@ class RdParser(utils.NodeBuilder):
 			"property": lambda val: dd.register_property(*val),
 			"script": dd.addto_scripts,
 		}, children)
+		self.popProperty("fieldPath")
+		return res
 	
 	def _fillGrammarNode(self, grammar, attrs, children, classHandlers):
 		"""handles children and attributes common to all grammar classes.
@@ -240,7 +244,9 @@ class RdParser(utils.NodeBuilder):
 		return self._processChildren(semantics, name, {
 			"Record": semantics.addto_recordDefs,
 		}, children)
-	
+
+	_start_Record = _pushFieldPath
+
 	def _make_Record(self, name, attrs, children):
 		if attrs.has_key("original"):
 			recDef = self.resolveItemReference(attrs["original"])
@@ -252,7 +258,7 @@ class RdParser(utils.NodeBuilder):
 		# not given with defaults.  This sort of mess would be necessary
 		# wherever we deal with copies like this.  Yikes.
 		for attName, default in [("table", None), ("onDisk", "False"),
-				("forceUnique", "False"), ("create", "True")]:
+				("forceUnique", "False"), ("create", "True"), ("conflicts", "check")]:
 			if attrs.has_key(attName):
 				recDef.set(attName, attrs[attName])
 			elif setDefaults:
@@ -261,7 +267,7 @@ class RdParser(utils.NodeBuilder):
 			recDef.set_shared(True)
 
 		if attrs.has_key("fieldsFrom"):
-			for field in self.getById(attrs["fieldsFrom"])[1].get_items():
+			for field in self.resolveItemReference(attrs["fieldsFrom"]).get_items():
 				newField = field.copy()
 				newField.set_source(newField.get_dest())
 				recDef.addto_items(newField)
@@ -280,8 +286,10 @@ class RdParser(utils.NodeBuilder):
 		for _, (interface, args) in interfaceNodes:
 			for nodeDesc in interface.getDelayedNodes(recDef, **args):
 				self.registerDelayedChild(*nodeDesc)
+		self.popProperty("fieldPath")
 		return utils.NamedNode("Record", record)
-	
+
+	_start_SharedRecord = _start_Record
 	_make_SharedRecord = _make_Record
 
 	def _make_fromgrammar(self, name, attrs, children):

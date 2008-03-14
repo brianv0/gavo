@@ -4,7 +4,15 @@ Tests for gavo.coords.
 
 import unittest
 
+import gavo
 from gavo import coords
+from gavo import utils
+
+
+interestingPlaces = [ (250, 89), (0,0), (23.0, 42.0), (23.0, -42.0), 
+(-23.0, 42.0), (-23.0, -42.0), (359, 0), (314.,-42.0), (0., 89.), (0, 90), 
+(90, -90), (90, 90)]
+
 
 class TestCartesian(unittest.TestCase):
 	"""Tests for cartesian coordinates on the unit sphere.
@@ -81,6 +89,90 @@ class TestBoxes(unittest.TestCase):
 		refBox = coords.Box((1,0),(2,0))
 		testBox = coords.Box((1.5,0),(2.5,0))
 		self.assert_(refBox.overlaps(testBox), "Degenerate boxes do not overlap")
+
+
+class TestWCS(unittest.TestCase):
+	"""Tests for WCS-handling routines in coords
+	"""
+	def _getWCSExample(self):
+		return {
+			"CUNIT1": "deg", "CUNIT2": "deg",
+			"CTYPE1": 'RA---TAN-SIP', "CTYPE2": 'DEC--TAN-SIP',
+			"CRVAL1": 0, "CRVAL2": 0,
+			"CRPIX1": 0, "CRPIX2": 0,
+			"CD1_1": 0.001, "CD1_2": 0, 
+			"CD2_1": 0, "CD2_2": 0.001, 
+			"LONPOLE": 180.,
+		}
+
+	def _doIdempotencyTest(self, wcs):
+		for ra, dec in interestingPlaces:
+			wcs["CRVAL1"], wcs["CRVAL2"] = ra, dec
+			proj = coords.getWCSTrafo(wcs)
+			inv = coords.getInvWCSTrafo(wcs)
+			for pxCoo in [(0, 0), (200, 200), (-200, 200), (200, -200), 
+					(-200, -200)]:
+				wCoo = proj(*pxCoo)
+				res = inv(*wCoo)
+				self.assertAlmostEqual(pxCoo[0], res[0], 8, "Failure in x for %f, %f "
+					"(%d,%d): %f vs. %f"%(ra, dec, pxCoo[0], pxCoo[1], pxCoo[0], res[0]))
+				self.assertAlmostEqual(pxCoo[1], res[1], 8, "Failure in y for %f, %f "
+					"(%d,%d): %f vs. %f"%(ra, dec, pxCoo[0], pxCoo[1], pxCoo[1], res[1]))
+
+	def testIdempotencyPos(self):
+		"""tests for idempotency of WCSTrafo o InvWCSTrafo over the sky.
+		"""
+		wcs = self._getWCSExample()
+		self._doIdempotencyTest(wcs)
+
+	def testIdempotencySkew(self):
+		"""tests for idempotency of WCSTrafo o InvWCSTrafo for skewed coordinates.
+		"""
+		wcs = self._getWCSExample()
+		wcs.update({"CD1_1": -0.002, "CD1_2": 0.008, "CD2_1": 0.0021, 
+			"CD2_2":-0.0012})
+		self._doIdempotencyTest(wcs)
+
+	def testCalabretta(self):
+		"""tests for reprodution of published example.
+
+		The example is from Calabretta and Greisen, A&A 395 (2002), 1077,
+		adapted for what we're doing.
+		"""
+		wcs = self._getWCSExample()
+		wcs.update({
+			"CRPIX1": 256, "CRPIX2": 257,
+			"CRVAL1": 45.83, "CRVAL2": 63.57,
+			"CD1_1": -0.003, "CD1_2": 0,
+			"CD2_1": 0, "CD2_2": 0.003})
+		proj = coords.getWCSTrafo(wcs)
+		for coos, expected in [
+				((1,2), (47.503264, 62.795111)),
+				((1,512), (47.595581, 64.324332)),
+				((511,512), (44.064419, 64.324332)),
+				]:
+			res = proj(*coos)
+			self.assertAlmostEqual(expected[0], res[0], 5)
+			self.assertAlmostEqual(expected[1], res[1], 5)
+	
+	def testInvalidWCSRejection(self):
+		"""tests for correct rejection of unknown WCS specs.
+		"""
+		wcs = self._getWCSExample()
+		wcs["CTYPE1"] = "Weird Stuff"
+		self.assertRaises(gavo.Error, coords.getWCSTrafo, wcs)
+		wcs = self._getWCSExample()
+		wcs["CTYPE2"] = "Weird Stuff"
+		self.assertRaises(gavo.Error, coords.getWCSTrafo, wcs)
+		wcs = self._getWCSExample()
+		wcs["CUNIT1"] = "arcsec"
+		self.assertRaises(gavo.Error, coords.getWCSTrafo, wcs)
+
+
+def singleTest():
+	suite = unittest.makeSuite(TestWCS, "testIdempotencySkew")
+	runner = unittest.TextTestRunner()
+	runner.run(suite)
 
 
 if __name__=="__main__":

@@ -65,6 +65,14 @@ class BaseTable(meta.MetaMixin):
 		"""
 		warnings.warn("setDumpOnly no longer supported.")
 
+	def removeData(self, record):
+		"""removes record from table.
+
+		This has linear run time for basic tables.  It will raise an IndexError
+		if record does not exist in the table.
+		"""
+		self.rows.remove(record)
+
 	def addData(self, record):
 		self.rows.append(record)
 
@@ -301,11 +309,21 @@ class UniqueForcedTable(Table):
 	def __init__(self, *args, **kwargs):
 		Table.__init__(self, *args, **kwargs)
 		self.primaryName = self.recordDef.getPrimary().get_dest()
+		try:
+			self.resolveConflict = {
+				"check": self._ensureRecordIdentity,
+				"drop": self._dropNew,
+				"overwrite": self._overwriteOld,
+			}[self.recordDef.get_conflicts()]
+		except KeyError, msg:
+			raise gavo.Error("Invalid conflict resolution strategy: %s"%str(msg))
 		self.primaryIndex = {}
 
 	def _ensureRecordIdentity(self, record, key):
 		"""raises an exception if record is not equivalent to the record stored
 		for key.
+
+		This is one strategy for resolving primary key conflicts.
 		"""
 		storedRec = self.primaryIndex[key]
 		if record.keys()!=storedRec.keys():
@@ -318,11 +336,30 @@ class UniqueForcedTable(Table):
 					" %s vs. %s"%(key, record[fieldName],
 						storedRec[fieldName]), fieldName=fieldName, record=record)
 
+	def _dropNew(self, record, key):
+		"""does nothing.
+
+		This is for resolution of conflicting records (the "drop" strategy).
+		"""
+		pass
+	
+	def _overwriteOld(self, record, key):
+		"""overwrites the existing record with key in table with record.
+
+		This is for resolution of conflicting records (the "overwrite"
+		strategy).
+
+		Warning: This is typically rather slow.
+		"""
+		storedRec = self.primaryIndex[key]
+		self.removeData(storedRec)
+		del self.primaryIndex[key]
+		return self.addData(record)
+
 	def addData(self, record):
 		key = record[self.primaryName]
 		if key in self.primaryIndex:
-			self._ensureRecordIdentity(record, key)
-			return
+			return self.resolveConflict(record, key)
 		else:
 			self.primaryIndex[key] = record
 		return Table.addData(self, record)

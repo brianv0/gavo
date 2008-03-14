@@ -295,7 +295,8 @@ class StandardQueryMixin:
 		try:
 			cursor.execute(query, data)
 		except DbError:
-			logger.warning("Failed db query: %s"%cursor.query)
+			logger.warning("Failed db query: %s"%getattr(cursor, "query",
+				query))
 			raise
 		return cursor
 
@@ -432,6 +433,9 @@ class TableInterface(StandardQueryMixin):
 			self.query("CREATE INDEX %s ON %s (%s)"%(
 				indexName, self.tableName, ", ".join(
 					members)))
+			if indexName.endswith("_cluster"):
+				self.query("CLUSTER %s ON %s"%(indexName, self.tableName))
+		self.query("ANALYZE %s"%self.tableName)
 
 	def deleteMatching(self, matchCondition):
 		"""deletes all rows matching matchCondition.

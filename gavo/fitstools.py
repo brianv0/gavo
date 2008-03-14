@@ -81,6 +81,27 @@ def replacePrimaryHeader(inputFile, newHeader, targetFile, bufSize=100000):
 		targetFile.write(buf)
 
 
+def sortHeaders(header):
+	"""returns a pyfits header with "real" cards first, then history, then
+	comment cards.
+	"""
+	commentCs, historyCs = [], []
+	newHeader = pyfits.PrimaryHDU().header
+	for card in header.ascardlist():
+		if card.key=="COMMENT":
+			commentCs.append(card)
+		elif card.key=="HISTORY":
+			historyCs.append(card)
+		elif card.key=="":
+			newHeader.add_blank(card.value, card.comment)
+		else:
+			newHeader.update(card.key, card.value, card.comment)
+	for card in historyCs:
+		newHeader.add_history(card.value)
+	for card in commentCs:
+		newHeader.add_comment(card.value)
+	return newHeader
+
 def replacePrimaryHeaderInPlace(fitsName, newHeader):
 	"""is a convenience wrapper around replacePrimaryHeader.
 	"""

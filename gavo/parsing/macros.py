@@ -822,14 +822,15 @@ class BboxSiapFieldsComputer(Macro):
 	>>> r = {"NAXIS1": "100", "NAXIS2": "150", "CRVAL1": "138", "CRVAL2": 53,
 	...   "CRPIX1": "70", "CRPIX2": "50", "CUNIT1": "deg", "CUNIT2": "deg",
 	...   "CD1_1": 0.0002, "CD1_2": 3e-8, "CD2_1": 3e-8, "CD2_2": "-0.0002",
-	...   "NAXIS": 2}
+	...   "NAXIS": 2, "CTYPE1": 'RA---TAN-SIP', "CTYPE2": 'DEC--TAN-SIP', 
+	...   "LONPOLE": 180.,}
 	>>> m(None, r); r["primaryBbox"], r["secondaryBbox"]
-	(Box(((138.006,53.01), (137.986,52.98))), None)
+	(Box((138.01,53.01), (137.977,52.98)), None)
 	>>> r["CRVAL1"] = 0
 	>>> m(None, r); r["primaryBbox"], r["secondaryBbox"]
-	(Box(((360,53.01), (359.986,52.98))), Box(((0.006003,53.01), (0,52.98))))
-	>>> str(r["centerAlpha"]), str(r["centerDelta"])
-	('-0.00399925', '52.9949994')
+	(Box((360,53.01), (359.977,52.98)), Box((0.00997021,53.01), (0,52.98)))
+	>>> "%.4f %.4f"%(r["centerAlpha"], r["centerDelta"])
+	'-0.0066 52.9950'
 	"""
 	@staticmethod
 	def getName():

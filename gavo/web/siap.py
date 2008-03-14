@@ -26,9 +26,9 @@ def getBboxFromSiapPars(raDec, sizes, applyCosD=True):
 	than helpful.
 
 	>>> getBboxFromSiapPars((40, 60), (2, 3), applyCosD=False)
-	Box(((41,61.5), (39,58.5)))
+	Box((41,61.5), (39,58.5))
 	>>> getBboxFromSiapPars((0, 0), (2, 3))
-	Box(((1,1.5), (-1,-1.5)))
+	Box((1,1.5), (-1,-1.5))
 	"""
 	alpha, delta = raDec
 	sizeAlpha, sizeDelta = sizes
@@ -38,6 +38,9 @@ def getBboxFromSiapPars(raDec, sizes, applyCosD=True):
 			# People can't mean that
 			cosD = 1
 		sizeAlpha = sizeAlpha*cosD
+	if abs(delta)>89:
+		return coords.Box(0, 360, coords.clampDelta(delta-sizeDelta/2.), 
+			coords.clampDelta(delta+sizeDelta/2.))
 	return coords.Box(
 		alpha-sizeAlpha/2., alpha+sizeAlpha/2,
 		coords.clampDelta(delta-sizeDelta/2.), 
@@ -60,11 +63,11 @@ def splitCrossingBox(bbox):
 	leftBox, rightBox otherwise.
 
 	>>> splitCrossingBox(coords.Box(10, 12, -30, 30))
-	(Box(((12,30), (10,-30))), None)
+	(Box((12,30), (10,-30)), None)
 	>>> splitCrossingBox(coords.Box(-23, 12, -30, 0))
-	(Box(((360,0), (337,-30))), Box(((12,0), (0,-30))))
+	(Box((360,0), (337,-30)), Box((12,0), (0,-30)))
 	>>> splitCrossingBox(coords.Box(300, 400, 0, 30))
-	(Box(((360,30), (300,0))), Box(((40,30), (0,0))))
+	(Box((360,30), (300,0)), Box((40,30), (0,0)))
 	"""
 	bbox = normalizeBox(bbox)
 	if bbox.x1<0 or bbox.x0>360:

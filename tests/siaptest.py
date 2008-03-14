@@ -31,11 +31,13 @@ class TestWCSTrafos(unittest.TestCase):
 		"CD2_1": 0,    "CD2_2": 0.01,
 		"NAXIS1": 100, "NAXIS2": 100,
 		"CUNIT1": "deg", "CUNIT2": "deg",
+		"CTYPE1": 'RA---TAN-SIP', "CTYPE2": 'DEC--TAN-SIP',
+		"LONPOLE": 180.,
 		"NAXIS": 2,
 	}
 
 	def _testInvertibilityReal(self):
-		for crvals in [(0,0), (40,60), (125,-60), (238,70)]:
+		for crvals in [(0,0), (40,60), (125,-60), (238,80)]:
 			self.wcs["CRVAL1"], self.wcs["CRVAL2"] = crvals
 			for crpixs in [(0,0), (50,50), (100,100), (150,0)]:
 				self.wcs["CRPIX1"], self.wcs["CRPIX2"] = crpixs
@@ -43,8 +45,8 @@ class TestWCSTrafos(unittest.TestCase):
 					fwTrafo = coords.getWCSTrafo(self.wcs)
 					bwTrafo = coords.getInvWCSTrafo(self.wcs)
 					x, y = bwTrafo(*fwTrafo(*pixpos))
-					self.assertAlmostEqual(x, pixpos[0])
-					self.assertAlmostEqual(y, pixpos[1])
+					self.assertAlmostEqual(x, pixpos[0], 5)
+					self.assertAlmostEqual(y, pixpos[1], 5)
 
 	def testInvertibility(self):
 		"""tests if transformations from/to WCS are invertible.
@@ -77,6 +79,8 @@ class TestWCSBbox(unittest.TestCase):
 			"CD2_1": 0,    "CD2_2": 0.01,
 			"NAXIS1": 100, "NAXIS2": 100,
 			"CUNIT1": "deg", "CUNIT2": "deg",
+			"CTYPE1": 'RA---TAN-SIP', "CTYPE2": 'DEC--TAN-SIP',
+			"LONPOLE": 180.,
 			"NAXIS": 2,
 		}
 		def encloses(bbox1, bbox2):
@@ -95,12 +99,13 @@ class TestWCSBbox(unittest.TestCase):
 				self.assert_(encloses(bbox, oldBbox), "enclose false negative"
 					" while growing in ra at %f, %f"%(ra, dec))
 			boxes.append(bbox)
-		for i in range(10):
+		for i in range(7):
 			wcs["CD2_2"] *= 1.1
+			wcs["CD1_1"] *= 1.00001
 			bbox = coords.getBboxFromWCSFields(wcs)
 			for oldBbox in boxes:
 				self.assert_(encloses(bbox, oldBbox), "enclose false negative"
-					" while growing in dec at %f, %f"%(ra, dec))
+					" while growing in dec at %f, %f -- %s %s"%(ra, dec, bbox, oldBbox))
 			boxes.append(bbox)
 		refbox = boxes[0]
 		for box in boxes[1:]:
@@ -123,6 +128,8 @@ class TestWCSBbox(unittest.TestCase):
 			"CD2_1": 0,    "CD2_2": 0.01,
 			"NAXIS1": 100, "NAXIS2": 100,
 			"CUNIT1": "deg", "CUNIT2": "deg",
+			"CTYPE1": 'RA---TAN-SIP', "CTYPE2": 'DEC--TAN-SIP',
+			"LONPOLE": 180.,
 			"NAXIS": 2,
 		}
 
@@ -142,6 +149,9 @@ class TestWCSBbox(unittest.TestCase):
 			bbox = coords.getBboxFromWCSFields(wcs)
 			self.assert_(overlaps(bbox, targBbox), "Overlap test false negative"
 				" at %s, offsets %s"%((ra, dec), (da, dd)))
+		if abs(dec)>85:
+			# These overlap in RA always
+			return
 		notOverlapOffsets = [(0, 1.1), (2.4, 0), (0, -1.6), (-1.6, 0), 
 			(-0.8, -1.6)]
 		for da, dd in notOverlapOffsets:
@@ -182,6 +192,9 @@ class TestCoordinateQueries(unittest.TestCase):
 				"NAXIS1": imgPix[0],
 				"NAXIS2": imgPix[1],
 				"NAXIS": 2,
+				"CTYPE1": 'RA---TAN-SIP', 
+				"CTYPE2": 'DEC--TAN-SIP',
+				"LONPOLE": 180.,
 				"imageTitle": None,
 				"instId": None,
 				"dateObs": None,
@@ -226,7 +239,7 @@ class TestCoordinateQueries(unittest.TestCase):
 		("1,46", "1.1", (0, 0, 0, 3)),
 		("161,45", "3,1", (1, 0, 3, 3)),
 		("161,46", "1.1", (0, 0, 0, 3)),
-		("0,90", "360,1", (0, 1, 1, 1)),
+		("0,90", "360,2", (0, 1, 1, 1)),
 # XXX TODO: do some more here
 	]
 	_intersectionIndex = {
@@ -276,16 +289,16 @@ class TestCoordinateQueries(unittest.TestCase):
 		"""drops the test table.
 		"""
 		querier = sqlsupport.SimpleQuerier()
-		querier.query("DROP TABLE simplewcs CASCADE")
+#		querier.query("DROP TABLE simplewcs CASCADE")
 		querier.commit()
 
 
 def singleTest():
-	suite = unittest.makeSuite(TestCoordinateQueries, "testOVERLAPS")
+	suite = unittest.makeSuite(TestCoordinateQueries, "testENC")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 
 
 if __name__=="__main__":
 	unittest.main()
-	#singleTest()
+#	singleTest()

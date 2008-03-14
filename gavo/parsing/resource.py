@@ -190,7 +190,10 @@ class RecordDef(record.Record, meta.MetaMixin):
 			"create": record.BooleanField,  # create table?
 			"onDisk": record.BooleanField,  # write parsed data directly?
 			"forceUnique": record.BooleanField,  # enforce uniqueness of 
-			                      #primary key by throwing away repeated records?
+			                                     #primary key?
+			"conflicts": "check",      # On forceUnique tables, throw an error
+			  # for non-identical dupes ("check"), drop the new one ("drop") or
+				# overrwrite the old one ("overwrite")
 			"transparent": record.BooleanField,  # get fields from (rowset)grammar
 		}, initvals)
 		self.fieldIndexDict = {}
