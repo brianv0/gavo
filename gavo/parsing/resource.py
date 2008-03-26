@@ -602,7 +602,15 @@ class Resource:
 				continue
 			dataSet.exportToSql(rd.get_schema())
 		self.desc.scriptHandler.runScripts("postCreation")
+		self.makeTimestamp()
 		self.rebuildDependents()
+
+	def makeTimestamp(self):
+		try:
+			f = open(self.getDescriptor().getTimestampPath(), "w")
+			f.close()
+		except IOError:
+			pass
 
 	def exportNone(self, onlyDDs):
 		pass
@@ -675,6 +683,13 @@ class ResourceDescriptor(record.Record, meta.MetaMixin):
 		if sourcePath.startswith(config.get("inputsDir")):
 			sourcePath = sourcePath[len(config.get("inputsDir")):].lstrip("/")
 		return os.path.splitext(sourcePath)[0]
+
+	def getTimestampPath(self):
+		"""returns a path to a file that's accessed by Resource each time 
+		a bit of the described resource is written to the db.
+		"""
+		return os.path.join(config.get("stateDir"), "updated_"+
+			self.sourceId.replace("/", "+"))
 
 	def set_resdir(self, relPath):
 		"""sets resource directory, qualifing it and making sure

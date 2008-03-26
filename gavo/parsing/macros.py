@@ -782,6 +782,7 @@ class SimpleQuerier(Macro):
 		return "simplequery"
 	
 	def _compute(self, record, val):
+		from gavo import sqlsupport
 		dbNames, recNames = self.assignments.keys(), self.assignments.values()
 		query = "SELECT %s FROM %s WHERE %s=%%(val)s"%(
 			", ".join(dbNames), self.table, self.column)

@@ -18,6 +18,7 @@ import gavo
 from gavo import config
 from gavo import coords
 from gavo import datadef
+from gavo import interfaces
 from gavo import resourcecache
 from gavo import record
 from gavo import table
@@ -247,6 +248,15 @@ class DbBasedCore(QueryingCore):
 				pass
 		return res
 
+	def _getTarOutputFields(self, queryMeta):
+		reqFields = interfaces.Products.requiredFields
+		res = [datadef.OutputField.fromDataField(f) 
+			for f in self.tableDef.get_items() 
+			if f.get_dest() in reqFields]
+		if len(reqFields)!=len(res):
+			raise gavo.Error("We're sorry, this table cannot produce tar files.")
+		return res
+
 	def _getAllOutputFields(self, queryMeta):
 		"""returns a list of all OutputFields of the source table, with
 		their sources set to their dests.
@@ -264,6 +274,8 @@ class DbBasedCore(QueryingCore):
 			return self._getVOTableOutputFields(queryMeta)
 		elif format=="internal":
 			return self._getAllFields(queryMeta)
+		elif format=="tar":
+			return self._getTarOutputFields(queryMeta)
 		return self._getHTMLOutputFields(queryMeta)
 
 	def _getSQLWhere(self, inputTable, queryMeta):

@@ -337,7 +337,19 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 			return BlockedPage(segments)
 		return res
 
+	def _hackHostHeader(self, ctx):
+		"""works around host-munging of forwarders.
+
+		This is a hack in that I hardcode port 80 for the forwarder.  Ah
+		well, I don't think I have a choice there.
+		"""
+		request = inevow.IRequest(ctx)
+		fwHost = request.getHeader("x-forwarded-host")
+		if fwHost:
+			request.setHost(fwHost, 80)
+
 	def locateChild(self, ctx, segments):
+		self._hackHostHeader(ctx)
 		if os.path.exists(self.maintFile):
 			return MaintPage(), ()
 		if segments[:self.rootLen]!=self.rootSegments:

@@ -97,3 +97,6 @@ class UserGrammar(grammar.Grammar):
 	
 	def resolvePath(self, path):
 		return os.path.join(self.parentDD.getRD().get_resdir(), path)
+	
+	def _getDocdict(self, parseContext):
+		return {}

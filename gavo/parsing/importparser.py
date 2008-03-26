@@ -4,6 +4,7 @@ This module contains code for reading raw resources and their descriptors.
 
 import os
 import re
+import time
 from xml.sax import make_parser
 from xml.sax.handler import EntityResolver
 
@@ -24,6 +25,7 @@ from gavo.parsing.fitsgrammar import FitsGrammar
 from gavo.parsing.grammar import Grammar
 from gavo.parsing import conditions
 from gavo.parsing import contextgrammar
+from gavo.parsing import elgen
 from gavo.parsing import macros
 from gavo.parsing import meta
 from gavo.parsing import parsehelpers
@@ -592,6 +594,11 @@ class RdParser(utils.NodeBuilder):
 	def _make_property(self, name, attrs, children):
 		return (attrs["name"], self._makeTextNode(name, attrs, children).strip())
 
+	def _make_elgen(self, name, attrs, children):
+		attrs = makeAttDict(attrs)
+		genName = attrs.pop('name')
+		self.runGenerator(elgen.getElgen(genName)(**attrs))
+
 	def _makeTextNode(self, name, attrs, children):
 		if len(children)==0:
 			return ""
@@ -636,6 +643,12 @@ def getRd(srcPath, parserClass=RdParser, forImport=False):
 	rd = contentHandler.getResult()
 	if os.path.exists(srcPath+".blocked"):
 		rd.currently_blocked = True
+	if not rd.getMeta("dateUpdated"):
+		try:
+			rd.addMeta(name="dateUpdated", content=time.strftime("%Y-%m-%d", 
+				time.gmtime(os.path.getmtime(rd.getTimestampPath()))))
+		except os.error:
+			pass
 	return rd
 
 

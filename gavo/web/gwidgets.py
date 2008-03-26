@@ -97,7 +97,7 @@ class OutputFormat(object):
 				T.a(href="", class_="resultlink", onMouseOver=
 						"this.href=makeBookmarkLink(getEnclosingForm(this))")[
 					T.img(src=common.makeSitePath("/static/img/bookmark.png"), 
-						class_="silentlink")
+						class_="silentlink", title="Link to this form")
 				],
 			],
 			T.br,
@@ -142,8 +142,15 @@ class DbOptions(object):
 
 	def render(self, ctx, key, args, errors):
 		children = []
-		args = {'_DBOPTIONS_ORDER': args.get("_DBOPTIONS_ORDER", [None])[0],
-			'_DBOPTIONS_LIMIT': int(args.get("_DBOPTIONS_LIMIT", [100])[0]),}
+		if '_DBOPTIONS' in args:
+			v = [[args["_DBOPTIONS"]["order"]], [args["_DBOPTIONS"]["limit"]]]
+		else:
+			v = [args.get("_DBOPTIONS_ORDER", ['']), 
+				args.get("_DBOPTIONS_LIMIT", [100])]
+		if errors:
+			args = {"_DBOPTIONS_ORDER": v[0], "_DBOPTIONS_LIMIT": v[1]}
+		else:
+			args = {"_DBOPTIONS_ORDER": v[0][0], "_DBOPTIONS_LIMIT": int(v[1][0])}
 		if self.sortWidget:
 			children.extend(["Sort by ",
 				self.sortWidget.render(ctx, "_DBOPTIONS_ORDER", args, errors),
@@ -162,7 +169,7 @@ class DbOptions(object):
 		if self.sortWidget:
 			order = self.sortWidget.processInput(ctx, "_DBOPTIONS_ORDER", args)
 		if self.limitWidget:
-			limit = self.limitWidget.processInput(ctx, "_DBOPTIONS_LIMIT", args),
+			limit = self.limitWidget.processInput(ctx, "_DBOPTIONS_LIMIT", args)
 		return {
 			"order": order,
 			"limit": limit,

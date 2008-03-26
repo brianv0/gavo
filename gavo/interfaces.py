@@ -21,6 +21,7 @@ from gavo import coords
 from gavo import sqlsupport
 from gavo import utils
 from gavo.datadef import DataField
+from gavo.parsing import elgen
 from gavo.parsing import resource
 
 
@@ -263,6 +264,7 @@ class Products(Interface):
 	def getName():
 		return "products"
 
+	requiredFields = set(["datapath", "owner", "embargo", "fsize"])
 	def __init__(self):
 		Interface.__init__(self, [
 			{"dest": "datapath", "source": "prodtblKey", "dbtype": "text",
@@ -353,7 +355,9 @@ class BboxSiap(Interface):
 	def _getInterfaceFields(self):
 		# everything required in the standard must have verbLevel<=20,
 		# because by default, you'll get verb=2
-		return [
+		return self.siapFields
+		
+	siapFields = [
 			{"dest": "centerAlpha", "source": "centerAlpha", "ucd": "PO_EQ_RA_MAIN",
 				"dbtype": "double precision", "unit": "deg", "tablehead": "alpha",
 				"displayHint": "type=time", "verbLevel": 0},
@@ -413,6 +417,14 @@ class BboxSiap(Interface):
 				"tablehead": "File size", "description": "Size of the image in bytes",
 				"source": "prodtblFsize", "dbtype": "integer", "verbLevel": 11},
 		]
+
+
+def elgen_siapOutput(**args):
+	for field in BboxSiap.siapFields:
+		of = field.copy()
+		of["source"] = of["dest"]
+		yield ("empty", "outputField", of)
+elgen.registerElgen("siapOutput", elgen_siapOutput)
 
 
 getInterface = utils.buildClassResolver(Interface, globals().values(),

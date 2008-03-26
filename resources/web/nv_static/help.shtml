@@ -1,0 +1,151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+	"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>GAVO Data Center -- Interface Documentation</title>
+<link rel="stylesheet" type="text/css"
+	href="__site_path__/static/css/gavo_dc.css"/>
+</head>
+<body>
+<h1>The GAVO Data Center</h1>
+<p>This document is the main documentation index for users of the
+GAVO Data Center (GDC).</p>
+<p>The GDC archives  and provides access to astromical data of all kinds
+for the German astronomical community (and beyond), offering both web-based
+and <a href="http://www.ivoa.net">VO</a>-enabled services.</p>
+
+<p>It is still under heavy development, so you may experience transient
+outages and quirks now and then.</p>
+
+<p>Though most of the services should work even in text-based browsers, we
+recommend a web browser with CSS and Javascript enabled to access the
+web-based services.</p>
+
+<h2>Service discovery</h2>
+
+<p>The <a href="http://vo.uni-hd.de">index page</a> lists published 
+services available through web browsers.  A "[P]" in the service 
+listing means that the service is password protected, either because it is
+too rough for public consumption or because the data providers want
+exclusive access.  In either case, you can contact 
+<a href="mailto:gavo@ari.uni-heidelberg.de">the site operators</a> to inquire
+about access.</p>
+
+<p>In addition to web-based services, the data center also
+provides services accessible through IVOA standard protocols like SIAP (for
+images) and SCS (supporting cone searches).  These can be located through 
+a <a href="http://nvo.stsci.edu/voregistry/index.aspx">Virtual Observatory registry</a> or 
+<a href="http://www.g-vo.org/www/External/Tools">common VO tools</a>.
+As of March 2008, we do not yet feed our records into the VO registry.</p>
+
+<h2>Search forms</h2>
+
+<h3>Query Fields</h3>
+
+<p>Services not using customized interfaces have standard query forms.  These
+consist of a series of input fields that either take</p>
+<ul>
+<li>numeric expressions -- you can recognize those from the little "[?num. expr.]" tag 
+behind them.  In addition to raw numbers, you can enter <a href="__site_path__/static/help_vizier.shtml#floats">Vizier-like numeric expressions</a> here.</li>
+<li>string expressions -- these have a little "[?char expr.]" tag and
+by default match using patterns, evaluating metacharacters like * or ?
+much like you may know from file name patterns.  To force literal matching,
+prepend your strings with ==.  <a href="__site_path__/static/help_vizier.shtml#strings">Other operators available for string expressions</a> include
+caseless matching, string comparisons, or negation.</li>
+<li>date expressions -- these are marked with "[?date expr.]" tags.  Dates must
+be given in the ISO format (YYYY-MM-DD).  Among the more useful of the
+<a href="__site_path__/static/help_vizier.shtml#dates">supported operators</a>
+is the range -- you can say 2004-01-02 .. 2005-05-01 to specify a range of
+dates between Jan 2nd, 2004 and May 1st, 2005.</p>
+<li>Selection boxes -- these are either drop down, in which case you can only 
+select one entry, or open boxes you can select more than one entry in,
+usually (depending on your user interface) using control-click.</li>
+<li>Others -- application-specific input fields (like, e.g., cone searches)
+should come with a short explanation.</li>
+</ul>
+
+<h3>Query Modifiers</h3>
+
+<p>For most queries, you will have a "Table" query field near the bottom of the
+form.  You can set sorting and limit options there.  Note that depending on the
+query, selecting a column to sort on may slow down the answer dramatically.
+This is because your query may match large amounts of data, and even if only
+100 items are returned, potentially millions of them may have to be sorted.</p>
+
+<p>On the other hand, results overflowing the match limit are not reproducible
+without a sort option, i.e., you may get a different set of, say, 100 items for
+identical query parameters two different times.  The services
+warn you about this fact when they return truncated results.</p>
+
+<p>In cases in which the default match limits do not suit you, you can override
+the match limit by editing the result link (see below).  You want to substitute
+your value into _DBOPTIONS_LIMIT=100.  The system has has hardcoded match limit
+that you cannot override in this way, but it is unlikely that it will hurt
+you.</p>
+
+<p>You can usually select an output format.  Options here include</p>
+<ul>
+<li>HTML -- data is returned in your web browser.  You can select additional
+columns in your output from an input field that pops down when you mouse over 
+it.</li>
+<li>VOTable -- data is returned in IVOA's standard data format, the VOTable.
+This is XML that is almost human-readable but really intended to be consumed
+by tools like <a href="http://www.star.bris.ac.uk/~mbt/topcat/">Topcat</a>.
+You can select a "verbosity" specifying the fields present in the output, with
+1 standing for a minimal set of information, 2 for what the service author
+deemed useful for the average astronomer, and 3 for (almost) all fields
+available.  Furthermore, you can choose between a "human-readable" VOTable
+(select this to process your data with standard XML or text-based
+tools or peruse it with the naked eye) and a binary version that you
+should use for larger data sets since it is much more efficient.</li>
+<li>VOPlot -- starts up IndiaVO's VOPlot utility in your browser.  This lets
+you visualize the returned data without any software on your
+side (besides a java-capable browser).</li>
+<li>FITS -- this returns FITS tables.  The data is in the first
+extension.  This contains much less information than a VOTable of the
+same data and thus should only be used if your backend tools do not understand
+VOTables.</li>
+<li>tar -- if the service contains "products" (usually FITS files of some
+kind), you can download all matching items in a tar file.</li>
+</ul>
+
+<p>Next to the output format selection, there are two links.  The one labeled
+"[Result link]" reflects your current query as a copyable URL.  You could use
+this to send a query result to colleagues, but it is particularly useful with
+the VOTable output format -- you can drag and drop that link into Topcat's
+"Open" dialogue or use it together with S&eacute;bastien Derriere's <a href="http://astro.u-strasbg.fr/~derriere/PLASTIC/">PLASTIC extension for firefox</a>.</p>
+
+<p>The star (<img src="__site_path__/static/img/bookmark.png"/>) lets you
+bookmark the current form -- it is basically like the result link but
+doesn't actually perform the query.  This should come in handy to store
+and communicate preset queries.</p>
+
+<p>Both the result and the bookmark links require Javascript to work.</p>
+
+<h3>The sidebar</h3>
+
+<p>The sidebar on form and result pages contains ancillary information for the
+resource the data comes from.  In the Metadata section, only metadata titles
+are shown.  You can view the content by clicking on "&gt;&gt;" and hide it
+again by clicking on "&lt;&lt;".</p> 
+
+<p>The "Created" metadata item shown refers to the creation of the resource
+descriptor, i.e., is related to the service rather than the data.  The "Data 
+updated" item gives the date of the last "import" of a piece of the data.
+Unless a service supports online modification, it can be used as an indicator
+of the version of the underlying data.</p>
+
+<h2>Your data</h2>
+
+<p>The GAVO Data Center would be pleased to assist you in publishing your data
+to the web and the VO.  If you consider putting a dataset, great or small, on
+the web and want VO exposure, you are invited to talk to 
+<a href="mailto:gavo@ari.uni-heidelberg.de">us</a>.</p>
+
+<h2>Software availability</h2>
+
+<p>The software driving the GAVO data center should eventually be available
+for download.  Meanwhile, contact the administrators for SVN access.</p>
+
+</body>
+</html>

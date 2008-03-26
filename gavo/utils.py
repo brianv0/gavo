@@ -431,7 +431,10 @@ class NodeBuilder(BaseNodeBuilder):
 
 	def _make_ElementGenerator(self, name, attrs, children):
 		generator = self._makeGenerator(children[0][1])
-		for item in generator():
+		self.runGenerator(generator())
+	
+	def runGenerator(self, generator):
+		for item in generator:
 			if isinstance(item, basestring):
 				self.characters(item)
 			elif isinstance(item, tuple) and len(item)>0:

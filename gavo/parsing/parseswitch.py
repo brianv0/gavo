@@ -32,6 +32,7 @@ def FreshDirectWritingTable(*args, **kwargs):
 	"""
 	return table.DirectWritingTable(dropIndices=True, *args, **kwargs)
 
+
 def getTableClassForRecordDef(recordDef):
 	if recordDef.get_onDisk():
 		if recordDef.get_forceUnique():

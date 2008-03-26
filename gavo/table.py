@@ -231,6 +231,7 @@ class Table(RecordBasedTable):
 		tableExporter.ensureSchema(schema)
 		if self.create:
 			tableExporter.createTable(create=self.recordDef.get_create(),
+				delete=self.recordDef.get_create(),
 				privs=self.recordDef.get_create())
 		return tableExporter
 

@@ -16,6 +16,10 @@ import weakref
 import re
 import textwrap
 
+try:
+	from docutils import core
+except ImportError:
+	pass
 
 import gavo
 from gavo import config
@@ -36,69 +40,18 @@ class InfoItem(object):
 		return str(self.content)
 
 
-class MetaItem(object):
-	"""is a piece of meta information about a resource.
+def metaRstToHtml(inputString):
+	sourcePath, destinationPath = None, None
+	doctitle = False
+	overrides = {'input_encoding': 'unicode',
+		'doctitle_xform': None,
+		'initial_header_level': 4}
+	parts = core.publish_parts(
+		source=inputString, source_path=sourcePath,
+		destination_path=destinationPath,
+		writer_name='html', settings_overrides=overrides)
+	return parts["fragment"]
 
-	The trouble with meta items is that they're used for so many things that
-	you'd need a big infrastructure to do it right.  I don't want that for 
-	now (metadata on metadata is a bad way to go...).
-
-	Instead, we work with a couple of conventions: Metadata destined for
-	"official" IVOA resource records has names as dotted paths, like
-	curation.creator.name.  Local metadata for presentation purposes has
-	names starting with an underscore.
-
-	MetaItems are untyped, their values always are strings.  They have
-	a format, though.  This can currently take the values "plain" (which
-	does whitespace normalization and recognizes paragraphs) and "literal"
-	(the default).  I'll do rst (restructured text) later, I don't think
-	I'll do xhtml or junk like that.
-
-	Other MetaItem properties:
-
-	* combine -- can be "top", "bottom", or None (the default).  If it's
-	  bottom, the content will be combined with the corresponding meta
-	  item of a parent, with the current content at the bottom.  This
-	  functionality is implemented in MetaMixin.
-	* compute -- the value will be computed at query time using @-expansions.
-	"""
-	def __init__(self, parent, name, content, format=None, 
-			compute=None, combine=None):
-		self.name = name
-		self.content = content
-		self.format = format or "literal"
-		self.compute = compute
-		self.combine = combine
-		self.parent = weakref.ref(parent)
-
-	def __str__(self):
-		if self.compute:
-			desc = self.compute.split(",")
-			if not desc[-1].strip():
-				del desc[-1]
-			content = unicode(self.parent().get_computer().compute(
-				desc[0], None, desc[1:])).encode("utf-8")
-		else: 
-			content = unicode(self.content).encode("utf-8")
-		if self.format=="plain":
-			content = "\n\n".join([re.sub("\s+", " ", para)
-				for para in re.split("\n\s*\n", content)])
-		return content
-
-	def encode(self, enc):
-		return str(self).encode(enc)
-
-	def asHtml(self):
-		if self.format=="literal":
-			return "<pre>%s</pre>"%str(self)
-		elif self.format=="plain":
-			return "\n".join(["<p>%s</p>"%para for para in str(self).split("\n\n")])
-		else:
-			raise Error("Unknown meta content format %s"%sel.format)
-
-	def getName(self):
-		return self.name
-	
 
 class MetaMixin(object):
 	"""is a mixin for entities carrying meta information.
@@ -180,3 +133,73 @@ class MetaMixin(object):
 		newItem = MetaItem(self, **attDict)
 		self.__ensureMetaDict()
 		self.__metaDict.setdefault(newItem.getName(), []).append(newItem)
+
+
+class MetaItem(MetaMixin):
+	"""is a piece of meta information about a resource.
+
+	The trouble with meta items is that they're used for so many things that
+	you'd need a big infrastructure to do it right.  I don't want that for 
+	now (metadata on metadata is a bad way to go...).
+
+	Instead, we work with a couple of conventions: Metadata destined for
+	"official" IVOA resource records has names as dotted paths, like
+	curation.creator.name.  Local metadata for presentation purposes has
+	names starting with an underscore.
+
+	MetaItems are untyped, their values always are strings.  They have
+	a format, though.  This can currently take the values "plain" (which
+	does whitespace normalization and recognizes paragraphs) and "literal"
+	(the default).  I'll do rst (restructured text) later, I don't think
+	I'll do xhtml or junk like that.
+
+	Other MetaItem properties:
+
+	* combine -- can be "top", "bottom", or None (the default).  If it's
+	  bottom, the content will be combined with the corresponding meta
+	  item of a parent, with the current content at the bottom.  This
+	  functionality is implemented in MetaMixin.
+	* compute -- the value will be computed at query time using @-expansions.
+	"""
+	def __init__(self, parent, name, content, format=None, 
+			compute=None, combine=None):
+		self.name = name
+		self.content = content
+		self.format = format or "literal"
+		self.compute = compute
+		self.combine = combine
+		self.parent = weakref.ref(parent)
+
+	def getContent(self):
+		if self.compute:
+			desc = self.compute.split(",")
+			if not desc[-1].strip():
+				del desc[-1]
+			content = unicode(self.parent().get_computer().compute(
+				desc[0], None, desc[1:]))
+		else: 
+			content = unicode(self.content)
+		if self.format=="plain":
+			content = "\n\n".join([re.sub("\s+", " ", para)
+				for para in re.split("\n\s*\n", content)])
+		return content
+	
+	def __str__(self):
+		return self.getContent().encode("utf-8")
+
+	def encode(self, enc):
+		return str(self).encode(enc)
+
+	def asHtml(self):
+		if self.format=="literal":
+			return "%s"%str(self)
+		elif self.format=="plain":
+			return "\n".join(["<p>%s</p>"%para for para in str(self).split("\n\n")])
+		elif self.format=="rst":
+			return metaRstToHtml(self.getContent())
+		else:
+			raise Error("Unknown meta content format %s"%sel.format)
+
+	def getName(self):
+		return self.name
+

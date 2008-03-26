@@ -113,6 +113,13 @@ table.results {
 	font-size:62%;
 }
 
+.invisible { /* for items for non-css browsers */
+	width: 0px;
+	height: 0px;
+	position: absolute;
+	top: -100px;
+}
+
 div#header, div#chdr {
 	background: #899dbf;
 	margin-bottom: 34px;
@@ -121,19 +128,6 @@ div#header, div#chdr {
 
 div#chdr {
 	position: absolute;
-}
-
-div#body {
-	position: absolute;
-	top: 50px;
-	left: 120px;
-}
-
-div#sidebar {
-	position: absolute;
-	top: 50px;
-	left: 0px;
-	width: 120px;
 }
 
 h1, h2, h3, h4, h5 { color: #666; }
@@ -151,6 +145,11 @@ h2 { font-size: 14pt; font-weight: bold;}
 h3 { font-size: 12pt; font-weight: bold;}
 h4 { font-size: 12pt; background: #F0F4FF;} 
 h5 { font-size: 11pt; font-style: italic; }
+
+h4.metacat {
+	font-size: 10pt; 
+	background: none;
+}
 
 #header h1 {
 	display: inline;
@@ -210,4 +209,61 @@ tr.even {
 	padding-top:4px;
 	padding-bottom:4px;
 	background: #EEEEFF;
+}
+
+div#sidebar {
+	float: left;
+	width: 100px;
+	height: 100%;
+	background: #d2dcf0;
+}
+
+div#body {
+	margin-left: 110px;
+	min-width: 200px;
+	position: absolute;
+}
+
+.sidebaritem {
+	margin-bottom:5px;
+	position: relative;
+	z-index:10;
+}
+
+.sidebarEnum {
+	list-style-type: none;
+	padding-left: 0px;
+	margin-top: 0px;
+	font-size: 10px;
+}
+
+/* defuse breakage with rst insisting on a p element around meta items */
+.sidebarEnum li p {
+ margin: 4px;
+}
+
+.explodable {
+	height: 12px;
+	overflow: hidden;
+	background: #d2dcf0;
+  margin-bottom:5px;
+}
+
+h4.exploHead {
+	font-size: 12px;
+	margin: 0px;
+	padding: 0px;
+	background: none;
+}
+
+.sidebaritem h3 {
+	font-size: 14px;
+	margin-top:7px;
+	margin-bottom:5px;
+	background: #F0F4FF;
+}
+
+div.explodable h4 {
+	padding: 0px;
+	margin: 0px;
 }

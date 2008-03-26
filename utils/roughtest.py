@@ -153,9 +153,9 @@ myTests = [
 			'<FIELD ID="wcs_refValues" arraysize="*" datatype="double"'
 				' name="wcs_refValues"',
 			"NV Maidanak metadata query"),
-		GetHasStringsTest(nv_root+"/maidanak/res/rawframes/siap/form?"
-			"__nevow_form__=genForm&POS=q2237%2B0305&SIZE=1&"
-			"INTERSECT=OVERLAPS&FORMAT=image%2Ffits&_DBOPTIONS_LIMIT=2&_FORMAT=tar", [
+		GetHasStringsTest(nv_root+"/lensdemo/view/q/form?__nevow_form__=genForm"
+			"&object=APM%2008279%2B5255&_DBOPTIONS_ORDER=&_DBOPTIONS_LIMIT=2&"
+			"_FORMAT=tar&submit=Go", [
 				"\0\0\0\0\0\0",
 				"This file is embargoed"],
 			"Tar output looks like a tar output with embargoed files"

@@ -573,7 +573,7 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		T.head(render=T.directive("commonhead"))[
 			T.title(render=T.directive("meta"))["title"],
 		],
-		T.body[
+		T.body(render=T.directive("withsidebar"))[
 			T.h1(render=T.directive("meta"))["title"],
 			T.div(class_="result", render=T.directive("ifdata"), 
 					data=T.directive("query")) [

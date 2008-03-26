@@ -12,6 +12,7 @@ from gavo.web import product
 from gavo.web import resourcebased
 
 parsing.verbose = True
+debug = False
 
 class Reloader(rend.Page):
 	def locateChild(self, ctx, segments):
@@ -29,6 +30,11 @@ try:
 except config.NoOptionError:
 	pass
 application = service.Application("archive")
+if debug:
+	mainPage = Reloader()
+else:
+	mainPage = dispatcher.ArchiveService()
+
 internet.TCPServer(_targetPort, appserver.NevowSite(
-	Reloader())).setServiceParent(application)
+	mainPage)).setServiceParent(application)
 	

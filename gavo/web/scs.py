@@ -63,7 +63,7 @@ class HumanScsCondition(ScsCondition):
 					"position as sexagesimal ra, dec or Simbad-resolvable"
 					" object", tablehead="Position", source="hscs_pos"),
 				InputKey(dest="hscs_sr", dbtype="float", description=
-					"search radius in arcminutes", tablehead="search radius",
+					"Search radius in arcminutes", tablehead="Search radius",
 					source="hscs_sr")],
 		}
 		vals.update(initvals)

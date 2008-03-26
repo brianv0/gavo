@@ -130,7 +130,9 @@ class LiteralParser:
 		"""removes all blanks from a literal (use it if, e.g. people
 		inserted blanks into long numbers.
 		"""
-		return literal.replace(" ", "")
+		if isinstance(literal, basestring):
+			return literal.replace(" ", "")
+		return literal
 
 	simpleConverters = {
 		"int" : int,

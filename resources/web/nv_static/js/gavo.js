@@ -122,6 +122,38 @@ function makeBookmarkLink(form) {
 }
 
 
+///////////// Functions for the sidebar
+
+function toggleCollapsedMeta(el) {
+	parentBox = el.parentNode.parentNode;
+	if (parentBox.style.width=='200px') {
+		el.childNodes[0].data = ">>";
+		collapseMeta(parentBox);
+	} else {
+		el.childNodes[0].data = "<<";
+		expandMeta(parentBox);
+	}
+}
+
+function collapseMeta(box) {
+	box.style.minHeight = '12px';
+	box.style.height = '12px';
+	box.style.overflow = 'hidden';
+	box.style.width = '100px';
+	box.style.border = '0px none #707ca0';
+	box.style.background = 'none';
+}
+
+function expandMeta(box) {
+	box.style.width = '200px';
+	box.style.minHeight = '70px';
+	box.style.maxHeight = '200px';
+	box.style.overflow = 'auto';
+	box.style.border = '1px solid #707ca0';
+	box.style.background = 'white';
+}
+
+
 ///////////// Functions dealing with the output format widget
 // This incredibly verbose crap hides and shows widgets selecting aspects
 // of the output format.  Basically, you have widgets in output_bussedElements

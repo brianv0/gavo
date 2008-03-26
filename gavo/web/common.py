@@ -160,12 +160,19 @@ class GavoRenderMixin(object):
 
 	Including standard stylesheets/js/whatever:
 	<head>...<n:invisible n:render="commonhead"/>...</head>
+
+	Rendering the sidebar (with a meta-carrying thing in data):
+
+	<body n:data="something meta carrying" n:render="withsidebar">
 	"""
-	def _doRenderMeta(self, ctx, flattenerFunc):
+	def _doRenderMeta(self, ctx, flattenerFunc, raiseOnFail=False, all=False):
 		metaKey = ctx.tag.children[0]
-		metaVal = self.service.getMeta(metaKey)
+		metaVal = self.service.getMeta(metaKey, raiseOnFail=raiseOnFail, all=all)
 		if metaVal:
-			return ctx.tag.clear()[flattenerFunc(metaVal)]
+			if all:
+				return ctx.tag.clear()[[T.li[flattenerFunc(v)] for v in metaVal]]
+			else:
+				return ctx.tag.clear()[flattenerFunc(metaVal)]
 		else:
 			return T.comment["Meta item %s not given."%metaKey]
 
@@ -174,6 +181,9 @@ class GavoRenderMixin(object):
 	
 	def render_metahtml(self, ctx, data):
 		return self._doRenderMeta(ctx, lambda c: T.xml(c.asHtml()))
+
+	def render_metahtmlAll(self, ctx, data):
+		return self._doRenderMeta(ctx, lambda c: T.xml(c.asHtml()), all=True)
 
 	def render_rootlink(self, ctx, data):
 		tag = ctx.tag
@@ -200,23 +210,61 @@ class GavoRenderMixin(object):
 			T.script(src=makeSitePath("/static/js/gavo.js"), 
 				type="text/javascript"),
 		]
-	
+
+	def render_explodableMeta(self, ctx, data):
+		metaKey = ctx.tag.children[0]
+		title = ctx.tag.attributes.get("title", metaKey.capitalize())
+		try:
+			return T.div(class_="explodable")[
+				T.h4(class_="exploHead")[
+					title,
+					" ",
+					T.a(onclick="toggleCollapsedMeta(this)", 
+						class_="foldbutton")[">>"],
+				],
+				self._doRenderMeta(ctx, lambda c: T.xml(c.asHtml()), raiseOnFail=True)]
+		except config.MetaError:
+			return ""
+			
 	def render_withsidebar(self, ctx, data):
 		oldChildren = ctx.tag.children
 		ctx.tag.children = []
 		return ctx.tag[
-			T.div(id="chdr")[
-				T.a(href="/", render=T.directive("rootlink"))[
-					T.img(src="/static/img/logo_small.png", class_="silentlink",
-						render=T.directive("rootlink"))],
-				T.h1(render=T.directive("meta"))["title"],
+			T.div(id="sidebar")[
+				T.div(class_="sidebaritem")[
+					T.a(href="/", render=T.directive("rootlink"), alt="[Gavo logo]")[
+						T.img(src="/static/img/logo_medium.png", class_="silentlink",
+							render=T.directive("rootlink"))],
+				],
+				T.a(href="#body", class_="invisible")["Skip Header"],
+				T.div(class_="sidebaritem")[
+					T.a(href="/static/help.shtml")[
+						"Help"],
+				],
+				T.div(render=T.directive("ifdata"), class_="sidebaritem",
+					data=self.service.getMeta("_related"))[
+					T.h3["Related"],
+					T.ul(class_="sidebarEnum",
+						render=T.directive("metahtmlAll"))["_related"],
+				],
+				T.div(class_="sidebaritem")[
+					T.h3["Metadata"],
+					T.invisible(
+						render=T.directive("explodableMeta"))["description"],
+					T.invisible(
+						render=T.directive("explodableMeta"))["copyright"],
+					T.invisible(
+						render=T.directive("explodableMeta"))["creator"],
+					T.invisible(title="Created",
+						render=T.directive("explodableMeta"))["creationDate"],
+					T.invisible(title="Data updated",
+						render=T.directive("explodableMeta"))["dateUpdated"],
+				],
 			],
 			T.div(id="body")[
+				T.a(name="body"),
 				oldChildren
 			],
-			T.div(id="sidebar")[
-				"Dis wil become da sidebar."
-			]
 		]
 				
 

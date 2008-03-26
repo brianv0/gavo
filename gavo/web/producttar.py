@@ -2,7 +2,7 @@
 Helper functions for producing tar files from tables containing
 a product column.
 
-Everything in this module expects the module interface, i.e., tables
+Everything in this module expects the product interface, i.e., tables
 must at least contain datapath, owner, embargo, and fsize fields.
 """
 

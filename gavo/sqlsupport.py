@@ -16,6 +16,8 @@ import operator
 
 from gavo import config
 
+debug = False
+
 usePgSQL = config.get("db", "interface")=="pgsql"
 
 if usePgSQL:
@@ -293,6 +295,8 @@ class StandardQueryMixin:
 		"""
 		cursor = self.connection.cursor()
 		try:
+			if debug:
+				print query, data
 			cursor.execute(query, data)
 		except DbError:
 			logger.warning("Failed db query: %s"%getattr(cursor, "query",
@@ -435,7 +439,8 @@ class TableInterface(StandardQueryMixin):
 					members)))
 			if indexName.endswith("_cluster"):
 				self.query("CLUSTER %s ON %s"%(indexName, self.tableName))
-		self.query("ANALYZE %s"%self.tableName)
+		if self.tableExists(self.tableName):
+			self.query("ANALYZE %s"%self.tableName)
 
 	def deleteMatching(self, matchCondition):
 		"""deletes all rows matching matchCondition.
@@ -507,7 +512,7 @@ class TableWriter(TableInterface):
 		def setPrivileges():
 			for stmt in getTablePrivSQL(self.tableName):
 				self.query(stmt)
-		
+	
 		if delete:
 			if self.tableExists(self.tableName):
 				self.query("DROP TABLE %s CASCADE"%(self.tableName))
@@ -590,10 +595,10 @@ class SimpleQuerier(StandardQueryMixin):
 		self.connection.commit()
 
 	def close(self):
-		if self.connection:
-			if self.ownedConnection:
-				self.connection.close()
-			self.connection = None
+		try:
+			self.connection.close()
+		except DbError:
+			pass
 
 	def finish(self):
 		self.commit()
@@ -667,11 +672,12 @@ class MetaTableHandler:
 	in the database.  Its definition is given in datadef.metaTableFields.
 	"""
 	def __init__(self, querier=None):
-		self.writer = TableWriter(metaTableName, datadef.metaTableFields)
 		if querier==None:
 			self.querier = SimpleQuerier()
 		else:
 			self.querier = querier
+		self.writer = TableWriter(metaTableName, datadef.metaTableFields,
+			dbConnection=self.querier.connection)
 		self._ensureTable()
 	
 	def _ensureTable(self):
