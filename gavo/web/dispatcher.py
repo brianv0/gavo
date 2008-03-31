@@ -111,7 +111,8 @@ class ReloadPage(common.GavoRenderMixin, rend.Page):
 				<span n:pattern="item"><n:invisible n:render="data"/>, </span>
 			</span>
 		</p>
-		<p><a href="/" n:render="rootlink">Main Page</a></p>
+		<p><a href="/reload" n:render="rootlink">Reload again</a> or go to
+		<a href="/" n:render="rootlink">Main Page</a>.</p>
     </body></html>
     """)
 

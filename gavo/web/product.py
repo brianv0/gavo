@@ -15,6 +15,7 @@ from nevow import static
 
 from zope.interface import implements
 
+import gavo
 from gavo import config
 from gavo import coords
 from gavo import datadef
@@ -120,10 +121,14 @@ class Product(standardcores.DbBasedCore):
 		ra, dec = float(sqlPars["ra"]), float(sqlPars["dec"]),
 		sra, sdec = float(sqlPars["sra"]), float(sqlPars["sdec"]),
 		getPixCoo = coords.getInvWCSTrafo(header)
-		x, y = getPixCoo(ra, dec)
-		w = abs(getPixCoo(ra+sra/2, dec)[0]-getPixCoo(ra-sra/2, dec)[0])
-		h = abs(getPixCoo(ra, dec+sdec/2,)[1]-getPixCoo(ra, dec-sdec/2,)[1])
-		return ["-s", targetPath, str(x), str(y), str(w), str(h)]
+		x, y = map(int, getPixCoo(ra, dec))
+		w = min(header["NAXIS1"],
+			int(abs(getPixCoo(ra+sra/2, dec)[0]-getPixCoo(ra-sra/2, dec)[0])))
+		h = min(header["NAXIS2"], 
+			int(abs(getPixCoo(ra, dec+sdec/2,)[1]-getPixCoo(ra, dec-sdec/2,)[1])))
+		x = max(0, min(header["NAXIS1"]-w, x))
+		y = max(0, min(header["NAXIS2"]-h, y))
+		return ["-s", targetPath, "%d-%d"%(x, x+w), "%d-%d"%(y, y+h)]
 
 	def _deliverCutout(self, sqlPars, ctx, item):
 		"""transfers a cutout image defined by ctx["key"] and the ra, dec, sra, 

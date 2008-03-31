@@ -6,9 +6,12 @@ See develNotes for info on our SIAP implementation
 
 import math
 
+import numarray
+
 import gavo
 from gavo import coords
 from gavo import datadef
+from gavo import interfaces
 from gavo import simbadinterface
 from gavo import utils
 from gavo.parsing.contextgrammar import InputKey
@@ -179,18 +182,74 @@ class SiapCondition(standardcores.CondDesc):
 core.registerCondDesc("siap", SiapCondition)
 
 
-# XXX TODO: this should be handled by an output filter
 class SiapCutoutCore(standardcores.DbBasedCore):
 	"""is a core doing siap and handing through query parameters to
 	the product delivery asking it to only retrieve certain portions
 	of images.
 	"""
+	interfaceFields = dict([(d["dest"], d)
+		for d in interfaces.BboxSiap.siapFields])
+	copiedFields = ["centerAlpha", "centerDelta", "imageTitle", "instId",
+		"dateObs", "nAxes", "pixelSize", "pixelScale", "imageFormat",
+		"refFrame", "wcs_equinox", "wcs_projection", "wcs_refPixel",
+		"wcs_refValues", "wcs_cdmatrix", "bandpassId", "bandpassUnit",
+		"bandpassHi", "bandpassLo", "pixflags"]
+	# This should become a property or something once we compress the stuff
+	# or have images with bytes per pixel != 2
+	bytesPerPixel = 2
+
+	def getOutputFields(self, queryMeta):
+		if hasattr(self, "_ofcache"):
+			return self._ofcache
+		fields = []
+		for name in self.copiedFields:
+			fields.append(datadef.OutputField.fromDataField(datadef.DataField(
+				**self.interfaceFields[name])))
+		d = self.interfaceFields["accref"]
+		d["displayHint"] = "type=product,nopreview=True"
+		fields.append(datadef.OutputField.fromDataField(datadef.DataField(**d)))
+		d = self.interfaceFields["accsize"]
+		d["tablehead"] = "Est. file size"
+		fields.append(datadef.OutputField.fromDataField(datadef.DataField(**d)))
+		self._ofcache = fields
+		return fields
+
+	def _fixRecord(self, record, centerAlpha, centerDelta, sizeAlpha, sizeDelta):
+		"""inserts estimates for WCS values into a cutout record.
+		"""
+		wcsFields = {"CUNIT1": "deg", "CUNIT2": "deg", "CTYPE1": "-----TAN",
+			"CTYPE2": "-----TAN", 
+			"CRVAL1": record["wcs_refValues"][0],
+			"CRVAL2": record["wcs_refValues"][1],
+			"CRPIX1": record["wcs_refPixel"][0],
+			"CRPIX2": record["wcs_refPixel"][1],
+			"CD1_1": record["wcs_cdmatrix"][0],
+			"CD1_2": record["wcs_cdmatrix"][1],
+			"CD2_1": record["wcs_cdmatrix"][2],
+			"CD2_2": record["wcs_cdmatrix"][3],
+			"LONPOLE": "180",
+		}
+		trafo = coords.getWCSTrafo(wcsFields)
+		invTrafo = coords.getInvWCSTrafo(wcsFields)
+		upperLeft = invTrafo(centerAlpha-sizeAlpha/2, centerDelta-sizeDelta/2)
+		lowerRight = invTrafo(centerAlpha+sizeAlpha/2, centerDelta+sizeDelta/2)
+		centerPix = invTrafo(centerAlpha, centerDelta)
+		record["wcs_refPixel"] = numarray.array([centerPix[0]-lowerRight[0],
+			centerPix[1]-lowerRight[1]])
+		record["wcs_refValues"] = numarray.array([centerAlpha, centerDelta])
+		record["accref"] = record["accref"]+"&ra=%s&dec=%s&sra=%s&sdec=%s"%(
+			centerAlpha, centerDelta, sizeAlpha, sizeDelta)
+		record["centerAlpha"] = centerAlpha
+		record["centerDelta"] = centerDelta
+		record["accsize"] = int(abs(upperLeft[0]-lowerRight[0]
+			)*abs(upperLeft[1]-lowerRight[1])*self.bytesPerPixel)
+
 	def _parseOutput(self, dbResponse, outputDef, sqlPars, queryMeta):
 		res = super(SiapCutoutCore, self)._parseOutput(
 			dbResponse, outputDef, sqlPars, queryMeta)
-		for row in res.getPrimaryTable():
-			row["datapath"] = row["datapath"]+"&ra=%s&dec=%s&sra=%s&sdec=%s"%(
-				sqlPars["_ra"], sqlPars["_dec"], sqlPars["_sra"], sqlPars["_sdec"])
+		for record in res.getPrimaryTable():
+			self._fixRecord(record, sqlPars["_ra"], sqlPars["_dec"], 
+				sqlPars["_sra"], sqlPars["_sdec"])
 		return res
 
 core.registerCore("siapcutout", SiapCutoutCore)

@@ -147,5 +147,11 @@ the web and want VO exposure, you are invited to talk to
 <p>The software driving the GAVO data center should eventually be available
 for download.  Meanwhile, contact the administrators for SVN access.</p>
 
+<h2>Acknowledgements</h2>
+
+<p>This software uses services provided by the Centre de Données astronomiques de Strasbourg, France.</p>
+
+<p>Some of the services were created using software from astrometry.net.</p>
+
 </body>
 </html>

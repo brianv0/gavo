@@ -444,7 +444,8 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 
 	# renderers for HTML tables
 	def render_resulttable(self, ctx, data):
-		return htmltable.HTMLTableFragment(data.child(ctx, "table"))
+		return htmltable.HTMLTableFragment(data.child(ctx, "table"), 
+			data.queryMeta)
 
 	def render_parpair(self, ctx, data):
 		if data==None or data[1]==None:
@@ -524,7 +525,7 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		self._fakeDefaults(form, ctx)
 		if self.name=="form":
 			form.addField("_OUTPUT", formal.String, 
-				formal.widgetFactory(gwidgets.OutputFormat, self.service),
+				formal.widgetFactory(gwidgets.OutputFormat, self.service, queryMeta),
 				label="Output format")
 		form.addAction(self.submitAction, label="Go")
 		self.form = form

@@ -42,26 +42,26 @@ class OutputFormat(object):
 	users will not see.  Also, formal doesn't see any of these.  See gavo.js
 	for details.
 	"""
-	def __init__(self, typeOb, service):
+	def __init__(self, typeOb, service, queryMeta):
 		self.service = service
 		self.typeOb = typeOb
 		self._computeAvailableFields()
-		self._computeAvailableFormats()
+		self._computeAvailableFormats(queryMeta)
 
-	def _computeAvailableFormats(self):
+	def _computeAvailableFormats(self, queryMeta):
 		self.availableFormats = ["VOTable", "VOPlot", "FITS"]
 		core = self.service.get_core()
 		if not hasattr(core, "tableDef"):
 			return
 # XXX TODO: Once we have a real interface.isImplementedIn, do away with
-# this gruesome hack -- it's really supposed to check for products
-		td = core.tableDef
-		try:
-			td.getFieldIndex("datapath")
-			self.availableFormats.append("tar")
-		except KeyError:
-			pass
-
+# this gruesome hack -- it's really supposed to check for products in the
+# output table
+		ofs = core.getOutputFields(queryMeta)
+		for of in ofs:
+			if of.get_dest()=="datapath":
+				self.availableFormats.append("tar")
+				break
+		
 	def _computeAvailableFields(self):
 		"""computes the fields a DbBasedCore provides but doesn't 
 		output by default.
@@ -83,21 +83,21 @@ class OutputFormat(object):
 			for f in self.availableFields])
 
 	def render(self, ctx, key, args, errors):
-		return T.div(id="op_container")[
+		return T.div(id=render_cssid("_OUTPUT"))[
 			widget.SelectChoice(formaltypes.String(), 
 				options=[(s, s) for s in self.availableFormats],
 				noneOption=("HTML", "HTML")).render(ctx, "_FORMAT", args, errors)(
-					onChange="output_broadcast(this.value)"),
+					onchange="output_broadcast(this.value)"),
 			T.span(id=render_cssid(key, "QlinkContainer"), 
 					style="padding-left:200px")[
-				T.a(href="", class_="resultlink", onMouseOver=
+				T.a(href="", class_="resultlink", onmouseover=
 						"this.href=makeResultLink(getEnclosingForm(this))")
 					["[Result link]"],
 				" ",
-				T.a(href="", class_="resultlink", onMouseOver=
+				T.a(href="", class_="resultlink", onmouseover=
 						"this.href=makeBookmarkLink(getEnclosingForm(this))")[
 					T.img(src=common.makeSitePath("/static/img/bookmark.png"), 
-						class_="silentlink", title="Link to this form")
+						class_="silentlink", title="Link to this form", alt="[bookmark]")
 				],
 			],
 			T.br,
@@ -159,7 +159,7 @@ class DbOptions(object):
 			children.extend(["Limit to ",
 				self.limitWidget.render(ctx, "_DBOPTIONS_LIMIT", args, errors),
 				" items."])
-		return T.span(id=render_cssid(key, "_DBOPTIONS"))[children]
+		return T.span(id=render_cssid(key))[children]
 
 	# XXX TODO: make this immutable.
 	renderImmutable = render

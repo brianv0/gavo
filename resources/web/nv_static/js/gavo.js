@@ -41,7 +41,7 @@ function insertPreview(node) {
 		image.setAttribute("src", node.getAttribute("href")+"&preview=True");
 		node.replaceChild(image, node.firstChild);
 	}
-	node.removeAttribute("onMouseOver");
+	node.removeAttribute("onmouseover");
 }
 
 ///////////// Code for generating GET-URLs for forms
@@ -161,7 +161,7 @@ function expandMeta(box) {
 // themselves to a container.
 //
 // To use this, you need:
-//  * a block element with id "op_container" in which the subwidgets are 
+//  * a block element with id "genForm-_OUTPUT" in which the subwidgets are 
 //    displayed
 //  * a form element calling output_broadcast(this.value) on a change
 //  * an element with id op_selectItems (preferably invisible) that has
@@ -301,7 +301,7 @@ function output_hide(el) {
 
 function output_show(el) {
 	if (!document.getElementById(el.id)) {
-		document.getElementById("op_container").appendChild(el);
+		document.getElementById("genForm-_OUTPUT").appendChild(el);
 	}
 }
 	
@@ -313,7 +313,7 @@ function output_init() {
 	var pars = decodeGetPars(location.search);
 	var format = pars["_FORMAT"];
 
-	if (!document.getElementById("op_container")) { // no form on page
+	if (!document.getElementById("genForm-_OUTPUT")) { // no form on page
 		return;
 	}
 	output_bussedElements.push(output_verbSelector(pars));

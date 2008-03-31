@@ -18,6 +18,7 @@ In general, a somewhat more declarative approach would be nice...
 import gavo
 from gavo import config
 from gavo import coords
+from gavo import record
 from gavo import sqlsupport
 from gavo import utils
 from gavo.datadef import DataField
@@ -398,7 +399,8 @@ class BboxSiap(Interface):
 				"verbLevel": 20},
 			{"dest": "wcs_cdmatrix", "ucd": "VOX:CDMatrix", "verbLevel": 20,
 				"source": "wcs_cdmatrix", "dbtype": "real[]"},
-			{"dest": "bandpassId", "ucd": "VOX:Bandpass_ID",
+			{"dest": "bandpassId", "ucd": "VOX:Bandpass_ID", 
+				"tablehead": "Bandpass",
 				"source": "bandpassId", "dbtype": "text", "verbLevel": 10},
 			{"dest": "bandpassUnit", "ucd": "VOX:BandPass_Unit",
 				"source": "bandpassUnit", "dbtype": "text", "verbLevel": 20},
@@ -418,10 +420,12 @@ class BboxSiap(Interface):
 				"source": "prodtblFsize", "dbtype": "integer", "verbLevel": 11},
 		]
 
-
-def elgen_siapOutput(**args):
+def elgen_siapOutput(preview="True"):
+	doPreview = record.parseBooleanLiteral(preview)
 	for field in BboxSiap.siapFields:
 		of = field.copy()
+		if of["dest"]=="accref":
+			of["displayHint"] = "type=product,nopreview=True"
 		of["source"] = of["dest"]
 		yield ("empty", "outputField", of)
 elgen.registerElgen("siapOutput", elgen_siapOutput)

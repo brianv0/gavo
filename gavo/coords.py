@@ -128,18 +128,28 @@ def degToTimeangle(deg, sepChar=" ", secondFracs=3):
 	"""converts a float angle in degrees to an time angle (hh:mm:ss.mmm).
 
 	>>> degToTimeangle(0)
-	'0 00 00.000'
+	'00 00 00.000'
 	>>> degToTimeangle(122.056, secondFracs=1)
-	'8 08 13.4'
+	'08 08 13.4'
+	>>> degToTimeangle(122.056, secondFracs=0)
+	'08 08 13'
+	>>> degToTimeangle(-1.056, secondFracs=0)
+	'-00 04 13'
 	>>> degToTimeangle(359.2222, secondFracs=4, sepChar=":")
 	'23:56:53.3280'
 	>>> "%.4f"%timeangleToDeg(degToTimeangle(256.25, secondFracs=9))
 	'256.2500'
 	"""
+	sign = ""
+	if deg<0:
+		sign = "-"
+		deg = -deg
 	rest, hours = math.modf(deg/360.*24)
 	rest, minutes = math.modf(rest*60)
-	return sepChar.join(["%d"%int(hours), "%02d"%int(minutes), 
-		"%0*.*f"%(secondFracs+3, secondFracs, rest*60)])
+	if secondFracs<1:
+		secondFracs = -1
+	return sign+sepChar.join(["%02d"%int(hours), "%02d"%abs(int(minutes)), 
+		"%0*.*f"%(secondFracs+3, secondFracs, abs(rest*60))])
 
 
 def degToDms(deg, sepChar=" ", secondFracs=2):

@@ -7,6 +7,7 @@ import re
 import urlparse
 import urllib
 import os
+import weakref
 
 from nevow import rend
 from nevow import loaders
@@ -136,7 +137,7 @@ def _productMapperFactory(colProps):
 		if val:
 			return T.a(href=common.makeSitePath(
 					"/getproduct?key=%s&siap=true"%urllib.quote(val)),
-				onMouseOver=mouseoverHandler,
+				onmouseover=mouseoverHandler,
 				class_="productlink")[re.sub("&.*", "", os.path.basename(val))]
 		else:
 			return ""
@@ -180,6 +181,12 @@ _registerHTMLMF(_simbadMapperFactory)
 #  Insert new, more specific factories here
 
 
+def makeCutoutURL(accref, ra, dec, sra, sdec):
+	key = (accref+"&amp;ra=%s&amp;dec=%s&amp;sra=%s"
+		"&amp;sdec=%s"%(ra, dec, sra, sdec))
+	return common.makeSitePath("/getproduct?key="+urllib.quote(key))
+
+
 class HeaderCells(rend.Page):
 	def __init__(self, fieldDefs, colPropsIndex):
 		self.fieldDefs = fieldDefs
@@ -213,8 +220,8 @@ class HeaderCells(rend.Page):
 class HTMLTableFragment(rend.Fragment):
 	"""is an HTML renderer for gavo Tables.
 	"""
-	def __init__(self, table):
-		self.table = table
+	def __init__(self, table, queryMeta):
+		self.table, self.queryMeta = table, queryMeta
 		super(HTMLTableFragment, self).__init__()
 		self._computeDefaultTds()
 		self._computeHeadCellsStan()
@@ -227,6 +234,7 @@ class HTMLTableFragment(rend.Fragment):
 		least stan (it can use T.tag).
 		"""
 		ns = dict(globals())
+		ns["queryMeta"] = self.queryMeta
 		code = ("def render(data):\n"+
 			utils.fixIndentation(source, "     ")+"\n")
 		exec code in ns
@@ -249,11 +257,12 @@ class HTMLTableFragment(rend.Fragment):
 		for props, field in zip(self.colProps, self.table.getFieldDefs()):
 # the hasattr here is necessary since we allow plain data fields to be
 # passed in here.  We should really change that.
+			if hasattr(field, "get_wantsRow") and field.get_wantsRow():
+				props["wantsRow"] = True
 			if hasattr(field, "get_renderer") and field.get_renderer():
 				formatter = self._compileRenderer(field.get_renderer())
 			else:
 				formatter=_htmlMFRegistry.getMapper(props) # This may change props!
-			# XXX the wantsRow mess is currently unused.  Maybe remove it again?
 			if props.has_key("wantsRow"):
 				self.defaultTds.append(
 					T.td(formatter=formatter, render=T.directive("useformatter")))

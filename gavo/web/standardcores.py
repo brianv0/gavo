@@ -364,6 +364,7 @@ class DbBasedCore(QueryingCore):
 		You can retrieve the values used in the SQL query from the dictionary
 		sqlPars.
 		"""
+		queryMeta["sqlQueryPars"] = sqlPars
 		res = resource.InternalDataSet(outputDef, table.Table, dbResponse)
 		if queryMeta.get("dbLimit"):
 			if len(res.getPrimaryTable().rows)>queryMeta.get("dbLimit"):

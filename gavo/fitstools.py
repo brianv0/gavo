@@ -102,6 +102,7 @@ def sortHeaders(header):
 		newHeader.add_comment(card.value)
 	return newHeader
 
+
 def replacePrimaryHeaderInPlace(fitsName, newHeader):
 	"""is a convenience wrapper around replacePrimaryHeader.
 	"""

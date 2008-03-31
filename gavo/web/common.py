@@ -63,15 +63,19 @@ def parseServicePath(serviceParts):
 
 
 class doctypedStan(loaders.stan):
-	"""is the stan loader with a (transitional) doctype added.
+	"""is the stan loader with a doctype and a namespace added.
 	"""
 
-	DOCTYPE = T.xml('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01'
-		' Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">')
+#	DOCTYPE = T.xml('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01'
+#		' Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">')
+#	DOCTYPE = T.xml('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"'
+#		' "http://www.w3.org/TR/html4/strict.dtd">')
+	DOCTYPE = T.xml('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"'
+		' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">')
 
-	def __init__(self, stan, pattern=None):
-		super(doctypedStan, self).__init__(T.invisible[self.DOCTYPE, stan], 
-			pattern)
+	def __init__(self, rootEl, pattern=None):
+		super(doctypedStan, self).__init__(T.invisible[self.DOCTYPE, 
+			rootEl(xmlns="http://www.w3.org/1999/xhtml")], pattern)
 
 			
 class CustomErrorMixin(object):
@@ -232,9 +236,9 @@ class GavoRenderMixin(object):
 		return ctx.tag[
 			T.div(id="sidebar")[
 				T.div(class_="sidebaritem")[
-					T.a(href="/", render=T.directive("rootlink"), alt="[Gavo logo]")[
+					T.a(href="/", render=T.directive("rootlink"))[
 						T.img(src="/static/img/logo_medium.png", class_="silentlink",
-							render=T.directive("rootlink"))],
+							render=T.directive("rootlink"), alt="[Gavo logo]")],
 				],
 				T.a(href="#body", class_="invisible")["Skip Header"],
 				T.div(class_="sidebaritem")[
@@ -302,6 +306,7 @@ class QueryMeta(dict):
 			ctxArgs = inevow.IRequest(ctxArgs).args
 		except TypeError:
 			pass
+		self.ctxArgs = ctxArgs
 		self["formal_data"] = {}
 		self._fillOutput(ctxArgs)
 		self._fillOutputFilter(ctxArgs)
