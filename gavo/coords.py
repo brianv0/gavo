@@ -611,7 +611,7 @@ try:
 			raise gavo.Error("Don't know how to transform from %s to %s"%(
 				srcEq, destEq))
 
-except ImportError:  # _gavoext not available
+except (ImportError, AttributeError):  # _gavoext not available
 	def convertSys(*args):
 		raise gavo.Error("You need the _gavoext C extension for"
 			" coordinate transformations.")

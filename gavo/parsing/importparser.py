@@ -283,6 +283,7 @@ class RdParser(utils.NodeBuilder):
 			"constraints": recDef.set_constraints,
 			"owningCondition": recDef.set_owningCondition,
 			"meta": recDef.addMeta,
+			"script": recDef.addto_scripts,
 		}, children)
 
 		for _, (interface, args) in interfaceNodes:

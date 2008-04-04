@@ -138,7 +138,8 @@ try:
 
 		Unit may be yr or a (produces julian fractional years like J2000.34),
 		d (produces julian days), s (produces a unix timestamp, for whatever
-		that's good), "Y:M:D" or "Y-M-D" (produces an iso date).
+		that's good), "Y:M:D" or "Y-M-D" (produces an iso date),
+		iso (produces an ISO timestamp).
 		"""
 		unit = colProps["unit"]
 		if isinstance(colProps["sample"], DateTime.DateTimeType):
@@ -151,6 +152,9 @@ try:
 				fun, destType = lambda val: val and val.ticks(), ("double", None)
 			elif unit=="Y:M:D" or unit=="Y-M-D":
 				fun, destType = lambda val: val and val.date, ("char", "*")
+			elif unit=="iso":
+				fun, destType = lambda val: val and val.strftime("%Y-%m-%dT%H:%M:%SZ"
+					), ("char", "*")
 			else:   # Fishy, but not our fault
 				fun, destType = lambda val: val and val.jdn, ("double", None)
 			colProps["datatype"], colProps["arraysize"] = destType
@@ -774,7 +778,7 @@ class VOTableMaker:
 	def _setGlobalMeta(self, vot, dataSet):
 		"""add meta elements from the resource descriptor to vot.
 		"""
-		rd = dataSet.getDescriptor().getRD()
+		rd = dataSet.getDescriptor().getRd()
 		vot.description = rd.getMeta("description")
 		for id, equ, epoch, system in rd.get_systems():
 			vot.coosys.append(CooSys(ID=id, equinox=equ, epoch=epoch, system=system))

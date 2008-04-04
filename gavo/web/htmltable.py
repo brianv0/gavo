@@ -7,6 +7,8 @@ import re
 import urlparse
 import urllib
 import os
+import sys
+import traceback
 import weakref
 
 from nevow import rend
@@ -15,6 +17,7 @@ from nevow import tags as T, entities as E
 
 from twisted.internet import reactor, defer
 
+import gavo
 from gavo import config
 from gavo import coords
 from gavo import unitconv
@@ -235,9 +238,19 @@ class HTMLTableFragment(rend.Fragment):
 		"""
 		ns = dict(globals())
 		ns["queryMeta"] = self.queryMeta
-		code = ("def render(data):\n"+
-			utils.fixIndentation(source, "     ")+"\n")
-		exec code in ns
+		ns["source"] = source
+		code = ("def render(data):\n"
+			"  try:\n"+
+			utils.fixIndentation(source, "     ")+"\n"
+			"  except:\n"
+			"    sys.stderr.write('Error in\\n%s\\n'%source)\n"
+			"    traceback.print_exc()\n"
+			"    raise\n")
+		try:
+			exec code in ns
+		except SyntaxError:
+			sys.stderr.write("Invalid source:\n%s\n"%code)
+			raise
 		return ns["render"]
 
 	def _computeDefaultTds(self):

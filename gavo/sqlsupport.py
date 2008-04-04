@@ -244,7 +244,7 @@ class _Feeder:
 			pass # someone else might have closed it
 
 
-class StandardQueryMixin:
+class StandardQueryMixin(object):
 	"""is a mixin with some commonly used canned queries.
 
 	The mixin assumes an attribute connection from the parent.
@@ -296,8 +296,10 @@ class StandardQueryMixin:
 		cursor = self.connection.cursor()
 		try:
 			if debug:
-				print query, data
+				print "Executing", query, data
 			cursor.execute(query, data)
+			if debug:
+				print "Finished", cursor.query
 		except DbError:
 			logger.warning("Failed db query: %s"%getattr(cursor, "query",
 				query))
@@ -488,6 +490,10 @@ class TableWriter(TableInterface):
 	"""is a moderately high-level interface to feeding data into an
 	SQL database.
 	"""
+	def __init__(self, tableName, fields, dbConnection=None, scriptRunner=None):
+		super(TableWriter, self).__init__(tableName, fields, dbConnection)
+		self.scriptRunner = scriptRunner
+
 	def _getDDLDefinition(self, field):
 		"""returns an sql fragment for defining the field described by the 
 		DataField field.
@@ -498,6 +504,12 @@ class TableWriter(TableInterface):
 		if field.get_references():
 			items.append("REFERENCES %s ON DELETE CASCADE"%field.get_references())
 		return " ".join(items)
+
+	def makeIndices(self):
+		if self.scriptRunner:
+			self.scriptRunner.runScripts("preIndex", tw=self)
+			self.scriptRunner.runScripts("preIndexSQL", connection=self.connection)
+		super(TableWriter, self).makeIndices()
 
 	def createTable(self, delete=True, create=True, privs=True):
 		"""creates a new table for dataset.
@@ -631,13 +643,17 @@ class ScriptRunner:
 			queries.append((failOk, query))
 		return queries
 
-	def run(self, script, verbose=False):
+	def run(self, script, verbose=False, connection=None):
 		"""runs script in a transaction of its own.
 
 		The function will retry a script that fails if the failing command
-		was marked with a - as first char.
+		was marked with a - as first char.  This means it may rollback
+		an active connection, so don't pass in a connection object
+		unless you're sure what you're doing.
 		"""
-		connection = getDbConnection(config.getDbProfile())
+		borrowedConnection = connection!=None
+		if not borrowedConnection:
+			connection = getDbConnection(config.getDbProfile())
 		queries = self._parseScript(script)
 		while 1:
 			cursor = connection.cursor()
@@ -661,8 +677,9 @@ class ScriptRunner:
 			else:
 				break
 		cursor.close()
-		connection.commit()
-		connection.close()
+		if not borrowedConnection:
+			connection.commit()
+			connection.close()
 	
 
 class MetaTableHandler:

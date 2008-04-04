@@ -57,7 +57,7 @@ class CustomGrammar(grammar.Grammar):
 		parentDD = parseContext.getDataSet().getDescriptor()
 		modPath, modName = os.path.dirname(self.get_module()
 			), os.path.basename(self.get_module())
-		modPath = os.path.join(parentDD.getRD().get_resdir(), modPath)
+		modPath = os.path.join(parentDD.getRd().get_resdir(), modPath)
 		try:
 			file, pathname, description = imp.find_module(modName, [modPath])
 		except ImportError:
@@ -96,7 +96,7 @@ class UserGrammar(grammar.Grammar):
 		grammar.Grammar.__init__(self, initvals=initvals)
 	
 	def resolvePath(self, path):
-		return os.path.join(self.parentDD.getRD().get_resdir(), path)
+		return os.path.join(self.parentDD.getRd().get_resdir(), path)
 	
 	def _getDocdict(self, parseContext):
 		return {}

@@ -2,9 +2,12 @@
 Some unit tests that don't (yet) fit a section of their own.
 """
 
+import cStringIO
 import datetime
 import os
+import shutil
 import sys
+import tempfile
 import unittest
 
 from nevow import context
@@ -20,6 +23,7 @@ from gavo import nullui
 from gavo import sqlsupport
 from gavo import table
 from gavo import votable
+from gavo.helpers import filestuff
 from gavo.parsing import importparser
 from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
@@ -155,12 +159,66 @@ class MapperTest(unittest.TestCase):
 			mapper(datetime.datetime(2000, 12, 31, 11, 59, 59)))
 
 
+class RenamerDryTest(unittest.TestCase):
+	"""tests for some aspects of the file renamer without touching the file system.
+	"""
+	def testSerialization(self):
+		"""tests for correct serialization of clobbering renames.
+		"""
+		f = filestuff.FileRenamer({})
+		fileMap = {'a': 'b', 'b': 'c', '2': '3', '1': '2'}
+		self.assertEqual(f.makeRenameProc(fileMap),
+			[('b', 'c'), ('a', 'b'), ('2', '3'), ('1', '2')])
+	
+	def testCycleDetection(self):
+		"""tests for cycle detection in renaming recipies.
+		"""
+		f = filestuff.FileRenamer({})
+		fileMap = {'a': 'b', 'b': 'c', 'c': 'a'}
+		self.assertRaises(filestuff.Error, f.makeRenameProc, fileMap)
+
+
+class RenamerWetTest(unittest.TestCase):
+	"""tests for behaviour of the file renamer on the file system.
+	"""
+	def setUp(self):
+		def touch(name):
+			f = open(name, "w")
+			f.close()
+		self.testDir = tempfile.mkdtemp("testrun")
+		for fName in ["a.fits", "a.txt", "b.txt", "b.jpeg", "foo"]:
+			touch(os.path.join(self.testDir, fName))
+
+	def tearDown(self):
+		shutil.rmtree(self.testDir, onerror=lambda exc: None)
+
+	def testOperation(self):
+		"""tests an almost-realistic application
+		"""
+		f = filestuff.FileRenamer.loadFromFile(
+			cStringIO.StringIO("a->b \nb->c\n 2->3\n1 ->2\n\n# a comment\n"
+				"foo-> bar\n"))
+		f.renameInPath(self.testDir)
+		found = set(os.listdir(self.testDir))
+		expected = set(["b.fits", "b.txt", "c.txt", "c.jpeg", "bar"])
+		self.assertEqual(found, expected)
+	
+	def testNoClobber(self):
+		"""tests for effects of repeated application.
+		"""
+		f = filestuff.FileRenamer.loadFromFile(
+			cStringIO.StringIO("a->b \nb->c\n 2->3\n1 ->2\n\n# a comment\n"
+				"foo-> bar\n"))
+		f.renameInPath(self.testDir)
+		self.assertRaises(filestuff.Error, f.renameInPath, self.testDir)
+
+
 def singleTest():
-	suite = unittest.makeSuite(MapperTest, "test")
+	suite = unittest.makeSuite(RenamerWetTest, "test")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 
 
 if __name__=="__main__":
-#	unittest.main()
-	singleTest()
+	unittest.main()
+#	singleTest()

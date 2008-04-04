@@ -37,7 +37,7 @@ class CBooster:
 			autoNull=None):
 		self.dataDesc = dataDesc
 		self.recordSize = recordSize
-		self.resdir = dataDesc.getRD().get_resdir()
+		self.resdir = dataDesc.getRd().get_resdir()
 		self.srcName = os.path.join(self.resdir, srcName)
 		self.autoNull = autoNull
 		self.gzippedInput = gzippedInput

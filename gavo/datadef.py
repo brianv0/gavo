@@ -341,7 +341,7 @@ class DataTransformer(record.Record, meta.MetaMixin):
 			pass
 		return nd
 
-	def getRD(self):
+	def getRd(self):
 		return self.rD
 	
 	def getRecordDefByName(self, name):

@@ -26,6 +26,7 @@ from gavo.parsing import meta
 from gavo.parsing import nullgrammar
 from gavo.parsing import parsehelpers
 from gavo.parsing import rowsetgrammar
+from gavo.parsing import scripting
 from gavo.parsing import tablegrammar
 from gavo.parsing import typeconversion
 
@@ -65,87 +66,6 @@ def getMetaTableRecordDef(tableName):
 	return metaDef
 
 
-class SqlMacroExpander(object):
-	"""is a collection of "Macros" that can be used in SQL scripts.
-
-	This is a terrible hack, but there's little in the way of alternatives
-	as far as I can see.
-	"""
-	def __init__(self, rd):
-		self.rd = rd
-		self.macrodict = {}
-		for name in dir(self):
-			if name.isupper():
-				self.macrodict[name] = getattr(self, name)
-	
-	def _expandScriptMacro(self, matob):
-		return eval(matob.group(1), self.macrodict)
-
-	def expand(self, script):
-		"""expands @@@...@@@ macro calls in SQL scripts
-		"""
-		return re.sub("@@@(.*?)@@@", self._expandScriptMacro, script)
-
-	def TABLERIGHTS(self, tableName):
-		return "\n".join(sqlsupport.getTablePrivSQL(tableName))
-	
-	def SCHEMARIGHTS(self, schema):
-		return "\n".join(sqlsupport.getSchemaPrivSQL(schema))
-	
-	def SCHEMA(self):
-		return self.rd.get_schema()
-
-
-class ScriptHandler(object):
-	"""is a container for the logic of running scripts.
-
-	Objects like ResourceDescriptors and DataDescriptors can have
-	scripts attached that may run at certain points in their lifetime.
-
-	This class provides a uniform interface to them.  Right now,
-	the have to be constructed just with a resource descriptor and
-	a parent.  I do hope that's enough.
-	"""
-	def __init__(self, parent, rd):
-		self.rd, self.parent = rd, weakref.proxy(parent)
-		self.expander = SqlMacroExpander(self.rd)
-
-	def _runSqlScript(self, script):
-		runner = sqlsupport.ScriptRunner()
-		runner.run(self.expander.expand(script))
-
-	def _runPythonDDProc(self, script):
-		"""compiles and run script to a python function working on a
-		data descriptor's table(s).
-
-		The function receives the data descriptor (as dataDesc) and a 
-		database connection (as connection) as arguments.  The script only
-		contains the body of the function, never the header.
-		"""
-		def makeFun(script):
-			ns = dict(globals())
-			code = ("def someFun(dataDesc, connection):\n"+
-				utils.fixIndentation(script, "      ")+"\n")
-			exec code in ns
-			return ns["someFun"]
-		makeFun(script)(self.parent, sqlsupport.getDefaultDbConnection())
-
-	handlers = {
-		"preCreation": _runSqlScript,
-		"postCreation": _runSqlScript,
-		"processTable": _runPythonDDProc,
-	}
-	
-	def _runScript(self, scriptType, scriptName, script):
-		gavo.ui.displayMessage("Running %s script %s"%(scriptType, scriptName))
-		self.handlers[scriptType](self, script)
-
-	def runScripts(self, waypoint):
-		for scriptType, scriptName, script in self.parent.get_scripts():
-			if scriptType==waypoint:
-				self._runScript(scriptType, scriptName, script)
-	
-
 class Semantics(record.Record):
 	"""is a specification for the semantics of nonterminals defined
 	by the grammar.
@@ -176,9 +96,11 @@ class Semantics(record.Record):
 		self.dataStore["recordDefs"] = []
 
 
-class RecordDef(record.Record, meta.MetaMixin):
+class RecordDef(record.Record, meta.MetaMixin, scripting.ScriptingMixin):
 	"""is a specification for the semantics of a table line.
 	"""
+	validWaypoints = set(["preIndex", "preIndexSQL"])
+
 	def __init__(self, initvals={}):
 		record.Record.__init__(self, {
 			"table": record.RequiredField,  # name of destination table
@@ -190,16 +112,25 @@ class RecordDef(record.Record, meta.MetaMixin):
 			"create": record.BooleanField,  # create table?
 			"onDisk": record.BooleanField,  # write parsed data directly?
 			"forceUnique": record.BooleanField,  # enforce uniqueness of 
-			                                     #primary key?
+			                                     # primary key?
 			"conflicts": "check",      # On forceUnique tables, throw an error
 			  # for non-identical dupes ("check"), drop the new one ("drop") or
 				# overrwrite the old one ("overwrite")
 			"transparent": record.BooleanField,  # get fields from (rowset)grammar
+			"scripts": record.ListField,
 		}, initvals)
 		self.fieldIndexDict = {}
 
 	def __repr__(self):
 		return "<RecordDef %s, %s>"%(id(self), id(self.get_items()))
+
+	def getRd(self):
+# XXX TODO: RecordDefs traditionally didn't know their data 
+# definition because they were supposed to be "floatable".  This
+# is rubbish given that we're copying them like mad, and so they should
+# be parented, which solves a host of issues.  Then we can return the
+# real rd here, which is a good thing for scripting.
+		return None
 
 	def validate(self, record):
 		"""checks that record complies with all known constraints on
@@ -396,6 +327,8 @@ class DataSet(meta.MetaMixin):
 		self.docFields = self.dD.get_items()
 		self.docRec = {}
 		self.tables = []
+		if isinstance(self.dD, scripting.ScriptingMixin):
+			self.dD.runScripts("preCreation")
 		self._fillTables(tableMaker, parseSwitcher, maxRows)
 
 	def _parseSources(self, parseSwitcher, maxRows=None):
@@ -474,7 +407,7 @@ class DataSet(meta.MetaMixin):
 		return self.dD
 
 	def getRd(self):
-		return self.dD.getRD()
+		return self.dD.getRd()
 
 	def updateDocRec(self, docRec):
 		self.docRec.update(docRec)
@@ -488,11 +421,10 @@ class DataSet(meta.MetaMixin):
 	def exportToSql(self, schema):
 		if self.getDescriptor().get_virtual():
 			return
-		self.dD.scriptHandler.runScripts("preCreation")
 		for table in self.tables:
 			table.exportToSql(schema)
-		self.dD.scriptHandler.runScripts("processTable")
-		self.dD.scriptHandler.runScripts("postCreation")
+		self.dD.runScripts("processTable")
+		self.dD.runScripts("postCreation")
 
 	def exportToVOTable(self, destination, tableNames=None, tablecoding="td",
 			mapperFactories=[]):
@@ -539,9 +471,11 @@ class Resource:
 	It and the objects embedded roughly correspond to a VOTable.
 	We may want to replace this class by some VOTable implementation.
 	"""
+
 	def __init__(self, descriptor):
 		self.desc = descriptor
 		self.dataSets = []
+		self.desc.runScripts("preCreation")
 
 	def __iter__(self):
 		"""iterates over all data sets contained in this resource.
@@ -601,7 +535,7 @@ class Resource:
 			if onlyDDs and dataSet.getDescriptor().get_id() not in onlyDDs:
 				continue
 			dataSet.exportToSql(rd.get_schema())
-		self.desc.scriptHandler.runScripts("postCreation")
+		self.desc.runScripts("postCreation")
 		self.makeTimestamp()
 		self.rebuildDependents()
 
@@ -645,10 +579,13 @@ class Resource:
 				config.get("inputsDir"), dep)))
 
 
-class ResourceDescriptor(record.Record, meta.MetaMixin):
+class ResourceDescriptor(record.Record, meta.MetaMixin, 
+		scripting.ScriptingMixin):
 	"""is a container for all information necessary to import a resource into
 	the DC.
 	"""
+	validWaypoints = set(["preCreation", "processTable", "postCreation"])
+
 	def __init__(self, sourcePath="InMemory", **initvals):
 		self.sourceId = self._getSourceId(sourcePath)
 		record.Record.__init__(self, {
@@ -666,13 +603,15 @@ class ResourceDescriptor(record.Record, meta.MetaMixin):
 			"systems": coords.CooSysRegistry(),
 			"property": record.DictField,
 		}, initvals)
-		self.scriptHandler = ScriptHandler(self, self)
 
 	def __iter__(self):
 		"""iterates over all embedded data descriptors.
 		"""
 		for dd in self.get_dataSrcs():
 			yield dd
+
+	def getRd(self):
+		return self
 
 	def _getSourceId(self, sourcePath):
 		"""returns the inputsDir-relative path to the rd.
@@ -752,9 +691,11 @@ class ResourceDescriptor(record.Record, meta.MetaMixin):
 					return tableDef
 
 
-class DataDescriptor(datadef.DataTransformer):
+class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin):
 	"""is a DataTransformer for reading data from files or external processes.
 	"""
+	validWaypoints = set(["preCreation", "postCreation"])
+
 	def __init__(self, parentResource, **initvals):
 		datadef.DataTransformer.__init__(self, parentResource, 
 			additionalFields = {
@@ -772,7 +713,6 @@ class DataDescriptor(datadef.DataTransformer):
 				"scripts": record.ListField,
 			},
 			initvals=initvals)
-		self.scriptHandler = ScriptHandler(self, self.getRD())
 
 	def get_source(self):
 		if self.dataStore["source"]:
@@ -854,5 +794,5 @@ def getMatchingData(dataDesc, tableName, whereClause, pars):
 		"SELECT * FROM %s %s"%(tableDef.get_table(), whereClause),
 		pars)
 	return InternalDataSet(
-		makeRowsetDataDesc(dataDesc.getRD(), tableDef.get_items()), 
+		makeRowsetDataDesc(dataDesc.getRd(), tableDef.get_items()), 
 		dataSource=data)

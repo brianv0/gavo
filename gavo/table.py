@@ -227,7 +227,8 @@ class Table(RecordBasedTable):
 	def _getOwnedTableWriter(self, schema):
 		tableName = "%s.%s"%(schema, self.recordDef.get_table())
 		tableExporter = sqlsupport.TableWriter(tableName,
-			self.recordDef.get_items(), self.dbConnection)
+			self.recordDef.get_items(), self.dbConnection, 
+			scriptRunner=self.recordDef)
 		tableExporter.ensureSchema(schema)
 		if self.create:
 			tableExporter.createTable(create=self.recordDef.get_create(),
@@ -263,7 +264,7 @@ class Table(RecordBasedTable):
 		if self.recordDef.get_owningCondition():
 			colName, colVal = self.recordDef.get_owningCondition()
 			tableWriter.deleteMatching((colName, parsehelpers.atExpand(
-				colVal, {}, self.dataSet.getDescriptor().getRD().get_atExpander())))
+				colVal, {}, self.dataSet.getDescriptor().getRd().get_atExpander())))
 		return tableWriter
 
 	def _getTableUpdater(self, schema):

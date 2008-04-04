@@ -43,7 +43,7 @@ class _FakeDescriptor:
 	def __init___(self):
 		pass
 	
-	def getRD(self):
+	def getRd(self):
 		return None
 
 _descriptor = _FakeDescriptor()
