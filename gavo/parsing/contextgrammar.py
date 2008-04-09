@@ -11,6 +11,7 @@ import gavo
 from gavo import record
 from gavo import datadef
 from gavo import typesystems
+from gavo import unitconv
 from gavo.parsing import grammar
 from gavo.web import gwidgets
 from gavo.web import vizierexprs
@@ -25,6 +26,9 @@ class InputKey(datadef.DataField):
 		                       # for this field.
 		"showitems": 3,        # #items to show in multi selections
 		"value": None,         # value in a constant field (rendered hidden)
+		"scaling": None,       # multiply incoming value by this (will be clobbered
+		                       # if you set inputUnit)
+		"inputUnit": None,     # unit the user is supposed to use
 	}
 	
 	def set_formalType(self, formalType):
@@ -53,6 +57,20 @@ class InputKey(datadef.DataField):
 		else:
 			formalType = formal.String
 		return formalType(required=not self.get_optional())
+
+	def set_scaling(self, val):
+		if val==None:
+			self.dataStore["scaling"] = None
+		else:
+			self.dataStore["scaling"] = float(val)
+
+	def set_inputUnit(self, val):
+		if val==None:
+			self.dataStore["inputUnit"] = None
+			self.set_scaling(None)
+		else:
+			self.dataStore["inputUnit"] = val
+			self.set_scaling(unitconv.getFactor(val, self.get_unit()))
 
 	def set_widgetFactory(self, widgetFactory):
 		"""sets the widget factory either from source code or from a formal

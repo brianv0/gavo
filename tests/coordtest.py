@@ -169,11 +169,37 @@ class TestWCS(unittest.TestCase):
 		self.assertRaises(gavo.Error, coords.getWCSTrafo, wcs)
 
 
+class TestMovePm(unittest.TestCase):
+	"""Tests for working proper motion application.
+	"""
+	def testMovePm(self):
+		self.assertEqual("%.8f %.8f"%coords.movePm(23, 50, 0., 0., 2),
+			"23.00000000 50.00000000")
+		self.assertEqual("%.8f %.8f"%coords.movePm(23, 50, 0.001, 0.001, 20),
+			"23.03112743 50.01999584")
+		self.assertEqual("%.8f %.8f"%coords.movePm(23, -50, -0.001, 0.004, -20),
+			"23.03116636 -50.07999583")
+		self.assertEqual("%.8f %.8f"%coords.movePm(232, -80, -0.001, 0.004, -20),
+			"232.11609464 -80.07998004")
+
+
+class TestGetGcDist(unittest.TestCase):
+	def testGcDist(self):
+		self.assertAlmostEqual(coords.getGcDist((0, 0), (0, 0)), 0)
+		for dec in range(-90, 91, 30):
+			self.assertAlmostEqual(coords.getGcDist((0, 0), (0, dec)), abs(dec))
+		for ra in range(0, 181, 30):
+			self.assertAlmostEqual(coords.getGcDist((0, 0), (ra, 0)), ra)
+		for ra in range(180, 361, 30):
+			self.assertAlmostEqual(coords.getGcDist((0, 0), (ra, 0)), 360-ra)
+
+
 def singleTest():
-	suite = unittest.makeSuite(TestWCS, "testIdempotencySkew")
+	suite = unittest.makeSuite(TestMovePm, "test")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 
 
 if __name__=="__main__":
 	unittest.main()
+	#singleTest()

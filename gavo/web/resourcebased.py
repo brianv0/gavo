@@ -448,7 +448,7 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 			data.queryMeta)
 
 	def render_parpair(self, ctx, data):
-		if data==None or data[1]==None:
+		if data==None or data[1]==None or "__" in data[0]:
 			return ""
 		return ctx.tag["%s: %s"%data]
 	

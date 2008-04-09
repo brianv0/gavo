@@ -15,6 +15,7 @@ from gavo import config
 from gavo import coords
 from gavo import datadef
 from gavo import logger
+from gavo import nullui
 from gavo import parsing
 from gavo import record
 from gavo import sqlsupport
@@ -209,10 +210,12 @@ class ParseContext:
 	the dests of DataFields to python values.  This is what we call
 	a record that's ready for ingestion into a db table or a VOTable.
 	"""
+	silent = False
+
 # actually, the sourceName/ sourceFile interface is bad.  We need 
 # abstraction, because basically, grammars should be able to read from
 # anything.
-	def __init__(self, sourceFile, dataSet, literalParser):
+	def __init__(self, sourceFile, dataSet, literalParser, silent=False):
 		if isinstance(sourceFile, basestring):
 			self.sourceName = sourceFile
 			self.sourceFile = open(self.sourceName)
@@ -229,6 +232,7 @@ class ParseContext:
 			self.sourceName = "<anonymous>"
 			self.sourceFile = sourceFile
 		self.dataSet = dataSet
+		self.silent = silent
 		self.literalParser = literalParser
 		self.rowsProcessed = 0
 		self.rowLimit = None
@@ -319,8 +323,9 @@ class DataSet(meta.MetaMixin):
 	context will be called.
 	"""
 	def __init__(self, dataDescriptor, tableMaker, parseSwitcher=None, 
-			tablesToBuild=[], maxRows=None, ignoreBadSources=False):
+			tablesToBuild=[], maxRows=None, ignoreBadSources=False, silent=False):
 		self.tablesToBuild = set(tablesToBuild)
+		self.silent = silent
 		self.dD = dataDescriptor
 		self.setMetaParent(self.dD)
 		self.ignoreBadSources = ignoreBadSources
@@ -337,7 +342,7 @@ class DataSet(meta.MetaMixin):
 		This will spew out a lot of stuff unless you set gavo.ui to NullUi
 		or something similar.
 		"""
-		counter = gavo.ui.getGoodBadCounter("Parsing source(s)", 5)
+		counter = gavo.ui.getGoodBadCounter("Parsing source(s)", 5, self.silent)
 		rowsParsed = 0
 		for context in self._iterParseContexts():
 			if maxRows:
@@ -459,7 +464,7 @@ class InternalDataSet(DataSet):
 	def _iterParseContexts(self):
 		literalParser = typeconversion.LiteralParser(self.dD.get_encoding())
 		yield ParseContext(self.dataSource, self,
-			literalParser)
+			literalParser, silent=self.silent)
 
 
 class Resource:
@@ -783,11 +788,35 @@ def makeRowsetDataDesc(rd, tableDef):
 	return dd
 
 
-def getMatchingData(dataDesc, tableName, whereClause, pars):
+def rowsetifyDD(dd, outputFieldNames=None):
+	"""returns a DataTransformer with a grammar parsing outputFieldNames
+	(default: all) out of the result.
+
+	It will only copy the primary table.
+	"""
+	dd = dd.copy()
+	table = dd.getPrimaryRecordDef().copy()
+	if outputFieldNames==None:
+		outputFields = [datadef.makeCopyingField(f) for f in table.get_items()]
+	else:
+		outputFields = [datadef.makeCopyingField(table.getFieldByName(name)) 
+			for name in outputFieldNames]
+	table.set_items(outputFields)
+	dd.set_Semantics(Semantics({"recordDefs": [table]}))
+	dd.set_Grammar(rowsetgrammar.RowsetGrammar(initvals={
+		"dbFields": outputFields}))
+	return dd
+
+
+def getMatchingData(dataDesc, tableName, whereClause=None, pars={}, 
+		outputFields=None):
 	"""returns a single-table data set containing all rows matching 
 	whereClause/pars in tableName of dataDef.
 	"""
 	tableDef = dataDesc.getRecordDefByName(tableName)
+	if outputFields:
+		tableDef = tableDef.copy()
+		tableDef.set_items([tableDef.getFieldByName(fn) for fn in outputFields])
 	if whereClause:
 		whereClause = "WHERE "+whereClause
 	data = sqlsupport.SimpleQuerier().runIsolatedQuery(
@@ -795,4 +824,26 @@ def getMatchingData(dataDesc, tableName, whereClause, pars):
 		pars)
 	return InternalDataSet(
 		makeRowsetDataDesc(dataDesc.getRd(), tableDef.get_items()), 
-		dataSource=data)
+		dataSource=data, silent=True)
+
+
+class TableQuerier(sqlsupport.SimpleQuerier):
+	def __init__(self, rowsetDD, connection=None):
+		super(TableQuerier, self).__init__(connection)
+		self.rowsetDD = rowsetDD
+		td = self.rowsetDD.getPrimaryRecordDef()
+		td.set_scripts([])
+		self.selectClause = "SELECT %s FROM %s.%s"%(
+			", ".join([f.get_dest() for f in td.get_items()]),
+			self.rowsetDD.getRd().get_schema(),
+			td.get_table())
+	
+	def getMatches(self, whereClause="", pars={}, forceQuery=None):
+		if whereClause:
+			whereClause = " WHERE "+whereClause
+		if forceQuery:
+			cursor = self.query(forceQuery, pars)
+		else:
+			cursor = self.query(self.selectClause+whereClause, pars)
+		data = InternalDataSet(self.rowsetDD, dataSource=cursor.fetchall())
+		return data.getPrimaryTable()

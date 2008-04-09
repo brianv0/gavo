@@ -16,8 +16,13 @@ from gavo.parsing import typeconversion
 class ParseNode(object):
 	"""is a parse node, consisting of an operator and children.
 
-	The parse trees returned by the various parse functions are built by
+	The parse trees returned by the various parse functions are built from
 	these.
+
+	This is an abstract class; concrete derivations need to define
+	a set _standardOperators containing the normal binary operators
+	for their types and a dictionary _sqlEmitters containing functions
+	returning SQL fragments, or override asSQL.
 	"""
 	def __init__(self, children, operator):
 		self.children = children
@@ -28,7 +33,7 @@ class ParseNode(object):
 
 	__repr__ = __str__
 
-	def _insertChild(self, index, key, sqlPars):
+	def _insertChild(self, index, field, sqlPars):
 		"""inserts children[index] into sqlPars with a unique key and returns
 		the key.
 
@@ -38,37 +43,40 @@ class ParseNode(object):
 		if item==None:
 			return None
 		assert not isinstance(item, ParseNode)
-		return getSQLKey(key, item, sqlPars)
+		if field.get_scaling():
+			item *= field.get_scaling()
+		return getSQLKey(field.get_dest(), item, sqlPars)
 
-	def asSQL(self, key, sqlPars):
+	def asSQL(self, field, sqlPars):
 		if self.operator in self._standardOperators:
-			return "%s %s %%(%s)s"%(key, self.operator, 
-				self._insertChild(0, key, sqlPars))
+			return "%s %s %%(%s)s"%(field.get_dest(), self.operator, 
+				self._insertChild(0, field, sqlPars))
 		else:
-			return self._sqlEmitters[self.operator](self, key, sqlPars)
+			return self._sqlEmitters[self.operator](self, field, sqlPars)
 
 
 class NumericNode(ParseNode):
 	"""is a node containing numeric operands (floats or dates).
 	"""
-	def _emitBinop(self, key, sqlPars):
+	def _emitBinop(self, field, sqlPars):
 		return joinOperatorExpr(self.operator,
-			[c.asSQL(key, sqlPars) for c in self.children])
+			[c.asSQL(field, sqlPars) for c in self.children])
 		
-	def _emitUnop(self, key, sqlPars):
-		operand = self.children[0].asSQL(key, sqlPars)
+	def _emitUnop(self, field, sqlPars):
+		operand = self.children[0].asSQL(field, sqlPars)
 		if operand:
 			return "%s (%s)"%(self.operator, operand)
 
-	def _emitEnum(self, key, sqlPars):
-		return "%s IN (%s)"%(key, ", ".join([
-					"%%(%s)s"%self._insertChild(i, key, sqlPars) 
+	def _emitEnum(self, field, sqlPars):
+		return "%s IN (%s)"%(field.get_dest(), ", ".join([
+					"%%(%s)s"%self._insertChild(i, field, sqlPars) 
 				for i in range(len(self.children))]))
 
 	_standardOperators = set(["=", ">=", ">", "<=", "<"])
 	_sqlEmitters = {
-		'..': lambda self, key, sqlPars: "%s BETWEEN %%(%s)s AND %%(%s)s"%(key, 
-			self._insertChild(0, key, sqlPars), self._insertChild(1, key, sqlPars)),
+		'..': lambda self, field, sqlPars: "%s BETWEEN %%(%s)s AND %%(%s)s"%(
+			field.get_dest(), self._insertChild(0, field, sqlPars), 
+			self._insertChild(1, field, sqlPars)),
 		'AND': _emitBinop,
 		'OR': _emitBinop,
 		'NOT': _emitUnop,
@@ -77,13 +85,13 @@ class NumericNode(ParseNode):
 
 
 class StringNode(ParseNode):
-	def asSQL(self, key, sqlPars):
+	def asSQL(self, field, sqlPars):
 		if self.operator=="[":
 			return "[%s]"%self.children[0]
 		if self.operator in self._nullOperators:
 			return self._nullOperators[self.operator]
 		else:
-			return super(StringNode, self).asSQL(key, sqlPars)
+			return super(StringNode, self).asSQL(field, sqlPars)
 
 	_metaEscapes = {
 		"|": r"\|",
@@ -107,13 +115,13 @@ class StringNode(ParseNode):
 		return self._escapeRE.sub(lambda mat: self._metaEscapes[mat.group()],
 			aString)
 
-	def _makePattern(self, key, sqlPars):
+	def _makePattern(self, field, sqlPars):
 		parts = []
 		for child in self.children:
 			if isinstance(child, basestring):
 				parts.append(self._escapeSpecials(child))
 			else:
-				parts.append(child.asSQL(key, sqlPars))
+				parts.append(child.asSQL(field, sqlPars))
 		return "^%s$"%("".join(parts))
 
 	_patOps = {
@@ -123,14 +131,14 @@ class StringNode(ParseNode):
 		"!": "!~",
 		"=~": "~*",
 	}
-	def _emitPatOp(self, key, sqlPars):
-		pattern = self._makePattern(key, sqlPars)
-		return "%s %s %%(%s)s"%(key, self._patOps[self.operator],
-			getSQLKey(key, pattern, sqlPars))
+	def _emitPatOp(self, field, sqlPars):
+		pattern = self._makePattern(field, sqlPars)
+		return "%s %s %%(%s)s"%(field.get_dest(), self._patOps[self.operator],
+			getSQLKey(field.get_dest(), pattern, sqlPars))
 
-	def _emitEnum(self, key, sqlPars):
-		query = "%s IN (%s)"%(key, ", ".join([
-					"%%(%s)s"%self._insertChild(i, key, sqlPars) 
+	def _emitEnum(self, field, sqlPars):
+		query = "%s IN (%s)"%(field.get_dest(), ", ".join([
+					"%%(%s)s"%self._insertChild(i, field, sqlPars) 
 				for i in range(len(self.children))]))
 		if self.operator=="!=,":
 			query = "NOT (%s)"%query
@@ -139,8 +147,9 @@ class StringNode(ParseNode):
 	_translatedOps = {
 		"==": "=",
 	}
-	def _emitTranslatedOp(self, key, sqlPars):
-		return "%s = %%(%s)s"%(key, self._insertChild(0, key, sqlPars))
+	def _emitTranslatedOp(self, field, sqlPars):
+		return "%s = %%(%s)s"%(field.get_dest(), 
+			self._insertChild(0, field, sqlPars))
 
 	_nullOperators = {"*": ".*", "?": "."}
 	_standardOperators = set(["<", ">", "<=", ">=", "!="])
@@ -367,7 +376,7 @@ def getSQL(field, inPars, sqlPars):
 		if (field.get_dbtype().startswith("vexpr") and isinstance(val, basestring)
 				and not field.isEnumerated()):
 			return parsers[field.get_dbtype()](val).asSQL(
-				field.get_dest(), sqlPars)
+				field, sqlPars)
 		else:
 			if isinstance(val, (list, tuple)):
 				if len(val)==1 and val[0]==None:

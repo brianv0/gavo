@@ -231,7 +231,8 @@ class SQLGenerTest(unittest.TestCase):
 	"""Tests for SQL fragments making out of simple vizier-like expressions.
 	"""
 	def testSQLGenerationSimple(self):
-		field = datadef.DataField(dest="foo", source="bar", dbtype="vexpr-float")
+		field = contextgrammar.InputKey(dest="foo", source="bar", 
+			dbtype="vexpr-float")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field, {"bar": "8"}, sqlPars),
 			"foo = %(foo0)s")
@@ -246,7 +247,8 @@ class SQLGenerTest(unittest.TestCase):
 	def testSQLGenerationComplex(self):
 		"""Tests for SQL fragments making out of complex vizier-like expressions.
 		"""
-		field = datadef.DataField(dest="foo", source="bar", dbtype="vexpr-float")
+		field = contextgrammar.InputKey(dest="foo", source="bar", 
+			dbtype="vexpr-float")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field, {"bar": "< 8 | > 15"}, sqlPars),
 			"(foo < %(foo0)s) OR (foo > %(foo1)s)")
@@ -275,7 +277,8 @@ class SQLGenerTest(unittest.TestCase):
 	def testDateSQLGeneration(self):
 		"""tests for SQL fragments making for date expressions.
 		"""
-		field = datadef.DataField(dest="foo", source="bar", dbtype="vexpr-date")
+		field = contextgrammar.InputKey(dest="foo", source="bar", 
+			dbtype="vexpr-date")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field, {"bar": "2001-05-12"}, 
 			sqlPars), "foo = %(foo0)s")
@@ -296,7 +299,8 @@ class SQLGenerTest(unittest.TestCase):
 	def testWithNones(self):
 		"""tests for SQL fragments generation with NULL items.
 		"""
-		field1 = datadef.DataField(dest="foo", source="foo", dbtype="vexpr-float")
+		field1 = contextgrammar.InputKey(dest="foo", source="foo", 
+			dbtype="vexpr-float")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": None}, sqlPars),
 			None)
@@ -304,7 +308,7 @@ class SQLGenerTest(unittest.TestCase):
 	def testPatterns(self):
 		"""tests for SQL generation with string patterns.
 		"""
-		field1 = datadef.DataField(dest="foo", source="foo", dbtype="vexpr-string")
+		field1 = contextgrammar.InputKey(dest="foo", source="foo", dbtype="vexpr-string")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "star"}, sqlPars),
 			"foo ~* %(foo0)s")
@@ -352,7 +356,7 @@ class StringQueryTest(unittest.TestCase):
 	def setUp(self):
 		config.setDbProfile("test")
 		tw = sqlsupport.TableWriter("vizierstrings",
-			[datadef.DataField(source="s", dest="s", dbtype="text"),])
+			[contextgrammar.InputKey(source="s", dest="s", dbtype="text"),])
 		tw.createTable()
 		feed = tw.getFeeder()
 		feed({"s": ""})

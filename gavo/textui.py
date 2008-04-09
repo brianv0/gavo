@@ -45,8 +45,8 @@ class TextUi:
 	def displayError(self, msg):
 		print "\n***\n*** Error: %s\n***"%msg
 
-	def getGoodBadCounter(self, title, updateInterval):
-		if self.silence:
+	def getGoodBadCounter(self, title, updateInterval, silence=False):
+		if self.silence or silence:
 			return nullui.NullCounter()
 		else:
 			return _GoodBadCounter(title, updateInterval)

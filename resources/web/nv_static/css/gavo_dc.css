@@ -13,6 +13,13 @@ p {
 	max-width: 400px;
 }
 
+p.attribution {
+	max-width:100%;
+	width:100%;
+	text-align:right;
+}
+
+
 .wide {
 	max-width: 100%;
 }

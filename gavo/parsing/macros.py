@@ -313,6 +313,53 @@ class TimestampCombiner(Macro):
 		record[self.destination] = dateObj+timeObj
 
 
+class AngleParser(Macro):
+	"""is a macro that converts the various forms angles might be encountered
+	to degrees.
+
+	Constructor Arguments:
+
+	* format -- one of hms, dms, fracHour
+	* destination -- the field the processed value should be left in
+
+	Arguments:
+
+	* val -- the literal to be converted.
+
+	>>> m = AngleParser([("val", "d", "")], format="hms", destination="p")
+	>>> rec = {"d":"23 59 59.95"}; m(None, rec); "%s"%rec["p"]
+	'359.999791667'
+	>>> m = AngleParser([("val", "d", "")], format="dms", destination="p")
+	>>> rec = {"d":"-20 31 05.12"}; m(None, rec); "%10.5f"%rec["p"]
+	' -20.51809'
+	>>> m = AngleParser([("val", "d", "")], format="fracHour", 
+	...   destination="p")
+	>>> rec = {"d":"21.0209556"}; m(None, rec); "%010.6f"%rec["p"]
+	'315.314334'
+	"""
+	converterTable = {
+		"dms": coords.dmsToDeg,
+		"hms": coords.timeangleToDeg,
+		"fracHour": coords.fracHoursToDeg,
+	}
+
+	def __init__(self, argTuples=[], destination="angle",
+			format="hms"):
+		Macro.__init__(self, argTuples)
+		self.converter = self.converterTable[format]
+		self.destination = destination
+
+	@staticmethod
+	def getName():
+		return "parseAngle"
+	
+	def _compute(self, record, val):
+		if val==None:
+			record[self.destination] = None
+		else:
+			record[self.destination] = self.converter(val)
+
+
 class ValueGetter(Macro):
 	"""is a macro that just enters a value into the rowdict.
 

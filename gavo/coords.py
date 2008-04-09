@@ -124,6 +124,12 @@ def dmsToDeg(dmsAngle, sepChar=" "):
 	return arcSecs/3600
 
 
+def fracHoursToDeg(fracHours):
+	"""returns the time angle fracHours given in decimal hours in degrees.
+	"""
+	return float(fracHours)*360./24.
+
+
 def degToTimeangle(deg, sepChar=" ", secondFracs=3):
 	"""converts a float angle in degrees to an time angle (hh:mm:ss.mmm).
 
@@ -585,6 +591,41 @@ def getTangentialUnits(cPos):
 		if deltaUnit.cross(alphaUnit)*cPos>0:
 			alphaUnit = -1*alphaUnit
 	return alphaUnit, deltaUnit
+
+
+def movePm(alphaDeg, deltaDeg, pmAlpha, pmDelta, timeDiff, foreshort=0):
+	"""returns alpha and delta for an object with pm pmAlpha after timeDiff.
+
+	pmAlpha has to have cos(delta) applied, everything is supposed to be
+	in degrees, the time unit is yours to choose.
+	"""
+	alpha, delta = alphaDeg/180.*math.pi, deltaDeg/180.*math.pi
+	pmAlpha, pmDelta = pmAlpha/180.*math.pi, pmDelta/180.*math.pi
+	sd, cd = math.sin(delta), math.cos(delta)
+	sa, ca = math.sin(alpha), math.cos(alpha)
+	muAbs = math.sqrt(pmAlpha**2+pmDelta**2);
+	muTot = muAbs+0.5*foreshort*timeDiff;
+
+	if muAbs<1e-20:
+		return alphaDeg, deltaDeg
+	# this is according to Mueller, 115 (4.94)
+	dirA = pmAlpha/muAbs;
+	dirD = pmDelta/muAbs;
+	sinMot = sin(muTot*timeDiff);
+	cosMot = cos(muTot*timeDiff);
+
+	dirVec = Vector3(-sd*ca*dirD*sinMot - sa*dirA*sinMot + cd*ca*cosMot,
+		-sd*sa*dirD*sinMot + ca*dirA*sinMot + cd*sa*cosMot,
+		+cd*dirD*sinMot + sd*cosMot)
+	return dirVecToCelCoos(dirVec)
+
+
+def getGcDist(pos1, pos2):
+	"""returns the distance between two points in equatorial degrees along
+	a great circle in degrees.
+	"""
+	return math.acos(
+		computeUnitSphereCoords(*pos1)*computeUnitSphereCoords(*pos2))*180/math.pi
 
 
 try:

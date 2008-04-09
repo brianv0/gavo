@@ -118,13 +118,7 @@ class LiteralParser:
 		
 		This refers to time specifications like J2001.32.
 		"""
-		frac, year = math.modf(float(literal))
-		# Workaround for crazy bug giving dates like 1997-13-1 on some
-		# mx.DateTime versions
-		if year<0:
-			frac += 1
-			year -= 1
-		return DateTime.DateTime(int(year))+365.25*frac
+		return utils.dtToJYear(literal)
 
 	def _parse_spuriousBlanks(self, literal):
 		"""removes all blanks from a literal (use it if, e.g. people

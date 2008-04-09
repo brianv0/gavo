@@ -3,6 +3,7 @@ This module defines an abstract superclass for all grammars.
 """
 
 from gavo import logger
+from gavo import nullui
 from gavo import parsing
 from gavo import record
 from gavo import sqlsupport
@@ -56,7 +57,8 @@ class Grammar(record.Record):
 	
 	def parse(self, parseContext):
 		getattr(self, "_setupParse", lambda _: None)(parseContext)
-		counter = gavo.ui.getGoodBadCounter("Importing rows", 100)
+		counter = gavo.ui.getGoodBadCounter("Importing rows", 100, 
+			parseContext.silent)
 		row = "<unparsed docrow>"
 		try:
 			try:

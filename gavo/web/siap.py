@@ -12,8 +12,10 @@ import gavo
 from gavo import coords
 from gavo import datadef
 from gavo import interfaces
+from gavo import resourcecache
 from gavo import simbadinterface
 from gavo import utils
+from gavo.parsing import parsehelpers
 from gavo.parsing.contextgrammar import InputKey
 from gavo.web import core
 from gavo.web import vizierexprs
@@ -180,6 +182,54 @@ class SiapCondition(standardcores.CondDesc):
 			vizierexprs.getSQLKey("imageFormat", inPars["FORMAT"], sqlPars))
 
 core.registerCondDesc("siap", SiapCondition)
+
+
+class HumanSiapCondition(SiapCondition):
+	def __init__(self, initvals={}):
+		vals = {
+			"inputKeys": [
+				InputKey(dest="POS", dbtype="text", unit="deg,deg",
+					ucd="pos.eq", description="J2000.0 Position, RA,DEC, or Simbad object"
+					" (e.g., 234.234,-32.45)", tablehead="Position", optional=False,
+					source="POS"),
+				InputKey(dest="SIZE", dbtype="text", unit="deg,deg",
+					description="Match size in decimal degrees"
+					" (e.g., 0.2 or 1,0.1)", tablehead="Field size", optional=False,
+					source="SIZE"),
+				InputKey(dest="INTERSECT", 
+					dbtype="text", 
+					description="Should the image cover, enclose, overlap the ROI or"
+					" contain its center?",
+					tablehead="Intersection type", default="COVERS", 
+					values=datadef.Values(options=["OVERLAPS", "COVERS", "ENCLOSED", 
+						"CENTER"]), 
+					source="INTERSECT", widgetFactory='Hidden'),
+				InputKey(dest="FORMAT", dbtype="text", 
+					description="Requested format of the image data",
+					tablehead="Output format", default="image/fits",
+					values=datadef.Values(options=["image/fits", "METADATA"]),
+					widgetFactory='Hidden', source="FORMAT"),
+				]}
+		vals.update(initvals)
+		super(HumanSiapCondition, self).__init__(initvals=vals)
+
+	def asSQL(self, inPars, sqlPars):
+		if not self.inputReceived(inPars):
+			return ""
+		pos = inPars["POS"]
+		try:
+			ra, dec = parsehelpers.parseCooPair(pos)
+		except ValueError:
+			data = resourcecache.getSesame("web").query(pos)
+			if not data:
+				raise gavo.ValidationError("%s is neither a RA,DEC pair nor a simbad"
+				" resolvable object"%inPars["hscs_pos"], "hscs_pos")
+			ra, dec = float(data["RA"]), float(data["dec"])
+		return super(HumanSiapCondition, self).asSQL({
+			"POS": "%f, %f"%(ra, dec), "SIZE": inPars["SIZE"],
+			"INTERSECT": inPars["INTERSECT"], "FORMAT": inPars["FORMAT"]}, sqlPars)
+
+core.registerCondDesc("humanSiap", HumanSiapCondition)
 
 
 class SiapCutoutCore(standardcores.DbBasedCore):
