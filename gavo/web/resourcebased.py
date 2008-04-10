@@ -6,6 +6,7 @@ import cStringIO
 import mutex
 import new
 import os
+import sys
 import time
 import traceback
 import urllib
@@ -29,6 +30,7 @@ from gavo import config
 from gavo import resourcecache
 from gavo import fitstable
 from gavo import typesystems
+from gavo import utils
 from gavo import votable
 from gavo.parsing import contextgrammar
 from gavo.web import common
@@ -442,6 +444,16 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 			form.FormsResourceBehaviour)
 		self.queryResult = None
 
+	def renderer(self, ctx, name):
+		"""returns code for a renderer named name.
+
+		This overrides the method inherited from nevow's RenderFactory to
+		add a lookup in our service.
+		"""
+		if self.service.get_specRend(name):
+			return self.service.get_specRend(name)
+		return super(Form, self).renderer(ctx, name)
+
 	# renderers for HTML tables
 	def render_resulttable(self, ctx, data):
 		return htmltable.HTMLTableFragment(data.child(ctx, "table"), 
@@ -473,10 +485,15 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 	def _addInputKey(self, form, inputKey, data):
 		"""adds a form field for an inputKey to the form.
 		"""
+		unit = ""
+		if inputKey.get_dbtype()!="date":  # Sigh.
+			unit = inputKey.get_inputUnit() or inputKey.get_unit() or ""
+			if unit:
+				unit = " [%s]"%unit
 		form.addField(inputKey.get_dest(), 
 			inputKey.get_formalType(),
 			inputKey.get_widgetFactory(),
-			label=inputKey.get_tablehead(),
+			label=inputKey.get_tablehead()+unit,
 			description=inputKey.get_description())
 	
 	def _addQueryFields(self, form, data):
@@ -602,6 +619,30 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 			T.div(id="bottominfo", render=T.directive("metahtml"))["_bottominfo"],
 			T.div(class_="copyright", render=T.directive("metahtml"))["_copyright"],
 		]])
+
+
+def compileCoreRenderer(source):
+	"""returns a code object that can be inserted as a method to a service.
+
+	This is used to implement renderers usable in custom templates for
+	services.  The code is defined in a service declaration in the resource
+	descriptor.
+	"""
+	ns = dict(globals())
+	ns["source"] = source
+	code = ("def renderForNevow(self, ctx, data):\n"
+		"  try:\n"+
+		utils.fixIndentation(source, "     ")+"\n"
+		"  except:\n"
+		"    sys.stderr.write('Error in\\n%s\\n'%source)\n"
+		"    traceback.print_exc()\n"
+		"    raise\n")
+	try:
+		exec code in ns
+	except SyntaxError:
+		sys.stderr.write("Invalid source:\n%s\n"%code)
+		raise
+	return ns["renderForNevow"]
 
 
 class Static(GavoFormMixin, ServiceBasedRenderer):

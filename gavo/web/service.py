@@ -71,8 +71,9 @@ class Service(record.Record, meta.MetaMixin):
 			"requiredGroup": None,
 			"staticData": None,
 			"allowedRenderers": None,
+			"specRend": record.DictField, # additional renderers in the core result.
 # temporary hack: map field names to ones known to the form.
-			"fieldNameTranslations": None,   
+			"fieldNameTranslations": None,
 		}, initvals)
 
 	def _getDefaultInputFilter(self):
@@ -212,4 +213,3 @@ class Service(record.Record, meta.MetaMixin):
 			"/",
 			renderer,
 			qSep])
-

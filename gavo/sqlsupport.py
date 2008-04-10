@@ -662,6 +662,8 @@ class ScriptRunner:
 				if not query:
 					continue
 				try:
+					if debug:
+						print query
 					cursor.execute(query)
 				except DbError, msg:
 					if failOk:

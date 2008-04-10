@@ -107,13 +107,21 @@ def replacePrimaryHeaderInPlace(fitsName, newHeader):
 	"""is a convenience wrapper around replacePrimaryHeader.
 	"""
 	targetDir = os.path.abspath(os.path.dirname(fitsName))
+	oldMode = os.stat(fitsName)[0]
 	handle, tempName = tempfile.mkstemp(".temp", "", targetDir)
-	targetFile = os.fdopen(handle, "w")
-	inputFile = open(fitsName)
-	replacePrimaryHeader(inputFile, newHeader, targetFile)
-	inputFile.close()
-	targetFile.close()
-	os.rename(tempName, fitsName)
+	try:
+		targetFile = os.fdopen(handle, "w")
+		inputFile = open(fitsName)
+		replacePrimaryHeader(inputFile, newHeader, targetFile)
+		inputFile.close()
+		targetFile.close()
+		os.rename(tempName, fitsName)
+		os.chmod(fitsName, oldMode)
+	finally:
+		try:
+			os.unlink(tempName)
+		except os.error:
+			pass
 
 
 def openGz(fitsName):

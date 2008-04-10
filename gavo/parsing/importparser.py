@@ -40,6 +40,7 @@ from gavo.parsing.regrammar import REGrammar
 from gavo.parsing.rowsetgrammar import RowsetGrammar
 from gavo.web import common as webcommon
 from gavo.web import core
+from gavo.web import resourcebased
 from gavo.web import scs  # for registration
 from gavo.web import service
 from gavo.web import siap
@@ -485,6 +486,7 @@ class RdParser(utils.NodeBuilder):
 			"template": lambda val: svc.register_template(*val),
 			"property": lambda val: svc.register_property(*val),
 			"fieldNameTranslation": svc.set_fieldNameTranslations,
+			"nevowRender": lambda c: svc.register_specRend(*c),
 			"protect": lambda v: svc.set_requiredGroup(v["group"]),
 			"publish": svc.addto_publications,
 			"renderers": svc.set_allowedRenderers,
@@ -531,6 +533,7 @@ class RdParser(utils.NodeBuilder):
 		handlers = {
 			"arg": lambda *args: None,  # Handled by core constructor
 		}
+
 		args = self._collectArguments(children)
 # XXX TODO: Unify computedCore with others.
 		if attrs.has_key("computer"): # computed cores
@@ -548,6 +551,13 @@ class RdParser(utils.NodeBuilder):
 					"addDefaultCondDescs"),
 			})
 		return self._processChildren(curCore, name, handlers, children)
+
+	def _make_nevowRender(self, name, attrs, children):
+		"""returns a pair of (name, function object) for a renderer to be
+		inserted into the core result.
+		"""
+		return (attrs["name"], resourcebased.compileCoreRenderer(
+			self._makeTextNode(name, attrs, children)))
 
 	def _make_autoOutputFields(self, name, attrs, children):
 		"""returns a web.common.QueryMeta instance out of attrs.

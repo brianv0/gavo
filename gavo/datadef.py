@@ -208,7 +208,7 @@ class OutputField(DataField):
 		"select": None,    # a select clause to use instead of dest
 		"renderer": None,  # Python code for a renderer function body
 		"wantsRow": record.BooleanField,  # Pass the 
-		                                  #formatter/renderer the whole row
+		                                  # formatter/renderer the whole row
 	}
 
 	def get_select(self):

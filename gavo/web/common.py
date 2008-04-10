@@ -20,6 +20,7 @@ from zope.interface import implements
 import gavo
 from gavo import config
 from gavo import record
+from gavo import utils
 
 
 class Error(gavo.Error):
@@ -256,13 +257,17 @@ class GavoRenderMixin(object):
 					T.invisible(
 						render=T.directive("explodableMeta"))["description"],
 					T.invisible(
-						render=T.directive("explodableMeta"))["copyright"],
-					T.invisible(
 						render=T.directive("explodableMeta"))["creator"],
 					T.invisible(title="Created",
 						render=T.directive("explodableMeta"))["creationDate"],
 					T.invisible(title="Data updated",
 						render=T.directive("explodableMeta"))["dateUpdated"],
+					T.invisible(
+						render=T.directive("explodableMeta"))["copyright"],
+					T.invisible(
+						render=T.directive("explodableMeta"))["reference"],
+					T.invisible(title="Reference URL",
+						render=T.directive("explodableMeta"))["referenceURL"],
 				],
 			],
 			T.div(id="body")[
@@ -393,9 +398,11 @@ class CoreResult(object):
 
 	def data_resultmeta(self, ctx):
 		result = self.original.getPrimaryTable()
-		return {
+		resultmeta = {
 			"itemsMatched": len(result.rows),
+			"filterUsed": self.queryMeta.get("outputFilter", ""),
 		}
+		return resultmeta
 
 	def data_querypars(self, ctx=None):
 		return dict((k, str(v)) for k, v in self.queryPars.iteritems()

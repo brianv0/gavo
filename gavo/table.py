@@ -186,7 +186,6 @@ class Table(RecordBasedTable):
 	Basically, you fill in data and then call exportToSQL.
 	"""
 	dbConnection = None
-	create = True
 
 #XXX TODO: nuke metaOnly from constructor and move it to exportToSQL
 	def __init__(self, dataSet, recordDef, metaOnly=False):
@@ -230,10 +229,9 @@ class Table(RecordBasedTable):
 			self.recordDef.get_items(), self.dbConnection, 
 			scriptRunner=self.recordDef)
 		tableExporter.ensureSchema(schema)
-		if self.create:
-			tableExporter.createTable(create=self.recordDef.get_create(),
-				delete=self.recordDef.get_create(),
-				privs=self.recordDef.get_create())
+		tableExporter.createTable(create=self.recordDef.get_create(),
+			delete=self.recordDef.get_create(),
+			privs=self.recordDef.get_create())
 		return tableExporter
 
 	def _exportOwnedTable(self, schema):
@@ -241,7 +239,8 @@ class Table(RecordBasedTable):
 
 		cf. exportToSQL.
 		"""
-		self._exportToMetaTable(schema)
+		if self.recordDef.get_create():
+			self._exportToMetaTable(schema)
 		if not self.metaOnly:
 			tableWriter = self._getOwnedTableWriter(schema)
 			gavo.ui.displayMessage("Exporting %s to table %s"%(
@@ -381,9 +380,8 @@ class DirectWritingTable(Table):
 	don't the table will remain empty.
 	"""
 	nUpdated = None
-	def __init__(self, dataSet, recordDef, dbConnection=None, create=True,
+	def __init__(self, dataSet, recordDef, dbConnection=None,
 			doUpdates=False, dropIndices=False):
-		self.create = create
 		self.dbConnection = dbConnection
 		Table.__init__(self, dataSet, recordDef)
 		if doUpdates:
