@@ -1,0 +1,129 @@
+These are test cases for sqlsupptest.ScriptSplitterTest.
+
+------------ 1 ------------
+select * from foo
+------------ 2 ------------
+select * from foo
+update where bla=7
+------------ 2 ------------
+select * from foo
+update where bla='no'
+------------ 1 ------------
+select * from (
+	select * from foo)
+------------ 1 ------------
+select * from\
+	foo
+------------ 1 ------------
+$ something '\n'
+------------ 1 ------------
+SELECT a=$$abc$$
+------------ 2 ------------
+SELECT a=$$a
+bc$$
+SELECT b=$$$$
+------------ 2 ------------
+CREATE OR REPLACE FUNCTION usnob_createorigtable(tSurvey char, 
+			tField integer, xicol text, etacol text, magcol text,
+			surveycol text, fieldcol text, whereannex text
+		) RETURNS void AS $$
+		BEGIN
+			EXECUTE $cr$CREATE TEMP TABLE origPos AS (
+	    	SELECT q.raj2000, q.dej2000, 
+					q.pos[0]-xi/cos(q.dej2000/180.*3.1415926536) AS alphaEp,
+					q.pos[1]+eta AS deltaEp, q.epoch, mag FROM (
+						SELECT a.raj2000, a.dej2000, 
+							movePm(a.raj2000, a.dej2000, a.pmra, a.pmde, 
+							'2000-01-01T00:00:00', b.epoch) AS pos, a.$cr$
+							|| etacol || ' AS eta, a.' 
+							|| xicol || ' AS xi, b.epoch, a.'
+							|| magcol || ' AS mag
+					FROM usnob.data AS a, usnob.plates AS b 
+					WHERE a.' ||
+						quote_ident(surveycol) || '=' || quote_literal(tSurvey) 
+						|| ' AND a.' 
+						|| quote_ident(fieldcol) || '=' || quote_literal(tField) 
+						|| ' AND b.survey=' || quote_literal(tSurvey) || 
+						' AND b.field=' || quote_literal(tField) || whereannex || 
+					') AS q)';
+			EXECUTE 'CREATE INDEX q3c_scratch ON 
+				origPos (q3c_ang2ipix(raj2000, dej2000))';
+			EXECUTE 'CLUSTER q3c_scratch ON origPos';
+			EXECUTE 'ANALYZE origPos';
+		END
+$$ LANGUAGE plpgsql
+
+		CREATE OR REPLACE FUNCTION usnob_crossmatchPPMX(
+		) RETURNS void AS $$
+		BEGIN
+		EXECUTE $ctt$ CREATE TEMP TABLE tmpcross AS (
+		  SELECT raj2000, dej2000, alphaEp, deltaEp, epoch, mag, cmag, 
+			  pos[0] as alphaPPMX, pos[1] as deltaPPMX, localid, 
+				alpha2000P, delta2000P
+	    FROM (
+ 		    SELECT raj2000, dej2000, alphaEp, deltaEp, epoch, mag, cmag, 
+   		   movePm(alphaFloat, deltaFloat, pmra/3600., pmde/3600.,
+     	   	'2000-01-01T00:00:00', epoch) AS pos, localid, 
+        	alphaFloat as alpha2000P, deltaFloat as delta2000P
+      	FROM origPos as a, ppmx.data as b
+      WHERE q3c_join(a.raj2000, a.dej2000, b.alphaFloat, b.deltaFloat, 0.0001)
+    ) AS q)$ctt$;
+		EXECUTE 'CREATE INDEX q3c_cross ON '
+			'tmpcross (q3c_ang2ipix(alphaEp, deltaEp))';
+		EXECUTE 'CLUSTER q3c_cross ON tmpcross';
+		EXECUTE 'ANALYZE tmpcross';
+		EXECUTE 'DROP TABLE origPos';
+		END
+$$ LANGUAGE plpgsql
+------------ 2 ------------
+			SET enable_seqscan=False -- fix for massive planner confusion
+			DELETE FROM usnob.data WHERE EXISTS (
+				SELECT * FROM usnob.spurious AS a
+					WHERE q3c_radial_query(a.ra, a.dec, raj2000, dej2000, 0.5/3600.))
+------------ 4 ------------
+					CREATE OR REPLACE FUNCTION usnob_crossmatch_ppmx(
+					) RETURNS VOID AS $$
+					DECLARE
+						o_ppmx ppmx.data%ROWTYPE;
+						o_usno usnob.data%ROWTYPE;
+					BEGIN
+						FOR o_ppmx IN (SELECT * FROM ppmx.data) LOOP
+							FOR o_usno IN SELECT * FROM usnob_getmatch(o_ppmx.alphaFloat, 
+									o_ppmx.deltaFloat)
+							LOOP
+								INSERT INTO uredux.obspos 
+									(raj2000, dej2000, alphaObs, deltaObs, epoch, mag,
+										source, f_key)
+									VALUES (o_usno.raj2000, o_usno.dej2000, o_ppmx.alphaFloat, 
+										o_ppmx.deltaFloat, '2000-01-01T00:00:00Z', o_ppmx.cmag, 
+										'ppmx', o_ppmx.localid);
+							END LOOP;
+						END LOOP;
+					END;
+$$ LANGUAGE plpgsql
+					
+					begin
+					select usnob_crossmatch_ppmx()
+					commit
+------------ 3 ------------
+-			DROP VIEW views.lenses2
+			CREATE VIEW views.lenses2 AS ((
+				SELECT date, dateObs as date_obs, 
+					type, object, 
+					raw_object, datapath, telescope, startTime, filter, exposure, owner,
+					embargo, fsize FROM maidanak.rawframes) UNION ( 
+				SELECT date, date_obs, type, object, raw_object, datapath, 
+					telescope, startTime, filter, exposure, owner, embargo, fsize 
+					FROM apo.frames) UNION ( 
+				SELECT date, date_obs, type, object, raw_object, datapath,
+					telescope, startTime, filter, exposure, owner, embargo, fsize 
+					FROM liverpool.rawframes))
+			@@@TABLERIGHTS("views.lenses2")@@@
+------------- 5 -------------
+		BEGIN
+-			DROP VIEW fk6.data
+		COMMIT
+		CREATE VIEW fk6.data as SELECT * FROM fk6.part1 UNION \
+			SELECT * FROM fk6.part3
+		@@@TABLERIGHTS("fk6.data")@@@
+

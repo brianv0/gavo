@@ -4,6 +4,7 @@ Tests for the simple SQL support infrastucture.
 Needs connectivity to the db defined in the test profile.
 """
 
+import re
 import os
 import unittest
 
@@ -16,6 +17,7 @@ from gavo import table
 from gavo.parsing import importparser
 from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
+from gavo.parsing import scripting
 
 
 _predefinedFields = {
@@ -357,7 +359,7 @@ class TestMisc(unittest.TestCase):
 
 
 class TestScriptRunner(unittest.TestCase):
-	"""tests for ScriptRunner.
+	"""tests for SQLScriptRunner.
 	"""
 	def setUp(self):
 		config.setDbProfile("test")
@@ -368,10 +370,10 @@ class TestScriptRunner(unittest.TestCase):
 	def testWorkingScript(self):
 		"""tests for behaviour of scripts running without errors.
 		"""
-		sr = sqlsupport.ScriptRunner()
+		sr = scripting.SQLScriptRunner()
 		sr.run(r"""CREATE TABLE scripttest (a text, b int)
-			INSERT INTO scripttest (a, b) VALUES ('foo in\
-				two lines', 20)
+			INSERT INTO scripttest (a, b) VALUES ('foo in'
+				' two lines', 20)
 		""")
 		sq = sqlsupport.SimpleQuerier()
 		self.assertEqual("foo in two lines",
@@ -382,14 +384,14 @@ class TestScriptRunner(unittest.TestCase):
 	def testScriptRaises(self):
 		"""tests for an exception being thrown by bad scripts
 		"""
-		sr = sqlsupport.ScriptRunner()
+		sr = scripting.SQLScriptRunner()
 		self.assertRaises(sqlsupport.DbError, sr.run, "DROP TABLE scripttest")
 		self.assertRaises(sqlsupport.DbError, sr.run, "wroppa is blup---")
 
 	def testScriptWithIgnoredErrors(self):
 		"""tests for bad instructions being isolated and eliminated.
 		"""
-		sr = sqlsupport.ScriptRunner()
+		sr = scripting.SQLScriptRunner()
 		sr.run("-DROP TABLE scripttest\n"
 			"CREATE TABLE scripttest (a text primary key, b int)\n"
 			"-wroppa is blup---\n"
@@ -407,12 +409,41 @@ class TestScriptRunner(unittest.TestCase):
 		sq.close()
 
 
+class ScriptSplitterTest(unittest.TestCase):
+	"""tests for splitting SQL scripts into individual commands.
+	"""
+	def _getSample(self):
+		sample = []
+		splitRE = re.compile(r"----+ (\d+) ----+\n$")
+		curExpected, curCode = None, None
+		for ln in open("scriptsplitter.sample"):
+			mat = splitRE.match(ln)
+			if mat:
+				if curCode:
+					sample.append((curExpected, "".join(curCode)))
+				curExpected, curCode = int(mat.group(1)), []
+			else:
+				if curCode!=None:
+					curCode.append(ln)
+		if curExpected!=None:
+			sample.append((curExpected, "".join(curCode)))
+		return sample
+
+	def test(self):
+		grammar = scripting.getSQLScriptGrammar()
+		for expected, code in self._getSample():
+			parts = grammar.parseString(code)
+			found = len(parts)
+			self.assertEqual(expected, found,
+				"%d instead of %d parts found in split %s"%(found, expected, parts))
+
+
 def singleTest():
-	suite = unittest.makeSuite(TestScriptRunner, "test")
+	suite = unittest.makeSuite(ScriptSplitterTest, "test")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 
 
 if __name__=="__main__":
 	unittest.main()
-	#singleTest()
+#	singleTest()

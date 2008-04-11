@@ -490,10 +490,11 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 			unit = inputKey.get_inputUnit() or inputKey.get_unit() or ""
 			if unit:
 				unit = " [%s]"%unit
+		label = inputKey.get_tablehead() or inputKey.get_dest()
 		form.addField(inputKey.get_dest(), 
 			inputKey.get_formalType(),
 			inputKey.get_widgetFactory(),
-			label=inputKey.get_tablehead()+unit,
+			label=label+unit,
 			description=inputKey.get_description())
 	
 	def _addQueryFields(self, form, data):

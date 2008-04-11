@@ -169,6 +169,8 @@ def degToDms(deg, sepChar=" ", secondFracs=2):
 	"""
 	rest, degs = math.modf(deg)
 	rest, minutes = math.modf(rest*60)
+	if secondFracs==0:
+		secondFracs = -1
 	return sepChar.join(["%+d"%int(degs), "%02d"%abs(int(minutes)), 
 		"%0*.*f"%(secondFracs+3, secondFracs, abs(rest*60))])
 

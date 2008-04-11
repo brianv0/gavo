@@ -98,7 +98,7 @@ class Product(standardcores.DbBasedCore):
 	def _deliverFile(self, sqlPars, ctx, item, queryMeta):
 		if "sra" in sqlPars:
 			if queryMeta.ctxArgs.has_key("preview"):
-				raise gavo.Error("No previews on cutout images yet, sorry")
+				self._sendErrorPreview(ctx)
 			return self._deliverCutout(sqlPars, ctx, item)
 		else:
 			return self._deliverImageFile(ctx, item, 
@@ -126,15 +126,15 @@ class Product(standardcores.DbBasedCore):
 			int(abs(getPixCoo(ra+sra/2, dec)[0]-getPixCoo(ra-sra/2, dec)[0])))
 		h = min(header["NAXIS2"], 
 			int(abs(getPixCoo(ra, dec+sdec/2,)[1]-getPixCoo(ra, dec-sdec/2,)[1])))
-		x = max(0, min(header["NAXIS1"]-w, x))
-		y = max(0, min(header["NAXIS2"]-h, y))
+		x = max(0, min(header["NAXIS1"]-w, x-w/2))
+		y = max(0, min(header["NAXIS2"]-h, y-h/2))
 		return ["-s", targetPath, "%d-%d"%(x, x+w), "%d-%d"%(y, y+h)]
 
 	def _deliverCutout(self, sqlPars, ctx, item):
 		"""transfers a cutout image defined by ctx["key"] and the ra, dec, sra, 
 		and sdec parameters in sqlPars.
 		"""
-# XXX todo: this should be based on the cutout resource descriptor.
+# XXX TODO: this should be based on the cutout resource descriptor.
 		targetPath = str(os.path.join(config.get("inputsDir"), item["accessPath"]))
 		args = self._computeGetfitsArgs(sqlPars, targetPath)
 		request = self._makeFitsRequest(ctx, "cutout-"+os.path.basename(
@@ -169,6 +169,9 @@ class Product(standardcores.DbBasedCore):
 	
 	def _previewFailed(self, failure, ctx):
 		failure.printTraceback()
+		return self._sendErrorPreview(ctx)
+	
+	def _sendErrorPreview(self, ctx):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "image/png")
 		static.FileTransfer(cStringIO.StringIO(errorPng), len(errorPng), 

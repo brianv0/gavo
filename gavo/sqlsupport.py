@@ -622,68 +622,6 @@ class SimpleQuerier(StandardQueryMixin):
 			self.close()
 		
 
-class ScriptRunner:
-	"""is an interface to run simple static scripts on the SQL data base.
-
-	The script should be a string containing one command per line.  You
-	can use the backslash as a continuation character.  Leading whitespace
-	on a continued line is ignored, the linefeed becomes a single blank.
-
-	Also, we abort and raise an exception on any error in the script unless
-	the first character of the command is a "-" (which is ignored otherwise).
-	"""
-	def _parseScript(self, script):
-		script = re.sub(r"\\\n\s*", " ", script)
-		queries = []
-		for query in script.split("\n"):
-			failOk = False
-			if query.startswith("-"):
-				failOk = True
-				query = query[1:]
-			queries.append((failOk, query))
-		return queries
-
-	def run(self, script, verbose=False, connection=None):
-		"""runs script in a transaction of its own.
-
-		The function will retry a script that fails if the failing command
-		was marked with a - as first char.  This means it may rollback
-		an active connection, so don't pass in a connection object
-		unless you're sure what you're doing.
-		"""
-		borrowedConnection = connection!=None
-		if not borrowedConnection:
-			connection = getDbConnection(config.getDbProfile())
-		queries = self._parseScript(script)
-		while 1:
-			cursor = connection.cursor()
-			for ct, (failOk, query) in enumerate(queries):
-				query = query.strip()
-				if not query:
-					continue
-				try:
-					if debug:
-						print query
-					cursor.execute(query)
-				except DbError, msg:
-					if failOk:
-						gavo.logger.debug("SQL script operation %s failed (%s) -- removing"
-							" instruction and trying again."%(query, encodeDbMsg(msg)))
-						queries = queries[:ct]+queries[ct+1:]
-						connection.rollback()
-						break
-					else:
-						gavo.logger.error("SQL script operation %s failed (%s) --"
-							" aborting script."%(query, encodeDbMsg(msg)))
-						raise
-			else:
-				break
-		cursor.close()
-		if not borrowedConnection:
-			connection.commit()
-			connection.close()
-	
-
 class MetaTableHandler:
 	"""is an interface to the meta table.
 
