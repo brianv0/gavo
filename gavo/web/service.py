@@ -70,6 +70,7 @@ class Service(record.Record, meta.MetaMixin):
 			"publications": record.ListField,
 			"requiredGroup": None,
 			"staticData": None,
+			"customPage": None,
 			"allowedRenderers": None,
 			"specRend": record.DictField, # additional renderers in the core result.
 # temporary hack: map field names to ones known to the form.

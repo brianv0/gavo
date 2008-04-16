@@ -4,6 +4,7 @@ The dispatcher for the new nevow-based web interface.
 
 
 import cStringIO
+import glob
 import math
 import new
 import os
@@ -31,7 +32,9 @@ from nevow import url
 
 from zope.interface import implements
 
+import gavo
 from gavo import config
+from gavo import logger
 from gavo import resourcecache
 from gavo import utils
 # need importparser to register its resourcecache
@@ -264,18 +267,23 @@ def _makeVanityMap():
 _vanityMap = _makeVanityMap()
 
 	
-renderClasses = {
-	"form": (resourcebased.getServiceRend, resourcebased.Form),
-	"oai.xml": (lambda ctx, segs, cls: cls(), vodal.RegistryRenderer),
-	"siap.xml": (resourcebased.getServiceRend, vodal.SiapRenderer),
-	"scs.xml": (resourcebased.getServiceRend, vodal.ScsRenderer),
+specialChildren = {
 	"getproduct": (lambda ctx, segs, cls: cls(ctx, segs), product.Product),
-	"upload": (resourcebased.getServiceRend, uploadservice.Uploader),
-	"mupload": (resourcebased.getServiceRend, uploadservice.MachineUploader),
-	"img.jpeg": (resourcebased.getServiceRend, jpegrenderer.JpegRenderer),
-	"mimg.jpeg": (resourcebased.getServiceRend, jpegrenderer.MachineJpegRenderer),
+	"oai.xml": (lambda ctx, segs, cls: cls(), vodal.RegistryRenderer),
 	"debug": (lambda ctx, segs, cls: cls(ctx, segs), DebugPage),
 	"reload": (lambda ctx, segs, cls: cls(ctx, segs), ReloadPage),
+}
+
+renderClasses = {
+	"custom": resourcebased.Custom,
+	"static": resourcebased.Static,
+	"form": resourcebased.Form,
+	"siap.xml": vodal.SiapRenderer,
+	"scs.xml": vodal.ScsRenderer,
+	"upload": uploadservice.Uploader,
+	"mupload": uploadservice.MachineUploader,
+	"img.jpeg": jpegrenderer.JpegRenderer,
+	"mimg.jpeg": jpegrenderer.MachineJpegRenderer,
 }
 
 
@@ -327,17 +335,47 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		]
 	])
 
-	def _locateRenderChild(self, ctx, segments):
+	def _locateSpecialChild(self, ctx, segments):
+		"""returns a renderer for one of the special render classes above.
+
+		For them, the URIs always have the form 
+		<anything>/<action>, where action is the key
+		given in specialChildren.
+		"""
+# XXX TODO: Do away with them, replacing them either with a child_ on
+# ArchiveService or custom pages on services (Registry!).
 		act = segments[-1]
 		try:
-			fFunc, cls = renderClasses[act]
+			fFunc, cls = specialChildren[act]
 			res = fFunc(ctx, segments[:-1], cls)
 		except (UnknownURI, KeyError):
 			res = None
-		except resourcebased.RdBlocked:
-			return BlockedPage(segments)
 		return res
 
+	def _locateResourceBasedChild(self, ctx, segments):
+		"""returns a standard, resource-based service renderer.
+
+		Their URIs look like <rd id>/<service id>[/<anything].
+		"""
+		for srvInd in range(1, len(segments)):
+			try:
+				rd = resourcecache.getRd("/".join(segments[:srvInd]))
+			except gavo.RdNotFound:
+				continue
+			try:
+				subId, rendName = segments[srvInd], segments[srvInd+1]
+				service = rd.get_service(subId)
+				rendC = renderClasses[rendName]
+				if service.get_requiredGroup():
+					rend = creds.runAuthenticated(ctx, service.get_requiredGroup(),
+					lambda service: rendC(ctx, service), service)
+				else:
+					rend = rendC(ctx, service)
+				return rend, segments[srvInd+2:]
+			except (IndexError, KeyError):
+				return None, ()
+		return None, ()
+			
 	def _hackHostHeader(self, ctx):
 		"""works around host-munging of forwarders.
 
@@ -350,6 +388,8 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 			request.setHost(fwHost, 80)
 
 	def locateChild(self, ctx, segments):
+# XXX TODO: refactor this mess, clean up strange names by pulling more
+# into proper services.
 		self._hackHostHeader(ctx)
 		if os.path.exists(self.maintFile):
 			return MaintPage(), ()
@@ -358,6 +398,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		segments = segments[self.rootLen:]
 		if not segments or segments[0]=='':
 			return self, ()
+
 		# redirect away vanity names
 		if 0<len(segments)<3 and segments[0] in _vanityMap:
 			root = config.get("web", "nevowRoot")
@@ -365,11 +406,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 				root = "/"
 			return url.URL.fromContext(ctx).click(root+
 				_vanityMap.resolve(segments[0])), ()
-		# Special case for service-specific static data
-		if ".static." in segments:
-			sPos = list(segments).index(".static.")
-			return resourcebased.getServiceRend(ctx, segments[:sPos], 
-				resourcebased.Static), segments[sPos+1:]
+
 		# base handling
 		name = segments[0]
 		if hasattr(self, "child_"+name):
@@ -379,7 +416,14 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		elif segments[0]=="static":
 			res = _staticServer, segments[1:]
 		else:
-			res = self._locateRenderChild(ctx, segments), ()
+			try:
+				sc = self._locateSpecialChild(ctx, segments)
+				if sc:
+					res = sc, ()
+				else:
+					res = self._locateResourceBasedChild(ctx, segments)
+			except resourcebased.RdBlocked:
+				return BlockedPage(segments)
 		return res
 
 

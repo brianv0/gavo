@@ -260,7 +260,11 @@ class StandardQueryMixin(object):
 		connection = getDbConnection(config.getDbProfile())
 		cursor = connection.cursor()
 		try:
+			if debug:
+				print "Executing", query, data
 			cursor.execute(query, data)
+			if debug:
+				print "Finished", cursor.query
 		except DbError, msg:
 			cursor.close()
 			connection.rollback()

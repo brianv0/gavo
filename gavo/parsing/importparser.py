@@ -2,9 +2,11 @@
 This module contains code for reading raw resources and their descriptors.
 """
 
+import imp
 import os
 import re
 import time
+import traceback
 from xml.sax import make_parser
 from xml.sax.handler import EntityResolver
 
@@ -51,7 +53,6 @@ import gavo
 
 class Error(gavo.Error):
 	pass
-
 
 def makeAttDict(attrs):
 	"""returns a dictionary suitable as keyword arguments from a sax attribute
@@ -103,6 +104,9 @@ class RdParser(utils.NodeBuilder):
 				self.pushProperty("fieldPath", self.getProperty("fieldPath"))
 			except IndexError:
 				self.pushProperty("fieldPath", "")
+
+	def _start_ResourceDescriptor(self, name, attrs):
+		self.sourceDir = os.path.join(config.get("inputsDir"), attrs["srcdir"])
 
 	def _make_ResourceDescriptor(self, name, attrs, children):
 		self.rd.set_resdir(attrs["srcdir"])
@@ -480,6 +484,7 @@ class RdParser(utils.NodeBuilder):
 		res = self._processChildren(svc, name, {
 			"inputFilter": svc.set_inputFilter,
 			"core": svc.set_core,
+			"customPage": svc.set_customPage,
 			"outputFilter": lambda val: 
 				svc.register_output(val.get_id(), val),
 			"meta": svc.addMeta,
@@ -493,6 +498,23 @@ class RdParser(utils.NodeBuilder):
 		}, children)
 		self.popProperty("fieldPath")
 		return res
+
+	def _make_customPage(self, name, attrs, children):
+		try:
+			modpath = os.path.join(self.sourceDir, os.path.dirname(attrs["module"]))
+			moduleName = os.path.basename(attrs["module"])
+			moddesc = imp.find_module(moduleName, [modpath])
+			try:
+				imp.acquire_lock()
+				modNs = imp.load_module(moduleName, *moddesc)
+				page = modNs.MainPage
+			finally:
+				imp.release_lock()
+		except ImportError:
+			traceback.print_exc()
+			logger.error("Bad custom page %s"%moduleName)
+			return None
+		return page, (moduleName,)+moddesc
 
 	def _make_protect(self, name, attrs, children):
 		return self._processChildren(makeAttDict(attrs), name, {}, children)
@@ -637,8 +659,10 @@ def getRd(srcPath, parserClass=RdParser, forImport=False):
 	"""returns a ResourceDescriptor from the source in srcPath
 	"""
 	srcPath = os.path.join(config.get("inputsDir"), srcPath)
-	if not os.path.exists(srcPath):
+	if not os.path.exists(srcPath) and not srcPath.endswith(".vord"):
 		srcPath = srcPath+".vord"
+	if not os.path.exists(srcPath):
+		raise gavo.RdNotFound(srcPath)
 	contentHandler = parserClass(srcPath, forImport=forImport)
 	parser = make_parser()
 	parser.setContentHandler(contentHandler)
@@ -646,10 +670,11 @@ def getRd(srcPath, parserClass=RdParser, forImport=False):
 	try:
 		parser.parse(open(srcPath))
 	except IOError, msg:
-		utils.raiseTb(IOError, "Could not open descriptor %s (%s)."%(
+		logger.error("Could not open descriptor %s (%s)."%(srcPath, msg))
+		utils.raiseTb(gavo.RdNotFound, "Could not open descriptor %s (%s)."%(
 			srcPath, msg))
 	except Exception, msg:
-		utils.raiseTb(gavo.FatalError, "While parsing Desriptor %s: %s."
+		utils.raiseTb(gavo.Error, "While parsing Desriptor %s: %s."
 			"  Please check input validity."%(srcPath, msg))
 	rd = contentHandler.getResult()
 	if os.path.exists(srcPath+".blocked"):

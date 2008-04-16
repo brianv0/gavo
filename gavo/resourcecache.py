@@ -9,6 +9,7 @@ templates, etc., the parsing of which may take some time.
 from twisted.enterprise import adbapi
 
 from gavo import config
+from gavo import utils
 
 
 class _DbConnection:
@@ -65,8 +66,15 @@ def _makeCache(creator):
 	_cacheRegistry.register(cache)
 	def func(id):
 		if not id in cache:
-			cache[id] = creator(id)
-		return cache[id]
+			try:
+				cache[id] = creator(id)
+			except Exception, exc:
+				cache[id] = exc
+				utils.raiseTb(exc.__class__, str(exc))
+		if isinstance(cache[id], Exception):
+			raise cache[id]
+		else:
+			return cache[id]
 	return func
 
 

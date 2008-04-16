@@ -3,6 +3,7 @@ Resource descriptor-based pages.
 """
 
 import cStringIO
+import imp
 import mutex
 import new
 import os
@@ -21,6 +22,7 @@ from nevow import inevow
 from nevow import rend
 from nevow import static
 from nevow import tags as T, entities as E
+from nevow import url
 
 from twisted.internet import defer
 from twisted.internet import threads
@@ -89,31 +91,9 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 		super(ServiceBasedRenderer, self).__init__(ctx, service.rd)
 		self.service = service
 		if not self.name in self.service.get_allowedRenderers():
+# XXX TODO: Raise a forbidden here
 			raise UnknownURI("The renderer %s is not allowed on this service."%
 				self.name)
-
-
-def getServiceRend(ctx, serviceParts, rendClass):
-	"""returns a renderer for the service described by serviceParts.
-
-	This is the function you should use to construct renderers.  It will
-	construct the service, check auth, etc.
-	"""
-	def makeRenderer(service):
-		return rendClass(ctx, service)
-	descriptorId, subId = common.parseServicePath(serviceParts)
-	try:
-		rd = resourcecache.getRd(descriptorId)
-	except IOError:
-		raise UnknownURI("/".join(serviceParts))
-	if not rd.has_service(subId):
-		raise UnknownURI("The service %s is not defined"%subId)
-	service = rd.get_service(subId)
-	if service.get_requiredGroup():
-		return creds.runAuthenticated(ctx, service.get_requiredGroup(),
-			makeRenderer, service)
-	else:
-		return makeRenderer(service)
 
 
 class BaseResponse(ServiceBasedRenderer):
@@ -649,14 +629,14 @@ def compileCoreRenderer(source):
 class Static(GavoFormMixin, ServiceBasedRenderer):
 	"""is a renderer that just hands through files.
 
-	On this, you can either have a template "static" or have a static core
+	On this, you can have a template "static" or have a static core
 	returning a table with with a column called "filename".  The
 	file designated in the first row will be used as-is.
 
 	Queries with remaining segments return files from the staticData
-	directory of the service.
+	directory of the service, if defined.
 	"""
-	name = ".static."
+	name = "static"
 
 	def __init__(self, ctx, service):
 		ServiceBasedRenderer.__init__(self, ctx, service)
@@ -667,7 +647,8 @@ class Static(GavoFormMixin, ServiceBasedRenderer):
 				self.service.get_template("static"))
 		self.basePath = os.path.join(service.rd.get_resdir(),
 			service.get_staticData())
-		self.rend = static.File(self.basePath)
+		if self.basePath:
+			self.rend = static.File(self.basePath)
 	
 	def renderHTTP(self, ctx):
 		if inevow.ICurrentSegments(ctx)[-1] != '':
@@ -690,4 +671,45 @@ class Static(GavoFormMixin, ServiceBasedRenderer):
 	def locateChild(self, ctx, segments):
 		if segments==('',):
 			return self, ()
-		return self.rend.locateChild(ctx, segments)
+		if self.basePath:
+			return self.rend.locateChild(ctx, segments)
+		return None, ()
+
+
+class Custom(ServiceBasedRenderer):
+	"""is a wrapper for user-defined renderers.
+
+	The services defining this must have a customPage field. 
+	It must be a tuple (page, (name, file, pathname, descr)), where page is
+	a nevow resource constructible like a renderer (i.e., receiving a
+	context and a service).  They will, in general, have locateChild
+	overridden.
+
+	(name, file, pathname, descr) is the result of load_module and is used
+	in the special child "_reload" that will cause a reload of the
+	underlying module and an assignment of its MainPage to realPage
+	(like importparser does on the first import).
+	"""
+	name = "custom"
+
+	def __init__(self, ctx, service):
+		ServiceBasedRenderer.__init__(self, ctx, service)
+		cp = self.service.get_customPage()
+		if not cp:
+			raise UnknownURI("No custom page defined for this service.")
+		pageClass, self.reloadInfo = cp
+		self.realPage = pageClass(ctx, service)
+
+	def _reload(self, ctx):
+		mod = imp.load_module(*self.reloadInfo)
+		pageClass = mod.MainPage
+		self.service.set_customPage((pageClass, self.reloadInfo))
+		return url.here.curdir()
+
+	def renderHTTP(self, ctx):
+		return self.realPage.renderHTTP(ctx)
+	
+	def locateChild(self, ctx, segments):
+		if segments and segments[0]=="_reload":
+			return creds.runAuthenticated(ctx, "", self._reload, ctx), ()
+		return self.realPage.locateChild(ctx, segments)

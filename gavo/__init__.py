@@ -56,4 +56,11 @@ class ValidationError(Error):
 			recStr)
 
 
+class RdNotFound(Error):
+	"""is raised when importParser.getRd cannot locate a resource descriptor.
+	"""
+# It is defined here since importing importparser is a no-no for most
+# modules.
+	pass
+
 floatRE = r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?"
