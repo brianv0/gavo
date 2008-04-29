@@ -126,7 +126,7 @@ class MetaMixin(object):
 		return default
 
 	def buildRepr(self, key, builder, propagate=True, raiseOnFail=True):
-		value = self.getMeta(key, raiseOnFail)
+		value = self.getMeta(key, raiseOnFail=raiseOnFail, propagate=propagate)
 		if value:
 			builder.startKey(key)
 			value.traverse(builder)
@@ -378,6 +378,7 @@ _metaTypeRegistry = {
 
 _typesForKeys = {
 	"_related": "link",
+	"referenceURL": "link",
 	"info": "info",
 }
 
@@ -402,7 +403,8 @@ def makeMetaValue(value="", **kwargs):
 	cls = MetaValue
 	if "name" in kwargs:
 		lastKey = parseKey(kwargs["name"])[-1]
-		if lastKey in _typesForKeys and not "type" in kwargs:
+		if lastKey in _typesForKeys and not "type" in kwargs and not (
+				kwargs.get("format")=="rst"):
 			kwargs["type"] = _typesForKeys[lastKey]
 		del kwargs["name"]
 	if "type" in kwargs:

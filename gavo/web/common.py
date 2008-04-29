@@ -191,7 +191,7 @@ class GavoRenderMixin(object):
 
 	Rendering of meta information:
 	<tag n:render="meta">METAKEY</tag> or
-	<tag n:render="metahtml">METAKEY</tag>  (this is equivalent these days)
+	<tag n:render="metahtml">METAKEY</tag>
 
 	Rendering internal links (important of off-root operation):
 	<tag href|src="/foo" n:render="rootlink"/>
@@ -203,18 +203,29 @@ class GavoRenderMixin(object):
 
 	<body n:data="something meta carrying" n:render="withsidebar">
 	"""
-	def _doRenderMeta(self, ctx, raiseOnFail=False):
+	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False):
 		metaKey = ctx.tag.children[0]
 		try:
-			_htmlMetaBuilder.clear()
-			return self.service.buildRepr(metaKey, _htmlMetaBuilder)
+			if plain:
+				ctx.tag.clear()
+				return ctx.tag[self.service.getMeta(metaKey, raiseOnFail=True
+					).getContent("text")]
+			else:
+				_htmlMetaBuilder.clear()
+				ctx.tag.clear()
+				return ctx.tag[T.xml(self.service.buildRepr(metaKey, _htmlMetaBuilder,
+					raiseOnFail=True))]
 		except gavo.NoMetaKey:
+			if raiseOnFail:
+				raise
 			return T.comment["Meta item %s not given."%metaKey]
 
 	def render_meta(self, ctx, data):
-		return self._doRenderMeta(ctx)
+		return self._doRenderMeta(ctx, plain=True)
 	
-	render_metahtml = render_meta
+	def render_metahtml(self, ctx, data):
+		return self._doRenderMeta(ctx)
+		
 
 	def render_rootlink(self, ctx, data):
 		tag = ctx.tag
@@ -275,8 +286,7 @@ class GavoRenderMixin(object):
 				T.div(render=T.directive("ifdata"), class_="sidebaritem",
 					data=self.service.getMeta("_related"))[
 					T.h3["Related"],
-					T.ul(class_="sidebarEnum",
-						render=T.directive("meta"))["_related"],
+					T.invisible(render=T.directive("metahtml"))["_related"],
 				],
 				T.div(class_="sidebaritem")[
 					T.h3["Metadata"],
