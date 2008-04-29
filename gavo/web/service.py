@@ -24,11 +24,11 @@ from twisted.python import components
 
 from gavo import config
 from gavo import datadef
+from gavo import meta
 from gavo import record
 from gavo import table
 from gavo import record
 from gavo.parsing import contextgrammar
-from gavo.parsing import meta
 from gavo.parsing import resource
 from gavo.web import common
 

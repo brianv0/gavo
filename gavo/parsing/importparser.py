@@ -15,6 +15,7 @@ from gavo import coords
 from gavo import datadef
 from gavo import interfaces
 from gavo import logger
+from gavo import meta
 from gavo import parsing
 from gavo import record
 from gavo import resourcecache
@@ -29,7 +30,6 @@ from gavo.parsing import conditions
 from gavo.parsing import contextgrammar
 from gavo.parsing import elgen
 from gavo.parsing import macros
-from gavo.parsing import meta
 from gavo.parsing import parsehelpers
 from gavo.parsing import processors
 from gavo.parsing import resource
@@ -121,7 +121,7 @@ class RdParser(utils.NodeBuilder):
 			"Adapter": lambda val: 0,  # these register themselves
 			"Service": lambda val: 0,  # these register themselves
 			"property": lambda val: self.rd.register_property(*val),
-			"meta": self.rd.addMeta,
+			"meta": lambda mv: self.rd.addMeta(mv[0], mv[1]),
 		}, children)
 		# XXX todo: coordinate systems
 		return self.rd
@@ -143,7 +143,7 @@ class RdParser(utils.NodeBuilder):
 			"Semantics": dd.set_Semantics,
 			"Macro": dd.addto_macros,
 			"Grammar": dd.set_Grammar,
-			"meta": dd.addMeta,
+			"meta": lambda mv: dd.addMeta(mv[0], mv[1]),
 			"property": lambda val: dd.register_property(*val),
 			"script": dd.addto_scripts,
 		}, children)
@@ -287,7 +287,7 @@ class RdParser(utils.NodeBuilder):
 			"Field": recDef.addto_items,
 			"constraints": recDef.set_constraints,
 			"owningCondition": recDef.set_owningCondition,
-			"meta": recDef.addMeta,
+			"meta": lambda mv: recDef.addMeta(mv[0], mv[1]),
 			"script": recDef.addto_scripts,
 		}, children)
 
@@ -472,7 +472,7 @@ class RdParser(utils.NodeBuilder):
 			"Semantics": adapter.set_Semantics,
 			"Macro": adapter.addto_macros,
 			"Grammar": adapter.set_Grammar,
-			"meta": adapter.addMeta,
+			"meta": lambda mv: adapter.addMeta(mv[0], mv[1]),
 		}, children)
 
 	_start_Service = _pushFieldPath
@@ -487,7 +487,7 @@ class RdParser(utils.NodeBuilder):
 			"customPage": svc.set_customPage,
 			"outputFilter": lambda val: 
 				svc.register_output(val.get_id(), val),
-			"meta": svc.addMeta,
+			"meta": lambda mv: svc.addMeta(mv[0], mv[1]),
 			"template": lambda val: svc.register_template(*val),
 			"property": lambda val: svc.register_property(*val),
 			"fieldNameTranslation": svc.set_fieldNameTranslations,
@@ -619,10 +619,21 @@ class RdParser(utils.NodeBuilder):
 			}, children)
 
 	def _make_meta(self, name, attrs, children):
-		content = self._makeTextNode(name, attrs, children)
-		res = makeAttDict(attrs)
-		res["content"] = content
-		return res
+		def raiseMixedMeta(*args):
+			raise gavo.MetaError("Mixed meta items must have content before"
+				" children")
+		if children and children[0][0]==None:
+			content = children.pop(0)[1]
+		else:
+			content = ""
+		attrs = makeAttDict(attrs)
+		key = attrs["name"]
+		metaValue = meta.makeMetaValue(content, **attrs)
+		self._processChildren(metaValue, name, {
+			"meta": lambda md: metaValue.addMeta(md[0], md[1]),
+			None: raiseMixedMeta,
+		}, children)
+		return key, metaValue
 
 	def _make_property(self, name, attrs, children):
 		return (attrs["name"], self._makeTextNode(name, attrs, children).strip())
@@ -655,6 +666,16 @@ class InputEntityResolver(EntityResolver):
 			systemId+".template"))
 
 
+def getParser(srcPath, parserClass=RdParser, forImport=False):
+	"""returns a SAX parser set up for reading resouce descriptors.
+	"""
+	contentHandler = parserClass(srcPath, forImport=forImport)
+	parser = make_parser()
+	parser.setContentHandler(contentHandler)
+	parser.setEntityResolver(InputEntityResolver())
+	return contentHandler, parser
+
+
 def getRd(srcPath, parserClass=RdParser, forImport=False):
 	"""returns a ResourceDescriptor from the source in srcPath
 	"""
@@ -663,25 +684,22 @@ def getRd(srcPath, parserClass=RdParser, forImport=False):
 		srcPath = srcPath+".vord"
 	if not os.path.exists(srcPath):
 		raise gavo.RdNotFound(srcPath)
-	contentHandler = parserClass(srcPath, forImport=forImport)
-	parser = make_parser()
-	parser.setContentHandler(contentHandler)
-	parser.setEntityResolver(InputEntityResolver())
+	contentHandler, parser = getParser(srcPath, parserClass, forImport)
 	try:
 		parser.parse(open(srcPath))
 	except IOError, msg:
 		logger.error("Could not open descriptor %s (%s)."%(srcPath, msg))
-		utils.raiseTb(gavo.RdNotFound, "Could not open descriptor %s (%s)."%(
+		gavo.raiseTb(gavo.RdNotFound, "Could not open descriptor %s (%s)."%(
 			srcPath, msg))
 	except Exception, msg:
-		utils.raiseTb(gavo.Error, "While parsing Desriptor %s: %s."
+		gavo.raiseTb(gavo.Error, "While parsing Desriptor %s: %s."
 			"  Please check input validity."%(srcPath, msg))
 	rd = contentHandler.getResult()
 	if os.path.exists(srcPath+".blocked"):
 		rd.currently_blocked = True
 	if not rd.getMeta("dateUpdated"):
 		try:
-			rd.addMeta(name="dateUpdated", content=time.strftime("%Y-%m-%d", 
+			rd.addMeta("dateUpdated", time.strftime("%Y-%m-%d", 
 				time.gmtime(os.path.getmtime(rd.getTimestampPath()))))
 		except os.error:
 			pass

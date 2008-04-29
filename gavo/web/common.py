@@ -19,6 +19,7 @@ from zope.interface import implements
 
 import gavo
 from gavo import config
+from gavo import meta
 from gavo import record
 from gavo import utils
 
@@ -153,12 +154,44 @@ class CustomErrorMixin(object):
 		return self.renderHTTP_exception(ctx, failure)
 
 
+class HtmlMetaBuilder(meta.MetaBuilder):
+	def __init__(self):
+		meta.MetaBuilder.__init__(self)
+		self.resultTree, self.currentAtom = [[]], None
+
+	def startKey(self, atom):
+		self.resultTree.append([])
+		
+	def enterValue(self, value):
+		val = value.getContent("html")
+		if val:
+			self.resultTree[-1].append(T.xml(val))
+	
+	def endKey(self, atom):
+		children = self.resultTree.pop()
+		if len(children)>1:
+			self.resultTree[-1].append(T.ul(class_="metaEnum")[[
+					T.li(class_="metaItem")[c]
+				for c in children]])
+		elif len(children)==1:
+			self.resultTree[-1].append(T.span(class_="metaItem")[children[0]])
+	
+	def getResult(self):
+		return self.resultTree[0]
+
+	def clear(self):
+		self.resultTree = [[]]
+
+
+_htmlMetaBuilder = HtmlMetaBuilder()
+
+
 class GavoRenderMixin(object):
 	"""is a mixin with renderers useful throughout the data center.
 
 	Rendering of meta information:
 	<tag n:render="meta">METAKEY</tag> or
-	<tag n:render="metahtml">METAKEY</tag>
+	<tag n:render="metahtml">METAKEY</tag>  (this is equivalent these days)
 
 	Rendering internal links (important of off-root operation):
 	<tag href|src="/foo" n:render="rootlink"/>
@@ -170,25 +203,18 @@ class GavoRenderMixin(object):
 
 	<body n:data="something meta carrying" n:render="withsidebar">
 	"""
-	def _doRenderMeta(self, ctx, flattenerFunc, raiseOnFail=False, all=False):
+	def _doRenderMeta(self, ctx, raiseOnFail=False):
 		metaKey = ctx.tag.children[0]
-		metaVal = self.service.getMeta(metaKey, raiseOnFail=raiseOnFail, all=all)
-		if metaVal:
-			if all:
-				return ctx.tag.clear()[[T.li[flattenerFunc(v)] for v in metaVal]]
-			else:
-				return ctx.tag.clear()[flattenerFunc(metaVal)]
-		else:
+		try:
+			_htmlMetaBuilder.clear()
+			return self.service.buildRepr(metaKey, _htmlMetaBuilder)
+		except gavo.NoMetaKey:
 			return T.comment["Meta item %s not given."%metaKey]
 
 	def render_meta(self, ctx, data):
-		return self._doRenderMeta(ctx, str)
+		return self._doRenderMeta(ctx)
 	
-	def render_metahtml(self, ctx, data):
-		return self._doRenderMeta(ctx, lambda c: T.xml(c.asHtml()))
-
-	def render_metahtmlAll(self, ctx, data):
-		return self._doRenderMeta(ctx, lambda c: T.xml(c.asHtml()), all=True)
+	render_metahtml = render_meta
 
 	def render_rootlink(self, ctx, data):
 		tag = ctx.tag
@@ -227,8 +253,8 @@ class GavoRenderMixin(object):
 					T.a(onclick="toggleCollapsedMeta(this)", 
 						class_="foldbutton")[">>"],
 				],
-				self._doRenderMeta(ctx, lambda c: T.xml(c.asHtml()), raiseOnFail=True)]
-		except config.MetaError:
+				self._doRenderMeta(ctx, raiseOnFail=True)]
+		except gavo.MetaError:
 			return ""
 			
 	def render_withsidebar(self, ctx, data):
@@ -250,7 +276,7 @@ class GavoRenderMixin(object):
 					data=self.service.getMeta("_related"))[
 					T.h3["Related"],
 					T.ul(class_="sidebarEnum",
-						render=T.directive("metahtmlAll"))["_related"],
+						render=T.directive("meta"))["_related"],
 				],
 				T.div(class_="sidebaritem")[
 					T.h3["Metadata"],
@@ -275,7 +301,7 @@ class GavoRenderMixin(object):
 				oldChildren
 			],
 		]
-				
+
 
 class QueryMeta(dict):
 	"""is a class keeping all data *about* a query, e.g., the

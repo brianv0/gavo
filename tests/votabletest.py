@@ -55,13 +55,12 @@ class VotableTest(unittest.TestCase):
 					]
 				 })
 		})
-		dataDesc.addMeta(name="_infolink", content="http://vo.org/x?a=b&c=d")
+		dataDesc.addMeta("_infolink", "http://vo.org/x?a=b&c=d")
 
 		rd.addto_dataSrcs(dataDesc)
 
-		rd.addMeta(name="description", content="Some test data for"
-			" VOTables.")
-		rd.addMeta(name="_legal", content="Hands off this fascinating data")
+		rd.addMeta("description", "Some test data for VOTables.")
+		rd.addMeta("_legal", "Hands off this fascinating data")
 		rd.get_systems().defineSystem("J2000.0", "1998", "eq_FK5")
 		rd.get_systems().defineSystem("J2000.0", system="ICRS")
 		return rd

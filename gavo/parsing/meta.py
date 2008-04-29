@@ -1,3 +1,4 @@
+# XXXXXXXXXXXXXXX This module to go away.  Replace with gavo.meta
 """
 Code dealing with meta information.
 
@@ -115,7 +116,7 @@ class MetaMixin(object):
 			print ">>>>>> weakref'd parent of %s went away prematurely"%self
 			return config.getMeta(key, raiseOnFail=raiseOnFail, default=default)
 		if raiseOnFail:
-			raise config.MetaError("No meta item %s"%key)
+			raise gavo.MetaError("No meta item %s"%key)
 		return default
 
 	def getAllMeta(self, key):

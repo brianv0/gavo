@@ -11,10 +11,13 @@ import shlex
 import sys
 
 import gavo
+from gavo import meta
 from gavo import record
 
-
 defaultSettingsPath = "/etc/gavo.rc"
+
+addMeta = meta.configMeta.addMeta
+getMeta = meta.configMeta.getMeta
 
 _builtinConfig = """
 [DEFAULT]
@@ -61,7 +64,6 @@ voplotUserman: ~/static/voplot/docs/VOPlot_UserGuide_1_4.html
 # Location of the name map for vanity names
 vanityNames=vanitynames.txt
 
-
 [querulator]
 defaultMaxMatches: 1000
 dbProfile: querulator
@@ -103,9 +105,6 @@ class Error(gavo.Error):
 	pass
 
 class ProfileParseError(Error):
-	pass
-
-class MetaError(gavo.Error):  # Note: gavo.Error!
 	pass
 
 from ConfigParser import NoOptionError
@@ -263,27 +262,31 @@ class ProfileParser:
 		self.stateFun = self.stateFun(token)
 
 
-class Settings:
+class Settings(object):
 	"""is a container for settings.
 	
 	It is fed from the builtin config, $GAVOSETTINGS (default: /etc/gavorc) and,
 	if available, $GAVOCUSTOM (default: ~/.gavorc), where later settings 
 	may override earlier settings.
 
-	To access the items, use the interface provided by gavo.__init__.  In
-	essence, you say either gavo.confGet(item) for items from the default
-	section, or gavo.confGet(section, item) for items from named sections.
-	All keys are case insensitive.
+	To access config items, say config.get(item) for items from the default
+	section, or config.get(section, item) for items from named sections.
+	All keys except meta are case insensitive.
 	"""
 	__sharedState = {}
 	def __init__(self):
 		self.__dict__ = self.__sharedState
 		self.rawVals = self._parse()
+		self._handleMeta()
 		self.valueCache = {}
 		self.dbProfileCache = {}
 
 	def _getHome(self):
 		return os.environ.get("HOME", "/no_home")
+
+	def _handleMeta(self):
+		for key, value in self.rawVals.items("meta"):
+			addMeta(key, value)
 
 	def _parse(self):
 		confParser =  ConfigParser.ConfigParser()
@@ -345,19 +348,6 @@ class Settings:
 			self.valueCache[section, key] = self._computeValueFor(section, key)
 		return self.valueCache[section, key]
 
-	def getMeta(self, key, raiseOnFail=False, default=None):
-		try:
-			return self.rawVals.get("meta", key)
-		except ConfigParser.NoOptionError:
-			if default!=None:
-				return default
-			if raiseOnFail:
-				raise MetaError("No meta item %s"%key)
-			return default
-
-	def setMeta(self, key, value):
-		self.rawVals.set("meta", key, value)
-		
 	def _getProfileParser(self):
 		if not hasattr(self, "__profileParser"):
 			self.__profileParser = ProfileParser(
@@ -386,8 +376,6 @@ class Settings:
 
 _config = Settings()
 get = _config.get
-getMeta = _config.getMeta
-setMeta = _config.setMeta
 setDbProfile = _config.setDbProfile
 getDbProfile = _config.getDbProfile
 getDbProfileByName = _config.getDbProfileByName

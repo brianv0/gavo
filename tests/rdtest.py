@@ -8,10 +8,10 @@ import unittest
 
 from gavo import config
 from gavo import datadef
+from gavo import meta
 from gavo import nullui
 from gavo.parsing import columngrammar
 from gavo.parsing import importparser
-from gavo.parsing import meta
 from gavo.parsing import resource
 import gavo
 import gavo.parsing
@@ -23,7 +23,7 @@ class MetaTest(unittest.TestCase):
 	"""
 	def setUp(self):
 		self.rd = importparser.getRd(os.path.abspath("test.vord"))
-		config.setMeta("test.fromConfig", "from Config")
+		config.addMeta("test.fromConfig", "from Config")
 	
 	def testMetaAttachment(self):
 		"""tests for proper propagation of meta information.
@@ -38,25 +38,13 @@ class MetaTest(unittest.TestCase):
 		"""tests for handling of complex meta items.
 		"""
 		data = self.rd.getDataById("metatest")
-		data.addMeta(name="testStatus", content=meta.InfoItem(
-			"OK", "I'm so well I could cry"))
-		self.assert_(isinstance(data.getMeta("testStatus").content, meta.InfoItem))
-		self.assertEqual(data.getMeta("testStatus").content.value, "OK")
-		self.assertEqual(data.getMeta("testStatus").content.content, 
-			"I'm so well I could cry")
+		data.addMeta("testStatus", meta.makeMetaValue("I'm so well I could cry",
+			infoValue="OK", type="info"))
+		self.assert_(isinstance(data.getMeta("testStatus").children[0], 
+			meta.InfoItem))
+		self.assertEqual(data.getMeta("testStatus").children[0].infoValue, "OK")
 		self.assertEqual(str(data.getMeta("testStatus")),
 			"I'm so well I could cry")
-
-	def testMetaSequence(self):
-		"""tests for sequenced meta items.
-		"""
-		data = self.rd.getDataById("metatest")
-		data.addMeta(name="aSeq", content="first")
-		self.assertEqual(str(data.getMeta("aSeq")), "first")
-		data.addMeta(name="aSeq", content="second")
-		self.assertEqual(str(data.getMeta("aSeq")), "second")
-		self.assertEqual(map(str, data.getAllMeta("aSeq")),
-			["first", "second"])
 
 
 class ValidationTest(unittest.TestCase):

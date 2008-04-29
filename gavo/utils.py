@@ -17,8 +17,6 @@ from xml.sax.handler import ContentHandler
 
 from mx import DateTime
 
-from twisted.python.failure import Failure
-
 import gavo
 from gavo import logger
 
@@ -285,7 +283,7 @@ class BaseNodeBuilder(ContentHandler):
 		msg = ("Error while parsing XML at"
 			" %d:%d (%s)"%(self.locator.getLineNumber(), 
 				self.locator.getColumnNumber(), exc_info[1]))
-		raise raiseTb(gavo.Error, msg)
+		raise gavo.raiseTb(gavo.Error, msg)
 	
 	def setDocumentLocator(self, locator):
 		self.locator = locator
@@ -535,16 +533,23 @@ class NameMap:
 	or other "bad" characters ("="!).  You can have #-comments and empty
 	lines.
 	"""
-	def __init__(self, src):
-		self._parseSrc(src)
+	def __init__(self, src, missingOk=False):
+		self._parseSrc(src, missingOk)
 	
 	def __contains__(self, name):
 		return name in self.namesDict
 
-	def _parseSrc(self, src):
+	def _parseSrc(self, src, missingOk):
 		self.namesDict = {}
 		try:
-			for ln in open(src).readlines():
+			f = open(src)
+		except IOError:
+			if not missingOk:
+				raise
+			else:
+				return
+		try:
+			for ln in f:
 				if ln.startswith("#") or not ln.strip():
 					continue
 				ob, names = re.split("\t+", ln)
@@ -553,6 +558,7 @@ class NameMap:
 		except ValueError:
 			raise gavo.Error("Syntax error in %s: Line %s not understood."%(
 				src, repr(ln)))
+		f.close()
 	
 	def resolve(self, name):
 		return self.namesDict[name.lower()]
@@ -632,22 +638,6 @@ def getMatchingTuple(tupList, key, matchIndex):
 		if t[matchIndex]==key:
 			return t
 	raise KeyError(key)
-
-
-def raiseTb(exCls, msg, *args):
-	"""raises an exception exCls(*args) furnished with the current traceback
-
-	This is supposed to be used when re-raising exceptions.  It's bad that
-	this function shows up in the traceback, but without macros, there's
-	little I can do about it.
-
-	msg may be a twisted Failure instance.  In that case, the traceback
-	and the message are taken from it.
-	"""
-	if isinstance(msg, Failure):
-		raise exCls, (msg.getErrorMessage(),)+args, msg.tb
-	else:
-		raise exCls, (msg,)+args, sys.exc_info()[-1]
 
 
 def getErrorField():

@@ -12,6 +12,13 @@ except ImportError:
 	from elementtree import ElementTree
 
 
+try:
+	from twisted.python.failure import Failure
+except ImportError:
+	class Failure(Exception):
+		pass
+
+
 class Error(Exception):
 	"""is the "master" exception type for gavo related stuff.
 
@@ -62,5 +69,36 @@ class RdNotFound(Error):
 # It is defined here since importing importparser is a no-no for most
 # modules.
 	pass
+
+
+class MetaError(Error): 
+	pass
+
+
+class MetaSyntaxError(MetaError):
+	pass
+
+class NoMetaKey(MetaError):
+	pass
+
+class MetaCardError(MetaError):
+	pass
+
+
+def raiseTb(exCls, msg, *args):
+	"""raises an exception exCls(*args) furnished with the current traceback
+
+	This is supposed to be used when re-raising exceptions.  It's bad that
+	this function shows up in the traceback, but without macros, there's
+	little I can do about it.
+
+	msg may be a twisted Failure instance.  In that case, the traceback
+	and the message are taken from it.
+	"""
+	if isinstance(msg, Failure):
+		raise exCls, (msg.getErrorMessage(),)+args, msg.tb
+	else:
+		raise exCls, (msg,)+args, sys.exc_info()[-1]
+
 
 floatRE = r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?"

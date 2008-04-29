@@ -8,6 +8,7 @@ templates, etc., the parsing of which may take some time.
 
 from twisted.enterprise import adbapi
 
+import gavo
 from gavo import config
 from gavo import utils
 
@@ -70,7 +71,7 @@ def _makeCache(creator):
 				cache[id] = creator(id)
 			except Exception, exc:
 				cache[id] = exc
-				utils.raiseTb(exc.__class__, str(exc))
+				gavo.raiseTb(exc.__class__, str(exc))
 		if isinstance(cache[id], Exception):
 			raise cache[id]
 		else:

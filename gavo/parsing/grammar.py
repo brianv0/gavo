@@ -2,6 +2,7 @@
 This module defines an abstract superclass for all grammars.
 """
 
+import gavo
 from gavo import logger
 from gavo import nullui
 from gavo import parsing
@@ -9,7 +10,6 @@ from gavo import record
 from gavo import sqlsupport
 from gavo import utils
 from gavo.parsing import conditions
-import gavo
 
 
 class ParseError(gavo.Error):
@@ -67,7 +67,7 @@ class Grammar(record.Record):
 			except gavo.Error:
 				raise
 			except Exception, msg:
-				utils.raiseTb(gavo.ValidationError, 
+				gavo.raiseTb(gavo.ValidationError, 
 					"Failure while parsing doc %s (%s)"%(row, msg),
 					utils.getErrorField())
 			lines = self._iterRows(parseContext)
@@ -93,7 +93,7 @@ class Grammar(record.Record):
 				except gavo.parsing.ParseError, msg:
 					errmsg = "Parse failure, aborting source (%s)."%msg
 					counter.hitBad()
-					raise utils.raiseTb(gavo.ValidationError, errmsg,
+					raise gavo.raiseTb(gavo.ValidationError, errmsg,
 						utils.getErrorField())
 				except sqlsupport.OperationalError, msg:
 					gavo.ui.displayError("Import of row %s failed (%s). ABORTING"
@@ -102,7 +102,7 @@ class Grammar(record.Record):
 					raise
 				except Exception, msg:
 					counter.hitBad()
-					utils.raiseTb(gavo.ValidationError, 
+					gavo.raiseTb(gavo.ValidationError, 
 						"Failure while parsing rec %s (%s)"%(row, msg), 
 						utils.getErrorField())
 		finally:

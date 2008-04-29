@@ -13,11 +13,11 @@ from twisted.python import failure
 from zope.interface import implements
 
 import gavo
+from gavo import meta
 from gavo import ElementTree
 from gavo import datadef
 from gavo import votable
 from gavo.parsing import contextgrammar
-from gavo.parsing import meta
 from gavo.parsing import resource
 from gavo.web import common
 from gavo.web import registry
@@ -88,7 +88,8 @@ class ScsRenderer(DalRenderer):
 	def _makeErrorTable(self, ctx, msg):
 		dataDesc = resource.makeSimpleDataDesc(self.rd, [])
 		data = resource.InternalDataSet(dataDesc)
-		data.addMeta(name="_error", content=meta.InfoItem(msg, ""))
+		data.addMeta("info", meta.makeMetaValue(msg, name="info", 
+			infoName="Error", infoId="Error"))
 		return common.CoreResult(data, {}, common.QueryMeta(ctx))
 
 
@@ -117,22 +118,23 @@ class SiapRenderer(DalRenderer):
 			self.service.getOutputFields(common.QueryMeta(ctx)))
 		dataDesc.set_items(inputFields)
 		data = resource.InternalDataSet(dataDesc)
-		data.addMeta(name="_type", content="metadata")
-		data.addMeta(name="_query_status", content="OK")
+		data.addMeta("_type", "metadata")
+		data.addMeta("info", meta.makeMetaValue("OK", name="info", 
+			infoName="QUERY_STATUS", infoValue="OK"))
 		result = common.CoreResult(data, {}, common.QueryMeta(ctx))
 		return resourcebased.writeVOTable(request, result, votable.VOTableMaker())
 
 	def _handleOutputData(self, data, ctx):
-		data.addMeta(name="_query_status", content=meta.InfoItem("OK", ""))
-		data.addMeta(name="_type", content="result")
-		data.addMeta(name="_query_status", content="OK")
+		data.addMeta("info", meta.makeMetaValue("OK", name="info",
+			infoName="QUERY_STATUS", infoValue="OK"))
+		data.addMeta("_type", "result")
 		return super(SiapRenderer, self)._handleOutputData(data, ctx)
 	
 	def _makeErrorTable(self, ctx, msg):
 		dataDesc = resource.makeSimpleDataDesc(self.rd, [])
 		data = resource.InternalDataSet(dataDesc)
-		data.addMeta(name="_query_status", content=meta.InfoItem(
-			"ERROR", str(msg)))
+		data.addMeta("info", meta.makeMetaValue(str(msg), name="info",
+			infoValue="ERROR", infoName="QUERY_STATUS"))
 		return common.CoreResult(data, {}, common.QueryMeta(ctx))
 
 

@@ -838,13 +838,13 @@ class SimpleQuerier(Macro):
 			for name, resVal in zip(recNames, res):
 				record[name] = resVal
 		except IndexError:
-			utils.raiseTb(gavo.ValidationError, "The item %s didn't match"
+			gavo.raiseTb(gavo.ValidationError, "The item %s didn't match"
 				" any data.  Since this data is required for further"
 				" operations, I'm giving up"%val, self.getArgument("val"))
 		except sqlsupport.DbError, msg:
 			self.querier.close()
 			self.querier = sqlsupport.SimpleQuerier()
-			utils.raiseTb(gavo.ValidationError, "Internal error (%s)"%
+			gavo.raiseTb(gavo.ValidationError, "Internal error (%s)"%
 				sqlsupport.encodeDbMsg(msg), self.getArgument("val"))
 
 

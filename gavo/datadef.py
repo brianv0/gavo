@@ -4,7 +4,7 @@ Classes to define properties of data.
 
 import gavo
 from gavo import record
-from gavo.parsing import meta
+from gavo import meta
 from gavo.parsing import typeconversion
 
 
@@ -302,6 +302,11 @@ class DataTransformer(record.Record, meta.MetaMixin):
 		"""
 		for recDef in self.get_Semantics().get_recordDefs():
 			yield recDef
+
+	def set_Semantics(self, val):
+		for tableDef in val.get_recordDefs():
+			tableDef.setMetaParent(self)
+		self.dataStore["Semantics"] = val
 
 	def validate(self, record):
 		"""checks that the docRec record satisfies the constraints given

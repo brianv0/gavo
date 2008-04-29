@@ -101,7 +101,7 @@ class RowFunction:
 			return self._compute(rowdict, **self._buildArgDict(atExpand, rowdict))
 		except Exception, msg:
 			if hasattr(self, "errorField"):
-				utils.raiseTb(gavo.ValidationError, str(msg), 
+				gavo.raiseTb(gavo.ValidationError, str(msg), 
 					self.getArgument(self.errorField))
 			else:
 				raise

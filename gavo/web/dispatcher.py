@@ -262,7 +262,7 @@ def _makeVanityMap():
 	"""
 	srcF = os.path.join(config.get("webDir"), 
 		config.get("web", "vanitynames"))
-	return utils.NameMap(srcF)
+	return utils.NameMap(srcF, missingOk=True)
 
 _vanityMap = _makeVanityMap()
 

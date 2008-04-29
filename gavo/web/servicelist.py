@@ -47,7 +47,7 @@ def ensureSufficientMeta(service):
 	for key in _voRequiredMeta:
 		try:
 			service.getMeta(key, raiseOnFail=True)
-		except config.MetaError:
+		except gavo.MetaError:
 			missingKeys.append(key)
 	if missingKeys:
 		raise MissingMeta("Missing meta keys", missingKeys)

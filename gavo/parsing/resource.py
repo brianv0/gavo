@@ -15,6 +15,7 @@ from gavo import config
 from gavo import coords
 from gavo import datadef
 from gavo import logger
+from gavo import meta
 from gavo import nullui
 from gavo import parsing
 from gavo import record
@@ -23,7 +24,6 @@ from gavo import table
 from gavo import utils
 from gavo import votable
 from gavo.parsing import conditions
-from gavo.parsing import meta
 from gavo.parsing import nullgrammar
 from gavo.parsing import parsehelpers
 from gavo.parsing import rowsetgrammar
@@ -291,7 +291,7 @@ class ParseContext:
 				record[field.get_dest()] = self._strToVal(field, rowdict)
 		except Exception, msg:
 			msg.field = field.get_dest()
-			utils.raiseTb(gavo.ValidationError, msg, field.get_dest(), rowdict)
+			gavo.raiseTb(gavo.ValidationError, msg, field.get_dest(), rowdict)
 		return record
 	
 	def atExpand(self, val, rowdict):
@@ -424,10 +424,9 @@ class DataSet(meta.MetaMixin):
 		return self.docFields
 
 	def exportToSql(self, schema):
-		if self.getDescriptor().get_virtual():
-			return
-		for table in self.tables:
-			table.exportToSql(schema)
+		if not self.getDescriptor().get_virtual():
+			for table in self.tables:
+				table.exportToSql(schema)
 		self.dD.runScripts("processTable")
 		self.dD.runScripts("postCreation")
 
@@ -566,7 +565,7 @@ class Resource:
 				"votable": self.exportToVOTable,
 			}[outputFormat]
 		except KeyError:
-			raise utils.raiseTb(gavo.Error,
+			raise gavo.raiseTb(gavo.Error,
 				"Invalid export format: %s"%outputFormat)
 		return fun(onlyDDs)
 

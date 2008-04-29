@@ -24,7 +24,6 @@ import gavo
 from gavo import datadef
 from gavo import votable
 from gavo.parsing import contextgrammar
-from gavo.parsing import meta
 from gavo.parsing import resource
 from gavo.web import common
 from gavo.web import resourcebased

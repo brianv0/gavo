@@ -6,7 +6,7 @@ from elementtree import ElementTree
 
 import gavo
 from gavo import utils
-from gavo.parsing import meta
+from gavo import meta
 
 
 class Error(gavo.Error):
@@ -196,7 +196,7 @@ class Element(object):
 		except Error:
 			raise
 		except Exception, msg:
-			utils.raiseTb(Error, str(msg)+" while building %s node"
+			gavo.raiseTb(Error, str(msg)+" while building %s node"
 				" with children %s"%(self.name, self.children))
 
 
@@ -677,7 +677,6 @@ class SIA:
 	
 	class lat(SIAElement): pass
 
-	
 	
 class SCS:
 	"""is a container for elements describing Simple Cone Search services.

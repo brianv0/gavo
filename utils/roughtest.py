@@ -10,6 +10,8 @@ services to test, currently qu_root (querulator) and nv_root (nevow-based
 services).
 """
 
+from email.Message import Message
+from email.MIMEMultipart import MIMEMultipart
 import httplib
 import sys
 import time
@@ -18,6 +20,7 @@ import urllib
 import urlparse
 
 from roughtestconfig import *
+import roughtestdata
 
 
 class TestGroup(object):
@@ -28,6 +31,8 @@ class TestGroup(object):
 	
 	def run(self):
 		for test in self.tests:
+			if test==None:
+				break
 			try:
 				print "Running %s..."%test.description
 				test.run()
@@ -55,7 +60,15 @@ class GetHasStringTest:
 	def run(self):
 		self.lastResult = urllib.urlopen(self.url).read()
 		assert self.sentinel in self.lastResult
-	
+
+
+class GetLacksStringTest(GetHasStringTest):
+	"""is a test that a GET response does not have a string.
+	"""
+	def run(self):
+		self.lastResult = urllib.urlopen(self.url).read()
+		assert self.sentinel not in self.lastResult
+
 
 class GetHasStringsTest(GetHasStringTest):
 	"""is a test that the GET of a URL contains each in a sequence of strings.
@@ -64,6 +77,21 @@ class GetHasStringsTest(GetHasStringTest):
 		self.lastResult = urllib.urlopen(self.url).read()
 		for phrase in self.sentinel:
 			assert phrase in self.lastResult
+
+
+class PostHasStringsTest:
+	"""is a test for the presence of some strings in a server response to a
+	data POST.
+	"""
+	def __init__(self, url, data, sentinel, description):
+		self.url, self.sentinel = url, sentinel
+		self.description = description
+		self.data = data
+	
+	def run(self):
+		self.lastResult = urllib.urlopen(self.url, urllib.urlencode(self.data))
+		for sent in self.sentinel:
+			assert sent in self.sentinel
 
 
 class HeadStatusTest:
@@ -102,6 +130,92 @@ class HeadFieldTest:
 		self.lastResult = resp
 		for key, value in self.expectedFields:
 			assert resp.getheader(key)==value
+
+
+class _FormData(MIMEMultipart):
+  """is a container for multipart/form-data encoded messages.
+
+  This is usually used for file uploads.
+  """
+  def __init__(self):
+    MIMEMultipart.__init__(self, "form-data")
+    self.epilogue = ""
+  
+  def addFile(self, paramName, fileName, data):
+    """attaches the contents of fileName under the http parameter name
+    paramName.
+    """
+    msg = Message()
+    msg.set_type("application/octet-stream")
+    msg["Content-Disposition"] = "form-data"
+    msg.set_param("name", paramName, "Content-Disposition")
+    msg.set_param("filename", fileName, "Content-Disposition")
+    msg.set_payload(data)
+    self.attach(msg)
+
+  def addParam(self, paramName, paramVal):
+    """adds a form parameter paramName with the (string) value paramVal
+    """
+    msg = Message()
+    msg["Content-Disposition"] = "form-data"
+    msg.set_param("name", paramName, "Content-Disposition")
+    msg.set_payload(paramVal)
+    self.attach(msg)
+
+
+class UploadTest:
+	"""is a test that does an upload and then calls a user-defined routine.
+
+	In contrast to the other test classes, this is abstract, since it's
+	just too messy to abstract whatever you may want to test and upload
+	into constructor arguments.
+
+	Derived classes must define a function genForm() returning a _formData
+	instance, and a function check(status, answer) doing the assertions.
+
+	They may define a getAuth function returning a username/password pair
+	for HTTP Basic auth.
+	"""
+	def __init__(self, url, data, description):
+		self.url, self.data = url, data
+		self.description = description
+
+	def _upload(self, uploadURL, auth=None):
+		_, host, path, _, query, _ = urlparse.urlparse(uploadURL)
+		uri = path+"?"+query
+		form = self.genForm()
+		form.set_param("boundary", "========== roughtest deadbeef")
+		hdr = {	
+			"Content-Type": form.get_content_type()+'; boundary="%s"'%
+				"========== roughtest deadbeef",
+			}
+		if auth:
+			hdr["Authorization"] = "Basic %s"%auth.encode("base64"),
+		conn = httplib.HTTPConnection(host)
+		conn.connect()
+		conn.request("POST", uri, form.as_string(), hdr)
+		resp = conn.getresponse()
+		res = resp.read()
+		conn.close()
+		return resp.status, res
+
+	def run(self):
+		self.check(*self._upload(self.url, 
+			getattr(self, "getAuth", lambda: None)()))
+
+
+class DexterUploadTest(UploadTest):
+	def genForm(self):
+		form = _FormData()
+		form.addFile("inFile", "foo.jpg", self.data)
+		form.addParam("_charset_", "UTF-8")
+		form.addParam("__nevow_form__", "upload")
+		return form
+	
+	def check(self, status, response):
+		assert status==200
+		assert 'custom/__testing__/edit/0"' in response
+
 
 myTests = [
 	TestGroup("apfs",
@@ -248,6 +362,42 @@ myTests = [
 					'<oai:ListRecords>', # Think of something better, this may be empty
 			"PMH ListRecords response looks all right in ivo_vor"),
 		),
+	
+	TestGroup("dexter",
+		DexterUploadTest(nv_root+"/dexter/ui/ui/custom/__testing__/",
+			roughtestdata.get("dexterImage.jpg"),
+			"Dexter processes jpeg image"),
+		GetHasStringTest(nv_root+"/dexter/ui/ui/custom/__testing__/edit/0",
+			'object classid="java:Dexter"',
+			"Dexter returns an applet container on edit pages"),
+		HeadStatusTest(nv_root+"/dexter/ui/ui/custom/__testing__/nonexisting",
+			404,
+			"Dexter doesn't crap out on wild children"),
+		HeadStatusTest(nv_root+"/dexter/ui/ui/custom/__testing__/p/201",
+			404,
+			"Dexter returns 404 for non-existing previews"),
+		GetHasStringTest(nv_root+"/dexter/ui/ui/custom/__testing__/p/0",
+			"\x89PNG",
+			"Dexter preview returns something looking like a PNG"),
+		GetHasStringTest(nv_root+"/dexter/ui/ui/custom/__testing__/img/0?"
+			"ignored=52888&scale=3&coord=1,1,10,10",
+			"GIF87a",
+			"Dexter image retrieval returns something like a GIF"),
+		GetHasStringTest(nv_root+"/dexter/ui/ui/custom/__testing__/purgeData",
+			"Confirm deletion",
+			"Dexter asks for confirmation before purging data"),
+		PostHasStringsTest(nv_root+"/dexter/ui/ui/custom/__testing__/purgeData",
+			{"__nevow_form__": "confirmation", "goAhead": "Confirm deletion"},
+			"Choose Name",
+			"Dexter deletes data on request"),
+		GetLacksStringTest(nv_root+"/dexter/ui/ui/custom/__testing__/",
+			'custom/__testing__/edit/0"',
+			"Dexter has actually deleted data"),
+		PostHasStringsTest(nv_root+"/dexter/ui/ui/custom/__testing__/purgeData",
+			{"__nevow_form__": "confirmation", "goAhead": "Confirm deletion"},
+			"Choose Name",
+			"Dexter deletes empty dataset"),
+	),
 
 	TestGroup("formats",
 		GetHasStringsTest(nv_root+"/inflight/res/lc1/table/form?"

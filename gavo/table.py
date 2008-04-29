@@ -9,7 +9,7 @@ import compiler
 import gavo
 from gavo import logger
 from gavo import sqlsupport
-from gavo.parsing import meta
+from gavo import meta
 from gavo.parsing import parsehelpers
 
 class NoParent(gavo.Error):

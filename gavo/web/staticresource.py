@@ -8,9 +8,9 @@ parsed here into StaticResource instances.  They only contain meta data.
 
 import os
 
+from gavo import meta
 from gavo import resourcecache
 from gavo.parsing import kvgrammar
-from gavo.parsing import meta
 from gavo.parsing import resource
 from gavo.parsing import typeconversion
 
@@ -30,7 +30,7 @@ class ParseContext(resource.ParseContext):
 	
 	def processRowdict(self, rowdict):
 		for key, val in rowdict.iteritems():
-			self.dataSet.addMeta(name=key, content=val)
+			self.dataSet.addMeta(key, val)
 	
 	def processDocdict(self, docdict):
 		self.dataSet.processRowdict(docdict)

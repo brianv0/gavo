@@ -8,7 +8,6 @@ from zope.interface import implements
 import gavo
 from gavo import resourcecache
 from gavo.parsing import parsehelpers
-from gavo.parsing import meta
 from gavo.parsing import resource
 from gavo.parsing.contextgrammar import InputKey
 from gavo.web import core

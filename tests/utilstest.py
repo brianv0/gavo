@@ -13,6 +13,8 @@ from gavo import utils
 class TestReraise(unittest.TestCase):
 	"""Tests for keeping the stack when reraising mogrified exceptions.
 	"""
+# This is in here because raiseTb used to be in utils.  Well, let's move
+# it some day.
 	def testOneLevel(self):
 		"""test for simple reraising.
 		"""
@@ -23,7 +25,7 @@ class TestReraise(unittest.TestCase):
 			try:
 				bar()
 			except Exception, msg:
-				utils.raiseTb(gavo.Error, "Trouble in foo: %s"%msg)
+				gavo.raiseTb(gavo.Error, "Trouble in foo: %s"%msg)
 
 		try:
 			foo("xy")

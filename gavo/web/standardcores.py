@@ -166,7 +166,7 @@ class ComputedCore(core.Core):
 		return runner.run(self.dd, inputData).addCallback(
 			self._parseOutput, queryMeta).addErrback(
 			lambda failure:
-				utils.raiseTb(web.Error, failure))
+				gavo.raiseTb(web.Error, failure))
 	
 	def _parseOutput(self, rawOutput, queryMeta):
 		"""parses the output of a computing process and returns a table

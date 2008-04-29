@@ -35,7 +35,7 @@ from gavo.imp.VOTable import Writer
 from gavo.imp.VOTable.DataModel import *
 from gavo.imp.VOTable import Encoders
 from gavo.imp.VOTable.Writer import namespace
-from gavo.parsing import meta
+from gavo import meta
 
 
 class Error(Exception):
@@ -454,7 +454,7 @@ def writeVOTableFromTable(dataSet, table, destination,
 	metaInfo = {
 		"id": table.getName(),
 		"name": "%s.%s"%(dataSet.getId(), table.getName()),
-		"description": table.getRecordDef().getMeta("description"),
+		"description": str(table.getRecordDef().getMeta("description", default="")),
 	}
 	writeSimpleTableColdesc(colDesc, table.getRowsAsTuples(), metaInfo, 
 		destination, tablecoding, mapperFactoryRegistry)
@@ -708,9 +708,10 @@ class VOTableMaker:
 		"""adds info item "name" containing content having value to node
 		unless both content and value are empty.
 		"""
-		if isinstance(content, meta.MetaItem) and isinstance(content.content,
-				meta.InfoItem):
-			content, value = content.content.content, content.content.value
+		if isinstance(content, meta.InfoItem):
+			name, value, id = content.infoName, content.infoValue, content.infoId
+		if content:
+			content = str(content).strip()
 		if content or value:
 			i = Info(name=name, text=content)
 			i.value = value
@@ -748,7 +749,8 @@ class VOTableMaker:
 		"""returns a Table node for the table.Table instance table.
 		"""
 		t = Table(name=table.getName(), coder=_tableEncoders[self.tablecoding],
-			description=table.getMeta("description", propagate=False))
+			description=str(table.getMeta("description", propagate=False, 
+				default="")))
 		data = TableData(table, self.mFRegistry)
 		self._defineFields(t, data.getColProperties())
 		t.data = data.get()
@@ -757,17 +759,21 @@ class VOTableMaker:
 	def _addResourceMeta(self, res, dataSet):
 		"""adds resource metadata to the Resource res.
 		"""
-		res.description = dataSet.getMeta("description", propagate=False)
-		foo = dataSet.getMeta("_legal") 
+		res.description = str(dataSet.getMeta("description", propagate=False,
+			default=""))
 		self._addInfo("legal", dataSet.getMeta("_legal"), res)
-		self._addInfo("QUERY_STATUS", dataSet.getMeta("_query_status"), res)
-		self._addInfo("Error", dataSet.getMeta("_error"), res, id="Error")
+		for infoItem in dataSet.getMeta("info", default=[]):
+			self._addInfo(None, infoItem, res)
 		self._addLink(dataSet.getMeta("_infolink"), res)
 
 	def _makeResource(self, dataSet):
 		"""returns a Resource node for dataSet.
 		"""
-		res = Resource()
+		args = {}
+		resType = dataSet.getMeta("_type")
+		if resType:
+			args["type"] = str(resType)
+		res = Resource(**args)
 		self._defineParams(res, dataSet.getDocFields(), dataSet.getDocRec())
 		self._addResourceMeta(res, dataSet)
 		for table in dataSet.getTables():
@@ -779,7 +785,7 @@ class VOTableMaker:
 		"""add meta elements from the resource descriptor to vot.
 		"""
 		rd = dataSet.getDescriptor().getRd()
-		vot.description = rd.getMeta("description")
+		vot.description = str(rd.getMeta("description", default=""))
 		for id, equ, epoch, system in rd.get_systems():
 			vot.coosys.append(CooSys(ID=id, equinox=equ, epoch=epoch, system=system))
 		self._addInfo("legal", rd.getMeta("_legal"), vot)

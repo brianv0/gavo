@@ -30,6 +30,7 @@ import gavo
 from gavo import ElementTree
 
 from gavo import config
+from gavo import meta
 from gavo import resourcecache
 from gavo import sqlsupport
 from gavo import typesystems
@@ -241,11 +242,21 @@ def getResourceArgs(rec, service):
 	for service in a dictionary.
 	"""
 	return {
-		"created": service.getMeta("creationDate", default="2000-01-01T00:00:00Z"),
+		"created": str(service.getMeta("creationDate", 
+			default="2000-01-01T00:00:00Z")),
 		"updated": rec["dateUpdated"].strftime(_isoTimestampFmt),
 		"status": "active",
 	}
 
+
+_contentBuilder = meta.ModelBasedBuilder([
+	('subject', meta.stanFactory(VOR.subject)),
+	('description', meta.stanFactory(VOR.description)),
+	('source', meta.stanFactory(VOR.source)),
+	('referenceURL', meta.stanFactory(VOR.referenceURL, form="POST")),
+	('type', meta.stanFactory(VOR.type)),
+	('contentLevel', meta.stanFactory(VOR.contentLevel)),
+	])
 
 def getResourceItems(resource):
 	"""returns a sequence of elements making up a plain VOResource instance. 
@@ -254,7 +265,7 @@ def getResourceItems(resource):
 	of vr:Resource.
 	"""
 	return [
-		VOR.validationLevel(validatedBy=resource.getMeta("validatedBy"))[
+		VOR.validationLevel(validatedBy=str(resource.getMeta("validatedBy")))[
 			resource.getMeta("validationLevel")],
 		VOR.title[resource.getMeta("title")],
 		VOR.shortName[resource.getMeta("shortName")],
@@ -265,7 +276,7 @@ def getResourceItems(resource):
 				VOR.name[resource.getMeta("curation.creator.name")],
 				VOR.logo[resource.getMeta("curation.creator.logo")],
 			],
-			VOR.contributor(ivo_id=resource.getMeta("contributor.ivo-id"))[
+			VOR.contributor(ivo_id=str(resource.getMeta("contributor.ivo-id")))[
 				resource.getMeta("contributor")
 			],
 			VOR.date[resource.getMeta("date")],
@@ -278,14 +289,8 @@ def getResourceItems(resource):
 			],
 		],
 		VOR.content[
-			[VOR.subject[subject] for subject in resource.getAllMeta("subject")],
-			VOR.description[resource.getMeta("description")],
-			VOR.source[resource.getMeta("source")],
-			VOR.referenceURL[resource.getMeta("referenceURL", default=
-				getattr(resource, "getURL", lambda *args: None)("form", "POST"))],
-			[VOR.type[t] for t in resource.getAllMeta("type")],
-			VOR.contentLevel[resource.getMeta("contentLevel")],
-			# This can't be used yet:
+			_contentBuilder.build(resource),
+			# XXX TODO: This can't be used yet:
 			# VOR.relationship[resource.getMeta("relationship")],
 		],
 		VOR.rights[
@@ -326,7 +331,6 @@ def getOrgResourceTree(rec, resource):
 		VOR.instrument[resource.getMeta("instrument")]]
 			
 
-
 def getAuthResourceTree(rec, resource):
 	"""returns a vg:Authority-typed Resource tree.
 	"""
@@ -356,6 +360,11 @@ def getResponseTableTree(service):
 	]
 
 
+# XXX TODO: Flesh that out
+_coverageBuilder = meta.ModelBasedBuilder([
+	('coverage', meta.stanFactory(VS.coverage)),
+])
+
 def getCatalogServiceItems(service, capabilities):
 	"""returns a sequence of elements for a CatalogService based on service
 	with capabilities.
@@ -364,8 +373,7 @@ def getCatalogServiceItems(service, capabilities):
 		VOR.facility[ # XXX TODO: maybe look up ivo-ids?
 			service.getMeta("facility")],
 		VOR.instrument[service.getMeta("instrument")],
-		VS.coverage[service.getMeta("coverage")],  # XXX TODO: figure out how
-			# to splice in multiple structured elements.
+		_coverageBuilder.build(service),
 		getResponseTableTree(service),
 	]
 		
@@ -378,8 +386,7 @@ def getDataServiceItems(service, capabilities):
 		VOR.facility[ # XXX TODO: maybe look up ivo-ids?
 			service.getMeta("facility")],
 		VOR.instrument[service.getMeta("instrument")],
-		VS.coverage[service.getMeta("coverage")],  # XXX TODO: figure out how
-			# to splice in multiple structured elements.
+		_coverageBuilder.build(service),
 	]
 
 
@@ -768,6 +775,11 @@ if __name__=="__main__":
 	config.setDbProfile("querulator")
 	from gavo.parsing import importparser  # for registration of getRd
 	try:
-		getPMHResponse({})
+		tree = getPMHResponse({"verb": ["ListRecords"], 
+			"metadataPrefix": ["ivo_vor"]})
+		for el in tree.getiterator():
+			print el, el.attrib
+		ElementTree.tostring(tree.getroot())
 	except Exception, msg:
+		print ">>>>>>>>>>", msg
 		getErrorTree(msg, {}).write(sys.stdout)

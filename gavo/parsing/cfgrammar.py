@@ -128,7 +128,7 @@ class CFGrammar(grammar.Grammar):
 			self.productions = getProductions(
 				fixIndentation(rawGrammar))
 		except Error, msg:
-			raise utils.raiseTb(gavo.FatalError, 
+			raise gavo.raiseTb(gavo.FatalError, 
 				"Grammar could not be compiled: %s"%msg)
 
 	def _parse(self, inputFile):
