@@ -238,9 +238,18 @@ def _stringMapperFactory(colProps):
 		def coder(val):
 			if val==None:
 				return ""
-			return val
+			return str(val)
 		return coder
 _registerDefaultMF(_stringMapperFactory)
+
+def _charMapperFactory(colProps):
+	if colProps["dbtype"]=="char":
+		def coder(val):
+			if val==None:
+				return "\0"
+			return str(val)
+		return coder
+_registerDefaultMF(_charMapperFactory)
 
 # Default nullvalues we use when we don't know anything about the ranges,
 # by VOTable types.  The nullvalues should never be used, but the keys

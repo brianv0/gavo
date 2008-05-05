@@ -166,15 +166,26 @@ class HtmlMetaBuilder(meta.MetaBuilder):
 		val = value.getContent("html")
 		if val:
 			self.resultTree[-1].append(T.xml(val))
-	
+
+	def _isCompound(self, childItem):
+		"""should return true some day for compound meta items that should
+		be grouped in some way.
+		"""
+		return False
+
 	def endKey(self, atom):
 		children = self.resultTree.pop()
 		if len(children)>1:
-			self.resultTree[-1].append(T.ul(class_="metaEnum")[[
-					T.li(class_="metaItem")[c]
-				for c in children]])
+			childElements = []
+			for c in children:
+				if self._isCompound(c)>1:
+					class_ = "compoundMetaItem"
+				else:
+					class_ = "metaItem"
+				childElements.append(T.li(class_=class_)[c])
+			self.resultTree[-1].append(T.ul(class_="metaEnum")[childElements])
 		elif len(children)==1:
-			self.resultTree[-1].append(T.span(class_="metaItem")[children[0]])
+			self.resultTree[-1].append(children[0])
 	
 	def getResult(self):
 		return self.resultTree[0]

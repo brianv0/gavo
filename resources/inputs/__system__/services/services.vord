@@ -2,6 +2,7 @@
 
 <ResourceDescriptor srcdir="__system__/services">
 	<schema>public</schema>
+	<meta name="_related" format="rst">`Validate registry &lt;http://rofr.ivoa.net/regvalidate/HarvestValidater?endpoint=http%3A//vo.uni-hd.de/oai.xml&gt;`__</meta>
 
 	<!-- this is for static resources imported via the fixedrecords data below.
 
@@ -185,5 +186,49 @@ we can do that based on the renderer, too -->
 			<SharedRecord original="setsRecord"/>
 		</Semantics>
 	</Data>
-</ResourceDescriptor>
 
+
+	<!-- a join of the three service-related tables -->
+	<Data id="data_srv_join" virtual="True">
+		<NullGrammar/>
+		<Semantics>
+			<Record table="srv_join">
+				<Field original="servicelist.services.shortName"/>
+				<Field original="servicelist.services.internalId"/>
+				<Field original="servicelist.services.sourceRd"/>
+				<Field original="servicelist.services.title"/>
+				<Field original="servicelist.services.description"/>
+				<Field original="servicelist.services.owner"/>
+				<Field original="servicelist.services.dateUpdated"/>
+				<Field original="servicelist.srv_interfaces.accessURL"/>
+				<Field original="servicelist.srv_interfaces.renderer"/>
+				<Field original="servicelist.srv_sets.setName"/>
+			</Record>
+		</Semantics>
+		<script type="postCreation" name="create joined view">
+			CREATE OR REPLACE VIEW srv_join AS (
+				SELECT shortName, internalId, sourceRd, title, description,
+					owner, dateUpdated, accessURL, renderer, setName 
+				FROM services NATURAL JOIN srv_interfaces NATURAL JOIN
+					srv_sets)
+			@@@TABLERIGHTS("srv_join")@@@
+		</script>
+	</Data>
+
+
+	<Service id="overview" fieldPath="data_srv_join.srv_join">
+		<meta name="shortName">_cs_srv</meta>
+		<meta name="title">Published Services</meta>
+		<core builtin="db">
+			<condDesc original=".setName"/>
+			<arg name="table" value="srv_join"/>
+			<outputField original=".shortName"/>
+			<outputField original=".sourceRd"/>
+			<outputField original=".title"/>
+			<outputField original=".owner"/>
+			<outputField original=".dateUpdated" unit="Y-M-D"/>
+			<outputField original=".renderer"/>
+			<outputField original=".setName"/>
+		</core>
+	</Service>
+</ResourceDescriptor>

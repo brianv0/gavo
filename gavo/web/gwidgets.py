@@ -136,7 +136,7 @@ class DbOptions(object):
 			[(key, key) for key in keys])
 	
 	def _makeLimitWidget(self, service):
-		keys = [(str(i), i) for i in [1000, 5000, 10000]]
+		keys = [(str(i), i) for i in [1000, 5000, 10000, 100000, 250000]]
 		return widget.SelectChoice(formaltypes.Integer(), options=keys,
 			noneOption=("100", 100))
 

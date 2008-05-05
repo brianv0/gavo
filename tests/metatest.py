@@ -8,6 +8,7 @@ import gavo
 from gavo import meta
 from gavo.parsing import importparser
 from gavo.web import common as webcommon
+from gavo.web import registry
 
 import testhelpers
 
@@ -61,7 +62,24 @@ class CompoundTest(testhelpers.VerboseTest):
 			"21 Foo Street, Bar 02147")
 		self.assert_(m.getMeta("creator").getMeta("name") is
 			m.getMeta("creator.name"))
-	
+
+	def testWithContact(self):
+		m = meta.MetaMixin()
+		m.addMeta("curation.publisher", "The GAVO DC team")
+		m.addMeta("curation.publisherID", "ivo://org.gavo.dc")
+		m.addMeta("curation.contact", "gavo@ari.uni-heidelberg.de")
+		m.addMeta("curation.contact.name", "GAVO Data Center Team")
+		m.addMeta("curation.contact.address", 
+			"Moenchhofstrasse 12-14, D-69120 Heidelberg")
+		m.addMeta("curation.contact.email", "gavo@ari.uni-heidelberg.de")
+		m.addMeta("curation.contact.telephone", "++49 6221 54 1837")
+		self.assertEqual(str(m.getMeta("curation.contact.name")), 
+			"GAVO Data Center Team")
+		self.assertEqual(str(m.getMeta("curation.contact")), 
+			"gavo@ari.uni-heidelberg.de")
+		self.assertEqual(str(m.getMeta("curation").getMeta("contact.telephone")),
+			"++49 6221 54 1837")
+
 	def testFromItems(self):
 		"""tests for correct buildup of MetaItems from meta items.
 		"""
@@ -246,7 +264,7 @@ class TextBuilderTest(testhelpers.VerboseTest):
 class ModelBasedBuilderTest(testhelpers.VerboseTest):
 	"""tests for recovery of meta information through factories interface.
 	"""
-	def test(self):
+	def testSynthetic(self):
 		def id(arg): return arg
 		m = getRadioMeta()
 		t = meta.ModelBasedBuilder([
@@ -259,6 +277,14 @@ class ModelBasedBuilderTest(testhelpers.VerboseTest):
 		res = flat.flatten(T.div[t.build(m)])
 		self.assertEqual(res, '<div><li class="radio">on: 90.9 MHz</li>'
 			'<li class="radio">off: 9022 kHz</li><p>less</p></div>')
+	
+	def testContentBuilder(self):
+		m = meta.MetaMixin()
+		m.addMeta("subject", "whatever")
+		m.addMeta("subject", "and something else")
+		m.addMeta("description", "useless test case")
+		m.addMeta("contentLevel", "0")
+		self.assertEqual(len(registry._contentBuilder.build(m)), 4)
 
 
 class HtmlBuilderTest(testhelpers.VerboseTest):
@@ -269,11 +295,11 @@ class HtmlBuilderTest(testhelpers.VerboseTest):
 		m = meta.MetaMixin()
 		m.addMeta("boo", "rotzel")
 		self.assertEqual(flat.flatten(m.buildRepr("boo", builder)),
-			'<span class="metaItem"><span class="plainmeta">rotzel</span></span>')
+			'<span class="plainmeta">rotzel</span>')
 		builder.clear()
 		m.addMeta("boo.loitz", "woo")
 		self.assertEqual(flat.flatten(m.buildRepr("boo.loitz", builder)),
-			'<span class="metaItem"><span class="plainmeta">woo</span></span>')
+			'<span class="plainmeta">woo</span>')
 	
 	def testSequenceChild(self):
 		builder = webcommon.HtmlMetaBuilder()
@@ -292,10 +318,10 @@ class HtmlBuilderTest(testhelpers.VerboseTest):
 		m.addMeta("boo.k", "boo 1, 1")
 		m.addMeta("boo.l", "boo 1, 2")
 		self.assertEqual(flat.flatten(m.buildRepr("boo", builder)),
-			'<ul class="metaEnum"><li class="metaItem"><span class="metaItem">'
-			'<span class="plainmeta">boo 1, 1</span></span></li>'
-			'<li class="metaItem"><span class="metaItem">'
-			'<span class="plainmeta">boo 1, 2</span></span></li></ul>')
+			'<ul class="metaEnum"><li class="metaItem">'
+			'<span class="plainmeta">boo 1, 1</span></li>'
+			'<li class="metaItem">'
+			'<span class="plainmeta">boo 1, 2</span></li></ul>')
 		builder.clear()
 		m.addMeta("boo.k", "boo 2, 1")
 		m.addMeta("boo.l", "boo 2, 2")
@@ -352,12 +378,13 @@ class RdTest(testhelpers.VerboseTest):
 			('<meta name="foo"><meta name="bar">bar</meta>bad</meta>',),
 			"importparser accepts badly mixed meta content")
 
+
 def singleTest():
-	suite = unittest.makeSuite(RdTest, "test")
+	suite = unittest.makeSuite(ModelBasedBuilderTest, "testC")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 
 
 if __name__=="__main__":
-#	unittest.main()
-	singleTest()
+	unittest.main()
+	#singleTest()

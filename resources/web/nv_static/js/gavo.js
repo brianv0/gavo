@@ -35,7 +35,7 @@ function isIn(item, arr) {
 ///////////// Code handling previews
 function insertPreview(node) {
 // replaces the text content of node with a preview image if node has
-// a href attribute (this is used for products
+// a href attribute (this is used for products)
 	if (node.getAttribute("href")) {
 		var image = document.createElement("img")
 		image.setAttribute("src", node.getAttribute("href")+"&preview=True");
@@ -189,7 +189,7 @@ function output_verbSelector(pars) {
 	var sel = document.createElement("select");
 	var curSetting;
 
-	root.class = "op_widget";
+	root["class"] = "op_widget";
 	root.appendChild(document.createTextNode(" output verbosity "));
 	sel.name = "_VERB";
 	if (pars['arg'+sel.name]!=undefined) {
@@ -216,7 +216,7 @@ function output_tdEncSelector(pars) {
 	var box = document.createElement("input");
 	var curSetting;
 
-	root.class = "op_widget";
+	root["class"] = "op_widget";
 	box.name = "_TDENC";
 	if (pars['arg'+box.name]!=undefined) {
 		curSetting = pars['arg'+box.name][0];
@@ -261,7 +261,7 @@ function output_itemSelector(pars) {
 	var root = document.createElement("span");
 	var selector = document.createElement("select");
 
-	root.class = "op_widget";
+	root["class"] = "op_widget";
 	selector.name = "_ADDITEM";
 	var selected = pars['arg'+selector.name];
 	if (selected==undefined) {
@@ -304,18 +304,32 @@ function output_show(el) {
 		document.getElementById("genForm-_OUTPUT").appendChild(el);
 	}
 }
-	
+
+
+function output_setFormat(format) {
+	var opts=document.getElementById("genForm-_FORMAT").options;
+	for (var optInd=0; optInd<opts.length; optInd++) {
+		if (opts[optInd].value==format) {
+			opts[optInd].selected = true;
+		} else {
+			opts[optInd].selected = false;
+		}
+	}
+}
 
 var output_bussedElements = Array();
 
 
 function output_init() {
 	var pars = decodeGetPars(location.search);
-	var format = pars["_FORMAT"];
+	var format = pars["arg_FORMAT"];
 
 	if (!document.getElementById("genForm-_OUTPUT")) { // no form on page
 		return;
 	}
+//	if (outputInited) {
+//		return;
+//	}
 	output_bussedElements.push(output_verbSelector(pars));
 	output_bussedElements.push(output_tdEncSelector(pars));
 	output_bussedElements.push(output_itemSelector(pars));
@@ -323,11 +337,13 @@ function output_init() {
 		format = "HTML";
 	}
 	output_broadcast(format);
+	outputInited = true;
 }
 
 function output_broadcast(newFormat) {
 	var visibleForThis = "visibleFor_"+newFormat;
 
+	output_setFormat(newFormat);
 	for (var ind in output_bussedElements) {
 		var el=output_bussedElements[ind];
 		if (el[visibleForThis]) {
@@ -338,4 +354,9 @@ function output_broadcast(newFormat) {
 	}
 }
 
-window.addEventListener("load", output_init, false);
+
+if (window.addEventListener) {
+	window.addEventListener("load", output_init, false);
+} else {
+	window.load = output_init;
+}

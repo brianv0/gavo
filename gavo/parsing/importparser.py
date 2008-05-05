@@ -384,6 +384,8 @@ class RdParser(utils.NodeBuilder):
 			if key=="fromdb": 
 				if not self.forImport:
 					vals.set_options(getOptionsFromDb(val))
+			elif key=="id":
+				continue
 			else:
 				vals.set(key, val)
 		return self._processChildren(vals, name, {
@@ -591,7 +593,7 @@ class RdParser(utils.NodeBuilder):
 	def _make_autoCondDescs(self, name, attrs, children):
 		return self._processChildren("", name, {}, children)
 
-	_condDescAttrs = set(["original", "silent"])
+	_condDescAttrs = set(["original", "silent", "fixedSQL"])
 
 	def _make_condDesc(self, name, attrs, children):
 		fieldAttrs, cdAttrs = {}, {}

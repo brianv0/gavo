@@ -253,7 +253,7 @@ _contentBuilder = meta.ModelBasedBuilder([
 	('subject', meta.stanFactory(VOR.subject)),
 	('description', meta.stanFactory(VOR.description)),
 	('source', meta.stanFactory(VOR.source)),
-	('referenceURL', meta.stanFactory(VOR.referenceURL, form="POST")),
+	('referenceURL', meta.stanFactory(VOR.referenceURL)),
 	('type', meta.stanFactory(VOR.type)),
 	('contentLevel', meta.stanFactory(VOR.contentLevel)),
 	])
@@ -282,7 +282,7 @@ def getResourceItems(resource):
 			VOR.date[resource.getMeta("date")],
 			VOR.version[resource.getMeta("version")],
 			VOR.contact[
-				VOR.name[resource.getMeta("curation.contact.name")],
+				VOR.name[resource.getMeta("curation.contact.name", raiseOnFail=True)],
 				VOR.address[resource.getMeta("curation.contact.address")],
 				VOR.email[resource.getMeta("curation.contact.email")],
 				VOR.telephone[resource.getMeta("curation.contact.telephone")],

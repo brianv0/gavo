@@ -214,3 +214,9 @@ class Service(record.Record, meta.MetaMixin):
 			"/",
 			renderer,
 			qSep])
+	
+	def getDefaultMeta(self, key):
+		if key=="referenceURL":
+			return meta.makeMetaValue(self.getURL("form", method="POST"), type="link", 
+				title="Service Form")
+		raise KeyError(key)

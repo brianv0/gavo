@@ -41,14 +41,15 @@ class CondDesc(record.Record):
 	It defines inputs as InputKeys, so they can be used "naked" if necessary,
 	and provide an asSQL method that returns a query fragment.
 
-	"silent" condDescs do not contribute any widgets, just SQL -- this
-	can be used to provide constant arguments.
+	"silent" condDescs only contribute widgets, no SQL.  This can be used
+	for "meta" input for renderers (as opposed to the core).
 	"""
 	def __init__(self, additionalFields={}, initvals={}):
 		fields = {
 			"inputKeys": record.ListField,
 			"silent": record.BooleanField,
 			"optional": record.TrueBooleanField,
+			"fixedSQL": None,
 		}
 		fields.update(additionalFields)
 		super(CondDesc, self).__init__(fields, initvals=initvals)
@@ -85,7 +86,10 @@ class CondDesc(record.Record):
 		res = []
 		for ik in self.get_inputKeys():
 			res.append(vizierexprs.getSQL(ik, inPars, sqlPars))
-		return vizierexprs.joinOperatorExpr("AND", res)
+		sql = vizierexprs.joinOperatorExpr("AND", res)
+		if self.get_fixedSQL():
+			sql = vizierexprs.joinOperatorExpr("AND", [sql, self.get_fixedSQL()])
+		return sql
 
 	@classmethod
 	def fromInputKey(cls, ik, attrs={}):
@@ -315,6 +319,9 @@ class DbBasedCore(QueryingCore):
 			condition = "WHERE %s"%condition
 		else:
 			condition = ""
+		if not recordDef.get_items():
+			raise gavo.ValidationError("No output fields with these settings",
+				"_OUTPUT")
 		query = "SELECT %(fields)s from %(table)s %(condition)s %(limtags)s"%{
 			"fields": ", ".join([self._getSelect(f) for f in recordDef.get_items()]),
 			"table": tableName,

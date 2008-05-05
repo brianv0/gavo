@@ -85,6 +85,11 @@ class MetaMixin(object):
 	Classes mixing this in must have a get_computer method returning a
 	FieldComputer if there are any compute attributes in MetaItems
 	belonging to it.
+
+	To provide "computed" meta values or built-in default, you can override
+	the getDefaultMeta(key) -> MetaValue method.  It *must* raise a KeyError
+	for any key it doesn't know.  Manually set meta values always override
+	this function.
 	"""
 	def __ensureMetaDict(self):
 		try:
@@ -99,14 +104,19 @@ class MetaMixin(object):
 		except AttributeError:
 			return False
 
+	def getDefaultMeta(self, key):
+		raise KeyError(key)
+
 	def setMetaParent(self, parent):
 		self.__metaParent = parent
 
 	def _getMeta(self, atoms, propagate):
 		self.__ensureMetaDict()
-		if self.__metaDict.has_key(atoms[0]):
-			return self.__metaDict[atoms[0]]._getMeta(atoms[1:])
 		try: # XXX TODO: Remove this, it's only for debugging
+			try:
+				return self._getFromAtom(atoms[0])._getMeta(atoms[1:])
+			except gavo.NoMetaKey:
+				pass   # Try if parent has the key
 			if propagate:
 				if self.__hasMetaParent():
 					return self.__metaParent._getMeta(atoms, propagate)
@@ -139,9 +149,12 @@ class MetaMixin(object):
 
 	def _getFromAtom(self, atom):
 		self.__ensureMetaDict()
-		if not atom in self.__metaDict:
+		if atom in self.__metaDict:
+			return self.__metaDict[atom]
+		try:
+			return MetaItem(self.getDefaultMeta(atom))
+		except KeyError:
 			raise gavo.NoMetaKey("No meta child %s"%atom)
-		return self.__metaDict[atom]
 
 	def keys(self):
 		return self.__metaDict.keys()
@@ -493,15 +506,15 @@ class ModelBasedBuilder(object):
 				key, factory, children = item
 			mi = metaContainer.getMeta(key, raiseOnFail=False)
 			if not mi:
-				return []
+				continue
 			for child in mi.children:
 				content = []
 				c = child.getContent(self.format)
 				if c:
 					content.append(c)
-				c = self._build(children, child)
-				if c:
-					content.append(c)
+				childContent = self._build(children, child)
+				if childContent:
+					content.append(childContent)
 				if content:
 					result.append(factory(content))
 		return result

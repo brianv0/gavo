@@ -72,5 +72,7 @@ def loadStaticResource(id):
 
 
 if __name__=="__main__":
-	m = loadStaticResource("__system__/services/registryrecs/registry.rr")
-	print m.getMeta("managedAuthority")
+	from gavo.parsing import importparser
+	m = loadStaticResource("registryrecs/registry.rr")
+	print ">>>>>>>>>>>>>>>>>>>"
+	print str(m.getMeta("curation.contact.name", raiseOnFail=True))
