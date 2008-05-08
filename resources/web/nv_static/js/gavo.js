@@ -221,7 +221,7 @@ function output_tdEncSelector(pars) {
 	if (pars['arg'+box.name]!=undefined) {
 		curSetting = pars['arg'+box.name][0];
 	} else {
-		curSetting = "true";
+		curSetting = "false";
 	}
 	box.type = "checkbox";
 	box.style.width = "auto";

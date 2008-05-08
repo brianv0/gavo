@@ -272,7 +272,7 @@ class ScriptingMixin(object):
 	def addto_scripts(self, item):
 		type, name, content = item
 		if not type in self.validWaypoints:
-			raise gavo.Error("%s objects to not support %s waypoints"%(
+			raise gavo.Error("%s objects do not support %s waypoints"%(
 				self.__class__.__name__, type))
 		self.dataStore["scripts"].append(item)
 

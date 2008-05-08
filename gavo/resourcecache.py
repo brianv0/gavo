@@ -4,36 +4,20 @@ deal with.
 
 The main purpose of this module is to keep caches of resource descriptors,
 templates, etc., the parsing of which may take some time.
-"""
 
-from twisted.enterprise import adbapi
+All you need to do is provide a function taking a "key" (a string, most
+likely) and returning the "resource" and then call
+
+resourcecache.makeCache(<accessorName>, <function>)
+
+After that, clients can call
+
+resourcecache.<accessorName>(key)
+"""
 
 import gavo
 from gavo import config
 from gavo import utils
-
-
-class _DbConnection:
-	connPools = {}
-	def _makeConnPool(self, profile):
-		connStr = ("dbname='%s' port='%s' host='%s'"
-			" user='%s' password='%s'")%(profile.get_database(), 
-			profile.get_port(), profile.get_host(), profile.get_user(), 
-			profile.get_password())
-		return adbapi.ConnectionPool("psycopg2", connStr)
-
-# XXX ugly -- if the default profile changes, we'd have to delete
-# connPools[None] but we don't...
-	def getConnection(self, profileName=None):
-		if not self.connPools.has_key(profileName):
-			if profileName:
-				profile = config.getDbProfileByName(profileName)
-			else:
-				profile = config.getDbProfile()
-			self.connPools[profileName] = self._makeConnPool(profile)
-		return self.connPools[profileName]
-_ = _DbConnection()
-getDbConnection = _.getConnection
 
 
 class CacheRegistry:

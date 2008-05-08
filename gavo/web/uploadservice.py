@@ -87,7 +87,7 @@ class UploadCore(standardcores.QueryingCore):
 	def _importData(self, sourcePath, mode):
 		"""parses the input file at sourcePath and writes the result to the DB.
 		"""
-		try:
+		try: # XXX TODO: just in case: make that async (resourcecache.getDBC...)
 			dbConn = sqlsupport.getDbConnection(config.getDbProfileByName("feed"))
 			def makeSharedTable(dataSet, recordDef):
 				return table.DirectWritingTable(dataSet, recordDef, dbConn, 

@@ -30,6 +30,7 @@ import urlparse
 from gavo import ElementTree
 from gavo import typesystems
 from gavo import config
+from gavo import utils
 
 from gavo.imp.VOTable import Writer
 from gavo.imp.VOTable.DataModel import *
@@ -144,8 +145,8 @@ try:
 		unit = colProps["unit"]
 		if isinstance(colProps["sample"], DateTime.DateTimeType):
 			if unit=="yr" or unit=="a":
-				fun, destType = lambda val: val and val.jdn/365.25-4712, ("double", 
-					None)
+				fun, destType = lambda val: val and utils.dateTimeToJYear(val),\
+					("double", None)
 			elif unit=="d":
 				fun, destType = lambda val: val and val.jdn, ("double", None)
 			elif unit=="s":

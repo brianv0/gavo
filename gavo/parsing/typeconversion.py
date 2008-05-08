@@ -118,7 +118,7 @@ class LiteralParser:
 		
 		This refers to time specifications like J2001.32.
 		"""
-		return utils.dtToJYear(literal)
+		return utils.dateTimeToJYear(literal)
 
 	def _parse_spuriousBlanks(self, literal):
 		"""removes all blanks from a literal (use it if, e.g. people

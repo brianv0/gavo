@@ -73,7 +73,7 @@ class RdParser(utils.NodeBuilder):
 		self.rd = resource.ResourceDescriptor(sourcePath)
 
 	def resolveItemReference(self, id):
-		"""returns the data descriptor with id.
+		"""returns the element with id.
 
 		If there's a # in id, the stuff in front of it is
 		an inputs-relative path to another resource descriptor,

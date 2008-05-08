@@ -170,6 +170,7 @@ class VOTableResponse(BaseResponse):
 		pass
 	
 	def _handleError(self, failure, ctx):
+		failure.printTraceback()
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "text/html")
 		request.setHeader('content-disposition', 'inline')

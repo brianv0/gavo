@@ -153,5 +153,8 @@ for download.  Meanwhile, contact the administrators for SVN access.</p>
 
 <p>Some of the services were created using software from astrometry.net.</p>
 
+<p>Some of the services use q3c indexing by Sergey Koposov and Oleg Bartunov,
+see <a href="http://lnfm1.sai.msu.ru/~math/docs/adass_proceedings2005.pdf">2006ASPC..351..735K</a>.</p>
+
 </body>
 </html>

@@ -590,6 +590,12 @@ def jYearToDateTime(jYear):
 	return DateTime.DateTime(int(year))+365.25*frac
 
 
+def dateTimeToJYear(dt):
+	"""returns a fractional (julian) year for a mx.DateTime instance.
+	"""
+	return dt.jdn/365.25-4712
+
+
 def findMinimum(f, left, right, minInterval=3e-8):
 	"""returns an estimate for the minimum of the single-argument function f 
 	on (left,right).

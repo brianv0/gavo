@@ -16,6 +16,7 @@ except ImportError:
 from gavo import config
 from gavo import resourcecache
 from gavo import sqlsupport
+from gavo.web import adbapiconn
 
 from gavo import Error
 
@@ -30,7 +31,7 @@ def getGroupsForUser(username, password, async=True):
 		" where username=%(username)s AND u.password=%(password)s")
 	pars = {"username": username, "password": password}
 	if async: 
-		return resourcecache.getDbConnection().runQuery(query, pars
+		return resourcecache.getDbConnection(None).runQuery(query, pars
 			).addCallback(parseResponse)
 	else:
 		return parseResponse(
@@ -62,7 +63,7 @@ def checkCredentials(user, password, reqGroup):
 				"group": reqGroup,
 			}).addCallbacks(checkMembership, lambda f:f)
 	
-	conn = resourcecache.getDbConnection()
+	conn = resourcecache.getDbConnection(None)
 	dbPw = conn.runQuery("select password from users.users where"
 		" username=%(user)s", {
 			"user": user}).addCallbacks(queryGroups, lambda f: f)

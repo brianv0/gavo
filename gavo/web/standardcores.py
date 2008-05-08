@@ -27,6 +27,7 @@ from gavo import web
 from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
 from gavo.parsing import contextgrammar
+from gavo.web import adbapiconn
 from gavo.web import core
 from gavo.web import common
 from gavo.web import runner
@@ -330,7 +331,8 @@ class DbBasedCore(QueryingCore):
 		}
 		if printQuery:
 			print ">>>>", query, pars
-		return resourcecache.getDbConnection().runQuery(query, pars)
+		return resourcecache.getDbConnection(None).runQuery(query, pars,
+			timeout=config.get("web", "sqlTimeout"))
 
 	def run(self, inputTable, queryMeta):
 		"""returns an InternalDataSet containing the result of the

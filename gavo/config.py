@@ -63,6 +63,8 @@ voplotCodeBase: ~/static/voplot/VOPlot
 voplotUserman: ~/static/voplot/docs/VOPlot_UserGuide_1_4.html
 # Location of the name map for vanity names
 vanityNames=vanitynames.txt
+# Default timeout for db queries via the web
+sqlTimeout=15
 
 [querulator]
 defaultMaxMatches: 1000
@@ -116,7 +118,8 @@ def _identity(val):
 class DbProfile(record.Record):
 	"""is a profile for DB access.
 	"""
- 	def __init__(self):
+ 	def __init__(self, name):
+		self.name = name
 		record.Record.__init__(self, {
 			"host": "",
 			"port": "",
@@ -150,21 +153,21 @@ class ProfileParser:
 	  read (e.g., select, usage) privileges to all items created
 
 	>>> p = ProfileParser()
-	>>> p.parse("x", "host=foo.bar\n").get_host()
+	>>> p.parse(None, "x", "host=foo.bar\n").get_host()
 	'foo.bar'
-	>>> p.parse("x", "addAllRole foo\naddAllRole bar\n").get_allRoles()
+	>>> p.parse(None, "x", "addAllRole foo\naddAllRole bar\n").get_allRoles()
 	['foo', 'bar']
-	>>> p.parse("x", "")!=None
+	>>> p.parse(None, "x", "")!=None
 	True
-	>>> p.parse("x", "host=\n").get_host()
+	>>> p.parse(None, "x", "host=\n").get_host()
 	''
-	>>> p.parse("x", "=bla\n")
+	>>> p.parse(None, "x", "=bla\n")
 	Traceback (most recent call last):
 	ProfileParseError: "x", line 1: invalid identifier '='
-	>>> p.parse("x", "host=bla")
+	>>> p.parse(None, "x", "host=bla")
 	Traceback (most recent call last):
 	ProfileParseError: "x", line 1: unexpected end of file (missing line feed?)
-	>>> p.parse("x", "includeAllRole=bla\n")
+	>>> p.parse(None, "x", "includeAllRole=bla\n")
 	Traceback (most recent call last):
 	ProfileParseError: "x", line 2: unknown setting 'includeAllRole'
 	"""
@@ -176,7 +179,7 @@ class ProfileParser:
 		}
 		self.sourcePath = sourcePath
 	
-	def parse(self, sourceName, stream=None):
+	def parse(self, profileName, sourceName, stream=None):
 		self.tokenStack = []
 		self.stateFun = self._state_init
 		if stream==None:
@@ -186,7 +189,7 @@ class ProfileParser:
 			stream = cStringIO.StringIO(stream)
 		self.parser = shlex.shlex(stream, sourceName, posix=True)
 		self.parser.whitespace = " \t\r"
-		self.profile = DbProfile()
+		self.profile = DbProfile(profileName)
 		while True:
 			tok = self.parser.get_token()
 			if not tok:
@@ -309,6 +312,9 @@ class Settings(object):
 	def _parse_adminpasswd(self, val):
 		return val.strip()
 
+	def _parse_web_sqltimeout(self, val):
+		return int(val)
+
 	def _parse_web_voplotenable(self, val):
 		return record.parseBooleanLiteral(val)
 
@@ -358,7 +364,7 @@ class Settings(object):
 		if not self.dbProfileCache.has_key(profileName):
 			try:
 				self.dbProfileCache[profileName] = self._getProfileParser().parse(
-					self.get("profiles", profileName))
+					profileName, self.get("profiles", profileName))
 			except ConfigParser.NoOptionError:
 				raise Error("Undefined DB profile: %s"%profileName)
 		return self.dbProfileCache[profileName]

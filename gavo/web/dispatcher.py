@@ -170,17 +170,37 @@ class ErrorPageDebug(rend.Page):
 class ErrorPage(ErrorPageDebug):
 	implements(inevow.ICanHandleException)
 
+	def getHTML(self, failure):
+# XXX TODO: Alejandro's patch somehow doesn't expose TimeoutError, and
+# I don't have time to fix this now.  So, I check the exception type
+# the rough way.
+		if failure.value.__class__.__name__.endswith("TimeoutError"):
+			return ("<html><head><title>Database Timeout</title></head>"
+			"<body><h1>Database Timeout</h1><p>The database operation"
+			" handling your query took too long.  This may mean that</p>"
+			"<ul><li>our system is too busy (in which case you could try "
+			" again later)</li>"
+			"<li>your query selects too much data (in which case lowering"
+			" the query limit might yield at least <em>some</em> data)</li>"
+			"<li>your query is too complex or confuses our database system."
+			" You could try turning off sorting or lowering the query limit.</li>"
+			"</ul><p>In any case, you are most welcome to report this to"
+			" <a href='mailto:gavo@ari.uni-heidelberg.de'>us</a>"
+			" (please include the result link you can find on the last"
+			" page).  We will be happy to try to assist you and possibly"
+			" fix the problem you've hit.</p></body></html>")
+		return ("<html><head><title>Internal Error</title></head>"
+			"<body><h1>Internal Error</h1><p>The error message is: %s</p>"
+			"<p>If you do not know how to work around this, please contact"
+			" gavo@ari.uni-heidelberg.de</p></body></html>"%failure.getErrorMessage())
+
 	def renderHTTP_exception(self, ctx, failure):
 		if handleUnknownURI(ctx, failure):
 			return appserver.errorMarker
 		failure.printTraceback()
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(500)
-		msg = ("<html><head><title>Internal Error</title></head>"
-			"<body><h1>Internal Error</h1><p>The error message is: %s</p>"
-			"<p>If you do not know how to work around this, please contact"
-			" gavo@ari.uni-heidelberg.de</p></body></html>"%failure.getErrorMessage())
-		request.write(msg)
+		request.write(self.getHTML(failure))
 		request.finishRequest(False)
 
 
