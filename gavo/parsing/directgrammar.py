@@ -34,12 +34,12 @@ class CBooster:
 	the source to recompile.
 	"""
 	def __init__(self, srcName, recordSize, dataDesc, gzippedInput=False,
-			autoNull=None):
+			autoNull=None, preFilter=None):
 		self.dataDesc = dataDesc
 		self.recordSize = recordSize
 		self.resdir = dataDesc.getRd().get_resdir()
 		self.srcName = os.path.join(self.resdir, srcName)
-		self.autoNull = autoNull
+		self.autoNull, self.preFilter = autoNull, preFilter
 		self.gzippedInput = gzippedInput
 		self.bindir = os.path.join(self.resdir, "bin")
 		self.binaryName = os.path.join(self.bindir,
@@ -97,8 +97,14 @@ class CBooster:
 
 	def getOutput(self, argName):
 		"""returns a pipe you can read the booster's output from.
+
+		As a side effect, it also sets the attribute self.pipe.  We need
+		this to be able to retrieve the command status below.
 		"""
-		if self.gzippedInput:
+		if self.preFilter:
+			self.pipe = os.popen("%s '%s' | %s"%(self.preFilter, argName, 
+				self.binaryName))
+		elif self.gzippedInput:
 			self.pipe = os.popen("zcat '%s' | %s"%(argName, self.binaryName))
 		else:
 			self.pipe = os.popen("%s '%s'"%(self.binaryName, argName))
@@ -114,15 +120,21 @@ class DirectGrammar(record.Record):
 		record.Record.__init__(self, {})
 
 	def _parseUsingCBooster(self, parseContext):
+		rD = parseContext.dataSet.dD.rD
 		booster = CBooster(self.attrs["cbooster"], self.attrs.get("recordSize"),
 			parseContext.getDataSet().getDescriptor(), 
 			gzippedInput=self.attrs.has_key("gzippedInput") 
 				and record.parseBooleanLiteral(self.attrs ["gzippedInput"]),
+			preFilter=self.attrs.has_key("preFilter")
+				and os.path.join(rD.get_resdir(), self.attrs["preFilter"]),
 			autoNull=self.attrs.get("autoNull", None))
 		targetTables = parseContext.getDataSet().getTables()
 		assert len(targetTables)==1
-		targetTables[0].tableWriter.copyIn(booster.getOutput(
-			parseContext.sourceName))
+		try:
+			targetTables[0].tableWriter.copyIn(booster.getOutput(
+					parseContext.sourceName))
+		except AttributeError:
+			raise gavo.Error("Boosters only work on tables with onDisk=True")
 		if booster.getStatus():
 			raise Error("Booster returned error signature while processing %s."%
 				parseContext.sourceName)
@@ -166,7 +178,7 @@ class ColCodeGenerator:
 			func = "parseBlankBoolean"
 		else:
 			func = "parseWhatever"
-		return ["%s(inputLine, F(%s), start, end)"%(func, getNameForItem(item))]
+		return ["%s(inputLine, F(%s), start, len);"%(func, getNameForItem(item))]
 
 
 class SplitCodeGenerator:
@@ -241,7 +253,7 @@ def getDataDesc(rdName, ddId):
 	from gavo.parsing import importparser
 	try:
 		rd = importparser.getRd(rdName)
-	except IOError:
+	except gavo.RdNotFound:
 		rd = importparser.getRd(os.path.join(os.getcwd(), rdName))
 	return rd.getDataById(ddId)
 

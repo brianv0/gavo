@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- this is a descriptor for image cutout; I'm not currently using
-it -->
+it.  This should be changed by making ComputedCore get an RD and fixing
+web/product.py-->
 
-<ResourceDescriptor srcdir="cutout">
+<ResourceDescriptor srcdir="__system">
 
-	<Data id="cutout" computer="inputs/cutout/bin/getfits">
+	<Data id="cutout" computer="__system/bin/getfits">
 		<TableGrammar/>
 		<Semantics>
 			<Record table="commandline">

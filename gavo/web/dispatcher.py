@@ -126,7 +126,7 @@ class ReloadPage(common.GavoRenderMixin, rend.Page):
 
 
 def handleUnknownURI(ctx, failure):
-	if isinstance(failure.value, common.UnknownURI):
+	if isinstance(failure.value, (common.UnknownURI, gavo.RdNotFound)):
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(404)
 		request.setHeader("content-type", "text/plain")

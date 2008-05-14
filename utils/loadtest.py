@@ -115,14 +115,17 @@ class TestRunner:
 			print "**** Too many hung threads, giving up"
 		self._collectRemainingThreads()
 
+
 def _getTestCollection():
 	tests = []
 	for tg in roughtest.myTests:
+		if tg.name=="dexter":
+			continue
 		tests.extend(tg.tests)
 	return tests
 
-def _getTestCollection():
-	return [roughtest.myTests[5].tests[1]]
+#def _getTestCollection():
+#	return [roughtest.myTests[5].tests[1]]
 
 def _getNSimul():
 	if len(sys.argv)>1:

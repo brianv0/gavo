@@ -194,6 +194,15 @@ void parseFloatWithMagicNULL(char *src, Field *field, int start, int len,
 	scanfWithWhitespace(input, "%f", field, float);
 }
 
+void parseFloat(char *src, Field *field, int start, int len)
+{
+	char input[len+1];
+
+	copyString(src, input, start, len);
+	field->type = VAL_FLOAT;
+	scanfWithWhitespace(input, "%f", field, float);
+}
+
 void parseDouble(char *src, Field *field, int start, int len)
 {
 	char input[len+1];
@@ -229,6 +238,15 @@ void parseString(char *src, Field *field, int start, int len, char *space)
 	field->length = len;
 	field->type = VAL_TEXT;
 	field->val.c_ptr = space;
+}
+
+void parseStringWithMagicNULL(char *src, Field *field, int start, 
+	int len, char *space, char *magic)
+{
+	parseString(src, field, start, len, space);
+	if (!strcmp(space, magic)) {
+		field->type = VAL_NULL;
+	}
 }
 
 void parseChar(char *src, Field *field, int srcInd)

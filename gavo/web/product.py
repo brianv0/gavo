@@ -142,7 +142,7 @@ class Product(standardcores.DbBasedCore):
 		if request.method == 'HEAD':
 			return ''
 		prog = runner.getBinaryName(os.path.join(config.get("inputsDir"),
-			"__system__", "cutout", "bin", "getfits"))
+			"__system", "bin", "getfits"))
 		runner.StreamingRunner(prog, args, request)
 		return request.deferred
 
@@ -154,8 +154,8 @@ class Product(standardcores.DbBasedCore):
 
 	def _deliverPreview(self, ctx, item):
 		targetPath = str(os.path.join(config.get("inputsDir"), item["accessPath"]))
-		previewName = os.path.join(config.get("inputsDir"), "__system__",
-			"products", "bin", "fitspreview")
+		previewName = os.path.join(config.get("inputsDir"), "__system",
+			"bin", "fitspreview")
 		return runner.runWithData(previewName, "", [targetPath]
 			).addCallback(self._deliverJpeg, ctx
 			).addErrback(self._previewFailed, ctx)

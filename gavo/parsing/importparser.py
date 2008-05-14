@@ -3,6 +3,7 @@ This module contains code for reading raw resources and their descriptors.
 """
 
 import imp
+import pkg_resources
 import os
 import re
 import time
@@ -678,17 +679,37 @@ def getParser(srcPath, parserClass=RdParser, forImport=False):
 	return contentHandler, parser
 
 
-def getRd(srcPath, parserClass=RdParser, forImport=False):
-	"""returns a ResourceDescriptor from the source in srcPath
+def getRdInputStream(srcId):
+	"""returns a read-open stream for the XML source of the resource
+	descriptor with srcId.
 	"""
-	srcPath = os.path.join(config.get("inputsDir"), srcPath)
-	if not os.path.exists(srcPath) and not srcPath.endswith(".vord"):
-		srcPath = srcPath+".vord"
-	if not os.path.exists(srcPath):
-		raise gavo.RdNotFound(srcPath)
+	srcPath = os.path.join(config.get("inputsDir"), srcId)
+	if os.path.isfile(srcPath):
+		return srcPath, open(srcPath)
+	if not srcId.endswith(".vord"):
+		srcId = srcId+".vord"
+	srcPath = os.path.join(config.get("inputsDir"), srcId)
+	if os.path.isfile(srcPath):
+		return srcPath, open(srcPath)
+	srcPath = "/resources/inputs/"+srcId
+	if pkg_resources.resource_exists('gavo', srcPath):
+		return srcPath, pkg_resources.resource_stream('gavo', srcPath)
+	raise gavo.RdNotFound(srcPath)
+
+
+def getRd(srcId, parserClass=RdParser, forImport=False):
+	"""returns a ResourceDescriptor for srcId.
+
+	srcId is something like an input-relative path; you'll generally
+	omit the extension (unless it's not the standard .vord).
+	"""
+	srcPath, inputFile = getRdInputStream(srcId)
 	contentHandler, parser = getParser(srcPath, parserClass, forImport)
 	try:
-		parser.parse(open(srcPath))
+		parser.parse(inputFile)
+		inputFile.close()
+	except gavo.RdNotFound:
+		raise
 	except IOError, msg:
 		logger.error("Could not open descriptor %s (%s)."%(srcPath, msg))
 		gavo.raiseTb(gavo.RdNotFound, "Could not open descriptor %s (%s)."%(

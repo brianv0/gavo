@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ResourceDescriptor srcdir="__system__/services">
+<ResourceDescriptor srcdir="__system">
 	<schema>public</schema>
 	<meta name="_related" format="rst">`Validate registry &lt;http://rofr.ivoa.net/regvalidate/HarvestValidater?endpoint=http%3A//vo.uni-hd.de/oai.xml&gt;`__</meta>
 

@@ -68,11 +68,14 @@ void makeTimeFromJd(Field *field);
 void stripWhitespace(char *str);
 char* copyString(char *src, char *dest, int start, int len);
 int isWhitespaceOnly(char *str);
+void parseFloat(char *src, Field *field, int start, int len);
 void parseFloatWithMagicNULL(char *src, Field *field, int start, int len,
 		char *magicVal);
 void parseDouble(char *src, Field *field, int start, int len);
 void parseInt(char *src, Field *field, int start, int len);
 void parseBlankBoolean(char *src, Field *field, int srcInd);
 void parseString(char *src, Field *field, int start, int len, char *space);
+void parseStringWithMagicNull(char *src, Field *field, int start, int len, 
+	char *space, char *magic);
 void parseChar(char *src, Field *field, int srcInd);
 void real_fieldscanf(char *str, Field *f, valType type, char *fieldName, ...);
