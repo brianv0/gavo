@@ -212,6 +212,14 @@ void parseDouble(char *src, Field *field, int start, int len)
 	scanfWithWhitespace(input, "%lf", field, double);
 }
 
+void parseBigint(char *src, Field *field, int start, int len)
+{
+	char input[len+1];
+	copyString(src, input, start, len);
+	field->type = VAL_BIGINT;
+	scanfWithWhitespace(input, "%Ld", field, int64_t);
+}
+
 void parseInt(char *src, Field *field, int start, int len)
 {
 	char input[len+1];
@@ -308,7 +316,7 @@ void real_fieldscanf(char *str, Field *f, valType type, char *fieldName, ...)
 			}}
 			break;
 		case VAL_JDATE:
-			die("Can't fieldscanf jdates at %s", fieldName);
+			itemsMatched = sscanf(str, "%f", &(f->val.c_float));
 			break;
 	}
 	va_end(ap);

@@ -257,10 +257,10 @@ class GavoRenderMixin(object):
 		return ctx.tag[
 			T.link(rel="stylesheet", href=makeSitePath("/formal.css"), 
 				type="text/css"),
-			T.link(rel="stylesheet", href=makeSitePath("/static/css/gavo_dc.css"), 
+			T.link(rel="stylesheet", href=makeSitePath("/builtin/css/gavo_dc.css"), 
 				type="text/css"),
 			T.script(type='text/javascript', src=makeSitePath('/js/formal.js')),
-			T.script(src=makeSitePath("/static/js/gavo.js"), 
+			T.script(src=makeSitePath("/builtin/js/gavo.js"), 
 				type="text/javascript"),
 		]
 
@@ -286,12 +286,12 @@ class GavoRenderMixin(object):
 			T.div(id="sidebar")[
 				T.div(class_="sidebaritem")[
 					T.a(href="/", render=T.directive("rootlink"))[
-						T.img(src="/static/img/logo_medium.png", class_="silentlink",
+						T.img(src="/builtin/img/logo_medium.png", class_="silentlink",
 							render=T.directive("rootlink"), alt="[Gavo logo]")],
 				],
 				T.a(href="#body", class_="invisible")["Skip Header"],
 				T.div(class_="sidebaritem")[
-					T.a(href="/static/help.shtml")[
+					T.a(href="/builtin/help.shtml")[
 						"Help"],
 				],
 				T.div(render=T.directive("ifdata"), class_="sidebaritem",
@@ -345,7 +345,7 @@ class QueryMeta(dict):
 	to the dictionary created by formal.  This will let people use
 	the parsed parameters in templates.
 	"""
-
+	
 	# a list of keys handled by query meta to be ignored in parameter
 	# lists because they are used internally.  This covers everything 
 	# QueryMeta interprets, but also keys by introduced by certain gwidgets
@@ -430,9 +430,14 @@ emptyQueryMeta = QueryMeta({})
 class CoreResult(object):
 	"""is a nevow.IContainer that has the result and also makes the input
 	dataset accessible.
+
+	CoreResult objects have a resultmeta dictionary that you can, in
+	principle, use to communicate any kind of information.  However,
+	renderers should at least check for the presence of a non-empty
+	message and display its contents prominently.
 	"""
 	implements(inevow.IContainer)
-
+	
 	def __init__(self, resultData, inputData, queryMeta, service=None):
 		self.original = resultData
 		self.queryPars = queryMeta.get("formal_data", {})
@@ -448,6 +453,7 @@ class CoreResult(object):
 		resultmeta = {
 			"itemsMatched": len(result.rows),
 			"filterUsed": self.queryMeta.get("outputFilter", ""),
+			"message": "",
 		}
 		return resultmeta
 

@@ -516,7 +516,10 @@ class ModelBasedBuilder(object):
 				if childContent:
 					content.append(childContent)
 				if content:
-					result.append(factory(content))
+					if factory:
+						result.append(factory(content))
+					else:
+						result.extend(content)
 		return result
 
 	def build(self, metaContainer):

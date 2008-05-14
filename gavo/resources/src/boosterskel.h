@@ -1,6 +1,6 @@
 #define _XOPEN_SOURCE
 #include <time.h>
-#include <arpa/inet.h>  /* for typedefs */
+#include <stdint.h>  /* for typedefs */
 
 #define DEGTORAD(x) ((x)/360.*2*M_PI)
 #define F(x) (vals+x)
@@ -11,10 +11,11 @@ typedef enum valType_e {
 	VAL_CHAR,
 	VAL_SHORT,
 	VAL_INT,
+	VAL_BIGINT,
 	VAL_FLOAT,
 	VAL_DOUBLE,
 	VAL_TEXT,
-	VAL_JDATE,  /* a julian date */
+	VAL_JDATE,  /* a julian year ("J2000.0"); this is stored as a simple double */
 	VAL_DATE,   /* date expressed as a time_t */
 	VAL_DATETIME, /* date and time expressed as a time_t */
 } valType;
@@ -29,6 +30,7 @@ typedef struct Field_s {
 		char *c_ptr;
 		double c_double;
 		float c_float;
+		int64_t c_int64;
 		int32_t c_int32;
 		int16_t c_int16;
 		int8_t c_int8;

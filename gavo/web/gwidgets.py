@@ -96,7 +96,7 @@ class OutputFormat(object):
 				" ",
 				T.a(href="", class_="resultlink", onmouseover=
 						"this.href=makeBookmarkLink(getEnclosingForm(this))")[
-					T.img(src=common.makeSitePath("/static/img/bookmark.png"), 
+					T.img(src=common.makeSitePath("/builtin/img/bookmark.png"), 
 						class_="silentlink", title="Link to this form", alt="[bookmark]")
 				],
 			],
@@ -308,17 +308,17 @@ class StringFieldWithBlurb(widget.TextInput):
 
 class NumericExpressionField(StringFieldWithBlurb):
 	additionalMaterial = T.a(href=common.makeSitePath(
-			"/static/help_vizier.shtml#floats"))[
+			"/builtin/help_vizier.shtml#floats"))[
 		"[?num. expr.]"]
 
 class DateExpressionField(StringFieldWithBlurb):
 	additionalMaterial = T.a(href=common.makeSitePath(
-			"/static/help_vizier.shtml#dates"))[
+			"/builtin/help_vizier.shtml#dates"))[
 		"[?date expr.]"]
 
 class StringExpressionField(StringFieldWithBlurb):
 	additionalMaterial = T.a(href=common.makeSitePath(
-			"/static/help_vizier.shtml#string"))[
+			"/builtin/help_vizier.shtml#string"))[
 		"[?char expr.]"]
 
 

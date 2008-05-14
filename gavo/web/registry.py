@@ -207,6 +207,18 @@ def getMatchingRecords(pars):
 	return res
 
 
+_dcBuilder = meta.ModelBasedBuilder([
+	('creator', None, [
+		('name', meta.stanFactory(DC.creator))]),
+	('contributor', None, [
+		('name', meta.stanFactory(DC.contributor))]),
+	('description', meta.stanFactory(DC.description)),
+	('language', meta.stanFactory(DC.language)),
+	('rights', meta.stanFactory(DC.rights)),
+	('curation', None, [
+		('publisher', meta.stanFactory(DC.publisher))]),
+	])
+
 def getDCResourceTree(rec):
 	service = servicelist.getResourceForRec(rec)
 	return OAI.record[
@@ -215,13 +227,7 @@ def getDCResourceTree(rec):
 			OAIDC.dc[
 				DC.title[rec["title"]],
 				DC.identifier[computeIdentifier(rec)],
-				DC.creator[service.getMeta("creator.name")],
-				DC.contributor[service.getMeta("contributor.name")],
-				DC.coverage[service.getMeta("coverage")],
-				DC.description[service.getMeta("description")],
-				DC.language[service.getMeta("language")],
-				DC.rights[service.getMeta("rights")],
-				DC.publisher[service.getMeta("curation.publisher")],
+				_dcBuilder.build(service),
 			]
 		]
 	]

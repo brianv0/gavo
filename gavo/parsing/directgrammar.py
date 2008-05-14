@@ -13,6 +13,7 @@ attributes.
 """
 
 import os
+import pkg_resources
 import re
 import shutil
 
@@ -48,12 +49,14 @@ class CBooster:
 		self._ensureBinary()
 
 	def _copySources(self, wd):
-		shutil.copyfile(
-			os.path.join(config.get("rootDir"), "src", "boosterskel.c"),
-			os.path.join(wd, "boosterskel.c"))
-		shutil.copyfile(
-			os.path.join(config.get("rootDir"), "src", "boosterskel.h"),
-			os.path.join(wd, "boosterskel.h"))
+		def getResource(src, dest):
+			inF = pkg_resources.resource_stream('gavo', src)
+			outF = open(os.path.join(wd, dest), "w")
+			outF.write(inF.read())
+			outF.close()
+			inF.close()
+		getResource("resources/src/boosterskel.c", "boosterskel.c")
+		getResource("resources/src/boosterskel.h", "boosterskel.h")
 		shutil.copyfile(self.srcName, os.path.join(wd, "func.c"))
 		# Ouch.  We now need to hack QUERY_N_PARS out of the function source.
 		# It's ugly, but the alternatives aren't prettier.  The thing just needs 

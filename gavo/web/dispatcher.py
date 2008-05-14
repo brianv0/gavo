@@ -8,6 +8,7 @@ import glob
 import math
 import new
 import os
+import pkg_resources
 import re
 import traceback
 import urllib
@@ -230,7 +231,23 @@ class StaticServer(static.File):
 		".shtml": _replaceConfigStrings,
 	}
 
+class BuiltinServer(StaticServer):
+	"""is a server for the built-in resources.
+
+	This works via setuptool's pkg_config; the built-in resources are in
+	gavo/resources in SVN.
+	"""
+	builtinRoot = pkg_resources.resource_filename('gavo', "resources/nv_static/")
+	def __init__(self, *args, **kwargs):
+		print ">>>>>>>>>>>>>", args
+		if not args:
+			static.File.__init__(self, self.builtinRoot)
+		else:
+			static.File.__init__(self, *args, **kwargs)
+
+
 _staticServer = StaticServer()
+_builtinServer = BuiltinServer()
 
 
 class MaintPage(rend.Page):
@@ -436,10 +453,12 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		name = segments[0]
 		if hasattr(self, "child_"+name):
 			res = getattr(self, "child_"+name), segments[1:]
-		elif not segments or not segments[0]:
+		elif not name:
 			res = self, ()
-		elif segments[0]=="static":
+		elif name=="static":
 			res = _staticServer, segments[1:]
+		elif name=="builtin":
+			res = _builtinServer, segments[1:]
 		else:
 			try:
 				sc = self._locateSpecialChild(ctx, segments)

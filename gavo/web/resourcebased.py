@@ -589,6 +589,10 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 					T.p[
 						"Matched: ", T.slot(name="itemsMatched"),
 					],
+					T.p(render=T.directive("ifdata"), data=T.slot(name="message"),
+						class_="resultMessage")[
+							T.invisible(render=T.directive("data"))
+					],
 				],
 				T.p(class_="warning", render=T.directive("warnTrunc")),
 				T.div(class_="result")[
