@@ -274,3 +274,9 @@ div.explodable h4 {
 	padding: 0px;
 	margin: 0px;
 }
+
+div.copyright {
+	background-color: #cccccc;
+	padding: 5px;
+	margin-top: 5px;
+}

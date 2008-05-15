@@ -2,8 +2,8 @@
 Some standard cores for services.
 
 A core receives and "input table" (usually just containing the query 
-parameters in the doc rec) and returns an output data set (actually, a
-CoreResult object that wraps some additional info).
+parameters in the doc rec) and returns an output data set (which is promoted
+to a CoreResult in the service before being handed over to the renderer).
 
 These then have to be picked up by renderers and formatted for delivery.
 """

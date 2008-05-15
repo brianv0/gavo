@@ -60,6 +60,10 @@ def _getSQLScriptGrammar():
 	atom.setName("Atom")
 	atom.setWhitespaceChars(" \t")
 
+	sqlComment = Literal("--")+SkipTo("\n", include=True)
+	cStyleComment = Literal("/*")+SkipTo("*/", include=True)
+	comment = sqlComment | cStyleComment
+
 	simpleStr = QuotedString(quoteChar="'", escChar="\\", unquoteResults=False)
 	dollarQuoted = Regex(r"(?s)\$(\w*)\$.*?\$\1\$")
 	dollarQuoted.setName("dollarQuoted")
@@ -80,8 +84,8 @@ def _getSQLScriptGrammar():
 	statementEnd.setName("end of line")
 	emptyLine = Regex("\\s*\n")
 
-	atom <<  ( ignoredLinebreak | other | strLiteral | parenExpr | 
-		literalDollar | literalBackslash )
+	atom <<  ( ignoredLinebreak | Suppress(comment) | other | strLiteral | 
+		parenExpr | literalDollar | literalBackslash )
 	statement = (OneOrMore(atom) + statementEnd)
 	statement.setName("statement")
 	statement.setParseAction(lambda s, p, toks: " ".join(toks))
@@ -279,7 +283,48 @@ class ScriptingMixin(object):
 
 if __name__=="__main__":
 	g = getSQLScriptGrammar()
-	print g.parseString("""		('foo in'
-'two lines')""")
+	print g.parseString("""					CREATE TEMP TABLE twomassmags (Jmag REAL, Hmag REAL, Kmag REAL)
+
+					CREATE OR REPLACE FUNCTION tmp_get2massMags(twomassId TEXT
+					) RETURNS twomassmags AS $$
+					DECLARE
+						res twomassmags%ROWTYPE;
+					BEGIN
+						IF twomassId IS NULL THEN
+							res.Jmag = NULL; res.Kmag = NULL; res.Hmag = NULL;
+						ELSE
+							SELECT INTO res Jmag, Hmag, Kmag FROM twomass.data WHERE
+								mainid=twomassId OFFSET 0;
+						END IF;
+						RETURN res;
+					END;
+					$$ LANGUAGE plpgsql
+
+					CREATE TEMP TABLE usnomags (b1mag REAL, b2mag REAL, r1mag REAL,
+						r2mag REAL, imag REAL)
+					
+					CREATE OR REPLACE FUNCTION tmp_getUsnoMags(ipix BIGINT
+					) RETURNS usnomags AS $$
+					DECLARE
+						res usnomags%ROWTYPE;
+					BEGIN
+						SELECT INTO res b1mag, b2mag, r1mag, r2mag, imag
+						FROM usnob.data
+						WHERE ipix=q3c_ang2ipix(raj2000, dej2000);
+						RETURN res;
+					END;
+					$$ LANGUAGE plpgsql
+
+					INSERT INTO uredux.finished (
+						SELECT NULL, raj2000, dej2000, raErr, deErr, pmRA, pmDE, pmraErr,
+							pmdeErr, meanEpRA, meanEpDE, nObs, (r.tm).jmag, (r.tm).hmag,
+							(r.tm).kmag,
+							(r.us).b1mag, (r.us).b2mag, (r.us).r1mag, (r.us).r2mag, 
+							(r.us).imag
+						FROM (
+							SELECT *, tmp_get2massMags(twomassId) as tm,
+								tmp_getUsnoMags(ipix) as us
+							FROM uredux.redtmp) as r)
+	""")
 
 

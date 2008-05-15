@@ -81,3 +81,8 @@ void parseStringWithMagicNull(char *src, Field *field, int start, int len,
 	char *space, char *magic);
 void parseChar(char *src, Field *field, int srcInd);
 void real_fieldscanf(char *str, Field *f, valType type, char *fieldName, ...);
+
+int degToDms(double deg, char *sign_out,
+	int *degs_out, int *minutes_out, double *seconds_out);
+int degToHms(double deg, 
+	int *hours_out, int *minutes_out, double *seconds_out);

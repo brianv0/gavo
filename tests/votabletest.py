@@ -4,6 +4,7 @@ Some tests for votable production.
 
 import cStringIO
 import os
+import pkg_resources
 import unittest
 
 try:
@@ -85,8 +86,9 @@ class VotableTest(unittest.TestCase):
 		"""test for validity of the generated VOTable.
 		"""
 		pipe = os.popen(
-			"xmlstarlet val --err --xsd ../resources/xml/VOTable-1.1.xsd -"
-				" > validationres.txt", "w")
+			"xmlstarlet val --err --xsd %s -"
+				" > validationres.txt"%pkg_resources.resource_filename('gavo',
+					"resources/xml/VOTable-1.1.xsd"), "w")
 		pipe.write(self.rawVOTable)
 		res = pipe.close()
 		f = open("validationres.txt")

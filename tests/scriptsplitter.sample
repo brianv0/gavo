@@ -126,4 +126,27 @@ $$ LANGUAGE plpgsql
 		CREATE VIEW fk6.data as SELECT * FROM fk6.part1 UNION \
 			SELECT * FROM fk6.part3
 		@@@TABLERIGHTS("fk6.data")@@@
-
+------------- 5 -------------
+		BEGIN
+		-- some comment
+-			DROP VIEW fk6.data
+		COMMIT
+		CREATE VIEW fk6.data as SELECT * FROM fk6.part1 UNION \
+			SELECT * FROM fk6.part3
+		@@@TABLERIGHTS("fk6.data")@@@
+------------- 5 -------------
+		BEGIN
+		-- some comment's brother
+-			DROP VIEW fk6.data
+		COMMIT
+		CREATE VIEW fk6.data as SELECT * FROM fk6.part1 UNION \
+			SELECT * FROM fk6.part3
+		@@@TABLERIGHTS("fk6.data")@@@
+------------- 3 -------------
+		BEGIN
+		-- some comment's brother
+/*-			DROP VIEW fk6.data
+		COMMIT
+		CREATE VIEW fk6.data as SELECT * FROM fk6.part1 UNION \*/
+			SELECT * FROM fk6.part3
+		@@@TABLERIGHTS("fk6.data")@@@

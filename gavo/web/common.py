@@ -453,7 +453,11 @@ class CoreResult(object):
 		resultmeta = {
 			"itemsMatched": len(result.rows),
 			"filterUsed": self.queryMeta.get("outputFilter", ""),
-			"message": "",
+# XXX TODO: We want to be able to communicate mild error messages from
+# cores.  Right now, we hack a message attribute into the datasets, but
+# that's bad.  We don't use this yet, but we want some structured means
+# for this in a rewrite.
+			"message": getattr(self.original, "message", ""),
 		}
 		return resultmeta
 

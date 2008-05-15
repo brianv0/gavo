@@ -384,6 +384,16 @@ void mirrorBytes(char *mem, int numBytes)
 	}
 }
 
+void writeBigint(Field *field, void *destination)
+{
+	uint32_t size=htonl(sizeof(int64_t));
+	int64_t val=field->val.c_int64;
+
+	mirrorBytes((char*)&val, sizeof(int64_t));
+	DATA_OUT(&size, 4, destination);
+	DATA_OUT(&val, sizeof(int64_t), destination);
+}
+
 void writeFloat(Field *field, void *destination)
 {
 	uint32_t size=htonl(sizeof(float));
@@ -481,6 +491,9 @@ void writeField(Field *field, void *destination)
 		case VAL_INT:
 			writeInteger(field, destination);
 			break;
+		case VAL_BIGINT:
+			writeBigint(field, destination);
+			break;
 		case VAL_FLOAT:
 			writeFloat(field, destination);
 			break;
@@ -565,6 +578,42 @@ void createDumpfile(int argc, char **argv)
 	}
 	fprintf(stderr, "%08d records done.\n", lncount);
 }
+
+int degToHms(double deg,
+	int *hours_out, int *minutes_out, double *seconds_out)
+{
+	double rest, ipart;
+
+	while (deg<0) {
+		deg += 360;
+	}
+	rest = modf(deg/360.*24, &ipart);
+	*hours_out = (int)ipart;
+	rest = modf(rest*60, &ipart);
+	*minutes_out = (int)ipart;
+	*seconds_out = rest*60;
+	return 0;
+}
+
+
+int degToDms(double deg, char *sign_out,
+	int *degs_out, int *minutes_out, double *seconds_out)
+{
+	double rest, ipart;
+
+	*sign_out = '+';
+	if (deg<0) {
+		*sign_out = '-';
+		deg = -deg;
+	}
+	rest = modf(deg, &ipart);
+	*degs_out = (int)ipart;
+	rest = modf(rest*60, &ipart);
+	*minutes_out = (int)ipart;
+	*seconds_out = rest*60;
+	return 0;
+}
+
 
 int main(int argc, char **argv)
 {

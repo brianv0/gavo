@@ -274,6 +274,8 @@ def parseCmdLine():
 
 
 def main():
+# Some rds need db connectivity
+	config.setDbProfile("querulator")
 	try:
 		opts, (rdName, ddId) = parseCmdLine()
 		dd = getDataDesc(rdName, ddId)

@@ -237,9 +237,8 @@ class BuiltinServer(StaticServer):
 	This works via setuptool's pkg_config; the built-in resources are in
 	gavo/resources in SVN.
 	"""
-	builtinRoot = pkg_resources.resource_filename('gavo', "resources/nv_static/")
+	builtinRoot = pkg_resources.resource_filename('gavo', "resources/web")
 	def __init__(self, *args, **kwargs):
-		print ">>>>>>>>>>>>>", args
 		if not args:
 			static.File.__init__(self, self.builtinRoot)
 		else:
