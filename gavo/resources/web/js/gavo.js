@@ -33,12 +33,13 @@ function isIn(item, arr) {
 
 
 ///////////// Code handling previews
-function insertPreview(node) {
+function insertPreview(node, width) {
 // replaces the text content of node with a preview image if node has
 // a href attribute (this is used for products)
 	if (node.getAttribute("href")) {
 		var image = document.createElement("img")
-		image.setAttribute("src", node.getAttribute("href")+"&preview=True");
+		image.setAttribute("src", node.getAttribute("href")+"&preview=True"+
+			"&width="+width);
 		node.replaceChild(image, node.firstChild);
 	}
 	node.removeAttribute("onmouseover");

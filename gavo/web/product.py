@@ -156,7 +156,12 @@ class Product(standardcores.DbBasedCore):
 		targetPath = str(os.path.join(config.get("inputsDir"), item["accessPath"]))
 		previewName = os.path.join(config.get("inputsDir"), "__system",
 			"bin", "fitspreview")
-		return runner.runWithData(previewName, "", [targetPath]
+		args = [targetPath]
+		try:
+			args.append(str(int(ctx.arg("width", 200))))
+		except (KeyError, ValueError, IndexError):
+			pass
+		return runner.runWithData(previewName, "", args
 			).addCallback(self._deliverJpeg, ctx
 			).addErrback(self._previewFailed, ctx)
 	

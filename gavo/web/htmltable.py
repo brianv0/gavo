@@ -135,11 +135,16 @@ def _productMapperFactory(colProps):
 	if colProps["displayHint"].get("nopreview"):
 		mouseoverHandler = None
 	else:
-		mouseoverHandler = "insertPreview(this)"
+		try:
+			pWidth = int(colProps["displayHint"].get("width", "200"))
+		except ValueError:
+			pWidth = 200
+		mouseoverHandler = "insertPreview(this, %s)"%pWidth
+	fixedArgs = "&siap=true"
 	def coder(val):
 		if val:
 			return T.a(href=common.makeSitePath(
-					"/getproduct?key=%s&siap=true"%urllib.quote(val)),
+					"/getproduct?key=%s%s"%(urllib.quote(val), fixedArgs)),
 				onmouseover=mouseoverHandler,
 				class_="productlink")[re.sub("&.*", "", os.path.basename(val))]
 		else:

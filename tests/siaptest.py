@@ -208,6 +208,8 @@ class TestCoordinateQueries(unittest.TestCase):
 				"pixflags": None,
 				"accref": None,
 				"accsize": None,
+				"embargo": None,
+				"owner": None,
 			}
 		config.setDbProfile("test")
 		tw = sqlsupport.TableWriter("simplewcs", 

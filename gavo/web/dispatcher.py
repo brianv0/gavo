@@ -319,6 +319,7 @@ renderClasses = {
 	"custom": resourcebased.Custom,
 	"static": resourcebased.Static,
 	"form": resourcebased.Form,
+	"block": resourcebased.BlockRdRenderer,
 	"siap.xml": vodal.SiapRenderer,
 	"scs.xml": vodal.ScsRenderer,
 	"upload": uploadservice.Uploader,
@@ -468,7 +469,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 				else:
 					res = self._locateResourceBasedChild(ctx, segments)
 			except resourcebased.RdBlocked:
-				return BlockedPage(segments)
+				return BlockedPage(segments), ()
 		return res
 
 
