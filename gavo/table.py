@@ -206,6 +206,10 @@ class Table(RecordBasedTable):
 
 	def _feedData(self, feed):
 		"""writes the rows through the sqlsupport feeder feed.
+
+		The feed is closed by this operation.  XXX TODO: That's
+		wrong.  Closing the feed should be the responsibility of
+		the calling function.
 		"""
 		counter = gavo.ui.getGoodBadCounter("Writing to db", 100)
 		try:

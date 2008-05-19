@@ -166,7 +166,7 @@ class Template(AbstractTemplate):
 	interface is relevant, so it's handled by hand.  If there is any
 	formatting hint "product" present in the select list, it is assumed
 	that the table supports the product interface and suppressed fields
-	owner, embargo, and fsize are added.
+	owner, embargo, and accsize are added.
 
 	XXX TODO: Template should be immutable, i.e., all the crap manipulating
 	query should go.  Instead, templates should return a query object with
@@ -200,7 +200,7 @@ class Template(AbstractTemplate):
 
 		This works by checking certain properties of the query (e.g., the
 		presence of a "product" hint in a select item) and then appending
-		fields from the corresponding interface (e.g. fsize, owner and embago
+		fields from the corresponding interface (e.g. accsize, owner and embago
 		for products) to the list of select items.  All added fields are
 		suppressed.  If a field is already present in a non-suppressed form,
 		it is not added.
@@ -212,7 +212,7 @@ class Template(AbstractTemplate):
 		if self.getProductCol()!=None:
 			self.addSelectItem("owner||suppressed")
 			self.addSelectItem("embargo||suppressed")
-			self.addSelectItem("fsize||suppressed")
+			self.addSelectItem("accsize||suppressed")
 
 	def _getSortForm(self, context):
 		return '<select name="sortby">%s</select>'%(

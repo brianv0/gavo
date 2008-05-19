@@ -625,6 +625,8 @@ class ResourceDescriptor(record.Record, meta.MetaMixin,
 		"""
 		if sourcePath.startswith(config.get("inputsDir")):
 			sourcePath = sourcePath[len(config.get("inputsDir")):].lstrip("/")
+		if sourcePath.startswith("/resources/inputs"):
+			sourcePath = sourcePath[len("/resources/inputs"):].lstrip("/")
 		return os.path.splitext(sourcePath)[0]
 
 	def getTimestampPath(self):

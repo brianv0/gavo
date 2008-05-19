@@ -227,7 +227,10 @@ class _Feeder:
 	def close(self):
 		self.commitFunc()
 		nAffected = self.cursor.rowcount
-		self.cursor.close()
+		try:
+			self.cursor.close()
+		except DbError:  # cursor has been closed before
+			pass
 		self.cursor = None
 		return nAffected
 

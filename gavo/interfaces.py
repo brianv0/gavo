@@ -233,8 +233,8 @@ class Q3CIndex(Interface):
 class Products(Interface):
 	"""is an interface for handling products.
 	
-	The interface requires the fields datapath, owner, embargo, and
-	fsize.
+	The interface requires the fields accref, owner, embargo, and
+	accsize.
 
 	Tables providing products must also enter their data into the product
 	table, a system-global table mapping keys to files (which is usually
@@ -265,14 +265,13 @@ class Products(Interface):
 	def getName():
 		return "products"
 
-	requiredFields = set(["datapath", "owner", "embargo", "fsize"])
-	def __init__(self):
-		Interface.__init__(self, [
-			{"dest": "datapath", "source": "prodtblKey", "dbtype": "text",
-				"ucd": "meta.ref;obs.image;meta.fits", "displayHint": "type=product",
-				"tablehead": "Product", "optional": "False", "verbLevel": 5},
-# XXX TODO: it would be smart to have "references": "products", here,
-# but that causes the remove of the items to take forever.  See if
+	requiredFields = set(["accref", "owner", "embargo", "accsize"])
+	productFields = [
+		{"dest": "accref", "ucd": "VOX:Image_AccessReference",
+			"source": "prodtblKey", "dbtype": "text", "verbLevel": 0,
+			"displayHint": "type=product", "tablehead": "Product"},
+		# XXX TODO: it would be smart to have "references": "products", here,
+# but that causes the removal of the items to take forever.  See if
 # we can figure out a way to avoid that penalty.
 			{"dest": "owner", "source": "prodtblOwner", "dbtype": "text",
 				"tablehead": "Product owner", "displayHint": "type=suppress",
@@ -280,10 +279,13 @@ class Products(Interface):
 			{"dest": "embargo", "source": "prodtblEmbargo", "dbtype": "date",
 				"tablehead": "Embargo ends", 
 				"unit": "Y-M-D", "verbLevel": 25},
-			{"dest": "fsize", "source": "prodtblFsize", "dbtype": "int",
-				"tablehead": "File size", "unit": "byte",
-				"verbLevel": 15},
-		])
+			{"dest": "accsize", "ucd": "VOX:Image_FileSize",
+				"tablehead": "File size", "description": "Size of the image in bytes",
+				"source": "prodtblFsize", "dbtype": "integer", "verbLevel": 11},
+		]
+
+	def __init__(self):
+		Interface.__init__(self, self.productFields)
 
 	def getDelayedNodes(self, recordNode):
 		"""sets up exporting the products to the product table by
@@ -306,7 +308,7 @@ class Products(Interface):
 		yield "Semantics", ("Record", productTable), True
 
 
-class BboxSiap(Interface):
+class BboxSiap(Products):
 	"""is an interface for simple support of SIAP.
 
 	This currently only handles two-dimensional images.
@@ -343,6 +345,8 @@ class BboxSiap(Interface):
 		<arg name="siapImageFormat" value="image/fits"/>
 		<arg name="siapBandpassId" source="FILTER"/>
 	</Macro>
+
+	Tables implementing bboxSiap also implement products.
 	"""
 	# XXX TODO: Seperate the stuff necessary for searching from all the 
 	# XXX SIAP cruft.
@@ -358,7 +362,7 @@ class BboxSiap(Interface):
 		# because by default, you'll get verb=2
 		return self.siapFields
 		
-	siapFields = [
+	siapFields = Products.productFields+[
 			{"dest": "centerAlpha", "source": "centerAlpha", "ucd": "PO_EQ_RA_MAIN",
 				"dbtype": "double precision", "unit": "deg", "tablehead": "alpha",
 				"displayHint": "type=time", "verbLevel": 0},
@@ -412,13 +416,12 @@ class BboxSiap(Interface):
 				"source": "bandpassLo", "verbLevel": 20},
 			{"dest": "pixflags", "ucd": "VOX:Image_PixFlags", "verbLevel": 20,
 				"source": "pixflags", "dbtype": "text"},
-			{"dest": "accref", "ucd": "VOX:Image_AccessReference",
-				"source": "prodtblKey", "dbtype": "text", "verbLevel": 0,
-				"displayHint": "type=product", "tablehead": "Product"},
-			{"dest": "accsize", "ucd": "VOX:Image_FileSize",
-				"tablehead": "File size", "description": "Size of the image in bytes",
-				"source": "prodtblFsize", "dbtype": "integer", "verbLevel": 11},
 		]
+	
+	def getDelayedNodes(self, recordNode):
+		for node in Products.getDelayedNodes(self, recordNode):
+			yield node
+
 
 def elgen_siapOutput(preview="True"):
 	doPreview = record.parseBooleanLiteral(preview)

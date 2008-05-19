@@ -58,7 +58,7 @@ class OutputFormat(object):
 # output table
 		ofs = core.getOutputFields(queryMeta)
 		for of in ofs:
-			if of.get_dest()=="datapath":
+			if of.get_dest()=="accref":
 				self.availableFormats.append("tar")
 				break
 		

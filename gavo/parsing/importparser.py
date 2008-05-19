@@ -328,8 +328,11 @@ class RdParser(utils.NodeBuilder):
 		except ValueError:
 			raise Error("Invalid field path '%s'.  Did you forget a leading dot?"%
 				fieldPath)
-		return self.rd.getDataById(dataId).getRecordDefByName(tableName
-			).getFieldByName(fieldName)
+		try:
+			return self.rd.getDataById(dataId).getRecordDefByName(tableName
+				).getFieldByName(fieldName)
+		except KeyError:
+			raise Error("Field does not exist: %s"%fieldPath)
 
 	def _makeFieldInstance(self, fieldClass, name, attrs, children, nodeHandlers):
 		"""creates an instance of the datafield.DataDef-derived class fieldClass

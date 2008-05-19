@@ -38,9 +38,10 @@
 			<SharedRecord table="services" forceUnique="True" id="srvRecord">
 				<owningCondition colName="sourceRd" value="@property,srcRdId"/>
 				<Field dest="shortName" source="shortName" dbtype="text"
-					tablehead="Service ID" primary="True"/>
+					tablehead="Service ID"/>
 				<Field dest="internalId" source="internalId" dbtype="text"
-					tablehead="Internal relative id" displayHint="type=hidden"/>
+					tablehead="Internal relative id" displayHint="type=hidden"
+					primary="True"/>
 				<Field dest="sourceRd" source="sourceRd" dbtype="text"
 					tablehead="Source RD" optional="False"/>
 				<Field dest="title" source="title" dbtype="text" optional="False"/>

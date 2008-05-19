@@ -276,7 +276,7 @@ myTests = [
 				" (will fail starting 2008-12-31)"),
 		HeadFieldTest(nv_root+"/maidanak/res/rawframes/siap/form?"
 			"__nevow_form__=genForm&POS=q2237%2B0305&SIZE=1&INTERSECT=OVERLAPS&"
-			"FORMAT=image%2Ffits&dateObs=2003-01-01%20..%202003-10-10&"
+			"FORMAT=image%2Ffits&dateObs=2001-01-01%20..%202005-10-10&"
 			"_DBOPTIONS_LIMIT=1&_FORMAT=tar", [
 				("content-disposition", "attachment; filename=truncated_data.tar"),
 				("content-type", "application/x-tar")],

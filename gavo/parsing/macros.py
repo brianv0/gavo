@@ -626,8 +626,6 @@ class ProductValueCollector(Macro):
 	* prodtblEmbargo -- date when the resource will become freely accessible
 	* prodtblPath -- path to the product
 	* prodtblFsize -- size of the product (optional)
-
-	This has to reflect any changes to gavo.inputsDir/products/products.vord.
 	"""
 	@staticmethod
 	def getName():
@@ -924,28 +922,43 @@ class BboxSiapFieldsComputer(Macro):
 				record[key] = None
 
 
-class SiapMetaSetter(Macro):
-	"""is a macro that sets siap meta fields.
-
+class SiapMetaSetter(ProductValueCollector):
+	"""is a macro that sets siap meta *and* product table fields.
+	
 	This is common stuff for all SIAP implementations.
 
-	The destinations available are: siapTitle, siapInstrument, siapObsDate,
-	siapImageFormat, siapBandpassId.
+	Arguments: 
+	* siapTitle
+	* siapInstrument
+	* siapObsDate,
+	* siapImageFormat (defaults to image/fits)
+	* siapBandpassId
+	* any arguments of setProdtblValues
 	"""
 	@staticmethod
 	def getName():
 		return "setSiapMeta"
 
-	targetKeys = set(["imageTitle", "instId", "dateObs",
-		"imageFormat", "bandpassId"])
+	targetKeys = {
+		"siapTitle": "imageTitle", 
+		"siapInstrument": "instId", 
+		"siapObsDate": "dateObs",
+		"siapImageFormat": "imageFormat",
+		"siapBandpassId": "bandpassId",}
 
 	def _compute(self, record,  **kwargs):
-		if not kwargs.has_key("imageFormat"):
-			kwargs["imageFormat"] ="image/fits",
+		if not kwargs.has_key("siapImageFormat"):
+			kwargs["siapImageFormat"] ="image/fits",
+		prodtblArgs = {}
 		for key, value in kwargs.iteritems():
-			if key not in self.targetKeys:
-				raise gavo.Error("Invalid key for setSiapMeta: %s"%key)
-			record[key] = value
+			if key in self.targetKeys:
+				record[self.targetKeys[key]] = value
+			else:
+				prodtblArgs[key] = value
+		try:
+			ProductValueCollector._compute(self, record, **prodtblArgs)
+		except TypeError, msg:
+			raise gavo.Error("Invalid argument for setSiapMeta; %s"%str(msg))
 
 
 def compileMacro(name, code):

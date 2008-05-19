@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ResourceDescriptor srcdir="__system__/products">
+<ResourceDescriptor srcdir="__system">
 	<schema>public</schema>
 	<Data id="data">
 		<NullGrammar/>
@@ -10,7 +10,9 @@
 and the ProductValueCollector macro in macros.py.
 
 It is somewhat unfortunate that this definition is reflected in so many
-places, but the alternatives are even more unattractive (to me).
+places, but the alternatives are even more unattractive (to me and right
+now - I'll need to keep stuff like this in mind when redesigning the 
+system).
 -->
 			<Record table="products">
 				<Field dest="key" primary="True" dbtype="text"

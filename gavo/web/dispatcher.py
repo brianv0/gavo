@@ -405,7 +405,9 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 				continue
 			try:
 				subId, rendName = segments[srvInd], segments[srvInd+1]
-				service = rd.get_service(subId)
+				service = rd.get_service(subId, default=None)
+				if service==None:
+					raise KeyError("No such service %s"%subId)
 				rendC = renderClasses[rendName]
 				if service.get_requiredGroup():
 					rend = creds.runAuthenticated(ctx, service.get_requiredGroup(),

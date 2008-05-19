@@ -272,12 +272,17 @@ def main():
 	if opts.all:
 		args = findAllRDs()
 	for rdPath in args:
+		sys.stdout.write("Processing %s..."%(rdPath))
+		sys.stdout.flush()
 		try:
 			updateServiceList(
 				importparser.getRd(os.path.join(os.getcwd(), rdPath), 
 					forImport=True))
 		except Exception, msg:
-			utils.displayError(msg)
+			print "Ignoring.  See the log for a traceback."
+			gavo.logger.error("Ignoring for service export: %s (%s)"%(
+				rdPath, repr(str(msg))), exc_info=True)
+		print
 	if opts.all or opts.doFixed:  # also import fixed registry records
 		importFixed()
 	try:

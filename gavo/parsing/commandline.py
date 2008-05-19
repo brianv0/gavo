@@ -28,7 +28,10 @@ class Abort(Exception):
 
 def process(opts, args):
 	src, ddIds = args[0], args[1:]
-	rd = importparser.getRd(os.path.join(os.getcwd(), src), forImport=True)
+	try:
+		rd = importparser.getRd(os.path.join(os.getcwd(), src), forImport=True)
+	except gavo.RdNotFound:
+		rd = importparser.getRd(src, forImport=True)
 	if opts.createShared:
 		rd.prepareForSystemImport()
 	res = resource.Resource(rd)

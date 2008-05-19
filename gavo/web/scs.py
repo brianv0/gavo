@@ -35,6 +35,8 @@ class ScsCondition(standardcores.CondDesc):
 					optional=False, source="SR")],
 		}
 		vals.update(initvals)
+# XXX TODO: infer alphaFloat, deltaFloat from ucds on associated table
+# (i.e., make table visible to condDesc)
 		super(ScsCondition, self).__init__(initvals=vals, additionalFields={
 			"alphaField": "alphaFloat",
 			"deltaField": "deltaFloat",})

@@ -3,7 +3,7 @@ Helper functions for producing tar files from tables containing
 a product column.
 
 Everything in this module expects the product interface, i.e., tables
-must at least contain datapath, owner, embargo, and fsize fields.
+must at least contain accref, owner, embargo, and accsize fields.
 """
 
 # XXX TODO: shouldn't this be an output filter?  Or even a core?
@@ -71,7 +71,7 @@ class ProductTarMaker:
 	def _getProducts(self, table):
 		"""returns a list of product keys and sizes for products present in table.
 		"""
-		return [row["datapath"] for row in table.rows if row["datapath"]]
+		return [row["accref"] for row in table.rows if row["accref"]]
 
 	def _resolveProductKeys(self, keyList):
 		"""returns a list of paths to products from a list as returned by
