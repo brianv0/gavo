@@ -41,7 +41,7 @@ def buildClassResolver(baseClass, objects, instances=False):
 	in the sequence objects by their names.
 
 	This is used to build registries of Macros and RowProcessors.  The
-	classes in question have to support static getName methods.
+	classes in question have to have a name attribute.
 
 	objects would usually be something like globals().values()
 
@@ -51,9 +51,9 @@ def buildClassResolver(baseClass, objects, instances=False):
 	registry = {}
 	for cls in _iterDerivedClasses(baseClass, objects):
 		if instances:
-			registry[cls.getName()] = cls()
+			registry[cls.name] = cls()
 		else:
-			registry[cls.getName()] = cls
+			registry[cls.name] = cls
 	def resolve(name, registry=registry):
 		return registry[name]
 	return resolve
@@ -115,7 +115,7 @@ def makeClassDocs(baseClass, objects):
 	docs = []
 	for cls in _iterDerivedClasses(baseClass, objects):
 		try:
-			title = cls.getName()
+			title = cls.name
 		except AttributeError:
 			title = cls.__name__
 		docs.append((title, cls.__doc__))

@@ -88,6 +88,7 @@ writable:worldwritable
 # the authority id for this DC
 authority: 
 registryIdentifier: ivo://org.gavo.dc/static/registryrecs/registry.rr
+dalDefaultLimit: 10000
 
 [meta]
 # Default curation
@@ -309,7 +310,7 @@ class Settings(object):
 		_parse_DEFAULT_cachedir = _parse_DEFAULT_logdir =\
 		_parse_DEFAULT_tempdir = _parse_DEFAULT_webdir = _cookPath
 
-	def _parse_adminpasswd(self, val):
+	def _parse_web_adminpasswd(self, val):
 		return val.strip()
 
 	def _parse_web_sqltimeout(self, val):

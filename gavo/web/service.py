@@ -22,6 +22,7 @@ import weakref
 from twisted.internet import defer
 from twisted.python import components
 
+import gavo
 from gavo import config
 from gavo import datadef
 from gavo import meta
@@ -217,6 +218,10 @@ class Service(record.Record, meta.MetaMixin):
 	
 	def getDefaultMeta(self, key):
 		if key=="referenceURL":
-			return meta.makeMetaValue(self.getURL("form", method="POST"), type="link", 
-				title="Service Form")
+			try:
+				return self.getMetaParent().getMeta("referenceURL", raiseOnFail=True)
+			except gavo.NoMetaKey:
+				return meta.MetaItem(
+					meta.makeMetaValue(self.getURL("form", method="POST"), 
+						type="link", title="Service Form"))
 		raise KeyError(key)

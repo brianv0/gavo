@@ -36,9 +36,7 @@ class RowExpander(RowProcessor):
 	giving the beginning and the end of the range, and the name of
 	the nonterminal that the new index should be assigned to.
 	"""
-	@staticmethod
-	def getName():
-		return "expandRow"
+	name = "expandRow"
 	
 	def _compute(self, record, lowerInd, upperInd, fieldName):
 		try:
@@ -78,9 +76,7 @@ class DateExpander(RowProcessor):
 	>>> r = {"start": "1067-10-1", "end": "1067-10-3"}
 	>>> m(None, r); r
 	"""
-	@staticmethod
-	def getName():
-		return "expandDateRange"
+	name = "expandDateRange"
 	
 	def __init__(self, argTuples=[], destination="genDate"):
 		RowProcessor.__init__(self, argTuples)
@@ -119,9 +115,7 @@ class CommaExpander(RowProcessor):
 	"""is a row processor that reads comma seperated values from a
 	field and returns one row with a new field for each of them.
 	"""
-	@staticmethod
-	def getName():
-		return "expandComma"
+	name = "expandComma"
 	
 	def _compute(self, record, srcField, targetField):
 		res = []

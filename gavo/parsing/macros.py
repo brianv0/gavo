@@ -148,9 +148,7 @@ class EquatorialPositionConverter(Macro):
 			"binary": lambda a: a,
 		}
 
-	@staticmethod
-	def getName():
-		return "handleEquatorialPosition"
+	name = "handleEquatorialPosition"
 
 	def _compute(self, record, alpha, delta):
 		if alpha==None or delta==None:
@@ -210,9 +208,7 @@ class PMCombiner(Macro):
 	already multiplied with cos(delta).  Use other macros to convert fields if
 	they don't have that format already.
 	"""
-	@staticmethod
-	def getName():
-		return "combinePM"
+	name = "combinePM"
 
 	def __init__(self, argTuples=[], alphaFactor="1", 
 			deltaFactor="1"):
@@ -275,15 +271,13 @@ class TimestampCombiner(Macro):
 	>>> rec['timestamp'].strftime()
 	'Thu Jan  2 05:30:00 1969'
 	"""
+	name = "combineTimestamps"
+
 	def __init__(self, argTuples=[], destination="timestamp",
 			dateFormat="%d.%m.%Y", timeFormat="%H:%M:%S"):
 		Macro.__init__(self, argTuples)
 		self.destination = destination
 		self.timeFormat, self.dateFormat = timeFormat, dateFormat
-
-	@staticmethod
-	def getName():
-		return "combineTimestamps"
 
 	def _processTime(self, literal, format):
 		if format=="!!secondsSinceMidnight":
@@ -337,6 +331,8 @@ class AngleParser(Macro):
 	>>> rec = {"d":"21.0209556"}; m(None, rec); "%010.6f"%rec["p"]
 	'315.314334'
 	"""
+	name = "parseAngle"
+
 	converterTable = {
 		"dms": coords.dmsToDeg,
 		"hms": coords.timeangleToDeg,
@@ -349,9 +345,6 @@ class AngleParser(Macro):
 		self.converter = self.converterTable[format]
 		self.destination = destination
 
-	@staticmethod
-	def getName():
-		return "parseAngle"
 	
 	def _compute(self, record, val):
 		if val==None:
@@ -382,13 +375,12 @@ class ValueGetter(Macro):
 	>>> r["constant"]
 	'inserted'
 	"""
+	name = "enterValue"
+
 	def __init__(self, argTuples=[], destination=None):
 		Macro.__init__(self, argTuples)
 		self.destination = destination
 	
-	@staticmethod
-	def getName():
-		return "enterValue"
 	
 	def _compute(self, record, value):
 		record[self.destination] = value
@@ -417,15 +409,13 @@ class ValueCatter(Macro):
 	>>> r["cat"]
 	'opener<>catfood<>can'
 	"""
+	name = "concat"
+
 	def __init__(self, argTuples=[], joiner="", destination="",
 			sources=""):
 		Macro.__init__(self, argTuples)
 		self.joiner, self.destination = joiner, destination
 		self.sources = self._parseSources(sources)
-
-	@staticmethod
-	def getName():
-		return "concat"
 
 	def _parseSources(self, sources):
 		return [src.strip() for src in sources.split(",")]
@@ -460,16 +450,14 @@ class NullValuator(Macro):
 	>>> n(None, r); print r["foo"]
 	None
 	"""
+	name = "mapToNone"
+
 	def __init__(self, argTuples=[], nullvalue="NULL", 
 			colName=""):
 		Macro.__init__(self, argTuples)
 		self.nullvalue = nullvalue
 		self.colName = colName
 
-	@staticmethod
-	def getName():
-		return "mapToNone"
-	
 	def _compute(self, record):
 		if record[self.colName]==self.nullvalue:
 			record[self.colName] = None
@@ -507,6 +495,8 @@ class ValueMapper(Macro):
 	matter except when it contains whitespace (a blank becomes =20) or equal
 	signs (which become =3D).
 	"""
+	name = "mapValue"
+
 	def __init__(self, argTuples=[], sourceName="", 
 			destination="", logFailures=False, failuresAreNone=True):
 		Macro.__init__(self, argTuples)
@@ -515,10 +505,6 @@ class ValueMapper(Macro):
 		self.failuresAreNone = failuresAreNone
 		self.destination = destination
 
-	@staticmethod
-	def getName():
-		return "mapValue"
-	
 	def _compute(self, record, value):
 		try:
 			record[self.destination] = self.map.resolve(str(value))
@@ -551,15 +537,13 @@ class StringInterpolator(Macro):
 	>>> s(None, r); r["baz"]
 	'no 23 in 42'
 	"""
+	name = "interpolateStrings"
+
 	def __init__(self, argTuples=[], destination="",
 			format="", sources=""):
 		Macro.__init__(self, argTuples)
 		self.sources = self._parseSources(sources)
 		self.format, self.destination = format, destination
-
-	@staticmethod
-	def getName():
-		return "interpolateStrings"
 	
 	def _parseSources(self, sources):
 		return [src.strip() for src in sources.split(",")]
@@ -597,15 +581,12 @@ class ReSubstitutor(Macro):
 	>>> m(None, r); r["fixed"]
 	"Any ol' junk"
 	"""
+	name = "subsRe"
 	def __init__(self, argTuples=[], destination="",
 			srcRe="", destRe=""):
 		Macro.__init__(self, argTuples)
 		self.destination = destination
 		self.srcPat, self.destRe = re.compile(srcRe), destRe
-
-	@staticmethod
-	def getName():
-		return "subsRe"
 	
 	def _compute(self, record, data):
 		if data==None:
@@ -627,9 +608,7 @@ class ProductValueCollector(Macro):
 	* prodtblPath -- path to the product
 	* prodtblFsize -- size of the product (optional)
 	"""
-	@staticmethod
-	def getName():
-		return "setProdtblValues"
+	name = "setProdtblValues"
 
 	def _compute(self, record, prodtblKey, prodtblOwner, prodtblEmbargo,
 			prodtblPath, prodtblFsize=None):
@@ -661,15 +640,13 @@ class LinearMapper(Macro):
 	>>> str(rec["dest"])
 	'198.02'
 	"""
+	name = "linearMap"
+
 	def __init__(self, argTuples=[], destination="",
 			factor=0, offset=0):
 		Macro.__init__(self, argTuples)
 		self.destination = destination
 		self.factor, self.offset = float(factor), float(offset)
-
-	@staticmethod
-	def getName():
-		return "linearMap"
 	
 	def _compute(self, record, val):
 		if val==None:
@@ -700,15 +677,13 @@ class SimbadResolver(Macro):
 	* identifier -- something Simbad can resolve.  See macros like 
 	  interpolateString to morph your inputs.
 	"""
+	name = "resolveObject"
+
 	def __init__(self, argTuples=[], ignoreUnknowns=False):
 		self.ignoreUnknowns = ignoreUnknowns
 		Macro.__init__(self, argTuples)
 		from gavo.simbadinterface import Sesame
 		self.resolver = Sesame(saveNew=True)
-	
-	@staticmethod
-	def getName():
-		return "resolveObject"
 	
 	def _compute(self, record, identifier):
 		try:
@@ -755,13 +730,11 @@ class MxDateParser(Macro):
 	>>> r = {"foo": DateTime.DateTime(2038, 12, 12, 11)}; m(None, r); str(r["jd"])
 	'2465769.95833'
 	"""
+	name = "parsemxdate"
+
 	def __init__(self, argTuples=[], assignments="year:year"):
 		Macro.__init__(self, argTuples)
 		self.assignments = _parseAssignments(assignments)
-	
-	@staticmethod
-	def getName():
-		return "parsemxdate"
 	
 	def _compute(self, record, date):
 		if date==None:
@@ -805,6 +778,8 @@ class SimpleQuerier(Macro):
 	and assign the first item of the first response row to alpha,
 	and the second to delta.
 	"""
+	name = "simplequery"
+
 	def __init__(self, argTuples=[], assignments=None,
 			table=None, column=None):
 		from gavo import sqlsupport
@@ -821,10 +796,6 @@ class SimpleQuerier(Macro):
 		Macro.__init__(self, argTuples)
 		self.assignments = _parseAssignments(assignments)
 		self.table, self.column = table, column
-	
-	@staticmethod
-	def getName():
-		return "simplequery"
 	
 	def _compute(self, record, val):
 		from gavo import sqlsupport
@@ -878,9 +849,7 @@ class BboxSiapFieldsComputer(Macro):
 	>>> "%.4f %.4f"%(r["centerAlpha"], r["centerDelta"])
 	'-0.0066 52.9950'
 	"""
-	@staticmethod
-	def getName():
-		return "computeBboxSiapFields"
+	name = "computeBboxSiapFields"
 
 	wcskeys = ["primaryBbox", "secondaryBbox", "centerAlpha", "centerDelta",
 		"nAxes",  "pixelSize", "pixelScale", "imageFormat", "wcs_projection",
@@ -935,9 +904,7 @@ class SiapMetaSetter(ProductValueCollector):
 	* siapBandpassId
 	* any arguments of setProdtblValues
 	"""
-	@staticmethod
-	def getName():
-		return "setSiapMeta"
+	name = "setSiapMeta"
 
 	targetKeys = {
 		"siapTitle": "imageTitle", 
@@ -961,14 +928,67 @@ class SiapMetaSetter(ProductValueCollector):
 			raise gavo.Error("Invalid argument for setSiapMeta; %s"%str(msg))
 
 
+class FloatExpressionEvaluator(Macro):
+	"""is a macro that computes simple float expressions.
+
+	Any argument may be None, in which case the Macro evaluates to None.
+	To map arbitrary literals to None, use the mapToNone macro.
+
+	Constructor Arguments
+
+	* expression -- a python expression with operands of the form arg<num>+
+	* destination -- the name of the field the result is to be entered in
+
+	Arguments:
+
+	* arg1...arg<n> -- the operands mentioned in the expression.
+
+	You'd use this macro like this:
+
+	<Macro name="floatExpression" expression="arg1*arg2" 
+			destination="seeingSecs">
+		<arg name="arg1" source="SEEING"/>
+		<arg name="arg2" source="CCDSCALE"/>
+	</Macro>
+
+	>>> m = FloatExpressionEvaluator([("arg1", "foo", ""), ("arg2", "bar", "")],
+	...   expression="arg1+arg1**arg2", destination="res")
+	>>> r = {"foo": "3", "bar": 2}; m(None, r); r["res"]
+	12.0
+	>>> r = {"foo": "3", "bar": None}; m(None, r); print r["res"]
+	None
+	>>> m = FloatExpressionEvaluator([("arg1", "foo", ""),],
+	...   expression="arg1+arg1**arg2", destination="res")
+	>>> r = {"foo": "3"}; m(None, r); print r["res"]
+	Traceback (most recent call last):
+	Error: Variable 'arg2' required by expression arg1+arg1**arg2 was not passed to macro.
+	"""
+	name = "floatExpression"
+
+	def __init__(self, argTuples=[], expression="arg1", destination="res"):
+		self.expression, self.destination = expression, destination
+		Macro.__init__(self, argTuples)
+
+	def _compute(self, record, **kwargs):
+		if None in kwargs.values():
+			record[self.destination] = None
+			return
+		try:
+			expr = re.sub(r"arg\d+", lambda mat: repr(float(kwargs[mat.group(0)])),
+				self.expression)
+		except KeyError, msg:
+			raise gavo.Error("Variable %s required by expression %s"
+				" was not passed to macro."%(str(msg), self.expression))
+		record[self.destination] = eval(expr)
+
+
+
 def compileMacro(name, code):
 	"""returns a macro of name name and code as _compute body.
 	"""
 	code = utils.fixIndentation(code, "			")
 	macCode = """class Newmacro(Macro):
-		@staticmethod
-		def getName():
-			return "%(name)s"
+		name = "%(name)s"
 
 		def _compute(self, record):
 %(code)s\n"""%vars()

@@ -115,9 +115,7 @@ class Positions(Interface):
 			</Record>
 		</Semantics>
 	"""
-	@staticmethod
-	def getName():
-		return "positions"
+	name = "positions"
 
 	def __init__(self):
 		Interface.__init__(self, [ 
@@ -144,9 +142,7 @@ class Q3CPositions(Positions):
 	deltaFloat.  This will fail if you don't have the q3c extension to
 	postgres.
 	"""
-	@staticmethod
-	def getName():
-		return "q3cpositions"
+	name = "q3cpositions"
 
 	def getDelayedNodes(self, recordNode):
 		tableName = recordNode.get_table()
@@ -201,9 +197,7 @@ class Q3CIndex(Interface):
 	def __init__(self):
 		Interface.__init__(self, [])
 
-	@staticmethod
-	def getName():
-		return "q3cindex"
+	name = "q3cindex"
 
 	def getDelayedNodes(self, recordNode):
 		tableName = recordNode.get_table()
@@ -261,9 +255,7 @@ class Products(Interface):
         </Macro>
 
 	"""
-	@staticmethod
-	def getName():
-		return "products"
+	name = "products"
 
 	requiredFields = set(["accref", "owner", "embargo", "accsize"])
 	productFields = [
@@ -350,9 +342,7 @@ class BboxSiap(Products):
 	"""
 	# XXX TODO: Seperate the stuff necessary for searching from all the 
 	# XXX SIAP cruft.
-	@staticmethod
-	def getName():
-		return "bboxSiap"
+	name = "bboxSiap"
 	
 	def __init__(self):
 		Interface.__init__(self, self._getInterfaceFields())

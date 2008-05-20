@@ -38,9 +38,7 @@ class RowFunction:
 		self.constants = []
 		self.addArguments(argTuples)
 
-	@staticmethod
-	def getName():
-		return "Uncallable abstract row function"
+	name = "Uncallable abstract row function"
 
 	def addArgument(self, argName, srcName=None, value=None):
 		"""adds an argument that is filled from a field of current record.

@@ -36,9 +36,7 @@ class ResourceProcessor:
 	def __init__(self):
 		self.argDict = {}
 
-	@staticmethod
-	def getName():
-		return "Uncallable abstract resource processor"
+	name = "Uncallable abstract resource processor"
 
 	def addArgument(self, key, src, value):
 		if src!=None:
@@ -63,9 +61,7 @@ class FieldnameResolver(ResourceProcessor):
 	have macros, and we have macros whenever there's positions involved.
 	Use @-references in field names instead.
 	"""
-	@staticmethod
-	def getName():
-		return "resolveFieldnames"
+	name = "resolveFieldnames"
 
 	def _execute(self, resource, targetId, targetField, srcId):
 		targetCol = resource.getDatasetById(targetId).getRecordDef(
@@ -87,9 +83,7 @@ class FielddocBuilder(ResourceProcessor):
 	from another table.  I hope we can extend this to cover other use
 	cases as they come up.
 	"""
-	@staticmethod
-	def getName():
-		return "buildFielddoc"
+	name = "buildFielddoc"
 	
 	def _makeFielddocDataset(self, newId):
 		"""creates a data set to hold column descriptions for tabular data.
@@ -170,9 +164,7 @@ class DatasetRemover(ResourceProcessor):
 	This is typically used to remove datasets not going into the database
 	after picking any relevant information out of them.
 	"""
-	@staticmethod
-	def getName():
-		return "removeDataset"
+	name = "removeDataset"
 
 	def _execute(self, resource, id):
 		resource.removeDataset(id)

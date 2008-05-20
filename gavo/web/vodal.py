@@ -13,9 +13,10 @@ from twisted.python import failure
 from zope.interface import implements
 
 import gavo
-from gavo import meta
-from gavo import ElementTree
+from gavo import config
 from gavo import datadef
+from gavo import ElementTree
+from gavo import meta
 from gavo import votable
 from gavo.parsing import contextgrammar
 from gavo.parsing import resource
@@ -37,6 +38,9 @@ class DalRenderer(common.CustomErrorMixin, resourcebased.Form):
 
 	def __init__(self, ctx, *args, **kwargs):
 		ctx.remember(self, inevow.ICanHandleException)
+		reqArgs = inevow.IRequest(ctx).args
+		if not "_DBOPTIONS_LIMIT" in reqArgs:
+			reqArgs["_DBOPTIONS_LIMIT"] = [config.get("ivoa", "dalDefaultLimit")]
 		super(DalRenderer, self).__init__(ctx, *args, **kwargs)
 
 	_generateForm = resourcebased.Form.form_genForm

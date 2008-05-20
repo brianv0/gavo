@@ -434,6 +434,30 @@ myTests = [
 			"JFIF",
 			"Preview looks like a JPEG"),
 	),
+
+	TestGroup("services",
+		GetHasStringsTest(nv_root+"/lswscans/res/positions/q/form?"
+				"__nevow_form__=genForm&POS=2%2C2&SIZE=0.5&INTERSECT=COVERS&"
+				"FORMAT=image%2Ffits&cutoutSize=0.5&_DBOPTIONS_ORDER=&"
+				"_DBOPTIONS_LIMIT=100&_FORMAT=HTML&submit=Go",
+			["Plate alpha", "Bandpass", "B2866b"],
+			"LSW plate service gives plausible answer"),
+		GetHasStringsTest(nv_root+"/getproduct?"
+				"key=lswscans/data/B2866b.fits%26amp%3Bra%3D2.0%26amp%3Bdec"
+				"%3D2.0%26amp%3Bsra%3D0.5%26amp%3Bsdec%3D0.5",
+			["SIMPLE  =                    T", "OBSERVER= 'F.Kaiser'", 
+				"NAXIS1  =                 1772"],
+			"LSW cutout delivers plauible FITS"),
+		GetHasStringsTest(nv_root+"/liverpool/res/rawframes/q/form",
+			["<h1>Liverpool", "QSO B0957+5608A"],
+			"Liverpool service delivers form"),
+		GetHasStringsTest(nv_root+"/liverpool/res/rawframes/q/form?"
+				"__nevow_form__=genForm&object=QSO%20B0957%2B5608A&dateObs="
+				"%3C%202007-12-31&_DBOPTIONS_ORDER=&_DBOPTIONS_LIMIT=100&"
+				"_FORMAT=HTML&submit=Go",
+			["Product", "2007-05-04T22:00:05Z"],
+			"Liverpool service delivers data"),
+	)
 ]
 
 

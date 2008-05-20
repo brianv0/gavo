@@ -87,9 +87,11 @@ class MetaMixin(object):
 	belonging to it.
 
 	To provide "computed" meta values or built-in default, you can override
-	the getDefaultMeta(key) -> MetaValue method.  It *must* raise a KeyError
+	the getDefaultMeta(key) -> MetaItem method.  It *must* raise a KeyError
 	for any key it doesn't know.  Manually set meta values always override
-	this function.
+	this function.  They will interrupt the usual propagation of meta
+	queries to parents.  To retrofit this into your getDefaultMeta, run
+	getMeta(..., raiseOnFail="True") on getMetaParent.
 	"""
 	def __ensureMetaDict(self):
 		try:
@@ -109,6 +111,9 @@ class MetaMixin(object):
 
 	def setMetaParent(self, parent):
 		self.__metaParent = parent
+	
+	def getMetaParent(self):
+		return self.__metaParent
 
 	def _getMeta(self, atoms, propagate):
 		self.__ensureMetaDict()
@@ -152,7 +157,7 @@ class MetaMixin(object):
 		if atom in self.__metaDict:
 			return self.__metaDict[atom]
 		try:
-			return MetaItem(self.getDefaultMeta(atom))
+			return self.getDefaultMeta(atom)
 		except KeyError:
 			raise gavo.NoMetaKey("No meta child %s"%atom)
 
