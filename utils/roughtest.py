@@ -435,6 +435,23 @@ myTests = [
 			"Preview looks like a JPEG"),
 	),
 
+	TestGroup('ucds',
+		GetHasStringsTest(nv_root+'/ucds/ui/ui/form?'
+				'__nevow_form__=genForm&description=Weird%20uninterpretable%20'
+				'gobbledegook&_FORMAT=HTML&submit=Go',
+			["No known words", "Query Form", "Weird"],
+			"UCD resolver yields nice error message for garbage input"),
+		GetHasStringsTest(nv_root+'/ucds/ui/ui/form?'
+				'__nevow_form__=genForm&description=airmass%20measured%20'
+				'at%20center%20of%20plate&_FORMAT=HTML&submit=Go',
+			["Score</th", "Show known", "toggleDescriptions"],
+			"UCD resolver yields credible table for good input"),
+		GetHasStringsTest(nv_root+'/ucds/ui/known/form?ucd=phot.mag.sb%3B'
+				'em.opt.B&__nevow_form__=genForm',
+			["Average blue", "surface brightness"],
+			"UCD known descriptions returns something sensible"),
+	),
+
 	TestGroup("services",
 		GetHasStringsTest(nv_root+"/lswscans/res/positions/q/form?"
 				"__nevow_form__=genForm&POS=2%2C2&SIZE=0.5&INTERSECT=COVERS&"
@@ -455,7 +472,7 @@ myTests = [
 				"__nevow_form__=genForm&object=QSO%20B0957%2B5608A&dateObs="
 				"%3C%202007-12-31&_DBOPTIONS_ORDER=&_DBOPTIONS_LIMIT=100&"
 				"_FORMAT=HTML&submit=Go",
-			["Product", "2007-05-04T22:00:05Z"],
+			["Product", "insertPreview(this"],
 			"Liverpool service delivers data"),
 	)
 ]

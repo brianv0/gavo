@@ -108,7 +108,7 @@ class OutputFormat(object):
 	renderImmutable = render  # This is a lost case
 
 	def processInput(self, ctx, key, args):
-		return args["_FORMAT"][0]
+		return args.get("_FORMAT", ["HTML"])[0]
 
 
 class DbOptions(object):

@@ -2,7 +2,6 @@
 This module contains code for reading raw resources and their descriptors.
 """
 
-import imp
 import pkg_resources
 import os
 import re
@@ -27,6 +26,7 @@ from gavo.parsing.columngrammar import ColumnGrammar
 from gavo.parsing.customgrammar import CustomGrammar
 from gavo.parsing.fitsgrammar import FitsGrammar
 from gavo.parsing.grammar import Grammar
+from gavo.parsing.simpleregrammar import SimpleREGrammar
 from gavo.parsing import conditions
 from gavo.parsing import contextgrammar
 from gavo.parsing import elgen
@@ -36,6 +36,7 @@ from gavo.parsing import processors
 from gavo.parsing import resource
 from gavo.parsing import tablegrammar
 from gavo.parsing import typeconversion
+from gavo.parsing.dictlistgrammar import DictlistGrammar
 from gavo.parsing.directgrammar import DirectGrammar
 from gavo.parsing.kvgrammar import KeyValueGrammar
 from gavo.parsing.nullgrammar import NullGrammar
@@ -188,6 +189,14 @@ class RdParser(utils.NodeBuilder):
 		grammar.set_numericGroups(attrs.get("numericGroups", "False"))
 		return utils.NamedNode("Grammar", grammar)
 
+	def _make_SimpleREGrammar(self, name, attrs, children):
+		grammar = SimpleREGrammar()
+		self._fillGrammarNode(grammar, attrs, children, {
+				"rowProduction": grammar.set_rowProduction,
+				"parseRE": grammar.set_parseRE,
+			})
+		return utils.NamedNode("Grammar", grammar)
+
 	def _make_FitsGrammar(self, name, attrs, children):
 		grammar = self._fillGrammarNode(FitsGrammar(), attrs, children, {})
 		grammar.set_qnd(attrs.get("qnd", "False"))
@@ -246,6 +255,11 @@ class RdParser(utils.NodeBuilder):
 			self._fillGrammarNode(grammar, attrs, children, {
 				"inputKey": grammar.addto_inputKeys,
 			}))
+
+	def _make_DictlistGrammar(self, name, attrs, children):
+		grammar = DictlistGrammar()
+		return utils.NamedNode("Grammar",
+			self._fillGrammarNode(grammar, attrs, children, {}))
 
 	def _make_Semantics(self, name, attrs, children):
 		semantics = resource.Semantics()
@@ -506,21 +520,15 @@ class RdParser(utils.NodeBuilder):
 		return res
 
 	def _make_customPage(self, name, attrs, children):
+		moduleName = attrs["module"]
 		try:
-			modpath = os.path.join(self.sourceDir, os.path.dirname(attrs["module"]))
-			moduleName = os.path.basename(attrs["module"])
-			moddesc = imp.find_module(moduleName, [modpath])
-			try:
-				imp.acquire_lock()
-				modNs = imp.load_module(moduleName, *moddesc)
-				page = modNs.MainPage
-			finally:
-				imp.release_lock()
+			modNs, moddesc = parsehelpers.getModule(self.sourceDir, moduleName)
+			page = modNs.MainPage
 		except ImportError:
 			traceback.print_exc()
 			logger.error("Bad custom page %s"%moduleName)
 			return None
-		return page, (moduleName,)+moddesc
+		return page, (os.path.basename(moduleName),)+moddesc
 
 	def _make_protect(self, name, attrs, children):
 		return self._processChildren(makeAttDict(attrs), name, {}, children)
@@ -562,13 +570,19 @@ class RdParser(utils.NodeBuilder):
 			"arg": lambda *args: None,  # Handled by core constructor
 		}
 
+		attrs = makeAttDict(attrs)
 		args = self._collectArguments(children)
 # XXX TODO: Unify computedCore with others.
 		if attrs.has_key("computer"): # computed cores
 			curCore = standardcores.ComputedCore(self.getById(attrs["computer"])[1],
 				initvals=args)
 		else:
-			curCore = core.getStandardCore(attrs["builtin"])(self.rd, initvals=args)
+			if "module" in attrs:
+				parsehelpers.getModule(self.sourceDir, attrs["module"])
+				del attrs["module"]
+			builtinName = attrs.pop("builtin")
+			attrs.update(args)
+			curCore = core.getStandardCore(builtinName)(self.rd, initvals=attrs)
 			handlers.update({
 				"condDesc": handlerFactory(curCore, "condDesc", "addto_condDescs"),
 				"outputField": handlerFactory(curCore, "outputField", 
@@ -661,6 +675,8 @@ class RdParser(utils.NodeBuilder):
 	_make_rowProduction = \
 	_make_tabularDataProduction = \
 	_make_tokenSequence = \
+	_make_rowProduction = \
+	_make_parseRE = \
 	_make_schema = \
 	_make_option = \
 	_makeTextNode

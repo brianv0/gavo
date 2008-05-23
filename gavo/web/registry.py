@@ -327,14 +327,20 @@ def getRegistryResourceTree(rec, resource):
 			VOG.managedAuthority[resource.getMeta("managedAuthority")],
 		]
 
+# XXX TODO: Flesh coverage out
+_resourceItemBuilder = meta.ModelBasedBuilder([
+	('facility', meta.stanFactory(VOR.facility)),# XXX TODO: look up ivo-ids?
+	('instrument', meta.stanFactory(VOR.instrument)),
+	('coverage', meta.stanFactory(VS.coverage)),
+])
+
 
 def getOrgResourceTree(rec, resource):
 	"""returns a vr:Organisation-typed Resource tree for an organization.
 	"""
 	return VOR.Organisation(**getResourceArgs(rec, resource))[
 		getResourceItems(resource),
-		VOR.facility[resource.getMeta("facility")],
-		VOR.instrument[resource.getMeta("instrument")]]
+		_resourceItemBuilder.build(resource) ]
 			
 
 def getAuthResourceTree(rec, resource):
@@ -366,20 +372,12 @@ def getResponseTableTree(service):
 	]
 
 
-# XXX TODO: Flesh that out
-_coverageBuilder = meta.ModelBasedBuilder([
-	('coverage', meta.stanFactory(VS.coverage)),
-])
-
 def getCatalogServiceItems(service, capabilities):
 	"""returns a sequence of elements for a CatalogService based on service
 	with capabilities.
 	"""
 	return getResourceItems(service)+[capabilities]+[
-		VOR.facility[ # XXX TODO: maybe look up ivo-ids?
-			service.getMeta("facility")],
-		VOR.instrument[service.getMeta("instrument")],
-		_coverageBuilder.build(service),
+		_resourceItemBuilder.build(service),
 		getResponseTableTree(service),
 	]
 		
@@ -389,10 +387,7 @@ def getDataServiceItems(service, capabilities):
 	with capabilities.
 	"""
 	return getResourceItems(service)+[capabilities]+[
-		VOR.facility[ # XXX TODO: maybe look up ivo-ids?
-			service.getMeta("facility")],
-		VOR.instrument[service.getMeta("instrument")],
-		_coverageBuilder.build(service),
+		_resourceItemBuilder.build(service),
 	]
 
 
@@ -462,11 +457,11 @@ def getSiaCapabilitiesTree(service):
 		SIA.imageServiceType[service.getMeta("sia.type")],
 			SIA.maxQueryRegionSize[
 				SIA.long[service.getMeta("sia.maxQueryRegionSize.long", default="360")],
-				SIA.lat[service.getMeta("sia.maxQueryRegionSize.lat", default="360")],
+				SIA.lat[service.getMeta("sia.maxQueryRegionSize.lat", default="180")],
 			],
 			SIA.maxImageExtent[
 				SIA.long[service.getMeta("sia.maxImageExtent.long", default="360")],
-				SIA.lat[service.getMeta("sia.maxImageExtent.lat", default="360")],
+				SIA.lat[service.getMeta("sia.maxImageExtent.lat", default="180")],
 			],
 			SIA.maxImageSize[
 				SIA.long[service.getMeta("sia.maxImageSize.long", default="100000")],

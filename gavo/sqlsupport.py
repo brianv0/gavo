@@ -132,11 +132,15 @@ else:
 	from psycopg2 import Error as DbError
 
 	def getDbConnection(profile):
-		conn = psycopg2.connect("dbname='%s' port='%s' host='%s'"
-			" user='%s' password='%s'"%(profile.get_database(), 
-				profile.get_port(), profile.get_host(), profile.get_user(), 
-				profile.get_password()))
-		return conn
+		try:
+			conn = psycopg2.connect("dbname='%s' port='%s' host='%s'"
+				" user='%s' password='%s'"%(profile.get_database(), 
+					profile.get_port(), profile.get_host(), profile.get_user(), 
+					profile.get_password()))
+			return conn
+		except KeyError:
+			raise gavo.Error("Insufficient information to connect to database."
+				"  The operators need to check their profiles.")
 
 
 
@@ -338,8 +342,8 @@ class StandardQueryMixin(object):
 		matches = self.query("SELECT table_name FROM"
 			" information_schema.tables WHERE"
 			" table_schema=%(schemaName)s AND table_name=%(tableName)s", {
-					'tableName': tableName,
-					'schemaName': schema,
+					'tableName': tableName.lower(),
+					'schemaName': schema.lower(),
 			}).fetchall()
 		return len(matches)!=0
 

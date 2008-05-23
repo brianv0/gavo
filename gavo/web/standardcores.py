@@ -197,6 +197,7 @@ class DbBasedCore(QueryingCore):
 				"table": record.RequiredField,
 				"sortOrder": common.Undefined,
 				"limit": common.Undefined,
+				"distinct": record.BooleanField,
 			}, initvals=initvals)
 		self.validate()
 	
@@ -320,14 +321,19 @@ class DbBasedCore(QueryingCore):
 			condition = "WHERE %s"%condition
 		else:
 			condition = ""
+		distinctTerm = ""
+		if self.get_distinct():
+			distinctTerm = "DISTINCT "
 		if not recordDef.get_items():
 			raise gavo.ValidationError("No output fields with these settings",
 				"_OUTPUT")
-		query = "SELECT %(fields)s from %(table)s %(condition)s %(limtags)s"%{
+		query = ("SELECT %(distinctTerm)s%(fields)s from %(table)s"
+				" %(condition)s %(limtags)s")%{
 			"fields": ", ".join([self._getSelect(f) for f in recordDef.get_items()]),
 			"table": tableName,
 			"condition": condition,
 			"limtags": limtagsFrag,
+			"distinctTerm": distinctTerm,
 		}
 		if printQuery:
 			print ">>>>", query, pars

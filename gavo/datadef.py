@@ -217,12 +217,13 @@ class OutputField(DataField):
 		return self.dataStore["dest"]
 
 	@classmethod
-	def fromDataField(cls, dataField):
+	def fromDataField(cls, dataField, munge=True):
 		instance = super(OutputField, cls).fromDataField(dataField)
 		if instance.get_values():
 			instance.set_values(instance.get_values().copy())
-		instance.set_source(instance.get_dest())
-		instance.set_optional(True)
+		if munge:
+			instance.set_source(instance.get_dest())
+			instance.set_optional(True)
 		return instance
 
 

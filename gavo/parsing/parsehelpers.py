@@ -2,6 +2,7 @@
 This module contains utility classes for resource parsing.
 """
 
+import imp
 import os
 import re
 import time
@@ -336,6 +337,27 @@ def parseCooPair(soup):
 		if res:
 			return res
 	raise ValueError("%s has no discernible position in it"%soup)
+
+
+def getModule(modulePath, moduleName):
+# This should be in utils, but I've messed this up my creating a directory
+# imp -- rats.
+	"""import moduleName from modulePath and returns the module with
+	a module description.
+
+	The module description is what what find_module returns.
+
+	For convenience, moduleName may contain path elements.
+	"""
+	modpath = os.path.join(modulePath, os.path.dirname(moduleName))
+	moduleName = os.path.basename(moduleName)
+	moddesc = imp.find_module(moduleName, [modpath])
+	try:
+		imp.acquire_lock()
+		modNs = imp.load_module(moduleName, *moddesc)
+	finally:
+		imp.release_lock()
+	return modNs, moddesc
 
 
 def _test():

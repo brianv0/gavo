@@ -480,8 +480,12 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 
 	# renderers for HTML tables
 	def render_resulttable(self, ctx, data):
-		return htmltable.HTMLTableFragment(data.child(ctx, "table"), 
-			data.queryMeta)
+		if hasattr(data, "child"):
+			return htmltable.HTMLTableFragment(data.child(ctx, "table"), 
+				data.queryMeta)
+		else:
+			# a FormErrors, most likely
+			return ""
 
 	def render_parpair(self, ctx, data):
 		if data==None or data[1]==None or "__" in data[0]:
@@ -582,7 +586,8 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		return d
 
 	def _computeResult(self, ctx, service, inputData, queryMeta):
-		self.queryResult = self.service.run(inputData, queryMeta)
+		self.queryResult = self.service.run(inputData, queryMeta
+			).addErrback(self._handleInputErrors, ctx)
 		if self.service.get_template("response"):
 			self.customTemplate = os.path.join(self.rd.get_resdir(),
 				self.service.get_template("response"))

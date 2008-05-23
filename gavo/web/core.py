@@ -31,6 +31,7 @@ class Core(record.Record):
 	def getInputFields(self):
 		return []
 
+
 _coresRegistry = {}
 
 def registerCore(name, klass):
