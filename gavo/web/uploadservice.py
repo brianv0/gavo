@@ -1,8 +1,10 @@
 """
-A service to upload sources into databases.
+Services and cores to upload things into databases.
 """
 
+import grp
 import os
+import traceback
 
 import formal
 
@@ -30,7 +32,7 @@ from gavo.web import resourcebased
 
 
 class UploadCore(standardcores.QueryingCore):
-	"""is a core handling uploads of data to the database.
+	"""is a core handling uploads of files to the database.
 
 	It uses the standard parsing architecture to do that.
 	"""
@@ -57,8 +59,11 @@ class UploadCore(standardcores.QueryingCore):
 		"""tries to chmod the newly created file to 0664 and change the group
 		to config.gavoGroup.
 		"""
-		os.chmod(fName, 0664)
-		os.chown(fName, -1, grp.getgrnam(config.get("gavoGroup")))
+		try:
+			os.chmod(fName, 0664)
+			os.chown(fName, -1, grp.getgrnam(config.get("gavoGroup"))[2])
+		except (KeyError, os.error):  # let someone else worry about it
+			pass
 
 	def _writeFile(self, srcFile, fName):
 		"""writes the contents of srcFile to fName in dataDesc's staging dir.
@@ -91,7 +96,7 @@ class UploadCore(standardcores.QueryingCore):
 			dbConn = sqlsupport.getDbConnection(config.getDbProfileByName("feed"))
 			def makeSharedTable(dataSet, recordDef):
 				return table.DirectWritingTable(dataSet, recordDef, dbConn, 
-					create=False, doUpdates=mode=="u", dropIndices=False)
+					doUpdates=mode=="u", dropIndices=False)
 			r = resource.InternalDataSet(self.dataDesc, tableMaker=makeSharedTable,
 				dataSource=sourcePath)
 		except sqlsupport.DatabaseError, msg:
@@ -129,18 +134,67 @@ class UploadCore(standardcores.QueryingCore):
 		return nUpdated
 
 	def run(self, inputData, queryMeta):
+# XXX TODO: Setting this stuff globally is super ugly.  Figure out how
+# to suppress creation on a case-by-case basis
+		for tableDef in self.dataDesc.get_Semantics().get_recordDefs():
+			tableDef.set_create(False)
 # Do we want to interpret the primary table here as well?
 		data = inputData.getDocRec()
 		fName, srcFile = data["File"]
 		mode = data["Mode"]
 		return defer.maybeDeferred(self.saveData, srcFile, fName, mode)
 
-
 core.registerCore("upload", UploadCore)
 
+
+# XXX TODO: EditCore and UploadCore should have a common mixin for,
+# e.g. the actual DB interaction.
+class EditCore(standardcores.QueryingCore):
+	"""is a core that allows POSTing records into the database.
+
+	We simply push inputData's docRec into targetDs.
+	"""
+	def __init__(self, rd, initvals):
+		standardcores.QueryingCore.__init__(self, rd, initvals=initvals, 
+			additionalFields={
+			"targetDataId": record.RequiredField})
+		self.dataDesc = rd.getDataById(self.get_targetDataId())
+
+	def run(self, inputData, queryMeta):
+# XXX TODO: Crap -- see other instance with set_create
+		for tableDef in self.dataDesc.get_Semantics().get_recordDefs():
+			tableDef.set_create(False)
+		return defer.maybeDeferred(self._importData, inputData)
 	
+	def _importData(self, inputData):
+		try:
+			dbConn = sqlsupport.getDbConnection(config.getDbProfileByName("feed"))
+			def makeSharedTable(dataSet, recordDef):
+				return table.DirectWritingTable(dataSet, recordDef, dbConn, 
+					dropIndices=False)
+			r = resource.InternalDataSet(self.dataDesc,
+				tableMaker=makeSharedTable,
+				dataSource=[inputData.getDocRec()])
+		except sqlsupport.DatabaseError, msg:
+			raise gavo.ValidationError("Cannot enter %s in database: %s"%
+				(str(inputData), str(msg)))
+		except:
+			traceback.print_exc()
+			raise
+		resDD = datadef.DataTransformer(self.rd, initvals={
+			"Grammar": nullgrammar.NullGrammar(),
+			"Semantics": resource.Semantics(),
+			"items": [
+				datadef.DataField(name="nUpdated", dbtype="integer")]})
+		resData = resource.InternalDataSet(resDD)
+		resData.getDocRec()["nUpdated"] = r.getPrimaryTable().nUpdated
+		return resData
+
+core.registerCore("edit", EditCore)
+
+
 class Uploader(resourcebased.Form):
-	"""is a renderer allowing for updates to individual records.
+	"""is a renderer allowing for updates to individual using file upload.
 	"""
 
 	name = "upload"
@@ -158,7 +212,10 @@ class Uploader(resourcebased.Form):
 		self.uploadInfo["nUpdated"] = outputData.getDocRec()["nUpdated"]
 		# remove form identification to prevent infinite recursion
 		del inevow.IRequest(ctx).args["__nevow_form__"]
-		del inevow.IRequest(ctx).args["Mode"]
+		try:
+			del inevow.IRequest(ctx).args["Mode"]
+		except KeyError:
+			pass
 		inevow.IRequest(ctx).args = {}
 		return self
 
@@ -175,7 +232,8 @@ class Uploader(resourcebased.Form):
 			T.title["Upload"],
 			T.invisible(render=T.directive("commonhead")),
 		],
-		T.body[
+		T.body(render=T.directive("withsidebar"))[
+			T.h1(render=T.directive("meta"))["title"],
 			T.p(class_="procMessage", render=T.directive("uploadInfo"))[
 				T.slot(name="nUpdated"),
 				" record(s) modified."
@@ -186,7 +244,8 @@ class Uploader(resourcebased.Form):
 
 
 class MachineUploader(common.CustomErrorMixin, Uploader):
-	"""is a renderer allowing for updates to individual records.
+	"""is a renderer allowing for updates to individual records using file 
+	uploads.
 
 	The difference to Uploader is that no form-redisplay will be done.
 	All errors are reported through HTTP response codes and text strings.
@@ -206,6 +265,7 @@ class MachineUploader(common.CustomErrorMixin, Uploader):
 		return appserver.errorMarker
 	
 	def _handleInputErrors(self, errors, ctx):
+		errors.printTraceback()
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(400)
 		request.setHeader("content-type", "text/plain")

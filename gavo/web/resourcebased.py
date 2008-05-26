@@ -426,9 +426,12 @@ class GavoFormMixin(formal.ResourceMixin, object):
 		"""
 		if isinstance(failure.value, formal.FormError):
 			self.form.errors.add(failure.value)
-		elif isinstance(failure.value, gavo.ValidationError):
-			if failure.value.fieldName!="<unknown>":# XXX TODO: check if field exists.
-				self.form.errors.add(formal.FieldValidationError(failure.value.msg,
+		elif isinstance(failure.value, gavo.ValidationError) and isinstance(
+				failure.value.fieldName, basestring):
+			if failure.value.fieldName!="<unknown>":
+				# XXX TODO: check if field exists.
+				self.form.errors.add(formal.FieldValidationError(
+					str(failure.getErrorMessage()),
 					self.translateFieldName(failure.value.fieldName)))
 			else:
 				failure.printTraceback()

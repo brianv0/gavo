@@ -110,7 +110,7 @@ class RecordDef(record.Record, meta.MetaMixin, scripting.ScriptingMixin):
 			"owningCondition": None,    # a condition to select our data from
 			                            # shared tables.
 			"shared": record.BooleanField,  # is this a shared table?
-			"create": record.BooleanField,  # create table?
+			"create": record.TrueBooleanField,  # create table?
 			"onDisk": record.BooleanField,  # write parsed data directly?
 			"forceUnique": record.BooleanField,  # enforce uniqueness of 
 			                                     # primary key?
@@ -144,7 +144,7 @@ class RecordDef(record.Record, meta.MetaMixin, scripting.ScriptingMixin):
 			field.validate(record.get(field.get_dest()))
 		if self.get_constraints():
 			self.get_constraints().check(record)
-	
+
 	def addto_items(self, item):
 		if self.fieldIndexDict.has_key(item.get_dest()):
 			raise Error("Duplicate field name: %s"%item.get_dest())

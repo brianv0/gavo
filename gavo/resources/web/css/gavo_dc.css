@@ -280,3 +280,9 @@ div.copyright {
 	padding: 5px;
 	margin-top: 5px;
 }
+
+textarea { /* fix silly nevow formal css */
+  width: auto !important;
+  height: auto !important;
+}
+

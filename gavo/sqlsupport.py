@@ -1,13 +1,6 @@
 # -*- encoding: iso-8859-1 -*-
 """
 This module contains basic support for manual SQL generation.
-
-A word on the fieldInfos that are used here: python-gavo has two ways of
-defining fields: The DataField from datadef and the fieldInfos from 
-sqlsupport.  DataFields are utils.records containing much the same
-data that fieldInfos hold in dicts.  The reason that the two are distinct
-is historical (DataFields were originally exclusively for parsing), and at 
-some point we should probably make sqlsupport use DataFields as well.
 """
 
 import re
