@@ -16,6 +16,7 @@
 #include <time.h>
 #include <endian.h> 
 #include <stdlib.h>
+#include <setjmp.h>
 #include <errno.h>
 #include <arpa/inet.h>
 #include "boosterskel.h"
@@ -24,7 +25,13 @@
 
 #define INPUT_LINE_MAX 2000
 
-/* Epoch of pq dumps.  Let's hope the don't change that frequently */
+/* The following items should probably be collected in a parseContext */
+static char *context=NULL;  // handleInvalidRecord() looks here to give 
+// more informative error messages
+static jmp_buf ignoreRecord; // longjmp target for non-letal bad records
+
+
+/* Epoch of pq dumps.  Let's hope they don't change that frequently */
 static struct tm pqEpochParts = {
 	.tm_sec = 0,
 	.tm_min = 0,
@@ -48,6 +55,23 @@ void die(char *format, ...)
 	(void)fprintf(stderr, "\n");
 	exit(1);
 }
+
+static void handleBadRecord(char *format, ...)
+{
+	va_list ap;
+	va_start(ap, format);
+	(void)fprintf(stderr, "importbooster: ");
+	if (context) {
+		(void)fprintf(stderr, "Bad Record: %s\n", context);
+	}
+#ifndef IGNORE_BAD_RECORDS
+		die(stderr, format, ap);
+#else
+		longjmp(ignoreRecord, 1);
+#endif
+	va_end(ap);
+}
+
 
 #define DATA_OUT(data, nbytes, destination) \
 	fwrite(data, 1, nbytes, (FILE*)destination)
@@ -173,7 +197,7 @@ int isWhitespaceOnly(char *str)
 #define scanfWithWhitespace(input, format, field, expType) \
 	if (1!=sscanf(input, format, (expType*)&(field->val))) { \
 		if (!isWhitespaceOnly(input)) { \
-			die("Invalid literal for %s: '%s'", STRINGIFY(expType), input); \
+			handleBadRecord("Invalid literal for %s: '%s'", STRINGIFY(expType), input); \
 		} else { \
 			field->type = VAL_NULL; \
 		} \
@@ -284,7 +308,7 @@ void real_fieldscanf(char *str, Field *f, valType type, char *fieldName, ...)
 		case VAL_NULL:
 			break;
 		case VAL_BOOL:
-			die("Can't fieldscanf bools at %s", fieldName);
+			handleBadRecord("Can't fieldscanf bools at %s", fieldName);
 			break;
 		case VAL_CHAR:
 			f->val.c_int8 = *str;
@@ -321,7 +345,7 @@ void real_fieldscanf(char *str, Field *f, valType type, char *fieldName, ...)
 	}
 	va_end(ap);
 	if (itemsMatched!=1) {
-		die("fieldscanf: Can't parse value '%s' for %s", str, fieldName);
+		handleBadRecord("fieldscanf: Can't parse value '%s' for %s", str, fieldName);
 	}
 }
 
@@ -561,19 +585,23 @@ void createDumpfile(int argc, char **argv)
 	while (fgets(inputLine, INPUT_LINE_MAX, inF)) {
 #endif
 		Field *tuple;
-		tuple = getTuple(inputLine);
-		if (!tuple) {
+		context = inputLine;
+		if (!setjmp(ignoreRecord)) {
+			tuple = getTuple(inputLine);
+			if (!tuple) {
 #ifdef FIXED_RECORD_SIZE
-			die("Bad input line at record %d", lncount);
+			handleBadRecord("Bad input line at record %d", lncount);
 #else
-			die("Bad input line: '%s'", inputLine);
+			handleBadRecord("Bad input line");
 #endif
-		}
-		writeTuple(tuple, QUERY_N_PARS, destination);
-		lncount ++;
-		if (!(lncount%1000)) {
-			fprintf(stderr, "%08d\r", lncount);
-			fflush(stderr);
+			}
+			writeTuple(tuple, QUERY_N_PARS, destination);
+			context = NULL;
+			lncount ++;
+			if (!(lncount%1000)) {
+				fprintf(stderr, "%08d\r", lncount);
+				fflush(stderr);
+			}
 		}
 	}
 	fprintf(stderr, "%08d records done.\n", lncount);

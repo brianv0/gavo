@@ -479,6 +479,11 @@ class TableInterface(StandardQueryMixin):
 		cursor.copy_expert("COPY %s FROM STDIN WITH BINARY"%self.tableName, inFile)
 		cursor.close()
 
+	def copyOut(self, outFile):
+		cursor = self.connection.cursor()
+		cursor.copy_expert("COPY %s TO STDIN"%self.tableName, outFile)
+		cursor.close()
+
 	def getTableName(self):
 		return self.tableName
 

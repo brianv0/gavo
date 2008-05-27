@@ -35,12 +35,13 @@ class CBooster:
 	the source to recompile.
 	"""
 	def __init__(self, srcName, recordSize, dataDesc, gzippedInput=False,
-			autoNull=None, preFilter=None):
+			autoNull=None, preFilter=None, ignoreBadRecords=False):
 		self.dataDesc = dataDesc
 		self.recordSize = recordSize
 		self.resdir = dataDesc.getRd().get_resdir()
 		self.srcName = os.path.join(self.resdir, srcName)
 		self.autoNull, self.preFilter = autoNull, preFilter
+		self.ignoreBadRecords = ignoreBadRecords
 		self.gzippedInput = gzippedInput
 		self.bindir = os.path.join(self.resdir, "bin")
 		self.binaryName = os.path.join(self.bindir,
@@ -74,6 +75,8 @@ class CBooster:
 		if self.autoNull:
 			f.write("CFLAGS += -DAUTO_NULL='%s'\n"%self.autoNull.replace(
 				"\\", "\\\\"))
+		if self.ignoreBadRecords:
+			f.write("CFLAGS += -DIGNORE_BAD_RECORDS\n")
 		f.write("booster: boosterskel.c func.c\n"
 			"\t$(CC) $(CFLAGS) $(LDFLAGS) -o booster $^\n")
 		f.close()
@@ -127,10 +130,12 @@ class DirectGrammar(record.Record):
 		booster = CBooster(self.attrs["cbooster"], self.attrs.get("recordSize"),
 			parseContext.getDataSet().getDescriptor(), 
 			gzippedInput=self.attrs.has_key("gzippedInput") 
-				and record.parseBooleanLiteral(self.attrs ["gzippedInput"]),
+				and record.parseBooleanLiteral(self.attrs["gzippedInput"]),
 			preFilter=self.attrs.has_key("preFilter")
 				and os.path.join(rD.get_resdir(), self.attrs["preFilter"]),
-			autoNull=self.attrs.get("autoNull", None))
+			autoNull=self.attrs.get("autoNull", None),
+			ignoreBadRecords=record.parseBooleanLiteral(
+				self.attrs.get("ignoreBadRecords", "False")))
 		targetTables = parseContext.getDataSet().getTables()
 		assert len(targetTables)==1
 		try:

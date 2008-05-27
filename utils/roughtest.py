@@ -217,6 +217,31 @@ class DexterUploadTest(UploadTest):
 		assert 'custom/__testing__/edit/0"' in response
 
 
+class UploadHasStringTest(UploadTest):
+	"""is a test for GAVO's built-in file upload service.
+	"""
+	def __init__(self, url, dataDesc, expected, description):
+		self.dataName, self.data, self.mode = dataDesc
+		self.expected = expected
+		UploadTest.__init__(self, url, self.data, description)
+	
+	def genForm(self):
+		form = _FormData()
+		form.addFile("File", self.dataName, self.data)
+		form.addParam("Mode", self.mode)
+		form.addParam("_charset_", "UTF-8")
+		form.addParam("__nevow_form__", "genForm")
+		return form
+
+	def check(self, status, response):
+		if status!=200:
+			print "Additional Failure Info: status=%d"%status
+		assert status==200
+		if self.expected not in response:
+			print "Additional Failure Info: response was %s"%repr(response)
+		assert self.expected in response
+
+
 myTests = [
 	TestGroup("apfs",
 		GetHasStringTest(nv_root+"/apfs/res/"
@@ -363,7 +388,7 @@ myTests = [
 			"PMH ListRecords response looks all right in ivo_vor"),
 		),
 	
-	TestGroup("dexter",
+	TestGroup("dexter",  # CAUSES SERVER-SIDE STATE!
 		DexterUploadTest(nv_root+"/dexter/ui/ui/custom/__testing__/",
 			roughtestdata.get("dexterImage.jpg"),
 			"Dexter processes jpeg image"),
@@ -450,6 +475,32 @@ myTests = [
 				'em.opt.B&__nevow_form__=genForm',
 			["Average blue", "surface brightness"],
 			"UCD known descriptions returns something sensible"),
+	),
+
+	TestGroup("upload", # CAUSES INTERMEDIATE SERVER-SIDE STATE!
+		GetHasStringsTest(nv_root+"/__system__/tests/misc/upload/upload",
+			["insert", "update", 'type="file"'],
+			"Upload service shows a form"),
+		UploadHasStringTest(nv_root+"/__system__/tests/misc/upload/upload",
+			("c.foo", "a: 15\nb:10\n", 'u'),
+			"0 record(s) modified.",
+			"Update of non-existing data is a no-op (may fail on state)"),
+		UploadHasStringTest(nv_root+"/__system__/tests/misc/upload/upload",
+			("c.foo", "a: 15\nb:10\n", 'i'),
+			"1 record(s) modified.",
+			"Insert of non-existing data touches one record."),
+		UploadHasStringTest(nv_root+"/__system__/tests/misc/upload/upload",
+			("c.foo", "a: 15\nb:17\n", 'i'),
+			"Validation failed on field File (Cannot enter c.foo in database:"
+				" duplicate key violates unique constraint",
+			"Duplicate insertion of data yields error"),
+		UploadHasStringTest(nv_root+"/__system__/tests/misc/upload/upload",
+			("c.foo", "a: 15\nb:10\n", 'u'),
+			"1 record(s) modified.",
+			"Updates of existing data modify db"),
+		GetHasStringTest(nv_root+"/__system__/tests/misc/reset/text",
+			"None",
+			"Reset of db seems to work"),
 	),
 
 	TestGroup("services",

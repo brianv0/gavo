@@ -732,10 +732,15 @@ class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin):
 			raise Error("Resource directory %s does not exist or is"
 				" not a directory."%self.rD.get_resdir())
 		if self.get_sourcePat():
+			dirPart, filePart = os.path.dirname(self.get_sourcePat()
+				), os.path.basename(self.get_sourcePat())
 			sources = []
-			for path, dirs, files in utils.symlinkwalk(self.rD.get_resdir()):
-				for fName in glob.glob(os.path.join(path, self.get_sourcePat())):
-					sources.append(fName)
+			for path, dirs, files in utils.symlinkwalk(os.path.join(
+					self.rD.get_resdir(), dirPart)):
+				for fName in glob.glob(os.path.join(path, filePart)):
+					if os.path.isfile(fName):
+						sources.append(fName)
+			print ">>>>>>>>>>>", sources
 			sources.sort()
 			for s in sources:
 				yield s

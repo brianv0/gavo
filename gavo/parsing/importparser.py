@@ -448,7 +448,8 @@ class RdParser(utils.NodeBuilder):
 		return res
 
 	def _make_arg(self, name, attrs, children):
-		return attrs["name"], attrs.get("source"), attrs.get("value")
+		defaultValue = self.getContent(children) or None
+		return attrs["name"], attrs.get("source"), attrs.get("value", defaultValue)
 
 	def _make_tokenizer(self, name, attrs, children):
 		return self.getContent(children), attrs["type"]
@@ -702,6 +703,7 @@ def getRdInputStream(srcId):
 	"""returns a read-open stream for the XML source of the resource
 	descriptor with srcId.
 	"""
+	userInput = srcId
 	srcPath = os.path.join(config.get("inputsDir"), srcId)
 	if os.path.isfile(srcPath):
 		return srcPath, open(srcPath)
@@ -713,7 +715,7 @@ def getRdInputStream(srcId):
 	srcPath = "/resources/inputs/"+srcId
 	if pkg_resources.resource_exists('gavo', srcPath):
 		return srcPath, pkg_resources.resource_stream('gavo', srcPath)
-	raise gavo.RdNotFound(srcPath)
+	raise gavo.RdNotFound("No such resource descriptor: %s"%userInput)
 
 
 def getRd(srcId, parserClass=RdParser, forImport=False):

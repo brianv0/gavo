@@ -39,7 +39,8 @@ class KeyValueGrammar(grammar.Grammar):
 					key, value = pairSplitter.match(rec).groups()
 					items[key.strip()] = value.strip()
 			except:
-				raise gavo.Error("Not a key value pair: %s"%str(rec))
+				raise gavo.Error("Not a key value pair in %s: %s"%(
+					parseContext.sourceName, repr(rec)))
 		self.handleDocdict(items, parseContext)
 	
 	def enableDebug(self, debugProductions):

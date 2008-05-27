@@ -721,12 +721,19 @@ def displayError(exc):
 		sys.stderr.write("Pertaining data: %s\n"%makeEllipsis(data, 60))
 
 
-def symlinkwalk(dir):
+def symlinkwalk(dir, ignoreDotDirs=True):
 	"""is os.path.walk following symlinks.  
 	
 	*Warning*: This will wreak havoc when a symlink points back to a parent.
 	"""
 	for root, dirs, files in os.walk(dir):
+		if ignoreDotDirs:
+			ignored = [dir for dir in dirs
+				if dir.startswith(".")]
+			for dir in ignored:
+				dirs.remove(dir)
+			if os.path.basename(root).startswith("."):
+				continue
 		yield root, dirs, files
 		for child in dirs:
 			if os.path.islink(os.path.join(root, child)):

@@ -386,6 +386,20 @@ class DbBasedCore(QueryingCore):
 				del res.getPrimaryTable().rows[-1]
 				queryMeta["Overflow"] = True
 		return res
-
-
 core.registerCore("db", DbBasedCore)
+
+
+class FixedQueryCore(core.Core):
+	def __init__(self, rd, initvals):
+		self.rd = rd
+		core.Core.__init__(self, additionalFields={
+				"query": record.RequiredField,
+			}, initvals=initvals)
+	
+	def run(self, inputData, queryMeta):
+		return resourcecache.getDbConnection(None).runOperation(self.get_query()
+			).addCallback(self._parseOutput, queryMeta)
+	
+	def _parseOutput(self, queryResult, queryMeta):
+		return queryResult
+core.registerCore("runFixedQuery", FixedQueryCore)

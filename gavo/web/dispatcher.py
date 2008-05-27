@@ -320,6 +320,7 @@ renderClasses = {
 	"static": resourcebased.Static,
 	"form": resourcebased.Form,
 	"block": resourcebased.BlockRdRenderer,
+	"text": resourcebased.TextRenderer,
 	"siap.xml": vodal.SiapRenderer,
 	"scs.xml": vodal.ScsRenderer,
 	"upload": uploadservice.Uploader,

@@ -732,6 +732,35 @@ class Static(GavoFormMixin, ServiceBasedRenderer):
 		return None, ()
 
 
+class TextRenderer(ServiceBasedRenderer):
+	"""is a renderer that runs the service, expects back a string and
+	displays that as text/plain.
+
+	I don't think the is useful, but it's convenient for tests.
+	"""
+	name = "text"
+
+	def __init__(self, ctx, service):
+		ServiceBasedRenderer.__init__(self, ctx, service)
+	
+	def renderHTTP(self, ctx):
+		queryMeta = common.QueryMeta(ctx)
+		d = defer.maybeDeferred(self.service.getInputData, 
+				inevow.IRequest(ctx).args
+			).addCallback(self._runService, queryMeta, ctx)
+		return d
+
+	def _runService(self, inputData, queryMeta, ctx):
+		return self.service.run(inputData, queryMeta
+			).addCallback(self._doRender, ctx)
+	
+	def _doRender(self, coreOutput, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", "text/plain")
+		request.write(str(coreOutput.original))
+		return request.finishRequest(False) or ""
+	
+
 class Custom(ServiceBasedRenderer):
 	"""is a wrapper for user-defined renderers.
 

@@ -286,3 +286,9 @@ textarea { /* fix silly nevow formal css */
   height: auto !important;
 }
 
+hr.scoreBar {
+	height: 10px;
+	background-color: #44bb66;
+	margin-left: 0px;
+	text-align: left;
+}

@@ -129,6 +129,18 @@ def _sizeMapperFactory(colProps):
 _registerHTMLMF(_sizeMapperFactory)
 
 
+def _barMapperFactory(colProps):
+	if colProps["displayHint"].get("type")!="bar":
+		return
+	def coder(val):
+		if val:
+			return T.hr(style="width: %dpx"%int(val), title="%.2f"%val,
+				class_="scoreBar")
+		return ""
+	return coder
+_registerHTMLMF(_barMapperFactory)
+
+
 def _productMapperFactory(colProps):
 	if colProps["displayHint"].get("type")!="product":
 		return
