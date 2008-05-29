@@ -27,6 +27,7 @@ else:
 	import psycopg2
 	import psycopg2.extensions
 	try:
+		psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 		psycopg2.extensions.register_type(psycopg2._psycopg.MXDATETIME)
 		psycopg2.extensions.register_type(psycopg2._psycopg.MXINTERVAL)
 		psycopg2.extensions.register_type(psycopg2._psycopg.MXDATE)

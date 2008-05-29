@@ -176,7 +176,8 @@ def queryServicesList(whereClause="", pars={}, source="services"):
 			",".join(sources),
 			" NATURAL JOIN ".join(tables),
 			whereClause), pars)
-	return resource.InternalDataSet(dd, dataSource=data).getPrimaryTable().rows
+	res = resource.InternalDataSet(dd, dataSource=data).getPrimaryTable()
+	return res.rows
 
 resourcecache.makeCache("getWebServiceList", 
 	lambda ignored: queryServicesList("srv_sets.setName='local'"))

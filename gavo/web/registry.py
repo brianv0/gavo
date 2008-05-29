@@ -264,6 +264,25 @@ _contentBuilder = meta.ModelBasedBuilder([
 	('contentLevel', meta.stanFactory(VOR.contentLevel)),
 	])
 
+_curationBuilder = meta.ModelBasedBuilder([
+	('curation.publisher', meta.stanFactory(VOR.publisher), (), {
+			"ivo_id": "ivo-id"}),
+	('creator', meta.stanFactory(VOR.creator), [
+		('name', meta.stanFactory(VOR.name)),
+		('logo', meta.stanFactory(VOR.logo)),]),
+	('contributor', meta.stanFactory(VOR.contributor), (), {
+			"ivo_id": "ivo-id"}),
+	('date', meta.stanFactory(VOR.date), (), {
+			"role": "role"}),
+	('version', meta.stanFactory(VOR.version)),
+	('contact', None, [
+		('name', meta.stanFactory(VOR.name), (), {
+			"ivo_id": "ivo-id"}),
+		('address', meta.stanFactory(VOR.address)),
+		('email', meta.stanFactory(VOR.email)),
+		('telephone', meta.stanFactory(VOR.telephone)),])])
+
+
 def getResourceItems(resource):
 	"""returns a sequence of elements making up a plain VOResource instance. 
 
@@ -277,22 +296,7 @@ def getResourceItems(resource):
 		VOR.shortName[resource.getMeta("shortName")],
 		VOR.identifier[computeIdentifier(resource)],
 		VOR.curation[
-			VOR.publisher[resource.getMeta("curation.publisher")],
-			VOR.creator[
-				VOR.name[resource.getMeta("curation.creator.name")],
-				VOR.logo[resource.getMeta("curation.creator.logo")],
-			],
-			VOR.contributor(ivo_id=str(resource.getMeta("contributor.ivo-id")))[
-				resource.getMeta("contributor")
-			],
-			VOR.date[resource.getMeta("date")],
-			VOR.version[resource.getMeta("version")],
-			VOR.contact[
-				VOR.name[resource.getMeta("curation.contact.name", raiseOnFail=True)],
-				VOR.address[resource.getMeta("curation.contact.address")],
-				VOR.email[resource.getMeta("curation.contact.email")],
-				VOR.telephone[resource.getMeta("curation.contact.telephone")],
-			],
+			_curationBuilder.build(resource),
 		],
 		VOR.content[
 			_contentBuilder.build(resource),
@@ -351,18 +355,6 @@ def getAuthResourceTree(rec, resource):
 			getResourceItems(resource),
 			VOG.managingOrg[resource.getMeta("managingOrg")],
 	]
-
-staticResourceMakers = {
-	"authority": (getAuthResourceTree, "authority"),
-	"organization": (getOrgResourceTree, "organization"),
-	"registry": (getRegistryResourceTree, "registry"),
-}
-
-def getResourceMakerForStatic(rec, resource):
-	"""returns a function returning a vr metadata tree for a static resource
-	record.
-	"""
-	return staticResourceMakers[str(resource.getMeta("resType"))]
 
 
 def getResponseTableTree(service):
@@ -428,9 +420,17 @@ _rendererParameters = {
 	"mupload":   ("POST", VS.ParamHTTP,   "text/plain"),
 	"img.jpeg":  ("POST", VS.ParamHTTP,   "image/jpeg"),
 	"mimg.jpeg": ("GET",  VS.ParamHTTP,   "image/jpeg"),
+	"static":    ("GET",  VOR.WebBrowser, "text/html"),
+	"custom":    ("GET",  VOR.WebBrowser, "text/html"),
 }
 
 def getInterfaceTree(service, renderer):
+	"""returns a registry tree for a given renderer on a service.
+
+	The interface and return types are given by a static table 
+	(_rendererParameters) depending on the renderer.  The renderer
+	again is determined by getResourceMakerForService.
+	"""
 	qtype, interfaceFactory, resultType = _rendererParameters[renderer]
 	use = "full"
 	if qtype=="GET":
@@ -493,7 +493,8 @@ def getScsResourceTree(rec, service):
 def getPlainCapabilityTree(service):
 	return VOR.capability[  
 		# XXX add local description item -- where should this come from?
-		getInterfaceTree(service, "form"),
+		[getInterfaceTree(service, pub["render"]) 
+			for pub in service.get_publications()],
 		# XXX local validationLevel???
 	]
 
@@ -510,9 +511,11 @@ def getDataServiceResourceTree(rec, service):
 	]
 
 
-serviceResourceMakers = {
-	"siap.xml": (getSiapResourceTree, "siap"),
-	"scs.xml": (getScsResourceTree, "cs"),
+knownResourceMakers = {
+	"siap.xml": getSiapResourceTree,
+	"scs.xml": getScsResourceTree,
+	"form": getCatalogServiceResourceTree,
+	None: getDataServiceResourceTree,
 }
 
 def getResourceMakerForService(rec, service):
@@ -526,16 +529,38 @@ def getResourceMakerForService(rec, service):
 
 	However, form renderers probably always count as TableServices,
 	so in these cases we simply "upgrade" the default from DataService
-	to TableService. XXX TODO: That's rubbish.  What about jpeg, upload?
+	to TableService.
+
+	This mechanism can be overridden using the _preferredRenderer meta
+	on the service.  It should give a renderer known to the _renderParameters
+	table.
 	"""
-	makeResource = getDataServiceResourceTree, "data"
+	definingRenderers = [(0, None)]
+	preferred = service.getMeta("_preferredRenderer")
+	if preferred:
+		definingRenderers.append((10, str(preferred)))
 	for pub in service.get_publications():
-		if pub["render"] in serviceResourceMakers:
-			makeResource = serviceResourceMakers[pub["render"]]
-			break
+		if pub["render"] in knownResourceMakers:
+			definingRenderers.append((5, pub["render"]))
 		if pub["render"]=="form":
-			makeResource = (getCatalogServiceResourceTree, "tabular")
-	return makeResource
+			definingRenderers.append((2, "form"))
+	renderer = max(definingRenderers)[1]
+	return knownResourceMakers.get(renderer,
+		getDataServiceResourceTree)
+
+
+staticResourceMakers = {
+	"authority": getAuthResourceTree,
+	"organization": getOrgResourceTree,
+	"registry": getRegistryResourceTree,
+	"WebBrowser": getDataServiceResourceTree,
+}
+
+def getResourceMakerForStatic(rec, resource):
+	"""returns a function returning a vr metadata tree for a static resource
+	record.
+	"""
+	return staticResourceMakers[str(resource.getMeta("resType"))]
 
 
 def getVOResourceTree(rec):
@@ -548,12 +573,10 @@ def getVOResourceTree(rec):
 		makeResource = getResourceMakerForStatic(rec, resource)
 	else:
 		makeResource = getResourceMakerForService(rec, resource)
-#	sys.stderr.write(">>>> Returning %s service %s\n"%(makeResource[1], 
-#		service.getMeta("shortName")))
 	return OAI.record[
 		getResourceHeaderTree(rec),
 		OAI.metadata[
-			makeResource[0](rec, resource)
+			makeResource(rec, resource)
 		]
 	]
 

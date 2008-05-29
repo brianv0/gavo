@@ -116,10 +116,12 @@ class TestRunner:
 		self._collectRemainingThreads()
 
 
+testGroupsWithState = set(["dexter", "upload"])
+
 def _getTestCollection():
 	tests = []
 	for tg in roughtest.myTests:
-		if tg.name=="dexter":
+		if tg.name in testGroupsWithState:
 			continue
 		tests.extend(tg.tests)
 	return tests

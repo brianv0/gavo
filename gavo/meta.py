@@ -210,7 +210,15 @@ class MetaItem(object):
 
 	def __str__(self):
 		try:
-			return self.getContent(targetFormat="text")
+			res = self.getContent(targetFormat="text")
+			return res
+		except gavo.MetaError:
+			return "<meta sequence, %d items>"%(len(self.children))
+
+	def __unicode__(self):
+		try:
+			res = self.getContent(targetFormat="text")
+			return res
 		except gavo.MetaError:
 			return "<meta sequence, %d items>"%(len(self.children))
 
@@ -321,9 +329,12 @@ class MetaValue(MetaMixin):
 
 	def __str__(self):
 		return self.getContent().encode("utf-8")
+	
+	def __unicode__(self):
+		return self.getContent()
 
 	def encode(self, enc):
-		return str(self).encode(enc)
+		return unicode(self).encode(enc)
 
 	def _getMeta(self, atoms, propagate=False):
 		return self._getFromAtom(atoms[0])._getMeta(atoms[1:])
@@ -482,8 +493,15 @@ class TextBuilder(MetaBuilder):
 
 
 def stanFactory(tag, **kwargs):
-	def factory(args):
-		return tag(**kwargs)[args]
+	"""returns a factory for ModelBasedBuilder built from a stan-like "tag".
+	"""
+	def factory(args, localattrs=None):
+		if localattrs:
+			localattrs.update(kwargs)
+			attrs = localattrs
+		else:
+			attrs = kwargs
+		return tag(**attrs)[args]
 	return factory
 
 
@@ -494,37 +512,55 @@ class ModelBasedBuilder(object):
 	It is constructed with with a tuple-tree of keys and DOM constructors;
 	these must work like stan elements, which is, e.g., also true for our
 	registrymodel elements.
+
+	Each node in the tree can be one of:
+	
+	* a meta key and a callable,
+	* this, and a sequence of child nodes
+	* this, and a dictionary mapping argument names to the callable
+	  to meta keys of the node.
 	"""
 	def __init__(self, constructors, format="text"):
 		self.constructors, self.format = constructors, format
+
+	def _getItemsForConstructor(self, metaContainer, key, factory, 
+			children=(), attrs={}):
+		
+		if factory:
+			def processContent(childContent, metaItem):
+				moreAttrs = {}
+				for argName, metaKey in attrs.iteritems():
+					val = metaItem.getMeta(metaKey)
+					if val:
+						moreAttrs[argName] = unicode(val)
+				return [factory(childContent, localattrs=moreAttrs)]
+		else:
+			def processContent(childContent, metaItem):
+				return childContent
+			
+		mi = metaContainer.getMeta(key, raiseOnFail=False)
+		if not mi:
+			return []
+		result = []
+		for child in mi.children:
+			content = []
+			c = child.getContent(self.format)
+			if c:
+				content.append(c)
+			childContent = self._build(children, child)
+			if childContent:
+				content.append(childContent)
+			if content:
+				result.append(processContent(content, child))
+		return result
 
 	def _build(self, constructors, metaContainer):
 		result = []
 		for item in constructors:
 			if isinstance(item, basestring):
 				result.append(item)
-				continue
-			if len(item)==2:
-				key, factory = item
-				children = ()
 			else:
-				key, factory, children = item
-			mi = metaContainer.getMeta(key, raiseOnFail=False)
-			if not mi:
-				continue
-			for child in mi.children:
-				content = []
-				c = child.getContent(self.format)
-				if c:
-					content.append(c)
-				childContent = self._build(children, child)
-				if childContent:
-					content.append(childContent)
-				if content:
-					if factory:
-						result.append(factory(content))
-					else:
-						result.extend(content)
+				result.extend(self._getItemsForConstructor(metaContainer, *item))
 		return result
 
 	def build(self, metaContainer):

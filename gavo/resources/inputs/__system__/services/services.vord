@@ -12,7 +12,7 @@
 	<property name="srcRdId">__system__/services/services</property>
 
 	<!-- Tables related to services -->
-	<Data id="servicelist" encoding="utf-8">
+	<Data id="servicelist">
 		<RowsetGrammar>
 			<Field dest="shortName" source="shortName" dbtype="text"/>
 			<Field dest="sourceRd" source="sourceRd" dbtype="text"/>
@@ -82,7 +82,7 @@ we can do that based on the renderer, too -->
 	</Data>
 
 	<!-- used by servicelist -->
-	<Data id="resources" encoding="utf-8" virtual="True">
+	<Data id="resources" virtual="True">
 		<RowsetGrammar id="resourcesGrammar">
 			<Field original="servicelist.services.sourceRd" 
 				dest="sourceRd"
@@ -108,7 +108,7 @@ we can do that based on the renderer, too -->
 		</Semantics>
 	</Data>
 
-	<Data id="resSet" encoding="utf-8" virtual="True">
+	<Data id="resSet" virtual="True">
 		<RowsetGrammar id="resSetGrammar" fieldsFrom="resourcesGrammar">
 			<Field original="servicelist.srv_sets.setName" dest="setName"
 				source="srv_sets.setName"/>
@@ -120,7 +120,7 @@ we can do that based on the renderer, too -->
 	</Data>
 
 	<!-- used by servicelist  -->
-	<Data id="services" encoding="utf-8" virtual="True">
+	<Data id="services" virtual="True">
 		<RowsetGrammar id="servicesGrammar" fieldsFrom="resSetGrammar">
 			<Field original="servicelist.srv_interfaces.accessURL" dest="accessURL"
 				source="srv_interfaces.accessURL"/>
@@ -137,7 +137,7 @@ we can do that based on the renderer, too -->
 	</Data>
 
 	<!-- used by servicelist  -->
-	<Data id="sets" encoding="utf-8" virtual="True">
+	<Data id="sets" virtual="True">
 		<RowsetGrammar id="setsGrammar" fieldsFrom="setsRecord">
 		</RowsetGrammar>
 		<Semantics>

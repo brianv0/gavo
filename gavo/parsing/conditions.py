@@ -39,10 +39,12 @@ class Constraints:
 		for constraint in self.constraints:
 			if not constraint.check(aDict):
 				if self.fatal:
-					raise gavo.ValidationError("Constraint violated",
+					raise gavo.ValidationError("Constraint violated -- %s"%
+							constraint.getExpl(),
 						fieldName=constraint.name, record=aDict)
 				else:
-					raise SkipRecord("Constraint violated", constraint.name)
+					raise SkipRecord("Constraint violated -- %s"%constraint.getExpl(), 
+						constraint.name)
 		return True
 
 
@@ -58,6 +60,9 @@ class Constraint:
 
 	def __repr__(self):
 		return "<Constraint %s>"%self.name
+
+	def getExpl(self):
+		return ", ".join(c.expl for c in self.conditions)
 
 	def addCondition(self, condition):
 		self.conditions.append(condition)
@@ -85,6 +90,8 @@ class _ValueNotEqualCondition(_Condition):
 	"""is a condition that a certain element of rowdict does not have a 
 	specified value.
 	"""
+	expl = "Forbidden value found"
+
 	def __init__(self, name, value):
 		self.name, self.value = name, value
 	
@@ -98,6 +105,8 @@ class _ValueNotEqualCondition(_Condition):
 class _KeyPresentCondition(_Condition):
 	"""is a condition that a certain value is present in a preterminal.
 	"""
+	expl = "Required key not present"
+
 	def __init__(self, name):
 		self.name = name
 

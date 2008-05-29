@@ -6,6 +6,7 @@ for data parsing.
 import re
 
 import gavo
+from gavo import record
 from gavo import utils
 from gavo.parsing import grammar
 
@@ -16,6 +17,9 @@ class KeyValueGrammar(grammar.Grammar):
 	The default assumes one pair per line, with # comments and = as
 	separating character.
 
+	The yieldPairs argument makes the grammar return an empty docdict
+	and {"key":, "value":} rowdicts.
+
 	Whitespace around key and value is ignored.
 	"""
 	def __init__(self):
@@ -23,10 +27,11 @@ class KeyValueGrammar(grammar.Grammar):
 			"kvSeparators": ":=",
 			"pairSeparators": "\n",
 			"commentPattern": "(?m)#.*",
+			"yieldPairs": record.BooleanField,
 		})
 		self.set_docIsRow(True)
-	
-	def parse(self, parseContext):
+
+	def _getPairs(self, parseContext):
 		recSplitter = re.compile("[%s]"%self.get_pairSeparators())
 		pairSplitter = re.compile("([^%s]+)[%s](.*)"%(
 			self.get_kvSeparators(), self.get_kvSeparators()))
@@ -37,11 +42,25 @@ class KeyValueGrammar(grammar.Grammar):
 			try:
 				if rec.strip():
 					key, value = pairSplitter.match(rec).groups()
-					items[key.strip()] = value.strip()
+					yield key.strip(), value.strip()
 			except:
 				raise gavo.Error("Not a key value pair in %s: %s"%(
 					parseContext.sourceName, repr(rec)))
+
+	def parse(self, parseContext):
+		if self.get_yieldPairs():
+			return grammar.Grammar.parse(self, parseContext)
+		items = dict(self._getPairs(parseContext))
 		self.handleDocdict(items, parseContext)
-	
+
+	def _getDocdict(self, parseContext):
+# Only used when yieldPairs is true
+		return {}
+
+	def _iterRows(self, parseContext):
+# Only used when yieldPairs is true
+		for key, value in self._getPairs(parseContext):
+			yield {"key": key, "value": value}
+
 	def enableDebug(self, debugProductions):
 		pass

@@ -27,13 +27,13 @@ class ParseContext(resource.ParseContext):
 	"""
 	def _makeRowTargets(self):
 		return
-	
+
 	def processRowdict(self, rowdict):
-		for key, val in rowdict.iteritems():
-			self.dataSet.addMeta(key, val)
+		self.dataSet.addMeta(rowdict["key"], self.literalParser.makePythonVal(
+			rowdict["value"], "text"))
 	
 	def processDocdict(self, docdict):
-		self.dataSet.processRowdict(docdict)
+		pass
 
 
 class _FakeDescriptor:
@@ -50,22 +50,34 @@ _descriptor = _FakeDescriptor()
 
 
 class StaticResource(meta.MetaMixin):
-	"""is a static Resource.
+	"""is a resource defined through a key value-based text file in
+	the __system directory.
+
+	These may stand in as a very rudimentary service if hard pressed
+	to allow off-site WebBrowser services to be registred.
 	"""
 	def __init__(self, srcPath):
 		self.srcPath = srcPath
+
+	def get_publications(self):
+		return [{"render": "static"}]
+
+	def getURL(self, renderer, qtype):
+		return self.getMeta("accessURL", raiseOnFail=True)
 
 	def getDescriptor(self):
 		return _descriptor
 
 
 grammar = kvgrammar.KeyValueGrammar()
+grammar.set_yieldPairs(True)
+grammar.set_docIsRow(False)
 literalParser = typeconversion.LiteralParser("utf-8")
 
 def loadStaticResource(id):
-	
 	fName = os.path.join(resourcecache.getRd(rdId).get_resdir(), id)
 	res = StaticResource(fName)
+# this special parse context will just add all the stuff as meta.
 	pc = ParseContext(fName, res, literalParser)
 	grammar.parse(pc)
 	return res
@@ -73,6 +85,5 @@ def loadStaticResource(id):
 
 if __name__=="__main__":
 	from gavo.parsing import importparser
-	m = loadStaticResource("registryrecs/registry.rr")
-	print ">>>>>>>>>>>>>>>>>>>"
-	print str(m.getMeta("curation.contact.name", raiseOnFail=True))
+	m = loadStaticResource("registryrecs/ari.rr")
+	print unicode(m.getMeta("title", raiseOnFail=True))

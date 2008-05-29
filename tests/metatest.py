@@ -265,19 +265,28 @@ class ModelBasedBuilderTest(testhelpers.VerboseTest):
 	"""tests for recovery of meta information through factories interface.
 	"""
 	def testSynthetic(self):
-		def id(arg): return arg
+		def id(arg, **ignored): return arg
 		m = getRadioMeta()
 		t = meta.ModelBasedBuilder([
 			("radio", meta.stanFactory(T.li, class_="radio"), [
 				": ",
-				("freq", id, ()),
+				("freq", None, ()),
 				" ",
 				("unit", id, ()),]),
 			("sense", meta.stanFactory(T.p), [("nonexisting", None, ())])])
 		res = flat.flatten(T.div[t.build(m)])
 		self.assertEqual(res, '<div><li class="radio">on: 90.9 MHz</li>'
 			'<li class="radio">off: 9022 kHz</li><p>less</p></div>')
-	
+
+	def testWithAttrs(self):
+		m = getRadioMeta()
+		t = meta.ModelBasedBuilder([
+			("radio", meta.stanFactory(T.img), (), {
+					"src": "freq", "alt": "unit"}),])
+		res = flat.flatten(T.div[t.build(m)])
+		self.assertEqual(res, '<div><img src="90.9" alt="MHz">on</img>'
+			'<img src="9022" alt="kHz">off</img></div>')
+
 	def testContentBuilder(self):
 		m = meta.MetaMixin()
 		m.addMeta("subject", "whatever")
@@ -286,7 +295,7 @@ class ModelBasedBuilderTest(testhelpers.VerboseTest):
 		m.addMeta("contentLevel", "0")
 		self.assertEqual(len(registry._contentBuilder.build(m)), 4)
 
-
+	
 class HtmlBuilderTest(testhelpers.VerboseTest):
 	"""tests for the HTML builder for meta values.
 	"""
@@ -335,7 +344,6 @@ class HtmlBuilderTest(testhelpers.VerboseTest):
 			'</ul></li></ul>')
 
 
-
 class RdTest(testhelpers.VerboseTest):
 	"""tests for parsing meta things out of XML resource descriptions.
 	"""
@@ -380,7 +388,7 @@ class RdTest(testhelpers.VerboseTest):
 
 
 def singleTest():
-	suite = unittest.makeSuite(ModelBasedBuilderTest, "testC")
+	suite = unittest.makeSuite(ModelBasedBuilderTest, "testWi")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 

@@ -740,7 +740,6 @@ class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin):
 				for fName in glob.glob(os.path.join(path, filePart)):
 					if os.path.isfile(fName):
 						sources.append(fName)
-			print ">>>>>>>>>>>", sources
 			sources.sort()
 			for s in sources:
 				yield s

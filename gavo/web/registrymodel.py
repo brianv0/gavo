@@ -124,7 +124,7 @@ class Element(object):
 		elif isinstance(child, (basestring, Element)):
 			self.children.append(child)
 		elif isinstance(child, meta.MetaItem):
-			self.children.append(str(child))
+			self.children.append(unicode(child))
 		elif isinstance(child, (list, tuple)):
 			for c in child:
 				self.addChild(c)
@@ -357,7 +357,7 @@ class VOR:
 	
 	class contact(VORElement): pass
 	
-	class publisher(VORElement): pass
+	class publisher(ResourceName): pass
 
 	class facility(VORElement): pass
 
@@ -513,7 +513,7 @@ class DC:
 
 	class language(DCElement): pass
 
-	class publisher(DCElement): pass
+	class publisher(VOR.ResourceName): pass
 
 	class relation(DCElement): pass
 
@@ -554,7 +554,6 @@ class VS:
 		a_xsi_type = "vs:ParamHTTP"
 		a_xmlns_vs = VSNamespace
 		xmlns_vs_name = "xmlns:vs"
-	
 
 	class resultType(VSElement): pass
 	

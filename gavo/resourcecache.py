@@ -15,6 +15,9 @@ After that, clients can call
 resourcecache.<accessorName>(key)
 """
 
+import mutex
+import time
+
 import gavo
 from gavo import config
 from gavo import utils
@@ -46,10 +49,19 @@ def _makeCache(creator):
 
 	The creator has to be a function taking an id and returning the 
 	designated object.
+
+	The whole thing is thread-safe only when the creators are.  It is
+	possibile (but for working creators obviously unlikely) that arbitrarily 
+	many creators for the same id run.  Only one will win in the end.
+
+	Race conditions are possible when exceptions occur, but then creators
+	behaviour should only depend on id, and so it shouldn't matter.
 	"""
 	cache = {}
 	_cacheRegistry.register(cache)
+
 	def func(id):
+		ct = 0
 		if not id in cache:
 			try:
 				cache[id] = creator(id)

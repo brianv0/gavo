@@ -38,7 +38,7 @@ class TestGroup(object):
 				test.run()
 				self.nOk += 1
 			except KeyboardInterrupt:
-				break
+				raise
 			except AssertionError:
 				self.nFail += 1
 				print "**** Test failed: %s -- %s\n"%(test.description, test.url)
