@@ -35,10 +35,11 @@ from gavo import resourcecache
 from gavo import sqlsupport
 from gavo import typesystems
 from gavo import utils
+from gavo.stanxml import encoding
 from gavo.web import servicelist
 from gavo.web import staticresource
 from gavo.web.registrymodel import OAI, VOR, VOG, DC, RI, VS, SIA, SCS,\
-	OAIDC, encoding
+	OAIDC
 from gavo.web.vizierexprs import getSQLKey  # getSQLKey should be moved.
 
 
@@ -215,8 +216,7 @@ _dcBuilder = meta.ModelBasedBuilder([
 	('description', meta.stanFactory(DC.description)),
 	('language', meta.stanFactory(DC.language)),
 	('rights', meta.stanFactory(DC.rights)),
-	('curation', None, [
-		('publisher', meta.stanFactory(DC.publisher))]),
+	('publisher', meta.stanFactory(DC.publisher)),
 	])
 
 def getDCResourceTree(rec):
@@ -265,7 +265,7 @@ _contentBuilder = meta.ModelBasedBuilder([
 	])
 
 _curationBuilder = meta.ModelBasedBuilder([
-	('curation.publisher', meta.stanFactory(VOR.publisher), (), {
+	('publisher', meta.stanFactory(VOR.publisher), (), {
 			"ivo_id": "ivo-id"}),
 	('creator', meta.stanFactory(VOR.creator), [
 		('name', meta.stanFactory(VOR.name)),
@@ -275,7 +275,7 @@ _curationBuilder = meta.ModelBasedBuilder([
 	('date', meta.stanFactory(VOR.date), (), {
 			"role": "role"}),
 	('version', meta.stanFactory(VOR.version)),
-	('contact', None, [
+	('contact', meta.stanFactory(VOR.contact), [
 		('name', meta.stanFactory(VOR.name), (), {
 			"ivo_id": "ivo-id"}),
 		('address', meta.stanFactory(VOR.address)),
@@ -443,12 +443,18 @@ def getInterfaceTree(service, renderer):
 		gavo.logger.warning("Cannot create parameter items for service %s: %s"%(
 			service.getMeta("shortName"), str(msg)))
 		params = []
-	return interfaceFactory[
-		VOR.accessURL(use=use)[service.getURL(renderer, qtype)],
-		VOR.securityMethod(standardId=service.getMeta("securityId")),
-		VS.resultType[resultType],
-		params,
-	]
+	if interfaceFactory==VOR.WebBrowser: # HACK -- really make content models
+			# for the various interfaces
+		return interfaceFactory[
+			VOR.accessURL(use=use)[service.getURL(renderer, qtype)],
+			VOR.securityMethod(standardId=service.getMeta("securityId")),]
+	else:
+		return interfaceFactory[
+			VOR.accessURL(use=use)[service.getURL(renderer, qtype)],
+			VOR.securityMethod(standardId=service.getMeta("securityId")),
+			VS.resultType[resultType],
+			params,
+		]
 
 
 def getSiaCapabilitiesTree(service):
@@ -641,7 +647,7 @@ def checkPars(pars, required, optional=[], ignored=set(["verb"])):
 
 
 def getListIdentifiersTree(pars):
-	"""returns a tree of registrymodel Elements for a ListIdentifiers response.
+	"""returns a tree of stanxml Elements for a ListIdentifiers response.
 
 	We don't have ivo specific metadata in the headers, so this ignores
 	the metadata prefix.
@@ -657,7 +663,7 @@ def getListIdentifiersTree(pars):
 
 
 def getIdentifyTree(pars):
-	"""returns a tree of registrymodel Elements for an Identify response.
+	"""returns a tree of stanxml Elements for an Identify response.
 	"""
 	checkPars(pars, [])
 	rec = getServiceRecForIdentifier(
@@ -682,7 +688,7 @@ def getIdentifyTree(pars):
 
 
 def dispatchListRecordsTree(pars):
-	"""returns a tree of registrymodel Elements for a ListRecords response.
+	"""returns a tree of stanxml Elements for a ListRecords response.
 	"""
 	checkPars(pars, ["metadataPrefix"], ["from", "until", "set"])
 	return dispatchOnPrefix(pars, getDCResourceListTree,
@@ -690,7 +696,7 @@ def dispatchListRecordsTree(pars):
 
 
 def dispatchGetRecordTree(pars):
-	"""returns a tree of registrymodel Elements for a getRecord response.
+	"""returns a tree of stanxml Elements for a getRecord response.
 	"""
 	checkPars(pars, ["identifier", "metadataPrefix"], [])
 	identifier = pars["identifier"]
@@ -699,7 +705,7 @@ def dispatchGetRecordTree(pars):
 
 
 def getListMetadataFormatTree(pars):
-	"""returns a tree of registrymodel Elements for a
+	"""returns a tree of stanxml Elements for a
 	listMetadataFormats response.
 	"""
 	# identifier is not ignored since crooks may be trying to verify the
@@ -721,7 +727,7 @@ def getListMetadataFormatTree(pars):
 
 
 def getListSetsTree(pars):
-	"""returns a tree of registrymodel Elements for a ListSets response.
+	"""returns a tree of stanxml Elements for a ListSets response.
 	"""
 	checkPars(pars, [])
 	return OAI.PMH[
@@ -799,11 +805,7 @@ if __name__=="__main__":
 	config.setDbProfile("querulator")
 	from gavo.parsing import importparser  # for registration of getRd
 	try:
-		tree = getPMHResponse({"verb": ["ListRecords"], 
-			"metadataPrefix": ["ivo_vor"]})
-		for el in tree.getiterator():
-			print el, el.attrib
-		ElementTree.tostring(tree.getroot())
+		tree = getPMHResponse({"verb": ["Identify"]})
+		print ElementTree.tostring(tree.getroot())
 	except Exception, msg:
-		print ">>>>>>>>>>", msg
 		getErrorTree(msg, {}).write(sys.stdout)

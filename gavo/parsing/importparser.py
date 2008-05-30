@@ -16,6 +16,7 @@ from gavo import datadef
 from gavo import interfaces
 from gavo import logger
 from gavo import meta
+from gavo import nodebuilder
 from gavo import parsing
 from gavo import record
 from gavo import resourcecache
@@ -63,7 +64,7 @@ def makeAttDict(attrs):
 	return dict([(str(key), val) for key, val in attrs.items()])
 
 
-class RdParser(utils.NodeBuilder):
+class RdParser(nodebuilder.NodeBuilder):
 	"""is a builder for a resource descriptor.
 
 	When constructing, give forImport=True if the corresponding resource may
@@ -71,7 +72,7 @@ class RdParser(utils.NodeBuilder):
 	"""
 	def __init__(self, sourcePath, forImport=False):
 		self.forImport = forImport
-		utils.NodeBuilder.__init__(self)
+		nodebuilder.NodeBuilder.__init__(self)
 		self.rd = resource.ResourceDescriptor(sourcePath)
 
 	def resolveItemReference(self, id):
@@ -174,7 +175,7 @@ class RdParser(utils.NodeBuilder):
 			handlers, children)
 	
 	def _make_CFGrammar(self, name, attrs, children):
-		return utils.NamedNode("Grammar",
+		return nodebuilder.NamedNode("Grammar",
 			self._fillGrammarNode(CFGrammar(), attrs, children, {}))
 	
 	def _make_REGrammar(self, name, attrs, children):
@@ -187,7 +188,7 @@ class RdParser(utils.NodeBuilder):
 				"tokenizer": grammar.set_tokenizer,
 			})
 		grammar.set_numericGroups(attrs.get("numericGroups", "False"))
-		return utils.NamedNode("Grammar", grammar)
+		return nodebuilder.NamedNode("Grammar", grammar)
 
 	def _make_SimpleREGrammar(self, name, attrs, children):
 		grammar = SimpleREGrammar()
@@ -195,47 +196,47 @@ class RdParser(utils.NodeBuilder):
 				"rowProduction": grammar.set_rowProduction,
 				"parseRE": grammar.set_parseRE,
 			})
-		return utils.NamedNode("Grammar", grammar)
+		return nodebuilder.NamedNode("Grammar", grammar)
 
 	def _make_FitsGrammar(self, name, attrs, children):
 		grammar = self._fillGrammarNode(FitsGrammar(), attrs, children, {})
 		grammar.set_qnd(attrs.get("qnd", "False"))
-		return utils.NamedNode("Grammar", grammar)
+		return nodebuilder.NamedNode("Grammar", grammar)
 
 	def _make_ColumnGrammar(self, name, attrs, children):
 		grammar = self._fillGrammarNode(ColumnGrammar(), attrs, children, {})
 		grammar.set_topIgnoredLines(attrs.get("topIgnoredLines", 0))
-		return utils.NamedNode("Grammar", grammar)
+		return nodebuilder.NamedNode("Grammar", grammar)
 
 	def _make_DirectGrammar(self, name, attrs, children):
 		attrs = makeAttDict(attrs)
 		grammar = DirectGrammar(**attrs)
-		return utils.NamedNode("Grammar", 
+		return nodebuilder.NamedNode("Grammar", 
 			self._processChildren(grammar, name, {}, children))
 
 	def _make_CustomGrammar(self, name, attrs, children):
 		attrs = makeAttDict(attrs)
 		grammar = CustomGrammar(initvals=attrs)
-		return utils.NamedNode("Grammar", 
+		return nodebuilder.NamedNode("Grammar", 
 			self._processChildren(grammar, name, {}, children))
 
 	def _make_NullGrammar(self, name, attrs, children):
-		return utils.NamedNode("Grammar",
+		return nodebuilder.NamedNode("Grammar",
 			self._fillGrammarNode(NullGrammar(), attrs, children, {}))
 
 	def _make_KeyValueGrammar(self, name, attrs, children):
-		return utils.NamedNode("Grammar",
+		return nodebuilder.NamedNode("Grammar",
 			self._fillGrammarNode(KeyValueGrammar(), attrs, children, {}))
 
 	def _make_TableGrammar(self, name, attrs, children):
-		return utils.NamedNode("Grammar",
+		return nodebuilder.NamedNode("Grammar",
 			self._fillGrammarNode(tablegrammar.TableGrammar(), attrs, children, {}))
 
 	_start_RowsetGrammar = _pushFieldPath
 
 	def _make_RowsetGrammar(self, name, attrs, children):
 		grammar = RowsetGrammar()
-		res = utils.NamedNode("Grammar",
+		res = nodebuilder.NamedNode("Grammar",
 			self._fillGrammarNode(grammar, attrs, children, {
 				"Field": grammar.addto_dbFields
 			}))
@@ -251,14 +252,14 @@ class RdParser(utils.NodeBuilder):
 
 	def _make_ContextGrammar(self, name, attrs, children):
 		grammar = contextgrammar.ContextGrammar()
-		return utils.NamedNode("Grammar",
+		return nodebuilder.NamedNode("Grammar",
 			self._fillGrammarNode(grammar, attrs, children, {
 				"inputKey": grammar.addto_inputKeys,
 			}))
 
 	def _make_DictlistGrammar(self, name, attrs, children):
 		grammar = DictlistGrammar()
-		return utils.NamedNode("Grammar",
+		return nodebuilder.NamedNode("Grammar",
 			self._fillGrammarNode(grammar, attrs, children, {}))
 
 	def _make_Semantics(self, name, attrs, children):
@@ -310,7 +311,7 @@ class RdParser(utils.NodeBuilder):
 			for nodeDesc in interface.getDelayedNodes(recDef, **args):
 				self.registerDelayedChild(*nodeDesc)
 		self.popProperty("fieldPath")
-		return utils.NamedNode("Record", record)
+		return nodebuilder.NamedNode("Record", record)
 
 	_start_SharedRecord = _start_Record
 	_make_SharedRecord = _make_Record
@@ -387,7 +388,7 @@ class RdParser(utils.NodeBuilder):
 			attrs, children, {})
 
 	def _make_copyof(self, name, attrs, children):
-		return utils.NamedNode(*self.getById(attrs["idref"]))
+		return nodebuilder.NamedNode(*self.getById(attrs["idref"]))
 
 	def _make_longdescr(self, name, attrs, children):
 		return attrs.get("type", "text/plain"), self.getContent(children)
@@ -420,7 +421,7 @@ class RdParser(utils.NodeBuilder):
 
 	def _make_macrodef(self, name, attrs, children):
 		code = children[0][1]
-		return utils.NamedNode("Macro", 
+		return nodebuilder.NamedNode("Macro", 
 			macros.compileMacro(attrs["name"], code))
 
 	def _make_RowProcessor(self, name, attrs, children):
@@ -536,7 +537,7 @@ class RdParser(utils.NodeBuilder):
 
 	def _make_allow(self, name, attrs, children):
 		if attrs.has_key("renderers"):
-			return utils.NamedNode("renderers", 
+			return nodebuilder.NamedNode("renderers", 
 				set([s.strip() for s in attrs["renderers"].split(",")]))
 
 	def _make_publish(self, name, attrs, children):

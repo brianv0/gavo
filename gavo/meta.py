@@ -525,7 +525,6 @@ class ModelBasedBuilder(object):
 
 	def _getItemsForConstructor(self, metaContainer, key, factory, 
 			children=(), attrs={}):
-		
 		if factory:
 			def processContent(childContent, metaItem):
 				moreAttrs = {}

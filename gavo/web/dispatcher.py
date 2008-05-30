@@ -48,6 +48,7 @@ from gavo.web import resourcebased
 from gavo.web import servicelist
 # need scs to register its CondDescs
 from gavo.web import scs
+from gavo.web import soaprender
 from gavo.web import jpegrenderer
 from gavo.web import uploadservice
 from gavo.web import vodal
@@ -327,6 +328,7 @@ renderClasses = {
 	"mupload": uploadservice.MachineUploader,
 	"img.jpeg": jpegrenderer.JpegRenderer,
 	"mimg.jpeg": jpegrenderer.MachineJpegRenderer,
+	"soap": soaprender.SoapRenderer,
 }
 
 

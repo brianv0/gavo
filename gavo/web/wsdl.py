@@ -1,147 +1,333 @@
 """
-This module is a helper to succinctly produce WSDL specs for gavo web
-interfaces.
-
-Right now, we only want to support HTTP request/response services.
+Code to expose our services via SOAP and WSDL.
 """
 
+import cStringIO
 import sys
 
-try:
-	import cElementTree as ET
-except ImportError:
-	import elementtree.ElementTree as ET
+from elementtree import ElementTree
+
+import ZSI
+from ZSI import TC
 
 from gavo import typesystems
+from gavo.stanxml import Element, XSINamespace
+from gavo.web import registry
 
 
-# Namespace handling: Since I need namespaces in attributes and 
-# elementtree doesn't do these, and I can't make old versions of
-# elementtree use my namespace identifiers, I'm going a rather manual
-# approach to namespaces.  When we can rely on an elementtree with
-# convenient namespace handling, we should change the definition of the
-# _n_<bla> functions so they do {long namespace}name and remove the
-# manual xmlns things from makeWSDLDefinitions.
-_namespaces = {
-	'soap': 'http://schemas.xmlsoap.org/wsdl/soap/',
-	'http': 'http://schemas.xmlsoap.org/wsdl/http/',
-	'mime': 'http://schemas.xmlsoap.org/wsdl/mime/',
-	'xs': 'http://www.w3.org/2001/XMLSchema',
-	'tns': 'urn:GAVO',
+SOAPNamespace = 'http://schemas.xmlsoap.org/wsdl/soap/'
+HTTPNamespace = 'http://schemas.xmlsoap.org/wsdl/http/'
+MIMENamespace = 'http://schemas.xmlsoap.org/wsdl/mime/'
+WSDLNamespace = 'http://schemas.xmlsoap.org/wsdl/'
+XSDNamespace = "http://www.w3.org/2001/XMLSchema"
+
+ElementTree._namespace_map[SOAPNamespace] = "soap"
+ElementTree._namespace_map[HTTPNamespace] = "http"
+ElementTree._namespace_map[MIMENamespace] = "mime"
+ElementTree._namespace_map[WSDLNamespace] = "wsdl"
+ElementTree._namespace_map[XSDNamespace] = "xsd"
+
+
+def _schemaURL(xsdName):
+	return "http://vo.ari.uni-heidelberg.de/docs/schemata/"+xsdName
+
+_schemaLocations = {
+	SOAPNamespace: _schemaURL("wsdlsoap-1.1.xsd"),
+	WSDLNamespace: _schemaURL("wsdl-1.1.xsd"),
+	XSDNamespace: _schemaURL("XMLSchema.xsd"),
 }
 
-for short, uri in _namespaces.iteritems():
-	if hasattr(ET, "_namespace_map"):
-		ET._namespace_map[uri] = short
-#	exec """def _n_%s(tagName):
-#			return "{%s}%%s"%%tagName"""%(short, uri)
-	exec """def _n_%s(tagName):
-			return "%s:%%s"%%tagName"""%(short, short)
 
-
-defaultNamespace = 'http://schemas.xmlsoap.org/wsdl/'
-
-def _n_(tagName):
-	return tagName
-
-
-def bE(name, attrs={}, children=()):
-	el = ET.Element(name, **attrs)
-	for child in children:
-		el.append(child)
-	return el
-
-
-builtinNodes = [
-	bE(_n_("message"), {_n_("name"): "opaqueBinary"}, [
-		bE(_n_("part"), {_n_("name"): "response", 
-			_n_("type"): _n_xs("binary")})]),
-]
-
-def makeWSDLDefinitions(name, childNodes):
-	"""returns an elementtree definitions element serializable into a
-	WSDL XML document.
-
-	childNodes is a sequence of elementtree nodes; the function will
-	make sure they're serialized in the correct sequence.  You can therefore
-	add the individual subelements in any way you like.
+class WSDL(object):
+	"""is a container for elements from the wsdl 1.1 schema.
 	"""
-	orderedNodes = []
-	childNodes = builtinNodes+childNodes
-	for subElName in map(_n_, ["import", "documentation", "types", "message",
-			"portType", "binding", "service"]):
-		orderedNodes.extend([node for node in childNodes
-			if node.tag==subElName])
-	rootAttrs = dict([
-		("xmlns:"+short, long) for short, long in _namespaces.iteritems()])
-	rootAttrs["xmlns"] = defaultNamespace
-	rootAttrs["targetNamespace"] = _namespaces["tns"]
-	rootAttrs["name"] = name
-	return ET.ElementTree(
-		bE(_n_("definitions"), rootAttrs, orderedNodes))
+	class WSDLElement(Element):
+		namespace = WSDLNamespace
+
+	class _tParam(WSDLElement):
+		a_message = None
+		a_name = None
+
+	class binding(WSDLElement):
+		a_name = None
+		a_type = None
+
+	class definitions(WSDLElement):
+		a_name = None
+		a_targetNamespace = None
+		a_xmlns_tns = None
+		xmlns_tns_name = "xmlns:tns"
+		a_xmlns_xsd = XSDNamespace
+		xmlns_xsd_name = "xmlns:xsd"
+#		a_xsi_schemaLocation =  " ".join(["%s %s"%(ns, xs) 
+#			for ns, xs in _schemaLocations.iteritems()])
+#		xsi_schemaLocation_name = "xsi:schemaLocation"
+		a_xmlns_xsi = XSINamespace
+		xmlns_xsi_name = "xmlns:xsi"
+	
+	class documentation(WSDLElement): pass
+	
+	class fault(WSDLElement):
+		a_name = None
+	
+	class import_(WSDLElement):
+		name = "import"
+		a_location = None
+		a_namespace = None
+
+	class input(_tParam): 
+		mayBeEmpty = True
+
+	class message(WSDLElement):
+		a_name = None
+	
+	class operation(WSDLElement):
+		a_name = None
+		a_parameterOrder = None
+
+	class output(_tParam):
+		mayBeEmpty = True
+		a_name = None
+		a_message = None
+
+	class part(WSDLElement):
+		mayBeEmpty = True
+		a_name = None
+		a_type = None
+
+	class port(WSDLElement):
+		mayBeEmpty = True
+		a_binding = None
+		a_name = None
+
+	class portType(WSDLElement):
+		a_name = None
+
+	class service(WSDLElement):
+		a_name = None
+	
+	class types(WSDLElement): pass
+	
+
+class SOAP(object):
+	class SOAPElement(Element):
+		namespace = SOAPNamespace
+
+	class binding(SOAPElement):
+		mayBeEmpty = True
+		a_style = "rpc"
+		a_transport = "http://schemas.xmlsoap.org/soap/http"
+
+	class body(SOAPElement):
+		mayBeEmpty = True
+		a_use = "encoded"
+		a_namespace = None
+		a_encodingStyle = "http://schemas.xmlsoap.org/soap/encoding"
+	
+	class operation(SOAPElement):
+		a_name = None
+		a_soapAction = None
+		a_style = "rpc"
+	
+	class address(SOAPElement):
+		mayBeEmpty = True
+		a_location = None
 
 
-def _makeWsdlFromFieldinfo(fieldInfo):
-	return {
-		_n_("name"): fieldInfo["fieldName"],
-		_n_("type"): "xs:"+typesystems.sqltypeToXSD(fieldInfo["type"]),
+class XSD(object):
+	"""is a container for elements from XML schema.
+	"""
+	class XSDElement(Element):
+		namespace = XSDNamespace
+		local = True
+
+	class schema(XSDElement):
+		a_xmlns = XSDNamespace
+		a_targetNamespace = None
+
+	class element(XSDElement):
+		mayBeEmpty = True
+		a_name = None
+		a_type = None
+	
+	class complexType(XSDElement):
+		a_name = None
+	
+	class all(XSDElement): pass
+
+	class list(XSDElement):
+		mayBeEmpty = True
+		a_itemType = None
+	
+	class simpleType(XSDElement):
+		a_name = None
+	
+
+def makeTypesForService(service, queryMeta):
+	"""returns xmlstan definitions for the (SOAP) type of service.
+
+	Only "atomic" input parameters are supported so far, so we can
+	skip those.  The output type is always called outList and contains
+	of outRec elements.
+	"""
+	return WSDL.types[
+		XSD.schema(targetNamespace=registry.computeIdentifier(service))[
+			XSD.complexType(name="outRec")[
+				XSD.all[[
+					XSD.element(name=f.get_dest(), type=typesystems.sqltypeToXSD(
+						f.get_dbtype())) for f in service.getOutputFields(
+							queryMeta)]]],
+			XSD.simpleType(name="outList")[
+					XSD.list(itemType="outRec")]]]
+
+
+def makeMessagesForService(service):
+	"""returns xmlstan definitions for the SOAP messages exchanged when
+	using the service.
+
+	Basically, the input message (called srvInput) consists of some 
+	combination of the service's input fields, the output message
+	(called srvOutput) is just an outArr.
+	"""
+	return [
+		WSDL.message(name="srvInput")[[
+			WSDL.part(name=f.get_dest(), type="xsd:"+typesystems.sqltypeToXSD(
+				f.get_dbtype())) for f in service.getInputFields()]],
+		WSDL.message(name="srvOutput")[
+			WSDL.part(name="srvOutput", type="tns:outList")]]
+
+
+def makePortTypeForService(service):
+	"""returns xmlstan for a port type named serviceSOAP.
+	"""
+	parameterOrder = " ".join([f.get_dest() for f in service.getInputFields()])
+	return WSDL.portType(name="serviceSOAP")[
+		WSDL.operation(name="useService", parameterOrder=parameterOrder) [
+			WSDL.input(name="inPars", message="tns:srvInput"),
+			WSDL.output(name="outPars", message="tns:srvOutput"),
+# XXX TODO: Define fault
+		]]
+
+
+def makeSOAPBindingForService(service):
+	"""returns xmlstan for a SOAP binding of service.
+	"""
+	tns = registry.computeIdentifier(service)
+	return WSDL.binding(name="soapBinding", type="tns:serviceSOAP")[
+		SOAP.binding,
+		WSDL.operation(name="useService")[
+			SOAP.operation(soapAction="", name="useService"),
+			WSDL.input(name="inPars")[
+				SOAP.body(use="encoded", namespace=tns)],
+			WSDL.output(name="inPars")[
+				SOAP.body(use="encoded", namespace=tns)],
+		]
+	]
+			
+
+def makeSOAPServiceForService(service):
+	"""returns xmlstan for a WSDL service definition of the SOAP interface
+	to service.
+	"""
+	shortName = str(service.getMeta("shortName"))
+	return WSDL.service(name=shortName)[
+		WSDL.port(name="soap_%s"%shortName, binding="tns:soapBinding")[
+			SOAP.address(location=service.getURL("soap", method="POST")+"/go"),
+		]
+	]
+
+
+def makeSOAPWSDLForService(service, queryMeta):
+	"""returns an xmlstan definitions element describing service.
+
+	The definitions element also introduces a namespace named after the
+	ivoa id of the service, accessible through the tns prefix.
+	"""
+	serviceId = registry.computeIdentifier(service)
+	return WSDL.definitions(targetNamespace=serviceId,
+			xmlns_tns=serviceId,
+			name="%s_wsdl"%str(service.getMeta("shortName")).replace(" ", "_"))[
+		WSDL.import_,
+		makeTypesForService(service, queryMeta),
+		makeMessagesForService(service),
+		makePortTypeForService(service),
+		makeSOAPBindingForService(service),
+		makeSOAPServiceForService(service),
+	]
+
+
+class ToTcConverter(typesystems.FromSQLConverter):
+	"""is a quick and partial converter from SQL types to ZSI's type codes.
+	"""
+	typeSystem = "ZSITypeCodes"
+	simpleMap = {
+		"smallint": TC.Integer,
+		"integer": TC.Integer,
+		"int": TC.Integer,
+		"bigint": TC.Integer,
+		"real": TC.FPfloat,
+		"float": TC.FPfloat,
+		"boolean": ("boolean", "1"),
+		"double precision": TC.FPdouble,
+		"double":  TC.FPdouble,
+		"text": TC.String,
+		"char": TC.String,
+		"date": TC.gDate,
+		"timestamp": TC.gDateTime,
+		"raw": TC.String,
 	}
 
-def makeHTTPBinding(name, uri, inputArgs, outputType):
-	"""returns a sequence of elements describing an HTTP service taking
-	inputArgs and returning an opaque binary of MIME type outputType.
+	def mapComplex(self, type, length):
+		if type in self._charTypes:
+			return TC.String
 
-	inputArgs is a sequence of sqlsupport-type fieldinfos
+sqltypeToTC = ToTcConverter().convert
+
+
+def serializePrimaryTable(data, service):
+	"""returns a SOAP serialization of the DataSet data's primary table.
 	"""
-	portType = "%s_t1"%name
-	opName = "%s_o1"%name
-	messageName = "%s_mIn"%name
-	items = [bE(_n_("binding"), {
-		"name": name,
-		"type": portType,
-	}, [
-		bE(_n_http("binding"), {_n_("verb"): "GET"}),
-		bE(_n_("operation"), {_n_("name"): opName}, [
-			bE(_n_http("operation"), {_n_("location"): uri}),
-			bE(_n_("input"), {}, [
-				bE(_n_http("urlEncoded"))
-			]),
-			bE(_n_("output"), {}, [
-				bE(_n_mime("content"), {_n_("type"): outputType})
-			])
-		])
-	])]
-	items.append(bE(_n_("portType"), {_n_("name"): portType}, [
-		bE(_n_("operation"), {_n_("name"): opName}, [
-			bE(_n_("input"), {_n_("message"): _n_tns(messageName)}),
-			bE(_n_("output"), {_n_("message"): _n_tns("opaqueBinary")}),
-		])
-	]))
-	items.append(bE(_n_("message"), {_n_("name"): messageName},
-		[bE(_n_("part"), _makeWsdlFromFieldinfo(fieldInfo))
-			for fieldInfo in inputArgs]))
-	return (portType, name), items
+	table = data.getPrimaryTable()
+
+	class Row(TC.Struct):
+		def __init__(self):
+			TC.Struct.__init__(self, None, [
+		sqltypeToTC(f.get_dbtype())(f.get_dest())
+			for f in table.fieldDefs], 'outRow')
+
+	class Table:
+		def __init__(self, name):
+			pass
+	Table.typecode = TC.Array('outRow', Row(), 'outList')
+
+	outF = cStringIO.StringIO()
+	sw = ZSI.SoapWriter(outF, 
+		nsdict={"": registry.computeIdentifier(service)})
+	sw.serialize(table.rows, Table.typecode)
+	sw.close()
+	return outF.getvalue()
 
 
-def makeService(name, baseUrl, portBindings):
-	return bE(_n_("service"), {_n_("name"): name},
-		[bE(_n_("port"), 
-				{_n_("name"): _n_tns(portName), _n_("binding"): _n_tns(bindingName)},
-				[bE(_n_http("address"), {_n_("location"): baseUrl})])
-			for portName, bindingName in portBindings])
+def _tryWSDL():
+	from gavo.parsing import importparser
+	from gavo import resourcecache
+	from gavo.web import common
+	rd = resourcecache.getRd("ucds/ui")
+	sv = rd.get_service("ui")
+	print makeSOAPWSDLForService(sv, common.QueryMeta({})).render()
 
+
+def _trySOAP():
+	from gavo.parsing import importparser
+	from gavo import resourcecache
+	from gavo.web import common
+	qm = common.QueryMeta({})
+	rd = resourcecache.getRd("ucds/ui")
+	sv = rd.get_service("ui")
+	core = sv.get_core()
+	core._makeOutputDD()
+	data = core._parseOutput(core._compute("computed airmass"), qm)
+	print serializePrimaryTable(data, sv)
 
 if __name__=="__main__":
-	from gavo import sqlsupport
-	from gavo import config
-	config.setDbProfile("querulator")
-	mth = sqlsupport.MetaTableHandler()
-	fieldInfos = mth.getFieldInfos("views.lenses")
-	portBindings, children = [], []
-	portBinding, elements = makeHTTPBinding("foo", "/ql/masqrun", fieldInfos, 
-		"application/votable")
-	portBindings.append(portBinding)
-	children.extend(elements)
-	children.append(makeService("Foo", "http://vo.ari.uni-heidelberg.de/ql/", portBindings))
-	makeWSDLDefinitions("foo", children).write(sys.stdout)
-	print
+	_trySOAP()

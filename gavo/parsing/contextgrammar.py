@@ -155,13 +155,13 @@ class ContextGrammar(grammar.Grammar):
 			"inputKeys": record.ListField,
 		}, initvals)
 
-	def _iterRows(self, ctx):
-		yield self._getDocdict(ctx)
+	def _iterRows(self, parseContext):
+		yield self._getDocdict(parseContext)
 	
-	def _getDocdict(self, ctx):
+	def _getDocdict(self, parseContext):
 		docdict = {}
 		for key in self.get_inputKeys():
-			docdict[key.get_dest()] = ctx.sourceFile.get(key.get_dest())
+			docdict[key.get_dest()] = parseContext.sourceFile.get(key.get_dest())
 		return docdict
 
 	def getInputFields(self):

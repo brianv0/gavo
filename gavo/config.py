@@ -92,15 +92,15 @@ dalDefaultLimit: 10000
 
 [meta]
 # Default curation
-curation.publisher: 
-curation.publisher.name: 
-curation.publisher.email: 
-curation.creator.name: 
-curation.creator.logo:
-curation.contact.name:
-curation.contact.address:
-curation.contact.email:
-curation.contact.telephone:
+publisher: 
+publisher.name: 
+publisher.email: 
+creator.name: 
+creator.logo:
+contact.name:
+contact.address:
+contact.email:
+contact.telephone:
 """
 
 

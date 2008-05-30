@@ -5,7 +5,7 @@ Element generators are "macros" for resouce descriptors.  They can
 be referenced in the xml serialization through 
 <elgen name="whatever" [args]/>.  This will try to resolve to a generator
 registered through registerElgen that then yields "events" used up by
-a utils.NodeBuilder.
+a nodebuilder.NodeBuilder.
 """
 
 import gavo

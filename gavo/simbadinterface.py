@@ -8,9 +8,10 @@ import SOAPpy
 import SOAPpy.WSDL
 
 import gavo
-from gavo import utils
 from gavo import config
+from gavo import nodebuilder
 from gavo import resourcecache
+from gavo import utils
 
 
 class ObjectCache:
@@ -50,7 +51,7 @@ class ObjectCache:
 		return self.cache[key]
 
 
-class SesameParser(utils.StartEndHandler):
+class SesameParser(nodebuilder.StartEndHandler):
 	def __init__(self):
 		utils.StartEndHandler.__init__(self)
 		self.data = {}

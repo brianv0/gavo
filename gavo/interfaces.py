@@ -9,7 +9,7 @@ products -- clients will want a key to find the image, ownership, embargo,
   plus the products need to be in an accompanying table.
 
 Interfaces may need additional actions for ingestion.  This is done
-by returning delayed nodes to the utils.NodeBuilder parsing the resource
+by returning delayed nodes to the nodebuilder.NodeBuilder parsing the resource
 descriptor.
 
 In general, a somewhat more declarative approach would be nice...
