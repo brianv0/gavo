@@ -83,15 +83,35 @@ class PostHasStringsTest:
 	"""is a test for the presence of some strings in a server response to a
 	data POST.
 	"""
-	def __init__(self, url, data, sentinel, description):
+	def __init__(self, url, data, sentinel, description, **kwargs):
 		self.url, self.sentinel = url, sentinel
 		self.description = description
 		self.data = data
+		self.headers = dict([(key.replace("_", "-"), val) for key, val
+			in kwargs.iteritems()])
 	
 	def run(self):
-		self.lastResult = urllib.urlopen(self.url, urllib.urlencode(self.data))
+		_, host, path, query, _ = urlparse.urlsplit(self.url)
+		if query:
+			query = '?'+query
+		headers = self.headers.copy()
+		if self.data:
+			headers["content-length"] = len(self.data)
+		conn = httplib.HTTPConnection(host)
+		conn.request("POST", path+query, self.data, headers=headers)
+		self.lastResult = conn.getresponse().read()
 		for sent in self.sentinel:
-			assert sent in self.sentinel
+			assert sent in self.lastResult
+
+
+class PostFormHasStringsTest(PostHasStringsTest):
+	"""is a test posting a form to a server.
+	"""
+	def __init__(self, url, data, sentinel, description, **kwargs):
+		data = urllib.urlencode(data)
+		kwargs["content-type"] = "application/x-www-form-urlencoded"
+		PostHasStringsTest.__init__(self, url, data, sentinel, 
+			description, **kwargs)
 
 
 class HeadStatusTest:
@@ -411,16 +431,16 @@ myTests = [
 		GetHasStringTest(nv_root+"/dexter/ui/ui/custom/__testing__/purgeData",
 			"Confirm deletion",
 			"Dexter asks for confirmation before purging data"),
-		PostHasStringsTest(nv_root+"/dexter/ui/ui/custom/__testing__/purgeData",
+		PostFormHasStringsTest(nv_root+"/dexter/ui/ui/custom/__testing__/purgeData",
 			{"__nevow_form__": "confirmation", "goAhead": "Confirm deletion"},
-			"Choose Name",
+			'content="0;URL=http://localhost:8080/dexter/ui/ui/custom/',
 			"Dexter deletes data on request"),
 		GetLacksStringTest(nv_root+"/dexter/ui/ui/custom/__testing__/",
 			'custom/__testing__/edit/0"',
 			"Dexter has actually deleted data"),
-		PostHasStringsTest(nv_root+"/dexter/ui/ui/custom/__testing__/purgeData",
+		PostFormHasStringsTest(nv_root+"/dexter/ui/ui/custom/__testing__/purgeData",
 			{"__nevow_form__": "confirmation", "goAhead": "Confirm deletion"},
-			"Choose Name",
+			'content="0;URL=http://localhost:8080/dexter/ui/ui/custom/',
 			"Dexter deletes empty dataset"),
 	),
 
@@ -503,6 +523,33 @@ myTests = [
 			"Reset of db seems to work"),
 	),
 
+	TestGroup("soap",
+		GetHasStringsTest(nv_root+"/ucds/ui/ui/soap/go?wsdl",
+			["wsdl:definitions", '<schema targetNamespace="ivo://', 
+				"ivo://org.gavo.dc/ucds/ui/ui"],
+			"WSDL for SOAP looks all right"),
+		PostHasStringsTest(nv_root+"/ucds/ui/ui/soap/go",
+			'eJydkU1vgzAMhu/7FSh34kW9jAiotqo97Utiq3ZFIaKRaIJwCOXfz3Sl6rrDpkk5JLb'
+			'zvPbrdHnY\nN1HQHRpnMyb4LYu0Va4yts7Y+9smvmPL/CYtXu5f4/XzVq5t0I1rdXSO'
+			'zOWFHxudsZ33rQRAtdP7\nEjnh0ZUtd10N0wXmcmAR5SzKE2j1j68HNOdfwzDwYXEsF'
+			'kmSwMfTY3EExcaiL63SV4Lbvwh+DXsh\nWP0uyC79enDVSG+LQvaoC90Fo/SJRsGMme'
+			'AIRhRel8HxSkGvKoTe0GGzyyvZOedpPxM7iIgGl35s\nyW7qSKLvyBWWpxAE5eG72BS'
+			'5bgd+7DP/BCkQrjo=\n'.decode("base64").decode("zlib"),
+			[':Client</faultcode>', 'Validation failed', 'No known words'],
+			'SOAP error messaging returns client error on junk input',
+			SOAPAction='"useService"', content_type="text/xml"),
+		PostHasStringsTest(nv_root+"/ucds/ui/ui/soap/go",
+			'eJydkU1PwzAMhu/8iij3JlRcaNR2gmmc+JIKE9eoibpIbVLFabr+e9yxTmMcQEg5JI7'
+			'9vPbrfLXv\nWhK1B+NsQVN2TYm2tVPGNgV9f3tIbumqvMqrl7vXZPO8FRsbdet6TU6R'
+			'Jb0KU6sLuguhF5xDvdOd\nBIZ4cLJnzjd8vvAlnVOCfxbEEbT+R+kezKlqHEc23hyS0'
+			'yzL+MfTY3UAJcZCkLbWF4Lbvwh+DXsm\nqH4XpOd+3Ts14dtCKgbQlfbR1PpIw2BBTX'
+			'QIQwprZHRM1XyoFfDB4KGLy2vhnQu4n5kdU4KDizD1\naDd2JCB4dIWW0ngcA4gMpDM'
+			'qmE7nPKZYwb/Lz5HLBvmPDZefAse1KA==\n'.decode("base64").decode("zlib"),
+			['tns:outList', 'obs.airMass', '</tns:outList>'],
+			"SOAP request yields something reasonable",
+			SOAPAction='"useService"', content_type="text/xml"),
+		),
+
 	TestGroup("services",
 		GetHasStringsTest(nv_root+"/lswscans/res/positions/q/form?"
 				"__nevow_form__=genForm&POS=2%2C2&SIZE=0.5&INTERSECT=COVERS&"
@@ -533,9 +580,9 @@ def tally(groupsRun):
 	nOk = sum([g.nOk for g in groupsRun])
 	nFail = sum([g.nFail for g in groupsRun])
 	if nFail==0:
-		print "%d tests passed"%nOk
+		print "%d test(s) passed"%nOk
 	else:
-		print "********* %d tests of %d failed"%(nFail, nFail+nOk)
+		print "********* %d test(s) of %d failed"%(nFail, nFail+nOk)
 
 
 """ Old querulator tests.

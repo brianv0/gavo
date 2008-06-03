@@ -14,15 +14,24 @@ from gavo.web import common
 from gavo.web import resourcebased
 from gavo.web import wsdl
 
+
 class SOAPProcessor(soap.SOAPPublisher):
 	def __init__(self, ctx, service):
 		self.ctx, self.service = ctx, service
 		soap.SOAPPublisher.__init__(self)
 
-	def _cbGotResult(self, result):
+	def _gotResult(self, result, request, methodName):
 # We want SOAP docs that actually match what we advertize in the WSDL.
-# So, I override SOAPPublisher's haphazard SOAP formatter.
-		return wsdl.serializePrimaryTable(result, self.service)
+# So, I override SOAPPublisher's haphazard SOAPpy-based formatter.
+		response = wsdl.serializePrimaryTable(result, self.service)
+		self._sendResponse(request, response)
+	
+	def _gotError(self, failure, request, methodName):
+		try:
+			self._sendResponse(request, 
+				wsdl.formatFault(failure.value, self.service), status=500)
+		except:
+			traceback.print_exc()
 
 	def soap_useService(self, *args):
 		try:
@@ -31,22 +40,16 @@ class SOAPProcessor(soap.SOAPPublisher):
 				args))
 			return self._runService(self.service.getInputData(inputPars), 
 				self.ctx)
-		except:
+		except Exception, exc:
 			traceback.print_exc()
-			raise
+			return self._formatError(exc)
+
+	def _formatError(self, exc):
+		return wsdl.formatFault(exc, self.service)
 
 	def _runService(self, inputData, ctx):
 		queryMeta = common.QueryMeta(ctx)
-		return defer.maybeDeferred(self.service.run, inputData, queryMeta
-			).addCallback(self._extractResult, ctx
-			).addErrback(self._handleErrors, ctx)
-	
-	def _extractResult(self, coreResult, ctx):
-		return coreResult.original.getPrimaryTable().rows
-	
-	def _handleErrors(self, failure, ctx):
-		failure.printTraceback()
-		return failure
+		return defer.maybeDeferred(self.service.run, inputData, queryMeta)
 
 
 class SoapRenderer(resourcebased.ServiceBasedRenderer):

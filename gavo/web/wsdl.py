@@ -10,6 +10,7 @@ from elementtree import ElementTree
 import ZSI
 from ZSI import TC
 
+import gavo
 from gavo import typesystems
 from gavo.stanxml import Element, XSINamespace
 from gavo.web import registry
@@ -172,13 +173,17 @@ def makeTypesForService(service, queryMeta):
 	"""
 	return WSDL.types[
 		XSD.schema(targetNamespace=registry.computeIdentifier(service))[
-			XSD.complexType(name="outRec")[
-				XSD.all[[
-					XSD.element(name=f.get_dest(), type=typesystems.sqltypeToXSD(
-						f.get_dbtype())) for f in service.getOutputFields(
-							queryMeta)]]],
-			XSD.simpleType(name="outList")[
-					XSD.list(itemType="outRec")]]]
+			XSD.element(name="outRec")[
+				XSD.complexType[
+					XSD.all[[
+						XSD.element(name=f.get_dest(), type=typesystems.sqltypeToXSD(
+							f.get_dbtype()))[
+								WSDL.documentation[f.get_description()],
+								WSDL.documentation[f.get_unit()]]
+							for f in service.getOutputFields(queryMeta)]]]],
+			XSD.element(name="outList")[
+				XSD.simpleType[
+					XSD.list(itemType="outRec")]]]]
 
 
 def makeMessagesForService(service):
@@ -192,7 +197,10 @@ def makeMessagesForService(service):
 	return [
 		WSDL.message(name="srvInput")[[
 			WSDL.part(name=f.get_dest(), type="xsd:"+typesystems.sqltypeToXSD(
-				f.get_dbtype())) for f in service.getInputFields()]],
+				f.get_dbtype()))[
+					WSDL.documentation[f.get_description()],
+					WSDL.documentation[f.get_unit()]]
+				for f in service.getInputFields()]],
 		WSDL.message(name="srvOutput")[
 			WSDL.part(name="srvOutput", type="tns:outList")]]
 
@@ -292,20 +300,29 @@ def serializePrimaryTable(data, service):
 	class Row(TC.Struct):
 		def __init__(self):
 			TC.Struct.__init__(self, None, [
-		sqltypeToTC(f.get_dbtype())(f.get_dest())
-			for f in table.fieldDefs], 'outRow')
+		sqltypeToTC(f.get_dbtype())("tns:"+f.get_dest())
+			for f in table.fieldDefs], 'tns:outRow')
 
 	class Table:
 		def __init__(self, name):
 			pass
-	Table.typecode = TC.Array('outRow', Row(), 'outList')
+	Table.typecode = TC.Array('outRow', Row(), 'tns:outList')
 
 	outF = cStringIO.StringIO()
 	sw = ZSI.SoapWriter(outF, 
-		nsdict={"": registry.computeIdentifier(service)})
+		nsdict={"tns": registry.computeIdentifier(service)})
 	sw.serialize(table.rows, Table.typecode)
 	sw.close()
 	return outF.getvalue()
+
+
+def formatFault(exc, service):
+	if isinstance(exc, gavo.ValidationError):
+		val = ZSI.Fault(ZSI.Fault.Client, str(exc))
+	else:
+		val = ZSI.Fault(ZSI.Fault.Server, str(exc))
+	return val.AsSOAP(
+		nsdict={"tns": registry.computeIdentifier(service)})
 
 
 def _tryWSDL():
@@ -326,8 +343,11 @@ def _trySOAP():
 	sv = rd.get_service("ui")
 	core = sv.get_core()
 	core._makeOutputDD()
-	data = core._parseOutput(core._compute("computed airmass"), qm)
-	print serializePrimaryTable(data, sv)
+	try:
+		data = core._parseOutput(core._compute(""), qm)
+		print serializePrimaryTable(data, sv)
+	except Exception, exc:
+		print formatFault(exc, sv)
 
 if __name__=="__main__":
 	_trySOAP()
