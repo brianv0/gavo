@@ -53,7 +53,7 @@ class ObjectCache:
 
 class SesameParser(nodebuilder.StartEndHandler):
 	def __init__(self):
-		utils.StartEndHandler.__init__(self)
+		nodebuilder.StartEndHandler.__init__(self)
 		self.data = {}
 
 	kwmap = {

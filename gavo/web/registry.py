@@ -360,7 +360,7 @@ def getAuthResourceTree(rec, resource):
 def getResponseTableTree(service):
 	return VS.table(role="out")[
 		[getTableParamFromField(f)
-			for f in service.getOutputFields(None)]
+			for f in service.getCurOutputFields(None)]
 	]
 
 

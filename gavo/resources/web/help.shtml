@@ -89,12 +89,13 @@ you.</p>
 columns in your output from an input field that pops down when you mouse over 
 it.</li>
 <li>VOTable -- data is returned in IVOA's standard data format, the VOTable.
-This is XML that is almost human-readable but really intended to be consumed
+This is XML that can be human-readable but is really intended to be consumed
 by tools like <a href="http://www.star.bris.ac.uk/~mbt/topcat/">Topcat</a>.
 You can select a "verbosity" specifying the fields present in the output, with
 1 standing for a minimal set of information, 2 for what the service author
-deemed useful for the average astronomer, and 3 for (almost) all fields
-available.  Furthermore, you can choose between a "human-readable" VOTable
+deemed useful for the average astronomer, 3 for (almost) all fields
+available, and finally H for (essentially) what the default HTML table gives.
+Furthermore, you can choose between a "human-readable" VOTable
 (select this to process your data with standard XML or text-based
 tools or peruse it with the naked eye) and a binary version that you
 should use for larger data sets since it is much more efficient.</li>
@@ -102,7 +103,7 @@ should use for larger data sets since it is much more efficient.</li>
 you visualize the returned data without any software on your
 side (besides a java-capable browser).</li>
 <li>FITS -- this returns FITS tables.  The data is in the first
-extension.  This contains much less information than a VOTable of the
+extension.  This contains much less meta information than a VOTable of the
 same data and thus should only be used if your backend tools do not understand
 VOTables.</li>
 <li>tar -- if the service contains "products" (usually FITS files of some

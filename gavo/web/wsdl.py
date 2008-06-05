@@ -180,7 +180,7 @@ def makeTypesForService(service, queryMeta):
 							f.get_dbtype()))[
 								WSDL.documentation[f.get_description()],
 								WSDL.documentation[f.get_unit()]]
-							for f in service.getOutputFields(queryMeta)]]]],
+							for f in service.getCurOutputFields(queryMeta)]]]],
 			XSD.element(name="outList")[
 				XSD.simpleType[
 					XSD.list(itemType="outRec")]]]]

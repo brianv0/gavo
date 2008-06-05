@@ -4,6 +4,7 @@ NodeBuilders are convenient mechanisms to parse XML.
 
 import re
 import sys
+import traceback
 from xml.sax.handler import ContentHandler
 
 import gavo
@@ -265,6 +266,7 @@ class BaseNodeBuilder(ContentHandler):
 			try:
 				childMap[childName](val)
 			except KeyError:
+				traceback.print_exc()
 				if not ignoreUnknownElements:
 					raise Error("%s elements may not have %s children"%(
 						name, childName))

@@ -4,7 +4,7 @@ This module defines the Record class, a general class providing
 when stuff is parsed.
 """
 
-
+from itertools import *
 import new
 import copy
 
@@ -93,6 +93,47 @@ class TristateBooleanField:
 	pass
 
 
+class DataFieldList(list):
+	"""is a list of datadef.DataFields (or derived classes) that takes
+	care that no duplicates occur.
+
+	If you add a field with the same dest to a DataFieldList, the previous
+	instance will be overwritten.  The idea is that you can override
+	DataFields in, e.g., interfaces later on.
+
+	Also, two DataFieldLists are considered equal if they contain the
+	same dests.
+	"""
+	def __init__(self, *args):
+		list.__init__(self, *args)
+		self.destIndex = dict([(f.get_dest(), ct) for ct, f in enumerate(self)])
+	
+	def append(self, item):
+		key = item.get_dest()
+		if key in self.destIndex:
+			destInd = self.destIndex[key]
+			assert self[destInd].get_dest()==key, \
+				"Someone tampered with DataFieldList"
+			self[destInd] = item
+		else:
+			self.destIndex[item.get_dest()] = len(self)
+			list.append(self, item)
+	
+	def extend(self, seq):
+		for item in seq:
+			self.append(item)
+
+	def getFieldByName(self, name):
+		return self[self.destIndex[name]]
+
+	def __eq__(self, other):
+		if isinstance(other, DataFieldList):
+			myFields = set([f.get_dest() for f in self])
+			otherFields = set([f.get_dest() for f in other])
+			return myFields==otherFields
+		return False
+
+
 class Record(object):
 	"""is a container for structured data.
 
@@ -146,6 +187,7 @@ class Record(object):
 		self.specialTypeHandlers = {
 			ComputedField: lambda key, val: [],
 			ListField: self._getListMethods,
+			DataFieldList: self._getDataFieldListMethods,
 			DictField: self._getDictMethods,
 			BooleanField: self._getBooleanMethods,
 			TrueBooleanField: self._getBooleanMethods,
@@ -233,6 +275,19 @@ class Record(object):
 		return [("get_", getter), ("addto_", adder), ("set_", setter),
 			("prependto_", prepender)]
 
+	def _getDataFieldListMethods(self, key, _):
+		self.dataStore[key] = DataFieldList()
+		def getter(self):
+			return self.dataStore[key]
+		def adder(self, value):
+			self.dataStore[key].append(value)
+		def setter(self, value):
+			if isinstance(value, DataFieldList):
+				self.dataStore[key] = value
+			else:
+				self.dataStore[key] = DataFieldList(value)
+		return [("get_", getter), ("addto_", adder), ("set_", setter)]
+
 	def _getDictMethods(self, key, _):
 		self.dataStore[key] = {}
 		def getter(self, regKey, default=""):
@@ -317,6 +372,7 @@ class Record(object):
 	
 	def set(self, key, value):
 		getattr(self, "set_"+key)(value)
+
 
 
 def parseBooleanLiteral(literal):

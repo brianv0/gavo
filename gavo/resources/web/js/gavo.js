@@ -185,7 +185,7 @@ function output_BussedElement(domNode, id, visibleFor) {
 
 function output_verbSelector(pars) {
 	// returns a BussedElement for the selector for output verbosity
-	var verbosities = new Array("1", "2", "3");
+	var verbosities = new Array("H", "1", "2", "3");
 	var root = document.createElement("span")
 	var sel = document.createElement("select");
 	var curSetting;
@@ -196,7 +196,7 @@ function output_verbSelector(pars) {
 	if (pars['arg'+sel.name]!=undefined) {
 		curSetting = pars['arg'+sel.name][0];
 	} else {
-		curSetting = "2";
+		curSetting = "H";
 	}
 	for (verbInd in verbosities) {
 		var el = sel.appendChild(document.createElement("option"));

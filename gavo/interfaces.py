@@ -260,13 +260,13 @@ class Products(Interface):
 	requiredFields = set(["accref", "owner", "embargo", "accsize"])
 	productFields = [
 		{"dest": "accref", "ucd": "VOX:Image_AccessReference",
-			"source": "prodtblKey", "dbtype": "text", "verbLevel": 0,
+			"source": "prodtblKey", "dbtype": "text", "verbLevel": 1,
 			"displayHint": "type=product", "tablehead": "Product"},
 		# XXX TODO: it would be smart to have "references": "products", here,
 # but that causes the removal of the items to take forever.  See if
 # we can figure out a way to avoid that penalty.
 			{"dest": "owner", "source": "prodtblOwner", "dbtype": "text",
-				"tablehead": "Product owner", "displayHint": "type=suppress",
+				"tablehead": "Product owner", 
 				"verbLevel": 25},
 			{"dest": "embargo", "source": "prodtblEmbargo", "dbtype": "date",
 				"tablehead": "Embargo ends", 
@@ -353,10 +353,10 @@ class BboxSiap(Products):
 		return self.siapFields
 		
 	siapFields = Products.productFields+[
-			{"dest": "centerAlpha", "source": "centerAlpha", "ucd": "PO_EQ_RA_MAIN",
+			{"dest": "centerAlpha", "source": "centerAlpha", "ucd": "POS_EQ_RA_MAIN",
 				"dbtype": "double precision", "unit": "deg", "tablehead": "alpha",
 				"displayHint": "type=time", "verbLevel": 0},
-			{"dest": "centerDelta", "source": "centerDelta", "ucd": "PO_EQ_DEC_MAIN",
+			{"dest": "centerDelta", "source": "centerDelta", "ucd": "POS_EQ_DEC_MAIN",
 				"dbtype": "double precision", "unit": "deg", "tablehead": "delta",
 				"displayHint": "type=sexagesimal", "verbLevel": 0},
 			{"dest": "primaryBbox", "source": "primaryBbox", 
@@ -374,7 +374,7 @@ class BboxSiap(Products):
 				"verbLevel": 0, 
 				"description": "Date (and possibly time) at center of observation"},
 			{"dest": "nAxes", "source": "NAXIS", "ucd": "VOX:Image_Naxes", 
-				"dbtype": "integer", "displayHint": "type=suppress", "verbLevel": 20},
+				"dbtype": "integer", "verbLevel": 20},
 			{"dest": "pixelSize", "source": "pixelSize", "ucd": "VOX:Image_Naxis",
 				"dbtype": "integer[]", "verbLevel": 15},
 			{"dest": "pixelScale", "source": "pixelSize", "ucd": "VOX:Image_Scale",

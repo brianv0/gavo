@@ -8,7 +8,7 @@ import weakref
 
 from pyparsing import Word, OneOrMore, ZeroOrMore, QuotedString, Forward,\
 	SkipTo, Optional, StringEnd, Regex, LineEnd, Suppress, ParserElement,\
-	Literal, White
+	Literal, White, ParseException
 
 import gavo
 from gavo import config
@@ -56,9 +56,9 @@ def _getSQLScriptGrammar():
 	withing strings and inside of open parens.
 	"""
 	ParserElement.setDefaultWhitespaceChars(" \t")
+#	ParserElement.enablePackrat()
 	atom = Forward()
 	atom.setName("Atom")
-	atom.setWhitespaceChars(" \t")
 
 	sqlComment = Literal("--")+SkipTo("\n", include=True)
 	cStyleComment = Literal("/*")+SkipTo("*/", include=True)
@@ -70,7 +70,7 @@ def _getSQLScriptGrammar():
 	strLiteral = simpleStr | dollarQuoted
 	strLiteral.setName("strLiteral")
 
-	parenExpr = "(" + ZeroOrMore( atom | LineEnd() ) + ")"
+	parenExpr = "(" + ZeroOrMore( atom | "\n" ) + ")"
 	parenExpr.setName("parenExpr")
 
 	other = Regex("[^(')$\n\\\\]+")
@@ -79,14 +79,15 @@ def _getSQLScriptGrammar():
 	ignoredLinebreak = Suppress(Literal("\\\n"))
 	ignoredLinebreak.setName("ignored linebreak")
 	literalBackslash = Literal("\\")
-	literalDollar = Literal("$")
+	literalDollar = Literal("$") + ~ Literal("$")
 	statementEnd = ( Literal('\n') | StringEnd())
 	statementEnd.setName("end of line")
 	emptyLine = Regex("\\s*\n")
+	emptyLine.setName("empty line")
 
 	atom <<  ( ignoredLinebreak | Suppress(comment) | other | strLiteral | 
 		parenExpr | literalDollar | literalBackslash )
-	statement = (OneOrMore(atom) + statementEnd)
+	statement = OneOrMore(atom) + statementEnd
 	statement.setName("statement")
 	statement.setParseAction(lambda s, p, toks: " ".join(toks))
 
@@ -101,7 +102,12 @@ def _getSQLScriptGrammar():
 		parenExpr.setDebug(True)
 		strLiteral.setDebug(True)
 		statement.setDebug(True)
+		statementEnd.setDebug(True)
 		dollarQuoted.setDebug(True)
+		literalDollar.setDebug(True)
+		literalBackslash.setDebug(True)
+		ignoredLinebreak.setDebug(True)
+		emptyLine.setDebug(True)
 	return script
 
 
@@ -283,48 +289,4 @@ class ScriptingMixin(object):
 
 if __name__=="__main__":
 	g = getSQLScriptGrammar()
-	print g.parseString("""					CREATE TEMP TABLE twomassmags (Jmag REAL, Hmag REAL, Kmag REAL)
-
-					CREATE OR REPLACE FUNCTION tmp_get2massMags(twomassId TEXT
-					) RETURNS twomassmags AS $$
-					DECLARE
-						res twomassmags%ROWTYPE;
-					BEGIN
-						IF twomassId IS NULL THEN
-							res.Jmag = NULL; res.Kmag = NULL; res.Hmag = NULL;
-						ELSE
-							SELECT INTO res Jmag, Hmag, Kmag FROM twomass.data WHERE
-								mainid=twomassId OFFSET 0;
-						END IF;
-						RETURN res;
-					END;
-					$$ LANGUAGE plpgsql
-
-					CREATE TEMP TABLE usnomags (b1mag REAL, b2mag REAL, r1mag REAL,
-						r2mag REAL, imag REAL)
-					
-					CREATE OR REPLACE FUNCTION tmp_getUsnoMags(ipix BIGINT
-					) RETURNS usnomags AS $$
-					DECLARE
-						res usnomags%ROWTYPE;
-					BEGIN
-						SELECT INTO res b1mag, b2mag, r1mag, r2mag, imag
-						FROM usnob.data
-						WHERE ipix=q3c_ang2ipix(raj2000, dej2000);
-						RETURN res;
-					END;
-					$$ LANGUAGE plpgsql
-
-					INSERT INTO uredux.finished (
-						SELECT NULL, raj2000, dej2000, raErr, deErr, pmRA, pmDE, pmraErr,
-							pmdeErr, meanEpRA, meanEpDE, nObs, (r.tm).jmag, (r.tm).hmag,
-							(r.tm).kmag,
-							(r.us).b1mag, (r.us).b2mag, (r.us).r1mag, (r.us).r2mag, 
-							(r.us).imag
-						FROM (
-							SELECT *, tmp_get2massMags(twomassId) as tm,
-								tmp_getUsnoMags(ipix) as us
-							FROM uredux.redtmp) as r)
-	""")
-
-
+	print g.parseString("""(foo""")

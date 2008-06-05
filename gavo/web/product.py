@@ -66,7 +66,7 @@ class Product(standardcores.DbBasedCore):
 		origDD = self.rd.getDataById("data")
 		inputDef = resource.RecordDef()
 		inputDef.updateFrom(origDD.getPrimaryRecordDef())
-		inputDef.set_items([datadef.makeCopyingField(f) 
+		inputDef.set_items([datadef.OutputField.fromDataField(f) 
 			for f in inputDef.get_items()])
 		self.dataDef = datadef.DataTransformer(self.rd, initvals={
 			"Grammar": rowsetgrammar.RowsetGrammar(initvals={
@@ -192,7 +192,7 @@ class Product(standardcores.DbBasedCore):
 		static.FileTransfer(open(targetPath, "r"), os.path.getsize(targetPath), 
 			request)
 		return request.deferred
-	
+
 	def run(self, ctx, queryMeta):
 		# Note that ctx.arg only returns the first arg of a name, but that's what
 		# we want here

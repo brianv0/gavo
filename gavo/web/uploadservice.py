@@ -39,17 +39,8 @@ class UploadCore(standardcores.QueryingCore):
 	def __init__(self, rd, initvals):
 		super(UploadCore, self).__init__(rd, initvals=initvals, additionalFields={
 			"dataName": record.RequiredField})
-		self.addto_condDescs(
-			standardcores.CondDesc.fromInputKey(
-				contextgrammar.InputKey(dest="File", formalType=formal.File,
-					source="File", dbtype="file", optional=False)))
-		self.addto_condDescs(
-			standardcores.CondDesc.fromInputKey(
-				contextgrammar.InputKey(dest="Mode", formalType=formal.String,
-					source="Mode", dbtype="text", optional=False,
-					values=datadef.Values(options=['i', 'u']),
-					widgetFactory=formal.widgetFactory(formal.RadioChoice, 
-						options=[("i", "insert"), ("u", "update")]))))
+		self.avInputKeys = set(["File", "Mode"])
+		self.avOutputKeys = set(["nOutput"])
 
 	def set_dataName(self, dataName):
 		self.dataStore["dataName"] = dataName
@@ -143,6 +134,20 @@ class UploadCore(standardcores.QueryingCore):
 		fName, srcFile = data["File"]
 		mode = data["Mode"]
 		return defer.maybeDeferred(self.saveData, srcFile, fName, mode)
+	
+	def set_service(self, svc):
+		svc.addto_condDescs(
+			standardcores.CondDesc.fromInputKey(
+				contextgrammar.InputKey(dest="File", formalType=formal.File,
+					source="File", dbtype="file", optional=False)))
+		svc.addto_condDescs(
+			standardcores.CondDesc.fromInputKey(
+				contextgrammar.InputKey(dest="Mode", formalType=formal.String,
+					source="Mode", dbtype="text", optional=False,
+					values=datadef.Values(options=['i', 'u']),
+					widgetFactory=formal.widgetFactory(formal.RadioChoice, 
+						options=[("i", "insert"), ("u", "update")]))))
+		self.dataStore["service"] = svc
 
 core.registerCore("upload", UploadCore)
 
@@ -159,6 +164,8 @@ class EditCore(standardcores.QueryingCore):
 			additionalFields={
 			"targetDataId": record.RequiredField})
 		self.dataDesc = rd.getDataById(self.get_targetDataId())
+		self.avInputKeys = set(["File", "Mode"])
+		self.avOutputKeys = set(["nOutput"])
 
 	def run(self, inputData, queryMeta):
 # XXX TODO: Crap -- see other instance with set_create

@@ -7,29 +7,51 @@ that's supposed to be accessible from resource descriptors using
 registerCore, and you can query that registry using getStandardCore.
 """
 
+import sets
+import weakref
+
+import gavo
 from gavo import record
 
 
 class Core(record.Record):
 	"""is something that does computations for a service.
+
+	Its run method takes a DataSet and returns a deferred firing another
+	DataSet.
+
+	The input data set should, in general, have a docrec containing 
+	some keys from avInputKeys (but, e.g., ComputingCores also look
+	at the primary table); the returned DataSet has a primary table
+	with fields with names from avOutputKeys.
+
+	Cores knowing more about their data should provide methods getInputFields
+	and getOutputFields returning sequences of DataFields.
+
+	Cores can only exist as a part of a service, and services register
+	themselves with their cores on adoption.
 	"""
+	avInputKeys = sets.ImmutableSet()
+	avOutputKeys = sets.ImmutableSet()
+
 	def __init__(self, additionalFields={}, initvals={}):
 		fields = {
 			"outputFields": record.ListField,
-			"renderer": record.DictField,    # additional renderers in the core
-			   # result.
+			"renderer": record.DictField,    # additional nevow renderers in 
+				# the core result.
+			"service": None,        # filled in on adoption
 		}
 		fields.update(additionalFields)
 		super(Core, self).__init__(fields, initvals=initvals)
+
+	def set_service(self, svc):
+		self.dataStore["service"] = weakref.proxy(svc)
 
 	def run(self, inputData, queryMeta):
 		"""returns a twisted deferred firing the result of running the core on
 		inputData.
 		"""
 		defer.succeed("Core without run")
-
-	def getInputFields(self):
-		return []
 
 
 _coresRegistry = {}

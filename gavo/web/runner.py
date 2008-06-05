@@ -42,7 +42,17 @@ class StreamingRunner(protocol.ProcessProtocol):
 		self.request.write(data)
 
 	def errReceived(self, data):
-		sys.stderr.write(data)
+# Input from stderr -- ignore
+		pass
+	
+	def handleFatalError(self, data):
+# XXX TODO: make this actually used -- e.g., when the program doesn't exist
+		self.request.setHeader("content-type", "text/plain")
+		self.request.write("Yikes -- something bad happened while I was"
+			" reading from an external program (%s).  I must give up and hope"
+			" you're seeing this to alert GAVO staff."%str(data))
+		self.request.unregisterProducer()
+		self.request.finishRequest(True)
 
 	def processEnded(self, status):
 		if status.value.exitCode!=0:

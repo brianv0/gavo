@@ -19,6 +19,7 @@ from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
 from gavo.parsing import scripting
 
+import testhelpers
 
 _predefinedFields = {
 	"klein": datadef.DataField(dest="klein", dbtype="smallint", source="klein"),
@@ -409,7 +410,7 @@ class TestScriptRunner(unittest.TestCase):
 		sq.close()
 
 
-class ScriptSplitterTest(unittest.TestCase):
+class ScriptSplitterTest(testhelpers.VerboseTest):
 	"""tests for splitting SQL scripts into individual commands.
 	"""
 	def _getSample(self):
@@ -429,7 +430,13 @@ class ScriptSplitterTest(unittest.TestCase):
 			sample.append((curExpected, "".join(curCode)))
 		return sample
 
-	def test(self):
+	def testGrammarIsValid(self):
+		"""tests that the SQL grammar doesn't do infinite recursion.
+		"""
+		grammar = scripting.getSQLScriptGrammar()
+		grammar.validate()
+
+	def testCorrectSplits(self):
 		grammar = scripting.getSQLScriptGrammar()
 		for expected, code in self._getSample():
 			parts = grammar.parseString(code)
@@ -437,13 +444,25 @@ class ScriptSplitterTest(unittest.TestCase):
 			self.assertEqual(expected, found,
 				"%d instead of %d parts found in split %s"%(found, expected, parts))
 
+	def testBadSource(self):
+		grammar = scripting.getSQLScriptGrammar()
+		for bad in [
+			"select (foo (bar)",
+			"ab )",
+			"ab 'x",
+			"ab 'x', y'",
+			"ab 'x', y$$",
+		]:
+			self.assertRaisesVerbose(scripting.ParseException,
+				grammar.parseString, (bad,), "%s was accepted"%bad)
+
 
 def singleTest():
-	suite = unittest.makeSuite(ScriptSplitterTest, "test")
+	suite = unittest.makeSuite(ScriptSplitterTest, "testB")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 
 
 if __name__=="__main__":
-#	unittest.main()
-	singleTest()
+	unittest.main()
+#	singleTest()

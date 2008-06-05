@@ -220,9 +220,10 @@ we can do that based on the renderer, too -->
 	<Service id="overview" fieldPath="data_srv_join.srv_join">
 		<meta name="shortName">_cs_srv</meta>
 		<meta name="title">Published Services</meta>
-		<core builtin="db">
+		<srvInput>
 			<condDesc original=".setName"/>
-			<arg name="table" value="srv_join"/>
+		</srvInput>
+		<srvOutput>
 			<outputField original=".shortName"/>
 			<outputField original=".sourceRd"/>
 			<outputField original=".title"/>
@@ -230,6 +231,9 @@ we can do that based on the renderer, too -->
 			<outputField original=".dateUpdated" unit="Y-M-D"/>
 			<outputField original=".renderer"/>
 			<outputField original=".setName"/>
+		</srvOutput>
+		<core builtin="db">
+			<arg name="table" value="srv_join"/>
 		</core>
 	</Service>
 </ResourceDescriptor>

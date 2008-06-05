@@ -39,9 +39,10 @@ class TestGroup(object):
 				self.nOk += 1
 			except KeyboardInterrupt:
 				raise
-			except AssertionError:
+			except AssertionError, msg:
 				self.nFail += 1
 				print "**** Test failed: %s -- %s\n"%(test.description, test.url)
+				print ">>>>", msg
 			except Exception:
 				self.nFail += 1
 				print "**** Internal Failure: %s -- %s\n"%(test.description, 
@@ -76,7 +77,7 @@ class GetHasStringsTest(GetHasStringTest):
 	def run(self):
 		self.lastResult = urllib.urlopen(self.url).read()
 		for phrase in self.sentinel:
-			assert phrase in self.lastResult
+			assert phrase in self.lastResult, "%s missing"%repr(phrase)
 
 
 class PostHasStringsTest:
@@ -303,6 +304,10 @@ myTests = [
 			"/q2237/mj160043.gz&siap=true",
 			'60043\x00\xec\xbdip\x9e\xd7\x95\xdf\x99T*\x93\x9at',
 			"NV Maidanak product delivery"),
+		GetHasStringTest(nv_root+"/maidanak/res/rawframes/siap/form?"
+			"__nevow_form__=genForm&POS=M1&SIZE=0.5&INTERSECT=OVERLAPS",
+			'<div class="resmeta"><p>Matched:',
+			"Simbad resolution of positions works"),
 		HeadStatusTest(nv_root+"/getproduct?key=maidanak/raw/cd002/aug1305/"
 			"q2237_ogak/oh130102.gz&siap=true",
 			401,
@@ -347,6 +352,21 @@ myTests = [
 		HeadStatusTest(nv_root+"/apfs/res/apfs_new/catquery/upload",
 			404,
 			"Disallowed renderer yields 404."),
+	),
+
+	TestGroup("siap.xml",
+		GetHasStringsTest(nv_root+"/lswscans/res/positions/siap/siap.xml?"
+			"POS=168,22&SIZE=0.5",
+			["wcs_equinox", "BINARY", '<MIN value="168', 'POS_EQ_DEC_MAIN'],
+			"SIAP reply looks like a SIAP VOTable"),
+		GetHasStringsTest(nv_root+"/lswscans/res/positions/siap/siap.xml?"
+			"POSS=168,22&SIZE=0.5",
+			["VOTABLE", 'value="ERROR"', 'POS: Required'],
+			"SIAP error reporting is a VOTable and include parameter names"),
+		GetLacksStringTest(nv_root+"/lswscans/res/positions/siap/siap.xml?"
+			"POS=168,22&SIZE=0.5&dateObs=%3C%201950-01-01",
+			"1985-10-31",
+			"SIAP services include custom arguments")
 	),
 
 	TestGroup("cns-scs",
@@ -474,6 +494,14 @@ myTests = [
 			"&_FORMAT=HTML&_ADDITEM=owner&submit=Go",
 			"Product owner</th>",
 			"Additional fields show up in HTML responses"),
+		GetHasStringTest(nv_root+"/lensdemo/view/q/form?__nevow_form__=genForm&"
+			"object=SBSS%200909%2B531&_ADDITEM=junkfield",
+			"the additional field 'junkfield' you requested does not",
+			"Invalid additional fields give an at least remotely useful message"),
+		GetHasStringTest(nv_root+"/lensdemo/view/q/form?__nevow_form__=genForm&"
+			"object=APM%2008279%2B5255&_FORMAT=junk",
+			"Invalid output format: junk",
+			"Invalid output format is correctly complained about"),
 		GetHasStringTest(nv_root+"/getproduct?key=maidanak/raw/cd037/jun_2003/"
 			"jun2603/q2237/mf260110.gz&siap=true&preview=True",
 			"JFIF",
@@ -561,8 +589,8 @@ myTests = [
 				"key=lswscans/data/B2866b.fits%26amp%3Bra%3D2.0%26amp%3Bdec"
 				"%3D2.0%26amp%3Bsra%3D0.5%26amp%3Bsdec%3D0.5",
 			["SIMPLE  =                    T", "OBSERVER= 'F.Kaiser'", 
-				"NAXIS1  =                 1772"],
-			"LSW cutout delivers plauible FITS"),
+				"NAXIS1  =                 17"],
+			"LSW cutout delivers plausible FITS"),
 		GetHasStringsTest(nv_root+"/liverpool/res/rawframes/q/form",
 			["<h1>Liverpool", "QSO B0957+5608A"],
 			"Liverpool service delivers form"),

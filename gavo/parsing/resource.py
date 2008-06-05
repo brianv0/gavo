@@ -105,7 +105,7 @@ class RecordDef(record.Record, meta.MetaMixin, scripting.ScriptingMixin):
 	def __init__(self, initvals={}):
 		record.Record.__init__(self, {
 			"table": record.RequiredField,  # name of destination table
-			"items": record.ListField,      # list of FieldDefs for this record
+			"items": record.DataFieldList,  # list of FieldDefs for this record
 			"constraints": None,        # a Constraints object rows have to satisfy
 			"owningCondition": None,    # a condition to select our data from
 			                            # shared tables.
@@ -145,18 +145,6 @@ class RecordDef(record.Record, meta.MetaMixin, scripting.ScriptingMixin):
 		if self.get_constraints():
 			self.get_constraints().check(record)
 
-	def addto_items(self, item):
-		if self.fieldIndexDict.has_key(item.get_dest()):
-			raise Error("Duplicate field name: %s"%item.get_dest())
-		self.fieldIndexDict[item.get_dest()] = len(self.get_items())
-		self.get_items().append(item)
-
-	def set_items(self, items):
-		self.fieldIndexDict = {}
-		self.dataStore["items"] = []
-		for item in items:
-			self.addto_items(item)
-
 	def getPrimary(self):
 		for field in self.get_items():
 			if field.get_primary():
@@ -171,7 +159,7 @@ class RecordDef(record.Record, meta.MetaMixin, scripting.ScriptingMixin):
 		return self.fieldIndexDict[fieldName]
 
 	def getFieldByName(self, fieldName):
-		return self.get_items()[self.fieldIndexDict[fieldName]]
+		return self.get_items().getFieldByName(fieldName)
 
 	def getFieldsByUcd(self, ucd):
 		"""returns all fields having ucd.
@@ -782,15 +770,21 @@ def makeSimpleDataDesc(rd, tableDef):
 	return dd
 
 
-def makeRowsetDataDesc(rd, tableDef):
+def makeGrammarDataDesc(rd, tableDef, grammar, mungeFields=False):
+	if mungeFields:
+		tableDef = [datadef.makeCopyingField(f) for f in tableDef]
+	dd = makeSimpleDataDesc(rd, tableDef)
+	dd.set_Grammar(grammar)
+	return dd
+
+
+def makeRowsetDataDesc(rd, tableDef, mungeFields=True):
 	"""returns a simple DataTransformer with a grammar parsing tableDef
 	out of what the db engine returns for a query.
 	"""
-	items = [datadef.makeCopyingField(f) for f in tableDef]
-	dd = makeSimpleDataDesc(rd, items)
-	dd.set_Grammar(rowsetgrammar.RowsetGrammar(initvals={
-		"dbFields": items}))
-	return dd
+	return makeGrammarDataDesc(rd, tableDef,
+		rowsetgrammar.RowsetGrammar(initvals={"dbFields": tableDef}),
+		mungeFields)
 
 
 def rowsetifyDD(dd, outputFieldNames=None):

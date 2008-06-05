@@ -287,7 +287,7 @@ class DataTransformer(record.Record, meta.MetaMixin):
 			"id": record.RequiredField,        # internal id of the data set.
 			"encoding": "ascii", # of string literals coming in
 			"constraints": None, # ignored, present for RecordDef interface
-			"items": record.ListField,
+			"items": record.DataFieldList,
 			"macros": record.ListField,
 		}
 		baseFields.update(additionalFields)

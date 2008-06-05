@@ -45,7 +45,7 @@ class OutputFormat(object):
 	def __init__(self, typeOb, service, queryMeta):
 		self.service = service
 		self.typeOb = typeOb
-		self._computeAvailableFields()
+		self._computeAvailableFields(queryMeta)
 		self._computeAvailableFormats(queryMeta)
 
 	def _computeAvailableFormats(self, queryMeta):
@@ -56,26 +56,25 @@ class OutputFormat(object):
 # XXX TODO: Once we have a real interface.isImplementedIn, do away with
 # this gruesome hack -- it's really supposed to check for products in the
 # output table
-		ofs = core.getOutputFields(queryMeta)
+		ofs = core.tableDef.get_items()
 		for of in ofs:
 			if of.get_dest()=="accref":
 				self.availableFormats.append("tar")
 				break
 		
-	def _computeAvailableFields(self):
+	def _computeAvailableFields(self, queryMeta):
 		"""computes the fields a DbBasedCore provides but doesn't 
 		output by default.
 		"""
+# XXX TODO: We should provide some control over what fields are offered here
 		self.availableFields = []
 		core = self.service.get_core()
 		if not hasattr(core, "tableDef"):
 			return
-		allItems = core.tableDef.get_items()
 		defaultNames = set([f.get_dest() 
-			for f in self.service.getOutputFields(common.emptyQueryMeta)])
-		for item in allItems:
-			if not item.get_dest() in defaultNames:
-				self.availableFields.append(item)
+			for f in self.service.getCurOutputFields(queryMeta)])
+		for key in core.avOutputKeys-defaultNames:
+			self.availableFields.append(core.tableDef.getFieldByName(key))
 
 	def _makeFieldDescs(self):
 		return "\n".join(["%s %s"%(f.get_dest(), urllib.quote(
@@ -131,7 +130,7 @@ class DbOptions(object):
 			self.limitWidget = self._makeLimitWidget(service)
 		
 	def _makeSortWidget(self, service, queryMeta):
-		keys = [f.get_dest() for f in self.service.getOutputFields(queryMeta)]
+		keys = [f.get_dest() for f in self.service.getCurOutputFields(queryMeta)]
 		return widget.SelectChoice(formaltypes.String(), options=
 			[(key, key) for key in keys])
 	

@@ -19,8 +19,11 @@ The interface of a service is built through:
 import cStringIO
 import weakref
 
+from nevow import inevow
 from twisted.internet import defer
 from twisted.python import components
+
+from zope.interface import implements
 
 import gavo
 from gavo import config
@@ -30,6 +33,7 @@ from gavo import record
 from gavo import table
 from gavo import record
 from gavo.parsing import contextgrammar
+from gavo.parsing import tablegrammar
 from gavo.parsing import resource
 from gavo.web import common
 
@@ -40,6 +44,103 @@ class TableContainer(object):
 	pass
 
 
+class SvcResult(object):
+	"""is a nevow.IContainer that has the result and also makes the input
+	dataset accessible.
+
+	SvcResult objects have a resultmeta dictionary that you can, in
+	principle, use to communicate any kind of information.  However,
+	renderers should at least check for the presence of a non-empty
+	message and display its contents prominently.
+
+	SvcResult objects must be able to fall back to sensible behaviour
+	without a service.  This may be necessary in error handling.
+	"""
+	implements(inevow.IContainer)
+	
+	def __init__(self, coreResult, inputData, queryMeta, service=None):
+		self.queryPars = queryMeta.get("formal_data", {})
+		self.inputData = inputData
+		self.queryMeta = queryMeta
+		self.service = service
+		for n in dir(coreResult):
+			if not n.startswith("_"):
+				setattr(self, n, getattr(coreResult, n))
+		self.original = self._adaptCoreResult(coreResult, queryMeta)
+
+	def _adaptCoreResult(self, coreResult, queryMeta):
+		"""returns the DataSet coreResult adapted for self.service's interface.
+
+		There are four cases:
+		(1) coreResult set has exactly the fields the service expects -- return it
+		(2) the service expects a restriction of coreResult -- do the restriction
+		(3) coreResult is missing columns -- fill up the missing values with
+		    Nones unless the service has declared one of them as non-optional
+			  (in which case an error will be raised).
+		(4) coreResult is a tuple (file), a string or a table-less data --
+		    return it untouched.
+		"""
+		if isinstance(coreResult, (str, tuple)):
+			return coreResult
+		if len(coreResult.tables)==0 or not self.service:
+			return coreResult
+		svcFields = self.service.getCurOutputFields(queryMeta)
+		if coreResult.getPrimaryTable().getFieldDefs()==svcFields:
+			return coreResult
+		else:
+			res = resource.InternalDataSet(
+				resource.makeGrammarDataDesc(self.service.rd, svcFields, 
+					tablegrammar.TableGrammar()),
+				dataSource=coreResult)
+			return res
+
+	def data_resultmeta(self, ctx):
+		result = self.original.getPrimaryTable()
+		resultmeta = {
+			"itemsMatched": len(result.rows),
+			"filterUsed": self.queryMeta.get("outputFilter", ""),
+# XXX TODO: We want to be able to communicate mild error messages from
+# cores.  Right now, we hack a message attribute into the datasets, but
+# that's bad.  We don't use this yet, but we want some structured means
+# for this in a rewrite.
+			"message": getattr(self.original, "message", ""),
+		}
+		return resultmeta
+
+	def data_querypars(self, ctx=None):
+		return dict((k, str(v)) for k, v in self.queryPars.iteritems()
+			if not k in common.QueryMeta.metaKeys and v and v!=[None])
+
+	suppressedParNames = set(["submit"])
+		
+	def data_queryseq(self, ctx=None):
+		if self.service:
+			fieldDict = dict((f.get_dest(), f) 
+				for f in self.service.getInputFields())
+		else:
+			fieldDict = {}
+
+		def getTitle(key):
+			title = None
+			if key in fieldDict:
+				title = fieldDict[key].get_tablehead()
+			return title or key
+		
+		s = [(getTitle(k), v) for k, v in self.data_querypars().iteritems()
+			if k not in self.suppressedParNames and not k.startswith("_")]
+		s.sort()
+		return s
+
+	def data_inputRec(self, ctx=None):
+		return self.inputData.getDocRec()
+
+	def data_table(self, ctx=None):
+		return self.original.getPrimaryTable()
+
+	def child(self, ctx, name):
+		return getattr(self, "data_"+name)(ctx)
+
+
 class Service(record.Record, meta.MetaMixin):
 	"""is a model for a service.
 
@@ -48,8 +149,7 @@ class Service(record.Record, meta.MetaMixin):
 	 * a list of Adapter instances for input (inputFilters)
 	 * a dict mapping output ids to pairs of adapters and names of tables
 	   within those adapters.
-	 * a core, i.e., an object having getInputFields, run, and parseOutput
-	   methods.
+	 * a core
 	
 	The inputFilters are processed sequentially, while only exactly one of
 	the outputs is selected when a service runs.
@@ -62,6 +162,8 @@ class Service(record.Record, meta.MetaMixin):
 		self.rd = weakref.proxy(rd)
 		self.setMetaParent(self.rd)
 		record.Record.__init__(self, {
+			"outputFields": record.DataFieldList,
+			"condDescs": record.DataFieldList,
 			"inputFilter": None,
 			"output": record.DictField,
 			"core": record.RequiredField,
@@ -78,12 +180,91 @@ class Service(record.Record, meta.MetaMixin):
 			"fieldNameTranslations": None,
 		}, initvals)
 
+	def set_core(self, core):
+		self.dataStore["core"] = core
+		core.set_service(self)
+
+	def getInputFields(self):
+		if self.dataStore["inputFilter"]:
+			return self.dataStore["inputFilter"].get_Grammar().get_inputKeys()
+		res = []
+		for cd in self.get_condDescs():
+			res.extend(cd.get_inputKeys())
+		return res
+
+	def addAutoOutputFields(self, srcTable, verbosity):
+		"""adds all fields matching verbLevel<=queryMeta["verbosity"].
+
+		This is used by the import parser.
+		"""
+		tableDef = self.rd.getTableDefByName(srcTable)
+		verbLimit = int(verbosity)
+		for f in self.tableDef.get_items():
+			if f.get_verbLevel()<=verbLimit:
+				self.addto_outputFields(datadef.OutputField.fromDataField(f))
+
+	def _getVOTableOutputFields(self, queryMeta):
+		"""returns a list of OutputFields suitable for a VOTable response described
+		by queryMeta
+		"""
+		verbLevel = queryMeta.get("verbosity", 20)
+		if verbLevel=="HTML":
+			fieldList = record.DataFieldList([
+					f for f in self._getHTMLOutputFields(queryMeta)
+				if f.get_displayHint().get("noxml")!="true"])
+		else:
+			fieldList = record.DataFieldList([f for f in self.get_outputFields()
+				if f.get_verbLevel()<=verbLevel and 
+					f.get_displayHint().get("type")!="suppress" and
+					f.get_displayHint().get("noxml")!="true"])
+		return fieldList
+
+	def _getHTMLOutputFields(self, queryMeta):
+		"""returns a list of OutputFields suitable for an HTML response described
+		by queryMeta
+		"""
+		res = record.DataFieldList([f for f in self.get_outputFields()
+			if f.get_displayHint().get("type")!="suppress"])
+		if queryMeta["additionalFields"]:
+			cofs = self.get_core().getOutputFields()
+			try:
+				for fieldName in queryMeta["additionalFields"]:
+					res.append(datadef.OutputField.fromDataField(
+						cofs.getFieldByName(fieldName)))
+			except KeyError, msg:
+				raise gavo.Error("Sorry, the additional field %s you requested"
+					" does not exist"%str(msg))
+		return res
+
+	def _getTarOutputFields(self, queryMeta):
+		return record.DataFieldList()  # Not used.
+
+	def getCurOutputFields(self, queryMeta=None):
+		"""returns a list of desired output fields for query meta.
+
+		This is for both the core and the formatter to figure out the
+		structure of the tables passed.
+
+		If queryMeta is not None, both the format and the verbLevel given
+		there can influence this choice.
+		"""
+		if queryMeta==None:
+			return self.get_outputFields()
+		outputFilter = queryMeta["outputFilter"]
+		if outputFilter and self.get_output(outputFilter):
+			return self.get_output(outputFilter).getPrimaryRecordDef().get_items()
+		format = queryMeta.get("format", "HTML")
+		if format=="HTML":
+			return self._getHTMLOutputFields(queryMeta)
+		else:
+			return self._getVOTableOutputFields(queryMeta)
+
 	def _getDefaultInputFilter(self):
 		"""returns an input filter from a web context implied by the service.
 		"""
 		# XXX TODO: id and table name is not unique, ask rd for an id.
 		if not hasattr(self, "_defaultInputFilter"):
-			coreFields = self.get_core().getInputFields()
+			coreFields = self.getInputFields()
 			self._defaultInputFilter = datadef.DataTransformer(self.rd,
 				initvals={
 					"Grammar": contextgrammar.ContextGrammar(initvals={
@@ -128,9 +309,6 @@ class Service(record.Record, meta.MetaMixin):
 			return self.get_fieldNameTranslations().get(name, name)
 		return name
 
-	def getInputFields(self):
-		return self.get_inputFilter().getInputFields()
-	
 	def getInputData(self, inputData):
 		dD = self.get_inputFilter()
 		curData = resource.InternalDataSet(dD, table.Table, inputData)
@@ -147,44 +325,6 @@ class Service(record.Record, meta.MetaMixin):
 			result = coreOutput
 		return result
 
-	def getOutputFields(self, queryMeta):
-		"""returns a sequence of DataField instances matching the output table
-		if known, or None otherwise.
-
-		queryMeta may be none, but then we'll only know the output fields if
-		there is not more than one output filter (because these usually change
-		output fields).
-
-		This can only be expected to work on database based cores (really, it's
-		supposed to be used for a sort-by-type widget).
-		"""
-		# XXX this function shows there's something fundamentally wrong with my
-		# design...  Not sure what to do about it.
-		if self.count_output()>1:
-			# find out what filter is requested from queryMeta
-			if queryMeta:
-				filterName = queryMeta["outputFilter"]
-				if filterName and self.get_output(filterName):
-					outputFilter = self.get_output(filterName)
-					return outputFilter.getPrimaryTableDef().get_items()
-				# else it's hard to say -- or should I ask the core?
-		else:
-			if self.get_output("default"):
-				# There is an output filter
-				outputFilter = self.get_output("default")
-				return outputFilter.getPrimaryTableDef().get_items()
-			else:
-				# get output fields from core
-				if queryMeta==None:
-					queryMeta = {"format": "HTML"}
-				try:
-					fields = self.get_core().getOutputFields(queryMeta)
-					fields.extend(self.get_core().getExtraOutputFields(queryMeta))
-					return fields
-				except AttributeError:
-					pass
-		return self.get_core().get_outputFields()[:]
-
 	def run(self, inputData, queryMeta=common.emptyQueryMeta):
 		"""runs the input filter, the core, and the output filter and returns a
 		deferred firing an adapted result table.
@@ -195,7 +335,7 @@ class Service(record.Record, meta.MetaMixin):
 		return self.get_core().run(inputData, queryMeta).addCallback(
 			self._postProcess, queryMeta).addErrback(
 			lambda failure: failure).addCallback(
-			common.CoreResult, inputData, queryMeta, self).addErrback(
+			SvcResult, inputData, queryMeta, self).addErrback(
 			lambda failure: failure)
 	
 	def getURL(self, renderer, method="POST"):

@@ -375,6 +375,9 @@ class QueryMeta(dict):
 		self["format"] = ctxArgs.get("_FORMAT", ["HTML"])[0]
 		try:
 # prefer fine-grained "verbosity" over _VERB or VERB
+# Hack: malformed _VERBs result in None verbosity, which is taken to
+# mean about "use fields of HTML".  Absent _VERB or VERB, on the other
+# hand, means VERB=2, i.e., a sane default
 			if ctxArgs.has_key("verbosity"):
 				self["verbosity"] = int(ctxArgs["verbosity"][0])
 			elif ctxArgs.has_key("_VERB"):
@@ -382,9 +385,9 @@ class QueryMeta(dict):
 			elif ctxArgs.has_key("VERB"):
 				self["verbosity"] = int(ctxArgs["VERB"][0])*10
 			else:
-				self.verbosity = 20
+				self["verbosity"] = 20
 		except ValueError:
-			self["verbosity"] = 20
+			self["verbosity"] = "HTML"
 		try:
 			self["tdEnc"] = record.parseBooleanLiteral(
 				ctxArgs.get("_TDENC", ["False"])[0])
@@ -430,74 +433,6 @@ class QueryMeta(dict):
 	
 
 emptyQueryMeta = QueryMeta({})
-
-
-class CoreResult(object):
-	"""is a nevow.IContainer that has the result and also makes the input
-	dataset accessible.
-
-	CoreResult objects have a resultmeta dictionary that you can, in
-	principle, use to communicate any kind of information.  However,
-	renderers should at least check for the presence of a non-empty
-	message and display its contents prominently.
-	"""
-	implements(inevow.IContainer)
-	
-	def __init__(self, resultData, inputData, queryMeta, service=None):
-		self.original = resultData
-		self.queryPars = queryMeta.get("formal_data", {})
-		self.inputData = inputData
-		self.queryMeta = queryMeta
-		self.service = service
-		for n in dir(self.original):
-			if not n.startswith("_"):
-				setattr(self, n, getattr(self.original, n))
-
-	def data_resultmeta(self, ctx):
-		result = self.original.getPrimaryTable()
-		resultmeta = {
-			"itemsMatched": len(result.rows),
-			"filterUsed": self.queryMeta.get("outputFilter", ""),
-# XXX TODO: We want to be able to communicate mild error messages from
-# cores.  Right now, we hack a message attribute into the datasets, but
-# that's bad.  We don't use this yet, but we want some structured means
-# for this in a rewrite.
-			"message": getattr(self.original, "message", ""),
-		}
-		return resultmeta
-
-	def data_querypars(self, ctx=None):
-		return dict((k, str(v)) for k, v in self.queryPars.iteritems()
-			if not k in QueryMeta.metaKeys and v and v!=[None])
-
-	suppressedParNames = set(["submit"])
-		
-	def data_queryseq(self, ctx=None):
-		if self.service:
-			fieldDict = dict((f.get_dest(), f) 
-				for f in self.service.getInputFields())
-		else:
-			fieldDict = {}
-
-		def getTitle(key):
-			title = None
-			if key in fieldDict:
-				title = fieldDict[key].get_tablehead()
-			return title or key
-		
-		s = [(getTitle(k), v) for k, v in self.data_querypars().iteritems()
-			if k not in self.suppressedParNames and not k.startswith("_")]
-		s.sort()
-		return s
-
-	def data_inputRec(self, ctx=None):
-		return self.inputData.getDocRec()
-
-	def data_table(self, ctx=None):
-		return self.original.getPrimaryTable()
-
-	def child(self, ctx, name):
-		return getattr(self, "data_"+name)(ctx)
 
 
 class CustomTemplateMixin(object):

@@ -178,7 +178,7 @@ def writeVOTable(request, dataSet, tableMaker):
 
 
 def serveAsVOTable(request, data):
-	"""writes a VOTable representation of the CoreResult instance data
+	"""writes a VOTable representation of the SvcResult instance data
 	to request.
 	"""
 	request.setHeader("content-type", "application/x-votable")
@@ -289,7 +289,7 @@ class FileResponse(BaseResponse):
 	a file to be delivered.
 	"""
 	def _handleData(self, data, ctx):
-		self.coreResult = data
+		self.svcResult = data
 		request = inevow.IRequest(ctx)
 		return threads.deferToThread(self.generateFile, request
 			).addCallback(self._serveFile, request
@@ -298,7 +298,7 @@ class FileResponse(BaseResponse):
 	def generateFile(self, request):
 		"""has to return a file name containing the data to be delivered.
 
-		The data to operate on are in the coreResult attribute.
+		The data to operate on are in the svcResult attribute.
 		"""
 	
 	def getTargetName(self):
@@ -346,13 +346,13 @@ class FITSTableResponse(FileResponse):
 		while not _fitsTableMutex.testandset():
 			time.sleep(0.1)
 		try:
-			res = fitstable.makeFITSTableFile(self.coreResult.original)
+			res = fitstable.makeFITSTableFile(self.svcResult.original)
 		finally:
 			_fitsTableMutex.unlock()
 		return res
 	
 	def getTargetName(self):
-		if self.coreResult.queryMeta.get("Overflow"):
+		if self.svcResult.queryMeta.get("Overflow"):
 			return "truncated_data.fits", "application/x-fits"
 		else:
 			return "data.fits", "application/x-fits"
@@ -382,11 +382,11 @@ class TarResponse(FileResponse):
 	"""delivers a tar of products contained.
 	"""
 	def generateFile(self, request):
-		return producttar.getTarMaker().getTarFile(self.coreResult, 
+		return producttar.getTarMaker().getTarFile(self.svcResult, 
 			request.getUser(), request.getPassword())
 	
 	def getTargetName(self):
-		if self.coreResult.queryMeta.get("Overflow"):
+		if self.svcResult.queryMeta.get("Overflow"):
 			return "truncated_data.tar", "application/x-tar"
 		else:
 			return "data.tar", "application/x-tar"
@@ -716,8 +716,8 @@ class Static(GavoFormMixin, ServiceBasedRenderer):
 		else:
 			return self.service.run(None).addCallback(self._renderResultDoc, ctx)
 	
-	def _renderResultDoc(self, coreResult, ctx):
-		rows = coreResult.original.getPrimaryTable().rows
+	def _renderResultDoc(self, svcResult, ctx):
+		rows = svcResult.original.getPrimaryTable().rows
 		if len(rows)==0:
 			raise UnknownURI("No matching resource")
 		relativeName = rows[0]["filename"]

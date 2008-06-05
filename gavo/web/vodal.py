@@ -2,6 +2,8 @@
 Support for IVOA DAL and registry protocols.
 """
 
+import formal
+
 from nevow import appserver
 from nevow import inevow
 from nevow import rend
@@ -23,6 +25,7 @@ from gavo.parsing import resource
 from gavo.web import common
 from gavo.web import registry
 from gavo.web import resourcebased
+from gavo.web import service
 
 
 class DalRenderer(common.CustomErrorMixin, resourcebased.Form):
@@ -30,7 +33,7 @@ class DalRenderer(common.CustomErrorMixin, resourcebased.Form):
 
 	The main difference to the standard VOTable renderer is the custom
 	error reporting.  For this, the inheriting class has to define
-	a method _makeErrorTable(ctx, errorMessage) that must return a CoreResult
+	a method _makeErrorTable(ctx, errorMessage) that must return a SvcResult
 	instance producing a VOTable according to specification.
 	"""
 
@@ -76,8 +79,13 @@ class DalRenderer(common.CustomErrorMixin, resourcebased.Form):
 			"Unexpected failure, error message: %s"%failure.getErrorMessage())
 
 	def _handleInputErrors(self, errors, ctx):
+		def formatError(e):
+			if isinstance(e, formal.FieldError):
+				return "%s: %s"%(e.fieldName, str(e))
+			else:
+				return str(e)
 		msg = "Error(s) in given Parameters: %s"%"; ".join(
-			[str(e) for e in errors])
+			[formatError(e) for e in errors])
 		return self._writeErrorTable(ctx, msg)
 
 
@@ -94,7 +102,7 @@ class ScsRenderer(DalRenderer):
 		data = resource.InternalDataSet(dataDesc)
 		data.addMeta("info", meta.makeMetaValue(msg, name="info", 
 			infoName="Error", infoId="Error"))
-		return common.CoreResult(data, {}, common.QueryMeta(ctx))
+		return service.SvcResult(data, {}, common.QueryMeta(ctx))
 
 
 class SiapRenderer(DalRenderer):
@@ -119,13 +127,13 @@ class SiapRenderer(DalRenderer):
 		for f in inputFields:
 			f.set_dest("INPUT:"+f.get_dest())
 		dataDesc = resource.makeSimpleDataDesc(self.rd, 
-			self.service.getOutputFields(common.QueryMeta(ctx)))
+			self.service.getCurOutputFields(common.QueryMeta(ctx)))
 		dataDesc.set_items(inputFields)
 		data = resource.InternalDataSet(dataDesc)
 		data.addMeta("_type", "metadata")
 		data.addMeta("info", meta.makeMetaValue("OK", name="info", 
 			infoName="QUERY_STATUS", infoValue="OK"))
-		result = common.CoreResult(data, {}, common.QueryMeta(ctx))
+		result = service.SvcResult(data, {}, common.QueryMeta(ctx))
 		return resourcebased.writeVOTable(request, result, votable.VOTableMaker())
 
 	def _handleOutputData(self, data, ctx):
@@ -139,7 +147,7 @@ class SiapRenderer(DalRenderer):
 		data = resource.InternalDataSet(dataDesc)
 		data.addMeta("info", meta.makeMetaValue(str(msg), name="info",
 			infoValue="ERROR", infoName="QUERY_STATUS"))
-		return common.CoreResult(data, {}, common.QueryMeta(ctx))
+		return service.SvcResult(data, {}, common.QueryMeta(ctx))
 
 
 class RegistryRenderer(rend.Page):

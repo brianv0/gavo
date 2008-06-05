@@ -538,13 +538,14 @@ class ColProperties(dict):
 		self["sample"] = None
 		self["name"] = fieldDef.get_dest()
 		self["dbtype"] = fieldDef.get_dbtype()
-		self["description"] = fieldDef.get_description()
+		self["description"] = (fieldDef.get_description() or 
+			fieldDef.get_tablehead() or "")
 		self["ID"] = fieldDef.get_dest()  # XXX TODO: qualify this guy
 		type, size = typesystems.sqltypeToVOTable(fieldDef.get_dbtype())
 		self["datatype"] = type
 		self["arraysize"] = size
 		self["displayHint"] = fieldDef.get_displayHint()
-		for fieldName in ["ucd", "utype", "unit", "description"]:
+		for fieldName in ["ucd", "utype", "unit"]:
 			self[fieldName] = fieldDef.get(fieldName)
 
 	def feed(self, val):

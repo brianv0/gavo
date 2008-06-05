@@ -497,11 +497,14 @@ class RdParser(nodebuilder.NodeBuilder):
 			"meta": lambda mv: adapter.addMeta(mv[0], mv[1]),
 		}, children)
 
-	_start_Service = _pushFieldPath
-
-	def _make_Service(self, name, attrs, children):
+	def _start_Service(self, name, attrs):
+		self._pushFieldPath(name, attrs)
 		svc = service.Service(self.rd, {"id": attrs["id"],
 			"staticData": attrs.get("staticData")})
+		self.pushProperty("currentService", svc)
+
+	def _make_Service(self, name, attrs, children):
+		svc = self.popProperty("currentService")
 		self.rd.register_service(svc.get_id(), svc)
 		res = self._processChildren(svc, name, {
 			"inputFilter": svc.set_inputFilter,
@@ -517,9 +520,54 @@ class RdParser(nodebuilder.NodeBuilder):
 			"protect": lambda v: svc.set_requiredGroup(v["group"]),
 			"publish": svc.addto_publications,
 			"renderers": svc.set_allowedRenderers,
+			"srvInput": svc.set_condDescs,
+			"srvOutput": svc.set_outputFields,
 		}, children)
 		self.popProperty("fieldPath")
 		return res
+	
+	def _make_srvInput(self, name, attrs, children):
+		svc = self.getProperty("currentService")
+		inputs = record.DataFieldList()
+		def handleFromCore(ignored):
+			try:
+				svcCore = svc.get_core()
+				for f in svcCore.getInputFields():
+					inputs.append(standardcores.CondDesc.fromInputKey(f))
+			except AttributeError:
+				traceback.print_exc()
+				raise gavo.Error("%s cores no not support fromCore"%
+					svcCore.__class__.__name__)
+			except KeyError:
+				raise gavo.Error("fromCore requires previous core definition")
+		return self._processChildren(inputs, name, {
+			"condDesc": inputs.append,
+			"fromCore": handleFromCore,
+		}, children)
+	
+	def _make_srvOutput(self, name, attrs, children):
+		svc = self.getProperty("currentService")
+		outputs = record.DataFieldList()
+		def handleFromCore(attrs):
+			verbLimit = int(attrs.get("verbLevel", 20))
+			try:
+				svcCore = svc.get_core()
+				for f in svcCore.getOutputFields():
+					if f.get_verbLevel()<=verbLimit:
+						outputs.append(datadef.OutputField.fromDataField(f))
+			except AttributeError:
+				traceback.print_exc()
+				raise gavo.Error("%s cores no not support fromCore"%
+					svcCore.__class__.__name__)
+			except KeyError:
+				raise gavo.Error("fromCore requires previous core definition")
+		return self._processChildren(outputs, name, {
+			"outputField": outputs.append,
+			"fromCore": handleFromCore,
+		}, children)
+
+	def _make_fromCore(self, name, attrs, children):
+		return makeAttDict(attrs)
 
 	def _make_customPage(self, name, attrs, children):
 		moduleName = attrs["module"]
@@ -574,26 +622,13 @@ class RdParser(nodebuilder.NodeBuilder):
 
 		attrs = makeAttDict(attrs)
 		args = self._collectArguments(children)
-# XXX TODO: Unify computedCore with others.
-		if attrs.has_key("computer"): # computed cores
-			curCore = standardcores.ComputedCore(self.getById(attrs["computer"])[1],
-				initvals=args)
-		else:
-			if "module" in attrs:
-				parsehelpers.getModule(self.sourceDir, attrs["module"])
-				del attrs["module"]
-			builtinName = attrs.pop("builtin")
-			attrs.update(args)
-			curCore = core.getStandardCore(builtinName)(self.rd, initvals=attrs)
-			handlers.update({
-				"condDesc": handlerFactory(curCore, "condDesc", "addto_condDescs"),
-				"outputField": handlerFactory(curCore, "outputField", 
-					"addto_outputFields"),
-				"autoOutputFields": handlerFactory(curCore, "autoOutputFields",
-					"addAutoOutputFields"),
-				"autoCondDescs": handlerFactory(curCore, "autoCondDescs",
-					"addDefaultCondDescs"),
-			})
+		if "module" in attrs:
+			parsehelpers.getModule(self.sourceDir, attrs["module"])
+			del attrs["module"]
+		builtinName = attrs.pop("builtin")
+		attrs.update(args)
+		curCore = core.getStandardCore(builtinName)(self.rd, initvals=attrs)
+		self.getProperty("currentService").set_core(curCore)
 		return self._processChildren(curCore, name, handlers, children)
 
 	def _make_nevowRender(self, name, attrs, children):

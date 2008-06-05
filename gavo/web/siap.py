@@ -239,29 +239,27 @@ class SiapCutoutCore(standardcores.DbBasedCore):
 	"""
 	interfaceFields = dict([(d["dest"], d)
 		for d in interfaces.BboxSiap.siapFields])
+	# field keys we need in our DB query
 	copiedFields = ["centerAlpha", "centerDelta", "imageTitle", "instId",
 		"dateObs", "nAxes", "pixelSize", "pixelScale", "imageFormat",
 		"refFrame", "wcs_equinox", "wcs_projection", "wcs_refPixel",
 		"wcs_refValues", "wcs_cdmatrix", "bandpassId", "bandpassUnit",
 		"bandpassHi", "bandpassLo", "pixflags"]
-	# This should become a property or something once we compress the stuff
-	# or have images with bytes per pixel != 2
+	# This should become a nodebuilder property or something once we 
+	# compress the stuff or have images with bytes per pixel != 2
 	bytesPerPixel = 2
 
-	def getOutputFields(self, queryMeta):
-		if hasattr(self, "_ofcache"):
-			return self._ofcache
-		fields = []
+	def getQueryFields(self, queryMeta):
+		fields = standardcores.DbBasedCore.getQueryFields(self, queryMeta)
 		for name in self.copiedFields:
 			fields.append(datadef.OutputField.fromDataField(datadef.DataField(
 				**self.interfaceFields[name])))
-		d = self.interfaceFields["accref"]
+		d = self.interfaceFields["accref"].copy()
 		d["displayHint"] = "type=product,nopreview=True"
 		fields.append(datadef.OutputField.fromDataField(datadef.DataField(**d)))
-		d = self.interfaceFields["accsize"]
+		d = self.interfaceFields["accsize"].copy()
 		d["tablehead"] = "Est. file size"
 		fields.append(datadef.OutputField.fromDataField(datadef.DataField(**d)))
-		self._ofcache = fields
 		return fields
 
 	def _fixRecord(self, record, centerAlpha, centerDelta, sizeAlpha, sizeDelta):

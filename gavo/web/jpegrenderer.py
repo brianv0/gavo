@@ -37,7 +37,7 @@ class JpegRenderer(resourcebased.Form):
 
 	def _runService(self, inputData, queryMeta, ctx):
 		pars = inputData.getDocRec()
-		if "plotField" in pars:
+		if "plotField" in pars and pars["plotField"]:
 			queryMeta.setdefault("additionalFields", []).append(
 						pars["plotField"])
 		return self.service.run(inputData, queryMeta
@@ -146,7 +146,6 @@ class MachineJpegRenderer(common.CustomErrorMixin, JpegRenderer):
 			[e.getErrorMessage() for e in errors])
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(400)
-		request.setHeader("content-type", "text/plain")
 		request.setHeader("content-type", "text/plain")
 		request.write(msg)
 		request.finishRequest(False)
