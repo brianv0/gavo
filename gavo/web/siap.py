@@ -293,11 +293,14 @@ class SiapCutoutCore(standardcores.DbBasedCore):
 			)*abs(upperLeft[1]-lowerRight[1])*self.bytesPerPixel)
 
 	def _parseOutput(self, dbResponse, outputDef, sqlPars, queryMeta):
+		if "cutoutSize" in queryMeta.ctxArgs:
+			sra = sdec = float(queryMeta.ctxArgs["cutoutSize"][0])
+		else:
+			sra, sdec = sqlPars["_sra"], sqlPars["_sdec"]
 		res = super(SiapCutoutCore, self)._parseOutput(
 			dbResponse, outputDef, sqlPars, queryMeta)
 		for record in res.getPrimaryTable():
-			self._fixRecord(record, sqlPars["_ra"], sqlPars["_dec"], 
-				sqlPars["_sra"], sqlPars["_sdec"])
+			self._fixRecord(record, sqlPars["_ra"], sqlPars["_dec"], sra, sdec)
 		return res
 
 core.registerCore("siapcutout", SiapCutoutCore)

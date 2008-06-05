@@ -57,9 +57,11 @@ class TableDataEncoder(GenericEncoder):
                 tr = ElementTree.Element('TR')
                 for el in row:
                     td = ElementTree.Element('TD')
-                    
                     # Create a text representation of each element.
-                    if(el == None or el!=el): # 2nd catches NaN
+                    if hasattr(el, "getshape"): # numarray instance, I don't
+                        # want to import numarray here
+                        td.text = " ".join(map(str, el))
+                    elif(el == None or el!=el): # 2nd catches NaN
                         td.text = ''
                     elif(isinstance(el, list) or isinstance(el, tuple)):
                         td.text = self._arrayRepr(el)

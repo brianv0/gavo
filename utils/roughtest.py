@@ -366,7 +366,11 @@ myTests = [
 		GetLacksStringTest(nv_root+"/lswscans/res/positions/siap/siap.xml?"
 			"POS=168,22&SIZE=0.5&dateObs=%3C%201950-01-01",
 			"1985-10-31",
-			"SIAP services include custom arguments")
+			"SIAP services include custom arguments"),
+		GetHasStringsTest(nv_root+"/lswscans/res/positions/siap/siap.xml?"
+			"POS=168,22&SIZE=0.5&_TDENC=True",
+			["wcs_equinox", "</TD>", "<TD>Heidelberg"],
+			"SIAP reply in TDENC works"),
 	),
 
 	TestGroup("cns-scs",
@@ -453,14 +457,14 @@ myTests = [
 			"Dexter asks for confirmation before purging data"),
 		PostFormHasStringsTest(nv_root+"/dexter/ui/ui/custom/__testing__/purgeData",
 			{"__nevow_form__": "confirmation", "goAhead": "Confirm deletion"},
-			'content="0;URL=http://localhost:8080/dexter/ui/ui/custom/',
+			['content="0;URL=', '/dexter/ui/ui/custom/'],
 			"Dexter deletes data on request"),
 		GetLacksStringTest(nv_root+"/dexter/ui/ui/custom/__testing__/",
 			'custom/__testing__/edit/0"',
 			"Dexter has actually deleted data"),
 		PostFormHasStringsTest(nv_root+"/dexter/ui/ui/custom/__testing__/purgeData",
 			{"__nevow_form__": "confirmation", "goAhead": "Confirm deletion"},
-			'content="0;URL=http://localhost:8080/dexter/ui/ui/custom/',
+			['content="0;URL=', '/dexter/ui/ui/custom/'],
 			"Dexter deletes empty dataset"),
 	),
 
