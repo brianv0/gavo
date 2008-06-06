@@ -18,6 +18,7 @@ import gavo.parsing
 
 gavo.parsing.verbose = True
 
+
 class MetaTest(unittest.TestCase):
 	"""Test for correct interpretation of meta information.
 	"""

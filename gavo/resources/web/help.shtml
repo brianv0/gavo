@@ -83,7 +83,8 @@ your value into _DBOPTIONS_LIMIT=100.  The system has has hardcoded match limit
 that you cannot override in this way, but it is unlikely that it will hurt
 you.</p>
 
-<p>You can usually select an output format.  Options here include</p>
+<p>You can usually select an output format.  
+<a name="outformats">Options here include</a></p>
 <ul>
 <li>HTML -- data is returned in your web browser.  You can select additional
 columns in your output from an input field that pops down when you mouse over 
@@ -106,6 +107,14 @@ side (besides a java-capable browser).</li>
 extension.  This contains much less meta information than a VOTable of the
 same data and thus should only be used if your backend tools do not understand
 VOTables.</li>
+<li>TSV -- tab separated files.  If in a desperate pinch, you can get the 
+table contents as an ASCII file.  The fields a separated by tabs.  All metadata
+is lost.  Missing string values are empty strings, missing floats
+are rendered as "nan".  For integers, the nullvalues are consistent within 
+a table but may change for different tables.  Strings containing non-ascii
+or control characters are rendered with C escapes (\n, \t, etc) or sedecimal
+unicode codepoints (\xe4, e.g., is an &auml;).  As I said: Don't use this
+unless you absolutely have to.</li>
 <li>tar -- if the service contains "products" (usually FITS files of some
 kind), you can download all matching items in a tar file.</li>
 </ul>

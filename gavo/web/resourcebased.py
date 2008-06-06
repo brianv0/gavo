@@ -31,6 +31,7 @@ import gavo
 from gavo import config
 from gavo import resourcecache
 from gavo import fitstable
+from gavo import texttable
 from gavo import typesystems
 from gavo import utils
 from gavo import votable
@@ -378,6 +379,42 @@ class FITSTableResponse(FileResponse):
 			]])
 
 
+class TextResponse(BaseResponse):
+	def _handleData(self, data, ctx):
+		request = inevow.IRequest(ctx)
+		content = texttable.getAsText(data.original)
+		request.setHeader('content-disposition', 
+			'attachment; filename=table.tsv')
+		request.setHeader("content-type", "text/plain")
+		request.setHeader("content-length", len(content))
+		request.write(content)
+		return ""
+
+	def _handleError(self, failure, ctx):
+		return ErrorPage(failure, docFactory=self.errorFactory)
+
+	errorFactory = common.doctypedStan(T.html[
+			T.head[
+				T.title["Text table generation failed"],
+				T.invisible(render=T.directive("commonhead")),
+			],
+			T.body[
+				T.h1["Text table generation failed"],
+				T.p["We're sorry, but there was an error while rendering the"
+					" text table."
+					" You're welcome to report this failure, but, frankly,"
+					" our main output format for structured data is the VOTable,"
+					" and you should consider using it.  Check out ",
+					T.a(href="http://www.star.bris.ac.uk/~mbt/topcat/")[
+						"topcat"],
+					" for starters."],
+				T.p["Anyway, here's the error message you should send in together"
+					" with the URL you were using with your bug report: ",
+					T.tt(render=T.directive("errmsg")),],
+				T.p["Thanks."],
+			]])
+
+
 class TarResponse(FileResponse):
 	"""delivers a tar of products contained.
 	"""
@@ -604,6 +641,8 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		format = queryMeta["format"]
 		if format=="HTML":
 			return self._computeResult(ctx, self.service, inputData, queryMeta)
+		elif format=="TSV":
+			return TextResponse(ctx, self.service, inputData, queryMeta)
 		elif format=="VOTable":
 			res = VOTableResponse(ctx, self.service, inputData, queryMeta)
 			return res

@@ -1,9 +1,11 @@
+# -*- coding: iso-8859-1 -*-
 """
 Some unit tests that don't (yet) fit a section of their own.
 """
 
 import cStringIO
 import datetime
+import math
 import os
 import shutil
 import sys
@@ -22,6 +24,7 @@ from gavo import fitstable
 from gavo import nullui
 from gavo import sqlsupport
 from gavo import table
+from gavo import texttable
 from gavo import votable
 from gavo.helpers import filestuff
 from gavo.parsing import importparser
@@ -213,12 +216,43 @@ class RenamerWetTest(unittest.TestCase):
 		self.assertRaises(filestuff.Error, f.renameInPath, self.testDir)
 
 
+class TextOutputTest(unittest.TestCase):
+	"""tests for the text table output of data sets.
+	"""
+	def setUp(self):
+		self.rd = importparser.getRd(os.path.abspath("test.vord"))
+		self.dd = self.rd.getDataById("tableMaker")
+	
+	def testWithHarmlessData(self):
+		"""tests for text output with mostly harmless data.
+		"""
+		data = resource.InternalDataSet(self.dd, dataSource=[
+			(1, 2, 3, "testing", '2004-05-05'),
+			(-30, 3.1415, math.pi, "Four score", '2004-05-05'),])
+		self.assertEqual(texttable.getAsText(data),
+			"1\t2.0\t3.0\ttesting\t2453130.5\n"
+			"-30\t3.1415\t3.14159265359\tFour score\t2453130.5\n")
+	
+	def testWithNulls(self):
+		data = resource.InternalDataSet(self.dd, dataSource=[
+			(None, None, None, None, None)])
+		self.assertEqual(texttable.getAsText(data),
+			'-2147483648\tnan\tnan\t\tNone\n')
+	
+	def testWithNastyString(self):
+		data = resource.InternalDataSet(self.dd, dataSource=[
+			(1, 2, 3, "Wäre es da nicht besser,\n die Regierung setzte das Volk"
+				" ab\tund wählte ein anderes?", '2004-05-05'),])
+		self.assertEqual(texttable.getAsText(data),
+			"1\t2.0\t3.0\tW\\xe4re es da nicht besser,\\n die Regierung setzte"
+				" das Volk ab\\tund w\\xe4hlte ein anderes?\t2453130.5\n")
+
 def singleTest():
-	suite = unittest.makeSuite(RenamerWetTest, "test")
+	suite = unittest.makeSuite(TextOutputTest, "test")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 
 
 if __name__=="__main__":
-	unittest.main()
-#	singleTest()
+#	unittest.main()
+	singleTest()

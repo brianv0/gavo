@@ -49,7 +49,7 @@ class OutputFormat(object):
 		self._computeAvailableFormats(queryMeta)
 
 	def _computeAvailableFormats(self, queryMeta):
-		self.availableFormats = ["VOTable", "VOPlot", "FITS"]
+		self.availableFormats = ["VOTable", "VOPlot", "FITS", "TSV"]
 		core = self.service.get_core()
 		if not hasattr(core, "tableDef"):
 			return

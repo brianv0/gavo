@@ -236,10 +236,14 @@ _registerDefaultMF(_floatMapperFactory)
 def _stringMapperFactory(colProps):
 	if colProps.get("optional", True) and ("char(" in colProps["dbtype"] or 
 			colProps["dbtype"]=="text"):
+		if isinstance(colProps["sample"], str):
+			constructor = str
+		else:
+			constructor = unicode
 		def coder(val):
 			if val==None:
 				return ""
-			return str(val)
+			return constructor(val)
 		return coder
 _registerDefaultMF(_stringMapperFactory)
 
@@ -305,7 +309,7 @@ def getMapperRegistry():
 		_defaultMFRegistry.getFactories())
 
 
-############# everything from here till XXX is deprecated
+############# everything from here till XXXXX is deprecated
 
 def _getValSeq(data):
 	"""returns a sequence of python values for the columns of data.

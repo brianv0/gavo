@@ -59,5 +59,20 @@
 			</Record>
 		</Semantics>
 	</Data>
+
+	<Data id="tableMaker" virtual="True" encoding="iso8859-1">
+		<Semantics>
+			<Record table="data" id="typestabledef">
+				<Field dest="anint" source="anint" tablehead="An Integer" dbtype="int"/>
+				<Field dest="afloat" source="afloat" tablehead="Some Real"/>
+				<Field dest="adouble" source="adouble" tablehead="And a Double"
+					dbtype="double precision"/>
+				<Field dest="atext" source="atext" dbtype="text"
+					tablehead="A string must be in here as well"/>
+				<Field dest="adate" source="adate" tablehead="When" dbtype="date"/>
+			</Record>
+		</Semantics>
+		<RowsetGrammar fieldsFrom="typestabledef"/>
+	</Data>
 </ResourceDescriptor>
 
