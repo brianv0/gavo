@@ -98,6 +98,33 @@ class ToVOTableConverter(FromSQLConverter):
 			return self.simpleMap[type][0], length
 
 
+class FromVOTableConverter:
+	typeSystem = "db"
+	
+	simpleMap = {
+		("short", "1"): "smallint",
+		("int", "1"): "integer",
+		("int", "1"): "int",
+		("long", "1"): "bigint",
+		("float", "1"): "real",
+		("boolean", "1"): "boolean",
+		("double", "1"): "double precision",
+		("char", "*"): "text",
+		("char", "1"): "char",
+		("raw", "*"): "raw",
+	}
+
+	def convert(self, type, arraysize):
+		if (type, arraysize) in self.simpleMap:
+			return self.simpleMap[type, arraysize]
+		else:
+			return self.mapComplex(type, arraysize)
+
+	def mapComplex(self, type, arraysize):
+		if type=="char":
+			return "text"
+
+
 class ToXSDConverter(FromSQLConverter):
 
 	typeSystem = "XSD"
@@ -187,4 +214,5 @@ except ImportError:
 
 sqltypeToVOTable = ToVOTableConverter().convert
 sqltypeToXSD = ToXSDConverter().convert
-sqltypeToNumarray = ToNumarrayConverter.convert
+sqltypeToNumarray = ToNumarrayConverter().convert
+voTableToSQLType = FromVOTableConverter().convert

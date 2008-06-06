@@ -28,6 +28,7 @@ from gavo.parsing.customgrammar import CustomGrammar
 from gavo.parsing.fitsgrammar import FitsGrammar
 from gavo.parsing.grammar import Grammar
 from gavo.parsing.simpleregrammar import SimpleREGrammar
+from gavo.parsing.votablegrammar import VOTableGrammar
 from gavo.parsing import conditions
 from gavo.parsing import contextgrammar
 from gavo.parsing import elgen
@@ -195,6 +196,12 @@ class RdParser(nodebuilder.NodeBuilder):
 		self._fillGrammarNode(grammar, attrs, children, {
 				"rowProduction": grammar.set_rowProduction,
 				"parseRE": grammar.set_parseRE,
+			})
+		return nodebuilder.NamedNode("Grammar", grammar)
+
+	def _make_VOTableGrammar(self, name, attrs, children):
+		grammar = VOTableGrammar()
+		self._fillGrammarNode(grammar, attrs, children, {
 			})
 		return nodebuilder.NamedNode("Grammar", grammar)
 

@@ -59,6 +59,7 @@ class Element(object):
 	__metaclass__ = _Autoconstructor
 
 	name = None
+	a_id = None
 	namespace = ""
 	mayBeEmpty = False
 	local = False

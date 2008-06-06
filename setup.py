@@ -32,7 +32,7 @@ setup(name="gavo",
 		'console_scripts': [
 			'gavoimp = gavo.parsing.commandline:main',
 			'gavocred = gavo.web.creds:main',
-			'gavomkrd = gavo.parsing.bootstrapfits:main',
+			'gavomkrd = gavo.parsing.mkrd:main',
 			'gavopublish = gavo.web.servicelist:main',
 			'gavomkboost = gavo.parsing.directgrammar:main',
 			'gavoconfig = gavo.config:main',
