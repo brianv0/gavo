@@ -91,6 +91,26 @@ class SortHeadersTest(unittest.TestCase):
 					"NAXIS2", "EXTEND", "", "COMMENT", "COMMENT"])
 		finally:
 			tf.cleanup()
+	
+	def testOrder(self):
+		"""tests for ordering of critical keywords.
+		"""
+		hdr = pyfits.PrimaryHDU().header
+		hdr.update("NAXIS1", 200)
+		hdr.update("NAXIS2", 400)
+		# EXTEND is now before NAXIS1
+		hdr = fitstools.sortHeaders(hdr)
+		self.assertHeaderSequence(hdr, ["SIMPLE", "BITPIX", "NAXIS", "NAXIS1", 
+			"NAXIS2", "EXTEND"])
+		hdr = pyfits.PrimaryHDU().header
+		del hdr["EXTEND"]
+		hdr.update("NAXIS1", 200)
+		hdr.update("FLOB", "Worong")
+		hdr.update("EXTEND", "F")
+		# EXTEND is now way behind NAXIS1
+		hdr = fitstools.sortHeaders(hdr)
+		self.assertHeaderSequence(hdr, ["SIMPLE", "BITPIX", "NAXIS", "NAXIS1", 
+			"EXTEND", "FLOB"])
 
 
 class FITSWriteTester(unittest.TestCase):

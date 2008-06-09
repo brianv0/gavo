@@ -81,7 +81,34 @@ def replacePrimaryHeader(inputFile, newHeader, targetFile, bufSize=100000):
 		targetFile.write(buf)
 
 
-def sortHeaders(header, commentFilter=None):
+def _enforceHeaderConstraints(cardList):
+	"""changes the order of cardList in place in order to satisfy some
+	FITS constraints.
+	"""
+# I can't use pyfits.verify for this since cardList may not refer to
+# a data set that's actually in memory
+
+	def moveExtend(cardList):
+		# make sure extend is right after the last NAXIS.* card
+		extendPos = None
+		lastNaxis = -1
+		for pos, card in enumerate(cardList):
+			if card.key.startswith("NAXIS"):
+				lastNaxis = pos
+			if card.key=='EXTEND':
+				extendPos = pos
+		if not extendPos or extendPos-1==lastNaxis:
+			return
+		extCard = cardList[extendPos]
+		del cardList[extendPos]
+		if extendPos<lastNaxis:
+			lastNaxis = lastNaxis-1
+		cardList.insert(lastNaxis+1, extCard)
+	
+	moveExtend(cardList)
+
+
+def sortHeaders(header, commentFilter=None, historyFilter=None):
 	"""returns a pyfits header with "real" cards first, then history, then
 	comment cards.
 
@@ -103,12 +130,14 @@ def sortHeaders(header, commentFilter=None):
 	if historyCs:
 		newCards.append(pyfits.Card(key=""))
 	for card in historyCs:
-		newCards.append(card)
+		if not historyFilter or historyFilter(card.value):
+			newCards.append(card)
 	if commentCs:
 		newCards.append(pyfits.Card(key=""))
 	for card in commentCs:
 		if not commentFilter or commentFilter(card.value):
 			newCards.append(card)
+	_enforceHeaderConstraints(newCards)
 	return pyfits.Header(newCards)
 
 
