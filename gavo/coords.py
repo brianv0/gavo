@@ -344,6 +344,33 @@ def getCenterFromWCSFields(wcsFields):
 			wcsFields["NAXIS2"])/2.)
 
 
+def fixSimpleWCS(wcsFields):
+	"""upgrades a stripped-down WCS header with to a full-blown CDn_n-type
+	header.
+
+	In detail:
+
+	* if CUNITn is missing, deg is inserted
+	* if no CDn_n is there but CDELTn, CDn_n keys are computed from them
+	* CROTAn currently is ignored (so, bboxes may be too small)
+	"""
+# XXX figure out CROTA1
+	if "CUNIT1" not in wcsFields:
+		wcsFields["CUNIT1"] = "deg"
+	if "CUNIT2" not in wcsFields:
+		wcsFields["CUNIT2"] = "deg"
+	if "CD1_1" not in wcsFields:
+		if "CDELT1" not in wcsFields:
+			raise KeyError("No usable WCS information found")
+		wcsFields["CD1_1"] = wcsFields["CDELT1"]
+		wcsFields["CD1_2"] = 0
+	if "CD2_1" not in wcsFields:
+		if "CDELT2" not in wcsFields:
+			raise KeyError("No usable WCS information found")
+		wcsFields["CD2_1"] = 0
+		wcsFields["CD2_2"] = wcsFields["CDELT1"]
+
+
 # let's do a tiny vector type.  It's really not worth getting some dependency
 # for this.
 class Vector3(object):

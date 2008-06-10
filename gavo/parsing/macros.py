@@ -823,8 +823,9 @@ class BboxSiapFieldsComputer(Macro):
 	It takes no arguments but expects WCS-like keywords in record, i.e.,
 	CRVAL1, CRVAL2 (interpreted as float deg), CRPIX1, CRPIX2 (pixel
 	corresponding to CRVAL1, CRVAL2), CUNIT1, CUNIT2 (pixel scale unit,
-	we bail out if it isn't deg), CDn_n (the transformation matrix), NAXIS1,
-	NAXIS2 (the image size).
+	we bail out if it isn't deg and assume deg when it's not present), CDn_n 
+	(the transformation matrix; substitutable by CDELTn), NAXISn 
+	(the image size).
 
 	It leaves the primaryBbbox, secondaryBbox (see siap.py for an explanation),
 	centerDelta, centerAlpha, nAxes, pixelSize, pixelScale and imageFormat.
@@ -860,6 +861,7 @@ class BboxSiapFieldsComputer(Macro):
 			return math.sqrt(sum(float(v)**2 for v in seq))
 
 		record["imageFormat"] = "image/fits"
+		coords.fixSimpleWCS(record)
 		try:
 			record["primaryBbox"], record["secondaryBbox"] = siap.splitCrossingBox(
 				coords.getBboxFromWCSFields(record))

@@ -51,6 +51,23 @@ class FitsGrammar(grammar.Grammar):
 		else:
 			self._parseSlow(parseContext)
 
+	def _hackBotchedCard(self, card, res):
+		"""tries to make *anything* from a card pyfits doesn't want to parse.
+
+		In reality, I'm just trying to cope with oversized keywords.
+		"""
+		mat = re.match(r"([^\s=]*)\s*=\s*([^/]+)", card._cardimage)
+		res[mat.group(1)] = mat.group(2).strip()
+
+	def _buildDictFromHeader(self, header):
+		res = {}
+		for card in header.ascard:
+			try:
+				res[card.key] = card.value
+			except ValueError:
+				self._hackBotchedCard(card, res)
+		return res
+
 	def _parseFast(self, parseContext):
 		fName = parseContext.sourceName
 		if fName.endswith(".gz"):
@@ -59,15 +76,13 @@ class FitsGrammar(grammar.Grammar):
 			f = open(fName)
 		header = fitstools.readPrimaryHeaderQuick(f)
 		f.close()
-		self.handleDocdict(dict([(key, header[key]) 
-			for key in header.ascardlist().keys()]), parseContext)
+		self.handleDocdict(self._buildDictFromHeader(header), parseContext)
 
 	def _parseSlow(self, parseContext):
 		hdus = fitstools.openFits(parseContext.sourceName)
 		header = hdus[int(self.get_hduIndex())].header
-		self.handleDocdict(dict([(key, header[key]) 
-			for key in header.ascardlist().keys()]), parseContext)
 		hdus.close()
+		self.handleDocdict(self._buildDictFromHeader(header), parseContext)
 	
 	def enableDebug(self, debugProductions):
 		pass
