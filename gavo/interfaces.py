@@ -273,7 +273,8 @@ class Products(Interface):
 				"unit": "Y-M-D", "verbLevel": 25},
 			{"dest": "accsize", "ucd": "VOX:Image_FileSize",
 				"tablehead": "File size", "description": "Size of the image in bytes",
-				"source": "prodtblFsize", "dbtype": "integer", "verbLevel": 11},
+				"source": "prodtblFsize", "dbtype": "integer", "verbLevel": 11,
+				"unit": "byte"},
 		]
 
 	def __init__(self):
@@ -372,7 +373,7 @@ class BboxSiap(Products):
 			{"dest": "dateObs", "source": "dateObs", "ucd": "VOX:Image_MJDateObs",
 				"dbtype": "timestamp", "unit": "d", "tablehead": "Obs. date",
 				"verbLevel": 0, 
-				"description": "Date (and possibly time) at center of observation"},
+				"description": "Date (and possibly time) at midpoint of observation"},
 			{"dest": "nAxes", "source": "NAXIS", "ucd": "VOX:Image_Naxes", 
 				"dbtype": "integer", "verbLevel": 20},
 			{"dest": "pixelSize", "source": "pixelSize", "ucd": "VOX:Image_Naxis",

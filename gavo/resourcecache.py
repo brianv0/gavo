@@ -56,15 +56,20 @@ def _makeCache(creator):
 
 	Race conditions are possible when exceptions occur, but then creators
 	behaviour should only depend on id, and so it shouldn't matter.
+
+	Hack: the cache function takes arbitrary keyword arguments and passes
+	them on to the creator.  *THIS WREAKS HAVOC* if the keyword arguments
+	could change and creator's behaviour depended on them.  Don't use this,
+	unless it's for something like the noQueries option of getRd.
 	"""
 	cache = {}
 	_cacheRegistry.register(cache)
 
-	def func(id):
+	def func(id, **kwargs):
 		ct = 0
 		if not id in cache:
 			try:
-				cache[id] = creator(id)
+				cache[id] = creator(id, **kwargs)
 			except Exception, exc:
 				cache[id] = exc
 				gavo.raiseTb(exc.__class__, str(exc))

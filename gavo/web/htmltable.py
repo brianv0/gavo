@@ -121,11 +121,12 @@ def _sizeMapperFactory(colProps):
 		if val<1e3:
 			return "%d"%int(val)
 		elif val<1e6:
-			return "%.*fk"%(sf, val/1024.)
+			return "%.*fki"%(sf, val/1024.)
 		elif val<1e9:
-			return "%.*fM"%(sf, val/1024./1024.)
+			return "%.*fMi"%(sf, val/1024./1024.)
 		else:
-			return "%.*fG"%(sf, val/1024./1024./1024)
+			return "%.*fGi"%(sf, val/1024./1024./1024)
+	return coder
 _registerHTMLMF(_sizeMapperFactory)
 
 

@@ -71,6 +71,8 @@ class RdParser(nodebuilder.NodeBuilder):
 	When constructing, give forImport=True if the corresponding resource may
 	not exist yet (i.e., when importing).
 	"""
+	noQueries = False
+
 	def __init__(self, sourcePath, forImport=False):
 		self.forImport = forImport
 		nodebuilder.NodeBuilder.__init__(self)
@@ -87,7 +89,7 @@ class RdParser(nodebuilder.NodeBuilder):
 			rdPath, id = id.split("#", 1)
 			if rdPath.startswith("./"):
 				rdPath = os.path.join(os.path.dirname(self.rd.sourceId), rdPath)
-			rd = resourcecache.getRd(rdPath)
+			rd = resourcecache.getRd(rdPath, noQueries=self.noQueries)
 			element = rd.getById(id)[1].copy()
 		else:
 			element = self.getById(id)[1].copy()
@@ -278,6 +280,7 @@ class RdParser(nodebuilder.NodeBuilder):
 	_start_Record = _pushFieldPath
 
 	def _make_Record(self, name, attrs, children):
+		attrs = makeAttDict(attrs)
 		if attrs.has_key("original"):
 			recDef = self.resolveItemReference(attrs["original"])
 			setDefaults = False
@@ -296,7 +299,7 @@ class RdParser(nodebuilder.NodeBuilder):
 		if name=="SharedRecord":
 			recDef.set_shared(True)
 
-		if attrs.has_key("fieldsFrom"):
+		if "fieldsFrom" in attrs:
 			for field in self.resolveItemReference(attrs["fieldsFrom"]).get_items():
 				newField = field.copy()
 				newField.set_source(newField.get_dest())
@@ -402,6 +405,8 @@ class RdParser(nodebuilder.NodeBuilder):
 
 	def _make_Values(self, name, attrs, children):
 		def getOptionsFromDb(expr):
+			if self.noQueries:
+				return []
 			return [a[0] for a in
 				sqlsupport.SimpleQuerier().runIsolatedQuery("SELECT DISTINCT %s"%(
 					expr))]
@@ -761,7 +766,7 @@ def getRdInputStream(srcId):
 	raise gavo.RdNotFound("No such resource descriptor: %s"%userInput)
 
 
-def getRd(srcId, parserClass=RdParser, forImport=False):
+def getRd(srcId, parserClass=RdParser, forImport=False, noQueries=False):
 	"""returns a ResourceDescriptor for srcId.
 
 	srcId is something like an input-relative path; you'll generally
@@ -769,6 +774,7 @@ def getRd(srcId, parserClass=RdParser, forImport=False):
 	"""
 	srcPath, inputFile = getRdInputStream(srcId)
 	contentHandler, parser = getParser(srcPath, parserClass, forImport)
+	contentHandler.noQueries = noQueries
 	try:
 		parser.parse(inputFile)
 		inputFile.close()
