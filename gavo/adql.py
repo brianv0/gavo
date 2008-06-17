@@ -50,6 +50,25 @@ So, we can rewrite the above rules as:
       <table_reference> [ <join_specification> ]
 
 -- this is what's implemented below.
+
+(2) statement
+
+I can't have StringEnd appended to querySpecification since it's used
+in subqueries, but I need to have it to keep pyparsing from just matching
+parts of the input.  Thus, the top-level production is for "statement".
+
+(3) trig_function, math_function, system_defined_function
+
+I think it's a bit funny to have the arity of functions in the syntax, but
+there you go.  Anyway, I don't want to have the function names in seperate
+symbols since they are expensive but go for a Regex (trig1ArgFunctionName).
+The only exception is ATAN since it has a different arity from the rest of the
+lot.
+
+Similarly, for math_function I group symbols by arity.
+
+The system defined functions are also regrouped to keep the number of
+symbols reasonable.
 """
 
 from pyparsing import Word, Literal, Optional, alphas, CaselessKeyword,\
@@ -113,6 +132,7 @@ def _failOnReservedWord(s, pos, toks):
 	if toks and toks[0].upper() in allReservedWords:
 		raise ParseException(s, pos, "Reserved word not allowed here")
 
+
 def _getADQLGrammar(defaultFunctionPrefix="udf_"):
 	"""returns a pair symbols, selectSymbol for a grammar parsing ADQL.
 
@@ -129,15 +149,16 @@ def _getADQLGrammar(defaultFunctionPrefix="udf_"):
 	unsignedInteger = Word(nums)
 	_exactNumericRE = r"\d+(\.(\d+)?)?|\.\d+"
 	exactNumericLiteral = Regex(_exactNumericRE)
-	approximateNumericLiteral = Regex(r"(?i)%sE[+-]?\d+")
-	unsignedNumericLiteral = ( exactNumericLiteral |
-		approximateNumericLiteral )
+	approximateNumericLiteral = Regex(r"(?i)(%s)E[+-]?\d+"%_exactNumericRE)
+	unsignedNumericLiteral = ( approximateNumericLiteral | exactNumericLiteral )
 	characterStringLiteral = sglQuotedString + ZeroOrMore(
 		separator + sglQuotedString)
 	generalLiteral = characterStringLiteral
 	unsignedLiteral = unsignedNumericLiteral | generalLiteral
 	sign = Literal("+") | "-"
+	signedInteger = Optional( sign ) + unsignedInteger
 	multOperator = Literal("*") | "/"
+	notKeyword = CaselessKeyword("NOT")
 
 	adqlReservedWord = Regex("(?i)"+"|".join(adqlReservedWords))
 	sqlReservedWord = Regex("(?i)"+"|".join(sqlReservedWords))
@@ -161,25 +182,24 @@ def _getADQLGrammar(defaultFunctionPrefix="udf_"):
 	columnReference = Optional( qualifier + "." ) + columnName
 	asClause = ( CaselessKeyword("AS") | whitespace ) + columnName
 
-	setFunctionSpecification = Literal("XXX TODO")
-
 	valueExpression = Forward()
+
+# set functions
+	setFunctionType = Regex("(?i)AVG|MAX|MIN|SUM|COUNT")
+	setQuantifier = Regex("(?i)DISTINCT|ALL")
+	generalSetFunction = (setFunctionType + '(' + Optional( setQuantifier ) +
+		valueExpression + ')')
+	setFunctionSpecification = (CaselessLiteral("COUNT") |
+		generalSetFunction)
+
+# value expressions
 	unsignedValueSpecification = unsignedLiteral
 	valueExpressionPrimary = ( unsignedValueSpecification |
 		columnReference | setFunctionSpecification |
 		'(' + valueExpression + ')')
 
-	userDefinedFunctionParam = valueExpression
-	userDefinedFunctionName = defaultFunctionPrefix + regularIdentifier
-	userDefinedFunction = ( userDefinedFunctionName + '(' +
-		userDefinedFunctionParam + ZeroOrMore( "," + userDefinedFunctionParam ) 
-			+ ')')
-
-	# XXX TODO: make below right.
-	numericValueFunction = userDefinedFunction
-
 # string literal stuff
-	characterPrimary = valueExpressionPrimary # | userDefinedFunction
+	characterPrimary = Forward() 
 	characterFactor = characterPrimary
 	characterValueExpression = ( characterFactor + 
 		ZeroOrMore( "||" + characterFactor ))
@@ -187,17 +207,75 @@ def _getADQLGrammar(defaultFunctionPrefix="udf_"):
 
 # numeric expressions/terms
 	numericValueExpression = Forward()
+	numericValueFunction = Forward()
 	numericExpressionPrimary = ( unsignedValueSpecification | columnReference
 		| setFunctionSpecification | '(' + valueExpression + ')')
 	numericPrimary = valueExpressionPrimary | numericValueFunction
 	factor = Optional( sign ) + numericPrimary
 	term = Forward()
 	term << (factor + ZeroOrMore( multOperator + factor ))
-	numericValueExpression << term # | numericValueExpression "+" term | numericValueExpression "-" term
+	numericValueExpression << (term + ZeroOrMore( ( Literal("+") | "-" ) + term ))
 
-# toplevel "value" expression
+# geometry types and expressions
+	coordSys = stringValueExpression
+	coordinates = numericValueExpression + ',' + numericValueExpression
+	point = (CaselessKeyword("POINT") + '(' + coordSys + ',' + 
+		coordinates + ')')
+	circle = (CaselessKeyword("CIRCLE") + '(' + coordSys + ',' +
+		coordinates + ',' + numericValueExpression + ')')
+	rectangle = (CaselessKeyword("RECTANGLE") +  '(' + coordSys + ',' +
+		coordinates + ',' + coordinates + ')')
+	polygon = (CaselessKeyword("POLYGON") + '(' + coordSys + ',' +
+		coordinates + OneOrMore( ',' + coordinates ) + ')')
+	region = (CaselessKeyword("REGION") + '(' + stringValueExpression + ')')
+	geometryExpression = point | circle | rectangle | polygon | region
+	geometryValue = columnReference
+	centroid = CaselessKeyword("CENTROID") + '(' + geometryExpression + ')'
+	geometryValueExpression = geometryExpression | geometryValue | centroid
+
+# system defined functions
+	distanceFunction = (CaselessKeyword("DISTANCE") + point + ',' +
+		point + ')')
+	regionFunctionName = Regex("(?i)CONTAINS|INTERSECTS")
+	regionFunction = (regionFunctionName + '(' + geometryValueExpression +
+		',' + geometryValueExpression + ')')
+	pointFunction = (Regex("(?i)LONGITUDE|LATITUDE") + '(' +
+		point + ')')
+	area = CaselessKeyword("AREA") + '(' + geometryValueExpression + ')'
+	systemDefinedFunction = (distanceFunction | regionFunction | 
+		pointFunction | area)
+
+# numeric, system, user defined functions
+	trig1ArgFunctionName = Regex("(?i)ACOS|ASIN|ATAN|COS|COT|SIN|TAN")
+	trigFunction = (trig1ArgFunctionName + '(' + numericValueExpression + ')' |
+		CaselessKeyword("ATAN2") + '(' + numericValueExpression + ',' + 
+			numericValueExpression + ')')
+	math0ArgFunctionName = Regex("(?i)PI")
+	optIntFunctionName = Regex("(?i)RAND")
+	math1ArgFunctionName = Regex("(?i)ABS|CEILING|DEGREES|EXP|FLOOR|"
+		"LOG|RADIANS|SQARE|LOG10")
+	optPrecArgFunctionName = Regex("(?i)ROUND|TRUNCATE")
+	math2ArgFunctionName = Regex("(?i)POWER")
+	mathFunction = (math0ArgFunctionName + '(' + ')' |
+		optIntFunctionName + '(' + Optional( unsignedInteger ) + ')' |
+		math1ArgFunctionName + '(' + numericValueExpression + ')' |
+		optPrecArgFunctionName + '(' + numericValueExpression +
+			Optional( ',' + signedInteger ) + ')' |
+		math2ArgFunctionName + '(' + numericValueExpression + ',' +
+			unsignedInteger + ')')
+	userDefinedFunctionParam = valueExpression
+	userDefinedFunctionName = defaultFunctionPrefix + regularIdentifier
+	userDefinedFunction = ( userDefinedFunctionName + '(' +
+		userDefinedFunctionParam + ZeroOrMore( "," + userDefinedFunctionParam ) 
+			+ ')')
+	numericValueFunction << (trigFunction | mathFunction | userDefinedFunction |
+		systemDefinedFunction)
+
+	characterPrimary << (valueExpressionPrimary | userDefinedFunction)
+
+# toplevel value expression
 	valueExpression << (numericValueExpression |
-		stringValueExpression) #| geometryValueExpression)
+		stringValueExpression | geometryValueExpression)
 	derivedColumn = valueExpression + Optional( asClause )
 
 # parts of select clauses
@@ -208,11 +286,25 @@ def _getADQLGrammar(defaultFunctionPrefix="udf_"):
 		"," + selectSublist )
 
 # boolean terms
+	subquery = Forward()
 	searchCondition = Forward()
 	comparisonPredicate = valueExpression + compOp + valueExpression
-	predicate = ( comparisonPredicate ) #| betweenPredicate | inPredicate | likePredicate | nullPredicate | existsPredicate)
+	betweenPredicate = (valueExpression + Optional( notKeyword ) + 
+		CaselessKeyword("BETWEEN") + valueExpression + 
+		CaselessKeyword("AND") + valueExpression)
+	inValueList = valueExpression + ZeroOrMore( ',' + valueExpression )
+	inPredicateValue = subquery | ( "(" + inValueList + ")" )
+	inPredicate = (valueExpression + Optional( notKeyword ) + 
+		CaselessKeyword("IN") + inPredicateValue)
+	existsPredicate = CaselessKeyword("EXISTS") + subquery
+	likePredicate = (characterValueExpression + Optional( notKeyword ) + 
+		CaselessKeyword("LIKE") + characterValueExpression)
+	nullPredicate = (columnReference + CaselessKeyword("IS") +
+		Optional( notKeyword ) + CaselessKeyword("NULL"))
+	predicate = (comparisonPredicate | betweenPredicate | inPredicate | 
+		likePredicate | nullPredicate | existsPredicate)
 	booleanPrimary = '(' + searchCondition + ')' | predicate
-	booleanFactor = Optional( CaselessKeyword("NOT") ) + booleanPrimary
+	booleanFactor = Optional( notKeyword ) + booleanPrimary
 	booleanTerm = ( booleanFactor + 
 		ZeroOrMore( CaselessKeyword("AND") + booleanFactor ))
 
@@ -225,7 +317,7 @@ def _getADQLGrammar(defaultFunctionPrefix="udf_"):
 	queryExpression = Forward()
 	correlationSpecification = ( CaselessKeyword("AS") | whitespace
 		) + correlationName
-	subquery = '(' + queryExpression + ')'
+	subquery << ('(' + queryExpression + ')')
 	derivedTable = subquery
 	joinedTable = Forward()
 	nojoinTableReference = tableName + Optional( correlationSpecification) | (
@@ -270,11 +362,12 @@ def _getADQLGrammar(defaultFunctionPrefix="udf_"):
 
 # toplevel select clause
 	querySpecification = Forward()
-	queryExpression << querySpecification # |  joinedTable
+	queryExpression << querySpecification |  joinedTable
 	querySpecification << ( CaselessKeyword("SELECT") + Optional( setQuantifier 
-		) + Optional( setLimit ) +  selectList + tableExpression ) + StringEnd()
+		) + Optional( setLimit ) +  selectList + tableExpression )
+	statement = querySpecification + StringEnd()
 	return dict((k, v) for k, v in locals().iteritems()
-		if isinstance(v, ParserElement)), querySpecification
+		if isinstance(v, ParserElement)), statement
 
 
 _grammarCache = None
@@ -299,4 +392,4 @@ def getADQLGrammar():
 if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableDebug(syms)
-	print ">>>>", grammar.parseString("select x from t1 JOIN t2")
+	print ">>>>", grammar.parseString("select x from y where ABS(-3.0e4)<3")

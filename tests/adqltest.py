@@ -115,5 +115,101 @@ class NakedParse(testhelpers.VerboseTest):
 			"select x from t1 having y",
 		])
 
+	def testBooleanTerms(self):
+		p = "select x from y where "
+		self._assertParse([p+"z BETWEEN 8 AND 9",
+			p+"z BETWEEN 'a' AND 'b'",
+			p+"z BEtWEEN x+8 AnD x*8",
+			p+"z NOT BETWEEN x+8 AND x*8",
+			p+"z iN (a)",
+			p+"z NoT In (a)",
+			p+"z NOT IN (a, 4, 'xy')",
+			p+"z IN (select x from foo)",
+#			p+"(5, 6) IN (select x from foo)",
+			p+"u LIKE '%'",
+			p+"u NoT LiKE '%'",
+			p+"u || 'foo' NOT LIKE '%'",
+			p+"u NOT LIKE '%' || 'xy'",
+			p+"k IS NULL",
+			p+"k IS NOT NULL",
+		])
+
+	def testBadBooleanTerms(self):
+		p = "select x from y where "
+		self._assertDontParse([
+			p+"z BETWEEN",
+			p+"z BETWEEN AND",
+			p+"z BETWEEN AND 5",
+			p+"z 7 BETWEEN 5 AND ",
+			p+"x IN",
+			p+"x IN 5",
+			p+"x IN (23, 3,)",
+			p+"x Is None",
+		])
+	
+	def testGeometry(self):
+		"""tests for parsing of ADQL geometry primitives.
+		"""
+		p = "select x from y where "
+		self._assertParse([
+			p+"Point('fk5', 2, 3)=x",
+			p+"CIRCLE('fk5', 2, 3, 3)=x",
+			p+"rectangle('fk5', 2, 3, 3, 0)=x",
+			p+"POLYGON('fk5', 2, 3, 3, 0, 23, 0, 45, 34)=x",
+			p+"REGION('mainfranken')=x",
+			p+"CENTROID(CIRCLE('fk4', 2, 3, 3))=x",
+		])
+	
+	def testBadGeometry(self):
+		"""tests for rejection of bad geometry primitives.
+		"""
+		p = "select x from y where "
+		self._assertDontParse([
+			p+"Point('fk5',2,3)",
+			p+"Point(2,3)=x",
+			p+"CIRCLE('fk5', 2, 3)=x",
+			p+"POLYGON('fk5', 2, 3, 3, 0, 23, 0, 45)=x",
+			p+"CENTROID(3)=x",
+			p+"CENTROID(CENTROID(POINT('fk4', 2, 3)))=x",
+		])
+
+	def testFunctions(self):
+		"""tests for parsing of ADQL functions.
+		"""
+		p = "select x from y where "
+		self._assertParse([
+			p+"ABS(-3)<3",
+			p+"ABS(-3.0)<3",
+			p+"ABS(-3.0E4)<3",
+			p+"ABS(-3.0e-4)<3",
+			p+"ATAN2(-3.0e-4, 4.5)=x",
+			p+"RAND(4)=x",
+			p+"RAND()=x",
+			p+"ROUND(23)=x",
+			p+"ROUND(23,2)=x",
+			p+"ROUND(PI(),2)=3.14",
+		])
+
+	def testsBadFunctions(self):
+		"""tests for rejection of bad function calls.
+		"""
+		p = "select x from y where "
+		self._assertDontParse([
+			p+"ABS()<3",
+			p+"ABS(y,z)<3",
+			p+"ATAN2(x)<3",
+			p+"PI==3",
+		])
+	
+	def testFunkyIds(self):
+		"""tests for parsing quoted identifiers.
+		"""
+		p = "select x from y where "
+		self._assertParse([
+			p+'"some weird column">0',
+			p+'"SELECT">0',
+		])
+
+
 if __name__=="__main__":
 	unittest.main()
