@@ -7,12 +7,13 @@ import unittest
 import testhelpers
 
 from gavo import adql
+from gavo import adqltree
 
 class Error(Exception):
 	pass
 
 
-class NakedParse(testhelpers.VerboseTest):
+class NakedParseTest(testhelpers.VerboseTest):
 	"""tests for plain parsing (without tree building).
 	"""
 	def setUp(self):
@@ -210,6 +211,58 @@ class NakedParse(testhelpers.VerboseTest):
 			p+'"SELECT">0',
 		])
 
+	def testMiscGood(self):
+		"""tests for parsing of various legal statements.
+		"""
+		self._assertParse([
+			"select a, b from (select * from x) AS q",
+		])
+
+	def testMiscBad(self):
+		"""tests for rejection of various bad statements.
+		"""
+		self._assertDontParse([
+			"select a, b from (select * from x) q",
+			"select a, b from (select * from x)",
+		])
+
+
+class TreeParseTest(testhelpers.VerboseTest):
+	"""tests for parsing into ADQL trees.
+	"""
+	def setUp(self):
+		self.grammar = adqltree.getADQLGrammar()
+	
+	def testSelectList(self):
+		for q, e in [
+			("select a from z", ["a"]),
+			("select x.a from z", ["x.a"]),
+			("select x.a, b from z", ["x.a", "b"]),
+			('select "one weird name", b from z', ['"one weird name"', "b"]),
+		]:
+			res = self.grammar.parseString(q)[0].getSelectList()
+			self.assertEqual(res, e, 
+				"Select list from %s: expected %s, got %s"%(q, e, res))
+
+	def testSourceTables(self):
+		for q, e in [
+			("select * from z", ["z"]),
+			("select * from z.x", ["z.x"]),
+			("select * from z.x.y", ["z.x.y"]),
+			("select * from z.x.y, a", ["z.x.y", "a"]),
+			("select * from (select * from z) as q, a", ["q", "a"]),
+		]:
+			res = self.grammar.parseString(q)[0].getSourceTableNames()
+			self.assertEqual(res, e, 
+				"Source tables from %s: expected %s, got %s"%(q, e, res))
+
+
+def singleTest():
+	suite = unittest.makeSuite(TreeParseTest, "test")
+	runner = unittest.TextTestRunner()
+	runner.run(suite)
+
 
 if __name__=="__main__":
-	unittest.main()
+#	unittest.main()
+	singleTest()

@@ -7,9 +7,10 @@ match except for the obious underscore to camel case map.
 """
 
 """
-The grammar given in the spec has some nasty blocks for recursive
-descent parsers (which is what pyparsing generates).  Here are some
-reformulations.
+The grammar given in the spec has some nasty rules when you're parsing
+without backtracking and by recursive descent (which is what pyparsing
+does).  I need some reformulations.  The more interesting of those 
+include:
 
 (1) TableReference
 
@@ -69,7 +70,49 @@ Similarly, for math_function I group symbols by arity.
 
 The system defined functions are also regrouped to keep the number of
 symbols reasonable.
+
+(4) column_reference and below
+
+Here the lack of backtracking hurts badly, since once, say, schema name
+is matched with a dot that's it, even if the dot should really have seperated
+schema and table.
+
+Hence, we don't assign semantic labels in the grammar but leave that to
+whatever interprets the tokens.
+
+The important rules here are
+
+<column_name> ::= <identifier>
+<correlation_name> ::= <identifier>
+<catalog_name> ::= <identifier>
+<unqualified_schema name> ::= <identifier>
+<schema_name> ::= [ <catalog_name> <period> ] <unqualified_schema name>
+<table_name> ::= [ <schema_name> <period> ] <identifier>
+<qualifier> ::= <table_name> | <correlation_name>
+<column_reference> ::= [ <qualifier> <period> ] <column_name>
+
+By substitution, one has
+
+<schema_name> ::= [ <identifier> <period> ] <identifier>
+
+hence,
+
+<table_name> ::= [[ <identifier> <period> ] <identifier> <period> ] 
+	<identifier>
+
+hence,
+
+<qualifier> ::= [[ <identifier> <period> ] <identifier> <period> ] 
+	<identifier>
+
+(which matches both table_name and correlation_name) and thus
+
+<column_reference> ::= [[[ <identifier> <period> ] <identifier> <period> ] 
+	<identifier> <period> ] <identifier>
+
+We need the table_name, qualifier, and column_reference productions.
 """
+
 
 from pyparsing import Word, Literal, Optional, alphas, CaselessKeyword,\
 	ZeroOrMore, OneOrMore, SkipTo, srange, StringEnd, Or, MatchFirst,\
@@ -133,12 +176,14 @@ def _failOnReservedWord(s, pos, toks):
 		raise ParseException(s, pos, "Reserved word not allowed here")
 
 
-def _getADQLGrammar(defaultFunctionPrefix="udf_"):
+def getADQLGrammarCopy(defaultFunctionPrefix="udf_"):
 	"""returns a pair symbols, selectSymbol for a grammar parsing ADQL.
 
-	This is for internal use only.  Use getADQLGrammar.
+	You should only use this if you actually require a fresh copy
+	of the ADQL grammar.  Otherwise, use getADQLGrammar or a wrapper
+	function defined by a client module.
 	"""
-	ParserElement.enablePackrat() # XXX Do we want to do this?  We should
+#	ParserElement.enablePackrat() # XXX Do we want to do this?  We should
 # create a ParserElement of our own, I guess, to avoid messing up other
 # grammars.
 	comment = "--" + SkipTo("\n" | StringEnd())
@@ -153,33 +198,32 @@ def _getADQLGrammar(defaultFunctionPrefix="udf_"):
 	unsignedNumericLiteral = ( approximateNumericLiteral | exactNumericLiteral )
 	characterStringLiteral = sglQuotedString + ZeroOrMore(
 		separator + sglQuotedString)
-	generalLiteral = characterStringLiteral
+	generalLiteral = characterStringLiteral.copy()
 	unsignedLiteral = unsignedNumericLiteral | generalLiteral
 	sign = Literal("+") | "-"
 	signedInteger = Optional( sign ) + unsignedInteger
 	multOperator = Literal("*") | "/"
 	notKeyword = CaselessKeyword("NOT")
 
-	adqlReservedWord = Regex("(?i)"+"|".join(adqlReservedWords))
-	sqlReservedWord = Regex("(?i)"+"|".join(sqlReservedWords))
-
 	regularIdentifier = Word(alphas, alphanums+"_").setParseAction(
 		_failOnReservedWord)
-	delimitedIdentifier = dblQuotedString
+	delimitedIdentifier = dblQuotedString.copy()
 	identifier = regularIdentifier | delimitedIdentifier
 
 # Operators
 	compOp = Regex("=|!=|<=|>=|<|>")
 
 # Column names and such
-	columnName = identifier
-	catalogName = identifier
-	unqualifiedSchemaName = identifier
-	correlationName = identifier
-	schemaName = Optional( catalogName + "." ) + unqualifiedSchemaName
-	tableName = Optional( schemaName + "." ) + identifier
-	qualifier = tableName | correlationName
-	columnReference = Optional( qualifier + "." ) + columnName
+	columnName = identifier.copy()
+	correlationName = identifier.copy()
+	qualifier = (identifier 
+		+ Optional( "." + identifier )
+		+ Optional( "." + identifier ))
+	tableName = qualifier.copy()
+	columnReference = (identifier 
+		+ Optional( "." + identifier )
+		+ Optional( "." + identifier )
+		+ Optional( "." + identifier ))
 	asClause = ( CaselessKeyword("AS") | whitespace ) + columnName
 
 	valueExpression = Forward()
@@ -193,8 +237,7 @@ def _getADQLGrammar(defaultFunctionPrefix="udf_"):
 		generalSetFunction)
 
 # value expressions
-	unsignedValueSpecification = unsignedLiteral
-	valueExpressionPrimary = ( unsignedValueSpecification |
+	valueExpressionPrimary = ( unsignedLiteral |
 		columnReference | setFunctionSpecification |
 		'(' + valueExpression + ')')
 
@@ -208,7 +251,7 @@ def _getADQLGrammar(defaultFunctionPrefix="udf_"):
 # numeric expressions/terms
 	numericValueExpression = Forward()
 	numericValueFunction = Forward()
-	numericExpressionPrimary = ( unsignedValueSpecification | columnReference
+	numericExpressionPrimary = ( unsignedLiteral | columnReference
 		| setFunctionSpecification | '(' + valueExpression + ')')
 	numericPrimary = valueExpressionPrimary | numericValueFunction
 	factor = Optional( sign ) + numericPrimary
@@ -229,7 +272,7 @@ def _getADQLGrammar(defaultFunctionPrefix="udf_"):
 		coordinates + OneOrMore( ',' + coordinates ) + ')')
 	region = (CaselessKeyword("REGION") + '(' + stringValueExpression + ')')
 	geometryExpression = point | circle | rectangle | polygon | region
-	geometryValue = columnReference
+	geometryValue = columnReference.copy()
 	centroid = CaselessKeyword("CENTROID") + '(' + geometryExpression + ')'
 	geometryValueExpression = geometryExpression | geometryValue | centroid
 
@@ -281,7 +324,7 @@ def _getADQLGrammar(defaultFunctionPrefix="udf_"):
 # parts of select clauses
 	setQuantifier = CaselessKeyword("DISTINCT") | CaselessKeyword("ALL")
 	setLimit = CaselessKeyword("TOP") + unsignedInteger
-	selectSublist = derivedColumn | qualifier + "." + ","
+	selectSublist = derivedColumn | qualifier + "." + "*"
 	selectList = "*" | selectSublist + ZeroOrMore(
 		"," + selectSublist )
 
@@ -318,7 +361,7 @@ def _getADQLGrammar(defaultFunctionPrefix="udf_"):
 	correlationSpecification = ( CaselessKeyword("AS") | whitespace
 		) + correlationName
 	subquery << ('(' + queryExpression + ')')
-	derivedTable = subquery
+	derivedTable = subquery.copy()
 	joinedTable = Forward()
 	nojoinTableReference = tableName + Optional( correlationSpecification) | (
 		derivedTable + correlationSpecification )
@@ -382,14 +425,32 @@ def enableDebug(syms, debugNames=None):
 			ob.setName(name)
 
 
+def enableTree(syms):
+	for name in syms:
+		ob = syms[name]
+		if not ob.debug:
+			ob.setDebug(True)
+			ob.setName(name)
+			ob.setParseAction(lambda s, pos, toks, name=name: [name, toks])
+
+
+
 def getADQLGrammar():
+	"""returns a pair of (symbols, root) for an ADQL grammar.
+
+	This probably is mainly useful for testing.  You should not set
+	names or parseActions on whatever you are returned.
+	"""
 	global _grammarCache
 	if not _grammarCache:
-		_grammarCache = _getADQLGrammar()
+		_grammarCache = getADQLGrammarCopy()
 	return _grammarCache
 
 
 if __name__=="__main__":
+	import pprint, sys
 	syms, grammar = getADQLGrammar()
-	enableDebug(syms)
-	print ">>>>", grammar.parseString("select x from y where ABS(-3.0e4)<3")
+	enableTree(syms)
+#	res = (syms["selectList"]+StringEnd()).parseString('"one weird name", b')
+	res = grammar.parseString("select * from (select * from z) as q, a")
+	pprint.pprint(res.asList(), stream=sys.stderr)
