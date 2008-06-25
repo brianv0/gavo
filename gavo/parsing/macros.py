@@ -994,7 +994,10 @@ def compileMacro(name, code):
 
 		def _compute(self, record):
 %(code)s\n"""%vars()
-	exec(macCode)
+	try:
+		exec(macCode)
+	except SyntaxError, msg:
+		raise gavo.Error("Bad Macro source %s: %s"%(macCode, msg))
 	return Newmacro()
 
 getMacro = utils.buildClassResolver(Macro, globals().values())

@@ -246,7 +246,6 @@ class SelectList(ADQLNode):
 		return self.colRefs
 
 
-
 _grammarCache = None
 
 def getADQLGrammar():

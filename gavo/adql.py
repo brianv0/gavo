@@ -434,7 +434,6 @@ def enableTree(syms):
 			ob.setParseAction(lambda s, pos, toks, name=name: [name, toks])
 
 
-
 def getADQLGrammar():
 	"""returns a pair of (symbols, root) for an ADQL grammar.
 

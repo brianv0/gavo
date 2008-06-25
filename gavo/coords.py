@@ -67,6 +67,7 @@ def timeangleToDeg(timeangle, sepChar=" "):
 	Traceback (most recent call last):
 	Error: Invalid time with sepchar ' ': 'junk'
 	"""
+	timeangle = timeangle.strip()
 	try:
 		if sepChar=="":
 			parts = timeangle[:2], timeangle[2:4], timeangle[4:]
@@ -100,6 +101,7 @@ def dmsToDeg(dmsAngle, sepChar=" "):
 	Traceback (most recent call last):
 	Error: Invalid dms declination with sepchar ' ': 'junk'
 	"""
+	dmsAngle = dmsAngle.strip()
 	sign = 1
 	if dmsAngle.startswith("+"):
 		dmsAngle = dmsAngle[1:].strip()
@@ -218,9 +220,12 @@ def getWCSTrafo(wcsFields):
 
 	XXX TODO: We don't yet do anything about the correction polynomials
 	"""
-	if wcsFields["CUNIT1"].strip()!="deg" or wcsFields["CUNIT2"].strip()!="deg":
-		# This is in accordance with the WCS spec.
-		raise gavo.Error("Can only handle deg units")
+	try:
+		if wcsFields["CUNIT1"].strip()!="deg" or wcsFields["CUNIT2"].strip()!="deg":
+			# This is in accordance with the WCS spec.
+			raise gavo.Error("Can only handle deg units")
+	except KeyError: # deg is the default
+		pass
 	if getWCSProj(wcsFields["CTYPE1"])!="TAN" or getWCSProj(
 			wcsFields["CTYPE2"])!="TAN":
 		raise gavo.Error("Only gnomonic projection implemented yet, sorry.")
@@ -262,8 +267,11 @@ def getInvWCSTrafo(wcsFields):
 
 	XXX TODO: see getWCSTrafo.
 	"""
-	if wcsFields["CUNIT1"].strip()!="deg" or wcsFields["CUNIT2"].strip()!="deg":
-		raise Error("Can only handle deg units")
+	try:
+		if wcsFields["CUNIT1"].strip()!="deg" or wcsFields["CUNIT2"].strip()!="deg":
+			raise Error("Can only handle deg units")
+	except KeyError:
+		pass
 
 	alphaP, deltaP = utils.degToRad(float(wcsFields["CRVAL1"])
 		), utils.degToRad(float(wcsFields["CRVAL2"]))
