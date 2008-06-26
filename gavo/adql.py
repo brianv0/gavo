@@ -61,7 +61,7 @@ parts of the input.  Thus, the top-level production is for "statement".
 (3) trig_function, math_function, system_defined_function
 
 I think it's a bit funny to have the arity of functions in the syntax, but
-there you go.  Anyway, I don't want to have the function names in seperate
+there you go.  Anyway, I don't want to have the function names in separate
 symbols since they are expensive but go for a Regex (trig1ArgFunctionName).
 The only exception is ATAN since it has a different arity from the rest of the
 lot.
@@ -74,7 +74,7 @@ symbols reasonable.
 (4) column_reference and below
 
 Here the lack of backtracking hurts badly, since once, say, schema name
-is matched with a dot that's it, even if the dot should really have seperated
+is matched with a dot that's it, even if the dot should really have separated
 schema and table.
 
 Hence, we don't assign semantic labels in the grammar but leave that to

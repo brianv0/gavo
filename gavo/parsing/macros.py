@@ -845,10 +845,12 @@ class BboxSiapFieldsComputer(Macro):
 	>>> m(None, r); r["primaryBbox"], r["secondaryBbox"]
 	(Box((138.01,53.01), (137.977,52.98)), None)
 	>>> r["CRVAL1"] = 0
-	>>> m(None, r); r["primaryBbox"], r["secondaryBbox"]
-	(Box((360,53.01), (359.977,52.98)), Box((0.00997021,53.01), (0,52.98)))
+	>>> m(None, r); r["primaryBbox"]
+	Box((360,53.01), (359.977,52.98))
+	>>> r["secondaryBbox"]
+	Box((0.00996989,53.01), (0,52.98))
 	>>> "%.4f %.4f"%(r["centerAlpha"], r["centerDelta"])
-	'-0.0066 52.9950'
+	'359.9935 52.9949'
 	"""
 	name = "computeBboxSiapFields"
 
@@ -856,39 +858,64 @@ class BboxSiapFieldsComputer(Macro):
 		"nAxes",  "pixelSize", "pixelScale", "imageFormat", "wcs_projection",
 		"wcs_refPixel", "wcs_refValues", "wcs_cdmatrix"]
 
+	class PixelGauge(object):
+		"""is a container for information about pixel sizes.
+
+		It is constructed with an astWCS.WCS instance and an (x, y)
+		pair of pixel coordinates that should be close to the center 
+		of the frame.
+		"""
+		def __init__(self, wcs, centerPix):
+			centerPos = wcs.pix2wcs(*centerPix)
+			offCenterPos = wcs.pix2wcs(centerPix[0]+1, centerPix[1]+1)
+			self._computeCDs(centerPos[0]-offCenterPos[0], 
+				centerPos[1]-offCenterPos[1])
+
+		def _computeCDs(self, da, dd):
+			dAngle = math.atan2(da, dd)
+			self.cds = (
+				(da*math.cos(dAngle), da*math.sin(dAngle)),
+				(dd*math.sin(dAngle), dd*math.cos(dAngle)))
+
+		def getPixelScales(self):
+			"""returns the pixel sizes in alpha and delta in degrees.
+			"""
+			aVec, dVec = self.cds
+			return (math.sqrt(aVec[0]**2+aVec[1]**2),
+				math.sqrt(dVec[0]**2+dVec[1]**2))
+
 	def _compute(self, record):
 		def seqAbs(seq):
 			return math.sqrt(sum(float(v)**2 for v in seq))
-
+		
+		wcs = coords.getWCS(record)
 		record["imageFormat"] = "image/fits"
-		coords.fixSimpleWCS(record)
 		try:
 			record["primaryBbox"], record["secondaryBbox"] = siap.splitCrossingBox(
-				coords.getBboxFromWCSFields(record))
+				coords.getBboxFromWCSFields(wcs))
 			record["centerAlpha"], record["centerDelta"
-				] = coords.getCenterFromWCSFields(record)
+				] = coords.getCenterFromWCSFields(wcs)
 			record["nAxes"] = int(record["NAXIS"])
 			axeInds = range(1, record["nAxes"]+1)
 			assert len(axeInds)==2   # probably not exactly necessary
-			record["pixelSize"] = tuple(int(record["NAXIS%d"%i]) 
+			dims = tuple(int(record["NAXIS%d"%i]) 
 				for i in axeInds)
-			assert(record["CUNIT1"], "deg")  # XXX TODO: see what else can be there.
-			record["pixelScale"] = tuple(
-					seqAbs(record["CD%d_%d"%(i, j)] for j in axeInds)
-				for i in axeInds)
+			pixelGauge = self.PixelGauge(wcs, (dims[0]/2., dims[1]/2.))
+			record["pixelSize"] = dims
+			record["pixelScale"] = pixelGauge.getPixelScales()
 
 			# XXX TODO: siap only wants one value for projection.  I admit
 			# that I don't really know what I'm doing here.
 			record["wcs_projection"] = record.get("CTYPE1")
 			if record["wcs_projection"]:
 				record["wcs_projection"] = record["wcs_projection"][5:8]
-			record["wcs_refPixel"] = tuple(float(record["CRPIX%d"%i]) 
+# XXX TODO: Check if wcstools could help here.
+			record["wcs_refPixel"] = tuple(float(record.get("CRPIX%d"%i)) 
 				for i in axeInds)
-			record["wcs_refValues"] = tuple(float(record["CRVAL%d"%i]) 
+			record["wcs_refValues"] = tuple(float(record.get("CRVAL%d"%i)) 
 				for i in axeInds)
-			record["wcs_cdmatrix"] = tuple(float(record["CD%d_%d"%(i, j)])
-				for i in axeInds for j in axeInds)
-		except KeyError:
+			record["wcs_cdmatrix"] = pixelGauge.cds[0]+pixelGauge.cds[1]
+		except ValueError, msg:
 			for key in self.wcskeys:
 				record[key] = None
 

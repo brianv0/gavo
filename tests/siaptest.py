@@ -94,6 +94,7 @@ class TestWCSBbox(unittest.TestCase):
 		boxes.append(coords.getBboxFromWCSFields(wcs))
 		for i in range(10):
 			wcs["CD1_1"] *= 1.1
+			wcs["CD2_2"] *= 1.0001
 			bbox = coords.getBboxFromWCSFields(wcs)
 			for oldBbox in boxes:
 				self.assert_(encloses(bbox, oldBbox), "enclose false negative"
@@ -101,7 +102,7 @@ class TestWCSBbox(unittest.TestCase):
 			boxes.append(bbox)
 		for i in range(7):
 			wcs["CD2_2"] *= 1.1
-			wcs["CD1_1"] *= 1.00001
+			wcs["CD1_1"] *= 1.0001
 			bbox = coords.getBboxFromWCSFields(wcs)
 			for oldBbox in boxes:
 				self.assert_(encloses(bbox, oldBbox), "enclose false negative"
@@ -296,7 +297,7 @@ class TestCoordinateQueries(unittest.TestCase):
 
 
 def singleTest():
-	suite = unittest.makeSuite(TestCoordinateQueries, "testENC")
+	suite = unittest.makeSuite(TestWCSBbox, "testEnc")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 

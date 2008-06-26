@@ -3,10 +3,16 @@ This module contains code to handle coordinate systems and transform
 between them.
 """
 
+import math
+from math import sin, cos, pi
+import re
+
+import pyfits
+
+from astLib import astWCS
+
 import gavo
 from gavo import utils
-from math import sin, cos, pi
-import math
 
 
 
@@ -52,6 +58,21 @@ class CooSysRegistry:
 	
 	def defineSystemWithId(self, id, equinox, epoch, system):
 		self.systems[id] = CooSys(equinox, epoch, system)
+
+
+fitsKwPat = re.compile("[A-Z0-9_-]{1,8}$")
+
+def makePyfitsFromDict(d):
+	"""returns a pyfits header with the cards of d.items().
+
+	Only keys "looking like" FITS header keywords are used, i.e. all-uppercase
+	and shorter than 9 characters.
+	"""
+	res = pyfits.Header()
+	for key, val in d.iteritems():
+		if fitsKwPat.match(key):
+			res.update(key, val)
+	return res
 
 
 def timeangleToDeg(timeangle, sepChar=" "):
@@ -209,174 +230,59 @@ def clampDelta(delta):
 	return max(-90, min(90, delta))
 
 
-def getWCSProj(projType):
-	"""return the projection type from a WCS CTYPE header.
+def getWCS(wcsFields):
+	"""returns a WCS instance from wcsFields
+	
+	wcsFields can be either a dictionary or a pyfits header giving
+	some kind of WCS information, or an astWCS.WCS instance that is
+	returned verbatim.
 	"""
-	return projType[5:8]
+	if isinstance(wcsFields, astWCS.WCS):
+		return wcsFields
+	if isinstance(wcsFields, dict):
+		wcsFields = makePyfitsFromDict(wcsFields)
+	return astWCS.WCS(wcsFields, mode="pyfits")
 
 
 def getWCSTrafo(wcsFields):
 	"""returns a callable transforming pixel to physical coordinates.
 
-	XXX TODO: We don't yet do anything about the correction polynomials
+	wcsFields is passed to getWCS, see there for legal types.
 	"""
-	try:
-		if wcsFields["CUNIT1"].strip()!="deg" or wcsFields["CUNIT2"].strip()!="deg":
-			# This is in accordance with the WCS spec.
-			raise gavo.Error("Can only handle deg units")
-	except KeyError: # deg is the default
-		pass
-	if getWCSProj(wcsFields["CTYPE1"])!="TAN" or getWCSProj(
-			wcsFields["CTYPE2"])!="TAN":
-		raise gavo.Error("Only gnomonic projection implemented yet, sorry.")
-
-	alphaP, deltaP = float(wcsFields["CRVAL1"]), float(wcsFields["CRVAL2"])
-	refpixX, refpixY = float(wcsFields["CRPIX1"]), float(wcsFields["CRPIX2"])
-	caa, cad = float(wcsFields["CD1_1"]), float(wcsFields["CD1_2"]) 
-	cda, cdd = float(wcsFields["CD2_1"]), float(wcsFields["CD2_2"])
-	phiP = utils.degToRad(float(wcsFields["LONPOLE"]))
-	cosDeltaP = cos(utils.degToRad(deltaP))
-	sinDeltaP = sin(utils.degToRad(deltaP))
-
-	if abs(deltaP)<90-1e-10:
-		def computeEq(phi, theta):
-			delta = math.asin(sin(theta)*sinDeltaP+
-				cos(theta)*cosDeltaP*cos(phi-phiP))
-			alpha = math.asin(cos(theta)*sin(phi)/cos(delta))
-			return alpha, delta
-	else:
-		alphaP = 0
-		def computeEq(phi, theta):
-			return phi, theta
-
-	def pixelToSphere(x, y):
-		scaledX = (x-refpixX)*caa+(y-refpixY)*cad
-		scaledY = (x-refpixX)*cda+(y-refpixY)*cdd
-		phi = math.atan2(scaledX, -scaledY)
-		if scaledX==0 and scaledY==0:
-			theta = pi/2
-		else:
-			theta = math.atan(180./pi/math.sqrt(scaledX**2+scaledY**2))
-		alpha, delta = computeEq(phi, theta)
-		return utils.radToDeg(alpha)+alphaP, utils.radToDeg(delta)
-	return pixelToSphere
-
+	return getWCS(wcsFields).pix2wcs
 
 def getInvWCSTrafo(wcsFields):
 	"""returns a callable transforming physical to pixel coordinates.
 
-	XXX TODO: see getWCSTrafo.
+	wcsFields is passed to getWCS, see there for legal types.
 	"""
-	try:
-		if wcsFields["CUNIT1"].strip()!="deg" or wcsFields["CUNIT2"].strip()!="deg":
-			raise Error("Can only handle deg units")
-	except KeyError:
-		pass
-
-	alphaP, deltaP = utils.degToRad(float(wcsFields["CRVAL1"])
-		), utils.degToRad(float(wcsFields["CRVAL2"]))
-	refpixX, refpixY = float(wcsFields["CRPIX1"]), float(wcsFields["CRPIX2"])
-	caa, cad = float(wcsFields["CD1_1"]), float(wcsFields["CD1_2"]) 
-	cda, cdd = float(wcsFields["CD2_1"]), float(wcsFields["CD2_2"]) 
-	phiP = utils.degToRad(float(wcsFields["LONPOLE"]))
-	norm = 1/float(caa*cdd-cad*cda)
-
-	if abs(deltaP)>pi/2-1e-10:
-		alphaP = 0
-		def computeNative(alpha, delta):
-			return alpha, delta
-	else:
-		def computeNative(alpha, delta):
-			phi = phiP+math.atan2(-cos(delta)*sin(alpha-alphaP),
-				sin(delta)*cos(deltaP)-cos(delta)*sin(deltaP)*cos(alpha-alphaP))
-			theta = math.asin(sin(delta)*sin(deltaP)+
-				cos(delta)*cos(deltaP)*cos(alpha-alphaP))
-			return phi, theta
-
-	def sphereToPixel(alpha, delta):
-		alpha, delta = alpha/180.*pi, delta/180.*pi
-		phi, theta = computeNative(alpha, delta)
-		if abs(theta)<1e-15:
-			r = 0
-		else:
-			r = 180/pi/math.tan(theta)
-		scaledX, scaledY = r*sin(phi), -r*cos(phi)
-		return (scaledX*cdd-scaledY*cad)*norm+refpixX, (
-			-cda*scaledX+caa*scaledY)*norm+refpixY
-	return sphereToPixel
-
-
-def getCornerPointsFromWCSFields(wcsFields):
-	"""returns the corner points of the field defined by (fairly plain)
-	WCS values in the dict wcsFields.
-
-	>>> d = _wcsTestDict.copy()
-	>>> "%.3f %.3f"%tuple(getCornerPointsFromWCSFields(d)[0])
-	'-0.500 -0.500'
-	>>> d["CRVAL1"] = 50; "%.3f %.3f"%tuple(getCornerPointsFromWCSFields(d)[0])
-	'49.500 -0.500'
-	>>> d["CRVAL2"] = 30; "%.3f %.3f"%tuple(getCornerPointsFromWCSFields(d)[0])
-	'49.426 29.499'
-	"""
-	pixelToSphere = getWCSTrafo(wcsFields)
-	width, height = float(wcsFields["NAXIS1"]), float(
-			wcsFields["NAXIS2"])
-	cornerPoints = [pixelToSphere(0, 0),
-		pixelToSphere(0, height), pixelToSphere(width, 0),
-		pixelToSphere(width, height)]
-	return cornerPoints
+	return getWCS(wcsFields).wcs2pix
 
 
 def getBboxFromWCSFields(wcsFields):
-	"""returns a cartesian bbox and a field center for (fairly simple) WCS
-	FITS header fields.
+	"""returns a bbox and a field center for WCS FITS header fields.
+
+	wcsFields is passed to getWCS, see there for legal types.
 	"""
-	pixelToSphere = getWCSTrafo(wcsFields)
-	width, height = int(float(wcsFields["NAXIS1"])), int(float(
-			wcsFields["NAXIS2"]))
-	bounds = [pixelToSphere(x, y) for x in range(0, width+1, width/2)
-		for y in range(0, height+1, height/2)]
+	wcs = getWCS(wcsFields)
+	width, height = float(wcs.header["NAXIS1"]), float(wcs.header["NAXIS2"])
+	cA, cD = wcs.pix2wcs(width/2., height/2.)
+	wA, wD = wcs.getHalfSizeDeg()
+	# Compute all "corners" to ease handling of corner cases
+	bounds = [(cA+wA, cD+wD), (cA-wA, cD-wD), (cA+wA, cD-wD),
+		(cA-wA, cD+wD)]
 	bbox = getBbox(bounds)
 	if bbox[0][1]>89:
-		bbox = Box((0, bbox[0][1]), (360, bbox[1][1]))
+		bbox = Box((0, clampDelta(bbox[0][1])), (360, clampDelta(bbox[1][1])))
 	if bbox[1][1]<-89:
-		bbox = Box((0, bbox[0][1]), (360, bbox[1][1]))
+		bbox = Box((0, clampDelta(bbox[0][1])), (360, clampDelta(bbox[1][1])))
 	return bbox
 
 
 def getCenterFromWCSFields(wcsFields):
 	"""returns RA and Dec of the center of an image described by wcsFields.
 	"""
-	pixelToSphere = getWCSTrafo(wcsFields)
-	return pixelToSphere(float(wcsFields["NAXIS1"])/2., float(
-			wcsFields["NAXIS2"])/2.)
-
-
-def fixSimpleWCS(wcsFields):
-	"""upgrades a stripped-down WCS header with to a full-blown CDn_n-type
-	header.
-
-	In detail:
-
-	* if CUNITn is missing, deg is inserted
-	* if no CDn_n is there but CDELTn, CDn_n keys are computed from them
-	* CROTAn currently is ignored (so, bboxes may be too small)
-	"""
-# XXX figure out CROTA1
-	if "CUNIT1" not in wcsFields:
-		wcsFields["CUNIT1"] = "deg"
-	if "CUNIT2" not in wcsFields:
-		wcsFields["CUNIT2"] = "deg"
-	if "CD1_1" not in wcsFields:
-		if "CDELT1" not in wcsFields:
-			raise KeyError("No usable WCS information found")
-		wcsFields["CD1_1"] = wcsFields["CDELT1"]
-		wcsFields["CD1_2"] = 0
-	if "CD2_1" not in wcsFields:
-		if "CDELT2" not in wcsFields:
-			raise KeyError("No usable WCS information found")
-		wcsFields["CD2_1"] = 0
-		wcsFields["CD2_2"] = wcsFields["CDELT1"]
+	return getWCS(wcsFields).getCentreWCSCoords()
 
 
 # let's do a tiny vector type.  It's really not worth getting some dependency
@@ -519,9 +425,10 @@ class Box(object):
 	def contains(self, other):
 		if other==None:
 			return False
+
 		if isinstance(other, Box):
-			return (self.x0>=other.x0 and self.x1<=other.x1 and
-				self.y0>=other.y0 and self.y1<=other.y1)
+			return (self.x0+1e-10>=other.x0 and self.x1-1e-10<=other.x1 and
+				self.y0+1e-10>=other.y0 and self.y1-1e-10<=other.y1)
 		else: # other is assumed to be a 2-sequence interpreted as a point.
 			x, y = other
 			return self.x0>=x>=self.x1 and self.y0>=y>=self.y1
