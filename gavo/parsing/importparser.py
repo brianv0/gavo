@@ -152,10 +152,23 @@ class RdParser(nodebuilder.NodeBuilder):
 			"meta": lambda mv: dd.addMeta(mv[0], mv[1]),
 			"property": lambda val: dd.register_property(*val),
 			"script": dd.addto_scripts,
+			"ignoreSources": dd.set_ignoredSources,
 		}, children)
 		self.popProperty("fieldPath")
 		return res
-	
+
+	def _make_ignoreSources(self, name, attrs, children):
+		attrs = makeAttDict(attrs)
+		if "fromdb" in attrs:
+			try:
+				res = set(r[0] for r in sqlsupport.SimpleQuerier().runIsolatedQuery(
+					attrs["fromdb"]))
+			except sqlsupport.DbError:
+				return set()
+		else:
+			raise Error("Can't interpret ignoreSources spec.")
+		return res
+
 	def _fillGrammarNode(self, grammar, attrs, children, classHandlers):
 		"""handles children and attributes common to all grammar classes.
 

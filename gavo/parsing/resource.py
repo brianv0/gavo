@@ -414,6 +414,8 @@ class DataSet(meta.MetaMixin):
 	def exportToSql(self, schema):
 		if not self.getDescriptor().get_virtual():
 			for table in self.tables:
+				if self.getDescriptor().get_ignoredSources():
+					table.recordDef.set_create(False)
 				table.exportToSql(schema)
 		self.dD.runScripts("processTable")
 		self.dD.runScripts("postCreation")
@@ -521,7 +523,7 @@ class Resource:
 
 	def exportToSql(self, onlyDDs=None):
 		rd = self.getDescriptor()
-		if rd.get_profile():
+		if rd.get_profile():  # XXX TODO: This should be reset when done...
 			config.setDbProfile(rd.get_profile())
 		for dataSet in self:
 			if onlyDDs and dataSet.getDescriptor().get_id() not in onlyDDs:
@@ -705,6 +707,8 @@ class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin):
 				"virtual": record.BooleanField,  # virtual data is never written
 				                                 # to the DB.
 				"scripts": record.ListField,
+				"ignoredSources": (), # a set or sequence of input-relative paths 
+					# that should not be processed; if nonempty, implies update on db.
 			},
 			initvals=initvals)
 
@@ -714,11 +718,11 @@ class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin):
 				self.dataStore["source"])
 
 	def iterSources(self):
-		if self.get_source():
-			yield self.get_source()
 		if not os.path.isdir(self.rD.get_resdir()):
 			raise Error("Resource directory %s does not exist or is"
 				" not a directory."%self.rD.get_resdir())
+		if self.get_source():
+			yield self.get_source()
 		if self.get_sourcePat():
 			dirPart, filePart = os.path.dirname(self.get_sourcePat()
 				), os.path.basename(self.get_sourcePat())
@@ -726,7 +730,8 @@ class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin):
 			for path, dirs, files in utils.symlinkwalk(os.path.join(
 					self.rD.get_resdir(), dirPart)):
 				for fName in glob.glob(os.path.join(path, filePart)):
-					if os.path.isfile(fName):
+					if os.path.isfile(fName) and not utils.getRelativePath(fName,
+							config.get("inputsDir")) in self.get_ignoredSources():
 						sources.append(fName)
 			sources.sort()
 			for s in sources:

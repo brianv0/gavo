@@ -23,6 +23,15 @@ from roughtestconfig import *
 import roughtestdata
 
 
+class TestURLopener(urllib.FancyURLopener):
+	version = "GAVO regression test suite"
+	def prompt_user_passwd(self, host, realm):
+		return "test", "test"
+
+
+urllib._urlopener = TestURLopener()
+
+
 class TestGroup(object):
 	def __init__(self, name, *tests):
 		self.name = name
@@ -555,32 +564,33 @@ myTests = [
 			"Reset of db seems to work"),
 	),
 
-	TestGroup("soap",
-		GetHasStringsTest(nv_root+"/ucds/ui/ui/soap/go?wsdl",
-			["wsdl:definitions", '<schema targetNamespace="ivo://', 
-				"ivo://org.gavo.dc/ucds/ui/ui"],
-			"WSDL for SOAP looks all right"),
-		PostHasStringsTest(nv_root+"/ucds/ui/ui/soap/go",
-			'eJydkU1vgzAMhu/7FSh34kW9jAiotqo97Utiq3ZFIaKRaIJwCOXfz3Sl6rrDpkk5JLb'
-			'zvPbrdHnY\nN1HQHRpnMyb4LYu0Va4yts7Y+9smvmPL/CYtXu5f4/XzVq5t0I1rdXSO'
-			'zOWFHxudsZ33rQRAtdP7\nEjnh0ZUtd10N0wXmcmAR5SzKE2j1j68HNOdfwzDwYXEsF'
-			'kmSwMfTY3EExcaiL63SV4Lbvwh+DXsh\nWP0uyC79enDVSG+LQvaoC90Fo/SJRsGMme'
-			'AIRhRel8HxSkGvKoTe0GGzyyvZOedpPxM7iIgGl35s\nyW7qSKLvyBWWpxAE5eG72BS'
-			'5bgd+7DP/BCkQrjo=\n'.decode("base64").decode("zlib"),
-			[':Client</faultcode>', 'Validation failed', 'No known words'],
-			'SOAP error messaging returns client error on junk input',
-			SOAPAction='"useService"', content_type="text/xml"),
-		PostHasStringsTest(nv_root+"/ucds/ui/ui/soap/go",
-			'eJydkU1PwzAMhu/8iij3JlRcaNR2gmmc+JIKE9eoibpIbVLFabr+e9yxTmMcQEg5JI7'
-			'9vPbrfLXv\nWhK1B+NsQVN2TYm2tVPGNgV9f3tIbumqvMqrl7vXZPO8FRsbdet6TU6R'
-			'Jb0KU6sLuguhF5xDvdOd\nBIZ4cLJnzjd8vvAlnVOCfxbEEbT+R+kezKlqHEc23hyS0'
-			'yzL+MfTY3UAJcZCkLbWF4Lbvwh+DXsm\nqH4XpOd+3Ts14dtCKgbQlfbR1PpIw2BBTX'
-			'QIQwprZHRM1XyoFfDB4KGLy2vhnQu4n5kdU4KDizD1\naDd2JCB4dIWW0ngcA4gMpDM'
-			'qmE7nPKZYwb/Lz5HLBvmPDZefAse1KA==\n'.decode("base64").decode("zlib"),
-			['tns:outList', 'obs.airMass', '</tns:outList>'],
-			"SOAP request yields something reasonable",
-			SOAPAction='"useService"', content_type="text/xml"),
-		),
+# REVIVE THIS WHEN THE UCD SERVICE IS FREE AGAIN.
+#	TestGroup("soap",
+#		GetHasStringsTest(nv_root+"/ucds/ui/ui/soap/go?wsdl",
+#			["wsdl:definitions", '<schema targetNamespace="ivo://', 
+#				"ivo://org.gavo.dc/ucds/ui/ui"],
+#			"WSDL for SOAP looks all right"),
+#		PostHasStringsTest(nv_root+"/ucds/ui/ui/soap/go",
+#			'eJydkU1vgzAMhu/7FSh34kW9jAiotqo97Utiq3ZFIaKRaIJwCOXfz3Sl6rrDpkk5JLb'
+#			'zvPbrdHnY\nN1HQHRpnMyb4LYu0Va4yts7Y+9smvmPL/CYtXu5f4/XzVq5t0I1rdXSO'
+#			'zOWFHxudsZ33rQRAtdP7\nEjnh0ZUtd10N0wXmcmAR5SzKE2j1j68HNOdfwzDwYXEsF'
+#			'kmSwMfTY3EExcaiL63SV4Lbvwh+DXsh\nWP0uyC79enDVSG+LQvaoC90Fo/SJRsGMme'
+#			'AIRhRel8HxSkGvKoTe0GGzyyvZOedpPxM7iIgGl35s\nyW7qSKLvyBWWpxAE5eG72BS'
+#			'5bgd+7DP/BCkQrjo=\n'.decode("base64").decode("zlib"),
+#			[':Client</faultcode>', 'Validation failed', 'No known words'],
+#			'SOAP error messaging returns client error on junk input',
+#			SOAPAction='"useService"', content_type="text/xml"),
+#		PostHasStringsTest(nv_root+"/ucds/ui/ui/soap/go",
+#			'eJydkU1PwzAMhu/8iij3JlRcaNR2gmmc+JIKE9eoibpIbVLFabr+e9yxTmMcQEg5JI7'
+#			'9vPbrfLXv\nWhK1B+NsQVN2TYm2tVPGNgV9f3tIbumqvMqrl7vXZPO8FRsbdet6TU6R'
+#			'Jb0KU6sLuguhF5xDvdOd\nBIZ4cLJnzjd8vvAlnVOCfxbEEbT+R+kezKlqHEc23hyS0'
+#			'yzL+MfTY3UAJcZCkLbWF4Lbvwh+DXsm\nqH4XpOd+3Ts14dtCKgbQlfbR1PpIw2BBTX'
+#			'QIQwprZHRM1XyoFfDB4KGLy2vhnQu4n5kdU4KDizD1\naDd2JCB4dIWW0ngcA4gMpDM'
+#			'qmE7nPKZYwb/Lz5HLBvmPDZefAse1KA==\n'.decode("base64").decode("zlib"),
+#			['tns:outList', 'obs.airMass', '</tns:outList>'],
+#			"SOAP request yields something reasonable",
+#			SOAPAction='"useService"', content_type="text/xml"),
+#		),
 
 	TestGroup("services",
 		GetHasStringsTest(nv_root+"/lswscans/res/positions/q/form?"

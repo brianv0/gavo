@@ -904,18 +904,14 @@ class BboxSiapFieldsComputer(Macro):
 			record["pixelSize"] = dims
 			record["pixelScale"] = pixelGauge.getPixelScales()
 
-			# XXX TODO: siap only wants one value for projection.  I admit
-			# that I don't really know what I'm doing here.
 			record["wcs_projection"] = record.get("CTYPE1")
 			if record["wcs_projection"]:
 				record["wcs_projection"] = record["wcs_projection"][5:8]
-# XXX TODO: Check if wcstools could help here.
-			record["wcs_refPixel"] = tuple(float(record.get("CRPIX%d"%i)) 
-				for i in axeInds)
-			record["wcs_refValues"] = tuple(float(record.get("CRVAL%d"%i)) 
-				for i in axeInds)
+			record["wcs_refPixel"] = (wcs.WCSStructure.xref, wcs.WCSStructure.yref)
+			record["wcs_refValues"] = (wcs.WCSStructure.xrefpix, 
+				wcs.WCSStructure.yrefpix)
 			record["wcs_cdmatrix"] = pixelGauge.cds[0]+pixelGauge.cds[1]
-		except ValueError, msg:
+		except KeyError, msg:
 			for key in self.wcskeys:
 				record[key] = None
 
