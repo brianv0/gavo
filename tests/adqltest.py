@@ -264,8 +264,9 @@ class TreeParseTest(testhelpers.VerboseTest):
 			self.assertEqual(res, e, 
 				"Source tables from %s: expected %s, got %s"%(q, e, res))
 
+
 def singleTest():
-	suite = unittest.makeSuite(TreeParseTest, "testSourceTablesJoin")
+	suite = unittest.makeSuite(TreeParseTest, "testSourceTables")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 

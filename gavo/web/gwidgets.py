@@ -131,8 +131,14 @@ class DbOptions(object):
 		
 	def _makeSortWidget(self, service, queryMeta):
 		keys = [f.get_dest() for f in self.service.getCurOutputFields(queryMeta)]
-		return widget.SelectChoice(formaltypes.String(), options=
-			[(key, key) for key in keys])
+		defaultKey = service.get_property("defaultSort")
+		if defaultKey:
+			return widget.SelectChoice(formaltypes.String(), options=
+				[(key, key) for key in keys if key!=defaultKey], 
+				noneOption=(defaultKey, defaultKey))
+		else:
+			return widget.SelectChoice(formaltypes.String(), options=
+				[(key, key) for key in keys])
 	
 	def _makeLimitWidget(self, service):
 		keys = [(str(i), i) for i in [1000, 5000, 10000, 100000, 250000]]

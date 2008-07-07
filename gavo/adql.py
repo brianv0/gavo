@@ -452,6 +452,5 @@ if __name__=="__main__":
 	import pprint, sys
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
-#	res = (syms["selectList"]+StringEnd()).parseString('"one weird name", b')
-	res = grammar.parseString("select * from x join y")
+	res = grammar.parseString("select * from (select * from z) as q, a")
 	pprint.pprint(res.asList(), stream=sys.stderr)

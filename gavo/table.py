@@ -253,7 +253,7 @@ class Table(RecordBasedTable):
 			tableWriter.finish()
 
 	def _getSharedTableWriter(self):
-		"""returns a sqlsupportTableWriter instance for this data set's
+		"""returns a sqlsupport.TableWriter instance for this data set's
 		target Table.
 
 		These ignore the schema of the rd since it's in all likelihood

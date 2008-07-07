@@ -208,6 +208,9 @@ class AliasedQuerySpecification(QuerySpecification):
 		self.children = newChildren
 		QuerySpecification._processChildren(self)
 
+	def getAllNames(self):
+		return self.tableName.qName
+
 
 @symbolAction("nojoinTableReference")
 def dispatchTableReference(children):
@@ -224,7 +227,8 @@ def dispatchTableReference(children):
 class FromClause(ADQLNode):
 	type = "fromClause"
 	def _processChildren(self):
-		self.tablesReferenced = self.getChildrenOfType("tableReference")
+		self.tablesReferenced = [t for t in self.children
+			if hasattr(t, "colBearing")]
 	
 	def getTableNames(self):
 		res = []
@@ -451,8 +455,9 @@ if __name__=="__main__":
 		else:
 			return {}
 	g = getADQLGrammar()
-	res = g.parseString("select a,b,ya from z join y")[0]
+	res = g.parseString("select * from (select * from z) as q, a")[0]
 #	pprint.pprint(res.asTree())
-#	print repr(res)
+	print repr(res)
 	fd = makeFieldDefs(res, fig)
-	print "Res:", res.colsInfo.seq
+	#print "Res:", res.colsInfo.seq
+	print res.getSourceTableNames()
