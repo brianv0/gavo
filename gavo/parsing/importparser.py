@@ -160,11 +160,11 @@ class RdParser(nodebuilder.NodeBuilder):
 	def _make_ignoreSources(self, name, attrs, children):
 		attrs = makeAttDict(attrs)
 		if "fromdb" in attrs:
-			try:
+			if self.noQueries:
+				return set()
+			else:
 				res = set(r[0] for r in sqlsupport.SimpleQuerier().runIsolatedQuery(
 					attrs["fromdb"]))
-			except sqlsupport.DbError:
-				return set()
 		else:
 			raise Error("Can't interpret ignoreSources spec.")
 		return res

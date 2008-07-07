@@ -447,9 +447,11 @@ def getADQLGrammar():
 
 
 if __name__=="__main__":
+	def printCs(s, pos, toks):
+		print ">>>>>>>>>>>>>>>", toks
 	import pprint, sys
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 #	res = (syms["selectList"]+StringEnd()).parseString('"one weird name", b')
-	res = grammar.parseString("select * from (select * from z) as q, a")
+	res = grammar.parseString("select * from x join y")
 	pprint.pprint(res.asList(), stream=sys.stderr)

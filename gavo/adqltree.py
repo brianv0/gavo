@@ -16,6 +16,15 @@ import adql
 class Error(Exception):
 	pass
 
+class ColumnNotFound(Error):
+	"""will be raised if a column name cannot be resolved.
+	"""
+
+class AmbiguousColumn(Error):
+	"""will be raised if a column name matches more than one column in a
+	compound query.
+	"""
+
 
 class _VirtualC(type):
 	def __nonzero__(self):
@@ -27,17 +36,18 @@ class SSubquery(object):
 	__metaclass__ = _VirtualC
 
 
-def symbolAction(symbol):
+def symbolAction(*symbols):
 	"""is a decorator to mark functions as being a parseAction for symbol.
 
 	This is evaluated by getADQLGrammar below.  Be careful not to alter
 	global state in such a handler.
 	"""
 	def deco(func):
-		if hasattr(func, "parseActionFor"):
-			func.parseActionFor.append(symbol)
-		else:
-			func.parseActionFor = [symbol]
+		for symbol in symbols:
+			if hasattr(func, "parseActionFor"):
+				func.parseActionFor.append(symbol)
+			else:
+				func.parseActionFor = [symbol]
 		return func
 	return deco
 
@@ -134,7 +144,8 @@ class TableReference(ADQLNode):
 	"""is a table reference.
 
 	These always have a name (tableName); if a correlationSpecification
-	is given, this is whatever is behind AS.
+	is given, this is whatever is behind AS.  The joinedTables attribute
+	contains further table references if any are joined in.
 
 	They may have an originalName if an actual table name (as opposed to a
 	subquery) was used to specify the table.  Otherwise, there's either
@@ -142,10 +153,11 @@ class TableReference(ADQLNode):
 	what fields are available from the table.
 	"""
 	type = "tableReference"
-	bindings = []  # will be created by makeTableReference
+	bindings = []  # will be created by dispatchTableReference
 	colBearing = None
+	joinedTables = []
 	def __repr__(self):
-		return "<tableReference to %s>"%self.tableName
+		return "<tableReference to %s>"%",".join(self.getAllNames())
 
 	def _processChildren(self):
 		try:
@@ -154,6 +166,12 @@ class TableReference(ADQLNode):
 			self.originalTable = self.getChildOfType("tableName")
 		except KeyError:
 			self.tableName = self.originalTable = self.getChildOfType("tableName")
+		self.joinedTables = self.getChildrenOfType("tableReference")
+
+	def getAllNames(self):
+		yield self.tableName.qName
+		for t in self.joinedTables:
+			yield t.tableName.qName
 
 
 class QuerySpecification(ADQLNode): 
@@ -170,26 +188,11 @@ class QuerySpecification(ADQLNode):
 	def getSourceTableNames(self):
 		return self.fromClause.getTableNames()
 
-	def resolveFieldReference(self, colRef):
-		"""returns the fieldDef for a ColumnReference or a plain name from 
-		this query.
-
-		The object must have been processed with a ColumnResolver before
-		this works.
-		"""
-# XXX TODO: check for schema, catalog?
-		if isinstance(colRef, basestring):
-			return self._columns[colRef]
-		if colRef.table:
-			return self._subTables[colRef.table].resolveFieldReference(
-				colRef.name)
-		return self._columns[colRef.name]
-
 
 class AliasedQuerySpecification(QuerySpecification):
 	"""is a QuerySpecification with a correlationSpecification.
 	"""
-	bindings = [] # will be created by makeTableReference
+	bindings = [] # will be created by dispatchTableReference
 	def _processChildren(self):
 		try:
 			self.tableName = self.getChildOfType("correlationSpecification")
@@ -205,7 +208,8 @@ class AliasedQuerySpecification(QuerySpecification):
 		self.children = newChildren
 		QuerySpecification._processChildren(self)
 
-@symbolAction("tableReference")
+
+@symbolAction("nojoinTableReference")
 def dispatchTableReference(children):
 	"""returns a TableReference or a QuerySpecification depending on
 	wether children contain a querySpecification.
@@ -220,11 +224,13 @@ def dispatchTableReference(children):
 class FromClause(ADQLNode):
 	type = "fromClause"
 	def _processChildren(self):
-		self.tablesReferenced = [c 
-			for c in self.children if hasattr(c, "tableName")]
+		self.tablesReferenced = self.getChildrenOfType("tableReference")
 	
 	def getTableNames(self):
-		return [t.tableName.qName for t in self.tablesReferenced]
+		res = []
+		for t in self.tablesReferenced:
+			res.extend(t.getAllNames())
+		return res
 
 
 class ColumnReference(ADQLNode):
@@ -276,12 +282,112 @@ def getADQLGrammar():
 	return root
 
 
+class ColsInfo(object):
+	"""is a container for information about the columns and the subtables
+	of a table.
+
+	It consists of the following attributes:
+	
+	* seq -- a sequence of attributes of the columns in the
+	  order in which they are selected (this is random if the table comes
+	  from the db)
+	* columns -- maps column names to attributes or None if a column
+	  name is not unique.
+	* subTables -- maps table names of subtables to their nodes (that in
+	  turn have subTables if they already have been visited by the 
+	  ColumnResolver)
+	"""
+	def __init__(self, node, fieldInfoGetter):
+		self.seq, self.columns, self.subTables = [], {}, {}
+		self._findRefdTables(node)
+		if hasattr(node, "originalTable"): # reference to physical table
+			self._addInfosForPhysTable(node, fieldInfoGetter)
+		for child in getattr(node, "joinedTables", []):
+			self._addInfosFromJoined(child)
+		if hasattr(node, "query"): # subquery
+			self._addInfosForQuery(node.query)
+
+	def addColumn(self, label, info):
+		"""adds a new visible column to this info.
+
+		This entails both entering it in self.columns and in self.seq.
+		"""
+		if label in self.columns:
+			self.columns[label] = None # Sentinel for ambiguous names
+		else:
+			self.columns[label] = info
+		self.seq.append((label, info))
+
+	def _addInfosForPhysTable(self, node, fieldInfoGetter):
+		qName = node.originalTable.qName
+		for label, info in fieldInfoGetter(qName).iteritems():
+			self.addColumn(label, info) # WARNING: Order random here.
+
+	def _addInfosForQuery(self, queryNode):
+		# self is going to become the colsInfo for this query node.
+		for colRef in queryNode.selectList.getColRefs():
+			self.addColumn(colRef, 
+				self.resolveFieldReference(colRef))
+
+	def _addInfosFromJoined(self, node):
+		for jt in getattr(node, "joinedTables", ()):
+			for label, info in jt.colsInfo.iteritems():
+				self.addColumn(label, info)
+
+	def _findRefdTables(self, node):
+		"""fills out the subTables attribute with any tables visible from node.
+		"""
+		if hasattr(node, "fromClause"):
+			for subRef in node.fromClause.tablesReferenced:
+				if hasattr(subRef, "colsInfo"):
+					self.subTables[subRef.tableName.name] = subRef
+
+	def _resolveNameInSubtables(self, colName):
+		"""tries to locate colName in one of the node's referenced tables.
+
+		To do that, it collects all fields of this names in subTables and
+		returns the matching field if there's exactly one.  Otherwise, it
+		will raise ColumnNotFound or AmbiguousColumn.
+		"""
+		matched = []
+		for t in self.subTables.values():
+			subCols = t.colsInfo.columns
+			if colName in subCols and subCols[colName]:
+				matched.append(subCols[colName])
+		if len(matched)==1:
+			return matched[0]
+		elif not matched:
+			raise ColumnNotFound(colName)
+		else:
+			raise AmbiguousColumn(colName)
+
+	def resolveFieldReference(self, colRef):
+		"""returns the fieldDef for a ColumnReference or a plain name from 
+		this query.
+
+		The function may raise ColumnNotFound or AmbiguousColumn exceptions.
+		"""
+# XXX TODO: check for schema, catalog?
+		if isinstance(colRef, basestring):
+			return self.columns[colRef]
+		if colRef.table:
+			return self.subTables[colRef.table].colsInfo.resolveFieldReference(
+				colRef.name)
+		if colRef.name in self.columns:
+			return self.columns[colRef.name]
+		return self._resolveNameInSubtables(colRef.name)
+
 class ColumnResolver(object):
 	"""is a container for collecting and gathering column information.
 
 	It is constructed with fieldInfoGetter is a function taking a
 	table name and returning a dictionary mapping column names to
 	objects meaningful to the application.
+
+	Its addColsInfo method will furnish its argument (which must
+	be a colBearing node) with a colsInfo attribute.  Behind this
+	is a ColsInfo object.  They will futher baptize "nameless"
+	querySpecifications if necessary.
 	"""
 	def __init__(self, fieldInfoGetter):
 		self.fieldInfoGetter = fieldInfoGetter
@@ -294,49 +400,12 @@ class ColumnResolver(object):
 		name = "vtable%s"%id(node)
 		node.tableName = TableName([SSubquery, ".", name])
 
-	def _addFieldInfosReal(self, colBearingNode):
-		"""returns a fieldInfos dictionary for real tables.
-		"""
-		qName = colBearingNode.originalTable.qName
-		colBearingNode._columns = self.fieldInfoGetter(qName)
-
-	def _addFieldInfosSubquery(self, subqueryNode):
-		self._baptizeNode(subqueryNode)
-
-		def getSubtableInfo(subqueryNode):
-			subTables, columns = {}, {}
-			print subqueryNode.fromClause
-			for fs in subqueryNode.fromClause:
-				if not hasattr(fs, "tableName"):
-					continue
-				subTables[fs.tableName.name] = fs
-				for label, info in fs._columns.iteritems():
-					if label in columns:
-						columns[label] = None # Sentinel for ambiguous names
-					else:
-						columns[label] = info
-			return subTables, columns
-	
-		def getColSeq(subqueryNode):
-			cols = []
-			for colRef in subqueryNode.selectList.getColRefs():
-				cols.append((colRef, subqueryNode.resolveFieldReference(colRef)))
-			return cols
-
-		subqueryNode._subTables, subqueryNode._columns = getSubtableInfo(
-			subqueryNode)
-		subqueryNode.columnSequence = getColSeq(subqueryNode)
-
-	def addFieldDefs(self, colBearingNode):
+	def addColsInfo(self, colBearingNode):
 		"""adds the field definitions provided by colBearingNode to self.
 		"""
 		if not hasattr(colBearingNode, "tableName"):
 			self._baptizeNode(colBearingNode)
-		tableName = colBearingNode.tableName
-		if getType(colBearingNode)=="querySpecification":
-			self._addFieldInfosSubquery(colBearingNode.query)
-		else:
-			self._addFieldInfosReal(colBearingNode)
+		colBearingNode.colsInfo = ColsInfo(colBearingNode, self.fieldInfoGetter)
 
 
 def makeFieldDefs(qTree, fieldInfoGetter):
@@ -350,9 +419,26 @@ def makeFieldDefs(qTree, fieldInfoGetter):
 			if isinstance(child, ADQLNode):
 				traverse(child)
 		if hasattr(node, "colBearing"):
-			colRes.addFieldDefs(node)
+			colRes.addColsInfo(node)
 	traverse(qTree)
 	return colRes
+
+
+class FieldInfo(object):
+	"""is a container for everything that is known about a field at parse
+	time.
+
+	The user constructs it with a "token" that is opaque to the library
+	and can later retrieve either an expression showing how an output
+	column is generated from input columns (the tokens passed in) or
+	simple the tokens that went into the field info.
+	"""
+	def __init__(self, token):
+		self.tokens = (token)
+		self.expression = (token)
+	
+	def getUsedTokens(token):
+		return self.tokens
 
 
 if __name__=="__main__":
@@ -365,7 +451,8 @@ if __name__=="__main__":
 		else:
 			return {}
 	g = getADQLGrammar()
-	res = g.parseString("select a,b,v.ya from z, (select ya from y) as v")[0]
+	res = g.parseString("select a,b,ya from z join y")[0]
 #	pprint.pprint(res.asTree())
 #	print repr(res)
 	fd = makeFieldDefs(res, fig)
+	print "Res:", res.colsInfo.seq
