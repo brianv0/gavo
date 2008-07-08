@@ -224,6 +224,8 @@ class NakedParseTest(testhelpers.VerboseTest):
 		self._assertDontParse([
 			"select a, b from (select * from x) q",
 			"select a, b from (select * from x)",
+			"select x.y.z.a.b from a",
+			"select x from a.b.c.d",
 		])
 
 
@@ -272,5 +274,5 @@ def singleTest():
 
 
 if __name__=="__main__":
-#	unittest.main()
-	singleTest()
+	unittest.main()
+#	singleTest()

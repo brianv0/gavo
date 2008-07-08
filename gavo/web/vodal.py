@@ -139,7 +139,7 @@ class SiapRenderer(DalRenderer):
 	def _handleOutputData(self, data, ctx):
 		data.addMeta("info", meta.makeMetaValue("OK", name="info",
 			infoName="QUERY_STATUS", infoValue="OK"))
-		data.addMeta("_type", "result")
+		data.addMeta("_type", "results")
 		return super(SiapRenderer, self)._handleOutputData(data, ctx)
 	
 	def _makeErrorTable(self, ctx, msg):

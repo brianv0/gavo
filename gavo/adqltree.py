@@ -428,22 +428,52 @@ def makeFieldDefs(qTree, fieldInfoGetter):
 	return colRes
 
 
-class FieldInfo(object):
-	"""is a container for everything that is known about a field at parse
-	time.
+class FieldInfoEvaluator(object):
+	"""is a wrapper of arithmetic operations on FieldInfos.
 
-	The user constructs it with a "token" that is opaque to the library
-	and can later retrieve either an expression showing how an output
-	column is generated from input columns (the tokens passed in) or
-	simple the tokens that went into the field info.
+	This encapsulates the rules and algebra for units and ucds.  In particular,
+	it collects warnings and errors when fishy operations are detected.
 	"""
-	def __init__(self, token):
-		self.tokens = (token)
-		self.expression = (token)
-	
-	def getUsedTokens(token):
-		return self.tokens
+	def __init__(self):
+		self.warnings = []
+		self.errors = []
 
+	def fiForAddScalar(self, fieldInfo, number):
+		if fieldInfo.unit:
+			self.warnings.append("Additive operation with dimensioned value")
+		return fieldInfo
+	
+	def fiForAddField(self, fieldInfo, otherInfo):
+		unit, ucd = fieldInfo.unit, fieldInfo ucd
+		if fabs(unit.getFactor(otherInfo)-1)>1e-4:
+			self.warnings.append("Additive operation with incompatible units,"
+				" assuming first unit")
+		if ucd!=otherInfo.ucd:
+			self.warnings.append("Additive operation with mixed ucds, assuming,"
+				" first ucd")
+		return FieldInfo(unit, ucd, fieldInfo.userData+otherInfo.userData)
+
+
+class FieldInfo(object):
+	"""is a container for meta information on columns.
+
+	It is constructed with a unit, a ucd and optionally userData.  UserData is
+	opaque to the library and is just collected on operations.
+	"""
+	def __init__(self, unit, ucd, userData=None):
+		self.ucd = ucd
+		if isinstance(userData, set):
+			self.userData = userData
+		elif userData==None:
+			self.userData = set()
+		else:
+			self.userData = set([userData])
+		if isinstance(unit, basestring):
+			self.unit = unitconf.parseUnit(unit)
+			self.unit.normalize()
+		else:
+			self.unit = unit
+	
 
 if __name__=="__main__":
 	import pprint

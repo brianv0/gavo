@@ -251,6 +251,7 @@ def getWCSTrafo(wcsFields):
 	"""
 	return getWCS(wcsFields).pix2wcs
 
+
 def getInvWCSTrafo(wcsFields):
 	"""returns a callable transforming physical to pixel coordinates.
 

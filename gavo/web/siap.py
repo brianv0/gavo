@@ -265,7 +265,8 @@ class SiapCutoutCore(standardcores.DbBasedCore):
 	def _fixRecord(self, record, centerAlpha, centerDelta, sizeAlpha, sizeDelta):
 		"""inserts estimates for WCS values into a cutout record.
 		"""
-		wcsFields = {"CUNIT1": "deg", "CUNIT2": "deg", "CTYPE1": "-----TAN",
+		wcsFields = coords.getWCS({
+			"CUNIT1": "deg", "CUNIT2": "deg", "CTYPE1": "-----TAN",
 			"CTYPE2": "-----TAN", 
 			"CRVAL1": record["wcs_refValues"][0],
 			"CRVAL2": record["wcs_refValues"][1],
@@ -276,7 +277,10 @@ class SiapCutoutCore(standardcores.DbBasedCore):
 			"CD2_1": record["wcs_cdmatrix"][2],
 			"CD2_2": record["wcs_cdmatrix"][3],
 			"LONPOLE": "180",
-		}
+			"NAXIS": record["nAxes"],
+			"NAXIS1": record["pixelSize"][0],
+			"NAXIS2": record["pixelSize"][1],
+		})
 		trafo = coords.getWCSTrafo(wcsFields)
 		invTrafo = coords.getInvWCSTrafo(wcsFields)
 		upperLeft = invTrafo(centerAlpha-sizeAlpha/2, centerDelta-sizeDelta/2)
