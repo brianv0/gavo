@@ -454,6 +454,14 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 			return url.URL.fromContext(ctx).click(root+
 				_vanityMap.resolve(segments[0])), ()
 
+		# Special URLs (favicon.ico, TODO: robots.txt)
+		if len(segments)==1 and segments[0]=="favicon.ico":
+			faviconPath = config.get("web", "favicon")
+			if faviconPath and faviconPath!="None" and os.path.exists(faviconPath):
+				return static.File(faviconPath), ()
+			else:
+				return None, ()
+
 		# base handling
 		name = segments[0]
 		if hasattr(self, "child_"+name):

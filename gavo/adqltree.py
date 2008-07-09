@@ -444,7 +444,7 @@ class FieldInfoEvaluator(object):
 		return fieldInfo
 	
 	def fiForAddField(self, fieldInfo, otherInfo):
-		unit, ucd = fieldInfo.unit, fieldInfo ucd
+		unit, ucd = fieldInfo.unit, fieldInfo.ucd
 		if fabs(unit.getFactor(otherInfo)-1)>1e-4:
 			self.warnings.append("Additive operation with incompatible units,"
 				" assuming first unit")

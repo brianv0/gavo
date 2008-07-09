@@ -6,9 +6,12 @@ Code dealing with product (i.e., fits file) delivery.
 
 import cStringIO
 import cgi
+import md5
 import os
 
 from mx import DateTime
+
+from twisted.internet import defer
 
 from nevow import inevow
 from nevow import static
@@ -44,6 +47,64 @@ errorPng = ('iVBORw0KGgoAAAANSUhEUgAAAQAAAAAUAgMAAAAfLAvMAAAADFBM'
 
 def isFree(item):
 	return DateTime.now()>item["embargo"]
+
+
+class PreviewCacheManager(object):
+	"""is a class that manages the preview cache.
+
+	It's really the class that manages it, so don't bother creating instances.
+
+	The idea is that you pass the arguments to the preview binary, and
+	the class generates a more-or-less unique file name from them.  It then
+	checks if that name exists in the cache dir.
+
+	If it exists, it is touched and the content is returned, if it doesn't
+	the preview is generated, stored under that file name, and again
+	the content is returned.
+
+	Any failures while writing the preview are ignored, so we should be
+	able to run cacheless.
+
+	Since we touch files before delivering them, you can clean up rarely
+	used previews by deleting all files in the preview cache older than,
+	say, a year.
+	"""
+	cachePath = config.get("web", "previewCache")
+	previewName = os.path.join(config.get("inputsDir"), "__system",
+		"bin", "fitspreview")
+
+	@classmethod
+	def getCacheName(cls, args):
+		return os.path.join(cls.cachePath, md5.new(str(args)).hexdigest())
+
+	@classmethod
+	def saveToCache(self, data, cacheName):
+		try:
+			f = open(cacheName, "w")
+			f.write(data)
+			f.close()
+		except IOError: # caching failed, don't care
+			pass
+		return data
+
+	@classmethod
+	def getPreviewFor(cls, args):
+		"""returns a deferred firing a string containing the preview (a jpeg,
+		in general).
+		"""
+		cacheName = cls.getCacheName(args)
+		if os.path.exists(cacheName):
+			try:
+				os.utime(cacheName, None)
+			except os.error: # may be a permission problem
+				pass    # not important enough to bother
+			f = open(cacheName)
+			res = f.read()
+			f.close()
+			return defer.succeed(res)
+		else:
+			return runner.runWithData(cls.previewName, "", args
+				).addCallback(cls.saveToCache, cacheName)
 
 
 class Product(standardcores.DbBasedCore):
@@ -154,14 +215,12 @@ class Product(standardcores.DbBasedCore):
 
 	def _deliverPreview(self, ctx, item):
 		targetPath = str(os.path.join(config.get("inputsDir"), item["accessPath"]))
-		previewName = os.path.join(config.get("inputsDir"), "__system",
-			"bin", "fitspreview")
 		args = [targetPath]
 		try:
 			args.append(str(int(ctx.arg("width", 200))))
 		except (KeyError, ValueError, IndexError):
 			pass
-		return runner.runWithData(previewName, "", args
+		return PreviewCacheManager.getPreviewFor(args
 			).addCallback(self._deliverJpeg, ctx
 			).addErrback(self._previewFailed, ctx)
 	

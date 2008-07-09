@@ -1,6 +1,5 @@
 """
-This module contains code to handle coordinate systems and transform
-between them.
+Code to handle coordinate systems and transform between them.
 """
 
 import math

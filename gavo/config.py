@@ -65,6 +65,10 @@ voplotUserman: ~/static/voplot/docs/VOPlot_UserGuide_1_4.html
 vanityNames=vanitynames.txt
 # Default timeout for db queries via the web
 sqlTimeout=15
+# directory to store cached previews in
+previewCache: %(webDir)s/previewcache
+# path to a favicon
+favicon: None
 
 [querulator]
 defaultMaxMatches: 1000
