@@ -381,6 +381,7 @@ class ColsInfo(object):
 			return self.columns[colRef.name]
 		return self._resolveNameInSubtables(colRef.name)
 
+
 class ColumnResolver(object):
 	"""is a container for collecting and gathering column information.
 

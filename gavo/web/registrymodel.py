@@ -366,7 +366,7 @@ class DC:
 
 	class language(DCElement): pass
 
-	class publisher(VOR.ResourceName): pass
+	class publisher(DCElement): pass
 
 	class relation(DCElement): pass
 
@@ -401,8 +401,6 @@ class VS:
 	
 	class accessURL(VSElement): pass
 	
-	class facility(VSElement): pass
-
 	class ParamHTTP(VOR.interface):
 		a_xsi_type = "vs:ParamHTTP"
 		a_xmlns_vs = VSNamespace
@@ -418,7 +416,7 @@ class VS:
 	
 	class dataType(VSElement):
 		a_arraysize = None
-	
+
 	class simpleDataType(VSElement):
 		name = "dataType"  # dataType with vs:SimpleDataType sounds so stupid
 			# that I must have misunderstood something.  Well, I just hack it and

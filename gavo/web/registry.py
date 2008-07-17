@@ -477,7 +477,7 @@ def getSiaCapabilitiesTree(service):
 				service.getMeta("sia.maxFileSize", default="2000000000"),
 			],
 			SIA.maxRecords[
-				service.getMeta("sia.maxRecords", default="200000000"),
+				service.getMeta("sia.maxRecords", default="100"),
 			]
 		]
 
@@ -805,7 +805,10 @@ if __name__=="__main__":
 	config.setDbProfile("querulator")
 	from gavo.parsing import importparser  # for registration of getRd
 	try:
-		tree = getPMHResponse({"verb": ["Identify"]})
+		tree = getPMHResponse({"verb": ["GetRecord"],
+			"identifier": ["ivo://org.gavo.dc/lswscans/res/positions/siap"],
+			"metadataPrefix": ["ivo_vor"],
+			})
 		print ElementTree.tostring(tree.getroot())
 	except Exception, msg:
 		getErrorTree(msg, {}).write(sys.stdout)

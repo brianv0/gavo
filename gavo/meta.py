@@ -117,19 +117,15 @@ class MetaMixin(object):
 
 	def _getMeta(self, atoms, propagate):
 		self.__ensureMetaDict()
-		try: # XXX TODO: Remove this, it's only for debugging
-			try:
-				return self._getFromAtom(atoms[0])._getMeta(atoms[1:])
-			except gavo.NoMetaKey:
-				pass   # Try if parent has the key
-			if propagate:
-				if self.__hasMetaParent():
-					return self.__metaParent._getMeta(atoms, propagate)
-				else:
-					return configMeta._getMeta(atoms, propagate=False)
-		except ReferenceError:
-			warnings.warn("Weakref'd parent of %s went away prematurely"%self)
-			return configMeta.getMeta(key)
+		try:
+			return self._getFromAtom(atoms[0])._getMeta(atoms[1:])
+		except gavo.NoMetaKey:
+			pass   # Try if parent has the key
+		if propagate:
+			if self.__hasMetaParent():
+				return self.__metaParent._getMeta(atoms, propagate)
+			else:
+				return configMeta._getMeta(atoms, propagate=False)
 		raise gavo.NoMetaKey("No meta item %s"%".".join(atoms))
 
 	def getMeta(self, key, propagate=True, raiseOnFail=False, default=None):
@@ -229,7 +225,7 @@ class MetaItem(object):
 		self.children[-1].addContent(item)
 
 	def addChild(self, metaValue=None, key=None):
-# XXX TODO: should we force metaValue to be "compatible" with what's 
+# XXX should we force metaValue to be "compatible" with what's 
 # already in children?
 		if metaValue==None:
 			metaValue = makeMetaValue(name=key)

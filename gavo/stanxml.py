@@ -37,7 +37,7 @@ class Element(object):
 	Don't access the children attribute directly.  I may want to add
 	data model checking later, and that would go into addChild.
 
-	When deriving form Elements, you may need attribute names that are not
+	When deriving from Elements, you may need attribute names that are not
 	python identifiers (e.g., with dashes in them).  In that case, define
 	an attribute <att>_name and point it to any string you want as the
 	attribute.
@@ -62,6 +62,7 @@ class Element(object):
 	a_id = None
 	namespace = ""
 	mayBeEmpty = False
+	stringifyContent = False
 	local = False
 
 	a_xsi_type = None
@@ -91,6 +92,8 @@ class Element(object):
 				self.addChild(c)
 		elif isinstance(child, _Autoconstructor):
 			self.children.append(child())
+		elif self.stringifyContent:
+			self.children.append(str(child))
 		else:
 			raise Error("%s element %s cannot be added to %s node"%(
 				type(child), repr(child), self.name))
@@ -132,7 +135,8 @@ class Element(object):
 		res = {}
 		for name in dir(self):
 			if name.startswith("a_") and getattr(self, name)!=None:
-				res[getattr(self, name[2:]+"_name", name[2:])] = getattr(self, name)
+				attName = getattr(self, name[2:]+"_name", name[2:])
+				res[attName] = getattr(self, name)
 		return res
 
 	def asETree(self, parent=None):

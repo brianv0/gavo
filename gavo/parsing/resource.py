@@ -414,11 +414,9 @@ class DataSet(meta.MetaMixin):
 	def exportToSql(self, schema):
 		if not self.getDescriptor().get_virtual():
 			for table in self.tables:
-				# plain DataTransformers don't have ignoredSources, so this method
-				# won't work for them
 				if self.dD.get_ignoredSources():
-					recordDef.set_create(False)
-					recordDef.set_owningCondition(None)
+					table.recordDef.set_create(False)
+					table.recordDef.set_owningCondition(None)
 				table.exportToSql(schema)
 		self.dD.runScripts("processTable")
 		self.dD.runScripts("postCreation")

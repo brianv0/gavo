@@ -294,7 +294,8 @@ class Settings(object):
 
 	def _handleMeta(self):
 		for key, value in self.rawVals.items("meta"):
-			addMeta(key, value)
+			if value.strip():
+				addMeta(key, value)
 
 	def _parse(self):
 		confParser =  ConfigParser.ConfigParser()
