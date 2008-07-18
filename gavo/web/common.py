@@ -270,10 +270,8 @@ class GavoRenderMixin(object):
 		try:
 			return T.div(class_="explodable")[
 				T.h4(class_="exploHead")[
-					title,
-					" ",
 					T.a(onclick="toggleCollapsedMeta(this)", 
-						class_="foldbutton")[">>"],
+						class_="foldbutton")[title+" >>"],
 				],
 				self._doRenderMeta(ctx, raiseOnFail=True)]
 		except gavo.MetaError:

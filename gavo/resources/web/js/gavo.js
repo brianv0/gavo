@@ -125,13 +125,17 @@ function makeBookmarkLink(form) {
 
 ///////////// Functions for the sidebar
 
+function markFold(title, markstr) {
+	return title.slice(0, title.length-2)+markstr;
+}
+
 function toggleCollapsedMeta(el) {
 	parentBox = el.parentNode.parentNode;
 	if (parentBox.style.width=='200px') {
-		el.childNodes[0].data = ">>";
+		el.childNodes[0].data = markFold(el.childNodes[0].data, ">>");
 		collapseMeta(parentBox);
 	} else {
-		el.childNodes[0].data = "<<";
+		el.childNodes[0].data = markFold(el.childNodes[0].data, "<<");
 		expandMeta(parentBox);
 	}
 }

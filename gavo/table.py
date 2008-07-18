@@ -309,11 +309,11 @@ class UniqueForcedTable(Table):
 	the same record as the one we have.  If it is, it is discarded,
 	if it is not, an error is raised.
 
-	For now, this only works for atomic primary keys.
 	"""
 	def __init__(self, *args, **kwargs):
 		Table.__init__(self, *args, **kwargs)
-		self.primaryName = self.recordDef.getPrimary().get_dest()
+		self.primaryNames = tuple([f.get_dest() 
+			for f in self.recordDef.getPrimaries()])
 		try:
 			self.resolveConflict = {
 				"check": self._ensureRecordIdentity,
@@ -323,6 +323,9 @@ class UniqueForcedTable(Table):
 		except KeyError, msg:
 			raise gavo.Error("Invalid conflict resolution strategy: %s"%str(msg))
 		self.primaryIndex = {}
+
+	def getKeyForRecord(self, rec):
+		return tuple([rec[n] for n in self.primaryNames])
 
 	def _ensureRecordIdentity(self, record, key):
 		"""raises an exception if record is not equivalent to the record stored
@@ -362,7 +365,7 @@ class UniqueForcedTable(Table):
 		return self.addData(record)
 
 	def addData(self, record):
-		key = record[self.primaryName]
+		key = self.getKeyForRecord(record)
 		if key in self.primaryIndex:
 			return self.resolveConflict(record, key)
 		else:

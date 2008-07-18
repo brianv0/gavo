@@ -21,6 +21,7 @@ from mx import DateTime
 import os
 import re
 import math
+import urlparse
 
 import gavo
 from gavo import logger
@@ -1006,6 +1007,34 @@ class FloatExpressionEvaluator(Macro):
 				" was not passed to macro."%(str(msg), self.expression))
 		record[self.destination] = eval(expr)
 
+
+class URLChopper(Macro):
+	"""is a macro that cuts off http://host from an URL, yielding something
+	site-relative.
+
+	Constructor Argument: 
+	
+	* destination -- name of the field the result should be stored in
+
+	Argument:
+
+	* val -- the value to process
+
+	>>> m = URLChopper([("val", "aU")], destination="aU")
+	>>> r = {"aU": "http://foo.bar/baz/quuz?par=7"}; m(None, r); r["aU"]
+	'/baz/quuz?par=7'
+	>>> r = {"aU": "/baz/quuz?par=7"}; m(None, r); r["aU"]
+	'/baz/quuz?par=7'
+	"""
+	name = "makeHostlessHTTP"
+
+	def __init__(self, argTuples=[], destination="res"):
+		self.destination = destination
+		Macro.__init__(self, argTuples)
+
+	def _compute(self, record, val):
+		record[self.destination] =  urlparse.urlunparse(
+			("", "")+urlparse.urlparse(val)[2:])
 
 
 def compileMacro(name, code):

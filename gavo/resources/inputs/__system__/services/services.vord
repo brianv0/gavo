@@ -24,13 +24,8 @@
 			<Field dest="accessURL" source="accessURL" dbtype="text"/>
 			<Field dest="owner" source="owner" dbtype="text"/>
 			<Field dest="renderer" source="renderer" dbtype="text"/>
-			<Field dest="type" source="type" dbtype="text"/>
-			<Field dest="sets" source="sets" dbtype="text" default="local"/>
-
-			<RowProcessor name="expandComma">
-				<arg name="srcField" value="sets"/>
-				<arg name="targetField" value="setName"/>
-			</RowProcessor>
+			<Field dest="setName" source="setName" dbtype="text" default="local"/>
+			<Field dest="subject" source="subject" dbtype="text"/>
 		</RowsetGrammar>
 
 		<Semantics id="servicestables">
@@ -43,7 +38,7 @@
 					tablehead="Internal relative id" displayHint="type=hidden"
 					primary="True"/>
 				<Field dest="sourceRd" source="sourceRd" dbtype="text"
-					tablehead="Source RD" optional="False"/>
+					tablehead="Source RD" optional="False" primary="True"/>
 				<Field dest="title" source="title" dbtype="text" optional="False"/>
 				<Field dest="description" source="description" dbtype="text"/>
 				<Field dest="owner" source="owner" dbtype="text"/>
@@ -69,14 +64,23 @@ we can do that based on the renderer, too -->
 				</Field>
 			</SharedRecord>
 
-			<SharedRecord table="srv_sets" id="setsRecord">
+			<SharedRecord table="srv_sets" id="setsRecord" forceUnique="True">
 				<owningCondition colName="sourceRd" value="@property,srcRdId"/>
-				<Field dest="shortName" source="shortName" dbtype="text"/>
-				<Field dest="setName" source="setName" dbtype="text"/>
+				<Field dest="shortName" source="shortName" dbtype="text" 
+					primary="True"/>
+				<Field dest="setName" source="setName" dbtype="text" primary="True"/>
 				<Field dest="sourceRd" source="sourceRd" dbtype="text"
 					tablehead="Source RD"/>
-				<Field dest="internalId" source="internalId" dbtype="text"/>
-				<Field dest="renderer" source="renderer" dbtype="text"/>
+				<Field dest="renderer" source="renderer" dbtype="text" primary="True"/>
+			</SharedRecord>
+			
+			<SharedRecord table="srv_subjs" id="subjRecord" forceUnique="True">
+				<owningCondition colName="sourceRd" value="@property,srcRdId"/>
+				<Field dest="shortName" source="shortName" dbtype="text" 
+					primary="True"/>
+				<Field dest="sourceRd" source="sourceRd" dbtype="text"
+					tablehead="Source RD"/>
+				<Field dest="subject" dbtype="text" source="subject" primary="True"/>
 			</SharedRecord>
 		</Semantics>
 	</Data>
@@ -128,6 +132,9 @@ we can do that based on the renderer, too -->
 				source="srv_interfaces.renderer"/>
 			<Field original="servicelist.srv_interfaces.type" dest="type"
 				source="srv_interfaces.type"/>
+			<Macro name="makeHostlessHTTP" destination="accessURL">
+				<arg name="val" source="accessURL"/>
+			</Macro>
 		</RowsetGrammar>
 
 		<Semantics>
@@ -166,6 +173,9 @@ we can do that based on the renderer, too -->
 			<Macro name="enterValue" destination="dateUpdated">
 				<arg name="value" value="@sourceDate"/>
 			</Macro>
+			<Macro name="enterValue" destination="renderer">
+				<arg name="value" value="NOTRENDERED"/>
+			</Macro>
 			<constraints fatal="True">
 				<constraint name="resType">
 					<condition type="keyPresent" name="resType"/>
@@ -174,7 +184,7 @@ we can do that based on the renderer, too -->
 					<condition type="keyPresent" name="subject"/>
 				</constraint>
 				<constraint name="description">
-					<condition type="keyPresent" name="subject"/>
+					<condition type="keyPresent" name="description"/>
 				</constraint>
 				<constraint name="referenceURL">
 					<condition type="keyPresent" name="referenceURL"/>
@@ -183,13 +193,14 @@ we can do that based on the renderer, too -->
 		</KeyValueGrammar>
 		<Semantics>
 			<SharedRecord original="srvRecord"/>
-			<!-- These guys usually don't have interfaces -->
+			<!-- These guys usually don't have interfaces, and we don't want
+			to know about their subjects yet. -->
 			<SharedRecord original="setsRecord"/>
 		</Semantics>
 	</Data>
 
 
-	<!-- a join of the three service-related tables -->
+	<!-- a join of services, interfaces, and sets tables - REPLACE WITH ADQL -->
 	<Data id="data_srv_join" virtual="True">
 		<NullGrammar/>
 		<Semantics>
@@ -213,6 +224,34 @@ we can do that based on the renderer, too -->
 				FROM services NATURAL JOIN srv_interfaces NATURAL JOIN
 					srv_sets)
 			@@@TABLERIGHTS("srv_join")@@@
+		</script>
+	</Data>
+
+	<!-- a join of locally defined services, by subject - REPLACE WITH ADQL -->
+	<Data id="subjs_join" virtual="True">
+		<NullGrammar/>
+		<Semantics>
+			<Record table="srv_join">
+				<Field original="servicelist.srv_subjs.subject"/>
+				<Field original="servicelist.services.shortName"/>
+				<Field original="servicelist.services.title"/>
+				<Field original="servicelist.services.owner"/>
+				<Field original="servicelist.srv_interfaces.accessURL"/>
+			</Record>
+		</Semantics>
+		<script type="postCreation" name="create joined view">
+			CREATE OR REPLACE VIEW srv_subjs_join AS (
+				SELECT subject, shortName, title, owner, accessurl
+				FROM 
+					(
+						SELECT accessurl, sourceRd, shortName, renderer 
+						FROM srv_interfaces 
+							JOIN srv_sets USING (shortName, renderer, sourcerd) 
+						WHERE setName='local') AS q 
+					NATURAL JOIN services 
+					NATURAL JOIN srv_subjs 
+				ORDER BY subject);
+			@@@TABLERIGHTS("srv_subjs_join")@@@
 		</script>
 	</Data>
 

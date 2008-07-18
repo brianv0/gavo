@@ -357,11 +357,8 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		sList.sort(lambda a,b: cmp(a["char"], b["char"]))
 		return sList
 
-	def render_serviceURL(self, ctx, data):
-		#XXX TODO: figure out how to get slots into attributes and scrap this.
-		parsed = urlparse.urlparse(data["accessURL"])
-		return ctx.tag(href=urlparse.urlunparse(("", "")+parsed[2:]))[
-			data["title"]]
+	def data_subjectServiceList(self, ctx, data):
+		return resourcecache.getSubjectsList(None)
 
 	def render_ifprotected(self, ctx, data):
 		if data["owner"]:

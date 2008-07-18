@@ -6,6 +6,7 @@ import grp
 import os
 import sys
 import traceback
+import urlparse
 
 import gavo
 from gavo import config
@@ -53,46 +54,61 @@ def ensureSufficientMeta(service):
 		raise MissingMeta("Missing meta keys", missingKeys)
 
 
-def makeRecord(publication, service):
-	"""returns a record suitable for importing into the service list for the
-	publication type of service.
+def makeBaseRecord(service):
+	"""returns a dictionary giving the metadata common to all publications
+	of a service.
 	"""
-	ensureSufficientMeta(service)
 	rec = {}
 	rec["shortName"] = str(service.getMeta("shortName", raiseOnFail=True))
 	rec["sourceRd"] = service.rd.sourceId
 	rec["internalId"] = service.get_id()
-	rec["title"] = (str(service.getMeta("title") or service.getMeta("_title"))
-		or rec["shortName"])
-	rec["description"] = str(service.getMeta("description") or service.getMeta(
-		"_description"))
-	rec["renderer"] = publication["render"]
-	rec["accessURL"] = service.getURL(publication["render"])
+	rec["title"] = unicode(service.getMeta("title")) or rec["shortName"]
+	rec["description"] = unicode(service.getMeta("description"
+		) or unicode(service.getMeta("_description")))
 	rec["owner"] = service.get_requiredGroup()
-	rec["type"] = publication.get("type", "web")
-	sets = set([s.strip() for s in publication.get("sets", "").split(",")])
-	if rec["type"]=="web":
-		sets.add("local")
-	elif rec["type"]=="vo":
-		sets.add("ivo_managed")
-	rec["sets"] = ",".join(sets)
 	return rec
+
+def iterSvcRecs(service):
+	"""iterates over a records suitable for importing into the service list 
+	for service.
+
+	It will yield record(s) for each "publication" (i.e., renderer) and
+	for each set therein.  It will then, together with the last publication,
+	records for all given subjects are yielded.
+
+	With the forceUnique hacks on the records defined in 
+	services.vord#servicetables, this fills every table as desired.  However,
+	the whole thing clearly shows we want something more fancy when data
+	models get a bit more complex.
+
+	WARNING: you'll get back the same dict every time.  You need to copy
+	it if you can't process is between to visits in the iterator.
+	"""
+	if not service.get_publications():
+		return  # don't worry about missing meta if there are not publications
+	ensureSufficientMeta(service)
+	rec = makeBaseRecord(service)
+	subjects = [str(item) for item in service.getMeta("subject")]
+	rec["subject"] = subjects.pop()
+	for pub in service.get_publications():
+		rec["renderer"] = pub["render"]
+		rec["accessURL"] = service.getURL(pub["render"])
+		sets = set([s.strip() for s in pub.get("sets", "").split(",")])
+		for setName in sets:
+			rec["setName"] = setName
+			yield rec
+	for subject in subjects:
+		rec["subject"] = subject
+		yield rec
 
 
 def getServiceRecsFromRd(rd):
 	"""returns all service records defined in the resource descriptor rd.
 	"""
-	res = []
 	for svcId in rd.itemsof_service():
 		svc = rd.get_service(svcId)
-		for pub in svc.get_publications():
-			try:
-				res.append(makeRecord(pub, svc))
-			except MissingMeta, err:
-				sys.stderr.write("%s in %s is missing the required meta field(s) %s."
-					"  Skipping.\n"%(svc.get_id(), svc.rd.sourceId, 
-					", ".join(err.fields)))
-	return res
+		for sr in iterSvcRecs(svc):
+			yield sr.copy()
 
 
 def updateServiceList(rd):
@@ -104,7 +120,7 @@ def updateServiceList(rd):
 	dd = serviceRd.getDataById("servicelist")
 	serviceRd.register_property("srcRdId", rd.sourceId)
 	inputData = sqlsupport.makeRowsetFromDicts(
-		getServiceRecsFromRd(rd), dd.get_Grammar().get_dbFields())
+		list(getServiceRecsFromRd(rd)), dd.get_Grammar().get_dbFields())
 	gavo.ui.silence = True
 	dataSet = resource.InternalDataSet(dd, tableMaker=parseswitch.createTable,
 		dataSource=inputData)
@@ -181,6 +197,29 @@ def queryServicesList(whereClause="", pars={}, source="services"):
 
 resourcecache.makeCache("getWebServiceList", 
 	lambda ignored: queryServicesList("srv_sets.setName='local'"))
+
+
+# XXX Replace using ADQL
+def querySubjectsList():
+	"""returns a list of local services chunked by subjects.
+	"""
+	data = sqlsupport.SimpleQuerier().runIsolatedQuery(
+		"select subject, title, owner, accessURL from"
+		" srv_subjs_join")
+	reg = {}
+	for subject, title, owner, accessURL in data:
+		reg.setdefault(subject, []).append(({"title": title, 
+			"owner": owner, "accessURL": accessURL}))
+	for svcs in reg.values():
+		svcs.sort(lambda a,b: cmp(a["title"], b["title"]))
+	res = [{"subject": subject, "chunk": svcs}
+		for subject, svcs in reg.iteritems()]
+	res.sort(lambda a,b: cmp(a["subject"], b["subject"]))
+	return res
+
+resourcecache.makeCache("getSubjectsList", 
+	lambda ignored: querySubjectsList())
+
 
 
 def getResourceForRec(rec):
@@ -278,7 +317,7 @@ def main():
 		try:
 			updateServiceList(
 				importparser.getRd(os.path.join(os.getcwd(), rdPath), 
-					forImport=True))
+					forImport=True, noQueries=True))
 		except Exception, msg:
 			print "Ignoring.  See the log for a traceback."
 			gavo.logger.error("Ignoring for service export: %s (%s)"%(

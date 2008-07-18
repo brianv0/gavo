@@ -292,3 +292,7 @@ hr.scoreBar {
 	margin-left: 0px;
 	text-align: left;
 }
+
+.srvDesc {
+	font-size: 72%;
+}

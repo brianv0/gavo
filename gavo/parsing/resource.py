@@ -145,13 +145,15 @@ class RecordDef(record.Record, meta.MetaMixin, scripting.ScriptingMixin):
 		if self.get_constraints():
 			self.get_constraints().check(record)
 
+	def getPrimaries(self):
+		return [field for field in self.get_items() if field.get_primary()]
+
 	def getPrimary(self):
-		for field in self.get_items():
-			if field.get_primary():
-				break
-		else:
-			raise Error("No primary field defined.")
-		return field
+		primaries = self.getPrimaries()
+		if len(primaries)!=1:
+			raise Error("getPrimary can only be used on tables with atomic"
+				" primary keys")
+		return primaries[0]
 
 	def getFieldIndex(self, fieldName):
 		"""returns the index of the field named fieldName.
