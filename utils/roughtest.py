@@ -519,6 +519,10 @@ myTests = [
 			"jun2603/q2237/mf260110.gz&siap=true&preview=True",
 			"JFIF",
 			"Preview looks like a JPEG"),
+		GetHasStringsTest(nv_root+"/maidanak/res/rawframes/siap/info",
+			["SIAP Query", "siap.xml", "form", "Other services",
+				"SIZE</td>", "Verb. Level"],
+			"Info page looks ok"),
 	),
 
 	TestGroup('ucds',

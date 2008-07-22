@@ -192,16 +192,22 @@ class Service(record.Record, meta.MetaMixin):
 			res.extend(cd.get_inputKeys())
 		return res
 
-	def addAutoOutputFields(self, srcTable, verbosity):
+	def getOutputFieldsByVerbosity(self, tableName, verbosity):
+		"""returns OutputFields for for all fields in tableName with 
+		a verbLevel<=verbosity.
+		"""
+		tableDef = self.rd.getTableDefByName(srcTable)
+		return [datadef.OutputField.fromDataField(f)
+			for f in self.tableDef.get_items()
+			if f.get_verbLevel()<=verbLimit]
+
+	def addAutoOutputFields(self, tableName, verbosity):
 		"""adds all fields matching verbLevel<=queryMeta["verbosity"].
 
 		This is used by the import parser.
 		"""
-		tableDef = self.rd.getTableDefByName(srcTable)
-		verbLimit = int(verbosity)
-		for f in self.tableDef.get_items():
-			if f.get_verbLevel()<=verbLimit:
-				self.addto_outputFields(datadef.OutputField.fromDataField(f))
+		for f in self.getOutputFieldsByVerbosity(tableName, int(verbosity)):
+			self.addto_outputFields(f)
 
 	def _getVOTableOutputFields(self, queryMeta):
 		"""returns a list of OutputFields suitable for a VOTable response described
@@ -213,7 +219,11 @@ class Service(record.Record, meta.MetaMixin):
 					f for f in self._getHTMLOutputFields(queryMeta)
 				if f.get_displayHint().get("noxml")!="true"])
 		else:
-			fieldList = record.DataFieldList([f for f in self.get_outputFields()
+			try:
+				baseFields = self.get_core().getOutputFields()
+			except AttributeError:
+				baseFields = self.get_outputFields()
+			fieldList = record.DataFieldList([f for f in baseFields
 				if f.get_verbLevel()<=verbLevel and 
 					f.get_displayHint().get("type")!="suppress" and
 					f.get_displayHint().get("noxml")!="true"])
@@ -362,6 +372,6 @@ class Service(record.Record, meta.MetaMixin):
 				return self.getMetaParent().getMeta("referenceURL", raiseOnFail=True)
 			except gavo.NoMetaKey:
 				return meta.MetaItem(
-					meta.makeMetaValue(self.getURL("form", method="POST"), 
-						type="link", title="Service Form"))
+					meta.makeMetaValue(self.getURL("info"),
+						type="link", title="Service info"))
 		raise KeyError(key)

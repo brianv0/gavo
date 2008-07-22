@@ -94,50 +94,10 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 	def __init__(self, ctx, service):
 		super(ServiceBasedRenderer, self).__init__(ctx, service.rd)
 		self.service = service
-		if not self.name in self.service.get_allowedRenderers():
+		if self.name and not self.name in self.service.get_allowedRenderers():
 # XXX TODO: Raise a forbidden here
 			raise UnknownURI("The renderer %s is not allowed on this service."%
 				self.name)
-
-
-class BlockRdRenderer(ServiceBasedRenderer):
-	"""is a renderer used for blocking RDs from the web interface.
-	"""
-	name = "form"
-
-	def data_blockstate(self, ctx, data):
-		if hasattr(self.rd, "currently_blocked"):
-			return "blocked"
-		return "unblocked"
-
-	def data_rdId(self, ctx, data):
-		return str(self.rd.sourceId)
-
-	def renderHTTP(self, ctx):
-		return creds.runAuthenticated(ctx, "admin", self.realRenderHTTP,
-			ctx)
-
-	def realRenderHTTP(self, ctx):
-		self.rd.currently_blocked = True
-		return ServiceBasedRenderer.renderHTTP(self, ctx)
-
-	defaultDocFactory = loaders.stan(
-		T.html[
-			T.head[
-				T.title["RD blocked"],
-			],
-			T.body[
-				T.h1["RD blocked"],
-				T.p["All services defined in ", 
-					T.invisible(render=T.directive("data"), data=T.directive(
-						"rdId")),
-					" are now ",
-					T.invisible(render=T.directive("data"), data=T.directive(
-						"blockstate")),
-					".  To unblock, restart the server.",
-				],
-			]
-		])
 
 
 class BaseResponse(ServiceBasedRenderer):

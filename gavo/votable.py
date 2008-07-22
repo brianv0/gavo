@@ -468,7 +468,8 @@ def writeVOTableFromTable(dataSet, table, destination,
 	metaInfo = {
 		"id": table.getName(),
 		"name": "%s.%s"%(dataSet.getId(), table.getName()),
-		"description": str(table.getRecordDef().getMeta("description", default="")),
+		"description": unicode(table.getRecordDef().getMeta(
+			"description", default="")),
 	}
 	writeSimpleTableColdesc(colDesc, table.getRowsAsTuples(), metaInfo, 
 		destination, tablecoding, mapperFactoryRegistry)
@@ -764,7 +765,7 @@ class VOTableMaker:
 		"""returns a Table node for the table.Table instance table.
 		"""
 		t = Table(name=table.getName(), coder=_tableEncoders[self.tablecoding],
-			description=str(table.getMeta("description", propagate=False, 
+			description=unicode(table.getMeta("description", propagate=False, 
 				default="")))
 		data = TableData(table, self.mFRegistry)
 		self._defineFields(t, data.getColProperties())
@@ -774,7 +775,7 @@ class VOTableMaker:
 	def _addResourceMeta(self, res, dataSet):
 		"""adds resource metadata to the Resource res.
 		"""
-		res.description = str(dataSet.getMeta("description", propagate=False,
+		res.description = unicode(dataSet.getMeta("description", propagate=False,
 			default=""))
 		self._addInfo("legal", dataSet.getMeta("_legal"), res)
 		for infoItem in dataSet.getMeta("info", default=[]):
@@ -800,7 +801,7 @@ class VOTableMaker:
 		"""add meta elements from the resource descriptor to vot.
 		"""
 		rd = dataSet.getDescriptor().getRd()
-		vot.description = str(rd.getMeta("description", default=""))
+		vot.description = unicode(rd.getMeta("description", default=""))
 		for id, equ, epoch, system in rd.get_systems():
 			vot.coosys.append(CooSys(ID=id, equinox=equ, epoch=epoch, system=system))
 		self._addInfo("legal", rd.getMeta("_legal"), vot)

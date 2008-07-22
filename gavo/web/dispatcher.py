@@ -42,6 +42,8 @@ from gavo import utils
 from gavo.parsing import importparser
 from gavo.web import common
 from gavo.web import creds
+from gavo.web import jpegrenderer
+from gavo.web import metarender
 from gavo.web import product
 from gavo.web import resourcebased
 # need servicelist to register its resourcecache
@@ -49,7 +51,6 @@ from gavo.web import servicelist
 # need scs to register its CondDescs
 from gavo.web import scs
 from gavo.web import soaprender
-from gavo.web import jpegrenderer
 from gavo.web import uploadservice
 from gavo.web import vodal
 
@@ -173,9 +174,9 @@ class ErrorPage(ErrorPageDebug):
 	implements(inevow.ICanHandleException)
 
 	def getHTML(self, failure):
-# XXX TODO: Alejandro's patch somehow doesn't expose TimeoutError, and
-# I don't have time to fix this now.  So, I check the exception type
-# the rough way.
+# XXX TODO: Alejandro's pgsql timeout patch somehow doesn't expose 
+# TimeoutError, and I don't have time to fix this now.  So, I check the 
+# exception type the rough way.
 		if failure.value.__class__.__name__.endswith("TimeoutError"):
 			return ("<html><head><title>Database Timeout</title></head>"
 			"<body><h1>Database Timeout</h1><p>The database operation"
@@ -320,8 +321,9 @@ renderClasses = {
 	"custom": resourcebased.Custom,
 	"static": resourcebased.Static,
 	"form": resourcebased.Form,
-	"block": resourcebased.BlockRdRenderer,
 	"text": resourcebased.TextRenderer,
+	"block": metarender.BlockRdRenderer,
+	"info": metarender.ServiceInfoRenderer,
 	"siap.xml": vodal.SiapRenderer,
 	"scs.xml": vodal.ScsRenderer,
 	"upload": uploadservice.Uploader,

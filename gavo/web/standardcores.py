@@ -204,7 +204,9 @@ class DbBasedCore(QueryingCore):
 	def getInputFields(self):
 		return self.tableDef.get_items()
 	
-	getOutputFields = getInputFields
+	def getOutputFields(self):
+		return record.DataFieldList([datadef.OutputField.fromDataField(f) 
+			for f in self.tableDef.get_items()])
 
 	def set_table(self, val):
 		self.dataStore["table"] = val

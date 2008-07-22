@@ -296,3 +296,24 @@ hr.scoreBar {
 .srvDesc {
 	font-size: 72%;
 }
+
+table.shorttable {
+	border-spacing: 0px;
+	border-collapse: collapse;
+	border-bottom: 1px solid grey;
+}
+
+.shorttable * th {
+	border: 1px solid grey;
+	padding-top:6px;
+	padding-bottom:6px;
+	padding-left: 4px;
+	padding-right: 4px;
+}
+
+.shorttable * td {
+	border-left: 1px solid grey;
+	border-right: 1px solid grey;
+	padding: 4px
+}
+	

@@ -12,6 +12,7 @@ from nevow import loaders
 from nevow import inevow
 from nevow import util as nevowutil
 
+import pkg_resources
 from twisted.python import failure
 from twisted.internet import defer
 
@@ -212,7 +213,9 @@ class GavoRenderMixin(object):
 
 	Rendering the sidebar (with a meta-carrying thing in data):
 
-	<body n:data="something meta carrying" n:render="withsidebar">
+	<body n:render="withsidebar">.  This will only work if the renderer
+	has a service attribute that's enough of a service (i.e., carries meta
+	and knows how to generate URLs).
 	"""
 	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False):
 		metaKey = ctx.tag.children[0]
@@ -237,7 +240,6 @@ class GavoRenderMixin(object):
 	def render_metahtml(self, ctx, data):
 		return self._doRenderMeta(ctx)
 		
-
 	def render_rootlink(self, ctx, data):
 		tag = ctx.tag
 		def munge(key):
@@ -289,8 +291,8 @@ class GavoRenderMixin(object):
 				],
 				T.a(href="#body", class_="invisible")["Skip Header"],
 				T.div(class_="sidebaritem")[
-					T.a(href="/builtin/help.shtml")[
-						"Help"],
+					T.p[T.a(href="/builtin/help.shtml")["Help"]],
+					T.p[T.a(href=self.service.getURL("info"))["Service info"]],
 				],
 				T.div(render=T.directive("ifdata"), class_="sidebaritem",
 					data=self.service.getMeta("_related"))[
@@ -433,22 +435,44 @@ class QueryMeta(dict):
 emptyQueryMeta = QueryMeta({})
 
 
+def loadSystemTemplate(path):
+	"""returns a nevow template for system pages from path.
+
+	path is interpreted as relative to gavo_root/web/templates (first)
+	and package internal (last).  If no template is found, None is
+	returned (this harmonizes with the fallback in CustomTemplateMixin).
+	"""
+	try:
+		userPath = os.path.join(config.get("rootDir"), "web/templates", path)
+		if os.path.exists(userPath):
+			return loaders.xmlfile(userPath)
+		else:
+			return loaders.xmlfile(pkg_resources.resource_filename('gavo',
+				"resources/templates/"+path))
+	except IOError:
+		pass
+
+
 class CustomTemplateMixin(object):
 	"""is a mixin providing for customized templates.
 
-	This works by making docFactory a property first checking if the instance has
-	a customTemplate attribute evaluating to true.  If it has, its content is
-	used as a resdir-relative path to a nevow XML template, if not, the
-	defaultDocFactory attribute of the instance is used.
+	This works by making docFactory a property first checking if
+	the instance has a customTemplate attribute evaluating to true.
+	If it has and it is referring to a string, its content is used
+	as an absolute path to a nevow XML template.  If it has and
+	it is not a string, it will be used as a template directly
+	(it's already "loaded"), else defaultDocFactory attribute of
+	the instance is used.
 	"""
 	customTemplate = None
 
 	def getDocFactory(self):
-		if self.customTemplate:
-			res = loaders.xmlfile(self.customTemplate)
+		if not self.customTemplate:
+			return self.defaultDocFactory
+		elif isinstance(self.customTemplate, basestring):
+			return loaders.xmlfile(self.customTemplate)
 		else:
-			res = self.defaultDocFactory
-		return res
+			return self.customTemplate
 	
 	docFactory = property(getDocFactory)
 

@@ -185,6 +185,19 @@ class DataField(record.Record):
 					raise gavo.ValidationError("%s too large (must be less than %s)"%(
 						value, vals.get_max()), self.get_dest())
 
+	def asInfoDict(self):
+		"""returns a dictionary of certain, "user-intersting" properties
+		of the data field, in a dict of strings.
+		"""
+		return {
+			"name": self.get_dest(), 
+			"description": self.get_description() or "N/A",
+			"tablehead": self.get_tablehead() or "N/A",
+			"unit": self.get_unit() or "N/A",
+			"ucd": self.get_ucd() or "N/A",
+			"verbLevel": self.get_verbLevel() or "N/A",
+		}
+	
 	@classmethod
 	def fromDataField(cls, dataField):
 		"""constructs a DataField from another DataField.

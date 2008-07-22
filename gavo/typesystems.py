@@ -142,6 +142,7 @@ class ToXSDConverter(FromSQLConverter):
 		"char": "string",
 		"date": "date",
 		"timestamp": "dateTime",
+		"raw": "string",
 	}
 
 	def mapComplex(self, type, length):
