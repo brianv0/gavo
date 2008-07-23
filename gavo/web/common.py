@@ -217,17 +217,20 @@ class GavoRenderMixin(object):
 	has a service attribute that's enough of a service (i.e., carries meta
 	and knows how to generate URLs).
 	"""
-	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False):
+	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False, 
+			metaCarrier=None):
+		if not metaCarrier:
+			metaCarrier = self.service
 		metaKey = ctx.tag.children[0]
 		try:
 			if plain:
 				ctx.tag.clear()
-				return ctx.tag[self.service.getMeta(metaKey, raiseOnFail=True
+				return ctx.tag[metaCarrier.getMeta(metaKey, raiseOnFail=True
 					).getContent("text")]
 			else:
 				_htmlMetaBuilder.clear()
 				ctx.tag.clear()
-				return ctx.tag[T.xml(self.service.buildRepr(metaKey, _htmlMetaBuilder,
+				return ctx.tag[T.xml(metaCarrier.buildRepr(metaKey, _htmlMetaBuilder,
 					raiseOnFail=True))]
 		except gavo.NoMetaKey:
 			if raiseOnFail:
@@ -251,6 +254,12 @@ class GavoRenderMixin(object):
 
 	def render_ifdata(self, ctx, data):
 		if data:
+			return ctx.tag
+		else:
+			return ""
+
+	def render_ifnodata(self, ctx, data):
+		if not data:
 			return ctx.tag
 		else:
 			return ""

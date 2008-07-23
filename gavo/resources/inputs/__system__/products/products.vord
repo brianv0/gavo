@@ -6,7 +6,7 @@
 		<NullGrammar/>
 
 		<Semantics>
-<!-- This has to match the definition in __common__/producttable.template 
+<!-- This has to match the definition interfaces.py
 and the ProductValueCollector macro in macros.py.
 
 It is somewhat unfortunate that this definition is reflected in so many

@@ -709,6 +709,7 @@ class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin):
 				"property": record.DictField,
 				"virtual": record.BooleanField,  # virtual data is never written
 				                                 # to the DB.
+				"adql": record.BooleanField,  # adql allowed on my tables?
 				"scripts": record.ListField,
 				"ignoredSources": (), # a set or sequence of input-relative paths 
 					# that should not be processed; if nonempty, implies update on db.

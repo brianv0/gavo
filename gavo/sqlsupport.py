@@ -153,9 +153,9 @@ class FieldError(gavo.Error):
 
 # This is the name of the (global) table containing units, ucds, descriptions,
 # etc for all table rows of user tables
-# XXX TODO: Do we still want this?  If yes, do a real table definition
-# through a resource descriptor
+# XXX TODO: Make a resource descriptor for these
 metaTableName = "fielddescriptions"
+tableSourceName = "dc_tables"
 
 
 class Error(Exception):
@@ -639,6 +639,7 @@ class MetaTableHandler:
 	in the database.  Its definition is given in datadef.metaTableFields.
 	"""
 	def __init__(self, querier=None):
+#XXX TODO: passing in a querier and then commiting it is crap.
 		if querier==None:
 			self.querier = SimpleQuerier()
 		else:
@@ -651,7 +652,20 @@ class MetaTableHandler:
 		if self.querier.tableExists(metaTableName):
 			return
 		self.writer.createTable()
-	
+
+	def updateSourceTable(self, tableName, rdId, dataId, adqlAllowed):
+# XXX TODO: use data descriptor from dc_tables to do this
+		if tableName=="public.dc_tables":
+			return # Whoops -- we'd need to be in the parent transaction
+		querier = SimpleQuerier()
+		querier.query("DELETE FROM dc_tables WHERE tableName=%(tableName)s",
+			locals())
+		querier.query("INSERT INTO dc_tables (tableName, sourceRd,"
+			" dataId, adql) VALUES (%(tableName)s, %(rdId)s, %(dataId)s,"
+			" %(adqlAllowed)s)", {"tableName": tableName, "rdId": rdId,
+				"dataId": dataId, "adqlAllowed": adqlAllowed})
+		querier.commit()
+
 	def defineColumns(self, tableName, columnDescriptions):
 		self.querier.query(
 			"DELETE FROM %s WHERE tableName=%%(tableName)s"%metaTableName,

@@ -139,6 +139,7 @@ class RdParser(nodebuilder.NodeBuilder):
 		dd.set_source(attrs.get("source"))
 		dd.set_sourcePat(attrs.get("sourcePat"))
 		dd.set_computer(attrs.get("computer"))
+		dd.set_adql(attrs.get("adql", "False"))
 		dd.set_encoding(attrs.get("encoding", None))
 		dd.set_id(attrs.get("id"))
 		dd.set_virtual(attrs.get("virtual", "False"))

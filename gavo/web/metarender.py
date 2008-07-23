@@ -12,10 +12,16 @@ from nevow import tags as T, entities as E
 
 from zope.interface import implements
 
+import gavo
+from gavo import resourcecache
+from gavo import sqlsupport
 from gavo.parsing import contextgrammar
 from gavo.web import common
 from gavo.web import resourcebased
 
+
+class Error(gavo.Error):
+	pass
 
 
 class BlockRdRenderer(resourcebased.ServiceBasedRenderer):
@@ -141,22 +147,7 @@ class RendExplainer(object):
 			cls._explainEverything)(service)
 
 
-class ServiceInfoRenderer(resourcebased.ServiceBasedRenderer):
-	"""is a renderer that shows information about a service.
-	"""
-	name = None  # allow on all services
-	
-	customTemplate = common.loadSystemTemplate("serviceinfo.html")
-
-	def render_title(self, ctx, data):
-		return ctx.tag["Information on Service '%s'"%unicode(
-			self.service.getMeta("title"))]
-
-	defaultColNames = "name,tablehead,description,unit,ucd"
-	defaultHeading = T.tr[
-		T.th["Name"], T.th["Table Head"], T.th["Description"],
-		T.th["Unit"], T.th["UCD"]]
-
+class MetaRenderMixin(object):
 	def render_tableOfFields(self, ctx, data):
 		"""renders a list of dicts in data as a table.
 
@@ -171,6 +162,36 @@ class ServiceInfoRenderer(resourcebased.ServiceBasedRenderer):
 			header(pattern="header"),
 			T.tr(pattern="item", render=T.directive("mapping"))[
 				[T.td[T.slot(name=name)] for name in colNames]]]
+
+	def data_otherServices(self, ctx, data):
+		"""returns a list of dicts describing other services provided by the
+		service's RD.
+		"""
+		res = []
+		for svcId in self.service.rd.itemsof_service():
+			svc = self.service.rd.get_service(svcId)
+			if svc is not self.service:
+				res.append({"infoURL": svc.getURL("info"),
+					"title": unicode(svc.getMeta("title"))})
+		return res
+	
+
+class ServiceInfoRenderer(resourcebased.ServiceBasedRenderer,
+		MetaRenderMixin):
+	"""is a renderer that shows information about a service.
+	"""
+	name = None  # allow on all services
+	
+	customTemplate = common.loadSystemTemplate("serviceinfo.html")
+
+	def render_title(self, ctx, data):
+		return ctx.tag["Information on Service '%s'"%unicode(
+			self.service.getMeta("title"))]
+
+	defaultColNames = "name,tablehead,description,unit,ucd"
+	defaultHeading = T.tr[
+		T.th["Name"], T.th["Table Head"], T.th["Description"],
+		T.th["Unit"], T.th["UCD"]]
 			
 	def data_inputFields(self, ctx, data):
 		grammar = self.service.get_inputFilter().get_Grammar()
@@ -198,17 +219,9 @@ class ServiceInfoRenderer(resourcebased.ServiceBasedRenderer):
 				"rendExpl": RendExplainer.explain(rend, self.service)}
 			for rend in self.service.get_allowedRenderers()]
 
-	def data_otherServices(self, ctx, data):
-		"""returns a list of dicts describing other services provided by the
-		service's RD.
-		"""
-		res = []
-		for svcId in self.service.rd.itemsof_service():
-			svc = self.service.rd.get_service(svcId)
-			if svc is not self.service:
-				res.append({"infoURL": svc.getURL("info"),
-					"title": unicode(svc.getMeta("title"))})
-		return res
+	def data_publications(self, ctx, data):
+		res = [p for p in self.service.get_publications() if p["sets"]]
+		return sorted(res, key=lambda v: v["render"])
 
 	defaultDocFactory = common.doctypedStan(
 		T.html[
@@ -217,3 +230,61 @@ class ServiceInfoRenderer(resourcebased.ServiceBasedRenderer):
 			T.body[
 				T.p["Infos are only available with a serviceinfo.html template"]]
 		])
+
+
+def basename(tableName):
+	if "." in tableName:
+		return tableName.split(".")[-1]
+	else:
+		return tableName
+
+
+class TableInfoRenderer(resourcebased.ServiceBasedRenderer,
+		MetaRenderMixin):
+	name = "tableinfo"
+	customTemplate = common.loadSystemTemplate("tableinfo.html")
+
+	defaultColNames = "name,tablehead,description,unit,ucd"
+	defaultHeading = T.tr[
+		T.th["Name"], T.th["Table Head"], T.th["Description"],
+		T.th["Unit"], T.th["UCD"]]
+
+	def __init__(self, ctx, service):
+		resourcebased.ServiceBasedRenderer.__init__(self, ctx, service)
+		self.tableName = inevow.IRequest(ctx).args["tableName"][0]
+		self._fillTableInfo()
+	
+	def _fillTableInfo(self):
+		q = sqlsupport.SimpleQuerier()
+		c = q.query("SELECT sourceRd, dataId, adql FROM dc_tables WHERE"
+			" tableName=%(tableName)s", {"tableName": self.tableName})
+		res = c.fetchall()
+		if len(res)!=1:
+			raise Error("%s is no accessible table in the data center"%self.tableName)
+		rdId, dataId, adql = res[0]
+		self.rd = resourcecache.getRd(rdId)
+		self.dd = self.rd.getDataById(dataId)
+		self.table = self.rd.getTableDefByName(basename(self.tableName))
+
+	def data_forADQL(self, ctx, data):
+		return self.dd.get_adql()
+
+	def data_fields(self, ctx, data):
+		res = [f.asInfoDict() for f in self.table.get_items()]
+		res.sort(lambda a,b: cmp(a["name"], b["name"]))
+		return res
+
+	def render_title(self, ctx, data):
+		return ctx.tag["Table information for '%s'"%self.tableName]
+	
+	def render_tablemeta(self, ctx, data):
+		return self._doRenderMeta(ctx, metaCarrier=self.table)
+
+	defaultDocFactory = common.doctypedStan(
+		T.html[
+			T.head[
+				T.title["Missing Template"]],
+			T.body[
+				T.p["Infos are only available with a tableinfo.html template"]]
+		])
+

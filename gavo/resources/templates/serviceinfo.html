@@ -20,9 +20,29 @@
 			on this service include:</p>
 		<ul n:data="rendAvail" n:render="sequence">
 			<li n:render="mapping" n:pattern="item">
-				<strong><n:slot name="rendName"/></strong> --
+				<em><n:slot name="rendName"/></em> --
 					<n:slot name="rendExpl"/></li>
 		</ul>
+
+		<div id="publications" n:data="publications">
+			<p n:render="ifnodata"><strong style="background-color: #FF9988">This service is not published.</strong>
+				This can mean that it was deemed too unimportant, for internal
+				use only, or is just a helper for a published service. 
+				Equally likely, however,
+				it is under development, abandoned in development or otherwise
+				unfinished.  Exercise caution.</p>
+			<n:invisible n:render="ifdata">
+				<p>This service is <strong>published</strong> as follows 
+					(a <em>local</em> in sets
+					means it is listed on our front page, an <em>ivo_managed</em> means
+					it has a record in the VO registry):</p>
+				<ul n:render="sequence">
+					<li n:render="mapping" n:pattern="item">Within the
+						set(s) <em><n:slot name="sets"/></em> with the renderer
+						<em><n:slot name="render"/></em></li>
+				</ul>
+			</n:invisible>
+		</div>
 
 		<div id="siblings" n:render="ifdata" n:data="otherServices">
 			<p><strong>Other services</strong> provided on the underlying data

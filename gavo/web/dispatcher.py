@@ -323,7 +323,6 @@ renderClasses = {
 	"form": resourcebased.Form,
 	"text": resourcebased.TextRenderer,
 	"block": metarender.BlockRdRenderer,
-	"info": metarender.ServiceInfoRenderer,
 	"siap.xml": vodal.SiapRenderer,
 	"scs.xml": vodal.ScsRenderer,
 	"upload": uploadservice.Uploader,
@@ -331,6 +330,8 @@ renderClasses = {
 	"img.jpeg": jpegrenderer.JpegRenderer,
 	"mimg.jpeg": jpegrenderer.MachineJpegRenderer,
 	"soap": soaprender.SoapRenderer,
+	"info": metarender.ServiceInfoRenderer,
+	"tableinfo": metarender.TableInfoRenderer,
 }
 
 

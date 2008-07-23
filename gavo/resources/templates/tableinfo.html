@@ -1,0 +1,31 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+	 "http://www.w3.org/TR/html4/loose.dtd">
+<html xmlns:n="http://nevow.com/ns/nevow/0.1">
+  <head>
+    <title n:render="title"/>
+		<n:invisible n:render="commonhead"/>
+  </head>
+	<body n:render="withsidebar">
+		<h1 n:render="title"/>
+		<h2>General</h2>
+		<p>This table is <strong n:render="ifnodata" n:data="forADQL">not</strong>
+			available for <strong>ADQL</strong> queries.</p>
+		<h2>Fields</h2>
+		<table n:render="tableOfFields" n:data="fields"/>
+
+		<h2>Further information</h2>
+		<div id="siblings" n:render="ifdata" n:data="otherServices">
+			<p>The following services <em>may</em> use the data contained in this
+				table:</p>
+			<ul n:render="sequence">
+				<li n:render="mapping" n:pattern="item">
+					<a><n:attr name="href"><n:slot name="infoURL"/></n:attr>
+						<n:slot name="title"/></a>
+				</li>
+			</ul>
+		</div>
+		<p><strong>Copyright and such:</strong> 
+			<n:invisible n:render="tablemeta">copyright</n:invisible></p>
+	</body>
+</html>
+

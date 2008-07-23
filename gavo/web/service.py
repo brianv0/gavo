@@ -180,6 +180,13 @@ class Service(record.Record, meta.MetaMixin):
 			"fieldNameTranslations": None,
 		}, initvals)
 
+	def addto_publications(self, pubDict):
+		if not "render" in pubDict:
+			pubDict["render"] = "form"
+		if not "sets" in pubDict:
+			pubDict["sets"] = ""
+		self.dataStore["publications"].append(pubDict)
+
 	def set_core(self, core):
 		self.dataStore["core"] = core
 		core.set_service(self)
@@ -221,7 +228,7 @@ class Service(record.Record, meta.MetaMixin):
 		else:
 			try:
 				baseFields = self.get_core().getOutputFields()
-			except AttributeError:
+			except KeyError:
 				baseFields = self.get_outputFields()
 			fieldList = record.DataFieldList([f for f in baseFields
 				if f.get_verbLevel()<=verbLevel and 

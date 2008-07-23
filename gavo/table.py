@@ -195,7 +195,6 @@ class Table(RecordBasedTable):
 	def _exportToMetaTable(self, schema=None):
 		"""writes the column definitions to the sqlsupport-defined meta table.
 		"""
-		gavo.ui.displayMessage("Writing column info to meta table.")
 		if schema:
 			tableName = "%s.%s"%(schema, self.recordDef.get_table())
 		else:
@@ -203,6 +202,10 @@ class Table(RecordBasedTable):
 		metaHandler = sqlsupport.MetaTableHandler()
 		metaHandler.defineColumns(tableName,
 			[field.getMetaRow() for field in self.getFieldDefs()])
+		if self.dataSet:
+			dd = self.dataSet.dD
+			metaHandler.updateSourceTable(tableName=tableName,
+				rdId=dd.rD.sourceId, dataId=dd.get_id(), adqlAllowed=dd.get_adql())
 
 	def _feedData(self, feed):
 		"""writes the rows through the sqlsupport feeder feed.

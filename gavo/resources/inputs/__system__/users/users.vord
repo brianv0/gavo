@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ResourceDescriptor srcdir="__system__/users">
+<ResourceDescriptor srcdir="__system">
 	<schema>users</schema>
 	<Data id="nothing">
 		<NullGrammar/>
