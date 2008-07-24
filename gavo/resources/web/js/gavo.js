@@ -11,10 +11,9 @@ function decodeGetPars(queryString) {
 		var key = 'arg'+unescape(pair[0]).replace("+", " ");
     var value = unescape(pair[1]).replace("+", " ");
 		if (pars[key]==undefined) {
-	    pars[key] = new Array(value);
-		} else {
-			pars[key].push(value);
+	    pars[key] = new Array();
 		}
+		pars[key].push(value);
   }
 	return pars;
 }
@@ -333,9 +332,6 @@ function output_init() {
 	if (!document.getElementById("genForm-_OUTPUT")) { // no form on page
 		return;
 	}
-//	if (outputInited) {
-//		return;
-//	}
 	output_bussedElements.push(output_verbSelector(pars));
 	output_bussedElements.push(output_tdEncSelector(pars));
 	output_bussedElements.push(output_itemSelector(pars));

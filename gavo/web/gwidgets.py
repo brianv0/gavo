@@ -72,7 +72,7 @@ class OutputFormat(object):
 		if not hasattr(core, "tableDef"):
 			return
 		defaultNames = set([f.get_dest() 
-			for f in self.service.getCurOutputFields(queryMeta)])
+			for f in self.service.getHTMLOutputFields(queryMeta, ignoreAdditionals=True)])
 		for key in core.avOutputKeys-defaultNames:
 			self.availableFields.append(core.tableDef.getFieldByName(key))
 

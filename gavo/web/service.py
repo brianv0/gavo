@@ -223,7 +223,7 @@ class Service(record.Record, meta.MetaMixin):
 		verbLevel = queryMeta.get("verbosity", 20)
 		if verbLevel=="HTML":
 			fieldList = record.DataFieldList([
-					f for f in self._getHTMLOutputFields(queryMeta)
+					f for f in self.getHTMLOutputFields(queryMeta)
 				if f.get_displayHint().get("noxml")!="true"])
 		else:
 			try:
@@ -236,13 +236,13 @@ class Service(record.Record, meta.MetaMixin):
 					f.get_displayHint().get("noxml")!="true"])
 		return fieldList
 
-	def _getHTMLOutputFields(self, queryMeta):
+	def getHTMLOutputFields(self, queryMeta, ignoreAdditionals=False):
 		"""returns a list of OutputFields suitable for an HTML response described
 		by queryMeta
 		"""
 		res = record.DataFieldList([f for f in self.get_outputFields()
 			if f.get_displayHint().get("type")!="suppress"])
-		if queryMeta["additionalFields"]:
+		if not ignoreAdditionals and queryMeta["additionalFields"]:
 			cofs = self.get_core().getOutputFields()
 			try:
 				for fieldName in queryMeta["additionalFields"]:
@@ -272,7 +272,7 @@ class Service(record.Record, meta.MetaMixin):
 			return self.get_output(outputFilter).getPrimaryRecordDef().get_items()
 		format = queryMeta.get("format", "HTML")
 		if format=="HTML":
-			return self._getHTMLOutputFields(queryMeta)
+			return self.getHTMLOutputFields(queryMeta)
 		else:
 			return self._getVOTableOutputFields(queryMeta)
 

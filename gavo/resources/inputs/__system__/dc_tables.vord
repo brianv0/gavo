@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- meta tables containing field descriptions of all fields of data center
+tables and the RDs the tables come from.
+
+XXX TODO: more fielddescriptions in here, too -->
+
+<ResourceDescriptor srcdir="__system">
+	<schema>public</schema>
+	<meta name="description">Column description and related metadata for
+		the tables within the data holdings.
+		This is primarily for use with ADQL queries.</meta>
+
+	<Data id="tablesVsRDs">
+		<NullGrammar/>
+		<Semantics>
+			<SharedRecord table="dc_tables">
+				<Field dest="tableName" description="Fully qualified table name"
+					dbtype="text" source="tableName"/>
+				<Field dest="sourceRd" dbtype="text" source="sourceRd"
+					description="Id of the resource descriptor containing the table's definition"/>
+				<Field dest="dataId" dbtype="text" source="dataId"
+					description="Id of the data section that houses this table"/>
+				<Field dest="adql" dbtype="boolean" source="adql"
+					description="True if this table may be accessed using ADQL"/>
+			</SharedRecord>
+		</Semantics>
+	</Data>
+
+	<Service id="tables">
+		<meta name="shortName">dc_tables</meta>
+		<meta name="title">Table Infos</meta>
+		<publish render="tableinfo"/>
+		<allow renderers="tableinfo"/>
+	</Service>
+</ResourceDescriptor>
+
