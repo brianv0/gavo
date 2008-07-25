@@ -396,15 +396,25 @@ class InfoItem(MetaValue):
 		self.infoId = infoId
 
 
+class LogoMeta(MetaValue):
+	"""is a MetaItem corresponding to a small image
+	"""
+	def _getContentAsHTML(self):
+		return '<img class="metalogo" src="%s" height="16"/>'%(
+				unicode(self.content))
+
+
 _metaTypeRegistry = {
 	"link": MetaURL,
 	"info": InfoItem,
+	"logo": LogoMeta,
 }
 
 _typesForKeys = {
 	"_related": "link",
 	"referenceURL": "link",
 	"info": "info",
+	"logo": "logo",
 }
 
 def makeMetaValue(value="", **kwargs):

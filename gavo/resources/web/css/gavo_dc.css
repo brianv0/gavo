@@ -261,6 +261,7 @@ h4.exploHead {
 	margin: 0px;
 	padding: 0px;
 	background: none;
+	cursor: pointer;
 }
 
 .sidebaritem h3 {

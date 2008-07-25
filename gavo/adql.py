@@ -452,5 +452,5 @@ if __name__=="__main__":
 	import pprint, sys
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
-	res = grammar.parseString("select * from (select * from z) as q, a")
+	res = grammar.parseString("select a from z")
 	pprint.pprint(res.asList(), stream=sys.stderr)

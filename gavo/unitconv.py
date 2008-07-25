@@ -163,6 +163,9 @@ class Expression(object):
 			prefix = "%g "%self.globalFactor
 		return prefix+" ".join([str(u) for u in self.units])
 
+	def __repr__(self):
+		return repr(self.__str__())
+
 	def _addTokens(self, toks):
 		curOperator = "."
 		for tok in toks:
