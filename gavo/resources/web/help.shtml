@@ -4,7 +4,7 @@
 <head>
 <title>GAVO Data Center -- Interface Documentation</title>
 <link rel="stylesheet" type="text/css"
-	href="__site_path__/static/css/gavo_dc.css"/>
+	href="__site_path__/builtin/css/gavo_dc.css"/>
 </head>
 <body>
 <h1>The GAVO Data Center</h1>
@@ -23,7 +23,7 @@ web-based services.</p>
 
 <h2>Service discovery</h2>
 
-<p>The <a href="http://vo.uni-hd.de">index page</a> lists published 
+<p>The <a href="/" n:render="rootlink">index page</a> lists published 
 services available through web browsers.  A "[P]" in the service 
 listing means that the service is password protected, either because it is
 too rough for public consumption or because the data providers want
@@ -35,8 +35,7 @@ about access.</p>
 provides services accessible through IVOA standard protocols like SIAP (for
 images) and SCS (supporting cone searches).  These can be located through 
 a <a href="http://nvo.stsci.edu/voregistry/index.aspx">Virtual Observatory registry</a> or 
-<a href="http://www.g-vo.org/www/External/Tools">common VO tools</a>.
-As of March 2008, we do not yet feed our records into the VO registry.</p>
+<a href="http://www.g-vo.org/www/External/Tools">common VO tools</a>.</p>
 
 <h2>Search forms</h2>
 
@@ -74,14 +73,14 @@ This is because your query may match large amounts of data, and even if only
 
 <p>On the other hand, results overflowing the match limit are not reproducible
 without a sort option, i.e., you may get a different set of, say, 100 items for
-identical query parameters two different times.  The services
+identical query parameters at two different times.  The services
 warn you about this fact when they return truncated results.</p>
 
-<p>In cases in which the default match limits do not suit you, you can override
-the match limit by editing the result link (see below).  You want to substitute
-your value into _DBOPTIONS_LIMIT=100.  The system has has hardcoded match limit
-that you cannot override in this way, but it is unlikely that it will hurt
-you.</p>
+<p>In cases in which the match limits provided by the form do not suit you, you
+can override the match limit by editing the result link (see below).  You want
+to substitute your value into _DBOPTIONS_LIMIT=100.  The system has has
+hardcoded match limit that you cannot override in this way, but it is unlikely
+that it will hurt you.</p>
 
 <p>You can usually select an output format.  
 <a name="outformats">Options here include</a></p>
@@ -165,6 +164,14 @@ for download.  Meanwhile, contact the administrators for SVN access.</p>
 
 <p>Some of the services use q3c indexing by Sergey Koposov and Oleg Bartunov,
 see <a href="http://lnfm1.sai.msu.ru/~math/docs/adass_proceedings2005.pdf">2006ASPC..351..735K</a>.</p>
+
+<h2>Privacy</h2>
+
+<p>As put down in our <a href="/static/doc/privpol.shtml">privacy policy</a>,
+we try to respect your privacy and store as little data as possible.  If you
+want us to by default delete all log entries, bring the funding agencies and
+others to sense.  Access data is no measure for usefulness.  But who's
+even reading this?</p>
 
 </body>
 </html>

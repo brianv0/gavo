@@ -282,6 +282,11 @@ div.copyright {
 	margin-top: 5px;
 }
 
+div.intro {
+	margin-bottom: 15px;
+	max-width: 400px;
+}
+
 textarea { /* fix silly nevow formal css */
   width: auto !important;
   height: auto !important;

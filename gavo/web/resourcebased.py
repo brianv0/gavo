@@ -650,7 +650,8 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 				],
 				T.h2[T.a(name="_queryForm")["Query Form"]],
 			],
-			T.div(id="intro", render=T.directive("metahtml"))["_intro"],
+			T.div(id="intro", render=T.directive("metahtml"), class_="intro")[
+				"_intro"],
 			T.invisible(render=T.directive("form genForm")),
 			T.div(id="bottominfo", render=T.directive("metahtml"))["_bottominfo"],
 			T.div(class_="copyright", render=T.directive("metahtml"))["_copyright"],

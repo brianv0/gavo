@@ -7,7 +7,9 @@ import unittest
 import testhelpers
 
 from gavo import adql
+from gavo import adqlglue
 from gavo import adqltree
+from gavo import datadef
 
 class Error(Exception):
 	pass
@@ -238,8 +240,8 @@ class TreeParseTest(testhelpers.VerboseTest):
 	def testSelectList(self):
 		for q, e in [
 			("select a from z", ["a"]),
-			("select x.a from z", ["x.a"]),
-			("select x.a, b from z", ["x.a", "b"]),
+			("select x.a from z", ["a"]),
+			("select x.a, b from z", ["a", "b"]),
 			('select "one weird name", b from z', ['"one weird name"', "b"]),
 		]:
 			res = self.grammar.parseString(q)[0].getSelectList()
@@ -266,9 +268,127 @@ class TreeParseTest(testhelpers.VerboseTest):
 			self.assertEqual(res, e, 
 				"Source tables from %s: expected %s, got %s"%(q, e, res))
 
+	def testAliasedColumn(self):
+		q = "select foo+2 as fp2 from x"
+		res = self.grammar.parseString(q)[0]
+		field = res.getSelectFields()[0]
+		self.assertEqual(field.name, "fp2")
+	
+	def testTainting(self):
+		for q, (exName, exTaint) in [
+			("select x from z", ("x", False)),
+			("select x as u from z", ("u", False)),
+			("select x+2 from z", (None, True)),
+			('select x+2 as "99 Monkeys" from z', ('"99 Monkeys"', True)),
+		]:
+			res = self.grammar.parseString(q)[0].getSelectFields()[0]
+			self.assertEqual(res.tainted, exTaint, "Field taintedness wrong in %s"%
+				q)
+			if exName:
+				self.assertEqual(res.name, exName)
+
+
+spatialFields = dict([(f.get_dest(), f) for f in [
+	datadef.DataField(dest="distance", ucd="phys.distance", unit="m"),
+	datadef.DataField(dest="width", ucd="phys.dim", unit="m"),
+	datadef.DataField(dest="height", ucd="phys.dim", unit="km")]])
+miscFields = dict([(f.get_dest(), f) for f in [
+	datadef.DataField(dest="mass", ucd="phys.mass", unit="kg"),
+	datadef.DataField(dest="mag", ucd="phot.mag", unit="mag"),
+	datadef.DataField(dest="speed", ucd="phys.veloc", unit="km/s")]])
+
+
+class NodeTest(testhelpers.VerboseTest):
+	"""tests for the ADQLNode class.
+	"""
+	def setUp(self):
+		class FooNode(adqltree.ADQLNode):
+			type = "foo"
+		class BarNode(adqltree.ADQLNode):
+			type = "bar"
+		self.FooNode, self.BarNode = FooNode, BarNode
+
+	def testGetChildrenOk(self):
+		fooNode = self.FooNode([])
+		tree = self.FooNode([
+			self.BarNode([]),
+			fooNode,
+			"textContent",
+			self.BarNode([])])
+		self.assertEqual(tree.getChildOfType("foo"), fooNode)
+		self.assertEqual(tree.getChildrenOfType("foo"), [fooNode])
+		self.assertEqual(len(tree.getChildrenOfType("bar")), 2)
+		self.assertEqual(len(tree.getChildrenOfType("foo")), 1)
+		self.assertEqual(len(tree.getChildrenOfType("baz")), 0)
+		self.assertEqual(len(tree.getChildrenOfType(str)), 1)
+		self.assertRaises(adqltree.NoChild, tree.getChildOfType, "baz")
+		self.assertRaises(adqltree.MoreThanOneChild, tree.getChildOfType, "bar")
+	
+	def testGetFlattenedChildren(self):
+		tree = self.FooNode([
+			self.FooNode([
+				self.FooNode([]),
+				self.BarNode(["needle"])]),
+			self.BarNode([])])
+		self.assertEqual(tree.getFlattenedChildren()[0].children[0], "needle")
+		tree = self.FooNode([
+			self.FooNode([
+				self.FooNode([]),
+				self.BarNode(["needle"])]),
+			self.BarNode([
+				self.FooNode(["scissors"]),
+				self.BarNode([
+					self.FooNode(["thread"])])])])
+		res = tree.getFlattenedChildren()
+		self.assertEqual(res[0].type, "bar")
+		self.assertEqual(res[1].children[0], "scissors")
+		self.assertEqual(res[2].children[0], "thread")
+		tree = self.FooNode([
+			"direct",
+			self.BarNode([
+				self.FooNode(["indirect"])])])
+		res = tree.getFlattenedChildren()
+		self.assertEqual(res[0], "direct")
+		self.assertEqual(res[1].type, "foo")
+
+		
+class SimpleColTest(testhelpers.VerboseTest):
+	"""tests for simple resolution of output columns.
+	"""
+	def setUp(self):
+		def fieldInfoGetter(tableName):
+			if tableName=='spatial':
+				return dict([(fieldName, 
+						adqlglue.makeFieldInfo(spatialFields[fieldName]))
+					for fieldName in spatialFields])
+			elif tableName=='misc':
+				return  dict([(fieldName, 
+						adqlglue.makeFieldInfo(miscFields[fieldName]))
+					for fieldName in spatialFields])
+		self.fieldInfoGetter = fieldInfoGetter
+		self.grammar = adqltree.getADQLGrammar()
+	
+	def testSimpleSelect(self):
+		tree = self.grammar.parseString("select width, height from spatial")[0]
+		adqltree.makeFieldInfo(tree, self.fieldInfoGetter)
+		cols = tree.fieldInfos.seq
+		self.assertEqual(cols[0][0], 'width')
+		self.assertEqual(cols[1][0], 'height')
+		wInfo = cols[0][1]
+		self.assertEqual(wInfo.unit, "m")
+		self.assertEqual(wInfo.ucd, "phys.dim")
+		self.assert_(wInfo.userData is spatialFields["width"])
+
+	def testSimpleScalarExpression(self):
+		tree = self.grammar.parseString("select 2+width, 2*height from spatial")[0]
+		adqltree.makeFieldInfo(tree, self.fieldInfoGetter)
+		cols = tree.fieldInfos.seq
+		# XXXXXXXXX Test on these cols. print ">>>>>", cols
 
 def singleTest():
-	suite = unittest.makeSuite(TreeParseTest, "testSourceTables")
+	suite = unittest.makeSuite(SimpleColTest, "testSimpleSc")
+#	suite = unittest.makeSuite(NodeTest, "testGetFl")
+#	suite = unittest.makeSuite(TreeParseTest, "test")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 

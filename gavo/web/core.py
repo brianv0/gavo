@@ -53,6 +53,8 @@ class Core(record.Record):
 		"""
 		defer.succeed("Core without run")
 
+	def getOutputFields(self):
+		return []
 
 _coresRegistry = {}
 

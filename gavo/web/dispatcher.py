@@ -210,6 +210,8 @@ class ErrorPage(ErrorPageDebug):
 def _replaceConfigStrings(srcPath, registry):
 	src = open(srcPath).read()
 	src = src.replace("__site_path__", config.get("web", "nevowRoot"))
+	src = src.replace("__site_url__", os.path.join(
+		config.get("web", "serverURL")+config.get("web", "nevowRoot")))
 	return src
 
 
