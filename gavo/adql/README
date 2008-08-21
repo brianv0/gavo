@@ -1,0 +1,4 @@
+An ADQL metadata inference and query morphing libaray.
+
+Let's try and keep this as free from dependencies to the rest of the GAVO 
+infrastructure as possible.

@@ -12,7 +12,7 @@ import sys
 import traceback
 import weakref
 
-from gavo import adql
+import grammar
 from gavo import unitconv
 
 
@@ -579,7 +579,7 @@ def getADQLGrammar():
 	global _grammarCache
 	if _grammarCache:
 		return _grammarCache
-	syms, root = adql.getADQLGrammarCopy()
+	syms, root = grammar.getADQLGrammarCopy()
 
 	def bind(symName, nodeClass):
 		try:

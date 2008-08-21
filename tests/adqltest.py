@@ -8,8 +8,8 @@ import testhelpers
 
 from gavo import adql
 from gavo import adqlglue
-from gavo import adqltree
 from gavo import datadef
+from gavo.adql import tree
 
 class Error(Exception):
 	pass
@@ -25,7 +25,7 @@ class NakedParseTest(testhelpers.VerboseTest):
 		for stmt in correctStatements:
 			try:
 				self.grammar.parseString(stmt)
-			except adql.ParseException:
+			except grammar.ParseException:
 				raise AssertionError("%s doesn't parse but should."%stmt)
 			except RuntimeError:
 				raise Error("%s causes an infinite recursion"%stmt)
@@ -235,7 +235,7 @@ class TreeParseTest(testhelpers.VerboseTest):
 	"""tests for parsing into ADQL trees.
 	"""
 	def setUp(self):
-		self.grammar = adqltree.getADQLGrammar()
+		self.grammar = adql.getMetaGrammar()
 	
 	def testSelectList(self):
 		for q, e in [
@@ -302,9 +302,9 @@ class NodeTest(testhelpers.VerboseTest):
 	"""tests for the ADQLNode class.
 	"""
 	def setUp(self):
-		class FooNode(adqltree.ADQLNode):
+		class FooNode(tree.ADQLNode):
 			type = "foo"
-		class BarNode(adqltree.ADQLNode):
+		class BarNode(tree.ADQLNode):
 			type = "bar"
 		self.FooNode, self.BarNode = FooNode, BarNode
 
@@ -321,8 +321,8 @@ class NodeTest(testhelpers.VerboseTest):
 		self.assertEqual(len(tree.getChildrenOfType("foo")), 1)
 		self.assertEqual(len(tree.getChildrenOfType("baz")), 0)
 		self.assertEqual(len(tree.getChildrenOfType(str)), 1)
-		self.assertRaises(adqltree.NoChild, tree.getChildOfType, "baz")
-		self.assertRaises(adqltree.MoreThanOneChild, tree.getChildOfType, "bar")
+		self.assertRaises(adql.NoChild, tree.getChildOfType, "baz")
+		self.assertRaises(adql.MoreThanOneChild, tree.getChildOfType, "bar")
 	
 	def testGetFlattenedChildren(self):
 		tree = self.FooNode([
@@ -366,12 +366,12 @@ class SimpleColTest(testhelpers.VerboseTest):
 						adqlglue.makeFieldInfo(miscFields[fieldName]))
 					for fieldName in spatialFields])
 		self.fieldInfoGetter = fieldInfoGetter
-		self.grammar = adqltree.getADQLGrammar()
+		self.grammar = adql.getMetaGrammar()
 	
 	def testSimpleSelect(self):
-		tree = self.grammar.parseString("select width, height from spatial")[0]
-		adqltree.makeFieldInfo(tree, self.fieldInfoGetter)
-		cols = tree.fieldInfos.seq
+		t = self.grammar.parseString("select width, height from spatial")[0]
+		tree.makeFieldInfo(t, self.fieldInfoGetter)
+		cols = t.fieldInfos.seq
 		self.assertEqual(cols[0][0], 'width')
 		self.assertEqual(cols[1][0], 'height')
 		wInfo = cols[0][1]
@@ -380,9 +380,9 @@ class SimpleColTest(testhelpers.VerboseTest):
 		self.assert_(wInfo.userData is spatialFields["width"])
 
 	def testSimpleScalarExpression(self):
-		tree = self.grammar.parseString("select 2+width, 2*height from spatial")[0]
-		adqltree.makeFieldInfo(tree, self.fieldInfoGetter)
-		cols = tree.fieldInfos.seq
+		t = self.grammar.parseString("select 2+width, 2*height from spatial")[0]
+		tree.makeFieldInfo(t, self.fieldInfoGetter)
+		cols = t.fieldInfos.seq
 		# XXXXXXXXX Test on these cols. print ">>>>>", cols
 
 def singleTest():
