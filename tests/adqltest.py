@@ -4,28 +4,80 @@ Tests for ADQL parsing and resoning about query results.
 
 import unittest
 
-import testhelpers
+import pyparsing
 
+import testhelpers
 from gavo import adql
 from gavo import adqlglue
 from gavo import datadef
 from gavo.adql import tree
+from gavo.adql import nodes
 
 class Error(Exception):
 	pass
+
+
+class SymbolsParseTest(testhelpers.VerboseTest):
+	"""tests for plain parsing on individual productions.
+	"""
+	def setUp(self):
+		self.symbols, _ = adql.getRawGrammar()
+
+	def _assertParses(self, symbol, literal):
+		try:
+			(self.symbols[symbol]+pyparsing.StringEnd()).parseString(literal)
+		except adql.ParseException:
+			raise AssertionError("%s doesn't parse %s but should."%(symbol,
+				repr(literal)))
+
+	def _assertDoesntParse(self, symbol, literal):
+		try:
+			(self.symbols[symbol]+pyparsing.StringEnd()).parseString(literal)
+		except adql.ParseException:
+			pass
+		else:
+			raise AssertionError("%s parses %s but shouldn't."%(symbol,
+				repr(literal)))
+
+	def testGeometries(self):
+		self._assertParses("point", "pOint('ICRS', x,y)")
+		self._assertParses("circle", "circle('ICRS', x,y, r)")
+		self._assertParses("circle", "CIRCLE('ICRS', 1,2, 4)")
+		self._assertParses("geometryExpression", "CIRCLE('ICRS', 1,2, 4)")
+		self._assertParses("regionFunction", "Contains(pOint('ICRS', x,y),"
+			"CIRCLE('ICRS', 1,2, 4))")
+
+	def testBadGeometries(self):
+		self._assertDoesntParse("point", "POINT(x,y)")
+		self._assertDoesntParse("circle", "circle('ICRS', x,y)")
+		self._assertDoesntParse("geometryExpression", "circle('ICRS', x,y)")
+
+	def testStringExprs(self):
+		self._assertParses("stringValueExpression", "'abc'")
+		self._assertParses("stringValueExpression", "'abc' || 'def'")
+		self._assertParses("stringValueExpression", "'abc' || 'def' || '78%%'")
+
+	def testComparisons(self):
+		self._assertParses("comparisonPredicate", "a<b")
+		self._assertParses("comparisonPredicate", "'a'<'b'")
+		self._assertParses("comparisonPredicate", "'a'<'b' || 'foo'")
+		self._assertParses("comparisonPredicate", "5+9<'b' || 'foo'")
+
+	def testConditions(self):
+		self._assertParses("searchCondition", "5+9<'b' || 'foo'")
 
 
 class NakedParseTest(testhelpers.VerboseTest):
 	"""tests for plain parsing (without tree building).
 	"""
 	def setUp(self):
-		_, self.grammar = adql.getADQLGrammar()
+		_, self.grammar = adql.getRawGrammar()
 
 	def _assertParse(self, correctStatements):
 		for stmt in correctStatements:
 			try:
 				self.grammar.parseString(stmt)
-			except grammar.ParseException:
+			except adql.ParseException:
 				raise AssertionError("%s doesn't parse but should."%stmt)
 			except RuntimeError:
 				raise Error("%s causes an infinite recursion"%stmt)
@@ -235,7 +287,7 @@ class TreeParseTest(testhelpers.VerboseTest):
 	"""tests for parsing into ADQL trees.
 	"""
 	def setUp(self):
-		self.grammar = adql.getMetaGrammar()
+		self.grammar = adql.getGrammar()
 	
 	def testSelectList(self):
 		for q, e in [
@@ -287,24 +339,44 @@ class TreeParseTest(testhelpers.VerboseTest):
 			if exName:
 				self.assertEqual(res.name, exName)
 
+	def testValueExpressionColl(self):
+		t = adql.parseToTree("select x from z where 5+9>'gaga'||'bla'")
+		chs = t.find("comparisonPredicate").children
+		self.assertEqual(len(chs), 3)
+		self.assertEqual(chs[0].type, "numericValueExpression")
+		self.assertEqual(chs[1], ">")
+		self.assertEqual(chs[2].type, "valueExpression")
+
 
 spatialFields = dict([(f.get_dest(), f) for f in [
 	datadef.DataField(dest="distance", ucd="phys.distance", unit="m"),
 	datadef.DataField(dest="width", ucd="phys.dim", unit="m"),
-	datadef.DataField(dest="height", ucd="phys.dim", unit="km")]])
+	datadef.DataField(dest="height", ucd="phys.dim", unit="km"),
+	datadef.DataField(dest="ra1", ucd="pos.eq.ra;meta.main", unit="deg"),
+	datadef.DataField(dest="ra2", ucd="pos.eq.ra", unit="rad"),]])
 miscFields = dict([(f.get_dest(), f) for f in [
 	datadef.DataField(dest="mass", ucd="phys.mass", unit="kg"),
 	datadef.DataField(dest="mag", ucd="phot.mag", unit="mag"),
 	datadef.DataField(dest="speed", ucd="phys.veloc", unit="km/s")]])
+
+def _sampleFieldInfoGetter(tableName):
+	if tableName=='spatial':
+		return dict([(fieldName, 
+				adqlglue.makeFieldInfo(spatialFields[fieldName]))
+			for fieldName in spatialFields])
+	elif tableName=='misc':
+		return  dict([(fieldName, 
+				adqlglue.makeFieldInfo(miscFields[fieldName]))
+			for fieldName in miscFields])
 
 
 class NodeTest(testhelpers.VerboseTest):
 	"""tests for the ADQLNode class.
 	"""
 	def setUp(self):
-		class FooNode(tree.ADQLNode):
+		class FooNode(nodes.ADQLNode):
 			type = "foo"
-		class BarNode(tree.ADQLNode):
+		class BarNode(nodes.ADQLNode):
 			type = "bar"
 		self.FooNode, self.BarNode = FooNode, BarNode
 
@@ -352,47 +424,162 @@ class NodeTest(testhelpers.VerboseTest):
 		self.assertEqual(res[1].type, "foo")
 
 		
-class SimpleColTest(testhelpers.VerboseTest):
-	"""tests for simple resolution of output columns.
+class ColResTest(testhelpers.VerboseTest):
+	"""tests for resolution of output columns from various expressions.
 	"""
 	def setUp(self):
-		def fieldInfoGetter(tableName):
-			if tableName=='spatial':
-				return dict([(fieldName, 
-						adqlglue.makeFieldInfo(spatialFields[fieldName]))
-					for fieldName in spatialFields])
-			elif tableName=='misc':
-				return  dict([(fieldName, 
-						adqlglue.makeFieldInfo(miscFields[fieldName]))
-					for fieldName in spatialFields])
-		self.fieldInfoGetter = fieldInfoGetter
-		self.grammar = adql.getMetaGrammar()
-	
+		self.fieldInfoGetter = _sampleFieldInfoGetter
+		self.grammar = adql.getGrammar()
+
+	def _getColSeq(self, query):
+		t = self.grammar.parseString(query)[0]
+		adql.addFieldInfos(t, self.fieldInfoGetter)
+		return t.fieldInfos.seq
+
+	def _assertColumns(self, resultColumns, assertProperties):
+		self.assertEqual(len(resultColumns), len(assertProperties))
+		for index, ((name, col), (unit, ucd, taint)) in enumerate(zip(
+				resultColumns, assertProperties)):
+			if unit is not None:
+				self.assertEqual(col.unit, unit, "Unit %d: %s != %s"%
+					(index, col.unit, unit))
+			if ucd is not None:
+				self.assertEqual(col.ucd, ucd, "UCD %d: %s != %s"%
+					(index, col.ucd, ucd))
+			if taint is not None:
+				self.assertEqual(col.tainted, taint, "Taint %d: should be %s"%
+					(index, taint))
+
 	def testSimpleSelect(self):
-		t = self.grammar.parseString("select width, height from spatial")[0]
-		tree.makeFieldInfo(t, self.fieldInfoGetter)
-		cols = t.fieldInfos.seq
+		cols = self._getColSeq("select width, height from spatial")
 		self.assertEqual(cols[0][0], 'width')
 		self.assertEqual(cols[1][0], 'height')
 		wInfo = cols[0][1]
 		self.assertEqual(wInfo.unit, "m")
 		self.assertEqual(wInfo.ucd, "phys.dim")
-		self.assert_(wInfo.userData is spatialFields["width"])
+		self.assert_(wInfo.userData[0] is spatialFields["width"])
+
+	def testDimlessSelect(self):
+		cols = self._getColSeq("select 3+4 from spatial")
+		self.assert_(cols[0][0], adql.dimlessFieldInfo)
 
 	def testSimpleScalarExpression(self):
-		t = self.grammar.parseString("select 2+width, 2*height from spatial")[0]
-		tree.makeFieldInfo(t, self.fieldInfoGetter)
-		cols = t.fieldInfos.seq
-		# XXXXXXXXX Test on these cols. print ">>>>>", cols
+		cols = self._getColSeq("select 2+width, 2*height, height*2"
+			" from spatial")
+		self._assertColumns(cols, [
+			("", "", True),
+			("km", "phys.dim", True),
+			("km", "phys.dim", True),])
+		self.assert_(cols[1][1].userData[0] is spatialFields["height"])
+
+	def testFieldOperandExpression(self):
+		cols = self._getColSeq("select width*height, width/speed, "
+			"3*mag*height, mag+height, height+height from spatial, misc")
+		self._assertColumns(cols, [
+			("m*km", "", False),
+			("m/(km/s)", "", False),
+			("mag*km", "", True),
+			("", "", True),
+			("km", "phys.dim", False)])
+
+	def testMiscOperands(self):
+		cols = self._getColSeq("select -3*mag from misc")
+		self._assertColumns(cols, [
+			("mag", "phot.mag", True)])
+
+	def testSetFunctions(self):
+		cols = self._getColSeq("select AVG(mag), mAx(mag), max(2*mag),"
+			" Min(Mag), sum(mag), count(mag), avg(3), count(*) from misc")
+		self._assertColumns(cols, [
+			("mag", "stat.mean;phot.mag", False),
+			("mag", "stat.max;phot.mag", False),
+			("mag", "stat.max;phot.mag", True),
+			("mag", "stat.min;phot.mag", False),
+			("mag", "phot.mag", False),
+			("", "meta.number;phot.mag", False),
+			("", "", False),
+			("", "meta.number", False)])
+
+	def testNumericFunctions(self):
+		cols = self._getColSeq("select acos(ra2), degrees(ra2), RadianS(ra1),"
+			" PI(), ABS(width), Ceiling(Width), Truncate(height*2)"
+			" from spatial")
+		self._assertColumns(cols, [
+			("rad", "", False),
+			("deg", "pos.eq.ra", False),
+			("rad", "pos.eq.ra;meta.main", False),
+			("", "", False),
+			("m", "phys.dim", False),
+			("m", "phys.dim", False),
+			("km", "phys.dim", True)])
+
+	def testParenExprs(self):
+		cols = self._getColSeq("select (width+width)*height from spatial")
+		self._assertColumns(cols, [
+			("m*km", "", False)])
+
+	def testErrorReporting(self):
+		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
+			"select gnurks from spatial")
+
+
+class FunctionNodeTest(unittest.TestCase):
+	"""tests for nodes.FunctionMixin and friends.
+	"""
+	def setUp(self):
+		self.grammar = adql.getGrammar()
+	
+	def testPlainArgparse(self):
+		t = self.grammar.parseString("select POINT('ICRS', width,height)"
+			" from spatial")[0]
+		p = t.find("point")
+		self.assertEqual(p.cooSys, "'ICRS'")
+		self.assertEqual(p.x, "width")
+		self.assertEqual(p.y, "height")
+
+	def testExprArgparse(self):
+		t = self.grammar.parseString("select POINT('ICRS', "
+			"5*width+height*LOG(width),height)"
+			" from spatial")[0]
+		p = t.find("point")
+		self.assertEqual(p.cooSys, "'ICRS'")
+		self.assertEqual(p.x, "5 * width + height * LOG ( width )")
+		self.assertEqual(p.y, "height")
+
+
+class Q3CMorphTest(unittest.TestCase):
+	"""tests the Q3C morphing of queries.
+	"""
+	def setUp(self):
+		self.grammar = adql.getGrammar()
+
+	def testCircle(self):
+		t = adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
+			" where contains(point('ICRS', alphaFloat, deltaFloat), "
+				" circle('ICRS', 23, 24, 0.2))=1")
+		adql.insertQ3Calls(t)
+		self.assertEqual(adql.flatten(t),
+			"SELECT alphafloat , deltafloat FROM ppmx . data WHERE"
+				"  q3c_radial_query(alphafloat, deltafloat, 23, 24, 0.2)")
+		t = adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
+			" where 1=contains(point('ICRS', alphaFloat, deltaFloat),"
+				" circle('ICRS', 23, 24, 0.2))")
+		adql.insertQ3Calls(t)
+		self.assertEqual(adql.flatten(t),
+			"SELECT alphafloat , deltafloat FROM ppmx . data WHERE"
+				"  q3c_radial_query(alphafloat, deltafloat, 23, 24, 0.2)")
 
 def singleTest():
-	suite = unittest.makeSuite(SimpleColTest, "testSimpleSc")
-#	suite = unittest.makeSuite(NodeTest, "testGetFl")
-#	suite = unittest.makeSuite(TreeParseTest, "test")
+	suite = unittest.makeSuite(Q3CMorphTest, "test")
+#	suite = unittest.makeSuite(ColResTest, "testFieldOper")
+#	suite = unittest.makeSuite(SymbolsParseTest, "test")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 
 
 if __name__=="__main__":
-	unittest.main()
-#	singleTest()
+	import sys
+	if len(sys.argv)>1:
+		singleTest()
+	else:
+		unittest.main()
