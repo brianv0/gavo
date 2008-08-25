@@ -2,3 +2,8 @@ An ADQL metadata inference and query morphing libaray.
 
 Let's try and keep this as free from dependencies to the rest of the GAVO 
 infrastructure as possible.
+
+As a rule, I've tried to keep as much in plain strings as possible to
+avoid having gargantuous trees when we're really only interested in
+rather few "hot spots".  Of course, the downside is that tree processing
+becomes a bit tedious in places.

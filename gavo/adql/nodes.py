@@ -1,0 +1,733 @@
+"""
+Node classes and factories used in ADQL tree processing.
+"""
+
+import sys
+import traceback
+import weakref
+
+from gavo.adql.common import *
+
+
+################ Various helpers
+
+class Absent(object):
+	"""is a sentinel to pass as default to getChildOfType.
+	"""
+
+
+def symbolAction(*symbols):
+	"""is a decorator to mark functions as being a parseAction for symbol.
+
+	This is evaluated by getADQLGrammar below.  Be careful not to alter
+	global state in such a handler.
+	"""
+	def deco(func):
+		for symbol in symbols:
+			if hasattr(func, "parseActionFor"):
+				func.parseActionFor.append(symbol)
+			else:
+				func.parseActionFor = [symbol]
+		return func
+	return deco
+
+
+def getType(arg):
+	"""returns the type of an ADQL node or the value of str if arg is a string.
+	"""
+	if isinstance(arg, basestring):
+		return str
+	else:
+		return arg.type
+
+
+def flatten(arg):
+	"""returns the SQL serialized representation of arg.
+	"""
+	if isinstance(arg, basestring):
+		return arg
+	else:
+		return arg.flatten()
+
+
+def getUniqueMatch(matches, colName):
+		if len(matches)==1:
+			return matches[0]
+		elif not matches:
+			raise ColumnNotFound(colName)
+		else:
+			raise AmbiguousColumn(colName)
+
+
+######################### Generic Node definitions
+
+@symbolAction("regularIdentifier")
+def normalizeRIdentifier(toks):
+	"""returns toks[0] in lowercase.
+	"""
+	assert len(toks)==1
+	return toks[0].lower()
+
+
+class ADQLNode(object):
+	"""is a node within an ADQL parse tree.
+
+	All ADQLNodes have type and children attributes.  All elements of
+	children are either strings or ADQL nodes.
+
+	ADQLNodes have a method flatten that return a string representation of
+	the SQL fragment below them.
+
+	Derived classes can override the _processChildren method to do any
+	local analysis of self.children at construction time.  If they need to
+	call _processChildren of a superclass, the *must* use 
+	_processChildrenNext(cls) to do so.
+	"""
+	type = None
+
+	def __init__(self, children):
+		self.children = children
+		try:
+			self._processChildren()
+		except: # This is a bug in the node constructors and must not
+						# happen in production code.
+			sys.stderr.write("Panic: exception in processChildren of %s."
+				"  Parse will be hosed."%self.__class__.__name__)
+			traceback.print_exc()
+
+	def __iter__(self):
+		return iter(self.children)
+
+	def __repr__(self):
+		return "<%s, %s>"%(self.type, self.children)
+
+	def iterNodes(self):
+		"""iterates over all children, ignoring string children.
+		"""
+		for c in self:
+			if isinstance(c, ADQLNode):
+				yield c
+
+	def _processChildrenNext(self, cls):
+		try:
+			pc = super(cls, self)._processChildren
+		except AttributeError:
+			pass
+		else:
+			pc()
+
+	def _processChildren(self):
+		self._processChildrenNext(ADQLNode)
+
+	def getChildrenOfType(self, type):
+		return [c for c in self if getType(c)==type]
+	
+	def getChildOfType(self, type, default=None):
+		res = self.getChildrenOfType(type)
+		if len(res)==0:
+			if default is not None: 
+				return default
+			raise NoChild(type)
+		if len(res)!=1:
+			raise MoreThanOneChild(type)
+		return res[0]
+
+	def flatten(self):
+		"""returns a string representation of the text content of the tree.
+		"""
+		return " ".join([flatten(c) for c in self])
+
+	def getFlattenedChildren(self):
+		"""returns a list of all preterminal children of all children of self.
+
+		A child is preterminal if it has string content.
+		"""
+		fl = [c for c in self.children if isinstance(c, basestring)]
+		def recurse(node):
+			for c in node.children:
+				if isinstance(c, ADQLNode):
+					if c.isPreterminal():
+						fl.append(c)
+					recurse(c)
+		recurse(self)
+		return fl
+
+	def isPreterminal(self):
+		return bool(self.getChildrenOfType(str))
+
+	def asTree(self):
+		return tuple(isinstance(c, ADQLNode) and c.asTree() or c
+			for c in self)
+	
+	def find(self, type):
+		"""returns the leftmost node of type t below self.
+
+		The function returns None if no such node exists.
+
+		Actually, each node is tested first, so "leftmost" should be something
+		like "top-leftmost" or so, but you'll usually get what you expect.
+		"""
+		for c in self.iterNodes():
+			if c.type==type:
+				return c
+			res = c.find(type)
+			if res is not None:
+				return res
+			
+
+class FunctionMixin(object):
+	"""is a mixin that makes an ADQL node parse out arguments and a
+	function name.
+
+	It can only be mixed into ADQLNodes or derived classes.
+
+	The arguments have to be put into nodes at least so far that no
+	literal parens and commas are left in the children.
+
+	What you get is an attribute name and and an attribute args containing
+	strings flattened from the arguments.
+	"""
+	def _parseFuncArgs(self):
+		toDo = self.children[:]
+		self.args, newArg = [], []
+		# before the opening paren: the name
+		self.funName = toDo.pop(0)
+		assert toDo.pop(0)=='('
+		while 1:
+			tok = toDo.pop(0)
+			if tok==')':
+				break
+			elif tok==',':
+				self.args.append(" ".join(newArg))
+				newArg = []
+			else:
+				newArg.append(flatten(tok))
+		if newArg:
+			self.args.append(" ".join(newArg))
+
+	def _processChildren(self):
+		self._parseFuncArgs()
+		self._processChildrenNext(FunctionMixin)
+
+
+class FieldInfoedNode(ADQLNode):
+	"""is an ADQL node that carries a FieldInfo.
+
+	This is true for basically everything in the tree below a derived
+	column.
+
+	You'll usually have to override addFieldInfo.  The default implementation
+	just looks in its immediate children for anything having a fieldInfo,
+	and if there's exactly one such child, it adopts that fieldInfo as
+	its own, not changing anything.
+	"""
+	fieldInfo = None
+
+	def _getInfoChildren(self):
+		return [c for c in self.children if getattr(c, "fieldInfo", None)]
+
+	def addFieldInfo(self, colsInfo):
+		infoChildren = self._getInfoChildren()
+		if len(infoChildren)==1:
+			self.fieldInfo = infoChildren[0].fieldInfo
+		else:
+			raise Error("More than one or no child with fieldInfo with"
+				" no behaviour defined in %s"%(self.__class__.__name__))
+
+
+class ColBearingMixin(object):
+	"""is a mixin for all Node types that provides columns with field infos.
+
+	It is mixed in by queries, tables, etc.
+	"""
+	fieldInfos = None
+
+	def getFieldInfo(self, name):
+		if self.fieldInfos:
+			return self.fieldInfos.getFieldInfo(name)
+
+
+############# Toplevel query language node types (for query analysis)
+
+class TableName(ADQLNode):
+	type = "tableName"
+	cat = schema = name = None
+	def _processChildren(self):
+		parts = self.children[::2]
+		parts = [None]*(3-len(parts))+parts
+		self.cat, self.schema, self.name = parts
+		self.qName = ".".join([n for n in [self.cat, self.schema, self.name] if n])
+
+
+class CorrSpec(TableName): 
+	type = "correlationSpecification"
+	def _processChildren(self):
+		self.qName = self.name = self.children[-1]
+	
+
+class TableReference(ADQLNode, ColBearingMixin):
+	"""is a table reference.
+
+	These always have a name (tableName); if a correlationSpecification
+	is given, this is whatever is behind AS.  The joinedTables attribute
+	contains further table references if any are joined in.
+
+	They may have an originalName if an actual table name (as opposed to a
+	subquery) was used to specify the table.  Otherwise, there's either
+	a subquery or a joined table that needs to be consulted to figure out
+	what fields are available from the table.
+	"""
+	type = "tableReference"
+	bindings = []  # will be created by dispatchTableReference
+	joinedTables = []
+	def __repr__(self):
+		return "<tableReference to %s>"%",".join(self.getAllNames())
+
+	def _processChildren(self):
+		alias = self.getChildOfType("correlationSpecification", Absent)
+		if alias is Absent:
+			self.tableName = self.originalTable = self.getChildOfType("tableName")
+		else:
+			self.tableName = alias
+			self.originalTable = self.getChildOfType("tableName")
+		self.joinedTables = self.getChildrenOfType("tableReference")
+
+	def getAllNames(self):
+		yield self.tableName.qName
+		for t in self.joinedTables:
+			yield t.tableName.qName
+
+
+class QuerySpecification(ADQLNode, ColBearingMixin): 
+	type = "querySpecification"
+	def _processChildren(self):
+		self.selectList = self.getChildOfType("selectList")
+		self.fromClause = self.getChildOfType("fromClause")
+		self.query = weakref.proxy(self)
+	
+	def getSelectList(self):
+		return [c.name for c in self.selectList.selectFields]
+
+	def getSelectFields(self):
+		return self.selectList.selectFields
+
+	def getSourceTableNames(self):
+		return self.fromClause.getTableNames()
+	
+	def resolveField(self, fieldName):
+		return self.fromClause.resolveField(fieldName)
+
+
+class AliasedQuerySpecification(QuerySpecification):
+	"""is a QuerySpecification with a correlationSpecification.
+	"""
+	bindings = [] # will be created by dispatchTableReference
+	def _processChildren(self):
+		try:
+			self.tableName = self.getChildOfType("correlationSpecification")
+		except NoChild:  # shouldn't happen, but doesn't hurt
+			pass
+		# adopt children of original query specification
+		newChildren = []
+		for c in self.children:
+			if getType(c)=="querySpecification":
+				newChildren.extend(c.children)
+			else:
+				newChildren.append(c)
+		self.children = newChildren
+		self._processChildrenNext(QuerySpecification)
+
+	def getAllNames(self):
+		return self.tableName.qName
+
+
+@symbolAction("nojoinTableReference")
+def dispatchTableReference(children):
+	"""returns a TableReference or a QuerySpecification depending on
+	wether children contain a querySpecification.
+	"""
+	for c in children:
+		if getType(c)=='querySpecification':
+			return AliasedQuerySpecification(children)
+	else:
+		return TableReference(children)
+
+
+class FromClause(ADQLNode):
+	type = "fromClause"
+
+	def _processChildren(self):
+		self.tablesReferenced = [t for t in self.children
+			if isinstance(t, ColBearingMixin)]
+		self._fieldCache = {}
+	
+	def getTableNames(self):
+		res = []
+		for t in self.tablesReferenced:
+			res.extend(t.getAllNames())
+		return res
+	
+	def resolveField(self, name):
+		matches = []
+		if not name in self._fieldCache:
+			for t in self.tablesReferenced:
+				try:
+					matches.append(t.fieldInfos.getFieldInfo(name))
+				except ColumnNotFound:
+					pass
+		return getUniqueMatch(matches, name)
+
+	
+class ColumnReference(FieldInfoedNode):
+	type = "columnReference"
+	cat = schema = table = name = None
+	def _processChildren(self):
+		self.colName = "".join(self.children)
+		names = [c for c in self.children if c!="."]
+		names = [None]*(4-len(names))+names
+		self.cat, self.schema, self.table, self.name = names
+
+	def addFieldInfo(self, colBearing):
+		self.fieldInfo = colBearing.resolveField(self.name)
+
+
+class AsClause(ADQLNode):
+	type = "asClause"
+	alias = None
+
+	def _processChildren(self):
+		self.alias = self.children[-1]
+
+
+class DerivedColumn(FieldInfoedNode):
+	"""is a column within a select list.
+
+	DerivedColumns have the following attributes for the client's
+	convenience:
+
+	* name -- if there's an asClause, it's the alias; if the only
+	  child is a ColumnReference, it's its name; otherwise, its an
+	  artificial name.
+	* columnReferences -- a list of all columnReferences below the expression
+	* tainted -- true if there is any content in the expression that cannot
+    be safely interpreted in terms of the unit and ucd calculus.  This
+	  is true by default whenever there's more than a single columnReference
+	  and needs to be reset by things like ColumnResolver.
+	"""
+	type = "derivedColumn"
+	name = None
+	columnReferences = None
+# XXX TODO: do something with the tainted attribute in FieldInfos
+	tainted = True
+
+	def _processChildren(self):
+		fc = [f for f in self.getFlattenedChildren() if getType(f)!="asClause"]
+		# typical case: We only have a single column.  Inherit its name
+		if len(fc)==1 and getType(fc[0])=="columnReference":
+			self.name = fc[0].name
+			self.tainted = False
+		else:  # come up with an artificial name
+			self.name = "column-%x"%(id(self)+0x80000000)
+		alias = self.getChildOfType("asClause", Absent)
+		if alias is not Absent:
+			self.name = alias.alias
+		self.columnReferences = [c for c in fc if getType(c)=="columnReference"]
+
+
+class SelectList(ADQLNode):
+	type = "selectList"
+	def _processChildren(self):
+		self.selectFields = self.getChildrenOfType("derivedColumn")
+	
+
+######## all expression parts we need to consider when inferring units and such
+
+
+
+class Comparison(ADQLNode):
+	"""is required when we want to morph the braindead contains(...)=1 into
+	a true boolean function call.
+	"""
+	type = "comparisonPredicate"
+
+	def _processChildren(self):
+		self.op1, self.opr, self.op2 = self.children
+
+
+class Factor(FieldInfoedNode):
+	"""is a factor within an SQL expression.
+
+	factors may have only one (direct) child with a field info and copy
+	this.  The can have no child with a field info, in which case they're
+	dimless.
+	"""
+	type = "factor"
+	collapsible = True
+
+	def addFieldInfo(self, colsInfo):
+		infoChildren = self._getInfoChildren()
+		if infoChildren:
+			assert len(infoChildren)==1
+			self.fieldInfo = infoChildren[0].fieldInfo
+		else:
+			self.fieldInfo = dimlessFieldInfo
+
+
+class CombiningFINode(FieldInfoedNode):
+	def addFieldInfo(self, colsInfo):
+		infoChildren = self._getInfoChildren()
+		if not infoChildren:
+			self.fieldInfo = dimlessFieldInfo
+		elif len(infoChildren)==1:
+			self.fieldInfo = infoChildren[0].fieldInfo
+		else:
+			self.fieldInfo = self._combineFieldInfos()
+
+
+class Term(CombiningFINode):
+	type = "term"
+	collapsible = True
+
+	def _combineFieldInfos(self):
+# These are either multiplication or division
+		toDo = self.children[:]
+		opd1 = toDo.pop(0)
+		fi1 = opd1.fieldInfo
+		while toDo:
+			opr = toDo.pop(0)
+			fi1 = FieldInfo.fromMulExpression(opr, fi1, 
+				toDo.pop(0).fieldInfo)
+		return fi1
+
+
+class NumericValueExpression(CombiningFINode):
+	type = "numericValueExpression"
+	collapsible = True
+
+	def _combineFieldInfos(self):
+# These are either addition or subtraction
+		toDo = self.children[:]
+		fi1 = toDo.pop(0).fieldInfo
+		while toDo:
+			opr = toDo.pop(0)
+			fi1 = FieldInfo.fromAddExpression(opr, fi1, toDo.pop(0).fieldInfo)
+		return fi1
+
+
+class GenericValueExpression(FieldInfoedNode):
+	"""is a container for value expressions that we don't want to look at
+	closer.
+
+	It is returned by the makeValueExpression factory below to collect
+	stray children.
+	"""
+
+@symbolAction("valueExpression")
+def makeValueExpression(children):
+	if len(children)!=1:
+		res = GenericValueExpression(children)
+		res.type = "valueExpression"
+		return res
+	else:
+		return children[0]
+
+
+class CountAll(FieldInfoedNode):
+	"""is a COUNT(*)-type node.
+	"""
+	type = "countAll"
+	fieldInfo = FieldInfo("", "meta.number")
+
+	# XXX TODO: We could inspect parents to figure out *what* we're counting
+	def addFieldInfo(self, colsInfo):
+		pass
+
+
+class SetFunction(FieldInfoedNode):
+	"""is an aggregate function.
+
+	These typically amend the ucd by a word from the stat family and copy
+	over the unit.  There are exceptions, however, see table in class def.
+	"""
+	type = "generalSetFunction"
+
+	funcDefs = {
+		'AVG': ('stat.mean', None),
+		'MAX': ('stat.max', None),
+		'MIN': ('stat.min', None),
+		'SUM': (None, None),
+		'COUNT': ('meta.number', ''),}
+
+	def addFieldInfo(self, colsInfo):
+		ucdPref, newUnit = self.funcDefs[self.children[0].upper()]
+		infoChildren = self._getInfoChildren()
+		if infoChildren:
+			assert len(infoChildren)==1
+			fi = infoChildren[0].fieldInfo
+		else:
+			fi = dimlessFieldInfo
+		if ucdPref==None or fi.ucd=="":
+			ucd = fi.ucd
+		else:
+			ucd = ucdPref+";"+fi.ucd
+		if newUnit==None:
+			unit = fi.unit
+		else:
+			unit = newUnit
+		self.fieldInfo = FieldInfo(unit, ucd, fi.userData, fi.tainted)
+
+
+class NumericValueFunction(FieldInfoedNode):
+	"""is a numeric function.
+
+	This is really a mixed bag.  We work through handlers here.  See table
+	in class def.  Unknown functions result in dimlesses.
+	"""
+	type = "numericValueFunction"
+
+# XXX TODO: we could check and warn if there's something wrong with the
+# arguments in the handlers.
+	funcDefs = {
+		"ACOS": ('rad', '', None),
+		"ASIN": ('rad', '', None),
+		"ATAN": ('rad', '', None),
+		"ATAN2": ('rad', '', None),
+		"PI": ('', '', None),
+		"RAND": ('', '', None),
+		"EXP": ('', '', None),
+		"LOG": ('', '', None),
+		"SQRT": ('', '', None),
+		"SQUARE": ('', '', None),
+		"POWER": ('', '', None),
+		"ABS": (None, None, "keepMeta"),
+		"CEILING": (None, None, "keepMeta"),
+		"FLOOR": (None, None, "keepMeta"),
+		"ROUND": (None, None, "keepMeta"),
+		"TRUNCATE": (None, None, "keepMeta"),
+		"DEGREES": ('deg', None, "keepMeta"),
+		"RADIANS": ('rad', None, "keepMeta"),
+	}
+
+	def _handle_keepMeta(self, infoChildren):
+		assert len(infoChildren)==1
+		fi = infoChildren[0].fieldInfo
+		return fi.unit, fi.ucd
+
+	def addFieldInfo(self, colsInfo):
+		infoChildren = self._getInfoChildren()
+		unit, ucd = '', ''
+		overrideUnit, overrideUCD, handlerName = self.funcDefs.get(
+			self.children[0].upper(), ('', '', None))
+		if handlerName:
+			unit, ucd = getattr(self, "_handle_"+handlerName)(infoChildren)
+		if overrideUnit:
+			unit = overrideUnit
+		if overrideUCD:
+			ucd = overrideUCD
+		userData, tainted = (), False
+		for c in infoChildren:
+			userData = userData+c.fieldInfo.userData
+			tainted = tainted or c.fieldInfo.tainted
+		self.fieldInfo = FieldInfo(unit, ucd, userData, tainted)
+
+
+###################### Geometry and stuff that needs morphing into real SQL
+
+class _FunctionalNode(FieldInfoedNode, FunctionMixin):
+	pass
+
+
+class Point(_FunctionalNode):
+	"""points have cooSys, x, and y attributes.
+	"""
+	type = "point"
+
+	def _processChildren(self):
+		self._processChildrenNext(Point)
+		self.cooSys, self.x, self.y = self.args
+
+
+class Circle(_FunctionalNode):
+	"""circles have cooSys, x, y, and radius attributes.
+	"""
+	type = "circle"
+
+	def _processChildren(self):
+		self._processChildrenNext(Circle)
+		self.cooSys, self.x, self.y, self.radius = self.args
+
+
+class Rectangle(_FunctionalNode):
+	"""rectangles have cooSys, x0, y0, x1, and y1 attributes.
+	"""
+	type = "rectangle"
+
+	def _processChildren(self):
+		self._processChildrenNext(Rectangle)
+		self.cooSys, self.x0, self.y0, self.x1, self.y1 = self.args
+
+
+class Polygon(_FunctionalNode):
+	"""rectangles have a cooSys attribute, and store pairs of coordinates
+	in coos.
+	"""
+	type = "polygon"
+
+	def _processChildren(self):
+		self._processChildrenNext(Polygon)
+		toDo = self.args[:]
+		self.cooSys = toDo.pop(0)
+		self.coos = []
+		while toDo:
+			self.coos.append(tuple(toDo[:2]))
+			del toDo[:2]
+
+
+class Region(_FunctionalNode):
+	"""regions only have a content attribute.  It seems it's completely up
+	to the application to do something with this mess.
+	"""
+	type = "region"
+
+	def _processChildren(self):
+		self._processChildrenNext(Polygon)
+		assert len(self.args)==1
+		self.content = self.args[0]
+	
+
+class Centroid(_FunctionalNode):
+	"""centroids have an expression attribute.
+	"""
+	type = "centroid"
+
+	def _processChildren(self):
+		self._processChildrenNext(Polygon)
+		assert len(self.args)==1
+		self.expression = self.args[0]
+
+
+class Distance(_FunctionalNode):
+	"""The distance function -- 2 arguments, both points.
+	"""
+	type = "distanceFunction"
+
+
+class RegionFunction(_FunctionalNode):
+	"""CONTAINS or INTERSECTS calls -- two arguments, geometry expressions.
+	"""
+	type = "regionFunction"
+
+
+class PointFunction(_FunctionalNode):
+	"""LONGITUDE or LATITUDE calls -- one argument, a geometry expression 
+	evaluating to a point.
+	"""
+	type = "pointFunction"
+
+
+class Area(_FunctionalNode):
+	"""one argument, a geometry expression.
+	"""
+	type = "area"
+
+

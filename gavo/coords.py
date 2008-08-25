@@ -14,6 +14,18 @@ import gavo
 from gavo import utils
 
 
+class AstWCSLoader(object):
+	"""is a quick hack to save time on startup: delay (slow) loading of astWCS
+	until it is used (which it may not be at all in many GAVO programs.
+	"""
+	def __getattr__(self, *args):
+		from astLib import astWCS
+		globals()["astWCS"] = astWCS
+		return getattr(astWCS, *args)
+
+astWCS = AstWCSLoader()
+
+
 
 class CooSys:
 	"""models a single coordinate system.

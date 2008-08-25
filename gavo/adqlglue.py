@@ -9,4 +9,4 @@ def makeFieldInfo(dataField):
 	"""returns an adql.tree.FieldInfo object from a dataField.
 	"""
 	return adql.FieldInfo(
-		dataField.get_unit(), dataField.get_ucd(), dataField)
+		dataField.get_unit(), dataField.get_ucd(), (dataField,))

@@ -111,6 +111,16 @@ hence,
 	<identifier> <period> ] <identifier>
 
 We need the table_name, qualifier, and column_reference productions.
+
+(5) One point I'm deviating from the published grammar is that I disallow
+generalLiterals in unsignedLiterals.  Allowing them would let pyparsing
+match a string literal as a numericValueLiteral, which messes up
+string expressions.  I'm not sure why generalLiterals are allowed
+in there anyway.  If this bites at some point, we'll face a major rewrite
+of the grammar (or we need to dump pyparsing).
+
+To make the whole thing work, I added the generalLiteral to the 
+characterPrimary production.
 """
 
 
@@ -199,7 +209,7 @@ def getADQLGrammarCopy(defaultFunctionPrefix="udf_"):
 	characterStringLiteral = sglQuotedString + ZeroOrMore(
 		separator + sglQuotedString)
 	generalLiteral = characterStringLiteral.copy()
-	unsignedLiteral = unsignedNumericLiteral | generalLiteral
+	unsignedLiteral = unsignedNumericLiteral # !!! DEVIATION | generalLiteral
 	sign = Literal("+") | "-"
 	signedInteger = Optional( sign ) + unsignedInteger
 	multOperator = Literal("*") | "/"
@@ -233,8 +243,8 @@ def getADQLGrammarCopy(defaultFunctionPrefix="udf_"):
 	setQuantifier = Regex("(?i)DISTINCT|ALL")
 	generalSetFunction = (setFunctionType + '(' + Optional( setQuantifier ) +
 		valueExpression + ')')
-	setFunctionSpecification = (CaselessLiteral("COUNT") |
-		generalSetFunction)
+	countAll = CaselessLiteral("COUNT") + '(' + '*' + ')'
+	setFunctionSpecification = (countAll | generalSetFunction)
 
 # value expressions
 	valueExpressionPrimary = ( unsignedLiteral |
@@ -296,7 +306,7 @@ def getADQLGrammarCopy(defaultFunctionPrefix="udf_"):
 	math0ArgFunctionName = Regex("(?i)PI")
 	optIntFunctionName = Regex("(?i)RAND")
 	math1ArgFunctionName = Regex("(?i)ABS|CEILING|DEGREES|EXP|FLOOR|"
-		"LOG|RADIANS|SQARE|LOG10")
+		"LOG|RADIANS|SQUARE|SQRT|LOG10")
 	optPrecArgFunctionName = Regex("(?i)ROUND|TRUNCATE")
 	math2ArgFunctionName = Regex("(?i)POWER")
 	mathFunction = (math0ArgFunctionName + '(' + ')' |
@@ -314,11 +324,12 @@ def getADQLGrammarCopy(defaultFunctionPrefix="udf_"):
 	numericValueFunction << (trigFunction | mathFunction | userDefinedFunction |
 		systemDefinedFunction)
 
-	characterPrimary << (valueExpressionPrimary | userDefinedFunction)
+	characterPrimary << (generalLiteral | valueExpressionPrimary | 
+		userDefinedFunction)
 
 # toplevel value expression
-	valueExpression << (numericValueExpression |
-		stringValueExpression | geometryValueExpression)
+	valueExpression << (numericValueExpression | stringValueExpression |
+		geometryValueExpression)
 	derivedColumn = valueExpression + Optional( asClause )
 
 # parts of select clauses
@@ -452,5 +463,5 @@ if __name__=="__main__":
 	import pprint, sys
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
-	res = grammar.parseString("select a from z")
+	res = (syms["comparisonPredicate"]+StringEnd()).parseString("contains(circle('ICRS', alpha, delta, margin*margin), rectangle('ICRS', lf, up, rt, lw))=0")
 	pprint.pprint(res.asList(), stream=sys.stderr)
