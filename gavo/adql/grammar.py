@@ -132,8 +132,9 @@ from pyparsing import Word, Literal, Optional, alphas, CaselessKeyword,\
 
 adqlReservedWords = set([ "ABS", "ACOS", "AREA", "ASIN", "ATAN", "ATAN2",
 	"CEILING", "CENTROID", "CIRCLE", "CONTAINS", "COS", "DEGREES", "DISTANCE",
-	"EXP", "FLOOR", "INTERSECTS", "LATITUDE", "LOG", "LOG10", "LONGITUDE",
-	"MODE", "PI", "POINT", "POLYGON", "POWER", "RADIANS", "RECTANGLE", "REGION",
+	"EXP", "FLOOR", "INTERSECTS", "LATITUDE", "LOG", "LOG10", "COORD1",
+	"COORD2", "COORDSYS",
+	"MOD", "PI", "POINT", "POLYGON", "POWER", "RADIANS", "RECTANGLE", "REGION",
 	"RAND", "ROUND", "SIN", "SQUARE", "SQRT", "TOP", "TAN", "TRUNCATE",])
 
 sqlReservedWords = set([
@@ -283,20 +284,23 @@ def getADQLGrammarCopy(defaultFunctionPrefix="udf_"):
 	region = (CaselessKeyword("REGION") + '(' + stringValueExpression + ')')
 	geometryExpression = point | circle | rectangle | polygon | region
 	geometryValue = columnReference.copy()
+	coordValue = point | columnReference
 	centroid = CaselessKeyword("CENTROID") + '(' + geometryExpression + ')'
 	geometryValueExpression = geometryExpression | geometryValue | centroid
 
-# system defined functions
-	distanceFunction = (CaselessKeyword("DISTANCE") + point + ',' +
-		point + ')')
-	regionFunctionName = Regex("(?i)CONTAINS|INTERSECTS")
-	regionFunction = (regionFunctionName + '(' + geometryValueExpression +
-		',' + geometryValueExpression + ')')
-	pointFunction = (Regex("(?i)LONGITUDE|LATITUDE") + '(' +
-		point + ')')
+# geometry functions
+	distanceFunction = (CaselessKeyword("DISTANCE") + '(' + coordValue + ',' +
+		coordValue + ')')
+	pointFunction = (Regex("(?i)COORD[12]|COORDSYS") + '(' +
+		coordValue + ')')
 	area = CaselessKeyword("AREA") + '(' + geometryValueExpression + ')'
-	systemDefinedFunction = (distanceFunction | regionFunction | 
-		pointFunction | area)
+	nonPredicateGeometryFunction = (distanceFunction | pointFunction | area)
+	predicateGeoFunctionName = Regex("(?i)CONTAINS|INTERSECTS")
+	predicateGeometryFunction = (predicateGeoFunctionName + '(' + 
+		geometryValueExpression + ',' + geometryValueExpression + ')')
+	numericGeometryFunction = (predicateGeometryFunction | 
+		nonPredicateGeometryFunction)
+
 
 # numeric, system, user defined functions
 	trig1ArgFunctionName = Regex("(?i)ACOS|ASIN|ATAN|COS|COT|SIN|TAN")
@@ -305,8 +309,8 @@ def getADQLGrammarCopy(defaultFunctionPrefix="udf_"):
 			numericValueExpression + ')')
 	math0ArgFunctionName = Regex("(?i)PI")
 	optIntFunctionName = Regex("(?i)RAND")
-	math1ArgFunctionName = Regex("(?i)ABS|CEILING|DEGREES|EXP|FLOOR|"
-		"LOG|RADIANS|SQUARE|SQRT|LOG10")
+	math1ArgFunctionName = Regex("(?i)ABS|CEILING|DEGREES|EXP|FLOOR|LOG10|"
+		"LOG|RADIANS|SQUARE|SQRT")
 	optPrecArgFunctionName = Regex("(?i)ROUND|TRUNCATE")
 	math2ArgFunctionName = Regex("(?i)POWER")
 	mathFunction = (math0ArgFunctionName + '(' + ')' |
@@ -322,7 +326,7 @@ def getADQLGrammarCopy(defaultFunctionPrefix="udf_"):
 		userDefinedFunctionParam + ZeroOrMore( "," + userDefinedFunctionParam ) 
 			+ ')')
 	numericValueFunction << (trigFunction | mathFunction | userDefinedFunction |
-		systemDefinedFunction)
+		numericGeometryFunction)
 
 	characterPrimary << (generalLiteral | valueExpressionPrimary | 
 		userDefinedFunction)
@@ -463,5 +467,7 @@ if __name__=="__main__":
 	import pprint, sys
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
-	res = (syms["comparisonPredicate"]+StringEnd()).parseString("contains(circle('ICRS', alpha, delta, margin*margin), rectangle('ICRS', lf, up, rt, lw))=0")
+	#res = (syms["regularIdentifier"]+StringEnd()).parseString("p1")
+	res = (syms["mathFunction"]+StringEnd()).parseString("rand()")
+	#	res = grammar.parseString("select coordsys(q.p) from (select point('ICRS', x, y) as p from foo) as q")
 	pprint.pprint(res.asList(), stream=sys.stderr)

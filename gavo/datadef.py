@@ -8,6 +8,7 @@ from gavo import meta
 from gavo.parsing import typeconversion
 
 
+
 class RoEmptyDict:
 	"""is a read-only standin for a dict.
 
@@ -213,6 +214,17 @@ class DataField(record.Record):
 			instance.set_values(instance.get_values().copy())
 		return instance
 
+	@classmethod
+	def fromMetaTableRow(cls, row):
+		"""constructs a DataField from what's in the meta table.
+		"""
+		initvals = {}
+		for name, index in [("dest", 1), ("source", 1), ("unit", 2),
+				("ucd", 3), ("description", 4), ("tablehead", 5),
+				("longdescription", 6), ("utype", 8)]:
+			initvals[name] = row[index]
+		return cls(**initvals)
+
 
 class OutputField(DataField):
 	"""is a DataField for output purposes.
@@ -258,7 +270,9 @@ def makeCopyingField(field):
 # This is a schema for the field description table used by
 # sqlsupport.MetaTableHandler.  WARNING: If you change anything here, you'll
 # probably have to change DataField, too (plus, of course, the schema of
-# any meta tables you may already have).
+# any meta tables you may already have); plus, fromMetaTableRow has
+# this hardcoded as well.  In short, don't change anything here, think
+# of something better :-)
 
 metaTableFields = [
 	DataField(dest="tableName", dbtype="text", primary=True, 
@@ -316,6 +330,9 @@ class DataTransformer(record.Record, meta.MetaMixin):
 		"""
 		for recDef in self.get_Semantics().get_recordDefs():
 			yield recDef
+
+	def set_Grammar(self, val):
+		self.dataStore["Grammar"] = val
 
 	def set_Semantics(self, val):
 		for tableDef in val.get_recordDefs():

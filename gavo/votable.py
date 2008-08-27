@@ -824,21 +824,6 @@ def _test():
 	doctest.testmod(votable)
 
 
-def _profilerun():
-	from gavo import sqlsupport, config
-	config.setDbProfile("querulator")
-
-	def getFieldInfos(querier, tableName):
-		metaTable = sqlsupport.MetaTableHandler(querier)
-		return metaTable.getFieldInfos(tableName)
-
-	querier = sqlsupport.SimpleQuerier()
-	result = querier.query(
-		"SELECT * from ppmx.autocorr").fetchall()
-	print result[0]
-	writeSimpleTableColDesc(getFieldInfos(querier, "ppmx.autocorr"),
-		result, {}, open("/dev/null", "w"))
-
 
 if __name__=="__main__":
 	_test()

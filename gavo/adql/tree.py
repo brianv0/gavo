@@ -1,5 +1,28 @@
 """
 Trees of ADQL expressions and operations on them.
+
+The most important thing happening here is field resolution, which happens
+in addFieldInfos.  addFieldInfos needs a function that takes a qualified
+table name and returns a sequence of FieldInfo objects for the fields
+in the table, maintaining the order they have in the database table.
+
+We then traverse the tree and wrap these in FieldInfosForTable objects
+for every tableReference we encounter; these objects are then attached
+to the tableReferences in fieldInfo attributes.  
+
+Then we traverse the tree again, this time looking for nodes that
+querySpecifications. There receive a FieldInfosForQuery object 
+in their fieldInfos attribute from all fieldInfos in their selectList.
+This traversal is -- as basically all in this process -- postorder, which
+means that by the time the selectList is resolved, all entries in the 
+fromClause already have FieldInfos.
+
+The selectList resolution happens in the FieldInfosForQuery constructor
+by doing another postorder traversal over every subtree in the selectList.
+Literals receive a common.dimlessFieldInfo as their FieldInfo,
+columnReferences ask the querySpecification (and this its fromClause)
+for fieldInfos, all others get combined according to rules in the
+node's addFieldInfo method.
 """
 
 import sys
@@ -62,16 +85,39 @@ class FieldInfosForQuery(FieldInfos):
 	"""
 	def __init__(self, node):
 		FieldInfos.__init__(self)
-		for col in node.selectList.selectFields:
-			self.addColumn(col.name, col.fieldInfo)
 		self._collectSubTables(node)
+		self._resolveSelectChildren(node)
+		for col in node.getSelectFields():
+			self.addColumn(col.name, col.fieldInfo)
+	
+	def _resolveSelectChildren(self, queryNode):
+		def traverse(node):
+			for c in node.iterNodes():
+				traverse(c)
+			if hasattr(node, "fieldInfo"):
+				node.addFieldInfo(self.getFieldInfoFromSources)
+		for selField in queryNode.getSelectFields():
+			traverse(selField)
 
 	def _collectSubTables(self, node):
 		"""creates the subTables attribute with any tables visible from node.
 		"""
+		self.subTables = {}
 		for subRef in node.fromClause.tablesReferenced:
-			if hasattr(subRef, "colsInfo"):
+			if hasattr(subRef, "fieldInfos"):
 				self.subTables[subRef.tableName.name] = subRef
+
+	def getFieldInfoFromSources(self, colName):
+		"""returns a field info for colName from anything in the from clause.
+
+		i.e., the columns in the select clause are ignored.
+		"""
+		matched = []
+		for t in self.subTables.values():
+			subCols = t.fieldInfos.columns
+			if colName in subCols and subCols[colName]:
+				matched.append(subCols[colName])
+		return nodes.getUniqueMatch(matched, colName)
 
 	def getFieldInfo(self, colName):
 		"""returns a field info for colName in self and the joined tables.
@@ -82,32 +128,25 @@ class FieldInfosForQuery(FieldInfos):
 		"""
 		ownMatch = self.columns.get(colName, None)
 		if ownMatch:
-			matched = [ownMatch]
+			return ownMatch
 		else:
-			matched = []
-		for t in self.subTables.values():
-			subCols = t.colsInfo.columns
-			if colName in subCols and subCols[colName]:
-				matched.append(subCols[colName])
-		return nodes.getUniqueMatch(matches, colName)
+			return self.getFieldInfoFromSources(colName)
 	
 
 class FieldInfosForTable(FieldInfos):
 	"""is a container for information on the columns produced by a 
 	table reference or a join.
-
-	Note that the order of fields in seq is essentially random here.
 	"""
 	def __init__(self, node, fieldInfoGetter):
 		FieldInfos.__init__(self)
 		for colName, fieldInfo in fieldInfoGetter(
-				node.originalTable.qName).iteritems():
+				node.originalTable.qName):
 			self.addColumn(colName, fieldInfo)
 		self._addInfosFromJoined(node)
 
 	def _addInfosFromJoined(self, node):
 		for jt in getattr(node, "joinedTables", ()):
-			for label, info in jt.colsInfo.iteritems():
+			for label, info in jt.fieldInfos.iteritems():
 				self.addColumn(label, info)
 	
 
@@ -120,7 +159,7 @@ def autocollapse(nodeBuilder, children):
 	This function will automatically be inserted into the the constructor
 	chain if the node defines an attribute collapsible=True.
 	"""
-	if (len(children)==1 and isinstance(children[0], nodes.ADQLNode)):
+	if len(children)==1 and isinstance(children[0], nodes.ADQLNode):
 		return children[0]
 	return nodeBuilder(children)
 
@@ -180,18 +219,14 @@ def addFieldInfos(qTree, fieldInfoGetter):
 
 	For the fieldInfoGetter argument, see ColumnResolver.
 	The result of this is that each column bearing node in qTree gets
-	a colsInfo attribute.  See ColumnResolver.
+	a fieldInfos attribute.  See ColumnResolver.
 	"""
 	attachFieldInfosToTables(qTree, fieldInfoGetter)
 	def traverse(node, table):
-		if hasattr(node, "resolveField"):
-			table = node
 		for child in node.iterNodes():
 			traverse(child, table)
 		if node.type=="querySpecification":
 			node.fieldInfos = FieldInfosForQuery(node)
-		if hasattr(node, "fieldInfo"):
-			node.addFieldInfo(table)
 	traverse(qTree, None)
 
 
@@ -200,6 +235,9 @@ class FieldInfo(object):
 
 	It is constructed with a unit, a ucd and userData.  UserData is
 	opaque to the library and is just collected on operations.
+
+	In addition, we have a cooSys attribute that is only non-NULL for
+	ADQL geometry values.  These write them into their FieldInfos directly.
 	"""
 	tainted = False
 
@@ -209,11 +247,28 @@ class FieldInfo(object):
 		self.errors = []
 		self.userData = userData
 		self.unit = unit
+		self.cooSys = None
 	
 	def __repr__(self):
 		return "FieldInfo(%s, %s, %s)"%(repr(self.unit), repr(self.ucd),
 			repr(self.userData))
 
+
+def dumpFieldInfoedTree(tree):
+	import pprint
+	def traverse(node):
+		res = []
+		if hasattr(node, "fieldInfo"):
+			res.append("%s <- %s"%(node.type, repr(node.fieldInfo)))
+		if hasattr(node, "fieldInfos"):
+			res.append("%s -- %s"%(node.type, repr(node.fieldInfos)))
+		res.extend(filter(None, [traverse(child) for child in node.iterNodes()]))
+		if len(res)==1:
+			return res[0]
+		else:
+			return res
+	pprint.pprint(traverse(tree))
+		
 
 if __name__=="__main__":
 	import pprint
@@ -229,5 +284,5 @@ if __name__=="__main__":
 #	pprint.pprint(res.asTree())
 	print repr(res)
 #	fd = addFieldInfos(res, fig)
-	#print "Res:", res.colsInfo.seq
+	#print "Res:", res.fieldInfos.seq
 	print res.getSourceTableNames()

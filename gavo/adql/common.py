@@ -7,6 +7,10 @@ This module should be clean for from import *
 class Error(Exception):
 	pass
 
+class NotImplementedError(Error):
+	"""will be raised for features we don't (yet) support.
+	"""
+
 class ColumnNotFound(Error):
 	"""will be raised if a column name cannot be resolved.
 	"""

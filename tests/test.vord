@@ -74,5 +74,21 @@
 		</Semantics>
 		<RowsetGrammar fieldsFrom="typestabledef"/>
 	</Data>
+	
+	<Data id="ADQLTest">
+		<Semantics>
+			<Record table="adql" id="adqlcols">
+				<Field dest="alpha" unit="deg" ucd="pos.eq.ra;meta.main"
+					description="A sample RA" source="alpha" tablehead="Raw RA"/>
+				<Field dest="delta" unit="deg" ucd="pos.eq.dec;meta.main"
+					description="A sample Dec" source="delta"/>
+				<Field dest="mag" unit="mag" ucd="phot.mag"
+					description="A sample magnitude" source="mag"/>
+				<Field dest="rv" unit="km/s" ucd="phys.veloc;pos.heliocentric"
+					description="A sample radial velocity" source="rv"/>
+			</Record>
+		</Semantics>
+		<RowsetGrammar fieldsFrom="adqlcols"/>
+	</Data>
 </ResourceDescriptor>
 

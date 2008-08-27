@@ -448,10 +448,10 @@ class InternalDataSet(DataSet):
 	are built.
 	"""
 	def __init__(self, dataDescriptor, tableMaker=table.Table, dataSource=None, 
-			tablesToBuild=[]):
+			tablesToBuild=[], silent=True):
 		self.dataSource = dataSource
 		DataSet.__init__(self, dataDescriptor, tableMaker, 
-			tablesToBuild=tablesToBuild)
+			tablesToBuild=tablesToBuild, silent=silent)
 
 	def _iterParseContexts(self):
 		literalParser = typeconversion.LiteralParser(self.dD.get_encoding())

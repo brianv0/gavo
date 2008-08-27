@@ -23,6 +23,8 @@ class State(object):
 	killParentComparison -- used by contains to tell the comparison somewhere
 	up the tree to replace the comparison by the simple function call.
 	"""
+	def __init__(self):
+		self.warnings = []
 
 
 def killGeoBooleanOperator(node, state):
@@ -45,7 +47,7 @@ def killGeoBooleanOperator(node, state):
 		return
 	delattr(state, "killParentOperator")
 	arg1, opr, arg2 = node.children
-	if arg1.type=="numericValueFunction":
+	if arg1.type=="psqlLiteral":
 		fCall, opd = arg1, arg2
 	else:
 		fCall, opd = arg2, arg1
@@ -58,4 +60,25 @@ def killGeoBooleanOperator(node, state):
 			" using = or !=")
 	node.children = [{("=", "1"): "", ("!=", "0"): "",
 		("!=", "1"): "NOT", ("=", "0"): "NOT"}[opr, opd], fCall]
+
+
+def morphTreeWithHandlers(tree, handlers):
+	"""traverses tree in postorder, calling handlers on the nodes.
+
+	handlers is a dictionary mapping node types to functions taking a node
+	and as state.
+	"""
+	state = State()
+	def traverse(node):
+		childrenChanged = False
+		for child in node.iterNodes():
+			childrenChanged = traverse(child) or childrenChanged
+		if childrenChanged:  # some handler below me was called, so node's
+				# children probably have changed.
+			node._processChildren()
+		if node.type in handlers:
+			handlers[node.type](node, state)
+			return True
+		return False or childrenChanged
+	traverse(tree)
 

@@ -1,7 +1,8 @@
 """
-Tests for ADQL parsing and resoning about query results.
+Tests for ADQL parsing and reasoning about query results.
 """
 
+import os
 import unittest
 
 import pyparsing
@@ -9,9 +10,14 @@ import pyparsing
 import testhelpers
 from gavo import adql
 from gavo import adqlglue
+from gavo import config
 from gavo import datadef
-from gavo.adql import tree
+from gavo import sqlsupport
+from gavo.adql import morphpg
 from gavo.adql import nodes
+from gavo.adql import tree
+from gavo.parsing import importparser
+from gavo.parsing import resource
 
 class Error(Exception):
 	pass
@@ -44,8 +50,8 @@ class SymbolsParseTest(testhelpers.VerboseTest):
 		self._assertParses("circle", "circle('ICRS', x,y, r)")
 		self._assertParses("circle", "CIRCLE('ICRS', 1,2, 4)")
 		self._assertParses("geometryExpression", "CIRCLE('ICRS', 1,2, 4)")
-		self._assertParses("regionFunction", "Contains(pOint('ICRS', x,y),"
-			"CIRCLE('ICRS', 1,2, 4))")
+		self._assertParses("predicateGeometryFunction", 
+			"Contains(pOint('ICRS', x,y),CIRCLE('ICRS', 1,2, 4))")
 
 	def testBadGeometries(self):
 		self._assertDoesntParse("point", "POINT(x,y)")
@@ -348,26 +354,24 @@ class TreeParseTest(testhelpers.VerboseTest):
 		self.assertEqual(chs[2].type, "valueExpression")
 
 
-spatialFields = dict([(f.get_dest(), f) for f in [
+spatialFields = [
 	datadef.DataField(dest="distance", ucd="phys.distance", unit="m"),
 	datadef.DataField(dest="width", ucd="phys.dim", unit="m"),
 	datadef.DataField(dest="height", ucd="phys.dim", unit="km"),
 	datadef.DataField(dest="ra1", ucd="pos.eq.ra;meta.main", unit="deg"),
-	datadef.DataField(dest="ra2", ucd="pos.eq.ra", unit="rad"),]])
-miscFields = dict([(f.get_dest(), f) for f in [
+	datadef.DataField(dest="ra2", ucd="pos.eq.ra", unit="rad"),]
+miscFields = [
 	datadef.DataField(dest="mass", ucd="phys.mass", unit="kg"),
 	datadef.DataField(dest="mag", ucd="phot.mag", unit="mag"),
-	datadef.DataField(dest="speed", ucd="phys.veloc", unit="km/s")]])
+	datadef.DataField(dest="speed", ucd="phys.veloc", unit="km/s")]
 
 def _sampleFieldInfoGetter(tableName):
 	if tableName=='spatial':
-		return dict([(fieldName, 
-				adqlglue.makeFieldInfo(spatialFields[fieldName]))
-			for fieldName in spatialFields])
+		return [(f.get_dest(), adqlglue.makeFieldInfo(f))
+			for f in spatialFields]
 	elif tableName=='misc':
-		return  dict([(fieldName, 
-				adqlglue.makeFieldInfo(miscFields[fieldName]))
-			for fieldName in miscFields])
+		return [(f.get_dest(), adqlglue.makeFieldInfo(f))
+			for f in miscFields]
 
 
 class NodeTest(testhelpers.VerboseTest):
@@ -441,10 +445,10 @@ class ColResTest(testhelpers.VerboseTest):
 		for index, ((name, col), (unit, ucd, taint)) in enumerate(zip(
 				resultColumns, assertProperties)):
 			if unit is not None:
-				self.assertEqual(col.unit, unit, "Unit %d: %s != %s"%
+				self.assertEqual(col.unit, unit, "Unit %d: %r != %r"%
 					(index, col.unit, unit))
 			if ucd is not None:
-				self.assertEqual(col.ucd, ucd, "UCD %d: %s != %s"%
+				self.assertEqual(col.ucd, ucd, "UCD %d: %r != %r"%
 					(index, col.ucd, ucd))
 			if taint is not None:
 				self.assertEqual(col.tainted, taint, "Taint %d: should be %s"%
@@ -457,7 +461,26 @@ class ColResTest(testhelpers.VerboseTest):
 		wInfo = cols[0][1]
 		self.assertEqual(wInfo.unit, "m")
 		self.assertEqual(wInfo.ucd, "phys.dim")
-		self.assert_(wInfo.userData[0] is spatialFields["width"])
+		self.assert_(wInfo.userData[0] is spatialFields[1])
+
+	def testStarSelect(self):
+		cols = self._getColSeq("select * from spatial")
+		self._assertColumns(cols, [
+			("m", "phys.distance", False),
+			("m", "phys.dim", False),
+			("km", "phys.dim", False),
+			("deg", "pos.eq.ra;meta.main", False),
+			("rad", "pos.eq.ra", False), ])
+		cols = self._getColSeq("select * from spatial, misc")
+		self._assertColumns(cols, [
+			("m", "phys.distance", False),
+			("m", "phys.dim", False),
+			("km", "phys.dim", False),
+			("deg", "pos.eq.ra;meta.main", False),
+			("rad", "pos.eq.ra", False),
+			("kg", "phys.mass", False),
+			("mag", "phot.mag", False),
+			("km/s", "phys.veloc", False)])
 
 	def testDimlessSelect(self):
 		cols = self._getColSeq("select 3+4 from spatial")
@@ -470,7 +493,7 @@ class ColResTest(testhelpers.VerboseTest):
 			("", "", True),
 			("km", "phys.dim", True),
 			("km", "phys.dim", True),])
-		self.assert_(cols[1][1].userData[0] is spatialFields["height"])
+		self.assert_(cols[1][1].userData[0] is spatialFields[2])
 
 	def testFieldOperandExpression(self):
 		cols = self._getColSeq("select width*height, width/speed, "
@@ -513,10 +536,22 @@ class ColResTest(testhelpers.VerboseTest):
 			("m", "phys.dim", False),
 			("km", "phys.dim", True)])
 
+	def testGeometricFunctions(self):
+		cols = self._getColSeq("select point('ICRS', ra1, ra2) from spatial")
+		self._assertColumns(cols, [
+			('', '', False)])
+		self.assert_(cols[0][1].userData[0] is spatialFields[3])
+
 	def testParenExprs(self):
 		cols = self._getColSeq("select (width+width)*height from spatial")
 		self._assertColumns(cols, [
 			("m*km", "", False)])
+
+	def testSubquery(self):
+		cols = self._getColSeq("select q.p from (select ra2 as p from"
+			" spatial) as q")
+		self._assertColumns(cols, [
+			('rad', 'pos.eq.ra', False)])
 
 	def testErrorReporting(self):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
@@ -569,10 +604,154 @@ class Q3CMorphTest(unittest.TestCase):
 			"SELECT alphafloat , deltafloat FROM ppmx . data WHERE"
 				"  q3c_radial_query(alphafloat, deltafloat, 23, 24, 0.2)")
 
+
+class PQMorphTest(unittest.TestCase):
+	"""tests for morphing to psql geometry types and operators.
+	"""
+	def _testMorph(self, stIn, stOut):
+		t = adql.parseToTree(stIn)
+		adql.morphPG(t)
+		self.assertEqual(nodes.flatten(t), stOut)
+
+	def testSimpleTypes(self):
+		self._testMorph("select POiNT('ICRS', 1, 2), CIRCLE('ICRS', 2, 3, 4),"
+				" REctAngle('ICRS', 2 ,3, 4, 5), polygon('ICRS', 2, 3, 4, 5, 6, 7)"
+				" from foo",
+			"SELECT POINT(1, 2) , CIRCLE(POINT(2, 3), 4) , POLYGON("
+				"BOX(2, 3, 4, 5)) , '2, 3, 4, 5, 6, 7'"
+				"::polygon FROM foo")
+	
+	def testTypesWithExpressions(self):
+		self._testMorph("select point('ICRS', cos(a)*sin(b), cos(a)*sin(b)),"
+				" circle('ICRS', raj2000, dej2000, 25-mag*mag) from foo",
+			'SELECT POINT(cos ( a ) * sin ( b ), cos ( a ) * sin ( b )) , CIRCLE('
+				'POINT(raj2000, dej2000), 25 - mag * mag) FROM foo')
+
+	def testContains(self):
+		self._testMorph("select alpha from foo where"
+				" contains(circle('ICRS', alpha, delta,"
+				" margin*margin), rectangle('ICRS', lf, up, ri, lo))=0",
+			'SELECT alpha FROM foo WHERE NOT (CIRCLE(POINT(alpha, delta),'
+				' margin * margin)) ~ (POLYGON(BOX(lf, up, ri, lo)))')
+
+	def testIntersects(self):
+		self._testMorph("select alpha from foo where"
+				" Intersects(circle('ICRS', alpha, delta,"
+				" margin*margin), polygon('ICRS', 1, 12, 3, 4, 5, 6, 7, 8))=0",
+			"SELECT alpha FROM foo WHERE NOT (CIRCLE(POINT(alpha, delta"
+				"), margin * margin)) ?# ('1, 12, 3, 4, 5, 6, 7, 8'::polygon)")
+
+	def testPointFunction(self):
+		self._testMorph("select coord1(p) from foo", 'SELECT (p)[0] FROM foo')
+		self._testMorph("select coord2(p) from foo", 'SELECT (p)[1] FROM foo')
+
+		# Ahem -- the following could resolve the coordsys, but intra-query 
+		# communication is through field infos, which we don't have here.
+		self._testMorph("select coordsys(q.p) from (select point('ICRS', x, y)"
+			" as p from foo) as q", 
+			"SELECT 'unknown' FROM ( SELECT POINT(x, y) AS p FROM foo ) AS q")
+
+		# Now try with fieldInfos...
+		t = adql.parseToTree("select coordsys(q.p) from "
+			"(select point('ICRS', ra1, ra2) as p from spatial) as q")
+		adql.addFieldInfos(t, _sampleFieldInfoGetter)
+		adql.morphPG(t)
+		self.assertEqual(nodes.flatten(t), "SELECT 'ICRS' FROM ( SELECT POINT"
+			"(ra1, ra2) AS p FROM spatial ) AS q")
+
+	def testBoringGeometryFunctions(self):
+		self._testMorph("select AREA(circle('ICRS', COORD1(p1), coord2(p1), 2)),"
+				" DISTANCE(p1,p2), centroid(rectangle('ICRS', coord1(p1), coord2(p1),"
+				" coord1(p2), coord2(p2))) from (select point('ICRS', ra1, dec1) as p1,"
+				"   point('ICRS', ra2, dec2) as p2 from foo) as q", 
+			'SELECT AREA ( CIRCLE(POINT((p1)[0], (p1)[1]), 2) ) , celDistPP('
+				'p1, p2) , center(POLYGON(BOX((p1)[0], (p1)[1], (p2)[0], (p2)'
+				'[1]))) FROM ( SELECT POINT(ra1, dec1) AS p1 , POINT(ra2, dec2'
+				') AS p2 FROM foo ) AS q')
+		self.assertRaises(NotImplementedError, self._testMorph,
+			"select REGION('mystery') from foo", "")
+
+	def testNumerics(self):
+		self._testMorph("select log10(x), log(x), rand(), rand(5), square(x+x),"
+			" TRUNCATE(x), TRUNCATE(x,3) from foo", 
+			'SELECT LOG ( x ) , LN ( x ) , random() ,'
+				' setseed(5)-setseed(5)+random() , (x + x)^2 , TRUNC ('
+				' x ) , TRUNC ( x , 3 ) FROM foo')
+
+
+class QueryTest(unittest.TestCase):
+	"""performs some actual queries to test the whole thing.
+	"""
+	def setUp(self):
+		config.setDbProfile("test")
+		self.rd = importparser.getRd(os.path.abspath("test.vord"))
+		ds = resource.InternalDataSet(
+			self.rd.getDataById("ADQLTest"),
+				dataSource=[
+				(22, 23, -27, 0),])
+		ds.exportToSql(self.rd.get_schema())
+		self.tableName = self.rd.get_schema()+"."+ds.tables[0].name
+
+	def _assertFieldProperties(self, dataField, expected):
+		for label, value in expected:
+			self.assertEqual(dataField.get(label), value, "Data field %s:"
+				" Expected %s for %s, found %s"%(dataField.get_dest(), repr(value), 
+					label, repr(dataField.get(label))))
+
+	def testPlainSelect(self):
+		res = adqlglue.query("select alpha, delta from %s where mag<-10"%
+			self.tableName)
+		self.assertEqual(len(res.getPrimaryTable().rows), 1)
+		self.assertEqual(len(res.getPrimaryTable().rows[0]), 2)
+		raField, deField = res.getPrimaryTable().recordDef.get_items()
+		self._assertFieldProperties(raField, [("ucd", 'pos.eq.ra;meta.main'),
+			("description", 'A sample RA'), ("unit", 'deg'), 
+			("tablehead", "Raw RA")])
+		self._assertFieldProperties(deField, [("ucd", 'pos.eq.dec;meta.main'),
+			("description", 'A sample Dec'), ("unit", 'deg'), 
+			("tablehead", None)])
+
+	def testStarSelect(self):
+		res = adqlglue.query("select * from %s where mag<-10"%
+			self.tableName)
+		self.assertEqual(len(res.getPrimaryTable().rows), 1)
+		self.assertEqual(len(res.getPrimaryTable().rows[0]), 4)
+		fields = res.getPrimaryTable().recordDef.get_items()
+		self._assertFieldProperties(fields[0], [("ucd", 'pos.eq.ra;meta.main'),
+			("description", 'A sample RA'), ("unit", 'deg'), 
+			("tablehead", "Raw RA")])
+		self._assertFieldProperties(fields[1], [("ucd", 'pos.eq.dec;meta.main'),
+			("description", 'A sample Dec'), ("unit", 'deg'), 
+			("tablehead", None)])
+		self._assertFieldProperties(fields[3], [
+			("ucd", 'phys.veloc;pos.heliocentric'),
+			("description", 'A sample radial velocity'), ("unit", 'km/s')])
+	
+	def testTainting(self):
+		res = adqlglue.query("select delta*2, alpha*mag, alpha+delta"
+			" from %s where mag<-10"% self.tableName)
+		f1, f2, f3 = res.getPrimaryTable().recordDef.get_items()
+		self._assertFieldProperties(f1, [("ucd", 'pos.eq.dec;meta.main'),
+			("description", 'A sample Dec -- *TAINTED*: the value was operated'
+				' on in a way that unit and ucd may be severely wrong'),
+			("unit", 'deg')])
+		self._assertFieldProperties(f2, [("ucd", ''),
+			("description", 'This field has traces of: A sample RA;'
+				' A sample magnitude'),
+			("unit", 'deg*mag')])
+		self._assertFieldProperties(f3, [("ucd", ''),
+			("description", 'This field has traces of: A sample RA; A sample Dec'
+				' -- *TAINTED*: the value was operated on in a way that unit and'
+				' ucd may be severely wrong'),
+			("unit", 'deg')])
+
+	def tearDown(self):
+		sqlsupport.SimpleQuerier().runIsolatedQuery("drop table %s"%self.tableName)
+
+
 def singleTest():
-	suite = unittest.makeSuite(Q3CMorphTest, "test")
-#	suite = unittest.makeSuite(ColResTest, "testFieldOper")
-#	suite = unittest.makeSuite(SymbolsParseTest, "test")
+#	suite = unittest.makeSuite(PQMorphTest, "testNum")
+	suite = unittest.makeSuite(ColResTest, "testGeo")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 

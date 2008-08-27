@@ -679,17 +679,6 @@ class MetaTableHandler:
 		feed.close()
 		self.writer.finish()
 
-	def _fixFieldInfo(self, resDict):
-		"""does some ad-hoc changes to amend fieldInfos coming
-		from the database.
-
-		Right now, it only computes a suitable table heading
-		for the column description resDict if necessary.
-		"""
-		if resDict["tablehead"]:
-			return
-		resDict["tablehead"]= resDict["fieldName"]
-
 	def getFieldInfo(self, fieldName, tableName=""):
 		"""returns a dictionary with the information available
 		for fieldName.
@@ -723,7 +712,6 @@ class MetaTableHandler:
 		# since we're querying the primary key, len>1 can't happen
 		for fieldDef, val in zip(datadef.metaTableFields, matches[0]):
 			resDict[fieldDef.get_dest()] = val
-		self._fixFieldInfo(resDict)
 		return resDict
 	
 	def getFieldInfos(self, tableName):
@@ -732,14 +720,11 @@ class MetaTableHandler:
 		Each field definition is a dictionary, the keys of which are given by
 		datadef.metaTableFields.  The sequence is in database column order.
 		"""
-		res = self.querier.query("SELECT * FROM %s WHERE tableName=%%(tableName)s"%
-			metaTableName, {"tableName": tableName})
+		res = self.querier.query("SELECT * FROM %s WHERE tableName=%%(tableName)s"
+			" ORDER BY colInd"%metaTableName, {"tableName": tableName})
 		fieldInfos = []
 		for row in res.fetchall():
-			fieldInfos.append(dict([(metaFieldInfo.get_dest(), val) 
-				for metaFieldInfo, val in zip(datadef.metaTableFields, row)]))
-			self._fixFieldInfo(fieldInfos[-1])
-		fieldInfos.sort(lambda a, b: cmp(a["colInd"], b["colInd"]))
+			fieldInfos.append(datadef.DataField.fromMetaTableRow(row))
 		return fieldInfos
 
 

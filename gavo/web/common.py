@@ -327,7 +327,7 @@ class GavoRenderMixin(object):
 				],
 				T.div(class_="sidebaritem", style="font-size: 62%; padding-top:5px;"
 						" border-top: 1px solid grey; margin-top:40px;")[
-					T.p["Please report errors and problems to ",
+					T.p(class_="breakable")["Please report errors and problems to ",
 						T.a(href="mailto:gavo.ari.uni-heidelberg.de")["GAVO staff"],
 						".  Thanks."]]
 			],

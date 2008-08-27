@@ -59,6 +59,14 @@ def getUniqueMatch(matches, colName):
 			raise AmbiguousColumn(colName)
 
 
+def collectUserData(infoChildren):
+	userData, tainted = (), False
+	for c in infoChildren:
+		userData = userData+c.fieldInfo.userData
+		tainted = tainted or c.fieldInfo.tainted
+	return userData, tainted
+
+
 ######################### Generic Node definitions
 
 @symbolAction("regularIdentifier")
@@ -176,22 +184,22 @@ class ADQLNode(object):
 			
 
 class FunctionMixin(object):
-	"""is a mixin that makes an ADQL node parse out arguments and a
+	"""is a mixin for ADQLNodes for parsing out arguments and a
 	function name.
 
-	It can only be mixed into ADQLNodes or derived classes.
+	The arguments have to be put into nodes at least so far that
+	no literal parens and commas are left in the function node's
+	children.
 
-	The arguments have to be put into nodes at least so far that no
-	literal parens and commas are left in the children.
-
-	What you get is an attribute name and and an attribute args containing
-	strings flattened from the arguments.
+	What you get is an attribute funName (always uppercased for
+	convenience) and and an attribute args containing strings
+	flattened from the arguments.
 	"""
 	def _parseFuncArgs(self):
 		toDo = self.children[:]
 		self.args, newArg = [], []
 		# before the opening paren: the name
-		self.funName = toDo.pop(0)
+		self.funName = toDo.pop(0).upper()
 		assert toDo.pop(0)=='('
 		while 1:
 			tok = toDo.pop(0)
@@ -304,12 +312,16 @@ class QuerySpecification(ADQLNode, ColBearingMixin):
 		self.selectList = self.getChildOfType("selectList")
 		self.fromClause = self.getChildOfType("fromClause")
 		self.query = weakref.proxy(self)
+		self._processChildrenNext(QuerySpecification)
 	
 	def getSelectList(self):
-		return [c.name for c in self.selectList.selectFields]
+		return [c.name for c in self.getSelectFields()]
 
 	def getSelectFields(self):
-		return self.selectList.selectFields
+		if self.selectList.isAllFieldsQuery:
+			return self.fromClause.getAllFields()
+		else:
+			return self.selectList.selectFields
 
 	def getSourceTableNames(self):
 		return self.fromClause.getTableNames()
@@ -327,15 +339,16 @@ class AliasedQuerySpecification(QuerySpecification):
 			self.tableName = self.getChildOfType("correlationSpecification")
 		except NoChild:  # shouldn't happen, but doesn't hurt
 			pass
-		# adopt children of original query specification
+		# adopt children of original query specification and attributes
 		newChildren = []
 		for c in self.children:
 			if getType(c)=="querySpecification":
 				newChildren.extend(c.children)
+				self.selectList, self.fromClause, self.query = (c.selectList,
+					c.fromClause, c.query)
 			else:
 				newChildren.append(c)
 		self.children = newChildren
-		self._processChildrenNext(QuerySpecification)
 
 	def getAllNames(self):
 		return self.tableName.qName
@@ -371,13 +384,31 @@ class FromClause(ADQLNode):
 		matches = []
 		if not name in self._fieldCache:
 			for t in self.tablesReferenced:
+				print t
 				try:
 					matches.append(t.fieldInfos.getFieldInfo(name))
 				except ColumnNotFound:
 					pass
 		return getUniqueMatch(matches, name)
 
-	
+	class FakeSelectField(object):
+		def __init__(self, name, fieldInfo):
+			self.name, self.fieldInfo = name, fieldInfo
+
+		def iterNodes(self):
+			return []
+
+		def addFieldInfo(self, resolve):
+			pass # we were born with one.
+
+	def getAllFields(self):
+		res = []
+		for table in self.tablesReferenced:
+			for column in table.fieldInfos.seq:
+				res.append(self.FakeSelectField(*column))
+		return res
+
+
 class ColumnReference(FieldInfoedNode):
 	type = "columnReference"
 	cat = schema = table = name = None
@@ -387,8 +418,8 @@ class ColumnReference(FieldInfoedNode):
 		names = [None]*(4-len(names))+names
 		self.cat, self.schema, self.table, self.name = names
 
-	def addFieldInfo(self, colBearing):
-		self.fieldInfo = colBearing.resolveField(self.name)
+	def addFieldInfo(self, fieldResolver):
+		self.fieldInfo = fieldResolver(self.name)
 
 
 class AsClause(ADQLNode):
@@ -437,7 +468,12 @@ class DerivedColumn(FieldInfoedNode):
 class SelectList(ADQLNode):
 	type = "selectList"
 	def _processChildren(self):
-		self.selectFields = self.getChildrenOfType("derivedColumn")
+		self.isAllFieldsQuery = len(self.children)==1 and self.children[0] == '*'
+		if self.isAllFieldsQuery:
+			self.selectFields = None  # Will be filled in by query, we don't have
+				# the from clause here.
+		else:
+			self.selectFields = self.getChildrenOfType("derivedColumn")
 	
 
 ######## all expression parts we need to consider when inferring units and such
@@ -577,13 +613,15 @@ class SetFunction(FieldInfoedNode):
 		self.fieldInfo = FieldInfo(unit, ucd, fi.userData, fi.tainted)
 
 
-class NumericValueFunction(FieldInfoedNode):
+class NumericValueFunction(FieldInfoedNode, FunctionMixin):
 	"""is a numeric function.
 
 	This is really a mixed bag.  We work through handlers here.  See table
 	in class def.  Unknown functions result in dimlesses.
 	"""
 	type = "numericValueFunction"
+	collapsible = True  # if it's a real function call, it has at least
+		# a name, parens and an argument and thus won't be collapsed.
 
 # XXX TODO: we could check and warn if there's something wrong with the
 # arguments in the handlers.
@@ -596,6 +634,7 @@ class NumericValueFunction(FieldInfoedNode):
 		"RAND": ('', '', None),
 		"EXP": ('', '', None),
 		"LOG": ('', '', None),
+		"LOG10": ('', '', None),
 		"SQRT": ('', '', None),
 		"SQUARE": ('', '', None),
 		"POWER": ('', '', None),
@@ -617,27 +656,32 @@ class NumericValueFunction(FieldInfoedNode):
 		infoChildren = self._getInfoChildren()
 		unit, ucd = '', ''
 		overrideUnit, overrideUCD, handlerName = self.funcDefs.get(
-			self.children[0].upper(), ('', '', None))
+			self.funName, ('', '', None))
 		if handlerName:
 			unit, ucd = getattr(self, "_handle_"+handlerName)(infoChildren)
 		if overrideUnit:
 			unit = overrideUnit
 		if overrideUCD:
 			ucd = overrideUCD
-		userData, tainted = (), False
-		for c in infoChildren:
-			userData = userData+c.fieldInfo.userData
-			tainted = tainted or c.fieldInfo.tainted
-		self.fieldInfo = FieldInfo(unit, ucd, userData, tainted)
+		self.fieldInfo = FieldInfo(unit, ucd, *collectUserData(infoChildren))
 
 
 ###################### Geometry and stuff that needs morphing into real SQL
+
+
+class CoosysMixin(object):
+	"""is a mixin that works cooSys into FieldInfos for ADQL geometries.
+	"""
+	def addFieldInfo(self, colsInfo):
+		infoChildren = self._getInfoChildren()
+		self.fieldInfo = FieldInfo("", "", collectUserData(infoChildren)[0])
+		self.fieldInfo.cooSys = self.cooSys
 
 class _FunctionalNode(FieldInfoedNode, FunctionMixin):
 	pass
 
 
-class Point(_FunctionalNode):
+class Point(CoosysMixin, _FunctionalNode):
 	"""points have cooSys, x, and y attributes.
 	"""
 	type = "point"
@@ -645,9 +689,9 @@ class Point(_FunctionalNode):
 	def _processChildren(self):
 		self._processChildrenNext(Point)
 		self.cooSys, self.x, self.y = self.args
+	
 
-
-class Circle(_FunctionalNode):
+class Circle(CoosysMixin, _FunctionalNode):
 	"""circles have cooSys, x, y, and radius attributes.
 	"""
 	type = "circle"
@@ -657,7 +701,7 @@ class Circle(_FunctionalNode):
 		self.cooSys, self.x, self.y, self.radius = self.args
 
 
-class Rectangle(_FunctionalNode):
+class Rectangle(CoosysMixin, _FunctionalNode):
 	"""rectangles have cooSys, x0, y0, x1, and y1 attributes.
 	"""
 	type = "rectangle"
@@ -667,7 +711,7 @@ class Rectangle(_FunctionalNode):
 		self.cooSys, self.x0, self.y0, self.x1, self.y1 = self.args
 
 
-class Polygon(_FunctionalNode):
+class Polygon(CoosysMixin, _FunctionalNode):
 	"""rectangles have a cooSys attribute, and store pairs of coordinates
 	in coos.
 	"""
@@ -683,14 +727,14 @@ class Polygon(_FunctionalNode):
 			del toDo[:2]
 
 
-class Region(_FunctionalNode):
+class Region(CoosysMixin, _FunctionalNode):
 	"""regions only have a content attribute.  It seems it's completely up
 	to the application to do something with this mess.
 	"""
 	type = "region"
 
 	def _processChildren(self):
-		self._processChildrenNext(Polygon)
+		self._processChildrenNext(Region)
 		assert len(self.args)==1
 		self.content = self.args[0]
 	
@@ -701,7 +745,7 @@ class Centroid(_FunctionalNode):
 	type = "centroid"
 
 	def _processChildren(self):
-		self._processChildrenNext(Polygon)
+		self._processChildrenNext(Centroid)
 		assert len(self.args)==1
 		self.expression = self.args[0]
 
@@ -712,10 +756,10 @@ class Distance(_FunctionalNode):
 	type = "distanceFunction"
 
 
-class RegionFunction(_FunctionalNode):
+class predicateGeometryFunction(_FunctionalNode):
 	"""CONTAINS or INTERSECTS calls -- two arguments, geometry expressions.
 	"""
-	type = "regionFunction"
+	type = "predicateGeometryFunction"
 
 
 class PointFunction(_FunctionalNode):
