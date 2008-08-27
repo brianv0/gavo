@@ -224,6 +224,10 @@ div#sidebar {
 	background: #d2dcf0;
 }
 
+.sidebaritem * {
+max-width:100px;
+}
+
 div#body {
 	margin-left: 110px;
 	min-width: 200px;

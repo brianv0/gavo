@@ -25,6 +25,7 @@ if usePgSQL:
 			password=profile.get_password(), client_encoding="utf-8")
 else:
 	import psycopg2
+	import psycopg2.extras
 	import psycopg2.extensions
 	try:
 		psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
@@ -130,7 +131,8 @@ else:
 			conn = psycopg2.connect("dbname='%s' port='%s' host='%s'"
 				" user='%s' password='%s'"%(profile.get_database(), 
 					profile.get_port(), profile.get_host(), profile.get_user(), 
-					profile.get_password()))
+					profile.get_password()), 
+					connection_factory=psycopg2.extras.InterruptibleConnection)
 			return conn
 		except KeyError:
 			raise gavo.Error("Insufficient information to connect to database."
@@ -250,7 +252,8 @@ class StandardQueryMixin(object):
 
 	The mixin assumes an attribute connection from the parent.
 	"""
-	def runIsolatedQuery(self, query, data={}, silent=False, raiseExc=True):
+	def runIsolatedQuery(self, query, data={}, silent=False, raiseExc=True,
+			timeout=None):
 		"""runs a query over a connection of its own and returns a rowset of 
 		the result if the query is successful.
 
@@ -263,7 +266,10 @@ class StandardQueryMixin(object):
 		try:
 			if debug:
 				print "Executing", query, data
-			cursor.execute(query, data)
+			if timeout:
+				cursor.execute(query, data, timeout=timeout)
+			else:
+				cursor.execute(query, data)
 			if debug:
 				print "Finished", cursor.query
 		except DbError, msg:

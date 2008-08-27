@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- The ADQL service and related data -->
+
+<ResourceDescriptor srcdir="__system">
+	<schema>public</schema>
+	<meta name="description">An endpoint for submitting ADQL queries
+		to the data center and retrieving the result in various forms.</meta>
+	
+	<Service id="query">
+		<meta name="shortName">gavoadql</meta>
+		<meta name="title">ADQL Query</meta>
+		<core builtin="adql"/>
+		<srvInput>
+			<fromCore/>
+		</srvInput>
+	</Service>
+</ResourceDescriptor>

@@ -71,7 +71,7 @@ class SvcResult(object):
 	def _adaptCoreResult(self, coreResult, queryMeta):
 		"""returns the DataSet coreResult adapted for self.service's interface.
 
-		There are four cases:
+		There are five cases:
 		(1) coreResult set has exactly the fields the service expects -- return it
 		(2) the service expects a restriction of coreResult -- do the restriction
 		(3) coreResult is missing columns -- fill up the missing values with
@@ -79,8 +79,10 @@ class SvcResult(object):
 			  (in which case an error will be raised).
 		(4) coreResult is a tuple (file), a string or a table-less data --
 		    return it untouched.
+		(5) the core has a noPostprocess attribute -- leave the data alone.
 		"""
-		if isinstance(coreResult, (str, tuple)):
+		if isinstance(coreResult, (str, tuple)) or (self.service and hasattr(
+				self.service.get_core(), "noPostprocess")):
 			return coreResult
 		if len(coreResult.tables)==0 or not self.service:
 			return coreResult

@@ -474,7 +474,14 @@ class SelectList(ADQLNode):
 				# the from clause here.
 		else:
 			self.selectFields = self.getChildrenOfType("derivedColumn")
-	
+
+
+class SetLimit(ADQLNode):
+	type = "setLimit"
+
+	def _processChildren(self):
+		self.limit = self.children[1]
+
 
 ######## all expression parts we need to consider when inferring units and such
 

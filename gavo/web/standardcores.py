@@ -12,9 +12,11 @@ import weakref
 import cStringIO
 
 from twisted.internet import defer
+from twisted.internet import threads
 from twisted.python import log
 
 import gavo
+from gavo import adqlglue
 from gavo import config
 from gavo import coords
 from gavo import datadef
@@ -53,7 +55,7 @@ class CondDesc(record.Record):
 			"fixedSQL": None,
 		}
 		fields.update(additionalFields)
-		super(CondDesc, self).__init__(fields, initvals=initvals)
+		record.Record.__init__(self, fields, initvals=initvals)
 
 	def get_dest(self):
 		"""returns some key for uniqueness of condDescs.
@@ -123,7 +125,7 @@ class StaticCore(core.Core):
 		}
 		fields.update(additionalFields)
 		self.avOutputKeys = [f.get_dest() for f in self.outputFields]
-		super(StaticCore, self).__init__(initvals=initvals, 
+		core.Core.__init__(self, initvals=initvals, 
 			additionalFields=fields)
 
 	def run(self, inputData, queryMeta):
@@ -144,7 +146,7 @@ class QueryingCore(core.Core):
 		fields = {
 		}
 		fields.update(additionalFields)
-		super(QueryingCore, self).__init__(additionalFields=fields,
+		core.Core.__init__(self, additionalFields=fields,
 			initvals=initvals)
 
 	
@@ -185,13 +187,13 @@ class DbBasedCore(QueryingCore):
 	It provides for querying the database and returning a table
 	from it.
 
-	Db cores must define a _getQuery(inputTable, queryMeta) method that
+	Db cores must define a _getQuery(inputData, queryMeta) method that
 	returns a data descriptor for the expected SQL output, an SQL fragment 
 	and a dictionary mapping the parameters of that
 	query to values understandable by the DB interface.
 	"""
 	def __init__(self, rd, initvals):
-		super(DbBasedCore, self).__init__(rd, additionalFields={
+		QueryingCore.__init__(self, rd, additionalFields={
 				"table": record.RequiredField,
 				"sortOrder": common.Undefined,
 				"limit": common.Undefined,
@@ -216,12 +218,12 @@ class DbBasedCore(QueryingCore):
 		return (self.get_sortOrder()==common.Undefined or 
 			self.get_limit()==common.Undefined)
 
-	def _getSQLWhere(self, inputTable, queryMeta):
+	def _getSQLWhere(self, inputData, queryMeta):
 		"""returns a where fragment and the appropriate parameters
-		for the query defined by inputTable and queryMeta.
+		for the query defined by inputData and queryMeta.
 		"""
 		pars, frags = {}, []
-		docRec = inputTable.getDocRec()
+		docRec = inputData.getDocRec()
 		return vizierexprs.joinOperatorExpr("AND",
 			[cd.asSQL(docRec, pars)
 				for cd in self.get_service().get_condDescs()]), pars
@@ -271,7 +273,7 @@ class DbBasedCore(QueryingCore):
 		"""
 		return self.get_service().getCurOutputFields(queryMeta)
 
-	def run(self, inputTable, queryMeta):
+	def run(self, inputData, queryMeta):
 		"""returns an InternalDataSet containing the result of the
 		query.
 
@@ -292,7 +294,7 @@ class DbBasedCore(QueryingCore):
 			"Semantics": resource.Semantics(initvals={
 				"recordDefs": [outputDef]}),
 			"id": "<generated>"})
-		fragment, pars = self._getSQLWhere(inputTable, queryMeta)
+		fragment, pars = self._getSQLWhere(inputData, queryMeta)
 		return self.runDbQuery(fragment, pars, 
 				dd.getPrimaryRecordDef(), queryMeta).addCallback(
 			self._parseOutput, dd, pars, queryMeta).addErrback(
@@ -334,3 +336,33 @@ class FixedQueryCore(core.Core):
 	def _parseOutput(self, queryResult, queryMeta):
 		return str(queryResult)
 core.registerCore("runFixedQuery", FixedQueryCore)
+
+
+class ADQLCore(QueryingCore):
+	"""is a core that takes an ADQL query from its query argument and
+	returns the query result.
+	"""
+	noPostprocess = True
+
+	def __init__(self, rd, initvals):
+		QueryingCore.__init__(self, rd)
+		self.validate()
+
+	def getInputFields(self):
+		return [
+			contextgrammar.InputKey(dest="query", tablehead="ADQL query",
+				description="A query in the Astronomical Data Query Language",
+				dbtype="text", source="query", formalType="text"),
+		]
+	
+	def getOutputFields(self):
+		return []
+	
+	def wantsTableWidget(self):
+		return False
+	
+	def run(self, inputData, queryMeta):
+		return threads.deferToThread(adqlglue.query,
+				inputData.getDocRec()["query"],
+				config.get("web", "adqlTimeout"))
+core.registerCore("adql", ADQLCore)

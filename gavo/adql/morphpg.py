@@ -228,8 +228,26 @@ def morphMiscFunctions(tree):
 	morphhelpers.morphTreeWithHandlers(tree, _miscHandlers)
 
 
+def _topToLimit(node, state):
+	for index, c in enumerate(node.children):
+		if nodes.getType(c)=="setLimit":
+			break
+	else:
+		return
+	node.children = list(node.children)
+	del node.children[index]
+	node.children.extend(["LIMIT", c.limit])
+
+_syntaxHandlers = {
+	"querySpecification": _topToLimit,
+}
+
+# Warning: if ever there are two handlers for the same type, this will
+# break, and we'll need to allow lists of handlers (and need to think
+# about their sequence...)
 _allHandlers = _geoHandlers.copy()
 _allHandlers.update(_miscHandlers)
+_allHandlers.update(_syntaxHandlers)
 
 
 def morphPG(tree):

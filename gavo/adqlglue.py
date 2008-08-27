@@ -62,7 +62,7 @@ def getFieldInfoGetter():
 	return getFieldInfos
 
 
-def query(query):
+def query(query, timeout=15):
 	"""returns a DataSet for query (a string containing ADQL).
 	"""
 	t = adql.parseToTree(query)
@@ -72,5 +72,6 @@ def query(query):
 # XXX TODO: select an appropriate RD from the tables queried.
 	rd = resource.ResourceDescriptor("inMemory")
 	dd = resource.makeRowsetDataDesc(rd, _getTableDescForOutput(t))
-	data = sqlsupport.SimpleQuerier().runIsolatedQuery(adql.flatten(t))
+	data = sqlsupport.SimpleQuerier().runIsolatedQuery(adql.flatten(t),
+		timeout=timeout, silent=True)
 	return resource.InternalDataSet(dd, dataSource=data, silent=True)

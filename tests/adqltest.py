@@ -613,6 +613,10 @@ class PQMorphTest(unittest.TestCase):
 		adql.morphPG(t)
 		self.assertEqual(nodes.flatten(t), stOut)
 
+	def testSyntax(self):
+		self._testMorph("select distinct top 10 x, y from foo", 
+			'SELECT DISTINCT x , y FROM foo LIMIT 10')
+
 	def testSimpleTypes(self):
 		self._testMorph("select POiNT('ICRS', 1, 2), CIRCLE('ICRS', 2, 3, 4),"
 				" REctAngle('ICRS', 2 ,3, 4, 5), polygon('ICRS', 2, 3, 4, 5, 6, 7)"
@@ -703,6 +707,7 @@ class QueryTest(unittest.TestCase):
 			self.tableName)
 		self.assertEqual(len(res.getPrimaryTable().rows), 1)
 		self.assertEqual(len(res.getPrimaryTable().rows[0]), 2)
+		self.assertEqual(res.getPrimaryTable().rows[0]["alpha"], 22.0)
 		raField, deField = res.getPrimaryTable().recordDef.get_items()
 		self._assertFieldProperties(raField, [("ucd", 'pos.eq.ra;meta.main'),
 			("description", 'A sample RA'), ("unit", 'deg'), 
@@ -750,8 +755,8 @@ class QueryTest(unittest.TestCase):
 
 
 def singleTest():
-#	suite = unittest.makeSuite(PQMorphTest, "testNum")
-	suite = unittest.makeSuite(ColResTest, "testGeo")
+	suite = unittest.makeSuite(QueryTest, "test")
+#	suite = unittest.makeSuite(ColResTest, "testGeo")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 

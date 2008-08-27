@@ -65,6 +65,8 @@ voplotUserman: ~/static/voplot/docs/VOPlot_UserGuide_1_4.html
 vanityNames=vanitynames.txt
 # Default timeout for db queries via the web
 sqlTimeout=15
+# Default timeout for adql queries via the web
+adqlTimeout=15
 # directory to store cached previews in
 previewCache: %(webDir)s/previewcache
 # path to a favicon
@@ -319,6 +321,9 @@ class Settings(object):
 		return val.strip()
 
 	def _parse_web_sqltimeout(self, val):
+		return int(val)
+
+	def _parse_web_adqltimeout(self, val):
 		return int(val)
 
 	def _parse_web_voplotenable(self, val):
