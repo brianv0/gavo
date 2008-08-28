@@ -4,6 +4,8 @@ Classes to define properties of data.
 
 import gavo
 from gavo import record
+from gavo import resourcecache # need importparser.getRd here, so someone else
+# needs to import importparser
 from gavo import meta
 from gavo.parsing import typeconversion
 
@@ -157,7 +159,8 @@ class DataField(record.Record):
 		them (also, we simply don't know them...).
 		"""
 		row = {}
-		for fInfo in metaTableFields:
+		for fInfo in resourcecache.getRd("__system__/dc_tables"
+				).getTableDefByName("fielddescriptions").get_items():
 			colName = fInfo.get_dest()
 			if colName in self.externallyManagedColumns:
 				continue
@@ -267,37 +270,6 @@ def makeCopyingField(field):
 	return newField
 
 
-# This is a schema for the field description table used by
-# sqlsupport.MetaTableHandler.  WARNING: If you change anything here, you'll
-# probably have to change DataField, too (plus, of course, the schema of
-# any meta tables you may already have); plus, fromMetaTableRow has
-# this hardcoded as well.  In short, don't change anything here, think
-# of something better :-)
-
-metaTableFields = [
-	DataField(dest="tableName", dbtype="text", primary=True, 
-		description="Name of the table the column is in"),
-	DataField(dest="fieldName", dbtype="text", primary=True,
-		description="SQL identifier for the column"),
-	DataField(dest="unit", dbtype="text", description="Unit for the value"),
-	DataField(dest="ucd", dbtype="text", description="UCD for the column"),
-	DataField(dest="description", dbtype="text", 
-		description="A one-line characterization of the value"),
-	DataField(dest="tablehead", dbtype="text", 
-		description="A string suitable as a table heading for the values"),
-	DataField(dest="longdescr", dbtype="text", 
-		description="A possibly long information on the values"),
-	DataField(dest="longmime", dbtype="text", 
-		description="Mime type of longdescr"),
-	DataField(dest="utype", dbtype="text", description="A utype for the column"),
-	DataField(dest="colInd", dbtype="integer", description=
-		"Index of the column within the table"),
-	DataField(dest="type", dbtype="text", description="SQL type of this column"),
-	DataField(dest="verbLevel", dbtype="integer", 
-		description="Level of verbosity at which to include this column"),
-]
-
-
 class DataTransformer(record.Record, meta.MetaMixin):
 	"""is a generic description of a class receiving data in some format
 	and generating data in a different format.
@@ -319,7 +291,7 @@ class DataTransformer(record.Record, meta.MetaMixin):
 		}
 		baseFields.update(additionalFields)
 		record.Record.__init__(self, baseFields, initvals)
-		self.rD = parentRD
+		self.rd = parentRD
 		self.setMetaParent(parentRD)
 
 	def __repr__(self):
@@ -361,7 +333,7 @@ class DataTransformer(record.Record, meta.MetaMixin):
 	def copy(self):
 		"""returns a deep copy of self.
 		"""
-		nd = self.__class__(self.rD,
+		nd = self.__class__(self.rd,
 			source=self.get_source(),
 			sourcePat=self.get_sourcePat(),
 			encoding=self.get_encoding())
@@ -378,7 +350,7 @@ class DataTransformer(record.Record, meta.MetaMixin):
 		return nd
 
 	def getRd(self):
-		return self.rD
+		return self.rd
 	
 	def getTableDefByName(self, name):
 		"""returns the record definition for the table name.

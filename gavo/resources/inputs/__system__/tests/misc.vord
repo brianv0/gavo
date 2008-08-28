@@ -8,15 +8,24 @@
 		<KeyValueGrammar>
 		</KeyValueGrammar>
 		<Semantics>
-			<Record table="files">
+			<Table table="files">
 				<Field dest="name" dbtype="text" default="@srcstem" primary="True"/>
 				<Field dest="a" source="a"/>
 				<Field dest="b" source="b"/>
-			</Record>
+			</Table>
 		</Semantics>
 		<script type="postCreation" name="makeWritable">
 			GRANT ALL ON __tests.files TO gavo
 		</script>
+	</Data>
+
+	<Data id="boxTest" virtual="True">
+		<DictlistGrammar/>
+		<Semantics>
+			<Table table="misctypes">
+				<Field dest="box" source="box" dbtype="box"/>
+			</Table>
+		</Semantics>
 	</Data>
 
 	<Service id="upload">

@@ -74,7 +74,43 @@
 		</Semantics>
 		<RowsetGrammar fieldsFrom="typestabledef"/>
 	</Data>
-	
+
+	<Data id="boxTest" virtual="True">
+		<DictlistGrammar/>
+		<Semantics>
+			<Table table="misctypes">
+				<Field dest="box" source="box" dbtype="box"/>
+			</Table>
+		</Semantics>
+	</Data>
+
+	<Data id="twtsetdata" virtual="True">
+		<DictlistGrammar/>
+		<Semantics>
+			<Table table="twtest">
+				<!-- filled in by unit test -->
+			</Table>
+		</Semantics>
+	</Data>
+
+	<Data id="siaptest" virtual="True">
+		<DictlistGrammar/>
+		<Semantics>
+			<Table table="siaptable">
+				<implements name="bboxSiap"/>
+			</Table>
+		</Semantics>
+	</Data>
+
+	<Data id="viziertest" virtual="True">
+		<DictlistGrammar/>
+		<Semantics>
+			<Table table="vizierstrings">
+				<Field dest="s" source="s" dbtype="text"/>
+			</Table>
+		</Semantics>
+	</Data>
+
 	<Data id="ADQLTest">
 		<Semantics>
 			<Record table="adql" id="adqlcols">

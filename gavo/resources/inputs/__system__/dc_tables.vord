@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- meta tables containing field descriptions of all fields of data center
-tables and the RDs the tables come from.
+tables and the RDs the tables come from. -->
 
-XXX TODO: more fielddescriptions in here, too -->
 
 <ResourceDescriptor srcdir="__system">
 	<schema>public</schema>
@@ -13,7 +12,7 @@ XXX TODO: more fielddescriptions in here, too -->
 	<Data id="tablesVsRDs">
 		<NullGrammar/>
 		<Semantics>
-			<SharedRecord table="dc_tables">
+			<SharedTable table="dc_tables">
 				<Field dest="tableName" description="Fully qualified table name"
 					dbtype="text" source="tableName"/>
 				<Field dest="sourceRd" dbtype="text" source="sourceRd"
@@ -22,7 +21,39 @@ XXX TODO: more fielddescriptions in here, too -->
 					description="Id of the data section that houses this table"/>
 				<Field dest="adql" dbtype="boolean" source="adql"
 					description="True if this table may be accessed using ADQL"/>
-			</SharedRecord>
+			</SharedTable>
+		</Semantics>
+	</Data>
+
+	<Data id="fields">
+		<NullGrammar/>
+		<Semantics>
+			<!-- right now, DataField mirrors this.  This should change, but
+			until then, you'll need to edit datafield.py if you edit this. -->
+			<SharedTable table="fielddescriptions">
+				<Field dest="tableName" dbtype="text" primary="True" 
+					description="Name of the table the column is in"/>
+				<Field dest="fieldName" dbtype="text" primary="True"
+					description="SQL identifier for the column"/>
+				<Field dest="unit" dbtype="text" description="Unit for the value"/>
+				<Field dest="ucd" dbtype="text" description="UCD for the column"/>
+				<Field dest="description" dbtype="text" 
+					description="A one-line characterization of the value"/>
+				<Field dest="tablehead" dbtype="text" 
+					description="A string suitable as a table heading for the values"/>
+				<Field dest="longdescr" dbtype="text" 
+					description="A possibly long information on the values"/>
+				<Field dest="longmime" dbtype="text" 
+					description="Mime type of longdescr"/>
+				<Field dest="utype" dbtype="text" 
+					description="The utype for the column"/>
+				<Field dest="colInd" dbtype="integer" 
+					description="Index of the column within the table"/>
+				<Field dest="type" dbtype="text" 
+					description="SQL type of this column"/>
+				<Field dest="verbLevel" dbtype="integer" 
+					description="Level of verbosity at which to include this column"/>
+			</SharedTable>
 		</Semantics>
 	</Data>
 

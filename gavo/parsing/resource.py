@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import traceback
+import warnings
 import weakref
 
 import gavo
@@ -48,25 +49,6 @@ class PCToken(object):
 		return self.value
 
 
-def getMetaTableTableDef(tableName):
-	"""returns a TableDef suitable for meta tables.
-
-	Meta tables are the ones that keep information on units, ucds, etc
-
-	It is computed from sqlsupport's definition of the table in
-	metaTableFields.  Unfortunately, DataField.getMetaRow
-	also depends on that structure, so if anything serious changes
-	in metaTableFields, you'll have to do work there, too.
-	"""
-	metaDef = TableDef()
-	metaDef.set_table(tableName)
-	metaDef.addto_items(DataField(dest="tableName", dbtype="text",
-		default=tableName))
-	for fieldName, dbtype, options in sqlsupport.metaTableFields:
-		metaDef.addto_items(DataField(dest=fieldName, dbtype=dbtype))
-	return metaDef
-
-
 class Semantics(record.Record):
 	"""is a specification for the semantics of nonterminals defined
 	by the grammar.
@@ -102,7 +84,7 @@ class TableDef(record.Record, meta.MetaMixin, scripting.ScriptingMixin):
 	"""
 	validWaypoints = set(["preIndex", "preIndexSQL"])
 
-	def __init__(self, initvals={}):
+	def __init__(self, rd, initvals={}):
 		record.Record.__init__(self, {
 			"table": record.RequiredField,  # name of destination table
 			"items": record.DataFieldList,  # list of FieldDefs for this record
@@ -120,18 +102,22 @@ class TableDef(record.Record, meta.MetaMixin, scripting.ScriptingMixin):
 			"transparent": record.BooleanField,  # get fields from (rowset)grammar
 			"scripts": record.ListField,
 		}, initvals)
+		self.rd = rd
 		self.fieldIndexDict = {}
 
 	def __repr__(self):
 		return "<TableDef %s, %s>"%(id(self), id(self.get_items()))
 
 	def getRd(self):
-# XXX TODO: TableDefs traditionally didn't know their data 
-# definition because they were supposed to be "floatable".  This
-# is rubbish given that we're copying them like mad, and so they should
-# be parented, which solves a host of issues.  Then we can return the
-# real rd here, which is a good thing for scripting.
-		return None
+		warnings.warn("Access TableDef.rd directly, don't call getRd",
+			warnings.DeprecationWarning)
+		return self.rd
+
+	def getQName(self):
+		if self.rd==None:
+			raise Error("TableDefs without resource descriptor have no"
+				" qualified names")
+		return "%s.%s"%(self.rd.get_schema(), self.get_table())
 
 	def validate(self, record):
 		"""checks that record complies with all known constraints on
@@ -413,13 +399,13 @@ class DataSet(meta.MetaMixin):
 	def getDocFields(self):
 		return self.docFields
 
-	def exportToSql(self, schema):
+	def exportToSql(self):
 		if not self.getDescriptor().get_virtual():
 			for table in self.tables:
 				if self.dD.get_ignoredSources():
 					table.tableDef.set_create(False)
 					table.tableDef.set_owningCondition(None)
-				table.exportToSql(schema)
+				table.exportToSql()
 		self.dD.runScripts("processTable")
 		self.dD.runScripts("postCreation")
 
@@ -531,7 +517,7 @@ class Resource:
 		for dataSet in self:
 			if onlyDDs and dataSet.getDescriptor().get_id() not in onlyDDs:
 				continue
-			dataSet.exportToSql(rd.get_schema())
+			dataSet.exportToSql()
 		self.desc.runScripts("postCreation")
 		self.makeTimestamp()
 		self.rebuildDependents()
@@ -718,13 +704,13 @@ class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin):
 
 	def get_source(self):
 		if self.dataStore["source"]:
-			return os.path.join(self.rD.get_resdir(), 
+			return os.path.join(self.rd.get_resdir(), 
 				self.dataStore["source"])
 
 	def iterSources(self):
-		if not os.path.isdir(self.rD.get_resdir()):
+		if not os.path.isdir(self.rd.get_resdir()):
 			raise Error("Resource directory %s does not exist or is"
-				" not a directory."%self.rD.get_resdir())
+				" not a directory."%self.rd.get_resdir())
 		if self.get_source():
 			yield self.get_source()
 		if self.get_sourcePat():
@@ -732,7 +718,7 @@ class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin):
 				), os.path.basename(self.get_sourcePat())
 			sources = []
 			for path, dirs, files in utils.symlinkwalk(os.path.join(
-					self.rD.get_resdir(), dirPart)):
+					self.rd.get_resdir(), dirPart)):
 				for fName in glob.glob(os.path.join(path, filePart)):
 					if os.path.isfile(fName) and not utils.getRelativePath(fName,
 							config.get("inputsDir")) in self.get_ignoredSources():
@@ -768,7 +754,7 @@ def makeSimpleDataDesc(rd, tableDef):
 		"Semantics": Semantics(
 				initvals={
 					"tableDefs": [
-						TableDef(initvals={
+						TableDef(rd, initvals={
 							"table": None,
 							"items": tableDef,
 						})

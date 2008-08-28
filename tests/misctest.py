@@ -83,7 +83,7 @@ class FitsWriterTest(unittest.TestCase):
 			Semantics=resource.Semantics(
 				initvals={
 					"tableDefs": [
-						resource.TableDef(initvals={
+						resource.TableDef(rd, initvals={
 							"table": "foo",
 							"items": fields,
 							"create": True,
@@ -115,7 +115,7 @@ class FitsWriterTest(unittest.TestCase):
 		"""tests for creation of a two-extension FITS table.
 		"""
 		rd = self._makeRd(_getFields("klein", "prim", "nopt", "indf"))
-		rec2 = resource.TableDef(initvals={
+		rec2 = resource.TableDef(rd, initvals={
 			"table": "part",
 			"items": _getFields("prim", "nopt"),
 			"create": True,
@@ -254,5 +254,5 @@ def singleTest():
 
 
 if __name__=="__main__":
-#	unittest.main()
-	singleTest()
+	unittest.main()
+#	singleTest()

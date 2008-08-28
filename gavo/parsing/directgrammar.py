@@ -126,13 +126,13 @@ class DirectGrammar(record.Record):
 		record.Record.__init__(self, {})
 
 	def _parseUsingCBooster(self, parseContext):
-		rD = parseContext.dataSet.dD.rD
+		rd = parseContext.dataSet.dD.rd
 		booster = CBooster(self.attrs["cbooster"], self.attrs.get("recordSize"),
 			parseContext.getDataSet().getDescriptor(), 
 			gzippedInput=self.attrs.has_key("gzippedInput") 
 				and record.parseBooleanLiteral(self.attrs["gzippedInput"]),
 			preFilter=self.attrs.has_key("preFilter")
-				and os.path.join(rD.get_resdir(), self.attrs["preFilter"]),
+				and os.path.join(rd.get_resdir(), self.attrs["preFilter"]),
 			autoNull=self.attrs.get("autoNull", None),
 			ignoreBadRecords=record.parseBooleanLiteral(
 				self.attrs.get("ignoreBadRecords", "False")))

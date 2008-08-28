@@ -49,7 +49,7 @@ class VotableTest(unittest.TestCase):
 			"Semantics": resource.Semantics(
 				initvals={
 					"tableDefs": [
-						resource.TableDef(initvals={
+						resource.TableDef(rd, initvals={
 							"table": None,
 							"items": dataFields,
 						})

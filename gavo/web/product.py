@@ -125,7 +125,7 @@ class Product(standardcores.DbBasedCore):
 			resourcecache.getRd("__system__/products/products"), 
 				{"table": "products"})
 		origDD = self.rd.getDataById("data")
-		inputDef = resource.TableDef()
+		inputDef = resource.TableDef(self.rd)
 		inputDef.updateFrom(origDD.getPrimaryTableDef())
 		inputDef.set_items([datadef.OutputField.fromDataField(f) 
 			for f in inputDef.get_items()])

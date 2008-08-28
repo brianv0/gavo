@@ -285,7 +285,8 @@ class Products(Interface):
 		prepending a shared record definition to the current TableDef.
 		"""
 		sourceTable = "@schemaq,%s"%recordNode.get_table()
-		productTable = resource.TableDef()
+# XXX TODO: Take table def from rd
+		productTable = resource.TableDef(None)
 		productTable.set_shared(True)
 		productTable.set_table("products")
 		productTable.set_owningCondition(("sourceTable", sourceTable))

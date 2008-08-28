@@ -355,8 +355,9 @@ class StringQueryTest(unittest.TestCase):
 	"""
 	def setUp(self):
 		config.setDbProfile("test")
-		tw = sqlsupport.TableWriter("vizierstrings",
-			[contextgrammar.InputKey(source="s", dest="s", dbtype="text"),])
+		tableDef = testhelpers.getTestTable("vizierstrings")
+		tw = sqlsupport.TableWriter(tableDef)
+#			[contextgrammar.InputKey(source="s", dest="s", dbtype="text"),])
 		tw.createTable()
 		feed = tw.getFeeder()
 		feed({"s": ""})
@@ -371,6 +372,8 @@ class StringQueryTest(unittest.TestCase):
 		feed({"s": "a|b"})
 		feed({"s": r"\it"})
 		feed.close()
+		tw.finish()
+		self.tableName = tableDef.getQName()
 
 	def _runCountTests(self, tests):
 		querier = sqlsupport.SimpleQuerier()
@@ -378,8 +381,8 @@ class StringQueryTest(unittest.TestCase):
 		try:
 			for vExpr, numberExpected in tests:
 				pars = {}
-				query = "SELECT * FROM vizierstrings WHERE %s"%vizierexprs.getSQL(
-					ik, {"s": vExpr}, pars)
+				query = "SELECT * FROM %s WHERE %s"%(self.tableName,
+					vizierexprs.getSQL(ik, {"s": vExpr}, pars))
 				res = querier.query(query, pars).fetchall()
 				self.assertEqual(len(res), numberExpected,
 					"Query %s with parameters %s didn't yield exactly %d result(s).\n"
@@ -430,7 +433,7 @@ class StringQueryTest(unittest.TestCase):
 
 	def tearDown(self):
 		querier = sqlsupport.SimpleQuerier()
-#		querier.query("DROP TABLE vizierstrings CASCADE")
+#		querier.query("DROP TABLE %s CASCADE"%self.tableName)
 		querier.commit()
 
 

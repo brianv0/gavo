@@ -135,7 +135,8 @@ class TestTableWriter(unittest.TestCase):
 	"""
 	def setUp(self):
 		config.setDbProfile("test")
-		self.tableName = "twtest"
+		self.tableDef = testhelpers.getTestTable("twtest")
+		self.tableName = self.tableDef.getQName()
 
 	def testSimpleCreationAndIsolation(self):
 		"""tests for creation of a simple table and isolation during feeding.
@@ -143,8 +144,8 @@ class TestTableWriter(unittest.TestCase):
 		def countTb():
 			return len(sq.runIsolatedQuery("SELECT * FROM %s"%self.tableName))
 
-		fields = _getFields("klein", "echter")
-		tw = sqlsupport.TableWriter(self.tableName, fields)
+		self.tableDef.set_items(_getFields("klein", "echter"))
+		tw = sqlsupport.TableWriter(self.tableDef)
 		try:
 			tw.createTable()
 			feed = tw.getFeeder()
@@ -154,7 +155,7 @@ class TestTableWriter(unittest.TestCase):
 			tw.finish()
 		sq = sqlsupport.SimpleQuerier()
 		self.assertEqual(1, countTb(), "Data didn't make it to db?")
-		tw = sqlsupport.TableWriter(self.tableName, fields)
+		tw = sqlsupport.TableWriter(self.tableDef)
 		try:
 			tw.createTable()
 			feed = tw.getFeeder()
@@ -171,8 +172,8 @@ class TestTableWriter(unittest.TestCase):
 	def testCreationWithIndices(self):
 		"""tests for table creation and modification using indices.
 		"""
-		fields = _getFields("klein", "prim", "indf")
-		tw = sqlsupport.TableWriter(self.tableName, fields)
+		self.tableDef.set_items(_getFields("klein", "prim", "indf"))
+		tw = sqlsupport.TableWriter(self.tableDef)
 		try:
 			tw.createTable()
 			feed = tw.getFeeder()
@@ -187,12 +188,12 @@ class TestTableWriter(unittest.TestCase):
 		for indexName in tw.getIndices():
 			self.failUnless(sq.hasIndex(self.tableName, indexName), "Index %s"
 				" was not generated"%indexName)
-		self.failUnless(sq.hasIndex(self.tableName, self.tableName+"_pkey"), 
+		self.failUnless(sq.hasIndex(self.tableName, tw.getPIName()), 
 			"Primary key was not recognized") 
-		tw = sqlsupport.TableWriter(self.tableName, fields)
+		tw = sqlsupport.TableWriter(self.tableDef)
 		try:
 			feed = tw.getFeeder(dropIndices=False)
-			self.failUnless(tw.hasIndex(self.tableName, self.tableName+"_pkey"), 
+			self.failUnless(tw.hasIndex(self.tableName, tw.getPIName()), 
 				"Primary key was dropped on update despite dropIndices=False") 
 			self.assertRaises(sqlsupport.DbError, feed,
 				{"klein": 2, "prim": 5, "indf": 17.2})
@@ -205,8 +206,8 @@ class TestTableWriter(unittest.TestCase):
 	def testUpdater(self):
 		"""tests for the table updater.
 		"""
-		fields = _getFields("klein", "prim", "indf")
-		tw = sqlsupport.TableWriter(self.tableName, fields)
+		self.tableDef.set_items(_getFields("klein", "prim", "indf"))
+		tw = sqlsupport.TableWriter(self.tableDef)
 		sq = sqlsupport.SimpleQuerier()
 		tw.createTable()
 		feed = tw.getFeeder()
@@ -215,15 +216,15 @@ class TestTableWriter(unittest.TestCase):
 		feed.close()
 		tw.finish()
 
-		tu = sqlsupport.TableUpdater(self.tableName, fields)
+		tu = sqlsupport.TableUpdater(self.tableDef)
 		feed = tu.getFeeder()
-		self.failIf(tu.hasIndex(self.tableName, self.tableName+"_pkey"), 
+		self.failIf(tu.hasIndex(self.tableName, tw.getPIName()),
 			"Primary key was not dropped on update") 
 		feed({"klein": 8, "prim": 5, "indf": 12.2})
 		feed.close()
 		tu.finish()
 
-		self.failUnless(sq.hasIndex(self.tableName, self.tableName+"_pkey"), 
+		self.failUnless(sq.hasIndex(self.tableName, tw.getPIName()),
 			"Primary key was not restored after update")
 		self.assertEqual(sq.runIsolatedQuery("SELECT klein FROM %s"
 			" WHERE prim=5"%
@@ -262,7 +263,7 @@ class TestImport(unittest.TestCase):
 			Semantics=resource.Semantics(
 				initvals={
 					"tableDefs": [
-						resource.TableDef(initvals={
+						resource.TableDef(rd, initvals={
 							"table": self.tableName,
 							"items": fields,
 							"create": True,
@@ -278,7 +279,7 @@ class TestImport(unittest.TestCase):
 			dataSource=[
 				(1, 2.5, 4),
 				(2, 7.5, 9),])
-		ds.exportToSql(rd.get_schema())
+		ds.exportToSql()
 		sq = sqlsupport.SimpleQuerier()
 		noRows = sq.runIsolatedQuery("SELECT count(*) FROM test.imptest")[0][0]
 		self.assertEqual(2, noRows, "Import didn't leave exactly two rows")
@@ -286,7 +287,7 @@ class TestImport(unittest.TestCase):
 			dataSource=[
 				(2, 9.3, 14),
 				(2, 9.8, 19)])
-		self.assertRaises(gavo.Error, ds.exportToSql, rd.get_schema())
+		self.assertRaises(gavo.Error, ds.exportToSql)
 		res = sq.runIsolatedQuery("SELECT nopt FROM test.imptest WHERE prim=1")
 		self.assertEqual(len(res), 1, "Failed import damages table")
 		self.assertEqual(res[0][0], 2.5, "Failed import damages table content")
@@ -300,13 +301,13 @@ class TestImport(unittest.TestCase):
 		ds = resource.InternalDataSet(rd.get_dataSrcs()[0], table.Table, 
 			dataSource=[
 				(1, "honk"), (2, "honk"), (3, "flob"), (4, "flob"), (5, "nox")])
-		ds.exportToSql(rd.get_schema())
+		ds.exportToSql()
 		td = rd.getTableDefByName(self.tableName)
 		td.set_shared(True)
 		td.set_owningCondition(("indf", "flob"))
 		ds = resource.InternalDataSet(rd.get_dataSrcs()[0], table.Table, 
 			dataSource=[(7, "flob"), (8, "flob"), (9, "flob")])
-		ds.exportToSql(rd.get_schema())
+		ds.exportToSql()
 		sq = sqlsupport.SimpleQuerier()
 		res = sq.runIsolatedQuery("SELECT prim FROM imptest WHERE indf='flob'")
 		self.assertEqual(len(res), 3, "Weird goings-on with sharedTables")
@@ -458,7 +459,7 @@ class ScriptSplitterTest(testhelpers.VerboseTest):
 
 
 def singleTest():
-	suite = unittest.makeSuite(TestSimpleQueries, "testIso")
+	suite = unittest.makeSuite(TestTableWriter, "testCreationWith")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 

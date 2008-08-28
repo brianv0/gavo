@@ -92,7 +92,7 @@ def makeFromFITS(srcName, opts):
 		header = fitstools.openFits(srcName)[0].header
 		return header.ascardlist()
 
-	record = resource.TableDef()
+	record = resource.TableDef(None)
 	record.set_table("data")
 	for index, card in enumerate(getHeaderKeys(srcName)):
 		if card.key in ignoredFITSHeaders:
@@ -109,7 +109,7 @@ def makeVOTableFieldName(field, ind):
 def makeFromVOTable(srcName, opts):
 	vot = VOTable.parse(open(srcName))
 	srcTable = vot.resources[0].tables[0]
-	record = resource.TableDef()
+	record = resource.TableDef(None)
 	record.set_table("data")
 	for ind, f in enumerate(srcTable.fields):
 		colName = makeVOTableFieldName(f, ind)

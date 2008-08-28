@@ -192,20 +192,17 @@ class Table(RecordBasedTable):
 		self.metaOnly = metaOnly
 		RecordBasedTable.__init__(self, dataSet, tableDef)
 	
-	def _exportToMetaTable(self, schema=None):
+	def _exportToMetaTable(self):
 		"""writes the column definitions to the sqlsupport-defined meta table.
 		"""
-		if schema:
-			tableName = "%s.%s"%(schema, self.tableDef.get_table())
-		else:
-			tableName = self.tableDef.get_table()
+		tableName = self.tableDef.getQName()
 		metaHandler = sqlsupport.MetaTableHandler()
 		metaHandler.defineColumns(tableName,
 			[field.getMetaRow() for field in self.getFieldDefs()])
 		if self.dataSet:
 			dd = self.dataSet.dD
 			metaHandler.updateSourceTable(tableName=tableName,
-				rdId=dd.rD.sourceId, dataId=dd.get_id(), adqlAllowed=dd.get_adql())
+				rdId=dd.rd.sourceId, dataId=dd.get_id(), adqlAllowed=dd.get_adql())
 
 	def _feedData(self, feed):
 		"""writes the rows through the sqlsupport feeder feed.
@@ -230,26 +227,24 @@ class Table(RecordBasedTable):
 			counter.close()
 			feed.close()
 
-	def _getOwnedTableWriter(self, schema):
-		tableName = "%s.%s"%(schema, self.tableDef.get_table())
-		tableExporter = sqlsupport.TableWriter(tableName,
-			self.tableDef.get_items(), self.dbConnection, 
-			scriptRunner=self.tableDef)
-		tableExporter.ensureSchema(schema)
+	def _getOwnedTableWriter(self):
+		tableName = self.tableDef.getQName()
+		tableExporter = sqlsupport.TableWriter(self.tableDef,
+			self.dbConnection, scriptRunner=self.tableDef)
 		tableExporter.createTable(create=self.tableDef.get_create(),
 			delete=self.tableDef.get_create(),
 			privs=self.tableDef.get_create())
 		return tableExporter
 
-	def _exportOwnedTable(self, schema):
+	def _exportOwnedTable(self):
 		"""recreates our data in an SQL database.
 
 		cf. exportToSQL.
 		"""
 		if self.tableDef.get_create():
-			self._exportToMetaTable(schema)
+			self._exportToMetaTable()
 		if not self.metaOnly:
-			tableWriter = self._getOwnedTableWriter(schema)
+			tableWriter = self._getOwnedTableWriter()
 			gavo.ui.displayMessage("Exporting %s to table %s"%(
 				self.getDataId(), tableWriter.getTableName()))
 			self._feedData(tableWriter.getFeeder())
@@ -258,25 +253,18 @@ class Table(RecordBasedTable):
 	def _getSharedTableWriter(self):
 		"""returns a sqlsupport.TableWriter instance for this data set's
 		target Table.
-
-		These ignore the schema of the rd since it's in all likelihood
-		not theirs.  In other words: Shared tables must always lie in the
-		public schema.
 		"""
-# XXX do we want a "system" or "shared" schema for these?
 		tableName = self.tableDef.get_table()
-		tableWriter = sqlsupport.TableWriter(tableName,
-			self.tableDef.get_items(), self.dbConnection)
+		tableWriter = sqlsupport.TableWriter(self.tableDef, self.dbConnection)
 		if self.tableDef.get_owningCondition():
 			colName, colVal = self.tableDef.get_owningCondition()
 			tableWriter.deleteMatching((colName, parsehelpers.atExpand(
 				colVal, {}, self.dataSet.getDescriptor().getRd().get_atExpander())))
 		return tableWriter
 
-	def _getTableUpdater(self, schema):
-		tableName = "%s.%s"%(schema, self.tableDef.get_table())
-		return sqlsupport.TableUpdater(tableName,
-			self.tableDef.get_items(), self.dbConnection)
+	def _getTableUpdater(self):
+		tableName = self.tableDef.getQName()
+		return sqlsupport.TableUpdater(self.tableDef, self.dbConnection)
 
 	def _exportSharedTable(self):
 		"""updates data owned by this data set.
@@ -291,7 +279,7 @@ class Table(RecordBasedTable):
 			self._feedData(tableWriter.getFeeder(dropIndices=False))
 			tableWriter.finish()
 
-	def exportToSql(self, schema):
+	def exportToSql(self):
 		"""writes the data table to an SQL database.
 
 		This method only knows about table names.  The details
@@ -301,7 +289,7 @@ class Table(RecordBasedTable):
 		if self.tableDef.get_shared():
 			self._exportSharedTable()
 		else:
-			self._exportOwnedTable(schema)
+			self._exportOwnedTable()
 
 
 class UniqueForcedTable(Table):
@@ -395,14 +383,12 @@ class DirectWritingTable(Table):
 		self.dbConnection = dbConnection
 		Table.__init__(self, dataSet, tableDef)
 		if doUpdates:
-			self.tableWriter = self._getTableUpdater(
-				self.dataSet.getRd().get_schema())
+			self.tableWriter = self._getTableUpdater()
 		else:
 			if self.tableDef.get_shared():
 				self.tableWriter = self._getSharedTableWriter()
 			else:
-				self.tableWriter = self._getOwnedTableWriter(
-					self.dataSet.getRd().get_schema())
+				self.tableWriter = self._getOwnedTableWriter()
 		self.feeder = self.tableWriter.getFeeder(dropIndices=dropIndices)
 
 	def getTableName(self):
@@ -416,7 +402,7 @@ class DirectWritingTable(Table):
 		Table.finishBuild(self)
 		self.tableWriter.finish()
 
-	def exportToSql(self, schema):
+	def exportToSql(self):
 		return
 
 	def copyIn(self, copySrc):

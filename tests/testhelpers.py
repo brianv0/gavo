@@ -7,6 +7,9 @@ import popen2
 import tempfile
 import unittest
 
+from gavo import resourcecache
+from gavo.parsing import importparser
+
 
 class VerboseTest(unittest.TestCase):
 	"""contains a few methods for improved error reporting.
@@ -60,4 +63,16 @@ class XSDTestMixin(object):
 				raise AssertionError(xercMsgs)
 		finally:
 			os.unlink(inName)
+
+
+def getTestRD():
+	return resourcecache.getRd(os.path.abspath("test.vord"))
+
+
+def getTestTable(tableName):
+	return getTestRD().getTableDefByName(tableName)
+
+
+def getTestData(dataId):
+	return getTestRD().getDataById(dataId)
 

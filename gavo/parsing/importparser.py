@@ -303,7 +303,7 @@ class RdParser(nodebuilder.NodeBuilder):
 			recDef = self.resolveItemReference(attrs["original"])
 			setDefaults = False
 		else:
-			recDef = resource.TableDef()
+			recDef = resource.TableDef(self.rd)
 			setDefaults = True
 		# Ouch -- if I have a copy, I don't want to overwrite attributes
 		# not given with defaults.  This sort of mess would be necessary

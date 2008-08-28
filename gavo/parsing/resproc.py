@@ -105,7 +105,7 @@ class FielddocBuilder(ResourceProcessor):
 		Currently hardcoded assumption: The field name is the primary
 		key of the source table(s).
 		"""
-		tableDef = resource.TableDef()
+		tableDef = resource.TableDef(None) # XXX this module is crap anyway
 		tableDef.addto_items(
 			DataField(name="type", type="str", length=None, primary=True))
 		tableDef.addto_items(

@@ -16,6 +16,8 @@ from gavo import utils
 from gavo.coords import Vector3
 from gavo.web import siap
 
+import testhelpers
+
 
 def raCorr(dec):
 	return math.cos(utils.degToRad(dec))
@@ -213,8 +215,9 @@ class TestCoordinateQueries(unittest.TestCase):
 				"owner": None,
 			}
 		config.setDbProfile("test")
-		tw = sqlsupport.TableWriter("simplewcs", 
-			[f for _, f in interfaces.BboxSiap().getNodes(None)])
+		tableDef = testhelpers.getTestTable("siaptable")
+		tw = sqlsupport.TableWriter(tableDef)
+		self.tableName = tableDef.getQName()
 		tw.createTable()
 		feed = tw.getFeeder()
 		for pos, size in [
@@ -261,7 +264,8 @@ class TestCoordinateQueries(unittest.TestCase):
 					"SIZE": size,
 					"INTERSECT": type})
 				res = querier.query(
-					"SELECT * FROM simplewcs WHERE %s"%fragment, pars).fetchall()
+					"SELECT * FROM %s WHERE %s"%(self.tableName, fragment), 
+					pars).fetchall()
 				self.assertEqual(len(res), expected[self._intersectionIndex[type]], 
 					"%d instead of %d matched when queriying for %s %s"%(len(res), 
 					expected[self._intersectionIndex[type]], type, (center, size)))
@@ -292,7 +296,7 @@ class TestCoordinateQueries(unittest.TestCase):
 		"""drops the test table.
 		"""
 		querier = sqlsupport.SimpleQuerier()
-#		querier.query("DROP TABLE simplewcs CASCADE")
+#		querier.query("DROP TABLE %s CASCADE"%self.tableName)
 		querier.commit()
 
 

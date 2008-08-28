@@ -8,6 +8,8 @@ import sys
 import operator
 
 from gavo import config
+from gavo import resourcecache  # we need importparser.getRd from there,
+# so somebody else has to import it
 
 debug = False
 
@@ -155,8 +157,6 @@ class FieldError(gavo.Error):
 
 # This is the name of the (global) table containing units, ucds, descriptions,
 # etc for all table rows of user tables
-# XXX TODO: Make a resource descriptor for these
-metaTableName = "fielddescriptions"
 tableSourceName = "dc_tables"
 
 
@@ -376,20 +376,25 @@ class StandardQueryMixin(object):
 class TableInterface(StandardQueryMixin):
 	"""is a base class for table writers and updaters.
 
-	A TableInterface is constructed with a parsing.TableDef instance
-	Table names are not parsed.  If they include a schema, you need
-	to make sure it exists (ensureSchema) before creating the table.
+	A TableInterface is constructed with a parsing.TableDef instance.
+	The TableDef instance must be "rooted", i.e. have a non-None rd
+	attribute.
 
 	The table definition is through a sequence of datadef.DataField
 	instances.
 	"""
-	def __init__(self, tableName, fields, dbConnection=None):
+	def __init__(self, tableDef, dbConnection=None):
 		if dbConnection:
 			self.connection = dbConnection
 		else:
 			self.connection = getDbConnection(config.getDbProfile())
-		self.tableName = tableName
-		self.fields = fields
+		self.tableDef = tableDef
+		if self.tableDef.rd==None:
+			raise Error("TableDefs without resource descriptor cannot be"
+				" used to access database tables")
+		self.fields = self.tableDef.get_items()
+		self.tableName = self.tableDef.getQName()
+		self.ensureSchema(self.tableDef.rd.get_schema())
 
 	def getIndices(self):
 		indices = {}
@@ -415,14 +420,20 @@ class TableInterface(StandardQueryMixin):
 				raise gavo.Error("Primary key %s could not be added (%s)"%(
 					primary, repr(str(msg))))
 
+	def getPIName(self):
+		"""is the name of the primary index on this table.
+
+		*** Postgres specific ***
+		"""
+		return "%s_pkey"%self.tableDef.get_table()
+
 	def _dropPrimaryKey(self):
 		"""drops a primary key if it exists.
 
 		*** Postgres specific ***
 		"""
 		primary = self._computePrimaryDef()
-		_, unqualified = self._parseTableName(self.tableName)
-		constraintName = "%s_pkey"%unqualified
+		constraintName = self.getPIName()
 		if primary and self.hasIndex(self.tableName, constraintName):
 			self.query("ALTER TABLE %s DROP CONSTRAINT %s"%(
 				self.tableName, constraintName))
@@ -490,6 +501,22 @@ class TableInterface(StandardQueryMixin):
 	def getTableName(self):
 		return self.tableName
 
+	def ensureTable(self):
+		if self.tableExists(self.tableName):
+			return
+		self.createTable()
+
+	def ensureSchema(self, schemaName):
+		"""makes sure a schema of schemaName exists.
+
+		If it doesn't it will create the schema an set the appropriate
+		privileges.
+		"""
+		if not self.schemaExists(schemaName):
+			self.query("CREATE SCHEMA %(schemaName)s"%locals())
+			for stmt in getSchemaPrivSQL(schemaName):
+				self.query(stmt)
+	
 	def finish(self):
 		self.connection.commit()
 		self.connection.close()
@@ -502,8 +529,8 @@ class TableWriter(TableInterface):
 	"""is a moderately high-level interface to feeding data into an
 	SQL database.
 	"""
-	def __init__(self, tableName, fields, dbConnection=None, scriptRunner=None):
-		super(TableWriter, self).__init__(tableName, fields, dbConnection)
+	def __init__(self, tableDef, dbConnection=None, scriptRunner=None):
+		TableInterface.__init__(self, tableDef, dbConnection)
 		self.scriptRunner = scriptRunner
 
 	def _getDDLDefinition(self, field):
@@ -548,18 +575,7 @@ class TableWriter(TableInterface):
 				))
 		if privs:
 			setPrivileges()
-	
-	def ensureSchema(self, schemaName):
-		"""makes sure a schema of schemaName exists.
 
-		If it doesn't it will create the schema an set the appropriate
-		privileges.
-		"""
-		if not self.schemaExists(schemaName):
-			self.query("CREATE SCHEMA %(schemaName)s"%locals())
-			for stmt in getSchemaPrivSQL(schemaName):
-				self.query(stmt)
-	
 	def getFeeder(self, dropIndices=True):
 		"""returns a callable object that takes dictionaries containing
 		values for the database.
@@ -640,23 +656,21 @@ class MetaTableHandler:
 	"""is an interface to the meta table.
 
 	The meta table holds information on all columns of all user tables
-	in the database.  Its definition is given in datadef.metaTableFields.
+	in the database.  Its definition is given in the __system__/dc_tables
+	RD.
 	"""
 	def __init__(self, querier=None):
 #XXX TODO: passing in a querier and then commiting it is crap.
+		self.tableDef = resourcecache.getRd("__system__/dc_tables"
+			).getTableDefByName("fielddescriptions")
 		if querier==None:
 			self.querier = SimpleQuerier()
 		else:
 			self.querier = querier
-		self.writer = TableWriter(metaTableName, datadef.metaTableFields,
+		self.writer = TableWriter(self.tableDef,
 			dbConnection=self.querier.connection)
-		self._ensureTable()
+		self.writer.ensureTable()
 	
-	def _ensureTable(self):
-		if self.querier.tableExists(metaTableName):
-			return
-		self.writer.createTable()
-
 	def updateSourceTable(self, tableName, rdId, dataId, adqlAllowed):
 # XXX TODO: use data descriptor from dc_tables to do this
 		if tableName=="public.dc_tables":
@@ -672,8 +686,8 @@ class MetaTableHandler:
 
 	def defineColumns(self, tableName, columnDescriptions):
 		self.querier.query(
-			"DELETE FROM %s WHERE tableName=%%(tableName)s"%metaTableName,
-			{"tableName": tableName}).close()
+			"DELETE FROM %s WHERE tableName=%%(tableName)s"%
+				self.tableDef.getQName(), {"tableName": tableName}).close()
 		self.querier.commit()
 		feed = self.writer.getFeeder(dropIndices=False)
 		for colInd, colDesc in enumerate(columnDescriptions):
@@ -705,7 +719,7 @@ class MetaTableHandler:
 			raise FieldError("Invalid column specification: %s"%fieldName)
 		try:
 			res = self.querier.query("SELECT * FROM %s WHERE tableName=%%(tableName)s"
-				" AND fieldName=%%(fieldName)s"%metaTableName, {
+				" AND fieldName=%%(fieldName)s"%self.tableDef.getQName(), {
 					"tableName": tableName,
 					"fieldName": fieldName,})
 			matches = res.fetchall()
@@ -714,18 +728,15 @@ class MetaTableHandler:
 		if len(matches)==0:
 			raise FieldError("No info for %s in %s"%(fieldName, tableName))
 		# since we're querying the primary key, len>1 can't happen
-		for fieldDef, val in zip(datadef.metaTableFields, matches[0]):
+		for fieldDef, val in zip(self.tableDef.get_items(), matches[0]):
 			resDict[fieldDef.get_dest()] = val
 		return resDict
 	
 	def getFieldInfos(self, tableName):
 		"""returns a field definition list for tableName.
-		
-		Each field definition is a dictionary, the keys of which are given by
-		datadef.metaTableFields.  The sequence is in database column order.
 		"""
 		res = self.querier.query("SELECT * FROM %s WHERE tableName=%%(tableName)s"
-			" ORDER BY colInd"%metaTableName, {"tableName": tableName})
+			" ORDER BY colInd"%self.tableDef.getQName(), {"tableName": tableName})
 		fieldInfos = []
 		for row in res.fetchall():
 			fieldInfos.append(datadef.DataField.fromMetaTableRow(row))

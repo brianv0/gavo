@@ -266,14 +266,14 @@ class ScriptingMixin(object):
 
 	The objects have to define a set (or similar) validWaypoints defining
 	what waypoints they'll call, must behave like they are Records sporting a 
-	ListField "scripts", and must return their resource descriptor through
-	a getRd method.
+	ListField "scripts", and must have their resource descriptor in the
+	rd attribute.
 	"""
 	def __getScriptHandler(self):
 		try:
 			return self.__scriptHandler
 		except AttributeError:
-			self.__scriptHandler = ScriptHandler(self, self.getRd())
+			self.__scriptHandler = ScriptHandler(self, self.rd)
 			return self.__getScriptHandler()
 	
 	def runScripts(self, waypoint, **kwargs):

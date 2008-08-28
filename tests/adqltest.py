@@ -693,7 +693,7 @@ class QueryTest(unittest.TestCase):
 			self.rd.getDataById("ADQLTest"),
 				dataSource=[
 				(22, 23, -27, 0),])
-		ds.exportToSql(self.rd.get_schema())
+		ds.exportToSql()
 		self.tableName = self.rd.get_schema()+"."+ds.tables[0].name
 
 	def _assertFieldProperties(self, dataField, expected):

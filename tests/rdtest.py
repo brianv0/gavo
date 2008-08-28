@@ -16,6 +16,8 @@ from gavo.parsing import resource
 import gavo
 import gavo.parsing
 
+import testhelpers
+
 gavo.parsing.verbose = True
 
 
@@ -23,6 +25,7 @@ class MetaTest(unittest.TestCase):
 	"""Test for correct interpretation of meta information.
 	"""
 	def setUp(self):
+		# get a fresh copy of the RD since we're modifying the thing
 		self.rd = importparser.getRd(os.path.abspath("test.vord"))
 		config.addMeta("test.fromConfig", "from Config")
 	
@@ -52,7 +55,7 @@ class ValidationTest(unittest.TestCase):
 	"""Test for validation of values.
 	"""
 	def setUp(self):
-		self.rd = importparser.getRd(os.path.abspath("test.vord"))
+		self.rd = testhelpers.getTestRD()
 
 	def testNumeric(self):
 		"""tests for correct evaluation of numeric limits.
@@ -103,7 +106,7 @@ class SimpleDataTest(unittest.TestCase):
 	"""Test for building of simple tables.
 	"""
 	def setUp(self):
-		self.rd = importparser.getRd(os.path.abspath("test.vord"))
+		self.rd = testhelpers.getTestRD()
 	
 	def testEmptySimpleDataDesc(self):
 		dataDesc = resource.makeSimpleDataDesc(self.rd, [])

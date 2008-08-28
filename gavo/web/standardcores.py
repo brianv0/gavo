@@ -280,7 +280,7 @@ class DbBasedCore(QueryingCore):
 		It requires a method _getQuery returning a TableDef defining
 		the result, an SQL WHERE-clause and its parameters.
 		"""
-		outputDef = resource.TableDef()
+		outputDef = resource.TableDef(self.rd)
 		outputDef.updateFrom(self.tableDef)
 # XXX TODO: It's possible that at some point we'd want constraints in
 # query interpretation, and it's ugly to remove them anyway.  I think

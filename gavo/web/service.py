@@ -290,7 +290,7 @@ class Service(record.Record, meta.MetaMixin):
 							"inputKeys": coreFields,
 						}),
 					"Semantics": resource.Semantics(initvals={
-							"tableDefs": [resource.TableDef(initvals={
+							"tableDefs": [resource.TableDef(self.rd, initvals={
 								"table": "NULL",
 								})]
 						}),
