@@ -20,15 +20,15 @@ class DataCollector:
 	something that looks like it's coming from a dbapi2 cursor) or
 	through getRecords (which returns dictionaries).
 	"""
-	def __init__(self, recordDef):
-		self.recordDef = recordDef
+	def __init__(self, tableDef):
+		self.tableDef = tableDef
 		self.indexDict = dict([(field.get_dest(), index) 
-			for index, field in enumerate(recordDef.get_items())])
+			for index, field in enumerate(tableDef.get_items())])
 		self.recordWidth = max(self.indexDict.values())+1
 		self.data = []
 
-	def getRecordDef(self):
-		return self.recordDef
+	def getTableDef(self):
+		return self.tableDef
 
 	def addData(self, record):
 		self.data.append(record)
@@ -93,7 +93,7 @@ def runChild(args, inputs):
 
 
 def parseAnswer(rawResult, outputService, verbose=False):
-	data = DataCollector(outputService.getRecordDef())
+	data = DataCollector(outputService.getTableDef())
 	outputService.setHandlers(data)
 	outputService.get_Grammar().parse(cStringIO.StringIO(rawResult))
 	return data.fetchall()

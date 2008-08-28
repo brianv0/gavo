@@ -85,8 +85,8 @@ class UploadCore(standardcores.QueryingCore):
 		"""
 		try: # XXX TODO: just in case: make that async (resourcecache.getDBC...)
 			dbConn = sqlsupport.getDbConnection(config.getDbProfileByName("feed"))
-			def makeSharedTable(dataSet, recordDef):
-				return table.DirectWritingTable(dataSet, recordDef, dbConn, 
+			def makeSharedTable(dataSet, tableDef):
+				return table.DirectWritingTable(dataSet, tableDef, dbConn, 
 					doUpdates=mode=="u", dropIndices=False)
 			r = resource.InternalDataSet(self.dataDesc, tableMaker=makeSharedTable,
 				dataSource=sourcePath)
@@ -127,7 +127,7 @@ class UploadCore(standardcores.QueryingCore):
 	def run(self, inputData, queryMeta):
 # XXX TODO: Setting this stuff globally is super ugly.  Figure out how
 # to suppress creation on a case-by-case basis
-		for tableDef in self.dataDesc.get_Semantics().get_recordDefs():
+		for tableDef in self.dataDesc.get_Semantics().get_tableDefs():
 			tableDef.set_create(False)
 # Do we want to interpret the primary table here as well?
 		data = inputData.getDocRec()
@@ -169,15 +169,15 @@ class EditCore(standardcores.QueryingCore):
 
 	def run(self, inputData, queryMeta):
 # XXX TODO: Crap -- see other instance with set_create
-		for tableDef in self.dataDesc.get_Semantics().get_recordDefs():
+		for tableDef in self.dataDesc.get_Semantics().get_tableDefs():
 			tableDef.set_create(False)
 		return defer.maybeDeferred(self._importData, inputData)
 	
 	def _importData(self, inputData):
 		try:
 			dbConn = sqlsupport.getDbConnection(config.getDbProfileByName("feed"))
-			def makeSharedTable(dataSet, recordDef):
-				return table.DirectWritingTable(dataSet, recordDef, dbConn, 
+			def makeSharedTable(dataSet, tableDef):
+				return table.DirectWritingTable(dataSet, tableDef, dbConn, 
 					dropIndices=False)
 			r = resource.InternalDataSet(self.dataDesc,
 				tableMaker=makeSharedTable,

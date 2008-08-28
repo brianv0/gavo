@@ -37,7 +37,7 @@ class Interface:
 	expected as (keyword) arguments to a DataField constructor.
 
 	This is used for the "default" action of interfaces: Adding new nodes
-	to RecordDefs; this is done when importparser calls the getNodes
+	to TableDefs; this is done when importparser calls the getNodes
 	method.  However, interfaces will frequently want to amend the
 	resource descriptor in other parts.  Therefore, they can register
 	delayed children (see NodeBuilder) through their getDelayedNodes
@@ -282,10 +282,10 @@ class Products(Interface):
 
 	def getDelayedNodes(self, recordNode):
 		"""sets up exporting the products to the product table by
-		prepending a shared record definition to the current recordDef.
+		prepending a shared record definition to the current TableDef.
 		"""
 		sourceTable = "@schemaq,%s"%recordNode.get_table()
-		productTable = resource.RecordDef()
+		productTable = resource.TableDef()
 		productTable.set_shared(True)
 		productTable.set_table("products")
 		productTable.set_owningCondition(("sourceTable", sourceTable))

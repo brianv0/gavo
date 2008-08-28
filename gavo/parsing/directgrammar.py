@@ -233,7 +233,7 @@ def printIndented(stringList, indentChar):
 
 def buildSource(dd, opts):
 	codeGen = getCodeGen(opts)
-	recs = dd.get_Semantics().get_recordDefs()
+	recs = dd.get_Semantics().get_tableDefs()
 	if len(recs)!=1:
 		raise Error("Booster can only be defined on Data having exactly one"
 			"Record definition.")

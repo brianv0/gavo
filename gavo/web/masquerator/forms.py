@@ -20,17 +20,17 @@ class DataAdaptor:
 		self.serviceName = serviceName
 		self.computer = self.sd.get_computer()
 		self.dd = self.sd.getDataById(self.serviceName)
-		self.recordDef = self.dd.get_Semantics(
-			).getRecordDefByName(recordName)
+		self.tableDef = self.dd.get_Semantics(
+			).getTableDefByName(recordName)
 
-	def getRecordDef(self):
-		return self.recordDef
+	def getTableDef(self):
+		return self.tableDef
 
 	def getItemdefs(self):
 		return [{"name": field.get_dest(), 
 				"title": field.get_tablehead() or field.get_dest(), 
 				"hint": field.get_displayHint().split(",")}
-			for field in self.getRecordDef().get_items()]
+			for field in self.getTableDef().get_items()]
 
 	def setHandlers(self, data):
 		return self.dd.setHandlers(data)
@@ -49,7 +49,7 @@ class ServiceAdaptor(DataAdaptor):
 		"""returns input(s) and command line arguments for the service
 		computer as computed from the context.
 		"""
-		data = runner.DataCollector(self.getRecordDef())
+		data = runner.DataCollector(self.getTableDef())
 		rb = self.setHandlers(data)
 		self.dd.get_Grammar().parse(context)
 		args = self._makeArguments(rb)
@@ -133,7 +133,7 @@ class ServiceTemplate(forms.AbstractTemplate):
 	def getItemdefs(self):
 		return self.outputData.getItemdefs()
 
-	def getRecordDef(self):
+	def getTableDef(self):
 		return self.outputData.getItemdefs()
 
 	def runQuery(self, context):

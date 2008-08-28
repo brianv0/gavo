@@ -29,7 +29,7 @@ class MetaTest(unittest.TestCase):
 	def testMetaAttachment(self):
 		"""tests for proper propagation of meta information.
 		"""
-		recDef = self.rd.getDataById("metatest").getRecordDefByName("noname")
+		recDef = self.rd.getDataById("metatest").getTableDefByName("noname")
 		self.assert_(str(recDef.getMeta("test.inRec")), "from Rec")
 		self.assert_(str(recDef.getMeta("test.inRd")), "from Rd")
 		self.assert_(str(recDef.getMeta("test.fromConfig")), "from Config")

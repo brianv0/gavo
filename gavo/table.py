@@ -36,7 +36,7 @@ class BaseTable(meta.MetaMixin):
 	when they are done adding data.
 
 	This class should be considered abstract for the purposes of
-	gavo since we keep the fieldDefs hidden in a RecordDef as a rule.
+	gavo since we keep the fieldDefs hidden in a TableDef as a rule.
 	"""
 	def __init__(self, dataSet, fieldDefs, name):
 		if dataSet:
@@ -145,39 +145,39 @@ class IndexedTable(BaseTable):
 			return self.rowIndex["key"]
 
 	def _buildRowIndex(self):
-		primaryIndex = self.recordDef.getPrimary().get_dest()
+		primaryIndex = self.tableDef.getPrimary().get_dest()
 		self.rowIndex = dict([(row[primaryIndex], row)
 			for row in self])
 
 
 class RecordBasedTable(BaseTable):
-	"""is a table that gets its information from a RecordDef.
+	"""is a table that gets its information from a TableDef.
 	"""
-	def __init__(self, dataSet, recordDef):
-		self.recordDef = recordDef
-		BaseTable.__init__(self, dataSet, recordDef.get_items(), 
-			recordDef.get_table())
+	def __init__(self, dataSet, tableDef):
+		self.tableDef = tableDef
+		BaseTable.__init__(self, dataSet, tableDef.get_items(), 
+			tableDef.get_table())
 	
-	def getRecordDef(self):
-		return self.recordDef
+	def getTableDef(self):
+		return self.tableDef
 
-	def getInheritingTable(self, dataSet, recordDef):
+	def getInheritingTable(self, dataSet, tableDef):
 		"""returns a new table belonging to data set and implementing
-		recordDef, where recordDef may refer to self's fields.
+		tableDef, where tableDef may refer to self's fields.
 
 		Referencing self's fields works by using the copy and dest attributes
 		from fields of the new record.
 		"""
 		newFields = []
-		for fieldDef in recordDef.get_items():
+		for fieldDef in tableDef.get_items():
 			if fieldDef.get_copy():
 				newField = self.getFieldDefByDest(fieldDef.get_dest()).copy()
 				newField.set_source(fieldDef.get_dest())
 				newFields.append(newField)
 			else:
 				newFields.append(fieldDef)
-		recordDef.set_items(newFields)
-		return RecordBasedTable(dataSet, recordDef)
+		tableDef.set_items(newFields)
+		return RecordBasedTable(dataSet, tableDef)
 
 
 class Table(RecordBasedTable):
@@ -188,17 +188,17 @@ class Table(RecordBasedTable):
 	dbConnection = None
 
 #XXX TODO: nuke metaOnly from constructor and move it to exportToSQL
-	def __init__(self, dataSet, recordDef, metaOnly=False):
+	def __init__(self, dataSet, tableDef, metaOnly=False):
 		self.metaOnly = metaOnly
-		RecordBasedTable.__init__(self, dataSet, recordDef)
+		RecordBasedTable.__init__(self, dataSet, tableDef)
 	
 	def _exportToMetaTable(self, schema=None):
 		"""writes the column definitions to the sqlsupport-defined meta table.
 		"""
 		if schema:
-			tableName = "%s.%s"%(schema, self.recordDef.get_table())
+			tableName = "%s.%s"%(schema, self.tableDef.get_table())
 		else:
-			tableName = self.recordDef.get_table()
+			tableName = self.tableDef.get_table()
 		metaHandler = sqlsupport.MetaTableHandler()
 		metaHandler.defineColumns(tableName,
 			[field.getMetaRow() for field in self.getFieldDefs()])
@@ -231,14 +231,14 @@ class Table(RecordBasedTable):
 			feed.close()
 
 	def _getOwnedTableWriter(self, schema):
-		tableName = "%s.%s"%(schema, self.recordDef.get_table())
+		tableName = "%s.%s"%(schema, self.tableDef.get_table())
 		tableExporter = sqlsupport.TableWriter(tableName,
-			self.recordDef.get_items(), self.dbConnection, 
-			scriptRunner=self.recordDef)
+			self.tableDef.get_items(), self.dbConnection, 
+			scriptRunner=self.tableDef)
 		tableExporter.ensureSchema(schema)
-		tableExporter.createTable(create=self.recordDef.get_create(),
-			delete=self.recordDef.get_create(),
-			privs=self.recordDef.get_create())
+		tableExporter.createTable(create=self.tableDef.get_create(),
+			delete=self.tableDef.get_create(),
+			privs=self.tableDef.get_create())
 		return tableExporter
 
 	def _exportOwnedTable(self, schema):
@@ -246,7 +246,7 @@ class Table(RecordBasedTable):
 
 		cf. exportToSQL.
 		"""
-		if self.recordDef.get_create():
+		if self.tableDef.get_create():
 			self._exportToMetaTable(schema)
 		if not self.metaOnly:
 			tableWriter = self._getOwnedTableWriter(schema)
@@ -264,19 +264,19 @@ class Table(RecordBasedTable):
 		public schema.
 		"""
 # XXX do we want a "system" or "shared" schema for these?
-		tableName = self.recordDef.get_table()
+		tableName = self.tableDef.get_table()
 		tableWriter = sqlsupport.TableWriter(tableName,
-			self.recordDef.get_items(), self.dbConnection)
-		if self.recordDef.get_owningCondition():
-			colName, colVal = self.recordDef.get_owningCondition()
+			self.tableDef.get_items(), self.dbConnection)
+		if self.tableDef.get_owningCondition():
+			colName, colVal = self.tableDef.get_owningCondition()
 			tableWriter.deleteMatching((colName, parsehelpers.atExpand(
 				colVal, {}, self.dataSet.getDescriptor().getRd().get_atExpander())))
 		return tableWriter
 
 	def _getTableUpdater(self, schema):
-		tableName = "%s.%s"%(schema, self.recordDef.get_table())
+		tableName = "%s.%s"%(schema, self.tableDef.get_table())
 		return sqlsupport.TableUpdater(tableName,
-			self.recordDef.get_items(), self.dbConnection)
+			self.tableDef.get_items(), self.dbConnection)
 
 	def _exportSharedTable(self):
 		"""updates data owned by this data set.
@@ -298,7 +298,7 @@ class Table(RecordBasedTable):
 		of the data base connection (db name, dsn, etc.) are
 		handled in sqlsupport.
 		"""
-		if self.recordDef.get_shared():
+		if self.tableDef.get_shared():
 			self._exportSharedTable()
 		else:
 			self._exportOwnedTable(schema)
@@ -316,13 +316,13 @@ class UniqueForcedTable(Table):
 	def __init__(self, *args, **kwargs):
 		Table.__init__(self, *args, **kwargs)
 		self.primaryNames = tuple([f.get_dest() 
-			for f in self.recordDef.getPrimaries()])
+			for f in self.tableDef.getPrimaries()])
 		try:
 			self.resolveConflict = {
 				"check": self._ensureRecordIdentity,
 				"drop": self._dropNew,
 				"overwrite": self._overwriteOld,
-			}[self.recordDef.get_conflicts()]
+			}[self.tableDef.get_conflicts()]
 		except KeyError, msg:
 			raise gavo.Error("Invalid conflict resolution strategy: %s"%str(msg))
 		self.primaryIndex = {}
@@ -390,15 +390,15 @@ class DirectWritingTable(Table):
 	don't the table will remain empty.
 	"""
 	nUpdated = None
-	def __init__(self, dataSet, recordDef, dbConnection=None,
+	def __init__(self, dataSet, tableDef, dbConnection=None,
 			doUpdates=False, dropIndices=False):
 		self.dbConnection = dbConnection
-		Table.__init__(self, dataSet, recordDef)
+		Table.__init__(self, dataSet, tableDef)
 		if doUpdates:
 			self.tableWriter = self._getTableUpdater(
 				self.dataSet.getRd().get_schema())
 		else:
-			if self.recordDef.get_shared():
+			if self.tableDef.get_shared():
 				self.tableWriter = self._getSharedTableWriter()
 			else:
 				self.tableWriter = self._getOwnedTableWriter(

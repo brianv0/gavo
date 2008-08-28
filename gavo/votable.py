@@ -468,7 +468,7 @@ def writeVOTableFromTable(dataSet, table, destination,
 	metaInfo = {
 		"id": table.getName(),
 		"name": "%s.%s"%(dataSet.getId(), table.getName()),
-		"description": unicode(table.getRecordDef().getMeta(
+		"description": unicode(table.getTableDef().getMeta(
 			"description", default="")),
 	}
 	writeSimpleTableColdesc(colDesc, table.getRowsAsTuples(), metaInfo, 

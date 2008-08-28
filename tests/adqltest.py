@@ -708,7 +708,7 @@ class QueryTest(unittest.TestCase):
 		self.assertEqual(len(res.getPrimaryTable().rows), 1)
 		self.assertEqual(len(res.getPrimaryTable().rows[0]), 2)
 		self.assertEqual(res.getPrimaryTable().rows[0]["alpha"], 22.0)
-		raField, deField = res.getPrimaryTable().recordDef.get_items()
+		raField, deField = res.getPrimaryTable().tableDef.get_items()
 		self._assertFieldProperties(raField, [("ucd", 'pos.eq.ra;meta.main'),
 			("description", 'A sample RA'), ("unit", 'deg'), 
 			("tablehead", "Raw RA")])
@@ -721,7 +721,7 @@ class QueryTest(unittest.TestCase):
 			self.tableName)
 		self.assertEqual(len(res.getPrimaryTable().rows), 1)
 		self.assertEqual(len(res.getPrimaryTable().rows[0]), 4)
-		fields = res.getPrimaryTable().recordDef.get_items()
+		fields = res.getPrimaryTable().tableDef.get_items()
 		self._assertFieldProperties(fields[0], [("ucd", 'pos.eq.ra;meta.main'),
 			("description", 'A sample RA'), ("unit", 'deg'), 
 			("tablehead", "Raw RA")])
@@ -735,7 +735,7 @@ class QueryTest(unittest.TestCase):
 	def testTainting(self):
 		res = adqlglue.query("select delta*2, alpha*mag, alpha+delta"
 			" from %s where mag<-10"% self.tableName)
-		f1, f2, f3 = res.getPrimaryTable().recordDef.get_items()
+		f1, f2, f3 = res.getPrimaryTable().tableDef.get_items()
 		self._assertFieldProperties(f1, [("ucd", 'pos.eq.dec;meta.main'),
 			("description", 'A sample Dec -- *TAINTED*: the value was operated'
 				' on in a way that unit and ucd may be severely wrong'),

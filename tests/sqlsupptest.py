@@ -261,8 +261,8 @@ class TestImport(unittest.TestCase):
 			Grammar=grammar,
 			Semantics=resource.Semantics(
 				initvals={
-					"recordDefs": [
-						resource.RecordDef(initvals={
+					"tableDefs": [
+						resource.TableDef(initvals={
 							"table": self.tableName,
 							"items": fields,
 							"create": True,
@@ -458,7 +458,7 @@ class ScriptSplitterTest(testhelpers.VerboseTest):
 
 
 def singleTest():
-	suite = unittest.makeSuite(ScriptSplitterTest, "testB")
+	suite = unittest.makeSuite(TestSimpleQueries, "testIso")
 	runner = unittest.TextTestRunner()
 	runner.run(suite)
 

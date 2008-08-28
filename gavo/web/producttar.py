@@ -66,7 +66,6 @@ class ProductTarMaker:
 		self.items = [f for f in self.rd.getTableDefByName("products").get_items()
 			if f.get_dest() in _tarGenFields]
 		self.dd = resource.makeRowsetDataDesc(self.rd, self.items)
-		f = self.dd.get_Semantics().get_recordDefs()[0].get_items()[3]
 
 	def _getProducts(self, table):
 		"""returns a list of product keys and sizes for products present in table.

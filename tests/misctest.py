@@ -82,8 +82,8 @@ class FitsWriterTest(unittest.TestCase):
 			Grammar=grammar,
 			Semantics=resource.Semantics(
 				initvals={
-					"recordDefs": [
-						resource.RecordDef(initvals={
+					"tableDefs": [
+						resource.TableDef(initvals={
 							"table": "foo",
 							"items": fields,
 							"create": True,
@@ -115,12 +115,12 @@ class FitsWriterTest(unittest.TestCase):
 		"""tests for creation of a two-extension FITS table.
 		"""
 		rd = self._makeRd(_getFields("klein", "prim", "nopt", "indf"))
-		rec2 = resource.RecordDef(initvals={
+		rec2 = resource.TableDef(initvals={
 			"table": "part",
 			"items": _getFields("prim", "nopt"),
 			"create": True,
 		})
-		rd.getDataById("randomTest").get_Semantics().addto_recordDefs(
+		rd.getDataById("randomTest").get_Semantics().addto_tableDefs(
 			rec2)
 		dataSet = resource.InternalDataSet(rd.get_dataSrcs()[0], 
 			table.Table, dataSource=[

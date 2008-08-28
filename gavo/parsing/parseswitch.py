@@ -33,17 +33,17 @@ def FreshDirectWritingTable(*args, **kwargs):
 	return table.DirectWritingTable(dropIndices=True, *args, **kwargs)
 
 
-def getTableClassForRecordDef(recordDef):
-	if recordDef.get_onDisk():
-		if recordDef.get_forceUnique():
+def getTableClassForTableDef(tableDef):
+	if tableDef.get_onDisk():
+		if tableDef.get_forceUnique():
 			raise gavo.Error(
 				"Tables can't be onDisk and forceUnique at the same time.")
 		TableClass = FreshDirectWritingTable
-	elif recordDef.get_forceUnique():
+	elif tableDef.get_forceUnique():
 		TableClass = table.UniqueForcedTable
 	else:
 		TableClass = table.Table
 	return TableClass
 
-def createTable(dataSet, recordDef):
-	return getTableClassForRecordDef(recordDef)(dataSet, recordDef)
+def createTable(dataSet, tableDef):
+	return getTableClassForTableDef(tableDef)(dataSet, tableDef)

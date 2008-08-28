@@ -291,18 +291,19 @@ class RdParser(nodebuilder.NodeBuilder):
 	def _make_Semantics(self, name, attrs, children):
 		semantics = resource.Semantics()
 		return self._processChildren(semantics, name, {
-			"Record": semantics.addto_recordDefs,
+			"Record": semantics.addto_tableDefs,
 		}, children)
 
+	_start_Table = _pushFieldPath
 	_start_Record = _pushFieldPath
 
-	def _make_Record(self, name, attrs, children):
+	def _make_Table(self, name, attrs, children):
 		attrs = makeAttDict(attrs)
 		if attrs.has_key("original"):
 			recDef = self.resolveItemReference(attrs["original"])
 			setDefaults = False
 		else:
-			recDef = resource.RecordDef()
+			recDef = resource.TableDef()
 			setDefaults = True
 		# Ouch -- if I have a copy, I don't want to overwrite attributes
 		# not given with defaults.  This sort of mess would be necessary
@@ -313,7 +314,7 @@ class RdParser(nodebuilder.NodeBuilder):
 				recDef.set(attName, attrs[attName])
 			elif setDefaults:
 				recDef.set(attName, default)
-		if name=="SharedRecord":
+		if name.startswith("Shared"):
 			recDef.set_shared(True)
 
 		if "fieldsFrom" in attrs:
@@ -340,8 +341,11 @@ class RdParser(nodebuilder.NodeBuilder):
 		self.popProperty("fieldPath")
 		return nodebuilder.NamedNode("Record", record)
 
-	_start_SharedRecord = _start_Record
-	_make_SharedRecord = _make_Record
+	_make_Record = _make_Table
+	_start_SharedTable = _start_Table
+	_make_SharedTable = _make_Table
+	_start_SharedRecord = _start_SharedTable
+	_make_SharedRecord = _make_SharedTable
 
 	def _make_fromgrammar(self, name, attrs, children):
 		return self._processChildren("", name, {}, children)
@@ -371,7 +375,7 @@ class RdParser(nodebuilder.NodeBuilder):
 			raise Error("Invalid field path '%s'.  Did you forget a leading dot?"%
 				fieldPath)
 		try:
-			return self.rd.getDataById(dataId).getRecordDefByName(tableName
+			return self.rd.getDataById(dataId).getTableDefByName(tableName
 				).getFieldByName(fieldName)
 		except KeyError:
 			raise Error("Field does not exist: %s"%fieldPath)

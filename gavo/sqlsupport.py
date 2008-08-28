@@ -376,11 +376,7 @@ class StandardQueryMixin(object):
 class TableInterface(StandardQueryMixin):
 	"""is a base class for table writers and updaters.
 
-	At construction time, you define the database and the table.
-	The table definition is used by createTable, but if you do not
-	call createTable, there are no checks that the table structure in
-	the database actually matches what you passed.
-
+	A TableInterface is constructed with a parsing.TableDef instance
 	Table names are not parsed.  If they include a schema, you need
 	to make sure it exists (ensureSchema) before creating the table.
 
@@ -625,7 +621,9 @@ class SimpleQuerier(StandardQueryMixin):
 	def close(self):
 		try:
 			self.connection.close()
-		except DbError:
+			self.connection = None
+		except (DbError, AttributeError):
+			# Let's assume that is because the connection is alredy gone
 			pass
 
 	def finish(self):

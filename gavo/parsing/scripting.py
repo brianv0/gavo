@@ -231,7 +231,7 @@ class ScriptHandler(object):
 		"""compiles and run script to a python function working on a
 		with a tableWriter.
 
-		The function receives the RecordDef and the TableWriter as recDef and
+		The function receives the TableDef and the TableWriter as recDef and
 		tw arguments.  The script only contains the body of the function, never 
 		the header.
 		"""

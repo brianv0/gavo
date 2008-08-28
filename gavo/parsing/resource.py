@@ -48,8 +48,8 @@ class PCToken(object):
 		return self.value
 
 
-def getMetaTableRecordDef(tableName):
-	"""returns a RecordDef suitable for meta tables.
+def getMetaTableTableDef(tableName):
+	"""returns a TableDef suitable for meta tables.
 
 	Meta tables are the ones that keep information on units, ucds, etc
 
@@ -58,7 +58,7 @@ def getMetaTableRecordDef(tableName):
 	also depends on that structure, so if anything serious changes
 	in metaTableFields, you'll have to do work there, too.
 	"""
-	metaDef = RecordDef()
+	metaDef = TableDef()
 	metaDef.set_table(tableName)
 	metaDef.addto_items(DataField(dest="tableName", dbtype="text",
 		default=tableName))
@@ -72,32 +72,32 @@ class Semantics(record.Record):
 	by the grammar.
 
 	Basically, we have dataItems (which are global for the data source),
-	and a recordDef (which defines what each record should look like).
+	and a tableDef (which defines what each record should look like).
 	"""
 	def __init__(self, initvals={}):
 		record.Record.__init__(self, {
-			"recordDefs": record.ListField,
+			"tableDefs": record.ListField,
 		}, initvals=initvals)
 
-	def getRecordDefByName(self, tablename):
-		"""returns the RecordDef for table tablename.
+	def getTableDefByName(self, tablename):
+		"""returns the TableDef for table tablename.
 		"""
-		for recDef in self.get_recordDefs():
+		for recDef in self.get_tableDefs():
 			if recDef.get_table()==tablename:
 				return recDef
 		raise KeyError(tablename)
 
-	def clear_recordDefs(self):
-		"""deletes all RecordDefs defined so far.
+	def clear_tableDefs(self):
+		"""deletes all TableDefs defined so far.
 
 		This is necessary due to our crappy inheritance semantics for data
 		descriptors and a clear sign that we should be doing the inheritance
 		stuff differently...
 		"""
-		self.dataStore["recordDefs"] = []
+		self.dataStore["tableDefs"] = []
 
 
-class RecordDef(record.Record, meta.MetaMixin, scripting.ScriptingMixin):
+class TableDef(record.Record, meta.MetaMixin, scripting.ScriptingMixin):
 	"""is a specification for the semantics of a table line.
 	"""
 	validWaypoints = set(["preIndex", "preIndexSQL"])
@@ -123,10 +123,10 @@ class RecordDef(record.Record, meta.MetaMixin, scripting.ScriptingMixin):
 		self.fieldIndexDict = {}
 
 	def __repr__(self):
-		return "<RecordDef %s, %s>"%(id(self), id(self.get_items()))
+		return "<TableDef %s, %s>"%(id(self), id(self.get_items()))
 
 	def getRd(self):
-# XXX TODO: RecordDefs traditionally didn't know their data 
+# XXX TODO: TableDefs traditionally didn't know their data 
 # definition because they were supposed to be "floatable".  This
 # is rubbish given that we're copying them like mad, and so they should
 # be parented, which solves a host of issues.  Then we can return the
@@ -233,7 +233,7 @@ class ParseContext:
 		return self.dataSet
 
 	def _makeRowTargets(self):
-		return [(targetTable, targetTable.getRecordDef())
+		return [(targetTable, targetTable.getTableDef())
 			for targetTable in self.dataSet.getTables()]
 
 	def processRowdict(self, rowdict):
@@ -244,10 +244,10 @@ class ParseContext:
 		in place), checks constraints that may be defined and finally
 		ships out the record.
 		"""
-		for targetTable, recordDef in self.rowTargets:
-			record = self._buildRecord(recordDef, rowdict)
+		for targetTable, tableDef in self.rowTargets:
+			record = self._buildRecord(tableDef, rowdict)
 			try:
-				recordDef.validate(record)
+				tableDef.validate(record)
 				targetTable.addData(record)
 			except conditions.SkipRecord, err:
 				if parsing.verbose:
@@ -272,12 +272,12 @@ class ParseContext:
 			field.get_dbtype(), 
 			field.get_literalForm())
 
-	def _buildRecord(self, recordDef, rowdict):
-		"""returns a record built from rowdict and recordDef's item definition.
+	def _buildRecord(self, tableDef, rowdict):
+		"""returns a record built from rowdict and tableDef's item definition.
 		"""
 		record = {}
 		try:
-			for field in recordDef.get_items():
+			for field in tableDef.get_items():
 				record[field.get_dest()] = self._strToVal(field, rowdict)
 		except Exception, msg:
 			msg.field = field.get_dest()
@@ -369,11 +369,11 @@ class DataSet(meta.MetaMixin):
 		counter.close()
 
 	def _fillTables(self, tableMaker, parseSwitcher, maxRows):
-		for recordDef in self.dD.get_Semantics().get_recordDefs():
+		for tableDef in self.dD.get_Semantics().get_tableDefs():
 			if (self.tablesToBuild and \
-					not recordDef.get_table() in self.tablesToBuild):
+					not tableDef.get_table() in self.tablesToBuild):
 				continue
-			self.tables.append(tableMaker(self, recordDef))
+			self.tables.append(tableMaker(self, tableDef))
 		self._parseSources(parseSwitcher, maxRows)
 		for table in self.tables:
 			table.finishBuild()
@@ -417,8 +417,8 @@ class DataSet(meta.MetaMixin):
 		if not self.getDescriptor().get_virtual():
 			for table in self.tables:
 				if self.dD.get_ignoredSources():
-					table.recordDef.set_create(False)
-					table.recordDef.set_owningCondition(None)
+					table.tableDef.set_create(False)
+					table.tableDef.set_owningCondition(None)
 				table.exportToSql(schema)
 		self.dD.runScripts("processTable")
 		self.dD.runScripts("postCreation")
@@ -647,8 +647,8 @@ class ResourceDescriptor(record.Record, meta.MetaMixin,
 		to gavoimp causes this method to be called.
 		"""
 		for dataDesc in self:
-			for recordDef in dataDesc:
-				recordDef.set_shared(False)
+			for tableDef in dataDesc:
+				tableDef.set_shared(False)
 		
 	def get_schema(self):
 		return self.dataStore["schema"] or os.path.basename(
@@ -679,13 +679,13 @@ class ResourceDescriptor(record.Record, meta.MetaMixin,
 			self.get_service(key).setMetaParent(self)
 
 	def getTableDefByName(self, name):
-		"""returns the first RecordDef found with the matching name.
+		"""returns the first TableDef found with the matching name.
 
 		This is a bit of a mess since right now we don't actually enforce
 		unique table names and in some cases even force non-unique names.
 		"""
 		for ds in self.get_dataSrcs():
-			for tableDef in ds.get_Semantics().get_recordDefs():
+			for tableDef in ds.get_Semantics().get_tableDefs():
 				if tableDef.get_table()==name:
 					return tableDef
 
@@ -767,8 +767,8 @@ def makeSimpleDataDesc(rd, tableDef):
 		"Grammar": nullgrammar.NullGrammar(),
 		"Semantics": Semantics(
 				initvals={
-					"recordDefs": [
-						RecordDef(initvals={
+					"tableDefs": [
+						TableDef(initvals={
 							"table": None,
 							"items": tableDef,
 						})
@@ -803,14 +803,14 @@ def rowsetifyDD(dd, outputFieldNames=None):
 	It will only copy the primary table.
 	"""
 	dd = dd.copy()
-	table = dd.getPrimaryRecordDef().copy()
+	table = dd.getPrimaryTableDef().copy()
 	if outputFieldNames==None:
 		outputFields = [datadef.makeCopyingField(f) for f in table.get_items()]
 	else:
 		outputFields = [datadef.makeCopyingField(table.getFieldByName(name)) 
 			for name in outputFieldNames]
 	table.set_items(outputFields)
-	dd.set_Semantics(Semantics({"recordDefs": [table]}))
+	dd.set_Semantics(Semantics({"tableDefs": [table]}))
 	dd.set_Grammar(rowsetgrammar.RowsetGrammar(initvals={
 		"dbFields": outputFields}))
 	return dd
@@ -821,7 +821,7 @@ def getMatchingData(dataDesc, tableName, whereClause=None, pars={},
 	"""returns a single-table data set containing all rows matching 
 	whereClause/pars in tableName of dataDef.
 	"""
-	tableDef = dataDesc.getRecordDefByName(tableName)
+	tableDef = dataDesc.getTableDefByName(tableName)
 	if outputFields:
 		tableDef = tableDef.copy()
 		tableDef.set_items([tableDef.getFieldByName(fn) for fn in outputFields])
@@ -839,7 +839,7 @@ class TableQuerier(sqlsupport.SimpleQuerier):
 	def __init__(self, rowsetDD, connection=None):
 		super(TableQuerier, self).__init__(connection)
 		self.rowsetDD = rowsetDD
-		td = self.rowsetDD.getPrimaryRecordDef()
+		td = self.rowsetDD.getPrimaryTableDef()
 		td.set_scripts([])
 		self.selectClause = "SELECT %s FROM %s.%s"%(
 			", ".join([f.get_dest() for f in td.get_items()]),

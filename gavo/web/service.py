@@ -271,7 +271,7 @@ class Service(record.Record, meta.MetaMixin):
 			return self.get_outputFields()
 		outputFilter = queryMeta["outputFilter"]
 		if outputFilter and self.get_output(outputFilter):
-			return self.get_output(outputFilter).getPrimaryRecordDef().get_items()
+			return self.get_output(outputFilter).getPrimaryTableDef().get_items()
 		format = queryMeta.get("format", "HTML")
 		if format=="HTML":
 			return self.getHTMLOutputFields(queryMeta)
@@ -290,7 +290,7 @@ class Service(record.Record, meta.MetaMixin):
 							"inputKeys": coreFields,
 						}),
 					"Semantics": resource.Semantics(initvals={
-							"recordDefs": [resource.RecordDef(initvals={
+							"tableDefs": [resource.TableDef(initvals={
 								"table": "NULL",
 								})]
 						}),

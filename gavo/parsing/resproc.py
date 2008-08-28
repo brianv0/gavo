@@ -64,9 +64,9 @@ class FieldnameResolver(ResourceProcessor):
 	name = "resolveFieldnames"
 
 	def _execute(self, resource, targetId, targetField, srcId):
-		targetCol = resource.getDatasetById(targetId).getRecordDef(
+		targetCol = resource.getDatasetById(targetId).getTableDef(
 			).getFieldIndex(targetField)
-		fieldDefs = resource.getDatasetById(srcId).getRecordDef().get_items()
+		fieldDefs = resource.getDatasetById(srcId).getTableDef().get_items()
 		try:
 			for row in resource.getDatasetById(targetId):
 				row[targetCol] = fieldDefs[int(row[targetCol])].get_dest()
@@ -105,18 +105,18 @@ class FielddocBuilder(ResourceProcessor):
 		Currently hardcoded assumption: The field name is the primary
 		key of the source table(s).
 		"""
-		recordDef = resource.RecordDef()
-		recordDef.addto_items(
+		tableDef = resource.TableDef()
+		tableDef.addto_items(
 			DataField(name="type", type="str", length=None, primary=True))
-		recordDef.addto_items(
+		tableDef.addto_items(
 			DataField(name="length", type="int"))
-		recordDef.addto_items(
+		tableDef.addto_items(
 			DataField(name="ucd", type="str", length=None))
-		recordDef.addto_items(
+		tableDef.addto_items(
 			DataField(name="unit", type="str", length=None))
-		recordDef.addto_items(
+		tableDef.addto_items(
 			DataField(name="description", type="str", length=None))
-		return resource.DataSet(recordDef)
+		return resource.DataSet(tableDef)
 
 	def _getDataFromMainSource(self, newDataset, srcDataset):
 		"""fills rows with the field data from srcDataset.
@@ -140,8 +140,8 @@ class FielddocBuilder(ResourceProcessor):
 	def _getDataFromOtherSources(self, resource, newDataset, sources):
 		for srcId, srcFieldname, targetFieldname in sources:
 			srcDs = self.getDatasetById(srcId)
-			srcIndex = srcDs.getRecordDef().getFieldIndex(srcFieldname)
-			targetIndex = newDataset.getRecordDef().getFieldIndex(targetFieldname)
+			srcIndex = srcDs.getTableDef().getFieldIndex(srcFieldname)
+			targetIndex = newDataset.getTableDef().getFieldIndex(targetFieldname)
 			for row in newDataset:
 				row[targetIndex] = srcDs.getRow(row[0])
 

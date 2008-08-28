@@ -68,11 +68,11 @@ def makeField(itemDef):
 		"ucd": itemDef.get_ucd(), "description": itemDef.get_description(),
 		"dbtype": itemDef.get_dbtype()})
 
-def makeRecord(recordDef):
-	return RD.Record(table=recordDef.get_table())[[
-		makeField(f) for f in recordDef.get_items()]]
+def makeRecord(tableDef):
+	return RD.Record(table=tableDef.get_table())[[
+		makeField(f) for f in tableDef.get_items()]]
 
-def makeRdXML(recordDef, grammar, args, opts):
+def makeRdXML(tableDef, grammar, args, opts):
 	if opts.srcForm=="FITS":
 		dataEl = RD.Data(id="main", sourcePat="*.fits")
 	else:
@@ -83,7 +83,7 @@ def makeRdXML(recordDef, grammar, args, opts):
 		dataEl[
 			grammar,
 			RD.Semantics[
-				makeRecord(recordDef)]]]
+				makeRecord(tableDef)]]]
 
 
 def makeFromFITS(srcName, opts):
@@ -92,7 +92,7 @@ def makeFromFITS(srcName, opts):
 		header = fitstools.openFits(srcName)[0].header
 		return header.ascardlist()
 
-	record = resource.RecordDef()
+	record = resource.TableDef()
 	record.set_table("data")
 	for index, card in enumerate(getHeaderKeys(srcName)):
 		if card.key in ignoredFITSHeaders:
@@ -109,7 +109,7 @@ def makeVOTableFieldName(field, ind):
 def makeFromVOTable(srcName, opts):
 	vot = VOTable.parse(open(srcName))
 	srcTable = vot.resources[0].tables[0]
-	record = resource.RecordDef()
+	record = resource.TableDef()
 	record.set_table("data")
 	for ind, f in enumerate(srcTable.fields):
 		colName = makeVOTableFieldName(f, ind)

@@ -133,7 +133,7 @@ def getShortNamesForSets(queriedSets):
 	the set names mentioned in the list queriedSets.
 	"""
 	dd = resourcecache.getRd(rdId).getDataById("sets")
-	tableDef = dd.getPrimaryRecordDef()
+	tableDef = dd.getPrimaryTableDef()
 	data = sqlsupport.SimpleQuerier().runIsolatedQuery(
 		"SELECT * FROM %s WHERE setName in %%(sets)s"%(tableDef.get_table()),
 		{"sets": queriedSets})
@@ -145,7 +145,7 @@ def getSetsForService(shortName):
 	"""returns the list of set names the service shortName belongs to.
 	"""
 	dd = resourcecache.getRd(rdId).getDataById("sets")
-	tableDef = dd.getPrimaryRecordDef()
+	tableDef = dd.getPrimaryTableDef()
 	data = sqlsupport.SimpleQuerier().runIsolatedQuery(
 		"SELECT * FROM %s WHERE shortName = %%(name)s"%(tableDef.get_table()),
 		{"name": shortName})
@@ -160,7 +160,7 @@ def getSets():
 	the short names of the services that are in the set).
 	"""
 	dd = resourcecache.getRd(rdId).getDataById("sets")
-	tableDef = dd.getPrimaryRecordDef()
+	tableDef = dd.getPrimaryTableDef()
 	data = sqlsupport.SimpleQuerier().runIsolatedQuery(
 		"SELECT * FROM %s"%(tableDef.get_table()))
 	setMembers = {}

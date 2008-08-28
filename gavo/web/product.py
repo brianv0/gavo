@@ -125,15 +125,15 @@ class Product(standardcores.DbBasedCore):
 			resourcecache.getRd("__system__/products/products"), 
 				{"table": "products"})
 		origDD = self.rd.getDataById("data")
-		inputDef = resource.RecordDef()
-		inputDef.updateFrom(origDD.getPrimaryRecordDef())
+		inputDef = resource.TableDef()
+		inputDef.updateFrom(origDD.getPrimaryTableDef())
 		inputDef.set_items([datadef.OutputField.fromDataField(f) 
 			for f in inputDef.get_items()])
 		self.dataDef = datadef.DataTransformer(self.rd, initvals={
 			"Grammar": rowsetgrammar.RowsetGrammar(initvals={
-				"dbFields": origDD.getPrimaryRecordDef().get_items()}),
+				"dbFields": origDD.getPrimaryTableDef().get_items()}),
 			"Semantics": resource.Semantics(initvals={
-				"recordDefs": [inputDef]}),
+				"tableDefs": [inputDef]}),
 			"id": "<generated>",
 		})
 		self.queryMeta = common.QueryMeta(ctx)
@@ -258,7 +258,7 @@ class Product(standardcores.DbBasedCore):
 		sqlPars = dict([(k, v[0]) 
 			for k, v in cgi.parse_qs("key="+ctx.arg("key")).items()])
 		return self.runDbQuery("key=%(key)s", sqlPars, 
-				self.dataDef.getPrimaryRecordDef(), queryMeta).addCallback(
+				self.dataDef.getPrimaryTableDef(), queryMeta).addCallback(
 			self._parseOutput, ctx, sqlPars, queryMeta).addErrback(
 			lambda f: f)
 

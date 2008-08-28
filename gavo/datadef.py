@@ -37,7 +37,7 @@ class DataField(record.Record):
 
 	The primary feature of a data field is dest, which is used for, e.g.,
 	the column name in a database.  Thus, they must be unique within
-	a RecordDef.  The type information is also given for SQL dbs (or
+	a TableDef.  The type information is also given for SQL dbs (or
 	rather, postgresql), in dbtype.  Types for python or VOTables should
 	be derivable from them, I guess.
 	"""
@@ -313,7 +313,7 @@ class DataTransformer(record.Record, meta.MetaMixin):
 			"Semantics": record.RequiredField,
 			"id": record.RequiredField,        # internal id of the data set.
 			"encoding": "ascii", # of string literals coming in
-			"constraints": None, # ignored, present for RecordDef interface
+			"constraints": None, # ignored, present for TableDef interface
 			"items": record.DataFieldList,
 			"macros": record.ListField,
 		}
@@ -326,16 +326,16 @@ class DataTransformer(record.Record, meta.MetaMixin):
 		return "<DataDescriptor id=%s>"%self.get_id()
 
 	def __iter__(self):
-		"""iterates over all embedded RecordDefs.
+		"""iterates over all embedded TableDefs.
 		"""
-		for recDef in self.get_Semantics().get_recordDefs():
+		for recDef in self.get_Semantics().get_tableDefs():
 			yield recDef
 
 	def set_Grammar(self, val):
 		self.dataStore["Grammar"] = val
 
 	def set_Semantics(self, val):
-		for tableDef in val.get_recordDefs():
+		for tableDef in val.get_tableDefs():
 			tableDef.setMetaParent(self)
 		self.dataStore["Semantics"] = val
 
@@ -343,17 +343,17 @@ class DataTransformer(record.Record, meta.MetaMixin):
 		"""checks that the docRec record satisfies the constraints given
 		by self.items.
 
-		This method reflects that DataTransformers are RecordDefs for
+		This method reflects that DataTransformers are TableDefs for
 		the toplevel productions.
 		"""
-# XXX TODO: This should probably be unified with RecordDef.validate.
+# XXX TODO: This should probably be unified with TableDef.validate.
 		for field in self.get_items():
 			field.validate(record.get(field.get_dest()))
 
 	def registerAsMetaParent(self):
 		try:
 			if self.get_Semantics():
-				for recDef in self.get_Semantics().get_recordDefs():
+				for recDef in self.get_Semantics().get_tableDefs():
 					recDef.setMetaParent(self)
 		except (AttributeError, KeyError):  # No children yet
 			pass
@@ -380,15 +380,15 @@ class DataTransformer(record.Record, meta.MetaMixin):
 	def getRd(self):
 		return self.rD
 	
-	def getRecordDefByName(self, name):
+	def getTableDefByName(self, name):
 		"""returns the record definition for the table name.
 
 		It raises a KeyError if the table name is not known.
 		"""
-		return self.get_Semantics().getRecordDefByName(name)
+		return self.get_Semantics().getTableDefByName(name)
 
-	def getPrimaryRecordDef(self):
-		return self.get_Semantics().get_recordDefs()[0]
+	def getPrimaryTableDef(self):
+		return self.get_Semantics().get_tableDefs()[0]
 
 	def getInputFields(self):
 		"""returns a sequence of dataFields if this data descriptor takes

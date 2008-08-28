@@ -161,7 +161,7 @@ class ComputedCore(QueryingCore):
 		self.dd = self.rd.getDataById(self.get_ddId())
 		self.avInputKeys = set() # FIXME: We don't know these, they're not in the DD
 		self.avOutputKeys = set([f.get_dest() 
-			for f in self.dd.getRecordDefByName("output").get_items()])
+			for f in self.dd.getTableDefByName("output").get_items()])
 	
 	def run(self, inputData, queryMeta):
 		"""starts the computing process if this is a computed data set.
@@ -228,14 +228,14 @@ class DbBasedCore(QueryingCore):
 			[cd.asSQL(docRec, pars)
 				for cd in self.get_service().get_condDescs()]), pars
 
-	def runDbQuery(self, condition, pars, recordDef, queryMeta):
+	def runDbQuery(self, condition, pars, tableDef, queryMeta):
 		"""runs a db query with condition and pars to fill a table
-		having the columns specified in recordDef.
+		having the columns specified in tableDef.
 
 		It returns a deferred firing when the result is in.
 		"""
 		schema = self.rd.get_schema() or "public"
-		tableName = "%s.%s"%(schema, recordDef.get_table())
+		tableName = "%s.%s"%(schema, tableDef.get_table())
 		queryMeta.overrideDbOptions(limit=self.get_limit(), 
 			sortKey=self.get_sortOrder())
 		limtagsFrag, limtagsPars = queryMeta.asSql()
@@ -247,12 +247,12 @@ class DbBasedCore(QueryingCore):
 		distinctTerm = ""
 		if self.get_distinct():
 			distinctTerm = "DISTINCT "
-		if not recordDef.get_items():
+		if not tableDef.get_items():
 			raise gavo.ValidationError("No output fields with these settings",
 				"_OUTPUT")
 		query = ("SELECT %(distinctTerm)s%(fields)s from %(table)s"
 				" %(condition)s %(limtags)s")%{
-			"fields": ", ".join([f.get_select() for f in recordDef.get_items()
+			"fields": ", ".join([f.get_select() for f in tableDef.get_items()
 				if f.get_select()!="NULL"]),
 			"table": tableName,
 			"condition": condition,
@@ -277,10 +277,10 @@ class DbBasedCore(QueryingCore):
 		"""returns an InternalDataSet containing the result of the
 		query.
 
-		It requires a method _getQuery returning a RecordDef defining
+		It requires a method _getQuery returning a TableDef defining
 		the result, an SQL WHERE-clause and its parameters.
 		"""
-		outputDef = resource.RecordDef()
+		outputDef = resource.TableDef()
 		outputDef.updateFrom(self.tableDef)
 # XXX TODO: It's possible that at some point we'd want constraints in
 # query interpretation, and it's ugly to remove them anyway.  I think
@@ -292,11 +292,11 @@ class DbBasedCore(QueryingCore):
 			"Grammar": rowsetgrammar.RowsetGrammar(initvals={
 				"dbFields": qFields}),
 			"Semantics": resource.Semantics(initvals={
-				"recordDefs": [outputDef]}),
+				"tableDefs": [outputDef]}),
 			"id": "<generated>"})
 		fragment, pars = self._getSQLWhere(inputData, queryMeta)
 		return self.runDbQuery(fragment, pars, 
-				dd.getPrimaryRecordDef(), queryMeta).addCallback(
+				dd.getPrimaryTableDef(), queryMeta).addCallback(
 			self._parseOutput, dd, pars, queryMeta).addErrback(
 			self._logFailedQuery)
 
