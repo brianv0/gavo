@@ -18,7 +18,9 @@ In general, a somewhat more declarative approach would be nice...
 import gavo
 from gavo import config
 from gavo import coords
+from gavo import datadef
 from gavo import record
+from gavo import resourcecache
 from gavo import sqlsupport
 from gavo import utils
 from gavo.datadef import DataField
@@ -49,8 +51,11 @@ class Interface:
 		for fd in fieldDicts:
 			self._addField(fd)
 
-	def _addField(self, fieldDict):
-		newField = DataField(**fieldDict)
+	def _addField(self, newField):
+		if isinstance(newField, DataField):
+			newField = newField.copy()
+		else:
+			newField = DataField(**newField)
 		newField.immutilize()
 		self.fields.append(newField)
 		self.fieldIndex[newField.get_dest()] = newField
@@ -258,48 +263,23 @@ class Products(Interface):
 	name = "products"
 
 	requiredFields = set(["accref", "owner", "embargo", "accsize"])
-	productFields = [
-		{"dest": "accref", "ucd": "VOX:Image_AccessReference",
-			"source": "prodtblKey", "dbtype": "text", "verbLevel": 1,
-			"displayHint": "type=product", "tablehead": "Product"},
-		# XXX TODO: it would be smart to have "references": "products", here,
-# but that causes the removal of the items to take forever.  See if
-# we can figure out a way to avoid that penalty.
-			{"dest": "owner", "source": "prodtblOwner", "dbtype": "text",
-				"tablehead": "Product owner", 
-				"verbLevel": 25},
-			{"dest": "embargo", "source": "prodtblEmbargo", "dbtype": "date",
-				"tablehead": "Embargo ends", 
-				"unit": "Y-M-D", "verbLevel": 25},
-			{"dest": "accsize", "ucd": "VOX:Image_FileSize",
-				"tablehead": "File size", "description": "Size of the image in bytes",
-				"source": "prodtblFsize", "dbtype": "integer", "verbLevel": 11,
-				"unit": "byte"},
-		]
 
-	def __init__(self):
-		Interface.__init__(self, self.productFields)
+	def __init__(self, overrideFields=None):
+		rd = resourcecache.getRd("__system__/products/products")
+		self.productTable = rd.getTableDefByName("products")
+		self.productFields = rd.getTableDefByName("productFields").get_items()
+		Interface.__init__(self, overrideFields or self.productFields)
 
-	def getDelayedNodes(self, recordNode):
+	def getDelayedNodes(self, tableDef):
 		"""sets up exporting the products to the product table by
 		prepending a shared record definition to the current TableDef.
 		"""
-		sourceTable = "@schemaq,%s"%recordNode.get_table()
-# XXX TODO: Take table def from rd
-		productTable = resource.TableDef(None)
-		productTable.set_shared(True)
-		productTable.set_table("products")
-		productTable.set_owningCondition(("sourceTable", sourceTable))
-			
-		for fieldDict in [
-				{"dest": "key", "primary": "True", "source": "prodtblKey",
-					"dbtype": "text"},
-				{"dest": "owner", "source": "prodtblOwner", "dbtype": "text"},
-				{"dest": "embargo", "dbtype": "date", "source": "prodtblEmbargo"},
-				{"dest": "accessPath", "source": "prodtblPath", "dbtype": "text"},
-				{"dest": "sourceTable", "default": sourceTable, "dbtype": "text"}]:
-			productTable.addto_items(DataField(**fieldDict))
-		yield "Semantics", ("Record", productTable), True
+		sourceTable = tableDef.getQName()
+		products = self.productTable.copy()
+		products.set_owningCondition(("sourceTable", tableDef.getQName()))
+		products.getFieldByName("sourceTable").set_default(
+			tableDef.getQName())
+		yield "Semantics", ("Record", products), True
 
 
 class BboxSiap(Products):
@@ -347,83 +327,24 @@ class BboxSiap(Products):
 	name = "bboxSiap"
 	
 	def __init__(self):
-		Interface.__init__(self, self._getInterfaceFields())
+		rd = resourcecache.getRd("__system__/siap")
+		self.siapFields = rd.getTableDefByName("bboxsiapfields").get_items()
+		Products.__init__(self, self.siapFields)
 	
 	def _getInterfaceFields(self):
 		# everything required in the standard must have verbLevel<=20,
 		# because by default, you'll get verb=2
 		return self.siapFields
 		
-	siapFields = Products.productFields+[
-			{"dest": "centerAlpha", "source": "centerAlpha", "ucd": "POS_EQ_RA_MAIN",
-				"dbtype": "double precision", "unit": "deg", "tablehead": "alpha",
-				"displayHint": "type=time", "verbLevel": 0},
-			{"dest": "centerDelta", "source": "centerDelta", "ucd": "POS_EQ_DEC_MAIN",
-				"dbtype": "double precision", "unit": "deg", "tablehead": "delta",
-				"displayHint": "type=sexagesimal", "verbLevel": 0},
-			{"dest": "primaryBbox", "source": "primaryBbox", 
-				"dbtype": "box",
-				"displayHint": "type=suppress", "literalForm": "do not touch"},
-			{"dest": "secondaryBbox", "source": "secondaryBbox", 
-				"dbtype": "box",
-				"displayHint": "type=suppress", "literalForm": "do not touch"},
-			{"dest": "imageTitle", "source": "imageTitle", "ucd": "VOX:Image_Title",
-				"dbtype": "text", "tablehead": "Title", "verbLevel": 0},
-			{"dest": "instId", "source": "instId", "ucd": "INST_ID",
-				"dbtype": "text", "tablehead": "Instrument", "verbLevel":15},
-			{"dest": "dateObs", "source": "dateObs", "ucd": "VOX:Image_MJDateObs",
-				"dbtype": "timestamp", "unit": "d", "tablehead": "Obs. date",
-				"verbLevel": 0, 
-				"description": "Epoch at midpoint of observation"},
-			{"dest": "nAxes", "source": "NAXIS", "ucd": "VOX:Image_Naxes", 
-				"dbtype": "integer", "verbLevel": 20},
-			{"dest": "pixelSize", "source": "pixelSize", "ucd": "VOX:Image_Naxis",
-				"dbtype": "integer[]", "verbLevel": 15},
-			{"dest": "pixelScale", "source": "pixelSize", "ucd": "VOX:Image_Scale",
-				"dbtype": "real[]", "verbLevel": 12},
-			{"dest": "imageFormat", "source": "imageFormat", "dbtype": "text",
-				"ucd": "VOX:Image_Format", "verbLevel": 20, "default": "image/fits"},
-			{"dest": "refFrame", "source": "RADESYS", "dbtype": "text",
-				"ucd": "VOX:STC_CoordRefFrame", "verbLevel": 20, "default": "ICRS"},
-			{"dest": "wcs_equinox", "ucd": "VOX:STC_CoordEquinox",
-				"source": "wcs_equinox", "verbLevel": 20},
-			{"dest": "wcs_projection", "ucd": "VOX:WCS_CoordProjection",
-				"source": "wcs_projection", "dbtype": "text", "verbLevel": 20},
-			{"dest": "wcs_refPixel", "ucd": "VOX:WCS_CoordRefPixel",
-				"source": "wcs_refPixel", "dbtype": "real[]", "verbLevel": 20},
-			{"dest": "wcs_refValues", "ucd": "VOX:WCS_CoordRefValue",
-				"source": "wcs_refValues", "dbtype": "double precision[]",
-				"verbLevel": 20},
-			{"dest": "wcs_cdmatrix", "ucd": "VOX:WCS_CDMatrix", "verbLevel": 20,
-				"source": "wcs_cdmatrix", "dbtype": "real[]"},
-			{"dest": "bandpassId", "ucd": "VOX:BandPass_ID", 
-				"tablehead": "Bandpass",
-				"source": "bandpassId", "dbtype": "text", "verbLevel": 10},
-			{"dest": "bandpassUnit", "ucd": "VOX:BandPass_Unit",
-				"source": "bandpassUnit", "dbtype": "text", "verbLevel": 20},
-			{"dest": "bandpassRefval", "ucd": "VOX:BandPass_RefValue",
-				"source": "bandpassRefval", "verbLevel": 20},
-			{"dest": "bandpassHi", "ucd": "VOX:BandPass_HiLimit",
-				"source": "bandpassHi", "verbLevel": 20},
-			{"dest": "bandpassLo", "ucd": "VOX:BandPass_LoLimit",
-				"source": "bandpassLo", "verbLevel": 20},
-			{"dest": "pixflags", "ucd": "VOX:Image_PixFlags", "verbLevel": 20,
-				"source": "pixflags", "dbtype": "text"},
-		]
-	
-	def getDelayedNodes(self, recordNode):
-		for node in Products.getDelayedNodes(self, recordNode):
-			yield node
-
 
 def elgen_siapOutput(preview="True"):
 	doPreview = record.parseBooleanLiteral(preview)
-	for field in BboxSiap.siapFields:
-		of = field.copy()
-		if of["dest"]=="accref":
-			of["displayHint"] = "type=product,nopreview=True"
-		of["source"] = of["dest"]
-		yield ("empty", "outputField", of)
+	for field in getInterface("bboxSiap").siapFields:
+		of = datadef.OutputField.fromDataField(field)
+		if of.get_dest()=="accref":
+			of.set_displayHint("type=product,nopreview=True")
+		of.set_source(of.get_dest())
+		yield ("addChild", ("outputField", of))
 elgen.registerElgen("siapOutput", elgen_siapOutput)
 
 

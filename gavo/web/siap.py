@@ -237,8 +237,6 @@ class SiapCutoutCore(standardcores.DbBasedCore):
 	the product delivery asking it to only retrieve certain portions
 	of images.
 	"""
-	interfaceFields = dict([(d["dest"], d)
-		for d in interfaces.BboxSiap.siapFields])
 	# field keys we need in our DB query
 	copiedFields = ["centerAlpha", "centerDelta", "imageTitle", "instId",
 		"dateObs", "nAxes", "pixelSize", "pixelScale", "imageFormat",
@@ -248,6 +246,11 @@ class SiapCutoutCore(standardcores.DbBasedCore):
 	# This should become a nodebuilder property or something once we 
 	# compress the stuff or have images with bytes per pixel != 2
 	bytesPerPixel = 2
+
+	def __init__(self, *args, **kwargs):
+		self.interfaceFields = dict([(d["dest"], d)
+			for d in interfaces.getInterface("bboxSiap").siapFields])
+		standardcores.DbBaseCore.__init__(self, *args, **kwargs)
 
 	def getQueryFields(self, queryMeta):
 		fields = standardcores.DbBasedCore.getQueryFields(self, queryMeta)

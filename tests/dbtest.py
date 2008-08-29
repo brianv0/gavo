@@ -44,5 +44,35 @@ class TestTypes(unittest.TestCase):
 		querier.commit()
 
 
+class TestPrivs(unittest.TestCase):
+	"""Tests for privilege management.
+	"""
+	def _assertPrivileges(self, foundPrivs, expPrivs):
+		self.assertEqual(set(foundPrivs), set(expPrivs))
+		for role in foundPrivs:
+			self.assertEqual(foundPrivs[role], expPrivs[role],
+				"Privileges for %s don't match: found %s, expected %s"%(role, 
+					foundPrivs[role], expPrivs[role]))
+
+	def setUp(self):
+		config.setDbProfile("feed")
+		self.querier = sqlsupport.SimpleQuerier(
+			sqlsupport.getDbConnection("feed"))
+		self.tableDef = testhelpers.getTestTable("valspec")
+		tw = sqlsupport.TableWriter(self.tableDef)
+		tw.createTable()
+		tw.finish()
+	
+	def testDefaultPrivileges(self):
+		self._assertPrivileges(sqlsupport.getTablePrivileges(
+			self.tableDef.rd.get_schema(), self.tableDef.get_table(), self.querier),
+			sqlsupport.getACL(self.tableDef))
+
+
+def TestADQLPrivs(TestPrivs):
+	"""Tests for privilege management for ADQL-enabled tables.
+	"""
+
+
 if __name__=="__main__":
-	unittest.main()
+	testhelpers.main(TestPrivs, "test")

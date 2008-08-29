@@ -176,7 +176,7 @@ if __name__=="__main__":
 	from gavo import resourcecache
 	from gavo import nullui
 	from gavo import config
-	config.setDbProfile("querulator")
+	config.setDbProfile("trustedquery")
 	import datetime
 	def printRes(res):
 		print "Yay!"

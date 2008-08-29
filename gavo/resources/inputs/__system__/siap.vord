@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- interface definition for tables implementing the siap interface(s) -->
+
+<ResourceDescriptor srcdir="__system">
+	<schema>public</schema>
+
+	<Data id="bboxsiap" virtual="True">
+		<NullGrammar/>
+		<Semantics>
+			<Table table="bboxsiapfields" 
+					original="__system__/products/products#productFields">
+				<Field dest="centerAlpha" source="centerAlpha" ucd="POS_EQ_RA_MAIN"
+					dbtype="double precision" unit="deg" tablehead="alpha"
+					displayHint="type=time" verbLevel="0"/>
+				<Field dest="centerDelta" source="centerDelta" ucd="POS_EQ_DEC_MAIN"
+					dbtype="double precision" unit="deg" tablehead="delta"
+					displayHint="type=sexagesimal" verbLevel="0"/>
+				<Field dest="primaryBbox" source="primaryBbox" 
+					dbtype="box"
+					displayHint="type=suppress" literalForm="do not touch"/>
+				<Field dest="secondaryBbox" source="secondaryBbox" 
+					dbtype="box"
+					displayHint="type=suppress" literalForm="do not touch"/>
+				<Field dest="imageTitle" source="imageTitle" ucd="VOX:Image_Title"
+					dbtype="text" tablehead="Title" verbLevel="0"/>
+				<Field dest="instId" source="instId" ucd="INST_ID"
+					dbtype="text" tablehead="Instrument" verbLevel="15"/>
+				<Field dest="dateObs" source="dateObs" ucd="VOX:Image_MJDateObs"
+					dbtype="timestamp" unit="d" tablehead="Obs. date"
+					verbLevel="0" description="Epoch at midpoint of observation"/>
+				<Field dest="nAxes" source="NAXIS" ucd="VOX:Image_Naxes" 
+					dbtype="integer" verbLevel="20"/>
+				<Field dest="pixelSize" source="pixelSize" ucd="VOX:Image_Naxis"
+					dbtype="integer[]" verbLevel="15"/>
+				<Field dest="pixelScale" source="pixelSize" ucd="VOX:Image_Scale"
+					dbtype="real[]" verbLevel="12"/>
+				<Field dest="imageFormat" source="imageFormat" dbtype="text"
+					ucd="VOX:Image_Format" verbLevel="20" default="image/fits"/>
+				<Field dest="refFrame" source="RADESYS" dbtype="text"
+					ucd="VOX:STC_CoordRefFrame" verbLevel="20" default="ICRS"/>
+				<Field dest="wcs_equinox" ucd="VOX:STC_CoordEquinox"
+					source="wcs_equinox" verbLevel="20"/>
+				<Field dest="wcs_projection" ucd="VOX:WCS_CoordProjection"
+					source="wcs_projection" dbtype="text" verbLevel="20"/>
+				<Field dest="wcs_refPixel" ucd="VOX:WCS_CoordRefPixel"
+					source="wcs_refPixel" dbtype="real[]" verbLevel="20"/>
+				<Field dest="wcs_refValues" ucd="VOX:WCS_CoordRefValue"
+					source="wcs_refValues" dbtype="double precision[]"
+					verbLevel="20"/>
+				<Field dest="wcs_cdmatrix" ucd="VOX:WCS_CDMatrix" verbLevel="20"
+					source="wcs_cdmatrix" dbtype="real[]"/>
+				<Field dest="bandpassId" ucd="VOX:BandPass_ID" 
+					tablehead="Bandpass"
+					source="bandpassId" dbtype="text" verbLevel="10"/>
+				<Field dest="bandpassUnit" ucd="VOX:BandPass_Unit"
+					source="bandpassUnit" dbtype="text" verbLevel="20"/>
+				<Field dest="bandpassRefval" ucd="VOX:BandPass_RefValue"
+					source="bandpassRefval" verbLevel="20"/>
+				<Field dest="bandpassHi" ucd="VOX:BandPass_HiLimit"
+					source="bandpassHi" verbLevel="20"/>
+				<Field dest="bandpassLo" ucd="VOX:BandPass_LoLimit"
+					source="bandpassLo" verbLevel="20"/>
+				<Field dest="pixflags" ucd="VOX:Image_PixFlags" verbLevel="20"
+					source="pixflags" dbtype="text"/>
+			</Table>
+		</Semantics>
+	</Data>
+</ResourceDescriptor>

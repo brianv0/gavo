@@ -802,7 +802,7 @@ def getErrorTree(exception, pars):
 if __name__=="__main__":
 	from gavo import config
 	from gavo import nullui
-	config.setDbProfile("querulator")
+	config.setDbProfile("trustedquery")
 	from gavo.parsing import importparser  # for registration of getRd
 	try:
 		tree = getPMHResponse({"verb": ["GetRecord"],

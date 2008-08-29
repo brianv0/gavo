@@ -280,7 +280,7 @@ def parseCmdLine():
 
 def main():
 # Some rds need db connectivity
-	config.setDbProfile("querulator")
+	config.setDbProfile("trustedquery")
 	try:
 		opts, (rdName, ddId) = parseCmdLine()
 		dd = getDataDesc(rdName, ddId)

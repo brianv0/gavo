@@ -79,13 +79,44 @@ class Semantics(record.Record):
 		self.dataStore["tableDefs"] = []
 
 
-class TableDef(record.Record, meta.MetaMixin, scripting.ScriptingMixin):
+class ThingWithRoles(record.Record):
+	"""is a base class for objects that have readRoles and allRoles.
+
+	In other words, for TableDefs and ResourceDescriptors.
+	"""
+	def __init__(self, additionalFields={}, initvals={}):
+		fields = {
+			"readRoles": record.ListField,
+			"allRoles": record.ListField,
+		}
+		fields.update(additionalFields)
+		initvals["readRoles"] = initvals.get("readRole", "defaults")
+		initvals["allRoles"] = initvals.get("allRole", "defaults")
+		record.Record.__init__(self, fields, initvals=initvals)
+
+	def _setRoles(self, dest, val, defaults):
+		roles = [s.strip() for s in val.split(",")]
+		try:
+			del roles[roles.index("defaults")]
+			roles.extend(defaults)
+		except ValueError:  # no defaults in list, hasn't been substituted
+			pass
+		self.dataStore[dest] = roles
+
+	def set_readRoles(self, val):
+		return self._setRoles("readRoles", val, config.get("db", "queryRoles"))
+
+	def set_allRoles(self, val):
+		return self._setRoles("allRoles", val, config.get("db", "maintainers"))
+
+
+class TableDef(ThingWithRoles, meta.MetaMixin, scripting.ScriptingMixin):
 	"""is a specification for the semantics of a table line.
 	"""
-	validWaypoints = set(["preIndex", "preIndexSQL"])
+	validWaypoints = set(["preIndex", "preIndexSQL", "viewCreation"])
 
 	def __init__(self, rd, initvals={}):
-		record.Record.__init__(self, {
+		ThingWithRoles.__init__(self, {
 			"table": record.RequiredField,  # name of destination table
 			"items": record.DataFieldList,  # list of FieldDefs for this record
 			"constraints": None,        # a Constraints object rows have to satisfy
@@ -107,11 +138,6 @@ class TableDef(record.Record, meta.MetaMixin, scripting.ScriptingMixin):
 
 	def __repr__(self):
 		return "<TableDef %s, %s>"%(id(self), id(self.get_items()))
-
-	def getRd(self):
-		warnings.warn("Access TableDef.rd directly, don't call getRd",
-			warnings.DeprecationWarning)
-		return self.rd
 
 	def getQName(self):
 		if self.rd==None:
@@ -303,6 +329,7 @@ class DataSet(meta.MetaMixin):
 		self.tablesToBuild = set(tablesToBuild)
 		self.silent = silent
 		self.dD = dataDescriptor
+		self.rd = self.dD.rd
 		self.setMetaParent(self.dD)
 		self.ignoreBadSources = ignoreBadSources
 		self.docFields = self.dD.get_items()
@@ -386,9 +413,6 @@ class DataSet(meta.MetaMixin):
 
 	def getDescriptor(self):
 		return self.dD
-
-	def getRd(self):
-		return self.dD.getRd()
 
 	def updateDocRec(self, docRec):
 		self.docRec.update(docRec)
@@ -512,8 +536,6 @@ class Resource:
 
 	def exportToSql(self, onlyDDs=None):
 		rd = self.getDescriptor()
-		if rd.get_profile():  # XXX TODO: This should be reset when done...
-			config.setDbProfile(rd.get_profile())
 		for dataSet in self:
 			if onlyDDs and dataSet.getDescriptor().get_id() not in onlyDDs:
 				continue
@@ -562,7 +584,7 @@ class Resource:
 				config.get("inputsDir"), dep)))
 
 
-class ResourceDescriptor(record.Record, meta.MetaMixin, 
+class ResourceDescriptor(ThingWithRoles, meta.MetaMixin, 
 		scripting.ScriptingMixin):
 	"""is a container for all information necessary to import a resource into
 	the DC.
@@ -571,7 +593,7 @@ class ResourceDescriptor(record.Record, meta.MetaMixin,
 
 	def __init__(self, sourcePath="InMemory", **initvals):
 		self.sourceId = self._getSourceId(sourcePath)
-		record.Record.__init__(self, {
+		ThingWithRoles.__init__(self, {
 			"resdir": record.RequiredField, # base directory for source files
 			"dataSrcs": record.ListField,   # list of data sources
 			"processors": record.ListField, # list of resource processors
@@ -581,11 +603,11 @@ class ResourceDescriptor(record.Record, meta.MetaMixin,
 			"service": record.DictField,    # ...services for the data contained.
 			"schema": None,    # Name of schema for that resource, defaults
 			                   # to basename(resdir)
-			"profile": None,   # override db profile used to create resource
 			"atExpander": parsehelpers.RDComputer(self),
 			"systems": coords.CooSysRegistry(),
 			"property": record.DictField,
 		}, initvals)
+		self.rd = self
 
 	def __iter__(self):
 		"""iterates over all embedded data descriptors.
@@ -817,7 +839,7 @@ def getMatchingData(dataDesc, tableName, whereClause=None, pars={},
 		"SELECT * FROM %s %s"%(tableDef.get_table(), whereClause),
 		pars)
 	return InternalDataSet(
-		makeRowsetDataDesc(dataDesc.getRd(), tableDef.get_items()), 
+		makeRowsetDataDesc(dataDesc.rd, tableDef.get_items()), 
 		dataSource=data, silent=True)
 
 
@@ -829,7 +851,7 @@ class TableQuerier(sqlsupport.SimpleQuerier):
 		td.set_scripts([])
 		self.selectClause = "SELECT %s FROM %s.%s"%(
 			", ".join([f.get_dest() for f in td.get_items()]),
-			self.rowsetDD.getRd().get_schema(),
+			self.rowsetDD.rd.get_schema(),
 			td.get_table())
 	
 	def getMatches(self, whereClause="", pars={}, forceQuery=None):

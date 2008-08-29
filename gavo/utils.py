@@ -35,6 +35,39 @@ def _iterDerivedClasses(baseClass, objects):
 			pass
 
 
+class _Deferred(object):
+	"""is a helper class for DeferringDict.
+	"""
+	def __init__(self, callable, args=(), kwargs={}):
+		self.callable, self.args, self.kwargs = callable, args, kwargs
+	
+	def actualize(self):
+		return self.callable(*self.args, **self.kwargs)
+
+
+class DeferringDict(dict):
+	"""is a dictionary that stores tuples of a callable and its
+	arguments and will, on the first access, do the calls.
+
+	This is used below to defer the construction of instances in the class
+	resolver to when they are actually used.  This is important with interfaces,
+	since they usually need the entire system up before they can sensibly
+	be built.
+	"""
+	def __setitem__(self, key, value):
+		if isinstance(value, tuple):
+			dict.__setitem__(self, key, _Deferred(*value))
+		else:
+			dict.__setitem__(self, key, _Deferred(value))
+
+	def __getitem__(self, key):
+		val = dict.__getitem__(self, key)
+		if isinstance(val, _Deferred):
+			val = val.actualize()
+			dict.__setitem__(self, key, val)
+		return val
+
+
 def buildClassResolver(baseClass, objects, instances=False):
 	"""returns a function resolving classes deriving from baseClass
 	in the sequence objects by their names.
@@ -47,12 +80,12 @@ def buildClassResolver(baseClass, objects, instances=False):
 	If instances is True the function will return instances instead
 	of classes.
 	"""
-	registry = {}
+	if instances:
+		registry = DeferringDict()
+	else:
+		registry = {}
 	for cls in _iterDerivedClasses(baseClass, objects):
-		if instances:
-			registry[cls.name] = cls()
-		else:
-			registry[cls.name] = cls
+		registry[cls.name] = cls
 	def resolve(name, registry=registry):
 		return registry[name]
 	return resolve

@@ -129,6 +129,8 @@ else:
 	from psycopg2 import Error as DbError
 
 	def getDbConnection(profile):
+		if isinstance(profile, basestring):
+			profile = config.getDbProfileByName(profile)
 		try:
 			conn = psycopg2.connect("dbname='%s' port='%s' host='%s'"
 				" user='%s' password='%s'"%(profile.get_database(), 
@@ -175,36 +177,115 @@ def encodeDbMsg(msg):
 		).encode("ascii", "replace")
 
 
+_privTable = {
+	"arwdRx": "ALL",
+	"arwdRxt": "ALL",
+	"r": "SELECT",
+	"UC": "ALL",
+	"U": "USAGE",
+}
+
+def parsePGACL(acl):
+	"""returns a dict roleName->acl for acl in postgres'
+	ACL serialization.
+
+	*** postgres specific ***
+	"""
+	if acl==None:
+		return {}
+	res = []
+	for acs in re.match("{(.*)}", acl).group(1).split(","):
+		role, privs, granter = re.match("([^=]*)=([^/]*)/(.*)", acs).groups()
+		res.append((role, _privTable.get(privs, "READ")))
+	return dict(res)
+
+
+def getACL(thingWithRoles):
+	"""returns a dict of (role, ACL) as it is defined in tableDef or RD
+	thingWithRoles, in our internal notation.
+
+	*** postgres specific ***
+	"""
+	res = []
+	for role in thingWithRoles.get_allRoles():
+		res.append((role, "ALL"))
+	if hasattr(thingWithRoles, "get_schema"): # it's an RD
+		readRight = "USAGE"
+	else:
+		readRight = "SELECT"
+	for role in thingWithRoles.get_readRoles():
+		res.append((role, readRight))
+	return dict(res)
+
+
+def getTablePrivileges(schema, tableName, querier):
+	"""returns (owner, readRoles, allRoles) for the relation tableName
+	and the schema.
+
+	*** postgres specific ***
+	"""
+	res = querier.query("SELECT relacl FROM pg_class WHERE"
+		" relname=%(tableName)s AND"
+		" relnamespace=(SELECT oid FROM pg_namespace WHERE nspname=%(schema)s)",
+		locals()).fetchall()
+	return parsePGACL(res[0][0])
+
+
+def getSchemaPrivileges(schema, querier):
+	"""returns (owner, readRoles, allRoles) for the relation tableName
+	and the schema.
+
+	*** postgres specific ***
+	"""
+	res = querier.query("SELECT nspacl FROM pg_namespace WHERE"
+		" nspname=%(schema)s", locals()).fetchall()
+	return parsePGACL(res[0][0])
+
+
+def _updatePrivileges(objectName, foundPrivs, shouldPrivs, querier):
+	"""is a helper for set[Table|Schema]Privileges.
+	"""
+	for role in set(foundPrivs)-set(shouldPrivs):
+		querier.query("REVOKE ALL PRIVILEGES ON %s FROM %s"%(
+			objectName, role))
+	for role in set(shouldPrivs)-set(foundPrivs):
+		querier.query("GRANT %s ON %s TO %s"%(shouldPrivs[role], objectName,
+			role))
+	for role in set(shouldPrivs)&set(foundPrivs):
+		if shouldPrivs[role]!=foundPrivs[role]:
+			querier.query("REVOKE ALL PRIVILEGES ON %s FROM %s"%(
+				objectName, role))
+			querier.query("GRANT %s ON %s TO %s"%(shouldPrivs[role], objectName,
+				role))
+
+def setTablePrivileges(tableDef, querier):
+	"""sets the privileges defined in tableDef for that table through
+	querier.
+	"""
+	_updatePrivileges(tableDef.getQName(),
+		getTablePrivileges(tableDef.rd.get_schema(), tableDef.get_table(),
+			querier), 
+		getACL(tableDef), querier)
+
+
+def setSchemaPrivileges(rd, querier):
+	"""sets the privileges defined on rd to its schema.
+
+	This function will never touch the public schema.
+	"""
+	schema = rd.get_schema().lower()
+	if schema=="public":
+		return
+	_updatePrivileges("SCHEMA %s"%schema,
+		getSchemaPrivileges(schema, querier), getACL(rd), querier)
+	
+
 def _makePrivInstruction(instruction, argList):
 	"""returns instruction with argList filled into %s, or None if argList is
 	empty.
 	"""
 	if argList:
 		return instruction%(", ".join(argList))
-
-
-def getTablePrivSQL(tableName):
-	"""returns a sequence of SQL statements that grant the default privileges 
-	for the installation on table tableName.
-	"""
-	dbProfile = config.getDbProfile()
-	return filter(operator.truth, [
-		_makePrivInstruction("GRANT ALL PRIVILEGES ON %s TO %%s"%tableName,
-			dbProfile.get_allRoles()),
-		_makePrivInstruction("GRANT SELECT ON %s TO %%s"%tableName,
-			dbProfile.get_readRoles())])
-
-
-def getSchemaPrivSQL(schema):
-	"""returns a sequence of SQL statements that grant the default privileges 
-	for the installation to schema.
-	"""
-	dbProfile = config.getDbProfile()
-	return filter(operator.truth, [
-		_makePrivInstruction("GRANT USAGE, CREATE ON SCHEMA %s TO %%s"%schema,
-			dbProfile.get_allRoles()),
-		_makePrivInstruction("GRANT USAGE ON SCHEMA %s TO %%s"%schema,
-			dbProfile.get_readRoles())])
 
 
 class _Feeder:
@@ -514,9 +595,8 @@ class TableInterface(StandardQueryMixin):
 		"""
 		if not self.schemaExists(schemaName):
 			self.query("CREATE SCHEMA %(schemaName)s"%locals())
-			for stmt in getSchemaPrivSQL(schemaName):
-				self.query(stmt)
-	
+			setSchemaPrivileges(self.tableDef.rd, self)
+
 	def finish(self):
 		self.connection.commit()
 		self.connection.close()
@@ -531,6 +611,7 @@ class TableWriter(TableInterface):
 	"""
 	def __init__(self, tableDef, dbConnection=None, scriptRunner=None):
 		TableInterface.__init__(self, tableDef, dbConnection)
+		self.workingOnView = self.tableDef.hasScript("viewCreation")
 		self.scriptRunner = scriptRunner
 
 	def _getDDLDefinition(self, field):
@@ -548,7 +629,8 @@ class TableWriter(TableInterface):
 		if self.scriptRunner:
 			self.scriptRunner.runScripts("preIndex", tw=self)
 			self.scriptRunner.runScripts("preIndexSQL", connection=self.connection)
-		super(TableWriter, self).makeIndices()
+		if not self.workingOnView:
+			TableInterface.makeIndices(self)
 
 	def createTable(self, delete=True, create=True, privs=True):
 		"""creates a new table for dataset.
@@ -561,18 +643,22 @@ class TableWriter(TableInterface):
 		but who knows.
 		"""
 		def setPrivileges():
-			for stmt in getTablePrivSQL(self.tableName):
-				self.query(stmt)
+			setTablePrivileges(self.tableDef, self)
 	
 		if delete:
 			if self.tableExists(self.tableName):
-				self.query("DROP TABLE %s CASCADE"%(self.tableName))
+				self.query("DROP %s %s CASCADE"%(
+					{True: "VIEW", False: "TABLE"}[self.workingOnView],
+					self.tableName))
 		if create:
-			self.query("CREATE TABLE %s (%s)"%(
-				self.tableName,
-				", ".join([self._getDDLDefinition(field)
-					for field in self.fields])
-				))
+			if self.workingOnView:
+				self.tableDef.runScripts("viewCreation", querier=self)
+			else:
+				self.query("CREATE TABLE %s (%s)"%(
+					self.tableName,
+					", ".join([self._getDDLDefinition(field)
+						for field in self.fields])
+					))
 		if privs:
 			setPrivileges()
 

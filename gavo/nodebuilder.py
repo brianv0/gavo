@@ -283,7 +283,8 @@ class NodeBuilder(BaseNodeBuilder):
 	* a tuple ("start", <Element Name>, <attributes>)
 	* a tuple ("end", <Element Name>)
 	* a tuple ("empty", <Element Name>, <attributes>)
-	* string (which is delivered as character data
+	* a tuple ("addChild", (<ElementName, DOM node>))
+	* string (which is delivered as character data)
 	"""
 	def _makeGenerator(self, code):
 		try:
@@ -292,7 +293,7 @@ class NodeBuilder(BaseNodeBuilder):
 			raise gavo.Error("Bad ElementGenerator source %s: %s"%(code, msg))
 		return gen
 
-	knownActions = set(["start", "end", "empty"])
+	knownActions = set(["start", "end", "empty", "addChild"])
 
 	def _handleTupleItem(self, tuple):
 		action = tuple[0]
@@ -302,6 +303,8 @@ class NodeBuilder(BaseNodeBuilder):
 			self.startElement(tuple[1], tuple[2])
 		if action=="end" or action=="empty":
 			self.endElement(tuple[1])
+		if action=="addChild":
+			self.childStack[-1].append(tuple[1])
 
 	def _make_ElementGenerator(self, name, attrs, children):
 		generator = self._makeGenerator(children[0][1])
@@ -315,5 +318,3 @@ class NodeBuilder(BaseNodeBuilder):
 				self._handleTupleItem(item)
 			else:
 				raise Error("Bad item from element generator: %s"%repr(item))
-
-

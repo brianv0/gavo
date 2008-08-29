@@ -490,7 +490,7 @@ setattr(ArchiveService, 'child_formal.css', formal.defaultCSS)
 setattr(ArchiveService, 'child_js', formal.formsJS)
 
 from gavo import nullui
-config.setDbProfile("querulator")
+config.setDbProfile("trustedquery")
 
 if config.get("web", "errorPage")=="debug":
 	appserver.DefaultExceptionHandler = ErrorPageDebug

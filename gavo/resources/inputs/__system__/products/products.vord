@@ -2,29 +2,50 @@
 
 <ResourceDescriptor srcdir="__system">
 	<schema>public</schema>
+
 	<Data id="data">
+		<!-- the mapping of product keys to files, used for resolution
+		by web/products.py for, e.g., access control -->
 		<NullGrammar/>
-
 		<Semantics>
-<!-- This has to match the definition interfaces.py
-and the ProductValueCollector macro in macros.py.
-
-It is somewhat unfortunate that this definition is reflected in so many
-places, but the alternatives are even more unattractive (to me and right
-now - I'll need to keep stuff like this in mind when redesigning the 
-system).
--->
-			<Record table="products">
+			<Record table="products" shared="True">
 				<Field dest="key" primary="True" dbtype="text"
-					tablehead="Unique product key"/>
-				<Field dest="owner" dbtype="text" tablehead="Data owner"/>
-				<Field dest="embargo" dbtype="date"
+					tablehead="Unique product key" source="prodtblKey"/>
+				<Field dest="owner" dbtype="text" tablehead="Data owner"
+					source="prodtblOwner"/>
+				<Field dest="embargo" dbtype="date" source="prodtblEmbargo"
 					tablehead="Ends date of embargo"/>
-				<Field dest="accessPath" dbtype="text" 
+				<Field dest="accessPath" dbtype="text" source="prodtblPath"
 					tablehead="Path to access data" optional="False"/>
-				<Field dest="sourceTable" dbtype="text"
+				<!-- the next one will usually get its default filled in by
+					the products interface -->
+				<Field dest="sourceTable" dbtype="text" default="" 
+					source="sourceTable"
 					tablehead="Name of table containing metadata" optional="False"/>
 			</Record>
+		</Semantics>
+	</Data>
+
+	<Data id="interfaceDef" virtual="True">
+		<!-- fields in tables implementing the products interface -->
+		<NullGrammar/>
+		<Semantics>
+			<Table table="productFields" id="productFields">
+				<Field dest="accref" ucd="VOX:Image_AccessReference"
+					source="prodtblKey" dbtype="text" verbLevel="1"
+					displayHint="type=product" tablehead="Product"/>
+				<!-- it would be smart to "references": "products" the accref,
+					but that causes the removal of the items to take forever.  See if
+					we can figure out a way to avoid that penalty. -->
+				<Field dest="owner" source="prodtblOwner" dbtype="text"
+					tablehead="Product owner" verbLevel="25"/>
+				<Field dest="embargo" source="prodtblEmbargo" dbtype="date"
+					tablehead="Embargo ends" unit="Y-M-D" verbLevel="25"/>
+				<Field dest="accsize" ucd="VOX:Image_FileSize"
+					tablehead="File size" description="Size of the image in bytes"
+					source="prodtblFsize" dbtype="integer" verbLevel="11"
+					unit="byte"/>
+			</Table>
 		</Semantics>
 	</Data>
 </ResourceDescriptor>

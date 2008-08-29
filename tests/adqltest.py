@@ -754,16 +754,5 @@ class QueryTest(unittest.TestCase):
 		sqlsupport.SimpleQuerier().runIsolatedQuery("drop table %s"%self.tableName)
 
 
-def singleTest():
-	suite = unittest.makeSuite(QueryTest, "test")
-#	suite = unittest.makeSuite(ColResTest, "testGeo")
-	runner = unittest.TextTestRunner()
-	runner.run(suite)
-
-
 if __name__=="__main__":
-	import sys
-	if len(sys.argv)>1:
-		singleTest()
-	else:
-		unittest.main()
+	testhelpers.main(QueryTest, "test")

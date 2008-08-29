@@ -38,12 +38,6 @@ class SqlMacroExpander(object):
 		"""
 		return re.sub("@@@(.*?)@@@", self._expandScriptMacro, script)
 
-	def TABLERIGHTS(self, tableName):
-		return "\n".join(sqlsupport.getTablePrivSQL(tableName))
-	
-	def SCHEMARIGHTS(self, schema):
-		return "\n".join(sqlsupport.getSchemaPrivSQL(schema))
-	
 	def SCHEMA(self):
 		return self.rd.get_schema()
 
@@ -178,6 +172,18 @@ class SQLScriptRunner:
 			connection.commit()
 			connection.close()
 
+	def runBlindly(self, script, querier):
+		"""executes all commands of script in sequence without worrying
+		about the consequences.
+
+		No rollbacks will be tried, so these scripts should only contain
+		commands guaranteed to work (or whose failure indicates the whole
+		operation is pointless).  Thus, failOk is ignored.
+		"""
+		queries = self._parseScript(script)
+		for _, query in queries:
+			querier.query(query)
+
 
 class ScriptHandler(object):
 	"""is a container for the logic of running scripts.
@@ -210,6 +216,15 @@ class ScriptHandler(object):
 		connection.cursor().execute("COMMIT")
 		runner = SQLScriptRunner()
 		runner.run(self.expander.expand(script), connection=connection)
+
+	def _runSqlScriptWithQuerier(self, script, querier):
+		"""runs a script blindly using querier.
+
+		Any error conditions will abort the script and leave querier's
+		connection invalid until a rollback.
+		"""
+		SQLScriptRunner().runBlindly(self.expander.expand(script), 
+			querier=querier)
 
 	def _runPythonDDProc(self, script):
 		"""compiles and run script to a python function working on a
@@ -249,6 +264,7 @@ class ScriptHandler(object):
 		"processTable": _runPythonDDProc,
 		"preIndex": _runPythonTableProc,
 		"preIndexSQL": _runSqlScriptInConnection,
+		"viewCreation": _runSqlScriptWithQuerier,
 	}
 	
 	def _runScript(self, scriptType, scriptName, script, **kwargs):
@@ -278,7 +294,16 @@ class ScriptingMixin(object):
 	
 	def runScripts(self, waypoint, **kwargs):
 		self.__getScriptHandler().runScripts(waypoint, **kwargs)
-	
+
+	def hasScript(self, waypoint):
+		"""returns True if there is at least one script for waypoint
+		on this object.
+		"""
+		for scriptType, _, _ in self.get_scripts():
+			if scriptType==waypoint:
+				return True
+		return False
+
 	def addto_scripts(self, item):
 		type, name, content = item
 		if not type in self.validWaypoints:

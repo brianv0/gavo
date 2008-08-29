@@ -9,6 +9,8 @@ import unittest
 import gavo
 from gavo import utils
 
+import testhelpers
+
 
 class TestReraise(unittest.TestCase):
 	"""Tests for keeping the stack when reraising mogrified exceptions.
@@ -53,5 +55,36 @@ class TestBisectMin(unittest.TestCase):
 		"""
 		self.assertAlmostEqual(utils.findMinimum(lambda x: 2, -10, 5), -10, 6)
 
+
+class TestDeferredDict(unittest.TestCase):
+	"""Tests for deferred construction/calling of things.
+	"""
+	def testWithFunction(self):
+		def f(a, b, callCount=[0]):
+			callCount[0] += 1
+			return (a, b, callCount[0])
+
+		d = utils.DeferringDict()
+		d["foo"] = (f, (1, 2))
+		self.assertEqual(d["foo"], (1, 2, 1))
+		self.assertEqual(d["foo"], (1, 2, 1), "DeferredDict doesn't cache results")
+	
+	def testWithClass(self):
+		class Foo(object):
+			consCount = [0]
+			def __init__(self):
+				self.consCount[0] += 1
+		d = utils.DeferringDict()
+		d["foo"] = Foo
+		d["bar"] = Foo
+		o1 = d["foo"]
+		o2 = d["foo"]
+		self.assert_(o1 is o2)
+		self.assertEqual(Foo.consCount[0], 1)
+		o3 = d["bar"]
+		self.failIf(o1 is o3)
+		self.assertEqual(Foo.consCount[0], 2)
+
+
 if __name__=="__main__":
-	unittest.main()
+	testhelpers.main(TestDeferredDict, "test")

@@ -4,6 +4,7 @@ Helper classes for the gavo unittest framework.
 
 import os
 import popen2
+import sys
 import tempfile
 import unittest
 
@@ -76,3 +77,11 @@ def getTestTable(tableName):
 def getTestData(dataId):
 	return getTestRD().getDataById(dataId)
 
+
+def main(testClass, methodPrefix):
+	if len(sys.argv)>1:
+		suite = unittest.makeSuite(testClass, methodPrefix)
+		runner = unittest.TextTestRunner()
+		runner.run(suite)
+	else:
+		unittest.main()

@@ -79,16 +79,18 @@ templateRoot: %(rootDir)s/web/querulator/templates
 fitspreview: %(rootDir)s/web/bin/fitspreview
 
 [db]
-interface: pgsql
-# or psycopg2
+interface: psycopg2
+# pgsql might still work but is scheduled for removal
 profilePath: ~/.gavo:%(configdir)s
 msgEncoding: utf-8
+maintainers: gavoadmin
+queryRoles: gavo
+adqlRoles: untrusted
 
 [profiles]
-feed:feed
-querulator:trustedquery
-foreignsql:untrustedquery
-writable:worldwritable
+admin:feed
+trustedquery:trustedquery
+untrustedquery:untrustedquery
 
 [ivoa]
 # the authority id for this DC
@@ -316,6 +318,12 @@ class Settings(object):
 	_parse_DEFAULT_configdir = _parse_DEFAULT_inputsdir =\
 		_parse_DEFAULT_cachedir = _parse_DEFAULT_logdir =\
 		_parse_DEFAULT_tempdir = _parse_DEFAULT_webdir = _cookPath
+
+	def _parseRoles(self, val):
+		return [s.strip() for s in val.split(",")]
+	
+	_parse_db_maintainers = _parse_db_queryroles = _parse_db_aqlroles =\
+		_parseRoles
 
 	def _parse_web_adminpasswd(self, val):
 		return val.strip()

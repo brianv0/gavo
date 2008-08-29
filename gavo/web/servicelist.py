@@ -306,7 +306,7 @@ def main():
 	"""handles the user interaction for gavopublish.
 	"""
 	from gavo import textui
-	config.setDbProfile("feed")
+	config.setDbProfile("admin")
 	from gavo.parsing import importparser
 	opts, args = parseCommandLine()
 	if opts.all:
@@ -336,6 +336,6 @@ def main():
 if __name__=="__main__":
 	from gavo import textui
 	import pprint
-	config.setDbProfile("querulator")
+	config.setDbProfile("trustedquery")
 	from gavo.parsing import importparser
 	pprint.pprint(getSets())

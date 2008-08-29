@@ -31,7 +31,7 @@ def getGroupsForUser(username, password, async=True):
 		" where username=%(username)s AND u.password=%(password)s")
 	pars = {"username": username, "password": password}
 	if async: 
-		return resourcecache.getDbConnection(None).runQuery(query, pars
+		return resourcecache.getDbConnection("admin").runQuery(query, pars
 			).addCallback(parseResponse)
 	else:
 		return parseResponse(
@@ -63,7 +63,7 @@ def checkCredentials(user, password, reqGroup):
 				"group": reqGroup,
 			}).addCallbacks(checkMembership, lambda f:f)
 	
-	conn = resourcecache.getDbConnection(None)
+	conn = resourcecache.getDbConnection("admin")
 	dbPw = conn.runQuery("select password from users.users where"
 		" username=%(user)s", {
 			"user": user}).addCallbacks(queryGroups, lambda f: f)
@@ -193,7 +193,7 @@ def _parseCmdLine():
 
 
 def main():
-	config.setDbProfile("feed")
+	config.setDbProfile("admin")
 	querier = sqlsupport.SimpleQuerier()
 	opts, args = _parseCmdLine()
 	action, args = args[0], args[1:]

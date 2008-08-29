@@ -112,17 +112,19 @@ class RdParser(nodebuilder.NodeBuilder):
 				self.pushProperty("fieldPath", "")
 
 	def _start_ResourceDescriptor(self, name, attrs):
+		self.rd.set_resdir(attrs["srcdir"])
 		self.sourceDir = os.path.join(config.get("inputsDir"), attrs["srcdir"])
 
+	def _make_schema(self, name, attrs, children):
+# Has to happen as early as possible
+		self.rd.set_schema(self._makeTextNode(name, attrs, children))
+
 	def _make_ResourceDescriptor(self, name, attrs, children):
-		self.rd.set_resdir(attrs["srcdir"])
-		self.rd.set_profile(attrs.get("profile"))
 		self.rd.setIdMap(self.elementsById)
 		self._processChildren(self.rd, name, {
 			"DataProcessor": self.rd.addto_processors,
 			"recreateAfter": self.rd.addto_dependents,
 			"script": self.rd.addto_scripts,
-			"schema": self.rd.set_schema,
 			"Data": lambda val:0,      # these register themselves
 			"Adapter": lambda val: 0,  # these register themselves
 			"Service": lambda val: 0,  # these register themselves
@@ -747,7 +749,6 @@ class RdParser(nodebuilder.NodeBuilder):
 	_make_tokenSequence = \
 	_make_rowProduction = \
 	_make_parseRE = \
-	_make_schema = \
 	_make_option = \
 	_makeTextNode
 
