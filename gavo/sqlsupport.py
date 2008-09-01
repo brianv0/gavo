@@ -9,9 +9,10 @@ import operator
 
 from gavo import config
 from gavo import resourcecache  # we need importparser.getRd from there,
-# so somebody else has to import it
+# so somebody else has to import it before the metatable can be accessed.
 
 debug = False
+feedDebug = False
 
 usePgSQL = config.get("db", "interface")=="pgsql"
 
@@ -200,7 +201,7 @@ def parsePGACL(acl):
 	return dict(res)
 
 
-def getACL(thingWithRoles):
+def getACLFromRes(thingWithRoles):
 	"""returns a dict of (role, ACL) as it is defined in tableDef or RD
 	thingWithRoles, in our internal notation.
 
@@ -244,19 +245,27 @@ def getSchemaPrivileges(schema, querier):
 
 def _updatePrivileges(objectName, foundPrivs, shouldPrivs, querier):
 	"""is a helper for set[Table|Schema]Privileges.
+
+	Requests for granting privileges not known to the database are
+	ignored, but a log entry is generated.
 	"""
 	for role in set(foundPrivs)-set(shouldPrivs):
 		querier.query("REVOKE ALL PRIVILEGES ON %s FROM %s"%(
 			objectName, role))
 	for role in set(shouldPrivs)-set(foundPrivs):
-		querier.query("GRANT %s ON %s TO %s"%(shouldPrivs[role], objectName,
-			role))
+		if querier.roleExists(role):
+			querier.query("GRANT %s ON %s TO %s"%(shouldPrivs[role], objectName,
+				role))
+		else:
+			logger.error("Request to grant privileges to non-existing"
+				" database user %s dropped"%role)
 	for role in set(shouldPrivs)&set(foundPrivs):
 		if shouldPrivs[role]!=foundPrivs[role]:
 			querier.query("REVOKE ALL PRIVILEGES ON %s FROM %s"%(
 				objectName, role))
 			querier.query("GRANT %s ON %s TO %s"%(shouldPrivs[role], objectName,
 				role))
+
 
 def setTablePrivileges(tableDef, querier):
 	"""sets the privileges defined in tableDef for that table through
@@ -265,7 +274,7 @@ def setTablePrivileges(tableDef, querier):
 	_updatePrivileges(tableDef.getQName(),
 		getTablePrivileges(tableDef.rd.get_schema(), tableDef.get_table(),
 			querier), 
-		getACL(tableDef), querier)
+		getACLFromRes(tableDef), querier)
 
 
 def setSchemaPrivileges(rd, querier):
@@ -277,7 +286,7 @@ def setSchemaPrivileges(rd, querier):
 	if schema=="public":
 		return
 	_updatePrivileges("SCHEMA %s"%schema,
-		getSchemaPrivileges(schema, querier), getACL(rd), querier)
+		getSchemaPrivileges(schema, querier), getACLFromRes(rd), querier)
 	
 
 def _makePrivInstruction(instruction, argList):
@@ -297,8 +306,12 @@ class _Feeder:
 	def __init__(self, cursor, commitFunc, rollbackFunc, feedCommand):
 		self.cursor, self.commitFunc = cursor, commitFunc
 		self.rollbackFunc, self.feedCommand = rollbackFunc, feedCommand
+		if feedDebug:
+			print "Starting feed with", feedCommand
 	
 	def __call__(self, data):
+		if feedDebug:
+			print "Feeding", data
 		try:
 			self.cursor.execute(self.feedCommand, data)
 		except Exception, exc:
@@ -310,6 +323,8 @@ class _Feeder:
 		nAffected = self.cursor.rowcount
 		try:
 			self.cursor.close()
+			if feedDebug:
+				print "Feed commited; rows affected:", nAffected
 		except DbError:  # cursor has been closed before
 			pass
 		self.cursor = None
@@ -426,6 +441,15 @@ class StandardQueryMixin(object):
 					'tableName': tableName.lower(),
 					'schemaName': schema.lower(),
 			}).fetchall()
+		return len(matches)!=0
+
+	def roleExists(self, role):
+		"""returns True if there role is known to the database.
+
+		** Postgresql specific **
+		"""
+		matches = self.query("SELECT usesysid FROM pg_user WHERE usename="
+			"%(role)s", locals()).fetchall()
 		return len(matches)!=0
 
 	def hasIndex(self, tableName, indexName, schema=None):
@@ -609,10 +633,11 @@ class TableWriter(TableInterface):
 	"""is a moderately high-level interface to feeding data into an
 	SQL database.
 	"""
-	def __init__(self, tableDef, dbConnection=None, scriptRunner=None):
+	def __init__(self, tableDef, dbConnection=None, scriptRunner=None,
+			meta=True):
 		TableInterface.__init__(self, tableDef, dbConnection)
 		self.workingOnView = self.tableDef.hasScript("viewCreation")
-		self.scriptRunner = scriptRunner
+		self.scriptRunner, self.meta = scriptRunner, meta
 
 	def _getDDLDefinition(self, field):
 		"""returns an sql fragment for defining the field described by the 
@@ -661,6 +686,10 @@ class TableWriter(TableInterface):
 					))
 		if privs:
 			setPrivileges()
+		if self.meta:
+			mh = MetaTableHandler()
+			mh.updateSourceTable(self.tableDef, self)
+			mh.defineColumns(self.tableDef, self)
 
 	def getFeeder(self, dropIndices=True):
 		"""returns a callable object that takes dictionaries containing
@@ -745,43 +774,42 @@ class MetaTableHandler:
 	in the database.  Its definition is given in the __system__/dc_tables
 	RD.
 	"""
-	def __init__(self, querier=None):
-#XXX TODO: passing in a querier and then commiting it is crap.
-		self.tableDef = resourcecache.getRd("__system__/dc_tables"
-			).getTableDefByName("fielddescriptions")
-		if querier==None:
-			self.querier = SimpleQuerier()
-		else:
-			self.querier = querier
-		self.writer = TableWriter(self.tableDef,
-			dbConnection=self.querier.connection)
-		self.writer.ensureTable()
-	
-	def updateSourceTable(self, tableName, rdId, dataId, adqlAllowed):
-# XXX TODO: use data descriptor from dc_tables to do this
-		if tableName=="public.dc_tables":
-			return # Whoops -- we'd need to be in the parent transaction
-		querier = SimpleQuerier()
-		querier.query("DELETE FROM dc_tables WHERE tableName=%(tableName)s",
-			locals())
-		querier.query("INSERT INTO dc_tables (tableName, sourceRd,"
-			" dataId, adql) VALUES (%(tableName)s, %(rdId)s, %(dataId)s,"
-			" %(adqlAllowed)s)", {"tableName": tableName, "rdId": rdId,
-				"dataId": dataId, "adqlAllowed": adqlAllowed})
-		querier.commit()
+	def __init__(self, overrideProfile=None):
+		self.profile = overrideProfile or "admin"
+		self.rd = resourcecache.getRd("__system__/dc_tables")
+		self.metaTable = self.rd.getTableDefByName("fielddescriptions")
+		self.sourceTable = self.rd.getTableDefByName("dc_tables")
+		self.readQuerier = self._getQuerier()
 
-	def defineColumns(self, tableName, columnDescriptions):
-		self.querier.query(
-			"DELETE FROM %s WHERE tableName=%%(tableName)s"%
-				self.tableDef.getQName(), {"tableName": tableName}).close()
-		self.querier.commit()
-		feed = self.writer.getFeeder(dropIndices=False)
-		for colInd, colDesc in enumerate(columnDescriptions):
+	def _getQuerier(self):
+		return SimpleQuerier(getDbConnection(self.profile))
+
+	def updateSourceTable(self, tableDef, querier):
+		querier.query("DELETE FROM dc_tables WHERE tableName=%(tableName)s",
+			{"tableName": tableDef.getQName()})
+		writer = TableWriter(self.sourceTable, querier.connection, meta=False)
+		feed = writer.getFeeder(dropIndices=False)
+		feed({"tableName": tableDef.getQName(), "sourceRd": tableDef.rd.sourceId,
+			"adql": tableDef.get_adql()})
+		feed.close()
+
+	def defineColumns(self, tableDef, querier):
+		querier.query("DELETE FROM %s WHERE tableName=%%(tableName)s"%
+				self.metaTable.getQName(), {"tableName": tableDef.getQName()})
+		tableName = tableDef.getQName()
+		writer = TableWriter(self.metaTable, querier.connection, meta=False)
+		feed = writer.getFeeder(dropIndices=False)
+		for colInd, field in enumerate(tableDef.get_items()):
 			items = {"tableName": tableName, "colInd": colInd}
-			items.update(colDesc)
+			items.update(field.getMetaRow())
 			feed(items)
 		feed.close()
-		self.writer.finish()
+
+	def update(self, tableDef):
+		querier = self._getQuerier()
+		self.updateSourceTable(tableDef, querier)
+		self.defineColumns(tableDef, querier)
+		querier.finish()
 
 	def getFieldInfo(self, fieldName, tableName=""):
 		"""returns a dictionary with the information available
@@ -804,8 +832,9 @@ class MetaTableHandler:
 		elif len(parts)!=1:
 			raise FieldError("Invalid column specification: %s"%fieldName)
 		try:
-			res = self.querier.query("SELECT * FROM %s WHERE tableName=%%(tableName)s"
-				" AND fieldName=%%(fieldName)s"%self.tableDef.getQName(), {
+			res = self.readQuerier.query("SELECT * FROM %s WHERE"
+				" tableName=%%(tableName)s"
+				" AND fieldName=%%(fieldName)s"%self.metaTable.getQName(), {
 					"tableName": tableName,
 					"fieldName": fieldName,})
 			matches = res.fetchall()
@@ -814,15 +843,16 @@ class MetaTableHandler:
 		if len(matches)==0:
 			raise FieldError("No info for %s in %s"%(fieldName, tableName))
 		# since we're querying the primary key, len>1 can't happen
-		for fieldDef, val in zip(self.tableDef.get_items(), matches[0]):
+		for fieldDef, val in zip(self.metaTable.get_items(), matches[0]):
 			resDict[fieldDef.get_dest()] = val
 		return resDict
 	
 	def getFieldInfos(self, tableName):
 		"""returns a field definition list for tableName.
 		"""
-		res = self.querier.query("SELECT * FROM %s WHERE tableName=%%(tableName)s"
-			" ORDER BY colInd"%self.tableDef.getQName(), {"tableName": tableName})
+		res = self.readQuerier.query("SELECT * FROM %s WHERE"
+			" tableName=%%(tableName)s"
+			" ORDER BY colInd"%self.metaTable.getQName(), {"tableName": tableName})
 		fieldInfos = []
 		for row in res.fetchall():
 			fieldInfos.append(datadef.DataField.fromMetaTableRow(row))

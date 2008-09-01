@@ -272,8 +272,13 @@ class Record(object):
 			self.dataStore[key] = value[:]
 		def prepender(self, value):
 			self.dataStore[key].insert(0, value)
+		def remover(self, value):
+			try:
+				self.dataStore[key].remove(value)
+			except ValueError:  # it's ok to remove things not in the list
+				pass
 		return [("get_", getter), ("addto_", adder), ("set_", setter),
-			("prependto_", prepender)]
+			("prependto_", prepender), ("removefrom_", remover)]
 
 	def _getDataFieldListMethods(self, key, _):
 		self.dataStore[key] = DataFieldList()

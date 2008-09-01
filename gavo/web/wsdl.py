@@ -296,7 +296,6 @@ def serializePrimaryTable(data, service):
 	"""returns a SOAP serialization of the DataSet data's primary table.
 	"""
 	table = data.getPrimaryTable()
-
 	class Row(TC.Struct):
 		def __init__(self):
 			TC.Struct.__init__(self, None, [

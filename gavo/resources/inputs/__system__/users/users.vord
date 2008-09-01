@@ -9,6 +9,8 @@
 <!-- This has to match whatever is done in gavo.web.creds.
 -->
 			<Record table="users">
+<!-- prevent "normal" (e.g., ADQL) users from accessing this table -->
+				<readRoles></readRoles>
 				<Field dest="username" primary="True" dbtype="text"
 					tablehead="Username"/>
 				<Field dest="password" dbtype="text" displayHint="type=suppress"/>
@@ -21,6 +23,7 @@
 			</Record>
 
 			<Record table="groups">
+				<readRoles></readRoles>
 				<Field dest="username" dbtype="text" references="users.users"/>
 				<Field dest="groupname" dbtype="text"/>
 			</Record>

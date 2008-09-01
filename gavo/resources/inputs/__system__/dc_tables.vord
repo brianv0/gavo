@@ -15,10 +15,10 @@ tables and the RDs the tables come from. -->
 			<SharedTable table="dc_tables">
 				<Field dest="tableName" description="Fully qualified table name"
 					dbtype="text" source="tableName"/>
+				<!-- make this refer to pg_tables or somesuch so fields get
+				dropped automatically when a table gets dropped -->
 				<Field dest="sourceRd" dbtype="text" source="sourceRd"
 					description="Id of the resource descriptor containing the table's definition"/>
-				<Field dest="dataId" dbtype="text" source="dataId"
-					description="Id of the data section that houses this table"/>
 				<Field dest="adql" dbtype="boolean" source="adql"
 					description="True if this table may be accessed using ADQL"/>
 			</SharedTable>
@@ -33,6 +33,8 @@ tables and the RDs the tables come from. -->
 			<SharedTable table="fielddescriptions">
 				<Field dest="tableName" dbtype="text" primary="True" 
 					description="Name of the table the column is in"/>
+				<!-- make this refer to pg_tables or somesuch so fields get
+				dropped automatically when a table gets dropped -->
 				<Field dest="fieldName" dbtype="text" primary="True"
 					description="SQL identifier for the column"/>
 				<Field dest="unit" dbtype="text" description="Unit for the value"/>

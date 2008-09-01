@@ -54,19 +54,19 @@ def _getTableDescForOutput(parsedTree):
 	return [makeDataFieldFromFieldInfo(*fi) for fi in parsedTree.fieldInfos.seq]
 
 
-def getFieldInfoGetter():
-	mth = sqlsupport.MetaTableHandler()
+def getFieldInfoGetter(accessProfile=None):
+	mth = sqlsupport.MetaTableHandler(accessProfile)
 	def getFieldInfos(tableName):
 		return [(f.get_dest(), makeFieldInfo(f)) 
 			for f in mth.getFieldInfos(tableName)]
 	return getFieldInfos
 
 
-def query(query, timeout=15):
+def query(query, timeout=15, metaProfile=None):
 	"""returns a DataSet for query (a string containing ADQL).
 	"""
 	t = adql.parseToTree(query)
-	adql.addFieldInfos(t, getFieldInfoGetter())
+	adql.addFieldInfos(t, getFieldInfoGetter(metaProfile))
 	adql.insertQ3Calls(t)
 	adql.morphPG(t)
 # XXX TODO: select an appropriate RD from the tables queried.

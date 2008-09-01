@@ -248,21 +248,21 @@ class SiapCutoutCore(standardcores.DbBasedCore):
 	bytesPerPixel = 2
 
 	def __init__(self, *args, **kwargs):
-		self.interfaceFields = dict([(d["dest"], d)
+		self.interfaceFields = dict([(d.get_dest(), d)
 			for d in interfaces.getInterface("bboxSiap").siapFields])
-		standardcores.DbBaseCore.__init__(self, *args, **kwargs)
+		standardcores.DbBasedCore.__init__(self, *args, **kwargs)
 
 	def getQueryFields(self, queryMeta):
 		fields = standardcores.DbBasedCore.getQueryFields(self, queryMeta)
 		for name in self.copiedFields:
-			fields.append(datadef.OutputField.fromDataField(datadef.DataField(
-				**self.interfaceFields[name])))
+			fields.append(datadef.OutputField.fromDataField(
+				self.interfaceFields[name]))
 		d = self.interfaceFields["accref"].copy()
-		d["displayHint"] = "type=product,nopreview=True"
-		fields.append(datadef.OutputField.fromDataField(datadef.DataField(**d)))
+		d.set_displayHint("type=product,nopreview=True")
+		fields.append(datadef.OutputField.fromDataField(d))
 		d = self.interfaceFields["accsize"].copy()
-		d["tablehead"] = "Est. file size"
-		fields.append(datadef.OutputField.fromDataField(datadef.DataField(**d)))
+		d.set_tablehead("Est. file size")
+		fields.append(datadef.OutputField.fromDataField(d))
 		return fields
 
 	def _fixRecord(self, record, centerAlpha, centerDelta, sizeAlpha, sizeDelta):

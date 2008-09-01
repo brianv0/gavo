@@ -95,7 +95,7 @@ class ThingWithRoles(record.Record):
 		record.Record.__init__(self, fields, initvals=initvals)
 
 	def _setRoles(self, dest, val, defaults):
-		roles = [s.strip() for s in val.split(",")]
+		roles = [s.strip() for s in val.split(",") if s.strip()]
 		try:
 			del roles[roles.index("defaults")]
 			roles.extend(defaults)
@@ -125,6 +125,7 @@ class TableDef(ThingWithRoles, meta.MetaMixin, scripting.ScriptingMixin):
 			"shared": record.BooleanField,  # is this a shared table?
 			"create": record.TrueBooleanField,  # create table?
 			"onDisk": record.BooleanField,  # write parsed data directly?
+			"adql": record.BooleanField,  # is this table accessible to ADQL?
 			"forceUnique": record.BooleanField,  # enforce uniqueness of 
 			                                     # primary key?
 			"conflicts": "check",      # On forceUnique tables, throw an error
@@ -132,6 +133,8 @@ class TableDef(ThingWithRoles, meta.MetaMixin, scripting.ScriptingMixin):
 				# overrwrite the old one ("overwrite")
 			"transparent": record.BooleanField,  # get fields from (rowset)grammar
 			"scripts": record.ListField,
+			"readRoles": record.ListField,
+			"allRoles": record.ListField,
 		}, initvals)
 		self.rd = rd
 		self.fieldIndexDict = {}
@@ -139,6 +142,21 @@ class TableDef(ThingWithRoles, meta.MetaMixin, scripting.ScriptingMixin):
 	def __repr__(self):
 		return "<TableDef %s, %s>"%(id(self), id(self.get_items()))
 
+	def set_adql(self, val):
+		val = record.parseBooleanLiteral(val)
+		if val:
+			for role in config.get("db", "adqlRoles"):
+				self.addto_readRoles(role)
+		else:
+			for role in config.get("db", "adqlRoles"):
+				self.removefrom_readRoles(role)
+		self.dataStore["adql"] = val
+
+	def set_readRoles(self, value):
+		ThingWithRoles.set_readRoles(self, value)
+		if self.get_adql():
+			self.set_adql(True)  # append ADQL rule anew if necessary
+	
 	def getQName(self):
 		if self.rd==None:
 			raise Error("TableDefs without resource descriptor have no"
@@ -489,6 +507,7 @@ class Resource:
 		"""
 		return iter(self.dataSets)
 
+
 	def getDatasetById(self, id):
 		"""returns the data set for id.
 
@@ -510,7 +529,7 @@ class Resource:
 		grammar.parse(open(src))
 
 	def importData(self, opts, onlyDDs=None):
-		"""reads all data sources and applies all resource processors to them.
+		"""reads all data sources, building datasets for them.
 		"""
 		from gavo.parsing import parseswitch
 		for dataDesc in self.getDescriptor().get_dataSrcs():
@@ -524,7 +543,7 @@ class Resource:
 				ignoreBadSources=getattr(opts, "ignoreBadSources", False)))
 		for processor in self.getDescriptor().get_processors():
 			processor(self)
-
+	
 	def addDataset(self, dataset):
 		self.dataSets.append(dataset)
 
@@ -615,6 +634,19 @@ class ResourceDescriptor(ThingWithRoles, meta.MetaMixin,
 		for dd in self.get_dataSrcs():
 			yield dd
 
+	def get_readRoles(self):
+		"""returns the union of the read and all roles of this rd's tables.
+
+		For the read roles, we need to allow access to the schema.  This
+		is different from the allRoles -- roles that may write on a table
+		do not need to be able to create new tables in the schema.
+		"""
+		readRoles = set(self.dataStore["readRoles"])
+		for tableDef in self.iterTables():
+			readRoles |= set(tableDef.get_readRoles())
+			readRoles |= set(tableDef.get_allRoles())
+		return list(readRoles)
+
 	def getRd(self):
 		return self
 
@@ -696,6 +728,29 @@ class ResourceDescriptor(ThingWithRoles, meta.MetaMixin,
 			for tableDef in ds.get_Semantics().get_tableDefs():
 				if tableDef.get_table()==name:
 					return tableDef
+
+	def iterTables(self):
+		"""iterates over all tableDefs contained in this rd's data descriptors.
+		"""
+		for dd in self:
+			for tableDef in dd.get_Semantics().get_tableDefs():
+				yield tableDef
+
+	def importMeta(self, opts, onlyDDs=None):
+		"""updates the privileges on and the dc_tables information about
+		them for the tables in the rd's data descriptors.
+		"""
+# XXX TODO: unify with importData (when that becomes sane:-)
+		mh = sqlsupport.MetaTableHandler()
+		querier = sqlsupport.SimpleQuerier()
+		sqlsupport.setSchemaPrivileges(self, querier)
+		for dataDesc in self.get_dataSrcs():
+			if onlyDDs and dataDesc.get_id() not in onlyDDs:
+				continue
+			for tableDef in dataDesc.get_Semantics().get_tableDefs():
+				mh.update(tableDef)
+				sqlsupport.setTablePrivileges(tableDef, querier)
+		querier.finish()
 
 
 class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin):

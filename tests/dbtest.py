@@ -4,6 +4,7 @@ Some tests for the database interface.
 This only works with psycopg2.
 """
 
+import sys
 import unittest
 
 from gavo import config
@@ -39,15 +40,17 @@ class TestTypes(unittest.TestCase):
 			querier.close()
 
 	def tearDown(self):
-		querier = sqlsupport.SimpleQuerier()
-		querier.query("DROP TABLE %s CASCADE"%self.tableName)
-		querier.commit()
+		sqlsupport.SimpleQuerier().runIsolatedQuery(
+			"DROP TABLE %s CASCADE"%self.tableName)
 
 
-class TestPrivs(unittest.TestCase):
-	"""Tests for privilege management.
-	"""
+class TestWithTableCreation(unittest.TestCase):
+	tableName = None
+
 	def _assertPrivileges(self, foundPrivs, expPrivs):
+		# profile user might not be mentioned in table acl, so retrofit it
+		profileUser = config.getDbProfile().get_user() 
+		expPrivs[profileUser] = foundPrivs[profileUser]
 		self.assertEqual(set(foundPrivs), set(expPrivs))
 		for role in foundPrivs:
 			self.assertEqual(foundPrivs[role], expPrivs[role],
@@ -55,24 +58,105 @@ class TestPrivs(unittest.TestCase):
 					foundPrivs[role], expPrivs[role]))
 
 	def setUp(self):
-		config.setDbProfile("feed")
+		if self.tableName is None:
+			return
+		config.setDbProfile("admin")
 		self.querier = sqlsupport.SimpleQuerier(
-			sqlsupport.getDbConnection("feed"))
-		self.tableDef = testhelpers.getTestTable("valspec")
+			sqlsupport.getDbConnection("admin"))
+		self.tableDef = testhelpers.getTestTable(self.tableName)
 		tw = sqlsupport.TableWriter(self.tableDef)
 		tw.createTable()
 		tw.finish()
-	
+
+	def tearDown(self):
+		if self.tableName is None:
+			return
+		sqlsupport.SimpleQuerier().runIsolatedQuery("DROP TABLE %s CASCADE"%
+			self.tableDef.getQName())
+
+
+class TestPrivs(TestWithTableCreation):
+	"""Tests for privilege management.
+	"""
+	tableName = "valspec"
+
 	def testDefaultPrivileges(self):
 		self._assertPrivileges(sqlsupport.getTablePrivileges(
 			self.tableDef.rd.get_schema(), self.tableDef.get_table(), self.querier),
-			sqlsupport.getACL(self.tableDef))
+			sqlsupport.getACLFromRes(self.tableDef))
 
 
-def TestADQLPrivs(TestPrivs):
+class TestADQLPrivs(TestPrivs):
 	"""Tests for privilege management for ADQL-enabled tables.
 	"""
+	tableName = "adqltable"
+
+
+class TestRoleSetting(TestPrivs):
+	tableName = "privtable"
+
+	def setUp(self):
+		config.setDbProfile("admin")
+		q = sqlsupport.SimpleQuerier()
+		try:
+			q.query("create user privtestuser")
+			q.query("create user testadmin")
+		except sqlsupport.DbError: # probably left over from a previous crash
+			sys.stderr.write("Test roles already present?  Rats.\n")
+		q.finish()
+		TestPrivs.setUp(self)
+	
+	def tearDown(self):
+		TestPrivs.tearDown(self)
+		q = sqlsupport.SimpleQuerier()
+		q.query("drop user privtestuser")
+		q.query("drop user testadmin")
+		q.finish()
+
+
+class TestMetaTable(TestWithTableCreation):
+	tableName = "typestable"
+
+	def testDcTablesEntry(self):
+		q = sqlsupport.SimpleQuerier()
+		res = q.query("select * from dc_tables where tableName=%(n)s",
+			{"n": self.tableDef.getQName()}).fetchall()
+		qName, srcRd, adql = res[0]
+		self.assertEqual(qName, 'test.typestable')
+		self.assertEqual(srcRd.split("/")[-1], 'test')
+		self.assertEqual(adql, False)
+
+	def testColInfo(self):
+		mh = sqlsupport.MetaTableHandler()
+		res = mh.getFieldInfos(self.tableDef.getQName())
+		self.assertEqual([(f.get_dest(), f.get_dbtype(), f.get_tablehead()) 
+				for f in res], [
+			(u'anint', 'int', u'An Integer'), 
+			(u'afloat', 'real', u'Some Real'), 
+			(u'adouble', 'double precision', u'And a Double'), 
+			(u'atext', 'text', u'A string must be in here as well'), 
+			(u'adate', 'date', u'When')])
+
+
+class TestMetaTableADQL(TestWithTableCreation):
+	tableName = "adqltable"
+
+	def testDcTablesEntry(self):
+		q = sqlsupport.SimpleQuerier()
+		res = q.query("select * from dc_tables where tableName=%(n)s",
+			{"n": self.tableDef.getQName()}).fetchall()
+		qName, srcRd, adql = res[0]
+		self.assertEqual(qName, 'test.adqltable')
+		self.assertEqual(srcRd.split("/")[-1], 'test')
+		self.assertEqual(adql, True)
+
+	def testColInfo(self):
+		mh = sqlsupport.MetaTableHandler()
+		res = mh.getFieldInfos(self.tableDef.getQName())
+		self.assertEqual([(f.get_dest(), f.get_dbtype(), f.get_tablehead()) 
+				for f in res], [
+			(u'foo', 'double precision', None), ])
 
 
 if __name__=="__main__":
-	testhelpers.main(TestPrivs, "test")
+	testhelpers.main(TestMetaTableADQL, "test")

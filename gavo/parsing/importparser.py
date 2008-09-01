@@ -141,7 +141,6 @@ class RdParser(nodebuilder.NodeBuilder):
 		dd.set_source(attrs.get("source"))
 		dd.set_sourcePat(attrs.get("sourcePat"))
 		dd.set_computer(attrs.get("computer"))
-		dd.set_adql(attrs.get("adql", "False"))
 		dd.set_encoding(attrs.get("encoding", None))
 		dd.set_id(attrs.get("id"))
 		dd.set_virtual(attrs.get("virtual", "False"))
@@ -302,10 +301,10 @@ class RdParser(nodebuilder.NodeBuilder):
 	def _make_Table(self, name, attrs, children):
 		attrs = makeAttDict(attrs)
 		if attrs.has_key("original"):
-			recDef = self.resolveItemReference(attrs["original"])
+			tableDef = self.resolveItemReference(attrs["original"])
 			setDefaults = False
 		else:
-			recDef = resource.TableDef(self.rd)
+			tableDef = resource.TableDef(self.rd)
 			setDefaults = True
 		# Ouch -- if I have a copy, I don't want to overwrite attributes
 		# not given with defaults.  This sort of mess would be necessary
@@ -313,32 +312,35 @@ class RdParser(nodebuilder.NodeBuilder):
 		for attName, default in [("table", None), ("onDisk", "False"),
 				("forceUnique", "False"), ("create", "True"), ("conflicts", "check")]:
 			if attrs.has_key(attName):
-				recDef.set(attName, attrs[attName])
+				tableDef.set(attName, attrs[attName])
 			elif setDefaults:
-				recDef.set(attName, default)
+				tableDef.set(attName, default)
 		if name.startswith("Shared"):
-			recDef.set_shared(True)
+			tableDef.set_shared(True)
 
 		if "fieldsFrom" in attrs:
 			for field in self.resolveItemReference(attrs["fieldsFrom"]).get_items():
 				newField = field.copy()
 				newField.set_source(newField.get_dest())
-				recDef.addto_items(newField)
+				tableDef.addto_items(newField)
 		
 		interfaceNodes, children = self.filterChildren(children, "implements")
 		for _, (interface, args) in interfaceNodes:
-			children.extend(interface.getNodes(recDef, **args))
+			children.extend(interface.getNodes(tableDef, **args))
 
-		record = self._processChildren(recDef, name, {
-			"Field": recDef.addto_items,
-			"constraints": recDef.set_constraints,
-			"owningCondition": recDef.set_owningCondition,
-			"meta": lambda mv: recDef.addMeta(mv[0], mv[1]),
-			"script": recDef.addto_scripts,
+		record = self._processChildren(tableDef, name, {
+			"Field": tableDef.addto_items,
+			"constraints": tableDef.set_constraints,
+			"owningCondition": tableDef.set_owningCondition,
+			"meta": lambda mv: tableDef.addMeta(mv[0], mv[1]),
+			"script": tableDef.addto_scripts,
+			"readRoles": tableDef.set_readRoles,
+			"allRoles": tableDef.set_allRoles,
+			"adql": tableDef.set_adql,
 		}, children)
 
 		for _, (interface, args) in interfaceNodes:
-			for nodeDesc in interface.getDelayedNodes(recDef, **args):
+			for nodeDesc in interface.getDelayedNodes(tableDef, **args):
 				self.registerDelayedChild(*nodeDesc)
 		self.popProperty("fieldPath")
 		return nodebuilder.NamedNode("Record", record)
@@ -750,6 +752,9 @@ class RdParser(nodebuilder.NodeBuilder):
 	_make_rowProduction = \
 	_make_parseRE = \
 	_make_option = \
+	_make_adql = \
+	_make_readRoles = \
+	_make_allRoles = \
 	_makeTextNode
 
 

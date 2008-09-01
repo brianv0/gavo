@@ -704,7 +704,7 @@ class QueryTest(unittest.TestCase):
 
 	def testPlainSelect(self):
 		res = adqlglue.query("select alpha, delta from %s where mag<-10"%
-			self.tableName)
+			self.tableName, metaProfile="test")
 		self.assertEqual(len(res.getPrimaryTable().rows), 1)
 		self.assertEqual(len(res.getPrimaryTable().rows[0]), 2)
 		self.assertEqual(res.getPrimaryTable().rows[0]["alpha"], 22.0)
@@ -718,7 +718,7 @@ class QueryTest(unittest.TestCase):
 
 	def testStarSelect(self):
 		res = adqlglue.query("select * from %s where mag<-10"%
-			self.tableName)
+			self.tableName, metaProfile="test")
 		self.assertEqual(len(res.getPrimaryTable().rows), 1)
 		self.assertEqual(len(res.getPrimaryTable().rows[0]), 4)
 		fields = res.getPrimaryTable().tableDef.get_items()
@@ -734,7 +734,7 @@ class QueryTest(unittest.TestCase):
 	
 	def testTainting(self):
 		res = adqlglue.query("select delta*2, alpha*mag, alpha+delta"
-			" from %s where mag<-10"% self.tableName)
+			" from %s where mag<-10"% self.tableName, metaProfile="test")
 		f1, f2, f3 = res.getPrimaryTable().tableDef.get_items()
 		self._assertFieldProperties(f1, [("ucd", 'pos.eq.dec;meta.main'),
 			("description", 'A sample Dec -- *TAINTED*: the value was operated'
@@ -755,4 +755,4 @@ class QueryTest(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(QueryTest, "test")
+	testhelpers.main(QueryTest, "testStar")

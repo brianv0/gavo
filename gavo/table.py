@@ -192,18 +192,6 @@ class Table(RecordBasedTable):
 		self.metaOnly = metaOnly
 		RecordBasedTable.__init__(self, dataSet, tableDef)
 	
-	def _exportToMetaTable(self):
-		"""writes the column definitions to the sqlsupport-defined meta table.
-		"""
-		tableName = self.tableDef.getQName()
-		metaHandler = sqlsupport.MetaTableHandler()
-		metaHandler.defineColumns(tableName,
-			[field.getMetaRow() for field in self.getFieldDefs()])
-		if self.dataSet:
-			dd = self.dataSet.dD
-			metaHandler.updateSourceTable(tableName=tableName,
-				rdId=dd.rd.sourceId, dataId=dd.get_id(), adqlAllowed=dd.get_adql())
-
 	def _feedData(self, feed):
 		"""writes the rows through the sqlsupport feeder feed.
 
@@ -241,8 +229,6 @@ class Table(RecordBasedTable):
 
 		cf. exportToSQL.
 		"""
-		if self.tableDef.get_create():
-			self._exportToMetaTable()
 		if not self.metaOnly:
 			tableWriter = self._getOwnedTableWriter()
 			gavo.ui.displayMessage("Exporting %s to table %s"%(

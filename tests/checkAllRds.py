@@ -30,7 +30,7 @@ builtinIDs = ["__system__/cutout/cutout", "__system__/products/products",
 	"__system__/services/services", "__system__/tests/misc",
 	"__system__/users/users"]
 
-config.setDbProfile("querulator")
+config.setDbProfile("trustedquery")
 if len(sys.argv)>1:
 	newIDs = []
 	for rdPath in servicelist.findAllRDs():

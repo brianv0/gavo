@@ -34,11 +34,12 @@ def process(opts, args):
 		rd = importparser.getRd(src, forImport=True)
 	if opts.createShared:
 		rd.prepareForSystemImport()
-	res = resource.Resource(rd)
-	res.importData(opts, set(ddIds))
-	if opts.fakeonly:
-		return
-	res.export(opts.outputMethod, set(ddIds))
+	if opts.metaOnly:
+		rd.importMeta(set(ddIds))
+	else:
+		res = resource.Resource(rd)
+		res.importData(opts, set(ddIds))
+		res.export(opts.outputMethod, set(ddIds))
 
 
 def parseCmdline():
@@ -46,11 +47,9 @@ def parseCmdline():
 	parser.add_option("-d", "--debug-productions", help="enable debugging for"
 		" the given productions", dest="debugProductions", default="", 
 		metavar="productions")
-	parser.add_option("-n", "--fake-only", help="just parse, don't"
-		" write anything (largely ignored with -w)", dest="fakeonly", 
+	parser.add_option("-u", "--meta-only", help="just update table meta"
+		" (privileges, column descriptions,...).", dest="metaOnly", 
 		action="store_true")
-	parser.add_option("-u", "--meta-only", help="just update meta data,"
-		" don't parse source.", dest="metaOnly", action="store_true")
 	parser.add_option("-m", "--max-rows", help="only import MAX_ROWS"
 		" rows of every source", dest="maxRows", default=None,
 		type="int", action="store")

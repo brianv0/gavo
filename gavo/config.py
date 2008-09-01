@@ -36,7 +36,7 @@ gavoGroup: gavo
 
 [parsing]
 xmlFragmentPath: %(inputsDir)s/__common__
-dbDefaultProfile: feed
+dbDefaultProfile: admin
 
 [web]
 # serverName is used to qualify relative URLs where necessary.
@@ -91,6 +91,7 @@ adqlRoles: untrusted
 admin:feed
 trustedquery:trustedquery
 untrustedquery:untrustedquery
+test:test
 
 [ivoa]
 # the authority id for this DC
@@ -135,8 +136,6 @@ class DbProfile(record.Record):
 			"database": record.RequiredField,
 			"user": "",
 			"password": "",
-			"allRoles": record.ListField,
-			"readRoles": record.ListField,
 		})
 	
 	def getDsn(self):
@@ -156,16 +155,10 @@ class ProfileParser:
 	form command arg*.  Recognized commands include:
 
 	* include f -- read instructions from file f, searched along profilePath
-	* addAllRole u -- add db role u to the list of roles that receive
-	  full privileges to all items created.
-	* addReadRole u -- add db rule u to the list of roles that receive
-	  read (e.g., select, usage) privileges to all items created
 
 	>>> p = ProfileParser()
 	>>> p.parse(None, "x", "host=foo.bar\n").get_host()
 	'foo.bar'
-	>>> p.parse(None, "x", "addAllRole foo\naddAllRole bar\n").get_allRoles()
-	['foo', 'bar']
 	>>> p.parse(None, "x", "")!=None
 	True
 	>>> p.parse(None, "x", "host=\n").get_host()
@@ -176,15 +169,10 @@ class ProfileParser:
 	>>> p.parse(None, "x", "host=bla")
 	Traceback (most recent call last):
 	ProfileParseError: "x", line 1: unexpected end of file (missing line feed?)
-	>>> p.parse(None, "x", "includeAllRole=bla\n")
-	Traceback (most recent call last):
-	ProfileParseError: "x", line 2: unknown setting 'includeAllRole'
 	"""
 	def __init__(self, sourcePath=["."]):
 		self.commands = {
 			"include": self._state_include,
-			"addAllRole": self._state_addAllRole,
-			"addReadRole": self._state_addReadRole,
 		}
 		self.sourcePath = sourcePath
 	
@@ -237,14 +225,6 @@ class ProfileParser:
 		else:
 			self.tokenStack.append(token)
 			return self._state_include
-
-	def _state_addAllRole(self, token):
-		self.profile.addto_allRoles(token)
-		return self._state_eol
-
-	def _state_addReadRole(self, token):
-		self.profile.addto_readRoles(token)
-		return self._state_eol
 
 	def _state_eol(self, token):
 		if token!="\n":
@@ -320,9 +300,9 @@ class Settings(object):
 		_parse_DEFAULT_tempdir = _parse_DEFAULT_webdir = _cookPath
 
 	def _parseRoles(self, val):
-		return [s.strip() for s in val.split(",")]
+		return [s.strip() for s in val.split(",") if s.strip()]
 	
-	_parse_db_maintainers = _parse_db_queryroles = _parse_db_aqlroles =\
+	_parse_db_maintainers = _parse_db_queryroles = _parse_db_adqlroles =\
 		_parseRoles
 
 	def _parse_web_adminpasswd(self, val):

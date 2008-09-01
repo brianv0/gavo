@@ -221,10 +221,12 @@ class DataField(record.Record):
 	def fromMetaTableRow(cls, row):
 		"""constructs a DataField from what's in the meta table.
 		"""
+# XXX todo: use a RowsetGrammar to get this from dc_tables.
 		initvals = {}
-		for name, index in [("dest", 1), ("source", 1), ("unit", 2),
-				("ucd", 3), ("description", 4), ("tablehead", 5),
-				("longdescription", 6), ("utype", 8)]:
+		for name, index in [("dest", 1), ("source", 1), 
+				("unit", 2), ("ucd", 3), ("description", 4), ("tablehead", 5),
+				("longdescription", 6), ("utype", 8), ("dbtype", 10),
+				("verbLevel", 11)]:
 			initvals[name] = row[index]
 		return cls(**initvals)
 

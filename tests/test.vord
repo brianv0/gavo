@@ -16,6 +16,28 @@
 		</Semantics>
 	</Data>
 
+	<Data id="adqltest">
+		<NullGrammar/>
+		<Semantics>
+			<Record table="adqltable">
+				<adql>True</adql>
+				<Field dest="foo" source="alpha" 
+					dbtype="double precision" optional="false"/>
+			</Record>
+		</Semantics>
+	</Data>
+
+	<Data id="privtest" virtual="True">
+		<NullGrammar/>
+		<Semantics>
+			<Table table="privtable">
+				<readRoles>defaults,privtestuser</readRoles>
+				<allRoles>testadmin</allRoles>
+				<Field dest="foo" source="alpha"/>
+			</Table>
+		</Semantics>
+	</Data>
+
 	<Data id="valuestest">
 		<NullGrammar/>
 		<Semantics>
@@ -62,7 +84,7 @@
 
 	<Data id="tableMaker" virtual="True" encoding="iso8859-1">
 		<Semantics>
-			<Record table="data" id="typestabledef">
+			<Record table="typestable" id="typestabledef">
 				<Field dest="anint" source="anint" tablehead="An Integer" dbtype="int"/>
 				<Field dest="afloat" source="afloat" tablehead="Some Real"/>
 				<Field dest="adouble" source="adouble" tablehead="And a Double"
