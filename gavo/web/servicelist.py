@@ -124,7 +124,7 @@ def updateServiceList(rd):
 	gavo.ui.silence = True
 	dataSet = resource.InternalDataSet(dd, tableMaker=parseswitch.createTable,
 		dataSource=inputData)
-	dataSet.exportToSql(serviceRd.get_schema())
+	dataSet.exportToSQL(serviceRd.get_schema())
 	gavo.ui.silence = False
 
 
@@ -298,7 +298,7 @@ def importFixed():
 	rd = importparser.getRd(rdId)
 	res = resource.Resource(rd)
 	res.importData(None)
-	res.exportToSql()
+	res.exportToSQL()
 	gavo.ui.silence = False
 
 

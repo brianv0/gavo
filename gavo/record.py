@@ -229,7 +229,9 @@ class Record(object):
 		theCopy.dataStore = self.dataStore.copy()
 		for key, value in self.keys.iteritems():
 			if value is ListField:
-				theCopy.dataStore[key] = list(self.dataStore[key])
+				theCopy.dataStore[key] = self.dataStore[key][:]
+			if value is DataFieldList:
+				theCopy.dataStore[key] = DataFieldList(self.dataStore[key])
 			if value is DictField:
 				theCopy.dataStore[key] = self.dataStore[key].copy()
 		for name, callable in self.createdMethods:

@@ -72,12 +72,6 @@ previewCache: %(webDir)s/previewcache
 # path to a favicon
 favicon: None
 
-[querulator]
-defaultMaxMatches: 1000
-dbProfile: querulator
-templateRoot: %(rootDir)s/web/querulator/templates
-fitspreview: %(rootDir)s/web/bin/fitspreview
-
 [db]
 interface: psycopg2
 # pgsql might still work but is scheduled for removal
@@ -360,6 +354,8 @@ class Settings(object):
 		return self.__profileParser
 
 	def getDbProfileByName(self, profileName):
+		if profileName==None:
+			return self.getDbProfile()
 		if not self.dbProfileCache.has_key(profileName):
 			try:
 				self.dbProfileCache[profileName] = self._getProfileParser().parse(

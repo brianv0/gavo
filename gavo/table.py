@@ -255,7 +255,7 @@ class Table(RecordBasedTable):
 	def _exportSharedTable(self):
 		"""updates data owned by this data set.
 
-		cf. exportToSql
+		cf. exportToSQL
 		"""
 		if not self.metaOnly:
 			tableWriter = self._getSharedTableWriter()
@@ -265,7 +265,7 @@ class Table(RecordBasedTable):
 			self._feedData(tableWriter.getFeeder(dropIndices=False))
 			tableWriter.finish()
 
-	def exportToSql(self):
+	def exportToSQL(self):
 		"""writes the data table to an SQL database.
 
 		This method only knows about table names.  The details
@@ -388,7 +388,7 @@ class DirectWritingTable(Table):
 		Table.finishBuild(self)
 		self.tableWriter.finish()
 
-	def exportToSql(self):
+	def exportToSQL(self):
 		return
 
 	def copyIn(self, copySrc):

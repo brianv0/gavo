@@ -182,6 +182,12 @@ class Service(record.Record, meta.MetaMixin):
 			"fieldNameTranslations": None,
 		}, initvals)
 
+	def __repr__(self):
+		return "<Service at %x>"%id(self)
+
+	def __str__(self):
+		return "<Service at %x>"%id(self)
+
 	def addto_publications(self, pubDict):
 		if not "render" in pubDict:
 			pubDict["render"] = "form"

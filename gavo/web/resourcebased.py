@@ -459,7 +459,7 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 	"""
 	name = "form"
 	def __init__(self, ctx, service):
-		super(Form, self).__init__(ctx, service)
+		ServiceBasedRenderer.__init__(self, ctx, service)
 		if self.service.get_template("form"):
 			self.customTemplate = os.path.join(self.rd.get_resdir(),
 				self.service.get_template("form"))

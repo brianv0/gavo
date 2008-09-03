@@ -326,8 +326,11 @@ myTests = [
 			'<FIELD ID="wcs_refValues" arraysize="*" datatype="double"'
 				' name="wcs_refValues"',
 			"NV Maidanak metadata query"),
+	),
+
+	TestGroup('tar',
 		GetHasStringsTest(nv_root+"/lensdemo/view/q/form?__nevow_form__=genForm"
-			"&object=APM%2008279%2B5255&_DBOPTIONS_ORDER=&_DBOPTIONS_LIMIT=2&"
+			"&object=APM%2008279%2B5255&_DBOPTIONS_ORDER=date_obs&_DBOPTIONS_LIMIT=2&"
 			"_FORMAT=tar&submit=Go", [
 				"\0\0\0\0\0\0",
 				"This file is embargoed"],
@@ -336,7 +339,7 @@ myTests = [
 		HeadFieldTest(nv_root+"/maidanak/res/rawframes/siap/form?"
 			"__nevow_form__=genForm&POS=q2237%2B0305&SIZE=1&INTERSECT=OVERLAPS&"
 			"FORMAT=image%2Ffits&dateObs=2001-01-01%20..%202005-10-10&"
-			"_DBOPTIONS_LIMIT=1&_FORMAT=tar", [
+			"_DBOPTIONS_LIMIT=1&_FORMAT=tar&_DBOPTIONS_ORDER=dateObs", [
 				("content-disposition", "attachment; filename=truncated_data.tar"),
 				("content-type", "application/x-tar")],
 			"Tar output declared in header"),
@@ -526,12 +529,12 @@ myTests = [
 	),
 
 	TestGroup('ucds',
-		GetHasStringsTest(nv_root+'/ucds/ui/ui/form?'
+		GetHasStringsTest(nv_root+'/ucds/ui/hideui/form?'
 				'__nevow_form__=genForm&description=Weird%20uninterpretable%20'
 				'gobbledegook&_FORMAT=HTML&submit=Go',
 			["No known words", "Query Form", "Weird"],
 			"UCD resolver yields nice error message for garbage input"),
-		GetHasStringsTest(nv_root+'/ucds/ui/ui/form?'
+		GetHasStringsTest(nv_root+'/ucds/ui/hideui/form?'
 				'__nevow_form__=genForm&description=airmass%20measured%20'
 				'at%20center%20of%20plate&_FORMAT=HTML&submit=Go',
 			["Score</th", "Show known", "toggleDescriptions"],

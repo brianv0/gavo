@@ -44,7 +44,15 @@ class Core(record.Record):
 		fields.update(additionalFields)
 		super(Core, self).__init__(fields, initvals=initvals)
 
+	def __repr__(self):
+		return "<%s at %s>"%(self.__class__.__name__, id(self))
+	
+	def __str__(self):
+		return repr(self)
+
 	def set_service(self, svc):
+		if self.dataStore["service"]:
+			raise gavo.Error("Core cannot be re-adopted")
 		self.dataStore["service"] = weakref.proxy(svc)
 
 	def run(self, inputData, queryMeta):

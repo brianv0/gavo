@@ -39,7 +39,7 @@ class UniqueNameGenerator:
 
 	def _buildNames(self, baseName):
 		base, ext = os.path.splitext(baseName)
-		yield baseName
+		yield "dc_data/%s%s"%(base, ext)
 		i = 1
 		while True:
 			yield "dc_data/%s-%03d%s"%(base, i, ext)
@@ -81,10 +81,14 @@ class ProductTarMaker:
 # so pull the strings down to bytestring.  Don't use non-ascii chars
 # in your filenames...
 		keyList = [str(k) for k in keyList]
-		return resource.InternalDataSet(self.dd, table.Table, sq.query(
-			"SELECT %s FROM products WHERE key IN %%(keys)s"%(
+		if keyList:
+			res = sq.query(
+				"SELECT %s FROM products WHERE key IN %%(keys)s"%(
 					", ".join([f.get_dest() for f in self.items])),
-			{"keys": keyList}).fetchall())
+				{"keys": keyList}).fetchall()
+		else:
+			res = []
+		return resource.InternalDataSet(self.dd, table.Table, res)
 
 	def _getEmbargoedFile(self, name):
 		stuff = cStringIO.StringIO("This file is embargoed.  Sorry.\n")

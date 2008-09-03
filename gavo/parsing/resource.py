@@ -441,13 +441,13 @@ class DataSet(meta.MetaMixin):
 	def getDocFields(self):
 		return self.docFields
 
-	def exportToSql(self):
+	def exportToSQL(self):
 		if not self.getDescriptor().get_virtual():
 			for table in self.tables:
 				if self.dD.get_ignoredSources():
 					table.tableDef.set_create(False)
 					table.tableDef.set_owningCondition(None)
-				table.exportToSql()
+				table.exportToSQL()
 		self.dD.runScripts("processTable")
 		self.dD.runScripts("postCreation")
 
@@ -553,12 +553,12 @@ class Resource:
 	def getDescriptor(self):
 		return self.desc
 
-	def exportToSql(self, onlyDDs=None):
+	def exportToSQL(self, onlyDDs=None):
 		rd = self.getDescriptor()
 		for dataSet in self:
 			if onlyDDs and dataSet.getDescriptor().get_id() not in onlyDDs:
 				continue
-			dataSet.exportToSql()
+			dataSet.exportToSQL()
 		self.desc.runScripts("postCreation")
 		self.makeTimestamp()
 		self.rebuildDependents()
@@ -580,7 +580,7 @@ class Resource:
 	def export(self, outputFormat, onlyDDs=None):
 		try: 
 			fun = {
-				"sql": self.exportToSql,
+				"sql": self.exportToSQL,
 				"none": self.exportNone,
 				"votable": self.exportToVOTable,
 			}[outputFormat]

@@ -20,6 +20,18 @@ from gavo.web import adbapiconn
 
 from gavo import Error
 
+
+# this should only be changed for unit tests
+adminProfile = "admin"
+
+
+class AllSet(set):
+	def __repr__(self):
+		return "<all encompassing set>"
+
+	def __contains__(*args):
+		return True
+
 def getGroupsForUser(username, password, async=True):
 	"""returns a deferred firing a set of all groups user username belongs to.
 
@@ -27,15 +39,19 @@ def getGroupsForUser(username, password, async=True):
 	"""
 	def parseResponse(dbTable):
 		return set([a[0] for a in dbTable])
+	if username=='gavoadmin' and (
+			password and password==config.get("web", "adminpasswd")):
+		return AllSet()
 	query = ("SELECT groupname FROM users.groups NATURAL JOIN users.users as u"
 		" where username=%(username)s AND u.password=%(password)s")
 	pars = {"username": username, "password": password}
 	if async: 
-		return resourcecache.getDbConnection("admin").runQuery(query, pars
+		return resourcecache.getDbConnection(adminProfile).runQuery(query, pars
 			).addCallback(parseResponse)
 	else:
 		return parseResponse(
-			sqlsupport.SimpleQuerier().runIsolatedQuery(query, pars))
+			sqlsupport.SimpleQuerier(useProfile=adminProfile
+				).runIsolatedQuery(query, pars))
 
 
 def checkCredentials(user, password, reqGroup):
@@ -63,7 +79,7 @@ def checkCredentials(user, password, reqGroup):
 				"group": reqGroup,
 			}).addCallbacks(checkMembership, lambda f:f)
 	
-	conn = resourcecache.getDbConnection("admin")
+	conn = resourcecache.getDbConnection(adminProfile)
 	dbPw = conn.runQuery("select password from users.users where"
 		" username=%(user)s", {
 			"user": user}).addCallbacks(queryGroups, lambda f: f)
@@ -202,7 +218,7 @@ def main():
 		querier.commit()
 	except TypeError:
 		traceback.print_exc()
-		_usage()
+		print _getUsage()
 	except ArgError, msg:
 		sys.stderr.write(str(msg))
 		sys.stderr.write("\nRun without arguments for usage.\n")

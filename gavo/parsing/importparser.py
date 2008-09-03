@@ -293,6 +293,7 @@ class RdParser(nodebuilder.NodeBuilder):
 		semantics = resource.Semantics()
 		return self._processChildren(semantics, name, {
 			"Record": semantics.addto_tableDefs,
+			"Table": semantics.addto_tableDefs,
 		}, children)
 
 	_start_Table = _pushFieldPath
@@ -301,7 +302,7 @@ class RdParser(nodebuilder.NodeBuilder):
 	def _make_Table(self, name, attrs, children):
 		attrs = makeAttDict(attrs)
 		if attrs.has_key("original"):
-			tableDef = self.resolveItemReference(attrs["original"])
+			tableDef = self.resolveItemReference(attrs["original"]).copy()
 			setDefaults = False
 		else:
 			tableDef = resource.TableDef(self.rd)
@@ -564,18 +565,17 @@ class RdParser(nodebuilder.NodeBuilder):
 		return res
 	
 	def _make_srvInput(self, name, attrs, children):
-		svc = self.getProperty("currentService")
 		inputs = record.DataFieldList()
 		def handleFromCore(ignored):
 			try:
-				svcCore = svc.get_core()
+				svcCore = self.getWaitingChild("core", maxLevels=2)
 				for f in svcCore.getInputFields():
 					inputs.append(standardcores.CondDesc.fromInputKey(f))
 			except AttributeError:
 				traceback.print_exc()
-				raise gavo.Error("%s cores no not support fromCore"%
+				raise gavo.Error("%s cores do not support fromCore"%
 					svcCore.__class__.__name__)
-			except KeyError:
+			except nodebuilder.NoWaitingChild:
 				raise gavo.Error("fromCore requires previous core definition")
 		return self._processChildren(inputs, name, {
 			"condDesc": inputs.append,
@@ -583,12 +583,11 @@ class RdParser(nodebuilder.NodeBuilder):
 		}, children)
 	
 	def _make_srvOutput(self, name, attrs, children):
-		svc = self.getProperty("currentService")
 		outputs = record.DataFieldList()
 		def handleFromCore(attrs):
 			verbLimit = int(attrs.get("verbLevel", 20))
 			try:
-				svcCore = svc.get_core()
+				svcCore = self.getWaitingChild("core", maxLevels=2)
 				for f in svcCore.getOutputFields():
 					if f.get_verbLevel()<=verbLimit:
 						outputs.append(datadef.OutputField.fromDataField(f))
@@ -596,7 +595,7 @@ class RdParser(nodebuilder.NodeBuilder):
 				traceback.print_exc()
 				raise gavo.Error("%s cores no not support fromCore"%
 					svcCore.__class__.__name__)
-			except KeyError:
+			except nodebuilder.NoWaitingChild:
 				raise gavo.Error("fromCore requires previous core definition")
 		return self._processChildren(outputs, name, {
 			"outputField": outputs.append,
@@ -665,7 +664,7 @@ class RdParser(nodebuilder.NodeBuilder):
 		builtinName = attrs.pop("builtin")
 		attrs.update(args)
 		curCore = core.getStandardCore(builtinName)(self.rd, initvals=attrs)
-		self.getProperty("currentService").set_core(curCore)
+	#XXX -- this is crap, isn't it?  The service should do that...  self.getProperty("currentService").set_core(curCore)
 		return self._processChildren(curCore, name, handlers, children)
 
 	def _make_nevowRender(self, name, attrs, children):

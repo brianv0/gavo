@@ -82,7 +82,7 @@ def makePyfitsFromDict(d):
 	res = pyfits.Header()
 	for key, val in d.iteritems():
 		if fitsKwPat.match(key) and val!=None:
-			res.update(key, val)
+			res.update(str(key), str(val))
 	return res
 
 

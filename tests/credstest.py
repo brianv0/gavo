@@ -11,18 +11,12 @@ from gavo import sqlsupport
 from gavo.parsing import importparser
 from gavo.web import creds
 
-def createUserTables():
-	rd = importparser.getRd("__system__/users/users")
-	sq = sqlsupport.SimpleQuerier()
-	if not sq.schemaExists("users"):
-		rd.prepareForSystemImport()
-		res = resource.Resource(rd)
-		res.export("sql")
+
+creds.adminProfile = "test"
 
 class TestGroupsMembership(unittest.TestCase):
 	def setUp(self):
 		config.setDbProfile("test")
-		createUserTables()
 		self.querier = sqlsupport.SimpleQuerier()
 		creds._addUser(self.querier, "X_test", "megapass")
 		creds._addUser(self.querier, "Y_test", "megapass", "second test user")

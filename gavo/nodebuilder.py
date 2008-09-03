@@ -226,6 +226,22 @@ class BaseNodeBuilder(ContentHandler):
 		"""
 		return self.getContentWS(children).strip()
 
+	def getWaitingChild(self, nodeName, maxLevels=100, startLevel=-1):
+		"""returns the first child with nodeName waiting to be adopted in the
+		childStack.
+
+		maxLevels gives a maximum number of childStack levels we descend
+		before giving up.
+
+		If no matching child can be found, a NoWaitingChild exception is raised.
+		"""
+		if maxLevels==0:
+			raise NoWaitingChild(nodeName)
+		for name, element in self.childStack[startLevel]:
+			if name==nodeName:
+				return element
+		return getWaitingChild(nodeName, maxLevels-1, startLevel-1)
+
 	def _cleanTextNodes(self, children):
 		"""joins adjacent text nodes and prunes whitespace-only nodes.
 		"""

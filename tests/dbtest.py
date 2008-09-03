@@ -60,9 +60,8 @@ class TestWithTableCreation(unittest.TestCase):
 	def setUp(self):
 		if self.tableName is None:
 			return
-		config.setDbProfile("admin")
-		self.querier = sqlsupport.SimpleQuerier(
-			sqlsupport.getDbConnection("admin"))
+		config.setDbProfile("test")
+		self.querier = sqlsupport.SimpleQuerier(useProfile="test")
 		self.tableDef = testhelpers.getTestTable(self.tableName)
 		tw = sqlsupport.TableWriter(self.tableDef)
 		tw.createTable()
@@ -96,7 +95,7 @@ class TestRoleSetting(TestPrivs):
 	tableName = "privtable"
 
 	def setUp(self):
-		config.setDbProfile("admin")
+		config.setDbProfile("test")
 		q = sqlsupport.SimpleQuerier()
 		try:
 			q.query("create user privtestuser")
@@ -109,6 +108,7 @@ class TestRoleSetting(TestPrivs):
 	def tearDown(self):
 		TestPrivs.tearDown(self)
 		q = sqlsupport.SimpleQuerier()
+		q.query("drop schema test cascade")
 		q.query("drop user privtestuser")
 		q.query("drop user testadmin")
 		q.finish()
@@ -159,4 +159,4 @@ class TestMetaTableADQL(TestWithTableCreation):
 
 
 if __name__=="__main__":
-	testhelpers.main(TestMetaTableADQL, "test")
+	testhelpers.main(TestPrivs, "test")

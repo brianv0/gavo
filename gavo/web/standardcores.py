@@ -234,8 +234,7 @@ class DbBasedCore(QueryingCore):
 
 		It returns a deferred firing when the result is in.
 		"""
-		schema = self.rd.get_schema() or "public"
-		tableName = "%s.%s"%(schema, tableDef.get_table())
+		tableName = tableDef.getQName()
 		queryMeta.overrideDbOptions(limit=self.get_limit(), 
 			sortKey=self.get_sortOrder())
 		limtagsFrag, limtagsPars = queryMeta.asSql()
@@ -364,5 +363,6 @@ class ADQLCore(QueryingCore):
 	def run(self, inputData, queryMeta):
 		return threads.deferToThread(adqlglue.query,
 				inputData.getDocRec()["query"],
-				config.get("web", "adqlTimeout"))
+				timeout=config.get("web", "adqlTimeout"),
+				queryProfile="untrustedquery")
 core.registerCore("adql", ADQLCore)

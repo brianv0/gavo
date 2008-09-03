@@ -132,11 +132,14 @@ else:
 	def getDbConnection(profile):
 		if isinstance(profile, basestring):
 			profile = config.getDbProfileByName(profile)
+		elif profile==None:
+			profile = config.getDbProfile()
 		try:
-			conn = psycopg2.connect("dbname='%s' port='%s' host='%s'"
-				" user='%s' password='%s'"%(profile.get_database(), 
+			connString = ("dbname='%s' port='%s' host='%s'"
+				" user='%s' password='%s'")%(profile.get_database(), 
 					profile.get_port(), profile.get_host(), profile.get_user(), 
-					profile.get_password()), 
+					profile.get_password())
+			conn = psycopg2.connect(connString, 
 					connection_factory=psycopg2.extras.InterruptibleConnection)
 			return conn
 		except KeyError:
@@ -348,6 +351,8 @@ class StandardQueryMixin(object):
 
 	The mixin assumes an attribute connection from the parent.
 	"""
+	defaultProfile = None
+
 	def runIsolatedQuery(self, query, data={}, silent=False, raiseExc=True,
 			timeout=None):
 		"""runs a query over a connection of its own and returns a rowset of 
@@ -357,7 +362,7 @@ class StandardQueryMixin(object):
 		Unfortunately, until postgres gets nested transactions, there's little
 		I can do.
 		"""
-		connection = getDbConnection(config.getDbProfile())
+		connection = getDbConnection(self.defaultProfile)
 		cursor = connection.cursor()
 		try:
 			if debug:
@@ -735,12 +740,13 @@ class SimpleQuerier(StandardQueryMixin):
 	You have to close() manually; you also have to commit() when you
 	change something, finish() does 'em both.
 	"""
-	def __init__(self, connection=None):
+	def __init__(self, connection=None, useProfile=None):
+		self.defaultProfile = useProfile
 		if connection:
 			self.connection = connection
 			self.ownedConnection = False
 		else:
-			self.connection = getDbConnection(config.getDbProfile())
+			self.connection = getDbConnection(useProfile or config.getDbProfile())
 			self.ownedConnection = True
 
 	def rollback(self):

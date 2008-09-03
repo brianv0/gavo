@@ -8,7 +8,7 @@
 		by web/products.py for, e.g., access control -->
 		<NullGrammar/>
 		<Semantics>
-			<Record table="products" shared="True">
+			<SharedTable table="products">
 				<Field dest="key" primary="True" dbtype="text"
 					tablehead="Unique product key" source="prodtblKey"/>
 				<Field dest="owner" dbtype="text" tablehead="Data owner"
@@ -22,7 +22,7 @@
 				<Field dest="sourceTable" dbtype="text" default="" 
 					source="sourceTable"
 					tablehead="Name of table containing metadata" optional="False"/>
-			</Record>
+			</SharedTable>
 		</Semantics>
 	</Data>
 

@@ -279,7 +279,7 @@ class Products(Interface):
 		products.set_owningCondition(("sourceTable", tableDef.getQName()))
 		products.getFieldByName("sourceTable").set_default(
 			tableDef.getQName())
-		yield "Semantics", ("Record", products), True
+		yield "Semantics", ("Table", products), True
 
 
 class BboxSiap(Products):

@@ -912,7 +912,7 @@ class BboxSiapFieldsComputer(Macro):
 			record["wcs_refValues"] = (wcs.WCSStructure.xrefpix, 
 				wcs.WCSStructure.yrefpix)
 			record["wcs_cdmatrix"] = pixelGauge.cds[0]+pixelGauge.cds[1]
-		except KeyError, msg:
+		except (KeyError, AttributeError), msg:
 			for key in self.wcskeys:
 				record[key] = None
 

@@ -279,7 +279,7 @@ class TestImport(unittest.TestCase):
 			dataSource=[
 				(1, 2.5, 4),
 				(2, 7.5, 9),])
-		ds.exportToSql()
+		ds.exportToSQL()
 		sq = sqlsupport.SimpleQuerier()
 		noRows = sq.runIsolatedQuery("SELECT count(*) FROM test.imptest")[0][0]
 		self.assertEqual(2, noRows, "Import didn't leave exactly two rows")
@@ -287,7 +287,7 @@ class TestImport(unittest.TestCase):
 			dataSource=[
 				(2, 9.3, 14),
 				(2, 9.8, 19)])
-		self.assertRaises(gavo.Error, ds.exportToSql)
+		self.assertRaises(gavo.Error, ds.exportToSQL)
 		res = sq.runIsolatedQuery("SELECT nopt FROM test.imptest WHERE prim=1")
 		self.assertEqual(len(res), 1, "Failed import damages table")
 		self.assertEqual(res[0][0], 2.5, "Failed import damages table content")
@@ -301,13 +301,13 @@ class TestImport(unittest.TestCase):
 		ds = resource.InternalDataSet(rd.get_dataSrcs()[0], table.Table, 
 			dataSource=[
 				(1, "honk"), (2, "honk"), (3, "flob"), (4, "flob"), (5, "nox")])
-		ds.exportToSql()
+		ds.exportToSQL()
 		td = rd.getTableDefByName(self.tableName)
 		td.set_shared(True)
 		td.set_owningCondition(("indf", "flob"))
 		ds = resource.InternalDataSet(rd.get_dataSrcs()[0], table.Table, 
 			dataSource=[(7, "flob"), (8, "flob"), (9, "flob")])
-		ds.exportToSql()
+		ds.exportToSQL()
 		sq = sqlsupport.SimpleQuerier()
 		res = sq.runIsolatedQuery("SELECT prim FROM imptest WHERE indf='flob'")
 		self.assertEqual(len(res), 3, "Weird goings-on with sharedTables")
