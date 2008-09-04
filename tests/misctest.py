@@ -25,13 +25,14 @@ from gavo import nullui
 from gavo import sqlsupport
 from gavo import table
 from gavo import texttable
-from gavo import votable
+from gavo import valuemappers
 from gavo.helpers import filestuff
 from gavo.parsing import importparser
 from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
 from gavo.web import resourcebased
 
+import testhelpers
 
 _predefinedFields = {
 	"klein": datadef.DataField(dest="klein", dbtype="smallint", source="klein"),
@@ -151,7 +152,7 @@ class MapperTest(unittest.TestCase):
 	def testJdMap(self):
 		colProps = {"sample": datetime.datetime(2005, 6, 4, 23, 12, 21),
 			"unit": "d"}
-		mapper = votable.datetimeMapperFactory(colProps)
+		mapper = valuemappers.datetimeMapperFactory(colProps)
 		self.assertAlmostEqual(2453526.4669097224,
 			mapper(datetime.datetime(2005, 6, 4, 23, 12, 21)))
 		self.assertAlmostEqual(2434014.6659837961,
@@ -160,6 +161,43 @@ class MapperTest(unittest.TestCase):
 			mapper(datetime.datetime(2000, 12, 31, 12, 00, 00)))
 		self.assertAlmostEqual(2451909.999988426,
 			mapper(datetime.datetime(2000, 12, 31, 11, 59, 59)))
+
+	def testFactorySequence(self):
+		m1 = lambda cp: lambda val: "First"
+		m2 = lambda cp: lambda val: "Second"
+		mf = valuemappers.ValueMapperFactoryRegistry()
+		mf.registerFactory(m1)
+		self.assertEqual(mf.getMapper(None)(0), "First", 
+			"Registring mappers doesn't work")
+		mf.registerFactory(m2)
+		self.assertEqual(mf.getMapper(None)(0), "Second", 
+			"Factories registred later are not tried first")
+	
+	def testStandardMappers(self):
+		def assertMappingResult(dataField, value, literal):
+			cp = valuemappers.ColProperties(dataField)
+			cp["sample"] = value
+			self.assertEqual(literal,
+				unicode(valuemappers.defaultMFRegistry.getMapper(cp)(value)))
+			
+		for dataField, value, literal in [
+			(datadef.DataField(dest="d", dbtype="date", unit="Y-M-D"),
+				datetime.date(2003, 5, 4), "2003-05-04"),
+			(datadef.DataField(dest="d", dbtype="date", unit="yr"),
+				datetime.date(2003, 5, 4), '2003.30184805'),
+			(datadef.DataField(dest="d", dbtype="date", unit="d"),
+				datetime.date(2003, 5, 4), '2452764.0'),
+			(datadef.DataField(dest="d", dbtype="timestamp", unit="d"),
+				datetime.datetime(2003, 5, 4, 20, 23), '2452765.34931'),
+			(datadef.DataField(dest="d", dbtype="date", unit="d", 
+					ucd="VOX:Image_MJDateObs"),
+				datetime.date(2003, 5, 4), '52763.5'),
+			(datadef.DataField(dest="d", dbtype="date", unit="yr"),
+				None, ' '),
+			(datadef.DataField(dest="d", dbtype="int"),
+				None, '-2147483648'),
+		]:
+			assertMappingResult(dataField, value, literal)
 
 
 class RenamerDryTest(unittest.TestCase):
@@ -247,6 +285,7 @@ class TextOutputTest(unittest.TestCase):
 			"1\t2.0\t3.0\tW\\xe4re es da nicht besser,\\n die Regierung setzte"
 				" das Volk ab\\tund w\\xe4hlte ein anderes?\t2453130.5\n")
 
+
 def singleTest():
 	suite = unittest.makeSuite(TextOutputTest, "test")
 	runner = unittest.TextTestRunner()
@@ -254,5 +293,4 @@ def singleTest():
 
 
 if __name__=="__main__":
-	unittest.main()
-#	singleTest()
+	testhelpers.main(MapperTest)

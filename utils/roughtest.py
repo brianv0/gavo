@@ -607,7 +607,8 @@ myTests = [
 			["Plate alpha", "Bandpass", "B2866b"],
 			"LSW plate service gives plausible answer"),
 		GetHasStringsTest(nv_root+"/getproduct?"
-				"key=lswscans/data/B2866b.fits%26amp%3Bra%3D2.0%26amp%3Bdec"
+				"key=lswscans/data/Bruceplatten/FITS/B2866b.fits"
+				"%26amp%3Bra%3D2.0%26amp%3Bdec"
 				"%3D2.0%26amp%3Bsra%3D0.5%26amp%3Bsdec%3D0.5",
 			["SIMPLE  =                    T", "OBSERVER= 'F.Kaiser'", 
 				"NAXIS1  =                 17"],

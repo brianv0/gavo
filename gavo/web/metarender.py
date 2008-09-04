@@ -17,6 +17,7 @@ from gavo import resourcecache
 from gavo import sqlsupport
 from gavo.parsing import contextgrammar
 from gavo.web import common
+from gavo.web import creds
 from gavo.web import resourcebased
 
 
@@ -43,7 +44,7 @@ class BlockRdRenderer(resourcebased.ServiceBasedRenderer):
 
 	def realRenderHTTP(self, ctx):
 		self.rd.currently_blocked = True
-		return ServiceBasedRenderer.renderHTTP(self, ctx)
+		return resourcebased.ServiceBasedRenderer.renderHTTP(self, ctx)
 
 	defaultDocFactory = loaders.stan(
 		T.html[

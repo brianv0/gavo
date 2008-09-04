@@ -3,6 +3,7 @@ Code to expose our services via SOAP and WSDL.
 """
 
 import cStringIO
+import datetime
 import sys
 
 from elementtree import ElementTree
@@ -11,7 +12,9 @@ import ZSI
 from ZSI import TC
 
 import gavo
+from gavo import sqlsupport
 from gavo import typesystems
+from gavo import valuemappers
 from gavo.stanxml import Element, XSINamespace
 from gavo.web import registry
 
@@ -292,6 +295,39 @@ class ToTcConverter(typesystems.FromSQLConverter):
 sqltypeToTC = ToTcConverter().convert
 
 
+# rather than fooling around with ZSI.SoapWriter's serialization, I use
+# the machinery used for VOTables and HTML to serialize weird values.
+# It's in place anyway.
+
+_wsdlMFRegistry = valuemappers.ValueMapperFactoryRegistry()
+_registerMF = _wsdlMFRegistry.registerFactory
+
+try:
+	from mx import DateTime
+
+	def mxDatetimeMapperFactory(colProps):
+		"""returns mapper for mxDateTime objects to python time tuples.
+		"""
+		if isinstance(colProps["sample"], DateTime.DateTimeType):
+			def mapper(val):
+				return val.tuple()
+			return mapper
+	_registerMF(mxDatetimeMapperFactory)
+except ImportError:
+	pass
+
+def datetimeMapperFactory(colProps):
+	"""returns mapper for datetime objects to python time tuples.
+	"""
+	if isinstance(colProps["sample"], (datetime.date, datetime.datetime)):
+		def mapper(val):
+			return val.timetuple()
+		return mapper
+_registerMF(datetimeMapperFactory)
+
+
+
+
 def serializePrimaryTable(data, service):
 	"""returns a SOAP serialization of the DataSet data's primary table.
 	"""
@@ -310,16 +346,26 @@ def serializePrimaryTable(data, service):
 	outF = cStringIO.StringIO()
 	sw = ZSI.SoapWriter(outF, 
 		nsdict={"tns": registry.computeIdentifier(service)})
-	sw.serialize(table.rows, Table.typecode)
+	mapped = list(valuemappers.getMappedValues(table, _wsdlMFRegistry))
+	sw.serialize(mapped, Table.typecode)
 	sw.close()
 	return outF.getvalue()
 
 
+def unicodeXML(obj):
+	"""returns an XML-clean version of obj's unicode representation.
+
+	I'd expect ZSI to worry about this, but clearly they don't.
+	"""
+	return unicode(obj
+		).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def formatFault(exc, service):
 	if isinstance(exc, gavo.ValidationError):
-		val = ZSI.Fault(ZSI.Fault.Client, str(exc))
+		val = ZSI.Fault(ZSI.Fault.Client, unicodeXML(exc))
 	else:
-		val = ZSI.Fault(ZSI.Fault.Server, str(exc))
+		val = ZSI.Fault(ZSI.Fault.Server, unicodeXML(exc))
 	return val.AsSOAP(
 		nsdict={"tns": registry.computeIdentifier(service)})
 

@@ -22,11 +22,11 @@ from gavo import config
 from gavo import coords
 from gavo import unitconv
 from gavo import utils
-from gavo import votable
+from gavo import valuemappers
 from gavo.web import common
 
 
-_htmlMFRegistry = votable.ValueMapperFactoryRegistry()
+_htmlMFRegistry = valuemappers.ValueMapperFactoryRegistry()
 _registerHTMLMF = _htmlMFRegistry.registerFactory
 
 
@@ -105,10 +105,10 @@ def _stringWrapMF(baseMF):
 
 
 try:
-	_registerHTMLMF(_stringWrapMF(votable.mxDatetimeMapperFactory))
+	_registerHTMLMF(_stringWrapMF(valuemappers.mxDatetimeMapperFactory))
 except AttributeError:
 	pass
-_registerHTMLMF(_stringWrapMF(votable.datetimeMapperFactory))
+_registerHTMLMF(_stringWrapMF(valuemappers.datetimeMapperFactory))
 
 
 def _sizeMapperFactory(colProps):
@@ -279,11 +279,11 @@ class HTMLTableFragment(rend.Fragment):
 		that should be used to obtain the units for the respective
 		columns since the formatters might have changed them.
 		"""
-		self.colProps = [votable.ColProperties(f)
+		self.colProps = [valuemappers.ColProperties(f)
 			for f in self.table.getFieldDefs()]
 		self.colPropsIndex = dict((props["name"], props) 
 			for props in self.colProps)
-		votable.acquireSamples(self.colPropsIndex, self.table)
+		valuemappers.acquireSamples(self.colPropsIndex, self.table)
 		self.defaultTds = []
 		for props, field in zip(self.colProps, self.table.getFieldDefs()):
 # the hasattr here is necessary since we allow plain data fields to be

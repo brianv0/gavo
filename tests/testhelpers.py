@@ -78,9 +78,9 @@ def getTestData(dataId):
 	return getTestRD().getDataById(dataId)
 
 
-def main(testClass, methodPrefix):
+def main(testClass, methodPrefix=None):
 	if len(sys.argv)>1:
-		suite = unittest.makeSuite(testClass, methodPrefix)
+		suite = unittest.makeSuite(testClass, methodPrefix or sys.argv[1])
 		runner = unittest.TextTestRunner()
 		runner.run(suite)
 	else:

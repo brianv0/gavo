@@ -16,8 +16,14 @@ from gavo.web import wsdl
 
 
 class SOAPProcessor(soap.SOAPPublisher):
+	"""is a helper to the SOAP renderer.
+
+	It's actually a nevow resource ("page"), so whatever really has
+	to do with SOAP (as opposed to returning WSDL) is done by this.
+	"""
 	def __init__(self, ctx, service):
 		self.ctx, self.service = ctx, service
+		self.request = inevow.IRequest(ctx)
 		soap.SOAPPublisher.__init__(self)
 
 	def _gotResult(self, result, request, methodName):
@@ -27,6 +33,7 @@ class SOAPProcessor(soap.SOAPPublisher):
 		self._sendResponse(request, response)
 	
 	def _gotError(self, failure, request, methodName):
+		failure.printTraceback()
 		try:
 			self._sendResponse(request, 
 				wsdl.formatFault(failure.value, self.service), status=500)
@@ -45,7 +52,8 @@ class SOAPProcessor(soap.SOAPPublisher):
 			return self._formatError(exc)
 
 	def _formatError(self, exc):
-		return wsdl.formatFault(exc, self.service)
+		self._sendResponse(self.request, wsdl.formatFault(exc, self.service), 
+			status=500)
 
 	def _runService(self, inputData, ctx):
 		queryMeta = common.QueryMeta(ctx)
@@ -53,6 +61,8 @@ class SOAPProcessor(soap.SOAPPublisher):
 
 
 class SoapRenderer(resourcebased.ServiceBasedRenderer):
+	"""is a renderer that receives and formats SOAP messages.
+	"""
 	name="soap"
 	def __init__(self, ctx, service):
 		resourcebased.ServiceBasedRenderer.__init__(self, ctx, service)
