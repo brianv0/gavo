@@ -528,7 +528,10 @@ class ValueMapper(Macro):
 		except KeyError:
 			if self.logFailures:
 				gavo.logger.warning("Name %s could not be mapped"%value)
-			record[self.destination] = None
+			if self.failuresAreNone:
+				record[self.destination] = None
+			else:
+				raise
 
 
 class StringInterpolator(Macro):

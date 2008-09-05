@@ -127,7 +127,7 @@ class TestMetaTable(TestWithTableCreation):
 		self.assertEqual(adql, False)
 
 	def testColInfo(self):
-		mh = sqlsupport.MetaTableHandler()
+		mh = sqlsupport.MetaTableHandler('test')
 		res = mh.getFieldInfos(self.tableDef.getQName())
 		self.assertEqual([(f.get_dest(), f.get_dbtype(), f.get_tablehead()) 
 				for f in res], [
@@ -151,7 +151,7 @@ class TestMetaTableADQL(TestWithTableCreation):
 		self.assertEqual(adql, True)
 
 	def testColInfo(self):
-		mh = sqlsupport.MetaTableHandler()
+		mh = sqlsupport.MetaTableHandler('test')
 		res = mh.getFieldInfos(self.tableDef.getQName())
 		self.assertEqual([(f.get_dest(), f.get_dbtype(), f.get_tablehead()) 
 				for f in res], [

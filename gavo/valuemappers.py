@@ -16,6 +16,10 @@ for serializing to VOTables and similar data machine-oriented data
 formats.
 """
 
+import urllib
+import urlparse
+
+from gavo import config
 from gavo import typesystems
 
 

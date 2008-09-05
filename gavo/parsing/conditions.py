@@ -114,9 +114,23 @@ class _KeyPresentCondition(_Condition):
 		return aDict.has_key(self.name)
 
 
+class _NotNullCondition(_Condition):
+	"""is a condition that a certain value is not None.
+	"""
+	expl = "Value must not be NULL (aka None)"
+
+	def __init__(self, name):
+		self.name = name
+
+	def check(self, aDict):
+		print ">>>>>>>>>>>>", aDict
+		return aDict[self.name]!=None
+
+
 _conditionsRegistry = {
 	"valueNotEqual": (_ValueNotEqualCondition, ["name", "value"]),
 	"keyPresent": (_KeyPresentCondition, ["name"]),
+	"notNULL": (_NotNullCondition, ["name"]),
 }
 
 def makeCondition(attrs):

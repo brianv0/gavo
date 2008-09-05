@@ -124,7 +124,7 @@ def updateServiceList(rd):
 	gavo.ui.silence = True
 	dataSet = resource.InternalDataSet(dd, tableMaker=parseswitch.createTable,
 		dataSource=inputData)
-	dataSet.exportToSQL(serviceRd.get_schema())
+	dataSet.exportToSQL()
 	gavo.ui.silence = False
 
 

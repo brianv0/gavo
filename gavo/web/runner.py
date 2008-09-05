@@ -132,8 +132,8 @@ def run(coreDataDef, inputData):
 	"""
 	inputString = _makeInputs(coreDataDef, inputData)
 	args = _makeArguments(coreDataDef, inputData)
-	computerPath = os.path.join(config.get("rootDir"),
-		coreDataDef.get_computer())
+	computerPath = getBinaryName(os.path.join(config.get("rootDir"),
+		coreDataDef.get_computer()))
 	return runWithData(computerPath, inputString, args)
 
 
