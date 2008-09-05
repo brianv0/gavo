@@ -51,6 +51,9 @@ def _parseAssignments(assignments):
 	":"-seprated pairs seperated by whitespace, like "a:b  b:c", where
 	the incoming names are leading, the desired names are trailing.
 
+	If you need defaults to kick in when the incoming data is None, try
+	_parseDestWithDefault in the client function.
+
 	This function parses a dictionary mapping original names to desired names.
 
 	>>> _parseAssignments("a:b  b:c")
@@ -58,6 +61,19 @@ def _parseAssignments(assignments):
 	"""
 	return dict([(lead, trail) for lead, trail in
 		[litPair.split(":") for litPair in assignments.split()]])
+
+
+def _parseDestWithDefault(dest, defRe=re.compile(r"(\w+)\((.*)\)")):
+	"""returns name, default from dests like bla(0).
+
+	This can be used to provide defaulted targets to assignments parsed
+	with _parseAssignments.
+	"""
+	mat = defRe.match(dest)
+	if mat:
+		return mat.groups()
+	else:
+		return dest, None
 
 
 class Macro(parsehelpers.RowFunction):
@@ -757,7 +773,8 @@ class SimpleQuerier(Macro):
 	Constructor Arguments
 
 	* items -- an assignments list like in MxDateParser; here, before
-	  the colon are the column names in the db.
+	  the colon are the column names in the db.  You can give a default
+    for the item in parentheses; it's always a string, though.
 	* table -- the table to query
 	* column -- the column to run the test against
 
@@ -767,7 +784,7 @@ class SimpleQuerier(Macro):
 
 	You'd use this macro like this:
 
-	<Macro name="simplequery" items="alpha:cat_alpha delta:cat_delta"
+	<Macro name="simplequery" items="alpha:cat_alpha delta:cat_delta rv:rv(0)"
 	    table="fk5.data" column="localid">
 	  <arg name="val" source="star"/>
 	</Macro>
@@ -806,7 +823,11 @@ class SimpleQuerier(Macro):
 		try:
 			res = self.querier.query(query, {"val": val}).fetchall()[0]
 			for name, resVal in zip(recNames, res):
-				record[name] = resVal
+				name, default = _parseDestWithDefault(name)
+				if resVal==None:
+					record[name] = default
+				else:
+					record[name] = resVal
 		except IndexError:
 			gavo.raiseTb(gavo.ValidationError, "The item %s didn't match"
 				" any data.  Since this data is required for further"

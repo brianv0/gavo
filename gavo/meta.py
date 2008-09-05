@@ -5,7 +5,7 @@ The meta information we deal with here is *not* column information (which
 is handled in datadef.py) but information on tables, services and
 resources as a whole.
 
-We deal with VO-type RMI metadata but also allow custom metadata.  Their
+We deal with VO-style RMI metadata but also allow custom metadata.  Their
 keys should start with _, however.
 
 See develNotes for some discussion of why this is so messy and an explanation

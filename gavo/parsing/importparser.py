@@ -72,11 +72,24 @@ class RdParser(nodebuilder.NodeBuilder):
 	not exist yet (i.e., when importing).
 	"""
 	noQueries = False
+	keepWhitespaceNames = set(["meta"])
 
 	def __init__(self, sourcePath, forImport=False):
 		self.forImport = forImport
 		nodebuilder.NodeBuilder.__init__(self)
 		self.rd = resource.ResourceDescriptor(sourcePath)
+
+	def _collectTextNodes(self, children):
+		"""returns all text children concatenated.
+
+		For mixed content elements, the order of text and element content
+		is completely ignored.
+		"""
+		res = []
+		for c in children:
+			if c[0]==None:
+				res.append(c[1])
+		return "".join(res)
 
 	def resolveItemReference(self, id):
 		"""returns the element with id.
@@ -712,19 +725,15 @@ class RdParser(nodebuilder.NodeBuilder):
 			}, children)
 
 	def _make_meta(self, name, attrs, children):
-		def raiseMixedMeta(*args):
-			raise gavo.MetaError("Mixed meta items must have content before"
-				" children")
-		if children and children[0][0]==None:
-			content = children.pop(0)[1]
-		else:
-			content = ""
+		content = self._collectTextNodes(children)
 		attrs = makeAttDict(attrs)
+		if attrs.get("format", "plain") in ["rst", "literal"]:
+			content = utils.fixIndentation(content, "", 1)
 		key = attrs["name"]
 		metaValue = meta.makeMetaValue(content, **attrs)
 		self._processChildren(metaValue, name, {
 			"meta": lambda md: metaValue.addMeta(md[0], md[1]),
-			None: raiseMixedMeta,
+			None: lambda *args: True, # Text children processed above
 		}, children)
 		return key, metaValue
 
@@ -742,6 +751,7 @@ class RdParser(nodebuilder.NodeBuilder):
 		if len(children)!=1 or children[0][0]!=None:
 			raise Error("%s nodes have text content only"%name)
 		return children[0][1]
+	
 
 	_make_rules = \
 	_make_documentProduction = \

@@ -156,18 +156,38 @@ def makeClassDocs(baseClass, objects):
 	return True
 
 
-def fixIndentation(code, newIndent):
+def fixIndentation(code, newIndent, governingLine=0):
 	"""returns code with all whitespace from the first line removed from
 	every line and newIndent prepended to every line.
+
+	governingLine lets you select a line different from the first one
+	for the determination of the leading white space.  Lines before that
+	line are left alone.
+	>>> fixIndentation("  foo\\n  bar", "")
+	'foo\\nbar'
+	>>> fixIndentation("  foo\\n   bar", " ")
+	' foo\\n  bar'
+	>>> fixIndentation("  foo\\n   bar\\n    baz", "", 1)
+	'  foo\\nbar\\n baz'
+	>>> fixIndentation("  foo\\nbar", "")
+	Traceback (most recent call last):
+	Error: Bad indent in line 'bar'
 	"""
-	codeLines = [line for line in code.split("\n") if line.strip()]
-	firstIndent = re.match("^\s*", codeLines[0]).group()
-	fixedLines = []
-	for line in codeLines:
-		if line[:len(firstIndent)]!=firstIndent:
-			raise Error("Bad indent in line %s"%repr(line))
-		fixedLines.append(newIndent+line[len(firstIndent):])
-	return "\n".join(fixedLines)
+	codeLines = [line for line in code.split("\n")]
+	reserved, codeLines = codeLines[:governingLine], codeLines[governingLine:]
+	if codeLines:
+		firstIndent = re.match("^\s*", codeLines[0]).group()
+		fixedLines = []
+		for line in codeLines:
+			if not line.strip():
+				fixedLines.append(line)
+			else:
+				if line[:len(firstIndent)]!=firstIndent:
+					raise Error("Bad indent in line %s"%repr(line))
+				fixedLines.append(newIndent+line[len(firstIndent):])
+	else:
+		fixedLines = codeLines
+	return "\n".join(reserved+fixedLines)
 
 
 class DummyClass:

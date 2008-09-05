@@ -95,6 +95,11 @@ class BaseNodeBuilder(ContentHandler):
 	possible after the element with the id has been closed.  There
 	is no forward declaration.
 
+	In general, text children are deleted when they are whitespace only,
+	and they are joined to form a single one.  However, you can define
+	a set keepWhitespaceNames containing the names of elements for
+	which this is not wanted.
+
 	In some cases, you want parents provide information to their children
 	while they are constructed.  This is a bit clumsy, but for such cases,
 	you can define a _start_<element> method that can leave something
@@ -113,6 +118,8 @@ class BaseNodeBuilder(ContentHandler):
 	On errors during node construction, the class will call a handleError
 	method with a sys.exc_info tuple.
 	"""
+	keepWhitespaceNames = set()
+
 	def __init__(self):
 		ContentHandler.__init__(self)
 		self.elementStack = []
@@ -188,7 +195,8 @@ class BaseNodeBuilder(ContentHandler):
 				children[:0] = self.delayedChildren[name][0]
 				children.extend(self.delayedChildren[name][1])
 				del self.delayedChildren[name]
-			children = self._cleanTextNodes(children)
+			if name not in self.keepWhitespaceNames:
+				children = self._cleanTextNodes(children)
 			newNode = getattr(self, "_make_"+name)(name, attrs, children)
 			if newNode!=None:
 				self._enterNewNode(name, attrs, newNode)

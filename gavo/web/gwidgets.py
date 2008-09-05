@@ -58,7 +58,7 @@ class OutputFormat(object):
 # output table
 		ofs = core.tableDef.get_items()
 		for of in ofs:
-			if of.get_dest()=="accref":
+			if of.get_dest()=="accref" and not hasattr(core, "notar"):
 				self.availableFormats.append("tar")
 				break
 		

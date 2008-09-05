@@ -378,13 +378,14 @@ class RdTest(testhelpers.VerboseTest):
 			'http://foo.bar</meta>')
 		self.assertEqual(rd.getMeta("_related").getContent("html"),
 			'<a href="http://foo.bar">a link</a>')
-
-	def testBadMeta(self):
-		"""tests for correct rejection of malformed meta items.
-		"""
-		self.assertRaisesVerbose(gavo.Error, self._getRd,
-			('<meta name="foo"><meta name="bar">bar</meta>bad</meta>',),
-			"importparser accepts badly mixed meta content")
+	
+	def testRst(self):
+		rd = self._getRd('<meta name="bla" format="rst">A\n'
+			'  text that is somewhat indented\n'
+			'\n'
+			'  and has a paragraph.</meta>')
+		self.assertEqual(rd.getMeta("bla").getContent("html"), "<p>A\ntext th"
+			"at is somewhat indented</p>\n<p>and has a paragraph.</p>\n")
 
 
 def singleTest():
@@ -394,5 +395,4 @@ def singleTest():
 
 
 if __name__=="__main__":
-	unittest.main()
-	#singleTest()
+	testhelpers.main(RdTest)

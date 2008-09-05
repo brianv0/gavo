@@ -274,8 +274,7 @@ class UploadHasStringTest(UploadTest):
 
 myTests = [
 	TestGroup("apfs",
-		GetHasStringTest(nv_root+"/apfs/res/"
-			"apfs_new/catquery/form",
+		GetHasStringTest(nv_root+"/apfs/res/apfs_new/catquery/form",
 			"Output format",
 			"NV APFS form"),
 		GetHasStringTest(nv_root+"/apfs/res/apfs_new"
@@ -571,33 +570,46 @@ myTests = [
 			"Reset of db seems to work"),
 	),
 
-# REVIVE THIS WHEN THE UCD SERVICE IS FREE AGAIN.
-#	TestGroup("soap",
-#		GetHasStringsTest(nv_root+"/ucds/ui/ui/soap/go?wsdl",
-#			["wsdl:definitions", '<schema targetNamespace="ivo://', 
-#				"ivo://org.gavo.dc/ucds/ui/ui"],
-#			"WSDL for SOAP looks all right"),
-#		PostHasStringsTest(nv_root+"/ucds/ui/ui/soap/go",
-#			'eJydkU1vgzAMhu/7FSh34kW9jAiotqo97Utiq3ZFIaKRaIJwCOXfz3Sl6rrDpkk5JLb'
-#			'zvPbrdHnY\nN1HQHRpnMyb4LYu0Va4yts7Y+9smvmPL/CYtXu5f4/XzVq5t0I1rdXSO'
-#			'zOWFHxudsZ33rQRAtdP7\nEjnh0ZUtd10N0wXmcmAR5SzKE2j1j68HNOdfwzDwYXEsF'
-#			'kmSwMfTY3EExcaiL63SV4Lbvwh+DXsh\nWP0uyC79enDVSG+LQvaoC90Fo/SJRsGMme'
-#			'AIRhRel8HxSkGvKoTe0GGzyyvZOedpPxM7iIgGl35s\nyW7qSKLvyBWWpxAE5eG72BS'
-#			'5bgd+7DP/BCkQrjo=\n'.decode("base64").decode("zlib"),
-#			[':Client</faultcode>', 'Validation failed', 'No known words'],
-#			'SOAP error messaging returns client error on junk input',
-#			SOAPAction='"useService"', content_type="text/xml"),
-#		PostHasStringsTest(nv_root+"/ucds/ui/ui/soap/go",
-#			'eJydkU1PwzAMhu/8iij3JlRcaNR2gmmc+JIKE9eoibpIbVLFabr+e9yxTmMcQEg5JI7'
-#			'9vPbrfLXv\nWhK1B+NsQVN2TYm2tVPGNgV9f3tIbumqvMqrl7vXZPO8FRsbdet6TU6R'
-#			'Jb0KU6sLuguhF5xDvdOd\nBIZ4cLJnzjd8vvAlnVOCfxbEEbT+R+kezKlqHEc23hyS0'
-#			'yzL+MfTY3UAJcZCkLbWF4Lbvwh+DXsm\nqH4XpOd+3Ts14dtCKgbQlfbR1PpIw2BBTX'
-#			'QIQwprZHRM1XyoFfDB4KGLy2vhnQu4n5kdU4KDizD1\naDd2JCB4dIWW0ngcA4gMpDM'
-#			'qmE7nPKZYwb/Lz5HLBvmPDZefAse1KA==\n'.decode("base64").decode("zlib"),
-#			['tns:outList', 'obs.airMass', '</tns:outList>'],
-#			"SOAP request yields something reasonable",
-#			SOAPAction='"useService"', content_type="text/xml"),
-#		),
+	TestGroup("soap",
+# To come up with the stuff posted, use soappy and 
+# proxy.soapproxy.config.debug = True
+		GetHasStringsTest(nv_root+"/ucds/ui/hideui/soap/go?wsdl",
+			["wsdl:definitions", '<schema targetNamespace="ivo://', 
+				"ivo://org.gavo.dc/ucds/ui/hideui"],
+			"UCD WSDL for SOAP looks all right"),
+		PostHasStringsTest(nv_root+"/ucds/ui/hideui/soap/go",
+			'eJydkU1vgzAMhu/7FSh34kW9jAiotqo97Utiq3ZFIaKRaIJwCOXfz3Sl6rrDpkk5JLb'
+			'zvPbrdHnY\nN1HQHRpnMyb4LYu0Va4yts7Y+9smvmPL/CYtXu5f4/XzVq5t0I1rdXSO'
+			'zOWFHxudsZ33rQRAtdP7\nEjnh0ZUtd10N0wXmcmAR5SzKE2j1j68HNOdfwzDwYXEsF'
+			'kmSwMfTY3EExcaiL63SV4Lbvwh+DXsh\nWP0uyC79enDVSG+LQvaoC90Fo/SJRsGMme'
+			'AIRhRel8HxSkGvKoTe0GGzyyvZOedpPxM7iIgGl35s\nyW7qSKLvyBWWpxAE5eG72BS'
+			'5bgd+7DP/BCkQrjo=\n'.decode("base64").decode("zlib"),
+			[':Client</faultcode>', 'Validation failed', 'No known words'],
+			'UCD SOAP error messaging returns client error on junk input',
+			SOAPAction='"useService"', content_type="text/xml"),
+		PostHasStringsTest(nv_root+"/ucds/ui/hideui/soap/go",
+			'eJydkU1PwzAMhu/8iij3JlRcaNR2gmmc+JIKE9eoibpIbVLFabr+e9yxTmMcQEg5JI7'
+			'9vPbrfLXv\nWhK1B+NsQVN2TYm2tVPGNgV9f3tIbumqvMqrl7vXZPO8FRsbdet6TU6R'
+			'Jb0KU6sLuguhF5xDvdOd\nBIZ4cLJnzjd8vvAlnVOCfxbEEbT+R+kezKlqHEc23hyS0'
+			'yzL+MfTY3UAJcZCkLbWF4Lbvwh+DXsm\nqH4XpOd+3Ts14dtCKgbQlfbR1PpIw2BBTX'
+			'QIQwprZHRM1XyoFfDB4KGLy2vhnQu4n5kdU4KDizD1\naDd2JCB4dIWW0ngcA4gMpDM'
+			'qmE7nPKZYwb/Lz5HLBvmPDZefAse1KA==\n'.decode("base64").decode("zlib"),
+			['tns:outList', 'obs.airMass', '</tns:outList>'],
+			"UCD SOAP request yields something reasonable",
+			SOAPAction='"useService"', content_type="text/xml"),
+		PostHasStringsTest(nv_root+"/apfs/res/apfs_new/qall/soap/go",
+			'eJydkl9PgzAUxd/3KUjfoRSmYQ2w6DKf/Jegi2+GQGVNWIttLePbe8GxTIyZ8a2999'
+			'dzek8bL/e7\n2rFMaS5FgojnI4eJQpZcVAl6frpxI7RMZ3H2cPXoru83dC0sq2XDnG'
+			'NlxDPT1SxBW2MairEutmyX\naw/ktcwbT6oK9ws84hg50BOaHoRW/zi61/x4qm1brw'
+			'0HmCwWC/xyd5sNQi4X2uSiYBPDzV8Mv4Y9\nMSzPG6LTvK5l2cFeaEI/NMuYsrxgBz'
+			'UoJohbCWKg4lW5lV5Z4Lx501gxPSxeBWvxe17XaEx8RZWU\nBt6q97HEgRCo6RqIHm'
+			'5HtVGQEEovLmNsSU8EvxCB70euH7h+CGTQk+E5MgIy7Mn5hOTCoJRAdw5d\n/H3Yvj'
+			'KNA//4T+nsE44V1dA=\n'.decode("base64").decode("zlib"), [
+				'="xsd:date">2008-02-03Z</tns:isodate>', 
+				'<tns:raCio xsi:type="xsd:double">25.35'],
+			'APFS SOAP returns something reasonable',
+			SOAPAction='"useService"', content_type="text/xml"),
+		),
 
 	TestGroup("services",
 		GetHasStringsTest(nv_root+"/lswscans/res/positions/q/form?"
