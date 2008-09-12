@@ -323,6 +323,7 @@ renderClasses = {
 	"custom": resourcebased.Custom,
 	"static": resourcebased.Static,
 	"form": resourcebased.Form,
+	"feedback": resourcebased.FeedbackForm,
 	"text": resourcebased.TextRenderer,
 	"block": metarender.BlockRdRenderer,
 	"siap.xml": vodal.SiapRenderer,

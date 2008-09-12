@@ -198,6 +198,7 @@ class DbBasedCore(QueryingCore):
 				"sortOrder": common.Undefined,
 				"limit": common.Undefined,
 				"distinct": record.BooleanField,
+				"feedbackField": None,
 			}, initvals=initvals)
 		self.validate()
 		self.avOutputKeys = set([f.get_dest() for f in self.tableDef.get_items()])
@@ -270,7 +271,11 @@ class DbBasedCore(QueryingCore):
 		Derived cores, e.g., for special protocols, could override this
 		to make sure they have some fields in the result they depend on.
 		"""
-		return self.get_service().getCurOutputFields(queryMeta)
+		fields = self.get_service().getCurOutputFields(queryMeta)
+		if self.get_feedbackField():
+			fields.insert(0, makeFeedbackField(fields, self.get_feedbackField()))
+		return fields
+
 
 	def run(self, inputData, queryMeta):
 		"""returns an InternalDataSet containing the result of the
@@ -319,6 +324,79 @@ class DbBasedCore(QueryingCore):
 				queryMeta["Overflow"] = True
 		return res
 core.registerCore("db", DbBasedCore)
+
+
+def makeFeedbackField(fields, fieldName):
+	ff = datadef.OutputField.fromDataField(fields.getFieldByName(fieldName))
+	ff.set_dest("feedbackSelect")
+	ff.set_select(fieldName)
+	ff.set_tablehead("F")
+	ff.set_description("Check to include row in feedback set")
+	ff.set_displayHint("type=feedbackSelect")
+	return ff
+
+
+class FeedbackCore(DbBasedCore):
+	rangeTypes = frozenset(["vexpr-date", "vexpr-float"])
+	enumeratedTypes = frozenset(["vexpr-string"])
+
+	def __init__(self, tableDef, service, feedbackColN):
+		self.tableDef = tableDef
+		self.service = service
+		self.feedbackColN = feedbackColN
+
+	@classmethod
+	def fromCore(cls, core):
+		return cls(core.tableDef, core.get_service(), core.get_feedbackField())
+
+	def _getFeedbackableNames(self):
+		rangedNames, enumeratedNames = [], []
+		for f in self.service.getInputFields():
+			if f.get_dbtype() in self.rangeTypes:
+				rangedNames.append(f.get_dest())
+			if f.get_dbtype() in self.enumeratedTypes:
+				enumeratedNames.append(f.get_dest())
+		return rangedNames, enumeratedNames
+
+	def run(self, inData, queryMeta):
+		feedbackKeys = [r["feedbackSelect"] 
+			for r in inData.getPrimaryTable().rows]
+		rangeNames, enumeratedNames = self._getFeedbackableNames()
+		return resourcecache.getDbConnection(None).runQuery(
+			"SELECT %s FROM %s WHERE %s IN %%(feedbackKeys)s"%(
+				", ".join(["MIN(%s), MAX(%s)"%(n,n) for n in rangeNames]),
+				self.tableDef.getQName(), self.feedbackColN),
+			{"feedbackKeys": feedbackKeys}
+			).addCallback(self._processRanged, rangeNames, enumeratedNames,
+					feedbackKeys)
+		
+	def _processRanged(self, result, rangeNames, enumeratedNames, feedbackKeys):
+		result = result[0]
+		rowdict = {}
+		for index, n in enumerate(rangeNames):
+			rowdict[n] = "%s .. %s"%(result[2*index], result[2*index+1])
+		return self._queryEnumerated(rowdict, enumeratedNames, feedbackKeys)
+	
+	def _queryEnumerated(self, rowdict, enumeratedNames, feedbackKeys):
+# XXX I'm lazy here and return a dict, since FeedbackForm is the only
+#			renderer possible for this core.   Should be fixed, I guess.
+		if not enumeratedNames:
+			return rowdict
+		name = enumeratedNames.pop()
+		return resourcecache.getDbConnection(None).runQuery(
+			"SELECT DISTINCT %s FROM %s WHERE %s IN %%(feedbackKeys)s"%(name,
+				self.tableDef.getQName(), self.feedbackColN),
+			{"feedbackKeys": feedbackKeys}
+			).addCallback(self._processEnumQuery, name, rowdict, enumeratedNames,
+				feedbackKeys)
+
+	def _processEnumQuery(self, dbRes, name, rowdict, 
+			enumeratedNames, feedbackKeys):
+		keys = [r[0] for r in dbRes]
+		if len(keys)<15: # Ignore field if too many items matched to avoid
+				# gargantuous strings
+			rowdict[name] = "=,%s"%(','.join(keys))
+		return self._queryEnumerated(rowdict, enumeratedNames, feedbackKeys)
 
 
 class FixedQueryCore(core.Core):

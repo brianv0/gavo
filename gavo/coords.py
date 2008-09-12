@@ -8,8 +8,6 @@ import re
 
 import pyfits
 
-from astLib import astWCS
-
 import gavo
 from gavo import utils
 

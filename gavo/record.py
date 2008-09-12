@@ -95,7 +95,7 @@ class TristateBooleanField:
 
 class DataFieldList(list):
 	"""is a list of datadef.DataFields (or derived classes) that takes
-	care that no duplicates occur.
+	care that no duplicates (in dest) occur.
 
 	If you add a field with the same dest to a DataFieldList, the previous
 	instance will be overwritten.  The idea is that you can override
@@ -104,10 +104,12 @@ class DataFieldList(list):
 	Also, two DataFieldLists are considered equal if they contain the
 	same dests.
 	"""
+	internallyUsedFields = set(["feedbackSelect"])
+
 	def __init__(self, *args):
 		list.__init__(self, *args)
 		self.destIndex = dict([(f.get_dest(), ct) for ct, f in enumerate(self)])
-	
+
 	def append(self, item):
 		key = item.get_dest()
 		if key in self.destIndex:
@@ -128,8 +130,10 @@ class DataFieldList(list):
 
 	def __eq__(self, other):
 		if isinstance(other, DataFieldList):
-			myFields = set([f.get_dest() for f in self])
-			otherFields = set([f.get_dest() for f in other])
+			myFields = set([f.get_dest() for f in self 
+				if f.get_dest() not in self.internallyUsedFields])
+			otherFields = set([f.get_dest() for f in other 
+				if f.get_dest() not in self.internallyUsedFields])
 			return myFields==otherFields
 		return False
 

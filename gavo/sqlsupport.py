@@ -60,8 +60,12 @@ else:
 			pass
 
 		def getquoted(self):
-			qobjs = [str(psycopg2.extensions.adapt(o).getquoted()) 
-				for o in self._seq]
+			qobjs = []
+			for o in self._seq:
+				if isinstance(o, unicode):
+					qobjs.append(psycopg2.extensions.adapt(str(o)).getquoted()) 
+				else:
+					qobjs.append(psycopg2.extensions.adapt(o).getquoted()) 
 			return '(%s)'%(", ".join(qobjs))
 
 		__str__ = getquoted

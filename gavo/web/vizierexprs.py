@@ -302,9 +302,10 @@ def _makeOpNode(s, loc, toks):
 def getStringGrammar():
 	"""returns a grammar for parsing vizier-like string expressions.
 	"""
-# XXX TODO: should we cut at =| (which is currently parsed as (= |)?
+# XXX TODO: should we cut at =| (which is currently parsed as = |)?
 	simpleOperator = Literal("==") | Literal("!=") | Literal(">=") |\
-		Literal(">") | Literal("<=") | Literal("<") | Literal("=~")
+		Literal(">") | Literal("<=") | Literal("<") | Literal("=~") |\
+		Literal("=,")
 	simpleOperand = Regex(".*")
 	simpleExpr = simpleOperator + simpleOperand
 	

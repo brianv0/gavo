@@ -199,6 +199,17 @@ def _simbadMapperFactory(colProps):
 	return coder
 _registerHTMLMF(_simbadMapperFactory)
 
+
+def _feedbackSelectMapperFactory(colProps):
+	if colProps["displayHint"].get("type")!="feedbackSelect":
+		return
+	def coder(data):
+		return T.input(type="checkbox", name="feedbackItem", 
+			value=data)
+	return coder
+_registerHTMLMF(_feedbackSelectMapperFactory)
+
+
 #  Insert new, more specific factories here
 
 
@@ -334,52 +345,61 @@ class HTMLTableFragment(rend.Fragment):
 	def data_fielddefs(self, ctx, data):
 		return self.table.getFieldDefs()
 
-	docFactory = loaders.stan(T.table(class_="results")[
-		T.invisible(render=rend.sequence,
-				data=T.directive("table")) [
-			T.invisible(pattern="header", render=T.directive("headCells")),
-			T.tr(pattern="item", render=T.directive("defaultRow")),
-			T.tr(pattern="item", render=T.directive("defaultRow"), class_="even"),
-			T.invisible(pattern="divider"),  # only put a header every bla divisions
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider"),
-			T.invisible(pattern="divider", render=T.directive("headCells")),
+	def render_iffeedback(self, ctx, data):
+		if self.table.tableDef.get_items()[0].get_dest()=="feedbackSelect":
+			return ctx.tag
+		else:
+			return ""
+
+	docFactory = loaders.stan(T.form(action="feedback", method="POST")[
+		T.table(class_="results", render=rend.sequence,
+					data=T.directive("table")) [
+				T.invisible(pattern="header", render=T.directive("headCells")),
+				T.tr(pattern="item", render=T.directive("defaultRow")),
+				T.tr(pattern="item", render=T.directive("defaultRow"), class_="even"),
+				T.invisible(pattern="divider"),  # only put a header every bla divisions
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider"),
+				T.invisible(pattern="divider", render=T.directive("headCells")),
+			],
+			T.input(type="submit", value="Feedback Selected",
+				render=T.directive("iffeedback")),
 		]
-	])
+	)

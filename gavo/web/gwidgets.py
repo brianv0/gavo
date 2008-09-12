@@ -77,9 +77,11 @@ class OutputFormat(object):
 			self.availableFields.append(core.tableDef.getFieldByName(key))
 
 	def _makeFieldDescs(self):
-		return "\n".join(["%s %s"%(f.get_dest(), urllib.quote(
+		descs = [(f.get_dest(), urllib.quote(
 				f.get_tablehead() or f.get_description() or f.get_dest()))
-			for f in self.availableFields])
+			for f in self.availableFields]
+		descs.sort(key=lambda a:a[1].upper())
+		return "\n".join("%s %s"%d for d in descs)
 
 	def render(self, ctx, key, args, errors):
 		return T.div(id=render_cssid("_OUTPUT"))[
@@ -305,9 +307,14 @@ class StringFieldWithBlurb(widget.TextInput):
 	additionalMaterial = ""
 
 	def _renderTag(self, ctx, key, value, readonly):
-		plainTag = super(StringFieldWithBlurb, self)._renderTag(ctx, key, value,
+		plainTag = widget.TextInput._renderTag(self, ctx, key, value,
 			readonly)
-		return T.span[plainTag, " ", 
+		return T.span(style="white-space:nowrap")[
+			plainTag, 
+			T.img(onclick="document.getElementById('genForm-%s').value=''"%key,
+				src="/builtin/img/clearButton.png", alt="[clear]", 
+				title="Clear field", style="vertical-align:bottom"),
+			" ",
 			T.span(class_="fieldlegend")[self.additionalMaterial]]
 
 

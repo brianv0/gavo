@@ -613,6 +613,7 @@ class RdParser(nodebuilder.NodeBuilder):
 		return self._processChildren(outputs, name, {
 			"outputField": outputs.append,
 			"fromCore": handleFromCore,
+			"property": lambda val: outputs.register_property(*val),
 		}, children)
 
 	def _make_fromCore(self, name, attrs, children):

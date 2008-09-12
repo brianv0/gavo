@@ -117,6 +117,7 @@ table.results {
 
 .fieldlegend * {
 	font-size:62%;
+	vertical-align:bottom;
 }
 
 .invisible { /* for items for non-css browsers */
