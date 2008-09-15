@@ -222,8 +222,8 @@ class HumanSiapCondition(SiapCondition):
 		except ValueError:
 			data = resourcecache.getSesame("web").query(pos)
 			if not data:
-				raise gavo.ValidationError("%s is neither a RA,DEC pair nor a simbad"
-				" resolvable object"%inPars["hscs_pos"], "hscs_pos")
+				raise gavo.ValidationError("%r is neither a RA,DEC pair nor a simbad"
+				" resolvable object"%inPars.get("POS", "Not given"), "POS")
 			ra, dec = float(data["RA"]), float(data["dec"])
 		return super(HumanSiapCondition, self).asSQL({
 			"POS": "%f, %f"%(ra, dec), "SIZE": inPars["SIZE"],
