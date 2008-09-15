@@ -273,9 +273,8 @@ class Service(record.Record, meta.MetaMixin):
 		If queryMeta is not None, both the format and the verbLevel given
 		there can influence this choice.
 		"""
-		if queryMeta==None:
-			return self.get_outputFields()
-		outputFilter = queryMeta["outputFilter"]
+		queryMeta = queryMeta or common.emptyQueryMeta
+		outputFilter = queryMeta.get("outputFilter")
 		if outputFilter and self.get_output(outputFilter):
 			return self.get_output(outputFilter).getPrimaryTableDef().get_items()
 		format = queryMeta.get("format", "HTML")

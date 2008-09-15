@@ -149,6 +149,8 @@ class RendExplainer(object):
 
 
 class MetaRenderMixin(object):
+	"""is a mixin providing some methods useful primarily to metarenderers.
+	"""
 	def render_tableOfFields(self, ctx, data):
 		"""renders a list of dicts in data as a table.
 
@@ -181,6 +183,7 @@ class ServiceInfoRenderer(resourcebased.ServiceBasedRenderer,
 		MetaRenderMixin):
 	"""is a renderer that shows information about a service.
 	"""
+# XXX TODO: Do something about output filters (or do away with them)
 	name = None  # allow on all services
 	
 	customTemplate = common.loadSystemTemplate("serviceinfo.html")

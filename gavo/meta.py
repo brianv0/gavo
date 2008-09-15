@@ -400,7 +400,7 @@ class LogoMeta(MetaValue):
 	"""is a MetaItem corresponding to a small image
 	"""
 	def _getContentAsHTML(self):
-		return '<img class="metalogo" src="%s" height="16"/>'%(
+		return '<img class="metalogo" src="%s" height="16" alt="[Logo]"/>'%(
 				unicode(self.content))
 
 

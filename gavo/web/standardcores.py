@@ -160,9 +160,13 @@ class ComputedCore(QueryingCore):
 			}, initvals=initvals)
 		self.dd = self.rd.getDataById(self.get_ddId())
 		self.avInputKeys = set() # FIXME: We don't know these, they're not in the DD
+		self.outputFields = self.dd.getTableDefByName("output").get_items()
 		self.avOutputKeys = set([f.get_dest() 
-			for f in self.dd.getTableDefByName("output").get_items()])
-	
+			for f in self.outputFields])
+
+	def getOutputFields(self):
+		return self.outputFields
+
 	def run(self, inputData, queryMeta):
 		"""starts the computing process if this is a computed data set.
 		"""
