@@ -420,6 +420,7 @@ _rendererParameters = {
 	"mupload":   ("POST", VS.ParamHTTP,   "text/plain"),
 	"img.jpeg":  ("POST", VS.ParamHTTP,   "image/jpeg"),
 	"mimg.jpeg": ("GET",  VS.ParamHTTP,   "image/jpeg"),
+	"soap":      ("POST", VOR.WebService, None),
 	"static":    ("GET",  VOR.WebBrowser, "text/html"),
 	"custom":    ("GET",  VOR.WebBrowser, "text/html"),
 }
@@ -448,6 +449,10 @@ def getInterfaceTree(service, renderer):
 		return interfaceFactory[
 			VOR.accessURL(use=use)[service.getURL(renderer, qtype)],
 			VOR.securityMethod(standardId=service.getMeta("securityId")),]
+	elif interfaceFactory==VOR.WebService:
+		return interfaceFactory[
+			VOR.accessURL(use=use)[service.getURL(renderer, qtype)],
+			VOR.wsdlURL[service.getURL("form", "GET")+"wsdl",],]
 	else:
 		return interfaceFactory[
 			VOR.accessURL(use=use)[service.getURL(renderer, qtype)],

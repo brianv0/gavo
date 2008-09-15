@@ -264,6 +264,8 @@ class VOR:
 		a_xmlns_vr = VORNamespace
 		xmlns_vr_name = "xmlns:vr"
 
+	class wsdlURL(VORElement): pass
+
 	class accessURL(VORElement):
 		a_use = None
 	

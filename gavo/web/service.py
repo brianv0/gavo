@@ -370,6 +370,8 @@ class Service(record.Record, meta.MetaMixin):
 		qSep = ""
 		if method=="GET":
 			qSep = "?"
+		elif renderer=="soap":
+			qSep = "/go"
 		return "".join([
 			config.get("web", "serverURL"),
 			config.get("web", "nevowRoot"),

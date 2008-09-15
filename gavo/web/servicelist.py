@@ -114,6 +114,9 @@ def getServiceRecsFromRd(rd):
 def updateServiceList(rd):
 	"""updates the services defined in rd in the services table in the database.
 	"""
+	if rd.sourceId.startswith("/"):
+		raise Error("Resource descriptor ID may not be absolute, but"
+			" '%s' seems to be."%rd.sourceId)
 	# Don't use resourcecache here since we're going to mess with the rd
 	from gavo.parsing import importparser
 	serviceRd = importparser.getRd(rdId, forImport=True)

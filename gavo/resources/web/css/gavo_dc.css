@@ -90,12 +90,6 @@ div.condition {
 	display: table-row;
 }
 
-form.querulator {
-	border: 1px dotted black;
-	background: #EEEEFF;
-	padding:3px;
-}
-
 div.legal {
 	padding-top: 10px;
 	font-size: 72%;
@@ -326,4 +320,3 @@ table.shorttable {
 	border-right: 1px solid grey;
 	padding: 4px
 }
-	

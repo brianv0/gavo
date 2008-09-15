@@ -283,6 +283,10 @@ class ParseContext:
 				if parsing.verbose:
 					logger.info("Skipping record %s because constraint %s failed to"
 						" satisfy"%(record, err.constraint))
+			except gavo.ValidationError, err:
+				err.gavoData = record
+				logger.error("Validation error in source %s"%self.sourceName)
+				raise
 		self.rowsProcessed += 1
 		if self.rowLimit and self.rowsProcessed>=self.rowLimit:
 			raise gavo.StopOperation("Abort import, row limit reached")
