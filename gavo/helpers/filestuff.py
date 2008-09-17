@@ -81,7 +81,7 @@ class FileRenamer:
 		"""
 		proc = []
 		def addOp(src, dest, sources=None):
-			if sources==None:
+			if sources is None:
 				sources = set()
 			if dest in sources:
 				raise Error("Rename cycle involving %s"%sources)

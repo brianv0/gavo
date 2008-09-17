@@ -110,7 +110,7 @@ class DataField(record.Record):
 				self.set_verbLevel(1)
 
 	def set_longdescription(self, txt, mime=None):
-		if mime==None:
+		if mime is None:
 			if isinstance(txt, tuple):
 				self.dataStore["longdescription"] = txt[0]
 				self.set_longmime(txt[1])
@@ -144,11 +144,11 @@ class DataField(record.Record):
 		descriptor's atExpander)
 		"""
 		preVal = None
-		if self.get_source()!=None:
+		if self.get_source() is not None:
 			preVal = aDict.get(self.get_source())
 		if self.get_values() and preVal==self.get_values().get_nullLiteral():
 			preVal = None
-		if preVal==None:
+		if preVal is None:
 			preVal = atExpand(self.get_default(), aDict)
 		return preVal
 
@@ -171,7 +171,7 @@ class DataField(record.Record):
 		"""raises a ValidationError if value does not match the constraints
 		given here.
 		"""
-		if not self.get_optional() and value==None:
+		if not self.get_optional() and value is None:
 			raise gavo.ValidationError(
 				"Field %s is empty but non-optional"%self.get_dest(),
 				self.get_dest())
@@ -240,6 +240,9 @@ class OutputField(DataField):
 		"wantsRow": record.BooleanField,  # Pass the 
 		                                  # formatter/renderer the whole row
 	}
+
+	def __repr__(self):
+		return "<OutputField %s>"%self.get_dest()
 
 	def get_select(self):
 		if self.dataStore["select"]:
@@ -418,7 +421,7 @@ class Values(record.Record):
 			self.set_max(makePythonVal(self.get_max(), dataField.get_dbtype(),
 				dataField.get_literalForm()))
 		if self.get_options():
-			if self.get_default()==None and isinstance(self.get_options(), list):
+			if self.get_default() is None and isinstance(self.get_options(), list):
 				self.set_default(self.get_options()[0])
 			dbt, lf = dataField.get_dbtype(), dataField.get_literalForm()
 			self.dataStore["options"] = [makePythonVal(opt, dbt, lf)
@@ -428,7 +431,7 @@ class Values(record.Record):
 		"""returns false if value isn't either in options or doesn't consist of
 		items in options.
 		"""
-		if self._optionsSet==None:
+		if self._optionsSet is None:
 			self._optionsSet = set(self.get_options())
 		if value=="None":
 			return True

@@ -24,7 +24,7 @@ class _DbConnection:
 			cp_reconnect=True, connection_factory=extras.InterruptibleConnection)
 
 	def getConnection(self, profileName=None):
-		if profileName==None:
+		if profileName is None:
 			profileName = config.getDbProfile().name
 		if not self.connPools.has_key(profileName):
 			self.connPools[profileName] = self._makeConnPool(

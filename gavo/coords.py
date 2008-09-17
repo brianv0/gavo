@@ -79,7 +79,7 @@ def makePyfitsFromDict(d):
 	"""
 	res = pyfits.Header()
 	for key, val in d.iteritems():
-		if fitsKwPat.match(key) and val!=None:
+		if fitsKwPat.match(key) and val is not None:
 			res.update(str(key), str(val))
 	return res
 
@@ -403,7 +403,7 @@ class Box(object):
 	(1.5, 1.5)
 	"""
 	def __init__(self, x0, x1, y0=None, y1=None):
-		if y0==None:
+		if y0 is None:
 			x0, y0 = x0
 			x1, y1 = x1
 		lowerLeft = (min(x0, x1), min(y0, y1))
@@ -426,14 +426,14 @@ class Box(object):
 		return "Box((%g,%g), (%g,%g))"%(self.x0, self.y0, self.x1, self.y1)
 
 	def overlaps(self, other):
-		if other==None:
+		if other is None:
 			return False
 		return not (
 			(self.x1>other.x0 or self.x0<other.x1) or
 			(self.y1>other.y0 or self.y0<other.y1))
 
 	def contains(self, other):
-		if other==None:
+		if other is None:
 			return False
 
 		if isinstance(other, Box):

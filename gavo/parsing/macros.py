@@ -168,7 +168,7 @@ class EquatorialPositionConverter(Macro):
 	name = "handleEquatorialPosition"
 
 	def _compute(self, record, alpha, delta):
-		if alpha==None or delta==None:
+		if alpha is None or delta is None:
 			alphaFloat, deltaFloat, c_x, c_y, c_z = [None]*5
 		else:
 			alphaFloat, deltaFloat, c_x, c_y, c_z = self._computeCoos(
@@ -233,7 +233,7 @@ class PMCombiner(Macro):
 		self.alphaFactor, self.deltaFactor = float(alphaFactor), float(deltaFactor)
 	
 	def _compute(self, record, pmAlpha, pmDelta):
-		if pmAlpha==None or pmDelta==None:
+		if pmAlpha is None or pmDelta is None:
 			tpm = pmpa = None
 		else:
 			pma = pmAlpha*self.alphaFactor
@@ -364,7 +364,7 @@ class AngleParser(Macro):
 
 	
 	def _compute(self, record, val):
-		if val==None:
+		if val is None:
 			record[self.destination] = None
 		else:
 			record[self.destination] = self.converter(val)
@@ -439,7 +439,7 @@ class ValueCatter(Macro):
 
 	def _compute(self, record):
 		items = [record[src] for src in self.sources
-				if record[src]!=None]
+				if record[src] is not None]
 		record[self.destination] = None
 		if items:
 			record[self.destination] = self.joiner.join(items)
@@ -609,7 +609,7 @@ class ReSubstitutor(Macro):
 		self.srcPat, self.destRe = re.compile(srcRe), destRe
 	
 	def _compute(self, record, data):
-		if data==None:
+		if data is None:
 			record[self.destination] = None
 		else:
 			record[self.destination] = self.srcPat.sub(self.destRe, data)
@@ -669,7 +669,7 @@ class LinearMapper(Macro):
 		self.factor, self.offset = float(factor), float(offset)
 	
 	def _compute(self, record, val):
-		if val==None:
+		if val is None:
 			record[self.destination] = None
 		else:
 			if isinstance(val, basestring):
@@ -757,7 +757,7 @@ class MxDateParser(Macro):
 		self.assignments = _parseAssignments(assignments)
 	
 	def _compute(self, record, date):
-		if date==None:
+		if date is None:
 			for fieldName in self.assignments.itervalues():
 				record[fieldName] = None
 			return
@@ -827,7 +827,7 @@ class SimpleQuerier(Macro):
 			res = self.querier.query(query, {"val": val}).fetchall()[0]
 			for name, resVal in zip(recNames, res):
 				name, default = _parseDestWithDefault(name)
-				if resVal==None:
+				if resVal is None:
 					record[name] = default
 				else:
 					record[name] = resVal

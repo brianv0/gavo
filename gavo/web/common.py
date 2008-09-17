@@ -40,15 +40,19 @@ def resolvePath(rootPath, relPath):
 	relPath = relPath.lstrip("/")
 	fullPath = os.path.realpath(os.path.join(rootPath, relPath))
 	if not fullPath.startswith(rootPath):
-		raise Error("I believe you are cheating -- you just tried to"
+		raise ForbiddenURI("I believe you are cheating -- you just tried to"
 			" access %s, which I am not authorized to give you."%fullPath)
 	if not os.path.exists(fullPath):
-		raise Error("Invalid path %s.  This should not happen."%fullPath)
+		raise UnknownURI("Invalid path %s.  This should not happen."%fullPath)
 	return fullPath
 
 
 class UnknownURI(Error):
-	"""signifies that a http 404 should be returned to the dispatcher.
+	"""signifies that a HTTP 404 should be returned by the dispatcher.
+	"""
+
+class ForbiddenURI(Error):
+	"""signifies that a HTTP 403 should be returned by the dispatcher.
 	"""
 
 
@@ -253,6 +257,12 @@ class GavoRenderMixin(object):
 			return ctx.tag
 		else:
 			return ""
+
+	def render_ifmeta(self, metaName):
+		if self.service.getMeta(metaName):
+			return lambda ctx, data: ctx.tag
+		else:
+			return lambda ctx, data: ""
 
 	def render_ifnodata(self, ctx, data):
 		if not data:

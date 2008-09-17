@@ -136,7 +136,7 @@ else:
 	def getDbConnection(profile):
 		if isinstance(profile, basestring):
 			profile = config.getDbProfileByName(profile)
-		elif profile==None:
+		elif profile is None:
 			profile = config.getDbProfile()
 		try:
 			connString = ("dbname='%s' port='%s' host='%s'"
@@ -199,7 +199,7 @@ def parsePGACL(acl):
 
 	*** postgres specific ***
 	"""
-	if acl==None:
+	if acl is None:
 		return {}
 	res = []
 	for acs in re.match("{(.*)}", acl).group(1).split(","):
@@ -430,7 +430,7 @@ class StandardQueryMixin(object):
 		If tableName is qualified (i.e. schema.table), the schema given
 		in the name overrides the schema argument.
 		"""
-		if schema==None:
+		if schema is None:
 			schema = "public"
 		if "." in tableName:
 			schema, tableName = tableName.split(".")
@@ -503,7 +503,7 @@ class TableInterface(StandardQueryMixin):
 		else:
 			self.connection = getDbConnection(config.getDbProfile())
 		self.tableDef = tableDef
-		if self.tableDef.rd==None:
+		if self.tableDef.rd is None:
 			raise Error("TableDefs without resource descriptor cannot be"
 				" used to access database tables")
 		self.fields = self.tableDef.get_items()

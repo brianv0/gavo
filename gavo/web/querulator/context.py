@@ -328,7 +328,7 @@ class ModpyContext(Context):
 		sys.stderr.flush()
 	
 	def getQuerier(self):
-		if not hasattr(self, "querier") or self.querier==None:
+		if not hasattr(self, "querier") or self.querier is None:
 			try:
 				self.querier = sqlsupport.SimpleQuerier()
 			except sqlsupport.DatabaseError:

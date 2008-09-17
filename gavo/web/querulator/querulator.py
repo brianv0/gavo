@@ -165,7 +165,7 @@ def _checkForBlock(context):
 	"""
 	if (os.path.exists(os.path.join(
 				config.get("querulator", "templateRoot"), "MAINTAINANCE"))
-			or context.getQuerier()==None):
+			or context.getQuerier() is None):
 		remoteAddr = context.getRemote()
 		if remoteAddr.startswith("127") or remoteAddr=="129.206.110.59":
 			return False

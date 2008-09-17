@@ -271,7 +271,7 @@ class VOR:
 	
 	class securityMethod(VORElement):
 		def isEmpty(self):
-			return self.a_standardId==None
+			return self.a_standardId is None
 		a_standardId = None
 	
 

@@ -32,10 +32,10 @@ class RowsetGrammar(grammar.Grammar):
 		# but then we'd first have to build the dict and still do nothing more
 		# than with this most of the time.  Hm.
 		defaults = [(f.get_dest(), f.get_default())
-			for f in self.get_dbFields() if f.get_default()!=None]
+			for f in self.get_dbFields() if f.get_default() is not None]
 		for row in parseContext.sourceFile:
 			res = dict(itertools.izip(colNames, row))
 			for name, default in defaults:
-				if res.get(name)==None:
+				if res.get(name) is None:
 					res[name] = default
 			yield res

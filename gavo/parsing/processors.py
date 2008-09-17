@@ -120,7 +120,7 @@ class CommaExpander(RowProcessor):
 	def _compute(self, record, srcField, targetField):
 		res = []
 		src = record[srcField]
-		if src!=None and src.strip():
+		if src is not None and src.strip():
 			for item in src.split(","):
 				item = item.strip()
 				if not item:

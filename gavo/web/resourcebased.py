@@ -44,8 +44,9 @@ from gavo.web import htmltable
 from gavo.web import gwidgets
 from gavo.web import producttar
 from gavo.web import standardcores
+from gavo.web import weberrors
 
-from gavo.web.common import Error, UnknownURI
+from gavo.web.common import Error, UnknownURI, ForbiddenURI
 
 
 class RdBlocked(Exception):
@@ -83,7 +84,20 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 		if hasattr(self.rd, "currently_blocked"):
 			raise RdBlocked()
 		super(ResourceBasedRenderer, self).__init__()
+	
+	def renderHTTP(self, ctx):
+		res = defer.maybeDeferred(
+			super(ResourceBasedRenderer, self).renderHTTP, ctx)
+		res.addErrback(self._crashAndBurn, ctx)
+		return res
+	
+	def _output(self, res, ctx):
+		print res
+		return res
 
+	def _crashAndBurn(self, failure, ctx):
+		res = weberrors.ErrorPage()
+		return res.renderHTTP_exception(ctx, failure)
 
 
 class ServiceBasedRenderer(ResourceBasedRenderer):
@@ -97,8 +111,7 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 		super(ServiceBasedRenderer, self).__init__(ctx, service.rd)
 		self.service = service
 		if self.name and not self.name in self.service.get_allowedRenderers():
-# XXX TODO: Raise a forbidden here
-			raise UnknownURI("The renderer %s is not allowed on this service."%
+			raise ForbiddenURI("The renderer %s is not allowed on this service."%
 				self.name)
 
 
@@ -427,15 +440,17 @@ class GavoFormMixin(formal.ResourceMixin, object):
 			self.form.errors.add(failure.value)
 		elif isinstance(failure.value, gavo.ValidationError) and isinstance(
 				failure.value.fieldName, basestring):
-			if failure.value.fieldName!="<unknown>":
-				# XXX TODO: check if field exists.
+			try:
+				# Find out the formal name of the failing field...
+				failedField = self.translateFieldName(failure.value.fieldName)
+				# ...and make sure it exists
+				self.form.items.getItemByName(failedField) # XXXXXXXXXXXXXXXXXX TODO: s/"worra"/failedField/
 				self.form.errors.add(formal.FieldValidationError(
-					str(failure.getErrorMessage()),
-					self.translateFieldName(failure.value.fieldName)))
-			else:
+					str(failure.getErrorMessage()), failedField))
+			except KeyError: # Failing field cannot be determined
 				failure.printTraceback()
 				self.form.errors.add(formal.FormError("Problem with input"
-					" in some field: %s"%failure.getErrorMessage()))
+					" in some unidentified field: %s"%failure.getErrorMessage()))
 		else:
 			failure.printTraceback()
 			raise failure.value
@@ -456,6 +471,24 @@ def _formBehaviour_renderHTTP(self, ctx):
 	return d
 
 
+def _makeNoParsBehaviour(action):
+	def b(self, ctx):
+		# This function is monkeypatched into the resource.__behaviour if
+		# the underlying service doesn't have any input parameters at all
+		# to always run the defined query.  This is probably only interesting
+		# for FixedQueryCores.
+		formName = "genForm"
+		request = inevow.IRequest(ctx)
+		if "noPars" in request.args:
+			return None
+		request.args["noPars"] = [True]
+		self.remember(ctx)
+		d = defer.succeed(ctx)
+		d.addCallback(action, None, {})
+		return d
+	return b
+
+
 class Form(GavoFormMixin, ServiceBasedRenderer):
 	"""is a page that provides a search form for the selected service.
 	"""
@@ -465,9 +498,14 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		if self.service.get_template("form"):
 			self.customTemplate = os.path.join(self.rd.get_resdir(),
 				self.service.get_template("form"))
-		self._ResourceMixin__behaviour().renderHTTP = new.instancemethod(
-			_formBehaviour_renderHTTP, self._ResourceMixin__behaviour(),
-			form.FormsResourceBehaviour)
+		if self.service.getInputFields():
+			self._ResourceMixin__behaviour().renderHTTP = new.instancemethod(
+				_formBehaviour_renderHTTP, self._ResourceMixin__behaviour(),
+				form.FormsResourceBehaviour)
+		else:
+			self._ResourceMixin__behaviour().renderHTTP = new.instancemethod(
+				_makeNoParsBehaviour(self.submitAction), 
+				self._ResourceMixin__behaviour(), form.FormsResourceBehaviour)
 		self.queryResult = None
 
 	def renderer(self, ctx, name):
@@ -480,17 +518,17 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 			return self.service.get_specRend(name)
 		return super(Form, self).renderer(ctx, name)
 
-	# renderers for HTML tables
+	########### renderers for HTML tables
 	def render_resulttable(self, ctx, data):
 		if hasattr(data, "child"):
 			return htmltable.HTMLTableFragment(data.child(ctx, "table"), 
 				data.queryMeta)
 		else:
-			# a FormErrors, most likely
+			# a FormError, most likely
 			return ""
 
 	def render_parpair(self, ctx, data):
-		if data==None or data[1]==None or "__" in data[0]:
+		if data is None or data[1] is None or "__" in data[0]:
 			return ""
 		return ctx.tag["%s: %s"%data]
 	
@@ -507,7 +545,7 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		return self.queryResult
 	
 	data_result = data_query
-	#end renderers for html tables
+	########### end renderers for html tables
 
 	def translateFieldName(self, name):
 		return self.service.translateFieldName(name)
@@ -584,21 +622,29 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		queryMeta["formal_data"] = data
 		d = defer.maybeDeferred(self.service.getInputData, data
 			).addCallback(self._runService, queryMeta, ctx
-			).addErrback(self._handleInputErrors, ctx)
+			).addErrback(self._handleInputErrors, ctx
+			).addErrback(self._crashAndBurn, ctx)
 		return d
 
 	def _computeResult(self, ctx, service, inputData, queryMeta):
-		self.queryResult = self.service.run(inputData, queryMeta
-			).addErrback(self._handleInputErrors, ctx)
 		if self.service.get_template("response"):
 			self.customTemplate = os.path.join(self.rd.get_resdir(),
 				self.service.get_template("response"))
 		request = inevow.IRequest(ctx)
-		del request.args["__nevow_form__"]
+		try:
+			del request.args[form.FORMS_KEY]
+		except KeyError: # Someone stole the key, or we're running without
+			pass           # a form
+		return defer.maybeDeferred(self.service.run, inputData, queryMeta
+			).addCallback(self._processResult
+			).addErrback(self._handleInputErrors, ctx)
+	
+	def _processResult(self, data):
+		self.queryResult = data
 		return self
 
-	# XXX TODO: add a custom error self._handleInputErrors(failure, ctx)
-	# to catch FieldErrors and display a proper form on such errors.
+# XXX TODO: This is crap -- since the setup of the core may depend on the
+# renderer (e.g., for tar output), put this into the renderer class.
 	def _runService(self, inputData, queryMeta, ctx):
 		format = queryMeta["format"]
 		if format=="HTML":
@@ -712,7 +758,6 @@ class FeedbackForm(Form):
 		request = inevow.IRequest(ctx)
 		request.args = outData
 		return Form(ctx, self.service)
-
 
 
 def compileCoreRenderer(source):

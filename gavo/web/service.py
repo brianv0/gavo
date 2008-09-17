@@ -306,14 +306,14 @@ class Service(record.Record, meta.MetaMixin):
 
 	def get_inputFilter(self):
 		# The default input filter is given by the core
-		if self.dataStore["inputFilter"]==None:
+		if self.dataStore["inputFilter"] is None:
 			return self._getDefaultInputFilter()
 		else:
 			return self.dataStore["inputFilter"]
 
 	defaultAllowedRenderers = set(["form"])
 	def get_allowedRenderers(self):
-		if self.dataStore["allowedRenderers"]==None:
+		if self.dataStore["allowedRenderers"] is None:
 			return self.defaultAllowedRenderers
 		else:
 			return self.dataStore["allowedRenderers"]

@@ -234,7 +234,7 @@ class Condition(ParseNode):
 	def __init__(self, description, testDescr, key=None):
 		cType, toks = testDescr
 		self.description = description
-		if key==None:
+		if key is None:
 			defaultBase = self.description.encode("hex")
 		else:
 			defaultBase = key
@@ -253,7 +253,7 @@ class Condition(ParseNode):
 		class="condition" literal -- we should come up with a better way...).
 		"""
 		subordinateHtml = self.condTest.asHtml(context)
-		if subordinateHtml==None:
+		if subordinateHtml is None:
 			return ""
 		if 'class="condition"' in subordinateHtml:
 			return subordinateHtml
@@ -510,7 +510,7 @@ class Query(ParseNode):
 		"""
 		if isinstance(item, basestring):
 			item = selectItem.parseString(item)[0]
-		if force or self.getColIndexFor(item.sqlExpr)==None:
+		if force or self.getColIndexFor(item.sqlExpr) is None:
 			self.selectItems.append(item)
 			if item.sqlExpr in self.colIndexCache:
 				del self.colIndexCache[item.sqlExpr]

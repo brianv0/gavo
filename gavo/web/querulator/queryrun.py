@@ -96,7 +96,7 @@ def _formatAsVoTable(template, context, stream=True, verbosity=None):
 	def productMapperFactory(colProps):
 		if colProps.get("displayHint")=="product":
 			def coder(val):
-				if val==None:
+				if val is None:
 					return "Embargoed"
 				return urlparse.urljoin(context.getServerURL(),
 					"%s/getproduct/%s?path=%s"%(config.get("web", "rootURL"), 
@@ -139,7 +139,7 @@ def _formatAsVoTable(template, context, stream=True, verbosity=None):
 		for info in metaTable.getFieldInfos(template.getDefaultTable()):
 			info["dbtype"] = info["type"]  # hacks for forward compatibility
 			info["displayHint"] = info["displayHint"] or "string"
-			if info["verbLevel"]==None or info["verbLevel"]<=verbosity:
+			if info["verbLevel"] is None or info["verbLevel"]<=verbosity:
 				fieldInfos.append(info)
 		template.setSelectItems(sqlparse.SelectItems(
 			*[sqlparse.SelectItem(info["fieldName"], "",
@@ -149,7 +149,7 @@ def _formatAsVoTable(template, context, stream=True, verbosity=None):
 
 	if context.hasArgument("VERB"):
 		verbosity = int(context.getfirst("VERB"))*10
-	if verbosity==None or verbosity<=0:
+	if verbosity is None or verbosity<=0:
 		fieldInfos = getSelectItemFieldInfos(template, context)
 	else:
 		fieldInfos = getFieldInfos(template, context, verbosity)
@@ -255,7 +255,7 @@ def _makeTarForm(template, context, queryResult):
 	"""returns html for a form to get products as tar.
 	"""
 	doc = []
-	if template.getProductCol()!=None:
+	if template.getProductCol() is not None:
 		doc.append('<form action="%s/run/%s" method="post" class="tarForm">\n'%(
 			config.get("web", "rootURL"), template.getPath()))
 		doc.append(context.getHiddenForm(suppress=["outputFormat"]))
@@ -328,7 +328,7 @@ class HtmlValueFormatter:
 			self.template.getPath(), urllib.quote(path)))
 
 	def _cook_feedback(self, key, row, targetTemplate=None):
-		if targetTemplate==None:
+		if targetTemplate is None:
 			targetTemplate = self.template.getPath()
 		return urlparse.urljoin(self.context.getServerURL(),
 			"%s/query/%s?feedback=%s"%(config.get("web", "rootURL"), targetTemplate,
@@ -353,7 +353,7 @@ class HtmlValueFormatter:
 
 	def _product_to_html(self, args):
 		prodUrl, thumbUrl, title = args
-		if prodUrl==None:
+		if prodUrl is None:
 			return title
 		else:
 			return ('<a href="%s">%s</a><br>'
@@ -366,7 +366,7 @@ class HtmlValueFormatter:
 				thumbUrl, thumbUrl)
 
 	def _url_to_html(self, url, title=None):
-		if title==None:
+		if title is None:
 			title = "[%s]"%self._htmlEscape(urlparse.urlparse(value)[1])
 		return '<a href="%s">%s</a>'%(self._htmlEscape(url), title)
 
@@ -402,7 +402,7 @@ class HtmlValueFormatter:
 	def format(self, hint, value, row):
 		if hint[0]=="suppressed":
 			return None
-		if value==None:
+		if value is None:
 			return "N/A"
 		cooker = getattr(self, "_cook_%s"%hint[0], lambda a, row: a)
 		formatter = getattr(self, "_%s_to_html"%(hint[0]),
@@ -493,11 +493,11 @@ def _formatAsTarStream(template, context):
 		"""resolves product keys to file names in the (productKey, targetName) list
 		productKeys.
 		"""
-		foundKeys = [key for key, name in productKeys if key!=None]
+		foundKeys = [key for key, name in productKeys if key is not None]
 		querier = context.getQuerier()
 		keyResolver = dict(querier.query("SELECT key, accessPath FROM"
 			" products WHERE key in %(keys)s", {"keys": foundKeys}).fetchall())
-		return [(keyResolver[key], name) for key, name in productKeys if key!=None]
+		return [(keyResolver[key], name) for key, name in productKeys if key is not None]
 
 	def getEmbargoedFile(name):
 		"""returns a tarInfo for an embargoed file.
@@ -517,7 +517,7 @@ def _formatAsTarStream(template, context):
 	def produceOutput(outputFile):
 		outputTar = tarfile.TarFile(resultsName, "w", outputFile)
 		for srcPath, name in tarContent:
-			if srcPath!=None:
+			if srcPath is not None:
 				path = os.path.join(config.get("inputsDir"), srcPath)
 				outputTar.add(path, name)
 			else:

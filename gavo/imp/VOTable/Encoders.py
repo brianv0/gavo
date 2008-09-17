@@ -167,7 +167,7 @@ class StreamEncoder(GenericEncoder):
         
     def _makeEncoderForField(self, type, length):
         typeCode = self.typedefs[type][0]
-        if length=="1" or length==1 or length==None:
+        if length=="1" or length==1 or length is None:
             # Gruesome workaround for struct bug; side effect: python<2.5
             # can't pack NULL floats in arrays (who cares?)
             if sys.hexversion<=0x20404f0:
@@ -190,7 +190,7 @@ class StreamEncoder(GenericEncoder):
         pythonCode = []
         funcDict = {"struct": struct}
         for curInd, (encFun, typeCode) in enumerate(encs):
-            if typeCode==None:
+            if typeCode is None:
                 # function inserts bytes
                 if curCodes:
                     pythonCode.append("struct.pack('!%s', *row[%d:%d])"%

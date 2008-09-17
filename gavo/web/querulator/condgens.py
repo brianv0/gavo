@@ -352,7 +352,7 @@ class FloatFieldWithTolerance(OperatorCondGen):
 	
 	def asHtml(self, context):
 		default = context.get(self.name)
-		if default==None:
+		if default is None:
 			default = ""
 		return ('<input type="text" size="10" name="%s" value="%s">'
 			' &plusmn; <input type="text" size="5" name="%s-tolerance">')%(

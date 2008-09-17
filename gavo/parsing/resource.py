@@ -158,7 +158,7 @@ class TableDef(ThingWithRoles, meta.MetaMixin, scripting.ScriptingMixin):
 			self.set_adql(True)  # append ADQL rule anew if necessary
 	
 	def getQName(self):
-		if self.rd==None:
+		if self.rd is None:
 			raise Error("TableDefs without resource descriptor have no"
 				" qualified names")
 		return "%s.%s"%(self.rd.get_schema(), self.get_table())
@@ -457,7 +457,7 @@ class DataSet(meta.MetaMixin):
 
 	def exportToVOTable(self, destination, tableNames=None, tablecoding="td",
 			mapperFactories=[]):
-		if tableNames==None:
+		if tableNames is None:
 			tableNames = [table.getName() for table in self.tables]
 #		if len(tableNames)!=1:
 #			raise Error("DataSets can't yet export to VOTable when containing"
@@ -871,7 +871,7 @@ def rowsetifyDD(dd, outputFieldNames=None):
 	"""
 	dd = dd.copy()
 	table = dd.getPrimaryTableDef().copy()
-	if outputFieldNames==None:
+	if outputFieldNames is None:
 		outputFields = [datadef.makeCopyingField(f) for f in table.get_items()]
 	else:
 		outputFields = [datadef.makeCopyingField(table.getFieldByName(name)) 

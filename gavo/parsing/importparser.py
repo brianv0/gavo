@@ -87,7 +87,7 @@ class RdParser(nodebuilder.NodeBuilder):
 		"""
 		res = []
 		for c in children:
-			if c[0]==None:
+			if c[0] is None:
 				res.append(c[1])
 		return "".join(res)
 
@@ -749,7 +749,7 @@ class RdParser(nodebuilder.NodeBuilder):
 	def _makeTextNode(self, name, attrs, children):
 		if len(children)==0:
 			return ""
-		if len(children)!=1 or children[0][0]!=None:
+		if len(children)!=1 or children[0][0] is not None:
 			raise Error("%s nodes have text content only"%name)
 		return children[0][1]
 	

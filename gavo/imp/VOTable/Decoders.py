@@ -156,7 +156,7 @@ class TableDataDecoder(GenericDecoder):
             A list of Python types corresponding to the input data.
         """
         # [(VO type, # bytes, (dim1, dim2, )), ]
-        # if # bytes==None => variable-length array.
+        # if # bytes is None => variable-length array.
         fieldInfo = self._parseFieldInfo()
         
         # Now we are ready to do the real decoding.
@@ -246,7 +246,7 @@ class StreamDecoder(GenericDecoder):
                                data=dataTree.text)
         
         # [(VO type, # bytes, (dim1, dim2, )), ]
-        # if # bytes==None => variable-length array.
+        # if # bytes is None => variable-length array.
         fieldInfo = self._parseFieldInfo()
         
         # Now we are ready to do the real decoding.
@@ -283,7 +283,7 @@ class StreamDecoder(GenericDecoder):
         Input
             data:      the encoded data stream
             fieldInfo: [(VO type, # bytes, (dim1, dim2, )), ]
-                       if # bytes==None => variable-length array and the 
+                       if # bytes is None => variable-length array and the 
                        corresponding dimN = None.
         Output
             A list of Python types corresponding to the input binary data.

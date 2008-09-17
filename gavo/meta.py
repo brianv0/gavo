@@ -227,7 +227,7 @@ class MetaItem(object):
 	def addChild(self, metaValue=None, key=None):
 # XXX should we force metaValue to be "compatible" with what's 
 # already in children?
-		if metaValue==None:
+		if metaValue is None:
 			metaValue = makeMetaValue(name=key)
 		assert isinstance(metaValue, MetaValue)
 		self.children.append(metaValue)
@@ -443,7 +443,7 @@ def makeMetaValue(value="", **kwargs):
 			kwargs["type"] = _typesForKeys[lastKey]
 		del kwargs["name"]
 	if "type" in kwargs:
-		if kwargs["type"]!=None:
+		if kwargs["type"] is not None:
 			try:
 				cls = _metaTypeRegistry[kwargs["type"]]
 			except KeyError:

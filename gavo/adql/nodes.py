@@ -609,11 +609,11 @@ class SetFunction(FieldInfoedNode):
 			fi = infoChildren[0].fieldInfo
 		else:
 			fi = dimlessFieldInfo
-		if ucdPref==None or fi.ucd=="":
+		if ucdPref is None or fi.ucd=="":
 			ucd = fi.ucd
 		else:
 			ucd = ucdPref+";"+fi.ucd
-		if newUnit==None:
+		if newUnit is None:
 			unit = fi.unit
 		else:
 			unit = newUnit

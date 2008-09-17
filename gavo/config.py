@@ -153,7 +153,7 @@ class ProfileParser:
 	>>> p = ProfileParser()
 	>>> p.parse(None, "x", "host=foo.bar\n").get_host()
 	'foo.bar'
-	>>> p.parse(None, "x", "")!=None
+	>>> p.parse(None, "x", "") is not None
 	True
 	>>> p.parse(None, "x", "host=\n").get_host()
 	''
@@ -173,7 +173,7 @@ class ProfileParser:
 	def parse(self, profileName, sourceName, stream=None):
 		self.tokenStack = []
 		self.stateFun = self._state_init
-		if stream==None:
+		if stream is None:
 			sourceName = self._resolveSource(sourceName)
 			stream = open(sourceName)
 		elif isinstance(stream, basestring):
@@ -339,7 +339,7 @@ class Settings(object):
 			self.rawVals.get(section, key))
 
 	def get(self, arg1, arg2=None):
-		if arg2==None:
+		if arg2 is None:
 			section, key = "DEFAULT", arg1.lower()
 		else:
 			section, key = arg1.lower(), arg2.lower()
@@ -354,7 +354,7 @@ class Settings(object):
 		return self.__profileParser
 
 	def getDbProfileByName(self, profileName):
-		if profileName==None:
+		if profileName is None:
 			return self.getDbProfile()
 		if not self.dbProfileCache.has_key(profileName):
 			try:

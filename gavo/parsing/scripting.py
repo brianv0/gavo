@@ -139,7 +139,7 @@ class SQLScriptRunner:
 		an active connection, so don't pass in a connection object
 		unless you're sure what you're doing.
 		"""
-		borrowedConnection = connection!=None
+		borrowedConnection = connection is not None
 		if not borrowedConnection:
 			connection = sqlsupport.getDbConnection(config.getDbProfile())
 		queries = self._parseScript(script)

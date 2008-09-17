@@ -10,8 +10,14 @@
 
 		<p>See also the metadata in the sidebar.  Most of these are not repeated
 		here.</p>
+	
+		<n:invisible n:render="ifmeta _longdoc">
+			<h2 class="section">Service Documentation</h2>
 
-		<h2>Overview</h2>
+			<n:invisible n:render="metahtml">_longdoc</n:invisible>
+		</n:invisible>
+
+		<h2 class="section">Overview</h2>
 		<p><strong>Description:</strong>
 			<n:invisible n:render="metahtml">description</n:invisible></p>
 
@@ -56,13 +62,13 @@
 		</div>
 
 		<div id="inputs" n:render="ifdata" n:data="inputFields">
-			<h2>Input Fields</h2>
+			<h2 class="section">Input Fields</h2>
 			<p>The following fields are available to provide input to the service:</p>
 			<table n:render="tableOfFields"/>
 		</div>
 
 		<div id="htmloutputs" n:render="ifdata" n:data="htmlOutputFields">
-			<h2>Default Output Fields</h2>
+			<h2 class="section">Default Output Fields</h2>
 			<p>The following fields are contained in the output by default.  More
 				fields may be available for selection; these would be given below
 				in the VOTable output fields.</p>
@@ -70,7 +76,7 @@
 		</div>
 
 		<div id="VOToutputs" n:render="ifdata" n:data="votableOutputFields">
-			<h2>VOTable Output Fields</h2>
+			<h2 class="section">VOTable Output Fields</h2>
 			<p>The following fields are available in VOTable output.  The verbosity
 				level is a number that gives the relative importance of the field
 				in the authors' judgement.  The services take a VERB argument.

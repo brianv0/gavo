@@ -59,13 +59,13 @@ class InputKey(datadef.DataField):
 		return formalType(required=not self.get_optional())
 
 	def set_scaling(self, val):
-		if val==None:
+		if val is None:
 			self.dataStore["scaling"] = None
 		else:
 			self.dataStore["scaling"] = float(val)
 
 	def set_inputUnit(self, val):
-		if val==None:
+		if val is None:
 			self.dataStore["inputUnit"] = None
 			self.set_scaling(None)
 		else:
@@ -114,7 +114,7 @@ class InputKey(datadef.DataField):
 		return res
 
 	def getValueIn(self, *args, **kwargs):
-		if self.get_value()!=None:
+		if self.get_value() is not None:
 			return self.get_value()
 		return super(InputKey, self).getValueIn(*args, **kwargs)
 

@@ -134,7 +134,7 @@ class Element(object):
 	def _makeAttrDict(self):
 		res = {}
 		for name in dir(self):
-			if name.startswith("a_") and getattr(self, name)!=None:
+			if name.startswith("a_") and getattr(self, name) is not None:
 				attName = getattr(self, name[2:]+"_name", name[2:])
 				res[attName] = getattr(self, name)
 		return res
@@ -150,7 +150,7 @@ class Element(object):
 			else:
 				elName = ElementTree.QName(self.namespace, self.name)
 			attrs = self._makeAttrDict()
-			if parent==None:
+			if parent is None:
 				node = ElementTree.Element(elName, attrs)
 			else:
 				node = ElementTree.SubElement(parent, elName, attrs)
@@ -168,7 +168,7 @@ class Element(object):
 	
 	def render(self):
 		et = self.asETree()
-		if et==None:
+		if et is None:
 			return ""
 		return ElementTree.tostring(ElementTree.ElementTree(
 			et).getroot())

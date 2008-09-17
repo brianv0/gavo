@@ -54,7 +54,7 @@ class FromSQLConverter:
 			mat = re.match(r"(.*)[[(](\d+|\*|)[])]", sqlType)
 			if mat:
 				res = self.mapComplex(mat.group(1), mat.group(2))
-		if res==None:
+		if res is None:
 			if sqlType=="raw":
 				return "raw"
 			raise Error("No %s type for %s"%(self.typeSystem, sqlType))

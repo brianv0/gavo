@@ -49,7 +49,7 @@ class ValueMapperFactoryRegistry(object):
 	res = vmfr.getMapper(...); if res is vmfr.identity ...
 	"""
 	def __init__(self, factories=None):
-		if factories==None:
+		if factories is None:
 			self.factories = []
 		else:
 			self.factories = factories[:]
@@ -112,7 +112,7 @@ def _intMapperFactory(colProps):
 		except AttributeError:
 			colProps["nullvalue"] = _defaultNullvalues[colProps["datatype"]]
 		def coder(val, nullvalue=colProps["nullvalue"]):
-			if val==None:
+			if val is None:
 				return nullvalue
 			return val
 		return coder
@@ -134,7 +134,7 @@ def _floatMapperFactory(colProps):
 	if colProps["dbtype"]=="real" or colProps["dbtype"].startswith("double"):
 		naN = float("NaN")
 		def coder(val):
-			if val==None:
+			if val is None:
 				return naN
 			return val
 		return coder
@@ -149,7 +149,7 @@ def _stringMapperFactory(colProps):
 		else:
 			constructor = unicode
 		def coder(val):
-			if val==None:
+			if val is None:
 				return ""
 			return constructor(val)
 		return coder
@@ -159,7 +159,7 @@ _registerDefaultMF(_stringMapperFactory)
 def _charMapperFactory(colProps):
 	if colProps["dbtype"]=="char":
 		def coder(val):
-			if val==None:
+			if val is None:
 				return "\0"
 			return str(val)
 		return coder
@@ -259,7 +259,7 @@ def _productMapperFactory(colProps):
 	from nevow import url
 	if colProps["ucd"]=="VOX:Image_AccessReference":
 		def mapper(val):
-			if val==None:
+			if val is None:
 				return ""
 			else:
 				return urlparse.urljoin(
@@ -402,7 +402,7 @@ def acquireSamples(colPropsIndex, table):
 	for row in table:
 		newSampleCols = set()
 		for col in noSampleCols:
-			if row[col]!=None:
+			if row[col] is not None:
 				newSampleCols.add(col)
 				colPropsIndex[col]["sample"] = row[col]
 		noSampleCols.difference_update(newSampleCols)

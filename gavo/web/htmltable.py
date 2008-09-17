@@ -32,7 +32,7 @@ _registerHTMLMF = _htmlMFRegistry.registerFactory
 
 def _defaultMapperFactory(colProps):
 	def coder(val):
-		if val==None:
+		if val is None:
 			return "N/A"
 		return str(val)
 	return coder
@@ -49,7 +49,7 @@ def _timeangleMapperFactory(colProps):
 	sepChar = colProps["displayHint"].get("sepChar", " ")
 	sf = int(colProps["displayHint"].get("sf", 2))
 	def coder(val):
-		if val==None:
+		if val is None:
 			return "N/A"
 		else:
 			return coords.degToTimeangle(val, sepChar, sf)
@@ -64,7 +64,7 @@ def _sexagesimalMapperFactory(colProps):
 	sepChar = colProps["displayHint"].get("sepChar", " ")
 	sf = int(colProps["displayHint"].get("sf", 2))
 	def coder(val):
-		if val==None:
+		if val is None:
 			return "N/A"
 		return coords.degToDms(val, sepChar, sf)
 	return coder
@@ -84,7 +84,7 @@ def _unitMapperFactory(colProps):
 		colProps["unit"] = colProps["displayHint"]["displayUnit"]
 		fmtStr = "%%.%df"%int(colProps["displayHint"].get("sf", 2))
 		def coder(val):
-			if val==None:
+			if val is None:
 				return "N/A"
 			return fmtStr%(val*factor)
 		return coder
@@ -230,12 +230,12 @@ class HeaderCells(rend.Page):
 	def render_headCell(self, ctx, fieldDef):
 		props = self.colPropsIndex[fieldDef.get_dest()]
 		cont = fieldDef.get_tablehead()
-		if cont==None:
+		if cont is None:
 			cont = props["description"]
-		if cont==None:
+		if cont is None:
 			cont = fieldDef.get_dest()
 		desc = props["description"]
-		if desc==None:
+		if desc is None:
 			desc = cont
 		unit = props["unit"]
 		if unit:
@@ -297,7 +297,7 @@ class HTMLTableFragment(rend.Fragment):
 		valuemappers.acquireSamples(self.colPropsIndex, self.table)
 		self.defaultTds = []
 		for props, field in zip(self.colProps, self.table.getFieldDefs()):
-# the hasattr here is necessary since we allow plain data fields to be
+# the hasattrs here are necessary since we allow plain data fields to be
 # passed in here.  We should really change that.
 			if hasattr(field, "get_wantsRow") and field.get_wantsRow():
 				props["wantsRow"] = True
@@ -316,7 +316,7 @@ class HTMLTableFragment(rend.Fragment):
 	def render_useformatter(self, ctx, data):
 		attrs = ctx.tag.attributes
 		formatVal = attrs["formatter"]
-		if formatVal==None:
+		if formatVal is None:
 			formatVal = str
 		del ctx.tag.attributes["formatter"]
 		return ctx.tag[formatVal(data)]
@@ -346,7 +346,8 @@ class HTMLTableFragment(rend.Fragment):
 		return self.table.getFieldDefs()
 
 	def render_iffeedback(self, ctx, data):
-		if self.table.tableDef.get_items()[0].get_dest()=="feedbackSelect":
+		fields = self.table.tableDef.get_items()
+		if fields and fields[0].get_dest()=="feedbackSelect":
 			return ctx.tag
 		else:
 			return ""

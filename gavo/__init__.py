@@ -58,9 +58,8 @@ class ValidationError(Error):
 	def __str__(self):
 		recStr = ""
 		if self.record:
-			recStr = ", record %s"%repr(self.record)
-		return "Validation failed on field %s (%s)%s"%(self.fieldName, self.msg,
-			recStr)
+			recStr = ", found in: record %s"%repr(self.record)
+		return "%s%s"%(self.msg, recStr)
 
 
 class RdNotFound(Error):

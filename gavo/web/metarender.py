@@ -168,11 +168,15 @@ class MetaRenderMixin(object):
 
 	def data_otherServices(self, ctx, data):
 		"""returns a list of dicts describing other services provided by the
-		service's RD.
+		the describing RD.
+
+		The class mixing this in needs to provide a describingRD attribute for
+		this to work.  This may be the same as self.service.rd, and the
+		current service will be excluded from the list in this case.
 		"""
 		res = []
-		for svcId in self.service.rd.itemsof_service():
-			svc = self.service.rd.get_service(svcId)
+		for svcId in self.describingRD.itemsof_service():
+			svc = self.describingRD.get_service(svcId)
 			if svc is not self.service:
 				res.append({"infoURL": svc.getURL("info"),
 					"title": unicode(svc.getMeta("title"))})
@@ -187,6 +191,10 @@ class ServiceInfoRenderer(resourcebased.ServiceBasedRenderer,
 	name = None  # allow on all services
 	
 	customTemplate = common.loadSystemTemplate("serviceinfo.html")
+
+	def __init__(self, *args, **kwargs):
+		resourcebased.ServiceBasedRenderer.__init__(self, *args, **kwargs)
+		self.describingRD = self.service.rd
 
 	def render_title(self, ctx, data):
 		return ctx.tag["Information on Service '%s'"%unicode(
@@ -260,18 +268,17 @@ class TableInfoRenderer(resourcebased.ServiceBasedRenderer,
 	
 	def _fillTableInfo(self):
 		q = sqlsupport.SimpleQuerier()
-		c = q.query("SELECT sourceRd, dataId, adql FROM dc_tables WHERE"
+		c = q.query("SELECT sourceRd, adql FROM dc_tables WHERE"
 			" tableName=%(tableName)s", {"tableName": self.tableName})
 		res = c.fetchall()
 		if len(res)!=1:
 			raise Error("%s is no accessible table in the data center"%self.tableName)
-		rdId, dataId, adql = res[0]
-		self.rd = resourcecache.getRd(rdId)
-		self.dd = self.rd.getDataById(dataId)
-		self.table = self.rd.getTableDefByName(basename(self.tableName))
+		rdId, adql = res[0]
+		self.describingRD = resourcecache.getRd(rdId)
+		self.table = self.describingRD.getTableDefByName(basename(self.tableName))
 
 	def data_forADQL(self, ctx, data):
-		return self.dd.get_adql()
+		return self.table.get_adql()
 
 	def data_fields(self, ctx, data):
 		res = [f.asInfoDict() for f in self.table.get_items()]

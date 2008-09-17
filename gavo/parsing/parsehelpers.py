@@ -183,7 +183,7 @@ class FieldComputer(RDComputer):
 	a wide range of values.
 	"""
 	def __init__(self, parseContext):
-		if parseContext==None:
+		if parseContext is None:
 			# This is for the benefit of doc generation.  A FieldComputer without
 			# resource descriptor is pretty useless anywhere else.
 			RDComputer.__init__(self, None)

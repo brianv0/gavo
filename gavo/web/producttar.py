@@ -119,7 +119,7 @@ class ProductTarMaker:
 		return fName
 
 	def _getGroups(self, user, password):
-		if user==None:
+		if user is None:
 			return set()
 		else:
 			return creds.getGroupsForUser(user, password, async=False)

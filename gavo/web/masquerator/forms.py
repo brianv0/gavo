@@ -43,7 +43,7 @@ class ServiceAdaptor(DataAdaptor):
 	def _makeArguments(self, recordBuilder):
 		args = [(int(ct), val) for ct, val in recordBuilder.getDocRec().items()]
 		args.sort()
-		return [val for ct, val in args if val!=None]
+		return [val for ct, val in args if val is not None]
 
 	def _parseContext(self, context):
 		"""returns input(s) and command line arguments for the service

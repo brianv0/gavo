@@ -74,7 +74,7 @@ class CondDesc(record.Record):
 		"""
 		keysFound, keysMissing = [], []
 		for f in self.get_inputKeys():
-			if not inPars.has_key(f.get_source()) or inPars[f.get_source()]==None:
+			if not inPars.has_key(f.get_source()) or inPars[f.get_source()] is None:
 				keysMissing.append(f)
 			else:
 				keysFound.append(f)
@@ -280,7 +280,6 @@ class DbBasedCore(QueryingCore):
 			fields.insert(0, makeFeedbackField(fields, self.get_feedbackField()))
 		return fields
 
-
 	def run(self, inputData, queryMeta):
 		"""returns an InternalDataSet containing the result of the
 		query.
@@ -403,19 +402,32 @@ class FeedbackCore(DbBasedCore):
 		return self._queryEnumerated(rowdict, enumeratedNames, feedbackKeys)
 
 
-class FixedQueryCore(core.Core):
+class FixedQueryCore(QueryingCore):
 	def __init__(self, rd, initvals):
-		self.rd = rd
-		core.Core.__init__(self, additionalFields={
+		QueryingCore.__init__(self, rd, additionalFields={
 				"query": record.RequiredField,
 			}, initvals=initvals)
-	
+
 	def run(self, inputData, queryMeta):
-		return resourcecache.getDbConnection(None).runOperation(self.get_query()
+		if self.get_query().upper().startswith("SELECT"):
+			fun = resourcecache.getDbConnection(None).runQuery
+		else:
+			fun = resourcecache.getDbConnection(None).runOperation
+		return fun(self.get_query()
 			).addCallback(self._parseOutput, queryMeta)
-	
-	def _parseOutput(self, queryResult, queryMeta):
-		return str(queryResult)
+
+	def _parseOutput(self, dbResponse, queryMeta):
+		"""builds an InternalDataSet out of dbResponse and the outputFields
+		of our service.
+		"""
+		if dbResponse is None:
+			dbResponse = []
+		outputDD = resource.makeRowsetDataDesc(self.rd, 
+			self.get_service().get_outputFields(), mungeFields=False)
+		res = resource.InternalDataSet(outputDD, table.Table, 
+			dataSource=dbResponse)
+		return res
+
 core.registerCore("runFixedQuery", FixedQueryCore)
 
 
@@ -433,7 +445,8 @@ class ADQLCore(QueryingCore):
 		return [
 			contextgrammar.InputKey(dest="query", tablehead="ADQL query",
 				description="A query in the Astronomical Data Query Language",
-				dbtype="text", source="query", formalType="text"),
+				dbtype="text", source="query", 
+				widgetFactory="widgetFactory(TextArea, rows=10, cols=60)"),
 		]
 	
 	def getOutputFields(self):
@@ -441,10 +454,15 @@ class ADQLCore(QueryingCore):
 	
 	def wantsTableWidget(self):
 		return False
-	
+
+	def _translateError(self, failure):
+		failure.printTraceback()
+		raise gavo.ValidationError(failure.getErrorMessage(), "query")
+
 	def run(self, inputData, queryMeta):
 		return threads.deferToThread(adqlglue.query,
 				inputData.getDocRec()["query"],
 				timeout=config.get("web", "adqlTimeout"),
-				queryProfile="untrustedquery")
+				queryProfile="untrustedquery"
+			).addErrback(self._translateError)
 core.registerCore("adql", ADQLCore)

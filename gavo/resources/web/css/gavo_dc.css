@@ -142,9 +142,19 @@ h1 {
 	line-height:2em
 }
 
-h2 { font-size: 14pt; font-weight: bold;}
+h2 { 
+	font-size: 14pt; 
+	font-weight: bold; 
+	margin-top:24pt; 
+	padding-top: 3pt;
+}
+
+h2.section {
+	border-top: 1px dotted grey; 
+}
+
 h3 { font-size: 12pt; font-weight: bold;}
-h4 { font-size: 12pt; background: #F0F4FF;} 
+h4 { font-size: 12pt} 
 h5 { font-size: 11pt; font-style: italic; }
 
 h4.metacat {

@@ -39,7 +39,7 @@ class ResourceProcessor:
 	name = "Uncallable abstract resource processor"
 
 	def addArgument(self, key, src, value):
-		if src!=None:
+		if src is not None:
 			raise Error("Resource Processor arguments cannot have a src.")
 		self.argDict[key.encode("ascii")] = value
 	

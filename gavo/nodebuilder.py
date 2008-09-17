@@ -198,7 +198,7 @@ class BaseNodeBuilder(ContentHandler):
 			if name not in self.keepWhitespaceNames:
 				children = self._cleanTextNodes(children)
 			newNode = getattr(self, "_make_"+name)(name, attrs, children)
-			if newNode!=None:
+			if newNode is not None:
 				self._enterNewNode(name, attrs, newNode)
 		except:
 			self.handleError(sys.exc_info())
@@ -225,7 +225,7 @@ class BaseNodeBuilder(ContentHandler):
 		"""returns the entire text content of the node in a string without doing
 		whitespace normalization.
 		"""
-		return "".join([n[1] for n in children if n[0]==None])
+		return "".join([n[1] for n in children if n[0] is None])
 
 	def getContent(self, children):
 		"""returns the entire text content of the node in a string.
@@ -255,7 +255,7 @@ class BaseNodeBuilder(ContentHandler):
 		"""
 		cleanedChildren, text = [], []
 		for type, node in children:
-			if type==None:
+			if type is None:
 				text.append(node)
 			else:
 				if text:

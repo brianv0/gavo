@@ -40,7 +40,6 @@
 	<Service id="reset">
 		<meta name="title">Reset Test Tables</meta>
 		<meta name="shortName">testtables_reset</meta>
-		<allow renderers="text"/>
 		<core builtin="runFixedQuery">
 			<arg name="query">delete from __tests.files where name='c'</arg>
 		</core>

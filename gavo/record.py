@@ -396,7 +396,7 @@ def parseBooleanLiteral(literal):
 	"""
 	if isinstance(literal, bool):
 		return literal
-	if literal==None:
+	if literal is None:
 		return None
 	if literal.lower() in ["true", "yes", "on"]:
 		return True

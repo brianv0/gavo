@@ -361,8 +361,8 @@ myTests = [
 			401,
 			"Auth requried for protected form result."),
 		HeadStatusTest(nv_root+"/apfs/res/apfs_new/catquery/upload",
-			404,
-			"Disallowed renderer yields 404."),
+			403,
+			"Disallowed renderer yields 403."),
 	),
 
 	TestGroup("siap.xml",
@@ -558,15 +558,15 @@ myTests = [
 			"Insert of non-existing data touches one record."),
 		UploadHasStringTest(nv_root+"/__system__/tests/misc/upload/upload",
 			("c.foo", "a: 15\nb:17\n", 'i'),
-			"Validation failed on field File (Cannot enter c.foo in database:"
-				" duplicate key violates unique constraint",
+			"Cannot enter c.foo in database: duplicate key violates"
+				" unique constraint",
 			"Duplicate insertion of data yields error"),
 		UploadHasStringTest(nv_root+"/__system__/tests/misc/upload/upload",
 			("c.foo", "a: 15\nb:10\n", 'u'),
 			"1 record(s) modified.",
 			"Updates of existing data modify db"),
-		GetHasStringTest(nv_root+"/__system__/tests/misc/reset/text",
-			"None",
+		GetHasStringTest(nv_root+"/__system__/tests/misc/reset/form",
+			"Matched: 0",
 			"Reset of db seems to work"),
 	),
 
@@ -584,7 +584,7 @@ myTests = [
 			'kmSwMfTY3EExcaiL63SV4Lbvwh+DXsh\nWP0uyC79enDVSG+LQvaoC90Fo/SJRsGMme'
 			'AIRhRel8HxSkGvKoTe0GGzyyvZOedpPxM7iIgGl35s\nyW7qSKLvyBWWpxAE5eG72BS'
 			'5bgd+7DP/BCkQrjo=\n'.decode("base64").decode("zlib"),
-			[':Client</faultcode>', 'Validation failed', 'No known words'],
+			[':Client</faultcode>', 'No known words'],
 			'UCD SOAP error messaging returns client error on junk input',
 			SOAPAction='"useService"', content_type="text/xml"),
 		PostHasStringsTest(nv_root+"/ucds/ui/hideui/soap/go",

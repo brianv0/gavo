@@ -59,11 +59,33 @@ tables and the RDs the tables come from. -->
 		</Semantics>
 	</Data>
 
-	<Service id="tables">
-		<meta name="shortName">dc_tables</meta>
+	<Service id="show">
+		<meta name="shortName">GAVO tab infos</meta>
+		<meta name="description">Information on tables within the GAVO data
+			center</meta>
 		<meta name="title">Table Infos</meta>
-		<publish render="tableinfo"/>
 		<allow renderers="tableinfo"/>
+	</Service>
+
+	<Service id="list" fieldPath="tablesVsRDs.dc_tables">
+		<meta name="shortName">gavo ADQL tabs</meta>
+		<meta name="description">An overview over the tables available for ADQL 
+			querying in the GAVO data center.</meta>
+		<meta name="title">GAVO ADQL tables</meta>
+		<allow renderers="form"/>
+		<core builtin="runFixedQuery"
+			query="SELECT tableName, tableName FROM dc_tables WHERE adql">
+		</core>
+		<srvInput/>
+		<srvOutput>
+			<outputField original=".tableName"/>
+			<outputField dest="tableinfo" dbtype="text" tablehead="Info">
+				<renderer>
+					return T.a(href=common.makeSitePath("/__system__/dc_tables/"
+						"show/tableinfo?tableName="+urllib.quote(data)))["Table Info"]
+				</renderer>
+			</outputField>
+		</srvOutput>
 	</Service>
 </ResourceDescriptor>
 

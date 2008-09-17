@@ -10,8 +10,8 @@
 <h1>The GAVO Data Center</h1>
 <p>This document is the main documentation index for users of the
 GAVO Data Center (GDC).</p>
-<p>The GDC archives  and provides access to astromical data of all kinds
-for the German astronomical community (and beyond), offering both web-based
+<p>The GDC archives  and provides access to astromical data of all kinds,
+offering both web-based
 and <a href="http://www.ivoa.net">VO</a>-enabled services.</p>
 
 <p>It is still under heavy development, so you may experience transient
@@ -143,6 +143,21 @@ descriptor, i.e., is related to the service rather than the data.  The "Data
 updated" item gives the date of the last "import" of a piece of the data.
 Unless a service supports online modification, it can be used as an indicator
 of the version of the underlying data.</p>
+
+<h3>Feedback query</h3>
+
+<p>On some services, a feedback query option is enabled.  For those, you get 
+checkboxes in front of each row in the HTML result table.  You can check
+some of those and then press the "Feedback" button immediately below the 
+table.  This will result in a new query form that has all fields allowing
+expressions filled out with the ranges encountered for the result set
+you selected.  You can edit this query as usual.  To tell the system you do 
+not want a certain peroperty to be relevant for the feedback query, use the
+yellow clear buttons (<img src="__site_path__/builtin/img/clearButton.png"/>)
+to clear the field.</p>
+
+<p>In effect, feedback queries provide a quick "find similar" facility
+in the Web interface.</p>
 
 <h2>Your data</h2>
 

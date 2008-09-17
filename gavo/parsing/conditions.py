@@ -123,8 +123,7 @@ class _NotNullCondition(_Condition):
 		self.name = name
 
 	def check(self, aDict):
-		print ">>>>>>>>>>>>", aDict
-		return aDict[self.name]!=None
+		return aDict[self.name] is not None
 
 
 _conditionsRegistry = {

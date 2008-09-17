@@ -129,7 +129,7 @@ def _addUser(querier, user, password, remarks=""):
 
 
 def _changeUser(querier, user, password, remarks=None):
-		if remarks==None:
+		if remarks is None:
 			c = querier.query("UPDATE users.users SET password=%(password)s"
 			" WHERE username=%(user)s", locals())
 		else:

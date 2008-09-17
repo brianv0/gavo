@@ -209,7 +209,7 @@ class Template(AbstractTemplate):
 		this code is not too sophisticated -- let's see what happens if
 		we have more cases like this.
 		"""
-		if self.getProductCol()!=None:
+		if self.getProductCol() is not None:
 			self.addSelectItem("owner||suppressed")
 			self.addSelectItem("embargo||suppressed")
 			self.addSelectItem("accsize||suppressed")
@@ -300,7 +300,7 @@ class Template(AbstractTemplate):
 		against it and warn if the limit has been reached.
 		"""
 		limit = context.getfirst("limitto")
-		if limit==None or not re.match(r"\d+$|all", limit.lower()):
+		if limit is None or not re.match(r"\d+$|all", limit.lower()):
 			limit = config.get("querulator", "defaultMaxMatches")
 		if limit=="all":
 			context.addArgument("used_limit", 1e30) # ok, it's a hack
@@ -359,7 +359,7 @@ class Template(AbstractTemplate):
 		the product interface and having products mentioned.
 		"""
 		sizeCol = self.query.getColIndexFor("fsize")
-		if sizeCol==None:
+		if sizeCol is None:
 			raise querulator.Error("No size information available.")
 		ownerCol, embargoCol = self.getColIndexFor("owner"
 			), self.getColIndexFor("embargo")

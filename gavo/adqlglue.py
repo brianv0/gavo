@@ -72,6 +72,8 @@ def query(query, timeout=15, queryProfile="untrustedquery", metaProfile=None):
 # XXX TODO: select an appropriate RD from the tables queried.
 	rd = resource.ResourceDescriptor("inMemory")
 	dd = resource.makeRowsetDataDesc(rd, _getTableDescForOutput(t))
+# escape % to hide them form dbapi replacing
+	query = adql.flatten(t).replace("%", "%%")
 	data = sqlsupport.SimpleQuerier(queryProfile).runIsolatedQuery(
-		adql.flatten(t), timeout=timeout, silent=True)
+		query, timeout=timeout, silent=True)
 	return resource.InternalDataSet(dd, dataSource=data, silent=True)

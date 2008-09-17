@@ -191,7 +191,7 @@ class FormalDict(formaltypes.Type):
 
 class SimpleSelectChoice(SelectChoice):
 	def __init__(self, original, options, noneLabel=None):
-		if noneLabel==None:
+		if noneLabel is None:
 			noneOption = None
 		else:
 			noneOption = (noneLabel, noneLabel)

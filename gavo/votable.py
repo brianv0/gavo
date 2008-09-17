@@ -111,7 +111,7 @@ class TableData:
 			if noSampleCols:
 				newSampleCols = set()
 				for key in noSampleCols:
-					if row[key]!=None:
+					if row[key] is not None:
 						colProps[key]["sample"] = row[key]
 						newSampleCols.add(key)
 				noSampleCols.difference_update(newSampleCols)

@@ -40,7 +40,7 @@ class ParseNode(object):
 		children[index] must be atomic (i.e., no ParseNode).
 		"""
 		item = self.children[index]
-		if item==None:
+		if item is None:
 			return None
 		assert not isinstance(item, ParseNode)
 		if field.get_scaling():
@@ -217,7 +217,7 @@ def getComplexGrammar(baseLiteral, pmBuilder, errorLiteral=None):
 	has a simple float as the second operand, and that's why you can
 	pass in an errorLiteral and and pmBuilder.
 	"""
-	if errorLiteral==None:
+	if errorLiteral is None:
 		errorLiteral = baseLiteral
 
 	preOp = Literal("=") |  Literal(">=") | Literal(">"
@@ -372,7 +372,7 @@ def getSQL(field, inPars, sqlPars):
 # XXX TODO refactor, sanitize
 	try:
 		val = field.getValueIn(inPars)
-		if val==None:
+		if val is None:
 			return None
 		if (field.get_dbtype().startswith("vexpr") and isinstance(val, basestring)
 				and not field.isEnumerated()):
@@ -380,7 +380,7 @@ def getSQL(field, inPars, sqlPars):
 				field, sqlPars)
 		else:
 			if isinstance(val, (list, tuple)):
-				if len(val)==1 and val[0]==None:
+				if len(val)==1 and val[0] is None:
 					return ""
 				return "%s IN %%(%s)s"%(field.get_dest(), getSQLKey(field.get_dest(),
 					val, sqlPars))
