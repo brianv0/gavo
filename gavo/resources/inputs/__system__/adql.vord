@@ -6,7 +6,16 @@
 	<schema>public</schema>
 	<meta name="description">An endpoint for submitting ADQL queries
 		to the data center and retrieving the result in various forms.</meta>
-	
+	<meta name="_intro" format="rst"><![CDATA[
+On this page, you can use
+`ADQL <http://www.ivoa.net/Documents/latest/ADQL.html>`_ to query 
+`some of our tables </__system__/dc_tables/list/form>`_.
+
+If you have no idea what ADQL is, you may want to have a look at
+`a somewhat outdated article by Ray Plante <http://www.aspbooks.org/a/volumes/article_details/?paper_id=27959>`_.
+]]>	
+	</meta>
+	<meta name="_related" title="Tables available for ADQL">/__system__/dc_tables/list/form</meta>
 	<Service id="query">
 		<meta name="shortName">gavoadql</meta>
 		<meta name="title">ADQL Query</meta>

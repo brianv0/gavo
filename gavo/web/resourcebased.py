@@ -432,10 +432,32 @@ class GavoFormMixin(formal.ResourceMixin, object):
 		"""
 		return name
 
+	# used for error display on form-less pages
+	errorFactory = common.doctypedStan(T.html[
+			T.head[
+				T.title["Error in service parameters"],
+				T.invisible(render=T.directive("commonhead")),
+			],
+			T.body[
+				T.h1["Error in Service Parameters"],
+				T.p["Something went wrong in processing your (probably implicit,"
+					" since you are seeing this rather than a note in an input"
+					" form) input."],
+				T.p["The system claims the following went wrong:"],
+				T.p(style="text-align: center")[
+					T.tt(render=T.directive("errmsg")),],
+				T.p["You may want to report this to gavo@ari.uni-heidelberg.de."],
+			]])
+
+
 	def _handleInputErrors(self, failure, ctx):
 		"""goes as an errback to form handling code to allow correction form
 		rendering at later stages than validation.
 		"""
+		if not hasattr(self, "form"): # no reporting in form possible
+			if isinstance(failure.value, gavo.ValidationError):
+				return ErrorPage(failure, docFactory=self.errorFactory)
+			raise failure.value
 		if isinstance(failure.value, formal.FormError):
 			self.form.errors.add(failure.value)
 		elif isinstance(failure.value, gavo.ValidationError) and isinstance(
@@ -444,13 +466,14 @@ class GavoFormMixin(formal.ResourceMixin, object):
 				# Find out the formal name of the failing field...
 				failedField = self.translateFieldName(failure.value.fieldName)
 				# ...and make sure it exists
-				self.form.items.getItemByName(failedField) # XXXXXXXXXXXXXXXXXX TODO: s/"worra"/failedField/
+				self.form.items.getItemByName(failedField)
 				self.form.errors.add(formal.FieldValidationError(
 					str(failure.getErrorMessage()), failedField))
 			except KeyError: # Failing field cannot be determined
 				failure.printTraceback()
 				self.form.errors.add(formal.FormError("Problem with input"
-					" in some unidentified field: %s"%failure.getErrorMessage()))
+					" in the internal or generated field '%s': %s"%(
+						failure.value.fieldName, failure.getErrorMessage())))
 		else:
 			failure.printTraceback()
 			raise failure.value
@@ -479,12 +502,13 @@ def _makeNoParsBehaviour(action):
 		# for FixedQueryCores.
 		formName = "genForm"
 		request = inevow.IRequest(ctx)
-		if "noPars" in request.args:
+		if "_noPars" in request.args:  # break infinite recursion
 			return None
-		request.args["noPars"] = [True]
+		request.args["_noPars"] = [True]
 		self.remember(ctx)
 		d = defer.succeed(ctx)
-		d.addCallback(action, None, {})
+		d.addCallback(form.locateForm, formName)
+		d.addCallback(self._processForm, ctx)
 		return d
 	return b
 
@@ -675,7 +699,8 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 			T.h1(render=T.directive("meta"))["title"],
 			T.div(class_="result", render=T.directive("ifdata"), 
 					data=T.directive("query")) [
-				T.div(class_="querypars", data=T.directive("queryseq"))[
+				T.div(class_="querypars", data=T.directive("queryseq"),
+						render=T.directive("ifdata"))[
 					T.h2[T.a(href="#_queryForm")["Parameters"]],
 					T.ul(render=rend.sequence)[
 						T.li(pattern="item", render=T.directive("parpair"))

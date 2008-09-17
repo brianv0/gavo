@@ -44,4 +44,11 @@
 			<arg name="query">delete from __tests.files where name='c'</arg>
 		</core>
 	</Service>
+
+	<Service id="timeout">
+		<meta name="title">Just wait a while for a timeout</meta>
+		<core builtin="runFixedQuery" timeout="1">
+			<arg name="query">select (select avg(asin(sqrt(x)/224.0)) from generate_series(1, whomp) as x) as q from generate_series(1, 50000) as whomp</arg>
+		</core>
+	</Service>
 </ResourceDescriptor>

@@ -525,6 +525,9 @@ myTests = [
 			["SIAP Query", "siap.xml", "form", "Other services",
 				"SIZE</td>", "Verb. Level"],
 			"Info page looks ok"),
+		GetHasStringsTest(nv_root+"/__system__/tests/misc/timeout/form",
+			["Just wait a while", "Query timed out (took too"],
+			"DB timeout yields a nice response"),
 	),
 
 	TestGroup('ucds',
@@ -609,6 +612,23 @@ myTests = [
 				'<tns:raCio xsi:type="xsd:double">25.35'],
 			'APFS SOAP returns something reasonable',
 			SOAPAction='"useService"', content_type="text/xml"),
+		),
+
+	TestGroup("infopages",
+		GetHasStringsTest(nv_root+"/__system__/dc_tables/show/tableinfo?"
+				"tableName=ppmx.data",
+			["Table information", "ADQL", "Bmag", "Unit", "The following services"],
+			"Table info looks credible"),
+		GetHasStringsTest(nv_root+"/apfs/res/apfs_new/catquery/info",
+			["Service Documentation", "form</em> --", "SOAP", "endDate"],
+			"Service info looks credible and includes some meta information"),
+		),
+
+	TestGroup("adql",
+		GetHasStringsTest(nv_root+"/__system__/adql/query/form?"
+				"__nevow_form__=genForm&query=foobar%0A&_FORMAT=HTML&submit=Go",
+			["Service info", "Could not parse", 'Expected "SELECT"'],
+			"Parse errors are reported in-form"),
 		),
 
 	TestGroup("services",

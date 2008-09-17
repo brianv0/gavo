@@ -23,6 +23,7 @@ from gavo import datadef
 from gavo import interfaces
 from gavo import resourcecache
 from gavo import record
+from gavo import sqlsupport
 from gavo import table
 from gavo import utils
 from gavo import web
@@ -185,6 +186,29 @@ class ComputedCore(QueryingCore):
 core.registerCore("computed", ComputedCore)
 
 
+def mapDbErrors(failure):
+	"""logs the failure and translates the exception into something our
+	system can display more beautifully.
+	"""
+# This is a helper to all DB-based cores and should probably become
+# a method of a baseclass of them when we refactor this mess
+	if hasattr(failure.value, "cursor"):
+		log.msg("Failed DB query: %s"%failure.value.cursor.query)
+# XXX TODO: Alejandro's pgsql timeout patch somehow doesn't expose 
+# TimeoutError, and I don't have time to fix this now.  So, I check the 
+# exception type the rough way.
+	if failure.value.__class__.__name__.endswith("TimeoutError"):
+		raise gavo.ValidationError("Query timed out (took too long).  See"
+			" our help.", "query")
+	elif isinstance(failure.value, sqlsupport.DbError):
+		raise gavo.ValidationError(failure.getErrorMessage(), "query")
+	elif isinstance(failure.value, adqlglue.ParseException):
+		raise gavo.ValidationError("Could not parse your query: %s"%
+			failure.getErrorMessage(), "query")
+	else:
+		raise failure.value
+
+
 class DbBasedCore(QueryingCore):
 	"""is a base class for cores doing database queries.
 
@@ -305,12 +329,7 @@ class DbBasedCore(QueryingCore):
 		return self.runDbQuery(fragment, pars, 
 				dd.getPrimaryTableDef(), queryMeta).addCallback(
 			self._parseOutput, dd, pars, queryMeta).addErrback(
-			self._logFailedQuery)
-
-	def _logFailedQuery(self, failure):
-		if hasattr(failure.value, "cursor"):
-			log.msg("Failed DB query: %s"%failure.value.cursor.query)
-		return failure
+			mapDbErrors)
 
 	def _parseOutput(self, dbResponse, outputDef, sqlPars, queryMeta):
 		"""builds an InternalDataSet out of the DataDef outputDef
@@ -371,7 +390,8 @@ class FeedbackCore(DbBasedCore):
 				self.tableDef.getQName(), self.feedbackColN),
 			{"feedbackKeys": feedbackKeys}
 			).addCallback(self._processRanged, rangeNames, enumeratedNames,
-					feedbackKeys)
+					feedbackKeys
+			).addErrback(mapDbErrors)
 		
 	def _processRanged(self, result, rangeNames, enumeratedNames, feedbackKeys):
 		result = result[0]
@@ -406,15 +426,20 @@ class FixedQueryCore(QueryingCore):
 	def __init__(self, rd, initvals):
 		QueryingCore.__init__(self, rd, additionalFields={
 				"query": record.RequiredField,
+				"timeout": 15,
 			}, initvals=initvals)
+
+	def set_timeout(self, val):
+		self.dataStore["timeout"] = int(val)
 
 	def run(self, inputData, queryMeta):
 		if self.get_query().upper().startswith("SELECT"):
 			fun = resourcecache.getDbConnection(None).runQuery
 		else:
 			fun = resourcecache.getDbConnection(None).runOperation
-		return fun(self.get_query()
-			).addCallback(self._parseOutput, queryMeta)
+		return fun(self.get_query(), timeout=self.get_timeout()
+			).addCallback(self._parseOutput, queryMeta
+			).addErrback(mapDbErrors)
 
 	def _parseOutput(self, dbResponse, queryMeta):
 		"""builds an InternalDataSet out of dbResponse and the outputFields
@@ -455,14 +480,10 @@ class ADQLCore(QueryingCore):
 	def wantsTableWidget(self):
 		return False
 
-	def _translateError(self, failure):
-		failure.printTraceback()
-		raise gavo.ValidationError(failure.getErrorMessage(), "query")
-
 	def run(self, inputData, queryMeta):
 		return threads.deferToThread(adqlglue.query,
 				inputData.getDocRec()["query"],
 				timeout=config.get("web", "adqlTimeout"),
 				queryProfile="untrustedquery"
-			).addErrback(self._translateError)
+			).addErrback(mapDbErrors)
 core.registerCore("adql", ADQLCore)

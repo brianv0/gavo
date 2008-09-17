@@ -7,6 +7,8 @@ from gavo import datadef
 from gavo import sqlsupport
 from gavo.parsing import resource
 
+from adql import ParseException
+
 
 def makeFieldInfo(dataField):
 	"""returns an adql.tree.FieldInfo object from a dataField.

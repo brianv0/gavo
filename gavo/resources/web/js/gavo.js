@@ -75,6 +75,7 @@ function makeQueryItem(element) {
 
 	switch (element.nodeName) {
 		case "INPUT":
+		case "TEXTAREA":
 			if (element.name && element.value) {
 				val = element.name+"="+encodeURIComponent(element.value);
 			}

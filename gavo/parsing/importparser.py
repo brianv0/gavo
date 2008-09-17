@@ -678,7 +678,6 @@ class RdParser(nodebuilder.NodeBuilder):
 		builtinName = attrs.pop("builtin")
 		attrs.update(args)
 		curCore = core.getStandardCore(builtinName)(self.rd, initvals=attrs)
-	#XXX -- this is crap, isn't it?  The service should do that...  self.getProperty("currentService").set_core(curCore)
 		return self._processChildren(curCore, name, handlers, children)
 
 	def _make_nevowRender(self, name, attrs, children):
