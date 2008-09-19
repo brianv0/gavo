@@ -30,6 +30,7 @@ from gavo.helpers import filestuff
 from gavo.parsing import importparser
 from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
+from gavo.parsing import scripting
 from gavo.web import resourcebased
 
 import testhelpers
@@ -286,11 +287,45 @@ class TextOutputTest(unittest.TestCase):
 				" das Volk ab\\tund w\\xe4hlte ein anderes?\t2453130.5\n")
 
 
-def singleTest():
-	suite = unittest.makeSuite(TextOutputTest, "test")
-	runner = unittest.TextTestRunner()
-	runner.run(suite)
+class ScriptMacroTest(testhelpers.VerboseTest):
+	"""tests for scripting.py's MacroExpander.
+	"""
+	class SimplePackage(scripting.MacroPackage):
+		def macro_noArg(self):
+			return "foo"
+		def macro_oneArg(self, arg):
+			return arg
+		def macro_twoArg(self, arg1, arg2):
+			return arg1+arg2
+
+	def testBasic(self):
+		me = scripting.MacroExpander(self.SimplePackage())
+		for unEx, ex in [
+				("No macro calls in here", "No macro calls in here"),
+				(r"\noArg", "foo"),
+				(r"\\noArg expands to \noArg", r"\noArg expands to foo"),
+				(r'\oneArg{"bla"}', r"bla"),
+				(r'\quote{\oneArg{"bla"}}', '"bla"'),
+				(r'\oneArg{\oneArg{"bla"}}', 'bla'),
+				(r'Here is \twoArg{\quote{"ba\"r"},\noArg}', 'Here is "ba\\"r"foo'),
+				(r'Here is \twoArg{"bar",\noArg}', "Here is barfoo"),
+			]:
+			self.assertEqual(me.expand(unEx), ex)
+
+	def testErrors(self):
+		me = scripting.MacroExpander(self.SimplePackage())
+		self.assertRaisesWithMsg(scripting.Error, 
+			r"No such macro available in this context: \unknown", 
+			me.expand, (r"an \unknown Macro",))
+		self.assertRaisesWithMsg(scripting.Error, 
+			r"Invalid Arguments to \quote: []", 
+			me.expand, (r"\quote takes an argument",))
+	
+	def testWhitespace(self):
+		me = scripting.MacroExpander(self.SimplePackage())
+		self.assertEqual(me.expand('A macro:\\\n\\oneArg{"no."}'), "A macro: no.")
+
 
 
 if __name__=="__main__":
-	testhelpers.main(MapperTest)
+	testhelpers.main(ScriptMacroTest)

@@ -2,16 +2,21 @@
 Tests pertaining to the parsing system
 """
 
-
+import itertools
 import os
 import unittest
 
+from mx import DateTime
+
+from gavo import config
 from gavo import nullui
+from gavo import sqlsupport
 from gavo.parsing import importparser
 from gavo.parsing import macros
 from gavo.parsing import processors
 from gavo.parsing import resource
 
+import testhelpers
 
 class MacroErrorTest(unittest.TestCase):
 	"""Tests for error reporting of macros and processors.
@@ -55,7 +60,86 @@ class ProcessorsTest(unittest.TestCase):
 		self.assertAlmostEqual(rows[0]["c"], 12.5)
 		self.assertEqual(rows[0]["tf"], "one")
 		self.assertEqual(rows[4]["tf"], "five")
+
+
+def assertRowset(self, found, expected):
+	self.assertEqual(len(found), len(expected), "Rowset length didn't match")
+	for f, e in itertools.izip(sorted(found), sorted(expected)):
+		self.assertEqual(f, e, "Rows don't match: %s vs. %s"%(f, e))
+
+
+class TestProductsImport(unittest.TestCase):
+	"""tests for operational import of real data.
+
+	This is more of an integration test, but never mind that.
+	"""
+	def setUp(self):
+		config.setDbProfile("test")
+		self.oldInputs = config.get("inputsDir")
+		config.set("inputsDir", os.getcwd())
+		rd = importparser.getRd("test")
+		self.tableDef = rd.getTableDefByName("prodtest")
+		res = resource.Resource(rd)
+		res.importData(None, ["productimport"])
+		res.export("sql", ["productimport"])
 	
+	def testWorkingImport(self):
+		assertRowset(self,
+			sqlsupport.SimpleQuerier().runIsolatedQuery("select object from"
+				" test.prodtest"),
+			[("gabriel",)])
+	
+	def testInProducts(self):
+		assertRowset(self,
+			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
+				" products where sourceTable='test.prodtest'"),
+			[(u'data/a.imp', u'test', DateTime.DateTime(2030, 12, 31), 
+				u'data/a.imp', u'test.prodtest')])
+
+	def testInMetatable(self):
+		fields = sorted([(r[9], r[1], r[4]) for r in
+			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
+				" fielddescriptions where tableName='test.prodtest'")])
+		assertRowset(self, fields, [
+			(0, u'object', None), 
+			(1, u'alpha', None), 
+			(2, u'accref', None), 
+			(3, u'owner', None), 
+			(4, u'embargo', None), 
+			(5, u'accsize', u'Size of the image in bytes')])
+
+	def tearDown(self):
+		tw = sqlsupport.TableWriter(self.tableDef)
+		tw.dropTable()
+		tw.finish()
+		config.set("inputsDir", self.oldInputs)
+
+
+class TestCleanedup(unittest.TestCase):
+	"""tests for cleanup after table drop (may fail if other tests failed).
+	"""
+	def setUp(self):
+		config.setDbProfile("admin")
+
+	def testNotInProducts(self):
+		assertRowset(self,
+			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
+				" products where sourceTable='test.prodtest'"),
+			[])
+
+	def testNotInMetatable(self):
+		assertRowset(self,
+			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
+				" fielddescriptions where tableName='test.prodtest'"),
+			[])
+
+	def testNotInDc_tables(self):
+		assertRowset(self,
+			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
+				" dc_tables where tableName='test.prodtest'"),
+			[])
+
 
 if __name__=="__main__":
-	unittest.main()
+#	testhelpers.main(TestProductsImport)
+	testhelpers.main(TestCleanedup)

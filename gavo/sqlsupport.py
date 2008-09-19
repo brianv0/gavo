@@ -452,6 +452,19 @@ class StandardQueryMixin(object):
 			}).fetchall()
 		return len(matches)!=0
 
+	def getOIDForTable(self, tableName):
+		"""returns the current oid of tableName.
+
+		tableName may be schema qualified.  If it is not, public is assumed.
+		"""
+		schema, tableName = self._parseTableName(tableName, schema)
+		res = self.query("SELECT oid FROM pg_class WHERE"
+			" relname=%(tableName)s AND"
+			" relnamespace=(SELECT oid FROM pg_namespace WHERE nspname=%(schema)s)",
+			locals()).fetchall()
+		assert len(res)==1
+		return res[0][0]
+
 	def roleExists(self, role):
 		"""returns True if there role is known to the database.
 
@@ -642,11 +655,10 @@ class TableWriter(TableInterface):
 	"""is a moderately high-level interface to feeding data into an
 	SQL database.
 	"""
-	def __init__(self, tableDef, dbConnection=None, scriptRunner=None,
-			meta=True):
+	def __init__(self, tableDef, dbConnection=None, meta=True):
 		TableInterface.__init__(self, tableDef, dbConnection)
 		self.workingOnView = self.tableDef.hasScript("viewCreation")
-		self.scriptRunner, self.meta = scriptRunner, meta
+		self.meta = meta
 
 	def _getDDLDefinition(self, field):
 		"""returns an sql fragment for defining the field described by the 
@@ -660,11 +672,20 @@ class TableWriter(TableInterface):
 		return " ".join(items)
 
 	def makeIndices(self):
-		if self.scriptRunner:
-			self.scriptRunner.runScripts("preIndex", tw=self)
-			self.scriptRunner.runScripts("preIndexSQL", connection=self.connection)
+		self.tableDef.runScripts("preIndex", tw=self)
+		self.tableDef.runScripts("preIndexSQL", connection=self.connection)
 		if not self.workingOnView:
 			TableInterface.makeIndices(self)
+
+	def dropTable(self):
+		if self.tableExists(self.tableName):
+			self.query("DROP %s %s CASCADE"%(
+				{True: "VIEW", False: "TABLE"}[self.workingOnView],
+				self.tableName))
+			self.tableDef.runScripts("afterDrop", connection=self.connection)
+			if self.meta:
+				mh = MetaTableHandler()
+				mh.clean(self.tableDef, self)
 
 	def createTable(self, delete=True, create=True, privs=True):
 		"""creates a new table for dataset.
@@ -680,10 +701,7 @@ class TableWriter(TableInterface):
 			setTablePrivileges(self.tableDef, self)
 	
 		if delete:
-			if self.tableExists(self.tableName):
-				self.query("DROP %s %s CASCADE"%(
-					{True: "VIEW", False: "TABLE"}[self.workingOnView],
-					self.tableName))
+			self.dropTable()
 		if create:
 			if self.workingOnView:
 				self.tableDef.runScripts("viewCreation", querier=self)
@@ -794,18 +812,26 @@ class MetaTableHandler:
 	def _getQuerier(self):
 		return SimpleQuerier(getDbConnection(self.profile))
 
+	def cleanSourceTable(self, tableDef, querier):
+		if tableDef.getQName()!="public.dc_tables":
+			querier.query("DELETE FROM dc_tables WHERE tableName=%(tableName)s",
+				{"tableName": tableDef.getQName()})
+
 	def updateSourceTable(self, tableDef, querier):
-		querier.query("DELETE FROM dc_tables WHERE tableName=%(tableName)s",
-			{"tableName": tableDef.getQName()})
+		self.cleanSourceTable(tableDef, querier)
 		writer = TableWriter(self.sourceTable, querier.connection, meta=False)
 		feed = writer.getFeeder(dropIndices=False)
 		feed({"tableName": tableDef.getQName(), "sourceRd": tableDef.rd.sourceId,
-			"adql": tableDef.get_adql()})
+			"adql": tableDef.get_adql(), "tableDesc": None, "resDesc": None})
 		feed.close()
 
-	def defineColumns(self, tableDef, querier):
-		querier.query("DELETE FROM %s WHERE tableName=%%(tableName)s"%
+	def cleanColumns(self, tableDef, querier):
+		if tableDef.getQName()!="public.fielddescriptions":
+			querier.query("DELETE FROM %s WHERE tableName=%%(tableName)s"%
 				self.metaTable.getQName(), {"tableName": tableDef.getQName()})
+
+	def defineColumns(self, tableDef, querier):
+		self.cleanColumns(tableDef, querier)
 		tableName = tableDef.getQName()
 		writer = TableWriter(self.metaTable, querier.connection, meta=False)
 		feed = writer.getFeeder(dropIndices=False)
@@ -821,6 +847,10 @@ class MetaTableHandler:
 		self.defineColumns(tableDef, querier)
 		querier.finish()
 
+	def clean(self, tableDef, querier):
+		self.cleanSourceTable(tableDef, querier)
+		self.cleanColumns(tableDef, querier)
+		
 	def getFieldInfo(self, fieldName, tableName=""):
 		"""returns a dictionary with the information available
 		for fieldName.

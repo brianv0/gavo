@@ -9,7 +9,7 @@ th {
 	vertical-align: top;
 }
 
-p {
+p, li {
 	max-width: 400px;
 }
 

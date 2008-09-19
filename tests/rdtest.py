@@ -125,5 +125,6 @@ class SimpleDataTest(unittest.TestCase):
 			inData)
 		self.assertAlmostEqual(outData.getPrimaryTable().rows[0]["baz"], 5.3)
 
+
 if __name__=="__main__":
 	unittest.main()

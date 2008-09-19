@@ -18,7 +18,14 @@ tables and the RDs the tables come from. -->
 				<!-- make this refer to pg_tables or somesuch so fields get
 				dropped automatically when a table gets dropped -->
 				<Field dest="sourceRd" dbtype="text" source="sourceRd"
-					description="Id of the resource descriptor containing the table's definition"/>
+					description="Id of the resource descriptor containing the table's definition"
+					tablehead="RD"/>
+				<Field dest="tableDesc" dbtype="text" source="tableDesc"
+					description="Description of the table content" 
+					tablehead="Table desc."/>
+				<Field dest="resDesc" dbtype="text" source="resDesc"
+					description="Description of the resource this table is part of"
+					tablehead="Res desc."/>
 				<Field dest="adql" dbtype="boolean" source="adql"
 					description="True if this table may be accessed using ADQL"/>
 			</SharedTable>

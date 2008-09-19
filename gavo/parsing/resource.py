@@ -110,10 +110,12 @@ class ThingWithRoles(record.Record):
 		return self._setRoles("allRoles", val, config.get("db", "maintainers"))
 
 
-class TableDef(ThingWithRoles, meta.MetaMixin, scripting.ScriptingMixin):
+class TableDef(ThingWithRoles, meta.MetaMixin, scripting.ScriptingMixin,
+		scripting.MacroPackage):
 	"""is a specification for the semantics of a table line.
 	"""
-	validWaypoints = set(["preIndex", "preIndexSQL", "viewCreation"])
+	validWaypoints = set(["preIndex", "preIndexSQL", "viewCreation", 
+		"afterDrop"])
 
 	def __init__(self, rd, initvals={}):
 		ThingWithRoles.__init__(self, {
@@ -141,6 +143,9 @@ class TableDef(ThingWithRoles, meta.MetaMixin, scripting.ScriptingMixin):
 
 	def __repr__(self):
 		return "<TableDef %s, %s>"%(id(self), id(self.get_items()))
+
+	def macro_curtable(self):
+		return self.getQName()
 
 	def set_adql(self, val):
 		val = record.parseBooleanLiteral(val)
@@ -491,7 +496,7 @@ class InternalDataSet(DataSet):
 			literalParser, silent=self.silent)
 
 
-class Resource:
+class Resource(object):
 	"""is a model for a resource containing data sets and metadata.
 
 	This, it is a concrete instance of data described by a 
@@ -608,7 +613,7 @@ class Resource:
 
 
 class ResourceDescriptor(ThingWithRoles, meta.MetaMixin, 
-		scripting.ScriptingMixin):
+		scripting.ScriptingMixin, scripting.MacroPackage):
 	"""is a container for all information necessary to import a resource into
 	the DC.
 	"""
@@ -653,6 +658,9 @@ class ResourceDescriptor(ThingWithRoles, meta.MetaMixin,
 
 	def getRd(self):
 		return self
+
+	def macro_schema(self):
+		return self.get_schema()
 
 	def _getSourceId(self, sourcePath):
 		"""returns the inputsDir-relative path to the rd.
@@ -757,7 +765,8 @@ class ResourceDescriptor(ThingWithRoles, meta.MetaMixin,
 		querier.finish()
 
 
-class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin):
+class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin,
+		scripting.MacroPackage):
 	"""is a DataTransformer for reading data from files or external processes.
 	"""
 	validWaypoints = set(["preCreation", "postCreation"])
@@ -787,6 +796,9 @@ class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin):
 		if self.dataStore["source"]:
 			return os.path.join(self.rd.get_resdir(), 
 				self.dataStore["source"])
+
+	def macro_schema(self):
+		return self.rd.get_schema()
 
 	def iterSources(self):
 		if not os.path.isdir(self.rd.get_resdir()):

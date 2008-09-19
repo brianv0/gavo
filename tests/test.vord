@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- A resource descriptor for various unit tests -->
 
-<ResourceDescriptor srcdir="tests">
+<ResourceDescriptor srcdir="data">
 	<meta name="test.inRd">from Rd</meta>
 	<schema>test</schema>
 
@@ -147,6 +147,32 @@
 			</Record>
 		</Semantics>
 		<RowsetGrammar fieldsFrom="adqlcols"/>
+	</Data>
+
+	<Data id="productimport" sourcePat="*.imp">
+		<!-- Sources are in tests/data, so you need to fix inputsDir to
+		./tests to import this -->
+		<KeyValueGrammar>
+       <Macro name="setProdtblValues">
+          <arg name="prodtblKey" value="@inputRelativePath"/>
+          <arg name="prodtblOwner" value="test"/>
+          <arg name="prodtblEmbargo" source="embargo"/>
+          <arg name="prodtblPath" value="@inputRelativePath"/>
+          <arg name="prodtblFsize" value="@inputSize"/>
+        </Macro>
+				<Macro name="handleEquatorialPosition">
+					<arg name="alpha" source="alpha"/>
+					<arg name="delta" source="delta"/>
+				</Macro>
+		</KeyValueGrammar>
+		<Semantics>
+			<Table table="prodtest">
+				<Field dest="object" source="object" dbtype="text"/>
+				<Field dest="alpha" source="alphaFloat" dbtype="real" ucd="pos.eq.ra"/>
+				<Field dest="alpha" source="alphaFloat" dbtype="real" ucd="pos.eq.dec"/>
+				<implements name="products"/>
+			</Table>
+		</Semantics>
 	</Data>
 </ResourceDescriptor>
 

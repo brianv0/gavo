@@ -347,6 +347,13 @@ class Settings(object):
 			self.valueCache[section, key] = self._computeValueFor(section, key)
 		return self.valueCache[section, key]
 
+	def set(self, arg1, arg2=None, arg3=None):
+		if arg3 is None:
+			section, key, value = "DEFAULT", arg1.lower(), arg2
+		else:
+			section, key = arg1.lower(), arg2.lower(), arg3
+		self.valueCache[section, key] = value
+
 	def _getProfileParser(self):
 		if not hasattr(self, "__profileParser"):
 			self.__profileParser = ProfileParser(
@@ -377,6 +384,7 @@ class Settings(object):
 
 _config = Settings()
 get = _config.get
+set = _config.set
 setDbProfile = _config.setDbProfile
 getDbProfile = _config.getDbProfile
 getDbProfileByName = _config.getDbProfileByName

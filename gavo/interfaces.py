@@ -267,8 +267,16 @@ class Products(Interface):
 	def __init__(self, overrideFields=None):
 		rd = resourcecache.getRd("__system__/products/products")
 		self.productTable = rd.getTableDefByName("products")
-		self.productFields = rd.getTableDefByName("productFields").get_items()
-		Interface.__init__(self, overrideFields or self.productFields)
+		self.interfaceNodes = rd.getTableDefByName("productFields")
+		Interface.__init__(self, overrideFields or self.interfaceNodes.get_items())
+
+	def getNodes(self, recordNode):
+# XXX TODO: We'd need that stuff to be almost unserialized here.  Figure
+# out some elegant way to get this.  Meanwhile, we'll have to hardcode:
+		for n in Interface.getNodes(self, recordNode):
+			yield n
+		for s in self.interfaceNodes.get_scripts():
+			yield ("script", s)
 
 	def getDelayedNodes(self, tableDef):
 		"""sets up exporting the products to the product table by

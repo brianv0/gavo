@@ -218,7 +218,7 @@ class Table(RecordBasedTable):
 	def _getOwnedTableWriter(self):
 		tableName = self.tableDef.getQName()
 		tableExporter = sqlsupport.TableWriter(self.tableDef,
-			self.dbConnection, scriptRunner=self.tableDef)
+			self.dbConnection)
 		tableExporter.createTable(create=self.tableDef.get_create(),
 			delete=self.tableDef.get_create(),
 			privs=self.tableDef.get_create())

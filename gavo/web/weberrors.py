@@ -133,6 +133,7 @@ class ErrorPage(ErrorPageDebug):
 			return appserver.errorMarker
 		failure.printTraceback()
 		request = inevow.IRequest(ctx)
+### XXX TODO: figure out how to log		ctx.locate(inevow.ILogger).log("Arguments were %s"%request.args)
 		request.write(self.errorTemplate%self.getHTML(failure))  
 			# write out some HTML and hope
 			# for the best (it might well turn up in the middle of random output)

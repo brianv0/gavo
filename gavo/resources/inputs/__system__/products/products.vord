@@ -34,9 +34,6 @@
 				<Field dest="accref" ucd="VOX:Image_AccessReference"
 					source="prodtblKey" dbtype="text" verbLevel="1"
 					displayHint="type=product" tablehead="Product"/>
-				<!-- it would be smart to "references": "products" the accref,
-					but that causes the removal of the items to take forever.  See if
-					we can figure out a way to avoid that penalty. -->
 				<Field dest="owner" source="prodtblOwner" dbtype="text"
 					tablehead="Product owner" verbLevel="25"/>
 				<Field dest="embargo" source="prodtblEmbargo" dbtype="date"
@@ -45,6 +42,20 @@
 					tablehead="File size" description="Size of the image in bytes"
 					source="prodtblFsize" dbtype="integer" verbLevel="11"
 					unit="byte"/>
+
+				<!-- The following rule makes sure the product
+				table entry is removed when a row is deleted.  There has to be
+				a better way to do this, but referencing doesn't help here,
+				since the reference would have to go from the product table
+				to this one here, and there are may of those -->
+				<script type="preIndexSQL" name="create product cleanup rule">
+					CREATE OR REPLACE RULE cleanupProducts AS ON DELETE TO\
+						\curtable{} DO ALSO\
+						DELETE FROM products WHERE key=OLD.accref
+				</script>
+				<script type="afterDrop" name="clean product table">
+					DELETE FROM products WHERE sourceTable='\curtable'
+				</script>
 			</Table>
 		</Semantics>
 	</Data>

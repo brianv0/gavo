@@ -8,7 +8,7 @@ import weakref
 
 from pyparsing import Word, OneOrMore, ZeroOrMore, QuotedString, Forward,\
 	SkipTo, Optional, StringEnd, Regex, LineEnd, Suppress, ParserElement,\
-	Literal, White, ParseException
+	Literal, White, ParseException, dblQuotedString
 
 import gavo
 from gavo import config
@@ -16,30 +16,82 @@ from gavo import sqlsupport
 from gavo import utils
 
 
-class SqlMacroExpander(object):
-	"""is a collection of "Macros" that can be used in SQL scripts.
+class Error(gavo.Error):
+	pass
 
-	This whole thing needs to be redone into a general mechanism of
-	placing values from the resource descriptor and/or the parent
-	into scripts.
+
+class MacroExpander(object):
+	"""is a generic "macro" expander for scripts of all kinds.
+
+	It is loosely inspired by TeX, but of course much simpler.  See the
+	syntax below.
+
+	The macros themselves come from a MacroPackage object.  There are
+	a few of the around, implementing different functionality depending
+	on the script context (i.e., whether it belongs to an RD, a DD, or
+	a Table.
+
+	All macros are just functions receiving and returning strings.  Strings
+	in Arguments must be quoted, the results of macro calls will not be
+	quoted.
+
+	The main entry point to the class is the expand function below,
+	taking a string possibly containing macro calls and returning
 	"""
-	def __init__(self, rd):
-		self.rd = rd
-		self.macrodict = {}
-		for name in dir(self):
-			if name.isupper():
-				self.macrodict[name] = getattr(self, name)
-	
-	def _expandScriptMacro(self, matob):
-		return eval(matob.group(1), self.macrodict)
+	def __init__(self, package):
+		self.package = package
+		self.grammar = self.getGrammar()
 
-	def expand(self, script):
-		"""expands @@@...@@@ macro calls in SQL scripts
-		"""
-		return re.sub("@@@(.*?)@@@", self._expandScriptMacro, script)
+	def _execMacro(self, s, loc, toks):
+		toks = toks.asList()
+		macName, args = toks[0], toks[1:]
+		return self.package.execMacro(macName, args)
 
-	def SCHEMA(self):
-		return self.rd.get_schema()
+	def expand(self, aString):
+		return self.grammar.transformString(aString)
+
+	def getGrammar(self, debug=False):
+		macro = Forward()
+		argument = QuotedString(quoteChar='"', escChar="\\", unquoteResults=True
+			) | macro
+		arguments = (Suppress( "{" ) + Optional( argument ) + 
+			ZeroOrMore( Suppress(',') + argument) + Suppress( "}" ))
+		macroName = Regex("[A-Za-z_][A-Za-z_0-9]+")
+		macro << Suppress( "\\" ) + macroName + Optional( arguments )
+		macro.setParseAction(self._execMacro)
+		literalBackslash = Literal("\\\\")
+		literalBackslash.setParseAction(lambda *args: "\\")
+		suppressedLF = Literal("\\\n")
+		suppressedLF.setParseAction(lambda *args: " ")
+		if debug:
+			macro.setDebug(True)
+			macro.setName("macro")
+			argument.setDebug(True)
+			argument.setName("arg")
+			arguments.setDebug(True)
+			arguments.setName("args")
+			macroName.setDebug(True)
+			macroName.setName("macname")
+		return macro | literalBackslash | suppressedLF
+
+
+class MacroPackage(object):
+	r"""is a function dispatcher for MacroExpander.
+
+	Basically, you inherit from this class and define macro_xxx functions.
+	MacroExpander can then call \xxx, possibly with arguments.
+	"""
+	def execMacro(self, macName, args):
+		fun = getattr(self, "macro_"+macName, None)
+		if fun is None:
+			raise Error("No such macro available in this context: \\%s"%macName)
+		try:
+			return fun(*args)
+		except TypeError:
+			raise Error("Invalid Arguments to \\%s: %s"%(macName, args))
+
+	def macro_quote(self, arg):
+		return '"%s"'%(arg.replace('"', '\\"'))
 
 
 def _getSQLScriptGrammar():
@@ -50,7 +102,7 @@ def _getSQLScriptGrammar():
 	withing strings and inside of open parens.
 	"""
 	ParserElement.setDefaultWhitespaceChars(" \t")
-#	ParserElement.enablePackrat()
+	ParserElement.enablePackrat()
 	atom = Forward()
 	atom.setName("Atom")
 
@@ -197,11 +249,10 @@ class ScriptHandler(object):
 	"""
 	def __init__(self, parent, rd):
 		self.rd, self.parent = rd, weakref.proxy(parent)
-		self.expander = SqlMacroExpander(self.rd)
 
 	def _runSqlScript(self, script):
 		runner = SQLScriptRunner()
-		runner.run(self.expander.expand(script))
+		runner.run(script)
 
 	def _runSqlScriptInConnection(self, script, connection):
 		"""runs a script in connection.
@@ -215,7 +266,7 @@ class ScriptHandler(object):
 		"""
 		connection.cursor().execute("COMMIT")
 		runner = SQLScriptRunner()
-		runner.run(self.expander.expand(script), connection=connection)
+		runner.run(script, connection=connection)
 
 	def _runSqlScriptWithQuerier(self, script, querier):
 		"""runs a script blindly using querier.
@@ -223,8 +274,7 @@ class ScriptHandler(object):
 		Any error conditions will abort the script and leave querier's
 		connection invalid until a rollback.
 		"""
-		SQLScriptRunner().runBlindly(self.expander.expand(script), 
-			querier=querier)
+		SQLScriptRunner().runBlindly(script, querier=querier)
 
 	def _runPythonDDProc(self, script):
 		"""compiles and run script to a python function working on a
@@ -264,6 +314,7 @@ class ScriptHandler(object):
 		"processTable": _runPythonDDProc,
 		"preIndex": _runPythonTableProc,
 		"preIndexSQL": _runSqlScriptInConnection,
+		"afterDrop": _runSqlScriptInConnection,
 		"viewCreation": _runSqlScriptWithQuerier,
 	}
 	
@@ -271,9 +322,10 @@ class ScriptHandler(object):
 		gavo.ui.displayMessage("Running %s script %s"%(scriptType, scriptName))
 		self.handlers[scriptType](self, script, **kwargs)
 
-	def runScripts(self, waypoint, **kwargs):
+	def runScripts(self, waypoint, macroExpander, **kwargs):
 		for scriptType, scriptName, script in self.parent.get_scripts():
 			if scriptType==waypoint:
+				script = macroExpander.expand(script)
 				self._runScript(scriptType, scriptName, script, **kwargs)
 
 
@@ -291,9 +343,26 @@ class ScriptingMixin(object):
 		except AttributeError:
 			self.__scriptHandler = ScriptHandler(self, self.rd)
 			return self.__getScriptHandler()
-	
+
+	def __getMacroExpander(self):
+		try:
+			return self.__macroExpander
+		except AttributeError:
+			self.__macroExpander = MacroExpander(self.getPackage())
+			return self.__getMacroExpander()
+
 	def runScripts(self, waypoint, **kwargs):
-		self.__getScriptHandler().runScripts(waypoint, **kwargs)
+		self.__getScriptHandler().runScripts(waypoint, 
+			self.__getMacroExpander(), **kwargs)
+
+	def getPackage(self):
+		"""returns a macro package for this object.
+
+		If you mix in MacroPackage into the class that supports scripts,
+		this default implementation will do, otherwise you'll have to
+		override it.
+		"""
+		return self
 
 	def hasScript(self, waypoint):
 		"""returns True if there is at least one script for waypoint
@@ -313,5 +382,6 @@ class ScriptingMixin(object):
 
 
 if __name__=="__main__":
-	g = getSQLScriptGrammar()
-	print g.parseString("""(foo""")
+	sys.setrecursionlimit(50)
+	me = MacroExpander(MacroPackage())
+	print me.grammar.parseString(r'\quote{\quote{"foo"}}')

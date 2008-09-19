@@ -30,6 +30,17 @@ class VerboseTest(unittest.TestCase):
 		else:
 			raise self.failureException(msg)
 
+	def assertRaisesWithMsg(self, exception, errMsg, callable, args, msg=None):
+		try:
+			callable(*args)
+		except exception, ex:
+			if str(ex)!=errMsg:
+				raise self.failureException(
+					"Expected %r, got %r as exception message"%(errMsg, str(ex)))
+		except:
+			raise
+		else:
+			raise self.failureException(msg or "%s not raised"%exception)
 
 class XSDTestMixin(object):
 	"""provides a assertValidates method doing XSD validation.

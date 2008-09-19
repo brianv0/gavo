@@ -2,9 +2,6 @@
 Code to obtain WCS headers for fits files using astrometry.net
 """
 
-# Within ARI, this only runs on saiph
-# XXX -- make this more configurable -- anetPath, anetIndexPath in config?
-
 import os
 
 import pyfits
@@ -13,8 +10,8 @@ import gavo
 from gavo import fitstools
 from gavo import utils
 
-anetPath = "/data/anet/astrometry/bin"
-anetIndexPath = "/data/anet/astrometry/data"
+anetPath = "/usr/local/astrometry/bin"
+anetIndexPath = "/usr/local/astrometry/data"
 solverBin = os.path.join(anetPath, "solve-field")
 tabsortBin = os.path.join(anetPath, "tabsort")
 getHealpixBin = os.path.join(anetPath, "get-healpix")
