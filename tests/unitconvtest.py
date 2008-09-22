@@ -49,6 +49,7 @@ class UnitsStringTest(GrammarTest):
 			("mas/yr", "mas yr-1"),
 			("mas/yr/m", "mas yr-1 m-1"),
 			("mas/yr.m", "mas yr-1 m"),
+			("mmag", "0.001mag"),
 			("50x10+3yr/m", "50000.0yr m-1"),
 			("2.2x10-3V/C", "0.0022V C-1"),
 		)
@@ -61,6 +62,19 @@ class UnitsStringTest(GrammarTest):
 			"a-b",
 			"+b",
 			"10e7m",)
+
+
+class ElementaryUnitTest(GrammarTest):
+	"""tests that all elementary units parse correctly.
+
+	This is necessary since there are units like mas that would be
+	parsed as <milli><year>*crash*.
+	"""
+	def setUp(self):
+		self.unitGrammar = unitconv.getUnitGrammar()
+
+	def testUnits(self):
+		self._assertResults(*[(unit, unit) for unit in unitconv.units])
 
 
 class NormalizationTest(unittest.TestCase):
@@ -114,4 +128,4 @@ class ConvFactorTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	unittest.main()
+	testhelpers.main(ElementaryUnitTest)

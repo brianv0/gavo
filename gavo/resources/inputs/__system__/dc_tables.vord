@@ -14,20 +14,19 @@ tables and the RDs the tables come from. -->
 		<Semantics>
 			<SharedTable table="dc_tables">
 				<Field dest="tableName" description="Fully qualified table name"
-					dbtype="text" source="tableName"/>
-				<!-- make this refer to pg_tables or somesuch so fields get
-				dropped automatically when a table gets dropped -->
+					dbtype="text" source="tableName" verbLevel="1"/>
 				<Field dest="sourceRd" dbtype="text" source="sourceRd"
 					description="Id of the resource descriptor containing the table's definition"
-					tablehead="RD"/>
+					tablehead="RD" verbLevel="15"/>
 				<Field dest="tableDesc" dbtype="text" source="tableDesc"
 					description="Description of the table content" 
-					tablehead="Table desc."/>
+					tablehead="Table desc." verbLevel="1"/>
 				<Field dest="resDesc" dbtype="text" source="resDesc"
 					description="Description of the resource this table is part of"
-					tablehead="Res desc."/>
+					tablehead="Res desc." verbLevel="15"/>
 				<Field dest="adql" dbtype="boolean" source="adql"
-					description="True if this table may be accessed using ADQL"/>
+					description="True if this table may be accessed using ADQL"
+					verbLevel="30"/>
 			</SharedTable>
 		</Semantics>
 	</Data>
@@ -81,7 +80,7 @@ tables and the RDs the tables come from. -->
 		<meta name="title">GAVO ADQL tables</meta>
 		<allow renderers="form"/>
 		<core builtin="runFixedQuery"
-			query="SELECT tableName, tableName FROM dc_tables WHERE adql">
+			query="SELECT tableName, tableName, tableDesc, resDesc FROM dc_tables WHERE adql">
 		</core>
 		<srvInput/>
 		<srvOutput>
@@ -92,6 +91,8 @@ tables and the RDs the tables come from. -->
 						"show/tableinfo?tableName="+urllib.quote(data)))["Table Info"]
 				</renderer>
 			</outputField>
+			<outputField original=".tableDesc"/>
+			<outputField original=".resDesc"/>
 		</srvOutput>
 	</Service>
 </ResourceDescriptor>

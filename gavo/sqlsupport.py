@@ -8,6 +8,7 @@ import sys
 import operator
 
 from gavo import config
+from gavo import meta
 from gavo import resourcecache  # we need importparser.getRd from there,
 # so somebody else has to import it before the metatable can be accessed.
 
@@ -822,7 +823,9 @@ class MetaTableHandler:
 		writer = TableWriter(self.sourceTable, querier.connection, meta=False)
 		feed = writer.getFeeder(dropIndices=False)
 		feed({"tableName": tableDef.getQName(), "sourceRd": tableDef.rd.sourceId,
-			"adql": tableDef.get_adql(), "tableDesc": None, "resDesc": None})
+			"adql": tableDef.get_adql(), 
+			"tableDesc": meta.getMetaText(tableDef, "description"),
+			"resDesc": meta.getMetaText(tableDef.rd, "description"),})
 		feed.close()
 
 	def cleanColumns(self, tableDef, querier):

@@ -309,6 +309,18 @@ class ScriptMacroTest(testhelpers.VerboseTest):
 				(r'\oneArg{\oneArg{"bla"}}', 'bla'),
 				(r'Here is \twoArg{\quote{"ba\"r"},\noArg}', 'Here is "ba\\"r"foo'),
 				(r'Here is \twoArg{"bar",\noArg}', "Here is barfoo"),
+				# we probably wouldn't want the following, but it's hard to work around.
+				(r'Lots \ of \@ weirdness', "Lots \\ of \\@ weirdness"),
+			]:
+			self.assertEqual(me.expand(unEx), ex)
+
+	def testWhitespace(self):
+		me = scripting.MacroExpander(self.SimplePackage())
+		for unEx, ex in [
+				(r"There is \noArg whitespace here", "There is foowhitespace here"),
+				(r"There is \noArg{} whitespace here", "There is foo whitespace here"),
+				("Two\nlines", "Two\nlines"),
+				("One\\\nline", "One line"),
 			]:
 			self.assertEqual(me.expand(unEx), ex)
 
@@ -321,11 +333,6 @@ class ScriptMacroTest(testhelpers.VerboseTest):
 			r"Invalid Arguments to \quote: []", 
 			me.expand, (r"\quote takes an argument",))
 	
-	def testWhitespace(self):
-		me = scripting.MacroExpander(self.SimplePackage())
-		self.assertEqual(me.expand('A macro:\\\n\\oneArg{"no."}'), "A macro: no.")
-
-
 
 if __name__=="__main__":
 	testhelpers.main(ScriptMacroTest)

@@ -456,6 +456,15 @@ def makeMetaValue(value="", **kwargs):
 			cls.__name__, str(kwargs)))
 
 
+def getMetaText(ob, key, propagate=False):
+	"""returns the meta item key form ob in text form if present, None otherwise.
+	"""
+	m = ob.getMeta(key, propagate=propagate)
+	if m:
+		return m.getContent()
+	return None
+
+
 class MetaBuilder(object):
 	"""is a builder that does nothing.
 

@@ -7,10 +7,10 @@ import math
 import re
 import traceback
 
-from pyparsing import Word, Literal, Regex, Optional, ZeroOrMore, StringEnd,\
-	MatchFirst
-from pyparsing import ParseException
+from pyparsing import Word, Literal, Regex, Optional, ZeroOrMore, StringEnd
+from pyparsing import MatchFirst, ParseException, ParserElement
 
+ParserElement.enablePackrat()
 
 class IncompatibleUnits(Exception):
 	pass
@@ -116,7 +116,7 @@ class Unit(object):
 		self.unit = "--"
 		for tok in toks:
 			if isinstance(tok, Prefix) or isinstance(tok, ExedFloat):
-				self.scale*=tok.float
+				self.scale *= tok.float
 			elif isinstance(tok, basestring):
 				self.unit = tok
 			elif isinstance(tok, int):
@@ -208,27 +208,33 @@ class Expression(object):
 def getUnitGrammar():
 	unitStrings = units.keys()
 	unitStrings.sort(lambda a,b: -cmp(len(a), len(b)))
+# funkyUnits those that would partially parse, like mas or mag
+	funkyUnit = Regex("cd|Pa|mas|mag")
 	unit = Regex("|".join(unitStrings))
-	unit.setName("Naked unit")
-	prefix = Regex("|".join(prefixes)).setParseAction(Prefix)
-	prefix.setName("metric prefix")
+	unit.setWhitespaceChars("")
+	prefix = Regex("|".join(prefixes))
+	prefix.setParseAction(Prefix)
 	number = Regex(r"[+-]?(\d+(?:\.?\d+)?)(x10[+-]\d+)?").setParseAction(
 		ExedFloat)
 	integer = Regex(r"[+-]?(?:\d+)").setParseAction(lambda s, p, toks: 
 		int(toks[0]))
 	operator = Literal(".") | Literal("/")
-	completeUnit = (Optional(number) + Optional(prefix) + unit + 
+	completeUnit = (Optional(number) + ( funkyUnit | Optional(prefix) + unit ) + 
 		Optional(integer))
 	prefixlessUnit = Optional(number) + unit + Optional(integer)
-	completeUnit.setName("unit with prefix")
-	prefixlessUnit.setName("unit without prefix")
 # The longest match here is a bit unfortunate, but it's necessary to keep
 # the machinery from happily accepting the m in ms as a unit and then
 # stumble since there's not operator or number following
-	unitLiteral = prefixlessUnit ^ completeUnit
+	unitLiteral = completeUnit | prefixlessUnit
 	unitLiteral.setParseAction(Unit)
 	expression = ( unitLiteral + ZeroOrMore( operator + unitLiteral ) +
 		StringEnd() ).setParseAction(Expression)
+
+	prefix.setName("metric prefix")
+	unit.setName("naked unit")
+	completeUnit.setName("unit with prefix")
+	prefixlessUnit.setName("unit without prefix")
+
 	if False:
 		unit.setDebug(True)
 		prefix.setDebug(True)
@@ -266,7 +272,7 @@ def getFactor(unitStr1, unitStr2):
 
 if __name__=="__main__":
 	g = getUnitGrammar()
-	res = g.parseString("deg")[0]
+	res = g.parseString("ms")[0]
 	print res
 	res.normalize()
 	print res

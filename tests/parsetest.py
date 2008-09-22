@@ -141,5 +141,5 @@ class TestCleanedup(unittest.TestCase):
 
 
 if __name__=="__main__":
-#	testhelpers.main(TestProductsImport)
-	testhelpers.main(TestCleanedup)
+	testhelpers.main(TestProductsImport)
+#	testhelpers.main(TestCleanedup)

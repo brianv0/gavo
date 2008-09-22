@@ -57,6 +57,7 @@ class MacroExpander(object):
 		arguments = (Suppress( "{" ) + Optional( argument ) + 
 			ZeroOrMore( Suppress(',') + argument) + Suppress( "}" ))
 		macroName = Regex("[A-Za-z_][A-Za-z_0-9]+")
+		macroName.setWhitespaceChars("")
 		macro << Suppress( "\\" ) + macroName + Optional( arguments )
 		macro.setParseAction(self._execMacro)
 		literalBackslash = Literal("\\\\")
@@ -72,7 +73,7 @@ class MacroExpander(object):
 			arguments.setName("args")
 			macroName.setDebug(True)
 			macroName.setName("macname")
-		return macro | literalBackslash | suppressedLF
+		return literalBackslash | suppressedLF | macro
 
 
 class MacroPackage(object):
