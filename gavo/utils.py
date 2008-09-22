@@ -85,7 +85,8 @@ def buildClassResolver(baseClass, objects, instances=False):
 	else:
 		registry = {}
 	for cls in _iterDerivedClasses(baseClass, objects):
-		registry[cls.name] = cls
+		if hasattr(cls, "name"):
+			registry[cls.name] = cls
 	def resolve(name, registry=registry):
 		return registry[name]
 	return resolve

@@ -147,6 +147,12 @@ class TableDef(ThingWithRoles, meta.MetaMixin, scripting.ScriptingMixin,
 	def macro_curtable(self):
 		return self.getQName()
 
+	def macro_tablename(self):
+		return self.get_table()
+	
+	def macro_schema(self):
+		return self.rd.get_schema()
+
 	def set_adql(self, val):
 		val = record.parseBooleanLiteral(val)
 		if val:
@@ -206,6 +212,7 @@ class TableDef(ThingWithRoles, meta.MetaMixin, scripting.ScriptingMixin,
 	def copy(self):
 		theCopy = record.Record.copy(self)
 		theCopy.fieldIndexDict = self.fieldIndexDict.copy()
+		theCopy.deepCopyMeta()
 		return theCopy
 
 

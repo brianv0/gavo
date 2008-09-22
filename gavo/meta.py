@@ -164,13 +164,13 @@ class MetaMixin(object):
 		self.__ensureMetaDict()
 		self.__metaDict[atom] = metaItem
 
-	def _addMeta(self, atoms, metaItem):
+	def _addMeta(self, atoms, metaValue):
 		self.__ensureMetaDict()
 		primary = atoms[0]
 		if primary in self.__metaDict:
-			self.__metaDict[primary]._addMeta(atoms[1:], metaItem)
+			self.__metaDict[primary]._addMeta(atoms[1:], metaValue)
 		else:
-			self.__metaDict[primary] = MetaItem.fromAtoms(atoms[1:], metaItem,
+			self.__metaDict[primary] = MetaItem.fromAtoms(atoms[1:], metaValue,
 				primary)
 
 	def addMeta(self, key, metaValue):
@@ -186,7 +186,23 @@ class MetaMixin(object):
 			builder.startKey(key)
 			item.traverse(builder)
 			builder.endKey(key)
-			
+
+	def deepCopyMeta(self):
+		"""creates a deep copy of the current meta dictionary and sets it
+		as the new meta dictionary.
+
+		You need to call this when you do a copy (using something like copy.copy()
+		of an object mixing in this class.
+
+		Note that the copying semantics is a bit funky: Copied values
+		remain, but on write, sequences are replaced rather than added to.
+		"""
+		self.__ensureMetaDict()
+		oldDict = self.__metaDict
+		self.__metaDict = {}
+		for key, mi in oldDict.iteritems():
+			self.__metaDict[key] = mi.copy()
+
 
 # Global meta, items get added from config
 configMeta = MetaMixin()
@@ -227,6 +243,9 @@ class MetaItem(object):
 	def addChild(self, metaValue=None, key=None):
 # XXX should we force metaValue to be "compatible" with what's 
 # already in children?
+		if hasattr(self, "copied"):
+			self.children = []
+			delattr(self, "copied")
 		if metaValue is None:
 			metaValue = makeMetaValue(name=key)
 		assert isinstance(metaValue, MetaValue)
@@ -262,6 +281,20 @@ class MetaItem(object):
 			return self.children[0].getContent(targetFormat)
 		raise gavo.MetaCardError("getContent not allowed for sequence meta items")
 
+	def traverse(self, builder):
+		for mv in self.children:
+			if mv.content:
+				builder.enterValue(mv)
+			mv.traverse(builder)
+
+	def copy(self):
+		"""returns a deep copy of self.
+		"""
+		newOb = self.__class__("")
+		newOb.children = [mv.copy() for mv in self.children]
+		newOb.copied = True
+		return newOb
+
 	@classmethod
 	def fromAtoms(cls, atoms, metaValue, key):
 		if len(atoms)==0:  # This will become my child.
@@ -275,11 +308,6 @@ class MetaItem(object):
 			mv._setForAtom(atoms[0], cls.fromAtoms(atoms[1:], metaValue, atoms[0]))
 			return cls(mv)
 
-	def traverse(self, builder):
-		for mv in self.children:
-			if mv.content:
-				builder.enterValue(mv)
-			mv.traverse(builder)
 
 
 class MetaValue(MetaMixin):
@@ -361,6 +389,14 @@ class MetaValue(MetaMixin):
 			else:
 				self._setForAtom(primary, MetaItem.fromAtoms(atoms, 
 					metaValue, primary))
+
+	def copy(self):
+		"""returns a deep copy of self.
+		"""
+		newOb = self.__class__()
+		newOb.format, newOb.content = self.format, self.content
+		newOb.deepCopyMeta()
+		return newOb
 
 
 class MetaURL(MetaValue):

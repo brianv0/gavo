@@ -1,3 +1,4 @@
+import copy
 import sys
 import unittest
 from xml import sax
@@ -153,6 +154,46 @@ class SequenceTest(testhelpers.VerboseTest):
 		self.assertRaises(gavo.MetaCardError, m.getMeta,
 			"stuff.alc")
 
+
+class TestCopies(testhelpers.VerboseTest):
+	"""tests for deep copying of meta containers.
+	"""
+	class Copyable(meta.MetaMixin):
+		def __init__(self, name):
+			self.name = name
+
+		def copy(self):
+			newOb = copy.copy(self)
+			newOb.deepCopyMeta()
+			return newOb
+
+	def testSimpleCopy(self):
+		m = self.Copyable("yikes")
+		m.addMeta("subject", "boredom")
+		m.addMeta("subject", "drudge")
+		m.addMeta("subject", "pain")
+		self.assertEqual(len(m.getMeta("subject").children), 3)
+		m2 = m.copy()
+		self.assertEqual(len(m2.getMeta("subject").children), 3)
+		m2.addMeta("subject", "ache")
+		self.assertEqual(len(m2.getMeta("subject").children), 1)
+		m2.addMeta("subject", "drudge")
+		self.assertEqual(len(m2.getMeta("subject").children), 2)
+		self.assertEqual(len(m.getMeta("subject").children), 3)
+
+	def testMessyCopy(self):
+		m = self.Copyable("mess")
+		m.addMeta("foo", "base")
+		m.addMeta("foo.bar.baz", "x")
+		m.addMeta("foo.bar.baz", "y")
+		m.addMeta("foo.bar.quux", "arm")
+		m.addMeta("foo.fii", "z")
+		tb = meta.TextBuilder()
+		m2 = m.copy()
+		self.assertEqual(m.buildRepr("foo", tb), m2.buildRepr("foo", tb))
+		m2.addMeta("foo.fii", "wo")
+		self.assertEqual(str(m2.getMeta("foo.fii")), "wo")
+		self.assertEqual(str(m.getMeta("foo.fii")), "z")
 
 class TestContent(testhelpers.VerboseTest):
 	"""tests for plain content access.
@@ -395,4 +436,4 @@ def singleTest():
 
 
 if __name__=="__main__":
-	testhelpers.main(RdTest)
+	testhelpers.main(TestCopies)

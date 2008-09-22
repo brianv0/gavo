@@ -43,7 +43,17 @@ def process(opts, args):
 
 
 def parseCmdline():
+	def enablePdb(opt, s, val, parser):
+		import pdb
+		def enterPdb(type, value, tb):
+			traceback.print_exception(type, value, tb)
+			pdb.pm()
+		sys.excepthook = enterPdb
+		parser.values.reraise = True
+
 	parser = OptionParser(usage = "%prog [options] <rd-name> {<data-id>}")
+	parser.add_option("-z", "--start-pdb", help="run pdb  when an exception"
+		" is not caught", callback=enablePdb, action="callback")
 	parser.add_option("-d", "--debug-productions", help="enable debugging for"
 		" the given productions", dest="debugProductions", default="", 
 		metavar="productions")
@@ -77,11 +87,14 @@ def parseCmdline():
 
 
 def main():
+	opts, args = parseCmdline()
 	try:
-		process(*parseCmdline())
+		process(opts, args)
 	except Abort, msg:
 		sys.exit(1)
 	except SystemExit, msg:
 		sys.exit(msg.code)
 	except Exception, msg:
 		utils.displayError(msg)
+		if getattr(opts, "reraise", False):
+			raise

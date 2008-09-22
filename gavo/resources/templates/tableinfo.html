@@ -9,12 +9,28 @@
 	<body n:render="withsidebar">
 		<h1 n:render="title"/>
 		<h2 class="section">General</h2>
+		<p n:render="iftablemeta description"><strong>Table Description:</strong>
+			<n:invisible n:render="tablemeta">description</n:invisible></p>
+
+		<p n:render="ifrdmeta description"><strong>Resource Description:</strong>
+			<n:invisible n:render="rdmeta">description</n:invisible></p>
+
+		<p n:render="ifrdmeta referenceURL"><strong>Further Information at:</strong>
+			<n:invisible n:render="rdmeta">referenceURL</n:invisible></p>
+	
 		<p>This table is <strong n:render="ifnodata" n:data="forADQL">not</strong>
 			available for <strong>ADQL</strong> queries.</p>
+
+		<n:invisible n:render="iftablemeta _longdoc">
+			<h2 class="section">Table Documentation</h2>
+
+			<n:invisible n:render="tablemeta">_longdoc</n:invisible>
+		</n:invisible>
+
 		<h2 class="section">Fields</h2>
 		<table n:render="tableOfFields" n:data="fields"/>
 
-		<h2 class="section">Further information</h2>
+		<h2 class="section">Other</h2>
 		<div id="siblings" n:render="ifdata" n:data="otherServices">
 			<p>The following services <em>may</em> use the data contained in this
 				table:</p>
@@ -25,8 +41,8 @@
 				</li>
 			</ul>
 		</div>
-		<p><strong>Copyright and such:</strong> 
-			<n:invisible n:render="tablemeta">copyright</n:invisible></p>
+		<p n:render="iftablemeta _copyright"><strong>Copyright and such:</strong> 
+			<n:invisible n:render="tablemeta">_copyright</n:invisible></p>
 	</body>
 </html>
 

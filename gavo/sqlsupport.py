@@ -673,8 +673,11 @@ class TableWriter(TableInterface):
 		return " ".join(items)
 
 	def makeIndices(self):
-		self.tableDef.runScripts("preIndex", tw=self)
-		self.tableDef.runScripts("preIndexSQL", connection=self.connection)
+# XXX TODO: views  are just too different from Tables.  Refactor to have
+# a ViewWriter and a ViewDefinition in RDs
+		if not self.workingOnView:
+			self.tableDef.runScripts("preIndex", tw=self)
+			self.tableDef.runScripts("preIndexSQL", connection=self.connection)
 		if not self.workingOnView:
 			TableInterface.makeIndices(self)
 

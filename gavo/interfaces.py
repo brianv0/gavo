@@ -97,7 +97,28 @@ class Interface:
 		return []
 
 
-class Positions(Interface):
+class TableBasedInterface(Interface):
+	"""is an interface that is based on a table definition within an RD.
+
+	It's highly preferable to build interfaces on RDs, so you should
+	use this rather than a plain Interface.
+	"""
+# The inheritance sucks. Refactor.
+	def __init__(self, rdId, tableName):
+		self.rd = resourcecache.getRd(rdId)
+		self.tableDef = self.rd.getTableDefByName(tableName)
+		Interface.__init__(self, [])
+		
+	def getNodes(self, recordNode):
+# XXX TODO: We'd need that stuff to be almost unserialized here.  Figure
+# out some elegant way to get this.  Meanwhile, we'll have to hardcode:
+		for f in self.tableDef.get_items():
+			yield ("Field", f)
+		for s in self.tableDef.get_scripts():
+			yield ("script", s)
+
+
+class Positions(TableBasedInterface):
 	"""is an interface for positions.
 	
 	It consists of the fields alphaFloat, deltaFloat (float angles
@@ -123,23 +144,10 @@ class Positions(Interface):
 	name = "positions"
 
 	def __init__(self):
-		Interface.__init__(self, [ 
-			{"dest": "alphaFloat", "unit": "deg", "dbtype": "double precision", 
-				"ucd": "pos.eq.ra", "literalForm": "do not touch", 
-				"source": "alphaFloat", "verbLevel": 1},
-			{"dest": "deltaFloat", "unit": "deg", "dbtype": "double precision", 
-				"ucd": "pos.eq.dec", "literalForm": "do not touch", 
-				"source": "deltaFloat", "verbLevel": 1},
-			{"dest": "c_x", "dbtype": "real", "literalForm": "do not touch", 
-				"source": "c_x", "verbLevel": 30},
-			{"dest": "c_y", "dbtype": "real", "literalForm": "do not touch", 
-				"source": "c_y", "verbLevel": 30},
-			{"dest": "c_z", "dbtype": "real", "literalForm": "do not touch", 
-				"source": "c_z", "verbLevel": 30},
-			])
+		TableBasedInterface.__init__(self, "__system__/scs", "positionsFields")
 
 
-class Q3CPositions(Positions):
+class Q3CPositions(TableBasedInterface):
 	"""is an interface for positions indexed using q3c.
 	
 	This works exactly like the positions interface, except that behind
@@ -149,20 +157,8 @@ class Q3CPositions(Positions):
 	"""
 	name = "q3cpositions"
 
-	def getDelayedNodes(self, recordNode):
-		tableName = recordNode.get_table()
-		yield "Data", ("script", ("postCreation", "q3cindex",
-			"\n".join([
-				"BEGIN",
-				"-DROP INDEX @@@SCHEMA()@@@.%(indexName)s",
-				"COMMIT",
-				"CREATE INDEX %(indexName)s ON @@@SCHEMA()@@@.%(tableName)s "
-				"(q3c_ang2ipix(alphaFloat, deltaFloat))",
-				"CLUSTER %(indexName)s ON @@@SCHEMA()@@@.%(tableName)s",
-				"ANALYZE @@@SCHEMA()@@@.%(tableName)s"])%{
-					"indexName": "q3c_"+tableName,
-					"tableName": tableName,
-					}))
+	def __init__(self):
+		TableBasedInterface.__init__(self, "__system__/scs", "q3cPositionsFields")
 
 	@staticmethod
 	def findNClosest(alpha, delta, tableName, n, fields, searchRadius=5):
@@ -229,7 +225,7 @@ class Q3CIndex(Interface):
 					}))
 
 
-class Products(Interface):
+class Products(TableBasedInterface):
 	"""is an interface for handling products.
 	
 	The interface requires the fields accref, owner, embargo, and
@@ -264,19 +260,10 @@ class Products(Interface):
 
 	requiredFields = set(["accref", "owner", "embargo", "accsize"])
 
-	def __init__(self, overrideFields=None):
-		rd = resourcecache.getRd("__system__/products/products")
-		self.productTable = rd.getTableDefByName("products")
-		self.interfaceNodes = rd.getTableDefByName("productFields")
-		Interface.__init__(self, overrideFields or self.interfaceNodes.get_items())
-
-	def getNodes(self, recordNode):
-# XXX TODO: We'd need that stuff to be almost unserialized here.  Figure
-# out some elegant way to get this.  Meanwhile, we'll have to hardcode:
-		for n in Interface.getNodes(self, recordNode):
-			yield n
-		for s in self.interfaceNodes.get_scripts():
-			yield ("script", s)
+	def __init__(self):
+		TableBasedInterface.__init__(self, "__system__/products/products",
+			"productFields")
+		self.productTable = self.rd.getTableDefByName("products")
 
 	def getDelayedNodes(self, tableDef):
 		"""sets up exporting the products to the product table by
@@ -290,7 +277,7 @@ class Products(Interface):
 		yield "Semantics", ("Table", products), True
 
 
-class BboxSiap(Products):
+class BboxSiap(TableBasedInterface):
 	"""is an interface for simple support of SIAP.
 
 	This currently only handles two-dimensional images.
@@ -335,9 +322,8 @@ class BboxSiap(Products):
 	name = "bboxSiap"
 	
 	def __init__(self):
-		rd = resourcecache.getRd("__system__/siap")
-		self.siapFields = rd.getTableDefByName("bboxsiapfields").get_items()
-		Products.__init__(self, self.siapFields)
+		TableBasedInterface.__init__(self, "__system__/siap", "bboxsiapfields")
+		self.siapFields = self.tableDef.get_items()
 	
 	def _getInterfaceFields(self):
 		# everything required in the standard must have verbLevel<=20,

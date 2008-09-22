@@ -291,6 +291,21 @@ class TableInfoRenderer(resourcebased.ServiceBasedRenderer,
 	def render_tablemeta(self, ctx, data):
 		return self._doRenderMeta(ctx, metaCarrier=self.table)
 
+	def render_iftablemeta(self, metaName):
+		if self.table.getMeta(metaName, propagate=False):
+			return lambda ctx, data: ctx.tag
+		else:
+			return lambda ctx, data: ""
+
+	def render_rdmeta(self, ctx, data):
+		return self._doRenderMeta(ctx, metaCarrier=self.table.rd)
+
+	def render_ifrdmeta(self, metaName):
+		if self.table.rd.getMeta(metaName, propagate=False):
+			return lambda ctx, data: ctx.tag
+		else:
+			return lambda ctx, data: ""
+
 	defaultDocFactory = common.doctypedStan(
 		T.html[
 			T.head[

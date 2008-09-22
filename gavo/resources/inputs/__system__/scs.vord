@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- definition of the position-related interfaces (and later SCS fragments) -->
+
+<ResourceDescriptor srcdir="__system">
+	<schema>public</schema>
+
+	<Data id="interfaceDef" virtual="True">
+		<!-- fields in tables implementing the fancy positions interface -->
+		<NullGrammar/>
+		<Semantics>
+			<Table table="positionsFields" id="positionsFields">
+				<Field dest="alphaFloat" unit="deg" dbtype="double precision" 
+					ucd="pos.eq.ra;meta.main" source="alphaFloat" verbLevel="1"
+					tablehead="RA" description="Main value of right ascension"/>
+				<Field dest="deltaFloat" unit="deg" dbtype="double precision" 
+					ucd="pos.eq.dec;meta.main" source="deltaFloat" verbLevel="1"
+					tablehead="Dec" description="Main value of declination"/>
+				<Field dest="c_x" dbtype="real" source="c_x" verbLevel="30"
+					tablehead="c_x" 
+					description="x coordinate of intersection of radius vector and unit sphere"/>
+				<Field dest="c_y" dbtype="real" source="c_y" verbLevel="30"
+					tablehead="c_y"
+					description="y coordinate of intersection of radius vector and unit sphere"/>
+				<Field dest="c_z" dbtype="real" source="c_z" verbLevel="30"
+					tablehead="c_z"
+					description="z coordinate of intersection of radius vector and unit sphere"/>
+			</Table>
+
+			<Table table="q3cPositionsFields" original="positionsFields">
+				<script type="preIndexSQL" name="create q3c index" id="q3cscript">
+					BEGIN
+					-DROP INDEX \schema.q3c_\tablename{}
+					COMMIT
+					CREATE INDEX q3c_\tablename{} ON \curtable{} (
+						q3c_ang2ipix(alphaFloat, deltaFloat))
+					CLUSTER q3c_\tablename{} ON \curtable{}
+				</script>
+			</Table>
+			
+		</Semantics>
+	</Data>
+</ResourceDescriptor>
