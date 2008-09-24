@@ -6,19 +6,87 @@
 	<schema>public</schema>
 	<meta name="description">An endpoint for submitting ADQL queries
 		to the data center and retrieving the result in various forms.</meta>
+	<meta name="subject">Virtual observatory</meta>
+	<meta name="subject">Catalogs</meta>
+
 	<meta name="_intro" format="rst"><![CDATA[
 On this page, you can use
 `ADQL <http://www.ivoa.net/Documents/latest/ADQL.html>`_ to query 
 `some of our tables </__system__/dc_tables/list/form>`_.
 
-If you have no idea what ADQL is, you may want to have a look at
-`a somewhat outdated article by Ray Plante <http://www.aspbooks.org/a/volumes/article_details/?paper_id=27959>`_.
+To learn what ADQL is, see the service info.  You will find important 
+information for seasoned ADQL users there as well.
 ]]>	
+	</meta>
+	<meta name="_longdesc"><![CDATA[
+
+About this service
+==================
+
+To find out what tables are available for querying, see the
+\RSTservicelink{__system__/dc_tables/list/form}{ADQL table list}.
+
+Be sure to read `Known Bugs and Problems`_ below.
+
+About ADQL
+==========
+
+ADQL is the Astronomical Data Query Language, an extension of a subset of
+the Standard Query Language `SQL <http://en.wikipedia.org/wiki/SQL>`_.  Its purpose is to give you a formal
+language to specify what data you are interested in.
+
+To get started using ADQL, 
+`an article by Ray Plante 
+<http://www.aspbooks.org/a/volumes/article_details/?paper_id=27959>`_ 
+might be a good read.  However, the ADQL specification has
+moved quite a bit since then.  If you are serious about learning ADQL,
+you should read an introduction to SQL, ignoring everything about DDL,
+and then try to figure out the 
+`ADQL specification <http://www.ivoa.net/Documents/latest/ADQL.html>`_.
+
+As to SQL introductions, every bookstore and library has quite a few of them.
+Online, `A Gentle Introduction to SQL <http://sqlzoo.net/>`_ or chapter
+three of `Practical PostgreSQL <http://www.faqs.org/docs/ppbook/book1.htm>`_
+might be useful.
+
+Also have a look at the Examples_ below.
+
+Known Bugs and Problems
+=======================
+
+Standards Compliance
+''''''''''''''''''''
+
+We currently ignore the coordinate system specification to ADQL geometries.
+We will fix this when the desired semantics is specified in some way.
+
+The output of ADQL geometries is not standard compliant.  This can
+be easily fixed, complain if it bugs you.
+
+Usability
+'''''''''
+
+The error messages on parse errors are, ahem, sometimes misleading.  Due to the
+parse technology we use, the error position is right after the last completely
+parsed element.  Since a WHERE clause is one such element, an error
+somewhere deep within the clause will appear to originate right before the
+WHERE.  We are thinking about a solution, but since it is not straightforward,
+we are waiting on the amount of usage the service gets before embarking
+on this medium-sized project.
+
+Examples
+========
+
+Coming up.
+
+
+]]>
 	</meta>
 	<meta name="_related" title="Tables available for ADQL">/__system__/dc_tables/list/form</meta>
 	<Service id="query">
 		<meta name="shortName">gavoadql</meta>
 		<meta name="title">ADQL Query</meta>
+		<publish render="form" sets="local,ivo_managed"/>
 		<core builtin="adql"/>
 		<srvInput>
 			<fromCore/>

@@ -212,12 +212,12 @@ class Q3CIndex(Interface):
 		yield "Data", ("script", ("postCreation", "q3cindex",
 			"\n".join([
 				"BEGIN",
-				"-DROP INDEX @@@SCHEMA()@@@.%(indexName)s",
+				"-DROP INDEX \\schema.%(indexName)s",
 				"COMMIT",
-				"CREATE INDEX %(indexName)s ON @@@SCHEMA()@@@.%(tableName)s "
+				"CREATE INDEX %(indexName)s ON \\curtable "
 				"(q3c_ang2ipix(%(raName)s, %(deName)s))",
-				"CLUSTER %(indexName)s ON @@@SCHEMA()@@@.%(tableName)s",
-				"ANALYZE @@@SCHEMA()@@@.%(tableName)s"])%{
+				"CLUSTER %(indexName)s ON \\curtable",
+				"ANALYZE \\curtable"])%{
 					"indexName": "q3c_"+tableName.replace(".", "_"),
 					"tableName": recordNode.get_table(),
 					"raName": raName,
@@ -274,10 +274,10 @@ class Products(TableBasedInterface):
 		products.set_owningCondition(("sourceTable", tableDef.getQName()))
 		products.getFieldByName("sourceTable").set_default(
 			tableDef.getQName())
-		yield "Semantics", ("Table", products), True
+		yield "Semantics", ("Table", products), False
 
 
-class BboxSiap(TableBasedInterface):
+class BboxSiap(Products):
 	"""is an interface for simple support of SIAP.
 
 	This currently only handles two-dimensional images.
@@ -291,9 +291,7 @@ class BboxSiap(TableBasedInterface):
 	* InstId -- some id for the instrument used
 	* DateObs -- a timestamp of the "characteristic" observation time
 	* the bandpass* values.  You're on your own with them...
-	* the values of the product interface.  Note that bboxSiap doesn't
-	  automatically enable products.  Maybe it should, but maybe we'll
-	  have more than one products interface...
+	* the values of the product interface.  
 	* mimetype -- the mime type of the product.
 
 	Tables satisfying this interface can be used for bbox-based SIAP querying.
@@ -324,6 +322,7 @@ class BboxSiap(TableBasedInterface):
 	def __init__(self):
 		TableBasedInterface.__init__(self, "__system__/siap", "bboxsiapfields")
 		self.siapFields = self.tableDef.get_items()
+		self.productTable = self.rd.getTableDefByName("products")
 	
 	def _getInterfaceFields(self):
 		# everything required in the standard must have verbLevel<=20,

@@ -237,7 +237,10 @@ def getTablePrivileges(schema, tableName, querier):
 		" relname=%(tableName)s AND"
 		" relnamespace=(SELECT oid FROM pg_namespace WHERE nspname=%(schema)s)",
 		locals()).fetchall()
-	return parsePGACL(res[0][0])
+	try:
+		return parsePGACL(res[0][0])
+	except IndexError: # Table doesn't exist, so no privileges
+		return {}
 
 
 def getSchemaPrivileges(schema, querier):

@@ -297,6 +297,12 @@ class TableInfoRenderer(resourcebased.ServiceBasedRenderer,
 		else:
 			return lambda ctx, data: ""
 
+	def render_iftablemetap(self, metaName):
+		if self.table.getMeta(metaName, propagate=True):
+			return lambda ctx, data: ctx.tag
+		else:
+			return lambda ctx, data: ""
+
 	def render_rdmeta(self, ctx, data):
 		return self._doRenderMeta(ctx, metaCarrier=self.table.rd)
 
@@ -305,6 +311,15 @@ class TableInfoRenderer(resourcebased.ServiceBasedRenderer,
 			return lambda ctx, data: ctx.tag
 		else:
 			return lambda ctx, data: ""
+
+	# override to insert table instead of the service as the thing to take
+	# metadata from.
+	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False, 
+			metaCarrier=None):
+		if not metaCarrier:
+			metaCarrier = self.table
+		return resourcebased.ServiceBasedRenderer._doRenderMeta(
+			self, ctx, raiseOnFail, plain, metaCarrier)
 
 	defaultDocFactory = common.doctypedStan(
 		T.html[

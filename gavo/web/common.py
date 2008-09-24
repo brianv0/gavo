@@ -318,6 +318,8 @@ class GavoRenderMixin(object):
 					T.h3["Metadata"],
 					T.invisible(
 						render=T.directive("explodableMeta"))["description"],
+					T.invisible(title="Keywords",
+						render=T.directive("explodableMeta"))["subject"],
 					T.invisible(
 						render=T.directive("explodableMeta"))["creator"],
 					T.invisible(title="Created",
@@ -327,7 +329,7 @@ class GavoRenderMixin(object):
 					T.invisible(
 						render=T.directive("explodableMeta"))["copyright"],
 					T.invisible(
-						render=T.directive("explodableMeta"))["reference"],
+						render=T.directive("explodableMeta"))["source"],
 					T.invisible(title="Reference URL",
 						render=T.directive("explodableMeta"))["referenceURL"],
 				],

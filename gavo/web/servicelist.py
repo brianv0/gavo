@@ -247,6 +247,8 @@ def parseCommandLine():
 	parser = optparse.OptionParser(usage="%prog [options] {<rd-name>}")
 	parser.add_option("-a", "--all", help="search everything below inputsDir"
 		" for publications (implies -f).", dest="all", action="store_true")
+	parser.add_option("-m", "--meta-too", help="update meta information, too",
+		dest="meta", action="store_false")
 	parser.add_option("-f", "--fixed", help="also import fixed records"
 		" (this is equivalent to gavoimp services).", dest="doFixed",
 		action="store_true")
@@ -318,9 +320,11 @@ def main():
 		sys.stdout.write("Processing %s..."%(rdPath))
 		sys.stdout.flush()
 		try:
-			updateServiceList(
-				importparser.getRd(os.path.join(os.getcwd(), rdPath), 
-					forImport=True, noQueries=True))
+			rd = importparser.getRd(os.path.join(os.getcwd(), rdPath), 
+					forImport=True, noQueries=True)
+			updateServiceList(rd)
+			if opts.meta:
+				rd.importMeta()
 		except Exception, msg:
 			print "Ignoring.  See the log for a traceback."
 			gavo.logger.error("Ignoring for service export: %s (%s)"%(

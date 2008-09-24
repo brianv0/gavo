@@ -215,44 +215,44 @@ we can do that based on the renderer, too -->
 				<Field original="servicelist.srv_interfaces.accessURL"/>
 				<Field original="servicelist.srv_interfaces.renderer"/>
 				<Field original="servicelist.srv_sets.setName"/>
+
+				<script type="viewCreation" name="create services join">
+					CREATE OR REPLACE VIEW srv_join AS (
+						SELECT shortName, internalId, sourceRd, title, description,
+							owner, dateUpdated, accessURL, renderer, setName 
+						FROM services NATURAL JOIN srv_interfaces NATURAL JOIN
+							srv_sets)
+				</script>
 			</Record>
 		</Semantics>
-		<script type="postCreation" name="create joined view">
-			CREATE OR REPLACE VIEW srv_join AS (
-				SELECT shortName, internalId, sourceRd, title, description,
-					owner, dateUpdated, accessURL, renderer, setName 
-				FROM services NATURAL JOIN srv_interfaces NATURAL JOIN
-					srv_sets)
-			@@@TABLERIGHTS("srv_join")@@@
-		</script>
 	</Data>
 
 	<!-- a join of locally defined services, by subject - REPLACE WITH ADQL -->
 	<Data id="subjs_join" virtual="True">
 		<NullGrammar/>
 		<Semantics>
-			<Record table="srv_join">
+			<Record table="subjs_join">
 				<Field original="servicelist.srv_subjs.subject"/>
 				<Field original="servicelist.services.shortName"/>
 				<Field original="servicelist.services.title"/>
 				<Field original="servicelist.services.owner"/>
 				<Field original="servicelist.srv_interfaces.accessURL"/>
+
+				<script type="viewCreation" name="create subjects view">
+					CREATE OR REPLACE VIEW srv_subjs_join AS (
+						SELECT subject, shortName, title, owner, accessurl
+						FROM 
+							(
+								SELECT accessurl, sourceRd, shortName, renderer 
+								FROM srv_interfaces 
+									JOIN srv_sets USING (shortName, renderer, sourcerd) 
+								WHERE setName='local') AS q 
+							NATURAL JOIN services 
+							NATURAL JOIN srv_subjs 
+						ORDER BY subject);
+				</script>
 			</Record>
 		</Semantics>
-		<script type="postCreation" name="create joined view">
-			CREATE OR REPLACE VIEW srv_subjs_join AS (
-				SELECT subject, shortName, title, owner, accessurl
-				FROM 
-					(
-						SELECT accessurl, sourceRd, shortName, renderer 
-						FROM srv_interfaces 
-							JOIN srv_sets USING (shortName, renderer, sourcerd) 
-						WHERE setName='local') AS q 
-					NATURAL JOIN services 
-					NATURAL JOIN srv_subjs 
-				ORDER BY subject);
-			@@@TABLERIGHTS("srv_subjs_join")@@@
-		</script>
 	</Data>
 
 

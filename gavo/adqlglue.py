@@ -76,6 +76,6 @@ def query(query, timeout=15, queryProfile="untrustedquery", metaProfile=None):
 	dd = resource.makeRowsetDataDesc(rd, _getTableDescForOutput(t))
 # escape % to hide them form dbapi replacing
 	query = adql.flatten(t).replace("%", "%%")
-	data = sqlsupport.SimpleQuerier(queryProfile).runIsolatedQuery(
+	data = sqlsupport.SimpleQuerier(useProfile=queryProfile).runIsolatedQuery(
 		query, timeout=timeout, silent=True)
 	return resource.InternalDataSet(dd, dataSource=data, silent=True)

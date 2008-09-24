@@ -767,6 +767,8 @@ class ResourceDescriptor(ThingWithRoles, meta.MetaMixin,
 			if onlyDDs and dataDesc.get_id() not in onlyDDs:
 				continue
 			for tableDef in dataDesc.get_Semantics().get_tableDefs():
+				if not querier.tableExists(tableDef.getQName()):
+					continue # don't mess with dropped tables
 				mh.update(tableDef)
 				sqlsupport.setTablePrivileges(tableDef, querier)
 		querier.finish()
@@ -877,9 +879,11 @@ def makeRowsetDataDesc(rd, tableDef, mungeFields=True):
 	"""returns a simple DataTransformer with a grammar parsing tableDef
 	out of what the db engine returns for a query.
 	"""
-	return makeGrammarDataDesc(rd, tableDef,
+	dd = makeGrammarDataDesc(rd, tableDef,
 		rowsetgrammar.RowsetGrammar(initvals={"dbFields": tableDef}),
 		mungeFields)
+	dd.set_encoding("utf-8")
+	return dd
 
 
 def rowsetifyDD(dd, outputFieldNames=None):

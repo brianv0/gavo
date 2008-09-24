@@ -19,9 +19,11 @@
 			<n:invisible n:render="rdmeta">referenceURL</n:invisible></p>
 	
 		<p>This table is <strong n:render="ifnodata" n:data="forADQL">not</strong>
-			available for <strong>ADQL</strong> queries.</p>
+			available for 
+			<a href="/__system__/adql/query/form" n:render="rootlink">
+				<strong>ADQL</strong> queries</a>.</p>
 
-		<n:invisible n:render="iftablemeta _longdoc">
+		<n:invisible n:render="iftablemetap _longdoc">
 			<h2 class="section">Table Documentation</h2>
 
 			<n:invisible n:render="tablemeta">_longdoc</n:invisible>

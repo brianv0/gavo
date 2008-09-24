@@ -622,6 +622,9 @@ myTests = [
 		GetHasStringsTest(nv_root+"/apfs/res/apfs_new/catquery/info",
 			["Service Documentation", "form</em> --", "SOAP", "endDate"],
 			"Service info looks credible and includes some meta information"),
+		GetHasStringsTest(nv_root+"/__system__/dc_tables/list/form",
+			["Fully qualified table", "ppmx.data", "motions extension"],
+			"ADQL tables can be listed"),
 		),
 
 	TestGroup("adql",
@@ -629,11 +632,21 @@ myTests = [
 				"__nevow_form__=genForm&query=foobar%0A&_FORMAT=HTML&submit=Go",
 			["Service info", "Could not parse", 'Expected "SELECT"'],
 			"Parse errors are reported in-form"),
+		GetHasStringsTest(nv_root+"/__system__/adql/query/form?"
+				"__nevow_form__=genForm&query=select%20*%20from%20users.users&"
+				"_FORMAT=HTML&submit=Go",
+			["permission denied for schema users", "Result link"],
+			"Users table is not accessible through ADQL"),
+		GetHasStringsTest(nv_root+"/__system__/adql/query/form?"
+				"__nevow_form__=genForm&query=select%20*%20from%20weblogs.accesses&"
+				"_FORMAT=HTML&submit=Go",
+			["permission denied for schema weblogs", "Result link"],
+			"Log table is not accessible through ADQL"),
 		),
 
 	TestGroup("services",
 		GetHasStringsTest(nv_root+"/lswscans/res/positions/q/form?"
-				"__nevow_form__=genForm&POS=2%2C2&SIZE=0.5&INTERSECT=COVERS&"
+				"__nevow_form__=genForm&POS=1.5%2C6.3&SIZE=0.5&INTERSECT=OVERLAPS&"
 				"FORMAT=image%2Ffits&cutoutSize=0.5&_DBOPTIONS_ORDER=&"
 				"_DBOPTIONS_LIMIT=100&_FORMAT=HTML&submit=Go",
 			["Plate alpha", "Bandpass", "B2866b"],

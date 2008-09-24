@@ -115,6 +115,7 @@ def makeFromVOTable(srcName, opts):
 		colName = makeVOTableFieldName(f, ind)
 		record.addto_items(datadef.DataField(dest=colName, source=colName,
 			ucd=f.ucd, description=f.description, tablehead=colName,
+			unit=f.unit,
 			dbtype=typesystems.voTableToSQLType(f.datatype, f.arraysize)))
 	return record, RD.VOTableGrammar
 

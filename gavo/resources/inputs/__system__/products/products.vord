@@ -8,13 +8,13 @@
 		by web/products.py for, e.g., access control -->
 		<NullGrammar/>
 		<Semantics>
-			<SharedTable table="products">
+			<SharedTable table="products" id="productstable">
 				<Field dest="key" primary="True" dbtype="text"
 					tablehead="Unique product key" source="prodtblKey"/>
 				<Field dest="owner" dbtype="text" tablehead="Data owner"
 					source="prodtblOwner"/>
 				<Field dest="embargo" dbtype="date" source="prodtblEmbargo"
-					tablehead="Ends date of embargo"/>
+					tablehead="Embargo ends"/>
 				<Field dest="accessPath" dbtype="text" source="prodtblPath"
 					tablehead="Path to access data" optional="False"/>
 				<!-- the next one will usually get its default filled in by
@@ -33,13 +33,16 @@
 			<Table table="productFields" id="productFields">
 				<Field dest="accref" ucd="VOX:Image_AccessReference"
 					source="prodtblKey" dbtype="text" verbLevel="1"
-					displayHint="type=product" tablehead="Product"/>
+					displayHint="type=product" tablehead="Product"
+					description="Access key for the data"/>
 				<Field dest="owner" source="prodtblOwner" dbtype="text"
-					tablehead="Product owner" verbLevel="25"/>
+					tablehead="Product owner" verbLevel="25"
+					description="Data owner"/>
 				<Field dest="embargo" source="prodtblEmbargo" dbtype="date"
-					tablehead="Embargo ends" unit="Y-M-D" verbLevel="25"/>
+					tablehead="Embargo ends" unit="Y-M-D" verbLevel="25"
+					description="Date the data will become/became public"/>
 				<Field dest="accsize" ucd="VOX:Image_FileSize"
-					tablehead="File size" description="Size of the image in bytes"
+					tablehead="File size" description="Size of the data in bytes"
 					source="prodtblFsize" dbtype="integer" verbLevel="11"
 					unit="byte"/>
 

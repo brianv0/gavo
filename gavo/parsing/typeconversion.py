@@ -172,9 +172,9 @@ class LiteralParser:
 
 	def _make_string(self, literal):
 		if self.encoding:
-			return str(literal).decode(self.encoding)
-		else:
-			return unicode(literal)
+			if isinstance(literal, str):
+				return literal.decode(self.encoding)
+		return unicode(literal)
 
 	def _identity(self, a):
 		return a

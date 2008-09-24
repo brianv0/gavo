@@ -26,6 +26,7 @@ item for the main key.
 
 import re
 import textwrap
+import urllib
 import warnings
 import weakref
 
@@ -436,14 +437,31 @@ class LogoMeta(MetaValue):
 	"""is a MetaItem corresponding to a small image
 	"""
 	def _getContentAsHTML(self):
-		return '<img class="metalogo" src="%s" height="16" alt="[Logo]"/>'%(
+		return u'<img class="metalogo" src="%s" height="16" alt="[Logo]"/>'%(
 				unicode(self.content))
+
+
+class BibcodeMeta(MetaValue):
+	"""is a MetaItem that may contain bibcodes, which are rendered as links
+	into ADS.
+	"""
+	bibcodePat = re.compile("\d\d\d\d\w\w[^ ]{13}")
+	adsMirror = "http://ads.ari.uni-heidelberg.de/"
+	def _makeADSLink(self, matOb):
+		return '<a href="%s">%s</a>'%(
+			self.adsMirror+"cgi-bin/nph-data_query?bibcode=%s&"
+				"link_type=ABSTRACT"%urllib.quote(matOb.group(0)),
+			matOb.group(0))
+
+	def _getContentAsHTML(self):
+		return self.bibcodePat.sub(self._makeADSLink, unicode(self.content))
 
 
 _metaTypeRegistry = {
 	"link": MetaURL,
 	"info": InfoItem,
 	"logo": LogoMeta,
+	"bibcodes": BibcodeMeta,
 }
 
 _typesForKeys = {
@@ -451,6 +469,7 @@ _typesForKeys = {
 	"referenceURL": "link",
 	"info": "info",
 	"logo": "logo",
+	"source": "bibcodes",
 }
 
 def makeMetaValue(value="", **kwargs):

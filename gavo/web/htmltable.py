@@ -34,7 +34,7 @@ def _defaultMapperFactory(colProps):
 	def coder(val):
 		if val is None:
 			return "N/A"
-		return str(val)
+		return unicode(val)
 	return coder
 _registerHTMLMF(_defaultMapperFactory)
 

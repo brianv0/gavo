@@ -103,10 +103,10 @@ class TestProductsImport(unittest.TestCase):
 		assertRowset(self, fields, [
 			(0, u'object', None), 
 			(1, u'alpha', None), 
-			(2, u'accref', None), 
-			(3, u'owner', None), 
-			(4, u'embargo', None), 
-			(5, u'accsize', u'Size of the image in bytes')])
+			(2, u'accref', 'Access key for the data'), 
+			(3, u'owner', 'Data owner'), 
+			(4, u'embargo', 'Date the data will become/became public'), 
+			(5, u'accsize', u'Size of the data in bytes')])
 
 	def tearDown(self):
 		tw = sqlsupport.TableWriter(self.tableDef)

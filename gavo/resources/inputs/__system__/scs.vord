@@ -16,13 +16,13 @@
 					ucd="pos.eq.dec;meta.main" source="deltaFloat" verbLevel="1"
 					tablehead="Dec" description="Main value of declination"/>
 				<Field dest="c_x" dbtype="real" source="c_x" verbLevel="30"
-					tablehead="c_x" 
+					tablehead="c_x" unit="" ucd="pos.cartesian.x"
 					description="x coordinate of intersection of radius vector and unit sphere"/>
 				<Field dest="c_y" dbtype="real" source="c_y" verbLevel="30"
-					tablehead="c_y"
+					tablehead="c_y" unit="" ucd="pos.cartesian.y"
 					description="y coordinate of intersection of radius vector and unit sphere"/>
 				<Field dest="c_z" dbtype="real" source="c_z" verbLevel="30"
-					tablehead="c_z"
+					tablehead="c_z" unit="" ucd="pos.cartesian.z"
 					description="z coordinate of intersection of radius vector and unit sphere"/>
 			</Table>
 

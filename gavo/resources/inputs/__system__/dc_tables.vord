@@ -80,7 +80,7 @@ tables and the RDs the tables come from. -->
 		<meta name="title">GAVO ADQL tables</meta>
 		<allow renderers="form"/>
 		<core builtin="runFixedQuery"
-			query="SELECT tableName, tableName, tableDesc, resDesc FROM dc_tables WHERE adql">
+			query="SELECT tableName, tableName, tableDesc, resDesc FROM dc_tables WHERE adql ORDER BY tableName">
 		</core>
 		<srvInput/>
 		<srvOutput>
