@@ -22,7 +22,10 @@ from gavo.web import staticresource
 from gavo.web.staticresource import rdId
 
 
-class MissingMeta(gavo.Error):
+class Error(gavo.Error):
+	pass
+
+class MissingMeta(Error):
 	def __init__(self, msg, fields):
 		gavo.Error.__init__(self, msg)
 		self.fields = fields
@@ -248,7 +251,7 @@ def parseCommandLine():
 	parser.add_option("-a", "--all", help="search everything below inputsDir"
 		" for publications (implies -f).", dest="all", action="store_true")
 	parser.add_option("-m", "--meta-too", help="update meta information, too",
-		dest="meta", action="store_false")
+		dest="meta", action="store_true")
 	parser.add_option("-f", "--fixed", help="also import fixed records"
 		" (this is equivalent to gavoimp services).", dest="doFixed",
 		action="store_true")
@@ -320,11 +323,14 @@ def main():
 		sys.stdout.write("Processing %s..."%(rdPath))
 		sys.stdout.flush()
 		try:
-			rd = importparser.getRd(os.path.join(os.getcwd(), rdPath), 
+			rd = importparser.getRd(rdPath, 
 					forImport=True, noQueries=True)
 			updateServiceList(rd)
 			if opts.meta:
-				rd.importMeta()
+				rd.importMeta(None)
+		except MissingMeta, msg:
+			print "Missing meta on %s: %s"%(rdPath, ", ".join(msg.fields))
+			print "Ignoring RD."
 		except Exception, msg:
 			print "Ignoring.  See the log for a traceback."
 			gavo.logger.error("Ignoring for service export: %s (%s)"%(

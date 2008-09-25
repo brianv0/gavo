@@ -75,7 +75,6 @@ field out.fits
 solved out.solved
 match out.match.fits
 indexrdls out.rd.fits
-indexrdls_solvedonly
 wcs out.wcs
 log out.log
 cancel out.cancel
@@ -119,7 +118,7 @@ def _extractSex(filterFunc=None):
 	_runShellCommand(sextractorBin, "-c anet.sex -FILTER N in.fits", quiet=True)
 	if filterFunc is not None:
 		filterFunc("out.xyls")
-	_runShellCommand(tabsortBin, "-i out.xyls -o out.fits -c MAG_ISO",
+	_runShellCommand(tabsortBin, "MAG_ISO out.xyls out.fits",
 		quiet=True)
 
 

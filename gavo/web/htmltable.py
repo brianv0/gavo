@@ -352,7 +352,7 @@ class HTMLTableFragment(rend.Fragment):
 		else:
 			return ""
 
-	docFactory = loaders.stan(T.form(action="feedback", method="POST")[
+	docFactory = loaders.stan(T.form(action="feedback", method="post")[
 		T.table(class_="results", render=rend.sequence,
 					data=T.directive("table")) [
 				T.invisible(pattern="header", render=T.directive("headCells")),

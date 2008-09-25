@@ -762,7 +762,9 @@ class ResourceDescriptor(ThingWithRoles, meta.MetaMixin,
 # XXX TODO: unify with importData (when that becomes sane:-)
 		mh = sqlsupport.MetaTableHandler()
 		querier = sqlsupport.SimpleQuerier()
-		sqlsupport.setSchemaPrivileges(self, querier)
+		if querier.schemaExists(self.get_schema()):
+			# Don't bother setting privileges if the schema hasn't been created
+			sqlsupport.setSchemaPrivileges(self, querier)
 		for dataDesc in self.get_dataSrcs():
 			if onlyDDs and dataDesc.get_id() not in onlyDDs:
 				continue

@@ -17,12 +17,16 @@ from gavo.parsing import contextgrammar
 from gavo.parsing import typeconversion
 from gavo.web import vizierexprs
 
+import testhelpers
+
 
 class GrammarTest(testhelpers.VerboseTest):
 	def _assertResults(self, *examples):
 		for expr, res in examples:
 			try:
-				self.assertEqual(str(self.parse(expr)), res)
+				found = str(self.parse(expr))
+				self.assertEqual(found, res, "%r != expectation %r on example %r"%(
+					found, res, expr))
 			except vizierexprs.ParseException:
 				raise AssertionError("%s doesn't parse"%expr)
 			except:
@@ -176,7 +180,7 @@ class ComplexDateExpresionTest(GrammarTest):
 		)
 
 
-class StringParsesText(GrammarTest):
+class StringParseTest(GrammarTest):
 	def parse(self, val):
 		return vizierexprs.parseStringExpr(val)
 	
@@ -184,7 +188,9 @@ class StringParsesText(GrammarTest):
 		"""tests for correct parsing of non-pattern string expressions.
 		"""
 		self._assertResults(
+			("NGC", "(== NGC)"),
 			("==NGC", "(== NGC)"),
+			("~NGC", "(~ NGC)"),
 			("!=     NGC", "(!= NGC)"),
 			(">= M 51", "(>= M 51)"),
 			("<= B*", "(<= B*)"),
@@ -212,19 +218,19 @@ class StringParsesText(GrammarTest):
 		"""tests for correct parsing of pattern expresssions.
 		"""
 		self._assertResults(
-			("NGC*", "(~ NGC (* ))"),
+			("NGC*", "(== NGC*)"),
 			("~NGC*", "(~ NGC (* ))"),
 			("~ NGC*", "(~ NGC (* ))"),
-			("NG?*", "(~ NG (? ) (* ))"),
-			("NG[A-Z]*", "(~ NG ([ A-Z) (* ))"),
-			("NG[^A-Za-z]*", "(~ NG ([ ^A-Za-z) (* ))"),
-			("NG[^ -A]*", "(~ NG ([ ^ -A) (* ))"),
+			("~NG?*", "(~ NG (? ) (* ))"),
+			("~NG[A-Z]*", "(~ NG ([ A-Z) (* ))"),
+			("~NG[^A-Za-z]*", "(~ NG ([ ^A-Za-z) (* ))"),
+			("~NG[^ -A]*", "(~ NG ([ ^ -A) (* ))"),
 		)
 	
 	def testPatternFailures(self):
 		"""tests for rejection of malformed pattern expressions.
 		"""
-		self._assertFailures("[a")
+		self._assertFailures("~ [a")
 			
 
 class SQLGenerTest(unittest.TestCase):
@@ -310,17 +316,17 @@ class SQLGenerTest(unittest.TestCase):
 		"""
 		field1 = contextgrammar.InputKey(dest="foo", source="foo", dbtype="vexpr-string")
 		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "star"}, sqlPars),
+		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "~star"}, sqlPars),
 			"foo ~* %(foo0)s")
 		self.assertEqual(sqlPars["foo0"], "^star$")
 
 		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "sta?"}, sqlPars),
+		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "~sta?"}, sqlPars),
 			"foo ~* %(foo0)s")
 		self.assertEqual(sqlPars["foo0"], "^sta.$")
 
 		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "s*ta?"}, sqlPars),
+		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "~s*ta?"}, sqlPars),
 			"foo ~* %(foo0)s")
 		self.assertEqual(sqlPars["foo0"], "^s.*ta.$")
 
@@ -330,7 +336,7 @@ class SQLGenerTest(unittest.TestCase):
 		self.assertEqual(sqlPars["foo0"], "^s.*ta.$")
 
 		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "a+b*"}, sqlPars),
+		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "~a+b*"}, sqlPars),
 			"foo ~* %(foo0)s")
 		self.assertEqual(sqlPars["foo0"], r"^a\+b.*$")
 
@@ -357,7 +363,6 @@ class StringQueryTest(unittest.TestCase):
 		config.setDbProfile("test")
 		tableDef = testhelpers.getTestTable("vizierstrings")
 		tw = sqlsupport.TableWriter(tableDef)
-#			[contextgrammar.InputKey(source="s", dest="s", dbtype="text"),])
 		tw.createTable()
 		feed = tw.getFeeder()
 		feed({"s": ""})
@@ -393,6 +398,7 @@ class StringQueryTest(unittest.TestCase):
 
 	def testExactMatches(self):
 		self._runCountTests([
+			("a", 1),
 			("== a", 1),
 			("!= a", 10),
 			("== ", 1),
@@ -415,17 +421,17 @@ class StringQueryTest(unittest.TestCase):
 		self._runCountTests([
 			("= a", 1),
 			("~ a", 2),
-			("a", 2),
-			("X*", 1),
-			("a*", 5),
-			("= *a*", 6),
-			("*+*", 1),
-			("*|*", 1),
-			("\*", 1),
+			("~ a", 2),
+			("~ X*", 1),
+			("~ a*", 5),
+			("=*a*", 6),
+			("~*+*", 1),
+			("~*|*", 1),
+			("~\*", 1),
 			("!\*", 10),
-			("B*", 3),
+			("~B*", 3),
 			("= B*", 2),
-			("B?", 1),
+			("~B?", 1),
 			("!B?", 10),
 			("! *a*", 5),
 			("!~*a*", 4),
@@ -433,17 +439,80 @@ class StringQueryTest(unittest.TestCase):
 
 	def tearDown(self):
 		querier = sqlsupport.SimpleQuerier()
-#		querier.query("DROP TABLE %s CASCADE"%self.tableName)
+		querier.query("DROP TABLE %s CASCADE"%self.tableName)
 		querier.commit()
 
 
-def singleTest():
-	suite = unittest.makeSuite(StringQueryTest, "test")
-	runner = unittest.TextTestRunner()
-	runner.run(suite)
+class MatchMatrixTest(unittest.TestCase):
 
+# This matrix is used in the docs for vizier expressions (help_vizier.shtml).
+# If you amend it, please update it there as well.
+# To turn this into an HTML table, use something like this mess:
+# sed -e 's/</\&lt;/g;s/>/\&gt;/g;s/(/<tr><td>/;s/),/<\/td><\/tr>/;s/None//;s/"//g;s/ T/ X/g;s/ F/ \&nbsp;/g;s/,  */<\/td><td>/g' 
+	T, F = True, False
+	matchMatrix = [
+		(None,      "M4e", "M4ep", "m4e", "A4p", "O4p", "M*", "m|a", "x,a", "=x"),
+		("M4e",     T,     F,      F,     F,     F,     F,    F,     F,     F),
+		("=x",      F,     F,      F,     F,     F,     F,    F,     F,     F),
+		("== =x",   F,     F,      F,     F,     F,     F,    F,     F,     T),
+		("!= =x",   T,     T,      T,     T,     T,     T,    T,     T,     F),
+		("==M4e",   T,     F,      F,     F,     F,     F,    F,     F,     F),
+		("=~m4e",   T,     F,      T,     F,     F,     F,    F,     F,     F),
+		("=~m4",    F,     F,      F,     F,     F,     F,    F,     F,     F),
+		("~*",      T,     T,      T,     T,     T,     T,    T,     T,     T),
+		("~m*",     T,     T,      T,     F,     F,     T,    T,     F,     F),
+		("M*",      F,     F,      F,     F,     F,     T,    F,     F,     F),
+		("!~m*",    F,     F,      F,     T,     T,     F,    F,     T,     T),
+		("~*p",     F,     T,      F,     T,     T,     F,    F,     F,     F),
+		("!~*p",    T,     F,      T,     F,     F,     T,    T,     T,     T),
+		("~?4p",    F,     F,      F,     T,     T,     F,    F,     F,     F),
+		("~[MO]4[pe]", T,  F,      T,     F,     T,     F,    F,     F,     F),
+		("=[MO]4[pe]", T,  F,      F,     F,     T,     F,    F,     F,     F),
+		(">O",      F,     F,      F,     F,     T,     F,    F,     T,     T),
+		(">O5",     F,     F,      F,     F,     F,     F,    F,     T,     T),
+		(">=m",     T,     T,      T,     F,     T,     T,    T,     T,     T),
+		("<m",      F,     F,      F,     T,     F,     F,    F,     F,     F),
+		("=|M4e| O4p| x,a", T, F,  F,     F,     T,     F,    F,     T,     F),
+		("=,x,a,=x,m|a", F, F,     F,     F,     F,     F,    T,     F,     T),
+	]
 
+	def setUp(self):
+		config.setDbProfile("test")
+		self.tableDef = testhelpers.getTestTable("vizierstrings")
+		tw = sqlsupport.TableWriter(self.tableDef)
+		tw.createTable()
+		feed = tw.getFeeder()
+		self.itemsInDb = self.matchMatrix[0][1:]
+		for item in self.itemsInDb:
+			feed({"s": item})
+		feed.close()
+		tw.finish()
+		self.queryKey = contextgrammar.InputKey(source="s", dest="s", dbtype="vexpr-string")
+
+	def _computeTest(self, testLine):
+		pars = {}
+		query = "SELECT s FROM %s WHERE %s"%(self.tableDef.getQName(),
+			vizierexprs.getSQL(self.queryKey, {"s": testLine[0]}, pars))
+		expectation = set([item for item, res in 
+			zip(self.itemsInDb, testLine[1:]) if res])
+		return expectation, query, pars
+
+	def runTest(self):
+		querier = sqlsupport.SimpleQuerier()
+		try:
+			for test in self.matchMatrix[1:]:
+				expectation, query, pars = self._computeTest(test)
+				res = set([r[0] for r in querier.query(query, pars).fetchall()])
+				self.assertEqual(expectation, res, 
+					"Query for %s returned wrong set.\n"
+					"Got %s, expected %s."%(
+						test[0], res, expectation))
+		finally:
+			querier.close()
+
+	def tearDown(self):
+		tw = sqlsupport.TableWriter(self.tableDef)
+		tw.dropTable()
+		tw.finish()
 if __name__=="__main__":
-	unittest.main()
-#	singleTest()
-
+	testhelpers.main(MatchMatrixTest)

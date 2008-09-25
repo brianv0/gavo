@@ -110,7 +110,11 @@ be relaxed in the future.</p>
 
 <h3>Overview</h3>
 
-<p>Strings by default are interpreted as <em>patterns</em>.  A pattern 
+<p><strong>Note:</strong> Contrary to what Vizier does, the default on string
+expressions on this site is to match expressions literally (i.e., the default
+operator is == rather than ~).</p>
+
+<p>Some of the operators below work on <em>patterns</em>.  A pattern 
 contains the meta characters [, ], *, and ?; all others are "normal" 
 characters matched literally.  The * matches zero or more characters, the
 ? exactly one; characters in square brackets match any character enumerated 
@@ -120,7 +124,7 @@ characters except the ones listed are matched.</p>
 
 <p>The following operators can be used when matching strings -- when we talk 
 about literals as operands, metacharacter interpretation is suppressed (i.e.,
-the strings are matched literally), otherwise we talk about patterns:</p>
+the strings are matched literally), otherwise we talk about patterns.</p>
 
 <p>Note that both patterns and literally interpreted strings must match
 the <em>whole</em> data field.  This is substantially different from the
@@ -128,23 +132,94 @@ usual regular expression engines (but corresponds to what you may know
 from filename patterns).</p>
 
 <ul>
-<li><code>~</code> -- selects pattern matches of operand ignoring case.
-This operand is implied if you give none, which means that <em>by default
-you do pattern searches</em>.</li>
+<li><code>==</code> -- matches if your input matches the entire input 
+field literally,
+i.e., preserving case.  This is the default when no operator is given, but it
+may be necessary to use the operator if, e.g., your pattern would be interpreted
+as an expression.</li>
+<li><code>=~</code> -- Like ==, but ignoring case.</li>
+<li><code>~</code> -- selects pattern matches of operand ignoring case.</li>
 <li><code>=</code> -- case-sensitive version of <code>~</code>.</li>
 <li><code>!~</code> -- reversal of <code>~</code> (i.e., matches when 
 	<code>~</code> doesn't).</li>
 <li><code>!</code> -- reversal of <code>=</code>.</li>
-<li><code>=~</code> -- selects literal matches of the operand ignoring case.</li>
-<li><code>==</code> -- case-sensitive version of <code>=~</code>.</li>
 <li><code>!=</code> -- selects all but literal matches of the operand.</li>
-<li><code>>=</code>, <code>></code>, <code>&lt;=</code>, <code>&lt;</code> 
--- selects strings larger or equal, larger, etc., than the operand.  </li>
+<li><code>&gt;=</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&lt;</code> 
+-- selects strings larger or equal, larger, etc., than the operand.  Note that
+comparisons are done case-insensitively on this site.  This, however, is
+considered a bug that might be fixed when we upgrade our database.</li>
+<li><code>=,</code> and <code>=|</code> -- these start enumerations, i.e.,
+they match when a literal in the following list is matched.
+There are two versions of these so you can include either the comma or the
+vertical bar in your literals.  If you need both, you are out of luck.</li>
 </ul>
 
 <h3>Examples</h3>
 
-<p>TBD</p>
+<p>Here is a table of expressions and their matches:</p>
+
+<style type="text/css">
+<!--
+table#vizstringtable {
+	border:2px solid gray; 
+	border-collapse: collapse;
+	width: 100%;
+}
+
+#vizstringtable * td {
+	border: 1px solid gray;
+	padding: 2pt;
+	text-align: center;
+}
+
+#vizstringtable * th {
+	padding: 4pt;
+	text-align: center;
+-->
+</style>
+
+<table id="vizstringtable">
+		<tr><th>Expression</th><th colspan="9">Data</th></tr>
+		<tr><td></td><td>M4e</td><td>M4ep</td><td>m4e</td><td>A4p</td><td>O4p</td><td>M*</td><td>m|a</td><td>x,a</td><td>=x</td></tr>
+		<tr><td>M4e</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+		<tr><td>=x</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+		<tr><td>== =x</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td></tr>
+		<tr><td>!= =x</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>&nbsp;</td></tr>
+		<tr><td>==M4e</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+		<tr><td>=~m4e</td><td>X</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+		<tr><td>=~m4</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+		<tr><td>~*</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+		<tr><td>~m*</td><td>X</td><td>X</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+		<tr><td>M*</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+		<tr><td>!~m*</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>X</td></tr>
+		<tr><td>~*p</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>X</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+		<tr><td>!~*p</td><td>X</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+		<tr><td>~?4p</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+		<tr><td>~[MO]4[pe]</td><td>X</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+		<tr><td>=[MO]4[pe]</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+		<tr><td>&gt;O</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>X</td></tr>
+		<tr><td>&gt;O5</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>X</td></tr>
+		<tr><td>&gt;=m</td><td>X</td><td>X</td><td>X</td><td>&nbsp;</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+		<tr><td>&lt;m</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+		<tr><td>=|M4e| O4p| x,a</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td></tr>
+		<tr><td>=,x,a,=x,m|a</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>X</td></tr>
+
+</table>
+
+<p>Maybe some comments are in order:</p>
+<ol>
+<li><code>=x</code> matches nothing since the leading = is interpreted as an
+operator ("match as pattern case-insensitively"), and there is nothing
+matching the pattern x in the sample (in this case , only x and X would match).</li>
+<li><code>== =x</code> is the simplest way to search for "=x" -- its analogues
+work for all other metacharacters as well.</li>
+<li><code>=~m4</code> matches nothing, because the pattern has to match the
+<em>entire</em> string, and all strings in the sample have some annexes to
+their variations of m4.</code>
+<li><code>M*</code> only matches "M*" since the default on our system is
+literal matching.  This expression would have behaved completely differently on
+Vizier.</li>
+</ol>
 
 <h3>Grammar</h3>
 

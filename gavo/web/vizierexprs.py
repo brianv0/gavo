@@ -330,7 +330,8 @@ def getStringGrammar():
 		Literal("!")
 	patternExpr = patternOperator + pattern
 
-	nakedExpr = pattern.copy()
+	nakedExpr = (Regex("[^=!~|><]")+simpleOperand).setParseAction(
+		lambda s,p,toks: "".join(toks))
 
 	stringExpr = enumExpr | simpleExpr | patternExpr | nakedExpr
 	
@@ -346,7 +347,7 @@ def getStringGrammar():
 	simpleExpr.setParseAction(_makeOpNode)
 	patternExpr.setParseAction(_makeOpNode)
 	enumExpr.setParseAction(_makeOpNode)
-	nakedExpr.setParseAction(_getNodeFactory("~", StringNode))
+	nakedExpr.setParseAction(_getNodeFactory("==", StringNode))
 	wildStar.setParseAction(_makeOpNode)
 	wildQmark.setParseAction(_makeOpNode)
 	setElems.setParseAction(_getNodeFactory("[", StringNode))
