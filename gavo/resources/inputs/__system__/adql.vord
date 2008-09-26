@@ -13,19 +13,19 @@
 	<meta name="_intro" format="rst"><![CDATA[
 On this page, you can use
 `ADQL <http://www.ivoa.net/Documents/latest/ADQL.html>`_ to query 
-`some of our tables </__system__/dc_tables/list/form>`_.
+\RSTservicelink{"/__system__/dc_tables/list/form","some of our tables"}.
 
 To learn what ADQL is, see the service info.  You will find important 
 information for seasoned ADQL users there as well.
 ]]>	
 	</meta>
-	<meta name="_longdesc"><![CDATA[
+	<meta name="_longdoc" format="rst"><![CDATA[
 
 About this service
 ==================
 
 To find out what tables are available for querying, see the
-\RSTservicelink{__system__/dc_tables/list/form}{ADQL table list}.
+\RSTservicelink{"__system__/dc_tables/list/form", "ADQL table list"}.
 
 Be sure to read `Known Bugs and Problems`_ below.
 

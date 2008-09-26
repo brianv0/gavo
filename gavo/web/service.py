@@ -28,6 +28,7 @@ from zope.interface import implements
 import gavo
 from gavo import config
 from gavo import datadef
+from gavo import macros
 from gavo import meta
 from gavo import record
 from gavo import table
@@ -35,6 +36,7 @@ from gavo import record
 from gavo.parsing import contextgrammar
 from gavo.parsing import tablegrammar
 from gavo.parsing import resource
+from gavo.parsing import scripting
 from gavo.web import common
 
 
@@ -143,7 +145,7 @@ class SvcResult(object):
 		return getattr(self, "data_"+name)(ctx)
 
 
-class Service(record.Record, meta.MetaMixin):
+class Service(record.Record, meta.MetaMixin, macros.StandardMacroMixin):
 	"""is a model for a service.
 
 	It mainly contains:

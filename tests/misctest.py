@@ -21,6 +21,7 @@ import gavo
 from gavo import config
 from gavo import datadef
 from gavo import fitstable
+from gavo import macros
 from gavo import nullui
 from gavo import sqlsupport
 from gavo import table
@@ -30,7 +31,6 @@ from gavo.helpers import filestuff
 from gavo.parsing import importparser
 from gavo.parsing import resource
 from gavo.parsing import rowsetgrammar
-from gavo.parsing import scripting
 from gavo.web import resourcebased
 
 import testhelpers
@@ -288,9 +288,9 @@ class TextOutputTest(unittest.TestCase):
 
 
 class ScriptMacroTest(testhelpers.VerboseTest):
-	"""tests for scripting.py's MacroExpander.
+	"""tests for macros.py's MacroExpander.
 	"""
-	class SimplePackage(scripting.MacroPackage):
+	class SimplePackage(macros.MacroPackage):
 		def macro_noArg(self):
 			return "foo"
 		def macro_oneArg(self, arg):
@@ -299,7 +299,7 @@ class ScriptMacroTest(testhelpers.VerboseTest):
 			return arg1+arg2
 
 	def testBasic(self):
-		me = scripting.MacroExpander(self.SimplePackage())
+		me = macros.MacroExpander(self.SimplePackage())
 		for unEx, ex in [
 				("No macro calls in here", "No macro calls in here"),
 				(r"\noArg", "foo"),
@@ -315,7 +315,7 @@ class ScriptMacroTest(testhelpers.VerboseTest):
 			self.assertEqual(me.expand(unEx), ex)
 
 	def testWhitespace(self):
-		me = scripting.MacroExpander(self.SimplePackage())
+		me = self.SimplePackage().getExpander()
 		for unEx, ex in [
 				(r"There is \noArg whitespace here", "There is foowhitespace here"),
 				(r"There is \noArg{} whitespace here", "There is foo whitespace here"),
@@ -325,11 +325,11 @@ class ScriptMacroTest(testhelpers.VerboseTest):
 			self.assertEqual(me.expand(unEx), ex)
 
 	def testErrors(self):
-		me = scripting.MacroExpander(self.SimplePackage())
-		self.assertRaisesWithMsg(scripting.Error, 
+		me = self.SimplePackage().getExpander()
+		self.assertRaisesWithMsg(macros.Error, 
 			r"No such macro available in this context: \unknown", 
 			me.expand, (r"an \unknown Macro",))
-		self.assertRaisesWithMsg(scripting.Error, 
+		self.assertRaisesWithMsg(macros.Error, 
 			r"Invalid Arguments to \quote: []", 
 			me.expand, (r"\quote takes an argument",))
 	

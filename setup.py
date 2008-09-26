@@ -21,7 +21,7 @@ setup(name="gavo",
 	packages=find_packages(),
 	py_modules=["ez_setup"],
 	package_data = {
-		'gavo': "resources",
+		'gavo': ["resources/*"],
 	},
 	install_requires=install_requires,
 	dependency_links=["http://vo.ari.uni-heidelberg.de/soft/python",

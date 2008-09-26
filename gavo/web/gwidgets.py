@@ -16,6 +16,7 @@ from formal.widget import *
 from formal import widgetFactory
 from zope.interface import implements
 
+from gavo import macros
 from gavo import record
 from gavo.web import common
 
@@ -97,7 +98,7 @@ class OutputFormat(object):
 				" ",
 				T.a(href="", class_="resultlink", onmouseover=
 						"this.href=makeBookmarkLink(getEnclosingForm(this))")[
-					T.img(src=common.makeSitePath("/builtin/img/bookmark.png"), 
+					T.img(src=macros.makeSitePath("/builtin/img/bookmark.png"), 
 						class_="silentlink", title="Link to this form", alt="[bookmark]")
 				],
 			],
@@ -319,17 +320,17 @@ class StringFieldWithBlurb(widget.TextInput):
 
 
 class NumericExpressionField(StringFieldWithBlurb):
-	additionalMaterial = T.a(href=common.makeSitePath(
+	additionalMaterial = T.a(href=macros.makeSitePath(
 			"/builtin/help_vizier.shtml#floats"))[
 		"[?num. expr.]"]
 
 class DateExpressionField(StringFieldWithBlurb):
-	additionalMaterial = T.a(href=common.makeSitePath(
+	additionalMaterial = T.a(href=macros.makeSitePath(
 			"/builtin/help_vizier.shtml#dates"))[
 		"[?date expr.]"]
 
 class StringExpressionField(StringFieldWithBlurb):
-	additionalMaterial = T.a(href=common.makeSitePath(
+	additionalMaterial = T.a(href=macros.makeSitePath(
 			"/builtin/help_vizier.shtml#string"))[
 		"[?char expr.]"]
 

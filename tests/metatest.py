@@ -341,7 +341,7 @@ class HtmlBuilderTest(testhelpers.VerboseTest):
 	"""tests for the HTML builder for meta values.
 	"""
 	def testSimpleChild(self):
-		builder = webcommon.HtmlMetaBuilder()
+		builder = webcommon.HTMLMetaBuilder()
 		m = meta.MetaMixin()
 		m.addMeta("boo", "rotzel")
 		self.assertEqual(flat.flatten(m.buildRepr("boo", builder)),
@@ -352,7 +352,7 @@ class HtmlBuilderTest(testhelpers.VerboseTest):
 			'<span class="plainmeta">woo</span>')
 	
 	def testSequenceChild(self):
-		builder = webcommon.HtmlMetaBuilder()
+		builder = webcommon.HTMLMetaBuilder()
 		m = meta.MetaMixin()
 		m.addMeta("boo", "child1")
 		m.addMeta("boo", "child2")
@@ -363,7 +363,7 @@ class HtmlBuilderTest(testhelpers.VerboseTest):
 			'child2</span></li></ul>')
 	
 	def testCompoundSequenceChild(self):
-		builder = webcommon.HtmlMetaBuilder()
+		builder = webcommon.HTMLMetaBuilder()
 		m = meta.MetaMixin()
 		m.addMeta("boo.k", "boo 1, 1")
 		m.addMeta("boo.l", "boo 1, 2")

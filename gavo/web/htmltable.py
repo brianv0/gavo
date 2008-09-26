@@ -20,6 +20,7 @@ from twisted.internet import reactor, defer
 import gavo
 from gavo import config
 from gavo import coords
+from gavo import macros
 from gavo import unitconv
 from gavo import utils
 from gavo import valuemappers
@@ -156,7 +157,7 @@ def _productMapperFactory(colProps):
 	fixedArgs = "&siap=true"
 	def coder(val):
 		if val:
-			return T.a(href=common.makeSitePath(
+			return T.a(href=macros.makeSitePath(
 					"/getproduct?key=%s%s"%(urllib.quote(val), fixedArgs)),
 				onmouseover=mouseoverHandler,
 				class_="productlink")[re.sub("&.*", "", os.path.basename(val))]
@@ -216,7 +217,7 @@ _registerHTMLMF(_feedbackSelectMapperFactory)
 def makeCutoutURL(accref, ra, dec, sra, sdec):
 	key = (accref+"&amp;ra=%s&amp;dec=%s&amp;sra=%s"
 		"&amp;sdec=%s"%(ra, dec, sra, sdec))
-	return common.makeSitePath("/getproduct?key="+urllib.quote(key))
+	return macros.makeSitePath("/getproduct?key="+urllib.quote(key))
 
 
 class HeaderCells(rend.Page):

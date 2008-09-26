@@ -20,9 +20,11 @@ from zope.interface import implements
 
 import gavo
 from gavo import config
+from gavo import macros
 from gavo import meta
 from gavo import record
 from gavo import utils
+from gavo.parsing import scripting
 
 
 class Error(gavo.Error):
@@ -155,16 +157,17 @@ class CustomErrorMixin(object):
 		return self.renderHTTP_exception(ctx, failure)
 
 
-class HtmlMetaBuilder(meta.MetaBuilder):
-	def __init__(self):
+class HTMLMetaBuilder(meta.MetaBuilder):
+	def __init__(self, macroPackage=None):
 		meta.MetaBuilder.__init__(self)
 		self.resultTree, self.currentAtom = [[]], None
+		self.macroPackage = macroPackage
 
 	def startKey(self, atom):
 		self.resultTree.append([])
 		
 	def enterValue(self, value):
-		val = value.getContent("html")
+		val = value.getContent("html", self.macroPackage)
 		if val:
 			self.resultTree[-1].append(T.xml(val))
 
@@ -195,7 +198,7 @@ class HtmlMetaBuilder(meta.MetaBuilder):
 		self.resultTree = [[]]
 
 
-_htmlMetaBuilder = HtmlMetaBuilder()
+_htmlMetaBuilder = HTMLMetaBuilder()
 
 
 class GavoRenderMixin(object):
@@ -205,13 +208,13 @@ class GavoRenderMixin(object):
 	<tag n:render="meta">METAKEY</tag> or
 	<tag n:render="metahtml">METAKEY</tag>
 
-	Rendering internal links (important of off-root operation):
+	Rendering internal links (important for off-root operation):
 	<tag href|src="/foo" n:render="rootlink"/>
 
 	Including standard stylesheets/js/whatever:
 	<head>...<n:invisible n:render="commonhead"/>...</head>
 
-	Rendering the sidebar (with a meta-carrying thing in data):
+	Rendering the sidebar (with a service attribute on the class mixing in):
 
 	<body n:render="withsidebar">.  This will only work if the renderer
 	has a service attribute that's enough of a service (i.e., carries meta
@@ -221,6 +224,10 @@ class GavoRenderMixin(object):
 			metaCarrier=None):
 		if not metaCarrier:
 			metaCarrier = self.service
+		if isinstance(metaCarrier, macros.MacroPackage):
+			htmlBuilder = HTMLMetaBuilder(metaCarrier)
+		else:
+			htmlBuilder = _htmlMetaBuilder
 		metaKey = ctx.tag.children[0]
 		try:
 			if plain:
@@ -228,9 +235,9 @@ class GavoRenderMixin(object):
 				return ctx.tag[metaCarrier.getMeta(metaKey, raiseOnFail=True
 					).getContent("text")]
 			else:
-				_htmlMetaBuilder.clear()
+				htmlBuilder.clear()
 				ctx.tag.clear()
-				return ctx.tag[T.xml(metaCarrier.buildRepr(metaKey, _htmlMetaBuilder,
+				return ctx.tag[T.xml(metaCarrier.buildRepr(metaKey, htmlBuilder,
 					raiseOnFail=True))]
 		except gavo.NoMetaKey:
 			if raiseOnFail:
@@ -272,12 +279,13 @@ class GavoRenderMixin(object):
 
 	def render_commonhead(self, ctx, data):
 		return ctx.tag[
-			T.link(rel="stylesheet", href=makeSitePath("/formal.css"), 
+			T.link(rel="stylesheet", href=macros.makeSitePath("/formal.css"), 
 				type="text/css"),
-			T.link(rel="stylesheet", href=makeSitePath("/builtin/css/gavo_dc.css"), 
-				type="text/css"),
-			T.script(type='text/javascript', src=makeSitePath('/js/formal.js')),
-			T.script(src=makeSitePath("/builtin/js/gavo.js"), 
+			T.link(rel="stylesheet", href=macros.makeSitePath(
+				"/builtin/css/gavo_dc.css"), type="text/css"),
+			T.script(type='text/javascript', src=macros.makeSitePath(
+				'/js/formal.js')),
+			T.script(src=macros.makeSitePath("/builtin/js/gavo.js"), 
 				type="text/javascript"),
 		]
 
@@ -492,13 +500,3 @@ class CustomTemplateMixin(object):
 			return self.customTemplate
 	
 	docFactory = property(getDocFactory)
-
-
-def makeSitePath(uri):
-# XXX TODO: unify with GavoRenderMixin.render_rootlink 
-	"""adapts uri for use in an off-root environment.
-
-	uri itself needs to be server-absolute (i.e., start with a slash).
-	"""
-	assert uri[0]=="/"
-	return config.get("web", "nevowRoot")+uri

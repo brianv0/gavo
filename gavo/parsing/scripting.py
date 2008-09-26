@@ -20,81 +20,6 @@ class Error(gavo.Error):
 	pass
 
 
-class MacroExpander(object):
-	"""is a generic "macro" expander for scripts of all kinds.
-
-	It is loosely inspired by TeX, but of course much simpler.  See the
-	syntax below.
-
-	The macros themselves come from a MacroPackage object.  There are
-	a few of the around, implementing different functionality depending
-	on the script context (i.e., whether it belongs to an RD, a DD, or
-	a Table.
-
-	All macros are just functions receiving and returning strings.  Strings
-	in Arguments must be quoted, the results of macro calls will not be
-	quoted.
-
-	The main entry point to the class is the expand function below,
-	taking a string possibly containing macro calls and returning
-	"""
-	def __init__(self, package):
-		self.package = package
-		self.grammar = self.getGrammar()
-
-	def _execMacro(self, s, loc, toks):
-		toks = toks.asList()
-		macName, args = toks[0], toks[1:]
-		return self.package.execMacro(macName, args)
-
-	def expand(self, aString):
-		return self.grammar.transformString(aString)
-
-	def getGrammar(self, debug=False):
-		macro = Forward()
-		argument = QuotedString(quoteChar='"', escChar="\\", unquoteResults=True
-			) | macro
-		arguments = (Suppress( "{" ) + Optional( argument ) + 
-			ZeroOrMore( Suppress(',') + argument) + Suppress( "}" ))
-		macroName = Regex("[A-Za-z_][A-Za-z_0-9]+")
-		macroName.setWhitespaceChars("")
-		macro << Suppress( "\\" ) + macroName + Optional( arguments )
-		macro.setParseAction(self._execMacro)
-		literalBackslash = Literal("\\\\")
-		literalBackslash.setParseAction(lambda *args: "\\")
-		suppressedLF = Literal("\\\n")
-		suppressedLF.setParseAction(lambda *args: " ")
-		if debug:
-			macro.setDebug(True)
-			macro.setName("macro")
-			argument.setDebug(True)
-			argument.setName("arg")
-			arguments.setDebug(True)
-			arguments.setName("args")
-			macroName.setDebug(True)
-			macroName.setName("macname")
-		return literalBackslash | suppressedLF | macro
-
-
-class MacroPackage(object):
-	r"""is a function dispatcher for MacroExpander.
-
-	Basically, you inherit from this class and define macro_xxx functions.
-	MacroExpander can then call \xxx, possibly with arguments.
-	"""
-	def execMacro(self, macName, args):
-		fun = getattr(self, "macro_"+macName, None)
-		if fun is None:
-			raise Error("No such macro available in this context: \\%s"%macName)
-		try:
-			return fun(*args)
-		except TypeError:
-			raise Error("Invalid Arguments to \\%s: %s"%(macName, args))
-
-	def macro_quote(self, arg):
-		return '"%s"'%(arg.replace('"', '\\"'))
-
-
 def _getSQLScriptGrammar():
 	"""returns a pyparsing ParserElement that splits SQL scripts into
 	individual commands.
@@ -349,7 +274,7 @@ class ScriptingMixin(object):
 		try:
 			return self.__macroExpander
 		except AttributeError:
-			self.__macroExpander = MacroExpander(self.getPackage())
+			self.__macroExpander = self.getPackage().getExpander()
 			return self.__getMacroExpander()
 
 	def runScripts(self, waypoint, **kwargs):
@@ -380,9 +305,3 @@ class ScriptingMixin(object):
 			raise gavo.Error("%s objects do not support %s waypoints"%(
 				self.__class__.__name__, type))
 		self.dataStore["scripts"].append(item)
-
-
-if __name__=="__main__":
-	sys.setrecursionlimit(50)
-	me = MacroExpander(MacroPackage())
-	print me.grammar.parseString(r'\quote{\quote{"foo"}}')

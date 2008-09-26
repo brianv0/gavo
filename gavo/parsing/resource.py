@@ -16,6 +16,7 @@ from gavo import config
 from gavo import coords
 from gavo import datadef
 from gavo import logger
+from gavo import macros
 from gavo import meta
 from gavo import nullui
 from gavo import parsing
@@ -31,6 +32,7 @@ from gavo.parsing import rowsetgrammar
 from gavo.parsing import scripting
 from gavo.parsing import tablegrammar
 from gavo.parsing import typeconversion
+from gavo.web import common
 
 class Error(gavo.Error):
 	pass
@@ -111,7 +113,7 @@ class ThingWithRoles(record.Record):
 
 
 class TableDef(ThingWithRoles, meta.MetaMixin, scripting.ScriptingMixin,
-		scripting.MacroPackage):
+		macros.StandardMacroMixin):
 	"""is a specification for the semantics of a table line.
 	"""
 	validWaypoints = set(["preIndex", "preIndexSQL", "viewCreation", 
@@ -149,9 +151,6 @@ class TableDef(ThingWithRoles, meta.MetaMixin, scripting.ScriptingMixin,
 
 	def macro_tablename(self):
 		return self.get_table()
-	
-	def macro_schema(self):
-		return self.rd.get_schema()
 
 	def set_adql(self, val):
 		val = record.parseBooleanLiteral(val)
@@ -620,7 +619,7 @@ class Resource(object):
 
 
 class ResourceDescriptor(ThingWithRoles, meta.MetaMixin, 
-		scripting.ScriptingMixin, scripting.MacroPackage):
+		scripting.ScriptingMixin, macros.StandardMacroMixin):
 	"""is a container for all information necessary to import a resource into
 	the DC.
 	"""
@@ -665,9 +664,6 @@ class ResourceDescriptor(ThingWithRoles, meta.MetaMixin,
 
 	def getRd(self):
 		return self
-
-	def macro_schema(self):
-		return self.get_schema()
 
 	def _getSourceId(self, sourcePath):
 		"""returns the inputsDir-relative path to the rd.
@@ -777,7 +773,7 @@ class ResourceDescriptor(ThingWithRoles, meta.MetaMixin,
 
 
 class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin,
-		scripting.MacroPackage):
+		macros.StandardMacroMixin):
 	"""is a DataTransformer for reading data from files or external processes.
 	"""
 	validWaypoints = set(["preCreation", "postCreation"])
@@ -807,9 +803,6 @@ class DataDescriptor(datadef.DataTransformer, scripting.ScriptingMixin,
 		if self.dataStore["source"]:
 			return os.path.join(self.rd.get_resdir(), 
 				self.dataStore["source"])
-
-	def macro_schema(self):
-		return self.rd.get_schema()
 
 	def iterSources(self):
 		if not os.path.isdir(self.rd.get_resdir()):

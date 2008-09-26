@@ -310,7 +310,6 @@ class MetaItem(object):
 			return cls(mv)
 
 
-
 class MetaValue(MetaMixin):
 	"""is a piece of meta information about a resource.
 
@@ -332,23 +331,26 @@ class MetaValue(MetaMixin):
 					re.sub("\s+", " ", para)))
 				for para in re.split("\n\s*\n", self.content)])
 
-	def _getContentAsText(self):
-		return self.content
+	def _getContentAsText(self, content):
+		return content
 	
-	def _getContentAsHTML(self):
+	def _getContentAsHTML(self, content):
 		if self.format=="literal":
-			return '<span class="literalmeta">%s</span>'%self.content
+			return '<span class="literalmeta">%s</span>'%content
 		elif self.format=="plain":
 			return "\n".join('<span class="plainmeta">%s</span>'%p 
-				for p in self.content.split("\n\n"))
+				for p in content.split("\n\n"))
 		elif self.format=="rst":
-			return metaRstToHtml(self.content)
+			return metaRstToHtml(content)
 
-	def getContent(self, targetFormat="text"):
+	def getContent(self, targetFormat="text", macroPackage=None):
+		content = self.content
+		if macroPackage and "\\" in self.content:
+			content = macroPackage.getExpander().expand(content)
 		if targetFormat=="text":
-			return self._getContentAsText()
+			return self._getContentAsText(content)
 		elif targetFormat=="html":
-			return self._getContentAsHTML()
+			return self._getContentAsHTML(content)
 		else:
 			raise gavo.MetaError("Invalid meta target format: %s"%targetFormat)
 
@@ -410,8 +412,8 @@ class MetaURL(MetaValue):
 		MetaValue.__init__(self, url, format)
 		self.title = title
 	
-	def _getContentAsHTML(self):
-		return '<a href="%s">%s</a>'%(self.content, self.title or self.content)
+	def _getContentAsHTML(self, content):
+		return '<a href="%s">%s</a>'%(content, self.title or content)
 	
 	def _addMeta(self, atoms, metaValue):
 		if atoms[0]=="title":
@@ -436,9 +438,9 @@ class InfoItem(MetaValue):
 class LogoMeta(MetaValue):
 	"""is a MetaItem corresponding to a small image
 	"""
-	def _getContentAsHTML(self):
+	def _getContentAsHTML(self, content):
 		return u'<img class="metalogo" src="%s" height="16" alt="[Logo]"/>'%(
-				unicode(self.content))
+				unicode(content))
 
 
 class BibcodeMeta(MetaValue):
@@ -453,8 +455,8 @@ class BibcodeMeta(MetaValue):
 				"link_type=ABSTRACT"%urllib.quote(matOb.group(0)),
 			matOb.group(0))
 
-	def _getContentAsHTML(self):
-		return self.bibcodePat.sub(self._makeADSLink, unicode(self.content))
+	def _getContentAsHTML(self, content):
+		return self.bibcodePat.sub(self._makeADSLink, unicode(content))
 
 
 _metaTypeRegistry = {

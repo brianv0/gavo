@@ -87,7 +87,7 @@ tables and the RDs the tables come from. -->
 			<outputField original=".tableName"/>
 			<outputField dest="tableinfo" dbtype="text" tablehead="Info">
 				<renderer>
-					return T.a(href=common.makeSitePath("/__system__/dc_tables/"
+					return T.a(href=macros.makeSitePath("/__system__/dc_tables/"
 						"show/tableinfo?tableName="+urllib.quote(data)))["Table Info"]
 				</renderer>
 			</outputField>
