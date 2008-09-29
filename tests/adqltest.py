@@ -463,6 +463,12 @@ class ColResTest(testhelpers.VerboseTest):
 		self.assertEqual(wInfo.ucd, "phys.dim")
 		self.assert_(wInfo.userData[0] is spatialFields[1])
 
+	def testIgnoreCase(self):
+		cols = self._getColSeq("select Width, hEiGHT from spatial")
+		self._assertColumns(cols, [
+			("m", "phys.dim", False),
+			("km", "phys.dim", False),])
+
 	def testStarSelect(self):
 		cols = self._getColSeq("select * from spatial")
 		self._assertColumns(cols, [
@@ -731,7 +737,12 @@ class QueryTest(unittest.TestCase):
 		self._assertFieldProperties(fields[3], [
 			("ucd", 'phys.veloc;pos.heliocentric'),
 			("description", 'A sample radial velocity'), ("unit", 'km/s')])
-	
+
+	def testNoCase(self):
+		# will just raise an Exception if things are broken.
+		adqlglue.query("select ALPHA, DeLtA, MaG from %s"%self.tableName,
+			metaProfile="test", queryProfile="test")
+
 	def testTainting(self):
 		res = adqlglue.query("select delta*2, alpha*mag, alpha+delta"
 			" from %s where mag<-10"% self.tableName, metaProfile="test",
@@ -756,4 +767,4 @@ class QueryTest(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(QueryTest, "testStar")
+	testhelpers.main(QueryTest)

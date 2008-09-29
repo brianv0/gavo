@@ -16,6 +16,7 @@ from twisted.internet import threads
 from twisted.python import log
 
 import gavo
+from gavo import adql
 from gavo import adqlglue
 from gavo import config
 from gavo import coords
@@ -205,6 +206,12 @@ def mapDbErrors(failure):
 		raise gavo.ValidationError(failure.getErrorMessage(), "query")
 	elif isinstance(failure.value, adqlglue.ParseException):
 		raise gavo.ValidationError("Could not parse your query: %s"%
+			failure.getErrorMessage(), "query")
+	elif isinstance(failure.value, adql.ColumnNotFound):
+		raise gavo.ValidationError("No such field known: %s"%
+			failure.getErrorMessage(), "query")
+	elif isinstance(failure.value, adql.AmbiguousColumn):
+		raise gavo.ValidationError("%s needs to be qualified."%
 			failure.getErrorMessage(), "query")
 	else:
 		raise failure.value

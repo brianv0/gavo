@@ -33,6 +33,70 @@ import re
 from gavo import Error
 
 
+class Coercions(object):
+	"""is a map from type names to coercion ranks and vice versa.
+
+	>>> c = Coercions(['bar', 'foo', 'baz'])
+	>>> c.getSubsuming([])
+	>>> c.getSubsuming(['bar'])
+	'bar'
+	>>> c.getSubsuming(['baz', 'bar'])
+	'baz'
+	>>> c.getSubsuming(['bar', 'quux'])
+	"""
+	def __init__(self, typeSeq):
+		self.backward = dict((k,v) for k,v in enumerate(typeSeq))
+		self.forward = dict((v,k) for k,v in self.backward.iteritems())
+
+	def getSubsuming(self, typeSeq):
+		"""returns the highest-ranking type within typeSeq.
+
+		The function returns None if typeSeq is not subsumable because
+		a type not known to this set of coercions is in typeSeq.
+		"""
+		if not typeSeq:
+			return None
+		try:
+			ranks = [self.forward[t] for t in typeSeq]
+		except KeyError: # unknown type in typeSeq
+			return None
+		return self.backward[max(ranks)]
+
+
+_numericCoercions = Coercions(["smallint", "integer", "int", "bigint", 
+	"real", "float", "double", "double precision"])
+
+_dateCoercions = Coercions(["date", "timestamp"])
+	
+
+def getSubsumingType(sqlTypes):
+	"""returns an appropirate sql type for a value composed of the types
+	mentioned in the sequence sqlTypes.
+
+	Basically, we have the coercion sequence int -> float -> text,
+	where earlier types get clobbered by later ones.  And then there's
+	messy stuff like dates.  We don't want to fail here, so if all else
+	fails, we just make it a text.
+	>>> getSubsumingType(["smallint", "integer"])
+	'integer'
+	>>> getSubsumingType(["double", "int", "bigint"])
+	'double'
+	>>> getSubsumingType(["date", "timestamp", "timestamp"])
+	'timestamp'
+	>>> getSubsumingType(["date", "boolean", "smallint"])
+	'text'
+	>>> getSubsumingType(["box", "raw"])
+	'text'
+	"""
+	coercs = filter(None, [_numericCoercions.getSubsuming(sqlTypes),
+		_dateCoercions.getSubsuming(sqlTypes)])
+	if len(coercs)==1:
+		return coercs[0]
+	else:
+		return 'text'
+	
+
+
 class FromSQLConverter:
 	"""is an abstract base class for type converters from the SQL type system.
 
@@ -217,3 +281,11 @@ sqltypeToVOTable = ToVOTableConverter().convert
 sqltypeToXSD = ToXSDConverter().convert
 sqltypeToNumarray = ToNumarrayConverter().convert
 voTableToSQLType = FromVOTableConverter().convert
+
+
+def _test():
+	import doctest, typesystems
+	doctest.testmod(typesystems)
+
+if __name__=="__main__":
+	_test()

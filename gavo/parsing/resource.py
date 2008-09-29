@@ -147,10 +147,26 @@ class TableDef(ThingWithRoles, meta.MetaMixin, scripting.ScriptingMixin,
 		return "<TableDef %s, %s>"%(id(self), id(self.get_items()))
 
 	def macro_curtable(self):
+		"""returns the qualified name of the current table.
+		"""
 		return self.getQName()
 
 	def macro_tablename(self):
+		"""returns the unqualified name of the current table.
+		"""
 		return self.get_table()
+
+	def macro_nameForUCD(self, ucd):
+		"""returns the (unique!) name of the field having ucd in this table.
+
+		If there is no or more than one field with the ucd in this table,
+		we raise an exception.
+		"""
+		fields = self.getFieldsByUcd(ucd)
+		if len(fields)!=1:
+			raise Error("More than one or no field with ucd %s in this table"%
+				ucd)
+		return fields[0].get_dest()
 
 	def set_adql(self, val):
 		val = record.parseBooleanLiteral(val)

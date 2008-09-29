@@ -5,6 +5,7 @@ Code to bind the adql library to the data center software.
 from gavo import adql
 from gavo import datadef
 from gavo import sqlsupport
+from gavo import typesystems
 from gavo.parsing import resource
 
 from adql import ParseException
@@ -32,6 +33,8 @@ def makeDataFieldFromFieldInfo(colName, fi):
 
 	Since we cannot assign sensible verbLevels and assume the user wants
 	to see what s/he selected, all fields get verbLevel 1.
+
+	Types are a serious problem, handled by typesystems.
 	"""
 	if len(fi.userData)==1:
 		res = fi.userData[0].copy()
@@ -42,6 +45,8 @@ def makeDataFieldFromFieldInfo(colName, fi):
 	if len(fi.userData)>1:
 		res.set_description("This field has traces of: %s"%("; ".join([
 			f.get_description() for f in fi.userData if f.get_description()])))
+		res.set_dbtype(typesystems.getSubsumingType([f.get_dbtype() 
+			for f in fi.userData]))
 	if fi.tainted:
 		res.set_description(res.get_description()+" -- *TAINTED*: the value"
 			" was operated on in a way that unit and ucd may be severely wrong")

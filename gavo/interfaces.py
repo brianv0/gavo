@@ -186,7 +186,7 @@ class Q3CPositions(TableBasedInterface):
 		return res
 
 
-class Q3CIndex(Interface):
+class Q3CIndex(TableBasedInterface):
 	"""is an interface indexing the main positions of a table using Q3C
 
 	The difference to Q3CPositions is that no cartesian coordinates are
@@ -195,34 +195,11 @@ class Q3CIndex(Interface):
 	we will raise an error if there are not exactly one of these each
 	in the pertaining record.
 	"""
-	def __init__(self):
-		Interface.__init__(self, [])
-
 	name = "q3cindex"
 
-	def getDelayedNodes(self, recordNode):
-		tableName = recordNode.get_table()
-		raFields = recordNode.getFieldsByUcd("pos.eq.ra;meta.main")
-		deFields = recordNode.getFieldsByUcd("pos.eq.dec;meta.main")
-		if len(raFields)!=1 or len(deFields)!=1:
-			raise Error("Table must have exactly one field with ucds"
-				" pos.eq.ra;meta.main and pos.eq.dec;meta.main each for the"
-				" q3cindex interface")
-		raName, deName = raFields[0].get_dest(), deFields[0].get_dest()
-		yield "Data", ("script", ("postCreation", "q3cindex",
-			"\n".join([
-				"BEGIN",
-				"-DROP INDEX \\schema.%(indexName)s",
-				"COMMIT",
-				"CREATE INDEX %(indexName)s ON \\curtable "
-				"(q3c_ang2ipix(%(raName)s, %(deName)s))",
-				"CLUSTER %(indexName)s ON \\curtable",
-				"ANALYZE \\curtable"])%{
-					"indexName": "q3c_"+tableName.replace(".", "_"),
-					"tableName": recordNode.get_table(),
-					"raName": raName,
-					"deName": deName,
-					}))
+	def __init__(self):
+		TableBasedInterface.__init__(self, "__system__/scs", "q3cindexFields")
+
 
 
 class Products(TableBasedInterface):

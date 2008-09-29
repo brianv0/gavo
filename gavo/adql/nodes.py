@@ -51,12 +51,15 @@ def flatten(arg):
 
 
 def getUniqueMatch(matches, colName):
-		if len(matches)==1:
-			return matches[0]
-		elif not matches:
-			raise ColumnNotFound(colName)
-		else:
-			raise AmbiguousColumn(colName)
+	"""returns the only item of matches if there is exactly one, raises an
+	appropriate exception if not.
+	"""
+	if len(matches)==1:
+		return matches[0]
+	elif not matches:
+		raise ColumnNotFound(colName)
+	else:
+		raise AmbiguousColumn(colName)
 
 
 def collectUserData(infoChildren):
@@ -372,7 +375,6 @@ class FromClause(ADQLNode):
 	def _processChildren(self):
 		self.tablesReferenced = [t for t in self.children
 			if isinstance(t, ColBearingMixin)]
-		self._fieldCache = {}
 	
 	def getTableNames(self):
 		res = []
@@ -382,13 +384,12 @@ class FromClause(ADQLNode):
 	
 	def resolveField(self, name):
 		matches = []
-		if not name in self._fieldCache:
-			for t in self.tablesReferenced:
-				print t
-				try:
-					matches.append(t.fieldInfos.getFieldInfo(name))
-				except ColumnNotFound:
-					pass
+# XXX TODO: implement matching rules for delimitedIdentifiers
+		for t in self.tablesReferenced:
+			try:
+				matches.append(t.fieldInfos.getFieldInfo(name))
+			except ColumnNotFound:
+				pass
 		return getUniqueMatch(matches, name)
 
 	class FakeSelectField(object):

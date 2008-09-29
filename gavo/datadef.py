@@ -31,6 +31,11 @@ class RoEmptyDict:
 	def __setitem__(self, what, where):
 		raise TypeError("RoEmptyDicts are immutable")
 
+	def iteritems(self):
+		if False:
+			yield None
+		return
+
 _roEmptyDict = RoEmptyDict()
 
 
@@ -81,7 +86,7 @@ class DataField(record.Record):
 		"longdescr": "longdescription",
 		"type": "dbtype",
 	}
-	externallyManagedColumns = set(["tableName", "colInd"])
+	externallyManagedColumns = set(["tableName", "colInd", "displayHint"])
 
 	def isEnumerated(self):
 		return self.get_values() and self.get_values().get_options()
@@ -100,6 +105,10 @@ class DataField(record.Record):
 		else:
 			dh = {}
 		self.dataStore["displayHint"] = dh
+
+	def getDisplayHintAsText(self):
+		return ",".join(
+			["%s=%s"%(k,v) for k,v in self.get_displayHint().iteritems()])
 
 	def set_primary(self, val):
 		"""implies a verbLevel of 1 if verbLevel has not been set otherwise.
@@ -165,6 +174,7 @@ class DataField(record.Record):
 			if colName in self.externallyManagedColumns:
 				continue
 			row[colName] = self.get(self.metaColMapping.get(colName, colName))
+		row["displayHint"] = self.getDisplayHintAsText()
 		return row
 
 	def validate(self, value):
@@ -226,7 +236,7 @@ class DataField(record.Record):
 		for name, index in [("dest", 1), ("source", 1), 
 				("unit", 2), ("ucd", 3), ("description", 4), ("tablehead", 5),
 				("longdescription", 6), ("utype", 8), ("dbtype", 10),
-				("verbLevel", 11)]:
+				("verbLevel", 11), ("displayHint", 12)]:
 			initvals[name] = row[index]
 		return cls(**initvals)
 

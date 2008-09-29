@@ -456,9 +456,9 @@ def makeEllipsis(aStr, maxLen):
 
 def displayError(exc):
 	if isinstance(exc, gavo.Error):
-		prefix = "*** Operation failed:"
+		prefix = "*** Operation failed"
 	else:
-		prefix = "*** Uncaught exception:"
+		prefix = "*** Uncaught exception"
 	if hasattr(exc, "gavoData"):
 		data = str(exc.gavoData)
 	else:

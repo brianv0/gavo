@@ -2,8 +2,6 @@
 A macro mechanism primarily for string replacement in resource descriptors.
 """
 
-import weakref
-
 from pyparsing import Word, OneOrMore, ZeroOrMore, QuotedString, Forward,\
 	SkipTo, Optional, StringEnd, Regex, LineEnd, Suppress, ParserElement,\
 	Literal, White, ParseException, dblQuotedString
@@ -95,7 +93,7 @@ class MacroPackage(object):
 		try:
 			return self.__macroExpander
 		except AttributeError:
-			self.__macroExpander = weakref.proxy(MacroExpander(self))
+			self.__macroExpander = MacroExpander(self)
 			return self.getExpander()
 
 	def macro_quote(self, arg):

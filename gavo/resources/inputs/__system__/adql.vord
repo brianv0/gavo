@@ -78,8 +78,44 @@ on this medium-sized project.
 Examples
 ========
 
-Coming up.
+Story I: Guide star
+'''''''''''''''''''
 
+** Work in progress **
+
+Suppose you have developed an adaptive optics instrument that you want
+to use to observe radio-loud quasars; you don't really care which one, but you're sitting on the south pole, and you'll need a guide star.  In the
+table list, you notice `this list of QSOs 
+<http://vo.uni-hd.de/__system__/dc_tables/show/tableinfo?tableName=veronqsos.data>`_, 
+and you see there's a column specifying whether these quasars are detected in
+radio.  So, let's run a query selecting their names and positions:
+
+::
+
+	SELECT TOP 100 raj2000, dej2000, name FROM veronqsos.data WHERE notRadio=1
+
+Though this isn't meant as a tutorial, a few general words:
+ADQL doesn't distinguish upper and lower case, it's just a convention
+to write SQL reserved words in upper case; the TOP 100 generally is
+a good idea when you do not know how much to expect.  Our service
+will happily serve you millions of rows, and your browser may not
+like that.
+
+Anyway, there are plenty of results, so say we're interesting in QSOs in
+the redshift range between 0.5 and 1::
+
+  SELECT TOP 100 raj2000, dej2000, name, z FROM veronqsos.data 
+		WHERE notRadio='*' 
+		AND z BETWEEN 0.5 AND 1
+
+
+Still plenty.  Let's say our telescope is on the south pole, so we want the
+objects to be south of -40 degrees::
+
+  SELECT TOP 100 raj2000, dej2000, name, z FROM veronqsos.data 
+		WHERE notRadio='*' 
+		AND z BETWEEN 0.5 AND 1
+		AND dej2000<-40
 
 ]]>
 	</meta>

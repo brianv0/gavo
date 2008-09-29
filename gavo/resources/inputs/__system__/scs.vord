@@ -39,4 +39,21 @@
 			
 		</Semantics>
 	</Data>
+
+	<Data id="q3cindexDef" virtual="True">
+		<NullGrammar/>
+		<Semantics>
+			<Table table="q3cindexFields">
+				<script type="preIndexSQL" name="create q3c index">
+					BEGIN
+					-DROP INDEX \schema.q3c_\tablename{}
+					COMMIT
+					CREATE INDEX q3c_\tablename{} ON \curtable{} (
+						q3c_ang2ipix(\nameForUCD{"pos.eq.ra;meta.main"}, 
+							\nameForUCD{"pos.eq.dec;meta.main"}))
+					CLUSTER q3c_\tablename{} ON \curtable{}
+				</script>
+			</Table>
+		</Semantics>
+	</Data>
 </ResourceDescriptor>

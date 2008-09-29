@@ -59,6 +59,8 @@ class FieldInfos(object):
 
 		This entails both entering it in self.columns and in self.seq.
 		"""
+		# XXX TODO: handle delimited identifiers
+		label = label.lower()
 		if label in self.columns:
 			self.columns[label] = None # Sentinel for ambiguous names
 		else:
@@ -66,6 +68,8 @@ class FieldInfos(object):
 		self.seq.append((label, info))
 
 	def getFieldInfo(self, colName):
+		# XXX TODO: handle delimited identifiers
+		colName = colName.lower()
 		fi = self.columns.get(colName, nodes.Absent)
 		if fi is nodes.Absent:
 			raise ColumnNotFound(colName)
@@ -112,6 +116,8 @@ class FieldInfosForQuery(FieldInfos):
 
 		i.e., the columns in the select clause are ignored.
 		"""
+		# XXX TODO: handle delimited identifiers
+		colName = colName.lower()
 		matched = []
 		for t in self.subTables.values():
 			subCols = t.fieldInfos.columns

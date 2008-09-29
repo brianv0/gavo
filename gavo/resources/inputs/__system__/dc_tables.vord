@@ -9,32 +9,10 @@ tables and the RDs the tables come from. -->
 		the tables within the data holdings.
 		This is primarily for use with ADQL queries.</meta>
 
-	<Data id="tablesVsRDs">
-		<NullGrammar/>
-		<Semantics>
-			<SharedTable table="dc_tables">
-				<Field dest="tableName" description="Fully qualified table name"
-					dbtype="text" source="tableName" verbLevel="1"/>
-				<Field dest="sourceRd" dbtype="text" source="sourceRd"
-					description="Id of the resource descriptor containing the table's definition"
-					tablehead="RD" verbLevel="15"/>
-				<Field dest="tableDesc" dbtype="text" source="tableDesc"
-					description="Description of the table content" 
-					tablehead="Table desc." verbLevel="1"/>
-				<Field dest="resDesc" dbtype="text" source="resDesc"
-					description="Description of the resource this table is part of"
-					tablehead="Res desc." verbLevel="15"/>
-				<Field dest="adql" dbtype="boolean" source="adql"
-					description="True if this table may be accessed using ADQL"
-					verbLevel="30"/>
-			</SharedTable>
-		</Semantics>
-	</Data>
-
 	<Data id="fields">
 		<NullGrammar/>
 		<Semantics>
-			<!-- right now, DataField mirrors this.  This should change, but
+			<!-- Right now, DataField mirrors this.  This should change, but
 			until then, you'll need to edit datafield.py if you edit this. -->
 			<SharedTable table="fielddescriptions">
 				<Field dest="tableName" dbtype="text" primary="True" 
@@ -61,6 +39,30 @@ tables and the RDs the tables come from. -->
 					description="SQL type of this column"/>
 				<Field dest="verbLevel" dbtype="integer" 
 					description="Level of verbosity at which to include this column"/>
+				<Field dest="displayHint" dbtype="text"
+					description="Hints how to display that item for human consumption"/>
+			</SharedTable>
+		</Semantics>
+	</Data>
+
+	<Data id="tablesVsRDs">
+		<NullGrammar/>
+		<Semantics>
+			<SharedTable table="dc_tables">
+				<Field dest="tableName" description="Fully qualified table name"
+					dbtype="text" source="tableName" verbLevel="1"/>
+				<Field dest="sourceRd" dbtype="text" source="sourceRd"
+					description="Id of the resource descriptor containing the table's definition"
+					tablehead="RD" verbLevel="15"/>
+				<Field dest="tableDesc" dbtype="text" source="tableDesc"
+					description="Description of the table content" 
+					tablehead="Table desc." verbLevel="1"/>
+				<Field dest="resDesc" dbtype="text" source="resDesc"
+					description="Description of the resource this table is part of"
+					tablehead="Res desc." verbLevel="15"/>
+				<Field dest="adql" dbtype="boolean" source="adql"
+					description="True if this table may be accessed using ADQL"
+					verbLevel="30"/>
 			</SharedTable>
 		</Semantics>
 	</Data>
