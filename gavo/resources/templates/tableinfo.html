@@ -30,7 +30,24 @@
 		</n:invisible>
 
 		<h2 class="section">Fields</h2>
-		<table n:render="tableOfFields" n:data="fields"/>
+		<table n:data="fields" n:render="sequence" class="shorttable">
+			<tr n:pattern="header"><th>Name</th><th>Table Head</th>
+				<th>Description</th><th>Unit</th><th>UCD</th></tr>
+			<tr n:pattern="item" n:render="mapping">
+				<n:attr name="class"><n:slot name="indexState"/></n:attr>
+				<td><n:slot name="name"/></td>
+				<td><n:slot name="tablehead"/></td>
+				<td><n:slot name="description"/></td>
+				<td><n:slot name="unit"/></td>
+				<td><n:slot name="ucd"/></td>
+			</tr>
+		</table>
+
+		<p>Columns that are parts of indices are marked 
+			<span class="index">like this</span>.  Most columns with UCDs
+			pos.eq.ra;meta.main and pos.eq.dec;meta.main are indexed, too,
+			but that is not shown at the moment.  We will change this, but
+			unfortunately that takes a bit internal reshuffling.</p>
 
 		<h2 class="section">Other</h2>
 		<div id="siblings" n:render="ifdata" n:data="otherServices">

@@ -326,3 +326,7 @@ table.shorttable {
 	border-right: 1px solid grey;
 	padding: 4px
 }
+
+.index {
+	background: #d2dcf0;
+}

@@ -34,7 +34,7 @@ def _containsToQ3c(node, state):
 		return
 	p, shape = args
 	if shape.type=="circle":
-		node.children = ["q3c_radial_query(%s, %s, %s, %s, %s)"%(
+		node.children = ["q3c_join(%s, %s, %s, %s, %s)"%(
 			p.x, p.y, shape.x, shape.y, shape.radius)]
 	elif shape.type=="rectangle":
 		node.children = ["q3c_poly_query(%s, %s, ARRAY[%s, %s, %s, %s,"
@@ -228,18 +228,45 @@ def morphMiscFunctions(tree):
 	morphhelpers.morphTreeWithHandlers(tree, _miscHandlers)
 
 
-def _topToLimit(node, state):
+def _getLimit(node):
 	for index, c in enumerate(node.children):
 		if nodes.getType(c)=="setLimit":
 			break
 	else:
 		return
-	node.children = list(node.children)
 	del node.children[index]
-	node.children.extend(["LIMIT", c.limit])
+	return c.limit
+
+
+def _hasAll(node):
+	for c in node.children[:3]:
+		if isinstance(c, basestring) and c.lower()=="all":
+			return True
+
+
+def _makeLimitAndOffset(node, state):
+	"""makes LIMIT and OFFSET clauses from TOP and ALL in ADQL.
+
+	As a little hack, we turn ALL to OFFSET 0.
+	"""
+# XXX TODO: parse out QuerySpecification fully, do a custom flattener
+# and then sanitize this funciton.
+	node.children = list(node.children)
+	limit = _getLimit(node)
+	newToks = []
+	if limit:
+		newToks = ["LIMIT", limit]
+	if _hasAll(node):
+		newToks.append("OFFSET 0")
+	if node.children[-1].type=='correlationSpecification':
+		# insert in front of the corrSpec's closing paren
+		dest = len(node.children)-2
+		node.children[dest:dest] =  newToks
+	else:
+		node.children.extend(newToks)
 
 _syntaxHandlers = {
-	"querySpecification": _topToLimit,
+	"querySpecification": _makeLimitAndOffset,
 }
 
 # Warning: if ever there are two handlers for the same type, this will

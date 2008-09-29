@@ -64,6 +64,10 @@ We will fix this when the desired semantics is specified in some way.
 The output of ADQL geometries is not standard compliant.  This can
 be easily fixed, complain if it bugs you.
 
+SELECT and SELECT ALL are not exactly the same thing.  The latter will add
+an OFFSET 0 to the resulting postgresql query.  Use this when the query
+planner messes up; see the Story I below.
+
 Usability
 '''''''''
 
@@ -78,45 +82,182 @@ on this medium-sized project.
 Examples
 ========
 
-Story I: Guide star
-'''''''''''''''''''
+Story I: Guide star (and a mini-tutorial)
+'''''''''''''''''''''''''''''''''''''''''
 
 ** Work in progress **
 
-Suppose you have developed an adaptive optics instrument that you want
-to use to observe radio-loud quasars; you don't really care which one, but you're sitting on the south pole, and you'll need a guide star.  In the
+Suppose you have developed an adaptive optics instrument that you want to use
+to observe radio-loud quasars; you don't really care which one, but you're
+sitting on the south pole, and you'll need a guide star, and it'd be nice if
+the object were in the redshift range of 0.5 to 1.  
+
+In the
 table list, you notice `this list of QSOs 
 <http://vo.uni-hd.de/__system__/dc_tables/show/tableinfo?tableName=veronqsos.data>`_, 
 and you see there's a column specifying whether these quasars are detected in
-radio.  So, let's run a query selecting their names and positions:
+radio; also, you want the thing to be far enough south, and you specify the
+redshift:
 
 ::
 
-	SELECT TOP 100 raj2000, dej2000, name FROM veronqsos.data WHERE notRadio=1
-
-Though this isn't meant as a tutorial, a few general words:
-ADQL doesn't distinguish upper and lower case, it's just a convention
-to write SQL reserved words in upper case; the TOP 100 generally is
-a good idea when you do not know how much to expect.  Our service
-will happily serve you millions of rows, and your browser may not
-like that.
-
-Anyway, there are plenty of results, so say we're interesting in QSOs in
-the redshift range between 0.5 and 1::
-
   SELECT TOP 100 raj2000, dej2000, name, z FROM veronqsos.data 
-		WHERE notRadio='*' 
-		AND z BETWEEN 0.5 AND 1
-
-
-Still plenty.  Let's say our telescope is on the south pole, so we want the
-objects to be south of -40 degrees::
-
-  SELECT TOP 100 raj2000, dej2000, name, z FROM veronqsos.data 
-		WHERE notRadio='*' 
+		WHERE notRadio!='*' 
 		AND z BETWEEN 0.5 AND 1
 		AND dej2000<-40
 
+In ADQL, each statement starts with a SELECT.  Actually, almost all
+of ADQL is case insensitive, so you could have written "select" as well.
+However, it's customary in the SQL world to write SQL keywords in uppercase
+and the rest in lowercase.  Note that the column labels are case insensitive
+as well.
+
+The next tokens in the statement, "TOP 100", specify that we only want to see
+100 items.  Writing this is generally a good idea when you do not know how much
+to expect.  Our service will happily serve you millions of rows, and your
+browser may not like that, and of course it's nice not to put unnecessary
+load on our servers.
+
+After that, you specify the columns you want to see returned.  You could
+put expressions there, but here we don't need that.  This list of
+columns is ended by the keyword FROM, followed by the table you want
+to operate on.
+
+This much is necessary, and if the query ended there, you'd get all (or,
+with the "TOP 100", one hundered randomly selected ) rows -- "row" is
+SQL slang for a data item, in this case, a QSO.
+
+Usually, you want to give some conditions, and this is done after the WHERE.
+You can see that you can use the usual operators (where equality is "="
+rather than C's "=="; SQL doesn't have any assignments in the C sense,
+so the equality sign isn't used).  SQL has some nice additional operators
+like the "BETWEEN ... AND ..." shown above.
+
+Individual expressions can be combined with logical operators like "AND",
+"OR", and "NOT".
+
+Now, if you enter the above expression in the 
+\RSTServiceLink{__system__/adql/query/form}{query box} of this service,
+you'll get an HTML table of the matches.  100 rows come back, so the "TOP 100" 
+probably cut off a couple of matches.  In this case, it would be safe to
+try without, you'd get back 422 rows, which is still convenient to display.
+
+Now, which of these objects have a "good" guide star?  Say our device
+works best of guide stars in the magnitude range of 10 to 11 in V, 
+and the guide star should be no farther away than 0.3 degrees.  Consulting
+the tables listing again, you come up with the 
+`PPMX <http://vo.uni-hd.de/__system__/dc_tables/show/tableinfo?tableName=ppmx.data>`.  What you need is a crossmatch of PPMX with the little catalogue of
+QSOs relevant to you generated from the query above.
+
+In ADQL's lingo, a crossmatch could look like this:
+
+::
+
+	SELECT q.name, q.raj2000, q.dej2000, p.alphaFloat, p.deltaFloat FROM (
+	  SELECT TOP 100 raj2000, dej2000, name, z FROM veronqsos.data 
+			WHERE notRadio!='*' 
+			AND z BETWEEN 0.5 AND 1
+			AND dej2000<-40) AS q JOIN
+		ppmx.data AS p ON (1=CONTAINS(
+			POINT('ICRS', q.raj2000, q.dej2000),
+			CIRCLE('ICRS', p.alphaFloat, p.deltaFloat, 0.3)))
+
+Note that most of the mess in here is the query for the QSOs we did above.
+Queries can usually stand in for wherever tables can stand in ADQL.  You
+always need an AS clause to give the subquery a name, though.
+
+The main new point here is the *join*, which basically means "bring together
+two tables".  Now, a table in SQL is a set of tuples.  When you have two
+sets of tuples, there are various ways to bring them together -- you can
+build the (flattened) cartesian product of the two (usually resulting
+in a huge set), you can stick together randomly drawn tuples, etc.
+
+Most of these operations are supported by SQL's (and hence ADQL's) JOIN.  The
+pattern above, however, is what you want for crossmatches:  You write down the
+two tables, giving the aliases (with AS) for convenience and then join them.
+This happens by writing JOIN between the two table specifications and then
+giving a condition in parentheses after an ON behind the last table.
+
+For crossmatching, this boils down to the ADQL CONTAINS function operating on
+an ADQL POINT and and ADQL CIRCLE, made up from the coordinates relevant to
+you.  The radius of the circle is given in degrees; most of ADQL is leaning
+towards degrees, but not the trigonometric functions, which work in radians.
+CONTAINS is a numeric function, returning 1 when the point in the first
+argument is within the circle in the second argument, 0 otherwise.
+
+Points and circles are constructed with a coordinate system specification
+in the first argument.  The current ADQL implementation largely ignores
+this specification, so you could in principle put there whatever you like.
+
+In the example above, we used qualified names, i.e., names of the form
+<table>.<column>.  If a column name is unique, you can leave the qualification
+out, i.e., you could have written
+
+::
+
+  SELECT name, raj200, dej2000, alphaFloat, deltaFloat...
+
+above.
+
+The result of the above query is a list of 3428 positions of quasars and 
+possible guide stars of any magnitude.  To select only guide stars with,
+you could filter the results after the selection by appending something like
+``WHERE vmag BETWEEN 10 AND 11``.  Equivalently, you could add the condition
+to you selection from PPMX, like this:
+
+::
+
+	SELECT q.name, q.raj2000, q.dej2000, p.alphaFloat, p.deltaFloat FROM (
+	  SELECT TOP 100 raj2000, dej2000, name, z FROM veronqsos.data 
+			WHERE notRadio!='*' 
+			AND z BETWEEN 0.5 AND 1
+			AND dej2000<-40) AS q 
+		JOIN (
+		SELECT * FROM ppmx.data WHERE vmag BETWEEN 10 AND 11) AS p 
+		ON (1=CONTAINS(
+			POINT('ICRS', q.raj2000, q.dej2000),
+			CIRCLE('ICRS', p.alphaFloat, p.deltaFloat, 0.3)))
+
+However, both of these queries will time out on you.  Our system will kill
+queries coming from the web after 15 seconds and tell you that your query timed
+out.  In that case, it may be worthwhile to try and reformulate it.  Otherwise,
+just contact us and we will figure out some way to get your query to execute,
+possibly by adding more indices to our tables.  In particular, any query on
+large-ish data sets (like the PPMX) not using at least one condition on a
+column with an index is bound to time out.  Columns that are parts of indices
+are highlighted in the table descriptions.
+
+It may not be obvious why adding the WHERE clause above should hurt so badly
+here, since the database would only have to check a couple of thousand
+rows, and that's a breeze for a modern computer.  However, database
+engines contain a component called a query planner that should
+reduce all equivalent queries to the same, optimal form.  In reality, this
+doesn't always work very well, which isn't surprising when you think about
+the amount of information required to find the optimal sequence of
+operations to a given result.  This means that the machine might completely
+mess up your query, and that is what happens in this case.
+
+There is a common workaround in SQL, known as the "OFFSET 0" trick; this is
+not possible in ADQL since its syntax doesn't allow this.  As a workaround,
+you can say SELECT ALL, which internally does the same thing (of course, it's
+not nice to overload a no-op with an almost-no-op).  The downside is that you 
+need one more query level:
+
+::
+
+	SELECT * FROM (
+		SELECT ALL q.name, q.raj2000, q.dej2000, p.alphaFloat, p.deltaFloat, p.vmag FROM (
+			SELECT TOP 100 raj2000, dej2000, name, z FROM veronqsos.data 
+				WHERE notRadio!='*' 
+				AND z BETWEEN 0.5 AND 1
+				AND dej2000<-40) AS q JOIN
+			ppmx.data AS p ON (1=CONTAINS(
+				POINT('ICRS', q.raj2000, q.dej2000),
+				CIRCLE('ICRS', p.alphaFloat, p.deltaFloat, 0.3)))) AS f 
+	WHERE vmag BETWEEN 10 and 11
+
+This may look daunting, but built up from simple queries, it's not really
+hard to come up with expressions like these.
 ]]>
 	</meta>
 	<meta name="_related" title="Tables available for ADQL">/__system__/dc_tables/list/form</meta>

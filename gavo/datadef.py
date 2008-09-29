@@ -210,6 +210,7 @@ class DataField(record.Record):
 			"unit": self.get_unit() or "N/A",
 			"ucd": self.get_ucd() or "N/A",
 			"verbLevel": self.get_verbLevel() or "N/A",
+			"indexState": self.get_index() and "index" or "noindex",
 		}
 	
 	@classmethod
