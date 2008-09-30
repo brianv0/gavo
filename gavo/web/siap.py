@@ -310,6 +310,11 @@ class SiapCutoutCore(standardcores.DbBasedCore):
 			sra, sdec = sqlPars["_sra"], sqlPars["_sdec"]
 		res = super(SiapCutoutCore, self)._parseOutput(
 			dbResponse, outputDef, sqlPars, queryMeta)
+		cosD = math.cos(sqlPars["_dec"]/180*math.pi)
+		if abs(cosD)>1e-5:
+			sra = sra/cosD
+		else:
+			sra = 360
 		for record in res.getPrimaryTable():
 			self._fixRecord(record, sqlPars["_ra"], sqlPars["_dec"], sra, sdec)
 		return res
