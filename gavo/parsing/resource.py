@@ -671,6 +671,8 @@ class ResourceDescriptor(ThingWithRoles, meta.MetaMixin,
 		For the read roles, we need to allow access to the schema.  This
 		is different from the allRoles -- roles that may write on a table
 		do not need to be able to create new tables in the schema.
+
+		However, 
 		"""
 		readRoles = set(self.dataStore["readRoles"])
 		for tableDef in self.iterTables():

@@ -44,6 +44,10 @@ class Interface:
 	resource descriptor in other parts.  Therefore, they can register
 	delayed children (see NodeBuilder) through their getDelayedNodes
 	method.
+
+	In addition, some operations may require modifying the existing structure.
+	To accomodate this, there is the mogrifyNode method that gets called
+	with the finished node.
 	"""
 	def __init__(self, fieldDicts):
 		self.fields = []
@@ -79,7 +83,7 @@ class Interface:
 				return False
 		return True
 	
-	def getNodes(self, recordNode, fieldDefs=None):
+	def getNodes(self, tableNode, fieldDefs=None):
 		"""returns the fields defined by this interface as list
 		of nodes suitable for a NodeBuilder.
 
@@ -93,8 +97,11 @@ class Interface:
 		"""
 		return [("Field", f) for f in fieldDefs or self.fields]
 	
-	def getDelayedNodes(self, recordNode):
+	def getDelayedNodes(self, tableNode):
 		return []
+	
+	def mogrifyNode(self, tableNode):
+		return
 
 
 class TableBasedInterface(Interface):
@@ -109,7 +116,7 @@ class TableBasedInterface(Interface):
 		self.tableDef = self.rd.getTableDefByName(tableName)
 		Interface.__init__(self, [])
 		
-	def getNodes(self, recordNode):
+	def getNodes(self, tableNode):
 # XXX TODO: We'd need that stuff to be almost unserialized here.  Figure
 # out some elegant way to get this.  Meanwhile, we'll have to hardcode:
 		for f in self.tableDef.get_items():
@@ -200,6 +207,20 @@ class Q3CIndex(TableBasedInterface):
 	def __init__(self):
 		TableBasedInterface.__init__(self, "__system__/scs", "q3cindexFields")
 
+	def mogrifyNode(self, tableNode):
+		# On import, existance and uniquenes of the following are
+		# guaranteed since if they are not, macro substitution will crash.
+		# If people change the RD without a re-import, they should know what
+		# they're doing, and we skip marking of indexed columns silently.
+		try:
+			raField = tableNode.getFieldsByUcd("pos.eq.ra;meta.main")[0]
+			deField = tableNode.getFieldsByUcd("pos.eq.dec;meta.main")[0]
+			if not raField.get_index():
+				raField.set_index("/")
+			if not deField.get_index():
+				deField.set_index("/")
+		except IndexError:
+			pass
 
 
 class Products(TableBasedInterface):

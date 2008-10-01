@@ -11,10 +11,12 @@
 			<Table table="positionsFields" id="positionsFields">
 				<Field dest="alphaFloat" unit="deg" dbtype="double precision" 
 					ucd="pos.eq.ra;meta.main" source="alphaFloat" verbLevel="1"
-					tablehead="RA" description="Main value of right ascension"/>
+					tablehead="RA" description="Main value of right ascension"
+					index="/"/>
 				<Field dest="deltaFloat" unit="deg" dbtype="double precision" 
 					ucd="pos.eq.dec;meta.main" source="deltaFloat" verbLevel="1"
-					tablehead="Dec" description="Main value of declination"/>
+					tablehead="Dec" description="Main value of declination"
+					index="/"/>
 				<Field dest="c_x" dbtype="real" source="c_x" verbLevel="30"
 					tablehead="c_x" unit="" ucd="pos.cartesian.x"
 					description="x coordinate of intersection of radius vector and unit sphere"/>

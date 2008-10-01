@@ -357,6 +357,10 @@ class RdParser(nodebuilder.NodeBuilder):
 			for nodeDesc in interface.getDelayedNodes(tableDef, **args):
 				self.registerDelayedChild(*nodeDesc)
 		self.popProperty("fieldPath")
+
+		for _, (interface, args) in interfaceNodes:
+			interface.mogrifyNode(tableDef)
+
 		return nodebuilder.NamedNode("Record", record)
 
 	_make_Record = _make_Table
