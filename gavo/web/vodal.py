@@ -52,8 +52,8 @@ class DalRenderer(common.CustomErrorMixin, resourcebased.Form):
 		result = self._makeErrorTable(ctx, errmsg)
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
-		return defer.maybeDeferred(resourcebased.writeVOTable, request, 
-				result, votable.VOTableMaker()
+		return defer.maybeDeferred(resourcebased.streamVOTable, request, 
+				result
 			).addCallback(lambda _: request.finishRequest(False) or ""
 			).addErrback(lambda _: request.finishRequest(False) or "")
 
@@ -71,7 +71,7 @@ class DalRenderer(common.CustomErrorMixin, resourcebased.Form):
 		request = inevow.IRequest(ctx)
 		request.setHeader('content-disposition', 
 			'attachment; filename="votable.xml"')
-		return resourcebased.serveAsVOTable(request, data)
+		return resourcebased.streamVOTable(request, data)
 
 	def renderHTTP_exception(self, ctx, failure):
 		failure.printTraceback()
@@ -134,7 +134,7 @@ class SiapRenderer(DalRenderer):
 		data.addMeta("info", meta.makeMetaValue("OK", name="info", 
 			infoName="QUERY_STATUS", infoValue="OK"))
 		result = service.SvcResult(data, {}, common.QueryMeta(ctx))
-		return resourcebased.writeVOTable(request, result, votable.VOTableMaker())
+		return resourcebased.streamVOTable(request, result)
 
 	def _handleOutputData(self, data, ctx):
 		data.addMeta("info", meta.makeMetaValue("OK", name="info",

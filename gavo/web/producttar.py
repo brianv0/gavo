@@ -97,16 +97,15 @@ class ProductTarMaker:
 		b.mtime = time.time()
 		return b, stuff
 
-	def _writeTar(self, productData, allowedGroups):
+	def _writeTar(self, destFile, productData, allowedGroups):
 		"""actually writes the tar.
 
 		allowedGroups should be a set of groups the currently logged in user
 		belongs to.
 		"""
-		handle, fName = tempfile.mkstemp(".tar")
+		fName = "data.tar"
 		nameGen = UniqueNameGenerator()
-		outputTar = tarfile.TarFile(fName, "w")
-		os.close(handle)
+		outputTar = tarfile.TarFile(fName, "w", destFile)
 		for prodRec in productData.getPrimaryTable():
 			targetName = nameGen.makeName(os.path.basename(prodRec["accessPath"]))
 			if (not product.isFree(prodRec) and 
@@ -116,7 +115,6 @@ class ProductTarMaker:
 				outputTar.add(os.path.join(config.get("inputsDir"), 
 					prodRec["accessPath"]), targetName)
 		outputTar.close()
-		return fName
 
 	def _getGroups(self, user, password):
 		if user is None:
@@ -124,18 +122,18 @@ class ProductTarMaker:
 		else:
 			return creds.getGroupsForUser(user, password, async=False)
 
-	def getTarFile(self, coreResult, user, password):
-		"""returns a deferred firing the name of a tar file containing 
-		all accessible products in coreResult's primary table.
+	def writeProductTar(self, destination, coreResult, user, password):
+		"""writes a tar file containing all accessible products in coreResult's 
+		primary table to destination.
 
 		All errors must be handled upstream.
 
 		The caller is responsible for cleaning up the file if no error occurred.
 
-		If you're not after protected resources, you can pass None as user
+		If you don't have protected resources, you can pass None as user
 		and password.
 		"""
-		return self._writeTar(
+		self._writeTar(destination, 
 			self._resolveProductKeys(self._getProducts(
 				coreResult.getPrimaryTable())),
 			self._getGroups(user, password))

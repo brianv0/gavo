@@ -335,6 +335,10 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		if fwHost:
 			request.setHost(fwHost, 80)
 
+	if config.get("web", "enabletests"):
+		from gavo.web import webtests
+		child_test = webtests.Tests()
+
 	def locateChild(self, ctx, segments):
 # XXX TODO: refactor this mess, clean up strange names by pulling more
 # into proper services.

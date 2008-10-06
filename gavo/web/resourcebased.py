@@ -44,6 +44,7 @@ from gavo.web import htmltable
 from gavo.web import gwidgets
 from gavo.web import producttar
 from gavo.web import standardcores
+from gavo.web import streaming
 from gavo.web import weberrors
 
 from gavo.web.common import Error, UnknownURI, ForbiddenURI
@@ -139,29 +140,25 @@ class BaseResponse(ServiceBasedRenderer):
 	data_result = data_query
 
 
-def writeVOTable(request, dataSet, tableMaker):
-	"""writes the VOTable representation  of the DataSet instance
-	dataSet as created by tableMaker to request.
-	"""
-# XXX TODO: Make this asynchronous (else slow clients with big tables
-# will bring you to a grinding halt)
-	vot = tableMaker.makeVOT(dataSet)
-	f = cStringIO.StringIO()
-	tableMaker.writeVOT(vot, f)
-	request.write(f.getvalue())
-	request.finish()
-	return ""  # shut off further rendering
-
-
-def serveAsVOTable(request, data):
+def writeVOTable(outputFile, data):
 	"""writes a VOTable representation of the SvcResult instance data
 	to request.
 	"""
-	request.setHeader("content-type", "application/x-votable")
-	tableMaker = votable.VOTableMaker({
-		True: "td",
-		False: "binary"}[data.queryMeta["tdEnc"]])
-	return writeVOTable(request, data.original, tableMaker)
+	try:
+		tableMaker = votable.VOTableMaker({
+			True: "td",
+			False: "binary"}[data.queryMeta["tdEnc"]])
+		vot = tableMaker.makeVOT(data)
+		tableMaker.writeVOT(vot, outputFile)
+	except:
+		sys.stderr.write("Yikes -- error during VOTable render:\n")
+		traceback.print_exc()
+		outputFile.write(">>>> INTERNAL ERROR, INVALID OUTPUT <<<<")
+		return ""
+
+
+def streamVOTable(request, data):
+	return streaming.streamOut(lambda f: writeVOTable(f, data), request)
 
 
 class VOTableResponse(BaseResponse):
@@ -180,14 +177,9 @@ class VOTableResponse(BaseResponse):
 			fName = "votable.xml"
 		request.setHeader('content-disposition', 
 			'attachment; filename=%s'%fName)
-		defer.maybeDeferred(serveAsVOTable, request, data
-			).addCallback(self._tableWritten, ctx
-			).addErrback(self._handleErrorDuringRender, ctx)
-		return request.deferred
+		request.setHeader("content-type", "application/x-votable")
+		return streamVOTable(request, data)
 
-	def _tableWritten(self, dummy, ctx):
-		pass
-	
 	def _handleError(self, failure, ctx):
 		failure.printTraceback()
 		request = inevow.IRequest(ctx)
@@ -196,12 +188,6 @@ class VOTableResponse(BaseResponse):
 		request.setResponseCode(500)
 		return failure
 	
-	def _handleErrorDuringRender(self, failure, ctx):
-		failure.printTraceback()
-		request = inevow.IRequest(ctx)
-		request.write(">>>> INTERNAL ERROR, INVALID OUTPUT <<<<")
-		return request.finishRequest(False) or ""
-
 
 tag_embed = T.Proto("embed")
 tag_noembed = T.Proto("noembed")
@@ -390,18 +376,31 @@ class TextResponse(BaseResponse):
 			]])
 
 
-class TarResponse(FileResponse):
-	"""delivers a tar of products contained.
+class TarResponse(BaseResponse):
+	"""delivers a tar of products requested.
 	"""
-	def generateFile(self, request):
-		return producttar.getTarMaker().getTarFile(self.svcResult, 
-			request.getUser(), request.getPassword())
-	
-	def getTargetName(self):
-		if self.svcResult.queryMeta.get("Overflow"):
+	def getHeaderVals(self, data):
+		if data.queryMeta.get("Overflow"):
 			return "truncated_data.tar", "application/x-tar"
 		else:
 			return "data.tar", "application/x-tar"
+
+	def _handleData(self, data, ctx):
+		name, mime = self.getHeaderVals(data)
+		request = inevow.IRequest(ctx)
+		request.setHeader('content-disposition', 
+			'attachment; filename=%s'%name)
+		request.setHeader("content-type", mime)
+
+		def writeTar(outF):
+			producttar.getTarMaker().writeProductTar(outF, data,
+				request.getUser(), request.getPassword())
+
+		return streaming.streamOut(writeTar, request)
+
+	def _handleError(self, failure, ctx):
+		failure.printTraceback()
+		return ErrorPage(failure, docFactory=self.errorFactory)
 
 	errorFactory = common.doctypedStan(T.html[
 			T.head[

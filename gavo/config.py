@@ -71,6 +71,8 @@ adqlTimeout=15
 previewCache: %(webDir)s/previewcache
 # path to a favicon
 favicon: None
+# enable test pages
+enableTests: False
 
 [db]
 interface: psycopg2
@@ -298,6 +300,9 @@ class Settings(object):
 	
 	_parse_db_maintainers = _parse_db_queryroles = _parse_db_adqlroles =\
 		_parseRoles
+
+	def _parse_web_enabletests(self, val):
+		return record.parseBooleanLiteral(val)
 
 	def _parse_web_adminpasswd(self, val):
 		return val.strip()

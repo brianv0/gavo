@@ -10,6 +10,8 @@ import random
 import sys
 import threading
 import time
+import traceback
+import urllib
 
 import roughtest
 
@@ -21,6 +23,7 @@ def doTimedQuery(aTest):
 	except AssertionError, msg:
 		return "FAIL", time.time()-start, aTest.description, aTest.lastResult
 	except Exception, msg:
+		traceback.print_exc()
 		return "FAIL", time.time()-start, aTest.description, msg
 
 
@@ -103,7 +106,6 @@ class TestRunner:
 		if len(self.threadPool):
 			print "\n*************%d hung threads!"%len(self.threadPool)
 
-
 	def mainloop(self):
 		try:
 			while self.stats.total<=self.nTotal-self.nSimul:
@@ -114,6 +116,30 @@ class TestRunner:
 		except Queue.Empty:
 			print "**** Too many hung threads, giving up"
 		self._collectRemainingThreads()
+
+
+class _StreamTest(object):
+	"""is a test requesting a random amount of data from test/streaming.
+	"""
+	description = "Get lotsa bytes"
+
+	def run(self):
+		chunkSize = [100, 500, 1000, 10000, 50000][random.randint(0, 4)]
+		if random.random()<0.01:
+			dataSize = 10**random.randint(6, 8)+random.randint(0, 400000)
+		else:
+			dataSize = 10**random.randint(1, 7)+random.randint(0, 40000)
+		f = urllib.urlopen(
+			"http://localhost:8080/test/stream?chunkSize=%d&size=%d"%(
+				chunkSize, dataSize))
+		dataLength = 0
+		while True:
+			res = f.read(65536)
+			if not res:
+				break
+			dataLength += len(res)
+		f.close()
+		assert dataLength==dataSize
 
 
 testGroupsWithState = set(["dexter", "upload"])
@@ -139,8 +165,12 @@ def _getNTotal():
 		return (int(sys.argv[2]))
 	return 1000
 
-if __name__=="__main__":
-	tr = TestRunner(_getTestCollection(), _getNSimul(), _getNTotal())
+def main():
+	if len(sys.argv)>3 and sys.argv[3]=="stream":
+		tests = [_StreamTest()]
+	else:
+		tests = _getTestCollection()
+	tr = TestRunner(tests, _getNSimul(), _getNTotal())
 	try:
 		tr.mainloop()
 	except KeyboardInterrupt:
@@ -148,3 +178,7 @@ if __name__=="__main__":
 	print "\n End of load test"
 	print tr.stats.getReport()
 	tr.stats.save("laststats.pickle")
+
+
+if __name__=="__main__":
+	main()

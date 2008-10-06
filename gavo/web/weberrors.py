@@ -16,6 +16,10 @@ import gavo
 from gavo.web.common import Error, UnknownURI, ForbiddenURI
 
 
+def escapeForHTML(aString):
+	return aString.replace("&", "&amp;"
+		).replace("<", "&lt;").replace(">", "&gt;")
+
 class DebugPage(rend.Page):
 
 	name = "debug"
@@ -126,7 +130,8 @@ class ErrorPage(ErrorPageDebug):
 		return (
 			"<h1>Internal Error</h1><p>The error message is: %s</p>"
 			"<p>If you do not know how to work around this, please contact"
-			" gavo@ari.uni-heidelberg.de</p>"%failure.getErrorMessage())
+			" gavo@ari.uni-heidelberg.de</p>"%escapeForHTML(
+				failure.getErrorMessage()))
 
 	def renderHTTP_exception(self, ctx, failure):
 		if handleUnknownURI(ctx, failure) or handleForbiddenURI(ctx, failure):
