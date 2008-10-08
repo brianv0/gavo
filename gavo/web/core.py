@@ -36,6 +36,7 @@ class Core(record.Record):
 
 	def __init__(self, additionalFields={}, initvals={}):
 		fields = {
+			"id": None,
 			"outputFields": record.ListField,
 			"renderer": record.DictField,    # additional nevow renderers in 
 				# the core result.

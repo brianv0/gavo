@@ -12,6 +12,9 @@ import gavo
 class Error(gavo.Error):
 	pass
 
+class NoWaitingChild(Error):
+	pass
+
 
 class StartEndHandler(ContentHandler):
 	"""is a ContentHandler that translates certain Sax events to method
@@ -248,7 +251,7 @@ class BaseNodeBuilder(ContentHandler):
 		for name, element in self.childStack[startLevel]:
 			if name==nodeName:
 				return element
-		return getWaitingChild(nodeName, maxLevels-1, startLevel-1)
+		return self.getWaitingChild(nodeName, maxLevels-1, startLevel-1)
 
 	def _cleanTextNodes(self, children):
 		"""joins adjacent text nodes and prunes whitespace-only nodes.

@@ -143,6 +143,7 @@ class RdParser(nodebuilder.NodeBuilder):
 			"Service": lambda val: 0,  # these register themselves
 			"property": lambda val: self.rd.register_property(*val),
 			"meta": lambda mv: self.rd.addMeta(mv[0], mv[1]),
+			"core": lambda val: 0, # referenced by services via id.
 		}, children)
 		# XXX todo: coordinate systems
 		return self.rd
@@ -150,6 +151,7 @@ class RdParser(nodebuilder.NodeBuilder):
 	_start_Data = _pushFieldPath
 
 	def _make_Data(self, name, attrs, children):
+		attrs = makeAttDict(attrs)
 		dd = resource.DataDescriptor(self.rd)
 		dd.set_source(attrs.get("source"))
 		dd.set_sourcePat(attrs.get("sourcePat"))
@@ -159,6 +161,12 @@ class RdParser(nodebuilder.NodeBuilder):
 		dd.set_virtual(attrs.get("virtual", "False"))
 		dd.set_token(attrs.get("token", None))
 		self.rd.addto_dataSrcs(dd)
+
+		if "fieldsFrom" in attrs:
+			for field in self.resolveItemReference(attrs["fieldsFrom"]).get_items():
+				newField = field.copy()
+				dd.addto_items(newField)
+	
 		res = self._processChildren(dd, name, {
 			"Field": dd.addto_items,
 			"Semantics": dd.set_Semantics,
@@ -324,7 +332,8 @@ class RdParser(nodebuilder.NodeBuilder):
 		# not given with defaults.  This sort of mess would be necessary
 		# wherever we deal with copies like this.  Yikes.
 		for attName, default in [("table", None), ("onDisk", "False"),
-				("forceUnique", "False"), ("create", "True"), ("conflicts", "check")]:
+				("forceUnique", "False"), ("create", "True"), ("conflicts", "check"),
+				("role", None)]:
 			if attrs.has_key(attName):
 				tableDef.set(attName, attrs[attName])
 			elif setDefaults:
@@ -361,7 +370,7 @@ class RdParser(nodebuilder.NodeBuilder):
 		for _, (interface, args) in interfaceNodes:
 			interface.mogrifyNode(tableDef)
 
-		return nodebuilder.NamedNode("Record", record)
+		return nodebuilder.NamedNode("Table", record)
 
 	_make_Record = _make_Table
 	_start_SharedTable = _start_Table
@@ -441,7 +450,10 @@ class RdParser(nodebuilder.NodeBuilder):
 			attrs, children, {})
 
 	def _make_copyof(self, name, attrs, children):
-		return nodebuilder.NamedNode(*self.getById(attrs["idref"]))
+		name, obj = self.getById(attrs["idref"])
+		if hasattr(obj, "copy"):
+			obj = obj.copy()
+		return nodebuilder.NamedNode(name, obj)
 
 	def _make_longdescr(self, name, attrs, children):
 		return attrs.get("type", "text/plain"), self.getContent(children)
@@ -541,9 +553,16 @@ class RdParser(nodebuilder.NodeBuilder):
 			attrs.get("epoch"), attrs.get("system"))
 
 	def _make_Adapter(self, name, attrs, children):
+		attrs = makeAttDict(attrs)
 		adapter = resource.DataDescriptor(self.rd, id=attrs["id"])
 		adapter.set_name(attrs["name"])
 		self.rd.register_adapter(adapter.get_id(), adapter)
+
+		if "fieldsFrom" in attrs:
+			for field in self.resolveItemReference(attrs["fieldsFrom"]).get_items():
+				newField = field.copy()
+				adapter.addto_items(newField)
+	
 		return self._processChildren(adapter, name, {
 			"Field": adapter.addto_items,
 			"Semantics": adapter.set_Semantics,
@@ -682,6 +701,8 @@ class RdParser(nodebuilder.NodeBuilder):
 		builtinName = attrs.pop("builtin")
 		attrs.update(args)
 		curCore = core.getStandardCore(builtinName)(self.rd, initvals=attrs)
+		if builtinName=="computed":
+			handlers["Table"] = curCore.addto_tables
 		return self._processChildren(curCore, name, handlers, children)
 
 	def _make_nevowRender(self, name, attrs, children):

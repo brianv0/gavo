@@ -28,6 +28,7 @@ class StreamingRunner(protocol.ProcessProtocol):
 	"""
 	def __init__(self, prog, args, request):
 		self.buffer = []
+		self.errMsgs = []
 		self.request = request
 		self.isPaused = False
 		self.allDataIsIn = False
@@ -42,8 +43,7 @@ class StreamingRunner(protocol.ProcessProtocol):
 		self.request.write(data)
 
 	def errReceived(self, data):
-# Input from stderr -- ignore
-		pass
+		self.errMsgs.append(data)
 	
 	def handleFatalError(self, data):
 # XXX TODO: make this actually used -- e.g., when the program doesn't exist
@@ -126,14 +126,14 @@ def getBinaryName(baseName):
 	return baseName
 
 
-def run(coreDataDef, inputData):
-	"""returns a table generated from running the computed data descriptor
-	coreDataDef on the DataSet inputData.
+def run(core, inputData):
+	"""returns the output of the the binary specified by core with the
+	arguments and input specified by the DataSet inputData.
 	"""
-	inputString = _makeInputs(coreDataDef, inputData)
-	args = _makeArguments(coreDataDef, inputData)
+	inputString = _makeInputs(core, inputData)
+	args = _makeArguments(core, inputData)
 	computerPath = getBinaryName(os.path.join(config.get("rootDir"),
-		coreDataDef.get_computer()))
+		core.get_computer()))
 	return runWithData(computerPath, inputString, args)
 
 
@@ -149,27 +149,37 @@ def runWithData(prog, inputString, args):
 	return result
 
 
-def _makeArguments(coreDataDef, inputData):
+def _makeArguments(core, inputData):
 	"""returns an argument list from inputData.
 
-	The argument list is generated from all fields in the document record
-	having a numeric dest in the sequence of these numeric dests.
+	The argument list is generated from the fields defined in the
+	commandLine table in the core definition, taking data from the
+	inputData's docRec
 	"""
-# XXX TODO: what do we do with gaps in the arg sequence?
+# XXX TODO: stringification currently sucks.  Maybe do something with
+# formatting hints?
 	args = []
-	for item in inputData.getDocRec().iteritems():
-		try:
-			args.append((int(item[0]), str(item[1])) )
-		except ValueError:
-			# Ignore non-intable keys
-			pass
-	return [v[1] for v in sorted(args)]
+	docRec = inputData.getDocRec()
+	cmdItems = core.getTableDefWithRole("commandLine").get_items()
+	for field in cmdItems:
+		args.append(str(field.getValueIn(docRec)))
+	return args
 
 
-def _makeInputs(coreDataDef, inputData):
-	return "\n".join([
-			" ".join([repr(v[1]) for v in sorted(row.iteritems())])
-		for row in inputData.getPrimaryTable().rows])
+def _makeInputs(core, inputData):
+	"""returns the program input as a string.
+
+	The program input is defined by the inputLine table of the core
+	definition.  The values are taken from each row of inputData's
+	primary table, stringified and concatenated with spaces in the
+	sequence of the inputLine definition.  Each row comes in a line
+	of its own.
+	"""
+	lineItems = core.getTableDefWithRole("inputLine").get_items()
+	res = []
+	for row in inputData.getPrimaryTable().rows:
+		res.append(" ".join([repr(field.getValueIn(row)) for field in lineItems]))
+	return "\n".join(res)
 
 
 if __name__=="__main__":

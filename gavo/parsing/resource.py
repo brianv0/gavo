@@ -139,6 +139,8 @@ class TableDef(ThingWithRoles, meta.MetaMixin, scripting.ScriptingMixin,
 			"scripts": record.ListField,
 			"readRoles": record.ListField,
 			"allRoles": record.ListField,
+			"role": None,   # optional role designation, like "inputLine" for
+			                # computed cores, or "primary" or somesuch.
 		}, initvals)
 		self.rd = rd
 		self.fieldIndexDict = {}

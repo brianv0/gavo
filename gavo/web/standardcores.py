@@ -8,8 +8,9 @@ to a SvcResult in the service before being handed over to the renderer).
 These then have to be picked up by renderers and formatted for delivery.
 """
 
-import weakref
 import cStringIO
+import os
+import weakref
 
 from twisted.internet import defer
 from twisted.internet import threads
@@ -36,6 +37,10 @@ from gavo.web import core
 from gavo.web import common
 from gavo.web import runner
 from gavo.web import vizierexprs
+
+
+class Error(gavo.Error):
+	pass
 
 
 printQuery = False
@@ -157,26 +162,39 @@ class ComputedCore(QueryingCore):
 	"""
 	def __init__(self, rd, initvals):
 		QueryingCore.__init__(self, rd, additionalFields={
-			"ddId": record.RequiredField,     # dd describing our in- and output.
+			"outputId": record.RequiredField, # id of dd describing program output.
 			"computer": record.RequiredField, # our binary
+			"tables": record.ListField, # commandLine and inputLine tables
 			}, initvals=initvals)
-		self.dd = self.rd.getDataById(self.get_ddId())
+		self.dd = self.rd.getDataById(self.get_outputId())
 		self.avInputKeys = set() # FIXME: We don't know these, they're not in the DD
-		self.outputFields = self.dd.getTableDefByName("output").get_items()
-		self.avOutputKeys = set([f.get_dest() 
-			for f in self.outputFields])
+		self.outputFields = self.dd.getPrimaryTableDef().get_items()
+		self.avOutputKeys = set([f.get_dest() for f in self.outputFields])
+
+	def get_computer(self):
+		return os.path.join(self.rd.get_resdir(), self.dataStore["computer"])
 
 	def getOutputFields(self):
 		return self.outputFields
+
+	def getTableDefWithRole(self, role):
+		"""returns the first table definition with role.
+
+		Adding to tables should make sure that there is only one such table def.
+		Currently, it doesn't.
+		"""
+		for t in self.get_tables():
+			if t.get_role()==role:
+				return t
+		raise Error("Core has no table definition with role %r"%role)
 
 	def run(self, inputData, queryMeta):
 		"""starts the computing process if this is a computed data set.
 		"""
 		inputData.validate()
-		return runner.run(self.dd, inputData).addCallback(
-			self._parseOutput, queryMeta).addErrback(
-			lambda failure:
-				gavo.raiseTb(web.Error, failure))
+		return runner.run(self, inputData
+			).addCallback(self._parseOutput, queryMeta
+			).addErrback(lambda failure: gavo.raiseTb(web.Error, failure))
 	
 	def _parseOutput(self, rawOutput, queryMeta):
 		"""parses the output of a computing process and returns a table
