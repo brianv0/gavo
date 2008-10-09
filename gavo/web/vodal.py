@@ -71,6 +71,7 @@ class DalRenderer(common.CustomErrorMixin, resourcebased.Form):
 		request = inevow.IRequest(ctx)
 		request.setHeader('content-disposition', 
 			'attachment; filename="votable.xml"')
+		request.setHeader("content-type", "application/x-votable")
 		return resourcebased.streamVOTable(request, data)
 
 	def renderHTTP_exception(self, ctx, failure):

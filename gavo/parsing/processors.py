@@ -17,6 +17,7 @@ from mx import DateTime
 import gavo
 from gavo import utils
 from gavo.parsing import parsehelpers
+from gavo.web import vizierexprs
 
 
 class RowProcessor(parsehelpers.RowFunction):
@@ -129,6 +130,24 @@ class CommaExpander(RowProcessor):
 				newRec[targetField] = item
 				res.append(newRec)
 		return res
+
+
+def compileProcessor(name, code):
+	"""returns a row processor of name name and code as _compute body.
+
+	The method body can access the record passed in as record.
+	"""
+	code = utils.fixIndentation(code, "			")
+	procCode = """class NewProcessor(RowProcessor):
+		name = "%(name)s"
+
+		def _compute(self, record):
+%(code)s\n"""%vars()
+	try:
+		exec(procCode)
+	except SyntaxError, msg:
+		raise gavo.Error("Bad processor source %s: %s"%(procCode, msg))
+	return NewProcessor()
 
 
 getProcessor = utils.buildClassResolver(RowProcessor, globals().values())

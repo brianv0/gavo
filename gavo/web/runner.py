@@ -15,11 +15,34 @@ from twisted.python.failure import Failure
 import gavo
 from gavo import config
 from gavo import table
+from gavo import valuemappers
 from gavo.parsing import resource
 
 
 class RunnerError(gavo.Error):
 	pass
+
+
+# Valuemappers for both command line arguments and input values 
+_argMFRegistry = valuemappers.ValueMapperFactoryRegistry()
+_registerArgMF = _argMFRegistry.registerFactory
+
+def _defaultMapperFactory(colProps):
+	def coder(val):
+		return str(val)
+	return coder
+_registerArgMF(_defaultMapperFactory)
+
+datetimeDbTypes = set(["timestamp", "date", "time"])
+def _datetimeMapperFactory(colProps):
+	if colProps["dbtype"] not in datetimeDbTypes:
+		return
+	def coder(val):
+		if val:
+			return val.strftime("%Y-%m-%dT%H:%M:%S")
+		return "None"
+	return coder
+_registerArgMF(_datetimeMapperFactory)
 
 
 class StreamingRunner(protocol.ProcessProtocol):
@@ -145,7 +168,7 @@ def runWithData(prog, inputString, args):
 	fetchOutputProtocol = StdioProtocol(inputString, result)
 	prog = getBinaryName(prog)
 	reactor.spawnProcess(fetchOutputProtocol, prog,
-		args=[prog]+args, path=os.path.dirname(prog))
+		args=[prog]+list(args), path=os.path.dirname(prog))
 	return result
 
 
@@ -156,14 +179,12 @@ def _makeArguments(core, inputData):
 	commandLine table in the core definition, taking data from the
 	inputData's docRec
 	"""
-# XXX TODO: stringification currently sucks.  Maybe do something with
-# formatting hints?
-	args = []
-	docRec = inputData.getDocRec()
-	cmdItems = core.getTableDefWithRole("commandLine").get_items()
-	for field in cmdItems:
-		args.append(str(field.getValueIn(docRec)))
-	return args
+	argNames = [f.get_dest() 
+		for f in core.getTableDefWithRole("commandLine").get_items()]
+	argTable = table.Table(None, core.getTableDefWithRole("commandLine"))
+	argTable.addData(inputData.getDocRec())
+	row = valuemappers.getMappedValues(argTable, _argMFRegistry).next()
+	return [row[name] for name in argNames]
 
 
 def _makeInputs(core, inputData):
@@ -175,11 +196,13 @@ def _makeInputs(core, inputData):
 	sequence of the inputLine definition.  Each row comes in a line
 	of its own.
 	"""
-	lineItems = core.getTableDefWithRole("inputLine").get_items()
 	res = []
-	for row in inputData.getPrimaryTable().rows:
-		res.append(" ".join([repr(field.getValueIn(row)) for field in lineItems]))
-	return "\n".join(res)
+	inputNames = [f.get_dest() 
+		for f in core.getTableDefWithRole("inputLine").get_items()]
+	for row in valuemappers.getMappedValues(inputData.getPrimaryTable(),
+			_argMFRegistry):
+		res.append(" ".join([row[name] for name in inputNames]))
+	return str("\n".join(res))
 
 
 if __name__=="__main__":

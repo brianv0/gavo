@@ -179,16 +179,23 @@ try:
 		iso (produces an ISO timestamp).
 		"""
 		unit = colProps["unit"]
-		if isinstance(colProps["sample"], DateTime.DateTimeType):
+		if isinstance(colProps["sample"], 
+				(DateTime.DateTimeType, DateTime.DateTimeDeltaType)):
 			if unit=="yr" or unit=="a":
-				fun, destType = lambda val: val and utils.dateTimeToJYear(val),\
-					("double", None)
+				fun, destType = (lambda val: val and 
+					utils.dateTimeToJYear(val), ("double", None))
 			elif unit=="d":
 				fun, destType = lambda val: val and val.jdn, ("double", None)
 			elif unit=="s":
 				fun, destType = lambda val: val and val.ticks(), ("double", None)
 			elif unit=="Y:M:D" or unit=="Y-M-D":
 				fun, destType = lambda val: val and val.date, ("char", "*")
+			elif unit=="h:m:s":
+				sf = int(colProps["displayHint"].get("sf", 2))
+				tw = sf+3
+				format = "%%02d:%%02d:%%0%d.%df"%(tw, sf)
+				fun, destType = lambda val: val and format%(val.hour, val.minute,
+					val.second), ("char", "*")
 			elif unit=="iso":
 				fun, destType = lambda val: val and val.strftime("%Y-%m-%dT%H:%M:%SZ"
 					), ("char", "*")
@@ -433,9 +440,13 @@ def getMappedValues(table, mfRegistry=defaultMFRegistry):
 	The result is returned in the form of tuples.
 	"""
 	colLabels = [f.get_dest() for f in table.tableDef.get_items()]
+	if not colLabels:
+		yield ()
+		return
 	mappers = getMappers(getColProps(table), mfRegistry)
-	exec ",".join(["map%d"%col for col in range(len(mappers))])+ " = mappers"\
+	exec ",".join(["map%d"%col for col in range(len(mappers))])+ ", = mappers"\
 		in locals()
+
 	funDef = ["def buildRec(rowDict):"]
 	for index, label in enumerate(colLabels):
 		if mappers[index] is not mfRegistry.identity:
@@ -443,6 +454,7 @@ def getMappedValues(table, mfRegistry=defaultMFRegistry):
 				label, index, label))
 	funDef.append("\treturn rowDict")
 	exec "\n".join(funDef) in locals()
+
 	for row in table:
 		yield buildRec(row)
 

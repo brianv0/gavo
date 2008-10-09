@@ -42,6 +42,22 @@ _registerHTMLMF(_defaultMapperFactory)
 
 # insert new general factories here
 
+floatTypes = set(["real", "float", "double", "double precision"])
+
+def _sfMapperFactory(colProps):
+	if colProps["dbtype"] not in floatTypes:
+		return
+	if colProps["displayHint"].get("sf"):
+		fmtStr = "%%.%df"%int(colProps["displayHint"].get("sf"))
+		def coder(val):
+			if val is None:
+				return "N/A"
+			else:
+				return fmtStr%val
+		return coder
+_registerHTMLMF(_sfMapperFactory)
+
+
 def _timeangleMapperFactory(colProps):
 	if (colProps["unit"]!="hms" and 
 			colProps["displayHint"].get("type")!="time"):
@@ -97,11 +113,16 @@ def _stringWrapMF(baseMF):
 	"""
 	def factory(colProps):
 		fmtstr = "%s"
-		if colProps["displayHint"].get("sf"):
-			fmtstr = "%%.%df"%int(colProps["displayHint"]["sf"])
 		handler = baseMF(colProps)
+		if colProps["displayHint"].get("sf", None):
+			fmtstr = "%%.%df"%int(colProps["displayHint"]["sf"])
 		if handler:
-			return lambda val: fmtstr%(handler(val))
+			def realHandler(val):
+				res = handler(val)
+				if isinstance(res, float):
+					return lambda val: fmtstr%(handler(val))
+				else:
+					return res
 	return factory
 
 

@@ -33,41 +33,93 @@ import re
 from gavo import Error
 
 
-class Coercions(object):
-	"""is a map from type names to coercion ranks and vice versa.
-
-	>>> c = Coercions(['bar', 'foo', 'baz'])
-	>>> c.getSubsuming([])
-	>>> c.getSubsuming(['bar'])
-	'bar'
-	>>> c.getSubsuming(['baz', 'bar'])
-	'baz'
-	>>> c.getSubsuming(['bar', 'quux'])
+class _CoercNode(object):
+	"""is an entry in the coercion tree.
 	"""
-	def __init__(self, typeSeq):
-		self.backward = dict((k,v) for k,v in enumerate(typeSeq))
-		self.forward = dict((v,k) for k,v in self.backward.iteritems())
+	def __init__(self, name, children=(), aliases=()):
+		self.name, self.aliases = name, aliases
+		self.parent, self.children = None, children
+		for child in self.children:
+			child.parent = self
+
+	def getAncestorNames(self):
+		if self.parent is None:
+			return [self.name]
+		res = self.parent.getAncestorNames()
+		res.append(self.name)
+		return res
+
+
+class Coercions(object):
+	"""is a tree of types that can be used to infer common types.
+
+	The tree is passed in as nested sequences.
+
+	>>> c = Coercions(_CoercNode('bar', (_CoercNode('foo'), _CoercNode('baz',
+	...   (_CoercNode('quux'),)))))
+	>>> c.getSubsuming([])
+	'bar'
+	>>> c.getSubsuming(['foo'])
+	'foo'
+	>>> c.getSubsuming(['foo', 'foo'])
+	'foo'
+	>>> c.getSubsuming(['foo', 'quux'])
+	'bar'
+	>>> c.getSubsuming(['foo', 'weird'])
+	'bar'
+	"""
+	def __init__(self, typeTree):
+		self.typesIndex = {}
+		self.root = typeTree
+		def index(node):
+			self.typesIndex[node.name] = node
+			for a in node.aliases:
+				self.typesIndex[a] = node
+			for c in node.children:
+				index(c)
+		index(self.root)
+
+	def _unify(self, n1, n2):
+		"""returns the first node that is an ancestor to both n1 and n2.
+		"""
+		ancestors = set(n1.getAncestorNames())
+		while n2:
+			if n2.name in ancestors:
+				return n2
+			n2 = n2.parent
+		return self.root
 
 	def getSubsuming(self, typeSeq):
-		"""returns the highest-ranking type within typeSeq.
+		"""returns the least general type being able to represent all types
+		within typeSeq.
 
-		The function returns None if typeSeq is not subsumable because
-		a type not known to this set of coercions is in typeSeq.
+		The method returns the root type for both an empty typeSeq or
+		a typeSeq containing an unknown type.  We don't want to fail here,
+		and the "all-encompassing" type should handle any crap.
 		"""
-		if not typeSeq:
-			return None
 		try:
-			ranks = [self.forward[t] for t in typeSeq]
-		except KeyError: # unknown type in typeSeq
-			return None
-		return self.backward[max(ranks)]
+			startNodes = [self.typesIndex[t] for t in typeSeq]
+		except KeyError: # don't know at least one type
+			return self.root.name
+		try:
+			return reduce(self._unify, startNodes).name
+		except TypeError: # startNodes is empty
+			return self.root.name
 
 
-_numericCoercions = Coercions(["smallint", "integer", "int", "bigint", 
-	"real", "float", "double", "double precision"])
+N = _CoercNode
+_coercions = Coercions(
+	N('text', (
+		N("double precision", aliases=("double",), children=(
+			N("real", aliases=("float",), children=(
+				N("bigint", (
+					N("integer", aliases=("int",), children=(
+						N("smallint"),)),)),)),)),
+		N('timestamp', (
+			N('date'),
+			N('time'),)),)))
+del N
 
-_dateCoercions = Coercions(["date", "timestamp"])
-	
 
 def getSubsumingType(sqlTypes):
 	"""returns an appropirate sql type for a value composed of the types
@@ -80,21 +132,17 @@ def getSubsumingType(sqlTypes):
 	>>> getSubsumingType(["smallint", "integer"])
 	'integer'
 	>>> getSubsumingType(["double", "int", "bigint"])
-	'double'
+	'double precision'
 	>>> getSubsumingType(["date", "timestamp", "timestamp"])
 	'timestamp'
 	>>> getSubsumingType(["date", "boolean", "smallint"])
 	'text'
 	>>> getSubsumingType(["box", "raw"])
 	'text'
+	>>> getSubsumingType(["date", "time"])
+	'timestamp'
 	"""
-	coercs = filter(None, [_numericCoercions.getSubsuming(sqlTypes),
-		_dateCoercions.getSubsuming(sqlTypes)])
-	if len(coercs)==1:
-		return coercs[0]
-	else:
-		return 'text'
-	
+	return _coercions.getSubsuming(sqlTypes)
 
 
 class FromSQLConverter:
@@ -146,6 +194,7 @@ class ToVOTableConverter(FromSQLConverter):
 		"char": ("char", "1"),
 		"date": ("char", "*"),
 		"timestamp": ("char", "*"),
+		"time": ("char", "*"),
 		"box": ("double", "*"),
 		"vexpr-string": ("char", "*"),
 		"vexpr-date": ("char", "*"),
@@ -206,7 +255,11 @@ class ToXSDConverter(FromSQLConverter):
 		"char": "string",
 		"date": "date",
 		"timestamp": "dateTime",
+		"time": "time",
 		"raw": "string",
+		"vexpr-date": "string",
+		"vexpr-float": "string",
+		"vexpr-string": "string",
 	}
 
 	def mapComplex(self, type, length):
@@ -231,6 +284,7 @@ class ToNumarrayConverter(FromSQLConverter):
 		"char": "string",
 		"date": "Float32",
 		"timestamp": "Float32",
+		"time": "Float32",
 	}
 
 	def mapComplex(self, type, length):
@@ -261,6 +315,7 @@ try:
 			"char": (formal.String, formal.TextInput),
 			"date": (formal.Date, formal.widgetFactory(formal.DatePartsInput,
 				twoCharCutoffYear=50, dayFirst=True)),
+			"time": (formal.Time, formal.TextInput),
 			"timestamp": (formal.Date, formal.widgetFactory(formal.DatePartsInput,
 				twoCharCutoffYear=50, dayFirst=True)),
 			"vexpr-float": (formal.String, gwidgets.NumericExpressionField),

@@ -175,9 +175,9 @@ class VOTableResponse(BaseResponse):
 			fName = "truncated_votable.xml"
 		else:
 			fName = "votable.xml"
+		request.setHeader("content-type", "application/x-votable")
 		request.setHeader('content-disposition', 
 			'attachment; filename=%s'%fName)
-		request.setHeader("content-type", "application/x-votable")
 		return streamVOTable(request, data)
 
 	def _handleError(self, failure, ctx):

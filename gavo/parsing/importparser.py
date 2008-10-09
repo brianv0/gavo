@@ -333,7 +333,7 @@ class RdParser(nodebuilder.NodeBuilder):
 		# wherever we deal with copies like this.  Yikes.
 		for attName, default in [("table", None), ("onDisk", "False"),
 				("forceUnique", "False"), ("create", "True"), ("conflicts", "check"),
-				("role", None)]:
+				("role", None), ("id", None)]:
 			if attrs.has_key(attName):
 				tableDef.set(attName, attrs[attName])
 			elif setDefaults:
@@ -393,7 +393,11 @@ class RdParser(nodebuilder.NodeBuilder):
 	def _grabField(self, fieldPath):
 		"""returns the field pointed to by fieldPath.
 
-		fieldPath is a dot-seperated triple dataDesc.Table.fieldName.
+		fieldPath is a dot-seperated triple TableCarrier.Table.fieldName.
+
+		TableCarrier can be anything that has a getTableDefByName method and 
+		can be referred by id; primarily, that's DataDescriptors, but also
+		computed cores or similar qualify.
 
 		If fieldPath starts with a dot, it is interpreted relative to
 		the fieldPath property.
@@ -406,7 +410,7 @@ class RdParser(nodebuilder.NodeBuilder):
 			raise Error("Invalid field path '%s'.  Did you forget a leading dot?"%
 				fieldPath)
 		try:
-			return self.rd.getDataById(dataId).getTableDefByName(tableName
+			return self.resolveItemReference(dataId).getTableDefByName(tableName
 				).getFieldByName(fieldName)
 		except KeyError:
 			raise Error("Field does not exist: %s"%fieldPath)
@@ -498,6 +502,11 @@ class RdParser(nodebuilder.NodeBuilder):
 		return self._processChildren(proc, name, {
 			"arg": proc.addArgument,
 		}, children)
+
+	def _make_procdef(self, name, attrs, children):
+		code = children[0][1]
+		return nodebuilder.NamedNode("RowProcessor",
+			processors.compileProcessor(attrs["name"], code))
 
 	def _collectArguments(self, children):
 		"""returns a dictionary mapping names to values for all arg elements

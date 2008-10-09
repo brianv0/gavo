@@ -274,7 +274,7 @@ def parseFloat(s, pos, tok):
 floatLiteral = Regex(gavo.floatRE).setParseAction(parseFloat)
 
 # XXX TODO: be a bit more lenient in what you accept as a date
-dateLiteral = Regex(r"\d\d\d\d-\d\d-\d\d").setParseAction(
+dateLiteral = Regex(r"\d\d\d\d-\d\d-\d\d(T\d\d:\d\d:\d\d)?").setParseAction(
 			lambda s, pos, tok: typeconversion.make_dateTimeFromString(tok[0]))
 
 

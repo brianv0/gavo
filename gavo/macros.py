@@ -114,6 +114,12 @@ class StandardMacroMixin(MacroPackage):
 			title = serviceId
 		return "`%s <%s>`_"%(title, makeSitePath(serviceId))
 
+	def macro_servicelink(self, serviceId):
+		return makeSitePath(serviceId)
+	
+	def macro_internallink(self, relPath):
+		return makeSitePath(relPath)
+
 
 ######## misc functions used by macros, not necessarily in a good place,
 ######## but we want to keep internal imports at a minimum here.

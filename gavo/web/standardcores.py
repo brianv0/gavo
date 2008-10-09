@@ -167,8 +167,9 @@ class ComputedCore(QueryingCore):
 			"tables": record.ListField, # commandLine and inputLine tables
 			}, initvals=initvals)
 		self.dd = self.rd.getDataById(self.get_outputId())
-		self.avInputKeys = set() # FIXME: We don't know these, they're not in the DD
+		self.inputFields = None
 		self.outputFields = self.dd.getPrimaryTableDef().get_items()
+		self.avInputKeys = None
 		self.avOutputKeys = set([f.get_dest() for f in self.outputFields])
 
 	def get_computer(self):
@@ -176,6 +177,22 @@ class ComputedCore(QueryingCore):
 
 	def getOutputFields(self):
 		return self.outputFields
+
+	def getInputFields(self):
+		self._computeInputFields()
+		return self.inputFields
+
+	def _computeInputFields(self):
+		if self.inputFields is None:
+			self.inputFields = [contextgrammar.InputKey.fromDataField(f)
+				for f in self.getTableDefWithRole("commandLine").get_items(
+					)+self.getTableDefWithRole("inputLine").get_items()]
+			self.avInputKeys = set([f.get_dest() for f in self.inputFields])
+
+	def getTableDefByName(self, id):
+		for t in self.get_tables():
+			if t.get_id()==id:
+				return t
 
 	def getTableDefWithRole(self, role):
 		"""returns the first table definition with role.
@@ -201,7 +218,7 @@ class ComputedCore(QueryingCore):
 		if this is a computed dataSet.
 		"""
 		return resource.InternalDataSet(self.dd, table.Table, 
-			cStringIO.StringIO(rawOutput), tablesToBuild=["output"])
+			cStringIO.StringIO(rawOutput))
 core.registerCore("computed", ComputedCore)
 
 

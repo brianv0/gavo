@@ -45,11 +45,9 @@ class DataStreamer(threading.Thread):
 		self.writeLock = threading.Lock()
 
 	def resumeProducing(self):
-		print ">>>>>> resume"
 		self.writeLock.release()
 
 	def pauseProducing(self):
-		print ">>>>>> pause"
 		self.writeLock.acquire()
 
 	def stopProducing(self):

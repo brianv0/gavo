@@ -285,6 +285,7 @@ class ToTcConverter(typesystems.FromSQLConverter):
 		"char": TC.String,
 		"date": TC.gDate,
 		"timestamp": TC.gDateTime,
+		"time": TC.gTime,
 		"raw": TC.String,
 	}
 
@@ -309,12 +310,13 @@ try:
 		"""returns mapper for mxDateTime objects to python time tuples.
 		"""
 		if isinstance(colProps["sample"], DateTime.DateTimeType):
-			def mapper(val):
-				return val.tuple()
-			return mapper
+			return lambda val: val.tuple()
+		if isinstance(colProps["sample"], DateTime.DateTimeDeltaType):
+			return lambda val: (0,0,0,)+val.tuple()[:3]+(-1,-1,-1)
 	_registerMF(mxDatetimeMapperFactory)
 except ImportError:
 	pass
+
 
 def datetimeMapperFactory(colProps):
 	"""returns mapper for datetime objects to python time tuples.
@@ -324,8 +326,6 @@ def datetimeMapperFactory(colProps):
 			return val.timetuple()
 		return mapper
 _registerMF(datetimeMapperFactory)
-
-
 
 
 def serializePrimaryTable(data, service):

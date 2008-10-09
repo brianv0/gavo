@@ -17,11 +17,13 @@ a resource descriptor.
 
 
 import time
-from mx import DateTime
 import os
 import re
 import math
 import urlparse
+
+from mx import DateTime
+from mx.DateTime import ISO as DateTimeISO
 
 import gavo
 from gavo import logger
@@ -244,6 +246,67 @@ class PMCombiner(Macro):
 		record["angle_pm"] = pmpa
 
 
+def parseTime(literal, format):
+	if format=="!!secondsSinceMidnight":
+		secs = float(literal)
+		fullSecs = int(secs)
+		hours = fullSecs/3600
+		minutes = (fullSecs%3600)/60
+		seconds = secs-hours*3600-minutes*60
+		return DateTime.Time(hours, minutes, seconds)
+	elif format=="!!decimalHours":
+		rest, hours = math.modf(float(literal))
+		rest, minutes = math.modf(rest*60)
+		return DateTime.Time(int(hours), int(minutes), rest*60)
+	elif format=="!!magic":
+		return DateTimeISO.ParseTime(literal)
+	else:
+		return DateTime.Time(*DateTime.strptime(literal, format).tuple()[3:6])
+
+
+class TimeParser(Macro):
+	"""is a macro that converts some kind of time specification into the
+	internal representation.
+
+	Constructor Arguments:
+	* destination -- the name of the result field (default: time)
+	* format -- format of time using strptime(3)-compatible conversions
+	  (default: "!!isoplus")
+
+	The macro understands the special timeFormats !!secondsSinceMidnight,
+	!!decimalHours., and !!isoplus (the latter tries a somewhat lenient
+	interpretation of ISO dates, allowing for fractional seconds).
+
+	Argument:
+	* time -- a string containing a time spec.  Null values and structured
+	  times are copied to the destination.
+
+	>>> m = TimeParser([("time", "t", "")])
+	>>> r = {"t":"17:23:56.4567"};m(None, r);str(r["time"])
+	'17:23:56.45'
+	>>> r = {"t":None};m(None, r);str(r["time"])
+	'None'
+	>>> m=TimeParser([("time", "t", "")], timeFormat="%H-%M-%S", destination='t')
+	>>> r = {"t":"00-23-56"};m(None, r);str(r["t"])
+	'00:23:56.00'
+	>>> r = {"t":"Rubbish"};m(None, r);str(r["t"])
+	Traceback (most recent call last):
+	Error: strptime() parsing error
+	"""
+	name = "parseTime"
+
+	def __init__(self, argTuples=[], destination="time",
+			timeFormat="!!magic"):
+		Macro.__init__(self, argTuples)
+		self.timeFormat, self.destination = timeFormat, destination
+
+	def _compute(self, record, time):
+		if not isinstance(time, basestring):
+			record[self.destination] = time
+		else:
+			record[self.destination] = parseTime(time, self.timeFormat)
+
+
 class TimestampCombiner(Macro):
 	"""is a macro that takes a date and a time in various formats
 	and produces a mx.DateTime object from it.
@@ -296,21 +359,6 @@ class TimestampCombiner(Macro):
 		self.destination = destination
 		self.timeFormat, self.dateFormat = timeFormat, dateFormat
 
-	def _processTime(self, literal, format):
-		if format=="!!secondsSinceMidnight":
-			secs = float(literal)
-			fullSecs = int(secs)
-			hours = fullSecs/3600
-			minutes = (fullSecs%3600)/60
-			seconds = secs-hours*3600-minutes*60
-			return DateTime.Time(hours, minutes, seconds)
-		elif format=="!!decimalHours":
-			rest, hours = math.modf(float(literal))
-			rest, minutes = math.modf(rest*60)
-			return DateTime.Time(int(hours), int(minutes), rest*60)
-		else:
-			return DateTime.Time(*time.strptime(literal, format)[3:6])
-
 	def _processDate(self, literal, format):
 		if format=="!!julianEp":
 			rest, year = math.modf(float(literal))
@@ -319,7 +367,7 @@ class TimestampCombiner(Macro):
 		return DateTime.Date(*time.strptime(literal, format)[:3])
 
 	def _compute(self, record, date, time):
-		timeObj = self._processTime(time, self.timeFormat)
+		timeObj = parseTime(time, self.timeFormat)
 		dateObj = self._processDate(date, self.dateFormat)
 		record[self.destination] = dateObj+timeObj
 
