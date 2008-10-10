@@ -79,10 +79,31 @@ class RendExplainer(object):
 
 	@classmethod
 	def _explain_soap(cls, service):
+
+		def generateArguments():
+			# Slightly obfuscated -- I need to get ", " in between the items.
+			fieldIter = iter(service.getInputFields())
+			try:
+				next = fieldIter.next()
+				while True:
+					desc = "%s/%s"%(next.get_dest(), next.get_dbtype())
+					if not next.get_optional():
+						desc = T.strong[desc]
+					yield desc
+					next = fieldIter.next()
+					yield ', '
+			except StopIteration:
+				pass
+
 		return T.invisible["enables remote procedure calls; to use it,"
 			" feed the ", 
 			T.a(href=service.getURL("soap")+"/go?wsdl")["WSDL URL"],
-			" to your SOAP library"]
+			" to your SOAP library; the function signature is"
+			"  useService(",
+			generateArguments(),
+			").  See also our ", 
+			T.a(render=T.directive("rootlink"), href="/static/doc/soaplocal.shtml")[
+				"local soap hints"]]
 
 	@classmethod
 	def _explain_custom(cls, service):

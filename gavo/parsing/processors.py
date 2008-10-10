@@ -96,7 +96,9 @@ class DateExpander(RowProcessor):
 				type(val)))
 		return val
 
-	def _compute(self, record, start=None, end=None, hrInterval=24):
+	def _compute(self, record, start=None, end=None, hrInterval=None):
+		if hrInterval is None:
+			hrInterval = 24
 		self.errorField = "start"
 		stampTime = self._mkDateTime(start)
 		self.errorField = "end"

@@ -29,6 +29,10 @@ class SOAPProcessor(soap.SOAPPublisher):
 	def _gotResult(self, result, request, methodName):
 # We want SOAP docs that actually match what we advertize in the WSDL.
 # So, I override SOAPPublisher's haphazard SOAPpy-based formatter.
+		if result is None:  # Error has occurred.  This callback shouldn't be
+			# called at all, but for some reason it is, and I can't be bothered
+			# now to figure out why.
+			return ""
 		response = wsdl.serializePrimaryTable(result, self.service)
 		self._sendResponse(request, response)
 	

@@ -112,10 +112,10 @@ def _stringWrapMF(baseMF):
 	any results from baseMF's handlers if they fire.
 	"""
 	def factory(colProps):
-		fmtstr = "%s"
 		handler = baseMF(colProps)
 		if colProps["displayHint"].get("sf", None):
 			fmtstr = "%%.%df"%int(colProps["displayHint"]["sf"])
+		fmtstr = "%s"
 		if handler:
 			def realHandler(val):
 				res = handler(val)
@@ -123,6 +123,7 @@ def _stringWrapMF(baseMF):
 					return lambda val: fmtstr%(handler(val))
 				else:
 					return res
+			return realHandler
 	return factory
 
 

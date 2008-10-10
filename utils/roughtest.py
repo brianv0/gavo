@@ -667,6 +667,16 @@ myTests = [
 				"_FORMAT=HTML&submit=Go",
 			["Product", "insertPreview(this"],
 			"Liverpool service delivers data"),
+		GetHasStringsTest(nv_root+"/apfs/times/q/form?__nevow_form__=genForm"
+				"&ut1=2008-10-04T10%3A30%3A23%20..%202008-10-05T10%3A30%3A23&"
+				"interval=3600&_FORMAT=HTML&submit=Go",
+			["Greenwich mean sidereal", "12:24:29.3052", "291.2974", 
+				"04:27:07.6839"],
+			"Times service delivers expected values"),
+		GetHasStringsTest(nv_root+"/apfs/times/q/form?__nevow_form__=genForm"
+				"&ut1=wirres%20Zeug&interval=3600&_FORMAT=HTML&submit=Go",
+			["wirres Zeug", "Invalid date expression (at 0)"],
+			"Times service delivers nice error message for malformed vexprs"),
 	)
 ]
 

@@ -338,6 +338,7 @@ class Service(record.Record, meta.MetaMixin, macros.StandardMacroMixin):
 	def getInputData(self, inputData):
 		dD = self.get_inputFilter()
 		curData = resource.InternalDataSet(dD, table.Table, inputData)
+		curData.validate()
 		return curData
 
 	def _postProcess(self, coreOutput, queryMeta):
