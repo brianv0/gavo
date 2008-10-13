@@ -43,7 +43,8 @@ class DalRenderer(common.CustomErrorMixin, resourcebased.Form):
 		ctx.remember(self, inevow.ICanHandleException)
 		reqArgs = inevow.IRequest(ctx).args
 		if not "_DBOPTIONS_LIMIT" in reqArgs:
-			reqArgs["_DBOPTIONS_LIMIT"] = [config.get("ivoa", "dalDefaultLimit")]
+			reqArgs["_DBOPTIONS_LIMIT"] = [
+				str(config.get("ivoa", "dalDefaultLimit"))]
 		super(DalRenderer, self).__init__(ctx, *args, **kwargs)
 
 	_generateForm = resourcebased.Form.form_genForm

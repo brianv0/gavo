@@ -770,12 +770,13 @@ class SimpleQuerier(StandardQueryMixin):
 	"""
 	def __init__(self, connection=None, useProfile=None):
 		self.defaultProfile = useProfile
+		self.connection = None
 		if connection:
-			self.connection = connection
 			self.ownedConnection = False
+			self.connection = connection
 		else:
-			self.connection = getDbConnection(useProfile or config.getDbProfile())
 			self.ownedConnection = True
+			self.connection = getDbConnection(useProfile or config.getDbProfile())
 
 	def rollback(self):
 		self.connection.rollback()

@@ -25,10 +25,8 @@ if ":" in _serverName:
 	_targetPort = int(_serverName.split(":")[1])
 else:
 	_targetPort = 80
-try:
-	_targetPort = int(config.get("web", "serverPort"))
-except config.NoOptionError:
-	pass
+if config.get("web", "serverPort") is not None:
+	_targetPort = config.get("web", "serverPort")
 application = service.Application("archive")
 if debug:
 	mainPage = Reloader()

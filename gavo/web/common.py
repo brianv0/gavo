@@ -254,7 +254,7 @@ class GavoRenderMixin(object):
 		tag = ctx.tag
 		def munge(key):
 			if tag.attributes.has_key(key):
-			 tag.attributes[key] = config.get("web", "nevowRoot")+tag.attributes[key]
+			 tag.attributes[key] = macros.makeSitePath(tag.attributes[key])
 		munge("src")
 		munge("href")
 		return tag

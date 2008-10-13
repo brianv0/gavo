@@ -11,102 +11,81 @@ import shlex
 import sys
 
 import gavo
+from gavo import fancyconfig
 from gavo import meta
 from gavo import record
+from gavo.fancyconfig import ConfigItem, StringConfigItem,\
+	EnumeratedConfigItem, IntConfigItem, PathConfigItem, ListConfigItem,\
+	BooleanConfigItem, DictConfigItem
 
 defaultSettingsPath = "/etc/gavo.rc"
 
 addMeta = meta.configMeta.addMeta
 getMeta = meta.configMeta.getMeta
 
-_builtinConfig = """
-[DEFAULT]
-rootDir: /var/gavo
-configDir: etc
-inputsDir: inputs
-cacheDir: cache
-logDir: logs
-tempDir: tmp
-webDir: %(rootDir)s/web
-stateDir: %(rootDir)s/state
-logLevel: info
-operator: gavo@ari.uni-heidelberg.de
-platform:
-gavoGroup: gavo
 
-[parsing]
-xmlFragmentPath: %(inputsDir)s/__common__
-dbDefaultProfile: admin
+class PathRelativeConfigItem(StringConfigItem):
+	"""is a configuration item that is interpreted relative to a path
+	given in the general section.
+	
+	Basically, this is a replacement for ConfigParser's %(x)s interpolation.
+	In addition, we expand ~ in front of a value to the current value of
+	$HOME.
 
-[web]
-# serverName is used to qualify relative URLs where necessary.
-serverURL: http://localhost:8080
-staticURL: /qstatic
-# This one's for the old querulator and should die in the end.
-rootURL: /ql
-# This one's for the new nevow-based service
-nevowRoot: 
-# match limit for the db when no limit was given
-defaultlimit: 100
-# hard match limit for the db (empty for no limit)
-hardlimit: 1000000
-# error page for nv service (debug or something else)
-errorPage: debug
-# location of global nevow templates in the file system
-templateDir=%(webDir)s/templates
-# the admin password, leave empty to disable
-adminpasswd:
-# A short name of your site
-sitename=GAVO data center
-voplotEnable: True
-voplotCodeBase: ~/static/voplot/VOPlot
-voplotUserman: ~/static/voplot/docs/VOPlot_UserGuide_1_4.html
-# Location of the name map for vanity names
-vanityNames=vanitynames.txt
-# Default timeout for db queries via the web
-sqlTimeout=15
-# Default timeout for adql queries via the web
-adqlTimeout=15
-# directory to store cached previews in
-previewCache: %(webDir)s/previewcache
-# path to a favicon
-favicon: None
-# enable test pages
-enableTests: False
+	Specify the item in the baseKey class Attribute.
+	"""
+	baseKey = None
+	_value = ""
 
-[db]
-interface: psycopg2
-# pgsql might still work but is scheduled for removal
-profilePath: ~/.gavo:%(configdir)s
-msgEncoding: utf-8
-maintainers: gavoadmin
-queryRoles: gavo
-adqlRoles: untrusted
+	def _getValue(self):
+		if self._value.startswith("~"):
+			return os.environ.get("HOME", "/no_home")+self._value[1:]
+		return os.path.join(self.parent.get(self.baseKey), self._value)
+	
+	def _setValue(self, val):
+		self._value = val
+	
+	value = property(_getValue, _setValue)
 
-[profiles]
-admin:feed
-trustedquery:trustedquery
-untrustedquery:untrustedquery
-test:test
 
-[ivoa]
-# the authority id for this DC
-authority: 
-registryIdentifier: ivo://org.gavo.dc/static/registryrecs/registry.rr
-dalDefaultLimit: 10000
+class RootRelativeConfigItem(PathRelativeConfigItem):
+	baseKey = "rootDir"
+	typespec = "path relative to rootDir"
 
-[meta]
-# Default curation
-publisher: 
-publisher.name: 
-publisher.email: 
-creator.name: 
-creator.logo:
-contact.name:
-contact.address:
-contact.email:
-contact.telephone:
-"""
+
+class WebRelativeConfigItem(PathRelativeConfigItem):
+	baseKey = "webDir"
+	typespec = "path relative to webDir"
+
+
+class RelativeURL(StringConfigItem):
+	"""is a configuration item that is interpreted relative to
+	the server's root URL.
+	"""
+
+	_value = ""
+	typespec = "URL fragment relative to the server's root"
+
+	def _getValue(self):
+		if self._value.startswith("http://") or self._value.startswith("/"):
+			return self._value
+		return self.parent.get("web", "nevowRoot")+self._value
+
+	def _setValue(self, val):
+		self._value = val
+	
+	value = property(_getValue, _setValue)
+
+
+class EatTrailingSlashesItem(StringConfigItem):
+	"""is a config item that must not end with a slash.  A trailing slash
+	on input is removed.
+	"""
+
+	typespec = "path fragment"
+
+	def _parse(self, val):
+		return StringConfigItem._parse(self, val).rstrip("/")
 
 
 class Error(gavo.Error):
@@ -250,114 +229,20 @@ class ProfileParser:
 		self.stateFun = self.stateFun(token)
 
 
-class Settings(object):
+class Configuration(fancyconfig.Configuration):
 	"""is a container for settings.
-	
-	It is fed from the builtin config, $GAVOSETTINGS (default: /etc/gavorc) and,
-	if available, $GAVOCUSTOM (default: ~/.gavorc), where later settings 
-	may override earlier settings.
 
-	To access config items, say config.get(item) for items from the default
-	section, or config.get(section, item) for items from named sections.
-	All keys except meta are case insensitive.
+	It is a fancyconfig.Configuration with the addition of making the
+	attributes shared at the class level to ward against multiple imports
+	(which may happen if config is imported in a weird way).
+
+	In addition, this class handles the access to database profiles.
 	"""
 	__sharedState = {}
-	def __init__(self):
+	def __init__(self, *items):
 		self.__dict__ = self.__sharedState
-		self.rawVals = self._parse()
-		self._handleMeta()
-		self.valueCache = {}
-		self.dbProfileCache = {}
-
-	def _getHome(self):
-		return os.environ.get("HOME", "/no_home")
-
-	def _handleMeta(self):
-		for key, value in self.rawVals.items("meta"):
-			if value.strip():
-				addMeta(key, value)
-
-	def _parse(self):
-		confParser =  ConfigParser.ConfigParser()
-		confParser.readfp(cStringIO.StringIO(_builtinConfig))
-		confParser.read([
-			os.environ.get("GAVOSETTINGS", "/etc/gavo.rc"),
-			os.environ.get("GAVOCUSTOM", os.path.join(
-				self._getHome(), ".gavorc"))])
-		return confParser
-
-	def _cookPath(self, val):
-		if val.startswith("~"):
-			val = self._getHome()+val[1:]
-		return os.path.join(self.get("rootDir"), val)
-	
-	_parse_DEFAULT_configdir = _parse_DEFAULT_inputsdir =\
-		_parse_DEFAULT_cachedir = _parse_DEFAULT_logdir =\
-		_parse_DEFAULT_tempdir = _parse_DEFAULT_webdir = _cookPath
-
-	def _parseRoles(self, val):
-		return [s.strip() for s in val.split(",") if s.strip()]
-	
-	_parse_db_maintainers = _parse_db_queryroles = _parse_db_adqlroles =\
-		_parseRoles
-
-	def _parse_web_enabletests(self, val):
-		return record.parseBooleanLiteral(val)
-
-	def _parse_web_adminpasswd(self, val):
-		return val.strip()
-
-	def _parse_web_sqltimeout(self, val):
-		return int(val)
-
-	def _parse_web_adqltimeout(self, val):
-		return int(val)
-
-	def _parse_web_voplotenable(self, val):
-		return record.parseBooleanLiteral(val)
-
-	def _parse_web_voplotcodebase(self, val):
-		if val.startswith("~"):
-			val = self.get("web", "serverUrl")+self.get("web", "nevowRoot"
-				)+val[1:]
-		return val
-	
-	_parse_web_voplotuserman = _parse_web_voplotcodebase
-
-	def _parse_DEFAULT_rootdir(self, val):
-		if val.startswith("~"):
-			val = self._getHome()+val[1:]
-		return val
-
-	def _parse_db_profilepath(self, val):
-		res = []
-		for dir in val.split(":"):
-			if dir.startswith("~"):
-				dir = self._getHome()+dir[1:]
-			else:
-				dir = os.path.join(self.get("rootDir"), dir)
-			res.append(dir)
-		return res
-
-	def _computeValueFor(self, section, key):
-		return getattr(self, "_parse_%s_%s"%(section, key), _identity)(
-			self.rawVals.get(section, key))
-
-	def get(self, arg1, arg2=None):
-		if arg2 is None:
-			section, key = "DEFAULT", arg1.lower()
-		else:
-			section, key = arg1.lower(), arg2.lower()
-		if not self.valueCache.has_key((section, key)):
-			self.valueCache[section, key] = self._computeValueFor(section, key)
-		return self.valueCache[section, key]
-
-	def set(self, arg1, arg2=None, arg3=None):
-		if arg3 is None:
-			section, key, value = "DEFAULT", arg1.lower(), arg2
-		else:
-			section, key = arg1.lower(), arg2.lower(), arg3
-		self.valueCache[section, key] = value
+		fancyconfig.Configuration.__init__(self, *items)
+		self._dbProfileCache = {}
 
 	def _getProfileParser(self):
 		if not hasattr(self, "__profileParser"):
@@ -368,13 +253,13 @@ class Settings(object):
 	def getDbProfileByName(self, profileName):
 		if profileName is None:
 			return self.getDbProfile()
-		if not self.dbProfileCache.has_key(profileName):
+		if not self._dbProfileCache.has_key(profileName):
 			try:
-				self.dbProfileCache[profileName] = self._getProfileParser().parse(
-					profileName, self.get("profiles", profileName))
+				self._dbProfileCache[profileName] = self._getProfileParser().parse(
+					profileName, self.get("db", "profiles")[profileName])
 			except ConfigParser.NoOptionError:
 				raise Error("Undefined DB profile: %s"%profileName)
-		return self.dbProfileCache[profileName]
+		return self._dbProfileCache[profileName]
 
 	def setDbProfile(self, profileName):
 		self.dbProfile = self.getDbProfileByName(profileName)
@@ -387,7 +272,111 @@ class Settings(object):
 		return self.dbProfile
 
 
-_config = Settings()
+_config = Configuration(
+# general section
+	StringConfigItem("rootDir", default="/var/gavo", description=
+		"Path to the root of the DC file (all other paths may be"
+		" relative to this"),
+	RootRelativeConfigItem("configDir", default="etc", 
+		description="Path to the DC's non-ini configuration (e.g., DB profiles)"),
+	RootRelativeConfigItem("inputsDir", default="inputs",
+		description="Path to the DC's data holdings"),
+	RootRelativeConfigItem("cacheDir", default="cache",
+		description="Path to the DC's persistent scratch space"),
+	RootRelativeConfigItem("logDir", default="logs",
+		description="Path to the DC's logs (should be local)"),
+	RootRelativeConfigItem("tempDir", default="tmp",
+		description="Path to the DC's scratch space (should be local)"),
+	RootRelativeConfigItem("webDir", default="web",
+		description="Path to the DC's web related data (docs, css, js,"
+			" templates...)"),
+	RootRelativeConfigItem("stateDir", default="state",
+		description="Path to the DC's state information (last imported,...)"),
+	EnumeratedConfigItem("logLevel", options=["info", "warning",
+		"debug", "error"], description="Verboseness of importer"),
+	StringConfigItem("operator", description=
+		"Mail address of the DC's operator(s)."),
+	StringConfigItem("platform", description="Platform string (can be"
+		" empty if inputsDir is only accessed by identical machines)"),
+	StringConfigItem("gavoGroup", description="Name of the unix group that"
+		" administers the DC", default="gavo"),
+
+# parsing section
+	RootRelativeConfigItem("xmlFragmentPath", "parsing",
+		default="inputs/__common__", description="Path to entity"
+			" replacements (deprecated)"),
+	RootRelativeConfigItem("dbProfile", "parsing",
+		default="admin", description="DB profile used by gavoimp"),
+
+# web section
+	StringConfigItem("serverURL", "web", default="http://localhost:8080",
+		description="URL fragment used to qualify relative URLs where necessary"),
+	IntConfigItem("serverPort", "web", default="None",
+		description="Port to bind the server to"),
+	EatTrailingSlashesItem("nevowRoot", "web", default="/",
+		description="Path fragment to the server's root for operation off the"
+			" server's root"),
+	StringConfigItem("errorPage", "web", default="debug",
+		description="set to 'debug' for error pages with tracebacks, anything"
+			" else for a less informative page"),
+	WebRelativeConfigItem("templateDir", "web", default="templates",
+		description="webDir-relative location of global nevow templates"),
+	StringConfigItem("adminpasswd", "web", default="",
+		description="Password for online administration, leave empty to disable"),
+	StringConfigItem("sitename", "web", "GAVO data center",
+		"A short name for your site"),
+	BooleanConfigItem("voplotEnable", "web", "True", "Enable the VOPlot"
+		" output format (requires some external software)"),
+	RelativeURL("voplotCodeBase", "web", "static/voplot/VOPlot",
+		"URL of the code base for VOPlot"),
+	RelativeURL("voplotUserman", "web",  
+		"static/voplot/docs/VOPlot_UserGuide_1_4.html",
+		"URL to the documentation of VOPlot"),
+	WebRelativeConfigItem("vanityNames", "web", "vanitynames.txt",
+		"Webdir-realtive path to the name map for vanity names"),
+	IntConfigItem("sqlTimeout", "web", "15",
+		"Default timeout for db queries via the web"),
+	IntConfigItem("adqlTimeout", "web", "15",
+		"Default timeout for adql queries via the web"),
+	WebRelativeConfigItem("previewCache", "web", "previewcache",
+		"Webdir-relative directory to store cached previews in"),
+	WebRelativeConfigItem("favicon", "web", "None",
+		"Webdir-relative path to a favicon"),
+	BooleanConfigItem("enableTests", "web", "False",
+		"Enable test pages (don't if you don't know why)"),
+
+# db section
+	StringConfigItem("interface", "db", "psycopg2", "Don't change"),
+	PathConfigItem("profilePath", "db", " ~/.gavo:$configDir",
+		"Path for locating DB profiles"),
+	StringConfigItem("msgEncoding", "db", "utf-8", "Encoding of the"
+		" messages coming from the database"),
+	ListConfigItem("maintainers", "db", "gavoadmin", "Name(s) of DB roles"
+		" that should have full access to gavoimp-created tables by default"),
+	ListConfigItem("queryRoles", "db", "gavo", "Name(s) of DB roles that"
+		" should be able to read gavoimp-created tables by default"),
+	ListConfigItem("adqlRoles", "db", "untrusted", "Name(s) of DB roles that"
+		" get access to tables opened for ADQL"),
+	DictConfigItem("profiles", "db", "admin:feed,trustedquery:trustedquery,"
+		"untrustedquery:untrustedquery,test:test", "Map from internal roles"
+			" DB access profiles"),
+
+# ivoa section
+	StringConfigItem("authority", "ivoa", "org.gavo.dc", 
+		"the authority id for this DC"),
+	StringConfigItem("registryIdentifier", "ivoa", 
+		"ivo://org.gavo.dc/static/registryrecs/registry.rr", "The IVOA"
+			"id for this DC's registry"),
+	IntConfigItem("dalDefaultLimit", "ivoa", "10000",
+		"Default match limit on DAL queries"),
+)
+
+
+fancyconfig.readConfiguration(_config,
+	os.environ.get("GAVOSETTINGS", "/etc/gavo.rc"),
+	os.environ.get("GAVOCUSTOM", os.path.join(os.environ.get("HOME", "/no_home"), 
+		".gavorc")))
+
 get = _config.get
 set = _config.set
 setDbProfile = _config.setDbProfile
@@ -395,18 +384,39 @@ getDbProfile = _config.getDbProfile
 getDbProfileByName = _config.getDbProfileByName
 
 
+def makeFallbackMeta():
+	"""fills meta.configMeta with items from $configDir/defaultmeta.txt.
+	"""
+	srcPath = os.path.join(get("configDir"), "defaultmeta.txt")
+	f = open(srcPath)
+	for ln in f:
+		ln = ln.strip()
+		if not ln or ln.startswith("#"):
+			continue
+		try:
+			key, val = ln.split(":", 1)
+		except ValueError:
+			raise gavo.Error("Bad line in %s: '%s'"%(srcPath, ln))
+		meta.configMeta.addMeta(key.strip(), val.strip())
+
+makeFallbackMeta()
+
+
 def main():
 	try:
-		if len(sys.argv)==2:
+		if len(sys.argv)==1:
+			print fancyconfig.makeTxtDocs(_config)
+		elif len(sys.argv)==2:
 			print get(sys.argv[1])
 		elif len(sys.argv)==3:
 			print get(sys.argv[1], sys.argv[2])
 		else:
-			sys.stderr.write("Usage: %s <sect> <key> | <key>\n")
+			sys.stderr.write("Usage: %s [<sect> <key> | <key>]\n")
 			sys.exit(1)
 	except NoOptionError:
 		print ""
 		sys.exit(2)
+
 
 def _test():
 	import doctest, config
