@@ -82,9 +82,8 @@ class ConfigItem(object):
 
 	typedesc = "unspecified value"
 
-	def __init__(self, name, section=defaultSection, default=None,
-			description="Undocumented"):
-		self.section, self.name = section, name
+	def __init__(self, name, default=None, description="Undocumented"):
+		self.name = name
 		if default is None:
 			default = self.default
 		self.default = default
@@ -253,7 +252,7 @@ class DictConfigItem(ListConfigItem):
 	ParseError: 'rubbish' is not a valid mapping literal element
 	"""
 
-	typespec = "mapping"
+	typedesc = "mapping"
 	default = ""
 
 	def _parse(self, value):
@@ -277,7 +276,7 @@ class BooleanConfigItem(ConfigItem):
 	many fancy representations.
 	"""
 
-	typespec = "boolean"
+	typedesc = "boolean"
 	default = "False"
 
 	trueLiterals = set(["true", "yes", "t", "on", "enabled", "1"])
@@ -303,15 +302,15 @@ class EnumeratedConfigItem(StringConfigItem):
 	You must give a non-empty list of strings as options.
 	"""
 
-	typespec = "value from a defined set"
+	typedesc = "value from a defined set"
 
-	def __init__(self, name, section=defaultSection, default=None,
-			description="Undocumented", options=[]):
+	def __init__(self, name, default=None, description="Undocumented", 
+			options=[]):
 		if default is None:
 			default = options[0]
 		self.options = set(options)
-		self.typespec = "value from the list %s"%(", ".join(self.options))
-		StringConfigItem.__init__(self, name, section, default, description)
+		self.typedesc = "value from the list %s"%(", ".join(self.options))
+		StringConfigItem.__init__(self, name, default, description)
 	
 	def _parse(self, value):
 		encVal = StringConfigItem._parse(self, value)
@@ -334,7 +333,7 @@ class PathConfigItem(StringConfigItem):
 	before its value can be accessed.
 	"""
 
-	typespec = "shell-type path"
+	typedesc = "shell-type path"
 
 	def _parse(self, value):
 		self._unparsed = StringConfigItem._parse(self, value)
@@ -367,10 +366,92 @@ class PathConfigItem(StringConfigItem):
 	value = property(_getValue, _setValue)
 
 
-class Configuration(object):
-	"""is a collection of ConfigItems and provides an interface to access them.
+class Section(object):
+	"""is a section within the configuration.
 
-	You construct it with the ConfigItems you want and then use the get
+	It is constructed with a name, a documentation, and the configuration
+	items.
+
+	They double as proxies between the configuration and their items
+	via the setParent method.
+	"""
+	def __init__(self, name, documentation, *items):
+		self.name, self.documentation = name, documentation
+		self.items = {}
+		for item in items:
+			self.items[item.name.lower()] = item
+
+	def __iter__(self):
+		for name in sorted(self.items):
+			yield self.items[name]
+
+	def getitem(self, name):
+		if name.lower() in self.items:
+			return self.items[name.lower()]
+		else:
+			raise NoConfigItem("No such configuration item: [%s] %s"%(
+				self.name, name))
+
+	def get(self, name):
+		"""returns the value of the configuration item name.
+
+		If it does not exist, a NoConfigItem exception will be raised.
+		"""
+		return self.getitem(name).value
+		
+	def set(self, name, value, origin="user"):
+		"""set the value of the configuration item name.
+
+		value must always be a string, regardless of the item's actual type.
+		"""
+		self.getitem(name).set(value, origin)
+
+	def setParent(self, parent):
+		for item in self.items.values():
+			item.parent = parent
+
+
+class DefaultSection(Section):
+	"""is the default section, named by defaultSection above.
+
+	The only difference to Section is that you leave out the name.
+	"""
+	def __init__(self, documentation, *items):
+		Section.__init__(self, defaultSection, documentation, *items)
+
+
+class MagicSection(Section):
+	"""is a section that creates new keys on the fly.
+
+	Use this a dictionary-like thing when successive edits are
+	necessary or the DictConfigItem becomes too unwieldy.
+
+	A MagicSection is constructed with the section name, an item
+	factory, which has to be a subclass of ConfigItem (you may
+	want to write a special constructor to provide documentation,
+	etc.), and defaults as a sequence of pairs of keys and values.
+	And there should be documentation, too, of course.
+	"""
+	def __init__(self, name, documentation="Undocumented", 
+			itemFactory=StringConfigItem, defaults=[]):
+		self.itemFactory = itemFactory
+		items = []
+		for key, value in defaults:
+			items.append(self.itemFactory(key))
+			items[-1].set(value, origin="defaults")
+		Section.__init__(self, name, documentation, *items)
+	
+	def set(self, name, value, origin="user"):
+		if name not in self.items:
+			self.items[name.lower()] = self.itemFactory(name)
+		Section.set(self, name, value, origin)
+
+
+class Configuration(object):
+	"""is a collection of config Sections and provides an interface to access 
+	them and their items.
+
+	You construct it with the Sections you want and then use the get
 	method to access their content.  You can either use get(section, name)
 	or just get(name), which implies the defaultSection section defined
 	at the top (right now, "general").
@@ -381,30 +462,40 @@ class Configuration(object):
 	You can also set individual items using set.
 
 	The class follows the default behaviour of ConfigParser in that section
-	case is preserved, but item names are lowercased.
+	and item names are lowercased.
 
-	Note that direct access to items is not forbidden, but you have to
+	Note that direct access to sections is not forbidden, but you have to
 	keep case mangling of keys into account when doing so.
 	"""
-	def __init__(self, *items):
-		self.items = {}
-		for item in items:
-			self.items[item.section.lower(), item.name.lower()] = item
-			item.parent = weakref.proxy(self)
+	def __init__(self, *sections):
+		self.sections = {}
+		for section in sections:
+			self.sections[section.name.lower()] = section
+			section.setParent(weakref.proxy(self))
 
 	def __iter__(self):
-		return iter(self.items)
+		sectHeads = self.sections.keys()
+		if defaultSection in sectHeads:
+			sectHeads.remove(defaultSection)
+			yield self.sections[defaultSection]
+		for h in sorted(sectHeads):
+			yield self.sections[h]
 
-	def get(self, arg1, arg2=None):
+	def getitem(self, arg1, arg2=None):
+		"""returns the *item* described by section, name or just name.
+		"""
 		if arg2 is None:
-			name, section = arg1.lower(), defaultSection
+			section, name = defaultSection, arg1
 		else:
-			name, section = arg2.lower(), arg1.lower()
-		if (section, name) in self.items:
-			return self.items[section, name].value
-		else:
+			section, name = arg1, arg2
+		try:
+			return self.sections[section].getitem(name)
+		except KeyError:
 			raise NoConfigItem("No such configuration item: [%s] %s"%(
 				section, name))
+
+	def get(self, arg1, arg2=None):
+		return self.getitem(arg1, arg2).value
 
 	def set(self, arg1, arg2, arg3=None, origin="user"):
 		"""sets a configuration item to a value.
@@ -422,11 +513,12 @@ class Configuration(object):
 			section, name, value = defaultSection, arg1, arg2
 		else:
 			section, name, value = arg1, arg2, arg3
-		if (section.lower(), name.lower()) in self.items:
-			return self.items[section.lower(), name.lower()].set(value, origin)
+		if section.lower() in self.sections:
+			return self.sections[section.lower()].set(name, value, origin)
 		else:
 			raise NoConfigItem("No such configuration item: [%s] %s"%(
 				section, name))
+
 
 
 	def addFromFp(self, fp, origin="user", fName="<internal>"):
@@ -473,28 +565,25 @@ def readConfiguration(config, systemFName, userFName):
 	_addToConfig(config, userFName, "user")
 
 
-def makeTxtDocs(config):
+def makeTxtDocs(config, underlineChar="."):
 	import textwrap
 	docs = []
-	sections = {}
-	for section, key in config:
-		sections.setdefault(section, []).append(key)
-	sectNames = sections.keys()
-	sectNames.sort()
-	if defaultSection in sectNames:
-		sectNames.remove(defaultSection)
-		sectNames.insert(0, defaultSection)
-	for section in sectNames:
-		items = sections[section]
-		if not items:
-			continue
-		hdr = "Section [%s]"%(config.items[section, items[0]].section)
-		docs.append("\n%s\n%s\n"%(hdr, "'"*len(hdr)))
-		items.sort()
-		for item in items:
-			ci = config.items[section, item]
+	for section in config:
+		if isinstance(section, MagicSection):
+			hdr = "Magic Section [%s]"%(section.name)
+			body = (section.documentation+
+				"\n\nThe items in this section are all of type %s.  You can add keys"
+				" as required.\n"%
+					section.itemFactory.typedesc)
+		else:
+			hdr = "Section [%s]"%(section.name)
+			body = section.documentation
+		docs.append("\n%s\n%s\n\n%s\n"%(hdr, underlineChar*len(hdr),
+			textwrap.fill(body, width=72)))
+		for ci in section:
 			docs.append("* %s: %s; "%(ci.name, ci.typedesc)) 
-			docs.append("  defaults to '%s' --"%ci.default)
+			if ci.default is not None:
+				docs.append("  defaults to '%s' --"%ci.default)
 			docs.append(textwrap.fill(ci.description, width=72, initial_indent="  ",
 				subsequent_indent="  "))
 	return "\n".join(docs)
@@ -515,7 +604,6 @@ def _getTestSuite():
 		def testStringConfigItemDefaultArgs(self):
 			ci = StringConfigItem("foo")
 			self.assertEqual(ci.name, "foo")
-			self.assertEqual(ci.section, defaultSection)
 			self.assertEqual(ci.value, "")
 			self.assertEqual(ci.description, "Undocumented")
 			self.assertEqual(ci.origin, "default")
@@ -523,14 +611,12 @@ def _getTestSuite():
 			self.assertEqual(ci.value, "bar")
 			self.assertEqual(ci.origin, "user")
 			self.assertEqual(ci.name, "foo")
-			self.assertEqual(ci.section, defaultSection)
 			self.assertEqual(ci.getAsString(), "bar")
 
 		def testStringConfigItemNoDefaults(self):
-			ci = StringConfigItem("foo", section="bar", default="quux",
+			ci = StringConfigItem("foo", default="quux",
 				description="An expressionist config item")
 			self.assertEqual(ci.name, "foo")
-			self.assertEqual(ci.section, "bar")
 			self.assertEqual(ci.value, "quux")
 			self.assertEqual(ci.description, "An expressionist config item")
 			self.assertEqual(ci.origin, "default")
@@ -580,17 +666,19 @@ def _getTestSuite():
 		"""
 		def _getConfig(self):
 			return Configuration(
-				StringConfigItem("emptyDefault", description="is empty by default"),
-				StringConfigItem("fooDefault", default="foo",
-					description="is foo by default"),
-				IntConfigItem("count", "types", default="0", description=
-					"is an integer"),
-				ListConfigItem("enum", "types", description="is a list", 
-					default="foo, bar"),
-				IntListConfigItem("intenum", "types", description="is a list of ints",
-					default="1,2,3"),
-				DictConfigItem("map", "types", description="is a mapping",
-					default="intLit:1, floatLit:0.1, bla: wurg"),)
+				DefaultSection("General Settings",
+					StringConfigItem("emptyDefault", description="is empty by default"),
+					StringConfigItem("fooDefault", default="foo",
+						description="is foo by default"),),
+				Section("types", "Various Types",
+					IntConfigItem("count", default="0", description=
+						"is an integer"),
+					ListConfigItem("enum", description="is a list", 
+						default="foo, bar"),
+					IntListConfigItem("intenum", description="is a list of ints",
+						default="1,2,3"),
+					DictConfigItem("map", description="is a mapping",
+						default="intLit:1, floatLit:0.1, bla: wurg"),))
 
 		def testDefaults(self):
 			config = self._getConfig()
@@ -606,10 +694,8 @@ def _getTestSuite():
 			config = self._getConfig()
 			config.set("emptyDefault", "foo")
 			self.assertEqual(config.get("emptyDefault"), "foo")
-			self.assertEqual(config.items[defaultSection, "emptydefault"].origin,
-				"user")
-			self.assertEqual(config.items[defaultSection, "foodefault"].origin,
-				"default")
+			self.assertEqual(config.getitem("emptydefault").origin, "user")
+			self.assertEqual(config.getitem("foodefault").origin, "default")
 
 		def testReading(self):
 			config = self._getConfig()
@@ -628,7 +714,7 @@ def _getTestSuite():
 			self.assertEqual(config.get("types", "intenum"), [1,1,3,3])
 			self.assertEqual(config.get("types", "map"), {u'Fu\xdf': "y",
 				"x": u'Fu\xdf'})
-			self.assertEqual(config.items["types", "map"].origin, "user")
+			self.assertEqual(config.getitem("types", "map").origin, "user")
 
 		def testRaising(self):
 			config = self._getConfig()
@@ -638,8 +724,22 @@ def _getTestSuite():
 				StringIO("intenum: brasel\n"))
 			self.assertRaises(NoConfigItem, config.addFromFp,
 				StringIO("[types]\nnonexisting: True\n"))
-			self.assertRaises(ParseError, config.items["types", "count"].set,
+			self.assertRaises(ParseError, config.getitem("types", "count").set,
 				"abc")
+
+	class MagicFactoryTest(unittest.TestCase):
+		"""tests for function of MagicFactories.
+		"""
+		def testMagic(self):
+			config = Configuration(
+				MagicSection("profiles", "Some magic Section",
+					defaults=(('a', 'b'), ('c', 'd'))))
+			self.assertEqual(config.get('profiles', 'c'), 'd')
+			self.assertRaises(NoConfigItem, config.get, 'profiles', 'd')
+			config.set('profiles', 'new', 'shining', origin="user")
+			item = config.getitem('profiles', 'new')
+			self.assertEqual(item.value, 'shining')
+			self.assertEqual(item.origin, 'user')
 
 	l = locals()
 	tests = [l[name] for name in l 

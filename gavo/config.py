@@ -16,7 +16,7 @@ from gavo import meta
 from gavo import record
 from gavo.fancyconfig import ConfigItem, StringConfigItem,\
 	EnumeratedConfigItem, IntConfigItem, PathConfigItem, ListConfigItem,\
-	BooleanConfigItem, DictConfigItem
+	BooleanConfigItem, DictConfigItem, Section, DefaultSection, MagicSection
 
 defaultSettingsPath = "/etc/gavo.rc"
 
@@ -50,12 +50,12 @@ class PathRelativeConfigItem(StringConfigItem):
 
 class RootRelativeConfigItem(PathRelativeConfigItem):
 	baseKey = "rootDir"
-	typespec = "path relative to rootDir"
+	typedesc = "path relative to rootDir"
 
 
 class WebRelativeConfigItem(PathRelativeConfigItem):
 	baseKey = "webDir"
-	typespec = "path relative to webDir"
+	typedesc = "path relative to webDir"
 
 
 class RelativeURL(StringConfigItem):
@@ -64,7 +64,7 @@ class RelativeURL(StringConfigItem):
 	"""
 
 	_value = ""
-	typespec = "URL fragment relative to the server's root"
+	typedesc = "URL fragment relative to the server's root"
 
 	def _getValue(self):
 		if self._value.startswith("http://") or self._value.startswith("/"):
@@ -82,10 +82,22 @@ class EatTrailingSlashesItem(StringConfigItem):
 	on input is removed.
 	"""
 
-	typespec = "path fragment"
+	typedesc = "path fragment"
 
 	def _parse(self, val):
 		return StringConfigItem._parse(self, val).rstrip("/")
+
+
+class ProfileItem(StringConfigItem):
+	"""is a config item within the profiles magic section.
+	
+	The main point here is to beautify the generated documentation.
+	"""
+	typedesc = "profile name"
+	def __init__(self, name):
+		StringConfigItem.__init__(self, name, description="A name of a file"
+			" in [db]profilePath")
+		self.default = None
 
 
 class Error(gavo.Error):
@@ -256,7 +268,7 @@ class Configuration(fancyconfig.Configuration):
 		if not self._dbProfileCache.has_key(profileName):
 			try:
 				self._dbProfileCache[profileName] = self._getProfileParser().parse(
-					profileName, self.get("db", "profiles")[profileName])
+					profileName, self.get("profiles", profileName))
 			except ConfigParser.NoOptionError:
 				raise Error("Undefined DB profile: %s"%profileName)
 		return self._dbProfileCache[profileName]
@@ -273,102 +285,104 @@ class Configuration(fancyconfig.Configuration):
 
 
 _config = Configuration(
-# general section
-	StringConfigItem("rootDir", default="/var/gavo", description=
-		"Path to the root of the DC file (all other paths may be"
-		" relative to this"),
-	RootRelativeConfigItem("configDir", default="etc", 
-		description="Path to the DC's non-ini configuration (e.g., DB profiles)"),
-	RootRelativeConfigItem("inputsDir", default="inputs",
-		description="Path to the DC's data holdings"),
-	RootRelativeConfigItem("cacheDir", default="cache",
-		description="Path to the DC's persistent scratch space"),
-	RootRelativeConfigItem("logDir", default="logs",
-		description="Path to the DC's logs (should be local)"),
-	RootRelativeConfigItem("tempDir", default="tmp",
-		description="Path to the DC's scratch space (should be local)"),
-	RootRelativeConfigItem("webDir", default="web",
-		description="Path to the DC's web related data (docs, css, js,"
-			" templates...)"),
-	RootRelativeConfigItem("stateDir", default="state",
-		description="Path to the DC's state information (last imported,...)"),
-	EnumeratedConfigItem("logLevel", options=["info", "warning",
-		"debug", "error"], description="Verboseness of importer"),
-	StringConfigItem("operator", description=
-		"Mail address of the DC's operator(s)."),
-	StringConfigItem("platform", description="Platform string (can be"
-		" empty if inputsDir is only accessed by identical machines)"),
-	StringConfigItem("gavoGroup", description="Name of the unix group that"
-		" administers the DC", default="gavo"),
+	DefaultSection('Paths and other general settings.',
+		StringConfigItem("rootDir", default="/var/gavo", description=
+			"Path to the root of the DC file (all other paths may be"
+			" relative to this"),
+		RootRelativeConfigItem("configDir", default="etc", 
+			description="Path to the DC's non-ini configuration (e.g., DB profiles)"),
+		RootRelativeConfigItem("inputsDir", default="inputs",
+			description="Path to the DC's data holdings"),
+		RootRelativeConfigItem("cacheDir", default="cache",
+			description="Path to the DC's persistent scratch space"),
+		RootRelativeConfigItem("logDir", default="logs",
+			description="Path to the DC's logs (should be local)"),
+		RootRelativeConfigItem("tempDir", default="tmp",
+			description="Path to the DC's scratch space (should be local)"),
+		RootRelativeConfigItem("webDir", default="web",
+			description="Path to the DC's web related data (docs, css, js,"
+				" templates...)"),
+		RootRelativeConfigItem("stateDir", default="state",
+			description="Path to the DC's state information (last imported,...)"),
+		EnumeratedConfigItem("logLevel", options=["info", "warning",
+			"debug", "error"], description="Verboseness of importer"),
+		StringConfigItem("operator", description=
+			"Mail address of the DC's operator(s)."),
+		StringConfigItem("platform", description="Platform string (can be"
+			" empty if inputsDir is only accessed by identical machines)"),
+		StringConfigItem("gavoGroup", description="Name of the unix group that"
+			" administers the DC", default="gavo"),),
 
-# parsing section
-	RootRelativeConfigItem("xmlFragmentPath", "parsing",
-		default="inputs/__common__", description="Path to entity"
-			" replacements (deprecated)"),
-	RootRelativeConfigItem("dbProfile", "parsing",
-		default="admin", description="DB profile used by gavoimp"),
+	Section('parsing', 'Settings related to importing data',
+		RootRelativeConfigItem("xmlFragmentPath", 
+			default="inputs/__common__", description="Path to entity"
+				" replacements (deprecated)"),
+		RootRelativeConfigItem("dbProfile", 
+			default="admin", description="DB profile used by gavoimp"),),
 
-# web section
-	StringConfigItem("serverURL", "web", default="http://localhost:8080",
-		description="URL fragment used to qualify relative URLs where necessary"),
-	IntConfigItem("serverPort", "web", default="None",
-		description="Port to bind the server to"),
-	EatTrailingSlashesItem("nevowRoot", "web", default="/",
-		description="Path fragment to the server's root for operation off the"
-			" server's root"),
-	StringConfigItem("errorPage", "web", default="debug",
-		description="set to 'debug' for error pages with tracebacks, anything"
-			" else for a less informative page"),
-	WebRelativeConfigItem("templateDir", "web", default="templates",
-		description="webDir-relative location of global nevow templates"),
-	StringConfigItem("adminpasswd", "web", default="",
-		description="Password for online administration, leave empty to disable"),
-	StringConfigItem("sitename", "web", "GAVO data center",
-		"A short name for your site"),
-	BooleanConfigItem("voplotEnable", "web", "True", "Enable the VOPlot"
-		" output format (requires some external software)"),
-	RelativeURL("voplotCodeBase", "web", "static/voplot/VOPlot",
-		"URL of the code base for VOPlot"),
-	RelativeURL("voplotUserman", "web",  
-		"static/voplot/docs/VOPlot_UserGuide_1_4.html",
-		"URL to the documentation of VOPlot"),
-	WebRelativeConfigItem("vanityNames", "web", "vanitynames.txt",
-		"Webdir-realtive path to the name map for vanity names"),
-	IntConfigItem("sqlTimeout", "web", "15",
-		"Default timeout for db queries via the web"),
-	IntConfigItem("adqlTimeout", "web", "15",
-		"Default timeout for adql queries via the web"),
-	WebRelativeConfigItem("previewCache", "web", "previewcache",
-		"Webdir-relative directory to store cached previews in"),
-	WebRelativeConfigItem("favicon", "web", "None",
-		"Webdir-relative path to a favicon"),
-	BooleanConfigItem("enableTests", "web", "False",
-		"Enable test pages (don't if you don't know why)"),
+	Section('web', 'Settings related to serving content to the web.',
+		StringConfigItem("serverURL", default="http://localhost:8080",
+			description="URL fragment used to qualify relative URLs where necessary"),
+		IntConfigItem("serverPort", default="None",
+			description="Port to bind the server to"),
+		EatTrailingSlashesItem("nevowRoot", default="/",
+			description="Path fragment to the server's root for operation off the"
+				" server's root"),
+		StringConfigItem("errorPage", default="debug",
+			description="set to 'debug' for error pages with tracebacks, anything"
+				" else for a less informative page"),
+		WebRelativeConfigItem("templateDir", default="templates",
+			description="webDir-relative location of global nevow templates"),
+		StringConfigItem("adminpasswd", default="",
+			description="Password for online administration, leave empty to disable"),
+		StringConfigItem("sitename", "GAVO data center",
+			"A short name for your site"),
+		BooleanConfigItem("voplotEnable", "True", "Enable the VOPlot"
+			" output format (requires some external software)"),
+		RelativeURL("voplotCodeBase", "static/voplot/VOPlot",
+			"URL of the code base for VOPlot"),
+		RelativeURL("voplotUserman",  
+			"static/voplot/docs/VOPlot_UserGuide_1_4.html",
+			"URL to the documentation of VOPlot"),
+		WebRelativeConfigItem("vanityNames", "vanitynames.txt",
+			"Webdir-realtive path to the name map for vanity names"),
+		IntConfigItem("sqlTimeout", "15",
+			"Default timeout for db queries via the web"),
+		IntConfigItem("adqlTimeout", "15",
+			"Default timeout for adql queries via the web"),
+		WebRelativeConfigItem("previewCache", "previewcache",
+			"Webdir-relative directory to store cached previews in"),
+		WebRelativeConfigItem("favicon", "None",
+			"Webdir-relative path to a favicon"),
+		BooleanConfigItem("enableTests", "False",
+			"Enable test pages (don't if you don't know why)"),),
 
-# db section
-	StringConfigItem("interface", "db", "psycopg2", "Don't change"),
-	PathConfigItem("profilePath", "db", " ~/.gavo:$configDir",
-		"Path for locating DB profiles"),
-	StringConfigItem("msgEncoding", "db", "utf-8", "Encoding of the"
-		" messages coming from the database"),
-	ListConfigItem("maintainers", "db", "gavoadmin", "Name(s) of DB roles"
-		" that should have full access to gavoimp-created tables by default"),
-	ListConfigItem("queryRoles", "db", "gavo", "Name(s) of DB roles that"
-		" should be able to read gavoimp-created tables by default"),
-	ListConfigItem("adqlRoles", "db", "untrusted", "Name(s) of DB roles that"
-		" get access to tables opened for ADQL"),
-	DictConfigItem("profiles", "db", "admin:feed,trustedquery:trustedquery,"
-		"untrustedquery:untrustedquery,test:test", "Map from internal roles"
-			" DB access profiles"),
+	Section('db', 'Settings concerning database access.',
+		StringConfigItem("interface", "psycopg2", "Don't change"),
+		PathConfigItem("profilePath", " ~/.gavo:$configDir",
+			"Path for locating DB profiles"),
+		StringConfigItem("msgEncoding", "utf-8", "Encoding of the"
+			" messages coming from the database"),
+		ListConfigItem("maintainers", "gavoadmin", "Name(s) of DB roles"
+			" that should have full access to gavoimp-created tables by default"),
+		ListConfigItem("queryRoles", "gavo", "Name(s) of DB roles that"
+			" should be able to read gavoimp-created tables by default"),
+		ListConfigItem("adqlRoles", "untrusted", "Name(s) of DB roles that"
+			" get access to tables opened for ADQL"),),
+	
+	MagicSection('profiles', 'Mapping of DC profiles to profile definitions.',
+		itemFactory=ProfileItem,
+		defaults=(("admin", "feed"), ("trustedquery", "trustedquery"),
+			("untrustedquery", "untrustedquery"), ("test", "test"))),
 
-# ivoa section
-	StringConfigItem("authority", "ivoa", "org.gavo.dc", 
-		"the authority id for this DC"),
-	StringConfigItem("registryIdentifier", "ivoa", 
-		"ivo://org.gavo.dc/static/registryrecs/registry.rr", "The IVOA"
-			"id for this DC's registry"),
-	IntConfigItem("dalDefaultLimit", "ivoa", "10000",
-		"Default match limit on DAL queries"),
+	Section('ivoa', 'The interface to the Greater VO.',
+		StringConfigItem("authority", "org.gavo.dc", 
+			"the authority id for this DC"),
+		StringConfigItem("registryIdentifier",
+			"ivo://org.gavo.dc/static/registryrecs/registry.rr", "The IVOA"
+				"id for this DC's registry"),
+		IntConfigItem("dalDefaultLimit", "10000",
+			"Default match limit on DAL queries"),),
 )
 
 
