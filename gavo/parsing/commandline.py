@@ -51,7 +51,7 @@ def parseCmdline():
 		sys.excepthook = enterPdb
 		parser.values.reraise = True
 
-	parser = OptionParser(usage = "%prog [options] <rd-name> {<data-id>}")
+	parser = OptionParser(usage="%prog [options] <rd-name> {<data-id>}")
 	parser.add_option("-z", "--start-pdb", help="run pdb  when an exception"
 		" is not caught", callback=enablePdb, action="callback")
 	parser.add_option("-d", "--debug-productions", help="enable debugging for"
@@ -65,7 +65,7 @@ def parseCmdline():
 		type="int", action="store")
 	parser.add_option("-p", "--profile", help="use PROFILE to access db",
 		dest="dbProfile", action="store", type="str", 
-		default=config.get("parsing", "dbDefaultProfile"), metavar="PROFILE")
+		default="admin", metavar="PROFILE")
 	parser.add_option("-s", "--system", help="create shared tables",
 		dest="createShared", action="store_true")
 	parser.add_option("-v", "--verbose", help="talk a lot while working",

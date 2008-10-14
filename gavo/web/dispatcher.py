@@ -106,17 +106,17 @@ class ReloadPage(common.GavoRenderMixin, rend.Page):
 
 
 def _replaceConfigStrings(srcPath, registry):
-	src = open(srcPath).read()
+	src = open(srcPath).read().decode("utf-8")
 	src = src.replace("__site_path__", config.get("web", "nevowRoot"))
 	src = src.replace("__site_url__", os.path.join(
 		config.get("web", "serverURL")+config.get("web", "nevowRoot")))
-	return src
+	return src.encode("utf-8")
 
 
 class StaticServer(static.File):
 	"""is a server for various static files.
 
-	There's only one hack in here: We register a processor for .phtml
+	There's only one hack in here: We register a processor for .shtml
 	files.  In them, certain strings are replaced with *site-global*
 	values.  This probably should only be used for the server URL and
 	the application prefix.  Anything more dynamic should be done properly
@@ -132,6 +132,7 @@ class StaticServer(static.File):
 	processors = {
 		".shtml": _replaceConfigStrings,
 	}
+
 
 class BuiltinServer(StaticServer):
 	"""is a server for the built-in resources.
