@@ -3,6 +3,7 @@ Streaming out large computed things using twisted and threads.
 """
 
 import sys
+import time
 import threading
 import traceback
 
@@ -41,28 +42,30 @@ class DataStreamer(threading.Thread):
 	def __init__(self, writeStreamTo, consumer):
 		threading.Thread.__init__(self)
 		self.writeStreamTo, self.consumer = writeStreamTo, consumer
+		self.paused, self.killWriter = False, False
+		consumer.registerProducer(self, True)
 		self.setDaemon(True) # kill transfers on server restart
-		self.writeLock = threading.Lock()
 
 	def resumeProducing(self):
-		self.writeLock.release()
+		self.paused = False
 
 	def pauseProducing(self):
-		self.writeLock.acquire()
+		self.paused = True
 
 	def stopProducing(self):
-		self.join(self, 0.01)  # if this fails, we'll probably have a
-			# memory leak, but working around it would be a pain
-			# Maybe have some other entity clean up dead threads now and then?
+		self.killWriter = True
 
 	def realWrite(self, data):
 		if isinstance(data, unicode): # we don't support encoding here, but
 			data = str(data)            # don't break on accidental unicode.
-		self.writeLock.acquire()  # blocks if production stopped
-		self.writeLock.release()  # don't let the main thread wait in its acquire
+		while self.paused:  # let's do a busy loop; twisted can handle
+				# overflows, and locks become messy.
+			time.sleep(0.1)
 		return reactor.callFromThread(self.consumer.write, data)
 	
 	def write(self, data):
+		if self.killWriter:
+			raise IOError("Stop writing, please")
 		if len(data)<self.chunkSize:
 			self.realWrite(data)
 		else:
@@ -88,6 +91,16 @@ class DataStreamer(threading.Thread):
 threadable.synchronize(DataStreamer)
 
 
+def joinThread(res, thread):
+	"""tries to join thread.
+
+	This is inserted into the request's callback chain to avoid having
+	lots of died thread lie around.
+	"""
+	thread.join(0.01)
+	return res
+
+
 def streamOut(writeStreamTo, request):
 	"""sets up the thread to have writeStreamTo write to request from
 	a thread.
@@ -98,5 +111,5 @@ def streamOut(writeStreamTo, request):
 	"""
 	t = DataStreamer(writeStreamTo, request)
 	t.start()
-	return request.deferred
+	return request.deferred.addCallback(joinThread, t)
 

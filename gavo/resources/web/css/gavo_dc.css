@@ -248,6 +248,10 @@ div#body {
 	font-size: 10px;
 }
 
+li.metaItem {
+	margin-bottom: 5px;
+}
+
 /* defuse breakage with rst insisting on a p element around meta items */
 .sidebarEnum li p {
  margin: 4px;

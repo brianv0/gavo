@@ -81,8 +81,10 @@ numeric expressions (the base nonterminal is expr).
 
 <p>Dates support the same operators as <a href="#floats">numeric operands</a>,
 except that the "error" in expressions with +/- is a simple float.  Dates
-are <em>always</em> in ISO format, i.e., YYYY-MM-DD.  Time specifications are
-not yet supported.</p>
+are given in ISO format, i.e., YYYY-MM-DD or YYYY-MM-DDTHH-MM-SS.  Times
+without dates are not yet supported.  Note that a date without a time
+is interpreted as 00:00 of that day, so an expression like "<= 2006-10-06" 
+will <em>not</em> match anything that has a time and is on Oct 6, 2006.</p>
 
 <h3>Examples</h3>
 

@@ -136,6 +136,23 @@ class StringConfigItem(ConfigItem):
 		return value.encode("utf-8")
 
 
+class BytestringConfigItem(ConfigItem):
+	"""is a config item containing byte strings.  No characters outside
+	of ASCII are allowed.
+	"""
+
+	typedesc = "ASCII string"
+	default = ""
+
+	def _parse(self, value):
+		if value=="None":
+			return None
+		return str(value)
+	
+	def _unparse(self, value):
+		return str(value)
+
+
 class IntConfigItem(ConfigItem):
 	"""is a config item containing an integer.
 
@@ -163,6 +180,35 @@ class IntConfigItem(ConfigItem):
 
 	def _unparse(self, value):
 		return str(value)
+
+
+class FloatConfigItem(ConfigItem):
+	"""is a config item containing a float.
+
+	It supports a Null value through the special None literal.
+	>>> ci = FloatConfigItem("foo"); print ci.value
+	None
+	>>> ci = FloatConfigItem("foo", default="23"); ci.value
+	23.0
+	>>> ci.set("42.25"); ci.value
+	42.25
+	>>> ci.getAsString()
+	'42.25'
+	"""
+
+	typedesc = "floating point value"
+	default = "None"
+
+	def _parse(self, value):
+		if value=="None":
+			return None
+		try:
+			return float(value)
+		except ValueError:
+			raise ParseError("%s is not an floating point literal"%value)
+
+	def _unparse(self, value):
+		return repr(value)
 
 
 class ListConfigItem(StringConfigItem):
@@ -201,6 +247,15 @@ class ListConfigItem(StringConfigItem):
 		return StringConfigItem._unparse(self, ", ".join(value+[""]))
 
 
+class SetConfigItem(ListConfigItem):
+	"""is like ListConfigItem, only the value is a set, speeding up lookups.
+	"""
+	typedesc = "set of strings"
+
+	def _parse(self, value):
+		return set(ListConfigItem._parse(self, value))
+
+
 class IntListConfigItem(ListConfigItem):
 	"""is a ConfigItem containing a list of ints, comma separated.
 
@@ -228,6 +283,15 @@ class IntListConfigItem(ListConfigItem):
 	
 	def _unparse(self, value):
 		return ListConfigItem._unparse(self, [str(n) for n in value])
+
+
+class IntSetConfigItem(IntListConfigItem):
+	"""is like IntListConfigItem, only the value is a set, speeding up lookups.
+	"""
+	typedesc = "set of integers"
+
+	def _parse(self, value):
+		return set(IntListConfigItem._parse(self, value))
 
 
 class DictConfigItem(ListConfigItem):
@@ -366,6 +430,36 @@ class PathConfigItem(StringConfigItem):
 	value = property(_getValue, _setValue)
 
 
+class PathRelativeConfigItem(StringConfigItem):
+	"""is a configuration item that is interpreted relative to a path
+	given in the general section.
+	
+	Basically, this is a replacement for ConfigParser's %(x)s interpolation.
+	In addition, we expand ~ in front of a value to the current value of
+	$HOME.
+
+	To enable general-type interpolation, override the baseKey class Attribute.
+	"""
+	baseKey = None
+	_value = ""
+
+	def _getValue(self):
+		if self._value.startswith("~"):
+			return os.environ.get("HOME", "/no_home")+self._value[1:]
+		if self.baseKey:
+			return os.path.join(self.parent.get(self.baseKey), self._value)
+		return self._value
+	
+	def _setValue(self, val):
+		self._value = val
+	
+	value = property(_getValue, _setValue)
+
+
+class _Undefined(object):
+	"""is a sentinel for section.get.
+	"""
+
 class Section(object):
 	"""is a section within the configuration.
 
@@ -488,14 +582,18 @@ class Configuration(object):
 			section, name = defaultSection, arg1
 		else:
 			section, name = arg1, arg2
-		try:
-			return self.sections[section].getitem(name)
-		except KeyError:
-			raise NoConfigItem("No such configuration item: [%s] %s"%(
-				section, name))
+		if section.lower() in self.sections:
+			return self.sections[section.lower()].getitem(name)
+		raise NoConfigItem("No such configuration item: [%s] %s"%(
+			section, name))
 
-	def get(self, arg1, arg2=None):
-		return self.getitem(arg1, arg2).value
+	def get(self, arg1, arg2=None, default=_Undefined):
+		try:
+			return self.getitem(arg1, arg2).value
+		except NoConfigItem:
+			if default is _Undefined:
+				raise
+			return default
 
 	def set(self, arg1, arg2, arg3=None, origin="user"):
 		"""sets a configuration item to a value.
@@ -518,8 +616,6 @@ class Configuration(object):
 		else:
 			raise NoConfigItem("No such configuration item: [%s] %s"%(
 				section, name))
-
-
 
 	def addFromFp(self, fp, origin="user", fName="<internal>"):
 		"""adds the config items in the file fp to self.

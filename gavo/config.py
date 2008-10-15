@@ -16,36 +16,14 @@ from gavo import meta
 from gavo import record
 from gavo.fancyconfig import ConfigItem, StringConfigItem,\
 	EnumeratedConfigItem, IntConfigItem, PathConfigItem, ListConfigItem,\
-	BooleanConfigItem, DictConfigItem, Section, DefaultSection, MagicSection
+	BooleanConfigItem, DictConfigItem, Section, DefaultSection, MagicSection,\
+	PathRelativeConfigItem
 
 defaultSettingsPath = "/etc/gavo.rc"
 
 addMeta = meta.configMeta.addMeta
 getMeta = meta.configMeta.getMeta
 
-
-class PathRelativeConfigItem(StringConfigItem):
-	"""is a configuration item that is interpreted relative to a path
-	given in the general section.
-	
-	Basically, this is a replacement for ConfigParser's %(x)s interpolation.
-	In addition, we expand ~ in front of a value to the current value of
-	$HOME.
-
-	Specify the item in the baseKey class Attribute.
-	"""
-	baseKey = None
-	_value = ""
-
-	def _getValue(self):
-		if self._value.startswith("~"):
-			return os.environ.get("HOME", "/no_home")+self._value[1:]
-		return os.path.join(self.parent.get(self.baseKey), self._value)
-	
-	def _setValue(self, val):
-		self._value = val
-	
-	value = property(_getValue, _setValue)
 
 
 class RootRelativeConfigItem(PathRelativeConfigItem):
