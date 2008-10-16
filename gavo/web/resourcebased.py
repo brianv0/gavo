@@ -474,7 +474,6 @@ class GavoFormMixin(formal.ResourceMixin, object):
 					" in the internal or generated field '%s': %s"%(
 						failure.value.fieldName, failure.getErrorMessage())))
 		else:
-			failure.printTraceback()
 			raise failure.value
 		return self.form.errors
 

@@ -1,0 +1,53 @@
+"""
+"User" defined functions, i.e., ADQL functions defined only on this
+system.
+
+The functions are really python functions, receiving their arguments in a 
+list children; these are whatever the rest of nodes.py does with what comes
+in from the parser.
+
+The functions have to return an ADQL node that must be structured like
+it would be structured if it had been parsed out from the start.
+
+The module has to be imported by the glue code and registers itself
+in nodes.py.  This way, you can have more than one set of ufunctions.
+"""
+
+
+from gavo.adql import grammar
+from gavo.adql import nodes
+from gavo.adql import tree
+from gavo.adql.common import *
+
+
+_funPrefix = grammar.userFunctionPrefix
+
+
+def gavo_resolve(args):
+	print ">>>>", args
+
+
+class UserFunction(nodes.FieldInfoedNode, nodes.FunctionMixin):
+	"""is a node processing user functions.
+
+	All user functions must be declared lexically above this class
+	definition.  Since SQL is case insensitive, no function names must
+	clash when uppercased.  All functions suitable as user functions
+	must start with grammar.userFunctionPrefix.
+	"""
+	type = "userDefinedFunction"
+
+	userFunctions = dict((name.upper(), ob) for name, ob in globals().iteritems()
+		if name.startswith(_funPrefix))
+
+
+	def _processChildren(self):
+		self._processChildrenNext(UserFunction)
+		if (self.funName.startswith(_funPrefix) and 
+				self.funName in self.userFunctions):
+			self.children = self.userFunctions[self.funName](self.rawArgs)
+		else:
+			raise UfuncError("No such function: %s"%self.funName)
+
+
+tree.registerNode(UserFunction)

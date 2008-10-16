@@ -28,6 +28,15 @@ class MoreThanOneChild(Error):
 	"""will be raised if a node is asked for a unique child but has more than
 	one."""
 
+class UfuncError(Error):
+	"""will be raised if something is wrong with a call to a user defined
+	function.
+	"""
+
+class RegionError(Error):
+	"""will be raised if a region specification is in some way bad.
+	"""
+
 
 class FieldInfo(object):
 	"""is a container for meta information on columns.

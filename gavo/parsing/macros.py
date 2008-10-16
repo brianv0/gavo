@@ -246,14 +246,49 @@ class PMCombiner(Macro):
 		record["angle_pm"] = pmpa
 
 
+def parsePercentExpression(literal, format):
+	"""returns a dictionary of parts in the %-template format.
+
+	format is a template with %<conv> conversions, no modifiers are
+	allowed.  Each conversion is allowed to contain zero or more characters
+	matched stingily.  Successive conversions without intervening literarls
+	are very tricky and will usually not match what you want.  If we need
+	this, we'll have to think about modifiers or conversion descriptions ("H
+	is up to two digits" or so).
+
+	This is really only meant as a quick hack to support times like 25:33.
+	>>> r=parsePercentExpression("12,xy:33,","%a:%b,%c"); r["a"], r["b"], r["c"]
+	('12,xy', '33', '')
+	>>> r = parsePercentExpression("12,13,14", "%a:%b,%c")
+	Traceback (most recent call last):
+	Error: '12,13,14' cannot be parsed using format '%a:%b,%c'
+	"""
+	parts = re.split(r"(%\w)", format)
+	newReParts = []
+	for p in parts:
+		if p.startswith("%"):
+			newReParts.append("(?P<%s>.*?)"%p[1])
+		else:
+			newReParts.append(re.escape(p))
+	mat = re.match("".join(newReParts)+"$", literal)
+	if not mat:
+		raise Error("'%s' cannot be parsed using format '%s'"%(literal, format))
+	return mat.groupdict()
+
+
 def parseTime(literal, format):
+	"""returns some sort of DateTime object for literal parsed according
+	to format.
+
+	The formats legal here are documented in the TimeParser macro.
+	"""
 	if format=="!!secondsSinceMidnight":
 		secs = float(literal)
 		fullSecs = int(secs)
 		hours = fullSecs/3600
 		minutes = (fullSecs%3600)/60
 		seconds = secs-hours*3600-minutes*60
-		return DateTime.Time(hours, minutes, seconds)
+		return DateTime.DateTimeDelta(0, hours, minutes, seconds)
 	elif format=="!!decimalHours":
 		rest, hours = math.modf(float(literal))
 		rest, minutes = math.modf(rest*60)
@@ -261,7 +296,11 @@ def parseTime(literal, format):
 	elif format=="!!magic":
 		return DateTimeISO.ParseTime(literal)
 	else:
-		return DateTime.Time(*DateTime.strptime(literal, format).tuple()[3:6])
+		# We can't really use prebuilt strptimes since times like 25:21:22.445
+		# are perfectly ok in astronomy.
+		partDict = parsePercentExpression(literal, format)
+		return DateTime.DateTimeDelta(0, float(partDict.get("H", 0)),
+			float(partDict.get("M", 0)), float(partDict.get("S", 0)))
 
 
 class TimeParser(Macro):
@@ -271,11 +310,14 @@ class TimeParser(Macro):
 	Constructor Arguments:
 	* destination -- the name of the result field (default: time)
 	* format -- format of time using strptime(3)-compatible conversions
-	  (default: "!!isoplus")
+	  (default: "!!magic")
 
 	The macro understands the special timeFormats !!secondsSinceMidnight,
-	!!decimalHours., and !!isoplus (the latter tries a somewhat lenient
-	interpretation of ISO dates, allowing for fractional seconds).
+	!!decimalHours., and !!magic (guess time format).
+
+	Really, the only allowed conversions in format are H, M, and S, and
+	they're not (yet) strptime-compatible (they rely on separator characters
+	so far).  They do parse times like 25:13:56.9938, though.
 
 	Argument:
 	* time -- a string containing a time spec.  Null values and structured
@@ -291,7 +333,7 @@ class TimeParser(Macro):
 	'00:23:56.00'
 	>>> r = {"t":"Rubbish"};m(None, r);str(r["t"])
 	Traceback (most recent call last):
-	Error: strptime() parsing error
+	Error: 'Rubbish' cannot be parsed using format '%H-%M-%S'
 	"""
 	name = "parseTime"
 
@@ -325,8 +367,8 @@ class TimestampCombiner(Macro):
 	* timeFormat -- format of time using strptime(3)-compatible conversions
 	  (default: "%H:%M:%S")
 
-	The macro understands the special timeFormats !!secondsSinceMidnight and
-	!!decimalHours and the special dateFormat !!julianEp (stuff like 1980.89).
+	The macro understands the special dateFormat !!julianEp (stuff like 1980.89)
+	and the time formats mentioned in parseTime's doc.
 
 	Arguments:
 
@@ -342,14 +384,16 @@ class TimestampCombiner(Macro):
 	>>> m = TimestampCombiner([("date", "date", ""), ("time", "time", "")],
 	... timeFormat="!!secondsSinceMidnight")
 	>>> rec = {"date": "4.6.1969", "time": "32320"}
-	>>> m(None, rec)
-	>>> rec["timestamp"].strftime()
+	>>> m(None, rec); rec["timestamp"].strftime()
 	'Wed Jun  4 08:58:40 1969'
 	>>> m = TimestampCombiner([("date", "date", ""), ("time", "time", "")],
 	... dateFormat="!!julianEp", timeFormat="%M-%H")
 	>>> rec = {"date": "1969.0027378508", "time": "30-5"}; m(None,rec)
 	>>> rec['timestamp'].strftime()
 	'Thu Jan  2 05:30:00 1969'
+	>>> rec = {"date": "1969.0", "time": "30-27"};m(None,rec)
+	>>> rec['timestamp'].strftime()
+	'Thu Jan  2 03:30:00 1969'
 	"""
 	name = "combineTimestamps"
 

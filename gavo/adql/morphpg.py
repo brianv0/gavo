@@ -24,13 +24,13 @@ class PostgresMorphError(morphhelpers.MorphError):
 	pass
 
 
-######## Bein q3c specials
+######## Begin q3c specials
 
 def _containsToQ3c(node, state):
 	if node.funName!='CONTAINS':
 		return
 	args = [c for c in node.iterNodes()]
-	if len(args)!=2 or args[0].type!="point":
+	if len(args)!=2 or nodes.getType(args[0])!="point":
 		return
 	p, shape = args
 	if shape.type=="circle":
@@ -150,7 +150,7 @@ def _pointFunctionToIndexExpression(node, state):
 		# been added).
 		assert len(node.args)==1
 		try:
-			if node.children[2].type=="columnReference":
+			if nodes.getType(node.children[2])=="columnReference":
 				cSys = node.children[2].fieldInfo.cooSys
 			else:
 				cSys = node.children[2].cooSys
@@ -258,7 +258,7 @@ def _makeLimitAndOffset(node, state):
 		newToks = ["LIMIT", limit]
 	if _hasAll(node):
 		newToks.append("OFFSET 0")
-	if node.children[-1].type=='correlationSpecification':
+	if nodes.getType(node.children[-1])=='correlationSpecification':
 		# insert in front of the corrSpec's closing paren
 		dest = len(node.children)-2
 		node.children[dest:dest] =  newToks

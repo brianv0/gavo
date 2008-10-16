@@ -170,6 +170,20 @@ def autocollapse(nodeBuilder, children):
 	return nodeBuilder(children)
 
 
+_additionalNodes = []
+def registerNode(node):
+	"""registers a node class or a symbolAction from a module other than node.
+
+	This is a bit of magic -- some module can call this to register a node
+	class that is then bound to some parse action as if it were in nodes.
+
+	I'd expect this to be messy in the presence of chaotic imports (when
+	classes are not necessarily singletons and a single module can be
+	imported more than once.  For now, I ignore this potential bomb.
+	"""
+	_additionalNodes.append(node)
+
+
 def getTreeBuildingGrammar():
 	"""returns a pyparsing symbol that can parse ADQL expressions into
 	simple trees of ADQLNodes.
@@ -198,8 +212,7 @@ def getTreeBuildingGrammar():
 			raise KeyError("%s asks for non-existing symbol %s"%(
 				nodeClass.__name__ , symName))
 
-	for name in dir(nodes):
-		ob = getattr(nodes, name)
+	def bindObject(ob):
 		if isinstance(ob, type) and issubclass(ob, nodes.ADQLNode):
 			for binding in getattr(ob, "bindings", [ob.type]):
 				if binding:
@@ -207,7 +220,14 @@ def getTreeBuildingGrammar():
 		if hasattr(ob, "parseActionFor"):
 			for sym in ob.parseActionFor:
 				bind(sym, ob)
-	return root
+
+	for name in dir(nodes):
+		bindObject(getattr(nodes, name))
+
+	for ob in _additionalNodes:
+		bindObject(ob)
+
+	return syms, root
 
 
 def attachFieldInfosToTables(node, fieldInfoGetter):
@@ -285,7 +305,7 @@ if __name__=="__main__":
 			return {"ya": "foot", "yb": "furlong", "yc": "inch"}
 		else:
 			return {}
-	g = getTreeBuildingGrammar()
+	s, g = getTreeBuildingGrammar()
 	res = g.parseString("select * from stars where CONTAINS(POINT('ICRS', raj2000, dej2000), CIRCLE('ICRS', 34.0, 33.2, 1))=1")[0]
 #	pprint.pprint(res.asTree())
 	print repr(res)

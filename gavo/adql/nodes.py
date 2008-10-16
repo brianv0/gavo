@@ -100,11 +100,10 @@ class ADQLNode(object):
 		self.children = children
 		try:
 			self._processChildren()
-		except: # This is a bug in the node constructors and must not
-						# happen in production code.
-			sys.stderr.write("Panic: exception in processChildren of %s."
-				"  Parse will be hosed."%self.__class__.__name__)
-			traceback.print_exc()
+		except:
+			# Careful here: these exceptions may be masked by pyparsing,
+			# though I haven't yet investigated how that happens.
+			raise
 
 	def __iter__(self):
 		return iter(self.children)
@@ -200,7 +199,7 @@ class FunctionMixin(object):
 	"""
 	def _parseFuncArgs(self):
 		toDo = self.children[:]
-		self.args, newArg = [], []
+		self.args, self.rawArgs, newArg = [], [], []
 		# before the opening paren: the name
 		self.funName = toDo.pop(0).upper()
 		assert toDo.pop(0)=='('
@@ -210,11 +209,14 @@ class FunctionMixin(object):
 				break
 			elif tok==',':
 				self.args.append(" ".join(newArg))
+				self.rawArgs.append(newArg)
 				newArg = []
 			else:
 				newArg.append(flatten(tok))
+				self.rawArgs.append(tok)
 		if newArg:
 			self.args.append(" ".join(newArg))
+			self.rawArgs.append(newArg)
 
 	def _processChildren(self):
 		self._parseFuncArgs()
@@ -308,6 +310,9 @@ class TableReference(ADQLNode, ColBearingMixin):
 		for t in self.joinedTables:
 			yield t.tableName.qName
 
+
+# XXX TODO: Parse out QuerySpecification completely (i.e., have a
+# WhereClause node, scrap the AliasedQS hack)
 
 class QuerySpecification(ADQLNode, ColBearingMixin): 
 	type = "querySpecification"
@@ -674,6 +679,17 @@ class NumericValueFunction(FieldInfoedNode, FunctionMixin):
 		self.fieldInfo = FieldInfo(unit, ucd, *collectUserData(infoChildren))
 
 
+class CharacterStringLiteral(ADQLNode):
+	"""according to the current grammar, these are always sequences of
+	quoted strings.
+	"""
+	type = "characterStringLiteral"
+	bindings = ["characterStringLiteral", "generalLiteral"]
+
+	def _processChildren(self):
+		self.value = "".join(c[1:-1] for c in self.children)
+
+
 ###################### Geometry and stuff that needs morphing into real SQL
 
 
@@ -684,6 +700,10 @@ class CoosysMixin(object):
 		infoChildren = self._getInfoChildren()
 		self.fieldInfo = FieldInfo("", "", collectUserData(infoChildren)[0])
 		self.fieldInfo.cooSys = self.cooSys
+
+	def _processChildren(self):
+		self._processChildrenNext(CoosysMixin)
+		self.cooSys = self.children[2].value
 
 class _FunctionalNode(FieldInfoedNode, FunctionMixin):
 	pass
@@ -696,7 +716,7 @@ class Point(CoosysMixin, _FunctionalNode):
 
 	def _processChildren(self):
 		self._processChildrenNext(Point)
-		self.cooSys, self.x, self.y = self.args
+		self.x, self.y = self.args[1:]
 	
 
 class Circle(CoosysMixin, _FunctionalNode):
@@ -706,7 +726,7 @@ class Circle(CoosysMixin, _FunctionalNode):
 
 	def _processChildren(self):
 		self._processChildrenNext(Circle)
-		self.cooSys, self.x, self.y, self.radius = self.args
+		self.x, self.y, self.radius = self.args[1:]
 
 
 class Rectangle(CoosysMixin, _FunctionalNode):
@@ -716,35 +736,53 @@ class Rectangle(CoosysMixin, _FunctionalNode):
 
 	def _processChildren(self):
 		self._processChildrenNext(Rectangle)
-		self.cooSys, self.x0, self.y0, self.x1, self.y1 = self.args
+		self.x0, self.y0, self.x1, self.y1 = self.args[1:]
 
 
 class Polygon(CoosysMixin, _FunctionalNode):
-	"""rectangles have a cooSys attribute, and store pairs of coordinates
-	in coos.
-	"""
+	"""rectangles have a cooSys attribute, and store pairs of
+	coordinates in coos.
+	""" 
 	type = "polygon"
 
 	def _processChildren(self):
-		self._processChildrenNext(Polygon)
-		toDo = self.args[:]
-		self.cooSys = toDo.pop(0)
-		self.coos = []
+		self._processChildrenNext(Polygon) 
+		toDo = self.args[1:]
+		self.coos = [] 
 		while toDo:
-			self.coos.append(tuple(toDo[:2]))
+			self.coos.append(tuple(toDo[:2])) 
 			del toDo[:2]
 
 
-class Region(CoosysMixin, _FunctionalNode):
-	"""regions only have a content attribute.  It seems it's completely up
-	to the application to do something with this mess.
-	"""
-	type = "region"
+_regionMakers = [] 
+def registerRegionMaker(fun):
+	"""adds a region maker to the region resolution chain.
 
-	def _processChildren(self):
-		self._processChildrenNext(Region)
-		assert len(self.args)==1
-		self.content = self.args[0]
+	region makers are functions taking the argument to REGION and
+	trying to do something with it.  They should return either some
+	kind of FieldInfoedNode that will then replace the REGION or None,
+	in which case the next function will be tried.
+
+	As a convention, region specifiers here should always start with
+	an identifier (like simbad, siapBbox, etc, basically [A-Za-z]+).
+	The rest is up to the region maker, but whitespace should separate
+	this rest from the identifier.
+	"""
+	_regionMakers.append(fun)
+
+
+@symbolAction("region")
+def makeRegion(children):
+	if len(children)!=4 or not isinstance(children[2], CharacterStringLiteral):
+		raise RegionError("'%s' is not a Region expression I understand"%
+			"".join(flatten(c) for c in children))
+	arg = children[2].value
+	for r in _regionMakers:
+		res = r(arg)
+		if res is not None:
+			return res
+	raise RegionError("'%s' is not a region specification I understand."%
+		arg)
 	
 
 class Centroid(_FunctionalNode):

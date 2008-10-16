@@ -574,7 +574,7 @@ class FunctionNodeTest(unittest.TestCase):
 		t = self.grammar.parseString("select POINT('ICRS', width,height)"
 			" from spatial")[0]
 		p = t.find("point")
-		self.assertEqual(p.cooSys, "'ICRS'")
+		self.assertEqual(p.cooSys, "ICRS")
 		self.assertEqual(p.x, "width")
 		self.assertEqual(p.y, "height")
 
@@ -583,9 +583,19 @@ class FunctionNodeTest(unittest.TestCase):
 			"5*width+height*LOG(width),height)"
 			" from spatial")[0]
 		p = t.find("point")
-		self.assertEqual(p.cooSys, "'ICRS'")
+		self.assertEqual(p.cooSys, "ICRS")
 		self.assertEqual(p.x, "5 * width + height * LOG ( width )")
 		self.assertEqual(p.y, "height")
+
+
+class ComplexExpressionTest(unittest.TestCase):
+	"""quite random tests for correct processing of complex-ish search expressions.
+	"""
+	def testOne(self):
+		t = adql.getGrammar().parseString("select top 5 * from"
+			" lsw.plates where dateobs between 'J2416642 ' and 'J2416643'")[0]
+		self.assertEqual(t.find("columnReference").children[0], "dateobs")
+		self.assertEqual(adql.flatten(t.children[-1]), "'J2416643'")
 
 
 class Q3CMorphTest(unittest.TestCase):
@@ -678,7 +688,7 @@ class PQMorphTest(unittest.TestCase):
 				'p1, p2) , center(POLYGON(BOX((p1)[0], (p1)[1], (p2)[0], (p2)'
 				'[1]))) FROM ( SELECT POINT(ra1, dec1) AS p1 , POINT(ra2, dec2'
 				') AS p2 FROM foo ) AS q')
-		self.assertRaises(NotImplementedError, self._testMorph,
+		self.assertRaises(adql.RegionError, self._testMorph,
 			"select REGION('mystery') from foo", "")
 
 	def testNumerics(self):
@@ -767,4 +777,4 @@ class QueryTest(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(QueryTest)
+	testhelpers.main(PQMorphTest)

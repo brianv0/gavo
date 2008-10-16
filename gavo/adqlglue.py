@@ -84,3 +84,39 @@ def query(query, timeout=15, queryProfile="untrustedquery", metaProfile=None):
 	data = sqlsupport.SimpleQuerier(useProfile=queryProfile).runIsolatedQuery(
 		query, timeout=timeout, silent=True)
 	return resource.InternalDataSet(dd, dataSource=data, silent=True)
+
+
+################ region makers (maybe put these in a separate module later)
+# The region maker should in general either call the parser with an ADQL
+# fragment (see _makeSimbadRegion) or return a complete FieldInfoedNode
+# including any info required with a node type of psqlLiteral (for
+# postgres, let's see what happens if we want to support other DBs).
+# 
+# There are no guarantees that we won't parse out more symbols later,
+# and hardcoded trees would break then.
+
+import re
+
+from gavo import resourcecache
+from gavo import simbadinterface
+from gavo.adql import nodes
+
+
+def _getRegionId(regionSpec, pat=re.compile("[A-Za-z_]+")):
+	mat = pat.match(regionSpec)
+	if mat:
+		return mat.group()
+
+
+def _makeSimbadRegion(regionSpec):
+	if not _getRegionId(regionSpec)=="simbad":
+		return
+	object = "".join(regionSpec.split()[1:])
+	resolver = resourcecache.getSesame("web")
+	try:
+		alpha, delta = resolver.getPositionFor(object)
+	except KeyError:
+		raise adql.RegionError("No simbad position for '%s'"%object)
+	return adql.getSymbols()["point"].parseString("POINT('ICRS',"
+		"%.10f, %.10f)"%(alpha, delta))
+adql.registerRegionMaker(_makeSimbadRegion)

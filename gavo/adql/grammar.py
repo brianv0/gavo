@@ -177,6 +177,10 @@ sqlReservedWords = set([
 allReservedWords = adqlReservedWords | sqlReservedWords
 
 
+# Prefix for user defined functions
+userFunctionPrefix = "gavo_"
+
+
 def _failOnReservedWord(s, pos, toks):
 	"""raises a ParseException if toks[0] is a reserved word.
 
@@ -187,14 +191,14 @@ def _failOnReservedWord(s, pos, toks):
 		raise ParseException(s, pos, "Reserved word not allowed here")
 
 
-def getADQLGrammarCopy(defaultFunctionPrefix="udf_"):
+def getADQLGrammarCopy():
 	"""returns a pair symbols, selectSymbol for a grammar parsing ADQL.
 
 	You should only use this if you actually require a fresh copy
 	of the ADQL grammar.  Otherwise, use getADQLGrammar or a wrapper
 	function defined by a client module.
 	"""
-#	ParserElement.enablePackrat() # XXX Do we want to do this?  We should
+	ParserElement.enablePackrat() # XXX Do we want to do this?  We should
 # create a ParserElement of our own, I guess, to avoid messing up other
 # grammars.
 	comment = "--" + SkipTo("\n" | StringEnd())
@@ -264,7 +268,7 @@ def getADQLGrammarCopy(defaultFunctionPrefix="udf_"):
 	numericValueFunction = Forward()
 	numericExpressionPrimary = ( unsignedLiteral | columnReference
 		| setFunctionSpecification | '(' + valueExpression + ')')
-	numericPrimary = valueExpressionPrimary | numericValueFunction
+	numericPrimary = numericValueFunction | valueExpressionPrimary 
 	factor = Optional( sign ) + numericPrimary
 	term = Forward()
 	term << (factor + ZeroOrMore( multOperator + factor ))
@@ -321,7 +325,7 @@ def getADQLGrammarCopy(defaultFunctionPrefix="udf_"):
 		math2ArgFunctionName + '(' + numericValueExpression + ',' +
 			unsignedInteger + ')')
 	userDefinedFunctionParam = valueExpression
-	userDefinedFunctionName = defaultFunctionPrefix + regularIdentifier
+	userDefinedFunctionName = Regex(userFunctionPrefix+"[A-Za-z_]+")
 	userDefinedFunction = ( userDefinedFunctionName + '(' +
 		userDefinedFunctionParam + ZeroOrMore( "," + userDefinedFunctionParam ) 
 			+ ')')
@@ -467,7 +471,6 @@ if __name__=="__main__":
 	import pprint, sys
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
-	#res = (syms["regularIdentifier"]+StringEnd()).parseString("p1")
-	res = (syms["mathFunction"]+StringEnd()).parseString("rand()")
-	#	res = grammar.parseString("select coordsys(q.p) from (select point('ICRS', x, y) as p from foo) as q")
+	res = grammar.parseString("select coordsys(q.p) from (select point('ICRS', x, y)"
+			" as p from foo) as q")
 	pprint.pprint(res.asList(), stream=sys.stderr)

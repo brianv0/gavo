@@ -304,11 +304,11 @@ class ScriptMacroTest(testhelpers.VerboseTest):
 				("No macro calls in here", "No macro calls in here"),
 				(r"\noArg", "foo"),
 				(r"\\noArg expands to \noArg", r"\noArg expands to foo"),
-				(r'\oneArg{"bla"}', r"bla"),
-				(r'\quote{\oneArg{"bla"}}', '"bla"'),
-				(r'\oneArg{\oneArg{"bla"}}', 'bla'),
-				(r'Here is \twoArg{\quote{"ba\"r"},\noArg}', 'Here is "ba\\"r"foo'),
-				(r'Here is \twoArg{"bar",\noArg}', "Here is barfoo"),
+				(r'\oneArg{bla}', r"bla"),
+				(r'\quote{\oneArg{bla}}', '"bla"'),
+				(r'\oneArg{\oneArg{bla}}', 'bla'),
+				(r'Here is \twoArg{\quote{ba\{\}r}}{\noArg}', 'Here is "ba{}r"foo'),
+				(r'Here is \twoArg{bar}{\noArg}', "Here is barfoo"),
 				# we probably wouldn't want the following, but it's hard to work around.
 				(r'Lots \ of \@ weirdness', "Lots \\ of \\@ weirdness"),
 			]:
@@ -317,8 +317,8 @@ class ScriptMacroTest(testhelpers.VerboseTest):
 	def testWhitespace(self):
 		me = self.SimplePackage().getExpander()
 		for unEx, ex in [
-				(r"There is \noArg whitespace here", "There is foowhitespace here"),
-				(r"There is \noArg{} whitespace here", "There is foo whitespace here"),
+				(r"There is \noArg\+whitespace here", "There is foowhitespace here"),
+				(r"There is \noArg whitespace here", "There is foo whitespace here"),
 				("Two\nlines", "Two\nlines"),
 				("One\\\nline", "One line"),
 			]:

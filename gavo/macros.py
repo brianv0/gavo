@@ -25,9 +25,13 @@ class MacroExpander(object):
 	on the script context (i.e., whether it belongs to an RD, a DD, or
 	a Table.
 
-	All macros are just functions receiving and returning strings.  Strings
-	in Arguments must be quoted, the results of macro calls will not be
-	quoted.
+	All macros are just functions receiving and returning strings.  The
+	arguments are written as {arg1}{arg2}, where you can escape curly
+	braces with a backslash.  There must be no whitespace between
+	a macro and its first argument.
+
+	If you need to glue together a macro expansion and text following,
+	use the glue sequence \\+
 
 	The main entry point to the class is the expand function below,
 	taking a string possibly containing macro calls and returning
@@ -50,18 +54,24 @@ class MacroExpander(object):
 
 	def getGrammar(self, debug=False):
 		macro = Forward()
-		argument = QuotedString(quoteChar='"', escChar="\\", unquoteResults=True
-			) | macro
-		arguments = (Suppress( "{" ) + Optional( argument ) + 
-			ZeroOrMore( Suppress(',') + argument) + Suppress( "}" ))
+		quoteEscape = (Literal("\\{").setParseAction(lambda *args: "{") | 
+			Literal("\\}").setParseAction(lambda *args: "}"))
+		charRun = Regex(r"[^}\\]+")
+		argElement = macro | quoteEscape | charRun
+		argument = Suppress("{") + ZeroOrMore(argElement) + Suppress("}")
+		argument.setParseAction(lambda s, pos, toks: "".join(toks))
+		arguments = ZeroOrMore(argument)
+		arguments.setWhitespaceChars("")
 		macroName = Regex("[A-Za-z_][A-Za-z_0-9]+")
 		macroName.setWhitespaceChars("")
-		macro << Suppress( "\\" ) + macroName + Optional( arguments )
+		macro << Suppress( "\\" ) + macroName + arguments
 		macro.setParseAction(self._execMacro)
 		literalBackslash = Literal("\\\\")
 		literalBackslash.setParseAction(lambda *args: "\\")
 		suppressedLF = Literal("\\\n")
 		suppressedLF.setParseAction(lambda *args: " ")
+		glue = Literal("\\+")
+		glue.setParseAction(lambda *args: "")
 		if debug:
 			macro.setDebug(True)
 			macro.setName("macro")
@@ -71,7 +81,7 @@ class MacroExpander(object):
 			arguments.setName("args")
 			macroName.setDebug(True)
 			macroName.setName("macname")
-		return literalBackslash | suppressedLF | macro
+		return literalBackslash | suppressedLF | glue | macro
 
 
 class MacroPackage(object):

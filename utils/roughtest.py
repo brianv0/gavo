@@ -497,6 +497,9 @@ myTests = [
 		),
 
 	TestGroup("misc",
+		GetHasStringsTest(nv_root+"/builtin/help.shtml",
+			["Service discovery", "Search forms", "VOTable", "sidebar"],
+			"Help page is sanely delivered"),
 		GetHasStringTest(nv_root+"/inflight/res/lc1/img/mimg.jpeg?"
 			"startLine=20&endLine=30",
 			'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00',
@@ -528,6 +531,9 @@ myTests = [
 		GetHasStringsTest(nv_root+"/__system__/tests/misc/timeout/form",
 			["Just wait a while", "Query timed out (took too"],
 			"DB timeout yields a nice response"),
+		GetHasStringsTest(nv_root+"/__system__/adql/query/info",
+			["Service Documentation", "About ADQL", ">this list of QSOs<"],
+			"ADQL docs appear to be in shape"),
 	),
 
 	TestGroup('ucds',
