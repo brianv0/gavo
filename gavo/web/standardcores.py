@@ -514,7 +514,7 @@ class ADQLCore(QueryingCore):
 			contextgrammar.InputKey(dest="query", tablehead="ADQL query",
 				description="A query in the Astronomical Data Query Language",
 				dbtype="text", source="query", 
-				widgetFactory="widgetFactory(TextArea, rows=10, cols=60)"),
+				widgetFactory="widgetFactory(ScalingTextArea, rows=15)"),
 		]
 	
 	def getOutputFields(self):

@@ -335,5 +335,16 @@ class StringExpressionField(StringFieldWithBlurb):
 		"[?char expr.]"]
 
 
+class ScalingTextArea(widget.TextArea):
+	"""is a text area that scales with the width of the window.
+	"""
+	def _renderTag(self, ctx, key, value, readonly):
+		tag=T.textarea(name=key, id=render_cssid(key), rows=self.rows,
+			style="width:100% !important")[value or '']
+		if readonly:
+			tag(class_='readonly', readonly='readonly')
+		return tag
+
+
 def makeWidgetFactory(code):
 	return eval(code)

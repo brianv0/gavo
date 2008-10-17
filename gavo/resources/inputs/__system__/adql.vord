@@ -66,11 +66,11 @@ be easily fixed, complain if it bugs you.
 
 SELECT and SELECT ALL are not exactly the same thing.  The latter will add
 an OFFSET 0 to the resulting postgresql query.  Use this when the query
-planner messes up; see the `Story I`_ below.
+planner messes up; see the `Story I: Guide Star`_ below.
 
 Date literals can be specified `as for Postgresql <http://www.postgresql.org/docs/8.1/static/datatype-datetime.html#DATATYPE-DATETIME-INPUT>`_;
 you always need to use strings.  So, ``'2000-12-31'`` or ``'J2416642.5'``
-are both valid date specifications.  See also `Story II`_
+are both valid date specifications.  See also `Story II: Historic Lights`_
 
 Usability
 '''''''''
@@ -86,10 +86,8 @@ on this medium-sized project.
 Examples
 ========
 
-Story I: Guide star (and a mini-tutorial)
-'''''''''''''''''''''''''''''''''''''''''
-
-** Work in progress **
+Story I: Guide star
+'''''''''''''''''''
 
 Suppose you have developed an adaptive optics instrument that you want to use
 to observe radio-loud quasars; you don't really care which one, but you're
@@ -320,11 +318,11 @@ one way of specifying a region is via Simbad, like this:
 
 ::
 
-SELECT accref, exposure FROM lsw.plates
-  WHERE
-   dateObs BETWEEN 'J2416128.5' AND 'J2416133.5' AND
-   1=CONTAINS(REGION('simbad Aldebaran'),
-     CIRCLE('ICRS', centerAlpha, centerDelta, 15))
+	SELECT accref, exposure FROM lsw.plates
+		WHERE
+		 dateObs BETWEEN 'J2416128.5' AND 'J2416133.5' AND
+		 1=CONTAINS(REGION('simbad Aldebaran'),
+			 CIRCLE('ICRS', centerAlpha, centerDelta, 15))
 
 
 Note how we needed to switch around the roles of Aldebaran's position
@@ -334,7 +332,7 @@ this at some point, let us know.  Also note that you cannot pull
 a name from the database and try to resolve it via Simbad.  For many
 reasons we would be very reluctant to add such a functionality.
 
-** to be continued **
+*to be continued*
 ]]>
 	</meta>
 	<meta name="_related" title="Tables available for ADQL">/__system__/dc_tables/list/form</meta>

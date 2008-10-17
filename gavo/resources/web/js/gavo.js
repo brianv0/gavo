@@ -274,7 +274,7 @@ function output_itemSelector(pars) {
 		selected = new Array();
 	}
 	selector.size = 1;
-	selector.style.maxWidth = 200;
+	selector.style.maxWidth = '200px';
 	selector.addEventListener("mouseover", output_expandSelectNode, false);
 	selector.addEventListener("mouseout", output_collapseSelectNode, false);
 	selector.multiple = "multiple";

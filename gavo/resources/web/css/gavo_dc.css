@@ -231,7 +231,8 @@ div#sidebar {
 
 div#body {
 	margin-left: 110px;
-	min-width: 200px;
+	min-width: 550px;
+	width: 80%;
 	position: absolute;
 }
 
