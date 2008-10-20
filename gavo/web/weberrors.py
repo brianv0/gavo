@@ -7,6 +7,7 @@ from nevow import inevow
 from nevow import loaders
 from nevow import rend
 from nevow import tags as T, entities as E
+from nevow.util import log
 
 from twisted.internet import defer
 
@@ -138,7 +139,8 @@ class ErrorPage(ErrorPageDebug):
 			return appserver.errorMarker
 		failure.printTraceback()
 		request = inevow.IRequest(ctx)
-### XXX TODO: figure out how to log		ctx.locate(inevow.ILogger).log("Arguments were %s"%request.args)
+		request.setResponseCode(500)
+		log.msg("Arguments were %s"%request.args)
 		request.write(self.errorTemplate%self.getHTML(failure))  
 			# write out some HTML and hope
 			# for the best (it might well turn up in the middle of random output)

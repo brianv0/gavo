@@ -9,7 +9,10 @@ from nevow import tags as T
 from gavo.web import common
 from gavo.web import streaming
 
+
 class FooPage(rend.Page):
+	"""is the most basic page conceivable.
+	"""
 	docFactory = common.doctypedStan(T.html[
 		T.head[
 			T.title["A page"],
@@ -19,7 +22,8 @@ class FooPage(rend.Page):
 
 
 class StreamerPage(rend.Page):
-	"""delivers senseless but possibly huge streams of data through streaming.py
+	"""is a page that delivers senseless but possibly huge streams of 
+	data through streaming.py
 	"""
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
@@ -35,7 +39,7 @@ class StreamerPage(rend.Page):
 
 
 class StreamerCrashPage(rend.Page):
-	"""starts streaming out data and then crashes.
+	"""is a page that starts streaming out data and then crashes.
 	"""
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
@@ -46,15 +50,28 @@ class StreamerCrashPage(rend.Page):
 		return streaming.streamOut(writeNoise, request)
 
 
+class RenderCrashPage(rend.Page):
+	"""is a page that crashes during render.
+	"""
+	def render_crash(self, ctx, data):
+		raise Exception("Wanton crash")
+
+	docFactory = common.doctypedStan(T.html[
+		T.head[
+			T.title["A page"],
+		],
+		T.body[
+			T.p(render=T.directive("crash"))["You should not see this"]]])
+
 
 class Tests(rend.Page):
 	child_foo = FooPage()
 	child_stream = StreamerPage()
 	child_streamcrash = StreamerCrashPage()
+	child_rendercrash = RenderCrashPage()
 	docFactory = common.doctypedStan(T.html[
 		T.head[
 			T.title["Wrong way"],
 		],
 		T.body[
 			T.p["There is nothing here.  Trust me."]]])
-
