@@ -39,7 +39,8 @@
 					description="Identifier of the originating instrument"/>
 				<Field dest="dateObs" source="dateObs" ucd="VOX:Image_MJDateObs"
 					dbtype="timestamp" unit="d" tablehead="Obs. date"
-					verbLevel="0" description="Epoch at midpoint of observation"/>
+					verbLevel="0" description="Epoch at midpoint of observation"
+					displayHint="type=humanDate"/>
 				<Field dest="nAxes" source="NAXIS" ucd="VOX:Image_Naxes" 
 					dbtype="integer" verbLevel="20" tablehead="#axes"
 					description="Number of axes in data"/>

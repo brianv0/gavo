@@ -416,6 +416,38 @@ class TimestampCombiner(Macro):
 		record[self.destination] = dateObj+timeObj
 
 
+class MidtimeComputer(Macro):
+	"""is a macro that takes two timestamps and returns the midpoint 
+	between them.
+
+	Constructor Argument:
+	* destination -- the name of the field the result is to be put in
+	  (default: dateObs)
+
+	The macro expects real datetime objects that usually result from earlier
+	macro invocations.
+
+	Arguments:
+
+	* dt1 -- an (earlier) datetime
+	* dt2 -- a (later) datetime
+
+	>>> rec={"start": DateTime.DateTime(2007, 10, 23, 12, 20, 30),
+	...   "end": DateTime.DateTime(2007, 10, 23, 13, 20, 30)}
+	>>> m = MidtimeComputer([("dt1", "start", ""), ("dt2", "end", "")])
+	>>> m(None, rec);rec["dateObs"].strftime()
+	'Tue Oct 23 12:50:30 2007'
+	"""
+	name = "computeMidtime"
+
+	def __init__(self, argTuples=[], destination="dateObs"):
+		Macro.__init__(self, argTuples)
+		self.destination = destination
+
+	def _compute(self, record, dt1, dt2):
+		record[self.destination] = dt1+(dt2-dt1)/2
+
+
 class AngleParser(Macro):
 	"""is a macro that converts the various forms angles might be encountered
 	to degrees.

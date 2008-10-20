@@ -126,12 +126,27 @@ def _stringWrapMF(baseMF):
 			return realHandler
 	return factory
 
-
 try:
 	_registerHTMLMF(_stringWrapMF(valuemappers.mxDatetimeMapperFactory))
 except AttributeError:
 	pass
 _registerHTMLMF(_stringWrapMF(valuemappers.datetimeMapperFactory))
+
+
+def humanTimesFactory(colProps):
+	format, unit = {"humanDatetime": ("%Y-%m-%d %H:%M:%S", "Y-M-D h:m:s"),
+		"humanDate": ("%Y-%m-%d", "Y-M-D"),
+		"humanTime": ("%H:%M:%S", "h:m:s")}.get(
+			colProps["displayHint"].get("type"), (None, None))
+	if format:
+		colProps["unit"] = unit
+		def coder(val):
+			if val is None:
+				return "N/A"
+			else:
+				return val.strftime(format)
+		return coder
+_registerHTMLMF(humanTimesFactory)
 
 
 def _sizeMapperFactory(colProps):
