@@ -345,7 +345,12 @@ class GavoRenderMixin(object):
 						" border-top: 1px solid grey; margin-top:40px;")[
 					T.p(class_="breakable")["Please report errors and problems to ",
 						T.a(href="mailto:gavo.ari.uni-heidelberg.de")["GAVO staff"],
-						".  Thanks."]]
+						".  Thanks."],
+					T.p[T.a(href="/static/doc/privpol.shtml", 
+							render=T.directive("rootlink"))["Privacy"],
+						" | ",
+						T.a(href="/static/doc/disclaimer.shtml",
+							render=T.directive("rootlink"))["Disclaimer"],],],
 			],
 			T.div(id="body")[
 				T.a(name="body"),
