@@ -406,16 +406,16 @@ class ProductCore(standardcores.DbBasedCore):
 		"""returns a query string fragment and the parameters to query
 		the DB for the access paths for the input keys.
 
-		As a side effect, an attribute keysTable will be created, containing
-		a table of "parsed" keys (i.e., (key, ra, dec, sra, sdec) for cutouts.
-		This key table is later the real input for the ProductsGrammar.
+		As a side effect, a key keysTable will be created in queryMeta,
+		containing a table of "parsed" keys (i.e., (key, ra, dec, sra, sdec) for
+		cutouts.  This key table is later the real input for the ProductsGrammar.
 		"""
 		keys = [inputData.docRec.get("key")]+[
 			r.get("key") for r in inputData.getPrimaryTable().rows]
-		self.keysTable = resource.makeSimpleData(self.rd.getTableDefByName(
+		queryMeta["keysTable"] = resource.makeSimpleData(self.rd.getTableDefByName(
 			"parsedKeys"), self._parseKeys(keys)).getPrimaryTable()
 		return "key IN %(keys)s", {"keys": set(r["key"] 
-			for r in self.keysTable.rows)}
+			for r in queryMeta["keysTable"].rows)}
 
 	def _getGroups(self, user, password):
 		if user is None:
@@ -443,7 +443,7 @@ class ProductCore(standardcores.DbBasedCore):
 		dd = self.rd.getDataById("pCoreOutput")
 		dd.set_Grammar(ProductsGrammar(initvals={
 			"groups": groups,
-			"realInput": self.keysTable,
+			"realInput": queryMeta["keysTable"],
 			"dbFields": self.rd.getTableDefByName("pDbOutput").get_items(),}))
 		res = resource.InternalDataSet(dd, dataSource=dbResponse)
 		return res

@@ -35,7 +35,7 @@ def runTest(aTest, outputQueue, id):
 	outputQueue.put(("testFinished", id, doTimedQuery(aTest)))
 
 
-class TestStatistics:
+class TestStatistics(object):
 	def __init__(self):
 		self.runs = []
 		self.oks, self.fails, self.total = 0, 0, 0
@@ -50,7 +50,7 @@ class TestStatistics:
 			self.fails += 1
 		self.total += 1
 		self.timeSum += runTime
-		self.runs.append((runTime, status, title, payload))
+		self.runs.append((runTime, status, title, str(payload)))
 		self.lastTimestamp = time.time()
 
 	def getReport(self):
@@ -69,7 +69,7 @@ class TestStatistics:
 		f.close()
 
 
-class TestRunner:
+class TestRunner(object):
 	def __init__(self, testCollection, nSimul, nTotal):
 		self.testCollection = testCollection
 		self.nSimul, self.nTotal = nSimul, nTotal
