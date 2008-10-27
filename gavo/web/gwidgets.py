@@ -16,9 +16,14 @@ from formal.widget import *
 from formal import widgetFactory
 from zope.interface import implements
 
+import gavo
+from gavo import datadef
 from gavo import macros
 from gavo import record
+from gavo import typesystems
+from gavo import unitconv
 from gavo.web import common
+from gavo.web import vizierexprs
 
 
 
@@ -73,9 +78,13 @@ class OutputFormat(object):
 		if not hasattr(core, "tableDef"):
 			return
 		defaultNames = set([f.get_dest() 
-			for f in self.service.getHTMLOutputFields(queryMeta, ignoreAdditionals=True)])
+			for f in self.service.getHTMLOutputFields(queryMeta, 
+				ignoreAdditionals=True)])
 		for key in core.avOutputKeys-defaultNames:
-			self.availableFields.append(core.tableDef.getFieldByName(key))
+			try:
+				self.availableFields.append(core.tableDef.getFieldByName(key))
+			except KeyError: # Core returns fields not in its table, probably computes them
+				pass
 
 	def _makeFieldDescs(self):
 		descs = [(f.get_dest(), urllib.quote(
@@ -149,9 +158,12 @@ class DbOptions(object):
 			noneOption=("100", 100))
 
 	def render(self, ctx, key, args, errors):
+# XXX TODO: Clean up this mess -- you probably don't want the widget in
+# this way anyway.
 		children = []
 		if '_DBOPTIONS' in args:
-			v = [[args["_DBOPTIONS"]["order"]], [args["_DBOPTIONS"]["limit"]]]
+			v = [[args["_DBOPTIONS"]["order"]] or "", 
+				[args["_DBOPTIONS"]["limit"] or 100]]
 		else:
 			v = [args.get("_DBOPTIONS_ORDER", ['']), 
 				args.get("_DBOPTIONS_LIMIT", [100])]
@@ -348,3 +360,167 @@ class ScalingTextArea(widget.TextArea):
 
 def makeWidgetFactory(code):
 	return eval(code)
+
+
+class InputKey(datadef.DataField):
+	"""is a key for a ContextGrammar.
+	"""
+	additionalFields = {
+		"formalType":    None, # nevow formal type to use.
+		"widgetFactory": None, # Python code to generate a formal widget factory
+		                       # for this field.
+		"showitems": 3,        # #items to show in multi selections
+		"value": None,         # value in a constant field (rendered hidden)
+		"scaling": None,       # multiply incoming value by this (will be clobbered
+		                       # if you set inputUnit)
+		"inputUnit": None,     # unit the user is supposed to use
+	}
+	
+	def set_formalType(self, formalType):
+		"""sets the nevow formal type for the input field.
+
+		The argument can either be a string, in which case it is interpreted
+		as an *SQL* type and translated to the corresponding formal type,
+		or a formal type.
+		"""
+		if isinstance(formalType, basestring):
+			defaultType, defaultWidget = sqltypeToFormal(
+				formalType)
+			if not self.dataStore["formalType"]:
+				self.dataStore["formalType"] = defaultType
+			if not self.dataStore["widgetFactory"]:
+				self.set_widgetFactory(defaultWidget)
+		else:
+			self.dataStore["formalType"] = formalType
+
+	def get_formalType(self):
+		if self.dataStore.get("formalType"):
+			return self.dataStore["formalType"](
+				required=not self.get_optional())
+		if self.isEnumerated():
+			formalType = sqltypeToFormal(self.get_dbtype())[0]
+		else:
+			formalType = formal.String
+		return formalType(required=not self.get_optional())
+
+	def set_scaling(self, val):
+		if val is None:
+			self.dataStore["scaling"] = None
+		else:
+			self.dataStore["scaling"] = float(val)
+
+	def set_inputUnit(self, val):
+		if val is None:
+			self.dataStore["inputUnit"] = None
+			self.set_scaling(None)
+		else:
+			self.dataStore["inputUnit"] = val
+			self.set_scaling(unitconv.getFactor(val, self.get_unit()))
+
+	def set_widgetFactory(self, widgetFactory):
+		"""sets the widget factory either from source code or from a formal
+		WidgetFactory object.
+		"""
+		if isinstance(widgetFactory, basestring):
+			self.dataStore["widgetFactory"] = makeWidgetFactory(
+				widgetFactory)
+		else:
+			self.dataStore["widgetFactory"] = widgetFactory
+
+	def get_widgetFactory(self):
+		"""returns a widget factory appropriate for dbtype and values.
+		"""
+# XXX TODO: handle booleans
+		if self.dataStore.get("widgetFactory"):
+			res = self.dataStore["widgetFactory"]
+		elif self.get_value():
+			return formal.Hidden
+		elif self.isEnumerated():
+			if self.get_values().get_multiOk():
+				res = formal.widgetFactory(
+					SimpleMultiSelectChoice,
+					[str(i) for i in self.get_values().get_options()],
+					self.get_showitems())
+			else:
+				items = self.get_values().get_options()
+# XXX TODO sanitize the whole default/none option mess.
+#				try:
+#					items.remove(self.get_values().get_default())
+#				except ValueError:
+#					pass
+				noneLabel = None
+				if self.get_optional():
+					noneLabel = "ANY"
+				res = formal.widgetFactory(
+					SimpleSelectChoice,
+					[str(i) for i in items], self.get_default())
+		else:
+			_, res = sqltypeToFormal(self.get_dbtype())
+		return res
+
+	def getValueIn(self, *args, **kwargs):
+		if self.get_value() is not None:
+			return self.get_value()
+		return super(InputKey, self).getValueIn(*args, **kwargs)
+
+	@classmethod
+	def fromDataField(cls, dataField, attrs={}):
+		"""returns an InputKey for query input to dataField
+		"""
+		instance = super(InputKey, cls).fromDataField(dataField)
+		instance.set_dbtype(vizierexprs.getVexprFor(instance.get_dbtype()))
+		instance.set_source(instance.get_dest())
+		instance.set_optional(True)
+		for key, val in attrs.iteritems():
+			instance.set(key, val)
+		return instance
+
+	@classmethod
+	def makeAuto(cls, dataField, queryMeta={}):
+		"""returns an InputKey if dataField is "queriable", None otherwise.
+		"""
+		if dataField.get_displayHint().get("type")=="suppress":
+			return
+		try:
+			hasVexprType = vizierexprs.getVexprFor(dataField.get_dbtype())
+		except gavo.Error:
+			return
+		return cls.fromDataField(dataField)
+
+
+class ToFormalConverter(typesystems.FromSQLConverter):
+	"""is a converter from SQL types to Formal type specifications.
+
+	The result of the conversion is a tuple of formal type and widget factory.
+	"""
+	typeSystem = "Formal"
+	simpleMap = {
+		"smallint": (formal.Integer, formal.TextInput),
+		"integer": (formal.Integer, formal.TextInput),
+		"int": (formal.Integer, formal.TextInput),
+		"bigint": (formal.Integer, formal.TextInput),
+		"real": (formal.Float, formal.TextInput),
+		"float": (formal.Float, formal.TextInput),
+		"boolean": (formal.Boolean, formal.Checkbox),
+		"double precision": (formal.Float, formal.TextInput),
+		"double": (formal.Float, formal.TextInput),
+		"text": (formal.String, formal.TextInput),
+		"char": (formal.String, formal.TextInput),
+		"date": (formal.Date, formal.widgetFactory(formal.DatePartsInput,
+			twoCharCutoffYear=50, dayFirst=True)),
+		"time": (formal.Time, formal.TextInput),
+		"timestamp": (formal.Date, formal.widgetFactory(formal.DatePartsInput,
+			twoCharCutoffYear=50, dayFirst=True)),
+		"vexpr-float": (formal.String, NumericExpressionField),
+		"vexpr-date": (formal.String, DateExpressionField),
+		"vexpr-string": (formal.String, StringExpressionField),
+		"file": (formal.File, None),
+	}
+
+	def mapComplex(self, type, length):
+		if type in self._charTypes:
+			return formal.String
+
+sqltypeToFormal = ToFormalConverter().convert
+
+

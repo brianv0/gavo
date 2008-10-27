@@ -333,7 +333,11 @@ _config = Configuration(
 		WebRelativeConfigItem("favicon", "None",
 			"Webdir-relative path to a favicon"),
 		BooleanConfigItem("enableTests", "False",
-			"Enable test pages (don't if you don't know why)"),),
+			"Enable test pages (don't if you don't know why)"),
+		IntConfigItem("maxPreviewWidth", "300", "Hard limit for the width"
+			" of previews (necessary because previews on protected items"
+			" are free)"),
+	),
 
 	Section('db', 'Settings concerning database access.',
 		StringConfigItem("interface", "psycopg2", "Don't change"),

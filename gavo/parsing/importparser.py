@@ -46,6 +46,7 @@ from gavo.parsing.regrammar import REGrammar
 from gavo.parsing.rowsetgrammar import RowsetGrammar
 from gavo.web import common as webcommon
 from gavo.web import core
+from gavo.web import gwidgets
 from gavo.web import resourcebased
 from gavo.web import scs  # for registration
 from gavo.web import service
@@ -450,7 +451,7 @@ class RdParser(nodebuilder.NodeBuilder):
 		return f
 
 	def _make_inputKey(self, name, attrs, children):
-		return self._makeFieldInstance(contextgrammar.InputKey, "inputKey",
+		return self._makeFieldInstance(gwidgets.InputKey, "inputKey",
 			attrs, children, {})
 
 	def _make_copyof(self, name, attrs, children):
@@ -637,7 +638,6 @@ class RdParser(nodebuilder.NodeBuilder):
 					if f.get_verbLevel()<=verbLimit:
 						outputs.append(datadef.OutputField.fromDataField(f))
 			except AttributeError:
-				traceback.print_exc()
 				raise gavo.Error("%s cores no not support fromCore"%
 					svcCore.__class__.__name__)
 			except nodebuilder.NoWaitingChild:
@@ -749,7 +749,7 @@ class RdParser(nodebuilder.NodeBuilder):
 		if cdAttrs.has_key("original"):
 			original = cdAttrs.pop("original")
 			return self._processChildren(standardcores.CondDesc.fromInputKey(
-					contextgrammar.InputKey.fromDataField(
+					gwidgets.InputKey.fromDataField(
 						self._grabField(original), fieldAttrs), cdAttrs),
 				name, {}, children)
 		else:

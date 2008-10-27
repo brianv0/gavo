@@ -13,8 +13,8 @@ from gavo import config
 from gavo import datadef
 from gavo import nullui
 from gavo import sqlsupport
-from gavo.parsing import contextgrammar
 from gavo.parsing import typeconversion
+from gavo.web import gwidgets
 from gavo.web import vizierexprs
 
 import testhelpers
@@ -237,7 +237,7 @@ class SQLGenerTest(unittest.TestCase):
 	"""Tests for SQL fragments making out of simple vizier-like expressions.
 	"""
 	def testSQLGenerationSimple(self):
-		field = contextgrammar.InputKey(dest="foo", source="bar", 
+		field = gwidgets.InputKey(dest="foo", source="bar", 
 			dbtype="vexpr-float")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field, {"bar": "8"}, sqlPars),
@@ -253,7 +253,7 @@ class SQLGenerTest(unittest.TestCase):
 	def testSQLGenerationComplex(self):
 		"""Tests for SQL fragments making out of complex vizier-like expressions.
 		"""
-		field = contextgrammar.InputKey(dest="foo", source="bar", 
+		field = gwidgets.InputKey(dest="foo", source="bar", 
 			dbtype="vexpr-float")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field, {"bar": "< 8 | > 15"}, sqlPars),
@@ -283,7 +283,7 @@ class SQLGenerTest(unittest.TestCase):
 	def testDateSQLGeneration(self):
 		"""tests for SQL fragments making for date expressions.
 		"""
-		field = contextgrammar.InputKey(dest="foo", source="bar", 
+		field = gwidgets.InputKey(dest="foo", source="bar", 
 			dbtype="vexpr-date")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field, {"bar": "2001-05-12"}, 
@@ -305,7 +305,7 @@ class SQLGenerTest(unittest.TestCase):
 	def testWithNones(self):
 		"""tests for SQL fragments generation with NULL items.
 		"""
-		field1 = contextgrammar.InputKey(dest="foo", source="foo", 
+		field1 = gwidgets.InputKey(dest="foo", source="foo", 
 			dbtype="vexpr-float")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": None}, sqlPars),
@@ -314,7 +314,7 @@ class SQLGenerTest(unittest.TestCase):
 	def testPatterns(self):
 		"""tests for SQL generation with string patterns.
 		"""
-		field1 = contextgrammar.InputKey(dest="foo", source="foo", dbtype="vexpr-string")
+		field1 = gwidgets.InputKey(dest="foo", source="foo", dbtype="vexpr-string")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "~star"}, sqlPars),
 			"foo ~* %(foo0)s")
@@ -382,7 +382,7 @@ class StringQueryTest(unittest.TestCase):
 
 	def _runCountTests(self, tests):
 		querier = sqlsupport.SimpleQuerier()
-		ik = contextgrammar.InputKey(source="s", dest="s", dbtype="vexpr-string")
+		ik = gwidgets.InputKey(source="s", dest="s", dbtype="vexpr-string")
 		try:
 			for vExpr, numberExpected in tests:
 				pars = {}
@@ -487,7 +487,7 @@ class MatchMatrixTest(unittest.TestCase):
 			feed({"s": item})
 		feed.close()
 		tw.finish()
-		self.queryKey = contextgrammar.InputKey(source="s", dest="s", dbtype="vexpr-string")
+		self.queryKey = gwidgets.InputKey(source="s", dest="s", dbtype="vexpr-string")
 
 	def _computeTest(self, testLine):
 		pars = {}

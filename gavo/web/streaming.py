@@ -59,7 +59,7 @@ class DataStreamer(threading.Thread):
 		if isinstance(data, unicode): # we don't support encoding here, but
 			data = str(data)            # don't break on accidental unicode.
 		while self.paused:  # let's do a busy loop; twisted can handle
-				# overflows, and locks become messy.
+		                    # overflows, and locks become messy.
 			time.sleep(0.1)
 		return reactor.callFromThread(self.consumer.write, data)
 	

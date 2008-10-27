@@ -87,14 +87,16 @@ class TestProductsImport(unittest.TestCase):
 		assertRowset(self,
 			sqlsupport.SimpleQuerier().runIsolatedQuery("select object from"
 				" test.prodtest"),
-			[("gabriel",)])
+			[("gabriel",), ("michael",)])
 	
 	def testInProducts(self):
 		assertRowset(self,
 			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
 				" products where sourceTable='test.prodtest'"),
 			[(u'data/a.imp', u'test', DateTime.DateTime(2030, 12, 31), 
-				u'data/a.imp', u'test.prodtest')])
+					u'data/a.imp', u'test.prodtest'),
+			 (u'data/b.imp', u'test', DateTime.DateTime(2003, 12, 31), 
+					u'data/b.imp', u'test.prodtest'),])
 
 	def testInMetatable(self):
 		fields = sorted([(r[9], r[1], r[4]) for r in

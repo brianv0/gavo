@@ -318,7 +318,7 @@ myTests = [
 			"Simbad resolution of positions works"),
 		HeadStatusTest(nv_root+"/getproduct?key=maidanak/raw/cd002/aug1305/"
 			"q2237_ogak/oh130102.gz&siap=true",
-			401,
+			403,
 			"NV Maidanak auth test (will fail starting 2008-12-31)"),
 		GetHasStringTest(nv_root+"/maidanak/res/rawframes/siap/siap.xml"
 			"?FORMAT=METADATA",

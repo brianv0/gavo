@@ -57,6 +57,10 @@ class ForbiddenURI(Error):
 	"""signifies that a HTTP 403 should be returned by the dispatcher.
 	"""
 
+class WebRedirect(Error):
+	"""causes the dispatcher to redirect the client to the URL in the exception's
+	value.
+	"""
 
 def parseServicePath(serviceParts):
 	"""returns a tuple of resourceDescriptor, serviceName.
@@ -363,18 +367,23 @@ class QueryMeta(dict):
 	"""is a class keeping all data *about* a query, e.g., the
 	requested output format.
 
-	It is constructed with either a nevow context (we'll look
-	at the args of the embedded request) or a plain dictionary.  Note,
-	however, that the values obtained from the net must be in *sequences*
-	(of course, they're usually length 1).  This is what IRequest delivers,
-	and there's no sense in special-casing this, even more since having
-	a sequence might come in handy at some point (e.g., for sort keys).
+	It is constructed with a plain dictionary (constructors for nevow contexts
+	and requests are below).
+	
+	Dictionary values must always be sequences, even though they are typically of
+	length 1.  This is what IRequest delivers, and there's no sense in
+	special-casing this, even more since having a sequence might come in handy at
+	some point (e.g., for sort keys).
+
 	If you pass an empty dict, some sane defaults will be used.  You
 	can get that "empty" query meta as common.emptyQueryMeta
 
 	Not all services need to interpret all meta items; e.g., things writing
 	fits files or VOTables only will ignore _FORMAT, and the dboptions
 	won't make sense for many applications.
+
+	QueryMetas constructed from request will have the user and password
+	items filled out.
 
 	If you're using nevow formal, you should set the formal_data item
 	to the dictionary created by formal.  This will let people use
@@ -388,54 +397,53 @@ class QueryMeta(dict):
 	metaKeys = set(["_DBOPTIONS", "_FILTER", "_OUTPUT", "_charset_", "_ADDFIELD",
 		"__nevow_form__", "_FORMAT", "_VERB", "_TDENC", "formal_data"])
 
-	def __init__(self, ctxArgs):
-		try:
-			ctxArgs = inevow.IRequest(ctxArgs).args
-		except TypeError:
-			pass
-		self.ctxArgs = ctxArgs
+	def __init__(self, initArgs=None):
+		if initArgs is None:
+			initArgs = {}
+		self.ctxArgs = initArgs
 		self["formal_data"] = {}
-		self._fillOutput(ctxArgs)
-		self._fillOutputFilter(ctxArgs)
-		self._fillDbOptions(ctxArgs)
+		self["user"] = self["password"] = None
+		self._fillOutput(initArgs)
+		self._fillOutputFilter(initArgs)
+		self._fillDbOptions(initArgs)
 	
-	def _fillOutput(self, ctxArgs):
+	def _fillOutput(self, args):
 		"""interprets values left by the OutputFormat widget.
 		"""
-		self["format"] = ctxArgs.get("_FORMAT", ["HTML"])[0]
+		self["format"] = args.get("_FORMAT", ["HTML"])[0]
 		try:
 # prefer fine-grained "verbosity" over _VERB or VERB
 # Hack: malformed _VERBs result in None verbosity, which is taken to
 # mean about "use fields of HTML".  Absent _VERB or VERB, on the other
 # hand, means VERB=2, i.e., a sane default
-			if ctxArgs.has_key("verbosity"):
-				self["verbosity"] = int(ctxArgs["verbosity"][0])
-			elif ctxArgs.has_key("_VERB"):
-				self["verbosity"] = int(ctxArgs["_VERB"][0])*10
-			elif ctxArgs.has_key("VERB"):
-				self["verbosity"] = int(ctxArgs["VERB"][0])*10
+			if args.has_key("verbosity"):
+				self["verbosity"] = int(args["verbosity"][0])
+			elif args.has_key("_VERB"):
+				self["verbosity"] = int(args["_VERB"][0])*10
+			elif args.has_key("VERB"):
+				self["verbosity"] = int(args["VERB"][0])*10
 			else:
 				self["verbosity"] = 20
 		except ValueError:
 			self["verbosity"] = "HTML"
 		try:
 			self["tdEnc"] = record.parseBooleanLiteral(
-				ctxArgs.get("_TDENC", ["False"])[0])
+				args.get("_TDENC", ["False"])[0])
 		except gavo.Error:
 			self["tdEnc"] = False
-		self["additionalFields"] = ctxArgs.get("_ADDITEM", [])
+		self["additionalFields"] = args.get("_ADDITEM", [])
 	
-	def _fillOutputFilter(self, ctxArgs):
-		self["outputFilter"] = ctxArgs.get("_FILTER", ["default"])[0] or "default"
+	def _fillOutputFilter(self, args):
+		self["outputFilter"] = args.get("_FILTER", ["default"])[0] or "default"
 
-	def _fillDbOptions(self, ctxArgs):
+	def _fillDbOptions(self, args):
 		try:
-			self["dbLimit"] = ctxArgs.get("_DBOPTIONS_LIMIT", [None])[0]
+			self["dbLimit"] = args.get("_DBOPTIONS_LIMIT", [None])[0]
 			if self["dbLimit"]:
 				self["dbLimit"] = int(self["dbLimit"])
 		except ValueError:
 			self["dbLimit"] = 100
-		self["dbSortKey"] = ctxArgs.get("_DBOPTIONS_ORDER", [None])[0]
+		self["dbSortKey"] = args.get("_DBOPTIONS_ORDER", [None])[0]
 
 	def overrideDbOptions(self, sortKey=Undefined, limit=Undefined):
 		if sortKey is not Undefined:
@@ -460,9 +468,23 @@ class QueryMeta(dict):
 			frag.append("LIMIT %(_matchLimit)s")
 			pars["_matchLimit"] = int(dbLimit)+1
 		return " ".join(frag), pars
-	
 
-emptyQueryMeta = QueryMeta({})
+	@classmethod
+	def fromRequest(cls, request):
+		"""constructs a QueryMeta from a nevow request.
+		"""
+		res = cls(request.args)
+		res["user"], res["password"] = request.getUser(), request.getPassword()
+		return res
+	
+	@classmethod
+	def fromContext(cls, ctx):
+		"""constructs a QueryMeta from a nevow context.
+		"""
+		return cls.fromRequest(inevow.IRequest(ctx))
+
+
+emptyQueryMeta = QueryMeta()
 
 
 def loadSystemTemplate(path):

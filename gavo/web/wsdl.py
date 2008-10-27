@@ -376,14 +376,14 @@ def _tryWSDL():
 	from gavo.web import common
 	rd = resourcecache.getRd("ucds/ui")
 	sv = rd.get_service("ui")
-	print makeSOAPWSDLForService(sv, common.QueryMeta({})).render()
+	print makeSOAPWSDLForService(sv, common.QueryMeta()).render()
 
 
 def _trySOAP():
 	from gavo.parsing import importparser
 	from gavo import resourcecache
 	from gavo.web import common
-	qm = common.QueryMeta({})
+	qm = common.QueryMeta()
 	rd = resourcecache.getRd("ucds/ui")
 	sv = rd.get_service("ui")
 	core = sv.get_core()

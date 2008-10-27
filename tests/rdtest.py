@@ -125,6 +125,15 @@ class SimpleDataTest(unittest.TestCase):
 			inData)
 		self.assertAlmostEqual(outData.getPrimaryTable().rows[0]["baz"], 5.3)
 
+	def testSimpleData(self):
+		data = resource.makeSimpleData([datadef.DataField(dest="foo", 
+				source="bar", dbtype="text"), 
+			datadef.DataField(dest="def", source="def", default=0.2)],
+			[{"bar": "rec1"}, {"def": 1.5}], mungeFields=False)
+		self.assertEqual(data.getPrimaryTable().rows, [
+			{'foo': 'rec1', 'def': 0.2}, 
+			{'foo': None, 'def': 1.5}])
+
 
 if __name__=="__main__":
-	unittest.main()
+	testhelpers.main(SimpleDataTest)

@@ -191,10 +191,11 @@ def _productMapperFactory(colProps):
 		except ValueError:
 			pWidth = 200
 		mouseoverHandler = "insertPreview(this, %s)"%pWidth
-	fixedArgs = "&siap=true"
+	fixedArgs = ""
 	def coder(val):
 		if val:
 			return T.a(href=macros.makeSitePath(
+#					"/__system__/products/products/p/get?key=%s%s"%(urllib.quote(val), fixedArgs)),
 					"/getproduct?key=%s%s"%(urllib.quote(val), fixedArgs)),
 				onmouseover=mouseoverHandler,
 				class_="productlink")[re.sub("&.*", "", os.path.basename(val))]

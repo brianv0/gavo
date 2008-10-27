@@ -35,13 +35,13 @@ from gavo import texttable
 from gavo import typesystems
 from gavo import utils
 from gavo import votable
-from gavo.parsing import contextgrammar
 from gavo.parsing import dictlistgrammar
 from gavo.parsing import resource
 from gavo.web import common
 from gavo.web import creds
 from gavo.web import htmltable
 from gavo.web import gwidgets
+from gavo.web import product
 from gavo.web import producttar
 from gavo.web import standardcores
 from gavo.web import streaming
@@ -474,6 +474,7 @@ class GavoFormMixin(formal.ResourceMixin, object):
 					" in the internal or generated field '%s': %s"%(
 						failure.value.fieldName, failure.getErrorMessage())))
 		else:
+			failure.printTraceback()
 			raise failure.value
 		return self.form.errors
 
@@ -626,7 +627,7 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 				label="Table")
 
 	def form_genForm(self, ctx=None, data={}):
-		queryMeta = common.QueryMeta(ctx)
+		queryMeta = common.QueryMeta.fromContext(ctx)
 		form = formal.Form()
 		self._addQueryFields(form, data)
 		self._addMetaFields(form, queryMeta)
@@ -640,7 +641,7 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		return form
 
 	def submitAction(self, ctx, form, data):
-		queryMeta = common.QueryMeta(ctx)
+		queryMeta = common.QueryMeta.fromContext(ctx)
 		queryMeta["formal_data"] = data
 		d = defer.maybeDeferred(self.service.getInputData, data
 			).addCallback(self._runService, queryMeta, ctx
@@ -774,7 +775,8 @@ class FeedbackForm(Form):
 			return Form(ctx, self.service)
 		oCore = self.service.get_core()
 		tmpCore = standardcores.FeedbackCore.fromCore(oCore)
-		return tmpCore.run(FeedbackData(ctx, oCore), common.QueryMeta(ctx)
+		return tmpCore.run(FeedbackData(ctx, oCore), 
+				common.QueryMeta.fromContext(ctx)
 			).addCallback(self._processFeedbackData, ctx)
 
 	def _processFeedbackData(self, outData, ctx):
@@ -869,7 +871,7 @@ class TextRenderer(ServiceBasedRenderer):
 		ServiceBasedRenderer.__init__(self, ctx, service)
 	
 	def renderHTTP(self, ctx):
-		queryMeta = common.QueryMeta(ctx)
+		queryMeta = common.QueryMeta.fromContext(ctx)
 		d = defer.maybeDeferred(self.service.getInputData, 
 				inevow.IRequest(ctx).args
 			).addCallback(self._runService, queryMeta, ctx)
@@ -923,3 +925,39 @@ class Custom(ServiceBasedRenderer):
 		if segments and segments[0]=="_reload":
 			return creds.runAuthenticated(ctx, "", self._reload, ctx), ()
 		return self.realPage.locateChild(ctx, segments)
+
+
+class ProductRenderer(ServiceBasedRenderer):
+	"""is a renderer for products.
+
+	This will only work with a ProductCore since the resulting
+	data set has to contain product.Resources.
+	"""
+	def renderHTTP(self, ctx):
+		return self.service.runFromContext(ctx
+			).addCallback(self._deliver, ctx)
+	
+	def _deliver(self, result, ctx):
+		doPreview = result.queryMeta.ctxArgs.get("preview")
+		rsc = result.getPrimaryTable().rows[0]['source']
+		request = inevow.IRequest(ctx)
+		if isinstance(rsc, product.NonExistingProduct):
+			raise UnknownURI("%s is an unknown product key"%rsc.sourcePath)
+		if doPreview:
+			res = product.makePreviewFromProduct(rsc, request)
+			return res
+		if isinstance(rsc, product.UnauthorizedProduct):
+			raise ForbiddenURI(rsc.sourcePath)
+		return self._deliverPlainFile(rsc, request)
+	
+	def _deliverPlainFile(self, resource, request):
+		request.setHeader("content-type", str(resource.contentType))
+		request.setHeader("content-disposition", 'attachment; filename="%s"'%
+			str(resource.name))
+		try:
+			request.setHeader('content-length', str(os.path.getsize(
+				resource.sourcePath)))
+		except (TypeError, os.error):  # size doesn't matter
+			pass
+		return streaming.streamOut(resource, request)
+

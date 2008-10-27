@@ -16,8 +16,8 @@ from gavo import resourcecache
 from gavo import simbadinterface
 from gavo import utils
 from gavo.parsing import parsehelpers
-from gavo.parsing.contextgrammar import InputKey
 from gavo.web import core
+from gavo.web import gwidgets
 from gavo.web import vizierexprs
 from gavo.web import standardcores
 
@@ -148,15 +148,15 @@ class SiapCondition(standardcores.CondDesc):
 	def __init__(self, initvals={}):
 		vals = {
 			"inputKeys": [ 
-				InputKey(dest="POS", dbtype="text", unit="deg,deg",
+				gwidgets.InputKey(dest="POS", dbtype="text", unit="deg,deg",
 					ucd="pos.eq", description="J2000.0 Position, RA,DEC decimal degrees"
 					" (e.g., 234.234,-32.45)", tablehead="Position", optional=False,
 					source="POS"),
-				InputKey(dest="SIZE", dbtype="text", unit="deg,deg",
+				gwidgets.InputKey(dest="SIZE", dbtype="text", unit="deg,deg",
 					description="Size in decimal degrees"
 					" (e.g., 0.2 or 1,0.1)", tablehead="Field size", optional=False,
 					source="SIZE"),
-				InputKey.fromDataField(datadef.DataField(dest="INTERSECT", 
+				gwidgets.InputKey.fromDataField(datadef.DataField(dest="INTERSECT", 
 					dbtype="text", 
 					description="Should the image cover, enclose, overlap the ROI or"
 					" contain its center?",
@@ -164,7 +164,7 @@ class SiapCondition(standardcores.CondDesc):
 					values=datadef.Values(options=["OVERLAPS", "COVERS", "ENCLOSED", 
 						"CENTER"]), 
 					source="INTERSECT")),
-				InputKey(dest="FORMAT", dbtype="text", 
+				gwidgets.InputKey(dest="FORMAT", dbtype="text", 
 					description="Requested format of the image data",
 					tablehead="Output format", default="image/fits",
 					values=datadef.Values(options=["image/fits", "METADATA"]),
@@ -188,15 +188,15 @@ class HumanSiapCondition(SiapCondition):
 	def __init__(self, initvals={}):
 		vals = {
 			"inputKeys": [
-				InputKey(dest="POS", dbtype="text", unit="deg,deg",
+				gwidgets.InputKey(dest="POS", dbtype="text", unit="deg,deg",
 					ucd="pos.eq", description="J2000.0 Position, RA,DEC, or Simbad object"
 					" (e.g., 234.234,-32.45)", tablehead="Position", optional=False,
 					source="POS"),
-				InputKey(dest="SIZE", dbtype="text", unit="deg,deg",
+				gwidgets.InputKey(dest="SIZE", dbtype="text", unit="deg,deg",
 					description="Match size in decimal degrees"
 					" (e.g., 0.2 or 1,0.1)", tablehead="Field size", optional=False,
 					source="SIZE"),
-				InputKey(dest="INTERSECT", 
+				gwidgets.InputKey(dest="INTERSECT", 
 					dbtype="text", 
 					description="Should the image cover, enclose, overlap the ROI or"
 					" contain its center?",
@@ -204,7 +204,7 @@ class HumanSiapCondition(SiapCondition):
 					values=datadef.Values(options=["OVERLAPS", "COVERS", "ENCLOSED", 
 						"CENTER"]), 
 					source="INTERSECT", widgetFactory='Hidden'),
-				InputKey(dest="FORMAT", dbtype="text", 
+				gwidgets.InputKey(dest="FORMAT", dbtype="text", 
 					description="Requested format of the image data",
 					tablehead="Output format", default="image/fits",
 					values=datadef.Values(options=["image/fits", "METADATA"]),
@@ -303,13 +303,14 @@ class SiapCutoutCore(standardcores.DbBasedCore):
 		record["accsize"] = int(abs(upperLeft[0]-lowerRight[0]
 			)*abs(upperLeft[1]-lowerRight[1])*self.bytesPerPixel)
 
-	def _parseOutput(self, dbResponse, outputDef, sqlPars, queryMeta):
+	def _parseOutput(self, dbResponse, outputTD, queryMeta):
+		sqlPars = queryMeta["sqlQueryPars"]
 		if "cutoutSize" in queryMeta.ctxArgs:
 			sra = sdec = float(queryMeta.ctxArgs["cutoutSize"][0])
 		else:
 			sra, sdec = sqlPars["_sra"], sqlPars["_sdec"]
-		res = super(SiapCutoutCore, self)._parseOutput(
-			dbResponse, outputDef, sqlPars, queryMeta)
+		res = standardcores.DbBasedCore._parseOutput(self,
+			dbResponse, outputTD, queryMeta)
 		cosD = math.cos(sqlPars["_dec"]/180*math.pi)
 		if abs(cosD)>1e-5:
 			sra = sra/cosD

@@ -89,6 +89,26 @@ def getTestData(dataId):
 	return getTestRD().getDataById(dataId)
 
 
+testsDir = "/home/msdemlei/gavo/trunk/tests"
+
+
+def trialMain(testClass):
+	from twisted.trial import runner
+	from twisted.scripts import trial as script
+	config = script.Options()
+	config.parseOptions()
+	trialRunner = script._makeRunner(config)
+	if len(sys.argv)>1:
+		suite = runner.TestSuite()
+		for t in sys.argv[1:]:
+			suite.addTest(testClass(t))
+	else:
+		sys.argv.append(sys.argv[0])
+		config.parseOptions()
+		suite = script._getSuite(config)
+	trialRunner.run(suite)
+	
+
 def main(testClass, methodPrefix=None):
 	if len(sys.argv)>1:
 		suite = unittest.makeSuite(testClass, methodPrefix or sys.argv[1])

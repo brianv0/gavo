@@ -12,6 +12,7 @@ try:
     from twisted.web import http
 except ImportError:
     from twisted.protocols import http
+from twisted.internet import defer
 
 from gavo import config
 from gavo import resourcecache
@@ -39,6 +40,12 @@ def getGroupsForUser(username, password, async=True):
 	"""
 	def parseResponse(dbTable):
 		return set([a[0] for a in dbTable])
+
+	if username is None:
+		if async:
+			return defer.succeed(set())
+		else:
+			return set()
 	if username=='gavoadmin' and (
 			password and password==config.get("web", "adminpasswd")):
 		return AllSet()

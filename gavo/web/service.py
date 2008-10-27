@@ -106,7 +106,9 @@ class SvcResult(object):
 # XXX TODO: We want to be able to communicate mild error messages from
 # cores.  Right now, we hack a message attribute into the datasets, but
 # that's bad.  We don't use this yet, but we want some structured means
-# for this in a rewrite.
+# for this in a rewrite -- exceptions aren't ideal because they can't
+# accumulate and they probably are messier to handle when you have to
+# support many output formats.
 			"message": getattr(self.original, "message", ""),
 		}
 		return resultmeta
@@ -364,7 +366,14 @@ class Service(record.Record, meta.MetaMixin, macros.StandardMacroMixin):
 			lambda failure: failure).addCallback(
 			SvcResult, inputData, queryMeta, self).addErrback(
 			lambda failure: failure)
-	
+
+	def runFromContext(self, ctx):
+		queryMeta = common.QueryMeta.fromContext(ctx)
+		inputArgs = dict((key, value[0]) 
+			for key, value in queryMeta.ctxArgs.iteritems())
+		return defer.maybeDeferred(self.getInputData, inputArgs
+			).addCallback(self.run, queryMeta)
+
 	def getURL(self, renderer, method="POST"):
 		"""returns the full canonical access URL of this service together 
 		with renderer.

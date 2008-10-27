@@ -35,6 +35,7 @@ from gavo.parsing import contextgrammar
 from gavo.web import adbapiconn
 from gavo.web import core
 from gavo.web import common
+from gavo.web import gwidgets
 from gavo.web import runner
 from gavo.web import vizierexprs
 
@@ -226,7 +227,6 @@ def mapDbErrors(failure):
 	"""logs the failure and translates the exception into something our
 	system can display more beautifully.
 	"""
-	failure.printTraceback()
 # This is a helper to all DB-based cores and should probably become
 # a method of a baseclass of them when we refactor this mess
 	if hasattr(failure.value, "cursor"):
@@ -249,7 +249,7 @@ def mapDbErrors(failure):
 		raise gavo.ValidationError("%s needs to be qualified."%
 			failure.getErrorMessage(), "query")
 	else:
-		raise failure.value
+		return failure
 
 
 class DbBasedCore(QueryingCore):
@@ -272,11 +272,12 @@ class DbBasedCore(QueryingCore):
 				"feedbackField": None,
 			}, initvals=initvals)
 		self.validate()
-		self.avOutputKeys = set([f.get_dest() for f in self.tableDef.get_items()])
+		self.avOutputKeys = set([f.get_dest() for f in self.getOutputFields()])
 		self.avInputKeys = self.avOutputKeys
 
 	def getInputFields(self):
-		return self.tableDef.get_items()
+		return record.DataFieldList([gwidgets.InputKey.fromDataField(f)
+			for f in self.tableDef.get_items()])
 	
 	def getOutputFields(self):
 		return record.DataFieldList([datadef.OutputField.fromDataField(f) 
@@ -354,35 +355,32 @@ class DbBasedCore(QueryingCore):
 		It requires a method _getQuery returning a TableDef defining
 		the result, an SQL WHERE-clause and its parameters.
 		"""
-		outputDef = resource.TableDef(self.rd)
-		outputDef.updateFrom(self.tableDef)
+		outputTD = resource.TableDef(self.rd)
+		outputTD.updateFrom(self.tableDef)
 # XXX TODO: It's possible that at some point we'd want constraints in
 # query interpretation, and it's ugly to remove them anyway.  I think
 # they should go into the grammar.
-		outputDef.set_constraints([])
-		qFields = self.getQueryFields(queryMeta)
-		outputDef.set_items(qFields)
-		dd = datadef.DataTransformer(self.rd, initvals={
-			"Grammar": rowsetgrammar.RowsetGrammar(initvals={
-				"dbFields": qFields}),
-			"Semantics": resource.Semantics(initvals={
-				"tableDefs": [outputDef]}),
-			"id": "<generated>"})
+		outputTD.set_constraints([])
+		outputTD.set_items(self.getQueryFields(queryMeta))
 		fragment, pars = self._getSQLWhere(inputData, queryMeta)
+		queryMeta["sqlQueryPars"] = pars
 		return self.runDbQuery(fragment, pars, 
-				dd.getPrimaryTableDef(), queryMeta).addCallback(
-			self._parseOutput, dd, pars, queryMeta).addErrback(
+				outputTD, queryMeta).addCallback(
+			self._parseOutput, outputTD, queryMeta).addErrback(
 			mapDbErrors)
 
-	def _parseOutput(self, dbResponse, outputDef, sqlPars, queryMeta):
-		"""builds an InternalDataSet out of the DataDef outputDef
-		and the row sequence dbResponse.
+	def _parseOutput(self, dbResponse, outputTD, queryMeta):
+		"""builds an InternalDataSet out of the DB response.
 
-		You can retrieve the values used in the SQL query from the dictionary
-		sqlPars.
+		outputTD is the table definition that the select list is based on.
 		"""
-		queryMeta["sqlQueryPars"] = sqlPars
-		res = resource.InternalDataSet(outputDef, table.Table, dbResponse)
+		dd = datadef.DataTransformer(self.rd, initvals={
+			"Grammar": rowsetgrammar.RowsetGrammar(initvals={
+				"dbFields": outputTD.get_items()}),
+			"Semantics": resource.Semantics(initvals={
+				"tableDefs": [outputTD]}),
+			"id": "<generated>"})
+		res = resource.InternalDataSet(dd, table.Table, dbResponse)
 		if queryMeta.get("dbLimit"):
 			if len(res.getPrimaryTable().rows)>queryMeta.get("dbLimit"):
 				del res.getPrimaryTable().rows[-1]
@@ -511,7 +509,7 @@ class ADQLCore(QueryingCore):
 
 	def getInputFields(self):
 		return [
-			contextgrammar.InputKey(dest="query", tablehead="ADQL query",
+			gwidgets.InputKey(dest="query", tablehead="ADQL query",
 				description="A query in the Astronomical Data Query Language",
 				dbtype="text", source="query", 
 				widgetFactory="widgetFactory(ScalingTextArea, rows=15)"),

@@ -62,6 +62,10 @@ class ValidationError(Error):
 		return "%s%s"%(self.msg, recStr)
 
 
+class PermissionDenied(Error):
+	"""is raised on unauthorized access to a protected resource.
+	"""
+
 class RdNotFound(Error):
 	"""is raised when importParser.getRd cannot locate a resource descriptor.
 	"""

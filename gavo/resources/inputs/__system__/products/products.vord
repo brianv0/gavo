@@ -10,17 +10,19 @@
 		<Semantics>
 			<SharedTable table="products" id="productstable">
 				<Field dest="key" primary="True" dbtype="text"
-					tablehead="Unique product key" source="prodtblKey"/>
+					tablehead="Unique product key" source="prodtblKey"
+					verbLevel="1"/>
 				<Field dest="owner" dbtype="text" tablehead="Data owner"
-					source="prodtblOwner"/>
+					source="prodtblOwner" verbLevel="21"/>
 				<Field dest="embargo" dbtype="date" source="prodtblEmbargo"
-					tablehead="Embargo ends"/>
+					tablehead="Embargo ends" verbLevel="21"/>
 				<Field dest="accessPath" dbtype="text" source="prodtblPath"
-					tablehead="Path to access data" optional="False"/>
+					tablehead="Path to access data" optional="False"
+					verbLevel="5"/>
 				<!-- the next one will usually get its default filled in by
 					the products interface -->
 				<Field dest="sourceTable" dbtype="text" default="" 
-					source="sourceTable"
+					source="sourceTable" verbLevel="10"
 					tablehead="Name of table containing metadata" optional="False"/>
 			</SharedTable>
 		</Semantics>
@@ -62,4 +64,59 @@
 			</Table>
 		</Semantics>
 	</Data>
+
+	<Data id="pCoreDescription" virtual="True">
+		<meta name="description">Transforms the raw db output from
+			ProductCore's query to the result data.</meta>
+		<Semantics>
+			
+			<Table table="pCoreInput" fieldPath="data.products">
+				<Field original=".key" source="key"/>
+			</Table>
+
+			<Table table="pDbOutput" id="pDbOutputFields" 
+					fieldPath="data.products">
+				<Field original=".key" source="key"/>
+				<Field original=".owner" source="owner"/>
+				<Field original=".embargo" source="embargo"/>
+				<Field original=".accessPath" source="accessPath"/>
+			</Table>
+
+			<Table table="parsedKeys">
+				<meta name="description">Format of the core-internal table
+					containing product keys with parameters parsed off.</meta>
+				<Field original="data.products.key" source="key"/>
+				<Field dest="ra" source="ra"/>
+				<Field dest="dec" source="dec"/>
+				<Field dest="sra" source="sra"/>
+				<Field dest="sdec" source="sdec"/>
+			</Table>
+		</Semantics>
+
+		<NullGrammar/> 
+	</Data>
+
+	<Data id="pCoreOutput">
+		<NullGrammar/>  <!-- replaced by the core -->
+		<Semantics>
+			<Table table="pCoreOutput" id="pCoreOutputFields">
+				<Field dest="source" source="source" dbtype="raw"
+					tablehead="Access info" verbLevel="1"/>
+			</Table>
+		</Semantics>
+	</Data>
+
+
+	<Service id="p">
+		<meta name="description">The main product deliverer</meta>
+		<allow renderer="get,form"/>
+		<core builtin="product">
+		</core>
+		<srvInput>
+			<fromCore/>
+		</srvInput>
+		<srvOutput>
+			<fromCore/>
+		</srvOutput>
+	</Service>
 </ResourceDescriptor>

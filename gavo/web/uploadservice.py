@@ -27,6 +27,7 @@ from gavo.parsing import contextgrammar
 from gavo.parsing import nullgrammar
 from gavo.web import common
 from gavo.web import core
+from gavo.web import gwidgets
 from gavo.web import standardcores
 from gavo.web import resourcebased
 
@@ -138,11 +139,11 @@ class UploadCore(standardcores.QueryingCore):
 	def set_service(self, svc):
 		svc.addto_condDescs(
 			standardcores.CondDesc.fromInputKey(
-				contextgrammar.InputKey(dest="File", formalType=formal.File,
+				gwidgets.InputKey(dest="File", formalType=formal.File,
 					source="File", dbtype="file", optional=False)))
 		svc.addto_condDescs(
 			standardcores.CondDesc.fromInputKey(
-				contextgrammar.InputKey(dest="Mode", formalType=formal.String,
+				gwidgets.InputKey(dest="Mode", formalType=formal.String,
 					source="Mode", dbtype="text", optional=False,
 					values=datadef.Values(options=['i', 'u']),
 					widgetFactory=formal.widgetFactory(formal.RadioChoice, 
@@ -285,7 +286,7 @@ class MachineUploader(common.CustomErrorMixin, Uploader):
 		return self.service.getInputData(formData)
 	
 	def _handleInputData(self, inputData, ctx):
-		queryMeta = common.QueryMeta(ctx)
+		queryMeta = common.QueryMeta.fromContext(ctx)
 		queryMeta["formal_data"] = self.form.data
 		return self._runService(inputData, queryMeta, ctx)
 

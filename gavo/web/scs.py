@@ -9,9 +9,9 @@ import gavo
 from gavo import resourcecache
 from gavo.parsing import parsehelpers
 from gavo.parsing import resource
-from gavo.parsing.contextgrammar import InputKey
 from gavo.web import core
 from gavo.web import common
+from gavo.web import gwidgets
 from gavo.web import standardcores
 from gavo.web import resourcebased
 from gavo.web import vizierexprs
@@ -24,13 +24,13 @@ class ScsCondition(standardcores.CondDesc):
 	def __init__(self, initvals={}):
 		vals = {
 			"inputKeys": [
-				InputKey(dest="RA", dbtype="double precision", unit="deg",
+				gwidgets.InputKey(dest="RA", dbtype="double precision", unit="deg",
 					ucd="pos.eq.ra", description="Right ascension (J2000.0)",
 					tablehead="Alpha (ICRS)", optional=False, source="RA"),
-				InputKey(dest="DEC", dbtype="double precision", unit="deg",
+				gwidgets.InputKey(dest="DEC", dbtype="double precision", unit="deg",
 					ucd="pos.eq.dec", description="Declination (J2000.0)",
 					tablehead="Delta (ICRS)", optional=False, source="DEC"),
-				InputKey(dest="SR", dbtype="float", unit="deg",
+				gwidgets.InputKey(dest="SR", dbtype="float", unit="deg",
 					description="Search radius in degrees", tablehead="Search Radius",
 					optional=False, source="SR")],
 		}
@@ -60,10 +60,10 @@ class HumanScsCondition(ScsCondition):
 	def __init__(self, initvals={}):
 		vals={
 			"inputKeys": [
-				InputKey(dest="hscs_pos", dbtype="text", description=
+				gwidgets.InputKey(dest="hscs_pos", dbtype="text", description=
 					"position as sexagesimal ra, dec or Simbad-resolvable"
 					" object", tablehead="Position", source="hscs_pos"),
-				InputKey(dest="hscs_sr", dbtype="float", description=
+				gwidgets.InputKey(dest="hscs_sr", dbtype="float", description=
 					"Search radius in arcminutes", tablehead="Search radius",
 					source="hscs_sr")],
 		}

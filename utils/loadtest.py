@@ -142,6 +142,23 @@ class _StreamTest(object):
 		assert dataLength==dataSize
 
 
+
+class _PreviewTest(object):
+	"""is a test requesting a cutout preview.
+	"""
+	description = "Get cutout preview"
+
+	previewURL = ("http://localhost:8080/__system__/products/products/p"
+		"/get?key=lswscans/data/Bruceplatten/FITS/B2866b.fits%26amp"
+		"%3Bra%3D2.0%26amp%3Bdec%3D2.0%26amp%3Bsra%3D0.2%26amp%3Bsdec"
+		"%3D0.2&preview=True")
+	previewSize = 9748
+
+	def run(self):
+		res = urllib.urlopen(self.previewURL).read()
+		assert len(res)==self.previewSize
+
+
 testGroupsWithState = set(["dexter", "upload"])
 
 def _getTestCollection():
@@ -166,8 +183,13 @@ def _getNTotal():
 	return 1000
 
 def main():
-	if len(sys.argv)>3 and sys.argv[3]=="stream":
-		tests = [_StreamTest()]
+	if len(sys.argv)>3:
+		if sys.argv[3]=="stream":
+			tests = [_StreamTest()]
+		elif sys.argv[3]=="preview":
+			tests = [_PreviewTest()]
+		else:
+			raise Exception("Dammit")
 	else:
 		tests = _getTestCollection()
 	tr = TestRunner(tests, _getNSimul(), _getNTotal())

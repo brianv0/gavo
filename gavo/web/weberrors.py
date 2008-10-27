@@ -60,7 +60,8 @@ def handleForbiddenURI(ctx, failure):
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(403)
 		request.setHeader("content-type", "text/plain")
-		request.write("I am not allowed to render the resource you requested.\n\n")
+		request.write("I am not allowed to show you the resource"
+			" you requested.\n\n")
 		request.write(failure.getErrorMessage()+"\n")
 		request.finishRequest(False)
 		return True

@@ -14,10 +14,12 @@ class RowsetGrammar(grammar.Grammar):
 	To add semantics to the field, it must know the "schema" of the
 	data.  It gets it from a sequence of DataFields in dbFields.
 	"""
-	def __init__(self, initvals={}):
-		grammar.Grammar.__init__(self, additionalFields={
+	def __init__(self, initvals={}, additionalFields={}):
+		fields = {
 			"dbFields": record.ListField,
-			}, initvals=initvals)
+			}
+		fields.update(additionalFields)
+		grammar.Grammar.__init__(self, additionalFields=fields, initvals=initvals)
 
 	# make this work with the fieldsfrom attribute of Record elements
 	def get_items(self):

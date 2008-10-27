@@ -55,7 +55,7 @@ from gavo.web import uploadservice
 from gavo.web import vodal
 from gavo.web import weberrors
 
-from gavo.web.common import Error, UnknownURI, ForbiddenURI
+from gavo.web.common import Error, UnknownURI, ForbiddenURI, WebRedirect
 
 
 class ReloadPage(common.GavoRenderMixin, rend.Page):
@@ -191,32 +191,103 @@ class BlockedPage(common.GavoRenderMixin, rend.Page):
 				".",]]])
 
 
-def _makeVanityMap():
-	"""returns the default map for vanity names.
-
-	Vanity names are shortcuts that lead to web pages.  They are not
-	intended for creating, e.g., "more beautiful" IVOA identifiers.
-
-	For now, the vanity names simply reside in a flat text file
-	given in the config in the key vanitynames that works as an
-	input for utils.NameMap.
-
-	The target URLs must *not* include nevowRoot and must *not* start
-	with a slash (unless you're going for special effects).
+class VanityLineError(Error):
+	"""parse error in vanity file.
 	"""
-	srcF = os.path.join(config.get("webDir"), 
-		config.get("web", "vanitynames"))
-	return utils.NameMap(srcF, missingOk=True)
+	pass
 
-_vanityMap = _makeVanityMap()
 
+class VanityMap(object):
+	"""is a container for redirects and URI rewriting.
+
+	VanityMaps are constructed from files containing lines of the format
+
+	<target> <key> [<option>]
+
+	Target is a URI that must *not* include nevowRoot and must *not* start
+	with a slash (unless you're going for special effects).
+
+	Key is a single path element.  If this path element is found in the
+	first segment, it is replaced with the segments in target.  This
+	could be used at some point to hide the inputsDir structure even
+	for user RDs, but it's a bit hard to feed the vanity map then (since
+	the service would have to know about its vanity name, and we don't want
+	to have to parse all RDs to come up with the VanityMap).
+
+	<option> can be !redirect right now.  If it is, target is interpreted
+	as a server-relative URI, and a redirect to it is generated, but only
+	if only one or two segements are in the original query.  You can
+	use this to create shortcuts with the resource dir names.  This would
+	otherwise create endless loops.  This feature is a pain necessary for
+	historic reasons and should probably not be used.
+
+	Empty lines and #-on-a-line-comments are allowed in the input.
+	"""
+
+	knownOptions = set(["!redirect"])
+
+	builtinRedirects = """
+		__system__/products/products/p/get getproduct
+	"""
+
+	def __init__(self):
+		self.redirects, self.mappings = {}, {}
+		srcName = os.path.join(config.get("webDir"), 
+			config.get("web", "vanitynames"))
+		f = open(srcName)
+		lineNo = 1
+		for ln in f:
+			try:
+				self._parseLine(ln)
+			except VanityLineError, msg:
+				raise VanityLineError("%s, line %s: %s"%(srcName, lineNo, str(msg)))
+			lineNo += 1
+		f.close()
+		for ln in self.builtinRedirects.split("\n"):
+			self._parseLine(ln)
 	
+	def _parseLine(self, ln):
+		ln = ln.strip()
+		if not ln or ln.startswith("#"):
+			return
+		parts = ln.split()
+		if not 1<len(parts)<4:
+			raise VanityLineError("Wrong number of words in '%s'"%ln)
+		option = None
+		if len(parts)>2:
+			option = parts.pop()
+			if option not in self.knownOptions:
+				raise VanityLineError("Bad option '%s'"%option)
+		dest, src = parts
+		if option=='!redirect':
+			self.redirects[src] = dest
+		else:
+			self.mappings[src] = dest.split("/")
+
+	def map(self, segments):
+		"""changes the nevow-type segments list according to the mapping.
+
+		It may raise a WebRedirect exception.
+		"""
+		if not segments:
+			return segments
+		key = segments[0]
+		if key in self.redirects and len(segments)<3:
+			raise WebRedirect(self.redirects[key])
+		if key in self.mappings:
+			segments = self.mappings[key]+list(segments[1:])
+		return segments
+		
+
+_vanityMap = VanityMap()
+
+
 specialChildren = {
-	"getproduct": (lambda ctx, segs, cls: cls(ctx, segs), product.Product),
 	"oai.xml": (lambda ctx, segs, cls: cls(), vodal.RegistryRenderer),
 	"debug": (lambda ctx, segs, cls: cls(ctx, segs), weberrors.DebugPage),
 	"reload": (lambda ctx, segs, cls: cls(ctx, segs), ReloadPage),
 }
+
 
 renderClasses = {
 	"custom": resourcebased.Custom,
@@ -229,6 +300,7 @@ renderClasses = {
 	"scs.xml": vodal.ScsRenderer,
 	"upload": uploadservice.Uploader,
 	"mupload": uploadservice.MachineUploader,
+	"get": resourcebased.ProductRenderer,
 	"img.jpeg": jpegrenderer.JpegRenderer,
 	"mimg.jpeg": jpegrenderer.MachineJpegRenderer,
 	"soap": soaprender.SoapRenderer,
@@ -340,7 +412,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		from gavo.web import webtests
 		child_test = webtests.Tests()
 
-	def locateChild(self, ctx, segments):
+	def _realLocateChild(self, ctx, segments):
 # XXX TODO: refactor this mess, clean up strange names by pulling more
 # into proper services.
 		self._hackHostHeader(ctx)
@@ -352,13 +424,8 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		if not segments or segments[0]=='':
 			return self, ()
 
-		# redirect away vanity names
-		if 0<len(segments)<3 and segments[0] in _vanityMap:
-			root = config.get("web", "nevowRoot")
-			if not root:
-				root = "/"
-			return url.URL.fromContext(ctx).click(root+
-				_vanityMap.resolve(segments[0])), ()
+		# handle vanity names and shortcuts
+		segments = _vanityMap.map(segments)
 
 		# Special URLs (favicon.ico, TODO: robots.txt)
 		if len(segments)==1 and segments[0]=="favicon.ico":
@@ -388,6 +455,16 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 			except resourcebased.RdBlocked:
 				return BlockedPage(segments), ()
 		return res
+	
+	def locateChild(self, ctx, segments):
+		try:
+			return self._realLocateChild(ctx, segments)
+		except WebRedirect, redirTo:
+			root = config.get("web", "nevowRoot")
+			if not root:
+				root = "/"
+			return url.URL.fromContext(ctx).click(root+
+				str(redirTo)), ()
 
 
 setattr(ArchiveService, 'child_formal.css', formal.defaultCSS)

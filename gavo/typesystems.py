@@ -291,46 +291,6 @@ class ToNumarrayConverter(FromSQLConverter):
 		if type in self._charTypes:
 			return "string"
 
-try:
-	import formal
-	from web import gwidgets
-
-	class ToFormalConverter(FromSQLConverter):
-		"""is a converter from SQL types to Formal type specifications.
-
-		The result of the conversion is a tuple of formal type and widget factory.
-		"""
-		typeSystem = "Formal"
-		simpleMap = {
-			"smallint": (formal.Integer, formal.TextInput),
-			"integer": (formal.Integer, formal.TextInput),
-			"int": (formal.Integer, formal.TextInput),
-			"bigint": (formal.Integer, formal.TextInput),
-			"real": (formal.Float, formal.TextInput),
-			"float": (formal.Float, formal.TextInput),
-			"boolean": (formal.Boolean, formal.Checkbox),
-			"double precision": (formal.Float, formal.TextInput),
-			"double": (formal.Float, formal.TextInput),
-			"text": (formal.String, formal.TextInput),
-			"char": (formal.String, formal.TextInput),
-			"date": (formal.Date, formal.widgetFactory(formal.DatePartsInput,
-				twoCharCutoffYear=50, dayFirst=True)),
-			"time": (formal.Time, formal.TextInput),
-			"timestamp": (formal.Date, formal.widgetFactory(formal.DatePartsInput,
-				twoCharCutoffYear=50, dayFirst=True)),
-			"vexpr-float": (formal.String, gwidgets.NumericExpressionField),
-			"vexpr-date": (formal.String, gwidgets.DateExpressionField),
-			"vexpr-string": (formal.String, gwidgets.StringExpressionField),
-			"file": (formal.File, None),
-		}
-
-		def mapComplex(self, type, length):
-			if type in self._charTypes:
-				return formal.String
-
-	sqltypeToFormal = ToFormalConverter().convert
-except ImportError:
-	pass
 
 sqltypeToVOTable = ToVOTableConverter().convert
 sqltypeToXSD = ToXSDConverter().convert

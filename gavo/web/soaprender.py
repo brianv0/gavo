@@ -60,7 +60,7 @@ class SOAPProcessor(soap.SOAPPublisher):
 			status=500)
 
 	def _runService(self, inputData, ctx):
-		queryMeta = common.QueryMeta(ctx)
+		queryMeta = common.QueryMeta.fromContext(ctx)
 		return defer.maybeDeferred(self.service.run, inputData, queryMeta)
 
 
@@ -79,7 +79,7 @@ class SoapRenderer(resourcebased.ServiceBasedRenderer):
 		"""
 		request = inevow.IRequest(ctx)
 		if not hasattr(self.service, "_generatedWSDL"):
-			queryMeta = common.QueryMeta(ctx)
+			queryMeta = common.QueryMeta.fromContext(ctx)
 			self.service._generatedWSDL = wsdl.makeSOAPWSDLForService(
 				self.service, queryMeta).render()
 		request.setHeader("content-type", "text/xml")

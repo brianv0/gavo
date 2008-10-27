@@ -26,6 +26,7 @@ from gavo import table
 from gavo import utils
 from gavo import votable
 from gavo.parsing import conditions
+from gavo.parsing import dictlistgrammar
 from gavo.parsing import nullgrammar
 from gavo.parsing import parsehelpers
 from gavo.parsing import rowsetgrammar
@@ -463,6 +464,11 @@ class DataSet(meta.MetaMixin):
 	def getPrimaryTable(self):
 		return self.tables[0]
 
+	def getTableByName(self, name):
+		for t in self.tables:
+			if t.name==name:
+				return t
+
 	def getDescriptor(self):
 		return self.dD
 
@@ -867,18 +873,16 @@ def makeSimpleDataDesc(rd, tableDef):
 	There is a NullGrammar on what's returned, so you'll probably want to 
 	override that.
 	"""
+	if isinstance(tableDef, list):
+		tableDef = TableDef(rd, initvals={
+			"table": None,
+			"items": tableDef})
+
 	dd = datadef.DataTransformer(rd, initvals={
 		"Grammar": nullgrammar.NullGrammar(),
 		"Semantics": Semantics(
-				initvals={
-					"tableDefs": [
-						TableDef(rd, initvals={
-							"table": None,
-							"items": tableDef,
-						})
-					]
-			 })
-		})
+				initvals={"tableDefs": [tableDef]})
+	 })
 	dd.set_id(str(id(dd)))
 	return dd
 
@@ -900,6 +904,23 @@ def makeRowsetDataDesc(rd, tableDef, mungeFields=True):
 		mungeFields)
 	dd.set_encoding("utf-8")
 	return dd
+
+
+def makeSimpleData(tableDef, dictList, mungeFields=False):
+	"""returns a DataSet with a primary table having the fields of 
+	tableDef filled with data from dictList.
+
+	Instead of a TableDef, you can also pass in a list of fields.
+
+	The DataSet will have a trivial rd and not metadata, of course.
+
+	If mungeFields is true, the sources of the fields in TableDef will
+	automatically be set to their dests.
+	"""
+	rd = ResourceDescriptor("inMemory")
+	dd = makeGrammarDataDesc(rd, tableDef, dictlistgrammar.DictlistGrammar(),
+		mungeFields=mungeFields)
+	return InternalDataSet(dd, dataSource=dictList)
 
 
 def rowsetifyDD(dd, outputFieldNames=None):

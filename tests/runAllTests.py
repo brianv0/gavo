@@ -31,9 +31,19 @@ def getDoctests():
 	return unittest.TestSuite(doctests)
 
 
+def runTrialTest():
+	"""runs trial-based tests, suppressing output, but raising an error if
+	any of the tests failed.
+	"""
+	if os.system("trial test_*.py > /dev/null 2>&1"):
+		raise AssertionError("Trial-based tests failed.  run trial test_*.py to"
+			" find out details")
+	
+
 if __name__=="__main__":
 	unittestSuite = unittest.defaultTestLoader.loadTestsFromNames(
 		unittestModules)
-	doctestSuite = getDoctests()
 	runner = unittest.TextTestRunner()
-	runner.run(unittest.TestSuite([unittestSuite, doctestSuite]))
+	runner.run(unittest.TestSuite([unittestSuite, 
+		getDoctests(),
+		unittest.FunctionTestCase(runTrialTest, description="Trial-based tests")]))

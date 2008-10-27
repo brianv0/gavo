@@ -20,9 +20,9 @@ from gavo import datadef
 from gavo import ElementTree
 from gavo import meta
 from gavo import votable
-from gavo.parsing import contextgrammar
 from gavo.parsing import resource
 from gavo.web import common
+from gavo.web import gwidgets
 from gavo.web import registry
 from gavo.web import resourcebased
 from gavo.web import service
@@ -62,7 +62,7 @@ class DalRenderer(common.CustomErrorMixin, resourcebased.Form):
 		return self.service.getInputData(formData)
 
 	def _handleInputData(self, inputData, ctx):
-		queryMeta = common.QueryMeta(ctx)
+		queryMeta = common.QueryMeta.fromContext(ctx)
 		queryMeta["formal_data"] = self.form.data
 		return self.service.run(inputData, queryMeta
 			).addCallback(self._handleOutputData, ctx
@@ -104,7 +104,7 @@ class ScsRenderer(DalRenderer):
 		data = resource.InternalDataSet(dataDesc)
 		data.addMeta("info", meta.makeMetaValue(msg, name="info", 
 			infoName="Error", infoId="Error"))
-		return service.SvcResult(data, {}, common.QueryMeta(ctx))
+		return service.SvcResult(data, {}, common.QueryMeta.fromContext(ctx))
 
 
 class SiapRenderer(DalRenderer):
@@ -124,18 +124,18 @@ class SiapRenderer(DalRenderer):
 	def _serveMetadata(self, ctx):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
-		inputFields = [contextgrammar.InputKey.fromDataField(f) 
+		inputFields = [gwidgets.InputKey.fromDataField(f) 
 			for f in self.service.getInputFields()]
 		for f in inputFields:
 			f.set_dest("INPUT:"+f.get_dest())
 		dataDesc = resource.makeSimpleDataDesc(self.rd, 
-			self.service.getCurOutputFields(common.QueryMeta(ctx)))
+			self.service.getCurOutputFields(common.QueryMeta.fromContext(ctx)))
 		dataDesc.set_items(inputFields)
 		data = resource.InternalDataSet(dataDesc)
 		data.addMeta("_type", "metadata")
 		data.addMeta("info", meta.makeMetaValue("OK", name="info", 
 			infoName="QUERY_STATUS", infoValue="OK"))
-		result = service.SvcResult(data, {}, common.QueryMeta(ctx))
+		result = service.SvcResult(data, {}, common.QueryMeta.fromContext(ctx))
 		return resourcebased.streamVOTable(request, result)
 
 	def _handleOutputData(self, data, ctx):
@@ -149,7 +149,7 @@ class SiapRenderer(DalRenderer):
 		data = resource.InternalDataSet(dataDesc)
 		data.addMeta("info", meta.makeMetaValue(str(msg), name="info",
 			infoValue="ERROR", infoName="QUERY_STATUS"))
-		return service.SvcResult(data, {}, common.QueryMeta(ctx))
+		return service.SvcResult(data, {}, common.QueryMeta.fromContext(ctx))
 
 
 class RegistryRenderer(rend.Page):
