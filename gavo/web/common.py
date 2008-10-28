@@ -4,12 +4,14 @@ Common functions and classes for gavo web interfaces.
 
 import re
 import os
+import urllib
 
 import formal
 
 from nevow import tags as T, entities as E
 from nevow import loaders
 from nevow import inevow
+from nevow import url
 from nevow import util as nevowutil
 
 import pkg_resources
@@ -305,7 +307,18 @@ class GavoRenderMixin(object):
 				self._doRenderMeta(ctx, raiseOnFail=True)]
 		except gavo.MetaError:
 			return ""
-			
+	
+	def render_authinfo(self, ctx, data):
+		request = inevow.IRequest(ctx)
+		nextURL = str(url.URL.fromContext(ctx))
+		targetURL = url.URL.fromString("/login").add("nextURL", nextURL)
+		anchorText = "Log in"
+		if request.getUser():
+			anchorText = "Log out %s"%request.getUser()
+			targetURL = targetURL.add("relog", "True")
+		return ctx.tag[T.a(href=str(targetURL))[
+			anchorText]]
+
 	def render_withsidebar(self, ctx, data):
 		oldChildren = ctx.tag.children
 		ctx.tag.children = []
@@ -319,6 +332,7 @@ class GavoRenderMixin(object):
 				T.a(href="#body", class_="invisible")["Skip Header"],
 				T.div(class_="sidebaritem")[
 					T.p[T.a(href="/builtin/help.shtml")["Help"]],
+					T.p(render=T.directive("authinfo")),
 					T.p[T.a(href=self.service.getURL("info"))["Service info"]],
 				],
 				T.div(render=T.directive("ifdata"), class_="sidebaritem",

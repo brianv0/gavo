@@ -10,8 +10,8 @@ import gavo
 from gavo import fitstools
 from gavo import utils
 
-anetPath = "/usr/local/astrometry/bin"
-anetIndexPath = "/usr/local/astrometry/data"
+anetPath = "/data/gavo/astrometry/bin"
+anetIndexPath = "/data/gavo/astrometry/data"
 solverBin = os.path.join(anetPath, "solve-field")
 tabsortBin = os.path.join(anetPath, "tabsort")
 getHealpixBin = os.path.join(anetPath, "get-healpix")

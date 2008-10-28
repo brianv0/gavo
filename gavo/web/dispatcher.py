@@ -105,6 +105,72 @@ class ReloadPage(common.GavoRenderMixin, rend.Page):
     """)
 
 
+class LoginPage(rend.Page):
+	"""is a page that logs people in or out.
+
+	You should usually give a nextURL parameter in the context, the page
+	the user is returned to afte login.
+
+	If the user is already authenticated, this will do a logout (by
+	sending a 403).
+	"""
+	def __init__(self, ctx):
+		rend.Page.__init__(self)
+		self.request = inevow.IRequest(ctx)
+		self.nextURL = self.request.args.get("nextURL", ["/"])[0]
+
+	def render_nextURL(self, ctx, data):
+		return ctx.tag(href=self.nextURL)
+
+	def render_iflogged(self, ctx, data):
+		if self.request.getUser():
+			return ctx.tag
+		return ""
+	
+	def render_ifnotlogged(self, ctx, data):
+		if not self.request.getUser():
+			return ctx.tag
+		return ""
+
+	def data_loggedUser(self, ctx, data):
+		return self.request.getUser()
+
+	def doAuth(self, ctx):
+		self.request.setResponseCode(401)
+		self.request.setHeader('WWW-Authenticate', 'Basic realm="Gavo"')
+		return rend.Page.renderHTTP(self, ctx)
+
+	def renderHTTP(self, ctx):
+		relogging = self.request.args.get("relog", None)
+		if self.request.getUser():  # user is logged in...
+			if relogging: # ...and wants to log out: show login dialog...
+				return self.doAuth(ctx)
+			else:   # ...and has just logged in: forward to destination
+				return url.URL.fromContext(ctx).click(self.nextURL)
+		else:  # user is not logged in
+			if relogging:  #...but was and has just logged out: forward to dest
+				return url.URL.fromContext(ctx).click(self.nextURL)
+			else: # ... and want to log in.
+				return self.doAuth(ctx)
+
+
+	docFactory = common.doctypedStan(
+		T.html[T.head[T.title["GAVO: Credentials Info"]],
+			T.body[
+				T.h1["Credentials Info"],
+				T.p(render=T.directive("iflogged"))["You are currently logged in"
+					" as ", 
+					T.span(class_="loggedUser", render=T.directive("data"),
+						data=T.directive("loggedUser")),
+					"."],
+				T.p(render=T.directive("ifnotlogged"))["You are currently logged out"],
+				T.p["Go to ",
+					T.a(render=T.directive("nextURL"))["the last page"],
+					" or ",
+					T.a(href=config.get("web", "nevowRoot"))["DC home"],
+					"."]]])
+	
+
 def _replaceConfigStrings(srcPath, registry):
 	src = open(srcPath).read().decode("utf-8")
 	src = src.replace("__site_path__", config.get("web", "nevowRoot"))
@@ -286,6 +352,7 @@ specialChildren = {
 	"oai.xml": (lambda ctx, segs, cls: cls(), vodal.RegistryRenderer),
 	"debug": (lambda ctx, segs, cls: cls(ctx, segs), weberrors.DebugPage),
 	"reload": (lambda ctx, segs, cls: cls(ctx, segs), ReloadPage),
+	"login": (lambda ctx, segs, cls: cls(ctx), LoginPage),
 }
 
 

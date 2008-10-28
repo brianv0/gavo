@@ -229,6 +229,12 @@ div#sidebar {
 	background: #d2dcf0;
 }
 
+#sidebar p {
+	margin-top: 2pt;
+	margin-bottom: 2pt;
+	padding: 1px;
+}
+
 div#body {
 	margin-left: 110px;
 	min-width: 550px;
