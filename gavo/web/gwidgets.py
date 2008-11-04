@@ -62,11 +62,8 @@ class OutputFormat(object):
 # XXX TODO: Once we have a real interface.isImplementedIn, do away with
 # this gruesome hack -- it's really supposed to check for products in the
 # output table
-		ofs = core.tableDef.get_items()
-		for of in ofs:
-			if of.get_dest()=="accref" and not hasattr(core, "notar"):
-				self.availableFormats.append("tar")
-				break
+		if "accref" in core.tableDef.get_items():
+			self.availableFormats.append("tar")
 		
 	def _computeAvailableFields(self, queryMeta):
 		"""computes the fields a DbBasedCore provides but doesn't 

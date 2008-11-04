@@ -197,6 +197,8 @@ class PlainProduct(object):
 		self._makeName()
 
 	def __call__(self, outFile):
+# XXX it was probably a bad idea to use __call__ for something like write.
+# A well.
 		f = open(self.sourcePath)
 		while True:
 			data = f.read(self.chunkSize)
@@ -204,7 +206,7 @@ class PlainProduct(object):
 				break
 			outFile.write(data)
 		f.close()
-	
+
 	def __str__(self):
 		return "<Product %s>"%self.sourcePath
 
@@ -410,10 +412,13 @@ class ProductCore(standardcores.DbBasedCore):
 		containing a table of "parsed" keys (i.e., (key, ra, dec, sra, sdec) for
 		cutouts.  This key table is later the real input for the ProductsGrammar.
 		"""
-		keys = [inputData.docRec.get("key")]+[
-			r.get("key") for r in inputData.getPrimaryTable().rows]
+		keys = [k for k in [inputData.docRec.get("key")]+[
+				r.get("key") for r in inputData.getPrimaryTable().rows]
+			if k is not None]
 		queryMeta["keysTable"] = resource.makeSimpleData(self.rd.getTableDefByName(
 			"parsedKeys"), self._parseKeys(keys)).getPrimaryTable()
+		if not keys: # stupid SQL doesn't know the empty set
+			return "FALSE", {}
 		return "key IN %(keys)s", {"keys": set(r["key"] 
 			for r in queryMeta["keysTable"].rows)}
 
@@ -447,5 +452,11 @@ class ProductCore(standardcores.DbBasedCore):
 			"dbFields": self.rd.getTableDefByName("pDbOutput").get_items(),}))
 		res = resource.InternalDataSet(dd, dataSource=dbResponse)
 		return res
+	
+	def get_sortOrder(self):
+		"""products are never sorted.
+		"""
+		return ""
+
 
 core.registerCore("product", ProductCore)

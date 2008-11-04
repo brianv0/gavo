@@ -159,6 +159,24 @@ to clear the field.</p>
 <p>In effect, feedback queries provide a quick "find similar" facility
 in the Web interface.</p>
 
+<h2>Login and logout</h2>
+
+<p>In the sidebar, you will usually see a login item.  You should normally
+not need to be concerned with this, since protected services will query your
+credentials as needed.  You may want to log out, though; if you click on
+the "log out &lt;user&gt;" link, a login mask will pop up.  Leave the
+username blank and click OK to log out.  If you click Cancel (or equivalent),
+<em>you will remain logged in</em>.  This slight weirdness is inevitable when
+using HTTP authentication with current browsers.</p>
+
+<p>There is one situation in which you will want to log in: Access to protected
+products from open services.  You will note that in such cases, the system
+will deny access to the protected products without asking your credentials.
+If you can provide those, log in and try again.</p>
+
+<p>To obtain usernames and passwords, contact gavo@ari.uni-heidelberg.de</p>
+
+
 <h2>Your data</h2>
 
 <p>The GAVO Data Center would be pleased to assist you in publishing your data

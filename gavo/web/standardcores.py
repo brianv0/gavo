@@ -227,6 +227,7 @@ def mapDbErrors(failure):
 	"""logs the failure and translates the exception into something our
 	system can display more beautifully.
 	"""
+	failure.printTraceback()
 # This is a helper to all DB-based cores and should probably become
 # a method of a baseclass of them when we refactor this mess
 	if hasattr(failure.value, "cursor"):
@@ -386,6 +387,7 @@ class DbBasedCore(QueryingCore):
 				del res.getPrimaryTable().rows[-1]
 				queryMeta["Overflow"] = True
 		return res
+
 core.registerCore("db", DbBasedCore)
 
 

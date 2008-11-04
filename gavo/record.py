@@ -110,6 +110,9 @@ class DataFieldList(list):
 		list.__init__(self, *args)
 		self.destIndex = dict([(f.get_dest(), ct) for ct, f in enumerate(self)])
 
+	def __contains__(self, fieldName):
+		return fieldName in self.destIndex
+
 	def append(self, item):
 		key = item.get_dest()
 		if key in self.destIndex:

@@ -379,24 +379,12 @@ class TextResponse(BaseResponse):
 class TarResponse(BaseResponse):
 	"""delivers a tar of products requested.
 	"""
-	def getHeaderVals(self, data):
-		if data.queryMeta.get("Overflow"):
-			return "truncated_data.tar", "application/x-tar"
-		else:
-			return "data.tar", "application/x-tar"
-
 	def _handleData(self, data, ctx):
-		name, mime = self.getHeaderVals(data)
+		queryMeta = data.queryMeta
 		request = inevow.IRequest(ctx)
-		request.setHeader('content-disposition', 
-			'attachment; filename=%s'%name)
-		request.setHeader("content-type", mime)
-
-		def writeTar(outF):
-			producttar.getTarMaker().writeProductTar(outF, data,
-				request.getUser(), request.getPassword())
-
-		return streaming.streamOut(writeTar, request)
+		return producttar.getTarMaker(
+			).deliverProductTar(data, request, queryMeta
+			).addErrback(self._handleError, ctx)
 
 	def _handleError(self, failure, ctx):
 		failure.printTraceback()

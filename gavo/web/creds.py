@@ -48,7 +48,10 @@ def getGroupsForUser(username, password, async=True):
 			return set()
 	if username=='gavoadmin' and (
 			password and password==config.get("web", "adminpasswd")):
-		return AllSet()
+		if async:
+			return defer.succeed(AllSet())
+		else:
+			return AllSet()
 	query = ("SELECT groupname FROM users.groups NATURAL JOIN users.users as u"
 		" where username=%(username)s AND u.password=%(password)s")
 	pars = {"username": username, "password": password}

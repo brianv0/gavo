@@ -6,26 +6,26 @@ Everything in this module expects the product interface, i.e., tables
 must at least contain accref, owner, embargo, and accsize fields.
 """
 
-# XXX TODO: shouldn't this be an output filter?  Or even a core?
-# Of course, that would it make kind of hard to keep it in OutputOptions...
+# XXX TODO: this should eventually become a renderer on the product core,
+# redirected to from the current TarResponse.
 
-import cStringIO
+from cStringIO import StringIO
 import os
 import tarfile
 import tempfile
 import time
 
+import gavo
 from gavo import config
 from gavo import datadef
 from gavo import resourcecache
 from gavo import sqlsupport
 from gavo import table
 from gavo.parsing import resource
-from gavo.web import creds
+from gavo.web import core
 from gavo.web import product
+from gavo.web import streaming
 
-
-_tarGenFields = set(["key", "owner", "embargo", "accessPath"])
 
 class UniqueNameGenerator:
 	"""is a factory to build unique file names from possibly ambiguous ones.
@@ -58,85 +58,101 @@ class ProductTarMaker:
 	You probably don't want to instanciate it directly but instead get a copy
 	through the getProductMaker function below.
 
-	Then call getTarFileName with the coreResult of a query, and you'll 
-	receive a file name containing the desired tar file.
+	You call writeProductTar(matchedRows, queryMeta, destination), 
+	which then will:
+
+	* extract the accrefs from matchedRows, raising a ValidationError on
+	  _OUTPUT if the accref column is missing,
+	* make an input data set containing only the accrefs,
+	* pass that to the product core,
+	* evaluate the result of the product core to add the files to a tar
+	  archive that is written to destination,
 	"""
 	def __init__(self):
 		self.rd = resourcecache.getRd("__system__/products/products")
-		self.items = [f for f in self.rd.getTableDefByName("products").get_items()
-			if f.get_dest() in _tarGenFields]
-		self.dd = resource.makeRowsetDataDesc(self.rd, self.items)
-
-	def _getProducts(self, table):
-		"""returns a list of product keys and sizes for products present in table.
-		"""
-		return [row["accref"] for row in table.rows if row["accref"]]
-
-	def _resolveProductKeys(self, keyList):
-		"""returns a list of paths to products from a list as returned by
-		_getProducts.
-		"""
-		sq = sqlsupport.SimpleQuerier()
-# We currently have a bit of an encoding mess in the various databases,
-# so pull the strings down to bytestring.  Don't use non-ascii chars
-# in your filenames...
-		keyList = [str(k) for k in keyList]
-		if keyList:
-			res = sq.query(
-				"SELECT %s FROM products WHERE key IN %%(keys)s"%(
-					", ".join([f.get_dest() for f in self.items])),
-				{"keys": keyList}).fetchall()
-		else:
-			res = []
-		return resource.InternalDataSet(self.dd, table.Table, res)
+		self.core = core.getStandardCore("product")(self.rd, {})
 
 	def _getEmbargoedFile(self, name):
-		stuff = cStringIO.StringIO("This file is embargoed.  Sorry.\n")
+		stuff = StringIO("This file is embargoed.  Sorry.\n")
 		b = tarfile.TarInfo(name)
 		b.size = len(stuff.getvalue())
 		b.mtime = time.time()
 		return b, stuff
 
-	def _writeTar(self, destFile, productData, allowedGroups):
+	def _getTarInfoFromProduct(self, prod, name):
+		"""returns a tar info from a general product.PlainProduct instance
+		prod.
+
+		This is relatively inefficient for data that's actuall on disk,
+		so you should only use it when data is being computed on the fly.
+		"""
+		assert not isinstance(prod, product.UnauthorizedProduct)
+		stuff = StringIO()
+		prod(stuff)
+		stuff.seek(0)
+		b = tarfile.TarInfo(name)
+		b.size = len(stuff.getvalue())
+		b.mtime = time.time()
+		return b, stuff
+
+	def _getHeaderVals(self, queryMeta):
+		if queryMeta.get("Overflow"):
+			return "truncated_data.tar", "application/x-tar"
+		else:
+			return "data.tar", "application/x-tar"
+
+	def _productsToTar(self, productData, destination):
 		"""actually writes the tar.
 
 		allowedGroups should be a set of groups the currently logged in user
 		belongs to.
 		"""
-		fName = "data.tar"
 		nameGen = UniqueNameGenerator()
-		outputTar = tarfile.TarFile(fName, "w", destFile)
+		outputTar = tarfile.TarFile("data.tar", "w", destination)
 		for prodRec in productData.getPrimaryTable():
-			targetName = nameGen.makeName(os.path.basename(prodRec["accessPath"]))
-			if (not product.isFree(prodRec) and 
-					prodRec["owner"] not in allowedGroups):
-				outputTar.addfile(*self._getEmbargoedFile(targetName))
-			else:
-				outputTar.add(os.path.join(config.get("inputsDir"), 
-					prodRec["accessPath"]), targetName)
+			src = prodRec["source"]
+			if isinstance(src, product.NonExistingProduct):
+				continue # just skip files that somehow don't exist any more
+			if src.sourcePath:  # actual file in the file system
+				targetName = nameGen.makeName(os.path.basename(src.sourcePath))
+				if isinstance(src, product.UnauthorizedProduct):
+					outputTar.addfile(*self._getEmbargoedFile(targetName))
+				else:
+					outputTar.add(src.sourcePath, targetName)
+			else: # anything else is read from the src
+				outputTar.addfile(*self._getTarInfoFromProduct(src,
+					nameGen.makeName(os.path.basename(src.fullFilePath))))
 		outputTar.close()
+		return ""  # finish off request if necessary.
 
-	def _getGroups(self, user, password):
-		if user is None:
-			return set()
-		else:
-			return creds.getGroupsForUser(user, password, async=False)
+	def _streamOutTar(self, productData, request, queryMeta):
+		name, mime = self._getHeaderVals(queryMeta)
+		request.setHeader('content-disposition', 
+			'attachment; filename=%s'%name)
+		request.setHeader("content-type", mime)
 
-	def writeProductTar(self, destination, coreResult, user, password):
-		"""writes a tar file containing all accessible products in coreResult's 
-		primary table to destination.
+		def writeTar(dest):
+			self._productsToTar(productData, dest)
+		return streaming.streamOut(writeTar, request)
+
+	def deliverProductTar(self, coreResult, request, queryMeta):
+		"""delivers a tar file containing all accessible products in coreResult's 
+		primary table to request.
 
 		All errors must be handled upstream.
 
-		The caller is responsible for cleaning up the file if no error occurred.
-
-		If you don't have protected resources, you can pass None as user
-		and password.
+		The caller is responsible for cleaning up the destination even if 
+		no error occurred.
 		"""
-		self._writeTar(destination, 
-			self._resolveProductKeys(self._getProducts(
-				coreResult.getPrimaryTable())),
-			self._getGroups(user, password))
+		table = coreResult.getPrimaryTable()
+		if "accref" not in table.fieldDefs:
+			raise gavo.ValidationError("This query does not select any"
+				" columns with access references", "_OUTPUT")
+		inputData = resource.makeSimpleData([
+				datadef.DataField(dest="key", source="accref", dbtype="text")], 
+			table.rows, mungeFields=False)
+		return self.core.run(inputData, queryMeta
+			).addCallback(self._streamOutTar, request, queryMeta)
 
 
 _tarmaker = None

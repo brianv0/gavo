@@ -246,10 +246,6 @@ class SiapCutoutCore(standardcores.DbBasedCore):
 	# This should become a nodebuilder property or something once we 
 	# compress the stuff or have images with bytes per pixel != 2
 	bytesPerPixel = 2
-	# XXX TODO: this hack suppresses tar output.  Ideally, we'd support
-	# tars of cutouts as well.  I guess that's an easy change in producttar,
-	# but I'm in a hurry now
-	notar = True
 
 	def __init__(self, *args, **kwargs):
 		self.interfaceFields = dict([(d.get_dest(), d)

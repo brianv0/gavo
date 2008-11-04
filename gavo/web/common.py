@@ -37,6 +37,20 @@ class Error(gavo.Error):
 Undefined = object()
 
 
+class UnknownURI(Error):
+	"""signifies that a HTTP 404 should be returned by the dispatcher.
+	"""
+
+class ForbiddenURI(Error):
+	"""signifies that a HTTP 403 should be returned by the dispatcher.
+	"""
+
+class WebRedirect(Error):
+	"""causes the dispatcher to redirect the client to the URL in the exception's
+	value.
+	"""
+
+
 def resolvePath(rootPath, relPath):
 	"""joins relPath to rootPath and makes sure the result really is
 	in rootPath.
@@ -50,19 +64,6 @@ def resolvePath(rootPath, relPath):
 		raise UnknownURI("Invalid path %s.  This should not happen."%fullPath)
 	return fullPath
 
-
-class UnknownURI(Error):
-	"""signifies that a HTTP 404 should be returned by the dispatcher.
-	"""
-
-class ForbiddenURI(Error):
-	"""signifies that a HTTP 403 should be returned by the dispatcher.
-	"""
-
-class WebRedirect(Error):
-	"""causes the dispatcher to redirect the client to the URL in the exception's
-	value.
-	"""
 
 def parseServicePath(serviceParts):
 	"""returns a tuple of resourceDescriptor, serviceName.
