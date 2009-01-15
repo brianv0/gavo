@@ -9,7 +9,9 @@ import unittest
 
 import testhelpers
 
-from gavo import unitconv
+from gavo import base
+from gavo import rscdef
+from gavo.base import unitconv
 
 
 class GrammarTest(testhelpers.VerboseTest):
@@ -17,7 +19,7 @@ class GrammarTest(testhelpers.VerboseTest):
 		for expr, res in examples:
 			try:
 				self.assertEqual(str(self.unitGrammar.parseString(expr)[0]), res)
-			except unitconv.ParseException:
+			except base.ParseException:
 				raise AssertionError("%s doesn't parse"%expr)
 			except:
 				sys.stderr.write("\nFailed example is %s\n"%expr)
@@ -25,7 +27,7 @@ class GrammarTest(testhelpers.VerboseTest):
 
 	def _assertFailures(self, *examples):
 		for expr in examples:
-			self.assertRaisesVerbose(unitconv.ParseException,
+			self.assertRaisesVerbose(base.ParseException,
 				self.unitGrammar.parseString, (expr,), 
 				"%s is bad but was accepted"%expr)
 
@@ -34,7 +36,7 @@ class UnitsStringTest(GrammarTest):
 	"""tests for parsing of unit strings.
 	"""
 	def setUp(self):
-		self.unitGrammar = unitconv.getUnitGrammar()
+		self.unitGrammar = base.unitconv.getUnitGrammar()
 
 	def testExpressions(self):
 		"""tests for correct parsing of "good" unit strings.
@@ -71,17 +73,17 @@ class ElementaryUnitTest(GrammarTest):
 	parsed as <milli><year>*crash*.
 	"""
 	def setUp(self):
-		self.unitGrammar = unitconv.getUnitGrammar()
+		self.unitGrammar = base.unitconv.getUnitGrammar()
 
 	def testUnits(self):
-		self._assertResults(*[(unit, unit) for unit in unitconv.units])
+		self._assertResults(*[(unit, unit) for unit in base.unitconv.units])
 
 
 class NormalizationTest(unittest.TestCase):
 	"""tests for correct normalization of unit expressions.
 	"""
 	def setUp(self):
-		self.unitGrammar = unitconv.getUnitGrammar()
+		self.unitGrammar = base.unitconv.getUnitGrammar()
 	
 	def testNormalization(self):
 		"""tests for correct normalization of unit expressions.
@@ -109,7 +111,7 @@ class ConvFactorTest(testhelpers.VerboseTest):
 				(("arcsec/a", "mas/d"), 2.737851),
 				(("kHz", "GHz"), 1e-6),
 			]:
-			res = unitconv.getFactor(*example)
+			res = base.computeConversionFactor(*example)
 			self.assertAlmostEqual(res, expected, 6, msg="getFactor%s yielded %f,"
 				" expected %f."%(example, res, expected))
 
@@ -117,15 +119,43 @@ class ConvFactorTest(testhelpers.VerboseTest):
 		"""tests for correct exceptions raised for bad unit strings or conversions.
 		"""
 		for example, exception in [
-				(("m7v", "cm/s"), unitconv.BadUnit),
-				(("m/ks", "cm..s"), unitconv.BadUnit),
-				(("m/s", "V/m"), unitconv.IncompatibleUnits),
-				(("arcsec/m", "byte"), unitconv.IncompatibleUnits),
+				(("m7v", "cm/s"), base.BadUnit),
+				(("m/ks", "cm..s"), base.BadUnit),
+				(("m/s", "V/m"), base.IncompatibleUnits),
+				(("arcsec/m", "byte"), base.IncompatibleUnits),
 			]:
-			self.assertRaisesVerbose(exception, unitconv.getFactor, example,
+			self.assertRaisesVerbose(exception, base.computeConversionFactor, example,
 				"getFactors%s didn't raise an exception (or raised the wrong"
 				" one)")
 
 
+class ColumnConvTest(testhelpers.VerboseTest):
+	"""tests for bulk conversion factor computation.
+	"""
+	def _mCL(self, *units):
+		return rscdef.ColumnList(rscdef.Column(None, name="col%d"%ind, unit=u)
+			for ind, u in enumerate(units))
+
+	def testNull(self):
+		res = base.computeColumnConversions(self._mCL("m", "s"),
+			self._mCL("m", "s"))
+		self.assertEqual(res, {})
+
+	def testSimple(self):
+		res = base.computeColumnConversions(self._mCL("km", "s"),
+			self._mCL("m", "h"))
+		self.assertEqual(res, {'col0': 0.001, 'col1': 3600})
+
+	def testRaises(self):
+		# Bad: Col in new but not in old.
+		self.assertRaisesWithMsg(base.DataError, "Request for column col2 from"
+				" [<Column col0>, <Column col1>] cannot be satisfied"
+				" in [<Column col0>, <Column col1>, <Column col2>]",
+			base.computeColumnConversions, (self._mCL("km", "s", "arcsec"),
+			self._mCL("m", "h")))
+		# Ok: Col in old but not in new
+		base.computeColumnConversions(self._mCL("km", "s"),
+			self._mCL("m", "h", "arcsec"))
+
 if __name__=="__main__":
-	testhelpers.main(ElementaryUnitTest)
+	testhelpers.main(ColumnConvTest)

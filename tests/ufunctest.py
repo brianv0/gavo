@@ -6,7 +6,9 @@ import re
 import unittest
 
 from gavo import adql
-from gavo import adqlglue
+from gavo import rscdesc
+from gavo.protocols import adqlglue
+from gavo.protocols import simbadinterface # for getSesame registration
 from gavo.adql import ufunctions # magic registration of ufuncs takes place
                                  # during import
 

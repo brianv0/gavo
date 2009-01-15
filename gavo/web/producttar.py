@@ -15,15 +15,10 @@ import tarfile
 import tempfile
 import time
 
-import gavo
-from gavo import config
-from gavo import datadef
-from gavo import resourcecache
-from gavo import sqlsupport
-from gavo import table
-from gavo.parsing import resource
-from gavo.web import core
-from gavo.web import product
+from gavo import base
+from gavo import grammars
+from gavo import rsc
+from gavo.protocols import products
 from gavo.web import streaming
 
 
@@ -52,7 +47,7 @@ class UniqueNameGenerator:
 				return name
 
 
-class ProductTarMaker:
+class ProductTarMaker(object):
 	""" is a factory for tar files.
 
 	You probably don't want to instanciate it directly but instead get a copy
@@ -69,8 +64,10 @@ class ProductTarMaker:
 	  archive that is written to destination,
 	"""
 	def __init__(self):
-		self.rd = resourcecache.getRd("__system__/products/products")
-		self.core = core.getStandardCore("product")(self.rd, {})
+		self.rd = base.caches.getRD("__system__/products")
+		self.core = self.rd.getById("forTar")
+		self.inputDD = self.core.inputDD.copy(None)
+		self.inputDD.grammar = base.makeStruct(grammars.DictlistGrammar)
 
 	def _getEmbargoedFile(self, name):
 		stuff = StringIO("This file is embargoed.  Sorry.\n")
@@ -80,13 +77,13 @@ class ProductTarMaker:
 		return b, stuff
 
 	def _getTarInfoFromProduct(self, prod, name):
-		"""returns a tar info from a general product.PlainProduct instance
+		"""returns a tar info from a general products.PlainProduct instance
 		prod.
 
 		This is relatively inefficient for data that's actuall on disk,
 		so you should only use it when data is being computed on the fly.
 		"""
-		assert not isinstance(prod, product.UnauthorizedProduct)
+		assert not isinstance(prod, products.UnauthorizedProduct)
 		stuff = StringIO()
 		prod(stuff)
 		stuff.seek(0)
@@ -111,11 +108,11 @@ class ProductTarMaker:
 		outputTar = tarfile.TarFile("data.tar", "w", destination)
 		for prodRec in productData.getPrimaryTable():
 			src = prodRec["source"]
-			if isinstance(src, product.NonExistingProduct):
+			if isinstance(src, products.NonExistingProduct):
 				continue # just skip files that somehow don't exist any more
 			if src.sourcePath:  # actual file in the file system
 				targetName = nameGen.makeName(os.path.basename(src.sourcePath))
-				if isinstance(src, product.UnauthorizedProduct):
+				if isinstance(src, products.UnauthorizedProduct):
 					outputTar.addfile(*self._getEmbargoedFile(targetName))
 				else:
 					outputTar.add(src.sourcePath, targetName)
@@ -136,23 +133,16 @@ class ProductTarMaker:
 		return streaming.streamOut(writeTar, request)
 
 	def deliverProductTar(self, coreResult, request, queryMeta):
-		"""delivers a tar file containing all accessible products in coreResult's 
-		primary table to request.
-
-		All errors must be handled upstream.
-
-		The caller is responsible for cleaning up the destination even if 
-		no error occurred.
+		"""causes a tar containing all accrefs mentioned in coreResult
+		to be streamed out via request.
 		"""
-		table = coreResult.getPrimaryTable()
-		if "accref" not in table.fieldDefs:
-			raise gavo.ValidationError("This query does not select any"
+		table = coreResult.original.getPrimaryTable()
+		if "accref" not in table.tableDef.columns:
+			raise base.ValidationError("This query does not select any"
 				" columns with access references", "_OUTPUT")
-		inputData = resource.makeSimpleData([
-				datadef.DataField(dest="key", source="accref", dbtype="text")], 
-			table.rows, mungeFields=False)
-		return self.core.run(inputData, queryMeta
-			).addCallback(self._streamOutTar, request, queryMeta)
+		inputData = rsc.makeData(self.inputDD, forceSource=table.rows)
+		prods = self.core.run(coreResult.service, inputData, queryMeta)
+		return self._streamOutTar(prods, request, queryMeta)
 
 
 _tarmaker = None

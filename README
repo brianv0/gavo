@@ -1,17 +1,9 @@
 In here is the gavo python module, containing functions and classes to deal
 with archives of astronomical data.
 
-Notes
-=====
+This is the branch containing a rewrite of the parsing infrastructure.
+It was branched off trunk at r490.
 
-If you really need HTM (Hierarchical Triangular Mesh) support, there's
-a quick binding to the c++ htm library available at 
-http://ara.ari.uni-heidelberg.de/soft/python.  To generate a level 20
-htm id using the handleEquatorialPosition macro, set supportHtm to
-True in gavo/parsing/macros.py.  You'll also need to uncomment the
-respective fields in resources/inputs/__common__/positionfields.template
+Last merge from trunk:
 
-However, we recommend using q3c for efficient cone searches. It doesn't need
-any of this.  See
-http://www.sai.msu.su/~megera/oddmuse/index.cgi/SkyPixelization,
-2006ASPC..351..735K, or http://q3c.sf.net/
+svn merge -r490:494 https://svn.ari.uni-heidelberg.de/svn/gavo/python/trunk

@@ -12,39 +12,33 @@ from nevow import tags as T, entities as E
 
 from zope.interface import implements
 
-import gavo
-from gavo import resourcecache
-from gavo import sqlsupport
-from gavo.parsing import contextgrammar
+from gavo import base
+from gavo import svcs
 from gavo.web import common
-from gavo.web import creds
+from gavo.web import grend
 from gavo.web import resourcebased
 
 
-class Error(gavo.Error):
-	pass
-
-
-class BlockRdRenderer(resourcebased.ServiceBasedRenderer):
+class BlockRDRenderer(grend.ServiceBasedRenderer):
 	"""is a renderer used for blocking RDs from the web interface.
 	"""
 	name = None   # may be used on all services
 
 	def data_blockstate(self, ctx, data):
-		if hasattr(self.rd, "currently_blocked"):
+		if hasattr(self.service.rd, "currently_blocked"):
 			return "blocked"
 		return "unblocked"
 
 	def data_rdId(self, ctx, data):
-		return str(self.rd.sourceId)
+		return str(self.service.rd.sourceId)
 
 	def renderHTTP(self, ctx):
-		return creds.runAuthenticated(ctx, "admin", self.realRenderHTTP,
+		return common.runAuthenticated(ctx, "admin", self.realRenderHTTP,
 			ctx)
 
 	def realRenderHTTP(self, ctx):
-		self.rd.currently_blocked = True
-		return resourcebased.ServiceBasedRenderer.renderHTTP(self, ctx)
+		self.service.rd.currently_blocked = True
+		return grend.ServiceBasedRenderer.renderHTTP(self, ctx)
 
 	defaultDocFactory = loaders.stan(
 		T.html[
@@ -64,6 +58,7 @@ class BlockRdRenderer(resourcebased.ServiceBasedRenderer):
 			]
 		])
 
+grend.registerRenderer("block", BlockRDRenderer)
 
 class RendExplainer(object):
 	"""is a container for various functions having to do with explaining
@@ -86,8 +81,8 @@ class RendExplainer(object):
 			try:
 				next = fieldIter.next()
 				while True:
-					desc = "%s/%s"%(next.get_dest(), next.get_dbtype())
-					if not next.get_optional():
+					desc = "%s/%s"%(next.name, next.type)
+					if next.required:
 						desc = T.strong[desc]
 					yield desc
 					next = fieldIter.next()
@@ -131,7 +126,7 @@ class RendExplainer(object):
 	def _explain_scs_xml(cls, service):
 		return T.invisible["a standard SCS interface as defined by the"
 			" IVOA to access catalog-type data; SCS clients"
-			" use ", service.getURL("siap.xml"), " to access the service"]
+			" use ", service.getURL("scs.xml"), " to access the service"]
 
 	@classmethod
 	def _explain_upload(cls, service):
@@ -196,25 +191,23 @@ class MetaRenderMixin(object):
 		current service will be excluded from the list in this case.
 		"""
 		res = []
-		for svcId in self.describingRD.itemsof_service():
-			svc = self.describingRD.get_service(svcId)
+		for svc in self.describingRD.services:
 			if svc is not self.service:
 				res.append({"infoURL": svc.getURL("info"),
 					"title": unicode(svc.getMeta("title"))})
 		return res
 	
 
-class ServiceInfoRenderer(resourcebased.ServiceBasedRenderer,
+class ServiceInfoRenderer(grend.ServiceBasedRenderer,
 		MetaRenderMixin):
 	"""is a renderer that shows information about a service.
 	"""
-# XXX TODO: Do something about output filters (or do away with them)
 	name = None  # allow on all services
 	
 	customTemplate = common.loadSystemTemplate("serviceinfo.html")
 
 	def __init__(self, *args, **kwargs):
-		resourcebased.ServiceBasedRenderer.__init__(self, *args, **kwargs)
+		grend.ServiceBasedRenderer.__init__(self, *args, **kwargs)
 		self.describingRD = self.service.rd
 
 	def render_title(self, ctx, data):
@@ -227,9 +220,10 @@ class ServiceInfoRenderer(resourcebased.ServiceBasedRenderer,
 		T.th["Unit"], T.th["UCD"]]
 			
 	def data_inputFields(self, ctx, data):
-		grammar = self.service.get_inputFilter().get_Grammar()
-		if isinstance(grammar, contextgrammar.ContextGrammar):
-			res = [f.asInfoDict() for f in grammar.get_inputKeys()]
+		grammar = self.service.inputDD.grammar
+		if isinstance(grammar, svcs.ContextGrammar):
+			res = [f.asInfoDict() for f in grammar.inputKeys+
+				self.service.serviceKeys]
 			res.sort(lambda a,b: cmp(a["name"], b["name"]))
 		else:
 			res = None
@@ -242,18 +236,20 @@ class ServiceInfoRenderer(resourcebased.ServiceBasedRenderer,
 		return res
 
 	def data_votableOutputFields(self, ctx, data):
-		queryMeta = common.QueryMeta({"_FORMAT": ["VOTable"], "_VERB": [3]})
-		res = [f.asInfoDict() for f in self.service.getCurOutputFields(queryMeta)]
+		queryMeta = svcs.QueryMeta({"_FORMAT": "VOTable", "_VERB": 3})
+		res = [f.asInfoDict() 
+			for f in self.service.getCurOutputFields(queryMeta)]
 		res.sort(lambda a,b: cmp(a["verbLevel"], b["verbLevel"]))
 		return res
 
 	def data_rendAvail(self, ctx, data):
 		return [{"rendName": rend, 
 				"rendExpl": RendExplainer.explain(rend, self.service)}
-			for rend in self.service.get_allowedRenderers()]
+			for rend in self.service.allowed]
 
 	def data_publications(self, ctx, data):
-		res = [p for p in self.service.get_publications() if p["sets"]]
+		res = [{"sets": p.sets, "render": p.render} 
+			for p in self.service.publications if p.sets]
 		return sorted(res, key=lambda v: v["render"])
 
 	defaultDocFactory = common.doctypedStan(
@@ -264,6 +260,7 @@ class ServiceInfoRenderer(resourcebased.ServiceBasedRenderer,
 				T.p["Infos are only available with a serviceinfo.html template"]]
 		])
 
+grend.registerRenderer("info", ServiceInfoRenderer)
 
 def basename(tableName):
 	if "." in tableName:
@@ -272,7 +269,7 @@ def basename(tableName):
 		return tableName
 
 
-class TableInfoRenderer(resourcebased.ServiceBasedRenderer,
+class TableInfoRenderer(grend.ServiceBasedRenderer,
 		MetaRenderMixin):
 	name = "tableinfo"
 	customTemplate = common.loadSystemTemplate("tableinfo.html")
@@ -283,27 +280,28 @@ class TableInfoRenderer(resourcebased.ServiceBasedRenderer,
 		T.th["Unit"], T.th["UCD"]]
 
 	def __init__(self, ctx, service):
-		resourcebased.ServiceBasedRenderer.__init__(self, ctx, service)
+		grend.ServiceBasedRenderer.__init__(self, ctx, service)
 		self.tableName = inevow.IRequest(ctx).args["tableName"][0]
 		self._fillTableInfo()
 	
 	def _fillTableInfo(self):
-		q = sqlsupport.SimpleQuerier()
+		q = base.SimpleQuerier()
 		c = q.query("SELECT sourceRd, adql FROM dc_tables WHERE"
 			" tableName=%(tableName)s", {"tableName": self.tableName})
 		res = c.fetchall()
 		if len(res)!=1:
-			raise Error("%s is no accessible table in the data center"%self.tableName)
+			raise svcs.UnknownURI(
+				"%s is no accessible table in the data center"%self.tableName)
 		rdId, adql = res[0]
-		self.describingRD = resourcecache.getRd(rdId)
-		self.table = self.describingRD.getTableDefByName(basename(self.tableName))
+		self.describingRD = base.caches.getRD(rdId)
+		self.table = self.describingRD.getById(basename(self.tableName))
 
 	def data_forADQL(self, ctx, data):
-		return self.table.get_adql()
+		return self.table.adql
 
 	def data_fields(self, ctx, data):
-		res = [f.asInfoDict() for f in self.table.get_items()]
-		res.sort(lambda a,b: cmp(a["name"], b["name"]))
+		res = [f.asInfoDict() for f in self.table]
+		res.sort(key=lambda item: item["name"])
 		return res
 
 	def render_title(self, ctx, data):
@@ -339,7 +337,7 @@ class TableInfoRenderer(resourcebased.ServiceBasedRenderer,
 			metaCarrier=None):
 		if not metaCarrier:
 			metaCarrier = self.table
-		return resourcebased.ServiceBasedRenderer._doRenderMeta(
+		return grend.ServiceBasedRenderer._doRenderMeta(
 			self, ctx, raiseOnFail, plain, metaCarrier)
 
 	defaultDocFactory = common.doctypedStan(
@@ -350,3 +348,4 @@ class TableInfoRenderer(resourcebased.ServiceBasedRenderer,
 				T.p["Infos are only available with a tableinfo.html template"]]
 		])
 
+grend.registerRenderer("tableinfo", TableInfoRenderer)

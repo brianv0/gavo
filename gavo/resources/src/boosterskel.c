@@ -65,7 +65,7 @@ static void handleBadRecord(char *format, ...)
 		(void)fprintf(stderr, "Bad Record: %s\n", context);
 	}
 #ifndef IGNORE_BAD_RECORDS
-		die(stderr, format, ap);
+		die(format, ap);
 #else
 		longjmp(ignoreRecord, 1);
 #endif
@@ -601,6 +601,7 @@ void createDumpfile(int argc, char **argv)
 			if (!(lncount%1000)) {
 				fprintf(stderr, "%08d\r", lncount);
 				fflush(stderr);
+				break;
 			}
 		}
 	}

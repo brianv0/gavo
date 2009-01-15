@@ -6,18 +6,17 @@ You shouldn't run this on your production server.  Really.
 
 import unittest
 
-from gavo import config
-from gavo import sqlsupport
-from gavo.parsing import importparser
-from gavo.web import creds
+from gavo import base
+from gavo import rscdesc
+from gavo.protocols import creds
 
 
 creds.adminProfile = "test"
 
 class TestGroupsMembership(unittest.TestCase):
 	def setUp(self):
-		config.setDbProfile("test")
-		self.querier = sqlsupport.SimpleQuerier()
+		base.setDBProfile("test")
+		self.querier = base.SimpleQuerier()
 		creds._addUser(self.querier, "X_test", "megapass")
 		creds._addUser(self.querier, "Y_test", "megapass", "second test user")
 		creds._addGroup(self.querier, "X_test", "X_testgroup")
@@ -26,11 +25,11 @@ class TestGroupsMembership(unittest.TestCase):
 	def testGroupsForUser(self):
 		"""tests for correctness of getGroupsForUser.
 		"""
-		self.assertEqual(creds.getGroupsForUser("X_test", "wrongpass", async=False),
+		self.assertEqual(creds.getGroupsForUser("X_test", "wrongpass"),
 			set(), "Wrong password should yield empty set but doesn't")
-		self.assertEqual(creds.getGroupsForUser("X_test", "megapass", async=False),
+		self.assertEqual(creds.getGroupsForUser("X_test", "megapass"),
 			set(["X_test", "X_testgroup"]))
-		self.assertEqual(creds.getGroupsForUser("Y_test", "megapass", async=False),
+		self.assertEqual(creds.getGroupsForUser("Y_test", "megapass"),
 			set(["Y_test"]))
 
 	def tearDown(self):

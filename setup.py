@@ -30,12 +30,12 @@ setup(name="gavo",
 		"http://www.stsci.edu/resources/software_hardware/pyfits/Download"],
 	entry_points={
 		'console_scripts': [
-			'gavoimp = gavo.parsing.commandline:main',
-			'gavocred = gavo.web.creds:main',
+			'gavoimp = gavo.commandline:main',
+			'gavocred = gavo.protocols.creds:main',
 			'gavomkrd = gavo.parsing.mkrd:main',
-			'gavopublish = gavo.web.servicelist:main',
-			'gavomkboost = gavo.parsing.directgrammar:main',
-			'gavoconfig = gavo.config:main',
+			'gavopublish = gavo.protocols.servicelist:main',
+			'gavomkboost = gavo.grammars.directgrammar:main',
+			'gavoconfig = gavo.base.config:main',
 		]
 	},
-	version="0.2")
+	version="0.3")

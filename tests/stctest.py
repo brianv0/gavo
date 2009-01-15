@@ -4,7 +4,7 @@ Tests for handling ivoa stc specifications.
 
 import unittest
 
-from gavo import stc
+from gavo.protocols import stc
 
 import testhelpers
 

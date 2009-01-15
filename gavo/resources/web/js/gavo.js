@@ -76,7 +76,11 @@ function makeQueryItem(element) {
 	switch (element.nodeName) {
 		case "INPUT":
 		case "TEXTAREA":
-			if (element.name && element.value) {
+			if (element.type=="radio") {
+				if (element.checked) {
+					val = element.name+"="+encodeURIComponent(element.value);
+				}
+			} else if (element.name && element.value) {
 				val = element.name+"="+encodeURIComponent(element.value);
 			}
 			break;

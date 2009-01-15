@@ -7,11 +7,13 @@ This only works with psycopg2.
 import sys
 import unittest
 
-from gavo import config
-from gavo import coords
-from gavo import datadef
-from gavo import nullui
-from gavo import sqlsupport
+from gavo import base
+from gavo import rsc
+from gavo import rscdesc
+from gavo import svcs
+from gavo import protocols
+from gavo.base import coords
+from gavo.base import sqlsupport
 
 import testhelpers
 
@@ -20,28 +22,22 @@ class TestTypes(unittest.TestCase):
 	"""Tests for some special adapters we provide.
 	"""
 	def setUp(self):
-		config.setDbProfile("test")
-		tableDef = testhelpers.getTestTable("misctypes")
-		tw = sqlsupport.TableWriter(tableDef)
-		tw.createTable()
-		feed = tw.getFeeder()
-		feed({"box": coords.Box(1,2,3,4)})
-		tw.finish()
-		self.tableName = tableDef.getQName()
-
-	def testBoxUnpack(self):
-		querier = sqlsupport.SimpleQuerier()
-		try:
-			r = querier.query(
-				"SELECT * FROM %s WHERE box IS NOT NULL"%self.tableName).fetchall()
-			self.assertEqual(r[0][0][0], (2,4))
-			self.assertEqual(r[0][0][1], (1,3))
-		finally:
-			querier.close()
+		base.setDBProfile("test")
+		dd = testhelpers.getTestRD().getById("boxTest")
+		self.data = rsc.makeData(dd, forceSource=[{"box": coords.Box(1,2,3,4)}])
+		self.table = self.data.tables["misctypes"]
 
 	def tearDown(self):
-		sqlsupport.SimpleQuerier().runIsolatedQuery(
-			"DROP TABLE %s CASCADE"%self.tableName)
+		self.data.dropTables()
+
+	def testBoxUnpack(self):
+		rows = [r for r in 
+			self.table.iterQuery(
+				svcs.OutputTableDef.fromTableDef(self.table.tableDef), 
+				"box IS NOT NULL")]
+		self.assertEqual(rows[0]["box"][0], (2,4))
+		self.assertEqual(rows[0]["box"][1], (1,3))
+
 
 
 class TestWithTableCreation(unittest.TestCase):
@@ -49,7 +45,7 @@ class TestWithTableCreation(unittest.TestCase):
 
 	def _assertPrivileges(self, foundPrivs, expPrivs):
 		# profile user might not be mentioned in table acl, so retrofit it
-		profileUser = config.getDbProfile().get_user() 
+		profileUser = base.getDBProfile().user
 		expPrivs[profileUser] = foundPrivs[profileUser]
 		self.assertEqual(set(foundPrivs), set(expPrivs))
 		for role in foundPrivs:
@@ -60,18 +56,15 @@ class TestWithTableCreation(unittest.TestCase):
 	def setUp(self):
 		if self.tableName is None:
 			return
-		config.setDbProfile("test")
-		self.querier = sqlsupport.SimpleQuerier(useProfile="test")
+		base.setDBProfile("test")
+		self.querier = base.SimpleQuerier(useProfile="test")
 		self.tableDef = testhelpers.getTestTable(self.tableName)
-		tw = sqlsupport.TableWriter(self.tableDef)
-		tw.createTable()
-		tw.finish()
+		self.table = rsc.TableForDef(self.tableDef).commit()
 
 	def tearDown(self):
 		if self.tableName is None:
 			return
-		sqlsupport.SimpleQuerier().runIsolatedQuery("DROP TABLE %s CASCADE"%
-			self.tableDef.getQName())
+		self.table.drop().commit()
 
 
 class TestPrivs(TestWithTableCreation):
@@ -80,9 +73,9 @@ class TestPrivs(TestWithTableCreation):
 	tableName = "valspec"
 
 	def testDefaultPrivileges(self):
-		self._assertPrivileges(sqlsupport.getTablePrivileges(
-			self.tableDef.rd.get_schema(), self.tableDef.get_table(), self.querier),
-			sqlsupport.getACLFromRes(self.tableDef))
+		self._assertPrivileges(self.querier.getTablePrivileges(
+				self.tableDef.rd.schema, self.tableDef.id),
+			self.querier.getACLFromRes(self.tableDef))
 
 
 class TestADQLPrivs(TestPrivs):
@@ -95,19 +88,19 @@ class TestRoleSetting(TestPrivs):
 	tableName = "privtable"
 
 	def setUp(self):
-		config.setDbProfile("test")
-		q = sqlsupport.SimpleQuerier()
+		base.setDBProfile("test")
+		q = base.SimpleQuerier()
 		try:
 			q.query("create user privtestuser")
 			q.query("create user testadmin")
-		except sqlsupport.DbError: # probably left over from a previous crash
+		except base.DBError: # probably left over from a previous crash
 			sys.stderr.write("Test roles already present?  Rats.\n")
 		q.finish()
 		TestPrivs.setUp(self)
 	
 	def tearDown(self):
 		TestPrivs.tearDown(self)
-		q = sqlsupport.SimpleQuerier()
+		q = base.SimpleQuerier()
 		q.query("drop schema test cascade")
 		q.query("drop user privtestuser")
 		q.query("drop user testadmin")
@@ -118,7 +111,7 @@ class TestMetaTable(TestWithTableCreation):
 	tableName = "typestable"
 
 	def testDcTablesEntry(self):
-		q = sqlsupport.SimpleQuerier()
+		q = base.SimpleQuerier()
 		res = q.query("select * from dc_tables where tableName=%(n)s",
 			{"n": self.tableDef.getQName()}).fetchall()
 		qName, srcRd, td, rd, adql = res[0]
@@ -127,11 +120,11 @@ class TestMetaTable(TestWithTableCreation):
 		self.assertEqual(adql, False)
 
 	def testColInfo(self):
-		mh = sqlsupport.MetaTableHandler('test')
-		res = mh.getFieldInfos(self.tableDef.getQName())
-		self.assertEqual([(f.get_dest(), f.get_dbtype(), f.get_tablehead()) 
+		mh = rsc.MetaTableHandler('test')
+		res = mh.getColumnsForTable(self.tableDef.getQName())
+		self.assertEqual([(f.name, f.type, f.tablehead)
 				for f in res], [
-			(u'anint', 'int', u'An Integer'), 
+			(u'anint', 'integer', u'An Integer'), 
 			(u'afloat', 'real', u'Some Real'), 
 			(u'adouble', 'double precision', u'And a Double'), 
 			(u'atext', 'text', u'A string must be in here as well'), 
@@ -142,7 +135,7 @@ class TestMetaTableADQL(TestWithTableCreation):
 	tableName = "adqltable"
 
 	def testDcTablesEntry(self):
-		q = sqlsupport.SimpleQuerier()
+		q = base.SimpleQuerier()
 		res = q.query("select * from dc_tables where tableName=%(n)s",
 			{"n": self.tableDef.getQName()}).fetchall()
 		qName, srcRd, td, rd, adql = res[0]
@@ -151,12 +144,12 @@ class TestMetaTableADQL(TestWithTableCreation):
 		self.assertEqual(adql, True)
 
 	def testColInfo(self):
-		mh = sqlsupport.MetaTableHandler('test')
-		res = mh.getFieldInfos(self.tableDef.getQName())
-		self.assertEqual([(f.get_dest(), f.get_dbtype(), f.get_tablehead()) 
+		mh = rsc.MetaTableHandler('test')
+		res = mh.getColumnsForTable(self.tableDef.getQName())
+		self.assertEqual([(f.name, f.type, f.tablehead) 
 				for f in res], [
-			(u'foo', 'double precision', None), ])
+			(u'foo', 'double precision', 'foo'), ])
 
 
 if __name__=="__main__":
-	testhelpers.main(TestPrivs, "test")
+	testhelpers.main(TestMetaTable, "test")

@@ -2,7 +2,7 @@
 Tests for the configuration infrastructure.
 """
 
-from gavo import fancyconfig
+from gavo.utils import fancyconfig
 
 
 # The tests from fancyconfig itself

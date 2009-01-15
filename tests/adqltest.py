@@ -7,17 +7,20 @@ import unittest
 
 import pyparsing
 
-import testhelpers
+from gavo import rscdesc
+from gavo import protocols
 from gavo import adql
-from gavo import adqlglue
-from gavo import config
-from gavo import datadef
-from gavo import sqlsupport
+from gavo import base
+from gavo import rsc
+from gavo import rscdef
 from gavo.adql import morphpg
 from gavo.adql import nodes
 from gavo.adql import tree
-from gavo.parsing import importparser
-from gavo.parsing import resource
+from gavo.protocols import adqlglue
+
+
+import testhelpers
+
 
 class Error(Exception):
 	pass
@@ -355,22 +358,22 @@ class TreeParseTest(testhelpers.VerboseTest):
 
 
 spatialFields = [
-	datadef.DataField(dest="distance", ucd="phys.distance", unit="m"),
-	datadef.DataField(dest="width", ucd="phys.dim", unit="m"),
-	datadef.DataField(dest="height", ucd="phys.dim", unit="km"),
-	datadef.DataField(dest="ra1", ucd="pos.eq.ra;meta.main", unit="deg"),
-	datadef.DataField(dest="ra2", ucd="pos.eq.ra", unit="rad"),]
+	rscdef.Column(None, name="distance", ucd="phys.distance", unit="m"),
+	rscdef.Column(None, name="width", ucd="phys.dim", unit="m"),
+	rscdef.Column(None, name="height", ucd="phys.dim", unit="km"),
+	rscdef.Column(None, name="ra1", ucd="pos.eq.ra;meta.main", unit="deg"),
+	rscdef.Column(None, name="ra2", ucd="pos.eq.ra", unit="rad"),]
 miscFields = [
-	datadef.DataField(dest="mass", ucd="phys.mass", unit="kg"),
-	datadef.DataField(dest="mag", ucd="phot.mag", unit="mag"),
-	datadef.DataField(dest="speed", ucd="phys.veloc", unit="km/s")]
+	rscdef.Column(None, name="mass", ucd="phys.mass", unit="kg"),
+	rscdef.Column(None, name="mag", ucd="phot.mag", unit="mag"),
+	rscdef.Column(None, name="speed", ucd="phys.veloc", unit="km/s")]
 
 def _sampleFieldInfoGetter(tableName):
 	if tableName=='spatial':
-		return [(f.get_dest(), adqlglue.makeFieldInfo(f))
+		return [(f.name, adqlglue.makeFieldInfo(f))
 			for f in spatialFields]
 	elif tableName=='misc':
-		return [(f.get_dest(), adqlglue.makeFieldInfo(f))
+		return [(f.name, adqlglue.makeFieldInfo(f))
 			for f in miscFields]
 
 
@@ -703,47 +706,48 @@ class QueryTest(unittest.TestCase):
 	"""performs some actual queries to test the whole thing.
 	"""
 	def setUp(self):
-		config.setDbProfile("test")
-		self.rd = importparser.getRd(os.path.abspath("test.vord"))
-		ds = resource.InternalDataSet(
-			self.rd.getDataById("ADQLTest"),
-				dataSource=[
-				(22, 23, -27, 0),])
-		ds.exportToSQL()
-		self.tableName = self.rd.get_schema()+"."+ds.tables[0].name
+		base.setDBProfile("test")
+		self.rd = testhelpers.getTestRD()
+		self.ds = rsc.makeData(self.rd.getById("ADQLTest"),
+				forceSource=[
+				{"alpha": 22, "delta": 23, "mag": -27, "rv": 0},])
+		self.tableName = self.ds.tables["adql"].tableDef.getQName()
+
+	def tearDown(self):
+		self.ds.dropTables()
 
 	def _assertFieldProperties(self, dataField, expected):
 		for label, value in expected:
-			self.assertEqual(dataField.get(label), value, "Data field %s:"
-				" Expected %s for %s, found %s"%(dataField.get_dest(), repr(value), 
-					label, repr(dataField.get(label))))
+			self.assertEqual(getattr(dataField, label, None), value, "Data field %s:"
+				" Expected %s for %s, found %s"%(dataField.name, repr(value), 
+					label, repr(getattr(dataField, label, None))))
 
 	def testPlainSelect(self):
 		res = adqlglue.query("select alpha, delta from %s where mag<-10"%
 			self.tableName, queryProfile="test", metaProfile="test")
-		self.assertEqual(len(res.getPrimaryTable().rows), 1)
-		self.assertEqual(len(res.getPrimaryTable().rows[0]), 2)
-		self.assertEqual(res.getPrimaryTable().rows[0]["alpha"], 22.0)
-		raField, deField = res.getPrimaryTable().tableDef.get_items()
+		self.assertEqual(len(res.rows), 1)
+		self.assertEqual(len(res.rows[0]), 2)
+		self.assertEqual(res.rows[0]["alpha"], 22.0)
+		raField, deField = res.tableDef.columns
 		self._assertFieldProperties(raField, [("ucd", 'pos.eq.ra;meta.main'),
 			("description", 'A sample RA'), ("unit", 'deg'), 
 			("tablehead", "Raw RA")])
 		self._assertFieldProperties(deField, [("ucd", 'pos.eq.dec;meta.main'),
 			("description", 'A sample Dec'), ("unit", 'deg'), 
-			("tablehead", None)])
+			("tablehead", 'delta')])
 
 	def testStarSelect(self):
 		res = adqlglue.query("select * from %s where mag<-10"%
 			self.tableName, metaProfile="test", queryProfile="test")
-		self.assertEqual(len(res.getPrimaryTable().rows), 1)
-		self.assertEqual(len(res.getPrimaryTable().rows[0]), 4)
-		fields = res.getPrimaryTable().tableDef.get_items()
+		self.assertEqual(len(res.rows), 1)
+		self.assertEqual(len(res.rows[0]), 4)
+		fields = res.tableDef.columns
 		self._assertFieldProperties(fields[0], [("ucd", 'pos.eq.ra;meta.main'),
 			("description", 'A sample RA'), ("unit", 'deg'), 
 			("tablehead", "Raw RA")])
 		self._assertFieldProperties(fields[1], [("ucd", 'pos.eq.dec;meta.main'),
 			("description", 'A sample Dec'), ("unit", 'deg'), 
-			("tablehead", None)])
+			("tablehead", 'delta')])
 		self._assertFieldProperties(fields[3], [
 			("ucd", 'phys.veloc;pos.heliocentric'),
 			("description", 'A sample radial velocity'), ("unit", 'km/s')])
@@ -757,7 +761,7 @@ class QueryTest(unittest.TestCase):
 		res = adqlglue.query("select delta*2, alpha*mag, alpha+delta"
 			" from %s where mag<-10"% self.tableName, metaProfile="test",
 			queryProfile="test")
-		f1, f2, f3 = res.getPrimaryTable().tableDef.get_items()
+		f1, f2, f3 = res.tableDef.columns
 		self._assertFieldProperties(f1, [("ucd", 'pos.eq.dec;meta.main'),
 			("description", 'A sample Dec -- *TAINTED*: the value was operated'
 				' on in a way that unit and ucd may be severely wrong'),
@@ -772,9 +776,6 @@ class QueryTest(unittest.TestCase):
 				' ucd may be severely wrong'),
 			("unit", 'deg')])
 
-	def tearDown(self):
-		sqlsupport.SimpleQuerier().runIsolatedQuery("drop table %s"%self.tableName)
-
 
 if __name__=="__main__":
-	testhelpers.main(PQMorphTest)
+	testhelpers.main(QueryTest)

@@ -5,8 +5,7 @@ Tests for gavo.coords.
 import unittest
 
 import gavo
-from gavo import coords
-from gavo import utils
+from gavo.base import coords
 
 
 interestingPlaces = [ (250, 89), (0,0), (23.0, 42.0), (23.0, -42.0), 
@@ -187,15 +186,15 @@ class TestMovePm(unittest.TestCase):
 			"232.11609464 -80.07998004")
 
 
-class TestGetGcDist(unittest.TestCase):
+class TestGetGCDist(unittest.TestCase):
 	def testGcDist(self):
-		self.assertAlmostEqual(coords.getGcDist((0, 0), (0, 0)), 0)
+		self.assertAlmostEqual(coords.getGCDist((0, 0), (0, 0)), 0)
 		for dec in range(-90, 91, 30):
-			self.assertAlmostEqual(coords.getGcDist((0, 0), (0, dec)), abs(dec))
+			self.assertAlmostEqual(coords.getGCDist((0, 0), (0, dec)), abs(dec))
 		for ra in range(0, 181, 30):
-			self.assertAlmostEqual(coords.getGcDist((0, 0), (ra, 0)), ra)
+			self.assertAlmostEqual(coords.getGCDist((0, 0), (ra, 0)), ra)
 		for ra in range(180, 361, 30):
-			self.assertAlmostEqual(coords.getGcDist((0, 0), (ra, 0)), 360-ra)
+			self.assertAlmostEqual(coords.getGCDist((0, 0), (ra, 0)), 360-ra)
 
 
 def singleTest():

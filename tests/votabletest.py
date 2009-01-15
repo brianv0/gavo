@@ -2,7 +2,7 @@
 Some tests for votable production.
 """
 
-import cStringIO
+from cStringIO import StringIO
 import os
 import pkg_resources
 import unittest
@@ -12,14 +12,11 @@ try:
 except:
     from elementtree import ElementTree
 
-from gavo import datadef
-from gavo import nullui
-from gavo import table
-from gavo import votable
-from gavo.parsing import resource
-from gavo.parsing import columngrammar
-from gavo.parsing import importparser
 
+from gavo import base
+from gavo import rsc
+from gavo import rscdesc
+from gavo.formats import votable
 
 testData="""some silly test data
 -33  -3400abc
@@ -29,49 +26,39 @@ testData="""some silly test data
 """
 
 class VotableTest(unittest.TestCase):
-	def _makeRd(self):
+	def _makeRD(self):
 		"""returns a test resource descriptor.
 		"""
-		dataFields = [
-			datadef.DataField(dest="anInt", source="1-5", dbtype="integer",
-				description="This is a first data field"),
-			datadef.DataField(dest="aFloat", source="6-10",
-				description="This ain't &alpha; for sure."),
-			datadef.DataField(dest="bla", source="11-13", dbtype="text"),
-		]
-		rd = resource.ResourceDescriptor()
-		rd.set_resdir(os.path.abspath("data"))
-		grammar = columngrammar.ColumnGrammar()
-		grammar.set_topIgnoredLines(1)
-		dataDesc = datadef.DataTransformer(rd, initvals={
-			"id": "sillyTest",
-			"Grammar": grammar,
-			"Semantics": resource.Semantics(
-				initvals={
-					"tableDefs": [
-						resource.TableDef(rd, initvals={
-							"table": None,
-							"items": dataFields,
-						})
-					]
-				 })
-		})
-		dataDesc.addMeta("_infolink", "http://vo.org/x?a=b&c=d")
-
-		rd.addto_dataSrcs(dataDesc)
-
-		rd.addMeta("description", "Some test data for VOTables.")
-		rd.addMeta("_legal", "Hands off this fascinating data")
-		rd.get_systems().defineSystem("J2000.0", "1998", "eq_FK5")
-		rd.get_systems().defineSystem("J2000.0", system="ICRS")
-		return rd
+		return base.parseFromString(rscdesc.RD, """
+			<resource resdir="%s" schema="test">
+				<meta name="description">Some test data for VOTables.</meta>
+				<meta name="_legal">Hands off this fascinating data</meta>
+				<cooSys id="sys1" equ="J2000.0" epoch="1998" system="eq_FK5"/>
+				<cooSys id="sys2" equ="J2000.0" system="ICRS"/>
+				<table id="foo">
+					<column name="anInt" type="integer"
+						description="This is a first data field"/>
+					<column name="aFloat"
+						description="This ain't &amp;alpha; for sure."/>
+					<column name="bla" type="text"/>
+				</table>
+				<data id="bar">
+					<meta name="_infolink">http://vo.org/x?a=b&amp;c=d</meta>
+					<columnGrammar topIgnoredLines="1">
+						<col key="anInt">1-5</col>
+						<col key="aFloat">6-10</col>
+						<col key="bla">11-13</col>
+					</columnGrammar>
+					<rowmaker id="_foo" idmaps="*"/>
+					<make table="foo" rowmaker="_foo"/>
+				</data>
+			</resource>"""%os.path.abspath("data"))
 
 	def setUp(self):
-		rd = self._makeRd()
-		dataSet = resource.InternalDataSet(rd.get_dataSrcs()[0], 
-			table.Table, cStringIO.StringIO(testData))
+		rd = self._makeRD()
+		dataSet = rsc.makeData(rd.getById("bar"), forceSource=StringIO(testData))
 		votMaker = votable.VOTableMaker(tablecoding="td")
-		output = cStringIO.StringIO()
+		output = StringIO()
 		votMaker.writeVOT(votMaker.makeVOT(dataSet), output)
 		self.rawVOTable = output.getvalue()
 		self.tree = ElementTree.fromstring(self.rawVOTable)

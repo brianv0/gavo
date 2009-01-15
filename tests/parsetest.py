@@ -2,64 +2,76 @@
 Tests pertaining to the parsing system
 """
 
+import datetime
 import itertools
 import os
 import unittest
 
-from mx import DateTime
-
-from gavo import config
-from gavo import nullui
-from gavo import sqlsupport
-from gavo.parsing import importparser
-from gavo.parsing import macros
-from gavo.parsing import processors
-from gavo.parsing import resource
+from gavo import base
+from gavo import grammars
+from gavo import rsc
+from gavo import rscdef
+from gavo.base import sqlsupport
 
 import testhelpers
 
-class MacroErrorTest(unittest.TestCase):
-	"""Tests for error reporting of macros and processors.
-	"""
-	def testDateRangeFieldReporting(self):
-		p = processors.DateExpander([("start", "startDate", ""),
-			("end", "endDate", ""), ("hrInterval", "intv", "")])
-		try:
-			l = p(None, {"startDate": "2000-01-01", "endDate": "2000-13-31",
-				"intv": "300"})
-		except Exception, msg:
-			self.assertEqual(msg.fieldName, "endDate")
-		else:
-			self.fail("2000-13-31 is regarded as a valid date...")
-		try:
-			l = p(None, {"startDate": "2000-01-01", "endDate": "2000-12-31",
-				"intv": "a00"})
-		except Exception, msg:
-			self.assertEqual(msg.fieldName, "intv")
-		else:
-			self.fail("a00 is regarded as a valid integer...")
+
+def _prepareData(fName, content):
+	f = open(fName, "w")
+	f.write(content)
+	f.close()
 
 
-class ProcessorsTest(unittest.TestCase):
-	"""Tests for some row processors.
+class SimpleParseTest(testhelpers.VerboseTest):
+	"""tests for some simple parses.
 	"""
-	def setUp(self):
-		self.rd = importparser.getRd(os.path.abspath("test.vord"))
+	def _getDD(self):
+		return base.parseFromString(rscdef.DataDescriptor, '<data>'
+			'<sources pattern="testInput.txt"/>'
+			'<columnGrammar><col key="val1">3</col>'
+			'<col key="val2">6-10</col></columnGrammar>'
+			'<table id="foo"><column name="x" type="integer"/>'
+			'<column name="y" type="text"/>'
+			'</table><rowmaker id="bla_foo">'
+			'<map dest="y" src="val2"/>'
+			'<map dest="x" src="val1"/>'
+			'</rowmaker><make table="foo" rowmaker="bla_foo"/></data>')
+
+	def testBasic(self):
+		_prepareData("testInput.txt", "xx1xxabc, xxxx\n")
+		try:
+			dd = self._getDD()
+			data = rsc.makeData(dd)
+			self.assertEqual(data.getPrimaryTable().rows, [{'y': u'abc,', 'x': 1}])
+		finally:
+			os.unlink("testInput.txt")
 	
-	def testExpandComma(self):
-		"""test for correct operation of the expandComma row processor.
-		"""
-		dd = self.rd.getDataById("processortest")
-		data = resource.InternalDataSet(dd, dataSource=[
-			(12.5, "one, two, three"),
-			(1.2, ""),
-			(2.2, "four,"),
-			(0, "five")])
-		rows = data.getPrimaryTable().rows
-		self.assertEqual(len(rows), 5)
-		self.assertAlmostEqual(rows[0]["c"], 12.5)
-		self.assertEqual(rows[0]["tf"], "one")
-		self.assertEqual(rows[4]["tf"], "five")
+	def testRaising(self):
+		_prepareData("testInput.txt", "xxxxxabc, xxxx\n")
+		try:
+			dd = self._getDD()
+			self.assertRaisesWithMsg(base.ValidationError,
+				"While building x in bla_foo: invalid literal for int(): x",
+				rsc.makeData, (dd,))
+		finally:
+			os.unlink("testInput.txt")
+	
+	def testValidation(self):
+		_prepareData("testInput.txt", "xx1xxabc, xxxx\n")
+		try:
+			dd = base.parseFromString(rscdef.DataDescriptor, '<data>'
+				'<sources pattern="testInput.txt"/>'
+				'<columnGrammar><col key="val1">3</col></columnGrammar>'
+				'<table id="foo"><column name="x" type="integer"/>'
+				'<column name="y" type="text"/></table><rowmaker id="bla_foo">'
+				'<map dest="x" src="val1"/></rowmaker>'
+				'<make table="foo" rowmaker="bla_foo"/></data>')
+			rsc.makeData(dd, rsc.parseNonValidating)
+			self.assertRaisesWithMsg(base.ValidationError,
+				"Column y missing",
+				rsc.makeData, (dd, rsc.parseValidating))
+		finally:
+			os.unlink("testInput.txt")
 
 
 def assertRowset(self, found, expected):
@@ -74,15 +86,15 @@ class TestProductsImport(unittest.TestCase):
 	This is more of an integration test, but never mind that.
 	"""
 	def setUp(self):
-		config.setDbProfile("test")
-		self.oldInputs = config.get("inputsDir")
-		config.set("inputsDir", os.getcwd())
-		rd = importparser.getRd("test")
-		self.tableDef = rd.getTableDefByName("prodtest")
-		res = resource.Resource(rd)
-		res.importData(None, ["productimport"])
-		res.export("sql", ["productimport"])
-	
+		base.setDBProfile("test")
+		self.oldInputs = base.getConfig("inputsDir")
+		base.setConfig("inputsDir", os.getcwd())
+		rd = testhelpers.getTestRD()
+		self.tableDef = rd.getById("prodtest")
+		dd = rd.getDataDescById("productimport")
+		rsc.makeData(dd, parseOptions=rsc.parseValidating, 
+			connection=base.getDefaultDBConnection())
+
 	def testWorkingImport(self):
 		assertRowset(self,
 			sqlsupport.SimpleQuerier().runIsolatedQuery("select object from"
@@ -93,9 +105,9 @@ class TestProductsImport(unittest.TestCase):
 		assertRowset(self,
 			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
 				" products where sourceTable='test.prodtest'"),
-			[(u'data/a.imp', u'test', DateTime.DateTime(2030, 12, 31), 
+			[(u'data/a.imp', u'test', datetime.date(2030, 12, 31), 
 					u'data/a.imp', u'test.prodtest'),
-			 (u'data/b.imp', u'test', DateTime.DateTime(2003, 12, 31), 
+			 (u'data/b.imp', u'test', datetime.date(2003, 12, 31), 
 					u'data/b.imp', u'test.prodtest'),])
 
 	def testInMetatable(self):
@@ -103,25 +115,24 @@ class TestProductsImport(unittest.TestCase):
 			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
 				" fielddescriptions where tableName='test.prodtest'")])
 		assertRowset(self, fields, [
-			(0, u'object', None), 
-			(1, u'alpha', None), 
-			(2, u'accref', 'Access key for the data'), 
-			(3, u'owner', 'Data owner'), 
-			(4, u'embargo', 'Date the data will become/became public'), 
-			(5, u'accsize', u'Size of the data in bytes')])
+			(0, u'accref', u'Access key for the data'),
+			(1, u'owner', u'Data owner'),
+			(2, u'embargo', u'Date the data will become/became public'),
+			(3, u'accsize', u'Size of the data in bytes'),
+			(4, u'object', u''),
+			(5, u'alpha', u''),
+			(6, u'delta', u'')])
 
 	def tearDown(self):
-		tw = sqlsupport.TableWriter(self.tableDef)
-		tw.dropTable()
-		tw.finish()
-		config.set("inputsDir", self.oldInputs)
+		t = rsc.TableForDef(self.tableDef).drop().commit()
+		base.setConfig("inputsDir", self.oldInputs)
 
 
 class TestCleanedup(unittest.TestCase):
 	"""tests for cleanup after table drop (may fail if other tests failed).
 	"""
 	def setUp(self):
-		config.setDbProfile("admin")
+		base.setDBProfile("admin")
 
 	def testNotInProducts(self):
 		assertRowset(self,
@@ -144,4 +155,3 @@ class TestCleanedup(unittest.TestCase):
 
 if __name__=="__main__":
 	testhelpers.main(TestProductsImport)
-#	testhelpers.main(TestCleanedup)

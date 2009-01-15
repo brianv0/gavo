@@ -10,7 +10,7 @@ import unittest
 
 import pyfits
 
-from gavo import fitstools
+from gavo.utils import fitstools
 
 
 _fitsgz1 = \

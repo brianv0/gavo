@@ -8,7 +8,7 @@ Rough guideline: if it's about writing fixed fits files, it probably belongs
 here, otherwise it goes to fitstools.
 """
 
-from gavo import fitstools
+from gavo.utils import fitstools
 
 
 def copyFields(header, cardList, ignoredHeaders):

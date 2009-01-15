@@ -13,8 +13,9 @@ from twisted.internet import defer
 
 from zope.interface import implements
 
-import gavo
-from gavo.web.common import Error, UnknownURI, ForbiddenURI
+from gavo import base
+from gavo.svcs import Error, UnknownURI, ForbiddenURI
+from gavo.web import common
 
 
 def escapeForHTML(aString):
@@ -45,7 +46,7 @@ class DebugPage(rend.Page):
 	])
 
 def handleUnknownURI(ctx, failure):
-	if isinstance(failure.value, (UnknownURI, gavo.RdNotFound)):
+	if isinstance(failure.value, (UnknownURI, base.RDNotFound)):
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(404)
 		request.setHeader("content-type", "text/plain")
@@ -147,3 +148,9 @@ class ErrorPage(ErrorPageDebug):
 			# for the best (it might well turn up in the middle of random output)
 		request.finishRequest(False)
 		return ""
+
+
+class NotFoundPage(rend.Page):
+	docFactory = common.doctypedStan(T.html[
+		T.head[T.title["Not found"]],
+		T.body["Not found."]])

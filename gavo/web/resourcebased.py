@@ -1,5 +1,5 @@
 """
-Resource descriptor-based pages.
+The form renderer and related code.
 """
 
 import cStringIO
@@ -16,152 +16,124 @@ import urlparse
 import formal
 from formal import form
 
+from nevow import context
 from nevow import flat
-from nevow import loaders
 from nevow import inevow
+from nevow import loaders
 from nevow import rend
 from nevow import static
 from nevow import tags as T, entities as E
 from nevow import url
+from nevow import util
 
 from twisted.internet import defer
 from twisted.internet import threads
 
-import gavo
-from gavo import config
-from gavo import resourcecache
-from gavo import fitstable
-from gavo import texttable
-from gavo import typesystems
-from gavo import utils
-from gavo import votable
-from gavo.parsing import dictlistgrammar
-from gavo.parsing import resource
+from zope.interface import implements
+
+from gavo import base
+from gavo import rsc
+from gavo import svcs
+from gavo.formats import fitstable
+from gavo.formats import texttable
+from gavo.formats import votable
+from gavo.base import typesystems
 from gavo.web import common
-from gavo.web import creds
 from gavo.web import htmltable
-from gavo.web import gwidgets
-from gavo.web import product
+from gavo.web import grend
 from gavo.web import producttar
-from gavo.web import standardcores
 from gavo.web import streaming
 from gavo.web import weberrors
 
-from gavo.web.common import Error, UnknownURI, ForbiddenURI
+from gavo.svcs import Error, UnknownURI, ForbiddenURI
 
 
-class RdBlocked(Exception):
-	"""is raised when a ResourceDescriptor is blocked due to maintanence
-	and caught by the dispatcher.
-	"""
+class ServiceResource(rend.Page):
+	"""is a base class for resources answering form.
 
+	They receive a service and the form data from formal.
 
-class ErrorPage(common.GavoRenderMixin, rend.Page):
-	def __init__(self, failure, *args, **kwargs):
-		self.failure = failure
-		super(ErrorPage, self).__init__(*args, **kwargs)
+	This whole interplay is governed by the form renderer below.
 
-	def renderHTTP(self, ctx):
-		request = inevow.IRequest(ctx)
-		request.setResponseCode(500)
-		return defer.maybeDeferred(super(ErrorPage, self).renderHTTP(ctx)
-			).addErrback(lambda _: request.finishRequest(False) or "")
+	Deriving classes should override 
 	
-	def render_errmsg(self, ctx, data):
-		return ctx.tag[str(self.failure.getErrorMessage())]
-
-
-class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page, 
-		common.GavoRenderMixin):
-	"""is a page based on a resource descriptor.
-
-	It is constructed with a resource descriptor and leave it
-	in the rd attribute.
-	"""
-# The current dispatcher cannot handle such renderers, you'd have
-# to come up with URLs for these.
-	def __init__(self, ctx, rd):
-		self.rd = rd
-		if hasattr(self.rd, "currently_blocked"):
-			raise RdBlocked()
-		super(ResourceBasedRenderer, self).__init__()
-	
-	def renderHTTP(self, ctx):
-		res = defer.maybeDeferred(
-			super(ResourceBasedRenderer, self).renderHTTP, ctx)
-		res.addErrback(self._crashAndBurn, ctx)
-		return res
-	
-	def _output(self, res, ctx):
-		print res
-		return res
-
-	def _crashAndBurn(self, failure, ctx):
-		res = weberrors.ErrorPage()
-		return res.renderHTTP_exception(ctx, failure)
-
-
-class ServiceBasedRenderer(ResourceBasedRenderer):
-	"""is a resource based renderer using subId as a service id.
-
-	These have the Service instance they should use in the service attribute.
-	"""
-	name = None
-
-	def __init__(self, ctx, service):
-		super(ServiceBasedRenderer, self).__init__(ctx, service.rd)
-		self.service = service
-		if self.name and not self.name in self.service.get_allowedRenderers():
-			raise ForbiddenURI("The renderer %s is not allowed on this service."%
-				self.name)
-
-
-class BaseResponse(ServiceBasedRenderer):
-	"""is a base class for renderers rendering responses to standard
-	service queries.
+	* _obtainOutput(ctx) -- returns the result of running the service 
+		conditioned on the specific resource type; the default implementation 
+		may do.  *Note*: _obtainOutput must return a deferred, whereas the
+		standard service is synchronous.
+	* _formatOutput(result, ctx) -- receives the result of _obtainOutput
+	  and has to do the formatting
+	* _handleOtherErrors(failure, ctx) -- is called when an exception
+	  occurs that cannot be displayed in a form.  The default implementation
+		delivers a page built from stan in the errorFactory class attribute,
+		using grend.ErrorPage as renderer.
 	"""
 	name = "form"
-	def __init__(self, ctx, service, inputData, queryMeta):
-		super(BaseResponse, self).__init__(ctx, service)
-		self.queryResult = self.service.run(inputData, queryMeta)
-		if self.service.get_template("response"):
-			self.customTemplate = os.path.join(self.rd.get_resdir(),
-				self.service.get_template("response"))
+	def __init__(self, service, formalData):
+		rend.Page.__init__(self)
+		self.service, self.formalData = service, formalData
 
 	def renderHTTP(self, ctx):
-		request = inevow.IRequest(ctx)
-		return defer.maybeDeferred(self.data_query, ctx, None
-			).addCallback(self._handleData, ctx
-			).addErrback(self._handleError, ctx)
+		return self._obtainOutput(ctx
+			).addCallback(self._formatOutput, ctx
+			).addErrback(self._handleOtherErrors, ctx)
 
-	def data_query(self, ctx, data):
-		return self.queryResult
+	def _obtainOutput(self, ctx):
+		return threads.deferToThread(self.service.runFromContext, 
+			self.formalData, ctx)
 
-	data_result = data_query
-
-
-def writeVOTable(outputFile, data):
-	"""writes a VOTable representation of the SvcResult instance data
-	to request.
-	"""
-	try:
-		tableMaker = votable.VOTableMaker({
-			True: "td",
-			False: "binary"}[data.queryMeta["tdEnc"]])
-		vot = tableMaker.makeVOT(data)
-		tableMaker.writeVOT(vot, outputFile)
-	except:
-		sys.stderr.write("Yikes -- error during VOTable render:\n")
-		traceback.print_exc()
-		outputFile.write(">>>> INTERNAL ERROR, INVALID OUTPUT <<<<")
+	def _formatOutput(self, res, ctx):
 		return ""
+
+	def _handleOtherErrors(self, failure, ctx):
+		failure.printTraceback()
+		if isinstance(failure, (base.ValidationError, formal.FormError)):
+			return failure
+		return grend.ErrorPage(failure, docFactory=self.errorFactory)
+
+	errorFactory = common.doctypedStan(T.html[
+			T.head[
+				T.title["Unexpected Exception"],
+				T.invisible(render=T.directive("commonhead")),
+			],
+			T.body[
+				T.h1["Unexpected Exception"],
+				T.p["An unexpected error happened, and we would be very"
+					" grateful if you could report what you did to",
+					T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
+						"gavo@ari.uni-heidelberg.de"],
+					", since figuring out what went wrong is much easier"
+					" knowing this than by just expecting our server's local"
+					" problem report."],
+				T.p["You should include the following error message and the"
+					" URL you were using with your bug report: ",
+					T.tt(render=T.directive("errmsg")),],
+				T.p["Thanks."],
+			]])
 
 
 def streamVOTable(request, data):
-	return streaming.streamOut(lambda f: writeVOTable(f, data), request)
+	"""streams out the payload of an SvcResult as a VOTable.
+	"""
+	def writeVOTable(outputFile):
+		"""writes a VOTable representation of the SvcResult instance data
+		to request.
+		"""
+		try:
+			tableMaker = votable.VOTableMaker({
+				True: "td",
+				False: "binary"}[data.queryMeta["tdEnc"]])
+			vot = tableMaker.makeVOT(data.original)
+			tableMaker.writeVOT(vot, outputFile)
+		except:
+			sys.stderr.write("Yikes -- error during VOTable render:\n")
+			traceback.print_exc()
+			outputFile.write(">>>> INTERNAL ERROR, INVALID OUTPUT <<<<")
+			return ""
+	return streaming.streamOut(writeVOTable, request)
 
 
-class VOTableResponse(BaseResponse):
+class VOTableResponse(ServiceResource):
 	"""is a renderer for queries for VOTables.  
 	
 	It's not immediately suitable for "real" VO services since it will return
@@ -169,7 +141,7 @@ class VOTableResponse(BaseResponse):
 
 	An example for a "real" VO service is siapservice.SiapService.
 	"""
-	def _handleData(self, data, ctx):
+	def _formatOutput(self, data, ctx):
 		request = inevow.IRequest(ctx)
 		if data.queryMeta.get("Overflow"):
 			fName = "truncated_votable.xml"
@@ -180,40 +152,46 @@ class VOTableResponse(BaseResponse):
 			'attachment; filename=%s'%fName)
 		return streamVOTable(request, data)
 
-	def _handleError(self, failure, ctx):
-		failure.printTraceback()
-		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", "text/html")
-		request.setHeader('content-disposition', 'inline')
-		request.setResponseCode(500)
-		return failure
-	
+	errorFactory = common.doctypedStan(T.html[
+			T.head[
+				T.title["VOTable generation failed"],
+				T.invisible(render=T.directive("commonhead")),
+			],
+			T.body[
+				T.h1["VOTable generation failed"],
+				T.p["We're sorry, but there was an error on our side"
+					" while generating the VOTable.  We would be very grateful"
+					" if you could report this error, together with the"
+					" URL you used and the following message to"
+					" gavo@ari.uni-heidelberg.de: ",
+					T.tt(render=T.directive("errmsg")),],
+				T.p["Thanks -- meanwhile, chances are we'll render your"
+					' VOTable all right if you check "human readable" under'
+					' "Output Format".']],
+			])
+
 
 tag_embed = T.Proto("embed")
 tag_noembed = T.Proto("noembed")
 
 
-class VOPlotResponse(common.GavoRenderMixin, rend.Page):
+class VOPlotResponse(ServiceResource, grend.GavoRenderMixin):
 	"""returns a page embedding the VOPlot applet.
-
-	This doesn't inherit from BaseResponse since we don't need the
-	query results here, so computing them would be wasteful.
 	"""
-	name = "form"
-	def __init__(self, service):
-		self.service = service
+	def renderHTTP(self, ctx):
+		return rend.Page.renderHTTP(self, ctx)
 
 	def render_voplotArea(self, ctx, data):
 		request = inevow.IRequest(ctx)
 		parameters = request.args.copy()
 		parameters["_FORMAT"]=["VOTable"]
 		parameters["_TDENC"]=["True"]
-		return tag_embed(type = "application/x-java-applet",
+		return ctx.tag[tag_embed(type = "application/x-java-applet",
 				code="com.jvt.applets.PlotVOApplet",
-				codebase=config.get("web", "voplotCodebase"),
-				votablepath=urlparse.urljoin(config.get("web", "serverURL"),
+				codebase=base.getConfig("web", "voplotCodebase"),
+				votablepath=urlparse.urljoin(base.getConfig("web", "serverURL"),
 					request.path),
-				userguideURL=config.get("web", "voplotUserman"),
+				userguideURL=base.getConfig("web", "voplotUserman"),
 				archive=("voplot.jar,voplot_3rdParty/Aladin.jar,voplot_3rdParty/"
 					"cern.jar,voplot_3rdParty/fits-0.99.1-1.4-compiled.jar,"
 					"voplot_3rdParty/commons-discovery-0.2.jar,"
@@ -232,7 +210,7 @@ class VOPlotResponse(common.GavoRenderMixin, rend.Page):
 					tag_noembed["No Java Plug-in support for applet, see, e.g., ",
 						T.a(href="http://java.sun.com/products/plugin/")[
 							"http://java.sun.com/products/plugin"],
-						"."]]
+						"."]]]
 
 	docFactory = common.doctypedStan(T.html[
 		T.head[
@@ -246,64 +224,13 @@ class VOPlotResponse(common.GavoRenderMixin, rend.Page):
 	])
 
 
-class FileResponse(BaseResponse):
-	"""is an abstract base class for responses calling out to generate
-	a file to be delivered.
-	"""
-	def _handleData(self, data, ctx):
-		self.svcResult = data
-		request = inevow.IRequest(ctx)
-		return threads.deferToThread(self.generateFile, request
-			).addCallback(self._serveFile, request
-			).addErrback(self._handleError, ctx)
-
-	def generateFile(self, request):
-		"""has to return a file name containing the data to be delivered.
-
-		The data to operate on are in the svcResult attribute.
-		"""
-	
-	def getTargetName(self):
-		"""has to return a pair of file name, MIME type.
-		"""
-
-	# must be some stan that can be used to construct an ErrorPage
-	errorFactory = None
-
-	def _realHandleError(self, failure, ctx):
-		failure.printTraceback()
-		errPg = ErrorPage(failure, docFactory=self.errorFactory)
-		return errPg
-
-	def _handleError(self, failure, ctx):
-		try:
-			return self._realHandleError(failure, ctx)
-		except:
-			traceback.print_exc()
-			request = inevow.IRequest(ctx)
-			request.setHeader("content-type", "text/plain")
-			request.setResponseCode(500)
-			request.write("Yikes.  There was an error generating your file,\n"
-				"and another error rendering the error.\n"
-				"You should report this. Thanks.\n")
-		return request.finishRequest(False) or ""
-
-	def _serveFile(self, filePath, request):
-		name, mime = self.getTargetName()
-		request.setHeader("content-type", mime)
-		request.setHeader('content-disposition', 
-			'attachment; filename=%s'%name)
-		static.FileTransfer(open(filePath), os.path.getsize(filePath),
-			request)
-		os.unlink(filePath)
-		return request.deferred
-
-
 # pyfits obviously is not thread-safe.  We put a mutex around it
 # and hope we'll be fine.
 _fitsTableMutex = mutex.mutex()
 
-class FITSTableResponse(FileResponse):
+class FITSTableResponse(ServiceResource):
+	"""is a resource turning the data into a FITS binary table.
+	"""
 	def generateFile(self, request):
 		while not _fitsTableMutex.testandset():
 			time.sleep(0.1)
@@ -318,6 +245,22 @@ class FITSTableResponse(FileResponse):
 			return "truncated_data.fits", "application/x-fits"
 		else:
 			return "data.fits", "application/x-fits"
+
+	def _formatOutput(self, data, ctx):
+		self.svcResult = data
+		request = inevow.IRequest(ctx)
+		return threads.deferToThread(self.generateFile, request
+			).addCallback(self._serveFile, request)
+
+	def _serveFile(self, filePath, request):
+		name, mime = self.getTargetName()
+		request.setHeader("content-type", mime)
+		request.setHeader('content-disposition', 
+			'attachment; filename=%s'%name)
+		static.FileTransfer(open(filePath), os.path.getsize(filePath),
+			request)
+		os.unlink(filePath)
+		return request.deferred
 
 	errorFactory = common.doctypedStan(T.html[
 			T.head[
@@ -340,8 +283,8 @@ class FITSTableResponse(FileResponse):
 			]])
 
 
-class TextResponse(BaseResponse):
-	def _handleData(self, data, ctx):
+class TextResponse(ServiceResource):
+	def _formatOutput(self, data, ctx):
 		request = inevow.IRequest(ctx)
 		content = texttable.getAsText(data.original)
 		request.setHeader('content-disposition', 
@@ -350,9 +293,6 @@ class TextResponse(BaseResponse):
 		request.setHeader("content-length", len(content))
 		request.write(content)
 		return ""
-
-	def _handleError(self, failure, ctx):
-		return ErrorPage(failure, docFactory=self.errorFactory)
 
 	errorFactory = common.doctypedStan(T.html[
 			T.head[
@@ -376,19 +316,14 @@ class TextResponse(BaseResponse):
 			]])
 
 
-class TarResponse(BaseResponse):
+class TarResponse(ServiceResource):
 	"""delivers a tar of products requested.
 	"""
-	def _handleData(self, data, ctx):
+	def _formatOutput(self, data, ctx):
 		queryMeta = data.queryMeta
 		request = inevow.IRequest(ctx)
-		return producttar.getTarMaker(
-			).deliverProductTar(data, request, queryMeta
-			).addErrback(self._handleError, ctx)
-
-	def _handleError(self, failure, ctx):
-		failure.printTraceback()
-		return ErrorPage(failure, docFactory=self.errorFactory)
+		return producttar.getTarMaker().deliverProductTar(data, request, queryMeta)
+			
 
 	errorFactory = common.doctypedStan(T.html[
 			T.head[
@@ -405,20 +340,10 @@ class TarResponse(BaseResponse):
 			]])
 
 
-class GavoFormMixin(formal.ResourceMixin, object):
-	"""is a mixin providing some desirable common behaviour for formal forms
-	in the context of the archive service.
+class FormMixin(formal.ResourceMixin, object):
+	"""is a mixin to produce input forms for services and display
+	errors within these forms.
 	"""
-	def translateFieldName(self, name):
-		"""returns the "root" source of errors in name.
-
-		service.translateFieldName is a possible source of this data.
-
-		You'll need to override this method in deriving classes that
-		have fields derived from others.
-		"""
-		return name
-
 	# used for error display on form-less pages
 	errorFactory = common.doctypedStan(T.html[
 			T.head[
@@ -436,22 +361,21 @@ class GavoFormMixin(formal.ResourceMixin, object):
 				T.p["You may want to report this to gavo@ari.uni-heidelberg.de."],
 			]])
 
-
 	def _handleInputErrors(self, failure, ctx):
 		"""goes as an errback to form handling code to allow correction form
 		rendering at later stages than validation.
 		"""
 		if not hasattr(self, "form"): # no reporting in form possible
-			if isinstance(failure.value, gavo.ValidationError):
-				return ErrorPage(failure, docFactory=self.errorFactory)
+			if isinstance(failure.value, base.ValidationError):
+				return grend.ErrorPage(failure, docFactory=self.errorFactory)
 			raise failure.value
 		if isinstance(failure.value, formal.FormError):
 			self.form.errors.add(failure.value)
-		elif isinstance(failure.value, gavo.ValidationError) and isinstance(
-				failure.value.fieldName, basestring):
+		elif isinstance(failure.value, base.ValidationError) and isinstance(
+				failure.value.colName, basestring):
 			try:
 				# Find out the formal name of the failing field...
-				failedField = self.translateFieldName(failure.value.fieldName)
+				failedField = self.translateFieldName(failure.value.colName)
 				# ...and make sure it exists
 				self.form.items.getItemByName(failedField)
 				self.form.errors.add(formal.FieldValidationError(
@@ -460,11 +384,81 @@ class GavoFormMixin(formal.ResourceMixin, object):
 				failure.printTraceback()
 				self.form.errors.add(formal.FormError("Problem with input"
 					" in the internal or generated field '%s': %s"%(
-						failure.value.fieldName, failure.getErrorMessage())))
+						failure.value.colName, failure.getErrorMessage())))
 		else:
 			failure.printTraceback()
-			raise failure.value
+			return failure
 		return self.form.errors
+
+	def translateFieldName(self, name):
+		return self.service.translateFieldName(name)
+
+	def _addInputKey(self, form, inputKey, data):
+		"""adds a form field for an inputKey to the form.
+		"""
+		unit = ""
+		if inputKey.type!="date":  # Sigh.
+			unit = inputKey.inputUnit or inputKey.unit or ""
+			if unit:
+				unit = " [%s]"%unit
+		label = inputKey.tablehead
+		form.addField(inputKey.name,
+			inputKey.formalType,
+			inputKey.widgetFactory,
+			label=label+unit,
+			description=inputKey.description)
+
+	def _addFromInputKey(self, inputKey, form, data):
+		self._addInputKey(form, inputKey, data)
+		if data and data.has_key(inputKey.name):
+			form.data[inputKey.name] = data[inputKey.name]
+		elif inputKey.values and inputKey.values.default:
+			form.data[inputKey.name] = inputKey.values.default
+
+	def _addQueryFields(self, form, data):
+		"""adds the inputFields of the service to form, setting proper defaults
+		from the field or from data.
+		"""
+		for inputKey in self.service.getInputFields():
+			self._addFromInputKey(inputKey, form, data)
+
+	def _fakeDefaults(self, form, ctx):
+		"""adds keys not yet in form.data but present in ctx to form.data.
+
+		The idea here is that you can bookmark template forms.  The
+		values in the bookmark are not normally picked up by formal
+		since _processForm doesn't run.
+		"""
+		for key, val in inevow.IRequest(ctx).args.iteritems():
+			if key not in form.data:
+				form.data[key] = val
+
+	def _addMetaFields(self, form, queryMeta, data):
+		"""adds fields to choose output properties to form.
+		"""
+		for serviceKey in self.service.serviceKeys:
+			self._addFromInputKey(serviceKey, form, data)
+		if (isinstance(self.service.core, svcs.DBCore) and
+				self.service.core.wantsTableWidget()):
+			form.addField("_DBOPTIONS", svcs.FormalDict,
+				formal.widgetFactory(svcs.DBOptions, self.service, queryMeta),
+				label="Table")
+
+	def form_genForm(self, ctx=None, data=None):
+		queryMeta = svcs.QueryMeta.fromContext(ctx)
+		if data is None and ctx is not None:
+			data = dict((k,v[0]) for k,v in inevow.IRequest(ctx).args.iteritems())
+		form = formal.Form()
+		self._addQueryFields(form, data)
+		self._addMetaFields(form, queryMeta, data)
+		self._fakeDefaults(form, ctx)
+		if self.name=="form":
+			form.addField("_OUTPUT", formal.String, 
+				formal.widgetFactory(svcs.OutputFormat, self.service, queryMeta),
+				label="Output format")
+		form.addAction(self.submitAction, label="Go")
+		self.form = form
+		return form
 
 
 def _formBehaviour_renderHTTP(self, ctx):
@@ -500,36 +494,14 @@ def _makeNoParsBehaviour(action):
 	return b
 
 
-class Form(GavoFormMixin, ServiceBasedRenderer):
-	"""is a page that provides a search form for the selected service.
+class HTMLResultRenderMixin(object):
+	"""is a mixin with render functions for HTML tables and associated 
+	metadata within other pages.
+
+	This is primarily used for the Form renderer.
 	"""
-	name = "form"
-	def __init__(self, ctx, service):
-		ServiceBasedRenderer.__init__(self, ctx, service)
-		if self.service.get_template("form"):
-			self.customTemplate = os.path.join(self.rd.get_resdir(),
-				self.service.get_template("form"))
-		if self.service.getInputFields():
-			self._ResourceMixin__behaviour().renderHTTP = new.instancemethod(
-				_formBehaviour_renderHTTP, self._ResourceMixin__behaviour(),
-				form.FormsResourceBehaviour)
-		else:
-			self._ResourceMixin__behaviour().renderHTTP = new.instancemethod(
-				_makeNoParsBehaviour(self.submitAction), 
-				self._ResourceMixin__behaviour(), form.FormsResourceBehaviour)
-		self.queryResult = None
+	result = None
 
-	def renderer(self, ctx, name):
-		"""returns code for a renderer named name.
-
-		This overrides the method inherited from nevow's RenderFactory to
-		add a lookup in our service.
-		"""
-		if self.service.get_specRend(name):
-			return self.service.get_specRend(name)
-		return super(Form, self).renderer(ctx, name)
-
-	########### renderers for HTML tables
 	def render_resulttable(self, ctx, data):
 		if hasattr(data, "child"):
 			return htmltable.HTMLTableFragment(data.child(ctx, "table"), 
@@ -552,128 +524,119 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		else:
 			return ""
 	
-	def data_query(self, ctx, data):
-		return self.queryResult
-	
-	data_result = data_query
-	########### end renderers for html tables
+	def data_result(self, ctx, data):
+		return self.result
 
-	def translateFieldName(self, name):
-		return self.service.translateFieldName(name)
 
-	def _addInputKey(self, form, inputKey, data):
-		"""adds a form field for an inputKey to the form.
+class Form(FormMixin, grend.ServiceBasedRenderer, HTMLResultRenderMixin):
+	"""is a page that provides a search form for the selected service
+	and doubles as render page for HTML tables.
+
+	In partiular, it will dispatch the various output formats defined
+	through svcs.
+
+	It also does error reporting as long as that is possible within
+	the form.
+	"""
+	name = "form"
+
+	def __init__(self, ctx, service):
+		grend.ServiceBasedRenderer.__init__(self, ctx, service)
+		if "form" in self.service.templates:
+			self.customTemplate = os.path.join(self.rd.resdir,
+				self.service.templates["form"])
+		# A service with no inputs will be run even if no form data
+		# can be located:
+		if self.service.getInputFields():
+			self._ResourceMixin__behaviour().renderHTTP = new.instancemethod(
+				_formBehaviour_renderHTTP, self._ResourceMixin__behaviour(),
+				form.FormsResourceBehaviour)
+		else:
+			self._ResourceMixin__behaviour().renderHTTP = new.instancemethod(
+				_makeNoParsBehaviour(self.submitAction), 
+				self._ResourceMixin__behaviour(), form.FormsResourceBehaviour)
+		self.queryResult = None
+
+	def renderHTTP(self, ctx):
+		res = defer.maybeDeferred(
+			super(Form, self).renderHTTP, ctx)
+		res.addErrback(self._crashAndBurn, ctx)
+		return res
+
+	def _crashAndBurn(self, failure, ctx):
+		"""is called on errors nobody else cared to handle.
 		"""
-		unit = ""
-		if inputKey.get_dbtype()!="date":  # Sigh.
-			unit = inputKey.get_inputUnit() or inputKey.get_unit() or ""
-			if unit:
-				unit = " [%s]"%unit
-		label = inputKey.get_tablehead() or inputKey.get_dest()
-		form.addField(inputKey.get_dest(), 
-			inputKey.get_formalType(),
-			inputKey.get_widgetFactory(),
-			label=label+unit,
-			description=inputKey.get_description())
-	
-	def _addQueryFields(self, form, data):
-		"""adds the inputFields of the service to form, setting proper defaults
-		from the field or from data.
+
+		res = weberrors.ErrorPage()
+		return res.renderHTTP_exception(ctx, failure)
+
+	knownResultPages = {
+		"TSV": TextResponse,
+		"VOTable": VOTableResponse,
+		"VOPlot": VOPlotResponse,
+		"FITS": FITSTableResponse,
+		"tar": TarResponse,
+		"HTML": None,
+	}
+
+	def _getResource(self, outputName):
+		"""returns a nevow Resource subclass that produces outputName
+		documents.
 		"""
-		for field in self.service.getInputFields():
-			self._addInputKey(form, field, data)
-			if data and data.has_key(field.get_dest()):
-				form.data[field.get_dest()] = data[field.get_dest()]
-			elif field.get_default():
-				form.data[field.get_dest()] = field.get_default()
+		try:
+			return self.knownResultPages[outputName]
+		except KeyError:
+			raise base.ValidationError("Invalid output format: %s"%outputName,
+				colName="_OUTPUT")
 
-	def _fakeDefaults(self, form, ctx):
-		"""adds keys not yet in form.data but present in ctx to form.data.
+	def _runService(self, data, ctx):
+		return threads.deferToThread(self.service.runFromContext, data, ctx
+			).addCallback(self._formatOutput, ctx)
 
-		The idea here is that you can bookmark template forms.  The
-		values in the bookmark are not normally picked up since _processForm 
-		doesn't run.
+	def _realSubmitAction(self, ctx, form, data):
+		"""is a helper for submitAction that does the real work.
+
+		It is here so we can add an error handler in submitAction.
 		"""
-		for key, val in inevow.IRequest(ctx).args.iteritems():
-			if key not in form.data:
-				form.data[key] = val
-
-	def _addMetaFields(self, form, queryMeta):
-		"""adds fields to choose output properties to form.
-		"""
-		if self.service.count_output()>1:
-			form.addField("_FILTER", formal.String(), formal.widgetFactory(
-				formal.SelectChoice, 
-				options=[(k, self.service.get_output(k).get_name()) 
-					for k in self.service.itemsof_output() if k!="default"],
-				noneOption=("default", self.service.get_output("default").get_name())),
-				label="Output form")
-		if (isinstance(self.service.get_core(), standardcores.DbBasedCore) and
-				self.service.get_core().wantsTableWidget()):
-			form.addField("_DBOPTIONS", gwidgets.FormalDict,
-				formal.widgetFactory(gwidgets.DbOptions, self.service, queryMeta),
-				label="Table")
-
-	def form_genForm(self, ctx=None, data={}):
-		queryMeta = common.QueryMeta.fromContext(ctx)
-		form = formal.Form()
-		self._addQueryFields(form, data)
-		self._addMetaFields(form, queryMeta)
-		self._fakeDefaults(form, ctx)
-		if self.name=="form":
-			form.addField("_OUTPUT", formal.String, 
-				formal.widgetFactory(gwidgets.OutputFormat, self.service, queryMeta),
-				label="Output format")
-		form.addAction(self.submitAction, label="Go")
-		self.form = form
-		return form
+		try:
+			queryMeta = svcs.QueryMeta.fromContext(ctx)
+			if (self.service.core.outputTable.columns and 
+					not self.service.getCurOutputFields(queryMeta)):
+				raise base.ValidationError("These output settings yield no"
+					" output fields", "_OUTPUT")
+			res = self._getResource(queryMeta["format"])
+		except:
+			return defer.fail()
+		if res is None:  # render result inline
+			return self._runService(data, ctx)
+		else:
+			return defer.succeed(res(self.service, data))
 
 	def submitAction(self, ctx, form, data):
-		queryMeta = common.QueryMeta.fromContext(ctx)
-		queryMeta["formal_data"] = data
-		d = defer.maybeDeferred(self.service.getInputData, data
-			).addCallback(self._runService, queryMeta, ctx
-			).addErrback(self._handleInputErrors, ctx
-			).addErrback(self._crashAndBurn, ctx)
-		return d
+		"""is called by formal when input arguments indicate the service should
+		run.
 
-	def _computeResult(self, ctx, service, inputData, queryMeta):
-		if self.service.get_template("response"):
-			self.customTemplate = os.path.join(self.rd.get_resdir(),
-				self.service.get_template("response"))
-		request = inevow.IRequest(ctx)
-		try:
-			del request.args[form.FORMS_KEY]
-		except KeyError: # Someone stole the key, or we're running without
-			pass           # a form
-		return defer.maybeDeferred(self.service.run, inputData, queryMeta
-			).addCallback(self._processResult
+		This happens either when the service takes no input data or when
+		the sentinel argument of the form is present.
+
+		The method returns a deferred resource.
+		"""
+		return self._realSubmitAction(ctx, form, data
 			).addErrback(self._handleInputErrors, ctx)
-	
-	def _processResult(self, data):
-		self.queryResult = data
-		return self
 
-# XXX TODO: This is crap -- since the setup of the core may depend on the
-# renderer (e.g., for tar output), put this into the renderer class.
-	def _runService(self, inputData, queryMeta, ctx):
-		format = queryMeta["format"]
-		if format=="HTML":
-			return self._computeResult(ctx, self.service, inputData, queryMeta)
-		elif format=="TSV":
-			return TextResponse(ctx, self.service, inputData, queryMeta)
-		elif format=="VOTable":
-			res = VOTableResponse(ctx, self.service, inputData, queryMeta)
-			return res
-		elif format=="VOPlot":
-			return VOPlotResponse(self.service)
-		elif format=="FITS":
-			return FITSTableResponse(ctx, self.service, inputData, queryMeta)
-		elif format=="tar":
-			return TarResponse(ctx, self.service, inputData, queryMeta)
+	def _formatOutput(self, res, ctx):
+		self.result = res
+		request = inevow.IRequest(ctx)
+		def finisher(result):
+			return util.maybeDeferred(request.finishRequest, False
+				).addCallback(lambda r: result)
+		if "response" in self.service.templates:
+			doc = self.service.templates["response"]
 		else:
-			raise gavo.ValidationError("Invalid output format: %s"%format,
-				"_OUTPUT")
+			doc = self.docFactory.load(ctx)
+		self.rememberStuff(ctx)
+		ctx =  context.WovenContext(ctx, T.invisible[doc])
+		return self.flattenFactory(doc, ctx, request.write, finisher)
 
 	def process(self, ctx):
 		super(Form, self).process(ctx)
@@ -685,7 +648,7 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 		T.body(render=T.directive("withsidebar"))[
 			T.h1(render=T.directive("meta"))["title"],
 			T.div(class_="result", render=T.directive("ifdata"), 
-					data=T.directive("query")) [
+					data=T.directive("result")) [
 				T.div(class_="querypars", data=T.directive("queryseq"),
 						render=T.directive("ifdata"))[
 					T.h2[T.a(href="#_queryForm")["Parameters"]],
@@ -717,27 +680,12 @@ class Form(GavoFormMixin, ServiceBasedRenderer):
 			T.div(class_="copyright", render=T.directive("metahtml"))["_copyright"],
 		]])
 
-
-class FeedbackData(resource.InternalDataSet):
-	"""is a special DataSet with a built-in DataDescriptor for getting
-	feedbackSelect items into the primary table.
-	"""
-	def _makeDD(self, core):
-		ff = standardcores.makeFeedbackField(core.tableDef.get_items(),
-			core.get_feedbackField())
-		ff.set_source("feedbackItem")
-		dd = resource.makeSimpleDataDesc(None, [ff])
-		dd.set_Grammar(dictlistgrammar.DictlistGrammar())
-		return dd
-
-	def __init__(self, nevowContext, core):
-		resource.InternalDataSet.__init__(self, self._makeDD(core), 
-			dataSource=[{"feedbackItem": i} 
-				for i in inevow.IRequest(nevowContext).args["feedbackItem"]])
+grend.registerRenderer("form", Form)
 
 
 class FeedbackForm(Form):
-	"""is a page that opens a feedback view.
+	"""is a page that renders a form with vexprs filled in of a feedback 
+	query.
 
 	Basically, you give items in feedbackSelect arguments which
 	are directly parsed into a DataSet's columns.  With these, a
@@ -753,24 +701,25 @@ class FeedbackForm(Form):
 
 	This only works on DbBasedCores (and doesn't make sense otherwise).
 	"""
-	def __init__(self, ctx, service):
-		Form.__init__(self, ctx, service)
-
 	def renderHTTP(self, ctx):
-		if not "feedbackItem" in inevow.IRequest(ctx).args:
-			# It's really a normal form query, probably generated by the form
-			# we return ourselves.
-			return Form(ctx, self.service)
-		oCore = self.service.get_core()
-		tmpCore = standardcores.FeedbackCore.fromCore(oCore)
-		return tmpCore.run(FeedbackData(ctx, oCore), 
-				common.QueryMeta.fromContext(ctx)
-			).addCallback(self._processFeedbackData, ctx)
-
-	def _processFeedbackData(self, outData, ctx):
 		request = inevow.IRequest(ctx)
-		request.args = outData
+		# If no feedbackSelect is present, it's the feedback search or
+		# the user has not selected feedback items
+		if not "feedbackSelect" in request.args:
+			return Form(ctx, self.service)
+		# Make a feedback service on the service unless one exists.
+		if not hasattr(self.service, "feedbackService"):
+			self.service.feedbackService = svcs.FeedbackService.fromService(
+				self.service)
+		data = request.args
+		return threads.deferToThread(self.service.feedbackService.runFromContext, 
+			data, ctx).addCallback(self._buildForm, request, ctx)
+	
+	def _buildForm(self, feedbackExprs, request, ctx):
+		request.args = feedbackExprs.original
 		return Form(ctx, self.service)
+
+grend.registerRenderer("feedback", FeedbackForm)
 
 
 def compileCoreRenderer(source):
@@ -797,7 +746,7 @@ def compileCoreRenderer(source):
 	return ns["renderForNevow"]
 
 
-class Static(GavoFormMixin, ServiceBasedRenderer):
+class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 	"""is a renderer that just hands through files.
 
 	On this, you can have a template "static" or have a static core
@@ -810,14 +759,14 @@ class Static(GavoFormMixin, ServiceBasedRenderer):
 	name = "static"
 
 	def __init__(self, ctx, service):
-		ServiceBasedRenderer.__init__(self, ctx, service)
-		if not service.get_staticData():
-			raise UnknownURI("No static data on this service") # XXX TODO: FORBIDDEN
-		if self.service.get_template("static"):
-			self.customTemplate = os.path.join(self.rd.get_resdir(),
-				self.service.get_template("static"))
-		self.basePath = os.path.join(service.rd.get_resdir(),
-			service.get_staticData())
+		grend.ServiceBasedRenderer.__init__(self, ctx, service)
+		if not service.staticData:# XXX TODO: FORBIDDEN
+			raise svcs.UnknownURI("No static data on this service") 
+		if "static" in self.service.templates:
+			self.customTemplate = os.path.join(self.rd.resdir,
+				self.service.templates["static"])
+		self.basePath = os.path.join(service.rd.resdir,
+			service.staticData)
 		if self.basePath:
 			self.rend = static.File(self.basePath)
 	
@@ -834,7 +783,7 @@ class Static(GavoFormMixin, ServiceBasedRenderer):
 	def _renderResultDoc(self, svcResult, ctx):
 		rows = svcResult.original.getPrimaryTable().rows
 		if len(rows)==0:
-			raise UnknownURI("No matching resource")
+			raise svcs.UnknownURI("No matching resource")
 		relativeName = rows[0]["filename"]
 		return static.File(os.path.join(self.basePath, relativeName)
 			).renderHTTP(ctx)
@@ -846,8 +795,10 @@ class Static(GavoFormMixin, ServiceBasedRenderer):
 			return self.rend.locateChild(ctx, segments)
 		return None, ()
 
+grend.registerRenderer("static", StaticRenderer)
 
-class TextRenderer(ServiceBasedRenderer):
+
+class TextRenderer(grend.ServiceBasedRenderer):
 	"""is a renderer that runs the service, expects back a string and
 	displays that as text/plain.
 
@@ -856,7 +807,7 @@ class TextRenderer(ServiceBasedRenderer):
 	name = "text"
 
 	def __init__(self, ctx, service):
-		ServiceBasedRenderer.__init__(self, ctx, service)
+		grend.ServiceBasedRenderer.__init__(self, ctx, service)
 	
 	def renderHTTP(self, ctx):
 		queryMeta = common.QueryMeta.fromContext(ctx)
@@ -876,7 +827,7 @@ class TextRenderer(ServiceBasedRenderer):
 		return request.finishRequest(False) or ""
 	
 
-class Custom(ServiceBasedRenderer):
+class CustomRenderer(grend.ServiceBasedRenderer):
 	"""is a wrapper for user-defined renderers.
 
 	The services defining this must have a customPage field. 
@@ -893,17 +844,16 @@ class Custom(ServiceBasedRenderer):
 	name = "custom"
 
 	def __init__(self, ctx, service):
-		ServiceBasedRenderer.__init__(self, ctx, service)
-		cp = self.service.get_customPage()
-		if not cp:
-			raise UnknownURI("No custom page defined for this service.")
-		pageClass, self.reloadInfo = cp
+		grend.ServiceBasedRenderer.__init__(self, ctx, service)
+		if not self.service.customPage:
+			raise svcs.UnknownURI("No custom page defined for this service.")
+		pageClass, self.reloadInfo = service.customPageCode
 		self.realPage = pageClass(ctx, service)
 
 	def _reload(self, ctx):
 		mod = imp.load_module(*self.reloadInfo)
 		pageClass = mod.MainPage
-		self.service.set_customPage((pageClass, self.reloadInfo))
+		self.service.customPageCode = (pageClass, self.reloadInfo)
 		return url.here.curdir()
 
 	def renderHTTP(self, ctx):
@@ -911,41 +861,7 @@ class Custom(ServiceBasedRenderer):
 	
 	def locateChild(self, ctx, segments):
 		if segments and segments[0]=="_reload":
-			return creds.runAuthenticated(ctx, "", self._reload, ctx), ()
+			return common.runAuthenticated(ctx, "", self._reload, ctx), ()
 		return self.realPage.locateChild(ctx, segments)
 
-
-class ProductRenderer(ServiceBasedRenderer):
-	"""is a renderer for products.
-
-	This will only work with a ProductCore since the resulting
-	data set has to contain product.Resources.
-	"""
-	def renderHTTP(self, ctx):
-		return self.service.runFromContext(ctx
-			).addCallback(self._deliver, ctx)
-	
-	def _deliver(self, result, ctx):
-		doPreview = result.queryMeta.ctxArgs.get("preview")
-		rsc = result.getPrimaryTable().rows[0]['source']
-		request = inevow.IRequest(ctx)
-		if isinstance(rsc, product.NonExistingProduct):
-			raise UnknownURI("%s is an unknown product key"%rsc.sourcePath)
-		if doPreview:
-			res = product.makePreviewFromProduct(rsc, request)
-			return res
-		if isinstance(rsc, product.UnauthorizedProduct):
-			raise ForbiddenURI(rsc.sourcePath)
-		return self._deliverPlainFile(rsc, request)
-	
-	def _deliverPlainFile(self, resource, request):
-		request.setHeader("content-type", str(resource.contentType))
-		request.setHeader("content-disposition", 'attachment; filename="%s"'%
-			str(resource.name))
-		try:
-			request.setHeader('content-length', str(os.path.getsize(
-				resource.sourcePath)))
-		except (TypeError, os.error):  # size doesn't matter
-			pass
-		return streaming.streamOut(resource, request)
-
+grend.registerRenderer("custom", CustomRenderer)

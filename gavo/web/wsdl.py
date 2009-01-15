@@ -11,12 +11,10 @@ from elementtree import ElementTree
 import ZSI
 from ZSI import TC
 
-import gavo
-from gavo import sqlsupport
-from gavo import typesystems
-from gavo import valuemappers
-from gavo.stanxml import Element, XSINamespace
-from gavo.web import registry
+from gavo import base
+from gavo.base import valuemappers
+from gavo.protocols import registry
+from gavo.utils.stanxml import Element, XSINamespace
 
 
 SOAPNamespace = 'http://schemas.xmlsoap.org/wsdl/soap/'
@@ -179,10 +177,10 @@ def makeTypesForService(service, queryMeta):
 			XSD.element(name="outRec")[
 				XSD.complexType[
 					XSD.all[[
-						XSD.element(name=f.get_dest(), type=typesystems.sqltypeToXSD(
-							f.get_dbtype()))[
-								WSDL.documentation[f.get_description()],
-								WSDL.documentation[f.get_unit()]]
+						XSD.element(name=f.name, type=base.sqltypeToXSD(
+							f.type))[
+								WSDL.documentation[f.description],
+								WSDL.documentation[f.unit]]
 							for f in service.getCurOutputFields(queryMeta)]]]],
 			XSD.element(name="outList")[
 				XSD.simpleType[
@@ -199,10 +197,10 @@ def makeMessagesForService(service):
 	"""
 	return [
 		WSDL.message(name="srvInput")[[
-			WSDL.part(name=f.get_dest(), type="xsd:"+typesystems.sqltypeToXSD(
-				f.get_dbtype()))[
-					WSDL.documentation[f.get_description()],
-					WSDL.documentation[f.get_unit()]]
+			WSDL.part(name=f.name, type="xsd:"+base.sqltypeToXSD(
+				f.type))[
+					WSDL.documentation[f.description],
+					WSDL.documentation[f.unit]]
 				for f in service.getInputFields()]],
 		WSDL.message(name="srvOutput")[
 			WSDL.part(name="srvOutput", type="tns:outList")]]
@@ -211,7 +209,7 @@ def makeMessagesForService(service):
 def makePortTypeForService(service):
 	"""returns xmlstan for a port type named serviceSOAP.
 	"""
-	parameterOrder = " ".join([f.get_dest() for f in service.getInputFields()])
+	parameterOrder = " ".join([f.name for f in service.getInputFields()])
 	return WSDL.portType(name="serviceSOAP")[
 		WSDL.operation(name="useService", parameterOrder=parameterOrder) [
 			WSDL.input(name="inPars", message="tns:srvInput"),
@@ -267,7 +265,7 @@ def makeSOAPWSDLForService(service, queryMeta):
 	]
 
 
-class ToTcConverter(typesystems.FromSQLConverter):
+class ToTcConverter(base.FromSQLConverter):
 	"""is a quick and partial converter from SQL types to ZSI's type codes.
 	"""
 	typeSystem = "ZSITypeCodes"
@@ -335,8 +333,8 @@ def serializePrimaryTable(data, service):
 	class Row(TC.Struct):
 		def __init__(self):
 			TC.Struct.__init__(self, None, [
-		sqltypeToTC(f.get_dbtype())("tns:"+f.get_dest())
-			for f in table.fieldDefs], 'tns:outRow')
+		sqltypeToTC(f.type)("tns:"+f.name)
+			for f in table.tableDef], 'tns:outRow')
 
 	class Table:
 		def __init__(self, name):
@@ -346,7 +344,7 @@ def serializePrimaryTable(data, service):
 	outF = cStringIO.StringIO()
 	sw = ZSI.SoapWriter(outF, 
 		nsdict={"tns": registry.computeIdentifier(service)})
-	mapped = list(valuemappers.getMappedValues(table, _wsdlMFRegistry))
+	mapped = list(base.getMappedValues(table, _wsdlMFRegistry))
 	sw.serialize(mapped, Table.typecode)
 	sw.close()
 	return outF.getvalue()
@@ -362,7 +360,7 @@ def unicodeXML(obj):
 
 
 def formatFault(exc, service):
-	if isinstance(exc, gavo.ValidationError):
+	if isinstance(exc, base.ValidationError):
 		val = ZSI.Fault(ZSI.Fault.Client, unicodeXML(exc))
 	else:
 		val = ZSI.Fault(ZSI.Fault.Server, unicodeXML(exc))

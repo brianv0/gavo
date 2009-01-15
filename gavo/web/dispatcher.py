@@ -33,32 +33,16 @@ from nevow import url
 
 from zope.interface import implements
 
-import gavo
-from gavo import config
-from gavo import logger
-from gavo import resourcecache
-from gavo import utils
-# need importparser to register its resourcecache
-from gavo.parsing import importparser
+from gavo import base
+from gavo import svcs
 from gavo.web import common
-from gavo.web import creds
-from gavo.web import jpegrenderer
-from gavo.web import metarender
-from gavo.web import product
-from gavo.web import resourcebased
-# need servicelist to register its resourcecache
-from gavo.web import servicelist
-# need scs to register its CondDescs
-from gavo.web import scs
-from gavo.web import soaprender
-from gavo.web import uploadservice
-from gavo.web import vodal
+from gavo.web import grend
 from gavo.web import weberrors
 
-from gavo.web.common import Error, UnknownURI, ForbiddenURI, WebRedirect
+from gavo.svcs import Error, UnknownURI, ForbiddenURI, WebRedirect
 
 
-class ReloadPage(common.GavoRenderMixin, rend.Page):
+class ReloadPage(grend.GavoRenderMixin, rend.Page):
 
 	modsToReload = ["gavo.web.dispatcher"]
 
@@ -70,7 +54,7 @@ class ReloadPage(common.GavoRenderMixin, rend.Page):
 		return self.modulesReloaded
 
 	def renderHTTP(self, ctx):
-		return creds.runAuthenticated(ctx, "admin", self._reload, ctx)
+		return common.runAuthenticated(ctx, "admin", self._reload, ctx)
 
 	def _reloadModules(self):
 		for modPath in self.modsToReload:
@@ -80,7 +64,7 @@ class ReloadPage(common.GavoRenderMixin, rend.Page):
 			self.modulesReloaded.append(modPath)
 
 	def _reload(self, ctx):
-		resourcecache.clearCaches()
+		base.caches.clearCaches()
 		self._reloadModules()
 		return self._renderHTTP(ctx)
 	
@@ -167,15 +151,15 @@ class LoginPage(rend.Page):
 				T.p["Go to ",
 					T.a(render=T.directive("nextURL"))["the last page"],
 					" or ",
-					T.a(href=config.get("web", "nevowRoot"))["DC home"],
+					T.a(href=base.getConfig("web", "nevowRoot"))["DC home"],
 					"."]]])
 	
 
 def _replaceConfigStrings(srcPath, registry):
 	src = open(srcPath).read().decode("utf-8")
-	src = src.replace("__site_path__", config.get("web", "nevowRoot"))
+	src = src.replace("__site_path__", base.getConfig("web", "nevowRoot"))
 	src = src.replace("__site_url__", os.path.join(
-		config.get("web", "serverURL")+config.get("web", "nevowRoot")))
+		base.getConfig("web", "serverURL")+base.getConfig("web", "nevowRoot")))
 	return src.encode("utf-8")
 
 
@@ -190,7 +174,7 @@ class StaticServer(static.File):
 	"""
 	def __init__(self, *args, **kwargs):
 		if not args:
-			static.File.__init__(self, os.path.join(config.get("webDir"), 
+			static.File.__init__(self, os.path.join(base.getConfig("webDir"), 
 				"nv_static"))
 		else:
 			static.File.__init__(self, *args, **kwargs)
@@ -214,10 +198,6 @@ class BuiltinServer(StaticServer):
 			static.File.__init__(self, *args, **kwargs)
 
 
-_staticServer = StaticServer()
-_builtinServer = BuiltinServer()
-
-
 class MaintPage(rend.Page):
 	"""will be displayed during maintenance.
 	"""
@@ -232,7 +212,7 @@ class MaintPage(rend.Page):
 	])
 
 
-class BlockedPage(common.GavoRenderMixin, rend.Page):
+class BlockedPage(grend.GavoRenderMixin, rend.Page):
 	"""will be displayed when a service on a blocked resource descriptor
 	is requested.
 	"""
@@ -293,13 +273,21 @@ class VanityMap(object):
 	knownOptions = set(["!redirect"])
 
 	builtinRedirects = """
-		__system__/products/products/p/get getproduct
+		__system__/products/p/get getproduct
+		__system__/services/registry/pubreg.xml oai.xml
 	"""
 
 	def __init__(self):
 		self.redirects, self.mappings = {}, {}
-		srcName = os.path.join(config.get("webDir"), 
-			config.get("web", "vanitynames"))
+		for ln in self.builtinRedirects.split("\n"):
+			self._parseLine(ln)
+		self._loadFromFile()
+
+	def _loadFromFile(self):
+		srcName = os.path.join(base.getConfig("webDir"), 
+			base.getConfig("web", "vanitynames"))
+		if not os.path.isfile(srcName):
+			return
 		f = open(srcName)
 		lineNo = 1
 		for ln in f:
@@ -309,9 +297,7 @@ class VanityMap(object):
 				raise VanityLineError("%s, line %s: %s"%(srcName, lineNo, str(msg)))
 			lineNo += 1
 		f.close()
-		for ln in self.builtinRedirects.split("\n"):
-			self._parseLine(ln)
-	
+
 	def _parseLine(self, ln):
 		ln = ln.strip()
 		if not ln or ln.startswith("#"):
@@ -349,13 +335,15 @@ _vanityMap = VanityMap()
 
 
 specialChildren = {
-	"oai.xml": (lambda ctx, segs, cls: cls(), vodal.RegistryRenderer),
+#	"oai.xml": (lambda ctx, segs, cls: cls(), vodal.RegistryRenderer),
 	"debug": (lambda ctx, segs, cls: cls(ctx, segs), weberrors.DebugPage),
 	"reload": (lambda ctx, segs, cls: cls(ctx, segs), ReloadPage),
 	"login": (lambda ctx, segs, cls: cls(ctx), LoginPage),
 }
 
 
+'''
+XXX TODO: Move those until empty.
 renderClasses = {
 	"custom": resourcebased.Custom,
 	"static": resourcebased.Static,
@@ -374,25 +362,34 @@ renderClasses = {
 	"info": metarender.ServiceInfoRenderer,
 	"tableinfo": metarender.TableInfoRenderer,
 }
+'''
 
 
 class ArchiveService(common.CustomTemplateMixin, rend.Page, 
-		common.GavoRenderMixin):
+		grend.GavoRenderMixin):
 
 	def __init__(self):
-		self.maintFile = os.path.join(config.get("stateDir"), "MAINT")
-		self.customTemplate = os.path.join(config.get("web", "templateDir"),
+		self.maintFile = os.path.join(base.getConfig("stateDir"), "MAINT")
+		self.customTemplate = os.path.join(base.getConfig("web", "templateDir"),
 			"root.html")
 		rend.Page.__init__(self)
 		self.rootSegments = tuple(s for s in 
-			config.get("web", "nevowRoot").split("/") if s)
+			base.getConfig("web", "nevowRoot").split("/") if s)
 		self.rootLen = len(self.rootSegments)
+
+	def renderHTTP(self, ctx):
+		return rend.Page.renderHTTP(self, ctx
+			).addErrback(self._handleEscapedErrors, ctx)
+	
+	def _handleEscapedErrors(self, failure, ctx):
+		failure.trap(svcs.UnknownURI)
+		return weberrors.NotFoundPage()
 
 	def data_chunkedServiceList(self, ctx, data):
 		"""returns a service list alphabetically chunked.
 		"""
 # XXX cache this?  but if, how do we get rid of the cache on updates?
-		srvList = resourcecache.getWebServiceList(None)[:]
+		srvList = base.caches.getWebServiceList(None)[:]
 		chunks = {}
 		for srv in srvList:
 			key = srv.get("title", ".")[0].upper()
@@ -402,7 +399,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		return sList
 
 	def data_subjectServiceList(self, ctx, data):
-		return resourcecache.getSubjectsList(None)
+		return base.caches.getSubjectsList(None)
 
 	def render_ifprotected(self, ctx, data):
 		if data["owner"]:
@@ -443,24 +440,25 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 
 		Their URIs look like <rd id>/<service id>[/<anything].
 		"""
-		for srvInd in range(1, len(segments)):
+		for srvInd in range(1, len(segments)-1):
 			try:
-				rd = resourcecache.getRd("/".join(segments[:srvInd]))
-			except gavo.RdNotFound:
+				rd = base.caches.getRD("/".join(segments[:srvInd]))
+			except base.RDNotFound:
 				continue
 			try:
 				subId, rendName = segments[srvInd], segments[srvInd+1]
-				service = rd.get_service(subId, default=None)
+				service = rd.getService(subId)
 				if service is None:
-					raise KeyError("No such service %s"%subId)
-				rendC = renderClasses[rendName]
-				if service.get_requiredGroup():
-					rend = creds.runAuthenticated(ctx, service.get_requiredGroup(),
-					lambda service: rendC(ctx, service), service)
+					raise KeyError("No such service: %s"%subId)
+				rendC = grend.getRenderer(rendName)
+				if service.limitTo:
+					rend = common.runAuthenticated(ctx, service.limitTo,
+						lambda service: rendC(ctx, service), service)
 				else:
 					rend = rendC(ctx, service)
 				return rend, segments[srvInd+2:]
 			except (IndexError, KeyError):
+				traceback.print_exc()
 				return None, ()
 		return None, ()
 			
@@ -475,9 +473,12 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		if fwHost:
 			request.setHost(fwHost, 80)
 
-	if config.get("web", "enabletests"):
+	if base.getConfig("web", "enabletests"):
 		from gavo.web import webtests
 		child_test = webtests.Tests()
+
+	child_static = StaticServer()
+	child_builtin = BuiltinServer()
 
 	def _realLocateChild(self, ctx, segments):
 # XXX TODO: refactor this mess, clean up strange names by pulling more
@@ -488,7 +489,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		if segments[:self.rootLen]!=self.rootSegments:
 			return None, ()
 		segments = segments[self.rootLen:]
-		if not segments or segments[0]=='':
+		if not segments or len(segments)==1 and segments[0]=='':
 			return self, ()
 
 		# handle vanity names and shortcuts
@@ -496,7 +497,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 
 		# Special URLs (favicon.ico, TODO: robots.txt)
 		if len(segments)==1 and segments[0]=="favicon.ico":
-			faviconPath = config.get("web", "favicon")
+			faviconPath = base.getConfig("web", "favicon")
 			if faviconPath and faviconPath!="None" and os.path.exists(faviconPath):
 				return static.File(faviconPath), ()
 			else:
@@ -504,14 +505,8 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 
 		# base handling
 		name = segments[0]
-		if hasattr(self, "child_"+name):
+		if name and hasattr(self, "child_"+name):
 			res = getattr(self, "child_"+name), segments[1:]
-		elif not name:
-			res = self, ()
-		elif name=="static":
-			res = _staticServer, segments[1:]
-		elif name=="builtin":
-			res = _builtinServer, segments[1:]
 		else:
 			try:
 				sc = self._locateSpecialChild(ctx, segments)
@@ -519,7 +514,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 					res = sc, ()
 				else:
 					res = self._locateResourceBasedChild(ctx, segments)
-			except resourcebased.RdBlocked:
+			except grend.RDBlocked:
 				return BlockedPage(segments), ()
 		return res
 	
@@ -527,7 +522,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		try:
 			return self._realLocateChild(ctx, segments)
 		except WebRedirect, redirTo:
-			root = config.get("web", "nevowRoot")
+			root = base.getConfig("web", "nevowRoot")
 			if not root:
 				root = "/"
 			return url.URL.fromContext(ctx).click(root+
@@ -537,10 +532,8 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 setattr(ArchiveService, 'child_formal.css', formal.defaultCSS)
 setattr(ArchiveService, 'child_js', formal.formsJS)
 
-from gavo import nullui
-config.setDbProfile("trustedquery")
 
-if config.get("web", "errorPage")=="debug":
+if base.getConfig("web", "errorPage")=="debug":
 	appserver.DefaultExceptionHandler = weberrors.ErrorPageDebug
 else:
 	appserver.DefaultExceptionHandler = weberrors.ErrorPage

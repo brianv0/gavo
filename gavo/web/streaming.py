@@ -112,4 +112,3 @@ def streamOut(writeStreamTo, request):
 	t = DataStreamer(writeStreamTo, request)
 	t.start()
 	return request.deferred.addCallback(joinThread, t)
-

@@ -9,6 +9,10 @@ import unittest
 import doctest
 import glob
 import os
+import warnings
+
+warnings.simplefilter("ignore", category=UserWarning)
+
 
 unittestModules = [n[:-3] for n in glob.glob("*test.py")]
 
@@ -45,5 +49,5 @@ if __name__=="__main__":
 		unittestModules)
 	runner = unittest.TextTestRunner()
 	runner.run(unittest.TestSuite([unittestSuite, 
-		getDoctests(),
-		unittest.FunctionTestCase(runTrialTest, description="Trial-based tests")]))
+		getDoctests()]))
+	#	unittest.FunctionTestCase(runTrialTest, description="Trial-based tests")]))

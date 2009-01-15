@@ -5,9 +5,9 @@ File- and directory related helpers for resource utilites.
 import os
 import re
 
-import gavo
+from gavo import base
 
-class Error(gavo.Error):
+class Error(base.Error):
 	pass
 
 

@@ -14,14 +14,14 @@ import os
 import re
 import sys
 
-from gavo import config
+from gavo import base
 from gavo import datadef
-from gavo import fitstools
-from gavo import stanxml
-from gavo import typesystems
+from gavo.base import typesystems
 from gavo import utils
 from gavo.imp import VOTable
 from gavo.parsing import resource
+from gavo.utils import fitstools
+from gavo.utils import stanxml
 
 ignoredFITSHeaders = set(["COMMENT", "SIMPLE", "CRPIX1", "CRVAL1",
 	"CDELT1", "CTYPE1"])
@@ -78,7 +78,7 @@ def makeRdXML(tableDef, grammar, args, opts):
 	else:
 		dataEl = RD.Data(id="main", source=args[0])
 	return RD.ResourceDescriptor(srcdir=utils.getRelativePath(
-			os.path.abspath("."), config.get("inputsDir")))[
+			os.path.abspath("."), base.getConfig("inputsDir")))[
 		RD.schema[os.path.basename(os.getcwd())],
 		dataEl[
 			grammar,

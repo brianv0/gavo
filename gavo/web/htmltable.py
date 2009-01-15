@@ -2,6 +2,7 @@
 A renderer for DataSets to HTML/stan
 """
 
+import datetime
 import math
 import re
 import urlparse
@@ -17,13 +18,9 @@ from nevow import tags as T, entities as E
 
 from twisted.internet import reactor, defer
 
-import gavo
-from gavo import config
-from gavo import coords
-from gavo import macros
-from gavo import unitconv
-from gavo import utils
-from gavo import valuemappers
+from gavo import base
+from gavo.base import coords
+from gavo.base import valuemappers
 from gavo.web import common
 
 
@@ -69,9 +66,10 @@ def _timeangleMapperFactory(colProps):
 		if val is None:
 			return "N/A"
 		else:
-			return coords.degToTimeangle(val, sepChar, sf)
+			return base.degToTimeangle(val, sepChar, sf)
 	return coder
 _registerHTMLMF(_timeangleMapperFactory)
+
 
 def _sexagesimalMapperFactory(colProps):
 	if (colProps["unit"]!="dms" and 
@@ -83,7 +81,7 @@ def _sexagesimalMapperFactory(colProps):
 	def coder(val):
 		if val is None:
 			return "N/A"
-		return coords.degToDms(val, sepChar, sf)
+		return base.degToDms(val, sepChar, sf)
 	return coder
 _registerHTMLMF(_sexagesimalMapperFactory)
 
@@ -96,7 +94,7 @@ def _unitMapperFactory(colProps):
 	"""
 	if colProps["displayHint"].get("displayUnit") and \
 			colProps["displayHint"]["displayUnit"]!=colProps["unit"]:
-		factor = unitconv.getFactor(colProps["unit"], 
+		factor = base.getConversionFactor(colProps["unit"], 
 			colProps["displayHint"]["displayUnit"])
 		colProps["unit"] = colProps["displayHint"]["displayUnit"]
 		fmtStr = "%%.%df"%int(colProps["displayHint"].get("sf", 2))
@@ -126,25 +124,44 @@ def _stringWrapMF(baseMF):
 			return realHandler
 	return factory
 
-try:
-	_registerHTMLMF(_stringWrapMF(valuemappers.mxDatetimeMapperFactory))
-except AttributeError:
-	pass
 _registerHTMLMF(_stringWrapMF(valuemappers.datetimeMapperFactory))
 
 
-def humanTimesFactory(colProps):
+def humanDatesFactory(colProps):
 	format, unit = {"humanDatetime": ("%Y-%m-%d %H:%M:%S", "Y-M-D h:m:s"),
-		"humanDate": ("%Y-%m-%d", "Y-M-D"),
-		"humanTime": ("%H:%M:%S", "h:m:s")}.get(
+		"humanDate": ("%Y-%m-%d", "Y-M-D"), }.get(
 			colProps["displayHint"].get("type"), (None, None))
-	if format:
+	if format and isinstance(colProps["sample"], datetime.date):
 		colProps["unit"] = unit
 		def coder(val):
 			if val is None:
 				return "N/A"
 			else:
 				return val.strftime(format)
+		return coder
+_registerHTMLMF(humanDatesFactory)
+
+
+def humanTimesFactory(colProps):
+	if (colProps["displayHint"].get("type")=="humanTime" and
+			isinstance(colProps["sample"], (datetime.timedelta, datetime.time))):
+		sf = int(colProps["displayHint"].get("sf", 0))
+		fmtStr = "%%02d:%%02d:%%0%d.%df"%(sf+3, sf)
+		if isinstance(colProps["sample"], datetime.time):
+			def coder(val):
+				if val is None:
+					return "N/A"
+				else:
+					return fmtStr%(val.hours, val.minutes, val.seconds)
+		else:
+			def coder(val):
+				if val is None:
+					return "N/A"
+				else:
+					hours = val.seconds//3600
+					minutes = (val.seconds-hours*3600)//60
+					seconds = (val.seconds-hours*3600-minutes*60)+val.microseconds/1e6
+					return fmtStr%(hours, minutes, seconds)
 		return coder
 _registerHTMLMF(humanTimesFactory)
 
@@ -194,7 +211,7 @@ def _productMapperFactory(colProps):
 	fixedArgs = ""
 	def coder(val):
 		if val:
-			return T.a(href=macros.makeSitePath(
+			return T.a(href=base.makeSitePath(
 #					"/__system__/products/products/p/get?key=%s%s"%(urllib.quote(val), fixedArgs)),
 					"/getproduct?key=%s%s"%(urllib.quote(val), fixedArgs)),
 				onmouseover=mouseoverHandler,
@@ -203,16 +220,6 @@ def _productMapperFactory(colProps):
 			return ""
 	return coder
 _registerHTMLMF(_productMapperFactory)
-
-
-def _sfMapperFactory(colProps):
-	"""is a mapper factory that just goes for the sf hint.
-	"""
-	if "sf" in colProps["displayHint"]:
-		fmtstr = "%%.%df"%int(colProps["displayHint"]["sf"])
-	def coder(val):
-		return fmtstr%val
-	return coder
 
 
 def _simbadMapperFactory(colProps):
@@ -243,7 +250,7 @@ def _feedbackSelectMapperFactory(colProps):
 	if colProps["displayHint"].get("type")!="feedbackSelect":
 		return
 	def coder(data):
-		return T.input(type="checkbox", name="feedbackItem", 
+		return T.input(type="checkbox", name="feedbackSelect", 
 			value=data)
 	return coder
 _registerHTMLMF(_feedbackSelectMapperFactory)
@@ -255,7 +262,7 @@ _registerHTMLMF(_feedbackSelectMapperFactory)
 def makeCutoutURL(accref, ra, dec, sra, sdec):
 	key = (accref+"&amp;ra=%s&amp;dec=%s&amp;sra=%s"
 		"&amp;sdec=%s"%(ra, dec, sra, sdec))
-	return macros.makeSitePath("/getproduct?key="+urllib.quote(key))
+	return base.makeSitePath("/getproduct?key="+urllib.quote(key))
 
 
 class HeaderCells(rend.Page):
@@ -267,12 +274,12 @@ class HeaderCells(rend.Page):
 		return self.fieldDefs
 
 	def render_headCell(self, ctx, fieldDef):
-		props = self.colPropsIndex[fieldDef.get_dest()]
-		cont = fieldDef.get_tablehead()
+		props = self.colPropsIndex[fieldDef.name]
+		cont = fieldDef.tablehead
 		if cont is None:
 			cont = props["description"]
 		if cont is None:
-			cont = fieldDef.get_dest()
+			cont = fieldDef.name
 		desc = props["description"]
 		if desc is None:
 			desc = cont
@@ -289,7 +296,7 @@ class HeaderCells(rend.Page):
 
 
 class HTMLTableFragment(rend.Fragment):
-	"""is an HTML renderer for gavo Tables.
+	"""is an HTML renderer for (InMemory)Tables.
 	"""
 	def __init__(self, table, queryMeta):
 		self.table, self.queryMeta = table, queryMeta
@@ -301,15 +308,15 @@ class HTMLTableFragment(rend.Fragment):
 		"""returns a function object from source.
 
 		Source must be the function body of a renderer.  The variable data
-		contains the entire row, and the thing must return a string of at
+		contains the entire row, and the thing must return a string or at
 		least stan (it can use T.tag).
 		"""
 		ns = dict(globals())
 		ns["queryMeta"] = self.queryMeta
 		ns["source"] = source
-		code = ("def render(data):\n"
+		code = ("def format(data):\n"
 			"  try:\n"+
-			utils.fixIndentation(source, "     ")+"\n"
+			base.fixIndentation(source, "     ")+"\n"
 			"  except:\n"
 			"    sys.stderr.write('Error in\\n%s\\n'%source)\n"
 			"    traceback.print_exc()\n"
@@ -319,7 +326,7 @@ class HTMLTableFragment(rend.Fragment):
 		except SyntaxError:
 			sys.stderr.write("Invalid source:\n%s\n"%code)
 			raise
-		return ns["render"]
+		return ns["format"]
 
 	def _computeDefaultTds(self):
 		"""leaves a sequence of children for each row in the
@@ -330,18 +337,16 @@ class HTMLTableFragment(rend.Fragment):
 		columns since the formatters might have changed them.
 		"""
 		self.colProps = [valuemappers.ColProperties(f)
-			for f in self.table.getFieldDefs()]
+			for f in self.table.tableDef]
 		self.colPropsIndex = dict((props["name"], props) 
 			for props in self.colProps)
 		valuemappers.acquireSamples(self.colPropsIndex, self.table)
 		self.defaultTds = []
-		for props, field in zip(self.colProps, self.table.getFieldDefs()):
-# the hasattrs here are necessary since we allow plain data fields to be
-# passed in here.  We should really change that.
-			if hasattr(field, "get_wantsRow") and field.get_wantsRow():
+		for props, field in zip(self.colProps, self.table.tableDef):
+			if field.wantsRow:
 				props["wantsRow"] = True
-			if hasattr(field, "get_renderer") and field.get_renderer():
-				formatter = self._compileRenderer(field.get_renderer())
+			if field.formatter:
+				formatter = self._compileRenderer(field.formatter)
 			else:
 				formatter=_htmlMFRegistry.getMapper(props) # This may change props!
 			if props.has_key("wantsRow"):
@@ -361,7 +366,7 @@ class HTMLTableFragment(rend.Fragment):
 		return ctx.tag[formatVal(data)]
 
 	def _computeHeadCellsStan(self):
-		self.headCellsStan = T.xml(HeaderCells(self.table.getFieldDefs(),
+		self.headCellsStan = T.xml(HeaderCells(self.table.tableDef,
 				self.colPropsIndex).renderSynchronously())
 
 	def render_headCells(self, ctx, data):
@@ -382,11 +387,11 @@ class HTMLTableFragment(rend.Fragment):
 		return self.table
 
 	def data_fielddefs(self, ctx, data):
-		return self.table.getFieldDefs()
+		return self.table.tableDef.columns
 
 	def render_iffeedback(self, ctx, data):
-		fields = self.table.tableDef.get_items()
-		if fields and fields[0].get_dest()=="feedbackSelect":
+		fields = self.table.tableDef.columns
+		if fields and fields[0].name=="feedbackSelect":
 			return ctx.tag
 		else:
 			return ""

@@ -3,6 +3,9 @@ A renderer that makes jpegs out of database lines.
 
 It expects pairs of line number and base64-encoded 8-bit single-channel
 image data in its input.
+
+This is, admittedly, a bit special.  Maybe it should become a custom
+renderer on the infinite light curve?
 """
 
 import cStringIO
@@ -20,38 +23,29 @@ from twisted.python import failure
 
 from zope.interface import implements
 
-import gavo
-from gavo import datadef
-from gavo import votable
-from gavo.parsing import contextgrammar
-from gavo.parsing import resource
-from gavo.web import common
+from gavo import base
+from gavo.web import grend
 from gavo.web import resourcebased
-
 
 class JpegRenderer(resourcebased.Form):
 	name="img.jpeg"
 
-	def __init__(self, *args):
-		super(JpegRenderer, self).__init__(*args)
-
-	def _runService(self, inputData, queryMeta, ctx):
-		pars = inputData.getDocRec()
-		if "plotField" in pars and pars["plotField"]:
-			queryMeta.setdefault("additionalFields", []).append(
-						pars["plotField"])
-		return self.service.run(inputData, queryMeta
-			).addCallback(self._handleOutputData, ctx
-			).addErrback(self._handleError, ctx)
+	def _realSubmitAction(self, ctx, form, data):
+# fiddle in plotField into the service output if necessary
+		if "plotField" in data and data["plotField"]:
+			args = inevow.IRequest(ctx).args
+			args.setdefault("_ADDITEM", []).append(
+						data["plotField"])
+		return self._runService(data, ctx)
 
 	def _computeLinesWithCurve(self, rawRecs, plotField):
-		curveMin = float(self.service.get_property("curveMin", 0))
-		valRange = float(self.service.get_property("curveMax"))-curveMin
-		curveWidth = int(self.service.get_property("curveWidth", "200"))
+		curveMin = float(self.service.getProperty("curveMin", 0))
+		valRange = float(self.service.getProperty("curveMax"))-curveMin
+		curveWidth = int(self.service.getProperty("curveWidth", "200"))
 		def scale(v):
 			return max(0, min(curveWidth, int((v-curveMin)/valRange*curveWidth)))
 		curvePix = '\xff'*curveWidth
-		lastPos = dotPos = scale(rawRecs[0][plotField])
+		lastPos = dotPos = scale(rawRecs.rows[0][plotField])
 		for rec in rawRecs:
 			dotPos = scale(rec[plotField])
 			if lastPos<dotPos:
@@ -66,26 +60,27 @@ class JpegRenderer(resourcebased.Form):
 			yield rec["data"].decode("base64")+curveBytes
 
 	def _createImage(self, data):
-		if self.service.get_property("curveMax"
+		if self.service.getProperty("curveMax"
 				) and "plotField" in data.queryPars and data.queryPars["plotField"]:
-			lines = [l for l in self._computeLinesWithCurve(data.getPrimaryTable(),
-				data.queryPars["plotField"])]
+			lines = [l for l in self._computeLinesWithCurve(
+				data.original.getPrimaryTable(), data.queryPars["plotField"])]
 		else:
-			lines = [rec["data"].decode("base64") for rec in data.getPrimaryTable()]
+			lines = [rec["data"].decode("base64") 
+				for rec in data.original.getPrimaryTable()]
 		img = Image.fromstring("L", (len(lines[0]), len(lines)),
 			"".join(pixLine for pixLine in lines))
-		if data.data_inputRec().get("palette"):
-			img.putpalette(palettes[data.data_inputRec()["palette"]])
+		if data.queryPars.get("palette"):
+			pal = data.queryPars["palette"]
+			if pal in palettes:
+				img.putpalette(palettes[pal])
+			else:
+				raise base.ValidationError("No such palette: %s"%pal,
+					colName="palette")
 			img = img.convert("RGB")
 			img = img.tostring("jpeg", "RGB")
 		else:
 			img = img.tostring("jpeg", "L")
 		return img
-
-	def _handleOutputData(self, data, ctx):
-		return threads.deferToThread(self._createImage, data
-			).addCallback(self._deliverJpeg, ctx
-			).addErrback(self._handleError, ctx)
 
 	def _deliverJpeg(self, jpegStr, ctx):
 		request = inevow.IRequest(ctx)
@@ -96,27 +91,24 @@ class JpegRenderer(resourcebased.Form):
 		static.FileTransfer(cStringIO.StringIO(jpegStr), len(jpegStr), request)
 		return request.deferred
 
-	def _handleError(self, failure, ctx):
-		failure.printTraceback()
-		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", "text/plain")
-		request.write("Image generation failed")
-		request.finishRequest(False)
-		return appserver.errorMarker
+	def _formatOutput(self, data, ctx):
+		return threads.deferToThread(self._createImage, data
+			).addCallback(self._deliverJpeg, ctx)
+
+grend.registerRenderer("img.jpeg", JpegRenderer)
+
 
 import traceback
 
-class MachineJpegRenderer(common.CustomErrorMixin, JpegRenderer):
+class MachineJpegRenderer(JpegRenderer):
 	"""is a machine version of the JpegRenderer -- no vizier expressions,
 	hardcoded parameters, plain text errors.
+
+	We should really provide a real inputDD for this guy.  Ah well.
 	"""
 	name = "mimg.jpeg"
 
-	def __init__(self, ctx, *args, **kwargs):
-		ctx.remember(self, inevow.ICanHandleException)
-		super(MachineJpegRenderer, self).__init__(ctx, *args, **kwargs)
-
-	def renderHTTP(self, ctx):
+	def _realRenderHTTP(self, ctx):
 		args = inevow.IRequest(ctx).args
 		formalData = {}
 		try:
@@ -125,33 +117,36 @@ class MachineJpegRenderer(common.CustomErrorMixin, JpegRenderer):
 			formalData["palette"] = str(args.get("palette", [""])[0])
 			formalData["plotField"] = str(args.get("plotField", [""])[0])
 		except:
-			traceback.print_exc()
-			raise gavo.ValidationError("Invalid input parameters %s"%args, "line")
-		return self.submitAction(ctx, None, formalData)
+			raise base.ValidationError("Invalid input parameters %s"%args, "line")
+		return JpegRenderer._realSubmitAction(self, ctx, None, formalData)
 
-	def renderHTTP_exception(self, ctx, failure):
-		failure.printTraceback()
-		msg = "Image generation failed: %s"%failure.getErrorMessage()
+	def renderHTTP(self, ctx):
+		# We're not going thorugh the motions of form processing here
+		# and to what little we'd want from formal right here.
+		return defer.maybeDeferred(self._realRenderHTTP, ctx
+			).addErrback(self._handleInputErrors, ctx
+			).addErrback(self._crashAndBurn, ctx)
+
+	def _handleInputErrors(self, failure, ctx):
+		failure.trap(base.ValidationError)
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(400)
 		request.setHeader("content-type", "text/plain")
-		request.write(msg)
+		request.write("Some of your input was wrong: %s\n"%
+			failure.getErrorMessage())
 		request.finishRequest(False)
 		return appserver.errorMarker
-
-	def _handleInputErrors(self, errors, ctx):
-		if not isinstance(errors, list):
-			errors = [errors]
-		msg = "Error(s) in given Parameters: %s"%"; ".join(
-			[e.getErrorMessage() for e in errors])
+	
+	def _crashAndBurn(self, failure, ctx):
 		request = inevow.IRequest(ctx)
-		request.setResponseCode(400)
+		request.setResponseCode(500)
 		request.setHeader("content-type", "text/plain")
-		request.write(msg)
+		request.write("Internal problem: %s\n"%
+			failure.getErrorMessage())
 		request.finishRequest(False)
 		return appserver.errorMarker
 
-
+grend.registerRenderer("mimg.jpeg", MachineJpegRenderer)
 
 palettes = {
 	"gold": '\xfc\xfc\x80\xfc\xfc\x80\xfc\xf8|\xfc\xf8|\xfc\xf4x\xf8\xf4x\xf8\xf0t\xf8\xf0p\xf8\xecp\xf4\xecl\xf4\xe8l\xf4\xe8h\xf4\xe4h\xf0\xe4d\xf0\xe0`\xf0\xe0`\xf0\xdc\\\xec\xdc\\\xec\xd8X\xec\xd8T\xec\xd4T\xec\xd4P\xe8\xd0P\xe8\xd0L\xe8\xccL\xe8\xccH\xe4\xc8D\xe4\xc8D\xe4\xc4@\xe4\xc4@\xe0\xc0<\xe0\xc08\xe0\xbc8\xe0\xbc4\xdc\xb84\xdc\xb80\xdc\xb40\xdc\xb4,\xdc\xb0(\xd8\xb0(\xd8\xac$\xd8\xac$\xd8\xa8 \xd4\xa8\x1c\xd4\xa4\x1c\xd4\xa4\x18\xd4\xa0\x18\xd0\xa0\x14\xd0\x9c\x14\xd0\x9c\x10\xd0\x98\x0c\xcc\x98\x0c\xcc\x94\x08\xcc\x94\x08\xcc\x90\x04\xc8\x8c\x00\xc4\x88\x00\xc4\x88\x00\xc4\x88\x00\xc4\x88\x00\xc0\x84\x00\xc0\x84\x00\xc0\x84\x00\xc0\x84\x00\xbc\x80\x00\xbc\x80\x00\xbc\x80\x00\xbc\x80\x00\xb8|\x00\xb8|\x00\xb8|\x00\xb8|\x00\xb4x\x00\xb4x\x00\xb4x\x00\xb4x\x00\xb0t\x00\xb0t\x00\xb0t\x00\xb0t\x00\xacp\x00\xacp\x00\xacp\x00\xacp\x00\xa8l\x00\xa8l\x00\xa8l\x00\xa8l\x00\xa4h\x00\xa4h\x00\xa4h\x00\xa4h\x00\xa0d\x00\xa0d\x00\xa0d\x00\xa0d\x00\x9c`\x00\x9c`\x00\x9c`\x00\x9c`\x00\x98\\\x00\x98\\\x00\x98\\\x00\x98\\\x00\x94X\x00\x94X\x00\x94X\x00\x94X\x00\x90T\x00\x90T\x00\x90T\x00\x90T\x00\x8cP\x00\x8cP\x00\x8cP\x00\x8cP\x00\x88L\x00\x88L\x00\x88L\x00\x88L\x00\x84H\x00\x84H\x00\x84H\x00\x84H\x00\x80D\x00\x80D\x00\x80D\x00\x80D\x00|@\x00|@\x00|@\x00|@\x00x<\x00x<\x00x<\x00x<\x00t8\x00t8\x00t8\x00t8\x00p4\x00p4\x00p4\x00p4\x00l0\x00l0\x00l0\x00l0\x00h,\x00h,\x00h,\x00h,\x00d(\x00d(\x00d(\x00d(\x00`$\x00`$\x00`$\x00`$\x00\\ \x00\\ \x00\\ \x00\\ \x00X\x1c\x00X\x1c\x00X\x1c\x00X\x1c\x00T\x18\x00T\x18\x00T\x18\x00T\x18\x00P\x14\x00P\x14\x00P\x14\x00P\x14\x00L\x10\x00L\x10\x00L\x10\x00L\x10\x00H\x0c\x00H\x0c\x00H\x0c\x00H\x0c\x00D\x08\x00D\x08\x00D\x08\x00D\x08\x00@\x04\x00@\x04\x00@\x04\x00@\x04\x00<\x00\x00<\x00\x00<\x00\x00<\x00\x008\x00\x008\x00\x008\x00\x008\x00\x004\x00\x004\x00\x004\x00\x004\x00\x000\x00\x000\x00\x000\x00\x000\x00\x00,\x00\x00,\x00\x00,\x00\x00,\x00\x00(\x00\x00(\x00\x00(\x00\x00(\x00\x00$\x00\x00$\x00\x00$\x00\x00$\x00\x00 \x00\x00 \x00\x00 \x00\x00 \x00\x00\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x1c\x00\x00\x18\x00\x00\x18\x00\x00\x18\x00\x00\x18\x00\x00\x14\x00\x00\x14\x00\x00\x14\x00\x00\x14\x00\x00\x10\x00\x00\x10\x00\x00\x10\x00\x00\x10\x00\x00\x0c\x00\x00\x0c\x00\x00\x0c\x00\x00\x0c\x00\x00\x08\x00\x00\x08\x00\x00\x08\x00\x00\x08\x00\x00\x04\x00\x00\x04\x00\x00\x04\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',

@@ -6,12 +6,11 @@ import os
 
 import pyfits
 
-import gavo
-from gavo import fitstools
-from gavo import utils
+from gavo import base
+from gavo.utils import fitstools
 
-anetPath = "/data/gavo/astrometry/bin"
-anetIndexPath = "/data/gavo/astrometry/data"
+anetPath = "/usr/local/astrometry/bin"
+anetIndexPath = "/usr/local/astrometry/data"
 solverBin = os.path.join(anetPath, "solve-field")
 tabsortBin = os.path.join(anetPath, "tabsort")
 getHealpixBin = os.path.join(anetPath, "get-healpix")
@@ -37,7 +36,7 @@ ELONGATION
 """
 
 
-class Error(gavo.Error):
+class Error(base.Error):
 	pass
 
 class NotSolved(Error):
@@ -147,7 +146,7 @@ def _resolve(fName, solverParameters={}, sexScript=None, objectFilter=None):
 	you should find the solution in out.wcs (or whatever you gave for wcs).
 	"""
 	paramDefaults = {
-		"index_statements": "index %s/index-218"%anetIndexPath,
+		"index_statements": "index %s/index-218.fits"%anetIndexPath,
 		"total_timelimit": 600,
 		"total_cpulimit": 600,
 		"fields": "1",

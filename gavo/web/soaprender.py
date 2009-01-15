@@ -7,11 +7,12 @@ import traceback
 from nevow import inevow
 
 from twisted.internet import defer
+from twisted.internet import threads
 from twisted.web import soap
 
-from gavo.parsing import contextgrammar
-from gavo.web import common
-from gavo.web import resourcebased
+from gavo import base
+from gavo import svcs
+from gavo.web import grend
 from gavo.web import wsdl
 
 
@@ -33,7 +34,7 @@ class SOAPProcessor(soap.SOAPPublisher):
 			# called at all, but for some reason it is, and I can't be bothered
 			# now to figure out why.
 			return ""
-		response = wsdl.serializePrimaryTable(result, self.service)
+		response = wsdl.serializePrimaryTable(result.original, self.service)
 		self._sendResponse(request, response)
 	
 	def _gotError(self, failure, request, methodName):
@@ -47,10 +48,10 @@ class SOAPProcessor(soap.SOAPPublisher):
 	def soap_useService(self, *args):
 		try:
 			inputPars = dict(zip(
-				[f.get_dest() for f in self.service.getInputFields()],
+				[f.name for f in self.service.getInputFields()],
 				args))
-			return self._runService(self.service.getInputData(inputPars), 
-				self.ctx)
+			return threads.deferToThread(self.service.run, inputPars, 
+				svcs.QueryMeta())
 		except Exception, exc:
 			traceback.print_exc()
 			return self._formatError(exc)
@@ -59,17 +60,13 @@ class SOAPProcessor(soap.SOAPPublisher):
 		self._sendResponse(self.request, wsdl.formatFault(exc, self.service), 
 			status=500)
 
-	def _runService(self, inputData, ctx):
-		queryMeta = common.QueryMeta.fromContext(ctx)
-		return defer.maybeDeferred(self.service.run, inputData, queryMeta)
 
-
-class SoapRenderer(resourcebased.ServiceBasedRenderer):
+class SoapRenderer(grend.ServiceBasedRenderer):
 	"""is a renderer that receives and formats SOAP messages.
 	"""
 	name="soap"
 	def __init__(self, ctx, service):
-		resourcebased.ServiceBasedRenderer.__init__(self, ctx, service)
+		grend.ServiceBasedRenderer.__init__(self, ctx, service)
 
 	def renderHTTP(self, ctx):
 		"""returns the WSDL for service.
@@ -79,7 +76,7 @@ class SoapRenderer(resourcebased.ServiceBasedRenderer):
 		"""
 		request = inevow.IRequest(ctx)
 		if not hasattr(self.service, "_generatedWSDL"):
-			queryMeta = common.QueryMeta.fromContext(ctx)
+			queryMeta = svcs.QueryMeta.fromContext(ctx)
 			self.service._generatedWSDL = wsdl.makeSOAPWSDLForService(
 				self.service, queryMeta).render()
 		request.setHeader("content-type", "text/xml")
@@ -90,3 +87,5 @@ class SoapRenderer(resourcebased.ServiceBasedRenderer):
 		if request.uri.endswith("?wsdl"): # XXX TODO: use parsed headers here
 			return self, ()
 		return SOAPProcessor(ctx, self.service), ()
+
+grend.registerRenderer("soap", SoapRenderer)

@@ -8,9 +8,8 @@ import sys
 import tempfile
 import unittest
 
-from gavo import resourcecache
-from gavo.parsing import importparser
 
+from gavo import base
 
 class VerboseTest(unittest.TestCase):
 	"""contains a few methods for improved error reporting.
@@ -41,6 +40,14 @@ class VerboseTest(unittest.TestCase):
 			raise
 		else:
 			raise self.failureException(msg or "%s not raised"%exception)
+
+	def assertRuns(self, callable, args, msg=None):
+		try:
+			callable(*args)
+		except Exception, ex:
+			raise self.failureException("Should run, but raises %s (%s) exception"%(
+				ex.__class__.__name__, str(ex)))
+
 
 class XSDTestMixin(object):
 	"""provides a assertValidates method doing XSD validation.
@@ -78,11 +85,13 @@ class XSDTestMixin(object):
 
 
 def getTestRD():
-	return resourcecache.getRd(os.path.abspath("test.vord"))
+	from gavo import rscdesc
+	from gavo.protocols import basic
+	return base.caches.getRD(os.path.abspath("test.rd"))
 
 
 def getTestTable(tableName):
-	return getTestRD().getTableDefByName(tableName)
+	return getTestRD().getTableDefById(tableName)
 
 
 def getTestData(dataId):

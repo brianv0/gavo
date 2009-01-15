@@ -9,12 +9,15 @@ Call the program with an argument to make it refresh that cache.
 
 import re
 import sys
+import warnings
 
-from gavo import config
-from gavo.parsing import importparser
-from gavo.web import servicelist
+warnings.simplefilter("ignore", category=UserWarning)
 
-cachedIDs = ['liverpool/res/rawframes', 'lensdemo/view', '2mass/res/2mass', 'apfs/res/apfs_new', 'dexter/ui', 'ucds/ui', 'ppmx/res/ppmxautopm', 'ppmx/res/ppmxauto', 'ppmx/res/ppmx', 'usnob/res/redux', 'usnob/res/usnob', 'poslenscands/res/cands', 'brownDwarfs/bd', 'fk6/res/fk6', 'rauchspectra/theospectra', 'cns/res/cns', 'inflight/res/lc1', 'apo/res/apo', 'genupload/do', 'maidanak/res/rawframes', 'lswscans/res/positions', '__system__/cutout/cutout', '__system__/products/products', '__system__/services/services', '__system__/tests/misc', '__system__/users/users']
+from gavo import base
+from gavo import api
+from gavo.protocols import servicelist
+
+cachedIDs = [u'liverpool/res/rawframes', u'danish/red', u'lensdemo/view', u'2mass/res/2mass', u'apfs/times', u'apfs/res/apfs_new', u'dexter/ui', u'ucds/ui', u'ppmx/res/ppmx', u'usnob/res/usnob', u'usnob/res/plates', u'usnob/res/redux', u'poslenscands/res/cands', u'brownDwarfs/bd', u'logs/logs', u'fk6/res/fk6', u'rauchspectra/theospectra', u'cns/res/cns', u'inflight/res/lc1', u'apo/res/apo', u'genupload/do', u'maidanak/res/rawframes', u'veronqsos/q', u'lswscans/res/positions', '__system__/adql', '__system__/procs', '__system__/scs', '__system__/siap', '__system__/tests', '__system__/users', '__system__/dc_tables', '__system__/products', '__system__/services']
 
 def patchMySource(newIDs):
 	f = open("checkAllRds.py")
@@ -26,17 +29,19 @@ def patchMySource(newIDs):
 	f.write(src)
 	f.close()
 
-builtinIDs = ["__system__/cutout/cutout", "__system__/products/products",
-	"__system__/services/services", "__system__/tests/misc",
-	"__system__/users/users"]
+builtinIDs = ["__system__/adql", "__system__/procs",
+	"__system__/scs", "__system__/siap", "__system__/tests",
+	"__system__/users", "__system__/dc_tables", "__system__/products",
+	"__system__/services",]
 
-config.setDbProfile("trustedquery")
+base.setDBProfile("trustedquery")
 if len(sys.argv)>1:
 	newIDs = []
 	for rdPath in servicelist.findAllRDs():
-		newIDs.append(importparser.getRd(rdPath).sourceId)
+		newIDs.append(api.getRD(rdPath).sourceId)
 	patchMySource(newIDs+builtinIDs)
 else:
 	for id in cachedIDs:
-		importparser.getRd(id)
-		print "-- %s ok"%id
+		api.getRD(id)
+		print "%s,"%id,
+		sys.stdout.flush()

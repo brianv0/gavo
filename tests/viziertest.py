@@ -4,18 +4,16 @@
 Tests for correct interpretation of vizier-type expressions.
 """
 
+import datetime
 import sys
 import unittest
 
-import testhelpers
-
-from gavo import config
-from gavo import datadef
-from gavo import nullui
-from gavo import sqlsupport
-from gavo.parsing import typeconversion
-from gavo.web import gwidgets
-from gavo.web import vizierexprs
+from gavo import base
+from gavo import rsc
+from gavo import rscdesc
+from gavo.protocols import products
+from gavo.base import vizierexprs
+from gavo.svcs import inputdef
 
 import testhelpers
 
@@ -172,11 +170,11 @@ class ComplexDateExpresionTest(GrammarTest):
 		"""tests for some expressions based on dates.
 		"""
 		self._assertResults(
-			("2003-11-19", "(= 2003-11-19 00:00:00.00)"),
+			("2003-11-19", "(= 2003-11-19 00:00:00)"),
 			("2003-11-19..2003-12-15", 
-				"(.. 2003-11-19 00:00:00.00 2003-12-15 00:00:00.00)"),
+				"(.. 2003-11-19 00:00:00 2003-12-15 00:00:00)"),
 			("2003-11-19 +/- 3", 
-				"(.. 2003-11-16 00:00:00.00 2003-11-22 00:00:00.00)"),
+				"(.. 2003-11-16 00:00:00 2003-11-22 00:00:00)"),
 		)
 
 
@@ -237,76 +235,70 @@ class SQLGenerTest(unittest.TestCase):
 	"""Tests for SQL fragments making out of simple vizier-like expressions.
 	"""
 	def testSQLGenerationSimple(self):
-		field = gwidgets.InputKey(dest="foo", source="bar", 
-			dbtype="vexpr-float")
+		field = base.makeStruct(inputdef.InputKey, name="foo", type="vexpr-float")
 		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"bar": "8"}, sqlPars),
+		self.assertEqual(vizierexprs.getSQL(field, {"foo": "8"}, sqlPars),
 			"foo = %(foo0)s")
 		self.assertEqual(sqlPars["foo0"], 8.0)
-		self.assertEqual(vizierexprs.getSQL(field, {"bar": "=8"}, sqlPars),
+		self.assertEqual(vizierexprs.getSQL(field, {"foo": "=8"}, sqlPars),
 			"foo = %(foo0)s")
-		self.assertEqual(vizierexprs.getSQL(field, {"bar": "!=8"}, sqlPars),
+		self.assertEqual(vizierexprs.getSQL(field, {"foo": "!=8"}, sqlPars),
 			"NOT (foo = %(foo0)s)")
-		self.assertEqual(vizierexprs.getSQL(field, {"bar": "< 8"}, sqlPars),
+		self.assertEqual(vizierexprs.getSQL(field, {"foo": "< 8"}, sqlPars),
 			"foo < %(foo0)s")
 
 	def testSQLGenerationComplex(self):
 		"""Tests for SQL fragments making out of complex vizier-like expressions.
 		"""
-		field = gwidgets.InputKey(dest="foo", source="bar", 
-			dbtype="vexpr-float")
+		field = base.makeStruct(inputdef.InputKey, name="foo", type="vexpr-float")
 		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"bar": "< 8 | > 15"}, sqlPars),
+		self.assertEqual(vizierexprs.getSQL(field, {"foo": "< 8 | > 15"}, sqlPars),
 			"(foo < %(foo0)s) OR (foo > %(foo1)s)")
 		self.assertEqual(len(sqlPars), 2)
 		self.assertEqual(sqlPars["foo1"], 15)
 
 		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"bar": "< 8 & > 15"}, sqlPars),
+		self.assertEqual(vizierexprs.getSQL(field, {"foo": "< 8 & > 15"}, sqlPars),
 			"(foo < %(foo0)s) AND (foo > %(foo1)s)")
 
 		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"bar": "8, 9, 10"}, sqlPars),
+		self.assertEqual(vizierexprs.getSQL(field, {"foo": "8, 9, 10"}, sqlPars),
 			"foo IN (%(foo0)s, %(foo1)s, %(foo2)s)")
 		self.assertEqual(len(sqlPars), 3)
 
 		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"bar": "8 .. 10"}, sqlPars),
+		self.assertEqual(vizierexprs.getSQL(field, {"foo": "8 .. 10"}, sqlPars),
 			"foo BETWEEN %(foo0)s AND %(foo1)s")
 		self.assertEqual(len(sqlPars), 2)
 
 		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"bar": "8 +/- 2"}, sqlPars),
+		self.assertEqual(vizierexprs.getSQL(field, {"foo": "8 +/- 2"}, sqlPars),
 			"foo BETWEEN %(foo0)s AND %(foo1)s")
 		self.assertEqual(sqlPars["foo1"], 10)
 
 	def testDateSQLGeneration(self):
 		"""tests for SQL fragments making for date expressions.
 		"""
-		field = gwidgets.InputKey(dest="foo", source="bar", 
-			dbtype="vexpr-date")
+		field = base.makeStruct(inputdef.InputKey, name="foo", type="vexpr-date")
 		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"bar": "2001-05-12"}, 
+		self.assertEqual(vizierexprs.getSQL(field, {"foo": "2001-05-12"}, 
 			sqlPars), "foo = %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], typeconversion.make_dateTimeFromString(
-			"2001-05-12"))
+		self.assertEqual(sqlPars["foo0"], datetime.datetime(2001, 5, 12))
 
 		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"bar": "< 2001-05-12"}, 
+		self.assertEqual(vizierexprs.getSQL(field, {"foo": "< 2001-05-12"}, 
 			sqlPars), "foo < %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], typeconversion.make_dateTimeFromString(
-			"2001-05-12"))
+		self.assertEqual(sqlPars["foo0"], datetime.datetime(2001, 5, 12))
 
 		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"bar": "2001-05-12 +/- 2.5"}, 
+		self.assertEqual(vizierexprs.getSQL(field, {"foo": "2001-05-12 +/- 2.5"}, 
 			sqlPars), 'foo BETWEEN %(foo0)s AND %(foo1)s')
-		self.assertEqual(str(sqlPars["foo0"]), "2001-05-09 12:00:00.00")
+		self.assertEqual(str(sqlPars["foo0"]), "2001-05-09 12:00:00")
 
 	def testWithNones(self):
 		"""tests for SQL fragments generation with NULL items.
 		"""
-		field1 = gwidgets.InputKey(dest="foo", source="foo", 
-			dbtype="vexpr-float")
+		field1 = base.makeStruct(inputdef.InputKey, name="foo", type="vexpr-float")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": None}, sqlPars),
 			None)
@@ -314,7 +306,7 @@ class SQLGenerTest(unittest.TestCase):
 	def testPatterns(self):
 		"""tests for SQL generation with string patterns.
 		"""
-		field1 = gwidgets.InputKey(dest="foo", source="foo", dbtype="vexpr-string")
+		field1 = base.makeStruct(inputdef.InputKey, name="foo", type="vexpr-string")
 		sqlPars = {}
 		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "~star"}, sqlPars),
 			"foo ~* %(foo0)s")
@@ -360,29 +352,20 @@ class StringQueryTest(unittest.TestCase):
 	"""Tests for string vizier-expressions in a database.
 	"""
 	def setUp(self):
-		config.setDbProfile("test")
-		tableDef = testhelpers.getTestTable("vizierstrings")
-		tw = sqlsupport.TableWriter(tableDef)
-		tw.createTable()
-		feed = tw.getFeeder()
-		feed({"s": ""})
-		feed({"s": "a"})
-		feed({"s": "A"})
-		feed({"s": "aaab"})
-		feed({"s": "baaab"})
-		feed({"s": "BAaab"})
-		feed({"s": "B*"})
-		feed({"s": "X33+4"})
-		feed({"s": "a,b"})
-		feed({"s": "a|b"})
-		feed({"s": r"\it"})
-		feed.close()
-		tw.finish()
-		self.tableName = tableDef.getQName()
+		base.setDBProfile("test")
+		dd = testhelpers.getTestRD().getById("viziertest")
+		self.data = rsc.makeData(dd, forceSource=[{"s": ""},
+			{"s": "a"}, {"s": "A"}, {"s": "aaab"}, {"s": "baaab"},
+			{"s": "BAaab"}, {"s": "B*"}, {"s": "X33+4"}, {"s": "a,b"},
+			{"s": "a|b"}, {"s": r"\it"},])
+		self.tableName = self.data.tables["vizierstrings"].tableDef.getQName()
+
+	def tearDown(self):
+		self.data.tables["vizierstrings"].drop().commit()
 
 	def _runCountTests(self, tests):
-		querier = sqlsupport.SimpleQuerier()
-		ik = gwidgets.InputKey(source="s", dest="s", dbtype="vexpr-string")
+		querier = base.SimpleQuerier()
+		ik = base.makeStruct(inputdef.InputKey, name="s", type="vexpr-string")
 		try:
 			for vExpr, numberExpected in tests:
 				pars = {}
@@ -437,11 +420,6 @@ class StringQueryTest(unittest.TestCase):
 			("!~*a*", 4),
 		])
 
-	def tearDown(self):
-		querier = sqlsupport.SimpleQuerier()
-		querier.query("DROP TABLE %s CASCADE"%self.tableName)
-		querier.commit()
-
 
 class MatchMatrixTest(unittest.TestCase):
 
@@ -477,28 +455,28 @@ class MatchMatrixTest(unittest.TestCase):
 	]
 
 	def setUp(self):
-		config.setDbProfile("test")
-		self.tableDef = testhelpers.getTestTable("vizierstrings")
-		tw = sqlsupport.TableWriter(self.tableDef)
-		tw.createTable()
-		feed = tw.getFeeder()
+		base.setDBProfile("test")
+		dd = testhelpers.getTestRD().getById("viziertest")
 		self.itemsInDb = self.matchMatrix[0][1:]
-		for item in self.itemsInDb:
-			feed({"s": item})
-		feed.close()
-		tw.finish()
-		self.queryKey = gwidgets.InputKey(source="s", dest="s", dbtype="vexpr-string")
+		self.data = rsc.makeData(dd, forceSource=[{"s": item}
+			for item in self.itemsInDb])
+		self.tableName = self.data.tables["vizierstrings"].tableDef.getQName()
+		self.queryKey = base.makeStruct(inputdef.InputKey, 
+			name="s", type="vexpr-string")
+
+	def tearDown(self):
+		self.data.tables["vizierstrings"].drop().commit()
 
 	def _computeTest(self, testLine):
 		pars = {}
-		query = "SELECT s FROM %s WHERE %s"%(self.tableDef.getQName(),
+		query = "SELECT s FROM %s WHERE %s"%(self.tableName,
 			vizierexprs.getSQL(self.queryKey, {"s": testLine[0]}, pars))
 		expectation = set([item for item, res in 
 			zip(self.itemsInDb, testLine[1:]) if res])
 		return expectation, query, pars
 
 	def runTest(self):
-		querier = sqlsupport.SimpleQuerier()
+		querier = base.SimpleQuerier()
 		try:
 			for test in self.matchMatrix[1:]:
 				expectation, query, pars = self._computeTest(test)
@@ -510,9 +488,7 @@ class MatchMatrixTest(unittest.TestCase):
 		finally:
 			querier.close()
 
-	def tearDown(self):
-		tw = sqlsupport.TableWriter(self.tableDef)
-		tw.dropTable()
-		tw.finish()
+
+
 if __name__=="__main__":
 	testhelpers.main(MatchMatrixTest)

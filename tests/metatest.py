@@ -6,10 +6,10 @@ from xml import sax
 from nevow import tags as T, flat
 
 import gavo
-from gavo import meta
-from gavo.parsing import importparser
+from gavo import base
+from gavo.base import meta
 from gavo.web import common as webcommon
-from gavo.web import registry
+from gavo.protocols import registry
 
 import testhelpers
 
@@ -29,7 +29,7 @@ class KeyTest(testhelpers.VerboseTest):
 		"""tests for correct rejection of bad meta keys.
 		"""
 		for shouldFail in ["", "abc7", ".foo", "???"]:
-			self.assertRaisesVerbose(gavo.MetaSyntaxError, meta.getPrimary, 
+			self.assertRaisesVerbose(base.MetaSyntaxError, meta.getPrimary, 
 				(shouldFail,), "%s returned primary meta but shouldn't have"%shouldFail)
 
 	def testParse(self):
@@ -44,7 +44,7 @@ class KeyTest(testhelpers.VerboseTest):
 
 	def testBadKey(self):
 		for shouldFail in ["", "abc7", ".foo", "???", "coverage.x7", "foo..bar"]:
-			self.assertRaisesVerbose(gavo.MetaSyntaxError, meta.parseKey, 
+			self.assertRaisesVerbose(base.MetaSyntaxError, meta.parseKey, 
 				(shouldFail,), "%s returned primary meta but shouldn't have"%shouldFail)
 
 
@@ -54,7 +54,7 @@ class CompoundTest(testhelpers.VerboseTest):
 	def testFromText(self):
 		"""tests for correct buildup of MetaItems from text keys.
 		"""
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("creator.name", meta.makeMetaValue("F. Bar"))
 		m.addMeta("creator.address", meta.makeMetaValue("21 Foo Street, Bar 02147"))
 		self.assertEqual(len(m.getMeta("creator").children), 1)
@@ -65,7 +65,7 @@ class CompoundTest(testhelpers.VerboseTest):
 			m.getMeta("creator.name"))
 
 	def testWithContact(self):
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("curation.publisher", "The GAVO DC team")
 		m.addMeta("curation.publisherID", "ivo://org.gavo.dc")
 		m.addMeta("curation.contact", "gavo@ari.uni-heidelberg.de")
@@ -87,7 +87,7 @@ class CompoundTest(testhelpers.VerboseTest):
 		mv = meta.makeMetaValue()
 		mv.addMeta("name", meta.makeMetaValue("Foo B."))
 		mv.addMeta("address", meta.makeMetaValue("homeless"))
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("creator", mv)
 		self.assertEqual(len(m.getMeta("creator").children), 1)
 		self.assertEqual(m.getMeta("creator.name").children[0].content, "Foo B.")
@@ -105,7 +105,7 @@ class SequenceTest(testhelpers.VerboseTest):
 	def testFlatTextSequence(self):
 		"""tests for buildup of sequence metas using text keys.
 		"""
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("subject", "boredom")
 		m.addMeta("subject", "drudge")
 		m.addMeta("subject", "pain")
@@ -116,7 +116,7 @@ class SequenceTest(testhelpers.VerboseTest):
 	def testCompoundTextSequence(self):
 		"""tests for correct buildup of sequences of compound meta items.
 		"""
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("coverage.spatial.ra", "10-20")
 		m.addMeta("coverage.spatial.dec", "10-20")
 		m.addMeta("coverage.spatial", None)
@@ -126,13 +126,13 @@ class SequenceTest(testhelpers.VerboseTest):
 		self.assertEqual(len(m.getMeta("coverage.spatial").children), 2)
 		self.assertEqual(m.getMeta("coverage.spatial").children[1].
 			getMeta("ra").children[0].content, "-10-20")
-		self.assertRaises(gavo.MetaCardError, m.getMeta, "coverage.spatial.ra")
-		self.assertRaises(gavo.MetaCardError, m.getMeta, "coverage.spatial.dec")
+		self.assertRaises(base.MetaCardError, m.getMeta, "coverage.spatial.ra")
+		self.assertRaises(base.MetaCardError, m.getMeta, "coverage.spatial.dec")
 
 	def testCompoundObjectSequence(self):
 		"""tests for correct buildup of meta information through object embedding
 		"""
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		alc = meta.makeMetaValue("50%")
 		org = meta.makeMetaValue("grape")
 		stuff = meta.makeMetaValue("fusel")
@@ -151,15 +151,16 @@ class SequenceTest(testhelpers.VerboseTest):
 		self.assertEqual(m.getMeta("stuff").children[1].
 			getMeta("alc").getContent(), "70%")
 		# cannot be decided because stuff.alc has multiple values
-		self.assertRaises(gavo.MetaCardError, m.getMeta,
+		self.assertRaises(base.MetaCardError, m.getMeta,
 			"stuff.alc")
 
 
 class TestCopies(testhelpers.VerboseTest):
 	"""tests for deep copying of meta containers.
 	"""
-	class Copyable(meta.MetaMixin):
+	class Copyable(base.MetaMixin):
 		def __init__(self, name):
+			base.MetaMixin.__init__(self)
 			self.name = name
 
 		def copy(self):
@@ -195,6 +196,7 @@ class TestCopies(testhelpers.VerboseTest):
 		self.assertEqual(str(m2.getMeta("foo.fii")), "wo")
 		self.assertEqual(str(m.getMeta("foo.fii")), "z")
 
+
 class TestContent(testhelpers.VerboseTest):
 	"""tests for plain content access.
 	"""
@@ -202,14 +204,14 @@ class TestContent(testhelpers.VerboseTest):
 # like this either; this is much better than fiddling with children
 # and content, though
 	def testLiteral(self):
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("brasel", meta.makeMetaValue("quox \n  ab   c", format="literal"))
 		self.assertEqual(m.getMeta("brasel").getContent(), "quox \n  ab   c")
 		self.assertEqual(m.getMeta("brasel").getContent("html"),
 			'<span class="literalmeta">quox \n  ab   c</span>')
 	
 	def testPlain(self):
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("brasel", meta.makeMetaValue("ab\ncd   foo"))
 		self.assertEqual(m.getMeta("brasel").getContent(), "ab cd foo")
 		self.assertEqual(m.getMeta("brasel").getContent("html"), 
@@ -222,7 +224,7 @@ class TestContent(testhelpers.VerboseTest):
 			'<span class="plainmeta">nk * ork</span>')
 
 	def testRst(self):
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("brasel", meta.makeMetaValue(unicode("`foo <http://foo.org>`__"),
 			format="rst"))
 		self.assertEqual(m.getMeta("brasel").getContent(), 
@@ -235,7 +237,7 @@ class TestSpecials(testhelpers.VerboseTest):
 	"""tests for particular behaviour of special MetaValue subclasses.
 	"""
 	def testWorkingInfos(self):
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("info", "foo")
 		val = m.getMeta("info").children[0]
 		self.assert_(hasattr(val, "infoName"), 
@@ -243,7 +245,7 @@ class TestSpecials(testhelpers.VerboseTest):
 		self.assertEqual(val.infoName, None)
 		self.assertEqual(val.infoValue, None)
 		self.assertEqual(val.content, "foo")
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("info", meta.makeMetaValue("info content", infoName="testInfo",
 			infoValue="WORKING", name="info"))
 		self.assertEqual(m.getMeta("info").getContent(), "info content")
@@ -256,14 +258,14 @@ class TestSpecials(testhelpers.VerboseTest):
 		self.assertEqual(m.getMeta("test").children[0].infoValue, "WORKING")
 	
 	def testBadInfos(self):
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("info", meta.makeMetaValue("no info", name="info",
 			type=None))
 		self.assert_(not hasattr(m.getMeta("info").children[0], "infoName"),
 			"Names override types, which they shouldn't")
 	
 	def testLinks(self):
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("_related", "http://anythi.ng")
 		m.addMeta("_related.title", "Link 1")
 		self.assertEqual(m.getMeta("_related").children[0].getContent("html"),
@@ -275,7 +277,7 @@ class TestSpecials(testhelpers.VerboseTest):
 
 
 def getRadioMeta():
-	m = meta.MetaMixin()
+	m = base.MetaMixin()
 	m.addMeta("radio", "on")
 	m.addMeta("radio.freq", "90.9")
 	m.addMeta("radio.unit", "MHz")
@@ -329,7 +331,7 @@ class ModelBasedBuilderTest(testhelpers.VerboseTest):
 			'<img src="9022" alt="kHz">off</img></div>')
 
 	def testContentBuilder(self):
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("subject", "whatever")
 		m.addMeta("subject", "and something else")
 		m.addMeta("description", "useless test case")
@@ -342,7 +344,7 @@ class HtmlBuilderTest(testhelpers.VerboseTest):
 	"""
 	def testSimpleChild(self):
 		builder = webcommon.HTMLMetaBuilder()
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("boo", "rotzel")
 		self.assertEqual(flat.flatten(m.buildRepr("boo", builder)),
 			'<span class="plainmeta">rotzel</span>')
@@ -353,7 +355,7 @@ class HtmlBuilderTest(testhelpers.VerboseTest):
 	
 	def testSequenceChild(self):
 		builder = webcommon.HTMLMetaBuilder()
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("boo", "child1")
 		m.addMeta("boo", "child2")
 		m.buildRepr("boo", builder)
@@ -364,7 +366,7 @@ class HtmlBuilderTest(testhelpers.VerboseTest):
 	
 	def testCompoundSequenceChild(self):
 		builder = webcommon.HTMLMetaBuilder()
-		m = meta.MetaMixin()
+		m = base.MetaMixin()
 		m.addMeta("boo.k", "boo 1, 1")
 		m.addMeta("boo.l", "boo 1, 2")
 		self.assertEqual(flat.flatten(m.buildRepr("boo", builder)),
@@ -385,47 +387,48 @@ class HtmlBuilderTest(testhelpers.VerboseTest):
 			'</ul></li></ul>')
 
 
-class RdTest(testhelpers.VerboseTest):
+class _MetaCarrier(base.Structure, base.MetaMixin):
+	name_ = "m"
+
+
+class XMLTest(testhelpers.VerboseTest):
 	"""tests for parsing meta things out of XML resource descriptions.
 	"""
-	def _getRd(self, rdContent):
-		hdlr = importparser.RdParser("dynamic")
-		sax.parseString('<ResourceDescriptor srcdir="/">'+rdContent+
-			"</ResourceDescriptor>", hdlr)
-		return hdlr.getResult()
+	def _getMetaFor(self, src):
+		return base.parseFromString(_MetaCarrier, "<m>"+src+"</m>")
 
 	def testSimple(self):
-		self.assertEqual(str(self._getRd('<meta name="test">abc</meta>'
-			).getMeta("test")), "abc")
+		mc = self._getMetaFor('<meta name="test">abc</meta>')
+		self.assertEqual(str(mc.getMeta("test")), "abc")
 
 	def testSequence(self):
-		rd = self._getRd('<meta name="test">abc1</meta>\n'
+		mc = self._getMetaFor('<meta name="test">abc1</meta>\n'
 			'<meta name="test">abc2</meta>')
 		t = meta.TextBuilder()
-		self.assertEqual(rd.buildRepr("test", t),
+		self.assertEqual(mc.buildRepr("test", t),
 			[('test', u'abc1'), ('test', u'abc2')])
 
 	def testCompound(self):
-		rd = self._getRd('<meta name="radio">off'
+		mc = self._getMetaFor('<meta name="radio">off'
 			'<meta name="freq">90.9</meta><meta name="unit">MHz</meta></meta>')
-		self.assertEqual(str(rd.getMeta("radio")), "off")
-		self.assertEqual(str(rd.getMeta("radio.freq")), "90.9")
-		self.assertEqual(str(rd.getMeta("radio.unit")), "MHz")
+		self.assertEqual(str(mc.getMeta("radio")), "off")
+		self.assertEqual(str(mc.getMeta("radio.freq")), "90.9")
+		self.assertEqual(str(mc.getMeta("radio.unit")), "MHz")
 
 	def testLink(self):
 		"""tests for working recognition of link-typed metas.
 		"""
-		rd = self._getRd('<meta name="_related" title="a link">'
+		mc = self._getMetaFor('<meta name="_related" title="a link">'
 			'http://foo.bar</meta>')
-		self.assertEqual(rd.getMeta("_related").getContent("html"),
+		self.assertEqual(mc.getMeta("_related").getContent("html"),
 			'<a href="http://foo.bar">a link</a>')
 	
 	def testRst(self):
-		rd = self._getRd('<meta name="bla" format="rst">A\n'
+		mc = self._getMetaFor('<meta name="bla" format="rst">A\n'
 			'  text that is somewhat indented\n'
 			'\n'
 			'  and has a paragraph.</meta>')
-		self.assertEqual(rd.getMeta("bla").getContent("html"), "<p>A\ntext th"
+		self.assertEqual(mc.getMeta("bla").getContent("html"), "<p>A\ntext th"
 			"at is somewhat indented</p>\n<p>and has a paragraph.</p>\n")
 
 
@@ -436,4 +439,4 @@ def singleTest():
 
 
 if __name__=="__main__":
-	testhelpers.main(TestCopies)
+	testhelpers.main(XMLTest)

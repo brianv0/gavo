@@ -7,20 +7,17 @@ Needs connectivity to the db defined in the test profile.
 import unittest
 import math
 
-from gavo import nullui
-from gavo import config
-from gavo import coords
-from gavo import sqlsupport
-from gavo import interfaces
-from gavo import utils
-from gavo.coords import Vector3
-from gavo.web import siap
+from gavo import base
+from gavo import rsc
+from gavo import rscdesc
+from gavo.protocols import siap
+from gavo.base import coords
 
 import testhelpers
 
 
 def raCorr(dec):
-	return math.cos(utils.degToRad(dec))
+	return math.cos(coords.degToRad(dec))
 
 
 class TestWCSTrafos(unittest.TestCase):
@@ -177,11 +174,9 @@ class TestCoordinateQueries(unittest.TestCase):
 	def setUp(self):
 		"""fills a database table with test data.
 		"""
-		from gavo.parsing import macros
-		makeBbox = macros.getMacro("computeBboxSiapFields")()
 		def computeWCSKeys(pos, size):
 			imgPix = (1000., 1000.)
-			return {
+			res = {
 				"CRVAL1": pos[0],
 				"CRVAL2": pos[1],
 				"CRPIX1": imgPix[0]/2.,
@@ -198,7 +193,7 @@ class TestCoordinateQueries(unittest.TestCase):
 				"CTYPE1": 'RA---TAN-SIP', 
 				"CTYPE2": 'DEC--TAN-SIP',
 				"LONPOLE": 180.,
-				"imageTitle": None,
+				"imageTitle": "test image",
 				"instId": None,
 				"dateObs": None,
 				"refFrame": None,
@@ -209,18 +204,17 @@ class TestCoordinateQueries(unittest.TestCase):
 				"bandpassHi": None,
 				"bandpassLo": None,
 				"pixflags": None,
-				"accref": None,
+				"accref": "image%s%s"%(pos, size),
 				"accsize": None,
 				"embargo": None,
 				"owner": None,
 			}
-		config.setDbProfile("test")
-		tableDef = testhelpers.getTestTable("siaptable")
-		tw = sqlsupport.TableWriter(tableDef)
-		self.tableName = tableDef.getQName()
-		tw.createTable()
-		feed = tw.getFeeder()
-		for pos, size in [
+			return res
+		base.setDBProfile("test")
+		rd = testhelpers.getTestRD()
+		dd = rd.getById("siaptest")
+		self.data = rsc.makeData(dd, forceSource=[
+			computeWCSKeys(pos, size) for pos, size in [
 				((0, 0), (10, 10)),
 				((0, 90), (1, 1)),
 				((45, -45), (1, 1)),
@@ -229,13 +223,11 @@ class TestCoordinateQueries(unittest.TestCase):
 				((2, 45), (2.1, 1.1)),
 				((160, 45), (2.1, 1.1)),
 				((161, 45), (4.1, 1.1)),
-				((162, 45), (2.1, 1.1)),
-			]:
-			r = computeWCSKeys(pos, size)
-			makeBbox(None, r)
-			feed(r)
-		feed.close()
-		tw.finish()
+				((162, 45), (2.1, 1.1))]])
+		self.tableName = self.data.tables["siaptable"].tableDef.getQName()
+
+	def tearDown(self):
+		self.data.dropTables()
 
 	# queries with expected numbers of returned items
 	_testcases = [
@@ -256,7 +248,7 @@ class TestCoordinateQueries(unittest.TestCase):
 	}
 
 	def _runTests(self, type):
-		querier = sqlsupport.SimpleQuerier()
+		querier = base.SimpleQuerier()
 		try:
 			for center, size, expected in self._testcases:
 				fragment, pars = siap.getBboxQuery({
@@ -292,13 +284,6 @@ class TestCoordinateQueries(unittest.TestCase):
 		"""
 		self._runTests("OVERLAPS")
 
-	def tearDown(self):
-		"""drops the test table.
-		"""
-		querier = sqlsupport.SimpleQuerier()
-#		querier.query("DROP TABLE %s CASCADE"%self.tableName)
-		querier.commit()
-
 
 def singleTest():
 	suite = unittest.makeSuite(TestWCSBbox, "testEnc")
@@ -307,5 +292,4 @@ def singleTest():
 
 
 if __name__=="__main__":
-	unittest.main()
-#	singleTest()
+	testhelpers.main(TestCoordinateQueries)

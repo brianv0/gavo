@@ -13,7 +13,10 @@ services).
 from email.Message import Message
 from email.MIMEMultipart import MIMEMultipart
 import httplib
+import os
+import popen2
 import sys
+import tempfile
 import time
 import traceback
 import urllib
@@ -160,6 +163,44 @@ class HeadFieldTest:
 		self.lastResult = resp
 		for key, value in self.expectedFields:
 			assert resp.getheader(key)==value
+
+
+class XSDValidationTest:
+	"""is a test that retrieves the content behind a URL and sees if it
+	validates according to the XSD contained.
+
+	This requires xerces installed at the right position.
+	"""
+	classpath = ("/usr/share/doc/libxerces2-java-doc/examples/xercesSamples.jar:"
+	"/usr/share/java/xercesImpl.jar:/usr/share/java/xmlParserAPIs.jar")
+
+	def __init__(self, url, description):
+		self.url, self.description = url, description
+
+	def _validateFile(self, targetFile):
+		"""returns something true if targetFile xsd-valid.
+		"""
+		os.environ["CLASSPATH"] = self.classpath
+		f = popen2.Popen4("java dom.Counter -n -v -s -f '%s'"%targetFile)
+		xercMsgs = f.fromchild.read()
+		status = f.wait()
+		return not status and "[Error]" not in xercMsgs
+
+	def run(self):
+		self.lastResult = urllib.urlopen(self.url).read()
+		handle, name = tempfile.mkstemp()
+		try:
+			f = os.fdopen(handle, "w")
+			f.write(self.lastResult)
+			f.close()
+			validates = self._validateFile(name)
+			if not validates:
+				f = open("lastBad.xml", "w")
+				f.write(self.lastResult)
+				f.close()
+		finally:
+			os.unlink(name)
+		assert validates
 
 
 class _FormData(MIMEMultipart):
@@ -316,25 +357,17 @@ myTests = [
 			"__nevow_form__=genForm&POS=M1&SIZE=0.5&INTERSECT=OVERLAPS",
 			'<div class="resmeta"><p>Matched:',
 			"Simbad resolution of positions works"),
-		HeadStatusTest(nv_root+"/getproduct?key=maidanak/raw/cd002/aug1305/"
-			"q2237_ogak/oh130102.gz&siap=true",
-			403,
-			"NV Maidanak auth test (will fail starting 2008-12-31)"),
-		GetHasStringTest(nv_root+"/maidanak/res/rawframes/siap/siap.xml"
-			"?FORMAT=METADATA",
-			'<FIELD ID="wcs_refValues" arraysize="*" datatype="double"'
-				' name="wcs_refValues"',
+		GetHasStringsTest(nv_root+"/maidanak/res/rawframes/siap/siap.xml"
+			"?FORMAT=METADATA", [
+				'<FIELD ID="wcs_refValues" arraysize="*" datatype="double"'
+					' name="wcs_refValues"',
+				' name="QUERY_STATUS" value="OK">OK</INFO>',
+				'<PARAM ID="INPUT:POS" arraysize="*" datatype="char"'
+					' name="INPUT:POS" ucd="pos.eq" unit="deg,deg">'],
 			"NV Maidanak metadata query"),
 	),
 
-	TestGroup('tar',
-		GetHasStringsTest(nv_root+"/lensdemo/view/q/form?__nevow_form__=genForm"
-			"&object=APM%2008279%2B5255&_DBOPTIONS_ORDER=date_obs&_DBOPTIONS_LIMIT=2&"
-			"_FORMAT=tar&submit=Go", [
-				"\0\0\0\0\0\0",
-				"This file is embargoed"],
-			"Tar output looks like a tar output with embargoed files"
-				" (will fail starting 2008-12-31)"),
+	TestGroup('formats',
 		HeadFieldTest(nv_root+"/maidanak/res/rawframes/siap/form?"
 			"__nevow_form__=genForm&POS=q2237%2B0305&SIZE=1&INTERSECT=OVERLAPS&"
 			"FORMAT=image%2Ffits&dateObs=2001-01-01%20..%202005-10-10&"
@@ -363,6 +396,18 @@ myTests = [
 		HeadStatusTest(nv_root+"/apfs/res/apfs_new/catquery/upload",
 			403,
 			"Disallowed renderer yields 403."),
+# Find/build a test case
+#		GetHasStringsTest(nv_root+"/lensdemo/view/q/form?__nevow_form__=genForm"
+#			"&object=APM%2008279%2B5255&_DBOPTIONS_ORDER=date_obs&_DBOPTIONS_LIMIT=2&"
+#			"_FORMAT=tar&submit=Go", [
+#				"\0\0\0\0\0\0",
+#				"This file is embargoed"],
+#			"Tar output looks like a tar output with embargoed files"
+#				" (will fail starting 2008-12-31)"),
+		HeadStatusTest(nv_root+"/getproduct?key=danish/data/"
+			"HE0047_20080824T081409_r.fits",
+			403,
+			"Product auth test (will fail when embargo strikes)"),
 	),
 
 	TestGroup("siap.xml",
@@ -372,7 +417,7 @@ myTests = [
 			"SIAP reply looks like a SIAP VOTable"),
 		GetHasStringsTest(nv_root+"/lswscans/res/positions/siap/siap.xml?"
 			"POSS=168,22&SIZE=0.5",
-			["VOTABLE", 'value="ERROR"', 'POS: Required'],
+			["VOTABLE", 'value="ERROR"', 'Field POS is empty but'],
 			"SIAP error reporting is a VOTable and include parameter names"),
 		GetLacksStringTest(nv_root+"/lswscans/res/positions/siap/siap.xml?"
 			"POS=168,22&SIZE=0.5&dateObs=%3C%201950-01-01",
@@ -386,10 +431,10 @@ myTests = [
 
 	TestGroup("cns-scs",
 		GetHasStringsTest(nv_root+"/cns/res/cns/scs/scs.xml",
-			["VOTABLE", "in given Parameters"],
+			["VOTABLE", "RA is empty but non-optional"],
 			"SCS error reporting 1"),
 		GetHasStringsTest(nv_root+"/cns/res/cns/scs/scs.xml?RA=17.0&DEC=30&SR=a",
-			["VOTABLE", "invalid literal"],
+			["VOTABLE", "Not a valid number"],
 			"SCS error reporting 2"),
 # The following two are probably too fragile
 		GetHasStringsTest(nv_root+"/cns/res/cns/scs/scs.xml?RA=17.0&DEC=30&SR=2",
@@ -401,7 +446,7 @@ myTests = [
 			"SCS successful query, tdenc"),
 		),
 
-	TestGroup("registry",  # Maybe build xsd validation into these?
+	TestGroup("registry",
 		GetHasStringsTest(nv_root+"/oai.xml", [
 				"<oai:OAI-PMH", 'Argument">verb'],
 			"Credible PMH error message"),
@@ -442,7 +487,37 @@ myTests = [
 					'<oai:ListRecords>', # Think of something better, this may be empty
 			"PMH ListRecords response looks all right in ivo_vor"),
 		),
-	
+	TestGroup("regvalidation",
+		XSDValidationTest(nv_root+"/oai.xml",
+			"OAI error response validates"),
+		XSDValidationTest(nv_root+"/oai.xml?verb=Identify",
+			"OAI Identify validates"),
+		XSDValidationTest(nv_root+"/oai.xml?verb=ListSets",
+			"OAI ListSets validates"),
+		XSDValidationTest(nv_root+"/oai.xml?verb=ListMetadataFormats"
+			"&identifier=ivo%3A//org.gavo.dc/maidanak/res/rawframes/siap",
+			"OAI ListMetadataFormats validates"),
+		XSDValidationTest(nv_root+"/oai.xml?verb=ListIdentifiers"
+			"&metadataPrefix=ivo_vor",
+			"OAI ListIdentifiers validates in ivo_vor"),
+		XSDValidationTest(nv_root+"/oai.xml?verb=ListIdentifiers"
+			"&metadataPrefix=oai_dc",
+			"OAI ListIdentifiers validates in oai_dc"),
+		XSDValidationTest(nv_root+"/oai.xml?verb=ListRecords"
+			"&metadataPrefix=ivo_vor&set=ivo_managed",
+			"OAI ListRecords validates in ivo_vor"),
+		XSDValidationTest(nv_root+"/oai.xml?verb=ListRecords"
+			"&metadataPrefix=oai_dc&set=ivo_managed",
+			"OAI ListRecords validates in oai_dc"),
+		XSDValidationTest(nv_root+"/oai.xml?verb=ListRecords"
+			"&metadataPrefix=oai_dc&set=ivo_managed"
+			"&identifier=ivo%3A//org.gavo.dc/maidanak/res/rawframes/siap",
+			"OAI GetRecord validates in oai_dc"),
+		XSDValidationTest(nv_root+"/oai.xml?verb=ListRecords"
+			"&metadataPrefix=ivo_vor&set=ivo_managed"
+			"&identifier=ivo%3A//org.gavo.dc/maidanak/res/rawframes/siap",
+			"OAI GetRecord validates in ivo_vor"),
+	),
 	TestGroup("dexter",  # CAUSES SERVER-SIDE STATE!
 		DexterUploadTest(nv_root+"/dexter/ui/ui/custom/__testing__/",
 			roughtestdata.get("dexterImage.jpg"),
@@ -508,16 +583,17 @@ myTests = [
 			"L...",
 			"Home page shows services"),
 		GetHasStringTest(nv_root+"/lensdemo/view/q/form?__nevow_form__=genForm&"
-			"object=SBSS%200909%2B531&_DBOPTIONS_ORDER=&_DBOPTIONS_LIMIT=100"
+			"object=QSO%20B0957%2B5608A&_DBOPTIONS_ORDER=&_DBOPTIONS_LIMIT=100"
 			"&_FORMAT=HTML&_ADDITEM=owner&submit=Go",
 			"Product owner</th>",
 			"Additional fields show up in HTML responses"),
-		GetHasStringTest(nv_root+"/lensdemo/view/q/form?__nevow_form__=genForm&"
-			"object=SBSS%200909%2B531&_ADDITEM=junkfield",
-			"the additional field 'junkfield' you requested does not",
+		GetHasStringsTest(nv_root+"/lensdemo/view/q/form?__nevow_form__=genForm&"
+			"object=QSO%20B0957%2B5608A&_ADDITEM=junkfield", [
+				"</strong>The additional field 'junkfield' you requested does not",
+				"Lens Image Archive"],
 			"Invalid additional fields give an at least remotely useful message"),
 		GetHasStringTest(nv_root+"/lensdemo/view/q/form?__nevow_form__=genForm&"
-			"object=APM%2008279%2B5255&_FORMAT=junk",
+			"object=QSO%20B0957%2B5608A&_FORMAT=junk",
 			"Invalid output format: junk",
 			"Invalid output format is correctly complained about"),
 		GetHasStringTest(nv_root+"/getproduct?key=maidanak/raw/cd037/jun_2003/"
@@ -528,7 +604,7 @@ myTests = [
 			["SIAP Query", "siap.xml", "form", "Other services",
 				"SIZE</td>", "Verb. Level"],
 			"Info page looks ok"),
-		GetHasStringsTest(nv_root+"/__system__/tests/misc/timeout/form",
+		GetHasStringsTest(nv_root+"/__system__/tests/timeout/form",
 			["Just wait a while", "Query timed out (took too"],
 			"DB timeout yields a nice response"),
 		GetHasStringsTest(nv_root+"/__system__/adql/query/info",
@@ -540,7 +616,7 @@ myTests = [
 		GetHasStringsTest(nv_root+'/ucds/ui/hideui/form?'
 				'__nevow_form__=genForm&description=Weird%20uninterpretable%20'
 				'gobbledegook&_FORMAT=HTML&submit=Go',
-			["No known words", "Query Form", "Weird"],
+			["No known words", "A natural-language", "Weird"],
 			"UCD resolver yields nice error message for garbage input"),
 		GetHasStringsTest(nv_root+'/ucds/ui/hideui/form?'
 				'__nevow_form__=genForm&description=airmass%20measured%20'
@@ -554,27 +630,27 @@ myTests = [
 	),
 
 	TestGroup("upload", # CAUSES INTERMEDIATE SERVER-SIDE STATE!
-		GetHasStringsTest(nv_root+"/__system__/tests/misc/upload/upload",
-			["insert", "update", 'type="file"'],
+		GetHasStringsTest(nv_root+"/__system__/tests/upload/upload",
+			["Insert", "Update", 'type="file"'],
 			"Upload service shows a form"),
-		UploadHasStringTest(nv_root+"/__system__/tests/misc/upload/upload",
+		UploadHasStringTest(nv_root+"/__system__/tests/upload/upload",
 			("c.foo", "a: 15\nb:10\n", 'u'),
 			"0 record(s) modified.",
 			"Update of non-existing data is a no-op (may fail on state)"),
-		UploadHasStringTest(nv_root+"/__system__/tests/misc/upload/upload",
+		UploadHasStringTest(nv_root+"/__system__/tests/upload/upload",
 			("c.foo", "a: 15\nb:10\n", 'i'),
 			"1 record(s) modified.",
 			"Insert of non-existing data touches one record."),
-		UploadHasStringTest(nv_root+"/__system__/tests/misc/upload/upload",
+		UploadHasStringTest(nv_root+"/__system__/tests/upload/upload",
 			("c.foo", "a: 15\nb:17\n", 'i'),
 			"Cannot enter c.foo in database: duplicate key violates"
 				" unique constraint",
 			"Duplicate insertion of data yields error"),
-		UploadHasStringTest(nv_root+"/__system__/tests/misc/upload/upload",
+		UploadHasStringTest(nv_root+"/__system__/tests/upload/upload",
 			("c.foo", "a: 15\nb:10\n", 'u'),
 			"1 record(s) modified.",
 			"Updates of existing data modify db"),
-		GetHasStringTest(nv_root+"/__system__/tests/misc/reset/form",
+		GetHasStringTest(nv_root+"/__system__/tests/reset/form",
 			"Matched: 0",
 			"Reset of db seems to work"),
 	),
@@ -629,7 +705,7 @@ myTests = [
 			["Service Documentation", "form</em> --", "SOAP", "endDate"],
 			"Service info looks credible and includes some meta information"),
 		GetHasStringsTest(nv_root+"/__system__/dc_tables/list/form",
-			["Fully qualified table", "ppmx.data", "motions extension"],
+			["Fully qualified table", "ppmx.data", "18 088 919"],
 			"ADQL tables can be listed"),
 		),
 
@@ -662,7 +738,7 @@ myTests = [
 				"%26amp%3Bra%3D2.0%26amp%3Bdec"
 				"%3D2.0%26amp%3Bsra%3D0.5%26amp%3Bsdec%3D0.5",
 			["SIMPLE  =                    T", "OBSERVER= 'F.Kaiser'", 
-				"NAXIS1  =                 17"],
+				"NAXIS1", "TM_START= '20:11:56'"],
 			"LSW cutout delivers plausible FITS"),
 		GetHasStringsTest(nv_root+"/liverpool/res/rawframes/q/form",
 			["<h1>Liverpool", "QSO B0957+5608A"],

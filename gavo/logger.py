@@ -9,8 +9,7 @@ import sys
 import logging
 import logging.handlers
 
-import gavo
-from gavo import config
+from gavo import base
 
 _logLevelDict = {
 	"debug": logging.DEBUG,
@@ -20,7 +19,7 @@ _logLevelDict = {
 }
 
 logger = logging.getLogger("gavo")
-_logFile = os.path.join(config.get("logDir"), "gavoops")
+_logFile = os.path.join(base.getConfig("logDir"), "gavoops")
 try:
 	_handler = logging.handlers.RotatingFileHandler(_logFile, "a", 1000000, 10)
 except IOError:
@@ -30,7 +29,7 @@ except IOError:
 _handler.setFormatter(
 	logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
 logger.addHandler(_handler)
-logger.setLevel(_logLevelDict[config.get("logLevel")])
+logger.setLevel(_logLevelDict[base.getConfig("logLevel")])
 
 critical = logger.critical
 error = logger.error
