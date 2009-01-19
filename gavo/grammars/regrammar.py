@@ -81,6 +81,7 @@ class REGrammar(Grammar):
 		description="RE for separating two fields in a record.")
 	_names = base.StringListAttribute("names", description=
 		"Names for the parsed columns, in sequence of the particles")
-
+	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"
+		" while reading?", default=False)
 
 rscdef.registerGrammar(REGrammar)

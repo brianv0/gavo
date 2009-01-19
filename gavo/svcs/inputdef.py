@@ -52,7 +52,7 @@ class InputKey(rscdef.Column):
 			self.toVizierType()
 
 		if self.formalType is base.Undefined:
-			self.formalType = sqltypeToFormal(self.type)[0]()
+			self.formalType = sqltypeToFormal(self.type)[0](required=self.required)
 
 		# If no widget factory has been specified, infer one
 		if self.widgetFactory is None:
@@ -150,7 +150,8 @@ class ContextGrammar(grammars.Grammar):
 
 	_inputKeys = rscdef.ColumnListAttribute("inputKeys", 
 		childFactory=InputKey, description="Definition of the service's input"
-			" fields")
+			" fields", copyable="True")
+	_original = base.OriginalAttribute("original")
 
 	rowIterator = ContextRowIterator
 

@@ -3,6 +3,7 @@ Base classes and common code for grammars.
 """
 
 import codecs
+import gzip
 
 from gavo import base
 from gavo import rscdef
@@ -94,9 +95,16 @@ class RowIterator(object):
 		else:
 			baseIter = self._iterRows()
 		if self.grammar.ignoreOn:
-			return self._filteredIter(baseIter)
+			rowSource = self._filteredIter(baseIter)
 		else:
-			return baseIter
+			rowSource = baseIter
+		try:
+			for row in rowSource:
+				yield row
+		except:
+			base.ui.notifySourceError()
+			raise
+		base.ui.notifySourceFinished()
 
 	def _filteredIter(self, baseIter):
 		for row in baseIter:
@@ -129,6 +137,9 @@ class FileRowIterator(RowIterator):
 	Otherwise, it assumes sourceToken already is a file object and binds
 	it to self.inputFile.  It then tries to come up with a sensible designation
 	for sourceToken.
+
+	It also inspects the parent grammar for a gunzip attribute.  If it is
+	present and true, the input file will be unzipped transparently.
 	"""
 	def __init__(self, grammar, sourceToken):
 		RowIterator.__init__(self, grammar, sourceToken)
@@ -141,6 +152,8 @@ class FileRowIterator(RowIterator):
 		else:
 			self.inputFile = self.sourceToken
 			self.sourceToken = getattr(self.inputFile, "name", repr(self.sourceToken))
+		if hasattr(grammar, "gunzip") and grammar.gunzip:
+			self.inputFile = gzip.GzipFile(fileobj=self.inputFile)
 
 
 class GrammarMacroMixin(rscdef.StandardMacroMixin):
@@ -218,10 +231,10 @@ class Grammar(base.Structure, GrammarMacroMixin):
 	yieldsTyped = False
 
 	_encoding = base.UnicodeAttribute("enc", default=None, description=
-		"Encoding of strings coming in from source.")
+		"Encoding of strings coming in from source.", copyable=True)
 	_rowgen = base.StructAttribute("rowgen", default=None,
 		description="row generator for this grammar", 
-		childFactory=rowgens.RowGenDef)
+		childFactory=rowgens.RowGenDef, copyable=True)
 	_ignoreOn = base.StructAttribute("ignoreOn", default=None, copyable=True,
 		description="Conditions for ignoring certain input records.",
 		childFactory=rowtriggers.IgnoreOn)
@@ -246,6 +259,7 @@ class Grammar(base.Structure, GrammarMacroMixin):
 		return generateRows
 
 	def parse(self, sourceToken):
+		base.ui.notifyNewSource(sourceToken)
 		ri = self.rowIterator(self, sourceToken)
 		if self.rowgen:
 			ri.rowgen = self.compileRowgen()

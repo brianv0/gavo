@@ -46,14 +46,18 @@ class FITSProdIterator(RowIterator):
 			f = open(fName)
 		header = fitstools.readPrimaryHeaderQuick(f)
 		f.close()
-		yield self._buildDictFromHeader(header)
+		row = self._buildDictFromHeader(header)
+		base.ui.notifyIncomingRow(row)
+		yield row
 
 	def _parseSlow(self):
 		fName = self.sourceToken
 		hdus = fitstools.openFits(fName)
 		header = hdus[int(self.grammar.hdu)].header
 		hdus.close()
-		yield self._buildDictFromHeader(header)
+		row = self._buildDictFromHeader(header)
+		base.ui.notifyIncomingRow(row)
+		yield row
 	
 	def getLocator(self):
 		return self.sourceToken

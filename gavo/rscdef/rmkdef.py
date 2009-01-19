@@ -436,6 +436,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		"""
 		if self.idmaps is None:
 			return
+		existingMaps = set(m.dest for m in self.maps)
 		baseNames = [c.name for c in tableDef]
 		for colName in self.idmaps:
 			matching = fnmatch.filter(baseNames, colName)
@@ -444,7 +445,8 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 					" names from the %s"%(colName, tableDef.id), "idmaps", 
 					",".join(self.idmaps))
 			for dest in matching:
-				self.maps.append(MapRule(self, dest=dest).finishElement())
+				if dest not in existingMaps:
+					self.maps.append(MapRule(self, dest=dest).finishElement())
 		self.idmaps = []
 
 	def _checkTable(self, tableDef):

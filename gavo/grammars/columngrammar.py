@@ -22,6 +22,7 @@ class SplitLineIterator(FileRowIterator):
 				break
 			res = self._parse(inputLine)
 			res["parser_"] = self
+			base.ui.notifyIncomingRow(res)
 			yield res
 			self.lineNo += 1
 			self.recNo += 1
@@ -73,6 +74,8 @@ class ColumnGrammar(Grammar):
 		"Skip this many lines at the top of the source file")
 	_cols = base.DictAttribute("colRanges", description="Mapping of"
 		" source keys to column ranges", itemAttD=ColRangeAttribute("col"))
+	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"
+		" while reading?", default=False)
 	
 	rowIterator = SplitLineIterator
 	

@@ -133,13 +133,13 @@ class SQLScriptRunner:
 					if failOk:
 						gavo.logger.debug("SQL script operation %s failed (%s) -- removing"
 							" instruction and trying again."%(query, 
-								sqlsupport.encodeDbMsg(msg)))
+								sqlsupport.encodeDBMsg(msg)))
 						queries = queries[:ct]+queries[ct+1:]
 						connection.rollback()
 						break
 					else:
 						gavo.logger.error("SQL script operation %s failed (%s) --"
-							" aborting script."%(query, sqlsupport.encodeDbMsg(msg)))
+							" aborting script."%(query, sqlsupport.encodeDBMsg(msg)))
 						raise
 			else:
 				break

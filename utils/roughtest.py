@@ -417,7 +417,7 @@ myTests = [
 			"SIAP reply looks like a SIAP VOTable"),
 		GetHasStringsTest(nv_root+"/lswscans/res/positions/siap/siap.xml?"
 			"POSS=168,22&SIZE=0.5",
-			["VOTABLE", 'value="ERROR"', 'Field POS is empty but'],
+			["VOTABLE", 'value="ERROR"', ' POS: Required</INFO>'],
 			"SIAP error reporting is a VOTable and include parameter names"),
 		GetLacksStringTest(nv_root+"/lswscans/res/positions/siap/siap.xml?"
 			"POS=168,22&SIZE=0.5&dateObs=%3C%201950-01-01",
@@ -431,7 +431,7 @@ myTests = [
 
 	TestGroup("cns-scs",
 		GetHasStringsTest(nv_root+"/cns/res/cns/scs/scs.xml",
-			["VOTABLE", "RA is empty but non-optional"],
+			["VOTABLE", "RA: Required; DEC: Required"],
 			"SCS error reporting 1"),
 		GetHasStringsTest(nv_root+"/cns/res/cns/scs/scs.xml?RA=17.0&DEC=30&SR=a",
 			["VOTABLE", "Not a valid number"],
@@ -770,41 +770,6 @@ def tally(groupsRun):
 		print "%d test(s) passed"%nOk
 	else:
 		print "********* %d test(s) of %d failed"%(nFail, nFail+nOk)
-
-
-""" Old querulator tests.
-	TestGroup("querulator",
-		GetHasStringTest(qu_root+"/list",
-			"Further Queries",
-			"Main query page"),
-		GetHasStringTest(qu_root+"/list/demo",
-			">objects<",
-			"Demo queries present"),
-		GetHasStringTest(qu_root+"/query/demo/objects.cq",
-			"Object observed",
-			"Demo object query is served"),
-		GetHasStringTest(qu_root+"/run/demo/"
-				"objects.cq?4f626a656374206f62736572766564=Q2237%2B0305&sortby="
-				"date_obs&limitto=100&outputFormat=HTML",
-			"truncated due to reaching the match limit.",
-			"Demo query somewhat runs"),
-		GetHasStringTest(qu_root+"/run/demo2/objects.cq?"
-				"4f626a656374206f62736572766564=APM%2008279%2B5255&46696c746572="
-				"Johnson%20B&46696c746572=Johnson%20I&46696c746572="
-				"Johnson%20R&46696c746572=Johnson%20U&46696c746572=Johnson%20V&"
-				"sortby=date_obs&limitto=1000&outputFormat=HTML",
-			"Selected items:",
-			"Multiple selection works"),
-		GetHasStringTest(qu_root+"/run/demo2/objects.cq?"
-				"4f626a656374206f62736572766564=Q2237%2B0305&sortby=date_obs&"
-				"limitto=100&outputFormat=VOTable%2030",
-			'name="datapath"',
-			"VOTable output"),
-		GetHasStringTest(qu_root+"/getproduct"
-			"/demo/objects.cq?path=apo/cd/9506/L2237_950602_r_01.fits",
-		"L2237_950602_R_01[1/1]",
-		"Basic product delivery")),
-"""
 
 
 if __name__=="__main__":

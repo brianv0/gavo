@@ -106,7 +106,7 @@ def getDefaultDBConnection():
 	return getDBConnection(config.getDBProfile())
 
 
-def encodeDbMsg(msg):
+def encodeDBMsg(msg):
 	"""returns the string or sql exception msg in ascii.
 	"""
 	return str(msg).decode(config.get("db", "msgEncoding")

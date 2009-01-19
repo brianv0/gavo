@@ -48,10 +48,10 @@ class ResdirRelativeAttribute(base.FunctionRelativePathAttribute):
 
 	The parent needs an RDAttribute.
 	"""
-	def __init__(self, name, default=None, description="Undocumented"):
+	def __init__(self, name, default=None, description="Undocumented", **kwargs):
 		base.FunctionRelativePathAttribute.__init__(self, name, 
 			baseFunction=lambda instance: instance.rd.resdir,
-			default=default, description=description)
+			default=default, description=description, **kwargs)
 
 
 class RoleListAttribute(base.AtomicAttribute):

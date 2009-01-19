@@ -14,7 +14,6 @@ from gavo.base import caches
 
 from gavo.base.attrdef import *
 from gavo.base.complexattrs import *
-from gavo.base.excs import *
 
 from gavo.base.codetricks import (compileFunction, runInSandbox, getBinaryName,
 	silence, loadPythonModule)
@@ -26,6 +25,13 @@ from gavo.base.config import(
 
 from gavo.base.coords import degToRad, Box
 
+from gavo.base.events import EventDispatcher
+
+ui = EventDispatcher()
+del EventDispatcher
+
+from gavo.base.excs import *
+
 from gavo.base.literals import *
 
 from gavo.base.meta import (
@@ -35,14 +41,16 @@ from gavo.base.meta import (
 	getMetaText, makeMetaValue)
 
 from gavo.base.misctricks import NameMap
-	
+
+from gavo.base.observer import ObserverBase, listensTo
+
 from gavo.base.parsecontext import (
 	IdAttribute, OriginalAttribute, ReferenceAttribute, ParseContext,
 	resolveId)
 
 from gavo.base.sqlsupport import (DBError,
 	getDBConnection, getDefaultDBConnection,
-	SimpleQuerier)
+	SimpleQuerier, encodeDBMsg)
 
 from gavo.base.structure import (Structure, ParseableStructure, 
 	RefAttribute, DataContent, makeStruct)

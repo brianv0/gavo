@@ -225,6 +225,11 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		"""
 		return self.columns.getColumnsByUCD(ucd)
 
+	def getColumnByUCD(self, ucd):
+		"""delegates to common.ColumnList.
+		"""
+		return self.columns.getColumnByUCD(ucd)
+
 	def makeRowFromTuple(self, dbTuple):
 		"""returns a row (dict) from a row as returned from the database.
 		"""

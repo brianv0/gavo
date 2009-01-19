@@ -113,7 +113,7 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 			'  <column name="ts" type="timestamp"/>'
 			'  <column name="t" type="time"/>'
 			'  <column name="raw" type="raw"/>',
-			' <map dest="si" src="si"/>'
+			'<map dest="si" src="si"/>'
 			' <map dest="ii" src="ii"/>'
 			' <map dest="bi" src="bi"/>'
 			' <map dest="r" src="r"/>'
@@ -135,6 +135,13 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 			'ts': datetime.datetime(2004, 4, 8, 22, 30, 15), 'ii': 2000, 
 			'raw': ['x', 'y', 'z'], 'si': 0, 'r': 0.25, 
 			't': datetime.time(22, 30, 14), 'dp': 25000.0})
+
+	def testIdmapsDontOverwrite(self):
+		dd, td = makeDD('<column name="foo"/><column name="bar"/>',
+			'<map dest="foo">float(foo)/2</map><idmaps>*</idmaps>')
+		mapper = dd.rowmakers[0].compileForTable(td)
+		self.assertEqual(mapper({'foo': 2, 'bar': 2}),
+			{'foo': 1, 'bar':2})
 
 
 class ProcTest(testhelpers.VerboseTest):
@@ -295,4 +302,4 @@ class PredefinedTest(testhelpers.VerboseTest):
 			[{'y': u'right', 'x': u'bar'}])
 
 if __name__=="__main__":
-	testhelpers.main(PredefinedTest)
+	testhelpers.main(RowmakerMapTest)

@@ -132,29 +132,6 @@ class Q3CPositionsMixin(rscdef.RMixinBase):
 	def __init__(self):
 		rscdef.RMixinBase.__init__(self, "__system__/scs", "q3cPositionsFields")
 
-	@staticmethod
-	def findNClosest(alpha, delta, tableName, n, fields, searchRadius=5):
-		"""returns the n objects closest around alpha, delta in table.
-
-		n is the number of items returned, with the closest ones at the
-		top, fields is a sequence of desired field names, searchRadius
-		is a radius for the initial q3c search and will need to be
-		lowered for dense catalogues and possibly raised for sparse ones.
-
-		The last item of each row is the distance of the object from
-		the query center in radians (in a flat approximation).
-		"""
-		q = base.SimpleQuerier()
-		c_x, c_y, c_z = coords.computeUnitSphereCoords(alpha, delta)
-		res = q.query("SELECT %s,"
-				" sqrt((%%(c_x)s-c_x)^2+(%%(c_y)s-c_y)^2+(%%(c_z)s-c_z)^2) AS dist"
-				" FROM %s WHERE"
-				" q3c_radial_query(alphaFloat, deltaFloat, %%(alpha)s, %%(delta)s,"
-				" %%(searchRadius)s)"
-				" ORDER BY dist LIMIT %%(n)s"%
-					(",".join(fields), tableName),
-			locals()).fetchall()
-		return res
 
 rscdef.registerRMixin(Q3CPositionsMixin())
 
@@ -171,5 +148,33 @@ class Q3CIndex(rscdef.RMixinBase):
 
 	def __init__(self):
 		rscdef.RMixinBase.__init__(self, "__system__/scs", "q3cIndexDef")
+
+	@staticmethod
+	def findNClosest(alpha, delta, tableDef, n, fields, searchRadius=5):
+		"""returns the n objects closest around alpha, delta in table.
+
+		n is the number of items returned, with the closest ones at the
+		top, fields is a sequence of desired field names, searchRadius
+		is a radius for the initial q3c search and will need to be
+		lowered for dense catalogues and possibly raised for sparse ones.
+
+		The last item of each row is the distance of the object from
+		the query center in degrees.
+
+		The query depends on postgastro extension.
+		"""
+		q = base.SimpleQuerier()
+		raField = tableDef.getColumnByUCD("pos.eq.ra;meta.main").name
+		decField = tableDef.getColumnByUCD("pos.eq.dec;meta.main").name
+		res = q.query("SELECT %s,"
+				" celDistDD(%s, %s, %%(alpha)s, %%(delta)s) as dist_"
+				" FROM %s WHERE"
+				" q3c_radial_query(%s, %s, %%(alpha)s, %%(delta)s,"
+				" %%(searchRadius)s)"
+				" ORDER BY dist_ LIMIT %%(n)s"%
+					(",".join(fields), raField, decField, tableDef.getQName(),
+						raField, decField),
+			locals()).fetchall()
+		return res
 
 rscdef.registerRMixin(Q3CIndex())

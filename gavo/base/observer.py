@@ -1,0 +1,39 @@
+"""
+Observers are objects listening to EventDispatchers.
+
+They are mostly used as bases for UIs in the context of the DC.
+"""
+
+def listensTo(*args):
+	"""is a decorator to make a method listen to a set of events.
+
+	It receives one or more event names.
+	"""
+	def deco(meth):
+		meth.listensTo = args
+		return meth
+	return deco
+
+
+class ObserverBase(object):
+	"""is a base class for observers.
+
+	Observers have methods listening to certain events.  Use the listen
+	decorator above to make the connections.  The actual event subscriptions
+	are done in the constructor.
+
+	The signature of the listeners always is 
+	
+	  listener(dispatcher, arg) -> ignored
+	
+	dispatcher is the EventDispatcher instance propagating the event.  It
+	has lots of useful attributes explained in the notifyXXX docstrings.
+
+	You can listen to anything that has a notify method in the EventDispatcher.
+	"""
+	def __init__(self, dispatcher):
+		for name in dir(self):
+			att = getattr(self, name)
+			if hasattr(att, "listensTo"):
+				for ev in att.listensTo:
+					dispatcher.subscribe(ev, att)

@@ -179,8 +179,9 @@ class CustomRF(base.Structure):
 	name_ = "customRF"
 	_name = base.UnicodeAttribute("name", default=base.Undefined,
 		description="Name of the render funciton (as used in custom"
-			" templates).")
-	_code = base.DataContent(description="Function body of the renderer.")
+			" templates).", copyable=True)
+	_code = base.DataContent(description="Function body of the renderer.",
+		copyable=True)
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(CustomRF)
@@ -203,33 +204,39 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	_templates = base.DictAttribute("templates", description="Custom"
 		" templates for this service", itemAttD=rscdef.ResdirRelativeAttribute(
 				"template", description="resdir-relative path to a template"
-				" for the function given in key"))
+				" for the function given in key"), copyable=True)
 	_publications = base.StructListAttribute("publications",
 		childFactory=Publication, description="Sets and renderers this service"
 			" is published with")
 	_limitTo = base.UnicodeAttribute("limitTo", default=None,
-		description="If set, limit access to the group in the value")
+		description="If set, limit access to the group in the value",
+		copyable="True")
 	_staticData = rscdef.ResdirRelativeAttribute("staticData",
-		default=None, description="resdir-relative path to static data")
+		default=None, description="resdir-relative path to static data",
+		copyable=True)
 	_customPage = rscdef.ResdirRelativeAttribute("customPage", default=None,
-		description="resdir-relative path to custom page code")
+		description="resdir-relative path to custom page code",
+		copyable="True")
 	_allowedRenderers = base.StringSetAttribute("allowed",
-		description="Names of renderers allowed on this service")
+		description="Names of renderers allowed on this service",
+		copyable=True)
 	_customRF = base.StructListAttribute("customRFs",
 		description="Custom render functions defined just for this service",
-		childFactory=CustomRF)
+		childFactory=CustomRF, copyable=True)
 	_inputData = base.StructAttribute("inputDD", default=base.NotGiven,
 		childFactory=inputdef.InputDescriptor, description="A data descriptor"
 			" for obtaining the core's input, usually based on a contextGrammar."
 			"  For many cores (e.g., DBCores), you do not want to give this"
-			" but rather want to let service figure this out from the core.")
+			" but rather want to let service figure this out from the core.",
+		copyable=True)
 	_outputTable = base.StructAttribute("outputTable", default=base.NotGiven,
-		childFactory=outputdef.OutputTableDef)
+		childFactory=outputdef.OutputTableDef, copyable=True)
 	_serviceKeys = base.StructListAttribute("serviceKeys",
 		childFactory=inputdef.InputKey, description="Input widgets for"
-			" processing by the service (e.g., for renderers)")
+			" processing by the service (e.g., for renderers)", copyable=True)
 	_rd = rscdef.RDAttribute()
 	_props = base.PropertyAttribute()
+	_original = base.OriginalAttribute()
 
 	def completeElement(self):
 		self._completeElementNext(Service)
@@ -255,8 +262,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		if self.templates:
 			from nevow import loaders
 			for key, tp in self.templates.iteritems():
-				self.templates[key] = loaders.xmlfile(
-					os.path.join(self.rd.resdir, tp))
+				if isinstance(tp, basestring):
+					self.templates[key] = loaders.xmlfile(
+						os.path.join(self.rd.resdir, tp))
 
 		# Index custom render functions
 		self.nevowRenderers = {}

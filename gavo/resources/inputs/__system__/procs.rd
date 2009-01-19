@@ -38,8 +38,8 @@
 			" operations, I'm giving up"%val, errCol)
 	except base.DBError, msg:
 		querier.rollback()
-		raise gavo.ValidationError("Internal error (%s)"%
-			base.encodeDbMsg(msg), "<unknown>")
+		raise base.ValidationError("Internal error (%s)"%
+			base.encodeDBMsg(msg), "<unknown>")
 ]]></proc>
 
 <proc name="resolveObject" isGlobal="True">
