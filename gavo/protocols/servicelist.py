@@ -102,7 +102,7 @@ def iterSvcRecs(service):
 	rec["subject"] = subjects.pop()
 	for pub in service.publications:
 		rec["renderer"] = pub.render
-		rec["accessURL"] = service.getURL(pub.render)
+		rec["accessURL"] = service.getURL(pub.render, includeServerURL=False)
 		for setName in pub.sets:
 			rec["setName"] = setName
 			yield rec

@@ -33,7 +33,7 @@ class StaticResource(base.MetaMixin):
 		base.MetaMixin.__init__(self)  # We're not a Structure, so we need
 			# to do this manually
 
-	def getURL(self, renderer, qtype="POST"):
+	def getURL(self, renderer, qtype="POST", includeServerURL=True):
 		return self.getMeta("accessURL", default=None)
 
 	def getDescriptor(self):

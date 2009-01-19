@@ -389,7 +389,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		queryMeta["formal_data"] = data
 		return self.run(data, queryMeta)
 	
-	def getURL(self, renderer, method="POST"):
+	def getURL(self, renderer, method="POST", includeServerURL=True):
 		"""returns the full canonical access URL of this service together 
 		with renderer.
 		"""
@@ -398,9 +398,13 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			qSep = "?"
 		elif renderer=="soap":
 			qSep = "/go"
-		return "".join([
-			base.getConfig("web", "serverURL"), base.getConfig("web", "nevowRoot"),
+		elements = []
+		if includeServerURL:
+			elements.append(base.getConfig("web", "serverURL"))
+		elements.extend([
+			 base.getConfig("web", "nevowRoot"),
 				self.rd.sourceId, "/", self.id, "/", renderer, qSep])
+		return "".join(elements)
 	
 	def _meta_referenceURL(self):
 		return meta.MetaItem(meta.makeMetaValue(self.getURL("info"),
