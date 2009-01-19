@@ -31,7 +31,6 @@ class EventDispatcherTest(testhelpers.VerboseTest):
 		try:
 			ed.notifyException(fooEx)
 		except Exception, foundEx:
-			print ">>>>>>>>>>>>>>", fooEx, foundEx
 			self.assertEqual(fooEx, foundEx)
 
 	def testObserver(self):

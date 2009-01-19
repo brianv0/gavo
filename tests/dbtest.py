@@ -4,6 +4,7 @@ Some tests for the database interface.
 This only works with psycopg2.
 """
 
+import datetime
 import sys
 import unittest
 
@@ -42,6 +43,7 @@ class TestTypes(unittest.TestCase):
 
 class TestWithTableCreation(unittest.TestCase):
 	tableName = None
+	rows = []
 
 	def _assertPrivileges(self, foundPrivs, expPrivs):
 		# profile user might not be mentioned in table acl, so retrofit it
@@ -59,7 +61,7 @@ class TestWithTableCreation(unittest.TestCase):
 		base.setDBProfile("test")
 		self.querier = base.SimpleQuerier(useProfile="test")
 		self.tableDef = testhelpers.getTestTable(self.tableName)
-		self.table = rsc.TableForDef(self.tableDef).commit()
+		self.table = rsc.TableForDef(self.tableDef, rows=self.rows).commit()
 
 	def tearDown(self):
 		if self.tableName is None:
@@ -107,6 +109,25 @@ class TestRoleSetting(TestPrivs):
 		q.finish()
 
 
+class SimpleQuerierTest(TestWithTableCreation):
+	tableName = "typestable"
+	rows = [{"anint": 3, "afloat": 3.25, "adouble": 7.5,
+			"atext": "foo", "adate": datetime.date(2003, 11, 13)}]
+	
+	def testPlainQuery(self):
+		q = base.SimpleQuerier()
+		self.assertEqual(q.runIsolatedQuery(
+				"select * from %s"%self.tableDef.getQName()),
+			[(3, 3.25, 7.5, u'foo', datetime.date(2003, 11, 13))])
+
+	def testDictQuery(self):
+		q = base.SimpleQuerier()
+		self.assertEqual(q.runIsolatedQuery(
+				"select * from %s"%self.tableDef.getQName(), asDict=True),
+			[{'anint': 3, 'afloat': 3.25, 'adouble': 7.5, 'atext': u'foo', 
+				'adate': datetime.date(2003, 11, 13)}])
+
+
 class TestMetaTable(TestWithTableCreation):
 	tableName = "typestable"
 
@@ -152,4 +173,4 @@ class TestMetaTableADQL(TestWithTableCreation):
 
 
 if __name__=="__main__":
-	testhelpers.main(TestMetaTable, "test")
+	testhelpers.main(SimpleQuerierTest, "test")

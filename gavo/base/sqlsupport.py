@@ -8,6 +8,8 @@ import sys
 import operator
 import warnings
 
+from itertools import *
+
 from gavo.base import excs
 from gavo.base import config
 
@@ -310,6 +312,14 @@ class StandardQueryMixin(object):
 					role))
 
 
+def dictifyRowset(descr, rows):
+	"""turns a standard, tuple-based rowset into a list of dictionaries,
+	the keys of which are taken from descr (a cursor.description).
+	"""
+	keys = [cd[0] for cd in descr]
+	return [dict(izip(keys, row)) for row in rows]
+
+
 class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 	"""is a mixin for "queriers", i.e., objects that maintain a db connection.
 
@@ -318,7 +328,7 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 	defaultProfile = None
 
 	def runIsolatedQuery(self, query, data={}, silent=False, raiseExc=True,
-			timeout=None):
+			timeout=None, asDict=False):
 		"""runs a query over a connection of its own and returns a rowset of 
 		the result if the query is successful.
 
@@ -353,12 +363,16 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 		else:
 			try:
 				res = cursor.fetchall()
+				descr = cursor.description
 			except DBError:  # No results to fetch
 				res = None
 			cursor.close()
 			connection.commit()
 			connection.close()
-			return res
+			if asDict:
+				return dictifyRowset(descr, res)
+			else:
+				return res
 
 	def query(self, query, data={}):
 		"""runs a single query in a new cursor and returns that cursor.

@@ -127,4 +127,22 @@
 			raise base.LiteralParseError("Name %s could not be mapped"%value,
 				destination, value)
 </proc>
+
+<proc name="fullQuery" isGlobal="True">
+	<doc><![CDATA[
+	runs a free query against the data base and enters the first result 
+	record into vars.
+
+	Argument:
+
+	* query -- an SQL query
+
+	The locals() will be passed as data, so you can define more arguments
+	and refer to their keys in the query.
+	]]></doc>
+
+	q = base.SimpleQuerier()
+	res = q.runIsolatedQuery(query, data=locals(), asDict=True)
+	vars.update(res[0])
+</proc>
 </resource>
