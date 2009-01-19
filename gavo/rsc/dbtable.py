@@ -421,6 +421,7 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		self.setTablePrivileges(self.tableDef)
 		if not self.nometa:
 			self.addToMeta()
+		return self
 
 	def createIfNecessary(self):
 		if not self.tableExists(self.tableName):

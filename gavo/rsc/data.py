@@ -98,9 +98,10 @@ class Data(base.MetaMixin):
 	def updateMeta(self):
 		"""updates meta information kept in the DB on the contained tables.
 		"""
-		for t in self.tables:
+		for t in self.tables.values():
 			if isinstance(t, dbtable.DBTable):
-				t.updateMeta()
+				t.updateMeta().commit()
+		return self
 
 	def recreateTables(self):
 		"""drops and recreates all table that are onDisk.

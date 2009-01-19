@@ -38,7 +38,8 @@ def process(opts, args):
 			res = rsc.Data.create(dd, parseOptions=opts).updateMeta()
 		else:
 			res = rsc.makeData(dd, parseOptions=opts, connection=connection)
-		print "Columns affected:", res.nAffected
+		if res:
+			print "Columns affected:", res.nAffected
 
 
 def parseCmdline():

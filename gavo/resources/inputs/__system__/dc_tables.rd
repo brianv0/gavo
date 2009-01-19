@@ -57,7 +57,8 @@ tables and the RDs the tables come from. -->
 		<map dest="tableName"/>
 	</rowmaker>
 
-	<table id="dc_tables" onDisk="True" system="True">
+	<table id="dc_tables" onDisk="True" system="True" forceUnique="True"
+			dupePolicy="overwrite">
 		<meta name="description">A table mapping table names and schemas to
 			the resource descriptors they come from and whether they are open
 			to ADQL queries.  This table is primarily used for the table info
