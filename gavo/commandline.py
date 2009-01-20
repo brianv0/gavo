@@ -38,7 +38,7 @@ def process(opts, args):
 			res = rsc.Data.create(dd, parseOptions=opts).updateMeta()
 		else:
 			res = rsc.makeData(dd, parseOptions=opts, connection=connection)
-		if res:
+		if hasattr(res, "nAffected"):
 			print "Columns affected:", res.nAffected
 
 

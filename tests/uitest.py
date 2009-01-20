@@ -23,7 +23,7 @@ class EventDispatcherTest(testhelpers.VerboseTest):
 		ed.notifyException(Exception())
 
 	def testNotifyException(self):
-		def callback(source, ex):
+		def callback(ex):
 			raise ex
 		ed = events.EventDispatcher()
 		ed.subscribeException(callback)
@@ -37,7 +37,7 @@ class EventDispatcherTest(testhelpers.VerboseTest):
 		ed = events.EventDispatcher()
 		class Observer(base.ObserverBase):
 			@base.listensTo("NewSource")
-			def gotNewSource(self, d, sourceName):
+			def gotNewSource(self, sourceName):
 				raise Tell(sourceName)
 		o = Observer(ed)
 		ex = None

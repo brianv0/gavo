@@ -19,7 +19,7 @@ class DataFeeder(table.Feeder):
 	to data, except it will also call the table's mappers, i.e., add
 	expects source rows from data's grammars.
 	"""
-	def __init__(self, data, batchSize):
+	def __init__(self, data, batchSize=1024):
 		self.data, self.batchSize = data, batchSize
 		self.nAffected = 0
 		self._makeFeeds()
@@ -36,7 +36,7 @@ class DataFeeder(table.Feeder):
 		adders, parAdders, feeders = [], [], []
 		for make in self.data.dd.makes:
 			table = self.data.tables[make.table.id]
-			feeder = table.getFeeder(self.batchSize)
+			feeder = table.getFeeder(batchSize=self.batchSize)
 			makeRow = make.rowmaker.compileForTable(make.table)
 			def addRow(srcRow, feeder=feeder, makeRow=makeRow):
 				feeder.add(makeRow(srcRow))
@@ -154,8 +154,8 @@ class Data(base.MetaMixin):
 			pass
 		raise base.DataError("No table with role '%s'"%role)
 
-	def getFeeder(self):
-		return DataFeeder(self, self.parseOptions.batchSize)
+	def getFeeder(self, **kwargs):
+		return DataFeeder(self, **kwargs)
 
 
 def processSource(res, source, feeder, dumpRows=False):

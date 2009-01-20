@@ -104,7 +104,7 @@ class BaseTable(object):
 	  is defined, a ValueError is raised, if the key is not present, a
 	  KeyError.  An atomic primary key is accessed through its value,
 	  for compound primary keys a tuple must be passed.
-	* getFeeder() -> feeder object -- returns an object with add and 
+	* getFeeder(**kwargs) -> feeder object -- returns an object with add and 
 	  exit methods.  See feeder above.
 	* importFinished() -> None -- called when a feeder exits successfully
 	* importFailed(*excInfo) -> boolean -- called when feeding has failed;
@@ -173,8 +173,8 @@ class InMemoryTable(BaseTable):
 	def getRow(self, *args):
 		raise ValueError("Cannot use getRow in index-less table")
 
-	def getFeeder(self, batchSize=1024):
-		return Feeder(self, batchSize)
+	def getFeeder(self, **kwargs):
+		return Feeder(self, **kwargs)
 
 
 class InMemoryIndexedTable(InMemoryTable):

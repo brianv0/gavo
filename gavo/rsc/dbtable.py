@@ -22,8 +22,8 @@ class Feeder(table.Feeder):
 	After an exit, the instances have an nAffected attribute that says
 	how many rows were processed by the database through this feeder.
 	"""
-	def __init__(self, parent, insertCommand, batchSize=1024):
-		self.nAffected = 0
+	def __init__(self, parent, insertCommand, batchSize=1024, notify=True):
+		self.nAffected, self.notify = 0, notify
 		table.Feeder.__init__(self, parent)
 		self.cursor = parent.connection.cursor()
 		self.feedCommand, self.batchSize = insertCommand, batchSize
@@ -31,9 +31,6 @@ class Feeder(table.Feeder):
 
 	def shipout(self):
 		if self.batchCache:
-			if debugFeed:
-				print "Shipping out %d records to %s"%(len(self.batchCache),
-					self.table.tableDef.id)
 			try:
 				self.cursor.executemany(self.feedCommand, self.batchCache)
 			except sqlsupport.IntegrityError:
@@ -41,8 +38,12 @@ class Feeder(table.Feeder):
 				sys.stderr.write("One or more of the following rows clashed:\n")
 				pprint.pprint(self.batchCache, sys.stderr)
 				raise
+			except sqlsupport.ProgrammingError:
+				print ">>>>>>>>>>>>>>>", self.cursor.query
+				raise
 			self.nAffected += len(self.batchCache)
-			base.ui.notifyShipout(len(self.batchCache))
+			if self.notify:
+				base.ui.notifyShipout(len(self.batchCache))
 			self.batchCache = []
 
 	def add(self, data):
@@ -56,20 +57,18 @@ class Feeder(table.Feeder):
 			self.shipout()
 	
 	def exit(self, *args):
-		try:
-			self.shipout()
+		if not args or args[0] is None: # regular exit, ship out
+			try:
+				self.shipout()
 # The following sucks, but rowcount seems to be always 1 on insert operations.
 # However, we at least want a chance to catch update operations matching
 # nothing.  So, if rowcount is 0, it's a sign something went wrong, and
 # we want to override our initial guess.
-			if self.cursor.rowcount==0:
-				self.nAffected = 0
-			self.cursor.close()
-		except:
-			import traceback, sys
-			sys.stderr.write("Exception during dbtable exit:\n")
-			traceback.print_exc()
-			return table.Feeder.exit(self, *sys.exc_info())
+				if self.cursor.rowcount==0:
+					self.nAffected = 0
+				self.cursor.close()
+			except:
+				return table.Feeder.exit(self, *sys.exc_info())
 		return table.Feeder.exit(self, *args)
 
 	def getAffected(self):
@@ -133,7 +132,7 @@ class MetaTableMixin(object):
 			connection=self.connection)
 		makeRow = self.dcTablesRD.getById("fromColumnList").compileForTable(
 			t.tableDef)
-		feeder = t.getFeeder()
+		feeder = t.getFeeder(notify=False)
 		for colInd, column in enumerate(self.tableDef):
 			items = {"tableName": tableName, "colInd": colInd, "column": column}
 			feeder.add(makeRow(items))
@@ -296,8 +295,8 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		if self.ownedConnection:
 			self.connection.close()
 
-	def getFeeder(self, batchSize=1024):
-		return Feeder(self, self.addCommand, batchSize=batchSize)
+	def getFeeder(self, **kwargs):
+		return Feeder(self, self.addCommand, **kwargs)
 
 	def importFinished(self):
 		self.tableDef.runScripts("preIndex", tw=self)

@@ -71,7 +71,7 @@ class ColumnGrammar(Grammar):
 	name_ = "columnGrammar"
 
 	_til = base.IntAttribute("topIgnoredLines", default=0, description=
-		"Skip this many lines at the top of the source file")
+		"Skip this many lines at the top of each source file")
 	_cols = base.DictAttribute("colRanges", description="Mapping of"
 		" source keys to column ranges", itemAttD=ColRangeAttribute("col"))
 	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"

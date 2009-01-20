@@ -169,9 +169,11 @@ class DBTableTest(testhelpers.VerboseTest):
 	def testCreation(self):
 		td = self._getRD().getTableDefById("xy")
 		querier = base.SimpleQuerier()
-		table = rsc.TableForDef(td, connection=querier.connection, nometa=True)
-		self.assert_(querier.tableExists(td.getQName()))
-		querier.close() # implicit rollback
+		try:
+			table = rsc.TableForDef(td, connection=querier.connection, nometa=True)
+			self.assert_(querier.tableExists(td.getQName()))
+		finally:
+			querier.close() # implicit rollback
 		self.assert_(not base.SimpleQuerier().tableExists(td.getQName()))
 
 	def testFilling(self):
@@ -255,4 +257,4 @@ class DBTableQueryTest(testhelpers.VerboseTest):
 	
 
 if __name__=="__main__":
-	testhelpers.main(DBUniqueForcedTest)
+	testhelpers.main(DBTableTest)

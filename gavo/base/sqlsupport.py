@@ -73,7 +73,8 @@ psycopg2.extensions.register_adapter(tuple, SqlArrayAdapter)
 psycopg2.extensions.register_adapter(list, SqlSetAdapter)
 psycopg2.extensions.register_adapter(set, SqlSetAdapter)
 
-from psycopg2 import OperationalError, DatabaseError, IntegrityError
+from psycopg2 import (OperationalError, DatabaseError, IntegrityError,
+	ProgrammingError)
 from psycopg2 import Error as DBError
 
 

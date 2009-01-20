@@ -94,7 +94,7 @@ def _unitMapperFactory(colProps):
 	"""
 	if colProps["displayHint"].get("displayUnit") and \
 			colProps["displayHint"]["displayUnit"]!=colProps["unit"]:
-		factor = base.getConversionFactor(colProps["unit"], 
+		factor = base.computeConversionFactor(colProps["unit"], 
 			colProps["displayHint"]["displayUnit"])
 		colProps["unit"] = colProps["displayHint"]["displayUnit"]
 		fmtStr = "%%.%df"%int(colProps["displayHint"].get("sf", 2))

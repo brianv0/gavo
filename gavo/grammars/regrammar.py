@@ -16,6 +16,8 @@ class REIterator(FileRowIterator):
 	chunkSize = 8192
 
 	def _iterInRecords(self):
+		for i in range(self.grammar.topIgnoredLines):
+			self.inputFile.readline()
 		curPos = 0
 		splitPat = self.grammar.recordSep
 		buffer = ""
@@ -29,12 +31,12 @@ class REIterator(FileRowIterator):
 				curPos = 0
 				continue
 			res = buffer[curPos:mat.end()]
-			yield res
+			yield res.strip()
 			curPos = mat.end()
 			self.curLine += res.count("\n")
 		# yield stuff left if there's something left
-		res = buffer[curPos:]
-		if res.strip():
+		res = buffer[curPos:].strip()
+		if res:
 			yield res
 
 	def _iterRows(self):
@@ -75,6 +77,8 @@ class REGrammar(Grammar):
 
 	rowIterator = REIterator
 
+	_til = base.IntAttribute("topIgnoredLines", default=0, description=
+		"Skip this many lines at the top of each source file")
 	_recordSep = REAttribute("recordSep", default=re.compile("\n"), 
 		description="RE for separating two records in the source.")
 	_fieldSep = REAttribute("fieldSep", default=re.compile(r"\s+"), 
