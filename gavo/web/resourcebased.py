@@ -763,8 +763,7 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 		if not service.staticData:# XXX TODO: FORBIDDEN
 			raise svcs.UnknownURI("No static data on this service") 
 		if "static" in self.service.templates:
-			self.customTemplate = os.path.join(self.rd.resdir,
-				self.service.templates["static"])
+			self.customTemplate = self.service.templates["static"]
 		self.basePath = os.path.join(service.rd.resdir,
 			service.staticData)
 		if self.basePath:
@@ -776,7 +775,7 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 			request.redirect(request.URLPath().child(''))
 			return ''
 		if self.customTemplate:
-			return super(Static, self).renderHTTP(ctx)
+			return grend.ServiceBasedRenderer.renderHTTP(self, ctx)
 		else:
 			return self.service.run(None).addCallback(self._renderResultDoc, ctx)
 	

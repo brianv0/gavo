@@ -42,6 +42,7 @@ class Feeder(table.Feeder):
 				pprint.pprint(self.batchCache, sys.stderr)
 				raise
 			self.nAffected += len(self.batchCache)
+			base.ui.notifyShipout(len(self.batchCache))
 			self.batchCache = []
 
 	def add(self, data):

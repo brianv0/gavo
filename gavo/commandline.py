@@ -15,6 +15,7 @@ from gavo import grammars
 from gavo import rscdesc     # for registration
 from gavo import rsc
 from gavo.protocols import basic  # for registration
+from gavo import user
 from gavo import web         # for registration
 
 
@@ -33,7 +34,6 @@ def process(opts, args):
 	for dd in rd.dds:
 		if ddIds and not dd.id in ddIds:
 			continue
-		print ">>>>>>>>>>> Now processing", dd.id
 		if opts.metaOnly:
 			res = rsc.Data.create(dd, parseOptions=opts).updateMeta()
 		else:
@@ -73,6 +73,10 @@ def parseCmdline():
 		dest="systemImport", action="store_true")
 	parser.add_option("-v", "--verbose", help="talk a lot while working",
 		dest="verbose", action="store_true")
+	parser.add_option("-U", "--ui", help="use UI to show what is going on;"
+		" known UI names include: %s"%", ".join(user.interfaces),
+		dest="uiName", action="store", type="str", default="plain",
+		metavar="UI")
 	parser.add_option("-r", "--reckless", help="Do not validate rows"
 		" before ingestion", dest="validateRows", action="store_false",
 		default=True)
@@ -83,6 +87,10 @@ def parseCmdline():
 		" an error", dest="ignoreBadSources", action="store_true")
 	(opts, args) = parser.parse_args()
 	base.setDBProfile(opts.dbProfile)
+	if opts.uiName not in user.interfaces:
+		raise base.ReportableError("UI %s does not exist.  Choose one of"
+			" %s"%(opts.uiName, ", ".join(user.interfaces)))
+	user.interfaces[opts.uiName](base.ui)
 	if not args:
 		parser.print_help()
 		sys.exit(1)
@@ -90,8 +98,8 @@ def parseCmdline():
 
 
 def main():
-	opts, args = parseCmdline()
 	try:
+		opts, args = parseCmdline()
 		process(opts, args)
 	except Abort, msg:
 		sys.exit(1)

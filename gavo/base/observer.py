@@ -32,6 +32,7 @@ class ObserverBase(object):
 	You can listen to anything that has a notify method in the EventDispatcher.
 	"""
 	def __init__(self, dispatcher):
+		self.dispatcher = dispatcher
 		for name in dir(self):
 			att = getattr(self, name)
 			if hasattr(att, "listensTo"):

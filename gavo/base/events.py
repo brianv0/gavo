@@ -31,7 +31,7 @@ class DispatcherType(type):
 		def notify(self, *args, **kwargs):
 			res = callable(self, *args, **kwargs)
 			for callback in self.callbacks[name]:
-				callback(self, res)
+				callback(res)
 			return res
 		def subscribe(self, callback):
 			self.callbacks[name].append(callback)
