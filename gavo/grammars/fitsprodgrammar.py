@@ -9,7 +9,7 @@ import re
 
 from gavo import base
 from gavo import rscdef
-from gavo.grammars.common import Grammar, RowIterator
+from gavo.grammars.common import Grammar, RowIterator, MapKeys
 from gavo.utils import fitstools
 
 
@@ -73,7 +73,9 @@ class FITSProdGrammar(Grammar):
 		" works for the primary HDU")
 	_hduIndex = base.IntAttribute("hdu", default=0,
 		description="Take the header from this HDU")
-	
+	_mapKeys = base.StructAttribute("mapKeys", childFactory=MapKeys,
+		default=None, copyable=True)
+
 	rowIterator = FITSProdIterator
 
 rscdef.registerGrammar(FITSProdGrammar)

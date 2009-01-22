@@ -4,7 +4,7 @@ Grammars for parsing sources.
 The basic working of those is discussed in common.Grammar.
 """
 
-from common import Grammar, NullGrammar, RowIterator, ParseError
+from common import Grammar, NullGrammar, RowIterator, ParseError, MapKeys
 from columngrammar import ColumnGrammar
 from customgrammar import CustomRowIterator
 from dictlistgrammar import DictlistGrammar

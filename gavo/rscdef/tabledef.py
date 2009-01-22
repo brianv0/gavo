@@ -104,7 +104,9 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		childFactory=column.Column, description="Column definitions",
 		copyable=True)
 	_onDisk = base.BooleanAttribute("onDisk", False, description=
-		"Does this table reside in the database?")
+		"Does this table reside in the database?")  # this must not be copyable
+		  # since queries might copy the tds and havoc would result if the queries
+		  # were to end up on disk.
 	_adql = base.BooleanAttribute("adql", False, description=
 		"Should this table be available for ADQL queries?")
 	_forceUnique = base.BooleanAttribute("forceUnique", False, description=

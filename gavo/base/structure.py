@@ -59,6 +59,7 @@ from gavo.base import attrdef
 from gavo.base import parsecontext
 from gavo.base import texttricks
 from gavo.base.excs import StructureError, Replace, LiteralParseError
+from gavo.utils import algotricks
 
 
 class ChangeParser(Exception):
@@ -131,6 +132,24 @@ class Parser(object):
 			raise StructureError("Illegal event type while building: '%s'"%type)
 
 
+def sortAttrs(attrSeq):
+	"""evaluates the before attributes on the AttributeDefs in attrsSeq
+	and returns a sequence satisfying them.
+
+	It returns a reference to attrSeq for convenience.
+	"""
+	beforeGraph = []
+	for att in attrSeq:
+		if att.before:
+			beforeGraph.append((att.name_, att.before))
+	if beforeGraph:
+		attDict = dict((a.name_, a) for a in attrSeq)
+		sortedNames = algotricks.topoSort(beforeGraph)
+		sortedAtts = [attDict[n] for n in sortedNames]
+		attrSeq = sortedAtts+list(set(attrSeq)-set(sortedAtts))
+	return attrSeq
+	
+
 class StructType(type):
 	"""is a metaclass for the representation of structured data.
 
@@ -165,18 +184,20 @@ class StructType(type):
 	def _collectManagedAttrs(cls):
 		"""collects a dictionary of managed attributes in managedAttrs.
 		"""
-		managedAttrs, completedCallbacks = {}, []
+		managedAttrs, completedCallbacks, attrSeq = {}, [], []
 		for name in dir(cls):
 			if not hasattr(cls, name):
 				continue
 			val = getattr(cls, name)
 			if isinstance(val, attrdef.AttributeDef):
 				managedAttrs[val.name_] = val
+				attrSeq.append(val)
 				if hasattr(val, "xmlName_"):
 					managedAttrs[val.xmlName_] = val
 				if val.aliases:
 					for alias in val.aliases:
 						managedAttrs[alias] = val
+		cls.attrSeq = sortAttrs(attrSeq)
 		cls.managedAttrs = managedAttrs
 		cls.completedCallbacks = completedCallbacks
 	
@@ -231,7 +252,7 @@ class StructureBase(object):
 		self.parent = parent
 		
 		# set defaults
-		for val in set(self.managedAttrs.values()):
+		for val in self.attrSeq:
 			try:
 				if not hasattr(self, val.name_): # don't clobber properties
 						# set up by attributes.
@@ -274,7 +295,7 @@ class StructureBase(object):
 		"""
 		return self.__class__(parent, 
 			**dict([(att.name_, att.getCopy(self, None))
-				for att in set(self.managedAttrs.values())
+				for att in self.attrSeq
 					if att.copyable])).finishElement()
 
 	def replace(self, newObject):
@@ -298,7 +319,7 @@ class StructureBase(object):
 		To make this work, attributes containing structs must define
 		iterStructs methods (and the others must not).
 		"""
-		for att in set(self.managedAttrs.values()):
+		for att in self.attrSeq:
 			if hasattr(att, "iterChildren"):
 				for c in att.iterChildren(self):
 					yield c
@@ -306,7 +327,7 @@ class StructureBase(object):
 	@classmethod
 	def fromStructure(cls, newParent, oldStructure):
 		consArgs = dict([(att.name_, getattr(oldStructure, att.name_))
-			for att in set(oldStructure.managedAttrs.values())])
+			for att in oldStructure.attrSeq])
 		return cls(newParent, **consArgs)
 
 
@@ -404,16 +425,16 @@ class ParseableStructure(StructureBase):
 
 		If something is copyable or not is specified by the AttributeDefinition.
 		"""
-		for att in set(self.managedAttrs.itervalues()):
+		for att in self.attrSeq:
 			if not att.copyable:
 				continue
-			if isinstance(att, attrdef.AtomicAttribute):
+			if hasattr(att, "iterEvents"):
+				for ev in att.iterEvents(self):
+					yield ev
+			else:
 				val = getattr(self, att.name_)
 				if val!=att.default_:  
 					yield ("value", att.name_, att.unparse(val))
-			else:
-				for ev in att.iterEvents(self):
-					yield ev
 
 	def feedFrom(self, other, ctx=None, suppress=set()):
 		"""feeds parsed objects from another structure.
@@ -440,7 +461,7 @@ class Structure(ParseableStructure):
 
 	Also, it supports onParentCompleted callbacks; this works by checking
 	if any managedAttribute has a onParentCompleted method and calling it
-	with the current value of that attribe if necessary.
+	with the current value of that attribute if necessary.
 	"""
 	def callCompletedCallbacks(self):
 		for attName, attType in self.managedAttrs.iteritems():

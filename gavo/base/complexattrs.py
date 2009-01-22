@@ -40,7 +40,7 @@ class CollOfAtomsAttribute(AtomicAttribute):
 	def iterEvents(self, instance):
 		for item in getattr(instance, self.name_):
 			yield ("start", self.xmlName_, None)
-			yield ("value", self.xmlName_, itemAttD.unparse(item))
+			yield ("value", self.xmlName_, self.itemAttD.unparse(item))
 			yield ("end", self.xmlName_, None)
 
 
@@ -168,7 +168,7 @@ class DictAttribute(AttributeDef):
 		for key, value in getattr(instance, self.name_).iteritems():
 			yield ("start", self.xmlName_, None)
 			yield ("value", self.keyName, key)
-			yield ("value", "content_", itemAttD.unparse(value))
+			yield ("value", "content_", self.itemAttD.unparse(value))
 			yield ("end", self.xmlName_, None)
 	
 	def getCopy(self, instance, newParent):
@@ -248,12 +248,13 @@ class StructAttribute(AttributeDef):
 		setattr(instance, self.name_, newStruct)
 
 	def iterEvents(self, instance):
-		if getattr(instance, self.name_) is None:
+		val = getattr(instance, self.name_)
+		if val is None:
 			return
-		yield ("start", self.xmlName_, None)
-		for ev in getattr(instance, self.name_).iterEvents():
+		yield ("start", val.name_, None)
+		for ev in val.iterEvents():
 			yield ev
-		yield ("end", self.xmlName_, None)
+		yield ("end", val.name_, None)
 
 	def iterChildren(self, instance):
 		if getattr(instance, self.name_) is not None:

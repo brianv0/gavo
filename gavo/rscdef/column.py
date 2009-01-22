@@ -226,14 +226,14 @@ class Column(base.Structure):
 
 	_name = UnicodeAttribute("name", default=base.Undefined,
 		description="Name of the column (should be SQL-valid)",
-		copyable=True)
+		copyable=True, before="type")
 	_type = TypeNameAttribute("type", default="real", description=
 		"datatype for the column (SQL-like type system)",
-		copyable=True)
+		copyable=True, before="unit")
 	_unit = UnicodeAttribute("unit", default="", description=
-		"Unit of the values", copyable=True)
+		"Unit of the values", copyable=True, before="ucd")
 	_ucd = UnicodeAttribute("ucd", default="", description=
-		"UCD of the column", copyable=True)
+		"UCD of the column", copyable=True, before="description")
 	_description = UnicodeAttribute("description", 
 		default="", description="Short (one-line) description", copyable=True)
 	_tablehead = TableheadAttribute("tablehead",

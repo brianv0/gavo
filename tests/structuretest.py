@@ -326,5 +326,24 @@ class FeedFromTest(testhelpers.VerboseTest):
 		self.assertEqual(f2.id, "pal2", "Non-copyable attribute was copied")
 
 
+class BeforeTest(testhelpers.VerboseTest):
+	"""tests for sorting of children.
+	"""
+	def testWorkingSort(self):
+		class Foo(base.Structure):
+			_att1 = base.UnicodeAttribute("b", before="a")
+			_att2 = base.UnicodeAttribute("a")
+		self.assertEqual([a.name_ for a in Foo.attrSeq], ["b", "a", "id"])
+	
+	def testBailOnCycle(self):
+		def defineBadStruct():
+			class Foo(base.Structure):
+				_att1 = base.UnicodeAttribute("b", before="a")
+				_att2 = base.UnicodeAttribute("a", before="c")
+				_att3 = base.UnicodeAttribute("c", before="b")
+		self.assertRaises(ValueError, defineBadStruct)
+
+
+
 if __name__=="__main__":
-	testhelpers.main(FeedFromTest)
+	testhelpers.main(BeforeTest)

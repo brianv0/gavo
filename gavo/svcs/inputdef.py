@@ -45,7 +45,10 @@ class InputKey(rscdef.Column):
 
 	def completeElement(self):
 		self._completeElementNext(InputKey)
-
+# XXX TODO: Fix the mess with widgetFactory and formalType by defining
+# special attribute types for them.  Leave the attribute defined
+# as strings and add properties to InputKeys like compiledWidgetFactory
+# or the like.
 		# Adapt type if we were built from a column.
 		if hasattr(self, "_originalObject") and isinstance(
 				self._originalObject, rscdef.Column):

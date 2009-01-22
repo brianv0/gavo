@@ -106,9 +106,9 @@ class TestProductsImport(unittest.TestCase):
 			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
 				" products where sourceTable='test.prodtest'"),
 			[(u'data/a.imp', u'test', datetime.date(2030, 12, 31), 
-					u'data/a.imp', u'test.prodtest'),
+					u'data/a.imp', u'test.prodtest', 'image/fits'),
 			 (u'data/b.imp', u'test', datetime.date(2003, 12, 31), 
-					u'data/b.imp', u'test.prodtest'),])
+					u'data/b.imp', u'test.prodtest', 'image/fits'),])
 
 	def testInMetatable(self):
 		fields = sorted([(r[9], r[1], r[4]) for r in

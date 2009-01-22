@@ -11,6 +11,9 @@ These are objects having at least the following attributes and methods:
 * description -- for user documentation
 * typeDesc -- describing the content; this is usually a class
   attribute and intended for user documentation
+* before -- the name of another attribute the attribute should precede
+  in XML serializations.  It is not an error to refer to an attribute
+	that does not exist.
 * feedObject(instance, ob) -> None -- adds ob to instance's attribute value.
   This will usually just result in setting the attribute; for compound
   attributes, this may instead append to a list, add to a set, etc.
@@ -108,11 +111,12 @@ class AttributeDef(object):
 	typeDesc_ = "unspecified, invalid"
 
 	def __init__(self, name, default=None, description="Undocumented",
-			copyable=False, aliases=None, callbacks=None):
+			copyable=False, aliases=None, callbacks=None, before=None):
 		self.name_, self.description_ = name, description
 		self.copyable = copyable
 		self.aliases = aliases
 		self.callbacks = callbacks
+		self.before = before
 		if default is not Computed:
 			self.default_ = default
 

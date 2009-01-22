@@ -23,6 +23,9 @@ machinery -->
 		<column name="sourceTable" type="text" verbLevel="10"
 			tablehead="Source Table"
 			description="Name of table containing metadata" required="True"/>
+		<column name="mime" type="text" verbLevel="20"
+			tablehead="Type"
+			description="MIME type of the file served"/>
 		<primary>key</primary>
 	</table>
 	<rowmaker id="productsMaker">
@@ -31,6 +34,7 @@ machinery -->
 		<map dest="embargo">prodtblEmbargo</map>
 		<map dest="accessPath" src="prodtblPath"/>
 		<map dest="sourceTable" src="prodtblTable"/>
+		<map dest="mime" src="prodtblMime"/>
 	</rowmaker>
 
 	<!-- materials for tables mixing in products -->
@@ -74,6 +78,7 @@ machinery -->
 		<arg key="path" default="None"/>
 		<arg key="table" default="base.Undefined"/>
 		<arg key="fsize" default="\inputSize"/>
+		<arg key="mime" default="'image/fits'"/>
 			newVars = {}
 			if path is None:
 				path = key
@@ -83,6 +88,7 @@ machinery -->
 			row["prodtblPath"] = path
 			row["prodtblFsize"] = fsize
 			row["prodtblTable"] = table
+			row["prodtblMime"] = mime
 			yield row
 	</rowgen>
 

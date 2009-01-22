@@ -57,35 +57,39 @@ class RD(base.Structure, base.MetaMixin, scripting.ScriptingMixin,
 		callbacks=["_inferResdir"])
 	_dds = base.StructListAttribute("dds", childFactory=rscdef.DataDescriptor,
 		description="Data Descriptors available for this Resource",
-		copyable=True)
+		copyable=True, before="outputTables")
 	_tables = base.StructListAttribute("tables",
 		childFactory=rscdef.TableDef, description="A table used or created"
-			" by this resource", copyable=True)
+			" by this resource", copyable=True, before="dds")
 	_outputTables = base.StructListAttribute("outputTables",
 		childFactory=svcs.OutputTableDef, description="Canned output"
 		" tables (not normally necessary for users)", copyable=True)
 	_rowmakers = base.StructListAttribute("rowmakers",
 		childFactory=rscdef.RowmakerDef, description="Table building definitions",
-		copyable=True)
+		copyable=True, before="dds")
 	_procs = base.StructListAttribute("procs", childFactory=rscdef.ProcDef,
-		description="Global procedure definitions.", copyable=True)
+		description="Global procedure definitions.", copyable=True,
+		before="rowmakers")
 	_rowgens = base.StructListAttribute("rowgens", childFactory=rscdef.RowGenDef,
-		description="Global rowgen definitions.", copyable=True)
+		description="Global rowgen definitions.", copyable=True,
+		before="rowmakers")
 	_condDescs = base.StructListAttribute("condDescs", childFactory=svcs.CondDesc,
-		description="Global condition descriptors", copyable=True)
+		description="Global condition descriptors", copyable=True, 
+		before="cores")
 	_services = base.StructListAttribute("services", 
 		childFactory=svcs.Service, description="Services available for"
 		" this resource", copyable=True)
-	_macDefs = rscdef.MacDefAttribute()
+	_macDefs = rscdef.MacDefAttribute(before="tables")
 	# The next attr is polymorphic through getDynamicAttribute
 	_cores = CoresAttribute("cores", 
 		description="Cores available in this resource.  You basically"
 		" never have simple core elements but rather elements like"
-		" dbBasedCore, computeCore, or the like", copyable=True)
+		" dbBasedCore, computeCore, or the like", copyable=True,
+		before="services")
 	_properties = base.PropertyAttribute()
 	_systems = base.StructListAttribute("systems",
 		childFactory=rscdef.CooSys, description="Coordinate systems for"
-		" definition of embedded coordinates")
+		" definition of embedded coordinates", before="tables")
 
 	def __init__(self, parent, **kwargs):
 	#	parent should in general be None, I guess, but I'll leave the signature

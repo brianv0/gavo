@@ -3,6 +3,8 @@ The rscdef subpackage, concerned with defining resources and their structures,
 plus quite a bit of source parsing.
 """
 
+from gavo.rscdef.callablebase import FuncArg
+
 from gavo.rscdef.column import Column, Option, Values, makeOptions
 
 from gavo.rscdef.common import (RDAttribute, ResdirRelativeAttribute,
