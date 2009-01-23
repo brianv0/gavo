@@ -30,7 +30,7 @@ ignoredFITSHeaders = set(["COMMENT", "SIMPLE", "BITPIX", "EXTEND",
 	"NEXTEND", "SOFTNAME", "SOFTVERS", "SOFTDATE", "SOFTAUTH", "SOFTINST",
 	"HISTORY", "BZERO"])
 wcsKey = re.compile("CD.*|CRVAL.*|CDELT.*|NAXIS.*|CRPIX.*|CTYPE.*|CUNIT.*"
-	"|CROTA.*|RADECSYS")
+	"|CROTA.*|RADECSYS|EQUINOX")
 
 
 def isIgnoredKeyword(kw):
@@ -108,7 +108,7 @@ class EventStorage(object):
 def makeColumn(col):
 	return RD.column(**{"name": col.name, "unit": re.sub("[][]", "", col.unit),
 		"ucd": itemDef.get_ucd(), "description": itemDef.get_description(),
-		"dbtype": itemDef.get_dbtype()})
+		"dbtype": itemDef.get_dbtype(), "verbLevel": 20})
 
 
 def makeTableFromFITS(rd, srcName, opts):
@@ -117,7 +117,7 @@ def makeTableFromFITS(rd, srcName, opts):
 		return header.ascardlist()
 
 	keyMappings = []
-	table = rscdef.TableDef(rd, id="main", onDisk=True)
+	table = rscdef.TableDef(rd, id=opts.tableName, onDisk=True)
 	# hack to make id and onDisk copyable
 	table._id.copyable = table._onDisk.copyable = True
 	for index, card in enumerate(getHeaderKeys(srcName)):
@@ -134,7 +134,7 @@ def makeTableFromFITS(rd, srcName, opts):
 
 def makeDataForFITS(rd, srcName, opts):
 	targetTable = rd.tables[0]
-	dd = rscdef.DataDescriptor(rd)
+	dd = rscdef.DataDescriptor(rd, id="import_"+opts.tableName)
 	grammar = grammars.FITSProdGrammar(dd)
 	grammar.feedObject("qnd", True)
 	rowgen = base.parseFromString(EventStorage, """<events>
@@ -162,7 +162,7 @@ def makeTableFromVOTable(rd, srcName, opts):
 	for ind, f in enumerate(srcTable.fields):
 		colName = makeVOTableFieldName(f, ind)
 		record.addto_items(datadef.DataField(dest=colName, source=colName,
-			ucd=f.ucd, description=f.description, tablehead=colName,
+			ucd=f.ucd, description=f.description, tablehead=colName.capitalize(),
 			unit=f.unit,
 			dbtype=typesystems.voTableToSQLType(f.datatype, f.arraysize)))
 	return record, RD.VOTableGrammar
@@ -181,10 +181,16 @@ def makeRD(args, opts):
 	from gavo import rscdesc
 	rd = rscdesc.RD(None, schema=os.path.basename(os.getcwd()),
 		resdir=base.getRelativePath(
-			os.path.abspath("."), base.getConfig("inputsDir")))
+			os.getcwd(), base.getConfig("inputsDir")))
 	rd.feedObject("table", tableMakers[opts.srcForm](rd, args[0], opts))
 	rd.feedObject("data", dataMakers[opts.srcForm](rd, args[0], opts))
 	return rd.finishElement()
+
+
+def writePrettyPrintedXML(eTree):
+	f = os.popen("xmlstarlet fo", "w")
+	ElementTree.ElementTree(eTree).write(f, encoding="utf-8")
+	f.close()
 
 
 def parseCommandLine():
@@ -193,6 +199,8 @@ def parseCommandLine():
 	parser.add_option("-f", "--format", help="FITS or VOT, source format."
 		"  Default: Detect from file name", dest="srcForm", default=None,
 		action="store", type="str")
+	parser.add_option("-t", "--table-name", help="Name of the generated table",
+		dest="tableName", default="main", action="store", type="str")
 	opts, args = parser.parse_args()
 	if len(args)!=1:
 		parser.print_help()
@@ -208,12 +216,6 @@ def parseCommandLine():
 			parser.print_help()
 			sys.exit(1)
 	return opts, args
-
-
-def writePrettyPrintedXML(eTree):
-	f = os.popen("xmlstarlet fo", "w")
-	ElementTree.ElementTree(eTree).write(f, encoding="utf-8")
-	f.close()
 
 
 def main():

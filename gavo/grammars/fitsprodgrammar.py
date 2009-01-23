@@ -47,7 +47,6 @@ class FITSProdIterator(RowIterator):
 		header = fitstools.readPrimaryHeaderQuick(f)
 		f.close()
 		row = self._buildDictFromHeader(header)
-		base.ui.notifyIncomingRow(row)
 		yield row
 
 	def _parseSlow(self):

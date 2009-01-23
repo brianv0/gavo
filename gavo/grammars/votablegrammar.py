@@ -20,8 +20,8 @@ def makeVOTableFieldName(field, ind):
 
 
 class VOTableRowIterator(common.RowIterator):
-	def __init__(self, grammar, sourceToken):
-		common.RowIterator.__init__(self, grammar, sourceToken)
+	def __init__(self, grammar, sourceToken, **kwargs):
+		common.RowIterator.__init__(self, grammar, sourceToken, **kwargs)
 		self.vot = VOTable.parse(sourceToken)
 
 	def _iterRows(self):

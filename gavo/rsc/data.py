@@ -158,14 +158,23 @@ class Data(base.MetaMixin):
 		return DataFeeder(self, **kwargs)
 
 
-def processSource(res, source, feeder, dumpRows=False):
+class _EnoughRows(Exception):
+	"""is an internal exception that allows processSource to tell makeData
+	to stop handling more sources.
+	"""
+
+def processSource(res, source, feeder, dumpRows=False, maxRows=None):
 	srcIter = res.dd.grammar.parse(source)
-	if hasattr(srcIter, "getParameters"):
+	if hasattr(srcIter, "getParameters"):  # is a "normal" grammar
 		feeder.addParameters(srcIter.getParameters())
+		nImported = 0
 		for srcRow in srcIter:
-			if dumpRows:
-				print srcRow
+			base.ui.notifyIncomingRow(srcRow)
 			feeder.add(srcRow)
+			if maxRows:  # Count and bail if we're to stop somewhere
+				nImported +=1
+				if nImported>maxRows:
+					raise _EnoughRows
 	else:  # magic grammars return a callable
 		srcIter(res)
 
@@ -186,9 +195,14 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 	try:
 		if forceSource is None:
 			for source in dd.iterSources():
-				processSource(res, source, feeder, dumpRows=parseOptions.dumpRows)
+				try:
+					processSource(res, source, feeder, 
+						dumpRows=parseOptions.dumpRows, maxRows=parseOptions.maxRows)
+				except _EnoughRows:
+					break
 		else:
-			processSource(res, forceSource, feeder, dumpRows=parseOptions.dumpRows)
+			processSource(res, forceSource, feeder, dumpRows=parseOptions.dumpRows,
+				maxRows=parseOptions.maxRows)
 	except:
 		excHandled = feeder.exit(*sys.exc_info())
 		if connection is not None:

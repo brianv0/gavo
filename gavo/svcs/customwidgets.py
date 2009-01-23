@@ -233,7 +233,11 @@ class MultiSelectChoice(widget.SelectChoice):
 			renderOptions]
 		if disabled:
 			tag(class_='disabled', disabled='disabled')
-		return tag(size=str(self.size), multiple="multiple")
+		return T.span(style="white-space:nowrap")[
+			tag(size=str(self.size), multiple="multiple"),
+			" ",
+			T.span(class_="fieldlegend")[
+				"No selection matches all, multiple values legal."]]
 	
 	def processInput(self, ctx, key, args):
 		values = args.get(key, [''])

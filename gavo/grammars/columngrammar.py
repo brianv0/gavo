@@ -9,8 +9,8 @@ from gavo.grammars.common import Grammar, FileRowIterator
 
 
 class SplitLineIterator(FileRowIterator):
-	def __init__(self, grammar, sourceToken):
-		FileRowIterator.__init__(self, grammar, sourceToken)
+	def __init__(self, grammar, sourceToken, **kwargs):
+		FileRowIterator.__init__(self, grammar, sourceToken, **kwargs)
 		for i in range(self.grammar.topIgnoredLines):
 			self.inputFile.readline()
 		self.lineNo = self.grammar.topIgnoredLines+1

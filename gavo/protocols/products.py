@@ -303,6 +303,9 @@ class ProductRMixin(rscdef.RMixinBase):
 		# find all DDs referencing tableDef and add a maker for the products
 		# table to them.  Then, fiddle the mappings for productColumns into 
 		# the table's rowmaker
+		if not tableDef.onDisk:
+			raise base.StructureError("Tables mixing in product must be"
+				" onDisk, but %s is not"%tableDef.id)
 		for dd in tableDef.rd.iterDDs():
 			for td in dd:
 				if td.id==tableDef.id:

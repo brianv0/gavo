@@ -67,6 +67,7 @@ class CodeFrag(base.Structure):
 	_doc = base.UnicodeAttribute("doc", default="", description=
 		"Human-readable docs for this proc (may be interpreted as restructured"
 		" text)", copyable=True)
+	_original = base.OriginalAttribute()
 
 	def _getMoreGlobals(self):
 		return None

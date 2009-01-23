@@ -80,6 +80,9 @@ def parseCmdline():
 	parser.add_option("-r", "--reckless", help="Do not validate rows"
 		" before ingestion", dest="validateRows", action="store_false",
 		default=True)
+	parser.add_option("-M", "--stop-after", help="Stop after having parsed"
+		" MAX rows", metavar="MAX", action="store", dest="maxRows", type="int",
+		default=None)
 	parser.add_option("-b", "--batch-size", help="deliver N rows at a time"
 		" to the database.", dest="batchSize", action="store", type="int",
 		default=1024, metavar="N")
@@ -98,6 +101,7 @@ def parseCmdline():
 
 
 def main():
+	opts = None
 	try:
 		opts, args = parseCmdline()
 		process(opts, args)

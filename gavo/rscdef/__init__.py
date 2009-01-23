@@ -19,7 +19,7 @@ from gavo.rscdef.macros import (StandardMacroMixin, MacroPackage,
 
 from gavo.rscdef.mixins import RMixinBase, registerRMixin, getMixin
 
-from gavo.rscdef.rmkdef import RowmakerDef, MapRule, ProcDef
+from gavo.rscdef.rmkdef import RowmakerDef, MapRule, ProcDef, RDFunction
 
 from gavo.rscdef.rmkprocs import registerProcedure
 

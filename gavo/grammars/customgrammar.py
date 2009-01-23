@@ -61,5 +61,6 @@ rscdef.registerGrammar(CustomGrammar)
 class CustomRowIterator(common.RowIterator):
 	"""is a base class for custom row iterators.
 
-	Implement at least _iterRows.
+	Implement at least _iterRows.  And pass on any keyword args to __init__
+	to the next constructor.
 	"""

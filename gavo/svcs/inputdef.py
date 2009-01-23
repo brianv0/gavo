@@ -131,8 +131,8 @@ class ContextRowIterator(grammars.RowIterator):
 	Since it's useful in the service context, they return their dictionary
 	as *both* parameters and a single row.
 	"""
-	def __init__(self, grammar, sourceToken):
-		grammars.RowIterator.__init__(self, grammar, sourceToken)
+	def __init__(self, grammar, sourceToken, **kwargs):
+		grammars.RowIterator.__init__(self, grammar, sourceToken, **kwargs)
 	
 	def _iterRows(self):
 		yield self.sourceToken

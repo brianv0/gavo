@@ -15,7 +15,7 @@ from gavo.rscdef import rmkfuncs
 
 
 class RowGenDef(rmkdef.RDFunction):
-	"""is a rowmaker row generator.
+	"""is a row generator for grammars.
 
 	Row generators receive a dictionary (raw row) and return a generator
 	spewing out new rows.

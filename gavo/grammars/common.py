@@ -19,6 +19,30 @@ class ParseError(base.Error):
 		self.location, self.record = location, record
 
 
+class SourceRowmakerDef(rscdef.RDFunction):
+	"""is a callable that returns fields added to every row a grammar
+	returns.
+	"""
+	name_ = "sourceFields"
+
+	_original = base.OriginalAttribute()
+
+	def registerPredefined(self):
+		raise NotImplementedError("No predefined sourceFields.")
+	
+	def getPredefined(self):
+		raise NotImplementedError("No predefined sourceFields.")
+
+	def _getFormalArgs(self):
+		return "sourceToken"
+	
+	def _getDefaultingCode(self):
+		return ""
+	
+	def _completeCall(self, actualArgs):
+		return '%s(sourceToken)'%self.name
+
+
 class MapKeys(base.Structure):
 	"""is a specification of how to map grammar keys to exported names.
 	"""
@@ -86,8 +110,9 @@ class RowIterator(object):
 	_iterRows should arrange for the instance variable recNo to be incremented
 	by one for each item returned.
 	"""
-	def __init__(self, grammar, sourceToken):
+	def __init__(self, grammar, sourceToken, sourceRow=None):
 		self.grammar, self.sourceToken = grammar, sourceToken
+		self.sourceRow = sourceRow
 		self.recNo = 0
 
 	def __iter__(self):
@@ -101,6 +126,8 @@ class RowIterator(object):
 			rowSource = baseIter
 		try:
 			for row in rowSource:
+				if self.sourceRow:
+					row.update(self.sourceRow)
 				yield row
 		except:
 			base.ui.notifySourceError()
@@ -142,8 +169,8 @@ class FileRowIterator(RowIterator):
 	It also inspects the parent grammar for a gunzip attribute.  If it is
 	present and true, the input file will be unzipped transparently.
 	"""
-	def __init__(self, grammar, sourceToken):
-		RowIterator.__init__(self, grammar, sourceToken)
+	def __init__(self, grammar, sourceToken, **kwargs):
+		RowIterator.__init__(self, grammar, sourceToken, **kwargs)
 		self.curLine = 1
 		if isinstance(self.sourceToken, basestring):
 			if self.grammar.enc:
@@ -239,6 +266,9 @@ class Grammar(base.Structure, GrammarMacroMixin):
 	_ignoreOn = base.StructAttribute("ignoreOn", default=None, copyable=True,
 		description="Conditions for ignoring certain input records.",
 		childFactory=rowtriggers.IgnoreOn)
+	_sourceFields = base.StructAttribute("sourceFields", default=None,
+		copyable=True, description="Code returning a dictionary of values"
+		" added to all returned rows", childFactory=SourceRowmakerDef)
 	_properties = base.PropertyAttribute()
 	_rd = rscdef.RDAttribute()
 
@@ -255,13 +285,26 @@ class Grammar(base.Structure, GrammarMacroMixin):
 			except base.Error: # Hopefully meaningful
 				raise
 			except Exception, msg:
+				import traceback
+				traceback.print_exc()
 				raise base.LiteralParseError("While executing rowgen '%s': %s"%(
 					self.rowgen.name, unicode(msg)), "rowgen", self.rowgen.getSource())
 		return generateRows
 
+	def getSourceFields(self, sourceToken):
+		"""returns a dict containing user-defined fields to be added to
+		all results.
+		"""
+		if self.sourceFields is None:
+			return None
+		env = dict([self.sourceFields.getDefinition()])
+		env.update({"sourceToken": sourceToken})
+		return eval(self.sourceFields.getCall(), env)
+
 	def parse(self, sourceToken):
 		base.ui.notifyNewSource(sourceToken)
-		ri = self.rowIterator(self, sourceToken)
+		ri = self.rowIterator(self, sourceToken, 
+			sourceRow=self.getSourceFields(sourceToken))
 		if self.rowgen:
 			ri.rowgen = self.compileRowgen()
 		return ri

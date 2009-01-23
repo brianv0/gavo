@@ -109,9 +109,9 @@ table.results {
 	background: #EEEEFF;
 }
 
-.fieldlegend * {
+.fieldlegend {
 	font-size:62%;
-	vertical-align:bottom;
+	vertical-align:top;
 }
 
 .invisible { /* for items for non-css browsers */

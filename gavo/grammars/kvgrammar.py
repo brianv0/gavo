@@ -16,9 +16,6 @@ class KVIterator(FileRowIterator):
 	Depending on the parent grammar, it returns the whole k,v record as
 	one row or one pair per row.
 	"""
-	def __init__(self, grammar, sourceToken):
-		FileRowIterator.__init__(self, grammar, sourceToken)
-
 	def _iterRows(self):
 		data = self.inputFile.read()
 		completeRecord = {"parser_": self}

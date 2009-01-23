@@ -11,6 +11,7 @@ from gavo import base
 from gavo import grammars
 from gavo import rsc
 from gavo import rscdef
+from gavo import rscdesc
 from gavo.base import sqlsupport
 
 import testhelpers
@@ -80,7 +81,7 @@ def assertRowset(self, found, expected):
 		self.assertEqual(f, e, "Rows don't match: %s vs. %s"%(f, e))
 
 
-class TestProductsImport(unittest.TestCase):
+class TestProductsImport(testhelpers.VerboseTest):
 	"""tests for operational import of real data.
 
 	This is more of an integration test, but never mind that.
@@ -122,6 +123,13 @@ class TestProductsImport(unittest.TestCase):
 			(4, u'object', u''),
 			(5, u'alpha', u''),
 			(6, u'delta', u'')])
+
+	def testNoMixinInMem(self):
+		self.assertRaisesWithMsg(base.StructureError, 
+			"Tables mixing in product must be onDisk, but foo is not",
+			base.parseFromString, (rscdesc.RD, 
+				'<resource schema="test"><table id="foo">'
+					'<mixin name="products"/></table></resource>',))
 
 	def tearDown(self):
 		t = rsc.TableForDef(self.tableDef).drop().commit()

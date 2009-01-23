@@ -1,4 +1,0 @@
-This subpackage used to house the whole parsing infrastructure and much of
-what is now in base, rscdef and rsc.  It should go as soon as we've ported 
-mkrd.
-
