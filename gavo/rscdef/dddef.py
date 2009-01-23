@@ -179,6 +179,8 @@ class DataDescriptor(base.Structure, base.MetaMixin, scripting.ScriptingMixin):
 		itemAttD=base.UnicodeAttribute("recreateAfter"),
 		description="List of data IDs to recreate when this resource is"
 			" remade")
+	_auto = base.BooleanAttribute("auto", default=True, description=
+		"Import this data set without explicit mention on the command line?")
 	_makes = base.StructListAttribute("makes", childFactory=Make,
 		copyable=True)
 	_properties = base.PropertyAttribute()

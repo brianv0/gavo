@@ -127,7 +127,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 			" DB.  Note that they are only evaluated if validation is enabled.",
 		childFactory=rowtriggers.IgnoreOn)
 	_ref = base.RefAttribute()
-	_mixins = mixins.MixinAttribute()
+	_mixins = mixins.MixinAttribute(copyable=True)
 	_original = base.OriginalAttribute()
 	_namePath = common.NamePathAttribute()
 

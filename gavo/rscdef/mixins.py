@@ -40,10 +40,10 @@ class MixinAttribute(base.ListOfAtomsAttribute):
 	"""
 	name_ = "mixin"
 
-	def __init__(self):
+	def __init__(self, **kwargs):
 		base.ListOfAtomsAttribute.__init__(self, "mixins", 
 			itemAttD=base.UnicodeAttribute("mixin", default=base.Undefined), 
-			description="Mixins for this table")
+			description="Mixins for this table", **kwargs)
 	
 	def feed(self, ctx, instance, mixinName):
 		if mixinName not in _mixinRegistry:

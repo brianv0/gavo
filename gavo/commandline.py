@@ -34,6 +34,8 @@ def process(opts, args):
 	for dd in rd.dds:
 		if ddIds and not dd.id in ddIds:
 			continue
+		if not dd.auto and not dd.id in ddIds:
+			continue
 		if opts.metaOnly:
 			res = rsc.Data.create(dd, parseOptions=opts).updateMeta()
 		else:

@@ -223,13 +223,13 @@ def _makeDependents(srcDD, parseOptions, connection):
 	connection.
 	"""
 	for dependentId in srcDD.dependents:
-		makeDataById(dependentId, parseOptions, connection)
+		makeDataById(dependentId, parseOptions, connection, inRD=srcDD.rd)
 
 
 def makeDataById(ddId, parseOptions=common.parseNonValidating,
-		connection=None):
+		connection=None, inRD=None):
 	"""returns the data set built from the DD with ddId (which must be
 	fully qualified).
 	"""
-	dd = base.resolveId(None, ddId)
+	dd = base.resolveId(inRD, ddId)
 	return makeData(dd, parseOptions=parseOptions, connection=connection)
