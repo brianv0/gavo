@@ -21,6 +21,8 @@ from gavo.rscdef.mixins import RMixinBase, registerRMixin, getMixin
 
 from gavo.rscdef.rmkdef import RowmakerDef, MapRule, ProcDef, RDFunction
 
+from gavo.rscdef.rmkfuncs import addRmkFunc
+
 from gavo.rscdef.rmkprocs import registerProcedure
 
 from gavo.rscdef.rowgens import RowGenDef

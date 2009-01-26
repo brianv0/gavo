@@ -18,8 +18,13 @@ import time
 from gavo import base
 from gavo import grammars
 from gavo import rsc
+from gavo import rscdef
+from gavo import svcs
 from gavo.protocols import products
 from gavo.web import streaming
+
+
+MS = base.makeStruct
 
 
 class UniqueNameGenerator:
@@ -45,6 +50,52 @@ class UniqueNameGenerator:
 			if name.lower() not in self.knownNames:
 				self.knownNames.add(name)
 				return name
+
+
+class ColToRowIterator(grammars.RowIterator):
+	"""is a RowIterator for ColToRowGrammars.
+
+	A hacky feature is that a ColToRowIterator will not return the same
+	row twice.  This is a convenience TarMakers to keep them from
+	tarring in identical files that somehow manage to be mentioned more
+	than once in a result table.
+	"""
+	def __init__(self, *args, **kwargs):
+		grammars.RowIterator.__init__(self, *args, **kwargs)
+		self.seenKeys = set()
+
+	def _iterRows(self):
+		for row in self.sourceToken:
+			for key in self.grammar.sourceKeys:
+				if row.get(key):
+					accref = row[key]
+					# this is a service for "rich" product displays that
+					# select more than one row: if we have a list (SQL array)
+					# extract the first element and use that as access key
+					if isinstance(accref, list):
+						accref = accref[0]
+					if accref not in self.seenKeys:
+						yield {self.grammar.targetKey: accref}
+						self.seenKeys.add(accref)
+
+
+class ColToRowGrammar(grammars.Grammar):
+	"""is a grammar that selects some columns and returns each of them
+	as a row with a specified key.
+
+	This is useful to extract all products from tables that can have
+	multiple columns carrying products.
+
+	The input is a sequence of dictionaries (i.e., Table rows).
+	"""
+
+	rowIterator = ColToRowIterator
+
+	_targetKey = base.UnicodeAttribute("targetKey", default=base.Undefined,
+		description="Name of the target columns")
+	_sourceKeys = base.ListOfAtomsAttribute("sourceKeys",
+		description="Names of the source columns.", 
+		itemAttD=base.UnicodeAttribute("sourceKey"))
 
 
 class ProductTarMaker(object):
@@ -80,7 +131,7 @@ class ProductTarMaker(object):
 		"""returns a tar info from a general products.PlainProduct instance
 		prod.
 
-		This is relatively inefficient for data that's actuall on disk,
+		This is relatively inefficient for data that's actually on disk,
 		so you should only use it when data is being computed on the fly.
 		"""
 		assert not isinstance(prod, products.UnauthorizedProduct)
@@ -100,9 +151,6 @@ class ProductTarMaker(object):
 
 	def _productsToTar(self, productData, destination):
 		"""actually writes the tar.
-
-		allowedGroups should be a set of groups the currently logged in user
-		belongs to.
 		"""
 		nameGen = UniqueNameGenerator()
 		outputTar = tarfile.TarFile("data.tar", "w", destination)
@@ -137,10 +185,17 @@ class ProductTarMaker(object):
 		to be streamed out via request.
 		"""
 		table = coreResult.original.getPrimaryTable()
-		if "accref" not in table.tableDef.columns:
+		productColumns = table.tableDef.getProductColumns()
+		if not productColumns:
 			raise base.ValidationError("This query does not select any"
 				" columns with access references", "_OUTPUT")
-		inputData = rsc.makeData(self.inputDD, forceSource=table.rows)
+		inputDD = MS(svcs.InputDescriptor, 
+			grammar= MS(ColToRowGrammar, targetKey="key",
+				sourceKeys=productColumns),
+			makes=MS(rscdef.Make, table=self.rd.getById("pCoreInput")))
+		inputData = rsc.makeData(inputDD, forceSource=table.rows)
+		if not inputData.getPrimaryTable().rows:
+			raise base.ValidationError("No products selected", colName="query")
 		prods = self.core.run(coreResult.service, inputData, queryMeta)
 		return self._streamOutTar(prods, request, queryMeta)
 

@@ -218,6 +218,10 @@ def parseWithNull(literal, baseParser, nullLiteral=base.Undefined,
 	return res
 
 
+def addRmkFunc(name, func):
+	globals()[name] = func
+
+
 def _test():
 	import doctest, rmkfuncs
 	doctest.testmod(rmkfuncs)

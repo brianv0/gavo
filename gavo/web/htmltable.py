@@ -19,8 +19,10 @@ from nevow import tags as T, entities as E
 from twisted.internet import reactor, defer
 
 from gavo import base
+from gavo import utils
 from gavo.base import coords
 from gavo.base import valuemappers
+from gavo.rscdef import rmkfuncs
 from gavo.web import common
 
 
@@ -173,14 +175,7 @@ def _sizeMapperFactory(colProps):
 		return
 	sf = int(colProps["displayHint"].get("sf", 1))
 	def coder(val):
-		if val<1e3:
-			return "%d"%int(val)
-		elif val<1e6:
-			return "%.*fki"%(sf, val/1024.)
-		elif val<1e9:
-			return "%.*fMi"%(sf, val/1024./1024.)
-		else:
-			return "%.*fGi"%(sf, val/1024./1024./1024)
+		return utils.formatSize(val, sf)
 	return coder
 _registerHTMLMF(_sizeMapperFactory)
 

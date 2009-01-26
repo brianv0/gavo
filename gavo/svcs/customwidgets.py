@@ -51,10 +51,7 @@ class OutputFormat(object):
 
 	def _computeAvailableFormats(self, queryMeta):
 		self.availableFormats = ["VOTable", "VOPlot", "FITS", "TSV"]
-# XXX TODO: Once we have a real interface.isImplementedIn, do away with
-# this gruesome hack -- it's really supposed to check for products in the
-# output table
-		if "accref" in self.service.outputTable:
+		if self.service.outputTable.getProductColumns():
 			self.availableFormats.append("tar")
 		
 	def _computeAvailableFields(self, queryMeta):

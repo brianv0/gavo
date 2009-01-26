@@ -41,8 +41,6 @@ class BboxSIAPRMixin(rscdef.RMixinBase):
 	The interface automatically adds the appropriate macro call to compute
 	the bboxes from FITS fields.
 
-	In grammars feeding such tables, you should probably have 
-
 	Tables implementing bboxSIAP also implement products.
 	"""
 	name = "bboxSIAP"

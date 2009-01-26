@@ -8,6 +8,8 @@ import datetime
 import md5
 import os
 import subprocess
+import urllib
+import urlparse
 
 from gavo import base
 from gavo import grammars
@@ -57,7 +59,7 @@ class PlainProduct(object):
 	magicMap = {
 		".txt": "text/plain",
 		".fits": "image/fits",
-		".gz": "image/fits",  # Yikes.
+		".gz": "application/octet-stream",
 		".jpg": "image/jpeg",
 		".jpeg": "image/jpeg",
 	}
@@ -102,10 +104,13 @@ class NonExistingProduct(PlainProduct):
 class CutoutProduct(PlainProduct):
 	"""is a class returning cutouts from FITS files.
 	"""
-	def __init__(self, sourcePath, cutoutPars):
+	def __init__(self, sourcePath, cutoutPars, contentType):
 		self.fullFilePath = sourcePath
 		self.cutoutPars = cutoutPars
-		PlainProduct.__init__(self, None, "image/fits")
+		if contentType!="image/fits":
+			raise NotImplementedError("Cannot generate cutouts for anything"
+				" but FITS yet.")
+		PlainProduct.__init__(self, None, contentType)
 
 	def __str__(self):
 		return "<FITS cutout of %s, (%fx%f)>"%(sourcePath,
@@ -161,7 +166,8 @@ class ProductIterator(grammars.RowIterator):
 	"""is an iterator over product rows.
 
 	The source key is a pair of (parsedKeys, key mapping), where
-	key mapping yields the actual file for a key.
+	key mapping maps the access key to the product table info about
+	the file.
 	"""
 	def _makeProductForRow(self, row, dbRow):
 		"""returns the proper PlainProduct subclass for an image described by
@@ -169,10 +175,10 @@ class ProductIterator(grammars.RowIterator):
 		"""
 		sourcePath = os.path.join(base.getConfig("inputsDir"), dbRow["accessPath"])
 		if row["sra"]:
-			rsc = CutoutProduct(sourcePath, row)
+			rsc = CutoutProduct(sourcePath, row, dbRow["mime"])
 		else:
-			rsc = PlainProduct(sourcePath)
-		if dbRow["embargo"]>self.grammar.now:
+			rsc = PlainProduct(sourcePath, dbRow["mime"])
+		if dbRow["embargo"] is not None and dbRow["embargo"]>self.grammar.now:
 			if dbRow["owner"] not in self.grammar.groups:
 				rsc = UnauthorizedProduct(sourcePath)
 		return rsc
@@ -318,3 +324,14 @@ class ProductRMixin(rscdef.RMixinBase):
 
 
 rscdef.registerRMixin(ProductRMixin())
+
+
+def makeProductLink(key, withHost=True):
+	"""returns the URL at which a product can be retrieved.
+	"""
+	url = base.makeSitePath("/getproduct?key=%s"%urllib.quote(key))
+	if withHost:
+		url = urlparse.urljoin(base.getConfig("web", "serverURL"), url)
+	return url
+
+rscdef.addRmkFunc("makeProductLink", makeProductLink)

@@ -3,6 +3,7 @@ Description and definition of tables.
 """
 
 import itertools
+import re
 
 from gavo import base
 from gavo.base import codetricks
@@ -42,7 +43,8 @@ class DBIndex(base.Structure):
 		if not self.columns:
 			raise base.StructureError("Index without columns is verboten.")
 		if self.name is base.Undefined:
-			self.name = "%s_%s"%(self.parent.id, "_".join(self.columns))
+			self.name = "%s_%s"%(self.parent.id, re.sub("[^\w]+", "_",
+				"_".join(self.columns)))
 		if not self.content_:
 			self.content_ = "%s"%",".join(self.columns)
 
@@ -159,7 +161,14 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		self.dictKeys = [c.name for c in self]
 		self.indexedColumns = set()
 		for index in self.indices:
-			self.indexedColumns |= set(index.columns)
+			for col in index.columns:
+				if "\\" in col:
+					try:
+						self.indexedColumns.add(self.expand(col))
+					except base.Error:  # cannot expand yet, ignore
+						pass
+				else:
+					self.indexedColumns.add(col)
 		if self.primary:
 			self.indexedColumns |= set(self.primary)
 		self._onElementCompleteNext(TableDef)
@@ -231,6 +240,17 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		"""delegates to common.ColumnList.
 		"""
 		return self.columns.getColumnByUCD(ucd)
+
+	def getProductColumns(self):
+		"""returns the names of the columns containing products.
+
+		They are identified by the presence of a type=product display hint.
+		"""
+		res = []
+		for col in self:
+			if col.displayHint.get("type")=="product":
+				res.append(col.name)
+		return res
 
 	def makeRowFromTuple(self, dbTuple):
 		"""returns a row (dict) from a row as returned from the database.

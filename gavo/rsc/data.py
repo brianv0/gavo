@@ -170,6 +170,8 @@ def processSource(res, source, feeder, dumpRows=False, maxRows=None):
 		nImported = 0
 		for srcRow in srcIter:
 			base.ui.notifyIncomingRow(srcRow)
+			if dumpRows:
+				print srcRow
 			feeder.add(srcRow)
 			if maxRows:  # Count and bail if we're to stop somewhere
 				nImported +=1

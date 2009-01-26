@@ -47,7 +47,7 @@ class FITSProdIterator(RowIterator):
 		header = fitstools.readPrimaryHeaderQuick(f)
 		f.close()
 		row = self._buildDictFromHeader(header)
-		yield row
+		yield self.grammar.mapKeys.doMap(row)
 
 	def _parseSlow(self):
 		fName = self.sourceToken
@@ -56,7 +56,7 @@ class FITSProdIterator(RowIterator):
 		hdus.close()
 		row = self._buildDictFromHeader(header)
 		base.ui.notifyIncomingRow(row)
-		yield row
+		yield self.grammar.mapKeys.doMap(row)
 	
 	def getLocator(self):
 		return self.sourceToken
@@ -76,5 +76,10 @@ class FITSProdGrammar(Grammar):
 		default=None, copyable=True)
 
 	rowIterator = FITSProdIterator
+
+	def onElementComplete(self):
+		if self.mapKeys is None:
+			self.mapKeys = base.makeStruct(MapKeys)
+		self._onElementCompleteNext(FITSProdGrammar)
 
 rscdef.registerGrammar(FITSProdGrammar)

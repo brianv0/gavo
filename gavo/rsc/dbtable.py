@@ -492,7 +492,9 @@ class View(DBTable):
 
 	feedRows = addRow
 	
-	def getFeeder(self, ignored=None):
+	def getFeeder(self, **kwargs):
+		# all kwargs ignored since the feeder will raise an exception on any
+		# attempts to feed anyway.
 		return RaisingFeeder(self, None)
 	
 	def create(self):

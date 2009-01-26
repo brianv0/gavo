@@ -12,3 +12,5 @@ except ImportError:
 
 
 from mathtricks import findMinimum
+
+from texttricks import formatSize

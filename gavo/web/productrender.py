@@ -56,8 +56,14 @@ class PreviewCacheManager(object):
 	say, a year.
 	"""
 	cachePath = base.getConfig("web", "previewCache")
-	previewName = os.path.join(base.getConfig("inputsDir"), "__system",
-		"bin", "fitspreview")
+	previewNames = {
+		'image/fits':
+			os.path.join(base.getConfig("inputsDir"), "__system",
+				"bin", "fitspreview"),
+		'image/jpeg':
+			os.path.join(base.getConfig("inputsDir"), "__system",
+				"bin", "jpegpreview"),
+		}
 
 	@classmethod
 	def getCacheName(cls, args):
@@ -74,11 +80,13 @@ class PreviewCacheManager(object):
 		return data
 
 	@classmethod
-	def getPreviewFor(cls, args):
-		"""returns a deferred firing a string containing the preview (a jpeg,
-		in general).
+	def getPreviewFor(cls, mime, args):
+		"""returns a deferred firing a string containing the preview (a jpeg).
 		"""
 		cacheName = cls.getCacheName(args)
+		previewMaker = cls.previewNames.get(mime, None)
+		if previewMaker is None:
+			raise base.DataError("Cannot make previews for %s."%mime)
 		if os.path.exists(cacheName):
 			try:
 				os.utime(cacheName, None)
@@ -89,7 +97,7 @@ class PreviewCacheManager(object):
 			f.close()
 			return defer.succeed(res)
 		else:
-			return svcs.runWithData(cls.previewName, "", args
+			return svcs.runWithData(previewMaker, "", args
 				).addCallback(cls.saveToCache, cacheName)
 
 
@@ -131,14 +139,13 @@ def makePreviewFromProduct(prod, request):
 
 	if prod.sourcePath:  # static file: just dump
 		args[:0] = [prod.sourcePath]
-		return PreviewCacheManager.getPreviewFor(args
+		return PreviewCacheManager.getPreviewFor(prod.contentType, args
 			).addCallback(deliverJpeg, request
 			).addErrback(deliverFailPreview, request)
 	else:
 		return _makePreviewFromCutout(args, prod, request
 			).addCallback(deliverJpeg, request
 			).addErrback(deliverFailPreview, request)
-
 
 
 def deliverJpeg(data, request):

@@ -198,6 +198,10 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	"""
 	name_ = "service"
 
+	# formats that should query the same fields as HTML (the others behave
+	# like VOTables and offer a "verbosity" widget in forms).
+	htmlLikeFormats = ["HTML", "tar"]
+
 	_core = base.ReferenceAttribute("core", description="The entity that"
 		" does the computations for this core", forceType=core.Core,
 		copyable=True)
@@ -352,7 +356,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		"""
 		queryMeta = queryMeta or common.emptyQueryMeta
 		format = queryMeta.get("format", "HTML")
-		if format=="HTML":
+		if format in self.htmlLikeFormats:
 			return self.getHTMLOutputFields(queryMeta, raiseOnUnknown=raiseOnUnknown)
 		else:
 			return self._getVOTableOutputFields(queryMeta)

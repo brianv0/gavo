@@ -122,12 +122,13 @@ machinery -->
 	</productCore>
 
 	<productCore id="forTar" original="core" limit="10000">
-		<!-- core used by producttar; many matches are possible here -->
+		<!-- core used by producttar; many matches are possible here;
+		producttar uses an inputDD of its own here. -->
 		<inputDD>
 			<rowmaker id="build_forTar">
 				<map dest="key">accref</map>
 			</rowmaker>
-			<make table="pCoreInput" rowmaker="build_forTar" role="primary"/>
+			<make table="pCoreInput" role="primary"/>
 		</inputDD>
 	</productCore>
 
