@@ -1,0 +1,20 @@
+1/LOW/2009-01-27
+	Naming in protocols/scs.py -- SCS should be consistently upper case
+
+2/MEDIUM/2008-10-20
+	StreamWriter errors cannot be propagated up yet.
+
+3/WISHLIST/2009-01-10
+	gavoimp should have some functionality to delete everything described
+	by an RD
+
+4/MEDIUM/2009-01-24
+	Remove imageFormat column in SIAP mixin and take the data from
+	product's mime.
+
+5/MEDIUM/2009-01-27
+	formalTypes for InputKeys should be computed at form construction time
+	to fix the mess with required condDescs having non-required InputKeys.
+
+6/WISHLIST/2009-01-27
+	The sidebar should become a template on disk.

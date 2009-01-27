@@ -307,6 +307,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 					f.displayHint.get("noxml")!="true"])
 		return fieldList
 
+	_allSet = set(["ALL"])
+
 	def getHTMLOutputFields(self, queryMeta, ignoreAdditionals=False,
 			raiseOnUnknown=True):
 		"""returns a list of OutputFields suitable for an HTML response described
@@ -327,7 +329,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		# add "normal" output fields
 		if requireSet:
 			res.extend([f for f in self.outputTable
-					if requireSet in f.sets])
+					if f.sets==self._allSet or requireSet in f.sets])
 		else:
 			res.extend([f for f in self.outputTable
 				if f.displayHint.get("type")!="suppress"])

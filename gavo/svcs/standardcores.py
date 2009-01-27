@@ -54,8 +54,8 @@ class CondDesc(base.Structure):
 		copyable=True)
 	_fixedSQL = base.UnicodeAttribute("fixedSQL", default=None,
 		copyable=True)
-	_inputKey = base.ReferenceAttribute("buildFrom", default=None)
-	_predefined = base.UnicodeAttribute("predefined", default=None)
+	_buildFrom = base.ActionAttribute("buildFrom", "feedFromInputKey")
+	_predefined = base.ActionAttribute("predefined", "replaceWithPredefined")
 
 	def __init__(self, parent, **kwargs):
 		base.Structure.__init__(self, parent, **kwargs)
@@ -63,13 +63,12 @@ class CondDesc(base.Structure):
 		if hasattr(self.parent, "resolveName"):
 			self.resolveName = self.parent.resolveName
 
-	def completeElement(self):
-		if self.predefined:
-			raise base.Replace(getCondDesc(self.predefined)(None).finishElement())
-		if self.buildFrom:
-			self.feedFrom(CondDesc.fromColumn(self.buildFrom))
-			self.buildFrom = None
-		self._completeElementNext(CondDesc)
+	def feedFromInputKey(self, ctx):
+		raise base.Replace(CondDesc.fromColumn(base.resolveId(ctx, self.buildFrom,
+			instance=self), parent_=self.parent))
+
+	def replaceWithPredefined(self, ctx):
+		raise base.Replace(getCondDesc(self.predefined)(self.parent))
 
 	@property
 	def name(self):
@@ -104,7 +103,7 @@ class CondDesc(base.Structure):
 			return False
 		if self.required:
 			raise base.ValidationError("A value is necessary here", 
-				fieldName=keysMissing[0].name)
+				colName=keysMissing[0].name)
 		# we're optional, but a value was given and others are missing
 # XXX TODO: it'd be nicer if we'd complain about all missing keys at once.
 		raise base.ValidationError("When you give a value for %s,"

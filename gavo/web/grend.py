@@ -254,8 +254,13 @@ class GavoRenderMixin(object):
 					T.invisible(title="Reference URL",
 						render=T.directive("explodableMeta"))["referenceURL"],
 				],
+				T.div(class_="sidebaritem", style="font-size: 90%; padding-top:10px;"
+					" border-top: 1px solid grey; margin-top:40px")[
+						"Try ",
+						T.a(href="/__system__/adql/query/form")["ADQL"],
+						" to query our data."],
 				T.div(class_="sidebaritem", style="font-size: 62%; padding-top:5px;"
-						" border-top: 1px solid grey; margin-top:40px;")[
+						" border-top: 1px solid grey; margin-top:10px;")[
 					T.p(class_="breakable")["Please report errors and problems to ",
 						T.a(href="mailto:gavo.ari.uni-heidelberg.de")["GAVO staff"],
 						".  Thanks."],

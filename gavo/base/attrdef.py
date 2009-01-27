@@ -396,9 +396,9 @@ class ActionAttribute(UnicodeAttribute):
 		self.methodName = methodName
 		UnicodeAttribute.__init__(self, name, None, description, **kwargs)
 	
-	def feedObject(self, instance, value):
-		UnicodeAttribute.feedObject(self, instance, value)
-		getattr(instance, self.methodName)()
+	def feed(self, ctx, instance, value):
+		UnicodeAttribute.feed(self, ctx, instance, value)
+		getattr(instance, self.methodName)(ctx)
 			
 
 

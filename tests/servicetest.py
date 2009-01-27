@@ -12,6 +12,7 @@ from gavo import protocols
 
 import testhelpers
 
+
 class PlainDBServiceTest(testhelpers.VerboseTest):
 	"""tests for working db-based services, having defaults for everything.
 	"""
@@ -109,4 +110,4 @@ class ComputedServiceTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(ComputedServiceTest)
+	testhelpers.main(PlainDBServiceTest)

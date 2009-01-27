@@ -253,7 +253,12 @@ def _getDisplayOptions(ik):
 	"""
 	noneOption = None
 	options = []
-	if ik.values.default is not None:  # default given and becomes the noneOption
+	if ik.values.default is not None and ik.required:
+		# default given but field required:  There's no noneOption but a
+		# selected default
+		options = ik.values.options
+	elif ik.values.default:
+		# default given and becomes the noneOption
 		for o in ik.values.options:
 			if o.content_==ik.values.default:
 				noneOption = o

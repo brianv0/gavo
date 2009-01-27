@@ -23,7 +23,8 @@ class OutputField(rscdef.Column):
 		" fragment rather than field name in the select list of a DB based"
 		" core", default=base.Undefined, copyable=True)
 	_sets = base.StringSetAttribute("sets", description=
-		"Output sets this field should be included in",
+		"Output sets this field should be included in; ALL includes the field"
+		" in all output sets.",
 		copyable=True)
 	
 	def completeElement(self):

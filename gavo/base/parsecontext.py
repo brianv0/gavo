@@ -70,6 +70,9 @@ def resolveId(ctx, id, instance=None, forceType=None):
 	(#) ask the ParseContext ctx's getById method to resolve id, not
 	catching the StructureError this will raise if the id is not known.
 	"""
+	if ctx is None:
+		raise StructureError("Cannot cross-reference when parsing without"
+			" a context")
 	if "#" in id:
 		return resolveCrossId(id, forceType)
 	if "." in id:
