@@ -95,12 +95,16 @@ class Data(base.MetaMixin):
 	def __iter__(self):
 		return self.tables.itervalues()
 
-	def updateMeta(self):
+	def updateMeta(self, updateIndices=False):
 		"""updates meta information kept in the DB on the contained tables.
 		"""
 		for t in self.tables.values():
 			if isinstance(t, dbtable.DBTable):
-				t.updateMeta().commit()
+				t.updateMeta()
+				if updateIndices:
+					t.dropIndices()
+					t.makeIndices()
+				t.commit()
 		return self
 
 	def recreateTables(self):

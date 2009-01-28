@@ -172,7 +172,8 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		*** Postgres specific ***
 		"""
 		constraintName = self.getPrimaryIndexName(self.tableDef.id)
-		if primary and hasIndex(self, self.tableName, constraintName):
+		if self.tableDef.primary and hasIndex(
+				self, self.tableName, constraintName):
 			self.query("ALTER TABLE %s DROP CONSTRAINT %s"%(
 				self.tableName, constraintName))
 
@@ -180,9 +181,9 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		self._dropPrimaryKey()
 		schema, unqualified = self.tableDef.rd.schema, self.tableDef.id
 		for index in self.tableDef.indices:
-			if self.hasIndex(self.tableName, index.name):
-				self.query("DROP INDEX %s.%s"%(schema,
-					index.name))
+			iName = self.tableDef.expand(index.name)
+			if self.hasIndex(self.tableName, iName):
+				self.query("DROP INDEX %s.%s"%(schema, iName))
 		return self
 	
 	def makeIndices(self):
@@ -193,9 +194,13 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 			return
 		if not self.hasIndex(self.tableName, 
 				self.getPrimaryIndexName(self.tableDef.id)):
+			if not self.tableDef.system:
+				base.ui.notifyIndexCreation("Primary key on %s"%self.tableName)
 			self._definePrimaryKey()
 		for index in self.tableDef.indices:
 			if not self.hasIndex(self.tableName, index.name):
+				if not self.tableDef.system:
+					base.ui.notifyIndexCreation(index.name)
 				self.query(self.tableDef.expand("CREATE INDEX %s ON %s (%s)"%(
 					index.name, self.tableName, index.content_)))
 			if index.cluster:

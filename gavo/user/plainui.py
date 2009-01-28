@@ -38,3 +38,7 @@ class PlainUI(ObserverBase):
 	def announceShipout(self, noShipped):
 		self.showMsg("Shipped %d/%d"%(
 			noShipped, self.dispatcher.totalShippedOut))
+	
+	@listensTo("IndexCreation")
+	def announceIndexing(self, indexName):
+		self.showMsg("Create index %s"%indexName)

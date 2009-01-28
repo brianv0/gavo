@@ -128,6 +128,12 @@ class EventDispatcher(object):
 		self.lastRow = row
 		return row
 
+	def notifyIndexCreation(self, indexName):
+		"""is called when an index on a DB table is created.
+
+		The callbacks receive the index name.
+		"""
+		return indexName
 
 if __name__=="__main__":
 	pass

@@ -37,7 +37,8 @@ def process(opts, args):
 		if not dd.auto and not dd.id in ddIds:
 			continue
 		if opts.metaOnly:
-			res = rsc.Data.create(dd, parseOptions=opts).updateMeta()
+			res = rsc.Data.create(dd, parseOptions=opts).updateMeta(
+				opts.metaPlusIndex)
 		else:
 			res = rsc.makeData(dd, parseOptions=opts, connection=connection)
 		if hasattr(res, "nAffected"):
@@ -65,6 +66,9 @@ def parseCmdline():
 	parser.add_option("-m", "--meta-only", help="just update table meta"
 		" (privileges, column descriptions,...).", dest="metaOnly", 
 		action="store_true")
+	parser.add_option("-I", "--meta-and-index", help="do not import, but"
+		" update table meta (privileges, column descriptions,...) and recreate"
+		" the indices", dest="metaPlusIndex", action="store_true")
 	parser.add_option("-u", "--update", help="update mode -- don't drop"
 		" tables before writing.", dest="updateMode", 
 		action="store_true", default=False)
@@ -90,11 +94,15 @@ def parseCmdline():
 		default=1024, metavar="N")
 	parser.add_option("-c", "--continue-bad", help="go on after a source had"
 		" an error", dest="ignoreBadSources", action="store_true")
+
 	(opts, args) = parser.parse_args()
+
 	base.setDBProfile(opts.dbProfile)
 	if opts.uiName not in user.interfaces:
 		raise base.ReportableError("UI %s does not exist.  Choose one of"
 			" %s"%(opts.uiName, ", ".join(user.interfaces)))
+	if opts.metaPlusIndex:
+		opts.metaOnly = True
 	user.interfaces[opts.uiName](base.ui)
 	if not args:
 		parser.print_help()
