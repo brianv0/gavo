@@ -104,6 +104,7 @@ class PreviewCacheManager(object):
 def _makePreviewFromCutout(args, prod, request):
 	handle, fName = tempfile.mkstemp(".fits", "cutout", base.getConfig("tempDir"))
 	f = os.fdopen(handle, "w")
+	mime = prod.contentType
 
 	def makeCutout():
 		return threads.deferToThread(prod, f)
@@ -111,7 +112,8 @@ def _makePreviewFromCutout(args, prod, request):
 	def makePreview(_):
 		f.close()
 		args[:0] = [fName]
-		return svcs.runWithData(PreviewCacheManager.previewName, "", args)
+		return svcs.runWithData(PreviewCacheManager.previewNames[mime], 
+			"", args)
 
 	def cleanUp(arg):
 		# arg can be a result or a failure -- both a simply handed through up.
