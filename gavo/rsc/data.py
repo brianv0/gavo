@@ -84,8 +84,12 @@ class Data(base.MetaMixin):
 	@classmethod 	
 	def create(cls, dd, parseOptions=common.parseNonValidating,
 			connection=None):
+		"""returns a new data instance for dd.
+
+		Existing tables on the database are not touched.  To actually
+		re-create them, call recrateTables.
+		"""
 		controlledTables = {}
-		dd.runScripts("preCreation")
 		for make in dd.makes:
 			tableDef = make.table
 			controlledTables[tableDef.id] = tables.TableForDef(tableDef,
@@ -113,6 +117,7 @@ class Data(base.MetaMixin):
 		System tables are only recreated when the systemImport parseOption
 		is true.
 		"""
+		self.dd.runScripts("preCreation")
 		if self.parseOptions.updateMode:
 			return
 		for t in self.tables.values():

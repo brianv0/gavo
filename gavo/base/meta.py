@@ -184,6 +184,11 @@ class MetaAttribute(attrdef.AttributeDef):
 	def create(self, parent, name):
 		return self  # we're it...
 
+	def makeUserDoc(self):
+		return ("meta -- a piece of meta information, giving at least a name"
+			" and some content.  Please read the documentation on metadata"
+			" for more information")
+
 
 class MetaMixin(object):
 	"""is a mixin for entities carrying meta information.

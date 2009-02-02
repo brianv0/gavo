@@ -21,6 +21,8 @@ These are objects having at least the following attributes and methods:
 	attribute in instance, copying mutable values (deeply) in the process.
 * iterParentMethods() -> iter((name, value)) -- iterates over methods
   to be inserted into the parent class.
+* makeUserDoc() -> returns some RST-valid string describing what the object
+  is about.
 
 They may have an attribute xmlName that allows parsing from xml elements
 named differently from the attribute.  To keep things transparent, use
@@ -144,6 +146,10 @@ class AttributeDef(object):
 	def getCopy(self, instance, newParent):
 		raise NotImplementedError("%s cannot be copied."%
 			self.__class__.__name__)
+
+	def makeUserDoc(self):
+		return "%s (%s; defaults to %s) -- %s"%(
+			self.name_, self.typeDesc_, repr(self.default_), self.description_)
 
 
 class AtomicAttribute(AttributeDef):

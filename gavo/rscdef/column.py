@@ -144,7 +144,7 @@ except ImportError: # no formal/twisted -- let's hope we won't need it.
 class Values(base.Structure):
 	"""is a model for domains of the values of data fields.
 
-		This is quite like the values element in a VOTable, except that nullLiterals
+	This is quite like the values element in a VOTable, except that nullLiterals
 	of course are strings, where in VOTables nullvalues have the type of
 	their field.
 	"""

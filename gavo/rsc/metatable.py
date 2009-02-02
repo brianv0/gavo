@@ -78,6 +78,8 @@ class MetaTableHandler(object):
 	def getColumnsForTable(self, tableName):
 		"""returns a field definition list for tableName.
 		"""
+		if not "." in tableName:
+			tableName = "public."+tableName
 		res = self.metaTable.iterQuery(self.metaRowdef, 
 			" tableName=%(tableName)s", {"tableName": tableName},
 			limits=("ORDER BY colInd", {}))

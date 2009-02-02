@@ -130,15 +130,15 @@ class SQLScriptRunner:
 						print query
 					cursor.execute(query)
 				except sqlsupport.DBError, msg:
-					if failOk:
-						gavo.logger.debug("SQL script operation %s failed (%s) -- removing"
+					if False:
+						base.ui.debug("SQL script operation %s failed (%s) -- removing"
 							" instruction and trying again."%(query, 
 								sqlsupport.encodeDBMsg(msg)))
 						queries = queries[:ct]+queries[ct+1:]
 						connection.rollback()
 						break
 					else:
-						gavo.logger.error("SQL script operation %s failed (%s) --"
+						raise base.ReportableError("SQL script operation %s failed (%s) --"
 							" aborting script."%(query, sqlsupport.encodeDBMsg(msg)))
 						raise
 			else:

@@ -46,7 +46,7 @@ class FieldInfos(object):
 	  order in which they are selected (this is random if the table comes
 	  from the db)
 	* columns -- maps column names to attributes or None if a column
-	  name is not unique.
+	  name is not unique.  Column names are normalized by lowercasing here.
 	"""
 	def __init__(self):
 		self.seq, self.columns = [], {},

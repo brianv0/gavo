@@ -66,6 +66,9 @@ class SourceSpec(base.Structure):
 	_ignore = base.StructAttribute("ignoredSources", childFactory=
 		IgnoreSpec)
 
+	def __iter__(self):
+		return self.iterSources()
+
 	def completeElement(self):
 		if self.ignoredSources is base.Undefined:
 			self.ignoredSources = base.makeStruct(IgnoreSpec)

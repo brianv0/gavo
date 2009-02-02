@@ -159,6 +159,8 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 	"""
 	def _definePrimaryKey(self):
 		if self.tableDef.primary:
+			if not self.tableDef.system:
+				base.ui.notifyIndexCreation("Primary key on %s"%self.tableName)
 			try:
 				self.query("ALTER TABLE %s ADD PRIMARY KEY (%s)"%(
 					self.tableName, ", ".join(self.tableDef.primary)))
@@ -194,8 +196,6 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 			return
 		if not self.hasIndex(self.tableName, 
 				self.getPrimaryIndexName(self.tableDef.id)):
-			if not self.tableDef.system:
-				base.ui.notifyIndexCreation("Primary key on %s"%self.tableName)
 			self._definePrimaryKey()
 		for index in self.tableDef.indices:
 			if not self.hasIndex(self.tableName, index.name):

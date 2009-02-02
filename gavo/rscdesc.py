@@ -43,6 +43,11 @@ class CoresAttribute(base.StructListAttribute):
 class RD(base.Structure, base.MetaMixin, scripting.ScriptingMixin,
 		macros.StandardMacroMixin, common.RolesMixin):
 	"""is a resource descriptor.
+	
+	Resource descriptors collect all information about how to parse a
+	particular source (like a collection of FITS images, a catalogue, or
+	whatever), about the database tables the data ends up in, and the
+	services used to access them.
 	"""
 	name_ = "resource"
 

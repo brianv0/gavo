@@ -11,15 +11,15 @@ from gavo.rscdef import rmkfuncs
 
 
 class FuncArg(base.Structure):
-	"""defines an argument for a rowmaker CodeFrag.
+	"""An argument for a rowmaker, a rowgen, or similar code fragments.
 	"""
 	name_ = "arg"
 	_key = base.UnicodeAttribute("key", default=base.Undefined,
 		description="The name of the argument", copyable=True)
 	_default = base.UnicodeAttribute("default", description=
-		"A python expression that is the default of the argument in the"
-		" formal argument list (macros are expanded).",
-		copyable=True)
+		"A python expression (macros are expanded) getting assigned to"
+		" the argument when it is is undefined at entering the function"
+		" body", copyable=True)
 	_code = base.DataContent(description="A python expression for"
 		" the value of the argument in the actual parameter list",
 		copyable=True)

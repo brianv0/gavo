@@ -220,9 +220,13 @@ class DataContent(attrdef.UnicodeAttribute):
 	typeDesc_ = "string"
 
 	def __init__(self, default="", 
-			description="Character content of the structure", **kwargs):
+			description="Undocumented", **kwargs):
 		attrdef.UnicodeAttribute.__init__(self, "content_", default, 
 			description, **kwargs)
+
+	def makeUserDoc(self):
+		return ("Character content of the element (defaulting to %s) -- %s"%(
+			repr(self.default_), self.description_))
 
 
 class StructureBase(object):
