@@ -286,7 +286,7 @@ class TableInfoRenderer(grend.ServiceBasedRenderer,
 	
 	def _fillTableInfo(self):
 		q = base.SimpleQuerier()
-		c = q.query("SELECT sourceRd, adql FROM dc_tables WHERE"
+		c = q.query("SELECT sourceRd, adql FROM dc.tablemeta WHERE"
 			" tableName=%(tableName)s", {"tableName": self.tableName})
 		res = c.fetchall()
 		if len(res)!=1:

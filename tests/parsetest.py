@@ -114,7 +114,7 @@ class TestProductsImport(testhelpers.VerboseTest):
 	def testInMetatable(self):
 		fields = sorted([(r[9], r[1], r[4]) for r in
 			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
-				" fielddescriptions where tableName='test.prodtest'")])
+				" dc.columnmeta where tableName='test.prodtest'")])
 		assertRowset(self, fields, [
 			(0, u'accref', u'Access key for the data'),
 			(1, u'owner', u'Data owner'),
@@ -151,7 +151,7 @@ class TestCleanedup(unittest.TestCase):
 	def testNotInMetatable(self):
 		assertRowset(self,
 			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
-				" fielddescriptions where tableName='test.prodtest'"),
+				" dc.columnmeta where tableName='test.prodtest'"),
 			[])
 
 	def testNotInDc_tables(self):

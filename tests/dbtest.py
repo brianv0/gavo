@@ -133,7 +133,7 @@ class TestMetaTable(TestWithTableCreation):
 
 	def testDcTablesEntry(self):
 		q = base.SimpleQuerier()
-		res = q.query("select * from dc_tables where tableName=%(n)s",
+		res = q.query("select * from dc.tablemeta where tableName=%(n)s",
 			{"n": self.tableDef.getQName()}).fetchall()
 		qName, srcRd, td, rd, adql = res[0]
 		self.assertEqual(qName, 'test.typestable')
@@ -157,7 +157,7 @@ class TestMetaTableADQL(TestWithTableCreation):
 
 	def testDcTablesEntry(self):
 		q = base.SimpleQuerier()
-		res = q.query("select * from dc_tables where tableName=%(n)s",
+		res = q.query("select * from dc.tablemeta where tableName=%(n)s",
 			{"n": self.tableDef.getQName()}).fetchall()
 		qName, srcRd, td, rd, adql = res[0]
 		self.assertEqual(qName, 'test.adqltable')
@@ -173,4 +173,4 @@ class TestMetaTableADQL(TestWithTableCreation):
 
 
 if __name__=="__main__":
-	testhelpers.main(SimpleQuerierTest, "test")
+	testhelpers.main(TestMetaTable, "test")

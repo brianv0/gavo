@@ -8,13 +8,12 @@ tables and the RDs the tables come from. -->
 * rscdef.column
 -->
 
-<resource resdir="__system">
-	<schema>public</schema>
+<resource resdir="__system" schema="dc">
 	<meta name="description">Column description and related metadata for
 		the tables within the data holdings.
 		This is primarily for use with ADQL queries.</meta>
 
-	<table id="fielddescriptions" onDisk="True" system="True">
+	<table id="columnmeta" onDisk="True" system="True">
 		<meta name="description">A table mapping field names and their
 			principal properties (types, ucds, descriptions...).</meta>
 		<column name="tableName" type="text"
@@ -44,7 +43,7 @@ tables and the RDs the tables come from. -->
 
 	<rowmaker id="fromColumnList">
 		<!-- turns a rawrec with column, colInd, tableName keys into a
-		fielddescriptions row -->
+		columnmeta row -->
 		<proc name="makerow">
 			<arg key="column"/>
 			for key in ["description", "unit", "ucd", "tablehead",
@@ -57,7 +56,7 @@ tables and the RDs the tables come from. -->
 		<map dest="tableName"/>
 	</rowmaker>
 
-	<table id="dc_tables" onDisk="True" system="True" forceUnique="True"
+	<table id="tablemeta" onDisk="True" system="True" forceUnique="True"
 			dupePolicy="overwrite">
 		<meta name="description">A table mapping table names and schemas to
 			the resource descriptors they come from and whether they are open
@@ -81,7 +80,12 @@ tables and the RDs the tables come from. -->
 		<primary>tableName, sourceRd</primary>
 	</table>
 
-	<outputTable id="metaRowdef" namePath="fielddescriptions">
+	<data id="import">
+		<make table="columnmeta"/>
+		<make table="tablemeta"/>
+	</data>
+
+	<outputTable id="metaRowdef" namePath="columnmeta">
 		<meta name="description">The definition of the input to
 		column.fromMetaTableRow</meta>
 		<outputField original="description"/>
@@ -98,8 +102,8 @@ tables and the RDs the tables come from. -->
 	</outputTable>
 
 	<fixedQueryCore id="queryList"
-		query="SELECT tableName, tableName, tableDesc, resDesc FROM dc_tables WHERE adql ORDER BY tableName">
-		<outputTable namePath="dc_tables">
+		query="SELECT tableName, tableName, tableDesc, resDesc FROM dc.tablemeta WHERE adql ORDER BY tableName">
+		<outputTable namePath="tablemeta">
 			<outputField original="tableName"/>
 			<outputField name="tableinfo" original="tableName"/>
 			<outputField original="tableDesc"/>
@@ -121,7 +125,7 @@ tables and the RDs the tables come from. -->
 		<meta name="description">An overview over the tables available for ADQL 
 			querying in the GAVO data center.</meta>
 		<meta name="title">GAVO ADQL tables</meta>
-		<outputTable namePath="dc_tables">
+		<outputTable namePath="tablemeta">
 			<outputField original="tableName"/>
 			<outputField name="tableinfo" type="text" tablehead="Info">
 				<formatter>

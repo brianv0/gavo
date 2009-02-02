@@ -35,8 +35,8 @@ class MetaTableHandler(object):
 		self.profile = overrideProfile or "admin"
 		self.rd = base.caches.getRD("__system__/dc_tables")
 		self.readQuerier = self._getQuerier()
-		self.metaTable = dbtable.DBTable(
-			self.rd.getTableDefById("fielddescriptions"))
+		self.metaTable = dbtable.DBTable( # commit this in case we're creating it.
+			self.rd.getTableDefById("columnmeta")).commit()  
 		self.metaRowdef = self.rd.getTableDefById("metaRowdef")
 
 	def _getQuerier(self):

@@ -99,16 +99,15 @@ class MetaTableMixin(object):
 			return self.__dcTablesRD
 
 	def _cleanFromSourceTable(self):
-		"""removes information about self.tableDef from the dc_tables table.
+		"""removes information about self.tableDef from the tablemeta table.
 		"""
-		if self.tableDef.getQName()!="public.dc_tables":
-			self.query("DELETE FROM dc_tables WHERE tableName=%(tableName)s",
-				{"tableName": self.tableDef.getQName()})
+		self.query("DELETE FROM dc.tablemeta WHERE tableName=%(tableName)s",
+			{"tableName": self.tableDef.getQName()})
 	
 	def _addToSourceTable(self):
-		"""adds information about self.tableDef to the dc_tables table.
+		"""adds information about self.tableDef to the tablemeta table.
 		"""
-		t = DBTable(self.dcTablesRD.getTableDefById("dc_tables"),
+		t = DBTable(self.dcTablesRD.getTableDefById("tablemeta"),
 			connection=self.connection)
 		t.addRow({"tableName": self.tableDef.getQName(), 
 			"sourceRd": self.tableDef.rd.sourceId,
@@ -117,18 +116,17 @@ class MetaTableMixin(object):
 			"resDesc": base.getMetaText(self.tableDef.rd, "description"),})
 
 	def _cleanColumns(self):
-		"""removes information about self.tableDef from fielddescriptions.
+		"""removes information about self.tableDef from columnmeta.
 		"""
-		if self.tableDef.getQName()!="public.fielddescriptions":
-			self.query(
-				"DELETE FROM fielddescriptions WHERE tableName=%(tableName)s",
-				{"tableName": self.tableDef.getQName()})
+		self.query(
+			"DELETE FROM dc.columnmeta WHERE tableName=%(tableName)s",
+			{"tableName": self.tableDef.getQName()})
 
 	def _defineColumns(self):
-		"""adds information about self.tableDef to fielddescriptions.
+		"""adds information about self.tableDef to columnmeta.
 		"""
 		tableName = self.tableDef.getQName()
-		t = DBTable(self.dcTablesRD.getTableDefById("fielddescriptions"),
+		t = DBTable(self.dcTablesRD.getTableDefById("columnmeta"),
 			connection=self.connection)
 		makeRow = self.dcTablesRD.getById("fromColumnList").compileForTable(
 			t.tableDef)
@@ -269,7 +267,7 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 			raise common.ResourceError("TableDefs without resource descriptor"
 				" cannot be used to access database tables")
 		self.tableName = self.tableDef.getQName()
-		self.nometa = kwargs.get("nometa", False)
+		self.nometa = kwargs.get("nometa", False) or tableDef.rd.schema=="dc"
 		if kwargs.get("create", True):
 			self.createIfNecessary()
 		if not self.tableUpdates:

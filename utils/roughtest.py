@@ -583,7 +583,7 @@ myTests = [
 			"L...",
 			"Home page shows services"),
 		GetHasStringTest(nv_root+"/lensdemo/view/q/form?__nevow_form__=genForm&"
-			"object=QSO%20B0957%2B5608A&_DBOPTIONS_ORDER=&_DBOPTIONS_LIMIT=100"
+			"object=Q2237%2B0305&_DBOPTIONS_ORDER=&_DBOPTIONS_LIMIT=100"
 			"&_FORMAT=HTML&_ADDITEM=owner&submit=Go",
 			"Product owner</th>",
 			"Additional fields show up in HTML responses"),

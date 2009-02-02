@@ -104,10 +104,13 @@ class RD(base.Structure, base.MetaMixin, scripting.ScriptingMixin,
 	# that in roots common.RDAttributes
 		self.rd = weakref.proxy(self)
 	# RDs can be Anonymous.  The sourceId is only important in operations
-	# like inserting into the dc_tables#dc_tables table.  These should fail
+	# like inserting into the dc_tables#tablemeta table.  These should fail
 	# on anonymous RDs (and in this case will because parts of primary
 	# keys must not be NULL)
 		self.sourceId = None
+
+	def __iter__(self):
+		return iter(self.dds)
 
 	def getDynamicAttribute(self, name):
 		try:

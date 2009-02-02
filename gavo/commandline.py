@@ -30,7 +30,7 @@ def process(opts, args):
 	except base.RDNotFound:
 		rd = base.caches.getRD(src, forImport=True)
 	connection = base.getDBConnection("admin")
-	rd.runScripts("preCreation")
+	rd.runScripts("preCreation", connection=connection)
 	for dd in rd.dds:
 		if ddIds and not dd.id in ddIds:
 			continue
@@ -43,6 +43,7 @@ def process(opts, args):
 			res = rsc.makeData(dd, parseOptions=opts, connection=connection)
 		if hasattr(res, "nAffected"):
 			print "Columns affected:", res.nAffected
+	connection.commit()
 
 
 def parseCmdline():

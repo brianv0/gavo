@@ -87,7 +87,7 @@ def getSQLScriptGrammar(memo=[]):
 	return memo[0]
 
 
-class SQLScriptRunner:
+class SQLScriptRunner(object):
 	"""is an interface to run simple static scripts on the SQL data base.
 
 	The script should be a string containing one command per line.  You
@@ -174,9 +174,9 @@ class ScriptHandler(object):
 	def __init__(self, parent, rd):
 		self.rd, self.parent = rd, weakref.proxy(parent)
 
-	def _runSqlScript(self, script):
+	def _runSqlScript(self, script, connection=None):
 		runner = SQLScriptRunner()
-		runner.run(script)
+		runner.run(script, connection=connection)
 
 	def _runSqlScriptInConnection(self, script, connection):
 		"""runs a script in connection.

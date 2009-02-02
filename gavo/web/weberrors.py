@@ -132,7 +132,9 @@ class ErrorPage(ErrorPageDebug):
 			" fix the problem you've hit.</p>")
 		return (
 			"<h1>Internal Error</h1><p>The error message is: %s</p>"
-			"<p>If you do not know how to work around this, please contact"
+			"<p>If you are seeing this, it is always a bug in our code"
+			" or the data descriptions, and we would be extremely grateful"
+			" for a report at"
 			" gavo@ari.uni-heidelberg.de</p>"%escapeForHTML(
 				failure.getErrorMessage()))
 

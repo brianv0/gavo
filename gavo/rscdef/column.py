@@ -164,25 +164,24 @@ class Values(base.Structure):
 		copyable=True)
 	_multiOk = BooleanAttribute("multiOk", False, "Allow selection of"
 		" multiple options", copyable=True)
-	_fromDB = UnicodeAttribute("fromdb", default=None, description=
+	_fromDB = ActionAttribute("fromdb", "_evaluateFromDB", description=
 		"A query returning just one column to fill options from (will"
 		" add to options if some are given.)")
 
 	def makePythonVal(self, literal, sqltype):
 		return typesystems.sqltypeToPython(sqltype)(literal)
 
-	def completeElement(self):
-		# evaluate fromdb
-		if self.fromdb:
-			try:
-				res = base.SimpleQuerier().runIsolatedQuery("SELECT DISTINCT %s"%(
-					self.fromdb))
-				for row in res:
-					self._options.feedObject(self, base.makeStruct(Option,
-						content_=row[0]))
-			except base.DBError: # Table probably doesn't exist yet, ignore.
-				warnings.warn("Values fromdb '%s' failed, ignoring")
-		self._completeElementNext(Values)
+	def _evaluateFromDB(self, ctx):
+		if ctx.noQueries:
+			return
+		try:
+			res = base.SimpleQuerier().runIsolatedQuery("SELECT DISTINCT %s"%(
+				self.fromdb))
+			for row in res:
+				self._options.feedObject(self, base.makeStruct(Option,
+					content_=row[0]))
+		except base.DBError: # Table probably doesn't exist yet, ignore.
+			warnings.warn("Values fromdb '%s' failed, ignoring")
 
 	def onParentCompleted(self):
 		"""converts min, max, and options from string literals to python

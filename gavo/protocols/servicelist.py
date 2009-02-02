@@ -176,8 +176,8 @@ def updateServiceList(rds, metaToo=False):
 		rsc.makeData(dd, forceSource=rd, parseOptions=parseOptions,
 			connection=connection)
 		if metaToo:
-			for dd in rd:
-				rsc.Data.create(dd).updateMeta()
+			for dependentDD in rd:
+				rsc.Data.create(dependentDD, connection=connection).updateMeta()
 	connection.commit()
 
 
@@ -348,7 +348,7 @@ def main():
 	if opts.all:
 		args = findAllRDs()
 	updateServiceList([base.caches.getRD(rdPath, noQueries=True)
-		for rdPath in args])
+		for rdPath in args], metaToo=opts.meta)
 	if opts.all or opts.doFixed:  # also import fixed registry records
 		importFixed()
 	try:
