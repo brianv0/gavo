@@ -7,12 +7,12 @@
 	<table id="bboxSIAPcolumns" 
 			original="__system__/products#productColumns">
 		<column name="centerAlpha"  ucd="POS_EQ_RA_MAIN"
-			type="double precision" unit="deg" tablehead="alpha"
-			displayHint="type=time" verbLevel="0" 
+			type="double precision" unit="deg" 
+			displayHint="type=time,sf=0" verbLevel="0" tablehead="Ctr. RA"
 			description="Approximate center of image, RA"/>
-		<column name="centerDelta"  ucd="POS_EQ_DEC_MAIN"
-			type="double precision" unit="deg" tablehead="delta"
-			displayHint="type=sexagesimal" verbLevel="0"
+		<column name="centerDelta"  ucd="POS_EQ_DEC_MAIN" tablehead="Ctr. Dec"
+			type="double precision" unit="deg"
+			displayHint="type=sexagesimal,sf=0" verbLevel="0"
 			description="Approximate center of image, Dec"/>
 		<column name="primaryBbox"  
 			type="box" description="Bounding box of the image for internal use"

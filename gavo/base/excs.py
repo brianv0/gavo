@@ -15,6 +15,9 @@ but clearly there shouldn't be many of those, or error reporting will
 become an even worse nightmare than it already is.
 """
 
+from gavo.utils.fancyconfig import NoConfigItem
+
+
 class Error(Exception):
 	"""is the base class for all exceptions that can be expected to escape
 	a module.

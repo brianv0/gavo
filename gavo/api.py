@@ -10,3 +10,7 @@ from gavo import rscdesc
 from gavo.protocols import basic
 
 getRD = base.caches.getRD
+
+from gavo.base import (getConfig, getDBConnection, getDefaultDBConnection,
+	setDBProfile)
+from gavo.rsc import (TableForDef, DBTable)

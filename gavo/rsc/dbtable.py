@@ -307,6 +307,7 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		self.makeIndices()
 		if self.ownedConnection:
 			self.connection.commit()
+		return self
 	
 	def importFailed(self, *excInfo):
 		if self.ownedConnection:
@@ -445,7 +446,7 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		return self
 	
 	def iterQuery(self, resultTableDef, fragment, pars=None, 
-			distinct=False, limits=None):
+			distinct=False, limits=None, groupBy=None):
 		"""returns an iterator over rows for a table defined by resultTableDef 
 		giving the results for a query for fragment and pars.
 
@@ -468,6 +469,8 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		query.append("FROM %s "%self.tableDef.getQName())
 		if fragment and fragment.strip():
 			query.append("WHERE %s "%fragment)
+		if groupBy:
+			query.append("GROUP BY %s "%groupBy)
 		if limits:
 			query.append(limits[0]+" ")
 			pars.update(limits[1])

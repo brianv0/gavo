@@ -18,3 +18,7 @@
 
 6/WISHLIST/2009-01-27
 	The sidebar should become a template on disk.
+
+7/LOW/2009-02-02
+	MultiSelections are not handled correctly when used in bookmarkable forms 
+	-- only the first selection is kept.

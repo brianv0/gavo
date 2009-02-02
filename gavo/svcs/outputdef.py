@@ -26,7 +26,10 @@ class OutputField(rscdef.Column):
 		"Output sets this field should be included in; ALL includes the field"
 		" in all output sets.",
 		copyable=True)
-	
+
+	def __repr__(self):
+		return "<OutputField %s>"%self.name
+
 	def completeElement(self):
 		if self.select is base.Undefined:
 			self.select = self.name
@@ -52,9 +55,9 @@ class OutputTableDef(rscdef.TableDef):
 	def completeElement(self):
 		# see if any Column objects were copied into our column and convert
 		# them to OutputFields
-		for ind, col in enumerate(self.columns):
-			if not hasattr(col, "select"):
-				self.columns[ind] = OutputField.fromColumn(col)
+		for col in self.columns:
+			if not hasattr(col, "wantsRow"):
+				self.columns.replace(col, OutputField.fromColumn(col))
 		self._completeElementNext(OutputTableDef)
 
 	def onParentCompleted(self):

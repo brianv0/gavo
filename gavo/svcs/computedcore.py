@@ -11,6 +11,7 @@ from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo.svcs import core
+from gavo.svcs import outputdef
 from gavo.svcs import service
 
 
@@ -52,7 +53,8 @@ class ComputedCore(core.Core):
 
 	def completeElement(self):
 		if self.resultParse:
-			self.outputTable = self.resultParse.getPrimary()
+			self.outputTable = outputdef.OutputTableDef.fromTableDef(
+				self.resultParse.getPrimary())
 		self._completeElementNext(ComputedCore)
 
 	def _feedInto(self, data, destFile):

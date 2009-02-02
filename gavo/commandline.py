@@ -93,8 +93,8 @@ def parseCmdline():
 	parser.add_option("-b", "--batch-size", help="deliver N rows at a time"
 		" to the database.", dest="batchSize", action="store", type="int",
 		default=1024, metavar="N")
-	parser.add_option("-c", "--continue-bad", help="go on after a source had"
-		" an error", dest="ignoreBadSources", action="store_true")
+	parser.add_option("-c", "--continue-bad", help="go on if processing a"
+		" row failed.", dest="keepGoing", action="store_true", default=False)
 
 	(opts, args) = parser.parse_args()
 

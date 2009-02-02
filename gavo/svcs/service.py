@@ -259,8 +259,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		if self.inputDD is base.NotGiven:
 			self.inputDD = self.core.inputDD
 		if self.outputTable is base.NotGiven:
-			self.outputTable = outputdef.OutputTableDef.fromTableDef(
-				self.core.outputTable)
+			self.outputTable = self.core.outputTable
 
 		# Load local templates if necessary
 		if self.templates:

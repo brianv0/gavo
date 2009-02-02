@@ -147,7 +147,17 @@ class ColumnList(list):
 		else:
 			self.nameIndex[item.name] = len(self)
 			list.append(self, item)
-	
+
+	def replace(self, oldCol, newCol):
+		ind = 0
+		while True:
+			if self[ind]==oldCol:
+				self[ind] = newCol
+				break
+			ind += 1
+		del self.nameIndex[oldCol.name]
+		self.nameIndex[newCol.name] = ind
+
 	def extend(self, seq):
 		for item in seq:
 			self.append(item)

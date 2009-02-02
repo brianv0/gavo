@@ -66,6 +66,7 @@ class EatTrailingSlashesItem(StringConfigItem):
 	def _parse(self, val):
 		return StringConfigItem._parse(self, val).rstrip("/")
 
+
 class EnsureTrailingSlashesItem(StringConfigItem):
 	"""is a config item that must end with a slash.  If no slash is present
 	on input, it is added.
@@ -132,7 +133,7 @@ class DBProfile(structure.Structure):
 		return " ".join(parts)
 
 
-class ProfileParser:
+class ProfileParser(object):
 	r"""is a parser for DB profiles.
 
 	The profiles are specified in simple text files that have a shell-like
@@ -267,8 +268,8 @@ class Configuration(fancyconfig.Configuration):
 			try:
 				self._dbProfileCache[profileName] = self._getProfileParser().parse(
 					profileName, self.get("profiles", profileName))
-			except ConfigParser.NoOptionError:
-				raise ParseError("Undefined DB profile: %s"%profileName)
+			except excs.NoConfigItem:
+				raise ProfileParseError("Undefined DB profile: %s"%profileName)
 		return self._dbProfileCache[profileName]
 
 	def setDBProfile(self, profileName):

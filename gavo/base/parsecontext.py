@@ -43,9 +43,12 @@ def resolveComplexId(ctx, id, forceType=None):
 	except ValueError:
 		raise LiteralParseError("%s is not a valid id"%id, "id", id)
 	container = ctx.getById(pId)
-	for ob in container:
-		if hasattr(ob, "name") and ob.name==name:
-			return assertType(id, ob, forceType)
+	try:
+		for ob in container:
+			if hasattr(ob, "name") and ob.name==name:
+				return assertType(id, ob, forceType)
+	except TypeError:
+		raise StructureError("Element %s is not allowed in namePath"%pId)
 	raise StructureError("Element %s has no child with name %s"%(
 		pId, name))
 

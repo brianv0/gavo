@@ -81,7 +81,7 @@ class QueryMeta(dict):
 		"_SET"])
 	# a set of keys that has sequences as values (needed for construction
 	# from nevow request.args)
-	listKeys = set(["_ADDITEM"])
+	listKeys = set(["_ADDITEM", "_DBOPTIONS_ORDER"])
 
 	def __init__(self, initArgs=None):
 		if initArgs is None:
@@ -132,11 +132,11 @@ class QueryMeta(dict):
 				self["dbLimit"] = int(args["_DBOPTIONS_LIMIT"])
 		except ValueError:  # leave limit
 			pass
-		self["dbSortKey"] = args.get("_DBOPTIONS_ORDER", None)
+		self["dbSortKeys"] = args.get("_DBOPTIONS_ORDER", [])
 
-	def overrideDbOptions(self, sortKey=None, limit=None):
-		if sortKey is not None:
-			self["dbSortKey"] = sortKey
+	def overrideDbOptions(self, sortKeys=None, limit=None):
+		if sortKeys is not None:
+			self["dbSortKeys"] = sortKeys
 		if limit is not None:
 			self["dbLimit"] = int(limit)
 
@@ -144,15 +144,15 @@ class QueryMeta(dict):
 		"""returns the dbLimit and dbSortKey values as an SQL fragment.
 		"""
 		frag, pars = [], {}
-		sortKey = self["dbSortKey"]
+		sortKeys = self["dbSortKeys"]
 		dbLimit = self["dbLimit"]
-		if sortKey:
+		if sortKeys:
 			# Ok, we need to do some emergency securing here.  There should be
 			# pre-validation that we're actually seeing a column key, but
 			# just in case let's make sure we're seeing an SQL identifier.
 			# (We can't rely on dbapi's escaping since we're not talking values here)
-			sortKey = re.sub("[^A-Za-z_]+", "", sortKey)
-			frag.append("ORDER BY %s"%sortKey)
+			frag.append("ORDER BY %s"%(",".join(
+				re.sub("[^A-Za-z_]+", "", key) for key in sortKeys)))
 		if dbLimit:
 			frag.append("LIMIT %(_matchLimit)s")
 			pars["_matchLimit"] = int(dbLimit)+1

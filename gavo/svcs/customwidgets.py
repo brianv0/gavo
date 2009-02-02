@@ -235,7 +235,15 @@ class MultiSelectChoice(widget.SelectChoice):
 			" ",
 			T.span(class_="fieldlegend")[
 				"No selection matches all, multiple values legal."]]
-	
+
+	def render(self, ctx, key, args, errors):
+		converter = iformal.IStringConvertible(self.original)
+		if errors:
+			value = args.get(key, [])
+		else:
+			value = map(converter.fromType, args.get(key, []))
+		return self._renderTag(ctx, key, value, converter, False)
+
 	def processInput(self, ctx, key, args):
 		values = args.get(key, [''])
 		rv = []
@@ -292,15 +300,17 @@ def EnumeratedWidget(ik):
 	if not ik.isEnumerated():
 		raise base.StructureError("%s is not enumerated"%ik.name)
 	noneOption, options = _getDisplayOptions(ik)
+	moreArgs = {}
 	if ik.values.multiOk:
 		baseWidget = MultiSelectChoice
+		moreArgs["size"] = ik.showItems
 	else:
 		if len(options)<4:
 			baseWidget = RadioChoice
 		else:
 			baseWidget = SelectChoice
 	return formal.widgetFactory(baseWidget, options=options,
-		noneOption=noneOption)
+		noneOption=noneOption, **moreArgs)
 
 
 class StringFieldWithBlurb(widget.TextInput):

@@ -171,6 +171,7 @@ class TableBasedCore(core.Core):
 		description="Descriptions of the SQL and input generating entities"
 			" for this core; if not given, they will be generated from the"
 			" table columns", copyable=True)
+	_namePath = rscdef.NamePathAttribute()
 
 	def completeElement(self):
 		# if no condDescs have been given, make them up from the table columns.
@@ -198,6 +199,61 @@ class TableBasedCore(core.Core):
 		if self.namePath is None:
 			self.namePath = qTable.id
 
+	def _getSQLWhere(self, inputData, queryMeta):
+		"""returns a where fragment and the appropriate parameters
+		for the query defined by inputData and queryMeta.
+		"""
+		sqlPars, frags = {}, []
+		inputPars = inputData.getPrimaryTable().rows[0]
+		return vizierexprs.joinOperatorExpr("AND",
+			[cd.asSQL(inputPars, sqlPars)
+				for cd in self.condDescs]), sqlPars
+
+	def _makeTable(self, rowIter, resultTableDef, queryMeta):
+		"""returns a table from the row iterator rowIter, updating queryMeta
+		as necessary.
+		"""
+		rows = list(rowIter)
+		if len(rows)>queryMeta.get("dbLimit", 1e10): # match limit overflow
+			del rows[-1]
+			queryMeta["Overflow"] = True
+		queryMeta["Matched"] = len(rows)
+		return rsc.TableForDef(resultTableDef, rows=rows)
+	
+
+class FancyQueryCore(TableBasedCore):
+	"""A core executing a pre-specified query with fancy conditions.
+
+	Unless you select *, you *must* give an outputTable here; this
+	is not checked.
+	"""
+	name_ = "fancyQueryCore"
+
+	_query = base.UnicodeAttribute("query", description="The query to"
+		" execute.  It must contain exactly one %s where the generated"
+		" where clause is to be inserted.  Do not write WHERE yourself."
+		" All other percents must be escaped.", default=base.Undefined)
+
+	def run(self, service, inputData, queryMeta):
+		fragment, pars = self._getSQLWhere(inputData, queryMeta)
+		querier = base.SimpleQuerier()
+		if fragment:
+			fragment = " WHERE "+fragment
+		else:
+			fragment = ""
+		try:
+			try:
+				return self._makeTable(
+					querier.runIsolatedQuery(self.query%fragment, pars,
+							silent=True, timeout=5, asDict=True), 
+						self.outputTable, queryMeta)
+			except:
+				mapDBErrors(*sys.exc_info())
+		finally:
+			querier.close()
+
+core.registerCore(FancyQueryCore)
+
 
 class DBCore(TableBasedCore):
 	"""is a base class for cores doing database queries.
@@ -222,20 +278,13 @@ class DBCore(TableBasedCore):
 	_feedbackColumn = base.UnicodeAttribute("feedbackColumn", description=
 		"Add this name to query to enable selection for feedback (this"
 		" basically only works for atomic primary keys)", copyable=True)
-	_namePath = rscdef.NamePathAttribute()
+	_groupBy = base.UnicodeAttribute("groupBy", description=
+		"A group by clause.  You shouldn't generally need this, and if"
+		" you use it, you must give an outputTable to your core",
+		default=None)
 
 	def wantsTableWidget(self):
 		return self.sortKey is None and self.limit is None
-
-	def _getSQLWhere(self, inputData, queryMeta):
-		"""returns a where fragment and the appropriate parameters
-		for the query defined by inputData and queryMeta.
-		"""
-		sqlPars, frags = {}, []
-		inputPars = inputData.getPrimaryTable().rows[0]
-		return vizierexprs.joinOperatorExpr("AND",
-			[cd.asSQL(inputPars, sqlPars)
-				for cd in self.condDescs]), sqlPars
 
 	def getQueryCols(self, service, queryMeta):
 		"""returns the fields we need in the output table.
@@ -246,22 +295,12 @@ class DBCore(TableBasedCore):
 		"""
 		return service.getCurOutputFields(queryMeta)
 
-	def _makeTable(self, rowIter, resultTableDef, queryMeta):
-		"""returns a table from the row iterator rowIter, updating queryMeta
-		as necessary.
-		"""
-		rows = list(rowIter)
-		if len(rows)>queryMeta.get("dbLimit", 1e10): # match limit overflow
-			del rows[-1]
-			queryMeta["Overflow"] = True
-		queryMeta["Matched"] = len(rows)
-		return rsc.TableForDef(resultTableDef, rows=rows)
-	
 	def _runQuery(self, resultTableDef, fragment, pars, queryMeta,
 			**kwargs):
 		queriedTable = rsc.TableForDef(self.queriedTable, nometa=True,
 			create=False, role="primary")
-		iqArgs = {"limits": queryMeta.asSQL(), "distinct": self.distinct}
+		iqArgs = {"limits": queryMeta.asSQL(), "distinct": self.distinct,
+			"groupBy": self.groupBy}
 		iqArgs.update(kwargs)
 		try:
 			try:
@@ -287,7 +326,10 @@ class DBCore(TableBasedCore):
 		if not resultTableDef.columns:
 			raise base.ValidationError("No output fields with these settings",
 				"_OUTPUT")
-		queryMeta.overrideDbOptions(limit=self.limit, sortKey=self.sortKey)
+		sortKeys = []
+		if self.sortKey:
+			sortKeys = self.sortKey.split(",")
+		queryMeta.overrideDbOptions(limit=self.limit, sortKeys=sortKeys)
 		fragment, pars = self._getSQLWhere(inputData, queryMeta)
 		queryMeta["sqlQueryPars"] = pars
 		return self._runQuery(resultTableDef, fragment, pars, queryMeta)

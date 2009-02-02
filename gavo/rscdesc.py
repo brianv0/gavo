@@ -263,7 +263,7 @@ def getRD(srcId, forImport=False, noQueries=False, dumpTracebacks=False):
 	rd.computeSourceId(srcPath)
 	try:
 		rd = base.parseFromStream(rd, inputFile, context=context)
-	except base.LiteralParseError, ex:
+	except (base.LiteralParseError, base.ConversionError), ex:
 		mapParseErrors(ex, "Bad content", context)
 	except base.StructureError, ex:
 		mapParseErrors(ex, "Bad structure", context)
