@@ -759,6 +759,10 @@ myTests = [
 				"&ut1=wirres%20Zeug&interval=3600&_FORMAT=HTML&submit=Go",
 			["wirres Zeug", "Invalid date expression (at 0)"],
 			"Times service delivers nice error message for malformed vexprs"),
+		GetHasStringsTest(nv_root+"/logs/logs/stats/form?__nevow_form__=genForm"
+				"&service=apfs&month=8&year=2008",
+			["#Hosts", "<td>3</td>"],
+			"Logs service delivers credible data."),
 	)
 ]
 

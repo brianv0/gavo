@@ -335,34 +335,10 @@ _vanityMap = VanityMap()
 
 
 specialChildren = {
-#	"oai.xml": (lambda ctx, segs, cls: cls(), vodal.RegistryRenderer),
 	"debug": (lambda ctx, segs, cls: cls(ctx, segs), weberrors.DebugPage),
 	"reload": (lambda ctx, segs, cls: cls(ctx, segs), ReloadPage),
 	"login": (lambda ctx, segs, cls: cls(ctx), LoginPage),
 }
-
-
-'''
-XXX TODO: Move those until empty.
-renderClasses = {
-	"custom": resourcebased.Custom,
-	"static": resourcebased.Static,
-	"form": resourcebased.Form,
-	"feedback": resourcebased.FeedbackForm,
-	"text": resourcebased.TextRenderer,
-	"block": metarender.BlockRdRenderer,
-	"siap.xml": vodal.SiapRenderer,
-	"scs.xml": vodal.ScsRenderer,
-	"upload": uploadservice.Uploader,
-	"mupload": uploadservice.MachineUploader,
-	"get": resourcebased.ProductRenderer,
-	"img.jpeg": jpegrenderer.JpegRenderer,
-	"mimg.jpeg": jpegrenderer.MachineJpegRenderer,
-	"soap": soaprender.SoapRenderer,
-	"info": metarender.ServiceInfoRenderer,
-	"tableinfo": metarender.TableInfoRenderer,
-}
-'''
 
 
 class ArchiveService(common.CustomTemplateMixin, rend.Page, 

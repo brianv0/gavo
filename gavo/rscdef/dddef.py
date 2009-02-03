@@ -184,6 +184,11 @@ class DataDescriptor(base.Structure, base.MetaMixin, scripting.ScriptingMixin):
 			" remade")
 	_auto = base.BooleanAttribute("auto", default=True, description=
 		"Import this data set without explicit mention on the command line?")
+	_updating = base.BooleanAttribute("updating", default="False",
+		description="Keep existing tables on import?  You usually want this"
+			" False unless you have some kind of sources management,"
+			" e.g., via a sources ignore specification.  Note that updating"
+			" data never execute their preCreation and postCreation scripts.")
 	_makes = base.StructListAttribute("makes", childFactory=Make,
 		copyable=True)
 	_properties = base.PropertyAttribute()

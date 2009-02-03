@@ -118,9 +118,9 @@ class Data(base.MetaMixin):
 		is true.
 		"""
 		self.dd.runScripts("preCreation")
-		if self.parseOptions.updateMode:
+		if self.parseOptions.updateMode or self.dd.updating:
 			return
-		for t in self.tables.values():
+		for t in self.tables.values() or self.dd:
 			if t.tableDef.system and not self.parseOptions.systemImport:
 				continue
 			if t.tableDef.onDisk:
