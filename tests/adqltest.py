@@ -614,7 +614,7 @@ class Q3CMorphTest(unittest.TestCase):
 		adql.insertQ3Calls(t)
 		self.assertEqual(adql.flatten(t),
 			"SELECT alphafloat , deltafloat FROM ppmx . data WHERE"
-				"  q3c_join(alphafloat, deltafloat, 23, 24, 0.2)")
+				"  q3c_join(23, 24, alphafloat, deltafloat, 0.2)")
 		t = adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
 			" where 1=contains(point('ICRS', alphaFloat, deltaFloat),"
 				" circle('ICRS', 23, 24, 0.2))")

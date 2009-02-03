@@ -35,7 +35,7 @@ def _containsToQ3c(node, state):
 	p, shape = args
 	if shape.type=="circle":
 		node.children = ["q3c_join(%s, %s, %s, %s, %s)"%(
-			p.x, p.y, shape.x, shape.y, shape.radius)]
+			shape.x, shape.y, p.x, p.y, shape.radius)]
 	elif shape.type=="rectangle":
 		node.children = ["q3c_poly_query(%s, %s, ARRAY[%s, %s, %s, %s,"
 			" %s, %s, %s, %s])"%(p.x, p.y,
