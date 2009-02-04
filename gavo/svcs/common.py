@@ -132,7 +132,8 @@ class QueryMeta(dict):
 				self["dbLimit"] = int(args["_DBOPTIONS_LIMIT"])
 		except ValueError:  # leave limit
 			pass
-		self["dbSortKeys"] = args.get("_DBOPTIONS_ORDER", [])
+		self["dbSortKeys"] = [s.strip() for s in args.get("_DBOPTIONS_ORDER", [])
+			if s.strip()]
 
 	def overrideDbOptions(self, sortKeys=None, limit=None):
 		if sortKeys is not None:

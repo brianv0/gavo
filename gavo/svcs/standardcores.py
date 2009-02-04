@@ -260,11 +260,6 @@ class DBCore(TableBasedCore):
 
 	It provides for querying the database and returning a table
 	from it.
-
-	Db cores must define a _getQuery(inputData, queryMeta) method that
-	returns a data descriptor for the expected SQL output, an SQL fragment 
-	and a dictionary mapping the parameters of that
-	query to values understandable by the DB interface.
 	"""
 	name_ = "dbCore"
 
@@ -315,9 +310,6 @@ class DBCore(TableBasedCore):
 	def run(self, service, inputData, queryMeta):
 		"""does the DB query and returns an InMemoryTable containing
 		the result.
-		
-		It requires a method _getQuery returning a TableDef defining
-		the result, an SQL WHERE-clause and its parameters.
 		"""
 		resultTableDef = base.makeStruct(outputdef.OutputTableDef,
 			parent_=self.queriedTable.parent,
@@ -326,7 +318,7 @@ class DBCore(TableBasedCore):
 		if not resultTableDef.columns:
 			raise base.ValidationError("No output fields with these settings",
 				"_OUTPUT")
-		sortKeys = []
+		sortKeys = None
 		if self.sortKey:
 			sortKeys = self.sortKey.split(",")
 		queryMeta.overrideDbOptions(limit=self.limit, sortKeys=sortKeys)
