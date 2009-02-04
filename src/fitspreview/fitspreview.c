@@ -151,16 +151,26 @@ imageDesc *readFits(char *fName)
 void doPixelScale(imageDesc *img, int targetWidth)
 /* q'n'd -- it's only a preview */
 {
-	float imageScale=(float)targetWidth/img->shape[0];
+	float imageScale=targetWidth/(img->shape[0]+0.1);
 	int targetHeight = (int)(img->shape[1]*imageScale);
 	int x, y;
 	float *targetData=img->data;
 
-	if (img->shape[0]<targetWidth) {
+	if (img->shape[0]<=0 || img->shape[1]<=0) {
+		fatalError("Empty image cannot be scaled.\n");
+	}
+	if (targetHeight>targetWidth) { /* don't make images too high */
+		imageScale = targetWidth/(img->shape[1]+0.1);
+		targetWidth = (int)(img->shape[0]*imageScale);
+		targetHeight = (int)(img->shape[1]*imageScale);
+	}
+	if (imageScale>1) {  /* don't scale up */
 		targetWidth=img->shape[0];
 		targetHeight=img->shape[1];
 		imageScale = 1;
 	}
+	targetWidth = targetWidth==0?1:targetWidth;
+	targetHeight = targetHeight==0?1:targetHeight;
 	for (y=0; y<targetHeight; y++) {
 		for (x=0; x<targetWidth; x++) {
 			*targetData++ = img->data[(int)(x/imageScale)+
@@ -333,7 +343,7 @@ void writeJpeg(byteImageDesc *iD, int targetWidth)
 
 void usage(void)
 {
-	fprintf(stderr, "Usage: %s <fits-name> [<target width> [<gamma>]]", 
+	fprintf(stderr, "Usage: %s <fits-name> [<target width> [<gamma>]]\n", 
 		progName);
 	exit(1);
 }

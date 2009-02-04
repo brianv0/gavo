@@ -209,7 +209,7 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 # this will become much prettier once we can use context managers
 	res = Data.create(dd, parseOptions, connection=connection)
 	res.recreateTables()
-	feeder = res.getFeeder()
+	feeder = res.getFeeder(batchSize=parseOptions.batchSize)
 	try:
 		if forceSource is None:
 			for source in dd.iterSources():

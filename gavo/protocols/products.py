@@ -148,15 +148,17 @@ class CutoutProduct(PlainProduct):
 			return min(header["NAXIS1"], max(0, x))
 		def clampY(y):
 			return min(header["NAXIS2"], max(0, y))
+		print [(ra+sra/2, dec+sdec/2), (ra-sra/2, dec+sdec/2),
+			(ra+sra/2, dec-sdec/2), (ra-sra/2, dec-sdec/2),]
+		corners = [getPixCoo(*args) for args in (
+			(ra+sra/2, dec+sdec/2), (ra-sra/2, dec+sdec/2),
+			(ra+sra/2, dec-sdec/2), (ra-sra/2, dec-sdec/2))]
+		xVals, yVals = [c[0] for c in corners], [c[1] for c in corners]
 
-		x, y = map(int, getPixCoo(ra, dec))
-		w = int(abs(clampX(getPixCoo(ra+sra/2, dec)[0]
-			)-clampX(getPixCoo(ra-sra/2, dec)[0])))
-		h = int(abs(clampY(getPixCoo(ra, dec+sdec/2)[1]
-			)-clampY(getPixCoo(ra, dec-sdec/2)[1])))
-		x = max(0, min(header["NAXIS1"]-w, x-w/2))
-		y = max(0, min(header["NAXIS2"]-h, y-h/2))
-		return ["-s", self.fullFilePath, "%d-%d"%(x, x+w), "%d-%d"%(y, y+h)]
+		minX, maxX = clampX(min(xVals)), clampX(max(xVals))
+		minY, maxY = clampY(min(yVals)), clampY(max(yVals))
+		return ["-s", self.fullFilePath, 
+			"%d-%d"%(minX, maxX), "%d-%d"%(minY, maxY)]
 
 	def _makeName(self):
 		self.name = "cutout-"+os.path.basename(self.fullFilePath)
