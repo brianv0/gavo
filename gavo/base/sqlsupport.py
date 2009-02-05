@@ -74,7 +74,7 @@ psycopg2.extensions.register_adapter(list, SqlSetAdapter)
 psycopg2.extensions.register_adapter(set, SqlSetAdapter)
 
 from psycopg2 import (OperationalError, DatabaseError, IntegrityError,
-	ProgrammingError)
+	ProgrammingError, InterfaceError)
 from psycopg2 import Error as DBError
 
 

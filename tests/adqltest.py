@@ -710,11 +710,12 @@ class QueryTest(unittest.TestCase):
 		self.rd = testhelpers.getTestRD()
 		self.ds = rsc.makeData(self.rd.getById("ADQLTest"),
 				forceSource=[
-				{"alpha": 22, "delta": 23, "mag": -27, "rv": 0},])
+				{"alpha": 22, "delta": 23, "mag": -27, "rv": 0},]).commitAll()
 		self.tableName = self.ds.tables["adql"].tableDef.getQName()
 
 	def tearDown(self):
 		self.ds.dropTables()
+		self.ds.commitAll().closeAll()
 
 	def _assertFieldProperties(self, dataField, expected):
 		for label, value in expected:

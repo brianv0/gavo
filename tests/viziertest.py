@@ -361,7 +361,7 @@ class StringQueryTest(unittest.TestCase):
 		self.tableName = self.data.tables["vizierstrings"].tableDef.getQName()
 
 	def tearDown(self):
-		self.data.tables["vizierstrings"].drop().commit()
+		self.data.dropTables().commitAll().closeAll()
 
 	def _runCountTests(self, tests):
 		querier = base.SimpleQuerier()

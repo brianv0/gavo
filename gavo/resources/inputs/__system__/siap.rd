@@ -227,7 +227,7 @@
 		<inputKey name="INTERSECT" type="text" description=
 			"Relation of image and specified Region of Interest."
 			tablehead="Intersection type">
-			<values default="OVERLAPS">
+			<values default="COVERS">
 				<option title="Image overlaps RoI">OVERLAPS</option>
 				<option title="Image covers RoI">COVERS</option>
 				<option title="RoI covers image">ENCLOSED</option>

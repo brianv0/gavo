@@ -186,7 +186,6 @@ def importFixed():
 	dd = base.caches.getRD(rdId).getById("tables")
 	dd.grammar = _staticRscGrammar
 	cleanServiceTablesFor(rdId, connection)
-	connection.commit()
 	rsc.makeData(dd, forceSource=object, parseOptions=rsc.parseValidating,
 		connection=connection)
 	connection.commit()

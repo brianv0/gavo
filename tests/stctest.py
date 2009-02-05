@@ -4,7 +4,7 @@ Tests for handling ivoa stc specifications.
 
 import unittest
 
-from gavo.protocols import stc
+from gavo.stc import stc
 
 import testhelpers
 
@@ -109,12 +109,5 @@ class ValidationTests(unittest.TestCase, testhelpers.XSDTestMixin):
 		self.assertValidates(tree.render(), leaveOffending=__name__=="__main__")
 
 
-def singleTest():
-	suite = unittest.makeSuite(ValidationTests, "testExample2")
-	runner = unittest.TextTestRunner()
-	runner.run(suite)
-
-
 if __name__=="__main__":
-	#unittest.main()
-	singleTest()
+	testhelpers.main(ValidationTests)

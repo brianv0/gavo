@@ -228,6 +228,7 @@ class TestCoordinateQueries(unittest.TestCase):
 
 	def tearDown(self):
 		self.data.dropTables()
+		self.data.closeAll()
 
 	# queries with expected numbers of returned items
 	_testcases = [

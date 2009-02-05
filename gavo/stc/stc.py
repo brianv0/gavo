@@ -5,8 +5,9 @@ Since STC is so insanely huge, we don't implement the whole mess.  I guess
 we should expect to get in STC-S as a rule.
 """
 
+# use python ElementTree here, since cElementTree doesn't seem to have
+# _namespace_map
 from elementtree import ElementTree
-
 from gavo.utils.stanxml import Element, XSINamespace, Error
 
 

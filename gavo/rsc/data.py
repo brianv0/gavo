@@ -6,6 +6,7 @@ import sys
 
 from gavo import base
 from gavo import rscdef
+from gavo.base import sqlsupport
 from gavo.rsc import common
 from gavo.rsc import dbtable
 from gavo.rsc import table
@@ -108,16 +109,15 @@ class Data(base.MetaMixin):
 				if updateIndices:
 					t.dropIndices()
 					t.makeIndices()
-				t.commit()
 		return self
 
-	def recreateTables(self):
+	def recreateTables(self, connection):
 		"""drops and recreates all table that are onDisk.
 
 		System tables are only recreated when the systemImport parseOption
 		is true.
 		"""
-		self.dd.runScripts("preCreation")
+		self.dd.runScripts("preCreation", connection=connection)
 		if self.parseOptions.updateMode or self.dd.updating:
 			return
 		for t in self.tables.values() or self.dd:
@@ -125,7 +125,7 @@ class Data(base.MetaMixin):
 				continue
 			if t.tableDef.onDisk:
 				t.recreate()
-		self.dd.runScripts("postCreation")
+		self.dd.runScripts("postCreation", connection=connection)
 	
 	def dropTables(self):
 		"""drops all tables in this RD that are onDisk.
@@ -137,7 +137,38 @@ class Data(base.MetaMixin):
 			if t.tableDef.system and not self.parseOptions.systemImport:
 				continue
 			if t.tableDef.onDisk:
-				t.drop().commit()
+				t.drop()
+		return self
+
+	def commitAll(self):
+		"""commits all dependent tables.
+
+		You only need to do this if you let the DBTables get their own
+		connections, i.e., didn't create them with a connection argument.
+
+		The method returns the data itself in order to let you do a
+		commitAll().closeAll().
+		"""
+		for t in self.tables.values():
+			if t.tableDef.onDisk:
+				t.commit()
+		return self
+
+	def closeAll(self):
+		"""closes the connections of all dependent tables.
+
+		No implicit commit will be done, so this implies a rollback unless
+		you committed before.
+
+		You only need to do this if you let the DBTables get their own
+		connections, i.e., didn't create them with a connection argument.
+		"""
+		for t in self.tables.values():
+			if t.tableDef.onDisk:
+				try:
+					t.close()
+				except sqlsupport.InterfaceError: # probably shared connection
+					pass                            # was already closed.
 
 	def getPrimaryTable(self):
 		"""returns the table contained if there is only one, or the one
@@ -177,7 +208,6 @@ def processSource(res, source, feeder, opts):
 	srcIter = res.dd.grammar.parse(source)
 	if hasattr(srcIter, "getParameters"):  # is a "normal" grammar
 		feeder.addParameters(srcIter.getParameters())
-		nImported = 0
 		for srcRow in srcIter:
 			base.ui.notifyIncomingRow(srcRow)
 			if opts.dumpRows:
@@ -189,9 +219,8 @@ def processSource(res, source, feeder, opts):
 					base.ui.notifyFailedRow(srcRow, sys.exc_info())
 				else:
 					raise
-			if opts.maxRows:  # Count and bail if we're to stop somewhere
-				nImported +=1
-				if nImported>opts.maxRows:
+			if opts.maxRows:
+				if base.ui.totalRead>opts.maxRows:
 					raise _EnoughRows
 	else:  # magic grammars return a callable
 		srcIter(res)
@@ -208,7 +237,7 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 	"""
 # this will become much prettier once we can use context managers
 	res = Data.create(dd, parseOptions, connection=connection)
-	res.recreateTables()
+	res.recreateTables(connection)
 	feeder = res.getFeeder(batchSize=parseOptions.batchSize)
 	try:
 		if forceSource is None:
@@ -220,15 +249,17 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 		else:
 			processSource(res, forceSource, feeder, parseOptions)
 	except:
-		excHandled = feeder.exit(*sys.exc_info())
-		if connection is not None:
+		if connection:
 			connection.rollback()
+		excHandled = feeder.exit(*sys.exc_info())
 		if not excHandled:
 			raise
 	else:
 		feeder.exit(None, None, None)
 		if connection:
 			connection.commit()
+		else:
+			res.commitAll()
 	res.nAffected = feeder.getAffected()
 	_makeDependents(dd, parseOptions, connection)
 	return res

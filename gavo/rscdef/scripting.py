@@ -94,8 +94,9 @@ class SQLScriptRunner(object):
 	can use the backslash as a continuation character.  Leading whitespace
 	on a continued line is ignored, the linefeed becomes a single blank.
 
-	Also, we abort and raise an exception on any error in the script unless
-	the first character of the command is a "-" (which is ignored otherwise).
+	A leading "-" is ignored for backward compatibility.  It used to
+	mean that a command may fail, but that's far too messy until postgres
+	grows nested transactions.
 	"""
 	def _parseScript(self, script):
 		queries = []
@@ -109,45 +110,25 @@ class SQLScriptRunner(object):
 
 	def run(self, script, verbose=False, connection=None):
 		"""runs script in a transaction of its own.
-
-		The function will retry a script that fails if the failing command
-		was marked with a - as first char.  This means it may rollback
-		an active connection, so don't pass in a connection object
-		unless you're sure what you're doing.
 		"""
 		borrowedConnection = connection is not None
 		if not borrowedConnection:
-			connection = base.getDBConnection(base.getDbProfile())
+			connection = base.getDefaultDBConnection()
 		queries = self._parseScript(script)
-		while 1:
-			cursor = connection.cursor()
-			for ct, (failOk, query) in enumerate(queries):
-				query = query.strip()
-				if not query:
-					continue
-				try:
-					if sqlsupport.debug:
-						print query
-					cursor.execute(query)
-				except sqlsupport.DBError, msg:
-					if False:
-						base.ui.debug("SQL script operation %s failed (%s) -- removing"
-							" instruction and trying again."%(query, 
-								sqlsupport.encodeDBMsg(msg)))
-						queries = queries[:ct]+queries[ct+1:]
-						connection.rollback()
-						break
-					else:
-						raise base.ReportableError("SQL script operation %s failed (%s) --"
-							" aborting script."%(query, sqlsupport.encodeDBMsg(msg)))
-						raise
-			else:
-				break
+		cursor = connection.cursor()
+		for ignored, query in queries:
+			query = query.strip()
+			if not query:
+				continue
+			if sqlsupport.debug:
+				print query
+			cursor.execute(query)
 		cursor.close()
 		if not borrowedConnection:
 			connection.commit()
 			connection.close()
 
+# XXXXXX TODO: unify with run
 	def runBlindly(self, script, querier):
 		"""executes all commands of script in sequence without worrying
 		about the consequences.
@@ -181,14 +162,9 @@ class ScriptHandler(object):
 	def _runSqlScriptInConnection(self, script, connection):
 		"""runs a script in connection.
 
-		Since a SQLScriptRunner may rollback, we commit and being a new transaction.
-		I can't see a way around this until postgres has nested transactions
-		(savepoints don't seem to cut it here).
-
 		For this to work, the caller has to pass in a connection keyword argument
 		to runScripts.
 		"""
-		connection.cursor().execute("COMMIT")
 		runner = SQLScriptRunner()
 		runner.run(script, connection=connection)
 

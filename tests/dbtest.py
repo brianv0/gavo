@@ -25,11 +25,12 @@ class TestTypes(unittest.TestCase):
 	def setUp(self):
 		base.setDBProfile("test")
 		dd = testhelpers.getTestRD().getById("boxTest")
-		self.data = rsc.makeData(dd, forceSource=[{"box": coords.Box(1,2,3,4)}])
+		self.data = rsc.makeData(dd, forceSource=[{"box": coords.Box(1,2,3,4)}],
+			connection=base.getDefaultDBConnection())
 		self.table = self.data.tables["misctypes"]
 
 	def tearDown(self):
-		self.data.dropTables()
+		self.data.dropTables().commitAll().closeAll()
 
 	def testBoxUnpack(self):
 		rows = [r for r in 

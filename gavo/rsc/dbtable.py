@@ -299,6 +299,8 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 			self.connection.close()
 
 	def getFeeder(self, **kwargs):
+		if "notify" not in kwargs:
+			kwargs["notify"] = not self.tableDef.system
 		return Feeder(self, self.addCommand, **kwargs)
 
 	def importFinished(self):
