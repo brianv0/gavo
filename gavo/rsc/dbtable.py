@@ -41,7 +41,10 @@ class Feeder(table.Feeder):
 			except sqlsupport.ProgrammingError:
 				print ">>>>>>>>>>>>>>>", self.cursor.query
 				raise
-			self.nAffected += len(self.batchCache)
+			if self.cursor.rowcount>=0:
+				self.nAffected += self.cursor.rowcount
+			else: # can't guess how much was affected, let's assume all rows
+				self.nAffected += len(self.batchCache)        # did something.
 			if self.notify:
 				base.ui.notifyShipout(len(self.batchCache))
 			self.batchCache = []
@@ -295,7 +298,7 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		"""call this if your table holds an owned connection and you don't need
 		it any more.
 		"""
-		if self.ownedConnection:
+		if self.ownedConnection and not self.connection.closed:
 			self.connection.close()
 
 	def getFeeder(self, **kwargs):

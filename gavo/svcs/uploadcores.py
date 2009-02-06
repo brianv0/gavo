@@ -158,6 +158,7 @@ class EditCore(standardcores.TableBasedCore):
 			connection=conn)
 		table.addRow(inputData.getPrimaryTable().rows[0])
 		conn.commit()
+		conn.close()
 		return rsc.TableForDef(self.outputTable, 
 			rows=[{"nAffected": 1}])
 

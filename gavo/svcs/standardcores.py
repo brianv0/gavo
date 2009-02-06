@@ -147,10 +147,7 @@ def mapDBErrors(excType, excValue, excTb):
 # a method of a baseclass of them when we refactor this mess
 	if hasattr(excValue, "cursor"):
 		log.msg("Failed DB query: %s"%excValue.cursor.query)
-# XXX TODO: Alejandro's pgsql timeout patch somehow doesn't expose 
-# TimeoutError, and I don't have time to fix this now.  So, I check the 
-# exception type the rough way.
-	if excValue.__class__.__name__.endswith("TimeoutError"):
+	if isinstance(excValue, sqlsupport.QueryCanceledError):
 		raise base.ValidationError("Query timed out (took too long).  See"
 			" our help.", "query")
 	elif isinstance(excValue, base.DBError):

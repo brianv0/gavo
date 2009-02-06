@@ -75,6 +75,7 @@ psycopg2.extensions.register_adapter(set, SqlSetAdapter)
 
 from psycopg2 import (OperationalError, DatabaseError, IntegrityError,
 	ProgrammingError, InterfaceError)
+from psycopg2.extensions import QueryCanceledError
 from psycopg2 import Error as DBError
 
 
@@ -87,7 +88,28 @@ def registerType(oid, name, castFunc):
 	psycopg2.extensions.register_type(newOID)
 
 
-def getDBConnection(profile):
+class DebugCursor(psycopg2.extensions.cursor):
+	def execute(self, sql, args=None):
+		print "Executing", sql
+		res = psycopg2.extensions.cursor.execute(self, sql, args)
+		print "Finished", self.query
+		return res
+	
+	def executemany(self, sql, args=[]):
+		print "Executing many", sql
+		print "%d args, first one:\n%s"%(len(args), args[0])
+		res = psycopg2.extensions.cursor.executemany(self, sql, args)
+		print "Finished many", self.query
+		return res
+
+
+class DebugConnection(psycopg2.extensions.connection):
+	def cursor(self, *args, **kwargs):
+		kwargs["cursor_factory"] = DebugCursor
+		return psycopg2.extensions.connection.cursor(self, *args, **kwargs)
+
+
+def getDBConnection(profile, debug=debug):
 	if isinstance(profile, basestring):
 		profile = config.getDBProfileByName(profile)
 	elif profile is None:
@@ -97,16 +119,17 @@ def getDBConnection(profile):
 			" user='%s' password='%s'")%(profile.database, 
 				profile.port, profile.host, profile.user, 
 				profile.password)
-		conn = psycopg2.connect(connString,
-				connection_factory=psycopg2.extras.InterruptibleConnection)
-		return conn
+		if debug:
+			return psycopg2.connect(connString, connection_factory=DebugConnection)
+		else:
+			return psycopg2.connect(connString)
 	except KeyError:
 		raise Error("Insufficient information to connect to database."
 			"  The operators need to check their profiles.")
 
 
-def getDefaultDBConnection():
-	return getDBConnection(config.getDBProfile())
+def getDefaultDBConnection(debug=debug):
+	return getDBConnection(config.getDBProfile(), debug=debug)
 
 
 def encodeDBMsg(msg):
@@ -340,14 +363,9 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 		connection = getDBConnection(self.defaultProfile)
 		cursor = connection.cursor()
 		try:
-			if debug:
-				print "Executing", query, data
-			if timeout:
-				cursor.execute(query, data, timeout=timeout)
-			else:
-				cursor.execute(query, data)
-			if debug:
-				print "Finished", cursor.query
+			if timeout:  # *** Postgres specific ***
+				cursor.execute("SET statement_timeout TO %d"%int(timeout*1000))
+			cursor.execute(query, data)
 		except DBError, msg:
 			cursor.close()
 			connection.rollback()
@@ -386,11 +404,7 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 		"""
 		cursor = self.connection.cursor()
 		try:
-			if debug:
-				print "Executing", query, data
 			cursor.execute(query, data)
-			if debug:
-				print "Finished", cursor.query
 		except DBError:
 			warnings.warn("Failed db query: '%s'"%getattr(cursor, "query",
 				query))
