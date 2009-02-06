@@ -7,6 +7,7 @@ import os
 import pyfits
 
 from gavo import base
+from gavo.base import codetricks
 from gavo.utils import fitstools
 
 anetPath = "/usr/local/astrometry/bin"
@@ -204,7 +205,7 @@ def getWCSFieldsFor(fName, solverParameters, sexScript=None, objectFilter=None):
 	if not "fieldsize" in solverParameters:
 		solverParameters["fieldsize"] = _makeFieldsize(fName)
 	try:
-		res = utils.runInSandbox(_feedFile, _resolve, _retrieveWcs, fName,
+		res = codetricks.runInSandbox(_feedFile, _resolve, _retrieveWcs, fName,
 			solverParameters=solverParameters, sexScript=sexScript,
 			objectFilter=objectFilter)
 	except NotSolved:
