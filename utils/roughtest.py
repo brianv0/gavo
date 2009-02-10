@@ -406,7 +406,7 @@ myTests = [
 #				" (will fail starting 2008-12-31)"),
 		HeadStatusTest(nv_root+"/getproduct?key=danish/data/"
 			"HE0047_20080824T081409_r.fits",
-			403,
+			401,
 			"Product auth test (will fail when embargo strikes)"),
 	),
 

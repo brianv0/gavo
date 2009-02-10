@@ -32,7 +32,7 @@ import httplib
 import sys
 
 
-defaultURL = ("http://vo.ari.uni-heidelberg.de/nv/"
+defaultURL = ("http://dc.zah.uni-heidelberg.de/"
   "rauchspectra/theospectra/upload/mupload")
 
 
@@ -49,17 +49,39 @@ def upload(fName, mode, uploadURL, auth):
   _, host, path, _, query, _ = urlparse.urlparse(uploadURL)
   uri = path+"?"+query
   form = _genForm(fName, mode)
+  mime, payload = encodeMultipartFormdata(form)
   conn = httplib.HTTPConnection(host)
   conn.connect()
-  conn.request("POST", uri, form.as_string(), {
-    "Content-Type": 'multipart/form-data; boundary="%s"'%form.get_boundary(),
+  conn.request("POST", uri, payload, {
+    "Content-Type": mime,
     "Authorization": "Basic %s"%auth.encode("base64"),
     })
   resp = conn.getresponse()
   res = resp.read()
   conn.close()
   return resp.status, res
-  
+
+
+def encodeMultipartFormdata(msg):
+  """returns a safer version of as_string for msg.
+  """
+  msg.set_boundary("====================bnd%x"%(long(id(msg))))
+  BOUNDARY = msg.get_boundary()
+  res = []
+  for part in msg.get_payload():
+    res.append('--' + BOUNDARY)
+    for hdr in part.items():
+      res.append('%s: %s'%hdr)
+    res.append('')
+    if isinstance(part.get_payload(), basestring):
+      res.append(part.get_payload().replace("\n", "\r\n"))
+    else:
+      raise NotImplemented("Cannot encode recursive multiparts yet")
+  res.append('--' + BOUNDARY + '--')
+  res.append('')
+  contentType = 'multipart/form-data; boundary=%s' % BOUNDARY
+  return contentType, "\r\n".join(res)+"\r\nfoobar"
+
 
 class FormData(MIMEMultipart):
   """is a container for multipart/form-data encoded messages.

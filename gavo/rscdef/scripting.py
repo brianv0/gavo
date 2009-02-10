@@ -229,18 +229,24 @@ class ScriptHandler(object):
 
 
 class Script(base.Structure):
-	"""is a script, i.e., some executable item within a resource description.
+	"""A script, i.e., some executable item within a resource descriptor.
+
+	The content of scripts is given by their type -- usually, they are
+	either python scripts or SQL with special rules for breaking the
+	script into individual statements (which are basically like python's).
+
+	See `Scripting`_.
 	"""
 	name_ = "script"
 	typeDesc_ = "Embedded executable code with a type definition"
 
 	_type = base.EnumeratedUnicodeAttribute("type", base.Undefined,
-		description="Type of the script", 
+		description="Type of the script.", 
 		validValues=ScriptHandler.handlers.keys(), copyable=True)
 	_name = base.UnicodeAttribute("name", default="anonymous",
-		description="A human-consumable designation of the script",
+		description="A human-consumable designation of the script.",
 		copyable=True)
-	_content = base.DataContent(copyable=True)
+	_content = base.DataContent(copyable=True, description="The script body.")
 
 
 class ScriptingMixin(object):
@@ -252,7 +258,7 @@ class ScriptingMixin(object):
 	rd attribute.
 	"""
 	_scripts = base.StructListAttribute("scripts", childFactory=Script,
-		description="Code snippets attached to this object",
+		description="Code snippets attached to this object.  See Scripting_ .",
 		copyable=True)
 
 	def __getScriptHandler(self):

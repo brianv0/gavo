@@ -21,25 +21,30 @@ def getCore(name):
 
 
 class Core(base.Structure):
-	"""is something that does computations for a service.
+	"""A definition of the "active" part of a service.
 
-	Cores have an inputDD  which defines what inputs it can possibly take (these
-	must be inputdef.InputTables).  The output should be a res.Data instance
-	with the necessary descriptions.
+	Cores have inputs defined via inputDD, a data descriptor containing
+	InputTables.  The output is normally defined as an OutputTable, though
+	Cores may return other data structures if appropriate.  They cannot
+	be used in services using the standard form renderer then, though.
 
-	Service currently expect cores to return a table; cores define the
-	structure of their default return table in outputTable.  The table
-	returned might have a different structure if the core asks the service
-	what columns it should return for a concrete query.  Users of the
-	tables returned should consult the table metadata, not the core metadata,
-	which is there for registry-type purposes.
+	Note that the table returned by a core must not necessarily match
+	the output format requested by a service exactly.  Services can build
+	restrictions of the core's output.
+
+	Users of the tables returned should consult the table metadata, not the 
+	core metadata, which is there for registry-type purposes.
+
+	The abstract core element will never occur in resource descriptors.  See 
+	`Cores Available`_ for concrete cores.  Use the names of the concrete
+	cores in RDs.
 	"""
 	name_ = "core"
 
 	_rd = rscdef.RDAttribute()
 	_inputDD = base.StructAttribute("inputDD", 
 		childFactory=inputdef.InputDescriptor, description="Description of the"
-			" input data")
+			" input data.")
 	_outputTable = base.StructAttribute("outputTable",
 		childFactory=outputdef.OutputTableDef, description="Table describing"
 			" what fields are available from this core.", copyable=True)
@@ -54,6 +59,10 @@ class Core(base.Structure):
 	def run(self, service, inputData, queryMeta):
 		raise NotImplementedError("%s cores are missing the run method"%
 			self.__class__.__name__)
+
+	def makeUserDoc(self):
+		return ("Polymorphous core element.  May contain any of the cores"
+			" mentioned in `Cores Available`_ .")
 
 
 class StaticCore(Core):

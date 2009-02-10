@@ -79,10 +79,24 @@ class Undefined(object):
 	__metaclass__ = UndefinedType
 
 
+class NotGivenType(type):
+	def __str__(self):
+		raise StructureError("%s cannot be stringified"%self.__class__.__name__)
+
+	__unicode__ = __str__
+
+	def __repr__(self):
+		return "<Not given/empty>"
+
+	def __nonzero__(self):
+		return False
+
+
 class NotGiven(object):
 	"""is a sentinel class for defaultless values that can remain undefined.
 	"""
-	__metaclass__ = UndefinedType
+	__metaclass__ = NotGivenType
+
 
 class Computed(object):
 	"""is a sentinel class for computed (property) defaults.
@@ -148,7 +162,7 @@ class AttributeDef(object):
 			self.__class__.__name__)
 
 	def makeUserDoc(self):
-		return "%s (%s; defaults to %s) -- %s"%(
+		return "**%s** (%s; defaults to %s) -- %s"%(
 			self.name_, self.typeDesc_, repr(self.default_), self.description_)
 
 
@@ -269,7 +283,7 @@ class EnumeratedUnicodeAttribute(UnicodeAttribute):
 	
 	@property
 	def typeDesc_(self):
-		return "One of: %s"%",".join(self.validValues)
+		return "One of: %s"%", ".join(self.validValues)
 
 	def parse(self, value):
 		value = UnicodeAttribute.parse(self, value)
@@ -333,6 +347,7 @@ class StringListAttribute(AtomicAttribute):
 	with UnicodeAttribute items, except the literal is easier to write
 	but more limited.  Use this for the user's convenience.
 	"""
+	typeDesc_ = "Comma-separated list of strings"
 	realDefault = []
 
 	def __init__(self, name, **kwargs):
@@ -372,6 +387,8 @@ class IdMapAttribute(AtomicAttribute):
 
 	The literal format is <id>:<id>{,<id>:<id>} with ignored whitespace.
 	"""
+	typeDesc_ = "Comma-separated list of <identifer>:<identifier> pairs"
+
 	def parse(self, val):
 		if val is None:
 			return None

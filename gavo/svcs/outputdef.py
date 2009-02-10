@@ -7,21 +7,39 @@ from gavo import rscdef
 
 
 class OutputField(rscdef.Column):
-	"""is a column for defining the output of a service.
+	"""A column for defining the output of a service.
 
 	It adds some attributes useful for rendering results, plus functionality
 	specific to certain cores.
+
+	The optional formatter overrides the standard formatting code in HTML
+	(which is based on units, ucds, and displayHints).  This is a standard
+	nevow renderer, having ctx and data as arguments.
+
+	Here's an example for generating a link to another service using this
+	facility::
+
+	  <outputField name="more" 
+	      select="array[centerAlpha,centerDelta] as more" tablehead="More"
+	      description="More exposures near the center of this plate">
+	    <formatter><![CDATA[
+	      return T.a(href=base.makeSitePath("/lswscans/res/positions/q/form?"
+	        "POS=%s,%s&SIZE=1&INTERSECT=OVERLAPS&cutoutSize=0.5"
+		      "&__nevow_form__=genForm"%tuple(data)
+		      ))["More"] ]]>
+	    </formatter>
+	  </outputField>
 	"""
 	name_ = "outputField"
 
 	_formatter = base.UnicodeAttribute("formatter", description="Function"
-		" body to render this item to HTML", copyable=True)
+		" body to render this item to HTML.", copyable=True)
 	_wantsRow = base.BooleanAttribute("wantsRow", description="Does"
-		"formatter expect the entire row rather than the colum value only?",
+		" formatter expect the entire row rather than the colum value only?",
 		copyable="True")
 	_select = base.UnicodeAttribute("select", description="Use this SQL"
 		" fragment rather than field name in the select list of a DB based"
-		" core", default=base.Undefined, copyable=True)
+		" core.", default=base.Undefined, copyable=True)
 	_sets = base.StringSetAttribute("sets", description=
 		"Output sets this field should be included in; ALL includes the field"
 		" in all output sets.",
@@ -41,7 +59,7 @@ class OutputField(rscdef.Column):
 
 
 class OutputTableDef(rscdef.TableDef):
-	"""is a TableDefinition that has OutputColumns for columns.
+	"""A table that has outputFields for columns.
 	"""
 	name_ = "outputTable"
 

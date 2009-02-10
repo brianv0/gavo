@@ -116,6 +116,13 @@ class CBooster:
 
 
 class DirectGrammar(base.Structure):
+	"""A user-defined external grammar.
+
+	See the separate document on user-defined code on more on direct grammars.
+
+	Also note the program gavomkboost that can help you generate core for
+	the C boosters used by direct grammars.
+	"""
 	name_ = "directGrammar"
 	yieldsTyped = True # doesn't matter since it doesn't yield anything.
 

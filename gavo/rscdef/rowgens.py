@@ -15,12 +15,12 @@ from gavo.rscdef import rmkfuncs
 
 
 class RowGenDef(rmkdef.RDFunction):
-	"""is a row generator for grammars.
+	"""A row generator manipulating the raw output of grammars.
 
 	Row generators receive a dictionary (raw row) and return a generator
 	spewing out new rows.
 
-	Rowgens see the incoming row as row.
+	Within the function body, access the incoming row as row.
 	"""
 	name_ = "rowgen"
 

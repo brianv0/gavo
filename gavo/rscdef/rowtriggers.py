@@ -82,12 +82,16 @@ registerTrigger(KeyIs)
 class TriggerAttribute(base.StructListAttribute):
 	"""is an attribute containing a list triggers.
 	"""
-	def __init__(self, name, description, **kwargs):
+	def __init__(self, name, description="Ignored", **kwargs):
 		base.StructListAttribute.__init__(self, name, childFactory=TriggerBase,
 			description=description, **kwargs)
 
 	def create(self, structure, name):
 		return getTrigger(name)(structure)
+	
+	def makeUserDoc(self):
+		return ("One or more conditions joined by an implicit logical or."
+			"  See `Triggers`_ for information on what can stand here.")
 
 
 class ConditionBase(TriggerBase):
@@ -97,8 +101,7 @@ class ConditionBase(TriggerBase):
 	If you don't override __call__, the basic operation is or-ing together
 	all embedded conditions.
 	"""
-	_triggers = TriggerAttribute("triggers",
-		description="A placeholder for concrete triggers.", copyable=True)
+	_triggers = TriggerAttribute("triggers", copyable=True)
 
 	def getDynamicAttribute(self, name):
 		try:
@@ -141,16 +144,14 @@ registerTrigger(And)
 
 
 class IgnoreOn(ConditionBase):
-	"""is a condition that is true when one of the embedded conditions is
-	true.
+	"""A condition on a row that, if true, causes the row to be dropped.
 
-	In addition to ConditionBase, there's an attribute bail.  If it's
-	true, ignored rows aren't ignored but will raise a TriggerPulled
-	error.
+	Here, you can set bail to abort an import when the condition is met
+	rather than just dropping the row.
 	"""
 	name_ = "ignoreOn"
 	_bail = base.BooleanAttribute("bail", default=False, description=
-		"Bail out when the condition is met?")
+		"Abort when condition is met?")
 
 	def __call__(self, row):
 		conditionMet = ConditionBase.__call__(self, row)

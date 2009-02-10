@@ -59,14 +59,14 @@ class CodeFrag(base.Structure):
 	getDefinition()
 	"""
 	_name = base.UnicodeAttribute("name", default=base.Undefined,
-		description="A python identifier for the defined procedure",
+		description="A python identifier for the defined callable.",
 		copyable=True)
 	_args = base.StructListAttribute("args", description="Arguments for"
-		" this proc", childFactory=FuncArg, copyable=True)
-	_code = base.DataContent(copyable=True)
+		" this callable.", childFactory=FuncArg, copyable=True)
+	_code = base.DataContent(copyable=True, description="A python function body.")
 	_doc = base.UnicodeAttribute("doc", default="", description=
 		"Human-readable docs for this proc (may be interpreted as restructured"
-		" text)", copyable=True)
+		" text).", copyable=True)
 	_original = base.OriginalAttribute()
 
 	def _getMoreGlobals(self):

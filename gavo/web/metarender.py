@@ -4,8 +4,6 @@ Renderers that take services "as arguments".
 
 import os
 
-import pkg_resources
-
 from nevow import inevow
 from nevow import loaders
 from nevow import tags as T, entities as E

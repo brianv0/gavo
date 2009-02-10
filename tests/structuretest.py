@@ -128,7 +128,7 @@ class MiscAttributeTest(unittest.TestCase):
 		e._att1.feed(None, e, "right")
 		self.assertEqual(e.att1, "right")
 		self.assertRaises(base.LiteralParseError, e._att1.feed, None, e, "center")
-		self.assertEqual(e._att1.typeDesc_, "One of: right,left")
+		self.assertEqual(e._att1.typeDesc_, "One of: right, left")
 
 
 def _feedInto(baseStruct, eventList):

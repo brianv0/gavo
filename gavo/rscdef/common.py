@@ -19,10 +19,12 @@ class RDAttribute(base.AttributeDef):
 	If we need this, the literal would probably be an id.
 	"""
 	computed_ = True
+	typeDesc_ = "reference to a resource descriptor"
 
 	def __init__(self):
 		base.AttributeDef.__init__(self, "rd", None, "The parent"
-			" resource descriptor")
+			" resource descriptor; never set this manually, the value will"
+			" be filled in by the software.")
 	
 	def iterParentMethods(self):
 		def _getRD(self):
@@ -41,6 +43,9 @@ class RDAttribute(base.AttributeDef):
 					self.__rd = None
 			return self.__rd
 		yield ("rd", property(_getRD))
+
+	def makeUserDoc(self):
+		return None   # don't metion it in docs -- users can't and mustn't set it.
 
 
 class ResdirRelativeAttribute(base.FunctionRelativePathAttribute):
@@ -97,10 +102,10 @@ class RolesMixin(object):
 	"""
 	_readRoles = RoleListAttribute("readRoles", 
 		default=base.getConfig("db", "queryRoles"),
-		description="DB roles that can read data stored here")
+		description="DB roles that can read data stored here.")
 	_allRoles = RoleListAttribute("allRoles", 
 		default=base.getConfig("db", "maintainers"),
-		description="DB roles that can read and write data stored here")
+		description="DB roles that can read and write data stored here.")
 
 
 class ColumnList(list):
@@ -214,10 +219,12 @@ class NamePathAttribute(base.AtomicAttribute):
 	The NamePathAttribute provides a resolveNamed method as expected
 	by base.OriginalAttribute.
 	"""
+	typeDesc_ = "id reference"
+
 	def __init__(self, **kwargs):
 		base.AtomicAttribute.__init__(self, name="namePath", description=
-			"Id of an element tried to satisfy requests for names in"
-			" original attributes.", **kwargs)
+			"Reference to an element tried to satisfy requests for names in"
+			" id references of this element's children.", **kwargs)
 	
 	def iterParentMethods(self):
 		def resolveName(instance, context, id):

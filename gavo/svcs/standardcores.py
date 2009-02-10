@@ -36,26 +36,34 @@ MS = base.makeStruct
 
 
 class CondDesc(base.Structure):
-	"""a CondDesc is part of the semantics of a DbBasedCore.  
+	"""A query specification for cores talking to the database.
 	
-	It defines inputs as InputKeys, so they can be used "naked" if necessary,
-	and provide an asSQL method that returns a query fragment.
-
-	"silent" condDescs only contribute widgets, no SQL.  This can be used
-	for "meta" input for renderers (as opposed to the core).
+	CondDescs define inputs as a sequence of InputKeys (see `Element InputKey`_).
+	Internally, the values in the InputKeys can be translated to SQL.
 	"""
 	name_ = "condDesc"
 
 	_inputKeys = base.StructListAttribute("inputKeys", 
-		childFactory=inputdef.InputKey, copyable=True)
+		childFactory=inputdef.InputKey, copyable=True,
+		description="One or more InputKeys defining the condition's input.")
 	_silent = base.BooleanAttribute("silent", default=False,
-		copyable=True)
+		copyable=True, description="Do not produce SQL from this CondDesc.  This"
+			" can be used to convey meta information to the core.  However,"
+			" in general, a service is a more appropriate place to deal with"
+			" such information, and thus you should prefer service InputKeys"
+			" to silent CondDescs.")
 	_required = base.BooleanAttribute("required", default=False,
-		copyable=True)
+		copyable=True, description="Reject queries not filling the InputKeys"
+			" of this CondDesc")
 	_fixedSQL = base.UnicodeAttribute("fixedSQL", default=None,
-		copyable=True)
-	_buildFrom = base.ActionAttribute("buildFrom", "feedFromInputKey")
-	_predefined = base.ActionAttribute("predefined", "replaceWithPredefined")
+		copyable=True, description="Always insert this SQL statement into"
+			" the query.  Deprecated.")
+	_buildFrom = base.ActionAttribute("buildFrom", "feedFromInputKey",
+		description="A reference to an InputKey to define this CondDesc")
+	_predefined = base.ActionAttribute("predefined", "replaceWithPredefined",
+		description="Name of a predefined CondDesc to base this CondDesc on."
+		"  This is a magic attribute that should be seen by the parser"
+		" as early as possible.")
 
 	def __init__(self, parent, **kwargs):
 		base.Structure.__init__(self, parent, **kwargs)

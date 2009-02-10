@@ -3,7 +3,11 @@ Generation of system docs by introspection and combination with static
 docs.
 """
 
+import re
+import sys
 import textwrap
+
+import pkg_resources
 
 from gavo import api
 from gavo import base
@@ -20,14 +24,14 @@ class RSTFragment(object):
 	def makeSpace(self):
 		"""adds an empty line unless the last line already is empty.
 		"""
-		if self.content and self.content[-1]!="":
-			self.content.append("")
+		if self.content and self.content[-1]!="\n":
+			self.content.append("\n")
 
 	def addHead(self, head, underliner):
 		self.makeSpace()
-		self.content.append(head)
-		self.content.append(underliner*len(head))
-		self.content.append("")
+		self.content.append(head+"\n")
+		self.content.append(underliner*len(head)+"\n")
+		self.content.append("\n")
 	
 	def addHead1(self, head):
 		self.addHead(head, self.level1)
@@ -42,36 +46,68 @@ class RSTFragment(object):
 		try:
 			# we suspect a headline if the last two contributions are a line
 			# make up of on char type and an empty line.
-			if self.content[-1]=="" and len(set(self.content[-2]))==1:
+			if self.content[-1]=="\n" and len(set(self.content[-2]))==2:
 				self.content[-3:] = []
 		except IndexError:  # not enough material to take something away
 			pass
 
 	def addULItem(self, content, bullet="*"):
+		if content is None:
+			return
 		initialIndent = bullet+" "
 		self.content.append(textwrap.fill(content, initial_indent=initialIndent,
-			subsequent_indent=" "*len(initialIndent)))
+			subsequent_indent=" "*len(initialIndent))+"\n")
 
 	def addNormalizedPara(self, stuff):
 		"""adds stuff to the document, making sure it's not glued to any
 		previous material and removing whitespace as necessary for docstrings.
 		"""
 		self.makeSpace()
-		self.content.append(base.fixIndentation(stuff, "", governingLine=1))
+		self.content.append(base.fixIndentation(stuff, "", governingLine=2)+"\n")
 
 	def addRaw(self, stuff):
 		self.content.append(stuff)
 	
-	def getRST(self):
-		return "\n".join(self.content)
+
+class ParentPlaceholder(object):
+	"""is a sentinel left in the proto documentation, to be replaced by
+	docs on the element parents found while processing.
+	"""
+	def __init__(self, elementName):
+		self.elementName = elementName
+
+
+class DocumentStructure(dict):
+	"""is a dict keeping track of what elements have been processed and
+	which children they had.
+
+	From this information, it can later fill out the ParentPlaceholders
+	left in the proto reference doc.
+	"""
+	def _makeDoc(self, parents):
+		return "May occur in %s.\n"%", ".join("`Element %s`_"%name
+			for name in parents)
+
+	def fillOut(self, protoDoc):
+		parentDict = {}
+		for parent, children in self.iteritems():
+			for child in children:
+				parentDict.setdefault(child, []).append(parent)
+		for index, item in enumerate(protoDoc):
+			if isinstance(item, ParentPlaceholder):
+				if item.elementName in parentDict:
+					protoDoc[index] = self._makeDoc(parentDict[item.elementName])
+				else:
+					protoDoc[index] = ""
 
 
 class StructDocMaker(object):
 	"""is a class encapsulating generation of documentation from structs.
 	"""
-	def __init__(self, level1="'", level2="."):
+	def __init__(self, docStructure, level1="'", level2="."):
 		self.level1, self.level2 = level1, level2
 		self.docParts = []
+		self.docStructure = docStructure
 		self.visitedClasses = set()
 
 	def _iterMatchingAtts(self, klass, condition):
@@ -94,6 +130,8 @@ class StructDocMaker(object):
 			return True
 
 	def addDocsFrom(self, klass):
+		if klass.name_ in self.docStructure:
+			return
 		self.visitedClasses.add(klass)
 		content = RSTFragment(self.level1, self.level2)
 		content.addHead1("Element %s"%klass.name_)
@@ -102,22 +140,22 @@ class StructDocMaker(object):
 		else:
 			content.addNormalizedPara("NOT DOCUMENTED")
 
+		content.addRaw(ParentPlaceholder(klass.name_))
+
 		content.addHead2("Atomic Children")
 		for att in self._iterAttsOfBase(klass, base.AtomicAttribute):
-			if att.name_!="id":
-				content.addULItem(att.makeUserDoc())
+			content.addULItem(att.makeUserDoc())
 		content.delEmptySection()
-		
+	
+		children = []
 		content.addHead2("Structure Children")
 		for att in self._iterAttsOfBase(klass, base.StructAttribute):
-			if not hasattr(att, "childFactory"):
-				content.addULItem("Polymorphous attribute %s; see separate"
-					" description."%att.name_)
-			else:
-				content.addULItem("%s (contains `Element %s`_) -- %s"%(
-					att.name_, att.childFactory.name_, att.description_))
+			content.addULItem(att.makeUserDoc())
+			if hasattr(att, "childFactory"):
+				children.append(att.childFactory.name_)
 				if att.childFactory not in self.visitedClasses:
 					self.addDocsFrom(att.childFactory)
+		self.docStructure.setdefault(klass.name_, []).extend(children)
 		content.delEmptySection()
 	
 		content.addHead2("Other Children")
@@ -127,18 +165,57 @@ class StructDocMaker(object):
 		content.delEmptySection()
 		content.makeSpace()
 
-		self.docParts.append((klass.name_, content.getRST()))
+		self.docParts.append((klass.name_, content.content))
 
 	def getDocs(self):
 		self.docParts.sort()
-		return "\n".join(doc for title, doc in self.docParts)
+		resDoc = []
+		for title, doc in self.docParts:
+			resDoc.extend(doc)
+		return resDoc
 
+# XXX TODO: Check for macros.
 
-def getStructDocs():
-	dm = StructDocMaker()
+def getStructDocs(docStructure):
+	dm = StructDocMaker(docStructure)
 	dm.addDocsFrom(rscdesc.RD)
 	return dm.getDocs()
 
 
+def getGrammarDocs(docStructure):
+	from gavo.rscdef import dddef
+	dm = StructDocMaker(docStructure)
+	for name, struct in sorted(dddef._grammarRegistry.items()):
+		dm.addDocsFrom(struct)
+	return dm.getDocs()
+		
+
+_replaceWithResultPat = re.compile(".. replaceWithResult (.*)")
+
+def makeReferenceDocs():
+	"""returns a restructured text containing the reference documentation
+	built from the template in refdoc.rstx.
+
+	**WARNING**: refdoc.rstx can execute arbitrary code right now.  We
+	probably want to change this to having macros here.
+	"""
+	res, docStructure = [], DocumentStructure()
+	f = pkg_resources.resource_stream("gavo", "resources/templates/refdoc.rstx")
+	for ln in f:
+		mat = _replaceWithResultPat.match(ln)
+		if mat:
+			res.extend(eval(mat.group(1)))
+			res.append("\n")
+		else:
+			res.append(ln)
+	f.close()
+	docStructure.fillOut(res)
+	return "".join(res)
+
+
+def main():
+	print makeReferenceDocs()
+
+
 if __name__=="__main__":
-	print getStructDocs()
+	print  getGrammarDocs(DocumentStructure())

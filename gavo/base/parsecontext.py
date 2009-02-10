@@ -103,6 +103,9 @@ class IdAttribute(attrdef.UnicodeAttribute):
 	def getCopy(self, parent, newParent):
 		return None  # ids may not be copied
 
+	def makeUserDoc(self):
+		return None  # don't mention it in docs -- all structures have it
+
 
 class OriginalAttribute(attrdef.AtomicAttribute):
 	"""is an attribute that resolves an item 	copies over the managed 
@@ -121,8 +124,11 @@ class OriginalAttribute(attrdef.AtomicAttribute):
 	names will raise an AssertionError right now.
 	"""
 	computed_ = True
+	typeDesc_ = "id reference"
 
-	def __init__(self, name="original", description="Undocumented", 
+	def __init__(self, name="original", description="An id of an element"
+			" to base the current one on.  This provides a simple inheritance"
+			" method.  The general rules for advanced referencing in RDs apply.", 
 			forceType=None, **kwargs):
 		assert name=='original'
 		attrdef.AtomicAttribute.__init__(self, name, None, description,
@@ -149,6 +155,8 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 	Do not confuse this with structure.RefAttribute -- here, the parent remains
 	unscathed, and it's much less messy overall.
 	"""
+	typeDesc_ = "id reference"
+
 	def __init__(self, name="ref", default=attrdef.Undefined,
 			description="Uncodumented", forceType=None, **kwargs):
 		attrdef.AtomicAttribute.__init__(self, name, default,

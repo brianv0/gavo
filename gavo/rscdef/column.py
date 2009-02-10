@@ -13,7 +13,11 @@ from gavo.base.attrdef import *
 class TypeNameAttribute(AtomicAttribute):
 	"""is an attribute with values constrained to types we understand.
 	"""
-	typeDesc = "type (mostly SQL types)"
+	@property
+	def typeDesc_(self):
+		return ("a type name; the internal type system is similar to SQL's"
+			" with some restrictions and extensions.  The known atomic types"
+			" include: %s"%(", ".join(typesystems.ToPythonConverter.simpleMap)))
 
 	def parse(self, value):
 		try:
@@ -89,23 +93,24 @@ class DisplayHintAttribute(AtomicAttribute):
 
 
 class Option(base.Structure):
-	"""is a possible value for enumerated columns.
+	"""A value for enumerated columns.
 
 	For presentation purposes, an option can have a title, defaulting to
 	the option's value.
 	"""
 	name_ = "option"
 
-	_title = base.UnicodeAttribute("title", default=None,
-		description="Label for presentation purposes", copyable=True)
-	_val = base.DataContent(copyable=True)
+	_title = base.UnicodeAttribute("title", default=base.NotGiven,
+		description="A Label for presentation purposes; defaults.", copyable=True)
+	_val = base.DataContent(copyable=True, description="The value of"
+		" the option; this is what is used in, e.g., queries and the like.")
 
 	def __repr__(self):
 		# may occur in user messages from formal, so we use title.
 		return self.title
 
 	def completeElement(self):
-		if self.title is None:
+		if self.title is base.NotGiven:
 			self.title = self.content_
 		self._completeElementNext(Option)
 
@@ -142,11 +147,10 @@ except ImportError: # no formal/twisted -- let's hope we won't need it.
 
 
 class Values(base.Structure):
-	"""is a model for domains of the values of data fields.
+	"""Information on a column's values, in particular its domain.
 
 	This is quite like the values element in a VOTable, except that nullLiterals
-	of course are strings, where in VOTables nullvalues have the type of
-	their field.
+	are strings, where in VOTables nullvalues have the type of their field.
 	"""
 	name_ = "values"
 
@@ -166,7 +170,7 @@ class Values(base.Structure):
 		" multiple options", copyable=True)
 	_fromDB = ActionAttribute("fromdb", "_evaluateFromDB", description=
 		"A query returning just one column to fill options from (will"
-		" add to options if some are given.)")
+		" add to options if some are given).")
 
 	def makePythonVal(self, literal, sqltype):
 		return typesystems.sqltypeToPython(sqltype)(literal)
@@ -221,10 +225,22 @@ class Values(base.Structure):
 
 
 class Column(base.Structure):
+	"""A database column.
+	
+	Columns contain almost all metadata to describe a column in a database
+	table or a VOTable (the exceptions are for column properties that may
+	span several columns, most notably indices).
+
+	Note that the type system adopted by the DC software is a subset
+	of postgres' type system.  Thus when defining types, you have to
+	specify basically SQL types.  Types for other type systems (like
+	VOTable, XSD, or the software-internal representation in python values)
+	are inferred from them.
+	"""
 	name_ = "column"
 
 	_name = UnicodeAttribute("name", default=base.Undefined,
-		description="Name of the column (should be SQL-valid)",
+		description="Name of the column (must be SQL-valid for onDisk tables).",
 		copyable=True, before="type")
 	_type = TypeNameAttribute("type", default="real", description=
 		"datatype for the column (SQL-like type system)",
@@ -234,7 +250,8 @@ class Column(base.Structure):
 	_ucd = UnicodeAttribute("ucd", default="", description=
 		"UCD of the column", copyable=True, before="description")
 	_description = UnicodeAttribute("description", 
-		default="", description="Short (one-line) description", copyable=True)
+		default="", copyable=True,
+		description="A short (one-line) description of the values in this column.")
 	_tablehead = TableheadAttribute("tablehead",
 		description="Terse phrase to put into table headers for this"
 			" column", copyable=True)
@@ -247,7 +264,10 @@ class Column(base.Structure):
 		description="Raw SQL used as a references clause in DDL statements.",
 		copyable=True)
 	_displayHint = DisplayHintAttribute("displayHint", 
-		description="Suggested presentation", copyable=True)
+		description="Suggested presentation; the format is "
+			" <kw>=<value>{,<kw>=<value>}, where what is interpreted depends"
+			" on the output format.  See, e.g., documentation on HTML renderers"
+			" and the formatter child of outputFields.", copyable=True)
 	_verbLevel = IntAttribute("verbLevel", default=30,
 		description="Minimal verbosity level at which to include this column", 
 		copyable=True)
@@ -255,9 +275,10 @@ class Column(base.Structure):
 		childFactory=Values, description="Specification of legal values", 
 		copyable=True)
 	_longdescr = UnicodeAttribute("longdescr", description=
-		"Longish documentation for this column", copyable=True)
+		"Longish documentation for this column.  Text in here is typically"
+		" presented in verbose table descriptions.", copyable=True)
 	_longmime = UnicodeAttribute("longmime", 
-		description="Mime type for longdescr", copyable=True)
+		description="Mime type for longdescr.", copyable=True)
 	_properties = base.PropertyAttribute()
 	_original = base.OriginalAttribute()
 

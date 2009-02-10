@@ -358,8 +358,9 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 			).addErrback(self._handleEscapedErrors, ctx)
 	
 	def _handleEscapedErrors(self, failure, ctx):
-		failure.trap(svcs.UnknownURI)
-		return weberrors.NotFoundPage()
+		if isinstance(failure.value, svcs.UnknownURI):
+			return weberrors.NotFoundPage()
+		return failure
 
 	def data_chunkedServiceList(self, ctx, data):
 		"""returns a service list alphabetically chunked.

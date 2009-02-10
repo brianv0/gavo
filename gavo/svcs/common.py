@@ -31,6 +31,10 @@ class ForbiddenURI(Error):
 	"""signifies that a HTTP 403 should be returned by the dispatcher.
 	"""
 
+class Authenticate(Error):
+	"""signifies that a HTTP 401 should be returned by the dispatcher.
+	"""
+
 class WebRedirect(Error):
 	"""causes the dispatcher to redirect the client to the URL in the exception's
 	value.

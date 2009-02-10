@@ -174,6 +174,10 @@ class DictAttribute(AttributeDef):
 	def getCopy(self, instance, newParent):
 		return getattr(instance, self.name_).copy()
 
+	def makeUserDoc(self):
+		return "**%s** (mapping; the key is given in the %s attribute) -- %s"%(
+			self.itemAttD.name_, self.keyName, self.description_)
+
 
 class PropertyAttribute(DictAttribute):
 	"""adds the property protocol to the parent instance.
@@ -185,8 +189,8 @@ class PropertyAttribute(DictAttribute):
 	This is provided for user information and, to some extent, some 
 	DC-internal purposes.
 	"""
-	def __init__(self, description="Properties for the element",
-			**kwargs):
+	def __init__(self, description="Properties (i.e., user-defined"
+			" key-value pairs) for the element.", **kwargs):
 		DictAttribute.__init__(self, "properties", description=description, 
 			keyName="name", **kwargs)
 		self.xmlName_ = "property"
@@ -203,6 +207,9 @@ class PropertyAttribute(DictAttribute):
 				return self.properties.get(name, default)
 		yield "getProperty", getProperty
 
+	def makeUserDoc(self):
+		return ("**property** (mapping of user-defined keywords in the"
+			"name attribute to string values)")
 
 class StructAttribute(AttributeDef):
 	"""describes an attribute containing a Structure
@@ -264,6 +271,10 @@ class StructAttribute(AttributeDef):
 		if hasattr(val, "onParentCompleted"):
 			val.onParentCompleted()
 
+	def makeUserDoc(self):
+		return "%s (contains `Element %s`_) -- %s"%(
+			self.name_, self.childFactory.name_, self.description_)
+
 
 class StructListAttribute(StructAttribute):
 	"""describes an attribute containing a homogeneous list of structures.
@@ -318,6 +329,10 @@ class StructListAttribute(StructAttribute):
 			for item in val:
 				if hasattr(item, "onParentCompleted"):
 					item.onParentCompleted()
+
+	def makeUserDoc(self):
+		return ("%s (contains `Element %s`_ and may be repeated zero or more"
+			" times) -- %s")%(self.name_, self.childFactory.name_, self.description_)
 
 
 __all__ = ["ListOfAtomsAttribute", "DictAttribute", "StructAttribute",

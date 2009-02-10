@@ -25,7 +25,10 @@ class ListIterator(RowIterator):
 
 
 class DictlistGrammar(Grammar):
-	"""is a grammar that "parses" from lists of dicts.
+	"""A grammar that "parses" from lists of dicts.
+
+	Actually, it will just return the dicts as they are passed.  This is
+	mostly useful internally, though it might come in handy in custom code.
 	"""
 	name_ = "dictlistGrammar"
 	rowIterator = ListIterator

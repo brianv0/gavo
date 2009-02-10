@@ -90,9 +90,12 @@ class RefAttribute(attrdef.AttributeDef):
 	See parsecontext.OriginalAttribute of a discussion on name.
 	"""
 	computed_ = True
+	typeDesc_ = "id reference"
 
-	def __init__(self, name="ref", description="Undocumented", 
-			forceType=None):
+	def __init__(self, name="ref", description="A reference to another node"
+			" that will stand in here.  You cannot add attributes or children"
+			" to the element referenced here.  Do not use this unless you know"
+			" what you are doing.", forceType=None):
 		assert name=='ref'
 		attrdef.AttributeDef.__init__(self, name, attrdef.Computed, description)
 		self.forceType = forceType

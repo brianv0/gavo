@@ -44,10 +44,11 @@ class SplitLineIterator(FileRowIterator):
 
 
 class ColRangeAttribute(base.UnicodeAttribute):
-	"""is an attribute holding a range of indices.
+	"""A range of indices.
 
-	They can be specified as either <int>-<int> or just <int>.  Ranges are,
-	contrary to python slices, inclusive on both sides, and start counting
+	Ranges can be specified as either <int1>-<int2> or just <int>
+	(which is equivalent to <int>-<int>) Ranges are, contrary to
+	python slices, inclusive on both sides, and start counting
 	from one.
 	"""
 	def parse(self, value):
@@ -64,16 +65,18 @@ class ColRangeAttribute(base.UnicodeAttribute):
 
 
 class ColumnGrammar(Grammar):
-	"""is a grammar that builds rowdicts out of column specifications.
+	"""A grammar that builds rowdicts out of character index ranges.
 
-	This works by using the colRanges attribute like <col key="mag">12-16</col>
+	This works by using the colRanges attribute like <col key="mag">12-16</col>,
+	which will take the characters 12 through 16 inclusive from each input
+	line to build the input column mag.
 	"""
 	name_ = "columnGrammar"
 
 	_til = base.IntAttribute("topIgnoredLines", default=0, description=
-		"Skip this many lines at the top of each source file")
+		"Skip this many lines at the top of each source file.")
 	_cols = base.DictAttribute("colRanges", description="Mapping of"
-		" source keys to column ranges", itemAttD=ColRangeAttribute("col"))
+		" source keys to column ranges.", itemAttD=ColRangeAttribute("col"))
 	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"
 		" while reading?", default=False)
 	

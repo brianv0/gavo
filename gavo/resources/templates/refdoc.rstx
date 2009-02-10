@@ -1,0 +1,54 @@
+========================================
+GAVO DC Software Reference Documentation
+========================================
+
+
+.. contents::
+
+
+Resource Descriptor Element Reference
+=====================================
+
+The following (XML) elements are defined for resource descriptors.  Some
+elements are polymorous (Grammars, Cores).  See below for a reference
+on the respective real elements known to the software.
+
+In general, items defaulting to Undefined are mandatory.  Failing to
+give a value will result in a parse error.  Exceptions to this rule are
+given at the respective elements.
+
+.. replaceWithResult getStructDocs(docStructure)
+
+
+Grammars Available
+==================
+
+The following elements are all grammar related.  All grammar elements
+can occur in data descriptors.
+
+.. replaceWithResult getGrammarDocs(docStructure)
+
+Cores Available
+===============
+
+TBD
+
+Writing Row Makers
+==================
+
+TBD
+
+Scripting
+=========
+
+TBD
+
+Triggers
+========
+
+TBD
+
+Mixins
+======
+
+TBD

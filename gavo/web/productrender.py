@@ -199,7 +199,7 @@ class ProductRenderer(grend.ServiceBasedRenderer):
 			res = makePreviewFromProduct(rsc, request)
 			return res
 		if isinstance(rsc, products.UnauthorizedProduct):
-			raise svcs.ForbiddenURI(rsc.sourcePath)
+			raise svcs.Authenticate(rsc.sourcePath)
 		return self._deliverPlainFile(rsc, request)
 
 	def _deliverPlainFile(self, resource, request):

@@ -36,6 +36,7 @@ setup(name="gavo",
 			'gavopublish = gavo.protocols.servicelist:main',
 			'gavomkboost = gavo.grammars.directgrammar:main',
 			'gavoconfig = gavo.base.config:main',
+			'gavogendoc = gavo.user.docgen:main',
 		]
 	},
 	version="0.3")

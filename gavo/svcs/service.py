@@ -160,15 +160,17 @@ class SvcResult(object):
 
 
 class Publication(base.Structure):
+	"""A specification of how a service should be published.
+	"""
 	name_ = "publish"
 
 	_rd = rscdef.RDAttribute()
 	_render = base.UnicodeAttribute("render", default=base.Undefined,
-		description="The renderer the publication will point at")
+		description="The renderer the publication will point at.")
 	_sets = base.StringListAttribute("sets", default="local",
 		description="Comma-separated list of sets this service will be"
-			" published in.  local=publish on front page, ivo_managed="
-			"register with the VO registry")
+			" published in.  Predefined are: local=publish on front page,"
+			" ivo_managed=register with the VO registry")
 
 	def completeElement(self):
 		if self.render is base.Undefined:
@@ -176,12 +178,29 @@ class Publication(base.Structure):
 
 
 class CustomRF(base.Structure):
+	"""A custom render function for a service.
+
+	Custom render functions can be used to expose certain aspects of a service
+	to Nevow templates.  Thus, their definition usually only makes sense with
+	custom templates, though you could, in principle, override built-in
+	render functions.
+
+	In the render functions, you have the names ctx for nevow's context and
+	data for whatever data the template passes to the renderer. 
+
+	You can return anything that can be in a stan DOM.  Usually, this will be
+	a string.  To return HTML, use the stan DOM available under the T namespace.
+
+	As an example, the following code returns the current data as a link::
+
+		return ctx.data[T.a(href=data)[data]]
+	"""
 	name_ = "customRF"
 	_name = base.UnicodeAttribute("name", default=base.Undefined,
-		description="Name of the render funciton (as used in custom"
-			" templates).", copyable=True)
-	_code = base.DataContent(description="Function body of the renderer.",
-		copyable=True)
+		description="Name of the render function (use this in the"
+			" n:render attribute in custom templates).", copyable=True)
+	_code = base.DataContent(description="Function body of the renderer; the"
+		" arguments are named ctx and data.", copyable=True)
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(CustomRF)
@@ -194,7 +213,10 @@ class CustomRF(base.Structure):
 
 class Service(base.Structure, base.ComputedMetaMixin, 
 		rscdef.StandardMacroMixin):
-	"""is a model for a service.
+	"""A service definition.
+
+	A service is a combination of a core and one or more renderers.  They
+	can be published, and they carry the metadata published into the VO.
 	"""
 	name_ = "service"
 
@@ -202,30 +224,32 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	# like VOTables and offer a "verbosity" widget in forms).
 	htmlLikeFormats = ["HTML", "tar"]
 
-	_core = base.ReferenceAttribute("core", description="The entity that"
-		" does the computations for this core", forceType=core.Core,
+	_core = base.ReferenceAttribute("core", description="The core that"
+		" does the computations for this service.", forceType=core.Core,
 		copyable=True)
 	_templates = base.DictAttribute("templates", description="Custom"
-		" templates for this service", itemAttD=rscdef.ResdirRelativeAttribute(
-				"template", description="resdir-relative path to a template"
-				" for the function given in key"), copyable=True)
+		" nevow templates for this service.", 
+		itemAttD=rscdef.ResdirRelativeAttribute(
+			"template", description="resdir-relative path to a nevow template"
+			" used for the function given in key.  Currently, the form renderer"
+			" uses 'form' and 'response' as keys."), copyable=True)
 	_publications = base.StructListAttribute("publications",
 		childFactory=Publication, description="Sets and renderers this service"
-			" is published with")
+			" is published with.")
 	_limitTo = base.UnicodeAttribute("limitTo", default=None,
-		description="If set, limit access to the group in the value",
-		copyable="True")
+		description="Limit access to the group given; the empty default disables"
+		" access control.", copyable="True")
 	_staticData = rscdef.ResdirRelativeAttribute("staticData",
-		default=None, description="resdir-relative path to static data",
-		copyable=True)
+		default=None, description="resdir-relative path to static data.  This"
+		" is used by the static renderer.", copyable=True)
 	_customPage = rscdef.ResdirRelativeAttribute("customPage", default=None,
-		description="resdir-relative path to custom page code",
-		copyable="True")
+		description="resdir-relative path to custom page code.  It is used"
+		" by the 'custom' renderer", copyable="True")
 	_allowedRenderers = base.StringSetAttribute("allowed",
-		description="Names of renderers allowed on this service",
-		copyable=True)
+		description="Names of renderers allowed on this service; leave emtpy"
+		" to allow the form renderer only.", copyable=True)
 	_customRF = base.StructListAttribute("customRFs",
-		description="Custom render functions defined just for this service",
+		description="Custom render functions for use in custom templates.",
 		childFactory=CustomRF, copyable=True)
 	_inputData = base.StructAttribute("inputDD", default=base.NotGiven,
 		childFactory=inputdef.InputDescriptor, description="A data descriptor"
@@ -234,10 +258,11 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			" but rather want to let service figure this out from the core.",
 		copyable=True)
 	_outputTable = base.StructAttribute("outputTable", default=base.NotGiven,
-		childFactory=outputdef.OutputTableDef, copyable=True)
+		childFactory=outputdef.OutputTableDef, copyable=True, description=
+		"The output fields of this service.")
 	_serviceKeys = base.StructListAttribute("serviceKeys",
 		childFactory=inputdef.InputKey, description="Input widgets for"
-			" processing by the service (e.g., for renderers)", copyable=True)
+			" processing by the service, e.g. output sets.", copyable=True)
 	_rd = rscdef.RDAttribute()
 	_props = base.PropertyAttribute()
 	_original = base.OriginalAttribute()

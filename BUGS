@@ -22,3 +22,8 @@
 7/LOW/2009-02-02
 	MultiSelections are not handled correctly when used in bookmarkable forms 
 	-- only the first selection is kept.
+
+8/WISHLIST/2009-02-10
+	Columns, Tables, Data Descriptors should get stripped-down base classes,
+	such that an OutputTable doesn't have an adql attribute.  It simply looks
+	bad in the docs.

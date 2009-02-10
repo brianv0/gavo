@@ -308,7 +308,7 @@ class Grammar(base.Structure, GrammarMacroMixin):
 		if self.rowgen:
 			ri.rowgen = self.compileRowgen()
 		return ri
-	
+
 
 class NullGrammar(Grammar):
 	"""is a grammar that never returns any rows.

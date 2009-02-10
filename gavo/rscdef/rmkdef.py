@@ -32,28 +32,30 @@ class _NotGiven(object):
 
 
 class MapRule(base.Structure):
-	"""is a mapping rule.
+	"""A mapping rule.
 
-	It consists of a destination, the name of a column in the target
-	table, and either a src, which refers to some input item or defined
-	var, the value of which is converted to a python value and stored,
-	or a python expression that is computed.  In the latter case, no
-	type conversion will be attempted.
+	To specify the source of a mapping, you can either
+	
+	* use a key emitted by the grammar or defined using var.  The value of 
+	  of the key is converted to a python value and stored.
+	* or give a python expression in the body.  In that case, no further
+	  type conversion will be attempted.
 
 	If src is not given, it defaults to dest.
 	"""
 	name_ = "map"
 
 	_dest = base.UnicodeAttribute("dest", default=base.Undefined, 
-		description="Name of the column this value is computed for",
+		description="Name of the column the value is to end up in.",
 		copyable=True)
 	_src = base.UnicodeAttribute("src", default=None,
-		description="Source field name to convert to column value",
-		copyable=True)
+		description="Source key name to convert to column value (either a grammar"
+		" key or a var).", copyable=True)
 	_nullExcs = base.UnicodeAttribute("nullExcs", default=base.NotGiven,
 		description="A python tuple of exceptions that should be caught and"
-		" cause the value to be NULL")
-	_expr = base.DataContent(copyable=True)
+		" cause the value to be NULL.")
+	_expr = base.DataContent(copyable=True, description="A python"
+		" expression giving the value to end up in dest")
 
 
 	def completeElement(self):
@@ -100,17 +102,19 @@ class MapRule(base.Structure):
 
 
 class VarDef(base.Structure):
-	"""is a definition of a computed variable.
+	"""A definition of a rowmaker variable.
 
 	It consists of a name and a python expression, including function
-	calls.
+	calls.  The variables are entered into the input row coming from
+	the grammar.
 	"""
 	name_ = "var"
 	
 	_name = base.UnicodeAttribute("name", default=base.Undefined, 
 		description="Name of the variable (under which it can later be"
 			" referred to", copyable=True)
-	_expr = base.DataContent(copyable=True)
+	_expr = base.DataContent(copyable=True, description="A python expression."
+		" Its value is accessible under the key name in the input row.")
 
 	def completeElement(self):
 		if self.content_ and "\\" in self.content_:
@@ -132,8 +136,15 @@ class VarDef(base.Structure):
 
 
 class ConsComputer(callablebase.CodeFrag):
-	"""is a CodeFrag for the computation of locals dictionaries for
-	RDFunction compilation.
+	"""A code fragment for the computation of locals rowmaker procs, rowgens,
+	and similar constructs.
+
+	ConsComputers have python code in their bodies.  The python code must
+	return a dictionary.  The keys in this dictionary are available as
+	variables in the respective function.
+
+	You can use this to precompute values that are identical for all items
+	a given callable returns.
 	"""
 	name_ = "consComp"
 
@@ -150,6 +161,10 @@ class ConsComputer(callablebase.CodeFrag):
 
 
 class ConsArg(callablebase.FuncArg):
+	"""An argument to a rowmaker constructor.
+
+	See `Element rowmaker`_
+	"""
 	name_ = "consArg"
 
 
@@ -166,14 +181,16 @@ class RDFunction(callablebase.CodeFrag):
 	method.  Both methods have to be defined by subclasses.
 	"""
 	_consComp = base.StructAttribute("consComp", default=None,
-		childFactory=ConsComputer, copyable=True)
+		childFactory=ConsComputer, copyable=True, description="A callable"
+		" returning a dictionary with additional names available to the callable"
+		" defined.")
 	_consArgs =  base.StructListAttribute("consArgs", 
-		description="Arguments for the constructor", childFactory=ConsArg)
+		description="Arguments for this callable's constructor.", 
+		childFactory=ConsArg)
 	_predefined = base.UnicodeAttribute("predefined", default=None,
-		description="Name of a predefined procedure.  The arguments are"
-			" given in arg elements")
+		description="Name of a predefined procedure to base this one on.")
 	_isGlobal = base.BooleanAttribute("isGlobal", default=False,
-		description="Register this procedure globally under this name")
+		description="Register this procedure globally under its name.")
 
 	def validate(self):
 		"""checks that there's not both code and predefined given.
@@ -230,13 +247,11 @@ class RDFunction(callablebase.CodeFrag):
 
 
 class ProcDef(RDFunction):
-	"""is a rowmaker proc.
+	"""A procedure within a row maker.
 
-	Procedures turn dictionaries (raw rows) into dictionaries (supposed
-	to be rows ready for inclusion into a table).
-
-	A procedure always receives the current _result and the tableDef as
-	arguments.
+	Procedures contain python code that manipulates the grammar output (as vars)
+	and the row to be shipped out (as _result).  The code also has access
+	to the tableDef (e.g., to retrieve properties).
 	"""
 	name_ = "proc"
 
@@ -322,11 +337,11 @@ class RowmakerMacroMixin(macros.StandardMacroMixin):
 
 
 class RowmakerDef(base.Structure, RowmakerMacroMixin):
-	"""is the definition of a rowmaker.
+	"""A definition of the mapping between grammar input and finished rows
+	ready for shipout.
 
 	Rowmakers consist of variables, procedures and mappings.  They
-	result in a python callable doing the mapping, the Rowmapper
-	defined below.
+	result in a python callable doing the mapping.
 
 	RowmakerDefs double as macro packages for the expansion of various
 	macros.  The standard macros will need to be quoted, the rowmaker macros
@@ -344,7 +359,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		copyable=True)
 	_defaults = base.DictAttribute("defaults", 
 		itemAttD=base.UnicodeAttribute("default"),
-		description="Default values on input items", copyable=True)
+		description="Default values on input items.", copyable=True)
 	_rd = common.RDAttribute()
 	_idmaps = base.StringListAttribute("idmaps", description="List of"
 		' column names that are just "mapped through" (like map with dest'
@@ -354,7 +369,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		"Abbreviated notation for <map src>", copyable=True)
 	_rowSource = base.EnumeratedUnicodeAttribute("rowSource", 
 		default="rows", validValues=["rows", "parameters"],
-		description="Source for the raw rows processed by this rowmaker",
+		description="Source for the raw rows processed by this rowmaker.",
 		copyable=True)
 	_original = base.OriginalAttribute()
 

@@ -14,7 +14,7 @@ from twisted.internet import defer
 from zope.interface import implements
 
 from gavo import base
-from gavo.svcs import Error, UnknownURI, ForbiddenURI
+from gavo.svcs import Error, UnknownURI, ForbiddenURI, Authenticate
 from gavo.web import common
 
 
@@ -66,6 +66,16 @@ def handleForbiddenURI(ctx, failure):
 		request.write(failure.getErrorMessage()+"\n")
 		request.finishRequest(False)
 		return True
+
+
+def handleAuthentication(ctx, failure):
+	if isinstance(failure.value, Authenticate):
+		request = inevow.IRequest(ctx)
+		request.setHeader('WWW-Authenticate', 'Basic realm="Gavo"')
+		request.setResponseCode(401)
+		request.write("Authorization required")
+		request.finishRequest(False)
+
 
 
 class ErrorPageDebug(rend.Page):
@@ -121,7 +131,8 @@ class ErrorPage(ErrorPageDebug):
 				failure.getErrorMessage()))
 
 	def renderHTTP_exception(self, ctx, failure):
-		if handleUnknownURI(ctx, failure) or handleForbiddenURI(ctx, failure):
+		if (handleUnknownURI(ctx, failure) or handleForbiddenURI(ctx, failure)
+				or handleAuthentication(ctx, failure)):
 			return appserver.errorMarker
 		failure.printTraceback()
 		request = inevow.IRequest(ctx)

@@ -20,7 +20,13 @@ MS = base.makeStruct
 
 
 class InputKey(rscdef.Column):
-	"""is a description of a piece of service input.
+	"""A description of a piece of input.
+
+	Think of inputKeys as abstractions for input fields in forms, though
+	they are used for services not actually exposing HTML forms as well.
+
+	Some of the DDL-type attributes (e.g., references) only make sense here
+	if columns are being defined from the InputKey.
 	"""
 	name_ = "inputKey"
 
@@ -145,7 +151,14 @@ class ContextRowIterator(grammars.RowIterator):
 
 
 class ContextGrammar(grammars.Grammar):
-	"""is a grammar for nevow contexts and similar dict-like inputs.
+	"""A grammar for nevow contexts.
+
+	These are almost exclusively in InputDD.  They hold InputKeys defining
+	what they take from the context.
+
+	For DBCores, the InputDDs are generally defined implicitely via
+	CondDescs.  Thus, only for other cores will you ever need to bother
+	with ContextGrammars.
 	"""
 	name_ = "contextGrammar"
 
@@ -174,7 +187,16 @@ rscdef.registerGrammar(ContextGrammar)
 
 
 class InputDescriptor(rscdef.DataDescriptor):
-	"""is a data descriptor giving a core's input.
+	"""A data descriptor for defining a core's input.
+
+	In contrast to normal data descriptors, InputDescriptors generate
+	a contextGrammar to feed the table mentioned in the first make if
+	no grammar is given.  Conversely, if a contextGrammar is given but
+	no make, a make with a table defined by the contextGrammar's inputKeys
+	is automatically generated.
+
+	Attributes like auto, dependents, sources and the like probably
+	make little sense for inputDescriptors.
 	"""
 	name_ = "inputDD"
 

@@ -150,7 +150,9 @@ class StandardMacroMixin(MacroPackage):
 
 
 class MacDef(base.Structure):
-	"""is a parsing thing that allows to add macros form XML RDs.
+	"""A macro definition within an RD.
+
+	The macro defined is available on the parent.
 	"""
 	name_ = "macDef"
 

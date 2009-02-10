@@ -9,6 +9,10 @@ from gavo import base
 
 
 class CooSys(base.Structure):
+	"""Legacy definition of coordinate sytems.
+
+	This will be superceded by STC definitions.
+	"""
 	name_ = "cooSys"
 	_equ = base.UnicodeAttribute("equ", default=base.Undefined,
 		description="Equinox (like J2000.0, B1950.0 or similar)")
