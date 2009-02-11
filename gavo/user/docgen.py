@@ -18,8 +18,10 @@ from gavo import rscdesc
 class RSTFragment(object):
 	"""is a collection of convenience methods for generation of RST.
 	"""
-	def __init__(self, level1, level2):
-		self.level1, self.level2 = level1, level2
+	level1Underliner = "'"
+	level2Underliner = "."
+
+	def __init__(self):
 		self.content = []
 
 	def makeSpace(self):
@@ -35,10 +37,10 @@ class RSTFragment(object):
 		self.content.append("\n")
 	
 	def addHead1(self, head):
-		self.addHead(head, self.level1)
+		self.addHead(head, self.level1Underliner)
 
 	def addHead2(self, head):
-		self.addHead(head, self.level2)
+		self.addHead(head, self.level2Underliner)
 
 	def delEmptySection(self):
 		"""deletes something that looks like a headline if it's the last
@@ -105,8 +107,8 @@ class DocumentStructure(dict):
 class StructDocMaker(object):
 	"""is a class encapsulating generation of documentation from structs.
 	"""
-	def __init__(self, docStructure, level1="'", level2="."):
-		self.level1, self.level2 = level1, level2
+
+	def __init__(self, docStructure):
 		self.docParts = []
 		self.docStructure = docStructure
 		self.visitedClasses = set()
@@ -134,7 +136,7 @@ class StructDocMaker(object):
 		if klass.name_ in self.docStructure:
 			return
 		self.visitedClasses.add(klass)
-		content = RSTFragment(self.level1, self.level2)
+		content = RSTFragment()
 		content.addHead1("Element %s"%klass.name_)
 		if klass.__doc__:
 			content.addNormalizedPara(klass.__doc__)
@@ -207,6 +209,18 @@ def getCoreDocs(docStructure):
 	return getStructDocsFromRegistry(core._coreRegistry, docStructure)
 
 
+def getMixinDocs(docStructure):
+	from gavo.rscdef import mixins
+	content = RSTFragment()
+	for name, mixin in sorted(mixins._mixinRegistry.items()):
+		content.addHead1("The %s Mixin"%name)
+		if mixin.__doc__ is None:
+			content.addNormalizedPara("NOT DOCUMENTED")
+		else:
+			content.addNormalizedPara(mixin.__doc__)
+	return content.content
+
+
 _replaceWithResultPat = re.compile(".. replaceWithResult (.*)")
 
 def makeReferenceDocs():
@@ -235,4 +249,4 @@ def main():
 
 
 if __name__=="__main__":
-	print  getGrammarDocs(DocumentStructure())
+	print getMixinDocs(DocumentStructure())

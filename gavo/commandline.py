@@ -38,7 +38,7 @@ def process(opts, args):
 			continue
 		if opts.metaOnly:
 			res = rsc.Data.create(dd, parseOptions=opts).updateMeta(
-				opts.metaPlusIndex)
+				opts.metaPlusIndex).commitAll()
 		else:
 			res = rsc.makeData(dd, parseOptions=opts, connection=connection)
 		if hasattr(res, "nAffected"):

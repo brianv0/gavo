@@ -20,28 +20,31 @@ MS = base.makeStruct
 
 
 class BboxSIAPRMixin(rscdef.RMixinBase):
-	"""is a resource mixin for simple support of SIAP.
+	"""A table mixin for simple support of SIAP.
 
 	This currently only handles two-dimensional images.
 
-	The input consists of 
+	The columns added into the tables include
+
 	* (certain) FITS WCS headers 
 	* the primaryBbox, secondaryBbox, centerAlpha and centerDelta, nAxes, 
-		pixelSize, pixelScale, imageFormat, wcs* fields calculated by the 
-		computeBboxSIAPFields macro.   
-	* ImageTitle (interpolateString should come in handy for these)
-	* InstId -- some id for the instrument used
-	* DateObs -- a timestamp of the "characteristic" observation time
+	  pixelSize, pixelScale, imageFormat, wcs* fields calculated by the 
+	  computeBboxSIAPFields macro.   
+	* imageTitle (interpolateString should come in handy for these)
+	* instId -- some id for the instrument used
+	* dateObs -- a timestamp of the "characteristic" observation time
 	* the bandpass* values.  You're on your own with them...
 	* the values of the product interface.  
 	* mimetype -- the mime type of the product.
 
-	Tables satisfying this interface can be used for bbox-based SIAP querying.
+	(their definition is in the siap system RD)
 
-	The interface automatically adds the appropriate macro call to compute
-	the bboxes from FITS fields.
+	Tables mixin in bboxSIAP can be used for bbox-based SIAP querying and
+	automatically mix in `the products mixin`_.
 
-	Tables implementing bboxSIAP also implement products.
+	To feed these tables, use the computeBboxSIAP and setSIAPMeta predefined 
+	procs.  Since you are dealing with products, you will also need the
+	defineProduct predefined rowgen in your grammar.
 	"""
 	name = "bboxSIAP"
 	

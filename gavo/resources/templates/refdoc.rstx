@@ -41,6 +41,16 @@ that core.
 
 .. replaceWithResult getCoreDocs(docStructure)
 
+Mixins
+======
+
+Mixins ensure a certain functionality on a table.  Typically, this is
+used to provide certain guaranteed fields to particular cores.  For many
+mixins, there are predefined rowgens or procs that should be used in
+grammars and/or rowmakers feeding the tables mixing in a given mixin.
+
+.. replaceWithResult getMixinDocs(docStructure)
+
 Writing Row Makers
 ==================
 
@@ -53,10 +63,5 @@ TBD
 
 Triggers
 ========
-
-TBD
-
-Mixins
-======
 
 TBD

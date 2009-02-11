@@ -104,22 +104,6 @@
 
 				Records without or with insufficient wcs keys are furnished with
 				all-NULL wcs info.
-
-				>>> m = BboxSiapFieldsComputer()
-				>>> r = {"NAXIS1": "100", "NAXIS2": "150", "CRVAL1": "138", "CRVAL2": 53,
-				...   "CRPIX1": "70", "CRPIX2": "50", "CUNIT1": "deg", "CUNIT2": "deg",
-				...   "CD1_1": 0.0002, "CD1_2": 3e-8, "CD2_1": 3e-8, "CD2_2": "-0.0002",
-				...   "NAXIS": 2, "CTYPE1": 'RA---TAN-SIP', "CTYPE2": 'DEC--TAN-SIP', 
-				...   "LONPOLE": 180.,}
-				>>> m(None, r); r["primaryBbox"], r["secondaryBbox"]
-				(Box((138.01,53.01), (137.977,52.98)), None)
-				>>> r["CRVAL1"] = 0
-				>>> m(None, r); r["primaryBbox"]
-				Box((360,53.01), (359.977,52.98))
-				>>> r["secondaryBbox"]
-				Box((0.00996989,53.01), (0,52.98))
-				>>> "%.4f %.4f"%(r["centerAlpha"], r["centerDelta"])
-				'359.9935 52.9949'
 			</doc>
 			<consComp>
 				wcskeys = ["primaryBbox", "secondaryBbox", "centerAlpha", "centerDelta",

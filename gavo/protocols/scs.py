@@ -94,21 +94,19 @@ class PositionsMixin(rscdef.RMixinBase):
 	in degrees, J2000.0) and c_x, c_y, c_z (intersection of the radius
 	vector to alphaFloat, deltaFloat with the unit sphere).
 
-	You will usually use it in conjunction with the handleEquatorialPosition
-	macro that prepares these fields for you.  So, you might say:
+	You will usually use it in conjunction with the predefined proc
+	handleEquatorialPosition that preparse these fields for you.
 
-		<Grammar...>
-      <Macro name="handleEquatorialPosition"
-          alphaFormat="mas" deltaFormat="mas">
-        <arg name="alpha" source="18-27"/>
-        <arg name="delta" source="29-38"/>
-      </Macro>
-		<Grammar>
-		<Semantics>
-			<Record table="data">
-				<implements name="positions"/>
-			</Record>
-		</Semantics>
+	Thus, you could say::
+
+		<proc predefined="handleEquatorialPosition">
+			<arg name="alpha">alphaSrc</arg>
+			<arg name="delta">deltaSrc</arg>
+		</proc>
+	
+	Note, however, that it's usually much better to not mess with the
+	table structure and handle positions using the q3cindex mixin.  This
+	mixin really is only provided for backwards compatibility.
 	"""
 	name = "positions"
 
