@@ -27,3 +27,14 @@
 	Columns, Tables, Data Descriptors should get stripped-down base classes,
 	such that an OutputTable doesn't have an adql attribute.  It simply looks
 	bad in the docs.
+
+9/LOW/2009-02-11
+	Unify credentials checking in services (runAuthenticated) and products.
+	Probably both should be using the Authenticate exception.
+
+10/LOW/2009-02-11
+	Turn UnicodeAttributes in grammars/kvgrammar.py to REAttributes as 
+	appropriate.
+
+11/MEDIUM/2009-02-11
+	Documentation for row triggers currently doesn't really exist.

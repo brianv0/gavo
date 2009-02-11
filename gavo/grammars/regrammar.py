@@ -70,7 +70,7 @@ class REAttribute(base.UnicodeAttribute):
 
 
 class REGrammar(Grammar):
-	"""is a grammar that builds rowdicts from records and field specified
+	"""A grammar that builds rowdicts from records and fields specified
 	via REs separating them.
 	"""
 	name_ = "reGrammar"
@@ -78,13 +78,13 @@ class REGrammar(Grammar):
 	rowIterator = REIterator
 
 	_til = base.IntAttribute("topIgnoredLines", default=0, description=
-		"Skip this many lines at the top of each source file")
+		"Skip this many lines at the top of each source file.")
 	_recordSep = REAttribute("recordSep", default=re.compile("\n"), 
 		description="RE for separating two records in the source.")
 	_fieldSep = REAttribute("fieldSep", default=re.compile(r"\s+"), 
 		description="RE for separating two fields in a record.")
 	_names = base.StringListAttribute("names", description=
-		"Names for the parsed columns, in sequence of the particles")
+		"Names for the parsed columns, in sequence of the fields.")
 	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"
 		" while reading?", default=False)
 

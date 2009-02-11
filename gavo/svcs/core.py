@@ -66,12 +66,18 @@ class Core(base.Structure):
 
 
 class StaticCore(Core):
-	"""is a core that always returns a static file.
+	"""A core that always returns a static file.
+
+	This core clearly will not run with most renderers.  It's also
+	not usually necessary since you can allow a static renderer on
+	services that does the same thing (and better).
+
+	So, this is for really weird situations.
 	"""
 	name_ = "staticCore"
 
 	_file = rscdef.ResdirRelativeAttribute("file", default=base.Undefined,
-		description="Resdir-relative path of the file to deliver")
+		description="Resdir-relative path of the file to deliver.")
 
 	def completeElement(self):
 		if self.outputTable is base.Undefined:

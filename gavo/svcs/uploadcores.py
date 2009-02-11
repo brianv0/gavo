@@ -24,9 +24,14 @@ uploadOutputDef = """<outputTable>
 
 
 class UploadCore(core.Core):
-	"""is a core handling uploads of files to the database.
+	"""A core handling uploads of files to the database.
 
-	It uses the standard parsing architecture to do that.
+	It allows users to upload individual files into a special staging
+	area (taken from the stagingDir property of the destination data descriptor)
+	and causes these files to be parsed using destDD.
+
+	You can tell UploadCores to either insert or update the incoming data using
+	the "mode" input key.
 	"""
 	name_ = "uploadCore"
 
@@ -138,7 +143,7 @@ core.registerCore(UploadCore)
 
 
 class EditCore(standardcores.TableBasedCore):
-	"""is a core that allows POSTing records into database tables.
+	"""A core that allows POSTing records into database tables.
 	"""
 	name_ = "editCore"
 

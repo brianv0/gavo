@@ -171,12 +171,14 @@ class TableBasedCore(core.Core):
 	"""
 	_queriedTable = base.ReferenceAttribute("queriedTable",
 		default=base.Undefined, description="A reference to the table"
-			" this core queries", copyable=True, callbacks=["_fixNamePath"])
+			" this core queries.", copyable=True, callbacks=["_fixNamePath"])
 	_condDescs = base.StructListAttribute("condDescs", childFactory=CondDesc,
 		description="Descriptions of the SQL and input generating entities"
 			" for this core; if not given, they will be generated from the"
-			" table columns", copyable=True)
-	_namePath = rscdef.NamePathAttribute()
+			" table columns.", copyable=True)
+	_namePath = rscdef.NamePathAttribute(description="Id of an element"
+		" that will be used to located names in id references.  Defaults"
+		" to the queriedTable's id.")
 
 	def completeElement(self):
 		# if no condDescs have been given, make them up from the table columns.
@@ -229,15 +231,18 @@ class TableBasedCore(core.Core):
 class FancyQueryCore(TableBasedCore):
 	"""A core executing a pre-specified query with fancy conditions.
 
-	Unless you select *, you *must* give an outputTable here; this
-	is not checked.
+	Unless you select \*, you *must* define the outputTable here; 
+	Weird things will happen if you don't.
+
+	The queriedTable attribute is ignored.
 	"""
 	name_ = "fancyQueryCore"
 
 	_query = base.UnicodeAttribute("query", description="The query to"
 		" execute.  It must contain exactly one %s where the generated"
 		" where clause is to be inserted.  Do not write WHERE yourself."
-		" All other percents must be escaped.", default=base.Undefined)
+		" All other percents must be escaped by doubling them.", 
+		default=base.Undefined)
 
 	def run(self, service, inputData, queryMeta):
 		fragment, pars = self._getSQLWhere(inputData, queryMeta)
@@ -261,26 +266,28 @@ core.registerCore(FancyQueryCore)
 
 
 class DBCore(TableBasedCore):
-	"""is a base class for cores doing database queries.
+	"""A core performing database queries on one table or view.
 
-	It provides for querying the database and returning a table
-	from it.
+	DBCores ask the service for the desired output schema and adapt their
+	output.  The DBCore's output table, on the other hand, lists all fields 
+	available from the queried table.
 	"""
 	name_ = "dbCore"
 
 	_sortKey = base.UnicodeAttribute("sortKey",
-		description="A pre-defined sort order (suppresses DB options widget)",
+		description="A pre-defined sort order (suppresses DB options widget)."
+		"  The sort key accepts multiple columns, separated by commas.",
 		copyable=True)
 	_limit = base.IntAttribute("limit", description="A pre-defined"
-		" match limit (suppresses DB options widget)", copyable=True)
+		" match limit (suppresses DB options widget).", copyable=True)
 	_distinct = base.BooleanAttribute("distinct", description="Add a"
 		" 'distinct' modifier to the query?", default=False, copyable=True)
 	_feedbackColumn = base.UnicodeAttribute("feedbackColumn", description=
 		"Add this name to query to enable selection for feedback (this"
-		" basically only works for atomic primary keys)", copyable=True)
+		" basically only works for atomic primary keys).", copyable=True)
 	_groupBy = base.UnicodeAttribute("groupBy", description=
 		"A group by clause.  You shouldn't generally need this, and if"
-		" you use it, you must give an outputTable to your core",
+		" you use it, you must give an outputTable to your core.",
 		default=None)
 
 	def wantsTableWidget(self):
@@ -345,6 +352,11 @@ def makeFeedbackColumn(cols, columnName):
 
 
 class FixedQueryCore(core.Core):
+	"""A core executing a predefined query.
+
+	This usually is not what you want, unless you want to expose the current
+	results of a specific query, e.g., for log or event data.
+	"""
 	name_ = "fixedQueryCore"
 
 	_timeout = base.FloatAttribute("timeout", default=15., description=

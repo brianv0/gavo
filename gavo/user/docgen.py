@@ -6,6 +6,7 @@ docs.
 import re
 import sys
 import textwrap
+import traceback
 
 import pkg_resources
 
@@ -129,7 +130,7 @@ class StructDocMaker(object):
 		except TypeError: # unhashable default is a default
 			return True
 
-	def addDocsFrom(self, klass):
+	def _realAddDocsFrom(self, klass):
 		if klass.name_ in self.docStructure:
 			return
 		self.visitedClasses.add(klass)
@@ -167,6 +168,13 @@ class StructDocMaker(object):
 
 		self.docParts.append((klass.name_, content.content))
 
+	def addDocsFrom(self, klass):
+		try:
+			self._realAddDocsFrom(klass)
+		except:
+			sys.stderr.write("Cannot add docs from element %s\n"%klass.name_)
+			traceback.print_exc()
+
 	def getDocs(self):
 		self.docParts.sort()
 		resDoc = []
@@ -182,13 +190,22 @@ def getStructDocs(docStructure):
 	return dm.getDocs()
 
 
-def getGrammarDocs(docStructure):
-	from gavo.rscdef import dddef
+def getStructDocsFromRegistry(registry, docStructure):
 	dm = StructDocMaker(docStructure)
-	for name, struct in sorted(dddef._grammarRegistry.items()):
+	for name, struct in sorted(registry.items()):
 		dm.addDocsFrom(struct)
 	return dm.getDocs()
+
+
+def getGrammarDocs(docStructure):
+	from gavo.rscdef import dddef
+	return getStructDocsFromRegistry(dddef._grammarRegistry, docStructure)
 		
+
+def getCoreDocs(docStructure):
+	from gavo.svcs import core
+	return getStructDocsFromRegistry(core._coreRegistry, docStructure)
+
 
 _replaceWithResultPat = re.compile(".. replaceWithResult (.*)")
 

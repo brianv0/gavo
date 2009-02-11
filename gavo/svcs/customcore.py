@@ -23,15 +23,18 @@ class ModuleAttribute(base.UnicodeAttribute):
 
 
 class CustomCore(core.Core):
-	"""is a wrapper around a core defined in a module.
+	"""A wrapper around a core defined in a module.
+
+	This core lets you write your own cores in modules.
 
 	The module must define a class Core.  When the custom core is
 	encountered, this class will be instanciated and will be used
-	instead of the CustomCore, so it should probably inherit core.Core.
+	instead of the CustomCore, so your code should probably inherit 
+	core.Core.
 	"""
 	name_ = "customCore"
 
 	_module = ModuleAttribute("module", default=base.Undefined,
-		description="Path to the module containing the real core definition")
+		description="Path to the module containing the core definition.")
 
 core.registerCore(CustomCore)

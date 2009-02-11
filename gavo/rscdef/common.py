@@ -222,9 +222,11 @@ class NamePathAttribute(base.AtomicAttribute):
 	typeDesc_ = "id reference"
 
 	def __init__(self, **kwargs):
-		base.AtomicAttribute.__init__(self, name="namePath", description=
-			"Reference to an element tried to satisfy requests for names in"
-			" id references of this element's children.", **kwargs)
+		if "description" not in kwargs:
+			kwargs["description"] = ("Reference to an element tried to"
+				" satisfy requests for names in id references of this"
+				" element's children.")
+		base.AtomicAttribute.__init__(self, name="namePath", **kwargs)
 	
 	def iterParentMethods(self):
 		def resolveName(instance, context, id):

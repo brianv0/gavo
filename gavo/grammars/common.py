@@ -20,8 +20,19 @@ class ParseError(base.Error):
 
 
 class SourceRowmakerDef(rscdef.RDFunction):
-	"""is a callable that returns fields added to every row a grammar
-	returns.
+	"""A callable that returns a dictionary added to all incoming rows.
+
+	Use this to programmatically provide information that can be computed
+	once but that is then added to all rows coming from a single source, usually
+	a file.  This could be useful to add information on the source of a
+	record or the like.
+
+	The code in the body must return a dictionary.  The source that is about
+	to be parsed is passed in as sourceToken.  When parsing from files, this
+	simply is the file name.
+
+	sourceFields cannot really be registered globally, thus using isGlobal and
+	predefined will raise errors.
 	"""
 	name_ = "sourceFields"
 
@@ -44,7 +55,16 @@ class SourceRowmakerDef(rscdef.RDFunction):
 
 
 class MapKeys(base.Structure):
-	"""is a specification of how to map grammar keys to exported names.
+	"""Mapping of names, specified in long or short forms.
+
+	mapKeys is necessary in grammars like keyValueGrammar or fitsProdGrammar.
+	In these, the source files themselves give key names.  Within the GAVO
+	DC, keys are required to be valid python identifiers (roughly, 
+	[A-Za-z\_][A-Za-z\_0-9]*).  If keys coming in do not have this form, mapping
+	can force proper names.
+
+	mapKeys could also be used to make incoming names more suitable for
+	matching with shell patterns (like in rowmaker idmaps).
 	"""
 	name_ = "mapKeys"
 
@@ -261,14 +281,14 @@ class Grammar(base.Structure, GrammarMacroMixin):
 	_encoding = base.UnicodeAttribute("enc", default=None, description=
 		"Encoding of strings coming in from source.", copyable=True)
 	_rowgen = base.StructAttribute("rowgen", default=None,
-		description="row generator for this grammar", 
+		description="Row generator for this grammar.", 
 		childFactory=rowgens.RowGenDef, copyable=True)
 	_ignoreOn = base.StructAttribute("ignoreOn", default=None, copyable=True,
 		description="Conditions for ignoring certain input records.",
 		childFactory=rowtriggers.IgnoreOn)
 	_sourceFields = base.StructAttribute("sourceFields", default=None,
 		copyable=True, description="Code returning a dictionary of values"
-		" added to all returned rows", childFactory=SourceRowmakerDef)
+		" added to all returned rows.", childFactory=SourceRowmakerDef)
 	_properties = base.PropertyAttribute()
 	_rd = rscdef.RDAttribute()
 
@@ -311,7 +331,7 @@ class Grammar(base.Structure, GrammarMacroMixin):
 
 
 class NullGrammar(Grammar):
-	"""is a grammar that never returns any rows.
+	"""A grammar that never returns any rows.
 	"""
 	name_ = "nullGrammar"
 rscdef.registerGrammar(NullGrammar)

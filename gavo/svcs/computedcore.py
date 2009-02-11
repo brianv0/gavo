@@ -37,18 +37,29 @@ _registerArgMF(_datetimeMapperFactory)
 
 
 class ComputedCore(core.Core):
-	"""is a core based on a DataDescriptor with a compute attribute.
+	"""A core wrapping external applications.
+	
+	ComputedCores wrap command line tools taking command line arguments,
+	reading from stdin, and outputting to stdout.
 
-	Computed cores must have at least two table definitions with roles
-	parameters and inputLine.
+	The command line arguments are described a table with role "parameters"
+	in the inputDD.  Only the first row of that table is used.
+
+	The input to the program are described in a table with role "inputLine"
+	in the inputDD.  All rows are serialized quite like they are with the
+	TSV output, except only whitespace is entered between the values.
+	
+	The output is the primary table of parsing the program's output with
+	the data child.
 	"""
 	name_ = "computedCore"
 
 	_computer = rscdef.ResdirRelativeAttribute("computer",
 		default=base.Undefined, description="Resdir-relative basename of"
-			" the binary doing the computation")
+			" the binary doing the computation.  The standard rules for"
+			" cross-platform binary name determination apply.")
 	_resultParse = base.StructAttribute("resultParse",
-		description="Data descriptor to parse computer output",
+		description="Data descriptor to parse the computer's output.",
 		childFactory=rscdef.DataDescriptor)
 
 	def completeElement(self):

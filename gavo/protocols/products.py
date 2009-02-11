@@ -217,24 +217,26 @@ class ProductsGrammar(grammars.Grammar):
 
 
 class ProductCore(svcs.DBCore):
-	"""is a core retrieving paths and/or data from the product table.
+	"""A core retrieving paths and/or data from the product table.
+
+	You will not usually mention this core in your RDs.  It is mainly
+	used internally to serve /getproduct queries.
 
 	It does:
-	
-	* the actual query,
-	* access validation (i.e., makes sure the user has access to the product),
+
+	* the actual query, 
+	* access validation (i.e., makes sure the user has access to the product), 
 	* cutout processing (via a special construct deferring cutouts until they
 	  are needed)
 
-	The rd it is constructed with must contain a table named products with
-	at least the fields this table has in products.rd (so, it probably
-	should always be products.rd).
+	The rd it is constructed with must contain a table named products
+	with at least the fields this table has in products.rd (so,
+	it probably should always be __system__/products.rd).
 
-	This is a bit of a hack in that a table containing the parsed keys (accrefs
-	plus cutout specs, if present) is added to the input data in _getSQLWhere.
-	The database sees the naked accrefs and resolves them to file system paths.
-	These are then combined with the parsed keys table in the grammar to form the
-	objects returned to the renderer.
+	In case of cutouts, the database sees the naked accrefs and
+	resolves them to file system paths.  These are then combined
+	with the parsed keys table in the grammar to form the objects
+	returned to the renderer.
 	"""
 	name_ = "productCore"
 

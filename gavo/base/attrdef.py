@@ -107,6 +107,10 @@ class Computed(object):
 	"""
 
 
+# Values for which no special stringification for docs is attempted
+_nullLikeValues = set([None, Undefined, NotGiven])
+
+
 class AttributeDef(object):
 	"""is the base class for all attribute definitions.
 
@@ -208,6 +212,16 @@ class AtomicAttribute(AttributeDef):
 
 	def getCopy(self, instance, newParent):  # We assume atoms are immutable here
 		return getattr(instance, self.name_)
+
+	def makeUserDoc(self):
+		default = self.default_
+		try:
+			if default not in _nullLikeValues:
+				default = self.unparse(default)
+		except TypeError:  # unhashable defaults can be unparsed
+			default = self.unparse(default)
+		return "**%s** (%s; defaults to %s) -- %s"%(
+			self.name_, self.typeDesc_, repr(default), self.description_)
 
 
 class UnicodeAttribute(AtomicAttribute):

@@ -42,7 +42,7 @@ class KVIterator(FileRowIterator):
 
 
 class KeyValueGrammar(Grammar):
-	"""models a grammar for key-value pairs, one record per file.
+	"""A grammar to parse key-value pairs from files.
 
 	The default assumes one pair per line, with # comments and = as
 	separating character.
@@ -53,17 +53,18 @@ class KeyValueGrammar(Grammar):
 	Whitespace around key and value is ignored.
 	"""
 	name_ = "keyValueGrammar"
-# XXX TODO: Make these REAttributes
 	_kvSeps = base.UnicodeAttribute("kvSeparators", default=":=",
 		description="Characters accepted as separators between key and value")
 	_pairSeps = base.UnicodeAttribute("pairSeparators", default="\n",
 		description="Characters accepted as separators between pairs")
 	_cmtPat = base.UnicodeAttribute("commentPattern", default="(?m)#.*",
-		description="A RE describing comments.")
+		description="A regular expression describing comments.")
 	_yieldPairs = base.BooleanAttribute("yieldPairs", default=False,
 		description="Yield key-value pairs instead of complete records?")
 	_mapKeys = base.StructAttribute("mapKeys", childFactory=MapKeys,
-		default=None)
+		default=None, description="Mappings to rename the keys coming from"
+		" the source files.  Use this, in particular, if the keys are"
+		" not valid python identifiers.")
 
 	rowIterator = KVIterator
 

@@ -104,8 +104,11 @@ def mapADQLErrors(excType, excValue, excTb):
 
 
 class ADQLCore(svcs.Core):
-	"""is a core that takes an ADQL query from its query argument and
-	returns the query result.
+	"""A core taking an ADQL query from its query argument and returning the
+	result of that query in a standard table.
+
+	Since the columns returned depend on the query, the outputTable of an
+	ADQL core must not be defined.
 	"""
 	name_ = "adqlCore"
 

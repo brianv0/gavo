@@ -37,6 +37,15 @@ class VOTableRowIterator(common.RowIterator):
 
 
 class VOTableGrammar(common.Grammar):
+	"""A grammar parsing from VOTables.
+
+	Currently, the PARAM fields are ignored, only the data rows are
+	returned.
+
+	voTableGrammars result in typed records, i.e., values normally come
+	in in the types they are supposed to have (with obvious exceptions;
+	e.g., VOTables have no datetime type.
+	"""
 	name_ = "voTableGrammar"
 	rowIterator = VOTableRowIterator
 

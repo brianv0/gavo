@@ -19,14 +19,16 @@ from gavo.svcs import standardcores
 
 
 class FeedbackCore(standardcores.DBCore):
-	"""is a core for producing feedback queries.
+	"""A special core for producing feedback queries.
 
-	It returns a dict of vizier expressions covering the ranges (for
+	This core can only sensibly be used with the feedback renderer, since
+	it returns a dict of vizier expressions covering the ranges (for
 	every feedbackable column not enumerated) or values (for enumerated
 	columns) for the primary keys given in the input data.
 
-	The core's value is a dict.  That's probably ok since it will only
-	work sensibly with the feedback renderer anyway.
+	You usually don't mention a feedback core in your RD explicitely.  If
+	you specify a feedbackColumn in your dbCores, the software will set
+	up a feedback service itself.
 	"""
 	name_ = "feedback"
 

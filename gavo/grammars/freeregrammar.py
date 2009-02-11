@@ -53,6 +53,13 @@ class RowIterator(common.FileRowIterator):
 
 
 class FreeREGrammar(common.Grammar):
+	"""A grammar allowing "free" regular expressions to parse a document.
+
+	Basically, you give a rowProduction to match individual records in the
+	document.  All matches of rowProduction will then be matched with
+	parseRE, which in turn must have named groups.  The dictionary from
+	named groups to their matches makes up the input row.
+	"""
 	name_ = "freeREGrammar"
 
 	_rowProduction = regrammar.REAttribute("rowProduction", 
@@ -60,7 +67,7 @@ class FreeREGrammar(common.Grammar):
 		" record.")
 	_parseRE = regrammar.REAttribute("parseRE", default=base.Undefined,
 		description="RE containing named groups matching a record")
-	_stripTokens = base.BooleanAttribute("stripTokens", default="False",
+	_stripTokens = base.BooleanAttribute("stripTokens", default=False,
 		description="Strip whitespace from result tokens?")
 	rowIterator = RowIterator
 

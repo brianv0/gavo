@@ -246,7 +246,7 @@ svcs.registerCondDesc("humanSIAP", HumanSIAPCondition)
 
 
 class SIAPCore(svcs.DBCore):
-	"""is a core doing siap queries.
+	"""A core doing SIAP queries.
 
 	The main difference to a plain DB core is that we start off with
 	the basic SIAP fields in the query result and a SIAP Condition in
@@ -277,9 +277,14 @@ svcs.registerCore(SIAPCore)
 
 
 class SIAPCutoutCore(SIAPCore):
-	"""is a core doing siap and handing through query parameters to
-	the product delivery asking it to only retrieve certain portions
-	of images.
+	"""A core doing SIAP plus cutouts.
+	
+	It has, by default, an additional column specifying the desired size of
+	the image to be retrieved.  Based on this, the cutout core will tweak
+	its output table such that references to cutout images will be retrieved.
+
+	The actual process of cutting out is performed by the product core and
+	renderer.
 	"""
 	name_ = "siapCutoutCore"
 

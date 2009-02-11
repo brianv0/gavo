@@ -31,16 +31,16 @@ def getModuleName():
 
 
 class CustomGrammar(common.Grammar):
-	"""is a Grammar with a user-defined row iterator taken from a module.
-	
-	To save on time when initializing the grammar (which happens at
-	RD parsing time), we delay initializing the user grammar to when
-	it's actually used (which happens much less frequently than loading
-	the RD).
+	"""A Grammar with a user-defined row iterator taken from a module.
 
 	See the separate document on user code in the DC on how to define custom
 	grammars.
 	"""
+#	To save on time when initializing the grammar (which happens at
+#	RD parsing time), we delay initializing the user grammar to when
+#	it's actually used (which happens much less frequently than loading
+#	the RD).
+
 	name_ = "customGrammar"
 
 	_module = rscdef.ResdirRelativeAttribute("module", default=base.Undefined,

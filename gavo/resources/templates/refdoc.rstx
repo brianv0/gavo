@@ -3,7 +3,10 @@ GAVO DC Software Reference Documentation
 ========================================
 
 
-.. contents::
+.. contents:: 
+  :depth: 2
+  :backlinks: entry
+  :class: toc
 
 
 Resource Descriptor Element Reference
@@ -31,7 +34,12 @@ can occur in data descriptors.
 Cores Available
 ===============
 
-TBD
+The following elements are related to cores.  All cores can only occur
+toplevel, i.e. as direct children of resource descriptors.  Cores are
+only useful with an id to make them referencable from services using
+that core.
+
+.. replaceWithResult getCoreDocs(docStructure)
 
 Writing Row Makers
 ==================

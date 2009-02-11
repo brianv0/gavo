@@ -75,6 +75,9 @@ class ListOfAtomsAttribute(CollOfAtomsAttribute):
 	def getCopy(self, instance, newParent):
 		return getattr(instance, self.name_)[:]
 
+	def unparse(self, value):
+		return unicode(value)
+
 
 class SetOfAtomsAttribute(CollOfAtomsAttribute):
 	"""is an attribute definition for an item containing many elements
@@ -209,7 +212,8 @@ class PropertyAttribute(DictAttribute):
 
 	def makeUserDoc(self):
 		return ("**property** (mapping of user-defined keywords in the"
-			"name attribute to string values)")
+			" name attribute to string values) -- %s"%self.description_)
+
 
 class StructAttribute(AttributeDef):
 	"""describes an attribute containing a Structure

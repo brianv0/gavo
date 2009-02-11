@@ -40,17 +40,19 @@ class RowsetIterator(common.RowIterator):
 
 
 class RowsetGrammar(common.Grammar):
-	"""is a grammar handling sequences of tuples.
+	"""A grammar handling sequences of tuples.
 
 	To add semantics to the field, it must know the "schema" of the
 	data.  This is defined via the table it is supposed to get the input
 	from.
+
+	This grammar probably is only useful for internal purposes.
 	"""
 	name_ = "rowsetGrammar"
 	rowIterator = RowsetIterator
 
 	_fieldsFrom = base.ReferenceAttribute("fieldsFrom", 
-		description="Table to fetch fields from", copyable=True)
+		description="the table defining the columns in the tuples.", copyable=True)
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(RowsetGrammar)
