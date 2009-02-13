@@ -38,3 +38,8 @@
 
 11/MEDIUM/2009-02-11
 	Documentation for row triggers currently doesn't really exist.
+
+12/MEDIUM/2009-02-11/FIXED
+	Julian year functions are wrong.  Use 
+	datetime.datetime(2000, 1, 1, 12)+datetime.timedelta(days=365.25*(fracYear-2000.0) 
+	(which still is not 100% precise but should really be good enough).

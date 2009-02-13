@@ -11,6 +11,7 @@ except ImportError:
 	from elementtree import ElementTree
 
 
-from mathtricks import findMinimum
+from mathtricks import (findMinimum, dateTimeToJdn, dateTimeToJYear,
+	jYearToDateTime)
 
 from texttricks import formatSize

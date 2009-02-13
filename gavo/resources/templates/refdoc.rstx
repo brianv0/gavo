@@ -51,6 +51,24 @@ grammars and/or rowmakers feeding the tables mixing in a given mixin.
 
 .. replaceWithResult getMixinDocs(docStructure)
 
+Triggers
+========
+
+In the context of the GAVO DC, triggers are conditions on rows -- either
+the raw rows emitted by grammars if they are used within grammars, or
+the rows about to be shipped to a table if they are used within
+tables.  Triggers may be used recursively, i.e., triggers may contain
+more triggers.  Child triggers are normally or-ed together.
+
+Currently, there is one useful top-level trigger, the `element
+ignoreOn`_.  If an ignoreOn is triggered, the respective row is silently
+dropped (actually, you ignoreOn has a bail attribute that allows you to
+raise an error if the trigger is pulled; this is mainly for debugging).
+
+The following triggers are defined:
+
+.. replaceWithResult getTriggerDocs(docStructure)
+
 Writing Row Makers
 ==================
 
@@ -61,7 +79,4 @@ Scripting
 
 TBD
 
-Triggers
-========
 
-TBD

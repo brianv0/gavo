@@ -10,19 +10,29 @@ def jYearToDateTime(jYear):
 	
 	This refers to time specifications like J2001.32.
 	"""
-	frac, year = math.modf(float(jYear))
-	# Workaround for crazy bug giving dates like 1997-13-1 on some
-	# mx.DateTime versions
-	if year<0:
-		frac += 1
-		year -= 1
-	return datetime.datetime(int(year))+365.25*frac
+	return datetime.datetime(2000, 1, 1, 12)+datetime.timedelta(
+		days=(jYear-2000.0)*365.25)
+
+
+def dateTimeToJdn(dt):
+	"""returns a julian day number (including fractionals) from a datetime
+	instance.
+	"""
+	a = (14-dt.month)//12
+	y = dt.year+4800-a
+	m = dt.month+12*a-3
+	jdn = dt.day+(153*m+2)//5+365*y+y//4-y//100+y//400-32045
+	try:
+		secsOnDay = dt.hour*3600+dt.minute*60+dt.second+dt.microsecond/1e6
+	except AttributeError:
+		secsOnDay = 0
+	return jdn+(secsOnDay-43200)/86400.
 
 
 def dateTimeToJYear(dt):
 	"""returns a fractional (julian) year for a datetime.datetime instance.
 	"""
-	return dt.jdn/365.25-4712
+	return (dateTimeToJdn(dt)-2451545)/365.25+2000
 
 
 def findMinimum(f, left, right, minInterval=3e-8):

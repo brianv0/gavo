@@ -88,7 +88,8 @@ svcs.registerCondDesc("humanScs", HumanScsCondition)
 
 
 class PositionsMixin(rscdef.RMixinBase):
-	"""is an interface for positions.
+	"""A mixin adding standardized columns for equatorial positions to the
+	table.
 	
 	It consists of the fields alphaFloat, deltaFloat (float angles
 	in degrees, J2000.0) and c_x, c_y, c_z (intersection of the radius
@@ -105,8 +106,10 @@ class PositionsMixin(rscdef.RMixinBase):
 		</proc>
 	
 	Note, however, that it's usually much better to not mess with the
-	table structure and handle positions using the q3cindex mixin.  This
-	mixin really is only provided for backwards compatibility.
+	table structure and handle positions using the q3cindex mixin.
+
+	This mixin will probably grow the ability to transform the coordinates
+	to a standard system, at which point it will become useful.
 	"""
 	name = "positions"
 
@@ -117,13 +120,13 @@ rscdef.registerRMixin(PositionsMixin())
 
 
 class Q3CPositionsMixin(rscdef.RMixinBase):
-	"""is an interface for positions indexed using q3c.
+	"""An extension of `the products mixin`_ adding a positional index.
 	
 	This works exactly like the positions interface, except that behind
 	the scenes some magic code generates a q3c index on the fields
-	with pos.eq.ra;meta.main and pos.eq.dec;meta.main.
-	This will fail if you don't have the q3c extension to
-	postgres.
+	alphaFloat and deltaFloat.
+
+	This will fail without the q3c extension to postgres.
 	"""
 	name = "q3cpositions"
 
@@ -134,13 +137,17 @@ class Q3CPositionsMixin(rscdef.RMixinBase):
 rscdef.registerRMixin(Q3CPositionsMixin())
 
 class Q3CIndex(rscdef.RMixinBase):
-	"""is an interface indexing the main positions of a table using Q3C
+	"""A mixin adding an index to the main equatorial positions.
 
-	The difference to Q3CPositions is that no cartesian coordinates are
-	introduced into the table and the positions are taken from the
-	fields with the ucds pos.eq.ra;meta.main and pos.eq.dec;meta.main;
-	we will raise an error if there are not exactly one of these each
-	in the pertaining record.
+	This is what you usually want if your input data already has
+	"sane" (i.e., ICRS or at least J2000) positions or you convert
+	the positions manually.
+
+	You have to designate exactly one column with the ucds pos.eq.ra;meta.main
+	pos.eq.dec;meta.main, respectively.  These columns receive the
+	positional index.
+
+	This will fail without the q3c extension to postgres.
 	"""
 	name = "q3cindex"
 

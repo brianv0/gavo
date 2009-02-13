@@ -21,12 +21,14 @@ def getTrigger(name):
 
 
 class TriggerBase(base.Structure):
-	"""is an abstract base class for triggers.
+	"""A trigger, i.e., a boolean construct.
 
-	Basically, a trigger can be called and has to return True when it fires,
-	false otherwise.  So, you generally want to override its __call__ method.
-	All __call__ methods have the constant signature __call__(dict) -> bool.
+	This element does not actually occur in resource descriptors.
+	Refer to Triggers_ for triggers actually available.
 	"""
+# Basically, a trigger can be called and has to return True when it fires,
+# false otherwise.  So, you generally want to override its __call__ method.
+# All __call__ methods have the constant signature __call__(dict) -> bool.
 	name_ = "trigger"
 
 	_name = base.UnicodeAttribute("name", default="unnamed",
@@ -42,7 +44,7 @@ class KeyedCondition(TriggerBase):
 
 
 class KeyPresent(KeyedCondition):
-	"""is a trigger firing if a certain key is present in the dict.
+	"""A trigger firing if a certain key is present in the dict.
 	"""
 	name_ = "keyPresent"
 
@@ -53,7 +55,11 @@ registerTrigger(KeyPresent)
 
 
 class KeyMissing(KeyedCondition):
-	"""is a trigger firing if a certain key is missing in the dict.
+	"""A trigger firing if a certain key is missing in the dict.
+
+	This is equivalent to::
+
+		<not><keyPresent key="xy"/></not>
 	"""
 	name_ = "keyMissing"
 
@@ -64,14 +70,14 @@ registerTrigger(KeyMissing)
 
 
 class KeyIs(KeyedCondition):
-	"""is a trigger firing when key is value.
+	"""A trigger firing when the value of key in row is equal to the value given.
 
 	Only strings can be checked in this way.  Missing keys are ok.
 	"""
 	name_ = "keyIs"
 
 	_value = base.UnicodeAttribute("value", default=base.Undefined,
-		description="The string value to fire on", copyable=True)
+		description="The string value to fire on.", copyable=True)
 
 	def __call__(self, dict):
 		return self.key in dict and dict[self.key]==self.value
@@ -119,9 +125,8 @@ class ConditionBase(TriggerBase):
 
 
 class Not(ConditionBase):
-	"""is a condition inverting its truth value.
-
-	The embedded triggers are still or-ed together.
+	"""A trigger that is false when its children, or-ed together, are true and
+	vice versa.
 	"""
 	name_ = "not"
 
@@ -132,6 +137,8 @@ registerTrigger(Not)
 
 
 class And(ConditionBase):
+	"""A trigger that is true when all its children are true.
+	"""
 	name_ = "and"
 
 	def __call__(self, dict):

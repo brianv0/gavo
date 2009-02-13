@@ -304,6 +304,23 @@ svcs.registerCore(ProductCore)
 ########## rd, so this must be defined later that the registerCore)
 
 class ProductRMixin(rscdef.RMixinBase):
+	"""A mixin for tables containing "products".
+
+	A "product" here is some kind of binary, typically a FITS file.
+	The table receives the columns accref, accsize, owner, and embargo
+	(which is defined in __system__/products#prodcolUsertable).
+
+	owner and embargo let you introduce access control.  Embargo is a
+	date at which the product will become publicly available.  As long
+	as this date is in the future, only authenticated users belonging to
+	the *group* owner are allowed to access the product.
+
+	In addition, the mixin arranges for the products to be added to the
+	system table products, which is important when delivering the files.
+
+	Tables mixing this in should be fed from grammars using the defineProduct
+	rowgen.
+	"""
 	name = "products"
 
 	def __init__(self):

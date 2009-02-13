@@ -209,6 +209,11 @@ def getCoreDocs(docStructure):
 	return getStructDocsFromRegistry(core._coreRegistry, docStructure)
 
 
+def getTriggerDocs(docStructure):
+	from gavo.rscdef import rowtriggers
+	return getStructDocsFromRegistry(rowtriggers._triggerRegistry, docStructure)
+
+
 def getMixinDocs(docStructure):
 	from gavo.rscdef import mixins
 	content = RSTFragment()

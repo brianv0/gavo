@@ -317,12 +317,12 @@ myTests = [
 	TestGroup("apfs",
 		GetHasStringTest(nv_root+"/apfs/res/apfs_new/catquery/form",
 			"Output format",
-			"NV APFS form"),
+			"APFS form"),
 		GetHasStringTest(nv_root+"/apfs/res/apfs_new"
 			"/catquery/form?__nevow_form__=genForm&object=56&hrInterval=24"
 			"&_FILTER=default&_FORMAT=HTML&_VERB=2&TDENC=True&submit=Go",
 			"Required</li>",
-			"NV APFS formal argument validation"),
+			"APFS formal argument validation"),
 		GetHasStringTest(nv_root+"/apfs/res/apfs_new/"
 			"catquery/form?__nevow_form__=genForm&object=fdsfa&startDate__day=12&"
 			"startDate__month=12&startDate__year=2006&endDate__day=20&"
@@ -336,8 +336,14 @@ myTests = [
 			"=2006&hrInterval=24&_FILTER=default&_FORMAT=HTML&_VERB=2&TDENC=True"
 			"&submit=Go",
 			"+5 31 28.714",
-			"NV APFS computation")),
-
+			"APFS computation"),
+		GetHasStringsTest(nv_root+"/apfs/res/apfs_new/hipquery/form?"
+			"__nevow_form__=genForm&object=57939&startDate__day=21&"
+			"startDate__month=3&startDate__year=2010&endDate__day=21&"
+			"endDate__month=3&endDate__year=2010&hrInterval=24",
+			["2010-03-21", "11 53 04.2932", "+37 38 30.622"],
+			"APFS/HIP computation"),
+	),
 	TestGroup("maidanak-siap",
 		GetHasStringTest(nv_root+"/maidanak/res/rawframes/siap/siap.xml?"
 			"POS=q2237%2B0305&SIZE=0.1&INTERSECT=OVERLAPS&_TDENC=True&"
@@ -366,7 +372,6 @@ myTests = [
 					' name="INPUT:POS" ucd="pos.eq" unit="deg,deg">'],
 			"NV Maidanak metadata query"),
 	),
-
 	TestGroup('formats',
 		HeadFieldTest(nv_root+"/maidanak/res/rawframes/siap/form?"
 			"__nevow_form__=genForm&POS=q2237%2B0305&SIZE=1&INTERSECT=OVERLAPS&"
@@ -376,7 +381,6 @@ myTests = [
 				("content-type", "application/x-tar")],
 			"Tar output declared in header"),
 	),
-
 	TestGroup("auth",
 		HeadStatusTest(nv_root+"/rauchspectra/theospectra/upload/upload",
 			401,
@@ -409,7 +413,6 @@ myTests = [
 			401,
 			"Product auth test (will fail when embargo strikes)"),
 	),
-
 	TestGroup("siap.xml",
 		GetHasStringsTest(nv_root+"/lswscans/res/positions/siap/siap.xml?"
 			"POS=168,22&SIZE=0.5",
@@ -428,7 +431,6 @@ myTests = [
 			["wcs_equinox", "</TD>", "<TD>Heidelberg"],
 			"SIAP reply in TDENC works"),
 	),
-
 	TestGroup("cns-scs",
 		GetHasStringsTest(nv_root+"/cns/res/cns/scs/scs.xml",
 			["VOTABLE", "RA: Required; DEC: Required"],
@@ -444,8 +446,7 @@ myTests = [
 			"&_TDENC=True",
 			["VOTABLE", "TABLEDATA><TR><TD>21029"],
 			"SCS successful query, tdenc"),
-		),
-
+	),
 	TestGroup("registry",
 		GetHasStringsTest(nv_root+"/oai.xml", [
 				"<oai:OAI-PMH", 'Argument">verb'],
@@ -486,7 +487,7 @@ myTests = [
 				"verb=ListRecords&from=2007-10-10&metadataPrefix=ivo_vor",
 					'<oai:ListRecords>', # Think of something better, this may be empty
 			"PMH ListRecords response looks all right in ivo_vor"),
-		),
+	),
 	TestGroup("regvalidation",
 		XSDValidationTest(nv_root+"/oai.xml",
 			"OAI error response validates"),
@@ -553,7 +554,6 @@ myTests = [
 			['content="0;URL=', '/dexter/ui/ui/custom/'],
 			"Dexter deletes empty dataset"),
 	),
-
 	TestGroup("formats",
 		GetHasStringsTest(nv_root+"/inflight/res/lc1/table/form?"
 			"__nevow_form__=genForm&line=200%20..%20800&_DBOPTIONS_ORDER="
@@ -569,8 +569,7 @@ myTests = [
 				"TTYPE1  = 'line    '  ",
 				"TFORM1  = 'J       '  ",],
 			"Lightcurve FITS looks like a binary FITS table"),
-		),
-
+	),
 	TestGroup("misc",
 		GetHasStringsTest(nv_root+"/builtin/help.shtml",
 			["Service discovery", "Search forms", "VOTable", "sidebar"],
@@ -611,7 +610,6 @@ myTests = [
 			["Service Documentation", "About ADQL", ">this list of QSOs<"],
 			"ADQL docs appear to be in shape"),
 	),
-
 	TestGroup('ucds',
 		GetHasStringsTest(nv_root+'/ucds/ui/hideui/form?'
 				'__nevow_form__=genForm&description=Weird%20uninterpretable%20'
@@ -628,7 +626,6 @@ myTests = [
 			["Average blue", "surface brightness"],
 			"UCD known descriptions returns something sensible"),
 	),
-
 	TestGroup("upload", # CAUSES INTERMEDIATE SERVER-SIDE STATE!
 		GetHasStringsTest(nv_root+"/__system__/tests/upload/upload",
 			["Insert", "Update", 'type="file"'],
@@ -654,7 +651,6 @@ myTests = [
 			"Matched: 0",
 			"Reset of db seems to work"),
 	),
-
 	TestGroup("soap",
 # To come up with the stuff posted, use soappy and 
 # proxy.soapproxy.config.debug = True
@@ -694,8 +690,7 @@ myTests = [
 				'<tns:raCio xsi:type="xsd:double">25.35'],
 			'APFS SOAP returns something reasonable',
 			SOAPAction='"useService"', content_type="text/xml"),
-		),
-
+	),
 	TestGroup("infopages",
 		GetHasStringsTest(nv_root+"/__system__/dc_tables/show/tableinfo?"
 				"tableName=ppmx.data",
@@ -707,8 +702,7 @@ myTests = [
 		GetHasStringsTest(nv_root+"/__system__/dc_tables/list/form",
 			["Fully qualified table", "ppmx.data", "18 088 919"],
 			"ADQL tables can be listed"),
-		),
-
+	),
 	TestGroup("adql",
 		GetHasStringsTest(nv_root+"/__system__/adql/query/form?"
 				"__nevow_form__=genForm&query=foobar%0A&_FORMAT=HTML&submit=Go",
@@ -724,8 +718,7 @@ myTests = [
 				"_FORMAT=HTML&submit=Go",
 			["permission denied for schema weblogs", "Result link"],
 			"Log table is not accessible through ADQL"),
-		),
-
+	),
 	TestGroup("services",
 		GetHasStringsTest(nv_root+"/lswscans/res/positions/q/form?"
 				"__nevow_form__=genForm&POS=1.5%2C6.3&SIZE=0.5&INTERSECT=OVERLAPS&"
@@ -763,7 +756,7 @@ myTests = [
 				"&service=apfs&month=8&year=2008",
 			["#Hosts", "<td>3</td>"],
 			"Logs service delivers credible data."),
-	)
+	),
 ]
 
 

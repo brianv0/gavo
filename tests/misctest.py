@@ -14,6 +14,7 @@ from gavo import rscdef
 from gavo import rscdesc
 from gavo.base import valuemappers
 from gavo.helpers import filestuff
+from gavo.utils import mathtricks
 
 import testhelpers
 
@@ -56,11 +57,11 @@ class MapperTest(unittest.TestCase):
 			(base.makeStruct(rscdef.Column, name="d", type="date", unit="Y-M-D"),
 				datetime.date(2003, 5, 4), "2003-05-04"),
 			(base.makeStruct(rscdef.Column, name="d", type="date", unit="yr"),
-				datetime.date(2003, 5, 4), '2003.30047912'),
+				datetime.date(2003, 5, 4), '2003.33607118'),
 			(base.makeStruct(rscdef.Column, name="d", type="date", unit="d"),
 				datetime.date(2003, 5, 4), '2452763.5'),
 			(base.makeStruct(rscdef.Column, name="d", type="timestamp", unit="d"),
-				datetime.datetime(2003, 5, 4, 20, 23), '2452765.34931'),
+				datetime.datetime(2003, 5, 4, 20, 23), '2452764.34931'),
 			(base.makeStruct(rscdef.Column, name="d", type="date", unit="d", 
 					ucd="VOX:Image_MJDateObs"),
 				datetime.date(2003, 5, 4), '52763.0'),
@@ -126,5 +127,21 @@ class RenamerWetTest(unittest.TestCase):
 		self.assertRaises(filestuff.Error, f.renameInPath, self.testDir)
 
 
+class TimeCalcTest(testhelpers.VerboseTest):
+	"""tests for time transformations.
+	"""
+	def testJYears(self):
+		self.assertEqual(mathtricks.jYearToDateTime(1991.25),
+			datetime.datetime(1991, 04, 02, 13, 30, 00))
+		self.assertEqual(mathtricks.jYearToDateTime(2005.0),
+			datetime.datetime(2004, 12, 31, 18, 0))
+	
+	def testRoundtrip(self):
+		for yr in range(2000):
+			self.assertAlmostEqual(2010+yr/1000., mathtricks.dateTimeToJYear(
+				mathtricks.jYearToDateTime(2010+yr/1000.)), 7,
+				"Botched %f"%(2010+yr/1000.))
+
+
 if __name__=="__main__":
-	testhelpers.main(MapperTest)
+	testhelpers.main(TimeCalcTest)
