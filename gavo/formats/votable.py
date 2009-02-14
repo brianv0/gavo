@@ -268,6 +268,8 @@ class VOTableMaker:
 		"""add meta elements from the resource descriptor to vot.
 		"""
 		rd = dataSet.dd.rd
+		if rd is None:
+			return
 		vot.description = unicode(rd.getMeta("description", default=""))
 # XXX TODO: do something about systems
 #		for id, equ, epoch, system in rd.get_systems():
