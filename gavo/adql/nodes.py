@@ -244,8 +244,15 @@ class FieldInfoedNode(ADQLNode):
 		if len(infoChildren)==1:
 			self.fieldInfo = infoChildren[0].fieldInfo
 		else:
-			raise Error("More than one or no child with fieldInfo with"
-				" no behaviour defined in %s"%(self.__class__.__name__))
+			if len(infoChildren):
+				msg = "More than one"
+			else:
+				msg = "No"
+			raise Error("%s child with fieldInfo with"
+				" no behaviour defined in %s, children %s"%(
+					msg,
+					self.__class__.__name__,
+					self.children))
 
 
 class ColBearingMixin(object):
@@ -454,7 +461,6 @@ class DerivedColumn(FieldInfoedNode):
 	type = "derivedColumn"
 	name = None
 	columnReferences = None
-# XXX TODO: do something with the tainted attribute in FieldInfos
 	tainted = True
 
 	def _processChildren(self):
@@ -563,13 +569,28 @@ class NumericValueExpression(CombiningFINode):
 		return fi1
 
 
-class GenericValueExpression(FieldInfoedNode):
+class GenericValueExpression(CombiningFINode):
 	"""is a container for value expressions that we don't want to look at
 	closer.
 
 	It is returned by the makeValueExpression factory below to collect
 	stray children.
 	"""
+	def _combineFieldInfos(self):
+		# we don't really know what these children are.  Let's just give up
+		# unless all child fieldInfos are more or less equal (which of course
+		# is a wild guess).
+		childUnits, childUCDs = set(), set()
+		infoChildren = self._getInfoChildren()
+		for c in infoChildren:
+			childUnits.add(c.fieldInfo.unit)
+			childUCDs.add(c.fieldInfo.ucd)
+		if len(childUnits)==1 and len(childUCDs)==1:
+			# let's taint the first info and be done with it
+			return infoChildren[0].fieldInfo.copyModified(tainted=True)
+		else:
+			return dimlessFieldInfo
+
 
 @symbolAction("valueExpression")
 def makeValueExpression(children):
@@ -679,7 +700,7 @@ class NumericValueFunction(FieldInfoedNode, FunctionMixin):
 		self.fieldInfo = FieldInfo(unit, ucd, *collectUserData(infoChildren))
 
 
-class CharacterStringLiteral(ADQLNode):
+class CharacterStringLiteral(FieldInfoedNode):
 	"""according to the current grammar, these are always sequences of
 	quoted strings.
 	"""
@@ -689,6 +710,8 @@ class CharacterStringLiteral(ADQLNode):
 	def _processChildren(self):
 		self.value = "".join(c[1:-1] for c in self.children)
 
+	def addFieldInfo(self, ignored):
+		self.fieldInfo = dimlessFieldInfo
 
 ###################### Geometry and stuff that needs morphing into real SQL
 

@@ -36,10 +36,16 @@
 	Turn UnicodeAttributes in grammars/kvgrammar.py to REAttributes as 
 	appropriate.
 
-11/MEDIUM/2009-02-11
+11/MEDIUM/2009-02-11/FIXED
 	Documentation for row triggers currently doesn't really exist.
 
 12/MEDIUM/2009-02-11/FIXED
 	Julian year functions are wrong.  Use 
 	datetime.datetime(2000, 1, 1, 12)+datetime.timedelta(days=365.25*(fracYear-2000.0) 
 	(which still is not 100% precise but should really be good enough).
+
+13/MEDIUM/2009-02-14/FIXED
+	SELECT 'foo' FROM whatever raises a weird error
+
+14/MEDIUM/2009-02-14/FIXED
+	SELECT 1 as size is not parsed.

@@ -256,30 +256,6 @@ def addFieldInfos(qTree, fieldInfoGetter):
 	traverse(qTree, None)
 
 
-class FieldInfo(object):
-	"""is a container for meta information on columns.
-
-	It is constructed with a unit, a ucd and userData.  UserData is
-	opaque to the library and is just collected on operations.
-
-	In addition, we have a cooSys attribute that is only non-NULL for
-	ADQL geometry values.  These write them into their FieldInfos directly.
-	"""
-	tainted = False
-
-	def __init__(self, unit, ucd, userData):
-		self.ucd = ucd
-		self.warnings = []
-		self.errors = []
-		self.userData = userData
-		self.unit = unit
-		self.cooSys = None
-	
-	def __repr__(self):
-		return "FieldInfo(%s, %s, %s)"%(repr(self.unit), repr(self.ucd),
-			repr(self.userData))
-
-
 def dumpFieldInfoedTree(tree):
 	import pprint
 	def traverse(node):
@@ -306,9 +282,9 @@ if __name__=="__main__":
 		else:
 			return {}
 	s, g = getTreeBuildingGrammar()
-	res = g.parseString("select * from stars where CONTAINS(POINT('ICRS', raj2000, dej2000), CIRCLE('ICRS', 34.0, 33.2, 1))=1")[0]
-#	pprint.pprint(res.asTree())
+	res = g.parseString("select 1+0.1, 'const'||'ab' from spatial")[0]
+	pprint.pprint(res.asTree())
 	print repr(res)
-#	fd = addFieldInfos(res, fig)
+	fd = addFieldInfos(res, fig)
 	#print "Res:", res.fieldInfos.seq
-	print res.getSourceTableNames()
+	#print res.getSourceTableNames()

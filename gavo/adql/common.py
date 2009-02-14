@@ -46,8 +46,6 @@ class FieldInfo(object):
 	one FieldInfo will have all userDatas of the combined FieldInfos in
 	its userData attribute.
 	"""
-	tainted = False
-
 	def __init__(self, unit, ucd, userData=(), tainted=False):
 		self.ucd = ucd
 		self.warnings = []
@@ -106,6 +104,14 @@ class FieldInfo(object):
 		else:
 			taint = True
 		return cls(unit, ucd, fi1.userData+fi2.userData, taint)
+
+	def copyModified(self, **kwargs):
+		res = FieldInfo(self.unit, self.ucd, self.userData, self.tainted)
+		res.warnings = self.warnings[:]
+		res.errors = self.errors[:]
+		for k,v in kwargs.items():
+			setattr(res, k, v)
+		return res
 
 
 dimlessFieldInfo = FieldInfo("", "")

@@ -430,10 +430,8 @@ class NodeTest(testhelpers.VerboseTest):
 		self.assertEqual(res[0], "direct")
 		self.assertEqual(res[1].type, "foo")
 
-		
-class ColResTest(testhelpers.VerboseTest):
-	"""tests for resolution of output columns from various expressions.
-	"""
+
+class ColumnTest(testhelpers.VerboseTest):
 	def setUp(self):
 		self.fieldInfoGetter = _sampleFieldInfoGetter
 		self.grammar = adql.getGrammar()
@@ -457,6 +455,29 @@ class ColResTest(testhelpers.VerboseTest):
 				self.assertEqual(col.tainted, taint, "Taint %d: should be %s"%
 					(index, taint))
 
+
+class SelectClauseTest(ColumnTest):
+	def testConstantSelect(self):
+		cols = self._getColSeq("select 1, 'const' from spatial")
+		self._assertColumns(cols, [
+			("", "", False),
+			("", "", False),])
+
+	def testConstantExprSelect(self):
+		cols = self._getColSeq("select 1+0.1, 'const'||'ab' from spatial")
+		self._assertColumns(cols, [
+			("", "", False),
+			("", "", True),])
+
+	def testConstantSelectWithAs(self):
+		cols = self._getColSeq("select 1+0.1 as x from spatial")
+		self._assertColumns(cols, [
+			("", "", False),])
+
+		
+class ColResTest(ColumnTest):
+	"""tests for resolution of output columns from various expressions.
+	"""
 	def testSimpleSelect(self):
 		cols = self._getColSeq("select width, height from spatial")
 		self.assertEqual(cols[0][0], 'width')
@@ -779,4 +800,4 @@ class QueryTest(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(QueryTest)
+	testhelpers.main(SelectClauseTest)
