@@ -159,7 +159,7 @@ class ContextRowIterator(grammars.RowIterator):
 
 
 class ContextGrammar(grammars.Grammar):
-	"""A grammar for nevow contexts.
+	"""A grammar for web inputs.
 
 	These are almost exclusively in InputDD.  They hold InputKeys defining
 	what they take from the context.
@@ -167,6 +167,9 @@ class ContextGrammar(grammars.Grammar):
 	For DBCores, the InputDDs are generally defined implicitely via
 	CondDescs.  Thus, only for other cores will you ever need to bother
 	with ContextGrammars.
+
+	The source tokens for context grammars are dictionaries, usually
+	computed by nevow formal.
 	"""
 	name_ = "contextGrammar"
 

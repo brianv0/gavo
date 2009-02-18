@@ -49,6 +49,7 @@ class Core(base.Structure):
 		childFactory=outputdef.OutputTableDef, description="Table describing"
 			" what fields are available from this core.", copyable=True)
 	_original = base.OriginalAttribute()
+	_properties = base.PropertyAttribute()
 
 	def __repr__(self):
 		return "<%s at %s>"%(self.__class__.__name__, id(self))
