@@ -7,16 +7,11 @@ import os
 import pkg_resources
 import unittest
 
-try:
-    import cElementTree as ElementTree
-except:
-    from elementtree import ElementTree
-
-
 from gavo import base
 from gavo import rsc
 from gavo import rscdesc
 from gavo.formats import votable
+from gavo.utils import ElementTree
 
 testData="""some silly test data
 -33  -3400abc

@@ -52,7 +52,8 @@ class SimpleParseTest(testhelpers.VerboseTest):
 		try:
 			dd = self._getDD()
 			self.assertRaisesWithMsg(base.ValidationError,
-				"While building x in bla_foo: invalid literal for int(): x",
+				"While building x in bla_foo: invalid literal for int()"
+					" with base 10: 'x'",
 				rsc.makeData, (dd,))
 		finally:
 			os.unlink("testInput.txt")
@@ -163,4 +164,4 @@ class TestCleanedup(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(TestProductsImport)
+	testhelpers.main(SimpleParseTest)

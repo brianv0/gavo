@@ -203,10 +203,10 @@ def getTreeBuildingGrammar():
 	def bind(symName, nodeClass):
 		try:
 			if getattr(nodeClass, "collapsible", False):
-				syms[symName].setParseAction(lambda s, pos, toks: 
+				syms[symName].addParseAction(lambda s, pos, toks: 
 					autocollapse(nodeClass, toks))
 			else:
-				syms[symName].setParseAction(lambda s, pos, toks: 
+				syms[symName].addParseAction(lambda s, pos, toks: 
 					nodeClass(toks))
 		except KeyError:
 			raise KeyError("%s asks for non-existing symbol %s"%(

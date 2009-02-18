@@ -10,9 +10,12 @@ import traceback
 import sys
 
 try:
-    import cElementTree as ElementTree
+	from xml.etree import ElementTree
 except ImportError:
-    from elementtree import ElementTree
+	try:
+			import cElementTree as ElementTree
+	except ImportError:
+			from elementtree import ElementTree
 
 
 

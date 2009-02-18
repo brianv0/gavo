@@ -31,7 +31,8 @@ class ParseNode(object):
 	def __str__(self):
 		return "(%s %s)"%(self.operator, " ".join([str(c) for c in self.children]))
 
-	__repr__ = __str__
+	def __repr__(self):
+		return "(%r %r)"%(self.operator, " ".join([str(c) for c in self.children]))
 
 	def _insertChild(self, index, field, sqlPars):
 		"""inserts children[index] into sqlPars with a unique key and returns
@@ -252,13 +253,13 @@ def getComplexGrammar(baseLiteral, pmBuilder, errorLiteral=None):
 	expr.setName("expr")
 	simpleExpr.setName("simpleEx")
 
-	preopExpr.setParseAction(_makeSimpleExprNode)
-	rangeExpr.setParseAction(_getNodeFactory("..", NumericNode))
-	pmExpr.setParseAction(pmBuilder)
-	valList.setParseAction(_getNodeFactory(",", NumericNode))
-	notExpr.setParseAction(_makeNotNode)
-	andExpr.setParseAction(_getBinopFactory("AND"))
-	orExpr.setParseAction(_getBinopFactory("OR"))
+	preopExpr.addParseAction(_makeSimpleExprNode)
+	rangeExpr.addParseAction(_getNodeFactory("..", NumericNode))
+	pmExpr.addParseAction(pmBuilder)
+	valList.addParseAction(_getNodeFactory(",", NumericNode))
+	notExpr.addParseAction(_makeNotNode)
+	andExpr.addParseAction(_getBinopFactory("AND"))
+	orExpr.addParseAction(_getBinopFactory("OR"))
 
 	return exprInString
 
@@ -271,10 +272,10 @@ def parseFloat(s, pos, tok):
 	except ValueError:
 		return float(tok[0])
 
-floatLiteral = Regex(texttricks.floatRE).setParseAction(parseFloat)
+floatLiteral = Regex(texttricks.floatRE).addParseAction(parseFloat)
 
 # XXX TODO: be a bit more lenient in what you accept as a date
-dateLiteral = Regex(r"\d\d\d\d-\d\d-\d\d(T\d\d:\d\d:\d\d)?").setParseAction(
+dateLiteral = Regex(r"\d\d\d\d-\d\d-\d\d(T\d\d:\d\d:\d\d)?").addParseAction(
 			lambda s, pos, tok: typesystems.toPythonDateTime(tok[0]))
 
 
@@ -306,9 +307,11 @@ def getStringGrammar():
 	simpleOperator = Literal("==") | Literal("!=") | Literal(">=") |\
 		Literal(">") | Literal("<=") | Literal("<") | Literal("=~") |\
 		Literal("=,")
-	simpleOperand = Regex(".*")
-	simpleExpr = simpleOperator + simpleOperand
-	
+	simpleOperand = Regex(r"[^\s].*|")
+	# XXX probably a bug in pyparsing: White shouldn't be necessary here
+	White = Word(" \t")
+	simpleExpr = simpleOperator + Optional( White ) + simpleOperand
+
 	commaOperand = Regex("[^,]+")
 	barOperand = Regex("[^|]+")
 	commaEnum = Literal("=,") + commaOperand + ZeroOrMore(
@@ -328,10 +331,8 @@ def getStringGrammar():
 
 	patternOperator = Literal("~") | Literal("=") | Literal("!~") |\
 		Literal("!")
-	patternExpr = patternOperator + pattern
-
-	nakedExpr = (Regex("[^=!~|><]")+simpleOperand).setParseAction(
-		lambda s,p,toks: "".join(toks))
+	patternExpr = patternOperator + Optional( White ) + pattern
+	nakedExpr = Regex("[^=!~|><]") + Optional( simpleOperand )
 
 	stringExpr = enumExpr | simpleExpr | patternExpr | nakedExpr
 	
@@ -339,18 +340,27 @@ def getStringGrammar():
 
 	stringExpr.setName("StringExpr")
 	enumExpr.setName("EnumExpr")
+	simpleOperand.setName("Operand")
+	simpleOperator.setName("Operator")
+	nakedExpr.setName("SingleOperand")
 
 	debug = False
 	stringExpr.setDebug(debug)
+	enumExpr.setDebug(debug)
 	patLiterals.setDebug(debug)
+	simpleOperand.setDebug(debug)
+	simpleOperator.setDebug(debug)
+	nakedExpr.setDebug(debug)
 
-	simpleExpr.setParseAction(_makeOpNode)
-	patternExpr.setParseAction(_makeOpNode)
-	enumExpr.setParseAction(_makeOpNode)
-	nakedExpr.setParseAction(_getNodeFactory("==", StringNode))
-	wildStar.setParseAction(_makeOpNode)
-	wildQmark.setParseAction(_makeOpNode)
-	setElems.setParseAction(_getNodeFactory("[", StringNode))
+	simpleExpr.addParseAction(_makeOpNode)
+	patternExpr.addParseAction(_makeOpNode)
+	enumExpr.addParseAction(_makeOpNode)
+	makeDefaultExpr = _getNodeFactory("==", StringNode)
+	nakedExpr.addParseAction(lambda s,p,toks: makeDefaultExpr(s,p,
+		["".join(toks)]))
+	wildStar.addParseAction(_makeOpNode)
+	wildQmark.addParseAction(_makeOpNode)
+	setElems.addParseAction(_getNodeFactory("[", StringNode))
 
 	return doc
 
@@ -471,7 +481,4 @@ def _test():
 
 
 if __name__=="__main__":
-	if True:
-		_test()
-	else:
-		print parseStringExpr("NGC*")
+	print repr(parseStringExpr("=="))

@@ -230,7 +230,7 @@ class TestContent(testhelpers.VerboseTest):
 		self.assertEqual(m.getMeta("brasel").getContent(), 
 			'`foo <http://foo.org>`__')
 		self.assertEqual(m.getMeta("brasel").getContent("html"), 
-			'<p><a class="reference" href="http://foo.org">foo</a></p>\n')
+			'<p><a class="reference external" href="http://foo.org">foo</a></p>\n')
 
 
 class TestSpecials(testhelpers.VerboseTest):

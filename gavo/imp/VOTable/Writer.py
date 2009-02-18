@@ -8,9 +8,12 @@ import warnings
 import copy
 
 try:
-    import cElementTree as ElementTree
-except:
-    from elementtree import ElementTree
+	from xml.etree import ElementTree
+except ImportError:
+	try:
+			import cElementTree as ElementTree
+	except:
+			from elementtree import ElementTree
 
 import DataModel
 import Encoders

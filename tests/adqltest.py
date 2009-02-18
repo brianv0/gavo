@@ -800,4 +800,4 @@ class QueryTest(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(SelectClauseTest)
+	testhelpers.main(FunctionNodeTest)

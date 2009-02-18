@@ -546,13 +546,18 @@ class Rowmaker(object):
 			excLine = tb.tb_next.tb_lineno
 		else: # toplevel failure, internal
 			return "in toplevel (internal failure)"
-		destInd = bisect.bisect_left(self.lineMap, (excLine, ""))
+		destInd = min(len(self.lineMap)-1, 
+			bisect.bisect_left(self.lineMap, (excLine, "")))
+		# If we're between lineMap entries, the one before the guessed one
+		# is the one we want
+		if self.lineMap[destInd][0]>excLine and destInd:
+			destInd -= 1
 		return self.lineMap[destInd][1]
 
 	def _guessError(self, ex, rowdict, tb):
 		"""tries to shoehorn a ValidationError our of ex.
 		"""
-#		traceback.print_tb(tb)
+		#traceback.print_tb(tb)
 		destName = self._guessExSourceName(tb)
 		try:
 			if "_result" in rowdict:

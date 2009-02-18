@@ -2,9 +2,8 @@
 Data model for the VO registry interface.
 """
 
-from elementtree import ElementTree
-
 from gavo import base
+from gavo.utils import ElementTree
 from gavo.utils.stanxml import Element, XSINamespace
 
 

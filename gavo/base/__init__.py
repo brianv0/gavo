@@ -7,6 +7,13 @@ from gavo import base.
 This module may not be imported by anything within base.
 """
 
+
+# This doesn't belong here and it should go away again, but right now,
+# astLib has an issue in the de_DE (and probably other) locales.
+import locale, os
+os.environ["LC_ALL"] = 'C'
+locale.setlocale(locale.LC_ALL, 'C')
+
 from pyparsing import ParseException
 
 
@@ -70,3 +77,14 @@ from gavo.base.unitconv import (
 	IncompatibleUnits, BadUnit)
 
 from gavo.base.xmlstruct import parseFromString, parseFromStream
+
+# This may not be the best place to put this, but I don't really have a
+# better one at this point.  We need some configuration of pyparsing, and
+# this is probably imported by all modules doing pyparsing.
+from pyparsing import ParserElement
+# Hack to get around behaviour swings of setParseAction; we use
+# addParseAction throughout and retrofit it to pyparsings that don't have it.
+if not hasattr(ParserElement, "addParseAction"):
+	ParserElement.addParseAction = ParserElement.setParseAction
+ParserElement.enablePackrat()
+ParserElement.setDefaultWhitespaceChars(" \t")

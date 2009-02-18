@@ -1,9 +1,13 @@
 # Author: Francesco Pierfederici <fpierfed@eso.org>.
 # Licensed under the Academic Free License version 2.0 (see LICENSE.txt). 
+
 try:
-    import cElementTree as ElementTree
-except:
-    from elementtree import ElementTree
+	from xml.etree import ElementTree
+except ImportError:
+	try:
+			import cElementTree as ElementTree
+	except:
+			from elementtree import ElementTree
 
 
 from Encoders import *

@@ -5,13 +5,9 @@ This comprises helpers and wrappers that do not need gavo.base but for some
 reason or another should be within the dc package.
 """
 
-try:
-	import cElementTree as ElementTree
-except ImportError:
-	from elementtree import ElementTree
+from gavo.utils.stanxml import ElementTree
 
+from gavo.utils.mathtricks import (findMinimum, dateTimeToJdn, 
+	dateTimeToJYear, jYearToDateTime)
 
-from mathtricks import (findMinimum, dateTimeToJdn, dateTimeToJYear,
-	jYearToDateTime)
-
-from texttricks import formatSize
+from gavo.utils.texttricks import formatSize

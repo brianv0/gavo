@@ -52,24 +52,24 @@ class MacroExpander(object):
 
 	def getGrammar(self, debug=False):
 		macro = Forward()
-		quoteEscape = (Literal("\\{").setParseAction(lambda *args: "{") | 
-			Literal("\\}").setParseAction(lambda *args: "}"))
+		quoteEscape = (Literal("\\{").addParseAction(lambda *args: "{") | 
+			Literal("\\}").addParseAction(lambda *args: "}"))
 		charRun = Regex(r"[^}\\]+")
 		argElement = macro | quoteEscape | charRun
 		argument = Suppress("{") + ZeroOrMore(argElement) + Suppress("}")
-		argument.setParseAction(lambda s, pos, toks: "".join(toks))
+		argument.addParseAction(lambda s, pos, toks: "".join(toks))
 		arguments = ZeroOrMore(argument)
 		arguments.setWhitespaceChars("")
 		macroName = Regex("[A-Za-z_][A-Za-z_0-9]+")
 		macroName.setWhitespaceChars("")
 		macro << Suppress( "\\" ) + macroName + arguments
-		macro.setParseAction(self._execMacro)
+		macro.addParseAction(self._execMacro)
 		literalBackslash = Literal("\\\\")
-		literalBackslash.setParseAction(lambda *args: "\\")
+		literalBackslash.addParseAction(lambda *args: "\\")
 		suppressedLF = Literal("\\\n")
-		suppressedLF.setParseAction(lambda *args: " ")
+		suppressedLF.addParseAction(lambda *args: " ")
 		glue = Literal("\\+")
-		glue.setParseAction(lambda *args: "")
+		glue.addParseAction(lambda *args: "")
 		if debug:
 			macro.setDebug(True)
 			macro.setName("macro")

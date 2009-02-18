@@ -361,6 +361,7 @@ class StringQueryTest(unittest.TestCase):
 		self.tableName = self.data.tables["vizierstrings"].tableDef.getQName()
 
 	def tearDown(self):
+		return
 		self.data.dropTables().commitAll().closeAll()
 
 	def _runCountTests(self, tests):
@@ -373,9 +374,9 @@ class StringQueryTest(unittest.TestCase):
 					vizierexprs.getSQL(ik, {"s": vExpr}, pars))
 				res = querier.query(query, pars).fetchall()
 				self.assertEqual(len(res), numberExpected,
-					"Query %s with parameters %s didn't yield exactly %d result(s).\n"
-					"Result is %s."%(
-						query, pars, numberExpected, res))
+					"Query %s from %r with parameters %s didn't yield exactly"
+						" %d result(s).\nResult is %s."%(
+						query, vExpr, pars, numberExpected, res))
 		finally:
 			querier.close()
 
@@ -491,4 +492,4 @@ class MatchMatrixTest(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(MatchMatrixTest)
+	testhelpers.main(StringQueryTest)

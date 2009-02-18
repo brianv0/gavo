@@ -63,6 +63,8 @@ def metaRstToHtml(inputString):
 	overrides = {'input_encoding': 'unicode',
 		'doctitle_xform': None,
 		'initial_header_level': 4}
+	if not isinstance(inputString, unicode):
+		inputString = inputString.decode("utf-8")
 	parts = core.publish_parts(
 		source=inputString, source_path=sourcePath,
 		destination_path=destinationPath,

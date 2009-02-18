@@ -81,7 +81,8 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 			"While building x in _foo: name 'src' is not defined",
 			mapper, ({}, ))
 		self.assertRaisesWithMsg(base.ValidationError,
-			"While building x in _foo: invalid literal for int(): ab c",
+			"While building x in _foo: invalid literal for int()"
+				" with base 10: 'ab c'",
 			mapper, ({"src": "ab c"},))
 	
 	def testMultilineExpressions(self):
@@ -93,7 +94,7 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 		mapper = dd.rowmakers[0].compileForTable(td)
 		self.assertEqual(mapper({"src": '-20'}), {"x": -20, "y": 'foobar-20'})
 		self.assertRaisesWithMsg(base.ValidationError,
-			"While building x in _foo: invalid literal for int(): 3x3",
+			"While building x in _foo: invalid literal for int() with base 10: '3x3'",
 			mapper, ({"src": "3x3"},))
 		self.assertRaisesWithMsg(base.ValidationError,
 			"While building y in _foo: 'utf8' codec can't decode byte 0x98 in position 0:"

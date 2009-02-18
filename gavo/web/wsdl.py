@@ -6,8 +6,6 @@ import cStringIO
 import datetime
 import sys
 
-from elementtree import ElementTree
-
 import ZSI
 from ZSI import TC
 
@@ -15,6 +13,7 @@ from gavo import base
 from gavo.base import valuemappers
 from gavo.protocols import registry
 from gavo.utils.stanxml import Element, XSINamespace
+from gavo.utils import ElementTree
 
 
 SOAPNamespace = 'http://schemas.xmlsoap.org/wsdl/soap/'
@@ -301,20 +300,6 @@ sqltypeToTC = ToTcConverter().convert
 _wsdlMFRegistry = valuemappers.ValueMapperFactoryRegistry()
 _registerMF = _wsdlMFRegistry.registerFactory
 
-try:
-	from mx import DateTime
-
-	def mxDatetimeMapperFactory(colProps):
-		"""returns mapper for mxDateTime objects to python time tuples.
-		"""
-		if isinstance(colProps["sample"], DateTime.DateTimeType):
-			return lambda val: val.tuple()
-		if isinstance(colProps["sample"], DateTime.DateTimeDeltaType):
-			return lambda val: (0,0,0,)+val.tuple()[:3]+(-1,-1,-1)
-	_registerMF(mxDatetimeMapperFactory)
-except ImportError:
-	pass
-
 
 def datetimeMapperFactory(colProps):
 	"""returns mapper for datetime objects to python time tuples.
@@ -323,6 +308,10 @@ def datetimeMapperFactory(colProps):
 		def mapper(val):
 			return val.timetuple()
 		return mapper
+	if isinstance(colProps["sample"], datetime.timedelta):
+		def mapper(val):
+			return (0, 0, 0, 0, 0, 0, 0, 0, 0) # FIX!!!
+		return mapper
 _registerMF(datetimeMapperFactory)
 
 
@@ -330,24 +319,22 @@ def serializePrimaryTable(data, service):
 	"""returns a SOAP serialization of the DataSet data's primary table.
 	"""
 	table = data.getPrimaryTable()
+	tns = registry.computeIdentifier(service)
 	class Row(TC.Struct):
 		def __init__(self):
 			TC.Struct.__init__(self, None, [
-		sqltypeToTC(f.type)("tns:"+f.name)
-			for f in table.tableDef], 'tns:outRow')
+				sqltypeToTC(f.type)(pname=(tns, f.name))
+					for f in table.tableDef],
+				pname=(tns, "outRow"))
 
-	class Table:
-		def __init__(self, name):
-			pass
-	Table.typecode = TC.Array('outRow', Row(), 'tns:outList')
+	class Table(list):
+		typecode = TC.Array((tns, 'outRow'), Row(), 
+			pname=(tns, 'outList'))
 
-	outF = cStringIO.StringIO()
-	sw = ZSI.SoapWriter(outF, 
-		nsdict={"tns": registry.computeIdentifier(service)})
-	mapped = list(base.getMappedValues(table, _wsdlMFRegistry))
-	sw.serialize(mapped, Table.typecode)
-	sw.close()
-	return outF.getvalue()
+	mapped = Table(base.getMappedValues(table, _wsdlMFRegistry))
+	sw = ZSI.SoapWriter(nsdict={"tns": tns})
+	sw.serialize(mapped).close()
+	return str(sw)
 
 
 def unicodeXML(obj):

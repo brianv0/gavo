@@ -113,8 +113,12 @@ class PostHasStringsTest:
 		conn = httplib.HTTPConnection(host)
 		conn.request("POST", path+query, self.data, headers=headers)
 		self.lastResult = conn.getresponse().read()
-		for sent in self.sentinel:
-			assert sent in self.lastResult
+		try:
+			for sent in self.sentinel:
+				assert sent in self.lastResult
+		except AssertionError:
+			print "Additional Info: Response was %r"%repr(self.lastResult)
+			raise
 
 
 class PostFormHasStringsTest(PostHasStringsTest):

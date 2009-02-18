@@ -7,6 +7,8 @@ import unittest
 import gavo
 from gavo.base import coords
 
+import testhelpers
+
 
 interestingPlaces = [ (250, 89), (0,0), (23.0, 42.0), (23.0, -42.0), 
 (-23.0, 42.0), (-23.0, -42.0), (359, 0), (314.,-42.0), (0., 89.), (0, 90), 
@@ -97,10 +99,10 @@ class TestWCS(unittest.TestCase):
 		return {
 			"CUNIT1": "deg", "CUNIT2": "deg",
 			"CTYPE1": 'RA---TAN-SIP', "CTYPE2": 'DEC--TAN-SIP',
-			"CRVAL1": 0, "CRVAL2": 0,
-			"CRPIX1": 0, "CRPIX2": 0,
-			"CD1_1": 0.001, "CD1_2": 0, 
-			"CD2_1": 0, "CD2_2": 0.001, 
+			"CRVAL1": 0., "CRVAL2": 0.,
+			"CRPIX1": 0., "CRPIX2": 0.,
+			"CD1_1": 0.001, "CD1_2": 0., 
+			"CD2_1": 0., "CD2_2": 0.001, 
 			"LONPOLE": 180.,
 			"NAXIS1": 100, "NAXIS2": 100, "NAXIS": 2,
 		}
@@ -197,12 +199,5 @@ class TestGetGCDist(unittest.TestCase):
 			self.assertAlmostEqual(coords.getGCDist((0, 0), (ra, 0)), 360-ra)
 
 
-def singleTest():
-	suite = unittest.makeSuite(TestMovePm, "test")
-	runner = unittest.TextTestRunner()
-	runner.run(suite)
-
-
 if __name__=="__main__":
-	unittest.main()
-	#singleTest()
+	testhelpers.main(TestWCS)

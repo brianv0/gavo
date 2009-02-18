@@ -185,7 +185,7 @@ def _failOnReservedWord(s, pos, toks):
 	"""raises a ParseException if toks[0] is a reserved word.
 
 	This is a parse action on identifiers and, given SQL's crazy grammar,
-	all-importnat for parsing.
+	all-important for parsing.
 	"""
 	if toks and toks[0].upper() in allReservedWords:
 		raise ParseException(s, pos, "Reserved word not allowed here")
@@ -198,13 +198,10 @@ def getADQLGrammarCopy():
 	of the ADQL grammar.  Otherwise, use getADQLGrammar or a wrapper
 	function defined by a client module.
 	"""
-	ParserElement.enablePackrat() # XXX Do we want to do this?  We should
-# create a ParserElement of our own, I guess, to avoid messing up other
-# grammars.
-	comment = "--" + SkipTo("\n" | StringEnd())
-	separator = Optional( comment )  # Whitespace handled by pyparsing
+	sqlComment = Literal("--") + SkipTo("\n" | StringEnd())
 	whitespace = Word(" \t")   # sometimes necessary to avoid sticking together
 		# numbers and identifiers
+	separator = Optional( sqlComment ) + Optional(Word(" \t\n"))
 
 	unsignedInteger = Word(nums)
 	_exactNumericRE = r"\d+(\.(\d+)?)?|\.\d+"
@@ -220,7 +217,7 @@ def getADQLGrammarCopy():
 	multOperator = Literal("*") | "/"
 	notKeyword = CaselessKeyword("NOT")
 
-	regularIdentifier = Word(alphas, alphanums+"_").setParseAction(
+	regularIdentifier = Word(alphas, alphanums+"_").addParseAction(
 		_failOnReservedWord)
 	delimitedIdentifier = dblQuotedString.copy()
 	identifier = regularIdentifier | delimitedIdentifier
@@ -424,7 +421,7 @@ def getADQLGrammarCopy():
 
 # toplevel select clause
 	querySpecification = Forward()
-	queryExpression << querySpecification |  joinedTable
+	queryExpression << ( querySpecification |  joinedTable )
 	querySpecification << ( CaselessKeyword("SELECT") + Optional( setQuantifier 
 		) + Optional( setLimit ) +  selectList + tableExpression )
 	statement = querySpecification + StringEnd()
@@ -445,12 +442,16 @@ def enableDebug(syms, debugNames=None):
 
 
 def enableTree(syms):
+	def makeAction(name):
+		def action(s, pos, toks):
+			return [name, toks]
+		return action
 	for name in syms:
 		ob = syms[name]
 		if not ob.debug:
 			ob.setDebug(True)
 			ob.setName(name)
-			ob.setParseAction(lambda s, pos, toks, name=name: [name, toks])
+			ob.addParseAction(makeAction(name))
 
 
 def getADQLGrammar():
@@ -471,6 +472,7 @@ if __name__=="__main__":
 	import pprint, sys
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
-	res = grammar.parseString("select coordsys(q.p) from (select point('ICRS', x, y)"
-			" as p from foo) as q")
+	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
+	res = syms["valueExpression"].parseString("select POINT('ICRS', width,height)"
+			" from spatial", parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

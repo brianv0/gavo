@@ -139,12 +139,20 @@ class ContextRowIterator(grammars.RowIterator):
 	"""
 	def __init__(self, grammar, sourceToken, **kwargs):
 		grammars.RowIterator.__init__(self, grammar, sourceToken, **kwargs)
-	
+
+	def _completeRow(self, rawRow):
+		if self.grammar.defaults:
+			val = self.grammar.defaults.copy()
+		else:
+			val = {}
+		val.update(rawRow)
+		return val
+
 	def _iterRows(self):
-		yield self.sourceToken
+		yield self._completeRow(self.sourceToken)
 	
 	def getParameters(self):
-		return self.sourceToken
+		return self._completeRow(self.sourceToken)
 	
 	def getLocator(self):
 		return "Context input"
@@ -170,6 +178,13 @@ class ContextGrammar(grammars.Grammar):
 	_original = base.OriginalAttribute("original")
 
 	rowIterator = ContextRowIterator
+
+	def onElementComplete(self):
+		self.defaults = {}
+		for ik in self.inputKeys:
+			if ik.values and ik.values.default is not None:
+				self.defaults[ik.name] = ik.values.default
+		self._onElementCompleteNext(ContextGrammar)
 
 	@classmethod
 	def fromInputKeys(cls, inputKeys):

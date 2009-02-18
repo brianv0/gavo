@@ -293,4 +293,4 @@ def singleTest():
 
 
 if __name__=="__main__":
-	testhelpers.main(TestCoordinateQueries)
+	testhelpers.main(TestWCSTrafos)

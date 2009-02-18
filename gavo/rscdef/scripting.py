@@ -25,8 +25,6 @@ def _getSQLScriptGrammar():
 	The rules are: One statement per line, but linebreaks are ignored
 	withing strings and inside of open parens.
 	"""
-	ParserElement.setDefaultWhitespaceChars(" \t")
-	ParserElement.enablePackrat()
 	atom = Forward()
 	atom.setName("Atom")
 

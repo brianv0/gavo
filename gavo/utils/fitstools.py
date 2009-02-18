@@ -13,6 +13,15 @@ import pyfits
 
 blockLen = 2880
 
+if hasattr(pyfits, "core"):
+	_TempHDU = pyfits.core._TempHDU
+	_pad = pyfits.core._pad
+	_padLength = pyfits.core._padLength
+else:
+	_TempHDU = pyfits._TempHDU
+	_pad = pyfits._pad
+	_padLength = pyfits._padLength
+
 
 def readPrimaryHeaderQuick(f):
 	"""returns a pyfits header for the primary hdu of the opened file f.
@@ -27,7 +36,7 @@ def readPrimaryHeaderQuick(f):
 	if block == '':
 		raise EOFError
 
-	hdu = pyfits._TempHDU()
+	hdu = _TempHDU()
 	hdu._raw = ''
 
 	# continue reading header blocks until END card is reached
@@ -53,8 +62,8 @@ def readPrimaryHeaderQuick(f):
 
 def hdr2str(hdr):
 	repr = "".join(map(str, hdr.ascardlist()))
-	repr = repr+pyfits._pad('END')
-	repr = repr+pyfits._padLength(len(repr))*' '
+	repr = repr+_pad('END')
+	repr = repr+_padLength(len(repr))*' '
 	return repr
 
 
