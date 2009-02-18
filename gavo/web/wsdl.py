@@ -314,27 +314,56 @@ def datetimeMapperFactory(colProps):
 		return mapper
 _registerMF(datetimeMapperFactory)
 
+if hasattr(ZSI.SoapWriter, "serializeHeader"):
+	# New ZSI: Use real namespaces and str(x) to get result
 
-def serializePrimaryTable(data, service):
-	"""returns a SOAP serialization of the DataSet data's primary table.
-	"""
-	table = data.getPrimaryTable()
-	tns = registry.computeIdentifier(service)
-	class Row(TC.Struct):
-		def __init__(self):
-			TC.Struct.__init__(self, None, [
-				sqltypeToTC(f.type)(pname=(tns, f.name))
-					for f in table.tableDef],
-				pname=(tns, "outRow"))
+	def serializePrimaryTable(data, service):
+		"""returns a SOAP serialization of the DataSet data's primary table.
+		"""
+		table = data.getPrimaryTable()
+		tns = registry.computeIdentifier(service)
+		class Row(TC.Struct):
+			def __init__(self):
+				TC.Struct.__init__(self, None, [
+					sqltypeToTC(f.type)(pname=(tns, f.name))
+						for f in table.tableDef],
+					pname=(tns, "outRow"))
 
-	class Table(list):
-		typecode = TC.Array((tns, 'outRow'), Row(), 
-			pname=(tns, 'outList'))
+		class Table(list):
+			typecode = TC.Array((tns, 'outRow'), Row(), 
+				pname=(tns, 'outList'))
 
-	mapped = Table(base.getMappedValues(table, _wsdlMFRegistry))
-	sw = ZSI.SoapWriter(nsdict={"tns": tns})
-	sw.serialize(mapped).close()
-	return str(sw)
+		mapped = Table(base.getMappedValues(table, _wsdlMFRegistry))
+		sw = ZSI.SoapWriter(nsdict={"tns": tns})
+		sw.serialize(mapped).close()
+		return str(sw)
+
+else:  # old ZSI -- nuke at some point
+
+	def serializePrimaryTable(data, service):
+		"""returns a SOAP serialization of the DataSet data's primary table.
+		"""
+		table = data.getPrimaryTable()
+		class Row(TC.Struct):
+			def __init__(self):
+				TC.Struct.__init__(self, None, [
+			sqltypeToTC(f.type)("tns:"+f.name)
+				for f in table.tableDef], 'tns:outRow')
+
+		class Table:
+			def __init__(self, name):
+				pass
+		Table.typecode = TC.Array('outRow', Row(), 'tns:outList')
+
+		outF = cStringIO.StringIO()
+		sw = ZSI.SoapWriter(outF, 
+			nsdict={"tns": registry.computeIdentifier(service)})
+		mapped = list(base.getMappedValues(table, _wsdlMFRegistry))
+		sw.serialize(mapped, Table.typecode)
+		sw.close()
+		return outF.getvalue()
+
+
 
 
 def unicodeXML(obj):
