@@ -14,6 +14,12 @@ def jYearToDateTime(jYear):
 		days=(jYear-2000.0)*365.25)
 
 
+def jdnToDateTime(jd):
+	"""returns a datetime.datetime instance for a julian day number.
+	"""
+	return jYearToDateTime((jd-2451545.0)/365.25+2000.0)
+
+
 def dateTimeToJdn(dt):
 	"""returns a julian day number (including fractionals) from a datetime
 	instance.

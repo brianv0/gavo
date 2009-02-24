@@ -314,7 +314,7 @@ def datetimeMapperFactory(colProps):
 		return mapper
 _registerMF(datetimeMapperFactory)
 
-if hasattr(ZSI.SoapWriter, "serializeHeader"):
+if hasattr(ZSI.SoapWriter, "serialize_header"):
 	# New ZSI: Use real namespaces and str(x) to get result
 
 	def serializePrimaryTable(data, service):

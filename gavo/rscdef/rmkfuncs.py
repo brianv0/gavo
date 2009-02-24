@@ -16,6 +16,7 @@ import time
 import traceback
 
 from gavo import base
+from gavo import utils
 from gavo.base import texttricks
 from gavo.base import coords
 from gavo.base.literals import *
@@ -121,9 +122,7 @@ def parseDate(literal, format="%Y-%m-%d"):
 	(stuff like 1980.89).
 	"""
 	if format=="!!julianEp":
-		rest, year = math.modf(float(literal))
-		delta = datetime.timedelta(seconds=rest*365.25*86400)
-		return datetime.date(int(year), 1, 1)+delta
+		return utils.jYearToDateTime(float(literal))
 	return datetime.date(*time.strptime(literal, format)[:3])
 
 

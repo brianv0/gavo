@@ -31,7 +31,7 @@ class StaticResource(base.MetaMixin):
 		self.srcName = srcId
 		self.rd = base.caches.getRD(rdId)
 		base.MetaMixin.__init__(self)  # We're not a Structure, so we need
-			# to do this manually
+		                               # to do this manually
 
 	def getURL(self, renderer, qtype="POST", includeServerURL=True):
 		return self.getMeta("accessURL", default=None)

@@ -49,3 +49,8 @@
 
 14/MEDIUM/2009-02-14/FIXED
 	SELECT 1 as size is not parsed.
+
+15/MEDIUM/2009-02-18
+	The whole formalType/inputWidget thing with InputKeys is an absolute
+	pain.  At least there should be way to suppress or override the automatic 
+	vizier type conversion.

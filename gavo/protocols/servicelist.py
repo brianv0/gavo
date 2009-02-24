@@ -140,6 +140,7 @@ class StaticRscIterator(grammars.RowIterator):
 		for rsc in staticresource.iterStaticResources():
 			self.curSource = rsc.srcName
 			for rec in iterSvcRecs(rsc):
+				print ">>>>>>>>>>>>>>>>>", rec
 				yield rec
 
 	def getLocation(self):

@@ -16,6 +16,11 @@ except ImportError:
 class Error(Exception):
 	pass
 
+
+class ChildNotAllowed(Error):
+	pass
+
+
 encoding = "utf-8"
 XML_HEADER = '<?xml version="1.0" encoding="%s"?>'%encoding
 
@@ -29,7 +34,18 @@ class _Autoconstructor(type):
 
 	We want this so we save a parentheses pair on Elements without
 	attributes.
+	
+	As an added feature, it also checks for an attribute childSequence
+	on construction.  If it is present, it generates an allowedChildren
+	attribute from it.
 	"""
+	def __init__(cls, name, bases, dict):
+		type.__init__(cls, name, bases, dict)
+		if hasattr(cls, "childSequence") and cls.childSequence is not None:
+			cls.allowedChildren = set(cls.childSequence)
+		else:
+			cls.childSequence = None
+
 	def __getitem__(cls, items):
 		return cls()[items]
 
@@ -83,6 +99,12 @@ class Element(object):
 			self.name = self.__class__.__name__.split(".")[-1]
 		self(**kwargs)
 
+	def bailIfBadChild(self, child):
+		if (self.childSequence is not None and 
+				getattr(child, "name", None) not in self.allowedChildren and
+				type(child) not in self.allowedChildren):
+			raise ChildNotAllowed("No %s children in %s"%(child.name, self.name))
+
 	def addChild(self, child):
 		"""adds child to the list of children.
 
@@ -95,6 +117,7 @@ class Element(object):
 		elif child is None:
 			pass
 		elif isinstance(child, (basestring, Element)):
+			self.bailIfBadChild(child)
 			self.children.append(child)
 		elif isinstance(child, (list, tuple)):
 			for c in child:
@@ -140,13 +163,57 @@ class Element(object):
 				return False
 		return True
 
+	def iterAttNames(self):
+		"""iterates over the defined attribute names of this node.
+		
+		Each element returned is a pair of the node attribute name (always
+		starting with a_) and the xml name (which may include a namespace
+		prefix).
+		"""
+		for name in dir(self):
+			if name.startswith("a_"):
+				xmlName = getattr(self, name[2:]+"_name", name[2:])
+				yield name, xmlName
+
 	def _makeAttrDict(self):
 		res = {}
-		for name in dir(self):
-			if name.startswith("a_") and getattr(self, name) is not None:
-				attName = getattr(self, name[2:]+"_name", name[2:])
+		for name, attName in self.iterAttNames():
+			if getattr(self, name) is not None:
 				res[attName] = getattr(self, name)
 		return res
+
+	def getFirstChildOfType(self, type):
+		"""returns the first child that is an instance of type, or None if there
+		is no such child.
+		"""
+		for c in self.children:
+			if isinstance(c, type):
+				return c
+
+	def makeChildDict(self):
+		cDict = {}
+		textContent = []
+		for c in self.children:
+			if isinstance(c, basestring):
+				textContent.append(c)
+			else:
+				cDict.setdefault(c.name, []).append(c)
+		return cDict, "".join(textContent)
+
+	def _addChildrenAsIs(self, node):
+		for child in self.children:
+			if isinstance(child, basestring):
+				node.text = child
+			else:
+				child.asETree(node)
+
+	def _addChildrenInSequence(self, node):
+		cDict, text = self.makeChildDict()
+		node.text = text
+		for cName in self.childSequence:
+			if cName in cDict:
+				for c in cDict[cName]:
+					c.asETree(node)
 
 	def asETree(self, parent=None):
 		"""returns an ElementTree instance for this node.
@@ -158,22 +225,23 @@ class Element(object):
 				elName = self.name
 			else:
 				elName = ElementTree.QName(self.namespace, self.name)
+
 			attrs = self._makeAttrDict()
 			if parent is None:
 				node = ElementTree.Element(elName, attrs)
 			else:
 				node = ElementTree.SubElement(parent, elName, attrs)
-			for child in self.children:
-				if isinstance(child, basestring):
-					node.text = child
-				else:
-					child.asETree(node)
+			if self.childSequence is None:
+				self._addChildrenAsIs(node)
+			else:
+				self._addChildrenInSequence(node)
 			return node
 		except Error:
 			raise
 		except Exception, msg:
-			 msg.args[0] = unicode(msg)+(" while building %s node"
-				" with children %s"%(self.name, self.children))
+			msg.args = (unicode(msg)+(" while building %s node"
+				" with children %s"%(self.name, self.children)),)+msg.args[1:]
+			raise
 	
 	def render(self):
 		et = self.asETree()

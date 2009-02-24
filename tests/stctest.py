@@ -4,7 +4,8 @@ Tests for handling ivoa stc specifications.
 
 import unittest
 
-from gavo.stc import stc
+from gavo.stc import dm
+from gavo.stc import stcs
 
 import testhelpers
 
@@ -12,23 +13,23 @@ class ValidationTests(unittest.TestCase, testhelpers.XSDTestMixin):
 	"""tests for generation of XSD-valid documents from the xml stan.
 	"""
 	def testExample1(self):
-		for name in dir(stc.STC):
+		for name in dir(dm.STC):
 			if not name.startswith("_"):
-				exec "%s = getattr(stc.STC, %s)"%(name, repr(name))
+				exec "%s = getattr(dm.STC, %s)"%(name, repr(name))
 		tree = STCResourceProfile[
 			AstroCoordSystem(id="TT-ICRS-CXO")[
 				TimeFrame[
 					Name["Time"],
 					TimeScale["TT"],
-					makeReferencePosition("TOPOCENTER")],
+					TOPOCENTER],
 				SpaceFrame[
 					Name["Space"],
-					makeSpaceRefFrame("ICRS"),
-					makeReferencePosition("TOPOCENTER"),
-					makeCoordFlavor("SPHERICAL")],
+					ICRS,
+					TOPOCENTER,
+					SPHERICAL],
 				SpectralFrame[
 					Name["Energy"],
-					makeReferencePosition("TOPOCENTER")]],
+					TOPOCENTER]],
 			AstroCoords(coord_system_id="TT-ICRS-CXO")[
 				Time[
 					Name["Time"],
@@ -109,5 +110,46 @@ class ValidationTests(unittest.TestCase, testhelpers.XSDTestMixin):
 		self.assertValidates(tree.render(), leaveOffending=__name__=="__main__")
 
 
+class STCSParseTest(testhelpers.VerboseTest):
+	"""tests for (not) parsing parts of STCS.
+	"""
+	grammar, syms = stcs.getGrammar()
+
+	def testParseTimeStuff(self):
+# We're only interested in stuff not raising ParseErrors
+		for sym, literal in [
+			("timeInterval", "TimeInterval"),
+			("timeInterval", "TimeInterval 1900-01-01"),
+			("timeInterval", "TimeInterval 1900-01-01 2000-01-01"),
+			("timeInterval", "TimeInterval 1900-01-01 2000-01-01"),
+			("timeInterval", "TimeInterval 1900-01-01 2000-01-01"
+				" 2001-01-10 2002-03-12"),
+			("timeInterval", "TimeInterval 1900-01-01T12:30:14Z 2000-01-01T14:30:21"),
+			("timeInterval", "TimeInterval TT 1900-01-01 2000-01-01"),
+			("timeInterval", "TimeInterval GEOCENTER 1900-01-01 2000-01-01"),
+			("timeInterval", "TimeInterval TT GEOCENTER 1900-01-01 2000-01-01"),
+			("timeInterval", "TimeInterval fillfactor 0.1 1900-01-01 2000-01-01"),
+			("timeInterval", "TimeInterval fillfactor 1e-9 1900-01-01 2000-01-01"),
+			("timeInterval", "TimeInterval 1900-01-01 2000-01-01"
+				" Time 1920-01-20T05:03:20Z"),
+			("timeInterval", "TimeInterval 1900-01-01 2000-01-01 unit s"),
+			("startTime", "StartTime 1900-01-01 unit s"),
+			("startTime", "StartTime fillfactor 0.1 1900-01-01 unit yr"),
+			("stopTime", "StopTime 1900-01-01 unit s"),
+			("stopTime", "StopTime fillfactor 0.1 1900-01-01 unit yr"),
+			]:
+			self.syms[sym].parseString(literal, parseAll=True)
+	
+	def testNoParseTimeStuff(self):
+		for sym, literal in [
+			("timeInterval", "TimeInterval unit s fillfactor 0.1"),
+			("timeInterval", "TimeInterval fillfactor 0.1 foobar"),
+			("timeInterval", "fillfactor 0.1 foobar"),
+			("startTime", "startTime 1900-01-01 2000-01-01 unit s"),
+			]:
+			self.assertRaises(stcs.ParseException, self.syms[sym].parseString,
+				literal, parseAll=True)
+
+
 if __name__=="__main__":
-	testhelpers.main(ValidationTests)
+	testhelpers.main(STCSParseTest)

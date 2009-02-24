@@ -8,6 +8,6 @@ reason or another should be within the dc package.
 from gavo.utils.stanxml import ElementTree
 
 from gavo.utils.mathtricks import (findMinimum, dateTimeToJdn, 
-	dateTimeToJYear, jYearToDateTime)
+	dateTimeToJYear, jYearToDateTime, jdnToDateTime)
 
 from gavo.utils.texttricks import formatSize

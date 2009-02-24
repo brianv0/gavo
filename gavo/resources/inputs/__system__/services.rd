@@ -72,7 +72,7 @@ that was folly -->
 		<make table="srv_subjs"/>
 	</data>
 
-	<data id="fixedrecords">
+	<data id="fixedrecords" auto="False">
 		<meta name="description">Descriptor for importing static resources.
 			There's a special handling for this in staticresource, don't run
 			gavoimp on this.</meta>
@@ -97,9 +97,12 @@ that was folly -->
 			CREATE OR REPLACE VIEW srv_join AS (
 				SELECT shortName, internalId, sourceRd, title, description,
 					owner, dateUpdated, accessURL, renderer, setName 
-				FROM services NATURAL JOIN srv_interfaces NATURAL JOIN
-					srv_sets)
-		</script>
+				FROM 
+					services 
+					NATURAL JOIN srv_sets
+					NATURAL LEFT OUTER JOIN srv_interfaces)
+			</script> <!-- The left outer join is crucial for resource records
+			  without interfaces -->
 	</table>
 
 	<!-- a join of locally defined services, by subject - REPLACE WITH ADQL -->
