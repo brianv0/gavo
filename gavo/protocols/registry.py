@@ -98,7 +98,7 @@ def parseIdentifier(identifier):
 
 def getRegistryURL():
 	return (base.getConfig("web", "serverURL")+
-		base.getConfig("web", "nevowRoot")+"/oai.xml")
+		base.getConfig("web", "nevowRoot")+"oai.xml")
 
 
 def getRegistryDatestamp():
