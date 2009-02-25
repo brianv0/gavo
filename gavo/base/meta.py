@@ -187,9 +187,8 @@ class MetaAttribute(attrdef.AttributeDef):
 		return self  # we're it...
 
 	def makeUserDoc(self):
-		return ("meta -- a piece of meta information, giving at least a name"
-			" and some content.  Please read the documentation on metadata"
-			" for more information")
+		return ("**meta** -- a piece of meta information, giving at least a name"
+			" and some content.  See Metadata_ on what is permitted here.")
 
 
 class MetaMixin(object):
@@ -460,9 +459,16 @@ class MetaValue(MetaMixin):
 	* literal
 	* rst (restructured text)
 	* plain (the default)
+	* raw (for embedded HTML, mainly -- only use this if you know
+	  the item will only be embedded into HTML templates).
 	"""
+	knownFormats = set(["literal", "rst", "plain", "raw"])
+
 	def __init__(self, content="", format="plain"):
 		MetaMixin.__init__(self)
+		if format not in self.knownFormats:
+			raise StructureError("Unknown meta format '%s'; allowed are %s."%(
+				format, ", ".join(self.knownFormats)))
 		self.content = content
 		self.format = format
 		self._preprocessContent()
@@ -484,6 +490,8 @@ class MetaValue(MetaMixin):
 				for p in content.split("\n\n"))
 		elif self.format=="rst":
 			return metaRstToHtml(content)
+		elif self.format=="raw":
+			return content
 
 	def getContent(self, targetFormat="text", macroPackage=None):
 		content = self.content

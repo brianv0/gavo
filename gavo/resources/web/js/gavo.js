@@ -145,8 +145,8 @@ function toggleCollapsedMeta(el) {
 }
 
 function collapseMeta(box) {
-	box.style.minHeight = '12px';
-	box.style.height = '12px';
+	box.style.minHeight = '12pt';
+	box.style.height = '12pt';
 	box.style.overflow = 'hidden';
 	box.style.width = '100px';
 	box.style.border = '0px none #707ca0';

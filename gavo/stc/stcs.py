@@ -200,6 +200,15 @@ class PositionsAction(Action):
 	default_unit = AComputedDefault
 	default_fill_factor = "1.0"
 
+	flavorTranslations = {
+		"SPHER2": (STC.SPHERICAL, 2),
+		"SPHER3": (STC.SPHERICAL, 3),
+		"CART1": (STC.CARTESIAN, 1),
+		"CART2": (STC.CARTESIAN, 2),
+		"CART3": (STC.CARTESIAN, 3),
+		"UNITSPHER": (STC.UNITSPHERE, 3),
+	}
+
 	def _computeDefaults(self, children, atts):
 		if children["flavor"] is AComputedDefault:
 			if isinstance(self, Convex):
@@ -215,6 +224,11 @@ class PositionsAction(Action):
 				atts["unit"] = "deg deg m"
 			else:
 				atts["unit"] = None
+		flavor, self.nDim = self.flavorTranslations[children.pop("flavor")]
+		children["coordFrame"] = STC.SpaceFrame[children.pop("frame"),
+			flavor(coord_naxes=self.nDim),
+			children.pop("refpos")]
+			
 
 	def __call__(self, s, p, toks):
 		children, atts = self.getChildAtts(toks)

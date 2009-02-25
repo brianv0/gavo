@@ -110,9 +110,16 @@ class ComputedCore(core.Core):
 			stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True,
 			cwd=os.path.dirname(self.computer))
 		writeThread = self._feedInto(self._getInput(inputData), pipe.stdin)
-# XXX TODO: detect and handle errors in some sensible way.
 		data = pipe.stdout.read()
+		pipe.stdout.close()
 		writeThread.join(0.1)
+		retcode = pipe.wait()
+		if retcode!=0:
+			raise base.ValidationError("The subprocess %s returned %s.  This"
+				" indicates an external executable could not be run or failed"
+				" with your parameters.  You should probably report this to the"
+				" operators."%(os.path.basename(self.computer), retcode),
+				"query")
 		return data
 
 	def run(self, service, inputData, queryMeta):

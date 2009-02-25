@@ -17,7 +17,7 @@ from gavo import base
 from gavo import api
 from gavo.protocols import servicelist
 
-cachedIDs = [u'liverpool/res/rawframes', u'danish/red', u'lensdemo/view', u'2mass/res/2mass', u'apfs/times', u'apfs/res/apfs_new', u'dexter/ui', u'ucds/ui', u'ppmx/res/ppmx', u'usnob/res/usnob', u'usnob/res/plates', u'usnob/res/redux', u'poslenscands/res/cands', u'brownDwarfs/bd', u'logs/logs', u'fk6/res/fk6', u'rauchspectra/theospectra', u'cns/res/cns', u'inflight/res/lc1', u'apo/res/apo', u'genupload/do', u'maidanak/res/rawframes', u'veronqsos/q', u'lswscans/res/positions', '__system__/adql', '__system__/procs', '__system__/scs', '__system__/siap', '__system__/tests', '__system__/users', '__system__/dc_tables', '__system__/products', '__system__/services']
+cachedIDs = [u'liverpool/res/rawframes', u'danish/red', u'lensdemo/view', u'2mass/res/2mass', u'apfs/times', u'apfs/res/apfs_new', u'dexter/ui', u'ucds/ui', u'ppmx/res/ppmx', u'usnob/res/usnob', u'usnob/res/plates', u'usnob/res/redux', u'poslenscands/res/cands', u'brownDwarfs/bd', u'cars/q', u'__tests/adqlvalidation/val', u'hipparcos/q', u'logs/logs', u'fk6/res/fk6', u'rauchspectra/theospectra', u'cns/res/cns', u'inflight/res/lc1', u'apo/res/apo', u'genupload/do', u'maidanak/res/rawframes', u'veronqsos/q', u'lswscans/res/positions', '__system__/adql', '__system__/procs', '__system__/scs', '__system__/siap', '__system__/tests', '__system__/users', '__system__/dc_tables', '__system__/products', '__system__/services']
 
 def patchMySource(newIDs):
 	f = open("checkAllRds.py")

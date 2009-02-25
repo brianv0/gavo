@@ -113,7 +113,7 @@ class ValidationTests(unittest.TestCase, testhelpers.XSDTestMixin):
 class STCSParseTest(testhelpers.VerboseTest):
 	"""tests for (not) parsing parts of STCS.
 	"""
-	grammar, syms = stcs.getGrammar()
+	syms = stcs.getSymbols()
 
 	def testParseTimeStuff(self):
 # We're only interested in stuff not raising ParseErrors

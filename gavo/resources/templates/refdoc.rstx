@@ -69,6 +69,167 @@ The following triggers are defined:
 
 .. replaceWithResult getTriggerDocs(docStructure)
 
+Metadata
+========
+
+Various elements support the setting of metadata through meta elements.
+Metadata is used for conveying RMI-style metadata used in the VO
+registry.  See [RMI]_ for an overview of those.  We use the keys given
+in RMI, but there are some extensions discussed in `RMI-style
+Metadata`_.
+
+The other big use of meta information is for feeding templates.  Those
+"local" keys should all start with an underscore.  You are basically
+free to use those as you like and fetch them from your custom templates.
+The predefined templates already have some meta items built in,
+discussed in `Template Metadata`.
+
+So, metadata is a key-value mapping.  Keys may be compound like in RMI,
+i.e., they may consist of period-separated atoms, like
+publisher.address.email.  There may be multiple items for each meta
+key.
+
+Meta inheritance
+''''''''''''''''
+
+When you query an element for metadata, it first sees if it has this
+metadata.  If that is not the case, it will ask its meta parent.  This
+usually is the embedding element.  It wil again delegate the request to
+its parent, if it exists.  If there is no parent, configured defaults
+are examined.  These are taken from rootDir/etc/defaultmeta, where they
+are given as colon-separated key-value pairs, e.g.,
+
+::
+
+  publisher: The GAVO DC team
+  publisherID: ivo://org.gavo.dc
+  contact.name: GAVO Data Center Team
+  contact.address: Moenchhofstrasse 12-14, D-69120 Heidelberg
+  contact.email: gavo@ari.uni-heidelberg.de
+  contact.telephone: ++49 6221 54 1837
+  creator.name: GAVO Data Center
+  creator.logo: http://vo.ari.uni-heidelberg.de/docs/GavoTiny.png
+
+The effect is that you can give global titles, descriptions, etc.
+in the RD but override them in services, tables, etc.  The configured
+defaults let you specify meta items that are probably constant for
+everything in your data center, though of course you can override these
+in your RD elements, too.
+
+In HTML templates, missing meta usually is not an error.  The
+corresponding elements are just left empty.  In registry documents,
+missing meta may be an error.
+
+Meta formats
+''''''''''''
+
+Metadata must work in registry records as well as in HTML pages and
+possibly in other places.  Thus, it should ideally be given in formats
+that can be sensibly transformed into the various formats.
+
+The GAVO DC software knows four input formats:
+
+literal
+  The textual content of the element will not be touched.  In
+  HTML, it will end up in a div block of class literalmeta.
+
+plain
+  The textual content of the element will be whitespace-normalized,
+  i.e., whitespace will be stripped from the start and the end,
+  runs of blanks and tabs are replaced by a single blank, and empty
+  lines translate into paragraphs.  In HTML, these blocks com in
+  plainmeta div elements.  
+
+rst
+  The textual content of the element is interpreted as restructured
+  text.  When requested as plain text, the restructured text itself is
+  returned, in HTML, the standard docutils rendering is returned.
+
+raw
+  The textual content of the element is not touched.  It will be
+  embedded into HTML directly.  You can use this, probably together
+  with CDATA sections, to embed HTML -- the other formats should not
+  contain anything special to HTML (i.e., they should be PCDATA in
+  XML lingo).  While the software does not enforce this, raw content
+  should not be used with RMI-type metadata.  Only use it for items that
+  will not be rendered outside of HTML templates.
+
+
+Macros in Meta Elements
+'''''''''''''''''''''''
+
+Macros will be expanded in meta items using the embedding element as
+macro processors (i.e., you can use the macros defined by this element).
+
+
+Typed Meta Elements
+'''''''''''''''''''
+
+While generally the DC software does not care what you put into meta
+items and views them all as strings, certain elements are treated
+specially.  These are "typed" meta elements.  Currently, there are four
+types defined:
+
+link
+  These can have a title attribute.  In plain text, this would look like
+  this::
+
+    _related:http://foo.bar
+    _related.title: The foo page
+
+  In XML, you can write::
+
+    	<meta name="_related" title="The foo page">http://foo.bar</meta>
+
+  or, if you prefer::
+
+    	<meta name="_related">http://foo.bar
+        <meta name="title">The foo page</meta></meta>
+
+info
+  These have infoName, infoValue, and infoId children and are only
+  used internally in VOTable generation.  They might go away.
+
+logo
+  These are rendered as little images in HTML.  In XML meta, you can
+  say::
+
+    <meta name="_somelogo" type="logo">http://foo.bar/quux.png</meta>
+
+bibcodes
+  These contain bibcodes which will be converted to ADS links when
+  rendered as HTML.
+
+
+While in XML meta, you can explicitely set the type of a meta item,
+it is more common to just use the inferred type by the meta name.
+Currently, the following meta keys imply types:
+
+_related
+  link
+
+referenceURL
+  link
+
+info
+  info
+
+logo
+  logo
+
+source
+  bibcodes
+
+For type inference, only the last component of a meta path is
+significant, i.e., both creator.logo and publisher.logo are of type
+logo.
+
+
+RMI-Style Metadata
+''''''''''''''''''
+
+TBD
+
 Writing Row Makers
 ==================
 
@@ -80,3 +241,8 @@ Scripting
 TBD
 
 
+Bibliography
+============
+
+.. [RMI]  Hanisch, R., et al, "Resource Metadata for the Virtual
+   Observatory", http://www.ivoa.net/Documents/latest/RM.html

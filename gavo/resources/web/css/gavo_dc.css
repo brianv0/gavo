@@ -265,14 +265,14 @@ li.metaItem {
 }
 
 .explodable {
-	height: 12px;
+	height: 12pt;
 	overflow: hidden;
 	background: #d2dcf0;
   margin-bottom:5px;
 }
 
 h4.exploHead {
-	font-size: 12px;
+	font-size: 10pt;
 	margin: 0px;
 	padding: 0px;
 	background: none;
