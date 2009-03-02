@@ -117,9 +117,9 @@ class Data(base.MetaMixin):
 		System tables are only recreated when the systemImport parseOption
 		is true.
 		"""
-		self.dd.runScripts("preCreation", connection=connection)
 		if self.parseOptions.updateMode or self.dd.updating:
 			return
+		self.dd.runScripts("preCreation", connection=connection)
 		for t in self.tables.values() or self.dd:
 			if t.tableDef.system and not self.parseOptions.systemImport:
 				continue

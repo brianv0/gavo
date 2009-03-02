@@ -19,6 +19,7 @@ formats.
 import urllib
 import urlparse
 
+from gavo import stc
 from gavo import utils
 from gavo.base import config
 from gavo.base import typesystems
@@ -176,7 +177,7 @@ def datetimeMapperFactory(colProps):
 	def dtToMJdn(val):
 		"""returns the modified julian date number for the dateTime instance val.
 		"""
-		return utils.dateTimeToJdn(val)-2400000.5
+		return stc.dateTimeToJdn(val)-2400000.5
 	
 	if isinstance(colProps["sample"], (datetime.date, datetime.datetime)):
 		unit = colProps["unit"]
@@ -185,10 +186,10 @@ def datetimeMapperFactory(colProps):
 			fun, destType = lambda val: val and dtToMJdn(val), (
 				"double", None)
 		elif unit=="yr" or unit=="a":
-			fun, destType = lambda val: val and utils.dateTimeToJYear(val), (
+			fun, destType = lambda val: val and stc.dateTimeToJYear(val), (
 				"double", None)
 		elif unit=="d":
-			fun, destType = lambda val: val and utils.dateTimeToJdn(val), (
+			fun, destType = lambda val: val and stc.dateTimeToJdn(val), (
 				"double", None)
 		elif unit=="s":
 			fun, destType = lambda val: val and time.mktime(val.timetuple()), (
@@ -198,7 +199,7 @@ def datetimeMapperFactory(colProps):
 		elif unit=="iso":
 			fun, destType = lambda val: val and val.isoformat(), ("char", "*")
 		else:   # Fishy, but not our fault
-			fun, destType = lambda val: val and utils.dateTimeToJdn(val), (
+			fun, destType = lambda val: val and stc.dateTimeToJdn(val), (
 				"double", None)
 		colProps["datatype"], colProps["arraysize"] = destType
 		return fun

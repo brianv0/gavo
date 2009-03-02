@@ -12,6 +12,7 @@ import unittest
 from gavo import base
 from gavo import rscdef
 from gavo import rscdesc
+from gavo import stc
 from gavo.base import valuemappers
 from gavo.helpers import filestuff
 from gavo.utils import mathtricks
@@ -131,15 +132,15 @@ class TimeCalcTest(testhelpers.VerboseTest):
 	"""tests for time transformations.
 	"""
 	def testJYears(self):
-		self.assertEqual(mathtricks.jYearToDateTime(1991.25),
+		self.assertEqual(stc.jYearToDateTime(1991.25),
 			datetime.datetime(1991, 04, 02, 13, 30, 00))
-		self.assertEqual(mathtricks.jYearToDateTime(2005.0),
+		self.assertEqual(stc.jYearToDateTime(2005.0),
 			datetime.datetime(2004, 12, 31, 18, 0))
 	
 	def testRoundtrip(self):
 		for yr in range(2000):
-			self.assertAlmostEqual(2010+yr/1000., mathtricks.dateTimeToJYear(
-				mathtricks.jYearToDateTime(2010+yr/1000.)), 7,
+			self.assertAlmostEqual(2010+yr/1000., stc.dateTimeToJYear(
+				stc.jYearToDateTime(2010+yr/1000.)), 7,
 				"Botched %f"%(2010+yr/1000.))
 
 
