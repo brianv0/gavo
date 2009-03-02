@@ -222,7 +222,7 @@ def processSource(res, source, feeder, opts):
 			if opts.maxRows:
 				if base.ui.totalRead>opts.maxRows:
 					raise _EnoughRows
-	else:  # magic grammars return a callable
+	else:  # magic grammars (like those of boosters) return a callable
 		srcIter(res)
 
 

@@ -2,6 +2,7 @@
 Tables on disk
 """
 
+import os
 import sys
 
 from gavo import base
@@ -9,9 +10,6 @@ from gavo import rscdef
 from gavo.base import sqlsupport
 from gavo.rsc import common
 from gavo.rsc import table
-
-
-debugFeed = False
 
 
 class Feeder(table.Feeder):

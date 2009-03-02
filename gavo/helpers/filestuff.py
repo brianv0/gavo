@@ -121,3 +121,16 @@ class FileRenamer:
 	def renameInPaths(self, pathList):
 		for path in pathList:
 			self.renameInPath(path)
+
+
+def iterSources(rdId, ddId, args=[]):
+	"""iterates over the current sources of the data descriptor ddId within
+	the RD rdId.
+
+	If you pass something nonempty to args, an iterator over its values
+	will be returned.  This is for convenient implementation of scripts
+	that work on CL arguments if given, on all files otherwise.
+	"""
+	dd = base.caches.getRD(rdId).getById(ddId)
+	return dd.sources.iterSources()
+

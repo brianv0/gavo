@@ -8,9 +8,24 @@ class STCError(Exception):
 	pass
 
 class STCSParseError(Exception):
-	def __init__(self, msg, pos=None):
+	"""is raised if an STC-S expression could not be parsed.
+
+	Low-level routines raise a pyparsing ParseException.  Only higher
+	level functions raise this error.  The offending expression is in
+	the expr attribute, the start position of the offending phrase in pos.
+	"""
+	def __init__(self, msg, expr=None, pos=None):
 		Exception.__init__(self, msg)
-		self.pos = pos
+		self.pos, self.expr = pos, expr
+
+class STCLiteralError(STCError):
+	"""is raised when a literal is not well-formed.
+
+	There is an attribute literal giving the malformed literal.
+	"""
+	def __init__(self, msg, literal=None):
+		Exception.__init__(self, msg)
+		self.literal = literal
 
 
 STCNamespace = "http://www.ivoa.net/xml/STC/stc-v1.30.xsd"

@@ -6,6 +6,7 @@ This module contains basic support for manual SQL generation.
 import re
 import sys
 import operator
+import os
 import warnings
 
 from itertools import *
@@ -13,7 +14,7 @@ from itertools import *
 from gavo.base import excs
 from gavo.base import config
 
-debug = False
+debug = "GAVO_SQL_DEBUG" in os.environ
 
 import psycopg2
 import psycopg2.extras

@@ -1,5 +1,11 @@
 """
-Parsing and generating STC/S
+Parsing and generating STC-S
+
+The general plan is to parse STC-S into some sort of tree (dictionaries
+with list values, possibly containing more such dictionaries).  These
+trees can then be processed into something roughly resembling the data
+model, furnished with defaults, and processed by what essentially is
+user code.
 """
 
 import copy
@@ -8,7 +14,7 @@ from pyparsing import (Word, Literal, Optional, alphas, CaselessKeyword,
 		ZeroOrMore, OneOrMore, SkipTo, srange, StringEnd, Or, MatchFirst,
 		Suppress, Keyword, Forward, QuotedString, Group, printables, nums,
 		CaselessLiteral, ParseException, Regex, sglQuotedString, alphanums,
-		dblQuotedString, White, ParseException)
+		dblQuotedString, White, ParseException, ParseResults)
 
 from gavo.stc.common import *
 from gavo.stc.dm import STC
@@ -20,7 +26,7 @@ class AComputedDefault(object):
 	pass
 
 
-# STC/S spatial flavors, with dimensions and stc flavors
+# STC-S spatial flavors, with dimensions and stc flavors
 stcsFlavors = {
 	"SPHER2": (2, "SPHERICAL"),
 	"SPHER3": (3, "SPHERICAL"),
@@ -29,6 +35,29 @@ stcsFlavors = {
 	"CART2": (2, "CARTESIAN"),
 	"CART3": (3, "CARTESIAN"),
 }
+
+# STC-S reference frames, with STC counterparts
+stcsFrames = {
+	"ICRS": None,
+	"FK5": None,
+	"FK4": None,
+	"J2000": None,
+	"B1950": None,
+	"ECLIPTIC": None,
+	"GALACTIC": None,
+	"GALACTIC_II": None,
+	"SUPER_GALACTIC": None,
+	"GEO_C": None,
+	"GEO_D": None,
+	"UNKNOWNFrame": None,
+}
+
+spatialUnits = set(["deg", "arcmin", "arcsec", "m", "mm", "km", "AU", 
+	"pc", "kpc", "Mpc"])
+temporalUnits = set(["yr", "cy", "s", "d", "a"])
+spectralUnits = set(["MHz", "GHz", "Hz", "Angstrom", "keV", "MeV", 
+	"eV", "mm", "um", "nm", "m"])
+redshiftUnits = set(["km/s", "nil"])
 
 
 def _assertGrammar(cond, msg, pos):
@@ -235,45 +264,75 @@ class PositionsAction(Action):
 		self._computeDefaults(children, atts)
 
 
-class PositionIntervalsAction(PositionsAction):
-	pass
+def makeTree(parseResult):
+	"""returns the pyparsing parseResult as a data structure consisting
+	of simple python dicts and lists.
+
+	The "tree" has two kinds of nodes: Dictionaries having lists as
+	values, and lists containing (as a rule) literals or (for more deeply
+	nested constructs, which are rare in STC-S) other dictionaries of
+	this kind.
+
+	A parse node becomes a dict node if it has named children.  The root
+	always is a dict.
+
+	Note that unnamed children of nodes becoming dicts will be lost in
+	the result.
+	"""
+	if not len(parseResult):  # empty parse results become empty lists
+		res = []
+	elif parseResult.keys():  # named children, generate a dict
+		res = {}
+		for k in parseResult.keys():
+			v = parseResult[k]
+			if isinstance(v, ParseResults):
+				res[k] = makeTree(v)
+			else:
+				res[k] = v
+	else:                     # no named children, generate a list
+		if isinstance(parseResult[0], ParseResults):
+			res = [makeTree(child) for child in parseResult]
+		else:
+			res = list(parseResult)
+	return res
+
+
+def _reFromKeys(iterable):
+	"""returns a regular expression matching any of the strings in iterable.
+
+	The trick is that the longest keys must come first.
+	"""
+	return "|".join(sorted(iterable, key=lambda x:-len(x)))
 
 
 def getSymbols():
-	"""returns the root symbol for a grammar parsing STC-S into STC in xmlstan.
+	"""returns a dictionary of symbols for a grammar parsing STC-S into
+	a concrete syntax tree.
 	"""
 
 	_exactNumericRE = r"\d+(\.(\d+)?)?|\.\d+"
 	exactNumericLiteral = Regex(_exactNumericRE)
 	number = Regex(r"(?i)(%s)(E[+-]?\d+)?"%_exactNumericRE)
 
-# basic productions common to most spatial specs
+# units
+	_unitOpener = Suppress( Keyword("unit") )
+	spaceUnit = _unitOpener + Regex(_reFromKeys(spatialUnits))
+	timeUnit = _unitOpener + Regex(_reFromKeys(temporalUnits))
+	spectralUnit = _unitOpener + Regex(_reFromKeys(spectralUnits))
+	redshiftUnit = _unitOpener + Regex(_reFromKeys(redshiftUnits))
+
+# basic productions common to most STC-S subphrases
 	fillfactor = (Suppress( Keyword("fillfactor") ) + number)("fillfactor")
-	frame = (Regex("|".join(stcSpaceRefFrames)))("frame")
-	refpos = (Regex("|".join(stcRefPositions)))("refpos")
-	flavor = (Regex("|".join(stcsFlavors)))("flavor")
-	spaceUnit = (Suppress(Keyword("unit")) + Regex(
-		"deg|arcmin|arcsec|m|mm|km|AU|pc|kpc|Mpc"))("spaceUnit")
-	_commonSpaceItems = (Optional( fillfactor ) + frame + Optional( refpos ) + 
-		Optional( flavor ))
+	frame = (Regex(_reFromKeys(stcsFrames)))("frame")
+	refpos = (Regex(_reFromKeys(stcRefPositions)))("refpos")
+	flavor = (Regex(_reFromKeys(stcsFlavors)))("flavor")
 
 # basic productions for times and such.
 	timescale = (Regex("|".join(stcTimeScales)))("timescale")
-	jdLiteral = (Suppress( Keyword("JD") ) + exactNumericLiteral)
-	mjdLiteral = (Suppress( Keyword("MJD") ) + exactNumericLiteral)
+	jdLiteral = (Suppress( Literal("JD") ) + exactNumericLiteral)
+	mjdLiteral = (Suppress( Literal("MJD") ) + exactNumericLiteral)
 	isoTimeLiteral = Regex(r"\d\d\d\d-?\d\d-?\d\d(T\d\d:?\d\d:?\d\dZ?)?")
 	nakedTime = (isoTimeLiteral | jdLiteral | mjdLiteral)
-	timeUnit = (Keyword("unit") + Regex("yr|cy|s|d|a"))("unit")
-
-# properties of most spatial specs
-	position = Keyword("Position") + OneOrMore( number )
-	error = Keyword("Error") + OneOrMore( number )
-	resolution = Keyword("Resolution") + OneOrMore( number )
-	size = Keyword("Size") + OneOrMore(number)
-	pixSize = Keyword("PixSize") + OneOrMore(number)
-	_spatialProps = (Optional( spaceUnit ) +
-		Optional( error ) + Optional( resolution ) + Optional( size ) +
-		Optional( pixSize ))
 
 # the velocity sub-phrase
 	velocityInterval = (Keyword("VelocityInterval") + number +
@@ -282,32 +341,99 @@ def getSymbols():
 	_velocityPhrase = (Optional( velocityInterval ) +
 		Optional( velocity ) ) # XXX incomplete
 
-# stuff common to regions
+# properties of most spatial specs
+	positionSpec = Suppress( Keyword("Position") ) + OneOrMore( number )
+	error = Suppress( Keyword("Error") ) + OneOrMore( number )
+	resolution = Suppress( Keyword("Resolution") ) + OneOrMore( number )
+	size = Suppress( Keyword("Size") ) + OneOrMore(number)
+	pixSize = Suppress( Keyword("PixSize") ) + OneOrMore(number)
+	_spatialProps = (Optional( spaceUnit("unit") ) +
+		Optional( error("error") ) + Optional( resolution("resolution") ) + 
+		Optional( size("size") ) + Optional( pixSize("pixSize") ))
 	_spatialTail = _spatialProps + Optional( _velocityPhrase )
-	_regionTail = position + _spatialTail
-	limits = ZeroOrMore( number )
+	_regionTail = Optional( positionSpec ) + _spatialTail
+	_commonSpaceItems = ( frame + Optional( refpos ) + 
+		Optional( flavor ))
+	_commonRegionItems = Optional( fillfactor ) + _commonSpaceItems
+	coos = ZeroOrMore( number )("coos")
 
 # times and time intervals
 	timephrase = Suppress( Keyword("Time") ) + nakedTime
-	_commonTimeItems = (	Optional( timeUnit ) + Optional( error ) + 
-		Optional( resolution ) + Optional( pixSize ) )
-	_intervalOpener = ( Optional( fillfactor ) + Optional( timescale ) +
-		Optional( refpos ) )
-	_intervalCloser = Optional( timephrase ) + _commonTimeItems
+	_commonTimeItems = (	Optional( timeUnit("unit") ) + Optional( 
+		error("error") ) + Optional( resolution("resolution") ) + 
+		Optional( pixSize("pixSize") ) )
+	_intervalOpener = ( Optional( fillfactor("fill_factor") ) + 
+		Optional( timescale("timescale") ) +
+		Optional( refpos("refpos") ) )
+	_intervalCloser = Optional( timephrase("timephrase") ) + _commonTimeItems
 
-	timeInterval =  (Suppress( Keyword("TimeInterval") ) + _intervalOpener 
-		+ ZeroOrMore(nakedTime)("intervalTimes") + _intervalCloser)
-	startTime = (Suppress( Keyword("StartTime") ) + _intervalOpener + 
+	timeInterval =  (Keyword("TimeInterval")("type") + 
+		_intervalOpener + ZeroOrMore(nakedTime)("coos") + 
+		_intervalCloser)
+	startTime = (Keyword("StartTime")("type") + _intervalOpener + 
 		nakedTime("startTime") + _intervalCloser)
-	stopTime = (Suppress( Keyword("StopTime") ) + _intervalOpener + 
+	stopTime = (Keyword("StopTime")("type") + _intervalOpener + 
 		nakedTime("stopTime") + _intervalCloser)
-	time = (Suppress( Keyword("Time") ) + Optional( timescale ) + 
-		Optional( refpos ) + Optional ( nakedTime("givenTime") ) + 
+	time = (Keyword("Time")("type")  + Optional( timescale("timescale") ) + 
+		Optional( refpos("refpos") ) + Optional ( nakedTime("givenTime") ) + 
 		_commonTimeItems)
+	timeSubPhrase = (timeInterval | startTime | stopTime | time).addParseAction(
+		makeTree)
 
-# spatial things
-	positionInterval = ( Keyword("PositionInterval") +
-		_commonSpaceItems + limits + _spatialTail )
+# space subphrase
+	positionInterval = (Keyword("PositionInterval")("type") +
+		_commonRegionItems + coos + _regionTail)
+	allSky = ( Keyword("AllSky")("type") +
+		_commonRegionItems + _regionTail )
+	circle = ( Keyword("Circle")("type") + 
+		_commonRegionItems + coos + _regionTail )
+	ellipse = ( Keyword("Ellipse")("type") + 
+		_commonRegionItems + coos + _regionTail )
+	box = ( Keyword("Box")("type") + 
+		_commonRegionItems + coos + _regionTail )
+	polygon = ( Keyword("Polygon")("type") + 
+		_commonRegionItems + coos + _regionTail )
+	convex = ( Keyword("Convex")("type") + 
+		_commonRegionItems + coos + _regionTail )
+	position = ( Keyword("Position")("type") + 
+		_commonSpaceItems + coos + _spatialTail )
+	spaceSubPhrase = (positionInterval | allSky | circle | ellipse | box
+		| polygon | convex | position).addParseAction(makeTree)
+
+# spectral subphrase
+	spectralSpec = (Suppress( Keyword("Spectral") ) + number)("spectral")
+	_spectralTail = (Optional( spectralUnit("unit") ) + Optional( error ) + 
+		Optional( resolution ) + Optional( pixSize ))
+	spectralInterval = (Keyword("SpectralInterval")("type") +
+		Optional( fillfactor ) + Optional( refpos ) + coos + 
+		Optional( spectralSpec ) + _spectralTail)
+	spectral = (Keyword("Spectral")("type") + Optional( refpos ) +
+		number("coos") + _spectralTail)
+	spectralSubPhrase = (spectralInterval | spectral ).addParseAction(
+		makeTree)
+
+# redshift subphrase
+	redshiftType = Regex("VELOCITY|REDSHIFT")("redshiftType")
+	redshiftSpec = (Suppress( Keyword("Redshift") ) + number)("redshift")
+	dopplerdef = Regex("OPTICAL|RADIO|RELATIVISTIC")("dopplerdef")
+	_redshiftTail = ( Optional( redshiftUnit("unit") ) +
+		Optional( error ) + Optional( resolution ) + Optional( pixSize ))
+	redshiftInterval = (Keyword("RedshiftInterval")("type") + 
+		Optional( fillfactor ) + Optional( refpos ) + 
+		Optional( redshiftType ) + Optional( dopplerdef ) +
+		coos + Optional( redshiftSpec ) + _redshiftTail)
+	redshift = (Keyword("Redshift")("type") + Optional( refpos ) +
+		Optional( number )("coos") + Optional( redshiftType ) +
+		Optional( dopplerdef ) + _redshiftTail)
+	redshiftSubPhrase = (redshiftInterval | redshift ).addParseAction(
+		makeTree)
+
+# top level
+	stcsPhrase = (Optional( timeSubPhrase )("time") +
+		Optional( spaceSubPhrase )("space") +
+		Optional( spectralSubPhrase )("spectral") +
+		Optional( redshiftSubPhrase )("redshift") )
+
 	return dict((n, v) for n, v in locals().iteritems() if not n.startswith("_"))
 
 
@@ -322,7 +448,6 @@ def addActions(syms):
 		("timeInterval", TimeIntervalsAction()),
 		("startTime",    StartTimeAction()),
 		("stopTime",     StopTimeAction()),
-		("positionInterval", PositionIntervalsAction()),
 		("jdLiteral",    _sxToPA(STC.JDTime)),
 		("mjdLiteral",   _sxToPA(STC.MJDTime)),
 		("isoTimeLiteral", _sxToPA(STC.ISOTime)),
@@ -352,11 +477,11 @@ class CachedGetter(object):
 			self.cache = self.getter()
 		return self.cache
 
-getGrammar = CachedGetter(lambda: addActions(getSymbols()))
+getGrammar = CachedGetter(lambda: getSymbols())
 
 
 if __name__=="__main__":
-	root, syms = getGrammar()
+	syms = getSymbols()
 	#enableDebug(syms)
-	print syms["timeInterval"].parseString(
-		"TimeInterval 2000-01-01 2000-03-03 unit s", parseAll=True)[0].render()
+	print makeTree(syms["stcsPhrase"].parseString(
+		"Circle ICRS 2 23 12 RedshiftInterval RADIO 0.1 0.2", parseAll=True))
