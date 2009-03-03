@@ -199,6 +199,13 @@ class TestComplexSTCSTrees(STCSTreeParseTestBase):
 				'frame': 'FK4', 'refpos': 'TOPOCENTER', 'fillfactor': ['0.1'], 
 				'error': ['3', '3'], 'flavor': 'SPHER2', 'type': 'Circle', 
 				'unit': ['deg'], 'size': ['23']}]),
+		("spaceSubPhrase", "PositionInterval FK4 VelocityInterval fillfactor 0.1"
+				" 12 13"
+				" Velocity 12.3 unit km/s Error 4 5 Resolution 1.2 PixSize 1.3", 
+			[{'frame': 'FK4', 'type': 'PositionInterval', 'velocityInterval': [
+				{'coos': ['12', '13'], 'fillfactor': ['0.1'], 
+				'error': ['4', '5'], 'velocity': ['12.3'], 'resolution': ['1.2'], 
+				'unit': ['km/s'], 'pixSize': ['1.3']}]}]),
 		("stcsPhrase", "Circle ICRS 2 23 12 RedshiftInterval RADIO 0.1 0.2", {
 			'space': {
 				'coos': ['2', '23', '12'], 'frame': 'ICRS', 'type': 'Circle'}, 
@@ -208,5 +215,40 @@ class TestComplexSTCSTrees(STCSTreeParseTestBase):
 	]
 
 
+class TreeIterTest(testhelpers.VerboseTest):
+	"""tests for sensible traversal of STCS CSTs.
+	"""
+	syms = stcs.getSymbols()
+
+	def _getTree(self, inputString):
+		return stcs.makeTree(self.syms["stcsPhrase"].parseString(
+			inputString, parseAll=True))
+	
+	def testSimple(self):
+		self.assertEqual(list(stcs.iterNodes(self._getTree("Position ICRS 2 3"))),
+			[(('space',), {'coos': ['2', '3'], 
+				'frame': 'ICRS', 'type': 'Position'}), 
+			((), {'space': {'coos': ['2', '3'], 
+				'frame': 'ICRS', 'type': 'Position'}})])
+	
+	def testComplex(self):
+		self.assertEqual(list(stcs.iterNodes(self._getTree(
+			"Circle ICRS 2 23 12 VelocityInterval fillfactor 0.1 12 13"
+		  " RedshiftInterval RADIO 0.1 0.2"))), [
+				(('space', 'velocityInterval'), {
+					'coos': ['12', '13'], 'fillfactor': ['0.1']}), 
+				(('space',), {
+					'coos': ['2', '23', '12'], 'frame': 'ICRS', 'type': 'Circle', 
+					'velocityInterval': [
+						{'coos': ['12', '13'], 'fillfactor': ['0.1']}]}), 
+				(('redshift',), {
+						'coos': ['0.1', '0.2'], 'dopplerdef': 'RADIO', 
+							'type': 'RedshiftInterval'}), 
+				((), {'space': {'coos': ['2', '23', '12'], 'frame': 'ICRS', 
+					'type': 'Circle', 'velocityInterval': [{'coos': ['12', '13'], 
+					'fillfactor': ['0.1']}]}, 'redshift': {'coos': ['0.1', '0.2'], 
+					'dopplerdef': 'RADIO', 'type': 'RedshiftInterval'}})])
+
+
 if __name__=="__main__":
-	testhelpers.main(STCSTimeParsesTest)
+	testhelpers.main(TreeIterTest)

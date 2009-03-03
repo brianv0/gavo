@@ -119,9 +119,15 @@ def sortHeaders(header, commentFilter=None, historyFilter=None):
 
 	Blanks in the input are discarded, and one blank each is added in
 	between the sections of real cards, history and comments.
+
+	Header can be an iterable yielding Cards or a pyfits header.
 	"""
 	commentCs, historyCs, realCs = [], [], []
-	for card in header.ascardlist():
+	if hasattr(header, "ascardlist"):
+		iterable = header.ascardlist()
+	else:
+		iterable = header
+	for card in iterable:
 		if card.key=="COMMENT":
 			commentCs.append(card)
 		elif card.key=="HISTORY":

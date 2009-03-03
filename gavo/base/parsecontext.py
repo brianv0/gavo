@@ -30,7 +30,7 @@ def resolveCrossId(id, forceType):
 	"""
 	rdId, rest = id.split("#")
 	srcRd = caches.getRD(rdId)
-	return resolveId(srcRd, rest, forceType)
+	return resolveId(srcRd, rest, forceType=forceType)
 
 
 def resolveComplexId(ctx, id, forceType=None):

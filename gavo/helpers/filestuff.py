@@ -6,6 +6,8 @@ import os
 import re
 
 from gavo import base
+from gavo import rscdef
+from gavo.base import parsecontext
 
 class Error(base.Error):
 	pass
@@ -134,6 +136,9 @@ def iterSources(ddId, args=[]):
 	if args:
 		return iter(args)
 	else:
-		dd = base.resolveId(ddId)
+		if ddId.count("#")!=1:
+			raise base.ReportableError("iterSources must get a fully qualified id"
+				" (i.e., one with exactly one hash).")
+		dd = parsecontext.resolveCrossId(ddId, rscdef.DataDescriptor)
 		return dd.sources.iterSources()
 

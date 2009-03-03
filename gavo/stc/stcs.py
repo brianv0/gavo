@@ -58,80 +58,15 @@ temporalUnits = set(["yr", "cy", "s", "d", "a"])
 spectralUnits = set(["MHz", "GHz", "Hz", "Angstrom", "keV", "MeV", 
 	"eV", "mm", "um", "nm", "m"])
 redshiftUnits = set(["km/s", "nil"])
-
+velocityUnits = set(["km/s", "m/s"]) # XXX I don't even know what 
+	# VelocityInterval is supposed to do...
 
 def _assertGrammar(cond, msg, pos):
 	if not cond:
 		raise STCSParseError(msg, pos)
 
 
-class NamedNode(object):
-	"""a sentinel to wrap literals for later processing by ParseActions.
-	"""
-	def __init__(self, name, content):
-		self.name = name
-		self.content = content
-
-
-class _Attr(object):
-	"""wraps a future attribute for STCSGrammar.
-
-	Basically, children destined to become their parent's attributes
-	construct an attribute.
-	"""
-	def __init__(self, name, value):
-		self.name, self.value = name, value
-
-	@classmethod
-	def getAction(cls, name, argNum=1):
-		def make(s, pos, toks):
-			return cls(name, toks[argNum])
-		return make
-
-
-def _demuxChildren(toks):
-	"""returns a pair of real children and a dict of attributes from the
-	embedded _Attr children.
-	"""
-	realChildren, attrs = [], {}
-	for c in toks:
-		if isinstance(c, _Attr):
-			attrs[c.name] = c.value
-		else:
-			realChildren.append(c)
-	return realChildren, attrs
-
-
-def _demuxChildrenDict(toksDict):
-	"""returns real children and attributes in the dict toksDict.
-	"""
-	realChildren, attrs = {}, {}
-	for key, c in toksDict.iteritems():
-		if isinstance(c, _Attr):
-			attrs[key] = c.value
-		else: # lists of attributes can't work, so it must be a real child.
-			realChildren[key] = c
-	return realChildren, attrs
-
-
-def _sxToPA(stanElement):
-	"""returns a parse action constructing an xmlstan Element (cf. _Attr).
-	"""
-	def parseAction(s, pos, toks):
-		ch, at = _demuxChildren(toks)
-		return stanElement(**at)[ch]
-	return parseAction
-
-
-def _constructFromZeroethChild(s, pos, toks):
-	"""is a parse action for constructing an xmlstan Element named
-	in the zeroeth token.
-	"""
-	elName, children = toks[0], toks[1:]
-	ch, at = _demuxChildren(children)
-	return getattr(STC, elName)(**at)[ch]
-
-
+# XXX TODO: Remove this
 def _makeIntervals(seq, rootPrototype, startPrototype, stopPrototype):
 	"""returns a sequence intervals based on prototype.
 
@@ -157,111 +92,39 @@ def _makeIntervals(seq, rootPrototype, startPrototype, stopPrototype):
 	return res
 
 
-class ActionT(type):
-	"""A metaclass for defaulting parse actions.
-
-	Their primary purpose is to allow defaults to be set.  Of course,
-	parsing the baroque constructs takes some special action as well.
+def _iterDictNode(node, path):
+	"""does iterNode's work for dict nodes.
 	"""
-	def __init__(cls, name, bases, dict):
-		type.__init__(cls, name, bases, dict)
-		cls._collectDefaults()
-	
-	def _collectDefaults(cls):
-		cls.defaults = {}
-		for name in dir(cls):
-			if name.startswith("default_"):
-				cls.defaults[name[8:]] = getattr(cls, name)
+	for k, v in node.iteritems():
+		if isinstance(v, list):
+			subIter = _iterListNode(v, path+(k,))
+		elif isinstance(v, dict):
+			subIter = _iterDictNode(v, path+(k,))
+		for res in subIter:
+			yield res
+	yield path, node
 
-
-class Action(object):
-	"""A basic defaulting parse action for pyparsing.
-
-	In simple cases, it should be sufficient to just define rootElement
-	(the later parent), and, if necessary, manipulate children and attrs
-	in _mogrify.
+def _iterListNode(node, path):
+	"""does iterNode's work for list nodes.
 	"""
-	__metaclass__ = ActionT
-	
-	def getChildAtts(self, toks):
-		children = self.defaults.copy()
-		children.update(toks)
-		return _demuxChildrenDict(children)
+	for subNode in node:
+		if isinstance(subNode, dict):
+			for res in _iterDictNode(subNode, path):
+				yield res
 
-	def _mogrify(self, children, attrs):
-		pass
+def iterNodes(tree):
+	"""traverses the makeTree-like tree in postorder, returning pairs of 
+	paths and nodes.
 
-	def __call__(self, s, p, toks):
-		children, attrs = self.getChildAtts(toks)
-		return self.rootElement(**attrs)[children]
-
-
-class _TimeAction(Action):
-	default_Timescale = STC.Timescale["nil"]
-	default_unit = _Attr("unit", "s")
-
-class StartTimeAction(_TimeAction):
-	rootElement = STC.StartTime
-
-class StopTimeAction(_TimeAction):
-	rootElement = STC.StopTime
-	
-class TimeIntervalsAction(_TimeAction):
-	default_fill_factor = _Attr("fill_factor", "1.0")
-	rootElement = STC.TimeInterval
-	def __call__(self, s, p, toks):
-		# Most child nodes must end up in the children
-		children, atts = self.getChildAtts(toks)
-		myAtts = dict([("fill_factor", atts.pop("fill_factor"))])
-		times = children.pop("intervalTimes", [])
-		prototype = self.rootElement(**myAtts)
-		protoStart = STC.StartTime(**atts)[children.values()]
-		protoStop = STC.StopTime(**atts)[children.values()]
-		return _makeIntervals(times, prototype, protoStart, protoStop)
-	
-
-class PositionsAction(Action):
-	"""An abstract action setting positionsal defaults.
+	A node returned here is always a dictionary.  The path consists of the
+	keys leading to the node in a tuple.
 	"""
-	default_frame = STC.UNKNOWNFrame
-	default_refpos = STC.UNKNOWNRefPos
-	default_flavor = AComputedDefault
-	default_unit = AComputedDefault
-	default_fill_factor = "1.0"
-
-	flavorTranslations = {
-		"SPHER2": (STC.SPHERICAL, 2),
-		"SPHER3": (STC.SPHERICAL, 3),
-		"CART1": (STC.CARTESIAN, 1),
-		"CART2": (STC.CARTESIAN, 2),
-		"CART3": (STC.CARTESIAN, 3),
-		"UNITSPHER": (STC.UNITSPHERE, 3),
-	}
-
-	def _computeDefaults(self, children, atts):
-		if children["flavor"] is AComputedDefault:
-			if isinstance(self, Convex):
-				children["flavor"] = "UNITSPHER"
-			else:
-				children["flavor"] = "SPHER2"
-		if atts["unit"] is AComputedDefault:
-			if children["flavor"].startswith("SPHER"):
-				atts["unit"] = "deg"
-			elif children["flavor"].startswith("CART"):
-				atts["unit"] = "m"
-			elif children["flavor"].startswith("GEO"):
-				atts["unit"] = "deg deg m"
-			else:
-				atts["unit"] = None
-		flavor, self.nDim = self.flavorTranslations[children.pop("flavor")]
-		children["coordFrame"] = STC.SpaceFrame[children.pop("frame"),
-			flavor(coord_naxes=self.nDim),
-			children.pop("refpos")]
-			
-
-	def __call__(self, s, p, toks):
-		children, atts = self.getChildAtts(toks)
-		self._computeDefaults(children, atts)
+	if isinstance(tree, list):
+		return _iterListNode(tree, ())
+	elif isinstance(tree, dict):
+		return _iterDictNode(tree, ())
+	else:
+		raise STCError("Interal failure: Bad node in tree %s"%tree)
 
 
 def makeTree(parseResult):
@@ -320,6 +183,7 @@ def getSymbols():
 	timeUnit = _unitOpener + Regex(_reFromKeys(temporalUnits))
 	spectralUnit = _unitOpener + Regex(_reFromKeys(spectralUnits))
 	redshiftUnit = _unitOpener + Regex(_reFromKeys(redshiftUnits))
+	velocityUnit = _unitOpener + Regex(_reFromKeys(velocityUnits))
 
 # basic productions common to most STC-S subphrases
 	fillfactor = (Suppress( Keyword("fillfactor") ) + number)("fillfactor")
@@ -334,12 +198,6 @@ def getSymbols():
 	isoTimeLiteral = Regex(r"\d\d\d\d-?\d\d-?\d\d(T\d\d:?\d\d:?\d\dZ?)?")
 	nakedTime = (isoTimeLiteral | jdLiteral | mjdLiteral)
 
-# the velocity sub-phrase
-	velocityInterval = (Keyword("VelocityInterval") + number +
-		OneOrMore( number ))
-	velocity = Keyword("Velocity") + number
-	_velocityPhrase = (Optional( velocityInterval ) +
-		Optional( velocity ) ) # XXX incomplete
 
 # properties of most spatial specs
 	positionSpec = Suppress( Keyword("Position") ) + OneOrMore( number )
@@ -350,12 +208,20 @@ def getSymbols():
 	_spatialProps = (Optional( spaceUnit("unit") ) +
 		Optional( error("error") ) + Optional( resolution("resolution") ) + 
 		Optional( size("size") ) + Optional( pixSize("pixSize") ))
-	_spatialTail = _spatialProps + Optional( _velocityPhrase )
+	velocitySpec = Suppress( Keyword("Velocity") ) + OneOrMore( number )
+	velocityInterval = (Keyword("VelocityInterval") + Optional( fillfactor ) +
+		ZeroOrMore( number )("coos") + Optional( velocitySpec("velocity") ) + 
+		Optional( velocityUnit("unit") ) +
+		Optional( error("error") ) + Optional( resolution("resolution") ) + 
+		Optional( pixSize("pixSize") )).addParseAction(makeTree)
+	_spatialTail = (_spatialProps + 
+		Optional( velocityInterval )("velocityInterval"))
 	_regionTail = Optional( positionSpec ) + _spatialTail
 	_commonSpaceItems = ( frame + Optional( refpos ) + 
 		Optional( flavor ))
 	_commonRegionItems = Optional( fillfactor ) + _commonSpaceItems
 	coos = ZeroOrMore( number )("coos")
+
 
 # times and time intervals
 	timephrase = Suppress( Keyword("Time") ) + nakedTime
@@ -437,28 +303,6 @@ def getSymbols():
 	return dict((n, v) for n, v in locals().iteritems() if not n.startswith("_"))
 
 
-def addActions(syms):
-	for sym, action in [
-		("fillfactor",   _Attr.getAction("fill_factor")),
-		("flavor",       _constructFromZeroethChild),
-		("frame",        _constructFromZeroethChild),
-		("refpos",       _constructFromZeroethChild),
-		("timeUnit",     _Attr.getAction("unit")),
-		("spaceUnit",    _Attr.getAction("unit")),
-		("timeInterval", TimeIntervalsAction()),
-		("startTime",    StartTimeAction()),
-		("stopTime",     StopTimeAction()),
-		("jdLiteral",    _sxToPA(STC.JDTime)),
-		("mjdLiteral",   _sxToPA(STC.MJDTime)),
-		("isoTimeLiteral", _sxToPA(STC.ISOTime)),
-		("timescale",    _sxToPA(STC.Timescale)),
-		("timephrase",   lambda s,p,t: []), # XXX TODO: What shall I do with this?
-		("limits",       lambda s,p,t: NamedNode("limits", t)),
-		]:
-		syms[sym].addParseAction(action)
-	return None, syms
-
-
 def enableDebug(syms, debugNames=None):
 	if not debugNames:
 		debugNames = syms
@@ -483,5 +327,5 @@ getGrammar = CachedGetter(lambda: getSymbols())
 if __name__=="__main__":
 	syms = getSymbols()
 	#enableDebug(syms)
-	print makeTree(syms["stcsPhrase"].parseString(
-		"Circle ICRS 2 23 12 RedshiftInterval RADIO 0.1 0.2", parseAll=True))
+	print makeTree(syms["velocityInterval"].parseString(
+		"VelocityInterval 0.1 12 13 Velocity 12.3 unit km/s Error 4 5 Resolution 12 PixSize 13", parseAll=True))
