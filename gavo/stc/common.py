@@ -27,6 +27,9 @@ class STCLiteralError(STCError):
 		Exception.__init__(self, msg)
 		self.literal = literal
 
+class STCInternalError(STCError):
+	"""is raised when assumptions about the library behaviour are violated.
+	"""
 
 STCNamespace = "http://www.ivoa.net/xml/STC/stc-v1.30.xsd"
 XlinkNamespace = "http://www.w3.org/1999/xlink/"

@@ -250,5 +250,40 @@ class TreeIterTest(testhelpers.VerboseTest):
 					'dopplerdef': 'RADIO', 'type': 'RedshiftInterval'}})])
 
 
+class DefaultingTest(testhelpers.VerboseTest):
+	def testSpatial(self):
+		self.assertEqual(stcs.getCST("PositionInterval ICRS"),
+			{'space': {'frame': 'ICRS', 'unit': ['deg'], 'type': 'PositionInterval', 
+			'refpos': 'UNKNOWNRefPos', 'flavor': 'SPHER2'}})
+		self.assertEqual(stcs.getCST("PositionInterval ICRS unit arcsec"),
+			{'space': {'frame': 'ICRS', 'unit': ['arcsec'], 
+			'type': 'PositionInterval', 'refpos': 'UNKNOWNRefPos', 
+			'flavor': 'SPHER2'}})
+		self.assertEqual(stcs.getCST("Convex ICRS"),
+			{'space': {'frame': 'ICRS', 'unit': ['deg'], 'type': 'Convex', 
+			'refpos': 'UNKNOWNRefPos', 'flavor': 'UNITSPHER'}})
+		self.assertEqual(stcs.getCST("PositionInterval FK4 TOPOCENTER CART2"),
+			{'space': {'frame': 'FK4', 'unit': ['m'], 'type': 'PositionInterval', 
+			'refpos': 'TOPOCENTER', 'flavor': 'CART2'}})
+		self.assertEqual(stcs.getCST("PositionInterval GEO_C"),
+			{'space': {'frame': 'GEO_C', 'unit': ['deg', 'deg', 'm'], 
+				'type': 'PositionInterval', 'refpos': 'UNKNOWNRefPos', 
+				'flavor': 'SPHER2'}})
+
+	def testTemporal(self):
+		self.assertEqual(stcs.getCST("TimeInterval"), {'time': {'unit': 's', 
+			'type': 'TimeInterval', 'refpos': 'UNKNOWNRefPos', 
+			'timescale': 'nil'}})
+
+	def testSpectral(self):
+		self.assertEqual(stcs.getCST("SpectralInterval"), {'spectral': 
+			{'type': 'SpectralInterval', 'refpos': 'UNKNOWNRefPos', 'unit': 'Hz'}})
+
+	def testRedshift(self):
+		self.assertEqual(stcs.getCST("RedshiftInterval"),
+			{'redshift': {'redshiftType': 'VELOCITY', 'type': 'RedshiftInterval', 
+			'refpos': 'UNKNOWNRefPos', 'unit': ['km/s'], 'dopplerdef': 'OPTICAL'}})
+
+
 if __name__=="__main__":
-	testhelpers.main(TreeIterTest)
+	testhelpers.main(DefaultingTest)

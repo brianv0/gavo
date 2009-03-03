@@ -16,6 +16,7 @@ from pyparsing import (Word, Literal, Optional, alphas, CaselessKeyword,
 		CaselessLiteral, ParseException, Regex, sglQuotedString, alphanums,
 		dblQuotedString, White, ParseException, ParseResults)
 
+from gavo.stc import stcsdefaults
 from gavo.stc.common import *
 from gavo.stc.dm import STC
 from gavo.utils import stanxml
@@ -58,8 +59,8 @@ temporalUnits = set(["yr", "cy", "s", "d", "a"])
 spectralUnits = set(["MHz", "GHz", "Hz", "Angstrom", "keV", "MeV", 
 	"eV", "mm", "um", "nm", "m"])
 redshiftUnits = set(["km/s", "nil"])
-velocityUnits = set(["km/s", "m/s"]) # XXX I don't even know what 
-	# VelocityInterval is supposed to do...
+# XXX I don't even know what VelocityInterval is supposed to do...
+velocityUnits = set(["km/s", "m/s", "furlongs/fortnight"]) 
 
 def _assertGrammar(cond, msg, pos):
 	if not cond:
@@ -92,6 +93,19 @@ def _makeIntervals(seq, rootPrototype, startPrototype, stopPrototype):
 	return res
 
 
+def addDefaults(tree):
+	"""adds defaults for missing values for a concrete syntax tree.
+
+	The tree is changed in place.  For details, see stcsdefaults.
+	"""
+	for path, node in iterNodes(tree):
+		if path in stcsdefaults.pathFunctions:
+			stcsdefaults.pathFunctions[path](node)
+		elif path and path[-1] in stcsdefaults.nodeNameFunctions:
+			stcsdefaults.nodeNameFunctions[path[-1]](node)
+	return tree
+
+
 def _iterDictNode(node, path):
 	"""does iterNode's work for dict nodes.
 	"""
@@ -100,6 +114,8 @@ def _iterDictNode(node, path):
 			subIter = _iterListNode(v, path+(k,))
 		elif isinstance(v, dict):
 			subIter = _iterDictNode(v, path+(k,))
+		else:
+			continue  # content does not contain a subtree
 		for res in subIter:
 			yield res
 	yield path, node
@@ -113,7 +129,7 @@ def _iterListNode(node, path):
 				yield res
 
 def iterNodes(tree):
-	"""traverses the makeTree-like tree in postorder, returning pairs of 
+	"""traverses the concrete syntax tree in postorder, returning pairs of 
 	paths and nodes.
 
 	A node returned here is always a dictionary.  The path consists of the
@@ -124,7 +140,7 @@ def iterNodes(tree):
 	elif isinstance(tree, dict):
 		return _iterDictNode(tree, ())
 	else:
-		raise STCError("Interal failure: Bad node in tree %s"%tree)
+		raise STCInternalError("Bad node in tree %s"%tree)
 
 
 def makeTree(parseResult):
@@ -298,7 +314,7 @@ def getSymbols():
 	stcsPhrase = (Optional( timeSubPhrase )("time") +
 		Optional( spaceSubPhrase )("space") +
 		Optional( spectralSubPhrase )("spectral") +
-		Optional( redshiftSubPhrase )("redshift") )
+		Optional( redshiftSubPhrase )("redshift") ) + StringEnd()
 
 	return dict((n, v) for n, v in locals().iteritems() if not n.startswith("_"))
 
@@ -324,8 +340,14 @@ class CachedGetter(object):
 getGrammar = CachedGetter(lambda: getSymbols())
 
 
+def getCST(literal):
+	tree = makeTree(getGrammar()["stcsPhrase"].parseString(literal))
+	addDefaults(tree)
+	return tree
+
+
 if __name__=="__main__":
 	syms = getSymbols()
-	#enableDebug(syms)
-	print makeTree(syms["velocityInterval"].parseString(
-		"VelocityInterval 0.1 12 13 Velocity 12.3 unit km/s Error 4 5 Resolution 12 PixSize 13", parseAll=True))
+	enableDebug(syms)
+	print makeTree(syms["circle"].parseString(
+		"Circle FK4 TOPOCENTER", parseAll=True))
