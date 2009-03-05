@@ -17,8 +17,8 @@ from pyparsing import (Word, Literal, Optional, alphas, CaselessKeyword,
 		dblQuotedString, White, ParseException, ParseResults)
 
 from gavo.stc import stcsdefaults
+from gavo.stc import times
 from gavo.stc.common import *
-from gavo.stc.dm import STC
 from gavo.utils import stanxml
 
 class AComputedDefault(object):
@@ -170,11 +170,16 @@ def getSymbols():
 
 # units
 	_unitOpener = Suppress( Keyword("unit") )
-	spaceUnit = _unitOpener + Regex(_reFromKeys(spatialUnits))
-	timeUnit = _unitOpener + Regex(_reFromKeys(temporalUnits))
-	spectralUnit = _unitOpener + Regex(_reFromKeys(spectralUnits))
-	redshiftUnit = _unitOpener + Regex(_reFromKeys(redshiftUnits))
-	velocityUnit = _unitOpener + Regex(_reFromKeys(velocityUnits))
+	spaceUnit = _unitOpener + Regex(_reFromKeys(spatialUnits)).setResultsName(
+		"unit", True)
+	timeUnit = _unitOpener + Regex(_reFromKeys(temporalUnits)).setResultsName(
+		"unit", True)
+	spectralUnit = _unitOpener + Regex(_reFromKeys(spectralUnits)
+		).setResultsName("unit", True)
+	redshiftUnit = _unitOpener + Regex(_reFromKeys(redshiftUnits)
+		).setResultsName("unit", True)
+	velocityUnit = _unitOpener + Regex(_reFromKeys(velocityUnits)
+		).setResultsName("unit", True)
 
 # basic productions common to most STC-S subphrases
 	fillfactor = (Suppress( Keyword("fillfactor") ) + number)("fillfactor")
@@ -184,25 +189,28 @@ def getSymbols():
 
 # basic productions for times and such.
 	timescale = (Regex("|".join(stcTimeScales)))("timescale")
-	jdLiteral = (Suppress( Literal("JD") ) + exactNumericLiteral)
-	mjdLiteral = (Suppress( Literal("MJD") ) + exactNumericLiteral)
-	isoTimeLiteral = Regex(r"\d\d\d\d-?\d\d-?\d\d(T\d\d:?\d\d:?\d\dZ?)?")
+	jdLiteral = (Suppress( Literal("JD") ) + exactNumericLiteral
+		).addParseAction(lambda s,p,toks: times.jdnToDateTime(float(toks[0])))
+	mjdLiteral = (Suppress( Literal("MJD") ) + exactNumericLiteral
+		).addParseAction(lambda s,p,toks: times.mjdToDateTime(float(toks[0])))
+	isoTimeLiteral = Regex(r"\d\d\d\d-?\d\d-?\d\d(T\d\d:?\d\d:?\d\d(\.\d*)?Z?)?"
+		).addParseAction(lambda s,p,toks: times.parseISODT(toks[0]))
 	nakedTime = (isoTimeLiteral | jdLiteral | mjdLiteral)
 
-
 # properties of most spatial specs
+	coos = ZeroOrMore( number )("coos")
 	positionSpec = Suppress( Keyword("Position") ) + OneOrMore( number )
 	error = Suppress( Keyword("Error") ) + OneOrMore( number )
 	resolution = Suppress( Keyword("Resolution") ) + OneOrMore( number )
 	size = Suppress( Keyword("Size") ) + OneOrMore(number)
 	pixSize = Suppress( Keyword("PixSize") ) + OneOrMore(number)
-	_spatialProps = (Optional( spaceUnit("unit") ) +
+	_spatialProps = (Optional( spaceUnit ) +
 		Optional( error("error") ) + Optional( resolution("resolution") ) + 
 		Optional( size("size") ) + Optional( pixSize("pixSize") ))
 	velocitySpec = Suppress( Keyword("Velocity") ) + OneOrMore( number )
 	velocityInterval = (Keyword("VelocityInterval") + Optional( fillfactor ) +
-		ZeroOrMore( number )("coos") + Optional( velocitySpec("velocity") ) + 
-		Optional( velocityUnit("unit") ) +
+		coos + Optional( velocitySpec("velocity") ) + 
+		Optional( velocityUnit ) +
 		Optional( error("error") ) + Optional( resolution("resolution") ) + 
 		Optional( pixSize("pixSize") )).addParseAction(makeTree)
 	_spatialTail = (_spatialProps + 
@@ -211,12 +219,10 @@ def getSymbols():
 	_commonSpaceItems = ( frame + Optional( refpos ) + 
 		Optional( flavor ))
 	_commonRegionItems = Optional( fillfactor ) + _commonSpaceItems
-	coos = ZeroOrMore( number )("coos")
-
 
 # times and time intervals
 	timephrase = Suppress( Keyword("Time") ) + nakedTime
-	_commonTimeItems = (	Optional( timeUnit("unit") ) + Optional( 
+	_commonTimeItems = (	Optional( timeUnit ) + Optional( 
 		error("error") ) + Optional( resolution("resolution") ) + 
 		Optional( pixSize("pixSize") ) )
 	_intervalOpener = ( Optional( fillfactor("fill_factor") ) + 
@@ -225,14 +231,14 @@ def getSymbols():
 	_intervalCloser = Optional( timephrase("timephrase") ) + _commonTimeItems
 
 	timeInterval =  (Keyword("TimeInterval")("type") + 
-		_intervalOpener + ZeroOrMore(nakedTime)("coos") + 
+		_intervalOpener + ZeroOrMore( nakedTime )("coos") + 
 		_intervalCloser)
 	startTime = (Keyword("StartTime")("type") + _intervalOpener + 
 		nakedTime("startTime") + _intervalCloser)
 	stopTime = (Keyword("StopTime")("type") + _intervalOpener + 
 		nakedTime("stopTime") + _intervalCloser)
 	time = (Keyword("Time")("type")  + Optional( timescale("timescale") ) + 
-		Optional( refpos("refpos") ) + Optional ( nakedTime("givenTime") ) + 
+		Optional( refpos("refpos") ) + ZeroOrMore( nakedTime )("coos") + 
 		_commonTimeItems)
 	timeSubPhrase = (timeInterval | startTime | stopTime | time).addParseAction(
 		makeTree)
@@ -259,13 +265,13 @@ def getSymbols():
 
 # spectral subphrase
 	spectralSpec = (Suppress( Keyword("Spectral") ) + number)("spectral")
-	_spectralTail = (Optional( spectralUnit("unit") ) + Optional( error ) + 
-		Optional( resolution ) + Optional( pixSize ))
+	_spectralTail = (Optional( spectralUnit ) + Optional( error("error") ) + 
+		Optional( resolution("resolution") ) + Optional( pixSize("pixSize") ))
 	spectralInterval = (Keyword("SpectralInterval")("type") +
 		Optional( fillfactor ) + Optional( refpos ) + coos + 
 		Optional( spectralSpec ) + _spectralTail)
 	spectral = (Keyword("Spectral")("type") + Optional( refpos ) +
-		number("coos") + _spectralTail)
+		coos + _spectralTail)
 	spectralSubPhrase = (spectralInterval | spectral ).addParseAction(
 		makeTree)
 
@@ -273,14 +279,14 @@ def getSymbols():
 	redshiftType = Regex("VELOCITY|REDSHIFT")("redshiftType")
 	redshiftSpec = (Suppress( Keyword("Redshift") ) + number)("redshift")
 	dopplerdef = Regex("OPTICAL|RADIO|RELATIVISTIC")("dopplerdef")
-	_redshiftTail = ( Optional( redshiftUnit("unit") ) +
+	_redshiftTail = ( Optional( redshiftUnit ) +
 		Optional( error ) + Optional( resolution ) + Optional( pixSize ))
 	redshiftInterval = (Keyword("RedshiftInterval")("type") + 
 		Optional( fillfactor ) + Optional( refpos ) + 
 		Optional( redshiftType ) + Optional( dopplerdef ) +
 		coos + Optional( redshiftSpec ) + _redshiftTail)
 	redshift = (Keyword("Redshift")("type") + Optional( refpos ) +
-		Optional( number )("coos") + Optional( redshiftType ) +
+		coos + Optional( redshiftType ) +
 		Optional( dopplerdef ) + _redshiftTail)
 	redshiftSubPhrase = (redshiftInterval | redshift ).addParseAction(
 		makeTree)
@@ -316,7 +322,11 @@ getGrammar = CachedGetter(lambda: getSymbols())
 
 
 def getCST(literal):
-	tree = makeTree(getGrammar()["stcsPhrase"].parseString(literal))
+	try:
+		tree = makeTree(getGrammar()["stcsPhrase"].parseString(literal))
+	except ParseException, ex:
+		raise STCSParseError("Invalid STCS expression (%s)"%ex.msg,
+			expr=literal, pos=ex.loc)
 	addDefaults(tree)
 	return tree
 

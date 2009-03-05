@@ -2,9 +2,11 @@
 Tests for handling ivoa stc specifications.
 """
 
+import datetime
 import unittest
 
-from gavo.stc import coordsys
+from gavo import stc
+from gavo.stc import dm
 from gavo.stc import stcs
 from gavo.stc import stcsast
 from gavo.stc import stcx
@@ -114,20 +116,20 @@ class ValidationTests(unittest.TestCase, testhelpers.XSDTestMixin):
 
 class CoordSysTest(testhelpers.VerboseTest):
 	def testBasic(self):
-		cs = coordsys.CoordSys(name="testCase", ucd="test;useless")
+		cs = dm.CoordSys(name="testCase", ucd="test;useless")
 		self.assertEqual(cs.timeFrame, None)
 		self.assertEqual(cs.ucd, "test;useless")
 		self.assertEqual(cs.name, "testCase")
 
 	def testBasicRaises(self):
-		self.assertRaises(TypeError, coordsys.CoordSys, x=8)
+		self.assertRaises(TypeError, dm.CoordSys, x=8)
 
 	def testFromSTCS(self):
 		cst = stcs.getCST("TimeInterval TT BARYCENTER"
 			" PositionInterval FK5 TOPOCENTER"
 			" SpectralInterval GEOCENTER"
 			" RedshiftInterval HELIOCENTER VELOCITY")
-		cs = stcsast.getCoordSys(cst)
+		cs = stcsast.getCoordSys(cst)[1]
 		self.assertEqual(cs.redshiftFrame.dopplerDef, "OPTICAL")
 		self.assertEqual(cs.spectralFrame.refPos.standardOrigin, "GEOCENTER")
 		self.assertEqual(cs.spaceFrame.flavor, "SPHERICAL")
@@ -136,5 +138,52 @@ class CoordSysTest(testhelpers.VerboseTest):
 		self.assertEqual(cs.timeFrame.timeScale, "TT")
 
 
+class OtherCoordTest(testhelpers.VerboseTest):
+	def testSimpleTime(self):
+		ast = stcsast.parseSTCS("Time TT 2000-12-20T23:02:12 unit yr Error 2")
+		self.assertEqual(ast.times[0].frame.timeScale, "TT")
+		self.assertEqual(ast.times[0].error, (2.0,))
+		self.assertEqual(ast.times[0].value, 
+			datetime.datetime(2000, 12, 20, 23, 2, 12))
+		
+	def testSimpleSpectral(self):
+		ast = stcsast.parseSTCS("Spectral BARYCENTER 23 Resolution 0.25 0.5")
+		self.assertEqual(ast.freqs[0].frame.refPos.standardOrigin, "BARYCENTER")
+		self.assertEqual(ast.freqs[0].value, 23.)
+		self.assertEqual(ast.freqs[0].resolution, (0.25, 0.5))
+
+	def testSimpleRedshift(self):
+		ast = stcsast.parseSTCS("Redshift BARYCENTER 2 unit km/s")
+		self.assertEqual(ast.redshifts[0].frame.refPos.standardOrigin, 
+			"BARYCENTER")
+		self.assertEqual(ast.redshifts[0].value, 2.)
+
+	def testRaising(self):
+		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS,
+			"Time TT Error 1 2 3")
+		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS,
+			"Spectral BARYCENTER 23 Resolution 0.25 0.5 2.5")
+
+
+class SpaceCoordTest(testhelpers.VerboseTest):
+	def testSimple(self):
+		ast = stcsast.parseSTCS("Position FK5 TOPOCENTER 2 4.25 unit deg"
+			" PixSize 4.5 3.75")
+		self.assertEqual(ast.places[0].frame.flavor, "SPHERICAL")
+		self.assertEqual(ast.places[0].frame.nDim, 2)
+		self.assertEqual(ast.places[0].value, (2., 4.25))
+		self.assertEqual(ast.places[0].units, ["deg", "deg"])
+		self.assertEqual(ast.places[0].pixSize, ((4.5, 3.75),))
+	
+	def testPixSizeRange(self):
+		ast = stcsast.parseSTCS("Position FK5 TOPOCENTER 2 4.25 unit deg"
+			" PixSize 4.5 3.75 1 5")
+		self.assertEqual(ast.places[0].pixSize, ((4.5, 3.75), (1., 5.)))
+
+	def testRaises(self):
+		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS,
+			"Position FK5 TOPOCENTER 2 4.25 unit deg PixSize 4.5 3.75 2")
+
+
 if __name__=="__main__":
-	testhelpers.main(CoordSysTest)
+	testhelpers.main(OtherCoordTest)

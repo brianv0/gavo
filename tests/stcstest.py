@@ -2,8 +2,10 @@
 Tests for STC-S handling
 """
 
+import datetime
 import unittest
 
+from gavo import stc
 from gavo.stc import dm
 from gavo.stc import stcs
 
@@ -30,17 +32,18 @@ class STCSParsesTestBase(testhelpers.VerboseTest):
 	
 	def testNoParseTimeStuff(self):
 		for sym, literal in self.shouldNotParse:
-			self.assertRaises(stcs.ParseException, self.syms[sym].parseString,
-				literal, parseAll=True)
+			self.assertRaisesVerbose(stcs.ParseException, self.syms[sym].parseString,
+				(literal, True), "No exception when parsing '%s' with %s"%
+				(literal, sym))
 
 
 class STCSTimeParsesTest(STCSParsesTestBase):
 	"""Tests for parsing of time sub-phrases.
 	"""
 	shouldParse = [
-			("jdLiteral", "JD25699403.78"),
-			("jdLiteral", "JD 25699403.78"),
-			("mjdLiteral", "MJD25699403.78"),
+			("jdLiteral", "JD2569903.78"),
+			("jdLiteral", "JD 2569403.78"),
+			("mjdLiteral", "MJD2503.78"),
 			("isoTimeLiteral", "1980-10-10"),
 			("isoTimeLiteral", "1980-10-10T12:12:15"),
 			("isoTimeLiteral", "1980-10-10T12:12:15Z"),
@@ -125,7 +128,6 @@ class STCSRedshiftParsesTest(STCSParsesTestBase):
 			" BARYCENTER REDSHIFT 12 13 Redshift 11.3"),
 	]
 	shouldNotParse = [
-		("redshiftSubPhrase", "Redshift GEOCENTER 0.1 0.2 unit km/s"),
 		("redshiftSubPhrase", "Redshift GEOCENTER 0.1 unit mm"),
 		("redshiftSubPhrase", "Redshift TOPOCENTER 0.1 RELATIVISTIC VELOCITY"),
 	]
@@ -169,11 +171,12 @@ class STCSTreeParseTestBase(testhelpers.VerboseTest):
 
 class TestSimpleSTCSTrees(STCSTreeParseTestBase):
 	samples = [
-		("timeUnit", "unit s", ['s']),
-		("spaceUnit", "unit pc", ['pc']),
+		("timeUnit", "unit s", {"unit": ['s']}),
+		("spaceUnit", "unit pc", {"unit": ['pc']}),
 		("positionSpec", "Position 2 1 3.4 7e9", ['2', '1', '3.4', '7e9']),
 		("timescale", "TT", {'timescale': 'TT'}),
-		("jdLiteral", "JD 24500000.5", ['24500000.5']),
+		("jdLiteral", "JD 2450000.5", [datetime.datetime(
+			1995, 10, 9, 23, 59, 59, 999997)]),
 		("redshiftType", "VELOCITY", {'redshiftType': 'VELOCITY'}),
 	]
 
@@ -186,13 +189,14 @@ class TestComplexSTCSTrees(STCSTreeParseTestBase):
 			{'coos': ['2', '3'], 'frame': 'ICRS', 'type': 'PositionInterval',
 				'error': ['5', '7']}),
 		("timeInterval", "TimeInterval 1980-10-15 JD 2454930.7", 
-			{'coos': ['1980-10-15', '2454930.7'], 'type': 'TimeInterval'}),
+			{'coos': [datetime.datetime(1980, 10, 15, 0, 0), 
+				datetime.datetime(2009, 4, 9, 4, 48, 0, 18)], 'type': 'TimeInterval'}),
 		("stopTime", "StopTime fillfactor 0.1 TT GEOCENTER 1900-01-01"
 				" Time 2000-12-31 unit yr Error 1 2 Resolution 0.1 0.1 PixSize 19 20",
 			{'fill_factor': ['0.1'], 'timescale': 'TT', 'type': 'StopTime', 
-				'refpos': 'GEOCENTER', 'stopTime': '1900-01-01', 
-				'timephrase': ['2000-12-31'], 'error': ['1', '2'], 
-				'resolution': ['0.1', '0.1'], 'unit': ['yr'], 
+				'refpos': 'GEOCENTER', 'stopTime': datetime.datetime(1900, 1, 1, 0, 0),
+				'timephrase': [datetime.datetime(2000, 12, 31, 0, 0)], 
+				'error': ['1', '2'], 'resolution': ['0.1', '0.1'], 'unit': ['yr'], 
 				'pixSize': ['19', '20']}),
 		("spaceSubPhrase", "Circle fillfactor 0.1 FK4 TOPOCENTER SPHER2 1 2 3"
 			" unit deg Error 3 3 Size 23", [{'coos': ['1', '2', '3'], 
@@ -271,13 +275,13 @@ class DefaultingTest(testhelpers.VerboseTest):
 				'flavor': 'SPHER2'}})
 
 	def testTemporal(self):
-		self.assertEqual(stcs.getCST("TimeInterval"), {'time': {'unit': 's', 
+		self.assertEqual(stcs.getCST("TimeInterval"), {'time': {'unit': ['s'], 
 			'type': 'TimeInterval', 'refpos': 'UNKNOWNRefPos', 
 			'timescale': 'nil'}})
 
 	def testSpectral(self):
 		self.assertEqual(stcs.getCST("SpectralInterval"), {'spectral': 
-			{'type': 'SpectralInterval', 'refpos': 'UNKNOWNRefPos', 'unit': 'Hz'}})
+			{'type': 'SpectralInterval', 'refpos': 'UNKNOWNRefPos', 'unit': ['Hz']}})
 
 	def testRedshift(self):
 		self.assertEqual(stcs.getCST("RedshiftInterval"),

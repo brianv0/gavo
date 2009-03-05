@@ -73,10 +73,10 @@ nodeNameFunctions = {
 	"time": _makeDefaulter([
 		("timescale", "nil"),
 		("refpos", "UNKNOWNRefPos"),
-		("unit", "s")]),
+		("unit", ["s"])]),
 	"spectral": _makeDefaulter([
 		("refpos", "UNKNOWNRefPos"),
-		("unit", "Hz")]),
+		("unit", ["Hz"])]),
 	"redshift": _makeDefaulter([
 		("refpos", "UNKNOWNRefPos"),
 		("redshiftType", "VELOCITY"),

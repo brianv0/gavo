@@ -33,6 +33,9 @@ class STCInternalError(STCError):
 	"""is raised when assumptions about the library behaviour are violated.
 	"""
 
+class STCValueError(STCError):
+	"""is raised when some STC specification is inconsistent.
+	"""
 
 STCNamespace = "http://www.ivoa.net/xml/STC/stc-v1.30.xsd"
 XlinkNamespace = "http://www.w3.org/1999/xlink/"
@@ -74,13 +77,22 @@ class ASTNodeType(type):
 	The idea is quite similar to the GAVO DC's structure, only we keep it
 	much simpler: Define children in a class definition and make sure
 	they are actually present.
+	
+	ASTNodes are supposed to be immutable; the are defined during
+	construction.  Currently, nothing keeps you from changing them
+	afterwards, but that may change.
 
-	To allow easy construction, the classes' constructor is defined
-	to accept all attributes as arguments (you probably want to use
-	keyword arguments here).  It is the constructor that sets up the
-	attributes, so ASTNodes may not have a constructor.  However,
-	they may define a method _setupNode that is called just before
-	the artificial constructor returns.
+	The classes' constructor is defined to accept all attributes as arguments
+	(you probably want to use keyword arguments here).  It is the constructor
+	that sets up the attributes, so ASTNodes must not have an __init__ method.
+	However, they may define a method _setupNode that is called just before the
+	artificial constructor returns.
+	
+	To define the attributes of the class, add _a_<attname> attributes
+	giving a default to the class.  The default should normally be either
+	None for 1:1 or 1:0 mappings or an empty list for 1:n mappings.
+	The defaults must return a repr that constructs them, since we create
+	a source fragment.
 	"""
 	def __init__(cls, name, bases, dict):
 		cls._collectAttributes()

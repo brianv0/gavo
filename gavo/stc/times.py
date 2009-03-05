@@ -61,6 +61,15 @@ def jdnToDateTime(jd):
 	return jYearToDateTime((jd-2451545.0)/365.25+2000.0)
 
 
+def mjdToDateTime(mjd):
+	"""returns a datetime.datetime instance for a modified julian day number.
+
+	Beware: This loses a couple of significant digits due to transformation
+	to jd.
+	"""
+	return jdnToDateTime(mjd+2400000.5)
+
+
 def dateTimeToJdn(dt):
 	"""returns a julian day number (including fractionals) from a datetime
 	instance.
