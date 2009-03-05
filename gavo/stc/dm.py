@@ -7,10 +7,6 @@ from gavo.utils import ElementTree
 from gavo.utils.stanxml import Element, XSINamespace, Error
 
 
-class InvalidSubstitution(Error):
-	pass
-
-
 _schemaLocations = {
 	STCNamespace: "http://vo.ari.uni-heidelberg.de/docs/schemata/stc-v1.30.xsd",
 	XlinkNamespace: "http://vo.ari.uni-heidelberg.de/docs/schemata/xlink.xsd",

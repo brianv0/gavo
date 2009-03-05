@@ -219,7 +219,8 @@ def getADQLGrammarCopy():
 
 	regularIdentifier = Word(alphas, alphanums+"_").addParseAction(
 		_failOnReservedWord)
-	delimitedIdentifier = dblQuotedString.copy()
+	delimitedIdentifier = QuotedString(quoteChar='"', escQuote='"',
+		unquoteResults=False)
 	identifier = regularIdentifier | delimitedIdentifier
 
 # Operators

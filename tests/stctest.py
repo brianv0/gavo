@@ -4,8 +4,10 @@ Tests for handling ivoa stc specifications.
 
 import unittest
 
-from gavo.stc import dm
+from gavo.stc import coordsys
 from gavo.stc import stcs
+from gavo.stc import stcsast
+from gavo.stc import dm
 
 import testhelpers
 
@@ -108,3 +110,31 @@ class ValidationTests(unittest.TestCase, testhelpers.XSDTestMixin):
 								C1[149.58821],
 								C2[69.01529]]]]]]]
 		self.assertValidates(tree.render(), leaveOffending=__name__=="__main__")
+
+
+class CoordSysTest(testhelpers.VerboseTest):
+	def testBasic(self):
+		cs = coordsys.CoordSys(name="testCase", ucd="test;useless")
+		self.assertEqual(cs.timeFrame, None)
+		self.assertEqual(cs.ucd, "test;useless")
+		self.assertEqual(cs.name, "testCase")
+
+	def testBasicRaises(self):
+		self.assertRaises(TypeError, coordsys.CoordSys, x=8)
+
+	def testFromSTCS(self):
+		cst = stcs.getCST("TimeInterval TT BARYCENTER"
+			" PositionInterval FK5 TOPOCENTER"
+			" SpectralInterval GEOCENTER"
+			" RedshiftInterval HELIOCENTER VELOCITY")
+		cs = stcsast.getCoordSys(cst)
+		self.assertEqual(cs.redshiftFrame.dopplerDef, "OPTICAL")
+		self.assertEqual(cs.spectralFrame.refPos.standardOrigin, "GEOCENTER")
+		self.assertEqual(cs.spaceFrame.flavor, "SPHERICAL")
+		self.assertEqual(cs.spaceFrame.nDim, 2)
+		self.assertEqual(cs.spaceFrame.refFrame, "FK5")
+		self.assertEqual(cs.timeFrame.timeScale, "TT")
+
+
+if __name__=="__main__":
+	testhelpers.main(CoordSysTest)

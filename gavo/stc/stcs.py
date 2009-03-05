@@ -46,6 +46,7 @@ stcsFrames = {
 	"B1950": None,
 	"ECLIPTIC": None,
 	"GALACTIC": None,
+	"GALACTIC_I": None,
 	"GALACTIC_II": None,
 	"SUPER_GALACTIC": None,
 	"GEO_C": None,
@@ -65,32 +66,6 @@ velocityUnits = set(["km/s", "m/s", "furlongs/fortnight"])
 def _assertGrammar(cond, msg, pos):
 	if not cond:
 		raise STCSParseError(msg, pos)
-
-
-# XXX TODO: Remove this
-def _makeIntervals(seq, rootPrototype, startPrototype, stopPrototype):
-	"""returns a sequence intervals based on prototype.
-
-	We need this to parse the interval-type sub-phrases in STC/S (which suck).
-	Here are the rules:
-
-	(1) intervals may contain of 0, 1, or 2 seq item(s)
-	(2) The return value will always contain at least one interval
-	(3) Only the last interval is allowed to be incomplete
-	"""
-	res = [copy.deepcopy(rootPrototype)]
-	nextIsStart = first = True
-	for item in seq:
-		if nextIsStart:
-			if first:
-				first = False
-			else:
-				res.append(copy.deepcopy(rootPrototype))
-			res[-1][copy.deepcopy(startPrototype)[item]]
-		else:
-			res[-1][copy.deepcopy(stopPrototype)[item]]
-		nextIsStart = not nextIsStart
-	return res
 
 
 def addDefaults(tree):
@@ -346,8 +321,9 @@ def getCST(literal):
 	return tree
 
 
+
 if __name__=="__main__":
 	syms = getSymbols()
 	enableDebug(syms)
-	print makeTree(syms["circle"].parseString(
-		"Circle FK4 TOPOCENTER", parseAll=True))
+	print makeTree(syms["stcsPhrase"].parseString(
+		"Circle ICRS 2 23 12 RedshiftInterval RADIO 0.1 0.2", parseAll=True))

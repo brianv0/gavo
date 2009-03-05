@@ -19,6 +19,7 @@ def getSpaceFlavor(node):
 	else:
 		return "SPHER2"
 
+
 def getSpaceUnit(node):
 	if node["frame"].startswith("GEO"):
 		return ["deg", "deg", "m"]

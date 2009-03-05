@@ -271,6 +271,7 @@ class NakedParseTest(testhelpers.VerboseTest):
 		p = "select x from y where "
 		self._assertParse([
 			p+'"some weird column">0',
+			p+'"some even ""weirder"" column">0',
 			p+'"SELECT">0',
 		])
 
@@ -341,6 +342,8 @@ class TreeParseTest(testhelpers.VerboseTest):
 			("select x as u from z", ("u", False)),
 			("select x+2 from z", (None, True)),
 			('select x+2 as "99 Monkeys" from z', ('"99 Monkeys"', True)),
+			('select x+2 as " ""cute"" Monkeys" from z', 
+				('" ""cute"" Monkeys"', True)),
 		]:
 			res = self.grammar.parseString(q)[0].getSelectFields()[0]
 			self.assertEqual(res.tainted, exTaint, "Field taintedness wrong in %s"%

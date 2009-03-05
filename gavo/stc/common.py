@@ -2,6 +2,8 @@
 Definitions and shared code for STC processing.
 """
 
+import itertools
+
 from gavo.utils import ElementTree
 
 class STCError(Exception):
@@ -31,6 +33,7 @@ class STCInternalError(STCError):
 	"""is raised when assumptions about the library behaviour are violated.
 	"""
 
+
 STCNamespace = "http://www.ivoa.net/xml/STC/stc-v1.30.xsd"
 XlinkNamespace = "http://www.w3.org/1999/xlink/"
 
@@ -39,8 +42,7 @@ ElementTree._namespace_map[XlinkNamespace] = "xlink"
 
 
 # The following lists have to be updated when the STC standard is
-# updated.  They are used for building the STC namespace, for parsing
-# STS/S, and so on.
+# updated.  They are used for building the STC-X namespace.
 
 # known space reference frames
 stcSpaceRefFrames = set(["ICRS", "FK4", "FK5", "ECLIPTIC", "GALACTIC_I",
@@ -62,3 +64,51 @@ stcCoordFlavors = set(["SPHERICAL", "CARTESIAN", "UNITSPHERE", "POLAR",
 # known time scales
 stcTimeScales = set(["TT", "TDT", "ET", "TAI", "IAT", "UTC", "TEB", "TDB",
 	"TCG", "TCB", "LST", "nil"])
+
+
+# Nodes for ASTs
+
+class ASTNodeType(type):
+	"""is a metaclass for ASTs.
+
+	The idea is quite similar to the GAVO DC's structure, only we keep it
+	much simpler: Define children in a class definition and make sure
+	they are actually present.
+
+	To allow easy construction, the classes' constructor is defined
+	to accept all attributes as arguments (you probably want to use
+	keyword arguments here).  It is the constructor that sets up the
+	attributes, so ASTNodes may not have a constructor.  However,
+	they may define a method _setupNode that is called just before
+	the artificial constructor returns.
+	"""
+	def __init__(cls, name, bases, dict):
+		cls._collectAttributes()
+		cls._buildConstructor()
+	
+	def _collectAttributes(cls):
+		cls._nodeAttrs = []
+		for name in dir(cls):
+			if name.startswith("_a_"):
+				cls._nodeAttrs.append((name[3:], getattr(cls, name)))
+	
+	def _buildConstructor(cls):
+		argList, codeLines = ["self"], []
+		for argName, argDefault in cls._nodeAttrs:
+			argList.append("%s=%s"%(argName, repr(argDefault)))
+			codeLines.append("  self.%s = %s"%(argName, argName))
+		codeLines.append("  self._setupNode()\n")
+		codeLines.insert(0, "def constructor(%s):"%(", ".join(argList)))
+		ns = {}
+		exec "\n".join(codeLines) in ns
+		cls.__init__ = ns["constructor"]
+
+
+class ASTNode(object):
+	__metaclass__ = ASTNodeType
+
+	_a_ucd = None
+
+	def _setupNode(self):
+		pass
+
