@@ -7,7 +7,7 @@ import unittest
 from gavo.stc import coordsys
 from gavo.stc import stcs
 from gavo.stc import stcsast
-from gavo.stc import dm
+from gavo.stc import stcx
 
 import testhelpers
 
@@ -15,9 +15,9 @@ class ValidationTests(unittest.TestCase, testhelpers.XSDTestMixin):
 	"""tests for generation of XSD-valid documents from the xml stan.
 	"""
 	def testExample1(self):
-		for name in dir(dm.STC):
+		for name in dir(stcx.STC):
 			if not name.startswith("_"):
-				exec "%s = getattr(dm.STC, %s)"%(name, repr(name))
+				exec "%s = getattr(stcx.STC, %s)"%(name, repr(name))
 		tree = STCResourceProfile[
 			AstroCoordSystem(id="TT-ICRS-CXO")[
 				TimeFrame[
