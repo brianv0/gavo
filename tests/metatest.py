@@ -5,7 +5,7 @@ from xml import sax
 
 from nevow import tags as T, flat
 
-import gavo
+from gavo import api
 from gavo import base
 from gavo.base import meta
 from gavo.web import common as webcommon
@@ -233,6 +233,13 @@ class TestContent(testhelpers.VerboseTest):
 			'<p><a class="reference external" href="http://foo.org">foo</a></p>\n')
 
 
+class _MetaCarrier(base.Structure, base.MetaMixin):
+	name_ = "m"
+
+def parseMetaXML(src):
+	return base.parseFromString(_MetaCarrier, "<m>"+src+"</m>")
+
+
 class TestSpecials(testhelpers.VerboseTest):
 	"""tests for particular behaviour of special MetaValue subclasses.
 	"""
@@ -256,14 +263,19 @@ class TestSpecials(testhelpers.VerboseTest):
 		self.assertEqual(m.getMeta("test").getContent(), "info content")
 		self.assertEqual(m.getMeta("test").children[0].infoName, "testInfo")
 		self.assertEqual(m.getMeta("test").children[0].infoValue, "WORKING")
-	
+
 	def testBadInfos(self):
 		m = base.MetaMixin()
 		m.addMeta("info", meta.makeMetaValue("no info", name="info",
 			type=None))
 		self.assert_(not hasattr(m.getMeta("info").children[0], "infoName"),
 			"Names override types, which they shouldn't")
-	
+
+	def testBadArgs(self):
+		m = base.MetaMixin()
+		self.assertRaises(meta.MetaError, meta.makeMetaValue, "_news", 
+			foo="x")
+
 	def testLinks(self):
 		m = base.MetaMixin()
 		m.addMeta("_related", "http://anythi.ng")
@@ -274,6 +286,22 @@ class TestSpecials(testhelpers.VerboseTest):
 			title="Link 2", type="link"))
 		self.assertEqual(m.getMeta("weirdLink").children[0].getContent("html"),
 			'<a href="http://some.oth.er">Link 2</a>')
+
+	def testNews(self):
+		m = parseMetaXML("""<meta name="_news" date="2009-03-06" author="MD">
+			Added News Meta</meta>""")
+		builder = webcommon.HTMLMetaBuilder()
+		self.assertEqual(flat.flatten(m.buildRepr("_news", builder)), 
+			'<span class="newsitem">2009-03-06 (MD): Added News Meta</span>')
+		builder.clear()
+		m.addMeta("_news", "Finally added a facility to sort news")
+		m.addMeta("_news.author", "Hopefully someone")
+		m.addMeta("_news.date", "2010-03-06")
+		self.assertEqual(flat.flatten(m.buildRepr("_news", builder)), 
+			'<ul class="metaEnum"><li class="metaItem"><span class="newsitem">'
+			'2009-03-06 (MD): Added News Meta</span></li><li class="metaItem">'
+			'<span class="newsitem">2010-03-06 (Hopefully someone): Finally ad'
+			'ded a facility to sort news</span></li></ul>')
 
 
 def getRadioMeta():
@@ -387,29 +415,22 @@ class HtmlBuilderTest(testhelpers.VerboseTest):
 			'</ul></li></ul>')
 
 
-class _MetaCarrier(base.Structure, base.MetaMixin):
-	name_ = "m"
-
-
 class XMLTest(testhelpers.VerboseTest):
 	"""tests for parsing meta things out of XML resource descriptions.
 	"""
-	def _getMetaFor(self, src):
-		return base.parseFromString(_MetaCarrier, "<m>"+src+"</m>")
-
 	def testSimple(self):
-		mc = self._getMetaFor('<meta name="test">abc</meta>')
+		mc = parseMetaXML('<meta name="test">abc</meta>')
 		self.assertEqual(str(mc.getMeta("test")), "abc")
 
 	def testSequence(self):
-		mc = self._getMetaFor('<meta name="test">abc1</meta>\n'
+		mc = parseMetaXML('<meta name="test">abc1</meta>\n'
 			'<meta name="test">abc2</meta>')
 		t = meta.TextBuilder()
 		self.assertEqual(mc.buildRepr("test", t),
 			[('test', u'abc1'), ('test', u'abc2')])
 
 	def testCompound(self):
-		mc = self._getMetaFor('<meta name="radio">off'
+		mc = parseMetaXML('<meta name="radio">off'
 			'<meta name="freq">90.9</meta><meta name="unit">MHz</meta></meta>')
 		self.assertEqual(str(mc.getMeta("radio")), "off")
 		self.assertEqual(str(mc.getMeta("radio.freq")), "90.9")
@@ -418,13 +439,13 @@ class XMLTest(testhelpers.VerboseTest):
 	def testLink(self):
 		"""tests for working recognition of link-typed metas.
 		"""
-		mc = self._getMetaFor('<meta name="_related" title="a link">'
+		mc = parseMetaXML('<meta name="_related" title="a link">'
 			'http://foo.bar</meta>')
 		self.assertEqual(mc.getMeta("_related").getContent("html"),
 			'<a href="http://foo.bar">a link</a>')
 	
 	def testRst(self):
-		mc = self._getMetaFor('<meta name="bla" format="rst">A\n'
+		mc = parseMetaXML('<meta name="bla" format="rst">A\n'
 			'  text that is somewhat indented\n'
 			'\n'
 			'  and has a paragraph.</meta>')
@@ -439,4 +460,4 @@ def singleTest():
 
 
 if __name__=="__main__":
-	testhelpers.main(XMLTest)
+	testhelpers.main(TestSpecials)

@@ -553,10 +553,22 @@ class MetaValue(MetaMixin):
 
 
 class MetaURL(MetaValue):
-	"""is a meta value containing a link and a title.
+	"""A meta value containing a link and a title.
 
-	The title can also be set via addMeta for the benefit of constructing
-	MetaURLs from key/value-pairs.
+	In plain text, this would look like
+	this::
+	
+		_related:http://foo.bar
+		_related.title: The foo page
+
+	In XML, you can write::
+
+			<meta name="_related" title="The foo page">http://foo.bar</meta>
+
+	or, if you prefer::
+
+		<meta name="_related">http://foo.bar
+			 <meta name="title">The foo page</meta></meta>
 	"""
 	def __init__(self, url, format="plain", title=None):
 		MetaValue.__init__(self, url, format)
@@ -572,11 +584,52 @@ class MetaURL(MetaValue):
 			MetaValue._addMeta(self, atoms, metaValue)
 
 
+class NewsMeta(MetaValue):
+	"""A meta value representing a "news" items.
+
+	The content is the body of the news.  In addition, they have
+	date and author children.  In plain text, you would write::
+
+	  _news: Frobnicated the quux.
+	  _news.author: MD
+	  _news.date: 2009-03-06
+	
+	In XML, you would usually write::
+
+	  <meta name="_news" author="MD" date="2009-03-06">
+	    Frobnicated the quux.
+	  </meta>
+	"""
+	def __init__(self, url, format="plain", author=None, 
+			date="Unspecified time"):
+		MetaValue.__init__(self, url, format)
+		self.author = author
+		self.date = date
+
+	def _getContentAsHTML(self, content):
+		authorpart = ""
+		if self.author:
+			authorpart = " (%s)"%self.author
+		return '<span class="newsitem">%s%s: %s</span>'%(self.date, authorpart,
+			content)
+	
+	def _addMeta(self, atoms, metaValue):
+		if atoms[0]=="author":
+			self.author = metaValue.content
+		elif atoms[0]=="date":
+			self.date = metaValue.content
+		else:
+			MetaValue._addMeta(self, atoms, metaValue)
+
+
 class InfoItem(MetaValue):
-	"""is a meta value for info items in VOTables.
+	"""A meta value for info items in VOTables.
 
 	In addition to the content (which should be rendered as the info element's
 	text content), it contains an infoName and an infoValue.
+	
+	They are only used internally in VOTable generation and might go away
+	without notice.
 	"""
 	def __init__(self, content, format="plain", infoName=None, 
 			infoValue=None, infoId=None):
@@ -586,7 +639,12 @@ class InfoItem(MetaValue):
 
 
 class LogoMeta(MetaValue):
-	"""is a MetaItem corresponding to a small image
+	"""A MetaItem corresponding to a small image.
+
+	These are rendered as little images in HTML.  In XML meta, you can
+	say::
+
+	  <meta name="_somelogo" type="logo">http://foo.bar/quux.png</meta>
 	"""
 	def _getContentAsHTML(self, content):
 		return u'<img class="metalogo" src="%s" height="16" alt="[Logo]"/>'%(
@@ -594,7 +652,7 @@ class LogoMeta(MetaValue):
 
 
 class BibcodeMeta(MetaValue):
-	"""is a MetaItem that may contain bibcodes, which are rendered as links
+	"""A MetaItem that may contain bibcodes, which are rendered as links
 	into ADS.
 	"""
 	bibcodePat = re.compile("\d\d\d\d\w[^ ]{14}")
@@ -614,10 +672,12 @@ _metaTypeRegistry = {
 	"info": InfoItem,
 	"logo": LogoMeta,
 	"bibcodes": BibcodeMeta,
+	"news": NewsMeta,
 }
 
 _typesForKeys = {
 	"_related": "link",
+	"_news": "news",
 	"referenceURL": "link",
 	"info": "info",
 	"logo": "logo",
@@ -659,7 +719,7 @@ def makeMetaValue(value="", **kwargs):
 	try:
 		return cls(value, **kwargs)
 	except TypeError:
-		codetricks.raiseTb(gavo.MetaError, 
+		raise MetaError(
 			"Invalid arguments for %s meta items :%s"%(cls.__name__, str(kwargs)))
 
 

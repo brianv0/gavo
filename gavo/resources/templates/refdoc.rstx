@@ -167,58 +167,15 @@ Typed Meta Elements
 
 While generally the DC software does not care what you put into meta
 items and views them all as strings, certain elements are treated
-specially.  These are "typed" meta elements.  Currently, there are four
-types defined:
+specially.  The following meta element "types" are currently defined:
 
-link
-  These can have a title attribute.  In plain text, this would look like
-  this::
+.. replaceWithResult getMetaTypeDocs()
 
-    _related:http://foo.bar
-    _related.title: The foo page
+While in XML meta, you can explicitely set the type of a meta item
+(using the type attribute), it is more common to just use the inferred
+type by the meta name.  Currently, the following meta keys imply types:
 
-  In XML, you can write::
-
-    	<meta name="_related" title="The foo page">http://foo.bar</meta>
-
-  or, if you prefer::
-
-    	<meta name="_related">http://foo.bar
-        <meta name="title">The foo page</meta></meta>
-
-info
-  These have infoName, infoValue, and infoId children and are only
-  used internally in VOTable generation.  They might go away.
-
-logo
-  These are rendered as little images in HTML.  In XML meta, you can
-  say::
-
-    <meta name="_somelogo" type="logo">http://foo.bar/quux.png</meta>
-
-bibcodes
-  These contain bibcodes which will be converted to ADS links when
-  rendered as HTML.
-
-
-While in XML meta, you can explicitely set the type of a meta item,
-it is more common to just use the inferred type by the meta name.
-Currently, the following meta keys imply types:
-
-_related
-  link
-
-referenceURL
-  link
-
-info
-  info
-
-logo
-  logo
-
-source
-  bibcodes
+.. replaceWithResult getMetaTypedNames()
 
 For type inference, only the last component of a meta path is
 significant, i.e., both creator.logo and publisher.logo are of type

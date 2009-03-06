@@ -15,6 +15,10 @@ from gavo import base
 from gavo import rscdesc
 
 
+def _indent(stuff, indent):
+	return re.sub("(?m)^", indent, stuff)
+
+
 class RSTFragment(object):
 	"""is a collection of convenience methods for generation of RST.
 	"""
@@ -48,7 +52,7 @@ class RSTFragment(object):
 		"""
 		try:
 			# we suspect a headline if the last two contributions are a line
-			# make up of on char type and an empty line.
+			# made up of on char type and an empty line.
 			if self.content[-1]=="\n" and len(set(self.content[-2]))==2:
 				self.content[-3:] = []
 		except IndexError:  # not enough material to take something away
@@ -60,6 +64,16 @@ class RSTFragment(object):
 		initialIndent = bullet+" "
 		self.content.append(textwrap.fill(content, initial_indent=initialIndent,
 			subsequent_indent=" "*len(initialIndent))+"\n")
+
+	def addDefinition(self, defHead, defBody):
+		"""adds a definition list-style item .
+
+		defBody is re-indented with two spaces, defHead is assumed to only
+		contain a single line.
+		"""
+		self.content.append(defHead+"\n")
+		self.content.append(base.fixIndentation(defBody, "  ",
+			governingLine=2)+"\n")
 
 	def addNormalizedPara(self, stuff):
 		"""adds stuff to the document, making sure it's not glued to any
@@ -225,6 +239,24 @@ def getMixinDocs(docStructure):
 			content.addNormalizedPara(mixin.__doc__)
 	return content.content
 
+
+def getMetaTypeDocs():
+	from gavo.base import meta
+	content = RSTFragment()
+	d = meta._metaTypeRegistry
+	for typeName in sorted(d):
+		content.addDefinition(typeName,
+			d[typeName].__doc__ or "NOT DOCUMENTED")
+	return content.content
+
+
+def getMetaTypedNames():
+	from gavo.base import meta
+	content = RSTFragment()
+	d = meta._typesForKeys
+	for metaKey in sorted(d):
+		content.addDefinition(metaKey, d[metaKey])
+	return content.content
 
 _replaceWithResultPat = re.compile(".. replaceWithResult (.*)")
 

@@ -237,6 +237,8 @@ class GavoRenderMixin(object):
 				],
 				T.div(class_="sidebaritem")[
 					T.h3["Metadata"],
+					T.invisible(title="News",
+						render=T.directive("explodableMeta"))["_news"],
 					T.invisible(
 						render=T.directive("explodableMeta"))["description"],
 					T.invisible(title="Keywords",
