@@ -37,6 +37,11 @@ class STCValueError(STCError):
 	"""is raised when some STC specification is inconsistent.
 	"""
 
+class STCNotImplementedError(STCError):
+	"""is raised when the current implementation limits are reached.
+	"""
+
+
 STCNamespace = "http://www.ivoa.net/xml/STC/stc-v1.30.xsd"
 XlinkNamespace = "http://www.w3.org/1999/xlink/"
 

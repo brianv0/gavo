@@ -1,5 +1,5 @@
 """
-An xmlstan-based data model for building STC trees programmatically.
+Building STC-X documents, xmlstan-style.
 """
 
 from gavo.stc.common import *
@@ -154,9 +154,12 @@ class STC(object):
 		restrictChildren = set(["CoordFrame", "TimeFrame", "SpaceFrame",
 			"SpectralFrame", "RedshiftFrame"])
 
+	class Equinox(STCElement):
+		mayBeEmpty = False
+
 	class PixelCoordSystem(_CoordSys): 
 		restrictChildren = set(["CoordFrame", "PixelCoordFrame"])
-	
+
 	class TimeFrame(STCElement):
 		restrictChildren = set(["Name", "TimeScale", "ReferencePosition",
 			"TimeRefDirection"])
@@ -308,6 +311,7 @@ STC._addSubsGroup(STC.T_size2, ["Error2", "PixSize2", "Resolution2",
 STC._addSubsGroup(STC.T_SpaceRefFrame, stcSpaceRefFrames)
 STC._addSubsGroup(STC.T_ReferencePosition,stcRefPositions)
 STC._addSubsGroup(STC.T_CoordFlavor, stcCoordFlavors)
+
 
 
 if __name__=="__main__":
