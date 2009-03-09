@@ -195,7 +195,7 @@ class TestComplexSTCSTrees(STCSTreeParseTestBase):
 				" Time 2000-12-31 unit yr Error 1 2 Resolution 0.1 0.1 PixSize 19 20",
 			{'fill_factor': ['0.1'], 'timescale': 'TT', 'type': 'StopTime', 
 				'refpos': 'GEOCENTER', 'stopTime': datetime.datetime(1900, 1, 1, 0, 0),
-				'timephrase': [datetime.datetime(2000, 12, 31, 0, 0)], 
+				'pos': [datetime.datetime(2000, 12, 31, 0, 0)], 
 				'error': ['1', '2'], 'resolution': ['0.1', '0.1'], 'unit': ['yr'], 
 				'pixSize': ['19', '20']}),
 		("spaceSubPhrase", "Circle fillfactor 0.1 FK4 TOPOCENTER SPHER2 1 2 3"
@@ -290,4 +290,4 @@ class DefaultingTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(DefaultingTest)
+	testhelpers.main(TestComplexSTCSTrees)

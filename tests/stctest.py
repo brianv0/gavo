@@ -13,7 +13,7 @@ from gavo.stc import stcx
 
 import testhelpers
 
-class ValidationTests(unittest.TestCase, testhelpers.XSDTestMixin):
+class ValidationTests():#unittest.TestCase, testhelpers.XSDTestMixin):
 	"""tests for generation of XSD-valid documents from the xml stan.
 	"""
 	def testExample1(self):
@@ -185,5 +185,97 @@ class SpaceCoordTest(testhelpers.VerboseTest):
 			"Position FK5 TOPOCENTER 2 4.25 unit deg PixSize 4.5 3.75 2")
 
 
+class OtherCoordIntervalTest(testhelpers.VerboseTest):
+	def testEmptyInterval(self):
+		ast = stcsast.parseSTCS("TimeInterval TOPOCENTER unit s")
+		self.assertEqual(ast.timeAs[0].frame.refPos.standardOrigin, 
+			"TOPOCENTER")
+		self.assertEqual(ast.timeAs[0].upperLimit, None)
+		self.assertEqual(ast.timeAs[0].lowerLimit, None)
+
+	def testHalfOpenInterval(self):
+		ast = stcsast.parseSTCS("TimeInterval MJD 2000")
+		self.assertEqual(ast.timeAs[0].upperLimit, None)
+		self.assertEqual(ast.timeAs[0].lowerLimit, 
+			datetime.datetime(1864, 5, 9, 0, 0, 0, 1))
+
+	def testOneInterval(self):
+		ast = stcsast.parseSTCS("TimeInterval 2000-02-02 2000-02-02T13:20:33")
+		self.assertEqual(ast.timeAs[0].upperLimit, 
+			datetime.datetime(2000, 2, 2, 13, 20, 33))
+		self.assertEqual(ast.timeAs[0].lowerLimit, 
+			 datetime.datetime(2000, 2, 2, 0, 0))
+
+	def testOneAndAHalfInterval(self):
+		ast = stcsast.parseSTCS("TimeInterval 2000-02-02 2000-02-02T13:20:33"
+			" MJD 80002")
+		self.assertEqual(ast.timeAs[1].upperLimit, None)
+		self.assertEqual(ast.timeAs[1].lowerLimit, 
+			 datetime.datetime(2077, 11, 30, 0, 0, 0, 4))
+
+	def testTimeWithPosition(self):
+		ast = stcsast.parseSTCS("TimeInterval 2000-02-02 2000-02-02T13:20:33"
+			" Time 2000-02-02T10:34:03.25")
+		self.assertEqual(len(ast.timeAs), 1)
+		self.assertEqual(len(ast.times), 1)
+		self.assertEqual(ast.times[0].value, 
+			datetime.datetime(2000, 2, 2, 10, 34, 3, 250000))
+
+	def testSpecInterval(self):
+		ast = stcsast.parseSTCS("SpectralInterval 23 45 unit Hz")
+		self.assertEqual(len(ast.freqAs), 1)
+		self.assertEqual(ast.freqAs[0].frame.refPos.standardOrigin,
+			"UNKNOWNRefPos")
+		self.assertEqual(ast.freqAs[0].lowerLimit, 23.0)
+		self.assertEqual(ast.freqAs[0].upperLimit, 45.0)
+		self.assertEqual(ast.freqAs[0].units, ["Hz"])
+
+	def testRedshiftInterval(self):
+		ast = stcsast.parseSTCS("RedshiftInterval REDSHIFT 2 4")
+		self.assertEqual(len(ast.redshiftAs), 1)
+		self.assertEqual(ast.redshiftAs[0].frame.type,
+			"REDSHIFT")
+		self.assertEqual(ast.redshiftAs[0].lowerLimit, 2.0)
+		self.assertEqual(ast.redshiftAs[0].upperLimit, 4.0)
+
+
+class SpaceCoordIntervalTest(testhelpers.VerboseTest):
+	def testSimple2D(self):
+		ast = stcsast.parseSTCS("PositionInterval ICRS 12.25 23.75 13.5 25.0")
+		self.assertEqual(ast.areas[0].frame.refPos.standardOrigin, 
+			"UNKNOWNRefPos")
+		self.assertEqual(len(ast.areas), 1)
+		self.assertEqual(ast.areas[0].lowerLimit, (12.25, 23.75))
+		self.assertEqual(ast.areas[0].upperLimit, (13.5, 25.0))
+		self.assertEqual(len(ast.places), 0)
+	
+	def testSimple3D(self):
+		ast = stcsast.parseSTCS("PositionInterval ICRS CART3 1 2 3")
+		self.assertEqual(len(ast.areas), 1)
+		self.assertEqual(ast.areas[0].lowerLimit, (1.0, 2.0, 3.0))
+		self.assertEqual(ast.areas[0].upperLimit, None)
+
+	def test3DWithError(self):
+		ast = stcsast.parseSTCS("PositionInterval ICRS CART3 1 2 3 4 5 6"
+			" Error 0.25 0.5 0.75")
+		self.assertEqual(len(ast.areas), 1)
+		self.assertEqual(ast.areas[0].lowerLimit, (1.0, 2.0, 3.0))
+		self.assertEqual(ast.areas[0].upperLimit, (4.0, 5.0, 6.0))
+		self.assertEqual(ast.areas[0].error, ((.25, .5, .75),))
+	
+	def testWithPosition(self):
+		ast = stcsast.parseSTCS("PositionInterval ICRS 12.25 23.75 13.5 25.0"
+			" Position 12 24")
+		self.assertEqual(len(ast.areas), 1)
+		self.assertEqual(len(ast.places), 1)
+		self.assertEqual(ast.places[0].value, (12., 24.))
+	
+	def testBadPositionRaises(self):
+		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS, 
+			"PositionInterval ICRS 12.25 23.75 13.5 25.0 Position 12 24 3 4")
+
+
+
+
 if __name__=="__main__":
-	testhelpers.main(OtherCoordTest)
+	testhelpers.main(SpaceCoordIntervalTest)

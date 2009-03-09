@@ -43,6 +43,7 @@ class SpectralFrame(CoordFrame):
 class RedshiftFrame(CoordFrame):
 	nDim = 1
 	_a_dopplerDef = None
+	_a_type = None
 
 
 class CoordSys(ASTNode):
@@ -55,15 +56,20 @@ class CoordSys(ASTNode):
 	_a_name = None
 
 
-class Coordinate(ASTNode):
+class CoordinateLike(ASTNode):
+	"""A base for everything that has frames, errors, and the like.
+	"""
 	_a_frame = None
 	_a_name = None
-	_a_value = None
 	_a_error = ()
 	_a_resolution = ()
 	_a_size = ()
 	_a_pixSize = ()
 	_a_units = None
+
+
+class Coordinate(CoordinateLike):
+	_a_value = None
 
 	def _setupNode(self):
 		if self.units and self.frame.nDim:  # expand units to match nDim
@@ -73,8 +79,18 @@ class Coordinate(ASTNode):
 				raise STCValueError("Wrong dimensionality of units %s, expected"
 					" %d unit(s)"%(self.units, self.frame.nDim))
 
-# Maybe we want to derive those later
+# Maybe we want to derive (some of) those later
 TimeCoo = SpaceCoo = SpectralCoo = RedshiftCoo = Coordinate
+
+
+class CoordinateInterval(CoordinateLike):
+	_a_lowerLimit = None
+	_a_upperLimit = None
+
+
+# Maybe we want to derive (some of) those later
+TimeInterval = SpaceInterval = SpectralInterval = RedshiftInterval =\
+	CoordinateInterval
 
 
 class STCSpec(ASTNode):
@@ -85,6 +101,7 @@ class STCSpec(ASTNode):
 	_a_places = ()
 	_a_freqs = ()
 	_a_redshifts = ()
+	_a_timeAs = ()
 	_a_areas = ()
-
-
+	_a_freqAs = ()
+	_a_redshiftAs = ()

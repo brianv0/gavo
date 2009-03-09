@@ -215,7 +215,7 @@ def getSymbols():
 		Optional( pixSize("pixSize") )).addParseAction(makeTree)
 	_spatialTail = (_spatialProps + 
 		Optional( velocityInterval )("velocityInterval"))
-	_regionTail = Optional( positionSpec ) + _spatialTail
+	_regionTail = Optional( positionSpec("pos") ) + _spatialTail
 	_commonSpaceItems = ( frame + Optional( refpos ) + 
 		Optional( flavor ))
 	_commonRegionItems = Optional( fillfactor ) + _commonSpaceItems
@@ -228,7 +228,7 @@ def getSymbols():
 	_intervalOpener = ( Optional( fillfactor("fill_factor") ) + 
 		Optional( timescale("timescale") ) +
 		Optional( refpos("refpos") ) )
-	_intervalCloser = Optional( timephrase("timephrase") ) + _commonTimeItems
+	_intervalCloser = Optional( timephrase("pos") ) + _commonTimeItems
 
 	timeInterval =  (Keyword("TimeInterval")("type") + 
 		_intervalOpener + ZeroOrMore( nakedTime )("coos") + 
@@ -264,7 +264,7 @@ def getSymbols():
 		| polygon | convex | position).addParseAction(makeTree)
 
 # spectral subphrase
-	spectralSpec = (Suppress( Keyword("Spectral") ) + number)("spectral")
+	spectralSpec = (Suppress( Keyword("Spectral") ) + number)("pos")
 	_spectralTail = (Optional( spectralUnit ) + Optional( error("error") ) + 
 		Optional( resolution("resolution") ) + Optional( pixSize("pixSize") ))
 	spectralInterval = (Keyword("SpectralInterval")("type") +
@@ -277,7 +277,7 @@ def getSymbols():
 
 # redshift subphrase
 	redshiftType = Regex("VELOCITY|REDSHIFT")("redshiftType")
-	redshiftSpec = (Suppress( Keyword("Redshift") ) + number)("redshift")
+	redshiftSpec = (Suppress( Keyword("Redshift") ) + number)("pos")
 	dopplerdef = Regex("OPTICAL|RADIO|RELATIVISTIC")("dopplerdef")
 	_redshiftTail = ( Optional( redshiftUnit ) +
 		Optional( error ) + Optional( resolution ) + Optional( pixSize ))
