@@ -190,6 +190,17 @@ def _makeCooValues(nDim, values, cooParse=float, minItems=None, maxItems=None):
 
 
 def _makeCooBuilder(frameName, realBuilder):
+	"""returns a function(node, context) -> ASTNode for building a 
+	coordinate-like AST node.
+
+	frameName is the name of the coordinate frame within context.system,
+	realBuilder a function(node, context, args, coordinates, nDim)
+	that actually builds the node, based on the partial constructor
+	arguments args and a list of unparsed coordinates.
+
+	Typically, the realBuilder is generated from a factory function as
+	well.  See, e.g., _makeCooRealBuilder or _makeGeometryRealBuilder.
+	"""
 	def builder(node, context):
 		frame = getattr(context.system, frameName)
 		args = _makeBasicCooArgs(node, frame)
@@ -222,6 +233,68 @@ def _makeIntervalRealBuilder(resKey, posResKey,
 	return realBuilder
 
 
+###################### Geometries
+
+
+def _makeGeometryRealBuilder(clsName, argDesc):
+	"""returns a realBuilder for use with _makeCooBuilder that returns
+	a clsName instance built using argDesc.
+
+	clsName is a name of a class resolvable within this module's global
+	namespace.  We passing the name rather than the class to work around 
+	trouble with closures and exec.
+
+	ArgDesc describes what constructor arguments should be parsed from
+	the coordinates.  It consists for tuples of name and type code, where
+	type code is one of:
+
+	* r -- a single real value.
+	* v -- a vector of dimensionality given by the system (i.e., nDim).
+	* rv -- a sequence of v items of arbitrary length.
+	* cv -- a sequence of "Convex" vectors (dim 4) of arbitrary length.
+
+	rv may only occur at the end of argDesc since it will consume all
+	remaining coordinates.
+	"""
+	parseLines = [
+		"def realBuilder(node, context, args, coos, nDim):",
+		"  try:",
+		"    pass"]
+	for name, code in argDesc:
+		if code=="r":
+			parseLines.append('    args["%s"] = float(coos.pop(0))'%name)
+		elif code=="v":
+			parseLines.append('    vec = coos[:nDim]')
+			parseLines.append('    coos = coos[nDim:]')
+			parseLines.append('    _validateCoos(vec, nDim, 1, 1)')
+			parseLines.append('    args["%s"] = tuple(map(float, vec))'%name)
+		elif code=="rv":
+			parseLines.append('    args["%s"] = _makeCooValues(nDim, coos)'%name)
+			parseLines.append('    coos = []')
+		elif code=="cv":
+			parseLines.append('    args["%s"] = _makeCooValues(4, coos)'%name)
+			parseLines.append('    coos = []')
+	parseLines.append('  except IndexError:')
+	parseLines.append('    raise STCSParseError("Not enough coordinates'
+		' while parsing %s")'%clsName)
+	parseLines.append('  if coos: raise STCSParseError("Too many coordinates'
+		' while building %s, remaining: %%s"%%coos)'%clsName)
+	parseLines.append('  yield "areas", (%s(**args),)'%clsName)
+	exec "\n".join(parseLines)
+	return realBuilder
+
+
+def _makeGeometryBuilder(clsName, argDesc):
+	"""returns a builder for Geometries.
+
+	See _makeGeometryRealBulder for the meaning of the arguments.
+	"""
+	return _makeCooBuilder("spaceFrame",
+		_makeGeometryRealBuilder(clsName, argDesc))
+
+
+###################### Top level
+
 def _id(x):
 	return x
 
@@ -247,6 +320,18 @@ def getCoords(cst, system):
 		"PositionInterval": _makeCooBuilder("spaceFrame",
 			_makeIntervalRealBuilder("areas", "places",
 				dm.SpaceInterval, dm.SpaceCoo)),
+		"AllSky": _makeGeometryBuilder("dm.AllSky", []),
+		"Circle": _makeGeometryBuilder("dm.Circle", 
+				[('center', 'v'), ('radius', 'r')]),
+		"Ellipse": _makeGeometryBuilder("dm.Ellipse", 
+				[('center', 'v'), ('majAxis', 'r'), ('minAxis', 'r'), 
+					('posAngle', 'r')]),
+		"Box": _makeGeometryBuilder("dm.Box", 
+				[('center', 'v'), ('boxsize', 'v')]),
+		"Polygon": _makeGeometryBuilder("dm.Polygon",
+			[("vertices", "rv")]),
+		"Convex": _makeGeometryBuilder("dm.Convex",
+			[("vectors", "cv")]),
 
 		"Spectral": _makeCooBuilder("spectralFrame",
 			_makeCooRealBuilder("freqs", "value", dm.SpectralCoo)),
@@ -261,6 +346,7 @@ def getCoords(cst, system):
 				dm.RedshiftInterval, dm.RedshiftCoo)),
 
 	})
+
 
 
 def parseSTCS(literal):

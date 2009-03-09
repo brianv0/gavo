@@ -31,7 +31,7 @@ class AComputedDefault(object):
 stcsFlavors = {
 	"SPHER2": (2, "SPHERICAL"),
 	"SPHER3": (3, "SPHERICAL"),
-	"UNITSPHERE": (3, "UNITSPHERE"),
+	"UNITSPHER": (3, "UNITSPHERE"),
 	"CART1": (1, "CARTESIAN"),
 	"CART2": (2, "CARTESIAN"),
 	"CART3": (3, "CARTESIAN"),
@@ -164,7 +164,7 @@ def getSymbols():
 	a concrete syntax tree.
 	"""
 
-	_exactNumericRE = r"\d+(\.(\d+)?)?|\.\d+"
+	_exactNumericRE = r"[+-]?\d+(\.(\d+)?)?|[+-]?\.\d+"
 	exactNumericLiteral = Regex(_exactNumericRE)
 	number = Regex(r"(?i)(%s)(E[+-]?\d+)?"%_exactNumericRE)
 

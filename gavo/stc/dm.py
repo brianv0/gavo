@@ -9,6 +9,9 @@ xlink and all the other stuff.
 from gavo.stc.common import *
 
 
+################ Coordinate Systems
+
+
 class RefPos(ASTNode):
 	"""is a reference position.
 
@@ -56,6 +59,10 @@ class CoordSys(ASTNode):
 	_a_name = None
 
 
+
+############### Coordinates and their intervals
+
+
 class CoordinateLike(ASTNode):
 	"""A base for everything that has frames, errors, and the like.
 	"""
@@ -92,6 +99,43 @@ class CoordinateInterval(CoordinateLike):
 TimeInterval = SpaceInterval = SpectralInterval = RedshiftInterval =\
 	CoordinateInterval
 
+
+################ Geometries
+
+
+class Geometry(CoordinateLike):
+	"""A base class for all kinds of geometries.
+	"""
+
+class AllSky(Geometry):
+	pass
+
+
+class Circle(Geometry):
+	_a_center = None
+	_a_radius = None
+
+
+class Ellipse(Geometry):
+	_a_center = None
+	_a_majAxis = _a_minAxis = None
+	_a_posAngle = None
+
+
+class Box(Geometry):
+	_a_center = None
+	_a_boxsize = None
+
+
+class Polygon(Geometry):
+	_a_vertices = ()
+
+
+class Convex(Geometry):
+	_a_vectors = ()
+
+
+################ Toplevel
 
 class STCSpec(ASTNode):
 	"""is an STC specification, i.e., the root of an STC tree.

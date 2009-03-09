@@ -275,7 +275,80 @@ class SpaceCoordIntervalTest(testhelpers.VerboseTest):
 			"PositionInterval ICRS 12.25 23.75 13.5 25.0 Position 12 24 3 4")
 
 
+class GeometryTest(testhelpers.VerboseTest):
+	def testAllSky(self):
+		ast = stcsast.parseSTCS("AllSky ICRS")
+		self.assert_(isinstance(ast.areas[0], dm.AllSky))
+		self.assertEqual(ast.areas[0].frame.refFrame, 'ICRS')
+
+	def testAllSkyRaises(self):
+		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS,
+			"AllSky ICRS 12")
+
+	def testCircle2D(self):
+		ast = stcsast.parseSTCS("Circle ICRS CART2 12 13 1.5")
+		c = ast.areas[0]
+		self.assert_(isinstance(c, dm.Circle))
+		self.assertEqual(c.frame.refFrame, 'ICRS')
+		self.assertEqual(c.center, (12., 13.))
+		self.assertEqual(c.radius, 1.5)
+
+	def testCircle3D(self):
+		ast = stcsast.parseSTCS("Circle FK5 CART3 12 13 15 1.5")
+		c = ast.areas[0]
+		self.assert_(isinstance(c, dm.Circle))
+		self.assertEqual(c.frame.refFrame, 'FK5')
+		self.assertEqual(c.center, (12., 13., 15.))
+		self.assertEqual(c.radius, 1.5)
+
+	def testCircleRaises(self):
+		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS,
+			"Circle ICRS 12")
+	
+	def testEllipse(self):
+		ast = stcsast.parseSTCS("Ellipse ICRS 12 13 1.5 0.75 0")
+		c = ast.areas[0]
+		self.assert_(isinstance(c, dm.Ellipse))
+		self.assertEqual(c.center, (12., 13.))
+		self.assertEqual(c.majAxis, 1.5)
+		self.assertEqual(c.minAxis, 0.75)
+		self.assertEqual(c.posAngle, 0)
+
+	def testEllipseRaises(self):
+		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS,
+			"Ellipse ICRS 12 13 14")
+	
+	def testBox(self):
+		ast = stcsast.parseSTCS("Box ICRS 12 13 1.5 0.75")
+		c = ast.areas[0]
+		self.assert_(isinstance(c, dm.Box))
+		self.assertEqual(c.center, (12., 13.))
+		self.assertEqual(c.boxsize, (1.5, 0.75))
+
+	def testBoxRaises(self):
+		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS,
+			"Box ICRS 12 13 1.5 0.75 0")
+
+	def testPolygon(self):
+		ast = stcsast.parseSTCS("Polygon ICRS 12 13 15 14 11 10")
+		c = ast.areas[0]
+		self.assert_(isinstance(c, dm.Polygon))
+		self.assertEqual(c.vertices[0], (12., 13.))
+		self.assertEqual(c.vertices[1], (15., 14.))
+		self.assertEqual(c.vertices[2], (11., 10.))
+		self.assertEqual(len(c.vertices), 3)
+	
+	def testPolygonRaises(self):
+		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS,
+			"Polygon ICRS 12 13 1.5 0.75 0")
+
+	def testConvex(self):
+		ast = stcsast.parseSTCS("Convex ICRS 12 13 15 0.25 14 11 10 -0.25")
+		c = ast.areas[0]
+		self.assertEqual(c.vectors[0], (12., 13., 15., 0.25))
+		self.assertEqual(c.vectors[1], (14., 11., 10., -0.25))
+		self.assertEqual(len(c.vectors), 2)
 
 
 if __name__=="__main__":
-	testhelpers.main(SpaceCoordIntervalTest)
+	testhelpers.main(GeometryTest)
