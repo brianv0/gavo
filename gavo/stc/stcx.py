@@ -61,10 +61,11 @@ class STC(object):
 	class STCResourceProfile(_Toplevel): pass
 	class ObsDataLocation(_Toplevel): pass
 
-	class Name(STCElement): pass
-	class Name1(STCElement): pass
-	class Name2(STCElement): pass
-	class Name3(STCElement): pass
+	class Name(STCElement):
+		mayBeEmpty = False
+	class Name1(Name): pass
+	class Name2(Name): pass
+	class Name3(Name): pass
 
 	class T_double1(STCElement):
 		stringifyContent = True
@@ -87,6 +88,12 @@ class STC(object):
 		a_vel_time_unit = None
 
 	class T_size2(STCElement):
+		mayBeEmpty = False
+		a_gen_unit = None
+		a_unit = None
+		a_vel_time_unit = None
+
+	class T_size3(STCElement):
 		mayBeEmpty = False
 		a_gen_unit = None
 		a_unit = None
@@ -161,8 +168,7 @@ class STC(object):
 		restrictChildren = set(["CoordFrame", "PixelCoordFrame"])
 
 	class TimeFrame(STCElement):
-		restrictChildren = set(["Name", "TimeScale", "ReferencePosition",
-			"TimeRefDirection"])
+		pass
 	
 	class SpaceFrame(STCElement): pass
 	
@@ -265,7 +271,7 @@ class STC(object):
 	class TimeInterval(T_Interval):
 		childSequence = ["StartTime", "StopTime"]
 
-	class Timescale(STCElement): pass
+#	class Timescale(STCElement): pass I guess that's just a type in XSD
 
 	class ISOTime(STCElement): pass
 	class JDTime(STCElement): pass
@@ -306,7 +312,10 @@ STC._addSubsGroup(STC.T_double3, ["HiLimit3Vec", "LoLimit3Vec",
 	"Point", "Value3", "Vector"])
 
 STC._addSubsGroup(STC.T_size2, ["Error2", "PixSize2", "Resolution2", 
-	"Size2", "Transform2"])
+	"Size2", "Transform2", "CValue2"])
+
+STC._addSubsGroup(STC.T_size3, ["Error3", "PixSize3", "Resolution3", 
+	"Size3", "Transform3", "CValue3"])
 
 STC._addSubsGroup(STC.T_SpaceRefFrame, stcSpaceRefFrames)
 STC._addSubsGroup(STC.T_ReferencePosition,stcRefPositions)

@@ -86,8 +86,10 @@ class Coordinate(CoordinateLike):
 				raise STCValueError("Wrong dimensionality of units %s, expected"
 					" %d unit(s)"%(self.units, self.frame.nDim))
 
-# Maybe we want to derive (some of) those later
-TimeCoo = SpaceCoo = SpectralCoo = RedshiftCoo = Coordinate
+class TimeCoo(Coordinate): pass
+class SpaceCoo(Coordinate): pass
+class SpectralCoo(Coordinate): pass 
+class RedshiftCoo(Coordinate): pass
 
 
 class CoordinateInterval(CoordinateLike):
@@ -95,9 +97,10 @@ class CoordinateInterval(CoordinateLike):
 	_a_upperLimit = None
 
 
-# Maybe we want to derive (some of) those later
-TimeInterval = SpaceInterval = SpectralInterval = RedshiftInterval =\
-	CoordinateInterval
+class TimeInterval(CoordinateInterval): pass
+class SpaceInterval(CoordinateInterval): pass 
+class SpectralInterval(CoordinateInterval): pass
+class RedshiftInterval(CoordinateInterval): pass
 
 
 ################ Geometries

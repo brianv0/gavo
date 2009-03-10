@@ -1,6 +1,44 @@
 """
 A wrapper around ConfigParser that defines syntax and types within
 the configuration options.
+
+This tries to do for configuration processing what optparse did for
+command line option processing: A declarative way of handling the main
+chores.
+
+The idea is that, in a client program, you say something like
+
+from pftf.fancyconfig import (Configuration, Section, ConfigError,
+	...(items you want)...)
+
+_config = Config(
+	Section(...
+		XYConfigItem(...)
+	),
+	Section(...
+	...
+	)
+)
+
+get = _config.get
+set = _config.set
+
+
+if __name__=="__main__":
+	print fancyconfig.makeTxtDocs(_config)
+else:
+	try:
+		fancyconfig.readConfiguration(_config, None, 
+			os.path.join(dataDir, "config"))
+	except ConfigError, msg:
+		import sys
+		sys.stderr.write("%s: %s\n"%(sys.argv[0], unicode(msg).encode("utf-8")))
+		sys.exit(1)
+
+and be done with most of it.
+
+For examples of how this is used, see pftf (http://www.tfiu.de/pftf)
+or pysmap (link coming up).
 """
 
 import ConfigParser
@@ -636,6 +674,26 @@ class Configuration(object):
 						" file %s:\n%s"%
 						(name, section, fName, unicode(msg)))
 
+	def getUserConfig(self):
+		"""returns a ConfigParser containing the user set config items.
+		"""
+		userConf = ConfigParser.SafeConfigParser()
+		for section in self.sections.values():
+			for item in section:
+				if item.origin=="user":
+					if not userConf.has_section(section.name):
+						userConf.add_section(section.name)
+					userConf.set(section.name, item.name, item.getAsString())
+		return userConf
+
+	def saveUserConfig(self, destName):
+		"""writes the config items changed by the user to destName.
+		"""
+		uc = self.getUserConfig()
+		f = open(destName, "w")
+		uc.write(f)
+		f.close()
+
 
 def _addToConfig(config, fName, origin):
 	"""adds the config items in the file named in fName to the Configuration, 
@@ -683,7 +741,7 @@ def makeTxtDocs(config, underlineChar="."):
 			docs.append(textwrap.fill(ci.description, width=72, initial_indent="  ",
 				subsequent_indent="  "))
 	return "\n".join(docs)
-		
+
 
 def _getTestSuite():
 	"""returns a unittest suite for this module.
@@ -756,27 +814,28 @@ def _getTestSuite():
 			self.assertEqual(ci.getAsString(), 'Fu\xc3\x9f')
 
 
+	def getSampleConfig():
+		return Configuration(
+			DefaultSection("General Settings",
+				StringConfigItem("emptyDefault", description="is empty by default"),
+				StringConfigItem("fooDefault", default="foo",
+					description="is foo by default"),),
+			Section("types", "Various Types",
+				IntConfigItem("count", default="0", description=
+					"is an integer"),
+				ListConfigItem("enum", description="is a list", 
+					default="foo, bar"),
+				IntListConfigItem("intenum", description="is a list of ints",
+					default="1,2,3"),
+				DictConfigItem("map", description="is a mapping",
+					default="intLit:1, floatLit:0.1, bla: wurg"),))
+
+
 	class ReadConfigTest(unittest.TestCase):
 		"""tests for reading complete configurations.
 		"""
-		def _getConfig(self):
-			return Configuration(
-				DefaultSection("General Settings",
-					StringConfigItem("emptyDefault", description="is empty by default"),
-					StringConfigItem("fooDefault", default="foo",
-						description="is foo by default"),),
-				Section("types", "Various Types",
-					IntConfigItem("count", default="0", description=
-						"is an integer"),
-					ListConfigItem("enum", description="is a list", 
-						default="foo, bar"),
-					IntListConfigItem("intenum", description="is a list of ints",
-						default="1,2,3"),
-					DictConfigItem("map", description="is a mapping",
-						default="intLit:1, floatLit:0.1, bla: wurg"),))
-
 		def testDefaults(self):
-			config = self._getConfig()
+			config = getSampleConfig()
 			self.assertEqual(config.get("emptyDefault"), "")
 			self.assertEqual(config.get("fooDefault"), "foo")
 			self.assertEqual(config.get("types", "count"), 0)
@@ -786,14 +845,14 @@ def _getTestSuite():
 				"floatLit": "0.1", "bla": "wurg"})
 
 		def testSetting(self):
-			config = self._getConfig()
+			config = getSampleConfig()
 			config.set("emptyDefault", "foo")
 			self.assertEqual(config.get("emptyDefault"), "foo")
 			self.assertEqual(config.getitem("emptydefault").origin, "user")
 			self.assertEqual(config.getitem("foodefault").origin, "default")
 
 		def testReading(self):
-			config = self._getConfig()
+			config = getSampleConfig()
 			config.addFromFp(StringIO("[general]\n"
 				"emptyDefault: bar\n"
 				"fooDefault: quux\n"
@@ -812,7 +871,7 @@ def _getTestSuite():
 			self.assertEqual(config.getitem("types", "map").origin, "user")
 
 		def testRaising(self):
-			config = self._getConfig()
+			config = getSampleConfig()
 			self.assertRaises(BadConfigValue, config.addFromFp, 
 				StringIO("[types]\nintenum: brasel\n"))
 			self.assertRaises(SyntaxError, config.addFromFp, 
@@ -821,6 +880,7 @@ def _getTestSuite():
 				StringIO("[types]\nnonexisting: True\n"))
 			self.assertRaises(ParseError, config.getitem("types", "count").set,
 				"abc")
+
 
 	class MagicFactoryTest(unittest.TestCase):
 		"""tests for function of MagicFactories.
@@ -835,6 +895,29 @@ def _getTestSuite():
 			item = config.getitem('profiles', 'new')
 			self.assertEqual(item.value, 'shining')
 			self.assertEqual(item.origin, 'user')
+
+
+	class UserConfigTest(unittest.TestCase):
+		"""tests for extraction of user-supplied config items.
+		"""
+		def testNoUserConfig(self):
+			config = getSampleConfig()
+			cp = config.getUserConfig()
+			self.assertEqual(cp.sections(), [])
+
+		def testSomeUserConfig(self):
+			config = getSampleConfig()
+			config.set("emptyDefault", "not empty any more")
+			config.set("types", "count", "4")
+			config.set("types", "intenum", "3,2,1")
+			cp = config.getUserConfig()
+			self.assertEqual([s for s in sorted(cp.sections())], 
+				["general", "types"])
+			self.assertEqual(len(cp.items("general")), 1)
+			self.assertEqual(len(cp.items("types")), 2)
+			self.assertEqual(cp.get("general", "emptyDefault"), "not empty any more")
+			self.assertEqual(cp.get("types", "count"), "4")
+			self.assertEqual(cp.get("types", "intenum"), "3, 2, 1, ")
 
 	l = locals()
 	tests = [l[name] for name in l 

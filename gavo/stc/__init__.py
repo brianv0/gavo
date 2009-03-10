@@ -18,5 +18,10 @@ is serious loops.
 
 from gavo.stc.common import STCError, STCSParseError, STCLiteralError
 
+from gavo.stc.stcsast import parseSTCS
+
+from gavo.stc.stcx import STC
+
 from gavo.stc.times import (parseISODT, jYearToDateTime, dateTimeToJYear,
 	jdnToDateTime, dateTimeToJdn)
+
