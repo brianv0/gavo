@@ -13,7 +13,7 @@ This DOM is passed to the various helper functions.
 Note that this is slow as a dog.  I doubt we'll ever see performant STC
 implementations.  This is really intended for one-shot transformations,
 e.g. into functions or a query language.  Don't do any transformations
-is serious loops.
+in serious loops.
 """
 
 from gavo.stc.common import STCError, STCSParseError, STCLiteralError

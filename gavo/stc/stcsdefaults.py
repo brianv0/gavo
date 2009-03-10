@@ -22,18 +22,18 @@ def getSpaceFlavor(node):
 
 def getSpaceUnit(node):
 	if node["frame"].startswith("GEO"):
-		return ["deg", "deg", "m"]
+		return "deg deg m"
 	elif node["flavor"].startswith("CART"):
-		return ["m"]
+		return "m"
 	else:
-		return ["deg"]
+		return "deg"
 
 
 def getRedshiftUnit(node):
 	if node["redshiftType"]=="VELOCITY":
-		return ["km/s"]
+		return "km/s"
 	else:
-		return ["nil"]
+		return None
 
 
 def _addDefaultsToNode(node, defaults):
@@ -73,10 +73,10 @@ nodeNameFunctions = {
 	"time": _makeDefaulter([
 		("timescale", "nil"),
 		("refpos", "UNKNOWNRefPos"),
-		("unit", ["s"])]),
+		("unit", "s")]),
 	"spectral": _makeDefaulter([
 		("refpos", "UNKNOWNRefPos"),
-		("unit", ["Hz"])]),
+		("unit", "Hz")]),
 	"redshift": _makeDefaulter([
 		("refpos", "UNKNOWNRefPos"),
 		("redshiftType", "VELOCITY"),

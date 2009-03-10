@@ -134,23 +134,25 @@ def iterIntervals(coos, dim):
 		yield (startValue, None)
 
 
-def _makeBasicCooArgs(node, frame):
+def _makeBasicCooArgs(node, frame, spatial=False):
 	"""returns a dictionary containing constructor arguments common to
 	all items dealing with coordinates.
 	"""
 	nDim = getattr(frame, "nDim", 1)
-	return {
+	args = {
 		"error": _makeCooValues(nDim, node.get("error"), 
 			cooParse=float, maxItems=2),
 		"resolution": _makeCooValues(nDim, node.get("resolution"), 
 			cooParse=float, maxItems=2),
-		"size": _makeCooValues(nDim, node.get("size"), cooParse=float,
-			maxItems=2),
 		"pixSize": _makeCooValues(nDim, node.get("pixSize"), cooParse=float,
 			maxItems=2),
-		"units": node.get("unit"),
+		"unit": node.get("unit"),
 		"frame": frame,
 	}
+	if spatial:
+		args["size"] =_makeCooValues(nDim, node.get("size"), cooParse=float,
+			maxItems=2)
+	return args
 
 
 def _validateCoos(values, nDim, minItems, maxItems):
@@ -201,9 +203,10 @@ def _makeCooBuilder(frameName, realBuilder):
 	Typically, the realBuilder is generated from a factory function as
 	well.  See, e.g., _makeCooRealBuilder or _makeGeometryRealBuilder.
 	"""
+	spatial = frameName=="spaceFrame"
 	def builder(node, context):
 		frame = getattr(context.system, frameName)
-		args = _makeBasicCooArgs(node, frame)
+		args = _makeBasicCooArgs(node, frame, spatial)
 		return realBuilder(node, context, args, node.get("coos", []),
 			frame.nDim)
 	return builder

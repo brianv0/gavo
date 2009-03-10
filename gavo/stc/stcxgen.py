@@ -82,14 +82,14 @@ def serialize_TimeFrame(node):
 	addId(node)
 	return STC.TimeFrame(id=node.id)[
 		STC.Name[node.name],
-		serialize_RefPos(node.refPos),
 		STC.TimeScale[node.timeScale],
+		serialize_RefPos(node.refPos),
 	]
 
 def serialize_SpectralFrame(node):
 	if node is None: return
 	addId(node)
-	return STC.TimeFrame(id=node.id)[
+	return STC.SpectralFrame(id=node.id)[
 		STC.Name[node.name],
 		serialize_RefPos(node.refPos),
 	]
@@ -97,7 +97,7 @@ def serialize_SpectralFrame(node):
 def serialize_RedshiftFrame(node):
 	if node is None: return
 	addId(node)
-	return STC.TimeFrame(id=node.id)[
+	return STC.RedshiftFrame(id=node.id)[
 		STC.Name[node.name],
 		STC.DopplerDefinition[node.dopplerDef],
 		serialize_RefPos(node.refPos),
@@ -122,16 +122,60 @@ def _wrapValues(element, valSeq, mapper=str):
 	return [element[mapper(v)] for v in valSeq]
 
 
-def serialize_TimeCoo(node):
-	return STC.Time(frame_id=node.frame.id)[
-		STC.TimeInstant[
-			STC.ISOTime[
-				node.value.isoformat()]],
-		_wrapValues(STC.Error, node.error),
-		_wrapValues(STC.Resolution, node.resolution),
-		_wrapValues(STC.Size, node.size),
-		_wrapValues(STC.PixSize, node.pixSize),
-	]
+def _make1DSerializer(cooClass, valueSerializer):
+	"""returns a serializer returning a coordinate cooClass.
+
+	This will only work for 1-dimensional coordinates.  valueSerializer
+	is a function taking the coordinate's value and returning some
+	xmlstan.
+	"""
+	def serialize(node):
+		return cooClass(unit=node.unit, frame_id=node.frame.id)[
+			valueSerializer(node.value),
+			_wrapValues(STC.Error, node.error),
+			_wrapValues(STC.Resolution, node.resolution),
+			_wrapValues(STC.PixSize, node.pixSize),
+		]
+	return serialize
+
+serialize_TimeCoo = _make1DSerializer(STC.Time,
+	lambda value: STC.TimeInstant[STC.ISOTime[value.isoformat()]])
+serialize_RedshiftCoo = _make1DSerializer(STC.Redshift,
+	lambda value: STC.Value[str(value)])
+serialize_SpectralCoo = _make1DSerializer(STC.Spectral,
+	lambda value: STC.Value[str(value)])
+
+
+def _wrap2D(val):
+	return [STC.C1[val[0]], STC.C2[val[1]]]
+
+def _wrap3D(val):
+	return [STC.C1[val[0]], STC.C2[val[1]], STC.C3[val[2]]]
+
+
+positionClasses = (
+	(STC.Position1D, STC.Value, STC.Error, STC.Resolution, 
+		STC.Size, STC.PixSize, str),
+	(STC.Position2D, STC.Value2, STC.Error2, STC.Resolution2, 
+		STC.Size2, STC.PixSize2, _wrap2D),
+	(STC.Position3D, STC.Value3, STC.Error3, STC.Resolution3, 
+		STC.Size3, STC.PixSize, _wrap3D),
+)
+
+def serialize_SpaceCoo(node):
+	"""serializes a spatial coordinate.
+
+	This is quite messy since the concrete choice of elements depends on
+	the coordinate frame.
+	"""
+	coo, val, err, res, siz, psz, serializer = positionClasses[node.frame.nDim-1]
+	return coo(unit=node.unit, frame_id=node.frame.id)[
+			val[serializer(node.value)],
+			_wrapValues(err, node.error, serializer),
+			_wrapValues(res, node.resolution, serializer),
+			_wrapValues(siz, node.size, serializer),
+			_wrapValues(psz, node.pixSize, serializer),
+		]
 
 
 ############# Toplevel
@@ -150,6 +194,7 @@ def astToStan(rootNode, stcRoot):
 	"""
 	return stcRoot[[nodeToStan(n) for n in rootNode.systems],
 		STC.AstroCoords(coord_system_id=rootNode.systems[0].id)[
-			[nodeToStan(n) for n in itertools.chain(rootNode.times)]
+			[nodeToStan(n) for n in itertools.chain(rootNode.times,
+				rootNode.places, rootNode.freqs, rootNode.redshifts)]
 		],
 	]

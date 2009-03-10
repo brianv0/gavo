@@ -266,12 +266,12 @@ class STC(object):
 	class TimeRefDirection(STCElement):
 		a_coord_system_id = None
 
-	class TimeScale(STCElement): pass
 
 	class TimeInterval(T_Interval):
 		childSequence = ["StartTime", "StopTime"]
 
-#	class Timescale(STCElement): pass I guess that's just a type in XSD
+	class TimeScale(STCElement): pass
+	class Timescale(STCElement): pass  # Bizarre, No?
 
 	class ISOTime(STCElement): pass
 	class JDTime(STCElement): pass

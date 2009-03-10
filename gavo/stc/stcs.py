@@ -170,16 +170,11 @@ def getSymbols():
 
 # units
 	_unitOpener = Suppress( Keyword("unit") )
-	spaceUnit = _unitOpener + Regex(_reFromKeys(spatialUnits)).setResultsName(
-		"unit", True)
-	timeUnit = _unitOpener + Regex(_reFromKeys(temporalUnits)).setResultsName(
-		"unit", True)
-	spectralUnit = _unitOpener + Regex(_reFromKeys(spectralUnits)
-		).setResultsName("unit", True)
-	redshiftUnit = _unitOpener + Regex(_reFromKeys(redshiftUnits)
-		).setResultsName("unit", True)
-	velocityUnit = _unitOpener + Regex(_reFromKeys(velocityUnits)
-		).setResultsName("unit", True)
+	spaceUnit = _unitOpener + Regex(_reFromKeys(spatialUnits))("unit")
+	timeUnit = _unitOpener + Regex(_reFromKeys(temporalUnits))("unit")
+	spectralUnit = _unitOpener + Regex(_reFromKeys(spectralUnits))("unit")
+	redshiftUnit = _unitOpener + Regex(_reFromKeys(redshiftUnits))("unit")
+	velocityUnit = _unitOpener + Regex(_reFromKeys(velocityUnits))("unit")
 
 # basic productions common to most STC-S subphrases
 	fillfactor = (Suppress( Keyword("fillfactor") ) + number)("fillfactor")
@@ -265,7 +260,8 @@ def getSymbols():
 
 # spectral subphrase
 	spectralSpec = (Suppress( Keyword("Spectral") ) + number)("pos")
-	_spectralTail = (Optional( spectralUnit ) + Optional( error("error") ) + 
+	_spectralTail = (Optional( spectralUnit ) + 
+		Optional( error("error") ) + 
 		Optional( resolution("resolution") ) + Optional( pixSize("pixSize") ))
 	spectralInterval = (Keyword("SpectralInterval")("type") +
 		Optional( fillfactor ) + Optional( refpos ) + coos + 
@@ -336,4 +332,4 @@ if __name__=="__main__":
 	syms = getSymbols()
 	enableDebug(syms)
 	print makeTree(syms["stcsPhrase"].parseString(
-		"Circle ICRS 2 23 12 RedshiftInterval RADIO 0.1 0.2", parseAll=True))
+		"Spectral NEPTUNE 12 unit Angstrom Error 4 3 Redshift TOPOCENTER 0.1 VELOCITY RELATIVISTIC", parseAll=True))

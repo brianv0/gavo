@@ -171,8 +171,8 @@ class STCSTreeParseTestBase(testhelpers.VerboseTest):
 
 class TestSimpleSTCSTrees(STCSTreeParseTestBase):
 	samples = [
-		("timeUnit", "unit s", {"unit": ['s']}),
-		("spaceUnit", "unit pc", {"unit": ['pc']}),
+		("timeUnit", "unit s", {'unit': 's'}),
+		("spaceUnit", "unit pc", {"unit": 'pc'}),
 		("positionSpec", "Position 2 1 3.4 7e9", ['2', '1', '3.4', '7e9']),
 		("timescale", "TT", {'timescale': 'TT'}),
 		("jdLiteral", "JD 2450000.5", [datetime.datetime(
@@ -196,20 +196,20 @@ class TestComplexSTCSTrees(STCSTreeParseTestBase):
 			{'fill_factor': ['0.1'], 'timescale': 'TT', 'type': 'StopTime', 
 				'refpos': 'GEOCENTER', 'stopTime': datetime.datetime(1900, 1, 1, 0, 0),
 				'pos': [datetime.datetime(2000, 12, 31, 0, 0)], 
-				'error': ['1', '2'], 'resolution': ['0.1', '0.1'], 'unit': ['yr'], 
+				'error': ['1', '2'], 'resolution': ['0.1', '0.1'], 'unit': 'yr', 
 				'pixSize': ['19', '20']}),
 		("spaceSubPhrase", "Circle fillfactor 0.1 FK4 TOPOCENTER SPHER2 1 2 3"
 			" unit deg Error 3 3 Size 23", [{'coos': ['1', '2', '3'], 
 				'frame': 'FK4', 'refpos': 'TOPOCENTER', 'fillfactor': ['0.1'], 
 				'error': ['3', '3'], 'flavor': 'SPHER2', 'type': 'Circle', 
-				'unit': ['deg'], 'size': ['23']}]),
+				'unit': 'deg', 'size': ['23']}]),
 		("spaceSubPhrase", "PositionInterval FK4 VelocityInterval fillfactor 0.1"
 				" 12 13"
 				" Velocity 12.3 unit km/s Error 4 5 Resolution 1.2 PixSize 1.3", 
 			[{'frame': 'FK4', 'type': 'PositionInterval', 'velocityInterval': [
 				{'coos': ['12', '13'], 'fillfactor': ['0.1'], 
 				'error': ['4', '5'], 'velocity': ['12.3'], 'resolution': ['1.2'], 
-				'unit': ['km/s'], 'pixSize': ['1.3']}]}]),
+				'unit': 'km/s', 'pixSize': ['1.3']}]}]),
 		("stcsPhrase", "Circle ICRS 2 23 12 RedshiftInterval RADIO 0.1 0.2", {
 			'space': {
 				'coos': ['2', '23', '12'], 'frame': 'ICRS', 'type': 'Circle'}, 
@@ -257,36 +257,36 @@ class TreeIterTest(testhelpers.VerboseTest):
 class DefaultingTest(testhelpers.VerboseTest):
 	def testSpatial(self):
 		self.assertEqual(stcs.getCST("PositionInterval ICRS"),
-			{'space': {'frame': 'ICRS', 'unit': ['deg'], 'type': 'PositionInterval', 
+			{'space': {'frame': 'ICRS', 'unit': 'deg', 'type': 'PositionInterval', 
 			'refpos': 'UNKNOWNRefPos', 'flavor': 'SPHER2'}})
 		self.assertEqual(stcs.getCST("PositionInterval ICRS unit arcsec"),
-			{'space': {'frame': 'ICRS', 'unit': ['arcsec'], 
+			{'space': {'frame': 'ICRS', 'unit': 'arcsec', 
 			'type': 'PositionInterval', 'refpos': 'UNKNOWNRefPos', 
 			'flavor': 'SPHER2'}})
 		self.assertEqual(stcs.getCST("Convex ICRS"),
-			{'space': {'frame': 'ICRS', 'unit': ['deg'], 'type': 'Convex', 
+			{'space': {'frame': 'ICRS', 'unit': 'deg', 'type': 'Convex', 
 			'refpos': 'UNKNOWNRefPos', 'flavor': 'UNITSPHER'}})
 		self.assertEqual(stcs.getCST("PositionInterval FK4 TOPOCENTER CART2"),
-			{'space': {'frame': 'FK4', 'unit': ['m'], 'type': 'PositionInterval', 
+			{'space': {'frame': 'FK4', 'unit': 'm', 'type': 'PositionInterval', 
 			'refpos': 'TOPOCENTER', 'flavor': 'CART2'}})
 		self.assertEqual(stcs.getCST("PositionInterval GEO_C"),
-			{'space': {'frame': 'GEO_C', 'unit': ['deg', 'deg', 'm'], 
+			{'space': {'frame': 'GEO_C', 'unit': 'deg deg m', 
 				'type': 'PositionInterval', 'refpos': 'UNKNOWNRefPos', 
 				'flavor': 'SPHER2'}})
 
 	def testTemporal(self):
-		self.assertEqual(stcs.getCST("TimeInterval"), {'time': {'unit': ['s'], 
+		self.assertEqual(stcs.getCST("TimeInterval"), {'time': {'unit': 's', 
 			'type': 'TimeInterval', 'refpos': 'UNKNOWNRefPos', 
 			'timescale': 'nil'}})
 
 	def testSpectral(self):
 		self.assertEqual(stcs.getCST("SpectralInterval"), {'spectral': 
-			{'type': 'SpectralInterval', 'refpos': 'UNKNOWNRefPos', 'unit': ['Hz']}})
+			{'type': 'SpectralInterval', 'refpos': 'UNKNOWNRefPos', 'unit': 'Hz'}})
 
 	def testRedshift(self):
 		self.assertEqual(stcs.getCST("RedshiftInterval"),
 			{'redshift': {'redshiftType': 'VELOCITY', 'type': 'RedshiftInterval', 
-			'refpos': 'UNKNOWNRefPos', 'unit': ['km/s'], 'dopplerdef': 'OPTICAL'}})
+			'refpos': 'UNKNOWNRefPos', 'unit': 'km/s', 'dopplerdef': 'OPTICAL'}})
 
 
 if __name__=="__main__":

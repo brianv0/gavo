@@ -70,24 +70,18 @@ class CoordinateLike(ASTNode):
 	_a_name = None
 	_a_error = ()
 	_a_resolution = ()
-	_a_size = ()
 	_a_pixSize = ()
-	_a_units = None
+	_a_unit = None
 
 
 class Coordinate(CoordinateLike):
 	_a_value = None
 
-	def _setupNode(self):
-		if self.units and self.frame.nDim:  # expand units to match nDim
-			if len(self.units)==1:
-				self.units = self.units*self.frame.nDim
-			if len(self.units)!=self.frame.nDim:
-				raise STCValueError("Wrong dimensionality of units %s, expected"
-					" %d unit(s)"%(self.units, self.frame.nDim))
+
+class SpaceCoo(Coordinate):
+	_a_size = ()
 
 class TimeCoo(Coordinate): pass
-class SpaceCoo(Coordinate): pass
 class SpectralCoo(Coordinate): pass 
 class RedshiftCoo(Coordinate): pass
 
@@ -95,6 +89,7 @@ class RedshiftCoo(Coordinate): pass
 class CoordinateInterval(CoordinateLike):
 	_a_lowerLimit = None
 	_a_upperLimit = None
+	_a_size = ()
 
 
 class TimeInterval(CoordinateInterval): pass
@@ -109,6 +104,7 @@ class RedshiftInterval(CoordinateInterval): pass
 class Geometry(CoordinateLike):
 	"""A base class for all kinds of geometries.
 	"""
+	_a_size = ()
 
 class AllSky(Geometry):
 	pass
