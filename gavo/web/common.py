@@ -127,3 +127,24 @@ class doctypedStan(loaders.stan):
 	def __init__(self, rootEl, pattern=None):
 		super(doctypedStan, self).__init__(T.invisible[self.DOCTYPE, 
 			rootEl(xmlns="http://www.w3.org/1999/xhtml")], pattern)
+
+
+
+class CommonRenderers(object):
+	"""A base for renderer mixins within the DC.
+
+	Including standard stylesheets/js/whatever:
+	<head>...<n:invisible n:render="commonhead"/>...</head>
+	"""
+
+	def render_commonhead(self, ctx, data):
+		return ctx.tag[
+			T.link(rel="stylesheet", href=base.makeSitePath("/formal.css"), 
+				type="text/css"),
+			T.link(rel="stylesheet", href=base.makeSitePath(
+				"/builtin/css/gavo_dc.css"), type="text/css"),
+			T.script(type='text/javascript', src=base.makeSitePath(
+				'/js/formal.js')),
+			T.script(src=base.makeSitePath("/builtin/js/gavo.js"), 
+				type="text/javascript"),
+		]

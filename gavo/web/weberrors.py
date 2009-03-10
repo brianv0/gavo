@@ -47,6 +47,7 @@ class DebugPage(rend.Page):
 
 def handleUnknownURI(ctx, failure):
 	if isinstance(failure.value, (UnknownURI, base.RDNotFound)):
+		return NotFoundPage(failure.getErrorMessage())
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(404)
 		request.setHeader("content-type", "text/plain")
@@ -145,7 +146,47 @@ class ErrorPage(ErrorPageDebug):
 		return ""
 
 
-class NotFoundPage(rend.Page):
+class NotFoundPage(rend.Page, common.CommonRenderers):
+	def __init__(self, errMsg=None):
+		self.errMsg = errMsg
+		rend.Page.__init__(self)
+
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setResponseCode(404)
+		return rend.Page.renderHTTP(self, ctx)
+
+	def render_explanation(self, ctx, data):
+		if self.errMsg:
+			return ctx.tag[self.errMsg]
+		else:
+			return ""
+
 	docFactory = common.doctypedStan(T.html[
-		T.head[T.title["Not found"]],
-		T.body["Not found."]])
+			T.head[T.title["GAVO DC -- Not found"],
+			T.invisible(render=T.directive("commonhead")),
+		],
+		T.body[
+			T.img(src="/builtin/img/logo_medium.png", style="position:absolute;"
+				"right:0pt"),
+			T.h1["Resource Not Found (404)"],
+			T.p["We're sorry, but the resource you requested could not be located."],
+			T.p(class_="errmsg", render=T.directive("explanation")),
+			T.p["If this message resulted from following a link from ",
+				T.strong["within the data center"],
+				", you have discovered a bug, and we would be"
+				" extremely grateful if you could notify us."],
+			T.p["If you got here following an ",
+				T.strong["external link"],
+				", we would be"
+				" grateful for a notification as well.  We will ask the"
+				" external operators to fix their links or provide"
+				" redirects as appropriate."],
+			T.p["In either case, you may find whatever you were looking"
+				" for by inspecting our ",
+				T.a(href="/")["list of published services"],
+				"."],
+			T.hr,
+			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
+				"gavo@ari.uni-heidelberg.de"]],
+		]])

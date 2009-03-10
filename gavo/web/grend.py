@@ -102,7 +102,7 @@ class CustomErrorMixin(object):
 _htmlMetaBuilder = common.HTMLMetaBuilder()
 
 
-class GavoRenderMixin(object):
+class GavoRenderMixin(common.CommonRenderers):
 	"""is a mixin with renderers useful throughout the data center.
 
 	Rendering of meta information:
@@ -111,9 +111,6 @@ class GavoRenderMixin(object):
 
 	Rendering internal links (important for off-root operation):
 	<tag href|src="/foo" n:render="rootlink"/>
-
-	Including standard stylesheets/js/whatever:
-	<head>...<n:invisible n:render="commonhead"/>...</head>
 
 	Rendering the sidebar (with a service attribute on the class mixing in):
 
@@ -177,18 +174,6 @@ class GavoRenderMixin(object):
 			return ctx.tag
 		else:
 			return ""
-
-	def render_commonhead(self, ctx, data):
-		return ctx.tag[
-			T.link(rel="stylesheet", href=base.makeSitePath("/formal.css"), 
-				type="text/css"),
-			T.link(rel="stylesheet", href=base.makeSitePath(
-				"/builtin/css/gavo_dc.css"), type="text/css"),
-			T.script(type='text/javascript', src=base.makeSitePath(
-				'/js/formal.js')),
-			T.script(src=base.makeSitePath("/builtin/js/gavo.js"), 
-				type="text/javascript"),
-		]
 
 	def render_explodableMeta(self, ctx, data):
 		metaKey = ctx.tag.children[0]

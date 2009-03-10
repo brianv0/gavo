@@ -497,13 +497,17 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 	
 	def locateChild(self, ctx, segments):
 		try:
-			return self._realLocateChild(ctx, segments)
+			res, segments = self._realLocateChild(ctx, segments)
 		except WebRedirect, redirTo:
 			root = base.getConfig("web", "nevowRoot")
 			if not root:
 				root = "/"
 			return url.URL.fromContext(ctx).click(root+
 				str(redirTo)), ()
+		if res is None:
+			return weberrors.NotFoundPage(), ()
+		else:
+			return res, segments
 
 
 setattr(ArchiveService, 'child_formal.css', formal.defaultCSS)
