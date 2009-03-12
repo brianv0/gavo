@@ -72,6 +72,7 @@ class CoordinateLike(ASTNode):
 	_a_resolution = ()
 	_a_pixSize = ()
 	_a_unit = None
+	_a_velTimeUnit = None
 
 
 class Coordinate(CoordinateLike):
@@ -89,6 +90,7 @@ class RedshiftCoo(Coordinate): pass
 class CoordinateInterval(CoordinateLike):
 	_a_lowerLimit = None
 	_a_upperLimit = None
+	_a_fillFactor = None
 	_a_size = ()
 
 

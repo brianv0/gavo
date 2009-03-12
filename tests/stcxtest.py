@@ -41,6 +41,7 @@ class V(stc.STC.STCElement):
 	"""A spartan STC-X root for test purposes.
 	"""
 
+
 class STCMappingTest(testhelpers.VerboseTest):
 	def assertMapsto(self, stcsLiteral, stcxExpected):
 		ast = stc.parseSTCS(stcsLiteral)
@@ -62,13 +63,20 @@ class OtherCoordTest(STCMappingTest):
 	def testRedSpect(self):
 		self.assertMapsto("Spectral NEPTUNE 12 unit Angstrom Error 4 3"
 			" Redshift TOPOCENTER 0.1 VELOCITY RELATIVISTIC", 
-			'<V><AstroCoordSystem ><SpectralFrame ><NEPTUNE /></SpectralFrame><RedshiftFrame  value_type="VELOCITY"><DopplerDefinition>RELATIVISTIC</DopplerDefinition><TOPOCENTER /></RedshiftFrame></AstroCoordSystem><AstroCoords ><Spectral  unit="Angstrom"><Value>12.0</Value><Error>4.0</Error><Error>3.0</Error></Spectral><Redshift  unit="km/s"><Value>0.1</Value></Redshift></AstroCoords></V>')
-
+			'<V><AstroCoordSystem ><SpectralFrame ><NEPTUNE /></SpectralFrame><RedshiftFrame  value_type="VELOCITY"><DopplerDefinition>RELATIVISTIC</DopplerDefinition><TOPOCENTER /></RedshiftFrame></AstroCoordSystem><AstroCoords ><Spectral  unit="Angstrom"><Value>12.0</Value><Error>4.0</Error><Error>3.0</Error></Spectral><Redshift  unit="km" vel_time_unit="s"><Value>0.1</Value></Redshift></AstroCoords></V>')
 
 class SpaceCoordTest(STCMappingTest):
 	def testSimple(self):
 		self.assertMapsto("Position ICRS 12.3 14.2",
 			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoords ><Position2D  unit="deg"><Value2><C1>12.3</C1><C2>14.2</C2></Value2></Position2D></AstroCoords></V>')
 
+class OtherCoordIntervalTest(STCMappingTest):
+	def testSome(self):
+		self.assertMapsto("TimeInterval TT 2009-03-10T09:56:10.015625"
+			" SpectralInterval 1e10 1e11 unit Hz"
+			" RedshiftInterval 1000 7500 unit km/s", 
+			'<V><AstroCoordSystem ><TimeFrame ><TimeScale>TT</TimeScale><UNKNOWNRefPos /></TimeFrame><SpectralFrame ><UNKNOWNRefPos /></SpectralFrame><RedshiftFrame  value_type="VELOCITY"><DopplerDefinition>OPTICAL</DopplerDefinition><UNKNOWNRefPos /></RedshiftFrame></AstroCoordSystem><AstroCoordArea ><TimeInterval  unit="s"><StartTime><ISOTime>2009-03-10T09:56:10.015625</ISOTime></StartTime><StopTime><ISOTime /></StopTime></TimeInterval><SpectralInterval  unit="Hz"><LoLimit>10000000000.0</LoLimit><HiLimit>100000000000.0</HiLimit></SpectralInterval><RedshiftInterval  unit="km" vel_time_unit="s"><LoLimit>1000.0</LoLimit><HiLimit>7500.0</HiLimit></RedshiftInterval></AstroCoordArea></V>')
+
+
 if __name__=="__main__":
-	testhelpers.main(SpaceCoordTest)
+	testhelpers.main(OtherCoordIntervalTest)

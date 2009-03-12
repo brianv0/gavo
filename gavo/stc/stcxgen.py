@@ -40,6 +40,11 @@ def strOrNull(val):
 		return str(val)
 
 
+def isoformatOrNull(val):
+	if val is not None:
+		return val.isoformat()
+	
+
 def _getFromSTC(elName, itemDesc):
 	"""returns the STC element elName or raises an STCValueError if
 	it does not exist.
@@ -130,7 +135,8 @@ def _make1DSerializer(cooClass, valueSerializer):
 	xmlstan.
 	"""
 	def serialize(node):
-		return cooClass(unit=node.unit, frame_id=node.frame.id)[
+		return cooClass(unit=node.unit, vel_time_unit=node.velTimeUnit,
+				frame_id=node.frame.id)[
 			valueSerializer(node.value),
 			_wrapValues(STC.Error, node.error),
 			_wrapValues(STC.Resolution, node.resolution),
@@ -139,7 +145,7 @@ def _make1DSerializer(cooClass, valueSerializer):
 	return serialize
 
 serialize_TimeCoo = _make1DSerializer(STC.Time,
-	lambda value: STC.TimeInstant[STC.ISOTime[value.isoformat()]])
+	lambda value: STC.TimeInstant[STC.ISOTime[isoformatOrNull(value)]])
 serialize_RedshiftCoo = _make1DSerializer(STC.Redshift,
 	lambda value: STC.Value[str(value)])
 serialize_SpectralCoo = _make1DSerializer(STC.Spectral,
@@ -178,6 +184,36 @@ def serialize_SpaceCoo(node):
 		]
 
 
+############# Intervals
+
+def _make1DIntervalSerializer(intervClass, lowerClass, upperClass,
+		valueSerializer):
+	"""returns a serializer returning stan for a coordinate interval.
+
+	This will only work for 1-dimensional coordinates.  valueSerializer
+	is a function taking the coordinate's value and returning some
+	xmlstan.
+
+	Currently, error, resolution, and pixSize information is discarded
+	for lack of a place to put them.
+	"""
+	def serialize(node):
+		return intervClass(unit=node.unit, vel_time_unit=node.velTimeUnit, 
+				frame_id=node.frame.id, fill_factor=node.fillFactor)[
+			lowerClass[valueSerializer(node.lowerLimit)],
+			upperClass[valueSerializer(node.upperLimit)],
+		]
+	return serialize
+
+
+serialize_TimeInterval = _make1DIntervalSerializer(STC.TimeInterval,
+	STC.StartTime, STC.StopTime, lambda val: STC.ISOTime[isoformatOrNull(val)])
+serialize_SpectralInterval = _make1DIntervalSerializer(STC.SpectralInterval,
+	STC.LoLimit, STC.HiLimit, lambda val: str(val))
+serialize_RedshiftInterval = _make1DIntervalSerializer(STC.RedshiftInterval,
+	STC.LoLimit, STC.HiLimit, lambda val: str(val))
+
+
 ############# Toplevel
 
 def nodeToStan(astNode):
@@ -197,4 +233,7 @@ def astToStan(rootNode, stcRoot):
 			[nodeToStan(n) for n in itertools.chain(rootNode.times,
 				rootNode.places, rootNode.freqs, rootNode.redshifts)]
 		],
+		STC.AstroCoordArea(coord_system_id=rootNode.systems[0].id)[
+			[nodeToStan(n) for n in itertools.chain(rootNode.timeAs,
+				rootNode.freqAs, rootNode.redshiftAs)]],
 	]

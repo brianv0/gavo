@@ -118,6 +118,7 @@ class STC(object):
 		a_hi_include = None
 		a_lo_include = None
 		a_unit = None
+		a_vel_time_unit = None  # For most children, this must remain None
 		a_frame_id = None
 	
 	class Position2VecInterval(T_Interval): pass
@@ -215,6 +216,7 @@ class STC(object):
 		a_handedness = None
 
 	class T_Coords(STCElement):
+		mayBeEmpty = False
 		a_coord_system_id = None
 	
 	class AstroCoords(T_Coords): pass
@@ -240,8 +242,10 @@ class STC(object):
 		a_unit = None
 		a_coord_system_id = None
 		a_frame_id = None
+		a_vel_time_unit = None  # must not be changed for Times
 
 	class T_astronTime(Time):
+		mayBeEmpty = False
 		childSequence = ["Timescale", "TimeOffset", "MJDTime", "JDTime", "ISOTime"]
 	
 	class StartTime(T_astronTime): pass
@@ -282,10 +286,12 @@ class STC(object):
 		a_coord_system_id = None
 		a_frame_id = None
 		a_unit = None
+		a_vel_time_unit = None  # must not be changed for Spectrals
 
 	class SpectralInterval(T_Interval): pass
 
 	class AstroCoordArea(STCElement):
+		mayBeEmpty = False
 		a_coord_system_id = None
 	
 	class ObservatoryLocation(STCElement): pass

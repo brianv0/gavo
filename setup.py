@@ -31,6 +31,7 @@ setup(name="gavo",
 	entry_points={
 		'console_scripts': [
 			'gavoimp = gavo.commandline:main',
+			'gavodrop = gavo.commandline:dropCLI',
 			'gavocred = gavo.protocols.creds:main',
 			'gavomkrd = gavo.user.mkrd:main',
 			'gavopublish = gavo.protocols.servicelist:main',

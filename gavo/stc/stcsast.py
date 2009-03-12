@@ -134,7 +134,7 @@ def iterIntervals(coos, dim):
 		yield (startValue, None)
 
 
-def _makeBasicCooArgs(node, frame, spatial=False):
+def _makeBasicCooArgs(node, frame):
 	"""returns a dictionary containing constructor arguments common to
 	all items dealing with coordinates.
 	"""
@@ -149,9 +149,17 @@ def _makeBasicCooArgs(node, frame, spatial=False):
 		"unit": node.get("unit"),
 		"frame": frame,
 	}
-	if spatial:
+	# Frame-dependent hack handling -- what a pain...
+	if isinstance(frame, dm.SpaceFrame):
 		args["size"] =_makeCooValues(nDim, node.get("size"), cooParse=float,
 			maxItems=2)
+	if isinstance(frame, dm.RedshiftFrame):
+		if args["unit"]:
+			parts = args["unit"].split("/")
+			if len(parts)!=2:
+				raise STCSParseError("%s is not a valid unit for redshifts")
+			args["unit"] = parts[0]
+			args["velTimeUnit"] = parts[1]
 	return args
 
 
@@ -203,10 +211,9 @@ def _makeCooBuilder(frameName, realBuilder):
 	Typically, the realBuilder is generated from a factory function as
 	well.  See, e.g., _makeCooRealBuilder or _makeGeometryRealBuilder.
 	"""
-	spatial = frameName=="spaceFrame"
 	def builder(node, context):
 		frame = getattr(context.system, frameName)
-		args = _makeBasicCooArgs(node, frame, spatial)
+		args = _makeBasicCooArgs(node, frame)
 		return realBuilder(node, context, args, node.get("coos", []),
 			frame.nDim)
 	return builder
@@ -230,6 +237,8 @@ def _makeIntervalRealBuilder(resKey, posResKey,
 				minItems=1, maxItems=1)[0]
 			yield posResKey, (posClass(**args),)
 			del args["value"]
+		if "fill_factor" in node:
+			args["fillFactor"] = float(node["fill_factor"])
 		for interval in iterIntervals(coos, nDim):
 			args["lowerLimit"], args["upperLimit"] = interval
 			yield resKey, (intervalClass(**args),)
