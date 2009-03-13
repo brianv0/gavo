@@ -108,6 +108,9 @@ class STC(object):
 	class Position1D(T_coordinate): pass
 	class Position2D(T_coordinate): pass
 	class Position3D(T_coordinate): pass
+	class Halfspace(STCElement): pass
+	class Vector(STCElement): pass
+	class Offset(T_double1): pass
 
 	class T_Region(OptionalSTCElement):
 		a_epoch = None
@@ -117,6 +120,8 @@ class STC(object):
 		a_unit = None
 		a_vel_time_unit = None  # For most children, this must remain None
 		a_frame_id = None
+		a_coord_system_id = None
+		a_note = None
 	
 	class Region(T_Region): pass
 	class Union(T_Region): pass
@@ -131,26 +136,16 @@ class STC(object):
 	class Coord2VecInterval(T_Interval): pass
 	class CoordScalarInterval(T_Interval): pass
 
-	class Polygon(STCElement):
-		a_coord_system_id = None
-		a_epoch = None
-		a_fill_factor = None
-		a_frame_id = None
-		a_hi_include = None
-		a_lo_include = None
-		a_note = None
-		a_unit = None
+	class PosAngle(T_double1):
+		a_reference = None
 
-	class Circle(STCElement):
-		a_coord_system_id = None
-		a_epoch = None
-		a_fill_factor = None
-		a_frame_id = None
-		a_hi_include = None
-		a_lo_include = None
-		a_note = None
-		a_unit = None
-	
+	class Polygon(T_Region): pass
+	class Circle(T_Region): pass
+	class Sphere(Circle): pass
+	class Ellipse(T_Region): pass
+	class Box(T_Region): pass
+	class Convex(T_Region): pass
+
 	class Pole(STCElement): 
 		a_unit = None
 		a_vel_time_unit = None
@@ -306,6 +301,9 @@ class STC(object):
 	class Vector2DCoordinate(STCElement):
 		a_frame_id = None
 		a_unit = None
+	
+	class Center(OptionalSTCElement):
+		pass
 	
 
 STC._addSubsGroup(STC.T_double1, ["C1", "C2", "C3", "e", "Error", 

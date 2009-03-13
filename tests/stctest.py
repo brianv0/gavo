@@ -215,8 +215,8 @@ class GeometryTest(testhelpers.VerboseTest):
 		c = ast.areas[0]
 		self.assert_(isinstance(c, dm.Ellipse))
 		self.assertEqual(c.center, (12., 13.))
-		self.assertEqual(c.majAxis, 1.5)
-		self.assertEqual(c.minAxis, 0.75)
+		self.assertEqual(c.smajAxis, 1.5)
+		self.assertEqual(c.sminAxis, 0.75)
 		self.assertEqual(c.posAngle, 0)
 
 	def testEllipseRaises(self):

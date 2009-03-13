@@ -243,8 +243,8 @@ def _makeIntervalRealBuilder(resKey, posResKey,
 				minItems=1, maxItems=1)[0]
 			yield posResKey, (posClass(**args),)
 			del args["value"]
-		if "fill_factor" in node:
-			args["fillFactor"] = float(node["fill_factor"])
+		if "fillfactor" in node:
+			args["fillFactor"] = float(node["fillfactor"])
 		for interval in iterIntervals(coos, nDim):
 			args["lowerLimit"], args["upperLimit"] = interval
 			yield resKey, (intervalClass(**args),)
@@ -297,6 +297,8 @@ def _makeGeometryRealBuilder(clsName, argDesc):
 		' while parsing %s")'%clsName)
 	parseLines.append('  if coos: raise STCSParseError("Too many coordinates'
 		' while building %s, remaining: %%s"%%coos)'%clsName)
+	parseLines.append('  if "fillfactor" in node:')
+	parseLines.append('    args["fillFactor"] = float(node["fillfactor"])')
 	parseLines.append('  yield "areas", (%s(**args),)'%clsName)
 	exec "\n".join(parseLines)
 	return realBuilder
@@ -342,7 +344,7 @@ def getCoords(cst, system):
 		"Circle": _makeGeometryBuilder("dm.Circle", 
 				[('center', 'v'), ('radius', 'r')]),
 		"Ellipse": _makeGeometryBuilder("dm.Ellipse", 
-				[('center', 'v'), ('majAxis', 'r'), ('minAxis', 'r'), 
+				[('center', 'v'), ('smajAxis', 'r'), ('sminAxis', 'r'), 
 					('posAngle', 'r')]),
 		"Box": _makeGeometryBuilder("dm.Box", 
 				[('center', 'v'), ('boxsize', 'v')]),
@@ -375,3 +377,7 @@ def parseSTCS(literal):
 	args = {"systems": (system,)}
 	args.update(getCoords(cst, system))
 	return dm.STCSpec(**args)
+
+
+if __name__=="__main__":
+	print parseSTCS("Box fillfactor 0.1 ICRS 70 190 23 18").areas[0].fillFactor

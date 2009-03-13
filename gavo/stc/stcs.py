@@ -37,8 +37,6 @@ stcsFlavors = {
 	"CART3": (3, "CARTESIAN"),
 }
 
-# STC-S reference frames, first the ones requiring an equinox
-
 
 spatialUnits = set(["deg", "arcmin", "arcsec", "m", "mm", "km", "AU", 
 	"pc", "kpc", "Mpc"])
@@ -163,7 +161,7 @@ def getSymbols():
 	velocityUnit = _unitOpener + Regex(_reFromKeys(velocityUnits))("unit")
 
 # basic productions common to most STC-S subphrases
-	fillfactor = (Suppress( Keyword("fillfactor") ) + number)("fillfactor")
+	fillfactor = (Suppress( Keyword("fillfactor") ) + number("fillfactor"))
 	noEqFrame = (Keyword("J2000") | Keyword("B1950") | Keyword("ICRS") | 
 		Keyword("GALACTIC") | Keyword("GALACTIC_I") | Keyword("GALACTIC_II") | 
 		Keyword("SUPER_GALACTIC") | Keyword("GEO_C") | Keyword("GEO_D") | 
@@ -214,7 +212,7 @@ def getSymbols():
 	_commonTimeItems = (	Optional( timeUnit ) + Optional( 
 		error("error") ) + Optional( resolution("resolution") ) + 
 		Optional( pixSize("pixSize") ) )
-	_intervalOpener = ( Optional( fillfactor("fill_factor") ) + 
+	_intervalOpener = ( Optional( fillfactor ) + 
 		Optional( timescale("timescale") ) +
 		Optional( refpos("refpos") ) )
 	_intervalCloser = Optional( timephrase("pos") ) + _commonTimeItems

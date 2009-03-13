@@ -126,6 +126,7 @@ class Geometry(CoordinateLike):
 	"""A base class for all kinds of geometries.
 	"""
 	_a_size = ()
+	_a_fillFactor = None
 
 
 class AllSky(Geometry):
@@ -139,7 +140,7 @@ class Circle(Geometry):
 
 class Ellipse(Geometry):
 	_a_center = None
-	_a_majAxis = _a_minAxis = None
+	_a_smajAxis = _a_sminAxis = None
 	_a_posAngle = None
 
 

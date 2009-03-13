@@ -16,7 +16,8 @@ e.g. into functions or a query language.  Don't do any transformations
 in serious loops.
 """
 
-from gavo.stc.common import STCError, STCSParseError, STCLiteralError
+from gavo.stc.common import (STCError, STCSParseError, STCLiteralError,
+	STCValueError)
 
 from gavo.stc.stcsast import parseSTCS
 

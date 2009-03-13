@@ -204,7 +204,7 @@ def _make1DIntervalSerializer(intervClass, lowerClass, upperClass,
 		else:
 			unit = node.unit
 		return intervClass(unit=unit, vel_time_unit=node.velTimeUnit, 
-				frame_id=node.frame.id, fill_factor=node.fillFactor)[
+				frame_id=node.frame.id, fill_factor=strOrNull(node.fillFactor))[
 			lowerClass[valueSerializer(node.lowerLimit)],
 			upperClass[valueSerializer(node.upperLimit)],
 		]
@@ -236,6 +236,70 @@ def serialize_SpaceInterval(node):
 		]
 
 
+
+############# Regions
+
+def _makeBaseRegion(cls, node):
+	return cls(unit=node.unit, frame_id=node.frame.id, 
+		fill_factor=strOrNull(node.fillFactor))
+
+
+def serialize_AllSky(node):
+	return _makeBaseRegion(STC.AllSky, node)
+
+def serialize_Circle(node):
+# would you believe that the sequence of center and radius is swapped
+# in sphere and circle?  Oh boy.
+	if node.frame.nDim==2:
+		return _makeBaseRegion(STC.Circle, node)[
+			STC.Center[_wrap2D(node.center)],
+			STC.Radius[node.radius],
+		]
+	elif node.frame.nDim==3:
+		return _makeBaseRegion(STC.Sphere, node)[
+			STC.Radius[node.radius],
+			STC.Center[_wrap3D(node.center)],
+		]
+	else:
+		raise STCValueError("Spheres are only defined in 2 and 3D")
+
+
+def serialize_Ellipse(node):
+	if node.frame.nDim==2:
+		cls, wrap = STC.Ellipse, _wrap2D
+	else:
+		raise STCValueError("Ellipses are only defined in 2D")
+	return _makeBaseRegion(cls, node)[
+		STC.Center[wrap(node.center)],
+		STC.SemiMajorAxis[node.smajAxis],
+		STC.SemiMinorAxis[node.sminAxis],
+		STC.PosAngle[node.posAngle],
+	]
+
+
+def serialize_Box(node):
+	if node.frame.nDim!=2:
+		raise STCValueError("Boxes are only available in 2D")
+	return _makeBaseRegion(STC.Box, node)[
+		STC.Center[_wrap2D(node.center)],
+		STC.Size[_wrap2D(node.boxsize)]]
+
+
+def serialize_Polygon(node):
+	if node.frame.nDim!=2:
+		raise STCValueError("Polygons are only available in 2D")
+	return _makeBaseRegion(STC.Polygon, node)[
+		[STC.Vertex[STC.Position[_wrap2D(v)]] for v in node.vertices]]
+
+
+def serialize_Convex(node):
+	return _makeBaseRegion(STC.Convex, node)[
+		[STC.Halfspace[STC.Vector[_wrap3D(v[:3])], STC.Offset[v[3]]]
+		for v in node.vectors]]
+
+
+############# Toplevel
+
 def makeAreas(rootNode):
 	"""serializes the areas contained in rootNode.
 
@@ -250,8 +314,6 @@ def makeAreas(rootNode):
 			STC.Union[
 				[nodeToStan(n) for n in rootNode.areas]]]
 
-
-############# Toplevel
 
 def nodeToStan(astNode):
 	"""returns xmlstan for whatever is in astNode.

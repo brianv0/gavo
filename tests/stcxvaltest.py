@@ -142,5 +142,27 @@ class STCSValidationTests(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 		self.assertFromSTCSValidates(
 			"PositionInterval ECLIPTIC CART3 12 13 10 14 15 9")
 
+	def testAllSky(self):
+		self.assertFromSTCSValidates("AllSky ICRS")
+
+	def testCircles(self):
+		self.assertFromSTCSValidates("Circle ICRS 12 13 1")
+		self.assertFromSTCSValidates("Circle UNKNOWNFrame CART3 12 13 1 4")
+
+	def testEllipse(self):
+		self.assertFromSTCSValidates("Ellipse ICRS 12 13 1 0.75 0")
+
+	def testBox(self):
+		self.assertFromSTCSValidates("Box fillfactor 0.1 ICRS 70 190 23 18")
+
+	def testPolygon(self):
+		self.assertFromSTCSValidates("Polygon ICRS 70 190 23 18 12 45"
+			" 30 -10")
+
+	def testConvex(self):
+		self.assertFromSTCSValidates("Convex ICRS 70 190 23 0.125 12 45"
+			" 30 -0.25")
+
+
 if __name__=="__main__":
 	testhelpers.main(STCSValidationTests)
