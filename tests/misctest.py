@@ -143,6 +143,16 @@ class TimeCalcTest(testhelpers.VerboseTest):
 				stc.jYearToDateTime(2010+yr/1000.)), 7,
 				"Botched %f"%(2010+yr/1000.))
 
+	def testBYears(self):
+		self.assertEqual(stc.bYearToDateTime(1950.0),
+			datetime.datetime(1949, 12, 31, 22, 9, 46, 861900))
+	
+	def testBRoundtrip(self):
+		for yr in range(2000):
+			self.assertAlmostEqual(1950+yr/1000., stc.dateTimeToBYear(
+				stc.bYearToDateTime(1950+yr/1000.)), 7,
+				"Botched %f"%(1950+yr/1000.))
+
 
 if __name__=="__main__":
 	testhelpers.main(TimeCalcTest)

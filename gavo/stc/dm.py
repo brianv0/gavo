@@ -6,6 +6,9 @@ means that we do not support generic coordinates (yet), ephemeris,
 xlink and all the other stuff.
 """
 
+import re
+
+from gavo.stc import times
 from gavo.stc.common import *
 
 
@@ -36,7 +39,24 @@ class SpaceFrame(CoordFrame):
 	_a_flavor = None
 	_a_nDim = None
 	_a_refFrame = "UNKNOWNRefFrame"
-	_a_equinox = None
+	_a_equinox = None  # if non-null, it has to match [BJ][0-9]+[.][0-9]+
+	
+	def getEquinox(self):
+		"""returns a datetime.datetime instance for the frame's equinox.
+
+		It will return None if no equinox is given, and it may raise an
+		STCValueError if an invalid equinox string has been set.
+		"""
+		if self.equinox is None:
+			return None
+		mat = re.match("([B|J])([0-9.]+)", self.equinox)
+		if not mat:
+			raise STCValueError("Equinoxes must be [BJ]<float>, but %s isn't"%(
+				self.equinox))
+		if mat.group(1)=='B':
+			return times.bYearToDateTime(float(mat.group(2)))
+		else:
+			return times.jYearToDateTime(float(mat.group(2)))
 
 
 class SpectralFrame(CoordFrame):
@@ -102,11 +122,11 @@ class RedshiftInterval(CoordinateInterval): pass
 
 ################ Geometries
 
-
 class Geometry(CoordinateLike):
 	"""A base class for all kinds of geometries.
 	"""
 	_a_size = ()
+
 
 class AllSky(Geometry):
 	pass

@@ -46,15 +46,6 @@ def parseISODT(literal):
 		int(parts["seconds"]), int(float(parts["secFracs"])*1000000))
 
 
-def jYearToDateTime(jYear):
-	"""returns a datetime.datetime instance for a fractional (julian) year.
-	
-	This refers to time specifications like J2001.32.
-	"""
-	return datetime.datetime(2000, 1, 1, 12)+datetime.timedelta(
-		days=(jYear-2000.0)*365.25)
-
-
 def jdnToDateTime(jd):
 	"""returns a datetime.datetime instance for a julian day number.
 	"""
@@ -70,6 +61,24 @@ def mjdToDateTime(mjd):
 	return jdnToDateTime(mjd+2400000.5)
 
 
+def bYearToDateTime(bYear):
+	"""returns a datetime.datetime instance for a fractional Besselian year.
+
+	This uses the formula given by Lieske, J.H., A&A 73, 282 (1979).
+	"""
+	jdn = (bYear-1900.0)*365.242198781+2415020.31352
+	return jdnToDateTime(jdn)
+
+
+def jYearToDateTime(jYear):
+	"""returns a datetime.datetime instance for a fractional (julian) year.
+	
+	This refers to time specifications like J2001.32.
+	"""
+	return datetime.datetime(2000, 1, 1, 12)+datetime.timedelta(
+		days=(jYear-2000.0)*365.25)
+
+
 def dateTimeToJdn(dt):
 	"""returns a julian day number (including fractionals) from a datetime
 	instance.
@@ -83,6 +92,10 @@ def dateTimeToJdn(dt):
 	except AttributeError:
 		secsOnDay = 0
 	return jdn+(secsOnDay-43200)/86400.
+
+
+def dateTimeToBYear(dt):
+	return (dateTimeToJdn(dt)-2415020.31352)/365.242198781+1900.0
 
 
 def dateTimeToJYear(dt):

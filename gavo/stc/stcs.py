@@ -37,22 +37,8 @@ stcsFlavors = {
 	"CART3": (3, "CARTESIAN"),
 }
 
-# STC-S reference frames, with STC counterparts
-stcsFrames = {
-	"ICRS": None,
-	"FK5": None,
-	"FK4": None,
-	"J2000": None,
-	"B1950": None,
-	"ECLIPTIC": None,
-	"GALACTIC": None,
-	"GALACTIC_I": None,
-	"GALACTIC_II": None,
-	"SUPER_GALACTIC": None,
-	"GEO_C": None,
-	"GEO_D": None,
-	"UNKNOWNFrame": None,
-}
+# STC-S reference frames, first the ones requiring an equinox
+
 
 spatialUnits = set(["deg", "arcmin", "arcsec", "m", "mm", "km", "AU", 
 	"pc", "kpc", "Mpc"])
@@ -178,7 +164,15 @@ def getSymbols():
 
 # basic productions common to most STC-S subphrases
 	fillfactor = (Suppress( Keyword("fillfactor") ) + number)("fillfactor")
-	frame = (Regex(_reFromKeys(stcsFrames)))("frame")
+	noEqFrame = (Keyword("J2000") | Keyword("B1950") | Keyword("ICRS") | 
+		Keyword("GALACTIC") | Keyword("GALACTIC_I") | Keyword("GALACTIC_II") | 
+		Keyword("SUPER_GALACTIC") | Keyword("GEO_C") | Keyword("GEO_D") | 
+		Keyword("UNKNOWNFrame"))("frame")
+	eqFrameName = (Keyword("FK5") | Keyword("FK4") | Keyword("ECLIPTIC")
+		)("frame")
+	eqSpec = Regex("[BJ][0-9]+")("equinox")
+	eqFrame = eqFrameName + Optional( eqSpec )
+	frame = eqFrame | noEqFrame
 	refpos = (Regex(_reFromKeys(stcRefPositions)))("refpos")
 	flavor = (Regex(_reFromKeys(stcsFlavors)))("flavor")
 
@@ -332,4 +326,4 @@ if __name__=="__main__":
 	syms = getSymbols()
 	enableDebug(syms)
 	print makeTree(syms["stcsPhrase"].parseString(
-		"Spectral NEPTUNE 12 unit Angstrom Error 4 3 Redshift TOPOCENTER 0.1 VELOCITY RELATIVISTIC", parseAll=True))
+		"PositionInterval UNKNOWNFrame CART1 1 2 3 4 unit mm", parseAll=True))

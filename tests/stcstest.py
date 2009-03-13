@@ -96,6 +96,8 @@ class STCSSpaceParsesTest(STCSParsesTestBase):
 		("positionInterval", "PositionInterval ICRS 12 11 unit m Error 10 10"
 			" Resolution 12 Size 2 PixSize 14 14"),
 		("allSky", "AllSky ICRS"),
+		("circle", "Circle FK4 B1975.0 1 2 3"),
+		("circle", "Circle FK4 J1975.0 1 2 3"),
 		("circle", "Circle fillfactor 0.1 FK4 TOPOCENTER SPHER2 1 2 3"
 			" unit deg Error 3 3 Size 23"),
 		("ellipse", "Ellipse J2000 unit deg"),
@@ -268,7 +270,7 @@ class DefaultingTest(testhelpers.VerboseTest):
 			'refpos': 'UNKNOWNRefPos', 'flavor': 'UNITSPHER'}})
 		self.assertEqual(stcs.getCST("PositionInterval FK4 TOPOCENTER CART2"),
 			{'space': {'frame': 'FK4', 'unit': 'm', 'type': 'PositionInterval', 
-			'refpos': 'TOPOCENTER', 'flavor': 'CART2'}})
+			'refpos': 'TOPOCENTER', 'flavor': 'CART2', "equinox": 'B1950.0'}})
 		self.assertEqual(stcs.getCST("PositionInterval GEO_C"),
 			{'space': {'frame': 'GEO_C', 'unit': 'deg deg m', 
 				'type': 'PositionInterval', 'refpos': 'UNKNOWNRefPos', 

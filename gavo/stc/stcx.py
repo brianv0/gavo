@@ -47,6 +47,9 @@ class STC(object):
 		a_ID_type = None
 		a_IDREF_type = None
 
+	class OptionalSTCElement(STCElement):
+		mayBeEmpty = False
+
 	class _Toplevel(STCElement):
 		a_xmlns = STCNamespace
 		a_xmlns_xlink = XlinkNamespace
@@ -61,15 +64,13 @@ class STC(object):
 	class STCResourceProfile(_Toplevel): pass
 	class ObsDataLocation(_Toplevel): pass
 
-	class Name(STCElement):
-		mayBeEmpty = False
+	class Name(OptionalSTCElement): pass
 	class Name1(Name): pass
 	class Name2(Name): pass
 	class Name3(Name): pass
 
-	class T_double1(STCElement):
+	class T_double1(OptionalSTCElement):
 		stringifyContent = True
-		mayBeEmpty = False
 		a_gen_unit = None
 		a_pos_angle_unit = None
 		a_pos_unit = None
@@ -77,24 +78,20 @@ class STC(object):
 		a_time_unit = None
 		a_vel_unit = None
 
-	class T_double2(STCElement):
-		mayBeEmpty = False
+	class T_double2(OptionalSTCElement):
 		a_unit = None
 		a_gen_unit = None
 		a_vel_unit = None
 	
 	class T_double3(T_double2): 
-		mayBeEmpty = False
 		a_vel_time_unit = None
 
-	class T_size2(STCElement):
-		mayBeEmpty = False
+	class T_size2(OptionalSTCElement):
 		a_gen_unit = None
 		a_unit = None
 		a_vel_time_unit = None
 
-	class T_size3(STCElement):
-		mayBeEmpty = False
+	class T_size3(OptionalSTCElement):
 		a_gen_unit = None
 		a_unit = None
 		a_vel_time_unit = None
@@ -112,7 +109,7 @@ class STC(object):
 	class Position2D(T_coordinate): pass
 	class Position3D(T_coordinate): pass
 
-	class T_Interval(STCElement):
+	class T_Region(OptionalSTCElement):
 		a_epoch = None
 		a_fill_factor = None
 		a_hi_include = None
@@ -121,7 +118,16 @@ class STC(object):
 		a_vel_time_unit = None  # For most children, this must remain None
 		a_frame_id = None
 	
+	class Region(T_Region): pass
+	class Union(T_Region): pass
+	class Intersection(T_Region): pass
+
+	class T_Interval(T_Region): pass
+	
+	class PositionScalarInterval(T_Interval): pass
 	class Position2VecInterval(T_Interval): pass
+	class Position3VecInterval(T_Interval): pass
+	class Coord3VecInterval(T_Interval): pass
 	class Coord2VecInterval(T_Interval): pass
 	class CoordScalarInterval(T_Interval): pass
 
@@ -162,8 +168,7 @@ class STC(object):
 		restrictChildren = set(["CoordFrame", "TimeFrame", "SpaceFrame",
 			"SpectralFrame", "RedshiftFrame"])
 
-	class Equinox(STCElement):
-		mayBeEmpty = False
+	class Equinox(OptionalSTCElement): pass
 
 	class PixelCoordSystem(_CoordSys): 
 		restrictChildren = set(["CoordFrame", "PixelCoordFrame"])
@@ -215,8 +220,7 @@ class STC(object):
 		a_coord_naxes = "2"
 		a_handedness = None
 
-	class T_Coords(STCElement):
-		mayBeEmpty = False
+	class T_Coords(OptionalSTCElement):
 		a_coord_system_id = None
 	
 	class AstroCoords(T_Coords): pass
@@ -238,14 +242,13 @@ class STC(object):
 	class StringCoordinate(Coordinate): 
 		a_unit = None
 
-	class Time(STCElement):
+	class Time(OptionalSTCElement):
 		a_unit = None
 		a_coord_system_id = None
 		a_frame_id = None
 		a_vel_time_unit = None  # must not be changed for Times
 
 	class T_astronTime(Time):
-		mayBeEmpty = False
 		childSequence = ["Timescale", "TimeOffset", "MJDTime", "JDTime", "ISOTime"]
 	
 	class StartTime(T_astronTime): pass
@@ -275,11 +278,11 @@ class STC(object):
 		childSequence = ["StartTime", "StopTime"]
 
 	class TimeScale(STCElement): pass
-	class Timescale(STCElement): pass  # Bizarre, No?
+	class Timescale(STCElement): pass  # Confirmed typo.
 
-	class ISOTime(STCElement): pass
-	class JDTime(STCElement): pass
-	class MJDTime(STCElement): pass
+	class ISOTime(OptionalSTCElement): pass
+	class JDTime(OptionalSTCElement): pass
+	class MJDTime(OptionalSTCElement): pass
 	class TimeOrigin(STCElement): pass
 
 	class Spectral(STCElement):
@@ -290,8 +293,7 @@ class STC(object):
 
 	class SpectralInterval(T_Interval): pass
 
-	class AstroCoordArea(STCElement):
-		mayBeEmpty = False
+	class AstroCoordArea(OptionalSTCElement):
 		a_coord_system_id = None
 	
 	class ObservatoryLocation(STCElement): pass
@@ -304,6 +306,7 @@ class STC(object):
 	class Vector2DCoordinate(STCElement):
 		a_frame_id = None
 		a_unit = None
+	
 
 STC._addSubsGroup(STC.T_double1, ["C1", "C2", "C3", "e", "Error", 
 	"Error2Radius",

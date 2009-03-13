@@ -22,6 +22,8 @@ from gavo.stc.stcsast import parseSTCS
 
 from gavo.stc.stcx import STC
 
-from gavo.stc.times import (parseISODT, jYearToDateTime, dateTimeToJYear,
+from gavo.stc.times import (parseISODT, 
+	jYearToDateTime, dateTimeToJYear,
+	bYearToDateTime, dateTimeToBYear,
 	jdnToDateTime, dateTimeToJdn)
 

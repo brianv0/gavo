@@ -36,6 +36,12 @@ class CoordSysTest(testhelpers.VerboseTest):
 		self.assertEqual(cs.spaceFrame.refFrame, "FK5")
 		self.assertEqual(cs.timeFrame.timeScale, "TT")
 
+	def testEquinoxes(self):
+		ast = stcsast.parseSTCS("Position FK4 B1975 30 30")
+		self.assertEqual(ast.systems[0].spaceFrame.equinox, "B1975.0")
+		self.assertEqual(ast.systems[0].spaceFrame.getEquinox(),
+			datetime.datetime(1974, 12, 31, 23, 28, 56, 228856))
+
 
 class OtherCoordTest(testhelpers.VerboseTest):
 	def testSimpleTime(self):

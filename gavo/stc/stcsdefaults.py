@@ -29,6 +29,17 @@ def getSpaceUnit(node):
 		return "deg"
 
 
+def getEquinox(node):
+	if node["frame"]=="FK4":
+		return "B1950.0"
+	elif node["frame"]=="FK5":
+		return "J2000.0"
+	elif node["frame"]=="ECLIPTIC":
+		return "J2000.0"   # that's random, ok.
+	else:
+		return None
+
+
 def getRedshiftUnit(node):
 	if node["redshiftType"]=="VELOCITY":
 		return "km/s"
@@ -50,6 +61,8 @@ def _addDefaultsToNode(node, defaults):
 		if key not in node:
 			if not isinstance(value, (basestring, list)):
 				value = value(node)
+				if value is None:
+					continue
 			node[key] = value
 
 
@@ -69,6 +82,7 @@ nodeNameFunctions = {
 		("frame", "UNKNOWNFrame"),
 		("refpos", "UNKNOWNRefPos"),
 		("flavor", getSpaceFlavor),
+		("equinox", getEquinox),
 		("unit", getSpaceUnit)]),
 	"time": _makeDefaulter([
 		("timescale", "nil"),

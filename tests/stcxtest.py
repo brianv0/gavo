@@ -2,6 +2,7 @@
 Tests for STC-X parsing and generation.
 """
 
+import os
 import re
 
 from gavo import stc
@@ -14,7 +15,7 @@ import testhelpers
 def _purgeIds(stcx):
 	return re.sub('(frame_|coord_system_)?id="[^"]*"', '', stcx)
 
-def assertEqualWithoutIds(withId, template, msg=None):
+def assertEqualWithoutIds(withId, template, desc="<Undescribed>"):
 	"""raises an AssertionError if withId and template are different after
 	all ids (and similar) in withId are blanked.
 
@@ -22,10 +23,9 @@ def assertEqualWithoutIds(withId, template, msg=None):
 	"""
 	withoutId = _purgeIds(withId)
 	if withoutId!=template:
-		if msg:
-			raise AssertionError(msg)
-		else:
-			raise AssertionError("%r != %r"%(withoutId, template))
+		matchLen = len(os.path.commonprefix([template, withoutId]))
+		raise AssertionError("Didn't get expected STC XML for example '%s';"
+			" non-matching part: %s"%(desc, withoutId[matchLen:]))
 
 
 class SpaceFrameTest(testhelpers.VerboseTest):
@@ -47,7 +47,7 @@ class STCMappingTest(testhelpers.VerboseTest):
 		ast = stc.parseSTCS(stcsLiteral)
 		stcxResult = stcxgen.astToStan(ast, V).render()
 		assertEqualWithoutIds(stcxResult, stcxExpected,
-			"Failed stcs map: %s, got %s"%(stcsLiteral, _purgeIds(stcxResult)))
+			stcsLiteral)
 
 
 class OtherCoordTest(STCMappingTest):
@@ -75,8 +75,20 @@ class OtherCoordIntervalTest(STCMappingTest):
 		self.assertMapsto("TimeInterval TT 2009-03-10T09:56:10.015625"
 			" SpectralInterval 1e10 1e11 unit Hz"
 			" RedshiftInterval 1000 7500 unit km/s", 
-			'<V><AstroCoordSystem ><TimeFrame ><TimeScale>TT</TimeScale><UNKNOWNRefPos /></TimeFrame><SpectralFrame ><UNKNOWNRefPos /></SpectralFrame><RedshiftFrame  value_type="VELOCITY"><DopplerDefinition>OPTICAL</DopplerDefinition><UNKNOWNRefPos /></RedshiftFrame></AstroCoordSystem><AstroCoordArea ><TimeInterval  unit="s"><StartTime><ISOTime>2009-03-10T09:56:10.015625</ISOTime></StartTime><StopTime><ISOTime /></StopTime></TimeInterval><SpectralInterval  unit="Hz"><LoLimit>10000000000.0</LoLimit><HiLimit>100000000000.0</HiLimit></SpectralInterval><RedshiftInterval  unit="km" vel_time_unit="s"><LoLimit>1000.0</LoLimit><HiLimit>7500.0</HiLimit></RedshiftInterval></AstroCoordArea></V>')
+			'<V><AstroCoordSystem ><TimeFrame ><TimeScale>TT</TimeScale><UNKNOWNRefPos /></TimeFrame><SpectralFrame ><UNKNOWNRefPos /></SpectralFrame><RedshiftFrame  value_type="VELOCITY"><DopplerDefinition>OPTICAL</DopplerDefinition><UNKNOWNRefPos /></RedshiftFrame></AstroCoordSystem><AstroCoordArea ><TimeInterval ><StartTime><ISOTime>2009-03-10T09:56:10.015625</ISOTime></StartTime></TimeInterval><SpectralInterval  unit="Hz"><LoLimit>10000000000.0</LoLimit><HiLimit>100000000000.0</HiLimit></SpectralInterval><RedshiftInterval  unit="km" vel_time_unit="s"><LoLimit>1000.0</LoLimit><HiLimit>7500.0</HiLimit></RedshiftInterval></AstroCoordArea></V>')
 
+class SpaceCoordIntervalTest(STCMappingTest):
+	def test1D(self):
+		self.assertMapsto("PositionInterval UNKNOWNFrame CART1 1 2 unit mm",
+			'<V><AstroCoordSystem ><SpaceFrame ><UNKNOWNFrame /><UNKNOWNRefPos /><CARTESIAN coord_naxes="1" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><PositionScalarInterval  unit="mm"><LoLimit>1.0</LoLimit><HiLimit>2.0</HiLimit></PositionScalarInterval></AstroCoordArea></V>')
+
+	def test2D(self):
+		self.assertMapsto("PositionInterval ICRS 12 13 14 15",
+			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Position2VecInterval  unit="deg"><LoLimit2Vec><C1>12.0</C1><C2>13.0</C2></LoLimit2Vec><HiLimit2Vec><C1>14.0</C1><C2>15.0</C2></HiLimit2Vec></Position2VecInterval></AstroCoordArea></V>')
+
+	def test3D(self):
+		self.assertMapsto("PositionInterval ECLIPTIC CART3 12 13 10 14 15 9",
+			'<V><AstroCoordSystem ><SpaceFrame ><ECLIPTIC><Equinox>J2000.0</Equinox></ECLIPTIC><UNKNOWNRefPos /><CARTESIAN coord_naxes="3" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Position3VecInterval  unit="m"><LoLimit3Vec><C1>12.0</C1><C2>13.0</C2><C3>10.0</C3></LoLimit3Vec><HiLimit3Vec><C1>14.0</C1><C2>15.0</C2><C3>9.0</C3></HiLimit3Vec></Position3VecInterval></AstroCoordArea></V>')
 
 if __name__=="__main__":
-	testhelpers.main(OtherCoordIntervalTest)
+	testhelpers.main(SpaceCoordIntervalTest)

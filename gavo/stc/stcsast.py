@@ -73,8 +73,14 @@ def _buildRedshiftFrame(node, context):
 
 def _buildSpaceFrame(node, context):
 	nDim, flavor = stcs.stcsFlavors[node["flavor"]]
+	equinox = None
+	if node.get("equinox"):
+		if "." in node["equinox"]: 
+			equinox = node["equinox"]
+		else: # allow J2000 and expand it to J2000.0
+			equinox = node["equinox"]+".0"
 	yield "spaceFrame", dm.SpaceFrame(refPos=_makeRefpos(node["refpos"]),
-		flavor=flavor, nDim=nDim, refFrame=node["frame"])
+		flavor=flavor, nDim=nDim, refFrame=node["frame"], equinox=equinox)
 
 def _buildSpectralFrame(node, context):
 	yield "spectralFrame", dm.SpectralFrame(refPos=_makeRefpos(node["refpos"]))

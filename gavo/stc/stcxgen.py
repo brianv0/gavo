@@ -15,6 +15,7 @@ than trees (e.g., coordinate frames usually have multiple parents).
 import itertools
 import string
 
+from gavo.stc import dm
 from gavo.stc.common import *
 from gavo.stc.stcx import STC
 
@@ -198,7 +199,11 @@ def _make1DIntervalSerializer(intervClass, lowerClass, upperClass,
 	for lack of a place to put them.
 	"""
 	def serialize(node):
-		return intervClass(unit=node.unit, vel_time_unit=node.velTimeUnit, 
+		if isinstance(node.frame, dm.TimeFrame):
+			unit = None  # time intervals have no units
+		else:
+			unit = node.unit
+		return intervClass(unit=unit, vel_time_unit=node.velTimeUnit, 
 				frame_id=node.frame.id, fill_factor=node.fillFactor)[
 			lowerClass[valueSerializer(node.lowerLimit)],
 			upperClass[valueSerializer(node.upperLimit)],
@@ -212,6 +217,38 @@ serialize_SpectralInterval = _make1DIntervalSerializer(STC.SpectralInterval,
 	STC.LoLimit, STC.HiLimit, lambda val: str(val))
 serialize_RedshiftInterval = _make1DIntervalSerializer(STC.RedshiftInterval,
 	STC.LoLimit, STC.HiLimit, lambda val: str(val))
+
+
+_posIntervalClasses = [
+	(STC.PositionScalarInterval, STC.LoLimit, STC.HiLimit, str),
+	(STC.Position2VecInterval, STC.LoLimit2Vec, STC.HiLimit2Vec,
+		_wrap2D),
+	(STC.Position3VecInterval, STC.LoLimit3Vec, STC.HiLimit3Vec,
+		_wrap3D),]
+
+def serialize_SpaceInterval(node):
+	intervClass, lowerClass, upperClass, valueSerializer = \
+		_posIntervalClasses[node.frame.nDim-1]
+	return intervClass(unit=node.unit, vel_time_unit=node.velTimeUnit, 
+				frame_id=node.frame.id, fill_factor=node.fillFactor)[
+			lowerClass[valueSerializer(node.lowerLimit)],
+			upperClass[valueSerializer(node.upperLimit)],
+		]
+
+
+def makeAreas(rootNode):
+	"""serializes the areas contained in rootNode.
+
+	This requires all kinds of insane special handling.
+	"""
+	if not rootNode.areas:
+		return
+	elif len(rootNode.areas)==1:
+		return nodeToStan(rootNode.areas[0])
+	else:  # implicit union
+		return STC.Region[
+			STC.Union[
+				[nodeToStan(n) for n in rootNode.areas]]]
 
 
 ############# Toplevel
@@ -234,6 +271,8 @@ def astToStan(rootNode, stcRoot):
 				rootNode.places, rootNode.freqs, rootNode.redshifts)]
 		],
 		STC.AstroCoordArea(coord_system_id=rootNode.systems[0].id)[
-			[nodeToStan(n) for n in itertools.chain(rootNode.timeAs,
-				rootNode.freqAs, rootNode.redshiftAs)]],
+			[nodeToStan(n) for n in rootNode.timeAs],
+			makeAreas(rootNode),
+			[nodeToStan(n) for n in 
+				itertools.chain(rootNode.freqAs, rootNode.redshiftAs)]],
 	]

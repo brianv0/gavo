@@ -129,6 +129,18 @@ class STCSValidationTests(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 		self.assertFromSTCSValidates("Position ICRS 12000.3 14000 unit arcsec"
 			" Error 0.1 0.14 Resolution 0.5 0.55 Size 1 1.1  4.8 2.3 PixSize 0.2 0.2")
 
+	def test1DIntervals(self):
+		self.assertFromSTCSValidates("TimeInterval TT 2009-03-10T09:56:10.015625"
+			" PositionInterval UNKNOWNFrame CART1 1 2 unit mm"
+			" SpectralInterval 1e10 1e11 unit Hz"
+			" RedshiftInterval 1000 7500 unit km/s")
+
+	def test2DInterval(self):
+		self.assertFromSTCSValidates("PositionInterval ICRS 12 13 14 15 Error 1 2")
+			
+	def test3DInterval(self):
+		self.assertFromSTCSValidates(
+			"PositionInterval ECLIPTIC CART3 12 13 10 14 15 9")
 
 if __name__=="__main__":
 	testhelpers.main(STCSValidationTests)
