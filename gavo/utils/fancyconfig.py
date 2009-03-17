@@ -44,6 +44,7 @@ or pysmap (link coming up).
 import ConfigParser
 import re
 import os
+import tempfile
 import weakref
 
 defaultSection = "general"  # must be all lowercase
@@ -690,9 +691,13 @@ class Configuration(object):
 		"""writes the config items changed by the user to destName.
 		"""
 		uc = self.getUserConfig()
-		f = open(destName, "w")
+		fd, tmpName = tempfile.mkstemp("temp", "", os.path.dirname(destName))
+		f = os.fdopen(fd, "w")
 		uc.write(f)
+		f.flush()
+		os.fsync(fd)
 		f.close()
+		os.rename(tmpName, destName)
 
 
 def _addToConfig(config, fName, origin):

@@ -3,11 +3,13 @@ Tests for STC-S handling
 """
 
 import datetime
+import os
 import unittest
 
 from gavo import stc
 from gavo.stc import dm
 from gavo.stc import stcs
+from gavo.stc import stcsgen
 
 import testhelpers
 
@@ -171,7 +173,7 @@ class STCSTreeParseTestBase(testhelpers.VerboseTest):
 						inputString, resultTree))
 
 
-class TestSimpleSTCSTrees(STCSTreeParseTestBase):
+class SimpleSTCSTreesTest(STCSTreeParseTestBase):
 	samples = [
 		("timeUnit", "unit s", {'unit': 's'}),
 		("spaceUnit", "unit pc", {"unit": 'pc'}),
@@ -180,10 +182,11 @@ class TestSimpleSTCSTrees(STCSTreeParseTestBase):
 		("jdLiteral", "JD 2450000.5", [datetime.datetime(
 			1995, 10, 9, 23, 59, 59, 999997)]),
 		("redshiftType", "VELOCITY", {'redshiftType': 'VELOCITY'}),
+		("frame", "FK4 B1940.5", {'frame': 'FK4', 'equinox': 'B1940.5'}),
 	]
 
 
-class TestComplexSTCSTrees(STCSTreeParseTestBase):
+class ComplexSTCSTreesTest(STCSTreeParseTestBase):
 	samples = [
 		("positionInterval", "PositionInterval ICRS 2 3", 
 			{'coos': ['2', '3'], 'frame': 'ICRS', 'type': 'PositionInterval'}),
@@ -196,7 +199,7 @@ class TestComplexSTCSTrees(STCSTreeParseTestBase):
 		("stopTime", "StopTime fillfactor 0.1 TT GEOCENTER 1900-01-01"
 				" Time 2000-12-31 unit yr Error 1 2 Resolution 0.1 0.1 PixSize 19 20",
 			{'fillfactor': '0.1', 'timescale': 'TT', 'type': 'StopTime', 
-				'refpos': 'GEOCENTER', 'stopTime': datetime.datetime(1900, 1, 1, 0, 0),
+				'refpos': 'GEOCENTER', 'coos': [datetime.datetime(1900, 1, 1, 0, 0)],
 				'pos': [datetime.datetime(2000, 12, 31, 0, 0)], 
 				'error': ['1', '2'], 'resolution': ['0.1', '0.1'], 'unit': 'yr', 
 				'pixSize': ['19', '20']}),
@@ -218,6 +221,17 @@ class TestComplexSTCSTrees(STCSTreeParseTestBase):
 			'redshift': {
 				'coos': ['0.1', '0.2'], 'dopplerdef': 'RADIO', 
 				'type': 'RedshiftInterval'}}),
+	]
+
+
+class STCSPhraseTest(STCSTreeParseTestBase):
+	samples = [
+		("stcsPhrase", "StopTime TT 2009-03-10T09:56:10.015625",
+			{'time': {'coos': [datetime.datetime(2009, 3, 10, 9, 56, 10, 15625)], 
+				'type': 'StopTime', 'timescale': 'TT'}}),
+		("stcsPhrase", "AllSky FK4 B1975.0 Position 12 13",
+			{'space': {'type': 'AllSky', 'frame': 'FK4', 'equinox': 'B1975.0', 
+				'pos': ['12', '13']}}),
 	]
 
 
@@ -291,5 +305,73 @@ class DefaultingTest(testhelpers.VerboseTest):
 			'refpos': 'UNKNOWNRefPos', 'unit': 'km/s', 'dopplerdef': 'OPTICAL'}})
 
 
+class GenerationTest(testhelpers.VerboseTest):
+	def assertMapsto(self, stcsInput, expectedOutput):
+		foundOutput = stcsgen.getSTCS(stc.parseSTCS(stcsInput))
+		if foundOutput!=expectedOutput:
+			matchLen = len(os.path.commonprefix([expectedOutput, foundOutput]))
+			raise AssertionError("Didn't get expected STC-S for example '%s';"
+				" non-matching part: '%s'"%(stcsInput, foundOutput[matchLen:]))
+
+
+	def testTimeCoo(self):
+		self.assertMapsto("Time TT 2009-03-10T09:56:10.015625 unit s"
+			" Error 0.0001 0.0002 Resolution 0.0001 PixSize 2",
+			'Time TT 2009-03-10T09:56:10.015625 Error 0.0001 0.0002 Resolution 0.0001 PixSize 2.0')
+	
+	def testTimeInterval(self):
+		self.assertMapsto("TimeInterval TAI MJD52000.5 MJD52011.5",
+			'TimeInterval TAI 2001-04-01T12:00:00 2001-04-12T12:00:00')
+	
+	def testTimeHalfInterval(self):
+		self.assertMapsto("StopTime TT 2009-03-10T09:56:10.015625",
+			'StopTime TT 2009-03-10T09:56:10.015625')
+	
+	def testTimeIntervalWithValue(self):
+		self.assertMapsto("TimeInterval TAI MJD52000.5 MJD52011.5"
+			" Time 2001-04-01T18:23:50",
+			'TimeInterval TAI 2001-04-01T12:00:00 2001-04-12T12:00:00 Time 2001-04-01T18:23:50'),
+	
+	def testOtherIntervals(self):
+		self.assertMapsto("SpectralInterval 20 30 unit m"
+			" RedshiftInterval REDSHIFT 1 2 Error 0 0.125",
+			'SpectralInterval 20.0 30.0 unit m\nRedshiftInterval REDSHIFT 1.0 2.0 Error 0.0 0.125')
+	
+	def testOtherCoodinates(self):
+		self.assertMapsto("Spectral BARYCENTER 200000 unit Hz PixSize 1"
+			" Redshift TOPOCENTER 2 REDSHIFT RELATIVISTIC",
+			'Spectral BARYCENTER 200000.0 PixSize 1.0\nRedshift TOPOCENTER REDSHIFT RELATIVISTIC 2.0')
+
+	def testSpatialCoo(self):
+		self.assertMapsto("Position ICRS -50 320",
+			'Position ICRS -50.0 320.0')
+
+	def testSpatialCooComplex(self):
+		self.assertMapsto("Position ICRS UNKNOWNRefPos CART3 -50 320 20 unit pc"
+			" Error 1 2 3 1.25 2.25 3.25 Resolution 0.125 0.125 0.125"
+			" Size 4 3 2",
+			'Position ICRS CART3 -50.0 320.0 20.0 unit pc Error 1.0 2.0 3.0 1.25 2.25 3.25 Resolution 0.125 0.125 0.125 Size 4.0 3.0 2.0')
+	
+	def testSpatialInterval(self):
+		self.assertMapsto("PositionInterval J2000 12 13 19 29 Position 15 16",
+			'PositionInterval J2000 12.0 13.0 19.0 29.0 Position 15.0 16.0')
+
+	def testGeometries(self):
+		self.assertMapsto("Circle ICRS 12 13 0.25 Position 12.5 13.5",
+			'Circle ICRS 12.0 13.0 0.25 Position 12.5 13.5')
+		self.assertMapsto("AllSky FK5 J2010 Position 12 13",
+			'AllSky FK5 J2010.0 Position 12.0 13.0')
+		self.assertMapsto("Ellipse ECLIPTIC TOPOCENTER -40 38 0.75 0.5 45"
+			" PixSize 0.25 0.25 0.5 0.5",
+			'Ellipse ECLIPTIC TOPOCENTER -40.0 38.0 0.75 0.5 45.0'
+			' PixSize 0.25 0.25 0.5 0.5')
+		self.assertMapsto("Box ICRS 32 24 1 2",
+			"Box ICRS 32.0 24.0 1.0 2.0")
+		self.assertMapsto("Polygon UNKNOWNFrame CART2 1 2 3 4 5 6 Size 3 4",
+			'Polygon UNKNOWNFrame CART2 1.0 2.0 3.0 4.0 5.0 6.0 Size 3.0 4.0')
+		self.assertMapsto("Convex GEO_C 2 3 4 0.5 5 6 7 0.25",
+			'Convex GEO_C 2.0 3.0 4.0 0.5 5.0 6.0 7.0 0.25')
+
 if __name__=="__main__":
-	testhelpers.main(TestComplexSTCSTrees)
+	testhelpers.main(GenerationTest)
+#	testhelpers.main(STCSPhraseTest)

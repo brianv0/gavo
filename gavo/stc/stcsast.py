@@ -234,7 +234,7 @@ def _makeCooRealBuilder(resKey, argKey, cooClass, cooParse=float):
 
 
 def _makeIntervalRealBuilder(resKey, posResKey, 
-		intervalClass, posClass, cooParse=float):
+		intervalClass, posClass, cooParse=float, preferUpper=False):
 	def realBuilder(node, context, args, coos, nDim):
 		coos = map(cooParse, coos)
 		_validateCoos(coos, nDim, None, None)
@@ -246,7 +246,10 @@ def _makeIntervalRealBuilder(resKey, posResKey,
 		if "fillfactor" in node:
 			args["fillFactor"] = float(node["fillfactor"])
 		for interval in iterIntervals(coos, nDim):
-			args["lowerLimit"], args["upperLimit"] = interval
+			if preferUpper:
+				args["upperLimit"], args["lowerLimit"] = interval
+			else:
+				args["lowerLimit"], args["upperLimit"] = interval
 			yield resKey, (intervalClass(**args),)
 	return realBuilder
 
@@ -276,6 +279,11 @@ def _makeGeometryRealBuilder(clsName, argDesc):
 	"""
 	parseLines = [
 		"def realBuilder(node, context, args, coos, nDim):",
+		'  if "pos" in node:',
+		'    args["value"] = _makeCooValues(nDim, node["pos"],',
+		'      minItems=1, maxItems=1)[0]',
+		'    yield "places", (dm.SpaceCoo(**args),)',
+		'    del args["value"]',
 		"  try:",
 		"    pass"]
 	for name, code in argDesc:
@@ -327,10 +335,12 @@ def getCoords(cst, system):
 	return buildTree(cst, context, typeFunctions = {
 		"Time": _makeCooBuilder("timeFrame", 
 			_makeCooRealBuilder("times", "value", dm.TimeCoo, cooParse=_id)),
-		"StartTime": _makeCooBuilder("timeFrame", 
-			_makeCooRealBuilder("timeAs", "lowerLimit", dm.TimeCoo, cooParse=_id)),
-		"StopTime": _makeCooBuilder("timeFrame", 
-			_makeCooRealBuilder("timeAs", "upperLimit", dm.TimeCoo, cooParse=_id)),
+		"StartTime": _makeCooBuilder("timeFrame",
+			_makeIntervalRealBuilder("timeAs", "times",
+				dm.TimeInterval, dm.TimeCoo, cooParse=lambda x: x)),
+		"StopTime":_makeCooBuilder("timeFrame",
+			_makeIntervalRealBuilder("timeAs", "times",
+				dm.TimeInterval, dm.TimeCoo, cooParse=lambda x: x, preferUpper=True)),
 		"TimeInterval": _makeCooBuilder("timeFrame",
 			_makeIntervalRealBuilder("timeAs", "times",
 				dm.TimeInterval, dm.TimeCoo, cooParse=lambda x: x)),
@@ -368,7 +378,6 @@ def getCoords(cst, system):
 	})
 
 
-
 def parseSTCS(literal):
 	"""returns an STC AST for an STC-S expression.
 	"""
@@ -380,4 +389,4 @@ def parseSTCS(literal):
 
 
 if __name__=="__main__":
-	print parseSTCS("Box fillfactor 0.1 ICRS 70 190 23 18").areas[0].fillFactor
+	print parseSTCS("PositionInterval ICRS 1 2 3 4")

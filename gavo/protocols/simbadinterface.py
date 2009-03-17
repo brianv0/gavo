@@ -8,6 +8,7 @@ import SOAPpy
 import SOAPpy.WSDL
 
 from gavo import base
+from gavo import utils
 from gavo.utils import ElementTree
 
 
@@ -30,7 +31,7 @@ class ObjectCache(object):
 			handle, name = tempfile.mkstemp(dir=base.getConfig("cacheDir"))
 			f = os.fdopen(handle, "w")
 			cPickle.dump(self.cache, f)
-			f.close()
+			utils.safeclose(f)
 			os.rename(name, self._getCacheName())
 		except (IOError, os.error):
 			if not silent:

@@ -52,19 +52,6 @@ def _assertGrammar(cond, msg, pos):
 		raise STCSParseError(msg, pos)
 
 
-def addDefaults(tree):
-	"""adds defaults for missing values for a concrete syntax tree.
-
-	The tree is changed in place.  For details, see stcsdefaults.
-	"""
-	for path, node in iterNodes(tree):
-		if path in stcsdefaults.pathFunctions:
-			stcsdefaults.pathFunctions[path](node)
-		elif path and path[-1] in stcsdefaults.nodeNameFunctions:
-			stcsdefaults.nodeNameFunctions[path[-1]](node)
-	return tree
-
-
 def _iterDictNode(node, path):
 	"""does iterNode's work for dict nodes.
 	"""
@@ -100,6 +87,28 @@ def iterNodes(tree):
 		return _iterDictNode(tree, ())
 	else:
 		raise STCInternalError("Bad node in tree %s"%tree)
+
+
+def addDefaults(tree):
+	"""adds defaults for missing values for a concrete syntax tree.
+
+	The tree is changed in place.  For details, see stcsdefaults.
+	"""
+	for path, node in iterNodes(tree):
+		if path and path[-1] in stcsdefaults.defaultingFunctions:
+			stcsdefaults.defaultingFunctions[path[-1]](node)
+	return tree
+
+
+def removeDefaults(tree):
+	"""removes defaults from a concrete syntax tree.
+
+	The tree is changed in place.  For details, see stcsdefaults.
+	"""
+	for path, node in iterNodes(tree):
+		if path and path[-1] in stcsdefaults.undefaultingFunctions:
+			stcsdefaults.undefaultingFunctions[path[-1]](node)
+	return tree
 
 
 def makeTree(parseResult):
@@ -168,7 +177,7 @@ def getSymbols():
 		Keyword("UNKNOWNFrame"))("frame")
 	eqFrameName = (Keyword("FK5") | Keyword("FK4") | Keyword("ECLIPTIC")
 		)("frame")
-	eqSpec = Regex("[BJ][0-9]+")("equinox")
+	eqSpec = Regex("[BJ][0-9]+([.][0-9]*)?")("equinox")
 	eqFrame = eqFrameName + Optional( eqSpec )
 	frame = eqFrame | noEqFrame
 	refpos = (Regex(_reFromKeys(stcRefPositions)))("refpos")
@@ -221,9 +230,9 @@ def getSymbols():
 		_intervalOpener + ZeroOrMore( nakedTime )("coos") + 
 		_intervalCloser)
 	startTime = (Keyword("StartTime")("type") + _intervalOpener + 
-		nakedTime("startTime") + _intervalCloser)
+		nakedTime.setResultsName("coos", True) + _intervalCloser)
 	stopTime = (Keyword("StopTime")("type") + _intervalOpener + 
-		nakedTime("stopTime") + _intervalCloser)
+		nakedTime.setResultsName("coos", True) + _intervalCloser)
 	time = (Keyword("Time")("type")  + Optional( timescale("timescale") ) + 
 		Optional( refpos("refpos") ) + ZeroOrMore( nakedTime )("coos") + 
 		_commonTimeItems)
@@ -268,14 +277,19 @@ def getSymbols():
 	redshiftSpec = (Suppress( Keyword("Redshift") ) + number)("pos")
 	dopplerdef = Regex("OPTICAL|RADIO|RELATIVISTIC")("dopplerdef")
 	_redshiftTail = ( Optional( redshiftUnit ) +
-		Optional( error ) + Optional( resolution ) + Optional( pixSize ))
+		Optional( error("error") ) + Optional( resolution("resolution") ) + 
+		Optional( pixSize("pixSize") ))
 	redshiftInterval = (Keyword("RedshiftInterval")("type") + 
 		Optional( fillfactor ) + Optional( refpos ) + 
 		Optional( redshiftType ) + Optional( dopplerdef ) +
 		coos + Optional( redshiftSpec ) + _redshiftTail)
+# Probable typo: redshiftType and dopplerdef are behind coos in the
+# 1.30 specs.  We allow that but prefer them before coos.
 	redshift = (Keyword("Redshift")("type") + Optional( refpos ) +
-		coos + Optional( redshiftType ) +
-		Optional( dopplerdef ) + _redshiftTail)
+		Optional( redshiftType ) + Optional( dopplerdef ) +
+		coos + 
+		Optional( redshiftType ) + Optional( dopplerdef ) +
+		_redshiftTail)
 	redshiftSubPhrase = (redshiftInterval | redshift ).addParseAction(
 		makeTree)
 
@@ -319,9 +333,8 @@ def getCST(literal):
 	return tree
 
 
-
 if __name__=="__main__":
 	syms = getSymbols()
+#	print getCST("PositionInterval ICRS 1 2 3 4")
 	enableDebug(syms)
-	print makeTree(syms["stcsPhrase"].parseString(
-		"PositionInterval UNKNOWNFrame CART1 1 2 3 4 unit mm", parseAll=True))
+	print makeTree(syms["frame"].parseString("FK4 B1940.5"))

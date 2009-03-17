@@ -11,5 +11,7 @@ from gavo.utils.stanxml import ElementTree
 
 from gavo.utils.fitstools import readPrimaryHeaderQuick
 
+from gavo.utils.ostricks import safeclose
+
 from gavo.utils.texttricks import formatSize
 

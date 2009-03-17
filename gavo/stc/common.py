@@ -79,13 +79,13 @@ stcTimeScales = set(["TT", "TDT", "ET", "TAI", "IAT", "UTC", "TEB", "TDB",
 class ASTNodeType(type):
 	"""is a metaclass for ASTs.
 
-	The idea is quite similar to the GAVO DC's structure, only we keep it
-	much simpler: Define children in a class definition and make sure
-	they are actually present.
+	The idea is quite similar to the GAVO DC's Structure class, only we keep it
+	much simpler: Define children in a class definition and make sure they are
+	actually present.
 	
-	ASTNodes are supposed to be immutable; the are defined during
-	construction.  Currently, nothing keeps you from changing them
-	afterwards, but that may change.
+	ASTNodes are supposed to be immutable; the are defined during construction.
+	Currently, nothing keeps you from changing them afterwards, but that may
+	change.
 
 	The classes' constructor is defined to accept all attributes as arguments
 	(you probably want to use keyword arguments here).  It is the constructor
@@ -95,7 +95,7 @@ class ASTNodeType(type):
 	
 	To define the attributes of the class, add _a_<attname> attributes
 	giving a default to the class.  The default should normally be either
-	None for 1:1 or 1:0 mappings or an empty list for 1:n mappings.
+	None for 1:1 or 1:0 mappings or an empty tuple for 1:n mappings.
 	The defaults must return a repr that constructs them, since we create
 	a source fragment.
 	"""
@@ -129,3 +129,8 @@ class ASTNode(object):
 	def _setupNode(self):
 		pass
 
+	def iterAttributes(self):
+		"""yields pairs of attributeName, attributeValue for this node.
+		"""
+		for name, _ in self._nodeAttrs:
+			yield name, getattr(self, name)

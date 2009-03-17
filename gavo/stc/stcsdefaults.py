@@ -66,6 +66,23 @@ def _addDefaultsToNode(node, defaults):
 			node[key] = value
 
 
+def _removeDefaultsFromNode(node, defaults):
+	"""removes defaults from node.
+
+	See _addDefaultsToNode for details.
+	"""
+	defaultedKeys = []
+	for key, value in node.iteritems():
+		if key in defaults:
+			default = defaults[key]
+			if not isinstance(default, (basestring, list)):
+				default = default(node)
+			if value==default:
+				defaultedKeys.append(key)
+	for key in defaultedKeys:
+		del node[key]
+
+
 def _makeDefaulter(defaults):
 	"""returns a defaulting function filling in what is defined in
 	defaults.
@@ -75,30 +92,37 @@ def _makeDefaulter(defaults):
 	return func
 
 
-# A dict mapping the last element of a node path to a callable supplying
-# defaults.
-nodeNameFunctions = {
-	"space": _makeDefaulter([
-		("frame", "UNKNOWNFrame"),
+def _makeUndefaulter(defaults):
+	"""returns a function removing values in nodes that have their default
+	values.
+	"""
+	def func(node):
+		return _removeDefaultsFromNode(node, dict(defaults))
+	return func
+
+
+defaults = {
+	"space": [
 		("refpos", "UNKNOWNRefPos"),
 		("flavor", getSpaceFlavor),
 		("equinox", getEquinox),
-		("unit", getSpaceUnit)]),
-	"time": _makeDefaulter([
+		("unit", getSpaceUnit)],
+	"time": [
 		("timescale", "nil"),
 		("refpos", "UNKNOWNRefPos"),
-		("unit", "s")]),
-	"spectral": _makeDefaulter([
+		("unit", "s")],
+	"spectral": [
 		("refpos", "UNKNOWNRefPos"),
-		("unit", "Hz")]),
-	"redshift": _makeDefaulter([
+		("unit", "Hz")],
+	"redshift": [
 		("refpos", "UNKNOWNRefPos"),
 		("redshiftType", "VELOCITY"),
 		("unit", getRedshiftUnit),
-		("dopplerdef", "OPTICAL")]),
+		("dopplerdef", "OPTICAL")],
 }
 
+defaultingFunctions = dict(
+	(k, _makeDefaulter(v)) for k, v in defaults.iteritems())
 
-# A dict mapping full paths to a callable supplying defaults
-pathFunctions = {
-}
+undefaultingFunctions = dict(
+	(k, _makeUndefaulter(v)) for k, v in defaults.iteritems())

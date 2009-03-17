@@ -1,0 +1,9 @@
+(1) Multiple intervals (i.e., with more than two coordinates) can be parsed from
+STC-S but cannot be serialized back into STC-S.  The current syntax is
+somewhat inconsistent with the rest of STC-S, and I expect it to be
+changed in one way or another.
+
+(2) The Redshift sub-phrase wants the redshift value in front of the redshift
+type.  I consider that a typo.  The implementation allows type and dopplerdef
+behind the value (which would overwrite previous definitions) but generates
+them in front of the value.

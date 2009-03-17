@@ -10,6 +10,8 @@ import re
 
 import pyfits
 
+from gavo.utils import ostricks
+
 
 blockLen = 2880
 
@@ -163,7 +165,7 @@ def replacePrimaryHeaderInPlace(fitsName, newHeader):
 		inputFile = open(fitsName)
 		replacePrimaryHeader(inputFile, newHeader, targetFile)
 		inputFile.close()
-		targetFile.close()
+		ostricks.safeclose(targetFile)
 		os.rename(tempName, fitsName)
 		os.chmod(fitsName, oldMode)
 	finally:

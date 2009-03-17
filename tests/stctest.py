@@ -63,6 +63,13 @@ class OtherCoordTest(testhelpers.VerboseTest):
 			"BARYCENTER")
 		self.assertEqual(ast.redshifts[0].value, 2.)
 
+	def testComplexRedshift(self):
+		ast = stcsast.parseSTCS("Redshift BARYCENTER 2 REDSHIFT"
+			" RADIO Error 0 0.125")
+		self.assertEqual(ast.redshifts[0].error, (0, 0.125))
+		self.assertEqual(ast.redshifts[0].frame.type, "REDSHIFT")
+		self.assertEqual(ast.redshifts[0].frame.dopplerDef, "RADIO")
+
 	def testRaising(self):
 		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS,
 			"Time TT Error 1 2 3")
@@ -142,6 +149,20 @@ class OtherCoordIntervalTest(testhelpers.VerboseTest):
 			"REDSHIFT")
 		self.assertEqual(ast.redshiftAs[0].lowerLimit, 2.0)
 		self.assertEqual(ast.redshiftAs[0].upperLimit, 4.0)
+
+	def testStartTime(self):
+		ast = stcsast.parseSTCS("StartTime TT MJD24000.5")
+		self.assertEqual(len(ast.timeAs), 1)
+		self.assertEqual(ast.timeAs[0].upperLimit, None)
+		self.assertEqual(ast.timeAs[0].lowerLimit, 
+			datetime.datetime(1924, 8, 3, 12, 0))
+
+	def testStopTime(self):
+		ast = stcsast.parseSTCS("StopTime TT MJD24000.5")
+		self.assertEqual(len(ast.timeAs), 1)
+		self.assertEqual(ast.timeAs[0].lowerLimit, None)
+		self.assertEqual(ast.timeAs[0].upperLimit, 
+			datetime.datetime(1924, 8, 3, 12, 0))
 
 
 class SpaceCoordIntervalTest(testhelpers.VerboseTest):
@@ -256,4 +277,4 @@ class GeometryTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(GeometryTest)
+	testhelpers.main(OtherCoordTest)

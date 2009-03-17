@@ -65,10 +65,12 @@ class OtherCoordTest(STCMappingTest):
 			" Redshift TOPOCENTER 0.1 VELOCITY RELATIVISTIC", 
 			'<V><AstroCoordSystem ><SpectralFrame ><NEPTUNE /></SpectralFrame><RedshiftFrame  value_type="VELOCITY"><DopplerDefinition>RELATIVISTIC</DopplerDefinition><TOPOCENTER /></RedshiftFrame></AstroCoordSystem><AstroCoords ><Spectral  unit="Angstrom"><Value>12.0</Value><Error>4.0</Error><Error>3.0</Error></Spectral><Redshift  unit="km" vel_time_unit="s"><Value>0.1</Value></Redshift></AstroCoords></V>')
 
+
 class SpaceCoordTest(STCMappingTest):
 	def testSimple(self):
 		self.assertMapsto("Position ICRS 12.3 14.2",
 			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoords ><Position2D  unit="deg"><Value2><C1>12.3</C1><C2>14.2</C2></Value2></Position2D></AstroCoords></V>')
+
 
 class OtherCoordIntervalTest(STCMappingTest):
 	def testSome(self):
@@ -122,6 +124,7 @@ class RegionTest(STCMappingTest):
 	def testConvex(self):
 		self.assertMapsto("Convex ICRS 70 190 23 0.125 12 45 30 -0.25",
 			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><UNITSPHERE coord_naxes="3" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Convex  unit="deg"><Halfspace><Vector><C1>70.0</C1><C2>190.0</C2><C3>23.0</C3></Vector><Offset>0.125</Offset></Halfspace><Halfspace><Vector><C1>12.0</C1><C2>45.0</C2><C3>30.0</C3></Vector><Offset>-0.25</Offset></Halfspace></Convex></AstroCoordArea></V>')
+
 
 if __name__=="__main__":
 	testhelpers.main(RegionTest)
