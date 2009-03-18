@@ -4,6 +4,7 @@ Tests for parsing STC-X into ASTs.
 """
 
 import bz2
+import datetime
 
 from gavo import stc
 
@@ -129,6 +130,43 @@ class M81ImageTest(XMLSrcTestBase):
 		self.assertAlmostEqual(p.value[0], 148.88821)
 		self.assertAlmostEqual(p.resolution[0][1], 0.00025)
 		self.assertAlmostEqual(p.pixSize[0][1], 0.0001)
+		self.failUnless(p.frame is self.ast.systems[1].spaceFrame,
+			"Wrong frame on complex places")
+
+	def testTime(self):
+		p = self.ast.times[0]
+		self.assertEqual(p.unit, "s")
+		self.assertEqual(p.value, datetime.datetime(2004, 7, 15, 8, 23, 56))
+		self.assertEqual(p.resolution[0], 1000.0)
+		self.assertEqual(p.pixSize[0], 1000.0)
+		self.failUnless(p.frame is self.ast.systems[1].timeFrame,
+			"Wrong frame on time.")
+
+	def testSpectral(self):
+		p = self.ast.freqs[0]
+		self.assertEqual(p.unit, "Angstrom")
+		self.assertEqual(p.value, 4600.)
+		self.assertEqual(p.resolution[0], 400.0)
+		self.assertEqual(p.pixSize[0], 400.0)
+		self.failUnless(p.frame is self.ast.systems[1].spectralFrame,
+			"Wrong frame on spectral.")
+	
+	def testTimeInterval(self):
+		p = self.ast.timeAs[0]
+		self.assertEqual(p.unit, None)
+		self.assertEqual(p.lowerLimit, datetime.datetime(2004, 7, 15, 8, 17, 36))
+		self.assertEqual(p.upperLimit, datetime.datetime(2004, 7, 15, 8, 30, 16))
+		self.failUnless(p.frame is self.ast.systems[1].timeFrame,
+			"Wrong frame on time interval.")
+	
+	def testSpectralInterval(self):
+		p = self.ast.freqAs[0]
+		self.assertEqual(p.unit, "Angstrom")
+		self.assertEqual(p.lowerLimit, 4400.)
+		self.assertEqual(p.upperLimit, 4800.)
+		self.failUnless(p.frame is self.ast.systems[1].spectralFrame,
+			"Wrong frame on spectral interval.")
+
 
 
 def _wrapSample(srcPath):

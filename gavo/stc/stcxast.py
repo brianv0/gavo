@@ -3,6 +3,7 @@ Building ASTs from STC-X trees.
 """
 
 from gavo.stc import dm
+from gavo.stc import times
 from gavo.stc.common import *
 
 
@@ -31,7 +32,7 @@ def _makeKeywordBuilder(kw):
 	return buildKeyword
 
 
-def _makeKWValueBuilder(kwName):
+def _makeKwValuesBuilder(kwName):
 	"""returns a builder that takes vals from the buildArgs and
 	returns a tuple of them under kwName.
 
@@ -39,6 +40,29 @@ def _makeKWValueBuilder(kwName):
 	"""
 	def buildNode(node, buildArgs, context):
 		yield kwName, (buildArgs["vals"],)
+	return buildNode
+
+
+def _makeKwValueBuilder(kwName):
+	"""returns a builder that takes vals from the buildArgs and
+	returns a single value under kwName.
+
+	The vals key is left by builders like _buildVector.
+	"""
+	def buildNode(node, buildArgs, context):
+		yield kwName, buildArgs["vals"],
+	return buildNode
+
+
+def _makeKwFloatBuilder(kwName):
+	"""returns a builder that returns float(node.text) under kwName.
+
+	The builder will also add a pos_unit key if appropriate.
+	"""
+	def buildNode(node, buildArgs, context):
+		yield kwName, (float(node.text),)
+		if 'pos_unit' in node.attrib:
+			yield 'pos_unit', (node.get('pos_unit'),)
 	return buildNode
 
 
@@ -50,6 +74,61 @@ def _makeNodeBuilder(kwName, astObject):
 		buildArgs["id"] = node.get(id, None)
 		yield kwName, astObject(**buildArgs)
 	return buildNode
+
+
+def _iterCooMeta(node, context, frameName):
+	"""yields various meta information for coordinate-like objects.
+	
+	For frame, it returns a proxy for a coordinate's reference frame.
+	For unit, if one is given on the element, override whatever we may 
+	have got from downtree.
+
+	Rules for inferring the frame:
+
+	If there's a frame id on node, use it. 
+	
+	Else see if there's a coo sys id on the frame.  If it's missing, take 
+	it from the context, then make a proxy to the referenced system's 
+	spatial frame.
+	"""
+	if "frame_id" in node.attrib:
+		yield "frame", IdProxy(idref=node["frame_id"])
+	elif "coord_system_id" in node.attrib:
+		yield "frame", IdProxy(idref=node["frame_id"], useAttr=frameName)
+	else:
+		yield "frame", IdProxy(idref=context.sysIdStack[-1], 
+			useAttr=frameName)
+	if "unit" in node.attrib and node.get("unit"):
+		yield "unit", node.get("unit")
+
+
+def _makeIntervalBuilder(kwName, astClass, frameName):
+	"""returns a builder that makes astObject with the current buildArgs
+	and fixes its frame reference.
+	"""
+	def buildNode(node, buildArgs, context):
+		for key, value in _iterCooMeta(node, context, frameName):
+			buildArgs[key] = value
+		if "lowerLimit" in buildArgs:
+			buildArgs["lowerLimit"] = buildArgs["lowerLimit"][0]
+		if "upperLimit" in buildArgs:
+			buildArgs["upperLimit"] = buildArgs["upperLimit"][0]
+		yield kwName, (astClass(**buildArgs),)
+	return buildNode
+
+
+def _makePositionBuilder(kw, astClass, frameName):
+	"""returns a builder for a coordinate of astClass to be added with kw.
+	"""
+	def buildPosition(node, buildArgs, context):
+		if len(buildArgs.get("vals", ()))!=1:
+			raise STCValueError("Need exactly one value to build position")
+		buildArgs["value"] = buildArgs["vals"][0]
+		del buildArgs["vals"]
+		for key, value in _iterCooMeta(node, context, frameName):
+			buildArgs[key] = value
+		yield kw, (astClass(**buildArgs),)
+	return buildPosition
 
 
 class ContextActions(object):
@@ -100,36 +179,28 @@ class CooSysActions(object):
 	def stop(self, context, node):
 		context.sysIdStack.pop()
 
-def _buildFloat(node, buildArgs, context):
-	yield 'vals', (float(node.text),)
-	if 'pos_unit' in node.attrib:
-		yield 'pos_unit', (node.get('pos_unit'),)
+
+
+def _buildTime(node, buildArgs, context):
+	"""adds vals from the time node.
+
+	node gets introspected to figure out what kind of time we're talking
+	about.  The value always is a datetime instance.
+	"""
+	parser = {
+		"ISOTime": times.parseISODT,
+		"JDTime": lambda v: times.jdnToDateTime(float(v)),
+		"MJDTime": lambda v: times.mjdToDateTime(float(v)),
+	}[_localname(node.tag)]
+	yield "vals", (parser(node.text),)
+
+_buildFloat = _makeKwFloatBuilder("vals")
 
 def _buildVector(node, buildArgs, context):
 	yield 'vals', (tuple(buildArgs["vals"]),)
 	if "pos_unit" in buildArgs:
 		yield "unit", " ".join(buildArgs["pos_unit"])
 
-def _buildPosition(node, buildArgs, context):
-	if len(buildArgs.get("vals", ()))!=1:
-		raise STCValueError("Need exactly one value to build position")
-	buildArgs["value"] = buildArgs["vals"][0]
-	del buildArgs["vals"]
-	# Fill in frame: If there's a frame id, use it, else see if there's
-	# a coo sys id.  If it's missing, take it from the context, then make
-	# a proxy to the referenced system's spatial frame.
-	if "frame_id" in node.attrib:
-		buildArgs["frame"] = IdProxy(idref=node["frame_id"])
-	elif "coord_system_id" in node.attrib:
-		buildArgs["frame"] = IdProxy(idref=node["frame_id"], useAttr="spaceFrame")
-	else:
-		buildArgs["frame"] = IdProxy(idref=context.sysIdStack[-1], 
-			useAttr="spaceFrame")
-	# Figure out the unit -- if one is given on the element, override
-	# whatever we may have got from downtree.
-	if "unit" in node.attrib and node.get("unit"):
-		buildArgs["unit"] = node.get("unit")
-	yield 'places', (dm.SpaceCoo(**buildArgs),)
 
 
 ################# Toplevel
@@ -228,17 +299,20 @@ def _n(name):
 # STC-X elements by calling functions
 _stcBuilders = [
 	(_buildFloat, ["C1", "C2", "C3"]),
+	(_buildTime, ["ISOTime", "JDTime", "MJDTime"]),
 	(_buildVector, ["Value2", "Value3"]),
 	(_buildRefpos, stcRefPositions),
 	(_buildFlavor, stcCoordFlavors),
 	(_buildRefFrame, stcSpaceRefFrames),
-	(_buildPosition, ["Position3D", "Position2D"]),
-	(_makeKWValueBuilder("resolution"), ["Resolution", "Resolution2",
+	(_makePositionBuilder('places', dm.SpaceCoo, "spaceFrame"), 
+		["Position3D", "Position2D"]),
+	(_makeKwValuesBuilder("resolution"), ["Resolution2",
 		"Resolution3"]),
-	(_makeKWValueBuilder("pixSize"), ["PixSize", "PixSize2",
+	(_makeKwValuesBuilder("pixSize"), ["PixSize2",
 		"PixSize3"]),
 	(_passthrough, ["ObsDataLocation", "ObservatoryLocation",
-		"ObservationLocation", "AstroCoords"]),
+		"ObservationLocation", "AstroCoords", "TimeInstant",
+		"AstroCoordArea"]),
 ]
 
 # A sequence of (stcElementName, kw, AST class) to handle
@@ -254,8 +328,24 @@ _stcNodeBuilders = [
 def _getHandlers():
 	handlers = {
 		_n("AstroCoordSystem"): _buildAstroCoordSystem,
-		_n("TimeScale"): _makeKeywordBuilder("timeScale"),
+		_n("Error"): _makeKwFloatBuilder("error"),
+		_n("PixSize"): _makeKwFloatBuilder("pixSize"),
+		_n("Redshift"): _makePositionBuilder('redshifts', dm.RedshiftCoo, "redshiftFrame"), 
+		_n("Resolution"): _makeKwFloatBuilder("resolution"),
+		_n("Size"): _makeKwFloatBuilder("size"),
+		_n("Spectral"): _makePositionBuilder('freqs', dm.SpectralCoo, "spectralFrame"), 
+		_n("StartTime"): _makeKwValueBuilder("lowerLimit"),
+		_n("StopTime"): _makeKwValueBuilder("upperLimit"),
+		_n("LoLimit"): _makeKwFloatBuilder("lowerLimit"),
+		_n("HiLimit"): _makeKwFloatBuilder("upperLimit"),
+		_n("Time"): _makePositionBuilder('times', dm.TimeCoo, "timeFrame"),
 		_n("Timescale"): _makeKeywordBuilder("timeScale"),
+		_n("TimeScale"): _makeKeywordBuilder("timeScale"),
+		_n("Value"): _makeKwFloatBuilder("vals"),
+		_n("TimeInterval"): _makeIntervalBuilder("timeAs", dm.TimeInterval,
+			"timeFrame"),
+		_n("SpectralInterval"): _makeIntervalBuilder("freqAs", dm.SpectralInterval,
+			"spectralFrame"),
 	}
 	for builder, stcEls in _stcBuilders:
 		for el in stcEls:
@@ -270,6 +360,7 @@ getHandlers = CachedGetter(_getHandlers)
 def _getActiveTags():
 	return {
 		_n("AstroCoords"): CooSysActions(),
+		_n("AstroCoordArea"): CooSysActions(),
 	}
 
 getActiveTags = CachedGetter(_getActiveTags)
