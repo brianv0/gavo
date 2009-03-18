@@ -32,7 +32,7 @@ def addId(node):
 	"""adds a synthetic id attribute to node unless it's already
 	there.
 	"""
-	if not hasattr(node, "id"):
+	if not hasattr(node, "id") or node.id is None:
 		node.id = intToFunnyWord(id(node))
 
 

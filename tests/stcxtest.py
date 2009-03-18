@@ -127,4 +127,4 @@ class RegionTest(STCMappingTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(RegionTest)
+	testhelpers.main(SpaceFrameTest)

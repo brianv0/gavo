@@ -43,7 +43,7 @@ class STCNotImplementedError(STCError):
 
 
 STCNamespace = "http://www.ivoa.net/xml/STC/stc-v1.30.xsd"
-XlinkNamespace = "http://www.w3.org/1999/xlink/"
+XlinkNamespace = "http://www.w3.org/1999/xlink"
 
 ElementTree._namespace_map[STCNamespace] = "stc"
 ElementTree._namespace_map[XlinkNamespace] = "xlink"
@@ -72,6 +72,16 @@ stcCoordFlavors = set(["SPHERICAL", "CARTESIAN", "UNITSPHERE", "POLAR",
 # known time scales
 stcTimeScales = set(["TT", "TDT", "ET", "TAI", "IAT", "UTC", "TEB", "TDB",
 	"TCG", "TCB", "LST", "nil"])
+
+
+class CachedGetter(object):
+	def __init__(self, getter):
+		self.cache, self.getter = None, getter
+	
+	def __call__(self):
+		if self.cache is None:
+			self.cache = self.getter()
+		return self.cache
 
 
 # Nodes for ASTs
@@ -125,12 +135,30 @@ class ASTNode(object):
 	__metaclass__ = ASTNodeType
 
 	_a_ucd = None
+	_a_id = None
 
 	def _setupNode(self):
 		pass
 
-	def iterAttributes(self):
+	def iterAttributes(self, skipEmpty=False):
 		"""yields pairs of attributeName, attributeValue for this node.
 		"""
 		for name, _ in self._nodeAttrs:
-			yield name, getattr(self, name)
+			val = getattr(self, name)
+			if skipEmpty and not val:
+				continue
+			yield name, val
+	
+	def iterNodes(self):
+		"""iterates the tree preorder.
+
+		Only ASTNodes are returned, not python values.
+		"""
+		childIterators = []
+		for name, value in self.iterAttributes():
+			if isinstance(value, ASTNode):
+				childIterators.append(value.iterNodes())
+			elif isinstance(value, (list,tuple)) and value:
+				if isinstance(value[0], ASTNode):
+					childIterators.extend(c.iterNodes() for c in value)
+		return itertools.chain((self,), *childIterators)

@@ -171,3 +171,11 @@ class STCSpec(ASTNode):
 	_a_areas = ()
 	_a_freqAs = ()
 	_a_redshiftAs = ()
+
+	def buildIdMap(self):
+		if hasattr(self, "idMap"):
+			return
+		self.idMap = {}
+		for node in self.iterNodes():
+			if node.id:
+				self.idMap[node.id] = node

@@ -311,16 +311,7 @@ def enableDebug(syms, debugNames=None):
 		ob.setName(name)
 
 
-class CachedGetter(object):
-	def __init__(self, getter):
-		self.cache, self.getter = None, getter
-	
-	def __call__(self):
-		if self.cache is None:
-			self.cache = self.getter()
-		return self.cache
-
-getGrammar = CachedGetter(lambda: getSymbols())
+getGrammar = CachedGetter(getSymbols)
 
 
 def getCST(literal):
