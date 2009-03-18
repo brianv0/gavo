@@ -10,6 +10,8 @@ from gavo.stc.common import *
 _xlinkHref = str(ElementTree.QName(XlinkNamespace, "href"))
 
 
+####################### Helpers
+
 def _localname(qName):
 	"""hacks the local tag name from a {ns}-serialized qName.
 	"""
@@ -40,6 +42,17 @@ def _makeKwValuesBuilder(kwName):
 	"""
 	def buildNode(node, buildArgs, context):
 		yield kwName, (buildArgs["vals"],)
+	return buildNode
+
+
+def _makeKwVectorBuilder(kwName):
+	"""returns a builder that takes vals from the buildArgs and
+	returns them as a vector in a tuple under kwName.
+
+	The vals key is left by builders like _buildVector.
+	"""
+	def buildNode(node, buildArgs, context):
+		yield kwName, (tuple(buildArgs["vals"]),)
 	return buildNode
 
 
@@ -117,6 +130,23 @@ def _makeIntervalBuilder(kwName, astClass, frameName):
 	return buildNode
 
 
+def _fixWiggles(buildArgs):
+	"""modifies buildArgs so all wiggles are properly wrapped in their
+	classes.
+	"""
+	for wiggleType in ["error", "resolution", "size", "pixSize"]:
+		if wiggleType in buildArgs:
+			buildArgs[wiggleType] = dm.CooWiggle(values=buildArgs[wiggleType])
+		if wiggleType+"Radius" in buildArgs:
+			buildArgs[wiggleType] = dm.RadiusWiggle(
+				radii=buildArgs[wiggleType+"Radius"])
+			del buildArgs[wiggleType+"Radius"]
+		if wiggleType+"Matrix" in buildArgs:
+			buildArgs[wiggleType] = dm.MatrixWiggle(
+				matrices=buildArgs[wiggleType+"Matrix"])
+			del buildArgs[wiggleType+"Matrix"]
+
+
 def _makePositionBuilder(kw, astClass, frameName):
 	"""returns a builder for a coordinate of astClass to be added with kw.
 	"""
@@ -127,6 +157,7 @@ def _makePositionBuilder(kw, astClass, frameName):
 		del buildArgs["vals"]
 		for key, value in _iterCooMeta(node, context, frameName):
 			buildArgs[key] = value
+		_fixWiggles(buildArgs)
 		yield kw, (astClass(**buildArgs),)
 	return buildPosition
 
@@ -178,7 +209,6 @@ class CooSysActions(object):
 	
 	def stop(self, context, node):
 		context.sysIdStack.pop()
-
 
 
 def _buildTime(node, buildArgs, context):
@@ -304,12 +334,36 @@ _stcBuilders = [
 	(_buildRefpos, stcRefPositions),
 	(_buildFlavor, stcCoordFlavors),
 	(_buildRefFrame, stcSpaceRefFrames),
+
 	(_makePositionBuilder('places', dm.SpaceCoo, "spaceFrame"), 
 		["Position3D", "Position2D"]),
-	(_makeKwValuesBuilder("resolution"), ["Resolution2",
-		"Resolution3"]),
-	(_makeKwValuesBuilder("pixSize"), ["PixSize2",
-		"PixSize3"]),
+
+	(_makeKwValuesBuilder("resolution"), ["Resolution2", "Resolution3"]),
+	(_makeKwValuesBuilder("pixSize"), ["PixSize2", "PixSize3"]),
+	(_makeKwValuesBuilder("error"), ["Error2", "Error3"]),
+	(_makeKwValuesBuilder("size"), ["Size2", "Size3"]),
+
+	(_makeKwFloatBuilder("resolutionRadius"), 
+		["Resolution2Radius", "Resolution3Radius"]),
+	(_makeKwFloatBuilder("pixSizeRadius"), 
+		["PixSize2Radius", "PixSize3Radius"]),
+	(_makeKwFloatBuilder("errorRadius"), ["Error2Radius", "Error3Radius"]),
+	(_makeKwFloatBuilder("sizeRadius"), ["Size2Radius", "Size3Radius"]),
+
+	(_makeKwValuesBuilder("resolutionMatrix"), 
+		["Resolution2Matrix", "Resolution3Matrix"]),
+	(_makeKwValuesBuilder("pixSizeMatrix"), 
+		["PixSize2Matrix", "PixSize3Matrix"]),
+	(_makeKwValuesBuilder("errorMatrix"), ["Error2Matrix", "Error3Matrix"]),
+	(_makeKwValuesBuilder("sizeMatrix"), ["Size2Matrix", "Size3Matrix"]),
+
+	(_makeKwVectorBuilder("upperLimit"), ["HiLimit2Vec", "HiLimit3Vec"]),
+	(_makeKwVectorBuilder("lowerLimit"), ["LoLimit2Vec", "LoLimit3Vec"]),
+
+	(_makeIntervalBuilder("areas", dm.SpaceInterval, "spaceFrame"),
+		["PositionScalarInterval", "Position2VecInterval",
+			"Position3VecInterval"]),
+
 	(_passthrough, ["ObsDataLocation", "ObservatoryLocation",
 		"ObservationLocation", "AstroCoords", "TimeInstant",
 		"AstroCoordArea"]),
@@ -342,6 +396,7 @@ def _getHandlers():
 		_n("Timescale"): _makeKeywordBuilder("timeScale"),
 		_n("TimeScale"): _makeKeywordBuilder("timeScale"),
 		_n("Value"): _makeKwFloatBuilder("vals"),
+
 		_n("TimeInterval"): _makeIntervalBuilder("timeAs", dm.TimeInterval,
 			"timeFrame"),
 		_n("SpectralInterval"): _makeIntervalBuilder("freqAs", dm.SpectralInterval,

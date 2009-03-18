@@ -128,8 +128,9 @@ class M81ImageTest(XMLSrcTestBase):
 		p = self.ast.places[1]
 		self.assertEqual(p.unit, "deg")
 		self.assertAlmostEqual(p.value[0], 148.88821)
-		self.assertAlmostEqual(p.resolution[0][1], 0.00025)
-		self.assertAlmostEqual(p.pixSize[0][1], 0.0001)
+		self.assertAlmostEqual(p.resolution.values[0][1], 0.00025)
+		self.assertAlmostEqual(p.pixSize.values[0][1], 0.0001)
+		self.assertAlmostEqual(p.error.radii[0], 0.0003)
 		self.failUnless(p.frame is self.ast.systems[1].spaceFrame,
 			"Wrong frame on complex places")
 
@@ -137,8 +138,8 @@ class M81ImageTest(XMLSrcTestBase):
 		p = self.ast.times[0]
 		self.assertEqual(p.unit, "s")
 		self.assertEqual(p.value, datetime.datetime(2004, 7, 15, 8, 23, 56))
-		self.assertEqual(p.resolution[0], 1000.0)
-		self.assertEqual(p.pixSize[0], 1000.0)
+		self.assertEqual(p.resolution.values[0], 1000.0)
+		self.assertEqual(p.pixSize.values[0], 1000.0)
 		self.failUnless(p.frame is self.ast.systems[1].timeFrame,
 			"Wrong frame on time.")
 
@@ -146,8 +147,8 @@ class M81ImageTest(XMLSrcTestBase):
 		p = self.ast.freqs[0]
 		self.assertEqual(p.unit, "Angstrom")
 		self.assertEqual(p.value, 4600.)
-		self.assertEqual(p.resolution[0], 400.0)
-		self.assertEqual(p.pixSize[0], 400.0)
+		self.assertEqual(p.resolution.values[0], 400.0)
+		self.assertEqual(p.pixSize.values[0], 400.0)
 		self.failUnless(p.frame is self.ast.systems[1].spectralFrame,
 			"Wrong frame on spectral.")
 	
@@ -167,6 +168,13 @@ class M81ImageTest(XMLSrcTestBase):
 		self.failUnless(p.frame is self.ast.systems[1].spectralFrame,
 			"Wrong frame on spectral interval.")
 
+	def testSpaceInterval(self):
+		p = self.ast.areas[0]
+		self.assertEqual(p.unit, "deg")
+		self.assertAlmostEqual(p.lowerLimit[0], 148.18821)
+		self.assertAlmostEqual(p.upperLimit[1], 69.31529)
+		self.failUnless(p.frame is self.ast.systems[1].spaceFrame,
+			"Wrong frame on space interval.")
 
 
 def _wrapSample(srcPath):

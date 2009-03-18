@@ -119,8 +119,8 @@ class CoordinateLike(ASTNode):
 	_a_frame = None
 	_a_name = None
 	_a_error = None
-	_a_resolution = ()
-	_a_pixSize = ()
+	_a_resolution = None
+	_a_pixSize = None
 	_a_unit = None
 	_a_velTimeUnit = None
 
