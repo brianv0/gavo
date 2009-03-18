@@ -96,10 +96,7 @@ class STC(object):
 		a_unit = None
 		a_vel_time_unit = None
 
-	class Error(T_double1): pass
-	class Error2Radius(T_double1): pass
-	class Resolution(T_double1): pass
-	class Size(T_double1): pass
+	class T_matrix(OptionalSTCElement): pass
 
 	class T_coordinate(T_double2):
 		a_frame_id = None
@@ -306,11 +303,16 @@ class STC(object):
 		pass
 	
 
-STC._addSubsGroup(STC.T_double1, ["C1", "C2", "C3", "e", "Error", 
-	"Error2Radius",
-	"Error3Radius", "HiLimit", "LoLimit", "PixSize", "Radius", "Resolution",
-	"Resolution2Radius", "Resolution3Radius", "Scale", "SemiMajorAxis",
-	"SemiMinorAxis", "Size2Radius", "Size3Radius", "Value"])
+STC._addSubsGroup(STC.T_double1, ["C1", "C2", "C3", "e", 
+	"Error", "Size", "Resolution", "PixSize",
+	"Error2Radius", "Error3Radius", 
+	"Size2Radius", "Size3Radius", 
+	"PixSize2Radius", "PixSize3Radius", 
+	"Resolution2Radius", "Resolution3Radius", 
+	"M11", "M12", "M13", "M21", "M22", "M23", "M31", "M32", "M33",
+	"HiLimit", "LoLimit", "Radius",
+	"Scale", "SemiMajorAxis", "SemiMinorAxis", 
+	"Value"])
 
 STC._addSubsGroup(STC.T_double2, ["HiLimit2Vec", "LoLimit2Vec", 
 	"Pole", "Position", "Value2"])
@@ -323,6 +325,10 @@ STC._addSubsGroup(STC.T_size2, ["Error2", "PixSize2", "Resolution2",
 
 STC._addSubsGroup(STC.T_size3, ["Error3", "PixSize3", "Resolution3", 
 	"Size3", "Transform3", "CValue3"])
+
+STC._addSubsGroup(STC.T_matrix,["Error2Matrix", "Error3Matrix", 
+	"Size2Matrix", "Size3Matrix", "PixSize2Matrix", "PixSize3Matrix", 
+	"Resolution2Matrix", "Resolution3Matrix",])
 
 STC._addSubsGroup(STC.T_SpaceRefFrame, stcSpaceRefFrames)
 STC._addSubsGroup(STC.T_ReferencePosition,stcRefPositions)

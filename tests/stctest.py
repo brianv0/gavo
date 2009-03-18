@@ -47,7 +47,7 @@ class OtherCoordTest(testhelpers.VerboseTest):
 	def testSimpleTime(self):
 		ast = stcsast.parseSTCS("Time TT 2000-12-20T23:02:12 unit yr Error 2")
 		self.assertEqual(ast.times[0].frame.timeScale, "TT")
-		self.assertEqual(ast.times[0].error, (2.0,))
+		self.assertEqual(ast.times[0].error.values, (2.0,))
 		self.assertEqual(ast.times[0].value, 
 			datetime.datetime(2000, 12, 20, 23, 2, 12))
 		
@@ -55,7 +55,7 @@ class OtherCoordTest(testhelpers.VerboseTest):
 		ast = stcsast.parseSTCS("Spectral BARYCENTER 23 Resolution 0.25 0.5")
 		self.assertEqual(ast.freqs[0].frame.refPos.standardOrigin, "BARYCENTER")
 		self.assertEqual(ast.freqs[0].value, 23.)
-		self.assertEqual(ast.freqs[0].resolution, (0.25, 0.5))
+		self.assertEqual(ast.freqs[0].resolution.values, (0.25, 0.5))
 
 	def testSimpleRedshift(self):
 		ast = stcsast.parseSTCS("Redshift BARYCENTER 2 unit km/s")
@@ -66,7 +66,7 @@ class OtherCoordTest(testhelpers.VerboseTest):
 	def testComplexRedshift(self):
 		ast = stcsast.parseSTCS("Redshift BARYCENTER 2 REDSHIFT"
 			" RADIO Error 0 0.125")
-		self.assertEqual(ast.redshifts[0].error, (0, 0.125))
+		self.assertEqual(ast.redshifts[0].error.values, (0, 0.125))
 		self.assertEqual(ast.redshifts[0].frame.type, "REDSHIFT")
 		self.assertEqual(ast.redshifts[0].frame.dopplerDef, "RADIO")
 
@@ -85,12 +85,17 @@ class SpaceCoordTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.places[0].frame.nDim, 2)
 		self.assertEqual(ast.places[0].value, (2., 4.25))
 		self.assertEqual(ast.places[0].unit, "deg")
-		self.assertEqual(ast.places[0].pixSize, ((4.5, 3.75),))
+		self.assertEqual(ast.places[0].pixSize.values, ((4.5, 3.75),))
 	
 	def testPixSizeRange(self):
 		ast = stcsast.parseSTCS("Position FK5 TOPOCENTER 2 4.25 unit deg"
 			" PixSize 4.5 3.75 1 5")
-		self.assertEqual(ast.places[0].pixSize, ((4.5, 3.75), (1., 5.)))
+		self.assertEqual(ast.places[0].pixSize.values, ((4.5, 3.75), (1., 5.)))
+
+	def testSizeRange(self):
+		ast = stcsast.parseSTCS("Position FK5 TOPOCENTER 2 4.25 unit deg"
+			" Size 4.5 3.75 1 5")
+		self.assertEqual(ast.places[0].size.values, ((4.5, 3.75), (1., 5.)))
 
 	def testRaises(self):
 		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS,
@@ -187,7 +192,7 @@ class SpaceCoordIntervalTest(testhelpers.VerboseTest):
 		self.assertEqual(len(ast.areas), 1)
 		self.assertEqual(ast.areas[0].lowerLimit, (1.0, 2.0, 3.0))
 		self.assertEqual(ast.areas[0].upperLimit, (4.0, 5.0, 6.0))
-		self.assertEqual(ast.areas[0].error, ((.25, .5, .75),))
+		self.assertEqual(ast.areas[0].error.values, ((.25, .5, .75),))
 	
 	def testWithPosition(self):
 		ast = stcsast.parseSTCS("PositionInterval ICRS 12.25 23.75 13.5 25.0"

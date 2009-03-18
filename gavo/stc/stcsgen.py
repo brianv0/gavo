@@ -95,12 +95,25 @@ def _flattenVectors(aList):
 		return aList
 
 
+def _wiggleToCST(node, nDim):
+	if node is None:
+		return
+	if isinstance(node, dm.CooWiggle):
+		return node.values
+	elif isinstance(node, dm.RadiusWiggle):
+		return tuple(itertools.chain(*[(r,)*nDim for r in node.radii]))
+	else:
+		raise STCValueError("Cannot serialize %s errors into STC-S"%
+			node.__class__.__name__)
+
+
 def _makeBasicCooMaker(frameMaker):
 	def toCST(node):
+		nDim = node.frame.nDim
 		return _combine({
-			"error": node.error,
-			"resolution": node.resolution,
-			"pixSize": node.pixSize,
+			"error": _wiggleToCST(node.error, nDim),
+			"resolution": _wiggleToCST(node.resolution, nDim),
+			"pixSize": _wiggleToCST(node.pixSize, nDim),
 			"unit": _makeUnit(node),},
 			frameMaker(node.frame))
 	return toCST
@@ -171,7 +184,7 @@ def _makePhraseTreeMapper(cooMapper, areaMapper, basicArgsMaker):
 
 def _basicSpatialCoosToCST(node, getBase=_makeBasicCooMaker(_spaceFrameToCST)):
 	cstNode = getBase(node)
-	cstNode["size"] = node.size
+	cstNode["size"] = _wiggleToCST(node.size, node.frame.nDim)
 	return cstNode
 
 

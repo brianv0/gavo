@@ -128,6 +128,41 @@ def _wrapValues(element, valSeq, mapper=str):
 	return [element[mapper(v)] for v in valSeq]
 
 
+def _serialize_Wiggle(node, serializer, wiggles):
+	if node is None:
+		return
+	cooClass, radiusClass, matrixClass = wiggles
+	if isinstance(node, dm.CooWiggle):
+		return _wrapValues(cooClass, node.values, serializer),
+	elif isinstance(node, dm.RadiusWiggle):
+		return [radiusClass[str(r)] for r in node.radii]
+	elif isinstance(node, dm.MatrixWiggle):
+		return [matrixClass[_wrapMatrix(m)] for m in node.matrices]
+	else:
+		STCValueError("Cannot serialize %s errors to STC-X"%
+			node.__class__.__name__)
+
+
+wiggleClasses = {
+	"error": [
+		(STC.Error, None, None),
+		(STC.Error2, STC.Error2Radius, STC.Error2Matrix),
+		(STC.Error3, STC.Error3Radius, STC.Error3Matrix),],
+	"resolution": [
+		(STC.Resolution, None, None),
+		(STC.Resolution2, STC.Resolution2Radius, STC.Resolution2Matrix),
+		(STC.Resolution3, STC.Resolution3Radius, STC.Resolution3Matrix),],
+	"size": [
+		(STC.Size, None, None),
+		(STC.Size2, STC.Size2Radius, STC.Size2Matrix),
+		(STC.Size3, STC.Size3Radius, STC.Size3Matrix),],
+	"pixSize": [
+		(STC.PixSize, None, None),
+		(STC.PixSize2, STC.PixSize2Radius, STC.PixSize2Matrix),
+		(STC.PixSize3, STC.PixSize3Radius, STC.PixSize3Matrix),],
+}
+
+
 def _make1DSerializer(cooClass, valueSerializer):
 	"""returns a serializer returning a coordinate cooClass.
 
@@ -139,9 +174,9 @@ def _make1DSerializer(cooClass, valueSerializer):
 		return cooClass(unit=node.unit, vel_time_unit=node.velTimeUnit,
 				frame_id=node.frame.id)[
 			valueSerializer(node.value),
-			_wrapValues(STC.Error, node.error),
-			_wrapValues(STC.Resolution, node.resolution),
-			_wrapValues(STC.PixSize, node.pixSize),
+			_wrapValues(STC.Error, getattr(node.error, "values", ())),
+			_wrapValues(STC.Resolution, getattr(node.resolution, "values", ())),
+			_wrapValues(STC.PixSize, getattr(node.pixSize, "values", ())),
 		]
 	return serialize
 
@@ -159,14 +194,15 @@ def _wrap2D(val):
 def _wrap3D(val):
 	return [STC.C1[val[0]], STC.C2[val[1]], STC.C3[val[2]]]
 
+def _wrapMatrix(val):
+	for rowInd, row in enumerate(val):
+		for colInd, col in enumerate(row):
+			yield getattr(STC, "M%d%d"%(rowInd, colInd))[str(col)]
 
 positionClasses = (
-	(STC.Position1D, STC.Value, STC.Error, STC.Resolution, 
-		STC.Size, STC.PixSize, str),
-	(STC.Position2D, STC.Value2, STC.Error2, STC.Resolution2, 
-		STC.Size2, STC.PixSize2, _wrap2D),
-	(STC.Position3D, STC.Value3, STC.Error3, STC.Resolution3, 
-		STC.Size3, STC.PixSize, _wrap3D),
+	(STC.Position1D, STC.Value, str),
+	(STC.Position2D, STC.Value2, _wrap2D),
+	(STC.Position3D, STC.Value3, _wrap3D),
 )
 
 def serialize_SpaceCoo(node):
@@ -175,13 +211,13 @@ def serialize_SpaceCoo(node):
 	This is quite messy since the concrete choice of elements depends on
 	the coordinate frame.
 	"""
-	coo, val, err, res, siz, psz, serializer = positionClasses[node.frame.nDim-1]
+	dimInd = node.frame.nDim-1
+	coo, val, serializer = positionClasses[dimInd]
 	return coo(unit=node.unit, frame_id=node.frame.id)[
 			val[serializer(node.value)],
-			_wrapValues(err, node.error, serializer),
-			_wrapValues(res, node.resolution, serializer),
-			_wrapValues(siz, node.size, serializer),
-			_wrapValues(psz, node.pixSize, serializer),
+			[_serialize_Wiggle(getattr(node, wiggleType), 
+					serializer, wiggleClasses[wiggleType][dimInd])
+				for wiggleType in ["error", "resolution", "size", "pixSize"]],
 		]
 
 

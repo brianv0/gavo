@@ -83,12 +83,42 @@ class CoordSys(ASTNode):
 ############### Coordinates and their intervals
 
 
+class WiggleSpec(ASTNode):
+	"""A base for "wiggle" specifications.
+
+	These are Errors, Resolutions, Sizes, and PixSizes.  They may come
+	as simple coordinates (i.e., scalars or vectors) or, in 2 and 3D,
+	as radii or matrices (see below).  In all cases, two values may
+	be given to indicate ranges.
+	"""
+
+class CooWiggle(WiggleSpec):
+	"""A wiggle given in coordinates.
+
+	The values attributes stores them just like coordinates are stored.
+	"""
+	_a_values = ()
+
+class RadiusWiggle(WiggleSpec):
+	"""An wiggle given as a radius.
+	"""
+	_a_radii = ()
+
+class MatrixWiggle(WiggleSpec):
+	"""A matrix for specifying wiggle.
+
+	The matrix/matrices are stored as sequences of sequences; see 
+	stcxgen._wrapMatrix for details.
+	"""
+	_a_matrices = ()
+
+
 class CoordinateLike(ASTNode):
 	"""A base for everything that has frames, errors, and the like.
 	"""
 	_a_frame = None
 	_a_name = None
-	_a_error = ()
+	_a_error = None
 	_a_resolution = ()
 	_a_pixSize = ()
 	_a_unit = None

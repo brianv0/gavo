@@ -71,6 +71,11 @@ class SpaceCoordTest(STCMappingTest):
 		self.assertMapsto("Position ICRS 12.3 14.2",
 			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoords ><Position2D  unit="deg"><Value2><C1>12.3</C1><C2>14.2</C2></Value2></Position2D></AstroCoords></V>')
 
+	def testComplex(self):
+		self.assertMapsto("Position ICRS 12000.3 14000 unit arcsec"
+			" Error 0.1 0.14 Resolution 0.5 0.55 Size 1 1.1  4.8 2.3 PixSize 0.2 0.2",
+			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoords ><Position2D  unit="arcsec"><Value2><C1>12000.3</C1><C2>14000.0</C2></Value2><Error2><C1>0.1</C1><C2>0.14</C2></Error2><Resolution2><C1>0.5</C1><C2>0.55</C2></Resolution2><Size2><C1>1.0</C1><C2>1.1</C2></Size2><Size2><C1>4.8</C1><C2>2.3</C2></Size2><PixSize2><C1>0.2</C1><C2>0.2</C2></PixSize2></Position2D></AstroCoords></V>')
+
 
 class OtherCoordIntervalTest(STCMappingTest):
 	def testSome(self):
@@ -127,4 +132,4 @@ class RegionTest(STCMappingTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(SpaceFrameTest)
+	testhelpers.main(SpaceCoordTest)

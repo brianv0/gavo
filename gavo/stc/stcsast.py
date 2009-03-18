@@ -140,24 +140,34 @@ def iterIntervals(coos, dim):
 		yield (startValue, None)
 
 
+def _makeWiggleValues(nDim, val, cooParse=float, minItems=None,
+		maxItems=None):
+	if val is None: 
+		return
+	values = _makeCooValues(nDim, val, cooParse, minItems, maxItems)
+	if not values:
+		return
+	return dm.CooWiggle(values=values)
+
+
 def _makeBasicCooArgs(node, frame):
 	"""returns a dictionary containing constructor arguments common to
 	all items dealing with coordinates.
 	"""
 	nDim = getattr(frame, "nDim", 1)
 	args = {
-		"error": _makeCooValues(nDim, node.get("error"), 
+		"error": _makeWiggleValues(nDim, node.get("error"),
 			cooParse=float, maxItems=2),
-		"resolution": _makeCooValues(nDim, node.get("resolution"), 
+		"resolution": _makeWiggleValues(nDim, node.get("resolution"), 
 			cooParse=float, maxItems=2),
-		"pixSize": _makeCooValues(nDim, node.get("pixSize"), cooParse=float,
+		"pixSize": _makeWiggleValues(nDim, node.get("pixSize"), cooParse=float,
 			maxItems=2),
 		"unit": node.get("unit"),
 		"frame": frame,
 	}
 	# Frame-dependent hack handling -- what a pain...
 	if isinstance(frame, dm.SpaceFrame):
-		args["size"] =_makeCooValues(nDim, node.get("size"), cooParse=float,
+		args["size"] =_makeWiggleValues(nDim, node.get("size"), cooParse=float,
 			maxItems=2)
 	if isinstance(frame, dm.RedshiftFrame):
 		if args["unit"]:
