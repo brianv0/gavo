@@ -7,6 +7,7 @@ import bz2
 import datetime
 
 from gavo import stc
+from gavo.stc import dm
 
 import testhelpers
 
@@ -175,6 +176,148 @@ class M81ImageTest(XMLSrcTestBase):
 		self.assertAlmostEqual(p.upperLimit[1], 69.31529)
 		self.failUnless(p.frame is self.ast.systems[1].spaceFrame,
 			"Wrong frame on space interval.")
+
+
+class ChandraResTest(XMLSrcTestBase):
+	"""tests on the Chandra resource profile example.
+	"""
+	data = (    
+    'QlpoOTFBWSZTWXXPk0MAAhHfgGAicuf//69332C/79/xUAV+dhrEm1baakVq00Ek'
+    'gImNTTKaGnqp+mUn6mTGomm0A1Gj9KP1T1PUNDjJk00wmRkDAjE0YIwg0aYABBKa'
+    'JqBpFNgk9TI9R6I9CBoNAGgAaNDjJk00wmRkDAjE0YIwg0aYABBIkTFNJmUNMTUZ'
+    'NGmQAZNAaB6gAMCSSbQkTSSTE0xMGMGwaE2CYMGm2CbQMGCaYhHELOL7bcd06We+'
+    'qTBa0M4MP8HYa46G1H16ViT9j5QL+xL4lCYKm6+CeROvZtIcK2/l56d3jld28JtK'
+    'M+SNZe+vlNBL5R3Pm0WhkRh+EM1U8GjHB87+dz2fXVb5eUsMeaTzHe601323uozb'
+    'aUt3ma7J2plHM4qthppjHNPBOPfeQ8Sx77zU5vzQv15YxsO9ROU28k4d8gU6vWih'
+    '0qzhwhbcRPxBe0F6xdTKwcufq9tULLuLMpd7Mn0xnwnaNhr77E3zaYCQM/drGT08'
+    'm5RW9Lq2eOLnG0QqDIC753+BZSAvUecET93DDx0N3uw8QOJaQsYomXltuREJLXKb'
+    'U4JNLJu2mHEhTgRWvUFkkIQSPs9j0SmdAdUmEmEW6KtjbbPIYCEeY50LBp2ZQz3k'
+    'yKke56tCMdwOMsEvhLzh19wjwTKKPjWOL8dPYzNOcbZlcSDzoeBkRcDwYTMJOYQO'
+    '5rKdgdm6EMHq00F66ev3u2yJbIrlIkksKFS2LYkV8w3PdbbMq93XAJJFiLoTh0rl'
+    'o9cRXvUfLjaFiURAFebj0jxpNpGZJvWMgYzb1JomboUOsWY3FctvOZcrTU7asQf9'
+    'Sl7ZXJ8GlMaPjxRn6WaqrLyRxUBQE8KLOvgfO4dqTNlsmim8bgaUagpVgwpMZpRr'
+    'J/MoQ9d5OZATBznEufCjnMzNJzsjEPkxgHkuM1o2K07S5mUwceTW6pAkkrmuzyho'
+    'aVvhwGnkNDbi7Gjv6to8p39AV+g+IK8sod7aaOkLHVwhNMaYtli1A82OI6YOeuZl'
+    'Y33momJ7FVoqwvi8zOZaxtPQbx6OYM6Z5dA6niweVqCLUpNT1K5LSphVZAMCKhsJ'
+    'kGSCGoKVBpWGstxYKkyk5Y6DK8tZyzshFDO4lQSsURSk9YTCohiBOnEDuzpA4yTG'
+    'xjP6larwFwAX5nKcGJu9YTJhYeIWdCy72ZJrKRvQGLWt1mYxbYwywI7gV32XW7oT'
+    'SmQWJ0zO1Q4jJohuVJMhI79GILvFxMjOeknExIrgPXs5kXN5wB+MKB3U9F+udPJd'
+    '25IxaG0FkW1YhAZDAgqpBxlnqO4Cv0jRFXuLjbGX9oZAElgcHIpjZkgjlIqSY6AG'
+    '3ehXtNG/O1msYEmSGQE3jpBibWabrBBMEOkhJkmqbJ2pAhnQbxULO4Ii6CgPKYl3'
+    'nBnJpVwsj0mdzehlBa9+knqSUVNPsQi6uQ24JCYtq9DEMWILROZMzKOYlepX3ykk'
+    '+FMaWjZslMzLU0Gw1VVgd4rQnBRAmCbWQiHdslAGiViwWKwYM5W7YAnEkCTXiuNf'
+    'DGb/UhXo25uab9eyFqKsPOHQs9wzGruUB3JFUiVIXUMnhtHYUhuX7Ig/IXWO1YVk'
+    'gKEB7qZ9owRJszRmQRhQHnJ0WgSLVJFMhMdwxxADmrEEbupKYFhZlvpYBZd968yK'
+    'ypXBpiku1cs1LACYOHuGs7UurQFIkEq8zIwPBxEqNDJ2WcvWvCj92JE53jGo51pB'
+    'Z//F3JFOFCQdc+TQwA==')
+
+	def testTimeCoord(self):
+		p = self.ast.times[0]
+		self.assertEqual(p.frame.timeScale, "TT")
+		self.assertEqual(p.unit, "s")
+		self.assertAlmostEqual(p.error.values[0], 0.000005)
+		self.assertAlmostEqual(p.error.values[1], 0.0001)
+		self.assertAlmostEqual(p.resolution.values[0], 0.000016)
+		self.assertAlmostEqual(p.resolution.values[1], 3.)
+		self.assertAlmostEqual(p.size.values[0], 1000.)
+		self.assertAlmostEqual(p.size.values[1], 170000.)
+
+	def testPosition(self):
+		p = self.ast.places[0]
+		self.assertEqual(p.frame.refPos.standardOrigin, "TOPOCENTER")
+		self.assertEqual(p.frame.nDim, 2)
+		self.assertEqual(p.frame.flavor, "SPHERICAL")
+		self.assertEqual(p.unit, "arcsec")
+		self.assertEqual(p.error.radii[0], 1.)
+		self.assertEqual(p.resolution.radii[0], 0.5)
+		self.assertEqual(p.size.values[0], (1000, 1000))
+		self.assertEqual(p.size.values[1], (4000, 4000))
+	
+	def testSpectral(self):
+		p = self.ast.freqs[0]
+		self.assertEqual(p.unit, "keV")
+		self.assertAlmostEqual(p.error.values[0], 0.1)
+		self.assertAlmostEqual(p.resolution.values[0], 0.02)
+		self.assertAlmostEqual(p.resolution.values[1], 2.)
+		self.assertEqual(p.size.values[0], 2.)
+		self.assertEqual(p.size.values[1], 10.)
+
+	def testTimeInterval(self):
+		p = self.ast.timeAs[0]
+		self.assertEqual(p.frame, self.ast.systems[0].timeFrame)
+		self.assertEqual(p.upperLimit, None)
+		self.assertEqual(p.lowerLimit, datetime.datetime(1999, 7, 23, 16, 0))
+	
+	def testAreas(self):
+		p = self.ast.areas[0]
+		self.assertEqual(p.frame, self.ast.systems[0].spaceFrame)
+		self.failUnless(isinstance(p, dm.AllSky))
+		self.assertAlmostEqual(p.fillFactor, 0.02)
+
+	def testSpectralInterval(self):
+		p = self.ast.freqAs[0]
+		self.assertEqual(p.frame, self.ast.systems[0].spectralFrame)
+		self.assertEqual(p.unit, "keV")
+		self.assertAlmostEqual(p.lowerLimit, 0.12)
+		self.assertAlmostEqual(p.upperLimit, 10)
+
+
+class GeometriesTest(testhelpers.VerboseTest):
+	def _getAST(self, geo):
+		return stc.parseSTCX(('<ObservationLocation xmlns="%s">'%stc.STCNamespace)+
+			'<AstroCoordSystem id="x">'
+			'<SpaceFrame><ICRS/></SpaceFrame>'
+			'</AstroCoordSystem><AstroCoordArea coord_system_id="x">'+
+			geo+
+			'</AstroCoordArea></ObservationLocation>')
+
+	def testCircle(self):
+		ast = self._getAST("<Circle><Center><C1>15</C1><C2>40</C2></Center>"
+			"<Radius>3</Radius></Circle>")
+		p = ast.areas[0]
+		self.failUnless(isinstance(p, dm.Circle))
+		self.assertEqual(p.radius, 3.0)
+		self.assertEqual(p.center, (15.0, 40.0))
+	
+	def testEllipse(self):
+		ast = self._getAST("<Ellipse><Center><C1>10</C1><C2>12</C2></Center>"
+			'<SemiMajorAxis>3</SemiMajorAxis><SemiMinorAxis>2</SemiMinorAxis>'
+			'<PosAngle unit="rad">1</PosAngle></Ellipse>')
+		p = ast.areas[0]
+		self.failUnless(isinstance(p, dm.Ellipse))
+		self.assertEqual(p.center, (10.0, 12.0))
+		self.assertEqual(p.smajAxis, 3.0)
+		self.assertEqual(p.sminAxis, 2.0)
+		self.assertEqual(p.posAngle, 1.0)
+		self.assertEqual(p.posAngleUnit, "rad")
+	
+	def testBox(self):
+		ast = self._getAST("<Box><Center><C1>10</C1><C2>12</C2></Center>"
+			'<Size><C1>1</C1><C2>1.5</C2></Size></Box>')
+		p = ast.areas[0]
+		self.failUnless(isinstance(p, dm.Box))
+		self.assertEqual(p.center, (10.0, 12.0))
+		self.assertEqual(p.boxsize, (1.0, 1.5))
+	
+	def testPolygon(self):
+		ast = self._getAST("<Polygon><Vertex><C1>10</C1><C2>12</C2></Vertex>"
+			'<Vertex><C1>1</C1><C2>1.5</C2></Vertex></Polygon>')
+		p = ast.areas[0]
+		self.failUnless(isinstance(p, dm.Polygon))
+		self.assertEqual(p.vertices, ((10., 12.), (1., 1.5)))
+	
+	def testConvex(self):
+		ast = self._getAST("<Convex>"
+			'<Halfspace><Vector><C1>10</C1><C2>12</C2><C3>1</C3></Vector>'
+			'<Offset>0.125</Offset></Halfspace>'
+			'<Halfspace><Vector><C1>-10</C1><C2>-12</C2><C3>-1</C3></Vector>'
+			'<Offset>-0.125</Offset></Halfspace>'
+			'</Convex>')
+		p = ast.areas[0]
+		self.failUnless(isinstance(p, dm.Convex))
+		self.assertEqual(p.vectors, 
+			((10.0, 12.0, 1.0, 0.125), (-10.0, -12.0, -1.0, -0.125)))
+
 
 
 def _wrapSample(srcPath):

@@ -12,6 +12,10 @@ _xlinkHref = str(ElementTree.QName(XlinkNamespace, "href"))
 
 ####################### Helpers
 
+def _n(name):
+	return ElementTree.QName(STCNamespace, name)
+
+
 def _localname(qName):
 	"""hacks the local tag name from a {ns}-serialized qName.
 	"""
@@ -34,14 +38,18 @@ def _makeKeywordBuilder(kw):
 	return buildKeyword
 
 
-def _makeKwValuesBuilder(kwName):
+def _makeKwValuesBuilder(kwName, tuplify=False):
 	"""returns a builder that takes vals from the buildArgs and
 	returns a tuple of them under kwName.
 
 	The vals key is left by builders like _buildVector.
 	"""
-	def buildNode(node, buildArgs, context):
-		yield kwName, (buildArgs["vals"],)
+	if tuplify:
+		def buildNode(node, buildArgs, context):
+			yield kwName, (tuple(buildArgs["vals"]),)
+	else:
+		def buildNode(node, buildArgs, context):
+			yield kwName, (buildArgs["vals"],)
 	return buildNode
 
 
@@ -56,26 +64,39 @@ def _makeKwVectorBuilder(kwName):
 	return buildNode
 
 
-def _makeKwValueBuilder(kwName):
+def _makeKwValueBuilder(kwName, tuplify=False):
 	"""returns a builder that takes vals from the buildArgs and
 	returns a single value under kwName.
 
 	The vals key is left by builders like _buildVector.
 	"""
-	def buildNode(node, buildArgs, context):
-		yield kwName, buildArgs["vals"],
+	if tuplify:
+		def buildNode(node, buildArgs, context):
+			yield kwName, tuple(buildArgs["vals"]),
+	else:
+		def buildNode(node, buildArgs, context):
+			yield kwName, buildArgs["vals"],
 	return buildNode
 
 
-def _makeKwFloatBuilder(kwName):
+def _makeKwFloatBuilder(kwName, unitKey="pos_unit", multiple=True):
 	"""returns a builder that returns float(node.text) under kwName.
 
-	The builder will also add a pos_unit key if appropriate.
+	The builder will also add a <kwName>Unit key if appropriate.
+
+	If multiple is True, the keys will be returned in tuples, else as
+	simple values.
 	"""
-	def buildNode(node, buildArgs, context):
-		yield kwName, (float(node.text),)
-		if 'pos_unit' in node.attrib:
-			yield 'pos_unit', (node.get('pos_unit'),)
+	if multiple:
+		def buildNode(node, buildArgs, context):
+			yield kwName, (float(node.text),)
+			if unitKey in node.attrib:
+				yield kwName+'Unit', (node.get(unitKey),)
+	else:
+		def buildNode(node, buildArgs, context):
+			yield kwName, float(node.text)
+			if unitKey in node.attrib:
+				yield kwName+'Unit', node.get(unitKey)
 	return buildNode
 
 
@@ -113,6 +134,8 @@ def _iterCooMeta(node, context, frameName):
 			useAttr=frameName)
 	if "unit" in node.attrib and node.get("unit"):
 		yield "unit", node.get("unit")
+	if "fill_factor" in node.attrib and node.get("fill_factor"):
+		yield "fillFactor", float(node.get("fill_factor"))
 
 
 def _makeIntervalBuilder(kwName, astClass, frameName):
@@ -136,7 +159,7 @@ def _fixWiggles(buildArgs):
 	"""
 	for wiggleType in ["error", "resolution", "size", "pixSize"]:
 		if wiggleType in buildArgs:
-			buildArgs[wiggleType] = dm.CooWiggle(values=buildArgs[wiggleType])
+			buildArgs[wiggleType] = dm.CooWiggle(values=tuple(buildArgs[wiggleType]))
 		if wiggleType+"Radius" in buildArgs:
 			buildArgs[wiggleType] = dm.RadiusWiggle(
 				radii=buildArgs[wiggleType+"Radius"])
@@ -151,10 +174,9 @@ def _makePositionBuilder(kw, astClass, frameName):
 	"""returns a builder for a coordinate of astClass to be added with kw.
 	"""
 	def buildPosition(node, buildArgs, context):
-		if len(buildArgs.get("vals", ()))!=1:
-			raise STCValueError("Need exactly one value to build position")
-		buildArgs["value"] = buildArgs["vals"][0]
-		del buildArgs["vals"]
+		if buildArgs.get("vals"):
+			buildArgs["value"] = buildArgs["vals"][0]
+			del buildArgs["vals"]
 		for key, value in _iterCooMeta(node, context, frameName):
 			buildArgs[key] = value
 		_fixWiggles(buildArgs)
@@ -198,7 +220,7 @@ def _buildRefFrame(node, buildArgs, context):
 
 ################# Coordinates
 
-class CooSysActions(object):
+class CooSysActions(ContextActions):
 	"""Actions for containers of coordinates.
 
 	The actions push and pop the system ids of the containers.  If
@@ -228,9 +250,36 @@ _buildFloat = _makeKwFloatBuilder("vals")
 
 def _buildVector(node, buildArgs, context):
 	yield 'vals', (tuple(buildArgs["vals"]),)
-	if "pos_unit" in buildArgs:
-		yield "unit", " ".join(buildArgs["pos_unit"])
+	if "valsUnit" in buildArgs:
+		yield "unit", " ".join(buildArgs["valsUnit"])
 
+
+################# Geometries
+
+class BoxActions(ContextActions):
+	"""Context actions for Boxes: register a special handler for Size.
+	"""
+	boxHandlers = {
+		_n("Size"): _makeKwValueBuilder("boxsize", tuplify=True),
+	}
+	def start(self, context, node):
+		context.specialHandlerStack.append(self.boxHandlers)
+	def stop(self, context, node):
+		context.specialHandlerStack.pop()
+
+
+def _buildHalfspace(node, buildArgs, context):
+	yield "vectors", (tuple(buildArgs["vector"])+tuple(buildArgs["offset"]),)
+
+
+def _makeGeometryBuilder(astClass):
+	"""returns a builder for STC-S geometries.
+	"""
+	def buildGeo(node, buildArgs, context):
+		for key, value in _iterCooMeta(node, context, "spaceFrame"):
+			buildArgs[key] = value
+		yield 'areas', (astClass(**buildArgs),)
+	return buildGeo
 
 
 ################# Toplevel
@@ -249,7 +298,7 @@ def buildTree(csNode, context):
 	nodes, raise explicit exceptions in handlers.
 	"""
 	resDict = {}
-	if csNode.tag not in context.elementHandlers:
+	if context.getHandler(csNode.tag) is None:
 		return
 	if csNode.tag in context.activeTags:
 		context.startTag(csNode)
@@ -259,14 +308,14 @@ def buildTree(csNode, context):
 				continue
 			k, v = res
 			if isinstance(v, (tuple, list)):
-				resDict.setdefault(k, []).extend(v)
+				resDict[k] = resDict.get(k, ())+v
 			else:
 				if k in resDict:
 					raise STCInternalError("Attempt to overwrite key '%s', old"
 						" value %s, new value %s (this should probably have been"
 						" a tuple)"%(k, resDict[k], v))
 				resDict[k] = v
-	for res in context.elementHandlers[csNode.tag](csNode, resDict, context):
+	for res in context.getHandler(csNode.tag)(csNode, resDict, context):
 		yield res
 	if csNode.tag in context.activeTags:
 		context.endTag(csNode)
@@ -308,21 +357,27 @@ class STCXContext(object):
 	"""
 	def __init__(self, elementHandlers, activeTags, **kwargs):
 		self.sysIdStack = []
+		self.specialHandlerStack = [{}]
 		self.elementHandlers = elementHandlers
 		self.idMap = {}
 		self.activeTags = activeTags
 		for k, v in kwargs.iteritems():
 			setattr(self, k, v)
 
+	def getHandler(self, elementName):
+		"""returns a builder for the qName elementName.
+
+		If no such handler exists, we return None.
+		"""
+		if elementName in self.specialHandlerStack[-1]:
+			return self.specialHandlerStack[-1][elementName]
+		return self.elementHandlers.get(elementName)
+
 	def startTag(self, node):
 		self.activeTags[node.tag].start(self, node)
 
 	def endTag(self, node):
 		self.activeTags[node.tag].stop(self, node)
-
-
-def _n(name):
-	return ElementTree.QName(STCNamespace, name)
 
 
 # A sequence of tuples (dict builder, [stcxElementNames]) to handle
@@ -338,10 +393,14 @@ _stcBuilders = [
 	(_makePositionBuilder('places', dm.SpaceCoo, "spaceFrame"), 
 		["Position3D", "Position2D"]),
 
-	(_makeKwValuesBuilder("resolution"), ["Resolution2", "Resolution3"]),
-	(_makeKwValuesBuilder("pixSize"), ["PixSize2", "PixSize3"]),
-	(_makeKwValuesBuilder("error"), ["Error2", "Error3"]),
-	(_makeKwValuesBuilder("size"), ["Size2", "Size3"]),
+	(_makeKwValuesBuilder("resolution", tuplify=True), 
+		["Resolution2", "Resolution3"]),
+	(_makeKwValuesBuilder("pixSize", tuplify=True), 
+		["PixSize2", "PixSize3"]),
+	(_makeKwValuesBuilder("error", tuplify=True), 
+		["Error2", "Error3"]),
+	(_makeKwValuesBuilder("size", tuplify=True), 
+		["Size2", "Size3"]),
 
 	(_makeKwFloatBuilder("resolutionRadius"), 
 		["Resolution2Radius", "Resolution3Radius"]),
@@ -363,10 +422,16 @@ _stcBuilders = [
 	(_makeIntervalBuilder("areas", dm.SpaceInterval, "spaceFrame"),
 		["PositionScalarInterval", "Position2VecInterval",
 			"Position3VecInterval"]),
+	(_makeGeometryBuilder(dm.AllSky), ["AllSky", "AllSky2"]),
+	(_makeGeometryBuilder(dm.Circle), ["Circle", "Circle2"]),
+	(_makeGeometryBuilder(dm.Ellipse), ["Ellipse", "Ellipse2"]),
+	(_makeGeometryBuilder(dm.Box), ["Box", "Box2"]),
+	(_makeGeometryBuilder(dm.Polygon), ["Polygon", "Polygon2"]),
+	(_makeGeometryBuilder(dm.Convex), ["Convex", "Convex2"]),
 
 	(_passthrough, ["ObsDataLocation", "ObservatoryLocation",
 		"ObservationLocation", "AstroCoords", "TimeInstant",
-		"AstroCoordArea"]),
+		"AstroCoordArea", "STCResourceProfile"]),
 ]
 
 # A sequence of (stcElementName, kw, AST class) to handle
@@ -397,10 +462,26 @@ def _getHandlers():
 		_n("TimeScale"): _makeKeywordBuilder("timeScale"),
 		_n("Value"): _makeKwFloatBuilder("vals"),
 
+		_n("Radius"): _makeKwFloatBuilder("radius", multiple=False, 
+			unitKey="unit"), 
+		_n("Center"): _makeKwValueBuilder("center", tuplify=True), 
+		_n("SemiMajorAxis"): _makeKwFloatBuilder("smajAxis", multiple=False,
+			unitKey="unit"),
+		_n("SemiMinorAxis"): _makeKwFloatBuilder("sminAxis", multiple=False,
+			unitKey="unit"),
+		_n("PosAngle"): _makeKwFloatBuilder("posAngle", multiple=False,
+			unitKey="unit"),
+		_n("Vertex"): _makeKwValuesBuilder("vertices", tuplify=True), 
+		_n("Vector"): _makeKwValueBuilder("vector", tuplify=True),
+		_n("Offset"): _makeKwFloatBuilder("offset"),
+		_n("Halfspace"): _buildHalfspace,
+
 		_n("TimeInterval"): _makeIntervalBuilder("timeAs", dm.TimeInterval,
 			"timeFrame"),
 		_n("SpectralInterval"): _makeIntervalBuilder("freqAs", dm.SpectralInterval,
 			"spectralFrame"),
+		_n("RedshiftInterval"): _makeIntervalBuilder("redshiftAs", 
+			dm.RedshiftInterval, "redshiftFrame"),
 	}
 	for builder, stcEls in _stcBuilders:
 		for el in stcEls:
@@ -416,6 +497,7 @@ def _getActiveTags():
 	return {
 		_n("AstroCoords"): CooSysActions(),
 		_n("AstroCoordArea"): CooSysActions(),
+		_n("Box"): BoxActions(),
 	}
 
 getActiveTags = CachedGetter(_getActiveTags)

@@ -18,7 +18,8 @@ in serious loops.
 """
 
 from gavo.stc.common import (STCError, STCSParseError, STCLiteralError,
-	STCValueError, STCNotImplementedError)
+	STCValueError, STCNotImplementedError,
+	STCNamespace)
 
 from gavo.stc.stcsast import parseSTCS
 

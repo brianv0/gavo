@@ -123,15 +123,14 @@ class CoordinateLike(ASTNode):
 	_a_pixSize = None
 	_a_unit = None
 	_a_velTimeUnit = None
+	_a_size = ()
 
 
 class Coordinate(CoordinateLike):
 	_a_value = None
 
 
-class SpaceCoo(Coordinate):
-	_a_size = ()
-
+class SpaceCoo(Coordinate): pass
 class TimeCoo(Coordinate): pass
 class SpectralCoo(Coordinate): pass 
 class RedshiftCoo(Coordinate): pass
@@ -166,12 +165,15 @@ class AllSky(Geometry):
 class Circle(Geometry):
 	_a_center = None
 	_a_radius = None
+	_a_radiusUnit = None
 
 
 class Ellipse(Geometry):
 	_a_center = None
 	_a_smajAxis = _a_sminAxis = None
+	_a_smajAxisUnit = _a_sminAxisUnit = None
 	_a_posAngle = None
+	_a_posAngleUnit = None
 
 
 class Box(Geometry):
