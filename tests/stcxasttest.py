@@ -27,7 +27,7 @@ class XMLSrcTestBase(testhelpers.VerboseTest):
 	def __init__(self, *args, **kwargs):
 		testhelpers.VerboseTest.__init__(self, *args, **kwargs)
 		if hasattr(self, "data"):
-			self.ast = stc.parseSTCX(_unwrapSample(self.data))
+			self.asf = stc.parseSTCX(_unwrapSample(self.data))
 
 
 class M81EventHrefTest(testhelpers.VerboseTest):
@@ -102,79 +102,79 @@ class M81ImageTest(XMLSrcTestBase):
     '4PXco3d+IxDaT/xdyRThQkOE9tcI')
 	
 	def testTimeFrame(self):
-		frame = self.ast.systems[0].timeFrame
+		frame = self.asf[0].astroSystem.timeFrame
 		self.assertEqual(frame.timeScale, "TT")
 		self.assertEqual(frame.refPos.standardOrigin, "TOPOCENTER")
 	
 	def testSpaceFrame(self):
-		frame = self.ast.systems[0].spaceFrame
+		frame = self.asf[0].astroSystem.spaceFrame
 		self.assertEqual(frame.flavor, "SPHERICAL")
 		self.assertEqual(frame.nDim, 3)
 		self.assertEqual(frame.refPos.standardOrigin, "TOPOCENTER")
-		frame = self.ast.systems[1].spaceFrame
+		frame = self.asf[1].astroSystem.spaceFrame
 		self.assertEqual(frame.flavor, "SPHERICAL")
 		self.assertEqual(frame.nDim, 2)
 		self.assertEqual(frame.refFrame, 'ICRS')
 		self.assertEqual(frame.refPos.standardOrigin, "TOPOCENTER")
 
 	def testSimplePlace(self):
-		p = self.ast.places[0]
+		p = self.asf[0].places[0]
 		self.assertEqual(p.unit, "deg deg m")
 		self.assertAlmostEqual(p.value[0], 248.4056)
 		self.assertEqual(p.value[2], 2158.)
-		self.failUnless(p.frame is self.ast.systems[0].spaceFrame,
+		self.failUnless(p.frame is self.asf[0].astroSystem.spaceFrame,
 			"Wrong frame on positions")
 
 	def testComplexPlaces(self):
-		p = self.ast.places[1]
+		p = self.asf[1].places[0]
 		self.assertEqual(p.unit, "deg")
 		self.assertAlmostEqual(p.value[0], 148.88821)
 		self.assertAlmostEqual(p.resolution.values[0][1], 0.00025)
 		self.assertAlmostEqual(p.pixSize.values[0][1], 0.0001)
 		self.assertAlmostEqual(p.error.radii[0], 0.0003)
-		self.failUnless(p.frame is self.ast.systems[1].spaceFrame,
+		self.failUnless(p.frame is self.asf[1].astroSystem.spaceFrame,
 			"Wrong frame on complex places")
 
 	def testTime(self):
-		p = self.ast.times[0]
+		p = self.asf[1].times[0]
 		self.assertEqual(p.unit, "s")
 		self.assertEqual(p.value, datetime.datetime(2004, 7, 15, 8, 23, 56))
 		self.assertEqual(p.resolution.values[0], 1000.0)
 		self.assertEqual(p.pixSize.values[0], 1000.0)
-		self.failUnless(p.frame is self.ast.systems[1].timeFrame,
+		self.failUnless(p.frame is self.asf[1].astroSystem.timeFrame,
 			"Wrong frame on time.")
 
 	def testSpectral(self):
-		p = self.ast.freqs[0]
+		p = self.asf[1].freqs[0]
 		self.assertEqual(p.unit, "Angstrom")
 		self.assertEqual(p.value, 4600.)
 		self.assertEqual(p.resolution.values[0], 400.0)
 		self.assertEqual(p.pixSize.values[0], 400.0)
-		self.failUnless(p.frame is self.ast.systems[1].spectralFrame,
+		self.failUnless(p.frame is self.asf[1].astroSystem.spectralFrame,
 			"Wrong frame on spectral.")
 	
 	def testTimeInterval(self):
-		p = self.ast.timeAs[0]
+		p = self.asf[1].timeAs[0]
 		self.assertEqual(p.unit, None)
 		self.assertEqual(p.lowerLimit, datetime.datetime(2004, 7, 15, 8, 17, 36))
 		self.assertEqual(p.upperLimit, datetime.datetime(2004, 7, 15, 8, 30, 16))
-		self.failUnless(p.frame is self.ast.systems[1].timeFrame,
+		self.failUnless(p.frame is self.asf[1].astroSystem.timeFrame,
 			"Wrong frame on time interval.")
 	
 	def testSpectralInterval(self):
-		p = self.ast.freqAs[0]
+		p = self.asf[1].freqAs[0]
 		self.assertEqual(p.unit, "Angstrom")
 		self.assertEqual(p.lowerLimit, 4400.)
 		self.assertEqual(p.upperLimit, 4800.)
-		self.failUnless(p.frame is self.ast.systems[1].spectralFrame,
+		self.failUnless(p.frame is self.asf[1].astroSystem.spectralFrame,
 			"Wrong frame on spectral interval.")
 
 	def testSpaceInterval(self):
-		p = self.ast.areas[0]
+		p = self.asf[1].areas[0]
 		self.assertEqual(p.unit, "deg")
 		self.assertAlmostEqual(p.lowerLimit[0], 148.18821)
 		self.assertAlmostEqual(p.upperLimit[1], 69.31529)
-		self.failUnless(p.frame is self.ast.systems[1].spaceFrame,
+		self.failUnless(p.frame is self.asf[1].astroSystem.spaceFrame,
 			"Wrong frame on space interval.")
 
 
@@ -212,7 +212,7 @@ class ChandraResTest(XMLSrcTestBase):
     'Z//F3JFOFCQdc+TQwA==')
 
 	def testTimeCoord(self):
-		p = self.ast.times[0]
+		p = self.asf[0].times[0]
 		self.assertEqual(p.frame.timeScale, "TT")
 		self.assertEqual(p.unit, "s")
 		self.assertAlmostEqual(p.error.values[0], 0.000005)
@@ -223,7 +223,7 @@ class ChandraResTest(XMLSrcTestBase):
 		self.assertAlmostEqual(p.size.values[1], 170000.)
 
 	def testPosition(self):
-		p = self.ast.places[0]
+		p = self.asf[0].places[0]
 		self.assertEqual(p.frame.refPos.standardOrigin, "TOPOCENTER")
 		self.assertEqual(p.frame.nDim, 2)
 		self.assertEqual(p.frame.flavor, "SPHERICAL")
@@ -234,7 +234,7 @@ class ChandraResTest(XMLSrcTestBase):
 		self.assertEqual(p.size.values[1], (4000, 4000))
 	
 	def testSpectral(self):
-		p = self.ast.freqs[0]
+		p = self.asf[0].freqs[0]
 		self.assertEqual(p.unit, "keV")
 		self.assertAlmostEqual(p.error.values[0], 0.1)
 		self.assertAlmostEqual(p.resolution.values[0], 0.02)
@@ -243,20 +243,20 @@ class ChandraResTest(XMLSrcTestBase):
 		self.assertEqual(p.size.values[1], 10.)
 
 	def testTimeInterval(self):
-		p = self.ast.timeAs[0]
-		self.assertEqual(p.frame, self.ast.systems[0].timeFrame)
+		p = self.asf[0].timeAs[0]
+		self.assertEqual(p.frame, self.asf[0].astroSystem.timeFrame)
 		self.assertEqual(p.upperLimit, None)
 		self.assertEqual(p.lowerLimit, datetime.datetime(1999, 7, 23, 16, 0))
 	
 	def testAreas(self):
-		p = self.ast.areas[0]
-		self.assertEqual(p.frame, self.ast.systems[0].spaceFrame)
+		p = self.asf[0].areas[0]
+		self.assertEqual(p.frame, self.asf[0].astroSystem.spaceFrame)
 		self.failUnless(isinstance(p, dm.AllSky))
 		self.assertAlmostEqual(p.fillFactor, 0.02)
 
 	def testSpectralInterval(self):
-		p = self.ast.freqAs[0]
-		self.assertEqual(p.frame, self.ast.systems[0].spectralFrame)
+		p = self.asf[0].freqAs[0]
+		self.assertEqual(p.frame, self.asf[0].astroSystem.spectralFrame)
 		self.assertEqual(p.unit, "keV")
 		self.assertAlmostEqual(p.lowerLimit, 0.12)
 		self.assertAlmostEqual(p.upperLimit, 10)
@@ -269,7 +269,7 @@ class GeometriesTest(testhelpers.VerboseTest):
 			'<SpaceFrame><ICRS/></SpaceFrame>'
 			'</AstroCoordSystem><AstroCoordArea coord_system_id="x">'+
 			geo+
-			'</AstroCoordArea></ObservationLocation>')
+			'</AstroCoordArea></ObservationLocation>')[0]
 
 	def testCircle(self):
 		ast = self._getAST("<Circle><Center><C1>15</C1><C2>40</C2></Center>"
@@ -332,4 +332,4 @@ if __name__=="__main__":
 	if len(sys.argv)>1 and sys.argv[1].startswith("/"):
 		_wrapSample(sys.argv[1])
 	else:
-		testhelpers.main(M81ImageTest)
+		testhelpers.main(ChandraResTest)

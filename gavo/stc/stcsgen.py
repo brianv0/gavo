@@ -379,10 +379,14 @@ def _flattenCST(cst):
 		if s])
 
 
+_len1Attrs = ["times", "places", "freqs", "redshifts",
+	"timeAs", "areas", "freqAs", "redshiftAs"]
+
 def getSTCS(astRoot):
 	"""returns an STC-S string for an AST.
 	"""
-	for name, val in astRoot.iterAttributes():
+	for name in _len1Attrs:
+		val = getattr(astRoot, name)
 		if val is not None and len(val)>1:
 			raise STCValueError("STC-S does not support STC specifications of"
 				" length>1, but %s has length %d"%(name, len(val)))

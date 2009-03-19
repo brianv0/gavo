@@ -194,6 +194,7 @@ class Convex(Geometry):
 class STCSpec(ASTNode):
 	"""is an STC specification, i.e., the root of an STC tree.
 	"""
+	_a_astroSystem = None
 	_a_systems = ()
 	_a_times = ()
 	_a_places = ()

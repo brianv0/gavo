@@ -363,12 +363,12 @@ def astToStan(rootNode, stcRoot):
 	The first coordinate system defined in the AST is always used for
 	the embedded coordinates and areas.
 	"""
-	return stcRoot[[nodeToStan(n) for n in rootNode.systems],
-		STC.AstroCoords(coord_system_id=rootNode.systems[0].id)[
+	return stcRoot[nodeToStan(rootNode.astroSystem),
+		STC.AstroCoords(coord_system_id=rootNode.astroSystem.id)[
 			[nodeToStan(n) for n in itertools.chain(rootNode.times,
 				rootNode.places, rootNode.freqs, rootNode.redshifts)]
 		],
-		STC.AstroCoordArea(coord_system_id=rootNode.systems[0].id)[
+		STC.AstroCoordArea(coord_system_id=rootNode.astroSystem.id)[
 			[nodeToStan(n) for n in rootNode.timeAs],
 			makeAreas(rootNode),
 			[nodeToStan(n) for n in 

@@ -393,7 +393,7 @@ def parseSTCS(literal):
 	"""
 	cst = stcs.getCST(literal)
 	system = getCoordSys(cst)[1]
-	args = {"systems": (system,)}
+	args = {"astroSystem": system}
 	args.update(getCoords(cst, system))
 	return dm.STCSpec(**args)
 

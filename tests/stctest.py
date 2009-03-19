@@ -38,8 +38,8 @@ class CoordSysTest(testhelpers.VerboseTest):
 
 	def testEquinoxes(self):
 		ast = stcsast.parseSTCS("Position FK4 B1975 30 30")
-		self.assertEqual(ast.systems[0].spaceFrame.equinox, "B1975.0")
-		self.assertEqual(ast.systems[0].spaceFrame.getEquinox(),
+		self.assertEqual(ast.astroSystem.spaceFrame.equinox, "B1975.0")
+		self.assertEqual(ast.astroSystem.spaceFrame.getEquinox(),
 			datetime.datetime(1974, 12, 31, 23, 28, 56, 228856))
 
 

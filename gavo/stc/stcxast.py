@@ -204,7 +204,7 @@ def _buildAstroCoordSystem(node, buildArgs, context):
 		raise STCNotImplementedError("Cannot evaluate hrefs yet")
 	buildArgs["id"] = node.get("id", None)
 	newEl = dm.CoordSys(**buildArgs)
-	yield "systems", (newEl,)
+	yield "astroSystem", newEl
 
 
 def _buildRefpos(node, buildArgs, context):
@@ -284,6 +284,9 @@ def _makeGeometryBuilder(astClass):
 
 ################# Toplevel
 
+def _buildToplevel(node, buildArgs, context):
+	yield 'stcSpec', (dm.STCSpec(**buildArgs),)
+
 def buildTree(csNode, context):
 	"""traverses the ElementTree cst, trying handler functions for
 	each node.
@@ -337,14 +340,18 @@ class IdProxy(ASTNode):
 		return ob
 
 
-def resolveProxies(astRoot):
-	"""replaces IdProxies in astRoot with the real objects.
+def resolveProxies(asf):
+	"""replaces IdProxies in the AST sequence asf with actual references.
 	"""
-	astRoot.buildIdMap()
-	for node in astRoot.iterNodes():
-		for attName, value in node.iterAttributes(skipEmpty=True):
-			if isinstance(value, IdProxy):
-				setattr(node, attName, value.resolve(astRoot.idMap))
+	map = {}
+	for ast in asf:
+		ast.buildIdMap()
+		map.update(ast.idMap)
+	for ast in asf:
+		for node in ast.iterNodes():
+			for attName, value in node.iterAttributes(skipEmpty=True):
+				if isinstance(value, IdProxy):
+					setattr(node, attName, value.resolve(map))
 
 
 class STCXContext(object):
@@ -429,9 +436,10 @@ _stcBuilders = [
 	(_makeGeometryBuilder(dm.Polygon), ["Polygon", "Polygon2"]),
 	(_makeGeometryBuilder(dm.Convex), ["Convex", "Convex2"]),
 
-	(_passthrough, ["ObsDataLocation", "ObservatoryLocation",
-		"ObservationLocation", "AstroCoords", "TimeInstant",
-		"AstroCoordArea", "STCResourceProfile"]),
+	(_buildToplevel, ["ObservatoryLocation", "ObservationLocation",
+		"STCResourceProfile"]),
+	(_passthrough, ["ObsDataLocation", "AstroCoords", "TimeInstant",
+		"AstroCoordArea"]),
 ]
 
 # A sequence of (stcElementName, kw, AST class) to handle
@@ -504,9 +512,11 @@ getActiveTags = CachedGetter(_getActiveTags)
 
 
 def parseSTCX(stcxLiteral):
+	"""returns a sequence of ASTs for the STC specifications in the STC-X literal.
+	"""
 	context = STCXContext(elementHandlers=getHandlers(),
 		activeTags=getActiveTags())
-	ast = dm.STCSpec(**dict(buildTree(
-		ElementTree.fromstring(stcxLiteral), context)))
-	resolveProxies(ast)
-	return ast
+	asf = dict(buildTree(ElementTree.fromstring(stcxLiteral), context)
+		)["stcSpec"]
+	resolveProxies(asf)
+	return asf
