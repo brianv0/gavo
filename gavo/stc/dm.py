@@ -114,20 +114,20 @@ class MatrixWiggle(WiggleSpec):
 
 
 class CoordinateLike(ASTNode):
-	"""A base for everything that has frames, errors, and the like.
+	"""A base for everything that has a frame.
 	"""
 	_a_frame = None
 	_a_name = None
-	_a_error = None
-	_a_resolution = None
-	_a_pixSize = None
 	_a_unit = None
 	_a_velTimeUnit = None
-	_a_size = ()
 
 
 class Coordinate(CoordinateLike):
+	_a_error = None
+	_a_resolution = None
+	_a_pixSize = None
 	_a_value = None
+	_a_size = ()
 
 
 class SpaceCoo(Coordinate): pass

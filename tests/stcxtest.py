@@ -84,6 +84,15 @@ class OtherCoordIntervalTest(STCMappingTest):
 			" RedshiftInterval 1000 7500 unit km/s", 
 			'<V><AstroCoordSystem ><TimeFrame ><TimeScale>TT</TimeScale><UNKNOWNRefPos /></TimeFrame><SpectralFrame ><UNKNOWNRefPos /></SpectralFrame><RedshiftFrame  value_type="VELOCITY"><DopplerDefinition>OPTICAL</DopplerDefinition><UNKNOWNRefPos /></RedshiftFrame></AstroCoordSystem><AstroCoordArea ><TimeInterval ><StartTime><ISOTime>2009-03-10T09:56:10.015625</ISOTime></StartTime></TimeInterval><SpectralInterval  unit="Hz"><LoLimit>10000000000.0</LoLimit><HiLimit>100000000000.0</HiLimit></SpectralInterval><RedshiftInterval  unit="km" vel_time_unit="s"><LoLimit>1000.0</LoLimit><HiLimit>7500.0</HiLimit></RedshiftInterval></AstroCoordArea></V>')
 
+	def testTimeWithError(self):
+		self.assertMapsto("TimeInterval TT 2009-03-10T09:56:10 2009-03-10T09:57:10 Error"
+			" 4 Resolution 1 2 PixSize 1",
+			'<V><AstroCoordSystem ><TimeFrame ><TimeScale>TT</TimeScale><UNKNOWNRefPos /></TimeFrame></AstroCoordSystem><AstroCoords ><Time  unit="s"><Error>4.0</Error><Resolution>1.0</Resolution><Resolution>2.0</Resolution><PixSize>1.0</PixSize></Time></AstroCoords><AstroCoordArea ><TimeInterval ><StartTime><ISOTime>2009-03-10T09:56:10</ISOTime></StartTime><StopTime><ISOTime>2009-03-10T09:57:10</ISOTime></StopTime></TimeInterval></AstroCoordArea></V>')
+
+	def testSpectralWithError(self):
+		self.assertMapsto("SpectralInterval 1e10 1e11 unit Hz Error 1 2",
+			'<V><AstroCoordSystem ><SpectralFrame ><UNKNOWNRefPos /></SpectralFrame></AstroCoordSystem><AstroCoords ><Spectral  unit="Hz"><Error>1.0</Error><Error>2.0</Error></Spectral></AstroCoords><AstroCoordArea ><SpectralInterval  unit="Hz"><LoLimit>10000000000.0</LoLimit><HiLimit>100000000000.0</HiLimit></SpectralInterval></AstroCoordArea></V>')
+
 
 class SpaceCoordIntervalTest(STCMappingTest):
 	def test1D(self):
@@ -93,6 +102,10 @@ class SpaceCoordIntervalTest(STCMappingTest):
 	def test2D(self):
 		self.assertMapsto("PositionInterval ICRS 12 13 14 15",
 			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Position2VecInterval  unit="deg"><LoLimit2Vec><C1>12.0</C1><C2>13.0</C2></LoLimit2Vec><HiLimit2Vec><C1>14.0</C1><C2>15.0</C2></HiLimit2Vec></Position2VecInterval></AstroCoordArea></V>')
+
+	def test2DWithSize(self):
+		self.assertMapsto("PositionInterval ICRS 12 13 14 15 Size 1 1.5 1.75 2",
+			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoords ><Position2D  unit="deg"><Size2><C1>1.0</C1><C2>1.5</C2></Size2><Size2><C1>1.75</C1><C2>2.0</C2></Size2></Position2D></AstroCoords><AstroCoordArea ><Position2VecInterval  unit="deg"><LoLimit2Vec><C1>12.0</C1><C2>13.0</C2></LoLimit2Vec><HiLimit2Vec><C1>14.0</C1><C2>15.0</C2></HiLimit2Vec></Position2VecInterval></AstroCoordArea></V>')
 
 	def test3D(self):
 		self.assertMapsto("PositionInterval ECLIPTIC CART3 12 13 10 14 15 9",
@@ -132,4 +145,4 @@ class RegionTest(STCMappingTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(SpaceCoordTest)
+	testhelpers.main(OtherCoordIntervalTest)

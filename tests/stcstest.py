@@ -153,31 +153,50 @@ class STCSSpectralParsesTest(STCSParsesTestBase):
 	]
 
 
+class SamplesBasedAutoTest(type):
+	"""A metaclass that builds tests out of a samples attribute of a class.
+
+	To use this, give the class a samples attribute containing a sequence
+	of anything, and a _runTest(sample) method receiving one item of
+	that sequence.
+
+	The metaclass will create one test<n> method for each sample.
+	"""
+	def __new__(cls, name, bases, dict):
+		for sampInd, sample in enumerate(dict["samples"]):
+			def testFun(self, sample=sample):
+				self._runTest(sample)
+			dict["test%d"%sampInd] = testFun
+		return type.__new__(cls, name, bases, dict)
+
+
 class STCSTreeParseTestBase(testhelpers.VerboseTest):
 	"""A base for parse tests checking the concrete syntax trees.
 
 	Fill out the samples class variable with tuples of 
 	(symbolName, inputString, resultTree)
 	"""
+	__metaclass__ = SamplesBasedAutoTest
+
 	syms = stcs.getSymbols()
 	samples = []
 
-	def testSamples(self):
-		for symbolName, inputString, resultTree in self.samples:
-			try:
-				self.assertEqual(stcs.makeTree(self.syms[symbolName].parseString(
-					inputString, parseAll=True)), resultTree)
-			except stcs.ParseException:
-				raise AssertionError(
-					"Sample '%s' with expected result %s didn't parse"%(
-						inputString, resultTree))
+	def _runTest(self, sample):
+		symbolName, inputString, resultTree = sample
+		try:
+			self.assertEqual(stcs.makeTree(self.syms[symbolName].parseString(
+				inputString, parseAll=True)), resultTree)
+		except stcs.ParseException:
+			raise AssertionError(
+				"Sample '%s' with expected result %s didn't parse"%(
+					inputString, resultTree))
 
 
 class SimpleSTCSTreesTest(STCSTreeParseTestBase):
 	samples = [
 		("timeUnit", "unit s", {'unit': 's'}),
 		("spaceUnit", "unit pc", {"unit": 'pc'}),
-		("positionSpec", "Position 2 1 3.4 7e9", ['2', '1', '3.4', '7e9']),
+		("positionSpec", "Position 2 1 3.5 7e9", {"pos": [2., 1., 3.5, 7e9]}),
 		("timescale", "TT", {'timescale': 'TT'}),
 		("jdLiteral", "JD 2450000.5", [datetime.datetime(
 			1995, 10, 9, 23, 59, 59, 999997)]),
@@ -189,37 +208,37 @@ class SimpleSTCSTreesTest(STCSTreeParseTestBase):
 class ComplexSTCSTreesTest(STCSTreeParseTestBase):
 	samples = [
 		("positionInterval", "PositionInterval ICRS 2 3", 
-			{'coos': ['2', '3'], 'frame': 'ICRS', 'type': 'PositionInterval'}),
+			{'coos': [2., 3.], 'frame': 'ICRS', 'type': 'PositionInterval'}),
 		("positionInterval", "PositionInterval ICRS 2 3 Error 5 7", 
-			{'coos': ['2', '3'], 'frame': 'ICRS', 'type': 'PositionInterval',
-				'error': ['5', '7']}),
+			{'coos': [2., 3.], 'frame': 'ICRS', 'type': 'PositionInterval',
+				'error': [5., 7.]}),
 		("timeInterval", "TimeInterval 1980-10-15 JD 2454930.7", 
 			{'coos': [datetime.datetime(1980, 10, 15, 0, 0), 
 				datetime.datetime(2009, 4, 9, 4, 48, 0, 18)], 'type': 'TimeInterval'}),
 		("stopTime", "StopTime fillfactor 0.1 TT GEOCENTER 1900-01-01"
-				" Time 2000-12-31 unit yr Error 1 2 Resolution 0.1 0.1 PixSize 19 20",
-			{'fillfactor': '0.1', 'timescale': 'TT', 'type': 'StopTime', 
+				" Time 2000-12-31 unit yr Error 1 2 Resolution 0.5 0.5 PixSize 19 20",
+			{'fillfactor': 0.1, 'timescale': 'TT', 'type': 'StopTime', 
 				'refpos': 'GEOCENTER', 'coos': [datetime.datetime(1900, 1, 1, 0, 0)],
 				'pos': [datetime.datetime(2000, 12, 31, 0, 0)], 
-				'error': ['1', '2'], 'resolution': ['0.1', '0.1'], 'unit': 'yr', 
-				'pixSize': ['19', '20']}),
+				'error': [1., 2.], 'resolution': [0.5, 0.5], 'unit': 'yr', 
+				'pixSize': [19., 20.]}),
 		("spaceSubPhrase", "Circle fillfactor 0.1 FK4 TOPOCENTER SPHER2 1 2 3"
-			" unit deg Error 3 3 Size 23", [{'coos': ['1', '2', '3'], 
-				'frame': 'FK4', 'refpos': 'TOPOCENTER', 'fillfactor': '0.1', 
-				'error': ['3', '3'], 'flavor': 'SPHER2', 'type': 'Circle', 
-				'unit': 'deg', 'size': ['23']}]),
+			" unit deg Error 3 3 Size 23", [{'coos': [1., 2., 3.], 
+				'frame': 'FK4', 'refpos': 'TOPOCENTER', 'fillfactor': 0.1, 
+				'error': [3., 3.], 'flavor': 'SPHER2', 'type': 'Circle', 
+				'unit': 'deg', 'size': [23.]}]),
 		("spaceSubPhrase", "PositionInterval FK4 VelocityInterval fillfactor 0.1"
 				" 12 13"
-				" Velocity 12.3 unit km/s Error 4 5 Resolution 1.2 PixSize 1.3", 
+				" Velocity 12.5 unit km/s Error 4 5 Resolution 1.25 PixSize 1.5", 
 			[{'frame': 'FK4', 'type': 'PositionInterval', 'velocityInterval': [
-				{'coos': ['12', '13'], 'fillfactor': '0.1', 
-				'error': ['4', '5'], 'velocity': ['12.3'], 'resolution': ['1.2'], 
-				'unit': 'km/s', 'pixSize': ['1.3']}]}]),
-		("stcsPhrase", "Circle ICRS 2 23 12 RedshiftInterval RADIO 0.1 0.2", {
+				{'coos': [12., 13.], 'fillfactor': 0.1, 
+				'error': [4., 5.], 'velocity': [12.5], 'resolution': [1.25], 
+				'unit': 'km/s', 'pixSize': [1.5]}]}]),
+		("stcsPhrase", "Circle ICRS 2 23 12 RedshiftInterval RADIO 0.125 0.25", {
 			'space': {
-				'coos': ['2', '23', '12'], 'frame': 'ICRS', 'type': 'Circle'}, 
+				'coos': [2., 23., 12.], 'frame': 'ICRS', 'type': 'Circle'}, 
 			'redshift': {
-				'coos': ['0.1', '0.2'], 'dopplerdef': 'RADIO', 
+				'coos': [0.125, 0.25], 'dopplerdef': 'RADIO', 
 				'type': 'RedshiftInterval'}}),
 	]
 
@@ -231,7 +250,15 @@ class STCSPhraseTest(STCSTreeParseTestBase):
 				'type': 'StopTime', 'timescale': 'TT'}}),
 		("stcsPhrase", "AllSky FK4 B1975.0 Position 12 13",
 			{'space': {'type': 'AllSky', 'frame': 'FK4', 'equinox': 'B1975.0', 
-				'pos': ['12', '13']}}),
+				'pos': [12., 13.]}}),
+		("stcsPhrase", "Spectral BARYCENTER 200000 unit Hz PixSize 1",
+			{'spectral': {'type': 'Spectral', 'pos': [200000.], 
+				"refpos": "BARYCENTER", "unit": "Hz", "pixSize": [1.0]}}),
+		("stcsPhrase", "Time TT 2008-05-05T12:33:45",
+			{'time': {'type': 'Time', 'pos': 
+				[datetime.datetime(2008, 5, 5, 12, 33, 45)], 'timescale': 'TT'}}),
+		("stcsPhrase", "AllSky ICRS",
+			{'space': {'type': 'AllSky', 'frame': 'ICRS'}}),
 	]
 
 
@@ -246,27 +273,27 @@ class TreeIterTest(testhelpers.VerboseTest):
 	
 	def testSimple(self):
 		self.assertEqual(list(stcs.iterNodes(self._getTree("Position ICRS 2 3"))),
-			[(('space',), {'coos': ['2', '3'], 
+			[(('space',), {'pos': [2.0, 3.0], 
 				'frame': 'ICRS', 'type': 'Position'}), 
-			((), {'space': {'coos': ['2', '3'], 
+			((), {'space': {'pos': [2.0, 3.0], 
 				'frame': 'ICRS', 'type': 'Position'}})])
 	
 	def testComplex(self):
 		self.assertEqual(list(stcs.iterNodes(self._getTree(
-			"Circle ICRS 2 23 12 VelocityInterval fillfactor 0.1 12 13"
-		  " RedshiftInterval RADIO 0.1 0.2"))), [
+			"Circle ICRS 2 23 12 VelocityInterval fillfactor 0.5 12 13"
+		  " RedshiftInterval RADIO 0.125 0.25"))), [
 				(('space', 'velocityInterval'), {
-					'coos': ['12', '13'], 'fillfactor': '0.1'}), 
+					'coos': [12.0, 13.0], 'fillfactor': 0.5}), 
 				(('space',), {
-					'coos': ['2', '23', '12'], 'frame': 'ICRS', 'type': 'Circle', 
+					'coos': [2.0, 23.0, 12.0], 'frame': 'ICRS', 'type': 'Circle', 
 					'velocityInterval': [
-						{'coos': ['12', '13'], 'fillfactor': '0.1'}]}), 
+						{'coos': [12.0, 13.0], 'fillfactor': 0.5}]}), 
 				(('redshift',), {
-						'coos': ['0.1', '0.2'], 'dopplerdef': 'RADIO', 
+						'coos': [0.125, 0.25], 'dopplerdef': 'RADIO', 
 							'type': 'RedshiftInterval'}), 
-				((), {'space': {'coos': ['2', '23', '12'], 'frame': 'ICRS', 
-					'type': 'Circle', 'velocityInterval': [{'coos': ['12', '13'], 
-					'fillfactor': '0.1'}]}, 'redshift': {'coos': ['0.1', '0.2'], 
+				((), {'space': {'coos': [2.0, 23.0, 12.0], 'frame': 'ICRS', 
+					'type': 'Circle', 'velocityInterval': [{'coos': [12., 13.], 
+					'fillfactor': 0.5}]}, 'redshift': {'coos': [0.125, 0.25], 
 					'dopplerdef': 'RADIO', 'type': 'RedshiftInterval'}})])
 
 
@@ -340,7 +367,8 @@ class GenerationTest(testhelpers.VerboseTest):
 	def testOtherCoodinates(self):
 		self.assertMapsto("Spectral BARYCENTER 200000 unit Hz PixSize 1"
 			" Redshift TOPOCENTER 2 REDSHIFT RELATIVISTIC",
-			'Spectral BARYCENTER 200000.0 PixSize 1.0\nRedshift TOPOCENTER REDSHIFT RELATIVISTIC 2.0')
+			'Spectral BARYCENTER 200000.0 PixSize 1.0\n'
+			'Redshift TOPOCENTER REDSHIFT RELATIVISTIC 2.0')
 
 	def testSpatialCoo(self):
 		self.assertMapsto("Position ICRS -50 320",
@@ -357,10 +385,11 @@ class GenerationTest(testhelpers.VerboseTest):
 			'PositionInterval J2000 12.0 13.0 19.0 29.0 Position 15.0 16.0')
 
 	def testGeometries(self):
-		self.assertMapsto("Circle ICRS 12 13 0.25 Position 12.5 13.5",
-			'Circle ICRS 12.0 13.0 0.25 Position 12.5 13.5')
+		self.assertMapsto("AllSky ICRS", "AllSky ICRS")
 		self.assertMapsto("AllSky FK5 J2010 Position 12 13",
 			'AllSky FK5 J2010.0 Position 12.0 13.0')
+		self.assertMapsto("Circle ICRS 12 13 0.25 Position 12.5 13.5",
+			'Circle ICRS 12.0 13.0 0.25 Position 12.5 13.5')
 		self.assertMapsto("Ellipse ECLIPTIC TOPOCENTER -40 38 0.75 0.5 45"
 			" PixSize 0.25 0.25 0.5 0.5",
 			'Ellipse ECLIPTIC TOPOCENTER -40.0 38.0 0.75 0.5 45.0'
@@ -372,6 +401,7 @@ class GenerationTest(testhelpers.VerboseTest):
 		self.assertMapsto("Convex GEO_C 2 3 4 0.5 5 6 7 0.25",
 			'Convex GEO_C 2.0 3.0 4.0 0.5 5.0 6.0 7.0 0.25')
 
+
 if __name__=="__main__":
-	testhelpers.main(GenerationTest)
+	testhelpers.main(TreeIterTest)
 #	testhelpers.main(STCSPhraseTest)

@@ -171,28 +171,32 @@ def _make1DSerializer(cooClass, valueSerializer):
 	xmlstan.
 	"""
 	def serialize(node):
-		return cooClass(unit=node.unit, vel_time_unit=node.velTimeUnit,
-				frame_id=node.frame.id)[
+		res = cooClass[
 			valueSerializer(node.value),
 			_wrapValues(STC.Error, getattr(node.error, "values", ())),
 			_wrapValues(STC.Resolution, getattr(node.resolution, "values", ())),
 			_wrapValues(STC.PixSize, getattr(node.pixSize, "values", ())),
 		]
+		if not res.isEmpty():
+			return res(unit=node.unit, vel_time_unit=node.velTimeUnit,
+				frame_id=node.frame.id)
 	return serialize
 
 serialize_TimeCoo = _make1DSerializer(STC.Time,
 	lambda value: STC.TimeInstant[STC.ISOTime[isoformatOrNull(value)]])
 serialize_RedshiftCoo = _make1DSerializer(STC.Redshift,
-	lambda value: STC.Value[str(value)])
+	lambda value: STC.Value[strOrNull(value)])
 serialize_SpectralCoo = _make1DSerializer(STC.Spectral,
-	lambda value: STC.Value[str(value)])
+	lambda value: STC.Value[strOrNull(value)])
 
 
 def _wrap2D(val):
-	return [STC.C1[val[0]], STC.C2[val[1]]]
+	if val:
+		return [STC.C1[val[0]], STC.C2[val[1]]]
 
 def _wrap3D(val):
-	return [STC.C1[val[0]], STC.C2[val[1]], STC.C3[val[2]]]
+	if val:
+		return [STC.C1[val[0]], STC.C2[val[1]], STC.C3[val[2]]]
 
 def _wrapMatrix(val):
 	for rowInd, row in enumerate(val):
@@ -200,7 +204,7 @@ def _wrapMatrix(val):
 			yield getattr(STC, "M%d%d"%(rowInd, colInd))[str(col)]
 
 positionClasses = (
-	(STC.Position1D, STC.Value, str),
+	(STC.Position1D, STC.Value, strOrNull),
 	(STC.Position2D, STC.Value2, _wrap2D),
 	(STC.Position3D, STC.Value3, _wrap3D),
 )
@@ -213,12 +217,14 @@ def serialize_SpaceCoo(node):
 	"""
 	dimInd = node.frame.nDim-1
 	coo, val, serializer = positionClasses[dimInd]
-	return coo(unit=node.unit, frame_id=node.frame.id)[
+	res = coo[
 			val[serializer(node.value)],
 			[_serialize_Wiggle(getattr(node, wiggleType), 
 					serializer, wiggleClasses[wiggleType][dimInd])
 				for wiggleType in ["error", "resolution", "size", "pixSize"]],
 		]
+	if not res.isEmpty():
+		return res(unit=node.unit, frame_id=node.frame.id)
 
 
 ############# Intervals

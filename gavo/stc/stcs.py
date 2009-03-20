@@ -159,7 +159,8 @@ def getSymbols():
 
 	_exactNumericRE = r"[+-]?\d+(\.(\d+)?)?|[+-]?\.\d+"
 	exactNumericLiteral = Regex(_exactNumericRE)
-	number = Regex(r"(?i)(%s)(E[+-]?\d+)?"%_exactNumericRE)
+	number = Regex(r"(?i)(%s)(E[+-]?\d+)?"%_exactNumericRE).addParseAction(
+		lambda s,p,toks: float(toks[0]))
 
 # units
 	_unitOpener = Suppress( Keyword("unit") )
@@ -194,8 +195,9 @@ def getSymbols():
 	nakedTime = (isoTimeLiteral | jdLiteral | mjdLiteral)
 
 # properties of most spatial specs
-	coos = ZeroOrMore( number )("coos")
-	positionSpec = Suppress( Keyword("Position") ) + OneOrMore( number )
+	_coos = ZeroOrMore( number )("coos")
+	_pos = Optional( ZeroOrMore( number )("pos") )
+	positionSpec = Suppress( Keyword("Position") ) + _pos
 	error = Suppress( Keyword("Error") ) + OneOrMore( number )
 	resolution = Suppress( Keyword("Resolution") ) + OneOrMore( number )
 	size = Suppress( Keyword("Size") ) + OneOrMore(number)
@@ -205,13 +207,13 @@ def getSymbols():
 		Optional( size("size") ) + Optional( pixSize("pixSize") ))
 	velocitySpec = Suppress( Keyword("Velocity") ) + OneOrMore( number )
 	velocityInterval = (Keyword("VelocityInterval") + Optional( fillfactor ) +
-		coos + Optional( velocitySpec("velocity") ) + 
+		_coos + Optional( velocitySpec("velocity") ) + 
 		Optional( velocityUnit ) +
 		Optional( error("error") ) + Optional( resolution("resolution") ) + 
 		Optional( pixSize("pixSize") )).addParseAction(makeTree)
 	_spatialTail = (_spatialProps + 
 		Optional( velocityInterval )("velocityInterval"))
-	_regionTail = Optional( positionSpec("pos") ) + _spatialTail
+	_regionTail = Optional( positionSpec ) + _spatialTail
 	_commonSpaceItems = ( frame + Optional( refpos ) + 
 		Optional( flavor ))
 	_commonRegionItems = Optional( fillfactor ) + _commonSpaceItems
@@ -234,28 +236,28 @@ def getSymbols():
 	stopTime = (Keyword("StopTime")("type") + _intervalOpener + 
 		nakedTime.setResultsName("coos", True) + _intervalCloser)
 	time = (Keyword("Time")("type")  + Optional( timescale("timescale") ) + 
-		Optional( refpos("refpos") ) + ZeroOrMore( nakedTime )("coos") + 
+		Optional( refpos("refpos") ) + nakedTime.setResultsName("pos", True) + 
 		_commonTimeItems)
 	timeSubPhrase = (timeInterval | startTime | stopTime | time).addParseAction(
 		makeTree)
 
 # space subphrase
 	positionInterval = (Keyword("PositionInterval")("type") +
-		_commonRegionItems + coos + _regionTail)
+		_commonRegionItems + _coos + _regionTail)
 	allSky = ( Keyword("AllSky")("type") +
 		_commonRegionItems + _regionTail )
 	circle = ( Keyword("Circle")("type") + 
-		_commonRegionItems + coos + _regionTail )
+		_commonRegionItems + _coos + _regionTail )
 	ellipse = ( Keyword("Ellipse")("type") + 
-		_commonRegionItems + coos + _regionTail )
+		_commonRegionItems + _coos + _regionTail )
 	box = ( Keyword("Box")("type") + 
-		_commonRegionItems + coos + _regionTail )
+		_commonRegionItems + _coos + _regionTail )
 	polygon = ( Keyword("Polygon")("type") + 
-		_commonRegionItems + coos + _regionTail )
+		_commonRegionItems + _coos + _regionTail )
 	convex = ( Keyword("Convex")("type") + 
-		_commonRegionItems + coos + _regionTail )
+		_commonRegionItems + _coos + _regionTail )
 	position = ( Keyword("Position")("type") + 
-		_commonSpaceItems + coos + _spatialTail )
+		_commonSpaceItems + _pos + _spatialTail )
 	spaceSubPhrase = (positionInterval | allSky | circle | ellipse | box
 		| polygon | convex | position).addParseAction(makeTree)
 
@@ -265,10 +267,10 @@ def getSymbols():
 		Optional( error("error") ) + 
 		Optional( resolution("resolution") ) + Optional( pixSize("pixSize") ))
 	spectralInterval = (Keyword("SpectralInterval")("type") +
-		Optional( fillfactor ) + Optional( refpos ) + coos + 
+		Optional( fillfactor ) + Optional( refpos ) + _coos + 
 		Optional( spectralSpec ) + _spectralTail)
 	spectral = (Keyword("Spectral")("type") + Optional( refpos ) +
-		coos + _spectralTail)
+		_pos + _spectralTail)
 	spectralSubPhrase = (spectralInterval | spectral ).addParseAction(
 		makeTree)
 
@@ -282,12 +284,12 @@ def getSymbols():
 	redshiftInterval = (Keyword("RedshiftInterval")("type") + 
 		Optional( fillfactor ) + Optional( refpos ) + 
 		Optional( redshiftType ) + Optional( dopplerdef ) +
-		coos + Optional( redshiftSpec ) + _redshiftTail)
+		_coos + Optional( redshiftSpec ) + _redshiftTail)
 # Probable typo: redshiftType and dopplerdef are behind coos in the
 # 1.30 specs.  We allow that but prefer them before coos.
 	redshift = (Keyword("Redshift")("type") + Optional( refpos ) +
 		Optional( redshiftType ) + Optional( dopplerdef ) +
-		coos + 
+		_pos + 
 		Optional( redshiftType ) + Optional( dopplerdef ) +
 		_redshiftTail)
 	redshiftSubPhrase = (redshiftInterval | redshift ).addParseAction(

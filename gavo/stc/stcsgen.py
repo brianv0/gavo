@@ -107,48 +107,29 @@ def _wiggleToCST(node, nDim):
 			node.__class__.__name__)
 
 
-def _makeBasicCooMaker(frameMaker):
+def _makeCooTreeMapper(cooType, frameMaker):
+	"""returns a function returning a CST fragment for a coordinate.
+	"""
 	def toCST(node):
 		nDim = node.frame.nDim
 		return _combine({
 			"error": _wiggleToCST(node.error, nDim),
 			"resolution": _wiggleToCST(node.resolution, nDim),
 			"pixSize": _wiggleToCST(node.pixSize, nDim),
-			"unit": _makeUnit(node),},
+			"unit": _makeUnit(node),
+			"type": cooType,
+			"pos": node.value or None,},
 			frameMaker(node.frame))
 	return toCST
 
 
-def _makeCooTreeMapper(cooType):
-	def toCST(node):
-		return {
-			"type": cooType,
-			"coos": (node.value,),}
-	return toCST
+def _makeIntervalCoos(node):
+	if node.lowerLimit and node.upperLimit:
+		coos = [c for c in (node.lowerLimit, node.upperLimit) if c is not None]
+	return {"coos": coos}
 
 
-def _makeAreaTreeMapper(intervalType, cooMaker):
-	def toCST(node, positions):
-		coos, pos = cooMaker(node, positions)
-		return {
-			"type": intervalType,
-			"coos": coos,
-			"pos": pos,}
-	return toCST
-
-
-def _makeIntervalTreeMapper(intervalType):
-	def makeCoos(node, positions):
-		if node.lowerLimit and node.upperLimit:
-			coos = [c for c in (node.lowerLimit, node.upperLimit) if c is not None]
-		pos = None
-		if positions:
-			pos = positions[0]
-		return coos, pos
-	return _makeAreaTreeMapper(intervalType, makeCoos)
-
-
-def _timeIntervalToCST(node, times):
+def _makeTimeIntervalCoos(node):
 # Special-cased since these have (Start|Stop)Time
 	if node.lowerLimit and node.upperLimit:
 		type, coos = "TimeInterval", (node.lowerLimit, node.upperLimit)
@@ -158,117 +139,151 @@ def _timeIntervalToCST(node, times):
 		type, coos = "StopTime", (node.upperLimit,)
 	else:
 		type, coos = "TimeInterval", ()
-	pos = None
-	if times:
-		pos = times[0]
 	return {
 		"type": type,
-		"coos": coos,
-		"pos": pos}
+		"coos": coos}
 
 
-def _makePhraseTreeMapper(cooMapper, areaMapper, basicArgsMaker):
-	def toCST(coos, areas):
-		if areas:
-			node = areas[0]
-			res = areaMapper(areas[0], coos)
-		elif coos:
-			node = coos[0]
-			res = cooMapper(coos[0])
-		else:
-			return {}
-		return _combine(res,
-			basicArgsMaker(node))
+def _makeAreaTreeMapper(areaType, cooMaker=_makeIntervalCoos):
+	"""returns a CST fragment for an area.
+
+	areaType this CST type of the node returned, cooMaker is a function
+	that receives the node and returns a dictionary containing at least
+	a coos key.  It can set other keys as well (e.g. 
+	_makeTimeIntervalCoos needs to override the type key).
+	"""
+	def toCST(node):
+		return _combine({
+			"type": areaType},
+			cooMaker(node))
 	return toCST
 
 
-def _basicSpatialCoosToCST(node, getBase=_makeBasicCooMaker(_spaceFrameToCST)):
+def _makePhraseTreeMapper(cooMapper, areaMapper,
+		getASTItems):
+	"""returns a mapper building a CST fragment for a subphrase.
+
+	cooMapper and areaMapper are functions returning CST fragments
+	for coordinates and areas of this type, respectively.
+
+	getASTItems is a function that receives the AST root and has to
+	return either None (no matching items found in AST) or a pair
+	of coordinate and area, where area may be None.  Use _makeASTItemsGetter
+	to build these functions.
+
+	The function returned expects the root of the AST as argument.
+	"""
+	def toCST(astRoot):
+		items = getASTItems(astRoot)
+		if items is None:
+			return {}
+		coo, area = items
+		areaKeys = {}
+		if area:
+			areaKeys = areaMapper(area)
+		cooKeys = cooMapper(coo)
+		return _combine(cooKeys,
+			areaKeys,  # area keys come later to override posKey type.
+			)
+	return toCST
+
+
+def _makeASTItemsGetter(cooName, areaName, positionClass):
+	"""returns a function that extracts coordinates and areas of
+	a certain type from an AST.
+
+	The function does all kinds of sanity checks and raises STCValueErrors
+	if those fail.
+
+	If all goes well, it will return a pair coo, area.  coo is always
+	non-None, area may be None.
+	"""
+	def getASTItems(astRoot):
+		areas, coos = getattr(astRoot, areaName), getattr(astRoot, cooName)
+		if not areas and not coos:
+			return None
+		if len(areas)>1:
+			raise STCValueError("STC-S does not support more than one area"
+				" but %s has length %d"%(areaName, len(areas)))
+		if len(coos)>1:
+			raise STCValueError("STC-S does not support more than one coordinate,"
+				" but %s has length %d"%(areaName, len(coos)))
+		if areas and coos:
+			if coos[0].unit is None:
+				coos[0].unit = areas[0].unit
+			if coos[0].unit!=areas[0].unit:
+				raise STCValueError("Cannot serialize ASTs with different"
+					" units on positions and areas to STC-S")
+		if coos:
+			coo = coos[0]
+		else:
+			coo = positionClass(unit=areas[0].unit)
+		if areas:
+			area = areas[0]
+		else:
+			area = None
+		return coo, area
+	return getASTItems
+
+
+def _spatialCooToCST(node, getBase=_makeCooTreeMapper("Position",
+		_spaceFrameToCST)):
 	cstNode = getBase(node)
 	cstNode["size"] = _wiggleToCST(node.size, node.frame.nDim)
 	return cstNode
 
 
 _timeToCST = _makePhraseTreeMapper(
-	_makeCooTreeMapper("Time"),
-	_timeIntervalToCST,
-	_makeBasicCooMaker(_timeFrameToCST))
+	_makeCooTreeMapper("Time", _timeFrameToCST),
+	_makeAreaTreeMapper("TimeInterval", _makeTimeIntervalCoos),
+	_makeASTItemsGetter("times", "timeAs", dm.TimeCoo))
 _simpleSpatialToCST = _makePhraseTreeMapper(
-	_makeCooTreeMapper("Position"),
-	_makeIntervalTreeMapper("PositionInterval"),
-	_basicSpatialCoosToCST)
+	_spatialCooToCST,
+	_makeAreaTreeMapper("PositionInterval"),
+	_makeASTItemsGetter("places", "areas", dm.SpaceCoo))
 _spectralToCST = _makePhraseTreeMapper(
-	_makeCooTreeMapper("Spectral"),
-	_makeIntervalTreeMapper("SpectralInterval"),
-	_makeBasicCooMaker(_spectralFrameToCST))
+	_makeCooTreeMapper("Spectral", _spectralFrameToCST),
+	_makeAreaTreeMapper("SpectralInterval"),
+	_makeASTItemsGetter("freqs", "freqAs", dm.SpectralCoo))
 _redshiftToCST = _makePhraseTreeMapper(
-	_makeCooTreeMapper("Redshift"),
-	_makeIntervalTreeMapper("RedshiftInterval"),
-	_makeBasicCooMaker(_redshiftFrameToCST))
+	_makeCooTreeMapper("Redshift", _redshiftFrameToCST),
+	_makeAreaTreeMapper("RedshiftInterval"),
+	_makeASTItemsGetter("redshifts", "redshiftAs", dm.RedshiftCoo))
 
 
-def _makeGeometryMapper(intervalType, cooMaker):
-	plainMapper = _makeAreaTreeMapper(intervalType, cooMaker)
-	def toCST(node, positions):
-		return _combine(plainMapper(node, positions),
-			_basicSpatialCoosToCST(node))
-	return toCST
+def _makeAllSkyCoos(node):
+	return {"coos": ()}
 
+def _makeCircleCoos(node):
+	return {"coos": node.center+(node.radius,)}
 
-# refactor those geometries.  I'm fed up right now and cut'n'paste
-def _makeAllSkyCoos(node, positions):
-	coos = ()
-	pos = None
-	if positions:
-		pos = positions[0]
-	return coos, pos
+def _makeEllipseCoos(node):
+	return {"coos": node.center+(node.smajAxis, node.sminAxis, node.posAngle)}
 
-def _makeCircleCoos(node, positions):
-	coos = node.center+(node.radius,)
-	pos = None
-	if positions:
-		pos = positions[0]
-	return coos, pos
+def _makeBoxCoos(node):
+	return {"coos": node.center+node.boxsize}
 
-def _makeEllipseCoos(node, positions):
-	coos = node.center+(node.smajAxis, node.sminAxis, node.posAngle)
-	pos = None
-	if positions:
-		pos = positions[0]
-	return coos, pos
+def _makePolygonCoos(node):
+	return {"coos": tuple(itertools.chain(*node.vertices))}
 
-def _makeBoxCoos(node, positions):
-	coos = node.center+node.boxsize
-	pos = None
-	if positions:
-		pos = positions[0]
-	return coos, pos
+def _makeConvexCoos(node):
+	return {"coos": tuple(itertools.chain(*node.vectors))}
 
-def _makePolygonCoos(node, positions):
-	coos = tuple(itertools.chain(*node.vertices))
-	pos = None
-	if positions:
-		pos = positions[0]
-	return coos, pos
-
-def _makeConvexCoos(node, positions):
-	coos = tuple(itertools.chain(*node.vectors))
-	pos = None
-	if positions:
-		pos = positions[0]
-	return coos, pos
-
-_geometryMappers = dict([(n, _makeGeometryMapper(n,
-		globals()["_make%sCoos"%n]))
+_geometryMappers = dict([(n, _makePhraseTreeMapper(
+		_spatialCooToCST,
+		_makeAreaTreeMapper(n, globals()["_make%sCoos"%n]),
+		_makeASTItemsGetter("places", "areas", dm.SpaceCoo)))
 	for n in ["AllSky", "Circle", "Ellipse", "Box", "Polygon", "Convex"]])
 
-def _spatialToCST(coos, areas):
-	node = (areas and areas[0]) or (coos and coos[0])
+def _spatialToCST(astRoot):
+	node = (astRoot.areas and astRoot.areas[0]) or (
+		astRoot.places and astRoot.places[0])
 	if not node:
 		return {}
 	if isinstance(node, (dm.SpaceCoo, dm.SpaceInterval)):
-		return _simpleSpatialToCST(coos, areas)
+		return _simpleSpatialToCST(astRoot)
 	else: # Ok, it's a geometry
-		return _geometryMappers[areas[0].__class__.__name__](areas[0], coos)
+		return _geometryMappers[node.__class__.__name__](astRoot)
 
 
 ############## Flattening of the CST
@@ -276,18 +291,18 @@ def _spatialToCST(coos, areas):
 
 def _makeSequenceFlattener(keyword):
 	if keyword:
-		def flatten(seq):
+		def flatten(seq, node):
 			if seq:
 				return "%s %s"%(keyword, " ".join(str(v) for v in seq))
 	else:
-		def flatten(seq):
+		def flatten(seq, node):
 			if seq:
 				return " ".join(str(v) for v in seq)
 	return flatten
 
 
 def _makeKeywordFlattener(keyword):
-	def flatten(val):
+	def flatten(val, node):
 		if val is not None:
 			return "%s %s"%(keyword, val)
 	return flatten
@@ -303,23 +318,32 @@ _commonFlatteners = {
 }
 
 
-def _make1DCooFlattener(stringifyCoo, posKey, frameKeys):
-	def posFlattener(val):
+def _makePosFlattener(key, stringify):
+	def flatten(val, node):
 		if val is not None:
-			return "%s %s"%(posKey, stringifyCoo(val.value))
+			val = stringify(val)
+			if node["type"]==key:
+				return val
+			else:
+				return "%s %s"%(key, val)
+	return flatten
+
+
+def _make1DCooFlattener(stringifyCoo, posKey, frameKeys):
+	posFlattener = _makePosFlattener(posKey, stringifyCoo)
 	flatteners = {"pos": posFlattener}
 	flatteners.update(_commonFlatteners)
 	keyList = ["type", "fillfactor"]+frameKeys+["coos", "pos", 
 		"unit", "error", "resolution", "pixSize"]
 	def flatten(node):
-		node["coos"] = " ".join(map(stringifyCoo, node.get("coos", ())))
+		if "coos" in node:
+			node["coos"] = " ".join(map(stringifyCoo, node["coos"]))
 		return _joinKeysWithNull(node, keyList, flatteners)
 	return flatten
 
 
-def _flattenSpacePos(val):
-	if val is not None:
-		return "Position %s"%" ".join(str(v) for v in _flattenVectors([val.value]))
+_flattenSpacePos = _makePosFlattener("Position",
+	lambda val: " ".join(str(v) for v in _flattenVectors([val])))
 
 _posFlatteners = _commonFlatteners.copy()
 _posFlatteners["pos"] = _flattenSpacePos
@@ -360,7 +384,7 @@ def _joinKeysWithNull(node, kwList, flatteners):
 		elif key not in node:
 			pass
 		elif key in flatteners:
-			res.append(flatteners[key](node[key]))
+			res.append(flatteners[key](node[key], node))
 		else:
 			res.append(node[key])
 	return _joinWithNull(res)
@@ -391,9 +415,9 @@ def getSTCS(astRoot):
 			raise STCValueError("STC-S does not support STC specifications of"
 				" length>1, but %s has length %d"%(name, len(val)))
 	cst = stcs.removeDefaults({
-		"time": _timeToCST(astRoot.times, astRoot.timeAs),
-		"space": _spatialToCST(astRoot.places, astRoot.areas),
-		"spectral": _spectralToCST(astRoot.freqs, astRoot.freqAs),
-		"redshift": _redshiftToCST(astRoot.redshifts, astRoot.redshiftAs),
+		"time": _timeToCST(astRoot),
+		"space": _spatialToCST(astRoot),
+		"spectral": _spectralToCST(astRoot),
+		"redshift": _redshiftToCST(astRoot),
 	})
 	return _flattenCST(cst)

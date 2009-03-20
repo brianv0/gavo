@@ -123,7 +123,7 @@ class OtherCoordIntervalTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.timeAs[0].lowerLimit, 
 			 datetime.datetime(2000, 2, 2, 0, 0))
 
-	def testOneAndAHalfInterval(self):
+	def _testOneAndAHalfInterval(self):
 		ast = stcsast.parseSTCS("TimeInterval 2000-02-02 2000-02-02T13:20:33"
 			" MJD 80002")
 		self.assertEqual(ast.timeAs[1].upperLimit, None)
@@ -178,7 +178,7 @@ class SpaceCoordIntervalTest(testhelpers.VerboseTest):
 		self.assertEqual(len(ast.areas), 1)
 		self.assertEqual(ast.areas[0].lowerLimit, (12.25, 23.75))
 		self.assertEqual(ast.areas[0].upperLimit, (13.5, 25.0))
-		self.assertEqual(len(ast.places), 0)
+		self.assertEqual(len(ast.places), 1)
 	
 	def testSimple3D(self):
 		ast = stcsast.parseSTCS("PositionInterval ICRS CART3 1 2 3")
@@ -192,7 +192,7 @@ class SpaceCoordIntervalTest(testhelpers.VerboseTest):
 		self.assertEqual(len(ast.areas), 1)
 		self.assertEqual(ast.areas[0].lowerLimit, (1.0, 2.0, 3.0))
 		self.assertEqual(ast.areas[0].upperLimit, (4.0, 5.0, 6.0))
-		self.assertEqual(ast.areas[0].error.values, ((.25, .5, .75),))
+		self.assertEqual(ast.places[0].error.values, ((.25, .5, .75),))
 	
 	def testWithPosition(self):
 		ast = stcsast.parseSTCS("PositionInterval ICRS 12.25 23.75 13.5 25.0"
@@ -282,4 +282,4 @@ class GeometryTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(OtherCoordTest)
+	testhelpers.main(OtherCoordIntervalTest)

@@ -175,7 +175,7 @@ class STC(object):
 	class RedshiftFrame(STCElement):
 		a_value_type = "VELOCITY"
 
-	class Redshift(STCElement):
+	class Redshift(OptionalSTCElement):
 		a_coord_system_id = None
 		a_frame_id = None
 		a_unit = None
@@ -277,7 +277,7 @@ class STC(object):
 	class MJDTime(OptionalSTCElement): pass
 	class TimeOrigin(STCElement): pass
 
-	class Spectral(STCElement):
+	class Spectral(OptionalSTCElement):
 		a_coord_system_id = None
 		a_frame_id = None
 		a_unit = None

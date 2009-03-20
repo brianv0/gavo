@@ -101,7 +101,7 @@ def getCoordSys(cst):
 	return "system", dm.CoordSys(**args)
 
 
-############## Coordinates
+############## Coordinates and their intervals
 
 
 def iterVectors(values, dim):
@@ -117,7 +117,7 @@ def iterVectors(values, dim):
 			yield tuple(values[index:index+dim])
 
 
-def iterIntervals(coos, dim):
+def _iterIntervals(coos, dim):
 	"""iterates over pairs dim-dimensional vectors.
 
 	It will always return at least one empty (i.e., None, None) pair.
@@ -140,43 +140,14 @@ def iterIntervals(coos, dim):
 		yield (startValue, None)
 
 
-def _makeWiggleValues(nDim, val, cooParse=float, minItems=None,
+def _makeWiggleValues(nDim, val, minItems=None,
 		maxItems=None):
 	if val is None: 
 		return
-	values = _makeCooValues(nDim, val, cooParse, minItems, maxItems)
+	values = _makeCooValues(nDim, val, minItems, maxItems)
 	if not values:
 		return
 	return dm.CooWiggle(values=values)
-
-
-def _makeBasicCooArgs(node, frame):
-	"""returns a dictionary containing constructor arguments common to
-	all items dealing with coordinates.
-	"""
-	nDim = getattr(frame, "nDim", 1)
-	args = {
-		"error": _makeWiggleValues(nDim, node.get("error"),
-			cooParse=float, maxItems=2),
-		"resolution": _makeWiggleValues(nDim, node.get("resolution"), 
-			cooParse=float, maxItems=2),
-		"pixSize": _makeWiggleValues(nDim, node.get("pixSize"), cooParse=float,
-			maxItems=2),
-		"unit": node.get("unit"),
-		"frame": frame,
-	}
-	# Frame-dependent hack handling -- what a pain...
-	if isinstance(frame, dm.SpaceFrame):
-		args["size"] =_makeWiggleValues(nDim, node.get("size"), cooParse=float,
-			maxItems=2)
-	if isinstance(frame, dm.RedshiftFrame):
-		if args["unit"]:
-			parts = args["unit"].split("/")
-			if len(parts)!=2:
-				raise STCSParseError("%s is not a valid unit for redshifts")
-			args["unit"] = parts[0]
-			args["velTimeUnit"] = parts[1]
-	return args
 
 
 def _validateCoos(values, nDim, minItems, maxItems):
@@ -197,7 +168,7 @@ def _validateCoos(values, nDim, minItems, maxItems):
 			maxItems, values))
 
 
-def _makeCooValues(nDim, values, cooParse=float, minItems=None, maxItems=None):
+def _makeCooValues(nDim, values, minItems=None, maxItems=None):
 	"""returns a list of nDim-Tuples made up of values.
 
 	If values does not contain an integral multiple of nDim items,
@@ -212,72 +183,109 @@ def _makeCooValues(nDim, values, cooParse=float, minItems=None, maxItems=None):
 		else:
 			return
 	_validateCoos(values, nDim, minItems, maxItems)
-	return tuple(v for v in iterVectors(map(cooParse, values), nDim))
+	return tuple(v for v in iterVectors(values, nDim))
 
 
-def _makeCooBuilder(frameName, realBuilder):
-	"""returns a function(node, context) -> ASTNode for building a 
+def _makeBasicCooArgs(node, frame):
+	"""returns a dictionary containing constructor arguments common to
+	all items dealing with coordinates.
+	"""
+	nDim = frame.nDim
+	args = {
+		"error": _makeWiggleValues(nDim, node.get("error"),
+			maxItems=2),
+		"resolution": _makeWiggleValues(nDim, node.get("resolution"), 
+			maxItems=2),
+		"pixSize": _makeWiggleValues(nDim, node.get("pixSize"), 
+			maxItems=2),
+		"size": _makeWiggleValues(nDim, node.get("size"), 
+			maxItems=2),
+		"unit": node.get("unit"),
+		"frame": frame,
+	}
+	# Frame-dependent hacks... sigh.
+	if isinstance(frame, dm.RedshiftFrame):
+		if args["unit"]:
+			parts = args["unit"].split("/")
+			if len(parts)!=2:
+				raise STCSParseError("%s is not a valid unit for redshifts")
+			args["unit"] = parts[0]
+			args["velTimeUnit"] = parts[1]
+	return args
+
+
+def _makeCooBuilder(frameName, intervalClass, intervalKey,
+		posClass, posKey, iterIntervKeys):
+	"""returns a function(node, context) -> ASTNode for building a
 	coordinate-like AST node.
 
-	frameName is the name of the coordinate frame within context.system,
-	realBuilder a function(node, context, args, coordinates, nDim)
-	that actually builds the node, based on the partial constructor
-	arguments args and a list of unparsed coordinates.
+	frameName is the name of the coordinate frame within
+	context.system,
 
-	Typically, the realBuilder is generated from a factory function as
-	well.  See, e.g., _makeCooRealBuilder or _makeGeometryRealBuilder.
+	(interval|pos)(Class|Key) are the class (key) to be used
+	(returned) for the interval/geometry and simple coordinate found
+	in the phrase.	If intervalClass is None, no interval/geometry
+	will be built.
+
+	iterIntervKeys is an iterator that yields key/value pairs for intervals
+	or geometries embedded.
+
+	Single positions are always expected under the coo key.
 	"""
+	positionExclusiveKeys = ["error", "resolution", "pixSize", "value",
+		"size"]
 	def builder(node, context):
 		frame = getattr(context.system, frameName)
+		nDim = frame.nDim
 		args = _makeBasicCooArgs(node, frame)
-		return realBuilder(node, context, args, node.get("coos", []),
-			frame.nDim)
+
+		# Yield a coordinate
+		if "pos" in node:
+			args["value"] = _makeCooValues(nDim, node["pos"],
+				minItems=1, maxItems=1)[0]
+		else:
+			args["value"] = None
+		yield posKey, (posClass(**args),)
+
+		# Yield an area if defined in this phrase
+		if intervalClass is None:
+			return
+		for key in positionExclusiveKeys:
+			if key in args:
+				del args[key]
+		for k, v in iterIntervKeys(node, nDim):
+			args[k] = v
+		if "fillfactor" in node:
+			args["fillFactor"] = node["fillfactor"]
+		yield intervalKey, (intervalClass(**args),)
 	return builder
 
 
-def _makeCooRealBuilder(resKey, argKey, cooClass, cooParse=float):
-	def realBuilder(node, context, args, coos, nDim):
-		args[argKey] = _makeCooValues(nDim, coos, cooParse=cooParse, 
-			maxItems=1)[0]
-		yield resKey, (cooClass(**args),)
-	return realBuilder
-
-
-def _makeIntervalRealBuilder(resKey, posResKey, 
-		intervalClass, posClass, cooParse=float, preferUpper=False):
-	def realBuilder(node, context, args, coos, nDim):
-		coos = map(cooParse, coos)
+def _makeIntervalKeyIterator(preferUpper=False):
+	def iterKeys(node, nDim):
+		"""returns ASTNode constructor keys for intervals.
+		"""
+		res, coos = {}, node.get("coos", ())
 		_validateCoos(coos, nDim, None, None)
-		if "pos" in node:
-			args["value"] = _makeCooValues(nDim, node["pos"], cooParse=cooParse,
-				minItems=1, maxItems=1)[0]
-			yield posResKey, (posClass(**args),)
-			del args["value"]
-		if "fillfactor" in node:
-			args["fillFactor"] = float(node["fillfactor"])
-		for interval in iterIntervals(coos, nDim):
+		for interval in _iterIntervals(coos, nDim):
 			if preferUpper:
-				args["upperLimit"], args["lowerLimit"] = interval
+				res["upperLimit"], res["lowerLimit"] = interval
 			else:
-				args["lowerLimit"], args["upperLimit"] = interval
-			yield resKey, (intervalClass(**args),)
-	return realBuilder
+				res["lowerLimit"], res["upperLimit"] = interval
+		return res.iteritems()
+	return iterKeys
+
 
 
 ###################### Geometries
 
 
-def _makeGeometryRealBuilder(clsName, argDesc):
-	"""returns a realBuilder for use with _makeCooBuilder that returns
-	a clsName instance built using argDesc.
+def _makeGeometryKeyIterator(argDesc, clsName):
+	"""returns a key iterator for use with _makeCooBuilder that yields
+	the keys particular to certain geometries.
 
-	clsName is a name of a class resolvable within this module's global
-	namespace.  We passing the name rather than the class to work around 
-	trouble with closures and exec.
-
-	ArgDesc describes what constructor arguments should be parsed from
-	the coordinates.  It consists for tuples of name and type code, where
-	type code is one of:
+	ArgDesc describes what keys should be parsed from the node's coos key.  
+	It consists for tuples of name and type code, where type code is one of:
 
 	* r -- a single real value.
 	* v -- a vector of dimensionality given by the system (i.e., nDim).
@@ -288,53 +296,44 @@ def _makeGeometryRealBuilder(clsName, argDesc):
 	remaining coordinates.
 	"""
 	parseLines = [
-		"def realBuilder(node, context, args, coos, nDim):",
-		'  if "pos" in node:',
-		'    args["value"] = _makeCooValues(nDim, node["pos"],',
-		'      minItems=1, maxItems=1)[0]',
-		'    yield "places", (dm.SpaceCoo(**args),)',
-		'    del args["value"]',
+		"def iterKeys(node, nDim):",
+		'  coos = node.get("coos", ())',
+		'  if False: yield',  # ensure the thing is an iterator
 		"  try:",
 		"    pass"]
 	for name, code in argDesc:
 		if code=="r":
-			parseLines.append('    args["%s"] = float(coos.pop(0))'%name)
+			parseLines.append('    yield "%s", coos.pop(0)'%name)
 		elif code=="v":
 			parseLines.append('    vec = coos[:nDim]')
 			parseLines.append('    coos = coos[nDim:]')
 			parseLines.append('    _validateCoos(vec, nDim, 1, 1)')
-			parseLines.append('    args["%s"] = tuple(map(float, vec))'%name)
+			parseLines.append('    yield "%s", tuple(vec)'%name)
 		elif code=="rv":
-			parseLines.append('    args["%s"] = _makeCooValues(nDim, coos)'%name)
+			parseLines.append('    yield "%s", _makeCooValues(nDim, coos)'%name)
 			parseLines.append('    coos = []')
 		elif code=="cv":
-			parseLines.append('    args["%s"] = _makeCooValues(4, coos)'%name)
+			parseLines.append('    yield "%s", _makeCooValues(4, coos)'%name)
 			parseLines.append('    coos = []')
 	parseLines.append('  except IndexError:')
 	parseLines.append('    raise STCSParseError("Not enough coordinates'
 		' while parsing %s")'%clsName)
 	parseLines.append('  if coos: raise STCSParseError("Too many coordinates'
 		' while building %s, remaining: %%s"%%coos)'%clsName)
-	parseLines.append('  if "fillfactor" in node:')
-	parseLines.append('    args["fillFactor"] = float(node["fillfactor"])')
-	parseLines.append('  yield "areas", (%s(**args),)'%clsName)
 	exec "\n".join(parseLines)
-	return realBuilder
+	return iterKeys
 
 
-def _makeGeometryBuilder(clsName, argDesc):
+def _makeGeometryBuilder(cls, argDesc):
 	"""returns a builder for Geometries.
 
 	See _makeGeometryRealBulder for the meaning of the arguments.
 	"""
-	return _makeCooBuilder("spaceFrame",
-		_makeGeometryRealBuilder(clsName, argDesc))
+	return _makeCooBuilder("spaceFrame", cls, "areas", dm.SpaceCoo,
+		"places", _makeGeometryKeyIterator(argDesc, cls.__name__))
 
 
 ###################### Top level
-
-def _id(x):
-	return x
 
 
 def getCoords(cst, system):
@@ -343,47 +342,41 @@ def getCoords(cst, system):
 	context = GenericContext(system=system)
 
 	return buildTree(cst, context, typeFunctions = {
-		"Time": _makeCooBuilder("timeFrame", 
-			_makeCooRealBuilder("times", "value", dm.TimeCoo, cooParse=_id)),
-		"StartTime": _makeCooBuilder("timeFrame",
-			_makeIntervalRealBuilder("timeAs", "times",
-				dm.TimeInterval, dm.TimeCoo, cooParse=lambda x: x)),
-		"StopTime":_makeCooBuilder("timeFrame",
-			_makeIntervalRealBuilder("timeAs", "times",
-				dm.TimeInterval, dm.TimeCoo, cooParse=lambda x: x, preferUpper=True)),
-		"TimeInterval": _makeCooBuilder("timeFrame",
-			_makeIntervalRealBuilder("timeAs", "times",
-				dm.TimeInterval, dm.TimeCoo, cooParse=lambda x: x)),
+		"Time": _makeCooBuilder("timeFrame", None, None,
+			dm.TimeCoo, "times", None),
+		"StartTime": _makeCooBuilder("timeFrame", dm.TimeInterval, "timeAs",
+			dm.TimeCoo, "times", _makeIntervalKeyIterator()),
+		"StopTime": _makeCooBuilder("timeFrame", dm.TimeInterval, "timeAs",
+			dm.TimeCoo, "times", _makeIntervalKeyIterator(preferUpper=True)),
+		"TimeInterval": _makeCooBuilder("timeFrame", dm.TimeInterval, "timeAs",
+			dm.TimeCoo, "times", _makeIntervalKeyIterator()),
 
-		"Position": _makeCooBuilder("spaceFrame",
-			_makeCooRealBuilder("places", "value", dm.SpaceCoo)),
+		"Position": _makeCooBuilder("spaceFrame", None, None, dm.SpaceCoo,
+			"places", None),
 		"PositionInterval": _makeCooBuilder("spaceFrame",
-			_makeIntervalRealBuilder("areas", "places",
-				dm.SpaceInterval, dm.SpaceCoo)),
-		"AllSky": _makeGeometryBuilder("dm.AllSky", []),
-		"Circle": _makeGeometryBuilder("dm.Circle", 
-				[('center', 'v'), ('radius', 'r')]),
-		"Ellipse": _makeGeometryBuilder("dm.Ellipse", 
+			dm.SpaceInterval, "areas", dm.SpaceCoo, "places",
+			_makeIntervalKeyIterator()),
+		"AllSky": _makeGeometryBuilder(dm.AllSky, []),
+		"Circle": _makeGeometryBuilder(dm.Circle, 
+			[('center', 'v'), ('radius', 'r')]),
+		"Ellipse": _makeGeometryBuilder(dm.Ellipse, 
 				[('center', 'v'), ('smajAxis', 'r'), ('sminAxis', 'r'), 
 					('posAngle', 'r')]),
-		"Box": _makeGeometryBuilder("dm.Box", 
-				[('center', 'v'), ('boxsize', 'v')]),
-		"Polygon": _makeGeometryBuilder("dm.Polygon",
-			[("vertices", "rv")]),
-		"Convex": _makeGeometryBuilder("dm.Convex",
-			[("vectors", "cv")]),
+		"Box": _makeGeometryBuilder(dm.Box, [('center', 'v'), ('boxsize', 'v')]),
+		"Polygon": _makeGeometryBuilder(dm.Polygon, [("vertices", "rv")]),
+		"Convex": _makeGeometryBuilder(dm.Convex, [("vectors", "cv")]),
 
-		"Spectral": _makeCooBuilder("spectralFrame",
-			_makeCooRealBuilder("freqs", "value", dm.SpectralCoo)),
-		"SpectralInterval": _makeCooBuilder("spectralFrame",
-			_makeIntervalRealBuilder("freqAs", "freqs",
-				dm.SpectralInterval, dm.SpectralCoo)),
+		"Spectral": _makeCooBuilder("spectralFrame", None, None,
+			dm.SpectralCoo, "freqs", None),
+		"SpectralInterval": _makeCooBuilder("spectralFrame", 
+			dm.SpectralInterval, "freqAs", dm.SpectralCoo, "freqs",
+			_makeIntervalKeyIterator()),
 
-		"Redshift": _makeCooBuilder("redshiftFrame",
-			_makeCooRealBuilder("redshifts", "value", dm.RedshiftCoo)),
-		"RedshiftInterval": _makeCooBuilder("redshiftFrame",
-			_makeIntervalRealBuilder("redshiftAs", "redshifts",
-				dm.RedshiftInterval, dm.RedshiftCoo)),
+		"Redshift": _makeCooBuilder("redshiftFrame", None, None,
+			dm.RedshiftCoo, "redshifts", None),
+		"RedshiftInterval": _makeCooBuilder("redshiftFrame", 
+			dm.RedshiftInterval, "redshiftAs", dm.RedshiftCoo, "redshifts",
+			_makeIntervalKeyIterator()),
 
 	})
 
