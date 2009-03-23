@@ -39,7 +39,7 @@ stcsFlavors = {
 
 
 spatialUnits = set(["deg", "arcmin", "arcsec", "m", "mm", "km", "AU", 
-	"pc", "kpc", "Mpc"])
+	"pc", "kpc", "Mpc", "rad"])
 temporalUnits = set(["yr", "cy", "s", "d", "a"])
 spectralUnits = set(["MHz", "GHz", "Hz", "Angstrom", "keV", "MeV", 
 	"eV", "mm", "um", "nm", "m"])
@@ -330,4 +330,4 @@ if __name__=="__main__":
 	syms = getSymbols()
 #	print getCST("PositionInterval ICRS 1 2 3 4")
 	enableDebug(syms)
-	print makeTree(syms["frame"].parseString("FK4 B1940.5"))
+	print makeTree(syms["stcsPhrase"].parseString("TimeInterval MJD56 MJD57 unit a"))

@@ -101,7 +101,7 @@ class SamplesBasedAutoTest(type):
 		for sampInd, sample in enumerate(dict["samples"]):
 			def testFun(self, sample=sample):
 				self._runTest(sample)
-			dict["test%d"%sampInd] = testFun
+			dict["test%02d"%sampInd] = testFun
 		return type.__new__(cls, name, bases, dict)
 
 
@@ -117,8 +117,6 @@ def getTestTable(tableName):
 
 def getTestData(dataId):
 	return getTestRD().getDataById(dataId)
-
-
 
 
 def trialMain(testClass):

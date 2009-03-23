@@ -186,6 +186,47 @@ def _makeCooValues(nDim, values, minItems=None, maxItems=None):
 	return tuple(v for v in iterVectors(values, nDim))
 
 
+def _addUnitPlain(args, node, frame):
+	args["unit"] = node.get("unit")
+
+
+def _addUnitRedshift(args, node, frame):
+	unit = node.get("unit")
+	if unit:
+		parts = unit.split("/")
+		if len(parts)!=2:
+			raise STCSParseError("'%s' is not a valid unit for redshifts"%unit)
+		args["unit"] = parts[0]
+		args["velTimeUnit"] = parts[1]
+
+
+def _addUnitSpatial(args, node, frame):
+	unit, nDim = node.get("unit"), frame.nDim
+	if unit:
+		parts = unit.split()
+		if len(parts)==frame.nDim:
+			args["units"] = tuple(parts)
+		elif len(parts)==1:
+			args["units"] = (unit,)*nDim
+		else:
+			raise STCSParseError("'%s' is not a valid unit %d-dimensional spatial"
+				" coordinates"%(unit, nDim))
+
+
+_unitMakers = {
+	dm.SpectralFrame: _addUnitPlain,
+	dm.TimeFrame: _addUnitPlain,
+	dm.SpaceFrame: _addUnitSpatial,
+	dm.RedshiftFrame: _addUnitRedshift,
+}
+
+
+def _addUnitArgs(args, node, frame):
+	"""adds keys for unit description for node into the args dictionary.
+	"""
+	_unitMakers[frame.__class__](args, node, frame)
+
+
 def _makeBasicCooArgs(node, frame):
 	"""returns a dictionary containing constructor arguments common to
 	all items dealing with coordinates.
@@ -200,17 +241,9 @@ def _makeBasicCooArgs(node, frame):
 			maxItems=2),
 		"size": _makeWiggleValues(nDim, node.get("size"), 
 			maxItems=2),
-		"unit": node.get("unit"),
 		"frame": frame,
 	}
-	# Frame-dependent hacks... sigh.
-	if isinstance(frame, dm.RedshiftFrame):
-		if args["unit"]:
-			parts = args["unit"].split("/")
-			if len(parts)!=2:
-				raise STCSParseError("%s is not a valid unit for redshifts")
-			args["unit"] = parts[0]
-			args["velTimeUnit"] = parts[1]
+	_addUnitArgs(args, node, frame)
 	return args
 
 

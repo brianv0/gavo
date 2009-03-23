@@ -30,6 +30,10 @@ def _passthrough(node, buildArgs, context):
 	return buildArgs.iteritems()
 
 
+_unitKeys = ["pos_angle_unit", "pos_unit", "spectral_unit", "time_unit",
+	"vel_time_unit"]
+
+
 def _makeKeywordBuilder(kw):
 	"""returns a builder that returns the node's text content under kw.
 	"""
@@ -79,10 +83,10 @@ def _makeKwValueBuilder(kwName, tuplify=False):
 	return buildNode
 
 
-def _makeKwFloatBuilder(kwName, unitKey="pos_unit", multiple=True):
+def _makeKwFloatBuilder(kwName, multiple=True):
 	"""returns a builder that returns float(node.text) under kwName.
 
-	The builder will also add a <kwName>Unit key if appropriate.
+	The builder will also yield unit keys if units are present.
 
 	If multiple is True, the keys will be returned in tuples, else as
 	simple values.
@@ -90,13 +94,15 @@ def _makeKwFloatBuilder(kwName, unitKey="pos_unit", multiple=True):
 	if multiple:
 		def buildNode(node, buildArgs, context):
 			yield kwName, (float(node.text),)
-			if unitKey in node.attrib:
-				yield kwName+'Unit', (node.get(unitKey),)
+			for unitKey in _unitKeys:
+				if unitKey in node.attrib:
+					yield unitKey, (node.get(unitKey),)
 	else:
 		def buildNode(node, buildArgs, context):
 			yield kwName, float(node.text)
-			if unitKey in node.attrib:
-				yield kwName+'Unit', node.get(unitKey)
+			for unitKey in _unitKeys:
+				if unitKey in node.attrib:
+					yield unitKey, node.get(unitKey)
 	return buildNode
 
 
@@ -108,6 +114,84 @@ def _makeNodeBuilder(kwName, astObject):
 		buildArgs["id"] = node.get("id", None)
 		yield kwName, astObject(**buildArgs)
 	return buildNode
+
+
+def _fixSpectralUnits(node, buildArgs, context):
+	unit = None
+	if "unit" in node.attrib:
+		unit = node.get("unit")
+	if "unit" in buildArgs:
+		unit = buildArgs["unit"]
+	if "spectral_unit" in buildArgs:
+		unit = buildArgs["spectral_unit"]
+		del buildArgs["spectral_unit"]
+	buildArgs["unit"] = unit
+
+
+def _fixTimeUnits(node, buildArgs, context):
+	unit = None
+	if "unit" in node.attrib:
+		unit = node.get("unit")
+	if "unit" in buildArgs:
+		unit = buildArgs["unit"]
+	if "time_unit" in buildArgs:
+		unit = buildArgs["time_unit"]
+		del buildArgs["time_unit"]
+	buildArgs["unit"] = unit
+
+
+def _fixRedshiftUnits(node, buildArgs, context):
+	sUnit = node.get("unit")
+	if "unit" in buildArgs:
+		sUnit = buildArgs["unit"]
+	if "pos_unit" in buildArgs:
+		sUnit = buildArgs["pos_unit"]
+		del buildArgs["pos_unit"]
+	vUnit = node.get("vel_time_unit")
+	if "vel_time_unit" in buildArgs:
+		vUnit = buildArgs["vel_time_unit"]
+		del buildArgs["vel_time_unit"]
+	buildArgs["unit"] = sUnit
+	buildArgs["velTimeUnit"] = vUnit
+
+
+def _fixSpatialUnits(node, buildArgs, context):
+	nDim = 1
+	# Incredible hack to figure out the number of units we expect.
+	if "2" in _localname(node.tag):
+		nDim = 2
+	if "3" in _localname(node.tag):
+		nDim = 3
+	unit, units = node.get("unit"), None
+	if "units" in buildArgs:
+		units = buildArgs["units"]
+	if "pos_unit" in buildArgs:
+		units = buildArgs["pos_unit"]
+		del buildArgs["pos_unit"]
+	if units is None and unit is not None:
+		parts = unit.split()
+		if len(parts)==nDim:
+			units = tuple(parts)
+		else:
+			units = (unit,)*nDim
+	buildArgs["units"] = units
+
+
+_unitFixers = {
+	"spectralFrame": _fixSpectralUnits,
+	"redshiftFrame": _fixRedshiftUnits,
+	"timeFrame": _fixTimeUnits,
+	"spaceFrame": _fixSpatialUnits,
+}
+
+def _fixUnits(frameName, node, buildArgs, context):
+	"""changes the keys in buildArgs to match the requirements of node.
+
+	This fans out to frame type-specific helper functions.  The principle is:
+	Attributes inherited from lower-level items (i.e. the specific values)
+	override a unit specification on node.
+	"""
+	return _unitFixers[frameName](node, buildArgs, context)
 
 
 def _iterCooMeta(node, context, frameName):
@@ -132,8 +216,6 @@ def _iterCooMeta(node, context, frameName):
 	else:
 		yield "frame", IdProxy(idref=context.sysIdStack[-1], 
 			useAttr=frameName)
-	if "unit" in node.attrib and node.get("unit"):
-		yield "unit", node.get("unit")
 	if "fill_factor" in node.attrib and node.get("fill_factor"):
 		yield "fillFactor", float(node.get("fill_factor"))
 	if "id" in node.attrib and node.get("id"):
@@ -151,6 +233,7 @@ def _makeIntervalBuilder(kwName, astClass, frameName):
 			buildArgs["lowerLimit"] = buildArgs["lowerLimit"][0]
 		if "upperLimit" in buildArgs:
 			buildArgs["upperLimit"] = buildArgs["upperLimit"][0]
+		_fixUnits(frameName, node, buildArgs, context)
 		yield kwName, (astClass(**buildArgs),)
 	return buildNode
 
@@ -182,6 +265,7 @@ def _makePositionBuilder(kw, astClass, frameName):
 		for key, value in _iterCooMeta(node, context, frameName):
 			buildArgs[key] = value
 		_fixWiggles(buildArgs)
+		_fixUnits(frameName, node, buildArgs, context)
 		yield kw, (astClass(**buildArgs),)
 	return buildPosition
 
@@ -260,8 +344,8 @@ _buildFloat = _makeKwFloatBuilder("vals")
 
 def _buildVector(node, buildArgs, context):
 	yield 'vals', (tuple(buildArgs["vals"]),)
-	if "valsUnit" in buildArgs:
-		yield "unit", " ".join(buildArgs["valsUnit"])
+	if "pos_unit" in buildArgs:
+		yield "units", tuple(buildArgs["pos_unit"])
 
 
 ################# Geometries
@@ -288,6 +372,7 @@ def _makeGeometryBuilder(astClass):
 	def buildGeo(node, buildArgs, context):
 		for key, value in _iterCooMeta(node, context, "spaceFrame"):
 			buildArgs[key] = value
+		_fixSpatialUnits(node, buildArgs, context)
 		yield 'areas', (astClass(**buildArgs),)
 	return buildGeo
 
@@ -470,15 +555,11 @@ def _getHandlers():
 		_n("Equinox"): _makeKeywordBuilder("equinox"),
 		_n("Value"): _makeKwFloatBuilder("vals"),
 
-		_n("Radius"): _makeKwFloatBuilder("radius", multiple=False, 
-			unitKey="unit"), 
+		_n("Radius"): _makeKwFloatBuilder("radius", multiple=False),
 		_n("Center"): _makeKwValueBuilder("center", tuplify=True), 
-		_n("SemiMajorAxis"): _makeKwFloatBuilder("smajAxis", multiple=False,
-			unitKey="unit"),
-		_n("SemiMinorAxis"): _makeKwFloatBuilder("sminAxis", multiple=False,
-			unitKey="unit"),
-		_n("PosAngle"): _makeKwFloatBuilder("posAngle", multiple=False,
-			unitKey="unit"),
+		_n("SemiMajorAxis"): _makeKwFloatBuilder("smajAxis", multiple=False),
+		_n("SemiMinorAxis"): _makeKwFloatBuilder("sminAxis", multiple=False),
+		_n("PosAngle"): _makeKwFloatBuilder("posAngle", multiple=False),
 		_n("Vertex"): _makeKwValuesBuilder("vertices", tuplify=True), 
 		_n("Vector"): _makeKwValueBuilder("vector", tuplify=True),
 		_n("Offset"): _makeKwFloatBuilder("offset"),

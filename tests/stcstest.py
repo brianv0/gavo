@@ -1,5 +1,7 @@
 """
-Tests for STC-S handling
+Tests for STC-S handling.
+
+STC-S to AST tests are in stctest.py.
 """
 
 import datetime
@@ -316,6 +318,8 @@ class DefaultingTest(testhelpers.VerboseTest):
 
 
 class GenerationTest(testhelpers.VerboseTest):
+	"""tests for STCS-STCS-round trips.
+	"""
 	def assertMapsto(self, stcsInput, expectedOutput):
 		foundOutput = stcsgen.getSTCS(stc.parseSTCS(stcsInput))
 		if foundOutput!=expectedOutput:

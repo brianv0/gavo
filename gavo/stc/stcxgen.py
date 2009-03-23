@@ -178,7 +178,8 @@ def _make1DSerializer(cooClass, valueSerializer):
 			_wrapValues(STC.PixSize, getattr(node.pixSize, "values", ())),
 		]
 		if not res.isEmpty():
-			return res(unit=node.unit, vel_time_unit=node.velTimeUnit,
+			return res(unit=node.unit, 
+				vel_time_unit=getattr(node, "velTimeUnit", None),
 				frame_id=node.frame.id)
 	return serialize
 
@@ -190,13 +191,24 @@ serialize_SpectralCoo = _make1DSerializer(STC.Spectral,
 	lambda value: STC.Value[strOrNull(value)])
 
 
-def _wrap2D(val):
-	if val:
-		return [STC.C1[val[0]], STC.C2[val[1]]]
+def _wrap1D(val, ignored=None):
+	return strOrNull(val)
 
-def _wrap3D(val):
-	if val:
-		return [STC.C1[val[0]], STC.C2[val[1]], STC.C3[val[2]]]
+def _wrap2D(val, units=None):
+	if not val:
+		return
+	if not units:
+		units = [None, None]
+	return [STC.C1(pos_unit=units[0])[val[0]], 
+		STC.C2(pos_unit=units[1])[val[1]]]
+
+def _wrap3D(val, units=None):
+	if not val:
+		return
+	if not units:
+		units = [None, None, None]
+	return [STC.C1(pos_unit=units[0])[val[0]], STC.C2(pos_unit=units[1])[val[1]], 
+		STC.C3(pos_unit=units[2])[val[2]]]
 
 def _wrapMatrix(val):
 	for rowInd, row in enumerate(val):
@@ -204,7 +216,7 @@ def _wrapMatrix(val):
 			yield getattr(STC, "M%d%d"%(rowInd, colInd))[str(col)]
 
 positionClasses = (
-	(STC.Position1D, STC.Value, strOrNull),
+	(STC.Position1D, STC.Value, _wrap1D),
 	(STC.Position2D, STC.Value2, _wrap2D),
 	(STC.Position3D, STC.Value3, _wrap3D),
 )
@@ -217,14 +229,19 @@ def serialize_SpaceCoo(node):
 	"""
 	dimInd = node.frame.nDim-1
 	coo, val, serializer = positionClasses[dimInd]
+	unit, units = None, None
+	if len(set(node.units))==1:
+		unit = node.units[0]
+	elif node.units:
+		units = node.units
 	res = coo[
-			val[serializer(node.value)],
+			val[serializer(node.value, units)],
 			[_serialize_Wiggle(getattr(node, wiggleType), 
 					serializer, wiggleClasses[wiggleType][dimInd])
 				for wiggleType in ["error", "resolution", "size", "pixSize"]],
 		]
 	if not res.isEmpty():
-		return res(unit=node.unit, frame_id=node.frame.id)
+		return res(unit=unit, frame_id=node.frame.id)
 
 
 ############# Intervals
@@ -245,7 +262,8 @@ def _make1DIntervalSerializer(intervClass, lowerClass, upperClass,
 			unit = None  # time intervals have no units
 		else:
 			unit = node.unit
-		return intervClass(unit=unit, vel_time_unit=node.velTimeUnit, 
+		return intervClass(unit=unit, 
+				vel_time_unit=getattr(node, "velTimeUnit", None), 
 				frame_id=node.frame.id, fill_factor=strOrNull(node.fillFactor))[
 			lowerClass[valueSerializer(node.lowerLimit)],
 			upperClass[valueSerializer(node.upperLimit)],
@@ -262,19 +280,22 @@ serialize_RedshiftInterval = _make1DIntervalSerializer(STC.RedshiftInterval,
 
 
 _posIntervalClasses = [
-	(STC.PositionScalarInterval, STC.LoLimit, STC.HiLimit, str),
-	(STC.Position2VecInterval, STC.LoLimit2Vec, STC.HiLimit2Vec,
-		_wrap2D),
-	(STC.Position3VecInterval, STC.LoLimit3Vec, STC.HiLimit3Vec,
-		_wrap3D),]
+	(STC.PositionScalarInterval, STC.LoLimit, STC.HiLimit, _wrap1D),
+	(STC.Position2VecInterval, STC.LoLimit2Vec, STC.HiLimit2Vec, _wrap2D),
+	(STC.Position3VecInterval, STC.LoLimit3Vec, STC.HiLimit3Vec, _wrap3D),]
 
 def serialize_SpaceInterval(node):
 	intervClass, lowerClass, upperClass, valueSerializer = \
 		_posIntervalClasses[node.frame.nDim-1]
-	return intervClass(unit=node.unit, vel_time_unit=node.velTimeUnit, 
+	unit, units = None, None
+	if len(set(node.units))==1:
+		unit = node.units[0]
+	elif node.units:
+		units = node.units
+	return intervClass(unit=unit,
 				frame_id=node.frame.id, fill_factor=node.fillFactor)[
-			lowerClass[valueSerializer(node.lowerLimit)],
-			upperClass[valueSerializer(node.upperLimit)],
+			lowerClass[valueSerializer(node.lowerLimit, units)],
+			upperClass[valueSerializer(node.upperLimit, units)],
 		]
 
 
@@ -282,7 +303,7 @@ def serialize_SpaceInterval(node):
 ############# Regions
 
 def _makeBaseRegion(cls, node):
-	return cls(unit=node.unit, frame_id=node.frame.id, 
+	return cls(unit=node.units[0], frame_id=node.frame.id, 
 		fill_factor=strOrNull(node.fillFactor))
 
 

@@ -23,19 +23,19 @@ class RefPos(ASTNode):
 	_a_standardOrigin = "UNKNOWNRefPos"
 
 
-class CoordFrame(ASTNode):
+class _CoordFrame(ASTNode):
 	"""is an astronomical coordinate frame.
 	"""
 	_a_name = None
 	_a_refPos = None
 
 
-class TimeFrame(CoordFrame):
+class TimeFrame(_CoordFrame):
 	nDim = 1
 	_a_timeScale = None
 
 
-class SpaceFrame(CoordFrame):
+class SpaceFrame(_CoordFrame):
 	_a_flavor = None
 	_a_nDim = None
 	_a_refFrame = "UNKNOWNRefFrame"
@@ -59,11 +59,11 @@ class SpaceFrame(CoordFrame):
 			return times.jYearToDateTime(float(mat.group(2)))
 
 
-class SpectralFrame(CoordFrame):
+class SpectralFrame(_CoordFrame):
 	nDim = 1
 
 
-class RedshiftFrame(CoordFrame):
+class RedshiftFrame(_CoordFrame):
 	nDim = 1
 	_a_dopplerDef = None
 	_a_type = None
@@ -83,7 +83,7 @@ class CoordSys(ASTNode):
 ############### Coordinates and their intervals
 
 
-class WiggleSpec(ASTNode):
+class _WiggleSpec(ASTNode):
 	"""A base for "wiggle" specifications.
 
 	These are Errors, Resolutions, Sizes, and PixSizes.  They may come
@@ -92,19 +92,19 @@ class WiggleSpec(ASTNode):
 	be given to indicate ranges.
 	"""
 
-class CooWiggle(WiggleSpec):
+class CooWiggle(_WiggleSpec):
 	"""A wiggle given in coordinates.
 
 	The values attributes stores them just like coordinates are stored.
 	"""
 	_a_values = ()
 
-class RadiusWiggle(WiggleSpec):
+class RadiusWiggle(_WiggleSpec):
 	"""An wiggle given as a radius.
 	"""
 	_a_radii = ()
 
-class MatrixWiggle(WiggleSpec):
+class MatrixWiggle(_WiggleSpec):
 	"""A matrix for specifying wiggle.
 
 	The matrix/matrices are stored as sequences of sequences; see 
@@ -113,16 +113,14 @@ class MatrixWiggle(WiggleSpec):
 	_a_matrices = ()
 
 
-class CoordinateLike(ASTNode):
+class _CoordinateLike(ASTNode):
 	"""A base for everything that has a frame.
 	"""
 	_a_frame = None
 	_a_name = None
-	_a_unit = None
-	_a_velTimeUnit = None
 
 
-class Coordinate(CoordinateLike):
+class _Coordinate(_CoordinateLike):
 	_a_error = None
 	_a_resolution = None
 	_a_pixSize = None
@@ -130,45 +128,85 @@ class Coordinate(CoordinateLike):
 	_a_size = None
 
 
-class SpaceCoo(Coordinate): pass
-class TimeCoo(Coordinate): pass
-class SpectralCoo(Coordinate): pass 
-class RedshiftCoo(Coordinate): pass
+class _OneDMixin(object):
+	"""provides attributes for 1D-Coordinates (Time, Spectral, Redshift)
+	"""
+	_a_unit = None
+
+	def getUnit(self):
+		return self.unit
+	
+	def getPosition(self):
+		return self.positionClass(unit=self.unit)
 
 
-class CoordinateInterval(CoordinateLike):
+class _SpatialMixin(object):
+	"""provides attributes for positional coordinates.
+	"""
+	_a_units = ()
+	
+	def getUnit(self):
+		if self.units:
+			if len(set(self.units))==1:
+				return self.units[0]
+			else:
+				return " ".join(self.units)
+		return ()
+
+	def getPosition(self):
+		return SpaceCoo(units=self.units)
+
+
+class SpaceCoo(_Coordinate, _SpatialMixin): pass
+class TimeCoo(_Coordinate, _OneDMixin): pass
+class SpectralCoo(_Coordinate, _OneDMixin): pass 
+class RedshiftCoo(_Coordinate, _OneDMixin):
+	_a_velTimeUnit = None
+
+	def getUnit(self):
+		if self.unit:
+			return "%s/%s"%(self.unit, self.velTimeUnit)
+
+
+class _CoordinateInterval(_CoordinateLike):
 	_a_lowerLimit = None
 	_a_upperLimit = None
 	_a_fillFactor = None
-	_a_size = ()
 
 
-class TimeInterval(CoordinateInterval): pass
-class SpaceInterval(CoordinateInterval): pass 
-class SpectralInterval(CoordinateInterval): pass
-class RedshiftInterval(CoordinateInterval): pass
+
+class SpaceInterval(_CoordinateInterval, _SpatialMixin): pass 
+class TimeInterval(_CoordinateInterval, _OneDMixin):
+	positionClass = TimeCoo
+
+class SpectralInterval(_CoordinateInterval, _OneDMixin):
+	positionClass = SpectralCoo
+
+class RedshiftInterval(_CoordinateInterval, _OneDMixin):
+	_a_velTimeUnit = None
+	positionClass = RedshiftCoo
 
 
 ################ Geometries
 
-class Geometry(CoordinateLike):
+class _Geometry(_CoordinateLike, _SpatialMixin):
 	"""A base class for all kinds of geometries.
 	"""
 	_a_size = ()
 	_a_fillFactor = None
 
 
-class AllSky(Geometry):
+class AllSky(_Geometry):
 	pass
 
 
-class Circle(Geometry):
+class Circle(_Geometry):
 	_a_center = None
 	_a_radius = None
 	_a_radiusUnit = None
 
 
-class Ellipse(Geometry):
+class Ellipse(_Geometry):
 	_a_center = None
 	_a_smajAxis = _a_sminAxis = None
 	_a_smajAxisUnit = _a_sminAxisUnit = None
@@ -176,16 +214,16 @@ class Ellipse(Geometry):
 	_a_posAngleUnit = None
 
 
-class Box(Geometry):
+class Box(_Geometry):
 	_a_center = None
 	_a_boxsize = None
 
 
-class Polygon(Geometry):
+class Polygon(_Geometry):
 	_a_vertices = ()
 
 
-class Convex(Geometry):
+class Convex(_Geometry):
 	_a_vectors = ()
 
 

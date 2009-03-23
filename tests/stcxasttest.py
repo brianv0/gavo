@@ -119,7 +119,7 @@ class M81ImageTest(XMLSrcTestBase):
 
 	def testSimplePlace(self):
 		p = self.asf[0].places[0]
-		self.assertEqual(p.unit, "deg deg m")
+		self.assertEqual(p.units, ("deg", "deg", "m"))
 		self.assertAlmostEqual(p.value[0], 248.4056)
 		self.assertEqual(p.value[2], 2158.)
 		self.failUnless(p.frame is self.asf[0].astroSystem.spaceFrame,
@@ -127,7 +127,7 @@ class M81ImageTest(XMLSrcTestBase):
 
 	def testComplexPlaces(self):
 		p = self.asf[1].places[0]
-		self.assertEqual(p.unit, "deg")
+		self.assertEqual(p.units, ("deg", "deg"))
 		self.assertAlmostEqual(p.value[0], 148.88821)
 		self.assertAlmostEqual(p.resolution.values[0][1], 0.00025)
 		self.assertAlmostEqual(p.pixSize.values[0][1], 0.0001)
@@ -171,7 +171,7 @@ class M81ImageTest(XMLSrcTestBase):
 
 	def testSpaceInterval(self):
 		p = self.asf[1].areas[0]
-		self.assertEqual(p.unit, "deg")
+		self.assertEqual(p.units, ("deg", "deg"))
 		self.assertAlmostEqual(p.lowerLimit[0], 148.18821)
 		self.assertAlmostEqual(p.upperLimit[1], 69.31529)
 		self.failUnless(p.frame is self.asf[1].astroSystem.spaceFrame,
@@ -227,7 +227,7 @@ class ChandraResTest(XMLSrcTestBase):
 		self.assertEqual(p.frame.refPos.standardOrigin, "TOPOCENTER")
 		self.assertEqual(p.frame.nDim, 2)
 		self.assertEqual(p.frame.flavor, "SPHERICAL")
-		self.assertEqual(p.unit, "arcsec")
+		self.assertEqual(p.units, ("arcsec", "arcsec"))
 		self.assertEqual(p.error.radii[0], 1.)
 		self.assertEqual(p.resolution.radii[0], 0.5)
 		self.assertEqual(p.size.values[0], (1000, 1000))
@@ -319,6 +319,30 @@ class GeometriesTest(testhelpers.VerboseTest):
 			((10.0, 12.0, 1.0, 0.125), (-10.0, -12.0, -1.0, -0.125)))
 
 
+class UnitsTest(testhelpers.VerboseTest):
+	def _getAST(self, frame, coo):
+		return stc.parseSTCX(('<ObservationLocation xmlns="%s">'%stc.STCNamespace)+
+			'<AstroCoordSystem id="x">%s'
+			'</AstroCoordSystem><AstroCoordArea coord_system_id="x">'+
+			coo+
+			'</AstroCoordArea></ObservationLocation>')[0]
+
+	def testSimpleCoo(self):
+		ast = self._getAST("<TimeFrame/>",
+			'<Time unit="a">2003-03-03T03:04:05</Time>')
+		self.assertEqual(ast.times[0].unit, "a")
+	
+	def testSpatial2DEmpty(self):
+		ast = self._getAST("<SpaceFrame><ICRS/></SpaceFrame>",
+			'<Position2D unit="deg"/>')
+		self.assertEqual(ast.places[0].units, ("deg", "deg"))
+
+	def testSpatial2DMixed(self):
+		ast = self._getAST("<SpaceFrame><ICRS/></SpaceFrame>",
+			'<Position2D unit="deg"><C1 pos_unit="deg">1</C1><C2 pos_unit="arcsec"'
+			'>2</C2></Position2D>')
+		self.assertEqual(ast.places[0].units, ("deg", "arcsec"))
+
 
 def _wrapSample(srcPath):
 	import textwrap
@@ -332,4 +356,4 @@ if __name__=="__main__":
 	if len(sys.argv)>1 and sys.argv[1].startswith("/"):
 		_wrapSample(sys.argv[1])
 	else:
-		testhelpers.main(ChandraResTest)
+		testhelpers.main(M81ImageTest)

@@ -84,7 +84,7 @@ class SpaceCoordTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.places[0].frame.flavor, "SPHERICAL")
 		self.assertEqual(ast.places[0].frame.nDim, 2)
 		self.assertEqual(ast.places[0].value, (2., 4.25))
-		self.assertEqual(ast.places[0].unit, "deg")
+		self.assertEqual(ast.places[0].units, ("deg", "deg"))
 		self.assertEqual(ast.places[0].pixSize.values, ((4.5, 3.75),))
 	
 	def testPixSizeRange(self):
@@ -287,6 +287,45 @@ class GeometryTest(testhelpers.VerboseTest):
 		self.assertEqual(len(c.vectors), 2)
 
 
+class UnitParseTest(testhelpers.VerboseTest):
+	"""tests for parsing units.
+	"""
+	def test2DSpatial(self):
+		ast = stcsast.parseSTCS("Position ICRS 1 200 unit deg")
+		self.assertEqual(ast.places[0].units, ("deg", "deg"))
+	
+	def test3DGeo(self):
+		ast = stcsast.parseSTCS("Position GEO_D SPHER3 49.39861 8.72083 560")
+		self.assertEqual(ast.places[0].units, ("deg", "deg", "m"))
+	
+	def test1DSpatialInterval(self):
+		ast = stcsast.parseSTCS("PositionInterval ICRS CART1 1 unit km")
+		self.assertEqual(ast.places[0].units, ("km",))
+		self.assertEqual(ast.areas[0].units, ("km",))
+
+	def test2DSpatialInterval(self):
+		ast = stcsast.parseSTCS("PositionInterval ICRS 1 2 2 3 unit rad")
+		self.assertEqual(ast.places[0].units, ("rad", "rad"))
+		self.assertEqual(ast.areas[0].units, ("rad", "rad"))
+	
+	def testSpectral(self):
+		ast = stcsast.parseSTCS("SpectralInterval 1 2 unit nm")
+		self.assertEqual(ast.freqs[0].unit, "nm")
+		self.assertEqual(ast.freqAs[0].unit, "nm")
+
+	def testTime(self):
+		ast = stcsast.parseSTCS("TimeInterval MJD56 MJD57 unit a")
+		self.assertEqual(ast.times[0].unit, "a")
+		self.assertEqual(ast.timeAs[0].unit, "a")
+
+	def testRedshift(self):
+		ast = stcsast.parseSTCS("RedshiftInterval 1000 2000 unit km/s")
+		self.assertEqual(ast.redshifts[0].unit, "km")
+		self.assertEqual(ast.redshiftAs[0].unit, "km")
+		self.assertEqual(ast.redshifts[0].velTimeUnit, "s")
+		self.assertEqual(ast.redshiftAs[0].velTimeUnit, "s")
+
+
 class STCSRoundtripTest(testhelpers.VerboseTest):
 	"""tests for STC-S strings going though parsing, STC-X generation, STC-X parsing, and STC-Sgeneration largely unscathed.
 	"""
@@ -346,6 +385,7 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			"Spectral NEPTUNE 12.0 unit Angstrom Error 4.0 3.0\nRedshift"
 			" TOPOCENTER REDSHIFT RELATIVISTIC 0.1"),
 	]
+
 
 if __name__=="__main__":
 	testhelpers.main(STCSRoundtripTest)

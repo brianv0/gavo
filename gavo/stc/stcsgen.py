@@ -76,13 +76,6 @@ def _redshiftFrameToCST(node):
 
 ############### Coordinates to CST
 
-def _makeUnit(node):
-	"""returns unit/velTimeUnit if velTimeUnit is defined, unit otherwise.
-	"""
-	if node.velTimeUnit:
-		return "%s/%s"%(node.unit, node.velTimeUnit)
-	return node.unit
-
 
 def _flattenVectors(aList):
 	"""flattens aList if it is made up of tuples, returns it unchanged otherwise.
@@ -118,7 +111,7 @@ def _makeCooTreeMapper(cooType):
 			"error": _wiggleToCST(node.error, nDim),
 			"resolution": _wiggleToCST(node.resolution, nDim),
 			"pixSize": _wiggleToCST(node.pixSize, nDim),
-			"unit": _makeUnit(node),
+			"unit": node.getUnit(),
 			"type": cooType,
 			"pos": node.value or None,}
 	return toCST
@@ -155,7 +148,7 @@ def _makeAreaTreeMapper(areaType, cooMaker=_makeIntervalCoos):
 	"""
 	def toCST(node):
 		return _combine({
-			"unit": node.unit,
+			"unit": node.getUnit(),
 			"fillfactor": node.fillFactor,
 			"type": areaType},
 			cooMaker(node))
@@ -192,7 +185,7 @@ def _makePhraseTreeMapper(cooMapper, areaMapper, frameMapper,
 	return toCST
 
 
-def _makeASTItemsGetter(cooName, areaName, positionClass):
+def _makeASTItemsGetter(cooName, areaName):
 	"""returns a function that extracts coordinates and areas of
 	a certain type from an AST.
 
@@ -213,15 +206,14 @@ def _makeASTItemsGetter(cooName, areaName, positionClass):
 			raise STCValueError("STC-S does not support more than one coordinate,"
 				" but %s has length %d"%(areaName, len(coos)))
 		if areas and coos:
-			if coos[0].unit is None:
-				coos[0].unit = areas[0].unit
-			if areas[0].unit is not None and coos[0].unit!=areas[0].unit:
+			if (areas[0].getUnit() is not None and 
+					coos[0].getUnit()!=areas[0].getUnit()):
 				raise STCValueError("Cannot serialize ASTs with different"
 					" units on positions and areas to STC-S")
 		if coos:
 			coo = coos[0]
 		else:
-			coo = positionClass(unit=areas[0].unit)
+			coo = areas[0].getPosition()
 		if areas:
 			area = areas[0]
 		else:
@@ -242,22 +234,22 @@ _timeToCST = _makePhraseTreeMapper(
 	_makeCooTreeMapper("Time"), 
 	_makeAreaTreeMapper("TimeInterval", _makeTimeIntervalCoos),
 	_timeFrameToCST,
-	_makeASTItemsGetter("times", "timeAs", dm.TimeCoo))
+	_makeASTItemsGetter("times", "timeAs"))
 _simpleSpatialToCST = _makePhraseTreeMapper(
 	_spatialCooToCST,
 	_makeAreaTreeMapper("PositionInterval"),
 	_spaceFrameToCST,
-	_makeASTItemsGetter("places", "areas", dm.SpaceCoo))
+	_makeASTItemsGetter("places", "areas"))
 _spectralToCST = _makePhraseTreeMapper(
 	_makeCooTreeMapper("Spectral"),
 	_makeAreaTreeMapper("SpectralInterval"),
 	_spectralFrameToCST,
-	_makeASTItemsGetter("freqs", "freqAs", dm.SpectralCoo))
+	_makeASTItemsGetter("freqs", "freqAs"))
 _redshiftToCST = _makePhraseTreeMapper(
 	_makeCooTreeMapper("Redshift"),
 	_makeAreaTreeMapper("RedshiftInterval"),
 	_redshiftFrameToCST,
-	_makeASTItemsGetter("redshifts", "redshiftAs", dm.RedshiftCoo))
+	_makeASTItemsGetter("redshifts", "redshiftAs"))
 
 
 def _makeAllSkyCoos(node):
@@ -282,7 +274,7 @@ _geometryMappers = dict([(n, _makePhraseTreeMapper(
 		_spatialCooToCST,
 		_makeAreaTreeMapper(n, globals()["_make%sCoos"%n]),
 		_spaceFrameToCST,
-		_makeASTItemsGetter("places", "areas", dm.SpaceCoo)))
+		_makeASTItemsGetter("places", "areas")))
 	for n in ["AllSky", "Circle", "Ellipse", "Box", "Polygon", "Convex"]])
 
 def _spatialToCST(astRoot):
