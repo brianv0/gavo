@@ -180,6 +180,12 @@ class SpaceCoordIntervalTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.areas[0].upperLimit, (13.5, 25.0))
 		self.assertEqual(len(ast.places), 1)
 	
+	def test2DWithError(self):
+		ast = stcsast.parseSTCS("PositionInterval ICRS 12.25 23.75 13.5 25.0 Error 1 2")
+		self.assertEqual(len(ast.areas), 1)
+		self.assertEqual(len(ast.places), 1)
+		self.assertEqual(ast.places[0].error.values, ((1., 2.),))
+
 	def testSimple3D(self):
 		ast = stcsast.parseSTCS("PositionInterval ICRS CART3 1 2 3")
 		self.assertEqual(len(ast.areas), 1)
@@ -281,5 +287,65 @@ class GeometryTest(testhelpers.VerboseTest):
 		self.assertEqual(len(c.vectors), 2)
 
 
+class STCSRoundtripTest(testhelpers.VerboseTest):
+	"""tests for STC-S strings going though parsing, STC-X generation, STC-X parsing, and STC-Sgeneration largely unscathed.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, item):
+		stcsIn, stcsOut = item
+		ast = stc.parseSTCS(stcsIn)
+		stcx = stc.getSTCXProfile(ast)
+		ast = stc.parseSTCX(stcx)[0]
+		self.assertEqual(stc.getSTCS(ast), stcsOut)
+	
+	samples = [
+		("Position ICRS 12.75 14.25", "Position ICRS 12.75 14.25"),
+		("Position ICRS 12000.3 14000 unit arcsec Error 0.1 0.14 Resolution 0.5 0.55"
+			" Size 1 1.1  4.8 2.3 PixSize 0.2 0.2",
+			"Position ICRS 12000.3 14000.0 unit arcsec Error 0.1 0.14 Resolution 0.5 0.55"
+			" Size 1.0 1.1 4.8 2.3 PixSize 0.2 0.2"),
+		("PositionInterval UNKNOWNFrame CART1 1 2 unit mm",
+			"PositionInterval UNKNOWNFrame CART1 1.0 2.0 unit mm"),
+		("PositionInterval ICRS 12 13 14 15",
+			"PositionInterval ICRS 12.0 13.0 14.0 15.0"),
+		("PositionInterval ICRS 12 13 14 15 Size 1 1.5 1.75 2",
+			"PositionInterval ICRS 12.0 13.0 14.0 15.0 Size 1.0 1.5 1.75 2.0"),
+		("PositionInterval ECLIPTIC CART3 12 13 10 14 15 9 PixSize 1 1 1",
+			"PositionInterval ECLIPTIC CART3 12.0 13.0 10.0 14.0 15.0 9.0 PixSize 1.0 1.0 1.0"),
+		("Circle ICRS 12 13 1 unit arcsec",
+			"Circle ICRS 12.0 13.0 1.0 unit arcsec"),
+		("Circle ICRS 12 13 1 unit arcsec Resolution 1 2 PixSize 2 1",
+			"Circle ICRS 12.0 13.0 1.0 unit arcsec Resolution 1.0 2.0 PixSize 2.0 1.0"),
+		("Ellipse ICRS 12 13 1 0.75 0 Resolution 1 1",
+			"Ellipse ICRS 12.0 13.0 1.0 0.75 0.0 Resolution 1.0 1.0"),
+		("Box fillfactor 0.125 ICRS 70 190 23 18",
+			"Box fillfactor 0.125 ICRS 70.0 190.0 23.0 18.0"),
+		("Polygon ICRS 70 190 23 18 12 45 30 -10",
+			"Polygon ICRS 70.0 190.0 23.0 18.0 12.0 45.0 30.0 -10.0"),
+		("Convex FK5 J1990 70 190 23 0.125 12 45 30 -0.25",
+			"Convex FK5 J1990.0 70.0 190.0 23.0 0.125 12.0 45.0 30.0 -0.25"),
+		("TimeInterval TT 2009-03-10T09:56:10.015625"
+			" SpectralInterval 1e10 1e11 unit Hz"
+			" RedshiftInterval 1000 7500 unit km/s",
+			"StartTime TT 2009-03-10T09:56:10.015625\nSpectralInterval"
+			" 10000000000.0 100000000000.0\nRedshiftInterval 1000.0 7500.0 unit km"),
+#XXXXXXXX TODO: the previous example is bad, fix redshift units (do away with vel_unit, probably)
+		("Time TT 2009-03-10T09:56:10.015625",
+			"Time TT 2009-03-10T09:56:10.015625"),
+		("Time TDT 2009-03-10T09:56:10.015625 unit s"
+			" Error 0.0001 0.0002 Resolution 0.0001 PixSize 2",
+			"Time TDT 2009-03-10T09:56:10.015625"
+			" Error 0.0001 0.0002 Resolution 0.0001 PixSize 2.0"),
+		("TimeInterval TDT 2009-03-10T09:56:10.015625 unit s"
+			" Error 0.0001 0.0002 Resolution 0.0001 PixSize 2",
+			"StartTime TDT 2009-03-10T09:56:10.015625"
+			" Error 0.0001 0.0002 Resolution 0.0001 PixSize 2.0"),
+		("Spectral NEPTUNE 12 unit Angstrom Error 4 3"
+			" Redshift TOPOCENTER 0.1 REDSHIFT RELATIVISTIC",
+			"Spectral NEPTUNE 12.0 unit Angstrom Error 4.0 3.0\nRedshift"
+			" TOPOCENTER REDSHIFT RELATIVISTIC 0.1"),
+	]
+
 if __name__=="__main__":
-	testhelpers.main(OtherCoordIntervalTest)
+	testhelpers.main(STCSRoundtripTest)

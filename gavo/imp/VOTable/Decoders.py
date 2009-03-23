@@ -204,7 +204,10 @@ class TableDataDecoder(GenericDecoder):
                             continue
                         elif(isScalar):
                             # Scalars!
-                            decodedField = pType(token)
+                            try:
+                                decodedField = pType(token)
+                            except ValueError:
+                                decodedField = None
                         else:
                             # Arrays!
                             t = token.split()

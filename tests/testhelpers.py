@@ -11,6 +11,10 @@ import unittest
 
 from gavo import base
 
+# this only needs to be set correctly if you run twisted trial-based tests
+testsDir = "/home/msdemlei/gavo/trunk/tests"
+
+
 class VerboseTest(unittest.TestCase):
 	"""contains a few methods for improved error reporting.
 	"""
@@ -84,6 +88,23 @@ class XSDTestMixin(object):
 			os.unlink(inName)
 
 
+class SamplesBasedAutoTest(type):
+	"""A metaclass that builds tests out of a samples attribute of a class.
+
+	To use this, give the class a samples attribute containing a sequence
+	of anything, and a _runTest(sample) method receiving one item of
+	that sequence.
+
+	The metaclass will create one test<n> method for each sample.
+	"""
+	def __new__(cls, name, bases, dict):
+		for sampInd, sample in enumerate(dict["samples"]):
+			def testFun(self, sample=sample):
+				self._runTest(sample)
+			dict["test%d"%sampInd] = testFun
+		return type.__new__(cls, name, bases, dict)
+
+
 def getTestRD():
 	from gavo import rscdesc
 	from gavo.protocols import basic
@@ -98,7 +119,6 @@ def getTestData(dataId):
 	return getTestRD().getDataById(dataId)
 
 
-testsDir = "/home/msdemlei/gavo/trunk/tests"
 
 
 def trialMain(testClass):

@@ -23,9 +23,13 @@ from gavo.stc.common import (STCError, STCSParseError, STCLiteralError,
 
 from gavo.stc.stcsast import parseSTCS
 
+from gavo.stc.stcsgen import getSTCS
+
 from gavo.stc.stcx import STC
 
 from gavo.stc.stcxast import parseSTCX
+
+from gavo.stc.stcxgen import astToStan, getSTCXProfile
 
 from gavo.stc.times import (parseISODT, 
 	jYearToDateTime, dateTimeToJYear,

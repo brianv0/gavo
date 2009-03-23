@@ -127,7 +127,7 @@ class Coordinate(CoordinateLike):
 	_a_resolution = None
 	_a_pixSize = None
 	_a_value = None
-	_a_size = ()
+	_a_size = None
 
 
 class SpaceCoo(Coordinate): pass

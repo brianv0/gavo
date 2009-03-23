@@ -140,6 +140,11 @@ class ASTNode(object):
 	def _setupNode(self):
 		pass
 
+	def __repr__(self):
+		return "<%s %s>"%(self.__class__.__name__, " ".join(
+			"%s=%s"%(name, repr(val))
+			for name, val in self.iterAttributes(skipEmpty=True)))
+
 	def iterAttributes(self, skipEmpty=False):
 		"""yields pairs of attributeName, attributeValue for this node.
 		"""

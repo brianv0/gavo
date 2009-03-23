@@ -103,7 +103,7 @@ def serialize_SpectralFrame(node):
 def serialize_RedshiftFrame(node):
 	if node is None: return
 	addId(node)
-	return STC.RedshiftFrame(id=node.id)[
+	return STC.RedshiftFrame(id=node.id, value_type=node.type)[
 		STC.Name[node.name],
 		STC.DopplerDefinition[node.dopplerDef],
 		serialize_RefPos(node.refPos),
@@ -380,3 +380,6 @@ def astToStan(rootNode, stcRoot):
 			[nodeToStan(n) for n in 
 				itertools.chain(rootNode.freqAs, rootNode.redshiftAs)]],
 	]
+
+def getSTCXProfile(rootNode):
+	return astToStan(rootNode, STC.STCResourceProfile).render()

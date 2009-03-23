@@ -153,30 +153,13 @@ class STCSSpectralParsesTest(STCSParsesTestBase):
 	]
 
 
-class SamplesBasedAutoTest(type):
-	"""A metaclass that builds tests out of a samples attribute of a class.
-
-	To use this, give the class a samples attribute containing a sequence
-	of anything, and a _runTest(sample) method receiving one item of
-	that sequence.
-
-	The metaclass will create one test<n> method for each sample.
-	"""
-	def __new__(cls, name, bases, dict):
-		for sampInd, sample in enumerate(dict["samples"]):
-			def testFun(self, sample=sample):
-				self._runTest(sample)
-			dict["test%d"%sampInd] = testFun
-		return type.__new__(cls, name, bases, dict)
-
-
 class STCSTreeParseTestBase(testhelpers.VerboseTest):
 	"""A base for parse tests checking the concrete syntax trees.
 
 	Fill out the samples class variable with tuples of 
 	(symbolName, inputString, resultTree)
 	"""
-	__metaclass__ = SamplesBasedAutoTest
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
 	syms = stcs.getSymbols()
 	samples = []

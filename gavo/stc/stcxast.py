@@ -105,7 +105,7 @@ def _makeNodeBuilder(kwName, astObject):
 	and returns the thing under kwName.
 	"""
 	def buildNode(node, buildArgs, context):
-		buildArgs["id"] = node.get(id, None)
+		buildArgs["id"] = node.get("id", None)
 		yield kwName, astObject(**buildArgs)
 	return buildNode
 
@@ -126,9 +126,9 @@ def _iterCooMeta(node, context, frameName):
 	spatial frame.
 	"""
 	if "frame_id" in node.attrib:
-		yield "frame", IdProxy(idref=node["frame_id"])
+		yield "frame", IdProxy(idref=node.get("frame_id"))
 	elif "coord_system_id" in node.attrib:
-		yield "frame", IdProxy(idref=node["frame_id"], useAttr=frameName)
+		yield "frame", IdProxy(idref=node.get("frame_id"), useAttr=frameName)
 	else:
 		yield "frame", IdProxy(idref=context.sysIdStack[-1], 
 			useAttr=frameName)
@@ -136,6 +136,8 @@ def _iterCooMeta(node, context, frameName):
 		yield "unit", node.get("unit")
 	if "fill_factor" in node.attrib and node.get("fill_factor"):
 		yield "fillFactor", float(node.get("fill_factor"))
+	if "id" in node.attrib and node.get("id"):
+		yield "id", node.get("id")
 
 
 def _makeIntervalBuilder(kwName, astClass, frameName):
@@ -216,6 +218,14 @@ def _buildFlavor(node, buildArgs, context):
 
 def _buildRefFrame(node, buildArgs, context):
 	yield 'refFrame', _localname(node.tag)
+	for item in buildArgs.iteritems():
+		yield item
+
+def _buildRedshiftFrame(node, buildArgs, context):
+	if "value_type" in node.attrib:
+		buildArgs["type"] = node.get("value_type")
+	buildArgs["id"] = node.get("id")
+	yield "redshiftFrame", dm.RedshiftFrame(**buildArgs)
 
 
 ################# Coordinates
@@ -366,7 +376,6 @@ class STCXContext(object):
 		self.sysIdStack = []
 		self.specialHandlerStack = [{}]
 		self.elementHandlers = elementHandlers
-		self.idMap = {}
 		self.activeTags = activeTags
 		for k, v in kwargs.iteritems():
 			setattr(self, k, v)
@@ -439,17 +448,7 @@ _stcBuilders = [
 	(_buildToplevel, ["ObservatoryLocation", "ObservationLocation",
 		"STCResourceProfile"]),
 	(_passthrough, ["ObsDataLocation", "AstroCoords", "TimeInstant",
-		"AstroCoordArea"]),
-]
-
-# A sequence of (stcElementName, kw, AST class) to handle
-# STC-X elements by constructing an AST node and adding it to the
-# parent's build dict under kw.
-_stcNodeBuilders = [
-	('TimeFrame', 'timeFrame', dm.TimeFrame),
-	('SpaceFrame', 'spaceFrame', dm.SpaceFrame),
-	('SpectralFrame', 'spectralFrame', dm.SpectralFrame),
-	('RedshiftFrame', 'redshiftFrame', dm.RedshiftFrame),
+		"AstroCoordArea", "Position"]),
 ]
 
 def _getHandlers():
@@ -468,6 +467,7 @@ def _getHandlers():
 		_n("Time"): _makePositionBuilder('times', dm.TimeCoo, "timeFrame"),
 		_n("Timescale"): _makeKeywordBuilder("timeScale"),
 		_n("TimeScale"): _makeKeywordBuilder("timeScale"),
+		_n("Equinox"): _makeKeywordBuilder("equinox"),
 		_n("Value"): _makeKwFloatBuilder("vals"),
 
 		_n("Radius"): _makeKwFloatBuilder("radius", multiple=False, 
@@ -483,7 +483,14 @@ def _getHandlers():
 		_n("Vector"): _makeKwValueBuilder("vector", tuplify=True),
 		_n("Offset"): _makeKwFloatBuilder("offset"),
 		_n("Halfspace"): _buildHalfspace,
+	
+		_n('TimeFrame'): _makeNodeBuilder('timeFrame', dm.TimeFrame),
+		_n('SpaceFrame'): _makeNodeBuilder('spaceFrame', dm.SpaceFrame),
+		_n('SpectralFrame'): _makeNodeBuilder('spectralFrame', dm.SpectralFrame),
+		_n('RedshiftFrame'): _buildRedshiftFrame,
 
+
+		_n("DopplerDefinition"): _makeKeywordBuilder("dopplerDef"),
 		_n("TimeInterval"): _makeIntervalBuilder("timeAs", dm.TimeInterval,
 			"timeFrame"),
 		_n("SpectralInterval"): _makeIntervalBuilder("freqAs", dm.SpectralInterval,
@@ -494,8 +501,6 @@ def _getHandlers():
 	for builder, stcEls in _stcBuilders:
 		for el in stcEls:
 			handlers[_n(el)] = builder
-	for stcxName, astKey, astClass in _stcNodeBuilders:
-		handlers[_n(stcxName)] = _makeNodeBuilder(astKey, astClass)
 	return handlers
 
 getHandlers = CachedGetter(_getHandlers)

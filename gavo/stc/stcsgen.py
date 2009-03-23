@@ -103,23 +103,24 @@ def _wiggleToCST(node, nDim):
 	elif isinstance(node, dm.RadiusWiggle):
 		return tuple(itertools.chain(*[(r,)*nDim for r in node.radii]))
 	else:
-		raise STCValueError("Cannot serialize %s errors into STC-S"%
+		raise STCValueError("Cannot serialize %s wiggles into STC-S"%
 			node.__class__.__name__)
 
 
-def _makeCooTreeMapper(cooType, frameMaker):
+def _makeCooTreeMapper(cooType):
 	"""returns a function returning a CST fragment for a coordinate.
 	"""
 	def toCST(node):
+		if node.frame is None:  # no frame, no coordinates.
+			return {}
 		nDim = node.frame.nDim
-		return _combine({
+		return {
 			"error": _wiggleToCST(node.error, nDim),
 			"resolution": _wiggleToCST(node.resolution, nDim),
 			"pixSize": _wiggleToCST(node.pixSize, nDim),
 			"unit": _makeUnit(node),
 			"type": cooType,
-			"pos": node.value or None,},
-			frameMaker(node.frame))
+			"pos": node.value or None,}
 	return toCST
 
 
@@ -154,12 +155,14 @@ def _makeAreaTreeMapper(areaType, cooMaker=_makeIntervalCoos):
 	"""
 	def toCST(node):
 		return _combine({
+			"unit": node.unit,
+			"fillfactor": node.fillFactor,
 			"type": areaType},
 			cooMaker(node))
 	return toCST
 
 
-def _makePhraseTreeMapper(cooMapper, areaMapper,
+def _makePhraseTreeMapper(cooMapper, areaMapper, frameMapper,
 		getASTItems):
 	"""returns a mapper building a CST fragment for a subphrase.
 
@@ -182,9 +185,10 @@ def _makePhraseTreeMapper(cooMapper, areaMapper,
 		if area:
 			areaKeys = areaMapper(area)
 		cooKeys = cooMapper(coo)
+		frame = coo.frame or area.frame
 		return _combine(cooKeys,
 			areaKeys,  # area keys come later to override posKey type.
-			)
+			frameMapper(frame))
 	return toCST
 
 
@@ -211,7 +215,7 @@ def _makeASTItemsGetter(cooName, areaName, positionClass):
 		if areas and coos:
 			if coos[0].unit is None:
 				coos[0].unit = areas[0].unit
-			if coos[0].unit!=areas[0].unit:
+			if areas[0].unit is not None and coos[0].unit!=areas[0].unit:
 				raise STCValueError("Cannot serialize ASTs with different"
 					" units on positions and areas to STC-S")
 		if coos:
@@ -226,28 +230,33 @@ def _makeASTItemsGetter(cooName, areaName, positionClass):
 	return getASTItems
 
 
-def _spatialCooToCST(node, getBase=_makeCooTreeMapper("Position",
-		_spaceFrameToCST)):
+def _spatialCooToCST(node, getBase=_makeCooTreeMapper("Position")):
+	if node.frame is None:
+		return {}
 	cstNode = getBase(node)
 	cstNode["size"] = _wiggleToCST(node.size, node.frame.nDim)
 	return cstNode
 
 
 _timeToCST = _makePhraseTreeMapper(
-	_makeCooTreeMapper("Time", _timeFrameToCST),
+	_makeCooTreeMapper("Time"), 
 	_makeAreaTreeMapper("TimeInterval", _makeTimeIntervalCoos),
+	_timeFrameToCST,
 	_makeASTItemsGetter("times", "timeAs", dm.TimeCoo))
 _simpleSpatialToCST = _makePhraseTreeMapper(
 	_spatialCooToCST,
 	_makeAreaTreeMapper("PositionInterval"),
+	_spaceFrameToCST,
 	_makeASTItemsGetter("places", "areas", dm.SpaceCoo))
 _spectralToCST = _makePhraseTreeMapper(
-	_makeCooTreeMapper("Spectral", _spectralFrameToCST),
+	_makeCooTreeMapper("Spectral"),
 	_makeAreaTreeMapper("SpectralInterval"),
+	_spectralFrameToCST,
 	_makeASTItemsGetter("freqs", "freqAs", dm.SpectralCoo))
 _redshiftToCST = _makePhraseTreeMapper(
-	_makeCooTreeMapper("Redshift", _redshiftFrameToCST),
+	_makeCooTreeMapper("Redshift"),
 	_makeAreaTreeMapper("RedshiftInterval"),
+	_redshiftFrameToCST,
 	_makeASTItemsGetter("redshifts", "redshiftAs", dm.RedshiftCoo))
 
 
@@ -272,6 +281,7 @@ def _makeConvexCoos(node):
 _geometryMappers = dict([(n, _makePhraseTreeMapper(
 		_spatialCooToCST,
 		_makeAreaTreeMapper(n, globals()["_make%sCoos"%n]),
+		_spaceFrameToCST,
 		_makeASTItemsGetter("places", "areas", dm.SpaceCoo)))
 	for n in ["AllSky", "Circle", "Ellipse", "Box", "Polygon", "Convex"]])
 
@@ -403,17 +413,9 @@ def _flattenCST(cst):
 		if s])
 
 
-_len1Attrs = ["times", "places", "freqs", "redshifts",
-	"timeAs", "areas", "freqAs", "redshiftAs"]
-
 def getSTCS(astRoot):
 	"""returns an STC-S string for an AST.
 	"""
-	for name in _len1Attrs:
-		val = getattr(astRoot, name)
-		if val is not None and len(val)>1:
-			raise STCValueError("STC-S does not support STC specifications of"
-				" length>1, but %s has length %d"%(name, len(val)))
 	cst = stcs.removeDefaults({
 		"time": _timeToCST(astRoot),
 		"space": _spatialToCST(astRoot),
