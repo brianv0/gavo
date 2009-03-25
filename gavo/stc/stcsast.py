@@ -104,12 +104,12 @@ def getCoordSys(cst):
 ############## Coordinates and their intervals
 
 
-def iterVectors(values, dim):
+def iterVectors(values, dim, spatial):
 	"""iterates over dim-dimensional vectors made of values.
 
 	The function does not check if the last vector is actually complete.
 	"""
-	if dim==1:
+	if dim==1 and not spatial:
 		for v in values:
 			yield v
 	else:
@@ -117,7 +117,7 @@ def iterVectors(values, dim):
 			yield tuple(values[index:index+dim])
 
 
-def _iterIntervals(coos, dim):
+def _iterIntervals(coos, dim, spatial=False):
 	"""iterates over pairs dim-dimensional vectors.
 
 	It will always return at least one empty (i.e., None, None) pair.
@@ -125,7 +125,7 @@ def _iterIntervals(coos, dim):
 	value only, supposedly) but not empty.
 	"""
 	first, startValue = True, None
-	for item in iterVectors(coos, dim):
+	for item in iterVectors(coos, dim, spatial):
 		if startValue is None:
 			if first:
 				first = False
@@ -140,11 +140,10 @@ def _iterIntervals(coos, dim):
 		yield (startValue, None)
 
 
-def _makeWiggleValues(nDim, val, minItems=None,
-		maxItems=None):
+def _makeWiggleValues(nDim, val, minItems=None, maxItems=None, spatial=False):
 	if val is None: 
 		return
-	values = _makeCooValues(nDim, val, minItems, maxItems)
+	values = _makeCooValues(nDim, val, minItems, maxItems, spatial)
 	if not values:
 		return
 	return dm.CooWiggle(values=values)
@@ -168,13 +167,15 @@ def _validateCoos(values, nDim, minItems, maxItems):
 			maxItems, values))
 
 
-def _makeCooValues(nDim, values, minItems=None, maxItems=None):
+def _makeCooValues(nDim, values, minItems=None, maxItems=None, spatial=False):
 	"""returns a list of nDim-Tuples made up of values.
 
 	If values does not contain an integral multiple of nDim items,
 	the function will raise an STCSParseError.  You can also optionally
 	give a minimally or maximally expected number of tuples.  If the 
 	constraints are violated, again an STCSParseError is raised.
+
+	If spatial is true, tuples will be returned even for 1D data.
 	"""
 	if values is None:
 		if minItems:
@@ -183,7 +184,7 @@ def _makeCooValues(nDim, values, minItems=None, maxItems=None):
 		else:
 			return
 	_validateCoos(values, nDim, minItems, maxItems)
-	return tuple(v for v in iterVectors(values, nDim))
+	return tuple(v for v in iterVectors(values, nDim, spatial))
 
 
 def _addUnitPlain(args, node, frame):
@@ -209,46 +210,54 @@ def _addUnitSpatial(args, node, frame):
 		elif len(parts)==1:
 			args["units"] = (unit,)*nDim
 		else:
-			raise STCSParseError("'%s' is not a valid unit %d-dimensional spatial"
-				" coordinates"%(unit, nDim))
+			raise STCSParseError("'%s' is not a valid for unit %d-dimensional"
+				" spatial coordinates"%(unit, nDim))
+
+
+def _addUnitVelocity(args, node, frame):
+	unit, nDim = node.get("unit"), frame.nDim
+	if unit:
+		parts = unit.split()
+		if len(parts)!=1:
+			raise STCSNotImplementedError("Inhomogeneous units not yet supported")
+		parts = parts[0].split("/")
+		if len(parts)!=2:
+			raise STCSParseError("'%s' is not a valid unit for velocities."%unit)
+		args["units"] = (parts[0],)*nDim
+		args["velTimeUnits"] = (parts[1],)*nDim
 
 
 _unitMakers = {
-	dm.SpectralFrame: _addUnitPlain,
-	dm.TimeFrame: _addUnitPlain,
-	dm.SpaceFrame: _addUnitSpatial,
-	dm.RedshiftFrame: _addUnitRedshift,
+	dm.SpectralType: _addUnitPlain,
+	dm.TimeType: _addUnitPlain,
+	dm.SpaceType: _addUnitSpatial,
+	dm.RedshiftType: _addUnitRedshift,
+	dm.VelocityType: _addUnitVelocity,
 }
 
 
-def _addUnitArgs(args, node, frame):
-	"""adds keys for unit description for node into the args dictionary.
-	"""
-	_unitMakers[frame.__class__](args, node, frame)
-
-
-def _makeBasicCooArgs(node, frame):
+def _makeBasicCooArgs(node, frame, posClass, spatial=False):
 	"""returns a dictionary containing constructor arguments common to
 	all items dealing with coordinates.
 	"""
 	nDim = frame.nDim
 	args = {
-		"error": _makeWiggleValues(nDim, node.get("error"),
-			maxItems=2),
-		"resolution": _makeWiggleValues(nDim, node.get("resolution"), 
-			maxItems=2),
-		"pixSize": _makeWiggleValues(nDim, node.get("pixSize"), 
-			maxItems=2),
-		"size": _makeWiggleValues(nDim, node.get("size"), 
-			maxItems=2),
+		"error": _makeWiggleValues(nDim, node.get("error"), maxItems=2,
+			spatial=spatial),
+		"resolution": _makeWiggleValues(nDim, node.get("resolution"), maxItems=2,
+			spatial=spatial),
+		"pixSize": _makeWiggleValues(nDim, node.get("pixSize"), maxItems=2,
+			spatial=spatial),
+		"size": _makeWiggleValues(nDim, node.get("size"), maxItems=2,
+			spatial=spatial),
 		"frame": frame,
 	}
-	_addUnitArgs(args, node, frame)
+	_unitMakers[posClass.cType](args, node, frame)
 	return args
 
 
 def _makeCooBuilder(frameName, intervalClass, intervalKey,
-		posClass, posKey, iterIntervKeys):
+		posClass, posKey, iterIntervKeys, spatial=False):
 	"""returns a function(node, context) -> ASTNode for building a
 	coordinate-like AST node.
 
@@ -270,37 +279,39 @@ def _makeCooBuilder(frameName, intervalClass, intervalKey,
 	def builder(node, context):
 		frame = getattr(context.system, frameName)
 		nDim = frame.nDim
-		args = _makeBasicCooArgs(node, frame)
+		args = _makeBasicCooArgs(node, frame, posClass, spatial)
 
 		# Yield a coordinate
 		if "pos" in node:
 			args["value"] = _makeCooValues(nDim, node["pos"],
-				minItems=1, maxItems=1)[0]
+				minItems=1, maxItems=1, spatial=spatial)[0]
 		else:
 			args["value"] = None
 		yield posKey, (posClass(**args),)
 
-		# Yield an area if defined in this phrase
+		# Yield an area if defined in this phrase and non-empty
 		if intervalClass is None:
 			return
 		for key in positionExclusiveKeys:
 			if key in args:
 				del args[key]
-		for k, v in iterIntervKeys(node, nDim):
+		for k, v in iterIntervKeys(node, nDim, spatial=spatial):
 			args[k] = v
 		if "fillfactor" in node:
 			args["fillFactor"] = node["fillfactor"]
+
 		yield intervalKey, (intervalClass(**args),)
+
 	return builder
 
 
 def _makeIntervalKeyIterator(preferUpper=False):
-	def iterKeys(node, nDim):
-		"""returns ASTNode constructor keys for intervals.
-		"""
+	"""returns a function yielding ASTNode constructor keys for intervals.
+	"""
+	def iterKeys(node, nDim, spatial=False):
 		res, coos = {}, node.get("coos", ())
 		_validateCoos(coos, nDim, None, None)
-		for interval in _iterIntervals(coos, nDim):
+		for interval in _iterIntervals(coos, nDim, spatial):
 			if preferUpper:
 				res["upperLimit"], res["lowerLimit"] = interval
 			else:
@@ -329,7 +340,7 @@ def _makeGeometryKeyIterator(argDesc, clsName):
 	remaining coordinates.
 	"""
 	parseLines = [
-		"def iterKeys(node, nDim):",
+		"def iterKeys(node, nDim, spatial=True):",
 		'  coos = node.get("coos", ())',
 		'  if False: yield',  # ensure the thing is an iterator
 		"  try:",
@@ -385,10 +396,13 @@ def getCoords(cst, system):
 			dm.TimeCoo, "times", _makeIntervalKeyIterator()),
 
 		"Position": _makeCooBuilder("spaceFrame", None, None, dm.SpaceCoo,
-			"places", None),
+			"places", None, spatial=True),
 		"PositionInterval": _makeCooBuilder("spaceFrame",
 			dm.SpaceInterval, "areas", dm.SpaceCoo, "places",
-			_makeIntervalKeyIterator()),
+			_makeIntervalKeyIterator(), spatial=True),
+		"VelocityInterval": _makeCooBuilder("spaceFrame",
+			dm.VelocityInterval, "velocityAs", dm.VelocityCoo, "velocities",
+			_makeIntervalKeyIterator(), spatial=True),
 		"AllSky": _makeGeometryBuilder(dm.AllSky, []),
 		"Circle": _makeGeometryBuilder(dm.Circle, 
 			[('center', 'v'), ('radius', 'r')]),

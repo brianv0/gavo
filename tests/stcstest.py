@@ -94,6 +94,7 @@ class STCSTimeParsesTest(STCSParsesTestBase):
 
 class STCSSpaceParsesTest(STCSParsesTestBase):
 	shouldParse = [
+		("velocityUnit", "unit kpc/a"),
 		("positionInterval", "PositionInterval ICRS"),
 		("positionInterval", "PositionInterval ICRS 12 12"),
 		("positionInterval", "PositionInterval ICRS 12 11 10 9 8 7 6 5 4 3 2 1"),
@@ -109,6 +110,9 @@ class STCSSpaceParsesTest(STCSParsesTestBase):
 		("polygon", "Polygon GALACTIC_II 12 12 10 20 21 21 20 19"),
 		("convex", "Convex GEO_C 12 12 10 20 21 21 20 19"),
 		("position", "Position UNKNOWNFrame 12 13 Error 0.1 0.1"),
+		("position", "Position UNKNOWNFrame 12 13 Error 0.1 0.1"
+			" VelocityInterval fillfactor 0.125 1 1.5 2 3 Error 0.25 0.5"
+			" Resolution 0.25 0.25 PixSize 0.5 0.75"),
 	]
 	shouldNotParse = [
 		("positionInterval", "PositionInterval"),
@@ -212,13 +216,13 @@ class ComplexSTCSTreesTest(STCSTreeParseTestBase):
 				'frame': 'FK4', 'refpos': 'TOPOCENTER', 'fillfactor': 0.1, 
 				'error': [3., 3.], 'flavor': 'SPHER2', 'type': 'Circle', 
 				'unit': 'deg', 'size': [23.]}]),
-		("spaceSubPhrase", "PositionInterval FK4 VelocityInterval fillfactor 0.1"
+		("spaceSubPhrase", "PositionInterval FK4 VelocityInterval fillfactor 0.25"
 				" 12 13"
 				" Velocity 12.5 unit km/s Error 4 5 Resolution 1.25 PixSize 1.5", 
-			[{'frame': 'FK4', 'type': 'PositionInterval', 'velocityInterval': [
-				{'coos': [12., 13.], 'fillfactor': 0.1, 
-				'error': [4., 5.], 'velocity': [12.5], 'resolution': [1.25], 
-				'unit': 'km/s', 'pixSize': [1.5]}]}]),
+			[{'frame': 'FK4', 'type': 'PositionInterval', 'velocity': [
+				{'coos': [12., 13.], 'fillfactor': 0.25, 
+				'error': [4., 5.], 'pos': [12.5], 'resolution': [1.25], 
+				'unit': 'km/s', 'pixSize': [1.5], 'type': "VelocityInterval"}]}]),
 		("stcsPhrase", "Circle ICRS 2 23 12 RedshiftInterval RADIO 0.125 0.25", {
 			'space': {
 				'coos': [2., 23., 12.], 'frame': 'ICRS', 'type': 'Circle'}, 
@@ -267,18 +271,21 @@ class TreeIterTest(testhelpers.VerboseTest):
 		self.assertEqual(list(stcs.iterNodes(self._getTree(
 			"Circle ICRS 2 23 12 VelocityInterval fillfactor 0.5 12 13"
 		  " RedshiftInterval RADIO 0.125 0.25"))), [
-				(('space', 'velocityInterval'), {
-					'coos': [12.0, 13.0], 'fillfactor': 0.5}), 
+				(('space', 'velocity'),
+				  {'coos': [12.0, 13.0], 'fillfactor': 0.5, 
+						'type': 'VelocityInterval'}),
 				(('space',), {
 					'coos': [2.0, 23.0, 12.0], 'frame': 'ICRS', 'type': 'Circle', 
-					'velocityInterval': [
-						{'coos': [12.0, 13.0], 'fillfactor': 0.5}]}), 
+					'velocity': [
+						{'coos': [12.0, 13.0], 'fillfactor': 0.5, 
+							'type': 'VelocityInterval'}]}), 
 				(('redshift',), {
 						'coos': [0.125, 0.25], 'dopplerdef': 'RADIO', 
 							'type': 'RedshiftInterval'}), 
 				((), {'space': {'coos': [2.0, 23.0, 12.0], 'frame': 'ICRS', 
-					'type': 'Circle', 'velocityInterval': [{'coos': [12., 13.], 
-					'fillfactor': 0.5}]}, 'redshift': {'coos': [0.125, 0.25], 
+					'type': 'Circle', 'velocity': [{'coos': [12., 13.], 
+					'fillfactor': 0.5, 'type': 'VelocityInterval'}]}, 
+					'redshift': {'coos': [0.125, 0.25], 
 					'dopplerdef': 'RADIO', 'type': 'RedshiftInterval'}})])
 
 
@@ -287,6 +294,12 @@ class DefaultingTest(testhelpers.VerboseTest):
 		self.assertEqual(stcs.getCST("PositionInterval ICRS"),
 			{'space': {'frame': 'ICRS', 'unit': 'deg', 'type': 'PositionInterval', 
 			'refpos': 'UNKNOWNRefPos', 'flavor': 'SPHER2'}})
+		self.assertEqual(stcs.getCST("PositionInterval ICRS VelocityInterval"
+			" Velocity 1 2"),
+			{'space': {'frame': 'ICRS', 'unit': 'deg', 'type': 'PositionInterval', 
+			'refpos': 'UNKNOWNRefPos', 'flavor': 'SPHER2',
+			'velocity': [{'pos': [1.0, 2.0], 'unit': 'm/s', 
+				'type': 'VelocityInterval'}]}})
 		self.assertEqual(stcs.getCST("PositionInterval ICRS unit arcsec"),
 			{'space': {'frame': 'ICRS', 'unit': 'arcsec', 
 			'type': 'PositionInterval', 'refpos': 'UNKNOWNRefPos', 
@@ -317,78 +330,100 @@ class DefaultingTest(testhelpers.VerboseTest):
 			'refpos': 'UNKNOWNRefPos', 'unit': 'km/s', 'dopplerdef': 'OPTICAL'}})
 
 
-class GenerationTest(testhelpers.VerboseTest):
+def assertMapsto(stcsInput, expectedOutput):
+	ast = stc.parseSTCS(stcsInput)
+	foundOutput = stcsgen.getSTCS(ast)
+	if foundOutput!=expectedOutput:
+		matchLen = len(os.path.commonprefix([expectedOutput, foundOutput]))
+		raise AssertionError("Didn't get expected STC-S for example '%s';"
+			" non-matching part: '%s'"%(stcsInput, foundOutput[matchLen:]))
+
+class GeneralGenerationTest(testhelpers.VerboseTest):
 	"""tests for STCS-STCS-round trips.
 	"""
-	def assertMapsto(self, stcsInput, expectedOutput):
-		foundOutput = stcsgen.getSTCS(stc.parseSTCS(stcsInput))
-		if foundOutput!=expectedOutput:
-			matchLen = len(os.path.commonprefix([expectedOutput, foundOutput]))
-			raise AssertionError("Didn't get expected STC-S for example '%s';"
-				" non-matching part: '%s'"%(stcsInput, foundOutput[matchLen:]))
-
-
 	def testTimeCoo(self):
-		self.assertMapsto("Time TT 2009-03-10T09:56:10.015625 unit s"
+		assertMapsto("Time TT 2009-03-10T09:56:10.015625 unit s"
 			" Error 0.0001 0.0002 Resolution 0.0001 PixSize 2",
 			'Time TT 2009-03-10T09:56:10.015625 Error 0.0001 0.0002 Resolution 0.0001 PixSize 2.0')
 	
 	def testTimeInterval(self):
-		self.assertMapsto("TimeInterval TAI MJD52000.5 MJD52011.5",
+		assertMapsto("TimeInterval TAI MJD52000.5 MJD52011.5",
 			'TimeInterval TAI 2001-04-01T12:00:00 2001-04-12T12:00:00')
 	
 	def testTimeHalfInterval(self):
-		self.assertMapsto("StopTime TT 2009-03-10T09:56:10.015625",
+		assertMapsto("StopTime TT 2009-03-10T09:56:10.015625",
 			'StopTime TT 2009-03-10T09:56:10.015625')
 	
 	def testTimeIntervalWithValue(self):
-		self.assertMapsto("TimeInterval TAI MJD52000.5 MJD52011.5"
+		assertMapsto("TimeInterval TAI MJD52000.5 MJD52011.5"
 			" Time 2001-04-01T18:23:50",
 			'TimeInterval TAI 2001-04-01T12:00:00 2001-04-12T12:00:00 Time 2001-04-01T18:23:50'),
 	
 	def testOtherIntervals(self):
-		self.assertMapsto("SpectralInterval 20 30 unit m"
+		assertMapsto("SpectralInterval 20 30 unit m"
 			" RedshiftInterval REDSHIFT 1 2 Error 0 0.125",
 			'SpectralInterval 20.0 30.0 unit m\nRedshiftInterval REDSHIFT 1.0 2.0 Error 0.0 0.125')
 	
 	def testOtherCoodinates(self):
-		self.assertMapsto("Spectral BARYCENTER 200000 unit Hz PixSize 1"
+		assertMapsto("Spectral BARYCENTER 200000 unit Hz PixSize 1"
 			" Redshift TOPOCENTER 2 REDSHIFT RELATIVISTIC",
 			'Spectral BARYCENTER 200000.0 PixSize 1.0\n'
 			'Redshift TOPOCENTER REDSHIFT RELATIVISTIC 2.0')
 
 	def testSpatialCoo(self):
-		self.assertMapsto("Position ICRS -50 320",
+		assertMapsto("Position ICRS -50 320",
 			'Position ICRS -50.0 320.0')
 
 	def testSpatialCooComplex(self):
-		self.assertMapsto("Position ICRS UNKNOWNRefPos CART3 -50 320 20 unit pc"
+		assertMapsto("Position ICRS UNKNOWNRefPos CART3 -50 320 20 unit pc"
 			" Error 1 2 3 1.25 2.25 3.25 Resolution 0.125 0.125 0.125"
 			" Size 4 3 2",
 			'Position ICRS CART3 -50.0 320.0 20.0 unit pc Error 1.0 2.0 3.0 1.25 2.25 3.25 Resolution 0.125 0.125 0.125 Size 4.0 3.0 2.0')
 	
 	def testSpatialInterval(self):
-		self.assertMapsto("PositionInterval J2000 12 13 19 29 Position 15 16",
+		assertMapsto("PositionInterval J2000 12 13 19 29 Position 15 16",
 			'PositionInterval J2000 12.0 13.0 19.0 29.0 Position 15.0 16.0')
 
-	def testGeometries(self):
-		self.assertMapsto("AllSky ICRS", "AllSky ICRS")
-		self.assertMapsto("AllSky FK5 J2010 Position 12 13",
-			'AllSky FK5 J2010.0 Position 12.0 13.0')
-		self.assertMapsto("Circle ICRS 12 13 0.25 Position 12.5 13.5",
-			'Circle ICRS 12.0 13.0 0.25 Position 12.5 13.5')
-		self.assertMapsto("Ellipse ECLIPTIC TOPOCENTER -40 38 0.75 0.5 45"
+
+class SampleGenerationTestBase(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+	samples = []
+	def _runTest(self, sample):
+		assertMapsto(*sample)
+
+
+class GeometriesGenerationTest(SampleGenerationTestBase):
+	samples = [
+		("AllSky ICRS", "AllSky ICRS"),
+		("AllSky FK5 J2010 Position 12 13",
+			'AllSky FK5 J2010.0 Position 12.0 13.0'),
+		("Circle ICRS 12 13 0.25 Position 12.5 13.5",
+			'Circle ICRS 12.0 13.0 0.25 Position 12.5 13.5'),
+		("Ellipse ECLIPTIC TOPOCENTER -40 38 0.75 0.5 45"
 			" PixSize 0.25 0.25 0.5 0.5",
 			'Ellipse ECLIPTIC TOPOCENTER -40.0 38.0 0.75 0.5 45.0'
-			' PixSize 0.25 0.25 0.5 0.5')
-		self.assertMapsto("Box ICRS 32 24 1 2",
-			"Box ICRS 32.0 24.0 1.0 2.0")
-		self.assertMapsto("Polygon UNKNOWNFrame CART2 1 2 3 4 5 6 Size 3 4",
-			'Polygon UNKNOWNFrame CART2 1.0 2.0 3.0 4.0 5.0 6.0 Size 3.0 4.0')
-		self.assertMapsto("Convex GEO_C 2 3 4 0.5 5 6 7 0.25",
-			'Convex GEO_C 2.0 3.0 4.0 0.5 5.0 6.0 7.0 0.25')
+			' PixSize 0.25 0.25 0.5 0.5'),
+		("Box ICRS 32 24 1 2",
+			"Box ICRS 32.0 24.0 1.0 2.0"),
+		("Polygon UNKNOWNFrame CART2 1 2 3 4 5 6 Size 3 4",
+			'Polygon UNKNOWNFrame CART2 1.0 2.0 3.0 4.0 5.0 6.0 Size 3.0 4.0'),
+		("Convex GEO_C 2 3 4 0.5 5 6 7 0.25",
+			'Convex GEO_C 2.0 3.0 4.0 0.5 5.0 6.0 7.0 0.25'),
+	]
+
+
+class VelocitiesGenerationTest(SampleGenerationTestBase):
+	samples = [
+		("Position ICRS VelocityInterval 1 2",
+			"Position ICRS VelocityInterval 1.0 2.0"),
+		("Position ICRS VelocityInterval 1 2 Velocity 1.5 2.5",
+			"Position ICRS VelocityInterval 1.0 2.0 Velocity 1.5 2.5"),
+		("Position ICRS 12 13 VelocityInterval Velocity 1.5 2.5",
+			"Position ICRS 12.0 13.0 VelocityInterval Velocity 1.5 2.5"),
+		("Position ICRS VelocityInterval unit deg/s Error 0.125 0.125",
+			"Position ICRS VelocityInterval unit deg/s Error 0.125 0.125"),
+	]
 
 
 if __name__=="__main__":
-	testhelpers.main(TreeIterTest)
-#	testhelpers.main(STCSPhraseTest)
+	testhelpers.main(DefaultingTest)

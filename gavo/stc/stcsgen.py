@@ -10,6 +10,7 @@ which is then added to the current dictionary.
 """
 
 import itertools
+import pprint
 
 from gavo.stc import dm
 from gavo.stc import stcs
@@ -76,18 +77,6 @@ def _redshiftFrameToCST(node):
 
 ############### Coordinates to CST
 
-
-def _flattenVectors(aList):
-	"""flattens aList if it is made up of tuples, returns it unchanged otherwise.
-	"""
-	if not aList:
-		return aList
-	elif isinstance(aList[0], tuple):
-		return list(itertools.chain(*aList))
-	else:
-		return aList
-
-
 def _wiggleToCST(node, nDim):
 	if node is None:
 		return
@@ -118,9 +107,11 @@ def _makeCooTreeMapper(cooType):
 
 
 def _makeIntervalCoos(node):
-	if node.lowerLimit and node.upperLimit:
-		coos = [c for c in (node.lowerLimit, node.upperLimit) if c is not None]
-	return {"coos": coos}
+	res = {}
+	if node.lowerLimit or node.upperLimit:
+		res["coos"] = [c for c in (node.lowerLimit, node.upperLimit) 
+			if c is not None]
+	return res
 
 
 def _makeTimeIntervalCoos(node):
@@ -180,7 +171,7 @@ def _makePhraseTreeMapper(cooMapper, areaMapper, frameMapper,
 		cooKeys = cooMapper(coo)
 		frame = coo.frame or area.frame
 		return _combine(cooKeys,
-			areaKeys,  # area keys come later to override posKey type.
+			areaKeys,  # area keys come later to override cst key "type".
 			frameMapper(frame))
 	return toCST
 
@@ -250,25 +241,30 @@ _redshiftToCST = _makePhraseTreeMapper(
 	_makeAreaTreeMapper("RedshiftInterval"),
 	_redshiftFrameToCST,
 	_makeASTItemsGetter("redshifts", "redshiftAs"))
+_velocityToCST = _makePhraseTreeMapper(
+	_makeCooTreeMapper("VelocityInterval"),
+	_makeAreaTreeMapper("VelocityInterval"),
+	lambda _: {},  # Frame provided by embedding position
+	_makeASTItemsGetter("velocities", "velocityAs"))
 
 
 def _makeAllSkyCoos(node):
-	return {"coos": ()}
+	return {"geoCoos": ()}
 
 def _makeCircleCoos(node):
-	return {"coos": node.center+(node.radius,)}
+	return {"geoCoos": node.center+(node.radius,)}
 
 def _makeEllipseCoos(node):
-	return {"coos": node.center+(node.smajAxis, node.sminAxis, node.posAngle)}
+	return {"geoCoos": node.center+(node.smajAxis, node.sminAxis, node.posAngle)}
 
 def _makeBoxCoos(node):
-	return {"coos": node.center+node.boxsize}
+	return {"geoCoos": node.center+node.boxsize}
 
 def _makePolygonCoos(node):
-	return {"coos": tuple(itertools.chain(*node.vertices))}
+	return {"geoCoos": tuple(itertools.chain(*node.vertices))}
 
 def _makeConvexCoos(node):
-	return {"coos": tuple(itertools.chain(*node.vectors))}
+	return {"geoCoos": tuple(itertools.chain(*node.vectors))}
 
 _geometryMappers = dict([(n, _makePhraseTreeMapper(
 		_spatialCooToCST,
@@ -278,28 +274,34 @@ _geometryMappers = dict([(n, _makePhraseTreeMapper(
 	for n in ["AllSky", "Circle", "Ellipse", "Box", "Polygon", "Convex"]])
 
 def _spatialToCST(astRoot):
+	args = {}
+	velocityArgs = _velocityToCST(astRoot)
+	if velocityArgs:
+		args = {"velocity": velocityArgs}
 	node = (astRoot.areas and astRoot.areas[0]) or (
 		astRoot.places and astRoot.places[0])
 	if not node:
-		return {}
-	if isinstance(node, (dm.SpaceCoo, dm.SpaceInterval)):
-		return _simpleSpatialToCST(astRoot)
+		if args:  # provide frame if no position is given
+			args.update(_spaceFrameToCST(astRoot.astroSystem.spaceFrame))
+			args["type"] = "Position"
+	elif isinstance(node, (dm.SpaceCoo, dm.SpaceInterval)):
+		args.update(_simpleSpatialToCST(astRoot))
 	else: # Ok, it's a geometry
-		return _geometryMappers[node.__class__.__name__](astRoot)
+		args.update(_geometryMappers[node.__class__.__name__](astRoot))
+	return args
 
 
 ############## Flattening of the CST
 
 
-def _makeSequenceFlattener(keyword):
-	if keyword:
-		def flatten(seq, node):
-			if seq:
-				return "%s %s"%(keyword, " ".join(str(v) for v in seq))
+def _makeSequenceFlattener(keyword, valSerializer=str):
+	if keyword: 
+		fmt = "%s %%s"%keyword
 	else:
-		def flatten(seq, node):
-			if seq:
-				return " ".join(str(v) for v in seq)
+		fmt = "%s"
+	def flatten(seq, node):
+		if seq:
+			return fmt%(" ".join(valSerializer(v) for v in seq))
 	return flatten
 
 
@@ -319,6 +321,9 @@ _commonFlatteners = {
 	"pixSize": _makeSequenceFlattener("PixSize"),
 }
 
+def _serializeVector(v):
+	return " ".join(str(c) for c in v)
+
 
 def _makePosFlattener(key, stringify):
 	def flatten(val, node):
@@ -332,34 +337,51 @@ def _makePosFlattener(key, stringify):
 
 
 def _make1DCooFlattener(stringifyCoo, posKey, frameKeys):
-	posFlattener = _makePosFlattener(posKey, stringifyCoo)
-	flatteners = {"pos": posFlattener}
+	flatteners = {"pos": _makePosFlattener(posKey, stringifyCoo),
+		"coos": _makeSequenceFlattener("", stringifyCoo)}
 	flatteners.update(_commonFlatteners)
 	keyList = ["type", "fillfactor"]+frameKeys+["coos", "pos", 
 		"unit", "error", "resolution", "pixSize"]
 	def flatten(node):
-		if "coos" in node:
-			node["coos"] = " ".join(map(stringifyCoo, node["coos"]))
 		return _joinKeysWithNull(node, keyList, flatteners)
 	return flatten
 
 
-_flattenSpacePos = _makePosFlattener("Position",
-	lambda val: " ".join(str(v) for v in _flattenVectors([val])))
+_vectorFlatteners = _commonFlatteners.copy()
+_vectorFlatteners.update({
+	"coos": _makeSequenceFlattener("", _serializeVector),
+	"error": _makeSequenceFlattener("Error", _serializeVector),
+	"size": _makeSequenceFlattener("Size", _serializeVector),
+	"resolution": _makeSequenceFlattener("Resolution", _serializeVector),
+	"pixSize": _makeSequenceFlattener("PixSize", _serializeVector),
+})
 
-_posFlatteners = _commonFlatteners.copy()
-_posFlatteners["pos"] = _flattenSpacePos
-_posFlatteners["size"] = _makeSequenceFlattener("Size")
-_posFlatteners["coos"] = _makeSequenceFlattener("")
+_velFlatteners = {
+	"pos": _makePosFlattener("Velocity", _serializeVector),
+}
+_velFlatteners.update(_vectorFlatteners)
+
+
+def _flattenVelocity(val, node):
+	if val:
+		return "VelocityInterval "+_joinKeysWithNull(val, ["fillfactor",
+		"coos", "pos", "unit", "error", "resolution", "size", 
+		"pixSize"], _velFlatteners)
+	return ""
+
+
+_posFlatteners = {
+	"pos": _makePosFlattener("Position", _serializeVector),
+	"geoCoos": _makeSequenceFlattener(""),
+	"velocity": _flattenVelocity,
+}
+_posFlatteners.update(_vectorFlatteners)
+
 
 def _flattenPosition(node):
-	for key in ["error", "resolution", "size", "pixSize", "coos"]:
-		if key in node and node[key] is not None:
-			node[key] = [str(v) for v in _flattenVectors(node[key])]
 	return _joinKeysWithNull(node, ["type", "fillfactor", "frame", "equinox",
-		"refpos",
-		"flavor", "coos", "pos", "unit", "error", "resolution", "size", 
-		"pixSize"], _posFlatteners)
+		"refpos", "flavor", "coos", "geoCoos", "pos", "unit", "error", 
+		"resolution", "size", "pixSize", "velocity"], _posFlatteners)
 
 
 _flattenTime = _make1DCooFlattener(lambda v: v.isoformat(), "Time",

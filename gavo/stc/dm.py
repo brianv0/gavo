@@ -79,6 +79,17 @@ class CoordSys(ASTNode):
 	_a_name = None
 
 
+class _CooTypeSentinel(object):
+	"""is a base for type indicators.
+
+	Never instantiate any of these.
+	"""
+
+class SpectralType(_CooTypeSentinel): pass
+class TimeType(_CooTypeSentinel): pass
+class SpaceType(_CooTypeSentinel): pass
+class RedshiftType(_CooTypeSentinel): pass
+class VelocityType(_CooTypeSentinel): pass
 
 ############### Coordinates and their intervals
 
@@ -114,10 +125,31 @@ class MatrixWiggle(_WiggleSpec):
 
 
 class _CoordinateLike(ASTNode):
-	"""A base for everything that has a frame.
+	"""An abstract base for everything that has a frame.
+
+	They can return a position object of the proper type and with the
+	same unit as self.
+
+	When deriving from _CoordinateLike, you have at some point to define
+	a cType class attribute that has values in the _CooTypeSentinels above.
 	"""
 	_a_frame = None
 	_a_name = None
+
+
+	def getPosition(self):
+		"""returns a position appropriate for this class.
+
+		This is a shallow copy of the xCoo object itself for xCoos, 
+		xCoo for xInterval, and SpaceCoo for Geometries.  Common attributes
+		are copied to the new object.
+		"""
+		posClass = _positionClassMap[self.cType]
+		initArgs = {}
+		for name, default in posClass._nodeAttrs:
+			if name!="id":
+				initArgs[name] = getattr(self, name, default)
+		return posClass(**initArgs)
 
 
 class _Coordinate(_CoordinateLike):
@@ -135,16 +167,15 @@ class _OneDMixin(object):
 
 	def getUnit(self):
 		return self.unit
-	
-	def getPosition(self):
-		return self.positionClass(unit=self.unit)
 
 
 class _SpatialMixin(object):
 	"""provides attributes for positional coordinates.
 	"""
 	_a_units = ()
-	
+
+	cType = SpaceType
+
 	def getUnit(self):
 		if self.units:
 			if len(set(self.units))==1:
@@ -153,19 +184,56 @@ class _SpatialMixin(object):
 				return " ".join(self.units)
 		return ()
 
-	def getPosition(self):
-		return SpaceCoo(units=self.units)
+
+class _VelocityMixin(object):
+	"""provides attributes for velocities.
+	"""
+	_a_units = ()
+	_a_velTimeUnits = ()
+
+	cType = VelocityType
+
+	def getUnit(self):
+		if self.units:
+			if len(set(self.units))==1:
+				return "%s/%s"%(self.units[0], self.velTimeUnits[0])
+			else:
+				return " ".join("%s/%s"%(u, tu) 
+					for u, tu in itertools.izip(self.units, self.velTimeUnits))
+		return ()
 
 
-class SpaceCoo(_Coordinate, _SpatialMixin): pass
-class TimeCoo(_Coordinate, _OneDMixin): pass
-class SpectralCoo(_Coordinate, _OneDMixin): pass 
-class RedshiftCoo(_Coordinate, _OneDMixin):
+class _RedshiftMixin(object):
+	"""provides attributes for redshifts.
+	"""
 	_a_velTimeUnit = None
+	_a_unit = None
+
+	cType = RedshiftType
 
 	def getUnit(self):
 		if self.unit:
 			return "%s/%s"%(self.unit, self.velTimeUnit)
+
+
+class SpaceCoo(_Coordinate, _SpatialMixin): pass
+class VelocityCoo(_Coordinate, _VelocityMixin): pass
+class RedshiftCoo(_Coordinate, _RedshiftMixin): pass
+
+class TimeCoo(_Coordinate, _OneDMixin):
+	cType = TimeType
+
+class SpectralCoo(_Coordinate, _OneDMixin):
+	cType = SpectralType
+
+
+_positionClassMap = {
+	SpectralType: SpectralCoo,
+	TimeType: TimeCoo,
+	SpaceType: SpaceCoo,
+	RedshiftType: RedshiftCoo,
+	VelocityType: VelocityCoo,
+}
 
 
 class _CoordinateInterval(_CoordinateLike):
@@ -174,17 +242,16 @@ class _CoordinateInterval(_CoordinateLike):
 	_a_fillFactor = None
 
 
+class SpaceInterval(_CoordinateInterval, _SpatialMixin): pass
+class VelocityInterval(_CoordinateInterval, _VelocityMixin): pass
+class RedshiftInterval(_CoordinateInterval, _RedshiftMixin): pass
 
-class SpaceInterval(_CoordinateInterval, _SpatialMixin): pass 
 class TimeInterval(_CoordinateInterval, _OneDMixin):
-	positionClass = TimeCoo
+	cType = TimeType
 
 class SpectralInterval(_CoordinateInterval, _OneDMixin):
-	positionClass = SpectralCoo
+	cType = SpectralType
 
-class RedshiftInterval(_CoordinateInterval, _OneDMixin):
-	_a_velTimeUnit = None
-	positionClass = RedshiftCoo
 
 
 ################ Geometries
@@ -192,7 +259,7 @@ class RedshiftInterval(_CoordinateInterval, _OneDMixin):
 class _Geometry(_CoordinateLike, _SpatialMixin):
 	"""A base class for all kinds of geometries.
 	"""
-	_a_size = ()
+	_a_size = None
 	_a_fillFactor = None
 
 
@@ -242,6 +309,8 @@ class STCSpec(ASTNode):
 	_a_areas = ()
 	_a_freqAs = ()
 	_a_redshiftAs = ()
+	_a_velocities = ()
+	_a_velocityAs = ()
 
 	def buildIdMap(self):
 		if hasattr(self, "idMap"):

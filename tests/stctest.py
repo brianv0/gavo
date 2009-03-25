@@ -206,7 +206,15 @@ class SpaceCoordIntervalTest(testhelpers.VerboseTest):
 		self.assertEqual(len(ast.areas), 1)
 		self.assertEqual(len(ast.places), 1)
 		self.assertEqual(ast.places[0].value, (12., 24.))
-	
+
+	def test1D(self):
+		ast = stcsast.parseSTCS("PositionInterval ICRS CART1 1"
+			" Error 0.25 0.5")
+		self.assertEqual(len(ast.areas), 1)
+		self.assertEqual(ast.areas[0].lowerLimit, (1.0,))
+		self.assertEqual(ast.places[0].error.values[0], (0.25,))
+		self.assertEqual(ast.places[0].error.values[1], (0.5,))
+
 	def testBadPositionRaises(self):
 		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS, 
 			"PositionInterval ICRS 12.25 23.75 13.5 25.0 Position 12 24 3 4")
@@ -326,6 +334,36 @@ class UnitParseTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.redshiftAs[0].velTimeUnit, "s")
 
 
+class VelocityTest(testhelpers.VerboseTest):
+	"""tests for velocity handling.
+	"""
+	def testTrivial(self):
+		ast = stcsast.parseSTCS("Position ICRS VelocityInterval 1 2")
+		self.failUnless(ast.velocities[0].frame is ast.astroSystem.spaceFrame)
+		self.assertEqual(ast.velocityAs[0].units, ("m", "m"))
+		self.assertEqual(ast.velocityAs[0].velTimeUnits, ("s", "s"))
+		self.assertEqual(ast.velocityAs[0].lowerLimit, (1., 2.0))
+		self.assertEqual(ast.velocityAs[0].upperLimit, None)
+	
+	def testSimple(self):
+		ast = stcsast.parseSTCS("Position ICRS VelocityInterval Velocity 1 2"
+			" unit deg/cy")
+		self.assertEqual(ast.velocities[0].units, ("deg", "deg"))
+		self.assertEqual(ast.velocities[0].velTimeUnits, ("cy", "cy"))
+		self.assertEqual(ast.velocities[0].value, (1., 2.))
+		self.assertEqual(len(ast.velocityAs), 1)
+	
+	def testComplex(self):
+		ast = stcsast.parseSTCS("Position ICRS VelocityInterval -0.125 2.5"
+			" 0.125 3 unit deg/cy Error 0.125 0.25 Resolution 1.5 1"
+			" PixSize 0.5 0.5")
+		self.assertEqual(ast.velocityAs[0].lowerLimit, (-0.125, 2.5))
+		self.assertEqual(ast.velocityAs[0].upperLimit, (0.125, 3))
+		self.assertEqual(ast.velocities[0].error.values[0], (0.125, 0.25))
+		self.assertEqual(ast.velocities[0].resolution.values[0], (1.5, 1))
+		self.assertEqual(ast.velocities[0].pixSize.values[0], (0.5, 0.5))
+
+
 class STCSRoundtripTest(testhelpers.VerboseTest):
 	"""tests for STC-S strings going though parsing, STC-X generation, STC-X parsing, and STC-Sgeneration largely unscathed.
 	"""
@@ -368,8 +406,7 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			" SpectralInterval 1e10 1e11 unit Hz"
 			" RedshiftInterval 1000 7500 unit km/s",
 			"StartTime TT 2009-03-10T09:56:10.015625\nSpectralInterval"
-			" 10000000000.0 100000000000.0\nRedshiftInterval 1000.0 7500.0 unit km"),
-#XXXXXXXX TODO: the previous example is bad, fix redshift units (do away with vel_unit, probably)
+			" 10000000000.0 100000000000.0\nRedshiftInterval 1000.0 7500.0"),
 		("Time TT 2009-03-10T09:56:10.015625",
 			"Time TT 2009-03-10T09:56:10.015625"),
 		("Time TDT 2009-03-10T09:56:10.015625 unit s"

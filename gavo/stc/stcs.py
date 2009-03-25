@@ -44,8 +44,6 @@ temporalUnits = set(["yr", "cy", "s", "d", "a"])
 spectralUnits = set(["MHz", "GHz", "Hz", "Angstrom", "keV", "MeV", 
 	"eV", "mm", "um", "nm", "m"])
 redshiftUnits = set(["km/s", "nil"])
-# XXX I don't even know what VelocityInterval is supposed to do...
-velocityUnits = set(["km/s", "m/s", "furlongs/fortnight"]) 
 
 def _assertGrammar(cond, msg, pos):
 	if not cond:
@@ -164,11 +162,14 @@ def getSymbols():
 
 # units
 	_unitOpener = Suppress( Keyword("unit") )
-	spaceUnit = _unitOpener + Regex(_reFromKeys(spatialUnits))("unit")
-	timeUnit = _unitOpener + Regex(_reFromKeys(temporalUnits))("unit")
+	_spaceUnitWord = Regex(_reFromKeys(spatialUnits))
+	_timeUnitWord = Regex(_reFromKeys(temporalUnits))
+	spaceUnit = _unitOpener + _spaceUnitWord("unit")
+	timeUnit = _unitOpener + _timeUnitWord("unit")
 	spectralUnit = _unitOpener + Regex(_reFromKeys(spectralUnits))("unit")
 	redshiftUnit = _unitOpener + Regex(_reFromKeys(redshiftUnits))("unit")
-	velocityUnit = _unitOpener + Regex(_reFromKeys(velocityUnits))("unit")
+	velocityUnit = _unitOpener + (_spaceUnitWord + "/" + _timeUnitWord
+		).addParseAction(lambda s,p,t:"".join(t))("unit")
 
 # basic productions common to most STC-S subphrases
 	fillfactor = (Suppress( Keyword("fillfactor") ) + number("fillfactor"))
@@ -205,14 +206,14 @@ def getSymbols():
 	_spatialProps = (Optional( spaceUnit ) +
 		Optional( error("error") ) + Optional( resolution("resolution") ) + 
 		Optional( size("size") ) + Optional( pixSize("pixSize") ))
-	velocitySpec = Suppress( Keyword("Velocity") ) + OneOrMore( number )
-	velocityInterval = (Keyword("VelocityInterval") + Optional( fillfactor ) +
-		_coos + Optional( velocitySpec("velocity") ) + 
+	velocitySpec = Suppress( Keyword("Velocity") ) + OneOrMore( number )("pos")
+	velocityInterval = ( Keyword("VelocityInterval")("type") + 
+		Optional( fillfactor ) + _coos + Optional( velocitySpec ) + 
 		Optional( velocityUnit ) +
 		Optional( error("error") ) + Optional( resolution("resolution") ) + 
 		Optional( pixSize("pixSize") )).addParseAction(makeTree)
 	_spatialTail = (_spatialProps + 
-		Optional( velocityInterval )("velocityInterval"))
+		Optional( velocityInterval )("velocity"))
 	_regionTail = Optional( positionSpec ) + _spatialTail
 	_commonSpaceItems = ( frame + Optional( refpos ) + 
 		Optional( flavor ))
@@ -330,4 +331,4 @@ if __name__=="__main__":
 	syms = getSymbols()
 #	print getCST("PositionInterval ICRS 1 2 3 4")
 	enableDebug(syms)
-	print makeTree(syms["stcsPhrase"].parseString("TimeInterval MJD56 MJD57 unit a"))
+	print makeTree(syms["velocityUnit"].parseString("unit km/s"))

@@ -119,6 +119,8 @@ defaults = {
 		("redshiftType", "VELOCITY"),
 		("unit", getRedshiftUnit),
 		("dopplerdef", "OPTICAL")],
+	"velocity": [
+		("unit", "m/s"),],
 }
 
 defaultingFunctions = dict(

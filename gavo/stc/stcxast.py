@@ -33,7 +33,6 @@ def _passthrough(node, buildArgs, context):
 _unitKeys = ["pos_angle_unit", "pos_unit", "spectral_unit", "time_unit",
 	"vel_time_unit"]
 
-
 def _makeKeywordBuilder(kw):
 	"""returns a builder that returns the node's text content under kw.
 	"""
@@ -222,17 +221,26 @@ def _iterCooMeta(node, context, frameName):
 		yield "id", node.get("id")
 
 
-def _makeIntervalBuilder(kwName, astClass, frameName):
+def _makeIntervalBuilder(kwName, astClass, frameName, tuplify=False):
 	"""returns a builder that makes astObject with the current buildArgs
 	and fixes its frame reference.
 	"""
+	if tuplify:
+		def mkVal(v):
+			if isinstance(v, (tuple, list)):
+				return v
+			else:
+				return (v,)
+	else:
+		def mkVal(v):
+			return v
 	def buildNode(node, buildArgs, context):
 		for key, value in _iterCooMeta(node, context, frameName):
 			buildArgs[key] = value
 		if "lowerLimit" in buildArgs:
-			buildArgs["lowerLimit"] = buildArgs["lowerLimit"][0]
+			buildArgs["lowerLimit"] = mkVal(buildArgs["lowerLimit"][0])
 		if "upperLimit" in buildArgs:
-			buildArgs["upperLimit"] = buildArgs["upperLimit"][0]
+			buildArgs["upperLimit"] = mkVal(buildArgs["upperLimit"][0])
 		_fixUnits(frameName, node, buildArgs, context)
 		yield kwName, (astClass(**buildArgs),)
 	return buildNode
@@ -520,7 +528,7 @@ _stcBuilders = [
 	(_makeKwVectorBuilder("upperLimit"), ["HiLimit2Vec", "HiLimit3Vec"]),
 	(_makeKwVectorBuilder("lowerLimit"), ["LoLimit2Vec", "LoLimit3Vec"]),
 
-	(_makeIntervalBuilder("areas", dm.SpaceInterval, "spaceFrame"),
+	(_makeIntervalBuilder("areas", dm.SpaceInterval, "spaceFrame", tuplify=True),
 		["PositionScalarInterval", "Position2VecInterval",
 			"Position3VecInterval"]),
 	(_makeGeometryBuilder(dm.AllSky), ["AllSky", "AllSky2"]),

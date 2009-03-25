@@ -192,7 +192,9 @@ serialize_SpectralCoo = _make1DSerializer(STC.Spectral,
 
 
 def _wrap1D(val, ignored=None):
-	return strOrNull(val)
+	if not val:
+		return
+	return str(val[0])
 
 def _wrap2D(val, units=None):
 	if not val:
