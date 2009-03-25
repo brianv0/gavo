@@ -1,0 +1,910 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSPY v5 rel. 4 U (http://www.xmlspy.com) by louys (observatoire astronomique) -->
+<!-- edited with XMLSpy v2005 rel. 3 U (http://www.altova.com) by bonnarel (CDS) -->
+<!--W3C Schema for Observation Caracterization
+     0.0 First draft by M.Louys and F Bonnarel 2004 July and August 
+     0.1 Horribly messed up by J. McDowell     2004 Sep 
+     Version 0.2 2004 Sep 22: fixed Bounds mistake  
+     Version 0.3 2005 Mar 31: F.Bonnarel changes to be consistent with
+              draft sent the same day, and new Mireille Louys' UML diagrams
+     Version 0.31 2005 APRIL 15 F bonnarel: corrected bugs about attributes  in Frame    
+     Version 0.4    2005 may  F.Bonnarel based on BThomas STC and Qty
+      Version 0.5   2005 sep F.bonnarel based on A Rots STC
+      Version 0.9   2005 oct F.Bonnarel based on A Rots STC and consistent with char Working draft
+      Version 0.91   2005 oct F.Bonnarel 0.9 + subgroup discussion consistency 
+modifications
+      Version 0.92   2005 nov F.Bonnarel 0.9 + document compatible
+      Version 0.93   2006 may F.Bonnarel  Compatibility with new draft
+                              new Bounds, Resolution and Fill factor definition
+      Version 0.94 2006 Aug 18 F.Bonnarel changes for STC 1.3
+      Version 0.95 2006 Sep 13  F.Bonnarel Bux fixes for compatibility with STC 1.3 fully validated version (XML spy)
+      Version 0.96 2006 Sep 30 F.Bonnarel + M.Louys: cleaning, documenting update of MinMaxOccurs with respect to
+       the discussion on  mandatory status of elements MUST/SHOULD MAY 
+      creation of Specific axis as restrictions. StaError and SysError.
+      Version 0.97 2006  Oct 05 F.B slight modifications for first document
+      validation
+      Version 1.0 2006 Oct 16   Working draft compatible version
+      	2006 Nov. 06: with annotation and documentation fileds included ML
+    Version 1.10 2007 Mar 26 FB Harmonisation with  Spectrum DM
+    01 April 2007: moved annotation in types definitions of SpatialAxis, etc...   ML
+     Version 1.11 May 22 2007 FB reusing stc subst group for value, size, error resolution, pixsize ....
+      -->
+<xsd:schema targetNamespace="http://www.ivoa.net/xml/Characterisation/Characterisation-v1.11.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:stc="http://www.ivoa.net/xml/STC/stc-v1.30.xsd" xmlns:cha="http://www.ivoa.net/xml/Characterisation/Characterisation-v1.11.xsd" elementFormDefault="qualified">
+	<xsd:import namespace="http://www.ivoa.net/xml/STC/stc-v1.30.xsd" schemaLocation="http://hea-www.harvard.edu/~arots/nvometa/v1.30/stc-v1.30.xsd"/>
+	<xsd:element name="characterizationAxis" type="cha:CharacterisationAxisType" substitutionGroup="cha:characterisationAxis">
+		<xsd:annotation>
+			<xsd:documentation>
+                                describes an axis and its properties 
+                        </xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:element name="characterisation" type="cha:CharacterisationType"/>
+	<!-- http://hea-www.harvard.edu/~arots/nvometa/v1.30/stc-v1.30.xsd"/ -->
+	<!-- Characterization is the root element -->
+	<xsd:element name="characterization" type="cha:CharacterisationType" substitutionGroup="cha:characterisation"/>
+	<xsd:complexType name="CharacterisationType">
+		<xsd:choice>
+			<xsd:element name="characterisationAxis" type="cha:CharacterisationAxisType" maxOccurs="unbounded"/>
+		</xsd:choice>
+	</xsd:complexType>
+	<!-- Characterization, for one axis -->
+	<xsd:element name="characterisationAxis" type="cha:CharacterisationAxisType">
+		<xsd:annotation>
+			<xsd:documentation>
+                               describes an axis and its properties
+                        </xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<!-- For Americans -->
+	<xsd:element name="coverage" type="cha:CoverageType"/>
+	<xsd:element name="resolution" type="cha:ResolutionType">
+		<xsd:annotation>
+			<xsd:documentation>
+                              minimum size of an interpretable signal along this axis 
+                        </xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:element name="location" type="cha:LocationType"/>
+	<xsd:element name="bounds" type="cha:BoundsType"/>
+	<xsd:element name="support" type="cha:SupportType"/>
+	<xsd:element name="sensitivity" type="cha:SensitivityType"/>
+	<xsd:element name="resolutionRefVal" type="cha:ResolutionRefValType"/>
+	<xsd:element name="samplingPrecisionRefVal" type="cha:SamplingPrecisionRefValType"/>
+	<xsd:complexType name="anyURIType">
+		<xsd:complexContent>
+			<xsd:restriction base="xsd:anyType"/>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<!-- COVERAGE can contain Location, Bounds, Support, Sensitivity -->
+	<!-- coordsystem and  unit can be redefined at any level if necessary otherwise the valid coordsys and
+	unit are defined on the AxisFrame -->
+	<xsd:complexType name="CoverageType">
+		<xsd:annotation>
+			<xsd:documentation>
+                                How the observation is spanned along this axis
+                        </xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>redefinition of unit for coverage</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>redefinition of coordsystem</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="location" type="cha:LocationType">
+				<xsd:annotation>
+					<xsd:documentation>Typical value on one axis</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="bounds" type="cha:BoundsType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>the limits of the observation on this axis</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="support" type="cha:SupportType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>describes the area where measurements are effectively present and interpretable </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="sensitivity" type="cha:SensitivityType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>encodes the variability of response along the  axis </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="ResolutionType">
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0"/>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0"/>
+			<xsd:element name="resolutionRefVal" type="cha:ResolutionRefValType"/>
+			<xsd:element name="resolutionBounds" type="cha:ResolutionBoundsType" minOccurs="0"/>
+			<xsd:element name="resolutionSupport" type="cha:ResolutionSupportType" minOccurs="0"/>
+			<xsd:element name="resolutionVariability" type="cha:ResolutionVariabilityType" minOccurs="0"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="SamplingPrecisionType">
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0"/>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0"/>
+			<xsd:element name="samplingPrecisionRefVal" type="cha:SamplingPrecisionRefValType"/>
+			<xsd:element name="samplingPrecisionBounds" type="cha:SamplingPrecisionBoundsType" minOccurs="0"/>
+			<xsd:element name="samplingPrecisionSupport" type="cha:SamplingPrecisionSupportType" minOccurs="0"/>
+			<xsd:element name="samplingPrecisionVariability" type="cha:SamplingPrecisionVariabilityType" minOccurs="0"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="CharacterisationAxisType">
+		<xsd:sequence>
+			<xsd:element name="axisName" type="xsd:anyType">
+				<xsd:annotation>
+					<xsd:documentation>
+	                   A name representing the physical nature of the axis like Spatial, Spectral, Time, Velocity or any other free name for an axis
+                    </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ucd" type="xsd:anyType">
+				<xsd:annotation>
+					<xsd:documentation>
+                                                 The physical meaning of the axis, 
+                                                 Type:  standard semantic tag defined in the UCD list.
+			            </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="unit" type="xsd:anyType">
+				<xsd:annotation>
+					<xsd:documentation>
+			                   default unit for the axis: 
+                                  Type: controlled unit vocabulary following the VOTable units definitions 
+			                </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType">
+				<xsd:annotation>
+					<xsd:documentation>
+					    Reference coordinate system for the axis: 		
+					</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ObsyLoc" type="stc:observatoryLocationType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>
+						Observatory location
+						Type: a  STC:observatoryLocationType or an xlink
+			</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="accuracy" type="cha:AccuracyType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Global accuracy description of the axis
+			</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="independentAxis" type="xsd:anyType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>
+			                    Indicates wether the axis is independent or not from the other axes. The Observable axis
+			                    has a false independentAxis "value" 
+			                    Type : boolean
+			</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="calibrationStatus" type="xsd:anyType">
+				<xsd:annotation>
+					<xsd:documentation>
+			                        defines if and how the axis is calibrated: 
+                                       Possible String values: CALIBRATED, UNCALIBRATED, RELATIVE, NORMALIZED 			
+                                        </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element ref="cha:numBins">
+				<xsd:annotation>
+					<xsd:documentation>
+						Number of bins for this axis. 
+						Type : array of 1 2 or 3 integers
+			                </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="undersamplingStatus" type="xsd:anyType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>
+					       A flag to mention wether the data are undersampled.
+					       Type: boolean
+			                </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="regularsamplingStatus" type="xsd:anyType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>
+				               A flag to mention wether the data are regularly sampled.
+				               Type : boolean
+			                </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="coverage" type="cha:CoverageType"/>
+			<xsd:element name="resolution" type="cha:ResolutionType" minOccurs="0"/>
+			<xsd:element name="samplingPrecision" type="cha:SamplingPrecisionType" minOccurs="0"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="SpatialAxisType">
+		<xsd:annotation>
+			<xsd:documentation>
+                                     Restriction of CharacterisationAxis  for Spatial Axis 
+                           </xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:restriction base="cha:CharacterisationAxisType">
+				<xsd:sequence>
+					<xsd:element name="axisName" type="xsd:anyType" fixed="spatial"/>
+					<xsd:element name="ucd" type="xsd:anyType" fixed="pos"/>
+					<xsd:element name="unit" type="xsd:anyType"/>
+					<xsd:element name="coordsystem" type="stc:astroCoordSystemType"/>
+					<xsd:element name="ObsyLoc" type="stc:observatoryLocationType" minOccurs="0"/>
+					<xsd:element name="accuracy" type="cha:AccuracyType" minOccurs="0"/>
+					<xsd:element name="independentAxis" type="xsd:anyType" minOccurs="0"/>
+					<xsd:element name="calibrationStatus" type="xsd:anyType"/>
+					<xsd:element ref="cha:numBins"/>
+					<xsd:element name="undersamplingStatus" type="xsd:anyType" minOccurs="0"/>
+					<xsd:element name="regularsamplingStatus" type="xsd:anyType" minOccurs="0"/>
+					<xsd:element name="coverage" type="cha:CoverageType"/>
+					<xsd:element name="resolution" type="cha:ResolutionType" minOccurs="0"/>
+					<xsd:element name="samplingPrecision" type="cha:SamplingPrecisionType" minOccurs="0"/>
+				</xsd:sequence>
+			</xsd:restriction>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:element name="spatialAxis" type="cha:SpatialAxisType"/>
+	<xsd:complexType name="SpectralAxisType">
+		<xsd:annotation>
+			<xsd:documentation>
+                                     Restriction of characteristionAxis  for Spectral Axis 
+                           </xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:restriction base="cha:CharacterisationAxisType">
+				<xsd:sequence>
+					<xsd:element name="axisName" type="xsd:anyType" fixed="spectral"/>
+					<xsd:element name="ucd" type="xsd:anyType" fixed="em"/>
+					<xsd:element name="unit" type="xsd:anyType"/>
+					<xsd:element name="coordsystem" type="stc:astroCoordSystemType"/>
+					<xsd:element name="ObsyLoc" type="stc:observatoryLocationType" minOccurs="0"/>
+					<xsd:element name="accuracy" type="cha:AccuracyType" minOccurs="0"/>
+					<xsd:element name="independentAxis" type="xsd:anyType" minOccurs="0"/>
+					<xsd:element name="calibrationStatus" type="xsd:anyType"/>
+					<xsd:element ref="cha:numBins"/>
+					<xsd:element name="undersamplingStatus" type="xsd:anyType" minOccurs="0"/>
+					<xsd:element name="regularsamplingStatus" type="xsd:anyType" minOccurs="0"/>
+					<xsd:element name="coverage" type="cha:CoverageType"/>
+					<xsd:element name="resolution" type="cha:ResolutionType" minOccurs="0"/>
+					<xsd:element name="samplingPrecision" type="cha:SamplingPrecisionType" minOccurs="0"/>
+				</xsd:sequence>
+			</xsd:restriction>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:element name="spectralAxis" type="cha:SpectralAxisType"/>
+	<xsd:complexType name="TimeAxisType">
+		<xsd:annotation>
+			<xsd:documentation>
+                                     Restriction of CharacterisationAxis  for time 
+                           </xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:restriction base="cha:CharacterisationAxisType">
+				<xsd:sequence>
+					<xsd:element name="axisName" type="xsd:anyType" fixed="temporal"/>
+					<xsd:element name="ucd" type="xsd:anyType" fixed="time"/>
+					<xsd:element name="unit" type="xsd:anyType"/>
+					<xsd:element name="coordsystem" type="stc:astroCoordSystemType"/>
+					<xsd:element name="ObsyLoc" type="stc:observatoryLocationType" minOccurs="0"/>
+					<xsd:element name="accuracy" type="cha:AccuracyType" minOccurs="0"/>
+					<xsd:element name="independentAxis" type="xsd:anyType" minOccurs="0"/>
+					<xsd:element name="calibrationStatus" type="xsd:anyType"/>
+					<xsd:element ref="cha:numBins"/>
+					<xsd:element name="undersamplingStatus" type="xsd:anyType" minOccurs="0"/>
+					<xsd:element name="regularsamplingStatus" type="xsd:anyType" minOccurs="0"/>
+					<xsd:element name="coverage" type="cha:CoverageType"/>
+					<xsd:element name="resolution" type="cha:ResolutionType" minOccurs="0"/>
+					<xsd:element name="samplingPrecision" type="cha:SamplingPrecisionType" minOccurs="0"/>
+				</xsd:sequence>
+			</xsd:restriction>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:element name="timeAxis" type="cha:TimeAxisType"/>
+	<xsd:element name="numBins" type="xsd:anyType" abstract="true"/>
+	<xsd:element name="numBins1" type="xsd:int" substitutionGroup="cha:numBins"/>
+	<xsd:element name="numBins2" substitutionGroup="cha:numBins">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="I1" type="xsd:int"/>
+				<xsd:element name="I2" type="xsd:int"/>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:element name="numBins3" substitutionGroup="cha:numBins">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="I1" type="xsd:int"/>
+				<xsd:element name="I2" type="xsd:int"/>
+				<xsd:element name="I3" type="xsd:int"/>
+			</xsd:sequence>
+		</xsd:complexType>
+	</xsd:element>
+	<xsd:complexType name="AccuracyType">
+		<xsd:sequence>
+			<xsd:element name="quality" type="xsd:string" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>A combination of flags attesting the data quality.
+					Type: String
+					</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="statError" type="cha:StatErrorType" minOccurs="0"/>
+			<xsd:element name="sysError" type="cha:SysErrorType" minOccurs="0"/>
+			<xsd:element name="CustError" type="cha:ErrorType" minOccurs="0"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="ErrorType">
+		<xsd:sequence>
+			<xsd:annotation>
+				<xsd:documentation>
+		                     Some Error on the axis
+		               </xsd:documentation>
+			</xsd:annotation>
+			<xsd:element name="flavor" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation>
+                           The type of error described : statistical , systematic, global, etc.
+                           Type: string                            
+                             </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="ErrorRefVal" type="cha:ErrorRefValType"/>
+			<xsd:element name="ErrorBounds" type="cha:ErrorBoundsType" minOccurs="0"/>
+			<xsd:element name="ErrorVariability" type="cha:ErrorVariabilityType" minOccurs="0"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="StatErrorType">
+		<xsd:annotation>
+			<xsd:documentation>Statistical Error on the axis
+	</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:restriction base="cha:ErrorType">
+				<xsd:sequence>
+					<xsd:element name="flavor" type="xsd:string" fixed="statistical">
+						<xsd:annotation>
+							<xsd:documentation>The type of error described : here statistical 
+                              Type : string , value="statistical"  "
+                            </xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="ErrorRefVal" type="cha:ErrorRefValType">
+						<xsd:annotation>
+							<xsd:documentation>Typical statistical Error on the axis</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="ErrorBounds" type="cha:ErrorBoundsType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>Range of the error for mapping along this axis </xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="ErrorVariability" type="cha:ErrorVariabilityType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>
+                              A detailed description of the local error values
+                            </xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:restriction>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="SysErrorType">
+		<xsd:annotation>
+			<xsd:documentation>
+                            Systematic Error on the axis
+	                </xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:restriction base="cha:ErrorType">
+				<xsd:sequence>
+					<xsd:element name="flavor" type="xsd:string" fixed="systematic">
+						<xsd:annotation>
+							<xsd:documentation> The type of error described : here, systematic
+                                                                Type: string , value: systematic
+                                                        </xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="ErrorRefVal" type="cha:ErrorRefValType"/>
+					<xsd:element name="ErrorBounds" type="cha:ErrorBoundsType" minOccurs="0"/>
+					<xsd:element name="ErrorVariability" type="cha:ErrorVariabilityType" minOccurs="0"/>
+				</xsd:sequence>
+			</xsd:restriction>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="ErrorRefValType">
+		<xsd:sequence>
+			<xsd:annotation>
+				<xsd:documentation>
+				Typical statistical error on  the axis.
+				Types:  depend on the dimensionality
+				1D Error based on stc:double1Type
+				2D Errors based on stc:size2Type, double2Type or double1Type (error 2 radius)
+				3D Errors based on stc:size3Type, double3TYpe or double1Type (error 3 radius)
+		          </xsd:documentation>
+			</xsd:annotation>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0"/>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0"/>
+			<xsd:element ref="stc:CError"/>
+			<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:element name="ErrorRefValue" type="xsd:anyType" abstract="true" substitutionGroup="stc:CError"/>
+	<!--	<xsd:element name="Error" type="stc:double1Type" substitutionGroup="cha:ErrorRefValue" nillable="true"/>
+	<xsd:element name="CError2" type="xsd:anyType" abstract="true" substitutionGroup="cha:ErrorRefValue" nillable="true"/>
+	<xsd:element name="Error2" type="stc:size2Type" substitutionGroup="cha:CError2" nillable="true"/>
+	<xsd:element name="Error2Matrix" type="stc:double4Type" substitutionGroup="cha:CError2" nillable="true"/>
+	<xsd:element name="Error2Radius" type="stc:double1Type" substitutionGroup="cha:CError2" nillable="true"/>
+	<xsd:element name="CError3" type="xsd:anyType" abstract="true" substitutionGroup="cha:ErrorRefValue" nillable="true"/>
+	<xsd:element name="Error3" type="stc:size3Type" substitutionGroup="cha:CError3" nillable="true"/>
+	<xsd:element name="Error3Matrix" type="stc:double9Type" substitutionGroup="cha:CError3" nillable="true"/>
+	<xsd:element name="Error3Radius" type="stc:double1Type" substitutionGroup="cha:CError3" nillable="true"/> -->
+	<xsd:complexType name="ErrorBoundsType">
+		<xsd:annotation>
+			<xsd:documentation> Hi and Low values of statistical errors on this axis.
+			Type: stc:coordScalarInterval, 2DVecInterval or 3DVecInterval
+	                </xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element ref="cha:ErrorLimits"/>
+			<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>  A description of the error extreme values .	
+							   Type: any URI type 
+                                        </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:element name="ErrorLimits" type="stc:coordIntervalType" abstract="true"/>
+	<xsd:element name="ErrorLimits1" type="stc:coordScalarIntervalType" substitutionGroup="cha:ErrorLimits"/>
+	<xsd:element name="ErrorLimits2" type="stc:coord2VecIntervalType" substitutionGroup="cha:ErrorLimits"/>
+	<xsd:element name="ErrorLimits3" type="stc:coord3VecIntervalType" substitutionGroup="cha:ErrorLimits"/>
+	<xsd:complexType name="ErrorVariabilityType">
+		<xsd:annotation>
+			<xsd:documentation>A detailed description of the local error values. Could be conveyed with
+			the data as in IVOA Spectrum data model
+			Type: any URI type pointing to such a map
+	</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="ErrorMap" type="cha:anyURIType">
+				<xsd:annotation>
+					<xsd:documentation>A map showing the variability of the error
+                                                    Type: any URI type
+                                        </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>documentation on the Error variation
+                                              	Type: any URI type
+                                        </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="LocationType">
+		<xsd:annotation>
+			<xsd:documentation>The typical coordinate value
+	                       Type:  stc:astroCoordsType
+	                </xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Redefinition of unit</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Redefinition of coordsystem</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="coord" type="stc:astroCoordsType" maxOccurs="unbounded"/>
+			<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>The typical coordinate value
+					Type: stc:astroCoordsType
+				</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<!--for some regimes like radio, and some axis of the data (spatial, ...) 
+bounds may also be expressed in Fourier frequencies We probably need a 
+FrequencyBounds in addition to Bounds-->
+	<!-- For each coordinate, the Bounds has one min and one max. The CharCooodAreaType
+     lets you define boxes or open/closed intervals, unit,  it's a pseudo restriction on
+    AstroCoordArea
+      
+ -->
+	<xsd:complexType name="BoundsType">
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>for bounds unit redefinition</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>for bounds coosys redefinition</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="Extent" type="stc:double1Type" minOccurs="0"/>
+			<xsd:element name="limits" type="cha:CharCoordAreaType">
+				<xsd:annotation>
+					<xsd:documentation>
+                                           The actual values defining the bounds.
+                                           2 possible types : a cha:CharBox which is a customised  STC:Coordinate with mandatory value and size 
+                                                               or an STC:Interval
+			                </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>
+						A document to mention how the bounds are defined.
+					</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<!-- We extend (instead of aggregate) coordArea to add simple AreaType. 
+     Really, Support is just an AstroCoordArea,  
+     -->
+	<xsd:complexType name="SupportType">
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0"/>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0"/>
+			<xsd:element name="Extent" type="stc:double1Type" minOccurs="0"/>
+			<xsd:element name="Area" type="stc:astroCoordAreaType">
+				<xsd:annotation>
+					<xsd:documentation>
+			 			Defines the effective covered region	
+			 		</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="AreaType" type="xsd:anyType">
+				<xsd:annotation>
+					<xsd:documentation>
+						Gives the name of the region shape
+						Type:  predefined string in {Circle, Polygon, Box, ...}
+		 			</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation> Some text about the Support region definition
+                                                	Type: any URI type
+                                        </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<!-- URI will be external references (URL) -->
+	<xsd:complexType name="SensitivityType">
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0"/>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0"/>
+			<xsd:element name="variationMap" type="cha:anyURIType">
+				<xsd:annotation>
+					<xsd:documentation>encodes the variability of the response along the axis 
+                         </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="documentation" type="cha:anyURIType">
+				<xsd:annotation>
+					<xsd:documentation> documents the purpose, type and encoding of sensitivity information
+                                             Type: URL 
+                                        </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="CharCoordAreaType">
+		<xsd:complexContent>
+			<xsd:extension base="stc:stcBaseType">
+				<xsd:choice>
+					<xsd:element name="CharBox" type="cha:CharCoordinateType"/>
+					<xsd:element ref="cha:Interval"/>
+				</xsd:choice>
+				<xsd:attribute name="coord_system_id" type="xsd:IDREF" use="required"/>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="CharCoordinateType" abstract="true">
+		<xsd:annotation>
+			<xsd:documentation> A coordinate type to define n-D bounding boxes. 
+			To be overridden by any of the following possible substitution elements.
+               </xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="Name" type="xsd:string"/>
+			<xsd:sequence>
+				<xsd:element ref="stc:CoordValue"/>
+				<xsd:element ref="stc:CSize"/>
+			</xsd:sequence>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:element name="value" type="xsd:anyType" abstract="true" substitutionGroup="stc:CoordValue"/>
+	<xsd:element name="size" type="xsd:anyType" abstract="true" substitutionGroup="stc:CSize"/>
+	<!--	<xsd:element name="Value" type="stc:double1Type" substitutionGroup="cha:value" nillable="true"/>
+	
+	<xsd:element name="Size" type="stc:double1Type" substitutionGroup="cha:size" nillable="true"/>
+	<xsd:element name="value2" type="xsd:anyType" abstract="true" substitutionGroup="cha:value"/>
+	<xsd:element name="Value2" type="stc:double2Type" substitutionGroup="cha:value2" nillable="true"/>
+	<xsd:element name="Curve2" type="stc:curve2Type" substitutionGroup="cha:value2" nillable="true"/>
+	<xsd:element name="size2" type="xsd:anyType" abstract="true" substitutionGroup="cha:size"/>
+	<xsd:element name="Size2" type="stc:size2Type" substitutionGroup="cha:size2" nillable="true"/>
+	<xsd:element name="Size2Matrix" type="stc:double4Type" substitutionGroup="cha:size2" nillable="true"/>
+	<xsd:element name="Size2Radius" type="stc:double1Type" substitutionGroup="cha:size2" nillable="true"/>
+	<xsd:element name="value3" type="xsd:anyType" abstract="true" substitutionGroup="cha:value"/>
+	<xsd:element name="Value3" type="stc:double3Type" substitutionGroup="cha:value3" nillable="true"/>
+	<xsd:element name="Curve3" type="stc:curve3Type" substitutionGroup="cha:value3" nillable="true"/>
+	<xsd:element name="size3" type="xsd:anyType" abstract="true" substitutionGroup="cha:size"/>
+	<xsd:element name="Size3" type="stc:size3Type" substitutionGroup="cha:size3" nillable="true"/>
+	<xsd:element name="Size3Matrix" type="stc:double9Type" substitutionGroup="cha:size3" nillable="true"/>
+	<xsd:element name="Size3Radius" type="stc:double1Type" substitutionGroup="cha:size3" nillable="true"/> -->
+	<xsd:element name="Interval" type="stc:coordIntervalType" abstract="true">
+		<xsd:annotation>
+			<xsd:documentation>
+                               Here is  1-, 2-, or 3-D coordinate interval substitution group head element.
+                               Such an element needs to contain a minimum or maximum scalar or vector value,
+                               or both. It needs to refer to a coordinate system. Boundaries may or may not
+                               be inclusive; and it can have a fill factor
+                        </xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:element name="CoordScalarInterval" type="stc:coordScalarIntervalType" substitutionGroup="cha:Interval" nillable="true">
+		<xsd:annotation>
+			<xsd:documentation>
+                             A scalar coordinate interval 
+                        </xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:element name="Coord2VecInterval" type="stc:coord2VecIntervalType" substitutionGroup="cha:Interval" nillable="true">
+		<xsd:annotation>
+			<xsd:documentation>
+                             A 2-D coordinate interval ("box")
+                        </xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:element name="Coord3VecInterval" type="stc:coord3VecIntervalType" substitutionGroup="cha:Interval" nillable="true">
+		<xsd:annotation>
+			<xsd:documentation>
+                             A 3-D coordinate triplet interval ("cube") 
+                        </xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:complexType name="ResolutionRefValType">
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0"/>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0"/>
+			<xsd:element ref="stc:CResolution"/>
+			<xsd:element name="ResPow" type="stc:double1Type" minOccurs="0"/>
+			<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation> Defines and explains how this reference value for resolution has been estimated
+				            Type: URL
+                                </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:element name="ReferenceValue" type="xsd:anyType" abstract="true" substitutionGroup="stc:CResolution">
+		<xsd:annotation>
+			<xsd:documentation>
+                          Typical resolution value along the axis
+	                  1D resolution of type stc:double1Type
+                  	  2D resolution of type stc:size2Type, double4Type or double1Type (resolution radius)
+                       	  3D resolution of type stc:size3Type, double9TYpe or double1Type (resolution 3 radius)
+	                </xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<!--
+<element name="Resolution" type="stc:double1Type" substitutionGroup="cha:ReferenceValue" nillable="true"/>
+	<xsd:element name="CResolution2" type="xsd:anyType" abstract="true" substitutionGroup="cha:ReferenceValue" nillable="true"/>
+	<xsd:element name="Resolution2" type="stc:size2Type" substitutionGroup="cha:CResolution2" nillable="true"/>
+	<xsd:element name="Resolution2Matrix" type="stc:double4Type" substitutionGroup="cha:CResolution2" nillable="true"/>
+	<xsd:element name="Resolution2Radius" type="stc:double1Type" substitutionGroup="cha:CResolution2" nillable="true"/>
+	<xsd:element name="CResolution3" type="xsd:anyType" abstract="true" substitutionGroup="cha:ReferenceValue" nillable="true"/>
+	<xsd:element name="Resolution3" type="stc:size3Type" substitutionGroup="cha:CResolution3" nillable="true"/>
+	<xsd:element name="Resolution3Matrix" type="stc:double9Type" substitutionGroup="cha:CResolution3" nillable="true"/>
+	<xsd:element name="Resolution3Radius" type="stc:double1Type" substitutionGroup="cha:CResolution3" nillable="true"/>
+-->
+	<xsd:complexType name="SamplingPrecisionRefValTyp">
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0"/>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0"/>
+			<xsd:choice>
+				<xsd:sequence>
+					<xsd:element ref="stc:CPixSize"/>
+					<xsd:element ref="stc:CPixSize" minOccurs="0"/>
+				</xsd:sequence>
+				<xsd:element name="FillFactor" type="xsd:double" minOccurs="0"/>
+			</xsd:choice>
+			<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Explains how the fill factor is estimated . Type: URI
+					</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="SamplingPrecisionRefValType">
+		<xsd:complexContent>
+			<xsd:restriction base="cha:SamplingPrecisionRefValTyp">
+				<xsd:sequence>
+					<xsd:element name="unit" type="xsd:anyType" minOccurs="0"/>
+					<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0"/>
+					<xsd:choice>
+						<xsd:sequence>
+							<xsd:element ref="cha:samplingPeriod"/>
+							<xsd:element ref="cha:sampleExtent" minOccurs="0"/>
+						</xsd:sequence>
+						<xsd:element name="FillFactor" type="xsd:double" minOccurs="0"/>
+					</xsd:choice>
+					<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0">
+						<xsd:annotation>
+							<xsd:documentation>Explains how the fill factor is estimated . Type: URI
+					</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:restriction>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:element name="samplingPeriod" type="xsd:anyType" substitutionGroup="stc:CPixSize" nillable="true">
+		<xsd:annotation>
+			<xsd:documentation>
+                                Typical sampling Period value of the axis
+                                Type : depends on the dimensionality
+				1D samplingPeriod based on  stc:double1Type
+				2D samplingPeriod based on  stc:size2Type, double4Type or double1Type ( sampling period radius)
+				3D samplingPeriod based on  stc:size3Type or double9TYpe or double1Type (sampling period 3 radius)
+                  	</xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:element name="sampleExtent" type="xsd:anyType" substitutionGroup="stc:CPixSize">
+		<xsd:annotation>
+			<xsd:documentation>
+                                Typical sample Extent value of the axis
+                                "Types : depend on the dimensionality"
+	                        1D sampleExtent based on stc:double1Type
+	                        2D sampleExtent based on stc:size2Type, double4Type or double1Type (sampling extent radius)
+	                        3D sampleExtent based on stc:size3Type, double9TYpe or double1Type (sampling extent 3 radius)
+	                </xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<!--<xsd:element name="PixSize" type="stc:double1Type" substitutionGroup="cha:samplingPeriod" nillable="true"/>
+	<xsd:element name="CPixSize2" type="xsd:anyType" abstract="true" substitutionGroup="cha:samplingPeriod" nillable="true"/>
+	<xsd:element name="PixSize2" type="stc:size2Type" substitutionGroup="cha:CPixSize2" nillable="true"/>
+	<xsd:element name="PixSize2Matrix" type="stc:double4Type" substitutionGroup="cha:CPixSize2" nillable="true"/>
+	<xsd:element name="CPixSize3" type="xsd:anyType" abstract="true" substitutionGroup="cha:samplingPeriod" nillable="true"/>
+	<xsd:element name="PixSize3" type="stc:size3Type" substitutionGroup="cha:CPixSize3" nillable="true"/>
+	<xsd:element name="PixSize3Matrix" type="stc:double9Type" substitutionGroup="cha:CPixSize3" nillable="true"/>
+-->
+	<xsd:complexType name="ResolutionBoundsType">
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0"/>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0"/>
+			<xsd:element ref="cha:resolutionLimits"/>
+			<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation> Defines and explains how this resolution has been estimated
+                         </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:element name="resolutionLimits" type="stc:coordIntervalType" abstract="true">
+		<xsd:annotation>
+			<xsd:documentation>  Hi and Low values of  resolution on this axis.
+                               			Type: stc:coordScalarInterval, or 2Vec or 3Vec
+	                </xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:element name="resolutionLimits1" type="stc:coordScalarIntervalType" substitutionGroup="cha:resolutionLimits"/>
+	<xsd:element name="resolutionLimits2" type="stc:coord2VecIntervalType" substitutionGroup="cha:resolutionLimits"/>
+	<xsd:element name="resolutionLimits3" type="stc:coord3VecIntervalType" substitutionGroup="cha:resolutionLimits"/>
+	<xsd:complexType name="SamplingPrecisionBoundsType">
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0"/>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0"/>
+			<xsd:element ref="cha:samplingPeriodLimits"/>
+			<xsd:element ref="cha:samplingExtentLimits" minOccurs="0"/>
+			<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:element name="samplingPeriodLimits" type="stc:coordIntervalType">
+		<xsd:annotation>
+			<xsd:documentation> Hi and Low values of  samplingPeriod on this axis.
+	                        			   Type: stc:coordScalarInterval or 2Vec or 3Vec
+	                </xsd:documentation>
+		</xsd:annotation>
+	</xsd:element>
+	<xsd:element name="samplingPeriodLimits1" type="stc:coordScalarIntervalType" substitutionGroup="cha:samplingPeriodLimits"/>
+	<xsd:element name="samplingPeriodLimits2" type="stc:coord2VecIntervalType" substitutionGroup="cha:samplingPeriodLimits"/>
+	<xsd:element name="samplingPeriodLimits3" type="stc:coord3VecIntervalType" substitutionGroup="cha:samplingPeriodLimits"/>
+	<xsd:element name="samplingExtentLimits" type="stc:coordIntervalType" abstract="true"/>
+	<xsd:element name="samplingExtentLimits1" type="stc:coordIntervalType" substitutionGroup="cha:samplingExtentLimits"/>
+	<xsd:element name="samplingExtentLimits2" type="stc:coord2VecIntervalType" substitutionGroup="cha:samplingExtentLimits"/>
+	<xsd:element name="samplingExtentLimits3" type="stc:coord3VecIntervalType" substitutionGroup="cha:samplingExtentLimits"/>
+	<xsd:complexType name="ResolutionSupportType">
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0"/>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0"/>
+			<xsd:element ref="cha:resolutionLimits" maxOccurs="unbounded"/>
+			<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation> Defines and explains how this resolution has been estimated
+                                                     Type: URL           
+                                        </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="SamplingPrecisionSupportType">
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0"/>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0"/>
+			<xsd:element ref="cha:samplingPeriodLimits" maxOccurs="unbounded"/>
+			<xsd:element ref="cha:samplingExtentLimits" minOccurs="0" maxOccurs="unbounded"/>
+			<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation> A place to hook some explanations about "how" the Sampling was done and assessed.  
+                                        		Type: URI
+				</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="ResolutionVariabilityType">
+		<xsd:annotation>
+			<xsd:documentation> This map describes the variability of the resolution along the axis, the varying shape of the point spread
+	                     fonction, or both. Can be attached to the data
+	                     Type: URI
+	</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0"/>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0"/>
+			<xsd:element name="resolutionMap" type="cha:anyURIType"/>
+			<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation> defines and explains how this resolution has been estimated
+                                               	Type: URL
+                                        </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="SamplingPrecisionVariabilityType">
+		<xsd:sequence>
+			<xsd:element name="unit" type="xsd:anyType" minOccurs="0"/>
+			<xsd:element name="coordsystem" type="stc:astroCoordSystemType" minOccurs="0"/>
+			<xsd:element name="samplingPrecisionMap" type="cha:anyURIType">
+				<xsd:annotation>
+					<xsd:documentation>This map describes  the variability of the sampling along the axis, or the varying shape of the sampling 
+			                        fonction, or both. Can be attached to the data implemented as anyURI type
+			                </xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="documentation" type="cha:anyURIType" minOccurs="0"/>
+		</xsd:sequence>
+	</xsd:complexType>
+</xsd:schema>

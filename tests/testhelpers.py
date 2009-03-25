@@ -55,26 +55,35 @@ class VerboseTest(unittest.TestCase):
 
 class XSDTestMixin(object):
 	"""provides a assertValidates method doing XSD validation.
-	
-	assertValidates an assertion error with the validator's messages on an
-	error.  You can optionally pass a leaveOffending argument to make the
-	method store the offending document in badDocument.xml.
 
-	The whole thing currently needs Xerces including the examples at the
-	right location.  This clearly is crap, and I'll think of something better
-	at some point.  You may need to fix classpath
+	assertValidates raises an assertion error with the validator's
+	messages on an error.  You can optionally pass a leaveOffending
+	argument to make the method store the offending document in
+	badDocument.xml.
+
+	The whole thing currently needs Xerces including the examples at
+	the right location.  You may need to fix classpath if you're not 
+	on Debian.
+
+	The validator itself is a java class xsdval.class built by 
+	../schemata/makeValidator.py.  If you have java installed, calling
+	that in the schemata directory should just work (TM).  With that
+	validator and the schemata in place, no network connection should
+	be necessary to run validation tests.
 	"""
-	classpath = ("/usr/share/doc/libxerces2-java-doc/examples/xercesSamples.jar:"
-	"/usr/share/java/xercesImpl.jar:/usr/share/java/xmlParserAPIs.jar")
+	classpath = (
+		".:/usr/share/java/xercesImpl.jar:/usr/share/java/xmlParserAPIs.jar")
 
 	def assertValidates(self, xmlSource, leaveOffending=False):
-		# http://apache.org/xml/properties/schema/external-schemaLocation ?
+		if not os.path.exists("xsdval.class"):
+			raise AssertionError("Validation test fails since xsdval.class"
+				" is not present.  Run python schemata/makeValidator.py")
 		handle, inName = tempfile.mkstemp("xerctest", "rm")
 		try:
 			f = os.fdopen(handle, "w")
 			f.write(xmlSource)
 			f.close()
-			f = popen2.Popen4("java -cp %s dom.Counter -n -v -s -f '%s'"%(
+			f = popen2.Popen4("java -cp %s xsdval -n -v -s -f '%s'"%(
 				self.classpath, inName))
 			xercMsgs = f.fromchild.read()
 			status = f.wait()
