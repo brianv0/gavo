@@ -195,12 +195,16 @@ class _VelocityMixin(object):
 
 	def getUnit(self):
 		if self.units:
-			if len(set(self.units))==1:
-				return "%s/%s"%(self.units[0], self.velTimeUnits[0])
-			else:
-				return " ".join("%s/%s"%(u, tu) 
-					for u, tu in itertools.izip(self.units, self.velTimeUnits))
-		return ()
+			try:
+				if len(set(self.units))==1:
+					return "%s/%s"%(self.units[0], self.velTimeUnits[0])
+				else:
+					return " ".join("%s/%s"%(u, tu) 
+						for u, tu in itertools.izip(self.units, self.velTimeUnits))
+				return ()
+			except IndexError:
+				raise STCValueError("Invalid units for Velocity: %s/%s."%(
+					repr(self.units), repr(self.velTimeUnits)))
 
 
 class _RedshiftMixin(object):

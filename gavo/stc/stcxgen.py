@@ -191,59 +191,78 @@ serialize_SpectralCoo = _make1DSerializer(STC.Spectral,
 	lambda value: STC.Value[strOrNull(value)])
 
 
-def _wrap1D(val, ignored=None):
+_nones = (None, None, None)
+
+def _wrap1D(val, units=_nones, timeUnits=_nones):
 	if not val:
 		return
 	return str(val[0])
 
-def _wrap2D(val, units=None):
+def _wrap2D(val, units=_nones, timeUnits=_nones):
 	if not val:
 		return
-	if not units:
-		units = [None, None]
-	return [STC.C1(pos_unit=units[0])[val[0]], 
-		STC.C2(pos_unit=units[1])[val[1]]]
+	return [STC.C1(pos_unit=units[0], vel_time_unit=timeUnits[0])[val[0]], 
+		STC.C2(pos_unit=units[1], vel_time_unit=timeUnits[1])[val[1]]]
 
-def _wrap3D(val, units=None):
+def _wrap3D(val, units=_nones, timeUnits=_nones):
 	if not val:
 		return
-	if not units:
-		units = [None, None, None]
-	return [STC.C1(pos_unit=units[0])[val[0]], STC.C2(pos_unit=units[1])[val[1]], 
-		STC.C3(pos_unit=units[2])[val[2]]]
+	return [STC.C1(pos_unit=units[0], vel_time_unit=timeUnits[0])[val[0]], 
+		STC.C2(pos_unit=units[1], vel_time_unit=timeUnits[1])[val[1]], 
+		STC.C3(pos_unit=units[2], vel_time_unit=timeUnits[2])[val[2]]]
 
 def _wrapMatrix(val):
 	for rowInd, row in enumerate(val):
 		for colInd, col in enumerate(row):
 			yield getattr(STC, "M%d%d"%(rowInd, colInd))[str(col)]
 
-positionClasses = (
+_spatialPosClasses = (
 	(STC.Position1D, STC.Value, _wrap1D),
 	(STC.Position2D, STC.Value2, _wrap2D),
 	(STC.Position3D, STC.Value3, _wrap3D),
 )
+_velocityPosClasses = (
+	(STC.Velocity1D, STC.Value, _wrap1D),
+	(STC.Velocity2D, STC.Value2, _wrap2D),
+	(STC.Velocity3D, STC.Value3, _wrap3D),
+)
 
-def serialize_SpaceCoo(node):
+def _getSpatialUnits(node):
+	clsArgs, cooArgs = {}, {}
+	if len(set(node.units))==1:
+		clsArgs["unit"] = node.units[0]
+	elif node.units:
+		cooArgs["units"] = node.units
+	if hasattr(node, "velTimeUnits"):
+		if len(set(node.velTimeUnits))==1:
+			clsArgs["vel_time_unit"] = node.velTimeUnits[0]
+		elif node.units:
+			cooArgs["timeUnits"] = node.velTimeUnits
+	return clsArgs, cooArgs
+
+
+def _makeSpatialCooSerializer(stcClasses):
 	"""serializes a spatial coordinate.
 
 	This is quite messy since the concrete choice of elements depends on
 	the coordinate frame.
 	"""
-	dimInd = node.frame.nDim-1
-	coo, val, serializer = positionClasses[dimInd]
-	unit, units = None, None
-	if len(set(node.units))==1:
-		unit = node.units[0]
-	elif node.units:
-		units = node.units
-	res = coo[
-			val[serializer(node.value, units)],
-			[_serialize_Wiggle(getattr(node, wiggleType), 
-					serializer, wiggleClasses[wiggleType][dimInd])
-				for wiggleType in ["error", "resolution", "size", "pixSize"]],
-		]
-	if not res.isEmpty():
-		return res(unit=unit, frame_id=node.frame.id)
+	def serialize(node):
+		dimInd = node.frame.nDim-1
+		coo, val, serializer = stcClasses[dimInd]
+		clsArgs, cooArgs = _getSpatialUnits(node)
+		res = coo[
+				val[serializer(node.value, **cooArgs)],
+				[_serialize_Wiggle(getattr(node, wiggleType), 
+						serializer, wiggleClasses[wiggleType][dimInd])
+					for wiggleType in ["error", "resolution", "size", "pixSize"]],
+			]
+		if not res.isEmpty():
+			return res(frame_id=node.frame.id, **clsArgs)
+	return serialize
+
+serialize_SpaceCoo = _makeSpatialCooSerializer(_spatialPosClasses)
+serialize_VelocityCoo = _makeSpatialCooSerializer(_velocityPosClasses)
 
 
 ############# Intervals
@@ -285,21 +304,29 @@ _posIntervalClasses = [
 	(STC.PositionScalarInterval, STC.LoLimit, STC.HiLimit, _wrap1D),
 	(STC.Position2VecInterval, STC.LoLimit2Vec, STC.HiLimit2Vec, _wrap2D),
 	(STC.Position3VecInterval, STC.LoLimit3Vec, STC.HiLimit3Vec, _wrap3D),]
+_velIntervalClasses = [
+	(STC.VelocityScalarInterval, STC.LoLimit, STC.HiLimit, _wrap1D),
+	(STC.Velocity2VecInterval, STC.LoLimit2Vec, STC.HiLimit2Vec, _wrap2D),
+	(STC.Velocity3VecInterval, STC.LoLimit3Vec, STC.HiLimit3Vec, _wrap3D),]
 
-def serialize_SpaceInterval(node):
-	intervClass, lowerClass, upperClass, valueSerializer = \
-		_posIntervalClasses[node.frame.nDim-1]
-	unit, units = None, None
-	if len(set(node.units))==1:
-		unit = node.units[0]
-	elif node.units:
-		units = node.units
-	return intervClass(unit=unit,
-				frame_id=node.frame.id, fill_factor=node.fillFactor)[
-			lowerClass[valueSerializer(node.lowerLimit, units)],
-			upperClass[valueSerializer(node.upperLimit, units)],
-		]
+def _makeSpatialIntervalSerializer(stcClasses):
+	def serialize(node):
+		intervClass, lowerClass, upperClass, valueSerializer = \
+			stcClasses[node.frame.nDim-1]
+		clsArgs, cooArgs = _getSpatialUnits(node)
+		if len(set(node.units))==1:
+			unit = node.units[0]
+		elif node.units:
+			units = node.units
+		return intervClass(frame_id=node.frame.id, fill_factor=node.fillFactor,
+				**clsArgs)[
+				lowerClass[valueSerializer(node.lowerLimit, **cooArgs)],
+				upperClass[valueSerializer(node.upperLimit, **cooArgs)],
+			]
+	return serialize
 
+serialize_SpaceInterval = _makeSpatialIntervalSerializer(_posIntervalClasses)
+serialize_VelocityInterval = _makeSpatialIntervalSerializer(_velIntervalClasses)
 
 
 ############# Regions
@@ -395,14 +422,17 @@ def astToStan(rootNode, stcRoot):
 	return stcRoot[nodeToStan(rootNode.astroSystem),
 		STC.AstroCoords(coord_system_id=rootNode.astroSystem.id)[
 			[nodeToStan(n) for n in itertools.chain(rootNode.times,
-				rootNode.places, rootNode.freqs, rootNode.redshifts)]
+				rootNode.places, rootNode.velocities, rootNode.freqs, 
+					rootNode.redshifts)]
 		],
 		STC.AstroCoordArea(coord_system_id=rootNode.astroSystem.id)[
 			[nodeToStan(n) for n in rootNode.timeAs],
 			makeAreas(rootNode),
 			[nodeToStan(n) for n in 
-				itertools.chain(rootNode.freqAs, rootNode.redshiftAs)]],
+				itertools.chain(rootNode.velocityAs, rootNode.freqAs, 
+					rootNode.redshiftAs)]],
 	]
+
 
 def getSTCXProfile(rootNode):
 	return astToStan(rootNode, STC.STCResourceProfile).render()

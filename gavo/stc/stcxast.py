@@ -154,6 +154,29 @@ def _fixRedshiftUnits(node, buildArgs, context):
 	buildArgs["velTimeUnit"] = vUnit
 
 
+def _makeSpatialUnits(nDim, *unitSources):
+	"""returns a units value from unitSources.
+
+	The tuple has length nDim, unitSources are arguments that are either
+	None, strings, or tuples.  The first non-None-one wins, strings and 1-tuples
+	are expanded to length nDim.
+	"""
+	for unit in unitSources:
+		if not unit:
+			continue
+		if isinstance(unit, (tuple, list)):
+			if len(unit)==1:
+				return tuple(unit*nDim)
+			elif len(unit)==nDim:
+				return tuple(unit)
+			else:
+				raise STCValueError("Cannot construct %d-dimensional units from"
+					" %s."%(nDim, repr(unit)))
+		else: # a string or something similar
+			return (unit,)*nDim
+	return None
+
+
 def _fixSpatialUnits(node, buildArgs, context):
 	nDim = 1
 	# Incredible hack to figure out the number of units we expect.
@@ -161,20 +184,14 @@ def _fixSpatialUnits(node, buildArgs, context):
 		nDim = 2
 	if "3" in _localname(node.tag):
 		nDim = 3
-	unit, units = node.get("unit"), None
-	if "units" in buildArgs:
-		units = buildArgs["units"]
-	if "pos_unit" in buildArgs:
-		units = buildArgs["pos_unit"]
-		del buildArgs["pos_unit"]
-	if units is None and unit is not None:
-		parts = unit.split()
-		if len(parts)==nDim:
-			units = tuple(parts)
-		else:
-			units = (unit,)*nDim
-	buildArgs["units"] = units
-
+	# buildArgs["units"] may have been left in build_args from upstream
+	buildArgs["units"] = _makeSpatialUnits(nDim, buildArgs.pop("pos_unit", ()),
+		buildArgs.get("units"), node.get("unit", "").split())
+	# This only kicks in for velocities
+	buildArgs["velTimeUnits"] = _makeSpatialUnits(nDim, 
+		buildArgs.pop("vel_time_unit", ()), node.get("vel_time_unit", "").split())
+	if not buildArgs["velTimeUnits"]:
+		del buildArgs["velTimeUnits"]
 
 _unitFixers = {
 	"spectralFrame": _fixSpectralUnits,
@@ -263,12 +280,15 @@ def _fixWiggles(buildArgs):
 			del buildArgs[wiggleType+"Matrix"]
 
 
-def _makePositionBuilder(kw, astClass, frameName):
+def _makePositionBuilder(kw, astClass, frameName, tuplify=False):
 	"""returns a builder for a coordinate of astClass to be added with kw.
 	"""
 	def buildPosition(node, buildArgs, context):
 		if buildArgs.get("vals"):
 			buildArgs["value"] = buildArgs["vals"][0]
+			# Fix 1D space coordinates
+			if tuplify and not isinstance(buildArgs["value"], (list, tuple)):
+				buildArgs["value"] = (buildArgs["value"],)
 			del buildArgs["vals"]
 		for key, value in _iterCooMeta(node, context, frameName):
 			buildArgs[key] = value
@@ -499,8 +519,11 @@ _stcBuilders = [
 	(_buildFlavor, stcCoordFlavors),
 	(_buildRefFrame, stcSpaceRefFrames),
 
-	(_makePositionBuilder('places', dm.SpaceCoo, "spaceFrame"), 
-		["Position3D", "Position2D"]),
+	(_makePositionBuilder('places', dm.SpaceCoo, "spaceFrame", tuplify=True), 
+		["Position1D", "Position3D", "Position2D"]),
+	(_makePositionBuilder('velocities', dm.VelocityCoo, "spaceFrame", 
+			tuplify=True),
+		["Velocity1D", "Velocity3D", "Velocity2D"]),
 
 	(_makeKwValuesBuilder("resolution", tuplify=True), 
 		["Resolution2", "Resolution3"]),
@@ -531,6 +554,11 @@ _stcBuilders = [
 	(_makeIntervalBuilder("areas", dm.SpaceInterval, "spaceFrame", tuplify=True),
 		["PositionScalarInterval", "Position2VecInterval",
 			"Position3VecInterval"]),
+	(_makeIntervalBuilder("velocityAs", dm.VelocityInterval, "spaceFrame", 
+			tuplify=True),
+		["VelocityScalarInterval", "Velocity2VecInterval",
+			"Velocity3VecInterval"]),
+
 	(_makeGeometryBuilder(dm.AllSky), ["AllSky", "AllSky2"]),
 	(_makeGeometryBuilder(dm.Circle), ["Circle", "Circle2"]),
 	(_makeGeometryBuilder(dm.Ellipse), ["Ellipse", "Ellipse2"]),

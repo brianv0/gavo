@@ -76,15 +76,15 @@ class STC(object):
 		a_pos_unit = None
 		a_spectral_unit = None
 		a_time_unit = None
-		a_vel_unit = None
+		a_vel_time_unit = None
 
 	class T_double2(OptionalSTCElement):
 		a_unit = None
 		a_gen_unit = None
 		a_vel_unit = None
-	
-	class T_double3(T_double2): 
 		a_vel_time_unit = None
+	
+	class T_double3(T_double2): pass
 
 	class T_size2(OptionalSTCElement):
 		a_gen_unit = None
@@ -103,8 +103,11 @@ class STC(object):
 
 	class Position(T_coordinate): pass
 	class Position1D(T_coordinate): pass
+	class Velocity1D(T_coordinate): pass
 	class Position2D(T_coordinate): pass
+	class Velocity2D(T_coordinate): pass
 	class Position3D(T_coordinate): pass
+	class Velocity3D(T_coordinate): pass
 	class Halfspace(STCElement): pass
 	class Vector(STCElement): pass
 	class Offset(T_double1): pass
@@ -127,8 +130,11 @@ class STC(object):
 	class T_Interval(T_Region): pass
 	
 	class PositionScalarInterval(T_Interval): pass
+	class VelocityScalarInterval(T_Interval): pass
 	class Position2VecInterval(T_Interval): pass
+	class Velocity2VecInterval(T_Interval): pass
 	class Position3VecInterval(T_Interval): pass
+	class Velocity3VecInterval(T_Interval): pass
 	class Coord3VecInterval(T_Interval): pass
 	class Coord2VecInterval(T_Interval): pass
 	class CoordScalarInterval(T_Interval): pass

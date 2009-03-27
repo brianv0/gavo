@@ -421,6 +421,21 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			" Redshift TOPOCENTER 0.1 REDSHIFT RELATIVISTIC",
 			"Spectral NEPTUNE 12.0 unit Angstrom Error 4.0 3.0\nRedshift"
 			" TOPOCENTER REDSHIFT RELATIVISTIC 0.1"),
+		("Position ICRS VelocityInterval Velocity 1 2 unit pc/cy Error 0.25 0.5",
+			"Position ICRS VelocityInterval Velocity 1.0 2.0 unit pc/cy"
+				" Error 0.25 0.5"),
+		("Position ICRS VelocityInterval 0.25 0.5 2 3 Velocity 1 2",
+			"Position ICRS VelocityInterval 0.25 0.5 2.0 3.0 Velocity 1.0 2.0"),
+		("Position ICRS CART1 1 unit Mpc VelocityInterval 0.25 0.5 Velocity 2"
+			" unit pc/cy",
+			"Position ICRS CART1 1.0 unit Mpc VelocityInterval 0.25 0.5"
+			" Velocity 2.0 unit pc/cy"),
+		("PositionInterval ICRS CART3 1.0 2.0 3.0 4.0 5.0 6.0 VelocityInterval"
+			" 0 0 0 10 10 10 Velocity 2 3 4 unit pc/cy",
+			"PositionInterval ICRS CART3 1.0 2.0 3.0 4.0 5.0 6.0 VelocityInterval"
+			" 0.0 0.0 0.0 10.0 10.0 10.0 Velocity 2.0 3.0 4.0 unit pc/cy"),
+		("Circle ICRS 1 2 3 unit arcsec VelocityInterval Velocity 1 2",
+			"Circle ICRS 1.0 2.0 3.0 unit arcsec VelocityInterval Velocity 1.0 2.0"),
 	]
 
 
