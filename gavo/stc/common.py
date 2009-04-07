@@ -37,6 +37,10 @@ class STCValueError(STCError):
 	"""is raised when some STC specification is inconsistent.
 	"""
 
+class STCUnitError(STCError):
+	"""is raised when some impossible operation on units is requested.
+	"""
+
 class STCNotImplementedError(STCError):
 	"""is raised when the current implementation limits are reached.
 	"""
@@ -137,13 +141,29 @@ class ASTNode(object):
 	_a_ucd = None
 	_a_id = None
 
+	def _setupNodeNext(self, cls):
+		try:
+			pc = super(cls, self)._setupNode
+		except AttributeError:
+			pass
+		else:
+			pc()
+
 	def _setupNode(self):
-		pass
+		self._setupNodeNext(ASTNode)
 
 	def __repr__(self):
 		return "<%s %s>"%(self.__class__.__name__, " ".join(
 			"%s=%s"%(name, repr(val))
 			for name, val in self.iterAttributes(skipEmpty=True)))
+
+	def change(self, **kwargs):
+		"""returns a shallow copy of self with constructor arguments in kwargs
+		changed.
+		"""
+		consArgs = dict(self.iterAttributes)
+		consArgs.update(kwargs)
+		return self.__class__(**consArgs)
 
 	def iterAttributes(self, skipEmpty=False):
 		"""yields pairs of attributeName, attributeValue for this node.

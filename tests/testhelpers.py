@@ -52,6 +52,17 @@ class VerboseTest(unittest.TestCase):
 			raise self.failureException("Should run, but raises %s (%s) exception"%(
 				ex.__class__.__name__, str(ex)))
 
+	def assertAlmostEqualVector(self, first, second, places=7, msg=None):
+		try:
+			for f, s in zip(first, second):
+				self.assertAlmostEqual(f, s, places)
+		except AssertionError:
+			if msg:
+				raise AssertionError(msg)
+			else:
+				raise AssertionError("%s != %s within %d places"%(
+					first, second, places))
+
 
 class XSDTestMixin(object):
 	"""provides a assertValidates method doing XSD validation.

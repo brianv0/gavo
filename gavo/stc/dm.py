@@ -101,6 +101,10 @@ class _WiggleSpec(ASTNode):
 	as simple coordinates (i.e., scalars or vectors) or, in 2 and 3D,
 	as radii or matrices (see below).  In all cases, two values may
 	be given to indicate ranges.
+
+	These need an adaptValuesWith(converter) method that will return a wiggle of
+	the same type but with every value replaced with the result of the
+	application of converter to that value.
 	"""
 
 class CooWiggle(_WiggleSpec):
@@ -109,11 +113,23 @@ class CooWiggle(_WiggleSpec):
 	The values attributes stores them just like coordinates are stored.
 	"""
 	_a_values = ()
+	_a_origUnit = None
+
+	def adaptValuesWith(self, unitConverter):
+		return self.change(values=tuple(unitConverter(v) for v in self.values))
 
 class RadiusWiggle(_WiggleSpec):
 	"""An wiggle given as a radius.
+
+	If unit adaption is necessary and the base value is a vector, the radii
+	are assumed to be of the dimension of the first vector component.
 	"""
 	_a_radii = ()
+	_a_origUnit = None
+
+	def adaptValuesWith(self, unitConverter):
+		return self.change(radii=tuple(unitConverter(r) for r in self.radii))
+
 
 class MatrixWiggle(_WiggleSpec):
 	"""A matrix for specifying wiggle.
@@ -122,6 +138,10 @@ class MatrixWiggle(_WiggleSpec):
 	stcxgen._wrapMatrix for details.
 	"""
 	_a_matrices = ()
+	_a_origUnit = None
+
+	def adaptValuesWith(self, unitConverter):
+		raise STCValueError("Matrix wiggles cannot be transformed.")
 
 
 class _CoordinateLike(ASTNode):
@@ -159,6 +179,16 @@ class _Coordinate(_CoordinateLike):
 	_a_value = None
 	_a_size = None
 
+	_dimensionedAttrs = ["error", "resolution", "pixSize", "size"]
+# XXXXXXXXX TODO: Disabled for now
+	def __setupNode(self):
+		for name in self._dimensionedAttrs:
+			wiggle = getattr(self, name)
+			if wiggle and wiggle.origUnit:
+				setattr(self, name, wiggle.adaptValuesWith(
+					self.getUnitConverter(wiggle.origUnit)))
+		self._setupNodeNext(Coordinate)
+
 
 class _OneDMixin(object):
 	"""provides attributes for 1D-Coordinates (Time, Spectral, Redshift)
@@ -167,6 +197,9 @@ class _OneDMixin(object):
 
 	def getUnit(self):
 		return self.unit
+
+	def getUnitConverter(self, otherUnit):
+		return units.getScalarConverter(self.unit, otherUnit)
 
 
 class _SpatialMixin(object):
@@ -183,6 +216,9 @@ class _SpatialMixin(object):
 			else:
 				return " ".join(self.units)
 		return ()
+
+	def getUnitConverter(self, otherUnits):
+		return units.getVectorConverter(self.units, otherUnits)
 
 
 class _VelocityMixin(object):
@@ -206,6 +242,10 @@ class _VelocityMixin(object):
 				raise STCValueError("Invalid units for Velocity: %s/%s."%(
 					repr(self.units), repr(self.velTimeUnits)))
 
+	def getUnitConverter(self, otherUnits):
+		return units.getVelocityConverter(self.units, self.velTimeUnits, 
+			otherUnits)
+
 
 class _RedshiftMixin(object):
 	"""provides attributes for redshifts.
@@ -218,6 +258,10 @@ class _RedshiftMixin(object):
 	def getUnit(self):
 		if self.unit:
 			return "%s/%s"%(self.unit, self.velTimeUnit)
+
+	def getUnitConverter(self, otherUnits):
+		return units.getRedshiftConverter(self.unit, self.velTimeUnit, 
+			otherUnits)
 
 
 class SpaceCoo(_Coordinate, _SpatialMixin): pass
