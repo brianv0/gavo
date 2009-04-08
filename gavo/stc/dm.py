@@ -6,9 +6,11 @@ means that we do not support generic coordinates (yet), ephemeris,
 xlink and all the other stuff.
 """
 
+from itertools import *
 import re
 
 from gavo.stc import times
+from gavo.stc import units
 from gavo.stc.common import *
 
 
@@ -116,6 +118,8 @@ class CooWiggle(_WiggleSpec):
 	_a_origUnit = None
 
 	def adaptValuesWith(self, unitConverter):
+		if unitConverter is None:
+			return self
 		return self.change(values=tuple(unitConverter(v) for v in self.values))
 
 class RadiusWiggle(_WiggleSpec):
@@ -128,7 +132,10 @@ class RadiusWiggle(_WiggleSpec):
 	_a_origUnit = None
 
 	def adaptValuesWith(self, unitConverter):
-		return self.change(radii=tuple(unitConverter(r) for r in self.radii))
+		if unitConverter is None:
+			return self
+		return self.change(radii=tuple(unitConverter(repeat(r))[0] 
+			for r in self.radii))
 
 
 class MatrixWiggle(_WiggleSpec):
@@ -180,14 +187,13 @@ class _Coordinate(_CoordinateLike):
 	_a_size = None
 
 	_dimensionedAttrs = ["error", "resolution", "pixSize", "size"]
-# XXXXXXXXX TODO: Disabled for now
-	def __setupNode(self):
+	def _setupNode(self):
 		for name in self._dimensionedAttrs:
 			wiggle = getattr(self, name)
-			if wiggle and wiggle.origUnit:
+			if wiggle and wiggle.origUnit is not None:
 				setattr(self, name, wiggle.adaptValuesWith(
 					self.getUnitConverter(wiggle.origUnit)))
-		self._setupNodeNext(Coordinate)
+		self._setupNodeNext(_Coordinate)
 
 
 class _OneDMixin(object):
@@ -199,7 +205,11 @@ class _OneDMixin(object):
 		return self.unit
 
 	def getUnitConverter(self, otherUnit):
-		return units.getScalarConverter(self.unit, otherUnit)
+		"""returns a function converting from otherUnits to self.units.
+		"""
+		if self.unit is None:
+			return None
+		return units.getScalarConverter(self.unit, otherUnit[0], True)
 
 
 class _SpatialMixin(object):
@@ -218,7 +228,10 @@ class _SpatialMixin(object):
 		return ()
 
 	def getUnitConverter(self, otherUnits):
-		return units.getVectorConverter(self.units, otherUnits)
+		if self.units is None:
+			return None
+		f = units.getVectorConverter(self.units, otherUnits[0], True)
+		return f
 
 
 class _VelocityMixin(object):
@@ -243,8 +256,10 @@ class _VelocityMixin(object):
 					repr(self.units), repr(self.velTimeUnits)))
 
 	def getUnitConverter(self, otherUnits):
-		return units.getVelocityConverter(self.units, self.velTimeUnits, 
-			otherUnits)
+		if self.units is None:
+			return None
+		return units.getVelocityConverter(self.units, self.velTimeUnits,
+			otherUnits[0], otherUnits[1], True)
 
 
 class _RedshiftMixin(object):
@@ -260,8 +275,10 @@ class _RedshiftMixin(object):
 			return "%s/%s"%(self.unit, self.velTimeUnit)
 
 	def getUnitConverter(self, otherUnits):
+		if self.unit is None:
+			return None
 		return units.getRedshiftConverter(self.unit, self.velTimeUnit, 
-			otherUnits)
+			otherUnits[0], otherUnits[1], True)
 
 
 class SpaceCoo(_Coordinate, _SpatialMixin): pass

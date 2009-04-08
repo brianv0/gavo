@@ -30,8 +30,32 @@ def _passthrough(node, buildArgs, context):
 	return buildArgs.iteritems()
 
 
-_unitKeys = ["pos_angle_unit", "pos_unit", "spectral_unit", "time_unit",
-	"vel_time_unit"]
+def _noIter(ign, ored):
+	if False: yield
+
+def _buildTuple(val):
+	return (val,)
+
+def _identity(val):
+	return val
+
+
+def _makeUnitYielder(unitKeys, prefix="", tuplify=False):
+	"""returns a function that yields unit information from an elementTree
+	node.
+	"""
+	if tuplify:
+		mkRes = _buildTuple
+	else:
+		mkRes = _identity
+	def yieldUnits(node, buildArgs):
+		for key in unitKeys:
+			if key in node.attrib:
+				yield prefix+key, mkRes(node.get(key))
+			elif key in buildArgs:
+				yield prefix+key, buildArgs[key]
+	return yieldUnits
+
 
 def _makeKeywordBuilder(kw):
 	"""returns a builder that returns the node's text content under kw.
@@ -41,7 +65,7 @@ def _makeKeywordBuilder(kw):
 	return buildKeyword
 
 
-def _makeKwValuesBuilder(kwName, tuplify=False):
+def _makeKwValuesBuilder(kwName, tuplify=False, units=_noIter):
 	"""returns a builder that takes vals from the buildArgs and
 	returns a tuple of them under kwName.
 
@@ -50,24 +74,15 @@ def _makeKwValuesBuilder(kwName, tuplify=False):
 	if tuplify:
 		def buildNode(node, buildArgs, context):
 			yield kwName, (tuple(buildArgs["vals"]),)
+			for res in units(node, buildArgs): yield res
 	else:
 		def buildNode(node, buildArgs, context):
 			yield kwName, (buildArgs["vals"],)
+			for res in units(node, buildArgs): yield res
 	return buildNode
 
 
-def _makeKwVectorBuilder(kwName):
-	"""returns a builder that takes vals from the buildArgs and
-	returns them as a vector in a tuple under kwName.
-
-	The vals key is left by builders like _buildVector.
-	"""
-	def buildNode(node, buildArgs, context):
-		yield kwName, (tuple(buildArgs["vals"]),)
-	return buildNode
-
-
-def _makeKwValueBuilder(kwName, tuplify=False):
+def _makeKwValueBuilder(kwName, tuplify=False, units=_noIter):
 	"""returns a builder that takes vals from the buildArgs and
 	returns a single value under kwName.
 
@@ -76,32 +91,30 @@ def _makeKwValueBuilder(kwName, tuplify=False):
 	if tuplify:
 		def buildNode(node, buildArgs, context):
 			yield kwName, tuple(buildArgs["vals"]),
+			for res in units(node, buildArgs): yield res
 	else:
 		def buildNode(node, buildArgs, context):
 			yield kwName, buildArgs["vals"],
+			for res in units(node, buildArgs): yield res
 	return buildNode
 
 
-def _makeKwFloatBuilder(kwName, multiple=True):
+def _makeKwFloatBuilder(kwName, multiple=True, units=_noIter):
 	"""returns a builder that returns float(node.text) under kwName.
 
 	The builder will also yield unit keys if units are present.
 
-	If multiple is True, the keys will be returned in tuples, else as
+	If multiple is True, the values will be returned in 1-tuples, else as
 	simple values.
 	"""
 	if multiple:
 		def buildNode(node, buildArgs, context):
 			yield kwName, (float(node.text),)
-			for unitKey in _unitKeys:
-				if unitKey in node.attrib:
-					yield unitKey, (node.get(unitKey),)
+			for res in units(node, buildArgs): yield res
 	else:
 		def buildNode(node, buildArgs, context):
 			yield kwName, float(node.text)
-			for unitKey in _unitKeys:
-				if unitKey in node.attrib:
-					yield unitKey, node.get(unitKey)
+			for res in units(node, buildArgs): yield res
 	return buildNode
 
 
@@ -185,13 +198,14 @@ def _fixSpatialUnits(node, buildArgs, context):
 	if "3" in _localname(node.tag):
 		nDim = 3
 	# buildArgs["units"] may have been left in build_args from upstream
-	buildArgs["units"] = _makeSpatialUnits(nDim, buildArgs.pop("pos_unit", ()),
-		buildArgs.get("units"), node.get("unit", "").split())
+	buildArgs["units"] = _makeSpatialUnits(nDim, buildArgs.pop("unit", None),
+		node.get("unit", "").split())
 	# This only kicks in for velocities
 	buildArgs["velTimeUnits"] = _makeSpatialUnits(nDim, 
 		buildArgs.pop("vel_time_unit", ()), node.get("vel_time_unit", "").split())
 	if not buildArgs["velTimeUnits"]:
 		del buildArgs["velTimeUnits"]
+
 
 _unitFixers = {
 	"spectralFrame": _fixSpectralUnits,
@@ -268,16 +282,22 @@ def _fixWiggles(buildArgs):
 	classes.
 	"""
 	for wiggleType in ["error", "resolution", "size", "pixSize"]:
+		localArgs = {}
+		wigClass = None
+		if wiggleType+"unit" in buildArgs:
+			localArgs["origUnit"] = (buildArgs.pop(wiggleType+"unit", None),
+				buildArgs.pop(wiggleType+"vel_time_unit", None))
 		if wiggleType in buildArgs:
-			buildArgs[wiggleType] = dm.CooWiggle(values=tuple(buildArgs[wiggleType]))
-		if wiggleType+"Radius" in buildArgs:
-			buildArgs[wiggleType] = dm.RadiusWiggle(
-				radii=buildArgs[wiggleType+"Radius"])
-			del buildArgs[wiggleType+"Radius"]
-		if wiggleType+"Matrix" in buildArgs:
-			buildArgs[wiggleType] = dm.MatrixWiggle(
-				matrices=buildArgs[wiggleType+"Matrix"])
-			del buildArgs[wiggleType+"Matrix"]
+			localArgs["values"] = tuple(buildArgs.pop(wiggleType))
+			wigClass = dm.CooWiggle
+		elif wiggleType+"Radius" in buildArgs:
+			wigClass = dm.RadiusWiggle
+			localArgs["radii"] = buildArgs.pop(wiggleType+"Radius")
+		elif wiggleType+"Matrix" in buildArgs:
+			localArgs[matrices] = buildArgs.pop(wiggleType+"Matrix")
+			wigClass = dm.MatrixWiggle
+		if wigClass is not None:
+			buildArgs[wiggleType] = wigClass(**localArgs)
 
 
 def _makePositionBuilder(kw, astClass, frameName, tuplify=False):
@@ -368,12 +388,24 @@ def _buildTime(node, buildArgs, context):
 	}[_localname(node.tag)]
 	yield "vals", (parser(node.text),)
 
-_buildFloat = _makeKwFloatBuilder("vals")
+
+_handledUnits = ("unit", "vel_time_unit", "pos_unit")
+_buildFloat = _makeKwFloatBuilder("vals", 
+	units=_makeUnitYielder(_handledUnits, tuplify=True))
+
+_unitKeys = ("unit", "vel_time_unit")
+_genUnitKeys = ("pos_unit", "time_unit", "spectral_unit", "angle_unit",
+	"gen_unit")
 
 def _buildVector(node, buildArgs, context):
 	yield 'vals', (tuple(buildArgs["vals"]),)
-	if "pos_unit" in buildArgs:
-		yield "units", tuple(buildArgs["pos_unit"])
+	for uk in _unitKeys:
+		if uk in buildArgs:
+			yield uk, tuple(buildArgs[uk])
+	for uk in _genUnitKeys:
+		if uk in buildArgs:
+			yield "unit", tuple(buildArgs[uk])
+	
 
 
 ################# Geometries
@@ -409,6 +441,7 @@ def _makeGeometryBuilder(astClass):
 
 def _buildToplevel(node, buildArgs, context):
 	yield 'stcSpec', (dm.STCSpec(**buildArgs),)
+
 
 def buildTree(csNode, context):
 	"""traverses the ElementTree cst, trying handler functions for
@@ -508,6 +541,10 @@ class STCXContext(object):
 	def endTag(self, node):
 		self.activeTags[node.tag].stop(self, node)
 
+_yieldErrUnits = _makeUnitYielder(_handledUnits, "error")
+_yieldPSUnits = _makeUnitYielder(_handledUnits, "pixSize")
+_yieldResUnits = _makeUnitYielder(_handledUnits, "resolution")
+_yieldSzUnits = _makeUnitYielder(_handledUnits, "size")
 
 # A sequence of tuples (dict builder, [stcxElementNames]) to handle
 # STC-X elements by calling functions
@@ -525,31 +562,37 @@ _stcBuilders = [
 			tuplify=True),
 		["Velocity1D", "Velocity3D", "Velocity2D"]),
 
-	(_makeKwValuesBuilder("resolution", tuplify=True), 
+	(_makeKwValuesBuilder("resolution", tuplify=True, units=_yieldResUnits), 
 		["Resolution2", "Resolution3"]),
-	(_makeKwValuesBuilder("pixSize", tuplify=True), 
+	(_makeKwValuesBuilder("pixSize", tuplify=True, units=_yieldPSUnits), 
 		["PixSize2", "PixSize3"]),
-	(_makeKwValuesBuilder("error", tuplify=True), 
+	(_makeKwValuesBuilder("error", tuplify=True, units=_yieldErrUnits), 
 		["Error2", "Error3"]),
-	(_makeKwValuesBuilder("size", tuplify=True), 
+	(_makeKwValuesBuilder("size", tuplify=True, units=_yieldSzUnits), 
 		["Size2", "Size3"]),
 
-	(_makeKwFloatBuilder("resolutionRadius"), 
+	(_makeKwFloatBuilder("resolutionRadius", units=_yieldResUnits), 
 		["Resolution2Radius", "Resolution3Radius"]),
-	(_makeKwFloatBuilder("pixSizeRadius"), 
+	(_makeKwFloatBuilder("pixSizeRadius", units=_yieldPSUnits), 
 		["PixSize2Radius", "PixSize3Radius"]),
-	(_makeKwFloatBuilder("errorRadius"), ["Error2Radius", "Error3Radius"]),
-	(_makeKwFloatBuilder("sizeRadius"), ["Size2Radius", "Size3Radius"]),
+	(_makeKwFloatBuilder("errorRadius", units=_yieldErrUnits), 
+		["Error2Radius", "Error3Radius"]),
+	(_makeKwFloatBuilder("sizeRadius", units=_yieldSzUnits), 
+		["Size2Radius", "Size3Radius"]),
 
-	(_makeKwValuesBuilder("resolutionMatrix"), 
+	(_makeKwValuesBuilder("resolutionMatrix", units=_yieldResUnits), 
 		["Resolution2Matrix", "Resolution3Matrix"]),
-	(_makeKwValuesBuilder("pixSizeMatrix"), 
+	(_makeKwValuesBuilder("pixSizeMatrix", units=_yieldSzUnits), 
 		["PixSize2Matrix", "PixSize3Matrix"]),
-	(_makeKwValuesBuilder("errorMatrix"), ["Error2Matrix", "Error3Matrix"]),
-	(_makeKwValuesBuilder("sizeMatrix"), ["Size2Matrix", "Size3Matrix"]),
+	(_makeKwValuesBuilder("errorMatrix", units=_yieldErrUnits), 
+		["Error2Matrix", "Error3Matrix"]),
+	(_makeKwValuesBuilder("sizeMatrix", units=_yieldSzUnits), 
+		["Size2Matrix", "Size3Matrix"]),
 
-	(_makeKwVectorBuilder("upperLimit"), ["HiLimit2Vec", "HiLimit3Vec"]),
-	(_makeKwVectorBuilder("lowerLimit"), ["LoLimit2Vec", "LoLimit3Vec"]),
+	(_makeKwValuesBuilder("upperLimit", tuplify=True), 
+		["HiLimit2Vec", "HiLimit3Vec"]),
+	(_makeKwValuesBuilder("lowerLimit", tuplify=True), 
+		["LoLimit2Vec", "LoLimit3Vec"]),
 
 	(_makeIntervalBuilder("areas", dm.SpaceInterval, "spaceFrame", tuplify=True),
 		["PositionScalarInterval", "Position2VecInterval",
@@ -572,14 +615,17 @@ _stcBuilders = [
 		"AstroCoordArea", "Position"]),
 ]
 
+
 def _getHandlers():
 	handlers = {
 		_n("AstroCoordSystem"): _buildAstroCoordSystem,
-		_n("Error"): _makeKwFloatBuilder("error"),
-		_n("PixSize"): _makeKwFloatBuilder("pixSize"),
-		_n("Redshift"): _makePositionBuilder('redshifts', dm.RedshiftCoo, "redshiftFrame"), 
-		_n("Resolution"): _makeKwFloatBuilder("resolution"),
-		_n("Size"): _makeKwFloatBuilder("size"),
+		_n("Error"): _makeKwFloatBuilder("error", units=_yieldErrUnits),
+		_n("PixSize"): _makeKwFloatBuilder("pixSize", units=_yieldPSUnits),
+		_n("Resolution"): _makeKwFloatBuilder("resolution", units=_yieldResUnits),
+		_n("Size"): _makeKwFloatBuilder("size", units=_yieldSzUnits),
+
+		_n("Redshift"): _makePositionBuilder('redshifts', dm.RedshiftCoo, 
+			"redshiftFrame"), 
 		_n("Spectral"): _makePositionBuilder('freqs', dm.SpectralCoo, "spectralFrame"), 
 		_n("StartTime"): _makeKwValueBuilder("lowerLimit"),
 		_n("StopTime"): _makeKwValueBuilder("upperLimit"),
@@ -610,8 +656,8 @@ def _getHandlers():
 		_n("DopplerDefinition"): _makeKeywordBuilder("dopplerDef"),
 		_n("TimeInterval"): _makeIntervalBuilder("timeAs", dm.TimeInterval,
 			"timeFrame"),
-		_n("SpectralInterval"): _makeIntervalBuilder("freqAs", dm.SpectralInterval,
-			"spectralFrame"),
+		_n("SpectralInterval"): _makeIntervalBuilder("freqAs", 
+			dm.SpectralInterval, "spectralFrame"),
 		_n("RedshiftInterval"): _makeIntervalBuilder("redshiftAs", 
 			dm.RedshiftInterval, "redshiftFrame"),
 	}

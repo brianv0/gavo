@@ -2,9 +2,11 @@
 Tests for STC conversions and conforming.
 """
 
+from gavo import stc
 from gavo.stc import units
 
 import testhelpers
+
 
 class UnitTest(testhelpers.VerboseTest):
 	"""tests for simple unit conversion.
@@ -48,18 +50,18 @@ class UnitTest(testhelpers.VerboseTest):
 
 class GenericConverterTest(testhelpers.VerboseTest):
 	def testScalars(self):
-		self.assertAlmostEqual(units.getScalarConverter("AU", "lyr")(500), 
+		self.assertAlmostEqual(units.getBasicConverter("AU", "lyr")(500), 
 			0.0079062537044346792)
-		self.assertAlmostEqual(units.getScalarConverter("arcmin", "rad")(60*57),
-			0.99483767363676778)
-		self.assertAlmostEqual(units.getScalarConverter("yr", "s")(0.1),
+		self.assertAlmostEqual(units.getBasicConverter("arcmin", "rad")(
+			60*57), 0.99483767363676778)
+		self.assertAlmostEqual(units.getBasicConverter("yr", "s")(0.1),
 			3.155760e6)
-		self.assertAlmostEqual(units.getScalarConverter("mm", "GHz")(210),
+		self.assertAlmostEqual(units.getBasicConverter("mm", "GHz")(210),
 			1.4275831333333335)
 
 	def testRedshifts(self):
 		self.assertAlmostEqual(units.getRedshiftConverter("km", "h", 
-			("m", "s"))(3.6), 1)
+			"m", "s")(3.6), 1)
 
 	def testSpatial(self):
 		self.assertAlmostEqualVector(
@@ -72,20 +74,76 @@ class GenericConverterTest(testhelpers.VerboseTest):
 
 	def testVelocity(self):
 		self.assertAlmostEqualVector(units.getVelocityConverter(("m",),
-			("s",), ("km", "h"))((1,)), (3.6,))
+			("s",), "km", "h")((1,)), (3.6,))
 		self.assertAlmostEqualVector(units.getVelocityConverter(("deg", "deg"),
-				("cy", "cy"), ("arcsec", "a"))((1,2)),  
+				("cy", "cy"), "arcsec", "a")((1,2)),  
 			(36.000000000000007, 72.000000000000014))
+		self.assertAlmostEqualVector(units.getVelocityConverter(("rad",),
+			("cy",), "arcsec", "yr")((1,)), (2062.6480624709639,))
 
 	def testRaising(self):
-		self.assertRaises(units.STCUnitError, units.getScalarConverter,
+		self.assertRaises(units.STCUnitError, units.getBasicConverter,
 			"Mhz", "lyr")
-		self.assertRaises(units.STCUnitError, units.getRedshiftConverter,
-			"m", "Mhz", ("s"))
 		self.assertRaises(units.STCUnitError, units.getVectorConverter,
 			("m", "m"), ("km", "pc", "Mpc"))
 		self.assertRaises(units.STCUnitError, units.getVectorConverter,
 			("m", "m", "deg"), ("km", "pc", "Mpc"))
 
+
+class WiggleCoercionTest(testhelpers.VerboseTest):
+	"""tests for unit coercion of wiggles parsed from STX-C.
+	"""
+	def _getAST(self, coo):
+		return stc.parseSTCX(('<ObservationLocation xmlns="%s">'%stc.STCNamespace)+
+			'<AstroCoordSystem id="x"><SpaceFrame><ICRS/></SpaceFrame>'
+			'</AstroCoordSystem>'
+			'<AstroCoords coord_system_id="x">'+
+			coo+'</AstroCoords></ObservationLocation>')[0]
+
+	def testBasic(self):
+		ast = self._getAST('<Position2D unit="deg"><C1>1</C1><C2>2</C2>'
+			'<Error2 unit="arcsec"><C1>0.1</C1><C2>0.15</C2></Error2>'
+			'<Size2><C1 unit="arcsec">60</C1><C2 unit="arcmin">1</C2></Size2>'
+			'<Resolution2Radius unit="rad">0.00001</Resolution2Radius>'
+			'</Position2D>')
+		pos = ast.places[0]
+		self.assertAlmostEqual(pos.value[0], 1)
+		self.assertAlmostEqual(pos.error.values[0][0], 2.7777777777777779e-05)
+		self.assertAlmostEqual(pos.resolution.radii[0], 0.00057295779513082329)
+		self.assertAlmostEqual(pos.size.values[0][1], 0.016666666666666666)
+
+	def testWeirdBase(self):
+		ast = self._getAST('<Position2D><C1 unit="arcsec">1</C1>'
+			'<C2 unit="rad">2</C2>'
+			'<Error2 unit="arcsec"><C1>0.1</C1><C2>0.15</C2></Error2>'
+			'<Size2><C1 unit="arcmin">0.1</C1><C2 unit="arcsec">1</C2></Size2>'
+			'<Resolution2Radius unit="rad">0.00001</Resolution2Radius>'
+			'</Position2D>')
+		pos = ast.places[0]
+		self.assertAlmostEqual(pos.error.values[0][0], 0.1)
+		self.assertAlmostEqual(pos.error.values[0][1], 7.2722052166430391e-07)
+		self.assertAlmostEqual(pos.resolution.radii[0], 2.0626480624709638)
+		self.assertAlmostEqual(pos.size.values[0][0], 6.0)
+		self.assertAlmostEqual(pos.size.values[0][1], 4.8481368110953598e-06)
+
+	def testWithTime(self):
+		ast = self._getAST('<Velocity2D><C1 unit="arcsec" vel_time_unit="yr">1'
+			'</C1><C2 unit="rad" vel_time_unit="cy">2</C2>'
+			'<Error2 unit="arcmin" vel_time_unit="cy"><C1>0.01</C1><C2>0.015</C2>'
+			'</Error2>'
+			'<Size2><C1 unit="rad" vel_time_unit="s">1</C1>'
+			'<C2 unit="arcsec" vel_time_unit="yr">1</C2></Size2>'
+			'<Resolution2Radius unit="deg" vel_time_unit="cy">0.00001'
+			'</Resolution2Radius>'
+			'</Velocity2D>')
+		pos = ast.velocities[0]
+		self.assertEqual(pos.units, ('arcsec', 'rad'))
+		self.assertEqual(pos.velTimeUnits, ('yr', 'cy'))
+		self.assertAlmostEqual(pos.error.values[0][0], 0.006)
+		self.assertAlmostEqual(pos.error.values[0][1], 4.3633231299858233e-06)
+		self.assertAlmostEqual(pos.size.values[0][0], 6509222249623.3682)
+
+
 if __name__=="__main__":
 	testhelpers.main(GenericConverterTest)
+#	testhelpers.main(WiggleCoercionTest)

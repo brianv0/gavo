@@ -340,8 +340,8 @@ class UnitsTest(testhelpers.VerboseTest):
 
 	def testSpatial2DMixed(self):
 		ast = self._getAST("<SpaceFrame><ICRS/></SpaceFrame>",
-			'<Position2D unit="deg"><C1 pos_unit="deg">1</C1><C2 pos_unit="arcsec"'
-			'>2</C2></Position2D>')
+			'<Position2D unit="deg"><Value2><C1 pos_unit="deg">1</C1><C2 pos_unit="arcsec"'
+			'>2</C2></Value2></Position2D>')
 		self.assertEqual(ast.places[0].units, ("deg", "arcsec"))
 
 
@@ -357,4 +357,4 @@ if __name__=="__main__":
 	if len(sys.argv)>1 and sys.argv[1].startswith("/"):
 		_wrapSample(sys.argv[1])
 	else:
-		testhelpers.main(M81ImageTest)
+		testhelpers.main(UnitsTest)
