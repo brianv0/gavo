@@ -164,12 +164,14 @@ def getSymbols():
 	_unitOpener = Suppress( Keyword("unit") )
 	_spaceUnitWord = Regex(_reFromKeys(spatialUnits))
 	_timeUnitWord = Regex(_reFromKeys(temporalUnits))
-	spaceUnit = _unitOpener + _spaceUnitWord("unit")
+	spaceUnit = _unitOpener + OneOrMore( _spaceUnitWord ).addParseAction(
+		lambda s,p,t: " ".join(t))("unit")
 	timeUnit = _unitOpener + _timeUnitWord("unit")
 	spectralUnit = _unitOpener + Regex(_reFromKeys(spectralUnits))("unit")
 	redshiftUnit = _unitOpener + Regex(_reFromKeys(redshiftUnits))("unit")
-	velocityUnit = _unitOpener + (_spaceUnitWord + "/" + _timeUnitWord
-		).addParseAction(lambda s,p,t:"".join(t))("unit")
+	velocityUnit = _unitOpener + OneOrMore( (_spaceUnitWord + "/" + _timeUnitWord
+		).addParseAction(lambda s,p,t: "".join(t)) ).addParseAction(
+			lambda s,p,t: " ".join(t))("unit")
 
 # basic productions common to most STC-S subphrases
 	fillfactor = (Suppress( Keyword("fillfactor") ) + number("fillfactor"))

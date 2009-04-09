@@ -95,6 +95,7 @@ class STCSTimeParsesTest(STCSParsesTestBase):
 class STCSSpaceParsesTest(STCSParsesTestBase):
 	shouldParse = [
 		("velocityUnit", "unit kpc/a"),
+		("velocityUnit", "unit kpc/a m/s"),
 		("positionInterval", "PositionInterval ICRS"),
 		("positionInterval", "PositionInterval ICRS 12 12"),
 		("positionInterval", "PositionInterval ICRS 12 11 10 9 8 7 6 5 4 3 2 1"),
@@ -185,6 +186,8 @@ class SimpleSTCSTreesTest(STCSTreeParseTestBase):
 	samples = [
 		("timeUnit", "unit s", {'unit': 's'}),
 		("spaceUnit", "unit pc", {"unit": 'pc'}),
+		("spaceUnit", "unit pc kpc m", {"unit": 'pc kpc m'}),
+		("velocityUnit", "unit pc/cy km/s", {"unit": 'pc/cy km/s'}),
 		("positionSpec", "Position 2 1 3.5 7e9", {"pos": [2., 1., 3.5, 7e9]}),
 		("timescale", "TT", {'timescale': 'TT'}),
 		("jdLiteral", "JD 2450000.5", [datetime.datetime(
@@ -426,4 +429,4 @@ class VelocitiesGenerationTest(SampleGenerationTestBase):
 
 
 if __name__=="__main__":
-	testhelpers.main(DefaultingTest)
+	testhelpers.main(SimpleSTCSTreesTest)

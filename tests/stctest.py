@@ -214,6 +214,13 @@ class SpaceCoordIntervalTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.areas[0].lowerLimit, (1.0,))
 		self.assertEqual(ast.places[0].error.values[0], (0.25,))
 		self.assertEqual(ast.places[0].error.values[1], (0.5,))
+	
+	def testFunkyUnit(self):
+		ast = stcsast.parseSTCS("PositionInterval ICRS CART2 1 2 3 4"
+			" unit m kpc Error 0.25 0.5")
+		self.assertEqual(len(ast.areas), 1)
+		self.assertEqual(ast.areas[0].units, ("m", "kpc"))
+		self.assertEqual(ast.places[0].units, ("m", "kpc"))
 
 	def testBadPositionRaises(self):
 		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS, 
