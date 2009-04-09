@@ -429,4 +429,4 @@ class VelocitiesGenerationTest(SampleGenerationTestBase):
 
 
 if __name__=="__main__":
-	testhelpers.main(SimpleSTCSTreesTest)
+	testhelpers.main(GeneralGenerationTest)

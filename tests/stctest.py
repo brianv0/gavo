@@ -368,7 +368,7 @@ class VelocityTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.velocityAs[0].upperLimit, (0.125, 3))
 		self.assertEqual(ast.velocities[0].error.values[0], (0.125, 0.25))
 		self.assertEqual(ast.velocities[0].resolution.values[0], (1.5, 1))
-		self.assertEqual(ast.velocities[0].pixSize.values[0], (0.5, 0.5))
+		self.assertEqual(ast.velocities[0].pixSize.radii[0], 0.5)
 
 
 class STCSRoundtripTest(testhelpers.VerboseTest):

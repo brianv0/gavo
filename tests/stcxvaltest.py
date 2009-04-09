@@ -127,7 +127,7 @@ class STCSValidationTests(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 
 	def testComplexSpaceCoos(self):
 		self.assertFromSTCSValidates("Position ICRS 12000.3 14000 unit arcsec"
-			" Error 0.1 0.14 Resolution 0.5 0.55 Size 1 1.1  4.8 2.3 PixSize 0.2 0.2")
+			" Error 0.1 0.14 Resolution 0.5 0.5 Size 1 1.1  4.8 2.3 PixSize 0.2 0.25")
 
 	def test1DIntervals(self):
 		self.assertFromSTCSValidates("TimeInterval TT 2009-03-10T09:56:10.015625"

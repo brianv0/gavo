@@ -83,7 +83,7 @@ def _wiggleToCST(node, nDim):
 	if isinstance(node, dm.CooWiggle):
 		return node.values
 	elif isinstance(node, dm.RadiusWiggle):
-		return tuple(itertools.chain(*[(r,)*nDim for r in node.radii]))
+		return tuple((r,)*nDim for r in node.radii)
 	else:
 		raise STCValueError("Cannot serialize %s wiggles into STC-S"%
 			node.__class__.__name__)
