@@ -4,6 +4,7 @@ Building ASTs from STC-X trees.
 
 from gavo.stc import dm
 from gavo.stc import times
+from gavo.stc import units
 from gavo.stc.common import *
 
 
@@ -190,12 +191,17 @@ def _makeSpatialUnits(nDim, *unitSources):
 	return None
 
 
+# names of 2D element, see below on this abomination.
+_geometryNames = set(["AllSky", "Circle", "Ellipse", "Polygon", "Box"])
+
 def _fixSpatialUnits(node, buildArgs, context):
 	nDim = 1
+	ln = _localname(node.tag)
 	# Incredible hack to figure out the number of units we expect.
-	if "2" in _localname(node.tag):
+	# I guess we'll have to parameterize this further up.
+	if "2" in ln or ln in _geometryNames:
 		nDim = 2
-	if "3" in _localname(node.tag):
+	if "3" in ln:
 		nDim = 3
 	# buildArgs["units"] may have been left in build_args from upstream
 	buildArgs["units"] = _makeSpatialUnits(nDim, buildArgs.pop("unit", None),
@@ -205,6 +211,8 @@ def _fixSpatialUnits(node, buildArgs, context):
 		buildArgs.pop("vel_time_unit", ()), node.get("vel_time_unit", "").split())
 	if not buildArgs["velTimeUnits"]:
 		del buildArgs["velTimeUnits"]
+	if not buildArgs["units"]:
+		del buildArgs["units"]
 
 
 _unitFixers = {
@@ -414,7 +422,8 @@ class BoxActions(ContextActions):
 	"""Context actions for Boxes: register a special handler for Size.
 	"""
 	boxHandlers = {
-		_n("Size"): _makeKwValueBuilder("boxsize", tuplify=True),
+		_n("Size"): _makeKwValueBuilder("boxsize", tuplify=True, units=
+			_makeUnitYielder(("unit",), "size")),
 	}
 	def start(self, context, node):
 		context.specialHandlerStack.append(self.boxHandlers)
@@ -426,13 +435,48 @@ def _buildHalfspace(node, buildArgs, context):
 	yield "vectors", (tuple(buildArgs["vector"])+tuple(buildArgs["offset"]),)
 
 
-def _makeGeometryBuilder(astClass):
+def _adaptCircleUnits(buildArgs):
+	buildArgs["units"] = buildArgs.pop("units", ("deg", "deg"))
+	if "radiuspos_unit" in buildArgs:
+		buildArgs["radius"] = units.getBasicConverter(
+			buildArgs.pop("radiuspos_unit"), buildArgs["units"][0])(
+				buildArgs["radius"])
+
+
+def _adaptEllipseUnits(buildArgs):
+	buildArgs["units"] = buildArgs.pop("units", ("deg", "deg"))
+	if "smajAxispos_unit" in buildArgs:
+		buildArgs["smajAxis"] = units.getBasicConverter(
+			buildArgs.pop("smajAxispos_unit"), buildArgs["units"][0])(
+				buildArgs["smajAxis"])
+	if "sminAxispos_unit" in buildArgs:
+		buildArgs["sminAxis"] = units.getBasicConverter(
+			buildArgs.pop("sminAxispos_unit"), buildArgs["units"][0])(
+				buildArgs["sminAxis"])
+	if "posAngleunit" in buildArgs:
+		buildArgs["posAngle"] = units.getBasicConverter(
+			buildArgs.pop("posAngleunit"), "deg")(buildArgs["posAngle"])
+
+
+def _adaptBoxUnits(buildArgs):
+	buildArgs["units"] = buildArgs.get("units", ("deg", "deg"))
+	if "sizeunit" in buildArgs:
+		su = buildArgs.pop("sizeunit")
+		if isinstance(su, basestring):
+			su = (su, su)
+		buildArgs["boxsize"] = units.getVectorConverter(su,
+			buildArgs["units"])(buildArgs["boxsize"])
+
+
+def _makeGeometryBuilder(astClass, adaptDepUnits=None):
 	"""returns a builder for STC-S geometries.
 	"""
 	def buildGeo(node, buildArgs, context):
 		for key, value in _iterCooMeta(node, context, "spaceFrame"):
 			buildArgs[key] = value
 		_fixSpatialUnits(node, buildArgs, context)
+		if adaptDepUnits:
+			adaptDepUnits(buildArgs)
 		yield 'areas', (astClass(**buildArgs),)
 	return buildGeo
 
@@ -603,9 +647,10 @@ _stcBuilders = [
 			"Velocity3VecInterval"]),
 
 	(_makeGeometryBuilder(dm.AllSky), ["AllSky", "AllSky2"]),
-	(_makeGeometryBuilder(dm.Circle), ["Circle", "Circle2"]),
-	(_makeGeometryBuilder(dm.Ellipse), ["Ellipse", "Ellipse2"]),
-	(_makeGeometryBuilder(dm.Box), ["Box", "Box2"]),
+	(_makeGeometryBuilder(dm.Circle, _adaptCircleUnits), ["Circle", "Circle2"]),
+	(_makeGeometryBuilder(dm.Ellipse, _adaptEllipseUnits), [
+		"Ellipse", "Ellipse2"]),
+	(_makeGeometryBuilder(dm.Box, _adaptBoxUnits), ["Box", "Box2"]),
 	(_makeGeometryBuilder(dm.Polygon), ["Polygon", "Polygon2"]),
 	(_makeGeometryBuilder(dm.Convex), ["Convex", "Convex2"]),
 
@@ -637,11 +682,16 @@ def _getHandlers():
 		_n("Equinox"): _makeKeywordBuilder("equinox"),
 		_n("Value"): _makeKwFloatBuilder("vals"),
 
-		_n("Radius"): _makeKwFloatBuilder("radius", multiple=False),
-		_n("Center"): _makeKwValueBuilder("center", tuplify=True), 
-		_n("SemiMajorAxis"): _makeKwFloatBuilder("smajAxis", multiple=False),
-		_n("SemiMinorAxis"): _makeKwFloatBuilder("sminAxis", multiple=False),
-		_n("PosAngle"): _makeKwFloatBuilder("posAngle", multiple=False),
+		_n("Radius"): _makeKwFloatBuilder("radius", multiple=False,
+			units=_makeUnitYielder(("pos_unit",), "radius")),
+		_n("Center"): _makeKwValueBuilder("center", tuplify=True,
+			units=_makeUnitYielder(("unit",))), 
+		_n("SemiMajorAxis"): _makeKwFloatBuilder("smajAxis", multiple=False,
+			units=_makeUnitYielder(("pos_unit",), "smajAxis")),
+		_n("SemiMinorAxis"): _makeKwFloatBuilder("sminAxis", multiple=False,
+			units=_makeUnitYielder(("pos_unit",), "sminAxis")),
+		_n("PosAngle"): _makeKwFloatBuilder("posAngle", multiple=False,
+			units=_makeUnitYielder(("unit",), "posAngle")),
 		_n("Vertex"): _makeKwValuesBuilder("vertices", tuplify=True), 
 		_n("Vector"): _makeKwValueBuilder("vector", tuplify=True),
 		_n("Offset"): _makeKwFloatBuilder("offset"),

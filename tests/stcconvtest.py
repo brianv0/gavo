@@ -186,5 +186,82 @@ class WiggleCoercionTest(testhelpers.VerboseTest):
 		self.assertAlmostEqual(r.error.values[0], 0.0010227121651092258)
 
 
+class GeoCoercionTest(testhelpers.VerboseTest):
+	"""tests that "dependent" units on Geometries are properly adapted.
+	"""
+	def _getAST(self, coo):
+		return stc.parseSTCX(('<ObservationLocation xmlns="%s">'%stc.STCNamespace)+
+			'<AstroCoordSystem id="x"><SpaceFrame><ICRS/></SpaceFrame>'
+			'</AstroCoordSystem>'
+			'<AstroCoordArea coord_system_id="x">'+
+			coo+'</AstroCoordArea></ObservationLocation>')[0]
+
+	def testCircleDefault(self):
+		ast = self._getAST("<Circle><Center><C1>1.5</C1><C2>1.5</C2></Center>"
+			'<Radius pos_unit="arcsec">1</Radius></Circle>')
+		a = ast.areas[0]
+		self.assertAlmostEqual(a.radius, 1/3600.)
+
+	def testCircleCenterUnit(self):
+		ast = self._getAST('<Circle><Center unit="km">'
+			'<C1>1.5</C1><C2>1.5</C2></Center>'
+			'<Radius pos_unit="m">1</Radius></Circle>')
+		a = ast.areas[0]
+		self.assertAlmostEqual(a.radius, 1/1000.)
+
+	def testCircleCompUnit(self):
+		ast = self._getAST('<Circle><Center>'
+			'<C1 unit="kpc">1.5</C1><C2 unit="kpc">1.5</C2></Center>'
+			'<Radius pos_unit="pc">2</Radius></Circle>')
+		a = ast.areas[0]
+		self.assertAlmostEqual(a.radius, 2/1000.)
+
+	def testCircleGlobalUnit(self):
+		ast = self._getAST('<Circle unit="kpc"><Center>'
+			'<C1>1.5</C1><C2>1.5</C2></Center>'
+			'<Radius pos_unit="pc">2</Radius></Circle>')
+		a = ast.areas[0]
+		self.assertAlmostEqual(a.radius, 2/1000.)
+
+	def testEllipse(self):
+		ast = self._getAST('<Ellipse unit="kpc"><Center>'
+			'<C1>1.5</C1><C2>1.5</C2></Center>'
+			'<SemiMajorAxis pos_unit="pc">2</SemiMajorAxis>'
+			'<SemiMinorAxis pos_unit="lyr">1</SemiMinorAxis>'
+			'<PosAngle unit="rad">1</PosAngle>'
+			'</Ellipse>')
+		a = ast.areas[0]
+		self.assertAlmostEqual(a.smajAxis, 2/1000.)
+		self.assertAlmostEqual(a.sminAxis, 0.00030660139380459661)
+		self.assertAlmostEqual(a.posAngle, 57.295779513082323)
+
+	def testBoxGlobalCoo(self):
+		ast = self._getAST('<Box unit="deg"><Center>'
+			'<C1>1.5</C1><C2>1.5</C2></Center>'
+			'<Size unit="arcsec"><C1>1</C1><C2>2</C2></Size>'
+			'</Box>')
+		a = ast.areas[0]
+		self.assertAlmostEqual(a.boxsize[0], 1/3600.)
+		self.assertAlmostEqual(a.boxsize[1], 2/3600.)
+
+	def testBoxCenterCoo(self):
+		ast = self._getAST('<Box><Center unit="deg">'
+			'<C1>1.5</C1><C2>1.5</C2></Center>'
+			'<Size unit="arcsec"><C1>1</C1><C2>2</C2></Size>'
+			'</Box>')
+		a = ast.areas[0]
+		self.assertAlmostEqual(a.boxsize[0], 1/3600.)
+		self.assertAlmostEqual(a.boxsize[1], 2/3600.)
+
+	def testBoxCompCoo(self):
+		ast = self._getAST('<Box><Center>'
+			'<C1>1.5</C1><C2>1.5</C2></Center>'
+			'<Size><C1 unit="arcmin">1</C1><C2 unit="arcsec">2</C2></Size>'
+			'</Box>')
+		a = ast.areas[0]
+		self.assertAlmostEqual(a.boxsize[0], 1/60.)
+		self.assertAlmostEqual(a.boxsize[1], 2/3600.)
+
+
 if __name__=="__main__":
-	testhelpers.main(WiggleCoercionTest)
+	testhelpers.main(GeoCoercionTest)

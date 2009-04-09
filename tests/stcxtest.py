@@ -145,4 +145,4 @@ class RegionTest(STCMappingTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(OtherCoordIntervalTest)
+	testhelpers.main(RegionTest)

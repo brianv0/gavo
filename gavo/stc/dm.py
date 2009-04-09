@@ -328,25 +328,41 @@ class _Geometry(_CoordinateLike, _SpatialMixin):
 	_a_fillFactor = None
 
 
+class _GeometryWithDeps(_Geometry):
+	"""is a geometry that has "dependent quantities" like radii.
+
+	All radii etc. have to be in the unit of the primary quantity (the center).
+
+	In order to sensibly be able to do this, we enforce units to be 
+	homogeneous for all geometries that have dependent quantities.
+	"""
+	def _setupNode(self):
+		if self.units:
+			try:
+				if self.units[0]!=self.units[1]:
+					raise Exception
+			except:
+				raise STCValueError("Geometries must have the same units in both"
+					" dimensions, so %s is invalid"%str(self.units[0]))
+
+
 class AllSky(_Geometry):
 	pass
 
 
-class Circle(_Geometry):
+class Circle(_GeometryWithDeps):
 	_a_center = None
 	_a_radius = None
-	_a_radiusUnit = None
 
 
-class Ellipse(_Geometry):
+class Ellipse(_GeometryWithDeps):
 	_a_center = None
 	_a_smajAxis = _a_sminAxis = None
 	_a_smajAxisUnit = _a_sminAxisUnit = None
 	_a_posAngle = None
-	_a_posAngleUnit = None
 
 
-class Box(_Geometry):
+class Box(_GeometryWithDeps):
 	_a_center = None
 	_a_boxsize = None
 

@@ -288,9 +288,7 @@ class GeometriesTest(testhelpers.VerboseTest):
 		self.assertEqual(p.center, (10.0, 12.0))
 		self.assertEqual(p.smajAxis, 3.0)
 		self.assertEqual(p.sminAxis, 2.0)
-		self.assertEqual(p.posAngle, 1.0)
-# XXX TODO: this should be fixed in one direction or the other at some point
-#		self.assertEqual(p.posAngleUnit, "rad")
+		self.assertEqual(p.posAngle, 57.295779513082323)
 	
 	def testBox(self):
 		ast = self._getAST("<Box><Center><C1>10</C1><C2>12</C2></Center>"
