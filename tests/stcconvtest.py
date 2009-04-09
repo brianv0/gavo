@@ -143,7 +143,48 @@ class WiggleCoercionTest(testhelpers.VerboseTest):
 		self.assertAlmostEqual(pos.error.values[0][1], 4.3633231299858233e-06)
 		self.assertAlmostEqual(pos.size.values[0][0], 6509222249623.3682)
 
+	def testOthersDefaultUnits(self):
+		ast = self._getAST('<Time><TimeInstant><ISOTime>2009-03-10T09:56:10'
+			'</ISOTime></TimeInstant><Error>2</Error><Resolution unit="h">'
+			'0.001</Resolution><Size unit="yr">0.1</Size></Time>'
+			'<Spectral unit="Angstrom"><Value>12.0</Value><Error unit="nm">'
+			'0.01</Error><Error>0.02</Error></Spectral>'
+			'<Redshift><Value>0.1</Value><Error>0.01</Error></Redshift>')
+		t = ast.times[0]
+		self.assertEqual(t.unit, "s")
+		self.assertEqual(t.error.values[0], 2)
+		self.assertAlmostEqual(t.resolution.values[0], 3.6)
+		self.assertAlmostEqual(t.size.values[0], 3155760.0)
+		s = ast.freqs[0]
+		self.assertEqual(s.unit, "Angstrom")
+		self.assertAlmostEqual(s.error.values[0], 0.1)
+		self.assertAlmostEqual(s.error.values[1], 0.2)
+		r = ast.redshifts[0]
+		self.assertEqual(r.unit, None)
+		self.assertAlmostEqual(r.error.values[0], 0.01)
+
+	def testOthersFunnyUnits(self):
+		ast = self._getAST('<Time unit="yr"><TimeInstant>'
+			'<ISOTime>2009-03-10T09:56:10'
+			'</ISOTime></TimeInstant><Error>0.0001</Error><Resolution unit="d">'
+			'1</Resolution><Size unit="cy">0.1</Size></Time>'
+			'<Spectral unit="keV"><Value>12.0</Value><Error unit="eV">'
+			'0.01</Error><Resolution unit="Hz">200</Resolution></Spectral>'
+			'<Redshift unit="pc" vel_time_unit="cy"><Value>0.1</Value>'
+			'<Error unit="km" vel_time_unit="s">10</Error></Redshift>')
+		t = ast.times[0]
+		self.assertEqual(t.unit, "yr")
+		self.assertEqual(t.error.values[0], 0.0001)
+		self.assertAlmostEqual(t.resolution.values[0], 0.0027378507871321013)
+		self.assertAlmostEqual(t.size.values[0], 10.0)
+		s = ast.freqs[0]
+		self.assertEqual(s.unit, "keV")
+		self.assertAlmostEqual(s.error.values[0], 1e-5)
+		self.assertAlmostEqual(s.resolution.values[0], 8.2713346600000008e-16)
+		r = ast.redshifts[0]
+		self.assertEqual(r.unit, 'pc')
+		self.assertAlmostEqual(r.error.values[0], 0.0010227121651092258)
+
 
 if __name__=="__main__":
-	testhelpers.main(GenericConverterTest)
-#	testhelpers.main(WiggleCoercionTest)
+	testhelpers.main(WiggleCoercionTest)

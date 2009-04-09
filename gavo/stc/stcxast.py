@@ -141,7 +141,7 @@ def _fixSpectralUnits(node, buildArgs, context):
 
 
 def _fixTimeUnits(node, buildArgs, context):
-	unit = None
+	unit = "s"
 	if "unit" in node.attrib:
 		unit = node.get("unit")
 	if "unit" in buildArgs:

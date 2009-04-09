@@ -155,7 +155,7 @@ class M81ImageTest(XMLSrcTestBase):
 	
 	def testTimeInterval(self):
 		p = self.asf[1].timeAs[0]
-		self.assertEqual(p.unit, None)
+		self.assertEqual(p.unit, "s")
 		self.assertEqual(p.lowerLimit, datetime.datetime(2004, 7, 15, 8, 17, 36))
 		self.assertEqual(p.upperLimit, datetime.datetime(2004, 7, 15, 8, 30, 16))
 		self.failUnless(p.frame is self.asf[1].astroSystem.timeFrame,

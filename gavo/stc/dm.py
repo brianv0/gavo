@@ -209,7 +209,7 @@ class _OneDMixin(object):
 		"""
 		if self.unit is None:
 			return None
-		return units.getScalarConverter(self.unit, otherUnit[0], True)
+		return units.getBasicConverter(self.unit, otherUnit[0], True)
 
 
 class _SpatialMixin(object):
