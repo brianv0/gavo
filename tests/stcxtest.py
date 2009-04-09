@@ -62,7 +62,7 @@ class OtherCoordTest(STCMappingTest):
 
 	def testRedSpect(self):
 		self.assertMapsto("Spectral NEPTUNE 12 unit Angstrom Error 4 3"
-			" Redshift TOPOCENTER 0.1 VELOCITY RELATIVISTIC", 
+			" Redshift TOPOCENTER VELOCITY RELATIVISTIC 0.1", 
 			'<V><AstroCoordSystem ><SpectralFrame ><NEPTUNE /></SpectralFrame><RedshiftFrame  value_type="VELOCITY"><DopplerDefinition>RELATIVISTIC</DopplerDefinition><TOPOCENTER /></RedshiftFrame></AstroCoordSystem><AstroCoords ><Spectral  unit="Angstrom"><Value>12.0</Value><Error>4.0</Error><Error>3.0</Error></Spectral><Redshift  unit="km" vel_time_unit="s"><Value>0.1</Value></Redshift></AstroCoords></V>')
 
 

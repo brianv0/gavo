@@ -288,12 +288,9 @@ def getSymbols():
 		Optional( fillfactor ) + Optional( refpos ) + 
 		Optional( redshiftType ) + Optional( dopplerdef ) +
 		_coos + Optional( redshiftSpec ) + _redshiftTail)
-# Probable typo: redshiftType and dopplerdef are behind coos in the
-# 1.30 specs.  We allow that but prefer them before coos.
 	redshift = (Keyword("Redshift")("type") + Optional( refpos ) +
 		Optional( redshiftType ) + Optional( dopplerdef ) +
 		_pos + 
-		Optional( redshiftType ) + Optional( dopplerdef ) +
 		_redshiftTail)
 	redshiftSubPhrase = (redshiftInterval | redshift ).addParseAction(
 		makeTree)

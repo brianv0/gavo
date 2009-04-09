@@ -119,7 +119,7 @@ class STCSValidationTests(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 	def testSimpleCoos(self):
 		self.assertFromSTCSValidates("Time TT 2009-03-10T09:56:10.015625"
 			" Spectral NEPTUNE 12 unit Angstrom Error 4 3"
-			" Redshift TOPOCENTER 0.1 VELOCITY RELATIVISTIC")
+			" Redshift TOPOCENTER VELOCITY RELATIVISTIC 0.1")
 
 	def testComplexCoos(self):
 		self.assertFromSTCSValidates("Time TT 2009-03-10T09:56:10.015625 unit s"

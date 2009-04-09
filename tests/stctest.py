@@ -64,8 +64,8 @@ class OtherCoordTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.redshifts[0].value, 2.)
 
 	def testComplexRedshift(self):
-		ast = stcsast.parseSTCS("Redshift BARYCENTER 2 REDSHIFT"
-			" RADIO Error 0 0.125")
+		ast = stcsast.parseSTCS("Redshift BARYCENTER REDSHIFT"
+			" RADIO 2 Error 0 0.125")
 		self.assertEqual(ast.redshifts[0].error.values, (0, 0.125))
 		self.assertEqual(ast.redshifts[0].frame.type, "REDSHIFT")
 		self.assertEqual(ast.redshifts[0].frame.dopplerDef, "RADIO")
@@ -425,7 +425,7 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			"StartTime TDT 2009-03-10T09:56:10.015625"
 			" Error 0.0001 0.0002 Resolution 0.0001 PixSize 2.0"),
 		("Spectral NEPTUNE 12 unit Angstrom Error 4 3"
-			" Redshift TOPOCENTER 0.1 REDSHIFT RELATIVISTIC",
+			" Redshift TOPOCENTER REDSHIFT RELATIVISTIC 0.1",
 			"Spectral NEPTUNE 12.0 unit Angstrom Error 4.0 3.0\nRedshift"
 			" TOPOCENTER REDSHIFT RELATIVISTIC 0.1"),
 		("Position ICRS VelocityInterval Velocity 1 2 unit pc/cy Error 0.25 0.5",

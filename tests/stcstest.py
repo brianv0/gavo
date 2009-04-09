@@ -131,7 +131,7 @@ class STCSSpaceParsesTest(STCSParsesTestBase):
 
 class STCSRedshiftParsesTest(STCSParsesTestBase):
 	shouldParse = [
-		("redshiftSubPhrase", "Redshift TOPOCENTER 0.1 VELOCITY RELATIVISTIC"
+		("redshiftSubPhrase", "Redshift TOPOCENTER VELOCITY RELATIVISTIC 0.1"
 			" unit km/s Error 10 12 Resolution 1 2 PixSize 4 5"),
 		("redshiftSubPhrase", "RedshiftInterval fillfactor 0.4"
 			" BARYCENTER REDSHIFT"),
@@ -369,7 +369,7 @@ class GeneralGenerationTest(testhelpers.VerboseTest):
 	
 	def testOtherCoodinates(self):
 		assertMapsto("Spectral BARYCENTER 200000 unit Hz PixSize 1"
-			" Redshift TOPOCENTER 2 REDSHIFT RELATIVISTIC",
+			" Redshift TOPOCENTER REDSHIFT RELATIVISTIC 2",
 			'Spectral BARYCENTER 200000.0 PixSize 1.0\n'
 			'Redshift TOPOCENTER REDSHIFT RELATIVISTIC 2.0')
 
