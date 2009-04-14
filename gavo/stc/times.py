@@ -2,6 +2,7 @@
 Helpers for time parsing and conversion.
 """
 
+import bisect
 import datetime
 import re
 
@@ -102,6 +103,150 @@ def dateTimeToJYear(dt):
 	"""returns a fractional (julian) year for a datetime.datetime instance.
 	"""
 	return (dateTimeToJdn(dt)-2451545)/365.25+2000
+
+
+############ Time scale conversions
+# All these convert to/from TT.
+
+_TDTminusTAI = datetime.timedelta(seconds=32.184)
+
+def TTtoTAI(tdt):
+	"""returns TAI for a (datetime.datetime) TDT.
+	"""
+	return tdt+_TDTminusTAI
+
+def TAItoTT(tai):
+	"""returns TAI for a (datetime.datetime) TDT.
+	"""
+	return tai-_TDTminusTAI
+
+
+def _getTDBOffset(tdb):
+	"""returns the TDB-TDT according to [EXS] 2.222-1.
+	"""
+	g = (357.53+0.9856003*(dateTimeToJdn(tdb)-2451545.0))/180*math.pi
+	return datetime.timedelta(0.001658*math.sin(g)+0.000014*math.sin(2*g))
+
+def TDBtoTT(tdb):
+	"""returns an approximate TT from a TDB.
+
+	The simplified formula 2.222-1 from [EXS] is used.
+	"""
+	return tdb-_getTDBOffset(tdb)
+
+def TTtoTDB(tt):
+	"""returns approximate TDB from TT.
+
+	The simplified formula 2.222-1 from [EXS] is used.
+	"""
+	return tt+_getTDBOffset(tdb)
+
+
+_L_G = 6.969291e-10  # [EXS], p. 47
+
+def _getTCGminusTT(dt): # [EXS], 2.223-5
+	return datetime.timedelta(seconds=
+		_L_G*(dateTimeToJdn(dt)-2443144.5)*86400)
+
+def TTtoTCG(tt):
+	"""returns TT from TCG.
+
+	This uses 2.223-5 from [EXS].
+	"""
+	return tt+_getTCGminusTT(tt)
+
+def TCGtoTT(tcg):
+	"""returns TT from TCG.
+
+	This uses 2.223-5 from [EXS].
+	"""
+	return tcg+_getTCGminusTT(tcg)
+
+
+_L_B = 1.550505e-8
+
+def _getTCBminusTDB(dt): # [EXS], 2.223-2
+	return datetime.timedelta(
+		seconds=_L_B*(dateTimeToJdn(dt)-2443144.5)*86400)
+
+def TCBtoTT(tcb):
+	"""returns an approximate TCB from a TT.
+
+	This uses [EXS] 2.223-2 and the approximate conversion from TDB to TT.
+	"""
+	return TDBtoTT(tcb+_getTCBminusTDB(tcb))
+
+def TTtoTCB(tt):
+	"""returns an approximate TT from a TCB.
+
+	This uses [EXS] 2.223-2 and the approximate conversion from TT to TDB.
+	"""
+	return TTtoTDB(tt)-_getTCBminusTDB(tcb)
+
+
+def _makeLeapSecondTable():
+	lsTable = []
+	for lsCount, lsMoment in enumerate([ # from Lenny tzinfo
+			datetime.datetime(1972, 06, 30, 23, 59, 59),
+			datetime.datetime(1972, 12, 31, 23, 59, 59),
+			datetime.datetime(1973, 12, 31, 23, 59, 59),
+			datetime.datetime(1974, 12, 31, 23, 59, 59),
+			datetime.datetime(1975, 12, 31, 23, 59, 59),
+			datetime.datetime(1976, 12, 31, 23, 59, 59),
+			datetime.datetime(1977, 12, 31, 23, 59, 59),
+			datetime.datetime(1978, 12, 31, 23, 59, 59),
+			datetime.datetime(1979, 12, 31, 23, 59, 59),
+			datetime.datetime(1981, 06, 30, 23, 59, 59),
+			datetime.datetime(1982, 06, 30, 23, 59, 59),
+			datetime.datetime(1983, 06, 30, 23, 59, 59),
+			datetime.datetime(1985, 06, 30, 23, 59, 59),
+			datetime.datetime(1987, 12, 31, 23, 59, 59),
+			datetime.datetime(1989, 12, 31, 23, 59, 59),
+			datetime.datetime(1990, 12, 31, 23, 59, 59),
+			datetime.datetime(1992, 06, 30, 23, 59, 59),
+			datetime.datetime(1993, 06, 30, 23, 59, 59),
+			datetime.datetime(1994, 06, 30, 23, 59, 59),
+			datetime.datetime(1995, 12, 31, 23, 59, 59),
+			datetime.datetime(1997, 06, 30, 23, 59, 59),
+			datetime.datetime(1998, 12, 31, 23, 59, 59),
+			datetime.datetime(2005, 12, 31, 23, 59, 59),
+			datetime.datetime(2008, 12, 31, 23, 59, 59),
+		]):
+		lsTable.append((lsMoment, datetime.timedelta(seconds=lsCount+10)))
+	return lsTable
+
+# A table of TAI-UTC
+leapSecondTable = _makeLeapSecondTable()
+del _makeLeapSecondTable
+
+def getLeapSeconds(dt):
+	"""returns TAI-UTC for the datetime dt.
+	"""
+	ind = bisect.bisect_left(leapSecondTable, (dt, None))
+	if ind==0:
+		return 9.  # XXX TODO: How do we extrapolate to GMT?
+	return leapSecondTable[ind-1][1]
+
+def TTtoUTC(tt):
+	"""returns UTC from TT.
+
+	The leap second table is complete through 2009-5.
+
+	>>> TTtoUTC(TAItoTT(datetime.datetime(2008, 2, 2, 4, 5, 6)))
+	datetime.datetime(2008, 2, 2, 4, 4, 34)
+	>>> TTtoUTC(TAItoTT(datetime.datetime(2009, 2, 2, 4, 5, 6)))
+	datetime.datetime(2009, 2, 2, 4, 4, 33)
+	"""
+	# XXX TODO: leap seconds need to be computed from UTC, so this will
+	# be one second off in the immediate vicinity of a leap second.
+	return TTtoTAI(tt)-getLeapSeconds(tt)
+
+def UTCtoTT(utc):
+	"""returns TT from UTC.
+
+	The leap second table is complete through 2009-5.
+	"""
+	return TAItoTT(utc+getLeapSeconds(utc))
 
 
 def _test():
