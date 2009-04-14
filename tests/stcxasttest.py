@@ -118,7 +118,7 @@ class M81ImageTest(XMLSrcTestBase):
 		self.assertEqual(frame.refPos.standardOrigin, "TOPOCENTER")
 
 	def testSimplePlace(self):
-		p = self.asf[0].places[0]
+		p = self.asf[0].place
 		self.assertEqual(p.units, ("deg", "deg", "m"))
 		self.assertAlmostEqual(p.value[0], 248.4056)
 		self.assertEqual(p.value[2], 2158.)
@@ -126,7 +126,7 @@ class M81ImageTest(XMLSrcTestBase):
 			"Wrong frame on positions")
 
 	def testComplexPlaces(self):
-		p = self.asf[1].places[0]
+		p = self.asf[1].place
 		self.assertEqual(p.units, ("deg", "deg"))
 		self.assertAlmostEqual(p.value[0], 148.88821)
 		self.assertAlmostEqual(p.resolution.values[0][1], 0.00025)
@@ -136,7 +136,7 @@ class M81ImageTest(XMLSrcTestBase):
 			"Wrong frame on complex places")
 
 	def testTime(self):
-		p = self.asf[1].times[0]
+		p = self.asf[1].time
 		self.assertEqual(p.unit, "s")
 		self.assertEqual(p.value, datetime.datetime(2004, 7, 15, 8, 23, 56))
 		self.assertEqual(p.resolution.values[0], 1000.0)
@@ -145,7 +145,7 @@ class M81ImageTest(XMLSrcTestBase):
 			"Wrong frame on time.")
 
 	def testSpectral(self):
-		p = self.asf[1].freqs[0]
+		p = self.asf[1].freq
 		self.assertEqual(p.unit, "Angstrom")
 		self.assertEqual(p.value, 4600.)
 		self.assertEqual(p.resolution.values[0], 400.0)
@@ -212,7 +212,7 @@ class ChandraResTest(XMLSrcTestBase):
     'Z//F3JFOFCQdc+TQwA==')
 
 	def testTimeCoord(self):
-		p = self.asf[0].times[0]
+		p = self.asf[0].time
 		self.assertEqual(p.frame.timeScale, "TT")
 		self.assertEqual(p.unit, "s")
 		self.assertAlmostEqual(p.error.values[0], 0.000005)
@@ -223,7 +223,7 @@ class ChandraResTest(XMLSrcTestBase):
 		self.assertAlmostEqual(p.size.values[1], 170000.)
 
 	def testPosition(self):
-		p = self.asf[0].places[0]
+		p = self.asf[0].place
 		self.assertEqual(p.frame.refPos.standardOrigin, "TOPOCENTER")
 		self.assertEqual(p.frame.nDim, 2)
 		self.assertEqual(p.frame.flavor, "SPHERICAL")
@@ -234,7 +234,7 @@ class ChandraResTest(XMLSrcTestBase):
 		self.assertEqual(p.size.values[1], (4000, 4000))
 	
 	def testSpectral(self):
-		p = self.asf[0].freqs[0]
+		p = self.asf[0].freq
 		self.assertEqual(p.unit, "keV")
 		self.assertAlmostEqual(p.error.values[0], 0.1)
 		self.assertAlmostEqual(p.resolution.values[0], 0.02)
@@ -329,18 +329,18 @@ class UnitsTest(testhelpers.VerboseTest):
 	def testSimpleCoo(self):
 		ast = self._getAST("<TimeFrame/>",
 			'<Time unit="a">2003-03-03T03:04:05</Time>')
-		self.assertEqual(ast.times[0].unit, "a")
+		self.assertEqual(ast.time.unit, "a")
 	
 	def testSpatial2DEmpty(self):
 		ast = self._getAST("<SpaceFrame><ICRS/></SpaceFrame>",
 			'<Position2D unit="deg"/>')
-		self.assertEqual(ast.places[0].units, ("deg", "deg"))
+		self.assertEqual(ast.place.units, ("deg", "deg"))
 
 	def testSpatial2DMixed(self):
 		ast = self._getAST("<SpaceFrame><ICRS/></SpaceFrame>",
 			'<Position2D unit="deg"><Value2><C1 pos_unit="deg">1</C1><C2 pos_unit="arcsec"'
 			'>2</C2></Value2></Position2D>')
-		self.assertEqual(ast.places[0].units, ("deg", "arcsec"))
+		self.assertEqual(ast.place.units, ("deg", "arcsec"))
 
 
 def _wrapSample(srcPath):

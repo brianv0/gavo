@@ -322,7 +322,7 @@ def _makePositionBuilder(kw, astClass, frameName, tuplify=False):
 			buildArgs[key] = value
 		_fixWiggles(buildArgs)
 		_fixUnits(frameName, node, buildArgs, context)
-		yield kw, (astClass(**buildArgs),)
+		yield kw, astClass(**buildArgs)
 	return buildPosition
 
 
@@ -600,9 +600,9 @@ _stcBuilders = [
 	(_buildFlavor, stcCoordFlavors),
 	(_buildRefFrame, stcSpaceRefFrames),
 
-	(_makePositionBuilder('places', dm.SpaceCoo, "spaceFrame", tuplify=True), 
+	(_makePositionBuilder('place', dm.SpaceCoo, "spaceFrame", tuplify=True), 
 		["Position1D", "Position3D", "Position2D"]),
-	(_makePositionBuilder('velocities', dm.VelocityCoo, "spaceFrame", 
+	(_makePositionBuilder('velocity', dm.VelocityCoo, "spaceFrame", 
 			tuplify=True),
 		["Velocity1D", "Velocity3D", "Velocity2D"]),
 
@@ -669,14 +669,15 @@ def _getHandlers():
 		_n("Resolution"): _makeKwFloatBuilder("resolution", units=_yieldResUnits),
 		_n("Size"): _makeKwFloatBuilder("size", units=_yieldSzUnits),
 
-		_n("Redshift"): _makePositionBuilder('redshifts', dm.RedshiftCoo, 
+		_n("Redshift"): _makePositionBuilder('redshift', dm.RedshiftCoo, 
 			"redshiftFrame"), 
-		_n("Spectral"): _makePositionBuilder('freqs', dm.SpectralCoo, "spectralFrame"), 
+		_n("Spectral"): _makePositionBuilder('freq', 
+			dm.SpectralCoo, "spectralFrame"), 
 		_n("StartTime"): _makeKwValueBuilder("lowerLimit"),
 		_n("StopTime"): _makeKwValueBuilder("upperLimit"),
 		_n("LoLimit"): _makeKwFloatBuilder("lowerLimit"),
 		_n("HiLimit"): _makeKwFloatBuilder("upperLimit"),
-		_n("Time"): _makePositionBuilder('times', dm.TimeCoo, "timeFrame"),
+		_n("Time"): _makePositionBuilder('time', dm.TimeCoo, "timeFrame"),
 		_n("Timescale"): _makeKeywordBuilder("timeScale"),
 		_n("TimeScale"): _makeKeywordBuilder("timeScale"),
 		_n("Equinox"): _makeKeywordBuilder("equinox"),

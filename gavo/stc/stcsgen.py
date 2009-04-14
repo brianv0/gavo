@@ -187,23 +187,18 @@ def _makeASTItemsGetter(cooName, areaName):
 	non-None, area may be None.
 	"""
 	def getASTItems(astRoot):
-		areas, coos = getattr(astRoot, areaName), getattr(astRoot, cooName)
-		if not areas and not coos:
+		areas, coo = getattr(astRoot, areaName), getattr(astRoot, cooName)
+		if not areas and not coo:
 			return None
 		if len(areas)>1:
 			raise STCValueError("STC-S does not support more than one area"
 				" but %s has length %d"%(areaName, len(areas)))
-		if len(coos)>1:
-			raise STCValueError("STC-S does not support more than one coordinate,"
-				" but %s has length %d"%(areaName, len(coos)))
-		if areas and coos:
+		if areas and coo:
 			if (areas[0].getUnit() is not None and 
-					coos[0].getUnit()!=areas[0].getUnit()):
+					coo.getUnit()!=areas[0].getUnit()):
 				raise STCValueError("Cannot serialize ASTs with different"
 					" units on positions and areas to STC-S")
-		if coos:
-			coo = coos[0]
-		else:
+		if not coo:
 			coo = areas[0].getPosition()
 		if areas:
 			area = areas[0]
@@ -225,27 +220,27 @@ _timeToCST = _makePhraseTreeMapper(
 	_makeCooTreeMapper("Time"), 
 	_makeAreaTreeMapper("TimeInterval", _makeTimeIntervalCoos),
 	_timeFrameToCST,
-	_makeASTItemsGetter("times", "timeAs"))
+	_makeASTItemsGetter("time", "timeAs"))
 _simpleSpatialToCST = _makePhraseTreeMapper(
 	_spatialCooToCST,
 	_makeAreaTreeMapper("PositionInterval"),
 	_spaceFrameToCST,
-	_makeASTItemsGetter("places", "areas"))
+	_makeASTItemsGetter("place", "areas"))
 _spectralToCST = _makePhraseTreeMapper(
 	_makeCooTreeMapper("Spectral"),
 	_makeAreaTreeMapper("SpectralInterval"),
 	_spectralFrameToCST,
-	_makeASTItemsGetter("freqs", "freqAs"))
+	_makeASTItemsGetter("freq", "freqAs"))
 _redshiftToCST = _makePhraseTreeMapper(
 	_makeCooTreeMapper("Redshift"),
 	_makeAreaTreeMapper("RedshiftInterval"),
 	_redshiftFrameToCST,
-	_makeASTItemsGetter("redshifts", "redshiftAs"))
+	_makeASTItemsGetter("redshift", "redshiftAs"))
 _velocityToCST = _makePhraseTreeMapper(
 	_makeCooTreeMapper("VelocityInterval"),
 	_makeAreaTreeMapper("VelocityInterval"),
 	lambda _: {},  # Frame provided by embedding position
-	_makeASTItemsGetter("velocities", "velocityAs"))
+	_makeASTItemsGetter("velocity", "velocityAs"))
 
 
 def _makeAllSkyCoos(node):
@@ -270,7 +265,7 @@ _geometryMappers = dict([(n, _makePhraseTreeMapper(
 		_spatialCooToCST,
 		_makeAreaTreeMapper(n, globals()["_make%sCoos"%n]),
 		_spaceFrameToCST,
-		_makeASTItemsGetter("places", "areas")))
+		_makeASTItemsGetter("place", "areas")))
 	for n in ["AllSky", "Circle", "Ellipse", "Box", "Polygon", "Convex"]])
 
 def _spatialToCST(astRoot):
@@ -278,8 +273,7 @@ def _spatialToCST(astRoot):
 	velocityArgs = _velocityToCST(astRoot)
 	if velocityArgs:
 		args = {"velocity": velocityArgs}
-	node = (astRoot.areas and astRoot.areas[0]) or (
-		astRoot.places and astRoot.places[0])
+	node = (astRoot.areas and astRoot.areas[0]) or astRoot.place
 	if not node:
 		if args:  # provide frame if no position is given
 			args.update(_spaceFrameToCST(astRoot.astroSystem.spaceFrame))

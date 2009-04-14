@@ -382,15 +382,15 @@ class STCSpec(ASTNode):
 	"""
 	_a_astroSystem = None
 	_a_systems = ()
-	_a_times = ()
-	_a_places = ()
-	_a_freqs = ()
-	_a_redshifts = ()
+	_a_time = None
+	_a_place = None
+	_a_freq = None
+	_a_redshift = None
+	_a_velocity = None
 	_a_timeAs = ()
 	_a_areas = ()
 	_a_freqAs = ()
 	_a_redshiftAs = ()
-	_a_velocities = ()
 	_a_velocityAs = ()
 
 	def buildIdMap(self):

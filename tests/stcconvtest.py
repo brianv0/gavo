@@ -106,7 +106,7 @@ class WiggleCoercionTest(testhelpers.VerboseTest):
 			'<Size2><C1 unit="arcsec">60</C1><C2 unit="arcmin">1</C2></Size2>'
 			'<Resolution2Radius unit="rad">0.00001</Resolution2Radius>'
 			'</Position2D>')
-		pos = ast.places[0]
+		pos = ast.place
 		self.assertAlmostEqual(pos.value[0], 1)
 		self.assertAlmostEqual(pos.error.values[0][0], 2.7777777777777779e-05)
 		self.assertAlmostEqual(pos.resolution.radii[0], 0.00057295779513082329)
@@ -119,7 +119,7 @@ class WiggleCoercionTest(testhelpers.VerboseTest):
 			'<Size2><C1 unit="arcmin">0.1</C1><C2 unit="arcsec">1</C2></Size2>'
 			'<Resolution2Radius unit="rad">0.00001</Resolution2Radius>'
 			'</Position2D>')
-		pos = ast.places[0]
+		pos = ast.place
 		self.assertAlmostEqual(pos.error.values[0][0], 0.1)
 		self.assertAlmostEqual(pos.error.values[0][1], 7.2722052166430391e-07)
 		self.assertAlmostEqual(pos.resolution.radii[0], 2.0626480624709638)
@@ -136,7 +136,7 @@ class WiggleCoercionTest(testhelpers.VerboseTest):
 			'<Resolution2Radius unit="deg" vel_time_unit="cy">0.00001'
 			'</Resolution2Radius>'
 			'</Velocity2D>')
-		pos = ast.velocities[0]
+		pos = ast.velocity
 		self.assertEqual(pos.units, ('arcsec', 'rad'))
 		self.assertEqual(pos.velTimeUnits, ('yr', 'cy'))
 		self.assertAlmostEqual(pos.error.values[0][0], 0.006)
@@ -150,16 +150,16 @@ class WiggleCoercionTest(testhelpers.VerboseTest):
 			'<Spectral unit="Angstrom"><Value>12.0</Value><Error unit="nm">'
 			'0.01</Error><Error>0.02</Error></Spectral>'
 			'<Redshift><Value>0.1</Value><Error>0.01</Error></Redshift>')
-		t = ast.times[0]
+		t = ast.time
 		self.assertEqual(t.unit, "s")
 		self.assertEqual(t.error.values[0], 2)
 		self.assertAlmostEqual(t.resolution.values[0], 3.6)
 		self.assertAlmostEqual(t.size.values[0], 3155760.0)
-		s = ast.freqs[0]
+		s = ast.freq
 		self.assertEqual(s.unit, "Angstrom")
 		self.assertAlmostEqual(s.error.values[0], 0.1)
 		self.assertAlmostEqual(s.error.values[1], 0.2)
-		r = ast.redshifts[0]
+		r = ast.redshift
 		self.assertEqual(r.unit, None)
 		self.assertAlmostEqual(r.error.values[0], 0.01)
 
@@ -172,16 +172,16 @@ class WiggleCoercionTest(testhelpers.VerboseTest):
 			'0.01</Error><Resolution unit="Hz">200</Resolution></Spectral>'
 			'<Redshift unit="pc" vel_time_unit="cy"><Value>0.1</Value>'
 			'<Error unit="km" vel_time_unit="s">10</Error></Redshift>')
-		t = ast.times[0]
+		t = ast.time
 		self.assertEqual(t.unit, "yr")
 		self.assertEqual(t.error.values[0], 0.0001)
 		self.assertAlmostEqual(t.resolution.values[0], 0.0027378507871321013)
 		self.assertAlmostEqual(t.size.values[0], 10.0)
-		s = ast.freqs[0]
+		s = ast.freq
 		self.assertEqual(s.unit, "keV")
 		self.assertAlmostEqual(s.error.values[0], 1e-5)
 		self.assertAlmostEqual(s.resolution.values[0], 8.2713346600000008e-16)
-		r = ast.redshifts[0]
+		r = ast.redshift
 		self.assertEqual(r.unit, 'pc')
 		self.assertAlmostEqual(r.error.values[0], 0.0010227121651092258)
 

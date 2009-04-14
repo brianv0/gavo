@@ -421,9 +421,9 @@ def astToStan(rootNode, stcRoot):
 	"""
 	return stcRoot[nodeToStan(rootNode.astroSystem),
 		STC.AstroCoords(coord_system_id=rootNode.astroSystem.id)[
-			[nodeToStan(n) for n in itertools.chain(rootNode.times,
-				rootNode.places, rootNode.velocities, rootNode.freqs, 
-					rootNode.redshifts)]
+			[nodeToStan(n) for n in [rootNode.time,
+				rootNode.place, rootNode.velocity, rootNode.freq, 
+					rootNode.redshift] if n]
 		],
 		STC.AstroCoordArea(coord_system_id=rootNode.astroSystem.id)[
 			[nodeToStan(n) for n in rootNode.timeAs],

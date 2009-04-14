@@ -290,7 +290,7 @@ def _makeCooBuilder(frameName, intervalClass, intervalKey,
 				minItems=1, maxItems=1, spatial=spatial)[0]
 		else:
 			args["value"] = None
-		yield posKey, (posClass(**args),)
+		yield posKey, posClass(**args)
 
 		# Yield an area if defined in this phrase and non-empty
 		if intervalClass is None:
@@ -377,7 +377,7 @@ def _makeGeometryBuilder(cls, argDesc):
 	See _makeGeometryRealBulder for the meaning of the arguments.
 	"""
 	return _makeCooBuilder("spaceFrame", cls, "areas", dm.SpaceCoo,
-		"places", _makeGeometryKeyIterator(argDesc, cls.__name__))
+		"place", _makeGeometryKeyIterator(argDesc, cls.__name__))
 
 
 ###################### Top level
@@ -390,21 +390,21 @@ def getCoords(cst, system):
 
 	return buildTree(cst, context, typeFunctions = {
 		"Time": _makeCooBuilder("timeFrame", None, None,
-			dm.TimeCoo, "times", None),
+			dm.TimeCoo, "time", None),
 		"StartTime": _makeCooBuilder("timeFrame", dm.TimeInterval, "timeAs",
-			dm.TimeCoo, "times", _makeIntervalKeyIterator()),
+			dm.TimeCoo, "time", _makeIntervalKeyIterator()),
 		"StopTime": _makeCooBuilder("timeFrame", dm.TimeInterval, "timeAs",
-			dm.TimeCoo, "times", _makeIntervalKeyIterator(preferUpper=True)),
+			dm.TimeCoo, "time", _makeIntervalKeyIterator(preferUpper=True)),
 		"TimeInterval": _makeCooBuilder("timeFrame", dm.TimeInterval, "timeAs",
-			dm.TimeCoo, "times", _makeIntervalKeyIterator()),
+			dm.TimeCoo, "time", _makeIntervalKeyIterator()),
 
 		"Position": _makeCooBuilder("spaceFrame", None, None, dm.SpaceCoo,
-			"places", None, spatial=True),
+			"place", None, spatial=True),
 		"PositionInterval": _makeCooBuilder("spaceFrame",
-			dm.SpaceInterval, "areas", dm.SpaceCoo, "places",
+			dm.SpaceInterval, "areas", dm.SpaceCoo, "place",
 			_makeIntervalKeyIterator(), spatial=True),
 		"VelocityInterval": _makeCooBuilder("spaceFrame",
-			dm.VelocityInterval, "velocityAs", dm.VelocityCoo, "velocities",
+			dm.VelocityInterval, "velocityAs", dm.VelocityCoo, "velocity",
 			_makeIntervalKeyIterator(), spatial=True),
 		"AllSky": _makeGeometryBuilder(dm.AllSky, []),
 		"Circle": _makeGeometryBuilder(dm.Circle, 
@@ -417,15 +417,15 @@ def getCoords(cst, system):
 		"Convex": _makeGeometryBuilder(dm.Convex, [("vectors", "cv")]),
 
 		"Spectral": _makeCooBuilder("spectralFrame", None, None,
-			dm.SpectralCoo, "freqs", None),
+			dm.SpectralCoo, "freq", None),
 		"SpectralInterval": _makeCooBuilder("spectralFrame", 
-			dm.SpectralInterval, "freqAs", dm.SpectralCoo, "freqs",
+			dm.SpectralInterval, "freqAs", dm.SpectralCoo, "freq",
 			_makeIntervalKeyIterator()),
 
 		"Redshift": _makeCooBuilder("redshiftFrame", None, None,
-			dm.RedshiftCoo, "redshifts", None),
+			dm.RedshiftCoo, "redshift", None),
 		"RedshiftInterval": _makeCooBuilder("redshiftFrame", 
-			dm.RedshiftInterval, "redshiftAs", dm.RedshiftCoo, "redshifts",
+			dm.RedshiftInterval, "redshiftAs", dm.RedshiftCoo, "redshift",
 			_makeIntervalKeyIterator()),
 
 	})
