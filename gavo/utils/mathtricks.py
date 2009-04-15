@@ -2,6 +2,13 @@
 Math-related helper functions.
 """
 
+import math
+
+
+secsPerJCy = 36525*24*3600.
+arcsecToRad = math.pi/180/3600
+radToArcsec = 1/arcsecToRad
+
 def findMinimum(f, left, right, minInterval=3e-8):
 	"""returns an estimate for the minimum of the single-argument function f 
 	on (left,right).

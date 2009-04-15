@@ -153,6 +153,18 @@ class TimeCalcTest(testhelpers.VerboseTest):
 				stc.bYearToDateTime(1950+yr/1000.)), 7,
 				"Botched %f"%(1950+yr/1000.))
 
+	def testBesselLieske(self):
+		"""check examples from Lieske, A&A 73, 282.
+		"""
+		for bessel, julian in [
+				(1899.999142, 1900),
+				(1900., 1900.000858),
+				(1950., 1949.999790),
+				(1950.000210, 1950.0),
+				(2000.0, 1999.998722),
+				(2000.001278, 2000.0)]:
+			self.assertAlmostEqual(stc.dateTimeToJYear(stc.bYearToDateTime(bessel)),
+				julian, places=5)
 
 if __name__=="__main__":
 	testhelpers.main(TimeCalcTest)

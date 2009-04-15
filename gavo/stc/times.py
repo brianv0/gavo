@@ -80,6 +80,9 @@ def jYearToDateTime(jYear):
 		days=(jYear-2000.0)*365.25)
 
 
+dtJ2000 = jYearToDateTime(2000.0)
+
+
 def dateTimeToJdn(dt):
 	"""returns a julian day number (including fractionals) from a datetime
 	instance.
@@ -103,6 +106,12 @@ def dateTimeToJYear(dt):
 	"""returns a fractional (julian) year for a datetime.datetime instance.
 	"""
 	return (dateTimeToJdn(dt)-2451545)/365.25+2000
+
+
+def getSeconds(td):
+	"""returns the number of seconds corresponding to a timedelta object.
+	"""
+	return td.days*86400+td.seconds+td.microseconds*1e-6
 
 
 ############ Time scale conversions
