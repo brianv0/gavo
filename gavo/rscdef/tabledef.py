@@ -93,6 +93,48 @@ class ColumnTupleAttribute(base.StringListAttribute):
 					" not in parent table"%colName, self.name_, colName)
 
 
+class ForeignKey(base.Structure):
+	"""A description of a foreign key relation between this table and another
+	one.
+	"""
+	name_ = "foreignKey"
+
+	_table = base.UnicodeAttribute("table", default=base.Undefined,
+		description="Fully qualified SQL name of the table holding the"
+		" key.", copyable=True)
+	_source = base.UnicodeAttribute("source", default=base.Undefined,
+		description="Comma-separated list of local columns corresponding"
+			" to the foreign key.  No sanity checks are performed here.")
+	_dest = base.UnicodeAttribute("dest", default=base.NotGiven,
+		description="Comma-separated list of columns in the target table"
+			" belonging to its key.  No checks for their existence, uniqueness,"
+			" etc. are done here.  If not given, defaults to source.")
+
+	def _parseList(self, raw):
+		return [s.strip() for s in raw.split(",") if s.strip()]
+
+	def onElementComplete(self):
+		self.source = self._parseList(self.source)
+		if self.dest is base.NotGiven:
+			self.dest = self.source
+		else:
+			self.dest = self._parseList(self.dest)
+		self._onElementCompleteNext(ForeignKey)
+	
+	def getCreationDDL(self):
+		return ("ALTER TABLE %s ADD FOREIGN KEY (%s) REFERENCES %s (%s)"
+			" DEFERRABLE INITIALLY DEFERRED")%(self.parent.getQName(),
+				",".join(self.source), self.table, ",".join(self.dest))
+
+	def guessConstraintName(self):
+# XXX TODO: can we get a *real* way to guess the constraint name here?
+		return "%s_%s_fkey"%(self.parent.id, self.source[0])
+
+	def getDeletionDDL(self):
+		return ("ALTER TABLE %s DROP CONSTRANT %s")%(
+			self.parent.getQName(), self.guessConstraintName())
+
+
 class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		scripting.ScriptingMixin, macros.StandardMacroMixin):
 	"""A definition of a table, both on-disk and internal.
@@ -127,6 +169,9 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		description="Comma separated names of columns making up the primary key.")
 	_indices = base.StructListAttribute("indices", childFactory=DBIndex,
 		description="Indices defined on this table", copyable=True)
+	_foreignKeys = base.StructListAttribute("foreignKeys", 
+		childFactory=ForeignKey, description="Foreign keys used in this"
+		" table", copyable=True)
 	_system = base.BooleanAttribute("system", default=False,
 		description="Is this a system table?  If it is, it will not be"
 			" dropped on normal imports, and accesses to it will not be logged.")

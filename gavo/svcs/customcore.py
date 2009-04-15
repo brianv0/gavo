@@ -14,6 +14,8 @@ from gavo.svcs import core
 class ModuleAttribute(base.UnicodeAttribute):
 # XXX TODO: this is a bad hack since it assumes id on instance has already
 # been set.  See above on improving all this using an event replay framework.
+	typeDesc = "resdir-relative path to a module; no extension is allowed"
+
 	def feed(self, ctx, instance, modName):
 		modName = os.path.join(instance.rd.resdir, modName)
 		userModule, _ = base.loadPythonModule(modName)

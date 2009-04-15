@@ -260,9 +260,6 @@ class Column(base.Structure):
 	_required = BooleanAttribute("required", default=False,
 		description="Record becomes invalid when this column is NULL", 
 		copyable=True)
-	_references = UnicodeAttribute("references", default=None,
-		description="Raw SQL used as a references clause in DDL statements.",
-		copyable=True)
 	_displayHint = DisplayHintAttribute("displayHint", 
 		description="Suggested presentation; the format is "
 			" <kw>=<value>{,<kw>=<value>}, where what is interpreted depends"
@@ -339,8 +336,6 @@ class Column(base.Structure):
 		items = [self.name, self.type]
 		if self.required:
 			items.append("NOT NULL")
-		if self.references:
-			items.append("REFERENCES %s ON DELETE CASCADE"%self.references)
 		return " ".join(items)
 
 	def getDisplayHintAsString(self):

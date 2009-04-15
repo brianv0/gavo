@@ -24,7 +24,7 @@ class ColumnTest(testhelpers.VerboseTest):
 		col = base.parseFromString(rscdef.Column, '<column name="foo"'
 			' type="text" unit="km/s" ucd="foo.bar" description="Some column"'
 			' tablehead="Foo" utype="type.bar" required="False"'
-			' references="bar" displayHint="sf=3"><verbLevel>20</verbLevel>'
+			' displayHint="sf=3"><verbLevel>20</verbLevel>'
 			' </column>')
 		self.assertEqual(col.utype, "type.bar")
 		self.assertEqual(col.required, False)
@@ -35,7 +35,7 @@ class ColumnTest(testhelpers.VerboseTest):
 		col = base.parseFromString(rscdef.Column, '<column name="foo"'
 			' type="text" unit="km/s" ucd="foo.bar" description="Some column"'
 			' tablehead="Foo" utype="type.bar" required="False"'
-			' references="bar" displayHint="sf=3"><verbLevel>20</verbLevel>'
+			' displayHint="sf=3"><verbLevel>20</verbLevel>'
 			' </column>')
 #XXX TODO: Add test when the migration is ready
 #		self.assertEqual(col.getMetaRow(), {})
@@ -172,6 +172,29 @@ class TableDefTest(testhelpers.VerboseTest):
 		self.assertEqual(t.indices[0].name, 'test_a')
 		self.assertEqual(t.indices[0].cluster, False)
 		self.assertEqual(t.indexedColumns, set(['a']))
+
+	def testForeignKey(self):
+		class Anything(object): pass
+		fakeRd = Anything()
+		fakeRd.schema, fakeRd.parent, fakeRd.rd = "foo", None, fakeRd
+		t = base.parseFromString(rscdef.TableDef, '<table id="test">'
+			'<column name="a"/><column name="b"/><foreignKey table="xy"'
+			' source="a,b"><dest>b,c </dest></foreignKey>'
+			'<foreignKey table="zz" source="b"/></table>')
+		t.parent = fakeRd
+		self.assertEqual(len(t.foreignKeys), 2)
+		fk = t.foreignKeys[0]
+		self.assertEqual(fk.source, ["a", "b"])
+		self.assertEqual(fk.dest, ["b", "c"])
+		self.assertEqual(fk.table, "xy")
+		self.assertEqual(fk.getCreationDDL(), 'ALTER TABLE foo.test ADD FOREIGN'
+			' KEY (a,b) REFERENCES xy (b,c) DEFERRABLE INITIALLY DEFERRED')
+		self.assertEqual(fk.getDeletionDDL(), 
+			'ALTER TABLE foo.test DROP CONSTRANT test_a_fkey')
+		fk = t.foreignKeys[1]
+		self.assertEqual(fk.source, ["b"])
+		self.assertEqual(fk.source, fk.dest)
+		self.assertEqual(fk.table, "zz")
 
 
 class RdAttrTest(testhelpers.VerboseTest):

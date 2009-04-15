@@ -1,0 +1,10 @@
+psql -c "COPY users.users FROM STDIN"  gavo  <<EOF
+test	megapass	
+rauch	schreibtischleu	
+danish	1.54meters	
+EOF
+psql -c "COPY users.groups FROM STDIN"  gavo  <<EOF
+test	test
+rauch	rauch
+danish	danish
+EOF

@@ -178,7 +178,20 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 			self.query("ALTER TABLE %s DROP CONSTRAINT %s"%(
 				self.tableName, constraintName))
 
+	def _addForeignKeys(self):
+		"""adds foreign key constraints if necessary.
+		"""
+		for fk in self.tableDef.foreignKeys:
+			self.query(fk.getCreationDDL())
+	
+	def _dropForeignKeys(self):
+		"""drops foreign key constraints if necessary.
+		"""
+		for fk in self.tableDef.foreigenKeys:
+			self.query(fk.getDeletionDDL())
+
 	def dropIndices(self):
+		self._dropForeignKeys()
 		self._dropPrimaryKey()
 		schema, unqualified = self.tableDef.rd.schema, self.tableDef.id
 		for index in self.tableDef.indices:
@@ -205,6 +218,7 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 			if index.cluster:
 				self.query(self.tableDef.expand(
 					"CLUSTER %s ON %s"%(index.name, self.tableName)))
+		self._addForeignKeys()
 		if self.tableExists(self.tableName):
 			self.query(self.tableDef.expand("ANALYZE %s"%self.tableName))
 		return self
