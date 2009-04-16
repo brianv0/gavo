@@ -443,5 +443,15 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 	]
 
 
+class DMTests(testhelpers.VerboseTest):
+	"""tests for direct manipulation of DM objects.
+	"""
+	def testBadUnitsRaise(self):
+		self.assertRaises(stc.STCValueError, dm.RedshiftCoo, unit="m")
+		self.assertRaises(stc.STCValueError, dm.VelocityCoo, units=("m", "m"))
+		self.assertRaises(stc.STCValueError, dm.VelocityCoo, units=("m", "m"),
+			velTimeUnits=("s",))
+
+
 if __name__=="__main__":
-	testhelpers.main(STCSRoundtripTest)
+	testhelpers.main(DMTests)

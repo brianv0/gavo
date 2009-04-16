@@ -100,7 +100,7 @@ def _makeCooTreeMapper(cooType):
 			"error": _wiggleToCST(node.error, nDim),
 			"resolution": _wiggleToCST(node.resolution, nDim),
 			"pixSize": _wiggleToCST(node.pixSize, nDim),
-			"unit": node.getUnit(),
+			"unit": node.getUnitString(),
 			"type": cooType,
 			"pos": node.value or None,}
 	return toCST
@@ -139,7 +139,7 @@ def _makeAreaTreeMapper(areaType, cooMaker=_makeIntervalCoos):
 	"""
 	def toCST(node):
 		return _combine({
-			"unit": node.getUnit(),
+			"unit": node.getUnitString(),
 			"fillfactor": node.fillFactor,
 			"type": areaType},
 			cooMaker(node))
@@ -194,8 +194,8 @@ def _makeASTItemsGetter(cooName, areaName):
 			raise STCValueError("STC-S does not support more than one area"
 				" but %s has length %d"%(areaName, len(areas)))
 		if areas and coo:
-			if (areas[0].getUnit() is not None and 
-					coo.getUnit()!=areas[0].getUnit()):
+			if (areas[0].getUnitString() is not None and 
+					coo.getUnitString()!=areas[0].getUnitString()):
 				raise STCValueError("Cannot serialize ASTs with different"
 					" units on positions and areas to STC-S")
 		if not coo:

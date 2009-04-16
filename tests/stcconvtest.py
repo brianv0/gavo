@@ -4,6 +4,7 @@ Tests for STC conversions and conforming.
 
 from gavo import stc
 from gavo.stc import units
+from gavo.stc import conform
 
 import testhelpers
 
@@ -263,5 +264,21 @@ class GeoCoercionTest(testhelpers.VerboseTest):
 		self.assertAlmostEqual(a.boxsize[1], 2/3600.)
 
 
+class UnitConformTest(testhelpers.VerboseTest):
+	"""tests for simple unit conforming.
+	"""
+	def testSimplePos(self):
+		ast0 = stc.parseSTCS("Position ICRS 10 12 unit deg Error 0.01 0.01"
+			" Spectral 1250 unit MHz")
+		ast1 = stc.parseSTCS("Position ICRS unit arcmin Spectral unit GHz")
+		res = conform.conform(ast1, ast0)
+		self.assertEqual(res.place.units, ("arcmin", "arcmin"))
+		self.assertEqual(res.place.value[0], 10*60)
+		self.assertEqual(res.place.value[1], 12*60)
+		self.assertAlmostEqual(res.place.error.radii[0], 0.6)
+		self.assertEqual(res.freq.unit, "GHz")
+		self.assertEqual(res.freq.value, 1.25)
+
+
 if __name__=="__main__":
-	testhelpers.main(GeoCoercionTest)
+	testhelpers.main(UnitConformTest)

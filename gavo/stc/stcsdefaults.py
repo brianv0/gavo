@@ -44,7 +44,7 @@ def getRedshiftUnit(node):
 	if node["redshiftType"]=="VELOCITY":
 		return "km/s"
 	else:
-		return None
+		return ""
 
 
 def _addDefaultsToNode(node, defaults):

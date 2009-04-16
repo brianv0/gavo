@@ -165,6 +165,8 @@ class ASTNode(object):
 		"""returns a shallow copy of self with constructor arguments in kwargs
 		changed.
 		"""
+		if not kwargs:
+			return self
 		consArgs = dict(self.iterAttributes())
 		consArgs.update(kwargs)
 		return self.__class__(**consArgs)

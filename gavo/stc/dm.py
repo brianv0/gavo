@@ -178,6 +178,34 @@ class _CoordinateLike(ASTNode):
 
 
 class _Coordinate(_CoordinateLike):
+	"""An abstract base for coordinates.
+
+	They have an iterTransformed(convFunc) method iterating over constructor
+	keys that have to be changed when some convFunc is applied to the
+	coordinate.  These may be multiple values when, e.g., errors are given
+	or for geometries.
+
+	Since these only make sense together with units, some elementary
+	unit handling is required.  Since we keep the basic unit model
+	of STC, this is a bit over-complicated.
+	
+	First, for the benefit of STC-S, a method
+	getUnitString() -> string or None is required.  It should return
+	an STC-S-legal unit string.
+
+	Second, a method getUnitArgs() -> dict or None is required.  It has to
+	return a dictionary with all unit-related constructor arguments
+	(that's unit, units, velTimeUnit, and/or velTimeUnits for the standard
+	coordinate types).  No None values are allowed; if self's units are
+	not defined, return None.
+
+	Third, a method 
+	getUnitConverter(otherUnits) -> function or None is required.  It
+	must return a function accepting the self's coordinates if self's
+	units and otherUnits are defined, None otherwise.  OtherUnits can 
+	be a tuple or a result of getUnitArgs.  The tuple is interpreted as 
+	(baseUnit, timeUnit).
+	"""
 	_a_error = None
 	_a_resolution = None
 	_a_pixSize = None
@@ -192,22 +220,33 @@ class _Coordinate(_CoordinateLike):
 				setattr(self, name, wiggle.adaptValuesWith(
 					self.getUnitConverter(wiggle.origUnit)))
 		self._setupNodeNext(_Coordinate)
+	
+	def iterTransformed(self, converter):
+		yield "value", converter(self.value)
+		for attName in self._dimensionedAttrs:
+			wiggle = getattr(self, attName)
+			if wiggle:
+				yield attName, wiggle.adaptValuesWith(converter)
 
-
+		
 class _OneDMixin(object):
 	"""provides attributes for 1D-Coordinates (Time, Spectral, Redshift)
 	"""
 	_a_unit = None
 
-	def getUnit(self):
+	def getUnitString(self):
 		return self.unit
 
-	def getUnitConverter(self, otherUnit):
-		"""returns a function converting from otherUnits to self.units.
-		"""
-		if self.unit is None:
+	def getUnitConverter(self, otherUnits):
+		if self.unit is None or not otherUnits:
 			return None
-		return units.getBasicConverter(self.unit, otherUnit[0], True)
+		if isinstance(otherUnits, dict):
+			otherUnits = (otherUnits["unit"],)
+		return units.getBasicConverter(self.unit, otherUnits[0], True)
+
+	def getUnitArgs(self):
+		if self.unit:
+			return {"unit": self.unit}
 
 
 class _SpatialMixin(object):
@@ -217,19 +256,23 @@ class _SpatialMixin(object):
 
 	cType = SpaceType
 
-	def getUnit(self):
+	def getUnitString(self):
 		if self.units:
 			if len(set(self.units))==1:
 				return self.units[0]
 			else:
 				return " ".join(self.units)
-		return ()
 
 	def getUnitConverter(self, otherUnits):
-		if self.units is None:
+		if self.units is None or not otherUnits:
 			return None
+		if isinstance(otherUnits, dict):
+			otherUnits = (otherUnits["units"],)
 		f = units.getVectorConverter(self.units, otherUnits[0], True)
 		return f
+
+	def getUnitArgs(self):
+		return {"units": self.units}
 
 
 class _VelocityMixin(object):
@@ -240,24 +283,32 @@ class _VelocityMixin(object):
 
 	cType = VelocityType
 
-	def getUnit(self):
+	def _setupNode(self):
 		if self.units:
-			try:
-				if len(set(self.units))==1:
-					return "%s/%s"%(self.units[0], self.velTimeUnits[0])
-				else:
-					return " ".join("%s/%s"%(u, tu) 
-						for u, tu in itertools.izip(self.units, self.velTimeUnits))
-				return ()
-			except IndexError:
+			if not self.velTimeUnits or len(self.units)!=len(self.velTimeUnits):
 				raise STCValueError("Invalid units for Velocity: %s/%s."%(
 					repr(self.units), repr(self.velTimeUnits)))
+		self._setupNodeNext(_VelocityMixin)
+
+	def getUnitString(self):
+		if self.units:
+			if len(set(self.units))==1:
+				return "%s/%s"%(self.units[0], self.velTimeUnits[0])
+			else:
+				return " ".join("%s/%s"%(u, tu) 
+					for u, tu in itertools.izip(self.units, self.velTimeUnits))
+			return ()
 
 	def getUnitConverter(self, otherUnits):
-		if self.units is None:
+		if self.units is None or not otherUnits:
 			return None
+		if isinstance(otherUnits, dict):
+			otherUnits = (otherUnits["units"], otherUnits["velTimeUnits"])
 		return units.getVelocityConverter(self.units, self.velTimeUnits,
 			otherUnits[0], otherUnits[1], True)
+
+	def getUnitArgs(self):
+		return {"units": self.units, "velTimeUnits": self.velTimeUnits}
 
 
 class _RedshiftMixin(object):
@@ -268,15 +319,26 @@ class _RedshiftMixin(object):
 
 	cType = RedshiftType
 
-	def getUnit(self):
+	def _setupNode(self):
+		if self.unit and not self.velTimeUnit:
+			raise STCValueError("Invalid units for Redshift: %s/%s."%(
+				repr(self.unit), repr(self.velTimeUnit)))
+		self._setupNodeNext(_RedshiftMixin)
+
+	def getUnitString(self):
 		if self.unit:
 			return "%s/%s"%(self.unit, self.velTimeUnit)
 
 	def getUnitConverter(self, otherUnits):
-		if self.unit is None:
+		if self.unit is None or not otherUnits:
 			return None
+		if isinstance(otherUnits, dict):
+			otherUnits = (otherUnits["unit"], otherUnits["velTimeUnit"])
 		return units.getRedshiftConverter(self.unit, self.velTimeUnit, 
 			otherUnits[0], otherUnits[1], True)
+
+	def getUnitArgs(self):
+		return {"unit": self.unit, "velTimeUnit": self.velTimeUnit}
 
 
 class SpaceCoo(_Coordinate, _SpatialMixin): pass
