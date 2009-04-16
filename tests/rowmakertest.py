@@ -223,7 +223,7 @@ class ProcTest(testhelpers.VerboseTest):
 	def testConsStuff(self):
 		base.parseFromString(rmkdef.ProcDef, '<proc name="consstufftest"'
 			' isGlobal="True"><consComp><arg key="mapping"/>\n'
-			' assMap = base.parseAssignments(mapping)\n'
+			' assMap = utils.parseAssignments(mapping)\n'
 			' del mapping\n'
 			' return locals()\n'
 			'</consComp><arg key="foo"/>\n'

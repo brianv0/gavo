@@ -11,6 +11,7 @@ import glob
 import os
 
 from gavo import base
+from gavo import utils
 from gavo.rscdef import common
 from gavo.rscdef import rmkdef
 from gavo.rscdef import scripting
@@ -56,7 +57,7 @@ class IgnoreSpec(base.Structure):
 		"""returns true if path, made inputsdir-relative, should be ignored.
 		"""
 		try:
-			path = base.getRelativePath(path, self.inputsDir)
+			path = utils.getRelativePath(path, self.inputsDir)
 		except base.LiteralParseError: # not in inputs, use full path.
 			pass
 		if path in self.ignoredSet:

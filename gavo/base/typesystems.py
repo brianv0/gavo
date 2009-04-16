@@ -34,7 +34,7 @@ import datetime
 import re
 import time
 
-from gavo.base.excs import Error
+from gavo.utils.excs import Error
 
 class ConversionError(Error):
 	pass

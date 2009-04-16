@@ -10,7 +10,7 @@ Based on this, we provide some attribute definitions.
 
 from gavo.base import attrdef
 from gavo.base import caches
-from gavo.base.excs import StructureError, LiteralParseError
+from gavo.utils.excs import StructureError, LiteralParseError
 
 
 def assertType(id, ob, forceType):

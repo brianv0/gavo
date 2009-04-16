@@ -13,6 +13,7 @@ import pkg_resources
 from gavo import api
 from gavo import base
 from gavo import rscdesc
+from gavo import utils
 
 
 def _indent(stuff, indent):
@@ -72,7 +73,7 @@ class RSTFragment(object):
 		contain a single line.
 		"""
 		self.content.append(defHead+"\n")
-		self.content.append(base.fixIndentation(defBody, "  ",
+		self.content.append(utils.fixIndentation(defBody, "  ",
 			governingLine=2)+"\n")
 
 	def addNormalizedPara(self, stuff):
@@ -80,7 +81,7 @@ class RSTFragment(object):
 		previous material and removing whitespace as necessary for docstrings.
 		"""
 		self.makeSpace()
-		self.content.append(base.fixIndentation(stuff, "", governingLine=2)+"\n")
+		self.content.append(utils.fixIndentation(stuff, "", governingLine=2)+"\n")
 
 	def addRaw(self, stuff):
 		self.content.append(stuff)

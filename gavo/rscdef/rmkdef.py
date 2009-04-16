@@ -12,8 +12,8 @@ import sys
 import traceback
 
 from gavo import base
+from gavo import utils
 from gavo.base import structure
-from gavo.base import codetricks
 from gavo.rscdef import callablebase
 from gavo.rscdef import common
 from gavo.rscdef import macros
@@ -73,9 +73,9 @@ class MapRule(base.Structure):
 			raise base.StructureError("Map must have exactly one of src attribute"
 				" or element content")
 		if self.content_:
-			codetricks.ensureExpression(self.content_, self.name_)
+			utils.ensureExpression(self.content_, self.name_)
 		if self.nullExcs is not base.NotGiven:
-			codetricks.ensureExpression(self.nullExcs, "%s.nullExcs"%(self.name_))
+			utils.ensureExpression(self.nullExcs, "%s.nullExcs"%(self.name_))
 
 	def getCode(self, tableDef):
 		"""returns python source code for this map.
@@ -126,7 +126,7 @@ class VarDef(base.Structure):
 		"""
 		self._validateNext(VarDef)
 		if self.content_:
-			codetricks.ensureExpression(self.content_, self.name_)
+			utils.ensureExpression(self.content_, self.name_)
 		if not common.identifierPat.match(self.name):
 			raise base.LiteralParseError("Var names must be valid python"
 				" identifiers, and %s is not"%self.name, "name", self.name)
@@ -281,7 +281,7 @@ class RowmakerMacroMixin(macros.StandardMacroMixin):
 		"""returns an expression giving the current source's path 
 		relative to inputsDir
 		"""
-		return ('base.getRelativePath(parser_.sourceToken,'
+		return ('utils.getRelativePath(parser_.sourceToken,'
 			' base.getConfig("inputsDir"))')
 	
 	def macro_rowsProcessed(self):
@@ -317,7 +317,7 @@ class RowmakerMacroMixin(macros.StandardMacroMixin):
 		"""returns an expression giving the current source's path with 
 		the resource descriptor's root removed.
 		"""
-		return 'base.getRelativePath(rd_.resdir, parser_.sourceToken)'
+		return 'utils.getRelativePath(rd_.resdir, parser_.sourceToken)'
 
 	def macro_inputSize(self):
 		"""returns an expression giving the size of the current source.

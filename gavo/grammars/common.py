@@ -7,6 +7,7 @@ import gzip
 
 from gavo import base
 from gavo import rscdef
+from gavo import utils
 from gavo.rscdef import rowgens
 from gavo.rscdef import rowtriggers
 
@@ -214,7 +215,7 @@ class GrammarMacroMixin(rscdef.StandardMacroMixin):
 		"""returns an expression giving the current source's path 
 		relative to inputsDir
 		"""
-		return ('base.getRelativePath(rowIter.sourceToken,'
+		return ('utils.getRelativePath(rowIter.sourceToken,'
 			' base.getConfig("inputsDir"))')
 	
 	def macro_rowsProcessed(self):
@@ -245,7 +246,7 @@ class GrammarMacroMixin(rscdef.StandardMacroMixin):
 		"""returns an expression giving the current source's path with 
 		the resource descriptor's root removed.
 		"""
-		return ('base.getRelativePath(rowIter.grammar.rd.resdir,'
+		return ('utils.getRelativePath(rowIter.grammar.rd.resdir,'
 			' rowIter.sourceToken)')
 
 	def macro_inputSize(self):

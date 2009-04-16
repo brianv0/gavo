@@ -11,7 +11,7 @@ import warnings
 
 from itertools import *
 
-from gavo.base import excs
+from gavo.utils import excs
 from gavo.base import config
 
 debug = "GAVO_SQL_DEBUG" in os.environ

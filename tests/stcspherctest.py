@@ -19,7 +19,7 @@ class PrecTest(testhelpers.VerboseTest):
 				(1980, -461.232, -461.200, -400.879),
 				(2050, 1153.187, 1153.385, 1002.044)]:
 			destEp = stc.jYearToDateTime(year)
-			zeta, z, theta = spherc._getIAU1976PrecAngles(times.dtJ2000, destEp)
+			zeta, z, theta = spherc.prec_IAU1976(times.dtJ2000, destEp)
 			self.assertAlmostEqual(zeta*utils.radToArcsec, zetaL, places=3)
 			self.assertAlmostEqual(z*utils.radToArcsec, zL, places=3)
 			self.assertAlmostEqual(theta*utils.radToArcsec, thetaL, places=3)
@@ -30,7 +30,7 @@ class PrecTest(testhelpers.VerboseTest):
 				(1920, 1844.273, 1844.781, 1603.692),
 				(1965, 807.055, 807.152, 701.570),]:
 			srcEp = stc.bYearToDateTime(year)
-			zeta, z, theta = spherc._getIAU1976PrecAngles(srcEp, times.dtJ2000)
+			zeta, z, theta = spherc.prec_IAU1976(srcEp, times.dtJ2000)
 			self.assertAlmostEqual(zeta*utils.radToArcsec, zetaL, places=3)
 			self.assertAlmostEqual(z*utils.radToArcsec, zL, places=3)
 			self.assertAlmostEqual(theta*utils.radToArcsec, thetaL, places=3)

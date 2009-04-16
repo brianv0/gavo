@@ -45,6 +45,10 @@ class STCNotImplementedError(STCError):
 	"""is raised when the current implementation limits are reached.
 	"""
 
+#### Constants
+
+tropicalYear = 365.242198781  # in days
+secsPerJCy = 36525*86400.
 
 STCNamespace = "http://www.ivoa.net/xml/STC/stc-v1.30.xsd"
 XlinkNamespace = "http://www.w3.org/1999/xlink"

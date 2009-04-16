@@ -35,13 +35,12 @@ try:
 except ImportError:
 	pass
 
+from gavo import utils
 from gavo.base import attrdef
-from gavo.base import excs
 from gavo.base import structure
-from gavo.base import texttricks
 
 
-class MetaError(excs.Error):
+class MetaError(utils.Error):
 	pass
 
 class MetaSyntaxError(MetaError):
@@ -124,7 +123,7 @@ class MetaParser(structure.Parser):
 		if self.attrs.get("format", "plain")=="plain":
 			content = content.strip()
 		else:
-			content = texttricks.fixIndentation(content, "", 1)
+			content = utils.fixIndentation(content, "", 1)
 		mv = makeMetaValue(content, **self.attrs)
 		if not "name" in self.attrs:
 			raise structure.StructureError("meta elements must have a"

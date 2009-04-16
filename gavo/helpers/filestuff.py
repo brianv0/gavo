@@ -30,7 +30,7 @@ def stingySplitext(fName):
 		return fName, ""
 
 
-class FileRenamer:
+class FileRenamer(object):
 	"""is a name mapper for file rename operations and the like.
 
 	Warning: This whole thing more or less pretends there are no
@@ -41,7 +41,7 @@ class FileRenamer:
 
 	@classmethod
 	def loadFromFile(cls, inF, **kwargs):
-		"""returns a NameMap for whatever is serialized in the file inF.
+		"""returns a name map for whatever is serialized in the file inF.
 
 		The format of fName is line-base, with each line being one of
 		

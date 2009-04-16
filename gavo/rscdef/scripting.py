@@ -11,6 +11,7 @@ from pyparsing import Word, OneOrMore, ZeroOrMore, QuotedString, Forward,\
 	Literal, White, ParseException, dblQuotedString
 
 from gavo import base
+from gavo import utils
 from gavo.base import sqlsupport
 
 
@@ -185,7 +186,7 @@ class ScriptHandler(object):
 		def makeFun(script):
 			ns = dict(globals())
 			code = ("def someFun(dataDesc, connection):\n"+
-				base.fixIndentation(script, "      ")+"\n")
+				utils.fixIndentation(script, "      ")+"\n")
 			exec code in ns
 			return ns["someFun"]
 		makeFun(script)(self.parent, sqlsupport.getDefaultDbConnection())
@@ -201,7 +202,7 @@ class ScriptHandler(object):
 		def makeFun(script):
 			ns = dict(globals())
 			code = ("def someFun(recDef, tw):\n"+
-				base.fixIndentation(script, "      ")+"\n")
+				utils.fixIndentation(script, "      ")+"\n")
 			exec code in ns
 			return ns["someFun"]
 		makeFun(script)(self.parent, **kwargs)

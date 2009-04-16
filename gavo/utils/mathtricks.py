@@ -5,7 +5,6 @@ Math-related helper functions.
 import math
 
 
-secsPerJCy = 36525*24*3600.
 arcsecToRad = math.pi/180/3600
 radToArcsec = 1/arcsecToRad
 

@@ -32,13 +32,10 @@ from gavo.base import caches
 from gavo.base.attrdef import *
 from gavo.base.complexattrs import *
 
-from gavo.base.codetricks import (compileFunction, runInSandbox, getBinaryName,
-	silence, loadPythonModule)
-
 from gavo.base.config import(
 	get as getConfig, set as setConfig,
 	setDBProfile, getDBProfile, getDBProfileByName,
-	makeSitePath)
+	makeSitePath, getBinaryName)
 
 from gavo.base.coords import degToRad, Box
 
@@ -47,7 +44,7 @@ from gavo.base.events import EventDispatcher
 ui = EventDispatcher()
 del EventDispatcher
 
-from gavo.base.excs import *
+from gavo.utils.excs import *
 
 from gavo.base.literals import *
 
@@ -56,8 +53,6 @@ from gavo.base.meta import (
 	InfoItem as MetaInfoItem,
 	MetaMixin, ComputedMetaMixin,
 	getMetaText, makeMetaValue)
-
-from gavo.base.misctricks import NameMap
 
 from gavo.base.observer import ObserverBase, listensTo
 
@@ -71,10 +66,6 @@ from gavo.base.sqlsupport import (DBError,
 
 from gavo.base.structure import (Structure, ParseableStructure, 
 	RefAttribute, DataContent, makeStruct)
-
-from gavo.base.texttricks import (fixIndentation,
-	makeEllipsis, getRelativePath, parseAssignments,
-	timeangleToDeg, dmsToDeg, fracHoursToDeg, degToTimeangle, degToDms)
 
 from gavo.base.typesystems import *
 

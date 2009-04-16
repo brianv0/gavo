@@ -8,6 +8,7 @@ revise this to have events before module replayed.
 import os
 
 from gavo import base
+from gavo import utils
 from gavo.svcs import core
 
 
@@ -18,7 +19,7 @@ class ModuleAttribute(base.UnicodeAttribute):
 
 	def feed(self, ctx, instance, modName):
 		modName = os.path.join(instance.rd.resdir, modName)
-		userModule, _ = base.loadPythonModule(modName)
+		userModule, _ = utils.loadPythonModule(modName)
 		newCore = userModule.Core(instance.parent)
 		ctx.idmap[instance.id] = newCore
 		raise base.Replace(newCore)

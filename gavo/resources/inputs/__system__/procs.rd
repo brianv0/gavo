@@ -7,7 +7,7 @@
 		<arg key="table"/>
 		<arg key="column"/>
 		<arg key="errCol" default="'&lt;unknown&gt;'"/>
-		assignments = base.parseAssignments(assignments)
+		assignments = utils.parseAssignments(assignments)
 		dbNames, recNames = assignments.keys(), assignments.values()
 		query = "SELECT %s FROM %s WHERE %s=%%(val)s"%(
 			", ".join(dbNames), table, column)
@@ -111,7 +111,7 @@
 		<arg key="logFailures" default="False"/>
 		<arg key="failuresAreNone" default="False"/>
 		<arg key="sourceName"/>
-		map = base.NameMap(os.path.join(
+		map = utils.NameMap(os.path.join(
 			base.getConfig("inputsDir"), sourceName))
 		return locals()
 	</consComp>

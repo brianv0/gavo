@@ -18,9 +18,9 @@ import traceback
 from gavo import base
 from gavo import stc
 from gavo import utils
-from gavo.base import texttricks
 from gavo.base import coords
 from gavo.base.literals import *
+from gavo.utils import dmsToDeg, hmsToDeg
 
 
 from gavo.base import parseBooleanLiteral
@@ -71,24 +71,6 @@ def combinePMs(result, pma, pmd):
 	result["pm_posang"] = pmpa
 
 
-def hmsToDeg(literal, sepChar=":"):
-	"""returns a literal like hh:mm:ss.sss as a floating point value in degrees.
-
-	sepChar is whatever is between the individual items and defaults to
-	the colon.
-	"""
-	return base.timeangleToDeg(literal)
-
-
-def dmsToDeg(literal, sepChar=" "):
-	"""returns a literal like dd mm ss.ss as a floating point value in degrees.
-
-	sepChar is whatever is between the individualt items and defaults
-	to a blank.
-	"""
-	return base.dmsToDeg(literal, sepChar)
-
-
 def parseTime(literal, format="%H:%M:%S"):
 	"""returns a datetime.timedelta object for literal parsed according
 	to format.
@@ -110,7 +92,7 @@ def parseTime(literal, format="%H:%M:%S"):
 	else:
 		# We can't really use prebuilt strptimes since times like 25:21:22.445
 		# are perfectly ok in astronomy.
-		partDict = texttricks.parsePercentExpression(literal, format)
+		partDict = utils.parsePercentExpression(literal, format)
 		return datetime.timedelta(0, hours=float(partDict.get("H", 0)),
 			minutes=float(partDict.get("M", 0)), seconds=float(partDict.get("S", 0)))
 
@@ -154,11 +136,11 @@ def parseAngle(literal, format):
 	'315.314334'
 	"""
 	if format=="dms":
-		return base.dmsToDeg(literal)
+		return utils.dmsToDeg(literal)
 	elif format=="hms":
-		return base.timeangleToDeg(literal)
+		return utils.hmsToDeg(literal)
 	elif format=="fracHour":
-		return base.fracHoursToDeg(literal)
+		return utils.fracHoursToDeg(literal)
 	else:
 		raise Error("Invalid format: %s"%format)
 
@@ -199,7 +181,7 @@ def makeCallable(funcName, code, moreGlobals=None):
 		moreGlobals.update(globals())
 	else:
 		moreGlobals = globals()
-	return base.compileFunction(code.rstrip(), funcName, moreGlobals)
+	return utils.compileFunction(code.rstrip(), funcName, moreGlobals)
 
 
 def killBlanks(literal):

@@ -10,7 +10,7 @@ import numarray
 import numarray.strings
 import pyfits
 
-from gavo import base
+from gavo import utils
 from gavo.formats import votable
 
 
@@ -40,7 +40,7 @@ def makeArrayForVOType(type, arrsz, numItems):
 		if type=="char":
 			return numarray.strings.array(shape=(numItems,))
 		else:
-			raise base.Error("Won't represent arrays within numarrays (%s, %s)"%(
+			raise utils.Error("Won't represent arrays within numarrays (%s, %s)"%(
 				type, arrlen))
 	return numarray.array(type=_naTypesMap[type], shape=(numItems,))
 
@@ -83,6 +83,6 @@ def makeFITSTableFile(dataSet):
 	"""
 	hdulist = makeFITSTable(dataSet)
 	handle, pathname = tempfile.mkstemp(".fits")
-	base.silence(hdulist.writeto, pathname, clobber=1)
+	utils.silence(hdulist.writeto, pathname, clobber=1)
 	os.close(handle)
 	return pathname

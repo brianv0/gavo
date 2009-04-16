@@ -6,7 +6,7 @@ import itertools
 import re
 
 from gavo import base
-from gavo.base import codetricks
+from gavo import utils
 from gavo.base import structure
 from gavo.rscdef import column
 from gavo.rscdef import common
@@ -74,7 +74,7 @@ class ColumnTupleAttribute(base.StringListAttribute):
 			funcSrc = ('def getPrimaryIn(row):\n'
 				'	return (%s)')%(" ".join(['row["%s"],'%name
 					for name in getattr(instance, self.name_)]))
-			return codetricks.compileFunction(funcSrc, "getPrimaryIn")
+			return utils.compileFunction(funcSrc, "getPrimaryIn")
 
 		def getPrimaryIn(self, row):
 			try:

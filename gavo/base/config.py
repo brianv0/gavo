@@ -11,7 +11,7 @@ import shlex
 import sys
 
 from gavo.base import attrdef
-from gavo.base import excs
+from gavo.utils import excs
 from gavo.base import meta
 from gavo.base import structure
 from gavo.utils import fancyconfig
@@ -432,6 +432,21 @@ def makeSitePath(uri):
 	uri itself needs to be server-absolute (i.e., start with a slash).
 	"""
 	return get("web", "nevowRoot")+uri.lstrip("/")
+
+
+def getBinaryName(baseName):
+	"""returns the name of a binary it thinks is appropriate for the platform.
+
+	To do this, it asks config for the platform name, sees if there's a binary
+	<bin>-<platname> if platform is nonempty.  If it exists, it returns that name,
+	in all other cases, it returns baseName unchanged.
+	"""
+	platform = get("platform")
+	if platform:
+		platName = baseName+"-"+platform
+		if os.path.exists(platName):
+			return platName
+	return baseName
 
 
 def main():

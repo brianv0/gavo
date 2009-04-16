@@ -20,6 +20,7 @@ from zope.interface import implements
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
+from gavo import utils
 from gavo.base import meta
 from gavo.rsc import table
 from gavo.rscdef import rmkdef
@@ -206,7 +207,7 @@ class CustomRF(base.Structure):
 		self._onElementCompleteNext(CustomRF)
 		vars = globals()
 		exec ("def %s(ctx, data):\n%s"%(self.name,
-				base.fixIndentation(self.content_, newIndent="  ",
+				utils.fixIndentation(self.content_, newIndent="  ",
 					governingLine=1).rstrip())) in vars
 		self.func = vars[self.name]
 	
@@ -302,7 +303,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		# compile custom page if present
 		if self.customPage:
 			try:
-				modNs, moddesc = base.loadPythonModule(self.customPage)
+				modNs, moddesc = utils.loadPythonModule(self.customPage)
 				page = modNs.MainPage
 			except ImportError:
 				import traceback

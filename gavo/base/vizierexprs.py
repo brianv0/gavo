@@ -8,8 +8,8 @@ from pyparsing import Word, Literal, Optional, Forward, Group,\
 	ZeroOrMore, nums, Suppress, ParseException, StringEnd, Regex,\
 	OneOrMore, Or, MatchFirst, CharsNotIn
 
-from gavo.base import excs
-from gavo.base import texttricks
+from gavo import utils
+from gavo.utils import excs
 from gavo.base import typesystems
 
 
@@ -272,7 +272,7 @@ def parseFloat(s, pos, tok):
 	except ValueError:
 		return float(tok[0])
 
-floatLiteral = Regex(texttricks.floatRE).addParseAction(parseFloat)
+floatLiteral = Regex(utils.floatRE).addParseAction(parseFloat)
 
 # XXX TODO: be a bit more lenient in what you accept as a date
 dateLiteral = Regex(r"\d\d\d\d-\d\d-\d\d(T\d\d:\d\d:\d\d)?").addParseAction(

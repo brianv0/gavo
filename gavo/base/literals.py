@@ -13,8 +13,7 @@ import datetime
 import re
 import time
 
-from gavo.base import excs
-from gavo.base import texttricks
+from gavo import utils
 
 
 def parseInt(literal):
@@ -51,7 +50,7 @@ def parseBooleanLiteral(literal):
 	elif literal in _falseLiterals:
 		return False
 	else:
-		raise excs.LiteralParseError(
+		raise utils.LiteralParseError(
 			"'%s' is no recognized boolean literal."%literal)
 
 
@@ -108,8 +107,8 @@ def parseCooPair(soup):
 	soup = soup.strip()
 
 	def parseFloatPair(soup):
-		mat = re.match("(%s)\s*[\s,/]\s*(%s)$"%(texttricks.floatRE, 
-			texttricks.floatRE), soup)
+		mat = re.match("(%s)\s*[\s,/]\s*(%s)$"%(utils.floatRE, 
+			utils.floatRE), soup)
 		if mat:
 			return float(mat.group(1)), float(mat.group(2))
 
@@ -119,9 +118,9 @@ def parseCooPair(soup):
 		mat = re.match("(%s)\s*[\s,/]?\s*(%s)$"%(timeangleRE, dmsRE), soup)
 		if mat:
 			try:
-				return texttricks.timeangleToDeg(mat.group(1)), texttricks.dmsToDeg(
+				return utils.hmsToDeg(mat.group(1)), utils.dmsToDeg(
 					mat.group(2))
-			except excs.Error, msg:
+			except utils.Error, msg:
 				raise ValueError(str(msg))
 
 	for func in [parseFloatPair, parseTimeangleDms]:

@@ -15,6 +15,7 @@ import weakref
 
 from gavo import base
 from gavo import rscdef
+from gavo import utils
 from gavo.grammars import common
 
 
@@ -47,7 +48,7 @@ class CustomGrammar(common.Grammar):
 		description="Path to module containing your row iterator.")
 
 	def _initUserGrammar(self):
-		self.userModule, _ = base.loadPythonModule(self.module)
+		self.userModule, _ = utils.loadPythonModule(self.module)
 		self.rowIterator = self.userModule.RowIterator
 		if hasattr(self.userModule, "makeDataPack"):
 			self.dataPack = self.userModule.makeDataPack(self)

@@ -12,8 +12,8 @@ import shutil
 import sys
 import tempfile
 
-from gavo.base import config
-from gavo.base import excs
+from gavo.utils import algotricks
+from gavo.utils import excs
 
 
 def _iterDerivedClasses(baseClass, objects):
@@ -25,39 +25,6 @@ def _iterDerivedClasses(baseClass, objects):
 				yield cand
 		except TypeError:  # issubclass wants a class
 			pass
-
-
-class _Deferred(object):
-	"""is a helper class for DeferringDict.
-	"""
-	def __init__(self, callable, args=(), kwargs={}):
-		self.callable, self.args, self.kwargs = callable, args, kwargs
-	
-	def actualize(self):
-		return self.callable(*self.args, **self.kwargs)
-
-
-class DeferringDict(dict):
-	"""is a dictionary that stores tuples of a callable and its
-	arguments and will, on the first access, do the calls.
-
-	This is used below to defer the construction of instances in the class
-	resolver to when they are actually used.  This is important with interfaces,
-	since they usually need the entire system up before they can sensibly
-	be built.
-	"""
-	def __setitem__(self, key, value):
-		if isinstance(value, tuple):
-			dict.__setitem__(self, key, _Deferred(*value))
-		else:
-			dict.__setitem__(self, key, _Deferred(value))
-
-	def __getitem__(self, key):
-		val = dict.__getitem__(self, key)
-		if isinstance(val, _Deferred):
-			val = val.actualize()
-			dict.__setitem__(self, key, val)
-		return val
 
 
 def buildClassResolver(baseClass, objects, instances=False):
@@ -73,7 +40,7 @@ def buildClassResolver(baseClass, objects, instances=False):
 	of classes.
 	"""
 	if instances:
-		registry = DeferringDict()
+		registry = algotricks.DeferringDict()
 	else:
 		registry = {}
 	for cls in _iterDerivedClasses(baseClass, objects):
@@ -239,21 +206,6 @@ def ensureExpression(expr, errName="unknown"):
 	except (ValueError, AttributeError):
 		raise excs.LiteralParseError("'%s' is not a valid python expression"%
 			expr, errName, expr)
-
-
-def getBinaryName(baseName):
-	"""returns the name of a binary it thinks is appropriate for the platform.
-
-	To do this, it asks config for the platform name, sees if there's a binary
-	<bin>-<platname> if platform is nonempty.  If it exists, it returns that name,
-	in all other cases, it returns baseName unchanged.
-	"""
-	platform = config.get("platform")
-	if platform:
-		platName = baseName+"-"+platform
-		if os.path.exists(platName):
-			return platName
-	return baseName
 
 
 def loadPythonModule(fqName):

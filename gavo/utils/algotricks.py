@@ -2,6 +2,9 @@
 Some fundamental algorithms not found in the standard library.
 """
 
+import sys
+
+
 class IndexedGraph(object):
 	"""is a graph that is indexed by both incoming and outgoing edges.
 
@@ -94,3 +97,40 @@ def topoSort(edges):
 	if graph:
 		raise ValueError("Graph not acyclic, cycle: %s->%s"%graph.getEdge())
 	return res
+
+
+class _Deferred(object):
+	"""is a helper class for DeferringDict.
+	"""
+	def __init__(self, callable, args=(), kwargs={}):
+		self.callable, self.args, self.kwargs = callable, args, kwargs
+	
+	def actualize(self):
+		return self.callable(*self.args, **self.kwargs)
+
+
+class DeferringDict(dict):
+	"""is a dictionary that stores tuples of a callable and its
+	arguments and will, on the first access, do the calls.
+
+	This is used below to defer the construction of instances in the class
+	resolver to when they are actually used.  This is important with interfaces,
+	since they usually need the entire system up before they can sensibly
+	be built.
+	"""
+	def __setitem__(self, key, value):
+		if isinstance(value, tuple):
+			dict.__setitem__(self, key, _Deferred(*value))
+		else:
+			dict.__setitem__(self, key, _Deferred(value))
+
+	def __getitem__(self, key):
+		val = dict.__getitem__(self, key)
+		if isinstance(val, _Deferred):
+			val = val.actualize()
+			dict.__setitem__(self, key, val)
+		return val
+
+
+def identity(val):
+	return val

@@ -56,8 +56,7 @@ See structure on how to use all these.
 import os
 
 from gavo.base import literals
-from gavo.base import texttricks
-from gavo.base.excs import LiteralParseError, StructureError
+from gavo.utils.excs import LiteralParseError, StructureError
 
 
 class UndefinedType(type):

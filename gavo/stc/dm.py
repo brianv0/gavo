@@ -137,7 +137,6 @@ class RadiusWiggle(_WiggleSpec):
 		return self.change(radii=tuple(unitConverter(repeat(r))[0] 
 			for r in self.radii))
 
-
 class MatrixWiggle(_WiggleSpec):
 	"""A matrix for specifying wiggle.
 
@@ -162,7 +161,6 @@ class _CoordinateLike(ASTNode):
 	"""
 	_a_frame = None
 	_a_name = None
-
 
 	def getPosition(self):
 		"""returns a position appropriate for this class.

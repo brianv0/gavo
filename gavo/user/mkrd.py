@@ -18,6 +18,7 @@ from itertools import *
 from gavo import base
 from gavo import grammars
 from gavo import rscdef
+from gavo import utils
 from gavo.base import typesystems
 from gavo.imp import VOTable
 from gavo.utils import ElementTree
@@ -180,7 +181,7 @@ dataMakers = {
 def makeRD(args, opts):
 	from gavo import rscdesc
 	rd = rscdesc.RD(None, schema=os.path.basename(os.getcwd()),
-		resdir=base.getRelativePath(
+		resdir=utils.getRelativePath(
 			os.getcwd(), base.getConfig("inputsDir")))
 	rd.feedObject("table", tableMakers[opts.srcForm](rd, args[0], opts))
 	rd.feedObject("data", dataMakers[opts.srcForm](rd, args[0], opts))

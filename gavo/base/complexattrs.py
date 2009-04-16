@@ -23,7 +23,7 @@ of internal structure, add methods
 
 from gavo.base import structure
 from gavo.base.attrdef import *
-from gavo.base.excs import *
+from gavo.utils.excs import *
 
 
 class CollOfAtomsAttribute(AtomicAttribute):

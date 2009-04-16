@@ -9,7 +9,7 @@ import warnings
 
 import pyfits
 
-from gavo.base import excs
+from gavo.utils import excs
 
 
 class AstWCSLoader(object):

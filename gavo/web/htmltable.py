@@ -68,7 +68,7 @@ def _timeangleMapperFactory(colProps):
 		if val is None:
 			return "N/A"
 		else:
-			return base.degToTimeangle(val, sepChar, sf)
+			return utils.degToHms(val, sepChar, sf)
 	return coder
 _registerHTMLMF(_timeangleMapperFactory)
 
@@ -83,7 +83,7 @@ def _sexagesimalMapperFactory(colProps):
 	def coder(val):
 		if val is None:
 			return "N/A"
-		return base.degToDms(val, sepChar, sf)
+		return utils.degToDms(val, sepChar, sf)
 	return coder
 _registerHTMLMF(_sexagesimalMapperFactory)
 
@@ -311,7 +311,7 @@ class HTMLTableFragment(rend.Fragment):
 		ns["source"] = source
 		code = ("def format(data):\n"
 			"  try:\n"+
-			base.fixIndentation(source, "     ")+"\n"
+			utils.fixIndentation(source, "     ")+"\n"
 			"  except:\n"
 			"    sys.stderr.write('Error in\\n%s\\n'%source)\n"
 			"    traceback.print_exc()\n"

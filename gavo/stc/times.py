@@ -6,7 +6,8 @@ import bisect
 import datetime
 import re
 
-from gavo.stc import common
+from gavo import utils
+from gavo.stc.common import *
 
 _isoDTRE = re.compile(r"(?P<year>\d\d\d\d)-?(?P<month>\d\d)-?(?P<day>\d\d)"
 		r"(?:T(?P<hour>\d\d):?(?P<minute>\d\d):?"
@@ -33,7 +34,7 @@ def parseISODT(literal):
 	"""
 	mat = _isoDTRE.match(literal.strip())
 	if not mat:
-		raise common.STCLiteralError("Bad ISO datetime literal: %s"%literal,
+		raise STCLiteralError("Bad ISO datetime literal: %s"%literal,
 			literal)
 	parts = mat.groupdict()
 	if parts["hour"] is None:
@@ -67,7 +68,7 @@ def bYearToDateTime(bYear):
 
 	This uses the formula given by Lieske, J.H., A&A 73, 282 (1979).
 	"""
-	jdn = (bYear-1900.0)*365.242198781+2415020.31352
+	jdn = (bYear-1900.0)*tropicalYear+2415020.31352
 	return jdnToDateTime(jdn)
 
 
@@ -99,7 +100,7 @@ def dateTimeToJdn(dt):
 
 
 def dateTimeToBYear(dt):
-	return (dateTimeToJdn(dt)-2415020.31352)/365.242198781+1900.0
+	return (dateTimeToJdn(dt)-2415020.31352)/tropicalYear+1900.0
 
 
 def dateTimeToJYear(dt):

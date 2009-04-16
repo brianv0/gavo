@@ -55,11 +55,10 @@ like themselves.
 import new
 import weakref
 
+from gavo import utils
 from gavo.base import attrdef
 from gavo.base import parsecontext
-from gavo.base import texttricks
-from gavo.base.excs import StructureError, Replace, LiteralParseError
-from gavo.utils import algotricks
+from gavo.utils.excs import StructureError, Replace, LiteralParseError
 
 
 class ChangeParser(Exception):
@@ -147,7 +146,7 @@ def sortAttrs(attrSeq):
 			beforeGraph.append((att.name_, att.before))
 	if beforeGraph:
 		attDict = dict((a.name_, a) for a in attrSeq)
-		sortedNames = algotricks.topoSort(beforeGraph)
+		sortedNames = utils.topoSort(beforeGraph)
 		sortedAtts = [attDict[n] for n in sortedNames]
 		attrSeq = sortedAtts+list(set(attrSeq)-set(sortedAtts))
 	return attrSeq
@@ -385,7 +384,7 @@ class ParseableStructure(StructureBase):
 			if name=="content_":
 				raise StructureError("%s elements must not have character data"
 					" content (found '%s')"%(self.name_, 
-						texttricks.makeEllipsis(value, 20)))
+						utils.makeEllipsis(value, 20)))
 			raise StructureError(
 				"%s elements have no %s attributes"%(self.name_, name))
 		try:

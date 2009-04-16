@@ -6,7 +6,7 @@ from cStringIO import StringIO
 from xml.sax import make_parser, SAXException
 from xml.sax.handler import ContentHandler
 
-from gavo.base import excs
+from gavo.utils import excs
 from gavo.base import parsecontext
 from gavo.base import structure
 

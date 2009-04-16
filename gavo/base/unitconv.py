@@ -10,7 +10,7 @@ import traceback
 from pyparsing import Word, Literal, Regex, Optional, ZeroOrMore, StringEnd
 from pyparsing import MatchFirst, ParseException, ParserElement
 
-from gavo.base import excs
+from gavo.utils import excs
 
 ParserElement.enablePackrat()
 

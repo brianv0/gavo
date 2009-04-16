@@ -5,7 +5,7 @@ Base classes for callable RD items (rowgens, rowmaker procs, etc.)
 import traceback
 
 from gavo import base
-from gavo.base import codetricks
+from gavo import utils
 from gavo.rscdef import common
 from gavo.rscdef import rmkfuncs
 
@@ -31,9 +31,9 @@ class FuncArg(base.Structure):
 				self.key)
 		# Allow non-python syntax when things look like macro calls.
 		if self.content_ and not "\\" in self.content_:
-			codetricks.ensureExpression(self.content_, self.key)
+			utils.ensureExpression(self.content_, self.key)
 		if self.default and not "\\" in self.default:
-				codetricks.ensureExpression(self.default, self.key)
+				utils.ensureExpression(self.default, self.key)
 
 
 class CodeFrag(base.Structure):
@@ -116,7 +116,7 @@ class CodeFrag(base.Structure):
 		self._makeActualArgString()
 		self.defaultedNames = [a.key for a in self.args if a.default]
 		self.funcBody = "%s\n%s"%(self._getDefaultingCode(),
-			base.fixIndentation(self.content_, "  ", governingLine=1))
+			utils.fixIndentation(self.content_, "  ", governingLine=1))
 		self._onElementCompleteNext(CodeFrag)
 
 	def getSource(self):
