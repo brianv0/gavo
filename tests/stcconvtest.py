@@ -279,6 +279,17 @@ class UnitConformTest(testhelpers.VerboseTest):
 		self.assertEqual(res.freq.unit, "GHz")
 		self.assertEqual(res.freq.value, 1.25)
 
+	def testAreaConform(self):
+		ast0 = stc.parseSTCS("PositionInterval ICRS 9 11 11 13 Position 10 12"
+			" RedshiftInterval 1000 2000 Redshift 1500 unit m/s")
+		ast1 = stc.parseSTCS("Position ICRS unit arcmin Redshift unit km/s")
+		res = conform.conform(ast1, ast0)
+		self.assertEqual(res.place.value[0], 10*60)
+		self.assertEqual(res.areas[0].lowerLimit[0], 9*60)
+		self.assertEqual(res.areas[0].upperLimit[1], 13*60)
+		self.assertEqual(res.redshiftAs[0].upperLimit, 2)
+		self.assertEqual(res.redshift.unit, "km")
+		self.assertEqual(res.redshift.velTimeUnit, "s")
 
 if __name__=="__main__":
 	testhelpers.main(UnitConformTest)

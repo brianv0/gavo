@@ -161,6 +161,16 @@ class ASTNode(object):
 			"%s=%s"%(name, repr(val))
 			for name, val in self.iterAttributes(skipEmpty=True)))
 
+	def __eq__(self, other):
+		if not isinstance(other, self.__class__):
+			return False
+		for name, _ in self._nodeAttrs:
+			if name=="id":
+				continue
+			if getattr(self, name)!=getattr(other, name):
+				return False
+		return True
+		
 	def change(self, **kwargs):
 		"""returns a shallow copy of self with constructor arguments in kwargs
 		changed.

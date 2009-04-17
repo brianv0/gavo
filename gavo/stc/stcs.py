@@ -14,7 +14,7 @@ from pyparsing import (Word, Literal, Optional, alphas, CaselessKeyword,
 		ZeroOrMore, OneOrMore, SkipTo, srange, StringEnd, Or, MatchFirst,
 		Suppress, Keyword, Forward, QuotedString, Group, printables, nums,
 		CaselessLiteral, ParseException, Regex, sglQuotedString, alphanums,
-		dblQuotedString, White, ParseException, ParseResults)
+		dblQuotedString, White, ParseException, ParseResults, Empty)
 
 from gavo.stc import stcsdefaults
 from gavo.stc import times
@@ -43,7 +43,6 @@ spatialUnits = set(["deg", "arcmin", "arcsec", "m", "mm", "km", "AU",
 temporalUnits = set(["yr", "cy", "s", "d", "a"])
 spectralUnits = set(["MHz", "GHz", "Hz", "Angstrom", "keV", "MeV", 
 	"eV", "mm", "um", "nm", "m"])
-redshiftUnits = set(["km/s", "nil"])
 
 def _assertGrammar(cond, msg, pos):
 	if not cond:
@@ -168,7 +167,8 @@ def getSymbols():
 		lambda s,p,t: " ".join(t))("unit")
 	timeUnit = _unitOpener + _timeUnitWord("unit")
 	spectralUnit = _unitOpener + Regex(_reFromKeys(spectralUnits))("unit")
-	redshiftUnit = _unitOpener + Regex(_reFromKeys(redshiftUnits))("unit")
+	redshiftUnit = _unitOpener + ( (_spaceUnitWord + "/" + _timeUnitWord
+		).addParseAction(lambda s,p,t: "".join(t)) | Empty() )("unit")
 	velocityUnit = _unitOpener + OneOrMore( (_spaceUnitWord + "/" + _timeUnitWord
 		).addParseAction(lambda s,p,t: "".join(t)) ).addParseAction(
 			lambda s,p,t: " ".join(t))("unit")

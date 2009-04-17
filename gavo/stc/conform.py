@@ -20,14 +20,15 @@ def getUnitConverter(baseCoo, srcCoo):
 		srcCoo.getUnitArgs())
 
 
-_conformedAttributes = ["time", "place", "freq", "redshift", "velocity"]
+_conformedAttributes = [("time", "timeAs"), ("place", "areas"), 
+	("freq", "freqAs"), ("redshift", "redshiftAs"), ("velocity", "velocityAs")]
 
 
 def conformUnits(baseSTC, srcSTC):
 	"""returns srcSTC in the units of baseSTC.
 	"""
 	stcOverrides = {}
-	for attName in _conformedAttributes:
+	for attName, dependentName in _conformedAttributes:
 		coo = getattr(srcSTC, attName)
 		if coo is not None:
 			elOverrides, conv = getUnitConverter(getattr(baseSTC, attName), coo)
@@ -35,6 +36,15 @@ def conformUnits(baseSTC, srcSTC):
 				continue
 			elOverrides.update(coo.iterTransformed(conv))
 			stcOverrides[attName] = coo.change(**elOverrides)
+			areas = getattr(srcSTC, dependentName)
+			if areas:
+				transformed = []
+				for a in areas:
+					if hasattr(a, "adaptValuesWith"):  # Geometries are not adapted
+						transformed.append(a.adaptValuesWith(conv))
+					else:
+						transformed.append(a)
+				stcOverrides[dependentName] = tuple(transformed)
 	return srcSTC.change(**stcOverrides)
 
 
