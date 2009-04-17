@@ -32,7 +32,7 @@ class SpaceFrameTest(testhelpers.VerboseTest):
 	def testSimple(self):
 		assertEqualWithoutIds(stcxgen.nodeToStan(dm.SpaceFrame(
 			flavor="CARTESIAN", nDim=2, refFrame="ICRS", name="rotten",
-			refPos=dm.RefPos(standardOrigin="GEOCENTER"))).render(),
+			refPos=dm.RefPos(standardOrigin="GEOCENTER")), None).render(),
 		'<SpaceFrame ><Name>rotten</Name><ICRS /><GEOCENTER />'
 			'<CARTESIAN coord_naxes="2" /></SpaceFrame>')
 

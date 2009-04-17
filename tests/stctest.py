@@ -84,7 +84,7 @@ class SpaceCoordTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.place.frame.flavor, "SPHERICAL")
 		self.assertEqual(ast.place.frame.nDim, 2)
 		self.assertEqual(ast.place.value, (2., 4.25))
-		self.assertEqual(ast.place.units, ("deg", "deg"))
+		self.assertEqual(ast.place.unit, ("deg", "deg"))
 		self.assertEqual(ast.place.pixSize.values, ((4.5, 3.75),))
 	
 	def testPixSizeRange(self):
@@ -144,7 +144,6 @@ class OtherCoordIntervalTest(testhelpers.VerboseTest):
 			"UNKNOWNRefPos")
 		self.assertEqual(ast.freqAs[0].lowerLimit, 23.0)
 		self.assertEqual(ast.freqAs[0].upperLimit, 45.0)
-		self.assertEqual(ast.freqAs[0].unit, "Hz")
 
 	def testRedshiftInterval(self):
 		ast = stcsast.parseSTCS("RedshiftInterval REDSHIFT 2 4")
@@ -216,8 +215,7 @@ class SpaceCoordIntervalTest(testhelpers.VerboseTest):
 		ast = stcsast.parseSTCS("PositionInterval ICRS CART2 1 2 3 4"
 			" unit m kpc Error 0.25 0.5")
 		self.assertEqual(len(ast.areas), 1)
-		self.assertEqual(ast.areas[0].units, ("m", "kpc"))
-		self.assertEqual(ast.place.units, ("m", "kpc"))
+		self.assertEqual(ast.place.unit, ("m", "kpc"))
 
 	def testBadPositionRaises(self):
 		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS, 
@@ -304,38 +302,32 @@ class UnitParseTest(testhelpers.VerboseTest):
 	"""
 	def test2DSpatial(self):
 		ast = stcsast.parseSTCS("Position ICRS 1 200 unit deg")
-		self.assertEqual(ast.place.units, ("deg", "deg"))
+		self.assertEqual(ast.place.unit, ("deg", "deg"))
 	
 	def test3DGeo(self):
 		ast = stcsast.parseSTCS("Position GEO_D SPHER3 49.39861 8.72083 560")
-		self.assertEqual(ast.place.units, ("deg", "deg", "m"))
+		self.assertEqual(ast.place.unit, ("deg", "deg", "m"))
 	
 	def test1DSpatialInterval(self):
 		ast = stcsast.parseSTCS("PositionInterval ICRS CART1 1 unit km")
-		self.assertEqual(ast.place.units, ("km",))
-		self.assertEqual(ast.areas[0].units, ("km",))
+		self.assertEqual(ast.place.unit, ("km",))
 
 	def test2DSpatialInterval(self):
 		ast = stcsast.parseSTCS("PositionInterval ICRS 1 2 2 3 unit rad")
-		self.assertEqual(ast.place.units, ("rad", "rad"))
-		self.assertEqual(ast.areas[0].units, ("rad", "rad"))
+		self.assertEqual(ast.place.unit, ("rad", "rad"))
 	
 	def testSpectral(self):
 		ast = stcsast.parseSTCS("SpectralInterval 1 2 unit nm")
 		self.assertEqual(ast.freq.unit, "nm")
-		self.assertEqual(ast.freqAs[0].unit, "nm")
 
 	def testTime(self):
 		ast = stcsast.parseSTCS("TimeInterval MJD56 MJD57 unit a")
 		self.assertEqual(ast.time.unit, "a")
-		self.assertEqual(ast.timeAs[0].unit, "a")
 
 	def testRedshift(self):
 		ast = stcsast.parseSTCS("RedshiftInterval 1000 2000 unit km/s")
 		self.assertEqual(ast.redshift.unit, "km")
-		self.assertEqual(ast.redshiftAs[0].unit, "km")
 		self.assertEqual(ast.redshift.velTimeUnit, "s")
-		self.assertEqual(ast.redshiftAs[0].velTimeUnit, "s")
 
 
 class VelocityTest(testhelpers.VerboseTest):
@@ -344,16 +336,16 @@ class VelocityTest(testhelpers.VerboseTest):
 	def testTrivial(self):
 		ast = stcsast.parseSTCS("Position ICRS VelocityInterval 1 2")
 		self.failUnless(ast.velocity.frame is ast.astroSystem.spaceFrame)
-		self.assertEqual(ast.velocityAs[0].units, ("m", "m"))
-		self.assertEqual(ast.velocityAs[0].velTimeUnits, ("s", "s"))
+		self.assertEqual(ast.velocity.unit, ("m", "m"))
+		self.assertEqual(ast.velocity.velTimeUnit, ("s", "s"))
 		self.assertEqual(ast.velocityAs[0].lowerLimit, (1., 2.0))
 		self.assertEqual(ast.velocityAs[0].upperLimit, None)
 	
 	def testSimple(self):
 		ast = stcsast.parseSTCS("Position ICRS VelocityInterval Velocity 1 2"
 			" unit deg/cy")
-		self.assertEqual(ast.velocity.units, ("deg", "deg"))
-		self.assertEqual(ast.velocity.velTimeUnits, ("cy", "cy"))
+		self.assertEqual(ast.velocity.unit, ("deg", "deg"))
+		self.assertEqual(ast.velocity.velTimeUnit, ("cy", "cy"))
 		self.assertEqual(ast.velocity.value, (1., 2.))
 		self.assertEqual(len(ast.velocityAs), 1)
 	
@@ -448,10 +440,10 @@ class DMTests(testhelpers.VerboseTest):
 	"""
 	def testBadUnitsRaise(self):
 		self.assertRaises(stc.STCValueError, dm.RedshiftCoo, unit="m")
-		self.assertRaises(stc.STCValueError, dm.VelocityCoo, units=("m", "m"))
-		self.assertRaises(stc.STCValueError, dm.VelocityCoo, units=("m", "m"),
-			velTimeUnits=("s",))
+		self.assertRaises(stc.STCValueError, dm.VelocityCoo, unit=("m", "m"))
+		self.assertRaises(stc.STCValueError, dm.VelocityCoo, unit=("m", "m"),
+			velTimeUnit=("s",))
 
 
 if __name__=="__main__":
-	testhelpers.main(DMTests)
+	testhelpers.main(STCSRoundtripTest)

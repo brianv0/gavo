@@ -87,11 +87,21 @@ class _CooTypeSentinel(object):
 	Never instantiate any of these.
 	"""
 
-class SpectralType(_CooTypeSentinel): pass
-class TimeType(_CooTypeSentinel): pass
-class SpaceType(_CooTypeSentinel): pass
-class RedshiftType(_CooTypeSentinel): pass
-class VelocityType(_CooTypeSentinel): pass
+class SpectralType(_CooTypeSentinel):
+	posAttr = "freq"
+
+class TimeType(_CooTypeSentinel):
+	posAttr = "time"
+
+class SpaceType(_CooTypeSentinel):
+	posAttr = "place"
+
+class RedshiftType(_CooTypeSentinel):
+	posAttr = "redshift"
+
+class VelocityType(_CooTypeSentinel):
+	posAttr = "velocity"
+
 
 ############### Coordinates and their intervals
 
@@ -162,7 +172,7 @@ class _CoordinateLike(ASTNode):
 	_a_frame = None
 	_a_name = None
 
-	def getPosition(self):
+	def getPosition(self, initArgs=None):
 		"""returns a position appropriate for this class.
 
 		This is a shallow copy of the xCoo object itself for xCoos, 
@@ -170,9 +180,10 @@ class _CoordinateLike(ASTNode):
 		are copied to the new object.
 		"""
 		posClass = _positionClassMap[self.cType]
-		initArgs = {}
+		if initArgs is None:
+			initArgs = {}
 		for name, default in posClass._nodeAttrs:
-			if name!="id":
+			if name!="id" and name not in initArgs:
 				initArgs[name] = getattr(self, name, default)
 		return posClass(**initArgs)
 
@@ -195,7 +206,7 @@ class _Coordinate(_CoordinateLike):
 
 	Second, a method getUnitArgs() -> dict or None is required.  It has to
 	return a dictionary with all unit-related constructor arguments
-	(that's unit, units, velTimeUnit, and/or velTimeUnits for the standard
+	(that's unit and velTimeUnit for the standard
 	coordinate types).  No None values are allowed; if self's units are
 	not defined, return None.
 
@@ -252,63 +263,63 @@ class _OneDMixin(object):
 class _SpatialMixin(object):
 	"""provides attributes for positional coordinates.
 	"""
-	_a_units = ()
+	_a_unit = ()
 
 	cType = SpaceType
 
 	def getUnitString(self):
-		if self.units:
-			if len(set(self.units))==1:
-				return self.units[0]
+		if self.unit:
+			if len(set(self.unit))==1:
+				return self.unit[0]
 			else:
-				return " ".join(self.units)
+				return " ".join(self.unit)
 
 	def getUnitConverter(self, otherUnits):
-		if self.units is None or not otherUnits:
+		if self.unit is None or not otherUnits:
 			return None
 		if isinstance(otherUnits, dict):
-			otherUnits = (otherUnits["units"],)
-		f = units.getVectorConverter(self.units, otherUnits[0], True)
+			otherUnits = (otherUnits["unit"],)
+		f = units.getVectorConverter(self.unit, otherUnits[0], True)
 		return f
 
 	def getUnitArgs(self):
-		return {"units": self.units}
+		return {"unit": self.unit}
 
 
 class _VelocityMixin(object):
 	"""provides attributes for velocities.
 	"""
-	_a_units = ()
-	_a_velTimeUnits = ()
+	_a_unit = ()
+	_a_velTimeUnit = ()
 
 	cType = VelocityType
 
 	def _setupNode(self):
-		if self.units:
-			if not self.velTimeUnits or len(self.units)!=len(self.velTimeUnits):
+		if self.unit:
+			if not self.velTimeUnit or len(self.unit)!=len(self.velTimeUnit):
 				raise STCValueError("Invalid units for Velocity: %s/%s."%(
-					repr(self.units), repr(self.velTimeUnits)))
+					repr(self.unit), repr(self.velTimeUnit)))
 		self._setupNodeNext(_VelocityMixin)
 
 	def getUnitString(self):
-		if self.units:
-			if len(set(self.units))==1:
-				return "%s/%s"%(self.units[0], self.velTimeUnits[0])
+		if self.unit:
+			strs = ["%s/%s"%(u, tu) 
+				for u, tu in itertools.izip(self.unit, self.velTimeUnit)]
+			if len(set(strs))==1:
+				return strs[0]
 			else:
-				return " ".join("%s/%s"%(u, tu) 
-					for u, tu in itertools.izip(self.units, self.velTimeUnits))
-			return ()
+				return " ".join(strs)
 
 	def getUnitConverter(self, otherUnits):
-		if self.units is None or not otherUnits:
+		if self.unit is None or not otherUnits:
 			return None
 		if isinstance(otherUnits, dict):
-			otherUnits = (otherUnits["units"], otherUnits["velTimeUnits"])
-		return units.getVelocityConverter(self.units, self.velTimeUnits,
+			otherUnits = (otherUnits["unit"], otherUnits["velTimeUnit"])
+		return units.getVelocityConverter(self.unit, self.velTimeUnit,
 			otherUnits[0], otherUnits[1], True)
 
 	def getUnitArgs(self):
-		return {"units": self.units, "velTimeUnits": self.velTimeUnits}
+		return {"unit": self.units, "velTimeUnit": self.velTimeUnit}
 
 
 class _RedshiftMixin(object):
@@ -365,16 +376,35 @@ class _CoordinateInterval(_CoordinateLike):
 	_a_lowerLimit = None
 	_a_upperLimit = None
 	_a_fillFactor = None
+	_a_origUnit = None
+
+	def adaptValuesWith(self, converter):
+		changes = {"origUnit": None}
+		if self.lowerLimit is not None:
+			changes["lowerLimit"] = converter(self.lowerLimit)
+		if self.upperLimit is not None:
+			changes["upperLimit"] = converter(self.upperLimit)
+		return self.change(**changes)
 
 
-class SpaceInterval(_CoordinateInterval, _SpatialMixin): pass
-class VelocityInterval(_CoordinateInterval, _VelocityMixin): pass
-class RedshiftInterval(_CoordinateInterval, _RedshiftMixin): pass
+class SpaceInterval(_CoordinateInterval):
+	cType = SpaceType
 
-class TimeInterval(_CoordinateInterval, _OneDMixin):
+class VelocityInterval(_CoordinateInterval):
+	cType = VelocityType
+
+class RedshiftInterval(_CoordinateInterval):
+	cType = RedshiftType
+
+class TimeInterval(_CoordinateInterval):
 	cType = TimeType
 
-class SpectralInterval(_CoordinateInterval, _OneDMixin):
+	def adaptValuesWith(self, converter):
+		# timeIntervals are unitless; units only refer to errors, etc,
+		# which we don't have here.
+		return self
+
+class SpectralInterval(_CoordinateInterval):
 	cType = SpectralType
 
 
@@ -386,6 +416,9 @@ class _Geometry(_CoordinateLike, _SpatialMixin):
 	"""
 	_a_size = None
 	_a_fillFactor = None
+	# The following helps since geometries are areas (like intervals)
+	# However, no unit coercion takes place for them, so it's fixed None.
+	origUnit = None
 
 
 class _GeometryWithDeps(_Geometry):
@@ -397,13 +430,13 @@ class _GeometryWithDeps(_Geometry):
 	homogeneous for all geometries that have dependent quantities.
 	"""
 	def _setupNode(self):
-		if self.units:
+		if self.unit:
 			try:
-				if self.units[0]!=self.units[1]:
+				if self.unit[0]!=self.unit[1]:
 					raise Exception
 			except:
 				raise STCValueError("Geometries must have the same units in both"
-					" dimensions, so %s is invalid"%str(self.units[0]))
+					" dimensions, so %s is invalid"%str(self.unit[0]))
 
 
 class AllSky(_Geometry):

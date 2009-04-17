@@ -138,8 +138,8 @@ class WiggleCoercionTest(testhelpers.VerboseTest):
 			'</Resolution2Radius>'
 			'</Velocity2D>')
 		pos = ast.velocity
-		self.assertEqual(pos.units, ('arcsec', 'rad'))
-		self.assertEqual(pos.velTimeUnits, ('yr', 'cy'))
+		self.assertEqual(pos.unit, ('arcsec', 'rad'))
+		self.assertEqual(pos.velTimeUnit, ('yr', 'cy'))
 		self.assertAlmostEqual(pos.error.values[0][0], 0.006)
 		self.assertAlmostEqual(pos.error.values[0][1], 4.3633231299858233e-06)
 		self.assertAlmostEqual(pos.size.values[0][0], 6509222249623.3682)
@@ -272,7 +272,7 @@ class UnitConformTest(testhelpers.VerboseTest):
 			" Spectral 1250 unit MHz")
 		ast1 = stc.parseSTCS("Position ICRS unit arcmin Spectral unit GHz")
 		res = conform.conform(ast1, ast0)
-		self.assertEqual(res.place.units, ("arcmin", "arcmin"))
+		self.assertEqual(res.place.unit, ("arcmin", "arcmin"))
 		self.assertEqual(res.place.value[0], 10*60)
 		self.assertEqual(res.place.value[1], 12*60)
 		self.assertAlmostEqual(res.place.error.radii[0], 0.6)

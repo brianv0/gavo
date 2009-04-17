@@ -14,23 +14,33 @@ def getUnitConverter(baseCoo, srcCoo):
 		return srcCoo.getUnitArgs(), utils.identity
 	if srcCoo.getUnitArgs() is None:
 		return baseCoo.getUnitArgs(), utils.identity
+	if baseCoo.getUnitArgs()==srcCoo.getUnitArgs():
+		return None, None
 	return baseCoo.getUnitArgs(), baseCoo.getUnitConverter(
 		srcCoo.getUnitArgs())
 
 
 _conformedAttributes = ["time", "place", "freq", "redshift", "velocity"]
 
-def conform(baseSTC, srcSTC):
-	"""returns srcSTC in the units and system of baseSTC.
 
-	Items unspecified in baseSTC are taken from srcSTC.
+def conformUnits(baseSTC, srcSTC):
+	"""returns srcSTC in the units of baseSTC.
 	"""
 	stcOverrides = {}
 	for attName in _conformedAttributes:
 		coo = getattr(srcSTC, attName)
 		if coo is not None:
 			elOverrides, conv = getUnitConverter(getattr(baseSTC, attName), coo)
+			if conv is None:  # units are already ok
+				continue
 			elOverrides.update(coo.iterTransformed(conv))
 			stcOverrides[attName] = coo.change(**elOverrides)
 	return srcSTC.change(**stcOverrides)
-	
+
+
+def conform(baseSTC, srcSTC):
+	"""returns srcSTC in the units and system of baseSTC.
+
+	Items unspecified in baseSTC are taken from srcSTC.
+	"""
+	return conformUnits(baseSTC, srcSTC)

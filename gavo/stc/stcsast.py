@@ -204,17 +204,21 @@ def _addUnitRedshift(args, node, frame):
 		args["velTimeUnit"] = parts[1]
 
 
-def _addUnitSpatial(args, node, frame):
-	unit, nDim = node.get("unit"), frame.nDim
+def _mogrifySpaceUnit(unit, nDim):
 	if unit:
 		parts = unit.split()
-		if len(parts)==frame.nDim:
-			args["units"] = tuple(parts)
+		if len(parts)==nDim:
+			return tuple(parts)
 		elif len(parts)==1:
-			args["units"] = (unit,)*nDim
+			return (unit,)*nDim
 		else:
 			raise STCSParseError("'%s' is not a valid for unit %d-dimensional"
 				" spatial coordinates"%(unit, nDim))
+
+
+def _addUnitSpatial(args, node, frame):
+	unit, nDim = node.get("unit"), frame.nDim
+	args["unit"] = _mogrifySpaceUnit(unit, nDim)
 
 
 def _addUnitVelocity(args, node, frame):
@@ -226,8 +230,8 @@ def _addUnitVelocity(args, node, frame):
 		parts = parts[0].split("/")
 		if len(parts)!=2:
 			raise STCSParseError("'%s' is not a valid unit for velocities."%unit)
-		args["units"] = (parts[0],)*nDim
-		args["velTimeUnits"] = (parts[1],)*nDim
+		args["unit"] = (parts[0],)*nDim
+		args["velTimeUnit"] = (parts[1],)*nDim
 
 
 _unitMakers = {
@@ -278,7 +282,7 @@ def _makeCooBuilder(frameName, intervalClass, intervalKey,
 	Single positions are always expected under the coo key.
 	"""
 	positionExclusiveKeys = ["error", "resolution", "pixSize", "value",
-		"size"]
+		"size", "unit", "velTimeUnit"]
 	def builder(node, context):
 		frame = getattr(context.system, frameName)
 		nDim = frame.nDim
@@ -367,6 +371,7 @@ def _makeGeometryKeyIterator(argDesc, clsName):
 		' while parsing %s")'%clsName)
 	parseLines.append('  if coos: raise STCSParseError("Too many coordinates'
 		' while building %s, remaining: %%s"%%coos)'%clsName)
+	parseLines.append('  yield "unit", _mogrifySpaceUnit(node.get("unit"), nDim)')
 	exec "\n".join(parseLines)
 	return iterKeys
 
@@ -374,7 +379,7 @@ def _makeGeometryKeyIterator(argDesc, clsName):
 def _makeGeometryBuilder(cls, argDesc):
 	"""returns a builder for Geometries.
 
-	See _makeGeometryRealBulder for the meaning of the arguments.
+	See _makeGeometryKeyIterator for the meaning of the arguments.
 	"""
 	return _makeCooBuilder("spaceFrame", cls, "areas", dm.SpaceCoo,
 		"place", _makeGeometryKeyIterator(argDesc, cls.__name__))

@@ -119,7 +119,7 @@ class M81ImageTest(XMLSrcTestBase):
 
 	def testSimplePlace(self):
 		p = self.asf[0].place
-		self.assertEqual(p.units, ("deg", "deg", "m"))
+		self.assertEqual(p.unit, ("deg", "deg", "m"))
 		self.assertAlmostEqual(p.value[0], 248.4056)
 		self.assertEqual(p.value[2], 2158.)
 		self.failUnless(p.frame is self.asf[0].astroSystem.spaceFrame,
@@ -127,7 +127,7 @@ class M81ImageTest(XMLSrcTestBase):
 
 	def testComplexPlaces(self):
 		p = self.asf[1].place
-		self.assertEqual(p.units, ("deg", "deg"))
+		self.assertEqual(p.unit, ("deg", "deg"))
 		self.assertAlmostEqual(p.value[0], 148.88821)
 		self.assertAlmostEqual(p.resolution.values[0][1], 0.00025)
 		self.assertAlmostEqual(p.pixSize.values[0][1], 0.0001)
@@ -155,7 +155,6 @@ class M81ImageTest(XMLSrcTestBase):
 	
 	def testTimeInterval(self):
 		p = self.asf[1].timeAs[0]
-		self.assertEqual(p.unit, "s")
 		self.assertEqual(p.lowerLimit, datetime.datetime(2004, 7, 15, 8, 17, 36))
 		self.assertEqual(p.upperLimit, datetime.datetime(2004, 7, 15, 8, 30, 16))
 		self.failUnless(p.frame is self.asf[1].astroSystem.timeFrame,
@@ -163,7 +162,6 @@ class M81ImageTest(XMLSrcTestBase):
 	
 	def testSpectralInterval(self):
 		p = self.asf[1].freqAs[0]
-		self.assertEqual(p.unit, "Angstrom")
 		self.assertEqual(p.lowerLimit, 4400.)
 		self.assertEqual(p.upperLimit, 4800.)
 		self.failUnless(p.frame is self.asf[1].astroSystem.spectralFrame,
@@ -171,7 +169,6 @@ class M81ImageTest(XMLSrcTestBase):
 
 	def testSpaceInterval(self):
 		p = self.asf[1].areas[0]
-		self.assertEqual(p.units, ("deg", "deg"))
 		self.assertAlmostEqual(p.lowerLimit[0], 148.18821)
 		self.assertAlmostEqual(p.upperLimit[1], 69.31529)
 		self.failUnless(p.frame is self.asf[1].astroSystem.spaceFrame,
@@ -227,7 +224,7 @@ class ChandraResTest(XMLSrcTestBase):
 		self.assertEqual(p.frame.refPos.standardOrigin, "TOPOCENTER")
 		self.assertEqual(p.frame.nDim, 2)
 		self.assertEqual(p.frame.flavor, "SPHERICAL")
-		self.assertEqual(p.units, ("arcsec", "arcsec"))
+		self.assertEqual(p.unit, ("arcsec", "arcsec"))
 		self.assertEqual(p.error.radii[0], 1.)
 		self.assertEqual(p.resolution.radii[0], 0.5)
 		self.assertEqual(p.size.values[0], (1000, 1000))
@@ -257,7 +254,6 @@ class ChandraResTest(XMLSrcTestBase):
 	def testSpectralInterval(self):
 		p = self.asf[0].freqAs[0]
 		self.assertEqual(p.frame, self.asf[0].astroSystem.spectralFrame)
-		self.assertEqual(p.unit, "keV")
 		self.assertAlmostEqual(p.lowerLimit, 0.12)
 		self.assertAlmostEqual(p.upperLimit, 10)
 
@@ -334,13 +330,13 @@ class UnitsTest(testhelpers.VerboseTest):
 	def testSpatial2DEmpty(self):
 		ast = self._getAST("<SpaceFrame><ICRS/></SpaceFrame>",
 			'<Position2D unit="deg"/>')
-		self.assertEqual(ast.place.units, ("deg", "deg"))
+		self.assertEqual(ast.place.unit, ("deg", "deg"))
 
 	def testSpatial2DMixed(self):
 		ast = self._getAST("<SpaceFrame><ICRS/></SpaceFrame>",
 			'<Position2D unit="deg"><Value2><C1 pos_unit="deg">1</C1><C2 pos_unit="arcsec"'
 			'>2</C2></Value2></Position2D>')
-		self.assertEqual(ast.place.units, ("deg", "arcsec"))
+		self.assertEqual(ast.place.unit, ("deg", "arcsec"))
 
 
 def _wrapSample(srcPath):
@@ -355,4 +351,4 @@ if __name__=="__main__":
 	if len(sys.argv)>1 and sys.argv[1].startswith("/"):
 		_wrapSample(sys.argv[1])
 	else:
-		testhelpers.main(UnitsTest)
+		testhelpers.main(ChandraResTest)

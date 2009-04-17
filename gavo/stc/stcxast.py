@@ -191,7 +191,7 @@ def _makeSpatialUnits(nDim, *unitSources):
 	return None
 
 
-# names of 2D element, see below on this abomination.
+# names of 2D elements, see below on this abomination.
 _geometryNames = set(["AllSky", "Circle", "Ellipse", "Polygon", "Box"])
 
 def _fixSpatialUnits(node, buildArgs, context):
@@ -203,16 +203,16 @@ def _fixSpatialUnits(node, buildArgs, context):
 		nDim = 2
 	if "3" in ln:
 		nDim = 3
-	# buildArgs["units"] may have been left in build_args from upstream
-	buildArgs["units"] = _makeSpatialUnits(nDim, buildArgs.pop("unit", None),
+	# buildArgs["unit"] may have been left in build_args from upstream
+	buildArgs["unit"] = _makeSpatialUnits(nDim, buildArgs.pop("unit", None),
 		node.get("unit", "").split())
 	# This only kicks in for velocities
-	buildArgs["velTimeUnits"] = _makeSpatialUnits(nDim, 
+	buildArgs["velTimeUnit"] = _makeSpatialUnits(nDim, 
 		buildArgs.pop("vel_time_unit", ()), node.get("vel_time_unit", "").split())
-	if not buildArgs["velTimeUnits"]:
-		del buildArgs["velTimeUnits"]
-	if not buildArgs["units"]:
-		del buildArgs["units"]
+	if not buildArgs["velTimeUnit"]:
+		del buildArgs["velTimeUnit"]
+	if not buildArgs["unit"]:
+		del buildArgs["unit"]
 
 
 _unitFixers = {
@@ -281,6 +281,8 @@ def _makeIntervalBuilder(kwName, astClass, frameName, tuplify=False):
 		if "upperLimit" in buildArgs:
 			buildArgs["upperLimit"] = mkVal(buildArgs["upperLimit"][0])
 		_fixUnits(frameName, node, buildArgs, context)
+		buildArgs["origUnit"] = (buildArgs.pop("unit", None),
+			buildArgs.pop("velTimeUnit", None))
 		yield kwName, (astClass(**buildArgs),)
 	return buildNode
 
@@ -436,22 +438,22 @@ def _buildHalfspace(node, buildArgs, context):
 
 
 def _adaptCircleUnits(buildArgs):
-	buildArgs["units"] = buildArgs.pop("units", ("deg", "deg"))
+	buildArgs["unit"] = buildArgs.pop("unit", ("deg", "deg"))
 	if "radiuspos_unit" in buildArgs:
 		buildArgs["radius"] = units.getBasicConverter(
-			buildArgs.pop("radiuspos_unit"), buildArgs["units"][0])(
+			buildArgs.pop("radiuspos_unit"), buildArgs["unit"][0])(
 				buildArgs["radius"])
 
 
 def _adaptEllipseUnits(buildArgs):
-	buildArgs["units"] = buildArgs.pop("units", ("deg", "deg"))
+	buildArgs["unit"] = buildArgs.pop("unit", ("deg", "deg"))
 	if "smajAxispos_unit" in buildArgs:
 		buildArgs["smajAxis"] = units.getBasicConverter(
-			buildArgs.pop("smajAxispos_unit"), buildArgs["units"][0])(
+			buildArgs.pop("smajAxispos_unit"), buildArgs["unit"][0])(
 				buildArgs["smajAxis"])
 	if "sminAxispos_unit" in buildArgs:
 		buildArgs["sminAxis"] = units.getBasicConverter(
-			buildArgs.pop("sminAxispos_unit"), buildArgs["units"][0])(
+			buildArgs.pop("sminAxispos_unit"), buildArgs["unit"][0])(
 				buildArgs["sminAxis"])
 	if "posAngleunit" in buildArgs:
 		buildArgs["posAngle"] = units.getBasicConverter(
@@ -459,13 +461,13 @@ def _adaptEllipseUnits(buildArgs):
 
 
 def _adaptBoxUnits(buildArgs):
-	buildArgs["units"] = buildArgs.get("units", ("deg", "deg"))
+	buildArgs["unit"] = buildArgs.get("unit", ("deg", "deg"))
 	if "sizeunit" in buildArgs:
 		su = buildArgs.pop("sizeunit")
 		if isinstance(su, basestring):
 			su = (su, su)
 		buildArgs["boxsize"] = units.getVectorConverter(su,
-			buildArgs["units"])(buildArgs["boxsize"])
+			buildArgs["unit"])(buildArgs["boxsize"])
 
 
 def _makeGeometryBuilder(astClass, adaptDepUnits=None):
@@ -483,7 +485,50 @@ def _makeGeometryBuilder(astClass, adaptDepUnits=None):
 
 ################# Toplevel
 
+_areasAndPositions = [("timeAs", "time"), ("areas", "place"),
+	("freqAs", "freq"), ("redshiftAs", "redshift"), 
+	("velocityAs", "velocity")]
+
+def _addPositionsForAreas(buildArgs):
+	"""adds positions for areas defined by buildArgs.
+
+	This only happens if no position is given so far.  The function is a
+	helper for _adaptAreaUnits.  BuildArgs is changed in place.
+	"""
+	for areaAtt, posAtt in _areasAndPositions:
+		if buildArgs.get(areaAtt) and not buildArgs.get(posAtt):
+			areas = buildArgs[areaAtt]
+			posAttrs = {}
+			for area in areas:
+				if area.origUnit is not None:
+					posAttrs["unit"] = area.origUnit[0]
+					if area.origUnit[1]:
+						posAttrs["velTimeUnit"] = area.origUnit[1]
+					area.origUnit = None
+					break
+			buildArgs[posAtt] = area.getPosition(posAttrs)
+
+
+def _adaptAreaUnits(buildArgs):
+	"""changes area's units in buildArgs to match the positions's units.
+
+	When areas without positions are present, synthesize the appropriate
+	positions to hold units.
+	"""
+	_addPositionsForAreas(buildArgs)
+	for areaAtt, posAtt in _areasAndPositions:
+		newAreas = []
+		for area in buildArgs.get(areaAtt, ()):
+			if area.origUnit is not None:
+				newAreas.append(area.adaptValuesWith(
+					buildArgs[posAtt].getUnitConverter(area.origUnit)))
+			else:
+				newAreas.append(area)
+		buildArgs[areaAtt] = tuple(newAreas)
+			
+
 def _buildToplevel(node, buildArgs, context):
+	_adaptAreaUnits(buildArgs)
 	yield 'stcSpec', (dm.STCSpec(**buildArgs),)
 
 
@@ -584,6 +629,7 @@ class STCXContext(object):
 
 	def endTag(self, node):
 		self.activeTags[node.tag].stop(self, node)
+
 
 _yieldErrUnits = _makeUnitYielder(_handledUnits, "error")
 _yieldPSUnits = _makeUnitYielder(_handledUnits, "pixSize")

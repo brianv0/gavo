@@ -139,7 +139,6 @@ def _makeAreaTreeMapper(areaType, cooMaker=_makeIntervalCoos):
 	"""
 	def toCST(node):
 		return _combine({
-			"unit": node.getUnitString(),
 			"fillfactor": node.fillFactor,
 			"type": areaType},
 			cooMaker(node))
@@ -193,13 +192,6 @@ def _makeASTItemsGetter(cooName, areaName):
 		if len(areas)>1:
 			raise STCValueError("STC-S does not support more than one area"
 				" but %s has length %d"%(areaName, len(areas)))
-		if areas and coo:
-			if (areas[0].getUnitString() is not None and 
-					coo.getUnitString()!=areas[0].getUnitString()):
-				raise STCValueError("Cannot serialize ASTs with different"
-					" units on positions and areas to STC-S")
-		if not coo:
-			coo = areas[0].getPosition()
 		if areas:
 			area = areas[0]
 		else:

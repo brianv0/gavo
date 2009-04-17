@@ -59,9 +59,22 @@ def _getFromSTC(elName, itemDesc):
 		raise STCValueError("No such %s: %s"%(itemDesc, elName))
 
 
+class Context(object):
+	"""is a generation context.
+
+	It is used to pass around genration-related information.  Right now,
+	that's primarily the root node.
+	"""
+	def __init__(self, rootNode):
+		self.rootNode = rootNode
+	
+	def getPosForInterval(self, node):
+		return getattr(self.rootNode, node.cType.posAttr)
+
+
 ############ Coordinate Systems
 
-def serialize_RefPos(node):
+def serialize_RefPos(node, context):
 	if node.standardOrigin is None:
 		raise STCNotImplementedError("Cannot handle reference positions other"
 			" than standard origins yet.")
@@ -71,51 +84,51 @@ def serialize_RefPos(node):
 		raise STCValueError("No such standard origin: %s"%node.standardOrigin)
 
 
-def serialize_SpaceFrame(node):
+def serialize_SpaceFrame(node, context):
 	if node is None: return
 	addId(node)
 	return STC.SpaceFrame(id=node.id)[
 		STC.Name[node.name], 
 		_getFromSTC(node.refFrame, "reference frame")[
 			STC.Equinox[strOrNull(node.equinox)]],
-		serialize_RefPos(node.refPos),
+		serialize_RefPos(node.refPos, context),
 		_getFromSTC(node.flavor, "coordinate flavor")(
 			coord_naxes=strOrNull(node.nDim))]
 
 
-def serialize_TimeFrame(node):
+def serialize_TimeFrame(node, context):
 	if node is None: return
 	addId(node)
 	return STC.TimeFrame(id=node.id)[
 		STC.Name[node.name],
 		STC.TimeScale[node.timeScale],
-		serialize_RefPos(node.refPos),
+		serialize_RefPos(node.refPos, context),
 	]
 
-def serialize_SpectralFrame(node):
+def serialize_SpectralFrame(node, context):
 	if node is None: return
 	addId(node)
 	return STC.SpectralFrame(id=node.id)[
 		STC.Name[node.name],
-		serialize_RefPos(node.refPos),
+		serialize_RefPos(node.refPos, context),
 	]
 
-def serialize_RedshiftFrame(node):
+def serialize_RedshiftFrame(node, context):
 	if node is None: return
 	addId(node)
 	return STC.RedshiftFrame(id=node.id, value_type=node.type)[
 		STC.Name[node.name],
 		STC.DopplerDefinition[node.dopplerDef],
-		serialize_RefPos(node.refPos),
+		serialize_RefPos(node.refPos, context),
 	]
 
-def serialize_CoordSys(node):
+def serialize_CoordSys(node, context):
 	addId(node)
 	return STC.AstroCoordSystem(id=node.id)[
-		serialize_TimeFrame(node.timeFrame),
-		serialize_SpaceFrame(node.spaceFrame),
-		serialize_SpectralFrame(node.spectralFrame),
-		serialize_RedshiftFrame(node.redshiftFrame),]
+		serialize_TimeFrame(node.timeFrame, context),
+		serialize_SpaceFrame(node.spaceFrame, context),
+		serialize_SpectralFrame(node.spectralFrame, context),
+		serialize_RedshiftFrame(node.redshiftFrame, context),]
 
 
 ############ Coordinates
@@ -170,7 +183,7 @@ def _make1DSerializer(cooClass, valueSerializer):
 	is a function taking the coordinate's value and returning some
 	xmlstan.
 	"""
-	def serialize(node):
+	def serialize(node, context):
 		res = cooClass[
 			valueSerializer(node.value),
 			_wrapValues(STC.Error, getattr(node.error, "values", ())),
@@ -229,15 +242,15 @@ _velocityPosClasses = (
 
 def _getSpatialUnits(node):
 	clsArgs, cooArgs = {}, {}
-	if len(set(node.units))==1:
-		clsArgs["unit"] = node.units[0]
-	elif node.units:
-		cooArgs["units"] = node.units
-	if hasattr(node, "velTimeUnits"):
-		if len(set(node.velTimeUnits))==1:
-			clsArgs["vel_time_unit"] = node.velTimeUnits[0]
-		elif node.units:
-			cooArgs["timeUnits"] = node.velTimeUnits
+	if len(set(node.unit))==1:
+		clsArgs["unit"] = node.unit[0]
+	elif node.unit:
+		cooArgs["unit"] = node.unit
+	if hasattr(node, "velTimeUnit"):
+		if len(set(node.velTimeUnit))==1:
+			clsArgs["vel_time_unit"] = node.velTimeUnit[0]
+		elif node.unit:
+			cooArgs["timeUnit"] = node.velTimeUnit
 	return clsArgs, cooArgs
 
 
@@ -247,7 +260,7 @@ def _makeSpatialCooSerializer(stcClasses):
 	This is quite messy since the concrete choice of elements depends on
 	the coordinate frame.
 	"""
-	def serialize(node):
+	def serialize(node, context):
 		dimInd = node.frame.nDim-1
 		coo, val, serializer = stcClasses[dimInd]
 		clsArgs, cooArgs = _getSpatialUnits(node)
@@ -278,13 +291,14 @@ def _make1DIntervalSerializer(intervClass, lowerClass, upperClass,
 	Currently, error, resolution, and pixSize information is discarded
 	for lack of a place to put them.
 	"""
-	def serialize(node):
+	def serialize(node, context):
+		posNode = context.getPosForInterval(node)
 		if isinstance(node.frame, dm.TimeFrame):
 			unit = None  # time intervals have no units
 		else:
-			unit = node.unit
+			unit = posNode.unit
 		return intervClass(unit=unit, 
-				vel_time_unit=getattr(node, "velTimeUnit", None), 
+				vel_time_unit=getattr(posNode, "velTimeUnit", None), 
 				frame_id=node.frame.id, fill_factor=strOrNull(node.fillFactor))[
 			lowerClass[valueSerializer(node.lowerLimit)],
 			upperClass[valueSerializer(node.upperLimit)],
@@ -310,14 +324,15 @@ _velIntervalClasses = [
 	(STC.Velocity3VecInterval, STC.LoLimit3Vec, STC.HiLimit3Vec, _wrap3D),]
 
 def _makeSpatialIntervalSerializer(stcClasses):
-	def serialize(node):
+	def serialize(node, context):
 		intervClass, lowerClass, upperClass, valueSerializer = \
 			stcClasses[node.frame.nDim-1]
-		clsArgs, cooArgs = _getSpatialUnits(node)
-		if len(set(node.units))==1:
-			unit = node.units[0]
-		elif node.units:
-			units = node.units
+		posNode = context.getPosForInterval(node)
+		clsArgs, cooArgs = _getSpatialUnits(posNode)
+		if len(set(posNode.unit))==1:
+			unit = posNode.unit[0]
+		elif posNode.unit:
+			units = posNode.unit
 		return intervClass(frame_id=node.frame.id, fill_factor=node.fillFactor,
 				**clsArgs)[
 				lowerClass[valueSerializer(node.lowerLimit, **cooArgs)],
@@ -332,14 +347,14 @@ serialize_VelocityInterval = _makeSpatialIntervalSerializer(_velIntervalClasses)
 ############# Regions
 
 def _makeBaseRegion(cls, node):
-	return cls(unit=node.units[0], frame_id=node.frame.id, 
+	return cls(unit=node.unit[0], frame_id=node.frame.id, 
 		fill_factor=strOrNull(node.fillFactor))
 
 
-def serialize_AllSky(node):
+def serialize_AllSky(node, context):
 	return _makeBaseRegion(STC.AllSky, node)
 
-def serialize_Circle(node):
+def serialize_Circle(node, context):
 # would you believe that the sequence of center and radius is swapped
 # in sphere and circle?  Oh boy.
 	if node.frame.nDim==2:
@@ -356,7 +371,7 @@ def serialize_Circle(node):
 		raise STCValueError("Spheres are only defined in 2 and 3D")
 
 
-def serialize_Ellipse(node):
+def serialize_Ellipse(node, context):
 	if node.frame.nDim==2:
 		cls, wrap = STC.Ellipse, _wrap2D
 	else:
@@ -369,7 +384,7 @@ def serialize_Ellipse(node):
 	]
 
 
-def serialize_Box(node):
+def serialize_Box(node, context):
 	if node.frame.nDim!=2:
 		raise STCValueError("Boxes are only available in 2D")
 	return _makeBaseRegion(STC.Box, node)[
@@ -377,14 +392,14 @@ def serialize_Box(node):
 		STC.Size[_wrap2D(node.boxsize)]]
 
 
-def serialize_Polygon(node):
+def serialize_Polygon(node, context):
 	if node.frame.nDim!=2:
 		raise STCValueError("Polygons are only available in 2D")
 	return _makeBaseRegion(STC.Polygon, node)[
 		[STC.Vertex[STC.Position[_wrap2D(v)]] for v in node.vertices]]
 
 
-def serialize_Convex(node):
+def serialize_Convex(node, context):
 	return _makeBaseRegion(STC.Convex, node)[
 		[STC.Halfspace[STC.Vector[_wrap3D(v[:3])], STC.Offset[v[3]]]
 		for v in node.vectors]]
@@ -392,7 +407,7 @@ def serialize_Convex(node):
 
 ############# Toplevel
 
-def makeAreas(rootNode):
+def makeAreas(rootNode, context):
 	"""serializes the areas contained in rootNode.
 
 	This requires all kinds of insane special handling.
@@ -400,17 +415,17 @@ def makeAreas(rootNode):
 	if not rootNode.areas:
 		return
 	elif len(rootNode.areas)==1:
-		return nodeToStan(rootNode.areas[0])
+		return nodeToStan(rootNode.areas[0], context)
 	else:  # implicit union
 		return STC.Region[
 			STC.Union[
-				[nodeToStan(n) for n in rootNode.areas]]]
+				[nodeToStan(n, context) for n in rootNode.areas]]]
 
 
-def nodeToStan(astNode):
+def nodeToStan(astNode, context):
 	"""returns xmlstan for whatever is in astNode.
 	"""
-	return globals()["serialize_"+astNode.__class__.__name__](astNode)
+	return globals()["serialize_"+astNode.__class__.__name__](astNode, context)
 
 
 def astToStan(rootNode, stcRoot):
@@ -419,16 +434,17 @@ def astToStan(rootNode, stcRoot):
 	The first coordinate system defined in the AST is always used for
 	the embedded coordinates and areas.
 	"""
-	return stcRoot[nodeToStan(rootNode.astroSystem),
+	context = Context(rootNode)
+	return stcRoot[nodeToStan(rootNode.astroSystem, context),
 		STC.AstroCoords(coord_system_id=rootNode.astroSystem.id)[
-			[nodeToStan(n) for n in [rootNode.time,
+			[nodeToStan(n, context) for n in [rootNode.time,
 				rootNode.place, rootNode.velocity, rootNode.freq, 
 					rootNode.redshift] if n]
 		],
 		STC.AstroCoordArea(coord_system_id=rootNode.astroSystem.id)[
-			[nodeToStan(n) for n in rootNode.timeAs],
-			makeAreas(rootNode),
-			[nodeToStan(n) for n in 
+			[nodeToStan(n, context) for n in rootNode.timeAs],
+			makeAreas(rootNode, context),
+			[nodeToStan(n, context) for n in 
 				itertools.chain(rootNode.velocityAs, rootNode.freqAs, 
 					rootNode.redshiftAs)]],
 	]
