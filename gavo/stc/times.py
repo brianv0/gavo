@@ -197,6 +197,7 @@ def TTtoTCB(tt):
 def _makeLeapSecondTable():
 	lsTable = []
 	for lsCount, lsMoment in enumerate([ # from Lenny tzinfo
+			datetime.datetime(1971, 12, 31, 23, 59, 59),
 			datetime.datetime(1972, 06, 30, 23, 59, 59),
 			datetime.datetime(1972, 12, 31, 23, 59, 59),
 			datetime.datetime(1973, 12, 31, 23, 59, 59),
@@ -225,38 +226,52 @@ def _makeLeapSecondTable():
 		lsTable.append((lsMoment, datetime.timedelta(seconds=lsCount+10)))
 	return lsTable
 
-# A table of TAI-UTC
+# A table of TAI-UTC, indexed by UTC
 leapSecondTable = _makeLeapSecondTable()
 del _makeLeapSecondTable
+_sentinelTD = datetime.timedelta(seconds=0)
 
-def getLeapSeconds(dt):
+def getLeapSeconds(dt, table=leapSecondTable):
 	"""returns TAI-UTC for the datetime dt.
 	"""
-	ind = bisect.bisect_left(leapSecondTable, (dt, None))
+	ind = bisect.bisect_left(leapSecondTable, (dt, _sentinelTD))
 	if ind==0:
-		return 9.  # XXX TODO: How do we extrapolate to GMT?
-	return leapSecondTable[ind-1][1]
+		return datetime.timedelta(seconds=9.)
+	return table[ind-1][1]
+
+
+def UTCtoTT(utc):
+	"""returns TT from UTC.
+
+	The leap second table is complete through 2009-5.
+	>>> getLeapSeconds(datetime.datetime(1998,12,31,23,59,58))
+	datetime.timedelta(0, 31)
+	>>> TTtoTAI(UTCtoTT(datetime.datetime(1998,12,31,23,59,59)))
+	datetime.datetime(1999, 1, 1, 0, 0, 30)
+	>>> TTtoTAI(UTCtoTT(datetime.datetime(1999,1,1,0,0,0)))
+	datetime.datetime(1999, 1, 1, 0, 0, 32)
+	"""
+	return TAItoTT(utc+getLeapSeconds(utc))
+
+
+# A table of TAI-UTC, indexed by TT
+ttLeapSecondTable = [(UTCtoTT(t), dt) 
+	for t, dt in leapSecondTable]
+
 
 def TTtoUTC(tt):
 	"""returns UTC from TT.
 
 	The leap second table is complete through 2009-5.
 
-	>>> TTtoUTC(TAItoTT(datetime.datetime(2008, 2, 2, 4, 5, 6)))
-	datetime.datetime(2008, 2, 2, 4, 4, 34)
-	>>> TTtoUTC(TAItoTT(datetime.datetime(2009, 2, 2, 4, 5, 6)))
-	datetime.datetime(2009, 2, 2, 4, 4, 33)
+	>>> TTtoUTC(UTCtoTT(datetime.datetime(1998,12,31,23,59,59)))
+	datetime.datetime(1998, 12, 31, 23, 59, 59)
+	>>> TTtoUTC(UTCtoTT(datetime.datetime(1999,1,1,0,0,0)))
+	datetime.datetime(1999, 1, 1, 0, 0)
 	"""
 	# XXX TODO: leap seconds need to be computed from UTC, so this will
 	# be one second off in the immediate vicinity of a leap second.
-	return TTtoTAI(tt)-getLeapSeconds(tt)
-
-def UTCtoTT(utc):
-	"""returns TT from UTC.
-
-	The leap second table is complete through 2009-5.
-	"""
-	return TAItoTT(utc+getLeapSeconds(utc))
+	return TTtoTAI(tt)-getLeapSeconds(tt, ttLeapSecondTable)
 
 
 def _test():

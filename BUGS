@@ -55,7 +55,12 @@
 	pain.  At least there should be way to suppress or override the automatic 
 	vizier type conversion.
 
-16/MEDIUM/2009-04-17
+16/MEDIUM/2009-04-17/FIXED
 	Conversion between from TAI to UTC computes location of leap seconds based
 	on TAI rather than UTC.  This will lead to incorrect UTCs in the vicinity
 	of the leap seconds.
+
+17/MEDIUM/2009-04-20
+  Pre-1972 TTs should probably be interpreted as ET and converted to GMT
+	in TTtoUTC -- but they are not.
+	See http://hpiers.obspm.fr/eop-pc/earthor/utc/TAI-UTC_tab.html
