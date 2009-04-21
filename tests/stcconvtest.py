@@ -3,8 +3,9 @@ Tests for STC conversions and conforming.
 """
 
 from gavo import stc
-from gavo.stc import units
 from gavo.stc import conform
+from gavo.stc import sphermath
+from gavo.stc import units
 
 import testhelpers
 
@@ -291,5 +292,24 @@ class UnitConformTest(testhelpers.VerboseTest):
 		self.assertEqual(res.redshift.unit, "km")
 		self.assertEqual(res.redshift.velTimeUnit, "s")
 
+
+class SpherUVRoundtripTest(testhelpers.VerboseTest):
+	"""tests for conversion between 6-vectors and spherical coordinates.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	samples = [
+		"Position ICRS -20 -50",
+		"Position ICRS SPHER3 -20 -50 2 unit deg deg pc",
+		"Position ICRS -20 -50 VelocityInterval Velocity 1 2 unit arcsec/yr",
+		"Position ICRS SPHER3 30 20 2 unit deg deg pc"
+			" VelocityInterval Velocity 1 -2 40 unit arcsec/yr arcsec/yr km/s",
+		]
+	def _runTest(self, sample):
+		ast0 = stc.parseSTCS(sample)
+		ast1 = sphermath.uvToSpher(sphermath.spherToUV(ast0), ast0)
+		self.assertEqual(ast0, ast1)
+
+
 if __name__=="__main__":
-	testhelpers.main(UnitConformTest)
+	testhelpers.main(SpherUVRoundtripTest)

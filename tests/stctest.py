@@ -105,10 +105,8 @@ class SpaceCoordTest(testhelpers.VerboseTest):
 class OtherCoordIntervalTest(testhelpers.VerboseTest):
 	def testEmptyInterval(self):
 		ast = stcsast.parseSTCS("TimeInterval TOPOCENTER unit s")
-		self.assertEqual(ast.timeAs[0].frame.refPos.standardOrigin, 
+		self.assertEqual(ast.time.frame.refPos.standardOrigin, 
 			"TOPOCENTER")
-		self.assertEqual(ast.timeAs[0].upperLimit, None)
-		self.assertEqual(ast.timeAs[0].lowerLimit, None)
 
 	def testHalfOpenInterval(self):
 		ast = stcsast.parseSTCS("TimeInterval MJD 2000")
@@ -347,7 +345,7 @@ class VelocityTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.velocity.unit, ("deg", "deg"))
 		self.assertEqual(ast.velocity.velTimeUnit, ("cy", "cy"))
 		self.assertEqual(ast.velocity.value, (1., 2.))
-		self.assertEqual(len(ast.velocityAs), 1)
+		self.assertEqual(len(ast.velocityAs), 0)
 	
 	def testComplex(self):
 		ast = stcsast.parseSTCS("Position ICRS VelocityInterval -0.125 2.5"
@@ -453,4 +451,4 @@ class DMTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(DMTest)
+	testhelpers.main(OtherCoordIntervalTest)

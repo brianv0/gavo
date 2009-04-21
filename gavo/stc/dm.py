@@ -127,6 +127,8 @@ class CooWiggle(_WiggleSpec):
 	_a_values = ()
 	_a_origUnit = None
 
+	inexactAttrs = set(["values"])
+
 	def adaptValuesWith(self, unitConverter):
 		if unitConverter is None:
 			return self
@@ -140,6 +142,8 @@ class RadiusWiggle(_WiggleSpec):
 	"""
 	_a_radii = ()
 	_a_origUnit = None
+
+	inexactAttrs = set(["radii"])
 
 	def adaptValuesWith(self, unitConverter):
 		if unitConverter is None:
@@ -224,6 +228,9 @@ class _Coordinate(_CoordinateLike):
 	_a_size = None
 
 	_dimensionedAttrs = ["error", "resolution", "pixSize", "size"]
+
+	inexactAttrs = set(["value"])
+
 	def _setupNode(self):
 		for name in self._dimensionedAttrs:
 			wiggle = getattr(self, name)
@@ -319,7 +326,7 @@ class _VelocityMixin(object):
 			otherUnits[0], otherUnits[1], True)
 
 	def getUnitArgs(self):
-		return {"unit": self.units, "velTimeUnit": self.velTimeUnit}
+		return {"unit": self.unit, "velTimeUnit": self.velTimeUnit}
 
 
 class _RedshiftMixin(object):
@@ -377,6 +384,8 @@ class _CoordinateInterval(_CoordinateLike):
 	_a_upperLimit = None
 	_a_fillFactor = None
 	_a_origUnit = None
+	
+	inexactAttrs = set(["lowerLimit", "upperLimit"])
 
 	def adaptValuesWith(self, converter):
 		changes = {"origUnit": None}

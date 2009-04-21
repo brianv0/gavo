@@ -224,14 +224,16 @@ def _addUnitSpatial(args, node, frame):
 def _addUnitVelocity(args, node, frame):
 	unit, nDim = node.get("unit"), frame.nDim
 	if unit:
+		su, vu = [], []
 		parts = unit.split()
-		if len(parts)!=1:
-			raise STCSNotImplementedError("Inhomogeneous units not yet supported")
-		parts = parts[0].split("/")
-		if len(parts)!=2:
-			raise STCSParseError("'%s' is not a valid unit for velocities."%unit)
-		args["unit"] = (parts[0],)*nDim
-		args["velTimeUnit"] = (parts[1],)*nDim
+		for uS in parts:
+			up = uS.split("/")
+			if len(up)!=2:
+				raise STCSParseError("'%s' is not a valid unit for velocities."%uS)
+			su.append(up[0])
+			vu.append(up[1])
+		args["unit"] = _mogrifySpaceUnit(" ".join(su), nDim)
+		args["velTimeUnit"] = _mogrifySpaceUnit(" ".join(vu), nDim)
 
 
 _unitMakers = {
@@ -306,8 +308,8 @@ def _makeCooBuilder(frameName, intervalClass, intervalKey,
 			args[k] = v
 		if "fillfactor" in node:
 			args["fillFactor"] = node["fillfactor"]
-
-		yield intervalKey, (intervalClass(**args),)
+		if len(set(args))>1: # don't yield intervals that just define a frame
+			yield intervalKey, (intervalClass(**args),)
 
 	return builder
 
@@ -323,7 +325,10 @@ def _makeIntervalKeyIterator(preferUpper=False):
 				res["upperLimit"], res["lowerLimit"] = interval
 			else:
 				res["lowerLimit"], res["upperLimit"] = interval
-		return res.iteritems()
+		if res["upperLimit"]:
+			yield "upperLimit", res["upperLimit"]
+		if res["lowerLimit"]:
+			yield "lowerLimit", res["lowerLimit"]
 	return iterKeys
 
 

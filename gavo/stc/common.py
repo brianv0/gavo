@@ -3,6 +3,7 @@ Definitions and shared code for STC processing.
 """
 
 import itertools
+import operator
 
 from gavo.utils import ElementTree
 
@@ -139,11 +140,56 @@ class ASTNodeType(type):
 		cls.__init__ = ns["constructor"]
 
 
+def _compareFloat(val1, val2):
+	"""returns true if val1==val2 up to a fudge factor.
+
+	This only works for floats.
+	>>> _compareFloat(30.0, 29.999999999999996)
+	True
+	"""
+	try:
+		return abs(val1-val2)/val1<1e-12
+	except ZeroDivisionError:  # val1 is zero
+		return val2==0
+
+
+def _aboutEqual(val1, val2):
+	"""compares val1 and val2 inexactly.
+
+	This is for comparing floats or sequences of floats.  If you pass in
+	other sequences, bad things will happen.
+
+	It will return true if val1 and val2 are deemed equal.
+
+	>>> _aboutEqual(2.3, 2.2999999999999997)
+	True
+	>>> _aboutEqual(2.3, 2.299999997)
+	False
+	>>> _aboutEqual(None, 2.3)
+	False
+	>>> _aboutEqual((1e-10,1e10), (1.00000000000001e-10,1.00000000000001e10))
+	True
+	>>> _aboutEqual((1e-10,1e10), (1.0000000001e-10,1.000000001e10))
+	False
+	"""
+	if val1==val2:
+		return True
+	if isinstance(val1, float) and isinstance(val2, float):
+		return _compareFloat(val1, val2)
+	try:
+		return reduce(operator.and_, (_compareFloat(*p)
+			for p in itertools.izip(val1, val2)))
+	except TypeError: # At least one value is not iterable
+		return False
+
+
 class ASTNode(object):
 	__metaclass__ = ASTNodeType
 
 	_a_ucd = None
 	_a_id = None
+
+	inexactAttrs = set()
 
 	def _setupNodeNext(self, cls):
 		try:
@@ -167,9 +213,15 @@ class ASTNode(object):
 		for name, _ in self._nodeAttrs:
 			if name=="id":
 				continue
-			if getattr(self, name)!=getattr(other, name):
+			if name in self.inexactAttrs:
+				if not _aboutEqual(getattr(self, name), getattr(other, name)):
+					return False
+			elif getattr(self, name)!=getattr(other, name):
 				return False
 		return True
+	
+	def __ne__(self, other):
+		return not self==other
 		
 	def change(self, **kwargs):
 		"""returns a shallow copy of self with constructor arguments in kwargs
@@ -203,3 +255,11 @@ class ASTNode(object):
 				if isinstance(value[0], ASTNode):
 					childIterators.extend(c.iterNodes() for c in value)
 		return itertools.chain((self,), *childIterators)
+
+
+def _test():
+	import doctest, gavo.stc.common
+	doctest.testmod(gavo.stc.common)
+
+if __name__=="__main__":
+	_test()
