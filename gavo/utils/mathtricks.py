@@ -4,9 +4,8 @@ Math-related helper functions.
 
 import math
 
-
-arcsecToRad = math.pi/180/3600
-radToArcsec = 1/arcsecToRad
+DEG = math.pi/180
+ARCSEC = DEG/3600
 
 def findMinimum(f, left, right, minInterval=3e-8):
 	"""returns an estimate for the minimum of the single-argument function f 

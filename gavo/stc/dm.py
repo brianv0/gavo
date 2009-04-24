@@ -50,6 +50,10 @@ class SpaceFrame(_CoordFrame):
 		STCValueError if an invalid equinox string has been set.
 		"""
 		if self.equinox is None:
+			if self.refFrame=="J2000":
+				return times.jYearToDateTime(2000.0)
+			elif self.refFrame=="B1950":
+				return times.bYearToDateTime(1950.0)
 			return None
 		mat = re.match("([B|J])([0-9.]+)", self.equinox)
 		if not mat:

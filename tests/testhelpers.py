@@ -118,7 +118,7 @@ class SamplesBasedAutoTest(type):
 	The metaclass will create one test<n> method for each sample.
 	"""
 	def __new__(cls, name, bases, dict):
-		for sampInd, sample in enumerate(dict["samples"]):
+		for sampInd, sample in enumerate(dict.get("samples", ())):
 			def testFun(self, sample=sample):
 				self._runTest(sample)
 			dict["test%02d"%sampInd] = testFun

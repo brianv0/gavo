@@ -32,7 +32,6 @@ lightspeed = 2.99792458e8  # SI
 planckConstant = 4.13566733e-15  # CODATA 2008, in eV s
 julianYear = 365.25*24*3600
 
-
 def makeConverterMaker(label, conversions):
 	"""returns a conversion function that converts between any of the units
 	mentioned in the dict conversions.
@@ -162,6 +161,25 @@ def getBasicConverter(fromUnit, toUnit, reverse=False):
 
 
 @memoized
+def getParallaxConverter(fromUnit, toUnit, reverse=False):
+	"""returns a function converting distances to/from parallaxes.
+	"""
+	if fromUnit not in angleUnits:
+		fromUnit, toUnit, reverse = toUnit, fromUnit, not reverse
+	if fromUnit not in angleUnits:
+		raise STCUnitError("No spatial conversion between %s and %s"%(
+			fromUnit, toUnit))
+	# first convert angular unit to arcsec, then invert, yielding pc,
+	# and convert that to distance unit
+	angularConv = getBasicConverter(fromUnit, "arcsec", reverse)
+	distanceConv = getBasicConverter("pc", toUnit, reverse)
+	if reverse:
+		return lambda val: angularConv(1./distanceConv(val))
+	else:
+		return lambda val: distanceConv(1./angularConv(val))
+
+
+@memoized
 def getRedshiftConverter(spaceUnit, timeUnit, toSpace, toTime,
 		reverse=False):
 	"""returns a function converting redshifts in spaceUnit/timeUnit to
@@ -197,12 +215,24 @@ def getVectorConverter(fromUnits, toUnits, reverse=False):
 	is interpreted.  this be a tuple or a single string; in the
 	latter case, all components are supposed to be of that unit.
 
-	The resulting functions accepts sequences of proper length and returns
-	tuples.
+	ToUnits may be shorter than fromUnits.  In this case, the additional 
+	fromUnits are ignored.  This is mainly for cases in which geometries go
+	with SPHER3 positions.
+
+	The resulting functions accepts sequences of len(toUnits) and returns
+	tuples of the same length.
 	"""
 	toUnits = _expandUnits(fromUnits, toUnits)
-	convs = tuple(getBasicConverter(f, t, reverse) 
-		for f, t in izip(fromUnits, toUnits))
+	convs = []
+	convs.append(getBasicConverter(fromUnits[0], toUnits[0], reverse))
+	if len(toUnits)>1:
+		convs.append(getBasicConverter(fromUnits[1], toUnits[1], reverse))
+	if len(toUnits)>2:
+		try:
+			convs.append(getBasicConverter(fromUnits[2], toUnits[2], reverse))
+		except STCUnitError:  # try parallax for the last unit only
+			convs.append(getParallaxConverter(fromUnits[2], toUnits[2], reverse))
+
 	def convert(val):
 		return tuple(f(c) for f, c in izip(convs, val))
 	return convert
