@@ -22,6 +22,7 @@ frequency needs division of the value.
 from itertools import *
 import math
 
+from gavo.utils import memoized, identity
 from gavo.stc.common import *
 
 
@@ -135,18 +136,6 @@ spectralUnits = set(wlFactors) | set(freqFactors)
 
 systems = [(distUnits, getDistConv), (angleUnits, getAngleConv),
 	(timeUnits, getTimeConv), (spectralUnits, getSpectralConv)]
-
-def identity(x):
-	return x
-
-
-def memoized(origFun):
-	cache = {}
-	def fun(*args):
-		if args not in cache:
-			cache[args] = origFun(*args)
-		return cache[args]
-	return fun
 
 
 @memoized

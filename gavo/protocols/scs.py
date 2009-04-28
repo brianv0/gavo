@@ -57,8 +57,8 @@ class HumanScsCondition(ScsCondition):
 		if "inputKeys" not in kwargs:
 			kwargs["inputKeys"] =  [
 				base.makeStruct(svcs.InputKey, name="hscs_pos", type="text", 
-					description= "position as sexagesimal ra, dec or Simbad-resolvable"
-					" object", tablehead="Position"),
+					description= "Position as sexagesimal ra, dec or Simbad-resolvable"
+					" object", tablehead="Position/Name"),
 				base.makeStruct(svcs.InputKey, name="hscs_sr",
 					description="Search radius in arcminutes", 
 					tablehead="Search radius")]

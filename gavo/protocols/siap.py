@@ -165,7 +165,7 @@ def getBboxQuery(parameters, prefix="sia"):
 		sizes = map(float, parameters["SIZE"].split(","))
 	except ValueError:
 		raise base.ValidationError("Size specification has to be <degs> or"
-			" <degs>,<degs>", "SIZE", sizes)
+			" <degs>,<degs>", "SIZE", parameters["SIZE"])
 	if len(sizes)==1:
 		sizes = sizes*2
 	bbox = getBboxFromSIAPPars((ra, dec), sizes)

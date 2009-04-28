@@ -42,7 +42,15 @@ class SpaceFrame(_CoordFrame):
 	_a_nDim = None
 	_a_refFrame = "UNKNOWNRefFrame"
 	_a_equinox = None  # if non-null, it has to match [BJ][0-9]+[.][0-9]+
-	
+
+	def _setupNode(self):
+		if self.refFrame=="J2000":
+			self.refFrame = "FK5"
+			self.equinox = "J2000.0"
+		elif self.refFrame=="B1950":
+			self.refFrame = "FK4"
+			self.equinox = "B1950.0"
+
 	def getEquinox(self):
 		"""returns a datetime.datetime instance for the frame's equinox.
 
@@ -50,10 +58,6 @@ class SpaceFrame(_CoordFrame):
 		STCValueError if an invalid equinox string has been set.
 		"""
 		if self.equinox is None:
-			if self.refFrame=="J2000":
-				return times.jYearToDateTime(2000.0)
-			elif self.refFrame=="B1950":
-				return times.bYearToDateTime(1950.0)
 			return None
 		mat = re.match("([B|J])([0-9.]+)", self.equinox)
 		if not mat:
@@ -63,6 +67,18 @@ class SpaceFrame(_CoordFrame):
 			return times.bYearToDateTime(float(mat.group(2)))
 		else:
 			return times.jYearToDateTime(float(mat.group(2)))
+
+	def getTuple(self):
+		"""returns a node triple for spherc's purposes.
+
+		This is for the computation of coordinate transforms.  Since we only
+		do coordinate transforms for spherical coordinate systems, this
+		will, for now, raise STCValueErrors if everything but 2 or 3D SPHERICAL 
+		flavours.
+		"""
+		if self.flavor!="SPHERICAL" or (self.nDim!=2 and self.nDim!=3):
+			raise STCValueError("Can only conform 2/3-spherical coordinates")
+		return (self.refFrame, self.getEquinox(), self.refPos.standardOrigin)
 
 
 class SpectralFrame(_CoordFrame):

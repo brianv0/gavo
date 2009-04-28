@@ -385,7 +385,7 @@ class GeneralGenerationTest(testhelpers.VerboseTest):
 	
 	def testSpatialInterval(self):
 		assertMapsto("PositionInterval J2000 12 13 19 29 Position 15 16",
-			'PositionInterval J2000 12.0 13.0 19.0 29.0 Position 15.0 16.0')
+			'PositionInterval FK5 12.0 13.0 19.0 29.0 Position 15.0 16.0')
 
 
 class SampleGenerationTestBase(testhelpers.VerboseTest):

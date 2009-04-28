@@ -226,6 +226,25 @@ def loadPythonModule(fqName):
 	return modNs, moddesc
 
 
+def memoized(origFun):
+	"""is a very simple memoizing decorator.
+
+	Beware: This decorator is signature-changing (the resulting function will
+	accept all positional arguments, but no keyword arguments, only to
+	TypeError out when the original function is called.
+	"""
+	cache = {}
+	def fun(*args):
+		if args not in cache:
+			cache[args] = origFun(*args)
+		return cache[args]
+	return fun
+
+
+def identity(x):
+	return x
+
+
 def _test():
 	import doctest, codetricks
 	doctest.testmod(codetricks)
