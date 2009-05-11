@@ -9,8 +9,11 @@ import math
 import numarray
 from numarray import linear_algebra as la
 
+from gavo import utils
 from gavo.stc import sphermath
 from gavo.stc import times
+from gavo.stc import units
+from gavo.stc import stcsast
 from gavo.stc.common import *
 from gavo.utils import DEG, ARCSEC, memoized
 
@@ -228,7 +231,8 @@ def _getIAU1976PrecMatrix(fromNode, toNode):
 ############### FK4-FK5 system transformation
 # This follows the prescription of Yallop et al, AJ 97, 274
 
-_fk4ToFk5Matrix = numarray.array([
+# Transformation matrix according to Yallop
+_fk4ToFk5MatrixYallop = numarray.array([
 	[0.999925678186902, -0.011182059642247, -0.004857946558960,
 		0.000002423950176, -0.000000027106627, -0.000000011776558],
 	[0.011182059571766, 0.999937478448132, -0.000027176441185,
@@ -241,32 +245,101 @@ _fk4ToFk5Matrix = numarray.array([
 		0.011182506007242, 0.999958833818833, -0.000027184471371],
 	[-0.436111276039270, 0.012259092261564, 0.002119110818172,
 		0.004857669948650, -0.000027137309539, 1.000009560363559]])
-_fk5Tofk4Matrix = la.inverse(_fk4ToFk5Matrix)
+
+# Transformation matrix according to SLALIB-F
+_fk4ToFk5MatrixSla = numarray.transpose(numarray.array([
+	[+0.9999256782, +0.0111820610, +0.0048579479, 
+		-0.000551, +0.238514, -0.435623],
+	[-0.0111820611, +0.9999374784, -0.0000271474, 
+		-0.238565, -0.002667, +0.012254],
+	[-0.0048579477, -0.0000271765, +0.9999881997, 
+		+0.435739, -0.008541, +0.002117],
+	[+0.00000242395018, +0.00000002710663, +0.00000001177656, 
+		+0.99994704, +0.01118251, +0.00485767],
+	[-0.00000002710663, +0.00000242397878, -0.00000000006582, 
+		-0.01118251, +0.99995883, -0.00002714],
+	[-0.00000001177656, -0.00000000006587, +0.00000242410173, 
+		-0.00485767, -0.00002718, +1.00000956]]))
 
 # Positional correction due to E-Terms, in rad (per tropical century in the
-# case of Adot, which is ok for sphermath._uvPosUnit (Yallop et al, loc cit, p.
-# 276).  In PM, we ignore the "small" terms of Yallop's equation (3).  We also
-# ignore the difference between tropical and julian centuries.
-_b1950ETermsA = numarray.array([-1.62557e-6, -0.31919e-6, 0.13843e-6,
-	1.245e-3*ARCSEC, -1.580e-3*ARCSEC, -0.659e-3*ARCSEC])
+# case of Adot, which is ok for sphermath._svPosUnit (Yallop et al, loc cit, p.
+# 276)).  We ignore the difference between tropical and julian centuries.
+_b1950ETermsPos = numarray.array([-1.62557e-6, -0.31919e-6, -0.13843e-6])
+_b1950ETermsVel = numarray.array([1.245e-3, -1.580e-3, -0.659e-3])
+_yallopK = secsPerJCy/(units.oneAU/1e3)
+_yallopKSla = 21.095;
+_pcPerCyToKmPerSec = units.getRedshiftConverter("pc", "cy", "km", "s")
+_yallopFK4System = stcsast.parseSTCS("Position FK4 SPHER3 unit rad rad arcsec"
+	" VelocityInterval unit arcsec/cy arcsec/cy km/s")
+_yallopFK5System = stcsast.parseSTCS("Position FK5 SPHER3 unit rad rad arcsec"
+	" VelocityInterval unit arcsec/cy arcsec/cy km/s")
 
-def fk4ToFK5(uvfk4):
+def fk4ToFK5(svfk4, slaComp=True):
 	"""returns an FK5 2000 6-vector for an FK4 1950 6-vector.
 
 	The procedure used is described in Yallop et al, AJ 97, 274.  E-terms
 	of aberration are always removed from proper motions, regardless of
 	whether the objects are within 10 deg of the pole.
 	"""
-	uvETerm = uvfk4-_1950ETermsA+numarray.dot(
-		(numarray.dot(numarray.transpose(uvfk4), _b1950ETermsA),
-		uvfk4))
-	return numarray.dot(_fk4ToFk5Matrix, uvETerm)
-	
+	if slaComp:
+		transMatrix = _fk4ToFk5MatrixSla
+		yallopK = _yallopKSla
+	else:
+		transMatrix = _fk4ToFk5MatrixYallop
+		yallopK = _yallopK
 
-def fk5ToFK4(uvfk5):
+	# To save headaches, we first convert our 6-vector to the source
+	# of Yallop's recipe and then to Yallop's funky coordinates.
+	stcOrig = sphermath.svToSpher(svfk4, _yallopFK4System)
+	alpha, delta, prlx = stcOrig.place.value
+	pma, pmd, rv = stcOrig.velocity.value
+
+	yallopr = numarray.array([cos(alpha)*cos(delta),
+		sin(alpha)*cos(delta), sin(delta)])
+	yalloprd = numarray.array([
+		-pma*sin(alpha)*cos(delta)-pmd*cos(alpha)*sin(delta),
+		pma*cos(alpha)*cos(delta)-pmd*sin(alpha)*sin(delta),
+		pmd*cos(delta)])+yallopK*rv*prlx*yallopr
+
+	# Now do Yallop's recipe
+	if not slaComp:  # include Yallop's "small terms" in PM
+		yallopVE = (yalloprd-_b1950ETermsVel
+			+numarray.dot(yallopr, _b1950ETermsVel)*yallopr
+			+numarray.dot(yalloprd, _b1950ETermsPos)*yallopr
+			+numarray.dot(yalloprd, _b1950ETermsPos)*yalloprd)
+	else:
+		yallopVE = (yalloprd-_b1950ETermsVel
+			+numarray.dot(yallopr, _b1950ETermsVel)*yallopr)
+
+	yallop6 = numarray.concatenate((yallopr-(_b1950ETermsPos-
+			numarray.dot(yallopr, _b1950ETermsPos)*yallopr),
+		yallopVE))
+	cnv = numarray.dot(transMatrix, yallop6)
+
+	# Convert Yallop's representation to our 6-vectors
+	x,y,z,xd,yd,zd = cnv
+	rxy2 = x**2+y**2
+	r = math.sqrt(z**2+rxy2)
+	if rxy2==0:
+		raise STCValueError("No spherical proper motion on poles.")
+	alpha = math.atan2(y, x)
+	if alpha<0:
+		alpha += 2*math.pi
+	delta = math.atan2(z, math.sqrt(rxy2))
+	pma = (x*yd-y*xd)/rxy2
+	pmd = (zd*rxy2-z*(x*xd+y*yd))/r/rxy2
+	if abs(prlx)>1/sphermath.defaultDistance:
+		rv = numarray.dot(cnv[:3], cnv[3:])/yallopK/prlx/r
+		prlx = prlx/r
+	return sphermath.spherToSV(_yallopFK5System.change(
+		place=_yallopFK5System.place.change(value=(alpha, delta, prlx)),
+		velocity=_yallopFK5System.velocity.change(value=(pma, pmd, rv))))
+
+
+def fk5ToFK4(svfk5):
 	"""returns an FK4 1950 6-vector for an FK5 2000 6-vector.
 	"""
-	return uvfk5
+	return svfk5
 
 
 ############### Galactic coordinates
@@ -414,8 +487,8 @@ def _pathToFunction(trafoPath):
 		else:
 			expr.append("steps[%d]("%index)
 	vars = {"steps": steps, "numarray": numarray}
-	exec ("def transform(uv): return %s"%
-		"".join(expr)+"uv"+(")"*len(expr))) in vars
+	exec ("def transform(sv): return %s"%
+		"".join(expr)+"sv"+(")"*len(expr))) in vars
 	return vars["transform"]
 
 
@@ -436,12 +509,11 @@ def getTrafoFunction(srcTriple, dstTriple):
 	return _pathToFunction(trafoPath)
 
 
-
 def conformSpherical(fromSTC, toSTC):
 	"""conforms places and velocities in fromSTC with toSTC including 
 	precession and reference frame fixing.
 	"""
 	trafo = getTrafoFunction(fromSTC.place.frame.getTuple(),
 		toSTC.place.frame.getTuple())
-	return sphermath.uvToSpher(
-		trafo(sphermath.spherToUV(fromSTC)), toSTC)
+	return sphermath.svToSpher(
+		trafo(sphermath.spherToSV(fromSTC)), toSTC)

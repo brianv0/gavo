@@ -149,6 +149,11 @@ def getBasicConverter(fromUnit, toUnit, reverse=False):
 		fromUnit, toUnit))
 
 
+# the maximal parallax distance.  This is used in the parallax converters
+# to avoid divisions by zero.
+maxDistance = 1e10
+
+
 @memoized
 def getParallaxConverter(fromUnit, toUnit, reverse=False):
 	"""returns a function converting distances to/from parallaxes.
@@ -163,9 +168,20 @@ def getParallaxConverter(fromUnit, toUnit, reverse=False):
 	angularConv = getBasicConverter(fromUnit, "arcsec", reverse)
 	distanceConv = getBasicConverter("pc", toUnit, reverse)
 	if reverse:
-		return lambda val: angularConv(1./distanceConv(val))
+		def conv(val):
+			res = distanceConv(val)
+			if res>maxDistance:
+				return 0
+			else:
+				return angularConv(1./res)
 	else:
-		return lambda val: distanceConv(1./angularConv(val))
+		def conv(val):
+			res = angularConv(val)
+			if res<1/maxDistance:
+				return maxDistance
+			else:
+				return distanceConv(1./res)
+	return conv
 
 
 @memoized

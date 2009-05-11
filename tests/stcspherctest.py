@@ -89,19 +89,21 @@ class PathTest(testhelpers.VerboseTest):
 	]
 
 
-class SpherUVRoundtripTest(testhelpers.VerboseTest):
+class SpherSVRoundtripTest(testhelpers.VerboseTest):
 	"""tests for conversion between 6-vectors and spherical coordinates.
 	"""
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
 	def _runTest(self, sample):
 		ast0 = stc.parseSTCS(sample)
-		ast1 = sphermath.uvToSpher(sphermath.spherToUV(ast0), ast0)
+		ast1 = sphermath.svToSpher(sphermath.spherToSV(ast0), ast0)
 		self.assertEqual(ast0, ast1)
 
 	samples = [
 		"Position ICRS -20 -50",
 		"Position ICRS SPHER3 -20 -50 2 unit deg deg pc",
+		"Position ICRS SPHER3 0 -0.1 2 unit deg deg pc",
+		"Position ICRS SPHER3 0 0.1 2 unit deg deg pc",
 		"Position ICRS -20 -50 VelocityInterval Velocity 1 2 unit arcsec/yr",
 		"Position ICRS SPHER3 45 -30 2 unit deg deg pc"
 			" VelocityInterval Velocity 1 -2 40 unit arcsec/yr arcsec/yr km/s",
@@ -115,26 +117,26 @@ class SpherMathTests(testhelpers.VerboseTest):
 	"""
 	def testRotateY(self):
 		ast = stc.parseSTCS("Position ICRS 0 10")
-		uv = sphermath.spherToUV(ast)
+		sv = sphermath.spherToSV(ast)
 		for angle in range(10):
 			matrix = spherc.threeToSix(sphermath.getRotY(angle/180.*math.pi))
-			res = sphermath.uvToSpher(numarray.dot(matrix, uv), ast).place.value
+			res = sphermath.svToSpher(numarray.dot(matrix, sv), ast).place.value
 			self.assertAlmostEqual(res[1], 10+angle)
 
 	def testRotateX(self):
 		ast = stc.parseSTCS("Position ICRS 270 10")  # XXX that right?  90???
-		uv = sphermath.spherToUV(ast)
+		sv = sphermath.spherToSV(ast)
 		for angle in range(10):
 			matrix = spherc.threeToSix(sphermath.getRotX(angle/180.*math.pi))
-			res = sphermath.uvToSpher(numarray.dot(matrix, uv), ast).place.value
+			res = sphermath.svToSpher(numarray.dot(matrix, sv), ast).place.value
 			self.assertAlmostEqual(res[1], 10+angle)
 
 	def testRotateZ(self):
 		ast = stc.parseSTCS("Position ICRS 180 0")
-		uv = sphermath.spherToUV(ast)
+		sv = sphermath.spherToSV(ast)
 		for angle in range(10):
 			matrix = spherc.threeToSix(sphermath.getRotZ(angle/180.*math.pi))
-			res = sphermath.uvToSpher(numarray.dot(matrix, uv), ast).place.value
+			res = sphermath.svToSpher(numarray.dot(matrix, sv), ast).place.value
 			self.assertAlmostEqual(res[0], 180-angle)  # XXX that right?  +???
 
 	def testSimpleSpher(self):
@@ -170,9 +172,9 @@ class ToGalacticTest(testhelpers.VerboseTest):
 
 	def _runTest(self, sample):
 		fromCoo, (ares, dres) = sample
-		ast = stc.parseSTCS("Position GALACTIC %f %f"%fromCoo)
-		uv = numarray.dot(spherc._b1950ToGalMatrix, sphermath.spherToUV(ast))
-		res = sphermath.uvToSpher(uv, self._toSystem)
+		ast = stc.parseSTCS("Position GALACTIC %.11f %.11f"%fromCoo)
+		sv = numarray.dot(spherc._b1950ToGalMatrix, sphermath.spherToSV(ast))
+		res = sphermath.svToSpher(sv, self._toSystem)
 		a, d = res.place.value
 		self.assertAlmostEqual(ares, a, places=6)
 		self.assertAlmostEqual(dres, d, places=6)
@@ -183,7 +185,9 @@ class ToGalacticTest(testhelpers.VerboseTest):
 	]
 
 
-class JulianTestBase(testhelpers.VerboseTest):
+class PositionOnlyTestBase(testhelpers.VerboseTest):
+	"""A base class for makestctruth-based tests involving positions only.
+	"""
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
 	def _runTest(self, sample):
@@ -195,21 +199,46 @@ class JulianTestBase(testhelpers.VerboseTest):
 		self.assertAlmostEqual(res.place.value[1], dec1)
 
 
+class SixVectorTestBase(testhelpers.VerboseTest):
+	"""A base class for makestctruth-based tests involving full 6-vectors.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		(ra, dec, prl, pma, pmd, rv
+			), (ra1, dec1, prl1, pma1, pmd1, rv1) = sample
+		ast = self.srcSystem.change(
+			place=self.srcSystem.place.change(value=(ra,dec,prl)),
+			velocity=self.srcSystem.velocity.change(value=(pma, pmd, rv)))
+		res = spherc.conformSpherical(ast, self.destSystem)
+		places = 6
+		self.assertAlmostEqual(res.place.value[0], ra1, places=places)
+		self.assertAlmostEqual(res.place.value[1], dec1, places=places)
+		self.assertAlmostEqual(res.place.value[2], prl1, places=places)
+		self.assertAlmostEqual(res.velocity.value[0], pma1, places=places)
+		self.assertAlmostEqual(res.velocity.value[1], pma1, places=places)
+		self.assertAlmostEqual(res.velocity.value[2], rv1, places=places)
+
+
 # This mess creates tests from the samples in stcgroundtruth;
 # see the globals in there; the tests are called Test<varname>
 for sampleName in dir(stcgroundtruth):
 	if not re.match("[a-zA-Z]", sampleName):
 		continue
 	_samples, _srcSystemSTC, _destSystemSTC = getattr(stcgroundtruth, sampleName)
-	class GroundTruthTest(JulianTestBase):
+	if sampleName.startswith("Six"):
+		base = SixVectorTestBase
+	else:
+		base = PositionOnlyTestBase
+	class GroundTruthTest(base):
 		samples = _samples
 		destSystem = stc.parseSTCS(_destSystemSTC)
 		srcSystem = stc.parseSTCS(_srcSystemSTC)
 	globals()["Test"+sampleName] = GroundTruthTest
 	GroundTruthTest.__name__= "Test"+sampleName
 	del GroundTruthTest
-
+	del base
 
 
 if __name__=="__main__":
-	testhelpers.main(TestGalToJ2000)
+	testhelpers.main(TestSixFK41950ToFK52000)

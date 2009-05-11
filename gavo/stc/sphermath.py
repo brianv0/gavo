@@ -10,6 +10,7 @@ from gavo.stc import conform
 from gavo.stc import units
 from gavo.stc.common import *
 
+
 def getRotX(angle):
 	"""returns a 3-rotation matrix for rotating angle radians around x.
 	"""
@@ -69,23 +70,23 @@ def cartToSpher(unitvector):
 
 
 # Units spherical coordinates have to be in for transformation to/from
-# unit vectors.
-_uvPosUnit = ("rad", "rad", "pc")
-_uvVPosUnit = ("rad", "rad", "pc")
-_uvVTimeUnit = ("cy", "cy", "cy")
+# 6-vectors.
+_svPosUnit = ("rad", "rad", "pc")
+_svVPosUnit = ("rad", "rad", "pc")
+_svVTimeUnit = ("cy", "cy", "cy")
 	
 
-def _uvToSpherRaw(uv):
+def _svToSpherRaw(sv):
 	"""returns spherical position and velocity vectors for the cartesian
-	6-vector uv.
+	6-vector sv.
 
-	This is a helper for uvToSpher.
+	This is a helper for svToSpher.
 
 	This is based on SOFA's pv2s; the units here are given by the _rawSpherSTC
-	object above; this will only work if the input of spherToUV had the
+	object above; this will only work if the input of spherToSV had the
 	standard coordinates.
 	"""
-	x,y,z,xd,yd,zd = uv
+	x,y,z,xd,yd,zd = sv
 	rInXY2 = x**2+y**2
 	r2 = rInXY2+z**2
 	rw = rTrue = math.sqrt(r2)
@@ -106,6 +107,8 @@ def _uvToSpherRaw(uv):
 	
 	if rInXY2!=0.:
 		theta = math.atan2(y, x)
+		if abs(theta)<1e-12: # null out to avoid wrapping to 2 pi
+			theta = 0
 		if theta<0:
 			theta += 2*math.pi
 		posValues = (theta, math.atan2(z, rInXY), rTrue)
@@ -130,73 +133,74 @@ def _ensureSphericalFrame(coo):
 			" spherical coordinates."%(coo.frame))
 
 
-def uvToSpher(uv, baseSTC):
-	"""returns an STC object like baseSTC, but with the values of the 6-unit
-	vector uv filled in.
+def svToSpher(sv, baseSTC):
+	"""returns an STC object like baseSTC, but with the values of the 6-vector 
+	sv filled in.
 	"""
 	bPlace, bVel = baseSTC.place, baseSTC.velocity
-	pos, vel = _uvToSpherRaw(uv)
+	pos, vel = _svToSpherRaw(sv)
 	buildArgs = {}
 
 	if bPlace:
 		if bPlace.frame.nDim==2:
-			pos, unit = pos[:2], _uvPosUnit[:2]
+			pos, unit = pos[:2], _svPosUnit[:2]
 		else:
-			unit = _uvPosUnit
+			unit = _svPosUnit
 		buildArgs["place"] = bPlace.change(value=pos, unit=unit)
 
 	if bVel:
 		if bVel.frame.nDim==2:
-			pos, unit, tUnit = pos[:2], _uvVPosUnit[:2], _uvVTimeUnit[:2]
+			pos, unit, tUnit = pos[:2], _svVPosUnit[:2], _svVTimeUnit[:2]
 		else:
-			unit, tUnit = _uvVPosUnit, _uvVTimeUnit
+			unit, tUnit = _svVPosUnit, _svVTimeUnit
 		buildArgs["velocity"] = bVel.change(value=vel, unit=unit,
 			velTimeUnit=tUnit)
 
 	return conform.conformUnits(baseSTC, baseSTC.change(**buildArgs))
 
 
-_defaultDistance = 1e10   # filled in for distances not given, in pc
+defaultDistance = units.maxDistance # filled in for distances not given, in pc
+_nAN = float("NaN")
 
-def _getUVSphericals(stcObject):
+def _getSVSphericals(stcObject):
 	"""returns (space, vel) from stcObject in units suitable for generation
 	of 6-cartesian vectors.
 
 	"Sane" defaults are inserted for missing values.
 
-	This is a helper for spherToUV.
+	This is a helper for spherToSV.
 	"""
-	space, vel = (0, 0, _defaultDistance), (0, 0, 0)
+	space, vel = (0, 0, defaultDistance), (0, 0, 0)
 	bPlace, bVel = stcObject.place, stcObject.velocity
 
 	if bPlace and bPlace.value:
 		_ensureSphericalFrame(bPlace)
 		space, srcUnit = bPlace.value, bPlace.unit
 		if bPlace.frame.nDim==2:
-			space = space+(_defaultDistance,)
-			srcUnit = srcUnit+_uvPosUnit[-1:]
-		space = units.getVectorConverter(srcUnit, _uvPosUnit)(space)
+			space = space+(defaultDistance,)
+			srcUnit = srcUnit+_svPosUnit[-1:]
+		space = units.getVectorConverter(srcUnit, _svPosUnit)(space)
 	if bVel and bVel.value:
 		_ensureSphericalFrame(bVel)
 		vel = bVel.value
 		srcUnit, srcUnitT = bVel.unit, bVel.velTimeUnit
 		if bVel.frame.nDim==2:
 			vel = vel+(0,)
-			srcUnit = srcUnit+_uvVPosUnit[-1:]
-			srcUnitT = srcUnitT+_uvVTimeUnit[-1:]
+			srcUnit = srcUnit+_svVPosUnit[-1:]
+			srcUnitT = srcUnitT+_svVTimeUnit[-1:]
 		vel = units.getVelocityConverter(srcUnit, srcUnitT,
-			_uvVPosUnit, _uvVTimeUnit)(vel)
+			_svVPosUnit, _svVTimeUnit)(vel)
 	return space, vel
 
 
-def spherToUV(stcObject):
+def spherToSV(stcObject):
 	"""returns a 6-vector of cartesian place and velocity from stcObject.
 
 	stcObject must be in spherical coordinates.  If any of parallax,
 	proper motions, and radial velocity are missing, "sane" defaults
 	are substituted.
 	"""
-	(alpha, delta, r), (alphad, deltad, rd) = _getUVSphericals(stcObject)
+	(alpha, delta, r), (alphad, deltad, rd) = _getSVSphericals(stcObject)
 	sa, ca = math.sin(alpha), math.cos(alpha)
 	sd, cd = math.sin(delta), math.cos(delta)
 	x, y = r*cd*ca, r*cd*sa
