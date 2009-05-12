@@ -134,6 +134,9 @@ def _makeFindPath(transforms):
 	return findPath
 
 
+def vabs(naVec):
+	return math.sqrt(numarray.dot(naVec, naVec))
+
 
 ############### Computation of precession matrices.
 
@@ -232,7 +235,7 @@ def _getIAU1976PrecMatrix(fromNode, toNode):
 # This follows the prescription of Yallop et al, AJ 97, 274
 
 # Transformation matrix according to Yallop
-_fk4ToFk5MatrixYallop = numarray.array([
+_fk4ToFK5MatrixYallop = numarray.array([
 	[0.999925678186902, -0.011182059642247, -0.004857946558960,
 		0.000002423950176, -0.000000027106627, -0.000000011776558],
 	[0.011182059571766, 0.999937478448132, -0.000027176441185,
@@ -247,7 +250,7 @@ _fk4ToFk5MatrixYallop = numarray.array([
 		0.004857669948650, -0.000027137309539, 1.000009560363559]])
 
 # Transformation matrix according to SLALIB-F
-_fk4ToFk5MatrixSla = numarray.transpose(numarray.array([
+_fk4ToFK5MatrixSla = numarray.transpose(numarray.array([
 	[+0.9999256782, +0.0111820610, +0.0048579479, 
 		-0.000551, +0.238514, -0.435623],
 	[-0.0111820611, +0.9999374784, -0.0000271474, 
@@ -260,6 +263,23 @@ _fk4ToFk5MatrixSla = numarray.transpose(numarray.array([
 		-0.01118251, +0.99995883, -0.00002714],
 	[-0.00000001177656, -0.00000000006587, +0.00000242410173, 
 		-0.00485767, -0.00002718, +1.00000956]]))
+
+# Inverse transformation matrix according to SLALIB-F
+_fk5ToFK4Matrix = numarray.transpose(numarray.array([
+[+0.9999256795, -0.0111814828, -0.0048590040, 
+	-0.000551, -0.238560, +0.435730],
+[+0.0111814828, +0.9999374849, -0.0000271557, 
+	+0.238509, -0.002667, -0.008541],
+[+0.0048590039, -0.0000271771, +0.9999881946, 
+	-0.435614, +0.012254, +0.002117],
+[-0.00000242389840, +0.00000002710544, +0.00000001177742, 
+	+0.99990432, -0.01118145, -0.00485852],
+[-0.00000002710544, -0.00000242392702, +0.00000000006585, 
+	+0.01118145, +0.99991613, -0.00002716],
+[-0.00000001177742, +0.00000000006585, -0.00000242404995, 
+	+0.00485852, -0.00002717, +0.99996684]]))
+
+
 
 # Positional correction due to E-Terms, in rad (per tropical century in the
 # case of Adot, which is ok for sphermath._svPosUnit (Yallop et al, loc cit, p.
@@ -274,50 +294,33 @@ _yallopFK4System = stcsast.parseSTCS("Position FK4 SPHER3 unit rad rad arcsec"
 _yallopFK5System = stcsast.parseSTCS("Position FK5 SPHER3 unit rad rad arcsec"
 	" VelocityInterval unit arcsec/cy arcsec/cy km/s")
 
-def fk4ToFK5(svfk4, slaComp=True):
-	"""returns an FK5 2000 6-vector for an FK4 1950 6-vector.
-
-	The procedure used is described in Yallop et al, AJ 97, 274.  E-terms
-	of aberration are always removed from proper motions, regardless of
-	whether the objects are within 10 deg of the pole.
+def _svToYallop(sv, yallopK):
+	"""returns r and rdot vectors suitable for Yallop's recipe from our
+	6-vectors.
 	"""
-	if slaComp:
-		transMatrix = _fk4ToFk5MatrixSla
-		yallopK = _yallopKSla
-	else:
-		transMatrix = _fk4ToFk5MatrixYallop
-		yallopK = _yallopK
-
 	# To save headaches, we first convert our 6-vector to the source
 	# of Yallop's recipe and then to Yallop's funky coordinates.
-	stcOrig = sphermath.svToSpher(svfk4, _yallopFK4System)
+	# FK4System works for FK5 as well, we're only interested in the units.
+	stcOrig = sphermath.svToSpher(sv, _yallopFK4System)
 	alpha, delta, prlx = stcOrig.place.value
 	pma, pmd, rv = stcOrig.velocity.value
 
-	yallopr = numarray.array([cos(alpha)*cos(delta),
+	yallopR = numarray.array([cos(alpha)*cos(delta),
 		sin(alpha)*cos(delta), sin(delta)])
-	yalloprd = numarray.array([
+	yallopRd = numarray.array([
 		-pma*sin(alpha)*cos(delta)-pmd*cos(alpha)*sin(delta),
 		pma*cos(alpha)*cos(delta)-pmd*sin(alpha)*sin(delta),
-		pmd*cos(delta)])+yallopK*rv*prlx*yallopr
+		pmd*cos(delta)])+yallopK*rv*prlx*yallopR
+	return yallopR, yallopRd, stcOrig
 
-	# Now do Yallop's recipe
-	if not slaComp:  # include Yallop's "small terms" in PM
-		yallopVE = (yalloprd-_b1950ETermsVel
-			+numarray.dot(yallopr, _b1950ETermsVel)*yallopr
-			+numarray.dot(yalloprd, _b1950ETermsPos)*yallopr
-			+numarray.dot(yalloprd, _b1950ETermsPos)*yalloprd)
-	else:
-		yallopVE = (yalloprd-_b1950ETermsVel
-			+numarray.dot(yallopr, _b1950ETermsVel)*yallopr)
 
-	yallop6 = numarray.concatenate((yallopr-(_b1950ETermsPos-
-			numarray.dot(yallopr, _b1950ETermsPos)*yallopr),
-		yallopVE))
-	cnv = numarray.dot(transMatrix, yallop6)
+def _yallopToSv(yallop6, yallopK, stcOrig, baseSystem):
+	"""returns a 6-Vector from a yallop-6 vector.
 
-	# Convert Yallop's representation to our 6-vectors
-	x,y,z,xd,yd,zd = cnv
+	stcOrig is the third item of the return value of _svToYallop.
+	"""
+	rv, prlx = stcOrig.velocity.value[2], stcOrig.place.value[2]
+	x,y,z,xd,yd,zd = yallop6
 	rxy2 = x**2+y**2
 	r = math.sqrt(z**2+rxy2)
 	if rxy2==0:
@@ -327,19 +330,70 @@ def fk4ToFK5(svfk4, slaComp=True):
 		alpha += 2*math.pi
 	delta = math.atan2(z, math.sqrt(rxy2))
 	pma = (x*yd-y*xd)/rxy2
-	pmd = (zd*rxy2-z*(x*xd+y*yd))/r/rxy2
+	pmd = (zd*rxy2-z*(x*xd+y*yd))/r/r/math.sqrt(rxy2)
 	if abs(prlx)>1/sphermath.defaultDistance:
-		rv = numarray.dot(cnv[:3], cnv[3:])/yallopK/prlx/r
+		rv = numarray.dot(yallop6[:3], yallop6[3:])/yallopK/prlx/r
 		prlx = prlx/r
-	return sphermath.spherToSV(_yallopFK5System.change(
-		place=_yallopFK5System.place.change(value=(alpha, delta, prlx)),
-		velocity=_yallopFK5System.velocity.change(value=(pma, pmd, rv))))
+	return sphermath.spherToSV(baseSystem.change(
+		place=baseSystem.place.change(value=(alpha, delta, prlx)),
+		velocity=baseSystem.velocity.change(value=(pma, pmd, rv))))
+
+
+def fk4ToFK5(svfk4, slaComp=True):
+	"""returns an FK5 2000 6-vector for an FK4 1950 6-vector.
+
+	The procedure used is described in Yallop et al, AJ 97, 274.  E-terms
+	of aberration are always removed from proper motions, regardless of
+	whether the objects are within 10 deg of the pole.
+	"""
+	if slaComp:
+		transMatrix = _fk4ToFK5MatrixSla
+		yallopK = _yallopKSla
+	else:
+		transMatrix = _fk4ToFK5MatrixYallop
+		yallopK = _yallopK
+	yallopR, yallopRd, stcOrig = _svToYallop(svfk4, yallopK)
+
+	# Yallop's recipe starts here
+	if not slaComp:  # include Yallop's "small terms" in PM
+		yallopVE = (yallopRd-_b1950ETermsVel
+			+numarray.dot(yallopR, _b1950ETermsVel)*yallopR
+			+numarray.dot(yallopRd, _b1950ETermsPos)*yallopR
+			+numarray.dot(yallopRd, _b1950ETermsPos)*yallopRd)
+	else:
+		yallopVE = (yallopRd-_b1950ETermsVel
+			+numarray.dot(yallopR, _b1950ETermsVel)*yallopR)
+
+	yallop6 = numarray.concatenate((yallopR-(_b1950ETermsPos-
+			numarray.dot(yallopR, _b1950ETermsPos)*yallopR),
+		yallopVE))
+	cnv = numarray.dot(transMatrix, yallop6)
+	return _yallopToSv(cnv, yallopK, stcOrig, _yallopFK5System)
 
 
 def fk5ToFK4(svfk5):
 	"""returns an FK4 1950 6-vector for an FK5 2000 6-vector.
+
+	This is basically a reversal of fk4ToFK5, except we're always operating
+	in slaComp mode here.
+
 	"""
-	return svfk5
+	yallopR, yallopRd, stcOrig = _svToYallop(svfk5, _yallopKSla)
+
+	# first apply rotation...
+	cnv = numarray.dot(_fk5ToFK4Matrix, 
+		numarray.concatenate((yallopR, yallopRd)))
+	# ... then handle E-Terms; direct inversion of Yallop's equations is
+	# troublesome, so I basically follow what slalib does.
+	yallopR, yallopRd = cnv[:3], cnv[3:]
+	spatialCorr = numarray.dot(yallopR, _b1950ETermsPos)*yallopR
+	newRMod = vabs(yallopR+_b1950ETermsPos*vabs(yallopR)-spatialCorr)
+	newR = yallopR+_b1950ETermsPos*newRMod-spatialCorr
+	newRd = yallopRd+_b1950ETermsVel*newRMod-numarray.dot(
+		yallopR, _b1950ETermsVel)*yallopR
+
+	return _yallopToSv(numarray.concatenate((newR, newRd)),
+		_yallopKSla, stcOrig, _yallopFK4System)
 
 
 ############### Galactic coordinates
@@ -360,7 +414,7 @@ _galToJ2000Matrix = threeToSix(numarray.transpose(numarray.array([
 
 ############### Reference positions
 # XXX TODO: We don't transform anything here.  Yet.  This will not
-# hurt for moderate accuracy expectations in the stellar and
+# hurt for moderate accuracy requirements in the stellar and
 # extragalactic regime but makes this libarary basically useless for
 # solar system work.
 

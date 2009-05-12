@@ -216,7 +216,7 @@ class SixVectorTestBase(testhelpers.VerboseTest):
 		self.assertAlmostEqual(res.place.value[1], dec1, places=places)
 		self.assertAlmostEqual(res.place.value[2], prl1, places=places)
 		self.assertAlmostEqual(res.velocity.value[0], pma1, places=places)
-		self.assertAlmostEqual(res.velocity.value[1], pma1, places=places)
+		self.assertAlmostEqual(res.velocity.value[1], pmd1, places=places)
 		self.assertAlmostEqual(res.velocity.value[2], rv1, places=places)
 
 
@@ -241,4 +241,4 @@ for sampleName in dir(stcgroundtruth):
 
 
 if __name__=="__main__":
-	testhelpers.main(TestSixFK41950ToFK52000)
+	testhelpers.main(TestSixFK5ToFK4)

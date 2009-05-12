@@ -118,7 +118,9 @@ void generateToGalCase(void)
 }
 
 
-void generateFK4ToFK5Case(void)
+void generateSixCase(char *fromSystem, char *toSystem, char * label,
+	void (*trafo)(double, double, double, double, double, double,
+		double*, double*, double*, double*, double*, double*))
 {
 	spherCooWithPM testCases[] = {
 		{0, 0, 0, 0, 0, 0},
@@ -138,23 +140,24 @@ void generateFK4ToFK5Case(void)
 	};
 	spherCooWithPM *coo;
 
-	printf("# FK4 B1950.0 -> FK5 J2000.\n");
-	printf("SixFK41950ToFK52000 = ([\n");
+	printf("# %s -> %s.\n", fromSystem, toSystem);
+	printf("Six%s = ([\n", label);
 	for (coo=testCases; coo->alpha!=-1; coo++) {
 		double alpha, delta, pmd, pma, parallax, rv;
 		printf("\t((%.10f, %.10f, %.10f, %.10f, %.10f, %.10f), ", 
 			coo->alpha, coo->delta, coo->parallax,
 			coo->pma, coo->pmd, coo->rv);
-		slaFk425(RAD(coo->alpha), RAD(coo->delta), coo->pma, coo->pmd,
+		trafo(RAD(coo->alpha), RAD(coo->delta), coo->pma, coo->pmd,
 			coo->parallax, coo->rv, &alpha, &delta, &pma, &pmd, &parallax,
 			&rv);
 		printf("(%.10f, %.10f, %.10f, %.10f, %.10f, %.10f)),\n", 
 			DEG(alpha), DEG(delta), parallax, pma, pmd, rv);
 	}
-	printf("], 'Position FK4 B1950 SPHER3 unit deg deg arcsec"
+	printf("], 'Position %s SPHER3 unit deg deg arcsec"
 		" VelocityInterval unit rad/yr rad/yr km/s', "
-		"'Position FK5 J2000 SPHER3 unit deg deg arcsec"
-		" VelocityInterval unit rad/yr rad/yr km/s')\n");
+		"'Position %s SPHER3 unit deg deg arcsec"
+		" VelocityInterval unit rad/yr rad/yr km/s')\n",
+		fromSystem, toSystem);
 }
 
 int main(void)
@@ -171,7 +174,8 @@ int main(void)
 	generateEquCase("FK4", 1875, 1980);
 	generateToGalCase();
 	generateFromGalCase();
-	generateFK4ToFK5Case();
+	generateSixCase("FK4 B1950", "FK5 J2000", "FK4ToFK5", slaFk425);
+	generateSixCase("FK5 J2000", "FK4 B1950", "FK5ToFK4", slaFk524);
 	return 0;
 }
 
