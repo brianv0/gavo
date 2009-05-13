@@ -20,7 +20,7 @@ class Feeder(table.Feeder):
 	After an exit, the instances have an nAffected attribute that says
 	how many rows were processed by the database through this feeder.
 	"""
-	def __init__(self, parent, insertCommand, batchSize=1024, notify=True):
+	def __init__(self, parent, insertCommand, batchSize=2000, notify=True):
 		self.nAffected, self.notify = 0, notify
 		table.Feeder.__init__(self, parent)
 		self.cursor = parent.connection.cursor()
@@ -37,7 +37,6 @@ class Feeder(table.Feeder):
 				pprint.pprint(self.batchCache, sys.stderr)
 				raise
 			except sqlsupport.ProgrammingError:
-				print ">>>>>>>>>>>>>>>", self.cursor.query
 				raise
 			if self.cursor.rowcount>=0:
 				self.nAffected += self.cursor.rowcount
@@ -54,7 +53,7 @@ class Feeder(table.Feeder):
 			except rscdef.IgnoreThisRow:
 				return
 		self.batchCache.append(data)
-		if len(self.batchCache)>self.batchSize:
+		if len(self.batchCache)>=self.batchSize:
 			self.shipout()
 	
 	def exit(self, *args):

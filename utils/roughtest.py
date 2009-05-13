@@ -347,6 +347,12 @@ myTests = [
 			"endDate__month=3&endDate__year=2010&hrInterval=24",
 			["2010-03-21", "11 53 04.2932", "+37 38 30.622"],
 			"APFS/HIP computation"),
+		GetHasStringsTest(nv_root+"/apfs/res/apfs_new/hipquery/form?"
+			"__nevow_form__=genForm&object=Algol&startDate__day=10&"
+			"startDate__month=10&startDate__year=2009&endDate__day=12"
+			"&endDate__month=10&endDate__year=2009&hrInterval=24",
+			["multiple star", "03 08 20.0148"],
+			"APFS HIP multiple star warning is issued."),
 	),
 	TestGroup("maidanak-siap",
 		GetHasStringTest(nv_root+"/maidanak/res/rawframes/siap/siap.xml?"

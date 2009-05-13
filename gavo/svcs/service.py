@@ -12,6 +12,7 @@ import os
 import weakref
 
 from nevow import inevow
+from nevow import tags as T, entities as E
 from twisted.internet import defer
 from twisted.python import components
 
