@@ -32,7 +32,7 @@ def _passthrough(node, buildArgs, context):
 
 
 def _noIter(ign, ored):
-	if False: yield
+	if False: yield None
 
 def _buildTuple(val):
 	return (val,)

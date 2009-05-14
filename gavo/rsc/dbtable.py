@@ -171,9 +171,9 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 
 		*** Postgres specific ***
 		"""
-		constraintName = self.getPrimaryIndexName(self.tableDef.id)
-		if self.tableDef.primary and hasIndex(
-				self, self.tableName, constraintName):
+		constraintName = str(self.getPrimaryIndexName(self.tableDef.id))
+		if self.tableDef.primary and self.hasIndex(
+				self.tableName, constraintName):
 			self.query("ALTER TABLE %s DROP CONSTRAINT %s"%(
 				self.tableName, constraintName))
 
@@ -186,7 +186,7 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 	def _dropForeignKeys(self):
 		"""drops foreign key constraints if necessary.
 		"""
-		for fk in self.tableDef.foreigenKeys:
+		for fk in self.tableDef.foreignKeys:
 			self.query(fk.getDeletionDDL())
 
 	def dropIndices(self):

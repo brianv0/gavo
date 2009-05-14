@@ -26,7 +26,10 @@ class FITSProdIterator(RowIterator):
 		In reality, I'm just trying to cope with oversized keywords.
 		"""
 		mat = re.match(r"([^\s=]*)\s*=\s*([^/]+)", card._cardimage)
-		res[mat.group(1)] = mat.group(2).strip()
+		if mat:
+			res[mat.group(1)] = mat.group(2).strip()
+		else: # Card beyond recognition, ignore
+			pass
 
 	def _buildDictFromHeader(self, header):
 		res = {}
