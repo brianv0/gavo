@@ -98,6 +98,10 @@ def dateTimeToJdn(dt):
 		secsOnDay = 0
 	return jdn+(secsOnDay-43200)/86400.
 
+def dateTimeToMJD(dt):
+	"""returns a modified mjd for a datetime instance.
+	"""
+	return dateTimeToJdn(dt)-2400000.5
 
 def dateTimeToBYear(dt):
 	return (dateTimeToJdn(dt)-2415020.31352)/tropicalYear+1900.0

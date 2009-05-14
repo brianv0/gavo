@@ -412,6 +412,25 @@ _galToJ2000Matrix = threeToSix(numarray.transpose(numarray.array([
 	[-0.867666135847849, -0.198076386130820,  0.455983795721093]])))
 
 
+############### Ecliptic coordinates
+
+def _getEclipticMatrix(epoch):
+	"""returns the rotation matrix from equatorial to ecliptic at datetime epoch.
+
+	Strictly, epoch should be a TDB.
+	"""
+	t = times.getSeconds(epoch-times.dtJ2000)/secsPerJCy
+	obliquity = (84381.448+(-46.8150+(-0.00059+0.001813*t)*t)*t)*ARCSEC
+	return sphermath.getRotX(obliquity)
+
+def _getFromEclipticMatrix(fromNode, toNode):
+	return threeToSix(numarray.transpose(_getEclipticMatrix(fromNode[1])))
+
+def _getToEclipticMatrix(fromNode, toNode):
+	emat = _getEclipticMatrix(fromNode[1])
+	return threeToSix(emat)
+
+
 ############### Reference positions
 # XXX TODO: We don't transform anything here.  Yet.  This will not
 # hurt for moderate accuracy requirements in the stellar and
@@ -456,6 +475,10 @@ _findTransformsPath = _makeFindPath([
 		_getIAU1976PrecMatrix),
 	(("FK4", ANYVAL, SAME), ("FK4", ANYVAL, SAME),
 		_getNewcombPrecMatrix),
+	(("ECLIPTIC", SAME, SAME), ("FK5", SAME, SAME),
+		_getFromEclipticMatrix),
+	(("FK5", SAME, SAME), ("ECLIPTIC", SAME, SAME),
+		_getToEclipticMatrix),
 	((SAME, SAME, ANYVAL), (SAME, SAME, ANYVAL),
 		_Constant(_transformRefpos)),
 ])
@@ -530,8 +553,9 @@ def _pathToFunction(trafoPath):
 	"""returns a function encapsulating all operations contained in
 	trafoPath.
 
-	The function receives and returns a 6-vector.
+	The function receives and returns a 6-vector.  trafoPath is altered.
 	"""
+	trafoPath.reverse()
 	steps = _contractMatrices([factory(srcTrip, dstTrip)
 		for srcTrip, dstTrip, factory in trafoPath])
 	expr = []
@@ -567,7 +591,7 @@ def conformSpherical(fromSTC, toSTC):
 	"""conforms places and velocities in fromSTC with toSTC including 
 	precession and reference frame fixing.
 	"""
-	trafo = getTrafoFunction(fromSTC.place.frame.getTuple(),
-		toSTC.place.frame.getTuple())
+	trafo = getTrafoFunction(fromSTC.place.frame.asTriple(),
+		toSTC.place.frame.asTriple())
 	return sphermath.svToSpher(
 		trafo(sphermath.spherToSV(fromSTC)), toSTC)

@@ -784,4 +784,4 @@ def parseSTCX(stcxLiteral):
 	asf = dict(buildTree(ElementTree.fromstring(stcxLiteral), context)
 		)["stcSpec"]
 	resolveProxies(asf)
-	return asf
+	return [ast.polish() for ast in asf]

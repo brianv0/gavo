@@ -84,13 +84,24 @@ def serialize_RefPos(node, context):
 		raise STCValueError("No such standard origin: %s"%node.standardOrigin)
 
 
+def _fudgeEquinox(eq):
+# Incredibly, the schema requires not more than three figures after the
+# comma for equinox.  Sigh.
+	if eq is None:
+		return None
+	res = eq[0]+"%.3f"%float(eq[1:])
+	# Do some cosmetics
+	if res.endswith("00"):
+		res = res[:-2]
+	return res
+
 def serialize_SpaceFrame(node, context):
 	if node is None: return
 	addId(node)
 	return STC.SpaceFrame(id=node.id)[
 		STC.Name[node.name], 
 		_getFromSTC(node.refFrame, "reference frame")[
-			STC.Equinox[strOrNull(node.equinox)]],
+			STC.Equinox[_fudgeEquinox(node.equinox)]],
 		serialize_RefPos(node.refPos, context),
 		_getFromSTC(node.flavor, "coordinate flavor")(
 			coord_naxes=strOrNull(node.nDim))]

@@ -320,7 +320,7 @@ def getCST(literal):
 	try:
 		tree = makeTree(getGrammar()["stcsPhrase"].parseString(literal))
 	except ParseException, ex:
-		raise STCSParseError("Invalid STCS expression (%s)"%ex.msg,
+		raise STCSParseError("Invalid STCS expression (%s at %s)"%(ex.msg, ex.loc),
 			expr=literal, pos=ex.loc)
 	addDefaults(tree)
 	return tree

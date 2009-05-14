@@ -68,8 +68,8 @@ class SpaceFrame(_CoordFrame):
 		else:
 			return times.jYearToDateTime(float(mat.group(2)))
 
-	def getTuple(self):
-		"""returns a node triple for spherc's purposes.
+	def asTriple(self):
+		"""returns a triple defining the space frame for spherc's purposes.
 
 		This is for the computation of coordinate transforms.  Since we only
 		do coordinate transforms for spherical coordinate systems, this
@@ -522,3 +522,21 @@ class STCSpec(ASTNode):
 		for node in self.iterNodes():
 			if node.id:
 				self.idMap[node.id] = node
+
+	def polish(self):
+		"""does global fixups when parsing is finished.
+
+		This method has to be called after the element is complete.  The
+		standard parsers to this.
+
+		For convenience, it returns the instance itself.
+		"""
+# Operations here cannot be in a _setupNode since when parsing from
+# XML, there may be IdProxies instead of real objects.
+		# Equinox for ecliptic defaults to observation time
+		if self.place:
+			frame = self.place.frame
+			if frame and frame.equinox is None and frame.refFrame=="ECLIPTIC":
+				if self.time and self.time.value:
+					frame.equinox = "J%.8f"%(times.dateTimeToJYear(self.time.value))
+		return self

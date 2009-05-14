@@ -450,5 +450,21 @@ class DMTest(testhelpers.VerboseTest):
 		self.failUnless(ast!=ast3)
 
 
+class EclipticEquinoxTest(testhelpers.VerboseTest):
+	"""tests for equinox defaulting in ecliptic coordinates.
+	"""
+	def testDefaulting(self):
+		ast = stc.parseSTCS("Time TT 1980-12-13T08:22:01 Position ECLIPTIC")
+		self.assertEqual(ast.place.frame.equinox, "J1980.94961977")
+	
+	def testNoDefaulting(self):
+		ast = stc.parseSTCS("Position ECLIPTIC")
+		self.assertEqual(ast.place.frame.equinox, None)
+
+	def testOverriding(self):
+		ast = stc.parseSTCS("Time TT 1980-12-13T08:22:01 Position ECLIPTIC J2000")
+		self.assertEqual(ast.place.frame.equinox, "J2000.0")
+
+
 if __name__=="__main__":
-	testhelpers.main(OtherCoordIntervalTest)
+	testhelpers.main(EclipticEquinoxTest)

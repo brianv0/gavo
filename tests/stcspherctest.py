@@ -241,4 +241,4 @@ for sampleName in dir(stcgroundtruth):
 
 
 if __name__=="__main__":
-	testhelpers.main(TestSixFK5ToFK4)
+	testhelpers.main(TestECL32110ToJ2000)

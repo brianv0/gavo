@@ -448,7 +448,7 @@ def parseSTCS(literal):
 	system = getCoordSys(cst)[1]
 	args = {"astroSystem": system}
 	args.update(getCoords(cst, system))
-	return dm.STCSpec(**args)
+	return dm.STCSpec(**args).polish()
 
 
 if __name__=="__main__":

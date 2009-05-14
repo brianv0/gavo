@@ -34,8 +34,6 @@ def getEquinox(node):
 		return "B1950.0"
 	elif node["frame"]=="FK5":
 		return "J2000.0"
-	elif node["frame"]=="ECLIPTIC":
-		return "J2000.0"   # that's random, ok.
 	else:
 		return None
 

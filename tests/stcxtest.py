@@ -108,8 +108,9 @@ class SpaceCoordIntervalTest(STCMappingTest):
 			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoords ><Position2D  unit="deg"><Size2><C1>1.0</C1><C2>1.5</C2></Size2><Size2><C1>1.75</C1><C2>2.0</C2></Size2></Position2D></AstroCoords><AstroCoordArea ><Position2VecInterval  unit="deg"><LoLimit2Vec><C1>12.0</C1><C2>13.0</C2></LoLimit2Vec><HiLimit2Vec><C1>14.0</C1><C2>15.0</C2></HiLimit2Vec></Position2VecInterval></AstroCoordArea></V>')
 
 	def test3D(self):
-		self.assertMapsto("PositionInterval ECLIPTIC CART3 12 13 10 14 15 9",
-			'<V><AstroCoordSystem ><SpaceFrame ><ECLIPTIC><Equinox>J2000.0</Equinox></ECLIPTIC><UNKNOWNRefPos /><CARTESIAN coord_naxes="3" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Position3VecInterval  unit="m"><LoLimit3Vec><C1>12.0</C1><C2>13.0</C2><C3>10.0</C3></LoLimit3Vec><HiLimit3Vec><C1>14.0</C1><C2>15.0</C2><C3>9.0</C3></HiLimit3Vec></Position3VecInterval></AstroCoordArea></V>')
+		self.assertMapsto("Time TT 2000-01-01T12:00:00"
+			" PositionInterval ECLIPTIC CART3 12 13 10 14 15 9",
+			'<V><AstroCoordSystem ><TimeFrame ><TimeScale>TT</TimeScale><UNKNOWNRefPos /></TimeFrame><SpaceFrame ><ECLIPTIC><Equinox>J2000.0</Equinox></ECLIPTIC><UNKNOWNRefPos /><CARTESIAN coord_naxes="3" /></SpaceFrame></AstroCoordSystem><AstroCoords ><Time  unit="s"><TimeInstant><ISOTime>2000-01-01T12:00:00</ISOTime></TimeInstant></Time></AstroCoords><AstroCoordArea ><Position3VecInterval  unit="m"><LoLimit3Vec><C1>12.0</C1><C2>13.0</C2><C3>10.0</C3></LoLimit3Vec><HiLimit3Vec><C1>14.0</C1><C2>15.0</C2><C3>9.0</C3></HiLimit3Vec></Position3VecInterval></AstroCoordArea></V>')
 
 
 class RegionTest(STCMappingTest):

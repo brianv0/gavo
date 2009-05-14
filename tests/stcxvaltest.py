@@ -140,7 +140,8 @@ class STCSValidationTests(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 			
 	def test3DInterval(self):
 		self.assertFromSTCSValidates(
-			"PositionInterval ECLIPTIC CART3 12 13 10 14 15 9")
+			"Time TT 2000-01-01T12:00:00"
+			" PositionInterval ECLIPTIC CART3 12 13 10 14 15 9")
 
 	def testAllSky(self):
 		self.assertFromSTCSValidates("AllSky ICRS")
