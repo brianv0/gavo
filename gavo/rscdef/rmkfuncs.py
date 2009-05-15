@@ -159,6 +159,10 @@ def computeMean(val1, val2):
 	return val1+(val2-val1)/2
 
 
+def killBlanks(literal):
+	return literal.replace(" ", "")
+
+
 def lastSourceElements(path, numElements):
 	"""returns a path made up from the last numElements items in path.
 	"""
@@ -169,23 +173,6 @@ def lastSourceElements(path, numElements):
 		newPath.append(part)
 	newPath.reverse()
 	return os.path.join(*newPath)
-
-
-def makeCallable(funcName, code, moreGlobals=None):
-	"""compiles a function in the current namespace.
-
-	code is a complete function source.  moreGlobals, if non-None,
-	must be a dictionary with additional names available to the function.
-	"""
-	if moreGlobals:
-		moreGlobals.update(globals())
-	else:
-		moreGlobals = globals()
-	return utils.compileFunction(code.rstrip(), funcName, moreGlobals)
-
-
-def killBlanks(literal):
-	return literal.replace(" ", "")
 
 
 def parseWithNull(literal, baseParser, nullLiteral=base.Undefined,
@@ -200,8 +187,34 @@ def parseWithNull(literal, baseParser, nullLiteral=base.Undefined,
 	return res
 
 
-def addRmkFunc(name, func):
+def addRmkFunc(name, func): # XXX TODO: Rename to something like addProcDefFunc
 	globals()[name] = func
+
+
+def makeCallable(funcName, code, moreGlobals=None):
+	"""compiles a function in the current namespace. DEPRECATED
+
+	code is a complete function source.  moreGlobals, if non-None,
+	must be a dictionary with additional names available to the function.
+	"""
+	if moreGlobals:
+		moreGlobals.update(globals())
+	else:
+		moreGlobals = globals()
+	return utils.compileFunction(code.rstrip(), funcName, moreGlobals)
+
+
+def makeProc(funcName, code, setupCode, parent):
+	"""compiles a function in the rmkfunc's namespace.
+
+	code is a complete function source.  setupCode is executed right away
+	in this namespace to add globals.
+	"""
+	funcNs = globals().copy()
+	funcNs["parent"] = parent
+	if setupCode.strip():
+		exec setupCode in funcNs
+	return utils.compileFunction(code.rstrip(), funcName, funcNs)
 
 
 def _test():

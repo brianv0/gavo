@@ -22,7 +22,7 @@ class NodeBuilder(ContentHandler):
 	# These are elements for which character content is not stripped
 	# XXX TODO: figure out how to let structures tell NodeBuilder about those
 	preserveWhitespaceNames = set(["meta", "script", "proc", "rowgen",
-		"consComp", "customRF", "macDef", "GENERATOR", "formatter"])
+		"consComp", "customRF", "macDef", "GENERATOR", "formatter", "code"])
 
 	def __init__(self, evProc):
 		ContentHandler.__init__(self)

@@ -65,7 +65,7 @@ def makeTableFromRows(tableDef, iterator):
 	"""
 	t = TableForDef(tableDef)
 	rmk = rscdef.RowmakerDef.makeTransparentFromTable(tableDef
-		).compileForTable(tableDef)
+		).compileForTable(t)
 	for row in iterator:
 		t.addRow(rmk(row))
 	return t

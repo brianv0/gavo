@@ -70,11 +70,10 @@ def adaptTable(origTable, newColumns):
 			else:
 				rmk.feedObject("map", rmkdef.MapRule(rmk, dest=col.name,
 					content_=col.name))
-		mapper = rmk.finishElement().compileForTable(newTd)
-		newRows = []
+		newTable = table.InMemoryTable(newTd, validate=False)
+		mapper = rmk.finishElement().compileForTable(newTable)
 		for r in origTable:
-			newRows.append(mapper(r))
-		newTable = table.InMemoryTable(newTd, rows=newRows)
+			newTable.addRow(mapper(r))
 	newDD = rscdef.DataDescriptor(origTable.tableDef.rd, tables=[newTd])
 	return rsc.Data(newDD, tables={newTable.tableDef.id: newTable})
 

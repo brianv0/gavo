@@ -16,6 +16,11 @@ from gavo.rscdef import rmkdef
 import testhelpers
 
 
+class _FakeTable(object):
+	def __init__(self, td):
+		self.tableDef = td
+
+
 def makeDD(tableCode, rowmakerCode):
 	dd = base.parseFromString(rscdef.DataDescriptor,
 		'<data><table id="foo">%s</table>'
@@ -57,26 +62,26 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 	def testBasicCode(self):
 		dd, td = makeDD('<column name="x" type="integer"/>',
 			'<map dest="x">int(src)</map>')
-		mapper = dd.rowmakers[0].compileForTable(td)
+		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({'src': '15'})['x'], 15)
 
 	def testBasicMap(self):
 		dd, td = makeDD('<column name="x" type="integer"/>',
 			'<map dest="x" src="src"/>')
-		mapper = dd.rowmakers[0].compileForTable(td)
+		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({'src': '15'})['x'], 15)
 
 	def testWithDefault(self):
 		dd, td = makeDD('<column name="x" type="integer"/>',
 			'<map dest="x">int(src)</map>'
 			'<default key="src">18</default>')
-		mapper = dd.rowmakers[0].compileForTable(td)
+		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({})['x'], 18)
 
 	def testMessages(self):
 		dd, td = makeDD('<column name="x" type="integer"/>',
 			'<map dest="x">int(src)</map>')
-		mapper = dd.rowmakers[0].compileForTable(td)
+		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertRaisesWithMsg(base.ValidationError,
 			"While building x in _foo: name 'src' is not defined",
 			mapper, ({}, ))
@@ -91,7 +96,7 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 			'<map dest="y">("foobar"+\n'
 			'src.decode("utf-8"))\n</map>'
 			'<map dest="x">int(\nsrc\n)</map>')
-		mapper = dd.rowmakers[0].compileForTable(td)
+		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({"src": '-20'}), {"x": -20, "y": 'foobar-20'})
 		self.assertRaisesWithMsg(base.ValidationError,
 			"While building x in _foo: invalid literal for int() with base 10: '3x3'",
@@ -126,7 +131,7 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 			' <map dest="ts" src="ts"/>'
 			' <map dest="t" src="t"/>'
 			' <map dest="raw" src="raw"/>')
-		mapper = dd.rowmakers[0].compileForTable(td)
+		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({"si": "0", "ii": "2000", "bi": "-3000",
 				"r": "0.25", "dp": "25e3", "b": "Off", "tx": "abc", "c": u"\xae",
 				"d": "2004-04-08", "ts": "2004-04-08T22:30:15", "t": "22:30:14",
@@ -140,101 +145,63 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 	def testIdmapsDontOverwrite(self):
 		dd, td = makeDD('<column name="foo"/><column name="bar"/>',
 			'<map dest="foo">float(foo)/2</map><idmaps>*</idmaps>')
-		mapper = dd.rowmakers[0].compileForTable(td)
+		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({'foo': 2, 'bar': 2}),
 			{'foo': 1, 'bar':2})
 
 
-class ProcTest(testhelpers.VerboseTest):
+class ApplyTest(testhelpers.VerboseTest):
 	"""Tests for mapping procedures.
 	"""
 	def testArtificial(self):
-		base.parseFromString(rmkdef.ProcDef,
-			'<proc name="artificial" isGlobal="True">'
-			'<arg key="val"/>\n'
-			'  result["si"] = val\n'
-			'</proc>')
-		dd, td = makeDD('<column name="si" type="smallint"/>',
-			'  <proc name="p1" predefined="artificial">'
-			'		<arg key="val">src</arg>'
-			'	</proc>')
-		mapper = dd.rowmakers[0].compileForTable(td)
+		from gavo import rscdesc
+		rd = base.parseFromString(rscdesc.RD,
+		'<resource schema="test"><procDef type="apply" id="artificial">'
+			'<setup><par key="val"/></setup><code>result["si"] = val</code>'
+			'</procDef>'
+			'<data><table id="foo"><column name="si" type="smallint"/></table>'
+			'<rowmaker id="_foo"><apply procDef="artificial" name="p1">\n'
+			'<bind key="val">23</bind></apply></rowmaker>\n'
+			'<make table="foo" rowmaker="_foo"/>'
+			'<dictlistGrammar/></data></resource>')
+		data = rd.dds[0]
+		mapper = data.rowmakers[0].compileForTable(_FakeTable(data.makes[0].table))
 		self.assertEqual(mapper({"src": 23}), {'si': 23})
 	
 	def testInline(self):
 		dd, td = makeDD('  <column name="si" type="smallint"/>',
-			'  <proc name="p1">'
-			'		<arg key="val">src</arg>\n'
-			'for i in range(int(val)):\n'
+			'  <apply name="p1"><code>\n'
+			'	for i in range(int(vars["src"])):\n'
 			'		result["si"] = result.get("si", 0)+i\n'
-			'	</proc>')
-		mapper = dd.rowmakers[0].compileForTable(td)
+			'	</code></apply>')
+		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({"src": 23}), {'si': 253})
 	
 	def testRaising(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"You must set name on proc elements",
-			makeDD, ('', '<proc/>'))
+			"You must set name on apply elements",
+			makeDD, ('', '<apply/>'))
 		self.assertRaisesWithMsg(base.StructureError,
-			"No such predefined procedure: quatsch",
-			makeDD, ('', '<proc name="xy" predefined="quatsch"/>'))
+			"Reference to unknown item 'quatsch'.  Note that elements"
+			" referenced must occur lexically before the referring element",
+			makeDD, ('', '<apply name="xy" procDef="quatsch"/>'))
 
-	def testDefaultArgs(self):
-		dd, td = makeDD('<column name="si" type="smallint"/>',
-			'<proc name="foo">'
-			'	<arg key="x1">22</arg>'
-			' <arg key="x2" default="23">x2in</arg>\n'
-			' result["si"] = int(x1+x2)\n'
-			'</proc>')
-		self.assertEqual(dd.rowmakers[0]._getSource(td)[0],
-			'_result = {}\nfoo(_result, rowdict_, tableDef_, x1=22, x2=x2in)')
-		self.assertEqual(dd.rowmakers[0].procs[0]._getFormalArgs(), 
-			"result, vars, tableDef, x1, x2=base.Undefined")
-	
 	def testArgExpansion(self):
 		dd, td = makeDD('<column name="d" type="date"/>',
-			'<proc name="foo">'
-			'	<arg key="x1">"\\test"</arg>'
-			' <arg key="x2" default="\'\\test{1}{2}\'"/>\n'
-			' result["si"] = x1+x2\n'
-			'</proc>')
-		res = rsc.makeData(dd, forceSource=[{'x2': '2'}, {}])
+			'<apply name="foo">'
+			' <code>result["si"] = "\\test{1}{2}"\n</code>'
+			'</apply>')
+		res = rsc.makeData(dd, forceSource=[{}])
 		self.assertEqual(res.getPrimaryTable().rows, 
-			[{'si': 'test macro expansion2'}, 
-			{'si': 'test macro expansiontest macro expansion'}])
-	
-	def testIndentation(self):
-		dd, td = makeDD('<column name="d" type="date"/>',
-			'<proc name="foo">'
-			'	<arg key="x1"></arg>'
-			' <arg key="x2"/>\n'
-			' for i in range(10):\n'
-			' \tx1+=i\n'
-			'</proc>')
-		dd, td = makeDD('<column name="d" type="date"/>',
-			'<proc name="foo">'
-			'	<arg key="x1"></arg>'
-			' <arg key="x2"/>\n'
-			'for i in range(10):\n'
-			' x1+=i\n'
-			'print "a"\n'
-			'</proc>')
+			[{'si': 'test macro expansion'},])
 
-	def testConsStuff(self):
-		base.parseFromString(rmkdef.ProcDef, '<proc name="consstufftest"'
-			' isGlobal="True"><consComp><arg key="mapping"/>\n'
-			' assMap = utils.parseAssignments(mapping)\n'
-			' del mapping\n'
-			' return locals()\n'
-			'</consComp><arg key="foo"/>\n'
-			'vars["mapped"] = assMap[foo]</proc>')
-		dd, td = makeDD('<column name="mapped" type="text"/>',
-			'<proc predefined="consstufftest">'
-			'<consArg key="mapping">"x:y 1:2"</consArg></proc>'
-			'<map dest="mapped"/>')
-		res = rsc.makeData(dd, forceSource=[{'foo': 'x'}, {'foo': '1'}])
-		self.assertEqual(res.getPrimaryTable().rows,
-			[{'mapped': u'y'}, {'mapped': u'2'}])
+	def testTableAccess(self):
+		dd, td = makeDD('<column name="d" type="date"/>',
+			'<apply name="foo">'
+			' <code>result["ct"] = len(targetTable)\n</code>'
+			'</apply>')
+		res = rsc.makeData(dd, forceSource=[{}, {}, {}])
+		self.assertEqual(res.getPrimaryTable().rows, [{'ct': 0}, {'ct': 1}, {'ct': 2}])
 
 
 class VarTest(testhelpers.VerboseTest):
@@ -253,7 +220,7 @@ class VarTest(testhelpers.VerboseTest):
 			'  <var name="x">28</var>'
 			'  <var name="y">29+x</var>'
 			'  <map dest="si">y</map>')
-		mapper = dd.rowmakers[0].compileForTable(td)
+		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({}), {'si': 57})
 
 
@@ -303,4 +270,4 @@ class PredefinedTest(testhelpers.VerboseTest):
 			[{'y': u'right', 'x': u'bar'}])
 
 if __name__=="__main__":
-	testhelpers.main(RowmakerMapTest)
+	testhelpers.main(ApplyTest)

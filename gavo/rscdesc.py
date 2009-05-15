@@ -23,6 +23,7 @@ from gavo import svcs
 from gavo.rsc import metatable
 from gavo.rscdef import common
 from gavo.rscdef import macros
+from gavo.rscdef import procdef
 from gavo.rscdef import scripting
 
 
@@ -74,9 +75,13 @@ class RD(base.Structure, base.MetaMixin, scripting.ScriptingMixin,
 		" data descriptors.", copyable=True, before="dds")
 	_procs = base.StructListAttribute("procs", childFactory=rscdef.ProcDef,
 		description="Rowmaker procedure definitions for later reference.", 
-		copyable=True, before="rowmakers")
+		copyable=True, before="rowmakers")  # DEPRECATED
 	_rowgens = base.StructListAttribute("rowgens", childFactory=rscdef.RowGenDef,
 		description="Grammar rowgen definitions for later reference.", 
+		copyable=True, before="rowmakers") # DEPRECATED
+	_procDefs = base.StructListAttribute("procDefs", 
+		childFactory=procdef.ProcDef,
+		description="Procedure definintions (rowgens, rowmaker applys)",
 		copyable=True, before="rowmakers")
 	_condDescs = base.StructListAttribute("condDescs", childFactory=svcs.CondDesc,
 		description="Global condition descriptors for later reference", 

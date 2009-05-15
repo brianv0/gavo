@@ -38,7 +38,7 @@ class DataFeeder(table.Feeder):
 		for make in self.data.dd.makes:
 			table = self.data.tables[make.table.id]
 			feeder = table.getFeeder(batchSize=self.batchSize)
-			makeRow = make.rowmaker.compileForTable(make.table)
+			makeRow = make.rowmaker.compileForTable(table)
 			def addRow(srcRow, feeder=feeder, makeRow=makeRow):
 				feeder.add(makeRow(srcRow))
 			if make.rowmaker.rowSource=='parameters':

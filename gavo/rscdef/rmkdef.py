@@ -17,6 +17,7 @@ from gavo.base import structure
 from gavo.rscdef import callablebase
 from gavo.rscdef import common
 from gavo.rscdef import macros
+from gavo.rscdef import procdef
 from gavo.rscdef import rmkfuncs
 from gavo.rscdef import rmkprocs
 from gavo.rscdef import tabledef
@@ -134,7 +135,7 @@ class VarDef(base.Structure):
 	def getCode(self):
 		return "%s = %s"%(self.name, self.parent.expand(self.content_))
 
-
+############# Start DEPRECATED
 class ConsComputer(callablebase.CodeFrag):
 	"""A code fragment for the computation of locals rowmaker procs, rowgens,
 	and similar constructs.
@@ -270,6 +271,29 @@ class ProcDef(RDFunction):
 		"""
 		return "%s(_result, rowdict_, tableDef_, %s)"%(self.name, actualArgs)
 
+############# End DEPRECATED
+
+class ApplyDef(procdef.ProcApp):
+	"""A code fragment to manipulate the result row (and possibly more).
+
+	Apply elements yaddayadda.
+
+	The current input fields from the grammar (including the rowmaker's vars) 
+	are available in the vars dictionary and can be changed there.  You can 
+	also add new keys.
+
+	You can add new keys for shipping out in the result dictionary.
+
+	The active rowmaker is available as parent.  It is also used to
+	expand macros.
+
+	The data that is built can be manipulated as targetData.  You probably
+	only want to change meta information here (e.g., warnings or infos).
+	"""
+	name_ = "apply"
+	requiredType = "apply"
+	formalArgs = "vars, result, targetTable"
+
 
 class RowmakerMacroMixin(macros.StandardMacroMixin):
 	"""is a collection of macros available to rowmakers.
@@ -356,6 +380,9 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		copyable=True)
 	_procs = base.StructListAttribute("procs",
 		childFactory=ProcDef, description="Procedures manipulating rows.",
+		copyable=True) # XXX TODO: Remove
+	_apps = base.StructListAttribute("apps",
+		childFactory=ApplyDef, description="Procedure applications.",
 		copyable=True)
 	_defaults = base.DictAttribute("defaults", 
 		itemAttD=base.UnicodeAttribute("default"),
@@ -421,8 +448,11 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 
 		for v in self.vars:
 			line = appendToSource(v.getCode(), line, "assigning "+v.name)
-		for p in self.procs:
+		for p in self.procs:  # XXX DEPRECATED
 			line = appendToSource(p.getCall(), line, "executing "+p.name)
+		for a in self.apps:
+			line = appendToSource("%s(rowdict_, _result, targetTable_)"%a.name,
+				line, "executing "+a.name)
 		for m in self.maps:
 			line = appendToSource(m.getCode(tableDef), line, "building "+m.dest)
 		return "\n".join(source), lineMap
@@ -432,6 +462,9 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		for p in self.procs:
 			name, func = p.getDefinition()
 			globals[name] = func
+		for a in self.apps:
+			a.compile(self)
+			globals[a.name] = a
 		globals["tableDef_"] = tableDef
 		globals["rd_"] = self.rd
 		return globals
@@ -487,7 +520,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		res._checkTable(tableDef)
 		return res
 
-	def compileForTable(self, tableDef):
+	def compileForTable(self, table):
 		"""returns a function receiving a dictionary of raw values and
 		returning a row ready for adding to a tableDef'd table.
 
@@ -495,15 +528,17 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		and then check if the rowmaker result and the table structure
 		are compatible.
 		"""
+		tableDef = table.tableDef
 		rmk = self._buildForTable(tableDef)
 		source, lineMap = rmk._getSource(tableDef)
-		return Rowmaker(source, self.id, rmk._getGlobals(tableDef), 
-			rmk._getDefaults(), lineMap)
+		globals = rmk._getGlobals(tableDef)
+		globals["targetTable_"] = table
+		return Rowmaker(source, self.id, globals, rmk._getDefaults(), lineMap)
 
 	def copyShallowly(self):
 		return base.makeStruct(self.__class__, maps=self.maps[:], 
 			vars=self.vars[:], procs=self.procs[:], defaults=self.defaults.copy(), 
-			idmaps=self.idmaps, rowSource=self.rowSource)
+			idmaps=self.idmaps, rowSource=self.rowSource, apps=self.apps[:])
 
 
 identityRowmaker = base.makeStruct(RowmakerDef, idmaps="*")
@@ -560,8 +595,7 @@ class Rowmaker(object):
 		#traceback.print_tb(tb)
 		destName = self._guessExSourceName(tb)
 		try:
-			if "_result" in rowdict:
-				del rowdict["_result"]
+			if "_result" in rowdict: del rowdict["_result"]
 			if "parser_" in rowdict: del rowdict["parser_"]
 			if "rowdict_" in rowdict: del rowdict["rowdict_"]
 		except TypeError:
@@ -577,16 +611,16 @@ class Rowmaker(object):
 		raise base.ValidationError("While %s in %s: %s"%(destName, 
 			self.name, msg), destName.split()[-1], rowdict)
 
-	def __call__(self, rowdict):
+	def __call__(self, vars):
 		try:
-			missingKeys = self.keySet-set(rowdict)
+			missingKeys = self.keySet-set(vars)
 			for k in missingKeys:
-				rowdict[k] = self.defaults[k]
-			rowdict["rowdict_"] = rowdict
-			exec self.code in self.globals, rowdict
-			del rowdict["rowdict_"]
-			return rowdict["_result"]
+				vars[k] = self.defaults[k]
+			vars["rowdict_"] = vars
+			exec self.code in self.globals, vars
+			del vars["rowdict_"]
+			return vars["_result"]
 		except base.ValidationError:  # hopefully downstream knows better than we
 			raise
 		except Exception, ex:
-			self._guessError(ex, rowdict, sys.exc_info()[2])
+			self._guessError(ex, vars, sys.exc_info()[2])
