@@ -210,14 +210,14 @@ class SixVectorTestBase(testhelpers.VerboseTest):
 		ast = self.srcSystem.change(
 			place=self.srcSystem.place.change(value=(ra,dec,prl)),
 			velocity=self.srcSystem.velocity.change(value=(pma, pmd, rv)))
-		res = spherc.conformSpherical(ast, self.destSystem)
+		res = spherc.conformSpherical(ast, self.destSystem, relativistic=False)
 		places = 6
 		self.assertAlmostEqual(res.place.value[0], ra1, places=places)
 		self.assertAlmostEqual(res.place.value[1], dec1, places=places)
 		self.assertAlmostEqual(res.place.value[2], prl1, places=places)
-		self.assertAlmostEqual(res.velocity.value[0], pma1, places=places)
-		self.assertAlmostEqual(res.velocity.value[1], pmd1, places=places)
-		self.assertAlmostEqual(res.velocity.value[2], rv1, places=places)
+		self.assertAlmostEqual(res.velocity.value[0], pma1, places=places-3)
+		self.assertAlmostEqual(res.velocity.value[1], pmd1, places=places-3)
+		self.assertAlmostEqual(res.velocity.value[2], rv1, places=places-3)
 
 
 # This mess creates tests from the samples in stcgroundtruth;
@@ -241,4 +241,4 @@ for sampleName in dir(stcgroundtruth):
 
 
 if __name__=="__main__":
-	testhelpers.main(TestECL32110ToJ2000)
+	testhelpers.main(TestSixICRSToFK5)

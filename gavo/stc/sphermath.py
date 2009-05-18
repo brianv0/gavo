@@ -5,6 +5,7 @@ Spherical geometry and related helper functions.
 import math
 import numarray
 
+from gavo import utils
 from gavo.stc import dm
 from gavo.stc import conform
 from gavo.stc import units
@@ -41,6 +42,31 @@ def getMatrixFromEulerAngles(z1, x, z2):
 		getRotZ(z2))
 
 
+def getMatrixFromEulerVector(eulerVector):
+	"""returns a rotation matrix for an Euler vector.
+
+	An euler vector gives the rotation axis, its magnitude the angle in rad.
+
+	This function is a rip-off of SOFA's rv2m.
+
+	eulerVector is assumed to be a numarray array.
+	"""
+	x, y, z = eulerVector
+	phi = math.sqrt(x**2+y**2+z**2)
+	sp, cp = math.sin(phi), math.cos(phi)
+	f = 1-cp
+	if phi!=0:
+		x, y, z = eulerVector/phi
+	return numarray.array([
+		[x**2*f+cp, x*y*f+z*sp,  x*z*f-y*sp],
+		[y*x*f-z*sp, y**2*f+cp, y*z*f+x*sp],
+		[z*x*f+y*sp, z*y*f-x*sp, z**2*f+cp]])
+
+
+def vabs(naVec):
+	return math.sqrt(numarray.dot(naVec, naVec))
+
+
 def spherToCart(theta, phi):
 	"""returns a 3-cartesian unit vector pointing to longitude theta,
 	latitude phi.
@@ -71,9 +97,11 @@ def cartToSpher(unitvector):
 
 # Units spherical coordinates have to be in for transformation to/from
 # 6-vectors.
-_svPosUnit = ("rad", "rad", "pc")
-_svVPosUnit = ("rad", "rad", "pc")
-_svVTimeUnit = ("cy", "cy", "cy")
+_svPosUnit = ("rad", "rad", "AU")
+_svVPosUnit = ("rad", "rad", "AU")
+_svVTimeUnit = ("d", "d", "d")
+# Light speed in AU/d
+_lightAUd = 86400.0/499.004782
 	
 
 def _svToSpherRaw(sv):
@@ -86,15 +114,13 @@ def _svToSpherRaw(sv):
 	object above; this will only work if the input of spherToSV had the
 	standard coordinates.
 	"""
-	x,y,z,xd,yd,zd = sv
+	x, y, z, xd, yd, zd = sv
 	rInXY2 = x**2+y**2
 	r2 = rInXY2+z**2
 	rw = rTrue = math.sqrt(r2)
 
-	if rTrue==0.:  # Special case position at z axis
-		x = xd
-		y = yd
-		z = zd
+	if rTrue==0.:  # pos is null: use velocity for position
+		x, y, z = sv[3:]
 		rInXY2 = x**2+y**2
 		r2 = rInXY2+z**2
 		rw = math.sqrt(r2)
@@ -103,7 +129,7 @@ def _svToSpherRaw(sv):
 	xyp = x*xd+y*yd
 	radialVel = 0
 	if rw!=0:
-		radialVel = (xyp+z*zd)/rw
+		radialVel = xyp/rw+z*zd/rw
 	
 	if rInXY2!=0.:
 		theta = math.atan2(y, x)
@@ -133,10 +159,35 @@ def _ensureSphericalFrame(coo):
 			" spherical coordinates."%(coo.frame))
 
 
-def svToSpher(sv, baseSTC):
+def _pleaseEinsteinToSpher(sv):
+	"""undoes relativistic corrections from 6-vector sv.
+
+	This follows sofa's pvstar.  sv is changed in place.
+	"""
+	radialProj, radialV, tangentialV = _decomposeRadial(sv[:3], sv[3:])
+	betaRadial = radialProj/_lightAUd
+	betaTangential = vabs(tangentialV)/_lightAUd
+
+	d = 1.0+betaRadial
+	w = 1.0-betaRadial**2-betaTangential**2
+	if d==0.0 or w<0:
+		return
+	delta = math.sqrt(w)-1.0
+	if betaRadial==0:
+		radialV = (betaRadial-delta)/(betaRadial*d)*radialV
+	sv[3:] = 1/d*radialV
+
+
+def svToSpher(sv, baseSTC, relativistic=False):
 	"""returns an STC object like baseSTC, but with the values of the 6-vector 
 	sv filled in.
+
+	relativistic=True undoes relativistic corrections on the transformation.
+	Don't use this (yet), since for typical cases there are massive problems 
+	with the numerics here.
 	"""
+	if relativistic:
+		_pleaseEinsteinToSpher(sv)
 	bPlace, bVel = baseSTC.place, baseSTC.velocity
 	pos, vel = _svToSpherRaw(sv)
 	buildArgs = {}
@@ -155,11 +206,11 @@ def svToSpher(sv, baseSTC):
 			unit, tUnit = _svVPosUnit, _svVTimeUnit
 		buildArgs["velocity"] = bVel.change(value=vel, unit=unit,
 			velTimeUnit=tUnit)
-
 	return conform.conformUnits(baseSTC, baseSTC.change(**buildArgs))
 
-
-defaultDistance = units.maxDistance # filled in for distances not given, in pc
+# filled in for distances not given, in rad (units also insert this for
+# parallaxes too small)
+defaultDistance = units.maxDistance*units.onePc/units.oneAU
 _nAN = float("NaN")
 
 def _getSVSphericals(stcObject):
@@ -193,12 +244,71 @@ def _getSVSphericals(stcObject):
 	return space, vel
 
 
-def spherToSV(stcObject):
+def _decomposeRadial(r, rd):
+	"""returns the components of rd radial and tangential to r.
+	"""
+	rUnit = r/vabs(r)
+	radialProj = numarray.dot(rUnit, rd)
+	radialVector = radialProj*rUnit
+	tangentialVector = rd-radialVector
+	return radialProj, radialVector, tangentialVector
+
+
+def _solveStumpffEquation(betaR, betaT, maxIter=100):
+	"""returns the solution of XXX.
+
+	If the solution fails to converge within maxIter iterations, it
+	raises an STCError.
+	"""
+	curEstR, curEstT = betaR, betaT
+	odd, oddel = 0, 0
+	for i in range(maxIter):
+		d = 1.+curEstT
+		delta = math.sqrt(1.-curEstR**2-curEstT**2)-1.0
+		curEstR = d*betaR+delta
+		curEstT = d*betaT
+		if i: # check solution so far after at least one iteration
+			dd = abs(d-od)
+			ddel = abs(delta-odel)
+			if dd==odd and ddel==oddel:
+				break
+			odd = dd
+			oddel = ddel
+		od = d
+		odel = delta
+	else:
+		raise STCError("6-vector relativistic correction failed to converge")
+	return curEstR, curEstT, d, delta
+
+
+def _pleaseEinsteinFromSpher(sv):
+	"""applies relativistic corrections to the 6-vector sv.
+
+	This follows sofa's starpv.  sv is changed in place.
+	"""
+	radialProj, radialV, tangentialV = _decomposeRadial(sv[:3], sv[3:])
+	betaRadial = radialProj/_lightAUd
+	betaTangential = vabs(tangentialV)/_lightAUd
+
+	betaSR, betaST, d, delta = _solveStumpffEquation(betaRadial, betaTangential)
+	# replace old velocity with velocity in inertial system
+	if betaSR!=0:
+		radialV = (d+delta/betaSR)*radialV
+	sv[3:] = radialV+(d*tangentialV)
+
+
+def spherToSV(stcObject, relativistic=False):
 	"""returns a 6-vector of cartesian place and velocity from stcObject.
 
 	stcObject must be in spherical coordinates.  If any of parallax,
 	proper motions, and radial velocity are missing, "sane" defaults
 	are substituted.
+
+	This is basically a port of sofa's s2pv, with some elements of starpv.
+
+	relativistic=True applies relativistic corrections on the transformation.
+	Don't use this (yet), since for typical cases there are massive problems 
+	with the numerics here.
 	"""
 	(alpha, delta, r), (alphad, deltad, rd) = _getSVSphericals(stcObject)
 	sa, ca = math.sin(alpha), math.cos(alpha)
@@ -206,8 +316,11 @@ def spherToSV(stcObject):
 	x, y = r*cd*ca, r*cd*sa
 	w = r*deltad*sd-cd*rd
 
-	return numarray.array([x, y, r*sd,
+	res = numarray.array([x, y, r*sd,
 		-y*alphad-w*ca, x*alphad-w*sa, r*deltad*cd+sd*rd])
+	if relativistic:
+		_pleaseEinsteinFromSpher(res)
+	return res
 
 
 def computeTransMatrixFromPole(poleCoo, longZeroCoo, changeHands=False): 

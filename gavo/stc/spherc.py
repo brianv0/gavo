@@ -134,9 +134,6 @@ def _makeFindPath(transforms):
 	return findPath
 
 
-def vabs(naVec):
-	return math.sqrt(numarray.dot(naVec, naVec))
-
 
 ############### Computation of precession matrices.
 
@@ -387,7 +384,8 @@ def fk5ToFK4(svfk5):
 	# troublesome, so I basically follow what slalib does.
 	yallopR, yallopRd = cnv[:3], cnv[3:]
 	spatialCorr = numarray.dot(yallopR, _b1950ETermsPos)*yallopR
-	newRMod = vabs(yallopR+_b1950ETermsPos*vabs(yallopR)-spatialCorr)
+	newRMod = sphermath.vabs(yallopR+_b1950ETermsPos*
+		sphermath.vabs(yallopR)-spatialCorr)
 	newR = yallopR+_b1950ETermsPos*newRMod-spatialCorr
 	newRd = yallopRd+_b1950ETermsVel*newRMod-numarray.dot(
 		yallopR, _b1950ETermsVel)*yallopR
@@ -429,6 +427,49 @@ def _getFromEclipticMatrix(fromNode, toNode):
 def _getToEclipticMatrix(fromNode, toNode):
 	emat = _getEclipticMatrix(fromNode[1])
 	return threeToSix(emat)
+
+
+############### ICRS a.k.a. Hipparcos
+# This is all parallel to IAU sofa, i.e. no zonal corrections, etc.
+# From FK5hip
+
+def cross(vec1, vec2):
+	"""returns the cross product of two 3-vectors.
+
+	This should really be somewhere else...
+	"""
+	return numarray.array([
+		vec1[1]*vec2[2]-vec1[2]*vec2[1],
+		vec1[2]*vec2[0]-vec1[0]*vec2[2],
+		vec1[0]*vec2[1]-vec1[1]*vec2[0],
+	])
+
+# Compute transformation from orientation of FK5
+_fk5ToICRSMatrix = sphermath.getMatrixFromEulerVector(
+	numarray.array([-19.9e-3, -9.1e-3, 22.9e-3])*ARCSEC)
+_icrsToFK5Matrix = numarray.transpose(_fk5ToICRSMatrix)
+
+# Spin of FK5 in FK5 system
+_fk5SpinFK5 = numarray.array([-0.30e-3, 0.60e-3, 0.70e-3])*ARCSEC/365.25
+# Spin of FK5 in ICRS
+_fk5SpinICRS = numarray.dot(_fk5ToICRSMatrix, _fk5SpinFK5)
+
+def fk5ToICRS(svFk5):
+	"""returns a 6-vector in ICRS for a 6-vector in FK5 J2000.
+	"""
+	spatial = numarray.dot(_fk5ToICRSMatrix, svFk5[:3])
+	vel = numarray.dot(_fk5ToICRSMatrix,
+		svFk5[3:]+cross(svFk5[:3], _fk5SpinFK5))
+	return numarray.concatenate((spatial, vel))
+
+
+def icrsToFK5(svICRS):
+	"""returns a 6-vector in FK5 J2000 for an ICRS 6-vector.
+	"""
+	spatial = numarray.dot(_icrsToFK5Matrix, svICRS[:3])
+	corrForSpin = svICRS[3:]-cross(svICRS[:3], _fk5SpinICRS)
+	vel = numarray.dot(_icrsToFK5Matrix, corrForSpin)
+	return numarray.concatenate((spatial, vel))
 
 
 ############### Reference positions
@@ -479,6 +520,10 @@ _findTransformsPath = _makeFindPath([
 		_getFromEclipticMatrix),
 	(("FK5", SAME, SAME), ("ECLIPTIC", SAME, SAME),
 		_getToEclipticMatrix),
+	(("FK5", times.dtJ2000, SAME), ("ICRS", ANYVAL, SAME),
+		_Constant(fk5ToICRS)),
+	(("ICRS", ANYVAL, SAME), ("FK5", times.dtJ2000, SAME),
+		_Constant(icrsToFK5)),
 	((SAME, SAME, ANYVAL), (SAME, SAME, ANYVAL),
 		_Constant(_transformRefpos)),
 ])
@@ -587,11 +632,11 @@ def getTrafoFunction(srcTriple, dstTriple):
 	return _pathToFunction(trafoPath)
 
 
-def conformSpherical(fromSTC, toSTC):
+def conformSpherical(fromSTC, toSTC, relativistic=False):
 	"""conforms places and velocities in fromSTC with toSTC including 
 	precession and reference frame fixing.
 	"""
 	trafo = getTrafoFunction(fromSTC.place.frame.asTriple(),
 		toSTC.place.frame.asTriple())
 	return sphermath.svToSpher(
-		trafo(sphermath.spherToSV(fromSTC)), toSTC)
+		trafo(sphermath.spherToSV(fromSTC, relativistic)), toSTC, relativistic)

@@ -6,6 +6,7 @@
 #include <math.h>
 
 #include <slalib.h>
+#include <sofa.h>
 
 #define DEG(x) (x)/M_PI*180.
 #define RAD(x) (x)*M_PI/180.
@@ -123,15 +124,15 @@ void generateSixCase(char *fromSystem, char *toSystem, char * label,
 		double*, double*, double*, double*, double*, double*))
 {
 	spherCooWithPM testCases[] = {
-		{0, 0, 0, 0, 0, 0},
-		{0, 0, 0, 1e-7, 1e-7, 0},
-		{0, 0, 0, -1e-7, 1e-7, 0},
-		{0, 0, 0, -1e-7, -1e-7, 0},
-		{0, 0, 0, 1e-7, -1e-7, 0},
+		{0, 0, 0.01, 0, 0, 0},
+		{0, 0, 0.01, 1e-7, 1e-7, 0},
+		{0, 0, 0.01, -1e-7, 1e-7, 0},
+		{0, 0, 0.01, -1e-7, -1e-7, 0},
+		{0, 0, 0.01, 1e-7, -1e-7, 0},
 		{0, 0, 1, 1e-7, -1e-7, 0},
 		{0, 0, 1, -1e-7, 1e-7, -300},
 		{0, 0, 1, 1e-7, 1e-7, 300},
-		{120, 45, 0, 0, 0, 0},
+		{120, 45, 0.01, 0, 0, 0},
 		{130, 45, 1, 1e-7, 1e-7, 300},
 		{190, -45, 1, 1e-7, 1e-7, 300},
 		{0, 82, 1, 1e-7, 1e-7, 300},
@@ -223,6 +224,8 @@ int main(void)
 	generateEclCase(51544.5, 1);
 	generateEclCase(71520.7, 1);
 	generateEclCase(32110.2, 1);
+	generateSixCase("FK5", "ICRS", "FK5ToICRS", iauFk52h);
+	generateSixCase("ICRS", "FK5", "ICRSToFK5", iauH2fk5);
 	return 0;
 }
 
