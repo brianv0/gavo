@@ -179,9 +179,6 @@ class ApplyTest(testhelpers.VerboseTest):
 	
 	def testRaising(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"You must set name on apply elements",
-			makeDD, ('', '<apply/>'))
-		self.assertRaisesWithMsg(base.StructureError,
 			"Reference to unknown item 'quatsch'.  Note that elements"
 			" referenced must occur lexically before the referring element",
 			makeDD, ('', '<apply name="xy" procDef="quatsch"/>'))

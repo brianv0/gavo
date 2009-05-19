@@ -16,7 +16,7 @@ from gavo.rscdef import rowgens
 import testhelpers
 
 
-class PredefinedRowgensTest(testhelpers.VerboseTest):
+class PredefinedRowfilterTest(testhelpers.VerboseTest):
 	def testOnIndex(self):
 		dd = base.caches.getRD(os.path.abspath("test.rd")
 			).getById("expandOnIndex")
@@ -124,4 +124,4 @@ class IgnoreTests(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(IgnoreTests)
+	testhelpers.main(PredefinedRowfilterTest)

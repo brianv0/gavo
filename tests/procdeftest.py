@@ -24,12 +24,11 @@ class Foo(base.Structure, macros.MacroPackage):
 		self.source, self.dest = {}, {}
 
 	def onElementComplete(self):
-		for a in self.apps:
-			a.compile(self)
+		self._cApps = [a.compile() for a in self.apps]
 		self._onElementCompleteNext(Foo)
 
 	def runApps(self):
-		for a in self.apps:
+		for a in self._cApps:
 			a(self.source, self.dest)
 
 	def macro_foobar(self):

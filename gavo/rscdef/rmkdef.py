@@ -463,8 +463,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 			name, func = p.getDefinition()
 			globals[name] = func
 		for a in self.apps:
-			a.compile(self)
-			globals[a.name] = a
+			globals[a.name] = a.compile()
 		globals["tableDef_"] = tableDef
 		globals["rd_"] = self.rd
 		return globals

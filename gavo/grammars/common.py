@@ -8,7 +8,7 @@ import gzip
 from gavo import base
 from gavo import rscdef
 from gavo import utils
-from gavo.rscdef import rowgens
+from gavo.rscdef import procdef
 from gavo.rscdef import rowtriggers
 
 
@@ -18,6 +18,46 @@ class ParseError(base.Error):
 	def __init__(self, msg, location=None, record=None):
 		base.Error.__init__(self, msg)
 		self.location, self.record = location, record
+
+
+class Rowfilter(procdef.ProcApp):
+	"""A generator for rows coming from a grammar.
+
+	Rowfilters receive rows (i.e., dictionaries) as yielded by a grammar
+	under the name row.  Additionally, the embedding row iterator is
+	available under the name rowIter.
+
+	Macros are expanded within the embedding grammar.
+
+	The procedure definition must result in a generator, i.e., there must
+	be at least one yield.  Otherwise, it may swallow or create as many
+	rows as desired.
+	"""
+	name_ = "rowfilter"
+	requiredType="rowfilter"
+	formalArgs = "row, rowIter"
+
+
+def compileRowfilter(filters):
+	"""returns an iterator that "pipes" the rowfilters in filters.
+
+	This means that the output of filters[0] is used as arguments to
+	filters[1] and so on.
+
+	If filters is empty, None is returned.
+	"""
+	if not filters:
+		return
+	iters = [f.compile() for f in filters]
+	src = ["def iterPipe(row, rowIter):"]
+	src.append("  for item0 in iters[0](row, rowIter):")
+	for ind in range(1, len(filters)):
+		src.append("%s  for item%d in iters[%d](item%d, rowIter):"%(
+			"  "*i, i, i, i-1))
+	src.append("%s  yield item%d"%("  "*len(filters), len(filters)-1))
+	d = locals()
+	exec "\n".join(src) in d
+	return d["iterPipe"]
 
 
 class SourceRowmakerDef(rscdef.RDFunction):
@@ -137,7 +177,7 @@ class RowIterator(object):
 		self.recNo = 0
 
 	def __iter__(self):
-		if hasattr(self, "rowgen"):
+		if hasattr(self, "rowfilter"):
 			baseIter = self._iterRowsProcessed()
 		else:
 			baseIter = self._iterRows()
@@ -162,7 +202,7 @@ class RowIterator(object):
 
 	def _iterRowsProcessed(self):
 		for row in self._iterRows():
-			for procRow in self.rowgen(row, self):
+			for procRow in self.rowfilter(row, self):
 				yield procRow
 
 	def _iterRows(self):
@@ -206,7 +246,7 @@ class FileRowIterator(RowIterator):
 
 
 class GrammarMacroMixin(rscdef.StandardMacroMixin):
-	"""is a collection of macros available to rowgens.
+	"""is a collection of macros available to rowfilters.
 
 	NOTE: All macros should return only one single physical python line,
 	or they will mess up the calculation of what constructs caused errors.
@@ -281,9 +321,9 @@ class Grammar(base.Structure, GrammarMacroMixin):
 
 	_encoding = base.UnicodeAttribute("enc", default=None, description=
 		"Encoding of strings coming in from source.", copyable=True)
-	_rowgen = base.StructAttribute("rowgen", default=None,
-		description="Row generator for this grammar.", 
-		childFactory=rowgens.RowGenDef, copyable=True)
+	_rowfilters = base.StructListAttribute("rowfilters", 
+		description="Row filters for this grammar.", 
+		childFactory=Rowfilter, copyable=True)
 	_ignoreOn = base.StructAttribute("ignoreOn", default=None, copyable=True,
 		description="Conditions for ignoring certain input records.",
 		childFactory=rowtriggers.IgnoreOn)
@@ -294,23 +334,6 @@ class Grammar(base.Structure, GrammarMacroMixin):
 	_rd = rscdef.RDAttribute()
 
 	rowIterator = RowIterator
-
-	def compileRowgen(self):
-		call = compile(self.rowgen.getCall(), "generated rowgen code", "eval")
-		env = dict([self.rowgen.getDefinition()])
-		env.update(self.rowgen._getMoreGlobals())
-		def generateRows(row, rowIter):
-			try:
-				for newRow in eval(call, locals(), env):
-					yield newRow
-			except base.Error: # Hopefully meaningful
-				raise
-			except Exception, msg:
-				import traceback
-				traceback.print_exc()
-				raise base.LiteralParseError("While executing rowgen '%s': %s"%(
-					self.rowgen.name, unicode(msg)), "rowgen", self.rowgen.getSource())
-		return generateRows
 
 	def getSourceFields(self, sourceToken):
 		"""returns a dict containing user-defined fields to be added to
@@ -326,8 +349,8 @@ class Grammar(base.Structure, GrammarMacroMixin):
 		base.ui.notifyNewSource(sourceToken)
 		ri = self.rowIterator(self, sourceToken, 
 			sourceRow=self.getSourceFields(sourceToken))
-		if self.rowgen:
-			ri.rowgen = self.compileRowgen()
+		if self.rowfilters:
+			ri.rowfilter = compileRowfilter(self.rowfilters)
 		return ri
 
 

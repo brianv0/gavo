@@ -66,19 +66,22 @@ machinery -->
 		</script>
 	</table>
 
-	<rowgen name="defineProduct" isGlobal="True">
+	<procDef id="defineProduct" register="True">
 		<doc>
 			enters the values defined by the product interface into result.
 
 			See the documentation on the product interface.
 		</doc>
-		<arg key="key" default="\inputRelativePath"/>
-		<arg key="owner" default="None"/>
-		<arg key="embargo" default="None"/>
-		<arg key="path" default="None"/>
-		<arg key="table" default="base.Undefined"/>
-		<arg key="fsize" default="\inputSize"/>
-		<arg key="mime" default="'image/fits'"/>
+		<setup>
+			<par key="table"/>
+			<par late="True" key="key">\inputRelativePath</par>
+			<par late="True" key="owner">None</par>
+			<par late="True" key="embargo">None</par>
+			<par late="True" key="path">\inputRelativePath</par>
+			<par late="True" key="fsize">\inputSize</par>
+			<par late="True" key="mime">'image/fits'</par>
+		</setup>
+		<code>
 			newVars = {}
 			if path is None:
 				path = key
@@ -90,7 +93,8 @@ machinery -->
 			row["prodtblTable"] = table
 			row["prodtblMime"] = mime
 			yield row
-	</rowgen>
+		</code>
+	</procDef>
 
 	<rowmaker id="prodcolUsertable">
 		<!-- fragment for mapping the result of defineProduct into a user table -->

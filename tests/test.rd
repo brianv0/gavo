@@ -10,11 +10,12 @@
 
 	<data id="siaptest">
 		<dictlistGrammar>
-			<rowgen predefined="defineProduct">
-				<arg key="key">row["accref"]</arg>
-				<arg key="fsize">row["accsize"]</arg>
-				<arg key="table">"test.siaptable"</arg>
-			</rowgen>
+			<rowfilter predefined="defineProduct">
+				<bind key="key">row["accref"]</bind>
+				<bind key="fsize">row["accsize"]</bind>
+				<bind key="table">"test.siaptable"</bind>
+				<bind key="path">row["accref"]</bind>
+			</rowfilter>
 		</dictlistGrammar>
 		<rowmaker id="st_siaptable">
 			<proc predefined="setSIAPMeta">
@@ -143,11 +144,11 @@
 
 	<data id="expandOnIndex">
 		<dictlistGrammar>
-			<rowgen predefined="expandRowOnIndex">
-				<arg key="startName">"b"</arg>
-				<arg key="endName">"c"</arg>
-				<arg key="indName">"d"</arg>
-			</rowgen>
+			<rowfilter predefined="expandIntegers">
+				<bind key="startName">"b"</bind>
+				<bind key="endName">"c"</bind>
+				<bind key="indName">"d"</bind>
+			</rowfilter>
 		</dictlistGrammar>
 		<rowmaker id="eoi_abcd">
 			<map dest="a"/>
@@ -160,12 +161,12 @@
 
 	<data id="expandOnDate">
 		<dictlistGrammar>
-			<rowgen predefined="expandDateRange">
-				<arg key="dest">"e"</arg>
-				<arg key="start">"start"</arg>
-				<arg key="end">"end"</arg>
-				<arg key="hrInterval">12</arg>
-			</rowgen>
+			<rowfilter procDef="__system__/procs#expandDates">
+				<bind key="dest">"e"</bind>
+				<bind key="start">"start"</bind>
+				<bind key="end">"end"</bind>
+				<bind key="hrInterval">12</bind>
+			</rowfilter>
 		</dictlistGrammar>
 		<rowmaker id="eod_abcd">
 			<map dest="a"/>
@@ -176,10 +177,10 @@
 
 	<data id="expandOnDateDefault">
 		<dictlistGrammar>
-			<rowgen predefined="expandDateRange">
-				<arg key="start">"start"</arg>
-				<arg key="end">"end"</arg>
-			</rowgen>
+			<rowfilter procDef="__system__/procs#expandDates">
+				<bind key="start">"start"</bind>
+				<bind key="end">"end"</bind>
+			</rowfilter>
 		</dictlistGrammar>
 		<rowmaker id="eodd_abcd" idmaps="a">
 			<map dest="e">curTime</map>
@@ -189,10 +190,10 @@
 
 	<data id="expandComma">
 		<dictlistGrammar>
-			<rowgen predefined="expandComma">
-				<arg key="srcField">"stuff"</arg>
-				<arg key="destField">"a"</arg>
-			</rowgen>
+			<rowfilter procDef="__system__/procs#expandComma">
+				<bind key="srcField">"stuff"</bind>
+				<bind key="destField">"a"</bind>
+			</rowfilter>
 		</dictlistGrammar>
 		<rowmaker id="ec_abcd">
 			<map dest="a"/>
@@ -218,14 +219,11 @@
 		./tests to import this -->
 		<sources><pattern>data/*.imp</pattern></sources>
 		<keyValueGrammar>
-			<rowgen predefined="defineProduct">
-				<arg key="key">\inputRelativePath</arg>
-        <arg key="owner">"test"</arg>
-        <arg key="embargo">row["embargo"]</arg>
-        <arg key="path">\inputRelativePath</arg>
-        <arg key="fsize">\inputSize</arg>
-        <arg key="table">"test.prodtest"</arg>
-			</rowgen>
+			<rowfilter predefined="defineProduct">
+        <bind key="owner">"test"</bind>
+        <bind key="embargo">row["embargo"]</bind>
+        <bind key="table">"test.prodtest"</bind>
+			</rowfilter>
 		</keyValueGrammar>
 		<rowmaker id="pi_rmk" original="prodrowbase"/>
 		<make table="prodtest" rowmaker="pi_rmk"/>
@@ -235,9 +233,9 @@
 		<table ref="prodtest"/>
 		<sources><pattern>data/*.imp</pattern></sources>
 		<keyValueGrammar>
-			<rowgen predefined="defineProduct">
-        <arg key="table">"test.prodtest"</arg>
-			</rowgen>
+			<rowfilter predefined="defineProduct">
+        <bind key="table">"test.prodtest"</bind>
+			</rowfilter>
 		</keyValueGrammar>
 		<rowmaker id="pid_rmk" original="prodrowbase"/>
 		<make table="prodtest" rowmaker="pid_rmk"/>

@@ -213,7 +213,7 @@ def makeProc(funcName, code, setupCode, parent):
 	funcNs = globals().copy()
 	funcNs["parent"] = parent
 	if setupCode.strip():
-		exec setupCode in funcNs
+		exec setupCode.rstrip() in funcNs
 	return utils.compileFunction(code.rstrip(), funcName, funcNs)
 
 

@@ -145,4 +145,110 @@
 	res = q.runIsolatedQuery(query, data=locals(), asDict=True)
 	vars.update(res[0])
 </proc>
+
+<procDef id="expandIntegers" type="rowfilter">
+	<doc>
+	A row processor that produces copies of rows based on integer indices.
+
+	The idea is that sometimes rows have specifications like "Star 10
+	through Star 100".  These are a pain if untreated.  A RowExpander
+	could create 90 individual rows from this.
+
+	A RowExpander has three arguments: The names of the nonterminals
+	giving the beginning and the end of the range (both must be int-able
+	strings), and the name of the nonterminal that the new index should 
+	be assigned to.
+	</doc>
+	<setup>
+		<par key="startName"/>
+		<par key="endName"/>
+		<par key="indName"/>
+	</setup>
+	<code>
+		try:
+			lowerInd = int(row[startName])
+			upperInd = int(row[endName])
+		except (ValueError, TypeError): # either one not given
+			yield row
+			return
+		for ind in range(lowerInd, upperInd+1):
+			newRow = row.copy()
+			newRow[indName] = ind
+			yield newRow
+	</code>
+</procDef>
+
+
+<procDef id="expandDates" type="rowfilter">
+	<doc>
+	is a row generator to expand time ranges.
+
+	The finished dates are left in destination as datetime.datetime
+	instances
+
+	* dest -- name of the field we're writing into.
+	* start -- the start date, as either a datetime object or a column ref.
+	* end -- the end date
+	* hrInterval -- a float literal specifying how many hours should be between
+	  the generated timestamps
+	</doc>
+	<setup>
+		<par key="dest">'curTime'</par>
+		<par key="start"/>
+		<par key="end"/>
+		<par key="hrInterval" late="True">24</par>
+		<code>
+		def _parseTime(val, fieldName):
+			try:
+				val = val
+				if isinstance(val, datetime.datetime):
+					return val
+				elif isinstance(val, datetime.date):
+					return datetime.datetime(val.year, val.month, val.day)
+				else:
+					return datetime.datetime(*time.strptime(val, "%Y-%m-%d")[:3])
+			except Exception, msg:
+				raise base.ValidationError("Bad date from %s (%s)"%(name,
+					unicode(msg)), dest)
+		</code>
+	</setup>
+	<code>
+		stampTime = _parseTime(row[start], "start")
+		endTime = _parseTime(row[end], "end")
+		endTime = endTime+datetime.timedelta(hours=23)
+		try:
+			interval = datetime.timedelta(hours=float(hrInterval))
+		except ValueError:
+			raise base.ValidationError("Not a time interval: '%s'"%hrInterval,
+				"hrInterval")
+		while stampTime&lt;=endTime:
+			newRow = row.copy()
+			newRow[dest] = stampTime
+			yield newRow
+			stampTime = stampTime+interval
+	</code>
+</procDef>
+
+
+<procDef id="expandComma" type="rowfilter">
+	<doc>
+	is a row generator that reads comma seperated values from a
+	field and returns one row with a new field for each of them.
+	</doc>
+	<setup>
+		<par key="srcField"/>
+		<par key="destField"/>
+	</setup>
+	<code>
+		src = row[srcField]
+		if src is not None and src.strip():
+			for item in src.split(","):
+				item = item.strip()
+				if not item:
+					continue
+				newRow = row.copy()
+				newRow[destField] = item
+				yield newRow
+	</code>
+</procDef>
 </resource>

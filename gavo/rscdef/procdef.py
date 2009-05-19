@@ -10,6 +10,7 @@ from gavo import utils
 from gavo.rscdef import common
 from gavo.rscdef import rmkfuncs
 
+_registry = {}
 
 class ProcPar(base.Structure):
 	"""A parameter of a procedure definition.
@@ -24,6 +25,10 @@ class ProcPar(base.Structure):
 		description="The name of the parameter", copyable=True)
 	_expr = base.DataContent(description="A python expression for"
 		" the default of the parameter", copyable=True)
+	_late = base.BooleanAttribute("late", default=False,
+		description="Bind the key not at setup time but while applying"
+		" the procedure.  This allows you to refer to procedure arguments"
+		" like vars or rowIter in the bindings.")
 
 	def validate(self):
 		self._validateNext(ProcPar)
@@ -73,14 +78,36 @@ class ProcSetup(base.Structure):
 		description="Names to add to the procedure's global namespace.", 
 		copyable=True)
 
-	def getParCode(self):
+	def _getParSettingCode(self, useLate, indent, bindings):
+		"""returns code that sets our parameters.
+
+		If useLate is true, generate for late bindings.  Indent the
+		code by indent.  Bindings is is a dictionary overriding
+		the defaults or setting parameter values.
+		"""
 		parCode = []
 		for p in self.pars:
-			if p.content_:
-				parCode.append("%s = %s"%(p.key, p.content_))
+			if p.late==useLate:
+				val = bindings.get(p.key, base.NotGiven)
+				if val is base.NotGiven:
+					val = p.content_
+				parCode.append("%s%s = %s"%(indent, p.key, val))
 		return "\n".join(parCode)
-	
+
+	def getParCode(self, bindings):
+		"""returns code doing setup bindings un-indented.
+		"""
+		return self._getParSettingCode(False, "", bindings)
+
+	def getLateCode(self, bindings):
+		"""returns code doing late (in-function) bindings indented with two
+		spaces.
+		"""
+		return self._getParSettingCode(True, "  ", bindings)
+
 	def getBodyCode(self):
+		"""returns the body code un-indented.
+		"""
 		return utils.fixIndentation(self.code, "", governingLine=1)
 
 _emptySetup = ProcSetup(None, code="")
@@ -116,13 +143,22 @@ class ProcDef(base.Structure):
 	_type = base.EnumeratedUnicodeAttribute("type", default=None, description=
 		"The type of the procedure definition.  The procedure applications"
 		" will in general require certain types of definitions.",
-		validValues=["t_", "apply"], copyable=True)
+		validValues=["t_", "apply", "rowfilter"], copyable=True)
+	_register = base.BooleanAttribute("register", default=False,
+		description="Register this procDef in the global registry under its"
+			" id?")
 
 	def getCode(self):
+		"""returns the body code indented with two spaces.
+		"""
 		if self.code is base.NotGiven:
 			return ""
 		else:
 			return utils.fixIndentation(self.code, "  ", governingLine=1)
+
+	def onElementComplete(self):
+		_registry[self.id] = self
+		self._onElementCompleteNext(ProcDef)
 
 
 class ProcApp(ProcDef):
@@ -137,14 +173,25 @@ class ProcApp(ProcDef):
 	_procDef = base.ReferenceAttribute("procDef", forceType=ProcDef,
 		default=base.NotGiven, description="Reference to the procedure"
 		" definition to apply", copyable=True)
+	_predefined = base.ActionAttribute("predefined", "_resolvePredefined",
+		description="Get procDef with this name from the global registry; do not"
+		" give both prodefined and procDef, since they clobber each other.")
 	_bindings = base.StructListAttribute("bindings", description=
 		"Values for parameters of the procedure definition",
 		childFactory=Binding, copyable=True)
-	_name = base.UnicodeAttribute("name", default=base.Undefined,
+	_name = base.UnicodeAttribute("name", default=base.NotGiven,
 		description="A name of the proc.  You are responsible to"
 		" avoid name clashes.")
 
 	compiled = None
+
+	def _resolvePredefined(self, ctx):
+		self._procDef.feedObject(self, _registry[self.predefined])
+
+	def completeElement(self):
+		self._completeElementNext(ProcApp)
+		if self.name is base.NotGiven:  # make up a name from self's id
+			self.name = ("proc%x"%id(self)).replace("-", "")
 
 	def _ensureParsBound(self):
 		"""raises an error if non-defaulted pars of procDef are not filled
@@ -170,45 +217,45 @@ class ProcApp(ProcDef):
 		self._validateNext(ProcApp)
 		self._ensureParsBound()
 
-	def getBindingCode(self):
-		bindCode = []
-		for b in self.bindings:
-			if b.content_:
-				bindCode.append("%s = %s"%(b.key, b.content_))
-		return "\n".join(bindCode)
+	def onElementComplete(self):
+		self._onElementCompleteNext(ProcApp)
+		self._boundNames = dict((b.key, b.content_) for b in self.bindings)
 
 	def getSetupCode(self):
-		# First, assign pars from procDef's procSetup, then our pars, then
-		# our bindings.  Then execute procDef's procSetup code, and finally ours.
 		setupLines = []
 		if self.procDef is not base.NotGiven:
-			setupLines.append(self.procDef.setup.getParCode())
-		setupLines.append(self.setup.getParCode())
-		setupLines.append(self.getBindingCode())
+			setupLines.append(self.procDef.setup.getParCode(self._boundNames))
+		setupLines.append(self.setup.getParCode(self._boundNames))
 		if self.procDef is not base.NotGiven:
 			setupLines.append(self.procDef.setup.getBodyCode())
 		setupLines.append(self.setup.getBodyCode())
 		return "\n".join(setupLines)
 
 	def getFuncCode(self):
+		"""returns a function definition for this proc application.
+
+		This includes bindings of late parameters.
+
+		Locally defined code overrides code defined in a prodDef.
+		"""
+		parts = []
+		if self.procDef is not base.NotGiven:
+			parts.append(self.procDef.setup.getLateCode(self._boundNames))
+		parts.append(self.setup.getLateCode(self._boundNames))
 		if self.code is base.NotGiven:
-			if self.procDef is base.NotGiven:
-				body = ""
-			else:
-				body = self.procDef.getCode()
+			if self.procDef is not base.NotGiven:
+				parts.append(self.procDef.getCode())
 		else:
-			body = self.getCode()
+			parts.append(self.getCode())
+		body = "\n".join(parts)
 		if not body.strip():
 			body = "  pass"
 		return "def %s(%s):\n%s"%(self.name, self.formalArgs,
 			body)
 
-	def compile(self, parent):
-		self.compiled = rmkfuncs.makeProc(
-			self.name, parent.expand(self.getFuncCode()), 
-			parent.expand(self.getSetupCode()), parent)
-	
-	def __call__(self, *args):
-		if self.compiled is None:
-			raise base.Error("Internal error: procedure application not compiled.")
-		return self.compiled(*args)
+	def compile(self):
+		"""returns a callable for this procedure application.
+		"""
+		return rmkfuncs.makeProc(
+			self.name, self.parent.expand(self.getFuncCode()), 
+			self.parent.expand(self.getSetupCode()), self.parent)

@@ -164,4 +164,4 @@ class TestCleanedup(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(SimpleParseTest)
+	testhelpers.main(TestProductsImport)
