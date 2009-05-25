@@ -8,16 +8,9 @@ space and time for velocities.
 """
 
 from gavo import utils
-
-def getUnitConverter(baseCoo, srcCoo):
-	if baseCoo is None or baseCoo.getUnitArgs() is None:
-		return srcCoo.getUnitArgs(), utils.identity
-	if srcCoo.getUnitArgs() is None:
-		return baseCoo.getUnitArgs(), utils.identity
-	if baseCoo.getUnitArgs()==srcCoo.getUnitArgs():
-		return None, None
-	return baseCoo.getUnitArgs(), baseCoo.getUnitConverter(
-		srcCoo.getUnitArgs())
+from gavo.stc import spherc
+from gavo.stc import sphermath
+from gavo.stc import units
 
 
 _conformedAttributes = [("time", "timeAs"), ("place", "areas"), 
@@ -27,25 +20,25 @@ _conformedAttributes = [("time", "timeAs"), ("place", "areas"),
 def conformUnits(baseSTC, srcSTC):
 	"""returns srcSTC in the units of baseSTC.
 	"""
-	stcOverrides = {}
+	stcOverrides = []
 	for attName, dependentName in _conformedAttributes:
-		coo = getattr(srcSTC, attName)
-		if coo is not None:
-			elOverrides, conv = getUnitConverter(getattr(baseSTC, attName), coo)
-			if conv is None:  # units are already ok
-				continue
-			elOverrides.update(coo.iterTransformed(conv))
-			stcOverrides[attName] = coo.change(**elOverrides)
-			areas = getattr(srcSTC, dependentName)
-			if areas:
-				transformed = []
-				for a in areas:
-					if hasattr(a, "adaptValuesWith"):  # Geometries are not adapted
-						transformed.append(a.adaptValuesWith(conv))
-					else:
-						transformed.append(a)
-				stcOverrides[dependentName] = tuple(transformed)
-	return srcSTC.change(**stcOverrides)
+		stcOverrides.extend(units.iterUnitAdapted(baseSTC, srcSTC,
+			attName, dependentName))
+	return srcSTC.change(**dict(stcOverrides))
+
+
+def conformSpherical(fromSTC, toSTC, relativistic=False, slaComp=False):
+	"""conforms places and velocities in fromSTC with toSTC including 
+	precession and reference frame fixing.
+	"""
+	if fromSTC.place is None or toSTC.place is None:
+		return fromSTC
+	features, src6 = sphermath.spherToSV(fromSTC, relativistic)
+	features.slaComp = slaComp
+	trafo = spherc.getTrafoFunction(fromSTC.place.frame.asTriple(),
+		toSTC.place.frame.asTriple(), features)
+	toSTC = conformUnits(toSTC, fromSTC)
+	return sphermath.svToSpher(trafo(src6, features), toSTC, features=features)
 
 
 def conform(baseSTC, srcSTC):

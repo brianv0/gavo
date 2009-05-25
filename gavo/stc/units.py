@@ -22,6 +22,7 @@ frequency needs division of the value.
 from itertools import *
 import math
 
+from gavo import utils
 from gavo.utils import memoized, identity
 from gavo.stc.common import *
 
@@ -262,3 +263,34 @@ def getVelocityConverter(fromSpaceUnits, fromTimeUnits, toSpace, toTime,
 	def convert(val):
 		return tuple(f(c) for f, c in izip(convs, val))
 	return convert
+
+
+def getUnitConverter(baseCoo, srcCoo):
+	if baseCoo is None or baseCoo.getUnitArgs() is None:
+		return srcCoo.getUnitArgs(), utils.identity
+	if srcCoo.getUnitArgs() is None:
+		return baseCoo.getUnitArgs(), utils.identity
+	if baseCoo.getUnitArgs()==srcCoo.getUnitArgs():
+		return None, None
+	return baseCoo.getUnitArgs(), baseCoo.getUnitConverter(
+		srcCoo.getUnitArgs())
+
+
+def iterUnitAdapted(baseSTC, srcSTC, attName, dependentName):
+		coo = getattr(srcSTC, attName)
+		if coo is None:
+			return
+		overrides, conv = getUnitConverter(getattr(baseSTC, attName), coo)
+		if conv is None:  # units are already ok
+			return
+		overrides.update(coo.iterTransformed(conv))
+		yield attName, coo.change(**overrides)
+		areas = getattr(srcSTC, dependentName)
+		if areas:
+			transformed = []
+			for a in areas:
+				if hasattr(a, "adaptValuesWith"):  # Geometries are not adapted
+					transformed.append(a.adaptValuesWith(conv))
+				else:
+					transformed.append(a)
+			yield dependentName, tuple(transformed)

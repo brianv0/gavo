@@ -221,10 +221,10 @@ def _getFullPrecMatrix(fromNode, toNode, precTheory):
 	return threeToSix(getPrecMatrix(fromNode[1], toNode[1], precTheory))
 
 
-def _getNewcombPrecMatrix(fromNode, toNode):
+def _getNewcombPrecMatrix(fromNode, toNode, features):
 	return _getFullPrecMatrix(fromNode, toNode, prec_Newcomb)
 
-def _getIAU1976PrecMatrix(fromNode, toNode):
+def _getIAU1976PrecMatrix(fromNode, toNode, features):
 	return _getFullPrecMatrix(fromNode, toNode, prec_IAU1976)
 
 
@@ -333,17 +333,17 @@ def _yallopToSv(yallop6, yallopK, stcOrig, baseSystem):
 		prlx = prlx/r
 	return sphermath.spherToSV(baseSystem.change(
 		place=baseSystem.place.change(value=(alpha, delta, prlx)),
-		velocity=baseSystem.velocity.change(value=(pma, pmd, rv))))
+		velocity=baseSystem.velocity.change(value=(pma, pmd, rv))))[1]
 
 
-def fk4ToFK5(svfk4, slaComp=True):
+def fk4ToFK5(features, svfk4):
 	"""returns an FK5 2000 6-vector for an FK4 1950 6-vector.
 
 	The procedure used is described in Yallop et al, AJ 97, 274.  E-terms
 	of aberration are always removed from proper motions, regardless of
 	whether the objects are within 10 deg of the pole.
 	"""
-	if slaComp:
+	if features.slaComp:
 		transMatrix = _fk4ToFK5MatrixSla
 		yallopK = _yallopKSla
 	else:
@@ -352,7 +352,7 @@ def fk4ToFK5(svfk4, slaComp=True):
 	yallopR, yallopRd, stcOrig = _svToYallop(svfk4, yallopK)
 
 	# Yallop's recipe starts here
-	if not slaComp:  # include Yallop's "small terms" in PM
+	if not features.slaComp:  # include Yallop's "small terms" in PM
 		yallopVE = (yallopRd-_b1950ETermsVel
 			+numarray.dot(yallopR, _b1950ETermsVel)*yallopR
 			+numarray.dot(yallopRd, _b1950ETermsPos)*yallopR
@@ -368,7 +368,7 @@ def fk4ToFK5(svfk4, slaComp=True):
 	return _yallopToSv(cnv, yallopK, stcOrig, _yallopFK5System)
 
 
-def fk5ToFK4(svfk5):
+def fk5ToFK4(features, svfk5):
 	"""returns an FK4 1950 6-vector for an FK5 2000 6-vector.
 
 	This is basically a reversal of fk4ToFK5, except we're always operating
@@ -421,10 +421,10 @@ def _getEclipticMatrix(epoch):
 	obliquity = (84381.448+(-46.8150+(-0.00059+0.001813*t)*t)*t)*ARCSEC
 	return sphermath.getRotX(obliquity)
 
-def _getFromEclipticMatrix(fromNode, toNode):
+def _getFromEclipticMatrix(fromNode, toNode, features):
 	return threeToSix(numarray.transpose(_getEclipticMatrix(fromNode[1])))
 
-def _getToEclipticMatrix(fromNode, toNode):
+def _getToEclipticMatrix(fromNode, toNode, features):
 	emat = _getEclipticMatrix(fromNode[1])
 	return threeToSix(emat)
 
@@ -454,7 +454,7 @@ _fk5SpinFK5 = numarray.array([-0.30e-3, 0.60e-3, 0.70e-3])*ARCSEC/365.25
 # Spin of FK5 in ICRS
 _fk5SpinICRS = numarray.dot(_fk5ToICRSMatrix, _fk5SpinFK5)
 
-def fk5ToICRS(svFk5):
+def fk5ToICRS(features, svFk5):
 	"""returns a 6-vector in ICRS for a 6-vector in FK5 J2000.
 	"""
 	spatial = numarray.dot(_fk5ToICRSMatrix, svFk5[:3])
@@ -463,7 +463,7 @@ def fk5ToICRS(svFk5):
 	return numarray.concatenate((spatial, vel))
 
 
-def icrsToFK5(svICRS):
+def icrsToFK5(features, svICRS):
 	"""returns a 6-vector in FK5 J2000 for an ICRS 6-vector.
 	"""
 	spatial = numarray.dot(_icrsToFK5Matrix, svICRS[:3])
@@ -478,7 +478,7 @@ def icrsToFK5(svICRS):
 # extragalactic regime but makes this libarary basically useless for
 # solar system work.
 
-def _transformRefpos(fromSTC, toSTC):
+def _transformRefpos(fromSTC, toSTC, features):
 	return utils.identity
 
 
@@ -488,7 +488,7 @@ def _transformRefpos(fromSTC, toSTC):
 def _Constant(val):
 	"""returns a transform factory always returning val.
 	"""
-	return lambda fromSTC, toSTC: val
+	return lambda fromSTC, toSTC, features: val
 
 
 # transforms are triples of fromNode, toNode, transform factory.  Due to
@@ -594,29 +594,29 @@ def _contractMatrices(ops):
 	return newSeq
 	
 
-def _pathToFunction(trafoPath):
+def _pathToFunction(trafoPath, features):
 	"""returns a function encapsulating all operations contained in
 	trafoPath.
 
 	The function receives and returns a 6-vector.  trafoPath is altered.
 	"""
 	trafoPath.reverse()
-	steps = _contractMatrices([factory(srcTrip, dstTrip)
+	steps = _contractMatrices([factory(srcTrip, dstTrip, features)
 		for srcTrip, dstTrip, factory in trafoPath])
 	expr = []
 	for index, step in enumerate(steps):
 		if isinstance(step, numarray.NumArray):
 			expr.append("numarray.dot(steps[%d], "%index)
 		else:
-			expr.append("steps[%d]("%index)
+			expr.append("steps[%d](features, "%index)
 	vars = {"steps": steps, "numarray": numarray}
-	exec ("def transform(sv): return %s"%
+	exec ("def transform(sv, features): return %s"%
 		"".join(expr)+"sv"+(")"*len(expr))) in vars
 	return vars["transform"]
 
 
 @memoized
-def getTrafoFunction(srcTriple, dstTriple):
+def getTrafoFunction(srcTriple, dstTriple, features):
 	"""returns a function that transforms 6-vectors from the system
 	described by srcTriple to the one described by dstTriple.
 
@@ -629,14 +629,4 @@ def getTrafoFunction(srcTriple, dstTriple):
 	if trafoPath is None:
 		raise STCValueError("Cannot find a transform from %s to %s"%(
 			srcTriple, dstTriple))
-	return _pathToFunction(trafoPath)
-
-
-def conformSpherical(fromSTC, toSTC, relativistic=False):
-	"""conforms places and velocities in fromSTC with toSTC including 
-	precession and reference frame fixing.
-	"""
-	trafo = getTrafoFunction(fromSTC.place.frame.asTriple(),
-		toSTC.place.frame.asTriple())
-	return sphermath.svToSpher(
-		trafo(sphermath.spherToSV(fromSTC, relativistic)), toSTC, relativistic)
+	return _pathToFunction(trafoPath, features)

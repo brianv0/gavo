@@ -38,6 +38,7 @@ setup(name="gavo",
 			'gavomkboost = gavo.grammars.directgrammar:main',
 			'gavoconfig = gavo.base.config:main',
 			'gavogendoc = gavo.user.docgen:main',
+			'gavostc = gavo.stc.cli:main',
 		]
 	},
 	version="0.3")

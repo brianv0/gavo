@@ -7,7 +7,6 @@ import numarray
 
 from gavo import utils
 from gavo.stc import dm
-from gavo.stc import conform
 from gavo.stc import units
 from gavo.stc.common import *
 
@@ -95,6 +94,25 @@ def cartToSpher(unitvector):
 	return (theta, phi)
 
 
+class _STCFeatures(object):
+	"""a user-opaque object containing metadata on 6-vector conversion.
+	"""
+	posGiven = False
+	distGiven = False
+	posdGiven = False
+	distdGiven = False
+	relativistic = False
+	slaComp = False
+
+
+class _STCFeaturesAll(object):
+	"""a user-opaque object containing metadata on 6-vector conversion.
+	"""
+	posGiven = distGiven = posdGiven = distdGiven = True
+	relativistic = slaComp = False
+
+
+
 # Units spherical coordinates have to be in for transformation to/from
 # 6-vectors.
 _svPosUnit = ("rad", "rad", "AU")
@@ -178,35 +196,33 @@ def _pleaseEinsteinToSpher(sv):
 	sv[3:] = 1/d*radialV
 
 
-def svToSpher(sv, baseSTC, relativistic=False):
+def svToSpher(sv, baseSTC, features=_STCFeaturesAll()):
 	"""returns an STC object like baseSTC, but with the values of the 6-vector 
 	sv filled in.
-
-	relativistic=True undoes relativistic corrections on the transformation.
-	Don't use this (yet), since for typical cases there are massive problems 
-	with the numerics here.
 	"""
-	if relativistic:
+	if features.relativistic:
 		_pleaseEinsteinToSpher(sv)
 	bPlace, bVel = baseSTC.place, baseSTC.velocity
 	pos, vel = _svToSpherRaw(sv)
 	buildArgs = {}
 
-	if bPlace:
+	if bPlace and features.posGiven:
 		if bPlace.frame.nDim==2:
 			pos, unit = pos[:2], _svPosUnit[:2]
 		else:
 			unit = _svPosUnit
-		buildArgs["place"] = bPlace.change(value=pos, unit=unit)
+		conv = units.getVectorConverter(unit, baseSTC.place.unit)
+		buildArgs["place"] = bPlace.change(value=conv(pos))
 
-	if bVel:
+	if bVel and features.posdGiven:
 		if bVel.frame.nDim==2:
 			pos, unit, tUnit = pos[:2], _svVPosUnit[:2], _svVTimeUnit[:2]
 		else:
 			unit, tUnit = _svVPosUnit, _svVTimeUnit
-		buildArgs["velocity"] = bVel.change(value=vel, unit=unit,
-			velTimeUnit=tUnit)
-	return conform.conformUnits(baseSTC, baseSTC.change(**buildArgs))
+		conv = units.getVelocityConverter(unit, tUnit, baseSTC.velocity.unit,
+			baseSTC.velocity.velTimeUnit)
+		buildArgs["velocity"] = bVel.change(value=conv(vel))
+	return baseSTC.change(**buildArgs)
 
 # filled in for distances not given, in rad (units also insert this for
 # parallaxes too small)
@@ -221,27 +237,34 @@ def _getSVSphericals(stcObject):
 
 	This is a helper for spherToSV.
 	"""
+	features = _STCFeatures()
 	space, vel = (0, 0, defaultDistance), (0, 0, 0)
 	bPlace, bVel = stcObject.place, stcObject.velocity
 
 	if bPlace and bPlace.value:
 		_ensureSphericalFrame(bPlace)
 		space, srcUnit = bPlace.value, bPlace.unit
+		features.posGiven = True
 		if bPlace.frame.nDim==2:
 			space = space+(defaultDistance,)
 			srcUnit = srcUnit+_svPosUnit[-1:]
+		else:
+			features.distGiven = True
 		space = units.getVectorConverter(srcUnit, _svPosUnit)(space)
 	if bVel and bVel.value:
 		_ensureSphericalFrame(bVel)
 		vel = bVel.value
 		srcUnit, srcUnitT = bVel.unit, bVel.velTimeUnit
+		features.posdGiven = True
 		if bVel.frame.nDim==2:
 			vel = vel+(0,)
 			srcUnit = srcUnit+_svVPosUnit[-1:]
 			srcUnitT = srcUnitT+_svVTimeUnit[-1:]
+		else:
+			features.distdGiven = True
 		vel = units.getVelocityConverter(srcUnit, srcUnitT,
 			_svVPosUnit, _svVTimeUnit)(vel)
-	return space, vel
+	return features, space, vel
 
 
 def _decomposeRadial(r, rd):
@@ -310,7 +333,8 @@ def spherToSV(stcObject, relativistic=False):
 	Don't use this (yet), since for typical cases there are massive problems 
 	with the numerics here.
 	"""
-	(alpha, delta, r), (alphad, deltad, rd) = _getSVSphericals(stcObject)
+	features, (alpha, delta, r), (alphad, deltad, rd
+		) = _getSVSphericals(stcObject)
 	sa, ca = math.sin(alpha), math.cos(alpha)
 	sd, cd = math.sin(delta), math.cos(delta)
 	x, y = r*cd*ca, r*cd*sa
@@ -318,9 +342,10 @@ def spherToSV(stcObject, relativistic=False):
 
 	res = numarray.array([x, y, r*sd,
 		-y*alphad-w*ca, x*alphad-w*sa, r*deltad*cd+sd*rd])
+	features.relativistic = relativistic
 	if relativistic:
 		_pleaseEinsteinFromSpher(res)
-	return res
+	return features, res
 
 
 def computeTransMatrixFromPole(poleCoo, longZeroCoo, changeHands=False): 
