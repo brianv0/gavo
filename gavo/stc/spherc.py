@@ -286,10 +286,14 @@ _b1950ETermsVel = numarray.array([1.245e-3, -1.580e-3, -0.659e-3])
 _yallopK = secsPerJCy/(units.oneAU/1e3)
 _yallopKSla = 21.095;
 _pcPerCyToKmPerSec = units.getRedshiftConverter("pc", "cy", "km", "s")
+_yallopPosUnits = ("rad", "rad", "arcsec")
+_yallopVelSUnits = ("arcsec", "arcsec", "km")
+_yallopVelTUnits = ("cy", "cy", "s")
 _yallopFK4System = stcsast.parseSTCS("Position FK4 SPHER3 unit rad rad arcsec"
 	" VelocityInterval unit arcsec/cy arcsec/cy km/s")
 _yallopFK5System = stcsast.parseSTCS("Position FK5 SPHER3 unit rad rad arcsec"
 	" VelocityInterval unit arcsec/cy arcsec/cy km/s")
+
 
 def _svToYallop(sv, yallopK):
 	"""returns r and rdot vectors suitable for Yallop's recipe from our
@@ -298,9 +302,13 @@ def _svToYallop(sv, yallopK):
 	# To save headaches, we first convert our 6-vector to the source
 	# of Yallop's recipe and then to Yallop's funky coordinates.
 	# FK4System works for FK5 as well, we're only interested in the units.
-	stcOrig = sphermath.svToSpher(sv, _yallopFK4System)
-	alpha, delta, prlx = stcOrig.place.value
-	pma, pmd, rv = stcOrig.velocity.value
+	pos, posUnit, vel, velS, velT = sphermath.svToSpher(
+		sv, InputFeaturesAll())
+	convS = units.getVectorConverter(posUnit, _yallopPosUnits)
+	convV = units.getVelocityConverter(velS, velT, _yallopVelSUnits,
+		_yallopVelTUnits)
+	alpha, delta, prlx = convS(pos)
+	pma, pmd, rv = convV(vel)
 
 	yallopR = numarray.array([cos(alpha)*cos(delta),
 		sin(alpha)*cos(delta), sin(delta)])
@@ -308,15 +316,15 @@ def _svToYallop(sv, yallopK):
 		-pma*sin(alpha)*cos(delta)-pmd*cos(alpha)*sin(delta),
 		pma*cos(alpha)*cos(delta)-pmd*sin(alpha)*sin(delta),
 		pmd*cos(delta)])+yallopK*rv*prlx*yallopR
-	return yallopR, yallopRd, stcOrig
+	return yallopR, yallopRd, (rv, prlx)
 
 
-def _yallopToSv(yallop6, yallopK, stcOrig, baseSystem):
+def _yallopToSv(yallop6, yallopK, rvAndPrlx, baseSystem):
 	"""returns a 6-Vector from a yallop-6 vector.
 
-	stcOrig is the third item of the return value of _svToYallop.
+	rvAndPrlx is the third item of the return value of _svToYallop.
 	"""
-	rv, prlx = stcOrig.velocity.value[2], stcOrig.place.value[2]
+	rv, prlx = rvAndPrlx
 	x,y,z,xd,yd,zd = yallop6
 	rxy2 = x**2+y**2
 	r = math.sqrt(z**2+rxy2)
@@ -333,7 +341,8 @@ def _yallopToSv(yallop6, yallopK, stcOrig, baseSystem):
 		prlx = prlx/r
 	return sphermath.spherToSV(baseSystem.change(
 		place=baseSystem.place.change(value=(alpha, delta, prlx)),
-		velocity=baseSystem.velocity.change(value=(pma, pmd, rv))))[1]
+		velocity=baseSystem.velocity.change(value=(pma, pmd, rv))),
+		InputFeaturesAll())
 
 
 def fk4ToFK5(features, svfk4):
@@ -349,7 +358,7 @@ def fk4ToFK5(features, svfk4):
 	else:
 		transMatrix = _fk4ToFK5MatrixYallop
 		yallopK = _yallopK
-	yallopR, yallopRd, stcOrig = _svToYallop(svfk4, yallopK)
+	yallopR, yallopRd, rvAndPrlx = _svToYallop(svfk4, yallopK)
 
 	# Yallop's recipe starts here
 	if not features.slaComp:  # include Yallop's "small terms" in PM
@@ -365,7 +374,7 @@ def fk4ToFK5(features, svfk4):
 			numarray.dot(yallopR, _b1950ETermsPos)*yallopR),
 		yallopVE))
 	cnv = numarray.dot(transMatrix, yallop6)
-	return _yallopToSv(cnv, yallopK, stcOrig, _yallopFK5System)
+	return _yallopToSv(cnv, yallopK, rvAndPrlx, _yallopFK5System)
 
 
 def fk5ToFK4(features, svfk5):
@@ -375,7 +384,7 @@ def fk5ToFK4(features, svfk5):
 	in slaComp mode here.
 
 	"""
-	yallopR, yallopRd, stcOrig = _svToYallop(svfk5, _yallopKSla)
+	yallopR, yallopRd, rvAndPrlx = _svToYallop(svfk5, _yallopKSla)
 
 	# first apply rotation...
 	cnv = numarray.dot(_fk5ToFK4Matrix, 
@@ -391,7 +400,7 @@ def fk5ToFK4(features, svfk5):
 		yallopR, _b1950ETermsVel)*yallopR
 
 	return _yallopToSv(numarray.concatenate((newR, newRd)),
-		_yallopKSla, stcOrig, _yallopFK4System)
+		_yallopKSla, rvAndPrlx, _yallopFK4System)
 
 
 ############### Galactic coordinates
@@ -615,6 +624,10 @@ def _pathToFunction(trafoPath, features):
 	return vars["transform"]
 
 
+def nullTransform(sv, features):
+	return sv
+
+
 @memoized
 def getTrafoFunction(srcTriple, dstTriple, features):
 	"""returns a function that transforms 6-vectors from the system
@@ -625,6 +638,10 @@ def getTrafoFunction(srcTriple, dstTriple, features):
 	If no transformation function can be produced, the function raises
 	an STCValueError.
 	"""
+	# special case the identity since it's indistingishable from a failed
+	# search otherwise
+	if srcTriple==dstTriple:
+		return nullTransform
 	trafoPath = _simplifyPath(_findTransformsPath(srcTriple, dstTriple))
 	if trafoPath is None:
 		raise STCValueError("Cannot find a transform from %s to %s"%(

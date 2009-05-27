@@ -5,7 +5,6 @@ Tests for STC conversions and conforming.
 import math
 
 from gavo import stc
-from gavo.stc import conform
 from gavo.stc import units
 
 import testhelpers
@@ -283,7 +282,7 @@ class UnitConformTest(testhelpers.VerboseTest):
 		ast0 = stc.parseSTCS("Position ICRS 10 12 unit deg Error 0.01 0.01"
 			" Spectral 1250 unit MHz")
 		ast1 = stc.parseSTCS("Position ICRS unit arcmin Spectral unit GHz")
-		res = conform.conform(ast1, ast0)
+		res = stc.conformTo(ast0, ast1)
 		self.assertEqual(res.place.unit, ("arcmin", "arcmin"))
 		self.assertEqual(res.place.value[0], 10*60)
 		self.assertEqual(res.place.value[1], 12*60)
@@ -295,13 +294,47 @@ class UnitConformTest(testhelpers.VerboseTest):
 		ast0 = stc.parseSTCS("PositionInterval ICRS 9 11 11 13 Position 10 12"
 			" RedshiftInterval 1000 2000 Redshift 1500 unit m/s")
 		ast1 = stc.parseSTCS("Position ICRS unit arcmin Redshift unit km/s")
-		res = conform.conform(ast1, ast0)
+		res = stc.conformTo(ast0, ast1)
 		self.assertEqual(res.place.value[0], 10*60)
 		self.assertEqual(res.areas[0].lowerLimit[0], 9*60)
 		self.assertEqual(res.areas[0].upperLimit[1], 13*60)
 		self.assertEqual(res.redshiftAs[0].upperLimit, 2)
 		self.assertEqual(res.redshift.unit, "km")
 		self.assertEqual(res.redshift.velTimeUnit, "s")
+
+
+class GeometryConformTest(testhelpers.VerboseTest):
+	"""tests for conforming of Boxes, Circles and friends.
+	"""
+	def assertMatchingSTCS(self, srcSTCS, sysSTCS, expected):
+		srcAst, sysAst = stc.parseSTCS(srcSTCS), stc.parseSTCS(sysSTCS)
+		found = stc.getSTCS(stc.conformTo(srcAst, sysAst))
+		self.assertEqual(found, expected)
+
+	def testCircleToGal(self):
+		self.assertMatchingSTCS("Circle ICRS 45 -60 1",
+			"Position GALACTIC unit rad",
+			"Circle GALACTIC 4.85565465308 -0.881494801129 0.0174532925199 unit rad")
+
+	def testCircleFromGal(self):
+		self.assertMatchingSTCS(
+			"Circle GALACTIC 4.85565465308 -0.881494801129 0.0174532925199 unit rad",
+			"Position ICRS",
+			"Circle ICRS 44.9999999998 -60.0000000001 0.999999999998")
+	
+	def testBox(self):
+		self.assertMatchingSTCS(
+			"Box ICRS 360000 36000 20 30 unit arcsec",
+			"Position ECLIPTIC J1950",
+			"Polygon ECLIPTIC J1950.0 99.4089149593 -13.1039695064 99.4077016165 -13.0873447912 99.4189071078 -13.0865685226 99.420121778 -13.1031931456")
+
+
+	def testVelocityNoSystem(self):
+		self.assertMatchingSTCS(
+			"Position ICRS VelocityInterval 0.1 0.2 unit arcsec/yr",
+			"Position ICRS VelocityInterval unit deg/cy",
+			"Position ICRS VelocityInterval 0.00277777777778 0.00555555555556 unit"
+			" deg/cy")
 
 
 if __name__=="__main__":

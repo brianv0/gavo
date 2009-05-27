@@ -10,6 +10,7 @@ import numarray
 
 from gavo import stc
 from gavo import utils
+from gavo.stc import common
 from gavo.stc import conform
 from gavo.stc import spherc
 from gavo.stc import sphermath
@@ -97,7 +98,9 @@ class SpherSVRoundtripTest(testhelpers.VerboseTest):
 
 	def _runTest(self, sample):
 		ast0 = stc.parseSTCS(sample)
-		ast1 = sphermath.svToSpher(sphermath.spherToSV(ast0)[1], ast0)
+		features = common.InputFeatures()
+		ast1 = ast0.change(**dict(
+			conform.iterSpatialChanges(ast0, ast0, features)))
 		self.assertEqual(ast0, ast1)
 
 	samples = [
@@ -118,30 +121,30 @@ class SpherMathTests(testhelpers.VerboseTest):
 	"""
 	def testRotateY(self):
 		ast = stc.parseSTCS("Position ICRS 0 10")
-		features, sv = sphermath.spherToSV(ast)
+		features = common.InputFeaturesAll()
+		sv = sphermath.spherToSV(ast, features)
 		for angle in range(10):
 			matrix = spherc.threeToSix(sphermath.getRotY(angle/180.*math.pi))
-			res = sphermath.svToSpher(numarray.dot(matrix, sv), ast, features
-				).place.value
-			self.assertAlmostEqual(res[1], 10+angle)
+			pos, _, _, _, _ = sphermath.svToSpher(numarray.dot(matrix, sv), features)
+			self.assertAlmostEqual(pos[1], (10+angle)*utils.DEG)
 
 	def testRotateX(self):
-		ast = stc.parseSTCS("Position ICRS 270 10")  # XXX that right?  90???
-		features, sv = sphermath.spherToSV(ast)
+		ast = stc.parseSTCS("Position ICRS 270 10")
+		features = common.InputFeaturesAll()
+		sv = sphermath.spherToSV(ast, features)
 		for angle in range(10):
 			matrix = spherc.threeToSix(sphermath.getRotX(angle/180.*math.pi))
-			res = sphermath.svToSpher(numarray.dot(matrix, sv), ast,
-				features).place.value
-			self.assertAlmostEqual(res[1], 10+angle)
+			pos, _, _, _, _ = sphermath.svToSpher(numarray.dot(matrix, sv), features)
+			self.assertAlmostEqual(pos[1], (10+angle)*utils.DEG)
 
 	def testRotateZ(self):
 		ast = stc.parseSTCS("Position ICRS 180 0")
-		features, sv = sphermath.spherToSV(ast)
+		features = common.InputFeaturesAll()
+		sv = sphermath.spherToSV(ast, features)
 		for angle in range(10):
 			matrix = spherc.threeToSix(sphermath.getRotZ(angle/180.*math.pi))
-			res = sphermath.svToSpher(numarray.dot(matrix, sv), ast,
-				features).place.value
-			self.assertAlmostEqual(res[0], 180-angle)  # XXX that right?  +???
+			pos, _, _, _, _  = sphermath.svToSpher(numarray.dot(matrix, sv), features)
+			self.assertAlmostEqual(pos[0], (180-angle)*utils.DEG)
 
 	def testSimpleSpher(self):
 		for theta, phi in [(0, -90), (20, -89), (180, -45), (270, 0),
@@ -177,10 +180,12 @@ class ToGalacticTest(testhelpers.VerboseTest):
 	def _runTest(self, sample):
 		fromCoo, (ares, dres) = sample
 		ast = stc.parseSTCS("Position GALACTIC %.11f %.11f"%fromCoo)
-		features, sv = sphermath.spherToSV(ast)
+		features = common.InputFeaturesAll()
+		sv = sphermath.spherToSV(ast, features)
 		sv = numarray.dot(spherc._b1950ToGalMatrix, sv)
-		res = sphermath.svToSpher(sv, self._toSystem, features)
-		a, d = res.place.value
+		pos, vel = sphermath.svToSpherUnits(sv, ('deg', 'deg'), ('deg', 'deg'), 
+			('yr', 'yr'), features)
+		a, d = pos
 		self.assertAlmostEqual(ares, a, places=6)
 		self.assertAlmostEqual(dres, d, places=6)
 	
@@ -199,7 +204,7 @@ class PositionOnlyTestBase(testhelpers.VerboseTest):
 		(ra, dec), (ra1, dec1) = sample
 		ast = self.srcSystem.change(
 			place=self.srcSystem.place.change(value=(ra,dec)))
-		res = conform.conformSpherical(ast, self.destSystem)
+		res = stc.conformTo(ast, self.destSystem)
 		self.assertAlmostEqual(res.place.value[0], ra1)
 		self.assertAlmostEqual(res.place.value[1], dec1)
 
@@ -215,7 +220,7 @@ class SixVectorTestBase(testhelpers.VerboseTest):
 		ast = self.srcSystem.change(
 			place=self.srcSystem.place.change(value=(ra,dec,prl)),
 			velocity=self.srcSystem.velocity.change(value=(pma, pmd, rv)))
-		res = conform.conformSpherical(ast, self.destSystem, slaComp=True)
+		res = stc.conformTo(ast, self.destSystem, slaComp=True)
 		places = 6
 		self.assertAlmostEqual(res.place.value[0], ra1, places=places)
 		self.assertAlmostEqual(res.place.value[1], dec1, places=places)
@@ -246,4 +251,5 @@ for sampleName in dir(stcgroundtruth):
 
 
 if __name__=="__main__":
-	testhelpers.main(SpherSVRoundtripTest)
+#	testhelpers.main(TestSixFK4ToFK5)
+	testhelpers.main(TestECL32110ToJ2000)

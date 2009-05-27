@@ -10,8 +10,8 @@ We then traverse the tree and wrap these in FieldInfosForTable objects
 for every tableReference we encounter; these objects are then attached
 to the tableReferences in fieldInfo attributes.  
 
-Then we traverse the tree again, this time looking for nodes that
-querySpecifications. There receive a FieldInfosForQuery object 
+Then we traverse the tree again, this time looking for 
+querySpecifications nodes. There receive a FieldInfosForQuery object 
 in their fieldInfos attribute from all fieldInfos in their selectList.
 This traversal is -- as basically all in this process -- postorder, which
 means that by the time the selectList is resolved, all entries in the 

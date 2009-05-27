@@ -73,7 +73,7 @@ class OtherCoordTest(testhelpers.VerboseTest):
 	def testRaising(self):
 		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS,
 			"Time TT Error 1 2 3")
-		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS,
+		self.assertRaises(stc.STCValueError, stcsast.parseSTCS,
 			"Spectral BARYCENTER 23 Resolution 0.25 0.5 2.5")
 
 
@@ -216,7 +216,7 @@ class SpaceCoordIntervalTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.place.unit, ("m", "kpc"))
 
 	def testBadPositionRaises(self):
-		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS, 
+		self.assertRaises(stc.STCValueError, stcsast.parseSTCS, 
 			"PositionInterval ICRS 12.25 23.75 13.5 25.0 Position 12 24 3 4")
 
 

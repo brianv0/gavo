@@ -21,7 +21,7 @@ from gavo.stc.common import (STCError, STCSParseError, STCLiteralError,
 	STCValueError, STCNotImplementedError,
 	STCNamespace)
 
-from gavo.stc.conform import conformSpherical
+from gavo.stc.conform import conform as conformTo
 
 from gavo.stc.stcsast import parseSTCS
 

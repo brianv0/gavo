@@ -9,6 +9,7 @@ xlink and all the other stuff.
 from itertools import *
 import re
 
+from gavo.stc import sphermath
 from gavo.stc import times
 from gavo.stc import units
 from gavo.stc.common import *
@@ -30,6 +31,18 @@ class _CoordFrame(ASTNode):
 	"""
 	_a_name = None
 	_a_refPos = None
+
+	def isSpherical(self):
+		"""returns True if this is a frame deemed suitable for space
+		frame transformations.
+
+		This is really a property of stc.sphermath rather than of the
+		data model, but it's more convenient to have this as a frame
+		method.
+		"""
+		return (isinstance(self, SpaceFrame)
+			and self.nDim>1
+			and self.flavor=="SPHERICAL")
 
 
 class TimeFrame(_CoordFrame):
@@ -260,7 +273,8 @@ class _Coordinate(_CoordinateLike):
 		self._setupNodeNext(_Coordinate)
 	
 	def iterTransformed(self, converter):
-		yield "value", converter(self.value)
+		if self.value is not None:
+			yield "value", converter(self.value)
 		for attName in self._dimensionedAttrs:
 			wiggle = getattr(self, attName)
 			if wiggle:
@@ -419,6 +433,24 @@ class _CoordinateInterval(_CoordinateLike):
 class SpaceInterval(_CoordinateInterval):
 	cType = SpaceType
 
+	def getFullTransformed(self, trafo, posUnit, destFrame):
+# XXX TODO: Think about if this really is the right way -- and make it
+# work at all; this should somehow reuse what's done for positions...
+		raise STCNotImplementedError("Cannot transform SpaceIntervals yet.")
+		sTrafo = sphermath.makePlainSphericalTransformer(trafo, posUnit)
+		ll, ul = self.lowerLimit, self.upperLimit
+		if ll is None:
+			return self.change(upperLimit=sTrafo(ul))
+		if ul is None:
+			return self.change(lowerLimit=sTrafo(ll))
+		vertices = [sTrafo(coo) for coo in (
+			(ll[0], ll[1]), (ul[0], ll[1]), (ll[0], ul[1]), (ul[0], ul[1]))]
+		xVals = [coo[0] for coo in vertices]
+		yVals = [coo[1] for coo in vertices]
+		return self.change(upperLimit=(max(xVals), max(yVals)),
+			lowerLimit=(min(xVals), min(yVals)), frame=destFrame)
+		
+
 class VelocityInterval(_CoordinateInterval):
 	cType = VelocityType
 
@@ -471,30 +503,83 @@ class _GeometryWithDeps(_Geometry):
 class AllSky(_Geometry):
 	pass
 
+	def getTransformed(self, sTrafo, destFrame):
+		return self.change(frame=destFrame)
+
+	def adaptUnit(self, fromUnit, toUnit):
+		return self
+
 
 class Circle(_GeometryWithDeps):
 	_a_center = None
 	_a_radius = None
 
+	def getTransformed(self, sTrafo, destFrame):
+		return self.change(center=sTrafo(self.center), frame=destFrame)
+
+	def adaptUnit(self, fromUnit, toUnit):
+		vTrafo = units.getVectorConverter(fromUnit, toUnit)
+		sTrafo = units.getBasicConverter(fromUnit[0], toUnit[0])
+		return self.change(center=vTrafo(self.center), 
+			radius=sTrafo(self.radius))
+
 
 class Ellipse(_GeometryWithDeps):
 	_a_center = None
 	_a_smajAxis = _a_sminAxis = None
-	_a_smajAxisUnit = _a_sminAxisUnit = None
 	_a_posAngle = None
+
+	def getTransformed(self, sTrafo, destFrame):
+# XXX TODO: actually rotate the ellipse.
+		return self.change(center=sTrafo(self.center), frame=destFrame)
+
+	def adaptUnit(self, fromUnit, toUnit):
+		vTrafo = units.getVectorConverter(fromUnit, toUnit)
+		sTrafo = units.getBasicConverter(fromUnit[0], toUnit[0])
+		return self.change(center=vTrafo(self.center), 
+			smajAxis=sTrafo(self.smajAxis), sminAxis=sTrafo(self.sminAxis))
 
 
 class Box(_GeometryWithDeps):
 	_a_center = None
 	_a_boxsize = None
+	
+	def getTransformed(self, sTrafo, destFrame):
+		"""returns a Polygon corresponding to this Box after rotation.
+		"""
+		center, boxsize = self.center, self.boxsize
+		return Polygon(vertices=(sTrafo(coo) for coo in (
+			(center[0]-boxsize[0], center[1]-boxsize[1]),
+			(center[0]-boxsize[0], center[1]+boxsize[1]),
+			(center[0]+boxsize[0], center[1]+boxsize[1]),
+			(center[0]+boxsize[0], center[1]-boxsize[1]))), frame=destFrame)
+
+	def adaptUnit(self, fromUnit, toUnit):
+		vTrafo = units.getVectorConverter(fromUnit, toUnit)
+		return self.change(center=vTrafo(self.center), 
+			boxsize=vTrafo(self.boxsize))
 
 
 class Polygon(_Geometry):
 	_a_vertices = ()
 
+	def getTransformed(self, sTrafo, destFrame):
+		return self.change(vertices=(sTrafo(v) for v in self.vertices), 
+			frame=destFrame)
+
+	def adaptUnit(self, fromUnit, toUnit):
+		vTrafo = units.getVectorConverter(fromUnit, toUnit)
+		return self.change(vertices=(vTrafo(v) for v in self.vertices))
+
 
 class Convex(_Geometry):
 	_a_vectors = ()
+
+	def getTransformed(self, sTrafo, destFrame):
+		raise STCNotImplementedError("Cannot transform convexes yet.")
+
+	def adaptUnit(self, fromUnit, toUnit):
+		raise STCNotImplementedError("Cannot adapt units for convexes yet.")
 
 
 ################ Toplevel

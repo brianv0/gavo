@@ -166,7 +166,7 @@ def _validateCoos(values, nDim, minItems, maxItems):
 		raise STCSParseError("Expected at least %d coordinates in %s."%(
 			minItems, values))
 	if maxItems is not None and numItems>maxItems:
-		raise STCSParseError("Expected not more than %d coordinates in %s."%(
+		raise STCValueError("Expected not more than %d coordinates in %s."%(
 			maxItems, values))
 
 

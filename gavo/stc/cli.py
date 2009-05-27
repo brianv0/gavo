@@ -28,19 +28,21 @@ def cmd_conform(opts, srcSTCS, dstSTCS):
 	"""<srcSTCS>. <dstSTCS>  -- prints srcSTCS in the system of dstSTCS.
 	"""
 	ast0, ast1 = stc.parseSTCS(srcSTCS), stc.parseSTCS(dstSTCS)
-	res = stc.conformSpherical(ast0, ast1)
+	res = stc.conformTo(ast0, ast1)
 	print stc.getSTCS(res)
 
 def makeParser():
 	from optparse import OptionParser
 	parser = OptionParser(usage="%prog [options] <command> {<command-args}")
+	parser.add_option("-e", "--dump-exception", help="Dump exceptions.",
+		dest="dumpExc", default=False, action="store_true")
 	return parser
 
 _cmdArgParser = makeParser()
 
 
 def cmd_help(opts):
-	"""outputs help to stdout.
+	""" -- outputs help to stdout.
 	"""
 	_cmdArgParser.print_help(file=sys.stderr)
 	sys.stderr.write("\nCommands include:\n")
@@ -58,21 +60,28 @@ def parseArgs():
 	return opts, args[0], args[1:]
 
 
+def bailOnExc(opts, msg):
+	import traceback
+	if opts.dumpExc:
+		traceback.print_exc()
+	sys.stderr.write(textwrap.fill(msg, replace_whitespace=True,
+		initial_indent='', subsequent_indent="  ")+"\n")
+	sys.exit(1)
+
+
 def main():
 	opts, cmd, args = parseArgs()
 	errmsg = None
 	try:
 		globals()["cmd_"+cmd](opts, *args)
 	except KeyError:
-		errmsg = "Unknown command: %s."%cmd
+		bailOnExc(opts, "Unknown command: %s."%cmd)
 	except TypeError:
-		errmsg = "Invalid arguments for %s: %s."%(cmd, args)
+		bailOnExc(opts, "Invalid arguments for %s: %s."%(cmd, args))
 	except stc.STCSParseError, ex:
-		errmsg = "STCS expression '%s' bad somewhere after %d (%s)"%(
-			ex.expr, ex.pos, ex.message)
+		bailOnExc(opts, "STCS expression '%s' bad somewhere after %s (%s)"%(
+			ex.expr, ex.pos, ex.message))
 	except stc.STCNotImplementedError, ex:
-		errmsg = "Feature not yet supported: %s."%ex
-	if errmsg is not None:
-		sys.stderr.write(textwrap.fill(errmsg, replace_whitespace=True,
-			initial_indent='', subsequent_indent="  ")+"\n")
-		sys.exit(1)
+		bailOnExc(opts, "Feature not yet supported: %s."%ex)
+	except stc.STCValueError, ex:
+		bailOnExc(opts, "Bad value in STC input: %s."%ex)

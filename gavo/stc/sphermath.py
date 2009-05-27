@@ -6,7 +6,6 @@ import math
 import numarray
 
 from gavo import utils
-from gavo.stc import dm
 from gavo.stc import units
 from gavo.stc.common import *
 
@@ -94,25 +93,6 @@ def cartToSpher(unitvector):
 	return (theta, phi)
 
 
-class _STCFeatures(object):
-	"""a user-opaque object containing metadata on 6-vector conversion.
-	"""
-	posGiven = False
-	distGiven = False
-	posdGiven = False
-	distdGiven = False
-	relativistic = False
-	slaComp = False
-
-
-class _STCFeaturesAll(object):
-	"""a user-opaque object containing metadata on 6-vector conversion.
-	"""
-	posGiven = distGiven = posdGiven = distdGiven = True
-	relativistic = slaComp = False
-
-
-
 # Units spherical coordinates have to be in for transformation to/from
 # 6-vectors.
 _svPosUnit = ("rad", "rad", "AU")
@@ -170,9 +150,7 @@ def _ensureSphericalFrame(coo):
 	"""raises an error if coo's frame is not suitable for holding spherical
 	coordinates.
 	"""
-	if (not isinstance(coo.frame, dm.SpaceFrame)
-			or coo.frame.nDim==1 
-			or coo.frame.flavor!="SPHERICAL"):
+	if not coo.frame.isSpherical():
 		raise STCValueError("%s is not a valid frame for transformable"
 			" spherical coordinates."%(coo.frame))
 
@@ -196,40 +174,53 @@ def _pleaseEinsteinToSpher(sv):
 	sv[3:] = 1/d*radialV
 
 
-def svToSpher(sv, baseSTC, features=_STCFeaturesAll()):
-	"""returns an STC object like baseSTC, but with the values of the 6-vector 
-	sv filled in.
+def svToSpher(sv, features=InputFeaturesAll):
+	"""returns spherical pos, vel coordinates and their units for the 6-vector
+	sv.
+
+	features must be the first item of the return value of spherToSv.  Items
+	will be None (or, in the case of distance and rv, missing) if they were not 
+	present in the input.
+
+	What is actually returned is a quintuple of
+	position, position unit, velocity, velocity spatial unit, velocity time
+	unit.
+
+	position and velocity may be None; even in this case, the units
+	are available.
 	"""
 	if features.relativistic:
 		_pleaseEinsteinToSpher(sv)
-	bPlace, bVel = baseSTC.place, baseSTC.velocity
 	pos, vel = _svToSpherRaw(sv)
-	buildArgs = {}
+	if features.distGiven:
+		posUnit = _svPosUnit
+	else:
+		pos, posUnit = pos[:2], _svPosUnit[:2]
+	if features.distdGiven:
+		velSUnit, velTUnit = _svVPosUnit, _svVTimeUnit
+	else:
+		vel, velSUnit, velTUnit = vel[:2], _svVPosUnit[:2], _svVTimeUnit[:2]
+	if not features.posdGiven:
+		vel = None
+	return pos, posUnit, vel, velSUnit, velTUnit
 
-	if bPlace and features.posGiven:
-		if bPlace.frame.nDim==2:
-			pos, unit = pos[:2], _svPosUnit[:2]
-		else:
-			unit = _svPosUnit
-		conv = units.getVectorConverter(unit, baseSTC.place.unit)
-		buildArgs["place"] = bPlace.change(value=conv(pos))
 
-	if bVel and features.posdGiven:
-		if bVel.frame.nDim==2:
-			pos, unit, tUnit = pos[:2], _svVPosUnit[:2], _svVTimeUnit[:2]
-		else:
-			unit, tUnit = _svVPosUnit, _svVTimeUnit
-		conv = units.getVelocityConverter(unit, tUnit, baseSTC.velocity.unit,
-			baseSTC.velocity.velTimeUnit)
-		buildArgs["velocity"] = bVel.change(value=conv(vel))
-	return baseSTC.change(**buildArgs)
+def svToSpherUnits(sv, toSpaceUnit, toVelSUnit, toVelTUnit,
+		features=InputFeaturesAll):
+	pos, posUnit, vel, velSUnit, velTUnit = svToSpher(sv, features)
+	posD, velD = len(toSpaceUnit), len(toVelSUnit)
+	fixSpaceUnit = units.getVectorConverter(posUnit[:posD], toSpaceUnit)
+	fixVelUnit = units.getVelocityConverter(velSUnit[:velD], velTUnit[:velD],
+		toVelSUnit, toVelTUnit)
+	return fixSpaceUnit(pos), fixVelUnit(vel)
+	
 
 # filled in for distances not given, in rad (units also insert this for
 # parallaxes too small)
 defaultDistance = units.maxDistance*units.onePc/units.oneAU
 _nAN = float("NaN")
 
-def _getSVSphericals(stcObject):
+def _getSVSphericals(stcObject, features):
 	"""returns (space, vel) from stcObject in units suitable for generation
 	of 6-cartesian vectors.
 
@@ -237,7 +228,6 @@ def _getSVSphericals(stcObject):
 
 	This is a helper for spherToSV.
 	"""
-	features = _STCFeatures()
 	space, vel = (0, 0, defaultDistance), (0, 0, 0)
 	bPlace, bVel = stcObject.place, stcObject.velocity
 
@@ -264,7 +254,7 @@ def _getSVSphericals(stcObject):
 			features.distdGiven = True
 		vel = units.getVelocityConverter(srcUnit, srcUnitT,
 			_svVPosUnit, _svVTimeUnit)(vel)
-	return features, space, vel
+	return space, vel
 
 
 def _decomposeRadial(r, rd):
@@ -320,7 +310,7 @@ def _pleaseEinsteinFromSpher(sv):
 	sv[3:] = radialV+(d*tangentialV)
 
 
-def spherToSV(stcObject, relativistic=False):
+def spherToSV(stcObject, features):
 	"""returns a 6-vector of cartesian place and velocity from stcObject.
 
 	stcObject must be in spherical coordinates.  If any of parallax,
@@ -329,12 +319,11 @@ def spherToSV(stcObject, relativistic=False):
 
 	This is basically a port of sofa's s2pv, with some elements of starpv.
 
-	relativistic=True applies relativistic corrections on the transformation.
-	Don't use this (yet), since for typical cases there are massive problems 
-	with the numerics here.
+	Features is a common.InputFeatures instance that will be updated
+	to reflect what is given in stcObject (Yikes!).
 	"""
-	features, (alpha, delta, r), (alphad, deltad, rd
-		) = _getSVSphericals(stcObject)
+	(alpha, delta, r), (alphad, deltad, rd
+		) = _getSVSphericals(stcObject, features)
 	sa, ca = math.sin(alpha), math.cos(alpha)
 	sd, cd = math.sin(delta), math.cos(delta)
 	x, y = r*cd*ca, r*cd*sa
@@ -342,10 +331,9 @@ def spherToSV(stcObject, relativistic=False):
 
 	res = numarray.array([x, y, r*sd,
 		-y*alphad-w*ca, x*alphad-w*sa, r*deltad*cd+sd*rd])
-	features.relativistic = relativistic
-	if relativistic:
+	if features.relativistic:
 		_pleaseEinsteinFromSpher(res)
-	return features, res
+	return res
 
 
 def computeTransMatrixFromPole(poleCoo, longZeroCoo, changeHands=False): 
@@ -366,3 +354,24 @@ def computeTransMatrixFromPole(poleCoo, longZeroCoo, changeHands=False):
 	if changeHands:
 		y = (-y[0], -y[1], -y[2])
 	return numarray.array([x,y,z])
+
+
+def makePlainSphericalTransformer(trafoFunc, origUnit):
+	"""returns a function that applies trafoMatrix to 2-spherical coordinates
+	given in units.
+
+	This is mainly a helper to transform geometries (other than Convex).
+	trafoFunc is a transformation function as used by conform.conform,
+	units are the units of the geometry.
+
+	Here, we assume the given points have no motion at all, we discard
+	all motions that would result from transformations, and the distance
+	is unit (where that matters).
+	"""
+	toCartUnits = units.getVectorConverter(origUnit, ("rad", "rad"))
+	fromCartUnits = units.getVectorConverter(("rad", "rad"), origUnit)
+	def trafoPlain(coos):
+		sv = numarray.array(spherToCart(*toCartUnits(coos))+(0,0,0))
+		resVec = trafoFunc(sv, InputFeaturesPosOnly)[:3]
+		return fromCartUnits(cartToSpher(resVec/vabs(resVec)))
+	return trafoPlain

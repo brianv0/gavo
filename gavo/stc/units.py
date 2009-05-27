@@ -265,32 +265,52 @@ def getVelocityConverter(fromSpaceUnits, fromTimeUnits, toSpace, toTime,
 	return convert
 
 
-def getUnitConverter(baseCoo, srcCoo):
-	if baseCoo is None or baseCoo.getUnitArgs() is None:
-		return srcCoo.getUnitArgs(), utils.identity
-	if srcCoo.getUnitArgs() is None:
-		return baseCoo.getUnitArgs(), utils.identity
-	if baseCoo.getUnitArgs()==srcCoo.getUnitArgs():
+def getUnitConverter(fromCoo, toCoo):
+	"""returns a pair unit info and a conversion function to take fromCoo
+	to the units of toCoo.
+
+	toCoo may be None, in which case the unit of fromCoo is returned together
+	with an identity function.  If the units already match, (None, None) is
+	returned.
+
+	The unit info is a dictionary suitable for change().
+	"""
+	if toCoo is None or toCoo.getUnitArgs() is None:
+		return fromCoo.getUnitArgs(), utils.identity
+	if fromCoo.getUnitArgs() is None:
+		return toCoo.getUnitArgs(), utils.identity
+	if fromCoo.getUnitArgs()==toCoo.getUnitArgs():
 		return None, None
-	return baseCoo.getUnitArgs(), baseCoo.getUnitConverter(
-		srcCoo.getUnitArgs())
+	return toCoo.getUnitArgs(), toCoo.getUnitConverter(
+		fromCoo.getUnitArgs())
 
 
-def iterUnitAdapted(baseSTC, srcSTC, attName, dependentName):
-		coo = getattr(srcSTC, attName)
-		if coo is None:
-			return
-		overrides, conv = getUnitConverter(getattr(baseSTC, attName), coo)
-		if conv is None:  # units are already ok
-			return
-		overrides.update(coo.iterTransformed(conv))
-		yield attName, coo.change(**overrides)
-		areas = getattr(srcSTC, dependentName)
-		if areas:
-			transformed = []
-			for a in areas:
-				if hasattr(a, "adaptValuesWith"):  # Geometries are not adapted
-					transformed.append(a.adaptValuesWith(conv))
-				else:
-					transformed.append(a)
-			yield dependentName, tuple(transformed)
+def iterUnitAdapted(baseSTC, sysSTC, attName, dependentName):
+	"""iterates over all keys that need to be changed to adapt units in baseSTC
+	to conform to what sysSTC gives.
+
+	If something in baseSTC is not specified in sysSTC, it is ignored here
+	(i.e., it will remain unchanged if the result is used in a change).
+
+	Since units are only on coordinates, and areas inherit these units,
+	they are transformed as well, and their name is given by dependentName.
+	See also conform.conformUnits.
+	"""
+	coo = getattr(baseSTC, attName)
+	if coo is None:
+		return
+	overrides, conv = getUnitConverter(coo, getattr(sysSTC, attName))
+	if conv is None:  # units are already ok
+		return
+	overrides.update(coo.iterTransformed(conv))
+	yield attName, coo.change(**overrides)
+	areas = getattr(baseSTC, dependentName)
+	if areas:
+		transformed = []
+		for a in areas:
+			if hasattr(a, "adaptValuesWith"):
+				transformed.append(a.adaptValuesWith(conv))
+			else:  # it must be a geometry, and these need more advanced tricks
+				transformed.append(
+					a.adaptUnit(coo.unit, getattr(sysSTC, attName).unit))
+		yield dependentName, tuple(transformed)
