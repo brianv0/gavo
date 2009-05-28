@@ -149,7 +149,7 @@ def _reFromKeys(iterable):
 	return "|".join(sorted(iterable, key=lambda x:-len(x)))
 
 
-def getSymbols():
+def getSymbols(_setNames=False):
 	"""returns a dictionary of symbols for a grammar parsing STC-S into
 	a concrete syntax tree.
 	"""
@@ -301,6 +301,10 @@ def getSymbols():
 		Optional( spectralSubPhrase )("spectral") +
 		Optional( redshiftSubPhrase )("redshift") ) + StringEnd()
 
+	if _setNames:
+		for _n, _ob in locals().iteritems():
+			if hasattr(_ob, "setName"):
+				_ob.setName(_n)
 	return dict((n, v) for n, v in locals().iteritems() if not n.startswith("_"))
 
 

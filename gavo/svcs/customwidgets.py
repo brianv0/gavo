@@ -58,25 +58,26 @@ class OutputFormat(object):
 		"""computes the fields a DbBasedCore provides but doesn't 
 		output by default.
 		"""
-# XXX TODO: We should provide some control over what fields are offered here
 		self.availableFields = []
 		core = self.service.core
 		coreNames = set(f.name for f in core.outputTable)
 		defaultNames = set([f.name
 			for f in self.service.getHTMLOutputFields(queryMeta, 
 				ignoreAdditionals=True)])
+		selectedFields = set(queryMeta["additionalFields"])
 		for key in coreNames-defaultNames:
 			try:
-				self.availableFields.append(core.outputTable.getColumnByName(key))
+				self.availableFields.append((core.outputTable.getColumnByName(key),
+					key in queryMeta["additionalFields"]))
 			except KeyError: # Core returns fields not in its table, 
 		                   # probably computes them
 				pass
 
 	def _makeFieldDescs(self):
-		descs = [(f.name, urllib.quote(
-				f.tablehead)) for f in self.availableFields]
-		descs.sort(key=lambda a:a[1].upper())
-		return "\n".join("%s %s"%d for d in descs)
+		descs = [(f.name, str(selected), urllib.quote(
+				f.tablehead)) for f, selected in self.availableFields]
+		descs.sort(key=lambda a:a[2].upper())
+		return "\n".join("%s %s %s"%d for d in descs)
 
 	def render(self, ctx, key, args, errors):
 		return T.div(id=render_cssid("_OUTPUT"))[

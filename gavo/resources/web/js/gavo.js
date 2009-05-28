@@ -253,16 +253,18 @@ function output_getAvailableItems() {
 	}
 	var pairs = node.firstChild.nodeValue.split("\n");
 	for (var ind in pairs) {
-		res.push(pairs[ind].split(" ", 2));
+		res.push(pairs[ind].split(" ", 3));
 	}
 	return res;
 }
 
 function output_expandSelectNode(ev) {
 	ev.currentTarget.size = 10;
+	ev.currentTarget.style.top = "-100px";
 }
 
 function output_collapseSelectNode(ev) {
+	ev.currentTarget.style.top = "0px";
 	ev.currentTarget.size = 1;
 }
 
@@ -274,11 +276,13 @@ function output_itemSelector(pars) {
 	root["class"] = "op_widget";
 	selector.name = "_ADDITEM";
 	var selected = pars['arg'+selector.name];
+
 	if (selected==undefined) {
 		selected = new Array();
 	}
 	selector.size = 1;
 	selector.style.maxWidth = '200px';
+	selector.style.position = "relative";
 	selector.addEventListener("mouseover", output_expandSelectNode, false);
 	selector.addEventListener("mouseout", output_collapseSelectNode, false);
 	selector.multiple = "multiple";
@@ -287,9 +291,9 @@ function output_itemSelector(pars) {
 		var key = availableItems[ind][0];
 		var opt = document.createElement("option");
 		opt.appendChild(document.createTextNode(
-			decodeURIComponent(availableItems[ind][1])));
+			decodeURIComponent(availableItems[ind][2])));
 		opt.value = key;
-		if (isIn(opt.value, selected)) {
+		if (isIn(opt.value, selected) || availableItems[ind][1]=="True") {
 			opt.selected = "selected";
 		}
 		selector.appendChild(opt);
