@@ -7,8 +7,8 @@ import os
 import pyfits
 
 from gavo import base
-from gavo.base import codetricks
 from gavo.utils import fitstools
+from gavo.utils import codetricks
 
 anetPath = "/usr/local/astrometry/bin"
 anetIndexPath = "/usr/local/astrometry/data"

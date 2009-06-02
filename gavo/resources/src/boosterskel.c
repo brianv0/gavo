@@ -601,7 +601,6 @@ void createDumpfile(int argc, char **argv)
 			if (!(lncount%1000)) {
 				fprintf(stderr, "%08d\r", lncount);
 				fflush(stderr);
-				break;
 			}
 		}
 	}

@@ -70,6 +70,8 @@ class ProcSetup(base.Structure):
 	as parent.  All names you define in the code are available as
 	globals to the procedure body.
 	"""
+	name_ = "setup"
+
 	_code = base.UnicodeAttribute("code", copyable=True, 
 		description="A python function body setting globals for the function"
 		" application.  Macros are expanded in the context"

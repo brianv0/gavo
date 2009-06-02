@@ -9,7 +9,7 @@ reason or another should be within the dc package.
 from gavo.utils.algotricks import identity, topoSort
 
 from gavo.utils.codetricks import (silence, ensureExpression, compileFunction,
-	loadPythonModule, memoized, identity)
+	loadPythonModule, memoized, identity, runInSandbox)
 
 from gavo.utils.excs import *
 

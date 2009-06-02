@@ -230,9 +230,12 @@ class NamePathAttribute(base.AtomicAttribute):
 	
 	def iterParentMethods(self):
 		def resolveName(instance, context, id):
-			if instance.namePath is None:
+			np = instance.namePath
+			if np is None and instance.parent:
+				np = getattr(instance.parent, "namePath", None)
+			if np is None:
 				raise base.StructureError("No namePath here")
-			return base.resolveId(context, instance.namePath+"."+id)
+			return base.resolveId(context, np+"."+id)
 		yield "resolveName", resolveName
 					
 	def parse(self, value):

@@ -14,6 +14,7 @@ import re
 import shutil
 
 from gavo import base
+from gavo import utils
 from gavo import rsc
 from gavo import rscdef
 
@@ -94,7 +95,7 @@ class CBooster:
 				return
 		except os.error:
 			pass
-		base.runInSandbox(self._copySources, self._build, self._retrieveBinary)
+		utils.runInSandbox(self._copySources, self._build, self._retrieveBinary)
 
 	def getOutput(self, argName):
 		"""returns a pipe you can read the booster's output from.

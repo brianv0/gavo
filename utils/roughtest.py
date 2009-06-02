@@ -766,6 +766,11 @@ myTests = [
 				"&service=apfs&month=8&year=2008",
 			["#Hosts", "<td>3</td>"],
 			"Logs service delivers credible data."),
+		GetHasStringsTest(nv_root+"/ppmx/res/ppmx/q/form?__nevow_form__=genForm"
+			"&hscs_pos=Arcturus&hscs_sr=14.0&pm_total=%3E0.02&"
+			"_DBOPTIONS_ORDER=pm_total&_DBOPTIONS_LIMIT=100",
+			["PM: >0.02", "+19 10 56.82", "0.0394013"],
+			"PPMX forms query looks all right"),
 	),
 ]
 
