@@ -101,6 +101,11 @@ class SCSRenderer(DALRenderer):
 
 	These do their error signaling in the value attribute of an
 	INFO child of RESOURCE.
+
+	Services using this renderer *must* have meta items testQuery.ra and
+	testQuery.dec set to the (decimal) RA and dec of an object in the 
+	published catalogue (actually, to a position within 0.001 deg of such
+	an object).
 	"""
 	name = "scs.xml"
 

@@ -272,7 +272,8 @@ li.metaItem {
 }
 
 h4.exploHead {
-	font-size: 10pt;
+	font-weight:bold;
+	font-size:11px;
 	margin: 0px;
 	padding: 0px;
 	background: none;

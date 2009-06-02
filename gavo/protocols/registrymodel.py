@@ -557,3 +557,9 @@ class SCS:
 	class maxRecords(SCSElement): pass
 	
 	class verbosity(SCSElement): pass
+
+	class testQuery(SCSElement): pass
+	class ra(SCSElement): pass
+	class dec(SCSElement): pass
+	class sr(SCSElement): pass
+	class extras(SCSElement): pass

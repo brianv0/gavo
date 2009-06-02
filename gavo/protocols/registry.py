@@ -456,7 +456,7 @@ def getInterfaceTree(service, renderer):
 		]
 
 
-def getSiaCapabilitiesTree(service):
+def getSIACapabilitiesTree(service):
 	return SIA.capability[
 		getInterfaceTree(service, "siap.xml"),
 		SIA.imageServiceType[service.getMeta("sia.type")],
@@ -481,21 +481,31 @@ def getSiaCapabilitiesTree(service):
 		]
 
 
-def getSiapResourceTree(rec, service):
+def getSIAPResourceTree(rec, service):
 	return VS.CatalogService(**getResourceArgs(rec, service))[
 		getCatalogServiceItems(service,
-			getSiaCapabilitiesTree(service)),
+			getSIACapabilitiesTree(service)),
 	]
 
 
-def getScsCapabilitiesTree(service):
-	return []
+def getSCSCapabilitiesTree(service):
+	return SCS.capability[
+		getInterfaceTree(service, "scs.xml"),
+		SCS.maxSR["180.0"],
+		SCS.maxRecords[str(base.getConfig("ivoa", "dalDefaultLimit"))],
+		SCS.verbosity["true"],
+		SCS.testQuery[
+			SCS.ra[service.getMeta("testQuery.ra", raiseOnFail=True)],
+			SCS.dec[service.getMeta("testQuery.dec", raiseOnFail=True)],
+			SCS.sr["0.001"],
+		],
+	]
 
 
-def getScsResourceTree(rec, service):
+def getSCSResourceTree(rec, service):
 	return VS.CatalogService(**getResourceArgs(rec, service))[
 		getCatalogServiceItems(service,
-			getScsCapabilitiesTree(service)),
+			getSCSCapabilitiesTree(service)),
 	]
 
 
@@ -521,8 +531,8 @@ def getDataServiceResourceTree(rec, service):
 
 
 knownResourceMakers = {
-	"siap.xml": getSiapResourceTree,
-	"scs.xml": getScsResourceTree,
+	"siap.xml": getSIAPResourceTree,
+	"scs.xml": getSCSResourceTree,
 	"form": getCatalogServiceResourceTree,
 	None: getDataServiceResourceTree,
 }
@@ -582,12 +592,16 @@ def getVOResourceTree(rec):
 		makeResource = getResourceMakerForStatic(rec, resource)
 	else:
 		makeResource = getResourceMakerForService(rec, resource)
-	return OAI.record[
-		getResourceHeaderTree(rec),
-		OAI.metadata[
-			makeResource(rec, resource)
+	try:
+		return OAI.record[
+			getResourceHeaderTree(rec),
+			OAI.metadata[
+				makeResource(rec, resource)
+			]
 		]
-	]
+	except base.NoMetaKey, ex:
+		sys.stderr.write("Not delivering resource record for resource %s;"
+			" %s\n"%(rec["shortName"], ex))
 
 
 ############## End functions to generate VO Resources
