@@ -488,6 +488,10 @@ def getSiapResourceTree(rec, service):
 	]
 
 
+def getScsCapabilitiesTree(service):
+	return []
+
+
 def getScsResourceTree(rec, service):
 	return VS.CatalogService(**getResourceArgs(rec, service))[
 		getCatalogServiceItems(service,

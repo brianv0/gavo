@@ -21,17 +21,17 @@ from gavo.stc.common import (STCError, STCSParseError, STCLiteralError,
 	STCValueError, STCNotImplementedError,
 	STCNamespace)
 
-from gavo.stc.conform import conform as conformTo
+# from gavo.stc.conform import conform as conformTo
 
-from gavo.stc.stcsast import parseSTCS
+# from gavo.stc.stcsast import parseSTCS
 
-from gavo.stc.stcsgen import getSTCS
+# from gavo.stc.stcsgen import getSTCS
 
-from gavo.stc.stcx import STC
+# from gavo.stc.stcx import STC
 
-from gavo.stc.stcxast import parseSTCX
+# from gavo.stc.stcxast import parseSTCX
 
-from gavo.stc.stcxgen import astToStan, getSTCXProfile
+# from gavo.stc.stcxgen import astToStan, getSTCXProfile
 
 from gavo.stc.times import (parseISODT, 
 	jYearToDateTime, dateTimeToJYear,
