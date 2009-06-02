@@ -769,8 +769,18 @@ myTests = [
 		GetHasStringsTest(nv_root+"/ppmx/res/ppmx/q/form?__nevow_form__=genForm"
 			"&hscs_pos=Arcturus&hscs_sr=14.0&pm_total=%3E0.02&"
 			"_DBOPTIONS_ORDER=pm_total&_DBOPTIONS_LIMIT=100",
-			["PM: >0.02", "+19 10 56.82", "0.0394013"],
+			["PM: &gt;0.02", "+19 10 56.82", "-114"],
 			"PPMX forms query looks all right"),
+		GetHasStringsTest(nv_root+"/ppmx/res/ppmx/scs/scs.xml?RA=150.0&DEC=19.2"
+			"&SR=0.1&VERB=1",
+			['<FIELD ID="deltaFloat" arraysize="1" datatype="double"'
+				' name="deltaFloat" ucd="POS_EQ_DEC_MAIN" unit="deg">',
+				"AAAADzA5NTk1Ni41KzE5MDkzNTmIUJy7o9cKQUzMzUBiv4"],
+			"PPMX SCS returns translated UCDs and some sensible binary content"),
+		GetHasStringsTest(nv_root+"/ppmx/res/ppmx/scs/scs.xml?RA=150.0&DEC=19.2"
+			"&SR=0.1&VERB=3&_TDENC=True",
+			['<FIELD ID="c_y" arraysize="1"',],
+			"PPMX SCS returns weird fields with VERB=3."),
 	),
 ]
 

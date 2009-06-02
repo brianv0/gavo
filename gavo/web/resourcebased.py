@@ -641,7 +641,7 @@ class Form(FormMixin, grend.ServiceBasedRenderer, HTMLResultRenderMixin):
 		return self.flattenFactory(doc, ctx, request.write, finisher)
 
 	def process(self, ctx):
-		super(Form, self).process(ctx)
+		return super(Form, self).process(ctx)
 
 	defaultDocFactory = common.doctypedStan(T.html[
 		T.head(render=T.directive("commonhead"))[

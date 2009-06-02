@@ -40,15 +40,22 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 
 	implements(inevow.ICanHandleException)
 
+	contentTypeDelivered = "application/x-votable"
+
 	def __init__(self, ctx, *args, **kwargs):
 		ctx.remember(self, inevow.ICanHandleException)
 		reqArgs = inevow.IRequest(ctx).args
 		if not "_DBOPTIONS_LIMIT" in reqArgs:
 			reqArgs["_DBOPTIONS_LIMIT"] = [
 				str(base.getConfig("ivoa", "dalDefaultLimit"))]
+		reqArgs["_FORMAT"] = ["VOTable"]
 		resourcebased.Form.__init__(self, ctx, *args, **kwargs)
 
 	_generateForm = resourcebased.Form.form_genForm
+
+	def _getResource(self, outputName):
+		# These always render themselves
+		return None
 
 	def _writeErrorTable(self, ctx, errmsg):
 		result = self._makeErrorTable(ctx, errmsg)
@@ -63,7 +70,7 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 		request = inevow.IRequest(ctx)
 		request.setHeader('content-disposition', 
 			'attachment; filename="votable.xml"')
-		request.setHeader("content-type", "application/x-votable")
+		request.setHeader("content-type", self.contentTypeDelivered)
 		return resourcebased.streamVOTable(request, data)
 
 	def renderHTTP_exception(self, ctx, failure):
@@ -97,11 +104,36 @@ class SCSRenderer(DALRenderer):
 	"""
 	name = "scs.xml"
 
+	contentTypeDelivered = "text/xml;content=x-votable"
+
 	def _makeErrorTable(self, ctx, msg):
 		data = rsc.makeData(MS(rscdef.DataDescriptor, parent_=self.service.rd))
 		data.addMeta("info", base.makeMetaValue(msg, name="info", 
 			infoName="Error", infoId="Error"))
 		return svcs.SvcResult(data, {}, svcs.QueryMeta.fromContext(ctx))
+	
+	def _formatOutput(self, data, ctx):
+		"""makes output SCS 1.02 compatible or causes the serive to error out.
+
+		This comprises mapping meta.id;meta.main to ID_MAIN and
+		pos.eq* to POS_EQ*.
+		"""
+		translatedUCDs = {
+			"meta.id;meta.main": "ID_MAIN",
+			"pos.eq.ra;meta.main": "POS_EQ_RA_MAIN",
+			"pos.eq.dec;meta.main": "POS_EQ_DEC_MAIN",
+		}
+		table = data.original.getPrimaryTable()
+		for ind, ofield in enumerate(table.tableDef.columns):
+			if ofield.ucd in translatedUCDs:
+				ofield = ofield.copy(table.tableDef)
+				ofield.ucd = translatedUCDs.pop(ofield.ucd)
+				table.tableDef.columns[ind] = ofield
+		if translatedUCDs:
+			return self._writeErrorTable(ctx, "Table cannot be formatted for"
+				" SCS.  Column(s) with the following new UCD(s) were missing in"
+				" output table: %s"%', '.join(translatedUCDs))
+		return DALRenderer._formatOutput(self, data, ctx)
 
 grend.registerRenderer("scs.xml", SCSRenderer)
 
