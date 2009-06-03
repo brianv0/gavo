@@ -199,6 +199,7 @@ def getSymbols(_setNames=False):
 
 # properties of most spatial specs
 	_coos = ZeroOrMore( number )("coos")
+	_twoDCoo = number + number
 	_pos = Optional( ZeroOrMore( number )("pos") )
 	positionSpec = Suppress( Keyword("Position") ) + _pos
 	error = Suppress( Keyword("Error") ) + OneOrMore( number )
@@ -244,25 +245,35 @@ def getSymbols(_setNames=False):
 	timeSubPhrase = (timeInterval | startTime | stopTime | time).addParseAction(
 		makeTree)
 
+# atomic "geometries"; I do not bother to specify their actual
+# arguments since, without knowing the frame, they may be basically
+# anthing.  Sure, most of those only make sense with 2D spherical, but
+# I'm not so sure of this as to enshrine it in the grammar.
+	_atomicGeometryKey = ( Keyword("AllSky") | Keyword("Circle") |
+		Keyword("Ellipse") | Keyword("Box") | Keyword("Polygon") |
+		Keyword("Convex") )
+	atomicGeometry = ( _atomicGeometryKey("type") + _commonRegionItems + 
+		_coos + _regionTail )
+
+# compound "geometries"
+	_compoundGeoOperator = ( Keyword("Union") | Keyword("Intersection") |
+		Keyword("Intersection") )
+	_compoundNot = Keyword("Not")
+	_compoundGeoExpression = Forward()
+	_compoundGeoOperand = _atomicGeometryKey + _coos
+	_compoundGeoExpression << ( Optional( _compoundNot ) + ( 
+		_compoundGeoOperand | ( _compoundGeoOperator + _compoundGeoExpression +
+			OneOrMore( _compoundGeoExpression ))))
+	compoundGeoExpression = ( _compoundGeoOperator + _commonRegionItems +
+		_compoundGeoExpression + _regionTail )
+
 # space subphrase
 	positionInterval = (Keyword("PositionInterval")("type") +
 		_commonRegionItems + _coos + _regionTail)
-	allSky = ( Keyword("AllSky")("type") +
-		_commonRegionItems + _regionTail )
-	circle = ( Keyword("Circle")("type") + 
-		_commonRegionItems + _coos + _regionTail )
-	ellipse = ( Keyword("Ellipse")("type") + 
-		_commonRegionItems + _coos + _regionTail )
-	box = ( Keyword("Box")("type") + 
-		_commonRegionItems + _coos + _regionTail )
-	polygon = ( Keyword("Polygon")("type") + 
-		_commonRegionItems + _coos + _regionTail )
-	convex = ( Keyword("Convex")("type") + 
-		_commonRegionItems + _coos + _regionTail )
 	position = ( Keyword("Position")("type") + 
 		_commonSpaceItems + _pos + _spatialTail )
-	spaceSubPhrase = (positionInterval | allSky | circle | ellipse | box
-		| polygon | convex | position).addParseAction(makeTree)
+	spaceSubPhrase = (positionInterval | position | atomicGeometry
+		).addParseAction(makeTree)
 
 # spectral subphrase
 	spectralSpec = (Suppress( Keyword("Spectral") ) + number)("pos")
@@ -334,4 +345,5 @@ if __name__=="__main__":
 	syms = getSymbols()
 #	print getCST("PositionInterval ICRS 1 2 3 4")
 	enableDebug(syms)
-	print makeTree(syms["velocityUnit"].parseString("unit km/s"))
+	print makeTree(syms["compoundGeoExpression"].parseString(
+		"Union ICRS Circle 10 12 1 Circle 11 11 1"))

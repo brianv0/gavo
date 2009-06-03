@@ -156,6 +156,9 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		"Table in the database rather than in memory?")  # this must not be copyable
 		  # since queries might copy the tds and havoc would result if the queries
 		  # were to end up on disk.
+	_temporary = base.BooleanAttribute("temporary", False, description=
+		"If this is an onDisk table, make it temporary?  This is mostly"
+		" useful for custom cores and such.", copyable=True)
 	_adql = base.BooleanAttribute("adql", False, description=
 		"Should this table be available for ADQL queries?")
 	_forceUnique = base.BooleanAttribute("forceUnique", False, description=
@@ -249,10 +252,13 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		return fields[0].name
 
 	def getQName(self):
-		if self.rd is None:
-			raise base.Error("TableDefs without resource descriptor"
-				" have no qualified names")
-		return "%s.%s"%(self.rd.schema, self.id)
+		if self.temporary:
+			return self.id
+		else:
+			if self.rd is None:
+				raise base.Error("TableDefs without resource descriptor"
+					" have no qualified names")
+			return "%s.%s"%(self.rd.schema, self.id)
 
 	def validateRow(self, row):
 		"""checks that row is complete and complies with all known constraints on

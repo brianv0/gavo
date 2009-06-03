@@ -280,7 +280,8 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 			raise common.ResourceError("TableDefs without resource descriptor"
 				" cannot be used to access database tables")
 		self.tableName = self.tableDef.getQName()
-		self.nometa = kwargs.get("nometa", False) or tableDef.rd.schema=="dc"
+		self.nometa = (kwargs.get("nometa", False) or tableDef.rd.schema=="dc"
+			or self.tableDef.temporary)
 		if kwargs.get("create", True):
 			self.createIfNecessary()
 		if not self.tableUpdates:
@@ -430,7 +431,11 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 
 	def create(self):
 		self.ensureSchema()
-		self.query("CREATE TABLE %s (%s)"%(
+		preTable = ""
+		if self.tableDef.temporary:
+			preTable = "TEMP "
+		self.query("CREATE %sTABLE %s (%s)"%(
+			preTable,
 			self.tableName,
 			", ".join([column.getDDL()
 				for column in self.tableDef.columns])))
@@ -443,12 +448,12 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		return self
 
 	def createIfNecessary(self):
-		if not self.tableExists(self.tableName):
+		if not self.tableExists(self.tableName, temporary=self.tableDef.temporary):
 			self.create()
 		return self
 	
 	def drop(self, what="TABLE"):
-		if self.tableExists(self.tableName):
+		if self.tableExists(self.tableName, temporary=self.tableDef.temporary):
 			self.query("DROP %s %s CASCADE"%(what, self.tableName))
 			self.tableDef.runScripts("afterDrop", connection=self.connection)
 			if not self.nometa:

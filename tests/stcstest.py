@@ -101,15 +101,15 @@ class STCSSpaceParsesTest(STCSParsesTestBase):
 		("positionInterval", "PositionInterval ICRS 12 11 10 9 8 7 6 5 4 3 2 1"),
 		("positionInterval", "PositionInterval ICRS 12 11 unit m Error 10 10"
 			" Resolution 12 Size 2 PixSize 14 14"),
-		("allSky", "AllSky ICRS"),
-		("circle", "Circle FK4 B1975.0 1 2 3"),
-		("circle", "Circle FK4 J1975.0 1 2 3"),
-		("circle", "Circle fillfactor 0.1 FK4 TOPOCENTER SPHER2 1 2 3"
+		("atomicGeometry", "AllSky ICRS"),
+		("atomicGeometry", "Circle FK4 B1975.0 1 2 3"),
+		("atomicGeometry", "Circle FK4 J1975.0 1 2 3"),
+		("atomicGeometry", "Circle fillfactor 0.1 FK4 TOPOCENTER SPHER2 1 2 3"
 			" unit deg Error 3 3 Size 23"),
-		("ellipse", "Ellipse J2000 unit deg"),
-		("box", "Box GALACTIC 12 12 10 20 unit deg"),
-		("polygon", "Polygon GALACTIC_II 12 12 10 20 21 21 20 19"),
-		("convex", "Convex GEO_C 12 12 10 20 21 21 20 19"),
+		("atomicGeometry", "Ellipse J2000 unit deg"),
+		("atomicGeometry", "Box GALACTIC 12 12 10 20 unit deg"),
+		("atomicGeometry", "Polygon GALACTIC_II 12 12 10 20 21 21 20 19"),
+		("atomicGeometry", "Convex GEO_C 12 12 10 20 21 21 20 19"),
 		("position", "Position UNKNOWNFrame 12 13 Error 0.1 0.1"),
 		("position", "Position UNKNOWNFrame 12 13 Error 0.1 0.1"
 			" VelocityInterval fillfactor 0.125 1 1.5 2 3 Error 0.25 0.5"
@@ -122,9 +122,9 @@ class STCSSpaceParsesTest(STCSParsesTestBase):
 		("positionInterval", "PositionInterval 12 12 Error 5 unit m"),
 		("positionInterval", "PositionInterval 12 12 unit s"),
 		("positionInterval", "PositionInterval 12 12 unit 14"),
-		("circle", "Circle FK4 fillfactor 0.1"),
-		("ellipse", "Elipse J2000 unit deg Error 3 3 Size 23"),
-		("ellipse", "Ellipse J200 unit deg Error 3 3 Size 23"),
+		("atomicGeometry", "Circle FK4 fillfactor 0.1"),
+		("atomicGeometry", "Elipse J2000 unit deg Error 3 3 Size 23"),
+		("atomicGeometry", "Ellipse J200 unit deg Error 3 3 Size 23"),
 		("spaceSubPhrase", "Ellipse Box J2000"),
 	]
 
@@ -158,6 +158,33 @@ class STCSSpectralParsesTest(STCSParsesTestBase):
 		("spectralSubPhrase", "Spectral 1e10 unit pc"),
 		("spectralSubPhrase", "SpectralInterval ICRS 1e10 unit Angstrom"),
 	]
+
+
+
+class STCSCompoundParsesTest(STCSParsesTestBase):
+	shouldParse = [
+		("compoundGeoExpression", 
+			"Union ICRS Circle 10 12 1 Circle 11 11 1"),
+	]
+	shouldNotParse = [
+	]
+
+
+class STCSSpectralParsesTest(STCSParsesTestBase):
+	shouldParse = [
+		("spectralSubPhrase", "Spectral 12 unit mm"),
+		("spectralSubPhrase", "Spectral NEPTUNE 12 unit mm"),
+		("spectralSubPhrase", "Spectral UNKNOWNRefPos 12 unit Angstrom Error 4 3"
+			" Resolution 0.2 PixSize 12"),
+		("spectralSubPhrase", "SpectralInterval HELIOCENTER 12 13 Spectral 12.2"
+			" unit nm Error 4 Resolution 0.2 PixSize 12"),
+	]
+	shouldNotParse = [
+		("spectralSubPhrase", "Spectral ab"),
+		("spectralSubPhrase", "Spectral 1e10 unit pc"),
+		("spectralSubPhrase", "SpectralInterval ICRS 1e10 unit Angstrom"),
+	]
+
 
 
 class STCSTreeParseTestBase(testhelpers.VerboseTest):
@@ -429,4 +456,4 @@ class VelocitiesGenerationTest(SampleGenerationTestBase):
 
 
 if __name__=="__main__":
-	testhelpers.main(GeneralGenerationTest)
+	testhelpers.main(STCSCompoundParsesTest)

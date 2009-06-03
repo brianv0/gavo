@@ -209,18 +209,23 @@ class PostgresQueryMixin(object):
 		assert len(res)==1
 		return res[0][0]
 	
-	def tableExists(self, tableName, schema=None):
+	def tableExists(self, tableName, schema=None, temporary=False):
 		"""returns True if a table tablename exists in schema.
-		
-		See _parseTableName on the meaning of the arguments.
 		"""
 		schema, tableName = _parseTableName(tableName, schema)
-		matches = self.query("SELECT table_name FROM"
-			" information_schema.tables WHERE"
-			" table_schema=%(schemaName)s AND table_name=%(tableName)s", {
-					'tableName': tableName.lower(),
-					'schemaName': schema.lower(),
-			}).fetchall()
+		if temporary:
+			matches = self.query("SELECT table_name FROM"
+				" information_schema.tables WHERE"
+				" table_type='LOCAL TEMPORARY' AND table_name=%(tableName)s", {
+						'tableName': tableName.lower(),
+				}).fetchall()
+		else:
+			matches = self.query("SELECT table_name FROM"
+				" information_schema.tables WHERE"
+				" table_schema=%(schemaName)s AND table_name=%(tableName)s", {
+						'tableName': tableName.lower(),
+						'schemaName': schema.lower(),
+				}).fetchall()
 		return len(matches)!=0
 	
 	def getSchemaPrivileges(self, schema):
