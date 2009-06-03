@@ -145,7 +145,7 @@ class ProcDef(base.Structure):
 	_type = base.EnumeratedUnicodeAttribute("type", default=None, description=
 		"The type of the procedure definition.  The procedure applications"
 		" will in general require certain types of definitions.",
-		validValues=["t_", "apply", "rowfilter"], copyable=True)
+		validValues=["t_", "apply", "rowfilter", "sourceFields"], copyable=True)
 	_register = base.BooleanAttribute("register", default=False,
 		description="Register this procDef in the global registry under its"
 			" id?")
@@ -182,10 +182,10 @@ class ProcApp(ProcDef):
 		"Values for parameters of the procedure definition",
 		childFactory=Binding, copyable=True)
 	_name = base.UnicodeAttribute("name", default=base.NotGiven,
-		description="A name of the proc.  You are responsible to"
-		" avoid name clashes.")
-
-	compiled = None
+		description="A name of the proc.  ProcApps compute their (python)"
+		" names to be somwhat random strings.  Set a name manually to"
+		" receive easier decipherable error messages.  If you do that,"
+		" you have to care about name clashes yourself, though.")
 
 	def _resolvePredefined(self, ctx):
 		self._procDef.feedObject(self, _registry[self.predefined])

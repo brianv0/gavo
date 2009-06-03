@@ -14,12 +14,10 @@ import traceback
 from gavo import base
 from gavo import utils
 from gavo.base import structure
-from gavo.rscdef import callablebase
 from gavo.rscdef import common
 from gavo.rscdef import macros
 from gavo.rscdef import procdef
 from gavo.rscdef import rmkfuncs
-from gavo.rscdef import rmkprocs
 from gavo.rscdef import tabledef
 
 
@@ -135,143 +133,6 @@ class VarDef(base.Structure):
 	def getCode(self):
 		return "%s = %s"%(self.name, self.parent.expand(self.content_))
 
-############# Start DEPRECATED
-class ConsComputer(callablebase.CodeFrag):
-	"""A code fragment for the computation of locals rowmaker procs, rowgens,
-	and similar constructs.
-
-	ConsComputers have python code in their bodies.  The python code must
-	return a dictionary.  The keys in this dictionary are available as
-	variables in the respective function.
-
-	You can use this to precompute values that are identical for all items
-	a given callable returns.
-	"""
-	name_ = "consComp"
-
-	def _getFormalArgs(self):
-		return self._getDefaultingFormalArgs()
-
-	def completeElement(self):
-		if self.name is base.Undefined:
-			self.name = "consComp"
-		self._completeElementNext(ConsComputer)
-
-	def _completeCall(self, actualArgs):
-		return "%s(%s)"%(self.name, actualArgs)
-
-
-class ConsArg(callablebase.FuncArg):
-	"""An argument to a rowmaker constructor.
-
-	See `Element rowmaker`_
-	"""
-	name_ = "consArg"
-
-
-class RDFunction(callablebase.CodeFrag):
-	"""is a CodeFrag that has an embedded code frag to compute locals
-	for the compilation of the actual function body.
-
-	These are used for functions defined in resource descriptors like
-	rowmaker procs or grammar rowgens.
-
-	RDfunctions do not necessarily contain code but can locate
-	predefined functions registered in something accessible through the
-	getPredefined method.  Registration is done via the registerPredefined
-	method.  Both methods have to be defined by subclasses.
-	"""
-	_consComp = base.StructAttribute("consComp", default=None,
-		childFactory=ConsComputer, copyable=True, description="A callable"
-		" returning a dictionary with additional names available to the callable"
-		" defined.")
-	_consArgs =  base.StructListAttribute("consArgs", 
-		description="Arguments for this callable's constructor.", 
-		childFactory=ConsArg)
-	_predefined = base.UnicodeAttribute("predefined", default=None,
-		description="Name of a predefined procedure to base this one on.")
-	_isGlobal = base.BooleanAttribute("isGlobal", default=False,
-		description="Register this procedure globally under its name.")
-
-	def validate(self):
-		"""checks that there's not both code and predefined given.
-		"""
-		self._validateNext(RDFunction)
-		if (self.content_.strip() and self.predefined) or not (
-				self.content_.strip() or self.predefined):
-			raise base.StructureError(
-				"%s must have exactly one of predefined attribute"
-				" or element content"%self.name_)
-
-	def onElementComplete(self):
-		self._onElementCompleteNext(RDFunction)
-		if self.isGlobal:
-			self.registerPredefined()
-	
-	def completeElement(self):
-		self._completeElementNext(RDFunction)
-		if self.predefined:
-			self._getFromPredefined()
-	
-	def _getFromPredefined(self):
-		orig = self.getPredefined(self.predefined)
-		self.predefined = None
-		self.content_ = orig.content_
-		if self.consComp is None:
-			self.consComp = orig.consComp
-		if self.name is base.Undefined:
-			self.name = orig.name
-		localArgs = set(a.key for a in self.args)
-		for a in orig.args:
-			if not a.key in localArgs:
-				self._args.feedObject(self, a.copy(self))
-
-	def _getMoreGlobals(self):
-		"""returns a dictionary containing additional names got from consComp.
-
-		If no consComp is defined, it returns and empty dictionary.
-
-		It does some basic validation making sure what's returned behaves
-		roughly like a dictionary.
-		"""
-		if not self.consComp:
-			return {}
-		moreLocals = self.consComp.runWithArgs(self.consArgs, {})
-		try:
-			moreLocals["some improbable key_"]
-		except KeyError: # looks like a dict, ok
-			pass
-		except TypeError:
-			raise base.LiteralParseError("consComp on %s does not return a"
-				" dict"%self.name, "consComp", self.consComp)
-		return moreLocals
-
-
-class ProcDef(RDFunction):
-	"""A procedure within a row maker.
-
-	Procedures contain python code that manipulates the grammar output (as vars)
-	and the row to be shipped out (as _result).  The code also has access
-	to the tableDef (e.g., to retrieve properties).
-	"""
-	name_ = "proc"
-
-	def registerPredefined(self):
-		rmkprocs.registerProcedure(self.name, self)
-
-	def getPredefined(self, name):
-		return rmkprocs.getProcedure(name)
-
-	def _getFormalArgs(self):
-		return "result, vars, tableDef, "+self._getDefaultingFormalArgs()
-
-	def _completeCall(self, actualArgs):
-		"""returns a function call for to this procedure with actual arguments
-		inserted.
-		"""
-		return "%s(_result, rowdict_, tableDef_, %s)"%(self.name, actualArgs)
-
-############# End DEPRECATED
 
 class ApplyDef(procdef.ProcApp):
 	"""A code fragment to manipulate the result row (and possibly more).
@@ -378,9 +239,6 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 	_vars = base.StructListAttribute("vars", childFactory=VarDef,
 		description="Definitions of intermediate variables.",
 		copyable=True)
-	_procs = base.StructListAttribute("procs",
-		childFactory=ProcDef, description="Procedures manipulating rows.",
-		copyable=True) # XXX TODO: Remove
 	_apps = base.StructListAttribute("apps",
 		childFactory=ApplyDef, description="Procedure applications.",
 		copyable=True)
@@ -448,8 +306,6 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 
 		for v in self.vars:
 			line = appendToSource(v.getCode(), line, "assigning "+v.name)
-		for p in self.procs:  # XXX DEPRECATED
-			line = appendToSource(p.getCall(), line, "executing "+p.name)
 		for a in self.apps:
 			line = appendToSource("%s(rowdict_, _result, targetTable_)"%a.name,
 				line, "executing "+a.name)
@@ -459,9 +315,6 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 
 	def _getGlobals(self, tableDef):
 		globals = {}
-		for p in self.procs:
-			name, func = p.getDefinition()
-			globals[name] = func
 		for a in self.apps:
 			globals[a.name] = a.compile()
 		globals["tableDef_"] = tableDef
@@ -472,9 +325,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		"""returns a mapping containing the user defaults plus base.Undefined
 		for all defaulted arguments in proc defs.
 		"""
-		defaults = dict([(n, base.Undefined) 
-			for p in self.procs
-			for n in p.defaultedNames])
+		defaults = {}
 		defaults.update(self.defaults)
 		return defaults
 	
@@ -536,7 +387,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 
 	def copyShallowly(self):
 		return base.makeStruct(self.__class__, maps=self.maps[:], 
-			vars=self.vars[:], procs=self.procs[:], defaults=self.defaults.copy(), 
+			vars=self.vars[:], defaults=self.defaults.copy(), 
 			idmaps=self.idmaps, rowSource=self.rowSource, apps=self.apps[:])
 
 

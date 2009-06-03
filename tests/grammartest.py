@@ -11,7 +11,6 @@ from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
 from gavo.protocols import basic
-from gavo.rscdef import rowgens
 
 import testhelpers
 

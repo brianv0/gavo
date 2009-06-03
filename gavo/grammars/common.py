@@ -60,39 +60,23 @@ def compileRowfilter(filters):
 	return d["iterPipe"]
 
 
-class SourceRowmakerDef(rscdef.RDFunction):
-	"""A callable that returns a dictionary added to all incoming rows.
+class SourceFieldApp(rscdef.ProcApp):
+	"""A procedure application that returns a dictionary added to all 
+	incoming rows.
 
 	Use this to programmatically provide information that can be computed
 	once but that is then added to all rows coming from a single source, usually
 	a file.  This could be useful to add information on the source of a
 	record or the like.
 
-	The code in the body must return a dictionary.  The source that is about
-	to be parsed is passed in as sourceToken.  When parsing from files, this
-	simply is the file name.
-
-	sourceFields cannot really be registered globally, thus using isGlobal and
-	predefined will raise errors.
+	The code must return a dictionary.  The source that is about to be parsed is
+	passed in as sourceToken.  When parsing from files, this simply is the file
+	name.
 	"""
 	name_ = "sourceFields"
 
-	_original = base.OriginalAttribute()
-
-	def registerPredefined(self):
-		raise NotImplementedError("No predefined sourceFields.")
-	
-	def getPredefined(self):
-		raise NotImplementedError("No predefined sourceFields.")
-
-	def _getFormalArgs(self):
-		return "sourceToken"
-	
-	def _getDefaultingCode(self):
-		return ""
-	
-	def _completeCall(self, actualArgs):
-		return '%s(sourceToken)'%self.name
+	requriedType = "sourceFields"
+	formalArgs = "sourceToken"
 
 
 class MapKeys(base.Structure):
@@ -329,7 +313,7 @@ class Grammar(base.Structure, GrammarMacroMixin):
 		childFactory=rowtriggers.IgnoreOn)
 	_sourceFields = base.StructAttribute("sourceFields", default=None,
 		copyable=True, description="Code returning a dictionary of values"
-		" added to all returned rows.", childFactory=SourceRowmakerDef)
+		" added to all returned rows.", childFactory=SourceFieldApp)
 	_properties = base.PropertyAttribute()
 	_rd = rscdef.RDAttribute()
 
@@ -341,9 +325,9 @@ class Grammar(base.Structure, GrammarMacroMixin):
 		"""
 		if self.sourceFields is None:
 			return None
-		env = dict([self.sourceFields.getDefinition()])
-		env.update({"sourceToken": sourceToken})
-		return eval(self.sourceFields.getCall(), env)
+		if not hasattr(self, "_compiledSourceFields"):
+			self._compiledSourceFields = self.sourceFields.compile()
+		return self._compiledSourceFields(sourceToken)
 
 	def parse(self, sourceToken):
 		base.ui.notifyNewSource(sourceToken)

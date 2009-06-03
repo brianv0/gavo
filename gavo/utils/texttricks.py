@@ -177,7 +177,7 @@ def parseAssignments(assignments):
 		[litPair.split(":") for litPair in assignments.split()]])
 
 
-def hmsToDeg(timeangle, sepChar=" "):
+def hmsToDeg(hms, sepChar=" "):
 	"""returns the time angle (h m s.decimals) as a float in degrees.
 
 	>>> "%3.8f"%hmsToDeg("22 23 23.3")
@@ -190,12 +190,12 @@ def hmsToDeg(timeangle, sepChar=" "):
 	Traceback (most recent call last):
 	LiteralParseError: Invalid time with sepchar ' ': 'junk'
 	"""
-	timeangle = timeangle.strip()
+	hms = hms.strip()
 	try:
 		if sepChar=="":
-			parts = timeangle[:2], timeangle[2:4], timeangle[4:]
+			parts = hms[:2], hms[2:4], hms[4:]
 		else:
-			parts = timeangle.split(sepChar)
+			parts = hms.split(sepChar)
 		if len(parts)==3:
 			hours, minutes, seconds = parts
 		elif len(parts)==2:
@@ -206,7 +206,7 @@ def hmsToDeg(timeangle, sepChar=" "):
 		timeSeconds = int(hours)*3600+float(minutes)*60+float(seconds)
 	except ValueError:
 		raise LiteralParseError("Invalid time with sepchar %s: %s"%(
-			repr(sepChar), repr(timeangle)), None, timeangle)
+			repr(sepChar), repr(hms)), None, hms)
 	return timeSeconds/3600/24*360
 
 

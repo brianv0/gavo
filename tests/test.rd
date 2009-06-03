@@ -18,13 +18,13 @@
 			</rowfilter>
 		</dictlistGrammar>
 		<rowmaker id="st_siaptable">
-			<proc predefined="setSIAPMeta">
-				<arg key="title">imageTitle</arg>
-				<arg key="instrument">instId</arg>
-				<arg key="dateObs">dateObs</arg>
-				<arg key="bandpassId">bandpassId</arg>
-			</proc>
-			<proc predefined="computeBboxSIAP"/>
+			<apply predefined="setSIAPMeta">
+				<bind key="title">vars["imageTitle"]</bind>
+				<bind key="instrument">vars["instId"]</bind>
+				<bind key="dateObs">vars["dateObs"]</bind>
+				<bind key="bandpassId">vars["bandpassId"]</bind>
+			</apply>
+			<apply predefined="computeBboxSIAP"/>
 		</rowmaker>
 		<make table="siaptable" rowmaker="st_siaptable"/>
 	</data>

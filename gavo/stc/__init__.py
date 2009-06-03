@@ -17,21 +17,24 @@ e.g. into functions or a query language.  Don't do any transformations
 in serious loops.
 """
 
+import sys
+
 from gavo.stc.common import (STCError, STCSParseError, STCLiteralError,
 	STCValueError, STCNotImplementedError,
 	STCNamespace)
 
-# from gavo.stc.conform import conform as conformTo
+if sys.version_info[1]>4:  # hardcore stc only from 2.5 upwards
+	from gavo.stc.conform import conform as conformTo
 
-# from gavo.stc.stcsast import parseSTCS
+	from gavo.stc.stcsast import parseSTCS
 
-# from gavo.stc.stcsgen import getSTCS
+	from gavo.stc.stcsgen import getSTCS
 
-# from gavo.stc.stcx import STC
+	from gavo.stc.stcx import STC
 
-# from gavo.stc.stcxast import parseSTCX
+	from gavo.stc.stcxast import parseSTCX
 
-# from gavo.stc.stcxgen import astToStan, getSTCXProfile
+	from gavo.stc.stcxgen import astToStan, getSTCXProfile
 
 from gavo.stc.times import (parseISODT, 
 	jYearToDateTime, dateTimeToJYear,

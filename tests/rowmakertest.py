@@ -227,9 +227,9 @@ class PredefinedTest(testhelpers.VerboseTest):
 	def testSimbad(self):
 		dd, td = makeDD('  <column name="alpha" type="real"/>'
 			'  <column name="delta" type="real"/>',
-			'  <proc predefined="resolveObject">'
-			'		<arg key="identifier">src</arg>'
-			'	</proc>'
+			'  <apply predefined="resolveObject">'
+			'		<bind key="identifier">vars["src"]</bind>'
+			'	</apply>'
 			' <map dest="alpha">simbadAlpha</map>'
 			' <map dest="delta">simbadDelta</map>')
 		res = rsc.makeData(dd, forceSource=[{'src': "Aldebaran"}])
@@ -240,10 +240,10 @@ class PredefinedTest(testhelpers.VerboseTest):
 	def testSimbadFail(self):
 		dd, td = makeDD('<column name="alpha" type="real"/>'
 			'  <column name="delta" type="real"/>',
-			'  <proc predefined="resolveObject">'
-			'  <consArg key="ignoreUnknowns">False</consArg>'
-			'		<arg key="identifier">src</arg>'
-			'	</proc>'
+			'  <apply predefined="resolveObject">'
+			'  <bind key="ignoreUnknowns">False</bind>'
+			'	 <bind key="identifier">src</bind>'
+			'	</apply>'
 			' <map dest="alpha">simbadAlpha</map>'
 			' <map dest="delta">simbadDelta</map>')
 		self.assertRaises(base.ValidationError,
@@ -252,14 +252,14 @@ class PredefinedTest(testhelpers.VerboseTest):
 	def testNoAliasing(self):
 		dd, td = makeDD('<column name="x" type="text"/>'
 				'<column name="y" type="text"/>',
-			'<proc predefined="mapValue" name="map1">'
-				'<consArg key="sourceName">"%s"</consArg>'
-				'<consArg key="destination">"x"</consArg><arg key="value">'
-				'in1</arg></proc>'
-			'<proc predefined="mapValue" name="map2">'
-				'<consArg key="sourceName">"%s"</consArg>'
-				'<consArg key="destination">"y"</consArg><arg key="value">'
-				'in2</arg></proc>'
+			'<apply predefined="mapValue">'
+				'<bind key="sourceName">"%s"</bind>'
+				'<bind key="destination">"x"</bind><bind key="value">'
+				'vars["in1"]</bind></apply>'
+			'<apply predefined="mapValue">'
+				'<bind key="sourceName">"%s"</bind>'
+				'<bind key="destination">"y"</bind><bind key="value">'
+				'vars["in2"]</bind></apply>'
 			'<idmaps>*</idmaps>'%(os.path.abspath("data/map1.map"),
 					os.path.abspath("data/map2.map")))
 		res = rsc.makeData(dd, forceSource=[{'in1': 'foo', 'in2': 'left'}])
@@ -267,4 +267,4 @@ class PredefinedTest(testhelpers.VerboseTest):
 			[{'y': u'right', 'x': u'bar'}])
 
 if __name__=="__main__":
-	testhelpers.main(ApplyTest)
+	testhelpers.main(PredefinedTest)

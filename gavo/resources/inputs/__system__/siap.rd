@@ -87,25 +87,25 @@
 			description="Flags specifying the processing done (C-original; F-resampled; Z-fluxes valid; X-not resampled; V-for display only"/>
 	</table>
 
-	<rowmaker id="procDefinition"> <!-- definition of globals procs -->
-		<proc name="computeBboxSIAP" isGlobal="True">
-			<doc>
-				computes fields for the bboxSiap interface.
+	<procDef type="apply" id="computeBboxSIAP" register="True">
+		<doc>
+			computes fields for the bboxSiap interface.
 
-				It takes no arguments but expects WCS-like keywords in rowdict, i.e.,
-				CRVAL1, CRVAL2 (interpreted as float deg), CRPIX1, CRPIX2 (pixel
-				corresponding to CRVAL1, CRVAL2), CUNIT1, CUNIT2 (pixel scale unit,
-				we bail out if it isn't deg and assume deg when it's not present), 
-				CDn_n (the transformation matrix; substitutable by CDELTn), NAXISn 
-				(the image size).
+			It takes no arguments but expects WCS-like keywords in rowdict, i.e.,
+			CRVAL1, CRVAL2 (interpreted as float deg), CRPIX1, CRPIX2 (pixel
+			corresponding to CRVAL1, CRVAL2), CUNIT1, CUNIT2 (pixel scale unit,
+			we bail out if it isn't deg and assume deg when it's not present), 
+			CDn_n (the transformation matrix; substitutable by CDELTn), NAXISn 
+			(the image size).
 
-				It leaves the primaryBbbox, secondaryBbox, centerDelta, centerAlpha,
-				nAxes, pixelSize, pixelScale and imageFormat.
+			It leaves the primaryBbbox, secondaryBbox, centerDelta, centerAlpha,
+			nAxes, pixelSize, pixelScale and imageFormat.
 
-				Records without or with insufficient wcs keys are furnished with
-				all-NULL wcs info.
-			</doc>
-			<consComp>
+			Records without or with insufficient wcs keys are furnished with
+			all-NULL wcs info.
+		</doc>
+		<setup>
+			<code>
 				wcskeys = ["primaryBbox", "secondaryBbox", "centerAlpha", "centerDelta",
 					"nAxes",  "pixelSize", "pixelScale", "imageFormat", "wcs_projection",
 					"wcs_refPixel", "wcs_refValues", "wcs_cdmatrix", "wcs_equinox"]
@@ -137,8 +137,9 @@
 							math.sqrt(dVec[0]**2+dVec[1]**2))
 
 				from gavo.protocols import siap
-				return locals()
-			</consComp>
+			</code>
+		</setup>
+		<code>
 			wcs = coords.getWCS(vars)
 			result["imageFormat"] = "image/fits"
 			try:
@@ -167,26 +168,30 @@
 			except (KeyError, AttributeError), msg:
 				for key in wcskeys:
 					result[key] = None
-		</proc>
+		</code>
+	</procDef>
 
-		<proc name="setSIAPMeta" isGlobal="True">
-			<doc>
+	<procDef type="apply" id="setSIAPMeta" register="True">
+		<doc>
 			sets siap meta *and* product table fields.
 	
 			This is common stuff for all SIAP implementations.
 
-			</doc>
-			<arg key="title" default="None "/>
-			<arg key="instrument" default="None "/>
-			<arg key="dateObs" default="None "/>
-			<arg key="imageFormat" default="'image/fits'"/>
-			<arg key="bandpassId" default="None "/>
-			<arg key="bandpassUnit" default="None "/>
-			<arg key="bandpassRefval" default="None "/>
-			<arg key="bandpassHi" default="None "/>
-			<arg key="bandpassLo" default="None "/>
-			<arg key="refFrame" default="'ICRS'"/>
-			<arg key="pixflags" default="None "/>
+		</doc>
+		<setup>
+			<par key="title" late="True">None</par>
+			<par key="instrument" late="True">None</par>
+			<par key="dateObs" late="True">None</par>
+			<par key="imageFormat" late="True">'image/fits'</par>
+			<par key="bandpassId" late="True">None</par>
+			<par key="bandpassUnit" late="True">None</par>
+			<par key="bandpassRefval" late="True">None</par>
+			<par key="bandpassHi" late="True">None</par>
+			<par key="bandpassLo" late="True">None</par>
+			<par key="refFrame" late="True">'ICRS'</par>
+			<par key="pixflags" late="True">None</par>
+		</setup>
+		<code>
 			result["imageTitle"] = title
 			result["instId"] = instrument
 			result["dateObs"] = dateObs
@@ -198,8 +203,8 @@
 			result["bandpassLo"] = bandpassLo
 			result["refFrame"] = refFrame
 			result["pixflags"] = pixflags
-		</proc>
-	</rowmaker>
+		</code>
+	</procDef>
 
 	<condDesc id="humanSIAPBase">
 		<inputKey name="POS" type="text" unit="deg,deg" ucd="pos.eq" description=

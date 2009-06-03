@@ -57,7 +57,7 @@ def _sfMapperFactory(colProps):
 _registerHTMLMF(_sfMapperFactory)
 
 
-def _timeangleMapperFactory(colProps):
+def _hmsMapperFactory(colProps):
 	if (colProps["unit"]!="hms" and 
 			colProps["displayHint"].get("type")!="time"):
 		return
@@ -70,7 +70,7 @@ def _timeangleMapperFactory(colProps):
 		else:
 			return utils.degToHms(val, sepChar, sf)
 	return coder
-_registerHTMLMF(_timeangleMapperFactory)
+_registerHTMLMF(_hmsMapperFactory)
 
 
 def _sexagesimalMapperFactory(colProps):

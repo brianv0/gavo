@@ -66,7 +66,7 @@ machinery -->
 		</script>
 	</table>
 
-	<procDef id="defineProduct" register="True">
+	<procDef type="rowfilter" id="defineProduct" register="True">
 		<doc>
 			enters the values defined by the product interface into result.
 

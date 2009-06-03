@@ -38,9 +38,8 @@
 		</index>
 	</table>
 
-	<rowmaker id="procdef">
-		<proc name="handleEquatorialPosition" isGlobal="True">
-			<doc>
+	<procDef id="handleEquatorialPosition" register="True">
+		<doc>
 			is a macro that compute several derived quantities from 
 			literal equatorial coordinates.
 
@@ -52,50 +51,28 @@
 			TODO: Equinox handling (this will probably be handled through an
 			optional arguments srcEquinox and destEquinox, both J2000.0 by default).
 			
-			Constructor arguments:
+			Setup pars:
 
 			* raFormat -- the literal format of Right Ascension.  By default,
 				a sexagesimal time angle is expected.  Supported formats include
 				mas (RA in milliarcsecs), ...
 			* decFormat -- as raFormat, only the default is sexagesimal angle.
 			* sepChar (optional) -- seperator for alpha, defaults to whitespace
+			* alphaKey, deltaKey -- keys to take alpha and delta from.
 			
 			If alpha and delta use different seperators, you'll have to fix
 			this using preprocessing macros.
-
-			Arguments: 
-			 
-			* alpha -- sexagesimal right ascension as time angle
-			* delta -- sexagesimal declination as dms
-
-			>>> m = EquatorialPositionConverter([("alpha", "alphaRaw", ""),
-			... ("delta", "deltaRaw", "")])
-			>>> r = {"alphaRaw": "00 02 32", "deltaRaw": "+45 30.6"} 
-			>>> m(None, r)
-			>>> str(r["alphaFloat"]), str(r["deltaFloat"]), str(r["c_x"]), str(r["c_y"])
-			('0.633333333333', '45.51', '0.700741955529', '0.00774614323406')
-			>>> m = EquatorialPositionConverter([("alpha", "alphaRaw", ""),
-			... ("delta", "deltaRaw", ""),], sepChar=":")
-			>>> r = {"alphaRaw": "10:37:19.544070", "deltaRaw": "+35:34:20.45713"}
-			>>> m(None, r)
-			>>> str(r["alphaFloat"]), str(r["deltaFloat"]), str(r["c_z"])
-			('159.331433625', '35.5723492028', '0.581730502028')
-			>>> r = {"alphaRaw": "4:38:54", "deltaRaw": "-12:7.4"}; m(None, r)
-			>>> str(r["alphaFloat"]), str(r["deltaFloat"])
-			('69.725', '-12.1233333333')
-			>>> m = EquatorialPositionConverter([("alpha", "alphaRaw", ""), 
-			... ("delta", "deltaRaw", "")], alphaFormat="mas", deltaFormat="mas")
-			>>> r = {"alphaRaw": "5457266", "deltaRaw": "-184213905"}; m(None, r)
-			>>> str(r["alphaFloat"]), str(r["deltaFloat"])
-			('1.51590722222', '-51.1705291667')
-			</doc>
-			<consComp>
-				<arg key="alphaFormat" default="'hour'"/>
-				<arg key="deltaFormat" default="'sexag'"/>
-				<arg key="sepChar" default="None "/>
+		</doc>
+		<setup>
+			<par key="alphaFormat">'hour'</par>
+			<par key="deltaFormat">'sexag'</par>
+			<par key="alphaKey">'alpha'</par>
+			<par key="deltaKey">'delta'</par>
+			<par key="sepChar">None</par>
+			<code>
 				coordComputer = {
-					"hour": lambda hms: base.timeangleToDeg(hms, sepChar),
-					"sexag": lambda dms: base.dmsToDeg(dms, sepChar),
+					"hour": lambda hms: utils.hmsToDeg(hms, sepChar),
+					"sexag": lambda dms: utils.dmsToDeg(dms, sepChar),
 					"mas": lambda mas: float(mas)/3.6e6,
 					"binary": lambda a: a,
 				}
@@ -107,7 +84,10 @@
 					return (alphaFloat, deltaFloat)+tuple(
 						coords.computeUnitSphereCoords(alphaFloat, deltaFloat))
 				return locals()
-			</consComp>
+			</code>
+		</setup>
+		<code>
+			alpha, delta = vars["alphaKey"], vars["deltaKey"]
 			if alpha is None or delta is None:
 				alphaFloat, deltaFloat, c_x, c_y, c_z = [None]*5
 			else:
@@ -118,6 +98,6 @@
 			result["c_x"] = c_x
 			result["c_y"] = c_y
 			result["c_z"] = c_z
-		</proc>
-	</rowmaker>
+		</code>
+	</procDef>
 </resource>

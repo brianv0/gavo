@@ -44,14 +44,16 @@ tables and the RDs the tables come from. -->
 	<rowmaker id="fromColumnList">
 		<!-- turns a rawrec with column, colInd, tableName keys into a
 		columnmeta row -->
-		<proc name="makerow">
-			<arg key="column"/>
-			for key in ["description", "unit", "ucd", "tablehead",
-					"longmime", "utype", "verbLevel", "type", "longdescr"]:
-				result[key] = getattr(column, key)
-			result["displayHint"] = column.getDisplayHintAsString()
-			result["fieldName"] = column.name
-		</proc>
+		<apply name="makerow">
+			<code>
+				column = vars["column"]
+				for key in ["description", "unit", "ucd", "tablehead",
+						"longmime", "utype", "verbLevel", "type", "longdescr"]:
+					result[key] = getattr(column, key)
+				result["displayHint"] = column.getDisplayHintAsString()
+				result["fieldName"] = column.name
+			</code>
+		</apply>
 		<map dest="colInd"/>
 		<map dest="tableName"/>
 	</rowmaker>
