@@ -377,17 +377,59 @@ def _makeGeometryKeyIterator(argDesc, clsName):
 	parseLines.append('  if coos: raise STCSParseError("Too many coordinates'
 		' while building %s, remaining: %%s"%%coos)'%clsName)
 	parseLines.append('  yield "unit", _mogrifySpaceUnit(node.get("unit"), nDim)')
+	parseLines.append('  if "complement" in node: yield "complement", True')
 	exec "\n".join(parseLines)
 	return iterKeys
 
 
-def _makeGeometryBuilder(cls, argDesc):
+def _makeGeometryKeyIterators():
+	return dict(
+		(clsName, _makeGeometryKeyIterator(argDesc, clsName))
+		for clsName, argDesc in [
+			("AllSky", []),
+			("Circle", [('center', 'v'), ('radius', 'r')]),
+			("Ellipse", [('center', 'v'), ('smajAxis', 'r'), ('sminAxis', 'r'), 
+				('posAngle', 'r')]),
+			("Box", [('center', 'v'), ('boxsize', 'v')]),
+			("Polygon", [("vertices", "rv")]),
+			("Convex", [("vectors", "cv")]),
+		])
+
+_geometryKeyIterators = _makeGeometryKeyIterators()
+
+
+def _makeGeometryBuilder(cls):
 	"""returns a builder for Geometries.
 
 	See _makeGeometryKeyIterator for the meaning of the arguments.
 	"""
 	return _makeCooBuilder("spaceFrame", cls, "areas", dm.SpaceCoo,
-		"place", _makeGeometryKeyIterator(argDesc, cls.__name__))
+		"place", _geometryKeyIterators[cls.__name__])
+
+
+def _compoundGeometryKeyIterator(node, nDim, spatial):
+	"""yields keys to configure compound geometries.
+	"""
+	children = []
+	if "complement" in node:
+		yield "complement", True
+	for c in node["children"]:
+		childType = c["subtype"]
+		destCls = getattr(dm, childType)
+		if childType in _geometryKeyIterators:
+			children.append(destCls(**dict(
+				_geometryKeyIterators[childType](c, nDim, True))))
+		else: # child is another compound geometry
+			children.append(destCls(**dict(
+				_compoundGeometryKeyIterator(c, nDim, True))))
+	yield "children", children
+
+
+def _makeCompoundGeometryBuilder(cls):
+	"""returns a builder for compound geometries.
+	"""
+	return _makeCooBuilder("spaceFrame", cls, "areas", dm.SpaceCoo,
+		"place", _compoundGeometryKeyIterator)
 
 
 ###################### Top level
@@ -416,15 +458,16 @@ def getCoords(cst, system):
 		"VelocityInterval": _makeCooBuilder("spaceFrame",
 			dm.VelocityInterval, "velocityAs", dm.VelocityCoo, "velocity",
 			_makeIntervalKeyIterator(), spatial=True),
-		"AllSky": _makeGeometryBuilder(dm.AllSky, []),
-		"Circle": _makeGeometryBuilder(dm.Circle, 
-			[('center', 'v'), ('radius', 'r')]),
-		"Ellipse": _makeGeometryBuilder(dm.Ellipse, 
-				[('center', 'v'), ('smajAxis', 'r'), ('sminAxis', 'r'), 
-					('posAngle', 'r')]),
-		"Box": _makeGeometryBuilder(dm.Box, [('center', 'v'), ('boxsize', 'v')]),
-		"Polygon": _makeGeometryBuilder(dm.Polygon, [("vertices", "rv")]),
-		"Convex": _makeGeometryBuilder(dm.Convex, [("vectors", "cv")]),
+		"AllSky": _makeGeometryBuilder(dm.AllSky),
+		"Circle": _makeGeometryBuilder(dm.Circle),
+		"Ellipse": _makeGeometryBuilder(dm.Ellipse),
+		"Box": _makeGeometryBuilder(dm.Box),
+		"Polygon": _makeGeometryBuilder(dm.Polygon),
+		"Convex": _makeGeometryBuilder(dm.Convex),
+
+		"Union": _makeCompoundGeometryBuilder(dm.Union),
+		"Intersection": _makeCompoundGeometryBuilder(dm.Intersection),
+		"Difference": _makeCompoundGeometryBuilder(dm.Difference),
 
 		"Spectral": _makeCooBuilder("spectralFrame", None, None,
 			dm.SpectralCoo, "freq", None),
@@ -452,4 +495,4 @@ def parseSTCS(literal):
 
 
 if __name__=="__main__":
-	print parseSTCS("PositionInterval ICRS 1 2 3 4")
+	print parseSTCS("Union ICRS Circle 10 12 1 Circle 11 11 1")

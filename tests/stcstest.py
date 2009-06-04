@@ -26,7 +26,7 @@ class STCSParsesTestBase(testhelpers.VerboseTest):
 
 	shouldParse, shouldNotParse = [], []
 
-	def testParseTimeStuff(self):
+	def testParseStuff(self):
 		# We're only interested in stuff not raising ParseErrors here
 		for sym, literal in self.shouldParse:
 			try:
@@ -34,7 +34,7 @@ class STCSParsesTestBase(testhelpers.VerboseTest):
 			except stcs.ParseException:
 				raise AssertionError("'%s' didn't parse but should have"%literal)
 	
-	def testNoParseTimeStuff(self):
+	def testNoParseStuff(self):
 		for sym, literal in self.shouldNotParse:
 			self.assertRaisesVerbose(stcs.ParseException, self.syms[sym].parseString,
 				(literal, True), "No exception when parsing '%s' with %s"%
@@ -160,13 +160,34 @@ class STCSSpectralParsesTest(STCSParsesTestBase):
 	]
 
 
-
 class STCSCompoundParsesTest(STCSParsesTestBase):
 	shouldParse = [
-		("compoundGeoExpression", 
+		("compoundGeoPhrase", 
 			"Union ICRS Circle 10 12 1 Circle 11 11 1"),
+		("compoundGeoPhrase", 
+			"Union ICRS Circle 10 12 1 Not Circle 11 11 1"),
+		("compoundGeoPhrase", 
+			"Union ICRS Circle 10 12 1 Not Circle 11 11 1 Box 12 22 1 2"),
+		("compoundGeoPhrase", 
+			"Intersection ICRS Circle 10 12 1 Not Circle 11 11 1 Box 12 22 1 2"),
+		("compoundGeoPhrase", 
+			"Difference ICRS Circle 10 12 1 Not Circle 11 11 1 Box 12 22 1 2"),
+		("compoundGeoPhrase", 
+			"Union ICRS Circle 10 12 1"
+			" Not Intersection Circle 11 11 1 Box 12 22 1 2"),
+		("compoundGeoPhrase", 
+			"Union ICRS Circle 10 12 1"
+			" Not Intersection Circle 11 11 1 Not Union Box 12 22 1 2"
+			" Ellipse 1 2 3 4 5"),
 	]
+
 	shouldNotParse = [
+		("compoundGeoPhrase", 
+			"Not Union ICRS Circle 10 12 1 Circle 11 11 1"),
+		("compoundGeoPhrase", 
+			"Union ICRS Position 12 13 Circle 10 12 1 Circle 11 11 1"),
+		("compoundGeoPhrase", 
+			"Union ICRS"),
 	]
 
 
@@ -184,7 +205,6 @@ class STCSSpectralParsesTest(STCSParsesTestBase):
 		("spectralSubPhrase", "Spectral 1e10 unit pc"),
 		("spectralSubPhrase", "SpectralInterval ICRS 1e10 unit Angstrom"),
 	]
-
 
 
 class STCSTreeParseTestBase(testhelpers.VerboseTest):
@@ -442,6 +462,23 @@ class GeometriesGenerationTest(SampleGenerationTestBase):
 	]
 
 
+class CompoundGenerationTest(SampleGenerationTestBase):
+	samples = [
+		("Union FK5 Box 12 -13 2 2 Circle 14 -13.5 3", 
+			'Union FK5 Box 12.0 -13.0 2.0 2.0 Circle 14.0 -13.5 3.0'),
+		("Union FK5 Box 12 -13 2 2 Not Circle 14 -13.5 3", 
+			'Union FK5 Box 12.0 -13.0 2.0 2.0 Not Circle 14.0 -13.5 3.0'),
+		("Intersection GALACTIC Polygon 12 13 14 15 16 17 Union Circle 340 -30 3"
+			" Not Circle 341 -32 2",
+			'Intersection GALACTIC Polygon 12.0 13.0 14.0 15.0 16.0 17.0 Union'
+			' Circle 340.0 -30.0 3.0 Not Circle 341.0 -32.0 2.0'),
+		("Difference GALACTIC Polygon 12 13 14 15 16 17"
+			" Not Intersection Circle 340 -30 3 Circle 341 -32 2",
+			'Difference GALACTIC Polygon 12.0 13.0 14.0 15.0 16.0 17.0 Not'
+			' Intersection Circle 340.0 -30.0 3.0 Circle 341.0 -32.0 2.0'),
+	]
+
+
 class VelocitiesGenerationTest(SampleGenerationTestBase):
 	samples = [
 		("Position ICRS VelocityInterval 1 2",
@@ -456,4 +493,4 @@ class VelocitiesGenerationTest(SampleGenerationTestBase):
 
 
 if __name__=="__main__":
-	testhelpers.main(STCSCompoundParsesTest)
+	testhelpers.main(CompoundGenerationTest)

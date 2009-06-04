@@ -253,12 +253,30 @@ def _makePolygonCoos(node):
 def _makeConvexCoos(node):
 	return {"geoCoos": tuple(itertools.chain(*node.vectors))}
 
+_compoundGeos = ["Union", "Difference", "Intersection"]
+
+def _makeUnionCoos(node):
+	children = []
+	notConsStrings = {True: "Not ", False: ""}
+	for c in node.children:
+		nodeName = c.__class__.__name__
+		base = {"subtype": nodeName, "notCons": notConsStrings[c.complement]}
+		if c in _compoundGeos:
+			children.append(_combine(base, _makeUnionCoos(c)))
+		else:
+			children.append(_combine(base,
+				globals()["_make%sCoos"%nodeName](c)))
+	return {"children": children}
+
+_makeDifferenceCoos = _makeIntersectionCoos = _makeUnionCoos
+
 _geometryMappers = dict([(n, _makePhraseTreeMapper(
 		_spatialCooToCST,
 		_makeAreaTreeMapper(n, globals()["_make%sCoos"%n]),
 		_spaceFrameToCST,
 		_makeASTItemsGetter("place", "areas")))
-	for n in ["AllSky", "Circle", "Ellipse", "Box", "Polygon", "Convex"]])
+	for n in ["AllSky", "Circle", "Ellipse", "Box", "Polygon", "Convex"]+
+			_compoundGeos])
 
 def _spatialToCST(astRoot):
 	args = {}
@@ -356,17 +374,30 @@ def _flattenVelocity(val, node):
 	return ""
 
 
+def _flattenCompoundChildren(childList, node):
+	res = []
+	for c in childList:
+		if "geoCoos" in c:  # it's an atomic geometry
+			res.append("%s%s %s"%(c["notCons"],
+				c["subtype"], _serializeVector(c["geoCoos"])))
+		else: # it's a compound
+			res.append("%s%s %s"%(c["notCons"], c["subtype"],
+				_flattenCompoundChildren(c["children"], node)))
+	return " ".join(res)
+
+
 _posFlatteners = {
 	"pos": _makePosFlattener("Position", _serializeVector),
 	"geoCoos": _makeSequenceFlattener(""),
 	"velocity": _flattenVelocity,
+	"children": _flattenCompoundChildren,
 }
 _posFlatteners.update(_vectorFlatteners)
 
 
 def _flattenPosition(node):
 	return _joinKeysWithNull(node, ["type", "fillfactor", "frame", "equinox",
-		"refpos", "flavor", "coos", "geoCoos", "pos", "unit", "error", 
+		"refpos", "flavor", "coos", "geoCoos", "children", "pos", "unit", "error", 
 		"resolution", "size", "pixSize", "velocity"], _posFlatteners)
 
 

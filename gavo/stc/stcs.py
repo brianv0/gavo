@@ -257,23 +257,25 @@ def getSymbols(_setNames=False):
 
 # compound "geometries"
 	_compoundGeoOperator = ( Keyword("Union") | Keyword("Intersection") |
-		Keyword("Intersection") )
+		Keyword("Difference") )
 	_compoundNot = Keyword("Not")
 	_compoundGeoExpression = Forward()
-	_compoundGeoOperand = _atomicGeometryKey + _coos
-	_compoundGeoExpression << ( Optional( _compoundNot ) + ( 
-		_compoundGeoOperand | ( _compoundGeoOperator + _compoundGeoExpression +
-			OneOrMore( _compoundGeoExpression ))))
-	compoundGeoExpression = ( _compoundGeoOperator + _commonRegionItems +
-		_compoundGeoExpression + _regionTail )
+	_compoundGeoOperand  = ( Optional( _compoundNot )("complement") + ( 
+		( _atomicGeometryKey("subtype") + _coos )
+		| _compoundGeoExpression )).addParseAction(lambda s,p,t: dict(t))
+	_compoundGeoArguments = OneOrMore( _compoundGeoOperand )
+	_compoundGeoExpression << ( _compoundGeoOperator("subtype") + 	
+		_compoundGeoArguments("children") )
+	compoundGeoPhrase = ( _compoundGeoOperator("type") + _commonRegionItems +
+		_compoundGeoArguments("children") + _regionTail )
 
 # space subphrase
-	positionInterval = (Keyword("PositionInterval")("type") +
-		_commonRegionItems + _coos + _regionTail)
+	positionInterval = ( Keyword("PositionInterval")("type") +
+		_commonRegionItems + _coos + _regionTail )
 	position = ( Keyword("Position")("type") + 
 		_commonSpaceItems + _pos + _spatialTail )
-	spaceSubPhrase = (positionInterval | position | atomicGeometry
-		).addParseAction(makeTree)
+	spaceSubPhrase = ( positionInterval | position | atomicGeometry |
+		compoundGeoPhrase ).addParseAction(makeTree)
 
 # spectral subphrase
 	spectralSpec = (Suppress( Keyword("Spectral") ) + number)("pos")
@@ -345,5 +347,5 @@ if __name__=="__main__":
 	syms = getSymbols()
 #	print getCST("PositionInterval ICRS 1 2 3 4")
 	enableDebug(syms)
-	print makeTree(syms["compoundGeoExpression"].parseString(
-		"Union ICRS Circle 10 12 1 Circle 11 11 1"))
+	print makeTree(syms["stcsPhrase"].parseString(
+		"Union ICRS Circle 10 12 1 Not Circle 11 11 1", parseAll=True))

@@ -477,6 +477,7 @@ class _Geometry(_CoordinateLike, _SpatialMixin):
 	"""
 	_a_size = None
 	_a_fillFactor = None
+	_a_complement = False
 	# The following helps since geometries are areas (like intervals)
 	# However, no unit coercion takes place for them, so it's fixed None.
 	origUnit = None
@@ -581,6 +582,15 @@ class Convex(_Geometry):
 	def adaptUnit(self, fromUnit, toUnit):
 		raise STCNotImplementedError("Cannot adapt units for convexes yet.")
 
+
+class _Compound(_Geometry):
+	_a_children = ()
+	_a_complement = False
+
+class Union(_Compound): pass
+class Intersection(_Compound): pass
+class Difference(_Compound): pass
+	
 
 ################ Toplevel
 
