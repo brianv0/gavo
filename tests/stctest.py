@@ -430,6 +430,10 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			" 0.0 0.0 0.0 10.0 10.0 10.0 Velocity 2.0 3.0 4.0 unit pc/cy"),
 		("Circle ICRS 1 2 3 unit arcsec VelocityInterval Velocity 1 2",
 			"Circle ICRS 1.0 2.0 3.0 unit arcsec VelocityInterval Velocity 1.0 2.0"),
+		("Redshift REDSHIFT 2 unit nil",
+			"Redshift REDSHIFT 2.0"),
+		("Time nil UNKNOWNRefPos MJD302",
+			"Time 1859-09-15T00:00:00"),
 	]
 
 
@@ -467,4 +471,4 @@ class EclipticEquinoxTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(EclipticEquinoxTest)
+	testhelpers.main(STCSRoundtripTest)

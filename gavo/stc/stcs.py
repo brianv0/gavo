@@ -168,7 +168,7 @@ def getSymbols(_setNames=False):
 	timeUnit = _unitOpener + _timeUnitWord("unit")
 	spectralUnit = _unitOpener + Regex(_reFromKeys(spectralUnits))("unit")
 	redshiftUnit = _unitOpener + ( (_spaceUnitWord + "/" + _timeUnitWord
-		).addParseAction(lambda s,p,t: "".join(t)) | Empty() )("unit")
+		).addParseAction(lambda s,p,t: "".join(t)) | Keyword("nil") )("unit")
 	velocityUnit = _unitOpener + OneOrMore( (_spaceUnitWord + "/" + _timeUnitWord
 		).addParseAction(lambda s,p,t: "".join(t)) ).addParseAction(
 			lambda s,p,t: " ".join(t))("unit")
@@ -348,4 +348,4 @@ if __name__=="__main__":
 #	print getCST("PositionInterval ICRS 1 2 3 4")
 	enableDebug(syms)
 	print makeTree(syms["stcsPhrase"].parseString(
-		"Union ICRS Circle 10 12 1 Not Circle 11 11 1", parseAll=True))
+		"Time nil UNKNOWNRefPos MJD300", parseAll=True))

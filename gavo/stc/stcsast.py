@@ -86,6 +86,8 @@ def _buildSpectralFrame(node, context):
 	yield "spectralFrame", dm.SpectralFrame(refPos=_makeRefpos(node["refpos"]))
 
 def _buildTimeFrame(node, context):
+	if node["timescale"]=="nil":
+		node["timescale"] = None
 	yield "timeFrame", dm.TimeFrame(refPos=_makeRefpos(node["refpos"]),
 		timeScale=node["timescale"])
 
@@ -196,7 +198,10 @@ def _addUnitPlain(args, node, frame):
 
 def _addUnitRedshift(args, node, frame):
 	unit = node.get("unit")
-	if unit:
+	if unit=="nil":
+		args["unit"] = ""
+		args["velTimeUnit"] = None
+	elif unit:
 		parts = unit.split("/")
 		if len(parts)!=2:
 			raise STCSParseError("'%s' is not a valid unit for redshifts"%unit)
