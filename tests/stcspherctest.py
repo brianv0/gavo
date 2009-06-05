@@ -138,66 +138,37 @@ class SixVectorTest(testhelpers.VerboseTest):
 
 	def _runTest(self, sample):
 		pos, posUnit, vel, velUnitS, velUnitT = sample
-		trans = sphermath.SVConverter(pos, vel, posUnit, velUnitS, velUnitT)
+		trans = sphermath.SVConverter(pos, posUnit, vel, velUnitS, velUnitT)
 		newPos, newVel = trans.from6(trans.to6(pos, vel))
 		self.assertAlmostEqualST(pos, newPos, vel, newVel)
 
 
 
-class SpherSVRoundtripTest(testhelpers.VerboseTest):
-	"""tests for conversion between 6-vectors and spherical coordinates.
-	"""
-	__metaclass__ = testhelpers.SamplesBasedAutoTest
-
-	def _runTest(self, sample):
-		ast0 = stc.parseSTCS(sample)
-		features = common.InputFeatures()
-		ast1 = ast0.change(**dict(
-			conform.iterSpatialChanges(ast0, ast0, features)))
-		self.assertEqual(ast0, ast1)
-
-	samples = [
-		"Position ICRS -20 -50",
-		"Position ICRS SPHER3 -20 -50 2 unit deg deg pc",
-		"Position ICRS SPHER3 0 -0.1 2 unit deg deg pc",
-		"Position ICRS SPHER3 0 0.1 2 unit deg deg pc",
-		"Position ICRS -20 -50 VelocityInterval Velocity 1 2 unit arcsec/yr",
-		"Position ICRS SPHER3 45 -30 2 unit deg deg pc"
-			" VelocityInterval Velocity 1 -2 40 unit arcsec/yr arcsec/yr km/s",
-		"Position ICRS SPHER3 3.2 -0.5 0.1 unit rad rad arcsec"
-			" VelocityInterval Velocity 1 -2 40 unit arcsec/cy arcsec/cy km/s",
-		]
-
-
-class SpherMathTests(testhelpers.VerboseTest):
+class SpherMathTest(testhelpers.VerboseTest):
 	"""tests for some basic functionality of sphermath.
 	"""
+	trans = sphermath.SVConverter((0,0), ('deg', 'deg'))
+
 	def testRotateY(self):
-		ast = stc.parseSTCS("Position ICRS 0 10")
-		features = common.InputFeaturesAll()
-		sv = sphermath.spherToSV(ast, features)
+		sv = self.trans.to6((0,10))
 		for angle in range(10):
-			matrix = spherc.threeToSix(sphermath.getRotY(angle/180.*math.pi))
-			pos, _, _, _, _ = sphermath.svToSpher(numarray.dot(matrix, sv), features)
-			self.assertAlmostEqual(pos[1], (10+angle)*utils.DEG)
+			matrix = spherc.threeToSix(sphermath.getRotY(angle*utils.DEG))
+			pos, _ = self.trans.from6(numarray.dot(matrix, sv))
+			self.assertAlmostEqual(pos[1], (10+angle))
 
 	def testRotateX(self):
-		ast = stc.parseSTCS("Position ICRS 270 10")
-		features = common.InputFeaturesAll()
-		sv = sphermath.spherToSV(ast, features)
+		sv = self.trans.to6((270,10))
 		for angle in range(10):
-			matrix = spherc.threeToSix(sphermath.getRotX(angle/180.*math.pi))
-			pos, _, _, _, _ = sphermath.svToSpher(numarray.dot(matrix, sv), features)
-			self.assertAlmostEqual(pos[1], (10+angle)*utils.DEG)
+			matrix = spherc.threeToSix(sphermath.getRotX(angle*utils.DEG))
+			pos, _ = self.trans.from6(numarray.dot(matrix, sv))
+			self.assertAlmostEqual(pos[1], (10+angle))
 
 	def testRotateZ(self):
-		ast = stc.parseSTCS("Position ICRS 180 0")
-		features = common.InputFeaturesAll()
-		sv = sphermath.spherToSV(ast, features)
+		sv = self.trans.to6((10,0))
 		for angle in range(10):
-			matrix = spherc.threeToSix(sphermath.getRotZ(angle/180.*math.pi))
-			pos, _, _, _, _  = sphermath.svToSpher(numarray.dot(matrix, sv), features)
-			self.assertAlmostEqual(pos[0], (180-angle)*utils.DEG)
+			matrix = spherc.threeToSix(sphermath.getRotZ(angle*utils.DEG))
+			pos, _  = self.trans.from6(numarray.dot(matrix, sv))
+			self.assertAlmostEqual(pos[0], (10-angle))
 
 	def testSimpleSpher(self):
 		for theta, phi in [(0, -90), (20, -89), (180, -45), (270, 0),
@@ -233,11 +204,10 @@ class ToGalacticTest(testhelpers.VerboseTest):
 	def _runTest(self, sample):
 		fromCoo, (ares, dres) = sample
 		ast = stc.parseSTCS("Position GALACTIC %.11f %.11f"%fromCoo)
-		features = common.InputFeaturesAll()
-		sv = sphermath.spherToSV(ast, features)
+		st = sphermath.SVConverter.fromSTC(ast)
+		sv = st.to6(ast.place.value)
 		sv = numarray.dot(spherc._b1950ToGalMatrix, sv)
-		pos, vel = sphermath.svToSpherUnits(sv, ('deg', 'deg'), ('deg', 'deg'), 
-			('yr', 'yr'), features)
+		pos, vel = st.from6(sv)
 		a, d = pos
 		self.assertAlmostEqual(ares, a, places=6)
 		self.assertAlmostEqual(dres, d, places=6)
@@ -304,4 +274,4 @@ for sampleName in dir(stcgroundtruth):
 
 
 if __name__=="__main__":
-	testhelpers.main(SixVectorTest)
+	testhelpers.main(SpherMathTest)

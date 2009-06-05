@@ -433,16 +433,12 @@ class _CoordinateInterval(_CoordinateLike):
 class SpaceInterval(_CoordinateInterval):
 	cType = SpaceType
 
-	def getFullTransformed(self, trafo, posUnit, destFrame):
-# XXX TODO: Think about if this really is the right way -- and make it
-# work at all; this should somehow reuse what's done for positions...
-		raise STCNotImplementedError("Cannot transform SpaceIntervals yet.")
-		sTrafo = sphermath.makePlainSphericalTransformer(trafo, posUnit)
+	def getTransformed(self, sTrafo, destFrame):
 		ll, ul = self.lowerLimit, self.upperLimit
 		if ll is None:
-			return self.change(upperLimit=sTrafo(ul))
+			return self.change(upperLimit=sTrafo(ul), frame=destFrame)
 		if ul is None:
-			return self.change(lowerLimit=sTrafo(ll))
+			return self.change(lowerLimit=sTrafo(ll), frame=destFrame)
 		vertices = [sTrafo(coo) for coo in (
 			(ll[0], ll[1]), (ul[0], ll[1]), (ll[0], ul[1]), (ul[0], ul[1]))]
 		xVals = [coo[0] for coo in vertices]

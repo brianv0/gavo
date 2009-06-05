@@ -18,80 +18,54 @@ _conformedAttributes = [("time", "timeAs"), ("place", "areas"),
 	("freq", "freqAs"), ("redshift", "redshiftAs"), ("velocity", "velocityAs")]
 
 
-def _getDestItems(baseSTC, sysSTC):
-	"""returns the units and the frame for a conversion into into sysSTC.
-
-	The funciton returns spaceUnit, velSpaceUnit, velTimeUnit, spaceFrame
-	in that order.  Each item is initialized to None, then updated from baseSTC.
-	The frame is taken from sysSTC if possible, the units are not; they will
-	be handled by conformUnits to make sure that dependents are unit adapted 
-	as well.
-	"""
-	spaceUnit, velSpaceUnit, velTimeUnit, spaceFrame = None, None, None, None
-	if baseSTC.place is not None:
-		spaceUnit, spaceFrame = baseSTC.place.unit, baseSTC.place.frame
-	if baseSTC.velocity is not None:
-		v = baseSTC.velocity
-		if spaceFrame is None: # Fix frame if no position has been given
-			spaceFrame = v.frame
-		velSpaceUnit, velTimeUnit = v.unit, v.velTimeUnit
-	if sysSTC.place is not None:
-		spaceFrame = sysSTC.place.frame
-	if sysSTC.velocity is not None:
-		spaceFrame = sysSTC.velocity.frame
-	return spaceUnit, velSpaceUnit, velTimeUnit, spaceFrame
+def _transformAreas(areas, sTrafo, srcFrame, destFrame):
+	newAreas = []
+	for a in areas:
+		if a.frame is not srcFrame:
+			raise STCError("Cannot transform areas in frame different from"
+				" from the position frame.")
+		newAreas.append(a.getTransformed(sTrafo, destFrame))
+	return newAreas
 
 
-def iterSpatialChanges(baseSTC, sysSTC, features):
+def iterSpatialChanges(baseSTC, sysSTC, sixTrans):
 	"""yields changes to baseSTC to bring places and velocities to the
 	system and units of sysSTC.
 
-	features is an InputFeatures instance as prepared by spherToSV.  
+	sixTrans is a sphermath.SVConverter instance.
 
 	If the frame or units are not defined in sysSTC, there are taken from
 	baseSTC.
 	"""
-	toSpaceUnit, toVelSpaceUnit, toVelTimeUnit, spaceFrame = _getDestItems(
-		baseSTC, sysSTC)
-	if spaceFrame is None:  # Neither pos nor vel given, nothing to fix
-		return
-
-	# do the actual transformation of place/velocity
-	sv = sphermath.spherToSV(baseSTC, features)
-	trafo = spherc.getTrafoFunction(baseSTC.place.frame.asTriple(),
-		sysSTC.place.frame.asTriple(), features)
-	sv = trafo(sv, features)
-	pos, posUnit, vel, velSUnit, velTUnit = sphermath.svToSpher(sv, features)
+	if not baseSTC.place or not sysSTC.place:
+		return  # nothing to conform in space
+	destFrame, srcFrame = sysSTC.place.frame, baseSTC.place.frame
 	bPlace, bVel = baseSTC.place, baseSTC.velocity
+	trafo = spherc.getTrafoFunction(baseSTC.place.frame.asTriple(),
+		sysSTC.place.frame.asTriple(), sixTrans)
+	if bPlace.value:
+		sv = trafo(sixTrans.to6(baseSTC.place.value, 
+			getattr(baseSTC.velocity, "value", None)), sixTrans)
+		pos, vel = sixTrans.from6(sv)
+	else:
+		pos, vel = None, None
 
 	# build spatial items to change if necessary
 	if bPlace:
-		fixSpaceUnit = units.getVectorConverter(posUnit, toSpaceUnit)
-		value = None
-		if features.posGiven:
-			value = fixSpaceUnit(pos)
-		yield "place", bPlace.change(value=value, frame=spaceFrame)
+		yield "place", bPlace.change(value=pos, frame=destFrame)
 		if baseSTC.areas:
-			newAreas = []
-			sTrafo = sphermath.makePlainSphericalTransformer(trafo, 
-				bPlace.unit[:2])
-			for a in baseSTC.areas:
-				if hasattr(a, "getFullTransformed"): # it's a space interval that
-						# has full dimensionality.
-					newAreas.append(a.getFullTransformed(trafo, None, None))
-				else: # it's a geometry that's always 2-spherical
-					newAreas.append(a.getTransformed(sTrafo, spaceFrame))
-			yield "areas", newAreas
+			yield "areas", _transformAreas(baseSTC.areas, 
+				sixTrans.getPlaceTransformer(trafo), srcFrame, destFrame)
 
 	# build velocity items to change if necessary
 	if bVel:
-		fixVelUnit = units.getVelocityConverter(velSUnit, velTUnit, 
-			toVelSpaceUnit, toVelTimeUnit)
-		value = None
-		if features.posdGiven:
-			value = fixVelUnit(vel)
-		yield "velocity", bVel.change(value=value, frame=spaceFrame)
-# XXX TODO: velocityAs
+		yield "velocity", bVel.change(value=vel, frame=destFrame)
+		if baseSTC.velocityAs:
+			sTrafo = sixTrans.getVelocityTransformer(trafo, bPlace.value)
+			yield "velocityAs", _transformAreas(baseSTC.velocityAs, 
+				sixTrans.getVelocityTransformer(trafo, bPlace.value), srcFrame, 
+				destFrame)
+
 
 
 def conformUnits(baseSTC, sysSTC):
@@ -110,9 +84,8 @@ def conformSystems(baseSTC, sysSTC, relativistic=False, slaComp=False):
 	"""
 	changes = [("astroSystem", sysSTC.astroSystem)]
 	if baseSTC.place is not None and sysSTC.place is not None:
-		# adapt places
-		features = InputFeatures(relativistic=relativistic, slaComp=slaComp)
-		changes.extend(iterSpatialChanges(baseSTC, sysSTC, features))
+		transform = sphermath.SVConverter.fromSTC(baseSTC, slaComp=slaComp)
+		changes.extend(iterSpatialChanges(baseSTC, sysSTC, transform))
 # XXX TODO: conform time frames
 	return conformUnits(baseSTC.change(**dict(changes)), sysSTC)
 

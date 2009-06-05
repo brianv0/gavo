@@ -221,10 +221,10 @@ def _getFullPrecMatrix(fromNode, toNode, precTheory):
 	return threeToSix(getPrecMatrix(fromNode[1], toNode[1], precTheory))
 
 
-def _getNewcombPrecMatrix(fromNode, toNode, features):
+def _getNewcombPrecMatrix(fromNode, toNode, sixTrans):
 	return _getFullPrecMatrix(fromNode, toNode, prec_Newcomb)
 
-def _getIAU1976PrecMatrix(fromNode, toNode, features):
+def _getIAU1976PrecMatrix(fromNode, toNode, sixTrans):
 	return _getFullPrecMatrix(fromNode, toNode, prec_IAU1976)
 
 
@@ -286,29 +286,17 @@ _b1950ETermsVel = numarray.array([1.245e-3, -1.580e-3, -0.659e-3])
 _yallopK = secsPerJCy/(units.oneAU/1e3)
 _yallopKSla = 21.095;
 _pcPerCyToKmPerSec = units.getRedshiftConverter("pc", "cy", "km", "s")
-_yallopPosUnits = ("rad", "rad", "arcsec")
-_yallopVelSUnits = ("arcsec", "arcsec", "km")
-_yallopVelTUnits = ("cy", "cy", "s")
-_yallopFK4System = stcsast.parseSTCS("Position FK4 SPHER3 unit rad rad arcsec"
-	" VelocityInterval unit arcsec/cy arcsec/cy km/s")
-_yallopFK5System = stcsast.parseSTCS("Position FK5 SPHER3 unit rad rad arcsec"
-	" VelocityInterval unit arcsec/cy arcsec/cy km/s")
+
+# An SVConverter to bring 6-vectors to the spherical units Yallop prescribes.
+_yallopSVConverter = sphermath.SVConverter((0,0,0), ("rad", "rad", "arcsec"), 
+	(0,0,0), ("arcsec", "arcsec", "km"), ("cy", "cy", "s"))
 
 
 def _svToYallop(sv, yallopK):
 	"""returns r and rdot vectors suitable for Yallop's recipe from our
 	6-vectors.
 	"""
-	# To save headaches, we first convert our 6-vector to the source
-	# of Yallop's recipe and then to Yallop's funky coordinates.
-	# FK4System works for FK5 as well, we're only interested in the units.
-	pos, posUnit, vel, velS, velT = sphermath.svToSpher(
-		sv, InputFeaturesAll())
-	convS = units.getVectorConverter(posUnit, _yallopPosUnits)
-	convV = units.getVelocityConverter(velS, velT, _yallopVelSUnits,
-		_yallopVelTUnits)
-	alpha, delta, prlx = convS(pos)
-	pma, pmd, rv = convV(vel)
+	(alpha, delta, prlx), (pma, pmd, rv) = _yallopSVConverter.from6(sv)
 
 	yallopR = numarray.array([cos(alpha)*cos(delta),
 		sin(alpha)*cos(delta), sin(delta)])
@@ -319,7 +307,7 @@ def _svToYallop(sv, yallopK):
 	return yallopR, yallopRd, (rv, prlx)
 
 
-def _yallopToSv(yallop6, yallopK, rvAndPrlx, baseSystem):
+def _yallopToSv(yallop6, yallopK, rvAndPrlx):
 	"""returns a 6-Vector from a yallop-6 vector.
 
 	rvAndPrlx is the third item of the return value of _svToYallop.
@@ -339,20 +327,17 @@ def _yallopToSv(yallop6, yallopK, rvAndPrlx, baseSystem):
 	if abs(prlx)>1/sphermath.defaultDistance:
 		rv = numarray.dot(yallop6[:3], yallop6[3:])/yallopK/prlx/r
 		prlx = prlx/r
-	return sphermath.spherToSV(baseSystem.change(
-		place=baseSystem.place.change(value=(alpha, delta, prlx)),
-		velocity=baseSystem.velocity.change(value=(pma, pmd, rv))),
-		InputFeaturesAll())
+	return _yallopSVConverter.to6((alpha, delta, prlx), (pma, pmd, rv))
 
 
-def fk4ToFK5(features, svfk4):
+def fk4ToFK5(sixTrans, svfk4):
 	"""returns an FK5 2000 6-vector for an FK4 1950 6-vector.
 
 	The procedure used is described in Yallop et al, AJ 97, 274.  E-terms
 	of aberration are always removed from proper motions, regardless of
 	whether the objects are within 10 deg of the pole.
 	"""
-	if features.slaComp:
+	if sixTrans.slaComp:
 		transMatrix = _fk4ToFK5MatrixSla
 		yallopK = _yallopKSla
 	else:
@@ -361,7 +346,7 @@ def fk4ToFK5(features, svfk4):
 	yallopR, yallopRd, rvAndPrlx = _svToYallop(svfk4, yallopK)
 
 	# Yallop's recipe starts here
-	if not features.slaComp:  # include Yallop's "small terms" in PM
+	if not sixTrans.slaComp:  # include Yallop's "small terms" in PM
 		yallopVE = (yallopRd-_b1950ETermsVel
 			+numarray.dot(yallopR, _b1950ETermsVel)*yallopR
 			+numarray.dot(yallopRd, _b1950ETermsPos)*yallopR
@@ -374,10 +359,10 @@ def fk4ToFK5(features, svfk4):
 			numarray.dot(yallopR, _b1950ETermsPos)*yallopR),
 		yallopVE))
 	cnv = numarray.dot(transMatrix, yallop6)
-	return _yallopToSv(cnv, yallopK, rvAndPrlx, _yallopFK5System)
+	return _yallopToSv(cnv, yallopK, rvAndPrlx)
 
 
-def fk5ToFK4(features, svfk5):
+def fk5ToFK4(sixTrans, svfk5):
 	"""returns an FK4 1950 6-vector for an FK5 2000 6-vector.
 
 	This is basically a reversal of fk4ToFK5, except we're always operating
@@ -400,7 +385,7 @@ def fk5ToFK4(features, svfk5):
 		yallopR, _b1950ETermsVel)*yallopR
 
 	return _yallopToSv(numarray.concatenate((newR, newRd)),
-		_yallopKSla, rvAndPrlx, _yallopFK4System)
+		_yallopKSla, rvAndPrlx)
 
 
 ############### Galactic coordinates
@@ -430,10 +415,10 @@ def _getEclipticMatrix(epoch):
 	obliquity = (84381.448+(-46.8150+(-0.00059+0.001813*t)*t)*t)*ARCSEC
 	return sphermath.getRotX(obliquity)
 
-def _getFromEclipticMatrix(fromNode, toNode, features):
+def _getFromEclipticMatrix(fromNode, toNode, sixTrans):
 	return threeToSix(numarray.transpose(_getEclipticMatrix(fromNode[1])))
 
-def _getToEclipticMatrix(fromNode, toNode, features):
+def _getToEclipticMatrix(fromNode, toNode, sixTrans):
 	emat = _getEclipticMatrix(fromNode[1])
 	return threeToSix(emat)
 
@@ -463,7 +448,7 @@ _fk5SpinFK5 = numarray.array([-0.30e-3, 0.60e-3, 0.70e-3])*ARCSEC/365.25
 # Spin of FK5 in ICRS
 _fk5SpinICRS = numarray.dot(_fk5ToICRSMatrix, _fk5SpinFK5)
 
-def fk5ToICRS(features, svFk5):
+def fk5ToICRS(sixTrans, svFk5):
 	"""returns a 6-vector in ICRS for a 6-vector in FK5 J2000.
 	"""
 	spatial = numarray.dot(_fk5ToICRSMatrix, svFk5[:3])
@@ -472,7 +457,7 @@ def fk5ToICRS(features, svFk5):
 	return numarray.concatenate((spatial, vel))
 
 
-def icrsToFK5(features, svICRS):
+def icrsToFK5(sixTrans, svICRS):
 	"""returns a 6-vector in FK5 J2000 for an ICRS 6-vector.
 	"""
 	spatial = numarray.dot(_icrsToFK5Matrix, svICRS[:3])
@@ -487,7 +472,7 @@ def icrsToFK5(features, svICRS):
 # extragalactic regime but makes this libarary basically useless for
 # solar system work.
 
-def _transformRefpos(fromSTC, toSTC, features):
+def _transformRefpos(fromSTC, toSTC, sixTrans):
 	return utils.identity
 
 
@@ -497,7 +482,7 @@ def _transformRefpos(fromSTC, toSTC, features):
 def _Constant(val):
 	"""returns a transform factory always returning val.
 	"""
-	return lambda fromSTC, toSTC, features: val
+	return lambda fromSTC, toSTC, sixTrans: val
 
 
 # transforms are triples of fromNode, toNode, transform factory.  Due to
@@ -603,33 +588,33 @@ def _contractMatrices(ops):
 	return newSeq
 	
 
-def _pathToFunction(trafoPath, features):
+def _pathToFunction(trafoPath, sixTrans):
 	"""returns a function encapsulating all operations contained in
 	trafoPath.
 
 	The function receives and returns a 6-vector.  trafoPath is altered.
 	"""
 	trafoPath.reverse()
-	steps = _contractMatrices([factory(srcTrip, dstTrip, features)
+	steps = _contractMatrices([factory(srcTrip, dstTrip, sixTrans)
 		for srcTrip, dstTrip, factory in trafoPath])
 	expr = []
 	for index, step in enumerate(steps):
 		if isinstance(step, numarray.NumArray):
 			expr.append("numarray.dot(steps[%d], "%index)
 		else:
-			expr.append("steps[%d](features, "%index)
+			expr.append("steps[%d](sixTrans, "%index)
 	vars = {"steps": steps, "numarray": numarray}
-	exec ("def transform(sv, features): return %s"%
+	exec ("def transform(sv, sixTrans): return %s"%
 		"".join(expr)+"sv"+(")"*len(expr))) in vars
 	return vars["transform"]
 
 
-def nullTransform(sv, features):
+def nullTransform(sv, sixTrans):
 	return sv
 
 
 @memoized
-def getTrafoFunction(srcTriple, dstTriple, features):
+def getTrafoFunction(srcTriple, dstTriple, sixTrans):
 	"""returns a function that transforms 6-vectors from the system
 	described by srcTriple to the one described by dstTriple.
 
@@ -637,6 +622,9 @@ def getTrafoFunction(srcTriple, dstTriple, features):
 
 	If no transformation function can be produced, the function raises
 	an STCValueError.
+
+	sixTrans is a sphermath.SVConverter instance, used here for communication
+	of input details and user preferences.
 	"""
 	# special case the identity since it's indistingishable from a failed
 	# search otherwise
@@ -646,4 +634,4 @@ def getTrafoFunction(srcTriple, dstTriple, features):
 	if trafoPath is None:
 		raise STCValueError("Cannot find a transform from %s to %s"%(
 			srcTriple, dstTriple))
-	return _pathToFunction(trafoPath, features)
+	return _pathToFunction(trafoPath, sixTrans)

@@ -92,42 +92,6 @@ class CachedGetter(object):
 			self.cache = self.getter()
 		return self.cache
 
-# "Features" used in spherical transformations (cf. sphermath).  These can be
-# used instanciated and, if they are not modified, as classes.
-
-class InputFeatures(object):
-	"""a user-opaque object containing metadata on 6-vector conversion.
-
-	This base specifies all input values were made up.  The concrete
-	values are changed by conformSystems and spherToSV.
-	"""
-	def __init__(self, **kwargs):
-		for k, v in kwargs.iteritems():
-			setattr(self, k, v)
-
-	posGiven = False
-	distGiven = False
-	posdGiven = False
-	distdGiven = False
-	relativistic = False
-	slaComp = False
-
-
-class InputFeaturesAll(InputFeatures):
-	"""a user-opaque object containing metadata on 6-vector conversion.
-
-	This class specifies all input values were given.
-	"""
-	posGiven = distGiven = posdGiven = distdGiven = True
-
-
-class InputFeaturesPosOnly(InputFeatures):
-	"""a user-opaque object containing metadata on 6-vector conversion.
-
-	This class specifies only position was given.
-	"""
-	posGiven = True
-
 
 # Nodes for ASTs
 

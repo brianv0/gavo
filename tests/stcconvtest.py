@@ -336,6 +336,12 @@ class GeometryConformTest(testhelpers.VerboseTest):
 			"Position ICRS VelocityInterval 0.00277777777778 0.00555555555556 unit"
 			" deg/cy")
 
+	def testVelocityOnlyRaises(self):
+		srcAst = stc.parseSTCS("Position ICRS VelocityInterval Velocity 0.1 0.1")
+		sysAst = stc.parseSTCS("Position B1950")
+		self.assertRaisesWithMsg(stc.STCValueError, "No conversion possible without a position.",
+			stc.conformTo, (srcAst, sysAst))
+
 
 if __name__=="__main__":
-	testhelpers.main(UnitConformTest)
+	testhelpers.main(GeometryConformTest)
