@@ -91,6 +91,59 @@ class PathTest(testhelpers.VerboseTest):
 	]
 
 
+class SixVectorTest(testhelpers.VerboseTest):
+	"""tests for working spherical-to-six-vector full transforms.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+	
+	posSamples = [
+		((0,0), ('deg', 'deg')),
+		((180,0), ('deg', 'deg')),
+		((359.99,0), ('deg', 'deg')),
+		((40,22), ('deg', 'deg')),
+		((163,-52), ('deg', 'deg')),
+		((253,-82), ('deg', 'deg')),
+		((0,90), ('deg', 'deg')),
+		((0,-90), ('deg', 'deg')),
+		((2,10), ('rad', 'deg')),
+		((2,10,5), ('rad', 'deg', 'arcsec')),
+		((4,-10,5), ('rad', 'deg', 'pc')),
+	]
+
+	samples = [posSamp+velSamp
+			for posSamp in posSamples
+		for velSamp in [
+			(None, None, None),
+			((0, 0), ("arcsec", "arcsec"), ("yr", "yr")),
+			((0.1, 0.1), ("arcsec", "arcsec"), ("yr", "yr")),
+			((0.1, -0.1), ("rad", "arcsec"), ("cy", "yr")),
+			((-0.1, 0.1), ("rad", "rad"), ("cy", "cy")),
+			((0.1, -0.1), ("rad", "rad"), ("cy", "cy")),
+			((1, 1, 9), ("rad", "rad", "km"), ("cy", "cy", "s")),
+			((1, 1, 0.01), ("rad", "rad", "pc"), ("cy", "cy", "cy"))]]
+
+	def assertAlmostEqualST(self, pos1, pos2, vel1, vel2):
+		try:
+			self.assertEqual(len(pos1), len(pos2))
+			for v1, v2 in zip(pos1, pos2):
+				self.assertAlmostEqual(v1, v2)
+			if vel1 is None:
+				self.assertEqual(vel2, None)
+			else:
+				self.assertEqual(len(vel1), len(vel2))
+				for v1, v2 in zip(vel1, vel2):  # Numerical issues in RV -- fix?
+					self.assertAlmostEqual(v1, v2, places=4)
+		except AssertionError:
+			raise AssertionError("%s, %s != %s, %s"%(pos1, vel1, pos2, vel2))
+
+	def _runTest(self, sample):
+		pos, posUnit, vel, velUnitS, velUnitT = sample
+		trans = sphermath.SVConverter(pos, vel, posUnit, velUnitS, velUnitT)
+		newPos, newVel = trans.from6(trans.to6(pos, vel))
+		self.assertAlmostEqualST(pos, newPos, vel, newVel)
+
+
+
 class SpherSVRoundtripTest(testhelpers.VerboseTest):
 	"""tests for conversion between 6-vectors and spherical coordinates.
 	"""
@@ -251,5 +304,4 @@ for sampleName in dir(stcgroundtruth):
 
 
 if __name__=="__main__":
-#	testhelpers.main(TestSixFK4ToFK5)
-	testhelpers.main(TestECL32110ToJ2000)
+	testhelpers.main(SixVectorTest)

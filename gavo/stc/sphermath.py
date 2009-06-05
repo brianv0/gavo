@@ -3,6 +3,7 @@ Spherical geometry and related helper functions.
 """
 
 import math
+import new
 import numarray
 
 from gavo import utils
@@ -334,6 +335,114 @@ def spherToSV(stcObject, features):
 	if features.relativistic:
 		_pleaseEinsteinFromSpher(res)
 	return res
+
+
+class SVConverter(object):
+	"""A container for the conversion from spherical coordinates
+	to 6-Vectors.
+
+	You create one with an example of your data; these are values
+	and units of STC objects, and everything may be None if it's
+	not given.
+
+	The resulting object has methods to6 taking values
+	like the one provided by you and returning a 6-vector, and from6
+	returning a pair of such values.
+
+	Further, the converter has the attributes	distGiven,
+	posdGiven, and distdGiven signifying whether these items are
+	expected or valid on return.  If posVals is None, no transforms
+	can be computed.
+
+	The relativistic=True constructior argument requests that the
+	transformation be Lorentz-invariant.  Do not use that, though,
+	since there are unsolved numerical issues.
+
+	The slaComp=True constructor argument requests that some
+	operations exterior to the construction are done as slalib does
+	them, rather than alternative approaches.
+	"""
+	posGiven = distGiven = posdGiven = distdGiven = True
+	defaultDistance = units.maxDistance*units.onePc/units.oneAU
+
+	def __init__(self, posVals, velVals, posUnit, velSUnit, velTUnit,
+			relativistic=False, slaComp=False):
+		self.relativistic, self.slaComp = relativistic, slaComp
+		self._determineFeatures(posVals, velVals)
+		self._computeUnitConverters(posUnit, velSUnit, velTUnit)
+		self._makeTo6()
+		self._makeFrom6()
+
+	def _determineFeatures(self, posVals, velVals):
+		if posVals is None:
+			raise STCValueError("No conversion possible without a position.")
+		if len(posVals)==2:
+			self.distGiven = False
+		if velVals is None:
+			self.posdGiven = False
+		else:
+			if len(velVals)==2:
+				self.distdGiven = False
+
+	def _computeUnitConverters(self, posUnit, velSUnit, velTUnit):
+		dims = len(posUnit)
+		self.toSVUnitsPos = units.getVectorConverter(posUnit, 
+			_svPosUnit[:dims])
+		self.fromSVUnitsPos = units.getVectorConverter(posUnit, 
+			_svPosUnit[:dims], True)
+		if self.posdGiven:
+			dims = len(velSUnit)
+			self.toSVUnitsVel = units.getVelocityConverter(velSUnit, velTUnit,
+				_svVPosUnit[:dims], _svVTimeUnit[:dims])
+			self.fromSVUnitsVel = units.getVelocityConverter(velSUnit, velTUnit,
+				_svVPosUnit[:dims], _svVTimeUnit[:dims], True)
+
+	def _makeTo6(self):
+		code = ["def to6(self, pos, vel):"]
+		code.append("  pos = self.toSVUnitsPos(pos)")
+		if self.posdGiven:
+			code.append("  vel = self.toSVUnitsVel(vel)")
+		if not self.distGiven:
+			code.append("  pos = pos+(defaultDistance,)")
+		if self.posdGiven:
+			if not self.distdGiven:
+				code.append("  vel = vel+(0,)")
+		else:
+			code.append("  vel = (0,0,0)")
+		code.append("  (alpha, delta, r), (alphad, deltad, rd) = pos, vel")
+		code.append("  sa, ca = math.sin(alpha), math.cos(alpha)")
+		code.append("  sd, cd = math.sin(delta), math.cos(delta)")
+		code.append("  x, y = r*cd*ca, r*cd*sa")
+		code.append("  w = r*deltad*sd-cd*rd")
+		code.append("  res = numarray.array([x, y, r*sd,"
+			" -y*alphad-w*ca, x*alphad-w*sa, r*deltad*cd+sd*rd])")
+		if self.relativistic:
+			code.append("  _pleaseEinsteinFromSpher(res)")
+		code.append("  return res")
+		l = locals()
+		exec "\n".join(code) in globals() , l
+		self.to6 = new.instancemethod(l["to6"], self)
+
+	def _makeFrom6(self):
+		code = ["def from6(self, sv):"]
+		if self.relativistic:
+			code.append("  _pleaseEinsteinFromSpher(sv)")
+		code.append("  pos, vel = _svToSpherRaw(sv)")
+		if not self.distGiven:
+			code.append("  pos = pos[:2]")
+		code.append("  pos = self.fromSVUnitsPos(pos)")
+		if self.posdGiven:
+			if not self.distdGiven:
+				code.append("  vel = vel[:2]")
+			code.append("  vel = self.fromSVUnitsVel(vel)")
+		else:
+			code.append("  vel = None")
+		code.append("  return pos, vel")
+		l = locals()
+		exec "\n".join(code) in globals() , l
+		self.from6 = new.instancemethod(l["from6"], self)
+
+		
 
 
 def computeTransMatrixFromPole(poleCoo, longZeroCoo, changeHands=False): 
