@@ -227,6 +227,10 @@ def getVectorConverter(fromUnits, toUnits, reverse=False):
 
 	The resulting functions accepts sequences of len(toUnits) and returns
 	tuples of the same length.
+
+	As a special service for Geometries, these spatial converters have 
+	additional attributes fromUnit and toUnit giving what transformation
+	they implement.
 	"""
 	toUnits = _expandUnits(fromUnits, toUnits)
 	convs = []
@@ -241,6 +245,10 @@ def getVectorConverter(fromUnits, toUnits, reverse=False):
 
 	def convert(val):
 		return tuple(f(c) for f, c in izip(convs, val))
+	if reverse:
+		convert.fromUnit, convert.toUnit = toUnits, fromUnits
+	else:
+		convert.fromUnit, convert.toUnit = fromUnits, toUnits
 	return convert
 
 
@@ -265,6 +273,7 @@ def getVelocityConverter(fromSpaceUnits, fromTimeUnits, toSpace, toTime,
 	return convert
 
 
+@memoized
 def getUnitConverter(fromCoo, toCoo):
 	"""returns a pair unit info and a conversion function to take fromCoo
 	to the units of toCoo.
@@ -286,8 +295,8 @@ def getUnitConverter(fromCoo, toCoo):
 
 
 def iterUnitAdapted(baseSTC, sysSTC, attName, dependentName):
-	"""iterates over all keys that need to be changed to adapt units in baseSTC
-	to conform to what sysSTC gives.
+	"""iterates over all keys that need to be changed to adapt units in baseSTC's
+	attName facet to conform to what sysSTC gives.
 
 	If something in baseSTC is not specified in sysSTC, it is ignored here
 	(i.e., it will remain unchanged if the result is used in a change).
@@ -308,9 +317,5 @@ def iterUnitAdapted(baseSTC, sysSTC, attName, dependentName):
 	if areas:
 		transformed = []
 		for a in areas:
-			if hasattr(a, "adaptValuesWith"):
-				transformed.append(a.adaptValuesWith(conv))
-			else:  # it must be a geometry, and these need more advanced tricks
-				transformed.append(
-					a.adaptUnit(coo.unit, getattr(sysSTC, attName).unit))
+			transformed.append(a.adaptValuesWith(conv))
 		yield dependentName, tuple(transformed)

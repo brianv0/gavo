@@ -142,7 +142,7 @@ class RegionTest(STCMappingTest):
 	
 	def testConvex(self):
 		self.assertMapsto("Convex ICRS 70 190 23 0.125 12 45 30 -0.25",
-			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><UNITSPHERE coord_naxes="3" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Convex  unit="deg"><Halfspace><Vector><C1>70.0</C1><C2>190.0</C2><C3>23.0</C3></Vector><Offset>0.125</Offset></Halfspace><Halfspace><Vector><C1>12.0</C1><C2>45.0</C2><C3>30.0</C3></Vector><Offset>-0.25</Offset></Halfspace></Convex></AstroCoordArea></V>')
+			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><UNITSPHERE coord_naxes="3" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Convex ><Halfspace><Vector><C1>70.0</C1><C2>190.0</C2><C3>23.0</C3></Vector><Offset>0.125</Offset></Halfspace><Halfspace><Vector><C1>12.0</C1><C2>45.0</C2><C3>30.0</C3></Vector><Offset>-0.25</Offset></Halfspace></Convex></AstroCoordArea></V>')
 
 
 if __name__=="__main__":

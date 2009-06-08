@@ -253,15 +253,16 @@ _velocityPosClasses = (
 
 def _getSpatialUnits(node):
 	clsArgs, cooArgs = {}, {}
-	if len(set(node.unit))==1:
-		clsArgs["unit"] = node.unit[0]
-	elif node.unit:
-		cooArgs["unit"] = node.unit
-	if hasattr(node, "velTimeUnit"):
-		if len(set(node.velTimeUnit))==1:
-			clsArgs["vel_time_unit"] = node.velTimeUnit[0]
+	if node.unit:
+		if len(set(node.unit))==1:
+			clsArgs["unit"] = node.unit[0]
 		elif node.unit:
-			cooArgs["timeUnit"] = node.velTimeUnit
+			cooArgs["unit"] = node.unit
+		if hasattr(node, "velTimeUnit"):
+			if len(set(node.velTimeUnit))==1:
+				clsArgs["vel_time_unit"] = node.velTimeUnit[0]
+			elif node.unit:
+				cooArgs["timeUnit"] = node.velTimeUnit
 	return clsArgs, cooArgs
 
 
@@ -355,26 +356,27 @@ serialize_SpaceInterval = _makeSpatialIntervalSerializer(_posIntervalClasses)
 serialize_VelocityInterval = _makeSpatialIntervalSerializer(_velIntervalClasses)
 
 
-############# Regions
+############# Geometries
 
-def _makeBaseRegion(cls, node):
-	return cls(unit=node.unit[0], frame_id=node.frame.id, 
-		fill_factor=strOrNull(node.fillFactor))
+def _makeBaseGeometry(cls, node, context):
+	units = _getSpatialUnits(context.getPosForInterval(node))[0]
+	return cls(frame_id=node.frame.id, fill_factor=strOrNull(node.fillFactor),
+		**units)
 
 
 def serialize_AllSky(node, context):
-	return _makeBaseRegion(STC.AllSky, node)
+	return _makeBaseGeometry(STC.AllSky, node, context)
 
 def serialize_Circle(node, context):
 # would you believe that the sequence of center and radius is swapped
 # in sphere and circle?  Oh boy.
 	if node.frame.nDim==2:
-		return _makeBaseRegion(STC.Circle, node)[
+		return _makeBaseGeometry(STC.Circle, node, context)[
 			STC.Center[_wrap2D(node.center)],
 			STC.Radius[node.radius],
 		]
 	elif node.frame.nDim==3:
-		return _makeBaseRegion(STC.Sphere, node)[
+		return _makeBaseGeometry(STC.Sphere, node, context)[
 			STC.Radius[node.radius],
 			STC.Center[_wrap3D(node.center)],
 		]
@@ -387,7 +389,7 @@ def serialize_Ellipse(node, context):
 		cls, wrap = STC.Ellipse, _wrap2D
 	else:
 		raise STCValueError("Ellipses are only defined in 2D")
-	return _makeBaseRegion(cls, node)[
+	return _makeBaseGeometry(cls, node, context)[
 		STC.Center[wrap(node.center)],
 		STC.SemiMajorAxis[node.smajAxis],
 		STC.SemiMinorAxis[node.sminAxis],
@@ -398,7 +400,7 @@ def serialize_Ellipse(node, context):
 def serialize_Box(node, context):
 	if node.frame.nDim!=2:
 		raise STCValueError("Boxes are only available in 2D")
-	return _makeBaseRegion(STC.Box, node)[
+	return _makeBaseGeometry(STC.Box, node, context)[
 		STC.Center[_wrap2D(node.center)],
 		STC.Size[_wrap2D(node.boxsize)]]
 
@@ -406,12 +408,12 @@ def serialize_Box(node, context):
 def serialize_Polygon(node, context):
 	if node.frame.nDim!=2:
 		raise STCValueError("Polygons are only available in 2D")
-	return _makeBaseRegion(STC.Polygon, node)[
+	return _makeBaseGeometry(STC.Polygon, node, context)[
 		[STC.Vertex[STC.Position[_wrap2D(v)]] for v in node.vertices]]
 
 
 def serialize_Convex(node, context):
-	return _makeBaseRegion(STC.Convex, node)[
+	return _makeBaseGeometry(STC.Convex, node, context)[
 		[STC.Halfspace[STC.Vector[_wrap3D(v[:3])], STC.Offset[v[3]]]
 		for v in node.vectors]]
 

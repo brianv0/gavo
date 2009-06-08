@@ -5,6 +5,7 @@ Tests for STC conversions and conforming.
 import math
 
 from gavo import stc
+from gavo import utils
 from gavo.stc import units
 
 import testhelpers
@@ -199,12 +200,14 @@ class WiggleCoercionTest(testhelpers.VerboseTest):
 
 
 class GeoCoercionTest(testhelpers.VerboseTest):
-	"""tests that "dependent" units on Geometries are properly adapted.
+	"""tests for various forms of unit coercion with geometries.
 	"""
-	def _getAST(self, coo):
+	def _getAST(self, coo, pos=""):
+		if pos:
+			pos = '<AstroCoords coord_system_id="x">%s</AstroCoords>'%pos
 		return stc.parseSTCX(('<ObservationLocation xmlns="%s">'%stc.STCNamespace)+
 			'<AstroCoordSystem id="x"><SpaceFrame><ICRS/></SpaceFrame>'
-			'</AstroCoordSystem>'
+			'</AstroCoordSystem>'+pos+
 			'<AstroCoordArea coord_system_id="x">'+
 			coo+'</AstroCoordArea></ObservationLocation>')[0]
 
@@ -273,6 +276,30 @@ class GeoCoercionTest(testhelpers.VerboseTest):
 		a = ast.areas[0]
 		self.assertAlmostEqual(a.boxsize[0], 1/60.)
 		self.assertAlmostEqual(a.boxsize[1], 2/3600.)
+
+	def testBoxPositionCoerc(self):
+		ast = self._getAST('<Box><Center>'
+			'<C1>1.5</C1><C2>1.5</C2></Center>'
+			'<Size><C1 unit="arcmin">1</C1><C2 unit="arcsec">2</C2></Size>'
+			'</Box>', 
+			'<Position2D><Value2><C1 unit="rad"/><C2 unit="deg"/>'
+			'</Value2></Position2D>')
+		a = ast.areas[0]
+		self.assertAlmostEqual(a.boxsize[0], 1/60.*utils.DEG)
+		self.assertAlmostEqual(a.boxsize[1], 2/3600.)
+		self.assertAlmostEqual(a.center[0], 1.5*utils.DEG)
+		self.assertAlmostEqual(a.center[1], 1.5)
+	
+	def testCirclePositionCoerc(self):
+		ast = self._getAST('<Circle unit="kpc"><Center>'
+			'<C1>1.5</C1><C2>1.5</C2></Center>'
+			'<Radius pos_unit="pc">2</Radius></Circle>',
+			'<Position2D><Value2><C1 unit="m"/><C2 unit="km"/>'
+			'</Value2></Position2D>')
+		a = ast.areas[0]
+		self.assertAlmostEqual(a.center[0]*1e-13, 1.5*units.onePc*1000*1e-13)
+		self.assertAlmostEqual(a.center[1]*1e-13, 1.5*units.onePc*1e-13)
+		self.assertAlmostEqual(a.radius*1e-13, 2*units.onePc*1e-13)
 
 
 class UnitConformTest(testhelpers.VerboseTest):
@@ -344,4 +371,4 @@ class GeometryConformTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(GeometryConformTest)
+	testhelpers.main(GeoCoercionTest)

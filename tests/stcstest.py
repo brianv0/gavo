@@ -355,7 +355,7 @@ class DefaultingTest(testhelpers.VerboseTest):
 			'type': 'PositionInterval', 'refpos': 'UNKNOWNRefPos', 
 			'flavor': 'SPHER2'}})
 		self.assertEqual(stcs.getCST("Convex ICRS"),
-			{'space': {'frame': 'ICRS', 'unit': 'deg', 'type': 'Convex', 
+			{'space': {'frame': 'ICRS', 'unit': '', 'type': 'Convex', 
 			'refpos': 'UNKNOWNRefPos', 'flavor': 'UNITSPHER'}})
 		self.assertEqual(stcs.getCST("PositionInterval FK4 TOPOCENTER CART2"),
 			{'space': {'frame': 'FK4', 'unit': 'm', 'type': 'PositionInterval', 

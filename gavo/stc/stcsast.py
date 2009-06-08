@@ -381,7 +381,8 @@ def _makeGeometryKeyIterator(argDesc, clsName):
 		' while parsing %s")'%clsName)
 	parseLines.append('  if coos: raise STCSParseError("Too many coordinates'
 		' while building %s, remaining: %%s"%%coos)'%clsName)
-	parseLines.append('  yield "unit", _mogrifySpaceUnit(node.get("unit"), nDim)')
+	parseLines.append('  yield "origUnit",'
+		' _mogrifySpaceUnit(node.get("unit"), nDim)')
 	parseLines.append('  if "complement" in node: yield "complement", True')
 	exec "\n".join(parseLines)
 	return iterKeys

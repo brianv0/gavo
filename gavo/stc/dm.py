@@ -2,7 +2,7 @@
 AST definition for STC.
 
 For now, we want to be able to capture what STC-S can do.  This
-means that we do not support generic coordinates (yet), ephemeris,
+means that we do not support generic coordinates (yet), elements,
 xlink and all the other stuff.
 """
 
@@ -228,31 +228,30 @@ class _CoordinateLike(ASTNode):
 class _Coordinate(_CoordinateLike):
 	"""An abstract base for coordinates.
 
-	They have an iterTransformed(convFunc) method iterating over constructor
-	keys that have to be changed when some convFunc is applied to the
-	coordinate.  These may be multiple values when, e.g., errors are given
-	or for geometries.
+	They have an iterTransformed(convFunc) method iterating over
+	constructor keys that have to be changed when some convFunc is
+	applied to the coordinate.  These may be multiple values when,
+	e.g., errors are given or for geometries.
 
 	Since these only make sense together with units, some elementary
 	unit handling is required.  Since we keep the basic unit model
 	of STC, this is a bit over-complicated.
-	
-	First, for the benefit of STC-S, a method
-	getUnitString() -> string or None is required.  It should return
-	an STC-S-legal unit string.
 
-	Second, a method getUnitArgs() -> dict or None is required.  It has to
-	return a dictionary with all unit-related constructor arguments
-	(that's unit and velTimeUnit for the standard
-	coordinate types).  No None values are allowed; if self's units are
-	not defined, return None.
+	First, for the benefit of STC-S, a method getUnitString() ->
+	string or None is required.  It should return an STC-S-legal
+	unit string.
 
-	Third, a method 
-	getUnitConverter(otherUnits) -> function or None is required.  It
-	must return a function accepting the self's coordinates if self's
-	units and otherUnits are defined, None otherwise.  OtherUnits can 
-	be a tuple or a result of getUnitArgs.  The tuple is interpreted as 
-	(baseUnit, timeUnit).
+	Second, a method getUnitArgs() -> dict or None is required.
+	It has to return a dictionary with all unit-related constructor
+	arguments (that's unit and velTimeUnit for the standard coordinate
+	types).  No None values are allowed; if self's units are not
+	defined, return None.
+
+	Third, a method getUnitConverter(otherUnits) -> function or None is required.
+	OtherUnits can be a tuple or a result of getUnitArgs.  The tuple is
+	interpreted as (baseUnit, timeUnit).  The function returned must
+	accept self's coordinate values in otherUnit and return them in self's
+	unit(s).  This is the function that iterTransformed requires.
 	"""
 	_a_error = None
 	_a_resolution = None
@@ -468,33 +467,29 @@ class SpectralInterval(_CoordinateInterval):
 
 ################ Geometries
 
-class _Geometry(_CoordinateLike, _SpatialMixin):
+class _Geometry(_CoordinateLike):
 	"""A base class for all kinds of geometries.
+
+	Geometries may have "dependent" quantities like radii, sizes,
+	etc.  For those, the convention is that if they are 1D, they must be
+	expressed in the first component of the position units, otherwise
+	(in particular, for box size) in the full unit of the position.
+	This has to be made sure by the client.
+
+	To make this work, Geometries are unit adapted on STC adoption.
+	Since their dependents need to be adapted as well, they have to
+	define adaptDependents(...) methods.  They take the units for
+	all dependent quantities (which may all be None).  This is used
+	in stxast.
+
+	Also iterTransformed usually needs to be overridden for these.
 	"""
 	_a_size = None
 	_a_fillFactor = None
 	_a_complement = False
-	# The following helps since geometries are areas (like intervals)
-	# However, no unit coercion takes place for them, so it's fixed None.
-	origUnit = None
+	_a_origUnit = None
 
-
-class _GeometryWithDeps(_Geometry):
-	"""is a geometry that has "dependent quantities" like radii.
-
-	All radii etc. have to be in the unit of the primary quantity (the center).
-
-	In order to sensibly be able to do this, we enforce units to be 
-	homogeneous for all geometries that have dependent quantities.
-	"""
-	def _setupNode(self):
-		if self.unit:
-			try:
-				if self.unit[0]!=self.unit[1]:
-					raise Exception
-			except:
-				raise STCValueError("Geometries must have the same units in both"
-					" dimensions, so %s is invalid"%str(self.unit[0]))
+	cType = SpaceType
 
 
 class AllSky(_Geometry):
@@ -503,25 +498,28 @@ class AllSky(_Geometry):
 	def getTransformed(self, sTrafo, destFrame):
 		return self.change(frame=destFrame)
 
-	def adaptUnit(self, fromUnit, toUnit):
+	def adaptValuesWith(self, converter):
 		return self
 
+	def adaptDepUnits(self):
+		pass
 
-class Circle(_GeometryWithDeps):
+
+class Circle(_Geometry):
 	_a_center = None
 	_a_radius = None
 
 	def getTransformed(self, sTrafo, destFrame):
 		return self.change(center=sTrafo(self.center), frame=destFrame)
 
-	def adaptUnit(self, fromUnit, toUnit):
-		vTrafo = units.getVectorConverter(fromUnit, toUnit)
-		sTrafo = units.getBasicConverter(fromUnit[0], toUnit[0])
-		return self.change(center=vTrafo(self.center), 
+	def adaptValuesWith(self, converter):
+		sTrafo = units.getBasicConverter(converter.fromUnit[0], 
+			converter.toUnit[0])
+		return self.change(center=converter(self.center), 
 			radius=sTrafo(self.radius))
 
 
-class Ellipse(_GeometryWithDeps):
+class Ellipse(_Geometry):
 	_a_center = None
 	_a_smajAxis = _a_sminAxis = None
 	_a_posAngle = None
@@ -530,14 +528,14 @@ class Ellipse(_GeometryWithDeps):
 # XXX TODO: actually rotate the ellipse.
 		return self.change(center=sTrafo(self.center), frame=destFrame)
 
-	def adaptUnit(self, fromUnit, toUnit):
-		vTrafo = units.getVectorConverter(fromUnit, toUnit)
-		sTrafo = units.getBasicConverter(fromUnit[0], toUnit[0])
-		return self.change(center=vTrafo(self.center), 
+	def adaptValuesWith(self, converter):
+		sTrafo = units.getBasicConverter(converter.fromUnit[0], 
+			converter.toUnit[0])
+		return self.change(center=converter(self.center), 
 			smajAxis=sTrafo(self.smajAxis), sminAxis=sTrafo(self.sminAxis))
 
 
-class Box(_GeometryWithDeps):
+class Box(_Geometry):
 	_a_center = None
 	_a_boxsize = None
 	
@@ -551,10 +549,9 @@ class Box(_GeometryWithDeps):
 			(center[0]+boxsize[0], center[1]+boxsize[1]),
 			(center[0]+boxsize[0], center[1]-boxsize[1]))), frame=destFrame)
 
-	def adaptUnit(self, fromUnit, toUnit):
-		vTrafo = units.getVectorConverter(fromUnit, toUnit)
-		return self.change(center=vTrafo(self.center), 
-			boxsize=vTrafo(self.boxsize))
+	def adaptValuesWith(self, converter):
+		return self.change(center=converter(self.center), 
+			boxsize=converter(self.boxsize))
 
 
 class Polygon(_Geometry):
@@ -564,9 +561,8 @@ class Polygon(_Geometry):
 		return self.change(vertices=(sTrafo(v) for v in self.vertices), 
 			frame=destFrame)
 
-	def adaptUnit(self, fromUnit, toUnit):
-		vTrafo = units.getVectorConverter(fromUnit, toUnit)
-		return self.change(vertices=(vTrafo(v) for v in self.vertices))
+	def adaptValuesWith(self, converter):
+		return self.change(vertices=(converter(v) for v in self.vertices))
 
 
 class Convex(_Geometry):
@@ -575,13 +571,18 @@ class Convex(_Geometry):
 	def getTransformed(self, sTrafo, destFrame):
 		raise STCNotImplementedError("Cannot transform convexes yet.")
 
-	def adaptUnit(self, fromUnit, toUnit):
+	def adaptValuesWith(self, converter):
 		raise STCNotImplementedError("Cannot adapt units for convexes yet.")
 
 
 class _Compound(_Geometry):
 	_a_children = ()
 	_a_complement = False
+
+	def adaptValuesWith(converter):
+		return self.change(children=[child.adaptValuesWith(converter)
+			for child in self.children])
+
 
 class Union(_Compound): pass
 class Intersection(_Compound): pass

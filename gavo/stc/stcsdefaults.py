@@ -25,6 +25,8 @@ def getSpaceUnit(node):
 		return "deg deg m"
 	elif node["flavor"].startswith("CART"):
 		return "m"
+	elif node["flavor"]=="UNITSPHER":
+		return ""
 	else:
 		return "deg"
 

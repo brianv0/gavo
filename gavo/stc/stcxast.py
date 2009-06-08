@@ -110,11 +110,13 @@ def _makeKwFloatBuilder(kwName, multiple=True, units=_noIter):
 	"""
 	if multiple:
 		def buildNode(node, buildArgs, context):
-			yield kwName, (float(node.text),)
+			if node.text:
+				yield kwName, (float(node.text),)
 			for res in units(node, buildArgs): yield res
 	else:
 		def buildNode(node, buildArgs, context):
-			yield kwName, float(node.text)
+			if node.text:
+				yield kwName, float(node.text)
 			for res in units(node, buildArgs): yield res
 	return buildNode
 
@@ -191,18 +193,9 @@ def _makeSpatialUnits(nDim, *unitSources):
 	return None
 
 
-# names of 2D elements, see below on this abomination.
-_geometryNames = set(["AllSky", "Circle", "Ellipse", "Polygon", "Box"])
-
 def _fixSpatialUnits(node, buildArgs, context):
-	nDim = 1
+	nDim = context.peekDim()
 	ln = _localname(node.tag)
-	# Incredible hack to figure out the number of units we expect.
-	# I guess we'll have to parameterize this further up.
-	if "2" in ln or ln in _geometryNames:
-		nDim = 2
-	if "3" in ln:
-		nDim = 3
 	# buildArgs["unit"] may have been left in build_args from upstream
 	buildArgs["unit"] = _makeSpatialUnits(nDim, buildArgs.pop("unit", None),
 		node.get("unit", "").split())
@@ -260,6 +253,26 @@ def _iterCooMeta(node, context, frameName):
 		yield "id", node.get("id")
 
 
+# A dictionary mapping STC-X element names to the dimensionality of
+# coordinates within them.  You only need to give them here if _guessNDim
+# doesn't otherwise the it right.
+_dimExceptions = {
+}
+
+def _guessNDim(kw):
+	"""guesses the number of dimensions that should be present under the STC-X
+	element named kw by inspecting the name.
+	"""
+	if kw in _dimExceptions:
+		return _dimExceptions[kw]
+	if "3" in kw:
+		return 3
+	elif "2" in kw:
+		return 2
+	else:
+		return 1
+
+
 def _makeIntervalBuilder(kwName, astClass, frameName, tuplify=False):
 	"""returns a builder that makes astObject with the current buildArgs
 	and fixes its frame reference.
@@ -274,6 +287,7 @@ def _makeIntervalBuilder(kwName, astClass, frameName, tuplify=False):
 		def mkVal(v):
 			return v
 	def buildNode(node, buildArgs, context):
+		context.pushDim(_guessNDim(_localname(node.tag)))
 		for key, value in _iterCooMeta(node, context, frameName):
 			buildArgs[key] = value
 		if "lowerLimit" in buildArgs:
@@ -283,6 +297,7 @@ def _makeIntervalBuilder(kwName, astClass, frameName, tuplify=False):
 		_fixUnits(frameName, node, buildArgs, context)
 		buildArgs["origUnit"] = (buildArgs.pop("unit", None),
 			buildArgs.pop("velTimeUnit", None))
+		context.popDim()
 		yield kwName, (astClass(**buildArgs),)
 	return buildNode
 
@@ -314,6 +329,7 @@ def _makePositionBuilder(kw, astClass, frameName, tuplify=False):
 	"""returns a builder for a coordinate of astClass to be added with kw.
 	"""
 	def buildPosition(node, buildArgs, context):
+		context.pushDim(_guessNDim(_localname(node.tag)))
 		if buildArgs.get("vals"):
 			buildArgs["value"] = buildArgs["vals"][0]
 			# Fix 1D space coordinates
@@ -324,6 +340,7 @@ def _makePositionBuilder(kw, astClass, frameName, tuplify=False):
 			buildArgs[key] = value
 		_fixWiggles(buildArgs)
 		_fixUnits(frameName, node, buildArgs, context)
+		context.popDim()
 		yield kw, astClass(**buildArgs)
 	return buildPosition
 
@@ -408,7 +425,8 @@ _genUnitKeys = ("pos_unit", "time_unit", "spectral_unit", "angle_unit",
 	"gen_unit")
 
 def _buildVector(node, buildArgs, context):
-	yield 'vals', (tuple(buildArgs["vals"]),)
+	if 'vals' in buildArgs:
+		yield 'vals', (tuple(buildArgs["vals"]),)
 	for uk in _unitKeys:
 		if uk in buildArgs:
 			yield uk, tuple(buildArgs[uk])
@@ -474,11 +492,14 @@ def _makeGeometryBuilder(astClass, adaptDepUnits=None):
 	"""returns a builder for STC-S geometries.
 	"""
 	def buildGeo(node, buildArgs, context):
+		context.pushDim(2)
 		for key, value in _iterCooMeta(node, context, "spaceFrame"):
 			buildArgs[key] = value
 		_fixSpatialUnits(node, buildArgs, context)
 		if adaptDepUnits:
 			adaptDepUnits(buildArgs)
+		buildArgs["origUnit"] = (buildArgs.pop("unit", None), None)
+		context.popDim()
 		yield 'areas', (astClass(**buildArgs),)
 	return buildGeo
 
@@ -519,7 +540,7 @@ def _adaptAreaUnits(buildArgs):
 	for areaAtt, posAtt in _areasAndPositions:
 		newAreas = []
 		for area in buildArgs.get(areaAtt, ()):
-			if area.origUnit is not None:
+			if area.origUnit is not None and area.origUnit[0] is not None:
 				newAreas.append(area.adaptValuesWith(
 					buildArgs[posAtt].getUnitConverter(area.origUnit)))
 			else:
@@ -530,43 +551,6 @@ def _adaptAreaUnits(buildArgs):
 def _buildToplevel(node, buildArgs, context):
 	_adaptAreaUnits(buildArgs)
 	yield 'stcSpec', (dm.STCSpec(**buildArgs),)
-
-
-def buildTree(csNode, context):
-	"""traverses the ElementTree cst, trying handler functions for
-	each node.
-
-	The handler functions are taken from the context.elementHandler
-	dictionary that maps QNames to callables.  These callables have
-	the signature handle(STCNode, context) -> iterator, where the
-	iterator returns key-value pairs for inclusion into the argument
-	dictionaries for STCNodes.
-
-	Unknown nodes are simply ignored.  If you need to bail out on certain
-	nodes, raise explicit exceptions in handlers.
-	"""
-	resDict = {}
-	if context.getHandler(csNode.tag) is None:
-		return
-	if csNode.tag in context.activeTags:
-		context.startTag(csNode)
-	for child in csNode:
-		for res in buildTree(child, context):
-			if res is None:  # ignored child
-				continue
-			k, v = res
-			if isinstance(v, (tuple, list)):
-				resDict[k] = resDict.get(k, ())+v
-			else:
-				if k in resDict:
-					raise STCInternalError("Attempt to overwrite key '%s', old"
-						" value %s, new value %s (this should probably have been"
-						" a tuple)"%(k, resDict[k], v))
-				resDict[k] = v
-	for res in context.getHandler(csNode.tag)(csNode, resDict, context):
-		yield res
-	if csNode.tag in context.activeTags:
-		context.endTag(csNode)
 
 
 class IdProxy(ASTNode):
@@ -609,6 +593,7 @@ class STCXContext(object):
 	"""
 	def __init__(self, elementHandlers, activeTags, **kwargs):
 		self.sysIdStack = []
+		self.nDimStack = []
 		self.specialHandlerStack = [{}]
 		self.elementHandlers = elementHandlers
 		self.activeTags = activeTags
@@ -629,6 +614,15 @@ class STCXContext(object):
 
 	def endTag(self, node):
 		self.activeTags[node.tag].stop(self, node)
+	
+	def pushDim(self, nDim):
+		self.nDimStack.append(nDim)
+	
+	def popDim(self):
+		return self.nDimStack.pop()
+	
+	def peekDim(self):
+		return self.nDimStack[-1]
 
 
 _yieldErrUnits = _makeUnitYielder(_handledUnits, "error")
@@ -774,6 +768,43 @@ def _getActiveTags():
 	}
 
 getActiveTags = CachedGetter(_getActiveTags)
+
+
+def buildTree(csNode, context):
+	"""traverses the ElementTree cst, trying handler functions for
+	each node.
+
+	The handler functions are taken from the context.elementHandler
+	dictionary that maps QNames to callables.  These callables have
+	the signature handle(STCNode, context) -> iterator, where the
+	iterator returns key-value pairs for inclusion into the argument
+	dictionaries for STCNodes.
+
+	Unknown nodes are simply ignored.  If you need to bail out on certain
+	nodes, raise explicit exceptions in handlers.
+	"""
+	resDict = {}
+	if context.getHandler(csNode.tag) is None:
+		return
+	if csNode.tag in context.activeTags:
+		context.startTag(csNode)
+	for child in csNode:
+		for res in buildTree(child, context):
+			if res is None:  # ignored child
+				continue
+			k, v = res
+			if isinstance(v, (tuple, list)):
+				resDict[k] = resDict.get(k, ())+v
+			else:
+				if k in resDict:
+					raise STCInternalError("Attempt to overwrite key '%s', old"
+						" value %s, new value %s (this should probably have been"
+						" a tuple)"%(k, resDict[k], v))
+				resDict[k] = v
+	for res in context.getHandler(csNode.tag)(csNode, resDict, context):
+		yield res
+	if csNode.tag in context.activeTags:
+		context.endTag(csNode)
 
 
 def parseSTCX(stcxLiteral):
