@@ -145,5 +145,30 @@ class RegionTest(STCMappingTest):
 			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><UNITSPHERE coord_naxes="3" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Convex ><Halfspace><Vector><C1>70.0</C1><C2>190.0</C2><C3>23.0</C3></Vector><Offset>0.125</Offset></Halfspace><Halfspace><Vector><C1>12.0</C1><C2>45.0</C2><C3>30.0</C3></Vector><Offset>-0.25</Offset></Halfspace></Convex></AstroCoordArea></V>')
 
 
+class CompoundTest(STCMappingTest):
+	def testSimpleUnion(self):
+		self.assertMapsto("Union ICRS Circle 10 10 2 Box 11 11 2 3",
+			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Union><Circle unit="deg"><Center><C1>10.0</C1><C2>10.0</C2></Center><Radius>2.0</Radius></Circle><Box unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><Size><C1>2.0</C1><C2>3.0</C2></Size></Box></Union></AstroCoordArea></V>')
+	
+	def testSimpleIntersection(self):
+		self.assertMapsto("Intersection ICRS Polygon 10 2 2 10 10 10"
+			" Ellipse 11 11 2 3 30",
+			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Intersection><Polygon unit="deg"><Vertex><Position><C1>10.0</C1><C2>2.0</C2></Position></Vertex><Vertex><Position><C1>2.0</C1><C2>10.0</C2></Position></Vertex><Vertex><Position><C1>10.0</C1><C2>10.0</C2></Position></Vertex></Polygon><Ellipse unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><SemiMajorAxis>2.0</SemiMajorAxis><SemiMinorAxis>3.0</SemiMinorAxis><PosAngle>30.0</PosAngle></Ellipse></Intersection></AstroCoordArea></V>')
+
+	def testUnionWithNot(self):
+		self.assertMapsto("Union ICRS Circle 10 10 2 Not Box 11 11 2 3",
+			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Union><Circle unit="deg"><Center><C1>10.0</C1><C2>10.0</C2></Center><Radius>2.0</Radius></Circle><Negation><Box unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><Size><C1>2.0</C1><C2>3.0</C2></Size></Box></Negation></Union></AstroCoordArea></V>')
+
+	def testSimpleDifference(self):
+		self.assertMapsto("Difference ICRS Circle 10 10 2 Not Box 11 11 2 3",
+			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Difference><Circle unit="deg"><Center><C1>10.0</C1><C2>10.0</C2></Center><Radius>2.0</Radius></Circle><Negation2><Box unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><Size><C1>2.0</C1><C2>3.0</C2></Size></Box></Negation2></Difference></AstroCoordArea></V>')
+	
+	def testInsaneRegion(self):
+		self.assertMapsto("Difference ICRS AllSky Union Circle 10 10 2"
+			" Intersection Polygon 10 2 2 10 10 10 Ellipse 11 11 2 3 30"
+			" Not Difference Circle 12 12 3 Box 11 11 2 3", 
+			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Difference><AllSky unit="deg" /><Union2><Circle unit="deg"><Center><C1>10.0</C1><C2>10.0</C2></Center><Radius>2.0</Radius></Circle><Intersection><Polygon unit="deg"><Vertex><Position><C1>10.0</C1><C2>2.0</C2></Position></Vertex><Vertex><Position><C1>2.0</C1><C2>10.0</C2></Position></Vertex><Vertex><Position><C1>10.0</C1><C2>10.0</C2></Position></Vertex></Polygon><Ellipse unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><SemiMajorAxis>2.0</SemiMajorAxis><SemiMinorAxis>3.0</SemiMinorAxis><PosAngle>30.0</PosAngle></Ellipse><Negation><Difference><Circle unit="deg"><Center><C1>12.0</C1><C2>12.0</C2></Center><Radius>3.0</Radius></Circle><Box2 unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><Size><C1>2.0</C1><C2>3.0</C2></Size></Box2></Difference></Negation></Intersection></Union2></Difference></AstroCoordArea></V>')
+
+
 if __name__=="__main__":
-	testhelpers.main(RegionTest)
+	testhelpers.main(CompoundTest)

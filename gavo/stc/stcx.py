@@ -126,6 +126,8 @@ class STC(object):
 	class Region(T_Region): pass
 	class Union(T_Region): pass
 	class Intersection(T_Region): pass
+	class Difference(T_Region): pass
+	class Negation(T_Region): pass
 
 	class T_Interval(T_Region): pass
 	
@@ -262,6 +264,7 @@ class STC(object):
 	class AllSky(T_Interval):
 		a_coord_system_id = None
 		a_note = None
+		mayBeEmpty = True
 
 	class SpatialInterval(T_Interval):
 		a_fill_factor = "1.0"

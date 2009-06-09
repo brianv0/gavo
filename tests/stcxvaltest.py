@@ -163,7 +163,15 @@ class STCSValidationTests(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 	def testConvex(self):
 		self.assertFromSTCSValidates("Convex ICRS 70 190 23 0.125 12 45"
 			" 30 -0.25")
+	
+	def testSimpleUnion(self):
+		self.assertFromSTCSValidates("Union ICRS Circle 10 10 2 Box 11 11 2 3")
 
+	def testInsaneRegion(self):
+		self.assertFromSTCSValidates(
+			"Difference ICRS AllSky Union Circle 10 10 2"
+			" Intersection Polygon 10 2 2 10 10 10 Ellipse 11 11 2 3 30"
+			" Not Difference Circle 12 12 3 Box 11 11 2 3")
 
 if __name__=="__main__":
 	testhelpers.main(STCSValidationTests)

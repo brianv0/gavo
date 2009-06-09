@@ -149,7 +149,7 @@ def _reFromKeys(iterable):
 	return "|".join(sorted(iterable, key=lambda x:-len(x)))
 
 
-def getSymbols(_setNames=False):
+def getSymbols(_exportAll=False):
 	"""returns a dictionary of symbols for a grammar parsing STC-S into
 	a concrete syntax tree.
 	"""
@@ -314,11 +314,12 @@ def getSymbols(_setNames=False):
 		Optional( spectralSubPhrase )("spectral") +
 		Optional( redshiftSubPhrase )("redshift") ) + StringEnd()
 
-	if _setNames:
-		for _n, _ob in locals().iteritems():
-			if hasattr(_ob, "setName"):
-				_ob.setName(_n)
-	return dict((n, v) for n, v in locals().iteritems() if not n.startswith("_"))
+	if _exportAll:
+		return dict((n, v) for n, v in locals().iteritems()
+			if hasattr(v, "setName"))
+	else:
+		return dict((n, v) for n, v in locals().iteritems() 
+			if not n.startswith("_"))
 
 
 def enableDebug(syms, debugNames=None):
@@ -344,8 +345,8 @@ def getCST(literal):
 
 
 if __name__=="__main__":
-	syms = getSymbols()
+	syms = getSymbols(_exportAll=True)
 #	print getCST("PositionInterval ICRS 1 2 3 4")
 	enableDebug(syms)
 	print makeTree(syms["stcsPhrase"].parseString(
-		"Time nil UNKNOWNRefPos MJD300", parseAll=True))
+		"Difference ICRS Union Circle 10 10 2 Not Difference AllSky Box 11 11 2 3 Intersection Polygon 10 2 2 10 10 10 Ellipse 11 11 2 3 30", parseAll=True))

@@ -358,24 +358,51 @@ serialize_VelocityInterval = _makeSpatialIntervalSerializer(_velIntervalClasses)
 
 ############# Geometries
 
+
+def _getDim(sampleValue):
+	if sampleValue is None:
+		return None
+	if isinstance(sampleValue, float):
+		return 1
+	else: 
+		return len(sampleValue)
+	
+
 def _makeBaseGeometry(cls, node, context):
-	units = _getSpatialUnits(context.getPosForInterval(node))[0]
-	return cls(frame_id=node.frame.id, fill_factor=strOrNull(node.fillFactor),
-		**units)
+	buildArgs = _getSpatialUnits(context.getPosForInterval(node))[0]
+	res = cls(frame_id=getattr(node.frame, "id", None), 
+		fill_factor=strOrNull(node.fillFactor), **buildArgs)
+	return res
 
 
+def complementing(serializer):
+	"""wraps the result of serializer in an STC.Negation element if
+	its node argument's complement attribute is true.
+
+	This is a helper decorator for Geometry serializers.
+	"""
+	def realSerializer(node, context):
+		res = serializer(node, context)
+		if node.complement:
+			return STC.Negation[res]
+		return res
+	return realSerializer
+
+@complementing
 def serialize_AllSky(node, context):
 	return _makeBaseGeometry(STC.AllSky, node, context)
 
+@complementing
 def serialize_Circle(node, context):
 # would you believe that the sequence of center and radius is swapped
 # in sphere and circle?  Oh boy.
-	if node.frame.nDim==2:
+	nDim = _getDim(node.center)
+	if nDim==2:
 		return _makeBaseGeometry(STC.Circle, node, context)[
 			STC.Center[_wrap2D(node.center)],
 			STC.Radius[node.radius],
 		]
-	elif node.frame.nDim==3:
+	elif nDim==3:
 		return _makeBaseGeometry(STC.Sphere, node, context)[
 			STC.Radius[node.radius],
 			STC.Center[_wrap3D(node.center)],
@@ -384,8 +411,9 @@ def serialize_Circle(node, context):
 		raise STCValueError("Spheres are only defined in 2 and 3D")
 
 
+@complementing
 def serialize_Ellipse(node, context):
-	if node.frame.nDim==2:
+	if _getDim(node.center)==2:
 		cls, wrap = STC.Ellipse, _wrap2D
 	else:
 		raise STCValueError("Ellipses are only defined in 2D")
@@ -397,26 +425,50 @@ def serialize_Ellipse(node, context):
 	]
 
 
+@complementing
 def serialize_Box(node, context):
-	if node.frame.nDim!=2:
+	if _getDim(node.center)!=2:
 		raise STCValueError("Boxes are only available in 2D")
 	return _makeBaseGeometry(STC.Box, node, context)[
 		STC.Center[_wrap2D(node.center)],
 		STC.Size[_wrap2D(node.boxsize)]]
 
 
+@complementing
 def serialize_Polygon(node, context):
-	if node.frame.nDim!=2:
+	if node.vertices and _getDim(node.vertices[0])!=2:
 		raise STCValueError("Polygons are only available in 2D")
 	return _makeBaseGeometry(STC.Polygon, node, context)[
 		[STC.Vertex[STC.Position[_wrap2D(v)]] for v in node.vertices]]
 
 
+@complementing
 def serialize_Convex(node, context):
 	return _makeBaseGeometry(STC.Convex, node, context)[
 		[STC.Halfspace[STC.Vector[_wrap3D(v[:3])], STC.Offset[v[3]]]
 		for v in node.vectors]]
 
+
+@complementing
+def serialize_MultiCompound(node, context):
+	if len(node.children)<2:
+		return nodeToStan(node)
+	return {"Union": STC.Union, "Intersection": STC.Intersection}[
+		node.__class__.__name__][[nodeToStan(c, context) for c in node.children]]
+			
+
+serialize_Union =  serialize_Intersection = serialize_MultiCompound
+
+@complementing
+def serialize_Difference(node, context):
+	if len(node.children)!=2:
+		raise STCValueError("Difference is only supported with two operands")
+	op1 = nodeToStan(node.children[0], context)
+	op2 = nodeToStan(node.children[1], context)
+	# Banzai!  To save myself the trouble of having all those icky *2
+	# elements around, I hack op2's name.
+	op2.name = op2.name+"2"
+	return STC.Difference[op1, op2]
 
 ############# Toplevel
 
