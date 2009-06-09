@@ -1,5 +1,19 @@
 """
 Building ASTs from STC-X trees.
+
+The idea here is run buildTree on an ElementTree of the STC-X input.
+
+buildTree has a dictionary mapping element names to handlers.  This dictionary
+is built with a modicum of metaprogramming within _getHandlers.
+
+Each handler receives the ElementTree node it is to operate on, the current
+buildArgs (i.e., a dictionary containing for building instances collected by
+buildTree while walking the tree), and a context object.
+
+Handlers yield keyword-value pairs that are added to the buildArgs.  If
+the value is a tuple or list, it will be appended to the current value
+for that keyword, otherwise it will fill this keyword.  Overwrites are
+not allowed.
 """
 
 from gavo.stc import dm
@@ -66,6 +80,7 @@ def _makeKeywordBuilder(kw):
 	return buildKeyword
 
 
+
 def _makeKwValuesBuilder(kwName, tuplify=False, units=_noIter):
 	"""returns a builder that takes vals from the buildArgs and
 	returns a tuple of them under kwName.
@@ -91,11 +106,11 @@ def _makeKwValueBuilder(kwName, tuplify=False, units=_noIter):
 	"""
 	if tuplify:
 		def buildNode(node, buildArgs, context):
-			yield kwName, tuple(buildArgs["vals"]),
+			yield kwName, tuple(buildArgs.get("vals", ())),
 			for res in units(node, buildArgs): yield res
 	else:
 		def buildNode(node, buildArgs, context):
-			yield kwName, buildArgs["vals"],
+			yield kwName, buildArgs.get("vals", None),
 			for res in units(node, buildArgs): yield res
 	return buildNode
 
@@ -110,12 +125,12 @@ def _makeKwFloatBuilder(kwName, multiple=True, units=_noIter):
 	"""
 	if multiple:
 		def buildNode(node, buildArgs, context):
-			if node.text:
+			if node.text and node.text.strip():
 				yield kwName, (float(node.text),)
 			for res in units(node, buildArgs): yield res
 	else:
 		def buildNode(node, buildArgs, context):
-			if node.text:
+			if node.text and node.text.strip():
 				yield kwName, float(node.text)
 			for res in units(node, buildArgs): yield res
 	return buildNode
@@ -504,6 +519,50 @@ def _makeGeometryBuilder(astClass, adaptDepUnits=None):
 	return buildGeo
 
 
+def _validateCompoundChildren(buildArgs):
+	"""makes sure that all children of a future compound geometry agree in
+	units and propagates units as necessary.
+
+	origUnit attributes of children are nulled out in the process.  Sorry
+	'bout ignoring immutability.
+	"""
+	children = buildArgs.pop("areas")
+	cUnits, selfUnit = [], buildArgs.pop("unit", None)
+	for c in children:
+		if c.origUnit!=(None,None):
+			cUnits.append(c.origUnit)
+			c.origUnit = None
+
+	if len(set(cUnits))>1:
+		raise STCNotImplementedError(
+			"Different units within compound children are not supported")
+	elif len(set(cUnits))==1:
+		ou = (selfUnit, None)
+		if selfUnit is not None and ou!=cUnits[0]:
+			raise STCNotImplementedError(
+				"Different units on compound and compound children are not supported")
+		buildArgs["origUnit"] = cUnits[0]
+	else:
+		if selfUnit is not None:
+			buildArgs["origUnit"] = (selfUnit, None)
+	buildArgs["children"] = children
+
+
+def _makeCompoundBuilder(astClass):
+	def buildCompound(node, buildArgs, context):
+		_validateCompoundChildren(buildArgs)
+		yield "areas", (astClass(**buildArgs),)
+	return buildCompound
+
+
+def _buildNegation(node, buildArgs, context):
+	if "unit" in node.attrib:
+		raise STCNotImplementedError("unit on negation is not supported")
+	a = buildArgs["areas"][0]
+	a.complement = not a.complement
+	yield "areas", (a,)
+
+
 ################# Toplevel
 
 _areasAndPositions = [("timeAs", "time"), ("areas", "place"),
@@ -693,6 +752,10 @@ _stcBuilders = [
 	(_makeGeometryBuilder(dm.Box, _adaptBoxUnits), ["Box", "Box2"]),
 	(_makeGeometryBuilder(dm.Polygon), ["Polygon", "Polygon2"]),
 	(_makeGeometryBuilder(dm.Convex), ["Convex", "Convex2"]),
+	(_makeCompoundBuilder(dm.Union), ["Union", "Union2"]),
+	(_makeCompoundBuilder(dm.Intersection), ["Intersection", "Intersection2"]),
+	(_makeCompoundBuilder(dm.Difference), ["Difference", "Difference2"]),
+	(_buildNegation, ["Negation", "Negation2"]),
 
 	(_buildToplevel, ["ObservatoryLocation", "ObservationLocation",
 		"STCResourceProfile"]),

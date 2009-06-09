@@ -579,7 +579,7 @@ class _Compound(_Geometry):
 	_a_children = ()
 	_a_complement = False
 
-	def adaptValuesWith(converter):
+	def adaptValuesWith(self, converter):
 		return self.change(children=[child.adaptValuesWith(converter)
 			for child in self.children])
 

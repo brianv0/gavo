@@ -7,6 +7,7 @@ import bz2
 import datetime
 
 from gavo import stc
+from gavo import utils
 from gavo.stc import dm
 
 import testhelpers
@@ -314,14 +315,19 @@ class GeometriesTest(testhelpers.VerboseTest):
 			((10.0, 12.0, 1.0, 0.125), (-10.0, -12.0, -1.0, -0.125)))
 
 
-class UnitsTest(testhelpers.VerboseTest):
-	def _getAST(self, frame, coo):
+class SimpleSTCXSrcTest(testhelpers.VerboseTest):
+	def _getAST(self, frame, area, coo=""):
+		if coo!="":
+			coo = '<AstroCoords coord_system_id="x">'+coo+"</AstroCoords>"
 		return stc.parseSTCX(('<ObservationLocation xmlns="%s">'%stc.STCNamespace)+
-			'<AstroCoordSystem id="x">%s'
-			'</AstroCoordSystem><AstroCoordArea coord_system_id="x">'+
+			'<AstroCoordSystem id="x">%s</AstroCoordSystem>'+
 			coo+
+			'<AstroCoordArea coord_system_id="x">'+
+			area+
 			'</AstroCoordArea></ObservationLocation>')[0]
 
+
+class UnitsTest(SimpleSTCXSrcTest):
 	def testSimpleCoo(self):
 		ast = self._getAST("<TimeFrame/>",
 			'<Time unit="a">2003-03-03T03:04:05</Time>')
@@ -329,14 +335,96 @@ class UnitsTest(testhelpers.VerboseTest):
 	
 	def testSpatial2DEmpty(self):
 		ast = self._getAST("<SpaceFrame><ICRS/></SpaceFrame>",
-			'<Position2D unit="deg"/>')
-		self.assertEqual(ast.place.unit, ("deg", "deg"))
+			'<Position2D unit="rad"/>')
+		self.assertEqual(ast.place.unit, ("rad", "rad"))
 
 	def testSpatial2DMixed(self):
 		ast = self._getAST("<SpaceFrame><ICRS/></SpaceFrame>",
 			'<Position2D unit="deg"><Value2><C1 pos_unit="deg">1</C1><C2 pos_unit="arcsec"'
 			'>2</C2></Value2></Position2D>')
 		self.assertEqual(ast.place.unit, ("deg", "arcsec"))
+
+
+class CompoundParseTest(XMLSrcTestBase):
+	"""tests for various aspects of parsing compound geometries.
+	"""
+	data = (    
+		'QlpoOTFBWSZTWcPIAfcAAYhfgFVVUAP4N79v38C//9/wQALbbrG2wBgkkEmp+lG9'
+    'U2poNGgaMaQAaD1GIAGmQiSaAND0I00AaAANGgACSVDQGgAA0AAAAAAAKokI0npM'
+    'p4mCPUTahiDIADQGGpDEgnoEDIYZJmEAlCQIGCzm08G5bPrGa1ZrwRrY85dwVZMK'
+    'YIYN6DQyttyTcKQSIQWJ3czPWgkfhSRWsPVKu4kri2fnO7GhBWMgu7RQZpz0RHSq'
+    '7nVajQac9cIZLDwivnIuYw8cNeGUyjhKChhKC3U0lMKT7SwVnKYpgGTLYWRfljBi'
+    'iLEEik8lWlWBPIWQIug7hGyHFybImyUHllSXgPSA7XruAMlvaPE2G/gFcSdrImSR'
+    'hpDn8kJlsy9YNYNXqymqloarQ1RQCjsRkjG/PLWMQQSRPAmVeDzc81simSZxlKdq'
+    'RQSJHzVKqplhgYzA5zNnc6ot9oQa3xtv6sAaPfVKUu9z/pnMmUz1tgQKuNN4BPmU'
+    'ST3lXxdAdyWLe6xyM9WjgDv7mM1uVg+DA+/2dzqxs62KVQ5XA0eeKHxYGZWc0WIy'
+    'uhFTEaWbJbLNpTRNW+qqk2VKFyxpwo5Hgo4ooaDCXiscxrUfjvR2Y3GsRstNRtVI'
+    'xwl24Y/j+tJyr0ysWtbaeGBc7zK57zcyY12iIWNpqLEWIvNy9uWFM+9kouzNTjmy'
+    'aU4Sx1+lbF7FEcKTCioNldZlXYnC9iUVIxxOAe9uXktb16lb2uLEiZG01Nm9OlGi'
+    'LYON4skRyLmcWm9pVlSNaxFI2LS5XBXlZFU4sSUzNjx6152NSibEYmLBHTGU5rFy'
+    'PIvpUiJCfNminMshWlcDpSfYbxYK8UhjT6x5QihSqHoiikmKF4ILb9HFSkDQ9ecw'
+    'lcz/F3JFOFCQw8gB9w==')
+
+	def __init__(self, *args, **kwargs):
+		XMLSrcTestBase.__init__(self, *args, **kwargs)
+		self.area = self.asf[0].areas[0]
+
+	def testAreasPresent(self):
+		self.assertEqual(len(self.asf[0].areas), 1)
+	
+	def testDifferenceShape(self):
+		self.failUnless(isinstance(self.area, dm.Difference))
+		self.failUnless(isinstance(self.area.children[0], dm.AllSky))
+		self.failUnless(isinstance(self.area.children[1], dm.Union))
+	
+	def testCircle(self):
+		circ = self.area.children[1].children[0]
+		self.assertEqual(circ.center, (10., 10.))
+		self.assertEqual(circ.radius, 2.)
+	
+	def testNegation(self):
+		innerDiff = self.area.children[1].children[1].children[2]
+		self.failUnless(isinstance(innerDiff, dm.Difference))
+		self.failUnless(innerDiff.complement)
+
+
+class CompoundUnitsTest(SimpleSTCXSrcTest):
+	def testNegationUnitFails(self):
+		self.assertRaises(stc.STCNotImplementedError, self._getAST,
+			"<SpaceFrame><ICRS/></SpaceFrame>", 
+			'<Union><Negation unit="deg"><AllSky/></Negation><Circle>'
+			'<Center><C1>12.0</C1><C2>13.0</C2></Center><Radius>1.0</Radius>'
+			'</Circle></Union>')
+
+	def testDifferingParentUnitFails(self):
+		self.assertRaises(stc.STCNotImplementedError, self._getAST,
+			"<SpaceFrame><ICRS/></SpaceFrame>", 
+			'<Union unit="deg"><AllSky unit="rad"/><Circle>'
+			'<Center><C1>12.0</C1><C2>13.0</C2></Center><Radius>1.0</Radius>'
+			'</Circle></Union>')
+
+	def testDifferingSiblingUnitFails(self):
+		self.assertRaises(stc.STCNotImplementedError, self._getAST,
+			"<SpaceFrame><ICRS/></SpaceFrame>", 
+			'<Union><AllSky unit="rad"/><Circle>'
+			'<Center><C1 unit="deg">12.0</C1><C2 unit="deg">13.0</C2>'
+			'</Center><Radius>1.0</Radius></Circle></Union>')
+
+	def testUnitInheritance(self):
+		ast = self._getAST("<SpaceFrame><ICRS/></SpaceFrame>", 
+			'<Union><AllSky/><Circle>'
+			'<Center><C1 unit="deg">12.0</C1><C2 unit="arcmin">13.0</C2>'
+			'</Center><Radius>1.0</Radius></Circle></Union>')
+		self.assertEqual(ast.place.unit, ("deg", "arcmin"))
+
+	def testAreaUnitCoercion(self):
+		ast = self._getAST("<SpaceFrame><ICRS/></SpaceFrame>",
+			'<Union><AllSky/><Circle unit="deg">'
+			'<Center><C1>12.0</C1><C2>13.0</C2>'
+			'</Center><Radius>1.0</Radius></Circle></Union>',
+			'<Position2D unit="rad"/>')
+		self.assertEqual(ast.place.unit, ("rad", "rad"))
+		self.assertAlmostEqual(ast.areas[0].children[1].radius, 1*utils.DEG)
 
 
 def _wrapSample(srcPath):
@@ -351,4 +439,4 @@ if __name__=="__main__":
 	if len(sys.argv)>1 and sys.argv[1].startswith("/"):
 		_wrapSample(sys.argv[1])
 	else:
-		testhelpers.main(ChandraResTest)
+		testhelpers.main(CompoundUnitsTest)
