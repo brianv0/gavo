@@ -240,8 +240,8 @@ def getSymbols(_exportAll=False):
 	stopTime = (Keyword("StopTime")("type") + _intervalOpener + 
 		nakedTime.setResultsName("coos", True) + _intervalCloser)
 	time = (Keyword("Time")("type")  + Optional( timescale("timescale") ) + 
-		Optional( refpos("refpos") ) + nakedTime.setResultsName("pos", True) + 
-		_commonTimeItems)
+		Optional( refpos("refpos") ) + Optional(
+			nakedTime.setResultsName("pos", True) ) + _commonTimeItems)
 	timeSubPhrase = (timeInterval | startTime | stopTime | time).addParseAction(
 		makeTree)
 

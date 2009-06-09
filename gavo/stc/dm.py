@@ -428,10 +428,6 @@ class _CoordinateInterval(_CoordinateLike):
 			changes["upperLimit"] = converter(self.upperLimit)
 		return self.change(**changes)
 
-
-class SpaceInterval(_CoordinateInterval):
-	cType = SpaceType
-
 	def getTransformed(self, sTrafo, destFrame):
 		ll, ul = self.lowerLimit, self.upperLimit
 		if ll is None:
@@ -444,7 +440,10 @@ class SpaceInterval(_CoordinateInterval):
 		yVals = [coo[1] for coo in vertices]
 		return self.change(upperLimit=(max(xVals), max(yVals)),
 			lowerLimit=(min(xVals), min(yVals)), frame=destFrame)
-		
+
+
+class SpaceInterval(_CoordinateInterval):
+	cType = SpaceType
 
 class VelocityInterval(_CoordinateInterval):
 	cType = VelocityType
@@ -459,6 +458,7 @@ class TimeInterval(_CoordinateInterval):
 		# timeIntervals are unitless; units only refer to errors, etc,
 		# which we don't have here.
 		return self
+
 
 class SpectralInterval(_CoordinateInterval):
 	cType = SpectralType
@@ -482,7 +482,7 @@ class _Geometry(_CoordinateLike):
 	all dependent quantities (which may all be None).  This is used
 	in stxast.
 
-	Also iterTransformed usually needs to be overridden for these.
+	Also getTransformed usually needs to be overridden for these.
 	"""
 	_a_size = None
 	_a_fillFactor = None

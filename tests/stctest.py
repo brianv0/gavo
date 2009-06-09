@@ -71,7 +71,7 @@ class OtherCoordTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.redshift.frame.dopplerDef, "RADIO")
 
 	def testRaising(self):
-		self.assertRaises(stc.STCSParseError, stcsast.parseSTCS,
+		self.assertRaises(stc.STCValueError, stcsast.parseSTCS,
 			"Time TT Error 1 2 3")
 		self.assertRaises(stc.STCValueError, stcsast.parseSTCS,
 			"Spectral BARYCENTER 23 Resolution 0.25 0.5 2.5")
@@ -471,4 +471,4 @@ class EclipticEquinoxTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(STCSRoundtripTest)
+	testhelpers.main(OtherCoordTest)

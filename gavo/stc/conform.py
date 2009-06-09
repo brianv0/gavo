@@ -10,6 +10,7 @@ space and time for velocities.
 from gavo import utils
 from gavo.stc import spherc
 from gavo.stc import sphermath
+from gavo.stc import times
 from gavo.stc import units
 from gavo.stc.common import *
 
@@ -28,7 +29,7 @@ def _transformAreas(areas, sTrafo, srcFrame, destFrame):
 	return newAreas
 
 
-def iterSpatialChanges(baseSTC, sysSTC, sixTrans):
+def iterSpatialChanges(baseSTC, sysSTC, slaComp=False):
 	"""yields changes to baseSTC to bring places and velocities to the
 	system and units of sysSTC.
 
@@ -37,8 +38,9 @@ def iterSpatialChanges(baseSTC, sysSTC, sixTrans):
 	If the frame or units are not defined in sysSTC, there are taken from
 	baseSTC.
 	"""
-	if not baseSTC.place or not sysSTC.place:
+	if baseSTC.place is None or sysSTC.place is None:
 		return  # nothing to conform in space
+	sixTrans = sphermath.SVConverter.fromSTC(baseSTC, slaComp=slaComp)
 	destFrame, srcFrame = sysSTC.place.frame, baseSTC.place.frame
 	bPlace, bVel = baseSTC.place, baseSTC.velocity
 	trafo = spherc.getTrafoFunction(baseSTC.place.frame.asTriple(),
@@ -67,6 +69,20 @@ def iterSpatialChanges(baseSTC, sysSTC, sixTrans):
 				destFrame)
 
 
+def iterTemporalChanges(baseSTC, sysSTC):
+	if baseSTC.time is None or sysSTC.time is None:
+		return # nothing to conform in time
+	destFrame = sysSTC.time.frame
+	transform = times.getTransformFromSTC(baseSTC, sysSTC)
+	if transform is None:
+		return # we're already conforming
+	if baseSTC.time.value:
+		yield "time", baseSTC.time.change(value=transform(
+			baseSTC.time.value), frame=destFrame)
+	if baseSTC.timeAs:
+		yield "timeAs", tuple(ta.getTransformed(transform, destFrame)
+			for ta in baseSTC.timeAs)
+
 
 def conformUnits(baseSTC, sysSTC):
 	"""returns baseSTC in the units of sysSTC.
@@ -83,10 +99,8 @@ def conformSystems(baseSTC, sysSTC, relativistic=False, slaComp=False):
 	precession and reference frame fixing.
 	"""
 	changes = [("astroSystem", sysSTC.astroSystem)]
-	if baseSTC.place is not None and sysSTC.place is not None:
-		transform = sphermath.SVConverter.fromSTC(baseSTC, slaComp=slaComp)
-		changes.extend(iterSpatialChanges(baseSTC, sysSTC, transform))
-# XXX TODO: conform time frames
+	changes.extend(iterSpatialChanges(baseSTC, sysSTC, slaComp=slaComp))
+	changes.extend(iterTemporalChanges(baseSTC, sysSTC))
 	return conformUnits(baseSTC.change(**dict(changes)), sysSTC)
 
 

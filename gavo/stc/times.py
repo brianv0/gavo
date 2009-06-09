@@ -4,6 +4,7 @@ Helpers for time parsing and conversion.
 
 import bisect
 import datetime
+import math
 import re
 
 from gavo import utils
@@ -276,6 +277,34 @@ def TTtoUTC(tt):
 	# XXX TODO: leap seconds need to be computed from UTC, so this will
 	# be one second off in the immediate vicinity of a leap second.
 	return TTtoTAI(tt)-getLeapSeconds(tt, ttLeapSecondTable)
+
+
+# A dict mapping timescales to conversions to/from TT.
+timeConversions = {
+	"UTC": (UTCtoTT, TTtoUTC),
+	"TCB": (TCBtoTT, TTtoTCB),
+	"TCG": (TCGtoTT, TTtoTCG),
+	"TDB": (TDBtoTT, TTtoTDB),
+	"TAI": (TAItoTT, TTtoTAI),
+	"TT": (utils.identity, utils.identity),
+}
+
+
+def getTransformFromScales(fromScale, toScale):
+	try:
+		toTT = timeConversions[fromScale][0]
+		toTarget = timeConversions[toScale][1]
+	except KeyError, key:
+		raise STCValueError("Unknown timescale for transform: %s"%key)
+	def transform(val):
+		return toTarget(toTT(val))
+	return transform
+
+
+def getTransformFromSTC(fromSTC, toSTC):
+	fromScale, toScale = fromSTC.time.frame.timeScale, toSTC.time.frame.timeScale
+	if fromScale!=toSTC and toSTC is not None:
+		return getTransformFromScales(fromScale, toScale)
 
 
 def _test():

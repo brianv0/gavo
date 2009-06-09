@@ -330,14 +330,16 @@ class UnitConformTest(testhelpers.VerboseTest):
 		self.assertEqual(res.redshift.velTimeUnit, "s")
 
 
-class GeometryConformTest(testhelpers.VerboseTest):
-	"""tests for conforming of Boxes, Circles and friends.
-	"""
+class _STCSMatchTestBase(testhelpers.VerboseTest):
 	def assertMatchingSTCS(self, srcSTCS, sysSTCS, expected):
 		srcAst, sysAst = stc.parseSTCS(srcSTCS), stc.parseSTCS(sysSTCS)
 		found = stc.getSTCS(stc.conformTo(srcAst, sysAst))
 		self.assertEqual(found, expected)
 
+
+class GeometryConformTest(_STCSMatchTestBase):
+	"""tests for conforming of Boxes, Circles and friends.
+	"""
 	def testCircleToGal(self):
 		self.assertMatchingSTCS("Circle ICRS 45 -60 1",
 			"Position GALACTIC unit rad",
@@ -355,7 +357,6 @@ class GeometryConformTest(testhelpers.VerboseTest):
 			"Position ECLIPTIC J1950",
 			"Polygon ECLIPTIC J1950.0 99.4089149593 -13.1039695064 99.4077016165 -13.0873447912 99.4189071078 -13.0865685226 99.420121778 -13.1031931456")
 
-
 	def testVelocityNoSystem(self):
 		self.assertMatchingSTCS(
 			"Position ICRS VelocityInterval 0.1 0.2 unit arcsec/yr",
@@ -370,5 +371,36 @@ class GeometryConformTest(testhelpers.VerboseTest):
 			stc.conformTo, (srcAst, sysAst))
 
 
+class TimeConformTest(_STCSMatchTestBase):
+	def testNoDestSystem(self):
+		self.assertMatchingSTCS("Time TT 2005-03-07T16:33:20",
+			"Position GALACTIC unit rad",
+			"Time TT 2005-03-07T16:33:20")
+	
+	def testNoSrcSystem(self):
+		self.assertRaises(stc.STCValueError, self.assertMatchingSTCS,
+			"Time 2005-03-07T16:33:20",
+			"Time TT",
+			"")
+	
+	def testToUTC(self):
+		self.assertMatchingSTCS(
+			"Time TT 2005-03-07T16:33:20",
+			"Time UTC",
+			"Time UTC 2005-03-07T16:33:20.184000")
+
+	def testFromUTC(self):
+		self.assertMatchingSTCS(
+			"Time UTC 2005-03-07T16:33:20.184000",
+			"Time TT",
+			"Time TT 2005-03-07T16:33:20")
+
+	def testTwostep(self):
+		self.assertMatchingSTCS(
+			"Time TCB 2005-03-07T16:33:20",
+			"Time TAI",
+			"Time TAI 2005-03-07T16:31:57.946772")
+
+
 if __name__=="__main__":
-	testhelpers.main(GeoCoercionTest)
+	testhelpers.main(TimeConformTest)
