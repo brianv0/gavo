@@ -218,6 +218,24 @@ class ToGalacticTest(testhelpers.VerboseTest):
 	]
 
 
+class SuperGalacticTest(testhelpers.VerboseTest):
+	def testGalToSG(self):
+		baseAST = stc.parseSTCS("Position GALACTIC 23.54 -45.32")
+		sysAST = stc.parseSTCS("Position SUPER_GALACTIC")
+		res = stc.conformTo(baseAST, sysAST)
+		p = res.place.value
+		self.assertAlmostEqual(p[0], 249.92902823)
+		self.assertAlmostEqual(p[1], 34.12639039)
+
+	def testSGToB1950(self):
+		baseAST = stc.parseSTCS("Position SUPER_GALACTIC 23.54 -45.32")
+		sysAST = stc.parseSTCS("Position B1950")
+		res = stc.conformTo(baseAST, sysAST)
+		p = res.place.value
+		self.assertAlmostEqual(p[0], 100.62487077)
+		self.assertAlmostEqual(p[1], 28.96712491)
+
+
 class PositionOnlyTestBase(testhelpers.VerboseTest):
 	"""A base class for makestctruth-based tests involving positions only.
 	"""
@@ -274,4 +292,4 @@ for sampleName in dir(stcgroundtruth):
 
 
 if __name__=="__main__":
-	testhelpers.main(SpherMathTest)
+	testhelpers.main(SuperGalacticTest)

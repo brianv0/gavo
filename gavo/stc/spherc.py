@@ -390,8 +390,8 @@ def fk5ToFK4(sixTrans, svfk5):
 
 ############### Galactic coordinates
 
-_galB1950pole = (192.25/180*math.pi, 27.4/180*math.pi)
-_galB1950zero = (265.6108440311/180*math.pi, -28.9167903484/180*math.pi)
+_galB1950pole = (192.25*DEG, 27.4*DEG)
+_galB1950zero = (265.6108440311*DEG, -28.9167903484*DEG)
 
 _b1950ToGalTrafo = sphermath.computeTransMatrixFromPole(
 	_galB1950pole, _galB1950zero)
@@ -403,6 +403,12 @@ _galToJ2000Matrix = threeToSix(numarray.transpose(numarray.array([
 	[ 0.494109453305607, -0.444829589431879,  0.746982251810510],
 	[-0.867666135847849, -0.198076386130820,  0.455983795721093]])))
 
+
+############### Supergalactic coordinates
+
+_galToSupergalTrafo = sphermath.computeTransMatrixFromPole(
+	(47.37*DEG, 6.32*DEG), (137.37*DEG, 0))
+_galToSupergalMatrix = threeToSix(_galToSupergalTrafo)
 
 ############### Ecliptic coordinates
 
@@ -502,6 +508,10 @@ _findTransformsPath = _makeFindPath([
 		_Constant(_b1950ToGalMatrix)),
 	(("GALACTIC", ANYVAL, SAME), ("FK4", times.dtB1950, SAME),
 		_Constant(la.inverse(_b1950ToGalMatrix))),
+	(("GALACTIC", ANYVAL, SAME), ("SUPER_GALACTIC", ANYVAL, SAME),
+		_Constant(_galToSupergalMatrix)),
+	(("SUPER_GALACTIC", ANYVAL, SAME), ("GALACTIC", ANYVAL, SAME),
+		_Constant(la.inverse(_galToSupergalMatrix))),
 	(("FK5", ANYVAL, SAME), ("FK5", times.dtJ2000, SAME),
 		_getIAU1976PrecMatrix),
 	(("FK4", ANYVAL, SAME), ("FK4", times.dtB1950, SAME),
