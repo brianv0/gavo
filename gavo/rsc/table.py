@@ -85,6 +85,8 @@ class BaseTable(object):
 	rows -- a list of rows the table has at start (InMemoryTables; DbTables
 	  will raise an error on these).
 	connection -- a database connection to use for accessing DbTables.
+	votCasts -- a dictionary mapping column names to dictionaries for
+	  use with ColProperties.  See there.
 
 	You can add rows using the addRow method.  For bulk additions, however,
 	it may be much more efficient to call getFeeder (though for in-memory
@@ -115,8 +117,9 @@ class BaseTable(object):
 	  with private connections.
 	"""
 	def __init__(self, tableDef, **kwargs):
-		self.tableDef, self.validateRows = tableDef, kwargs.get("validateRows",
-			False)
+		self.tableDef = tableDef
+		self.validateRows = kwargs.get("validateRows", False)
+		self.votCasts = kwargs.get("votCasts", {})
 		self.role = kwargs.get("role")
 
 	def _failIncomplete(self, *args, **kwargs):

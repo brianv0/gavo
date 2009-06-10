@@ -153,7 +153,7 @@ class ProductTarMaker(object):
 		"""actually writes the tar.
 		"""
 		nameGen = UniqueNameGenerator()
-		outputTar = tarfile.TarFile("data.tar", "w", destination)
+		outputTar = tarfile.TarFile.open("data.tar", "w|", destination)
 		for prodRec in productData.getPrimaryTable():
 			src = prodRec["source"]
 			if isinstance(src, products.NonExistingProduct):
@@ -163,7 +163,7 @@ class ProductTarMaker(object):
 				if isinstance(src, products.UnauthorizedProduct):
 					outputTar.addfile(*self._getEmbargoedFile(targetName))
 				else:
-					outputTar.add(src.sourcePath, targetName)
+					outputTar.add(str(src.sourcePath), str(targetName))
 			else: # anything else is read from the src
 				outputTar.addfile(*self._getTarInfoFromProduct(src,
 					nameGen.makeName(os.path.basename(src.fullFilePath))))

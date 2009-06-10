@@ -357,6 +357,8 @@ _config = Configuration(
 		IntConfigItem("maxPreviewWidth", "300", "Hard limit for the width"
 			" of previews (necessary because previews on protected items"
 			" are free)"),
+		ListConfigItem("graphicMimes", "image/fits,image/jpeg", "MIME types"
+			" considered as graphics (for SIAP, mostly)"),
 	),
 
 	Section('ui', "Settings concerning the local user interface",

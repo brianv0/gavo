@@ -410,6 +410,7 @@ _galToSupergalTrafo = sphermath.computeTransMatrixFromPole(
 	(47.37*DEG, 6.32*DEG), (137.37*DEG, 0))
 _galToSupergalMatrix = threeToSix(_galToSupergalTrafo)
 
+
 ############### Ecliptic coordinates
 
 def _getEclipticMatrix(epoch):

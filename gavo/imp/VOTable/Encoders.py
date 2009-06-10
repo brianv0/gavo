@@ -132,7 +132,10 @@ class StreamEncoder(GenericEncoder):
                 return struct.pack("!i%d%s"%(l, typeCode), l,
                     *data)
         else:
-            length = int(length)
+            if not length:
+                length = 1
+            else:
+                length = int(length)
             formatString = "!%d%s"%(length, typeCode)
             def encoder(data):
                 if isinstance(data, unicode):
@@ -167,10 +170,12 @@ class StreamEncoder(GenericEncoder):
             return struct.pack("!d", val)
         except SystemError:
             return self.encNanDouble
-        
+    
+    _length1Indicators = set(["1", 1, None, ''])
+
     def _makeEncoderForField(self, type, length):
         typeCode = self.typedefs[type][0]
-        if length=="1" or length==1 or length is None:
+        if length in self._length1Indicators:
             # Gruesome workaround for struct bug; side effect: python<2.5
             # can't pack NULL floats in arrays (who cares?)
             if sys.hexversion<=0x20404f0:

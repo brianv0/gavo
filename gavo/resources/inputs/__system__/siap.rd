@@ -227,10 +227,7 @@
 			description="Requested format of the image data"
 			tablehead="Output format"
 			widgetFactory='Hidden'>
-			<values default="image/fits">
-				<option>image/fits</option>
-				<option>METADATA</option>
-			</values>
+			<values default="image/fits"/>
 		</inputKey>
 	</condDesc>
 </resource>

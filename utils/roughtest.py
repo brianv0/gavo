@@ -390,6 +390,13 @@ myTests = [
 				("content-disposition", "attachment; filename=truncated_data.tar"),
 				("content-type", "application/x-tar")],
 			"Tar output declared in header"),
+		GetHasStringsTest(nv_root+"/maidanak/res/rawframes/siap/form?"
+			"__nevow_form__=genForm&POS=q2237%2B0305&SIZE=1&INTERSECT=OVERLAPS&"
+			"FORMAT=image%2Ffits&dateObs=2001-01-01%20..%202005-10-10&"
+			"_DBOPTIONS_LIMIT=1&_FORMAT=tar&_DBOPTIONS_ORDER=dateObs", [
+			"dc_data/mh050098",
+			"L\xed\xd8V\x1a\x8f\xfd\xde\x99\x9a4\x98",],
+			"Tar output looks plausible"),
 	),
 	TestGroup("auth",
 		HeadStatusTest(nv_root+"/rauchspectra/theospectra/upload/upload",
@@ -773,13 +780,13 @@ myTests = [
 			"PPMX forms query looks all right"),
 		GetHasStringsTest(nv_root+"/ppmx/res/ppmx/scs/scs.xml?RA=150.0&DEC=19.2"
 			"&SR=0.1&VERB=1",
-			['<FIELD ID="deltaFloat" arraysize="1" datatype="double"'
+			['<FIELD ID="deltaFloat" arraysize="" datatype="double"'
 				' name="deltaFloat" ucd="POS_EQ_DEC_MAIN" unit="deg">',
 				"AAAADzA5NTk1Ni41KzE5MDkzNTmIUJy7o9cKQUzMzUBiv4"],
 			"PPMX SCS returns translated UCDs and some sensible binary content"),
 		GetHasStringsTest(nv_root+"/ppmx/res/ppmx/scs/scs.xml?RA=150.0&DEC=19.2"
 			"&SR=0.1&VERB=3&_TDENC=True",
-			['<FIELD ID="c_y" arraysize="1"',],
+			['<FIELD ID="c_y" arraysize=""',],
 			"PPMX SCS returns weird fields with VERB=3."),
 	),
 ]

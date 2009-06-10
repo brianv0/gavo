@@ -252,10 +252,11 @@ class TestCoordinateQueries(unittest.TestCase):
 		querier = base.SimpleQuerier()
 		try:
 			for center, size, expected in self._testcases:
-				fragment, pars = siap.getBboxQuery({
+				pars = {}
+				fragment = siap.getBboxQuery({
 					"POS": center,
 					"SIZE": size,
-					"INTERSECT": type})
+					"INTERSECT": type}, pars)
 				res = querier.query(
 					"SELECT * FROM %s WHERE %s"%(self.tableName, fragment), 
 					pars).fetchall()

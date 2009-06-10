@@ -119,7 +119,7 @@ def splitCrossingBox(bbox):
 
 
 # XXX TODO: Maybe rework this to make it use vizierexprs.getSQLKey?
-# (caution: that unfortunately messes up many unit tests...)
+# (caution: that would mess up many unit tests...)
 _intersectQueries = {
 	"COVERS": "primaryBbox ~ %(<p>roiPrimary)s AND (secondaryBbox IS NULL OR"
 	  " secondaryBbox ~ %(<p>roiSecondary)s)",
@@ -134,21 +134,20 @@ _intersectQueries = {
 	}
 
 
-def getBboxQueryFromBbox(intersect, bbox, center, prefix):
+def getBboxQueryFromBbox(intersect, bbox, center, prefix, sqlPars):
 	bboxes = splitCrossingBox(bbox)
-	return _intersectQueries[intersect].replace("<p>", prefix), {
-		prefix+"roiPrimary": bboxes[0], 
+	sqlPars.update({prefix+"roiPrimary": bboxes[0], 
 		prefix+"roiSecondary": bboxes[1],
 		prefix+"roiAlpha": center[0],
-		prefix+"roiDelta": center[1],
-		}
+		prefix+"roiDelta": center[1],})
+	return _intersectQueries[intersect].replace("<p>", prefix) 
 
 
-def getBboxQuery(parameters, prefix="sia"):
+def getBboxQuery(parameters, sqlPars, prefix="sia"):
 	"""returns an SQL fragment for a SIAP query for bboxes.
 
-	The SQL is returned as a WHERE-fragment in a string and a dictionary
-	to fill the variables required.
+	The SQL is returned as a WHERE-fragment in a string.  The parameters
+	are added in the sqlPars dictionary.
 
 	parameters is a dictionary that maps the SIAP keywords to the
 	values in the query.  Parameters not defined by SIAP are ignored.
@@ -170,21 +169,32 @@ def getBboxQuery(parameters, prefix="sia"):
 		sizes = sizes*2
 	bbox = getBboxFromSIAPPars((ra, dec), sizes)
 	intersect = parameters.get("INTERSECT", "OVERLAPS")
-	query, pars = getBboxQueryFromBbox(intersect, bbox, (ra, dec), prefix)
+	query = getBboxQueryFromBbox(intersect, bbox, (ra, dec), prefix, sqlPars)
 	# the following are for the benefit of cutout queries.
-	pars["_ra"], pars["_dec"] = ra, dec
-	pars["_sra"], pars["_sdec"] = sizes
-	return query, pars
+	sqlPars["_ra"], sqlPars["_dec"] = ra, dec
+	sqlPars["_sra"], sqlPars["_sdec"] = sizes
+	return query
 
 
 class SIAPConditionBase(svcs.CondDesc):
+	def _interpretFormat(self, inPars, sqlPars):
+		# Interprets a SIA FORMAT parameter.  METADATA is caught by the
+		# SIAP renderer, which of the magic values leaves ALL and GRAPHIC to us.
+		fmt = inPars.get("FORMAT")
+		if fmt is None or fmt=="ALL":
+			return ""
+		elif fmt=="GRAPHIC":
+			return "imageFormat IN %%(%s)s"%base.getSQLKey("format", 
+				base.getConfig("graphicMimes"), sqlPars)
+		else:
+			return "imageFormat=%%(%s)s"%base.getSQLKey("format", fmt, sqlPars)
+
 	def asSQL(self, inPars, sqlPars):
 		if not self.inputReceived(inPars):
 			return ""
-		fragment, pars = getBboxQuery(inPars)
-		sqlPars.update(pars)
-		return "(%s) AND imageFormat=%%(%s)s"%(fragment,
-			base.getSQLKey("imageFormat", inPars["FORMAT"], sqlPars))
+		fragments = [getBboxQuery(inPars, sqlPars),
+			self._interpretFormat(inPars, sqlPars)]
+		return base.joinOperatorExpr("AND", fragments)
 
 
 class SIAPCondition(SIAPConditionBase):
@@ -212,8 +222,7 @@ class SIAPCondition(SIAPConditionBase):
 					type="text", required=False,
 					description="Requested format of the image data",
 					tablehead="Output format", 
-					values=MS(rscdef.Values, options=rscdef.makeOptions(
-						"image/fits", "METADATA"), default="image/fits"),
+					values=MS(rscdef.Values, default="image/fits"),
 					widgetFactory='Hidden')
 			]})
 		SIAPConditionBase.__init__(self, parent, **kwargs)
@@ -243,7 +252,8 @@ class HumanSIAPCondition(SIAPConditionBase):
 			ra, dec = float(data["RA"]), float(data["dec"])
 		return SIAPConditionBase.asSQL(self, {
 			"POS": "%f, %f"%(ra, dec), "SIZE": inPars["SIZE"],
-			"INTERSECT": inPars["INTERSECT"], "FORMAT": inPars["FORMAT"]}, sqlPars)
+			"INTERSECT": inPars["INTERSECT"], "FORMAT": inPars.get("FORMAT")}, 
+				sqlPars)
 
 svcs.registerCondDesc("humanSIAP", HumanSIAPCondition)
 

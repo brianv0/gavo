@@ -115,6 +115,7 @@ class SCSRenderer(DALRenderer):
 		data = rsc.makeData(MS(rscdef.DataDescriptor, parent_=self.service.rd))
 		data.addMeta("info", base.makeMetaValue(msg, name="info", 
 			infoName="Error", infoId="Error"))
+		data.addMeta("_type", "results")
 		return svcs.SvcResult(data, {}, svcs.QueryMeta.fromContext(ctx))
 	
 	def _formatOutput(self, data, ctx):
@@ -123,6 +124,7 @@ class SCSRenderer(DALRenderer):
 		This comprises mapping meta.id;meta.main to ID_MAIN and
 		pos.eq* to POS_EQ*.
 		"""
+# XXX TODO: move this to casts, then kill the translated UCDs mess.
 		translatedUCDs = {
 			"meta.id;meta.main": "ID_MAIN",
 			"pos.eq.ra;meta.main": "POS_EQ_RA_MAIN",
@@ -157,6 +159,17 @@ class SIAPRenderer(DALRenderer):
 			return self._serveMetadata(ctx)
 		return DALRenderer.renderHTTP(self, ctx)
 
+	_outputTableCasts = {
+		"pixelScale": {"datatype": "double"},
+		"wcs_cdmatrix": {"datatype": "double"},
+		"wcs_refValues": {"datatype": "double"},
+		"bandpassHi": {"datatype": "double"},
+		"bandpassLo": {"datatype": "double"},
+		"bandpassRefval": {"datatype": "double"},
+		"wcs_refPixel": {"datatype": "double"},
+		"wcs_projection": {"arraysize": "3", "castFunction": lambda s: s[:3]},
+	}
+
 	def _makeMetadataData(self, queryMeta):
 		inputFields = [svcs.InputKey.fromColumn(f) 
 			for f in self.service.getInputFields()]
@@ -164,18 +177,18 @@ class SIAPRenderer(DALRenderer):
 			f.name = "INPUT:"+f.name
 		inputTable = MS(rscdef.TableDef, columns=inputFields)
 		outputTable = MS(rscdef.TableDef, columns=
-			self.service.getCurOutputFields(queryMeta))
+			self.service.getCurOutputFields(queryMeta), id="result")
 
 		nullRowmaker = MS(rscdef.RowmakerDef)
 		dataDesc = MS(rscdef.DataDescriptor, makes=[
 			MS(rscdef.Make, table=inputTable, role="parameters", 
 				rowmaker=nullRowmaker),
-			MS(rscdef.Make, table=self.service.core.outputTable, 
-				rowmaker=nullRowmaker)],
+			MS(rscdef.Make, table=outputTable, rowmaker=nullRowmaker)],
 			parent_=self.service.rd)
 
 		data = rsc.makeData(dataDesc)
-		data.addMeta("_type", "metadata")
+		data.tables["result"].votCasts = self._outputTableCasts
+		data.addMeta("_type", "results")
 		data.addMeta("info", base.makeMetaValue("OK", name="info", 
 			infoName="QUERY_STATUS", infoValue="OK"))
 		return svcs.SvcResult(data, {}, queryMeta)
@@ -190,6 +203,7 @@ class SIAPRenderer(DALRenderer):
 		data.original.addMeta("info", base.makeMetaValue("OK", name="info",
 			infoName="QUERY_STATUS", infoValue="OK"))
 		data.original.addMeta("_type", "results")
+		data.original.getPrimaryTable().votCasts = self._outputTableCasts
 		return DALRenderer._formatOutput(self, data, ctx)
 	
 	def _makeErrorTable(self, ctx, msg):
@@ -197,6 +211,7 @@ class SIAPRenderer(DALRenderer):
 		data = rsc.makeData(dataDesc)
 		data.addMeta("info", base.makeMetaValue(str(msg), name="info",
 			infoValue="ERROR", infoName="QUERY_STATUS"))
+		data.addMeta("_type", "results")
 		return svcs.SvcResult(data, {}, svcs.QueryMeta.fromContext(ctx))
 
 grend.registerRenderer("siap.xml", SIAPRenderer)

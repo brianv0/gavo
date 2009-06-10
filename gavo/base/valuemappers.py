@@ -29,26 +29,22 @@ class ValueMapperFactoryRegistry(object):
 	"""is an object clients can ask for functions fixing up values
 	for encoding.
 
-	A mapper factory is just a function that takes a "representative"
-	instance and the column properties It must return either None
-	(for "I don't know how to make a function for this combination
-	of value and column properties") or a callable that takes a
-	value of the given type and returns a mapped value.
+	A mapper factory is just a function that takes a ColProperties instance.
+	It must return either None (for "I don't know how to make a function for this
+	combination these column properties") or a callable that takes a value
+	of the given type and returns a mapped value.
 
 	To add a mapper, call registerFactory.  To find a mapper for a
 	set of column properties, call getMapper -- column properties should
 	be an instance of ColProperties, but for now a dictionary with the
 	right keys should mostly do.
 
-	Mappers have both the sql type (in the sqltype entry) and the votable type
-	(in the datatype and arraysize entries) to base their decision on.
-
 	Mapper factories are tried in the reverse order of registration,
 	and the first that returns non-None wins, i.e., you should
 	register more general factories first.  If no registred mapper declares
 	itself responsible, getMapper returns an identity function.  If
 	you want to catch such a situation, you can use somthing like
-	res = vmfr.getMapper(...); if res is vmfr.identity ...
+	res = vmfr.getMapper(...); if res is utils.identity ...
 	"""
 	def __init__(self, factories=None):
 		if factories is None:
@@ -67,9 +63,6 @@ class ValueMapperFactoryRegistry(object):
 	def registerFactory(self, factory):
 		self.factories.insert(0, factory)
 
-	def identity(self, val):
-		return val
-
 	def getMapper(self, colProps):
 		"""returns a mapper for values with the python value instance, 
 		according to colProps.
@@ -86,7 +79,7 @@ class ValueMapperFactoryRegistry(object):
 				colProps["winningFactory"] = factory
 				break
 		else:
-			mapper = self.identity
+			mapper = utils.identity
 		return mapper
 
 
@@ -179,7 +172,8 @@ def datetimeMapperFactory(colProps):
 		"""
 		return stc.dateTimeToJdn(val)-2400000.5
 	
-	if isinstance(colProps["sample"], (datetime.date, datetime.datetime)):
+	if (isinstance(colProps["sample"], (datetime.date, datetime.datetime))
+			or (colProps["sample"] is None and colProps["dbtype"]=="timestamp")):
 		unit = colProps["unit"]
 		if "MJD" in colProps.get("ucd", ""):  # like VOX:Image_MJDateObs
 			colProps["unit"] = "d"
@@ -224,6 +218,14 @@ def _productMapperFactory(colProps):
 					"getproduct?key=%s&siap=true"%urllib.quote(val))
 		return mapper
 _registerDefaultMF(_productMapperFactory)
+
+
+def _castMapperFactory(colProps):
+	"""is a factory that picks up castFunctions set up by user casts.
+	"""
+	if "castFunction" in colProps:
+		return colProps["castFunction"]
+_registerDefaultMF(_castMapperFactory)
 
 
 def getMapperRegistry():
@@ -289,6 +291,17 @@ class ColProperties(dict):
 
 	One of the main functions of this class is that instances can/should
 	be used to query ValueMapperFactoryRegistries for value mappers.
+
+	As a special service to coerce internal tables to external standards,
+	you can pass a votCast dictionary to ColProperties.  The VOTable
+	construction code does this by inspecting a table's votCast attribute.
+
+	This dictionary will be updated to self after all values are set from
+	the field; thus, you can override all guessed column properties.
+
+	In addition, the castMapperFactory above checks for the presence of
+	a castFunction in in ColProperties.  If it is there, it will be used
+	for mapping the values.
 	"""
 	_nullvalueRanges = {
 		"char": (' ', '~'),
@@ -297,7 +310,7 @@ class ColProperties(dict):
 		"int": (-2**31, 2**31-1),
 		"long": (-2**63, 2**63-1),
 	}
-	def __init__(self, column):
+	def __init__(self, column, votCast=None):
 		self["min"], self["max"] = _Supremum, _Infimum
 		self["hasNulls"] = True # Safe default
 		self.nullSeen = False
@@ -313,6 +326,8 @@ class ColProperties(dict):
 		self["displayHint"] = column.displayHint
 		for fieldName in ["ucd", "utype", "unit"]:
 			self[fieldName] = getattr(column, fieldName)
+		if votCast is not None:
+			self.update(votCast)
 
 	def feed(self, val):
 		if val is None:
@@ -348,7 +363,7 @@ class ColProperties(dict):
 
 def acquireSamples(colPropsIndex, table):
 	"""fills the values in the colProps-valued dict colPropsIndex with non-null
-	values from tables.
+	values from table.
 	"""
 # this is a q'n'd version of what's done in 
 # votable.TableData._computeColProperties
@@ -396,7 +411,7 @@ def getMappedValues(table, mfRegistry=defaultMFRegistry):
 
 	funDef = ["def buildRec(rowDict):"]
 	for index, label in enumerate(colLabels):
-		if mappers[index] is not mfRegistry.identity:
+		if mappers[index] is not utils.identity:
 			funDef.append("\trowDict[%r] = map%d(rowDict[%r])"%(
 				label, index, label))
 	funDef.append("\treturn rowDict")

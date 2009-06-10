@@ -62,10 +62,10 @@ _tableEncoders = {
 }
 
 
-# XXX TODO: most of the mapping code in here is obsolete and should be scapped
+# XXX TODO: some of the mapping code in here is obsolete and should be scapped
 # in favour of the functions provided by valuemappers.
 
-class TableData:
+class TableData(object):
 	"""is a tabular data for VOTables.
 
 	It is constructed from a table.Table instance and
@@ -98,10 +98,11 @@ class TableData:
 		"""
 		colProps = {}
 		for field in self.table.tableDef:
-			colProps[field.name] = valuemappers.ColProperties(field)
+			colProps[field.name] = valuemappers.ColProperties(field,
+				votCast=self.table.votCasts.get(field.name))
 		valDesiredCols = [colProp["name"] for colProp in colProps.values()
 			if colProp["datatype"] not in self._noValuesTypes and
-				colProp["arraysize"]=="1"]
+				colProp["arraysize"]=="1" and not "castFunction" in colProp]
 		noSampleCols = set(colProps)
 		for row in self.table:
 			for key in valDesiredCols:
@@ -197,6 +198,8 @@ class VOTableMaker:
 			res[key] = colProperties[key]
 		if colProperties["arraysize"]!="1":
 			res["arraysize"] = colProperties["arraysize"]
+		else:
+			res["arraysize"] = ""
 		if colProperties.has_key("value"):  # for PARAMs
 			res["value"] = str(colProperties["value"])   # XXX TODO: use value mappers
 		_addValuesKey(colProperties, res)
@@ -208,7 +211,6 @@ class VOTableMaker:
 		colProperties is a sequence of ColProperties instances.  I need to
 		work on my naming...
 		"""
-
 		for colProp in colProperties:
 			tableNode.fields.append(
 				Field(**self._getVOFieldArgs(colProp)))
@@ -224,8 +226,8 @@ class VOTableMaker:
 		"""returns a Table node for the table.Table instance table.
 		"""
 		t = Table(name=table.tableDef.id, coder=_tableEncoders[self.tablecoding],
-			description=unicode(table.tableDef.getMeta("description", propagate=False, 
-				default="")))
+			description=unicode(table.tableDef.getMeta("description", 
+				propagate=False, default="")))
 		data = TableData(table, self.mFRegistry)
 		self._defineFields(t, data.getColProperties())
 		t.data = data.get()
@@ -234,8 +236,8 @@ class VOTableMaker:
 	def _addResourceMeta(self, res, dataSet):
 		"""adds resource metadata to the Resource res.
 		"""
-		res.description = unicode(dataSet.dd.getMeta("description", propagate=False,
-			default=""))
+		res.description = unicode(dataSet.dd.getMeta("description", 
+			propagate=False, default=""))
 		self._addInfo("legal", dataSet.dd.getMeta("_legal"), res)
 		for infoItem in dataSet.getMeta("info", default=[]):
 			self._addInfo(None, infoItem, res)
@@ -245,7 +247,7 @@ class VOTableMaker:
 		"""returns a Resource node for dataSet.
 		"""
 		args = {}
-		resType = dataSet.dd.getMeta("_type")
+		resType = dataSet.getMeta("_type")
 		if resType:
 			args["type"] = str(resType)
 		res = Resource(**args)

@@ -324,7 +324,7 @@ class DBCore(TableBasedCore):
 		the result.
 		"""
 		resultTableDef = base.makeStruct(outputdef.OutputTableDef,
-			parent_=self.queriedTable.parent,
+			parent_=self.queriedTable.parent, id="result",
 			onDisk=False, columns=self.getQueryCols(service, queryMeta)
 			)
 		if not resultTableDef.columns:

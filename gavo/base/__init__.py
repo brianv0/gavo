@@ -71,7 +71,8 @@ from gavo.base.typesystems import *
 
 from gavo.base.valuemappers import getMappedValues, ValueMapperFactoryRegistry
 
-from gavo.base.vizierexprs import (getVexprFor, getSQLKey)
+from gavo.base.vizierexprs import (getVexprFor, getSQLKey, 
+	joinOperatorExpr)
 
 from gavo.base.unitconv import (
 	computeConversionFactor, parseUnit, computeColumnConversions,
