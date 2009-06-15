@@ -20,6 +20,7 @@ from gavo import base
 from gavo import rscdef
 from gavo import rsc
 from gavo import svcs
+from gavo.imp.VOTable import DataModel as VOTable
 from gavo.protocols import registry
 from gavo.utils import ElementTree
 from gavo.web import grend
@@ -111,35 +112,37 @@ class SCSRenderer(DALRenderer):
 
 	contentTypeDelivered = "text/xml;content=x-votable"
 
-	def _makeErrorTable(self, ctx, msg):
-		data = rsc.makeData(MS(rscdef.DataDescriptor, parent_=self.service.rd))
-		data.addMeta("info", base.makeMetaValue(msg, name="info", 
-			infoName="Error", infoId="Error"))
-		data.addMeta("_type", "results")
-		return svcs.SvcResult(data, {}, svcs.QueryMeta.fromContext(ctx))
-	
+	def _writeErrorTable(self, ctx, msg):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", "application/x-votable")
+		request.write(str(VOTable.VOTable(
+			description=self.service.getMeta("description").getContent(),
+			info=[
+				VOTable.Info(ID="Error", name="Error", 
+					value=str(msg).replace('"', '\\"'))])))
+		return ""
+
 	def _formatOutput(self, data, ctx):
-		"""makes output SCS 1.02 compatible or causes the serive to error out.
+		"""makes output SCS 1.02 compatible or causes the service to error out.
 
 		This comprises mapping meta.id;meta.main to ID_MAIN and
 		pos.eq* to POS_EQ*.
 		"""
-# XXX TODO: move this to casts, then kill the translated UCDs mess.
-		translatedUCDs = {
-			"meta.id;meta.main": "ID_MAIN",
-			"pos.eq.ra;meta.main": "POS_EQ_RA_MAIN",
-			"pos.eq.dec;meta.main": "POS_EQ_DEC_MAIN",
+		ucdCasts = {
+			"meta.id;meta.main": {"ucd": "ID_MAIN"},
+			"pos.eq.ra;meta.main": {"ucd": "POS_EQ_RA_MAIN", "type": "double"},
+			"pos.eq.dec;meta.main": {"ucd": "POS_EQ_DEC_MAIN", "type": "double"},
 		}
+		realCasts = {}
 		table = data.original.getPrimaryTable()
 		for ind, ofield in enumerate(table.tableDef.columns):
-			if ofield.ucd in translatedUCDs:
-				ofield = ofield.copy(table.tableDef)
-				ofield.ucd = translatedUCDs.pop(ofield.ucd)
-				table.tableDef.columns[ind] = ofield
-		if translatedUCDs:
+			if ofield.ucd in ucdCasts:
+				realCasts[ofield.name] = ucdCasts.pop(ofield.ucd)
+		if ucdCasts:
 			return self._writeErrorTable(ctx, "Table cannot be formatted for"
 				" SCS.  Column(s) with the following new UCD(s) were missing in"
 				" output table: %s"%', '.join(translatedUCDs))
+		table.votCasts = realCasts
 		return DALRenderer._formatOutput(self, data, ctx)
 
 grend.registerRenderer("scs.xml", SCSRenderer)

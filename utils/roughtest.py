@@ -394,9 +394,24 @@ myTests = [
 			"__nevow_form__=genForm&POS=q2237%2B0305&SIZE=1&INTERSECT=OVERLAPS&"
 			"FORMAT=image%2Ffits&dateObs=2001-01-01%20..%202005-10-10&"
 			"_DBOPTIONS_LIMIT=1&_FORMAT=tar&_DBOPTIONS_ORDER=dateObs", [
-			"dc_data/mh050098",
-			"L\xed\xd8V\x1a\x8f\xfd\xde\x99\x9a4\x98",],
+			"dc_data/",
+			"\0\0\0\0\0\0\x1f\x8b\x08\x08", # end of tar header, start of gzipped file
+			],
 			"Tar output looks plausible"),
+		GetHasStringsTest(nv_root+"/inflight/res/lc1/table/form?"
+			"__nevow_form__=genForm&line=200%20..%20800&_DBOPTIONS_ORDER="
+			"&_DBOPTIONS_LIMIT=100&_FORMAT=VOPlot&_VERB=2", [
+				"<embed ",
+				"&amp;_TDENC=True&amp",
+				"&amp;line=200+..+800&amp;"],
+			"Roughly correct looking VOPlot container"),
+		GetHasStringsTest(nv_root+"/inflight/res/lc1/table/form?"
+			"__nevow_form__=genForm&line=2%20..%205&"
+			"&_DBOPTIONS_LIMIT=100&_FORMAT=FITS&_VERB=2", [
+				"'BINTABLE'",
+				"TTYPE1  = 'line    '  ",
+				"TFORM1  = 'J       '  ",],
+			"Lightcurve FITS looks like a binary FITS table"),
 	),
 	TestGroup("auth",
 		HeadStatusTest(nv_root+"/rauchspectra/theospectra/upload/upload",
@@ -570,22 +585,6 @@ myTests = [
 			{"__nevow_form__": "confirmation", "goAhead": "Confirm deletion"},
 			['content="0;URL=', '/dexter/ui/ui/custom/'],
 			"Dexter deletes empty dataset"),
-	),
-	TestGroup("formats",
-		GetHasStringsTest(nv_root+"/inflight/res/lc1/table/form?"
-			"__nevow_form__=genForm&line=200%20..%20800&_DBOPTIONS_ORDER="
-			"&_DBOPTIONS_LIMIT=100&_FORMAT=VOPlot&_VERB=2", [
-				"<embed ",
-				"&amp;_TDENC=True&amp",
-				"&amp;line=200+..+800&amp;"],
-			"Roughly correct looking VOPlot container"),
-		GetHasStringsTest(nv_root+"/inflight/res/lc1/table/form?"
-			"__nevow_form__=genForm&line=2%20..%205&"
-			"&_DBOPTIONS_LIMIT=100&_FORMAT=FITS&_VERB=2", [
-				"'BINTABLE'",
-				"TTYPE1  = 'line    '  ",
-				"TFORM1  = 'J       '  ",],
-			"Lightcurve FITS looks like a binary FITS table"),
 	),
 	TestGroup("misc",
 		GetHasStringsTest(nv_root+"/builtin/help.shtml",
