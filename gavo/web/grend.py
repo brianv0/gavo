@@ -175,6 +175,16 @@ class GavoRenderMixin(common.CommonRenderers):
 		else:
 			return ""
 
+	def render_ifadmin(self, ctx, data):
+		# NOTE: use of this renderer is *not* enough to protect critical operations
+		# since it does not check if the credentials are actually provided.
+		# Use this only hide links that will give 403s (or somesuch) for
+		# non-admins anyway (and the like).
+		if inevow.IRequest(ctx).getUser()=="gavoadmin":
+			return ctx.tag
+		else:
+			return ""
+
 	def render_explodableMeta(self, ctx, data):
 		metaKey = ctx.tag.children[0]
 		title = ctx.tag.attributes.get("title", metaKey.capitalize())

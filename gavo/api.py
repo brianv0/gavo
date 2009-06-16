@@ -13,4 +13,5 @@ getRD = base.caches.getRD
 
 from gavo.base import (getConfig, getDBConnection, getDefaultDBConnection,
 	setDBProfile)
-from gavo.rsc import (TableForDef, DBTable)
+from gavo.rsc import (TableForDef, DBTable, makeData, parseValidating,
+	parseNonValidating)

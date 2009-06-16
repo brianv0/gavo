@@ -179,7 +179,11 @@ def compileFunction(src, funcName, useGlobals=None):
 	locals = {}
 	if useGlobals is None:
 		useGlobals = globals()
-	exec src in useGlobals, locals
+	try:
+		exec src in useGlobals, locals
+	except:
+		sys.stderr.write("Bad code:\n%s\n"%src)
+		raise
 	return locals[funcName]
 
 

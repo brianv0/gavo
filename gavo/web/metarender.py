@@ -3,6 +3,7 @@ Renderers that take services "as arguments".
 """
 
 import os
+import urllib
 
 from nevow import inevow
 from nevow import loaders
@@ -113,18 +114,29 @@ class RendExplainer(object):
 	def _explain_text(cls, service):
 		return T.invisible["a text interface not intended for user"
 			" applications"]
-	
+
 	@classmethod
 	def _explain_siap_xml(cls, service):
 		return T.invisible["a standard SIAP interface as defined by the"
 			" IVOA to access collections of celestial images; SIAP clients"
-			" use ", service.getURL("siap.xml"), " to access the service"]
+			" use ", service.getURL("siap.xml"), " to access the service",
+			T.invisible(render=T.directive("ifadmin"))[" -- ",
+				T.a(href="http://nvo.ncsa.uiuc.edu/dalvalidate/SIAValidater?endpoint="+
+					urllib.quote(service.getURL("siap.xml"))+
+					"RA=180.0&DEC=60.0&RASIZE=1.0&DECSIZE=1.0&FORMAT=ALL&"
+					"format=html&show=fail&show=warn&show=rec&op=Validate")["Validate"]]]
 
 	@classmethod
 	def _explain_scs_xml(cls, service):
 		return T.invisible["a standard SCS interface as defined by the"
 			" IVOA to access catalog-type data; SCS clients"
-			" use ", service.getURL("scs.xml"), " to access the service"]
+			" use ", service.getURL("scs.xml"), " to access the service",
+			T.invisible(render=T.directive("ifadmin"))[" -- ",
+				T.a(href="http://nvo.ncsa.uiuc.edu/dalvalidate/"
+					"ConeSearchValidater?endpoint="+
+					urllib.quote(service.getURL("scs.xml"))+
+					"&RA=180.0&DEC=60.0&SR=1.0&format=html&show=fail&show=warn&show=rec"
+					"&op=Validate")["Validate"]]]
 
 	@classmethod
 	def _explain_upload(cls, service):

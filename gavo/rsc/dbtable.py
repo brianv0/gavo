@@ -180,7 +180,9 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		"""adds foreign key constraints if necessary.
 		"""
 		for fk in self.tableDef.foreignKeys:
-			self.query(fk.getCreationDDL())
+			if not self.foreignKeyExists(self.tableDef.getQName(), fk.table,
+					fk.source, fk.dest):
+				self.query(fk.getCreationDDL())
 	
 	def _dropForeignKeys(self):
 		"""drops foreign key constraints if necessary.
@@ -202,7 +204,7 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		"""creates all indices on the table, including any definition of
 		a primary key.
 		"""
-		if self.suppressIndex:
+		if self.suppressIndex or not self.tableExists(self.tableName):
 			return
 		if not self.hasIndex(self.tableName, 
 				self.getPrimaryIndexName(self.tableDef.id)):
@@ -217,8 +219,7 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 				self.query(self.tableDef.expand(
 					"CLUSTER %s ON %s"%(index.name, self.tableName)))
 		self._addForeignKeys()
-		if self.tableExists(self.tableName):
-			self.query(self.tableDef.expand("ANALYZE %s"%self.tableName))
+		self.query(self.tableDef.expand("ANALYZE %s"%self.tableName))
 		return self
 
 	def _deleteMatching(self, matchCondition):

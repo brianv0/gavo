@@ -63,7 +63,7 @@ def compileRowfilter(filters):
 class SourceFieldApp(rscdef.ProcApp):
 	"""A procedure application that returns a dictionary added to all 
 	incoming rows.
-
+	
 	Use this to programmatically provide information that can be computed
 	once but that is then added to all rows coming from a single source, usually
 	a file.  This could be useful to add information on the source of a
@@ -71,12 +71,13 @@ class SourceFieldApp(rscdef.ProcApp):
 
 	The code must return a dictionary.  The source that is about to be parsed is
 	passed in as sourceToken.  When parsing from files, this simply is the file
-	name.
+	name.  The data the rows will be delivered to is available as "data", which
+	is useful for adding or retrieving meta information.
 	"""
 	name_ = "sourceFields"
 
 	requriedType = "sourceFields"
-	formalArgs = "sourceToken"
+	formalArgs = "sourceToken, data"
 
 
 class MapKeys(base.Structure):
@@ -319,7 +320,7 @@ class Grammar(base.Structure, GrammarMacroMixin):
 
 	rowIterator = RowIterator
 
-	def getSourceFields(self, sourceToken):
+	def getSourceFields(self, sourceToken, data):
 		"""returns a dict containing user-defined fields to be added to
 		all results.
 		"""
@@ -327,12 +328,12 @@ class Grammar(base.Structure, GrammarMacroMixin):
 			return None
 		if not hasattr(self, "_compiledSourceFields"):
 			self._compiledSourceFields = self.sourceFields.compile()
-		return self._compiledSourceFields(sourceToken)
+		return self._compiledSourceFields(sourceToken, data)
 
-	def parse(self, sourceToken):
+	def parse(self, sourceToken, targetData=None):
 		base.ui.notifyNewSource(sourceToken)
 		ri = self.rowIterator(self, sourceToken, 
-			sourceRow=self.getSourceFields(sourceToken))
+			sourceRow=self.getSourceFields(sourceToken, targetData))
 		if self.rowfilters:
 			ri.rowfilter = compileRowfilter(self.rowfilters)
 		return ri

@@ -106,7 +106,7 @@ def parseDate(literal, format="%Y-%m-%d"):
 	"""
 	if format=="!!julianEp":
 		return stc.jYearToDateTime(float(literal))
-	return datetime.date(*time.strptime(literal, format)[:3])
+	return datetime.datetime(*time.strptime(literal, format)[:3])
 
 
 def parseTimestamp(literal, format="%Y-%m-%dT%H:%M:%S"):

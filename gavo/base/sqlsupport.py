@@ -152,7 +152,7 @@ def _parseTableName(tableName, schema=None):
 			schema = "public"
 		if "." in tableName:
 			schema, tableName = tableName.split(".")
-		return schema, tableName
+		return schema.lower(), tableName.lower()
 
 
 
@@ -187,8 +187,49 @@ class PostgresQueryMixin(object):
 			" pg_indexes WHERE schemaname=%(schema)s AND"
 			" tablename=%(tableName)s AND"
 			" indexname=%(indexName)s", locals()).fetchall()
-		return len(res)>0
-	
+		return len(list(res))>0
+
+	def _getColIndices(self, relOID, colNames):
+		"""returns a sorted tuple of column indices of colNames in the relation
+		relOID.
+
+		This really is a helper for foreignKeyExists.
+		"""
+		colNames = [n.lower() for n in colNames]
+		res = [r[0] for r in 
+			self.query("SELECT attnum FROM pg_attribute WHERE"
+				" attrelid=%(relOID)s and attname IN %(colNames)s",
+				locals())]
+		res.sort()
+		return tuple(res)
+
+	def foreignKeyExists(self, srcTableName, destTableName, srcColNames, 
+			destColNames, schema=None):
+		"""returns True if there's a foreign key constraint on srcTable's 
+		srcColNames using destTableName's destColNames.
+
+		Warning: names in XColNames that are not column names in the respective
+		tables are ignored.
+		"""
+		try:
+			srcOID = self.getOIDForTable(srcTableName, schema)
+			srcColInds = self._getColIndices(srcOID, srcColNames)
+			destOID = self.getOIDForTable(destTableName, schema)
+			destColInds = self._getColIndices(destOID, destColNames)
+		except Error: # Some of the items related probably don't exist
+			return False
+		try:
+			res = self.query("""
+				SELECT conname FROM pg_constraint WHERE
+				contype='f'
+				AND conrelid=%(srcOID)s
+				AND confrelid=%(destOID)s
+				AND conkey=%(srcColInds)s::SMALLINT[]
+				AND confkey=%(destColInds)s::SMALLINT[]""", locals())
+		except ProgrammingError: # probably columns do not exist
+			return False
+		return len(list(res))>0
+
 	def roleExists(self, role):
 		"""returns True if there role is known to the database.
 		"""
@@ -196,17 +237,18 @@ class PostgresQueryMixin(object):
 			"%(role)s", locals()).fetchall()
 		return len(matches)!=0
 	
-	def getOIDForTable(self, tableName):
+	def getOIDForTable(self, tableName, schema=None):
 		"""returns the current oid of tableName.
 
 		tableName may be schema qualified.  If it is not, public is assumed.
 		"""
 		schema, tableName = _parseTableName(tableName, schema)
-		res = self.query("SELECT oid FROM pg_class WHERE"
+		res = list(self.query("SELECT oid FROM pg_class WHERE"
 			" relname=%(tableName)s AND"
 			" relnamespace=(SELECT oid FROM pg_namespace WHERE nspname=%(schema)s)",
-			locals()).fetchall()
-		assert len(res)==1
+			locals()))
+		if len(res)!=1:
+			raise Error("Table %s does not exist"%tableName)
 		return res[0][0]
 	
 	def tableExists(self, tableName, schema=None, temporary=False):

@@ -205,7 +205,7 @@ class _EnoughRows(base.ExecutiveAction):
 
 
 def processSource(res, source, feeder, opts):
-	srcIter = res.dd.grammar.parse(source)
+	srcIter = res.dd.grammar.parse(source, res)
 	if hasattr(srcIter, "getParameters"):  # is a "normal" grammar
 		feeder.addParameters(srcIter.getParameters())
 		for srcRow in srcIter:
@@ -227,16 +227,22 @@ def processSource(res, source, feeder, opts):
 
 
 def makeData(dd, parseOptions=common.parseNonValidating,
-		forceSource=None, connection=None):
+		forceSource=None, connection=None, data=None):
 	"""returns a data instance built from dd.
 
 	It will arrange for the parsing of all tables generated from dd's grammar.
 	If connection is passed in, the the entire operation will run within a 
 	single transaction within this transaction.  The connection will be
 	rolled back or committed depending on the success of the operation.
+
+	You can pass in a data instance created by yourself in data.  This
+	makes sense if you want to, e.g., add some meta information up front.
 	"""
 # this will become much prettier once we can use context managers
-	res = Data.create(dd, parseOptions, connection=connection)
+	if data is None:
+		res = Data.create(dd, parseOptions, connection=connection)
+	else:
+		res = data
 	res.recreateTables(connection)
 	feeder = res.getFeeder(batchSize=parseOptions.batchSize)
 	try:
