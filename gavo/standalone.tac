@@ -1,3 +1,5 @@
+import pwd
+import sys
 import urlparse
 
 from twisted.application import service, internet

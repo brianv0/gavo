@@ -2,7 +2,7 @@
 
 <resource resdir="__system">
 	<schema>public</schema>
-	<meta name="_related" title="Validate registry">http://rofr.ivoa.net/regvalidate/HarvestValidater?endpoint=http%3A//vo.zah.uni-heidelberg.de/oai.xml</meta>
+	<meta name="_related" title="Validate registry">http://rofr.ivoa.net/regvalidate/HarvestValidater?endpoint=http%3A//dc.zah.uni-heidelberg.de/oai.xml</meta>
 
 	<!-- this is for static resources imported via the fixedrecords data below.
 

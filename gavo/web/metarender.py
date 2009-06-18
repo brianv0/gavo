@@ -123,7 +123,7 @@ class RendExplainer(object):
 			T.invisible(render=T.directive("ifadmin"))[" -- ",
 				T.a(href="http://nvo.ncsa.uiuc.edu/dalvalidate/SIAValidater?endpoint="+
 					urllib.quote(service.getURL("siap.xml"))+
-					"RA=180.0&DEC=60.0&RASIZE=1.0&DECSIZE=1.0&FORMAT=ALL&"
+					"&RA=180.0&DEC=60.0&RASIZE=1.0&DECSIZE=1.0&FORMAT=ALL&"
 					"format=html&show=fail&show=warn&show=rec&op=Validate")["Validate"]]]
 
 	@classmethod
