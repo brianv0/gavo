@@ -194,7 +194,8 @@ class TableBasedCore(core.Core):
 			self.inputDD = MS(inputdef.InputDescriptor,
 				grammar=MS(inputdef.ContextGrammar, inputKeys=iks))
 
-		# if not outputTable has been given, make it up from the table columns.
+		# if not outputTable has been given, make it up from the columns
+		# of the queried table.
 		if self.outputTable is base.Undefined:
 			self.outputTable = self.adopt(outputdef.OutputTableDef.fromTableDef(
 				self.queriedTable))

@@ -70,6 +70,9 @@ def main():
 		parser.add_option("-d", "--dumpRows", help="Dump raw rows as they are"
 			" emitted by the grammar.", dest="dumpRows", action="store_true",
 			default=False)
+		parser.add_option("-R", "--redoIndex", help="Drop indices before"
+			" updating a table and recreate them when done", dest="dropIndices",
+			action="store_true", default=False)
 		parser.add_option("-m", "--meta-only", help="just update table meta"
 			" (privileges, column descriptions,...).", dest="metaOnly", 
 			action="store_true")

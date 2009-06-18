@@ -7,8 +7,11 @@ import os
 import unittest
 
 from gavo import base
+from gavo import rscdef
 from gavo import rscdesc
 from gavo.base import meta
+from gavo.protocols import basic
+from gavo.rscdef import tabledef
 
 import testhelpers
 
@@ -111,6 +114,41 @@ class MacroTest(unittest.TestCase):
 		self.assertEqual(rd.expand("foo is \\foo."), "foo is  a\nbc  .")
 
 
+class ViewTest(testhelpers.VerboseTest):
+	"""tests for interpretation of view elements.
+	"""
+	def setUp(self):
+		# tweak inputs such that test.rd will be found
+		self.origInputs = base.getConfig("inputsDir")
+		base.setConfig("inputsDir", os.getcwd())
+
+	def tearDown(self):
+		base.setConfig("inputsDir", self.origInputs)
+
+	def testBadRefRaises(self):
+		self.assertRaisesWithMsg(base.StructureError, 
+			"No field 'noexist' in table test.prodtest", 
+			base.parseFromString, (tabledef.SimpleView, '<simpleView>'
+			'<fieldRef table="test#prodtest" column="noexist"/></simpleView>'))
+
+	def testTableDefCreation(self):
+		rd = base.parseFromString(rscdesc.RD,
+			'<resource schema="test2">'
+			'<simpleView id="vv">'
+			'<fieldRef table="test#prodtest" column="alpha"/>'
+			'<fieldRef table="test#prodtest" column="delta"/>'
+			'<fieldRef table="test#prodtest" column="object"/>'
+			'<fieldRef table="test#adql" column="mag"/>'
+			'</simpleView></resource>')
+		self.assertEqual(len(rd.tables), 1)
+		td = rd.tables[0]
+		self.failUnless(isinstance(td, rscdef.TableDef))
+		self.assertEqual(td.scripts[0].content_, 'CREATE VIEW test2.vv AS'
+			' (SELECT test.prodtest.alpha,test.prodtest.delta,test.prodtest.'
+			'object,test.adql.mag FROM test.prodtest NATURAL JOIN test.adql)')
+		self.assertEqual(td.onDisk, True)
+		self.assertEqual(rd.getById("vv"), td)
+
 
 if __name__=="__main__":
-	testhelpers.main(MacroTest)
+	testhelpers.main(ViewTest)

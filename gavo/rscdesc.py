@@ -84,10 +84,14 @@ class RD(base.Structure, base.MetaMixin, scripting.ScriptingMixin,
 		" this resource.", copyable=True)
 	_macDefs = rscdef.MacDefAttribute(before="tables", description=
 		"User-defined macros available on this RD")
-	# The next attr is polymorphic through getDynamicAttribute
+	# The next attrs are polymorphic through getDynamicAttribute
 	_cores = CoresAttribute("cores", 
 		description="Cores available in this resource.", copyable=True,
 		before="services")
+	# These replace themselves with expanded tables
+	_viewDefs = base.StructAttribute("simpleView",
+		childFactory=rscdef.SimpleView, description="Definitions of views"
+		" created from natural joins", default=None)
 	_properties = base.PropertyAttribute()
 	_systems = base.StructListAttribute("systems",
 		childFactory=rscdef.CooSys, description="Legacy specification of"

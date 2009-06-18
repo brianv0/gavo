@@ -57,10 +57,11 @@ class ComputedCore(core.Core):
 	_computer = rscdef.ResdirRelativeAttribute("computer",
 		default=base.Undefined, description="Resdir-relative basename of"
 			" the binary doing the computation.  The standard rules for"
-			" cross-platform binary name determination apply.")
+			" cross-platform binary name determination apply.",
+			copyable=True)
 	_resultParse = base.StructAttribute("resultParse",
 		description="Data descriptor to parse the computer's output.",
-		childFactory=rscdef.DataDescriptor)
+		childFactory=rscdef.DataDescriptor, copyable=True)
 
 	def completeElement(self):
 		if self.resultParse:

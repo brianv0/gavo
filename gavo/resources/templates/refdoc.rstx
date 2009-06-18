@@ -240,6 +240,67 @@ which has to have the following signature::
 (actually, if you use nonstandard renderers, you may return something
 else than an outputTable, but that's usually not what you want).
 
+Writing Custom Grammars
+=======================
+
+A custom grammar simply is a python module located within a resource
+directory defining a row iterator class derived from
+gavo.grammars.CustomRowIterator; this class must be called RowIterator.
+You want to override the _iterRows method.  It will have to yield row
+dictionaries, i.e., dictionaries mapping string keys to something
+(preferably strings, but you will usually get away with returning
+complete values even without fancy rowmakers).  
+
+So, a custom grammar module could look like this::
+
+  from gavo.grammars import CustomRowIterator
+
+  class RowIterator(CustomRowIterator):
+    def _iterRows(self):
+      for i in xrange(10000):
+        yield {'index': i, 'square': i**2}
+
+Do not override magic methods, since you may lose rowgens, sourceFields,
+and the like if you do.  An exception is the constructor.  If you must,
+you can override it, but you must call the parent constructor, like
+this::
+
+  class RowIterator(CustomRowIterator):
+    def __init__(self, grammar, sourceToken, sourceRow=None):
+      CustomRowIterator.__init__(self, grammar, sourceToken, sourceRow)
+      <your code>
+
+The sourceToken, in general, will be a file instance, unless you call
+makeData manually and forceSource something else.
+
+A row iterator will be instanciated for each source processed.  Thus,
+you should usually not perform expensive operations in the constructor
+unless they depend on sourceToken.  In general, you should rather define
+a function makeDataPack in the module.  Whatever is returned by this
+function is available as self.grammar.dataPack in the row iterator.
+
+The function receives an instance of the the customGrammar as an
+argument.  This means you can access the resource descriptor and
+properties of the grammar.  As an example of how this could be used,
+consider this RD fragment::
+
+  <table id="defTable">
+    ...
+  </table>
+
+  <customGrammar module="res/grammar">
+    <property name="targetTable">defTable</property>
+  </customGrammar>
+
+Then you could have the following in res/grammar.py::
+
+  def makeDataPack(grammar):
+    return grammar.rd.getById(grammar.getProperty("targetTable"))
+
+and access the table in the row iterator.
+
+
+
 Writing Row Makers
 ==================
 

@@ -44,7 +44,8 @@ class Core(base.Structure):
 	_rd = rscdef.RDAttribute()
 	_inputDD = base.StructAttribute("inputDD", 
 		childFactory=inputdef.InputDescriptor, description="Description of the"
-			" input data.")
+			" input data.") # must not be copyable, else autogeneration of
+	                    # inputDDs for DbCores fails for copied cores.
 	_outputTable = base.StructAttribute("outputTable",
 		childFactory=outputdef.OutputTableDef, description="Table describing"
 			" what fields are available from this core.", copyable=True)

@@ -155,7 +155,8 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 	in hackish code.
 	"""
 	def _definePrimaryKey(self):
-		if self.tableDef.primary:
+		if self.tableDef.primary and not self.hasIndex(self.tableName,
+				self.getPrimaryIndexName(self.tableDef.id)):
 			if not self.tableDef.system:
 				base.ui.notifyIndexCreation("Primary key on %s"%self.tableName)
 			try:
@@ -180,17 +181,17 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		"""adds foreign key constraints if necessary.
 		"""
 		for fk in self.tableDef.foreignKeys:
-			if not self.foreignKeyExists(self.tableDef.getQName(), fk.table,
-					fk.source, fk.dest):
-				self.query(fk.getCreationDDL())
+			fk.create(self)
 	
 	def _dropForeignKeys(self):
 		"""drops foreign key constraints if necessary.
 		"""
 		for fk in self.tableDef.foreignKeys:
-			self.query(fk.getDeletionDDL())
+			fk.delete(self)
 
 	def dropIndices(self):
+		if not self.exists():
+			return
 		self._dropForeignKeys()
 		self._dropPrimaryKey()
 		schema, unqualified = self.tableDef.rd.schema, self.tableDef.id
@@ -204,7 +205,7 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		"""creates all indices on the table, including any definition of
 		a primary key.
 		"""
-		if self.suppressIndex or not self.tableExists(self.tableName):
+		if self.suppressIndex or not self.exists():
 			return
 		if not self.hasIndex(self.tableName, 
 				self.getPrimaryIndexName(self.tableDef.id)):
@@ -305,6 +306,12 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		cursor.execute("SELECT * FROM %s"%self.tableName)
 		for row in cursor:
 			yield self.tableDef.makeRowFromTuple(row)
+
+	def exists(self):
+		if self.tableDef.temporary:
+			return self.tempTableExists(self.tableName)
+		else:
+			return self.tableExists(self.tableName)
 
 	def close(self):
 		"""call this if your table holds an owned connection and you don't need
@@ -449,12 +456,12 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		return self
 
 	def createIfNecessary(self):
-		if not self.tableExists(self.tableName, temporary=self.tableDef.temporary):
+		if not self.exists():
 			self.create()
 		return self
 	
 	def drop(self, what="TABLE"):
-		if self.tableExists(self.tableName, temporary=self.tableDef.temporary):
+		if self.exists():
 			self.query("DROP %s %s CASCADE"%(what, self.tableName))
 			self.tableDef.runScripts("afterDrop", connection=self.connection)
 			if not self.nometa:
@@ -487,7 +494,7 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 			query.append("DISTINCT ")
 		query.append(", ".join([getattr(c, "select", c.name)
 			for c in resultTableDef])+" ")
-		query.append("FROM %s "%self.tableDef.getQName())
+		query.append("FROM %s "%self.tableName)
 		if fragment and fragment.strip():
 			query.append("WHERE %s "%fragment)
 		if groupBy:
@@ -513,7 +520,10 @@ class View(DBTable):
 	def __init__(self, *args, **kwargs):
 		DBTable.__init__(self, *args, **kwargs)
 		del self.addCommand
-	
+
+	def exists(self):
+		return self.viewExists(self.tableName)
+
 	def addRow(self, row):
 		raise base.DataError("You cannot add data to views")
 

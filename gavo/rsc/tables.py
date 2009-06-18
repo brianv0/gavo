@@ -22,6 +22,8 @@ def TableForDef(tableDef, suppressIndex=False,
 
 	See getParseOptions above for parseOptions.
 	"""
+	if isinstance(tableDef, rscdef.SimpleView):
+		tableDef = tableDef.getTableDef()
 	if tableDef.onDisk:
 		if tableDef.hasScript("viewCreation"):
 			cls = dbtable.View

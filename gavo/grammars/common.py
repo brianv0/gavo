@@ -147,7 +147,9 @@ class RowIterator(object):
 	This default implementation works for when source is a sequence
 	of dictionaries.  You will, in general, want to override 
 	_iteRows and getLocator, plus probably __init__ (to prepare external
-	resources) and getParameters (if you have them).
+	resources) and getParameters (if you have them; make sure to update
+	any parameters you have with self.sourceRow as shown in the default
+	getParameters implementation).
 
 	RowIterators are supposed to be self-destructing, i.e., they should 
 	release any external resources they hold when _iterRows runs out of
@@ -162,6 +164,7 @@ class RowIterator(object):
 		self.recNo = 0
 
 	def __iter__(self):
+		base.ui.notifyNewSource(self.sourceToken)
 		if hasattr(self, "rowfilter"):
 			baseIter = self._iterRowsProcessed()
 		else:
@@ -196,7 +199,10 @@ class RowIterator(object):
 		self.grammar = None # don't wait for garbage collection
 
 	def getParameters(self):
-		return {}
+		res = {"parser_": self}
+		if self.sourceRow:
+			res.update(self.sourceRow)
+		return res
 	
 	def getLocator(self):
 		return "Null grammar"
@@ -316,6 +322,7 @@ class Grammar(base.Structure, GrammarMacroMixin):
 		copyable=True, description="Code returning a dictionary of values"
 		" added to all returned rows.", childFactory=SourceFieldApp)
 	_properties = base.PropertyAttribute()
+	_original = base.OriginalAttribute()
 	_rd = rscdef.RDAttribute()
 
 	rowIterator = RowIterator
@@ -331,7 +338,6 @@ class Grammar(base.Structure, GrammarMacroMixin):
 		return self._compiledSourceFields(sourceToken, data)
 
 	def parse(self, sourceToken, targetData=None):
-		base.ui.notifyNewSource(sourceToken)
 		ri = self.rowIterator(self, sourceToken, 
 			sourceRow=self.getSourceFields(sourceToken, targetData))
 		if self.rowfilters:

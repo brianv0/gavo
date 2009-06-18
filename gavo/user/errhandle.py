@@ -34,6 +34,8 @@ def runAndCatch(func):
 		errTx = unicode(msg).encode(base.getConfig("ui", "outputEncoding"))
 		sys.stderr.write(textwrap.fill(errTx, break_long_words=False)+"\n\n")
 		sys.exit(1)
+	except base.RDNotFound, msg:
+		sys.stderr.write("%s\n"%msg)
 	except Exception, msg:
 		sys.stderr.write("Oops.  Unhandled exception.  Here's the traceback:\n")
 		if reraise:

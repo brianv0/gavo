@@ -118,6 +118,10 @@ class Data(base.MetaMixin):
 		is true.
 		"""
 		if self.parseOptions.updateMode or self.dd.updating:
+			if self.parseOptions.dropIndices:
+				for t in self.tables.values():
+					if t.tableDef.onDisk:
+						t.dropIndices()
 			return
 		self.dd.runScripts("preCreation", connection=connection)
 		for t in self.tables.values() or self.dd:
@@ -204,24 +208,36 @@ class _EnoughRows(base.ExecutiveAction):
 	"""
 
 
+def _pipeRows(srcIter, feeder, opts):
+	feeder.addParameters(srcIter.getParameters())
+	for srcRow in srcIter:
+		base.ui.notifyIncomingRow(srcRow)
+		if opts.dumpRows:
+			print srcRow
+		try:
+			feeder.add(srcRow)
+		except:
+			if opts.keepGoing:
+				base.ui.notifyFailedRow(srcRow, sys.exc_info())
+			else:
+				raise
+		if opts.maxRows:
+			if base.ui.totalRead>opts.maxRows:
+				raise _EnoughRows
+
+
 def processSource(res, source, feeder, opts):
 	srcIter = res.dd.grammar.parse(source, res)
 	if hasattr(srcIter, "getParameters"):  # is a "normal" grammar
-		feeder.addParameters(srcIter.getParameters())
-		for srcRow in srcIter:
-			base.ui.notifyIncomingRow(srcRow)
-			if opts.dumpRows:
-				print srcRow
-			try:
-				feeder.add(srcRow)
-			except:
-				if opts.keepGoing:
-					base.ui.notifyFailedRow(srcRow, sys.exc_info())
-				else:
-					raise
-			if opts.maxRows:
-				if base.ui.totalRead>opts.maxRows:
-					raise _EnoughRows
+		try:
+			_pipeRows(srcIter, feeder, opts)
+		except base.Error:
+			raise
+		except Exception, msg:
+			import traceback
+			traceback.print_exc()
+			raise base.SourceParseError("Error while parsing %s: %s"%(
+				source, msg))
 	else:  # magic grammars (like those of boosters) return a callable
 		srcIter(res)
 
@@ -247,7 +263,7 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 	feeder = res.getFeeder(batchSize=parseOptions.batchSize)
 	try:
 		if forceSource is None:
-			for source in dd.iterSources():
+			for source in dd.iterSources(connection):
 				try:
 					processSource(res, source, feeder, parseOptions)
 				except _EnoughRows:

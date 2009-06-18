@@ -191,19 +191,6 @@ def addRmkFunc(name, func): # XXX TODO: Rename to something like addProcDefFunc
 	globals()[name] = func
 
 
-def makeCallable(funcName, code, moreGlobals=None):
-	"""compiles a function in the current namespace. DEPRECATED
-
-	code is a complete function source.  moreGlobals, if non-None,
-	must be a dictionary with additional names available to the function.
-	"""
-	if moreGlobals:
-		moreGlobals.update(globals())
-	else:
-		moreGlobals = globals()
-	return utils.compileFunction(code.rstrip(), funcName, moreGlobals)
-
-
 def makeProc(funcName, code, setupCode, parent):
 	"""compiles a function in the rmkfunc's namespace.
 

@@ -166,7 +166,7 @@ class PostgresQueryMixin(object):
 		"""returns the name of the index corresponding to the primary key on 
 		(the unqualified) tableName.
 		"""
-		return "%s_pkey"%tableName
+		return ("%s_pkey"%tableName).lower()
 	
 	def schemaExists(self, schema):
 		"""returns True if the named schema exists in the database.
@@ -203,7 +203,7 @@ class PostgresQueryMixin(object):
 		res.sort()
 		return tuple(res)
 
-	def foreignKeyExists(self, srcTableName, destTableName, srcColNames, 
+	def getForeignKeyName(self, srcTableName, destTableName, srcColNames, 
 			destColNames, schema=None):
 		"""returns True if there's a foreign key constraint on srcTable's 
 		srcColNames using destTableName's destColNames.
@@ -219,16 +219,28 @@ class PostgresQueryMixin(object):
 		except Error: # Some of the items related probably don't exist
 			return False
 		try:
-			res = self.query("""
+			res = list(self.query("""
 				SELECT conname FROM pg_constraint WHERE
 				contype='f'
 				AND conrelid=%(srcOID)s
 				AND confrelid=%(destOID)s
 				AND conkey=%(srcColInds)s::SMALLINT[]
-				AND confkey=%(destColInds)s::SMALLINT[]""", locals())
+				AND confkey=%(destColInds)s::SMALLINT[]""", locals()))
 		except ProgrammingError: # probably columns do not exist
 			return False
-		return len(list(res))>0
+		if len(res)==1:
+			return res[0][0]
+		else:
+			raise DBError("Non-existing or ambiguos foreign key")
+
+	def foreignKeyExists(self, srcTableName, destTableName, srcColNames, 
+			destColNames, schema=None):
+		try:
+			self.getForeignKeyName(srcTableName, destTableName, srcColNames,
+				destColNames, schema)
+		except DBError:
+			return False
+		return True
 
 	def roleExists(self, role):
 		"""returns True if there role is known to the database.
@@ -250,26 +262,40 @@ class PostgresQueryMixin(object):
 		if len(res)!=1:
 			raise Error("Table %s does not exist"%tableName)
 		return res[0][0]
-	
-	def tableExists(self, tableName, schema=None, temporary=False):
-		"""returns True if a table tablename exists in schema.
+
+	def _rowExists(self, query, pars):
+		return len(self.query(query, pars).fetchall())!=0
+
+	def temporaryTableExists(self, tablename):
+		"""returns True if a temporary table tablename exists in the table's
+		connection.
+
+		*** postgres specific ***
 		"""
 		schema, tableName = _parseTableName(tableName, schema)
-		if temporary:
-			matches = self.query("SELECT table_name FROM"
-				" information_schema.tables WHERE"
-				" table_type='LOCAL TEMPORARY' AND table_name=%(tableName)s", {
-						'tableName': tableName.lower(),
-				}).fetchall()
-		else:
-			matches = self.query("SELECT table_name FROM"
-				" information_schema.tables WHERE"
-				" table_schema=%(schemaName)s AND table_name=%(tableName)s", {
-						'tableName': tableName.lower(),
-						'schemaName': schema.lower(),
-				}).fetchall()
-		return len(matches)!=0
-	
+		return self._rowExists("SELECT table_name FROM"
+			" information_schema.tables WHERE"
+			" table_type='LOCAL TEMPORARY' AND table_name=%(tableName)s", 
+			{'tableName': tableName.lower()})
+
+	def tableExists(self, tableName, schema=None):
+		"""returns True if a table tablename exists in schema.
+
+		*** postgres specific ***
+		"""
+		schema, tableName = _parseTableName(tableName, schema)
+		return self._rowExists("SELECT table_name FROM"
+			" information_schema.tables WHERE"
+			" table_schema=%(schemaName)s AND table_name=%(tableName)s", 
+			{'tableName': tableName.lower(), 'schemaName': schema.lower()})
+
+	def viewExists(self, tableName, schema=None):
+		schema, tableName = _parseTableName(tableName, schema)
+		return self._rowExists("SELECT viewname FROM"
+			" pg_views WHERE"
+			" schemaname=%(schemaName)s AND viewname=%(tableName)s", 
+			{'tableName': tableName.lower(), 'schemaName': schema.lower()})
+
 	def getSchemaPrivileges(self, schema):
 		"""returns (owner, readRoles, allRoles) for the relation tableName
 		and the schema.

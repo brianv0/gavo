@@ -457,7 +457,7 @@ class Rowmaker(object):
 			msg = ("Key %s not found in a mapping; probably the grammar"
 				" did not yield the required field"%unicode(ex))
 		else:
-			msg = unicode(ex)
+			msg = unicode(str(ex), "iso-8859-1", "replace")
 		raise base.ValidationError("While %s in %s: %s"%(destName, 
 			self.name, msg), destName.split()[-1], rowdict)
 
@@ -468,7 +468,6 @@ class Rowmaker(object):
 				vars[k] = self.defaults[k]
 			vars["rowdict_"] = vars
 			exec self.code in self.globals, vars
-			del vars["rowdict_"]
 			return vars["_result"]
 		except base.ValidationError:  # hopefully downstream knows better than we
 			raise

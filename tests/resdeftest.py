@@ -187,10 +187,6 @@ class TableDefTest(testhelpers.VerboseTest):
 		self.assertEqual(fk.source, ["a", "b"])
 		self.assertEqual(fk.dest, ["b", "c"])
 		self.assertEqual(fk.table, "xy")
-		self.assertEqual(fk.getCreationDDL(), 'ALTER TABLE foo.test ADD FOREIGN'
-			' KEY (a,b) REFERENCES xy (b,c) DEFERRABLE INITIALLY DEFERRED')
-		self.assertEqual(fk.getDeletionDDL(), 
-			'ALTER TABLE foo.test DROP CONSTRANT test_a_fkey')
 		fk = t.foreignKeys[1]
 		self.assertEqual(fk.source, ["b"])
 		self.assertEqual(fk.source, fk.dest)

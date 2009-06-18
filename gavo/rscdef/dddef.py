@@ -36,7 +36,7 @@ class IgnoreSpec(base.Structure):
 			" paths, one per line.  Empty lines and lines beginning with a hash"
 			" are ignored.")
 
-	def prepare(self):
+	def prepare(self, connection=None):
 		"""sets attributes to speed up isIgnored()
 		"""
 		self.inputsDir = base.getConfig("inputsDir")
@@ -44,7 +44,8 @@ class IgnoreSpec(base.Structure):
 		if self.fromdb:
 			try:
 				self.ignoredSet |= set(r[0] 
-					for r in base.SimpleQuerier().runIsolatedQuery(self.fromdb))
+					for r in base.SimpleQuerier(connection=connection
+						).query(self.fromdb))
 			except base.DBError: # table probably doesn't exist yet.
 				pass
 		if self.fromfile:
@@ -112,8 +113,8 @@ class SourceSpec(base.Structure):
 						res.expand(self._expandDirParts(os.path.join(root, child)))
 		return res
 
-	def iterSources(self):
-		self.ignoredSources.prepare()
+	def iterSources(self, connection=None):
+		self.ignoredSources.prepare(connection)
 		for pattern in self.patterns:
 			dirPart, baseName = os.path.split(pattern)
 			if self.parent.rd:
@@ -162,7 +163,7 @@ class Make(base.Structure):
 # Allow embedding maps, idmaps, defaults for auto-rowmaker?
 	name_ = "make"
 
-	_table = base.ReferenceAttribute("table", forceType=tabledef.TableDef,
+	_table = base.ReferenceAttribute("table", 
 		description="Reference to the table to be embedded",
 		default=base.Undefined, copyable=True)
 	_rowmaker = base.ReferenceAttribute("rowmaker", forceType=rmkdef.RowmakerDef,
@@ -219,7 +220,7 @@ class DataDescriptor(base.Structure, base.MetaMixin, scripting.ScriptingMixin):
 			" False unless you have some kind of sources management,"
 			" e.g., via a sources ignore specification.  Note that updating"
 			" data descriptors never execute their preCreation and"
-			" postCreation scripts.")
+			" postCreation scripts.", copyable=True)
 	_makes = base.StructListAttribute("makes", childFactory=Make,
 		copyable=True, description="Specification of a target table and the"
 			" rowmaker to feed them.")
@@ -250,9 +251,9 @@ class DataDescriptor(base.Structure, base.MetaMixin, scripting.ScriptingMixin):
 		# This is required by the ScriptingMixin
 		return self.rd
 
-	def iterSources(self):
+	def iterSources(self, connection=None):
 		if self.sources:
-			return self.sources.iterSources()
+			return self.sources.iterSources(connection)
 		else:
 			return iter([])
 

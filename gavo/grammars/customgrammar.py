@@ -53,10 +53,10 @@ class CustomGrammar(common.Grammar):
 		if hasattr(self.userModule, "makeDataPack"):
 			self.dataPack = self.userModule.makeDataPack(self)
 
-	def parse(self, sourceToken):
+	def parse(self, *args, **kwargs):
 		if not hasattr(self, "userModule"):
 			self._initUserGrammar()
-		return common.Grammar.parse(self, sourceToken)
+		return common.Grammar.parse(self, *args, **kwargs)
 
 rscdef.registerGrammar(CustomGrammar)
 

@@ -26,7 +26,7 @@ class ParseOptions(object):
 
 
 def getParseOptions(validateRows=True, updateMode=False, doTableUpdates=False,
-		batchSize=1024, maxRows=None, keepGoing=False):
+		batchSize=1024, maxRows=None, keepGoing=False, dropIndices=False):
 	"""returns an object with some attributes set.
 
 	This object is used in the parsing code in dddef.  It's a standin
@@ -48,6 +48,7 @@ def getParseOptions(validateRows=True, updateMode=False, doTableUpdates=False,
 	po.doTableUpdates = doTableUpdates
 	po.batchSize = batchSize
 	po.maxRows = maxRows
+	po.dropIndices = dropIndices
 	return po
 
 

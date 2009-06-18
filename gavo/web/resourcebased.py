@@ -606,13 +606,13 @@ class Form(FormMixin, grend.ServiceBasedRenderer, HTMLResultRenderMixin):
 					not self.service.getCurOutputFields(queryMeta)):
 				raise base.ValidationError("These output settings yield no"
 					" output fields", "_OUTPUT")
-			res = self._getResource(queryMeta["format"])
+			managingResource = self._getResource(queryMeta["format"])
 		except:
 			return defer.fail()
-		if res is None:  # render result inline
+		if managingResource is None:  # render result inline
 			return self._runService(data, ctx)
 		else:
-			return defer.succeed(res(self.service, data))
+			return defer.succeed(managingResource(self.service, data))
 
 	def submitAction(self, ctx, form, data):
 		"""is called by formal when input arguments indicate the service should

@@ -16,6 +16,8 @@ from gavo.rscdef import rowtriggers
 from gavo.rscdef import scripting
 
 
+MS = base.makeStruct
+
 class IgnoreThisRow(Exception):
 	"""is raised by TableDef.validateRow if a row should be ignored.
 	This exception must be caught upstream.
@@ -121,19 +123,22 @@ class ForeignKey(base.Structure):
 			self.dest = self._parseList(self.dest)
 		self._onElementCompleteNext(ForeignKey)
 	
-	def getCreationDDL(self):
-		return ("ALTER TABLE %s ADD FOREIGN KEY (%s) REFERENCES %s (%s)"
-			" DEFERRABLE INITIALLY DEFERRED")%(self.parent.getQName(),
-				",".join(self.source), self.table, ",".join(self.dest))
+	def create(self, querier):
+		if not querier.foreignKeyExists(self.parent.getQName(), self.table,
+				self.source, self.dest):
+			return querier.query("ALTER TABLE %s ADD FOREIGN KEY (%s)"
+				" REFERENCES %s (%s)"
+				" DEFERRABLE INITIALLY DEFERRED"%(self.parent.getQName(),
+					",".join(self.source), self.table, ",".join(self.dest)))
 
-	def guessConstraintName(self):
-# XXX TODO: can we get a *real* way to guess the constraint name here?
-		return "%s_%s_fkey"%(self.parent.id, self.source[0])
-
-	def getDeletionDDL(self):
-		return ("ALTER TABLE %s DROP CONSTRANT %s")%(
-			self.parent.getQName(), self.guessConstraintName())
-
+	def delete(self, querier):
+		try:
+			constraintName = querier.getForeignKeyName(self.parent.getQName(), 
+				self.table, self.source, self.dest)
+		except base.DBError:  # key does not exist.
+			return
+		querier.query("ALTER TABLE %s DROP CONSTRAINT %s"%(self.parent.getQName(), 
+			constraintName))
 
 class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		scripting.ScriptingMixin, macros.StandardMacroMixin):
@@ -319,3 +324,73 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 	def processMixinsLate(self):
 		for mixinName in self.mixins:
 			mixins.getMixin(mixinName).processLate(self)
+
+
+class FieldRef(base.Structure):
+	"""A reference to a column in a table definition using the table's
+	id and the column name.
+
+	A parent's namePath a
+	"""
+	name_ = "fieldRef"
+	_srcTable = base.ReferenceAttribute("table", forceType=TableDef,
+		description="Reference to the table the field comes from.",
+		default=base.Undefined)
+	_srcCol = base.UnicodeAttribute("column", default=base.Undefined,
+		description="Column name within the referenced table.")
+
+	def onElementComplete(self):
+		self._onElementCompleteNext(FieldRef)
+		if not self.column in self.table:
+			raise base.StructureError("No field '%s' in table %s"%(
+				self.column, self.table.getQName()))
+
+	def getColumn(self):
+		return self.table.getColumnByName(self.column)
+
+	def getQName(self):
+		return "%s.%s"%(self.table.getQName(), self.column)
+
+
+class SimpleView(base.Structure, base.MetaMixin):
+	"""A simple way to define a view over some tables.
+
+	To define a view in this way, you add fieldRef elements, giving
+	table ids and column names.  The view will be a natural join of
+	all tables involved.
+
+	For more complex views, use a normal table with a viewCreation script.
+
+	These elements can be referred to like normal tables (internally, they
+	are replaced by TableDefs when they are complete).
+	"""
+	name_ = "simpleView"
+
+	_rd = common.RDAttribute()
+	# force an id on those
+	_id = base.IdAttribute("id", default=base.Undefined, description=
+		"Name of the view (must be SQL-legal)")
+	_cols = base.StructListAttribute("colRefs", childFactory=FieldRef,
+		description="References to the fields making up the natural join"
+		" of the simple view.")
+
+	def onElementComplete(self):
+		self._onElementCompleteNext(SimpleView)
+		raise base.Replace(self.getTableDef(), newName="tables")
+
+	def _getDDL(self):
+		tableNames = set(c.table.getQName() for c in self.colRefs)
+		columnNames = [c.getQName() for c in self.colRefs]
+		return "CREATE VIEW %s.%s AS (SELECT %s FROM %s)"%(
+			self.rd.schema,
+			self.id,
+			",".join(columnNames),
+			" NATURAL JOIN ".join(tableNames))
+
+	def getTableDef(self):
+		"""returns a TableDef for the view.
+		"""
+		return MS(TableDef, parent_=self.parent, id=self.id, 
+			onDisk=True, columns=[c.getColumn() for c in self.colRefs],
+			scripts=[MS(scripting.Script, type="viewCreation", name="create view",
+			content_=self._getDDL())])

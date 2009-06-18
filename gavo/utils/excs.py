@@ -91,3 +91,5 @@ class Replace(ExecutiveAction):
 	"""is caught during adoption of children by ParseableStructures.
 	The exception's value will become the new child.
 	"""
+	def __init__(self, newOb, newName=None):
+		self.newOb, self.newName = newOb, newName

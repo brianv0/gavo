@@ -372,7 +372,11 @@ class ParseableStructure(StructureBase):
 		try:
 			self.finishElement()
 		except Replace, ex:
-			self.parent.feedObject(name, ex.args[0])
+			if ex.newName is not None:
+				name = ex.newName
+			if ex.newOb.id is not None:
+				ctx.registerId(ex.newOb.id, ex.newOb)
+			self.parent.feedObject(name, ex.newOb)
 		else:
 			if self.parent:
 				self.parent.feedObject(name, self)
@@ -390,7 +394,7 @@ class ParseableStructure(StructureBase):
 		try:
 			self.managedAttrs[name].feed(ctx, self, value)
 		except Replace, ex:
-			return ex.args[0].feedEvent
+			return ex.newOb.feedEvent
 		return self.feedEvent
 	
 	def _doStart(self, ctx, name, value):
@@ -535,8 +539,7 @@ def makeStructureReference(aStruct, parseParent):
 		raise StructureError("Referenced elements cannot have attributes"
 			" or children")
 	newStruct.feedEvent = Parser(raiseError, raiseError, doEnd)
-	newStruct.finishElement()
-	return newStruct
+	return newStruct.finishElement()
 
 
 def makeStruct(structClass, **kwargs):
@@ -546,8 +549,7 @@ def makeStruct(structClass, **kwargs):
 	parent = None
 	if "parent_" in kwargs:
 		parent = kwargs.pop("parent_")
-	res = structClass(parent, **kwargs).finishElement()
-	return res
+	return structClass(parent, **kwargs).finishElement()
 
 
 class Generator(Parser):

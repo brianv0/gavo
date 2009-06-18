@@ -21,7 +21,7 @@ class PlainUI(ObserverBase):
 
 	@listensTo("NewSource")
 	def announceNewSource(self, srcString):
-		self.showMsg("Starting%s"%srcString)
+		self.showMsg("Starting %s"%srcString)
 		self.pushIndent()
 	
 	@listensTo("SourceFinished")
