@@ -167,11 +167,13 @@ class STCSCompoundParsesTest(STCSParsesTestBase):
 		("compoundGeoPhrase", 
 			"Union ICRS Circle 10 12 1 Not Circle 11 11 1"),
 		("compoundGeoPhrase", 
-			"Union ICRS Circle 10 12 1 Not Circle 11 11 1 Box 12 22 1 2"),
+			"Union ICRS Circle 10 12 1 Union Not Circle 11 11 1 Box 12 22 1 2"),
 		("compoundGeoPhrase", 
-			"Intersection ICRS Circle 10 12 1 Not Circle 11 11 1 Box 12 22 1 2"),
+			"Intersection ICRS Circle 10 12 1 Union Not Circle 11 11 1"
+				" Box 12 22 1 2"),
 		("compoundGeoPhrase", 
-			"Difference ICRS Circle 10 12 1 Not Circle 11 11 1 Box 12 22 1 2"),
+			"Difference ICRS Circle 10 12 1 Intersection Not Circle 11 11 1"
+				" Box 12 22 1 2"),
 		("compoundGeoPhrase", 
 			"Union ICRS Circle 10 12 1"
 			" Not Intersection Circle 11 11 1 Box 12 22 1 2"),
@@ -186,6 +188,8 @@ class STCSCompoundParsesTest(STCSParsesTestBase):
 			"Not Union ICRS Circle 10 12 1 Circle 11 11 1"),
 		("compoundGeoPhrase", 
 			"Union ICRS Position 12 13 Circle 10 12 1 Circle 11 11 1"),
+		("compoundGeoPhrase", 
+			"Difference ICRS Circle 10 12 1 Not Circle 11 11 1 Box 12 22 1 2"),
 		("compoundGeoPhrase", 
 			"Union ICRS"),
 	]

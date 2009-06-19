@@ -165,7 +165,7 @@ class CompoundTest(STCMappingTest):
 	
 	def testInsaneRegion(self):
 		self.assertMapsto("Difference ICRS AllSky Union Circle 10 10 2"
-			" Intersection Polygon 10 2 2 10 10 10 Ellipse 11 11 2 3 30"
+			" Intersection Polygon 10 2 2 10 10 10 Intersection Ellipse 11 11 2 3 30"
 			" Not Difference Circle 12 12 3 Box 11 11 2 3", 
 			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Difference><AllSky unit="deg" /><Union2><Circle unit="deg"><Center><C1>10.0</C1><C2>10.0</C2></Center><Radius>2.0</Radius></Circle><Intersection><Polygon unit="deg"><Vertex><Position><C1>10.0</C1><C2>2.0</C2></Position></Vertex><Vertex><Position><C1>2.0</C1><C2>10.0</C2></Position></Vertex><Vertex><Position><C1>10.0</C1><C2>10.0</C2></Position></Vertex></Polygon><Ellipse unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><SemiMajorAxis>2.0</SemiMajorAxis><SemiMinorAxis>3.0</SemiMinorAxis><PosAngle>30.0</PosAngle></Ellipse><Negation><Difference><Circle unit="deg"><Center><C1>12.0</C1><C2>12.0</C2></Center><Radius>3.0</Radius></Circle><Box2 unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><Size><C1>2.0</C1><C2>3.0</C2></Size></Box2></Difference></Negation></Intersection></Union2></Difference></AstroCoordArea></V>')
 

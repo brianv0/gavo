@@ -576,18 +576,107 @@ class Convex(_Geometry):
 
 
 class _Compound(_Geometry):
+	"""A set-like operator on geometries.
+	"""
 	_a_children = ()
-	_a_complement = False
 
 	def adaptValuesWith(self, converter):
 		return self.change(children=[child.adaptValuesWith(converter)
 			for child in self.children])
 
+	def _applyToChildren(self, function):
+		newChildren, changes = [], False
+		for c in self.children:
+			nc = function(c)
+			newChildren.append(nc)
+			changes = changes or (c is not nc)
+		if changes:
+			return self.change(children=newChildren)
+		else:
+			return self
 
-class Union(_Compound): pass
-class Intersection(_Compound): pass
+	def binarizeOperands(self):
+		"""returns self with binarized operands.
+
+		If no operand needed binarizing, self is returned.
+		"""
+		res = self._applyToChildren(binarizeCompound)
+		return res
+
+
+	def debinarizeOperands(self):
+		"""returns self with debinarized operands.
+
+		If no operand needed debinarizing, self is returned.
+		"""
+		return self._applyToChildren(debinarizeCompound)
+
+
+class _MultiOpCompound(_Compound):
+	"""is a compound that has a variable number of operands.
+	"""
+
+
+class Union(_MultiOpCompound): pass
+class Intersection(_MultiOpCompound): pass
 class Difference(_Compound): pass
-	
+
+
+def _buildBinaryTree(compound, items):
+	"""returns a binary tree of nested instances compound instances.
+
+	items has to have at least length 2.
+	"""
+	items = list(items)
+	root = compound.change(children=items[-2:], complement=False)
+	items[-2:] = []
+	while items:
+		root = compound.change(children=[items.pop(), root],
+			complement=False)
+	return root
+
+
+def binarizeCompound(compound):
+	"""returns compound as a binary tree.
+
+	For unions and intersections, compounds consisting of more than two
+	operands will be split up into parts of two arguments each.
+	"""
+	if not isinstance(compound, _Compound):
+		return compound
+	oc = compound
+	compound = compound.binarizeOperands()
+	if len(compound.children)==1:
+		if compound.complement:
+			return compound.children[0].change(complement=not 
+				compound.children[0].complement)
+		return compound.children[0]
+	elif len(compound.children)==2:
+		return compound
+	else:
+		newChildren = [compound.children[0], 
+			_buildBinaryTree(compound, compound.children[1:])]
+		return compound.change(children=newChildren)
+
+
+def debinarizeCompound(compound):
+	"""returns compound with flattened operators.
+	"""
+	if not isinstance(compound, _Compound):
+		return compound
+	compound = compound.debinarizeOperands()
+	newChildren, changes = [], False
+	for c in compound.children:
+		if c.__class__==compound.__class__ and c.complement==compound.complement:
+			newChildren.extend(c.children)
+			changes = True
+		else:
+			newChildren.append(c)
+	if changes:
+		return compound.change(children=newChildren)
+	else:
+		return compound
+
 
 ################ Toplevel
 
@@ -619,7 +708,7 @@ class STCSpec(ASTNode):
 		"""does global fixups when parsing is finished.
 
 		This method has to be called after the element is complete.  The
-		standard parsers to this.
+		standard parsers do this.
 
 		For convenience, it returns the instance itself.
 		"""
@@ -632,3 +721,28 @@ class STCSpec(ASTNode):
 				if self.time and self.time.value:
 					frame.equinox = "J%.8f"%(times.dateTimeToJYear(self.time.value))
 		return self
+
+	def _applyToAreas(self, function):
+		newAreas, changes = [], False
+		for a in self.areas:
+			na = function(a)
+			changes = changes or na is not a
+			newAreas.append(na)
+		if changes:
+			return self.change(areas=newAreas)
+		else:
+			return self
+
+	def binarize(self):
+		"""returns self with any compound present brought to a binary tree.
+
+		This will return self if nothing needs to change.
+		"""
+		return self._applyToAreas(binarizeCompound)
+
+	def debinarize(self):
+		"""returns self with any compound present brought to a binary tree.
+
+		This will return self if nothing needs to change.
+		"""
+		return self._applyToAreas(debinarizeCompound)

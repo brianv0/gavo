@@ -447,6 +447,7 @@ def _flattenCST(cst):
 def getSTCS(astRoot):
 	"""returns an STC-S string for an AST.
 	"""
+	astRoot = astRoot.binarize()
 	cst = stcs.removeDefaults({
 		"time": _timeToCST(astRoot),
 		"space": _spatialToCST(astRoot),

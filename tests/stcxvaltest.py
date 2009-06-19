@@ -170,7 +170,7 @@ class STCSValidationTests(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 	def testInsaneRegion(self):
 		self.assertFromSTCSValidates(
 			"Difference ICRS AllSky Union Circle 10 10 2"
-			" Intersection Polygon 10 2 2 10 10 10 Ellipse 11 11 2 3 30"
+			" Intersection Polygon 10 2 2 10 10 10 Intersection Ellipse 11 11 2 3 30"
 			" Not Difference Circle 12 12 3 Box 11 11 2 3")
 
 if __name__=="__main__":

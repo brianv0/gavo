@@ -371,6 +371,7 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 		self.assertEqual(stc.getSTCS(ast), stcsOut)
 	
 	samples = [
+# 0
 		("Position ICRS 12.75 14.25", "Position ICRS 12.75 14.25"),
 		("Position ICRS 12000.3 14000 unit arcsec Error 0.1 0.14 Resolution 0.5 0.55"
 			" Size 1 1.1  4.8 2.3 PixSize 0.2 0.2",
@@ -382,6 +383,7 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			"PositionInterval ICRS 12.0 13.0 14.0 15.0"),
 		("PositionInterval ICRS 12 13 14 15 Size 1 1.5 1.75 2",
 			"PositionInterval ICRS 12.0 13.0 14.0 15.0 Size 1.0 1.5 1.75 2.0"),
+# 5
 		("PositionInterval ECLIPTIC CART3 12 13 10 14 15 9 PixSize 1 1 1",
 			"PositionInterval ECLIPTIC CART3 12.0 13.0 10.0 14.0 15.0 9.0 PixSize 1.0 1.0 1.0"),
 		("Circle ICRS 12 13 1 unit arcsec",
@@ -392,6 +394,7 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			"Ellipse ICRS 12.0 13.0 1.0 0.75 0.0 Resolution 1.0 1.0"),
 		("Box fillfactor 0.125 ICRS 70 190 23 18",
 			"Box fillfactor 0.125 ICRS 70.0 190.0 23.0 18.0"),
+# 10
 		("Polygon ICRS 70 190 23 18 12 45 30 -10",
 			"Polygon ICRS 70.0 190.0 23.0 18.0 12.0 45.0 30.0 -10.0"),
 		("Convex FK5 J1990 70 190 23 0.125 12 45 30 -0.25",
@@ -407,6 +410,7 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			" Error 0.0001 0.0002 Resolution 0.0001 PixSize 2",
 			"Time TDT 2009-03-10T09:56:10.015625"
 			" Error 0.0001 0.0002 Resolution 0.0001 PixSize 2.0"),
+# 15
 		("TimeInterval TDT 2009-03-10T09:56:10.015625 unit s"
 			" Error 0.0001 0.0002 Resolution 0.0001 PixSize 2",
 			"StartTime TDT 2009-03-10T09:56:10.015625"
@@ -424,6 +428,7 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			" unit pc/cy",
 			"Position ICRS CART1 1.0 unit Mpc VelocityInterval 0.25 0.5"
 			" Velocity 2.0 unit pc/cy"),
+# 20
 		("PositionInterval ICRS CART3 1.0 2.0 3.0 4.0 5.0 6.0 VelocityInterval"
 			" 0 0 0 10 10 10 Velocity 2 3 4 unit pc/cy",
 			"PositionInterval ICRS CART3 1.0 2.0 3.0 4.0 5.0 6.0 VelocityInterval"
@@ -434,6 +439,13 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			"Redshift REDSHIFT 2.0"),
 		("Time nil UNKNOWNRefPos MJD302",
 			"Time 1859-09-15T00:00:00"),
+		("Difference ICRS AllSky Union Circle 10 10 2"
+			" Intersection Polygon 10 2 2 10 10 10 Intersection Ellipse 11 11 2 3 30"
+			" Not Difference Circle 12 12 3 Box 11 11 2 3",
+			"Difference ICRS AllSky  Union Circle 10.0 10.0 2.0 Intersection Polygon 10.0 2.0 2.0 10.0 10.0 10.0 Intersection Ellipse 11.0 11.0 2.0 3.0 30.0 Not Difference Circle 12.0 12.0 3.0 Box 11.0 11.0 2.0 3.0"),
+		("Union ICRS Circle 1 1 0.5 Box 0.5 0.5 0.25 0.125 unit rad"
+			" Error 0.0001 0.0001",
+			"Union ICRS Circle 1.0 1.0 0.5 Box 0.5 0.5 0.25 0.125 unit rad Error 0.0001 0.0001"),
 	]
 
 
@@ -471,4 +483,4 @@ class EclipticEquinoxTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(OtherCoordTest)
+	testhelpers.main(STCSRoundtripTest)

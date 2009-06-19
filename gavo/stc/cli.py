@@ -33,7 +33,8 @@ def cmd_conform(opts, srcSTCS, dstSTCS):
 
 def makeParser():
 	from optparse import OptionParser
-	parser = OptionParser(usage="%prog [options] <command> {<command-args}")
+	parser = OptionParser(usage="%prog [options] <command> {<command-args}\n"
+		"  Use command 'help' to see commands available.")
 	parser.add_option("-e", "--dump-exception", help="Dump exceptions.",
 		dest="dumpExc", default=False, action="store_true")
 	return parser

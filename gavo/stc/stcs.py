@@ -263,7 +263,7 @@ def getSymbols(_exportAll=False):
 	_compoundGeoOperand  = ( Optional( _compoundNot )("complement") + ( 
 		( _atomicGeometryKey("subtype") + _coos )
 		| _compoundGeoExpression )).addParseAction(lambda s,p,t: dict(t))
-	_compoundGeoArguments = OneOrMore( _compoundGeoOperand )
+	_compoundGeoArguments = _compoundGeoOperand + _compoundGeoOperand
 	_compoundGeoExpression << ( _compoundGeoOperator("subtype") + 	
 		_compoundGeoArguments("children") )
 	compoundGeoPhrase = ( _compoundGeoOperator("type") + _commonRegionItems +

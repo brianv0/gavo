@@ -551,6 +551,7 @@ def _validateCompoundChildren(buildArgs):
 def _makeCompoundBuilder(astClass):
 	def buildCompound(node, buildArgs, context):
 		_validateCompoundChildren(buildArgs)
+		buildArgs.update(_iterCooMeta(node, context, "spaceFrame"))
 		yield "areas", (astClass(**buildArgs),)
 	return buildCompound
 
@@ -828,6 +829,7 @@ def _getActiveTags():
 		_n("AstroCoords"): CooSysActions(),
 		_n("AstroCoordArea"): CooSysActions(),
 		_n("Box"): BoxActions(),
+		_n("Box2"): BoxActions(),
 	}
 
 getActiveTags = CachedGetter(_getActiveTags)
