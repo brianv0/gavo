@@ -13,8 +13,8 @@ from gavo.utils import excs
 
 
 class AstWCSLoader(object):
-	"""is a quick hack to save time on startup: delay (slow) loading of astWCS
-	until it is used (which it may not be at all in many GAVO programs.
+	"""A quick hack to save time on startup: delay (slow) loading of astWCS
+	until it is used (which it may not be at all in many GAVO programs).
 	"""
 	def __getattr__(self, *args):
 		from astLib import astWCS

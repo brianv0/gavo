@@ -8,11 +8,24 @@ space and time for velocities.
 """
 
 from gavo import utils
-from gavo.stc import spherc
 from gavo.stc import sphermath
 from gavo.stc import times
 from gavo.stc import units
 from gavo.stc.common import *
+
+
+class SphercLoader(object):
+	"""A hack to delay loading of spherc.
+
+	We should probably use one of the many lazy import solutions and use
+	it for both what we're doing here and in coords.AstWCSLoader.
+	"""
+	def __getattr__(self, *args):
+		from gavo.stc import spherc
+		globals()["spherc"] = spherc
+		return getattr(spherc, *args)
+
+spherc = SphercLoader()
 
 
 _conformedAttributes = [("time", "timeAs"), ("place", "areas"), 
