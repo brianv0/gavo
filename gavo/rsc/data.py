@@ -231,7 +231,7 @@ def processSource(res, source, feeder, opts):
 	if hasattr(srcIter, "getParameters"):  # is a "normal" grammar
 		try:
 			_pipeRows(srcIter, feeder, opts)
-		except base.Error:
+		except (base.Error,base.ExecutiveAction):
 			raise
 		except Exception, msg:
 			import traceback

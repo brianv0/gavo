@@ -45,6 +45,11 @@ class DispatcherType(type):
 
 
 class EventDispatcher(object):
+	"""is the central event dispatcher.
+
+	Events are posted by using notify* methods.  Various handlers can
+	then attach to them.
+	"""
 	__metaclass__ = DispatcherType
 
 	def __init__(self):

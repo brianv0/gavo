@@ -124,7 +124,9 @@ def main():
 		opts, args = parseCmdline()
 		process(opts, args)
 
+	problemlog = user.interfaces["problemlog"](base.ui)
 	errhandle.runAndCatch(doImport)
+	problemlog.dump("last.badrows")
 
 
 def drop(opts, rdId):

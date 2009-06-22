@@ -27,7 +27,7 @@ class ObserverBase(object):
 	  listener(dispatcher, arg) -> ignored
 	
 	dispatcher is the EventDispatcher instance propagating the event.  It
-	has lots of useful attributes explained in the notifyXXX docstrings.
+	has lots of useful attributes explained in base.event's notifyXXX docstrings.
 
 	You can listen to anything that has a notify method in the EventDispatcher.
 	"""

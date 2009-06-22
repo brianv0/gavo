@@ -8,6 +8,7 @@ a row suitable for inclusion into a table.
 import bisect
 import fnmatch
 import os
+import re
 import sys
 import traceback
 
@@ -51,8 +52,8 @@ class MapRule(base.Structure):
 		description="Source key name to convert to column value (either a grammar"
 		" key or a var).", copyable=True)
 	_nullExcs = base.UnicodeAttribute("nullExcs", default=base.NotGiven,
-		description="A python tuple of exceptions that should be caught and"
-		" cause the value to be NULL.")
+		description="Exceptions that should be caught and"
+		" cause the value to be NULL, separated by commas.")
 	_expr = base.DataContent(copyable=True, description="A python"
 		" expression giving the value to end up in dest")
 
@@ -82,9 +83,6 @@ class MapRule(base.Structure):
 		code = []
 		if self.content_:
 			code.append('_result["%s"] = %s'%(self.dest, self.content_))
-			if self.nullExcs is not base.NotGiven:
-				code = ["try:\n  ", code[0], 
-					'\nexcept (%s): _result["%s"] = None'%(self.nullExcs, self.dest)]
 		else:
 			colDef = tableDef.getColumnByName(self.dest)
 			if colDef.values and colDef.values.nullLiteral is not None:
@@ -97,8 +95,11 @@ class MapRule(base.Structure):
 				raise base.LiteralParseError("Auto-mapping to %s is impossible since"
 					" no default map for %s is known"%(self.dest, colDef.type),
 					"map", colDef.type)
-		return "".join(code)
-
+		code = "".join(code)
+		if self.nullExcs is not base.NotGiven:
+			code = 'try:\n%s\nexcept (%s): _result["%s"] = None'%(
+				re.sub("(?m)^", "  ", code), self.nullExcs, self.dest)
+		return code
 
 class VarDef(base.Structure):
 	"""A definition of a rowmaker variable.
@@ -286,8 +287,12 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 	def completeElement(self):
 		if self.simplemaps:
 			for k,v in self.simplemaps.iteritems():
+				nullExcs = base.NotGiven
+				if v.startswith("@"):
+					v = v[1:]
+					nullExcs = "NameError,"
 				self.feedObject("maps", base.makeStruct(MapRule, 
-					dest=k, src=v))
+					dest=k, src=v, nullExcs=nullExcs))
 		self._completeElementNext(RowmakerDef)
 
 	def _getSource(self, tableDef):

@@ -3,6 +3,7 @@ An observer that dumps all kinds of events to the screen with little or
 no formatting.
 """
 
+from gavo import utils
 from gavo.base import ObserverBase, listensTo
 
 class PlainUI(ObserverBase):
@@ -42,3 +43,10 @@ class PlainUI(ObserverBase):
 	@listensTo("IndexCreation")
 	def announceIndexing(self, indexName):
 		self.showMsg("Create index %s"%indexName)
+	
+	@listensTo("FailedRow")
+	def announceFailedRow(self, args):
+		row, excInfo = args
+		self.showMsg("--- Ignoring bad row: %s (%s)"%(
+			utils.makeEllipsis(str(row), 30), 
+			str(excInfo[1])))
