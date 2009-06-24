@@ -8,10 +8,10 @@ import time
 
 import numarray
 import numarray.strings
-import pyfits
 
 from gavo import utils
 from gavo.formats import votable
+from gavo.utils import pyfits
 
 
 _naTypesMap = {

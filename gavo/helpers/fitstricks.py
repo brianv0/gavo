@@ -9,6 +9,7 @@ here, otherwise it goes to fitstools.
 """
 
 from gavo.utils import fitstools
+from gavo.utils import pyfits
 
 
 def copyFields(header, cardList, ignoredHeaders):

@@ -11,9 +11,7 @@ import sys
 import tempfile
 import unittest
 
-os.environ["NUMERIX"] = "numarray"
 import numarray
-import pyfits
 
 from gavo import base
 from gavo import helpers
@@ -22,6 +20,7 @@ from gavo import rscdesc
 from gavo import stc
 from gavo.base import valuemappers
 from gavo.helpers import filestuff
+from gavo.utils import pyfits
 
 import testhelpers
 

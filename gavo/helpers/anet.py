@@ -4,11 +4,11 @@ Code to obtain WCS headers for fits files using astrometry.net
 
 import os
 
-import pyfits
 
 from gavo import base
 from gavo.utils import fitstools
 from gavo.utils import codetricks
+from gavo.utils import pyfits
 
 anetPath = "/usr/local/astrometry/bin"
 anetIndexPath = "/usr/local/astrometry/data"

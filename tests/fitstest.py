@@ -8,9 +8,9 @@ import shutil
 import tempfile
 import unittest
 
-import pyfits
 
 from gavo.utils import fitstools
+from gavo.utils import pyfits
 
 
 _fitsgz1 = \

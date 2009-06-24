@@ -8,9 +8,14 @@ import sys
 import gzip
 import re
 
-import pyfits
 
 from gavo.utils import ostricks
+
+# Make sure we get the numarray version of pyfits.  This is the master
+# import that all others should use (from gavo.utils import pyfits).
+# see also utils/__init__.py
+os.environ["NUMERIX"] = "numarray"
+import pyfits  # not from gavo.utils to avoid circular import
 
 
 blockLen = 2880

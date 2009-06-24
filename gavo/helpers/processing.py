@@ -8,12 +8,12 @@ a good idea to use the event mechanism here.
 import os
 import sys
 
-import pyfits
 
 from gavo import base
 from gavo.helpers import anet
 from gavo.helpers import fitstricks
 from gavo.utils import fitstools
+from gavo.utils import pyfits
 
 
 class FileProcessor(object):

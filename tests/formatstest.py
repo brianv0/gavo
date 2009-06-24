@@ -12,7 +12,6 @@ from nevow import context
 from nevow import tags as T, entities as E
 from nevow.testutil import FakeRequest
 
-import pyfits
 
 from gavo import base
 from gavo import rsc
@@ -21,6 +20,7 @@ from gavo import rscdesc
 from gavo.base import valuemappers
 from gavo.formats import fitstable
 from gavo.formats import texttable
+from gavo.utils import pyfits
 from gavo.web import resourcebased
 
 import testhelpers

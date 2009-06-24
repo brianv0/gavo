@@ -7,9 +7,9 @@ from math import sin, cos, pi
 import re
 import warnings
 
-import pyfits
 
 from gavo.utils import excs
+from gavo.utils import pyfits
 
 
 class AstWCSLoader(object):
