@@ -201,9 +201,25 @@ def _makeFieldsize(fName):
 
 def getWCSFieldsFor(fName, solverParameters, sexScript=None, objectFilter=None):
 	"""returns a pyfits cardlist for the WCS fields on fName.
+
+	solverParameters is a dictionary mapping solver keys to their values,
+	sexScript is a script for SExtractor, and its presence means that
+	SExtractor should be used for source extraction rather than what anet
+	has built in.  objectFilter is a function that is called with the
+	name of the FITS with the extracted sources.  It can remove or add
+	sources to that file before astrometry.net tries to match.
+
+	To see what solverParameters  are avaliable, check the controlTemplate
+	above; additionally, you can give an indices key; enumerate the index
+	files you want to use with names relative to anet.anetIndexPath, and
+	the appropriate index_statements will be generated for you.  indices
+	override any index_statements keys.
 	"""
 	if not "fieldsize" in solverParameters:
 		solverParameters["fieldsize"] = _makeFieldsize(fName)
+	if "indices" in solverParameters:
+		solverParameters["index_statements"] = "\n".join("index %s"%
+			os.path.join(anetIndexPath, n) for n in solverParameters["indices"])
 	try:
 		res = codetricks.runInSandbox(_feedFile, _resolve, _retrieveWcs, fName,
 			solverParameters=solverParameters, sexScript=sexScript,

@@ -3,6 +3,8 @@ An observer that collects notifications of failed rows and lets clients
 dump them.
 """
 
+import os
+
 from gavo.base import ObserverBase, listensTo
 
 class FailedRowCollector(ObserverBase):
@@ -22,3 +24,6 @@ class FailedRowCollector(ObserverBase):
 			for r in self.failedRows:
 				f.write("%s -- %s\n"%r)
 			f.close()
+		else:
+			if os.path.exists(destFName):
+				os.unlink(destFName)

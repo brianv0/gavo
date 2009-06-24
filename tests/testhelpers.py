@@ -7,7 +7,7 @@ import popen2
 import sys
 import tempfile
 import unittest
-
+from cStringIO import StringIO
 
 from gavo import base
 
@@ -137,6 +137,21 @@ def getTestTable(tableName):
 
 def getTestData(dataId):
 	return getTestRD().getDataById(dataId)
+
+
+def captureOutput(callable, args=(), kwargs={}):
+	"""runs callable(*args, **kwargs) and captures the output.
+
+	The function returns a tuple of return value, stdout output, stderr output.
+	"""
+	realOut, realErr = sys.stdout, sys.stderr
+	sys.stdout, sys.stderr = StringIO(), StringIO()
+	try:
+		retVal = callable(*args, **kwargs)
+	finally:
+		outCont, errCont = sys.stdout.getvalue(), sys.stderr.getvalue()
+		sys.stdout, sys.stderr = realOut, realErr
+	return retVal, outCont, errCont
 
 
 def trialMain(testClass):

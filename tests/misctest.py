@@ -2,20 +2,26 @@
 Some unit tests not yet fitting anywhere else.
 """
 
-import cStringIO
+from cStringIO import StringIO
 import datetime
+import new
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 
+os.environ["NUMERIX"] = "numarray"
+import numarray
+import pyfits
+
 from gavo import base
+from gavo import helpers
 from gavo import rscdef
 from gavo import rscdesc
 from gavo import stc
 from gavo.base import valuemappers
 from gavo.helpers import filestuff
-from gavo.utils import mathtricks
 
 import testhelpers
 
@@ -111,7 +117,7 @@ class RenamerWetTest(unittest.TestCase):
 		"""tests an almost-realistic application
 		"""
 		f = filestuff.FileRenamer.loadFromFile(
-			cStringIO.StringIO("a->b \nb->c\n 2->3\n1 ->2\n\n# a comment\n"
+			StringIO("a->b \nb->c\n 2->3\n1 ->2\n\n# a comment\n"
 				"foo-> bar\n"))
 		f.renameInPath(self.testDir)
 		found = set(os.listdir(self.testDir))
@@ -122,7 +128,7 @@ class RenamerWetTest(unittest.TestCase):
 		"""tests for effects of repeated application.
 		"""
 		f = filestuff.FileRenamer.loadFromFile(
-			cStringIO.StringIO("a->b \nb->c\n 2->3\n1 ->2\n\n# a comment\n"
+			StringIO("a->b \nb->c\n 2->3\n1 ->2\n\n# a comment\n"
 				"foo-> bar\n"))
 		f.renameInPath(self.testDir)
 		self.assertRaises(filestuff.Error, f.renameInPath, self.testDir)
@@ -166,5 +172,160 @@ class TimeCalcTest(testhelpers.VerboseTest):
 			self.assertAlmostEqual(stc.dateTimeToJYear(stc.bYearToDateTime(bessel)),
 				julian, places=5)
 
+
+class ProcessorTest(testhelpers.VerboseTest):
+	"""tests for some aspects of helper file processors.
+
+	Since setUp is relatively expensive, and also because sequencing
+	is important, we do all in one test.  It would be kinda cool if
+	TestSuites would have setUp and tearDown...
+	"""
+	_rdText = """<resource schema="filetest"><data id="import">
+		<sources pattern="*.fits"/><fitsProdGrammar/>
+		</data></resource>"""
+
+	def _writeFITS(self, destPath, seed):
+		hdu = pyfits.PrimaryHDU(numarray.zeros((2,seed+1), 'i2'))
+		hdu.header.update("SEED", seed, "initial number")
+		hdu.header.update("WEIRD", "W"*seed)
+		hdu.header.update("RECIP", 1./(1+seed))
+		hdu.writeto(destPath)
+
+	def setUp(self):
+		self.resdir = os.path.join(base.getConfig("tempDir"), "filetest")
+		self.origInputs = base.getConfig("inputsDir")
+		base.setConfig("inputsDir", base.getConfig("tempDir"))
+		if os.path.exists(self.resdir): # Leftover from previous run?
+			return
+		os.mkdir(self.resdir)
+		for i in range(10):
+			self._writeFITS(os.path.join(self.resdir, "src%d.fits"%i), i)
+		f = open(os.path.join(self.resdir, "filetest.rd"), "w")
+		f.write(self._rdText)
+		f.close()
+
+	def tearDown(self):
+		base.setConfig("tempDir", self.origInputs)
+		shutil.rmtree(self.resdir, True)
+
+	class SimpleProcessor(helpers.HeaderProcessor):
+		def __init__(self, *args, **kwargs):
+			helpers.HeaderProcessor.__init__(self, *args, **kwargs)
+			self.headersBuilt = 0
+
+		def _isProcessed(self, srcName):
+			return self.getPrimaryHeader(srcName).has_key("SQUARE")
+
+		def _getHeader(self, srcName):
+			hdr = self.getPrimaryHeader(srcName)
+			hdr.update("SQUARE", hdr["SEED"]**2)
+			self.headersBuilt += 1
+			return hdr
+
+	def _getHeader(self, srcName):
+		hdus = pyfits.open(os.path.join(self.resdir, srcName))
+		hdr = hdus[0].header
+		hdus.close()
+		return hdr
+
+	def _testPlainRun(self):
+		# Normal run, no headers present yet
+		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
+			(self.SimpleProcessor, "filetest/filetest", "import"))
+		self.assertEqual(stdout.split('\r')[-1].strip(), 
+			"10 files processed, 0 files with errors")
+		self.assertEqual(proc.headersBuilt, 10)
+		self.failUnless(os.path.exists(
+			os.path.join(self.resdir, "src9.fits.hdr")))
+		self.failUnless(self._getHeader("src9.fits.hdr").has_key("SQUARE"))
+		# we don't run with applyHeaders here
+		self.failIf(self._getHeader("src9.fits").has_key("SQUARE"))
+
+	def _testRespectCaches(self):
+		"""tests that no processing is done when cached headers are there.
+
+		This needs to run after _testPlainRun.
+		"""
+		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
+			(self.SimpleProcessor, "filetest/filetest", "import"))
+		self.assertEqual(stdout.split('\r')[-1].strip(), 
+			"10 files processed, 0 files with errors")
+		self.assertEqual(proc.headersBuilt, 0)
+	
+	def _testNoCompute(self):
+		"""tests that no computations take place with --no-compute.
+		"""
+		sys.argv = ["misctest.py", "--no-compute"]
+		os.unlink(os.path.join(self.resdir, "src4.fits.hdr"))
+		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
+			(self.SimpleProcessor, "filetest/filetest", "import"))
+		self.assertEqual(proc.headersBuilt, 0)
+
+	def _testRecompute(self):
+		"""tests that missing headers are recomputed.
+
+		This needs to run before _testApplyCaches and after _testNoCompute.
+		"""
+		sys.argv = ["misctest.py"]
+		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
+			(self.SimpleProcessor, "filetest/filetest", "import"))
+		self.assertEqual(stdout.split('\r')[-1].strip(), 
+			"10 files processed, 0 files with errors")
+		self.assertEqual(proc.headersBuilt, 1)
+
+	def _testApplyCaches(self):
+		"""tests the application of headers to sources.
+
+		This needs to run after _testPlainRun
+		"""
+		sys.argv = ["misctest.py", "--apply"]
+		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
+			(self.SimpleProcessor, "filetest/filetest", "import"))
+		self.assertEqual(stdout.split('\r')[-1].strip(), 
+			"10 files processed, 0 files with errors")
+		self.assertEqual(proc.headersBuilt, 0)
+		self.failUnless(self._getHeader("src9.fits").has_key("SQUARE"))
+		# see if data survived
+		hdus = pyfits.open(os.path.join(self.resdir, "src9.fits"))
+		na = hdus[0].data
+		self.assertEqual(na.shape, (2, 10))
+	
+	def _testForcedRecompute(self):
+		"""tests for working --reprocess.
+		"""
+		sys.argv = ["misctest.py", "--reprocess"]
+		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
+			(self.SimpleProcessor, "filetest/filetest", "import"))
+		self.assertEqual(proc.headersBuilt, 10)
+
+	def _testBugfix(self):
+		"""tests for working --reprocess --apply.
+
+		This must run last since we're monkeypatching SimpleProcessor.
+		"""
+		def newGetHeader(self, srcName):
+			hdr = self.getPrimaryHeader(srcName)
+			hdr.update("SQUARE", hdr["SEED"]**3)
+			self.headersBuilt += 1
+			return hdr
+		sys.argv = ["misctest.py", "--reprocess", "--apply"]
+		self.SimpleProcessor._getHeader = new.instancemethod(newGetHeader,
+			None, self.SimpleProcessor)
+		sys.argv = ["misctest.py", "--reprocess"]
+		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
+			(self.SimpleProcessor, "filetest/filetest", "import"))
+		self.assertEqual(self._getHeader("src6.fits.hdr")["SQUARE"], 216)
+
+	def testAll(self):
+		self._testPlainRun()
+		self._testRespectCaches()
+		self._testNoCompute()
+		self._testRecompute()
+		self._testForcedRecompute()
+		self._testApplyCaches()
+		self._testForcedRecompute()
+		self._testBugfix()
+
+
 if __name__=="__main__":
-	testhelpers.main(TimeCalcTest)
+	testhelpers.main(ProcessorTest)

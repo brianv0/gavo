@@ -160,3 +160,7 @@ def dropCLI():
 		opts, args = parseCmdline()
 		drop(opts, args[0])
 	return errhandle.runAndCatch(doDrop)
+
+
+if __name__=="__main__":
+	main()
