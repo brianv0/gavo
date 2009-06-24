@@ -210,6 +210,7 @@ class AnetHeaderProcessor(HeaderProcessor):
 		"indices": ["index-209.fits"],
 		"lower_pix": 0.1,
 		"upper_pix": 1.0,
+		"depth": 40,
 	}
 	sexScript = None
 	objectFilter = None
@@ -221,10 +222,11 @@ class AnetHeaderProcessor(HeaderProcessor):
 		return self.readPrimaryHeader(srcName).has_key("CD1_1")
 
 	def _runAnet(self, srcName, solverParameters, sexScript, objectFilter):
-		return anet.getWCSFieldsFor(srcName)
+		return anet.getWCSFieldsFor(srcName, solverParameters,
+			sexScript, objectFilter)
 
 	def _solveAnet(self, srcName):
-		return _runAnet(srcName, self.solverParameters, self.sexScript,
+		return self._runAnet(srcName, self.solverParameters, self.sexScript,
 			self.objectFilter)
 
 	def _getHeader(self, srcName):
