@@ -3,7 +3,7 @@ Code to obtain WCS headers for fits files using astrometry.net
 """
 
 import os
-
+import shutil
 
 from gavo import base
 from gavo.utils import fitstools
@@ -134,7 +134,8 @@ def _extractAnet(filterFunc=None):
 	_runShellCommand(tabsortBin, "-i in.xy.fits -o out.fits -c FLUX -d")
 
 
-def _resolve(fName, solverParameters={}, sexScript=None, objectFilter=None):
+def _resolve(fName, solverParameters={}, sexScript=None, objectFilter=None,
+		copyTo=None):
 	"""runs the astrometric calibration pipeline.
 
 	solverParameters maps any of the keys defined in controlTemplate
@@ -172,20 +173,25 @@ def _resolve(fName, solverParameters={}, sexScript=None, objectFilter=None):
 			range(minInd+10, maxInd, 5)):
 		paramDefaults["startob"], paramDefaults["endob"] = startInd, endInd
 		controlFragments.append(controlTemplate%paramDefaults)
+	f = open("blind.control", "w")
+	f.write("\n\n".join(controlFragments))
+	f.close()
 	f = os.popen(blindBin, "w")
 	f.write("\n\n".join(controlFragments))
 	f.flush()
 	status = f.close()
-#	open("/home/msdemlei/control", "w").write("\n\n".join(controlFragments))
-#	open("/home/msdemlei/last.log", "w").write(open("out.log").read())
-#	open("/home/msdemlei/out.xyls", "w").write(open("out.xyls").read())
-#	open("/home/msdemlei/out.fits", "w").write(open("out.fits").read())
+	if copyTo is not None:
+		try:
+			shutil.rmtree(copyTo)
+		except os.error:
+			pass
+		shutil.copytree(".", copyTo)
 	if os.path.exists("out.solved"):
 		return
 	raise NotSolved(fName)
 
 
-def _retrieveWcs(srcDir, fName, **ignored):
+def _retrieveWCS(srcDir, fName, **ignored):
 	return pyfits.getheader("out.wcs").ascard
 
 
@@ -199,7 +205,8 @@ def _makeFieldsize(fName):
 	return "fieldw %d\nfieldh %d"%(header["NAXIS1"], header["NAXIS2"])
 
 
-def getWCSFieldsFor(fName, solverParameters, sexScript=None, objectFilter=None):
+def getWCSFieldsFor(fName, solverParameters, sexScript=None, objectFilter=None,
+		copyTo=None):
 	"""returns a pyfits cardlist for the WCS fields on fName.
 
 	solverParameters is a dictionary mapping solver keys to their values,
@@ -221,9 +228,9 @@ def getWCSFieldsFor(fName, solverParameters, sexScript=None, objectFilter=None):
 		solverParameters["index_statements"] = "\n".join("index %s"%
 			os.path.join(anetIndexPath, n) for n in solverParameters["indices"])
 	try:
-		res = codetricks.runInSandbox(_feedFile, _resolve, _retrieveWcs, fName,
-			solverParameters=solverParameters, sexScript=sexScript,
-			objectFilter=objectFilter)
+		res = codetricks.runInSandbox(_feedFile, _resolve, _retrieveWCS,
+			fName, solverParameters=solverParameters, sexScript=sexScript,
+			objectFilter=objectFilter, copyTo=copyTo)
 	except NotSolved:
 		return None
 	return res

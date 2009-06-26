@@ -52,7 +52,7 @@ def readPrimaryHeaderQuick(f):
 		if mo is None:
 			hdu._raw += block
 			block = f.read(blockLen)
-			if block == '':
+			if block == '' or len(hdu._raw)>40000:
 				break
 		else:
 			break

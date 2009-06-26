@@ -6,8 +6,8 @@ a good idea to use the event mechanism here.
 """
 
 import os
+import shutil
 import sys
-
 
 from gavo import base
 from gavo.helpers import anet
@@ -15,6 +15,10 @@ from gavo.helpers import fitstricks
 from gavo.utils import fitstools
 from gavo.utils import pyfits
 
+
+class CannotComputeHeader(Exception):
+	"""is raised when no header can be generated (_getHeader returns None).
+	"""
 
 class FileProcessor(object):
 	"""An abstract base for a source file processor.
@@ -92,7 +96,10 @@ class HeaderProcessor(FileProcessor):
 
 	def _makeCache(self, srcName):
 		if self.opts.compute:
-			self._writeCache(srcName, self._getHeader(srcName))
+			hdr = self._getHeader(srcName)
+			if hdr is None:
+				raise CannotComputeHeader("_getHeader returned None")
+			self._writeCache(srcName, hdr)
 
 	# headers copied from original file rather than the cached header
 	keepKeys = set(["SIMPLE", "BITPIX", "NAXIS", "NAXIS1", "NAXIS2",
@@ -146,6 +153,8 @@ class HeaderProcessor(FileProcessor):
 		if cache is None or self.opts.reProcess:
 			self._makeCache(srcName)
 			cache = self._readCache(srcName)
+		if cache is None:
+			return
 		if not self.opts.applyHeaders:
 			return
 		if self.opts.reHeader or not self._isProcessed(srcName):
@@ -219,11 +228,12 @@ class AnetHeaderProcessor(HeaderProcessor):
 		"naxis1", "naxis2", "datamin", "datamax", "date"])
 
 	def _isProcessed(self, srcName):
-		return self.readPrimaryHeader(srcName).has_key("CD1_1")
+		return self.getPrimaryHeader(srcName).has_key("CD1_1")
 
-	def _runAnet(self, srcName, solverParameters, sexScript, objectFilter):
+	def _runAnet(self, srcName, solverParameters, sexScript, objectFilter,
+			copyTo=None):
 		return anet.getWCSFieldsFor(srcName, solverParameters,
-			sexScript, objectFilter)
+			sexScript, objectFilter, copyTo)
 
 	def _solveAnet(self, srcName):
 		return self._runAnet(srcName, self.solverParameters, self.sexScript,
@@ -231,7 +241,10 @@ class AnetHeaderProcessor(HeaderProcessor):
 
 	def _getHeader(self, srcName):
 		wcsCards = self._solveAnet(srcName)
-		hdr = self.readPrimaryHeader(srcName)
+		if not wcsCards:
+			raise CannotComputeHeader("astrometry.net did not"
+				" find a solution")
+		hdr = self.getPrimaryHeader(srcName)
 		fitstricks.copyFields(hdr, wcsCards, self.noCopyHeaders)
 		return hdr
 
