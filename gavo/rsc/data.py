@@ -227,6 +227,9 @@ def _pipeRows(srcIter, feeder, opts):
 
 
 def processSource(res, source, feeder, opts):
+	if res.dd.grammar is None:
+		raise base.ReportableError("The data descriptor %s cannot be used"
+			" to make data since it has no defined grammar."%res.dd.id)
 	srcIter = res.dd.grammar.parse(source, res)
 	if hasattr(srcIter, "getParameters"):  # is a "normal" grammar
 		try:

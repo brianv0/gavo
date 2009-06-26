@@ -32,16 +32,24 @@ function isIn(item, arr) {
 
 
 ///////////// Code handling previews
-function insertPreview(node, width) {
-// replaces the text content of node with a preview image if node has
-// a href attribute (this is used for products)
-	if (node.getAttribute("href")) {
-		var image = document.createElement("img")
-		image.setAttribute("src", node.getAttribute("href")+"&preview=True"+
-			"&width="+width);
-		node.replaceChild(image, node.firstChild);
-	}
+function insertPreviewURL(node, previewHref) {
+// replaces the text content of node with a preview image pointed to
+// by previewHref (for products).
+	var image = document.createElement("img")
 	node.removeAttribute("onmouseover");
+	image.setAttribute("src", previewHref);
+	node.replaceChild(image, node.firstChild);
+
+}
+
+function insertPreview(node, width) {
+// replaces the text content of node with a DC-generated preview
+// image.  node has to have a href attribute pointing to a DC
+// FITS product for this to work.
+	if (node.getAttribute("href")) {
+		insertPreviewURL(node, node.getAttribute("href")+"&preview=True"+
+			"&width="+width);
+	}
 }
 
 ///////////// Code for generating GET-URLs for forms

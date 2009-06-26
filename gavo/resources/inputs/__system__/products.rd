@@ -37,7 +37,7 @@ machinery -->
 		<map dest="mime" src="prodtblMime"/>
 	</rowmaker>
 
-	<!-- materials for tables mixing in products -->
+	<!-- material for tables mixing in products -->
 	<table id="productColumns">
 		<column name="accref" ucd="VOX:Image_AccessReference"
 			type="text" verbLevel="1" displayHint="type=product" 
