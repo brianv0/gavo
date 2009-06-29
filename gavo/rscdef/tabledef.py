@@ -140,6 +140,7 @@ class ForeignKey(base.Structure):
 		querier.query("ALTER TABLE %s DROP CONSTRAINT %s"%(self.parent.getQName(), 
 			constraintName))
 
+
 class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		scripting.ScriptingMixin, macros.StandardMacroMixin):
 	"""A definition of a table, both on-disk and internal.
@@ -233,7 +234,17 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		if self.primary:
 			self.indexedColumns |= set(self.primary)
 		self._onElementCompleteNext(TableDef)
-	
+
+	def hackMixinsAfterMakeStruct(self):
+		"""tries to apply mixins not fed.
+
+		This is a hack for when you makeStructed a table but still want
+		mixins that need to be fed.  It will only work if
+		the mixins no not need a parse context.
+		"""
+		for mixinName in self.mixins:
+			self._mixins._processEarly(self, mixinName)
+
 	def macro_curtable(self):
 		"""returns the qualified name of the current table.
 		"""
@@ -250,11 +261,20 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		If there is no or more than one field with the ucd in this table,
 		we raise an exception.
 		"""
-		fields = self.getColumnsByUCD(ucd)
-		if len(fields)!=1:
-			raise base.Error("More than one or no field with ucd"
-				" %s in this table"%ucd)
-		return fields[0].name
+		return self.getColumnByUCD(ucd).name
+
+	def macro_nameForUCDs(self, ucds):
+		"""returns the (unique!) name of the field having one of ucds in this table.
+
+		Ucds is a comma separated list of ucds.  The rules for when this
+		raises errors are so crazy you don't want to think about them.  This
+		really is only intended for cases where "old" and "new" standards
+		are to be supported, like with pos.eq.*;meta.main and POS_EQ_*_MAIN.
+
+		If there is no or more than one field with the ucd in this table,
+		we raise an exception.
+		"""
+		return self.getColumnByUCDs(*ucds.split(",")).name
 
 	def getQName(self):
 		if self.temporary:
@@ -304,6 +324,12 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		"""delegates to common.ColumnList.
 		"""
 		return self.columns.getColumnByUCD(ucd)
+
+	def getColumnByUCDs(self, *ucds):
+		"""delegates to common.ColumnList.
+		"""
+		return self.columns.getColumnByUCDs(*ucds)
+
 
 	def getProductColumns(self):
 		"""returns the names of the columns containing products.

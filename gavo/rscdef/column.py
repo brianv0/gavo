@@ -176,7 +176,7 @@ class Values(base.Structure):
 		return typesystems.sqltypeToPython(sqltype)(literal)
 
 	def _evaluateFromDB(self, ctx):
-		if ctx.noQueries:
+		if not getattr(ctx, "doQueries", True):
 			return
 		try:
 			res = base.SimpleQuerier().runIsolatedQuery("SELECT DISTINCT %s"%(

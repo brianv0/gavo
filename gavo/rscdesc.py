@@ -200,10 +200,10 @@ class RDParseContext(base.ParseContext):
 	It defines a couple of attributes that structures can ask for (however,
 	it's good practice not to rely on their presence in case someone wants
 	to parse XML snippets with a standard parse context, so use 
-	getattr(ctx, "noQueries", True) or somesuch.
+	getattr(ctx, "doQueries", True) or somesuch.
 	"""
-	def __init__(self, forImport, noQueries, dumpTracebacks):
-		self.forImport, self.noQueries = forImport, noQueries
+	def __init__(self, forImport, doQueries, dumpTracebacks):
+		self.forImport, self.doQueries = forImport, doQueries
 		self.dumpTracebacks = dumpTracebacks
 		base.ParseContext.__init__(self)
 
@@ -247,7 +247,7 @@ def mapParseErrors(ex, tag, ctx):
 	raise
 
 
-def getRD(srcId, forImport=False, noQueries=False, dumpTracebacks=False):
+def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False):
 	"""returns a ResourceDescriptor for srcId.
 
 	srcId is something like an input-relative path; you'll generally
@@ -257,7 +257,7 @@ def getRD(srcId, forImport=False, noQueries=False, dumpTracebacks=False):
 	the mapping from id to object collected by the parse context.
 	"""
 	srcPath, inputFile = getRDInputStream(srcId)
-	context = RDParseContext(forImport, noQueries, dumpTracebacks)
+	context = RDParseContext(forImport, doQueries, dumpTracebacks)
 	context.srcPath = srcPath
 	rd = RD(None)
 	rd.idmap = context.idmap

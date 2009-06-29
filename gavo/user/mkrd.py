@@ -106,6 +106,7 @@ class EventStorage(object):
 	def iterEvents(self):
 		return islice(self.events, 1, len(self.events)-1)
 
+
 def makeColumn(col):
 	return RD.column(**{"name": col.name, "unit": re.sub("[][]", "", col.unit),
 		"ucd": itemDef.get_ucd(), "description": itemDef.get_description(),
@@ -152,21 +153,10 @@ def makeDataForFITS(rd, srcName, opts):
 	dd.feedObject("make", MS(rscdef.Make, table=targetTable))
 	return dd
 
-def makeVOTableFieldName(field, ind):
-	return re.sub("[^\w]+", "x", (field.name or field.id or "field%02d"%ind))
-
 def makeTableFromVOTable(rd, srcName, opts):
 	vot = VOTable.parse(open(srcName))
-	srcTable = vot.resources[0].tables[0]
-	record = resource.TableDef(None)
-	record.set_table("data")
-	for ind, f in enumerate(srcTable.fields):
-		colName = makeVOTableFieldName(f, ind)
-		record.addto_items(datadef.DataField(dest=colName, source=colName,
-			ucd=f.ucd, description=f.description, tablehead=colName.capitalize(),
-			unit=f.unit,
-			dbtype=typesystems.voTableToSQLType(f.datatype, f.arraysize)))
-	return record, RD.VOTableGrammar
+	tableDef, votable.makeTableDefForVOTable("data", vot.resources[0].tables[0])
+	return tableDef, RD.VOTableGrammar
 
 
 tableMakers = {

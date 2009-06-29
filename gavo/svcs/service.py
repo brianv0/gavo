@@ -42,6 +42,8 @@ def adaptTable(origTable, newColumns):
 	return a table with the rows from origTable and the columns from
 	newColumns.
 
+	(1a) if origTable has a noPostprocess attribute, proceed to (4)
+
 	(2) if names of newColumns are a subset of origTable.columns match
 	but one or more units don't, set up a conversion routine and create
 	new rows, combining them with newColumns to the result.
@@ -108,7 +110,7 @@ class SvcResult(object):
 		self.inputData = inputData
 		self.queryMeta = queryMeta
 		self.service = service
-		if service and isinstance(coreResult, rsc.BaseTable):
+		if (service and isinstance(coreResult, rsc.BaseTable)):
 			coreResult = adaptTable(coreResult, 
 				service.getCurOutputFields(queryMeta))
 		self.original = coreResult

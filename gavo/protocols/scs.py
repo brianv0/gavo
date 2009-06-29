@@ -169,8 +169,10 @@ class Q3CIndex(rscdef.RMixinBase):
 		The query depends on postgastro extension.
 		"""
 		q = base.SimpleQuerier()
-		raField = tableDef.getColumnByUCD("pos.eq.ra;meta.main").name
-		decField = tableDef.getColumnByUCD("pos.eq.dec;meta.main").name
+		raField = tableDef.getColumnByUCDs("pos.eq.ra;meta.main", 
+			"POS_EQ_RA_MAIN").name
+		decField = tableDef.getColumnByUCDs("pos.eq.dec;meta.main", 
+			"POS_EQ_RA_MAIN").name
 		res = q.query("SELECT %s,"
 				" celDistDD(%s, %s, %%(alpha)s, %%(delta)s) as dist_"
 				" FROM %s WHERE"

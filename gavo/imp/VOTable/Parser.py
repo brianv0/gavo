@@ -55,7 +55,37 @@ class Parser(object):
         # Parse the file
         self._parse()
         return
+
+    def _guessNamespace(self):
+        """sets a namespace attribute from the namespace of the VOTable
+        root element.
+
+        The namespace is required to make the findalls reliable.
+        """
+        tag = self._votableTree.tag
+        if "}" in tag:
+            self.namespace = tag.split("}")[0][1:]
+        else:
+            self.namespace = None
     
+    def findall(self, element, tagName):
+        """is ElementTree's findall, namespaced to the root's namespace.
+        """
+        if self.namespace is None:
+            return element.findall(tagName)
+        else:
+            return element.findall(
+                str(ElementTree.QName(self.namespace, tagName)))
+
+    def find(self, element, tagName):
+        """is ElementTree's findall, namespaced to the root's namespace.
+        """
+        if self.namespace is None:
+            return element.find(tagName)
+        else:
+            return element.find(
+                str(ElementTree.QName(self.namespace, tagName)))
+
     def _parse(self):
         """
         Parse the XML VOTable which self._fileURL points to. Create the 
@@ -77,19 +107,21 @@ class Parser(object):
             self._votableTree = ElementTree.parse(f).getroot()
         else:
             self._votableTree = ElementTree.parse(self._fileURL).getroot()
-        
+       
+        self._guessNamespace()
         
         # Now create the table object.
         votable = DataModel.VOTable()
         try:
-            votable.description = self._votableTree.find('DESCRIPTION').text
+            votable.description = self.find(self._votableTree, 
+                'DESCRIPTION').text
         except:
             # No top level description
             votable.description = ''
         
         # Deprecation Warning! VOTable <1.1 required INFO and COOSYS to be
         # enclosed into a DEFINITIONS block.
-        definitions = self._votableTree.find('DEFINITIONS')
+        definitions = self.find(self._votableTree, 'DEFINITIONS')
         try:
             if(definitions and len(definitions)):
                 try:
@@ -142,20 +174,20 @@ class Parser(object):
         resources = []
         
         # Loop through the RESOURCE elements.
-        for rTree in self._votableTree.findall('RESOURCE'):
+        for rTree in self.findall(self._votableTree, 'RESOURCE'):
             r = DataModel.Resource()
-            description = rTree.find('DESCRIPTION')
+            description = self.find(rTree, 'DESCRIPTION')
             if(description):
                 r.description = description.text
             r.info = self._parseElement(tree=rTree,
                                         tagName='INFO',
                                         cls=DataModel.Info)
-            coosys = rTree.find('COOSYS')
+            coosys = self.find(rTree, 'COOSYS')
             if(coosys):
                 r.coosys = self._parseElement(rTree, 
                                               'COOSYS', 
                                               DataModel.CooSys)
-            link = rTree.find('LINK')
+            link = self.find(rTree, 'LINK')
             if(link):
                 # FIXME: Better LINK parsing.
                 r.link = link.get('href')
@@ -176,7 +208,7 @@ class Parser(object):
     
     def _parseTables(self, resourceTree):
         tables = []
-        for tTree in resourceTree.findall('TABLE'):
+        for tTree in self.findall(resourceTree, 'TABLE'):
             t = DataModel.Table()
             
             # Attributes
@@ -184,10 +216,10 @@ class Parser(object):
                 setattr(t, a.lower(), tTree.get(a))
             
             # Description and link
-            description = tTree.find('DESCRIPTION')
+            description = self.find(tTree, 'DESCRIPTION')
             if(description):
                 t.description = description.text
-            link = tTree.find('LINK')
+            link = self.find(tTree, 'LINK')
             if(link):
                 # FIXME: Better LINK parsing.
                 t.link = link.get('href')
@@ -198,7 +230,7 @@ class Parser(object):
             # TODO: Support GROUP
             
             # Data
-            data = tTree.find('DATA')
+            data = self.find(tTree, 'DATA')
             if(data):
                 t.data = self._parseDataElement(data, t.fields)
             else:
@@ -226,7 +258,7 @@ class Parser(object):
         List of cls objects.
         """
         result = []
-        for el in tree.findall(tagName):
+        for el in self.findall(tree, tagName):
             p = cls()
             
             # Attributes
@@ -251,9 +283,9 @@ class Parser(object):
         the appropriate decoder.
         """
 
-        tableDataTree = dataTree.find('TABLEDATA')
-        binaryTree = dataTree.find('BINARY')
-        fitsTree = dataTree.find('FITS')
+        tableDataTree = self.find(dataTree, 'TABLEDATA')
+        binaryTree = self.find(dataTree, 'BINARY')
+        fitsTree = self.find(dataTree, 'FITS')
         if(tableDataTree):
             return(self._decodeTableDataElement(tableDataTree, 
                                                 fields))
@@ -282,7 +314,7 @@ class Parser(object):
         Parse table data serialized in a BINARY element.
         """
         # The actual data is inside a STREAM eolement...
-        return(self._decodeStreamElement(binaryTree.find('STREAM'), fields))
+        return(self._decodeStreamElement(self.find(binaryTree, 'STREAM'), fields))
     
     def _decodeFitsElement(self, binaryTree, fields):
         """

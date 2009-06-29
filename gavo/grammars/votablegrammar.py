@@ -13,10 +13,20 @@ from gavo.grammars import common
 from gavo.imp import VOTable
 
 
-def makeVOTableFieldName(field, ind):
-	"""returns a suitable column name for a VOTable field structure.
+class VOTNameMaker(object):
+	"""A class for generating db-unique names from VOTable fields.
 	"""
-	return re.sub("[^\w]+", "x", (field.name or field.id or "field%02d"%ind))
+	def __init__(self):
+		self.knownNames, self.index = set(), 0
+	
+	def makeName(self, field):
+		preName = re.sub("[^\w]+", "x", (field.name or field.id or 
+			"field%02d"%self.index))
+		while preName.lower() in self.knownNames:
+			preName = preName+"_"
+		self.knownNames.add(preName.lower())
+		self.index += 1
+		return preName
 
 
 class VOTableRowIterator(common.RowIterator):
@@ -26,8 +36,8 @@ class VOTableRowIterator(common.RowIterator):
 
 	def _iterRows(self):
 		srcTable = self.vot.resources[0].tables[0]
-		fieldNames = [makeVOTableFieldName(f, ind)
-			for ind, f in enumerate(srcTable.fields)]
+		nameMaker = VOTNameMaker()
+		fieldNames = [nameMaker.makeName(f) for f in srcTable.fields]
 		for row in srcTable.data:
 			yield dict(izip(fieldNames, row))
 		self.grammar = None

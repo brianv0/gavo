@@ -38,8 +38,15 @@ class Core(base.Structure):
 	The abstract core element will never occur in resource descriptors.  See 
 	`Cores Available`_ for concrete cores.  Use the names of the concrete
 	cores in RDs.
+
+	You can specify a contextGrammar in a grammarXML and an outputTable
+	in outputTableXML.  These contain fragments of RDs.  They can be
+	overridden in the RD XML.
 	"""
 	name_ = "core"
+
+	grammarXML = None
+	outputTableXML = None
 
 	_rd = rscdef.RDAttribute()
 	_inputDD = base.StructAttribute("inputDD", 
@@ -51,6 +58,22 @@ class Core(base.Structure):
 			" what fields are available from this core.", copyable=True)
 	_original = base.OriginalAttribute()
 	_properties = base.PropertyAttribute()
+
+	def __init__(self, parent, **kwargs):
+		if self.grammarXML is not None:
+			g = base.parseFromString(inputdef.ContextGrammar, self.grammarXML)
+			if "inputDD" in kwargs:
+				raise base.StructureError("Cannot give an inputDD for custom cores"
+					" defining one.")
+			kwargs["inputDD"] = base.makeStruct(inputdef.InputDescriptor,
+				grammar=g)
+		if self.outputTableXML is not None:
+			o = base.parseFromString(outputdef.OutputTableDef, self.outputTableXML)
+			if "outputTable" in kwargs:
+				raise base.StructureError("Cannot give an outputTable for custom cores"
+					" defining one.")
+			kwargs["outputTable"] = o
+		base.Structure.__init__(self, parent, **kwargs)
 
 	def __repr__(self):
 		return "<%s at %s>"%(self.__class__.__name__, id(self))

@@ -26,13 +26,18 @@ import re
 import itertools
 import urllib
 import urlparse
+from cStringIO import StringIO
 
 from gavo import base
+from gavo import rsc
+from gavo import rscdef
 from gavo.base import valuemappers
+from gavo.grammars import votablegrammar
 from gavo.utils import ElementTree
 
+from gavo.imp import VOTable
+from gavo.imp.VOTable import DataModel as DM
 from gavo.imp.VOTable import Writer
-from gavo.imp.VOTable.DataModel import *
 from gavo.imp.VOTable import Encoders
 from gavo.imp.VOTable.Writer import namespace
 
@@ -40,6 +45,8 @@ from gavo.imp.VOTable.Writer import namespace
 class Error(base.Error):
 	pass
 
+
+MS = base.makeStruct
 
 namespace = "http://www.ivoa.net/xml/VOTable/v1.1"
 
@@ -62,7 +69,7 @@ _tableEncoders = {
 }
 
 
-# XXX TODO: some of the mapping code in here is obsolete and should be scapped
+# XXX TODO: some of the mapping code in here is obsolete and should be scrapped
 # in favour of the functions provided by valuemappers.
 
 class TableData(object):
@@ -151,7 +158,7 @@ class VOTableMaker:
 		if content:
 			content = str(content).strip()
 		if content or value:
-			i = Info(name=name, text=content)
+			i = DM.Info(name=name, text=content)
 			i.value = value
 			if id:
 				i.ID = id
@@ -164,7 +171,7 @@ class VOTableMaker:
 		Apart from title, the further arguments are ignored right now.
 		"""
 		if href:
-			l = Link(href=href, title=title)
+			l = DM.Link(href=href, title=title)
 			node.links.append(l)
 
 	_voFieldCopyKeys = ["name", "ID", "datatype", "ucd",
@@ -179,15 +186,15 @@ class VOTableMaker:
 			"""
 			valArgs = {}
 			if cp["min"] is not valuemappers._Supremum:
-				valArgs["min"] = Min(value=str(cp["min"]))
+				valArgs["min"] = DM.Min(value=str(cp["min"]))
 			if cp["max"] is not valuemappers._Infimum:
-				valArgs["max"] = Max(value=str(cp["max"]))
+				valArgs["max"] = DM.Max(value=str(cp["max"]))
 			if cp["hasNulls"]:
 				if cp.has_key("nullvalue"):
 					valArgs["null"] = str(cp["nullvalue"])
 			if valArgs:
 				valArgs["type"] = "actual"
-				vals = Values(**valArgs)
+				vals = DM.Values(**valArgs)
 				# hasNulls could help the encoder optimize if necessary.
 				# Since VOTable.VOObject doesn't serialize booleans, this won't show
 				# in the final XML.
@@ -213,19 +220,19 @@ class VOTableMaker:
 		"""
 		for colProp in colProperties:
 			tableNode.fields.append(
-				Field(**self._getVOFieldArgs(colProp)))
+				DM.Field(**self._getVOFieldArgs(colProp)))
 
 	def _defineParams(self, resourceNode, items, values):
 		for item in items:
 			cp = valuemappers.ColProperties(item)
 			if values.has_key(item.name):
 				cp["value"] = values[itemname]
-			resourceNode.params.append(Param(**self._getVOFieldArgs(cp)))
+			resourceNode.params.append(DM.Param(**self._getVOFieldArgs(cp)))
 				
 	def _makeTable(self, res, table):
 		"""returns a Table node for the table.Table instance table.
 		"""
-		t = Table(name=table.tableDef.id, coder=_tableEncoders[self.tablecoding],
+		t = DM.Table(name=table.tableDef.id, coder=_tableEncoders[self.tablecoding],
 			description=unicode(table.tableDef.getMeta("description", 
 				propagate=False, default="")))
 		data = TableData(table, self.mFRegistry)
@@ -250,7 +257,7 @@ class VOTableMaker:
 		resType = dataSet.getMeta("_type")
 		if resType:
 			args["type"] = str(resType)
-		res = Resource(**args)
+		res = DM.Resource(**args)
 		try:
 			parTable = dataSet.getTableWithRole("parameters")
 			if parTable.rows:
@@ -275,13 +282,13 @@ class VOTableMaker:
 		vot.description = unicode(rd.getMeta("description", default=""))
 # XXX TODO: do something about systems
 #		for id, equ, epoch, system in rd.get_systems():
-#			vot.coosys.append(CooSys(ID=id, equinox=equ, epoch=epoch, system=system))
+#			vot.coosys.append(DM.CooSys(ID=id, equinox=equ, epoch=epoch, system=system))
 		self._addInfo("legal", rd.getMeta("_legal"), vot)
 
 	def makeVOT(self, dataSet):
 		"""returns a VOTable object representing dataSet.
 		"""
-		vot = VOTable()
+		vot = DM.VOTable()
 		self._setGlobalMeta(vot, dataSet)
 		vot.resources.append(self._makeResource(dataSet))
 		return vot
@@ -289,6 +296,59 @@ class VOTableMaker:
 	def writeVOT(self, vot, destination, encoding="utf-8"):
 		writer = Writer(encoding)
 		writer.write(vot, destination)
+
+
+def makeTableDefForVOTable(tableId, votTable, **moreArgs):
+	"""returns a TableDef for a Table element parsed from a VOTable.
+
+	Pass additional constructor arguments for the table in moreArgs.
+	"""
+	columns = []
+# it's important to create the names exactly like in VOTableGrammar
+	nameMaker = votablegrammar.VOTNameMaker()
+	for f in votTable.fields:
+		colName = nameMaker.makeName(f)
+		columns.append(MS(rscdef.Column,
+			name = colName,
+			ucd=f.ucd, 
+			description=f.description, 
+			tablehead=colName.capitalize(),
+			unit=f.unit,
+			type=base.voTableToSQLType(f.datatype, f.arraysize)))
+	res = MS(rscdef.TableDef, id=tableId, columns=columns,
+		**moreArgs)
+	res.hackMixinsAfterMakeStruct()
+	return res
+
+
+def _makeDDForVOTable(tableId, vot, **moreArgs):
+	"""returns a DD suitable for uploadVOTable.
+
+	moreArgs are additional keywords for the construction of the target
+	table.
+	"""
+	tableDef = makeTableDefForVOTable(tableId, vot.resources[0].tables[0],
+		**moreArgs)
+	return MS(rscdef.DataDescriptor,
+		grammar=MS(votablegrammar.VOTableGrammar),
+		makes=[MS(rscdef.Make, table=tableDef)])
+
+
+def uploadVOTable(tableId, srcFile, connection, **moreArgs):
+	"""creates a temporary table with tableId containing the first table
+	of the first resource in the VOTable that can be read from srcFile.
+
+	The corresponding DBTable instance is returned.
+	"""
+	inputFile = StringIO(srcFile.read())
+	srcFile.close()
+	vot = VOTable.parse(inputFile)
+	myArgs = {"onDisk": True, "temporary": True}
+	myArgs.update(moreArgs)
+	dd = _makeDDForVOTable(tableId, vot, **myArgs)
+	inputFile.seek(0)
+	return rsc.makeData(dd, forceSource=inputFile, connection=connection,
+		).getPrimaryTable()
 
 
 def _test():

@@ -246,6 +246,8 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 	def ensureSchema(self):
 		"""creates self's schema if necessary.
 		"""
+		if self.tableDef.temporary:  # these never are in a schema
+			return
 		schemaName = self.tableDef.rd.schema
 		if not self.schemaExists(schemaName):
 			self.query("CREATE SCHEMA %(schemaName)s"%locals())
@@ -278,12 +280,12 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 			self.ownedConnection = True
 		else:
 			self.connection = connection
-		if self.tableDef.rd is None:
+		if self.tableDef.rd is None and not self.tableDef.temporary:
 			raise common.ResourceError("TableDefs without resource descriptor"
 				" cannot be used to access database tables")
 		self.tableName = self.tableDef.getQName()
-		self.nometa = (kwargs.get("nometa", False) or tableDef.rd.schema=="dc"
-			or self.tableDef.temporary)
+		self.nometa = (kwargs.get("nometa", False) 
+			or self.tableDef.temporary or tableDef.rd.schema=="dc")
 		if kwargs.get("create", True):
 			self.createIfNecessary()
 		if not self.tableUpdates:
@@ -309,7 +311,7 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 
 	def exists(self):
 		if self.tableDef.temporary:
-			return self.tempTableExists(self.tableName)
+			return self.temporaryTableExists(self.tableName)
 		else:
 			return self.tableExists(self.tableName)
 
@@ -431,6 +433,9 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 			raise base.DataError("Invalid dupePolicy: %s"%self.tableDef.dupePolicy)
 
 	def configureTable(self):
+		if self.tableDef.temporary:
+			self.createUniquenessRules()
+			return
 		self.setTablePrivileges(self.tableDef)
 		if not self.nometa:
 			self.addToMeta()

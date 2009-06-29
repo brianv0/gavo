@@ -81,7 +81,7 @@ def query(query, timeout=15, queryProfile="untrustedquery", metaProfile=None):
 # XXX TODO: select an appropriate RD from the tables queried.
 	td = base.makeStruct(rscdef.TableDef, columns=_getTableDescForOutput(t))
 	table = rsc.TableForDef(td)
-# escape % to hide them form dbapi replacing
+	# escape % to hide them form dbapi replacing
 	query = adql.flatten(t).replace("%", "%%")
 	for tuple in base.SimpleQuerier(useProfile=queryProfile).runIsolatedQuery(
 			query, timeout=timeout, silent=True):

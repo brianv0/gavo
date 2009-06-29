@@ -346,7 +346,7 @@ def main():
 	opts, args = parseCommandLine()
 	if opts.all:
 		args = findAllRDs()
-	updateServiceList([base.caches.getRD(rdPath, noQueries=True)
+	updateServiceList([base.caches.getRD(rdPath, doQueries=False)
 		for rdPath in args], metaToo=opts.meta)
 	if opts.all or opts.doFixed:  # also import fixed registry records
 		importFixed()

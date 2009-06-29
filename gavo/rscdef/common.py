@@ -193,6 +193,22 @@ class ColumnList(list):
 		else:
 			raise base.LiteralParseError("No column for %s"%ucd, "ucd", ucd)
 
+	def getColumnByUCDs(self, *ucds):
+		"""returns the single, unique column having one of ucds.
+
+		This method has a confusing interface.  It sole function is to
+		help when there are multiple possible UCDs that may be interesting
+		(like pos.eq.ra;meta.main and POS_EQ_RA_MAIN).  It should only be
+		used for such cases.
+		"""
+		for ucd in ucds:
+			try:
+				return self.getColumnByUCD(ucd)
+			except base.LiteralParseError:
+				pass
+		raise base.LiteralParseError("No column for any of %s"%ucd, "ucd", 
+			", ".join(ucds))
+
 
 class ColumnListAttribute(base.StructListAttribute):
 	"""is an adapter from a ColumnList to a structure attribute.

@@ -385,7 +385,6 @@ class StreamDecoder(GenericDecoder):
                     decodedLine.append(decodedField)
                     self._fields[i].data.append(decodedField)
                 # <-- end for (voType, nBytes, dims) in fieldInfo
-                print ">>>>>>", decodedLine
                 decoded.append(decodedLine)
         except Done:
             pass

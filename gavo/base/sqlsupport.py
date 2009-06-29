@@ -91,9 +91,9 @@ def registerType(oid, name, castFunc):
 
 class DebugCursor(psycopg2.extensions.cursor):
 	def execute(self, sql, args=None):
-		print "Executing", sql
+		print "Executing %s %s"%(id(self.connection), sql)
 		res = psycopg2.extensions.cursor.execute(self, sql, args)
-		print "Finished", self.query
+		print "Finished %s %s"%(id(self.connection), self.query)
 		return res
 	
 	def executemany(self, sql, args=[]):
@@ -264,15 +264,15 @@ class PostgresQueryMixin(object):
 		return res[0][0]
 
 	def _rowExists(self, query, pars):
-		return len(self.query(query, pars).fetchall())!=0
+		res = self.query(query, pars).fetchall()
+		return len(res)!=0
 
-	def temporaryTableExists(self, tablename):
+	def temporaryTableExists(self, tableName):
 		"""returns True if a temporary table tablename exists in the table's
 		connection.
 
 		*** postgres specific ***
 		"""
-		schema, tableName = _parseTableName(tableName, schema)
 		return self._rowExists("SELECT table_name FROM"
 			" information_schema.tables WHERE"
 			" table_type='LOCAL TEMPORARY' AND table_name=%(tableName)s", 
@@ -408,6 +408,14 @@ class StandardQueryMixin(object):
 					objectName, role))
 				self.query("GRANT %s ON %s TO %s"%(shouldPrivs[role], objectName,
 					role))
+
+	def setTimeout(self, timeout):
+		"""sets a timeout on queries.
+
+		timeout is in seconds.
+		"""
+		if timeout is not None:
+			self.query("SET statement_timeout TO %d"%int(timeout*1000))
 
 
 def dictifyRowset(descr, rows):

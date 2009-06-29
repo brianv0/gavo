@@ -64,3 +64,6 @@
   Pre-1972 TTs should probably be interpreted as ET and converted to GMT
 	in TTtoUTC -- but they are not.
 	See http://hpiers.obspm.fr/eop-pc/earthor/utc/TAI-UTC_tab.html
+
+18/LOW/2009-06-29
+	user.mkrd still contains pre-rewrite code and thus doesn't work.

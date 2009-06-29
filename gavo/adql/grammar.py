@@ -474,6 +474,6 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
-	res = syms["valueExpression"].parseString("select POINT('ICRS', width,height)"
-			" from spatial", parseAll=True)
+	res = syms["geometryExpression"].parseString("POINT(NULL, width,height)",
+			parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

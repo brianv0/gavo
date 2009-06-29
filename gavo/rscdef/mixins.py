@@ -44,12 +44,15 @@ class MixinAttribute(base.ListOfAtomsAttribute):
 		base.ListOfAtomsAttribute.__init__(self, "mixins", 
 			itemAttD=base.UnicodeAttribute("mixin", default=base.Undefined), 
 			description="Mixins this table will satisfy.  See `Mixins`_.", **kwargs)
-	
-	def feed(self, ctx, instance, mixinName):
+
+	def _processEarly(self, instance, mixinName):
 		if mixinName not in _mixinRegistry:
 			raise base.LiteralParseError("No such mixin defined: %s"%mixinName,
 				"mixin", mixinName)
 		getMixin(mixinName).processEarly(instance)
+
+	def feed(self, ctx, instance, mixinName):
+		self._processEarly(instance, mixinName)
 		base.ListOfAtomsAttribute.feedObject(self, instance, mixinName)
 
 	def iterParentMethods(self):

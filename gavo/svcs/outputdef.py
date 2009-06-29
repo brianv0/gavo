@@ -85,7 +85,8 @@ class OutputTableDef(rscdef.TableDef):
 
 	@classmethod
 	def fromColumns(cls, columns):
-		return cls(None, columns=[OutputField.fromColumn(c) for c in tableDef])
+		return cls(None, columns=[OutputField.fromColumn(c) for c in columns]
+			).finishElement()
 
 	@classmethod
 	def fromTableDef(cls, tableDef):

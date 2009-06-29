@@ -207,9 +207,8 @@ You will usually want to inherit from core::
 The framework will always look of an object named "Core" in the module
 and use this as the custom core.
 
-The core needs an InputDD and an OutputTable like all cores.  You can
-define them programmatically, but it is probably easier to do this in
-the resource descriptor using the core.  Here is an example::
+The core needs an InputDD and an OutputTable like all cores.  You
+*could* define it in the resource descriptor like this::
 
   <customCore id="createCore" module="bin/create">
     <inputDD>
@@ -220,6 +219,27 @@ the resource descriptor using the core.  Here is an example::
     </outputTable>
   </customCore>
 
+However, frequently custom cores have fixed inputDD and outputTables.
+To accomodate this, you can give your core definitions attributes
+grammarXML and outputTableXML, like this::
+
+  class Core(core.Core):
+    grammarXML = """<contextGrammar>
+      <inputKey name="fileSrc" type="file" tablehead="Local file"
+        description="A local file to upload (overrides source URL if given).">
+      <inputKey name="tableName" type="text" tablehead="Target Table"
+        description="Name of the table to match against.  Only tables available for ADQL (see there) can be used here.">
+        <values fromdb="tablename from dc_tables where adql=True"/>
+      </inputKey>
+      </contextGrammar>
+      """
+    # we don't know what's going to be in the output table until we
+    # know both the uploaded tabel and the tableName
+    outputTableXML = """<outputTable/>"""
+
+If you don't define the attributes, the cores need the specifications
+from the RD XML.  Specifications there will override what is given in
+the class definition.
 
 You should not override the constructor.  If you need to perform "expensive"
 instanciations or programmatically set inputDD or similar, override the 
@@ -239,6 +259,20 @@ which has to have the following signature::
 
 (actually, if you use nonstandard renderers, you may return something
 else than an outputTable, but that's usually not what you want).
+
+service is a service instance.  In particular, you can access the RD you
+are running in through its rd attribute.  This is useful if you need to
+resolve, e.g., table references (which, in this case, could be given as
+a service property)::
+
+  pertainingTable = service.rd.getById(
+    service.getProperty("pertainingTable"))
+
+inputData is a Data instance created by using inputDD on the data coming
+in from the renderer.  For "standard" inputDDs (i.e., based on
+contextGrammars), you will find the inputs by saying::
+
+  inputData.getPrimaryTable().rows[0]
 
 Writing Custom Grammars
 =======================

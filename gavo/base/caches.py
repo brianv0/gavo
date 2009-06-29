@@ -55,7 +55,7 @@ def _makeCache(creator):
 	Hack: the cache function takes arbitrary keyword arguments and passes
 	them on to the creator.  *THIS WREAKS HAVOC* if the keyword arguments
 	could change and creator's behaviour depended on them.  Don't use this,
-	unless it's for something like the noQueries option of getRd.
+	unless it's for something like the doQueries option of getRd.
 	"""
 	cache = {}
 	_cacheRegistry.register(cache)

@@ -37,7 +37,10 @@ class MetaTableHandler(object):
 		self.readQuerier = self._getQuerier()
 		self.metaTable = dbtable.DBTable(
 			self.rd.getTableDefById("columnmeta"))
+		self.tablesTable = dbtable.DBTable(
+			self.rd.getTableDefById("tablemeta"))
 		self.metaRowdef = self.rd.getTableDefById("metaRowdef")
+		self.tablesRowdef = self.rd.getTableDefById("tablemeta")
 
 	def _getQuerier(self):
 		"""returns the write-only querier for the meta table.
@@ -85,3 +88,11 @@ class MetaTableHandler(object):
 			limits=("ORDER BY colInd", {}))
 		return [rscdef.Column.fromMetaTableRow(row)
 			for row in res]
+	
+	def getTableDefForTable(self, tableName):
+		if not "." in tableName:
+			tableName = "public."+tableName
+		res = list(self.tablesTable.iterQuery(self.tablesRowdef, 
+			" tableName=%(tableName)s", {"tableName": tableName}))[0]
+		return base.caches.getRD(res["sourceRd"]).getById(tableName.split(".")[1])
+
