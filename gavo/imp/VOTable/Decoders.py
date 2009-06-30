@@ -127,7 +127,10 @@ class GenericDecoder(object):
                             numBytes += d * N_BYTES[t]
             else:
                 # Simple scalar or 1-d array
-                d = int(s.strip())
+                try:
+                    d = int(s.strip())
+                except ValueError:
+                    d = 1
                 dimensions = [d]
                 numBytes = d * N_BYTES[t]
             # <-- end if

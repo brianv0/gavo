@@ -788,6 +788,14 @@ myTests = [
 			['<FIELD ID="c_y" arraysize=""',],
 			"PPMX SCS returns weird fields with VERB=3."),
 	),
+	TestGroup("services2",
+		GetHasStringsTest(nv_root+"/cross/q/match/form?__nevow_form__=genForm&"
+			"urlSrc="+urllib.quote(nv_root)+"%2Fppmx%2Fres%2Fppmx%2Fscs%2Fscs.xml"
+			"%3FRA%3D19.9971686111%26DEC%3D19.4701083333%26SR%3D0.0001&"
+			"tableName=ppmx.data&SR=0.001",
+			["-167.2", "RA", "Alphafloat", "0.322418"],
+			"Crossmatch service returns some data")
+	),
 ]
 
 

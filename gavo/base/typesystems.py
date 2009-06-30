@@ -229,6 +229,13 @@ class FromVOTableConverter(object):
 		("char", "*"): "text",
 		("char", "1"): "char",
 		("raw", "*"): "raw",
+		("short", ""): "smallint",
+		("int", ""): "integer",
+		("long", ""): "bigint",
+		("float", ""): "real",
+		("boolean", ""): "boolean",
+		("double", ""): "double precision",
+		("char", ""): "char",
 	}
 
 	def convert(self, type, arraysize):

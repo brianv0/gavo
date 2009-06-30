@@ -31,7 +31,7 @@ def stripNamespace(qName):
 
 def structFormatString(fields):
     """
-    Given a list of Filed objects, compose the corrseponding Python struct 
+    Given a list of Field objects, compose the corrseponding Python struct 
     format string.
     """
     for field in fields:
