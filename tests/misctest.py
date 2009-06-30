@@ -18,6 +18,7 @@ from gavo import helpers
 from gavo import rscdef
 from gavo import rscdesc
 from gavo import stc
+from gavo import utils
 from gavo.base import valuemappers
 from gavo.helpers import filestuff
 from gavo.utils import pyfits
@@ -326,5 +327,24 @@ class ProcessorTest(testhelpers.VerboseTest):
 		self._testBugfix()
 
 
+class RemoteURLTest(testhelpers.VerboseTest):
+	"""tests for urlopenRemote rejecting unwanted URLs.
+	"""
+	def testNoFile(self):
+		self.assertRaises(IOError,
+			utils.urlopenRemote, "file:///etc/passwd")
+	
+	def testHTTPConnect(self):
+		# this assumes nothing actually listens on 57388
+		self.assertRaisesWithMsg(IOError,
+			"Could not open URL http://localhost:57388: Connection refused",
+			utils.urlopenRemote, ("http://localhost:57388",))
+
+	def testMalformedURL(self):
+		self.assertRaisesWithMsg(IOError, 
+			'Could not open URL /etc/passwd: unknown url type: /etc/passwd',
+			utils.urlopenRemote, ("/etc/passwd",))
+
+
 if __name__=="__main__":
-	testhelpers.main(ProcessorTest)
+	testhelpers.main(RemoteURLTest)

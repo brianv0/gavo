@@ -23,7 +23,7 @@ from gavo.utils.fitstools import readPrimaryHeaderQuick, pyfits
 
 from gavo.utils.mathtricks import *
 
-from gavo.utils.ostricks import safeclose
+from gavo.utils.ostricks import safeclose, urlopenRemote
 
 from gavo.utils.stanxml import ElementTree
 
