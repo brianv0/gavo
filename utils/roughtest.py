@@ -779,13 +779,13 @@ myTests = [
 			"PPMX forms query looks all right"),
 		GetHasStringsTest(nv_root+"/ppmx/res/ppmx/scs/scs.xml?RA=150.0&DEC=19.2"
 			"&SR=0.1&VERB=1",
-			['<FIELD ID="deltaFloat" arraysize="" datatype="double"'
+			['<FIELD ID="deltaFloat" arraysize="1" datatype="double"'
 				' name="deltaFloat" ucd="POS_EQ_DEC_MAIN" unit="deg">',
 				"AAAADzA5NTk1Ni41KzE5MDkzNTmIUJy7o9cKQUzMzUBiv4"],
 			"PPMX SCS returns translated UCDs and some sensible binary content"),
 		GetHasStringsTest(nv_root+"/ppmx/res/ppmx/scs/scs.xml?RA=150.0&DEC=19.2"
 			"&SR=0.1&VERB=3&_TDENC=True",
-			['<FIELD ID="c_y" arraysize=""',],
+			['<FIELD ID="c_y" arraysize="1"',],
 			"PPMX SCS returns weird fields with VERB=3."),
 	),
 	TestGroup("services2",

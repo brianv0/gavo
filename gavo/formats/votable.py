@@ -203,10 +203,7 @@ class VOTableMaker:
 		res = {}
 		for key in self._voFieldCopyKeys:
 			res[key] = colProperties[key]
-		if colProperties["arraysize"]!="1":
-			res["arraysize"] = colProperties["arraysize"]
-		else:
-			res["arraysize"] = ""
+		res["arraysize"] = colProperties["arraysize"]
 		if colProperties.has_key("value"):  # for PARAMs
 			res["value"] = str(colProperties["value"])   # XXX TODO: use value mappers
 		_addValuesKey(colProperties, res)
