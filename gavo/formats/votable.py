@@ -78,7 +78,7 @@ class TableData(object):
 	It is constructed from a table.Table instance and
 	a MapperFactoryRegistry.  It will do two sweeps through
 	the complete data, first to establish value ranges including
-	finding out if there's NULL values.  Then, it does another sweep
+	finding out if there are NULL values.  Then, it does another sweep
 	converting the sequence of dicts to a sequence of properly typed
 	and formatted tuples.
 	"""

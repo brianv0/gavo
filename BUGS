@@ -67,3 +67,8 @@
 
 18/LOW/2009-06-29/FIXED
 	user.mkrd still contains pre-rewrite code and thus doesn't work.
+
+19/LOW/2009-06-30
+	Naming of the various data structures that deal with column properties
+	in formats.votable is a complete nightmare.  The collection of column
+	properties for a table needs a catchy name.

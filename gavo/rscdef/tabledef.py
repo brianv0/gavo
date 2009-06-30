@@ -351,6 +351,33 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		for mixinName in self.mixins:
 			mixins.getMixin(mixinName).processLate(self)
 
+	@staticmethod
+	def disambiguateColumns(columns):
+		"""returns a sequence of columns without duplicate names.
+		"""
+		newColumns, seenNames = [], set()
+		for c in columns:
+			while c.name in seenNames:
+				c.name = c.name+"_"
+			newColumns.append(c)
+			seenNames.add(c.name)
+		return newColumns
+
+	@classmethod
+	def fromColumns(cls, columns, **kwargs):
+		"""returns a TableDef from a sequence of columns.
+
+		You can give additional constructor arguments.  makeStruct is used
+		to build the instance, the mixin hack is applied.
+
+		Columns with identical names will be disambiguated.
+		"""
+		res = MS(cls, 
+			columns=common.ColumnList(cls.disambiguateColumns(columns)),
+			**kwargs)
+		res.hackMixinsAfterMakeStruct()
+		return res
+		
 
 class FieldRef(base.Structure):
 	"""A reference to a column in a table definition using the table's

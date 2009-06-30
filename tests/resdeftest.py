@@ -151,6 +151,11 @@ class TableDefTest(testhelpers.VerboseTest):
 		self.assertEqual(t.adql, True)
 		for role in base.getConfig("db", "adqlRoles"):
 			self.assert_(role in t.readRoles)
+	
+	def testDuplicateColumns(self):
+		t = base.parseFromString(rscdef.TableDef, '<table id="t">'	
+			'<column name="one" type="text"/><column name="one"/>'
+			'</table>')
 
 	def testPrimary(self):
 		t = base.parseFromString(rscdef.TableDef, '<table id="test" primary="a">'
