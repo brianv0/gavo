@@ -308,20 +308,20 @@ def makeTableDefForVOTable(tableId, votTable, **moreArgs):
 	nameMaker = votablegrammar.VOTNameMaker()
 	for f in votTable.fields:
 		colName = nameMaker.makeName(f)
-		columns.append(MS(rscdef.Column,
-			name = colName,
-			ucd=f.ucd, 
-			description=f.description, 
-			tablehead=colName.capitalize(),
-			unit=f.unit,
-			type=base.voTableToSQLType(f.datatype, f.arraysize)))
+		kwargs = {"name": colName,
+			"tablehead": colName.capitalize(),
+			"type": base.voTableToSQLType(f.datatype, f.arraysize)}
+		for attName in ["ucd", "description", "unit"]:
+			if getattr(f, attName, None) is not None:
+				kwargs[attName] = getattr(f, attName)
+		columns.append(MS(rscdef.Column, **kwargs))
 	res = MS(rscdef.TableDef, id=tableId, columns=columns,
 		**moreArgs)
 	res.hackMixinsAfterMakeStruct()
 	return res
 
 
-def _makeDDForVOTable(tableId, vot, **moreArgs):
+def makeDDForVOTable(tableId, vot, **moreArgs):
 	"""returns a DD suitable for uploadVOTable.
 
 	moreArgs are additional keywords for the construction of the target
@@ -345,7 +345,7 @@ def uploadVOTable(tableId, srcFile, connection, **moreArgs):
 	vot = VOTable.parse(inputFile)
 	myArgs = {"onDisk": True, "temporary": True}
 	myArgs.update(moreArgs)
-	dd = _makeDDForVOTable(tableId, vot, **myArgs)
+	dd = makeDDForVOTable(tableId, vot, **myArgs)
 	inputFile.seek(0)
 	return rsc.makeData(dd, forceSource=inputFile, connection=connection,
 		).getPrimaryTable()

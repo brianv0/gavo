@@ -23,6 +23,12 @@ import Decoders
 # FIXME: add to the table's data array the PARAMs.
 
 
+def stripNamespace(qName):
+    if '}' in qName:
+        return qName.split('}')[-1]
+    return qName
+
+
 def structFormatString(fields):
     """
     Given a list of Filed objects, compose the corrseponding Python struct 
@@ -272,7 +278,7 @@ class Parser(object):
             
             # Sub-elements
             for subEl in el:
-                setattr(p, subEl.tag.lower(), subEl.text)
+                setattr(p, stripNamespace(subEl.tag).lower(), subEl.text)
             # Update the result list
             result.append(p)
         return(result)

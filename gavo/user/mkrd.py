@@ -21,6 +21,7 @@ from gavo import rscdef
 from gavo import utils
 from gavo.base import typesystems
 from gavo.imp import VOTable
+from gavo.formats import votable
 from gavo.utils import ElementTree
 from gavo.utils import fitstools
 
@@ -57,6 +58,8 @@ def structToETree(aStruct):
 			elif evType=="end":
 				nodeStack.pop()
 			elif evType=="value":
+				if value is None or value is base.NotGiven:
+					continue
 				if elName=="content_":
 					nodeStack[-1].text = value
 				else:
@@ -107,12 +110,6 @@ class EventStorage(object):
 		return islice(self.events, 1, len(self.events)-1)
 
 
-def makeColumn(col):
-	return RD.column(**{"name": col.name, "unit": re.sub("[][]", "", col.unit),
-		"ucd": itemDef.get_ucd(), "description": itemDef.get_description(),
-		"dbtype": itemDef.get_dbtype(), "verbLevel": 20})
-
-
 def makeTableFromFITS(rd, srcName, opts):
 	def getHeaderKeys(srcName):
 		header = fitstools.openFits(srcName)[0].header
@@ -120,8 +117,6 @@ def makeTableFromFITS(rd, srcName, opts):
 
 	keyMappings = []
 	table = rscdef.TableDef(rd, id=opts.tableName, onDisk=True)
-	# hack to make id and onDisk copyable
-	table._id.copyable = table._onDisk.copyable = True
 	for index, card in enumerate(getHeaderKeys(srcName)):
 		if isIgnoredKeyword(card.key):
 			continue
@@ -153,10 +148,18 @@ def makeDataForFITS(rd, srcName, opts):
 	dd.feedObject("make", MS(rscdef.Make, table=targetTable))
 	return dd
 
+
 def makeTableFromVOTable(rd, srcName, opts):
-	vot = VOTable.parse(open(srcName))
-	tableDef, votable.makeTableDefForVOTable("data", vot.resources[0].tables[0])
-	return tableDef, RD.VOTableGrammar
+	vot = VOTable.parse(srcName)
+	return votable.makeTableDefForVOTable(opts.tableName, 
+		vot.resources[0].tables[0], onDisk=True)
+
+
+def makeDataForVOTable(rd, srcName, opts):
+	return MS(rscdef.DataDescriptor,
+		grammar=MS(grammars.VOTableGrammar),
+		sources=MS(rscdef.SourceSpec, pattern=srcName),
+		makes=[MS(rscdef.Make, table=rd.tables[0])])
 
 
 tableMakers = {
@@ -166,13 +169,12 @@ tableMakers = {
 
 dataMakers = {
 	"FITS": makeDataForFITS,
+	"VOT": makeDataForVOTable,
 }
 
 def makeRD(args, opts):
 	from gavo import rscdesc
-	rd = rscdesc.RD(None, schema=os.path.basename(os.getcwd()),
-		resdir=utils.getRelativePath(
-			os.getcwd(), base.getConfig("inputsDir")))
+	rd = rscdesc.RD(None, schema=os.path.basename(os.getcwd()))
 	rd.feedObject("table", tableMakers[opts.srcForm](rd, args[0], opts))
 	rd.feedObject("data", dataMakers[opts.srcForm](rd, args[0], opts))
 	return rd.finishElement()
@@ -210,6 +212,9 @@ def parseCommandLine():
 
 
 def main():
+	# hack to make id and onDisk copyable so we see them on iterEvent
+	rscdef.TableDef._id.copyable = rscdef.TableDef._onDisk.copyable = True
+	rscdef.DataDescriptor._id.copyable = True
 	opts, args = parseCommandLine()
 	rd = makeRD(args, opts)
 	writePrettyPrintedXML(structToETree(rd))

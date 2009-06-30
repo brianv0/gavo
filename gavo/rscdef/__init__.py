@@ -10,7 +10,8 @@ from gavo.rscdef.common import (RDAttribute, ResdirRelativeAttribute,
 
 from gavo.rscdef.coosys import CooSys
 
-from gavo.rscdef.dddef import DataDescriptor, registerGrammar, Make
+from gavo.rscdef.dddef import (DataDescriptor, registerGrammar, Make,
+	SourceSpec)
 
 from gavo.rscdef.macros import (StandardMacroMixin, MacroPackage,
 	MacDefAttribute)

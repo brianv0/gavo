@@ -279,7 +279,8 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		contextgrammar.
 		"""
 		defaults = dict((c.name, None) for c in table if not c.required)
-		return base.makeStruct(cls, defaults=defaults, maps=[
+		return base.makeStruct(cls, defaults=defaults, 
+			maps=[
 				base.makeStruct(MapRule, dest=c.name, content_=c.name)
 					for c in table],
 			**kwargs)

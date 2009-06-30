@@ -65,5 +65,5 @@
 	in TTtoUTC -- but they are not.
 	See http://hpiers.obspm.fr/eop-pc/earthor/utc/TAI-UTC_tab.html
 
-18/LOW/2009-06-29
+18/LOW/2009-06-29/FIXED
 	user.mkrd still contains pre-rewrite code and thus doesn't work.
