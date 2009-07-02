@@ -290,6 +290,9 @@ class HeaderCells(rend.Page):
 		])
 
 
+_htmlMetaBuilder = common.HTMLMetaBuilder()
+
+
 class HTMLTableFragment(rend.Fragment):
 	"""is an HTML renderer for (InMemory)Tables.
 	"""
@@ -391,7 +394,16 @@ class HTMLTableFragment(rend.Fragment):
 		else:
 			return ""
 
+	def render_meta(self, ctx, data):
+		metaKey = ctx.tag.children[0]
+		if self.table.getMeta(metaKey, propagate=False):
+			ctx.tag.clear()
+			return ctx.tag[self.table.buildRepr(metaKey, _htmlMetaBuilder)]
+		else:
+			return ""
+
 	docFactory = loaders.stan(T.form(action="feedback", method="post")[
+		T.div(render=T.directive("meta"), class_="warning")["_warning"],
 		T.table(class_="results", render=rend.sequence,
 					data=T.directive("table")) [
 				T.invisible(pattern="header", render=T.directive("headCells")),

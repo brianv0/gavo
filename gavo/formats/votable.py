@@ -245,6 +245,10 @@ class VOTableMaker:
 		self._addInfo("legal", dataSet.dd.getMeta("_legal"), res)
 		for infoItem in dataSet.getMeta("info", default=[]):
 			self._addInfo(None, infoItem, res)
+		for table in dataSet.tables.values():
+			for warning in table.getMeta("_warning", propagate=False, default=[]):
+				self._addInfo("warning", "In table %s: %s"%(
+					table.tableDef.id, str(warning)), res)
 		self._addLink(dataSet.dd.getMeta("_infolink"), res)
 
 	def _makeResource(self, dataSet):

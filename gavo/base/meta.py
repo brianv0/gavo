@@ -732,13 +732,14 @@ def getMetaText(ob, key, propagate=False):
 
 
 class MetaBuilder(object):
-	"""is a builder that does nothing.
+	"""A base class for meta builders.
 
 	Builders are passed to a MetaItem's traverse method or to MetaMixin's
 	buildRepr method to build representations of the meta information.
 
-	You can either override startKey, endKey, and enterValue of just
-	provide a process(keyAtoms, value) method.
+	You can either override startKey, endKey, and enterValue.  If you are
+	not doing anything fancy, you can get by by just overriding enterValue
+	and inspecting curAtoms[-1] (which contains the last meta key).
 
 	You will want to override getResult.
 	"""

@@ -62,6 +62,7 @@ def adaptTable(origTable, newColumns):
 		newTd.columns = newColumns
 	if not colDiffs:
 		newTable = table.InMemoryTable(newTd, rows=origTable.rows)
+		newTable.meta_ = origTable.meta_
 	else: # we need to do work
 		rmk = rscdef.RowmakerDef(None)
 		for col in newColumns:

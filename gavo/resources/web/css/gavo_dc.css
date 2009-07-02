@@ -342,3 +342,8 @@ table.shorttable {
 .indexed {
 	background: #d2dcf0;
 }
+
+.warning {
+	border: 2pt solid red;
+	padding: 5px;
+}

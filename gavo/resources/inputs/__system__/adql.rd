@@ -57,6 +57,12 @@ Known Bugs and Problems
 Standards Compliance
 ''''''''''''''''''''
 
+If you give no TOP clause, the system will automatically restrict your
+matches to \getConfig{adql}{webDefaultLimit} rows.  This is mostly for
+your own protection.  If you want more rows (make sure you don't throw
+them at your browser, i.e., select VOTable output), use SELECT TOP 100000
+or something along those lines.
+
 We currently ignore the coordinate system specification to ADQL geometries.
 We will fix this when the desired semantics is specified in some way.
 

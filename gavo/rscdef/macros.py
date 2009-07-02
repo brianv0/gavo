@@ -141,6 +141,16 @@ class StandardMacroMixin(MacroPackage):
 	def macro_today(self):
 		return str(datetime.date.today())
 
+	def macro_getConfig(self, section, name=None):
+		"""returns the current value of configuration item {section}{name}.
+
+		You can also only give one argument to access settings from the
+		general section.
+		"""
+		if name is None:
+			section, name = "general", section
+		return str(base.getConfig(section, name))
+
 	def macro_test(self, *args):
 		"""always replaces macro call with "test macro expansion"
 
