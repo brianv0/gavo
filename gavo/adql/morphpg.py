@@ -28,28 +28,29 @@ class PostgresMorphError(morphhelpers.MorphError):
 
 def _containsToQ3c(node, state):
 	if node.funName!='CONTAINS':
-		return
+		return node
 	args = [c for c in node.iterNodes()]
 	if len(args)!=2 or nodes.getType(args[0])!="point":
-		return
+		return node
 	p, shape = args
 	if shape.type=="circle":
-		node.children = ["q3c_join(%s, %s, %s, %s, %s)"%(
-			shape.x, shape.y, p.x, p.y, shape.radius)]
+		state.killParentOperator = True
+		return ("q3c_join(%s, %s, %s, %s, %s)"%(
+			shape.x, shape.y, p.x, p.y, shape.radius))
 	elif shape.type=="rectangle":
-		node.children = ["q3c_poly_query(%s, %s, ARRAY[%s, %s, %s, %s,"
+		state.killParentOperator = True
+		return ("q3c_poly_query(%s, %s, ARRAY[%s, %s, %s, %s,"
 			" %s, %s, %s, %s])"%(p.x, p.y,
 				shape.x0, shape.y0,
 				shape.x0, shape.y1,
 				shape.x1, shape.y1,
-				shape.x1, shape.y0)]
+				shape.x1, shape.y0))
 	elif shape=="polygon":
-		node.children = ["q3c_poly_query(%s, %s, ARRAY[%s])"%(
-			p.x, p.y, ",".join(["%s,%s"%pt for pt in shape.coos]))]
+		state.killParentOperator = True
+		return "q3c_poly_query(%s, %s, ARRAY[%s])"%(
+			p.x, p.y, ",".join(["%s,%s"%pt for pt in shape.coos]))
 	else:
-		return # unknown shape type, leave mess to postgres
-	node.type  = "psqlLiteral"
-	state.killParentOperator = True
+		return node
 
 
 # These have to be applied *before* PG morphing
@@ -75,21 +76,18 @@ def insertQ3Calls(tree):
 
 def _morphCircle(node, state):
 	assert len(node.args)==4
-	node.type = "psqlLiteral"
-	node.children = ["CIRCLE(POINT(%s, %s), %s)"%tuple([nodes.flatten(a)
-		for a in node.args[1:]])]
+	return "CIRCLE(POINT(%s, %s), %s)"%tuple([nodes.flatten(a)
+		for a in node.args[1:]])
 
 def _morphPoint(node, state):
 	assert len(node.args)==3
-	node.type = "psqlLiteral"
-	node.children = ["POINT(%s, %s)"%tuple([nodes.flatten(a) 
-		for a in node.args[1:]])]
+	return "POINT(%s, %s)"%tuple([nodes.flatten(a) 
+		for a in node.args[1:]])
 
 def _morphRectangle(node, state):
 	assert len(node.args)==5
-	node.type = "psqlLiteral"
-	node.children = ["POLYGON(BOX(%s, %s, %s, %s))"%tuple([nodes.flatten(a)
-		for a in node.args[1:]])]
+	return "POLYGON(BOX(%s, %s, %s, %s))"%tuple([nodes.flatten(a)
+		for a in node.args[1:]])
 
 _cooLiteral = re.compile("[0-9]*(\.([0-9]*([eE][+-]?[0-9]*)?)?)?$")
 
@@ -101,18 +99,17 @@ def _morphPolygon(node, state):
 		if not _cooLiteral.match(a):
 			raise PostgresMorphError("%s is not a valid argument to polygon"
 				" in postgres.  Only literals are allowed."%a)
-	node.type = "psqlLiteral"
-	node.children = ["'%s'::polygon"%", ".join(node.args[1:])]
+	return "'%s'::polygon"%", ".join(node.args[1:])
 
 def _morphGeometryPredicate(node, state):
 	if node.funName=="CONTAINS":
-		node.children = ["(%s) ~ (%s)"%(node.args[0], node.args[1])]
+		state.killParentOperator = True
+		return "(%s) ~ (%s)"%(node.args[0], node.args[1])
 	elif node.funName=="INTERSECTS":
-		node.children = ["(%s) ?# (%s)"%(node.args[0], node.args[1])]
+		state.killParentOperator = True
+		return "(%s) ?# (%s)"%(node.args[0], node.args[1])
 	else:
-		return  # Leave mess to someone else
-	node.type = "psqlLiteral"
-	state.killParentOperator = True
+		return node # Leave mess to someone else
 
 
 _geoHandlers = {
@@ -134,16 +131,16 @@ def morphGeometries(tree):
 	This is a function mostly for unit tests, morphPG does these 
 	transformations.
 	"""
-	morphhelpers.morphTreeWithHandlers(tree, _geoHandlers)
+	return morphhelpers.morphTreeWithHandlers(tree, _geoHandlers)
 
 
 def _pointFunctionToIndexExpression(node, state):
 	if node.funName=="COORD1":
 		assert len(node.args)==1
-		node.children = ["(%s)[0]"%node.args[0]]
+		return "(%s)[0]"%node.args[0]
 	elif node.funName=="COORD2":
 		assert len(node.args)==1
-		node.children = ["(%s)[1]"%node.args[0]]
+		return "(%s)[1]"%node.args[0]
 	elif node.funName=="COORDSYS":
 		# argument is either a geometry expression (take coosys from there)
 		# or a column reference (which we can resolve if fieldInfos have
@@ -156,10 +153,9 @@ def _pointFunctionToIndexExpression(node, state):
 				cSys = node.children[2].cooSys
 		except AttributeError: # probably no attached field infos, little I can do.
 			cSys = 'unknown'
-		node.children = ["'%s'"%(re.sub("[^\w]+", "", cSys))]  # sanitize cSys
+		return "'%s'"%(re.sub("[^\w]+", "", cSys))  # sanitize cSys
 	else:
-		return   # Can't handle
-	node.type = "psqlLiteral"
+		return node
 
 
 def _areaToPG(node, state):
@@ -167,19 +163,18 @@ def _areaToPG(node, state):
 # XXX TODO: do spherical geometry here.
 	state.warnings.append("AREA is currently calculated in a plane"
 		" approximation.  AREAs will be severely wrong for larger shapes.")
+	return node
 
 
 def _distanceToPG(node, state):
 # We need the postgastro extension here.
-	node.children = ["celDistPP(%s, %s)"%tuple(node.args)]
-	node.type = "psqlLiteral"
+	return "celDistPP(%s, %s)"%tuple(node.args)
 
 
 def _centroidToPG(node, state):
 # XXX TODO: figure out if the (planar) centers computed by postgres are
 # badly off and replace with spherical calculation if so.
-	node.children = ["center(%s)"%(node.args[0])]
-	node.type = "psqlLiteral"
+	return "center(%s)"%(node.args[0])
 
 
 def _regionToPG(node, state):
@@ -197,16 +192,15 @@ _renamedFunctions = {
 def _adqlFunctionToPG(node, state):
 	if node.funName in _renamedFunctions:
 		node.children = [_renamedFunctions[node.funName]]+node.children[1:]
+		return node
 	elif node.funName=='RAND':
 		if len(node.args)==1:
-			node.children = ["setseed(%s)-setseed(%s)+random()"%(node.args[0],
-				node.args[0])]
+			return "setseed(%s)-setseed(%s)+random()"%(node.args[0],
+				node.args[0])
 		else:
-			node.children = ["random()"]
-		node.type = "psqlLiteral"
+			return "random()"
 	elif node.funName=='SQUARE':
-		node.children = ["(%s)^2"%node.args[0]]
-		node.type = "psqlLiteral"
+		return "(%s)^2"%node.args[0]
 
 
 _miscHandlers = {
@@ -225,48 +219,39 @@ def morphMiscFunctions(tree):
 	This is a function mostly for unit tests, morphPG does these 
 	transformations.
 	"""
-	morphhelpers.morphTreeWithHandlers(tree, _miscHandlers)
+	return morphhelpers.morphTreeWithHandlers(tree, _miscHandlers)
 
 
-def _getLimit(node):
-	for index, c in enumerate(node.children):
-		if nodes.getType(c)=="setLimit":
-			break
-	else:
-		return
-	del node.children[index]
-	return c.limit
+def _flattenQS(node, state):
+	"""flattens a query specification for postgres
+	
+	This will turn TOP and ALL into LIMIT and OFFSET 0.
 
-
-def _hasAll(node):
-	for c in node.children[:3]:
-		if isinstance(c, basestring) and c.lower()=="all":
-			return True
-
-
-def _makeLimitAndOffset(node, state):
-	"""makes LIMIT and OFFSET clauses from TOP and ALL in ADQL.
-
-	As a little hack, we turn ALL to OFFSET 0.
+	Turning ALL into OFFSET 0 is a bad hack, but we need some way to let
+	people specify the OFFSET 0, and this is probably the least intrusive
+	one.
 	"""
-# XXX TODO: parse out QuerySpecification fully, do a custom flattener
-# and then sanitize this funciton.
-	node.children = list(node.children)
-	limit = _getLimit(node)
-	newToks = []
-	if limit:
-		newToks = ["LIMIT", limit]
-	if _hasAll(node):
-		newToks.append("OFFSET 0")
-	if nodes.getType(node.children[-1])=='correlationSpecification':
-		# insert in front of the corrSpec's closing paren
-		dest = len(node.children)-2
-		node.children[dest:dest] =  newToks
-	else:
-		node.children.extend(newToks)
+	if node.setQuantifier and node.setQuantifier.lower()=="all":
+		node.offset = 0
+	return nodes.flattenKWs(node,
+		("SELECT", None),
+		("", "setQuantifier"),
+		("", "selectList"),
+		("", "fromClause"),
+		("", "whereClause"),
+		("", "grouping"),
+		("", "having"),
+		("", "orderBy"),
+		("LIMIT", "setLimit"),
+		("OFFSET", "offset"))
+
+def _flattenDerivedTable(node, state):
+	return "(%s) AS %s"%(_flattenQS(node, state), node.tableName.qName)
+
 
 _syntaxHandlers = {
-	"querySpecification": _makeLimitAndOffset,
+	"statement": _flattenQS,
+	"derivedTable": _flattenDerivedTable,
 }
 
 # Warning: if ever there are two handlers for the same type, this will
@@ -283,4 +268,4 @@ def morphPG(tree):
 
 	tree is the result of an adql.parseToTree call.
 	"""
-	morphhelpers.morphTreeWithHandlers(tree, _allHandlers)
+	return morphhelpers.morphTreeWithHandlers(tree, _allHandlers)

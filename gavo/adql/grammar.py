@@ -198,6 +198,10 @@ def getADQLGrammarCopy():
 	of the ADQL grammar.  Otherwise, use getADQLGrammar or a wrapper
 	function defined by a client module.
 	"""
+# Be careful when using setResultsName here.  The handlers are bound
+# at a later point, and names cause copies of the pyparsing objects,
+# so that elements named in rules will not be bound later.  Rather
+# name elements on their construction.
 	sqlComment = Literal("--") + SkipTo("\n" | StringEnd())
 	whitespace = Word(" \t")   # sometimes necessary to avoid sticking together
 		# numbers and identifiers
@@ -232,7 +236,7 @@ def getADQLGrammarCopy():
 	qualifier = (identifier 
 		+ Optional( "." + identifier )
 		+ Optional( "." + identifier ))
-	tableName = qualifier.copy()
+	tableName = qualifier("tableName")
 	columnReference = (identifier 
 		+ Optional( "." + identifier )
 		+ Optional( "." + identifier )
@@ -339,11 +343,12 @@ def getADQLGrammarCopy():
 	derivedColumn = valueExpression + Optional( asClause )
 
 # parts of select clauses
-	setQuantifier = CaselessKeyword("DISTINCT") | CaselessKeyword("ALL")
-	setLimit = CaselessKeyword("TOP") + unsignedInteger
+	setQuantifier = (CaselessKeyword( "DISTINCT" ) 
+		| CaselessKeyword( "ALL" ))("setQuantifier")
+	setLimit = CaselessKeyword( "TOP" ) + unsignedInteger("setLimit")
 	selectSublist = derivedColumn | qualifier + "." + "*"
-	selectList = "*" | selectSublist + ZeroOrMore(
-		"," + selectSublist )
+	selectList = ("*" 
+		| selectSublist + ZeroOrMore( "," + selectSublist ))("selectList")
 
 # boolean terms
 	subquery = Forward()
@@ -371,17 +376,17 @@ def getADQLGrammarCopy():
 # WHERE clauses and such
 	searchCondition << ( booleanTerm + 
 		ZeroOrMore( CaselessKeyword("OR") + booleanTerm ))
-	whereClause = CaselessKeyword("WHERE") + searchCondition
+	whereClause = (CaselessKeyword("WHERE") + searchCondition)("whereClause")
 
 # Referencing tables
 	queryExpression = Forward()
-	correlationSpecification = ( CaselessKeyword("AS") | whitespace
-		) + correlationName
+	correlationSpecification = (( CaselessKeyword("AS") | whitespace
+		) + correlationName("alias"))("corrSpec")
 	subquery << ('(' + queryExpression + ')')
-	derivedTable = subquery.copy()
+	derivedTable = subquery.copy() + correlationSpecification
 	joinedTable = Forward()
-	nojoinTableReference = tableName + Optional( correlationSpecification) | (
-		derivedTable + correlationSpecification )
+	possiblyAliasedTable = tableName + Optional( correlationSpecification)
+	nojoinTableReference =  possiblyAliasedTable | derivedTable
 	tableReference =  joinedTable | nojoinTableReference 
 
 # JOINs
@@ -403,28 +408,34 @@ def getADQLGrammarCopy():
 		| nojoinTableReference + OneOrMore( joinTail ))
 
 # Detritus in table expressions
-	groupByClause = CaselessKeyword("GROUP") + CaselessKeyword("BY"
-		) + columnReference + ZeroOrMore( ',' + columnReference)
-	havingClause = CaselessKeyword("HAVING") + searchCondition
-	orderingSpecification = CaselessKeyword("ASC"
-		) | CaselessKeyword("DESC")
+	groupByClause = (CaselessKeyword( "GROUP" ) + CaselessKeyword( "BY" ) 
+		+ columnReference 
+		+ ZeroOrMore( ',' + columnReference ))("groupby")
+	havingClause = (CaselessKeyword( "HAVING" ) 
+		+ searchCondition)("having")
+	orderingSpecification = (CaselessKeyword( "ASC") 
+		| CaselessKeyword("DESC"))
 	sortKey = columnName | unsignedInteger
 	sortSpecification = sortKey + Optional( orderingSpecification )
-	orderByClause = CaselessKeyword("ORDER") + CaselessKeyword("BY"
-		) + sortSpecification + ZeroOrMore( ',' + sortSpecification )
+	orderByClause = (CaselessKeyword("ORDER") 
+		+ CaselessKeyword("BY") + sortSpecification 
+		+ ZeroOrMore( ',' + sortSpecification ))("orderBy")
 
 # FROM fragments and such
-	fromClause = CaselessKeyword("FROM") + tableReference + ZeroOrMore(
-		',' + tableReference)
-	tableExpression = (fromClause + Optional( whereClause ) + 
-		Optional( groupByClause )  + Optional( havingClause ) + 
-		Optional( orderByClause ))
+	fromClause = ( CaselessKeyword("FROM") 
+		+ tableReference 
+		+ ZeroOrMore( ',' + tableReference ))("fromClause")
+	tableExpression = (fromClause + Optional( whereClause ) 
+		+ Optional( groupByClause )  + Optional( havingClause ) 
+		+ Optional( orderByClause ))
 
 # toplevel select clause
 	querySpecification = Forward()
 	queryExpression << ( querySpecification |  joinedTable )
-	querySpecification << ( CaselessKeyword("SELECT") + Optional( setQuantifier 
-		) + Optional( setLimit ) +  selectList + tableExpression )
+	querySpecification << ( CaselessKeyword("SELECT") 
+		+ Optional( setQuantifier )
+		+ Optional( setLimit ) 
+		+ selectList + tableExpression )
 	statement = querySpecification + StringEnd()
 	return dict((k, v) for k, v in locals().iteritems()
 		if isinstance(v, ParserElement)), statement
@@ -458,8 +469,9 @@ def enableTree(syms):
 def getADQLGrammar():
 	"""returns a pair of (symbols, root) for an ADQL grammar.
 
-	This probably is mainly useful for testing.  You should not set
-	names or parseActions on whatever you are returned.
+	This probably is mainly useful for testing.  At least you should not set
+	names or parseActions on whatever you are returned unless you are
+	testing.
 	"""
 	global _grammarCache
 	if not _grammarCache:
@@ -474,6 +486,7 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
-	res = syms["geometryExpression"].parseString("POINT(NULL, width,height)",
+	res = syms["querySpecification"].parseString("select q.p from (select ra2 as p from"
+			" spatial) as q",
 			parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

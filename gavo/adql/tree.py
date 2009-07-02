@@ -236,9 +236,11 @@ def attachFieldInfosToTables(node, fieldInfoGetter):
 	"""
 	for c in node.iterNodes():
 		attachFieldInfosToTables(c, fieldInfoGetter)
-	if node.type=="tableReference":
+	if node.type=="possiblyAliasedTable":
 		node.fieldInfos = FieldInfosForTable(node, fieldInfoGetter)
 
+
+_queryLikeTypes = set(["statement", "derivedTable"])
 
 def addFieldInfos(qTree, fieldInfoGetter):
 	"""adds field definitions to the parsed query tree qTree.
@@ -251,7 +253,7 @@ def addFieldInfos(qTree, fieldInfoGetter):
 	def traverse(node, table):
 		for child in node.iterNodes():
 			traverse(child, table)
-		if node.type=="querySpecification":
+		if node.type in _queryLikeTypes:
 			node.fieldInfos = FieldInfosForQuery(node)
 	traverse(qTree, None)
 

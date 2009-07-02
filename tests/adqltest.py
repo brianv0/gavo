@@ -306,7 +306,7 @@ class TreeParseTest(testhelpers.VerboseTest):
 			("select x.a, b from z", ["a", "b"]),
 			('select "one weird name", b from z', ['"one weird name"', "b"]),
 		]:
-			res = self.grammar.parseString(q)[0].getSelectList()
+			res = [c.name for c in self.grammar.parseString(q)[0].getSelectFields()]
 			self.assertEqual(res, e, 
 				"Select list from %s: expected %s, got %s"%(q, e, res))
 
@@ -622,7 +622,7 @@ class ComplexExpressionTest(unittest.TestCase):
 		t = adql.getGrammar().parseString("select top 5 * from"
 			" lsw.plates where dateobs between 'J2416642 ' and 'J2416643'")[0]
 		self.assertEqual(t.find("columnReference").children[0], "dateobs")
-		self.assertEqual(adql.flatten(t.children[-1]), "'J2416643'")
+		self.assertEqual(adql.flatten(t.whereClause.children[-1]), "'J2416643'")
 
 
 class Q3CMorphTest(unittest.TestCase):
@@ -652,8 +652,7 @@ class PQMorphTest(unittest.TestCase):
 	"""tests for morphing to psql geometry types and operators.
 	"""
 	def _testMorph(self, stIn, stOut):
-		t = adql.parseToTree(stIn)
-		adql.morphPG(t)
+		t = adql.morphPG(adql.parseToTree(stIn))
 		self.assertEqual(nodes.flatten(t), stOut)
 
 	def testSyntax(self):
@@ -696,15 +695,15 @@ class PQMorphTest(unittest.TestCase):
 		# communication is through field infos, which we don't have here.
 		self._testMorph("select coordsys(q.p) from (select point('ICRS', x, y)"
 			" as p from foo) as q", 
-			"SELECT 'unknown' FROM ( SELECT POINT(x, y) AS p FROM foo ) AS q")
+			"SELECT 'unknown' FROM (SELECT POINT(x, y) AS p FROM foo) AS q")
 
-		# Now try with fieldInfos...
+	def testPointFunctionWithFieldInfo(self):
 		t = adql.parseToTree("select coordsys(q.p) from "
 			"(select point('ICRS', ra1, ra2) as p from spatial) as q")
 		adql.addFieldInfos(t, _sampleFieldInfoGetter)
-		adql.morphPG(t)
-		self.assertEqual(nodes.flatten(t), "SELECT 'ICRS' FROM ( SELECT POINT"
-			"(ra1, ra2) AS p FROM spatial ) AS q")
+		t = adql.morphPG(t)
+		self.assertEqual(nodes.flatten(t), "SELECT 'ICRS' FROM (SELECT POINT"
+			"(ra1, ra2) AS p FROM spatial) AS q")
 
 	def testBoringGeometryFunctions(self):
 		self._testMorph("select AREA(circle('ICRS', COORD1(p1), coord2(p1), 2)),"
@@ -713,8 +712,8 @@ class PQMorphTest(unittest.TestCase):
 				"   point('ICRS', ra2, dec2) as p2 from foo) as q", 
 			'SELECT AREA ( CIRCLE(POINT((p1)[0], (p1)[1]), 2) ) , celDistPP('
 				'p1, p2) , center(POLYGON(BOX((p1)[0], (p1)[1], (p2)[0], (p2)'
-				'[1]))) FROM ( SELECT POINT(ra1, dec1) AS p1 , POINT(ra2, dec2'
-				') AS p2 FROM foo ) AS q')
+				'[1]))) FROM (SELECT POINT(ra1, dec1) AS p1 , POINT(ra2, dec2'
+				') AS p2 FROM foo) AS q')
 		self.assertRaises(adql.RegionError, self._testMorph,
 			"select REGION('mystery') from foo", "")
 
@@ -724,6 +723,12 @@ class PQMorphTest(unittest.TestCase):
 			'SELECT LOG ( x ) , LN ( x ) , random() ,'
 				' setseed(5)-setseed(5)+random() , (x + x)^2 , TRUNC ('
 				' x ) , TRUNC ( x , 3 ) FROM foo')
+
+	def testHarmless(self):
+		self._testMorph("select delta*2, alpha*mag, alpha+delta"
+			" from something where mag<-10",
+			'SELECT delta * 2 , alpha * mag , alpha + delta FROM something'
+			' WHERE mag < - 10')
 
 
 class QueryTest(unittest.TestCase):
@@ -803,4 +808,4 @@ class QueryTest(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(FunctionNodeTest)
+	testhelpers.main(QueryTest)

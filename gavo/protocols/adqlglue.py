@@ -75,14 +75,15 @@ def query(query, timeout=15, queryProfile="untrustedquery", metaProfile=None):
 	"""returns a DataSet for query (a string containing ADQL).
 	"""
 	t = adql.parseToTree(query)
+	if t.setLimit is None:
+		t.setLimit = str(base.getConfig("adql", "webDefaultLimit"))
 	adql.addFieldInfos(t, getFieldInfoGetter(metaProfile))
 	adql.insertQ3Calls(t)
-	adql.morphPG(t)
 # XXX TODO: select an appropriate RD from the tables queried.
 	td = base.makeStruct(rscdef.TableDef, columns=_getTableDescForOutput(t))
 	table = rsc.TableForDef(td)
 	# escape % to hide them form dbapi replacing
-	query = adql.flatten(t).replace("%", "%%")
+	query = adql.flatten(adql.morphPG(t)).replace("%", "%%")
 	for tuple in base.SimpleQuerier(useProfile=queryProfile).runIsolatedQuery(
 			query, timeout=timeout, silent=True):
 		table.addTuple(tuple)
@@ -119,10 +120,14 @@ class ADQLCore(svcs.Core):
 		queryString = inputData.getPrimaryTable().rows[0]["query"]
 		try:
 			res = query(queryString,
-				timeout=base.getConfig("web", "adqlTimeout"),
+				timeout=base.getConfig("adql", "webTimeout"),
 				queryProfile="untrustedquery")
-			res.noPostprocess = None
+			res.noPostprocess = True
 			queryMeta["Matched"] = len(res.rows)
+			if len(res.rows)==base.getConfig("adql", "webDefaultLimit"):
+				res.addMeta("_warning", "Query result probably incomplete due"
+					" to the default match limit kicking in.  Add a TOP clause"
+					" to your query to retrieve more data.")
 			return res
 		except:
 			mapADQLErrors(*sys.exc_info())

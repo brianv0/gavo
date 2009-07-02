@@ -23,10 +23,20 @@ class AmbiguousColumn(Error):
 class NoChild(Error):
 	"""will be raised if a node is asked for a non-existing child.
 	"""
+	def __init__(self, searchedType, node):
+		self.searchedType, self.node = searchedType, node
+	
+	def __str__(self):
+		return "No %s child found in %s"%(self.searchedType, self.node.type)
 
-class MoreThanOneChild(Error):
+class MoreThanOneChild(NoChild):
 	"""will be raised if a node is asked for a unique child but has more than
-	one."""
+	one.
+	"""
+	def __str__(self):
+		return "Multiple %s children found in %s"%(self.searchedType, 
+			self.node.type)
+
 
 class UfuncError(Error):
 	"""will be raised if something is wrong with a call to a user defined
@@ -115,5 +125,3 @@ class FieldInfo(object):
 
 
 dimlessFieldInfo = FieldInfo("", "")
-
-

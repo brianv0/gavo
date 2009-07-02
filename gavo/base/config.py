@@ -346,8 +346,6 @@ _config = Configuration(
 			"Webdir-realtive path to the name map for vanity names"),
 		IntConfigItem("sqlTimeout", "15",
 			"Default timeout for db queries via the web"),
-		IntConfigItem("adqlTimeout", "15",
-			"Default timeout for adql queries via the web"),
 		WebRelativeConfigItem("previewCache", "previewcache",
 			"Webdir-relative directory to store cached previews in"),
 		WebRelativeConfigItem("favicon", "None",
@@ -359,6 +357,13 @@ _config = Configuration(
 			" are free)"),
 		ListConfigItem("graphicMimes", "image/fits,image/jpeg", "MIME types"
 			" considered as graphics (for SIAP, mostly)"),
+	),
+
+	Section('adql', "Settings concerning the built-in ADQL core",
+		IntConfigItem("webTimeout", "15",
+			"Default timeout for adql queries via the web form"),
+		IntConfigItem("webDefaultLimit", "2000",
+			"Default match limit for ADQL queries via the web form"),
 	),
 
 	Section('ui', "Settings concerning the local user interface",

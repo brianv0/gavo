@@ -67,7 +67,7 @@ class Feeder(object):
 				raise
 	
 
-class BaseTable(object):
+class BaseTable(base.MetaMixin):
 	"""is a container for row data.
 
 	Tables consist of rows, where each row maps column names to their
@@ -117,6 +117,7 @@ class BaseTable(object):
 	  with private connections.
 	"""
 	def __init__(self, tableDef, **kwargs):
+		base.MetaMixin.__init__(self)
 		self.tableDef = tableDef
 		self.validateRows = kwargs.get("validateRows", False)
 		self.votCasts = kwargs.get("votCasts", {})

@@ -40,14 +40,14 @@ def killGeoBooleanOperator(node, state):
 	a 0 or a 1 and converts the whole thing into a boolean query or
 	bombs out.
 
-	The other operand must be a psqlLiteral, supposed to contain the boolean
+	The other operand must be a string, supposed to contain the boolean
 	function.
 	"""
 	if not hasattr(state, "killParentOperator"):
-		return
+		return node
 	delattr(state, "killParentOperator")
 	arg1, opr, arg2 = node.children
-	if arg1.type=="psqlLiteral":
+	if isinstance(arg1, basestring):
 		fCall, opd = arg1, arg2
 	else:
 		fCall, opd = arg2, arg1
@@ -60,25 +60,37 @@ def killGeoBooleanOperator(node, state):
 			" using = or !=")
 	node.children = [{("=", "1"): "", ("!=", "0"): "",
 		("!=", "1"): "NOT", ("=", "0"): "NOT"}[opr, opd], fCall]
+	return node
 
 
 def morphTreeWithHandlers(tree, handlers):
 	"""traverses tree in postorder, calling handlers on the nodes.
 
 	handlers is a dictionary mapping node types to functions taking a node
-	and as state.
+	and a state.  These functions must return the node that will replace
+	the one they got passed.  To make a parent reprocess its children,
+	old is new should be false.
+
+	If you need to flatten things differently from the ADQL default,
+	you can use a custom flattener in your handler.  Since we traverse
+	postorder, all lower-level morphing has been done at this point.
+	You may want to employ nodes.flattenKWs if you need to do this.
 	"""
 	state = State()
 	def traverse(node):
 		childrenChanged = False
-		for child in node.iterNodes():
-			childrenChanged = traverse(child) or childrenChanged
-		if childrenChanged:  # some handler below me was called, so node's
-				# children probably have changed.
+		newChildren = []
+		for child in node:
+			if isinstance(child, nodes.ADQLNode):
+				newChild = traverse(child)
+				childrenChanged = childrenChanged or (newChild is not child)
+				newChildren.append(newChild)
+			else:
+				newChildren.append(child)
+		if childrenChanged:
+			node.children = newChildren
 			node._processChildren()
 		if node.type in handlers:
-			handlers[node.type](node, state)
-			return True
-		return False or childrenChanged
-	traverse(tree)
-
+			return handlers[node.type](node, state)
+		return node
+	return traverse(tree)

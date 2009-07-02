@@ -70,6 +70,37 @@ def collectUserData(infoChildren):
 	return userData, tainted
 
 
+def flattenKWs(obj, *fmtTuples):
+	"""returns a string built from the obj according to format tuples.
+
+	A format tuple is consists of a literal string, and
+	an attribute name.  If the corresponding attribute is
+	non-None, the plain string and the flattened attribute
+	value are inserted into the result string, otherwise
+	both are ignored.
+
+	Nonexisting attributes are taken to have None values.
+
+	To allow unconditional literals, the attribute name can
+	be None.  The corresponding literal is always inserted.
+
+	All contributions are separated by single blanks.
+
+	This is a helper method for flatten methods of parsed-out
+	elements.
+	"""
+	res = []
+	for literal, attName in fmtTuples:
+		if attName is None:
+			res.append(literal)
+		else:
+			if getattr(obj, attName, None) is not None:
+				if literal:
+					res.append(literal)
+				res.append(flatten(getattr(obj, attName)))
+	return " ".join(res)
+
+
 ######################### Generic Node definitions
 
 @symbolAction("regularIdentifier")
@@ -137,13 +168,20 @@ class ADQLNode(object):
 		if len(res)==0:
 			if default is not None: 
 				return default
-			raise NoChild(type)
+			raise NoChild(type, self)
 		if len(res)!=1:
-			raise MoreThanOneChild(type)
+			raise MoreThanOneChild(type, self)
 		return res[0]
 
 	def flatten(self):
 		"""returns a string representation of the text content of the tree.
+
+		You will have to override this if there are Ignored elements
+		or if you do tree manipulations without updating children (which
+		in general is a good thing, since self.children manipulations
+		probably are quite brittle).
+
+		See also the flattenKWs function.
 		"""
 		return " ".join([flatten(c) for c in self])
 
@@ -279,11 +317,11 @@ class TableName(ADQLNode):
 		self.qName = ".".join([n for n in [self.cat, self.schema, self.name] if n])
 
 
-class CorrSpec(TableName): 
+class CorrelationSpecification(ADQLNode):
 	type = "correlationSpecification"
 	def _processChildren(self):
-		self.qName = self.name = self.children[-1]
-	
+		self.name = self.qName = self.children.get("alias")
+
 
 class TableReference(ADQLNode, ColBearingMixin):
 	"""is a table reference.
@@ -297,41 +335,51 @@ class TableReference(ADQLNode, ColBearingMixin):
 	a subquery or a joined table that needs to be consulted to figure out
 	what fields are available from the table.
 	"""
-	type = "tableReference"
-	bindings = []  # will be created by dispatchTableReference
+	type = "possiblyAliasedTable"
 	joinedTables = []
 	def __repr__(self):
 		return "<tableReference to %s>"%",".join(self.getAllNames())
 
 	def _processChildren(self):
-		alias = self.getChildOfType("correlationSpecification", Absent)
-		if alias is Absent:
-			self.tableName = self.originalTable = self.getChildOfType("tableName")
+		if self.children.get("corrSpec"):
+			self.tableName = self.children.get("corrSpec")
+			self.originalTable = self.children.get("tableName")
 		else:
-			self.tableName = alias
-			self.originalTable = self.getChildOfType("tableName")
+			self.tableName = self.originalTable = self.getChildOfType("tableName")
 		self.joinedTables = self.getChildrenOfType("tableReference")
 
 	def getAllNames(self):
+		"""iterates over all fully qualified table names mentioned in this
+		(possibly joined) table reference.
+		"""
 		yield self.tableName.qName
 		for t in self.joinedTables:
 			yield t.tableName.qName
 
 
-# XXX TODO: Parse out QuerySpecification completely (i.e., have a
-# WhereClause node, scrap the AliasedQS hack)
+class WhereClause(ADQLNode):
+	type = "whereClause"
+
+class Grouping(ADQLNode):
+	type = "groupByClause"
+
+class Having(ADQLNode):
+	type = "havingClause"
+
+class OrderBy(ADQLNode):
+	type = "sortSpecification"
+
 
 class QuerySpecification(ADQLNode, ColBearingMixin): 
-	type = "querySpecification"
+	type = "statement"
+
 	def _processChildren(self):
-		self.selectList = self.getChildOfType("selectList")
-		self.fromClause = self.getChildOfType("fromClause")
+		for name in ["setQuantifier", "setLimit", "selectList", "fromClause",
+				"whereClause", "grouping", "having", "orderBy"]:
+			setattr(self, name, self.children.get(name))
 		self.query = weakref.proxy(self)
 		self._processChildrenNext(QuerySpecification)
 	
-	def getSelectList(self):
-		return [c.name for c in self.getSelectFields()]
-
 	def getSelectFields(self):
 		if self.selectList.isAllFieldsQuery:
 			return self.fromClause.getAllFields()
@@ -344,41 +392,36 @@ class QuerySpecification(ADQLNode, ColBearingMixin):
 	def resolveField(self, fieldName):
 		return self.fromClause.resolveField(fieldName)
 
+	def getAllNames(self):
+		for n in self.fromClause.getTableNames():
+			yield n
 
-class AliasedQuerySpecification(QuerySpecification):
-	"""is a QuerySpecification with a correlationSpecification.
-	"""
-	bindings = [] # will be created by dispatchTableReference
+	def flatten(self):
+		return flattenKWs(self, ("SELECT", None),
+			("", "setQuantifier"),
+			("TOP", "setLimit"),
+			("", "selectList"),
+			("", "fromClause"),
+			("", "whereClause"),
+			("", "grouping"),
+			("", "having"),
+			("", "orderBy"),)
+
+
+class DerivedTable(QuerySpecification):
+	type = "derivedTable"
 	def _processChildren(self):
-		try:
-			self.tableName = self.getChildOfType("correlationSpecification")
-		except NoChild:  # shouldn't happen, but doesn't hurt
-			pass
-		# adopt children of original query specification and attributes
-		newChildren = []
-		for c in self.children:
-			if getType(c)=="querySpecification":
-				newChildren.extend(c.children)
-				self.selectList, self.fromClause, self.query = (c.selectList,
-					c.fromClause, c.query)
-			else:
-				newChildren.append(c)
-		self.children = newChildren
+		self._processChildrenNext(DerivedTable)
+		self.tableName = self.children.get("corrSpec")
 
 	def getAllNames(self):
-		return self.tableName.qName
+		yield self.tableName.qName
+		for n in QuerySpecification.getAllNames(self):
+			yield n
 
-
-@symbolAction("nojoinTableReference")
-def dispatchTableReference(children):
-	"""returns a TableReference or a QuerySpecification depending on
-	wether children contain a querySpecification.
-	"""
-	for c in children:
-		if getType(c)=='querySpecification':
-			return AliasedQuerySpecification(children)
-	else:
-		return TableReference(children)
+	def flatten(self):
+		return "(%s) AS %s"%(QuerySpecification.flatten(self),
+			self.tableName.qName)
 
 
 class FromClause(ADQLNode):
@@ -391,7 +434,7 @@ class FromClause(ADQLNode):
 	def getTableNames(self):
 		res = []
 		for t in self.tablesReferenced:
-			res.extend(t.getAllNames())
+			res.append(t.tableName.qName)
 		return res
 	
 	def resolveField(self, name):
@@ -486,13 +529,6 @@ class SelectList(ADQLNode):
 				# the from clause here.
 		else:
 			self.selectFields = self.getChildrenOfType("derivedColumn")
-
-
-class SetLimit(ADQLNode):
-	type = "setLimit"
-
-	def _processChildren(self):
-		self.limit = self.children[1]
 
 
 ######## all expression parts we need to consider when inferring units and such
@@ -842,5 +878,3 @@ class Area(_FunctionalNode):
 	"""one argument, a geometry expression.
 	"""
 	type = "area"
-
-
