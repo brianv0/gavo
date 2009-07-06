@@ -182,6 +182,21 @@ significant, i.e., both creator.logo and publisher.logo are of type
 logo.
 
 
+Metadata in Standard Renderers
+''''''''''''''''''''''''''''''
+
+Certain meta keys have a data center-internal interpretation, used
+in renderers or writers of certain formats.  Among those are:
+
+* _intro -- used by the standard HTML template for explanatory text
+  above the seach form.
+* _footer -- used by the standard HTML template for explanatory text
+  below the seach form.
+* _warning -- used by both the VOTable and the HTML table renderer.
+  The content is rendered as some kind of warning.  Unfortunately,
+  there is no standard how to do this in VOTables.  There is no
+  telling if the info elements generated will show anywhere.
+
 RMI-Style Metadata
 ''''''''''''''''''
 

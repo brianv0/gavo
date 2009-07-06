@@ -1,0 +1,37 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+		"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html mlns="http://www.w3.org/1999/xhtml"
+		xmlns:n="http://nevow.com/ns/nevow/0.1">
+<head n:render="commonhead">
+	<title n:render="meta">title</title>
+</head>
+
+<body n:render="withsidebar">
+	<h1 n:render="meta">title</h1>
+
+	<div class="result" n:render="ifdata" n:data="result">
+		<div class="querypars" n:data="queryseq" n:render="ifdata">
+			<h2><a href="#_queryForm">Parameters</a></h2>
+			<ul n:render="sequence">
+				<li n:pattern="item" n:render="parpair"/>
+			</ul>
+		</div>
+
+		<h2>Result</h2>
+		<div class="resmeta" n:data="resultmeta" n:render="mapping">
+			<p>Matched: <n:slot name="itemsMatched"/></p>
+		</div>
+		<div class="result">
+			<n:invisible n:render="resulttable"/>
+		</div>
+		<h2><a name="_queryForm">Query Form</a></h2>
+	</div>
+
+	<div id="intro" n:render="metahtml" class="intro">_intro</div>
+	<n:invisible n:render="form genForm"/>
+	<div id="bottominfo" n:render="metahtml">_bottominfo</div>
+	<div class_="copyright" n:render="metahtml">_copyright</div>
+</body>
+</html>
+

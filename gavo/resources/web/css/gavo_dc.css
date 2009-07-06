@@ -345,5 +345,6 @@ table.shorttable {
 
 .warning {
 	border: 2pt solid red;
-	padding: 5px;
+	padding: 5pt;
+	margin-bottom: 5pt;
 }

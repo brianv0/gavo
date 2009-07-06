@@ -222,12 +222,19 @@ class TableBasedCore(core.Core):
 		as necessary.
 		"""
 		rows = list(rowIter)
-		if len(rows)>queryMeta.get("dbLimit", 1e10): # match limit overflow
+		isOverflowed =  len(rows)>queryMeta.get("dbLimit", 1e10)
+		if isOverflowed:
 			del rows[-1]
-			queryMeta["Overflow"] = True
 		queryMeta["Matched"] = len(rows)
-		return rsc.TableForDef(resultTableDef, rows=rows)
-	
+		res = rsc.TableForDef(resultTableDef, rows=rows)
+		if isOverflowed:
+			queryMeta["Overflow"] = True
+			res.addMeta("_warning", "The query limit was reached.  Increase it"
+				" to retrieve more matches.  Note that unsorted truncated queries"
+				" are not reproducible (i.e., might return a different result set"
+				" at a later time).")
+		return res
+
 
 class FancyQueryCore(TableBasedCore):
 	"""A core executing a pre-specified query with fancy conditions.

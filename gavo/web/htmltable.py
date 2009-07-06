@@ -398,6 +398,7 @@ class HTMLTableFragment(rend.Fragment):
 		metaKey = ctx.tag.children[0]
 		if self.table.getMeta(metaKey, propagate=False):
 			ctx.tag.clear()
+			_htmlMetaBuilder.clear()
 			return ctx.tag[self.table.buildRepr(metaKey, _htmlMetaBuilder)]
 		else:
 			return ""

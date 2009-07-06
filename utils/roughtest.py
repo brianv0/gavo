@@ -369,9 +369,9 @@ myTests = [
 			"/q2237/mj160043.gz&siap=true",
 			'60043\x00\xec\xbdip\x9e\xd7\x95\xdf\x99T*\x93\x9at',
 			"NV Maidanak product delivery"),
-		GetHasStringTest(nv_root+"/maidanak/res/rawframes/siap/form?"
+		GetHasStringsTest(nv_root+"/maidanak/res/rawframes/siap/form?"
 			"__nevow_form__=genForm&POS=M1&SIZE=0.5&INTERSECT=OVERLAPS",
-			'<div class="resmeta"><p>Matched:',
+			['<div class="resmeta">', '<p>Matched:'],
 			"Simbad resolution of positions works"),
 		GetHasStringsTest(nv_root+"/maidanak/res/rawframes/siap/siap.xml"
 			"?FORMAT=METADATA", [

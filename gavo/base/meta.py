@@ -387,6 +387,9 @@ class MetaItem(object):
 	def __iter__(self):
 		return iter(self.children)
 
+	def __len__(self):
+		return len(self.children)
+
 	def addContent(self, item):
 		self.children[-1].addContent(item)
 

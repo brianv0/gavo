@@ -18,6 +18,8 @@ import urlparse
 import formal
 from formal import form
 
+import pkg_resources
+
 from nevow import context
 from nevow import flat
 from nevow import inevow
@@ -517,15 +519,6 @@ class HTMLResultRenderMixin(object):
 			return ""
 		return ctx.tag["%s: %s"%data]
 	
-	def render_warnTrunc(self, ctx, data):
-		if data.queryMeta.get("Overflow"):
-			return ctx.tag["Your query limit of %d rows was reached.  You may"
-				" want to resubmit your query with a higher match limit."
-				" Note that truncated queries without sorting are not"
-				" reproducible."%data.queryMeta["dbLimit"]]
-		else:
-			return ""
-	
 	def data_result(self, ctx, data):
 		return self.result
 
@@ -643,44 +636,8 @@ class Form(FormMixin, grend.ServiceBasedRenderer, HTMLResultRenderMixin):
 	def process(self, ctx):
 		return super(Form, self).process(ctx)
 
-	defaultDocFactory = common.doctypedStan(T.html[
-		T.head(render=T.directive("commonhead"))[
-			T.title(render=T.directive("meta"))["title"],
-		],
-		T.body(render=T.directive("withsidebar"))[
-			T.h1(render=T.directive("meta"))["title"],
-			T.div(class_="result", render=T.directive("ifdata"), 
-					data=T.directive("result")) [
-				T.div(class_="querypars", data=T.directive("queryseq"),
-						render=T.directive("ifdata"))[
-					T.h2[T.a(href="#_queryForm")["Parameters"]],
-					T.ul(render=rend.sequence)[
-						T.li(pattern="item", render=T.directive("parpair"))
-					],
-				],
-				T.h2["Result"],
-				T.div(class_="resmeta", data=T.directive("resultmeta"),
-					render=T.directive("mapping"))[
-					T.p[
-						"Matched: ", T.slot(name="itemsMatched"),
-					],
-					T.p(render=T.directive("ifdata"), data=T.slot(name="message"),
-						class_="resultMessage")[
-							T.invisible(render=T.directive("data"))
-					],
-				],
-				T.p(class_="warning", render=T.directive("warnTrunc")),
-				T.div(class_="result")[
-					T.invisible(render=T.directive("resulttable")),
-				],
-				T.h2[T.a(name="_queryForm")["Query Form"]],
-			],
-			T.div(id="intro", render=T.directive("metahtml"), class_="intro")[
-				"_intro"],
-			T.invisible(render=T.directive("form genForm")),
-			T.div(id="bottominfo", render=T.directive("metahtml"))["_bottominfo"],
-			T.div(class_="copyright", render=T.directive("metahtml"))["_copyright"],
-		]])
+	defaultDocFactory = loaders.xmlfile(pkg_resources.resource_filename('gavo',
+		"resources/templates/defaultresponse.html"))
 
 grend.registerRenderer("form", Form)
 

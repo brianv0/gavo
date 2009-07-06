@@ -533,8 +533,6 @@ class SelectList(ADQLNode):
 
 ######## all expression parts we need to consider when inferring units and such
 
-
-
 class Comparison(ADQLNode):
 	"""is required when we want to morph the braindead contains(...)=1 into
 	a true boolean function call.
