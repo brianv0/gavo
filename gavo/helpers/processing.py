@@ -20,6 +20,7 @@ class CannotComputeHeader(Exception):
 	"""is raised when no header can be generated (_getHeader returns None).
 	"""
 
+
 class FileProcessor(object):
 	"""An abstract base for a source file processor.
 
@@ -28,12 +29,48 @@ class FileProcessor(object):
 
 	You then need to define a process method receiving a source as
 	returned by the dd (i.e., usually a file name).
+
+	You can override the method _createAuxillaries(dataDesc) to compute
+	things like source catalogues, etc.  Thus, you should not need to
+	override the constructor.
 	"""
 	def __init__(self, opts, dd):
 		self.opts, self.dd = opts, dd
-	
+
+	def _createAuxillaires(self, dd):
+		pass
+
 	def process(self, fName):
 		pass
+
+	@staticmethod
+	def addOptions(parser):
+		parser.add_option("--filter", dest="requireFrag", metavar="STR",
+			help="Only process files with names containing STR", default=None)
+
+	def processAll(self):
+		"""calls the process method of processor for all sources of the data
+		descriptor dd.
+		"""
+		processed, ignored = 0, 0
+		for source in self.dd.sources:
+			if (self.opts.requireFrag is not None 
+					and not self.opts.requireFrag in source):
+				continue
+			try:
+				self.process(source)
+			except KeyboardInterrupt:
+				sys.exit(2)
+			except Exception, msg:
+				if self.opts.bailOnError:
+					raise
+				sys.stderr.write("Skipping %s (%s, %s)\n"%(
+					source, msg.__class__.__name__, msg))
+				ignored += 1
+			processed += 1
+			sys.stdout.write("%6d (-%5d)\r"%(processed, ignored))
+			sys.stdout.flush()
+		return processed, ignored
 
 
 class HeaderProcessor(FileProcessor):
@@ -62,7 +99,7 @@ class HeaderProcessor(FileProcessor):
 
 	The idea is that you can:
 
-	* see if stuff works without touching the original files: proc
+	* generate headers without touching the original files: proc
 	* write all cached headers to files that don't have them
 	  proc --applyheaders --nocompute
 	* after a bugfix force all headers to be regenerated:
@@ -162,6 +199,7 @@ class HeaderProcessor(FileProcessor):
 
 	@staticmethod
 	def addOptions(optParser):
+		FileProcessor.addOptions(optParser)
 		optParser.add_option("--reprocess", help="Recompute all headers",
 			action="store_true", dest="reProcess", default=False)
 		optParser.add_option("--no-compute", help="Only use cached headers",
@@ -177,26 +215,6 @@ class HeaderProcessor(FileProcessor):
 			" dumping a traceback", action="store_true", dest="bailOnError",
 			default=False)
 
-	def processAll(self):
-		"""calls the process method of processor for all sources of the data
-		descriptor dd.
-		"""
-		processed, ignored = 0, 0
-		for source in self.dd.sources:
-			try:
-				self.process(source)
-			except KeyboardInterrupt:
-				sys.exit(2)
-			except Exception, msg:
-				if self.opts.bailOnError:
-					raise
-				sys.stderr.write("Skipping %s (%s, %s)\n"%(
-					source, msg.__class__.__name__, msg))
-				ignored += 1
-			processed += 1
-			sys.stdout.write("%6d (-%5d)\r"%(processed, ignored))
-			sys.stdout.flush()
-		return processed, ignored
 
 
 class AnetHeaderProcessor(HeaderProcessor):
@@ -227,17 +245,34 @@ class AnetHeaderProcessor(HeaderProcessor):
 	noCopyHeaders = set(["simple", "bitpix", "naxis", "imageh", "imagew",
 		"naxis1", "naxis2", "datamin", "datamax", "date"])
 
+	@staticmethod
+	def addOptions(optParser):
+		HeaderProcessor.addOptions(optParser)
+		optParser.add_option("--no-anet", help="Do not run anet, fail if"
+			" no cache is present to take anet headers from", action="store_false",
+			dest="runAnet", default=True)
+		optParser.add_option("--copy-to", help="Copy astrometry.net sandbox to"
+			" this directory (WARNING: it will be deleted if it exists!)."
+			"  Probably most useful with --bail", 
+			action="store", dest="copyTo", default=None)
+
 	def _isProcessed(self, srcName):
 		return self.getPrimaryHeader(srcName).has_key("CD1_1")
 
-	def _runAnet(self, srcName, solverParameters, sexScript, objectFilter,
-			copyTo=None):
+	def _runAnet(self, srcName, solverParameters, sexScript, objectFilter):
 		return anet.getWCSFieldsFor(srcName, solverParameters,
-			sexScript, objectFilter, copyTo)
+			sexScript, objectFilter, self.opts.copyTo)
 
 	def _solveAnet(self, srcName):
-		return self._runAnet(srcName, self.solverParameters, self.sexScript,
-			self.objectFilter)
+		if self.opts.runAnet:
+			return self._runAnet(srcName, self.solverParameters, self.sexScript,
+				self.objectFilter)
+		else:
+			oldCards = self._readCache(srcName)
+			if oldCards is None:
+				raise CannotComputeHeader("No cached headers and you asked"
+					" not to run astrometry.net")
+			return oldCards
 
 	def _getHeader(self, srcName):
 		wcsCards = self._solveAnet(srcName)
@@ -249,11 +284,15 @@ class AnetHeaderProcessor(HeaderProcessor):
 		return hdr
 
 
-def procmain(processorClass, rdId, ddId, **processorKws):
+def procmain(processorClass, rdId, ddId):
 	"""is a "standard" main function for scripts manipulating source files.
 
 	The function returns the instanciated processor so you can communicate
 	from your processor back to your own "main".
+
+	makeProcessorArgs is an iterator that returns argName, argValue pairs
+	for addition constructor keyword arguments.  Use this to pass in
+	plate catalogs or similar.
 	"""
 	import optparse
 	from gavo import rscdesc
