@@ -8,12 +8,12 @@ They are collected in contextGrammars, entities creating input tables
 and parameters.
 """
 
-import formal
 
 from gavo import base
 from gavo import grammars
 from gavo import rscdef
 from gavo.base import vizierexprs
+from gavo.imp import formal
 from gavo.svcs import customwidgets
 
 MS = base.makeStruct

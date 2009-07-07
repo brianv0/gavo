@@ -24,6 +24,7 @@ from zope.interface import implements
 from gavo import base
 from gavo import svcs
 from gavo import rscdef
+from gavo.imp import formal
 from gavo.web import common
 from gavo.web import weberrors
 

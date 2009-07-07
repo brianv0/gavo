@@ -7,19 +7,20 @@ import urllib
 from nevow import tags as T, entities as E
 from nevow import inevow
 from nevow.util import getPOSTCharset
-import formal
-from formal import iformal
-from formal import types as formaltypes
-from formal import validation
-from formal import widget
-from formal.util import render_cssid
-from formal.widget import *
-from formal import widgetFactory
+
 from zope.interface import implements
 
 from gavo import base
 from gavo import rscdef
 from gavo.base import typesystems
+from gavo.imp import formal
+from gavo.imp.formal import iformal
+from gavo.imp.formal import types as formaltypes
+from gavo.imp.formal import validation
+from gavo.imp.formal import widget
+from gavo.imp.formal.util import render_cssid
+from gavo.imp.formal.widget import *
+from gavo.imp.formal import widgetFactory
 
 
 def getOptionRenderer(initValue):

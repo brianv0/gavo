@@ -375,14 +375,10 @@ class MetaItem(object):
 			res = self.getContent(targetFormat="text")
 			return res
 		except MetaError:
-			return "<meta sequence, %d items>"%(len(self.children))
+			return ", ".join(m.getContent(targetFormat="text") 
+				for m in self.children)
 
-	def __unicode__(self):
-		try:
-			res = self.getContent(targetFormat="text")
-			return res
-		except MetaError:
-			return "<meta sequence, %d items>"%(len(self.children))
+	__unicode__ = __str__
 
 	def __iter__(self):
 		return iter(self.children)

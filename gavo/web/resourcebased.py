@@ -15,8 +15,6 @@ import traceback
 import urllib
 import urlparse
 
-import formal
-from formal import form
 
 import pkg_resources
 
@@ -38,6 +36,8 @@ from zope.interface import implements
 from gavo import base
 from gavo import rsc
 from gavo import svcs
+from gavo.imp import formal
+from gavo.imp.formal import form
 from gavo.formats import fitstable
 from gavo.formats import texttable
 from gavo.formats import votable

@@ -4,7 +4,6 @@ Support for IVOA DAL and registry protocols.
 
 import datetime
 
-import formal
 
 from nevow import appserver
 from nevow import inevow
@@ -20,6 +19,7 @@ from gavo import base
 from gavo import rscdef
 from gavo import rsc
 from gavo import svcs
+from gavo.imp import formal
 from gavo.imp.VOTable import DataModel as VOTable
 from gavo.protocols import registry
 from gavo.utils import ElementTree

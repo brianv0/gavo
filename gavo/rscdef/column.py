@@ -124,7 +124,7 @@ def makeOptions(*args):
 # Adapters to make options work in formal choice widgets (not in class
 # since we don't want to require formal and twisted at this point)
 try:
-	from formal import iformal
+	from gavo.imp.formal import iformal
 	from twisted.python import components
 	from zope.interface import implements
 

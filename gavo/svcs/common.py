@@ -6,7 +6,6 @@ import re
 import os
 import urllib
 
-import formal
 
 from nevow import tags as T, entities as E
 from nevow import inevow
@@ -17,6 +16,7 @@ from zope.interface import implements
 
 from gavo import base
 from gavo.base import meta
+from gavo.imp import formal
 
 
 class Error(base.Error):

@@ -14,7 +14,6 @@ import traceback
 import urllib
 import urlparse
 
-import formal
 
 from twisted.internet import defer
 from twisted.python import components
@@ -35,6 +34,7 @@ from zope.interface import implements
 
 from gavo import base
 from gavo import svcs
+from gavo.imp import formal
 from gavo.web import common
 from gavo.web import grend
 from gavo.web import weberrors
