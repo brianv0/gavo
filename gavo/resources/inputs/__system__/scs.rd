@@ -4,8 +4,8 @@
 <resource resdir="__system" schema="public">
 	<table id="q3cIndexDef">
 		<index name="q3c_\tablename">
-			<columns>\nameForUCDs{pos.eq.ra;meta.main,POS_EQ_RA_MAIN}, \nameForUCDs{pos.eq.dec;meta.main,POS_EQ_DEC_MAIN}</columns>
-			q3c_ang2ipix(\nameForUCDs{pos.eq.ra;meta.main,POS_EQ_RA_MAIN}, \nameForUCDs{pos.eq.dec;meta.main,POS_EQ_DEC_MAIN})
+			<columns>\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN}, \nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN}</columns>
+			q3c_ang2ipix(\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN}, \nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN})
 		</index>
 	</table>
 
@@ -33,8 +33,8 @@
 		<!-- positions with q3c index -->
 		<!-- XXX TODO: once we have replay or similar, get this from q3cindexdef -->
 		<index name="q3c_\tablename">
-			<columns>\nameForUCDs{pos.eq.ra;meta.main,POS_EQ_RA_MAIN},\nameForUCDs{pos.eq.dec;meta.main,POS_EQ_DEC_MAIN}</columns>
-			q3c_ang2ipix(\nameForUCDs{pos.eq.ra;meta.main,POS_EQ_RA_MAIN},\nameForUCDs{pos.eq.dec;meta.main,POS_EQ_DEC_MAIN})
+			<columns>\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN},\nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN}</columns>
+			q3c_ang2ipix(\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN},\nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN})
 		</index>
 	</table>
 

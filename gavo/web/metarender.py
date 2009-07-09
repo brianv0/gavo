@@ -8,6 +8,7 @@ import urllib
 from nevow import inevow
 from nevow import loaders
 from nevow import tags as T, entities as E
+from nevow import url
 
 from zope.interface import implements
 
@@ -311,7 +312,8 @@ class TableInfoRenderer(grend.ServiceBasedRenderer,
 
 	def data_fields(self, ctx, data):
 		res = [f.asInfoDict() for f in self.table]
-		res.sort(key=lambda item: item["name"])
+		if not "dbOrder" in inevow.IRequest(ctx).args:
+			res.sort(key=lambda item: item["name"])
 		return res
 
 	def render_title(self, ctx, data):
@@ -341,7 +343,18 @@ class TableInfoRenderer(grend.ServiceBasedRenderer,
 		else:
 			return lambda ctx, data: ""
 
-	# override to insert table instead of the service as the thing to take
+	def render_sortOrder(self, ctx, data):
+		request = inevow.IRequest(ctx)
+		if "dbOrder" in request.args:
+			return ctx.tag["Sorted by DB column index. ",
+				T.a(href=url.URL.fromRequest(request).remove("dbOrder"))[
+					"[Sort alphabetically]"]]
+		else:
+			return ctx.tag["Sorted alphabetically. ",
+				T.a(href=url.URL.fromRequest(request).add("dbOrder", "True"))[
+					"[Sort by DB column index]"]]
+
+	# overridden to insert table instead of the service as the thing to take
 	# metadata from.
 	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False, 
 			metaCarrier=None):

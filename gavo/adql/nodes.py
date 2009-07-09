@@ -2,6 +2,7 @@
 Node classes and factories used in ADQL tree processing.
 """
 
+import pyparsing
 import sys
 import traceback
 import weakref
@@ -46,6 +47,8 @@ def flatten(arg):
 	"""
 	if isinstance(arg, basestring):
 		return arg
+	elif isinstance(arg, pyparsing.ParseResults):
+		return " ".join(flatten(c) for c in arg)
 	else:
 		return arg.flatten()
 

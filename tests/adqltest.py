@@ -648,6 +648,7 @@ class Q3CMorphTest(unittest.TestCase):
 				"  q3c_join(23, 24, alphafloat, deltafloat, 0.2)")
 
 
+
 class PQMorphTest(unittest.TestCase):
 	"""tests for morphing to psql geometry types and operators.
 	"""
@@ -730,6 +731,10 @@ class PQMorphTest(unittest.TestCase):
 			'SELECT delta * 2 , alpha * mag , alpha + delta FROM something'
 			' WHERE mag < - 10')
 
+	def testOrder(self):
+		self._testMorph("select top 100 * from ppmx.data where cmag>10"
+			" order by cmag", 'SELECT * FROM ppmx . data WHERE cmag > 10'
+			' ORDER BY cmag LIMIT 100')
 
 class QueryTest(unittest.TestCase):
 	"""performs some actual queries to test the whole thing.
@@ -808,4 +813,4 @@ class QueryTest(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(QueryTest)
+	testhelpers.main(PQMorphTest)

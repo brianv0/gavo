@@ -4,6 +4,7 @@ Description and definition of tables.
 
 import itertools
 import re
+import traceback
 
 from gavo import base
 from gavo import utils
@@ -264,17 +265,20 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		return self.getColumnByUCD(ucd).name
 
 	def macro_nameForUCDs(self, ucds):
-		"""returns the (unique!) name of the field having one of ucds in this table.
+		"""returns the (unique!) name of the field having one
+		of ucds in this table.
 
-		Ucds is a comma separated list of ucds.  The rules for when this
-		raises errors are so crazy you don't want to think about them.  This
-		really is only intended for cases where "old" and "new" standards
-		are to be supported, like with pos.eq.*;meta.main and POS_EQ_*_MAIN.
+		Ucds is a selection of ucds separated by vertical bars
+		(|).  The rules for when this raises errors are so crazy
+		you don't want to think about them.  This really is
+		only intended for cases where "old" and "new" standards
+		are to be supported, like with pos.eq.*;meta.main and
+		POS_EQ_*_MAIN.
 
-		If there is no or more than one field with the ucd in this table,
-		we raise an exception.
+		If there is no or more than one field with the ucd in
+		this table, we raise an exception.
 		"""
-		return self.getColumnByUCDs(*ucds.split(",")).name
+		return self.getColumnByUCDs(*(s.strip() for s in ucds.split("|"))).name
 
 	def getQName(self):
 		if self.temporary:
