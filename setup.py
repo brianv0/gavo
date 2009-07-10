@@ -13,7 +13,7 @@ if "develop" in sys.argv:
 	install_requires = []
 
 setup(name="gavo",
-	description="ZAH Gavo support modules",
+	description="ZAH GAVO data center complete package",
 	url="http://www.g-vo.org",
 	license="GPL",
 	author="Markus Demleitner",

@@ -1,3 +1,2 @@
-"""
-This package contains code to do all kinds of VO related stuff at ARI/ZAH.
-"""
+# Declare this to be a namespace package
+__import__('pkg_resources').declare_namespace(__name__)

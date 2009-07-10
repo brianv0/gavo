@@ -142,7 +142,7 @@ class DirectGrammar(base.Structure):
 			" the booster.")
 	_rd = rscdef.RDAttribute()
 
-	def parse(self, sourceToken):
+	def parse(self, sourceToken, targetData=None):
 		booster = CBooster(self.cBooster, self.recordSize, self.parent,
 			gzippedInput=self.gzippedInput,
 			preFilter=self.preFilter,
