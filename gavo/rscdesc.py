@@ -101,13 +101,13 @@ class RD(base.Structure, base.MetaMixin, scripting.ScriptingMixin,
 	#	parent should in general be None, I guess, but I'll leave the signature
 	#	as-is in case I ever need super().__init__ on Structures.
 		base.Structure.__init__(self, parent, **kwargs)
-	# The rd attribute is a weakref on self.  Always.  So, this is the class
-	# that in roots common.RDAttributes
+		# The rd attribute is a weakref on self.  Always.  So, this is the class
+		# that in roots common.RDAttributes
 		self.rd = weakref.proxy(self)
-	# RDs can be Anonymous.  The sourceId is only important in operations
-	# like inserting into the dc_tables#tablemeta table.  These should fail
-	# on anonymous RDs (and in this case will because parts of primary
-	# keys must not be NULL)
+		# RDs can be Anonymous.  The sourceId is only important in operations
+		# like inserting into the dc_tables#tablemeta table.  These should fail
+		# on anonymous RDs (and in this case will because parts of primary
+		# keys must not be NULL)
 		self.sourceId = None
 
 	def __iter__(self):

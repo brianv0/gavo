@@ -239,8 +239,7 @@ def processSource(res, source, feeder, opts):
 		except Exception, msg:
 			import traceback
 			traceback.print_exc()
-			raise base.SourceParseError("Error while parsing %s: %s"%(
-				source, msg))
+			raise base.SourceParseError("Error while parsing %s: %s"%(source, msg))
 	else:  # magic grammars (like those of boosters) return a callable
 		srcIter(res)
 

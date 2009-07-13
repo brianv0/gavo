@@ -221,6 +221,7 @@ renderers -- include:
   each table, and each service.  In simple cases, though, you may get by
   by just having one global title on the resource and rely on metdata
   inheritance.
+* shortName
 * creationDate -- Use ISO format with time, UTC only, like this: 
   2007-10-04T12:00:00Z
 * subject -- as noted in the explanatory leaflet, these should be taken
@@ -229,7 +230,8 @@ renderers -- include:
 * copyright -- freetext copyright notice.
 * source -- bibcodes will be expanded to ADS links here.
 * referenceURL -- again, a link, so you can give a title for
-  presentation purposes.
+  presentation purposes.  If you give no referenceURL, the service's
+  info page will be used.
 * dateUpdated -- an ISO date (like 2009-03-18).  You should bump this
   if you do some major work.  If you leave it out, it will be generated
   each time you do a gavopublish.

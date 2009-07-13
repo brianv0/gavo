@@ -9,6 +9,7 @@ import sys
 import time
 import traceback
 import urlparse
+import warnings
 
 from gavo import base
 from gavo import grammars
@@ -27,7 +28,7 @@ class Error(base.Error):
 
 class MissingMeta(Error):
 	def __init__(self, msg, fields):
-		gavo.Error.__init__(self, msg)
+		Error.__init__(self, msg)
 		self.fields = fields
 
 
@@ -51,10 +52,11 @@ def ensureSufficientMeta(service):
 	for key in _voRequiredMeta:
 		try:
 			service.getMeta(key, raiseOnFail=True)
-		except gavo.MetaError:
+		except base.MetaError:
 			missingKeys.append(key)
 	if missingKeys:
-		raise MissingMeta("Missing meta keys", missingKeys)
+		raise MissingMeta("Missing meta keys in %s#%s: %s"%(service.rd.sourceId, 
+			service.id, missingKeys), missingKeys)
 
 
 def makeBaseRecord(service):
@@ -304,7 +306,7 @@ def getLastRegistryUpdate():
 	try:
 		return os.path.getmtime(getStateFileName())
 	except os.error:
-		gavo.logger.error("No registry timestamp found.  Returning conservative"
+		warnings.warn("No registry timestamp found.  Returning conservative"
 			" modification date")
 		return 946681200.0  # 2000-01-01T00:00:00Z
 
