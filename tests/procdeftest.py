@@ -11,7 +11,7 @@ import testhelpers
 
 class TestApp(procdef.ProcApp):
 	name_ = "testApp"
-	requiredType = "t_"
+	requiredType = "t_t"
 	formalArgs = "source, dest"
 
 
@@ -116,7 +116,7 @@ class NoDefTest(testhelpers.VerboseTest):
 
 class WithDefTest(testhelpers.VerboseTest):
 	def testSimpleDef(self):
-		f = base.parseFromString(Foo, "<foo><procDef type='t_' id='b'>"
+		f = base.parseFromString(Foo, "<foo><procDef type='t_t' id='b'>"
 			"<code>dest['par']='const'</code></procDef>"
 			"<testApp name='x' procDef='b'/>"
 			"</foo>")
@@ -124,7 +124,7 @@ class WithDefTest(testhelpers.VerboseTest):
 		self.assertEqual(f.dest, {"par": 'const'})
 
 	def testPDDefaulting(self):
-		f = base.parseFromString(Foo, "<foo><procDef type='t_' id='b'>"
+		f = base.parseFromString(Foo, "<foo><procDef type='t_t' id='b'>"
 			"<setup><par key='par'>'const'</par></setup>"
 			"<code>dest['par']=par</code></procDef>"
 			"<testApp name='x' procDef='b'/>"
@@ -133,7 +133,7 @@ class WithDefTest(testhelpers.VerboseTest):
 		self.assertEqual(f.dest, {"par": 'const'})
 
 	def testPDRebinding(self):
-		f = base.parseFromString(Foo, "<foo><procDef type='t_' id='b'>"
+		f = base.parseFromString(Foo, "<foo><procDef type='t_t' id='b'>"
 			"<setup><par key='par'>'const'</par></setup>"
 			"<code>dest['par']=par</code></procDef>"
 			"<testApp name='x' procDef='b'><bind key='par'>'noconst'</bind>"
@@ -142,7 +142,7 @@ class WithDefTest(testhelpers.VerboseTest):
 		self.assertEqual(f.dest, {"par": 'noconst'})
 
 	def testFilling(self):
-		f = base.parseFromString(Foo, "<foo><procDef type='t_' id='b'>"
+		f = base.parseFromString(Foo, "<foo><procDef type='t_t' id='b'>"
 			"<setup><par key='par'/></setup>"
 			"<code>dest['par']=par</code></procDef>"
 			"<testApp name='x' procDef='b'><bind key='par'>'noconst'</bind>"
@@ -153,7 +153,7 @@ class WithDefTest(testhelpers.VerboseTest):
 	def testNoFillRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
 			"Parameter par is not defaulted in x and thus must be bound.",
-			base.parseFromString, (Foo, "<foo><procDef type='t_' id='b'>"
+			base.parseFromString, (Foo, "<foo><procDef type='t_t' id='b'>"
 			"<setup><par key='par'/></setup>"
 			"<code>dest['par']=par</code></procDef>"
 			"<testApp name='x' procDef='b'>"
@@ -162,7 +162,7 @@ class WithDefTest(testhelpers.VerboseTest):
 	def testFillRandomRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
 			"May not bind non-existing parameter(s) random.",
-			base.parseFromString, (Foo, "<foo><procDef type='t_' id='b'>"
+			base.parseFromString, (Foo, "<foo><procDef type='t_t' id='b'>"
 			"<setup><par key='par'/></setup>"
 			"<code>dest['par']=par</code></procDef>"
 			"<testApp name='x' procDef='b'><bind key='random'>'noconst'</bind>"

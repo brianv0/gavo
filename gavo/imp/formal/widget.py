@@ -904,6 +904,8 @@ class FileUploadRaw(object):
         return self._renderTag(ctx, key, True)
 
     def processInput(self, ctx, key, args):
+        if inevow.IRequest(ctx).fields is None: # no file upload
+					return None, None
         fileitem = inevow.IRequest(ctx).fields[key]
         name = fileitem.filename.decode(util.getPOSTCharset(ctx))
         value = (name, fileitem.file)

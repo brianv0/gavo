@@ -186,21 +186,72 @@ Metadata in Standard Renderers
 ''''''''''''''''''''''''''''''
 
 Certain meta keys have a data center-internal interpretation, used
-in renderers or writers of certain formats.  Among those are:
+in renderers or writers of certain formats.  These keys should always
+start with an underscore.  Among those are:
 
 * _intro -- used by the standard HTML template for explanatory text
   above the seach form.
 * _footer -- used by the standard HTML template for explanatory text
   below the seach form.
+* _related -- used in the standard HTML template for links to related
+  services.  As listed above, this is a link, i.e., you can give a
+  title attribute.
+* _longdoc -- used by the service info renderer for an explanatory
+  piece of text of arbitrary length.  This will usually be in
+  reStructured text, and we recommend having the whole meta body in a
+  CDATA section.
+* _news -- news on the service.  See above at `Typed Meta Elements`_.
 * _warning -- used by both the VOTable and the HTML table renderer.
   The content is rendered as some kind of warning.  Unfortunately,
   there is no standard how to do this in VOTables.  There is no
   telling if the info elements generated will show anywhere.
 
+
 RMI-Style Metadata
 ''''''''''''''''''
 
-TBD
+For services (and other things) that are registred in the Registry, you
+must give certain metadata items (and you can give more), where we take
+their keys from [RMI]_.  We provide a `explanatory leaflet
+<./data_checklist.pdf>`_ for data providers.  The most common keys --
+used by the registry interface and in part by HTML and VOTable
+renderers -- include:
+
+* title -- this should in general be given seperately on the resource,
+  each table, and each service.  In simple cases, though, you may get by
+  by just having one global title on the resource and rely on metdata
+  inheritance.
+* creationDate -- Use ISO format with time, UTC only, like this: 
+  2007-10-04T12:00:00Z
+* subject -- as noted in the explanatory leaflet, these should be taken
+  from the `IVOA Vocabulary Explorer
+  <http://explicator.dcs.gla.ac.uk/WebVocabularyExplorer/>`_.
+* copyright -- freetext copyright notice.
+* source -- bibcodes will be expanded to ADS links here.
+* referenceURL -- again, a link, so you can give a title for
+  presentation purposes.
+* dateUpdated -- an ISO date (like 2009-03-18).  You should bump this
+  if you do some major work.  If you leave it out, it will be generated
+  each time you do a gavopublish.
+* facility -- no IVOA ids are supported here yet, but probably this
+  should change.
+* coverage -- see the special section to be written
+* service-specific metadata (for SIA, SCS, etc.) -- see the
+  documentation of the respective cores.
+
+While you can set any of these in etc/defaultmeta.txt, the following items
+are usually set there:
+
+* publisher
+* publisherID
+* contact.name
+* contact.address
+* contact.email
+* contact.telephone
+* creator.name -- you may want to override this with actual author
+  names.
+* creator.logo -- this should probably be overridden as well if you
+  override creator.name
 
 Writing Custom Cores
 ====================

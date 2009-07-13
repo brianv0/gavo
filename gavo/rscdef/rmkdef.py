@@ -243,9 +243,6 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 	_apps = base.StructListAttribute("apps",
 		childFactory=ApplyDef, description="Procedure applications.",
 		copyable=True)
-	_defaults = base.DictAttribute("defaults", 
-		itemAttD=base.UnicodeAttribute("default"),
-		description="Default values on input items.", copyable=True)
 	_rd = common.RDAttribute()
 	_idmaps = base.StringListAttribute("idmaps", description="List of"
 		' column names that are just "mapped through" (like map with dest'
@@ -262,13 +259,9 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 	@classmethod
 	def makeIdentityFromTable(cls, table, **kwargs):
 		"""returns a rowmaker that just maps input names to column names.
-
-		All non-required fields receive None defaults.
 		"""
 		idmaps=",".join(c.name for c in table)
-		defaults = dict((c.name, None) for c in table if not c.required)
-		return base.makeStruct(cls, 
-			idmaps=[c.name for c in table], defaults=defaults, **kwargs)
+		return base.makeStruct(cls, idmaps=[c.name for c in table], **kwargs)
 
 	@classmethod
 	def makeTransparentFromTable(cls, table, **kwargs):
@@ -278,9 +271,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		This is intended for grammars delivering "parsed" values, like, e.g.
 		contextgrammar.
 		"""
-		defaults = dict((c.name, None) for c in table if not c.required)
-		return base.makeStruct(cls, defaults=defaults, 
-			maps=[
+		return base.makeStruct(cls, maps=[
 				base.makeStruct(MapRule, dest=c.name, content_=c.name)
 					for c in table],
 			**kwargs)
@@ -327,14 +318,6 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		globals["rd_"] = self.rd
 		return globals
 
-	def _getDefaults(self):
-		"""returns a mapping containing the user defaults plus base.Undefined
-		for all defaulted arguments in proc defs.
-		"""
-		defaults = {}
-		defaults.update(self.defaults)
-		return defaults
-	
 	def _resolveIdmaps(self, tableDef):
 		"""adds mappings for self's idmap within tableDef.
 		"""
@@ -389,12 +372,12 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		source, lineMap = rmk._getSource(tableDef)
 		globals = rmk._getGlobals(tableDef)
 		globals["targetTable_"] = table
-		return Rowmaker(source, self.id, globals, rmk._getDefaults(), lineMap)
+		return Rowmaker(source, self.id, globals, tableDef.getDefaults(), lineMap)
 
 	def copyShallowly(self):
 		return base.makeStruct(self.__class__, maps=self.maps[:], 
-			vars=self.vars[:], defaults=self.defaults.copy(), 
-			idmaps=self.idmaps, rowSource=self.rowSource, apps=self.apps[:])
+			vars=self.vars[:], idmaps=self.idmaps, rowSource=self.rowSource, 
+			apps=self.apps[:])
 
 
 identityRowmaker = base.makeStruct(RowmakerDef, idmaps="*")

@@ -4,6 +4,7 @@ A grammar taking its rows from a VOTable.
 
 # XXX TODO: return PARAMs as the docrow
 
+import gzip
 import re
 from itertools import *
 
@@ -20,8 +21,9 @@ class VOTNameMaker(object):
 		self.knownNames, self.index = set(), 0
 	
 	def makeName(self, field):
-		preName = re.sub("[^\w]+", "x", (field.name or field.id or 
-			"field%02d"%self.index))
+		preName = re.sub("[^\w]+", "x", (getattr(field, "name", None) 
+			or getattr(field, "id", None)
+			or "field%02d"%self.index))
 		while preName.lower() in self.knownNames:
 			preName = preName+"_"
 		self.knownNames.add(preName.lower())
@@ -32,7 +34,10 @@ class VOTNameMaker(object):
 class VOTableRowIterator(common.RowIterator):
 	def __init__(self, grammar, sourceToken, **kwargs):
 		common.RowIterator.__init__(self, grammar, sourceToken, **kwargs)
-		self.vot = VOTable.parse(sourceToken)
+		if self.grammar.gunzip:
+			self.vot = VOTable.parse(gzip.open(sourceToken))
+		else:
+			self.vot = VOTable.parse(sourceToken)
 
 	def _iterRows(self):
 		srcTable = self.vot.resources[0].tables[0]
@@ -57,6 +62,9 @@ class VOTableGrammar(common.Grammar):
 	e.g., VOTables have no datetime type.
 	"""
 	name_ = "voTableGrammar"
+	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"
+		" while reading?", default=False)
+
 	rowIterator = VOTableRowIterator
 
 rscdef.registerGrammar(VOTableGrammar)

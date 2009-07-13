@@ -145,7 +145,7 @@ class ProcDef(base.Structure):
 	_type = base.EnumeratedUnicodeAttribute("type", default=None, description=
 		"The type of the procedure definition.  The procedure applications"
 		" will in general require certain types of definitions.",
-		validValues=["t_", "apply", "rowfilter", "sourceFields"], copyable=True)
+		validValues=["t_t", "apply", "rowfilter", "sourceFields"], copyable=True)
 	_register = base.BooleanAttribute("register", default=False,
 		description="Register this procDef in the global registry under its"
 			" id?")

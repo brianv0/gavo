@@ -72,9 +72,8 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 		self.assertEqual(mapper({'src': '15'})['x'], 15)
 
 	def testWithDefault(self):
-		dd, td = makeDD('<column name="x" type="integer"/>',
-			'<map dest="x">int(src)</map>'
-			'<default key="src">18</default>')
+		dd, td = makeDD('<column name="x" type="integer"><values default="18"/>'
+			'</column>', '<map dest="x">int(x)</map>')
 		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({})['x'], 18)
 

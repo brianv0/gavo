@@ -350,7 +350,19 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		"""returns a row (dict) from a row as returned from the database.
 		"""
 		return dict(itertools.izip(self.dictKeys, dbTuple))
-	
+
+	def getDefaults(self):
+		"""returns a mapping from column names to defaults to be used when
+		making a row for this table.
+		"""
+		defaults = {}
+		for col in self:
+			if col.values:
+				defaults[col.name] = col.values.default
+			elif not col.required:
+				defaults[col.name] = None
+		return defaults
+				
 	def processMixinsLate(self):
 		for mixinName in self.mixins:
 			mixins.getMixin(mixinName).processLate(self)

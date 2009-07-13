@@ -97,6 +97,10 @@ class CondDesc(base.Structure):
 		keysFound, keysMissing = [], []
 		for f in self.inputKeys:
 			if f.name not in inPars or inPars[f.name] is None:
+				# We need the separate check for defaults because some services
+				# might not use makeData to parse their input and thus miss
+				# the defaulting done in rowmakers (this should be done away with,
+				# though).
 				if f.values is not None and f.values.default:
 					inPars[f.name] = f.values.default
 					keysFound.append(f)

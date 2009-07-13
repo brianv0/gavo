@@ -21,6 +21,7 @@ The first factory providing such a callable wins.  The factories register
 with a ValueEncoderFactoryRegistry object that's used by getCoder.
 """
 
+import gzip
 import sys
 import re
 import itertools
@@ -322,7 +323,7 @@ def makeTableDefForVOTable(tableId, votTable, **moreArgs):
 	return res
 
 
-def makeDDForVOTable(tableId, vot, **moreArgs):
+def makeDDForVOTable(tableId, vot, gunzip=False, **moreArgs):
 	"""returns a DD suitable for uploadVOTable.
 
 	moreArgs are additional keywords for the construction of the target
@@ -331,17 +332,20 @@ def makeDDForVOTable(tableId, vot, **moreArgs):
 	tableDef = makeTableDefForVOTable(tableId, vot.resources[0].tables[0],
 		**moreArgs)
 	return MS(rscdef.DataDescriptor,
-		grammar=MS(votablegrammar.VOTableGrammar),
+		grammar=MS(votablegrammar.VOTableGrammar, gunzip=gunzip),
 		makes=[MS(rscdef.Make, table=tableDef)])
 
 
-def uploadVOTable(tableId, srcFile, connection, **moreArgs):
+def uploadVOTable(tableId, srcFile, connection, gunzip=False, **moreArgs):
 	"""creates a temporary table with tableId containing the first table
 	of the first resource in the VOTable that can be read from srcFile.
 
 	The corresponding DBTable instance is returned.
 	"""
-	inputFile = StringIO(srcFile.read())
+	if gunzip:
+		inputFile = StringIO(gzip.GzipFile(fileobj=srcFile, mode="r").read())
+	else:
+		inputFile = StringIO(srcFile.read())
 	srcFile.close()
 	vot = VOTable.parse(inputFile)
 	myArgs = {"onDisk": True, "temporary": True}

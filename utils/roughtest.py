@@ -238,7 +238,7 @@ class _FormData(MIMEMultipart):
     self.attach(msg)
 
 
-class UploadTest:
+class UploadTest(object):
 	"""is a test that does an upload and then calls a user-defined routine.
 
 	In contrast to the other test classes, this is abstract, since it's
@@ -292,29 +292,61 @@ class DexterUploadTest(UploadTest):
 		assert 'custom/__testing__/edit/0"' in response
 
 
-class UploadHasStringTest(UploadTest):
-	"""is a test for GAVO's built-in file upload service.
+class UploadHasStringsTestBase(UploadTest):
+	"""A base for upload tests that checks for the presence of strings
+	in a service's response.
+
+	You must define the addUpload method, see UploadServiceTest.
 	"""
-	def __init__(self, url, dataDesc, expected, description):
-		self.dataName, self.data, self.mode = dataDesc
+	def __init__(self, url, expected, description):
 		self.expected = expected
 		UploadTest.__init__(self, url, self.data, description)
 	
 	def genForm(self):
 		form = _FormData()
-		form.addFile("File", self.dataName, self.data)
-		form.addParam("Mode", self.mode)
 		form.addParam("_charset_", "UTF-8")
 		form.addParam("__nevow_form__", "genForm")
+		self.addUpload(form)
 		return form
 
 	def check(self, status, response):
 		if status!=200:
 			print "Additional Failure Info: status=%d"%status
 		assert status==200
-		if self.expected not in response:
-			print "Additional Failure Info: response was %s"%repr(response)
-		assert self.expected in response
+		for exp in self.expected:
+			if exp not in response:
+				print "Additional Failure Info: response was %s"%repr(response)
+				raise AssertionError("%s not in response"%exp)
+
+
+class UploadServiceTest(UploadHasStringsTestBase):
+	"""A test for the built-in upload service.
+
+	It is constructed with a "dataDesc", a tuple of name, data and mode.
+	"""
+	def __init__(self, url, dataDesc, expected, description):
+		self.dataName, self.data, self.mode = dataDesc
+		UploadHasStringsTestBase.__init__(self, url, expected, description)
+
+	def addUpload(self, form):
+		form.addFile("File", self.dataName, self.data)
+		form.addParam("Mode", self.mode)
+
+
+class CrossmatchServiceTest(UploadHasStringsTestBase):
+	"""A test for the built-in upload service.
+
+	It is constructed with a pair of a file name and astring containing the 
+	upload data.
+	"""
+	def __init__(self, url, dataDesc, expected, description):
+		self.dataName, self.data = dataDesc
+		UploadHasStringsTestBase.__init__(self, url, expected, description)
+
+	def addUpload(self, form):
+		form.addFile("fileSrc", self.dataName, self.data)
+		form.addParam("SR", "0.001")
+		form.addParam("tableName", "ppmx.data")
 
 
 myTests = [
@@ -646,22 +678,22 @@ myTests = [
 		GetHasStringsTest(nv_root+"/__system__/tests/upload/upload",
 			["Insert", "Update", 'type="file"'],
 			"Upload service shows a form"),
-		UploadHasStringTest(nv_root+"/__system__/tests/upload/upload",
+		UploadServiceTest(nv_root+"/__system__/tests/upload/upload",
 			("c.foo", "a: 15\nb:10\n", 'u'),
-			"0 record(s) modified.",
+			["0 record(s) modified."],
 			"Update of non-existing data is a no-op (may fail on state)"),
-		UploadHasStringTest(nv_root+"/__system__/tests/upload/upload",
+		UploadServiceTest(nv_root+"/__system__/tests/upload/upload",
 			("c.foo", "a: 15\nb:10\n", 'i'),
-			"1 record(s) modified.",
+			["1 record(s) modified."],
 			"Insert of non-existing data touches one record."),
-		UploadHasStringTest(nv_root+"/__system__/tests/upload/upload",
+		UploadServiceTest(nv_root+"/__system__/tests/upload/upload",
 			("c.foo", "a: 15\nb:17\n", 'i'),
-			"Cannot enter c.foo in database: duplicate key violates"
-				" unique constraint",
+			["Cannot enter c.foo in database: duplicate key violates"
+				" unique constraint"],
 			"Duplicate insertion of data yields error"),
-		UploadHasStringTest(nv_root+"/__system__/tests/upload/upload",
+		UploadServiceTest(nv_root+"/__system__/tests/upload/upload",
 			("c.foo", "a: 15\nb:10\n", 'u'),
-			"1 record(s) modified.",
+			["1 record(s) modified."],
 			"Updates of existing data modify db"),
 		GetHasStringTest(nv_root+"/__system__/tests/reset/form",
 			"Matched: 0",
@@ -794,7 +826,20 @@ myTests = [
 			"%3FRA%3D19.9971686111%26DEC%3D19.4701083333%26SR%3D0.0001&"
 			"tableName=ppmx.data&SR=0.001",
 			["-167.2", "RA", "Alphafloat", "0.322418"],
-			"Crossmatch service returns some data")
+			"Crossmatch service returns some data"),
+		CrossmatchServiceTest(nv_root+"/cross/q/match/form", ("zw.vot.gz",
+			"""H4sICPbtWkoCA3p3LnZvdADFVNty2jAQfecrPHpsJ5bd0E6G2GQEdjMUHONLWsgLo9jC
+			dgDJSOLmr6+4tECnzSRpZ6oX6az2HO2upLVu1rOptiRcFIzawNQNoBGasLSgmQ0Wcnxx
+			BW6aNeurH6NWz9WUNxU2yKUsGxCuViu9WDKsUyKh2oLKDT9OCVyaugn2zo21KM4Iq0ud
+			8Qx+MAwTDrxelORkhi8KKiSmCQGnwWw1RNEQO5ceS7Dcbbzo9GZN06zQjfz7sO1ugYK7
+			HPZrhT533J6jYc7xRhQVscE7oKVYYrkpFUhyzIG2SFIbdJyRhzp3AP6Zap5Sx1OG5YFb
+			MqGXs+vtROY6x/9AJCXJf1RR1yR1wjnjzykduSlbqDs5kGUxIzopWZI/U5EXc99ciJxJ
+			fYazv6ji26lMIJpdv1LlrBB9Pxq5wShEr3uVv9Nw3PavIg6K0Q+gYKtzh8Lh0aBMURy6
+			yDtpE49YkE910ERqOBVae/HE9KN61a3cj95Ttvb4IqVxdMWT9jAoAoTczgShFqLV/Gl+
+			698ujfbYn/tsWMcw+Ca6/XizqXVz6HypJoPA6cOQuvKePCDvMn9oBcb7AbLtmgX3gZwE
+			C8+jteAxGQv+/PwWPLYFCx46W7P2HV8xQVgLBQAA""".decode("base64")), [
+				'="Field04">Field04<', 'td>0.0119</td>'],
+			"File upload to crossmatch works"),
 	),
 ]
 
