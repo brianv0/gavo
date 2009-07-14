@@ -442,11 +442,13 @@ class FormMixin(formal.ResourceMixin, object):
 		"""
 		for serviceKey in self.service.serviceKeys:
 			self._addFromInputKey(serviceKey, form, data)
-		if (isinstance(self.service.core, svcs.DBCore) and
-				self.service.core.wantsTableWidget()):
-			form.addField("_DBOPTIONS", svcs.FormalDict,
-				formal.widgetFactory(svcs.DBOptions, self.service, queryMeta),
-				label="Table")
+		try:
+			if self.service.core.wantsTableWidget():
+				form.addField("_DBOPTIONS", svcs.FormalDict,
+					formal.widgetFactory(svcs.DBOptions, self.service, queryMeta),
+					label="Table")
+		except AttributeError: # probably no wantsTableWidget method on core
+			pass
 
 	def form_genForm(self, ctx=None, data=None):
 		queryMeta = svcs.QueryMeta.fromContext(ctx)

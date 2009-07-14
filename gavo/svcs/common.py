@@ -134,7 +134,7 @@ class QueryMeta(dict):
 		try:
 			if "_DBOPTIONS_LIMIT" in args:
 				self["dbLimit"] = int(args["_DBOPTIONS_LIMIT"])
-		except ValueError:  # leave limit
+		except ValueError:  # leave default limit
 			pass
 		self["dbSortKeys"] = [s.strip() for s in args.get("_DBOPTIONS_ORDER", [])
 			if s.strip()]

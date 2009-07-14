@@ -263,6 +263,9 @@ beyond the simple actions provided by the packaged cores.  You can use
 custom renderers to, in effect, bypass most of the DC's functionality,
 but you will usually gain flexibility if you define a custom core.
 
+Defining a Custom Core
+''''''''''''''''''''''
+
 To do this, you need to write a python module.  The standard location
 for those is in the bin/ subdirectory of the resource directory.
 
@@ -320,6 +323,9 @@ completeElement method, as in the following template::
 The call to _completeElementNext ensures that the remaining
 completeElement methods are executed.
 
+Giving the Core Functionality
+'''''''''''''''''''''''''''''
+
 To have the core do something, you have to override the run method,
 which has to have the following signature::
 
@@ -341,6 +347,44 @@ in from the renderer.  For "standard" inputDDs (i.e., based on
 contextGrammars), you will find the inputs by saying::
 
   inputData.getPrimaryTable().rows[0]
+
+You should return a Table instance.  Frequently, you do not want the
+service to adapt the result to its idea of output fields.  To do this,
+set a noPostprocess atttribute on the table to any value.
+
+Database Options
+''''''''''''''''
+
+The standard DB cores receive a "table widget" on form generation,
+including sort and limit options.  To make the Form renderer output this
+for your core as well, define a method wantsTableWidget() -> True.
+
+The queryMeta that you receive in run has a dbLimit key.  It contains
+the user selection or, as a fallback, the global db/defaultLimit value.
+These values are integers.
+
+So, if you order a table widget, you should do something like::
+
+  cursor.execute("SELECT .... LIMIT %(queryLimit)s", 
+    {"queryLimit": queryMeta["dbLimit"],...})
+
+In general, you should warn people if the query limit was reached; a
+simple way to do that is::
+
+	if len(res)==queryLimit:
+		res.addMeta("_warning", "The query limit was reached.  Increase it"
+			" to retrieve more matches.  Note that unsorted truncated queries"
+			" are not reproducible (i.e., might return a different result set"
+			" at a later time).")
+
+where res would be your result table.  _warning metadata is displayed in
+both HTML and VOTable output, though of course VOTable tools will not
+usually display it.
+
+Inheriting from TableBasedCore
+''''''''''''''''''''''''''''''
+
+TBD
 
 Writing Custom Grammars
 =======================

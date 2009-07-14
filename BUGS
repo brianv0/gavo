@@ -72,3 +72,9 @@
 	Naming of the various data structures that deal with column properties
 	in formats.votable is a complete nightmare.  The collection of column
 	properties for a table needs a catchy name.
+
+20/WISHLIST/2009-07-14
+	The whole customwidget/gavo.js stuff is a mess.  Do output format, DB, etc.,
+	without formal widgets.  This stuff is better done manually.  Actually
+	create all necessary widgets in the result tree and scrap the dynamic
+	building from gavo.js.

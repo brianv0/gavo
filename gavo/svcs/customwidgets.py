@@ -23,19 +23,6 @@ from gavo.imp.formal.widget import *
 from gavo.imp.formal import widgetFactory
 
 
-def getOptionRenderer(initValue):
-	"""returns a generator for option fields within a select field.
-	"""
-	def renderOptions(self, selItems):
-		for value, label in selItems:
-			option = T.option(value=value)[label]
-			if value==initValue:
-				yield option(selected="selected")
-			else:
-				yield option
-	return renderOptions
-
-
 class OutputFormat(object):
 	"""is a widget that offers various output options in close cooperation
 	with gavo.js and QueryMeta.
@@ -43,6 +30,9 @@ class OutputFormat(object):
 	The javascript provides options for customizing output that non-javascript
 	users will not see.  Also, formal doesn't see any of these.  See gavo.js
 	for details.
+
+	This widget probably only makes sense in the Form renderer and thus
+	should probably go there.
 	"""
 	def __init__(self, typeOb, service, queryMeta):
 		self.service = service
@@ -51,16 +41,27 @@ class OutputFormat(object):
 		self._computeAvailableFormats(queryMeta)
 
 	def _computeAvailableFormats(self, queryMeta):
+		"""sets the availableFormats property.
+
+		It contains a list of strings of possible output formats.  Since
+		OutputFormat is rendered by resourcebased.Form, this is pretty
+		much constant; we add tar if the service delivers products.
+		"""
 		self.availableFormats = ["VOTable", "VOPlot", "FITS", "TSV"]
 		if self.service.outputTable.getProductColumns():
 			self.availableFormats.append("tar")
 		
 	def _computeAvailableFields(self, queryMeta):
-		"""computes the fields a DbBasedCore provides but doesn't 
-		output by default.
+		"""computes the fields a Core provides but are not output by
+		the service by default.
+
+		This of course only works if the core defines its output table.
+		Otherwise, availableFields is an empty list.
 		"""
 		self.availableFields = []
 		core = self.service.core
+		if not core.outputTable:
+			return
 		coreNames = set(f.name for f in core.outputTable)
 		defaultNames = set([f.name
 			for f in self.service.getHTMLOutputFields(queryMeta, 
@@ -123,14 +124,16 @@ class DBOptions(object):
 	def __init__(self, typeOb, service, queryMeta):
 		self.service = service
 		self.typeOb = typeOb
-		if self.service.core.sortKey is None:
+		if getattr(self.service.core, "sortKey", None) is None:
 			self.sortWidget = self._makeSortWidget(service, queryMeta)
-		if self.service.core.limit is None:
+		if getattr(self.service.core, "limit", None) is None:
 			self.limitWidget = self._makeLimitWidget(service)
 		
 	def _makeSortWidget(self, service, queryMeta):
 		keys = [f.name for f in self.service.getCurOutputFields(queryMeta,
 			raiseOnUnknown=False)]
+		if not keys:
+			return None
 		defaultKey = service.getProperty("defaultSort", None)
 		if defaultKey:
 			return SelectChoice(formaltypes.String(), options=

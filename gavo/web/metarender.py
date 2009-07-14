@@ -259,7 +259,7 @@ class ServiceInfoRenderer(grend.ServiceBasedRenderer,
 			for rend in self.service.allowed]
 
 	def data_publications(self, ctx, data):
-		res = [{"sets": p.sets, "render": p.render} 
+		res = [{"sets": ",".join(p.sets), "render": p.render} 
 			for p in self.service.publications if p.sets]
 		return sorted(res, key=lambda v: v["render"])
 
