@@ -16,6 +16,7 @@ from gavo import grammars
 from gavo import rsc
 from gavo import rscdef
 from gavo import svcs
+from gavo import utils
 from gavo.base import coords
 from gavo.protocols import creds
 from gavo.utils import fitstools
@@ -347,6 +348,7 @@ class ProductRMixin(rscdef.RMixinBase):
 rscdef.registerRMixin(ProductRMixin())
 
 
+@utils.document
 def makeProductLink(key, withHost=True):
 	"""returns the URL at which a product can be retrieved.
 	"""

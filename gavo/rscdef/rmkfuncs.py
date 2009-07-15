@@ -18,26 +18,9 @@ import traceback
 from gavo import base
 from gavo import stc
 from gavo import utils
-from gavo.base import coords
+from gavo.base import coords, parseBooleanLiteral, parseInt
 from gavo.base.literals import *
 from gavo.utils import dmsToDeg, hmsToDeg
-
-
-from gavo.base import parseBooleanLiteral
-
-
-def parseDestWithDefault(dest, defRe=re.compile(r"(\w+)\((.*)\)")):
-	"""returns name, default from dests like bla(0).
-
-	This can be used to provide defaulted targets to assignments parsed
-	with _parseAssignments.
-	"""
-	mat = defRe.match(dest)
-	if mat:
-		return mat.groups()
-	else:
-		return dest, None
-
 
 def addCartesian(result, alpha, delta):
 	"""inserts c_x, c_y, and c_z for the equatorial position alpha, delta
@@ -71,6 +54,7 @@ def combinePMs(result, pma, pmd):
 	result["pm_posang"] = pmpa
 
 
+@utils.document
 def parseTime(literal, format="%H:%M:%S"):
 	"""returns a datetime.timedelta object for literal parsed according
 	to format.
@@ -82,7 +66,9 @@ def parseTime(literal, format="%H:%M:%S"):
 	datetime.timedelta(1, 3530)
 	>>> parseTime("23.4", "!!decimalHours")
 	datetime.timedelta(0, 84240)
-	>>> parseTime("3.4:5", "%H.%M:%S")
+	>>> parseTime("3.4:5")
+	datetime.timedelta(0, 11045)
+	>>> parseTime("20:04", "%H:%M")
 	datetime.timedelta(0, 11045)
 	"""
 	if format=="!!secondsSinceMidnight":
@@ -97,6 +83,7 @@ def parseTime(literal, format="%H:%M:%S"):
 			minutes=float(partDict.get("M", 0)), seconds=float(partDict.get("S", 0)))
 
 
+@utils.document
 def parseDate(literal, format="%Y-%m-%d"):
 	"""returns a datetime.date object of literal parsed according to the
 	strptime-similar format.
@@ -109,6 +96,7 @@ def parseDate(literal, format="%Y-%m-%d"):
 	return datetime.datetime(*time.strptime(literal, format)[:3])
 
 
+@utils.document
 def parseTimestamp(literal, format="%Y-%m-%dT%H:%M:%S"):
 	"""returns a datetime.datetime object of literal parsed according to the
 	strptime-similar format.
@@ -116,12 +104,14 @@ def parseTimestamp(literal, format="%Y-%m-%dT%H:%M:%S"):
 	return datetime.datetime(*time.strptime(literal, format)[:6])
 
 
+@utils.document
 def makeTimestamp(date, time):
 	"""makes a datetime instance from a date and a time.
 	"""
 	return datetime.datetime(date.year, date.month, date.day)+time
 
 
+@utils.document
 def parseAngle(literal, format):
 	"""is a macro that converts the various forms angles might be encountered
 	to degrees.
@@ -145,6 +135,7 @@ def parseAngle(literal, format):
 		raise Error("Invalid format: %s"%format)
 
 
+@utils.document
 def computeMean(val1, val2):
 	"""returns the mean value between two values.
 
@@ -159,10 +150,21 @@ def computeMean(val1, val2):
 	return val1+(val2-val1)/2
 
 
+@utils.document
 def killBlanks(literal):
-	return literal.replace(" ", "")
+	"""returns the string literal with all blanks removed.
+
+	This is useful when numbers are formatted with blanks thrown in.
+
+	Nones are passed through.
+	"""
+	if literal is None:
+		return None
+	else:
+		return literal.replace(" ", "")
 
 
+@utils.document
 def lastSourceElements(path, numElements):
 	"""returns a path made up from the last numElements items in path.
 	"""
@@ -175,6 +177,7 @@ def lastSourceElements(path, numElements):
 	return os.path.join(*newPath)
 
 
+@utils.document
 def parseWithNull(literal, baseParser, nullLiteral=base.Undefined,
 		default=None):
 	"""returns default if literal is nullLiteral, else baseParser(literal).

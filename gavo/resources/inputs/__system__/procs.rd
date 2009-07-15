@@ -23,6 +23,18 @@
 					def __getattr__(self, name):
 						raise base.Error("No db connectivity available.")
 				querier = Raiser()
+
+			def parseDestWithDefault(dest, defRe=re.compile(r"(\w+)\((.*)\)")):
+				"""returns name, default from dests like bla(0).
+
+				This can be used to provide defaulted targets to assignments parsed
+				with _parseAssignments.
+				"""
+				mat = defRe.match(dest)
+				if mat:
+					return mat.groups()
+				else:
+					return dest, None
 		</code>
 	</setup>
 	<code><![CDATA[

@@ -287,7 +287,7 @@ class GrammarMacroMixin(rscdef.StandardMacroMixin):
 
 
 class Grammar(base.Structure, GrammarMacroMixin):
-	"""is an abstract grammar.
+	"""An abstract grammar.
 
 	Grammars are configured via their structure parameters.  Their 
 	parse(sourceToken) method returns an object that iterates over rawdicts

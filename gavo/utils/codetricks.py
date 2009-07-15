@@ -245,6 +245,15 @@ def memoized(origFun):
 	return fun
 
 
+def document(origFun):
+	"""is a decorator that adds a "buildDocsForThis" attribute to its argument.
+
+	This attribute is evaluated by documentation generators.
+	"""
+	origFun.buildDocsForThis = True
+	return origFun
+
+
 def identity(x):
 	return x
 

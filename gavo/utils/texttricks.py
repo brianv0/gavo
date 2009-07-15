@@ -6,6 +6,7 @@ import math
 import os
 import re
 
+from gavo.utils import codetricks
 from gavo.utils.excs import Error, LiteralParseError
 
 floatRE = r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?"
@@ -110,8 +111,13 @@ def fixIndentation(code, newIndent, governingLine=0):
 	"""
 	codeLines = [line for line in code.split("\n")]
 	reserved, codeLines = codeLines[:governingLine], codeLines[governingLine:]
+	while codeLines:
+		if codeLines[0].strip():
+			firstIndent = re.match("^\s*", codeLines[0]).group()
+			break
+		else:
+			reserved.append(codeLines.pop(0))
 	if codeLines:
-		firstIndent = re.match("^\s*", codeLines[0]).group()
 		fixedLines = []
 		for line in codeLines:
 			if not line.strip():
@@ -177,6 +183,7 @@ def parseAssignments(assignments):
 		[litPair.split(":") for litPair in assignments.split()]])
 
 
+@codetricks.document
 def hmsToDeg(hms, sepChar=" "):
 	"""returns the time angle (h m s.decimals) as a float in degrees.
 
@@ -210,6 +217,7 @@ def hmsToDeg(hms, sepChar=" "):
 	return timeSeconds/3600/24*360
 
 
+@codetricks.document
 def dmsToDeg(dmsAngle, sepChar=" "):
 	"""returns the degree minutes seconds-specified dmsAngle as a 
 	float in degrees.

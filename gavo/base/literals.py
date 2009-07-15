@@ -16,13 +16,38 @@ import time
 from gavo import utils
 
 
+@utils.document
 def parseInt(literal):
-	if literal is None or (isinstance(literal, basestring) and not literal.strip()):
+	"""returns an int from a literal, or None if literal is None or an empty
+	string.
+
+	>>> parseInt("32")
+	32
+	>>> parseInt("")
+	>>> parseInt(None)
+	"""
+	if literal is None or (isinstance(literal, basestring
+			) and not literal.strip()):
 		return
 	return int(literal)
 
+
 _inf = float("Inf")
+@utils.document
 def parseFloat(literal):
+	"""returns a float from a literal, or None if literal is None or an empty
+	string.
+
+	Temporarily, this includes a hack to work around a bug in psycopg2.
+
+	>>> parseFloat("   5e9 ")
+	5000000000.0
+	>>> parseFloat(None)
+	>>> parseFloat("  ")
+	>>> parseFloat("wobbadobba")
+	Traceback (most recent call last):
+	ValueError: invalid literal for float(): wobbadobba
+	"""
 	if (literal is None or 
 			(isinstance(literal, basestring) and not literal.strip())):
 		return None
@@ -36,6 +61,8 @@ def parseFloat(literal):
 
 _trueLiterals = set(["true", "yes", "t", "on", "enabled", "1"])
 _falseLiterals = set(["false", "no", "f", "off", "disabled", "0"])
+
+@utils.document
 def parseBooleanLiteral(literal):
 	"""returns a python boolean from some string.
 

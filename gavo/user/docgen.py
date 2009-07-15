@@ -3,6 +3,7 @@ Generation of system docs by introspection and combination with static
 docs.
 """
 
+import inspect
 import re
 import sys
 import textwrap
@@ -241,6 +242,28 @@ def getMixinDocs(docStructure):
 	return content.content
 
 
+def _getModuleFunctionDocs(module):
+	"""returns documentation for all functions marked with @document in the
+	namespace module.
+	"""
+	res = []
+	for name in dir(module):
+		ob = getattr(module, name)
+		if hasattr(ob, "buildDocsForThis"):
+			if ob.func_doc is None:  # silently ignore if no docstring
+				continue
+			res.append(
+				"*%s%s*"%(name, inspect.formatargspec(*inspect.getargspec(ob))))
+			res.append(utils.fixIndentation(ob.func_doc, "  ", 1))
+			res.append("")
+	return "\n".join(res)
+
+
+def getRmkFuncs(docStructure):
+	from gavo.rscdef import rmkfuncs
+	return _getModuleFunctionDocs(rmkfuncs)
+
+
 def getMetaTypeDocs():
 	from gavo.base import meta
 	content = RSTFragment()
@@ -258,6 +281,7 @@ def getMetaTypedNames():
 	for metaKey in sorted(d):
 		content.addDefinition(metaKey, d[metaKey])
 	return content.content
+
 
 _replaceWithResultPat = re.compile(".. replaceWithResult (.*)")
 
@@ -287,4 +311,5 @@ def main():
 
 
 if __name__=="__main__":
-	print getMixinDocs(DocumentStructure())
+	from gavo.rscdef import rmkfuncs
+	print getModuleFunctionDocs(rmkfuncs)

@@ -10,7 +10,7 @@ import os
 from gavo.utils.algotricks import identity, topoSort
 
 from gavo.utils.codetricks import (silence, ensureExpression, compileFunction,
-	loadPythonModule, memoized, identity, runInSandbox)
+	loadPythonModule, memoized, identity, runInSandbox, document)
 
 from gavo.utils.excs import *
 

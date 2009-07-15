@@ -3,7 +3,7 @@
 
 <resource resdir="__system" schema="public">
 	<table id="q3cIndexDef">
-		<index name="q3c_\tablename">
+		<index name="q3c_\tablename" cluster="True">
 			<columns>\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN}, \nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN}</columns>
 			q3c_ang2ipix(\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN}, \nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN})
 		</index>
@@ -32,7 +32,7 @@
 	<table id="q3cPositionsFields" original="positionsFields">
 		<!-- positions with q3c index -->
 		<!-- XXX TODO: once we have replay or similar, get this from q3cindexdef -->
-		<index name="q3c_\tablename">
+		<index name="q3c_\tablename" cluster="True">
 			<columns>\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN},\nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN}</columns>
 			q3c_ang2ipix(\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN},\nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN})
 		</index>
@@ -45,8 +45,7 @@
 
 			Specifically, it generates alphaFloat, deltaFloat as well as
 			c_x, c_y, c_z (cartesian coordinates of the intersection of the 
-			direction vector with the unit sphere) and htmind (an HTM index
-			for the position -- needs to be fleshed out a bit).
+			direction vector with the unit sphere).
 
 			TODO: Equinox handling (this will probably be handled through an
 			optional arguments srcEquinox and destEquinox, both J2000.0 by default).
