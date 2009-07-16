@@ -1,0 +1,38 @@
+==============================================================
+Generic installation instructions for GAVO python subpackages.
+==============================================================
+
+This package is based on setuptools.
+
+For a global installation, say::
+
+	sudo python setup.py install
+
+or similar.
+
+Using setuptools for a direct installation should only be an emergency
+solution.  Signed packages for debian stable in an apt repository are available
+at http://vo.ari.uni-heidelberg.de/debian.
+
+The packages are signed with the key at XXX, the fingerprint of which should
+be YYY.
+
+
+For a private installation, we recommend using a "virtual python".  See
+http://peak.telecommunity.com/DevCenter/EasyInstall#creating-a-virtual-python
+for details.  Alternatively, follow these steps (bash shell)::
+
+  cd    # go to your home
+  mkdir vpython   # make a root for your private python installation
+  # get a nifty script that sets your private python up
+  wget http://peak.telecommunity.com/dist/virtual-python.py
+  # run the thing 
+  python virtual-python.py --prefix=~/vpython
+  # fix the path -- you may want to add this to your startup scripts
+  # later
+  export PATH=~/vpython/bin:$PATH
+  cd gavoutils-0.3  # or the your source directory is called
+  python setup.py install
+
+The setup script may download some components of EasyInstall.  This is
+normal.

@@ -1,0 +1,8 @@
+Helper modules for GAVO data center code.
+
+The modules here are a wild mixture of functions and classes useful
+to some part of the data center.  There probably is little independent
+use for them, at least not in this combination.
+
+For explanations, documentation, etc. refer to the complete DaCHS source
+tree, avaliable from http://vo.ari.uni-heidelberg.de/soft.
