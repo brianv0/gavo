@@ -1,5 +1,5 @@
-python-gavo (0.2-1) unstable; urgency=low
+gavo-dachs (0.3-1) unstable; urgency=low
 
-  * First packaging
+  * Initial debian package
 
- -- Markus Demleitner <msdemlei@ari.uni-heidelberg.de> Thu, 14 Jun 2007 14:16:23 +0200
+ -- Markus Demleitner <m@tfiu.de>  Fri, 17 Jul 2009 17:55:17 +0200

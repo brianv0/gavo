@@ -6,11 +6,8 @@ ez_setup.use_setuptools()
 
 from setuptools import setup, find_packages, Extension
 
-install_requires = ["pyfits", "pyPgSQL", "VOTable", 
-	"numarray", "elementtree", "pyparsing", "egenix-mx-base"]
-if "develop" in sys.argv:
-	# No stinkin' wrapper scripts, please
-	install_requires = []
+install_requires = []
+# install_requires = ["pyfits", "VOTable", "numpy", "pyparsing"]
 
 setup(name="gavo",
 	description="ZAH GAVO data center complete package",
@@ -20,9 +17,7 @@ setup(name="gavo",
 	author_email="msdemlei@ari.uni-heidelberg.de",
 	packages=find_packages(),
 	py_modules=["ez_setup"],
-	package_data = {
-		'gavo': ["resources/*"],
-	},
+	include_package_data = True,
 	install_requires=install_requires,
 	dependency_links=["http://vo.ari.uni-heidelberg.de/soft/python",
 		"http://sourceforge.net/project/showfiles.php?group_id=16528",

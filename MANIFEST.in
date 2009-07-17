@@ -1,0 +1,3 @@
+recursive-exclude schemata *
+recursive-exclude utils *
+recursive-exclude subpkgs *

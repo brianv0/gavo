@@ -82,11 +82,10 @@
 					deltaFloat = convertCoo(deltaFormat, delta)
 					return (alphaFloat, deltaFloat)+tuple(
 						coords.computeUnitSphereCoords(alphaFloat, deltaFloat))
-				return locals()
 			</code>
 		</setup>
 		<code>
-			alpha, delta = vars["alphaKey"], vars["deltaKey"]
+			alpha, delta = vars[alphaKey], vars[deltaKey]
 			if alpha is None or delta is None:
 				alphaFloat, deltaFloat, c_x, c_y, c_z = [None]*5
 			else:

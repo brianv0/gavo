@@ -78,3 +78,11 @@
 	without formal widgets.  This stuff is better done manually.  Actually
 	create all necessary widgets in the result tree and scrap the dynamic
 	building from gavo.js.
+
+21/MEDIUM/2009-07-17
+	Bad profiles (e.g., no database set) will cause getDBConnection to bomb
+	out in an ugly way.  It should at least provide some sensible information.
+
+22/SEVERE/2009-07-17
+	The creation of metaHandler in rscdesc leads to a deadlock when 
+	dc_tables does not exist yet.
