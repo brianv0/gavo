@@ -11,7 +11,7 @@ import sys
 import tempfile
 import unittest
 
-import numarray
+import numpy
 
 from gavo import base
 from gavo import helpers
@@ -185,7 +185,7 @@ class ProcessorTest(testhelpers.VerboseTest):
 		</data></resource>"""
 
 	def _writeFITS(self, destPath, seed):
-		hdu = pyfits.PrimaryHDU(numarray.zeros((2,seed+1), 'i2'))
+		hdu = pyfits.PrimaryHDU(numpy.zeros((2,seed+1), 'i2'))
 		hdu.header.update("SEED", seed, "initial number")
 		hdu.header.update("WEIRD", "W"*seed)
 		hdu.header.update("RECIP", 1./(1+seed))

@@ -11,10 +11,10 @@ import re
 
 from gavo.utils import ostricks
 
-# Make sure we get the numarray version of pyfits.  This is the master
+# Make sure we get the numpy version of pyfits.  This is the master
 # import that all others should use (from gavo.utils import pyfits).
 # see also utils/__init__.py
-os.environ["NUMERIX"] = "numarray"
+os.environ["NUMERIX"] = "numpy"
 import pyfits  # not from gavo.utils to avoid circular import
 
 

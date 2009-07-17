@@ -15,7 +15,7 @@ from gavo.utils.codetricks import (silence, ensureExpression, compileFunction,
 from gavo.utils.excs import *
 
 
-# We reliably want the numarray version of pyfits.  Thus, always use
+# We reliably want the numpy version of pyfits.  Thus, always use
 # from gavo.utils import pyfits rather than a direct import;  the
 # "master import" is in fitstools, and we get pyfits from there.
 

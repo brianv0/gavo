@@ -4,7 +4,7 @@ Spherical geometry and related helper functions.
 
 import math
 import new
-import numarray
+import numpy
 
 from gavo import utils
 from gavo.stc import units
@@ -27,21 +27,21 @@ def getRotX(angle):
 	"""returns a 3-rotation matrix for rotating angle radians around x.
 	"""
 	c, s = math.cos(angle), math.sin(angle)
-	return numarray.array([[1, 0, 0], [0, c, s], [0, -s, c]])
+	return numpy.array([[1, 0, 0], [0, c, s], [0, -s, c]])
 
 
 def getRotY(angle):
 	"""returns a 3-rotation matrix for rotating angle radians around y.
 	"""
 	c, s = math.cos(angle), math.sin(angle)
-	return numarray.array([[c, 0, -s], [0, 1, 0], [s, 0, c]])
+	return numpy.array([[c, 0, -s], [0, 1, 0], [s, 0, c]])
 
 
 def getRotZ(angle):
 	"""returns a 3-rotation matrix for rotating angle radians around u.
 	"""
 	c, s = math.cos(angle), math.sin(angle)
-	return numarray.array([[c, s, 0], [-s, c, 0], [0, 0, 1]])
+	return numpy.array([[c, s, 0], [-s, c, 0], [0, 0, 1]])
 
 
 def getMatrixFromEulerAngles(z1, x, z2):
@@ -49,7 +49,7 @@ def getMatrixFromEulerAngles(z1, x, z2):
 
 	There are some functions to obtain such angles below.
 	"""
-	return numarray.dot(numarray.dot(getRotZ(z1), getRotX(x)),
+	return numpy.dot(numpy.dot(getRotZ(z1), getRotX(x)),
 		getRotZ(z2))
 
 
@@ -60,7 +60,7 @@ def getMatrixFromEulerVector(eulerVector):
 
 	This function is a rip-off of SOFA's rv2m.
 
-	eulerVector is assumed to be a numarray array.
+	eulerVector is assumed to be a numpy array.
 	"""
 	x, y, z = eulerVector
 	phi = math.sqrt(x**2+y**2+z**2)
@@ -68,7 +68,7 @@ def getMatrixFromEulerVector(eulerVector):
 	f = 1-cp
 	if phi!=0:
 		x, y, z = eulerVector/phi
-	return numarray.array([
+	return numpy.array([
 		[x**2*f+cp, x*y*f+z*sp,  x*z*f-y*sp],
 		[y*x*f-z*sp, y**2*f+cp, y*z*f+x*sp],
 		[z*x*f+y*sp, z*y*f-x*sp, z**2*f+cp]])
@@ -85,17 +85,17 @@ def computeTransMatrixFromPole(poleCoo, longZeroCoo, changeHands=False):
 	"""
 	x = spherToCart(*longZeroCoo)
 	z = spherToCart(*poleCoo)
-	if abs(numarray.dot(x, z))>1e-5:
+	if abs(numpy.dot(x, z))>1e-5:
 		raise STCValueError("%s and %s are not valid pole/zero points for"
 			" a rotated coordinate system"%(poleCoo, longZeroCoo))
 	y = (z[1]*x[2]-z[2]*x[1], z[2]*x[0]-z[0]*x[2], z[0]*x[1]-z[1]*x[0])
 	if changeHands:
 		y = (-y[0], -y[1], -y[2])
-	return numarray.array([x,y,z])
+	return numpy.array([x,y,z])
 
 
 def vabs(naVec):
-	return math.sqrt(numarray.dot(naVec, naVec))
+	return math.sqrt(numpy.dot(naVec, naVec))
 
 
 def spherToCart(theta, phi):
@@ -163,7 +163,7 @@ def _decomposeRadial(r, rd):
 	"""returns the components of rd radial and tangential to r.
 	"""
 	rUnit = r/vabs(r)
-	radialProj = numarray.dot(rUnit, rd)
+	radialProj = numpy.dot(rUnit, rd)
 	radialVector = radialProj*rUnit
 	tangentialVector = rd-radialVector
 	return radialProj, radialVector, tangentialVector
@@ -297,7 +297,7 @@ class SVConverter(object):
 		code.append("  sd, cd = math.sin(delta), math.cos(delta)")
 		code.append("  x, y = r*cd*ca, r*cd*sa")
 		code.append("  w = r*deltad*sd-cd*rd")
-		code.append("  res = numarray.array([x, y, r*sd,"
+		code.append("  res = numpy.array([x, y, r*sd,"
 			" -y*alphad-w*ca, x*alphad-w*sa, r*deltad*cd+sd*rd])")
 		if self.relativistic:
 			code.append("  _pleaseEinsteinFromSpher(res)")

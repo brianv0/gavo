@@ -6,7 +6,7 @@ See develNotes for info on our SIAP implementation
 
 import math
 
-import numarray
+import numpy
 
 from gavo import base
 from gavo import rscdef
@@ -342,9 +342,9 @@ class SIAPCutoutCore(SIAPCore):
 		upperLeft = invTrafo(centerAlpha-sizeAlpha/2, centerDelta-sizeDelta/2)
 		lowerRight = invTrafo(centerAlpha+sizeAlpha/2, centerDelta+sizeDelta/2)
 		centerPix = invTrafo(centerAlpha, centerDelta)
-		record["wcs_refPixel"] = numarray.array([centerPix[0]-lowerRight[0],
+		record["wcs_refPixel"] = numpy.array([centerPix[0]-lowerRight[0],
 			centerPix[1]-lowerRight[1]])
-		record["wcs_refValues"] = numarray.array([centerAlpha, centerDelta])
+		record["wcs_refValues"] = numpy.array([centerAlpha, centerDelta])
 		record["accref"] = record["accref"]+"&ra=%s&dec=%s&sra=%s&sdec=%s"%(
 			centerAlpha, centerDelta, sizeAlpha, sizeDelta)
 		record["centerAlpha"] = centerAlpha

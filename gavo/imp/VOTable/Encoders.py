@@ -61,8 +61,8 @@ class TableDataEncoder(GenericEncoder):
                 for el in row:
                     td = ElementTree.Element('TD')
                     # Create a text representation of each element.
-                    if hasattr(el, "getshape"): # numarray instance, I don't
-                        # want to import numarray here
+                    if hasattr(el, "strides"): # numpy array instance, I don't
+                        # want to import numpy here
                         td.text = " ".join(map(str, el))
                     elif(el == None or el!=el): # 2nd catches NaN
                         td.text = ''
@@ -88,7 +88,7 @@ class TableDataEncoder(GenericEncoder):
     
     def _arrayRepr(self, v):
         """
-        Given an array v (either a list, tuple or numarray.array), return its
+        Given an array v (either a list, tuple or numpy.array), return its
         string representation suitable for inclusion in a TD element.
         """
         repr = ''

@@ -18,8 +18,8 @@ import DataModel
 import Decoders
 
 
-# FIXME: save the data array of a table as a 2D numarray.array.
-# FIXME: add a 1D numarray.array to each Dield (data attribute).
+# FIXME: save the data array of a table as a 2D numpy.array.
+# FIXME: add a 1D numpy.array to each Dield (data attribute).
 # FIXME: add to the table's data array the PARAMs.
 
 

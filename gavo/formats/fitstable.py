@@ -6,8 +6,7 @@ import os
 import tempfile
 import time
 
-import numarray
-import numarray.strings
+import numpy
 
 from gavo import utils
 from gavo.formats import votable
@@ -15,13 +14,13 @@ from gavo.utils import pyfits
 
 
 _naTypesMap = {
-	"short": "Int16",
-	"int": "Int32",
-	"long": "Int64",
-	"float": "Float32",
-	"double": "Float64",
-	"boolean": "Bool",
-	"char": "Int8",
+	"short": numpy.int16,
+	"int": numpy.int32,
+	"long": numpy.int64,
+	"float": numpy.float32,
+	"double": numpy.float64,
+	"boolean": numpy.bool,
+	"char": numpy.str,
 }
 
 _fitsCodeMap = {
@@ -38,11 +37,11 @@ def makeArrayForVOType(type, arrsz, numItems):
 # not needed for now
 	if arrsz!="1":
 		if type=="char":
-			return numarray.strings.array(shape=(numItems,))
+			return numpy.array(shape=(numItems,), dtype=numpy.str)
 		else:
-			raise utils.Error("Won't represent arrays within numarrays (%s, %s)"%(
+			raise utils.Error("Won't represent arrays within numpy arrays (%s, %s)"%(
 				type, arrlen))
-	return numarray.array(type=_naTypesMap[type], shape=(numItems,))
+	return numpy.array(dtype=_naTypesMap[type], shape=(numItems,))
 
 
 def _makeExtension(table):
@@ -53,10 +52,10 @@ def _makeExtension(table):
 	columns = []
 	for colInd, cp in enumerate(colProps):
 		if cp["datatype"]=="char":
-			arr = numarray.strings.array([str(v[colInd]) for v in values])
-			typecode = "%dA"%arr.itemsize()
+			arr = numpy.array([str(v[colInd]) for v in values], dtype=numpy.str)
+			typecode = "%dA"%arr.itemsize
 		else:
-			arr = numarray.array([v[colInd] for v in values])
+			arr = numpy.array([v[colInd] for v in values])
 			typecode = _fitsCodeMap[cp["datatype"]]
 		columns.append(pyfits.Column(name=str(cp["name"]), unit=str(cp["unit"]), 
 			format=typecode, null=cp.computeNullvalue(),

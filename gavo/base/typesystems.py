@@ -8,7 +8,7 @@ The DC software has to deal with a quite a few type systems:
  * VOTable
  * XSD
  * Twisted formal
- * numarray
+ * numpy
 
 In general, we keep metadata in the SQL type system (although one could
 argue one should use the richest one...).  In this module, we want to
@@ -31,6 +31,7 @@ probably tricky).
 """
 
 import datetime
+import numpy
 import re
 import time
 
@@ -275,26 +276,26 @@ class ToXSDConverter(FromSQLConverter):
 			return "string"
 
 
-class ToNumarrayConverter(FromSQLConverter):
+class ToNumpyConverter(FromSQLConverter):
 
-	typeSystem = "numarray"
+	typeSystem = "numpy"
 	simpleMap = {
-		"smallint": "Int16",
-		"integer": "Int32",
-		"bigint": "Int64",
-		"real": "Float32",
-		"boolean": "Bool",
-		"double precision": "Float64",
-		"text": "string",
-		"char": "string",
-		"date": "Float32",
-		"timestamp": "Float32",
-		"time": "Float32",
+		"smallint": numpy.int16,
+		"integer": numpy.int32,
+		"bigint": numpy.int64,
+		"real": numpy.float32,
+		"boolean": numpy.bool,
+		"double precision": numpy.float64,
+		"text": numpy.str,
+		"char": numpy.str,
+		"date": numpy.float32,
+		"timestamp": numpy.float64,
+		"time": numpy.float32,
 	}
 
 	def mapComplex(self, type, length):
 		if type in self._charTypes:
-			return "string"
+			return numpy.str
 
 
 ######## Helpers for conversion to python values
@@ -421,7 +422,7 @@ class ToPythonCodeConverter(FromSQLConverter):
 
 sqltypeToVOTable = ToVOTableConverter().convert
 sqltypeToXSD = ToXSDConverter().convert
-sqltypeToNumarray = ToNumarrayConverter().convert
+sqltypeToNumpy = ToNumpyConverter().convert
 sqltypeToPython = ToPythonConverter().convert
 sqltypeToPythonCode = ToPythonCodeConverter().convert
 voTableToSQLType = FromVOTableConverter().convert
@@ -434,6 +435,6 @@ def _test():
 if __name__=="__main__":
 	_test()
 
-__all__ = ["sqltypeToVOTable", "sqltypeToXSD", "sqltypeToNumarray",
+__all__ = ["sqltypeToVOTable", "sqltypeToXSD", "sqltypeToNumpy",
 	"sqltypeToPython", "sqltypeToPythonCode", "voTableToSQLType",
 	"ConversionError", "FromSQLConverter"]

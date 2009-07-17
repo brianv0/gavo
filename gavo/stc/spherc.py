@@ -6,8 +6,8 @@ from itertools import *
 from math import sin, cos
 import math
 
-import numarray
-from numarray import linear_algebra as la
+import numpy
+from numpy import linalg as la
 
 from gavo import utils
 from gavo.stc import sphermath
@@ -35,7 +35,7 @@ from gavo.utils import DEG, ARCSEC, memoized
 # f(fromNode, toNode) -> (function or matrix)
 #
 # The arguments are node triples, the result either a function taking
-# and returning 6-vectors or numarray matrices.  These functions may
+# and returning 6-vectors or numpy matrices.  These functions may
 # assume that only "appropriate" values are passed in as nodes, i.e.,
 # they are not assumed to check that the are actually able to produce
 # the requested transformation.
@@ -197,19 +197,19 @@ def getPrecMatrix(fromEquinox, toEquinox, precTheory):
 	in rad.
 	"""
 	zeta, z, theta = precTheory(fromEquinox, toEquinox)
-	return numarray.dot(
-		numarray.dot(sphermath.getRotZ(-z), sphermath.getRotY(theta)),
+	return numpy.dot(
+		numpy.dot(sphermath.getRotZ(-z), sphermath.getRotY(theta)),
 		sphermath.getRotZ(-zeta))
 
 
-_nullMatrix = numarray.zeros((3,3))
+_nullMatrix = numpy.zeros((3,3))
 def threeToSix(matrix):
 	"""returns a 6-matrix from a 3-matrix suitable for precessing our
 	6-vectors.
 	"""
-	return numarray.concatenate((
-		numarray.concatenate(  (matrix,      _nullMatrix), 1),
-		numarray.concatenate(  (_nullMatrix, matrix     ), 1)))
+	return numpy.concatenate((
+		numpy.concatenate(  (matrix,      _nullMatrix), 1),
+		numpy.concatenate(  (_nullMatrix, matrix     ), 1)))
 
 def _getFullPrecMatrix(fromNode, toNode, precTheory):
 	"""returns a full 6x6 matrix for transforming positions and proper motions.
@@ -232,7 +232,7 @@ def _getIAU1976PrecMatrix(fromNode, toNode, sixTrans):
 # This follows the prescription of Yallop et al, AJ 97, 274
 
 # Transformation matrix according to Yallop
-_fk4ToFK5MatrixYallop = numarray.array([
+_fk4ToFK5MatrixYallop = numpy.array([
 	[0.999925678186902, -0.011182059642247, -0.004857946558960,
 		0.000002423950176, -0.000000027106627, -0.000000011776558],
 	[0.011182059571766, 0.999937478448132, -0.000027176441185,
@@ -247,7 +247,7 @@ _fk4ToFK5MatrixYallop = numarray.array([
 		0.004857669948650, -0.000027137309539, 1.000009560363559]])
 
 # Transformation matrix according to SLALIB-F
-_fk4ToFK5MatrixSla = numarray.transpose(numarray.array([
+_fk4ToFK5MatrixSla = numpy.transpose(numpy.array([
 	[+0.9999256782, +0.0111820610, +0.0048579479, 
 		-0.000551, +0.238514, -0.435623],
 	[-0.0111820611, +0.9999374784, -0.0000271474, 
@@ -262,7 +262,7 @@ _fk4ToFK5MatrixSla = numarray.transpose(numarray.array([
 		-0.00485767, -0.00002718, +1.00000956]]))
 
 # Inverse transformation matrix according to SLALIB-F
-_fk5ToFK4Matrix = numarray.transpose(numarray.array([
+_fk5ToFK4Matrix = numpy.transpose(numpy.array([
 [+0.9999256795, -0.0111814828, -0.0048590040, 
 	-0.000551, -0.238560, +0.435730],
 [+0.0111814828, +0.9999374849, -0.0000271557, 
@@ -281,8 +281,8 @@ _fk5ToFK4Matrix = numarray.transpose(numarray.array([
 # Positional correction due to E-Terms, in rad (per tropical century in the
 # case of Adot, which is ok for sphermath._svPosUnit (Yallop et al, loc cit, p.
 # 276)).  We ignore the difference between tropical and julian centuries.
-_b1950ETermsPos = numarray.array([-1.62557e-6, -0.31919e-6, -0.13843e-6])
-_b1950ETermsVel = numarray.array([1.245e-3, -1.580e-3, -0.659e-3])
+_b1950ETermsPos = numpy.array([-1.62557e-6, -0.31919e-6, -0.13843e-6])
+_b1950ETermsVel = numpy.array([1.245e-3, -1.580e-3, -0.659e-3])
 _yallopK = secsPerJCy/(units.oneAU/1e3)
 _yallopKSla = 21.095;
 _pcPerCyToKmPerSec = units.getRedshiftConverter("pc", "cy", "km", "s")
@@ -298,9 +298,9 @@ def _svToYallop(sv, yallopK):
 	"""
 	(alpha, delta, prlx), (pma, pmd, rv) = _yallopSVConverter.from6(sv)
 
-	yallopR = numarray.array([cos(alpha)*cos(delta),
+	yallopR = numpy.array([cos(alpha)*cos(delta),
 		sin(alpha)*cos(delta), sin(delta)])
-	yallopRd = numarray.array([
+	yallopRd = numpy.array([
 		-pma*sin(alpha)*cos(delta)-pmd*cos(alpha)*sin(delta),
 		pma*cos(alpha)*cos(delta)-pmd*sin(alpha)*sin(delta),
 		pmd*cos(delta)])+yallopK*rv*prlx*yallopR
@@ -325,7 +325,7 @@ def _yallopToSv(yallop6, yallopK, rvAndPrlx):
 	pma = (x*yd-y*xd)/rxy2
 	pmd = (zd*rxy2-z*(x*xd+y*yd))/r/r/math.sqrt(rxy2)
 	if abs(prlx)>1/sphermath.defaultDistance:
-		rv = numarray.dot(yallop6[:3], yallop6[3:])/yallopK/prlx/r
+		rv = numpy.dot(yallop6[:3], yallop6[3:])/yallopK/prlx/r
 		prlx = prlx/r
 	return _yallopSVConverter.to6((alpha, delta, prlx), (pma, pmd, rv))
 
@@ -348,17 +348,17 @@ def fk4ToFK5(sixTrans, svfk4):
 	# Yallop's recipe starts here
 	if not sixTrans.slaComp:  # include Yallop's "small terms" in PM
 		yallopVE = (yallopRd-_b1950ETermsVel
-			+numarray.dot(yallopR, _b1950ETermsVel)*yallopR
-			+numarray.dot(yallopRd, _b1950ETermsPos)*yallopR
-			+numarray.dot(yallopRd, _b1950ETermsPos)*yallopRd)
+			+numpy.dot(yallopR, _b1950ETermsVel)*yallopR
+			+numpy.dot(yallopRd, _b1950ETermsPos)*yallopR
+			+numpy.dot(yallopRd, _b1950ETermsPos)*yallopRd)
 	else:
 		yallopVE = (yallopRd-_b1950ETermsVel
-			+numarray.dot(yallopR, _b1950ETermsVel)*yallopR)
+			+numpy.dot(yallopR, _b1950ETermsVel)*yallopR)
 
-	yallop6 = numarray.concatenate((yallopR-(_b1950ETermsPos-
-			numarray.dot(yallopR, _b1950ETermsPos)*yallopR),
+	yallop6 = numpy.concatenate((yallopR-(_b1950ETermsPos-
+			numpy.dot(yallopR, _b1950ETermsPos)*yallopR),
 		yallopVE))
-	cnv = numarray.dot(transMatrix, yallop6)
+	cnv = numpy.dot(transMatrix, yallop6)
 	return _yallopToSv(cnv, yallopK, rvAndPrlx)
 
 
@@ -372,19 +372,19 @@ def fk5ToFK4(sixTrans, svfk5):
 	yallopR, yallopRd, rvAndPrlx = _svToYallop(svfk5, _yallopKSla)
 
 	# first apply rotation...
-	cnv = numarray.dot(_fk5ToFK4Matrix, 
-		numarray.concatenate((yallopR, yallopRd)))
+	cnv = numpy.dot(_fk5ToFK4Matrix, 
+		numpy.concatenate((yallopR, yallopRd)))
 	# ... then handle E-Terms; direct inversion of Yallop's equations is
 	# troublesome, so I basically follow what slalib does.
 	yallopR, yallopRd = cnv[:3], cnv[3:]
-	spatialCorr = numarray.dot(yallopR, _b1950ETermsPos)*yallopR
+	spatialCorr = numpy.dot(yallopR, _b1950ETermsPos)*yallopR
 	newRMod = sphermath.vabs(yallopR+_b1950ETermsPos*
 		sphermath.vabs(yallopR)-spatialCorr)
 	newR = yallopR+_b1950ETermsPos*newRMod-spatialCorr
-	newRd = yallopRd+_b1950ETermsVel*newRMod-numarray.dot(
+	newRd = yallopRd+_b1950ETermsVel*newRMod-numpy.dot(
 		yallopR, _b1950ETermsVel)*yallopR
 
-	return _yallopToSv(numarray.concatenate((newR, newRd)),
+	return _yallopToSv(numpy.concatenate((newR, newRd)),
 		_yallopKSla, rvAndPrlx)
 
 
@@ -398,7 +398,7 @@ _b1950ToGalTrafo = sphermath.computeTransMatrixFromPole(
 _b1950ToGalMatrix = threeToSix(_b1950ToGalTrafo)
 
 # For convenience, a ready-made matrix, taken basically from SLALIB
-_galToJ2000Matrix = threeToSix(numarray.transpose(numarray.array([
+_galToJ2000Matrix = threeToSix(numpy.transpose(numpy.array([
 	[-0.054875539695716, -0.873437107995315, -0.483834985836994],
 	[ 0.494109453305607, -0.444829589431879,  0.746982251810510],
 	[-0.867666135847849, -0.198076386130820,  0.455983795721093]])))
@@ -423,7 +423,7 @@ def _getEclipticMatrix(epoch):
 	return sphermath.getRotX(obliquity)
 
 def _getFromEclipticMatrix(fromNode, toNode, sixTrans):
-	return threeToSix(numarray.transpose(_getEclipticMatrix(fromNode[1])))
+	return threeToSix(numpy.transpose(_getEclipticMatrix(fromNode[1])))
 
 def _getToEclipticMatrix(fromNode, toNode, sixTrans):
 	emat = _getEclipticMatrix(fromNode[1])
@@ -439,7 +439,7 @@ def cross(vec1, vec2):
 
 	This should really be somewhere else...
 	"""
-	return numarray.array([
+	return numpy.array([
 		vec1[1]*vec2[2]-vec1[2]*vec2[1],
 		vec1[2]*vec2[0]-vec1[0]*vec2[2],
 		vec1[0]*vec2[1]-vec1[1]*vec2[0],
@@ -447,30 +447,30 @@ def cross(vec1, vec2):
 
 # Compute transformation from orientation of FK5
 _fk5ToICRSMatrix = sphermath.getMatrixFromEulerVector(
-	numarray.array([-19.9e-3, -9.1e-3, 22.9e-3])*ARCSEC)
-_icrsToFK5Matrix = numarray.transpose(_fk5ToICRSMatrix)
+	numpy.array([-19.9e-3, -9.1e-3, 22.9e-3])*ARCSEC)
+_icrsToFK5Matrix = numpy.transpose(_fk5ToICRSMatrix)
 
 # Spin of FK5 in FK5 system
-_fk5SpinFK5 = numarray.array([-0.30e-3, 0.60e-3, 0.70e-3])*ARCSEC/365.25
+_fk5SpinFK5 = numpy.array([-0.30e-3, 0.60e-3, 0.70e-3])*ARCSEC/365.25
 # Spin of FK5 in ICRS
-_fk5SpinICRS = numarray.dot(_fk5ToICRSMatrix, _fk5SpinFK5)
+_fk5SpinICRS = numpy.dot(_fk5ToICRSMatrix, _fk5SpinFK5)
 
 def fk5ToICRS(sixTrans, svFk5):
 	"""returns a 6-vector in ICRS for a 6-vector in FK5 J2000.
 	"""
-	spatial = numarray.dot(_fk5ToICRSMatrix, svFk5[:3])
-	vel = numarray.dot(_fk5ToICRSMatrix,
+	spatial = numpy.dot(_fk5ToICRSMatrix, svFk5[:3])
+	vel = numpy.dot(_fk5ToICRSMatrix,
 		svFk5[3:]+cross(svFk5[:3], _fk5SpinFK5))
-	return numarray.concatenate((spatial, vel))
+	return numpy.concatenate((spatial, vel))
 
 
 def icrsToFK5(sixTrans, svICRS):
 	"""returns a 6-vector in FK5 J2000 for an ICRS 6-vector.
 	"""
-	spatial = numarray.dot(_icrsToFK5Matrix, svICRS[:3])
+	spatial = numpy.dot(_icrsToFK5Matrix, svICRS[:3])
 	corrForSpin = svICRS[3:]-cross(svICRS[:3], _fk5SpinICRS)
-	vel = numarray.dot(_icrsToFK5Matrix, corrForSpin)
-	return numarray.concatenate((spatial, vel))
+	vel = numpy.dot(_icrsToFK5Matrix, corrForSpin)
+	return numpy.concatenate((spatial, vel))
 
 
 ############### Reference positions
@@ -502,17 +502,17 @@ _findTransformsPath = _makeFindPath([
 	(("FK5", times.dtJ2000, SAME), ("FK4", times.dtB1950, SAME),
 		_Constant(fk5ToFK4)),
 	(("FK5", times.dtJ2000, SAME), ("GALACTIC", ANYVAL, SAME),
-		_Constant(la.inverse(_galToJ2000Matrix))),
+		_Constant(la.inv(_galToJ2000Matrix))),
 	(("GALACTIC", ANYVAL, SAME), ("FK5", times.dtJ2000, SAME),
 		_Constant(_galToJ2000Matrix)),
 	(("FK4", times.dtB1950, SAME), ("GALACTIC", ANYVAL, SAME),
 		_Constant(_b1950ToGalMatrix)),
 	(("GALACTIC", ANYVAL, SAME), ("FK4", times.dtB1950, SAME),
-		_Constant(la.inverse(_b1950ToGalMatrix))),
+		_Constant(la.inv(_b1950ToGalMatrix))),
 	(("GALACTIC", ANYVAL, SAME), ("SUPER_GALACTIC", ANYVAL, SAME),
 		_Constant(_galToSupergalMatrix)),
 	(("SUPER_GALACTIC", ANYVAL, SAME), ("GALACTIC", ANYVAL, SAME),
-		_Constant(la.inverse(_galToSupergalMatrix))),
+		_Constant(la.inv(_galToSupergalMatrix))),
 	(("FK5", ANYVAL, SAME), ("FK5", times.dtJ2000, SAME),
 		_getIAU1976PrecMatrix),
 	(("FK4", ANYVAL, SAME), ("FK4", times.dtB1950, SAME),
@@ -579,16 +579,16 @@ def _simplifyPath(path):
 	return newPath
 
 def _contractMatrices(ops):
-	"""combines consecutive numarray.matrix instances in the sequence
+	"""combines consecutive numpy.matrix instances in the sequence
 	ops by dot-multiplying them.
 	"""
 	newSeq, curMat = [], None
 	for op in ops:
-		if isinstance(op, numarray.NumArray):
+		if isinstance(op, numpy.ndarray):
 			if curMat is None:
 				curMat = op
 			else:
-				curMat = numarray.dot(curMat, op)
+				curMat = numpy.dot(curMat, op)
 		else:
 			if curMat is not None:
 				newSeq.append(curMat)
@@ -610,11 +610,11 @@ def _pathToFunction(trafoPath, sixTrans):
 		for srcTrip, dstTrip, factory in trafoPath])
 	expr = []
 	for index, step in enumerate(steps):
-		if isinstance(step, numarray.NumArray):
-			expr.append("numarray.dot(steps[%d], "%index)
+		if isinstance(step, numpy.ndarray):
+			expr.append("numpy.dot(steps[%d], "%index)
 		else:
 			expr.append("steps[%d](sixTrans, "%index)
-	vars = {"steps": steps, "numarray": numarray}
+	vars = {"steps": steps, "numpy": numpy}
 	exec ("def transform(sv, sixTrans): return %s"%
 		"".join(expr)+"sv"+(")"*len(expr))) in vars
 	return vars["transform"]

@@ -66,10 +66,10 @@ def parseTime(literal, format="%H:%M:%S"):
 	datetime.timedelta(1, 3530)
 	>>> parseTime("23.4", "!!decimalHours")
 	datetime.timedelta(0, 84240)
-	>>> parseTime("3.4:5")
+	>>> parseTime("3.4:5", "%H.%M:%S")
 	datetime.timedelta(0, 11045)
 	>>> parseTime("20:04", "%H:%M")
-	datetime.timedelta(0, 11045)
+	datetime.timedelta(0, 72240)
 	"""
 	if format=="!!secondsSinceMidnight":
 		return datetime.timedelta(seconds=float(literal))

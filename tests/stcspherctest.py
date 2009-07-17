@@ -6,7 +6,7 @@ import datetime
 import math
 import re
 
-import numarray
+import numpy
 
 from gavo import stc
 from gavo import utils
@@ -153,21 +153,21 @@ class SpherMathTest(testhelpers.VerboseTest):
 		sv = self.trans.to6((0,10))
 		for angle in range(10):
 			matrix = spherc.threeToSix(sphermath.getRotY(angle*utils.DEG))
-			pos, _ = self.trans.from6(numarray.dot(matrix, sv))
+			pos, _ = self.trans.from6(numpy.dot(matrix, sv))
 			self.assertAlmostEqual(pos[1], (10+angle))
 
 	def testRotateX(self):
 		sv = self.trans.to6((270,10))
 		for angle in range(10):
 			matrix = spherc.threeToSix(sphermath.getRotX(angle*utils.DEG))
-			pos, _ = self.trans.from6(numarray.dot(matrix, sv))
+			pos, _ = self.trans.from6(numpy.dot(matrix, sv))
 			self.assertAlmostEqual(pos[1], (10+angle))
 
 	def testRotateZ(self):
 		sv = self.trans.to6((10,0))
 		for angle in range(10):
 			matrix = spherc.threeToSix(sphermath.getRotZ(angle*utils.DEG))
-			pos, _  = self.trans.from6(numarray.dot(matrix, sv))
+			pos, _  = self.trans.from6(numpy.dot(matrix, sv))
 			self.assertAlmostEqual(pos[0], (10-angle))
 
 	def testSimpleSpher(self):
@@ -182,7 +182,7 @@ class SpherMathTest(testhelpers.VerboseTest):
 		transMat = sphermath.computeTransMatrixFromPole((0, math.pi/4), 
 			(0, -math.pi/4))
 		def trans(t, p):
-			a, b = sphermath.cartToSpher(numarray.dot(transMat,
+			a, b = sphermath.cartToSpher(numpy.dot(transMat,
 				sphermath.spherToCart(t*DEG, p*DEG)))
 			return a/DEG, b/DEG
 		for t, p, a0, b0 in [
@@ -206,7 +206,7 @@ class ToGalacticTest(testhelpers.VerboseTest):
 		ast = stc.parseSTCS("Position GALACTIC %.11f %.11f"%fromCoo)
 		st = sphermath.SVConverter.fromSTC(ast)
 		sv = st.to6(ast.place.value)
-		sv = numarray.dot(spherc._b1950ToGalMatrix, sv)
+		sv = numpy.dot(spherc._b1950ToGalMatrix, sv)
 		pos, vel = st.from6(sv)
 		a, d = pos
 		self.assertAlmostEqual(ares, a, places=6)
@@ -292,4 +292,4 @@ for sampleName in dir(stcgroundtruth):
 
 
 if __name__=="__main__":
-	testhelpers.main(SuperGalacticTest)
+	testhelpers.main(ToGalacticTest)
