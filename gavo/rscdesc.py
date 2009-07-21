@@ -234,6 +234,9 @@ def mapParseErrors(ex, tag, ctx):
 	It will re-raise ex if that is not possible.  Tag is
 	inserted before the error message proper.
 	"""
+# XXX TODO: reraise ex right away for now to have errhandle to its work.
+# fix this later by giving the DC exceptions explainer methods and such.
+	raise
 	if True or ctx.dumpTracebacks:
 		traceback.print_exc()
 	location = ctx.getLocation()

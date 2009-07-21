@@ -1,4 +1,4 @@
-Source: gavo
+Source: gavodachs
 Maintainer: Markus Demleitner <msdemlei@ari.uni-heidelberg.de>
 Section: python
 Priority: optional
@@ -6,9 +6,10 @@ Build-Depends: @cdbs@
 Standards-Version: 3.7.3.0
 Homepage: http://vo.ari.uni-heidelberg.de/docs/DaCHS
 
-Package: gavo-dachs
+Package: gavodachs
 Architecture: any
-Depends: ${shlibs:Depends}, ${python:Depends}
+Depends: ${shlibs:Depends}, ${python:Depends}, postgresql (>=8.1), python-pyparsing, python-pyfits, python-psycopg2, python-nevow, python-twisted, python-soappy, python-imaging, python-zsi, python-numpy, python, python-pkg-resources
+Recommends: postgesql-client, libpq-dev
 Provides: ${python:Provides}
 Description: VO datacenter publishing suite.
  .

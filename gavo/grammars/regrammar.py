@@ -48,6 +48,11 @@ class REIterator(FileRowIterator):
 		self.grammar = None
 	
 	def _makeRec(self, inputLine):
+		if self.grammar.recordCleaner:
+			cleanMat = self.grammar.recordCleaner.match(inputLine)
+			if not cleanMat:
+				raise base.SourceParseError("'%s' does not match cleaner"%inputLine)
+			inputLine = " ".join(cleanMat.groups())
 		return dict(zip(self.grammar.names, self.grammar.fieldSep.split(
 			inputLine)))
 
@@ -56,9 +61,11 @@ class REIterator(FileRowIterator):
 
 
 class REAttribute(base.UnicodeAttribute):
-	"""is an attribute a (compiled) RE
+	"""is an attribute containing (compiled) RE
 	"""
 	def parse(self, value):
+		if value is None or not value:
+			return None
 		try:
 			return re.compile(value)
 		except re.error, msg:
@@ -66,7 +73,10 @@ class REAttribute(base.UnicodeAttribute):
 				value, unicode(msg)), self.name_, value)
 	
 	def unparse(self, value):
-		return value.pattern
+		if value is None:
+			return ""
+		else:
+			return value.pattern
 
 
 class REGrammar(Grammar):
@@ -83,6 +93,11 @@ class REGrammar(Grammar):
 		description="RE for separating two records in the source.")
 	_fieldSep = REAttribute("fieldSep", default=re.compile(r"\s+"), 
 		description="RE for separating two fields in a record.")
+	_recordCleaner = REAttribute("recordCleaner", default=None,
+		description="A regular expression matched against each record."
+			" The matched groups in this RE are joined by blanks and used"
+			" as the new pattern.  This can be used for simple cleaning jobs;"
+			" However, records not matching recordCleaner are rejected.")
 	_names = base.StringListAttribute("names", description=
 		"Names for the parsed columns, in sequence of the fields.")
 	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"

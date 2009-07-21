@@ -9,7 +9,7 @@ from setuptools import setup, find_packages, Extension
 install_requires = []
 # install_requires = ["pyfits", "VOTable", "numpy", "pyparsing"]
 
-setup(name="gavo",
+setup(name="gavodachs",
 	description="ZAH GAVO data center complete package",
 	url="http://www.g-vo.org",
 	license="GPL",
@@ -34,6 +34,7 @@ setup(name="gavo",
 			'gavoconfig = gavo.base.config:main',
 			'gavogendoc = gavo.user.docgen:main',
 			'gavostc = gavo.stc.cli:main',
+			'gavoserve = gavo.user.serve:main',
 		]
 	},
 	version="0.3")

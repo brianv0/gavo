@@ -58,8 +58,9 @@ _registerHTMLMF(_sfMapperFactory)
 
 
 def _hmsMapperFactory(colProps):
-	if (colProps["unit"]!="hms" and 
-			colProps["displayHint"].get("type")!="time"):
+	if ((colProps["unit"]!="hms" 
+			and colProps["displayHint"].get("type")!="time")
+		or colProps["datatype"]=="char"):
 		return
 	colProps["unit"] = "hms"
 	sepChar = colProps["displayHint"].get("sepChar", " ")
@@ -74,8 +75,9 @@ _registerHTMLMF(_hmsMapperFactory)
 
 
 def _sexagesimalMapperFactory(colProps):
-	if (colProps["unit"]!="dms" and 
-			colProps["displayHint"].get("type")!="sexagesimal"):
+	if ((colProps["unit"]!="dms" 
+			and colProps["displayHint"].get("type")!="sexagesimal")
+		or colProps["datatype"]=="char"):
 		return
 	colProps["unit"] = "dms"
 	sepChar = colProps["displayHint"].get("sepChar", " ")
@@ -249,6 +251,20 @@ def _feedbackSelectMapperFactory(colProps):
 			value=data)
 	return coder
 _registerHTMLMF(_feedbackSelectMapperFactory)
+
+
+def _bibcodeMapperFactory(colProps):
+	if colProps["displayHint"].get("type")!="bibcode":
+		return
+	def coder(data):
+		if data:
+			return T.a(href=base.getConfig("web", "adsMirror")+
+					"/cgi-bin/nph-bib_query?bibcode="+urllib.quote(data))[
+				data]
+		else:
+			return ""
+	return coder
+_registerHTMLMF(_bibcodeMapperFactory)
 
 
 #  Insert new, more specific factories here

@@ -36,6 +36,11 @@ def runAndCatch(func):
 		sys.exit(1)
 	except base.RDNotFound, msg:
 		sys.stderr.write("%s\n"%msg)
+		sys.exit(1)
+	except base.LiteralParseError, msg:
+		sys.stderr.write("While trying to parse literal %s for attribute %s:"
+			" %s"%(repr(msg.attVal), msg.attName, str(msg)))
+		sys.exit(1)
 	except Exception, msg:
 		sys.stderr.write("Oops.  Unhandled exception.  Here's the traceback:\n")
 		if reraise:

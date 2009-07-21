@@ -1,5 +1,11 @@
-gavo-dachs (0.3-1) unstable; urgency=low
+gavodachs (0.3-2) stable; urgency=low
 
-  * Initial debian package
+  * Added some dependency.
 
- -- Markus Demleitner <m@tfiu.de>  Fri, 17 Jul 2009 17:55:17 +0200
+ -- Markus Demleitner <gavo@ari.uni-heidelberg.de>  Mon, 20 Jul 2009 16:38:33 +0200
+
+gavodachs (0.3-1) stable; urgency=low
+
+  * Initial debian package of an early beta.
+
+ -- Markus Demleitner <gavo@ari.uni-heidelberg.de>  Fri, 17 Jul 2009 17:55:17 +0200

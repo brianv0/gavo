@@ -357,6 +357,9 @@ _config = Configuration(
 			" are free)"),
 		ListConfigItem("graphicMimes", "image/fits,image/jpeg", "MIME types"
 			" considered as graphics (for SIAP, mostly)"),
+		StringConfigItem("adsMirror", 
+			"http://ads.ari.uni-heidelberg.de",
+			"Root URL of ADS mirror to be used"),
 	),
 
 	Section('adql', "Settings concerning the built-in ADQL core",
