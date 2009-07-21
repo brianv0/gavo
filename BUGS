@@ -94,3 +94,7 @@
 24/SEVERE/2009-07-21
 	A Cone Search of 180 degrees around 10,10 doesn't return the whole table
 	(actually, it apparently returns nothing).
+
+25/SEVERE/2009-07-21
+	Linefeeds embedded in queries coming from the form cause the service
+	to bomb out (WTF?)

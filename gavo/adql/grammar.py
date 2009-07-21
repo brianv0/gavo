@@ -486,7 +486,6 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
-	res = syms["querySpecification"].parseString("select q.p from (select ra2 as p from"
-			" spatial) as q",
-			parseAll=True)
+	res = syms["querySpecification"].parseString("select source_name, Kmag from ohmaser.masers as m join twomass.data as t on (1=contains(point('', m.raj2000, m.dej2000), circle('', t.raj2000, t.dej2000, 0.001)))"
+			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

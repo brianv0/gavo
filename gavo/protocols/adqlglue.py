@@ -85,7 +85,8 @@ def query(query, timeout=15, queryProfile="untrustedquery", metaProfile=None):
 	# escape % to hide them form dbapi replacing
 	query = adql.flatten(adql.morphPG(t)).replace("%", "%%")
 	for tuple in base.SimpleQuerier(useProfile=queryProfile).runIsolatedQuery(
-			query, timeout=timeout, silent=True):
+			query, timeout=timeout, silent=True, 
+			settings=(("enable_nestloop", False), ("enable_seqscan", False))):
 		table.addTuple(tuple)
 	return table
 

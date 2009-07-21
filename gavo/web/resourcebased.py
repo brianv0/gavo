@@ -738,7 +738,7 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 		if self.customTemplate:
 			return grend.ServiceBasedRenderer.renderHTTP(self, ctx)
 		else:
-			return self.service.run(None).addCallback(self._renderResultDoc, ctx)
+			raise NotImplementedError("Static renderer no longer runs services.")
 	
 	def _renderResultDoc(self, svcResult, ctx):
 		rows = svcResult.original.getPrimaryTable().rows

@@ -164,8 +164,10 @@ class GavoRenderMixin(common.CommonRenderers):
 		else:
 			return ""
 
-	def render_ifmeta(self, metaName):
-		if self.service.getMeta(metaName):
+	def render_ifmeta(self, metaName, metaCarrier=None):
+		if metaCarrier is None:
+			metaCarrier = self.service
+		if metaCarrier.getMeta(metaName):
 			return lambda ctx, data: ctx.tag
 		else:
 			return lambda ctx, data: ""

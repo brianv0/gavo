@@ -125,6 +125,7 @@ class RD(base.Structure, base.MetaMixin, scripting.ScriptingMixin,
 		for table in self.tables:
 			table.processMixinsLate()
 			self.readRoles = self.readRoles|table.readRoles
+			table.setMetaParent(self)
 		self.serviceIndex = {}
 		for svc in self.services:
 			self.serviceIndex[svc.id] = svc

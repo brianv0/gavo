@@ -329,7 +329,7 @@ class TableInfoRenderer(grend.ServiceBasedRenderer,
 			return lambda ctx, data: ""
 
 	def render_iftablemetap(self, metaName):
-		if self.table.getMeta(metaName, propagate=True):
+		if self.table.getMeta(metaName, propagate=False):
 			return lambda ctx, data: ctx.tag
 		else:
 			return lambda ctx, data: ""
@@ -360,8 +360,15 @@ class TableInfoRenderer(grend.ServiceBasedRenderer,
 			metaCarrier=None):
 		if not metaCarrier:
 			metaCarrier = self.table
-		return grend.ServiceBasedRenderer._doRenderMeta(
+		res = grend.ServiceBasedRenderer._doRenderMeta(
 			self, ctx, raiseOnFail, plain, metaCarrier)
+		return res
+
+	def render_ifmeta(self, metaName, metaCarrier=None):
+		if metaCarrier is None:
+			metaCarrier = self.table
+		return grend.ServiceBasedRenderer._doRenderMeta(
+			self, metaName, metaCarrier)
 
 	defaultDocFactory = common.doctypedStan(
 		T.html[

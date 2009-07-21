@@ -159,7 +159,7 @@ class TestCleanedup(unittest.TestCase):
 	def testNotInDc_tables(self):
 		assertRowset(self,
 			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
-				" dc_tables where tableName='test.prodtest'"),
+				" dc.tablemeta where tableName='test.prodtest'"),
 			[])
 
 
