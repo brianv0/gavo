@@ -86,3 +86,11 @@
 22/SEVERE/2009-07-17
 	The creation of metaHandler in rscdesc leads to a deadlock when 
 	dc_tables does not exist yet.
+
+23/MEDIUM/2009-07-21
+	Conversion of unknown VOTable types leads to None with FromVOTableConverter.
+	It should yield an exception.
+
+24/SEVERE/2009-07-21
+	A Cone Search of 180 degrees around 10,10 doesn't return the whole table
+	(actually, it apparently returns nothing).

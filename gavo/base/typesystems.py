@@ -229,6 +229,7 @@ class FromVOTableConverter(object):
 		("double", "1"): "double precision",
 		("char", "*"): "text",
 		("char", "1"): "char",
+		("unsignedByte", "1"): "integer",
 		("raw", "*"): "raw",
 		("short", ""): "smallint",
 		("int", ""): "integer",
@@ -237,6 +238,7 @@ class FromVOTableConverter(object):
 		("boolean", ""): "boolean",
 		("double", ""): "double precision",
 		("char", ""): "char",
+		("unsignedByte", ""): "integer",
 	}
 
 	def convert(self, type, arraysize):
