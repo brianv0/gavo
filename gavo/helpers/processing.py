@@ -36,8 +36,9 @@ class FileProcessor(object):
 	"""
 	def __init__(self, opts, dd):
 		self.opts, self.dd = opts, dd
+		self._createAuxillaries(self.dd)
 
-	def _createAuxillaires(self, dd):
+	def _createAuxillaries(self, dd):
 		pass
 
 	def process(self, fName):
@@ -84,6 +85,10 @@ class HeaderProcessor(FileProcessor):
 	The basic flow is: Check if there is a header.  If not, call
 	_getNewHeader(srcFile) -> hdr.  Store hdr to cache.  Insert cached
 	header in the new FITS if it's not there yet.
+
+	You can override the extension of the cached header by setting a
+	headerExt class attribute.  This is necessary when more than
+	one HeaderProcessor will run.
 
 	You have to implement the _getHeader(srcName) -> pyfits header object
 	function.  It must raise an exception if it cannot come up with a
@@ -161,7 +166,7 @@ class HeaderProcessor(FileProcessor):
 
 	def _writeHeader(self, srcName, header):
 		self._fixHeaderDataKeys(srcName, header)
-		fitstools.sortHeaders(header, commentFilter=self.commentFilter,
+		header = fitstools.sortHeaders(header, commentFilter=self.commentFilter,
 			historyFilter=self.historyFilter)
 		fitstools.replacePrimaryHeaderInPlace(srcName, header)
 
@@ -216,7 +221,6 @@ class HeaderProcessor(FileProcessor):
 			default=False)
 
 
-
 class AnetHeaderProcessor(HeaderProcessor):
 	"""A file processor for calibrating FITS frames using astrometry.net.
 
@@ -237,7 +241,7 @@ class AnetHeaderProcessor(HeaderProcessor):
 		"indices": ["index-209.fits"],
 		"lower_pix": 0.1,
 		"upper_pix": 1.0,
-		"depth": 40,
+		"endob": 40,
 	}
 	sexScript = None
 	objectFilter = None
@@ -260,19 +264,26 @@ class AnetHeaderProcessor(HeaderProcessor):
 		return self.getPrimaryHeader(srcName).has_key("CD1_1")
 
 	def _runAnet(self, srcName, solverParameters, sexScript, objectFilter):
-		return anet.getWCSFieldsFor(srcName, solverParameters,
-			sexScript, objectFilter, self.opts.copyTo)
-
-	def _solveAnet(self, srcName):
 		if self.opts.runAnet:
-			return self._runAnet(srcName, self.solverParameters, self.sexScript,
-				self.objectFilter)
+			try:
+				return anet.getWCSFieldsFor(srcName, solverParameters,
+					sexScript, objectFilter, self.opts.copyTo)
+			except anet.ShellCommandFailed, ex: # catch ^C
+				if ex.retcode==2:
+					raise KeyboardInterrupt()
+				else:
+					raise
 		else:
 			oldCards = self._readCache(srcName)
 			if oldCards is None:
 				raise CannotComputeHeader("No cached headers and you asked"
 					" not to run astrometry.net")
-			return oldCards
+			return oldCards.ascard
+
+	def _solveAnet(self, srcName):
+# No logic in here, should be easily overridable by user code
+		return self._runAnet(srcName, self.solverParameters, self.sexScript,
+				self.objectFilter)
 
 	def _getHeader(self, srcName):
 		wcsCards = self._solveAnet(srcName)

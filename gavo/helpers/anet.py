@@ -2,8 +2,10 @@
 Code to obtain WCS headers for fits files using astrometry.net
 """
 
+from cStringIO import StringIO
 import os
 import shutil
+import subprocess
 
 from gavo import base
 from gavo.utils import fitstools
@@ -47,7 +49,13 @@ class ObjectNotFound(Error):
 	pass
 
 class ShellCommandFailed(Error):
-	pass
+	def __init__(self, msg, retcode):
+		Error.__init__(self, msg)
+		self.msg, self.retcode = msg, retcode
+	
+	def __str__(self):
+		return "External program failure (%s).  Program output: %s"%(
+			self.retcode, self.msg)
 
 
 # Template for control file for blind.
@@ -101,12 +109,13 @@ def _feedFile(targDir, fName, sexScript=anetSex, **ignored):
 	f.close()
 
 
-def _runShellCommand(cmd, args, quiet=False):
+def _runShellCommand(cmd, args):
 	cmdline = "%s %s"%(cmd, args)
-	if quiet:
-		cmdline += " 2>&1 >/dev/null"
-	if os.system(cmdline):
-		raise ShellCommandFailed()
+	proc = subprocess.Popen(cmdline, shell=True, stdout=subprocess.PIPE,
+		stderr=subprocess.STDOUT)
+	msg = proc.communicate()[0]
+	if proc.returncode:
+		raise ShellCommandFailed(msg, proc.returncode)
 
 
 def _extractSex(filterFunc=None):
@@ -115,11 +124,10 @@ def _extractSex(filterFunc=None):
 	If filterFunc is not None, it is called before sorting the extracted
 	objects. It must change the file named in the argument in place.
 	"""
-	_runShellCommand(sextractorBin, "-c anet.sex -FILTER N in.fits", quiet=True)
+	_runShellCommand(sextractorBin, "-c anet.sex -FILTER N in.fits")
 	if filterFunc is not None:
 		filterFunc("out.xyls")
-	_runShellCommand(tabsortBin, "MAG_ISO out.xyls out.fits",
-		quiet=True)
+	_runShellCommand(tabsortBin, "MAG_ISO out.xyls out.fits")
 
 
 def _extractAnet(filterFunc=None):

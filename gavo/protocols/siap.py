@@ -5,6 +5,7 @@ See develNotes for info on our SIAP implementation
 """
 
 import math
+import urllib
 
 import numpy
 
@@ -143,6 +144,24 @@ def getBboxQueryFromBbox(intersect, bbox, center, prefix, sqlPars):
 	return _intersectQueries[intersect].replace("<p>", prefix) 
 
 
+def dissectPositions(posStr):
+	"""tries to infer RA and DEC from posStr.
+
+	In contrast to base.parseCooPair, we are quite strict here and just
+	try to cope with some bad clients that leave out the comma.
+	"""
+	try:
+		ra, dec = map(float, posStr.split(","))
+	except ValueError: # maybe a sign as separator?
+		if '+' in posStr:
+			ra, dec = map(float, posStr.split("+"))
+		elif '-' in posStr:
+			ra, dec = map(float, posStr.split("-"))
+		else:
+			raise ValueError("No pos")
+	return ra, dec
+
+
 def getBboxQuery(parameters, sqlPars, prefix="sia"):
 	"""returns an SQL fragment for a SIAP query for bboxes.
 
@@ -152,14 +171,15 @@ def getBboxQuery(parameters, sqlPars, prefix="sia"):
 	parameters is a dictionary that maps the SIAP keywords to the
 	values in the query.  Parameters not defined by SIAP are ignored.
 	"""
+	posStr = urllib.unquote(parameters["POS"])
 	try:
-		ra, dec = map(float, parameters["POS"].split(","))
+		ra, dec = dissectPositions(posStr)
 	except (ValueError, TypeError):
 		try:
-			ra, dec = simbadinterface.getSimbadPositions(parameters["POS"])
+			ra, dec = simbadinterface.getSimbadPositions(posStr)
 		except KeyError:
 			raise base.ValidationError("%s is neither a RA,DEC pair nor a simbad"
-				" resolvable object"%parameters["POS"], "POS", parameters["POS"])
+				" resolvable object"%posStr, "POS", posStr)
 	try:
 		sizes = map(float, parameters["SIZE"].split(","))
 	except ValueError:

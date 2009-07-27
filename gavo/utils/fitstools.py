@@ -148,12 +148,12 @@ def sortHeaders(header, commentFilter=None, historyFilter=None):
 	if historyCs:
 		newCards.append(pyfits.Card(key=""))
 	for card in historyCs:
-		if not historyFilter or historyFilter(card.value):
+		if historyFilter is None or historyFilter(card.value):
 			newCards.append(card)
 	if commentCs:
 		newCards.append(pyfits.Card(key=""))
 	for card in commentCs:
-		if not commentFilter or commentFilter(card.value):
+		if commentFilter is None or commentFilter(card.value):
 			newCards.append(card)
 	_enforceHeaderConstraints(newCards)
 	return pyfits.Header(newCards)
