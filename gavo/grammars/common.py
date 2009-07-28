@@ -321,7 +321,7 @@ class Grammar(base.Structure, GrammarMacroMixin):
 	_sourceFields = base.StructAttribute("sourceFields", default=None,
 		copyable=True, description="Code returning a dictionary of values"
 		" added to all returned rows.", childFactory=SourceFieldApp)
-	_properties = base.PropertyAttribute()
+	_properties = base.PropertyAttribute(copyable=True)
 	_original = base.OriginalAttribute()
 	_rd = rscdef.RDAttribute()
 

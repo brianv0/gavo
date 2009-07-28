@@ -727,8 +727,7 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 			self.customTemplate = self.service.templates["static"]
 		self.basePath = os.path.join(service.rd.resdir,
 			service.staticData)
-		if self.basePath:
-			self.rend = static.File(self.basePath)
+		self.rend = static.File(self.basePath)
 	
 	def renderHTTP(self, ctx):
 		if inevow.ICurrentSegments(ctx)[-1] != '':
@@ -738,22 +737,12 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 		if self.customTemplate:
 			return grend.ServiceBasedRenderer.renderHTTP(self, ctx)
 		else:
-			raise NotImplementedError("Static renderer no longer runs services.")
-	
-	def _renderResultDoc(self, svcResult, ctx):
-		rows = svcResult.original.getPrimaryTable().rows
-		if len(rows)==0:
 			raise svcs.UnknownURI("No matching resource")
-		relativeName = rows[0]["filename"]
-		return static.File(os.path.join(self.basePath, relativeName)
-			).renderHTTP(ctx)
-
+	
 	def locateChild(self, ctx, segments):
 		if segments==('',):
 			return self, ()
-		if self.basePath:
-			return self.rend.locateChild(ctx, segments)
-		return None, ()
+		return self.rend.locateChild(ctx, segments)
 
 grend.registerRenderer("static", StaticRenderer)
 

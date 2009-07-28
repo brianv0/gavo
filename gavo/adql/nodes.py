@@ -516,7 +516,7 @@ class DerivedColumn(FieldInfoedNode):
 			self.name = fc[0].name
 			self.tainted = False
 		else:  # come up with an artificial name
-			self.name = "column-%x"%(id(self)+0x80000000)
+			self.name = "column_%x"%(id(self)+0x80000000)
 		alias = self.getChildOfType("asClause", Absent)
 		if alias is not Absent:
 			self.name = alias.alias

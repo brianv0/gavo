@@ -2,12 +2,15 @@
 Descriptions of the various Field types in the DC.
 """
 
+import re
 import warnings
 
 from gavo import base
 from gavo.base import typesystems
 from gavo.base.attrdef import *
 
+
+IDENTIFIER_PATTERN = re.compile("[A-Za-z_][A-Za-z_0-9]*$")
 
 
 class TypeNameAttribute(AtomicAttribute):
@@ -284,6 +287,11 @@ class Column(base.Structure):
 
 	def __repr__(self):
 		return "<Column %s>"%self.name
+
+	def validate(self):
+		self._validateNext(Column)
+		if not IDENTIFIER_PATTERN.match(self.name):
+			raise base.StructureError("'%s' is not a valid column name"%self.name)
 
 	def validateValue(self, value):
 		"""raises a ValidationError if value does not match the constraints

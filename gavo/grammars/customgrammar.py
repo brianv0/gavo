@@ -45,7 +45,7 @@ class CustomGrammar(common.Grammar):
 	name_ = "customGrammar"
 
 	_module = rscdef.ResdirRelativeAttribute("module", default=base.Undefined,
-		description="Path to module containing your row iterator.")
+		description="Path to module containing your row iterator.", copyable=True)
 
 	def _initUserGrammar(self):
 		self.userModule, _ = utils.loadPythonModule(self.module)

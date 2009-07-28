@@ -198,15 +198,6 @@ class DBTableTest(testhelpers.VerboseTest):
 			table.drop()
 			table.commit()
 
-	def testDDLErrors(self):
-		td = base.parseFromString(rscdesc.RD, '<resource schema="testing">'
-			'<table id="xy" onDisk="True">'
-			'<column name="5x" type="integer"/>'
-			'<column name="y" type="text"/></table>'
-			'</resource>').getTableDefById("xy")
-		# XXX TODO: We'd want something better here, but what?
-		self.assertRaises(base.DBError, rsc.TableForDef, td)
-
 
 class DBTableQueryTest(testhelpers.VerboseTest):
 	def setUp(self):

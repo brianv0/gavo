@@ -64,6 +64,9 @@ class ColumnTest(testhelpers.VerboseTest):
 		self.assertRaisesWithMsg(base.LiteralParseError, "Invalid display hint"
 			" 'xxyyz'", base.parseFromString, (rscdef.Column,
 				'<column name="foo" displayHint="xxyyz"/>'))
+		self.assertRaisesWithMsg(base.StructureError, "'foo x' is not a"
+			" valid column name" , base.parseFromString, (rscdef.Column,
+				'<column name="foo x"/>'))
 
 
 class ValuesTest(testhelpers.VerboseTest):
@@ -251,4 +254,4 @@ class DataDescTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(TableDefTest)
+	testhelpers.main(ColumnTest)
