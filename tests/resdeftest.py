@@ -252,6 +252,16 @@ class DataDescTest(testhelpers.VerboseTest):
 			'<data><dictlistGrammar/></data>')
 		self.assert_(isinstance(dd.grammar, grammars.DictlistGrammar))
 
+	def testIgnorePats(self):
+		dd = base.parseFromString(rscdef.DataDescriptor,
+			'<data><sources pattern="*"><ignoreSources pattern="*foo*"/></sources>'
+			'<nullGrammar/></data>')
+		dd.sources.ignoredSources.prepare()
+		self.failUnless(dd.sources.ignoredSources.isIgnored("kafoobar"))
+		self.failIf(dd.sources.ignoredSources.isIgnored("kafobar"))
+		self.failIf(dd.sources.ignoredSources.isIgnored("/baf/ooga/kafobar"))
+		self.failUnless(dd.sources.ignoredSources.isIgnored("/bafooga/kafobar"))
+		self.failUnless(dd.sources.ignoredSources.isIgnored("baga/kafobar.foo"))
 
 if __name__=="__main__":
-	testhelpers.main(ColumnTest)
+	testhelpers.main(DataDescTest)

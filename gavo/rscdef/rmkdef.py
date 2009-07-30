@@ -329,7 +329,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 			matching = fnmatch.filter(baseNames, colName)
 			if not matching:
 				raise base.LiteralParseError("%s does not match any column"
-					" names from the %s"%(colName, tableDef.id), "idmaps", 
+					" names from table %s"%(colName, tableDef.id), "idmaps", 
 					",".join(self.idmaps))
 			for dest in matching:
 				if dest not in existingMaps:
