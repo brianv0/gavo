@@ -15,7 +15,7 @@ from gavo.utils import ostricks
 # import that all others should use (from gavo.utils import pyfits).
 # see also utils/__init__.py
 os.environ["NUMERIX"] = "numpy"
-import pyfits  # not from gavo.utils to avoid circular import
+import pyfits  # not from gavo.utils (this is the original)
 
 
 blockLen = 2880
@@ -28,6 +28,10 @@ else:
 	_TempHDU = pyfits._TempHDU
 	_pad = pyfits._pad
 	_padLength = pyfits._padLength
+
+
+class FITSError(Exception):
+	pass
 
 
 def readPrimaryHeaderQuick(f):
@@ -93,31 +97,45 @@ def replacePrimaryHeader(inputFile, newHeader, targetFile, bufSize=100000):
 		targetFile.write(buf)
 
 
+# enforced sequence of well-known keywords, and whether they are mandatory
+keywordSeq = [
+	("SIMPLE", True),
+	("BITPIX", True),
+	("NAXIS", True),
+	("NAXIS1", False),
+	("NAXIS2", False),
+	("NAXIS3", False),
+	("NAXIS4", False),
+	("EXTEND", False),
+	("BZERO", False),
+	("BSCALE", False),
+]
+
 def _enforceHeaderConstraints(cardList):
-	"""changes the order of cardList in place in order to satisfy some
-	FITS constraints.
+	"""returns a pyfits header containing the cards in cardList with FITS
+	sequence constraints satisfied.
+
+	This may raise a FITSError if mandatory cards are missing.
+
+	This will only work correctly for image FITSes with less than five 
+	dimensions.
 	"""
 # I can't use pyfits.verify for this since cardList may not refer to
 # a data set that's actually in memory
-
-	def moveExtend(cardList):
-		# make sure extend is right after the last NAXIS.* card
-		extendPos = None
-		lastNaxis = -1
-		for pos, card in enumerate(cardList):
-			if card.key.startswith("NAXIS"):
-				lastNaxis = pos
-			if card.key=='EXTEND':
-				extendPos = pos
-		if not extendPos or extendPos-1==lastNaxis:
-			return
-		extCard = cardList[extendPos]
-		del cardList[extendPos]
-		if extendPos<lastNaxis:
-			lastNaxis = lastNaxis-1
-		cardList.insert(lastNaxis+1, extCard)
-	
-	moveExtend(cardList)
+	cardsAdded, newCards = set(), []
+	cardDict = dict((card.key, card) for card in cardList)
+	for kw, mandatory in keywordSeq:
+		try:
+			newCards.append(cardDict[kw])
+			cardsAdded.add(kw)
+		except KeyError:
+			if mandatory:
+				raise FITSError("Mandatory card '%s' missing"%kw)
+	for card in cardList:  # use cardList rather than cardDict to maintain
+		                     # cardList order
+		if card.key not in cardsAdded:
+			newCards.append(card)
+	return pyfits.Header(newCards)
 
 
 def sortHeaders(header, commentFilter=None, historyFilter=None):
@@ -155,8 +173,7 @@ def sortHeaders(header, commentFilter=None, historyFilter=None):
 	for card in commentCs:
 		if commentFilter is None or commentFilter(card.value):
 			newCards.append(card)
-	_enforceHeaderConstraints(newCards)
-	return pyfits.Header(newCards)
+	return _enforceHeaderConstraints(newCards)
 
 
 def replacePrimaryHeaderInPlace(fitsName, newHeader):

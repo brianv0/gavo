@@ -10,6 +10,7 @@ import shutil
 import sys
 
 from gavo import base
+from gavo import utils
 from gavo.helpers import anet
 from gavo.helpers import fitstricks
 from gavo.utils import fitstools
@@ -36,7 +37,7 @@ class FileProcessor(object):
 	"""
 	def __init__(self, opts, dd):
 		self.opts, self.dd = opts, dd
-		self._createAuxillaries(self.dd)
+		self._createAuxillaries(dd)
 
 	def _createAuxillaries(self, dd):
 		pass
@@ -48,6 +49,9 @@ class FileProcessor(object):
 	def addOptions(parser):
 		parser.add_option("--filter", dest="requireFrag", metavar="STR",
 			help="Only process files with names containing STR", default=None)
+		parser.add_option("--bail", help="Bail out on a processor error,"
+			" dumping a traceback", action="store_true", dest="bailOnError",
+			default=False)
 
 	def processAll(self):
 		"""calls the process method of processor for all sources of the data
@@ -85,10 +89,6 @@ class HeaderProcessor(FileProcessor):
 	The basic flow is: Check if there is a header.  If not, call
 	_getNewHeader(srcFile) -> hdr.  Store hdr to cache.  Insert cached
 	header in the new FITS if it's not there yet.
-
-	You can override the extension of the cached header by setting a
-	headerExt class attribute.  This is necessary when more than
-	one HeaderProcessor will run.
 
 	You have to implement the _getHeader(srcName) -> pyfits header object
 	function.  It must raise an exception if it cannot come up with a
@@ -174,20 +174,25 @@ class HeaderProcessor(FileProcessor):
 		"""override.
 		"""
 		return False
-	
-	def _getHeader(self, srcName):
-		"""override.
+
+	def _mungeHeader(self, srcName, header):
+		"""override this or _getHeader.
 		"""
-		return pyfits.open(srcName)[0].header
+		return header
+
+	def _getHeader(self, srcName):
+		"""override this or _mungeHeader.
+		"""
+		return self._mungeHeader(self.getPrimaryHeader(srcName))
 
 	def getPrimaryHeader(self, srcName):
 		"""returns the primary header of srcName.
 
 		This is a convenience function for user derived classes.
 		"""
-		hdus = pyfits.open(srcName)
-		hdr = hdus[0].header
-		hdus.close()
+		f = open(srcName)
+		hdr = utils.readPrimaryHeaderQuick(f)
+		f.close()
 		return hdr
 
 	def process(self, srcName):
@@ -216,9 +221,6 @@ class HeaderProcessor(FileProcessor):
 			" to source files even if it looks like they already have"
 			" been written", action="store_true", dest="reHeader",
 			default=False)
-		optParser.add_option("--bail", help="Bail out on a processor error,"
-			" dumping a traceback", action="store_true", dest="bailOnError",
-			default=False)
 
 
 class AnetHeaderProcessor(HeaderProcessor):
@@ -241,7 +243,7 @@ class AnetHeaderProcessor(HeaderProcessor):
 		"indices": ["index-209.fits"],
 		"lower_pix": 0.1,
 		"upper_pix": 1.0,
-		"endob": 40,
+		"depth": 40,
 	}
 	sexScript = None
 	objectFilter = None
@@ -264,26 +266,19 @@ class AnetHeaderProcessor(HeaderProcessor):
 		return self.getPrimaryHeader(srcName).has_key("CD1_1")
 
 	def _runAnet(self, srcName, solverParameters, sexScript, objectFilter):
+		return anet.getWCSFieldsFor(srcName, solverParameters,
+			sexScript, objectFilter, self.opts.copyTo)
+
+	def _solveAnet(self, srcName):
 		if self.opts.runAnet:
-			try:
-				return anet.getWCSFieldsFor(srcName, solverParameters,
-					sexScript, objectFilter, self.opts.copyTo)
-			except anet.ShellCommandFailed, ex: # catch ^C
-				if ex.retcode==2:
-					raise KeyboardInterrupt()
-				else:
-					raise
+			return self._runAnet(srcName, self.solverParameters, self.sexScript,
+				self.objectFilter)
 		else:
 			oldCards = self._readCache(srcName)
 			if oldCards is None:
 				raise CannotComputeHeader("No cached headers and you asked"
 					" not to run astrometry.net")
-			return oldCards.ascard
-
-	def _solveAnet(self, srcName):
-# No logic in here, should be easily overridable by user code
-		return self._runAnet(srcName, self.solverParameters, self.sexScript,
-				self.objectFilter)
+			return oldCards
 
 	def _getHeader(self, srcName):
 		wcsCards = self._solveAnet(srcName)
