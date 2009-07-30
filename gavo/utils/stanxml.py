@@ -215,17 +215,25 @@ class Element(object):
 				for c in cDict[cName]:
 					c.asETree(node)
 
+	def getElName(self):
+		"""returns the tag name of this element.
+
+		This will be an ElementTree.QName instance unless the element is
+		local.
+		"""
+		if self.local or isinstance(self.name, ElementTree.QName):
+			return self.name
+		else:
+			return ElementTree.QName(self.namespace, self.name)
+
 	def asETree(self, parent=None):
 		"""returns an ElementTree instance for this node.
 		"""
 		try:
 			if not self.mayBeEmpty and self.isEmpty():
 				return
-			if self.local or isinstance(self.name, ElementTree.QName):
-				elName = self.name
-			else:
-				elName = ElementTree.QName(self.namespace, self.name)
-
+			
+			elName = self.getElName()
 			attrs = self._makeAttrDict()
 			if parent is None:
 				node = ElementTree.Element(elName, attrs)

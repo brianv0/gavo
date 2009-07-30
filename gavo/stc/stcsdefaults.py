@@ -116,7 +116,7 @@ defaults = {
 		("unit", "Hz")],
 	"redshift": [
 		("refpos", "UNKNOWNRefPos"),
-		("redshiftType", "VELOCITY"),
+		("redshiftType", "REDSHIFT"),
 		("unit", getRedshiftUnit),
 		("dopplerdef", "OPTICAL")],
 	"velocity": [

@@ -111,7 +111,7 @@ class WiggleCoercionTest(testhelpers.VerboseTest):
 			'<AstroCoordSystem id="x"><SpaceFrame><ICRS/></SpaceFrame>'
 			'</AstroCoordSystem>'
 			'<AstroCoords coord_system_id="x">'+
-			coo+'</AstroCoords></ObservationLocation>')[0]
+			coo+'</AstroCoords></ObservationLocation>')[0][1]
 
 	def testBasic(self):
 		ast = self._getAST('<Position2D unit="deg"><C1>1</C1><C2>2</C2>'
@@ -209,7 +209,7 @@ class GeoCoercionTest(testhelpers.VerboseTest):
 			'<AstroCoordSystem id="x"><SpaceFrame><ICRS/></SpaceFrame>'
 			'</AstroCoordSystem>'+pos+
 			'<AstroCoordArea coord_system_id="x">'+
-			coo+'</AstroCoordArea></ObservationLocation>')[0]
+			coo+'</AstroCoordArea></ObservationLocation>')[0][1]
 
 	def testCircleDefault(self):
 		ast = self._getAST("<Circle><Center><C1>1.5</C1><C2>1.5</C2></Center>"

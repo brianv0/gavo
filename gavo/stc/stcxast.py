@@ -610,7 +610,7 @@ def _adaptAreaUnits(buildArgs):
 
 def _buildToplevel(node, buildArgs, context):
 	_adaptAreaUnits(buildArgs)
-	yield 'stcSpec', (dm.STCSpec(**buildArgs),)
+	yield 'stcSpec', ((node.tag, dm.STCSpec(**buildArgs)),)
 
 
 class IdProxy(ASTNode):
@@ -633,10 +633,10 @@ def resolveProxies(asf):
 	"""replaces IdProxies in the AST sequence asf with actual references.
 	"""
 	map = {}
-	for ast in asf:
+	for rootTag, ast in asf:
 		ast.buildIdMap()
 		map.update(ast.idMap)
-	for ast in asf:
+	for rootTag, ast in asf:
 		for node in ast.iterNodes():
 			for attName, value in node.iterAttributes(skipEmpty=True):
 				if isinstance(value, IdProxy):
@@ -873,11 +873,12 @@ def buildTree(csNode, context):
 
 
 def parseSTCX(stcxLiteral):
-	"""returns a sequence of ASTs for the STC specifications in the STC-X literal.
+	"""returns a sequence of pairs (root element, AST) for the STC 
+	specifications in stcxLiteral.
 	"""
 	context = STCXContext(elementHandlers=getHandlers(),
 		activeTags=getActiveTags())
 	asf = dict(buildTree(ElementTree.fromstring(stcxLiteral), context)
 		)["stcSpec"]
 	resolveProxies(asf)
-	return [ast.polish() for ast in asf]
+	return [(rootTag, ast.polish()) for rootTag, ast in asf]
