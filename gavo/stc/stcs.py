@@ -256,18 +256,41 @@ def getSymbols(_exportAll=False):
 		_coos + _regionTail )
 
 # compound "geometries"
-	_compoundGeoOperator = ( Keyword("Union") | Keyword("Intersection") |
-		Keyword("Difference") )
-	_compoundNot = Keyword("Not")
 	_compoundGeoExpression = Forward()
-	_compoundGeoOperand  = ( Optional( _compoundNot )("complement") + ( 
-		( _atomicGeometryKey("subtype") + _coos )
-		| _compoundGeoExpression )).addParseAction(lambda s,p,t: dict(t))
-	_compoundGeoArguments = _compoundGeoOperand + _compoundGeoOperand
-	_compoundGeoExpression << ( _compoundGeoOperator("subtype") + 	
-		_compoundGeoArguments("children") )
-	compoundGeoPhrase = ( _compoundGeoOperator("type") + _commonRegionItems +
-		_compoundGeoArguments("children") + _regionTail )
+	_compoundGeoOperand  = (( _atomicGeometryKey("subtype") + _coos )
+		| _compoundGeoExpression ).addParseAction(lambda s,p,t: dict(t))
+
+	_compoundGeoOperatorUnary = Keyword("Not")
+	_compoundGeoOperandsUnary =  ( Suppress( '(' ) 
+		+ _compoundGeoOperand + Suppress( ')' ) )
+	_compoundGeoExprUnary = ( _compoundGeoOperatorUnary("subtype")
+		+ _compoundGeoOperandsUnary("children") )
+
+	_compoundGeoOperatorBinary = Keyword("Difference")
+	_compoundGeoOperandsBinary =  ( Suppress( '(' ) 
+		+ _compoundGeoOperand + _compoundGeoOperand + Suppress( ')' ) )
+	_compoundGeoExprBinary = ( _compoundGeoOperatorBinary("subtype")
+		+ _compoundGeoOperandsBinary("children") )
+
+	_compoundGeoOperatorNary = ( Keyword("Union") | Keyword("Intersection") )
+	_compoundGeoOperandsNary =  ( Suppress( '(' ) 
+		+ _compoundGeoOperand + _compoundGeoOperand 
+		+ ZeroOrMore( _compoundGeoOperand ) + Suppress( ')' ) )
+	_compoundGeoExprNary = ( _compoundGeoOperatorNary("subtype")
+		+ _compoundGeoOperandsNary("children") )
+
+	_compoundGeoExpression << ( _compoundGeoExprUnary
+		| _compoundGeoExprBinary
+		| _compoundGeoExprNary )
+	compoundGeoPhrase = ( _compoundGeoOperatorUnary("type") 
+			+ _commonRegionItems 
+			+ _compoundGeoOperandsUnary("children") + _regionTail 
+		| _compoundGeoOperatorBinary("type") 
+			+ _commonRegionItems 
+			+ _compoundGeoOperandsBinary("children") + _regionTail 
+		| _compoundGeoOperatorNary("type") 
+			+ _commonRegionItems 
+			+ _compoundGeoOperandsNary("children") + _regionTail )
 
 # space subphrase
 	positionInterval = ( Keyword("PositionInterval")("type") +
@@ -345,8 +368,10 @@ def getCST(literal):
 
 
 if __name__=="__main__":
+	import pprint
 	syms = getSymbols(_exportAll=True)
 #	print getCST("PositionInterval ICRS 1 2 3 4")
 	enableDebug(syms)
-	print makeTree(syms["stcsPhrase"].parseString(
-		"Difference ICRS Union Circle 10 10 2 Not Difference AllSky Box 11 11 2 3 Intersection Polygon 10 2 2 10 10 10 Ellipse 11 11 2 3 30", parseAll=True))
+	pprint.pprint(makeTree(syms["stcsPhrase"].parseString(
+		"Union FK5 (Box 12.0 -13.0 2.0 2.0 Not (Circle 14.0 -13.5 3.0))"
+		, parseAll=True)))

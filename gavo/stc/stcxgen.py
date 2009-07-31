@@ -375,24 +375,9 @@ def _makeBaseGeometry(cls, node, context):
 	return res
 
 
-def complementing(serializer):
-	"""wraps the result of serializer in an STC.Negation element if
-	its node argument's complement attribute is true.
-
-	This is a helper decorator for Geometry serializers.
-	"""
-	def realSerializer(node, context):
-		res = serializer(node, context)
-		if node.complement:
-			return STC.Negation[res]
-		return res
-	return realSerializer
-
-@complementing
 def serialize_AllSky(node, context):
 	return _makeBaseGeometry(STC.AllSky, node, context)
 
-@complementing
 def serialize_Circle(node, context):
 # would you believe that the sequence of center and radius is swapped
 # in sphere and circle?  Oh boy.
@@ -411,7 +396,6 @@ def serialize_Circle(node, context):
 		raise STCValueError("Spheres are only defined in 2 and 3D")
 
 
-@complementing
 def serialize_Ellipse(node, context):
 	if _getDim(node.center)==2:
 		cls, wrap = STC.Ellipse, _wrap2D
@@ -425,7 +409,6 @@ def serialize_Ellipse(node, context):
 	]
 
 
-@complementing
 def serialize_Box(node, context):
 	if _getDim(node.center)!=2:
 		raise STCValueError("Boxes are only available in 2D")
@@ -434,7 +417,6 @@ def serialize_Box(node, context):
 		STC.Size[_wrap2D(node.boxsize)]]
 
 
-@complementing
 def serialize_Polygon(node, context):
 	if node.vertices and _getDim(node.vertices[0])!=2:
 		raise STCValueError("Polygons are only available in 2D")
@@ -442,14 +424,12 @@ def serialize_Polygon(node, context):
 		[STC.Vertex[STC.Position[_wrap2D(v)]] for v in node.vertices]]
 
 
-@complementing
 def serialize_Convex(node, context):
 	return _makeBaseGeometry(STC.Convex, node, context)[
 		[STC.Halfspace[STC.Vector[_wrap3D(v[:3])], STC.Offset[v[3]]]
 		for v in node.vectors]]
 
 
-@complementing
 def serialize_MultiCompound(node, context):
 	if len(node.children)<2:
 		return nodeToStan(node)
@@ -459,7 +439,6 @@ def serialize_MultiCompound(node, context):
 
 serialize_Union =  serialize_Intersection = serialize_MultiCompound
 
-@complementing
 def serialize_Difference(node, context):
 	if len(node.children)!=2:
 		raise STCValueError("Difference is only supported with two operands")
@@ -469,6 +448,12 @@ def serialize_Difference(node, context):
 	# elements around, I hack op2's name.
 	op2.name = op2.name+"2"
 	return STC.Difference[op1, op2]
+
+def serialize_Not(node, context):
+	if len(node.children)!=1:
+		raise STCValueError("Not is only supported with one operand")
+	return STC.Negation[nodeToStan(node.children[0], context)]
+
 
 ############# Toplevel
 

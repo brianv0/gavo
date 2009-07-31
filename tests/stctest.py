@@ -144,12 +144,14 @@ class OtherCoordIntervalTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.freqAs[0].upperLimit, 45.0)
 
 	def testRedshiftInterval(self):
-		ast = stcsast.parseSTCS("RedshiftInterval REDSHIFT 2 4")
+		ast = stcsast.parseSTCS("RedshiftInterval VELOCITY 2 4")
 		self.assertEqual(len(ast.redshiftAs), 1)
 		self.assertEqual(ast.redshiftAs[0].frame.type,
-			"REDSHIFT")
+			"VELOCITY")
 		self.assertEqual(ast.redshiftAs[0].lowerLimit, 2.0)
 		self.assertEqual(ast.redshiftAs[0].upperLimit, 4.0)
+		self.assertEqual(ast.redshift.unit, "km")
+		self.assertEqual(ast.redshift.velTimeUnit, "s")
 
 	def testStartTime(self):
 		ast = stcsast.parseSTCS("StartTime TT MJD24000.5")
@@ -401,9 +403,9 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			"Convex FK5 J1990.0 70.0 190.0 23.0 0.125 12.0 45.0 30.0 -0.25"),
 		("TimeInterval TT 2009-03-10T09:56:10.015625"
 			" SpectralInterval 1e10 1e11 unit Hz"
-			" RedshiftInterval 1000 7500 unit km/s",
+			" RedshiftInterval VELOCITY 1000 7500 unit km/s",
 			"StartTime TT 2009-03-10T09:56:10.015625\nSpectralInterval"
-			" 10000000000.0 100000000000.0\nRedshiftInterval 1000.0 7500.0"),
+			" 10000000000.0 100000000000.0\nRedshiftInterval VELOCITY 1000.0 7500.0"),
 		("Time TT 2009-03-10T09:56:10.015625",
 			"Time TT 2009-03-10T09:56:10.015625"),
 		("Time TDT 2009-03-10T09:56:10.015625 unit s"
@@ -418,7 +420,7 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 		("Spectral NEPTUNE 12 unit Angstrom Error 4 3"
 			" Redshift TOPOCENTER REDSHIFT RELATIVISTIC 0.1",
 			"Spectral NEPTUNE 12.0 unit Angstrom Error 4.0 3.0\nRedshift"
-			" TOPOCENTER REDSHIFT RELATIVISTIC 0.1"),
+			" TOPOCENTER RELATIVISTIC 0.1"),
 		("Position ICRS VelocityInterval Velocity 1 2 unit pc/cy Error 0.25 0.5",
 			"Position ICRS VelocityInterval Velocity 1.0 2.0 unit pc/cy"
 				" Error 0.25 0.5"),
@@ -435,22 +437,24 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			" 0.0 0.0 0.0 10.0 10.0 10.0 Velocity 2.0 3.0 4.0 unit pc/cy"),
 		("Circle ICRS 1 2 3 unit arcsec VelocityInterval Velocity 1 2",
 			"Circle ICRS 1.0 2.0 3.0 unit arcsec VelocityInterval Velocity 1.0 2.0"),
-		("Redshift REDSHIFT 2 unit nil",
-			"Redshift REDSHIFT 2.0"),
+		("Redshift 2",
+			"Redshift 2.0"),
 		("Time nil UNKNOWNRefPos MJD302",
 			"Time 1859-09-15T00:00:00"),
-		("Difference ICRS AllSky Union Circle 10 10 2"
-			" Intersection Polygon 10 2 2 10 10 10 Intersection Ellipse 11 11 2 3 30"
-			" Not Difference Circle 12 12 3 Box 11 11 2 3",
-			"Difference ICRS AllSky  Union Circle 10.0 10.0 2.0 Intersection Polygon 10.0 2.0 2.0 10.0 10.0 10.0 Intersection Ellipse 11.0 11.0 2.0 3.0 30.0 Not Difference Circle 12.0 12.0 3.0 Box 11.0 11.0 2.0 3.0"),
+		("Difference ICRS (AllSky Union (Circle 10 10 2"
+			" Intersection (Polygon 10 2 2 10 10 10 Intersection( Ellipse 11 11 2 3 30"
+			" Not (Difference (Circle 12 12 3 Box 11 11 2 3))))))",
+			"Difference ICRS (AllSky  Union (Circle 10.0 10.0 2.0 Intersection (Polygon 10.0 2.0 2.0 10.0 10.0 10.0 Intersection (Ellipse 11.0 11.0 2.0 3.0 30.0 Not (Difference (Circle 12.0 12.0 3.0 Box 11.0 11.0 2.0 3.0))))))"),
 # 25
-		("Union ICRS Circle 1 1 0.5 Box 0.5 0.5 0.25 0.125 unit rad"
+		("Union ICRS (Circle 1 1 0.5 Box 0.5 0.5 0.25 0.125) unit rad"
 			" Error 0.0001 0.0001",
-			"Union ICRS Circle 1.0 1.0 0.5 Box 0.5 0.5 0.25 0.125 unit rad Error 0.0001 0.0001"),
+			"Union ICRS (Circle 1.0 1.0 0.5 Box 0.5 0.5 0.25 0.125) unit rad Error 0.0001 0.0001"),
 		("Union ICRS TOPOCENTER (Circle 180 10 20 Circle 190 20 20"
 			" Intersection (Circle 120 -10 20 Difference (Circle 130 -10 20"
 			" Circle 125 -10 2) Not (Circle 118 -8 3)))",
-			""),
+			"Union ICRS TOPOCENTER (Circle 180.0 10.0 20.0 Circle 190.0 20.0 20.0 Intersection (Circle 120.0 -10.0 20.0 Difference (Circle 130.0 -10.0 20.0 Circle 125.0 -10.0 2.0) Not (Circle 118.0 -8.0 3.0)))"),
+		("Redshift VELOCITY 2",
+			"Redshift VELOCITY 2.0"),
 	]
 
 

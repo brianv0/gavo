@@ -98,3 +98,6 @@
 25/SEVERE/2009-07-21
 	Linefeeds embedded in queries coming from the form cause the service
 	to bomb out (WTF?)
+
+26/MEDIUM/2009-07-30
+	binarize on ASTs with compounds doesn't work any more.

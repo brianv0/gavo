@@ -253,14 +253,13 @@ def _makePolygonCoos(node):
 def _makeConvexCoos(node):
 	return {"geoCoos": tuple(itertools.chain(*node.vectors))}
 
-_compoundGeos = ["Union", "Difference", "Intersection"]
+_compoundGeos = ["Union", "Difference", "Intersection", "Not"]
 
 def _makeUnionCoos(node):
 	children = []
-	notConsStrings = {True: "Not ", False: ""}
 	for c in node.children:
 		nodeName = c.__class__.__name__
-		base = {"subtype": nodeName, "notCons": notConsStrings[c.complement]}
+		base = {"subtype": nodeName}
 		if c in _compoundGeos:
 			children.append(_combine(base, _makeUnionCoos(c)))
 		else:
@@ -268,7 +267,7 @@ def _makeUnionCoos(node):
 				globals()["_make%sCoos"%nodeName](c)))
 	return {"children": children}
 
-_makeDifferenceCoos = _makeIntersectionCoos = _makeUnionCoos
+_makeDifferenceCoos = _makeIntersectionCoos = _makeNotCoos = _makeUnionCoos
 
 _geometryMappers = dict([(n, _makePhraseTreeMapper(
 		_spatialCooToCST,
@@ -378,12 +377,15 @@ def _flattenCompoundChildren(childList, node):
 	res = []
 	for c in childList:
 		if "geoCoos" in c:  # it's an atomic geometry
-			res.append("%s%s %s"%(c["notCons"],
+			res.append("%s %s"%(
 				c["subtype"], _serializeVector(c["geoCoos"])))
 		else: # it's a compound
-			res.append("%s%s %s"%(c["notCons"], c["subtype"],
+			res.append("%s %s"%(c["subtype"],
 				_flattenCompoundChildren(c["children"], node)))
-	return " ".join(res)
+	if "geoCoos" in node:  # it's atomic, no parens required
+		return " ".join(res)
+	else:
+		return "(%s)"%(" ".join(res))
 
 
 _posFlatteners = {
@@ -447,7 +449,6 @@ def _flattenCST(cst):
 def getSTCS(astRoot):
 	"""returns an STC-S string for an AST.
 	"""
-	astRoot = astRoot.binarize()
 	cst = stcs.removeDefaults({
 		"time": _timeToCST(astRoot),
 		"space": _spatialToCST(astRoot),

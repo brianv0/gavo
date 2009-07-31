@@ -81,7 +81,7 @@ class OtherCoordIntervalTest(STCMappingTest):
 	def testSome(self):
 		self.assertMapsto("TimeInterval TT 2009-03-10T09:56:10.015625"
 			" SpectralInterval 1e10 1e11 unit Hz"
-			" RedshiftInterval 1000 7500 unit km/s", 
+			" RedshiftInterval VELOCITY 1000 7500 unit km/s", 
 			'<V><AstroCoordSystem ><TimeFrame ><TimeScale>TT</TimeScale><UNKNOWNRefPos /></TimeFrame><SpectralFrame ><UNKNOWNRefPos /></SpectralFrame><RedshiftFrame  value_type="VELOCITY"><DopplerDefinition>OPTICAL</DopplerDefinition><UNKNOWNRefPos /></RedshiftFrame></AstroCoordSystem><AstroCoordArea ><TimeInterval ><StartTime><ISOTime>2009-03-10T09:56:10.015625</ISOTime></StartTime></TimeInterval><SpectralInterval  unit="Hz"><LoLimit>10000000000.0</LoLimit><HiLimit>100000000000.0</HiLimit></SpectralInterval><RedshiftInterval  unit="km" vel_time_unit="s"><LoLimit>1000.0</LoLimit><HiLimit>7500.0</HiLimit></RedshiftInterval></AstroCoordArea></V>')
 
 	def testTimeWithError(self):
@@ -147,26 +147,26 @@ class RegionTest(STCMappingTest):
 
 class CompoundTest(STCMappingTest):
 	def testSimpleUnion(self):
-		self.assertMapsto("Union ICRS Circle 10 10 2 Box 11 11 2 3",
+		self.assertMapsto("Union ICRS (Circle 10 10 2 Box 11 11 2 3)",
 			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Union><Circle unit="deg"><Center><C1>10.0</C1><C2>10.0</C2></Center><Radius>2.0</Radius></Circle><Box unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><Size><C1>2.0</C1><C2>3.0</C2></Size></Box></Union></AstroCoordArea></V>')
 	
 	def testSimpleIntersection(self):
-		self.assertMapsto("Intersection ICRS Polygon 10 2 2 10 10 10"
-			" Ellipse 11 11 2 3 30",
+		self.assertMapsto("Intersection ICRS (Polygon 10 2 2 10 10 10"
+			" Ellipse 11 11 2 3 30)",
 			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Intersection><Polygon unit="deg"><Vertex><Position><C1>10.0</C1><C2>2.0</C2></Position></Vertex><Vertex><Position><C1>2.0</C1><C2>10.0</C2></Position></Vertex><Vertex><Position><C1>10.0</C1><C2>10.0</C2></Position></Vertex></Polygon><Ellipse unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><SemiMajorAxis>2.0</SemiMajorAxis><SemiMinorAxis>3.0</SemiMinorAxis><PosAngle>30.0</PosAngle></Ellipse></Intersection></AstroCoordArea></V>')
 
 	def testUnionWithNot(self):
-		self.assertMapsto("Union ICRS Circle 10 10 2 Not Box 11 11 2 3",
+		self.assertMapsto("Union ICRS (Circle 10 10 2 Not (Box 11 11 2 3))",
 			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Union><Circle unit="deg"><Center><C1>10.0</C1><C2>10.0</C2></Center><Radius>2.0</Radius></Circle><Negation><Box unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><Size><C1>2.0</C1><C2>3.0</C2></Size></Box></Negation></Union></AstroCoordArea></V>')
 
 	def testSimpleDifference(self):
-		self.assertMapsto("Difference ICRS Circle 10 10 2 Not Box 11 11 2 3",
+		self.assertMapsto("Difference ICRS (Circle 10 10 2 Not (Box 11 11 2 3))",
 			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Difference><Circle unit="deg"><Center><C1>10.0</C1><C2>10.0</C2></Center><Radius>2.0</Radius></Circle><Negation2><Box unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><Size><C1>2.0</C1><C2>3.0</C2></Size></Box></Negation2></Difference></AstroCoordArea></V>')
 	
 	def testInsaneRegion(self):
-		self.assertMapsto("Difference ICRS AllSky Union Circle 10 10 2"
-			" Intersection Polygon 10 2 2 10 10 10 Intersection Ellipse 11 11 2 3 30"
-			" Not Difference Circle 12 12 3 Box 11 11 2 3", 
+		self.assertMapsto("Difference ICRS (AllSky Union (Circle 10 10 2"
+			" Intersection (Polygon 10 2 2 10 10 10 Ellipse 11 11 2 3 30"
+			" Not (Difference (Circle 12 12 3 Box 11 11 2 3)))))", 
 			'<V><AstroCoordSystem ><SpaceFrame ><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea ><Difference><AllSky unit="deg" /><Union2><Circle unit="deg"><Center><C1>10.0</C1><C2>10.0</C2></Center><Radius>2.0</Radius></Circle><Intersection><Polygon unit="deg"><Vertex><Position><C1>10.0</C1><C2>2.0</C2></Position></Vertex><Vertex><Position><C1>2.0</C1><C2>10.0</C2></Position></Vertex><Vertex><Position><C1>10.0</C1><C2>10.0</C2></Position></Vertex></Polygon><Ellipse unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><SemiMajorAxis>2.0</SemiMajorAxis><SemiMinorAxis>3.0</SemiMinorAxis><PosAngle>30.0</PosAngle></Ellipse><Negation><Difference><Circle unit="deg"><Center><C1>12.0</C1><C2>12.0</C2></Center><Radius>3.0</Radius></Circle><Box2 unit="deg"><Center><C1>11.0</C1><C2>11.0</C2></Center><Size><C1>2.0</C1><C2>3.0</C2></Size></Box2></Difference></Negation></Intersection></Union2></Difference></AstroCoordArea></V>')
 
 

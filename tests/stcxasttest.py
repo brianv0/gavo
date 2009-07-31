@@ -388,8 +388,7 @@ class CompoundParseTest(XMLSrcTestBase):
 	
 	def testNegation(self):
 		innerDiff = self.area.children[1].children[1].children[2]
-		self.failUnless(isinstance(innerDiff, dm.Difference))
-		self.failUnless(innerDiff.complement)
+		self.failUnless(isinstance(innerDiff, dm.Not))
 
 
 class CompoundUnitsTest(SimpleSTCXSrcTest):

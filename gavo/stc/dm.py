@@ -486,7 +486,6 @@ class _Geometry(_CoordinateLike):
 	"""
 	_a_size = None
 	_a_fillFactor = None
-	_a_complement = False
 	_a_origUnit = None
 
 	cType = SpaceType
@@ -620,6 +619,7 @@ class _MultiOpCompound(_Compound):
 class Union(_MultiOpCompound): pass
 class Intersection(_MultiOpCompound): pass
 class Difference(_Compound): pass
+class Not(_Compound): pass
 
 
 def _buildBinaryTree(compound, items):
@@ -628,11 +628,10 @@ def _buildBinaryTree(compound, items):
 	items has to have at least length 2.
 	"""
 	items = list(items)
-	root = compound.change(children=items[-2:], complement=False)
+	root = compound.change(children=items[-2:])
 	items[-2:] = []
 	while items:
-		root = compound.change(children=[items.pop(), root],
-			complement=False)
+		root = compound.change(children=[items.pop(), root])
 	return root
 
 
@@ -647,9 +646,6 @@ def binarizeCompound(compound):
 	oc = compound
 	compound = compound.binarizeOperands()
 	if len(compound.children)==1:
-		if compound.complement:
-			return compound.children[0].change(complement=not 
-				compound.children[0].complement)
 		return compound.children[0]
 	elif len(compound.children)==2:
 		return compound
@@ -667,7 +663,7 @@ def debinarizeCompound(compound):
 	compound = compound.debinarizeOperands()
 	newChildren, changes = [], False
 	for c in compound.children:
-		if c.__class__==compound.__class__ and c.complement==compound.complement:
+		if c.__class__==compound.__class__:
 			newChildren.extend(c.children)
 			changes = True
 		else:

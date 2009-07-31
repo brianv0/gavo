@@ -556,14 +556,6 @@ def _makeCompoundBuilder(astClass):
 	return buildCompound
 
 
-def _buildNegation(node, buildArgs, context):
-	if "unit" in node.attrib:
-		raise STCNotImplementedError("unit on negation is not supported")
-	a = buildArgs["areas"][0]
-	a.complement = not a.complement
-	yield "areas", (a,)
-
-
 ################# Toplevel
 
 _areasAndPositions = [("timeAs", "time"), ("areas", "place"),
@@ -756,7 +748,7 @@ _stcBuilders = [
 	(_makeCompoundBuilder(dm.Union), ["Union", "Union2"]),
 	(_makeCompoundBuilder(dm.Intersection), ["Intersection", "Intersection2"]),
 	(_makeCompoundBuilder(dm.Difference), ["Difference", "Difference2"]),
-	(_buildNegation, ["Negation", "Negation2"]),
+	(_makeCompoundBuilder(dm.Not), ["Negation", "Negation2"]),
 
 	(_buildToplevel, ["ObservatoryLocation", "ObservationLocation",
 		"STCResourceProfile"]),

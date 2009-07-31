@@ -72,9 +72,8 @@ class XSDTestMixin(object):
 	argument to make the method store the offending document in
 	badDocument.xml.
 
-	The whole thing currently needs Xerces including the examples at
-	the right location.  You may need to fix classpath if you're not 
-	on Debian.
+	The whole thing needs Xerces-J in the form of xsdval.class in the
+	current directory.
 
 	The validator itself is a java class xsdval.class built by 
 	../schemata/makeValidator.py.  If you have java installed, calling

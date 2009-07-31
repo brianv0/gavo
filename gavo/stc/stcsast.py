@@ -383,7 +383,6 @@ def _makeGeometryKeyIterator(argDesc, clsName):
 		' while building %s, remaining: %%s"%%coos)'%clsName)
 	parseLines.append('  yield "origUnit",'
 		' _mogrifySpaceUnit(node.get("unit"), nDim)')
-	parseLines.append('  if "complement" in node: yield "complement", True')
 	exec "\n".join(parseLines)
 	return iterKeys
 
@@ -417,8 +416,6 @@ def _compoundGeometryKeyIterator(node, nDim, spatial):
 	"""yields keys to configure compound geometries.
 	"""
 	children = []
-	if "complement" in node:
-		yield "complement", True
 	for c in node["children"]:
 		childType = c["subtype"]
 		destCls = getattr(dm, childType)
@@ -429,6 +426,7 @@ def _compoundGeometryKeyIterator(node, nDim, spatial):
 			children.append(destCls(**dict(
 				_compoundGeometryKeyIterator(c, nDim, True))))
 	yield "children", children
+
 
 
 def _makeCompoundGeometryBuilder(cls):
@@ -474,6 +472,7 @@ def getCoords(cst, system):
 		"Union": _makeCompoundGeometryBuilder(dm.Union),
 		"Intersection": _makeCompoundGeometryBuilder(dm.Intersection),
 		"Difference": _makeCompoundGeometryBuilder(dm.Difference),
+		"Not": _makeCompoundGeometryBuilder(dm.Not),
 
 		"Spectral": _makeCooBuilder("spectralFrame", None, None,
 			dm.SpectralCoo, "freq", None),
@@ -497,8 +496,8 @@ def parseSTCS(literal):
 	system = getCoordSys(cst)[1]
 	args = {"astroSystem": system}
 	args.update(getCoords(cst, system))
-	return dm.STCSpec(**args).polish().debinarize()
+	return dm.STCSpec(**args).polish()
 
 
 if __name__=="__main__":
-	print parseSTCS("Union ICRS Circle 10 12 1 Circle 11 11 1")
+	print parseSTCS("Union FK5 (Box 12 -13 2 2 Not (Circle 14 -13.5 3))")
