@@ -25,7 +25,7 @@ class CannotComputeHeader(Exception):
 class FileProcessor(object):
 	"""An abstract base for a source file processor.
 
-	Processors are constructed with an optparse XXX value that
+	Processors are constructed with an optparse Values instance that
 	is later available as the attribute opts.
 
 	You then need to define a process method receiving a source as
@@ -146,6 +146,7 @@ class HeaderProcessor(FileProcessor):
 	# headers copied from original file rather than the cached header
 	keepKeys = set(["SIMPLE", "BITPIX", "NAXIS", "NAXIS1", "NAXIS2",
 			"EXTEND", "BZERO", "BSCALE"])
+
 	def _fixHeaderDataKeys(self, srcName, header):
 		oldHeader = self.getPrimaryHeader(srcName)
 		for key in self.keepKeys:
@@ -288,6 +289,20 @@ class AnetHeaderProcessor(HeaderProcessor):
 		hdr = self.getPrimaryHeader(srcName)
 		fitstricks.copyFields(hdr, wcsCards, self.noCopyHeaders)
 		return hdr
+
+	def commentFilter(self, value):
+		return ( "Index name" in value or
+			"Cxdx margin" in value or
+			"Field scale lower" in value or
+			"Field scale upper" in value or
+			"Start obj" in value or
+			"End obj" in value or
+			"Tweak" in value or
+			"code error" in value)
+
+	def historyFilter(self, value):
+		return ("suite" in value or
+			"blind" in value)
 
 
 def procmain(processorClass, rdId, ddId):
