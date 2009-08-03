@@ -22,6 +22,7 @@ def parseCmdLine():
 
 
 def serverAction(act):
+# XXX TODO: Fix this
 	'''
 	PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin
 	LOGFILE=/data/gavo/logs/web.log

@@ -1,5 +1,5 @@
 Source: gavodachs
-Maintainer: Markus Demleitner <msdemlei@ari.uni-heidelberg.de>
+Maintainer: Markus Demleitner <gavo@ari.uni-heidelberg.de>
 Section: python
 Priority: optional
 Build-Depends: @cdbs@

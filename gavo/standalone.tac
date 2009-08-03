@@ -20,15 +20,7 @@ class Reloader(rend.Page):
 
 base.setDBProfile("trustedquery")
 
-# XXX use port attribute when we can rely on having python 2.5
-_serverName = urlparse.urlparse(base.getConfig("web", "serverURL"))[1]
-if ":" in _serverName:
-	_serverName, _targetPort = _serverName.split(":")
-else:
-	_serverName, _targetPort = _serverName, 80
-_targetPort = int(_targetPort)
-if base.getConfig("web", "serverPort") is not None:
-	_targetPort = base.getConfig("web", "serverPort")
+interface = base.getConfig("web", "bindAddress")
 
 # Figure out whether to drop privileges
 uid = None
@@ -46,6 +38,6 @@ if debug:
 else:
 	mainPage = dispatcher.ArchiveService()
 
-internet.TCPServer(_targetPort, appserver.NevowSite(
-	mainPage), interface=_serverName).setServiceParent(application)
+internet.TCPServer(base.getConfig("web", "serverPort"), appserver.NevowSite(
+	mainPage), interface=interface).setServiceParent(application)
 	

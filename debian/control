@@ -1,5 +1,5 @@
 Source: gavodachs
-Maintainer: Markus Demleitner <msdemlei@ari.uni-heidelberg.de>
+Maintainer: Markus Demleitner <gavo@ari.uni-heidelberg.de>
 Section: python
 Priority: optional
 Build-Depends: cdbs (>= 0.4.23-1.1), debhelper (>= 5), debhelper (>= 5.0.37.2), cdbs (>= 0.4.43), python-all-dev (>= 2.3.5-11), python-support (>= 0.3.2), quilt, patchutils (>= 0.2.25), cdbs (>= 0.4.27)

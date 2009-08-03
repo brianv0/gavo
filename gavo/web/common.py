@@ -97,6 +97,8 @@ class CustomTemplateMixin(object):
 		if not self.customTemplate:
 			return self.defaultDocFactory
 		elif isinstance(self.customTemplate, basestring):
+			if not os.path.exists(self.customTemplate):
+				return self.defaultDocFactory
 			return loaders.xmlfile(self.customTemplate)
 		else:
 			return self.customTemplate

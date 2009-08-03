@@ -319,7 +319,9 @@ _config = Configuration(
 	Section('web', 'Settings related to serving content to the web.',
 		StringConfigItem("serverURL", default="http://localhost:8080",
 			description="URL fragment used to qualify relative URLs where necessary"),
-		IntConfigItem("serverPort", default="None",
+		StringConfigItem("bindAddress", default="127.0.0.1", description=
+			"Interface to bind to"),
+		IntConfigItem("serverPort", default="8080",
 			description="Port to bind the server to"),
 		StringConfigItem("user", default="None", description="Run server as"
 			" this user (leave empty to not change user)"),
