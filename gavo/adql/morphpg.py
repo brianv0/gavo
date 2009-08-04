@@ -201,6 +201,7 @@ def _adqlFunctionToPG(node, state):
 			return "random()"
 	elif node.funName=='SQUARE':
 		return "(%s)^2"%node.args[0]
+	return node
 
 
 _miscHandlers = {

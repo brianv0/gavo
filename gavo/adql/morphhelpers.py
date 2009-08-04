@@ -91,6 +91,9 @@ def morphTreeWithHandlers(tree, handlers):
 			node.children = newChildren
 			node._processChildren()
 		if node.type in handlers:
-			return handlers[node.type](node, state)
+			handlerResult = handlers[node.type](node, state)
+			assert handlerResult is not None, "ADQL morph handler returned None"
+			node = handlerResult
 		return node
-	return traverse(tree)
+	res = traverse(tree)
+	return res

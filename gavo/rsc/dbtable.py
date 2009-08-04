@@ -437,6 +437,7 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 			self.createUniquenessRules()
 			return
 		self.setTablePrivileges(self.tableDef)
+		self.setSchemaPrivileges(self.tableDef.rd)
 		if not self.nometa:
 			self.addToMeta()
 		self.createUniquenessRules()

@@ -100,4 +100,13 @@
 	to bomb out (WTF?)
 
 26/MEDIUM/2009-07-30
-	binarize on ASTs with compounds doesn't work any more.
+	binarize on STC ASTs with compounds doesn't work any more.
+
+27/WISHLIST/2009-08-04
+	It would probably be helpful if instanciating an RD with a non existing
+	resdir would at least issue a warning of some sort.
+
+28/LOW/2009-08-04
+	"AS" clauses should override any names obtained from system tables in ADQL.
+	And we should be more careful inheriting such properties through
+	functions (e.g., SQRT should probably kill almost all such properties).
