@@ -31,6 +31,21 @@ def makeEllipsis(aStr, maxLen):
 	return aStr
 
 
+def formatSimpleTable(data):
+	"""returns a string containing a text representation of tabular data.
+
+	All columns of data a simply stringified, then the longest member
+	determines the width of the text column.  The behaviour if data
+	does not contain rows of equal length is unspecified; data must
+	contain at least one row.
+	"""
+	data = [[str(v) for v in row] for row in data]
+	colWidthes = [max(len(row[colInd]) for row in data)
+		for colInd in range(len(data[0]))]
+	fmtStr = "  ".join("%%%ds"%w for w in colWidthes)
+	table = "\n".join(fmtStr%tuple(row) for row in data)
+	return table
+
 
 def getRelativePath(fullPath, rootPath):
 	"""returns rest if fullPath has the form rootPath/rest and raises an

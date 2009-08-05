@@ -30,4 +30,4 @@ from gavo.utils.stanxml import ElementTree
 from gavo.utils.texttricks import (formatSize, makeEllipsis, floatRE, 
 	fixIndentation, parsePercentExpression, hmsToDeg, dmsToDeg,
 	fracHoursToDeg, degToHms, degToDms, getRelativePath, parseAssignments, 
-	NameMap)
+	NameMap, formatSimpleTable)

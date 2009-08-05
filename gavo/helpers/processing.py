@@ -42,8 +42,34 @@ class FileProcessor(object):
 	def _createAuxillaries(self, dd):
 		pass
 
+	def classify(self, fName):
+		return "unknown"
+
 	def process(self, fName):
 		pass
+	
+	def addClassification(self, fName):
+		label = self.classify(fName)
+		self.reportDict[label] = self.reportDict.get(label, 0)+1
+
+	def printTableSize(self):
+		try:
+			tableName = self.dd.makes[0].table.getQName()
+			itemsInDB = base.SimpleQuerier(useProfile="admin").runIsolatedQuery(
+				"SELECT count(*) from %s"%tableName)[0][0]
+			print "Items currently in assumed database table: %d\n"%itemsInDB
+		except (base.DBError, IndexError):
+			pass
+
+	def printReport(self, processed, ignored):
+		print "\n\nProcessor Report\n==============\n"
+		if ignored:
+			print "Warning: There were %d errors during classification"%ignored
+		repData = zip(self.reportDict.values(), self.reportDict.keys())
+		repData.sort()
+		print utils.formatSimpleTable(repData)
+		print "\n"
+		self.printTableSize()
 
 	@staticmethod
 	def addOptions(parser):
@@ -52,18 +78,17 @@ class FileProcessor(object):
 		parser.add_option("--bail", help="Bail out on a processor error,"
 			" dumping a traceback", action="store_true", dest="bailOnError",
 			default=False)
+		parser.add_option("--report", help="Output a report only",
+			action="store_true", dest="doReport", default=False)
 
-	def processAll(self):
-		"""calls the process method of processor for all sources of the data
-		descriptor dd.
-		"""
+	def _runProcessor(self, procFunc):
 		processed, ignored = 0, 0
 		for source in self.dd.sources:
 			if (self.opts.requireFrag is not None 
 					and not self.opts.requireFrag in source):
 				continue
 			try:
-				self.process(source)
+				procFunc(source)
 			except KeyboardInterrupt:
 				sys.exit(2)
 			except Exception, msg:
@@ -75,6 +100,20 @@ class FileProcessor(object):
 			processed += 1
 			sys.stdout.write("%6d (-%5d)\r"%(processed, ignored))
 			sys.stdout.flush()
+		return processed, ignored
+
+	def processAll(self):
+		"""calls the process method of processor for all sources of the data
+		descriptor dd.
+		"""
+		if self.opts.doReport:
+			self.reportDict = {}
+			procFunc = self.addClassification
+		else:
+			procFunc = self.process
+		processed, ignored = self._runProcessor(procFunc)
+		if self.opts.doReport:
+			self.printReport(processed, ignored)
 		return processed, ignored
 
 

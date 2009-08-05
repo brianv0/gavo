@@ -96,7 +96,7 @@ class SourceSpec(base.Structure):
 	_ignore = base.StructAttribute("ignoredSources", childFactory=
 		IgnoreSpec, description="Specification of sources that should not"
 			" be processed although they match patterns.  Typically used"
-			" in update-type data descriptors.")
+			" in update-type data descriptors.", copyable=True)
 
 	def __iter__(self):
 		return self.iterSources()
