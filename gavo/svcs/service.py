@@ -232,11 +232,11 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		" does the computations for this service.", forceType=core.Core,
 		copyable=True)
 	_templates = base.DictAttribute("templates", description="Custom"
-		" nevow templates for this service.", 
+		" nevow templates for this service; use key=form to replace the Form"
+		" renderer's standard template.", 
 		itemAttD=rscdef.ResdirRelativeAttribute(
 			"template", description="resdir-relative path to a nevow template"
-			" used for the function given in key.  Currently, the form renderer"
-			" uses 'form' and 'response' as keys."), copyable=True)
+			" used for the function given in key."), copyable=True)
 	_publications = base.StructListAttribute("publications",
 		childFactory=Publication, description="Sets and renderers this service"
 			" is published with.")

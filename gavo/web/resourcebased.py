@@ -540,8 +540,7 @@ class Form(FormMixin, grend.ServiceBasedRenderer, HTMLResultRenderMixin):
 	def __init__(self, ctx, service):
 		grend.ServiceBasedRenderer.__init__(self, ctx, service)
 		if "form" in self.service.templates:
-			self.customTemplate = os.path.join(self.rd.resdir,
-				self.service.templates["form"])
+			self.customTemplate = self.service.templates["form"]
 		# A service with no inputs will be run even if no form data
 		# can be located:
 		if self.service.getInputFields():

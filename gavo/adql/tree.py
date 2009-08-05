@@ -284,7 +284,7 @@ if __name__=="__main__":
 		else:
 			return {}
 	s, g = getTreeBuildingGrammar()
-	res = g.parseString("select 1+0.1, 'const'||'ab' from spatial")[0]
+	res = g.parseString('select * from browndwars.cat\r\n')[0]
 	pprint.pprint(res.asTree())
 	print repr(res)
 	fd = addFieldInfos(res, fig)
