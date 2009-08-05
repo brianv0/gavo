@@ -436,10 +436,7 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		if self.tableDef.temporary:
 			self.createUniquenessRules()
 			return
-		self.setTablePrivileges(self.tableDef)
-		self.setSchemaPrivileges(self.tableDef.rd)
-		if not self.nometa:
-			self.addToMeta()
+		self.updateMeta()
 		self.createUniquenessRules()
 		return self
 
@@ -457,6 +454,7 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 
 	def updateMeta(self):
 		self.setTablePrivileges(self.tableDef)
+		self.setSchemaPrivileges(self.tableDef.rd)
 		if not self.nometa:
 			self.addToMeta()
 		return self

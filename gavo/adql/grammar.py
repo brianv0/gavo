@@ -436,7 +436,7 @@ def getADQLGrammarCopy():
 		+ Optional( setQuantifier )
 		+ Optional( setLimit ) 
 		+ selectList + tableExpression )
-	statement = querySpecification + StringEnd()
+	statement = querySpecification + Optional( White() ) + StringEnd()
 	return dict((k, v) for k, v in locals().iteritems()
 		if isinstance(v, ParserElement)), statement
 
@@ -486,6 +486,6 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
-	res = syms["querySpecification"].parseString("select * from\r\n browndwarfs.cat\r\n"
+	res = syms["statement"].parseString("select * from\r\n browndwarfs.cat\r\n"
 			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)
