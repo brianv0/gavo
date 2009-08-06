@@ -141,7 +141,10 @@ def humanDatesFactory(colProps):
 			if val is None:
 				return "N/A"
 			else:
-				return val.strftime(format)
+				try:
+					return val.strftime(format)
+				except ValueError:  # probably too old a date, fall back to a hack
+					return val.isoformat()
 		return coder
 _registerHTMLMF(humanDatesFactory)
 

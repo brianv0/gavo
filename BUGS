@@ -4,9 +4,9 @@
 2/MEDIUM/2008-10-20
 	StreamWriter errors cannot be propagated up yet.
 
-3/WISHLIST/2009-01-10
+3/WISHLIST/2009-01-10/FIXED
 	gavoimp should have some functionality to delete everything described
-	by an RD
+	by an RD [gavodrop does this]
 
 4/MEDIUM/2009-01-24
 	Remove imageFormat column in SIAP mixin and take the data from
