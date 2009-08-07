@@ -349,7 +349,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		requireSet = queryMeta["columnSet"]
 		res = rscdef.ColumnList()
 
-		# prepare for feedback queries if the core want that
+		# prepare for feedback queries if the core wants that
 		if isinstance(self.core, standardcores.DBCore) and self.core.feedbackColumn:
 			res.append(standardcores.makeFeedbackColumn(
 				self.core.queriedTable.columns, self.core.feedbackColumn))
@@ -367,8 +367,11 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			cofs = self.core.outputTable.columns
 			try:
 				for fieldName in queryMeta["additionalFields"]:
-					res.append(outputdef.OutputField.fromColumn(
-						cofs.getColumnByName(fieldName)))
+					col = cofs.getColumnByName(fieldName)
+					if isinstance(col, outputdef.OutputField):
+						res.append(col)
+					else:
+						res.append(outputdef.OutputField.fromColumn(col))
 			except KeyError, msg:
 				if raiseOnUnknown:
 					raise base.ValidationError("The additional field %s you requested"
