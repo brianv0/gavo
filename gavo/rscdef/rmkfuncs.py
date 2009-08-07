@@ -18,7 +18,7 @@ import traceback
 from gavo import base
 from gavo import stc
 from gavo import utils
-from gavo.base import coords, parseBooleanLiteral, parseInt
+from gavo.base import coords, parseBooleanLiteral, parseInt, vizierexprs
 from gavo.base.literals import *
 from gavo.utils import dmsToDeg, hmsToDeg
 

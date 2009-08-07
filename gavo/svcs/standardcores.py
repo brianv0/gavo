@@ -35,6 +35,44 @@ printQuery = False
 MS = base.makeStruct
 
 
+class PhraseMaker(rscdef.ProcApp):
+	"""A procedure application for generating SQL expressions from input keys.
+
+	PhraseMaker code must *yield* SQL fragments that can occur in WHERE
+	clauses, i.e., boolean expressions (thus, they must be generator
+	bodies).
+
+	The following names are available to them:
+
+	* inputKeys -- the list of input keys for the parent CondDesc
+	* inPars -- a dictionary mapping inputKey names to the values
+	  provided by the user
+	* sqlPars -- a dictionary that is later used as the parameter
+	  dictionary to the query.
+	
+	To interpret the content of an inputKey as a vizier-like expression,
+	say::
+
+		yield vizierexprs.getSQL(inputKeys[0], inPars, outPars)
+	
+	To insert some value into outPars, do not simply use some key into
+	outParse, since, e.g., the condDesc might be used multiple times.
+	Instead, use getSQLKey, maybe like this::
+
+		ik = inputKeys[0]
+		yield "%s BETWEEN %%(%s)s AND %%(%s)s"%(ik.name,
+			vizierexprs.getSQLKey(ik.name, inPars[ik.name]-10, outPars),
+			vizierexprs.getSQLKey(ik.name, inPars[ik.name]+10, outPars))
+	
+	getSQLKeys will make sure unique names in outPars are chosen and
+	enters the values there.
+	"""
+	name_ = "PhraseMaker"
+
+	requiredType = "phraseMaker"
+	formalArgs = "inputKeys, inPars, outPars"
+
+
 class CondDesc(base.Structure):
 	"""A query specification for cores talking to the database.
 	
@@ -60,6 +98,9 @@ class CondDesc(base.Structure):
 			" the query.  Deprecated.")
 	_buildFrom = base.ActionAttribute("buildFrom", "feedFromInputKey",
 		description="A reference to an InputKey to define this CondDesc")
+	_phraseMaker = base.StructAttribute("phraseMaker", default=None,
+		description="Code to generate custom SQL from the input keys", 
+		childFactory=PhraseMaker, copyable=True)
 	_predefined = base.ActionAttribute("predefined", "replaceWithPredefined",
 		description="Name of a predefined CondDesc to base this CondDesc on."
 		"  This is a magic attribute that should be seen by the parser"
@@ -71,12 +112,22 @@ class CondDesc(base.Structure):
 		if hasattr(self.parent, "resolveName"):
 			self.resolveName = self.parent.resolveName
 
+	def onElementComplete(self):
+		self._onElementCompleteNext(CondDesc)
+		if self.phraseMaker is not None:
+			self.makePhrase = self.phraseMaker.compile()
+
 	def feedFromInputKey(self, ctx):
 		raise base.Replace(CondDesc.fromColumn(base.resolveId(ctx, self.buildFrom,
 			instance=self), parent_=self.parent))
 
 	def replaceWithPredefined(self, ctx):
 		raise base.Replace(getCondDesc(self.predefined)(self.parent))
+
+	def expand(self, *args, **kwargs):
+		"""hands macro expansion requests (from phraseMakers) upwards.
+		"""
+		return self.parent.rd.expand(*args, **kwargs)
 
 	@property
 	def name(self):
@@ -123,12 +174,14 @@ class CondDesc(base.Structure):
 					", ".join(k.name for k in keysMissing)),
 				colName=keysMissing[0].name)
 
+	def makePhrase(self, inputKeys, inPars, outPars):
+		for ik in self.inputKeys:
+			yield vizierexprs.getSQL(ik, inPars, outPars)
+
 	def asSQL(self, inPars, sqlPars):
 		if self.silent:
 			return ""
-		res = []
-		for ik in self.inputKeys:
-			res.append(vizierexprs.getSQL(ik, inPars, sqlPars))
+		res = list(self.makePhrase(self.inputKeys, inPars, sqlPars))
 		sql = vizierexprs.joinOperatorExpr("AND", res)
 		if self.fixedSQL:
 			sql = vizierexprs.joinOperatorExpr("AND", [sql, self.fixedSQL])
