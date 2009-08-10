@@ -251,7 +251,8 @@ class NamePathAttribute(base.AtomicAttribute):
 				np = getattr(instance.parent, "namePath", None)
 			if np is None:
 				raise base.StructureError("No namePath here")
-			return base.resolveId(context, np+"."+id)
+			res = base.resolveId(context, np+"."+id)
+			return res
 		yield "resolveName", resolveName
 					
 	def parse(self, value):

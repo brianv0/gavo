@@ -124,7 +124,7 @@ class ErrorPage(ErrorPageDebug):
 
 	def getHTML(self, failure):
 		return (
-			"<h1>Internal Error</h1><p>An %s occurred.  The"
+			"<h1>Internal Error</h1><p>A(n) %s occurred.  The"
 			" accompanying message is: %s</p>"
 			"<p>If you are seeing this, it is always a bug in our code"
 			" or the data descriptions, and we would be extremely grateful"

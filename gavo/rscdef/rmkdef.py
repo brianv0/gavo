@@ -101,6 +101,7 @@ class MapRule(base.Structure):
 				re.sub("(?m)^", "  ", code), self.nullExcs, self.dest)
 		return code
 
+
 class VarDef(base.Structure):
 	"""A definition of a rowmaker variable.
 

@@ -53,6 +53,15 @@ def resolveComplexId(ctx, id, forceType=None):
 		pId, name))
 
 
+def _resolveOnNamepath(ctx, id, instance):
+	if hasattr(instance, "resolveName"):
+		return instance.resolveName(ctx, id)
+	if (instance and instance.parent and 
+			hasattr(instance.parent, "resolveName")):
+		return instance.parent.resolveName(ctx, id)
+	raise StructureError("No such name on name path: %s"%id)
+
+
 def resolveId(ctx, id, instance=None, forceType=None):
 	"""tries to resolve id in context.
 
@@ -66,9 +75,10 @@ def resolveId(ctx, id, instance=None, forceType=None):
 	with a "name" attribute valued name.  If this fails, raise a 
 	StructureError.
 
-	(#) if instance is not None, has a parent, and that parent has a resolveName
-	method, pass id to it.  If it does not raise a structure error, return the
-	result.  This is for parents with a rscdef.NamePathAttribute.
+	(#) if instance is not None and has a resolveName method or has a parent, and
+	that parent has a resolveName method, pass id to it.  If it does not raise a
+	structure error, return the result.  This is for parents with a
+	rscdef.NamePathAttribute.
 
 	(#) ask the ParseContext ctx's getById method to resolve id, not
 	catching the StructureError this will raise if the id is not known.
@@ -81,10 +91,9 @@ def resolveId(ctx, id, instance=None, forceType=None):
 	if "." in id:
 		return resolveComplexId(ctx, id, forceType)
 	srcOb = None
-	if (instance and instance.parent and 
-			hasattr(instance.parent, "resolveName")):
+	if instance is not None:
 		try:
-			srcOb = instance.parent.resolveName(ctx, id)
+			srcOb = _resolveOnNamepath(ctx, id, instance)
 		except StructureError:  # no such named element, try element with id
 			pass
 	if srcOb is None and ctx is not None:
@@ -140,7 +149,8 @@ class OriginalAttribute(attrdef.AtomicAttribute):
 			srcOb = resolveId(ctx, literal, instance, self.forceType)
 		else: # You can feed references programmatically if you like
 			srcOb = literal
-		instance._originalObject = srcOb
+		instance._originalObject = srcOb 
+		# XXX TODO: Check if copy() won't do it here
 		for att in set(srcOb.managedAttrs.values()):
 			if att.copyable:
 				if getattr(srcOb, att.name_) is not None:
@@ -196,12 +206,24 @@ class ParseContext(object):
 		self.idmap[elId] = value
 	
 	def getById(self, id, forceType=None):
+		"""returns the object last registred for id.
+
+		You probably want to use resolveId; getById does no namePath or
+		resource descriptor resolution.
+		"""
 		if id not in self.idmap:
 			raise StructureError("Reference to unknown item '%s'.  Note that"
 				" elements referenced must occur lexically before the referring"
 				" element"%id)
 		res = self.idmap[id]
 		return assertType(id, res, forceType)
+
+	def resolveId(self, id, instance=None, forceType=None):
+		"""returns the object referred to by the complex id.
+
+		See the resolveId function.
+		"""
+		return resolveId(self, id, instance, forceType)
 
 	def getLocator(self):
 		if hasattr(self, "parser") and hasattr(self.parser, "locator"):

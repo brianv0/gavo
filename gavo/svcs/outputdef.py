@@ -58,6 +58,21 @@ class OutputField(rscdef.Column):
 		return cls(None, **col.getAttributes(rscdef.Column)).finishElement()
 
 
+class ColRefListAttribute(base.StringListAttribute):
+	"""An attribute containing a comma separated list of column names.
+
+	They will be resolved using the same mechanism as original and friends,
+	i.e., namePaths count, and you can use hashes.
+	"""
+	def feed(self, ctx, instance, value):
+		self.feedObject(instance, [ctx.resolveId(name, instance=instance
+			).copy(parent=instance) for name in self.parse(value)])
+	
+	def getCopy(self, instance, newParent):
+		return [c.copy(parent=newParent)
+			for c in getattr(instance, self.name_)]
+	
+
 class OutputTableDef(rscdef.TableDef):
 	"""A table that has outputFields for columns.
 	"""
@@ -69,8 +84,14 @@ class OutputTableDef(rscdef.TableDef):
 	_verbLevel = base.IntAttribute("verbLevel", default=None,
 		description="Copy over columns from the core's output table not"
 			" more verbose than this.")
+	_autocols = ColRefListAttribute("autoCols", 
+		description="Column names for the output table; this is an abbreviation"
+		" for <column original='c1'/><column original='c2'/> etc.  The columns"
+		" will always be prepended to columns given in full.")
 
 	def completeElement(self):
+		if self.autoCols:
+			self.columns = rscdef.ColumnList(self.autoCols+self.columns)
 		# see if any Column objects were copied into our column and convert
 		# them to OutputFields
 		for col in self.columns:

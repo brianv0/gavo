@@ -398,8 +398,6 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 class FieldRef(base.Structure):
 	"""A reference to a column in a table definition using the table's
 	id and the column name.
-
-	A parent's namePath a
 	"""
 	name_ = "fieldRef"
 	_srcTable = base.ReferenceAttribute("table", forceType=TableDef,

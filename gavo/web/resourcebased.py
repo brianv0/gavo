@@ -720,8 +720,8 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 
 	def __init__(self, ctx, service):
 		grend.ServiceBasedRenderer.__init__(self, ctx, service)
-		if not service.staticData:# XXX TODO: FORBIDDEN
-			raise svcs.UnknownURI("No static data on this service") 
+		if not service.staticData:
+			raise svcs.ForbiddenURI("No static data on this service") 
 		if "static" in self.service.templates:
 			self.customTemplate = self.service.templates["static"]
 		self.basePath = os.path.join(service.rd.resdir,

@@ -47,7 +47,7 @@ class PhraseMaker(rscdef.ProcApp):
 	* inputKeys -- the list of input keys for the parent CondDesc
 	* inPars -- a dictionary mapping inputKey names to the values
 	  provided by the user
-	* sqlPars -- a dictionary that is later used as the parameter
+	* outPars -- a dictionary that is later used as the parameter
 	  dictionary to the query.
 	
 	To interpret the content of an inputKey as a vizier-like expression,
@@ -64,7 +64,7 @@ class PhraseMaker(rscdef.ProcApp):
 			vizierexprs.getSQLKey(ik.name, inPars[ik.name]-10, outPars),
 			vizierexprs.getSQLKey(ik.name, inPars[ik.name]+10, outPars))
 	
-	getSQLKeys will make sure unique names in outPars are chosen and
+	getSQLKey will make sure unique names in outPars are chosen and
 	enters the values there.
 	"""
 	name_ = "PhraseMaker"

@@ -42,6 +42,6 @@ if len(sys.argv)>1:
 	patchMySource(newIDs+builtinIDs)
 else:
 	for id in cachedIDs:
-		api.getRD(id)
 		print "%s,"%id,
 		sys.stdout.flush()
+		api.getRD(id)
