@@ -1,9 +1,2 @@
-In here is the gavo python module, containing functions and classes to deal
-with archives of astronomical data.
-
-This is the branch containing a rewrite of the parsing infrastructure.
-It was branched off trunk at r490.
-
-Last merge from trunk:
-
-svn merge -r490:494 https://svn.ari.uni-heidelberg.de/svn/gavo/python/trunk
+This is the root for GAVO's Data Center Helper Suite, a set of python
+modules.  See docs/

@@ -17,6 +17,11 @@ e.g. into functions or a query language.  Don't do any transformations
 in serious loops.
 """
 
+#c Copyright 2009 the GAVO Project.
+#c
+#c This program is free software, covered by the GNU AGPL.  See COPYING.
+
+
 import sys
 
 from gavo.stc.common import (STCError, STCSParseError, STCLiteralError,
@@ -36,8 +41,10 @@ if sys.version_info[1]>4:  # hardcore stc only from 2.5 upwards
 
 	from gavo.stc.stcxgen import astToStan, getSTCXProfile
 
+	def getSTCX(ast, rootElement):
+		return astToStan(ast, rootElement)
+
 from gavo.stc.times import (parseISODT, 
 	jYearToDateTime, dateTimeToJYear,
 	bYearToDateTime, dateTimeToBYear,
 	jdnToDateTime, dateTimeToJdn)
-

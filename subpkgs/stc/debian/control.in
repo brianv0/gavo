@@ -1,0 +1,18 @@
+Source: python-gavostc
+Maintainer: Markus Demleitner <gavo@ari.uni-heidelberg.de>
+Section: python
+Priority: optional
+Build-Depends: @cdbs@
+Standards-Version: 3.7.3.0
+Homepage: http://vo.ari.uni-heidelberg.de/docs/DaCHS
+
+Package: python-gavostc
+Architecture: any
+Depends: ${shlibs:Depends}, ${python:Depends}, python-pyparsing, python-numpy, python, python-pkg-resources, python-gavoutils
+Conflicts: gavodachs
+Provides: ${python:Provides}
+Description: IVOA STC library
+ .
+ A library to handle space-time information within the Virtual Observatory
+ according to the IVOA STC recommendation.
+

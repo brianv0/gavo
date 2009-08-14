@@ -464,7 +464,7 @@ def getBinaryName(baseName):
 def main():
 	try:
 		if len(sys.argv)==1:
-			print fancyconfig.makeTxtDocs(_config)
+			print fancyconfig.makeTxtDocs(_config, underlineChar="'")
 		elif len(sys.argv)==2:
 			print get(sys.argv[1])
 		elif len(sys.argv)==3:

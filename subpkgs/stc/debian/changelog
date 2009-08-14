@@ -1,0 +1,23 @@
+python-gavostc (0.3-4) stable; urgency=low
+
+  * tests no longer depend on gavo.base unless they need to.
+
+ -- Markus Demleitner <gavo@ari.uni-heidelberg.de>  Fri, 14 Aug 2009 16:39:16 +0200
+
+python-gavostc (0.3-3) stable; urgency=low
+
+  * No longer a namespace package (didn't seem to work).
+
+ -- Markus Demleitner <gavo@ari.uni-heidelberg.de>  Fri, 14 Aug 2009 16:29:20 +0200
+
+python-gavostc (0.3-2) stable; urgency=low
+
+  * Fixed packaging by removing ez_setup.py
+
+ -- Markus Demleitner <gavo@ari.uni-heidelberg.de>  Fri, 14 Aug 2009 15:15:19 +0200
+
+python-gavostc (0.3-1) stable; urgency=low
+
+  * Initial debian package
+
+ -- Markus Demleitner <gavo@ari.uni-heidelberg.de>  Wed, 12 Aug 2009 16:09:17 +0200

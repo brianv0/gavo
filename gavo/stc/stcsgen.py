@@ -9,6 +9,11 @@ updated to the current node's dictionary, or a tuple of key and value,
 which is then added to the current dictionary.
 """
 
+#c Copyright 2009 the GAVO Project.
+#c
+#c This program is free software, covered by the GNU AGPL.  See COPYING.
+
+
 import itertools
 import pprint
 

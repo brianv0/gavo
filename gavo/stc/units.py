@@ -19,6 +19,10 @@ unfortunately don't cut it here since conversion from wavelength to
 frequency needs division of the value.
 """
 
+#c Copyright 2009 the GAVO Project.
+#c
+#c This program is free software, covered by the GNU AGPL.  See COPYING.
+
 from itertools import *
 import math
 

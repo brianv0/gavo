@@ -1,1 +1,7 @@
-A machinery for generating (namespace-) subpackages.
+A machinery for generating (namespace-) subpackages.   Read and edit 
+subsetup.py to include new subpackages.
+
+It would have been nice to let these things be built as namespace
+packages, but there seem to be bugs in building debian packages out
+of those as of lenny.  So, ship gavo/__init__.py in gavoutils and
+let everything else depend on it.

@@ -62,7 +62,7 @@ class FileProcessor(object):
 			pass
 
 	def printReport(self, processed, ignored):
-		print "\n\nProcessor Report\n==============\n"
+		print "\n\nProcessor Report\n================\n"
 		if ignored:
 			print "Warning: There were %d errors during classification"%ignored
 		repData = zip(self.reportDict.values(), self.reportDict.keys())

@@ -2,6 +2,8 @@
 
 # ** ARI-Location: alnilam:/data/gavo/inputs/rauchspectra/bin/uploadspec.py
 
+VERSION = "2009-08-11"
+
 """
 This is a little python script that uploads records (i.e., text files) to
 the GAVO site.

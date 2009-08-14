@@ -2,6 +2,10 @@
 A small user interface for testing STC.
 """
 
+#c Copyright 2009 the GAVO Project.
+#c
+#c This program is free software, covered by the GNU AGPL.  See COPYING.
+
 import sys
 import textwrap
 
@@ -16,11 +20,16 @@ def cmd_resprof(opts, srcSTCS):
 
 
 def cmd_parseX(opts, srcFile):
-	"""<srcFile> -- read STC-X from srcFile and output it as STC-S.
+	"""<srcFile> -- read STC-X from srcFile and output it as STC-S, - for stdin
 	"""
-	asf = stc.parseSTCX(open(srcFile).read())
+	if srcFile=="-":
+		src = sys.stdin
+	else:
+		src = open(srcFile)
+	asf = stc.parseSTCX(src.read())
+	src.close()
 	print "\n\n====================\n\n".join(stc.getSTCS(ast)
-		for ast in asf)
+		for _, ast in asf)
 		
 
 
@@ -30,6 +39,7 @@ def cmd_conform(opts, srcSTCS, dstSTCS):
 	ast0, ast1 = stc.parseSTCS(srcSTCS), stc.parseSTCS(dstSTCS)
 	res = stc.conformTo(ast0, ast1)
 	print stc.getSTCS(res)
+
 
 def makeParser():
 	from optparse import OptionParser
@@ -45,18 +55,18 @@ _cmdArgParser = makeParser()
 def cmd_help(opts):
 	""" -- outputs help to stdout.
 	"""
-	_cmdArgParser.print_help(file=sys.stderr)
-	sys.stderr.write("\nCommands include:\n")
+	_cmdArgParser.print_help(file=sys.stdout)
+	sys.stdout.write("\nCommands include:\n")
 	for name in globals():
 		if name.startswith("cmd_"):
-			sys.stderr.write("%s %s\n"%(name[4:], 
+			sys.stdout.write("%s %s\n"%(name[4:], 
 				globals()[name].__doc__.strip()))
 	
 
 def parseArgs():
 	opts, args = _cmdArgParser.parse_args()
 	if not args:
-		cmd_help(opts)
+		_cmdArgParser.print_help(file=sys.stderr)
 		sys.exit(1)
 	return opts, args[0], args[1:]
 

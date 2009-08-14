@@ -2,6 +2,11 @@
 Transformation of STC-S CSTs to STC ASTs.
 """
 
+#c Copyright 2009 the GAVO Project.
+#c
+#c This program is free software, covered by the GNU AGPL.  See COPYING.
+
+
 from gavo.stc import dm
 from gavo.stc import stcs
 from gavo.stc.common import *

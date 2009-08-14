@@ -3,9 +3,11 @@ Tests for handling ivoa stc specifications.
 """
 
 import datetime
+import re
 import unittest
 
 from gavo import stc
+from gavo.stc import cli
 from gavo.stc import dm
 from gavo.stc import stcs
 from gavo.stc import stcsast
@@ -491,5 +493,46 @@ class EclipticEquinoxTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.place.frame.equinox, "J2000.0")
 
 
+def _purgeIds(stcx):
+	return re.sub('(frame_|coord_system_)?id="[^"]*"', '', stcx)
+
+
+class CLITest(testhelpers.VerboseTest):
+	"""tests for working cli.
+
+	This assumes the package has been installed.
+	"""
+	def testHelpOpt(self):
+		self.assertOutput(cli.main, [], 
+			expectedStderr=lambda err: "Use command 'help' to see" in err,
+			expectedRetcode=1)
+
+	def testHelpCmd(self):
+		self.assertOutput(cli.main, ["help"], 
+			lambda out: "Commands include" in out)
+
+	baseResprof = '<STCResourceProfile xmlns="http://www.ivoa.net/xml/STC/stc-v1.30.xsd" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ivoa.net/xml/STC/stc-v1.30.xsd http://vo.ari.uni-heidelberg.de/docs/schemata/stc-v1.30.xsd http://www.w3.org/1999/xlink http://vo.ari.uni-heidelberg.de/docs/schemata/xlink.xsd"><AstroCoordSystem id="thenmtl"><SpaceFrame id="thendil"><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea coord_system_id="thenmtl"><Circle frame_id="thendil" unit="deg"><Center><C1>10.0</C1><C2>10.0</C2></Center><Radius>4.0</Radius></Circle></AstroCoordArea></STCResourceProfile>\n'
+	def testResprofGood(self):
+		self.assertOutput(cli.main, ["resprof", "Circle ICRS 10 10 4"],
+			lambda res: _purgeIds(self.baseResprof)==_purgeIds(res)) 
+
+	def testResprofError(self):
+		self.assertOutput(cli.main, ["resprof", "Circle ICRS 10 10 quatsch"],
+			expectedRetcode=1, expectedStderr="STCS expression 'Circle ICRS 10 10 quatsch' bad somewhere after 18\n  (Invalid STCS expression (Expected end of text at 18))\n")
+			
+	def testParseX(self):
+		self.assertOutput(cli.main, ["parseX", "-"], input=self.baseResprof,
+			expectedStdout="Circle ICRS 10.0 10.0 4.0\n")
+
+	def testConform(self):
+		self.assertOutput(cli.main, ["conform", 
+				"Position GALACTIC 3 4 VelocityInterval Velocity 0.01 -0.002"
+				" unit deg/cy",
+				"Position FK5"],
+			expectedStdout="Position FK5 264.371974024 -24.2795040403"
+				" VelocityInterval Velocity 0.00768930497899 0.00737459624525"
+				" unit deg/cy\n")
+
+
 if __name__=="__main__":
-	testhelpers.main(STCSRoundtripTest)
+	testhelpers.main(CLITest)
