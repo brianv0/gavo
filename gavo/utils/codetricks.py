@@ -3,6 +3,10 @@ Functions dealing with compilation and introspection of python and
 external code.
 """
 
+#c Copyright 2009 the GAVO Project.
+#c
+#c This program is free software, covered by the GNU GPL.  See COPYING.
+
 import compiler
 import compiler.ast
 import imp

@@ -11,11 +11,11 @@ For a global installation, say::
 or similar.
 
 Using setuptools for a direct installation should only be an emergency
-solution.  Signed packages for debian stable in an apt repository are available
-at http://vo.ari.uni-heidelberg.de/debian.
+solution.  
 
-The packages are signed with the key at XXX, the fingerprint of which should
-be YYY.
+Signed packages for debian stable in an apt repository are available.
+See 
+http://vo.ari.uni-heidelberg.de/docs/DaCHS/install.html#adding-the-gavo-repository
 
 
 For a private installation, we recommend using a "virtual python".  See

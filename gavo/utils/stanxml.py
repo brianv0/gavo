@@ -2,6 +2,10 @@
 A stan-like model for building namespaced XML trees.
 """
 
+#c Copyright 2009 the GAVO Project.
+#c
+#c This program is free software, covered by the GNU GPL.  See COPYING.
+
 try:
 	from xml.etree import ElementTree
 except ImportError:

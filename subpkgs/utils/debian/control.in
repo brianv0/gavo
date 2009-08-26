@@ -7,7 +7,7 @@ Standards-Version: 3.7.3.0
 Homepage: http://vo.ari.uni-heidelberg.de/docs/DaCHS
 
 Package: python-gavoutils
-Architecture: any
+Architecture: all
 Depends: ${shlibs:Depends}, ${python:Depends}, python-pyparsing, python-numpy, python, python-pkg-resources, python-pyfits
 Provides: ${python:Provides}
 Description: VO support packages

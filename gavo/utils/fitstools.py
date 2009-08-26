@@ -2,6 +2,10 @@
 Some utility functions to deal with fits files.
 """
 
+#c Copyright 2009 the GAVO Project.
+#c
+#c This program is free software, covered by the GNU GPL.  See COPYING.
+
 import tempfile
 import os
 import sys

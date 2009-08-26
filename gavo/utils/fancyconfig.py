@@ -41,6 +41,10 @@ For examples of how this is used, see pftf (http://www.tfiu.de/pftf)
 or pysmap (link coming up).
 """
 
+#c Copyright 2008, 2009 Markus Demleitner <msdemlei@users.sf.net>
+#c
+#c This program is free software, covered by the GNU GPL.  See COPYING.
+
 import ConfigParser
 import re
 import os

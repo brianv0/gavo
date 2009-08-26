@@ -14,7 +14,7 @@ than trees (e.g., coordinate frames usually have multiple parents).
 
 #c Copyright 2009 the GAVO Project.
 #c
-#c This program is free software, covered by the GNU AGPL.  See COPYING.
+#c This program is free software, covered by the GNU GPL.  See COPYING.
 
 
 import itertools

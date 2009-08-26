@@ -4,7 +4,7 @@ A small user interface for testing STC.
 
 #c Copyright 2009 the GAVO Project.
 #c
-#c This program is free software, covered by the GNU AGPL.  See COPYING.
+#c This program is free software, covered by the GNU GPL.  See COPYING.
 
 import sys
 import textwrap

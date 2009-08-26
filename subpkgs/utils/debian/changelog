@@ -1,3 +1,9 @@
+python-gavoutils (0.3-5) stable; urgency=low
+
+  * New upstream version
+
+ -- Markus Demleitner <gavo@ari.uni-heidelberg.de>  Tue, 25 Aug 2009 13:35:50 +0200
+
 python-gavoutils (0.3-4) stable; urgency=low
 
   * Still more de-namespacifying.
