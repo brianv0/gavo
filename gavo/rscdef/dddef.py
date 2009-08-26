@@ -46,6 +46,7 @@ class IgnoreSpec(base.Structure):
 		itemAttD=base.UnicodeAttribute("pattern", description="Shell pattern"
 			" for source file(s), relative to resource directory."),
 		copyable=True)
+	_rd = common.RDAttribute()
 
 	def prepare(self, connection=None):
 		"""sets attributes to speed up isIgnored()
@@ -60,7 +61,7 @@ class IgnoreSpec(base.Structure):
 			except base.DBError: # table probably doesn't exist yet.
 				pass
 		if self.fromfile:
-			for ln in open(fromfile):
+			for ln in open(self.fromfile):
 				ln = ln.strip()
 				if ln and not ln.startswith("#"):
 					self.ignoredSet.add(ln)

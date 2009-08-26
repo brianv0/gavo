@@ -8,6 +8,7 @@ a good idea to use the event mechanism here.
 import os
 import shutil
 import sys
+import textwrap
 
 from gavo import base
 from gavo import utils
@@ -50,7 +51,7 @@ class FileProcessor(object):
 	
 	def addClassification(self, fName):
 		label = self.classify(fName)
-		self.reportDict[label] = self.reportDict.get(label, 0)+1
+		self.reportDict.setdefault(label, []).append(os.path.basename(fName))
 
 	def printTableSize(self):
 		try:
@@ -65,9 +66,25 @@ class FileProcessor(object):
 		print "\n\nProcessor Report\n================\n"
 		if ignored:
 			print "Warning: There were %d errors during classification"%ignored
-		repData = zip(self.reportDict.values(), self.reportDict.keys())
+		repData = zip(map(len, self.reportDict.values()), self.reportDict.keys())
 		repData.sort()
 		print utils.formatSimpleTable(repData)
+		print "\n"
+		self.printTableSize()
+
+	def printVerboseReport(self, processed, ignored):
+		print "\n\nProcessor Report\n================\n"
+		if ignored:
+			print "Warning: There were %d errors during classification"%ignored
+		repData = zip(self.reportDict.values(), self.reportDict.keys())
+		repData.sort(key=lambda v: -len(v[0]))
+		print "\n%s\n%s\n"%(repData[0][1], "-"*len(repData[0][1]))
+		print "%d items\n"%(len(repData[0][0]))
+		for items, label in repData[1:]:
+			print "\n%s\n%s\n"%(label, "-"*len(label))
+			items.sort()
+			print "%d items:\n"%(len(items))
+			print "\n".join(textwrap.wrap(", ".join(items)))
 		print "\n"
 		self.printTableSize()
 
@@ -80,6 +97,8 @@ class FileProcessor(object):
 			default=False)
 		parser.add_option("--report", help="Output a report only",
 			action="store_true", dest="doReport", default=False)
+		parser.add_option("--verbose", help="Be more talkative",
+			action="store_true", dest="beVerbose", default=False)
 
 	def _runProcessor(self, procFunc):
 		processed, ignored = 0, 0
@@ -113,7 +132,10 @@ class FileProcessor(object):
 			procFunc = self.process
 		processed, ignored = self._runProcessor(procFunc)
 		if self.opts.doReport:
-			self.printReport(processed, ignored)
+			if self.opts.beVerbose:
+				self.printVerboseReport(processed, ignored)
+			else:
+				self.printReport(processed, ignored)
 		return processed, ignored
 
 
@@ -361,6 +383,9 @@ def procmain(processorClass, rdId, ddId):
 	parser = optparse.OptionParser()
 	processorClass.addOptions(parser)
 	opts, args = parser.parse_args()
+	if args:
+		parser.print_help()
+		sys.exit(1)
 	proc = processorClass(opts, dd)
 	processed, ignored = proc.processAll()
 	print "%s files processed, %s files with errors"%(processed, ignored)

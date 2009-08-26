@@ -75,7 +75,7 @@ ratio_toprint 1000
 ratio_tokeep 1e+09
 ratio_tosolve 1e+09
 ratio_tobail 1e-100
-tweak on
+tweak off
 tweak_aborder 3
 tweak_abporder 3
 tweak_skipshift
@@ -114,6 +114,7 @@ def _runShellCommand(cmd, args):
 	proc = subprocess.Popen(cmdline, shell=True, stdout=subprocess.PIPE,
 		stderr=subprocess.STDOUT)
 	msg = proc.communicate()[0]
+	print ">>>>>>>>>>>>", proc.returncode
 	if proc.returncode==2:
 		raise KeyboardInterrupt("Child was siginted")
 	elif proc.returncode:
