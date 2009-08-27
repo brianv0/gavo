@@ -139,7 +139,7 @@ def drop(opts, rdId):
 	connection = base.getDBConnection("admin")
 	for dd in rd.dds:
 		res = rsc.Data.create(dd, connection=connection).dropTables()
-	from gavo.protocols import servicelist
+	from gavo.registry import servicelist
 	servicelist.cleanServiceTablesFor(rd.sourceId, connection)
 	connection.commit()
 

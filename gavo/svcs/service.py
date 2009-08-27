@@ -442,7 +442,13 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			 base.getConfig("web", "nevowRoot"),
 				self.rd.sourceId, "/", self.id, "/", renderer, qSep])
 		return "".join(elements)
-	
+
+	def getIDKey(self):
+		"""returns a "local part" for the IVOA identifier for this
+		service.
+		"""
+		return "%s/%s"%(self.rd.sourceId, self.id)
+
 	def _meta_referenceURL(self):
 		return meta.MetaItem(meta.makeMetaValue(self.getURL("info"),
 			type="link", title="Service info"))

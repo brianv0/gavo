@@ -31,9 +31,10 @@ from gavo import base
 from gavo.base import meta
 from gavo.base import sqlsupport
 from gavo.base import typesystems
-from gavo.protocols import servicelist
-from gavo.protocols import staticresource
-from gavo.protocols.registrymodel import (OAI, VOR, VOG, DC, RI, VS, 
+from gavo.registry import servicelist
+from gavo.registry import staticresource
+from gavo.registry.common import *
+from gavo.registry.model import (OAI, VOR, VOG, DC, RI, VS, 
 	SIA, SCS, OAIDC)
 from gavo.utils.stanxml import encoding
 
@@ -46,54 +47,9 @@ supportedMetadataPrefixes = [
 		"http://www.ivoa.net/xml/RegistryInterface/v1.0"),
 ]
 
-class OAIError(base.Error):
-	"""is one of the standard OAI errors.
-	"""
-
-class BadArgument(OAIError): pass
-class BadResumptionToken(OAIError): pass
-class BadVerb(OAIError): pass
-class CannotDisseminateFormat(OAIError): pass
-class IdDoesNotExist(OAIError): pass
-class NoRecordsMatch(OAIError): pass
-class NoMetadataFormats(OAIError): pass
-class NoSetHierarchy(OAIError): pass
 
 
 _isoTimestampFmt = "%Y-%m-%dT%H:%M:%SZ"
-
-
-def computeIdentifier(resource):
-	"""returns an identifier for resource.
-
-	resource can either be a StaticResource instance, a Service instance
-	or a dictionary containing a record from the service table.
-	"""
-	if isinstance(resource, dict):
-		if (resource["sourceRd"]=="<static resource>" or 
-				resource["sourceRd"]==servicelist.rdId):
-			reskey = "static/%s"%resource["internalId"]
-		else:
-			reskey = "%s/%s"%(resource["sourceRd"], resource["internalId"])
-	elif isinstance(resource, staticresource.StaticResource):
-		reskey = "static/%s"%resource.id
-	else:
-		reskey = "%s/%s"%(resource.rd.sourceId, resource.id)
-	return "ivo://%s/%s"%(base.getConfig("ivoa", "authority"), reskey)
-
-
-def parseIdentifier(identifier):
-	"""returns a pair of authority, resource key for identifier.
-
-	Identifier has to be an ivo URI.
-
-	In the context of the gavo DC, the resource key either starts with
-	static/ or consists of an RD id and a service ID.
-	"""
-	mat = re.match("ivo://(\w[^!;:@%$,/]+)/(.*)", identifier)
-	if not mat:
-		raise IdDoesNotExist(identifier)
-	return mat.group(1), mat.group(2)
 
 
 def getRegistryURL():
@@ -112,7 +68,7 @@ def getServiceRecForIdentifier(identifier):
 	"""
 	authority, resKey = parseIdentifier(identifier)
 	if resKey.startswith("static/"):
-		sourceRd = servicelist.rdId
+		sourceRd = SERVICELIST_ID
 		internalId = resKey[len("static/"):]
 	else:
 		parts = resKey.split("/")

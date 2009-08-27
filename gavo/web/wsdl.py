@@ -11,7 +11,7 @@ from ZSI import TC
 
 from gavo import base
 from gavo.base import valuemappers
-from gavo.protocols import registry
+from gavo import registry
 from gavo.utils.stanxml import Element, XSINamespace
 from gavo.utils import ElementTree
 

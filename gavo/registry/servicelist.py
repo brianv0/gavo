@@ -16,9 +16,9 @@ from gavo import grammars
 from gavo import rsc
 from gavo import rscdef
 from gavo import svcs
-from gavo.protocols import staticresource
+from gavo.registry import staticresource
+from gavo.registry.common import *
 
-from gavo.protocols.staticresource import rdId
 
 # XXX TODO: Refactor -- there's grammar-type, servicelist querying, and
 # command line stuff in here that should each go in a separate module.
@@ -154,11 +154,11 @@ _staticRscGrammar = base.makeStruct(StaticRscGrammar)
 
 
 def cleanServiceTablesFor(targetRDId, connection):
-	"""deletes all entries coming from rdId in the service tables.
+	"""deletes all entries coming from SERVICELIST_ID in the service tables.
 	"""
 # XXX TODO: think about script type="newSource" for this kind of situation
 # -- or do we want a special mechanism similar to owningCondition of old?
-	for td in base.caches.getRD(rdId).getById("tables"):
+	for td in base.caches.getRD(SERVICELIST_ID).getById("tables"):
 		rsc.TableForDef(td, connection=connection).deleteMatching(
 			"sourceRD=%(sourceRD)s", {"sourceRD": targetRDId})
 
@@ -168,7 +168,7 @@ def updateServiceList(rds, metaToo=False):
 	"""
 	parseOptions = rsc.getParseOptions(validateRows=True, batchSize=20)
 	connection = base.getDBConnection("admin")
-	dd = base.caches.getRD(rdId).getById("tables")
+	dd = base.caches.getRD(SERVICELIST_ID).getById("tables")
 	dd.grammar = _svcRscGrammar
 	for rd in rds:
 		if rd.sourceId.startswith("/"):
@@ -185,9 +185,9 @@ def updateServiceList(rds, metaToo=False):
 
 def importFixed():
 	connection = base.getDBConnection("admin")
-	dd = base.caches.getRD(rdId).getById("tables")
+	dd = base.caches.getRD(SERVICELIST_ID).getById("tables")
 	dd.grammar = _staticRscGrammar
-	cleanServiceTablesFor(rdId, connection)
+	cleanServiceTablesFor(SERVICELIST_ID, connection)
 	rsc.makeData(dd, forceSource=object, parseOptions=rsc.parseValidating,
 		connection=connection)
 	connection.commit()
@@ -199,7 +199,7 @@ def getShortNamesForSets(queriedSets):
 	"""returns the list of service shortNames that are assigned to any of
 	the set names mentioned in the list queriedSets.
 	"""
-	tableDef = base.caches.getRD(rdId).getById("srv_sets")
+	tableDef = base.caches.getRD(SERVICELIST_ID).getById("srv_sets")
 	table = rsc.TableForDef(tableDef)
 	destTableDef = rscdef.TableDef(None, columns=[tableDef.getColumnByName(
 		"shortName")])
@@ -211,7 +211,7 @@ def getShortNamesForSets(queriedSets):
 def getSetsForService(shortName):
 	"""returns the list of set names the service shortName belongs to.
 	"""
-	tableDef = base.caches.getRD(rdId).getById("srv_sets")
+	tableDef = base.caches.getRD(SERVICELIST_ID).getById("srv_sets")
 	table = rsc.TableForDef(tableDef)
 	destTableDef = base.makeStruct(rscdef.TableDef,
 		columns=[tableDef.getColumnByName("setName")])
@@ -224,7 +224,7 @@ def getSets():
 	"""returns a sequence of dicts giving setName and and a list of
 	services belonging to that set.
 	"""
-	tableDef = base.caches.getRD(rdId).getById("srv_sets")
+	tableDef = base.caches.getRD(SERVICELIST_ID).getById("srv_sets")
 	table = rsc.TableForDef(tableDef)
 	setMembers = {}
 	for rec in table:
@@ -240,7 +240,7 @@ def queryServicesList(whereClause="", pars={}, tableName="srv_join"):
 	The table queried is the srv_join view, and you'll get back all
 	fields defined there.
 	"""
-	td = base.caches.getRD(rdId).getById(tableName)
+	td = base.caches.getRD(SERVICELIST_ID).getById(tableName)
 	otd = svcs.OutputTableDef.fromTableDef(td)
 	table = rsc.TableForDef(td)
 	return [r for r in table.iterQuery(otd, whereClause, pars)]
@@ -253,7 +253,7 @@ def querySubjectsList():
 	"""returns a list of local services chunked by subjects.
 	"""
 	svcsForSubjs = {}
-	td = base.caches.getRD(rdId).getById("srv_subjs_join")
+	td = base.caches.getRD(SERVICELIST_ID).getById("srv_subjs_join")
 	otd = svcs.OutputTableDef.fromTableDef(td)
 	for row in rsc.TableForDef(td).iterQuery(otd, ""):
 		svcsForSubjs.setdefault(row["subject"], []).append(row)
@@ -279,7 +279,7 @@ def getResourceForRec(rec):
 	of StaticResource.
 	"""
 	sourceRd, internalId = rec["sourceRd"], rec["internalId"]
-	if sourceRd==rdId:
+	if sourceRd==SERVICELIST_ID:
 		return staticresource.loadStaticResource(internalId)
 	else:
 		return base.caches.getRD(sourceRd).serviceIndex[internalId]

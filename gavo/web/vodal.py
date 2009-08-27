@@ -21,7 +21,7 @@ from gavo import rsc
 from gavo import svcs
 from gavo.imp import formal
 from gavo.imp.VOTable import DataModel as VOTable
-from gavo.protocols import registry
+from gavo.registry import registry
 from gavo.utils import ElementTree
 from gavo.web import grend
 from gavo.web import resourcebased
@@ -307,7 +307,7 @@ class RegistryRenderer(grend.ServiceBasedRenderer):
 		Contrary to the recommendation in the OAI-PMH spec, this will only
 		return one error at a time.
 		"""
-		from gavo.protocols.registrymodel import OAI
+		from gavo.registry.model import OAI
 
 		if isinstance(exception, registry.OAIError):
 			code = exception.__class__.__name__

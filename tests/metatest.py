@@ -9,7 +9,7 @@ from gavo import api
 from gavo import base
 from gavo.base import meta
 from gavo.web import common as webcommon
-from gavo.protocols import registry
+from gavo.registry import registry
 
 import testhelpers
 
