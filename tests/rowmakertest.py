@@ -31,6 +31,7 @@ def makeDD(tableCode, rowmakerCode):
 	td = dd.getTableDefById("foo")
 	return dd, td
 
+
 class RowmakerDefTest(testhelpers.VerboseTest):
 	"""tests for some aspects of creation of rowmaker definitions.
 	"""
@@ -147,6 +148,13 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({'foo': 2, 'bar': 2}),
 			{'foo': 1, 'bar':2})
+
+	def testIdmapsAndNull(self):
+		dd, td = makeDD('<column name="foo" type="text"/>',
+			'<map dest="foo">parseWithNull(foo, str, "None")</map><idmaps>*</idmaps>')
+		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
+		self.assertEqual(mapper({'foo': "None"}), {'foo': None})
+		self.assertEqual(mapper({'foo': "123"}), {'foo': "123"})
 
 
 class ApplyTest(testhelpers.VerboseTest):
@@ -266,4 +274,4 @@ class PredefinedTest(testhelpers.VerboseTest):
 			[{'y': u'right', 'x': u'bar'}])
 
 if __name__=="__main__":
-	testhelpers.main(PredefinedTest)
+	testhelpers.main(RowmakerMapTest)

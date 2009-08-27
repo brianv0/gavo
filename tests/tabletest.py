@@ -2,12 +2,15 @@
 Tests for rsc.XTable
 """
 
-import testhelpers
+import datetime
+
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
 from gavo import svcs
+
+import testhelpers
 
 
 class MemoryPrimaryKeyTest(testhelpers.VerboseTest):
@@ -245,7 +248,48 @@ class DBTableQueryTest(testhelpers.VerboseTest):
 		res = rsc.makeTableForQuery(self.data.tables["xy"], resdef, 
 			"x=%(x)s", {"x":9})
 		self.assertEqual(len(res.rows), 2)
+
+
+class FixupTest(testhelpers.VerboseTest):
+	"""tests for column fixup attributes.
+	"""
+	def testInvalidFixup(self):
+		self.assertRaisesWithMsg(base.LiteralParseError, 
+			"'9m+5s' is not correct python syntax", base.parseFromString,
+			(rscdef.TableDef, 
+			'<table id="test"><column name="ab" fixup="9m+5s"/></table>'))
 	
+	def testSimpleFixup(self):
+		td = base.parseFromString(rscdef.TableDef, 
+			'<table id="test" onDisk="True" temporary="True">'
+			'<column name="ab" type="text" fixup="\'ab\'+___"/></table>')
+		t = rsc.TableForDef(td, rows=[{"ab": "xy"}, {"ab": "zz"}])
+		try:
+			self.assertEqual(
+				list(t.iterQuery(svcs.OutputTableDef.fromTableDef(td), "")),
+				[{u'ab': u'abxy'}, {u'ab': u'abzz'}])
+		finally:
+			t.drop()
+			t.close()
+
+	def testMultiFixup(self):
+		td = base.parseFromString(rscdef.TableDef, 
+			'<table id="testMulti" onDisk="True" temporary="True">'
+			'<column name="ab" type="date"'
+			' fixup="___+datetime.timedelta(days=1)"/>'
+			'<column name="x" type="integer" fixup="___-2"/></table>')
+		t = rsc.TableForDef(td, rows=[
+			{"ab": datetime.date(2002, 2, 2), "x": 14}, 
+			{"ab": datetime.date(2002, 2, 3), "x": 15}])
+		try:
+			self.assertEqual(
+				list(t.iterQuery(svcs.OutputTableDef.fromTableDef(td), "")), [
+					{u'x': 12, u'ab': datetime.date(2002, 2, 3)}, 
+					{u'x': 13, u'ab': datetime.date(2002, 2, 4)}])
+		finally:
+			t.drop()
+			t.close()
+
 
 if __name__=="__main__":
-	testhelpers.main(DBTableTest)
+	testhelpers.main(FixupTest)

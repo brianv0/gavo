@@ -263,5 +263,6 @@ class DataDescTest(testhelpers.VerboseTest):
 		self.failUnless(dd.sources.ignoredSources.isIgnored("/bafooga/kafobar"))
 		self.failUnless(dd.sources.ignoredSources.isIgnored("baga/kafobar.foo"))
 
+
 if __name__=="__main__":
 	testhelpers.main(DataDescTest)

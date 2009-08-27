@@ -346,7 +346,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 				tableDef.getColumnByName(map.dest)
 			except KeyError:
 				raise base.LiteralParseError("Cannot map to '%s' since it does"
-					" not exist in %s"%(self.dest, tableDef.id), self.name_, self.dest)
+					" not exist in %s"%(map.dest, tableDef.id), self.name_, self.dest)
 
 	def _buildForTable(self, tableDef):
 		"""returns a RowmakerDef with everything expanded and checked for

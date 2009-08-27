@@ -181,6 +181,8 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		"""adds foreign key constraints if necessary.
 		"""
 		for fk in self.tableDef.foreignKeys:
+			if not self.tableDef.system:
+				base.ui.notifyIndexCreation(fk.getDescription())
 			fk.create(self)
 	
 	def _dropForeignKeys(self):

@@ -6,6 +6,7 @@ import re
 import warnings
 
 from gavo import base
+from gavo import utils
 from gavo.base import typesystems
 from gavo.base.attrdef import *
 
@@ -279,6 +280,13 @@ class Column(base.Structure):
 		" presented in verbose table descriptions.", copyable=True)
 	_longmime = UnicodeAttribute("longmime", 
 		description="Mime type for longdescr.", copyable=True)
+	_fixup = UnicodeAttribute("fixup", description=
+		"A python expression the value of which will replace this column's"
+		" value on database reads.  Write a ___ to access the original"
+		' value.  This is for, e.g., URL fixups (fixup="\'http://foo.bar\'+___").'
+		' It will *only* kick in when tuples are deserialized from the'
+		" database, i.e., *not* for values taken from tables in memory.",
+		default=None, copyable=True)
 	_properties = base.PropertyAttribute()
 	_original = base.OriginalAttribute()
 
@@ -292,6 +300,8 @@ class Column(base.Structure):
 		self._validateNext(Column)
 		if not IDENTIFIER_PATTERN.match(self.name):
 			raise base.StructureError("'%s' is not a valid column name"%self.name)
+		if self.fixup is not None:
+			utils.ensureExpression(self.fixup, "fixup")
 
 	def validateValue(self, value):
 		"""raises a ValidationError if value does not match the constraints

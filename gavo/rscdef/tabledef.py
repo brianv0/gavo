@@ -13,6 +13,7 @@ from gavo.rscdef import column
 from gavo.rscdef import common
 from gavo.rscdef import macros
 from gavo.rscdef import mixins
+from gavo.rscdef import rmkfuncs
 from gavo.rscdef import rowtriggers
 from gavo.rscdef import scripting
 
@@ -113,6 +114,10 @@ class ForeignKey(base.Structure):
 			" belonging to its key.  No checks for their existence, uniqueness,"
 			" etc. are done here.  If not given, defaults to source.")
 
+	def getDescription(self):
+		return "%s -> %s:%s"%(",".join(self.source), self.table, 
+			".".join(self.dest))
+
 	def _parseList(self, raw):
 		return [s.strip() for s in raw.split(",") if s.strip()]
 
@@ -198,6 +203,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 
 	validWaypoints = set(["preIndex", "preIndexSQL", "viewCreation", 
 		"afterDrop"])
+	fixupFunction = None
 
 	def __iter__(self):
 		return iter(self.columns)
@@ -218,6 +224,25 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 			self.id = hex(id(self))[2:]
 		self._completeElementNext(TableDef)
 
+	def _defineFixupFunction(self):
+		"""defines a function to fix up records from column's fixup attributes.
+
+		This will leave a fixupFunction attribute which will be None if
+		no fixups are defined.
+		"""
+		fixups = []
+		for col in self:
+			if col.fixup is not None:
+				fixups.append((col.name, col.fixup))
+		if fixups:
+			assignments = []
+			for key, expr in fixups:
+				expr = expr.replace("___", "row['%s']"%key)
+				assignments.append("  row['%s'] = %s"%(key, expr))
+			self.fixupFunction = rmkfuncs.makeProc("fixup",
+				"def fixup(row):\n%s\n  return row"%("\n".join(assignments)),
+				"", None)
+
 	def onElementComplete(self):
 		if self.adql:
 			self.readRoles = self.readRoles | base.getConfig("db", "adqlRoles")
@@ -234,6 +259,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 					self.indexedColumns.add(col)
 		if self.primary:
 			self.indexedColumns |= set(self.primary)
+		self._defineFixupFunction()
 		self._onElementCompleteNext(TableDef)
 
 	def hackMixinsAfterMakeStruct(self):
@@ -349,7 +375,10 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 	def makeRowFromTuple(self, dbTuple):
 		"""returns a row (dict) from a row as returned from the database.
 		"""
-		return dict(itertools.izip(self.dictKeys, dbTuple))
+		preRes = dict(itertools.izip(self.dictKeys, dbTuple))
+		if self.fixupFunction:
+			return self.fixupFunction(preRes)
+		return preRes
 
 	def getDefaults(self):
 		"""returns a mapping from column names to defaults to be used when

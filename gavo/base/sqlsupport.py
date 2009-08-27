@@ -243,7 +243,7 @@ class PostgresQueryMixin(object):
 	def foreignKeyExists(self, srcTableName, destTableName, srcColNames, 
 			destColNames, schema=None):
 		try:
-			self.getForeignKeyName(srcTableName, destTableName, srcColNames,
+			return self.getForeignKeyName(srcTableName, destTableName, srcColNames,
 				destColNames, schema)
 		except DBError:
 			return False

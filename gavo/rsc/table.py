@@ -144,6 +144,7 @@ class BaseTable(base.MetaMixin):
 	def close(self):
 		pass
 
+
 class InMemoryTable(BaseTable):
 	"""is a table kept in memory.
 

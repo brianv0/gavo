@@ -182,7 +182,8 @@ def parseWithNull(literal, baseParser, nullLiteral=base.Undefined,
 		default=None):
 	"""returns default if literal is nullLiteral, else baseParser(literal).
 	"""
-	if nullLiteral is not base.Undefined and literal==nullLiteral:
+	if (nullLiteral is not base.Undefined and literal==nullLiteral
+		) or literal is None:
 		return default
 	res = baseParser(literal)
 	if res is None:
