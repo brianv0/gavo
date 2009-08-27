@@ -84,7 +84,7 @@ function makeQueryItem(element) {
 	switch (element.nodeName) {
 		case "INPUT":
 		case "TEXTAREA":
-			if (element.type=="radio") {
+			if (element.type=="radio" || element.type=="checkbox") {
 				if (element.checked) {
 					val = element.name+"="+encodeURIComponent(element.value);
 				}
@@ -256,7 +256,7 @@ function output_getAvailableItems() {
 	// returns a mapping from keys to title for available items; see above
 	var res = new Array();
 	var node = document.getElementById("op_selectItems");
-	if (!node) {
+	if (!node || !node.firstChild) {
 		return res;
 	}
 	var pairs = node.firstChild.nodeValue.split("\n");

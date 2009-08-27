@@ -60,7 +60,7 @@ class OutputFormat(object):
 		"""
 		self.availableFields = []
 		core = self.service.core
-		if not core.outputTable:
+		if not core.outputTable or self.service.getProperty("noAdditionals", False):
 			return
 		coreNames = set(f.name for f in core.outputTable)
 		defaultNames = set([f.name
@@ -305,17 +305,21 @@ def EnumeratedWidget(ik):
 	if not ik.isEnumerated():
 		raise base.StructureError("%s is not enumerated"%ik.name)
 	noneOption, options = _getDisplayOptions(ik)
-	moreArgs = {}
+	moreArgs = {"noneOption": noneOption}
 	if ik.values.multiOk:
-		baseWidget = MultiSelectChoice
-		moreArgs["size"] = ik.showItems
+		if ik.showItems==-1 or len(options)<4:
+			baseWidget = CheckboxMultiChoice
+			del moreArgs["noneOption"]
+		else:
+			baseWidget = MultiSelectChoice
+			moreArgs["size"] = ik.showItems
 	else:
 		if len(options)<4:
 			baseWidget = RadioChoice
 		else:
 			baseWidget = SelectChoice
 	return formal.widgetFactory(baseWidget, options=options,
-		noneOption=noneOption, **moreArgs)
+		**moreArgs)
 
 
 class StringFieldWithBlurb(widget.TextInput):

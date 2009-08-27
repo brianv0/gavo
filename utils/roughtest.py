@@ -841,8 +841,8 @@ myTests = [
 				'="Field04">Field04<', 'td>0.0119</td>'],
 			"File upload to crossmatch works"),
 		GetHasStringsTest(nv_root+"/mcextinct/q/cone/form?__nevow_form__=genForm"
-			"&hscs_pos=84.6583%2C%20-69.0949&hscs_sr=10.0&submit=Go",
-			["Matched: 4", "85.0554", "POLYGON ICRS 85.19"],
+			"&hscs_pos=84.6583%2C%20-69.0949&hscs_sr=10.0&_ADDITEM=a_gg",
+			["Matched: 4", "0.53", "Gunn g", "424 -68"],
 			"MC Extinctions gives expected data"),
 	),
 ]

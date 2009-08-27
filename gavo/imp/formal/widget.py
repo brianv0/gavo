@@ -847,7 +847,7 @@ class CheckboxMultiChoice(object):
 
     def render(self, ctx, key, args, errors):
 
-        converter = iformal.IStringConvertible(self.original.type)
+        converter = iformal.IStringConvertible(self.original)
 
         if errors:
             values = args.get(key, [])
@@ -862,7 +862,7 @@ class CheckboxMultiChoice(object):
 
     def renderImmutable(self, ctx, key, args, errors):
 
-        converter = iformal.IStringConvertible(self.original.type)
+        converter = iformal.IStringConvertible(self.original)
 
         values = args.get(key)
         if values is not None:
@@ -875,7 +875,7 @@ class CheckboxMultiChoice(object):
     def processInput(self, ctx, key, args):
         charset = util.getPOSTCharset(ctx)
         values = [v.decode(charset) for v in args.get(key, [])]
-        converter = iformal.IStringConvertible(self.original.type)
+        converter = iformal.IStringConvertible(self.original)
         values = [converter.toType(v) for v in values]
         return self.original.validate(values)
 
