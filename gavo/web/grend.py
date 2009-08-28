@@ -26,6 +26,7 @@ from gavo import svcs
 from gavo import rscdef
 from gavo.imp import formal
 from gavo.web import common
+from gavo.web import htmltable
 from gavo.web import weberrors
 
 
@@ -77,6 +78,7 @@ class CustomErrorMixin(object):
 		request and return appserver.errorMarker here.
 		"""
 		failure.printTraceback()
+		return ""
 
 	def _handleInputErrors(self, errors, ctx):
 		"""override to emit custom error messages for formal validation errors.
@@ -276,6 +278,38 @@ class GavoRenderMixin(common.CommonRenderers):
 			],
 		]
 
+
+class HTMLResultRenderMixin(object):
+	"""is a mixin with render functions for HTML tables and associated 
+	metadata within other pages.
+
+	This is primarily used for the Form renderer.
+	"""
+	result = None
+
+	def render_resulttable(self, ctx, data):
+		if hasattr(data, "child"):
+			return htmltable.HTMLTableFragment(data.child(ctx, "table"), 
+				data.queryMeta)
+		else:
+			# a FormError, most likely
+			return ""
+
+	def render_resultline(self, ctx, data):
+		if hasattr(data, "child"):
+			return htmltable.HTMLKeyValueFragment(data.child(ctx, "table"), 
+				data.queryMeta)
+		else:
+			# a FormError, most likely
+			return ""
+
+	def render_parpair(self, ctx, data):
+		if data is None or data[1] is None or "__" in data[0]:
+			return ""
+		return ctx.tag["%s: %s"%data]
+	
+	def data_result(self, ctx, data):
+		return self.result
 
 
 class ErrorPage(GavoRenderMixin, rend.Page):

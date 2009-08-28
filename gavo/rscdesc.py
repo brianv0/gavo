@@ -113,6 +113,9 @@ class RD(base.Structure, base.MetaMixin, scripting.ScriptingMixin,
 	def __iter__(self):
 		return iter(self.dds)
 
+	def __repr__(self):
+		return "<resource descriptor for %s>"%self.sourceId
+
 	def getDynamicAttribute(self, name):
 		try:
 			coreClass = svcs.getCore(name)

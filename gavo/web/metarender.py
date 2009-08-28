@@ -140,6 +140,12 @@ class RendExplainer(object):
 					"&op=Validate")["Validate"]]]
 
 	@classmethod
+	def _explain_qp(cls, service):
+		return T.invisible["an interface that uses the last path element"
+			" to query the column %s in the underlying table."%
+			service.getProperty("queryField", "defunct")]
+
+	@classmethod
 	def _explain_upload(cls, service):
 		return T.invisible["a ",
 			T.a(href=service.getURL("upload"))["form-based interface"],

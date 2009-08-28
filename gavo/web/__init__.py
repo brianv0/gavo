@@ -1,3 +1,4 @@
+from gavo.web import qprenderer   # for registration
 from gavo.web import jpegrenderer   # for registration
 from gavo.web import metarender     # for registration
 from gavo.web import productrender  # for registration

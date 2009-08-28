@@ -415,7 +415,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 	def _locateResourceBasedChild(self, ctx, segments):
 		"""returns a standard, resource-based service renderer.
 
-		Their URIs look like <rd id>/<service id>[/<anything].
+		Their URIs look like <rd id>/<service id>{/<anything>}.
 		"""
 		for srvInd in range(1, len(segments)-1):
 			try:
@@ -504,6 +504,11 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 				root = "/"
 			return url.URL.fromContext(ctx).click(root+
 				str(redirTo)), ()
+		except ForbiddenURI, exc:
+			return weberrors.ForbiddenPage(str(exc)), ()
+		except:
+			traceback.print_exc()
+			res = None
 		if res is None:
 			return weberrors.NotFoundPage(), ()
 		else:

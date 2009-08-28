@@ -198,7 +198,29 @@ table.results {
 	border-spacing: 0px;
 }
 
-.results th {
+table.keyvalue {
+	border-spacing: 1pt;
+}
+
+th.thHorizontal {
+	text-align: left;
+	background-color: #dddddd;
+	padding-right: 10pt;
+}
+
+.keyvalue tr td {
+	max-width: 400pt;
+	padding-left: 5pt;
+}
+
+.keyvaluedesc td {
+	text-align: left;
+	font-style: italic;
+	color: #707070;
+	padding-bottom: 7pt;
+}
+
+th.thVertical {
 	border-top: 1px solid black;
 	border-bottom: 1px solid black;
 	padding-top: 4px;

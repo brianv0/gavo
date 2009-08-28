@@ -270,6 +270,27 @@ def _bibcodeMapperFactory(colProps):
 _registerHTMLMF(_bibcodeMapperFactory)
 
 
+def _keepHTMLMapperFactory(colProps):
+	if colProps["displayHint"].get("type")!="keephtml":
+		return
+	def coder(data):
+		if data:
+			return T.raw(data)
+		return ""
+	return coder
+_registerHTMLMF(_keepHTMLMapperFactory)
+
+
+def _urlMapperFactory(colProps):
+	if colProps["displayHint"].get("type")!="url":
+		return
+	def coder(data):
+		if data:
+			return T.a(href=data)[urlparse.urlparse(data)[2].split("/")[-1]]
+		return ""
+	return coder
+_registerHTMLMF(_urlMapperFactory)
+
 #  Insert new, more specific factories here
 
 
@@ -279,11 +300,14 @@ def makeCutoutURL(accref, ra, dec, sra, sdec):
 	return base.makeSitePath("/getproduct?key="+urllib.quote(key))
 
 
-class HeaderCells(rend.Page):
-	def __init__(self, fieldDefs, colPropsIndex):
-		self.fieldDefs = fieldDefs
-		self.colPropsIndex = colPropsIndex
+class HeaderCellsMixin(object):
+	"""A mixin providing renders for table headings.
 
+	The class mixing in must provide the table column definitions as
+	self.fieldDefs, and the column properties as computed by
+	HTMLDataRenderer as colPropsIndex.  HTMLDataRenderers already do
+	that.
+	"""
 	def data_fielddefs(self, ctx, ignored):
 		return self.fieldDefs
 
@@ -303,21 +327,32 @@ class HeaderCells(rend.Page):
 		else:
 			return ctx.tag(title=desc)[T.xml(cont)]
 
+
+class HeaderCells(rend.Page, HeaderCellsMixin):
+	def __init__(self, fieldDefs, colPropsIndex):
+		self.fieldDefs = fieldDefs
+		self.colPropsIndex = colPropsIndex
+
 	docFactory = loaders.stan(
 		T.tr(data=T.directive("fielddefs"), render=rend.sequence) [
-			T.th(pattern="item", render=T.directive("headCell"))
+			T.th(pattern="item", render=T.directive("headCell"), 
+				class_="thVertical")
 		])
 
 
 _htmlMetaBuilder = common.HTMLMetaBuilder()
 
 
-class HTMLTableFragment(rend.Fragment):
-	"""is an HTML renderer for (InMemory)Tables.
+class HTMLDataRenderer(rend.Fragment):
+	"""A base class for rendering tables and table lines.
+
+	Both HTMLTableFragment (for complete tables) and HTMLKeyValueFragment
+	(for single rows) inherit from this.
 	"""
 	def __init__(self, table, queryMeta):
 		self.table, self.queryMeta = table, queryMeta
-		super(HTMLTableFragment, self).__init__()
+		self.fieldDefs = self.table.tableDef.columns
+		super(HTMLDataRenderer, self).__init__()
 		self._computeDefaultTds()
 		self._computeHeadCellsStan()
 
@@ -383,8 +418,9 @@ class HTMLTableFragment(rend.Fragment):
 		return ctx.tag[formatVal(data)]
 
 	def _computeHeadCellsStan(self):
-		self.headCellsStan = T.xml(HeaderCells(self.table.tableDef,
-				self.colPropsIndex).renderSynchronously())
+		self.headerCells = HeaderCells(self.table.tableDef,
+				self.colPropsIndex)
+		self.headCellsStan = T.xml(self.headerCells.renderSynchronously())
 
 	def render_headCells(self, ctx, data):
 		"""returns the header line for this table as an XML string.
@@ -396,12 +432,6 @@ class HTMLTableFragment(rend.Fragment):
 		d = defer.Deferred()
 		reactor.callLater(0.05, d.callback, self.headCellsStan)
 		return d
-
-	def render_defaultRow(self, ctx, items):
-		return ctx.tag(render=rend.mapping)[self.defaultTds]
-
-	def data_table(self, ctx, data):
-		return self.table
 
 	def data_fielddefs(self, ctx, data):
 		return self.table.tableDef.columns
@@ -421,6 +451,16 @@ class HTMLTableFragment(rend.Fragment):
 			return ctx.tag[self.table.buildRepr(metaKey, _htmlMetaBuilder)]
 		else:
 			return ""
+
+
+class HTMLTableFragment(HTMLDataRenderer):
+	"""A nevow renderer for result tables.
+	"""
+	def render_defaultRow(self, ctx, items):
+		return ctx.tag(render=rend.mapping)[self.defaultTds]
+
+	def data_table(self, ctx, data):
+		return self.table
 
 	docFactory = loaders.stan(T.form(action="feedback", method="post")[
 		T.div(render=T.directive("meta"), class_="warning")["_warning"],
@@ -475,3 +515,25 @@ class HTMLTableFragment(rend.Fragment):
 				render=T.directive("iffeedback")),
 		]
 	)
+
+
+class HTMLKeyValueFragment(HTMLDataRenderer, HeaderCellsMixin):
+	"""A nevow renderer for single-row result tables.
+	"""
+	def data_firstrow(self, ctx, data):
+		return self.table.rows[0]
+
+	def makeDocFactory(self):
+		return loaders.stan([
+			T.div(render=T.directive("meta"), class_="warning")["_warning"],
+			T.table(class_="keyvalue", render=rend.mapping,
+					data=T.directive("firstrow")) [
+				[[T.tr[
+						T.th(data=colDef, render=T.directive("headCell"),
+							class_="thHorizontal"),
+						td],
+					T.tr(class_="keyvaluedesc")[T.td(colspan=2)[
+						colDef.description]]]
+					for colDef, td in zip(self.fieldDefs, self.defaultTds)]]])
+	
+	docFactory = property(makeDocFactory)

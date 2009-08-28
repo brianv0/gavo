@@ -16,6 +16,7 @@ for serializing to VOTables and similar data machine-oriented data
 formats.
 """
 
+import re
 import urllib
 import urlparse
 
@@ -23,6 +24,9 @@ from gavo import stc
 from gavo import utils
 from gavo.base import config
 from gavo.base import typesystems
+
+
+# XXX TODO: Most of this stuff should be moved to formats.VOTable
 
 
 class ValueMapperFactoryRegistry(object):
@@ -226,6 +230,18 @@ def _castMapperFactory(colProps):
 	if "castFunction" in colProps:
 		return colProps["castFunction"]
 _registerDefaultMF(_castMapperFactory)
+
+
+_tagPat = re.compile("<[^>]*>")
+def _htmlScrubMapperFactory(colProps):
+	if colProps["displayHint"].get("type")!="keephtml":
+		return
+	def coder(data):
+		if data:
+			return _tagPat.replace("", data)
+		return ""
+	return coder
+_registerDefaultMF(_htmlScrubMapperFactory)
 
 
 def getMapperRegistry():

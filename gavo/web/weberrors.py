@@ -45,6 +45,8 @@ class DebugPage(rend.Page):
 		]
 	])
 
+
+# XXX TODO: handle XXX URI must die.  refactor the mess below.
 def handleUnknownURI(ctx, failure):
 	if isinstance(failure.value, (UnknownURI, base.RDNotFound)):
 		return NotFoundPage(failure.getErrorMessage())
@@ -166,6 +168,8 @@ class NotFoundPage(rend.Page, common.CommonRenderers):
 	docFactory = common.doctypedStan(T.html[
 			T.head[T.title["GAVO DC -- Not found"],
 			T.invisible(render=T.directive("commonhead")),
+			T.style(type="text/css")[
+				"p.errmsg {background-color: #cccccc;padding:5pt}"],
 		],
 		T.body[
 			T.img(src="/builtin/img/logo_medium.png", style="position:absolute;"
@@ -187,6 +191,43 @@ class NotFoundPage(rend.Page, common.CommonRenderers):
 				" for by inspecting our ",
 				T.a(href="/")["list of published services"],
 				"."],
+			T.hr,
+			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
+				"gavo@ari.uni-heidelberg.de"]],
+		]])
+
+
+class ForbiddenPage(rend.Page, common.CommonRenderers):
+	def __init__(self, errMsg=None):
+		self.errMsg = errMsg
+		rend.Page.__init__(self)
+
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setResponseCode(403)
+		return rend.Page.renderHTTP(self, ctx)
+
+	def render_explanation(self, ctx, data):
+		if self.errMsg:
+			return ctx.tag[self.errMsg]
+		else:
+			return ""
+
+	docFactory = common.doctypedStan(T.html[
+			T.head[T.title["GAVO DC -- Forbidden"],
+			T.invisible(render=T.directive("commonhead")),
+			T.style(type="text/css")[
+				"p.errmsg {background-color: #cccccc;padding:5pt}"],
+		],
+		T.body[
+			T.img(src="/builtin/img/logo_medium.png", style="position:absolute;"
+				"right:0pt"),
+			T.h1["Access denied (403)"],
+			T.p["We're sorry, but the resource you requested is forbidden."],
+			T.p(class_="errmsg", render=T.directive("explanation")),
+			T.p["This usually means you tried to use a renderer on a service"
+				" that does not support it.  If you did not come up with the"
+				" URL in question yourself, complain fiercely to the GAVO staff."],
 			T.hr,
 			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
 				"gavo@ari.uni-heidelberg.de"]],

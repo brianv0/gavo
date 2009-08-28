@@ -131,7 +131,6 @@ class doctypedStan(loaders.stan):
 			rootEl(xmlns="http://www.w3.org/1999/xhtml")], pattern)
 
 
-
 class CommonRenderers(object):
 	"""A base for renderer mixins within the DC.
 

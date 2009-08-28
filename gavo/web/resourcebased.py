@@ -43,7 +43,6 @@ from gavo.formats import texttable
 from gavo.formats import votable
 from gavo.base import typesystems
 from gavo.web import common
-from gavo.web import htmltable
 from gavo.web import grend
 from gavo.web import producttar
 from gavo.web import streaming
@@ -500,32 +499,7 @@ def _makeNoParsBehaviour(action):
 	return b
 
 
-class HTMLResultRenderMixin(object):
-	"""is a mixin with render functions for HTML tables and associated 
-	metadata within other pages.
-
-	This is primarily used for the Form renderer.
-	"""
-	result = None
-
-	def render_resulttable(self, ctx, data):
-		if hasattr(data, "child"):
-			return htmltable.HTMLTableFragment(data.child(ctx, "table"), 
-				data.queryMeta)
-		else:
-			# a FormError, most likely
-			return ""
-
-	def render_parpair(self, ctx, data):
-		if data is None or data[1] is None or "__" in data[0]:
-			return ""
-		return ctx.tag["%s: %s"%data]
-	
-	def data_result(self, ctx, data):
-		return self.result
-
-
-class Form(FormMixin, grend.ServiceBasedRenderer, HTMLResultRenderMixin):
+class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 	"""is a page that provides a search form for the selected service
 	and doubles as render page for HTML tables.
 
