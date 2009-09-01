@@ -128,6 +128,10 @@ _intersectQueries = {
 		" (%(<p>roiSecondary)s IS NULL OR %(<p>roiSecondary)s ~ secondaryBbox)",
 	"CENTER": "point '(%(<p>roiAlpha)s,%(<p>roiDelta)s)' @ primaryBbox OR"
 		" point '(%(<p>roiAlpha)s,%(<p>roiDelta)s)' @ secondaryBbox",
+	None: "(primaryBbox && %(<p>roiPrimary)s) OR"
+		" (secondaryBbox IS NOT NULL AND secondaryBbox && %(<p>roiSecondary)s) OR"
+		" (secondaryBbox IS NOT NULL AND secondaryBbox && %(<p>roiPrimary)s) OR" 
+		" (%(<p>roiSecondary)s IS NOT NULL AND %(<p>roiSecondary)s && primaryBbox)",
 	"OVERLAPS": "(primaryBbox && %(<p>roiPrimary)s) OR"
 		" (secondaryBbox IS NOT NULL AND secondaryBbox && %(<p>roiSecondary)s) OR"
 		" (secondaryBbox IS NOT NULL AND secondaryBbox && %(<p>roiPrimary)s) OR" 
@@ -196,88 +200,6 @@ def getBboxQuery(parameters, sqlPars, prefix="sia"):
 	return query
 
 
-class SIAPConditionBase(svcs.CondDesc):
-	def _interpretFormat(self, inPars, sqlPars):
-		# Interprets a SIA FORMAT parameter.  METADATA is caught by the
-		# SIAP renderer, which of the magic values leaves ALL and GRAPHIC to us.
-		fmt = inPars.get("FORMAT")
-		if fmt is None or fmt=="ALL":
-			return ""
-		elif fmt=="GRAPHIC":
-			return "imageFormat IN %%(%s)s"%base.getSQLKey("format", 
-				base.getConfig("graphicMimes"), sqlPars)
-		else:
-			return "imageFormat=%%(%s)s"%base.getSQLKey("format", fmt, sqlPars)
-
-	def asSQL(self, inPars, sqlPars):
-		if not self.inputReceived(inPars):
-			return ""
-		fragments = [getBboxQuery(inPars, sqlPars),
-			self._interpretFormat(inPars, sqlPars)]
-		return base.joinOperatorExpr("AND", fragments)
-
-
-class SIAPCondition(SIAPConditionBase):
-	"""is a condition descriptor for a plain SIAP query.
-	"""
-	def __init__(self, parent, **kwargs):
-		kwargs.update({
-			"inputKeys": [ 
-				MS(svcs.InputKey, name="POS", type="text", unit="deg,deg",
-					ucd="pos.eq", description="J2000.0 Position, RA,DEC decimal degrees"
-					" (e.g., 234.234,-32.46)", tablehead="Position", required=True),
-				MS(svcs.InputKey, name="SIZE", type="text", unit="deg,deg",
-					description="Size in decimal degrees"
-					" (e.g., 0.2 or 1,0.1)", tablehead="Field size", required=True),
-				svcs.InputKey.fromColumn(
-					MS(rscdef.Column, name="INTERSECT", 
-					type="text", required=False,
-					description="Should the image cover, enclose, overlap the ROI or"
-					" contain its center?",
-					tablehead="Intersection type",
-					values=MS(rscdef.Values,
-						options=rscdef.makeOptions("OVERLAPS", "COVERS", 
-							"ENCLOSED", "CENTER"), default="OVERLAPS"))),
-				MS(svcs.InputKey, name="FORMAT", 
-					type="text", required=False,
-					description="Requested format of the image data",
-					tablehead="Output format", 
-					values=MS(rscdef.Values, default="image/fits"),
-					widgetFactory='Hidden')
-			]})
-		SIAPConditionBase.__init__(self, parent, **kwargs)
-
-
-svcs.registerCondDesc("siap", SIAPCondition)
-
-
-class HumanSIAPCondition(SIAPConditionBase):
-	def __init__(self, parent, **kwargs):
-		preAttrs = base.caches.getRD("__system__/siap").getById("humanSIAPBase"
-			).getAttributes()
-		preAttrs.update(kwargs)
-		SIAPConditionBase.__init__(self, parent, **preAttrs)
-
-	def asSQL(self, inPars, sqlPars):
-		if not self.inputReceived(inPars):
-			return ""
-		pos = inPars["POS"]
-		try:
-			ra, dec = base.parseCooPair(pos)
-		except ValueError:
-			data = base.caches.getSesame("web").query(pos)
-			if not data:
-				raise base.ValidationError("%r is neither a RA,DEC pair nor a simbad"
-				" resolvable object"%inPars.get("POS", "Not given"), "POS")
-			ra, dec = float(data["RA"]), float(data["dec"])
-		return SIAPConditionBase.asSQL(self, {
-			"POS": "%f, %f"%(ra, dec), "SIZE": inPars["SIZE"],
-			"INTERSECT": inPars["INTERSECT"], "FORMAT": inPars.get("FORMAT")}, 
-				sqlPars)
-
-svcs.registerCondDesc("humanSIAP", HumanSIAPCondition)
-
-
 class SIAPCore(svcs.DBCore):
 	"""A core doing SIAP queries.
 
@@ -304,7 +226,6 @@ class SIAPCore(svcs.DBCore):
 			for col in self.interfaceCols:
 				outputTable.feedObject("column", svcs.OutputField.fromColumn(col))
 		svcs.DBCore.__init__(self, parent, **kwargs)
-
 
 svcs.registerCore(SIAPCore)
 

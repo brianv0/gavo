@@ -72,13 +72,19 @@ class ProcSetup(base.Structure):
 	"""
 	name_ = "setup"
 
-	_code = base.UnicodeAttribute("code", copyable=True, 
-		description="A python function body setting globals for the function"
+	_code = base.ListOfAtomsAttribute("codeFrags",
+		description="Python function bodies setting globals for the function"
 		" application.  Macros are expanded in the context"
-		" of the procedure's parent.", default="")
+		" of the procedure's parent.", 
+		itemAttD=base.UnicodeAttribute("code", description="Python function"
+			" bodies setting globals for the function application.  Macros"
+			" are expanded in the context of the procedure's parent.",
+			copyable=True),
+		copyable=True)
 	_pars = base.StructListAttribute("pars", ProcPar,
 		description="Names to add to the procedure's global namespace.", 
 		copyable=True)
+	_original = base.OriginalAttribute()
 
 	def _getParSettingCode(self, useLate, indent, bindings):
 		"""returns code that sets our parameters.
@@ -110,7 +116,11 @@ class ProcSetup(base.Structure):
 	def getBodyCode(self):
 		"""returns the body code un-indented.
 		"""
-		return utils.fixIndentation(self.code, "", governingLine=1)
+		collectedCode = []
+		for frag in self.codeFrags:
+			collectedCode.append(
+				utils.fixIndentation(frag, "", governingLine=1))
+		return "\n".join(collectedCode)
 
 _emptySetup = ProcSetup(None, code="")
 
@@ -149,6 +159,7 @@ class ProcDef(base.Structure):
 	_register = base.BooleanAttribute("register", default=False,
 		description="Register this procDef in the global registry under its"
 			" id?")
+	_original = base.OriginalAttribute()
 
 	def getCode(self):
 		"""returns the body code indented with two spaces.
@@ -238,7 +249,7 @@ class ProcApp(ProcDef):
 
 		This includes bindings of late parameters.
 
-		Locally defined code overrides code defined in a prodDef.
+		Locally defined code overrides code defined in a procDef.
 		"""
 		parts = []
 		if self.procDef is not base.NotGiven:

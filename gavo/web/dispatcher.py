@@ -508,7 +508,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 			return weberrors.ForbiddenPage(str(exc)), ()
 		except:
 			traceback.print_exc()
-			res = None
+			raise
 		if res is None:
 			return weberrors.NotFoundPage(), ()
 		else:

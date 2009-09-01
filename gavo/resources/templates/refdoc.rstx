@@ -205,7 +205,9 @@ start with an underscore.  Among those are:
   The content is rendered as some kind of warning.  Unfortunately,
   there is no standard how to do this in VOTables.  There is no
   telling if the info elements generated will show anywhere.
-
+* _noresultwarning -- displayed by the default response template instead
+  of an empty table (use it for things like "No Foobar data for your
+  query")
 
 RMI-Style Metadata
 ''''''''''''''''''

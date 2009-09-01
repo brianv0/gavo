@@ -81,10 +81,15 @@ class OutputFormat(object):
 		descs.sort(key=lambda a:a[2].upper())
 		return "\n".join("%s %s %s"%d for d in descs)
 
+	_labelOverrides = {
+		"TSV": "Tab-separated ASCII",
+	}
+
 	def render(self, ctx, key, args, errors):
 		return T.div(id=render_cssid("_OUTPUT"))[
 			SelectChoice(formaltypes.String(), 
-				options=[(s, s) for s in self.availableFormats],
+				options=[(s, self._labelOverrides.get(s,s)) 
+					for s in self.availableFormats],
 				noneOption=("HTML", "HTML")).render(ctx, "_FORMAT", args, errors)(
 					onchange="output_broadcast(this.value)"),
 			T.span(id=render_cssid(key, "QlinkContainer"), 

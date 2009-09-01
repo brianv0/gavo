@@ -22,8 +22,11 @@
 		<div class="resmeta" n:data="resultmeta" n:render="mapping">
 			<p>Matched: <n:slot name="itemsMatched"/></p>
 		</div>
-		<div class="result">
+		<div class="result" n:render="ifresult">
 			<n:invisible n:render="resulttable"/>
+		</div>
+		<div class="warning" n:render="ifnoresult">
+			<p n:render="metahtml">_noresultwarning</p>
 		</div>
 		<h2><a name="_queryForm">Query Form</a></h2>
 	</div>

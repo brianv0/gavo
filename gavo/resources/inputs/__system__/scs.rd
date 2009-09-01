@@ -98,4 +98,78 @@
 			result["c_z"] = c_z
 		</code>
 	</procDef>
+
+	<macDef name="csQueryCode">	</macDef>
+
+	<condDesc>
+		<!-- common setup for the SCS-related condDescs -->
+		<phraseMaker id="scsUtils">
+			<setup id="scsSetup">
+				<code>
+					def getRADec(inPars, sqlPars):
+						"""tries to guess coordinates from inPars.
+
+						(for human SCS condition).
+						"""
+						pos = inPars["hscs_pos"]
+						try:
+							return base.parseCooPair(pos)
+						except ValueError:
+							data = base.caches.getSesame("web").query(pos)
+							if not data:
+								raise base.ValidationError("%s is neither a RA,DEC"
+								" pair nor a simbad resolvable object"%
+								inPars["hscs_pos"], "hscs_pos")
+							return float(data["RA"]), float(data["dec"])
+
+					def genQuery(inPars, outPars):
+						"""returns the query fragment for this cone search.
+						"""
+						return ("q3c_radial_query(%s, %s, %%(%s)s, "
+							"%%(%s)s, %%(%s)s)")%(
+							"\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN}",
+							"\nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN}",
+							vizierexprs.getSQLKey("RA", inPars["RA"], outPars),
+							vizierexprs.getSQLKey("DEC", inPars["DEC"], outPars),
+							vizierexprs.getSQLKey("SR", inPars["SR"], outPars))
+				</code>
+			</setup>
+		</phraseMaker>
+	</condDesc>
+
+	<condDesc id="scs" register="True">
+		<inputKey name="RA" type="double precision" unit="deg" ucd="pos.eq.ra"
+			description="Right Ascension (ICRS decimal)" tablehead="Alpha (ICRS)"
+			required="True"/>
+		<inputKey name="DEC" type="double precision" unit="deg" ucd="pos.eq.dec"
+			description="Declination (ICRS decimal)" tablehead="Delta (ICRS)"
+			required="True"/>
+		<inputKey name="SR" type="real" unit="deg" description="Search radius"
+			tablehead="Search Radiuis" required="True"/>
+		<phraseMaker id="scsPhrase" name="scsSQL">
+			<setup original="scsSetup"/>
+			<code>
+				yield genQuery(inPars, outPars)
+			</code>
+		</phraseMaker>
+	</condDesc>
+
+	<condDesc id="humanSCS" register="True">
+		<inputKey name="hscs_pos" type="text"
+			description= "Coordinates (as h m s, d m s or decimal degrees), or SIMBAD-resolvable object" tablehead="Position/Name"/>
+		<inputKey name="hscs_sr" description="Search radius in arcminutes"
+			tablehead="Search radius"/>
+		<phraseMaker original="scsUtils" id="humanSCSPhrase" name="humanSCSSQL">
+			<code>
+				ra, dec = getRADec(inPars, outPars)
+				try:
+					sr = float(inPars["hscs_sr"])/60.
+				except ValueError: # in case we're not running behind forms
+					raise gavo.ValidationError("Not a valid float", "hscs_sr")
+				inPars = {"RA": ra, "DEC": dec, "SR": sr}
+				yield genQuery(inPars, outPars)
+			</code>
+		</phraseMaker>
+	</condDesc>
+
 </resource>

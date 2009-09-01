@@ -204,7 +204,11 @@ def makeProc(funcName, code, setupCode, parent):
 	funcNs = globals().copy()
 	funcNs["parent"] = parent
 	if setupCode.strip():
-		exec setupCode.rstrip() in funcNs
+		try:
+			exec setupCode.rstrip() in funcNs
+		except SyntaxError:
+			sys.stderr.write("Bad setup code:\n%s"%setupCode.rstrip())
+			raise
 	return utils.compileFunction(code.rstrip(), funcName, funcNs)
 
 

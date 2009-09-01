@@ -1,4 +1,4 @@
-1/LOW/2009-01-27
+1/LOW/2009-01-27/FIXED
 	Naming in protocols/scs.py -- SCS should be consistently upper case
 
 2/MEDIUM/2008-10-20
@@ -110,3 +110,7 @@
 	"AS" clauses should override any names obtained from system tables in ADQL.
 	And we should be more careful inheriting such properties through
 	functions (e.g., SQRT should probably kill almost all such properties).
+
+29/LOW/2009-08-31
+	structure.EventProcessor doesn't update root element when it has been
+	Replace'd (proposed solution: Kill the abominable Replace)

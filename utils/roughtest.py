@@ -842,7 +842,7 @@ myTests = [
 			"File upload to crossmatch works"),
 		GetHasStringsTest(nv_root+"/mcextinct/q/cone/form?__nevow_form__=genForm"
 			"&hscs_pos=84.6583%2C%20-69.0949&hscs_sr=10.0&_ADDITEM=a_gg",
-			["Matched: 4", "0.53", "Gunn g", "424 -68"],
+			["Matched: 5", "0.43", "Gunn g", "69 -69.5"],
 			"MC Extinctions gives expected data"),
 	),
 ]

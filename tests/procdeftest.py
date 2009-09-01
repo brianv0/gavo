@@ -168,8 +168,21 @@ class WithDefTest(testhelpers.VerboseTest):
 			"<testApp name='x' procDef='b'><bind key='random'>'noconst'</bind>"
 			"<bind key='par'>4</bind>"
 			"</testApp></foo>"))
-	
+
+
+class OriginalTest(testhelpers.VerboseTest):
+	"""tests for ProcApp's setup inheritance.
+	"""
+	def testSCSCondDesc(self):
+		from gavo import rscdesc, svcs
+		base.caches.getRD("__system__/scs")
+		core = base.parseFromString(svcs.DBCore, '<dbCore queriedTable="__system__/scs#q3cIndexDef"><condDesc predefined='
+			'"humanSCS"/></dbCore>')
+		self.failUnless("genQuery", core.condDescs[0].phraseMaker.getFuncCode())
+		self.failUnless("genQuery", core.condDescs[0].phraseMaker.getSetupCode())
+
+
 # Test mixing for setups here?  I don't think so, it's rather cranky anyway.
 
 if __name__=="__main__":
-	testhelpers.main(WithDefTest)
+	testhelpers.main(OriginalTest)

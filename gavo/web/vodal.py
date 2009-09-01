@@ -84,6 +84,7 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 		return self.renderHTTP_exception(ctx, failure)
 
 	def _handleInputErrors(self, errors, ctx):
+		print ">>>>>>>>>>>", errors
 		def formatError(e):
 			if isinstance(e, formal.FieldError):
 				return "%s: %s"%(e.fieldName, str(e))

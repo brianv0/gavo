@@ -70,7 +70,7 @@ class PhraseMaker(rscdef.ProcApp):
 	name_ = "PhraseMaker"
 
 	requiredType = "phraseMaker"
-	formalArgs = "inputKeys, inPars, outPars"
+	formalArgs = "self, inputKeys, inPars, outPars"
 
 
 class CondDesc(base.Structure):
@@ -101,11 +101,15 @@ class CondDesc(base.Structure):
 	_phraseMaker = base.StructAttribute("phraseMaker", default=None,
 		description="Code to generate custom SQL from the input keys", 
 		childFactory=PhraseMaker, copyable=True)
+	_register = base.BooleanAttribute("register", default=False,
+		description="Register this condDesc in a global registry so it"
+		" can be referenced using predefined.")
 	_predefined = base.ActionAttribute("predefined", "replaceWithPredefined",
 		description="Name of a predefined CondDesc to base this CondDesc on."
-		"  This is a magic attribute that should be seen by the parser"
-		" as early as possible.")
-
+		"  Note that any further specifications on the CondDesc are ignored"
+		" when predefined is used.")
+	_original = base.OriginalAttribute()
+	
 	def __init__(self, parent, **kwargs):
 		base.Structure.__init__(self, parent, **kwargs)
 		# copy parent's resolveName if present for buildFrom resolution
@@ -114,20 +118,28 @@ class CondDesc(base.Structure):
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(CondDesc)
-		if self.phraseMaker is not None:
-			self.makePhrase = self.phraseMaker.compile()
+		if self.register:
+			if not self.id:
+				raise base.StructureError("Cannot register anonymous condDesc")
+			registerCondDesc(self.id, self)
 
 	def feedFromInputKey(self, ctx):
 		raise base.Replace(CondDesc.fromColumn(base.resolveId(ctx, self.buildFrom,
 			instance=self), parent_=self.parent))
 
 	def replaceWithPredefined(self, ctx):
-		raise base.Replace(getCondDesc(self.predefined)(self.parent))
+		raise base.Replace(getCondDesc(self.predefined).copy(self.parent))
 
 	def expand(self, *args, **kwargs):
 		"""hands macro expansion requests (from phraseMakers) upwards.
+
+		This is to the queried table if the parent has one, or to the RD
+		if not.
 		"""
-		return self.parent.rd.expand(*args, **kwargs)
+		if hasattr(self.parent, "queriedTable"):
+			return self.parent.queriedTable.expand(*args, **kwargs)
+		else:
+			return self.parent.rd.expand(*args, **kwargs)
 
 	@property
 	def name(self):
@@ -138,6 +150,23 @@ class CondDesc(base.Structure):
 		# InputKeys basis and yield their names (because that's what
 		# formal counts on), but it's probably not worth the effort.
 		return "+".join([f.name for f in self.inputKeys])
+
+	# We only want to compile the phraseMaker if actually necessary.
+	# condDescs may be defined within resource descriptors (e.g., in
+	# scs.rd), and they can't be compiled there (since macros may
+	# be missing); thus, we dispatch on the first call.
+	def _getPhraseMaker(self):
+		if self.phraseMaker is not None:
+			val = self.phraseMaker.compile()
+		else:
+			val = self.makePhraseDefault
+		self.__dict__["makePhrase"] = val
+		return val
+	makePhrase = property(_getPhraseMaker)
+
+	def makePhraseDefault(self, ignored, inputKeys, inPars, outPars):
+		for ik in self.inputKeys:
+			yield vizierexprs.getSQL(ik, inPars, outPars)
 
 	def inputReceived(self, inPars):
 		"""returns True if all inputKeys can be filled from inPars.
@@ -174,14 +203,10 @@ class CondDesc(base.Structure):
 					", ".join(k.name for k in keysMissing)),
 				colName=keysMissing[0].name)
 
-	def makePhrase(self, inputKeys, inPars, outPars):
-		for ik in self.inputKeys:
-			yield vizierexprs.getSQL(ik, inPars, outPars)
-
 	def asSQL(self, inPars, sqlPars):
-		if self.silent:
+		if self.silent or not self.inputReceived(inPars):
 			return ""
-		res = list(self.makePhrase(self.inputKeys, inPars, sqlPars))
+		res = list(self.makePhrase(self, self.inputKeys, inPars, sqlPars))
 		sql = vizierexprs.joinOperatorExpr("AND", res)
 		if self.fixedSQL:
 			sql = vizierexprs.joinOperatorExpr("AND", [sql, self.fixedSQL])

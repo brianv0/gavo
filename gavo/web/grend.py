@@ -307,7 +307,19 @@ class HTMLResultRenderMixin(object):
 		if data is None or data[1] is None or "__" in data[0]:
 			return ""
 		return ctx.tag["%s: %s"%data]
+
+	def render_ifresult(self, ctx, data):
+		if self.result.queryMeta.get("Matched", 1)!=0:
+			return ctx.tag
+		else:
+			return ""
 	
+	def render_ifnoresult(self, ctx, data):
+		if self.result.queryMeta.get("Matched", 1)==0:
+			return ctx.tag
+		else:
+			return ""
+
 	def data_result(self, ctx, data):
 		return self.result
 

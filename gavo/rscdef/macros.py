@@ -88,12 +88,20 @@ class MacroPackage(object):
 	Basically, you inherit from this class and define macro_xxx functions.
 	MacroExpander can then call \xxx, possibly with arguments.
 	"""
-	def execMacro(self, macName, args):
+	def __findMacro(self, macName):
 		fun = getattr(self, "macro_"+macName, None)
-		if fun is None:
-			raise base.LiteralParseError(
-				"No such macro available in this context: \\%s"%macName,
-				"macro", macName)
+		if fun is not None:
+			return fun
+		if hasattr(self, "rd"):
+			fun = getattr(self.rd, "macro_"+macName, None)
+		if fun is not None:
+			return fun
+		raise base.LiteralParseError(
+			"No such macro available in this context: \\%s"%macName,
+			"macro", macName)
+
+	def execMacro(self, macName, args):
+		fun = self.__findMacro(macName)
 		try:
 			return fun(*args)
 		except TypeError:

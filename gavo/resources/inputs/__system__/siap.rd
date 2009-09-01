@@ -206,13 +206,66 @@
 		</code>
 	</procDef>
 
-	<condDesc id="humanSIAPBase">
+	<condDesc id="siapBase">
+		<phraseMaker>
+			<setup id="baseSetup">
+				<code>
+					from gavo.protocols import siap
+					def interpretFormat(inPars, sqlPars):
+						# Interprets a SIA FORMAT parameter.  METADATA is caught by the
+						# SIAP renderer, which of the magic values leaves ALL and 
+						# GRAPHIC to us.
+						fmt = inPars.get("FORMAT")
+						if fmt is None or fmt=="ALL":
+							return ""
+						elif fmt=="GRAPHIC":
+							return "imageFormat IN %%(%s)s"%base.getSQLKey("format", 
+								base.getConfig("graphicMimes"), sqlPars)
+						else:
+							return "imageFormat=%%(%s)s"%base.getSQLKey(
+								"format", fmt, sqlPars)
+				</code>
+			</setup>
+		</phraseMaker>
+	</condDesc>
+
+	<condDesc id="siap" register="True">
+		<inputKey name="POS" type="text" unit="deg,deg"
+			ucd="pos.eq"
+			description="J2000.0 Position, RA,DEC decimal degrees (e.g., 234.234,-32.46)"
+			tablehead="Position" required="True"/>
+		<inputKey name="SIZE" type="text" unit="deg,deg" id="siapSIZE"
+			description="Size in decimal degrees (e.g., 0.2 or 1,0.1)"
+			tablehead="Field size" required="True"/>
+		<inputKey name="INTERSECT" type="text" required="False"
+			description="Should the image cover, enclose, overlap the ROI or contain its center?"
+			tablehead="Intersection type">
+			<values default="OVERLAPS">
+				<option>OVERLAPS</option>
+				<option>COVERS</option>
+				<option>ENCLOSED</option>
+				<option>CENTER</option>
+			</values>
+		</inputKey>
+		<inputKey name="FORMAT" id="siapFORMAT" type="text" required="False"
+			description="Requested format of the image data"
+			tablehead="Output format" widgetFactory='Hidden'>
+			<values default="image/fits"/>
+		</inputKey>
+		<phraseMaker>
+			<setup original="baseSetup"/>
+			<code>
+				yield siap.getBboxQuery(inPars, outPars)
+				yield interpretFormat(inPars, outPars)
+			</code>
+		</phraseMaker>
+	</condDesc>
+
+	<condDesc id="humanSIAP" register="True">
 		<inputKey name="POS" type="text" unit="deg,deg" ucd="pos.eq" description=
 			"ICRS Position, RA,DEC, or Simbad object (e.g., 234.234,-32.45)"
 			tablehead="Position" required="True"/>
-		<inputKey name="SIZE" type="text" unit="deg,deg"
-			description="Match size in decimal degrees (e.g., 0.2 or 1,0.1)"
-			tablehead="Field size" required="True"/>
+		<inputKey original="siapSIZE"/>
 		<inputKey name="INTERSECT" type="text" description=
 			"Relation of image and specified Region of Interest."
 			tablehead="Intersection type">
@@ -223,11 +276,26 @@
 				<option title="The given position is shown on image">CENTER</option>
 			</values>
 		</inputKey>
-		<inputKey name="FORMAT" type="text"
-			description="Requested format of the image data"
-			tablehead="Output format"
-			widgetFactory='Hidden'>
-			<values default="image/fits"/>
-		</inputKey>
+		<inputKey original="siapFORMAT"/>
+		<phraseMaker>
+			<setup original="baseSetup"/>
+			<code>
+				pos = inPars["POS"]
+				try:
+					ra, dec = base.parseCooPair(pos)
+				except ValueError:
+					data = base.caches.getSesame("web").query(pos)
+					if not data:
+						raise base.ValidationError("%r is neither a RA,DEC pair nor a simbad"
+						" resolvable object"%inPars.get("POS", "Not given"), "POS")
+					ra, dec = float(data["RA"]), float(data["dec"])
+				inPars = {
+					"POS": "%f, %f"%(ra, dec), "SIZE": inPars["SIZE"],
+					"INTERSECT": inPars["INTERSECT"], "FORMAT": inPars.get("FORMAT")}
+				yield siap.getBboxQuery(inPars, outPars)
+				yield interpretFormat(inPars, outPars)
+			</code>
+		</phraseMaker>
 	</condDesc>
+
 </resource>

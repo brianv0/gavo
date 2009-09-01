@@ -307,7 +307,7 @@ class StructureBase(object):
 	def replace(self, newObject):
 		"""tries to locate self in parent and replaces it with newObject.
 
-		This is a bit hapazard since we assume the parent has an attribute
+		This is a bit haphazard since we assume the parent has an attribute
 		of our name.  This should normally be the case, but there are no
 		guarantees.  So, this might fail.  It's not that bad, though, since
 		we mainly need this for ref=-type attributes.
