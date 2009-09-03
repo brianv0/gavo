@@ -189,6 +189,11 @@ def getDCListRecordsElement(resobs, setNames,
 	return recs
 
 
+def getDCGetRecordElement(resob):
+	return OAI.GetRecord[
+		getDCResourceElement(resob)]
+
+
 ################### VOResource metadata element creation
 
 class ResourceMaker(object):
@@ -338,3 +343,9 @@ def getVOResourceElement(resob, setNames=_defaultSet):
 def getVOListRecordsElement(resobs, setNames):
 	return getDCListRecordsElement(resobs, setNames, 
 		getVOResourceElement)
+
+
+def getVOGetRecordElement(resob):
+	return OAI.GetRecord[
+		getVOResourceElement(resob)]
+		

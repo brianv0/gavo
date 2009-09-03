@@ -158,7 +158,7 @@ that was folly -->
 		<meta name="full">false</meta>
 		<meta name="maxRecords">10000</meta>
 		<meta name="managedAuthority">org.gavo.dc</meta>
-		<meta name="referenceURL">http://dc.zah.uni-heidelberg.de/oai.xml</meta>
+		<meta name="referenceURL">http://vo.uni-hd.de/builtin/help.shtml</meta>
 		<meta name="publisher">GAVO Data Center Team</meta>
 		<meta name="contact.name">GAVO Data Center Team</meta>
 		<meta name="contact.email">gavo@ari.uni-heidelberg.de</meta>

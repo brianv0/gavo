@@ -24,17 +24,38 @@ from gavo.utils import ElementTree
 ########################### Handlers for OAI verbs
 
 
+def _handleVerb(pars, requiredArgs, optionalArgs,
+		dcBuilder, voBuilder, getArgs=lambda pars: ()):
+	"""handle an OAI PMH verb.
+
+	This is a helper function for the run_* functions.
+
+	requiredArgs and optionalArgs are lists of keywords of the
+	given operation, dcBuilder and voBuilder are callables returning
+	xmlstan for the respective operation, and getArgs is a function
+	taking pars and returning an argument sequence to the builders.
+
+	voBuilder may be None for cases where no dispatch for metadataPrefix
+	is required.  In that case, dcBuilder will always be used.
+	"""
+	checkPars(pars, requiredArgs, optionalArgs)
+	if voBuilder is None:
+		contentMaker = dcBuilder
+	else:
+		contentMaker = lambda *args: dispatchOnPrefix(pars,
+			dcBuilder, voBuilder, *args)
+	return OAI.PMH[
+		getResponseHeaders(pars),
+		contentMaker(*getArgs(pars)),]
+
+
 def run_GetRecord(pars):
 	"""returns a tree of stanxml elements for a response to GetRecord.
 	"""
-	checkPars(pars, ["identifier", "metadataPrefix"], [])
-	return OAI.PMH[
-		getResponseHeaders(pars),
-		OAI.GetRecord[
-			dispatchOnPrefix(pars, 
-				builders.getDCResourceElement,
-				builders.getVOResourceElement,
-				identifiers.getResobFromIdentifier(pars["identifier"]))]]
+	return _handleVerb(pars, ["identifier", "metadataPrefix"], [],
+		builders.getDCGetRecordElement,
+		builders.getVOGetRecordElement,
+		lambda pars: (identifiers.getResobFromIdentifier(pars["identifier"]),))
 
 
 def getSetNames(pars):
@@ -48,34 +69,12 @@ def getSetNames(pars):
 def run_ListRecords(pars):
 	"""returns a tree of stanxml Elements for a response to ListRecords.
 	"""
-	checkPars(pars, ["metadataPrefix"], ["from", "until", "set"])
-	return 	OAI.PMH[
-		getResponseHeaders(pars),
-		dispatchOnPrefix(pars,
-			builders.getDCListRecordsElement,
-			builders.getVOListRecordsElement,
-			getMatchingResobs(pars), getSetNames(pars))]
+	return _handleVerb(pars, 
+		["metadataPrefix"], ["from", "until", "set"],
+		builders.getDCListRecordsElement,
+		builders.getVOListRecordsElement,
+		lambda pars: (getMatchingResobs(pars), getSetNames(pars)))
 
-
-def run_ListSets(pars):
-	"""returns a tree of stanxml Elements for a response to ListSets.
-	"""
-	checkPars(pars, [])
-	return OAI.PMH[
-		getResponseHeaders(pars),
-		builders.getListSetsElement(),
-	]
-
-
-def run_Identify(pars):
-	"""returns a tree of stanxml elements for a response to Identify.
-	"""
-	checkPars(pars, [])
-	return OAI.PMH[
-		getResponseHeaders(pars),
-		builders.getIdentifyElement(
-			base.caches.getRD("__system__/services").getById("registry")),
-	]
 
 
 def run_ListIdentifiers(pars):
@@ -84,11 +83,27 @@ def run_ListIdentifiers(pars):
 	We don't have ivo specific metadata in the headers, so this ignores
 	the metadata prefix.
 	"""
-	checkPars(pars, ["metadataPrefix"], ["from", "until", "set"])
-	return OAI.PMH[
-		getResponseHeaders(pars),
-		builders.getListIdentifiersElement(getMatchingRestups(pars)),
-	]
+	return _handleVerb(pars, ["metadataPrefix"], ["from", "until", "set"],
+		builders.getListIdentifiersElement,
+		builders.getListIdentifiersElement,
+		lambda pars: (getMatchingRestups(pars),))
+
+
+def run_ListSets(pars):
+	"""returns a tree of stanxml Elements for a response to ListSets.
+	"""
+	return _handleVerb(pars, [], [],
+		builders.getListSetsElement, None)
+
+
+def run_Identify(pars):
+	"""returns a tree of stanxml elements for a response to Identify.
+	"""
+	return _handleVerb(pars, [], [],
+		builders.getIdentifyElement,
+		None,
+		lambda pars: 
+			(base.caches.getRD("__system__/services").getById("registry"),))
 
 
 def run_ListMetadataFormats(pars):
@@ -97,13 +112,14 @@ def run_ListMetadataFormats(pars):
 	# identifier is not ignored since crooks may be trying to verify the
 	# existence of resource in this way and we want to let them do this.
 	# Of course, we support both kinds of metadata on all records.
-	checkPars(pars, [], ["identifier"])
-	if pars.has_key("identifier"):
-		identifiers.getResobForIdentifier(pars["identifier"])
-	return OAI.PMH[
-		getResponseHeaders(pars),
-		builders.getListMetadataFormatsElement(),
-	]
+	def makeArgs(pars):
+		if pars.has_key("identifier"):
+			identifiers.getResobFromIdentifier(pars["identifier"])
+		return ()
+	return _handleVerb(pars, [], ["identifier"],
+		builders.getListMetadataFormatsElement,
+		None,
+		makeArgs)
 
 
 ########################### Helpers for OAI handlers

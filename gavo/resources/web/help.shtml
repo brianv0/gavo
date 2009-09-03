@@ -186,8 +186,12 @@ the web and want VO exposure, you are invited to talk to
 
 <h2>Software availability</h2>
 
-<p>The software driving the GAVO data center should eventually be available
-for download.  Meanwhile, contact the administrators for SVN access.</p>
+<p>The software driving the GAVO data center is not really finished
+enough for a "real" release.  If that does not scare you, you are
+welcome to a
+<a href="http://vo.ari.uni-heidelberg.de/soft">download</a>.  All our
+code is released under the GPLv3 (even if it doesn't say so in all places
+yet).</p>
 
 <h2>Acknowledgements</h2>
 
