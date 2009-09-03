@@ -11,7 +11,6 @@ from ZSI import TC
 
 from gavo import base
 from gavo.base import valuemappers
-from gavo import registry
 from gavo.utils.stanxml import Element, XSINamespace
 from gavo.utils import ElementTree
 
@@ -172,7 +171,7 @@ def makeTypesForService(service, queryMeta):
 	of outRec elements.
 	"""
 	return WSDL.types[
-		XSD.schema(targetNamespace=registry.computeIdentifier(service))[
+		XSD.schema(targetNamespace=str(service.getMeta("identifier")))[
 			XSD.element(name="outRec")[
 				XSD.complexType[
 					XSD.all[[
@@ -220,7 +219,7 @@ def makePortTypeForService(service):
 def makeSOAPBindingForService(service):
 	"""returns xmlstan for a SOAP binding of service.
 	"""
-	tns = registry.computeIdentifier(service)
+	tns = str(service.getMeta("identifier"))
 	return WSDL.binding(name="soapBinding", type="tns:serviceSOAP")[
 		SOAP.binding,
 		WSDL.operation(name="useService")[
@@ -240,7 +239,7 @@ def makeSOAPServiceForService(service):
 	shortName = str(service.getMeta("shortName"))
 	return WSDL.service(name=shortName)[
 		WSDL.port(name="soap_%s"%shortName, binding="tns:soapBinding")[
-			SOAP.address(location=service.getURL("soap", method="POST")+"/go"),
+			SOAP.address(location=service.getURL("soap")),
 		]
 	]
 
@@ -251,7 +250,7 @@ def makeSOAPWSDLForService(service, queryMeta):
 	The definitions element also introduces a namespace named after the
 	ivoa id of the service, accessible through the tns prefix.
 	"""
-	serviceId = registry.computeIdentifier(service)
+	serviceId = str(service.getMeta("identifier"))
 	return WSDL.definitions(targetNamespace=serviceId,
 			xmlns_tns=serviceId,
 			name="%s_wsdl"%str(service.getMeta("shortName")).replace(" ", "_"))[
@@ -321,7 +320,7 @@ if hasattr(ZSI.SoapWriter, "serialize_header"):
 		"""returns a SOAP serialization of the DataSet data's primary table.
 		"""
 		table = data.getPrimaryTable()
-		tns = registry.computeIdentifier(service)
+		tns = str(service.getMeta("identifier"))
 		class Row(TC.Struct):
 			def __init__(self):
 				TC.Struct.__init__(self, None, [
@@ -357,7 +356,7 @@ else:  # old ZSI -- nuke at some point
 
 		outF = cStringIO.StringIO()
 		sw = ZSI.SoapWriter(outF, 
-			nsdict={"tns": registry.computeIdentifier(service)})
+			nsdict={"tns": str(service.getMeta("identifier"))})
 		mapped = list(base.getMappedValues(table, _wsdlMFRegistry))
 		sw.serialize(mapped, Table.typecode)
 		sw.close()
@@ -381,7 +380,7 @@ def formatFault(exc, service):
 	else:
 		val = ZSI.Fault(ZSI.Fault.Server, unicodeXML(exc))
 	return val.AsSOAP(
-		nsdict={"tns": registry.computeIdentifier(service)})
+		nsdict={"tns": str(service.getMeta("identifier"))})
 
 
 def _tryWSDL():

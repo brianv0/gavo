@@ -228,7 +228,8 @@ class GavoRenderMixin(common.CommonRenderers):
 				T.div(class_="sidebaritem")[
 					T.p[T.a(href="/builtin/help.shtml")["Help"]],
 					T.p(render=T.directive("authinfo")),
-					T.p[T.a(href=self.service.getURL("info"))["Service info"]],
+					T.p[T.a(href=self.service.getURL("info", absolute=False))[
+						"Service info"]],
 				],
 				T.div(render=T.directive("ifdata"), class_="sidebaritem",
 					data=self.service.getMeta("_related"))[
@@ -343,11 +344,30 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 		GavoRenderMixin):
 	"""is a page based on a resource descriptor.
 
-	It is constructed with a resource descriptor and leave it
+	It is constructed with a resource descriptor and leaves it
 	in the rd attribute.
+
+	This class is abstract in the sense that it doesn't to anything
+	sensible.
+
+	The preferredMethod attribute is used for generation of registryRecords
+	and currently should be either GET or POST.  urlUse should be one
+	of full, base, post, or dir, in accord with VOResource.
+
+	Renderers with fixed result types should fill out resultType.
+
+	The makeAccessURL class method is called by service.getURL; it
+	receives the service's base URL and must return a mogrified string
+	that corresponds to an endpoint this renderer will operate on (this
+	could be used to make a Form renderer into a ParamHTTP interface by
+	attaching ?__nevow_form__=genForm&, and the soap renderer does
+	nontrivial things there).
 	"""
-# The current dispatcher cannot handle such renderers, you'd have
-# to come up with URLs for these.
+	preferredMethod = "GET"
+	urlUse = "full"
+	resultType = None
+	name = None
+
 	def __init__(self, ctx, rd):
 		self.rd = rd
 		if hasattr(self.rd, "currently_blocked"):
@@ -368,14 +388,18 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 		res = weberrors.ErrorPage()
 		return res.renderHTTP_exception(ctx, failure)
 
+	@classmethod
+	def makeAccessURL(cls, baseURL):
+		"""returns an accessURL for a service with baseURL to this renderer.
+		"""
+		return "%s/%s"%(baseURL, cls.name)
+
 
 class ServiceBasedRenderer(ResourceBasedRenderer):
 	"""is a resource based renderer using subId as a service id.
 
 	These have the Service instance they should use in the service attribute.
 	"""
-	name = None
-
 	def __init__(self, ctx, service):
 		ResourceBasedRenderer.__init__(self, ctx, service.rd)
 		self.service = service
@@ -392,12 +416,3 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 		if name in self.service.nevowRenderers:
 			return self.service.nevowRenderers[name]
 		return ResourceBasedRenderer.renderer(self, ctx, name)
-
-
-_rendererRegistry = {}
-
-def registerRenderer(name, aRenderer):
-	_rendererRegistry[name] = aRenderer
-
-def getRenderer(rendName):
-	return _rendererRegistry[rendName]

@@ -359,6 +359,11 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		"""delegates to common.ColumnList.
 		"""
 		return self.columns.getColumnByUCDs(*ucds)
+	
+	def getColumnsByUCDs(self, *ucds):
+		res = []
+		for ucd in ucds:
+			res.extend(self.columns.getColumnsByUCD(ucd))
 
 
 	def getProductColumns(self):

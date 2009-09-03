@@ -104,7 +104,7 @@ def iterSvcRecs(service):
 	rec["subject"] = subjects.pop()
 	for pub in service.publications:
 		rec["renderer"] = pub.render
-		rec["accessURL"] = service.getURL(pub.render, includeServerURL=False)
+		rec["accessURL"] = service.getURL(pub.render, absolute=False)
 		for setName in pub.sets:
 			rec["setName"] = setName
 			yield rec
@@ -154,21 +154,22 @@ _staticRscGrammar = base.makeStruct(StaticRscGrammar)
 
 
 def cleanServiceTablesFor(targetRDId, connection):
-	"""deletes all entries coming from SERVICELIST_ID in the service tables.
+	"""deletes all entries coming from targetRDId in the service tables.
 	"""
 # XXX TODO: think about script type="newSource" for this kind of situation
 # -- or do we want a special mechanism similar to owningCondition of old?
-	for td in base.caches.getRD(SERVICELIST_ID).getById("tables"):
+	for td in getServicesRD().getById("tables"):
 		rsc.TableForDef(td, connection=connection).deleteMatching(
 			"sourceRD=%(sourceRD)s", {"sourceRD": targetRDId})
 
 
-def updateServiceList(rds, metaToo=False):
+def updateServiceList(rds, metaToo=False, connection=None):
 	"""updates the services defined in rds in the services table in the database.
 	"""
 	parseOptions = rsc.getParseOptions(validateRows=True, batchSize=20)
-	connection = base.getDBConnection("admin")
-	dd = base.caches.getRD(SERVICELIST_ID).getById("tables")
+	if connection is None:
+		connection = base.getDBConnection("admin")
+	dd = getServicesRD().getById("tables")
 	dd.grammar = _svcRscGrammar
 	for rd in rds:
 		if rd.sourceId.startswith("/"):
@@ -185,9 +186,10 @@ def updateServiceList(rds, metaToo=False):
 
 def importFixed():
 	connection = base.getDBConnection("admin")
-	dd = base.caches.getRD(SERVICELIST_ID).getById("tables")
+	cleanServiceTablesFor(STATICRSC_ID, connection)
+
+	dd = base.caches.getRD(STATICRSC_ID).getById("tables")
 	dd.grammar = _staticRscGrammar
-	cleanServiceTablesFor(SERVICELIST_ID, connection)
 	rsc.makeData(dd, forceSource=object, parseOptions=rsc.parseValidating,
 		connection=connection)
 	connection.commit()
@@ -199,7 +201,7 @@ def getShortNamesForSets(queriedSets):
 	"""returns the list of service shortNames that are assigned to any of
 	the set names mentioned in the list queriedSets.
 	"""
-	tableDef = base.caches.getRD(SERVICELIST_ID).getById("srv_sets")
+	tableDef = getServicesRD().getById("srv_sets")
 	table = rsc.TableForDef(tableDef)
 	destTableDef = rscdef.TableDef(None, columns=[tableDef.getColumnByName(
 		"shortName")])
@@ -211,7 +213,7 @@ def getShortNamesForSets(queriedSets):
 def getSetsForService(shortName):
 	"""returns the list of set names the service shortName belongs to.
 	"""
-	tableDef = base.caches.getRD(SERVICELIST_ID).getById("srv_sets")
+	tableDef = getServicesRD().getById("srv_sets")
 	table = rsc.TableForDef(tableDef)
 	destTableDef = base.makeStruct(rscdef.TableDef,
 		columns=[tableDef.getColumnByName("setName")])
@@ -224,7 +226,7 @@ def getSets():
 	"""returns a sequence of dicts giving setName and and a list of
 	services belonging to that set.
 	"""
-	tableDef = base.caches.getRD(SERVICELIST_ID).getById("srv_sets")
+	tableDef = getServicesRD().getById("srv_sets")
 	table = rsc.TableForDef(tableDef)
 	setMembers = {}
 	for rec in table:
@@ -240,7 +242,7 @@ def queryServicesList(whereClause="", pars={}, tableName="srv_join"):
 	The table queried is the srv_join view, and you'll get back all
 	fields defined there.
 	"""
-	td = base.caches.getRD(SERVICELIST_ID).getById(tableName)
+	td = getServicesRD().getById(tableName)
 	otd = svcs.OutputTableDef.fromTableDef(td)
 	table = rsc.TableForDef(td)
 	return [r for r in table.iterQuery(otd, whereClause, pars)]
@@ -268,26 +270,13 @@ base.caches.makeCache("getSubjectsList",
 	lambda ignored: querySubjectsList())
 
 
-def getResourceForRec(rec):
-	"""returns a "resource" for the record rec.
-
-	rec at least has to contain the sourceRd and internalId fields.
-
-	The item that is being returned is either a service or a StaticResource
-	object.  All of these have a getMeta method and should be able to
-	return the standard DC metadata.  Everything else depends on the type
-	of StaticResource.
-	"""
-	sourceRd, internalId = rec["sourceRd"], rec["internalId"]
-	if sourceRd==SERVICELIST_ID:
-		return staticresource.loadStaticResource(internalId)
-	else:
-		return base.caches.getRD(sourceRd).serviceIndex[internalId]
-
-
 ################ UI stuff
 
 def findAllRDs():
+	"""returns all RDs in inputsDir.
+
+	System RDs are not returned.
+	"""
 	rds = []
 	for dir, dirs, files in os.walk(base.getConfig("inputsDir")):
 		for file in files:
@@ -296,33 +285,11 @@ def findAllRDs():
 	return rds
 
 
-def getStateFileName():
-	return os.path.join(base.getConfig("stateDir"), "lastGavopub.stamp")
-
-
-def getLastRegistryUpdate():
-	"""returns the timestamp of the last update of the registry.
+def getRDs(args):
+	"""returns a list of RDs from a list of more-or-less RD ids.
 	"""
-	try:
-		return os.path.getmtime(getStateFileName())
-	except os.error:
-		warnings.warn("No registry timestamp found.  Returning conservative"
-			" modification date")
-		return 946681200.0  # 2000-01-01T00:00:00Z
-
-
-def touchStateFile():
-	fn = getStateFileName()
-	try: os.unlink(fn)
-	except os.error: pass
-	f = open(fn, "w")
-	f.write("\n")
-	f.close()
-	os.chmod(fn, 0664)
-	try:
-		os.chown(fn, -1, grp.getgrnam(base.getConfig("GavoGroup")[2]))
-	except (KeyError, os.error):
-		pass
+	return [base.caches.getRD(rdPath, doQueries=False)
+		for rdPath in args]
 
 
 def parseCommandLine():
@@ -332,11 +299,23 @@ def parseCommandLine():
 		" for publications (implies -f).", dest="all", action="store_true")
 	parser.add_option("-m", "--meta-too", help="update meta information, too",
 		dest="meta", action="store_true")
-	parser.add_option("-f", "--fixed", help="also import fixed records"
-		" (this is equivalent to gavoimp services).", dest="doFixed",
-		action="store_true")
+	parser.add_option("-f", "--fixed", help="also import fixed records",
+		dest="doFixed", action="store_true")
 	return parser.parse_args()
 
+
+def updateRegistryTimestamp():
+	"""edits the dateupdated field for the registry service in servicelist.
+	"""
+	q = base.SimpleQuerier()
+	regSrv = getRegistryService()
+	q.runIsolatedQuery("UPDATE services SET dateupdated=%(now)s"
+		" WHERE sourcerd=%(rdId)s AND internalid=%(sId)s", {
+		"rdId": regSrv.rd.sourceId,
+		"sId": regSrv.id,
+		"now": datetime.datetime.now(),
+	})
+	q.close()
 
 def main():
 	"""handles the user interaction for gavopublish.
@@ -348,12 +327,11 @@ def main():
 	opts, args = parseCommandLine()
 	if opts.all:
 		args = findAllRDs()
-	updateServiceList([base.caches.getRD(rdPath, doQueries=False)
-		for rdPath in args], metaToo=opts.meta)
+	updateServiceList(getRDs(args), metaToo=opts.meta)
 	if opts.all or opts.doFixed:  # also import fixed registry records
 		importFixed()
 	try:
-		touchStateFile()
+		updateRegistryTimestamp()
 	except (IOError, os.error):
 		traceback.print_exc()
 		sys.stderr.write("Couldn't touch state file %s.  Please fix by hand.\n"%
@@ -364,5 +342,4 @@ if __name__=="__main__":
 	from gavo import rscdesc
 	from gavo.protocols import basic
 	import pprint
-	base.setDbProfile("trustedquery")
-	pprint.pprint(getSets())
+	print findAllRDs()

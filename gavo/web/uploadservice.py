@@ -7,6 +7,7 @@ from nevow import loaders
 from nevow import tags as T, entities as E
 
 from gavo import base
+from gavo import svcs
 from gavo.web import grend
 from gavo.web import resourcebased
 
@@ -41,7 +42,7 @@ class Uploader(resourcebased.Form):
 		]
 	])
 
-grend.registerRenderer("upload", Uploader)
+svcs.registerRenderer("upload", Uploader)
 
 
 class MachineUploader(Uploader):
@@ -73,4 +74,4 @@ class MachineUploader(Uploader):
 	_crashAndBurn = _handleInputErrors
 
 
-grend.registerRenderer("mupload", MachineUploader)
+svcs.registerRenderer("mupload", MachineUploader)

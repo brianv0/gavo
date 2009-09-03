@@ -9,7 +9,7 @@ from gavo import api
 from gavo import base
 from gavo.base import meta
 from gavo.web import common as webcommon
-from gavo.registry import registry
+from gavo.registry import builders
 
 import testhelpers
 
@@ -364,7 +364,11 @@ class ModelBasedBuilderTest(testhelpers.VerboseTest):
 		m.addMeta("subject", "and something else")
 		m.addMeta("description", "useless test case")
 		m.addMeta("contentLevel", "0")
-		self.assertEqual(len(registry._contentBuilder.build(m)), 4)
+		res = "".join(e.render() for e in builders._vrResourceBuilder.build(m))
+		self.failUnless("Level>0</contentL" in res)
+		self.failUnless("tLevel></content>" in res)
+		self.failUnless("ct>whatever</subject><subject>and so" in res)
+		self.failUnless("ct><description>u" in res)
 
 	
 class HtmlBuilderTest(testhelpers.VerboseTest):
@@ -460,4 +464,4 @@ def singleTest():
 
 
 if __name__=="__main__":
-	testhelpers.main(TestSpecials)
+	testhelpers.main(ModelBasedBuilderTest)

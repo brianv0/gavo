@@ -6,8 +6,7 @@ A script to run a series of tests on our local server to see if a software
 update didn't kill anything important.
 
 This requires a roughtestconfig.py script defining URL prefixes to the 
-services to test, currently qu_root (querulator) and nv_root (nevow-based
-services).
+services to test, currently nv_root (for nevow-based services).
 """
 
 from email.Message import Message
@@ -574,11 +573,11 @@ myTests = [
 		XSDValidationTest(nv_root+"/oai.xml?verb=ListRecords"
 			"&metadataPrefix=oai_dc&set=ivo_managed",
 			"OAI ListRecords validates in oai_dc"),
-		XSDValidationTest(nv_root+"/oai.xml?verb=ListRecords"
+		XSDValidationTest(nv_root+"/oai.xml?verb=GetRecord"
 			"&metadataPrefix=oai_dc&set=ivo_managed"
 			"&identifier=ivo%3A//org.gavo.dc/maidanak/res/rawframes/siap",
 			"OAI GetRecord validates in oai_dc"),
-		XSDValidationTest(nv_root+"/oai.xml?verb=ListRecords"
+		XSDValidationTest(nv_root+"/oai.xml?verb=GetRecord"
 			"&metadataPrefix=ivo_vor&set=ivo_managed"
 			"&identifier=ivo%3A//org.gavo.dc/maidanak/res/rawframes/siap",
 			"OAI GetRecord validates in ivo_vor"),

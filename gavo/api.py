@@ -12,7 +12,7 @@ from gavo.protocols import basic
 getRD = base.caches.getRD
 
 from gavo.base import (getConfig, getDBConnection, getDefaultDBConnection,
-	setDBProfile)
+	setDBProfile, SimpleQuerier)
 from gavo.rsc import (TableForDef, DBTable, makeData, parseValidating,
 	parseNonValidating)
 from gavo.utils import (Error, RDNotFound, StructureError, ValidationError,

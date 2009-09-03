@@ -32,6 +32,15 @@ from gavo.svcs import outputdef
 from gavo.svcs import standardcores
 
 
+_rendererRegistry = {}
+
+def registerRenderer(name, aRenderer):
+	_rendererRegistry[name] = aRenderer
+
+def getRenderer(rendName):
+	return _rendererRegistry[rendName]
+
+
 def adaptTable(origTable, newColumns):
 	"""returns an InMemoryTable created from origTable with columns taken from
 	newColumns.
@@ -163,22 +172,40 @@ class SvcResult(object):
 		return getattr(self, "data_"+name)(ctx)
 
 
-class Publication(base.Structure):
+class Publication(base.Structure, base.ComputedMetaMixin):
 	"""A specification of how a service should be published.
+
+	This contains most of the metadata for what is an interface in
+	registry speak.
 	"""
 	name_ = "publish"
 
 	_rd = rscdef.RDAttribute()
 	_render = base.UnicodeAttribute("render", default=base.Undefined,
 		description="The renderer the publication will point at.")
-	_sets = base.StringListAttribute("sets", default="local",
+	_sets = base.StringSetAttribute("sets", 
 		description="Comma-separated list of sets this service will be"
 			" published in.  Predefined are: local=publish on front page,"
-			" ivo_managed=register with the VO registry")
+			" ivo_managed=register with the VO registry.  If you leave it"
+			" empty, 'local' publication is assumed.")
 
 	def completeElement(self):
 		if self.render is base.Undefined:
 			self.renderer = "form"
+		if not self.sets:
+			self.sets.add("local")
+
+	def _meta_accessURL(self):
+		return self.parent.getURL(self.render)
+
+	def _meta_urlUse(self):
+		return getRenderer(self.render).urlUse
+
+	def _meta_requestMethod(self):
+		return getRenderer(self.render).preferredMethod
+	
+	def _meta_resultType(self):
+		return getRenderer(self.render).resultType
 
 
 class CustomRF(base.Structure):
@@ -213,10 +240,64 @@ class CustomRF(base.Structure):
 				utils.fixIndentation(self.content_, newIndent="  ",
 					governingLine=1).rstrip())) in vars
 		self.func = vars[self.name]
+
+
+class ServiceVolatilesMixin(object):
+	"""A mixin providing some metadata that is most easily read from
+	servicelist.
+
+	This needs rd and id attributes that can be resolved within the services
+	table.  Thus, this metadata will only be available when the service
+	is published.  Database accesses will only happen when the metadata
+	actually is requested.  Only the registry subpackage should do that.
+
+	This pertains to dateUpdated, sets, and (at some point) status.
+	"""
+	def __getFromDB(self, metaKey):
+		try:  # try to used cached data
+			if self.__dbRecord is None:
+				raise base.NoMetaKey(metaKey)
+			return self.__dbRecord[metaKey]
+		except AttributeError:
+			# fetch data from DB
+			pass
+		# We're not going through servicelist since we don't want to depend
+		# on the registry subpackage.
+		q = base.SimpleQuerier()
+		try:
+			res = q.runIsolatedQuery("SELECT dateUpdated, setName"
+				" FROM srv_join WHERE sourcerd=%(rdId)s AND internalid=%(id)s",
+				{"rdId": self.rd.sourceId, "id": self.id})
+		finally:
+			q.close()
+		if res:
+			self.__dbRecord = {
+				"dateUpdated": meta.makeMetaItem(res[0][0].strftime("%Y-%m-%d"), 
+					name="dateUpdated"),
+				"datetimeUpdated": meta.makeMetaItem(res[0][0].strftime(
+					utils.isoTimestampFmt), name="dateUpdated"),
+				"sets": meta.makeMetaItem([row[1] for row in res], name="sets"),
+				"status": meta.makeMetaItem("active", name="status"),
+			}
+		else:
+			self.__dbRecord = None
+		return self.__getFromDB(metaKey)
 	
+	def _meta_dateUpdated(self):
+		return self.__getFromDB("dateUpdated")
+
+	def _meta_datetimeUpdated(self):
+		return self.__getFromDB("datetimeUpdated")
+	
+	def _meta_sets(self):
+		return self.__getFromDB("sets")
+
+	def _meta_status(self):
+		return self.__getFromDB("status")
+
 
 class Service(base.Structure, base.ComputedMetaMixin, 
-		rscdef.StandardMacroMixin):
+		rscdef.StandardMacroMixin, ServiceVolatilesMixin):
 	"""A service definition.
 
 	A service is a combination of a core and one or more renderers.  They
@@ -280,6 +361,23 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			self.core = core.getCore("staticCore")(self.rd,
 				file=None).finishElement()
 			
+	def _computeResourceType(self):
+		"""sets the resType attribute.
+
+		Services are resources, and the registry code wants to know what kind.
+		This method ventures a guess.  You can override this decision by setting
+		the resType meta item.
+		"""
+		if self.outputTable.columns:
+			if (self.outputTable.getColumnsByUCDs("pos.eq.ra", "pos.eq.ra;meta.main")
+					or self.getMeta("coverage", default=None) is not None):
+				# There's either coverage or a position: A CatalogService
+				self.resType = "catalogService"
+			else: # We have an output table, but no discernible positions
+				self.resType = "tableService"
+		else: # no output table defined, we're a plain service
+			self.resType = "nonTabularService"
+
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(Service)
@@ -314,6 +412,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				raise base.LiteralParseError("Custom page missing or bad: %s"%
 					self.customPage, "customPage", self.customPage)
 			self.customPageCode = page, (os.path.basename(self.customPage),)+moddesc
+
+		self._computeResourceType()
 
 	def __repr__(self):
 		return "<Service at %x>"%id(self)
@@ -426,32 +526,28 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		queryMeta["formal_data"] = data
 		return self.run(data, queryMeta)
 	
-	def getURL(self, renderer, method="POST", includeServerURL=True):
+	def getURL(self, rendName, absolute=True):
 		"""returns the full canonical access URL of this service together 
 		with renderer.
-		"""
-		qSep = ""
-		if method=="GET":
-			qSep = "?"
-		elif renderer=="soap":
-			qSep = "/go"
-		elements = []
-		if includeServerURL:
-			elements.append(base.getConfig("web", "serverURL"))
-		elements.extend([
-			 base.getConfig("web", "nevowRoot"),
-				self.rd.sourceId, "/", self.id, "/", renderer, qSep])
-		return "".join(elements)
 
-	def getIDKey(self):
-		"""returns a "local part" for the IVOA identifier for this
-		service.
+		rendName is the name of the intended renderer in the registry
+		of renderers.
+
+		With absolute, a fully qualified URL is being returned.
 		"""
-		return "%s/%s"%(self.rd.sourceId, self.id)
+		basePath = "%s%s/%s"%(base.getConfig("web", "nevowRoot"),
+			self.rd.sourceId, self.id)
+		if absolute:
+			basePath = base.getConfig("web", "serverURL")+basePath
+		return getRenderer(rendName).makeAccessURL(basePath)
 
 	def _meta_referenceURL(self):
-		return meta.MetaItem(meta.makeMetaValue(self.getURL("info"),
-			type="link", title="Service info"))
-	
+		return meta.makeMetaItem(self.getURL("info"),
+			type="link", title="Service info")
+
+	def _meta_identifier(self):
+		return "ivo://%s/%s/%s"%(base.getConfig("ivoa", "authority"),
+				self.rd.sourceId, self.id)
+
 	def translateFieldName(self, name):
 		return name

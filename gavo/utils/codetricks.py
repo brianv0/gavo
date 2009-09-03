@@ -31,7 +31,8 @@ def _iterDerivedClasses(baseClass, objects):
 			pass
 
 
-def buildClassResolver(baseClass, objects, instances=False):
+def buildClassResolver(baseClass, objects, instances=False,
+		key=lambda obj: getattr(obj, "name", None)):
 	"""returns a function resolving classes deriving from baseClass
 	in the sequence objects by their names.
 
@@ -42,14 +43,19 @@ def buildClassResolver(baseClass, objects, instances=False):
 
 	If instances is True the function will return instances instead
 	of classes.
+
+	key is a function taking an object and returning the key under which
+	you will later access it.  If this function returns None, the object
+	will not be entered into the registry.
 	"""
 	if instances:
 		registry = algotricks.DeferringDict()
 	else:
 		registry = {}
 	for cls in _iterDerivedClasses(baseClass, objects):
-		if hasattr(cls, "name"):
-			registry[cls.name] = cls
+		clsKey = key(cls)
+		if clsKey is not None:
+			registry[clsKey] = cls
 	def resolve(name, registry=registry):
 		return registry[name]
 	return resolve

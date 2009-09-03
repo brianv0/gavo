@@ -58,7 +58,7 @@ class BlockRDRenderer(grend.ServiceBasedRenderer):
 			]
 		])
 
-grend.registerRenderer("block", BlockRDRenderer)
+svcs.registerRenderer("block", BlockRDRenderer)
 
 class RendExplainer(object):
 	"""is a container for various functions having to do with explaining
@@ -277,7 +277,7 @@ class ServiceInfoRenderer(grend.ServiceBasedRenderer,
 				T.p["Infos are only available with a serviceinfo.html template"]]
 		])
 
-grend.registerRenderer("info", ServiceInfoRenderer)
+svcs.registerRenderer("info", ServiceInfoRenderer)
 
 def basename(tableName):
 	if "." in tableName:
@@ -384,4 +384,4 @@ class TableInfoRenderer(grend.ServiceBasedRenderer,
 				T.p["Infos are only available with a tableinfo.html template"]]
 		])
 
-grend.registerRenderer("tableinfo", TableInfoRenderer)
+svcs.registerRenderer("tableinfo", TableInfoRenderer)

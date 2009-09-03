@@ -401,7 +401,8 @@ _config = Configuration(
 		StringConfigItem("authority", "org.gavo.dc", 
 			"the authority id for this DC"),
 		StringConfigItem("registryIdentifier",
-			"ivo://org.gavo.dc/static/registryrecs/registry.rr", "The IVOA"
+# XXX TODO: compute this from authority
+			"ivo://org.gavo.dc/__system__/services/registry", "The IVOA"
 				"id for this DC's registry"),
 		IntConfigItem("dalDefaultLimit", "10000",
 			"Default match limit on DAL queries"),),

@@ -183,7 +183,7 @@ class Element(object):
 		res = {}
 		for name, attName in self.iterAttNames():
 			if getattr(self, name) is not None:
-				res[attName] = getattr(self, name)
+				res[attName] = str(getattr(self, name))
 		return res
 
 	def getFirstChildOfType(self, type):

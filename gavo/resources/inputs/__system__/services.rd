@@ -4,13 +4,6 @@
 	<schema>public</schema>
 	<meta name="_related" title="Validate registry">http://rofr.ivoa.net/regvalidate/HarvestValidater?endpoint=http%3A//dc.zah.uni-heidelberg.de/oai.xml</meta>
 
-	<!-- this is for static resources imported via the fixedrecords data below.
-
-	It *must* match the id of this resource descriptor (properties can't do
-	field computing, so you need to maintain it by hand).
-	-->
-	<property name="srcRdId">__system__/services</property>
-
 	<!-- Tables related to services. 
 	These have to match whatever is done in gavo.web.servicelist -->
 
@@ -70,14 +63,6 @@ that was folly -->
 		<make table="srv_interfaces"/>
 		<make table="srv_sets"/>
 		<make table="srv_subjs"/>
-	</data>
-
-	<data id="fixedrecords" auto="False">
-		<meta name="description">Descriptor for importing static resources.
-			There's a special handling for this in staticresource, don't run
-			gavoimp on this.</meta>
-		<sources pattern="*.rr" recurse="True"/>
-		<keyValueGrammar enc="utf-8" yieldPairs="True"/>
 	</data>
 
 	<!-- a join of services, interfaces, and sets tables - REPLACE WITH ADQL -->
@@ -157,5 +142,26 @@ that was folly -->
 
 	<registryCore id="registrycore"/>
 
-	<service id="registry" core="registrycore" allowed="pubreg.xml"/>
+	<service id="registry" core="registrycore" allowed="pubreg.xml">
+		<publish render="pubreg.xml" sets="ivo_managed"/>
+		<meta name="resType">registry</meta>
+		<meta name="title">GAVO Data Center Registry</meta>
+		<meta name="creationDate">2008-05-07T11:33:00</meta>
+		<meta name="description">The GAVO data center registry provides 
+			records for resources in GAVO's data center</meta>
+		<meta name="subject">Registry</meta>
+		<meta name="shortName">GAVO DC registry</meta>
+		<meta name="content.type">Archive</meta>
+		<meta name="rights">public</meta>
+		<meta name="harvest.description">The harvesting interface for GAVO's data
+			center registry</meta>
+		<meta name="full">false</meta>
+		<meta name="maxRecords">10000</meta>
+		<meta name="managedAuthority">org.gavo.dc</meta>
+		<meta name="referenceURL">http://dc.zah.uni-heidelberg.de/oai.xml</meta>
+		<meta name="publisher">GAVO Data Center Team</meta>
+		<meta name="contact.name">GAVO Data Center Team</meta>
+		<meta name="contact.email">gavo@ari.uni-heidelberg.de</meta>
+
+	</service>
 </resource>

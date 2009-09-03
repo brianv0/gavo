@@ -52,7 +52,7 @@ from gavo.base.meta import (
 	MetaSyntaxError, MetaError, MetaCardError, NoMetaKey,
 	InfoItem as MetaInfoItem,
 	MetaMixin, ComputedMetaMixin,
-	getMetaText, makeMetaValue)
+	getMetaText, makeMetaValue, makeMetaItem)
 
 from gavo.base.observer import ObserverBase, listensTo
 

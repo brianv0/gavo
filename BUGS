@@ -114,3 +114,9 @@
 29/LOW/2009-08-31
 	structure.EventProcessor doesn't update root element when it has been
 	Replace'd (proposed solution: Kill the abominable Replace)
+
+30/WISHLIST/2009-09-02
+	meta.ModelBasedBuilder is a horrible abomination.  Replace it with
+	something that allows specification of required elements and a sane
+	syntax, or, probably better, teach xmlstan the render trick of the real
+	stan and write renders for meta items/meta values.

@@ -7,6 +7,7 @@ from nevow import tags as T, entities as E
 from twisted.internet import defer
 from twisted.internet import threads
 
+from gavo import svcs
 from gavo.web import common
 from gavo.web import grend
 from gavo.web import weberrors
@@ -71,4 +72,4 @@ class QPRenderer(grend.HTMLResultRenderMixin,
 					T.div(class_="result", data=T.directive("result")) [
 						T.invisible(render=T.directive(resultFormat))]]])
 
-grend.registerRenderer("qp", QPRenderer)
+svcs.registerRenderer("qp", QPRenderer)

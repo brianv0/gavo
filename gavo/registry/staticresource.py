@@ -7,16 +7,16 @@ parsed here into StaticResource instances.  They only contain meta data.
 """
 
 import os
+import urlparse
 
 from gavo import base
 from gavo import svcs
+from gavo.base import meta
+from gavo.svcs import service
+from gavo.registry.common import *
 
 
-# The path to the resource descriptor for the servicelist & c
-rdId = "__system__/services"
-
-
-class StaticResource(base.MetaMixin):
+class StaticResource(base.ComputedMetaMixin, service.ServiceVolatilesMixin):
 	"""is a resource defined through a key value-based text file in
 	the __system directory.
 
@@ -26,21 +26,29 @@ class StaticResource(base.MetaMixin):
 	def __init__(self, srcId):
 		self.publications = [base.makeStruct(svcs.Publication,
 			render="static", sets=["ivo_managed"])]
+		# we need a renderer to get into the service list.  This renderer
+		# should never kick in, though, since our types should not cause
+		# builders to use the automatic capability generation.
 		self.limitTo = None
 		self.id = srcId
 		self.srcName = srcId
-		self.rd = base.caches.getRD(rdId)
-		base.MetaMixin.__init__(self)  # We're not a Structure, so we need
-		                               # to do this manually
+		self.rd = base.caches.getRD(STATICRSC_ID)
+		# We're not a Structure, so we need to do this manually
+		base.ComputedMetaMixin.__init__(self)  
 
-	def getIDKey(self):
-		return "static/"+self.id
-
-	def getURL(self, renderer, qtype="POST", includeServerURL=True):
-		return self.getMeta("accessURL", default=None)
+	def getURL(self, renderer, absolute=True):
+		url = str(self.getMeta("accessURL", default=None))
+		if not absolute:
+			url = urlparse.urlunparse((None, None)+urlparse.urlparse(url)[2:])
+		return url
 
 	def getDescriptor(self):
 		return _descriptor
+
+	def _meta_identifier(self):
+		return meta.makeMetaItem(
+			"ivo://%s/static/%s"%(base.getConfig("ivoa", "authority"), self.id),
+			name="identifier")
 
 
 def makeStaticResource(srcId, srcPairs):
@@ -56,7 +64,7 @@ def makeStaticResource(srcId, srcPairs):
 
 
 def loadStaticResource(srcId):
-	rd = base.caches.getRD(rdId)
+	rd = base.caches.getRD(STATICRSC_ID)
 	srcName = os.path.join(rd.resdir, srcId)
 	grammar = rd.getById("fixedrecords").grammar
 	return makeStaticResource(srcId, [(v["key"], v["value"]) 
@@ -64,7 +72,7 @@ def loadStaticResource(srcId):
 
 
 def iterStaticResources():
-	rd = base.caches.getRD(rdId)
+	rd = base.caches.getRD(STATICRSC_ID)
 	for src in rd.getById("fixedrecords").iterSources():
 		id = src[len(rd.resdir):]
 		if id.startswith("/"):

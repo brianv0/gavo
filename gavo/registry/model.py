@@ -177,7 +177,10 @@ class VOR:
 		c_facility = []
 		c_instrument = []
 		
-	class Service(Resource): pass
+	class Service(Resource):
+		a_xsi_type = "vr:Service"
+		a_xmlns_vr = VORNamespace
+		xmlns_vr_name = "xmlns:vr"
 
 	class validationLevel(VORElement):
 		a_validatedBy = None
@@ -407,6 +410,8 @@ class VS:
 
 	class resultType(VSElement): pass
 	
+	class queryType(VSElement): pass
+
 	class param(VSElement): pass
 	
 	class name(VSElement): pass
@@ -525,6 +530,12 @@ class SIA:
 	class long(SIAElement): pass
 	
 	class lat(SIAElement): pass
+
+	class testQuery(SIAElement): pass
+	
+	class pos(SIAElement): pass
+	
+	class size(SIAElement): pass
 
 	
 class SCS:

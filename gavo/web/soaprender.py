@@ -65,8 +65,17 @@ class SoapRenderer(grend.ServiceBasedRenderer):
 	"""is a renderer that receives and formats SOAP messages.
 	"""
 	name="soap"
+	preferredMethod = "POST"
+	urlUse = "full"
+# XXX TODO: With the next VODataService, make this to:
+	#urlUse = "post"
+
 	def __init__(self, ctx, service):
 		grend.ServiceBasedRenderer.__init__(self, ctx, service)
+
+	@classmethod
+	def makeAccessURL(cls, baseURL):
+		return baseURL+"/soap/go"
 
 	def renderHTTP(self, ctx):
 		"""returns the WSDL for service.
@@ -88,4 +97,4 @@ class SoapRenderer(grend.ServiceBasedRenderer):
 			return self, ()
 		return SOAPProcessor(ctx, self.service), ()
 
-grend.registerRenderer("soap", SoapRenderer)
+svcs.registerRenderer("soap", SoapRenderer)

@@ -257,6 +257,7 @@ are usually set there:
 * creator.logo -- this should probably be overridden as well if you
   override creator.name
 
+
 Writing Custom Cores
 ====================
 

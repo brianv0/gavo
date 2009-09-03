@@ -26,6 +26,7 @@ item for the main key.
 
 import re
 import textwrap
+import traceback
 import urllib
 import warnings
 import weakref
@@ -327,6 +328,9 @@ class ComputedMetaMixin(MetaMixin):
 	the presence of a _meta_<key> method (replacing dots with two underscores)
 	and, if it exists, returns whatever it returns.  Otherwise, the
 	exception will be propagated.
+
+	The _meta_<key> methods can return MetaItems; if something else
+	is returned, it is automatically packed into one.
 	"""
 	def getMeta(self, key, raiseOnFail=False, default=None, **kwargs):
 		try:
@@ -334,15 +338,17 @@ class ComputedMetaMixin(MetaMixin):
 				**kwargs)
 		except NoMetaKey:
 			methName = "_meta_"+key.replace(".", "__")
-			import sys
 			if hasattr(self, methName):
 				res = getattr(self, methName)()
+				if res is not None and not isinstance(res, MetaItem):
+					res = makeMetaItem(res, name=key)
 			else:
 				if raiseOnFail:
 					raise
 				else:
 					res = default
 		return res
+
 
 class MetaItem(object):
 	"""is a collection of homogenous MetaValues.
@@ -699,7 +705,12 @@ def makeMetaValue(value="", **kwargs):
 	In addition, you can pass the name the MetaValue will eventually have.
 	If you do that, a type may automatically be added (but not overridden)
 	from the _typesForKeys dictionary.
+
+	If what you pass in already is a MetaValue, it is returned unchanged
+	(this is mainly a convenience for makeMetaItem).
 	"""
+	if isinstance(value, MetaValue):
+		return value
 	cls = MetaValue
 	if "name" in kwargs:
 		lastKey = parseKey(kwargs["name"])[-1]
@@ -719,6 +730,20 @@ def makeMetaValue(value="", **kwargs):
 	except TypeError:
 		raise MetaError(
 			"Invalid arguments for %s meta items :%s"%(cls.__name__, str(kwargs)))
+
+
+def makeMetaItem(value="", **kwargs):
+	"""returns a meta item.
+
+	The kwargs are as for makeMetaValue, except it can be a list, in
+	which case a series of MetaValues will be generated within the MetaItem.
+	"""
+	if isinstance(value, list):
+		res = MetaItem(makeMetaValue(value[0], **kwargs))
+		for atom in value[1:]:
+			res.addChild(makeMetaValue(atom, **kwargs))
+		return res
+	return MetaItem(makeMetaValue(value, **kwargs))
 
 
 def getMetaText(ob, key, propagate=False):
@@ -786,6 +811,10 @@ def stanFactory(tag, **kwargs):
 	return factory
 
 
+# Within this abomination of code, the following is particularly nasty.
+# It *must* go, and be replaced with something in which you can
+# communicate at least required elements.  And something with sane code.
+
 class ModelBasedBuilder(object):
 	"""is a meta builder that can create stan-like structures from meta
 	information
@@ -798,11 +827,34 @@ class ModelBasedBuilder(object):
 	
 	* a meta key and a callable,
 	* this, and a sequence of child nodes
-	* this, and a dictionary mapping argument names to the callable
+	* this, and a dictionary mapping argument names for the callable
 	  to meta keys of the node.
+	
+	The callable can also be None, which causes the corresponding items
+	to be inlined into the parent (this is for flattening nested meta
+	structures).
+
+	The meta key can also be None, which causes the factory to be called
+	exactly once (this is for nesting flat meta structures).
 	"""
 	def __init__(self, constructors, format="text"):
 		self.constructors, self.format = constructors, format
+
+	def _buildNode(self, processContent, metaItem, children=()):
+		if not metaItem:
+			return []
+		result = []
+		for child in metaItem.children:
+			content = []
+			c = child.getContent(self.format)
+			if c:
+				content.append(c)
+			childContent = self._build(children, child)
+			if childContent:
+				content.append(childContent)
+			if content:
+				result.append(processContent(content, child))
+		return result
 
 	def _getItemsForConstructor(self, metaContainer, key, factory, 
 			children=(), attrs={}):
@@ -817,22 +869,11 @@ class ModelBasedBuilder(object):
 		else:
 			def processContent(childContent, metaItem):
 				return childContent
-			
-		mi = metaContainer.getMeta(key, raiseOnFail=False)
-		if not mi:
-			return []
-		result = []
-		for child in mi.children:
-			content = []
-			c = child.getContent(self.format)
-			if c:
-				content.append(c)
-			childContent = self._build(children, child)
-			if childContent:
-				content.append(childContent)
-			if content:
-				result.append(processContent(content, child))
-		return result
+		if key is None:
+			return [factory(self._build(children, metaContainer))]
+		else:
+			return self._buildNode(processContent, 
+				metaContainer.getMeta(key, raiseOnFail=False), children)
 
 	def _build(self, constructors, metaContainer):
 		result = []
@@ -840,7 +881,15 @@ class ModelBasedBuilder(object):
 			if isinstance(item, basestring):
 				result.append(item)
 			else:
-				result.extend(self._getItemsForConstructor(metaContainer, *item))
+				try:
+					result.extend(self._getItemsForConstructor(metaContainer, *item))
+				except utils.Error:
+					raise
+				except:
+					traceback.print_exc()
+					raise utils.ReportableError(
+						"Invalid constructor func in %s, meta container active %s"%(
+							repr(item), repr(metaContainer)))
 		return result
 
 	def build(self, metaContainer):

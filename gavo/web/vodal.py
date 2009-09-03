@@ -16,12 +16,13 @@ from twisted.python import failure
 from zope.interface import implements
 
 from gavo import base
+from gavo import registry
 from gavo import rscdef
 from gavo import rsc
 from gavo import svcs
+from gavo import utils
 from gavo.imp import formal
 from gavo.imp.VOTable import DataModel as VOTable
-from gavo.registry import registry
 from gavo.utils import ElementTree
 from gavo.web import grend
 from gavo.web import resourcebased
@@ -41,7 +42,8 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 
 	implements(inevow.ICanHandleException)
 
-	contentTypeDelivered = "application/x-votable"
+	resultType = "application/x-votable+xml"
+	urlUse = "base"
 
 	def __init__(self, ctx, *args, **kwargs):
 		ctx.remember(self, inevow.ICanHandleException)
@@ -51,6 +53,10 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 				str(base.getConfig("ivoa", "dalDefaultLimit"))]
 		reqArgs["_FORMAT"] = ["VOTable"]
 		resourcebased.Form.__init__(self, ctx, *args, **kwargs)
+
+	@classmethod
+	def makeAccessURL(cls, baseURL):
+		return "%s/%s?"%(baseURL, cls.name)
 
 	_generateForm = resourcebased.Form.form_genForm
 
@@ -71,7 +77,7 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 		request = inevow.IRequest(ctx)
 		request.setHeader('content-disposition', 
 			'attachment; filename="votable.xml"')
-		request.setHeader("content-type", self.contentTypeDelivered)
+		request.setHeader("content-type", self.resultType)
 		return resourcebased.streamVOTable(request, data)
 
 	def renderHTTP_exception(self, ctx, failure):
@@ -84,7 +90,6 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 		return self.renderHTTP_exception(ctx, failure)
 
 	def _handleInputErrors(self, errors, ctx):
-		print ">>>>>>>>>>>", errors
 		def formatError(e):
 			if isinstance(e, formal.FieldError):
 				return "%s: %s"%(e.fieldName, str(e))
@@ -108,10 +113,14 @@ class SCSRenderer(DALRenderer):
 	testQuery.dec set to the (decimal) RA and dec of an object in the 
 	published catalogue (actually, to a position within 0.001 deg of such
 	an object).
+
+	You must set the following metadata items on services using
+	this renderer if you want to register them:
+
+	* testQuery.ra, testQuery.dec -- A position for which an object is present
+	  within 0.001 degrees.
 	"""
 	name = "scs.xml"
-
-	contentTypeDelivered = "text/xml;content=x-votable"
 
 	def _writeErrorTable(self, ctx, msg):
 		request = inevow.IRequest(ctx)
@@ -146,7 +155,7 @@ class SCSRenderer(DALRenderer):
 		table.votCasts = realCasts
 		return DALRenderer._formatOutput(self, data, ctx)
 
-grend.registerRenderer("scs.xml", SCSRenderer)
+svcs.registerRenderer("scs.xml", SCSRenderer)
 
 
 class SIAPRenderer(DALRenderer):
@@ -154,6 +163,14 @@ class SIAPRenderer(DALRenderer):
 
 	These have errors in the content of an info element, and they support
 	metadata queries.
+
+	It is recommended to set the following metadata items on services
+	using this renderer:
+
+	* testQuery.pos.ra, testQuery.pos.dec -- RA and Dec for a query that
+	  yields at least one image
+	* testQuery.size.ra, testQuery.size.dec -- RoI extent for a query that 
+		yields at least one image.
 	"""
 	name = "siap.xml"
 
@@ -200,7 +217,7 @@ class SIAPRenderer(DALRenderer):
 	def _serveMetadata(self, ctx):
 		metaData = self._makeMetadataData(svcs.QueryMeta.fromContext(ctx))
 		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", "application/x-votable")
+		request.setHeader("content-type", "text/xml+votable")
 		return resourcebased.streamVOTable(request, metaData)
 
 	def _formatOutput(self, data, ctx):
@@ -218,67 +235,19 @@ class SIAPRenderer(DALRenderer):
 		data.addMeta("_type", "results")
 		return svcs.SvcResult(data, {}, svcs.QueryMeta.fromContext(ctx))
 
-grend.registerRenderer("siap.xml", SIAPRenderer)
-
-
-class RegistryCore(svcs.Core):
-	"""is a core processing OAI requests.
-
-	Its signature requires a single input key containing the complete
-	args from the incoming request.  This is necessary to satisfy the
-	requirement of raising errors on duplicate arguments.
-
-	It returns an ElementTree.
-
-	This core is intended to work the the RegistryRenderer.
-	"""
-	name_ = "registryCore"
-
-	def completeElement(self):
-		if self.inputDD is not base.Undefined:
-			raise base.StructureError("RegistryCores have a fixed"
-				" inputDD that you may not override.")
-		self.inputDD = base.parseFromString(svcs.InputDescriptor, """
-			<inputDD>
-				<table id="_pubregInput">
-					<column name="args" type="raw"
-						description="The raw dictionary of input parameters"/>
-				</table>
-				<make table="_pubregInput"/>
-			</inputDD>""")
-		if self.outputTable is base.Undefined:
-			self.outputTable = base.makeStruct(svcs.OutputTableDef)
-		self._completeElementNext(RegistryCore)
-
-	def runWithPMHDict(self, args):
-		pars = {}
-		for argName, argVal in args.iteritems():
-			if len(argVal)!=1:
-				raise registry.BadArgument(argName)
-			else:
-				pars[argName] = argVal[0]
-		try:
-			verb = pars["verb"]
-		except KeyError:
-			raise registry.BadArgument("verb")
-		try:
-			handler = registry.pmhHandlers[verb]
-		except KeyError:
-			raise registry.BadVerb("'%s' is an unsupported operation."%pars["verb"])
-		return ElementTree.ElementTree(handler(pars).asETree())
-
-	def run(self, service, inputData, queryMeta):
-		"""returns an ElementTree containing a OAI-PMH response for the query 
-		described by pars.
-		"""
-		args = inputData.getPrimaryTable().rows[0]["args"]
-		return self.runWithPMHDict(args)
-
-svcs.registerCore(RegistryCore)
+svcs.registerRenderer("siap.xml", SIAPRenderer)
 
 
 class RegistryRenderer(grend.ServiceBasedRenderer):
 	name = "pubreg.xml"
+	urlUse = "base"
+	resultType = "text/xml"
+
+	@classmethod
+	def makeAccessURL(cls, baseURL):
+		# We return our alias here for consistency.
+		return "%s%s/oai.xml"%(base.getConfig("web", "serverURL"),
+			base.getConfig("web", "nevowRoot"))
 
 	def renderHTTP(self, ctx):
 		# Make a robust (unchecked) pars dict for error rendering; real
@@ -296,7 +265,7 @@ class RegistryRenderer(grend.ServiceBasedRenderer):
 # here?  Stream this?
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "text/xml")
-		return ElementTree.tostring(etree.getroot(), registry.encoding)
+		return ElementTree.tostring(etree.getroot(), "utf-8")
 
 	def _getErrorTree(self, exception, pars):
 		"""returns an ElementTree containing an OAI-PMH error response.
@@ -318,7 +287,7 @@ class RegistryRenderer(grend.ServiceBasedRenderer):
 			raise exception
 		return ElementTree.ElementTree(OAI.PMH[
 			OAI.responseDate[datetime.datetime.now().strftime(
-				registry._isoTimestampFmt)],
+				utils.isoTimestampFmt)],
 			OAI.request(verb=pars.get("verb", ["Identify"])[0], 
 					metadataPrefix=pars.get("metadataPrefix", [None])[0]),
 			OAI.error(code=code)[
@@ -341,4 +310,4 @@ class RegistryRenderer(grend.ServiceBasedRenderer):
 			request.finishRequest(False)
 		return appserver.errorMarker
 			
-grend.registerRenderer("pubreg.xml", RegistryRenderer)
+svcs.registerRenderer("pubreg.xml", RegistryRenderer)

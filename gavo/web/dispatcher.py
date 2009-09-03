@@ -34,6 +34,7 @@ from zope.interface import implements
 
 from gavo import base
 from gavo import svcs
+from gavo import registry    # for registration
 from gavo.imp import formal
 from gavo.web import common
 from gavo.web import grend
@@ -427,7 +428,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 				service = rd.getService(subId)
 				if service is None:
 					raise KeyError("No such service: %s"%subId)
-				rendC = grend.getRenderer(rendName)
+				rendC = svcs.getRenderer(rendName)
 				if service.limitTo:
 					rend = common.runAuthenticated(ctx, service.limitTo,
 						lambda service: rendC(ctx, service), service)
