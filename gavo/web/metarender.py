@@ -20,10 +20,24 @@ from gavo.web import resourcebased
 from gavo.web import weberrors
 
 
-class BlockRDRenderer(grend.ServiceBasedRenderer):
+class MetaRenderer(grend.ServiceBasedRenderer):
+	"""Renderers that are allowed on all services.
+
+	This is done by giving them a name of None.  That, in turn, is a pain
+	now that we use these names to generate URLs.  Thus, they have
+	urlPart attributes and a custom makeAccessURL.
+	"""
+	urlPart = None
+	@classmethod
+	def makeAccessURL(cls, baseURL):
+		return "%s/%s"%(baseURL, cls.urlPart)
+
+
+class BlockRDRenderer(MetaRenderer):
 	"""is a renderer used for blocking RDs from the web interface.
 	"""
 	name = None   # may be used on all services
+	urlPart = "block"
 
 	def data_blockstate(self, ctx, data):
 		if hasattr(self.service.rd, "currently_blocked"):
@@ -216,11 +230,12 @@ class MetaRenderMixin(object):
 		return res
 	
 
-class ServiceInfoRenderer(grend.ServiceBasedRenderer,
+class ServiceInfoRenderer(MetaRenderer,
 		MetaRenderMixin):
 	"""is a renderer that shows information about a service.
 	"""
 	name = None  # allow on all services
+	urlPart = "info"
 	
 	customTemplate = common.loadSystemTemplate("serviceinfo.html")
 

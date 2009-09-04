@@ -390,7 +390,7 @@ def getSQL(field, inPars, sqlPars):
 			return parsers[field.type](val).asSQL(field, sqlPars)
 		else:
 			if isinstance(val, (list, tuple)):
-				if len(val)==1 and val[0] is None:
+				if len(val)==0 or (len(val)==1 and val[0] is None):
 					return ""
 				return "%s IN %%(%s)s"%(field.name, getSQLKey(field.name,
 					val, sqlPars))

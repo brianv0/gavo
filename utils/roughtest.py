@@ -843,6 +843,14 @@ myTests = [
 			"&hscs_pos=84.6583%2C%20-69.0949&hscs_sr=10.0&_ADDITEM=a_gg",
 			["Matched: 5", "0.43", "Gunn g", "69 -69.5"],
 			"MC Extinctions gives expected data"),
+		GetHasStringsTest(nv_root+"/ohmaser/q/scs/scs.xml?"
+			"RA=10.0&DEC=10.0&SR=10.0&frequency=1665&_TDENC=True",
+			['tections; &lt; -- non', 
+				'<TD>http://vo.uni-hd.de/ohmaser/q/refs/qp/FIX84<'],
+			"OH maser SCS delivers results."),
+		GetHasStringsTest(nv_root+"/ohmaser/q/refs/qp/FIX84",
+			['<html xmlns="', 'References for the', '<td>FIX84</td>'],
+			"OH maser references are rendered"),
 	),
 ]
 
