@@ -47,3 +47,14 @@ def urlopenRemote(url, data=None):
 		if not isinstance(msgStr, basestring):
 			msgStr = str(msg)
 		raise IOError("Could not open URL %s: %s"%(url, msgStr))
+
+
+def fgetmtime(fileobj):
+	"""returns the mtime of the file below fileobj.
+
+	This raises an os.error if that file cannot be fstated.
+	"""
+	try:
+		return os.fstat(fileobj.fileno()).st_mtime
+	except AttributeError:
+		raise os.error("Not a file: %s"%repr(fileobj))

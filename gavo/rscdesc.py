@@ -10,20 +10,25 @@ In the GAVO DC, a resource descriptor in general sets up a schema in
 the database.
 """
 
+import datetime
+import grp
 import os
 import pkg_resources
 import time
 import traceback
+import warnings
 import weakref
 
 from gavo import base
 from gavo import grammars
 from gavo import rscdef
 from gavo import svcs
+from gavo import utils
 from gavo.rsc import metatable
 from gavo.rscdef import common
 from gavo.rscdef import macros
 from gavo.rscdef import scripting
+from gavo.registry.common import DateUpdatedMixin
 
 
 class CoresAttribute(base.StructListAttribute):
@@ -40,8 +45,8 @@ class CoresAttribute(base.StructListAttribute):
 		return svcs.getCore(name)(structure)
 
 
-class RD(base.Structure, base.MetaMixin, scripting.ScriptingMixin,
-		macros.StandardMacroMixin, common.RolesMixin):
+class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
+		macros.StandardMacroMixin, common.RolesMixin, DateUpdatedMixin):
 	"""A resource descriptor (RD); the root for all elements described here.
 	
 	RDs collect all information about how to parse a particular source (like a
@@ -109,6 +114,9 @@ class RD(base.Structure, base.MetaMixin, scripting.ScriptingMixin,
 		# on anonymous RDs (and in this case will because parts of primary
 		# keys must not be NULL)
 		self.sourceId = None
+		# real dateUpdated is set by getRD, this is just for RDs created
+		# on the fly.
+		self.dateUpdated = datetime.datetime.utcnow()
 
 	def __iter__(self):
 		return iter(self.dds)
@@ -171,6 +179,24 @@ class RD(base.Structure, base.MetaMixin, scripting.ScriptingMixin,
 		"""
 		return os.path.join(base.getConfig("stateDir"), "updated_"+
 			self.sourceId.replace("/", "+"))
+
+	def touchTimestamp(self):
+		"""updates the timestamp on the rd's state file.
+		"""
+		fn = self.getTimestampPath()
+		try:
+			try: os.unlink(fn)
+			except os.error: pass
+			f = open(fn, "w")
+			f.write("\n")
+			f.close()
+			os.chmod(fn, 0664)
+			try:
+				os.chown(fn, -1, grp.getgrnam(base.getConfig("GavoGroup")[2]))
+			except (KeyError, os.error):
+				pass
+		except (os.error, IOError):
+			warnings.warn("Could not update timestamp on RD %s"%self.sourceId)
 
 	def computeSourceId(self, sourcePath):
 		"""returns the inputsDir-relative path to the rd.
@@ -278,11 +304,14 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False):
 	except Exception, ex:
 		ex.srcPath = srcPath
 		raise
-	if not rd.getMeta("dateUpdated"):
+	try:
+		rd.dateUpdated = datetime.datetime.utcfromtimestamp(
+			os.path.getmtime(rd.getTimestampPath()))
+	except os.error: # no timestamp yet, use source file
 		try:
-			rd.addMeta("dateUpdated", time.strftime("%Y-%m-%d", 
-				time.gmtime(os.path.getmtime(rd.getTimestampPath()))))
-		except os.error:
+			rd.dateUpdated = datetime.datetime.utcfromtimestamp(
+				utils.fgetmtime(inputFile))
+		except os.error: # not a useful source file, leave default ("now")
 			pass
 	return rd
 

@@ -17,6 +17,7 @@ from gavo import svcs
 from gavo.web import common
 from gavo.web import grend
 from gavo.web import resourcebased
+from gavo.web import weberrors
 
 
 class BlockRDRenderer(grend.ServiceBasedRenderer):
@@ -385,3 +386,27 @@ class TableInfoRenderer(grend.ServiceBasedRenderer,
 		])
 
 svcs.registerRenderer("tableinfo", TableInfoRenderer)
+
+
+class ExternalRenderer(grend.ServiceBasedRenderer):
+	"""A renderer redirecting to an external resource.
+
+	These try to access an external publication on the parent service
+	and ask it for an accessURL.  If it doesn't define one, this will
+	lead to a redirect loop.
+
+	In the DC, external renderers are mainly used for registration of
+	third-party browser-based services.
+	"""
+	name = "external"
+
+	def renderHTTP(self, ctx):
+		# look for a matching publication in the parent service...
+		for pub in self.service.publications:
+			if pub.render==self.name:
+				break
+		else: # no publication, 404
+			raise svcs.UnknownURI()
+		return weberrors.RedirectPage(str(pub.getMeta("accessURL")))
+
+svcs.registerRenderer("external", ExternalRenderer)

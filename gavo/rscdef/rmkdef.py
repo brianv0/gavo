@@ -185,7 +185,7 @@ class RowmakerMacroMixin(macros.StandardMacroMixin):
 	def macro_sourceDate(self):
 		"""returns an expression giving the timestamp of the current source.
 		"""
-		return 'datetime.fromtimestamp(os.path.getmtime(parser_.sourceToken))'
+		return 'datetime.utcfromtimestamp(os.path.getmtime(parser_.sourceToken))'
 		
 	def macro_srcstem(self):
 		"""returns the stem of the source file currently parsed.

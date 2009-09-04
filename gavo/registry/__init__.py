@@ -31,3 +31,6 @@ This package deals with two ways to represent resources:
 from gavo.registry.common import *
 from gavo.registry import oaiinter      # registration of RegistryCore
 from gavo.registry import servicelist   # registration of getWebServiceList
+
+
+from gavo.registry.identifiers import (getResobFromIdentifier)

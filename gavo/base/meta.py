@@ -588,6 +588,8 @@ class MetaURL(MetaValue):
 			MetaValue._addMeta(self, atoms, metaValue)
 
 
+################## individual meta types (factor out to a new module)
+
 class NewsMeta(MetaValue):
 	"""A meta value representing a "news" items.
 

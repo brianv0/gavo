@@ -180,8 +180,9 @@ def getDCListRecordsElement(resobs, setNames,
 		try:
 			recs[makeRecord(resob, setNames)]
 		except base.NoMetaKey, msg:
-			warnings.warn("Cannot create registry record for %s"
-			" because mandatory meta %s is missing"%(resob, msg))
+			warnings.warn("Cannot create registry record for %s#%s"
+			" because mandatory meta %s is missing"%(
+				resob.rd.sourceId, resob.id, msg))
 		except Exception, msg:
 			traceback.print_exc()
 			warnings.warn("Cannot create registry record %s.  Reason: %s"%(

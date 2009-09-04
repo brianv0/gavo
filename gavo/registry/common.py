@@ -5,6 +5,7 @@ Common code and definitions for registry support.
 import re
 
 from gavo import base
+from gavo import utils
 
 
 SERVICELIST_ID = "__system__/services"
@@ -46,6 +47,33 @@ def getResType(resob):
 	if resType is None:
 		resType = resob.resType
 	return str(resType)
+
+
+class DateUpdatedMixin(object):
+	"""A mixin providing computers for dateUpdated and datetimeUpdated.
+
+	The trouble is that we need this in various formats.  Classes
+	mixing this in may give a dateUpdated attribute (a datetime.datetime) 
+	that is used to compute both meta elements.
+
+	If any of them is overridden manually, the other is computed from
+	the one given.
+	"""
+	def __getDatetimeMeta(self, key, format):
+		dt = getattr(self, "dateUpdated", None)
+		if dt is None:
+			raise base.NoMetaKey(key)
+		return dt.strftime(format)
+	
+	def _meta_dateUpdated(self):
+		if "datetimeUpdated" in self.meta_:
+			return str(self.meta_["datetimeUpdated"])[:8]
+		return self.__getDatetimeMeta("dateUpdated", "%Y-%m-%d")
+	
+	def _meta_datetimeUpdated(self):
+		if "dateUpdated" in self.meta_:
+			return str(self.meta_["dateUpdated"])+"T00:00:00Z"
+		return self.__getDatetimeMeta("dateUpdated", utils.isoTimestampFmt)
 
 
 __all__ = ["SERVICELIST_ID", "STATICRSC_ID", "METADATA_PREFIXES",

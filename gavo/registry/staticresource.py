@@ -6,17 +6,19 @@ inputs/__system__/services/*.rr as sets of key-value pairs.  These are
 parsed here into StaticResource instances.  They only contain meta data.
 """
 
+import datetime
 import os
 import urlparse
 
 from gavo import base
 from gavo import svcs
+from gavo import utils
 from gavo.base import meta
 from gavo.svcs import service
+from gavo.registry import common
 from gavo.registry.common import *
 
-
-class StaticResource(base.ComputedMetaMixin, service.ServiceVolatilesMixin):
+class StaticResource(base.ComputedMetaMixin, common.DateUpdatedMixin):
 	"""is a resource defined through a key value-based text file in
 	the __system directory.
 
@@ -35,9 +37,17 @@ class StaticResource(base.ComputedMetaMixin, service.ServiceVolatilesMixin):
 		self.rd = base.caches.getRD(STATICRSC_ID)
 		# We're not a Structure, so we need to do this manually
 		base.ComputedMetaMixin.__init__(self)  
+		self._updateDateUpdated()
+
+	def _updateDateUpdated(self):
+		srcName = os.path.join(self.rd.resdir, self.id)
+		self.dateUpdated = datetime.datetime.utcfromtimestamp(
+			os.path.getmtime(srcName))
 
 	def getURL(self, renderer, absolute=True):
-		url = str(self.getMeta("accessURL", default=None))
+		url = self.getMeta("accessURL")
+		if url is None:
+			return None
 		if not absolute:
 			url = urlparse.urlunparse((None, None)+urlparse.urlparse(url)[2:])
 		return url
@@ -46,10 +56,12 @@ class StaticResource(base.ComputedMetaMixin, service.ServiceVolatilesMixin):
 		return _descriptor
 
 	def _meta_identifier(self):
-		return meta.makeMetaItem(
-			"ivo://%s/static/%s"%(base.getConfig("ivoa", "authority"), self.id),
-			name="identifier")
+		return "ivo://%s/static/%s"%(
+			base.getConfig("ivoa", "authority"), 
+			self.id)
 
+	def _meta_status(self):
+		return "active"
 
 def makeStaticResource(srcId, srcPairs):
 	"""returns a StaticResource instance for the sequence of (metaKey,

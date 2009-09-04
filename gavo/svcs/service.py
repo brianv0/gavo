@@ -191,9 +191,17 @@ class Publication(base.Structure, base.ComputedMetaMixin):
 
 	def completeElement(self):
 		if self.render is base.Undefined:
-			self.renderer = "form"
+			self.render = "form"
 		if not self.sets:
 			self.sets.add("local")
+		self._completeElementNext(Publication)
+
+	def validate(self):
+		self._validateNext(Publication)
+		try:
+			getRenderer(self.render)
+		except KeyError:
+			raise base.StructureError("Unknown renderer: %s"%self.render)
 
 	def _meta_accessURL(self):
 		return self.parent.getURL(self.render)
@@ -251,7 +259,7 @@ class ServiceVolatilesMixin(object):
 	is published.  Database accesses will only happen when the metadata
 	actually is requested.  Only the registry subpackage should do that.
 
-	This pertains to dateUpdated, sets, and (at some point) status.
+	This pertains to sets, and (at some point) status.
 	"""
 	def __getFromDB(self, metaKey):
 		try:  # try to used cached data
@@ -272,10 +280,10 @@ class ServiceVolatilesMixin(object):
 			q.close()
 		if res:
 			self.__dbRecord = {
-				"dateUpdated": meta.makeMetaItem(res[0][0].strftime("%Y-%m-%d"), 
-					name="dateUpdated"),
-				"datetimeUpdated": meta.makeMetaItem(res[0][0].strftime(
-					utils.isoTimestampFmt), name="dateUpdated"),
+#				"dateUpdated": meta.makeMetaItem(res[0][0].strftime("%Y-%m-%d"), 
+#					name="dateUpdated"),
+#				"datetimeUpdated": meta.makeMetaItem(res[0][0].strftime(
+#					utils.isoTimestampFmt), name="dateUpdated"),
 				"sets": meta.makeMetaItem([row[1] for row in res], name="sets"),
 				"status": meta.makeMetaItem("active", name="status"),
 			}
@@ -284,10 +292,10 @@ class ServiceVolatilesMixin(object):
 		return self.__getFromDB(metaKey)
 	
 	def _meta_dateUpdated(self):
-		return self.__getFromDB("dateUpdated")
+		return self.rd.getMeta("dateUpdated")
 
 	def _meta_datetimeUpdated(self):
-		return self.__getFromDB("datetimeUpdated")
+		return self.rd.getMeta("datetimeUpdated")
 	
 	def _meta_sets(self):
 		return self.__getFromDB("sets")

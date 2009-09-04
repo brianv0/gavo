@@ -154,7 +154,7 @@ class LoginPage(rend.Page):
 					" or ",
 					T.a(href=base.getConfig("web", "nevowRoot"))["DC home"],
 					"."]]])
-	
+
 
 def _replaceConfigStrings(srcPath, registry):
 	src = open(srcPath).read().decode("utf-8")
@@ -276,6 +276,7 @@ class VanityMap(object):
 	builtinRedirects = """
 		__system__/products/p/get getproduct
 		__system__/services/registry/pubreg.xml oai.xml
+		__system__/services/overview/external odoc
 	"""
 
 	def __init__(self):

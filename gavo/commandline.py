@@ -47,6 +47,7 @@ def process(opts, args):
 		if hasattr(res, "nAffected"):
 			print "Columns affected:", res.nAffected
 	connection.commit()
+	rd.touchTimestamp()
 
 
 def main():

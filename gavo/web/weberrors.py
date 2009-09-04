@@ -232,3 +232,36 @@ class ForbiddenPage(rend.Page, common.CommonRenderers):
 			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
 				"gavo@ari.uni-heidelberg.de"]],
 		]])
+
+
+class RedirectPage(rend.Page, common.CommonRenderers):
+	def __init__(self, destURL):
+		self.destURL = str(destURL)
+	
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setResponseCode(301)
+		request.setHeader("Location", self.destURL)
+		return super(RedirectPage, self).renderHTTP(ctx)
+	
+	def render_destLink(self, ctx, data):
+		return ctx.tag(href=self.destURL)
+	
+	docFactory = common.doctypedStan(T.html[
+			T.head[T.title["GAVO DC -- Redirect"],
+			T.invisible(render=T.directive("commonhead")),
+		],
+		T.body[
+			T.img(src="/builtin/img/logo_medium.png", style="position:absolute;"
+				"right:0pt"),
+			T.h1["Moved permanently (301)"],
+			T.p["The resource you requested is available from a ",
+				T.a(render=T.directive("destLink"))[
+			 		"different URL"],
+				"."],
+			T.p["You should not see this page -- either your browser or"
+				" our site is broken.  Complain."],
+			T.hr,
+			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
+				"gavo@ari.uni-heidelberg.de"]],
+		]])

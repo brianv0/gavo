@@ -126,9 +126,16 @@ that was folly -->
 		<condDesc buildFrom="setName"/>
 	</dbCore>
 
-	<service id="overview" core="overviewcore">
+	<service id="overview" core="overviewcore" allowed="form,external">
 		<meta name="shortName">_cs_srv</meta>
 		<meta name="title">Published Services</meta>
+
+		<!-- we abuse the service for an easy redirect to the central operator's
+			help site -->
+		<publish render="external" sets="ignore">
+			<meta name="accessURL">http://vo.ari.uni-heidelberg.de/docs/DaCHS</meta>
+		</publish>
+
 		<outputTable namePath="srv_join">
 			<outputField original="shortName"/>
 			<outputField original="sourceRd"/>

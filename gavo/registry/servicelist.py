@@ -3,7 +3,6 @@ Code dealing with the service list.
 """
 
 import datetime
-import grp
 import os
 import sys
 import time
@@ -16,6 +15,7 @@ from gavo import grammars
 from gavo import rsc
 from gavo import rscdef
 from gavo import svcs
+from gavo import utils
 from gavo.registry import staticresource
 from gavo.registry.common import *
 
@@ -71,10 +71,10 @@ def makeBaseRecord(service):
 	rec["description"] = unicode(service.getMeta("description"
 		) or unicode(service.getMeta("_description")))
 	rec["owner"] = service.limitTo
-	dateUpdated = service.getMeta("dateUpdated")
-	if dateUpdated:
+	dateUpdated = service.getMeta("datetimeUpdated")
+	if dateUpdated is not None:
 		rec["dateUpdated"] = datetime.datetime(
-			*time.strptime(str(dateUpdated), "%Y-%m-%d")[:3])
+			*time.strptime(str(dateUpdated), utils.isoTimestampFmt)[:3])
 	else:
 		rec["dateUpdated"] = datetime.datetime.utcnow()
 	return rec
@@ -217,9 +217,9 @@ def getSetsForService(shortName):
 	table = rsc.TableForDef(tableDef)
 	destTableDef = base.makeStruct(rscdef.TableDef,
 		columns=[tableDef.getColumnByName("setName")])
-	return [str(r["setName"])
+	return set(str(r["setName"])
 		for r in table.iterQuery(destTableDef, "shortName=%(name)s",
-		{"name": shortName})]
+		{"name": shortName}))
 
 
 def getSets():
@@ -316,6 +316,8 @@ def updateRegistryTimestamp():
 		"now": datetime.datetime.now(),
 	})
 	q.close()
+	getServicesRD().touchTimestamp()
+
 
 def main():
 	"""handles the user interaction for gavopublish.
@@ -325,17 +327,12 @@ def main():
 	from gavo import web
 	base.setDBProfile("admin")
 	opts, args = parseCommandLine()
+	getServicesRD().touchTimestamp()
 	if opts.all:
 		args = findAllRDs()
 	updateServiceList(getRDs(args), metaToo=opts.meta)
 	if opts.all or opts.doFixed:  # also import fixed registry records
 		importFixed()
-	try:
-		updateRegistryTimestamp()
-	except (IOError, os.error):
-		traceback.print_exc()
-		sys.stderr.write("Couldn't touch state file %s.  Please fix by hand.\n"%
-			getStateFileName())
 
 
 if __name__=="__main__":

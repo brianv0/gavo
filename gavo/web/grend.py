@@ -396,9 +396,10 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 
 
 class ServiceBasedRenderer(ResourceBasedRenderer):
-	"""is a resource based renderer using subId as a service id.
+	"""A resource based renderer using subId as a service id.
 
-	These have the Service instance they should use in the service attribute.
+	All of our renderers inherit from this, since there is no way
+	a resource could define anything to render (now).
 	"""
 	def __init__(self, ctx, service):
 		ResourceBasedRenderer.__init__(self, ctx, service.rd)
@@ -408,7 +409,7 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 				self.name)
 
 	def renderer(self, ctx, name):
-		"""returns code for a renderer named name.
+		"""returns code for a nevow render function named name.
 
 		This overrides the method inherited from nevow's RenderFactory to
 		add a lookup in the page's service service.

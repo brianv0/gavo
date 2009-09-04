@@ -258,7 +258,7 @@ class GrammarMacroMixin(rscdef.StandardMacroMixin):
 	def macro_sourceDate(self):
 		"""returns an expression giving the timestamp of the current source.
 		"""
-		return 'datetime.fromtimestamp(os.path.getmtime(rowIter.sourceToken))'
+		return 'datetime.utcfromtimestamp(os.path.getmtime(rowIter.sourceToken))'
 		
 	def macro_srcstem(self):
 		"""returns the stem of the source file currently parsed.

@@ -133,14 +133,18 @@ class FormInterface(WebBrowserInterface):
 	renderer = "form"
 
 
-# Actually, statics and customs could be anything, but if you register it, it's
-# better be something a web browser can handle.
+# Actually, statics, externals and customs could be anything, but if you
+# register it, it's better be something a web browser can handle.
 
 class StaticInterface(WebBrowserInterface):
 	renderer = "static"
 
 class CustomInterface(WebBrowserInterface):
 	renderer = "custom"
+
+class ExternalInterface(WebBrowserInterface):
+	renderer = "external"
+
 
 
 _getInterfaceMaker = utils.buildClassResolver(InterfaceMaker, 
@@ -171,8 +175,8 @@ class CapabilityMaker(object):
 	capabilityClass = VOR.capability
 
 	def _makeCapability(self, publication):
-		# XXX TODO: add some description, validationLevel?
 		return self.capabilityClass[
+			VOR.description[publication.getMeta("description", propagate=False)],
 			getInterfaceElement(publication)]
 
 	def __call__(self, publication):
@@ -249,6 +253,9 @@ class SOAPCapabilityMaker(CapabilityMaker):
 
 class FormCapabilityMaker(CapabilityMaker):
 	renderer = "form"
+
+class ExternalCapabilityMaker(CapabilityMaker):
+	renderer = "external"
 
 class StaticCapabilityMaker(CapabilityMaker):
 	renderer = "static"
