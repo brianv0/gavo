@@ -3,6 +3,7 @@
 <resource resdir="__system">
 	<schema>public</schema>
 	<meta name="_related" title="Validate registry">http://rofr.ivoa.net/regvalidate/HarvestValidater?endpoint=http%3A//dc.zah.uni-heidelberg.de/oai.xml</meta>
+	<meta name="creationDate">2007-11-22T13:02:00Z</meta>
 
 	<!-- Tables related to services. 
 	These have to match whatever is done in gavo.web.servicelist -->
@@ -129,6 +130,9 @@ that was folly -->
 	<service id="overview" core="overviewcore" allowed="form,external">
 		<meta name="shortName">_cs_srv</meta>
 		<meta name="title">Published Services</meta>
+		<meta name="description">A list of all services published on the
+			GAVO Data Center, with links to information pages about them</meta>
+		<meta name="subject">Virtual Observatory</meta>
 
 		<!-- we abuse the service for an easy redirect to the central operator's
 			help site -->

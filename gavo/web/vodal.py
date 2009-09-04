@@ -246,7 +246,7 @@ class RegistryRenderer(grend.ServiceBasedRenderer):
 	@classmethod
 	def makeAccessURL(cls, baseURL):
 		# We return our alias here for consistency.
-		return "%s%s/oai.xml"%(base.getConfig("web", "serverURL"),
+		return "%s%soai.xml"%(base.getConfig("web", "serverURL"),
 			base.getConfig("web", "nevowRoot"))
 
 	def renderHTTP(self, ctx):

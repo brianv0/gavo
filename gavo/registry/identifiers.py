@@ -14,7 +14,7 @@ def computeIdentifierFromRestup(restup):
 	"""returns an identifier from a res tuple.
 	"""
 	if (restup["sourceRd"]=="<static resource>" or 
-		restup["sourceRd"]==SERVICELIST_ID):
+		restup["sourceRd"]==STATICRSC_ID):
 		reskey = "static/%s"%restup["internalId"]
 	else:
 		reskey = "%s/%s"%(restup["sourceRd"], restup["internalId"])
