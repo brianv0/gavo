@@ -168,19 +168,38 @@ class CondDesc(base.Structure):
 		for ik in self.inputKeys:
 			yield vizierexprs.getSQL(ik, inPars, outPars)
 
-	def inputReceived(self, inPars):
+	def _isActive(self, inPars):
+		"""returns True if the inputDD has left our input parameters in inPars.
+
+		Background: renderers may remove InputKeys if the list of a service's
+		input parameters.  This leads to new inputDDs.
+
+		That, in turn, may in effect invalidate condDescs, which is desired
+		(e.g., allowing both humanSCS and scs condDescs on the same core.
+
+		A condDesc knows it's been disabled if its InputKeys' names are not
+		present in the input record.
+		"""
+		for f in self.inputKeys:
+			if f.name not in inPars:
+				return False
+		return True
+
+	def inputReceived(self, inPars, queryMeta):
 		"""returns True if all inputKeys can be filled from inPars.
 
 		As a side effect, inPars will receive defaults form the input keys
 		if there are any.
 		"""
+		if not self._isActive(inPars):
+			return False
 		keysFound, keysMissing = [], []
 		for f in self.inputKeys:
-			if f.name not in inPars or inPars[f.name] is None:
-				# We need the separate check for defaults because some services
+			if inPars[f.name] is None:
+				# We need the separate check for defaults because some renderes
 				# might not use makeData to parse their input and thus miss
 				# the defaulting done in rowmakers (this should be done away with,
-				# though).
+				# though because it breaks _isActive).
 				if f.values is not None and f.values.default:
 					inPars[f.name] = f.values.default
 					keysFound.append(f)
@@ -197,14 +216,13 @@ class CondDesc(base.Structure):
 			raise base.ValidationError("A value is necessary here", 
 				colName=keysMissing[0].name)
 		# we're optional, but a value was given and others are missing
-# XXX TODO: it'd be nicer if we'd complain about all missing keys at once.
 		raise base.ValidationError("When you give a value for %s,"
 			" you must give value(s) for %s, too"%(keysFound[0].tablehead, 
 					", ".join(k.name for k in keysMissing)),
 				colName=keysMissing[0].name)
 
-	def asSQL(self, inPars, sqlPars):
-		if self.silent or not self.inputReceived(inPars):
+	def asSQL(self, inPars, sqlPars, queryMeta):
+		if self.silent or not self.inputReceived(inPars, queryMeta):
 			return ""
 		res = list(self.makePhrase(self, self.inputKeys, inPars, sqlPars))
 		sql = vizierexprs.joinOperatorExpr("AND", res)
@@ -296,7 +314,7 @@ class TableBasedCore(core.Core):
 		sqlPars, frags = {}, []
 		inputPars = inputData.getPrimaryTable().rows[0]
 		return vizierexprs.joinOperatorExpr("AND",
-			[cd.asSQL(inputPars, sqlPars)
+			[cd.asSQL(inputPars, sqlPars, queryMeta)
 				for cd in self.condDescs]), sqlPars
 
 	def _makeTable(self, rowIter, resultTableDef, queryMeta):

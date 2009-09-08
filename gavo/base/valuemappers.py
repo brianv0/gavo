@@ -224,6 +224,21 @@ def _productMapperFactory(colProps):
 _registerDefaultMF(_productMapperFactory)
 
 
+def _boxMapperFactory(colProps):
+	"""A factory for Boxes.
+	"""
+	if colProps["dbtype"]!="box":
+		return
+	def mapper(val):
+		if val is None:
+			return ""
+		else:
+			return "Box ICRS %s %s %s %s"%(val[0]+val[1])
+	colProps["datatype"], colProps["arraysize"] = "text", "*"
+	return mapper
+_registerDefaultMF(_boxMapperFactory)
+
+
 def _castMapperFactory(colProps):
 	"""is a factory that picks up castFunctions set up by user casts.
 	"""

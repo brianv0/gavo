@@ -10,6 +10,7 @@ import ZSI
 from ZSI import TC
 
 from gavo import base
+from gavo import svcs
 from gavo.base import valuemappers
 from gavo.utils.stanxml import Element, XSINamespace
 from gavo.utils import ElementTree
@@ -199,7 +200,7 @@ def makeMessagesForService(service):
 				f.type))[
 					WSDL.documentation[f.description],
 					WSDL.documentation[f.unit]]
-				for f in service.getInputFields()]],
+				for f in svcs.getRenderer("soap").getInputFields(service)]],
 		WSDL.message(name="srvOutput")[
 			WSDL.part(name="srvOutput", type="tns:outList")]]
 
@@ -207,7 +208,8 @@ def makeMessagesForService(service):
 def makePortTypeForService(service):
 	"""returns xmlstan for a port type named serviceSOAP.
 	"""
-	parameterOrder = " ".join([f.name for f in service.getInputFields()])
+	parameterOrder = " ".join([f.name 
+		for f in svcs.getRenderer("soap").getInputFields(service)])
 	return WSDL.portType(name="serviceSOAP")[
 		WSDL.operation(name="useService", parameterOrder=parameterOrder) [
 			WSDL.input(name="inPars", message="tns:srvInput"),

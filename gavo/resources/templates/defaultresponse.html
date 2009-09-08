@@ -10,14 +10,14 @@
 <body n:render="withsidebar">
 	<h1 n:render="meta">title</h1>
 
-	<div class="result" n:render="ifdata" n:data="result">
-		<div class="querypars" n:data="queryseq" n:render="ifdata">
-			<h2><a href="#_queryForm">Parameters</a></h2>
-			<ul n:render="sequence">
-				<li n:pattern="item" n:render="parpair"/>
-			</ul>
-		</div>
+	<div class="querypars" n:data="queryseq" n:render="ifdata">
+		<h2><a href="#_queryForm">Parameters</a></h2>
+		<ul n:render="sequence">
+			<li n:pattern="item" n:render="parpair"/>
+		</ul>
+	</div>
 
+	<div class="result" n:render="ifdata" n:data="result">
 		<h2>Result</h2>
 		<div class="resmeta" n:data="resultmeta" n:render="mapping">
 			<p>Matched: <n:slot name="itemsMatched"/></p>

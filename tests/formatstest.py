@@ -44,15 +44,17 @@ def _getFields(*args):
 class VOPlotTest(unittest.TestCase):
 	"""test for the VOPlot renderer.
 	"""
+	testData = {"foo": ["33.3"], "bar": ["w", "v"]}
 	def setUp(self):
-		self.request = FakeRequest(args={"foo": ["33.3"], "bar": ["w", "v"]})
+		self.request = FakeRequest(args=self.testData)
 		self.request.path = "http://urgl.wap.no/nv"
 		self.context = context.RequestContext(tag=self.request)
 
 	def testUrlProduction(self):
 		"""tests for correct URLs in the VOPlot embed element.
 		"""
-		vop = resourcebased.VOPlotResponse(None, None)
+		vop = resourcebased.VOPlotResponse(None, 
+			testhelpers.getTestRD().getById("basicprod"), self.testData)
 		ctx = context.WovenContext(self.context, T.div[""])
 		tag = vop.render_voplotArea(ctx, None).children[1]
 		self.assertEqual(

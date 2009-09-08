@@ -8,6 +8,7 @@ the service, it's right there in publication.parent.
 """
 
 from gavo import base
+from gavo import svcs
 from gavo import utils
 from gavo.base import typesystems
 from gavo.registry.common import *
@@ -42,10 +43,11 @@ def getInputParamFromColumn(column, rootElement=VS.param):
 		lambda type, length: VS.simpleDataType[type])
 
 
-def getInputParams(service):
+def getInputParams(publication, service):
 	"""returns a sequence of vs:param elements for the input of service.
 	"""
-	return [getInputParamFromColumn(f) for f in service.getInputFields()]
+	return [getInputParamFromColumn(f) 
+		for f in svcs.getRenderer(publication.render).getInputFields(service)]
 
 
 ####################### Interfaces
@@ -88,7 +90,7 @@ class InterfaceWithParams(InterfaceMaker):
 		return InterfaceMaker._makeInterface(self, publication)[
 			VS.queryType[publication.getMeta("requestMethod")],
 			VS.resultType[publication.getMeta("resultType")],
-			getInputParams(publication.parent),
+			getInputParams(publication, publication.parent),
 		]
 
 

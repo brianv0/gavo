@@ -401,7 +401,7 @@ myTests = [
 			'60043\x00\xec\xbdip\x9e\xd7\x95\xdf\x99T*\x93\x9at',
 			"NV Maidanak product delivery"),
 		GetHasStringsTest(nv_root+"/maidanak/res/rawframes/siap/form?"
-			"__nevow_form__=genForm&POS=M1&SIZE=0.5&INTERSECT=OVERLAPS",
+			"__nevow_form__=genForm&hPOS=M1&hSIZE=0.5&hINTERSECT=OVERLAPS",
 			['<div class="resmeta">', '<p>Matched:'],
 			"Simbad resolution of positions works"),
 		GetHasStringsTest(nv_root+"/maidanak/res/rawframes/siap/siap.xml"
@@ -415,15 +415,15 @@ myTests = [
 	),
 	TestGroup('formats',
 		HeadFieldTest(nv_root+"/maidanak/res/rawframes/siap/form?"
-			"__nevow_form__=genForm&POS=q2237%2B0305&SIZE=1&INTERSECT=OVERLAPS&"
-			"FORMAT=image%2Ffits&dateObs=2001-01-01%20..%202005-10-10&"
+			"__nevow_form__=genForm&hPOS=q2237%2B0305&hSIZE=1&hINTERSECT=OVERLAPS&"
+			"hFORMAT=image%2Ffits&dateObs=2001-01-01%20..%202005-10-10&"
 			"_DBOPTIONS_LIMIT=1&_FORMAT=tar&_DBOPTIONS_ORDER=dateObs", [
 				("content-disposition", "attachment; filename=truncated_data.tar"),
 				("content-type", "application/x-tar")],
 			"Tar output declared in header"),
 		GetHasStringsTest(nv_root+"/maidanak/res/rawframes/siap/form?"
-			"__nevow_form__=genForm&POS=q2237%2B0305&SIZE=1&INTERSECT=OVERLAPS&"
-			"FORMAT=image%2Ffits&dateObs=2001-01-01%20..%202005-10-10&"
+			"__nevow_form__=genForm&hPOS=q2237%2B0305&hSIZE=1&hINTERSECT=OVERLAPS&"
+			"hFORMAT=image%2Ffits&dateObs=2001-01-01%20..%202005-10-10&"
 			"_DBOPTIONS_LIMIT=1&_FORMAT=tar&_DBOPTIONS_ORDER=dateObs", [
 			"dc_data/",
 			"\0\0\0\0\0\0\x1f\x8b\x08\x08", # end of tar header, start of gzipped file
@@ -768,9 +768,8 @@ myTests = [
 	),
 	TestGroup("services",
 		GetHasStringsTest(nv_root+"/lswscans/res/positions/q/form?"
-				"__nevow_form__=genForm&POS=1.5%2C6.3&SIZE=0.5&INTERSECT=OVERLAPS&"
-				"FORMAT=image%2Ffits&cutoutSize=0.5&_DBOPTIONS_ORDER=&"
-				"_DBOPTIONS_LIMIT=100&_FORMAT=HTML&submit=Go",
+				"__nevow_form__=genForm&hPOS=1.5%2C6.3&hSIZE=0.5&hINTERSECT=OVERLAPS&"
+				"hFORMAT=image%2Ffits&cutoutSize=0.5",
 			["Plate alpha", "Bandpass", "B2866b"],
 			"LSW plate service gives plausible answer"),
 		GetHasStringsTest(nv_root+"/getproduct?"
@@ -803,7 +802,7 @@ myTests = [
 				"&service=apfs&month=8&year=2008",
 			["#Hosts", "<td>3</td>"],
 			"Logs service delivers credible data."),
-		GetHasStringsTest(nv_root+"/ppmx/res/ppmx/q/form?__nevow_form__=genForm"
+		GetHasStringsTest(nv_root+"/ppmx/res/ppmx/scs/form?__nevow_form__=genForm"
 			"&hscs_pos=Arcturus&hscs_sr=14.0&pm_total=%3E0.02&"
 			"_DBOPTIONS_ORDER=pm_total&_DBOPTIONS_LIMIT=100",
 			["PM: &gt;0.02", "+19 10 56.82", "-114"],
@@ -842,7 +841,11 @@ myTests = [
 		GetHasStringsTest(nv_root+"/mcextinct/q/cone/form?__nevow_form__=genForm"
 			"&hscs_pos=84.6583%2C%20-69.0949&hscs_sr=10.0&_ADDITEM=a_gg",
 			["Matched: 5", "0.43", "Gunn g", "69 -69.5"],
-			"MC Extinctions gives expected data"),
+			"MC Extinctions form gives expected data"),
+		GetHasStringsTest(nv_root+"/mcextinct/q/cone/scs.xml?RA=84.6583&"
+			"DEC=-69.0949&SR=0.1&_TDENC=True",
+			["><TD>0.14</TD><TD>Box ICRS 84.912306"],
+			"MC Extinctions SCS gives expected data"),
 		GetHasStringsTest(nv_root+"/ohmaser/q/scs/scs.xml?"
 			"RA=10.0&DEC=10.0&SR=10.0&frequency=1665&_TDENC=True",
 			['tections; &lt; -- non', 

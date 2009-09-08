@@ -207,6 +207,8 @@
 	</procDef>
 
 	<condDesc id="siapBase">
+		<!-- This just contains some components the real SIAP conditions build
+		upon.  Do not inherit from this, do not instanciate it. -->
 		<phraseMaker>
 			<setup id="baseSetup">
 				<code>
@@ -227,30 +229,48 @@
 				</code>
 			</setup>
 		</phraseMaker>
+
+		<inputKey id="base_POS" name="POS" type="text" unit="deg,deg"
+			ucd="pos.eq"
+			description="ICRS Position, RA,DEC decimal degrees (e.g., 234.234,-32.46)"
+			tablehead="Position" required="True">
+		</inputKey>
+
+		<inputKey name="SIZE" type="text" unit="deg,deg" id="base_SIZE"
+			description="Size in decimal degrees (e.g., 0.2 or 1,0.1)"
+			tablehead="Field size" required="True">
+		</inputKey>
+
+		<inputKey name="INTERSECT" id="base_INTERSECT" type="text" description=
+			"Relation of image and specified Region of Interest."
+			tablehead="Intersection type" required="False">
+			<values default="OVERLAPS" id="base_INTERSECT_values">
+				<option title="Image overlaps RoI">OVERLAPS</option>
+				<option title="Image covers RoI">COVERS</option>
+				<option title="RoI covers image">ENCLOSED</option>
+				<option title="The given position is shown on image">CENTER</option>
+			</values>
+		</inputKey>
+
+		<inputKey name="FORMAT" id="base_FORMAT" type="text" required="False"
+			description="Requested format of the image data"
+			tablehead="Output format">
+			<values default="image/fits"/>
+		</inputKey>
 	</condDesc>
 
 	<condDesc id="siap" register="True">
-		<inputKey name="POS" type="text" unit="deg,deg"
-			ucd="pos.eq"
-			description="J2000.0 Position, RA,DEC decimal degrees (e.g., 234.234,-32.46)"
-			tablehead="Position" required="True"/>
-		<inputKey name="SIZE" type="text" unit="deg,deg" id="siapSIZE"
-			description="Size in decimal degrees (e.g., 0.2 or 1,0.1)"
-			tablehead="Field size" required="True"/>
-		<inputKey name="INTERSECT" type="text" required="False"
-			description="Should the image cover, enclose, overlap the ROI or contain its center?"
-			tablehead="Intersection type">
-			<values default="OVERLAPS">
-				<option>OVERLAPS</option>
-				<option>COVERS</option>
-				<option>ENCLOSED</option>
-				<option>CENTER</option>
-			</values>
+		<inputKey original="base_POS">
+			<property name="onlyForRenderer">siap.xml</property>
 		</inputKey>
-		<inputKey name="FORMAT" id="siapFORMAT" type="text" required="False"
-			description="Requested format of the image data"
-			tablehead="Output format" widgetFactory='Hidden'>
-			<values default="image/fits"/>
+		<inputKey original="base_SIZE">
+			<property name="onlyForRenderer">siap.xml</property>
+		</inputKey>
+		<inputKey original="base_INTERSECT">
+			<property name="onlyForRenderer">siap.xml</property>
+		</inputKey>
+		<inputKey original="base_FORMAT">
+			<property name="onlyForRenderer">siap.xml</property>
 		</inputKey>
 		<phraseMaker>
 			<setup original="baseSetup"/>
@@ -262,36 +282,35 @@
 	</condDesc>
 
 	<condDesc id="humanSIAP" register="True">
-		<inputKey name="POS" type="text" unit="deg,deg" ucd="pos.eq" description=
-			"ICRS Position, RA,DEC, or Simbad object (e.g., 234.234,-32.45)"
-			tablehead="Position" required="True"/>
-		<inputKey original="siapSIZE"/>
-		<inputKey name="INTERSECT" type="text" description=
-			"Relation of image and specified Region of Interest."
-			tablehead="Intersection type">
-			<values default="COVERS">
-				<option title="Image overlaps RoI">OVERLAPS</option>
-				<option title="Image covers RoI">COVERS</option>
-				<option title="RoI covers image">ENCLOSED</option>
-				<option title="The given position is shown on image">CENTER</option>
-			</values>
+		<inputKey original="base_POS" name="hPOS"
+			description="ICRS Position, RA,DEC, or Simbad object (e.g., 234.234,-32.45)">
+			<property name="notForRenderer">siap.xml</property>
 		</inputKey>
-		<inputKey original="siapFORMAT"/>
+		<inputKey original="base_SIZE" name="hSIZE">
+			<property name="notForRenderer">siap.xml</property>
+		</inputKey>
+		<inputKey original="base_INTERSECT" name="hINTERSECT">
+			<property name="notForRenderer">siap.xml</property>
+		</inputKey>
+		<inputKey original="base_FORMAT" name="hFORMAT" widgetFactory='Hidden'>
+			<property name="notForRenderer">siap.xml</property>
+		</inputKey>
+
 		<phraseMaker>
 			<setup original="baseSetup"/>
 			<code>
-				pos = inPars["POS"]
+				pos = inPars["hPOS"]
 				try:
 					ra, dec = base.parseCooPair(pos)
 				except ValueError:
 					data = base.caches.getSesame("web").query(pos)
 					if not data:
 						raise base.ValidationError("%r is neither a RA,DEC pair nor a simbad"
-						" resolvable object"%inPars.get("POS", "Not given"), "POS")
+						" resolvable object"%inPars.get("POS", "Not given"), "hPOS")
 					ra, dec = float(data["RA"]), float(data["dec"])
 				inPars = {
-					"POS": "%f, %f"%(ra, dec), "SIZE": inPars["SIZE"],
-					"INTERSECT": inPars["INTERSECT"], "FORMAT": inPars.get("FORMAT")}
+					"POS": "%f, %f"%(ra, dec), "SIZE": inPars["hSIZE"],
+					"INTERSECT": inPars["hINTERSECT"], "FORMAT": inPars.get("hFORMAT")}
 				yield siap.getBboxQuery(inPars, outPars)
 				yield interpretFormat(inPars, outPars)
 			</code>

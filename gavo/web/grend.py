@@ -18,6 +18,7 @@ from nevow import url
 from nevow import util as nevowutil
 
 from twisted.internet import defer
+from twisted.internet import threads
 from twisted.python import failure
 from zope.interface import implements
 
@@ -324,6 +325,29 @@ class HTMLResultRenderMixin(object):
 	def data_result(self, ctx, data):
 		return self.result
 
+	__suppressedParNames = set(["submit"])
+
+	def data_queryseq(self, ctx, data):
+		if not self.result:
+			return []
+		if self.service:
+			fieldDict = dict((f.name, f) 
+				for f in self.getInputFields(self.service))
+		else:
+			fieldDict = {}
+
+		def getTitle(key):
+			title = None
+			if key in fieldDict:
+				title = fieldDict[key].tablehead
+			return title or key
+		
+		s = [(getTitle(k), v) 
+			for k, v in self.result.queryMeta.getQueryPars().iteritems()
+			if k not in self.__suppressedParNames and not k.startswith("_")]
+		s.sort()
+		return s
+
 
 class ErrorPage(GavoRenderMixin, rend.Page):
 	def __init__(self, failure, *args, **kwargs):
@@ -404,6 +428,9 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 	def __init__(self, ctx, service):
 		ResourceBasedRenderer.__init__(self, ctx, service.rd)
 		self.service = service
+		# Do our input fields differ from the services?
+		# This becomes true when getInputFields swallows InputKeys.
+		self.fieldsChanged = False 
 		if self.name and not self.name in self.service.allowed:
 			raise svcs.ForbiddenURI("The renderer %s is not allowed on this service."%
 				self.name)
@@ -417,3 +444,58 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 		if name in self.service.nevowRenderers:
 			return self.service.nevowRenderers[name]
 		return ResourceBasedRenderer.renderer(self, ctx, name)
+
+	@classmethod
+	def getInputDD(cls, service):
+		"""returns an inputDD appropriate for service and this renderer.
+
+		This will return None if the service can use the core's default DD.
+		"""
+		sfs = service.getInputFields()
+		ifs = cls.getInputFields(service)
+		if sfs is ifs:
+			return None
+		return base.makeStruct(svcs.InputDescriptor,
+			grammar=base.makeStruct(svcs.ContextGrammar, inputKeys=ifs))
+
+	def processData(self, rawData, queryMeta):
+		"""produces input data for the service in runs the service.
+		"""
+		inputData = self.service.makeDataFor(self, rawData)
+		return self.service.runWithData(inputData, queryMeta)
+	
+	def runService(self, rawData, queryMeta):
+		"""takes raw data and returns a deferred firing the service result.
+		"""
+		return threads.deferToThread(self.processData, rawData, queryMeta)
+
+	def runServiceWithContext(self, rawData, context):
+		"""calls runService, first making a queryMeta from nevow context.
+		"""
+		queryMeta = svcs.QueryMeta.fromContext(context)
+		queryMeta["formal_data"] = rawData
+		return self.runService(rawData, queryMeta)
+
+	@classmethod
+	def getInputFields(cls, service):
+		"""filters input fields given by the service for whether they are
+		appropriate for the renderer in question.
+
+		This method will return the result of service.getInputFields()
+		identically if no fields were filtered.
+		"""
+		res, changed = [], False
+		serviceFields = service.getInputFields()
+		for field in serviceFields:
+			if field.getProperty("onlyForRenderer", None) is not None:
+				if field.getProperty("onlyForRenderer")!=cls.name:
+					changed = True
+					continue
+			if field.getProperty("notForRenderer", None) is not None:
+				if field.getProperty("notForRenderer")==cls.name:
+					changed = True
+					continue
+			res.append(field)
+		if changed:
+			return res
+		return serviceFields

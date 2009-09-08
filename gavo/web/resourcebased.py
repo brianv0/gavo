@@ -51,8 +51,8 @@ from gavo.web import weberrors
 from gavo.svcs import Error, UnknownURI, ForbiddenURI
 
 
-class ServiceResource(rend.Page):
-	"""is a base class for resources answering form.
+class ServiceResource(grend.ServiceBasedRenderer):
+	"""is a base class for resources answering the form renderer.
 
 	They receive a service and the form data from formal.
 
@@ -72,9 +72,9 @@ class ServiceResource(rend.Page):
 		using grend.ErrorPage as renderer.
 	"""
 	name = "form"
-	def __init__(self, service, formalData):
-		rend.Page.__init__(self)
-		self.service, self.formalData = service, formalData
+	def __init__(self, ctx, service, formalData):
+		grend.ServiceBasedRenderer.__init__(self, ctx, service)
+		self.formalData = formalData
 
 	def renderHTTP(self, ctx):
 		return self._obtainOutput(ctx
@@ -82,8 +82,7 @@ class ServiceResource(rend.Page):
 			).addErrback(self._handleOtherErrors, ctx)
 
 	def _obtainOutput(self, ctx):
-		return threads.deferToThread(self.service.runFromContext, 
-			self.formalData, ctx)
+		return self.runServiceWithContext(self.formalData, ctx)
 
 	def _formatOutput(self, res, ctx):
 		return ""
@@ -422,7 +421,7 @@ class FormMixin(formal.ResourceMixin, object):
 		"""adds the inputFields of the service to form, setting proper defaults
 		from the field or from data.
 		"""
-		for inputKey in self.service.getInputFields():
+		for inputKey in self.getInputFields(self.service):
 			self._addFromInputKey(inputKey, form, data)
 
 	def _fakeDefaults(self, form, ctx):
@@ -516,8 +515,8 @@ class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 		if "form" in self.service.templates:
 			self.customTemplate = self.service.templates["form"]
 		# A service with no inputs will be run even if no form data
-		# can be located:
-		if self.service.getInputFields():
+		# can be located (but you should use the qp renderer or something here):
+		if self.getInputFields(self.service):
 			self._ResourceMixin__behaviour().renderHTTP = new.instancemethod(
 				_formBehaviour_renderHTTP, self._ResourceMixin__behaviour(),
 				form.FormsResourceBehaviour)
@@ -559,10 +558,6 @@ class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 			raise base.ValidationError("Invalid output format: %s"%outputName,
 				colName="_OUTPUT")
 
-	def _runService(self, data, ctx):
-		return threads.deferToThread(self.service.runFromContext, data, ctx
-			).addCallback(self._formatOutput, ctx)
-
 	def _realSubmitAction(self, ctx, form, data):
 		"""is a helper for submitAction that does the real work.
 
@@ -570,6 +565,7 @@ class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 		"""
 		try:
 			queryMeta = svcs.QueryMeta.fromContext(ctx)
+			queryMeta["formal_data"] = data
 			if (self.service.core.outputTable.columns and 
 					not self.service.getCurOutputFields(queryMeta)):
 				raise base.ValidationError("These output settings yield no"
@@ -578,9 +574,10 @@ class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 		except:
 			return defer.fail()
 		if managingResource is None:  # render result inline
-			return self._runService(data, ctx)
+			return self.runService(data, queryMeta
+				).addCallback(self._formatOutput, ctx)
 		else:
-			return defer.succeed(managingResource(self.service, data))
+			return defer.succeed(managingResource(ctx, self.service, data))
 
 	def submitAction(self, ctx, form, data):
 		"""is called by formal when input arguments indicate the service should
@@ -607,9 +604,6 @@ class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 		self.rememberStuff(ctx)
 		ctx =  context.WovenContext(ctx, T.invisible[doc])
 		return self.flattenFactory(doc, ctx, request.write, finisher)
-
-	def process(self, ctx):
-		return super(Form, self).process(ctx)
 
 	defaultDocFactory = loaders.xmlfile(pkg_resources.resource_filename('gavo',
 		"resources/templates/defaultresponse.html"))
@@ -646,9 +640,13 @@ class FeedbackForm(Form):
 			self.service.feedbackService = svcs.FeedbackService.fromService(
 				self.service)
 		data = request.args
-		return threads.deferToThread(self.service.feedbackService.runFromContext, 
-			data, ctx).addCallback(self._buildForm, request, ctx)
-	
+		return self.runServiceWithContext(data, ctx
+			).addCallback(self._buildForm, request, ctx)
+
+	def processData(self, rawData, queryMeta):
+		inputData = self.service.feedbackService.makeDataFor(self, rawData)
+		return self.service.feedbackService.runWithData(inputData, queryMeta)
+
 	def _buildForm(self, feedbackExprs, request, ctx):
 		request.args = feedbackExprs.original
 		return Form(ctx, self.service)
@@ -732,16 +730,11 @@ class TextRenderer(grend.ServiceBasedRenderer):
 		grend.ServiceBasedRenderer.__init__(self, ctx, service)
 	
 	def renderHTTP(self, ctx):
-		queryMeta = common.QueryMeta.fromContext(ctx)
-		d = defer.maybeDeferred(self.service.getInputData, 
-				inevow.IRequest(ctx).args
-			).addCallback(self._runService, queryMeta, ctx)
+		d = self.runServiceWithContext(inevow.IRequest(ctx).args, ctx
+			).addCallback(self._runService, queryMeta, ctx
+			).addCallback(self._doRender, ctx)
 		return d
 
-	def _runService(self, inputData, queryMeta, ctx):
-		return self.service.run(inputData, queryMeta
-			).addCallback(self._doRender, ctx)
-	
 	def _doRender(self, coreOutput, ctx):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "text/plain")

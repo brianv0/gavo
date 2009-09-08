@@ -116,7 +116,6 @@ class SvcResult(object):
 	implements(inevow.IContainer)
 	
 	def __init__(self, coreResult, inputData, queryMeta, service=None):
-		self.queryPars = queryMeta["formal_data"]
 		self.inputData = inputData
 		self.queryMeta = queryMeta
 		self.service = service
@@ -135,29 +134,8 @@ class SvcResult(object):
 		return resultmeta
 
 	def data_querypars(self, ctx=None):
-		return dict((k, str(v)) for k, v in self.queryPars.iteritems()
-			if not k in common.QueryMeta.metaKeys and v and v!=[None])
-
-	suppressedParNames = set(["submit"])
-		
-	def data_queryseq(self, ctx=None):
-		if self.service:
-			fieldDict = dict((f.name, f) 
-				for f in self.service.getInputFields())
-		else:
-			fieldDict = {}
-
-		def getTitle(key):
-			title = None
-			if key in fieldDict:
-				title = fieldDict[key].tablehead
-			return title or key
-		
-		s = [(getTitle(k), v) for k, v in self.data_querypars().iteritems()
-			if k not in self.suppressedParNames and not k.startswith("_")]
-		s.sort()
-		return s
-
+		return self.queryMeta.getQueryPars()
+	
 	def data_inputRec(self, ctx=None):
 		try:
 			row = self.inputData.getTableWithRole("parameters").rows[0]
@@ -368,6 +346,10 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		if self.core is base.Undefined and self.customPage:
 			self.core = core.getCore("staticCore")(self.rd,
 				file=None).finishElement()
+		# Pain: since renderers may override InputKey sequences, they
+		# may require inputDDs of their own.  We cache them here
+		# as necessary.
+		self.inputDDsForRenderers = {}
 			
 	def _computeResourceType(self):
 		"""sets the resType attribute.
@@ -389,10 +371,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(Service)
-
-		# Fill in missing I/O definitions from core
-		if self.inputDD is base.NotGiven:
-			self.inputDD = self.core.inputDD
+		
 		if self.outputTable is base.NotGiven:
 			self.outputTable = self.core.outputTable
 
@@ -503,37 +482,70 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			return self._getVOTableOutputFields(queryMeta)
 
 	def getInputFields(self):
-		return self.inputDD.grammar.inputKeys
+		if self.inputDD is base.NotGiven:
+			return self.core.inputDD.grammar.inputKeys
+		else:
+			return self.inputDD.grammar.inputKeys
 
-	def getInputData(self, rawInput):
-		"""returns a data instance appropriate for the core.
+	def getInputDDFor(self, renderer):
+		"""returns an inputDD for renderer.
+
+		The renderers compute these based on their input fields.
+
+		The renderer argument may either be a renderer name or, a renderer
+		class or a renderer instance.
 		"""
-		return rsc.makeData(self.inputDD, parseOptions=rsc.parseValidating,
-			forceSource=rawInput)
+		if self.inputDD is not base.NotGiven:
+			return self.inputDD
+		if isinstance(renderer, basestring):
+			renderer = getRenderer(renderer)
+		if renderer.name not in self.inputDDsForRenderers:
+			newDD = renderer.getInputDD(self)
+			if newDD is None:
+				newDD = self.core.inputDD
+			self.inputDDsForRenderers[renderer.name] = newDD
+		return self.inputDDsForRenderers[renderer.name]
 
-	def run(self, data, queryMeta):
-		"""runs the service, returning a ServiceResult.
+	def makeDataFor(self, renderer, rawData):
+		"""returns a Data instance for the core input, taking raw input
+		from renderer, made from rawData.
 
-		data is some valid input to a ContextGrammar.
+		renderer may be None, in which case the core's inputDD kicks in.
+		If an inputDD is defined on this service, it will always be
+		used.
 		"""
-		inputData = self.getInputData(data)
+		if self.inputDD is not base.NotGiven:
+			inputDD = self.inputDD
+		else:
+			if renderer is None:
+				inputDD = self.core.inputDD
+			else:
+				inputDD = self.getInputDDFor(renderer)
+		return rsc.makeData(inputDD,
+			parseOptions=rsc.parseValidating, forceSource=rawData)
+
+	def runWithData(self, inputData, queryMeta):
+		"""runs the service, returning an SvcResult.
+
+		This is the main entry point.  It receives an rsc.Data instance,
+		usually generated using the makeDataFor method.
+
+		Typically, you do not call this method yourself but rather use
+		the ServiceBasedRenderer's runService or runServiceWithContext
+		methods.
+		"""
 		coreRes = self.core.run(self, inputData, queryMeta)
 		return SvcResult(coreRes, inputData, queryMeta, self)
 
-	def runFromDictlike(self, dictlike):
-		queryMeta = common.QueryMeta(dictlike)
-		return self.run(dictlike, queryMeta)
+	def runAsForm(self, rawData):
+		"""runs the service, assuming a form renderer.
 
-	def runFromContext(self, data, ctx):
-		"""runs the service with a nevow context (or similar) as input, returning 
-		a ServiceResult.
-
-		data is some valid input to a ContextGrammar.
+		This is mainly a convenience method for unit tests.
 		"""
-		queryMeta = common.QueryMeta.fromContext(ctx)
-		queryMeta["formal_data"] = data
-		return self.run(data, queryMeta)
-	
+		queryMeta = common.QueryMeta(rawData)
+		inputData = self.makeDataFor(getRenderer("form"), rawData)
+		return self.runWithData(inputData, queryMeta)
+
 	def getURL(self, rendName, absolute=True):
 		"""returns the full canonical access URL of this service together 
 		with renderer.

@@ -287,7 +287,7 @@ class Column(base.Structure):
 		' It will *only* kick in when tuples are deserialized from the'
 		" database, i.e., *not* for values taken from tables in memory.",
 		default=None, copyable=True)
-	_properties = base.PropertyAttribute()
+	_properties = base.PropertyAttribute(copyable=True)
 	_original = base.OriginalAttribute()
 
 	def isEnumerated(self):

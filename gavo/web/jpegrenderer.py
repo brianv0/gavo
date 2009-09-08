@@ -37,7 +37,8 @@ class JpegRenderer(resourcebased.Form):
 			args = inevow.IRequest(ctx).args
 			args.setdefault("_ADDITEM", []).append(
 						data["plotField"])
-		return self._runService(data, ctx)
+		return self.runServiceWithContext(data, ctx
+			).addCallback(self._formatOutput, ctx)
 
 	def _computeLinesWithCurve(self, rawRecs, plotField):
 		curveMin = float(self.service.getProperty("curveMin", 0))
@@ -61,17 +62,18 @@ class JpegRenderer(resourcebased.Form):
 			yield rec["data"].decode("base64")+curveBytes
 
 	def _createImage(self, data):
+		pars = data.queryMeta.getQueryPars()
 		if self.service.getProperty("curveMax"
-				) and "plotField" in data.queryPars and data.queryPars["plotField"]:
+				) and "plotField" in pars and pars["plotField"]:
 			lines = [l for l in self._computeLinesWithCurve(
-				data.original.getPrimaryTable(), data.queryPars["plotField"])]
+				data.original.getPrimaryTable(), pars["plotField"])]
 		else:
 			lines = [rec["data"].decode("base64") 
 				for rec in data.original.getPrimaryTable()]
 		img = Image.fromstring("L", (len(lines[0]), len(lines)),
 			"".join(pixLine for pixLine in lines))
-		if data.queryPars.get("palette"):
-			pal = data.queryPars["palette"]
+		if pars.get("palette"):
+			pal = pars["palette"]
 			if pal in palettes:
 				img.putpalette(palettes[pal])
 			else:

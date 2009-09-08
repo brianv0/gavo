@@ -120,3 +120,7 @@
 	something that allows specification of required elements and a sane
 	syntax, or, probably better, teach xmlstan the render trick of the real
 	stan and write renders for meta items/meta values.
+
+31/MEDIUM/2009-09-04
+	STC information is missing in the Box mapper in valuemappers.  It's not
+	always ICRS like we're claiming now.

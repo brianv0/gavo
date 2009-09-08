@@ -5,20 +5,8 @@ This module also serves as an interface to VOTable.DataModel in that
 it imports all names from there.  Thus, you can get DataModel.Table as
 votable.Table.
 
-The module provides the glue between the row lists and the DataField
+The module provides the glue between the row lists and the Column
 based description from the core modules and pyvotable.  
-
-An important task is the mapping of values.  To do this, we define mapper
-factories.  These are functions receiving instances of ColProperties that
-they can query of properties of the target field.  
-
-They then return either None (meaning they don't know how to do the conversion)
-or a callable that does the conversion.  They may change the description of the
-target field, e.g., to fix types (see datetime) or to add nullvalues (see
-ints).
-
-The first factory providing such a callable wins.  The factories register
-with a ValueEncoderFactoryRegistry object that's used by getCoder.
 """
 
 import gzip

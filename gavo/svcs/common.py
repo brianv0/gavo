@@ -163,6 +163,12 @@ class QueryMeta(dict):
 			pars["_matchLimit"] = int(dbLimit)+1
 		return " ".join(frag), pars
 
+	def getQueryPars(self):
+		if not "formal_data" in self:
+			return {}
+		return dict((k, str(v)) for k, v in self["formal_data"].iteritems()
+			if not k in self.metaKeys and v and v!=[None])
+
 	@classmethod
 	def fromRequest(cls, request):
 		"""constructs a QueryMeta from a nevow request.

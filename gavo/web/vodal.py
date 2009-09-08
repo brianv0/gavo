@@ -151,7 +151,7 @@ class SCSRenderer(DALRenderer):
 		if ucdCasts:
 			return self._writeErrorTable(ctx, "Table cannot be formatted for"
 				" SCS.  Column(s) with the following new UCD(s) were missing in"
-				" output table: %s"%', '.join(translatedUCDs))
+				" output table: %s"%', '.join(ucdCasts))
 		table.votCasts = realCasts
 		return DALRenderer._formatOutput(self, data, ctx)
 
@@ -193,7 +193,7 @@ class SIAPRenderer(DALRenderer):
 
 	def _makeMetadataData(self, queryMeta):
 		inputFields = [svcs.InputKey.fromColumn(f) 
-			for f in self.service.getInputFields()]
+			for f in self.getInputFields(self.service)]
 		for f in inputFields:
 			f.name = "INPUT:"+f.name
 		inputTable = MS(rscdef.TableDef, columns=inputFields)
@@ -253,7 +253,7 @@ class RegistryRenderer(grend.ServiceBasedRenderer):
 		# Make a robust (unchecked) pars dict for error rendering; real
 		# parameter checking happens in getPMHResponse
 		inData = {"args": inevow.IRequest(ctx).args}
-		return threads.deferToThread(self.service.runFromContext, inData, ctx
+		return self.runServiceWithContext(inData, ctx
 			).addCallback(self._renderResponse, ctx
 			).addErrback(self._renderError, ctx, inData["args"])
 

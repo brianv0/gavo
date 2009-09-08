@@ -140,12 +140,18 @@
 	<condDesc id="scs" register="True">
 		<inputKey name="RA" type="double precision" unit="deg" ucd="pos.eq.ra"
 			description="Right Ascension (ICRS decimal)" tablehead="Alpha (ICRS)"
-			required="True"/>
+			required="True">
+			<property name="onlyForRenderer">scs.xml</property>
+		</inputKey>
 		<inputKey name="DEC" type="double precision" unit="deg" ucd="pos.eq.dec"
 			description="Declination (ICRS decimal)" tablehead="Delta (ICRS)"
-			required="True"/>
+			required="True">
+			<property name="onlyForRenderer">scs.xml</property>
+		</inputKey>
 		<inputKey name="SR" type="real" unit="deg" description="Search radius"
-			tablehead="Search Radiuis" required="True"/>
+			tablehead="Search Radiuis" required="True">
+			<property name="onlyForRenderer">scs.xml</property>
+		</inputKey>
 		<phraseMaker id="scsPhrase" name="scsSQL">
 			<setup original="scsSetup"/>
 			<code>
@@ -156,9 +162,13 @@
 
 	<condDesc id="humanSCS" register="True">
 		<inputKey name="hscs_pos" type="text"
-			description= "Coordinates (as h m s, d m s or decimal degrees), or SIMBAD-resolvable object" tablehead="Position/Name"/>
+			description= "Coordinates (as h m s, d m s or decimal degrees), or SIMBAD-resolvable object" tablehead="Position/Name">
+			<property name="notForRenderer">scs.xml</property>
+		</inputKey>
 		<inputKey name="hscs_sr" description="Search radius in arcminutes"
-			tablehead="Search radius"/>
+			tablehead="Search radius">
+			<property name="notForRenderer">scs.xml</property>
+		</inputKey>
 		<phraseMaker original="scsUtils" id="humanSCSPhrase" name="humanSCSSQL">
 			<code>
 				ra, dec = getRADec(inPars, outPars)

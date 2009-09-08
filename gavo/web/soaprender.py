@@ -6,8 +6,6 @@ import traceback
 
 from nevow import inevow
 
-from twisted.internet import defer
-from twisted.internet import threads
 from twisted.web import soap
 
 from gavo import base
@@ -22,9 +20,9 @@ class SOAPProcessor(soap.SOAPPublisher):
 	It's actually a nevow resource ("page"), so whatever really has
 	to do with SOAP (as opposed to returning WSDL) is done by this.
 	"""
-	def __init__(self, ctx, service):
+	def __init__(self, ctx, service, runServiceFromArgs):
 		self.ctx, self.service = ctx, service
-		self.request = inevow.IRequest(ctx)
+		self.runServiceFromArgs = runServiceFromArgs
 		soap.SOAPPublisher.__init__(self)
 
 	def _gotResult(self, result, request, methodName):
@@ -47,17 +45,14 @@ class SOAPProcessor(soap.SOAPPublisher):
 
 	def soap_useService(self, *args):
 		try:
-			inputPars = dict(zip(
-				[f.name for f in self.service.getInputFields()],
-				args))
-			return threads.deferToThread(self.service.run, inputPars, 
-				svcs.QueryMeta())
+			return self.runServiceFromArgs(self.ctx, args)
 		except Exception, exc:
 			traceback.print_exc()
 			return self._formatError(exc)
 
 	def _formatError(self, exc):
-		self._sendResponse(self.request, wsdl.formatFault(exc, self.service), 
+		request = inevow.IRequest(self.ctx)
+		self._sendResponse(request, wsdl.formatFault(exc, self.service), 
 			status=500)
 
 
@@ -76,6 +71,17 @@ class SoapRenderer(grend.ServiceBasedRenderer):
 	@classmethod
 	def makeAccessURL(cls, baseURL):
 		return baseURL+"/soap/go"
+	
+	def runServiceFromArgs(self, ctx, args):
+		"""starts the service.
+
+		This being called back from the SOAPProcessor, and args is the
+		argument tuple as given from SOAP.
+		"""
+		inputPars = dict(zip(
+			[f.name for f in self.getInputFields(self.service)],
+			args))
+		return self.runServiceWithContext(inputPars, ctx)
 
 	def renderHTTP(self, ctx):
 		"""returns the WSDL for service.
@@ -95,6 +101,6 @@ class SoapRenderer(grend.ServiceBasedRenderer):
 		request = inevow.IRequest(ctx)
 		if request.uri.endswith("?wsdl"): # XXX TODO: use parsed headers here
 			return self, ()
-		return SOAPProcessor(ctx, self.service), ()
+		return SOAPProcessor(ctx, self.service, self.runServiceFromArgs), ()
 
 svcs.registerRenderer("soap", SoapRenderer)

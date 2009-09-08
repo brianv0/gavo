@@ -5,7 +5,6 @@ A renderer that queries a single field in a service.
 from nevow import inevow
 from nevow import tags as T, entities as E
 from twisted.internet import defer
-from twisted.internet import threads
 
 from gavo import svcs
 from gavo.web import common
@@ -33,8 +32,8 @@ class QPRenderer(grend.HTMLResultRenderMixin,
 				" query-based service.  You have to give a valid value in the"
 				" path.")
 		data = {self.service.getProperty("queryField"): self.queryValue}
-		return threads.deferToThread(self.service.runFromContext,
-			data, ctx).addCallback(self._formatOutput, ctx
+		return self.runServiceWithContext(data, ctx
+			).addCallback(self._formatOutput, ctx
 			).addErrback(self._handleError, ctx)
 	
 	def _formatOutput(self, res, ctx):
