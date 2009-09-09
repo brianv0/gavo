@@ -489,7 +489,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		if inputDD.grammar is None:
 			return rscdef.ColumnList()
 		else:
-			inputDD.grammar.inputKeys
+			return inputDD.grammar.inputKeys
 
 	def getInputDDFor(self, renderer):
 		"""returns an inputDD for renderer.

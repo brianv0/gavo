@@ -123,6 +123,8 @@ class TimeToStringConverter(_Adapter):
     def fromType(self, value):
         if value is None:
             return None
+        if isinstance(value, basestring):
+            return value
         return value.isoformat()
     
     def toType(self, value):

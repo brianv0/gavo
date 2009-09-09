@@ -124,3 +124,6 @@
 31/MEDIUM/2009-09-04
 	STC information is missing in the Box mapper in valuemappers.  It's not
 	always ICRS like we're claiming now.
+
+32/MEDIUM/2009-09-08
+	Form values in split-up date fields are not preserved.

@@ -108,7 +108,7 @@ pmExpr := dateLiteral pmOp floatLiteral</pre>
 <code>[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]</code>.  This will
 be relaxed in the future.</p>
 
-<h2><a name="strings">Vizier-like expression for strings</a></h2>
+<h2><a name="string">Vizier-like expression for strings</a></h2>
 
 <h3>Overview</h3>
 
