@@ -483,9 +483,13 @@ class Service(base.Structure, base.ComputedMetaMixin,
 
 	def getInputFields(self):
 		if self.inputDD is base.NotGiven:
-			return self.core.inputDD.grammar.inputKeys
+			inputDD = self.core.inputDD
 		else:
-			return self.inputDD.grammar.inputKeys
+			inputDD = self.inputDD
+		if inputDD.grammar is None:
+			return rscdef.ColumnList()
+		else:
+			inputDD.grammar.inputKeys
 
 	def getInputDDFor(self, renderer):
 		"""returns an inputDD for renderer.
