@@ -191,7 +191,7 @@ class SIACapabilityMaker(CapabilityMaker):
 
 	def _makeCapability(self, publication):
 		service = publication.parent
-		CapabilityMaker._makeCapability(self, publication)[
+		return CapabilityMaker._makeCapability(self, publication)[
 			SIA.imageServiceType[service.getMeta("sia.type")],
 			SIA.maxQueryRegionSize[
 				SIA.long[service.getMeta("sia.maxQueryRegionSize.long", default="180")],
@@ -230,7 +230,7 @@ class SCSCapabilityMaker(CapabilityMaker):
 
 	def _makeCapability(self, publication):
 		service = publication.parent
-		CapabilityMaker._makeCapability(self, publication)[
+		return CapabilityMaker._makeCapability(self, publication)[
 			SCS.maxSR["180.0"],
 			SCS.maxRecords[str(base.getConfig("ivoa", "dalDefaultLimit"))],
 			SCS.verbosity["true"],
@@ -246,7 +246,7 @@ class RegistryCapabilityMaker(CapabilityMaker):
 	renderer = "pubreg.xml"
 	capabilityClass = VOG.Harvest
 	def _makeCapability(self, publication):
-		CapabilityMaker._makeCapability(self, publication)[
+		return CapabilityMaker._makeCapability(self, publication)[
 			VOG.maxRecords[publication.parent.getMeta("maxRecords")]]
 
 
@@ -277,4 +277,5 @@ _getCapabilityMaker = utils.buildClassResolver(CapabilityMaker,
 def getCapabilityElement(publication):
 	"""returns the appropriate capability definition for a publication object.
 	"""
-	return _getCapabilityMaker(publication.render)(publication)
+	res = _getCapabilityMaker(publication.render)(publication)
+	return res

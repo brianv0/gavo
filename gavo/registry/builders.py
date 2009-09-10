@@ -256,18 +256,34 @@ class DataServiceResourceMaker(ServiceResourceMaker):
 			VS.coverage[service.getMeta("coverage")]]
 
 
-class CatalogServiceResourceMaker(DataServiceResourceMaker):
-	resourceClass = VS.CatalogService
-	resType = "catalogService"
-	
+class TabularServiceResourceMaker(DataServiceResourceMaker):
+	"""a base class for Catalog und TableServices.
+
+	This is necessary because coverage meta has this cumbersome location.
+
+	Override the _getCoverage method (returning xmlstan) to actually
+	fill in coverage.
+	"""
+	def _getCoverage(self, service):
+		return None
+
 	def _makeResource(self, service, setNames):
 		return DataServiceResourceMaker._makeResource(self, service, setNames)[
 			VS.table(role="out")[
-				[getTableParamFromColumn(f)
-					for f in service.getCurOutputFields(None)]]]
+				self._getCoverage(service),
+				[capabilities.getTableParamFromColumn(f)
+					for f in service.getAllOutputFields()]]]
 
 
-class TableServiceResourceMaker(DataServiceResourceMaker):
+class CatalogServiceResourceMaker(TabularServiceResourceMaker):
+	resourceClass = VS.CatalogService
+	resType = "catalogService"
+
+	def _getCoverage(self, service):
+		return None # XXX TODO: insert actual coverage.
+
+
+class TableServiceResourceMaker(TabularServiceResourceMaker):
 	resourceClass = VS.TableService
 	resType = "tableService"
 # This is basically like catalog service except there's no coverage.

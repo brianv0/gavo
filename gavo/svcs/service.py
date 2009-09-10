@@ -262,7 +262,8 @@ class ServiceVolatilesMixin(object):
 #					name="dateUpdated"),
 #				"datetimeUpdated": meta.makeMetaItem(res[0][0].strftime(
 #					utils.isoTimestampFmt), name="dateUpdated"),
-				"sets": meta.makeMetaItem([row[1] for row in res], name="sets"),
+				"sets": meta.makeMetaItem(list(set(row[1] for row in res)), 
+					name="sets"),
 				"status": meta.makeMetaItem("active", name="status"),
 			}
 		else:
@@ -480,6 +481,17 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			return self.getHTMLOutputFields(queryMeta, raiseOnUnknown=raiseOnUnknown)
 		else:
 			return self._getVOTableOutputFields(queryMeta)
+
+	def getAllOutputFields(self):
+		"""Returns a sequence of all available output fields.
+
+		This is mainly for the registry.  It basically asks the core
+		what it has and returns that.
+
+		Unfortunately, this does not reflect what the service actually
+		does, but for the registry it's probably the most useful information.
+		"""
+		return self.core.outputTable.columns
 
 	def getInputFields(self):
 		if self.inputDD is base.NotGiven:

@@ -364,6 +364,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		res = []
 		for ucd in ucds:
 			res.extend(self.columns.getColumnsByUCD(ucd))
+		return res
 
 
 	def getProductColumns(self):

@@ -481,14 +481,16 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 	
 	def iterQuery(self, resultTableDef, fragment, pars=None, 
 			distinct=False, limits=None, groupBy=None):
-		"""returns an iterator over rows for a table defined by resultTableDef 
-		giving the results for a query for fragment and pars.
+		"""returns an iterator over rows for a table defined
+		by resultTableDef giving the results for a query for
+		fragment and pars.
 
-		resultTableDef is a TableDef with svc.OutputField columns, fragment
-		is empty or an SQL where-clause with dictionary placeholders,
-		pars is the dictionary filling fragment, distinct, if True,
-		adds a distinct clause, and limits, if given, is a pair
-		of an SQL string to be appended to the SELECT clause and parameters
+		resultTableDef is a TableDef with svc.OutputField columns
+		(rscdef.Column instances will do), fragment is empty or
+		an SQL where-clause with dictionary placeholders, pars is
+		the dictionary filling fragment, distinct, if True, adds a
+		distinct clause, and limits, if given, is a pair of an SQL
+		string to be appended to the SELECT clause and parameters
 		filling it.  queryMeta.asSQL returns what you need here.
 
 		pars may be mutated in the process.

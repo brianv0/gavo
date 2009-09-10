@@ -11,6 +11,7 @@ is web-callable.
 import datetime
 
 from gavo import base
+from gavo import rsc
 from gavo import svcs
 from gavo import utils
 from gavo.registry import builders
@@ -169,14 +170,9 @@ def dispatchOnPrefix(pars, OAIBuilder, VORBuilder, *args):
 			raise BadArgument("metadataPrefix missing")
 
 
-def getMatchingRestups(pars):
-	"""returns a list of res tuples matching the OAI query arguments pars.
-
-	pars is a dictionary mapping any of the following keys to values:
-
-	* from
-	* to -- these give a range for which changed records are being returned
-	* set -- maps to a sequence of set names to be matched.
+def _parseOAIPars(pars):
+	"""returns a pair of queryFragment, parameters for a query of
+	services#services according to OAI.
 	"""
 	sqlPars, sqlFrags = {}, []
 	if "from" in pars:
@@ -193,12 +189,28 @@ def getMatchingRestups(pars):
 		setName = pars["set"]
 	else:
 		setName = "ivo_managed"
-	sqlFrags.append("setName=%%(%s)s"%(base.getSQLKey("set", 
+	sqlFrags.append("EXISTS (SELECT setName from srv_sets WHERE"
+		" srv_sets.shortName=services.shortName"
+		" AND setname=%%(%s)s)"%(base.getSQLKey("set", 
 		setName, sqlPars)))
+	return " AND ".join(sqlFrags), sqlPars
+
+
+def getMatchingRestups(pars):
+	"""returns a list of res tuples matching the OAI query arguments pars.
+
+	pars is a dictionary mapping any of the following keys to values:
+
+	* from
+	* until -- these give a range for which changed records are being returned
+	* set -- maps to a sequence of set names to be matched.
+	"""
+	frag, pars = _parseOAIPars(pars)
 	try:
-		res = servicelist.queryServicesList(
-			whereClause=" AND ".join(sqlFrags), pars=sqlPars)
-	except sqlsupport.DatabaseError:
+		srvTable = rsc.TableForDef(getServicesRD().getById("services"))
+		res = list(srvTable.iterQuery(srvTable.tableDef, frag, pars))
+		srvTable.close()
+	except base.DBError:
 		raise BadArgument("Bad syntax in some parameter value")
 	except KeyError, msg:
 		traceback.print_exc()
