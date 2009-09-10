@@ -360,7 +360,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		the resType meta item.
 		"""
 		if self.outputTable.columns:
-			if (self.outputTable.getColumnsByUCDs("pos.eq.ra", "pos.eq.ra;meta.main")
+			if (self.outputTable.getColumnsByUCDs("pos.eq.ra", 
+						"pos.eq.ra;meta.main", "POS_EQ_RA_MAIN")
 					or self.getMeta("coverage", default=None) is not None):
 				# There's either coverage or a position: A CatalogService
 				self.resType = "catalogService"
