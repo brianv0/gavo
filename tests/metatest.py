@@ -155,7 +155,61 @@ class SequenceTest(testhelpers.VerboseTest):
 			"stuff.alc")
 
 
-class TestCopies(testhelpers.VerboseTest):
+class SetAndDelTest(testhelpers.VerboseTest):
+	"""tests for working deletion and setting of meta items.
+	"""
+	def testSilentDeletion(self):
+		m = base.MetaMixin()
+		self.assertRuns(m.delMeta, "x")
+
+	def testDeletionSimple(self):
+		m = base.MetaMixin()
+		m.addMeta("x", "abc")
+		self.assertEqual(str(m.getMeta("x")), "abc")
+		m.delMeta("x")
+		self.assertEqual(m.getMeta("x"), None)
+
+	def testDeletionTree(self):
+		m = base.MetaMixin()
+		m.addMeta("x.y.z", "abc")
+		self.assertEqual(str(m.getMeta("x.y.z")), "abc")
+		m.delMeta("x.y.z")
+		self.assertEqual(m.getMeta("x.y.z"), None)
+		# make sure we cleaned up
+		self.assertEqual(m.getMeta("x.y"), None)
+		self.assertEqual(m.getMeta("x"), None)
+
+	def testSiblingsAreKept(self):
+		m = base.MetaMixin()
+		m.addMeta("x.y.z", "abc")
+		m.addMeta("x.y.y", "cba")
+		m.delMeta("x.y.z")
+		self.assertEqual(m.getMeta("x.y.z"), None)
+		self.assertEqual(str(m.getMeta("x.y.y")), "cba")
+	
+	def testAncestorsAreKept(self):
+		m = base.MetaMixin()
+		m.addMeta("x.y.z", "abc")
+		m.addMeta("x", "present")
+		m.delMeta("x.y.z")
+		self.assertEqual(str(m.getMeta("x")), "present")
+	
+	def testItemsAreDeleted(self):
+		m = base.MetaMixin()
+		m.addMeta("x.y.z", "abc")
+		m.addMeta("x.y.z", "bdc")
+		m.delMeta("x.y.z")
+		self.assertEqual(m.getMeta("x.y.z"), None)
+	
+	def testSetMeta(self):
+		m = base.MetaMixin()
+		m.addMeta("x.y.z", "abc")
+		m.addMeta("x.y.z", "bcd")
+		m.setMeta("x.y.z", "new")
+		self.assertEqual(str(m.getMeta("x.y.z")), "new")
+
+
+class CopiesTest(testhelpers.VerboseTest):
 	"""tests for deep copying of meta containers.
 	"""
 	class Copyable(base.MetaMixin):
@@ -197,7 +251,7 @@ class TestCopies(testhelpers.VerboseTest):
 		self.assertEqual(str(m.getMeta("foo.fii")), "z")
 
 
-class TestContent(testhelpers.VerboseTest):
+class ContentTest(testhelpers.VerboseTest):
 	"""tests for plain content access.
 	"""
 # Under normal circumstances, you don't want to access meta content
@@ -464,4 +518,4 @@ def singleTest():
 
 
 if __name__=="__main__":
-	testhelpers.main(ModelBasedBuilderTest)
+	testhelpers.main(SetAndDelTest)

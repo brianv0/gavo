@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns="http://www.ivoa.net/xml/VOEvent/v1.0"
+  xmlns:stc="http://www.ivoa.net/xml/STC/stc-v1.20.xsd"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+
+  targetNamespace="http://www.ivoa.net/xml/VOEvent/v1.0"
+  elementFormDefault="qualified">
+
+  <xs:import namespace="http://www.ivoa.net/xml/STC/stc-v1.20.xsd"
+    schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/stc-v1.20.xsd"/>
+
+
+  <!-- VOEvent is the root element for describing observations
+    of immediate astronomical events. For more information, see
+    http://www.ivoa.net/twiki/bin/view/IVOA/IvoaVOEvent -->
+
+  <xs:element name="VOEvent">
+    <xs:complexType>
+
+      <xs:all>
+        <xs:element ref="Who" minOccurs="0" />
+        <xs:element ref="What" minOccurs="0" />
+        <xs:element ref="WhereWhen" minOccurs="0" />
+        <xs:element ref="How" minOccurs="0" />
+        <xs:element ref="Why" minOccurs="0" />
+        <xs:element ref="Citations" minOccurs="0" />
+        <xs:element ref="Description" minOccurs="0" />
+        <xs:element ref="Reference" minOccurs="0" />
+      </xs:all>
+
+      <xs:attribute name="version" type="xs:token" fixed="1.0" use="required" />
+
+      <xs:attribute name="id" type="xs:anyURI" use="required" />
+
+      <xs:attribute name="role" default="observation">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="observation" />
+            <xs:enumeration value="prediction" />
+            <xs:enumeration value="test" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+
+    </xs:complexType>
+  </xs:element>
+
+
+  <!-- Who: Curation Metadata -->
+  <xs:element name="Who">
+    <xs:complexType>
+
+      <xs:choice maxOccurs="unbounded">
+        <xs:element name="PublisherID" type="xs:anyURI" />
+        <xs:element name="Date" type="xs:dateTime" />
+        <xs:element ref="Description" />
+        <xs:element ref="Reference" />
+
+        <xs:element name="Contact">
+          <xs:complexType>
+
+            <xs:choice maxOccurs="unbounded">
+              <xs:element name="Username" type="xs:string" />
+              <xs:element name="Name" type="xs:string" />
+              <xs:element name="LastName" type="xs:string" />
+              <xs:element name="FirstName" type="xs:string" />
+              <xs:element name="Institution" type="xs:string" />
+              <xs:element name="Communication">
+                <xs:complexType>
+                  <xs:choice maxOccurs="unbounded">
+                    <xs:element name="AddressLine" type="xs:string" />
+                    <xs:element name="CountryCode" type="xs:token" />
+                    <xs:element name="Email" type="xs:anyURI" />
+                    <xs:element name="Fax" type="xs:token" />
+                    <xs:element name="Telephone" type="xs:token" />
+                    <xs:element name="Uri" type="xs:anyURI" />
+                  </xs:choice>
+                </xs:complexType>
+              </xs:element>
+            </xs:choice>
+
+            <xs:attribute name="principalInvestigator" type="xs:boolean" default="false" />
+            <xs:attribute name="principalContact" type="xs:boolean" default="false" />
+
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+
+    </xs:complexType>
+  </xs:element>
+
+
+  <!-- What: Event Characterization -->
+  <xs:element name="What">
+    <xs:complexType>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element ref="Param" />
+        <xs:element ref="Group" />
+        <xs:element ref="Description" />
+        <xs:element ref="Reference" />
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Param">
+    <xs:complexType>
+      <xs:attribute name="name" type="xs:token" />
+      <xs:attribute name="ucd" type="xs:token" />
+      <xs:attribute name="value" type="xs:string" />
+      <xs:attribute name="unit" type="xs:string" />
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Group">
+    <xs:complexType>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element ref="Param" />
+        <xs:element ref="Description" />
+        <xs:element ref="Reference" />
+      </xs:choice>
+      <xs:attribute name="name" type="xs:string" />
+      <xs:attribute name="type" type="xs:string" />
+    </xs:complexType>
+  </xs:element>
+
+
+  <!-- WhereWhen: Space-Time Coordinates, uses the VO STC schema -->
+  <xs:element name="WhereWhen">
+    <xs:complexType>
+      <xs:all>
+        <xs:element name="ObservationLocation" type="stc:observationLocationType" minOccurs="0" />
+        <xs:element ref="Description" minOccurs="0" />
+        <xs:element ref="Reference" minOccurs="0" />
+      </xs:all>
+    </xs:complexType>
+  </xs:element>
+
+
+  <!-- How: Instrument Configuration, references to RTML documents -->
+  <xs:element name="How">
+    <xs:complexType>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element ref="Description" />
+        <xs:element ref="Reference" />
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+
+
+  <!-- Why: Initial Scientific Assessment -->
+  <xs:element name="Why">
+    <xs:complexType>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element name="Name" type="xs:string" />
+        <xs:element name="Concept" type="xs:string" />
+        <xs:element ref="Inference" />
+        <xs:element ref="Description" />
+        <xs:element ref="Reference" />
+      </xs:choice>
+      <xs:attribute name="importance" type="smallFloat" />
+      <xs:attribute name="expires" type="xs:dateTime" />
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="Inference">
+    <xs:complexType>
+      <xs:choice maxOccurs="unbounded">
+        <xs:element name="Name" type="xs:string" />
+        <xs:element name="Concept" type="xs:string" />
+        <xs:element ref="Description" />
+        <xs:element ref="Reference" />
+      </xs:choice>
+      <xs:attribute name="probability" type="smallFloat" />
+      <xs:attribute name="relation" type="xs:string" />
+    </xs:complexType>
+  </xs:element>
+
+
+  <!-- Citations: Follow-up Observations -->
+  <xs:element name="Citations">
+    <xs:complexType>
+      <xs:choice maxOccurs="unbounded">
+
+        <xs:element name="EventID">
+          <xs:complexType>
+            <xs:simpleContent>
+              <xs:extension base="xs:anyURI">
+                <xs:attribute name="cite" use="required">
+                  <xs:simpleType>
+                    <xs:restriction base="xs:token">
+                      <xs:enumeration value="followup" />
+                      <xs:enumeration value="supercedes" />
+                      <xs:enumeration value="retraction" />
+                    </xs:restriction>
+                  </xs:simpleType>
+                </xs:attribute>
+              </xs:extension>
+            </xs:simpleContent>
+          </xs:complexType>
+        </xs:element>
+
+        <xs:element ref="Description" />
+        <xs:element ref="Reference" />
+
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+
+
+  <!-- Description: Human Oriented Content -->
+  <xs:element name="Description" type="xs:string" />
+
+
+  <!-- Reference: External Content -->
+  <xs:element name="Reference" fixed="">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:string">
+          <xs:attribute name="uri" type="xs:anyURI" use="required" />
+          <xs:attribute name="type" type="xs:string" />
+          <xs:attribute name="name" type="xs:string" />
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+
+
+  <!-- smallFloat: floating point value between zero and one, inclusive -->
+  <xs:simpleType name="smallFloat">
+    <xs:restriction base="xs:float">
+      <xs:minInclusive value="0" />
+      <xs:maxInclusive value="1" />
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

@@ -1,0 +1,50 @@
+<xsd:schema targetNamespace="http://www.ivoa.net/xml/Availability/v0.4"
+  xmlns:tns="http://www.ivoa.net/xml/Availability/v0.4"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  elementFormDefault="qualified"
+  attributeFormDefault="unqualified">
+
+  <xsd:element name="availability" type="tns:Availability"/>
+
+  <xsd:complexType name="Availability">
+    <xsd:sequence>
+      
+      <xsd:element name="available" type="xsd:boolean">
+        <xsd:annotation>
+          <xsd:documentation>Indicates whether the service is currently
+          available.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+
+      <xsd:element name="upSince" type="xsd:dateTime" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation>The instant at which the service last became
+          available.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+
+      <xsd:element name="downAt" type="xsd:dateTime" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation>The instant at which the service is next scheduled to become
+            unavailable.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+
+      <xsd:element name="backAt" type="xsd:dateTime" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation>The instant at which the service is scheduled to become available again
+            after a period of unavailability.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+
+      <xsd:element name="note" type="xsd:string" minOccurs="0" maxOccurs="unbounded">
+        <xsd:annotation>
+          <xsd:documentation>A textual note concerning availability.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+
+    </xsd:sequence>
+  </xsd:complexType>
+
+</xsd:schema>

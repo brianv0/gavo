@@ -202,6 +202,9 @@ class MetaMixin(object):
 	  meta information for key or default.
 	* addMeta(key, metaItem) -- adds a piece of meta information here.  Key
 	  may be a compound.
+	* setMeta(key, metaItem) -- like addMeta, only previous value(s) are
+	  overwritten
+	* delMeta(key) -- removes a meta value(s) for key.
 
 	When querying meta information, by default all parents are queried as
 	well (propagate=True).
@@ -221,8 +224,8 @@ class MetaMixin(object):
 		except AttributeError:
 			return False
 
-	def getDefaultMeta(self, key):
-		raise KeyError(key)
+	def isEmpty(self):
+		return len(self.meta_)==0 and getattr(self, "content", "")==""
 
 	def setMetaParent(self, parent):
 		self.__metaParent = parent
@@ -265,10 +268,7 @@ class MetaMixin(object):
 	def _getFromAtom(self, atom):
 		if atom in self.meta_:
 			return self.meta_[atom]
-		try:
-			return self.getDefaultMeta(atom)
-		except KeyError:
-			raise NoMetaKey("No meta child %s"%atom)
+		raise NoMetaKey("No meta child %s"%atom)
 
 	def getMetaKeys(self):
 		return self.meta_.keys()
@@ -293,6 +293,34 @@ class MetaMixin(object):
 		if isinstance(metaValue, basestring):
 			metaValue = makeMetaValue(metaValue, name=key)
 		self._addMeta(parseKey(key), metaValue)
+
+	def _delMeta(self, atoms):
+		if atoms[0] not in self.meta_:
+			return
+		if len(atoms)==1:
+			del self.meta_[atoms[0]]
+		else:
+			child = self.meta_[atoms[0]]
+			child._delMeta(atoms[1:])
+			if child.isEmpty():
+				del self.meta_[atoms[0]]
+
+	def delMeta(self, key):
+		"""removes a meta item from this meta container.
+
+		This will not propagate, i.e., getMeta(key) might still
+		return something unless you give propagate=False.
+
+		It is not an error do delete an non-existing meta key.
+		"""
+		self._delMeta(parseKey(key))
+
+	def setMeta(self, key, value):
+		"""replaces any previous meta content of key (on this container)
+		with value.
+		"""
+		self.delMeta(key)
+		self.addMeta(key, value)
 
 	def traverse(self, builder):
 		for key, item in self.meta_.iteritems():
@@ -392,6 +420,9 @@ class MetaItem(object):
 	def __len__(self):
 		return len(self.children)
 
+	def isEmpty(self):
+		return len(self)==0
+
 	def addContent(self, item):
 		self.children[-1].addContent(item)
 
@@ -436,6 +467,14 @@ class MetaItem(object):
 			return self.children[0].getContent(targetFormat)
 		raise MetaCardError("getContent not allowed for sequence meta items")
 
+	def _delMeta(self, atoms):
+		newChildren = []
+		for c in self.children:
+			c._delMeta(atoms)
+			if not c.isEmpty():
+				newChildren.append(c)
+		self.children = newChildren
+
 	def traverse(self, builder):
 		for mv in self.children:
 			if mv.content:
@@ -476,7 +515,13 @@ class MetaValue(MetaMixin):
 		self.content = content
 		self.format = format
 		self._preprocessContent()
+
+	def __str__(self):
+		return self.getContent().encode("utf-8")
 	
+	def __unicode__(self):
+		return self.getContent()
+
 	def _preprocessContent(self):
 		if self.format=="plain":
 			self.content = "\n\n".join(["\n".join(textwrap.wrap(
@@ -507,12 +552,6 @@ class MetaValue(MetaMixin):
 			return self._getContentAsHTML(content)
 		else:
 			raise MetaError("Invalid meta target format: %s"%targetFormat)
-
-	def __str__(self):
-		return self.getContent().encode("utf-8")
-	
-	def __unicode__(self):
-		return self.getContent()
 
 	def encode(self, enc):
 		return unicode(self).encode(enc)

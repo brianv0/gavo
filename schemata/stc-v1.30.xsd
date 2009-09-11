@@ -133,7 +133,7 @@ Revision 1.1  2003/04/28 16:25:34  arots
 Initial revision
 -->
 <xs:schema xmlns="http://www.ivoa.net/xml/STC/stc-v1.30.xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xlink="http://www.w3.org/1999/xlink" targetNamespace="http://www.ivoa.net/xml/STC/stc-v1.30.xsd" elementFormDefault="qualified">
-  <xs:import namespace="http://www.w3.org/1999/xlink" schemaLocation="http://www.ivoa.net/xml/Xlink/xlink.xsd"/>
+  <xs:import namespace="http://www.w3.org/1999/xlink" schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/xlink.xsd"/>
   <!-- CoordSystem -->
   <!-- Reference frames -->
   <xs:complexType name="coordFrameType">
@@ -3534,7 +3534,7 @@ First, incorporated in a schema, declare the namespace and give the schema locat
         targetNamespace="http://www.ivoa.net/xml/VOEvent/v1.0"
         elementFormDefault="qualified">
     <xs:import namespace="http://www.ivoa.net/xml/STC/stc-v1.30.xsd"
-           schemaLocation="http://hea-www.harvard.edu/~arots/nvometa/v1.30/stc-v1.30.xsd"/>
+           schemaLocation="http://vo.ari.uni-heidelberg.de/docs/schemata/stc-v1.30.xsd"/>
 Then include an STC element in the schema:
     <xs:element name="WhereWhen">
       <xs:complexType>
@@ -3548,15 +3548,11 @@ In an instance document:
 <?xml version="1.0" encoding="UTF-8"?>
 <VOEvent id="ivo://raptor.lanl/VOEvent#235649409" role="observation" version="1.0"
       xmlns="http://www.ivoa.net/xml/VOEvent/v1.0"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
-      xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v1.0          
-      VOEvent-v1.0a.xsd">
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  >
     
     <WhereWhen>
       <ObsDataLocation xmlns="http://www.ivoa.net/xml/STC/stc-v1.30.xsd"
         xmlns:xlink="http://www.w3.org/1999/xlink"
-        xsi:schemaLocation=
-        "http://www.ivoa.net/xml/STC/stc-v1.30.xsd 
         http://hea-www.harvard.edu/~arots/nvometa/v1.30/stc-v1.30.xsd">
         <ObservatoryLocation id="KPNO" xlink:type="simple"
           xlink:href="ivo://STClib/Observatories#KPNO"/>
@@ -3588,7 +3584,6 @@ Or, alternatively, using a single STC type to generate a document:
     <MySTC xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="http://www.ivoa.net/xml/STC/stc-v1.30.xsd" 
         xmlns:xlink="http://www.w3.org/1999/xlink" 
-        xsi:schemaLocation="http://www.ivoa.net/xml/STC/stc-v1.30.xsd stc-v1.30.xsd" 
         xsi:type="stcXXXType">
         ...
     </MySTC>

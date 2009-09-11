@@ -221,35 +221,34 @@ class FromVOTableConverter(object):
 	typeSystem = "db"
 	
 	simpleMap = {
-		("short", "1"): "smallint",
-		("int", "1"): "integer",
-		("long", "1"): "bigint",
-		("float", "1"): "real",
-		("boolean", "1"): "boolean",
-		("double", "1"): "double precision",
+		("short", None): "smallint",
+		("int", None): "integer",
+		("long", None): "bigint",
+		("float", None): "real",
+		("boolean", None): "boolean",
+		("double", None): "double precision",
 		("char", "*"): "text",
-		("char", "1"): "char",
-		("unsignedByte", "1"): "integer",
-		("raw", "*"): "raw",
-		("short", ""): "smallint",
-		("int", ""): "integer",
-		("long", ""): "bigint",
-		("float", ""): "real",
-		("boolean", ""): "boolean",
-		("double", ""): "double precision",
-		("char", ""): "char",
-		("unsignedByte", ""): "integer",
+		("char", None): "char",
+		("unsignedByte", None): "bytea",
+		("raw", None): "raw",
 	}
 
 	def convert(self, type, arraysize):
+		if arraysize=="1" or arraysize=="":
+			arraysize = None
 		if (type, arraysize) in self.simpleMap:
 			return self.simpleMap[type, arraysize]
 		else:
 			return self.mapComplex(type, arraysize)
 
 	def mapComplex(self, type, arraysize):
+		if arraysize=="*":
+			arraysize = ""
 		if type=="char":
 			return "text"
+		if (type, None) in self.simpleMap:
+			return "%s[%s]"%(self.simpleMap[type, None], arraysize)
+		raise ConversionError("No SQL type for %s, %s"%(type, arraysize))
 
 
 class ToXSDConverter(FromSQLConverter):

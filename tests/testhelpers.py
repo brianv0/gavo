@@ -200,7 +200,6 @@ class VerboseTest(unittest.TestCase):
 			self.failUnless(expectedStderr(err))
 
 
-
 class XSDTestMixin(object):
 	"""provides a assertValidates method doing XSD validation.
 
