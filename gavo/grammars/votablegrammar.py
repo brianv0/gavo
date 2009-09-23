@@ -24,6 +24,7 @@ class VOTNameMaker(object):
 		preName = re.sub("[^\w]+", "x", (getattr(field, "name", None) 
 			or getattr(field, "id", None)
 			or "field%02d"%self.index))
+		preName = preName+"_"  # avoid python reserved names
 		while preName.lower() in self.knownNames:
 			preName = preName+"_"
 		self.knownNames.add(preName.lower())

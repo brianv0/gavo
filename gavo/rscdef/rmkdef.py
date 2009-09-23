@@ -400,6 +400,7 @@ class Rowmaker(object):
 		try:
 			self.code = compile(source, "generated mapper code", "exec")
 		except SyntaxError, msg:
+			sys.stderr.write("Bad Code:\n%s\n"%source)
 			raise base.LiteralParseError("Bad code in rowmaker (%s)"%unicode(msg),
 				"rowmaker", source)
 		self.source, self.name = source, name
