@@ -405,6 +405,7 @@ class ToPythonCodeConverter(FromSQLConverter):
 		"date": "parseDefaultDate(%s)",
 		"timestamp": "parseDefaultDatetime(%s)",
 		"time": "parseDefaultTime(%s)",
+		"bytea": "%s",
 		"raw": "%s",
 		"file": "%s",
 		"box": "%s",

@@ -13,6 +13,8 @@ from gavo import rscdesc
 from gavo.formats import votable
 from gavo.utils import ElementTree
 
+import testhelpers
+
 testData="""some silly test data
 -33  -3400abc
 23829328.9xxy
@@ -106,7 +108,55 @@ class VotableTest(unittest.TestCase):
 			"float maximum bad")
 		self.assertEqual(fields[2].find(votable.voTag("VALUES")), None,
 			"VALUES element given for string data")
-		
+
+
+def _makeImportTestData():
+# used by ImportTest, we want to cache this.
+	f = _makeImportTestData
+	if not hasattr(f, "data"):
+		try:
+			conn = base.getDefaultDBConnection()
+			f.tableDef = votable.uploadVOTable("votabletest", 
+				open("data/importtest.vot"), conn).tableDef
+			querier = base.SimpleQuerier(connection=conn)
+			f.data = list(querier.query("select * from votabletest"))
+		finally:
+			conn.close()
+	return f.tableDef, f.data
+
+
+class ImportTest(testhelpers.VerboseTest):
+	"""tests for working VOTable DD generation.
+	"""
+# Ok, so isn't a *unit* test by any stretch.  Sue me.
+	def setUp(self):
+		self.tableDef, self.data = _makeImportTestData()
+
+	def testValidData(self):
+		row = self.data[0]
+		self.assertAlmostEqual(row[0], 72.183030)
+		self.assertEqual(row[3], 1)
+		self.assertEqual(row[5], 'NGC 104')
+		self.failUnless(isinstance(row[6], unicode))
+		self.assertAlmostEqual(row[7][0], 305.9)
+		self.assertEqual(str(row[9]), '"')
+
+	def testNULLs(self):
+		row = self.data[1]
+		self.assertEqual(row, (None,)*len(row))
+
+	def testNames(self):
+		self.assertEqual([f.name for f in self.tableDef],
+			['_r', 'field', 'field_', 'class_', 'result__', 'Cluster', 
+				'RAJ2000', 'GLON', 'xFexHxz', 'n_xFexHxz', 'xFexHxc', 
+				'FileName', 'HR', 'n_VHB'])
+
+	def testTypes(self):
+		self.assertEqual([f.type for f in self.tableDef], 
+			['double precision', 'double precision', 'double precision', 
+				'integer', 'smallint', 'text', 'text', 'real[2]', 'real', 
+				'bytea', 'real', 'text', 'text', 'char'])
+
 
 if __name__=="__main__":
-	unittest.main()
+	testhelpers.main(ImportTest)

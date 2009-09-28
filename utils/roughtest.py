@@ -471,10 +471,11 @@ myTests = [
 #				"This file is embargoed"],
 #			"Tar output looks like a tar output with embargoed files"
 #				" (will fail starting 2008-12-31)"),
-		HeadStatusTest(nv_root+"/getproduct?key=danish/data/"
-			"HE0047_20080824T081409_r.fits",
-			401,
-			"Product auth test (will fail when embargo strikes)"),
+# Find/build a test case
+#		HeadStatusTest(nv_root+"/getproduct?key=danish/data/"
+#			"HE0047_20080824T081409_r.fits",
+#			401,
+#			"Product auth test (will fail when embargo strikes)"),
 	),
 	TestGroup("siap.xml",
 		GetHasStringsTest(nv_root+"/lswscans/res/positions/siap/siap.xml?"

@@ -35,6 +35,7 @@ STRUCT_CODE = {'boolean': 'c',
                'floatComplex': 'ff',
                'doubleComplex': 'dd'}
 
+
 # http://www.ivoa.net/Documents/REC/VOTable/VOTable-20040811.html#primitives
 PYTHON_TYPE = {'boolean': bool,
                'bit': int,
@@ -70,6 +71,15 @@ else:
 
 
 
+def parseUnsignedByte(literal):
+    if literal.startswith("0x"):
+        res = int(literal, 16)
+    else:
+        res = int(literal)
+    return res
+
+
+
 
 class GenericDecoder(object):
     """
@@ -82,10 +92,16 @@ class GenericDecoder(object):
         Input
             fields: a list of Field instances
         """
-        self._fieldFormat = [(f.datatype, f.arraysize) for f in fields]
+        self._fieldFormat = [self._makeDescriptor(f) for f in fields]
         self._fields = fields
-        return
-    
+   
+    def _makeDescriptor(self, field):
+        nullValue = None
+        if field.values:
+            if field.values[0].null is not None:
+                nullValue = field.values[0].null
+        return field.datatype, field.arraysize, nullValue
+
     def decode(self, dataTree):
         """
         Main method for every decoder object. This is where the 
@@ -102,7 +118,7 @@ class GenericDecoder(object):
         information like the number of bytes and the dimensions of each FIELD.
         """
         fieldInfo = []
-        for t, s in self._fieldFormat:
+        for t, s, nullLiteral in self._fieldFormat:
             # Try and understand if we have an array or not.
             numBytes = 0
             dimensions = []
@@ -134,7 +150,7 @@ class GenericDecoder(object):
                 dimensions = [d]
                 numBytes = d * N_BYTES[t]
             # <-- end if
-            fieldInfo.append((t, numBytes, dimensions))
+            fieldInfo.append((t, numBytes, dimensions, nullLiteral))
         # <-- end for
         return(fieldInfo)
 
@@ -173,7 +189,7 @@ class TableDataDecoder(GenericDecoder):
             decodedLine = []
             # Decode the data stream, one field at a time.
             for i in xrange(len(fieldInfo)):
-                (voType, nBytes, dims) = fieldInfo[i]
+                (voType, nBytes, dims, nullLiteral) = fieldInfo[i]
                 token = row[i].text
                 
                 # Create a skeleton decodedField where we will put the real 
@@ -188,7 +204,7 @@ class TableDataDecoder(GenericDecoder):
                 # Now, derive the format of the field data and unpack token. 
                 # Pay attention to complex numbers and unicode strings!
                 for d in dims:
-                    if(not token):
+                    if(not token or token==nullLiteral):
                         decodedField = None
                         continue
                     if('Complex' in voType):
@@ -199,6 +215,8 @@ class TableDataDecoder(GenericDecoder):
                         raise(NotImplementedError('Implement unicode strings!'))
                     else:
                         pType = PYTHON_TYPE[voType]
+                        if voType=='unsignedByte':
+                            pType = parseUnsignedByte
                         if(voType == 'char'):
                             # Strings! Remember that we could have a unicode 
                             # string even if the FIELD is not supposed to be 
@@ -209,6 +227,8 @@ class TableDataDecoder(GenericDecoder):
                             # Scalars!
                             try:
                                 decodedField = pType(token)
+                                if voType=='unsignedByte':
+                                    decodedField = chr(decodedField)
                             except ValueError:
                                 decodedField = None
                         else:
@@ -216,6 +236,10 @@ class TableDataDecoder(GenericDecoder):
                             t = token.split()
                             for j in xrange(len(t)):
                                 decodedField.append(pType(t[j]))
+                            decodedField = tuple(decodedField)
+                            if voType=='unsignedByte':
+                                decodedField = "".join(
+                                    chr(s) for s in decodedField)
                         # <-- end if scalar|string|array
                     # <-- end if complex|unicode|other
                 # <-- end for d in dims
@@ -288,7 +312,7 @@ class StreamDecoder(GenericDecoder):
         
         Input
             data:      the encoded data stream
-            fieldInfo: [(VO type, # bytes, (dim1, dim2, )), ]
+            fieldInfo: [(VO type, # bytes, (dim1, dim2, ), nullLiteral), ]
                        if # bytes is None => variable-length array and the 
                        corresponding dimN = None.
         Output
@@ -299,10 +323,12 @@ class StreamDecoder(GenericDecoder):
         
         try:
             while True:
+# XXX TODO: unsignedByte
                 decodedLine = []
                 # Decode the data stream, one field at a time.
                 for i in xrange(len(fieldInfo)):
-                    (voType, nBytes, dims) = fieldInfo[i]
+# XXX TODO: nullLiteral is currently ignored here.
+                    (voType, nBytes, dims, nullLiteral) = fieldInfo[i]
                     # Create a skeleton decodedField where we will put the real 
                     # values later.
                     if(len(dims) > 1 or dims[0] > 1):

@@ -211,7 +211,8 @@ class Parser(object):
             # Add the Resource object to the output list
             resources.append(r)
         return(resources)
-    
+   
+
     def _parseTables(self, resourceTree):
         tables = []
         for tTree in self.findall(resourceTree, 'TABLE'):
@@ -232,7 +233,8 @@ class Parser(object):
             
             # Params and Fields.
             t.params = self._parseElement(tTree, 'PARAM', DataModel.Param)
-            t.fields = self._parseElement(tTree, 'FIELD', DataModel.Field)
+            t.fields = self._parseElement(tTree, 'FIELD', DataModel.Field,
+                self._postprocField)
             # TODO: Support GROUP
             
             # Data
@@ -245,8 +247,14 @@ class Parser(object):
             # Update the output list.
             tables.append(t)
         return(tables)
-    
-    def _parseElement(self, tree, tagName, cls):
+   
+
+    def _postprocField(self, fieldEl, fieldTree):
+        fieldEl.values = self._parseElement(fieldTree, "VALUES",
+            DataModel.Values)
+
+
+    def _parseElement(self, tree, tagName, cls, postproc=None):
         """
         Generic XML to object "converter". Given an ElementTree object, a tag
         name and a class, it parses the tree looking for the given tag. Once
@@ -279,6 +287,9 @@ class Parser(object):
             # Sub-elements
             for subEl in el:
                 setattr(p, stripNamespace(subEl.tag).lower(), subEl.text)
+            
+            if postproc is not None:
+                postproc(p, el)
             # Update the result list
             result.append(p)
         return(result)

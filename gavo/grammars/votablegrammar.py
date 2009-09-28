@@ -13,18 +13,36 @@ from gavo import rscdef
 from gavo.grammars import common
 from gavo.imp import VOTable
 
+	
 
 class VOTNameMaker(object):
 	"""A class for generating db-unique names from VOTable fields.
 	"""
 	def __init__(self):
-		self.knownNames, self.index = set(), 0
-	
+		self.knownNames, self.index = self._getNameBlacklist().copy(), 0
+
+	# words not allowed as column names generated for VOTable FIELDs, in addition
+	# to python keywords and names used in rscdef.rmkfuncs
+	customNameBlacklist = set(["result_", "rowdict_"])
+
+	@classmethod
+	def _getNameBlacklist(cls):
+		"""returns a set of names not suitable for table column names since
+		they would damage rowmakers.
+		"""
+		if not hasattr(cls, "blacklist"):
+			import keyword
+			blacklist = set(keyword.kwlist)
+			from gavo.rscdef import rmkfuncs
+			blacklist |= set(dir(rmkfuncs))
+			blacklist |= cls.customNameBlacklist
+			cls.blacklist = blacklist
+		return cls.blacklist
+
 	def makeName(self, field):
 		preName = re.sub("[^\w]+", "x", (getattr(field, "name", None) 
 			or getattr(field, "id", None)
 			or "field%02d"%self.index))
-		preName = preName+"_"  # avoid python reserved names
 		while preName.lower() in self.knownNames:
 			preName = preName+"_"
 		self.knownNames.add(preName.lower())
