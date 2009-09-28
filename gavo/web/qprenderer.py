@@ -71,4 +71,4 @@ class QPRenderer(grend.HTMLResultRenderMixin,
 					T.div(class_="result", data=T.directive("result")) [
 						T.invisible(render=T.directive(resultFormat))]]])
 
-svcs.registerRenderer("qp", QPRenderer)
+svcs.registerRenderer(QPRenderer)

@@ -34,8 +34,8 @@ from gavo.svcs import standardcores
 
 _rendererRegistry = {}
 
-def registerRenderer(name, aRenderer):
-	_rendererRegistry[name] = aRenderer
+def registerRenderer(aRenderer):
+	_rendererRegistry[aRenderer.name] = aRenderer
 
 def getRenderer(rendName):
 	return _rendererRegistry[rendName]

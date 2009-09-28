@@ -425,15 +425,19 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 	All of our renderers inherit from this, since there is no way
 	a resource could define anything to render (now).
 	"""
+	# set to false for renderers intended to be allowed on all services
+	# (i.e., "meta" renderers).
+	checkedRenderer = True
+
 	def __init__(self, ctx, service):
 		ResourceBasedRenderer.__init__(self, ctx, service.rd)
 		self.service = service
 		# Do our input fields differ from the services?
 		# This becomes true when getInputFields swallows InputKeys.
 		self.fieldsChanged = False 
-		if self.name and not self.name in self.service.allowed:
-			raise svcs.ForbiddenURI("The renderer %s is not allowed on this service."%
-				self.name)
+		if self.checkedRenderer and self.name not in self.service.allowed:
+			raise svcs.ForbiddenURI(
+				"The renderer %s is not allowed on this service."%self.name)
 
 	def renderer(self, ctx, name):
 		"""returns code for a nevow render function named name.

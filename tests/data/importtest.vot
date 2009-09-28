@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VOTABLE version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.ivoa.net/xml/VOTable/v1.1"
+  xsi:schemaLocation="http://www.ivoa.net/xml/VOTable/v1.1 http://www.ivoa.net/xml/VOTable/v1.1">
+ <DESCRIPTION>
+ 	A VOTable containg some nasty features for VOTable ingestion.
+ </DESCRIPTION>
+
+<RESOURCE ID="ConeSearch" name="crazy stuff;'nasty">
+  <DESCRIPTION>Ugly mess</DESCRIPTION>
+  <TABLE ID="sausage/" name="/catalog">
+    <DESCRIPTION>The actualy uglyness {whoa}</DESCRIPTION>
+    <FIELD name="_r" ucd="POS_ANG_DIST_GENERAL" datatype="double" width="9" precision="5" unit="deg">
+      <DESCRIPTION>Distance from center</DESCRIPTION>
+    </FIELD>
+    <FIELD name="field" ucd="POS_EQ_RA_MAIN" datatype="double" width="8" precision="4" unit="deg">
+      <DESCRIPTION>Right ascension (FK5) Equinox=J2000. (computed by VizieR, not part of the original data)</DESCRIPTION>
+    </FIELD>
+    <FIELD name="field" ucd="POS_EQ_DEC_MAIN" datatype="double" width="8" precision="4" unit="deg">
+      <DESCRIPTION>Declination (FK5) Equinox=J2000. (computed by VizieR, not part of the original data)</DESCRIPTION>
+    </FIELD>
+    <FIELD name="class" ucd="RECORD" datatype="int" width="8">
+      <DESCRIPTION>Record number within the original table (starting from 1)</DESCRIPTION>
+			<VALUES null="10"/>
+    </FIELD>
+    <FIELD name="result_" ucd="ID_NUMBER" datatype="short" width="2">
+      <DESCRIPTION>Identification number</DESCRIPTION>
+    </FIELD>
+    <FIELD name="Cluster" ucd="ID_MAIN" datatype="char" arraysize="8*">
+      <DESCRIPTION>Cluster name [datatype=char]</DESCRIPTION>
+    </FIELD>
+    <FIELD name="RAJ2000" ucd="POS_EQ_RA" ref="J2000" datatype="char" arraysize="10" unit="&quot;h:m:s&quot;">
+      <DESCRIPTION>Right Ascension (J2000)</DESCRIPTION>
+    </FIELD>
+    <FIELD name="GLON" ucd="POS_GAL" datatype="float" width="6" precision="2" unit="deg" arraysize="2">
+      <DESCRIPTION>Galactic position</DESCRIPTION>
+    </FIELD>
+    <FIELD name="[Fe/H]z" ucd="PHYS_ABUND_[FE/H]" datatype="float" width="5" precision="2"><!-- ucd="instr.scale" -->
+      <DESCRIPTION>? Metallicity given in Rutledge et al. (1997PASP..109..907R) on the ZW84 (Zinn &amp; West, 1984ApJS...55...45Z) scale</DESCRIPTION>
+      <VALUES null="" />
+    </FIELD>
+    <FIELD name="n_[Fe/H]z" ucd="NOTE" datatype="unsignedByte" width="1"><!-- ucd="meta.note" -->
+      <DESCRIPTION>[1]? 1: [Fe/H] value taken directly from ZW84</DESCRIPTION>
+      <VALUES null="" />
+    </FIELD>
+    <FIELD name="[Fe/H]c" ucd="PHYS_ABUND_[FE/H]" datatype="float" width="5" precision="2"><!-- ucd="phys.abund.Z" -->
+      <DESCRIPTION>? Metallicity given in Rutledge et al. (1997PASP..109..907R) on the Carretta &amp; Gratton, 1997, Cat. &lt;J/A+AS/121/95&gt;) scale</DESCRIPTION>
+      <VALUES null="" />
+    </FIELD>
+    <FIELD name="FileName" ucd="ID_FILE" datatype="char" arraysize="11*"><!-- ucd="meta.id;phot;meta.file" -->
+      <DESCRIPTION>Name of the file containing the photometry, in "photom" subdirectory</DESCRIPTION>
+    </FIELD>
+    <FIELD name="HR" ucd="DATA_LINK" datatype="char" arraysize="2"><!-- ucd="meta.ref.url" -->
+      <DESCRIPTION>Plot the HR diagram (V, V-I) for this cluster</DESCRIPTION>
+    </FIELD>
+    <FIELD name="n_VHB" ucd="NOTE" datatype="char" arraysize="1"><!-- ucd="meta.note" -->
+      <DESCRIPTION>[*] Note on HB level (1)</DESCRIPTION>
+    </FIELD>
+<DATA>      <TABLEDATA>
+<TR><TD>72.18303</TD><TD>006.0217</TD><TD>-72.0808</TD>
+<TD>1</TD><TD>1</TD><TD>NGC 104</TD>
+<TD>00 24 05.2</TD><TD>305.90 34.4</TD>
+<TD>4.89</TD><TD>0x22</TD><TD>7.3</TD>
+<TD>ngc104.dat</TD>
+<TD>HR</TD><TD>*</TD></TR>
+<TR><TD></TD><TD></TD><TD></TD>
+<TD>10</TD><TD></TD><TD><!--NGC 288--></TD>
+<TD></TD><TD></TD>
+<TD></TD><TD></TD><TD></TD>
+<TD></TD>
+<TD></TD><TD></TD></TR>
+</TABLEDATA></DATA>
+</TABLE>
+</RESOURCE>
+</VOTABLE>

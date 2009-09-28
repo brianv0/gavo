@@ -155,7 +155,7 @@ class SCSRenderer(DALRenderer):
 		table.votCasts = realCasts
 		return DALRenderer._formatOutput(self, data, ctx)
 
-svcs.registerRenderer("scs.xml", SCSRenderer)
+svcs.registerRenderer(SCSRenderer)
 
 
 class SIAPRenderer(DALRenderer):
@@ -235,7 +235,7 @@ class SIAPRenderer(DALRenderer):
 		data.addMeta("_type", "results")
 		return svcs.SvcResult(data, {}, svcs.QueryMeta.fromContext(ctx))
 
-svcs.registerRenderer("siap.xml", SIAPRenderer)
+svcs.registerRenderer(SIAPRenderer)
 
 
 class RegistryRenderer(grend.ServiceBasedRenderer):
@@ -310,4 +310,4 @@ class RegistryRenderer(grend.ServiceBasedRenderer):
 			request.finishRequest(False)
 		return appserver.errorMarker
 			
-svcs.registerRenderer("pubreg.xml", RegistryRenderer)
+svcs.registerRenderer(RegistryRenderer)

@@ -213,4 +213,4 @@ class ProductRenderer(grend.ServiceBasedRenderer):
 			pass
 		return streaming.streamOut(resource, request)
 
-svcs.registerRenderer("get", ProductRenderer)
+svcs.registerRenderer(ProductRenderer)

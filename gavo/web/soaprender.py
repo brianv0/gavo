@@ -103,4 +103,4 @@ class SoapRenderer(grend.ServiceBasedRenderer):
 			return self, ()
 		return SOAPProcessor(ctx, self.service, self.runServiceFromArgs), ()
 
-svcs.registerRenderer("soap", SoapRenderer)
+svcs.registerRenderer(SoapRenderer)

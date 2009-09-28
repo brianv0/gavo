@@ -42,7 +42,7 @@ class Uploader(resourcebased.Form):
 		]
 	])
 
-svcs.registerRenderer("upload", Uploader)
+svcs.registerRenderer(Uploader)
 
 
 class MachineUploader(Uploader):
@@ -74,4 +74,4 @@ class MachineUploader(Uploader):
 	_crashAndBurn = _handleInputErrors
 
 
-svcs.registerRenderer("mupload", MachineUploader)
+svcs.registerRenderer(MachineUploader)

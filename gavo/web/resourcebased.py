@@ -608,7 +608,7 @@ class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 	defaultDocFactory = loaders.xmlfile(pkg_resources.resource_filename('gavo',
 		"resources/templates/defaultresponse.html"))
 
-svcs.registerRenderer("form", Form)
+svcs.registerRenderer(Form)
 
 
 class FeedbackForm(Form):
@@ -651,7 +651,7 @@ class FeedbackForm(Form):
 		request.args = feedbackExprs.original
 		return Form(ctx, self.service)
 
-svcs.registerRenderer("feedback", FeedbackForm)
+svcs.registerRenderer(FeedbackForm)
 
 
 def compileCoreRenderer(source):
@@ -715,7 +715,7 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 			return self, ()
 		return self.rend.locateChild(ctx, segments)
 
-svcs.registerRenderer("static", StaticRenderer)
+svcs.registerRenderer(StaticRenderer)
 
 
 class TextRenderer(grend.ServiceBasedRenderer):
@@ -779,4 +779,4 @@ class CustomRenderer(grend.ServiceBasedRenderer):
 			return common.runAuthenticated(ctx, "", self._reload, ctx), ()
 		return self.realPage.locateChild(ctx, segments)
 
-svcs.registerRenderer("custom", CustomRenderer)
+svcs.registerRenderer(CustomRenderer)

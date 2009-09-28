@@ -22,22 +22,14 @@ from gavo.web import weberrors
 
 class MetaRenderer(grend.ServiceBasedRenderer):
 	"""Renderers that are allowed on all services.
-
-	This is done by giving them a name of None.  That, in turn, is a pain
-	now that we use these names to generate URLs.  Thus, they have
-	urlPart attributes and a custom makeAccessURL.
 	"""
-	urlPart = None
-	@classmethod
-	def makeAccessURL(cls, baseURL):
-		return "%s/%s"%(baseURL, cls.urlPart)
+	checkedRenderer = False
 
 
 class BlockRDRenderer(MetaRenderer):
 	"""is a renderer used for blocking RDs from the web interface.
 	"""
-	name = None   # may be used on all services
-	urlPart = "block"
+	name = "block"
 
 	def data_blockstate(self, ctx, data):
 		if hasattr(self.service.rd, "currently_blocked"):
@@ -73,7 +65,7 @@ class BlockRDRenderer(MetaRenderer):
 			]
 		])
 
-svcs.registerRenderer("block", BlockRDRenderer)
+svcs.registerRenderer(BlockRDRenderer)
 
 class RendExplainer(object):
 	"""is a container for various functions having to do with explaining
@@ -234,8 +226,7 @@ class ServiceInfoRenderer(MetaRenderer,
 		MetaRenderMixin):
 	"""is a renderer that shows information about a service.
 	"""
-	name = None  # allow on all services
-	urlPart = "info"
+	name = "info"
 	
 	customTemplate = common.loadSystemTemplate("serviceinfo.html")
 
@@ -289,7 +280,7 @@ class ServiceInfoRenderer(MetaRenderer,
 				T.p["Infos are only available with a serviceinfo.html template"]]
 		])
 
-svcs.registerRenderer("info", ServiceInfoRenderer)
+svcs.registerRenderer(ServiceInfoRenderer)
 
 def basename(tableName):
 	if "." in tableName:
@@ -396,7 +387,7 @@ class TableInfoRenderer(grend.ServiceBasedRenderer,
 				T.p["Infos are only available with a tableinfo.html template"]]
 		])
 
-svcs.registerRenderer("tableinfo", TableInfoRenderer)
+svcs.registerRenderer(TableInfoRenderer)
 
 
 class ExternalRenderer(grend.ServiceBasedRenderer):
@@ -420,4 +411,4 @@ class ExternalRenderer(grend.ServiceBasedRenderer):
 			raise svcs.UnknownURI()
 		return weberrors.RedirectPage(str(pub.getMeta("accessURL")))
 
-svcs.registerRenderer("external", ExternalRenderer)
+svcs.registerRenderer(ExternalRenderer)
