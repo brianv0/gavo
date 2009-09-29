@@ -511,6 +511,19 @@ myTests = [
 			["VOTABLE", "TABLEDATA><TR><TD>21029"],
 			"SCS successful query, tdenc"),
 	),
+	TestGroup("VOSI",
+		GetHasStringsTest(nv_root+"/mcextinct/q/cone/availability", [
+			"available>true", "upSince>20"],
+			"mcextinct VOSI availability looks plausible"),
+		XSDValidationTest(nv_root+"/mcextinct/q/cone/availability",
+			"VOSI availability response validates"),
+		GetHasStringsTest(nv_root+"/mcextinct/q/cone/capabilities", [
+			"capability", "ConeSearch", "Type>GET</query"],
+			"mcextinct VOSI capabilities looks plausible"),
+		XSDValidationTest(nv_root+"/mcextinct/q/cone/capabilities",
+			"VOSI capabilities response validates"),
+	),
+
 	TestGroup("registry",
 		GetHasStringsTest(nv_root+"/oai.xml", [
 				"<oai:OAI-PMH", 'Argument">verb'],

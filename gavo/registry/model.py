@@ -35,20 +35,29 @@ ElementTree._namespace_map[VSNamespace] = "vs"
 ElementTree._namespace_map[SCSNamespace] = "cs"
 ElementTree._namespace_map[SIANamespace] = "sia"
 
-def _schemaURL(xsdName):
+def makeSchemaURL(xsdName):
 	return "http://vo.ari.uni-heidelberg.de/docs/schemata/"+xsdName
 
 _schemaLocations = {
-	OAINamespace: _schemaURL("OAI-PMH.xsd"),
-	OAIDCNamespace: _schemaURL("oai_dc.xsd"),
-	VORNamespace: _schemaURL("VOResource-v1.0.xsd"),
-	VOGNamespace: _schemaURL("VORegistry-v1.0.xsd"),
-	DCNamespace: _schemaURL("simpledc20021212.xsd"),
-	RINamespace: _schemaURL("RegistryInterface-v1.0.xsd"),
-	VSNamespace: _schemaURL("VODataService-v1.0.xsd"),
-	SCSNamespace: _schemaURL("ConeSearch-v1.0.xsd"),
-	SIANamespace: _schemaURL("SIA-v1.0.xsd"),
+	OAINamespace: makeSchemaURL("OAI-PMH.xsd"),
+	OAIDCNamespace: makeSchemaURL("oai_dc.xsd"),
+	VORNamespace: makeSchemaURL("VOResource-v1.0.xsd"),
+	VOGNamespace: makeSchemaURL("VORegistry-v1.0.xsd"),
+	DCNamespace: makeSchemaURL("simpledc20021212.xsd"),
+	RINamespace: makeSchemaURL("RegistryInterface-v1.0.xsd"),
+	VSNamespace: makeSchemaURL("VODataService-v1.0.xsd"),
+	SCSNamespace: makeSchemaURL("ConeSearch-v1.0.xsd"),
+	SIANamespace: makeSchemaURL("SIA-v1.0.xsd"),
 }
+
+
+def addSchemaLocations(object):
+	object.a_xsi_schemaLocation = " ".join(["%s %s"%(ns, xs) 
+		for ns, xs in _schemaLocations.iteritems()])
+	object.xsi_schemaLocation_name = "xsi:schemaLocation"
+	object.a_xmlns_xsi = XSINamespace
+	object.xmlns_xsi_name = "xmlns:xsi"
+
 
 class OAI:
 	"""is a container for classes modelling OAI elements.
@@ -58,18 +67,14 @@ class OAI:
 
 	class PMH(OAIElement):
 		name = "OAI-PMH"
-		a_xsi_schemaLocation = " ".join(["%s %s"%(ns, xs) 
-			for ns, xs in _schemaLocations.iteritems()])
-		xsi_schemaLocation_name = "xsi:schemaLocation"
-		a_xmlns_xsi = XSINamespace
-		xmlns_xsi_name = "xmlns:xsi"
 		a_xmlns_sia = SIANamespace
 		xmlns_sia_name = "xmlns:sia"
 		a_xmlns_cs = SCSNamespace
 		xmlns_cs_name = "xmlns:cs"
 		a_xmlns_vs = VSNamespace
 		xmlns_vs_name = "xmlns:vs"
-
+	addSchemaLocations(PMH)
+	
 	class responseDate(OAIElement): pass
 
 	class request(OAIElement):

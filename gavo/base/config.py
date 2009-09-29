@@ -23,6 +23,7 @@ from gavo.utils.fancyconfig import ConfigItem, StringConfigItem,\
 defaultSettingsPath = "/etc/gavo.rc"
 
 addMeta = meta.configMeta.addMeta
+setMeta = meta.configMeta.setMeta
 getMeta = meta.configMeta.getMeta
 
 

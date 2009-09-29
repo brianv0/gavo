@@ -586,5 +586,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		return "ivo://%s/%s/%s"%(base.getConfig("ivoa", "authority"),
 				self.rd.sourceId, self.id)
 
+	def _meta_available(self):
+# XXX TODO: have this ask the core
+		return "true"
+
 	def translateFieldName(self, name):
 		return name

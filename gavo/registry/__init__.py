@@ -33,4 +33,7 @@ from gavo.registry import oaiinter      # registration of RegistryCore
 from gavo.registry import servicelist   # registration of getWebServiceList
 
 
+from gavo.registry.builders import (getVOResourceElement, 
+	getVORMetadataElement)
 from gavo.registry.identifiers import (getResobFromIdentifier)
+from gavo.registry.model import makeSchemaURL, addSchemaLocations

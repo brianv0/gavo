@@ -280,6 +280,23 @@ def mapParseErrors(ex, tag, ctx):
 	raise
 
 
+def setRDDateTime(rd, inputFile):
+	"""guesses a date the resource was updated.
+
+	This uses either the timestamp on inputFile or the rd's import timestamp,
+	whatever is newer.
+	"""
+# this would look better as a method on RD, and maybe it would be cool
+# to just try to infer the inputFile from the ID?
+	rdUpdated = datetime.datetime.utcfromtimestamp(utils.fgetmtime(inputFile))
+	try:
+		dataUpdated = datetime.datetime.utcfromtimestamp(
+			os.path.getmtime(rd.getTimestampPath()))
+	except os.error: # no timestamp yet
+		dataUpdated = rdUpdated
+	rd.dateUpdated = max(dataUpdated, rdUpdated)
+
+
 def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False):
 	"""returns a ResourceDescriptor for srcId.
 
@@ -304,15 +321,7 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False):
 	except Exception, ex:
 		ex.srcPath = srcPath
 		raise
-	try:
-		rd.dateUpdated = datetime.datetime.utcfromtimestamp(
-			os.path.getmtime(rd.getTimestampPath()))
-	except os.error: # no timestamp yet, use source file
-		try:
-			rd.dateUpdated = datetime.datetime.utcfromtimestamp(
-				utils.fgetmtime(inputFile))
-		except os.error: # not a useful source file, leave default ("now")
-			pass
+	setRDDateTime(rd, inputFile)
 	return rd
 
 

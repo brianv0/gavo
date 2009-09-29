@@ -337,7 +337,7 @@ def getVORMetadataElement(resob, setNames=_defaultSet):
 
 
 def getVOResourceElement(resob, setNames=_defaultSet):
-	"""returns a stanxml for Resource in dublin core format.
+	"""returns a stanxml for Resource in VOR format.
 
 	There's trouble here in that we have set management on the level of
 	renderers (capabilities).  Thus, to come up with capabilities for

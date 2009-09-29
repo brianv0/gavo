@@ -1,3 +1,9 @@
+"""
+Rough hack towards a twisted application running the data center server.
+"""
+
+
+import datetime
 import pwd
 import sys
 import urlparse
@@ -8,6 +14,7 @@ from nevow import rend, loaders, appserver
 from gavo import base
 from gavo import rscdesc         # for getRD in base.caches
 from gavo.protocols import basic # for registration
+from gavo.base import config
 from gavo.web import dispatcher
 
 debug = False
@@ -38,6 +45,6 @@ if debug:
 else:
 	mainPage = dispatcher.ArchiveService()
 
+config.setMeta("upSince", datetime.datetime.utcnow().isoformat())
 internet.TCPServer(base.getConfig("web", "serverPort"), appserver.NevowSite(
 	mainPage), interface=interface).setServiceParent(application)
-	

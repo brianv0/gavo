@@ -329,6 +329,13 @@ def degToDms(deg, sepChar=" ", secondFracs=2):
 		"%0*.*f"%(secondFracs+3, secondFracs, abs(rest*60))])
 
 
+def datetimeToRFC2616(dt):
+	"""returns a UTC datetime object in the format requried by http.
+
+	This may crap when you fuzz with the locale.
+	"""
+	return dt.strftime('%a, %d %b %Y %H:%M:%S GMT')
+
 class NameMap(object):
 	"""is a name mapper fed from a simple text file.
 
