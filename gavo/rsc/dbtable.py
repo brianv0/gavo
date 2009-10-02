@@ -36,6 +36,11 @@ class Feeder(table.Feeder):
 				sys.stderr.write("One or more of the following rows clashed:\n")
 				pprint.pprint(self.batchCache, sys.stderr)
 				raise
+			except sqlsupport.DataError:
+				sys.stderr.write("Bad input.  Run with -b1 to pin down offending"
+					" record.  First rec:\n")
+				sys.stderr.write("%s\n"%self.batchCache[0])
+				raise
 			except sqlsupport.ProgrammingError:
 				raise
 			if self.cursor.rowcount>=0:

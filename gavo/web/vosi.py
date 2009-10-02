@@ -123,12 +123,17 @@ svcs.registerRenderer(VOSICapabilityRenderer)
 class VOSITablesetRenderer(VOSIRenderer):
 	"""A renderer for a VOSI table metadata endpoint.
 	"""
-	# We need VODataService 1.1 for this.
-	name = "tableset"
+	name = "tableMetadata"
 
 	def _getTree(self, request):
 		request.setHeader("Last-Modified", 
-			str(self.service.getMeta("dateUpdated")))
-		raise NotImplementedError("Cannot do VOSI tables yet.")
+			utils.datetimeToRFC2616(self.service.rd.dateUpdated))
+		root = registry.getTablesetForService(self.service)
+		root.a_xmlns_vs1 = root.namespace
+		root.xmlns_vs1_name = "xmlns:vs1"
+		root.a_xsi_type = "vs1:TableSet"
+		root.xsi_type_name = "xsi:type"
+		registry.addSchemaLocations(root)
+		return root
 
 svcs.registerRenderer(VOSITablesetRenderer)

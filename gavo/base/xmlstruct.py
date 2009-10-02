@@ -88,6 +88,11 @@ def parseFromStream(rootStruct, inputStream, context=None):
 		parser.parse(inputStream)
 	except SAXException, msg:
 		raise excs.ReportableError("Bad XML: %s"%unicode(msg))
+	except Exception, msg:
+		if context is not None and hasattr(context, "lastRow"):
+			msg.excRow = context.lastRow
+			msg.excCol = context.lastCol
+		raise
 	return evProc.result
 
 

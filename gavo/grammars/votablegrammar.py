@@ -43,6 +43,8 @@ class VOTNameMaker(object):
 		preName = re.sub("[^\w]+", "x", (getattr(field, "name", None) 
 			or getattr(field, "id", None)
 			or "field%02d"%self.index))
+		if not re.match("[A-Za-z_]", preName):
+			preName = "col_"+preName
 		while preName.lower() in self.knownNames:
 			preName = preName+"_"
 		self.knownNames.add(preName.lower())

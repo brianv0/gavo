@@ -522,6 +522,13 @@ myTests = [
 			"mcextinct VOSI capabilities looks plausible"),
 		XSDValidationTest(nv_root+"/mcextinct/q/cone/capabilities",
 			"VOSI capabilities response validates"),
+		GetHasStringsTest(nv_root+"/mcextinct/q/cone/tableMetadata",
+			["name>mcextinct.exts</name", "ame>centerAlpha</name"],
+			"VOSI tableMetadata response looks plausible",),
+		XSDValidationTest(nv_root+"/mcextinct/q/cone/tableMetadata",
+			"VOSI tableMetadata response validates for dbCore",),
+		XSDValidationTest(nv_root+"/apfs/res/apfs_new/catquery/tableMetadata",
+			"VOSI tableMetadata response validates for dbCore",),
 	),
 
 	TestGroup("registry",

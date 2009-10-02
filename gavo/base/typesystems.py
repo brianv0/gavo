@@ -154,7 +154,7 @@ def getSubsumingType(sqlTypes):
 	return _coercions.getSubsuming(sqlTypes)
 
 
-class FromSQLConverter:
+class FromSQLConverter(object):
 	"""is an abstract base class for type converters from the SQL type system.
 
 	Implementing classes have to provide a dict simpleMap mapping sql type
@@ -206,6 +206,7 @@ class ToVOTableConverter(FromSQLConverter):
 		"vexpr-date": ("char", "*"),
 		"vexpr-float": ("double", "1"),
 		"raw": ("unsignedByte", "*"),
+		"bytea": ("unsignedByte", "1"),
 	}
 
 	def mapComplex(self, type, length):
@@ -422,7 +423,8 @@ class ToPythonCodeConverter(FromSQLConverter):
 
 
 
-sqltypeToVOTable = ToVOTableConverter().convert
+toVOTableConverter = ToVOTableConverter()
+sqltypeToVOTable = toVOTableConverter.convert
 sqltypeToXSD = ToXSDConverter().convert
 sqltypeToNumpy = ToNumpyConverter().convert
 sqltypeToPython = ToPythonConverter().convert

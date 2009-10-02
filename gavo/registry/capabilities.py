@@ -30,7 +30,7 @@ def _getParamFromColumn(column, rootElement, typeFactory):
 
 
 def getTableParamFromColumn(column, rootElement=VS.column):
-	"""returns a InputParam element for a rscdef.Column.
+	"""returns a VS.Column for a rscdef.Column.
 	"""
 	return _getParamFromColumn(column, rootElement,
 		lambda type, length: VS.dataType(arraysize=length)[type])

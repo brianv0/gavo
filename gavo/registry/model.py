@@ -3,6 +3,7 @@ Data model for the VO registry interface.
 """
 
 from gavo import base
+from gavo.base import typesystems
 from gavo.utils import ElementTree
 from gavo.utils.stanxml import Element, XSINamespace
 
@@ -18,6 +19,7 @@ VOGNamespace = "http://www.ivoa.net/xml/VORegistry/v1.0"
 VORNamespace = "http://www.ivoa.net/xml/VOResource/v1.0"
 DCNamespace = "http://purl.org/dc/elements/1.1/"
 VSNamespace ="http://www.ivoa.net/xml/VODataService/v1.0"
+VS1Namespace ="http://www.ivoa.net/xml/VODataService/v1.1"
 SCSNamespace = "http://www.ivoa.net/xml/ConeSearch/v1.0" 
 SIANamespace="http://www.ivoa.net/xml/SIA/v1.0" 
 
@@ -32,6 +34,7 @@ ElementTree._namespace_map[OAIDCNamespace] = "oai_dc"
 ElementTree._namespace_map[DCNamespace] = "dc"
 ElementTree._namespace_map[RINamespace] = "ri"
 ElementTree._namespace_map[VSNamespace] = "vs"
+ElementTree._namespace_map[VS1Namespace] = "vs1"
 ElementTree._namespace_map[SCSNamespace] = "cs"
 ElementTree._namespace_map[SIANamespace] = "sia"
 
@@ -46,6 +49,7 @@ _schemaLocations = {
 	DCNamespace: makeSchemaURL("simpledc20021212.xsd"),
 	RINamespace: makeSchemaURL("RegistryInterface-v1.0.xsd"),
 	VSNamespace: makeSchemaURL("VODataService-v1.0.xsd"),
+	VS1Namespace: makeSchemaURL("VODataService-v1.1.xsd"),
 	SCSNamespace: makeSchemaURL("ConeSearch-v1.0.xsd"),
 	SIANamespace: makeSchemaURL("SIA-v1.0.xsd"),
 }
@@ -388,115 +392,190 @@ class DC:
 	class type(DCElement): pass
 
 
-class VS:
-	"""is a container for classes modelling elements from IVOA VO data services.
+def addBasicVSElements(baseNS, VSElement):
+	"""returns an element namespace containing common VODataService elements.
+	"""
+	class TNS(baseNS):
+		class facility(VSElement): pass
+		
+		class instrument(VSElement): pass
+		
+		class coverage(VSElement): pass
+		
+		class format(VSElement): 
+			a_isMIMEType = None
+		
+		class rights(VSElement): pass
+		
+		class accessURL(VSElement): pass
+		
+		class ParamHTTP(VOR.interface):
+			a_xsi_type = "vs:ParamHTTP"
+			a_xmlns_vs = VSNamespace
+			xmlns_vs_name = "xmlns:vs"
+
+		class resultType(VSElement): pass
+		
+		class queryType(VSElement): pass
+
+		class param(VSElement): pass
+		
+		class name(VSElement): pass
+		
+		class description(VSElement): pass
+		
+		class dataType(VSElement):
+			a_arraysize = None
+
+		class simpleDataType(VSElement):
+			name = "dataType"  # dataType with vs:SimpleDataType sounds so stupid
+				# that I must have misunderstood something.  Well, I just hack it and
+				# do an ad-hoc type translation at tree building time.  Yikes.
+			
+			typeMap = {
+				"char": "string",
+				"short": "integer",
+				"int": "integer",
+				"long": "integer",
+				"float": "real",
+				"double": "real",
+			}
+			def asETree(self, parent):
+				if self.isEmpty():
+					return
+				self.children = [self.typeMap.get(self.children[0], self.children[0])]
+				return super(VS.simpleDataType, self).asETree(parent)
+		
+		class unit(VSElement): pass
+		
+		class ucd(VSElement): pass
+
+		class DataCollection(RI.Resource):
+			c_facility = []
+			c_instrument = []
+			c_coverage = []
+			c_format = []
+			c_rights = []
+			c_accessURL = []
+
+		class Service(RI.Resource):
+			c_interface = []
+
+		class DataService(Service):
+			a_xsi_type = "vs:DataService"
+			a_xmlns_vs = VSNamespace
+			xmlns_vs_name = "xmlns:vs"
+			c_table = []
+
+		class TableService(Service):
+			c_facility = []
+			c_instrument = []
+			c_table = []
+			a_xsi_type = "vs:TableService"
+			a_xmlns_vs = VSNamespace
+			xmlns_vs_name = "xmlns:vs"
+
+		class CatalogService(Service):
+			a_xsi_type = "vs:CatalogService"
+			a_xmlns_vs = VSNamespace
+			xmlns_vs_name = "xmlns:vs"
+
+		class ServiceReference(VSElement):
+			a_ivo_id = None
+			ivo_id_name = "ivo-id"
+
+		class table(VSElement):
+			a_role = None
+
+			c_column = []
+			c_description = None
+			c_name = None
+
+		class column(VSElement):
+			c_dataType = None
+			c_description = None
+			c_name = None
+			c_ucd = None
+			c_unit = None
+		
+	return TNS
+
+# Elements common to VODataService 1.0 and 1.1 are added by addBasicVSElements
+
+class _VS1_0Stub:
+	"""The stub for VODataService 1.0.
 	"""
 	class VSElement(Element):
 		namespace = VSNamespace
 		local = True
-	
-	class facility(VSElement): pass
-	
-	class instrument(VSElement): pass
-	
-	class coverage(VSElement): pass
-	
-	class format(VSElement): 
-		a_isMIMEType = None
-	
-	class rights(VSElement): pass
-	
-	class accessURL(VSElement): pass
-	
-	class ParamHTTP(VOR.interface):
-		a_xsi_type = "vs:ParamHTTP"
-		a_xmlns_vs = VSNamespace
-		xmlns_vs_name = "xmlns:vs"
 
-	class resultType(VSElement): pass
-	
-	class queryType(VSElement): pass
+VS = addBasicVSElements(_VS1_0Stub, _VS1_0Stub.VSElement)
 
-	class param(VSElement): pass
+class _VS1_1Stub:
+	"""The stub for VODataService 1.1.
+	"""
+	class VSElement(Element):
+		namespace = VS1Namespace
+		local = True
+
+	class tableset(VSElement):
+		mayBeEmpty = True
+		childSequence = ["schema"]
 	
-	class name(VSElement): pass
+	class schema(VSElement):
+		childSequence = ["name", "title", "description", "utype",
+			"table"]
 	
-	class description(VSElement): pass
+	class title(VSElement): pass
+	class utype(VSElement): pass
 	
+	class table(VSElement):
+		childSequence = ["name", "title", "description", "utype",
+			"column", "foreignKey"]
+
+	class foreignKey(VSElement):
+		childSequence = ["targetTable", "fkColumn", "description", "utype"]
+	
+	class targetTable(VSElement): pass
+	
+	class fkColumn(VSElement):
+		childSequence = ["fromColumn", "targetColumn"]
+
+	class fromColumn(VSElement): pass
+	class targetColumn(VSElement): pass
+
 	class dataType(VSElement):
+		# This is "abstract".  Various sub-types map to various vocabularies.
+		# We use base.typesystems mappers for this.  Give them in the 
+		# class's typeMapper attribute.  The values are sql types in all cases.
+		# You will have to define a defineType method receiving the result
+		# of the type mapper and changing the node attributes.
+		xsi_type_name = "xsi:type"
+		name = "dataType"
 		a_arraysize = None
+		a_delim = None
+		a_extendedSchema = None
+		a_extendedType = None
 
-	class simpleDataType(VSElement):
-		name = "dataType"  # dataType with vs:SimpleDataType sounds so stupid
-			# that I must have misunderstood something.  Well, I just hack it and
-			# do an ad-hoc type translation at tree building time.  Yikes.
-		
-		typeMap = {
-			"char": "string",
-			"short": "integer",
-			"int": "integer",
-			"long": "integer",
-			"float": "real",
-			"double": "real",
-		}
-		def asETree(self, parent):
+		def asETree(self, parent=None):
 			if self.isEmpty():
 				return
-			self.children = [self.typeMap.get(self.children[0], self.children[0])]
-			return super(VS.simpleDataType, self).asETree(parent)
+			dbType = self.children.pop(0)
+			self.defineType(self.typeMapper.convert(dbType))
+			return VS1.VSElement.asETree(self, parent)
 
-	
-	class unit(VSElement): pass
-	
-	class ucd(VSElement): pass
+	class voTableDataType(dataType):
+		a_xsi_type = "vs1:VOTableType"
+		typeMapper = typesystems.toVOTableConverter
 
-	class DataCollection(RI.Resource):
-		c_facility = []
-		c_instrument = []
-		c_coverage = []
-		c_format = []
-		c_rights = []
-		c_accessURL = []
+		def defineType(self, voType):
+			typeName, arrLen = voType
+			self[typeName]
+			self(arraysize=str(arrLen))
 
-	class Service(RI.Resource):
-		c_interface = []
 
-	class DataService(Service):
-		a_xsi_type = "vs:DataService"
-		a_xmlns_vs = VSNamespace
-		xmlns_vs_name = "xmlns:vs"
-		c_table = []
 
-	class TableService(Service):
-		c_facility = []
-		c_instrument = []
-		c_table = []
-		a_xsi_type = "vs:TableService"
-		a_xmlns_vs = VSNamespace
-		xmlns_vs_name = "xmlns:vs"
-
-	class CatalogService(Service):
-		a_xsi_type = "vs:CatalogService"
-		a_xmlns_vs = VSNamespace
-		xmlns_vs_name = "xmlns:vs"
-
-	class ServiceReference(VSElement):
-		a_ivo_id = None
-		ivo_id_name = "ivo-id"
-
-	class table(VSElement):
-		a_role = None
-
-		c_column = []
-		c_description = None
-		c_name = None
-
-	class column(VSElement):
-		c_dataType = None
-		c_description = None
-		c_name = None
-		c_ucd = None
-		c_unit = None
+VS1 = addBasicVSElements(_VS1_1Stub, _VS1_1Stub.VSElement)
 
 
 class SIA:

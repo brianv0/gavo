@@ -37,3 +37,4 @@ from gavo.registry.builders import (getVOResourceElement,
 	getVORMetadataElement)
 from gavo.registry.identifiers import (getResobFromIdentifier)
 from gavo.registry.model import makeSchemaURL, addSchemaLocations
+from gavo.registry.tableset import getTablesetForService

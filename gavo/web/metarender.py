@@ -246,20 +246,19 @@ class ServiceInfoRenderer(MetaRenderer,
 	def data_inputFields(self, ctx, data):
 		res = [f.asInfoDict() for f in self.service.getInputFields()+
 			self.service.serviceKeys]
-		res.sort(lambda a,b: cmp(a["name"], b["name"]))
+		res.sort(key=lambda val: val["name"].lower())
 		return res
 
 	def data_htmlOutputFields(self, ctx, data):
 		res = [f.asInfoDict() for f in self.service.getCurOutputFields()]
-		res.sort(lambda a,b: cmp(a["name"], b["name"]))
-		res.sort()
+		res.sort(key=lambda val: val["name"].lower())
 		return res
 
 	def data_votableOutputFields(self, ctx, data):
 		queryMeta = svcs.QueryMeta({"_FORMAT": "VOTable", "_VERB": 3})
 		res = [f.asInfoDict() 
 			for f in self.service.getCurOutputFields(queryMeta)]
-		res.sort(lambda a,b: cmp(a["verbLevel"], b["verbLevel"]))
+		res.sort(key=lambda val: val["verbLevel"])
 		return res
 
 	def data_rendAvail(self, ctx, data):

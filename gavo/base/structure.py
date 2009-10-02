@@ -295,6 +295,10 @@ class StructureBase(object):
 			raise StructureError("Attempt to copy from invalid source: %s"%
 				unicode(msg))
 					
+	def change(self, **kwargs):
+		attrs = self.getAttributes()
+		attrs.update(kwargs)
+		return self.__class__(self.parent, **attrs).finishElement()
 
 	def copy(self, parent):
 		"""returns a deep copy of self, reparented to parent.

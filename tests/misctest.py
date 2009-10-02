@@ -346,5 +346,26 @@ class RemoteURLTest(testhelpers.VerboseTest):
 			utils.urlopenRemote, ("/etc/passwd",))
 
 
+class RegistryTest(testhelpers.VerboseTest):
+	def testVSNamespaces(self):
+		from gavo.registry import model
+		self.assertEqual(model.VS.ucd().namespace,
+			model.VSNamespace)
+		self.assertEqual(model.VS1.ucd().namespace,
+			model.VS1Namespace)
+
+	def testVOTableDataType(self):
+		from gavo.registry import model
+		self.assertEqual(
+			model.VS1.voTableDataType["char"].render(),
+			'<dataType arraysize="1" xsi:type="vs1:VOTableType">char</dataType>')
+		self.assertEqual(
+			model.VS1.voTableDataType["text"].render(),
+			'<dataType arraysize="*" xsi:type="vs1:VOTableType">char</dataType>')
+		self.assertEqual(
+			model.VS1.voTableDataType["integer[20]"].render(),
+			'<dataType arraysize="20" xsi:type="vs1:VOTableType">int</dataType>')
+	
+
 if __name__=="__main__":
-	testhelpers.main(RemoteURLTest)
+	testhelpers.main(RegistryTest)
