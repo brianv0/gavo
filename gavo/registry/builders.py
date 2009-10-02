@@ -237,8 +237,7 @@ class ServiceResourceMaker(ResourceMaker):
 		return ResourceMaker._makeResource(self, service, setNames)[
 			VOR.rights[service.getMeta("rights")], [
 				capabilities.getCapabilityElement(pub)
-				for pub in service.publications
-					if pub.sets & setNames]]
+				for pub in service.getPublicationsForSet(setNames)]]
 
 
 class DataServiceResourceMaker(ServiceResourceMaker):

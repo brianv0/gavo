@@ -504,6 +504,25 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		else:
 			return inputDD.grammar.inputKeys
 
+	def getPublicationsForSet(self, names):
+		"""returns publications for set names in names.
+
+		names must be a set.  If ivo_managed is in names and there is any
+		publication at all, artificial VOSI publications are added.
+		"""
+		res = [pub for pub in self.publications if pub.sets & names]
+		vosiSet = set(["ivo_managed"])
+		if res and "ivo_managed" in names:
+			res.extend((
+				base.makeStruct(Publication, render="availability", sets=vosiSet,
+					parent_=self),
+				base.makeStruct(Publication, render="capabilities", sets=vosiSet,
+					parent_=self),
+				base.makeStruct(Publication, render="tableMetadata", sets=vosiSet,
+					parent_=self),
+			))
+		return res
+
 	def getInputDDFor(self, renderer):
 		"""returns an inputDD for renderer.
 

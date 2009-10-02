@@ -79,6 +79,19 @@ class InterfaceMaker(object):
 		return self._makeInterface(publication)
 
 
+class VOSIInterface(InterfaceMaker):
+	interfaceClass = VS.ParamHTTP
+
+class VOSIAvInterface(VOSIInterface):
+	renderer = "availability"
+
+class VOSICapInterface(VOSIInterface):
+	renderer = "capabilities"
+
+class VOSITMInterface(VOSIInterface):
+	renderer = "tableMetadata"
+
+
 class InterfaceWithParams(InterfaceMaker):
 	"""An InterfaceMaker on a publication sporting input parameters.
 
@@ -248,6 +261,28 @@ class RegistryCapabilityMaker(CapabilityMaker):
 	def _makeCapability(self, publication):
 		return CapabilityMaker._makeCapability(self, publication)[
 			VOG.maxRecords[publication.parent.getMeta("maxRecords")]]
+
+
+class VOSICapabilityMaker(CapabilityMaker):
+	# A common parent for the VOSI cap. makers.  All of those are
+	# parallel and only differ by standardID
+	capabilityClass = VOG.capability
+
+	def _makeCapability(self, publication):
+		return CapabilityMaker._makeCapability(self, publication)(
+			standardID=self.standardID)
+
+class VOSIAvCapabilityMaker(VOSICapabilityMaker):
+	renderer = "availability"
+	standardID = "ivo://ivoa.net/stc/VOSI#availability"
+
+class VOSICapCapabilityMaker(VOSICapabilityMaker):
+	renderer = "capabilities"
+	standardID = "ivo://ivoa.net/stc/VOSI#capabilities"
+
+class VOSITMCapabilityMaker(VOSICapabilityMaker):
+	renderer = "tableMetadata"
+	standardID = "ivo://ivoa.net/stc/VOSI#tables"
 
 
 class SOAPCapabilityMaker(CapabilityMaker):
