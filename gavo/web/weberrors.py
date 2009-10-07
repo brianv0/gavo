@@ -14,7 +14,7 @@ from twisted.internet import defer
 from zope.interface import implements
 
 from gavo import base
-from gavo.svcs import Error, UnknownURI, ForbiddenURI, Authenticate
+from gavo.svcs import Error, UnknownURI, ForbiddenURI, Authenticate, WebRedirect
 from gavo.web import common
 
 
@@ -50,35 +50,19 @@ class DebugPage(rend.Page):
 def handleUnknownURI(ctx, failure):
 	if isinstance(failure.value, (UnknownURI, base.RDNotFound)):
 		return NotFoundPage(failure.getErrorMessage())
-		request = inevow.IRequest(ctx)
-		request.setResponseCode(404)
-		request.setHeader("content-type", "text/plain")
-		request.write("The resource you requested was not found on the server.\n\n")
-		request.write(failure.getErrorMessage()+"\n")
-		request.finishRequest(False)
-		return True
-
 
 def handleForbiddenURI(ctx, failure):
 	if isinstance(failure.value, (ForbiddenURI,)):
-		request = inevow.IRequest(ctx)
-		request.setResponseCode(403)
-		request.setHeader("content-type", "text/plain")
-		request.write("I am not allowed to show you the resource"
-			" you requested.\n\n")
-		request.write(failure.getErrorMessage()+"\n")
-		request.finishRequest(False)
-		return True
+		return ForbiddenPage(failure.getErrorMessage())
+
+def handleRedirect(ctx, failure):
+	if isinstance(failure.value, WebRedirect):
+		return RedirectPage(failure.value.args[0])
 
 
 def handleAuthentication(ctx, failure):
 	if isinstance(failure.value, Authenticate):
-		request = inevow.IRequest(ctx)
-		request.setHeader('WWW-Authenticate', 'Basic realm="Gavo"')
-		request.setResponseCode(401)
-		request.write("Authorization required")
-		request.finishRequest(False)
-
+		return AuthenticatePage("Gavo")
 
 
 class ErrorPageDebug(rend.Page):
@@ -135,11 +119,16 @@ class ErrorPage(ErrorPageDebug):
 				escapeForHTML(failure.getErrorMessage())))
 
 	def renderHTTP_exception(self, ctx, failure):
-		if (handleUnknownURI(ctx, failure) or handleForbiddenURI(ctx, failure)
-				or handleAuthentication(ctx, failure)):
-			return appserver.errorMarker
-		failure.printTraceback()
 		request = inevow.IRequest(ctx)
+		for hdlr in [handleUnknownURI, handleForbiddenURI, handleAuthentication,
+				handleRedirect]:
+			res = hdlr(ctx, failure)
+			if res is not None:
+				return res.renderHTTP(ctx
+					).addCallback(lambda res: request.finishRequest(False)
+# XXX TODO: Complain about failing error renderer here
+					).addErrback(lambda res: request.finishRequest(False))
+		failure.printTraceback()
 		request.setResponseCode(500)
 		log.msg("Arguments were %s"%request.args)
 		request.write(self.errorTemplate%self.getHTML(failure))  
@@ -265,3 +254,25 @@ class RedirectPage(rend.Page, common.CommonRenderers):
 			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
 				"gavo@ari.uni-heidelberg.de"]],
 		]])
+
+
+class AuthenticatePage(rend.Page, common.CommonRenderers):
+	def __init__(self, realm):
+		self.realm = realm
+	
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setResponseCode(401)
+		request.setHeader('WWW-Authenticate', 'Basic realm="%s"'%self.realm)
+		request.setResponseCode(401)
+		return super(AuthenticatePage, self).renderHTTP(ctx)
+	
+	docFacotry = common.doctypedStan(T.html[
+		T.head[
+			T.title["GAVO DC -- Authentication requried"],
+			T.invisible(render=T.directive("commonhead")),
+		],
+		T.body[
+			T.p["The resource you are trying to access is protected."
+				"  Please enter your credentials or contact"
+				" the DC staff."]]])

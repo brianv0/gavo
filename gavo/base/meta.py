@@ -66,7 +66,7 @@ def metaRstToHtml(inputString):
 	if not isinstance(inputString, unicode):
 		inputString = inputString.decode("utf-8")
 	parts = core.publish_parts(
-		source=inputString, source_path=sourcePath,
+		source=inputString+"\n", source_path=sourcePath,
 		destination_path=destinationPath,
 		writer_name='html', settings_overrides=overrides)
 	return parts["fragment"]
@@ -121,10 +121,7 @@ class MetaParser(structure.Parser):
 
 	def _getMetaValue(self):
 		content = self.attrs.pop("content_", "")
-		if self.attrs.get("format", "plain")=="plain":
-			content = content.strip()
-		else:
-			content = utils.fixIndentation(content, "", 1)
+		content = utils.fixIndentation(content, "", 1).rstrip()
 		mv = makeMetaValue(content, **self.attrs)
 		if not "name" in self.attrs:
 			raise structure.StructureError("meta elements must have a"
@@ -510,8 +507,9 @@ class MetaValue(MetaMixin):
 	def __init__(self, content="", format="plain"):
 		MetaMixin.__init__(self)
 		if format not in self.knownFormats:
-			raise StructureError("Unknown meta format '%s'; allowed are %s."%(
-				format, ", ".join(self.knownFormats)))
+			raise structure.StructureError(
+				"Unknown meta format '%s'; allowed are %s."%(
+					format, ", ".join(self.knownFormats)))
 		self.content = content
 		self.format = format
 		self._preprocessContent()
@@ -667,6 +665,40 @@ class NewsMeta(MetaValue):
 			MetaValue._addMeta(self, atoms, metaValue)
 
 
+class NoteMeta(MetaValue):
+	"""A meta value representing a "note" items.
+
+	This is like a footnote, typically on tables, and is rendered in table
+	infos.
+
+	The content is the note body.  In addition, you want a tag child that
+	gives whatever the note is references as.  We recommend numbers.
+
+	Contrary to other meta items, note content defaults to rstx format.
+
+	Typically, this works with a column's note attribute.
+
+	In XML, you would usually write::
+
+	  <meta name="note" tag="1">
+	    Better ignore this.
+	  </meta>
+	"""
+	def __init__(self, url, format="rst", tag=None):
+		MetaValue.__init__(self, url, format)
+		self.tag = tag
+
+	def _getContentAsHTML(self, content):
+		return MetaValue._getContentAsHTML(self, "_`Note %s` --\n\n %s"%(
+			self.tag, content))
+	
+	def _addMeta(self, atoms, metaValue):
+		if atoms[0]=="tag":
+			self.tag = metaValue.content
+		else:
+			MetaValue._addMeta(self, atoms, metaValue)
+
+
 class InfoItem(MetaValue):
 	"""A meta value for info items in VOTables.
 
@@ -718,6 +750,7 @@ _metaTypeRegistry = {
 	"logo": LogoMeta,
 	"bibcodes": BibcodeMeta,
 	"news": NewsMeta,
+	"note": NoteMeta,
 }
 
 _typesForKeys = {
@@ -727,6 +760,7 @@ _typesForKeys = {
 	"info": "info",
 	"logo": "logo",
 	"source": "bibcodes",
+	"note": "note",
 }
 
 def makeMetaValue(value="", **kwargs):

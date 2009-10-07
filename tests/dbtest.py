@@ -174,4 +174,4 @@ class TestMetaTableADQL(TestWithTableCreation):
 
 
 if __name__=="__main__":
-	testhelpers.main(TestMetaTable, "test")
+	testhelpers.main(TestMetaTable)

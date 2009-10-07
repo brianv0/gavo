@@ -275,11 +275,6 @@ class Column(base.Structure):
 	_values = base.StructAttribute("values", default=None,
 		childFactory=Values, description="Specification of legal values", 
 		copyable=True)
-	_longdescr = UnicodeAttribute("longdescr", description=
-		"Longish documentation for this column.  Text in here is typically"
-		" presented in verbose table descriptions.", copyable=True)
-	_longmime = UnicodeAttribute("longmime", 
-		description="Mime type for longdescr.", copyable=True)
 	_fixup = UnicodeAttribute("fixup", description=
 		"A python expression the value of which will replace this column's"
 		" value on database reads.  Write a ___ to access the original"
@@ -287,14 +282,22 @@ class Column(base.Structure):
 		' It will *only* kick in when tuples are deserialized from the'
 		" database, i.e., *not* for values taken from tables in memory.",
 		default=None, copyable=True)
+	_note = UnicodeAttribute("note", description="Reference to a note meta"
+		" on this table explaining more about this column", default=None,
+		copyable=True)
 	_properties = base.PropertyAttribute(copyable=True)
 	_original = base.OriginalAttribute()
 
-	def isEnumerated(self):
-		return self.values and self.values.options
 
 	def __repr__(self):
 		return "<Column %s>"%self.name
+	
+	def onParentCompleted(self):
+		if self.note and "/" not in self.note:
+			self.note = "%s/%s"%(self.parent.getQName(), self.note)
+
+	def isEnumerated(self):
+		return self.values and self.values.options
 
 	def validate(self):
 		self._validateNext(Column)
@@ -344,7 +347,8 @@ class Column(base.Structure):
 			"unit": self.unit or "N/A",
 			"ucd": self.ucd or "N/A",
 			"verbLevel": self.verbLevel,
-			"indexState": indexState
+			"indexState": indexState,
+			"note": self.note and base.makeSitePath("/tablenote/%s"%self.note),
 		}
 	
 	def getDDL(self):
@@ -366,7 +370,7 @@ class Column(base.Structure):
 		col = cls(None)
 		for (dest, src) in [("description", "description"), 
 				("unit", "unit"), ("ucd", "ucd"), ("tablehead", "tablehead"),
-				("longmime", "longmime"), ("utype", "utype"), 
+				("utype", "utype"), 
 				("verbLevel","verbLevel"), ("type", "type"), ("name", "fieldName"),
 				("displayHint", "displayHint")]:
 			col.feedEvent(None, "value", dest, metaRow[src])

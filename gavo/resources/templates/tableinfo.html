@@ -39,7 +39,11 @@
 				<n:attr name="class"><n:slot name="indexState"/></n:attr>
 				<td><n:slot name="name"/></td>
 				<td><n:slot name="tablehead"/></td>
-				<td><n:slot name="description"/></td>
+				<td><n:slot name="description"/>
+					<a n:render="ifkey noteKey">
+						<n:attr name="href">#note-<n:slot name="noteKey"/></n:attr>
+						[Note <n:slot name="noteKey"/>]</a>
+				</td>
 				<td><n:slot name="unit"/></td>
 				<td><n:slot name="ucd"/></td>
 			</tr>
@@ -59,6 +63,10 @@
 				</li>
 			</ul>
 		</div>
+		<n:invisible n:render="iftablemeta note">
+			<h2 class="section">Notes</h2>
+			<n:invisible n:render="tablemeta">note</n:invisible>
+		</n:invisible>
 		<p n:render="iftablemeta _copyright"><strong>Copyright and such:</strong> 
 			<n:invisible n:render="tablemeta">_copyright</n:invisible></p>
 	</body>

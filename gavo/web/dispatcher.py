@@ -10,6 +10,7 @@ import new
 import os
 import pkg_resources
 import re
+import sys
 import traceback
 import urllib
 import urlparse
@@ -17,6 +18,7 @@ import urlparse
 
 from twisted.internet import defer
 from twisted.python import components
+from twisted.python import failure
 # we put some calculations into threads.
 from twisted.python import threadable
 threadable.init()
@@ -277,6 +279,8 @@ class VanityMap(object):
 		__system__/products/p/get getproduct
 		__system__/services/registry/pubreg.xml oai.xml
 		__system__/services/overview/external odoc
+		__system__/dc_tables/show/tablenote tablenote
+		__system__/dc_tables/show/tableinfo tableinfo
 	"""
 
 	def __init__(self):
@@ -508,7 +512,9 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 				str(redirTo)), ()
 		except ForbiddenURI, exc:
 			return weberrors.ForbiddenPage(str(exc)), ()
-		except:
+		except UnknownURI, exc:
+			return weberrors.NotFoundPage(str(exc)), ()
+		except Exception, msg:
 			traceback.print_exc()
 			raise
 		if res is None:

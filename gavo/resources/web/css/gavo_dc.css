@@ -371,3 +371,24 @@ table.shorttable {
 	padding: 5pt;
 	margin-bottom: 5pt;
 }
+
+.metaItem p span.target {
+	font-size: 12pt;
+	font-weight: bold;
+}
+
+div.innerWin {
+	position: absolute;
+}
+
+p.innerTitle {
+	background:#d2dcf0;
+	text-align:right;
+	margin-bottom: 0px;
+	cursor: pointer;
+}
+
+iframe.innerBody {
+	border: 1px solid #d2dcf0;
+	background: white;
+}

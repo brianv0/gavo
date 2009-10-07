@@ -270,6 +270,29 @@ base.caches.makeCache("getSubjectsList",
 	lambda ignored: querySubjectsList())
 
 
+def basename(tableName):
+	if "." in tableName:
+		return tableName.split(".")[-1]
+	else:
+		return tableName
+
+
+def getTableDef(tableName):
+	"""returns a tableDef instance for the schema-qualified tableName.
+
+	If no such table is known to the system, a NotFoundError is raised.
+	"""
+	q = base.SimpleQuerier()
+	res = q.query("SELECT sourceRd FROM dc.tablemeta WHERE"
+			" tableName=%(tableName)s", {"tableName": tableName}).fetchall()
+	q.close()
+	if len(res)!=1:
+		raise base.NotFoundError(
+			"%s is no accessible table in the data center"%tableName)
+	rdId = res[0][0]
+	return base.caches.getRD(rdId).getById(basename(tableName))
+
+
 ################ UI stuff
 
 def findAllRDs():

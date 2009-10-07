@@ -379,3 +379,33 @@ if (window.addEventListener) {
 } else {
 	window.load = output_init;
 }
+
+
+///////////////// New, MochiKit dependent code (should grow over time)
+
+function killAncestor(node, levels) {
+	while (levels && node.parentNode) {
+		node = node.parentNode;
+		levels--;
+	}
+	removeElement(node);
+}
+
+
+function bubbleUpByURL(sibling, innerURL) {
+// open a "subwindow" containing innerURL.  This only works if the "top level"
+// container has an id of "body"
+	makePositioned(sibling.parentNode);
+	destPos = getElementPosition(sibling.parentNode, 
+		document.getElementById("body"));
+	docWin = DIV({'class': 'innerWin'}, 
+		P({'class': 'innerTitle'}, 
+			SPAN({'onclick': 'killAncestor(this, 2)'}, 'x')),
+		MochiKit.DOM.createDOM('iframe', 
+			{'src': innerURL, 'class': 'innerBody'}));
+	destPos.x -= 20;
+	destPos.y -= 10;
+	setElementPosition(docWin, destPos);
+	appendChildNodes(sibling.parentNode, docWin);
+	return false;
+}

@@ -26,9 +26,6 @@ tables and the RDs the tables come from. -->
 			description="A one-line characterization of the value"/>
 		<column name="tablehead" type="text" 
 			description="A string suitable as a table heading for the values"/>
-		<column name="longdescr" type="text" 
-			description="A possibly long information on the values"/>
-		<column name="longmime" type="text" description="Mime type of longdescr"/>
 		<column name="utype" type="text" description="The utype for the column"/>
 		<column name="colInd" type="integer" 
 			description="Index of the column within the table"/>
@@ -48,7 +45,7 @@ tables and the RDs the tables come from. -->
 			<code>
 				column = vars["column"]
 				for key in ["description", "unit", "ucd", "tablehead",
-						"longmime", "utype", "verbLevel", "type", "longdescr"]:
+						"utype", "verbLevel", "type"]:
 					result[key] = getattr(column, key)
 				result["displayHint"] = column.getDisplayHintAsString()
 				result["fieldName"] = column.name
@@ -95,8 +92,6 @@ tables and the RDs the tables come from. -->
 		<outputField original="unit"/>
 		<outputField original="ucd"/>
 		<outputField original="tablehead"/>
-		<outputField original="longdescr"/>
-		<outputField original="longmime"/>
 		<outputField original="utype"/>
 		<outputField original="type"/>
 		<outputField original="verbLevel"/>
@@ -132,7 +127,7 @@ tables and the RDs the tables come from. -->
 			<outputField name="tableinfo" type="text" tablehead="Info">
 				<formatter>
 					return T.a(href=base.makeSitePath("/__system__/dc_tables/"
-						"show/tableinfo?tableName="+urllib.quote(data)))["Table Info"]
+						"show/tableinfo/"+urllib.quote(data)))["Table Info"]
 				</formatter>
 			</outputField>
 			<outputField original="tableDesc"/>

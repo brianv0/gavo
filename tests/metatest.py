@@ -346,14 +346,14 @@ class TestSpecials(testhelpers.VerboseTest):
 			Added News Meta</meta>""")
 		builder = webcommon.HTMLMetaBuilder()
 		self.assertEqual(flat.flatten(m.buildRepr("_news", builder)), 
-			'<span class="newsitem">2009-03-06 (MD): Added News Meta</span>')
+			'<span class="newsitem">2009-03-06 (MD):  Added News Meta</span>')
 		builder.clear()
 		m.addMeta("_news", "Finally added a facility to sort news")
 		m.addMeta("_news.author", "Hopefully someone")
 		m.addMeta("_news.date", "2010-03-06")
 		self.assertEqual(flat.flatten(m.buildRepr("_news", builder)), 
 			'<ul class="metaEnum"><li class="metaItem"><span class="newsitem">'
-			'2009-03-06 (MD): Added News Meta</span></li><li class="metaItem">'
+			'2009-03-06 (MD):  Added News Meta</span></li><li class="metaItem">'
 			'<span class="newsitem">2010-03-06 (Hopefully someone): Finally ad'
 			'ded a facility to sort news</span></li></ul>')
 
@@ -510,6 +510,23 @@ class XMLTest(testhelpers.VerboseTest):
 		self.assertEqual(mc.getMeta("bla").getContent("html"), "<p>A\ntext th"
 			"at is somewhat indented</p>\n<p>and has a paragraph.</p>\n")
 
+	def testDeIndentation(self):
+		mc = parseMetaXML('\t\t<meta name="bla" format="rst">\n'
+			'\t\t\tIndented\n'
+			'\t\t\t\tmess\n'
+			'\t\t</meta>')
+		self.assertEqual(mc.getMeta("bla").children[0].content,
+			'\nIndented\n\tmess')
+	
+	def testCustomMetaIndentation(self):
+		mc = parseMetaXML('\t\t<meta name="note" tag="6">\n'
+			'\t\t\tA zero for the number of used images indicates that all images\n'
+			'\t\t\thave some "problem" (such as overexposure).\n'
+			'\t\t</meta>')
+		self.assertEqual(mc.getMeta("note").children[0].content,
+			'\nA zero for the number of used images indicates that all images\n'
+			'have some "problem" (such as overexposure).')
+
 
 def singleTest():
 	suite = unittest.makeSuite(ModelBasedBuilderTest, "testWi")
@@ -518,4 +535,4 @@ def singleTest():
 
 
 if __name__=="__main__":
-	testhelpers.main(SetAndDelTest)
+	testhelpers.main(XMLTest)

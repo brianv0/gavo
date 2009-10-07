@@ -6,13 +6,14 @@ import os
 import urllib
 
 from nevow import inevow
-from nevow import loaders
+from nevow import rend
 from nevow import tags as T, entities as E
 from nevow import url
 
 from zope.interface import implements
 
 from gavo import base
+from gavo import registry
 from gavo import svcs
 from gavo.web import common
 from gavo.web import grend
@@ -24,6 +25,40 @@ class MetaRenderer(grend.ServiceBasedRenderer):
 	"""Renderers that are allowed on all services.
 	"""
 	checkedRenderer = False
+
+	def data_otherServices(self, ctx, data):
+		"""returns a list of dicts describing other services provided by the
+		the describing RD.
+
+		The class mixing this in needs to provide a describingRD attribute for
+		this to work.  This may be the same as self.service.rd, and the
+		current service will be excluded from the list in this case.
+		"""
+		res = []
+		for svc in self.describingRD.services:
+			if svc is not self.service:
+				res.append({"infoURL": svc.getURL("info"),
+					"title": unicode(svc.getMeta("title"))})
+		return res
+
+	def render_sortOrder(self, ctx, data):
+		request = inevow.IRequest(ctx)
+		if "dbOrder" in request.args:
+			return ctx.tag["Sorted by DB column index. ",
+				T.a(href=url.URL.fromRequest(request).remove("dbOrder"))[
+					"[Sort alphabetically]"]]
+		else:
+			return ctx.tag["Sorted alphabetically. ",
+				T.a(href=url.URL.fromRequest(request).add("dbOrder", "True"))[
+					"[Sort by DB column index]"]]
+
+	def render_ifkey(self, keyName):
+		def render(ctx, data):
+			if data.has_key(keyName):
+				return ctx.tag
+			return ""
+		return render
+
 
 
 class BlockRDRenderer(MetaRenderer):
@@ -47,7 +82,7 @@ class BlockRDRenderer(MetaRenderer):
 		self.service.rd.currently_blocked = True
 		return grend.ServiceBasedRenderer.renderHTTP(self, ctx)
 
-	defaultDocFactory = loaders.stan(
+	defaultDocFactory = common.doctypedStan(
 		T.html[
 			T.head[
 				T.title["RD blocked"],
@@ -188,42 +223,7 @@ class RendExplainer(object):
 			cls._explainEverything)(service)
 
 
-class MetaRenderMixin(object):
-	"""is a mixin providing some methods useful primarily to metarenderers.
-	"""
-	def render_tableOfFields(self, ctx, data):
-		"""renders a list of dicts in data as a table.
-
-		The columns and header of the table are defined in the headers and data
-		patterns.  See the serviceinfo.html template for examples.
-		"""
-		colNames = [s.strip() for s in 
-			ctx.tag.attributes.get("columns", self.defaultColNames).split(",")]
-		header = ctx.tag.patternGenerator("header", default=self.defaultHeading)
-		return ctx.tag.clear()(
-				render=T.directive("sequence"), class_="shorttable")[
-			header(pattern="header"),
-			T.tr(pattern="item", render=T.directive("mapping"))[
-				[T.td[T.slot(name=name)] for name in colNames]]]
-
-	def data_otherServices(self, ctx, data):
-		"""returns a list of dicts describing other services provided by the
-		the describing RD.
-
-		The class mixing this in needs to provide a describingRD attribute for
-		this to work.  This may be the same as self.service.rd, and the
-		current service will be excluded from the list in this case.
-		"""
-		res = []
-		for svc in self.describingRD.services:
-			if svc is not self.service:
-				res.append({"infoURL": svc.getURL("info"),
-					"title": unicode(svc.getMeta("title"))})
-		return res
-	
-
-class ServiceInfoRenderer(MetaRenderer,
-		MetaRenderMixin):
+class ServiceInfoRenderer(MetaRenderer):
 	"""is a renderer that shows information about a service.
 	"""
 	name = "info"
@@ -238,14 +238,17 @@ class ServiceInfoRenderer(MetaRenderer,
 		return ctx.tag["Information on Service '%s'"%unicode(
 			self.service.getMeta("title"))]
 
-	defaultColNames = "name,tablehead,description,unit,ucd"
-	defaultHeading = T.tr[
-		T.th["Name"], T.th["Table Head"], T.th["Description"],
-		T.th["Unit"], T.th["UCD"]]
-			
+	def render_notebubble(self, ctx, data):
+		if not data["note"]:
+			return ""
+		noteURL = base.makeSitePath(urllib.quote(data["note"]))
+		return ctx.tag(href=noteURL, 
+			onclick="return bubbleUpByURL(this, '%s')"%noteURL)[
+				"Note"]
+
 	def data_inputFields(self, ctx, data):
 		res = [f.asInfoDict() for f in self.service.getInputFields()+
-			self.service.serviceKeys]
+				self.service.serviceKeys]
 		res.sort(key=lambda val: val["name"].lower())
 		return res
 
@@ -256,8 +259,7 @@ class ServiceInfoRenderer(MetaRenderer,
 
 	def data_votableOutputFields(self, ctx, data):
 		queryMeta = svcs.QueryMeta({"_FORMAT": "VOTable", "_VERB": 3})
-		res = [f.asInfoDict() 
-			for f in self.service.getCurOutputFields(queryMeta)]
+		res = [f.asInfoDict() for f in self.service.getCurOutputFields(queryMeta)]
 		res.sort(key=lambda val: val["verbLevel"])
 		return res
 
@@ -281,47 +283,41 @@ class ServiceInfoRenderer(MetaRenderer,
 
 svcs.registerRenderer(ServiceInfoRenderer)
 
-def basename(tableName):
-	if "." in tableName:
-		return tableName.split(".")[-1]
-	else:
-		return tableName
 
+class TableInfoRenderer(MetaRenderer):
+	"""A renderer for displaying table information.
 
-class TableInfoRenderer(grend.ServiceBasedRenderer,
-		MetaRenderMixin):
+	It really doesn't use the underlying service, but conventionally,
+	it is run on __system__/dc_tables/show.
+	"""
 	name = "tableinfo"
 	customTemplate = common.loadSystemTemplate("tableinfo.html")
 
-	defaultColNames = "name,tablehead,description,unit,ucd"
-	defaultHeading = T.tr[
-		T.th["Name"], T.th["Table Head"], T.th["Description"],
-		T.th["Unit"], T.th["UCD"]]
+	def renderHTTP(self, ctx):
+		if not hasattr(self, "table"):  
+			# _retrieveTableDef did not run, i.e., no tableName was given
+			return weberrors.NotFoundPage(
+				"You must provide a table name to this renderer.")
+		return super(TableInfoRenderer, self).renderHTTP(ctx)
 
-	def __init__(self, ctx, service):
-		grend.ServiceBasedRenderer.__init__(self, ctx, service)
-		self.tableName = inevow.IRequest(ctx).args["tableName"][0]
-		self._fillTableInfo()
-	
-	def _fillTableInfo(self):
-		q = base.SimpleQuerier()
-		c = q.query("SELECT sourceRd, adql FROM dc.tablemeta WHERE"
-			" tableName=%(tableName)s", {"tableName": self.tableName})
-		res = c.fetchall()
-		if len(res)!=1:
-			raise svcs.UnknownURI(
-				"%s is no accessible table in the data center"%self.tableName)
-		rdId, adql = res[0]
-		self.describingRD = base.caches.getRD(rdId)
-		self.table = self.describingRD.getById(basename(self.tableName))
+	def _retrieveTableDef(self, tableName):
+		try:
+			self.tableName = tableName
+			self.table = registry.getTableDef(tableName)
+			self.describingRD = self.table.rd
+		except base.NotFoundError, msg:
+			raise svcs.UnknownURI(msg)
 
 	def data_forADQL(self, ctx, data):
 		return self.table.adql
 
 	def data_fields(self, ctx, data):
 		res = [f.asInfoDict() for f in self.table]
+		for d in res:
+			if d["note"]:
+				d["noteKey"] = d["note"].split("/")[-1]
 		if not "dbOrder" in inevow.IRequest(ctx).args:
-			res.sort(key=lambda item: item["name"])
+			res.sort(key=lambda item: item["name"].lower())
 		return res
 
 	def render_title(self, ctx, data):
@@ -351,17 +347,6 @@ class TableInfoRenderer(grend.ServiceBasedRenderer,
 		else:
 			return lambda ctx, data: ""
 
-	def render_sortOrder(self, ctx, data):
-		request = inevow.IRequest(ctx)
-		if "dbOrder" in request.args:
-			return ctx.tag["Sorted by DB column index. ",
-				T.a(href=url.URL.fromRequest(request).remove("dbOrder"))[
-					"[Sort alphabetically]"]]
-		else:
-			return ctx.tag["Sorted alphabetically. ",
-				T.a(href=url.URL.fromRequest(request).add("dbOrder", "True"))[
-					"[Sort by DB column index]"]]
-
 	# overridden to insert table instead of the service as the thing to take
 	# metadata from.
 	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False, 
@@ -378,6 +363,12 @@ class TableInfoRenderer(grend.ServiceBasedRenderer,
 		return grend.ServiceBasedRenderer._doRenderMeta(
 			self, metaName, metaCarrier)
 
+	def locateChild(self, ctx, segments):
+		if len(segments)!=1:
+			return None, ()
+		self._retrieveTableDef(segments[0])
+		return self, ()
+
 	defaultDocFactory = common.doctypedStan(
 		T.html[
 			T.head[
@@ -387,6 +378,68 @@ class TableInfoRenderer(grend.ServiceBasedRenderer,
 		])
 
 svcs.registerRenderer(TableInfoRenderer)
+
+
+class TableNoteRenderer(MetaRenderer):
+	"""A renderer for displaying table notes.
+
+	It takes a schema-qualified table name and a note tag in the segments.
+
+	This does not use the underlying service, so it could and will run on
+	any service.  However, you really should run it on __system__/dc_tables/show,
+	and there's a built-in vanity name tablenote for this.
+	"""
+	name = "tablenote"
+
+	def renderHTTP(self, ctx):
+		if not hasattr(self, "noteTag"):  
+			# _retrieveTableDef did not run, i.e., no tableName was given
+			return weberrors.NotFoundPage(
+				"You must provide table name and note tag to this renderer.")
+		return super(TableNoteRenderer, self).renderHTTP(ctx)
+
+	def _retrieveNote(self, tableName, noteTag):
+		try:
+			table = registry.getTableDef(tableName)
+			mi = table.getMeta("note")
+			for mv in mi:
+				if mv.tag==noteTag:
+					self.noteHTML = mv.getContent(targetFormat="html")
+					break
+			else:
+				raise base.NotFoundError("No note '%s' for table %s"%(
+					noteTag, tableName))
+		except base.NotFoundError, msg:
+			raise svcs.UnknownURI(msg)
+		self.noteTag = noteTag
+		self.tableName = tableName
+
+	def locateChild(self, ctx, segments):
+		if len(segments)!=2:
+			return None, ()
+		self._retrieveNote(segments[0], segments[1])
+		return self, ()
+
+	def data_tableName(self, ctx, data):
+		return self.tableName
+	
+	def data_noteTag(self, ctx, data):
+		return self.noteTag
+	
+	def render_noteHTML(self, ctx, data):
+		return T.xml(self.noteHTML)
+
+	docFactory = common.doctypedStan(T.html[
+		T.head[
+			T.title["GAVO DC -- Note for table ",
+				T.invisible(render=rend.data, data=T.directive("tableName"))],
+			T.invisible(render=T.directive("commonhead")),
+			T.style["span.target {font-size: 180%;font-weight:bold}"],
+		],
+		T.body[
+			T.invisible(render=T.directive("noteHTML"))]])
+
+svcs.registerRenderer(TableNoteRenderer)
 
 
 class ExternalRenderer(grend.ServiceBasedRenderer):

@@ -86,6 +86,10 @@ class ReportableError(Error):
 	The content should be treated as a unicode string.
 	"""
 
+class NotFoundError(Error):
+	"""is raised when something is asked for something that does not exist.
+	"""
+
 
 class ExecutiveAction(Exception):
 	"""is a base class for exceptions that are supposed to break out of

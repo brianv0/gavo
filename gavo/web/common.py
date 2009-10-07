@@ -124,7 +124,7 @@ class doctypedStan(loaders.stan):
 	"""
 
 	DOCTYPE = T.xml('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"'
-		' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">')
+		' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n')
 
 	def __init__(self, rootEl, pattern=None):
 		super(doctypedStan, self).__init__(T.invisible[self.DOCTYPE, 
@@ -144,6 +144,8 @@ class CommonRenderers(object):
 				type="text/css"),
 			T.link(rel="stylesheet", href=base.makeSitePath(
 				"/builtin/css/gavo_dc.css"), type="text/css"),
+			T.script(src=base.getConfig("web", "mochiURL"),
+				type="text/javascript"),
 			T.script(type='text/javascript', src=base.makeSitePath(
 				'/js/formal.js')),
 			T.script(src=base.makeSitePath("/builtin/js/gavo.js"), 

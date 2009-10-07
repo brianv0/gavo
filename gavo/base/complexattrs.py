@@ -222,7 +222,7 @@ class StructAttribute(AttributeDef):
 	method.  Otherwise, they are normal structs, i.e., the receive a
 	parent as the first argument and keyword arguments for values.
 	
-	In addition, you can pass a onParentComplete callback that
+	In addition, you can pass a onParentCompleted callback that
 	are collected in the completedCallback list by the struct decorator.
 	ParseableStruct instances call these when they receive their end
 	event during XML deserialization.

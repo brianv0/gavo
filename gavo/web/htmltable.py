@@ -300,7 +300,7 @@ def makeCutoutURL(accref, ra, dec, sra, sdec):
 	return base.makeSitePath("/getproduct?key="+urllib.quote(key))
 
 
-class HeaderCellsMixin(object):
+class HeadCellsMixin(object):
 	"""A mixin providing renders for table headings.
 
 	The class mixing in must provide the table column definitions as
@@ -321,14 +321,19 @@ class HeaderCellsMixin(object):
 		desc = props["description"]
 		if desc is None:
 			desc = cont
-		unit = props["unit"]
-		if unit:
-			return ctx.tag(title=desc)[T.xml(cont), T.br, "[%s]"%unit]
-		else:
-			return ctx.tag(title=desc)[T.xml(cont)]
+		tag = ctx.tag(title=desc)[T.xml(cont)]
+		if props["unit"]:
+			tag[T.br, "[%s]"%props["unit"]]
+		if fieldDef.note is not None and fieldDef.parent:
+			noteURL = base.makeSitePath(
+				"/tablenote/%s"%(urllib.quote(fieldDef.note)))
+			tag[T.br, 
+				T.a(href=noteURL, onclick="return bubbleUpByURL(this, '%s')"%noteURL)[
+						"Note"]]
+		return tag
 
 
-class HeaderCells(rend.Page, HeaderCellsMixin):
+class HeadCells(rend.Page, HeadCellsMixin):
 	def __init__(self, fieldDefs, colPropsIndex):
 		self.fieldDefs = fieldDefs
 		self.colPropsIndex = colPropsIndex
@@ -418,9 +423,9 @@ class HTMLDataRenderer(rend.Fragment):
 		return ctx.tag[formatVal(data)]
 
 	def _computeHeadCellsStan(self):
-		self.headerCells = HeaderCells(self.table.tableDef,
+		self.headCells = HeadCells(self.table.tableDef,
 				self.colPropsIndex)
-		self.headCellsStan = T.xml(self.headerCells.renderSynchronously())
+		self.headCellsStan = T.xml(self.headCells.renderSynchronously())
 
 	def render_headCells(self, ctx, data):
 		"""returns the header line for this table as an XML string.
@@ -517,7 +522,7 @@ class HTMLTableFragment(HTMLDataRenderer):
 	)
 
 
-class HTMLKeyValueFragment(HTMLDataRenderer, HeaderCellsMixin):
+class HTMLKeyValueFragment(HTMLDataRenderer, HeadCellsMixin):
 	"""A nevow renderer for single-row result tables.
 	"""
 	def data_firstrow(self, ctx, data):

@@ -114,7 +114,7 @@ class TestProductsImport(testhelpers.VerboseTest):
 					u'data/b.imp', u'test.prodtest', 'image/fits'),])
 
 	def testInMetatable(self):
-		fields = sorted([(r[9], r[1], r[4]) for r in
+		fields = sorted([(r[7], r[1], r[4]) for r in
 			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
 				" dc.columnmeta where tableName='test.prodtest'")])
 		assertRowset(self, fields, [
