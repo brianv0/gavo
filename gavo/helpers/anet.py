@@ -114,8 +114,7 @@ def _runShellCommand(cmd, args):
 	proc = subprocess.Popen(cmdline, shell=True, stdout=subprocess.PIPE,
 		stderr=subprocess.STDOUT)
 	msg = proc.communicate()[0]
-	print ">>>>>>>>>>>>", proc.returncode
-	if proc.returncode==2:
+	if proc.returncode==-2:
 		raise KeyboardInterrupt("Child was siginted")
 	elif proc.returncode:
 		raise ShellCommandFailed(msg, proc.returncode)

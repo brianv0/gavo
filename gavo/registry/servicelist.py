@@ -312,8 +312,12 @@ def findAllRDs():
 def getRDs(args):
 	"""returns a list of RDs from a list of more-or-less RD ids.
 	"""
-	return [base.caches.getRD(rdPath, doQueries=False)
-		for rdPath in args]
+	try:
+		return [base.caches.getRD(rdPath, doQueries=False)
+			for rdPath in args]
+	except:
+		sys.stderr.write("Error occurred in %s\n"%rdPath)
+		raise
 
 
 def parseCommandLine():

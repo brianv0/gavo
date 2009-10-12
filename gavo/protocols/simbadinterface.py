@@ -3,6 +3,7 @@ import sys
 import cPickle
 import xml.sax
 import tempfile
+import warnings
 
 import SOAPpy
 import SOAPpy.WSDL
@@ -197,7 +198,11 @@ class Sesame(object):
 		self.cache = ObjectCache(id)
 
 	def _parseXML(self, simbadXML):
-		et = ElementTree.fromstring(simbadXML)
+		try:
+			et = ElementTree.fromstring(simbadXML)
+		except Exception, msg: # simbad returned weird XML
+			warnings.warn("Bad XML from simbad (%s)"%str(msg))
+			return None
 		
 		def getVal(path, morph=unicode):
 			el = et.find(path)
