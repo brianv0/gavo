@@ -21,10 +21,10 @@ from pyparsing import (Word, Literal, Optional, alphas, CaselessKeyword,
 		CaselessLiteral, ParseException, Regex, sglQuotedString, alphanums,
 		dblQuotedString, White, ParseException, ParseResults, Empty)
 
+from gavo import utils
 from gavo.stc import stcsdefaults
 from gavo.stc import times
 from gavo.stc.common import *
-from gavo.utils import stanxml
 
 class AComputedDefault(object):
 	"""A sentinel for computed default values.
@@ -154,15 +154,29 @@ def _reFromKeys(iterable):
 	return "|".join(sorted(iterable, key=lambda x:-len(x)))
 
 
-def getSymbols(_exportAll=False):
+def _makeSymDict(locals, exportAll):
+	"""returns a dictionary of pyparsing symbols defined in the locals.
+	
+	locals would be the value locals() as a rule.
+	"""
+	syms = dict((n, v) for n, v in locals.iteritems()
+			if hasattr(v, "setName"))
+	if not exportAll:
+		syms = dict((n, v) for n, v in syms.iteritems()
+			if not n.startswith("_"))
+	return syms
+
+
+def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False):
 	"""returns a dictionary of symbols for a grammar parsing STC-S into
 	a concrete syntax tree.
-	"""
 
-	_exactNumericRE = r"[+-]?\d+(\.(\d+)?)?|[+-]?\.\d+"
-	exactNumericLiteral = Regex(_exactNumericRE)
-	number = Regex(r"(?i)(%s)(E[+-]?\d+)?"%_exactNumericRE).addParseAction(
-		lambda s,p,toks: float(toks[0]))
+	numberLiteral and timeLiteral are pyparsing symbols for numbers and
+	datetimes, respectively.
+	"""
+	
+	number = numberLiteral
+	del numberLiteral
 
 # units
 	_unitOpener = Suppress( Keyword("unit") )
@@ -192,15 +206,6 @@ def getSymbols(_exportAll=False):
 	refpos = (Regex(_reFromKeys(stcRefPositions)))("refpos")
 	flavor = (Regex(_reFromKeys(stcsFlavors)))("flavor")
 
-# basic productions for times and such.
-	timescale = (Regex("|".join(stcTimeScales)))("timescale")
-	jdLiteral = (Suppress( Literal("JD") ) + exactNumericLiteral
-		).addParseAction(lambda s,p,toks: times.jdnToDateTime(float(toks[0])))
-	mjdLiteral = (Suppress( Literal("MJD") ) + exactNumericLiteral
-		).addParseAction(lambda s,p,toks: times.mjdToDateTime(float(toks[0])))
-	isoTimeLiteral = Regex(r"\d\d\d\d-?\d\d-?\d\d(T\d\d:?\d\d:?\d\d(\.\d*)?Z?)?"
-		).addParseAction(lambda s,p,toks: times.parseISODT(toks[0]))
-	nakedTime = (isoTimeLiteral | jdLiteral | mjdLiteral)
 
 # properties of most spatial specs
 	_coos = ZeroOrMore( number )("coos")
@@ -228,7 +233,8 @@ def getSymbols(_exportAll=False):
 	_commonRegionItems = Optional( fillfactor ) + _commonSpaceItems
 
 # times and time intervals
-	timephrase = Suppress( Keyword("Time") ) + nakedTime
+	timescale = (Regex("|".join(stcTimeScales)))("timescale")
+	timephrase = Suppress( Keyword("Time") ) + timeLiteral
 	_commonTimeItems = (	Optional( timeUnit ) + Optional( 
 		error("error") ) + Optional( resolution("resolution") ) + 
 		Optional( pixSize("pixSize") ) )
@@ -238,22 +244,21 @@ def getSymbols(_exportAll=False):
 	_intervalCloser = Optional( timephrase("pos") ) + _commonTimeItems
 
 	timeInterval =  (Keyword("TimeInterval")("type") + 
-		_intervalOpener + ZeroOrMore( nakedTime )("coos") + 
+		_intervalOpener + ZeroOrMore( timeLiteral )("coos") + 
 		_intervalCloser)
 	startTime = (Keyword("StartTime")("type") + _intervalOpener + 
-		nakedTime.setResultsName("coos", True) + _intervalCloser)
+		timeLiteral.setResultsName("coos", True) + _intervalCloser)
 	stopTime = (Keyword("StopTime")("type") + _intervalOpener + 
-		nakedTime.setResultsName("coos", True) + _intervalCloser)
+		timeLiteral.setResultsName("coos", True) + _intervalCloser)
 	time = (Keyword("Time")("type")  + Optional( timescale("timescale") ) + 
 		Optional( refpos("refpos") ) + Optional(
-			nakedTime.setResultsName("pos", True) ) + _commonTimeItems)
+			timeLiteral.setResultsName("pos", True) ) + _commonTimeItems)
 	timeSubPhrase = (timeInterval | startTime | stopTime | time).addParseAction(
 		makeTree)
 
 # atomic "geometries"; I do not bother to specify their actual
 # arguments since, without knowing the frame, they may be basically
-# anthing.  Sure, most of those only make sense with 2D spherical, but
-# I'm not so sure of this as to enshrine it in the grammar.
+# anthing.   Also, I want to allow geometry column references.
 	_atomicGeometryKey = ( Keyword("AllSky") | Keyword("Circle") |
 		Keyword("Ellipse") | Keyword("Box") | Keyword("Polygon") |
 		Keyword("Convex") )
@@ -342,12 +347,45 @@ def getSymbols(_exportAll=False):
 		Optional( spectralSubPhrase )("spectral") +
 		Optional( redshiftSubPhrase )("redshift") ) + StringEnd()
 
-	if _exportAll:
-		return dict((n, v) for n, v in locals().iteritems()
-			if hasattr(v, "setName"))
-	else:
-		return dict((n, v) for n, v in locals().iteritems() 
-			if not n.startswith("_"))
+	return _makeSymDict(locals(), _exportAll)
+
+
+def getSymbols(_exportAll=False):
+	"""returns an STC-S grammar with terminal values.
+	"""
+	_exactNumericRE = r"[+-]?\d+(\.(\d+)?)?|[+-]?\.\d+"
+	exactNumericLiteral = Regex(_exactNumericRE)
+	numberLiteral = Regex(r"(?i)(%s)(E[+-]?\d+)?"%_exactNumericRE
+		).addParseAction(lambda s,p,toks: float(toks[0]))
+
+	jdLiteral = (Suppress( Literal("JD") ) + exactNumericLiteral
+		).addParseAction(lambda s,p,toks: times.jdnToDateTime(float(toks[0])))
+	mjdLiteral = (Suppress( Literal("MJD") ) + exactNumericLiteral
+		).addParseAction(lambda s,p,toks: times.mjdToDateTime(float(toks[0])))
+	isoTimeLiteral = Regex(r"\d\d\d\d-?\d\d-?\d\d(T\d\d:?\d\d:?\d\d(\.\d*)?Z?)?"
+		).addParseAction(lambda s,p,toks: times.parseISODT(toks[0]))
+	timeLiteral = (isoTimeLiteral | jdLiteral | mjdLiteral)
+
+# XXX TODO: export these symbols properly
+	res = _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll)
+	res.update(_makeSymDict(locals(), _exportAll))
+	return res
+
+
+def getColrefSymbols():
+	"""returns an STC-S grammar with column references as values.
+
+	The column references used here have the form "<colref>" to cut down
+	on ambiguities.  We only accept simple identifiers (i.e., not quoted in
+	the SQL sense), though.
+	"""
+	atomicColRef = Regex('"[A-Za-z_][A-Za-z_0-9]*"').addParseAction(
+		lambda s,p,toks: ColRef(toks[0][1:-1]))
+	geometryColRef = Regex('[[][A-Za-z_][A-Za-z_0-9]*[]]').addParseAction(
+		lambda s,p,toks: GeometryColRef(toks[0][1:-1]))
+	colRef = atomicColRef | geometryColRef
+
+	return _getSTCSGrammar(colRef, colRef)
 
 
 def enableDebug(syms, debugNames=None):
@@ -359,12 +397,21 @@ def enableDebug(syms, debugNames=None):
 		ob.setName(name)
 
 
-getGrammar = CachedGetter(getSymbols)
+getGrammar = utils.CachedGetter(getSymbols)
+getColrefGrammar = utils.CachedGetter(getColrefSymbols)
 
 
-def getCST(literal):
+def getCST(literal, grammarFactory=None):
+	"""returns a CST for an STC-S expression.
+
+	grammarFactory is a function returning the grammar, in this case
+	either getGrammar (which gets used if the argument is left out) or 
+	getColrefGrammar.
+	"""
+	if grammarFactory is None:
+		grammarFactory = getGrammar
 	try:
-		tree = makeTree(getGrammar()["stcsPhrase"].parseString(literal))
+		tree = makeTree(grammarFactory()["stcsPhrase"].parseString(literal))
 	except ParseException, ex:
 		raise STCSParseError("Invalid STCS expression (%s at %s)"%(ex.msg, ex.loc),
 			expr=literal, pos=ex.loc)
@@ -374,9 +421,9 @@ def getCST(literal):
 
 if __name__=="__main__":
 	import pprint
-	syms = getSymbols(_exportAll=True)
+	syms = getColrefSymbols()
 #	print getCST("PositionInterval ICRS 1 2 3 4")
 	enableDebug(syms)
 	pprint.pprint(makeTree(syms["stcsPhrase"].parseString(
-		"Union FK5 (Box 12.0 -13.0 2.0 2.0 Not (Circle 14.0 -13.5 3.0))"
+		'Position ICRS "foo" "bar" Error "e_foo" "e_bar"'
 		, parseAll=True)))

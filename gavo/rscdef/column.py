@@ -288,6 +288,9 @@ class Column(base.Structure):
 	_properties = base.PropertyAttribute(copyable=True)
 	_original = base.OriginalAttribute()
 
+	# The stc attribute is not managed but set by a parent from
+	# their attributes.
+	stc = None
 
 	def __repr__(self):
 		return "<Column %s>"%self.name
@@ -362,6 +365,11 @@ class Column(base.Structure):
 
 	def getDisplayHintAsString(self):
 		return self._displayHint.unparse(self.displayHint)
+
+	def copy(self, parent):
+		new = base.Structure.copy(self, parent)
+		new.stc = self.stc
+		return new
 
 	@classmethod
 	def fromMetaTableRow(cls, metaRow):

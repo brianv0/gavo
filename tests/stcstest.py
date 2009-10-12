@@ -498,5 +498,12 @@ class VelocitiesGenerationTest(SampleGenerationTestBase):
 	]
 
 
+class ColrefTest(testhelpers.VerboseTest):
+	def testColrefParse(self):
+		tree = stc.parseQSTCS('Position ICRS "foo" "bar" Error "e_foo" "e_bar"')
+		self.assertEqual(tree.place.value[0].dest, "foo")
+		self.assertEqual(tree.place.error.values[0][0].dest, "e_foo")
+	
+
 if __name__=="__main__":
-	testhelpers.main(CompoundGenerationTest)
+	testhelpers.main(ColrefTest)

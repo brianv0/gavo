@@ -12,6 +12,7 @@ xlink and all the other stuff.
 
 
 from itertools import *
+import operator
 import re
 
 from gavo.stc import sphermath
@@ -92,7 +93,7 @@ class SpaceFrame(_CoordFrame):
 		This is for the computation of coordinate transforms.  Since we only
 		do coordinate transforms for spherical coordinate systems, this
 		will, for now, raise STCValueErrors if everything but 2 or 3D SPHERICAL 
-		flavours.
+		flavours.  The other cases need more thought anyway.
 		"""
 		if self.flavor!="SPHERICAL" or (self.nDim!=2 and self.nDim!=3):
 			raise STCValueError("Can only conform 2/3-spherical coordinates")
@@ -172,6 +173,10 @@ class CooWiggle(_WiggleSpec):
 			return self
 		return self.change(values=tuple(unitConverter(v) for v in self.values))
 
+	def getValues(self):
+		return self.values
+
+
 class RadiusWiggle(_WiggleSpec):
 	"""An wiggle given as a radius.
 
@@ -188,6 +193,9 @@ class RadiusWiggle(_WiggleSpec):
 			return self
 		return self.change(radii=tuple(unitConverter(repeat(r))[0] 
 			for r in self.radii))
+	
+	def getValues(self):
+		return self.radii
 
 class MatrixWiggle(_WiggleSpec):
 	"""A matrix for specifying wiggle.
@@ -275,7 +283,7 @@ class _Coordinate(_CoordinateLike):
 				setattr(self, name, wiggle.adaptValuesWith(
 					self.getUnitConverter(wiggle.origUnit)))
 		self._setupNodeNext(_Coordinate)
-	
+
 	def iterTransformed(self, converter):
 		if self.value is not None:
 			yield "value", converter(self.value)
@@ -304,6 +312,9 @@ class _OneDMixin(object):
 		if self.unit:
 			return {"unit": self.unit}
 
+	def getValues(self):
+		return [self.value]
+
 
 class _SpatialMixin(object):
 	"""provides attributes for positional coordinates.
@@ -329,6 +340,11 @@ class _SpatialMixin(object):
 
 	def getUnitArgs(self):
 		return {"unit": self.unit}
+
+	def getValues(self):
+		if self.value is None:
+			return []
+		return self.value
 
 
 class _VelocityMixin(object):
@@ -446,9 +462,14 @@ class _CoordinateInterval(_CoordinateLike):
 		return self.change(upperLimit=(max(xVals), max(yVals)),
 			lowerLimit=(min(xVals), min(yVals)), frame=destFrame)
 
+	def getValues(self):
+		return [l for l in (self.lowerLimit, self.upperLimit) if l is not None]
 
 class SpaceInterval(_CoordinateInterval):
 	cType = SpaceType
+
+	def getValues(self):
+		return reduce(lambda a,b: a+b, _CoordinateInterval.getValues(self))
 
 class VelocityInterval(_CoordinateInterval):
 	cType = VelocityType
@@ -488,13 +509,23 @@ class _Geometry(_CoordinateLike):
 	in stxast.
 
 	Also getTransformed usually needs to be overridden for these.
+
+	Geometries may contain two sorts of column references; ordinary ones
+	are just stand-ins of actual values, while GeometryColRefs describe the
+	whole thing in a database column.
 	"""
 	_a_size = None
 	_a_fillFactor = None
 	_a_origUnit = None
+	_a_geoColRef = None
 
 	cType = SpaceType
 
+	def getValues(self):
+		if self.geoColRef:
+			return [self.geoColRef]
+		else:
+			return self._getValuesSplit()
 
 class AllSky(_Geometry):
 	pass
@@ -507,6 +538,9 @@ class AllSky(_Geometry):
 
 	def adaptDepUnits(self):
 		pass
+
+	def _getValuesSplit(self):
+		return []
 
 
 class Circle(_Geometry):
@@ -521,6 +555,9 @@ class Circle(_Geometry):
 			converter.toUnit[0])
 		return self.change(center=converter(self.center), 
 			radius=sTrafo(self.radius))
+
+	def _getValuesSplit(self):
+		return [self.center[0], self.center[1], self.radius]
 
 
 class Ellipse(_Geometry):
@@ -537,6 +574,10 @@ class Ellipse(_Geometry):
 			converter.toUnit[0])
 		return self.change(center=converter(self.center), 
 			smajAxis=sTrafo(self.smajAxis), sminAxis=sTrafo(self.sminAxis))
+
+	def _getValuesSplit(self):
+		return list(self.center)+[self.smajAxis]+[self.sminAxis]+[
+			self.posAngle]
 
 
 class Box(_Geometry):
@@ -557,6 +598,9 @@ class Box(_Geometry):
 		return self.change(center=converter(self.center), 
 			boxsize=converter(self.boxsize))
 
+	def _getValuesSplit(self):
+		return list(self.center)+list(self.boxsize)
+
 
 class Polygon(_Geometry):
 	_a_vertices = ()
@@ -568,6 +612,9 @@ class Polygon(_Geometry):
 	def adaptValuesWith(self, converter):
 		return self.change(vertices=(converter(v) for v in self.vertices))
 
+	def _getValuesSplit(self):
+		return reduce(operator.add, self.vertices)
+
 
 class Convex(_Geometry):
 	_a_vectors = ()
@@ -577,6 +624,9 @@ class Convex(_Geometry):
 
 	def adaptValuesWith(self, converter):
 		raise STCNotImplementedError("Cannot adapt units for convexes yet.")
+
+	def _getValuesSplit(self):
+		return reduce(operator.add, self.vectors)
 
 
 class _Compound(_Geometry):
@@ -747,3 +797,14 @@ class STCSpec(ASTNode):
 		This will return self if nothing needs to change.
 		"""
 		return self._applyToAreas(debinarizeCompound)
+	
+	def getColRefs(self):
+		"""returns a list of column references embedded in this AST.
+		"""
+		if not hasattr(self, "_colRefs"):
+			self._colRefs = []
+			for n in self.iterNodes():
+				if hasattr(n, "getValues"):
+					self._colRefs.extend(
+						v.dest for v in n.getValues() if isinstance(v, ColRef))
+		return self._colRefs

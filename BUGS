@@ -135,3 +135,7 @@
 
 34/LOW/2009-10-05
 	Replace RDNotFound exception with the more generic NotFoundError.
+
+35/MEDIUM/2009-10-08
+	Non-required defaulted fields (like cutout size on lswscans/positions)
+	do not get their default filled in on submitted forms.

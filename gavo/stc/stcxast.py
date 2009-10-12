@@ -20,6 +20,7 @@ not allowed.
 #c
 #c This program is free software, covered by the GNU GPL.  See COPYING.
 
+from gavo import utils
 from gavo.stc import dm
 from gavo.stc import times
 from gavo.stc import units
@@ -817,7 +818,7 @@ def _getHandlers():
 			handlers[_n(el)] = builder
 	return handlers
 
-getHandlers = CachedGetter(_getHandlers)
+getHandlers = utils.CachedGetter(_getHandlers)
 
 
 def _getActiveTags():
@@ -828,7 +829,7 @@ def _getActiveTags():
 		_n("Box2"): BoxActions(),
 	}
 
-getActiveTags = CachedGetter(_getActiveTags)
+getActiveTags = utils.CachedGetter(_getActiveTags)
 
 
 def buildTree(csNode, context):

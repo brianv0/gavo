@@ -7,6 +7,7 @@ import re
 import traceback
 
 from gavo import base
+from gavo import stc
 from gavo import utils
 from gavo.base import structure
 from gavo.rscdef import column
@@ -92,7 +93,7 @@ class ColumnTupleAttribute(base.StringListAttribute):
 		for colName in getattr(parent, self.name_):
 			try:
 				parent.getColumnByName(colName)
-			except KeyError:
+			except base.NotFoundError:
 				raise base.LiteralParseError("Column tuple component %s is"
 					" not in parent table"%colName, self.name_, colName)
 
@@ -147,6 +148,23 @@ class ForeignKey(base.Structure):
 			constraintName))
 
 
+class STCDef(base.Structure):
+	"""A definition of a space-time coordinate system using STC-S.
+	"""
+	name_ = "stc"
+
+	_source = base.DataContent(copyable=True, description="An STC-S string"
+		" with column references (using quote syntax) instead of values")
+
+	def completeElement(self):
+		self.compiled = stc.parseQSTCS(self.content_)
+		self._onElementCompleteNext(STCDef)
+	
+	@property
+	def spaceFrame(self):
+		return self.compiled.place.frame.refFrame
+
+
 class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		scripting.ScriptingMixin, macros.StandardMacroMixin):
 	"""A definition of a table, both on-disk and internal.
@@ -196,6 +214,11 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 			" in the parse options, e.g. via gavoimp (where validation is the"
 			" default).",
 		childFactory=rowtriggers.IgnoreOn)
+	# don't copy stc -- columns just keep the reference to the original
+	# stc on copy, and nothing should rely on column stc actually being
+	# defined in the parent tableDefs.
+	_stcs = base.StructListAttribute("stc", description="STC-S definitions"
+		" of coordinate systems.", childFactory=STCDef)
 	_ref = base.RefAttribute()
 	_mixins = mixins.MixinAttribute(copyable=True)
 	_original = base.OriginalAttribute()
@@ -211,9 +234,18 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 	def __contains__(self, name):
 		try:
 			self.columns.getColumnByName(name)
-		except KeyError:
+		except base.NotFoundError:
 			return False
 		return True
+
+	def _resolveSTC(self):
+		for stcDef in self.stc:
+			for name in stcDef.compiled.getColRefs():
+				destCol = self.getColumnByName(name)
+				if destCol.stc is not None:
+					raise base.LiteralParseError(
+						"Column %s is referenced twice from STC"%name)
+				destCol.stc = stcDef
 
 	def completeElement(self):
 		# allow iterables to be passed in for columns and convert them
@@ -222,6 +254,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 			self.columns = common.ColumnList(self.columns)
 		if self.id is base.NotGiven:
 			self.id = hex(id(self))[2:]
+		self._resolveSTC()
 		self._completeElementNext(TableDef)
 
 	def _defineFixupFunction(self):

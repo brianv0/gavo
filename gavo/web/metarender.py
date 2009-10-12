@@ -408,7 +408,7 @@ class TableNoteRenderer(MetaRenderer):
 					break
 			else:
 				raise base.NotFoundError("No note '%s' for table %s"%(
-					noteTag, tableName))
+					noteTag, tableName), notTag, "note")
 		except base.NotFoundError, msg:
 			raise svcs.UnknownURI(msg)
 		self.noteTag = noteTag

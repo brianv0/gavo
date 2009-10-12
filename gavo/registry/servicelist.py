@@ -288,7 +288,8 @@ def getTableDef(tableName):
 	q.close()
 	if len(res)!=1:
 		raise base.NotFoundError(
-			"%s is no accessible table in the data center"%tableName)
+			"%s is no accessible table in the data center"%tableName,
+			tableName, "table")
 	rdId = res[0][0]
 	return base.caches.getRD(rdId).getById(basename(tableName))
 

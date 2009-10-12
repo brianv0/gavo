@@ -31,7 +31,7 @@ from gavo.stc.common import (STCError, STCSParseError, STCLiteralError,
 if sys.version_info[1]>4:  # hardcore stc only from 2.5 upwards
 	from gavo.stc.conform import conform as conformTo
 
-	from gavo.stc.stcsast import parseSTCS
+	from gavo.stc.stcsast import parseSTCS, parseQSTCS
 
 	from gavo.stc.stcsgen import getSTCS
 

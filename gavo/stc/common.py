@@ -88,16 +88,6 @@ stcTimeScales = set(["TT", "TDT", "ET", "TAI", "IAT", "UTC", "TEB", "TDB",
 	"TCG", "TCB", "LST", "nil"])
 
 
-class CachedGetter(object):
-	def __init__(self, getter):
-		self.cache, self.getter = None, getter
-	
-	def __call__(self):
-		if self.cache is None:
-			self.cache = self.getter()
-		return self.cache
-
-
 # Nodes for ASTs
 
 class ASTNodeType(type):
@@ -215,6 +205,8 @@ class ASTNode(object):
 	def __eq__(self, other):
 		if not isinstance(other, self.__class__):
 			return False
+		if self is other:
+			return True
 		for name, _ in self._nodeAttrs:
 			if name=="id":
 				continue
@@ -227,7 +219,7 @@ class ASTNode(object):
 	
 	def __ne__(self, other):
 		return not self==other
-		
+	
 	def change(self, **kwargs):
 		"""returns a shallow copy of self with constructor arguments in kwargs
 		changed.
@@ -261,6 +253,24 @@ class ASTNode(object):
 					childIterators.extend(c.iterNodes() for c in value)
 		return itertools.chain((self,), *childIterators)
 
+
+class ColRef(object):
+	"""A column reference instead of a true value, occurring in an STC-S tree.
+	"""
+	def __init__(self, dest):
+		self.dest = dest
+	
+	def __mul__(self, other):
+		raise STCValueError("ColRefs (here, %s) cannot be used in arithmetic"
+			" expressions.")
+
+
+class GeometryColRef(ColRef):
+	"""A ColRef that refers to an in-DB geometry.
+
+	These comprise the entire arguments of a geometry (or all coordinates
+	of a vector).
+	"""
 
 def _test():
 	import doctest, gavo.stc.common

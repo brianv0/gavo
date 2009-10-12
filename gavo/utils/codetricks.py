@@ -20,6 +20,29 @@ from gavo.utils import algotricks
 from gavo.utils import excs
 
 
+class CachedGetter(object):
+	"""A cache for a callable.
+
+	This is basically memoization, except that these are supposed to be
+	singletons;  CachedGetters should be used where the construction of
+	a resource (e.g., a grammar) should be deferred until it is actually
+	needed to save on startup times.
+
+	The resource is created on the first call, all further calls just return
+	references to the original object.
+	"""
+	def __init__(self, getter, *args, **kwargs):
+		self.cache, self.getter = None, getter
+		self.args, self.kwargs = args, kwargs
+	
+	def __call__(self):
+		if self.cache is None:
+			self.cache = self.getter(*self.args, **self.kwargs)
+			del self.args
+			del self.kwargs
+		return self.cache
+
+
 def _iterDerivedClasses(baseClass, objects):
 	"""iterates over all subclasses of baseClass in the sequence objects.
 	"""

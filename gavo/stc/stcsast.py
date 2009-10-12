@@ -163,7 +163,7 @@ def _validateCoos(values, nDim, minItems, maxItems):
 	"""makes sure values is valid a source of between minItems and maxItems
 	nDim-dimensional tuples.
 
-	minItems and maxItems may both be None so signify no limit.
+	minItems and maxItems may both be None to signify no limit.
 	"""
 	numItems = len(values)/nDim
 	if numItems*nDim!=len(values):
@@ -363,10 +363,17 @@ def _makeGeometryKeyIterator(argDesc, clsName):
 	"""
 	parseLines = [
 		"def iterKeys(node, nDim, spatial=True):",
+		'  if False: yield',  # make sure the thing is an iterator
 		'  coos = node.get("coos", ())',
-		'  if False: yield',  # ensure the thing is an iterator
+		'  yield "origUnit",'
+		' _mogrifySpaceUnit(node.get("unit"), nDim)',
 		"  try:",
 		"    pass"]
+	# Everthing below here just coordinates
+	parseLines.extend([
+		'    if coos and isinstance(coos[0], GeometryColRef):',
+		'      yield "geoColRef", coos[0]',
+		'      return'])
 	for name, code in argDesc:
 		if code=="r":
 			parseLines.append('    yield "%s", coos.pop(0)'%name)
@@ -386,8 +393,6 @@ def _makeGeometryKeyIterator(argDesc, clsName):
 		' while parsing %s")'%clsName)
 	parseLines.append('  if coos: raise STCSParseError("Too many coordinates'
 		' while building %s, remaining: %%s"%%coos)'%clsName)
-	parseLines.append('  yield "origUnit",'
-		' _mogrifySpaceUnit(node.get("unit"), nDim)')
 	exec "\n".join(parseLines)
 	return iterKeys
 
@@ -494,14 +499,24 @@ def getCoords(cst, system):
 	})
 
 
-def parseSTCS(literal):
+def parseSTCS(literal, grammarFactory=None):
 	"""returns an STC AST for an STC-S expression.
 	"""
-	cst = stcs.getCST(literal)
+	cst = stcs.getCST(literal, grammarFactory)
 	system = getCoordSys(cst)[1]
 	args = {"astroSystem": system}
 	args.update(getCoords(cst, system))
 	return dm.STCSpec(**args).polish()
+
+
+def parseQSTCS(literal):
+	"""returns an STC AST for an STC-S expression with identifiers instead of
+	values.
+
+	The identifiers are denoted in double-quoted strings.  Legal identifiers
+	follow the python syntax (i.e., these are *not* SQL quoted identifiers).
+	"""
+	return parseSTCS(literal, grammarFactory=stcs.getColrefGrammar)
 
 
 if __name__=="__main__":

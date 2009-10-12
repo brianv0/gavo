@@ -9,6 +9,7 @@ is web-callable.
 """
 
 import datetime
+import warnings
 
 from gavo import base
 from gavo import rsc
@@ -221,8 +222,13 @@ def getMatchingRestups(pars):
 
 
 def getMatchingResobs(pars):
-	return [identifiers.getResobFromRestup(restup)
-		for restup in getMatchingRestups(pars)]
+	res = []
+	for restup in getMatchingRestups(pars):
+		try:
+			res.append(identifiers.getResobFromRestup(restup))
+		except base.NotFoundError:
+			warnings.warn("Could not create resource for %s"%repr(restup))
+	return res
 
 
 ########################### The registry core

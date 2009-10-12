@@ -72,7 +72,12 @@ def getResobFromRestup(restup):
 	if sourceRd==STATICRSC_ID:
 		return staticresource.loadStaticResource(internalId)
 	else:
-		return base.caches.getRD(sourceRd).serviceIndex[internalId]
+		try:
+			return base.caches.getRD(sourceRd).serviceIndex[internalId]
+		except KeyError:
+			raise base.NotFoundError("No service %s in %s -- perhaps you want"
+				" to run gavopublish %s?"%(internalId, sourceRd, sourceRd),
+				internalId, "service")
 
 
 def getResobFromIdentifier(identifier):

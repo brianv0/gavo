@@ -13,6 +13,7 @@ from nevow import rend, loaders, appserver
 
 from gavo import base
 from gavo import rscdesc         # for getRD in base.caches
+from gavo import utils
 from gavo.protocols import basic # for registration
 from gavo.base import config
 from gavo.web import dispatcher
@@ -45,6 +46,7 @@ if debug:
 else:
 	mainPage = dispatcher.ArchiveService()
 
-config.setMeta("upSince", datetime.datetime.utcnow().isoformat())
+config.setMeta("upSince", datetime.datetime.utcnow().strftime(
+	utils.isoTimestampFmt))
 internet.TCPServer(base.getConfig("web", "serverPort"), appserver.NevowSite(
 	mainPage), interface=interface).setServiceParent(application)

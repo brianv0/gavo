@@ -170,9 +170,13 @@ class ColumnList(list):
 	def getColumnByName(self, name):
 		"""returns the column with name.
 
-		It will raise a KeyError if no such column exists.
+		It will raise a NotFoundError if no such column exists.
 		"""
-		return self[self.nameIndex[name]]
+		try:
+			return self[self.nameIndex[name]]
+		except KeyError:
+			raise base.NotFoundError("Column %s does not exist."%(
+				name), name, "column")
 
 	def getColumnsByUCD(self, ucd):
 		"""returns all columns having ucd.

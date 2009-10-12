@@ -461,10 +461,10 @@ class Service(base.Structure, base.ComputedMetaMixin,
 						res.append(col)
 					else:
 						res.append(outputdef.OutputField.fromColumn(col))
-			except KeyError, msg:
+			except base.NotFoundError, msg:
 				if raiseOnUnknown:
-					raise base.ValidationError("The additional field %s you requested"
-						" does not exist"%str(msg), colName="_OUTPUT")
+					raise base.ValidationError("The additional field '%s' you requested"
+						" does not exist"%msg.name, colName="_OUTPUT")
 		return res
 
 	def getCurOutputFields(self, queryMeta=None, raiseOnUnknown=True):

@@ -291,5 +291,63 @@ class FixupTest(testhelpers.VerboseTest):
 			t.close()
 
 
+class STCTest(testhelpers.VerboseTest):
+	"""tests for various aspects of STC handling.
+	"""
+	def testSimpleSTC(self):
+		td = base.parseFromString(rscdef.TableDef, 
+			'<table id="simple">'
+			'  <stc>Position ICRS "ra" "dec"</stc>'
+			'  <column name="ra" unit="deg"/>'
+			'  <column name="dec" unit="deg"/>'
+			'  <column name="mag" unit="mag"/>'
+			'</table>')
+		self.assertEqual(td.getColumnByName("ra").stc.spaceFrame,
+			"ICRS")
+		self.assertEqual(td.getColumnByName("mag").stc, None)
+
+	def testComplexSTC(self):
+		td = base.parseFromString(rscdef.TableDef, 
+			'<table id="complex">'
+			'  <stc>TimeInterval TT "start" "end" Position ICRS "ra" "dec"'
+			'    Error "e_ra" "e_dec"</stc>'
+			'  <stc>PositionInterval FK5 "raMin" "decMin"</stc>'
+			'  <column name="ra" unit="deg"/>'
+			'  <column name="dec" unit="deg"/>'
+			'  <column name="start" type="timestamp"/>'
+			'  <column name="end" type="timestamp"/>'
+			'  <column name="raMin" unit="deg"/>'
+			'  <column name="decMin" unit="deg"/>'
+			'  <column name="mag" unit="mag"/>'
+			'</table>')
+		bigSTC = td.getColumnByName("ra").stc
+		self.assertEqual(td.getColumnByName("ra").stc.spaceFrame,
+			"ICRS")
+		self.assertEqual(td.getColumnByName("mag").stc, None)
+		self.assertEqual(td.getColumnByName("start").stc, bigSTC)
+		self.assertEqual(td.getColumnByName("end").stc, bigSTC)
+		self.assertEqual(td.getColumnByName("raMin").stc.spaceFrame, "FK5")
+
+	def testGeometrySTC(self):
+		td = base.parseFromString(rscdef.TableDef,
+			'<table id="geo">'
+			'  <stc>Box ICRS [bbox]</stc>'
+			'  <column name="bbox" type="box"/>'
+			'</table>')
+		self.assertEqual(td.getColumnByName("bbox").stc.spaceFrame, "ICRS")
+	
+	def testCopying(self):
+		td = base.parseFromString(rscdef.TableDef,
+			'<table id="geo">'
+			'  <stc>Box ICRS [bbox]</stc>'
+			'  <column name="bbox" type="box"/>'
+			'</table>')
+		tdc = td.copy(None)
+		self.assertEqual(tdc.getColumnByName("bbox").stc.spaceFrame, "ICRS")
+		self.failUnless(tdc.getColumnByName("bbox").stc is
+			td.getColumnByName("bbox").stc)
+
+# test exc. with duplicate names.
+
 if __name__=="__main__":
-	testhelpers.main(FixupTest)
+	testhelpers.main(STCTest)

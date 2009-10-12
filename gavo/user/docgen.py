@@ -169,11 +169,16 @@ class StructDocMaker(object):
 		children = []
 		content.addHead2("Structure Children")
 		for att in self._iterAttsOfBase(klass, base.StructAttribute):
-			content.addULItem(att.makeUserDoc())
-			if hasattr(att, "childFactory"):
-				children.append(att.childFactory.name_)
-				if att.childFactory not in self.visitedClasses:
-					self.addDocsFrom(att.childFactory)
+			try:
+				content.addULItem(att.makeUserDoc())
+				if hasattr(att, "childFactory"):
+					children.append(att.childFactory.name_)
+					if att.childFactory not in self.visitedClasses:
+						self.addDocsFrom(att.childFactory)
+			except:
+				sys.stderr.write("While gendoccing %s in %s:\n"%(
+					att.name_, klass.name_))
+				traceback.print_exc()
 		self.docStructure.setdefault(klass.name_, []).extend(children)
 		content.delEmptySection()
 	

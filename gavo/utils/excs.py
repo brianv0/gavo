@@ -89,6 +89,9 @@ class ReportableError(Error):
 class NotFoundError(Error):
 	"""is raised when something is asked for something that does not exist.
 	"""
+	def __init__(self, msg, name, what=None):
+		Error.__init__(self, msg)
+		self.name, self.what = name, what
 
 
 class ExecutiveAction(Exception):
