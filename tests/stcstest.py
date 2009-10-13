@@ -503,7 +503,11 @@ class ColrefTest(testhelpers.VerboseTest):
 		tree = stc.parseQSTCS('Position ICRS "foo" "bar" Error "e_foo" "e_bar"')
 		self.assertEqual(tree.place.value[0].dest, "foo")
 		self.assertEqual(tree.place.error.values[0][0].dest, "e_foo")
-	
+
+	def testColrefParse(self):
+		tree = stc.parseQSTCS('Position ICRS [pos]')
+		self.assertEqual(tree.place.value.dest, "pos")
+
 
 if __name__=="__main__":
 	testhelpers.main(ColrefTest)

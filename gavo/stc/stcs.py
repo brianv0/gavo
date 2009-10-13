@@ -167,7 +167,8 @@ def _makeSymDict(locals, exportAll):
 	return syms
 
 
-def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False):
+def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
+		_addGeoReferences=False):
 	"""returns a dictionary of symbols for a grammar parsing STC-S into
 	a concrete syntax tree.
 
@@ -209,8 +210,12 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False):
 
 # properties of most spatial specs
 	_coos = ZeroOrMore( number )("coos")
-	_twoDCoo = number + number
 	_pos = Optional( ZeroOrMore( number )("pos") )
+	if _addGeoReferences: # include references to vectors, for getColrefSymbols
+		complexColRef = Regex('[[][A-Za-z_][A-Za-z_0-9]*[]]').addParseAction(
+			lambda s,p,toks: GeometryColRef(toks[0][1:-1]))
+		_coos = complexColRef("coos") | _coos
+		_pos = complexColRef("pos") | _pos
 	positionSpec = Suppress( Keyword("Position") ) + _pos
 	error = Suppress( Keyword("Error") ) + OneOrMore( number )
 	resolution = Suppress( Keyword("Resolution") ) + OneOrMore( number )
@@ -366,7 +371,6 @@ def getSymbols(_exportAll=False):
 		).addParseAction(lambda s,p,toks: times.parseISODT(toks[0]))
 	timeLiteral = (isoTimeLiteral | jdLiteral | mjdLiteral)
 
-# XXX TODO: export these symbols properly
 	res = _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll)
 	res.update(_makeSymDict(locals(), _exportAll))
 	return res
@@ -381,11 +385,8 @@ def getColrefSymbols():
 	"""
 	atomicColRef = Regex('"[A-Za-z_][A-Za-z_0-9]*"').addParseAction(
 		lambda s,p,toks: ColRef(toks[0][1:-1]))
-	geometryColRef = Regex('[[][A-Za-z_][A-Za-z_0-9]*[]]').addParseAction(
-		lambda s,p,toks: GeometryColRef(toks[0][1:-1]))
-	colRef = atomicColRef | geometryColRef
 
-	return _getSTCSGrammar(colRef, colRef)
+	return _getSTCSGrammar(atomicColRef, atomicColRef, _addGeoReferences=True)
 
 
 def enableDebug(syms, debugNames=None):

@@ -304,6 +304,7 @@ class STC(object):
 	
 	class ObservatoryLocation(STCElement): pass
 	class ObservationLocation(STCElement): pass
+	class STCSpec(STCElement): pass
 
 	class Cart2DRefFrame(STCElement):
 		a_projection = None

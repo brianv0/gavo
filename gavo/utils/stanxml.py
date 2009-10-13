@@ -243,6 +243,7 @@ class Element(object):
 				node = ElementTree.Element(elName, attrs)
 			else:
 				node = ElementTree.SubElement(parent, elName, attrs)
+
 			if self.childSequence is None:
 				self._addChildrenAsIs(node)
 			else:

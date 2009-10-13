@@ -257,9 +257,23 @@ class ASTNode(object):
 class ColRef(object):
 	"""A column reference instead of a true value, occurring in an STC-S tree.
 	"""
+	name = "_colRef"
+
 	def __init__(self, dest):
 		self.dest = dest
-	
+
+	def __str__(self):
+		return self.dest
+
+	def isoformat(self):
+		return self
+
+	def isEmpty(self):
+		return False
+
+	def serializeToXMLStan(self):
+		return self
+
 	def __mul__(self, other):
 		raise STCValueError("ColRefs (here, %s) cannot be used in arithmetic"
 			" expressions.")
@@ -269,8 +283,21 @@ class GeometryColRef(ColRef):
 	"""A ColRef that refers to an in-DB geometry.
 
 	These comprise the entire arguments of a geometry (or all coordinates
-	of a vector).
+	of a vector).  They implement __len__ as soon as they are validated
+	(in stcsast; we don't do col. refs in stc-x); their len is the
+	expected number of elements.
 	"""
+	expectedLength = None
+
+	def __len__(self):
+		if self.expectedLength is None:
+			raise STCValueError("No length on unvalidated geometry column"
+				" reference")
+		return self.expectedLength
+
+	def __nonzero__(self):
+		return True
+
 
 def _test():
 	import doctest, gavo.stc.common

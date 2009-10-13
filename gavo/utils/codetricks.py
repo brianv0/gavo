@@ -55,7 +55,7 @@ def _iterDerivedClasses(baseClass, objects):
 
 
 def buildClassResolver(baseClass, objects, instances=False,
-		key=lambda obj: getattr(obj, "name", None)):
+		key=lambda obj: getattr(obj, "name", None), default=None):
 	"""returns a function resolving classes deriving from baseClass
 	in the sequence objects by their names.
 
@@ -80,7 +80,12 @@ def buildClassResolver(baseClass, objects, instances=False,
 		if clsKey is not None:
 			registry[clsKey] = cls
 	def resolve(name, registry=registry):
-		return registry[name]
+		try:
+			return registry[name]
+		except KeyError:
+			if default is not None:
+				return default
+			raise
 	return resolve
 
 

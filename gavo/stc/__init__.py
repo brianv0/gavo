@@ -28,6 +28,11 @@ from gavo.stc.common import (STCError, STCSParseError, STCLiteralError,
 	STCValueError, STCNotImplementedError,
 	STCNamespace)
 
+from gavo.stc.times import (parseISODT, 
+	jYearToDateTime, dateTimeToJYear,
+	bYearToDateTime, dateTimeToBYear,
+	jdnToDateTime, dateTimeToJdn)
+
 if sys.version_info[1]>4:  # hardcore stc only from 2.5 upwards
 	from gavo.stc.conform import conform as conformTo
 
@@ -41,10 +46,7 @@ if sys.version_info[1]>4:  # hardcore stc only from 2.5 upwards
 
 	from gavo.stc.stcxgen import astToStan, getSTCXProfile
 
+	from gavo.stc.utypegen import getUtypes
+
 	def getSTCX(ast, rootElement):
 		return astToStan(ast, rootElement)
-
-from gavo.stc.times import (parseISODT, 
-	jYearToDateTime, dateTimeToJYear,
-	bYearToDateTime, dateTimeToBYear,
-	jdnToDateTime, dateTimeToJdn)

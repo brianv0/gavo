@@ -222,23 +222,29 @@ serialize_SpectralCoo = _make1DSerializer(STC.Spectral,
 
 _nones = (None, None, None)
 
-def _wrap1D(val, units=_nones, timeUnits=_nones):
+def _wrap1D(val, unit=_nones, timeUnit=_nones):
 	if not val:
 		return
+	if isinstance(val, ColRef):
+		return val
 	return str(val[0])
 
-def _wrap2D(val, units=_nones, timeUnits=_nones):
+def _wrap2D(val, unit=_nones, timeUnit=_nones):
 	if not val:
 		return
-	return [STC.C1(pos_unit=units[0], vel_time_unit=timeUnits[0])[val[0]], 
-		STC.C2(pos_unit=units[1], vel_time_unit=timeUnits[1])[val[1]]]
+	if isinstance(val, ColRef):
+		return val
+	return [STC.C1(pos_unit=unit[0], vel_time_unit=timeUnit[0])[val[0]], 
+		STC.C2(pos_unit=unit[1], vel_time_unit=timeUnit[1])[val[1]]]
 
-def _wrap3D(val, units=_nones, timeUnits=_nones):
+def _wrap3D(val, unit=_nones, timeUnit=_nones):
 	if not val:
 		return
-	return [STC.C1(pos_unit=units[0], vel_time_unit=timeUnits[0])[val[0]], 
-		STC.C2(pos_unit=units[1], vel_time_unit=timeUnits[1])[val[1]], 
-		STC.C3(pos_unit=units[2], vel_time_unit=timeUnits[2])[val[2]]]
+	if isinstance(val, ColRef):
+		return val
+	return [STC.C1(pos_unit=unit[0], vel_time_unit=timeUnit[0])[val[0]], 
+		STC.C2(pos_unit=unit[1], vel_time_unit=timeUnit[1])[val[1]], 
+		STC.C3(pos_unit=unit[2], vel_time_unit=timeUnit[2])[val[2]]]
 
 def _wrapMatrix(val):
 	for rowInd, row in enumerate(val):
@@ -386,6 +392,8 @@ def serialize_AllSky(node, context):
 def serialize_Circle(node, context):
 # would you believe that the sequence of center and radius is swapped
 # in sphere and circle?  Oh boy.
+	if node.geoColRef:
+		return STC.Circle[node.geoColRef]
 	nDim = _getDim(node.center)
 	if nDim==2:
 		return _makeBaseGeometry(STC.Circle, node, context)[
@@ -402,6 +410,8 @@ def serialize_Circle(node, context):
 
 
 def serialize_Ellipse(node, context):
+	if node.geoColRef:
+		return STC.Ellipse[node.geoColRef]
 	if _getDim(node.center)==2:
 		cls, wrap = STC.Ellipse, _wrap2D
 	else:
@@ -415,6 +425,8 @@ def serialize_Ellipse(node, context):
 
 
 def serialize_Box(node, context):
+	if node.geoColRef:
+		return STC.Box[node.geoColRef]
 	if _getDim(node.center)!=2:
 		raise STCValueError("Boxes are only available in 2D")
 	return _makeBaseGeometry(STC.Box, node, context)[
@@ -423,6 +435,8 @@ def serialize_Box(node, context):
 
 
 def serialize_Polygon(node, context):
+	if node.geoColRef:
+		return STC.Polygon[node.geoColRef]
 	if node.vertices and _getDim(node.vertices[0])!=2:
 		raise STCValueError("Polygons are only available in 2D")
 	return _makeBaseGeometry(STC.Polygon, node, context)[
@@ -430,6 +444,8 @@ def serialize_Polygon(node, context):
 
 
 def serialize_Convex(node, context):
+	if node.geoColRef:
+		return STC.Polygon[node.geoColRef]
 	return _makeBaseGeometry(STC.Convex, node, context)[
 		[STC.Halfspace[STC.Vector[_wrap3D(v[:3])], STC.Offset[v[3]]]
 		for v in node.vectors]]

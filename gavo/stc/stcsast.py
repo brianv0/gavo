@@ -116,6 +116,9 @@ def iterVectors(values, dim, spatial):
 
 	The function does not check if the last vector is actually complete.
 	"""
+	if isinstance(values, ColRef):
+		yield values
+		return
 	if dim==1 and not spatial:
 		for v in values:
 			yield v
@@ -165,6 +168,8 @@ def _validateCoos(values, nDim, minItems, maxItems):
 
 	minItems and maxItems may both be None to signify no limit.
 	"""
+	if isinstance(values, GeometryColRef):
+		values.expectedLength = nDim
 	numItems = len(values)/nDim
 	if numItems*nDim!=len(values):
 		raise STCSParseError("%s is not valid input to create %d-dimensional"
@@ -371,8 +376,8 @@ def _makeGeometryKeyIterator(argDesc, clsName):
 		"    pass"]
 	# Everthing below here just coordinates
 	parseLines.extend([
-		'    if coos and isinstance(coos[0], GeometryColRef):',
-		'      yield "geoColRef", coos[0]',
+		'    if isinstance(coos, GeometryColRef):',
+		'      yield "geoColRef", coos',
 		'      return'])
 	for name, code in argDesc:
 		if code=="r":
@@ -436,7 +441,6 @@ def _compoundGeometryKeyIterator(node, nDim, spatial):
 			children.append(destCls(**dict(
 				_compoundGeometryKeyIterator(c, nDim, True))))
 	yield "children", children
-
 
 
 def _makeCompoundGeometryBuilder(cls):
