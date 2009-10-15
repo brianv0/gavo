@@ -36,6 +36,24 @@ class SpaceFrameTest(testhelpers.VerboseTest):
 		'<SpaceFrame ><Name>rotten</Name><ICRS /><GEOCENTER />'
 			'<CARTESIAN coord_naxes="2" /></SpaceFrame>')
 
+	def testParsing(self):
+		ast = stc.parseSTCX(
+			'<STCSpec xmlns="http://www.ivoa.net/xml/STC/stc-v1.30.xsd"><Astro'
+			'CoordSystem><SpaceFrame><GALACTIC_II/><BARYCENTER/></SpaceFrame><'
+			'/AstroCoordSystem><AstroCoords><Position2D><Value2><C1>12.2</C1><'
+			'C2>0.3</C2></Value2></Position2D></AstroCoords></STCSpec>')[0][1]
+		self.assertEqual(ast.astroSystem.spaceFrame.refFrame, "GALACTIC_II")
+
+
+class TimeFrameTest(testhelpers.VerboseTest):
+	def testSimple(self):
+		ast = stc.parseSTCX('<STCSpec xmlns="http://www.ivoa.net/xml/STC/stc-'
+			'v1.30.xsd"><AstroCoordSystem><TimeFrame><TOPOCENTER/><TimeScale>TT'
+			'</TimeScale></TimeFrame></AstroCoordSystem></STCSpec>')[0][1]
+		self.assertEqual(ast.astroSystem.timeFrame.refPos.standardOrigin,
+			"TOPOCENTER")
+		self.assertEqual(ast.astroSystem.timeFrame.timeScale, "TT")
+
 
 class V(stc.STC.STCElement):
 	"""A spartan STC-X root for test purposes.
@@ -171,4 +189,4 @@ class CompoundTest(STCMappingTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(CompoundTest)
+	testhelpers.main(TimeFrameTest)

@@ -6,6 +6,8 @@ Some fundamental algorithms not found in the standard library.
 #c
 #c This program is free software, covered by the GNU GPL.  See COPYING.
 
+
+import itertools
 import sys
 
 
@@ -134,6 +136,17 @@ class DeferringDict(dict):
 			val = val.actualize()
 			dict.__setitem__(self, key, val)
 		return val
+
+
+def commonPrefixLength(t1, t2):
+	"""returns the length of the common prefix of the sequences t1, t2.
+	"""
+	try:
+		for prefixLength in itertools.count():
+			if t1[prefixLength]!=t2[prefixLength]:
+				return prefixLength
+	except IndexError: # seqs are identical up to the shorter one's length
+		return prefixLength
 
 
 def identity(val):

@@ -58,10 +58,17 @@ def _computeFlavor(node):
 		raise STCValueError("Coordinate Frame %s cannot be represented it STC-S"%
 			node)
 
+# Simple translations of STC-X reference frame literals to STC-S
+_frameTrans = {
+	"GALACTIC_II": "GALACTIC",
+}
+
 def _spaceFrameToCST(node):
+	frame = node.refFrame
+	frame = _frameTrans.get(frame, frame)
 	return _combine({
 		"flavor": _computeFlavor(node),
-		"frame": node.refFrame,
+		"frame": frame,
 		"equinox": node.equinox,},
 		refPosToCST(node.refPos))
 

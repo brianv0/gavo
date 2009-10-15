@@ -48,5 +48,7 @@ if sys.version_info[1]>4:  # hardcore stc only from 2.5 upwards
 
 	from gavo.stc.utypegen import getUtypes
 
+	from gavo.stc.utypeast import parseFromUtypes
+
 	def getSTCX(ast, rootElement):
 		return astToStan(ast, rootElement)

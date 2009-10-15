@@ -2,6 +2,7 @@
 Tests for the various modules in utils.
 """
 
+from gavo import utils
 from gavo.utils import algotricks
 
 import testhelpers
@@ -22,5 +23,20 @@ class TopoSortTest(testhelpers.VerboseTest):
 			algotricks.topoSort, ([(1,2), (2,1)],))
 
 
+class PrefixTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+	def _runTest(self, args):
+		s1, s2, prefixLength = args
+		self.assertEqual(utils.commonPrefixLength(s1, s2), prefixLength)
+	
+	samples = [
+		("abc", "abd", 2),
+		("abc", "a", 1),
+		("abc", "", 0),
+		("", "abc", 0),
+		("a", "abc", 1),
+		("z", "abc", 0),]
+
+
 if __name__=="__main__":
-	testhelpers.main(TopoSortTest)
+	testhelpers.main(PrefixTest)

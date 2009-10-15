@@ -9,6 +9,7 @@ Definitions and shared code for STC processing.
 
 import itertools
 import operator
+import string
 
 from gavo.utils import ElementTree
 
@@ -86,6 +87,16 @@ stcCoordFlavors = set(["SPHERICAL", "CARTESIAN", "UNITSPHERE", "POLAR",
 # known time scales
 stcTimeScales = set(["TT", "TDT", "ET", "TAI", "IAT", "UTC", "TEB", "TDB",
 	"TCG", "TCB", "LST", "nil"])
+
+
+# Helper functions
+
+def intToFunnyWord(anInt, translation=string.maketrans(
+		"-0123456789abcdef", 
+		"zaeiousmnthwblpgd")):
+	"""returns a sometimes funny (but unique) word from an arbitrary integer.
+	"""
+	return ("%x"%anInt).translate(translation)
 
 
 # Nodes for ASTs
@@ -263,7 +274,19 @@ class ColRef(object):
 		self.dest = dest
 
 	def __str__(self):
-		return self.dest
+		return self.dest 
+		# only for debugging: '"%s"'%self.dest
+
+	# ColRefs should hash and compare equal when their dest is identical
+	# (this may be trouble when joining tables; let's worry about that
+	# later).
+	def __hash__(self):
+		return hash(self.dest)
+	
+	def __eq__(self, other):
+		if hasattr(other, "dest"):
+			return self.dest==other.dest
+		return False
 
 	def isoformat(self):
 		return self

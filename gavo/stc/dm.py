@@ -57,9 +57,9 @@ class TimeFrame(_CoordFrame):
 
 
 class SpaceFrame(_CoordFrame):
-	_a_flavor = None
+	_a_flavor = "SPHERICAL"   # default shouldn't be kicking in
 	_a_nDim = None
-	_a_refFrame = "UNKNOWNRefFrame"
+	_a_refFrame = "UNKNOWNFrame"
 	_a_equinox = None  # if non-null, it has to match [BJ][0-9]+[.][0-9]+
 
 	def _setupNode(self):
@@ -157,6 +157,7 @@ class _WiggleSpec(ASTNode):
 	the same type but with every value replaced with the result of the
 	application of converter to that value.
 	"""
+
 
 class CooWiggle(_WiggleSpec):
 	"""A wiggle given in coordinates.

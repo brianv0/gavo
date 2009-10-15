@@ -18,19 +18,10 @@ than trees (e.g., coordinate frames usually have multiple parents).
 
 
 import itertools
-import string
 
 from gavo.stc import dm
 from gavo.stc.common import *
 from gavo.stc.stcx import STC
-
-
-def intToFunnyWord(anInt, translation=string.maketrans(
-		"-0123456789abcdef", 
-		"zaeiousmnthwblpgd")):
-	"""returns a sometimes funny (but unique) word from an arbitrary integer.
-	"""
-	return ("%x"%anInt).translate(translation)
 
 
 def addId(node):
@@ -284,11 +275,16 @@ def _makeSpatialCooSerializer(stcClasses):
 	the coordinate frame.
 	"""
 	def serialize(node, context):
-		dimInd = node.frame.nDim-1
+		if node.frame.nDim is None and node.value:
+			dimInd = len(node.value)-1
+		else:
+			dimInd = node.frame.nDim-1
 		coo, val, serializer = stcClasses[dimInd]
 		clsArgs, cooArgs = _getSpatialUnits(node)
+
+		valueStan = val[serializer(node.value, **cooArgs)]
 		res = coo[
-				val[serializer(node.value, **cooArgs)],
+				valueStan,
 				[_serialize_Wiggle(getattr(node, wiggleType), 
 						serializer, wiggleClasses[wiggleType][dimInd])
 					for wiggleType in ["error", "resolution", "size", "pixSize"]],

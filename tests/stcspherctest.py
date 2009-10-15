@@ -82,12 +82,13 @@ class PathTest(testhelpers.VerboseTest):
 		(("FK5", B1885, _b), ("FK5", J1992, _b), (
 			('FK5', J2000, _b), 
 			('FK5', datetime.datetime(1992, 4, 1, 9, 45, 9, 292082), _b))),
-		(("FK5", B1885, _b), ("GALACTIC", None, _b), (
-			('FK5', J2000, _b), ('GALACTIC', None, _b))),
-		(("FK4", B1885, _b), ("GALACTIC", None, _b), (
-			('FK4', B1950, _b), ('GALACTIC', None, _b))),
-		(("FK4", B1885, _t), ("GALACTIC", None, _b), (
-			('FK4', B1950, _t), ('GALACTIC', None, _t), ('GALACTIC', None, _b))),
+		(("FK5", B1885, _b), ("GALACTIC_II", None, _b), (
+			('FK5', J2000, _b), ('GALACTIC_II', None, _b))),
+		(("FK4", B1885, _b), ("GALACTIC_II", None, _b), (
+			('FK4', B1950, _b), ('GALACTIC_II', None, _b))),
+		(("FK4", B1885, _t), ("GALACTIC_II", None, _b), (
+			('FK4', B1950, _t), ('GALACTIC_II', None, _t), 
+				('GALACTIC_II', None, _b))),
 	]
 
 

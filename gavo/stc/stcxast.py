@@ -27,18 +27,24 @@ from gavo.stc import units
 from gavo.stc.common import *
 
 
+class SIBLING_ASTRO_SYSTEM(object):
+	"""A sentinel class to tell the id resolver to use the sibling AstroCoordSys
+	element."""
+
 _xlinkHref = str(ElementTree.QName(XlinkNamespace, "href"))
 
 
 ####################### Helpers
 
-def _n(name):
+def STCElement(name):
 	return ElementTree.QName(STCNamespace, name)
+_n = STCElement
 
 
 def _localname(qName):
 	"""hacks the local tag name from a {ns}-serialized qName.
 	"""
+	qName = str(qName)
 	return qName[qName.find("}")+1:]
 
 
@@ -130,12 +136,16 @@ def _makeKwFloatBuilder(kwName, multiple=True, units=_noIter):
 	"""
 	if multiple:
 		def buildNode(node, buildArgs, context):
-			if node.text and node.text.strip():
+			if isinstance(node.text, ColRef):
+				yield kwName, (node.text,)
+			elif node.text and node.text.strip():
 				yield kwName, (float(node.text),)
 			for res in units(node, buildArgs): yield res
 	else:
 		def buildNode(node, buildArgs, context):
-			if node.text and node.text.strip():
+			if isinstance(node.text, ColRef):
+				yield kwName, node.text
+			elif node.text and node.text.strip():
 				yield kwName, float(node.text)
 			for res in units(node, buildArgs): yield res
 	return buildNode
@@ -385,6 +395,10 @@ def _buildAstroCoordSystem(node, buildArgs, context):
 		raise STCNotImplementedError("Cannot evaluate hrefs yet")
 	buildArgs["id"] = node.get("id", None)
 	newEl = dm.CoordSys(**buildArgs)
+	# Hack -- make sure we have a good id here, even when this means
+	# a violation of our non-mutability ideology.
+	if newEl.id is None:
+		newEl.id = intToFunnyWord(id(newEl))
 	yield "astroSystem", newEl
 
 
@@ -393,18 +407,26 @@ def _buildRefpos(node, buildArgs, context):
 
 def _buildFlavor(node, buildArgs, context):
 	yield 'flavor', _localname(node.tag)
-	yield 'nDim', int(node.get("coord_naxes"))
+	naxes = node.get("coord_naxes")
+	if naxes is not None:
+		yield 'nDim', int(naxes)
 
 def _buildRefFrame(node, buildArgs, context):
 	yield 'refFrame', _localname(node.tag)
 	for item in buildArgs.iteritems():
 		yield item
 
-def _buildRedshiftFrame(node, buildArgs, context):
-	if "value_type" in node.attrib:
-		buildArgs["type"] = node.get("value_type")
-	buildArgs["id"] = node.get("id")
-	yield "redshiftFrame", dm.RedshiftFrame(**buildArgs)
+def _makeFrameBuilder(attName, frameObj):
+	def buildFrame(node, buildArgs, context):
+		if "value_type" in node.attrib:  # for redshifts
+			buildArgs["type"] = node.get("value_type")
+		buildArgs["id"] = node.get("id")
+
+		# only kicking in for invalid input
+		if "refPos" not in buildArgs:
+			buildArgs["refPos"] = dm.RefPos()
+		yield attName, frameObj(**buildArgs)
+	return buildFrame
 
 
 ################# Coordinates
@@ -412,11 +434,15 @@ def _buildRedshiftFrame(node, buildArgs, context):
 class CooSysActions(ContextActions):
 	"""Actions for containers of coordinates.
 
-	The actions push and pop the system ids of the containers.  If
-	no system ids are present, None is pushed.
+	The actions push and pop the system ids of the coordinate containers
+	so leaves can build their frame proxies from them.
+
+	If none are present, None is pushed, which is to be understood as
+	"use any ol' AstroCoordSystem you can find".
 	"""
 	def start(self, context, node):
-		context.sysIdStack.append(node.get("coord_system_id", None))
+		context.sysIdStack.append(node.get("coord_system_id", 
+			SIBLING_ASTRO_SYSTEM))
 	
 	def stop(self, context, node):
 		context.sysIdStack.pop()
@@ -428,12 +454,15 @@ def _buildTime(node, buildArgs, context):
 	node gets introspected to figure out what kind of time we're talking
 	about.  The value always is a datetime instance.
 	"""
-	parser = {
-		"ISOTime": times.parseISODT,
-		"JDTime": lambda v: times.jdnToDateTime(float(v)),
-		"MJDTime": lambda v: times.mjdToDateTime(float(v)),
-	}[_localname(node.tag)]
-	yield "vals", (parser(node.text),)
+	if isinstance(node.text, ColRef):
+		yield "vals", (node.text,)
+	else:
+		parser = {
+			"ISOTime": times.parseISODT,
+			"JDTime": lambda v: times.jdnToDateTime(float(v)),
+			"MJDTime": lambda v: times.mjdToDateTime(float(v)),
+		}[_localname(node.tag)]
+		yield "vals", (parser(node.text),)
 
 
 _handledUnits = ("unit", "vel_time_unit", "pos_unit")
@@ -520,6 +549,8 @@ def _makeGeometryBuilder(astClass, adaptDepUnits=None):
 			adaptDepUnits(buildArgs)
 		buildArgs["origUnit"] = (buildArgs.pop("unit", None), None)
 		context.popDim()
+		if isinstance(node.text, ColRef):
+			buildArgs["geoColRef"] = GeometryColRef(str(node.text))
 		yield 'areas', (astClass(**buildArgs),)
 	return buildGeo
 
@@ -607,6 +638,13 @@ def _adaptAreaUnits(buildArgs):
 
 def _buildToplevel(node, buildArgs, context):
 	_adaptAreaUnits(buildArgs)
+	if "astroSystem" not in buildArgs:
+		# even for a disastrous STC-X, make sure there's a AstroCoords
+		# with rudimentary space and time frames
+		buildArgs["astroSystem"] = dm.CoordSys(
+			timeFrame=dm.TimeFrame(refPos=dm.RefPos()), 
+			spaceFrame=dm.SpaceFrame(refPos=dm.RefPos(),
+				flavor="SPHERICAL", nDim=2))
 	yield 'stcSpec', ((node.tag, dm.STCSpec(**buildArgs)),)
 
 
@@ -626,14 +664,15 @@ class IdProxy(ASTNode):
 		return ob
 
 
-def resolveProxies(asf):
-	"""replaces IdProxies in the AST sequence asf with actual references.
+def resolveProxies(forest):
+	"""replaces IdProxies in the AST sequence forest with actual references.
 	"""
 	map = {}
-	for rootTag, ast in asf:
+	for rootTag, ast in forest:
 		ast.buildIdMap()
 		map.update(ast.idMap)
-	for rootTag, ast in asf:
+	for rootTag, ast in forest:
+		map[SIBLING_ASTRO_SYSTEM] = ast.astroSystem
 		for node in ast.iterNodes():
 			for attName, value in node.iterAttributes(skipEmpty=True):
 				if isinstance(value, IdProxy):
@@ -756,7 +795,7 @@ _stcBuilders = [
 	(_makeCompoundBuilder(dm.Not), ["Negation", "Negation2"]),
 
 	(_buildToplevel, ["ObservatoryLocation", "ObservationLocation",
-		"STCResourceProfile"]),
+		"STCResourceProfile", "STCSpec"]),
 	(_passthrough, ["ObsDataLocation", "AstroCoords", "TimeInstant",
 		"AstroCoordArea", "Position"]),
 ]
@@ -799,10 +838,10 @@ def _getHandlers():
 		_n("Offset"): _makeKwFloatBuilder("offset"),
 		_n("Halfspace"): _buildHalfspace,
 	
-		_n('TimeFrame'): _makeNodeBuilder('timeFrame', dm.TimeFrame),
-		_n('SpaceFrame'): _makeNodeBuilder('spaceFrame', dm.SpaceFrame),
-		_n('SpectralFrame'): _makeNodeBuilder('spectralFrame', dm.SpectralFrame),
-		_n('RedshiftFrame'): _buildRedshiftFrame,
+		_n('TimeFrame'): _makeFrameBuilder('timeFrame', dm.TimeFrame),
+		_n('SpaceFrame'): _makeFrameBuilder('spaceFrame', dm.SpaceFrame),
+		_n('SpectralFrame'): _makeFrameBuilder('spectralFrame', dm.SpectralFrame),
+		_n('RedshiftFrame'):  _makeFrameBuilder('redshiftFrame', dm.RedshiftFrame),
 
 
 		_n("DopplerDefinition"): _makeKeywordBuilder("dopplerDef"),
@@ -846,10 +885,15 @@ def buildTree(csNode, context):
 	nodes, raise explicit exceptions in handlers.
 	"""
 	resDict = {}
+
+	# Elements with no handlers are ignored (add option to fail on these?)
 	if context.getHandler(csNode.tag) is None:
 		return
+
 	if csNode.tag in context.activeTags:
 		context.startTag(csNode)
+
+	# collect constructor keywords from child nodes
 	for child in csNode:
 		for res in buildTree(child, context):
 			if res is None:  # ignored child
@@ -863,19 +907,29 @@ def buildTree(csNode, context):
 						" value %s, new value %s (this should probably have been"
 						" a tuple)"%(k, resDict[k], v))
 				resDict[k] = v
+	
+	# collect constructor keywords from this node's handler
 	for res in context.getHandler(csNode.tag)(csNode, resDict, context):
 		yield res
+
 	if csNode.tag in context.activeTags:
 		context.endTag(csNode)
 
 
-def parseSTCX(stcxLiteral):
-	"""returns a sequence of pairs (root element, AST) for the STC 
-	specifications in stcxLiteral.
+def parseFromETree(eTree):
+	"""returns a sequence of pairs (root element, AST) for eTree containing
+	parsed STC-X.
 	"""
 	context = STCXContext(elementHandlers=getHandlers(),
 		activeTags=getActiveTags())
-	asf = dict(buildTree(ElementTree.fromstring(stcxLiteral), context)
-		)["stcSpec"]
-	resolveProxies(asf)
-	return [(rootTag, ast.polish()) for rootTag, ast in asf]
+	parsed = dict(buildTree(eTree, context))
+	forest = parsed["stcSpec"]
+	resolveProxies(forest)
+	return [(rootTag, ast.polish()) for rootTag, ast in forest]
+
+
+def parseSTCX(stcxLiteral):
+	"""returns a sequence of pairs (root element, AST) for the STC-X
+	specifications in stcxLiteral.
+	"""
+	return parseFromETree(ElementTree.fromstring(stcxLiteral))

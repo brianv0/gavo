@@ -260,5 +260,4 @@ class Element(object):
 		et = self.asETree()
 		if et is None:
 			return ""
-		return ElementTree.tostring(ElementTree.ElementTree(
-			et).getroot())
+		return ElementTree.tostring(et)
