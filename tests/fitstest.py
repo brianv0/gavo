@@ -13,6 +13,9 @@ from gavo.utils import fitstools
 from gavo.utils import pyfits
 
 
+import testhelpers
+
+
 _fitsgz1 = \
 """eJzt0b0KwjAUhmH/f+7i3IFWZwfFCgEthXboGm0LHZpIUofevaeIuCRIwUm+B76teTnQRFzic0i0
 I4eUVnTTqtSmttRoOok0IdtIlUuTux4QHUQai8zd2264J42RLeWykdS098Jd+Yj2mUjIc1/XU4/6
@@ -113,7 +116,7 @@ class SortHeadersTest(unittest.TestCase):
 			"EXTEND", "FLOB"])
 
 
-class FITSWriteTester(unittest.TestCase):
+class FITSWriteTest(unittest.TestCase):
 	"""tests for correct FITS writing.
 	"""
 	def test(self):
@@ -134,6 +137,42 @@ class FITSWriteTester(unittest.TestCase):
 			tf.cleanup()
 
 
+class ParseCardsTest(testhelpers.VerboseTest):
+	def testFailsForJunk(self):
+		self.assertRaises(ValueError, fitstools.parseCards, "jfkdl")
+	
+	def testParses(self):
+		input = ("NAXIS1  =                22757 / length of data axis 1       "
+			"                   NAXIS2  =                22757 / length of data a"
+			"xis 2                          CTYPE1  = 'RA---TAN-SIP'       / TAN "
+			"(gnomic) projection + SIP distortions      CTYPE2  = 'DEC--TAN-SIP' "
+			"      / TAN (gnomic) projection + SIP distortions      ")
+		cards = fitstools.parseCards(input)
+		for card, (exKey, exVal) in zip(cards, [
+				("NAXIS1", 22757),
+				("NAXIS2", 22757),
+				("CTYPE1", "RA---TAN-SIP"),
+				("CTYPE2", "DEC--TAN-SIP"),]):
+			self.assertEqual(card.key, exKey)
+			self.assertEqual(card.value, exVal)
+	
+	def testEndCard(self):
+		input = ("NAXIS1  =                22757 / length of data axis 1       "
+			"                   NAXIS2  =                22757 / length of data a"
+			"xis 2                          END                                  "
+			"                                           CTYPE2  = 'DEC--TAN-SIP' "
+			"      / TAN (gnomic) projection + SIP distortions      ")
+		self.assertEqual(len(fitstools.parseCards(input)), 2)
+
+	def testEmptyCardIgnored(self):
+		input = ("NAXIS1  =                22757 / length of data axis 1       "
+			"                   NAXIS2  =                22757 / length of data a"
+			"xis 2                                                               "
+			"                                           CTYPE2  = 'DEC--TAN-SIP' "
+			"      / TAN (gnomic) projection + SIP distortions      ")
+		self.assertEqual(len(fitstools.parseCards(input)), 3)
+
+
 if __name__=="__main__":
-	unittest.main()
+	testhelpers.main(ParseCardsTest)
 

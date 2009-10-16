@@ -45,6 +45,8 @@ def readPrimaryHeaderQuick(f):
 	that class is made, it's hard to use it with stuff from a gzipped
 	source, and that's why this function is here.  It is used in the quick
 	mode of fits grammars.
+
+	This function is adapted from pyfits.
 	"""
 	end_RE = re.compile('END'+' '*77)
 	block = f.read(blockLen)
@@ -74,6 +76,31 @@ def readPrimaryHeaderQuick(f):
 	hdu = hdu.setupHDU()
 	return hdu.header
 
+
+def parseCards(aString):
+	"""returns a list of pyfits Cards parsed from aString.
+
+	This will raise a ValueError if aString's length is not divisible by
+	80.  It may also return pyfits errors for malformed cards.
+
+	Empty (i.e., all-whitespace) cards are ignored.  If an END card is
+	encoundered processing is aborted.
+	"""
+	cardSize = 80
+	endCardRaw = "%-*s"%(cardSize, 'END')
+	cards = []
+	if len(aString)%cardSize:
+		raise ValueError("parseCards argument has impossible length %s"%(
+			len(aString)))
+	for offset in range(0, len(aString), cardSize):
+		rawCard = aString[offset:offset+cardSize]
+		if rawCard==endCardRaw:
+			break
+		if not rawCard.strip():
+			continue
+		cards.append(pyfits.Card().fromstring(rawCard))
+	return cards
+		
 
 def hdr2str(hdr):
 	repr = "".join(map(str, hdr.ascardlist()))

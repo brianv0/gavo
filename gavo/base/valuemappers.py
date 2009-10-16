@@ -234,7 +234,7 @@ def _boxMapperFactory(colProps):
 			return ""
 		else:
 			return "Box ICRS %s %s %s %s"%(val[0]+val[1])
-	colProps["datatype"], colProps["arraysize"] = "text", "*"
+	colProps["datatype"], colProps["arraysize"] = "char", "*"
 	return mapper
 _registerDefaultMF(_boxMapperFactory)
 
