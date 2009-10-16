@@ -659,6 +659,10 @@ class PQMorphTest(unittest.TestCase):
 		self._testMorph("select distinct top 10 x, y from foo", 
 			'SELECT DISTINCT x , y FROM foo LIMIT 10')
 
+	def testWhitespace(self):
+		self._testMorph("select\t distinct top\n\n    10 x, y from foo", 
+			'SELECT DISTINCT x , y FROM foo LIMIT 10')
+	
 	def testGroupby(self):
 		self._testMorph("select count(*), inc from ("
 			" select round(x/10) as inc from foo) as q group by inc",
@@ -741,6 +745,7 @@ class PQMorphTest(unittest.TestCase):
 		self._testMorph("select top 100 * from ppmx.data where cmag>10"
 			" order by cmag", 'SELECT * FROM ppmx . data WHERE cmag > 10'
 			' ORDER BY cmag LIMIT 100')
+
 
 class QueryTest(unittest.TestCase):
 	"""performs some actual queries to test the whole thing.

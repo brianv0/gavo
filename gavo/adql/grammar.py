@@ -198,14 +198,17 @@ def getADQLGrammarCopy():
 	of the ADQL grammar.  Otherwise, use getADQLGrammar or a wrapper
 	function defined by a client module.
 	"""
+# WARNING: Changing global state here temporarily.  This will be trouble in
+# threads.  This stuff is reset below to the default from base.__init__
+	ParserElement.setDefaultWhitespaceChars("\n\t\r ")
 # Be careful when using setResultsName here.  The handlers are bound
 # at a later point, and names cause copies of the pyparsing objects,
 # so that elements named in rules will not be bound later.  Rather
 # name elements on their construction.
 	sqlComment = Literal("--") + SkipTo("\n" | StringEnd())
-	whitespace = Word(" \t")   # sometimes necessary to avoid sticking together
-		# numbers and identifiers
-	separator = Optional( sqlComment ) + Optional(Word(" \t\n"))
+	whitespace = Word(" \t\n")   # sometimes necessary to avoid sticking 
+		# together numbers and identifiers
+	separator = Optional( sqlComment ) + Optional(Word(" \t\n\r"))
 
 	unsignedInteger = Word(nums)
 	_exactNumericRE = r"\d+(\.(\d+)?)?|\.\d+"
@@ -437,6 +440,7 @@ def getADQLGrammarCopy():
 		+ Optional( setLimit ) 
 		+ selectList + tableExpression )
 	statement = querySpecification + Optional( White() ) + StringEnd()
+	ParserElement.setDefaultWhitespaceChars("\t ")
 	return dict((k, v) for k, v in locals().iteritems()
 		if isinstance(v, ParserElement)), statement
 

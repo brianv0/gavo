@@ -139,3 +139,8 @@
 35/MEDIUM/2009-10-08
 	Non-required defaulted fields (like cutout size on lswscans/positions)
 	do not get their default filled in on submitted forms.
+
+36/LOW/2009-10-16
+	base.__init__ calls pyparsing...setDefaultWhitespaceChars.  It really shouldn't
+	do this.  Find out what grammar needs this and do a local setDefaultWhitespaceChars
+	or similar.  Then remove the setDefault... calls in adql.getGrammar.
