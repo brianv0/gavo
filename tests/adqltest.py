@@ -648,7 +648,6 @@ class Q3CMorphTest(unittest.TestCase):
 				"  q3c_join(23, 24, alphafloat, deltafloat, 0.2)")
 
 
-
 class PQMorphTest(unittest.TestCase):
 	"""tests for morphing to psql geometry types and operators.
 	"""
@@ -659,6 +658,13 @@ class PQMorphTest(unittest.TestCase):
 	def testSyntax(self):
 		self._testMorph("select distinct top 10 x, y from foo", 
 			'SELECT DISTINCT x , y FROM foo LIMIT 10')
+
+	def testGroupby(self):
+		self._testMorph("select count(*), inc from ("
+			" select round(x/10) as inc from foo) as q group by inc",
+			"SELECT COUNT ( * ) , inc FROM"
+			" (SELECT round ( x / 10 ) AS inc FROM foo) AS q"
+			" GROUP BY inc")
 
 	def testSimpleTypes(self):
 		self._testMorph("select POiNT('ICRS', 1, 2), CIRCLE('ICRS', 2, 3, 4),"

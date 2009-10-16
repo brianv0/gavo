@@ -240,7 +240,7 @@ def _flattenQS(node, state):
 		("", "selectList"),
 		("", "fromClause"),
 		("", "whereClause"),
-		("", "grouping"),
+		("", "groupby"),
 		("", "having"),
 		("", "orderBy"),
 		("LIMIT", "setLimit"),

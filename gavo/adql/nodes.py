@@ -378,7 +378,7 @@ class QuerySpecification(ADQLNode, ColBearingMixin):
 
 	def _processChildren(self):
 		for name in ["setQuantifier", "setLimit", "selectList", "fromClause",
-				"whereClause", "grouping", "having", "orderBy"]:
+				"whereClause", "groupby", "having", "orderBy"]:
 			setattr(self, name, self.children.get(name))
 		self.query = weakref.proxy(self)
 		self._processChildrenNext(QuerySpecification)
@@ -406,7 +406,7 @@ class QuerySpecification(ADQLNode, ColBearingMixin):
 			("", "selectList"),
 			("", "fromClause"),
 			("", "whereClause"),
-			("", "grouping"),
+			("", "groupby"),
 			("", "having"),
 			("", "orderBy"),)
 
