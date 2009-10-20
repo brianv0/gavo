@@ -69,7 +69,7 @@ from gavo.base.structure import (Structure, ParseableStructure,
 
 from gavo.base.typesystems import *
 
-from gavo.base.valuemappers import getMappedValues, ValueMapperFactoryRegistry
+from gavo.base.valuemappers import SerManager, ValueMapperFactoryRegistry
 
 from gavo.base.vizierexprs import (getVexprFor, getSQLKey, 
 	joinOperatorExpr)

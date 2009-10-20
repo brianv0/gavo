@@ -30,7 +30,7 @@ _htmlMFRegistry = valuemappers.ValueMapperFactoryRegistry()
 _registerHTMLMF = _htmlMFRegistry.registerFactory
 
 
-def _defaultMapperFactory(colProps):
+def _defaultMapperFactory(colDesc):
 	def coder(val):
 		if val is None:
 			return "N/A"
@@ -43,11 +43,11 @@ _registerHTMLMF(_defaultMapperFactory)
 
 floatTypes = set(["real", "float", "double", "double precision"])
 
-def _sfMapperFactory(colProps):
-	if colProps["dbtype"] not in floatTypes:
+def _sfMapperFactory(colDesc):
+	if colDesc["dbtype"] not in floatTypes:
 		return
-	if colProps["displayHint"].get("sf"):
-		fmtStr = "%%.%df"%int(colProps["displayHint"].get("sf"))
+	if colDesc["displayHint"].get("sf"):
+		fmtStr = "%%.%df"%int(colDesc["displayHint"].get("sf"))
 		def coder(val):
 			if val is None:
 				return "N/A"
@@ -57,14 +57,14 @@ def _sfMapperFactory(colProps):
 _registerHTMLMF(_sfMapperFactory)
 
 
-def _hmsMapperFactory(colProps):
-	if ((colProps["unit"]!="hms" 
-			and colProps["displayHint"].get("type")!="time")
-		or colProps["datatype"]=="char"):
+def _hmsMapperFactory(colDesc):
+	if ((colDesc["unit"]!="hms" 
+			and colDesc["displayHint"].get("type")!="time")
+		or colDesc["datatype"]=="char"):
 		return
-	colProps["unit"] = "hms"
-	sepChar = colProps["displayHint"].get("sepChar", " ")
-	sf = int(colProps["displayHint"].get("sf", 2))
+	colDesc["unit"] = "hms"
+	sepChar = colDesc["displayHint"].get("sepChar", " ")
+	sf = int(colDesc["displayHint"].get("sf", 2))
 	def coder(val):
 		if val is None:
 			return "N/A"
@@ -74,14 +74,14 @@ def _hmsMapperFactory(colProps):
 _registerHTMLMF(_hmsMapperFactory)
 
 
-def _sexagesimalMapperFactory(colProps):
-	if ((colProps["unit"]!="dms" 
-			and colProps["displayHint"].get("type")!="sexagesimal")
-		or colProps["datatype"]=="char"):
+def _sexagesimalMapperFactory(colDesc):
+	if ((colDesc["unit"]!="dms" 
+			and colDesc["displayHint"].get("type")!="sexagesimal")
+		or colDesc["datatype"]=="char"):
 		return
-	colProps["unit"] = "dms"
-	sepChar = colProps["displayHint"].get("sepChar", " ")
-	sf = int(colProps["displayHint"].get("sf", 2))
+	colDesc["unit"] = "dms"
+	sepChar = colDesc["displayHint"].get("sepChar", " ")
+	sf = int(colDesc["displayHint"].get("sf", 2))
 	def coder(val):
 		if val is None:
 			return "N/A"
@@ -89,19 +89,19 @@ def _sexagesimalMapperFactory(colProps):
 	return coder
 _registerHTMLMF(_sexagesimalMapperFactory)
 
-def _unitMapperFactory(colProps):
+def _unitMapperFactory(colDesc):
 	"""returns a factory that converts between units for fields that have
 	a displayUnit displayHint.
 
 	The stuff done here has to be done for all factories handling unit-based
 	floating point values.  Maybe we want to do "decorating" meta-factories?
 	"""
-	if colProps["displayHint"].get("displayUnit") and \
-			colProps["displayHint"]["displayUnit"]!=colProps["unit"]:
-		factor = base.computeConversionFactor(colProps["unit"], 
-			colProps["displayHint"]["displayUnit"])
-		colProps["unit"] = colProps["displayHint"]["displayUnit"]
-		fmtStr = "%%.%df"%int(colProps["displayHint"].get("sf", 2))
+	if colDesc["displayHint"].get("displayUnit") and \
+			colDesc["displayHint"]["displayUnit"]!=colDesc["unit"]:
+		factor = base.computeConversionFactor(colDesc["unit"], 
+			colDesc["displayHint"]["displayUnit"])
+		colDesc["unit"] = colDesc["displayHint"]["displayUnit"]
+		fmtStr = "%%.%df"%int(colDesc["displayHint"].get("sf", 2))
 		def coder(val):
 			if val is None:
 				return "N/A"
@@ -113,10 +113,10 @@ def _stringWrapMF(baseMF):
 	"""returns a factory that returns None when baseMF does but stringifies
 	any results from baseMF's handlers if they fire.
 	"""
-	def factory(colProps):
-		handler = baseMF(colProps)
-		if colProps["displayHint"].get("sf", None):
-			fmtstr = "%%.%df"%int(colProps["displayHint"]["sf"])
+	def factory(colDesc):
+		handler = baseMF(colDesc)
+		if colDesc["displayHint"].get("sf", None):
+			fmtstr = "%%.%df"%int(colDesc["displayHint"]["sf"])
 		fmtstr = "%s"
 		if handler:
 			def realHandler(val):
@@ -131,12 +131,12 @@ def _stringWrapMF(baseMF):
 _registerHTMLMF(_stringWrapMF(valuemappers.datetimeMapperFactory))
 
 
-def humanDatesFactory(colProps):
+def humanDatesFactory(colDesc):
 	format, unit = {"humanDatetime": ("%Y-%m-%d %H:%M:%S", "Y-M-D h:m:s"),
 		"humanDate": ("%Y-%m-%d", "Y-M-D"), }.get(
-			colProps["displayHint"].get("type"), (None, None))
-	if format and isinstance(colProps["sample"], datetime.date):
-		colProps["unit"] = unit
+			colDesc["displayHint"].get("type"), (None, None))
+	if format and isinstance(colDesc["sample"], datetime.date):
+		colDesc["unit"] = unit
 		def coder(val):
 			if val is None:
 				return "N/A"
@@ -149,12 +149,12 @@ def humanDatesFactory(colProps):
 _registerHTMLMF(humanDatesFactory)
 
 
-def humanTimesFactory(colProps):
-	if (colProps["displayHint"].get("type")=="humanTime" and
-			isinstance(colProps["sample"], (datetime.timedelta, datetime.time))):
-		sf = int(colProps["displayHint"].get("sf", 0))
+def humanTimesFactory(colDesc):
+	if (colDesc["displayHint"].get("type")=="humanTime" and
+			isinstance(colDesc["sample"], (datetime.timedelta, datetime.time))):
+		sf = int(colDesc["displayHint"].get("sf", 0))
 		fmtStr = "%%02d:%%02d:%%0%d.%df"%(sf+3, sf)
-		if isinstance(colProps["sample"], datetime.time):
+		if isinstance(colDesc["sample"], datetime.time):
 			def coder(val):
 				if val is None:
 					return "N/A"
@@ -173,20 +173,20 @@ def humanTimesFactory(colProps):
 _registerHTMLMF(humanTimesFactory)
 
 
-def _sizeMapperFactory(colProps):
+def _sizeMapperFactory(colDesc):
 	"""is a factory for formatters for file sizes and similar.
 	"""
-	if colProps["unit"]!="byte":
+	if colDesc["unit"]!="byte":
 		return
-	sf = int(colProps["displayHint"].get("sf", 1))
+	sf = int(colDesc["displayHint"].get("sf", 1))
 	def coder(val):
 		return utils.formatSize(val, sf)
 	return coder
 _registerHTMLMF(_sizeMapperFactory)
 
 
-def _barMapperFactory(colProps):
-	if colProps["displayHint"].get("type")!="bar":
+def _barMapperFactory(colDesc):
+	if colDesc["displayHint"].get("type")!="bar":
 		return
 	def coder(val):
 		if val:
@@ -197,14 +197,14 @@ def _barMapperFactory(colProps):
 _registerHTMLMF(_barMapperFactory)
 
 
-def _productMapperFactory(colProps):
-	if colProps["displayHint"].get("type")!="product":
+def _productMapperFactory(colDesc):
+	if colDesc["displayHint"].get("type")!="product":
 		return
-	if colProps["displayHint"].get("nopreview"):
+	if colDesc["displayHint"].get("nopreview"):
 		mouseoverHandler = None
 	else:
 		try:
-			pWidth = int(colProps["displayHint"].get("width", "200"))
+			pWidth = int(colDesc["displayHint"].get("width", "200"))
 		except ValueError:
 			pWidth = 200
 		mouseoverHandler = "insertPreview(this, %s)"%pWidth
@@ -222,7 +222,7 @@ def _productMapperFactory(colProps):
 _registerHTMLMF(_productMapperFactory)
 
 
-def _simbadMapperFactory(colProps):
+def _simbadMapperFactory(colDesc):
 	"""is a mapper yielding links to simbad.
 
 	To make this work, you need to furnish the OutputField with a
@@ -231,9 +231,9 @@ def _simbadMapperFactory(colProps):
 	You can give a coneMins displayHint to specify the search radius in
 	minutes.
 	"""
-	if colProps["displayHint"].get("type")!="simbadlink":
+	if colDesc["displayHint"].get("type")!="simbadlink":
 		return
-	radius = float(colProps["displayHint"].get("coneMins", "1"))
+	radius = float(colDesc["displayHint"].get("coneMins", "1"))
 	def coder(data):
 		alpha, delta = data[0], data[1]
 		if alpha and delta:
@@ -246,8 +246,8 @@ def _simbadMapperFactory(colProps):
 _registerHTMLMF(_simbadMapperFactory)
 
 
-def _feedbackSelectMapperFactory(colProps):
-	if colProps["displayHint"].get("type")!="feedbackSelect":
+def _feedbackSelectMapperFactory(colDesc):
+	if colDesc["displayHint"].get("type")!="feedbackSelect":
 		return
 	def coder(data):
 		return T.input(type="checkbox", name="feedbackSelect", 
@@ -256,8 +256,8 @@ def _feedbackSelectMapperFactory(colProps):
 _registerHTMLMF(_feedbackSelectMapperFactory)
 
 
-def _bibcodeMapperFactory(colProps):
-	if colProps["displayHint"].get("type")!="bibcode":
+def _bibcodeMapperFactory(colDesc):
+	if colDesc["displayHint"].get("type")!="bibcode":
 		return
 	def coder(data):
 		if data:
@@ -270,8 +270,8 @@ def _bibcodeMapperFactory(colProps):
 _registerHTMLMF(_bibcodeMapperFactory)
 
 
-def _keepHTMLMapperFactory(colProps):
-	if colProps["displayHint"].get("type")!="keephtml":
+def _keepHTMLMapperFactory(colDesc):
+	if colDesc["displayHint"].get("type")!="keephtml":
 		return
 	def coder(data):
 		if data:
@@ -281,8 +281,8 @@ def _keepHTMLMapperFactory(colProps):
 _registerHTMLMF(_keepHTMLMapperFactory)
 
 
-def _urlMapperFactory(colProps):
-	if colProps["displayHint"].get("type")!="url":
+def _urlMapperFactory(colDesc):
+	if colDesc["displayHint"].get("type")!="url":
 		return
 	def coder(data):
 		if data:
@@ -305,25 +305,25 @@ class HeadCellsMixin(object):
 
 	The class mixing in must provide the table column definitions as
 	self.fieldDefs, and the column properties as computed by
-	HTMLDataRenderer as colPropsIndex.  HTMLDataRenderers already do
+	HTMLDataRenderer as colDesc.  HTMLDataRenderers already do
 	that.
 	"""
 	def data_fielddefs(self, ctx, ignored):
 		return self.fieldDefs
 
 	def render_headCell(self, ctx, fieldDef):
-		props = self.colPropsIndex[fieldDef.name]
+		cd = self.colDescIndex[fieldDef.name]
 		cont = fieldDef.tablehead
 		if cont is None:
-			cont = props["description"]
+			cont = cd["description"]
 		if cont is None:
 			cont = fieldDef.name
-		desc = props["description"]
+		desc = cd["description"]
 		if desc is None:
 			desc = cont
 		tag = ctx.tag(title=desc)[T.xml(cont)]
-		if props["unit"]:
-			tag[T.br, "[%s]"%props["unit"]]
+		if cd["unit"]:
+			tag[T.br, "[%s]"%cd["unit"]]
 		if fieldDef.note is not None and fieldDef.parent:
 			noteURL = base.makeSitePath(
 				"/tablenote/%s"%(urllib.quote(fieldDef.note)))
@@ -334,9 +334,9 @@ class HeadCellsMixin(object):
 
 
 class HeadCells(rend.Page, HeadCellsMixin):
-	def __init__(self, fieldDefs, colPropsIndex):
+	def __init__(self, fieldDefs, colDescIndex):
 		self.fieldDefs = fieldDefs
-		self.colPropsIndex = colPropsIndex
+		self.colDescIndex = colDescIndex
 
 	docFactory = loaders.stan(
 		T.tr(data=T.directive("fielddefs"), render=rend.sequence) [
@@ -389,28 +389,26 @@ class HTMLDataRenderer(rend.Fragment):
 		"""leaves a sequence of children for each row in the
 		defaultTds attribute.
 
-		It also creates the attributes colProps and colPropsIndex
+		It also creates the attributes serManager and colDescIndex
 		that should be used to obtain the units for the respective
 		columns since the formatters might have changed them.
 		"""
-		self.colProps = [valuemappers.ColProperties(f)
-			for f in self.table.tableDef]
-		self.colPropsIndex = dict((props["name"], props) 
-			for props in self.colProps)
-		valuemappers.acquireSamples(self.colPropsIndex, self.table)
+		self.serManager = valuemappers.SerManager(self.table, withRanges=False,
+			mfRegistry=_htmlMFRegistry)
+		self.colDescIndex = dict((c["name"], c) for c in self.serManager)
 		self.defaultTds = []
-		for props, field in zip(self.colProps, self.table.tableDef):
+		for desc, field in zip(self.serManager, self.table.tableDef):
 			if field.wantsRow:
-				props["wantsRow"] = True
+				desc["wantsRow"] = True
 			if field.formatter:
 				formatter = self._compileRenderer(field.formatter)
 			else:
-				formatter=_htmlMFRegistry.getMapper(props) # This may change props!
-			if props.has_key("wantsRow"):
+				formatter=_htmlMFRegistry.getMapper(desc) # This may change desc!
+			if desc.has_key("wantsRow"):
 				self.defaultTds.append(
 					T.td(formatter=formatter, render=T.directive("useformatter")))
 			else:
-				self.defaultTds.append(T.td(data=T.slot(props["name"]),
+				self.defaultTds.append(T.td(data=T.slot(desc["name"]),
 					formatter=formatter,
 					render=T.directive("useformatter")))
 
@@ -423,8 +421,7 @@ class HTMLDataRenderer(rend.Fragment):
 		return ctx.tag[formatVal(data)]
 
 	def _computeHeadCellsStan(self):
-		self.headCells = HeadCells(self.table.tableDef,
-				self.colPropsIndex)
+		self.headCells = HeadCells(self.table.tableDef, self.colDescIndex)
 		self.headCellsStan = T.xml(self.headCells.renderSynchronously())
 
 	def render_headCells(self, ctx, data):

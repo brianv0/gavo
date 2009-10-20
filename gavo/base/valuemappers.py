@@ -5,9 +5,10 @@ A value mapper is a function used for serialization of (python) values
 to strings, e.g., for HTML or VOTables.
 
 They are produced by factories that in turn are registered in 
-ValueMapperFactoryRegistries.  These can be queried for mappers for
-a colProps value; this is a dictionary specifying certain properties
-of a column and a sample value.
+ValueMapperFactoryRegistries.  These can be queried for mappers using
+VColDesc instances; these are basically dictionaries giving certain
+observable properties of a column (min, max, a sample value), values
+from Column, and computed stuff like the VOTable type.
 
 See ValueMapperFactoryRegistry.
 
@@ -19,6 +20,7 @@ formats.
 import re
 import urllib
 import urlparse
+import weakref
 
 from gavo import stc
 from gavo import utils
@@ -33,14 +35,14 @@ class ValueMapperFactoryRegistry(object):
 	"""is an object clients can ask for functions fixing up values
 	for encoding.
 
-	A mapper factory is just a function that takes a ColProperties instance.
+	A mapper factory is just a function that takes a VColDesc instance.
 	It must return either None (for "I don't know how to make a function for this
 	combination these column properties") or a callable that takes a value
 	of the given type and returns a mapped value.
 
 	To add a mapper, call registerFactory.  To find a mapper for a
 	set of column properties, call getMapper -- column properties should
-	be an instance of ColProperties, but for now a dictionary with the
+	be an instance of VColDesc, but for now a dictionary with the
 	right keys should mostly do.
 
 	Mapper factories are tried in the reverse order of registration,
@@ -67,20 +69,19 @@ class ValueMapperFactoryRegistry(object):
 	def registerFactory(self, factory):
 		self.factories.insert(0, factory)
 
-	def getMapper(self, colProps):
+	def getMapper(self, colDesc):
 		"""returns a mapper for values with the python value instance, 
-		according to colProps.
+		according to colDesc.
 
-		This method may change colProps (which is the usual dictionary
-		mapping column property names to their values).
+		This method may change colDesc.
 
 		We do a linear search here, so you shouldn't call this function too
 		frequently.
 		"""
 		for factory in self.factories:
-			mapper = factory(colProps)
+			mapper = factory(colDesc)
 			if mapper:
-				colProps["winningFactory"] = factory
+				colDesc["winningFactory"] = factory
 				break
 		else:
 			mapper = utils.identity
@@ -103,15 +104,15 @@ _defaultNullvalues = {
 }
 
 
-def _intMapperFactory(colProps):
-	if colProps["datatype"] in _defaultNullvalues:
-		if not colProps.get("hasNulls"):
+def _intMapperFactory(colDesc):
+	if colDesc["datatype"] in _defaultNullvalues:
+		if not colDesc.get("hasNulls"):
 			return
 		try:
-			colProps.computeNullvalue()
+			colDesc.computeNullvalue()
 		except AttributeError:
-			colProps["nullvalue"] = _defaultNullvalues[colProps["datatype"]]
-		def coder(val, nullvalue=colProps["nullvalue"]):
+			colDesc["nullvalue"] = _defaultNullvalues[colDesc["datatype"]]
+		def coder(val, nullvalue=colDesc["nullvalue"]):
 			if val is None:
 				return nullvalue
 			return val
@@ -119,8 +120,8 @@ def _intMapperFactory(colProps):
 _registerDefaultMF(_intMapperFactory)
 
 
-def _booleanMapperFactory(colProps):
-	if colProps["dbtype"]=="boolean":
+def _booleanMapperFactory(colDesc):
+	if colDesc["dbtype"]=="boolean":
 		def coder(val):
 			if val:
 				return "1"
@@ -130,8 +131,8 @@ def _booleanMapperFactory(colProps):
 _registerDefaultMF(_booleanMapperFactory)
 
 
-def _floatMapperFactory(colProps):
-	if colProps["dbtype"]=="real" or colProps["dbtype"].startswith("double"):
+def _floatMapperFactory(colDesc):
+	if colDesc["dbtype"]=="real" or colDesc["dbtype"].startswith("double"):
 		naN = float("NaN")
 		def coder(val):
 			if val is None:
@@ -141,10 +142,10 @@ def _floatMapperFactory(colProps):
 _registerDefaultMF(_floatMapperFactory)
 
 
-def _stringMapperFactory(colProps):
-	if colProps.get("optional", True) and ("char(" in colProps["dbtype"] or 
-			colProps["dbtype"]=="text"):
-		if isinstance(colProps["sample"], str):
+def _stringMapperFactory(colDesc):
+	if colDesc.get("optional", True) and ("char(" in colDesc["dbtype"] or 
+			colDesc["dbtype"]=="text"):
+		if isinstance(colDesc["sample"], str):
 			constructor = str
 		else:
 			constructor = unicode
@@ -156,8 +157,8 @@ def _stringMapperFactory(colProps):
 _registerDefaultMF(_stringMapperFactory)
 
 
-def _charMapperFactory(colProps):
-	if colProps["dbtype"]=="char":
+def _charMapperFactory(colDesc):
+	if colDesc["dbtype"]=="char":
 		def coder(val):
 			if val is None:
 				return "\0"
@@ -168,7 +169,7 @@ _registerDefaultMF(_charMapperFactory)
 
 import datetime
 
-def datetimeMapperFactory(colProps):
+def datetimeMapperFactory(colDesc):
 	import time
 
 	def dtToMJdn(val):
@@ -176,11 +177,11 @@ def datetimeMapperFactory(colProps):
 		"""
 		return stc.dateTimeToJdn(val)-2400000.5
 	
-	if (isinstance(colProps["sample"], (datetime.date, datetime.datetime))
-			or (colProps["sample"] is None and colProps["dbtype"]=="timestamp")):
-		unit = colProps["unit"]
-		if "MJD" in colProps.get("ucd", ""):  # like VOX:Image_MJDateObs
-			colProps["unit"] = "d"
+	if (isinstance(colDesc["sample"], (datetime.date, datetime.datetime))
+			or (colDesc["sample"] is None and colDesc["dbtype"]=="timestamp")):
+		unit = colDesc["unit"]
+		if "MJD" in colDesc.get("ucd", ""):  # like VOX:Image_MJDateObs
+			colDesc["unit"] = "d"
 			fun, destType = lambda val: val and dtToMJdn(val), (
 				"double", None)
 		elif unit=="yr" or unit=="a":
@@ -199,19 +200,19 @@ def datetimeMapperFactory(colProps):
 		else:   # Fishy, but not our fault
 			fun, destType = lambda val: val and stc.dateTimeToJdn(val), (
 				"double", None)
-		colProps["datatype"], colProps["arraysize"] = destType
+		colDesc["datatype"], colDesc["arraysize"] = destType
 		return fun
 _registerDefaultMF(datetimeMapperFactory)
 
 
 
-def _productMapperFactory(colProps):
+def _productMapperFactory(colDesc):
 	"""is a factory for columns containing product keys.
 
 	The result are links to the product delivery.
 	"""
 	from nevow import url
-	if colProps["ucd"]=="VOX:Image_AccessReference":
+	if colDesc["ucd"]=="VOX:Image_AccessReference":
 		def mapper(val):
 			if val is None:
 				return ""
@@ -224,32 +225,32 @@ def _productMapperFactory(colProps):
 _registerDefaultMF(_productMapperFactory)
 
 
-def _boxMapperFactory(colProps):
+def _boxMapperFactory(colDesc):
 	"""A factory for Boxes.
 	"""
-	if colProps["dbtype"]!="box":
+	if colDesc["dbtype"]!="box":
 		return
 	def mapper(val):
 		if val is None:
 			return ""
 		else:
 			return "Box ICRS %s %s %s %s"%(val[0]+val[1])
-	colProps["datatype"], colProps["arraysize"] = "char", "*"
+	colDesc["datatype"], colDesc["arraysize"] = "char", "*"
 	return mapper
 _registerDefaultMF(_boxMapperFactory)
 
 
-def _castMapperFactory(colProps):
+def _castMapperFactory(colDesc):
 	"""is a factory that picks up castFunctions set up by user casts.
 	"""
-	if "castFunction" in colProps:
-		return colProps["castFunction"]
+	if "castFunction" in colDesc:
+		return colDesc["castFunction"]
 _registerDefaultMF(_castMapperFactory)
 
 
 _tagPat = re.compile("<[^>]*>")
-def _htmlScrubMapperFactory(colProps):
-	if colProps["displayHint"].get("type")!="keephtml":
+def _htmlScrubMapperFactory(colDesc):
+	if colDesc["displayHint"].get("type")!="keephtml":
 		return
 	def coder(data):
 		if data:
@@ -315,24 +316,31 @@ class _Supremum(_Comparer):
 
 
 
-class ColProperties(dict):
+class VColDesc(dict):
 	"""is a container for properties of columns in a table.
 
-	Specifically, it gives maxima, minima and if null values occur.
+	Specifically, it gives maxima, minima and if null values occur, plus
+	things like ADQL types.  These objects are central to the mapping
+	of values and VOTable FIELD generation.
+
+	We want separate objects here since some heavy type mapping may take
+	place, and we do not want serious surgery on our (ideally immutable)
+	Columns.
 
 	One of the main functions of this class is that instances can/should
 	be used to query ValueMapperFactoryRegistries for value mappers.
 
 	As a special service to coerce internal tables to external standards,
-	you can pass a votCast dictionary to ColProperties.  The VOTable
-	construction code does this by inspecting a table's votCast attribute.
+	you can pass a votCast dictionary to VColDesc.  Give any key/value pairs
+	in there to override what VColDesc guesses or infers.  This is used to 
+	force the sometimes a bit funky SCS/SIAP types to standard values.
 
-	This dictionary will be updated to self after all values are set from
-	the field; thus, you can override all guessed column properties.
-
-	In addition, the castMapperFactory above checks for the presence of
-	a castFunction in in ColProperties.  If it is there, it will be used
-	for mapping the values.
+	The castMapperFactory enabled by default checks for the presence of
+	a castFunction in a VColDesc.  If it is there, it will be used
+	for mapping the values, so this is another thing you can have in votCast.
+	
+	The SerManager tries to obtain votCasts from a such-named
+	attribute on the table passed in.
 	"""
 	_nullvalueRanges = {
 		"char": (' ', '~'),
@@ -350,7 +358,6 @@ class ColProperties(dict):
 		self["dbtype"] = column.type
 		self["description"] = (column.description or 
 			column.tablehead or "")
-		self["ID"] = column.name  # XXX TODO: qualify this guy
 		type, size = typesystems.sqltypeToVOTable(column.type)
 		self["datatype"] = type
 		self["arraysize"] = size
@@ -392,65 +399,153 @@ class ColProperties(dict):
 				"range is %s..%s"%(self["name"], self["min"], self["max"]))
 
 
-def acquireSamples(colPropsIndex, table):
-	"""fills the values in the colProps-valued dict colPropsIndex with non-null
-	values from table.
+class SerManager(utils.IdManagerMixin):
+	"""A wrapper for the serialisation of table data.
+
+	SerManager instances keep information on what values certain columns can
+	assume and how to map them to concrete values in VOTables, HTML or ASCII.
+	
+	Additionally, they currently manage STC serialisation as well, but
+	I'm not too happy about that.
+
+	They are constructed with a BaseTable instance.
+
+	You can additionally give:
+
+	* withRanges -- iterate over the whole table to figure out minima,
+	  maxima, and the appearance of null values (this is currently required
+	  for reliable null value determination in VOTables with integers).  Default
+		is True.
+	* idManager -- an object mixing in utils.IdManagerMixin.  This is important
+	  if the ids we are assigning here end up in a larger document.  In that
+	  case, pass in the id manager of that larger document.  Default is the
+		SerManager itself
+	* mfRegistry -- a map factory registry.  Default is the defaltMFRegistry.
 	"""
-# this is a q'n'd version of what's done in 
-# votable.TableData._computeColProperties
-# -- that method should be refactored anyway.  You can then fold in this
-# function.
-	noSampleCols = set(colPropsIndex)
-	for row in table:
-		newSampleCols = set()
-		for col in noSampleCols:
-			if row[col] is not None:
-				newSampleCols.add(col)
-				colPropsIndex[col]["sample"] = row[col]
-		noSampleCols.difference_update(newSampleCols)
-		if not noSampleCols:
-			break
+	# Don't compute min, max, etc for these types
+	_noValuesTypes = set(["boolean", "bit", "unicodeChar",
+		"floatComplex", "doubleComplex"])
 
-def getColProps(table):
-	"""returns a sequence of ColProperties instances for the fields of table.
-	"""
-	colProps = [ColProperties(column) 
-		for column in table.tableDef]
-	acquireSamples(dict([(cp["name"], cp) for cp in colProps]), table)
-	return colProps
+	def __init__(self, table, withRanges=True, idManager=None,
+			mfRegistry=defaultMFRegistry):
+		self.table = table
+		self.idManager = idManager
+		if self.idManager is None:
+			self.idManager = weakref.proxy(self)
+		self._makeColDescs()
+		self._acquireSamples()
+		if withRanges:
+			self._findRanges()
+		for cd in self:
+			cd.finish()
+		self._makeMappers(mfRegistry)
+	
+	def __iter__(self):
+		return iter(self.colDescs)
 
+	def _makeColDescs(self):
+		self.colDescs = []
+		for column in self.table.tableDef:
+			self.colDescs.append(
+				VColDesc(column, self.table.votCasts.get(column.name)))
+			colId = self.idManager.makeIdFor(column)
+			# Do not generate an id if the field is already defined somewhere else.
+			if colId is not None:
+				self.colDescs[-1]["ID"] = colId
 
-def getMappers(colProps, mfRegistry=defaultMFRegistry):
-	"""returns a sequence of mappers of the sequence of ColProperties colProps.
+	def _findRanges(self):
+		"""obtains minima, maxima, and the existence of null values for
+		our columns.
 
-	The ColProperties should already have samples filled in.
-	"""
-	return tuple(mfRegistry.getMapper(cp) for cp in colProps)
+		This obviously takes a long time of large tables.
+		"""
+		colIndex = dict((c["name"], c) for c in self)
+		valDesiredCols = [c["name"] for c in self
+			if c["datatype"] not in self._noValuesTypes and
+				c["arraysize"]=="1" and not "castFunction" in c]
+		for row in self.table:
+			for key in valDesiredCols:
+				colIndex[key].feed(row[key])
 
+	def _acquireSamples(self):
+		"""obtains samples for the the various columns.
 
-def getMappedValues(table, mfRegistry=defaultMFRegistry):
-	"""iterates over the table's rows with values mapped as defined by 
-	mfRegistry.
-	"""
-	colLabels = [f.name for f in table.tableDef]
-	if not colLabels:
-		yield ()
-		return
-	mappers = getMappers(getColProps(table), mfRegistry)
-	exec ",".join(["map%d"%col for col in range(len(mappers))])+ ", = mappers"\
-		in locals()
+		To do that, it iterates through the table until it has samples for
+		all items.  Thus, this may be slow.
+		"""
+		colIndex = dict((c["name"], c) for c in self)
+		noSampleCols = set(colIndex)
+		for row in self.table:
+			newSampleCols = set()
+			for col in noSampleCols:
+				if row[col] is not None:
+					newSampleCols.add(col)
+					colIndex[col]["sample"] = row[col]
+			noSampleCols.difference_update(newSampleCols)
+			if not noSampleCols:
+				break
 
-	funDef = ["def buildRec(rowDict):"]
-	for index, label in enumerate(colLabels):
-		if mappers[index] is not utils.identity:
-			funDef.append("\trowDict[%r] = map%d(rowDict[%r])"%(
-				label, index, label))
-	funDef.append("\treturn rowDict")
-	exec "\n".join(funDef) in locals()
+	def _makeMappers(self, mfRegistry):
+		"""returns a sequence of functions mapping our columns.
 
-	for row in table:
-		yield buildRec(row)
+		As a side effect, column properties may change (in particular,
+		datatypes).
+		"""
+		self.mappers = tuple(mfRegistry.getMapper(cp) for cp in self)
 
+	def makeMapperFunction(self):
+		"""returns a function that returns a dictionary of mapped values
+		for a row dictionary.
+		"""
+		buildNS = dict(("map%d"%index, mapper) 
+			for index, mapper in enumerate(self.mappers))
+		colLabels = [c["name"] for c in self]
+
+		funDef = ["def buildRec(rowDict):"]
+		for index, label in enumerate(colLabels):
+			if self.mappers[index] is not utils.identity:
+				funDef.append("\trowDict[%r] = map%d(rowDict[%r])"%(
+					label, index, label))
+		funDef.append("\treturn rowDict")
+
+		exec "\n".join(funDef) in buildNS
+		return buildNS["buildRec"]
+
+	def makeTupleMaker(self):
+		"""returns a function that returns a tuple of mapped values
+		for a row dictionary.
+		"""
+		buildNS = dict(("map%d"%index, mapper) 
+			for index, mapper in enumerate(self.mappers))
+
+		funDef = ["def buildRec(rowDict):", "\treturn ("]
+		for index, cd in enumerate(self):
+			if self.mappers[index] is utils.identity:
+				funDef.append("\t\trowDict[%r],"%cd["name"])
+			else:
+				funDef.append("\t\tmap%d(rowDict[%r]),"%(index, cd["name"]))
+		funDef.append("\t)")
+
+		exec "\n".join(funDef) in buildNS
+		return buildNS["buildRec"]
+
+	def _iterWithMaps(self, buildRec):
+		colLabels = [f.name for f in self.table.tableDef]
+		if not colLabels:
+			yield ()
+			return
+		for row in self.table:
+			yield buildRec(row)
+
+	def getMappedValues(self):
+		"""iterates over the table's rows as dicts with mapped values.
+		"""
+		return self._iterWithMaps(self.makeMapperFunction())
+
+	def getMappedTuples(self):
+		"""iterates over the table's rows as tuples with mapped values.
+		"""
+		return self._iterWithMaps(self.makeTupleMaker())
 
 def _test():
 	import doctest, valuemappers

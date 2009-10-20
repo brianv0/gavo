@@ -3,6 +3,7 @@ Some tests for votable production.
 """
 
 from cStringIO import StringIO
+import datetime
 import os
 import pkg_resources
 import unittest
@@ -60,12 +61,6 @@ class VotableTest(unittest.TestCase):
 		self.rawVOTable = output.getvalue()
 		self.tree = ElementTree.fromstring(self.rawVOTable)
 
-	def _testshowdoc(self):
-		open("bla.xml", "w").write(self.rawVOTable)
-		f = os.popen("xmlstarlet fo", "w")
-		f.write(self.rawVOTable)
-		f.close()
-	
 	def testValidates(self):
 		"""test for validity of the generated VOTable.
 		"""
@@ -158,5 +153,56 @@ class ImportTest(testhelpers.VerboseTest):
 				'bytea', 'real', 'text', 'text', 'char'])
 
 
+class MetaTest(testhelpers.VerboseTest):
+	"""tests for inclusion of some meta items.
+	"""
+	def _getTestData(self):
+		table = rsc.TableForDef(
+			testhelpers.getTestRD().getById("typestable").change(onDisk=False,
+				id="fud"),
+			rows=[{"anint": 10, "afloat": 0.1, "adouble": 0.2,
+				"atext": "a", "adate": datetime.date(2004, 01, 01)}])
+		return rsc.wrapTable(table)
+
+	def _assertVOTableContains(self, setupFunc, expectedStrings):
+		data = self._getTestData()
+		setupFunc(data)
+		vot = votable.getAsVOTable(data)
+		try:
+			for s in expectedStrings:
+				self.failUnless(s in vot, "%r not in VOTable"%s)
+		except AssertionError:
+			open("lastbad.xml", "w").write(vot)
+			raise
+
+	def testWarning(self):
+		def setupData(data):
+			data.getPrimaryTable().addMeta("_warning", 
+				"Last warning: Do not use ' or \".")
+			data.getPrimaryTable().addMeta("_warning", 
+				"Now, this *really* is the last warning")
+		self._assertVOTableContains(setupData, [
+			'<INFO name="warning" value="In table fud: Last warning:'
+				' Do not use &apos; or &quot;."',
+			'<INFO name="warning" value="In table fud: Now, this *really*',
+		])
+	
+	def testLegal(self):
+		def setupData(data):
+			data.addMeta("copyright", "Please reference someone else")
+		self._assertVOTableContains(setupData, [
+			'<INFO name="legal" value="Please reference someone else"'])
+	
+
+class STCTest(testhelpers.VerboseTest):
+	"""tests for proper inclusion of STC in VOTables.
+	"""
+	def testSimpleSTC(self):
+		td = testhelpers.getTestRD().getById("adql").change(onDisk=False)
+		table = rsc.TableForDef(td, rows=[
+			{'alpha': 10, 'delta': -10, 'mag': -1, 'rv': -4}])
+		tx = votable.getAsVOTable(table)
+
+
 if __name__=="__main__":
-	testhelpers.main(ImportTest)
+	testhelpers.main(MetaTest)

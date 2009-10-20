@@ -398,7 +398,7 @@ def _buildAstroCoordSystem(node, buildArgs, context):
 	# Hack -- make sure we have a good id here, even when this means
 	# a violation of our non-mutability ideology.
 	if newEl.id is None:
-		newEl.id = intToFunnyWord(id(newEl))
+		newEl.id = utils.intToFunnyWord(id(newEl))
 	yield "astroSystem", newEl
 
 

@@ -85,8 +85,8 @@ class BaseTable(base.MetaMixin):
 	rows -- a list of rows the table has at start (InMemoryTables; DbTables
 	  will raise an error on these).
 	connection -- a database connection to use for accessing DbTables.
-	votCasts -- a dictionary mapping column names to dictionaries for
-	  use with ColProperties.  See there.
+	votCasts -- a dictionary mapping column names to dictionaries overriding
+	  keys of valuemappers.VColDescs.
 
 	You can add rows using the addRow method.  For bulk additions, however,
 	it may be much more efficient to call getFeeder (though for in-memory

@@ -100,7 +100,7 @@ class ComputedCore(core.Core):
 		t = inputData.getTableWithRole("inputLine")
 		names = [c.name for c in t.tableDef]
 		res = []
-		for row in base.getMappedValues(t, argMFRegistry):
+		for row in base.SerManager(t, mfRegistry=argMFRegistry).getMappedValues():
 			res.append(" ".join([row[name] for name in names]))
 		return str("\n".join(res))
 

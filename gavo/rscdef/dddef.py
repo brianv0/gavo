@@ -188,7 +188,7 @@ class Make(base.Structure):
 		description="The role of the embedded table within the data set",
 		copyable=True)
 
-	def onParentCompleted(self):
+	def onParentComplete(self):
 		if self.rowmaker is base.NotGiven:
 			if (self.parent and self.parent.grammar and 
 					self.parent.grammar.yieldsTyped):
@@ -246,7 +246,6 @@ class DataDescriptor(base.Structure, base.MetaMixin, scripting.ScriptingMixin):
 
 	validWaypoints = ["preCreation", "postCreation"]
 
-
 	def onElementComplete(self):
 		self._onElementCompleteNext(DataDescriptor)
 		for t in self.tables:
@@ -259,6 +258,18 @@ class DataDescriptor(base.Structure, base.MetaMixin, scripting.ScriptingMixin):
 			return
 		self.managedAttrs[name] = self._grammar
 		return self._grammar
+
+	# since we want DDs to be dynamically created, they must find their
+	# meta parent (RD) themselves.  We do this while the DD is being adopted.
+	def _getParent(self):
+		return self.__parent
+	
+	def _setParent(self, value):
+		self.__parent = value
+		if value is not None:
+			self.setMetaParent(value)
+	
+	parent = property(_getParent, _setParent)
 
 	def getExpander(self):
 		"""returns the current rd.
@@ -307,7 +318,7 @@ class DataDescriptor(base.Structure, base.MetaMixin, scripting.ScriptingMixin):
 	def copyShallowly(self):
 		"""returns a shallow copy of self.
 
-		Sources are not copied to protect the innocent.
+		Sources are not copied.
 		"""
 		return DataDescriptor(self.parent, rowmakers=self.rowmakers[:],
 			tables=self.tables[:], grammar=self.grammar, makes=self.makes[:])

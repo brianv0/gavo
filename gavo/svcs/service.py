@@ -42,7 +42,7 @@ def getRenderer(rendName):
 
 
 def adaptTable(origTable, newColumns):
-	"""returns an InMemoryTable created from origTable with columns taken from
+	"""returns a Data instance created from origTable with columns taken from
 	newColumns.
 
 	The adaptation works like this:
@@ -86,8 +86,7 @@ def adaptTable(origTable, newColumns):
 		mapper = rmk.finishElement().compileForTable(newTable)
 		for r in origTable:
 			newTable.addRow(mapper(r))
-	newDD = rscdef.DataDescriptor(origTable.tableDef.rd, tables=[newTd])
-	return rsc.Data(newDD, tables={newTable.tableDef.id: newTable})
+	return rsc.wrapTable(newTable, rdSource=origTable.tableDef)
 
 
 class SvcResult(object):
@@ -463,8 +462,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 						res.append(outputdef.OutputField.fromColumn(col))
 			except base.NotFoundError, msg:
 				if raiseOnUnknown:
-					raise base.ValidationError("The additional field '%s' you requested"
-						" does not exist"%msg.name, colName="_OUTPUT")
+					raise base.ValidationError("The additional field %s you requested"
+						" does not exist"%repr(msg.lookedFor), colName="_OUTPUT")
 		return res
 
 	def getCurOutputFields(self, queryMeta=None, raiseOnUnknown=True):

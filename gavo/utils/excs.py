@@ -88,10 +88,13 @@ class ReportableError(Error):
 
 class NotFoundError(Error):
 	"""is raised when something is asked for something that does not exist.
+
+	lookedFor can be an arbitrary object, so be careful when your repr it --
+	that may be long.
 	"""
-	def __init__(self, msg, name, what=None):
+	def __init__(self, msg, lookedFor, what=None):
 		Error.__init__(self, msg)
-		self.name, self.what = name, what
+		self.lookedFor, self.what = lookedFor, what
 
 
 class ExecutiveAction(Exception):

@@ -20,6 +20,7 @@ from cStringIO import StringIO
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
+from gavo import utils
 from gavo.base import valuemappers
 from gavo.grammars import votablegrammar
 from gavo.utils import ElementTree
@@ -58,87 +59,17 @@ _tableEncoders = {
 }
 
 
-# XXX TODO: some of the mapping code in here is obsolete and should be scrapped
-# in favour of the functions provided by valuemappers.
+class VOTableMaker(utils.IdManagerMixin):
+	"""A process wrapper for writing a VOTable.
 
-class TableData(object):
-	"""is a tabular data for VOTables.
-
-	It is constructed from a table.Table instance and
-	a MapperFactoryRegistry.  It will do two sweeps through
-	the complete data, first to establish value ranges including
-	finding out if there are NULL values.  Then, it does another sweep
-	converting the sequence of dicts to a sequence of properly typed
-	and formatted tuples.
-	"""
-	def __init__(self, table, mFRegistry=valuemappers.defaultMFRegistry):
-		self.table = table
-		self.mFRegistry = mFRegistry
-		self.fieldNames = tuple(field.name
-			for field in self.table.tableDef)
-		self.colProperties = self._computeColProperties()
-		self.mappers = tuple(self.mFRegistry.getMapper(
-				self.colProperties[fieldName])
-			for fieldName in self.fieldNames)
-
-	# Don't compute min, max, etc for these types
-	_noValuesTypes = set(["boolean", "bit", "unicodeChar",
-		"floatComplex", "doubleComplex"])
-
-	def _computeColProperties(self):
-		"""inspects self.table to find out types and ranges of the data
-		living in it.
-
-		The method returns a sequence of ColProperty instances containing
-		all information necessary to set up VOTable Field definitions.
-		"""
-		colProps = {}
-		for field in self.table.tableDef:
-			colProps[field.name] = valuemappers.ColProperties(field,
-				votCast=self.table.votCasts.get(field.name))
-		valDesiredCols = [colProp["name"] for colProp in colProps.values()
-			if colProp["datatype"] not in self._noValuesTypes and
-				colProp["arraysize"]=="1" and not "castFunction" in colProp]
-		noSampleCols = set(colProps)
-		for row in self.table:
-			for key in valDesiredCols:
-				colProps[key].feed(row[key])
-			if noSampleCols:
-				newSampleCols = set()
-				for key in noSampleCols:
-					if row[key] is not None:
-						colProps[key]["sample"] = row[key]
-						newSampleCols.add(key)
-				noSampleCols.difference_update(newSampleCols)
-		for colProp in colProps.values():
-			colProp.finish()
-		return colProps
-
-	def getColProperties(self):
-		"""returns a sequence of ColProperties instances in the order of the
-		VOTable row.
-		"""
-		return [self.colProperties[name] for name in self.fieldNames]
-
-	def get(self):
-		colIndices = range(len(self.fieldNames))
-		def row2Tuple(row):
-			return tuple(self.mappers[i](
-				row[self.fieldNames[i]]) for i in colIndices)
-		return [row2Tuple(row) for row in self.table]
-
-
-class VOTableMaker:
-	"""is a facade wrapping the process of writing a VOTable.
-
-	Its main method is makeVOT turning a DataSet into a VOTable.
+	Its main method is makeVOT turning a Data instance into a VOTable.
 	"""
 	def __init__(self, tablecoding="binary",
 			mapperFactoryRegistry=valuemappers.defaultMFRegistry):
 		self.tablecoding = tablecoding
 		self.mFRegistry = mapperFactoryRegistry
 
-	def _addInfo(self, name, content, node, value="", id=None):
+	def _addInfo(self, name, node, content=None, value="", id=None):
 		"""adds info item "name" containing content having value to node
 		unless both content and value are empty.
 		"""
@@ -147,8 +78,8 @@ class VOTableMaker:
 		if content:
 			content = str(content).strip()
 		if content or value:
-			i = DM.Info(name=name, text=content)
-			i.value = value
+			i = DM.Info(name=name, text=str(content))
+			i.value = str(value)
 			if id:
 				i.ID = id
 			node.info.append(i)
@@ -166,9 +97,9 @@ class VOTableMaker:
 	_voFieldCopyKeys = ["name", "ID", "datatype", "ucd",
 		"utype", "unit", "description"]
 
-	def _getVOFieldArgs(self, colProperties):
+	def _getVOFieldArgs(self, colDesc):
 		"""returns a dictionary suitable for construction a VOTable field
-		from colProperties.
+		from colDesc.
 		"""
 		def _addValuesKey(cp, fieldArgs):
 			"""adds a VOTable VALUES node to fieldArgs when interesting.
@@ -191,26 +122,24 @@ class VOTableMaker:
 				fieldArgs["values"] = vals
 		res = {}
 		for key in self._voFieldCopyKeys:
-			res[key] = colProperties[key]
-		res["arraysize"] = colProperties["arraysize"]
-		if colProperties.has_key("value"):  # for PARAMs
-			res["value"] = str(colProperties["value"])   # XXX TODO: use value mappers
-		_addValuesKey(colProperties, res)
+			if key in colDesc:
+				res[key] = colDesc[key]
+		res["arraysize"] = colDesc["arraysize"]
+		if colDesc.has_key("value"):  # for PARAMs
+			res["value"] = str(colDesc["value"])   # XXX TODO: use value mappers
+		_addValuesKey(colDesc, res)
 		return res
 
-	def _defineFields(self, tableNode, colProperties):
-		"""defines the fields in colProperties within the VOTable tableNode.
-
-		colProperties is a sequence of ColProperties instances.  I need to
-		work on my naming...
+	def _defineFields(self, tableNode, serManager):
+		"""defines the FIELDS in VOTable tableNode based on serManger's columns.
 		"""
-		for colProp in colProperties:
+		for colDesc in serManager:
 			tableNode.fields.append(
-				DM.Field(**self._getVOFieldArgs(colProp)))
+				DM.Field(**self._getVOFieldArgs(colDesc)))
 
 	def _defineParams(self, resourceNode, items, values):
 		for item in items:
-			cp = valuemappers.ColProperties(item)
+			cp = valuemappers.VColDesc(item)
 			if values.has_key(item.name):
 				cp["value"] = values[itemname]
 			resourceNode.params.append(DM.Param(**self._getVOFieldArgs(cp)))
@@ -221,23 +150,23 @@ class VOTableMaker:
 		t = DM.Table(name=table.tableDef.id, coder=_tableEncoders[self.tablecoding],
 			description=unicode(table.tableDef.getMeta("description", 
 				propagate=False, default="")))
-		data = TableData(table, self.mFRegistry)
-		self._defineFields(t, data.getColProperties())
-		t.data = data.get()
+		sm = valuemappers.SerManager(table, mfRegistry=self.mFRegistry)
+		self._defineFields(t, sm)
+		t.data = list(sm.getMappedTuples())
 		return t
 	
 	def _addResourceMeta(self, res, dataSet):
 		"""adds resource metadata to the Resource res.
 		"""
-		res.description = unicode(dataSet.dd.getMeta("description", 
+		res.description = unicode(dataSet.getMeta("description", 
 			propagate=False, default=""))
-		self._addInfo("legal", dataSet.dd.getMeta("_legal"), res)
+		self._addInfo("legal", res, value=dataSet.getMeta("copyright"))
 		for infoItem in dataSet.getMeta("info", default=[]):
-			self._addInfo(None, infoItem, res)
+			self._addInfo(None, res, content=infoItem)
 		for table in dataSet.tables.values():
 			for warning in table.getMeta("_warning", propagate=False, default=[]):
-				self._addInfo("warning", "In table %s: %s"%(
-					table.tableDef.id, str(warning)), res)
+				self._addInfo("warning", res, value="In table %s: %s"%(
+					table.tableDef.id, str(warning)))
 		self._addLink(dataSet.dd.getMeta("_infolink"), res)
 
 	def _makeResource(self, dataSet):
@@ -270,22 +199,37 @@ class VOTableMaker:
 		if rd is None:
 			return
 		vot.description = unicode(rd.getMeta("description", default=""))
-# XXX TODO: do something about systems
-#		for id, equ, epoch, system in rd.get_systems():
-#			vot.coosys.append(DM.CooSys(ID=id, equinox=equ, epoch=epoch, system=system))
-		self._addInfo("legal", rd.getMeta("_legal"), vot)
+		self._addInfo("legal", vot, rd.getMeta("copyright"))
 
-	def makeVOT(self, dataSet):
-		"""returns a VOTable object representing dataSet.
+	def makeVOT(self, data):
+		"""returns a VOTable object representing data.
+
+		data can be a Data or Table instance.
 		"""
+		if isinstance(data, rsc.BaseTable):
+			data = rsc.wrapTable(data)
 		vot = DM.VOTable()
-		self._setGlobalMeta(vot, dataSet)
-		vot.resources.append(self._makeResource(dataSet))
+		self._setGlobalMeta(vot, data)
+		vot.resources.append(self._makeResource(data))
 		return vot
 
 	def writeVOT(self, vot, destination, encoding="utf-8"):
 		writer = Writer(encoding)
 		writer.write(vot, destination)
+
+
+def getAsVOTable(data, tablecoding="binary"):
+	"""returns a string containing a VOTable representation of data.
+
+	This is mainly intended for debugging and "known-small" tables.
+	data can be a data or a table instance.
+	"""
+	if isinstance(data, rsc.BaseTable):
+		data = rsc.wrapTable(data)
+	maker = VOTableMaker(tablecoding=tablecoding)
+	dest = StringIO()
+	maker.writeVOT(maker.makeVOT(data), dest)
+	return dest.getvalue()
 
 
 def makeTableDefForVOTable(tableId, votTable, **moreArgs):

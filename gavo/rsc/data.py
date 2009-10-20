@@ -81,6 +81,7 @@ class Data(base.MetaMixin):
 		base.MetaMixin.__init__(self)  # we're not a structure
 		self.dd, self.parseOptions = dd, parseOptions
 		self.tables = tables
+		self.setMetaParent(self.dd)
 
 	@classmethod 	
 	def create(cls, dd, parseOptions=common.parseNonValidating,
@@ -304,3 +305,20 @@ def makeDataById(ddId, parseOptions=common.parseNonValidating,
 	"""
 	dd = base.resolveId(inRD, ddId)
 	return makeData(dd, parseOptions=parseOptions, connection=connection)
+
+
+def wrapTable(table, rdSource=None):
+	"""returns a Data instance containing only table.
+
+	If table has no rd, you must pass rdSource, which must be an object having
+	and rd attribute (rds, tabledefs, etc, work).
+	"""
+	if rdSource is None:
+		rd = table.tableDef.rd
+	elif hasattr(rdSource, "rd"):
+		rd = rdSource.rd
+	else:
+		raise TypeError("Invalid RD source: %s"%rdSource)
+	newDD = base.makeStruct(rscdef.DataDescriptor, tables=[table.tableDef],
+		parent_=rd)
+	return Data(newDD, tables={table.tableDef.id: table})

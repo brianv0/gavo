@@ -8,8 +8,8 @@ import time
 
 import numpy
 
+from gavo import base
 from gavo import utils
-from gavo.formats import votable
 from gavo.utils import pyfits
 
 
@@ -44,29 +44,28 @@ def makeArrayForVOType(type, arrsz, numItems):
 	return numpy.array(dtype=_naTypesMap[type], shape=(numItems,))
 
 
-def _makeExtension(table):
-	"""returns a pyfits hdu for the votable.TableData instance table.
+def _makeExtension(serMan):
+	"""returns a pyfits hdu for the valuemappers.SerManager instance table.
 	"""
-	colProps = table.getColProperties()
-	values = table.get()
+	values = list(serMan.getMappedTuples())
 	columns = []
-	for colInd, cp in enumerate(colProps):
-		if cp["datatype"]=="char":
+	for colInd, colDesc in enumerate(serMan):
+		if colDesc["datatype"]=="char":
 			arr = numpy.array([str(v[colInd]) for v in values], dtype=numpy.str)
 			typecode = "%dA"%arr.itemsize
 		else:
 			arr = numpy.array([v[colInd] for v in values])
-			typecode = _fitsCodeMap[cp["datatype"]]
-		columns.append(pyfits.Column(name=str(cp["name"]), unit=str(cp["unit"]), 
-			format=typecode, null=cp.computeNullvalue(),
-			array=arr))
+			typecode = _fitsCodeMap[colDesc["datatype"]]
+		columns.append(pyfits.Column(name=str(colDesc["name"]), 
+			unit=str(colDesc["unit"]), format=typecode, 
+			null=colDesc.computeNullvalue(), array=arr))
 	return pyfits.new_table(pyfits.ColDefs(columns))
 	
 
 def makeFITSTable(dataSet):
 	"""returns a hdulist containing extensions for the tables in dataSet.
 	"""
-	tables = [votable.TableData(table) for table in dataSet.tables.values()]
+	tables = [base.SerManager(table) for table in dataSet.tables.values()]
 	extensions = [_makeExtension(table) for table in tables]
 	primary = pyfits.PrimaryHDU()
 	primary.header.update("DATE", time.strftime("%Y-%m-%d"), 

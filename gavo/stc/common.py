@@ -9,7 +9,6 @@ Definitions and shared code for STC processing.
 
 import itertools
 import operator
-import string
 
 from gavo.utils import ElementTree
 
@@ -87,16 +86,6 @@ stcCoordFlavors = set(["SPHERICAL", "CARTESIAN", "UNITSPHERE", "POLAR",
 # known time scales
 stcTimeScales = set(["TT", "TDT", "ET", "TAI", "IAT", "UTC", "TEB", "TDB",
 	"TCG", "TCB", "LST", "nil"])
-
-
-# Helper functions
-
-def intToFunnyWord(anInt, translation=string.maketrans(
-		"-0123456789abcdef", 
-		"zaeiousmnthwblpgd")):
-	"""returns a sometimes funny (but unique) word from an arbitrary integer.
-	"""
-	return ("%x"%anInt).translate(translation)
 
 
 # Nodes for ASTs

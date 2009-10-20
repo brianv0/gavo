@@ -99,7 +99,7 @@ class OutputTableDef(rscdef.TableDef):
 				self.columns.replace(col, OutputField.fromColumn(col))
 		self._completeElementNext(OutputTableDef)
 
-	def onParentCompleted(self):
+	def onParentComplete(self):
 		if self.verbLevel is not None:
 			for c in self.parent.core.outputTable:
 				self._cols.feedObject(self, OutputField.fromColumn(c))

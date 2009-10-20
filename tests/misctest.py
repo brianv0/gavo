@@ -30,9 +30,9 @@ class MapperTest(unittest.TestCase):
 	"""collects tests for votable/html value mappers.
 	"""
 	def testJdMap(self):
-		colProps = {"sample": datetime.datetime(2005, 6, 4, 23, 12, 21),
+		colDesc = {"sample": datetime.datetime(2005, 6, 4, 23, 12, 21),
 			"unit": "d"}
-		mapper = valuemappers.datetimeMapperFactory(colProps)
+		mapper = valuemappers.datetimeMapperFactory(colDesc)
 		self.assertAlmostEqual(2453526.4669097224,
 			mapper(datetime.datetime(2005, 6, 4, 23, 12, 21)))
 		self.assertAlmostEqual(2434014.6659837961,
@@ -55,7 +55,7 @@ class MapperTest(unittest.TestCase):
 	
 	def testStandardMappers(self):
 		def assertMappingResult(dataField, value, literal):
-			cp = valuemappers.ColProperties(dataField)
+			cp = valuemappers.VColDesc(dataField)
 			cp["sample"] = value
 			self.assertEqual(literal,
 				unicode(valuemappers.defaultMFRegistry.getMapper(cp)(value)))
@@ -368,4 +368,4 @@ class RegistryTest(testhelpers.VerboseTest):
 	
 
 if __name__=="__main__":
-	testhelpers.main(RegistryTest)
+	testhelpers.main(MapperTest)

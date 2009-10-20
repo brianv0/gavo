@@ -5,7 +5,7 @@ Renderers that convert the primary table of a data set as text.
 import cStringIO
 import re
 
-from gavo.formats import votable
+from gavo import base
 
 
 def _makeString(val):
@@ -16,8 +16,8 @@ def _makeString(val):
 def renderAsText(data, target):
 	"""writes a text (TSV) rendering of data's primary table to the file target.
 	"""
-	table = votable.TableData(data.getPrimaryTable())
-	for row in table.get():
+	sm = base.SerManager(data.getPrimaryTable())
+	for row in sm.getMappedTuples():
 		target.write("\t".join([_makeString(s) for s in row])+"\n")
 
 def getAsText(data):

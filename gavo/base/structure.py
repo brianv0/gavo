@@ -261,11 +261,11 @@ class StructureBase(object):
 		for val in self.attrSeq:
 			try:
 				if not hasattr(self, val.name_): # don't clobber properties
-						# set up by attributes.
+				                                 # set up by attributes.
 					setattr(self, val.name_, val.default_)
 			except AttributeError: # default on property given
-				raise StructureError("%s attributes have builtin defaults only."%
-					val.name_)
+				raise StructureError("%s attributes on %s have builtin"
+					" defaults only."%(val.name_, self.name_))
 		
 		# set keyword arguments
 		for name, val in kwargs.iteritems():
@@ -294,9 +294,22 @@ class StructureBase(object):
 		except AttributeError, msg:
 			raise StructureError("Attempt to copy from invalid source: %s"%
 				unicode(msg))
-					
+
+	def getCopyableAttributes(self, ignoreKeys=set()):
+		"""returns a dictionary mapping attribute names to copyable children.
+
+		ignoreKeys can be a set or dict of additional attribute names to ignore.
+		The children are orphan deep copies.
+		"""
+		return dict((att.name_, att.getCopy(self, None))
+			for att in self.attrSeq
+				if att.copyable and att.name_ not in ignoreKeys)
+
 	def change(self, **kwargs):
-		attrs = self.getAttributes()
+		"""returns a copy of self with all attributes in kwargs overridden with
+		the passed values.
+		"""
+		attrs = self.getCopyableAttributes(kwargs)
 		attrs.update(kwargs)
 		return self.__class__(self.parent, **attrs).finishElement()
 
@@ -304,9 +317,7 @@ class StructureBase(object):
 		"""returns a deep copy of self, reparented to parent.
 		"""
 		return self.__class__(parent, 
-			**dict([(att.name_, att.getCopy(self, None))
-				for att in self.attrSeq
-					if att.copyable])).finishElement()
+			**self.getCopyableAttributes()).finishElement()
 
 	def replace(self, newObject):
 		"""tries to locate self in parent and replaces it with newObject.
@@ -473,16 +484,16 @@ class Structure(ParseableStructure):
 	and compute computed attributes, based on ParseableStructure's finishElement
 	hook.
 
-	Also, it supports onParentCompleted callbacks; this works by checking
-	if any managedAttribute has a onParentCompleted method and calling it
+	Also, it supports onParentComplete callbacks; this works by checking
+	if any managedAttribute has a onParentComplete method and calling it
 	with the current value of that attribute if necessary.
 	"""
 	def callCompletedCallbacks(self):
 		for attName, attType in self.managedAttrs.iteritems():
-			if hasattr(attType, "onParentCompleted"):
+			if hasattr(attType, "onParentComplete"):
 				attVal = getattr(self, attType.name_)
 				if attVal!=attType.default_:
-					attType.onParentCompleted(attVal)
+					attType.onParentComplete(attVal)
 
 	def finishElement(self):
 		self.completeElement()

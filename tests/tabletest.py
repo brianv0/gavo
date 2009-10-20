@@ -132,6 +132,26 @@ class UniqueForcedTest(testhelpers.VerboseTest):
 			t.close()
 
 
+class WrapTest(testhelpers.VerboseTest):
+	"""tests for wrapping of Tables in Data.
+	"""
+	def testWithRd(self):
+		table = rsc.TableForDef(
+			testhelpers.getTestRD().getById("typestable").change(onDisk=False))
+		data = rsc.wrapTable(table)
+		self.assertEqual(len(data.tables), 1)
+		self.assertEqual(str(data.getMeta("test.inRd")), "from Rd")
+	
+	def testWithoutRd(self):
+		origTable = rsc.TableForDef(
+			testhelpers.getTestRD().getById("typestable"))
+		newTD = rscdef.makeTDForColumns(
+			"copy", origTable.tableDef.columns)
+		data = rsc.wrapTable(rsc.TableForDef(newTD), origTable.tableDef)
+		self.assertEqual(data.dd.rd.schema, "test")
+		self.assertEqual(data.getPrimaryTable().tableDef.rd.schema, "test")
+
+
 class DBUniqueForcedTest(UniqueForcedTest):
 	"""tests for correct handling of duplicate keys when uniqueness is enforced
 	in DB tables
@@ -350,4 +370,4 @@ class STCTest(testhelpers.VerboseTest):
 # test exc. with duplicate names.
 
 if __name__=="__main__":
-	testhelpers.main(STCTest)
+	testhelpers.main(WrapTest)

@@ -111,4 +111,4 @@ class ComputedServiceTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(PlainDBServiceTest)
+	testhelpers.main(ComputedServiceTest)

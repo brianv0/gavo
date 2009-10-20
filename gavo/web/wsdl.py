@@ -334,7 +334,8 @@ if hasattr(ZSI.SoapWriter, "serialize_header"):
 			typecode = TC.Array((tns, 'outRow'), Row(), 
 				pname=(tns, 'outList'))
 
-		mapped = Table(base.getMappedValues(table, _wsdlMFRegistry))
+		mapped = Table(
+			base.SerManager(table, mfRegistry=_wsdlMFRegistry).getMappedValues())
 		sw = ZSI.SoapWriter(nsdict={"tns": tns})
 		sw.serialize(mapped).close()
 		return str(sw)
@@ -359,7 +360,7 @@ else:  # old ZSI -- nuke at some point
 		outF = cStringIO.StringIO()
 		sw = ZSI.SoapWriter(outF, 
 			nsdict={"tns": str(service.getMeta("identifier"))})
-		mapped = list(base.getMappedValues(table, _wsdlMFRegistry))
+		mapped = list(base.SerManager(table).getMappedValues(table))
 		sw.serialize(mapped, Table.typecode)
 		sw.close()
 		return outF.getvalue()

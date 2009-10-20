@@ -19,6 +19,7 @@ than trees (e.g., coordinate frames usually have multiple parents).
 
 import itertools
 
+from gavo import utils
 from gavo.stc import dm
 from gavo.stc.common import *
 from gavo.stc.stcx import STC
@@ -29,7 +30,7 @@ def addId(node):
 	there.
 	"""
 	if not hasattr(node, "id") or node.id is None:
-		node.id = intToFunnyWord(id(node))
+		node.id = utils.intToFunnyWord(id(node))
 
 
 def strOrNull(val):

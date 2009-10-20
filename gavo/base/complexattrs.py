@@ -222,7 +222,7 @@ class StructAttribute(AttributeDef):
 	method.  Otherwise, they are normal structs, i.e., the receive a
 	parent as the first argument and keyword arguments for values.
 	
-	In addition, you can pass a onParentCompleted callback that
+	In addition, you can pass a onParentComplete callback that
 	are collected in the completedCallback list by the struct decorator.
 	ParseableStruct instances call these when they receive their end
 	event during XML deserialization.
@@ -271,9 +271,9 @@ class StructAttribute(AttributeDef):
 		if getattr(instance, self.name_) is not None:
 			yield getattr(instance, self.name_)
 
-	def onParentCompleted(self, val):
-		if hasattr(val, "onParentCompleted"):
-			val.onParentCompleted()
+	def onParentComplete(self, val):
+		if hasattr(val, "onParentComplete"):
+			val.onParentComplete()
 
 	def makeUserDoc(self):
 		return "%s (contains `Element %s`_) -- %s"%(
@@ -328,11 +328,11 @@ class StructListAttribute(StructAttribute):
 	def iterChildren(self, instance):
 		return iter(getattr(instance, self.name_))
 
-	def onParentCompleted(self, val):
+	def onParentComplete(self, val):
 		if val:
 			for item in val:
-				if hasattr(item, "onParentCompleted"):
-					item.onParentCompleted()
+				if hasattr(item, "onParentComplete"):
+					item.onParentComplete()
 
 	def makeUserDoc(self):
 		return ("%s (contains `Element %s`_ and may be repeated zero or more"

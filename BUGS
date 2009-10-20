@@ -141,6 +141,10 @@
 	do not get their default filled in on submitted forms.
 
 36/LOW/2009-10-16
-	base.__init__ calls pyparsing...setDefaultWhitespaceChars.  It really shouldn't
-	do this.  Find out what grammar needs this and do a local setDefaultWhitespaceChars
-	or similar.  Then remove the setDefault... calls in adql.getGrammar.
+	base.__init__ calls pyparsing...setDefaultWhitespaceChars.  It really
+	shouldn't do this.  Find out what grammar needs this and do a local
+	setDefaultWhitespaceChars or similar.  Then remove the setDefault... calls in
+	adql.getGrammar.
+
+37/HIGH/2009-10-19
+	ROUND and TRUNCATE should accept a second argument in ADQL.

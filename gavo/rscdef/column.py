@@ -191,7 +191,7 @@ class Values(base.Structure):
 		except base.DBError: # Table probably doesn't exist yet, ignore.
 			warnings.warn("Values fromdb '%s' failed, ignoring"%self.fromdb)
 
-	def onParentCompleted(self):
+	def onParentComplete(self):
 		"""converts min, max, and options from string literals to python
 		objects.
 		"""
@@ -295,7 +295,7 @@ class Column(base.Structure):
 	def __repr__(self):
 		return "<Column %s>"%self.name
 	
-	def onParentCompleted(self):
+	def onParentComplete(self):
 		if self.note and "/" not in self.note:
 			self.note = "%s/%s"%(self.parent.getQName(), self.note)
 

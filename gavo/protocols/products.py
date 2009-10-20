@@ -241,7 +241,7 @@ class ProductCore(svcs.DBCore):
 	"""
 	name_ = "productCore"
 
-	def onParentCompleted(self):
+	def onParentComplete(self):
 		self.queryResultDef = svcs.OutputTableDef.fromTableDef(
 			self.rd.getById("products"))
 

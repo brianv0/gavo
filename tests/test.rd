@@ -65,7 +65,11 @@
 		<make table="m_typestable" rowmaker="tm_m_typestable"/>
 	</data>
 
+
 	<table id="adql" adql="True" onDisk="True">
+		<stc>
+			Position ICRS GEOCENTER "alpha" "delta" Redshift VELOCITY "rv"
+		</stc>
 		<column name="alpha" unit="deg" ucd="pos.eq.ra;meta.main"
 			description="A sample RA" tablehead="Raw RA"/>
 		<column name="delta" unit="deg" ucd="pos.eq.dec;meta.main"

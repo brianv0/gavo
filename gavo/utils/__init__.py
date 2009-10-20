@@ -15,7 +15,7 @@ from gavo.utils.algotricks import identity, topoSort, commonPrefixLength
 
 from gavo.utils.codetricks import (silence, ensureExpression, compileFunction,
 	loadPythonModule, memoized, identity, runInSandbox, document, 
-	buildClassResolver, CachedGetter)
+	buildClassResolver, CachedGetter, intToFunnyWord, IdManagerMixin)
 
 from gavo.utils.excs import *
 

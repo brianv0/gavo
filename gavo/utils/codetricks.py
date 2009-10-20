@@ -13,8 +13,10 @@ import imp
 import os
 import re
 import shutil
+import string
 import sys
 import tempfile
+import weakref
 
 from gavo.utils import algotricks
 from gavo.utils import excs
@@ -43,6 +45,52 @@ class CachedGetter(object):
 		return self.cache
 
 
+class IdManagerMixin(object):
+	"""A mixin for objects requiring unique IDs.
+
+	The primaray use case is XML generation, where you want stable IDs
+	for objects, but IDs must be unique over an entire XML file.
+
+	The IdManagerMixin provides two methods for doing that:
+	
+	* makeIdFor(object) -- returns an id for object, or None if makeIdFor has
+	  already been called for that object (i.e., it presumable already is
+		in the document).
+	* getIdFor(object) -- returns an id for object if makeIdFor has already
+	  been called before.  Otherwise, a NotFoundError is raised
+	"""
+# Return a proxy instead of raising a KeyError here?  We probably no not
+# really want to generate xml with forward references, but who knows?
+	def __getIdMaps(self):
+		try:
+			return self.__objectToId, self.__idsToObject
+		except AttributeError:
+			self.__objectToId, self.__idsToObject = {}, {}
+			return self.__objectToId, self.__idsToObject
+	
+	def makeIdFor(self, ob):
+		map, invMap = self.__getIdMaps()
+		if id(ob) in map:
+			return None
+
+		# an intrinsic id has precedence except if it clashes
+		if hasattr(ob, "id") and ob.id not in invMap:
+			newId = ob.id
+		else:
+			newId = intToFunnyWord(id(ob))
+		map[id(ob)] = newId
+		invMap[newId] = weakref.proxy(ob)
+		return newId
+	
+	def getIdFor(self, ob):
+		try:
+			return self.__getIdMaps()[0][id(ob)]
+		except KeyError:
+			raise excs.NotFoundError("Attempt to reference object at %d"
+				" that has not been introduced to the id manager.",
+				lookedFor=ob, what="id")
+
+	
 def _iterDerivedClasses(baseClass, objects):
 	"""iterates over all subclasses of baseClass in the sequence objects.
 	"""
@@ -294,6 +342,14 @@ def document(origFun):
 
 def identity(x):
 	return x
+
+
+def intToFunnyWord(anInt, translation=string.maketrans(
+		"-0123456789abcdef", 
+		"zaeiousmnthwblpgd")):
+	"""returns a sometimes funny (but unique) word from an arbitrary integer.
+	"""
+	return ("%x"%anInt).translate(translation)
 
 
 def _test():

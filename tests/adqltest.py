@@ -660,7 +660,7 @@ class PQMorphTest(unittest.TestCase):
 			'SELECT DISTINCT x , y FROM foo LIMIT 10')
 
 	def testWhitespace(self):
-		self._testMorph("select\t distinct top\n\n    10 x, y from foo", 
+		self._testMorph("select\t distinct top\n\r\n    10 x, y from foo", 
 			'SELECT DISTINCT x , y FROM foo LIMIT 10')
 	
 	def testGroupby(self):

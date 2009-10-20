@@ -242,9 +242,9 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		for stcDef in self.stc:
 			for name in stcDef.compiled.getColRefs():
 				destCol = self.getColumnByName(name)
-				if destCol.stc is not None:
+				if destCol.stc is not None: # (enable if needed:) and stcDef!=destCol.stc:
 					raise base.LiteralParseError(
-						"Column %s is referenced twice from STC"%name)
+						"Column %s is referenced twice from STC"%name, None, name)
 				destCol.stc = stcDef
 
 	def completeElement(self):
@@ -529,3 +529,14 @@ class SimpleView(base.Structure, base.MetaMixin):
 			onDisk=True, columns=[c.getColumn() for c in self.colRefs],
 			scripts=[MS(scripting.Script, type="viewCreation", name="create view",
 			content_=self._getDDL())])
+
+
+def makeTDForColumns(name, cols, **moreKWs):
+	"""returns a TableDef object named names and having the columns cols.
+
+	cols is some sequence of Column objects.  You can give arbitrary
+	table attributes in keyword arguments.
+	"""
+	kws = {"id": name, "columns": common.ColumnList(cols)}
+	kws.update(moreKWs)
+	return base.makeStruct(TableDef, **kws)
