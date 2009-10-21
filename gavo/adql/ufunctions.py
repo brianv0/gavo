@@ -14,6 +14,8 @@ in nodes.py.  This way, you can have more than one set of ufunctions.
 """
 
 
+import warnings
+
 from gavo.adql import grammar
 from gavo.adql import nodes
 from gavo.adql import tree
@@ -24,7 +26,7 @@ _funPrefix = grammar.userFunctionPrefix
 
 
 def gavo_resolve(args):
-	print ">>>>", args
+	warnings.warn("Not resolving %s"%repr(args))
 
 
 class UserFunction(nodes.FieldInfoedNode, nodes.FunctionMixin):
@@ -32,20 +34,19 @@ class UserFunction(nodes.FieldInfoedNode, nodes.FunctionMixin):
 
 	All user functions must be declared lexically above this class
 	definition.  Since SQL is case insensitive, no function names must
-	clash when uppercased.  All functions suitable as user functions
-	must start with grammar.userFunctionPrefix.
+	clash when uppercased.  Names suitable as user functions
+	start with adql.grammar.userFunctionPrefix.
 	"""
 	type = "userDefinedFunction"
 
 	userFunctions = dict((name.upper(), ob) for name, ob in globals().iteritems()
 		if name.startswith(_funPrefix))
 
-
-	def _processChildren(self):
-		self._processChildrenNext(UserFunction)
+	def _polish(self):
 		if (self.funName.startswith(_funPrefix) and 
 				self.funName in self.userFunctions):
-			self.children = self.userFunctions[self.funName](self.rawArgs)
+			self.funName, self.args = self.userFunctions[self.funName](
+				self.args)
 		else:
 			raise UfuncError("No such function: %s"%self.funName)
 

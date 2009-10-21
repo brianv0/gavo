@@ -77,13 +77,15 @@ def query(query, timeout=15, queryProfile="untrustedquery", metaProfile=None):
 	t = adql.parseToTree(query)
 	if t.setLimit is None:
 		t.setLimit = str(base.getConfig("adql", "webDefaultLimit"))
-	adql.addFieldInfos(t, getFieldInfoGetter(metaProfile))
+	adql.annotate(t, getFieldInfoGetter(metaProfile))
 	adql.insertQ3Calls(t)
 # XXX TODO: select an appropriate RD from the tables queried.
 	td = base.makeStruct(rscdef.TableDef, columns=_getTableDescForOutput(t))
 	table = rsc.TableForDef(td)
+	morphStatus, morphedTree = adql.morphPG(t)
 	# escape % to hide them form dbapi replacing
-	query = adql.flatten(adql.morphPG(t)).replace("%", "%%")
+	query = adql.flatten(morphedTree).replace("%", "%%")
+# XXX TODO: evalue warnings from status
 	for tuple in base.SimpleQuerier(useProfile=queryProfile).runIsolatedQuery(
 			query, timeout=timeout, silent=True, 
 			settings=(("enable_nestloop", False), ("enable_seqscan", False))):

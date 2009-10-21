@@ -13,12 +13,13 @@ import os
 
 from gavo.utils.algotricks import identity, topoSort, commonPrefixLength
 
+from gavo.utils.autonode import AutoNode
+
 from gavo.utils.codetricks import (silence, ensureExpression, compileFunction,
 	loadPythonModule, memoized, identity, runInSandbox, document, 
 	buildClassResolver, CachedGetter, intToFunnyWord, IdManagerMixin)
 
 from gavo.utils.excs import *
-
 
 # We reliably want the numpy version of pyfits.  Thus, always use
 # from gavo.utils import pyfits rather than a direct import;  the

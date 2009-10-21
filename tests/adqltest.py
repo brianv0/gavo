@@ -3,6 +3,7 @@ Tests for ADQL parsing and reasoning about query results.
 """
 
 import os
+import pprint
 import unittest
 
 import pyparsing
@@ -13,6 +14,7 @@ from gavo import adql
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
+from gavo.adql import annotations
 from gavo.adql import morphpg
 from gavo.adql import nodes
 from gavo.adql import tree
@@ -318,7 +320,7 @@ class TreeParseTest(testhelpers.VerboseTest):
 			("select * from z.x.y, a", ["z.x.y", "a"]),
 			("select * from (select * from z) as q, a", ["q", "a"]),
 		]:
-			res = self.grammar.parseString(q)[0].getSourceTableNames()
+			res = list(self.grammar.parseString(q)[0].getAllNames())
 			self.assertEqual(res, e, 
 				"Source tables from %s: expected %s, got %s"%(q, e, res))
 
@@ -326,7 +328,7 @@ class TreeParseTest(testhelpers.VerboseTest):
 		for q, e in [
 			("select * from z join x", ["z", "x"]),
 		]:
-			res = self.grammar.parseString(q)[0].getSourceTableNames()
+			res = list(self.grammar.parseString(q)[0].getAllNames())
 			self.assertEqual(res, e, 
 				"Source tables from %s: expected %s, got %s"%(q, e, res))
 
@@ -353,11 +355,10 @@ class TreeParseTest(testhelpers.VerboseTest):
 
 	def testValueExpressionColl(self):
 		t = adql.parseToTree("select x from z where 5+9>'gaga'||'bla'")
-		chs = t.find("comparisonPredicate").children
-		self.assertEqual(len(chs), 3)
-		self.assertEqual(chs[0].type, "numericValueExpression")
-		self.assertEqual(chs[1], ">")
-		self.assertEqual(chs[2].type, "valueExpression")
+		compPred = t.whereClause.children[1]
+		self.assertEqual(compPred.op1.type, "numericValueExpression")
+		self.assertEqual(compPred.opr, ">")
+		self.assertEqual(compPred.op2.type, "valueExpression")
 
 
 spatialFields = [
@@ -380,60 +381,6 @@ def _sampleFieldInfoGetter(tableName):
 			for f in miscFields]
 
 
-class NodeTest(testhelpers.VerboseTest):
-	"""tests for the ADQLNode class.
-	"""
-	def setUp(self):
-		class FooNode(nodes.ADQLNode):
-			type = "foo"
-		class BarNode(nodes.ADQLNode):
-			type = "bar"
-		self.FooNode, self.BarNode = FooNode, BarNode
-
-	def testGetChildrenOk(self):
-		fooNode = self.FooNode([])
-		tree = self.FooNode([
-			self.BarNode([]),
-			fooNode,
-			"textContent",
-			self.BarNode([])])
-		self.assertEqual(tree.getChildOfType("foo"), fooNode)
-		self.assertEqual(tree.getChildrenOfType("foo"), [fooNode])
-		self.assertEqual(len(tree.getChildrenOfType("bar")), 2)
-		self.assertEqual(len(tree.getChildrenOfType("foo")), 1)
-		self.assertEqual(len(tree.getChildrenOfType("baz")), 0)
-		self.assertEqual(len(tree.getChildrenOfType(str)), 1)
-		self.assertRaises(adql.NoChild, tree.getChildOfType, "baz")
-		self.assertRaises(adql.MoreThanOneChild, tree.getChildOfType, "bar")
-	
-	def testGetFlattenedChildren(self):
-		tree = self.FooNode([
-			self.FooNode([
-				self.FooNode([]),
-				self.BarNode(["needle"])]),
-			self.BarNode([])])
-		self.assertEqual(tree.getFlattenedChildren()[0].children[0], "needle")
-		tree = self.FooNode([
-			self.FooNode([
-				self.FooNode([]),
-				self.BarNode(["needle"])]),
-			self.BarNode([
-				self.FooNode(["scissors"]),
-				self.BarNode([
-					self.FooNode(["thread"])])])])
-		res = tree.getFlattenedChildren()
-		self.assertEqual(res[0].type, "bar")
-		self.assertEqual(res[1].children[0], "scissors")
-		self.assertEqual(res[2].children[0], "thread")
-		tree = self.FooNode([
-			"direct",
-			self.BarNode([
-				self.FooNode(["indirect"])])])
-		res = tree.getFlattenedChildren()
-		self.assertEqual(res[0], "direct")
-		self.assertEqual(res[1].type, "foo")
-
-
 class ColumnTest(testhelpers.VerboseTest):
 	def setUp(self):
 		self.fieldInfoGetter = _sampleFieldInfoGetter
@@ -441,7 +388,7 @@ class ColumnTest(testhelpers.VerboseTest):
 
 	def _getColSeq(self, query):
 		t = self.grammar.parseString(query)[0]
-		adql.addFieldInfos(t, self.fieldInfoGetter)
+		adql.annotate(t, self.fieldInfoGetter)
 		return t.fieldInfos.seq
 
 	def _assertColumns(self, resultColumns, assertProperties):
@@ -470,7 +417,7 @@ class SelectClauseTest(ColumnTest):
 		cols = self._getColSeq("select 1+0.1, 'const'||'ab' from spatial")
 		self._assertColumns(cols, [
 			("", "", False),
-			("", "", True),])
+			("", "", False),])
 
 	def testConstantSelectWithAs(self):
 		cols = self._getColSeq("select 1+0.1 as x from spatial")
@@ -600,19 +547,19 @@ class FunctionNodeTest(unittest.TestCase):
 	def testPlainArgparse(self):
 		t = self.grammar.parseString("select POINT('ICRS', width,height)"
 			" from spatial")[0]
-		p = t.find("point")
+		p = t.selectList.selectFields[0].expr
 		self.assertEqual(p.cooSys, "ICRS")
-		self.assertEqual(p.x, "width")
-		self.assertEqual(p.y, "height")
+		self.assertEqual(nodes.flatten(p.x), "width")
+		self.assertEqual(nodes.flatten(p.y), "height")
 
 	def testExprArgparse(self):
 		t = self.grammar.parseString("select POINT('ICRS', "
 			"5*width+height*LOG(width),height)"
 			" from spatial")[0]
-		p = t.find("point")
+		p = t.selectList.selectFields[0].expr
 		self.assertEqual(p.cooSys, "ICRS")
-		self.assertEqual(p.x, "5 * width + height * LOG ( width )")
-		self.assertEqual(p.y, "height")
+		self.assertEqual(nodes.flatten(p.x), "5 * width + height * LOG(width)")
+		self.assertEqual(nodes.flatten(p.y), "height")
 
 
 class ComplexExpressionTest(unittest.TestCase):
@@ -621,7 +568,7 @@ class ComplexExpressionTest(unittest.TestCase):
 	def testOne(self):
 		t = adql.getGrammar().parseString("select top 5 * from"
 			" lsw.plates where dateobs between 'J2416642 ' and 'J2416643'")[0]
-		self.assertEqual(t.find("columnReference").children[0], "dateobs")
+		self.assertEqual(t.whereClause.children[1].name, "dateobs")
 		self.assertEqual(adql.flatten(t.whereClause.children[-1]), "'J2416643'")
 
 
@@ -635,68 +582,80 @@ class Q3CMorphTest(unittest.TestCase):
 		t = adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
 			" where contains(point('ICRS', alphaFloat, deltaFloat), "
 				" circle('ICRS', 23, 24, 0.2))=1")
-		adql.insertQ3Calls(t)
+		s, t = adql.insertQ3Calls(t)
 		self.assertEqual(adql.flatten(t),
-			"SELECT alphafloat , deltafloat FROM ppmx . data WHERE"
-				"  q3c_join(23, 24, alphafloat, deltafloat, 0.2)")
+			"SELECT alphafloat, deltafloat FROM ppmx.data WHERE"
+				"  (q3c_join(23, 24, alphafloat, deltafloat, 0.2))")
 		t = adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
-			" where 1=contains(point('ICRS', alphaFloat, deltaFloat),"
+			" where 0=contains(point('ICRS', alphaFloat, deltaFloat),"
 				" circle('ICRS', 23, 24, 0.2))")
-		adql.insertQ3Calls(t)
+		s, t = adql.insertQ3Calls(t)
 		self.assertEqual(adql.flatten(t),
-			"SELECT alphafloat , deltafloat FROM ppmx . data WHERE"
-				"  q3c_join(23, 24, alphafloat, deltafloat, 0.2)")
+			"SELECT alphafloat, deltafloat FROM ppmx.data WHERE"
+				" NOT (q3c_join(23, 24, alphafloat, deltafloat, 0.2))")
 
 
 class PQMorphTest(unittest.TestCase):
 	"""tests for morphing to psql geometry types and operators.
 	"""
 	def _testMorph(self, stIn, stOut):
-		t = adql.morphPG(adql.parseToTree(stIn))
+		tree = adql.parseToTree(stIn)
+		status, t = adql.morphPG(tree)
 		self.assertEqual(nodes.flatten(t), stOut)
 
 	def testSyntax(self):
 		self._testMorph("select distinct top 10 x, y from foo", 
-			'SELECT DISTINCT x , y FROM foo LIMIT 10')
+			'SELECT DISTINCT x, y FROM foo LIMIT 10')
 
 	def testWhitespace(self):
 		self._testMorph("select\t distinct top\n\r\n    10 x, y from foo", 
-			'SELECT DISTINCT x , y FROM foo LIMIT 10')
+			'SELECT DISTINCT x, y FROM foo LIMIT 10')
 	
 	def testGroupby(self):
 		self._testMorph("select count(*), inc from ("
-			" select round(x/10) as inc from foo) as q group by inc",
-			"SELECT COUNT ( * ) , inc FROM"
-			" (SELECT round ( x / 10 ) AS inc FROM foo) AS q"
+			" select round(x) as inc from foo) as q group by inc",
+			"SELECT COUNT ( * ), inc FROM"
+			" (SELECT ROUND(x) AS inc FROM foo) AS q"
 			" GROUP BY inc")
+
+	def testTwoArgRound(self):
+		self._testMorph(
+			"select round(x, 2) as a, truncate(x, -2) as b from foo",
+			'SELECT ROUND((x)*10^(2)) / 10^(2) AS a, TRUNC((x)*'
+				'10^(- 2)) / 10^(- 2) AS b FROM foo')
+	
+	def testExprArgs(self):
+		self._testMorph(
+			"select truncate(round((x*2)+y, 4)) from foo",
+			'SELECT TRUNC(ROUND((( x * 2 ) + y)*10^(4)) / 10^(4)) FROM foo')
 
 	def testSimpleTypes(self):
 		self._testMorph("select POiNT('ICRS', 1, 2), CIRCLE('ICRS', 2, 3, 4),"
 				" REctAngle('ICRS', 2 ,3, 4, 5), polygon('ICRS', 2, 3, 4, 5, 6, 7)"
 				" from foo",
-			"SELECT POINT(1, 2) , CIRCLE(POINT(2, 3), 4) , POLYGON("
-				"BOX(2, 3, 4, 5)) , '2, 3, 4, 5, 6, 7'"
+			"SELECT POINT(1, 2), CIRCLE(POINT(2, 3), 4), POLYGON("
+				"BOX(2, 3, 4, 5)), '2, 3, 4, 5, 6, 7'"
 				"::polygon FROM foo")
 	
 	def testTypesWithExpressions(self):
 		self._testMorph("select point('ICRS', cos(a)*sin(b), cos(a)*sin(b)),"
 				" circle('ICRS', raj2000, dej2000, 25-mag*mag) from foo",
-			'SELECT POINT(cos ( a ) * sin ( b ), cos ( a ) * sin ( b )) , CIRCLE('
+			'SELECT POINT(COS(a) * SIN(b), COS(a) * SIN(b)), CIRCLE('
 				'POINT(raj2000, dej2000), 25 - mag * mag) FROM foo')
 
 	def testContains(self):
 		self._testMorph("select alpha from foo where"
 				" contains(circle('ICRS', alpha, delta,"
 				" margin*margin), rectangle('ICRS', lf, up, ri, lo))=0",
-			'SELECT alpha FROM foo WHERE NOT (CIRCLE(POINT(alpha, delta),'
-				' margin * margin)) ~ (POLYGON(BOX(lf, up, ri, lo)))')
+			'SELECT alpha FROM foo WHERE NOT ((CIRCLE(POINT(alpha, delta),'
+				' margin * margin)) ~ (POLYGON(BOX(lf, up, ri, lo))))')
 
 	def testIntersects(self):
 		self._testMorph("select alpha from foo where"
 				" Intersects(circle('ICRS', alpha, delta,"
 				" margin*margin), polygon('ICRS', 1, 12, 3, 4, 5, 6, 7, 8))=0",
-			"SELECT alpha FROM foo WHERE NOT (CIRCLE(POINT(alpha, delta"
-				"), margin * margin)) ?# ('1, 12, 3, 4, 5, 6, 7, 8'::polygon)")
+			"SELECT alpha FROM foo WHERE NOT ((CIRCLE(POINT(alpha, delta"
+				"), margin * margin)) ?# ('1, 12, 3, 4, 5, 6, 7, 8'::polygon))")
 
 	def testPointFunction(self):
 		self._testMorph("select coord1(p) from foo", 'SELECT (p)[0] FROM foo')
@@ -711,8 +670,8 @@ class PQMorphTest(unittest.TestCase):
 	def testPointFunctionWithFieldInfo(self):
 		t = adql.parseToTree("select coordsys(q.p) from "
 			"(select point('ICRS', ra1, ra2) as p from spatial) as q")
-		adql.addFieldInfos(t, _sampleFieldInfoGetter)
-		t = adql.morphPG(t)
+		adql.annotate(t, _sampleFieldInfoGetter)
+		status, t = adql.morphPG(t)
 		self.assertEqual(nodes.flatten(t), "SELECT 'ICRS' FROM (SELECT POINT"
 			"(ra1, ra2) AS p FROM spatial) AS q")
 
@@ -721,9 +680,9 @@ class PQMorphTest(unittest.TestCase):
 				" DISTANCE(p1,p2), centroid(rectangle('ICRS', coord1(p1), coord2(p1),"
 				" coord1(p2), coord2(p2))) from (select point('ICRS', ra1, dec1) as p1,"
 				"   point('ICRS', ra2, dec2) as p2 from foo) as q", 
-			'SELECT AREA ( CIRCLE(POINT((p1)[0], (p1)[1]), 2) ) , celDistPP('
-				'p1, p2) , center(POLYGON(BOX((p1)[0], (p1)[1], (p2)[0], (p2)'
-				'[1]))) FROM (SELECT POINT(ra1, dec1) AS p1 , POINT(ra2, dec2'
+			'SELECT AREA(CIRCLE(POINT((p1)[0], (p1)[1]), 2)), celDistPP('
+				'p1, p2), center(POLYGON(BOX((p1)[0], (p1)[1], (p2)[0], (p2)'
+				'[1]))) FROM (SELECT POINT(ra1, dec1) AS p1, POINT(ra2, dec2'
 				') AS p2 FROM foo) AS q')
 		self.assertRaises(adql.RegionError, self._testMorph,
 			"select REGION('mystery') from foo", "")
@@ -731,19 +690,19 @@ class PQMorphTest(unittest.TestCase):
 	def testNumerics(self):
 		self._testMorph("select log10(x), log(x), rand(), rand(5), square(x+x),"
 			" TRUNCATE(x), TRUNCATE(x,3) from foo", 
-			'SELECT LOG ( x ) , LN ( x ) , random() ,'
-				' setseed(5)-setseed(5)+random() , (x + x)^2 , TRUNC ('
-				' x ) , TRUNC ( x , 3 ) FROM foo')
+			'SELECT LOG(x), LN(x), random(),'
+				' setseed(5)-setseed(5)+random(), (x + x)^2, TRUNC('
+				'x), TRUNC((x)*10^(3)) / 10^(3) FROM foo')
 
 	def testHarmless(self):
 		self._testMorph("select delta*2, alpha*mag, alpha+delta"
 			" from something where mag<-10",
-			'SELECT delta * 2 , alpha * mag , alpha + delta FROM something'
+			'SELECT delta * 2, alpha * mag, alpha + delta FROM something'
 			' WHERE mag < - 10')
 
 	def testOrder(self):
 		self._testMorph("select top 100 * from ppmx.data where cmag>10"
-			" order by cmag", 'SELECT * FROM ppmx . data WHERE cmag > 10'
+			" order by cmag", 'SELECT * FROM ppmx.data WHERE cmag > 10'
 			' ORDER BY cmag LIMIT 100')
 
 

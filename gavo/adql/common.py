@@ -8,43 +8,48 @@ class Error(Exception):
 	pass
 
 class NotImplementedError(Error):
-	"""will be raised for features we don't (yet) support.
+	"""is raised for features we don't (yet) support.
 	"""
 
 class ColumnNotFound(Error):
-	"""will be raised if a column name cannot be resolved.
+	"""is raised if a column name cannot be resolved.
 	"""
 
 class AmbiguousColumn(Error):
-	"""will be raised if a column name matches more than one column in a
+	"""is raised if a column name matches more than one column in a
 	compound query.
 	"""
 
 class NoChild(Error):
-	"""will be raised if a node is asked for a non-existing child.
+	"""is raised if a node is asked for a non-existing child.
 	"""
-	def __init__(self, searchedType, node):
-		self.searchedType, self.node = searchedType, node
+	def __init__(self, searchedType, toks):
+		self.searchedType, self.toks = searchedType, toks
 	
 	def __str__(self):
-		return "No %s child found in %s"%(self.searchedType, self.node.type)
+		return "No %s child found in %s"%(self.searchedType, self.toks)
 
 class MoreThanOneChild(NoChild):
-	"""will be raised if a node is asked for a unique child but has more than
+	"""is raised if a node is asked for a unique child but has more than
 	one.
 	"""
 	def __str__(self):
 		return "Multiple %s children found in %s"%(self.searchedType, 
-			self.node.type)
+			self.toks)
 
+class BadKeywords(Error):
+	"""is raised when an ADQL node is constructed with bad keywords.
+
+	This is a development help and should not occur in production code.
+	"""
 
 class UfuncError(Error):
-	"""will be raised if something is wrong with a call to a user defined
+	"""is raised if something is wrong with a call to a user defined
 	function.
 	"""
 
 class RegionError(Error):
-	"""will be raised if a region specification is in some way bad.
+	"""is raised if a region specification is in some way bad.
 	"""
 
 
@@ -125,3 +130,15 @@ class FieldInfo(object):
 
 
 dimlessFieldInfo = FieldInfo("", "")
+
+
+def getUniqueMatch(matches, colName):
+	"""returns the only item of matches if there is exactly one, raises an
+	appropriate exception if not.
+	"""
+	if len(matches)==1:
+		return matches[0]
+	elif not matches:
+		raise ColumnNotFound(colName)
+	else:
+		raise AmbiguousColumn(colName)

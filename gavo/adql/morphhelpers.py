@@ -46,54 +46,86 @@ def killGeoBooleanOperator(node, state):
 	if not hasattr(state, "killParentOperator"):
 		return node
 	delattr(state, "killParentOperator")
-	arg1, opr, arg2 = node.children
-	if isinstance(arg1, basestring):
-		fCall, opd = arg1, arg2
+	if isinstance(node.op1, basestring):
+		fCall, opd = node.op1, node.op2
 	else:
-		fCall, opd = arg2, arg1
+		fCall, opd = node.op2, node.op1
 	opd = nodes.flatten(opd)
 	if opd not in ['1', '0']:
 		raise MorphError("Pseudo-Booleans in ADQL may only be compared"
 			" against 0 or 1")
-	if opr not in ["=", "!="]:
+	if node.opr not in ["=", "!="]:
 		raise MorphError("Pseudo-Booleans in ADQL may only be compared"
 			" using = or !=")
-	node.children = [{("=", "1"): "", ("!=", "0"): "",
-		("!=", "1"): "NOT", ("=", "0"): "NOT"}[opr, opd], fCall]
-	return node
+	return "%s (%s)"%({("=", "1"): "", ("!=", "0"): "",
+		("!=", "1"): "NOT", ("=", "0"): "NOT"}[node.opr, opd], fCall)
 
 
-def morphTreeWithHandlers(tree, handlers):
-	"""traverses tree in postorder, calling handlers on the nodes.
 
-	handlers is a dictionary mapping node types to functions taking a node
-	and a state.  These functions must return the node that will replace
-	the one they got passed.  To make a parent reprocess its children,
-	old is new should be false.
+class Morpher(object):
+	"""A class managing the process of morphing an ADQL expression.
 
-	If you need to flatten things differently from the ADQL default,
-	you can use a custom flattener in your handler.  Since we traverse
-	postorder, all lower-level morphing has been done at this point.
-	You may want to employ nodes.flattenKWs if you need to do this.
+	It is constructed with a a dictionary of morphers; the keys are node
+	types, the values morphing functions.
+
+	Morphing functions have the signature m(node, state) -> node.  They
+	should return the node if they do not with to change it.
+	state is a State instance.
+
+	The main entry point is morph(origTree) -> state, tree.  origTree is not 
+	modified, the return value can be flattened but can otherwise be severely 
+	damaged.
 	"""
-	state = State()
-	def traverse(node):
-		childrenChanged = False
-		newChildren = []
-		for child in node:
+	def __init__(self, morphers):
+		self.morphers = morphers
+
+	def _getChangedForSeq(self, value, state):
+		newVal, changed = [], False
+		for child in value:
 			if isinstance(child, nodes.ADQLNode):
-				newChild = traverse(child)
-				childrenChanged = childrenChanged or (newChild is not child)
-				newChildren.append(newChild)
+				newVal.append(self._traverse(child, state))
 			else:
-				newChildren.append(child)
-		if childrenChanged:
-			node.children = newChildren
-			node._processChildren()
-		if node.type in handlers:
-			handlerResult = handlers[node.type](node, state)
+				newVal.append(child)
+			if newVal[-1]!=child:
+				changed = True
+		if changed:
+			return tuple(newVal)
+	
+	def _getChangedForNode(self, value, state):
+		newVal = self._traverse(value, state)
+		if not newVal is value:
+			return newVal
+
+	def _getChanges(self, name, value, state):
+		"""iterates over key/value pairs changed by morphing value under
+		the key name.
+		"""
+		if isinstance(value, (list, tuple)):
+			meth = self._getChangedForSeq
+		elif isinstance(value, nodes.ADQLNode):
+			meth = self._getChangedForNode
+		else:
+			return
+		newVal = meth(value, state)
+		if newVal is not None:
+			yield name, newVal
+
+	def _traverse(self, node, state):
+		changes = []
+		for name, value in node.iterAttributes():
+			changes.extend(self._getChanges(name, value, state))
+		if changes:
+			newNode = node.change(**dict(changes))
+		else:
+			newNode = node
+
+		if node.type in self.morphers:
+			handlerResult = self.morphers[node.type](newNode, state)
 			assert handlerResult is not None, "ADQL morph handler returned None"
-			node = handlerResult
-		return node
-	res = traverse(tree)
-	return res
+			return handlerResult
+		return newNode
+
+	def morph(self, tree):
+		state = State()
+		res = self._traverse(tree, state)
+		return state, res

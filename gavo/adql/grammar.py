@@ -191,6 +191,17 @@ def _failOnReservedWord(s, pos, toks):
 		raise ParseException(s, pos, "Reserved word not allowed here")
 
 
+def Args(pyparseSymbol):
+	"""wraps pyparseSymbol such that matches get added to an adqlArgs list
+	on the parent node.
+	"""
+	return pyparseSymbol.setResultsName("args", listAllMatches=True)
+
+
+def _joinChildren(s, p, toks):
+	return " ".join(toks)
+
+
 def getADQLGrammarCopy():
 	"""returns a pair symbols, selectSymbol for a grammar parsing ADQL.
 
@@ -220,7 +231,7 @@ def getADQLGrammarCopy():
 	generalLiteral = characterStringLiteral.copy()
 	unsignedLiteral = unsignedNumericLiteral # !!! DEVIATION | generalLiteral
 	sign = Literal("+") | "-"
-	signedInteger = Optional( sign ) + unsignedInteger
+	signedInteger = Optional( sign ) + unsignedInteger 
 	multOperator = Literal("*") | "/"
 	notKeyword = CaselessKeyword("NOT")
 
@@ -244,16 +255,17 @@ def getADQLGrammarCopy():
 		+ Optional( "." + identifier )
 		+ Optional( "." + identifier )
 		+ Optional( "." + identifier ))
-	asClause = ( CaselessKeyword("AS") | whitespace ) + columnName
+	asClause = ( CaselessKeyword("AS") | whitespace ) + columnName("alias")
 
 	valueExpression = Forward()
 
 # set functions
 	setFunctionType = Regex("(?i)AVG|MAX|MIN|SUM|COUNT")
 	setQuantifier = Regex("(?i)DISTINCT|ALL")
-	generalSetFunction = (setFunctionType + '(' + Optional( setQuantifier ) +
-		valueExpression + ')')
-	countAll = CaselessLiteral("COUNT") + '(' + '*' + ')'
+	generalSetFunction = (setFunctionType("fName") 
+		+ '(' + Optional( setQuantifier ) + Args(valueExpression) + ')')
+	countAll = (CaselessLiteral("COUNT")("fName") 
+		+ '(' + Args(Literal('*')) + ')')
 	setFunctionSpecification = (countAll | generalSetFunction)
 
 # value expressions
@@ -280,59 +292,73 @@ def getADQLGrammarCopy():
 	numericValueExpression << (term + ZeroOrMore( ( Literal("+") | "-" ) + term ))
 
 # geometry types and expressions
-	coordSys = stringValueExpression
-	coordinates = numericValueExpression + ',' + numericValueExpression
-	point = (CaselessKeyword("POINT") + '(' + coordSys + ',' + 
-		coordinates + ')')
-	circle = (CaselessKeyword("CIRCLE") + '(' + coordSys + ',' +
-		coordinates + ',' + numericValueExpression + ')')
-	rectangle = (CaselessKeyword("RECTANGLE") +  '(' + coordSys + ',' +
-		coordinates + ',' + coordinates + ')')
-	polygon = (CaselessKeyword("POLYGON") + '(' + coordSys + ',' +
-		coordinates + OneOrMore( ',' + coordinates ) + ')')
-	region = (CaselessKeyword("REGION") + '(' + stringValueExpression + ')')
+	coordSys = stringValueExpression("coordSys")
+	coordinates = (Args(numericValueExpression) 
+		+ ',' + Args(numericValueExpression))
+	point = (CaselessKeyword("POINT")("fName") + '(' + coordSys + ',' 
+		+ coordinates + ')')
+	circle = (CaselessKeyword("CIRCLE")("fName") + '(' + coordSys + ',' 
+		+ coordinates + ',' + Args(numericValueExpression) + ')')
+	rectangle = (CaselessKeyword("RECTANGLE")("fName") +  '(' + coordSys + ',' 
+		+ coordinates + ',' + coordinates + ')')
+	polygon = (CaselessKeyword("POLYGON")("fName") + '(' + coordSys + ',' 
+		+ coordinates + OneOrMore( ',' + coordinates ) + ')')
+	region = (CaselessKeyword("REGION")("fName") + '(' 
+		+ Args(stringValueExpression) + ')')
 	geometryExpression = point | circle | rectangle | polygon | region
 	geometryValue = columnReference.copy()
 	coordValue = point | columnReference
-	centroid = CaselessKeyword("CENTROID") + '(' + geometryExpression + ')'
+	centroid = (CaselessKeyword("CENTROID")("fName") 
+		+ '(' + Args(geometryExpression) + ')')
 	geometryValueExpression = geometryExpression | geometryValue | centroid
 
 # geometry functions
-	distanceFunction = (CaselessKeyword("DISTANCE") + '(' + coordValue + ',' +
-		coordValue + ')')
-	pointFunction = (Regex("(?i)COORD[12]|COORDSYS") + '(' +
-		coordValue + ')')
-	area = CaselessKeyword("AREA") + '(' + geometryValueExpression + ')'
+	distanceFunction = (CaselessKeyword("DISTANCE")("fName") 
+		+ '(' + Args(coordValue) + ',' + Args(coordValue) + ')')
+	pointFunction = (Regex("(?i)COORD[12]|COORDSYS")("fName") + '(' +
+		Args(coordValue) + ')')
+	area = (CaselessKeyword("AREA")("fName") 
+		+ '(' + Args(geometryValueExpression) + ')')
 	nonPredicateGeometryFunction = (distanceFunction | pointFunction | area)
 	predicateGeoFunctionName = Regex("(?i)CONTAINS|INTERSECTS")
-	predicateGeometryFunction = (predicateGeoFunctionName + '(' + 
-		geometryValueExpression + ',' + geometryValueExpression + ')')
+	predicateGeometryFunction = (predicateGeoFunctionName("fName") 
+		+ '(' + Args(geometryValueExpression) 
+		+ ',' + Args(geometryValueExpression) + ')')
 	numericGeometryFunction = (predicateGeometryFunction | 
 		nonPredicateGeometryFunction)
 
 
 # numeric, system, user defined functions
 	trig1ArgFunctionName = Regex("(?i)ACOS|ASIN|ATAN|COS|COT|SIN|TAN")
-	trigFunction = (trig1ArgFunctionName + '(' + numericValueExpression + ')' |
-		CaselessKeyword("ATAN2") + '(' + numericValueExpression + ',' + 
-			numericValueExpression + ')')
+	trigFunction = (
+			trig1ArgFunctionName("fName") + '('
+				+ Args(numericValueExpression) + ')' 
+		|	CaselessKeyword("ATAN2")("fName") + '(' + 
+			Args(numericValueExpression) + ',' 
+				+ Args(numericValueExpression) + ')')
 	math0ArgFunctionName = Regex("(?i)PI")
 	optIntFunctionName = Regex("(?i)RAND")
 	math1ArgFunctionName = Regex("(?i)ABS|CEILING|DEGREES|EXP|FLOOR|LOG10|"
 		"LOG|RADIANS|SQUARE|SQRT")
 	optPrecArgFunctionName = Regex("(?i)ROUND|TRUNCATE")
 	math2ArgFunctionName = Regex("(?i)POWER")
-	mathFunction = (math0ArgFunctionName + '(' + ')' |
-		optIntFunctionName + '(' + Optional( unsignedInteger ) + ')' |
-		math1ArgFunctionName + '(' + numericValueExpression + ')' |
-		optPrecArgFunctionName + '(' + numericValueExpression +
-			Optional( ',' + signedInteger ) + ')' |
-		math2ArgFunctionName + '(' + numericValueExpression + ',' +
-			unsignedInteger + ')')
+	mathFunction = (
+			math0ArgFunctionName("fName") + '(' + ')' 
+		|	optIntFunctionName("fName") + '(' 
+			+ Optional( Args(unsignedInteger) ) + ')' 
+		|	math1ArgFunctionName("fName") + '(' 
+			+ Args(numericValueExpression) + ')' 
+		| optPrecArgFunctionName("fName") + '(' 
+			+ Args(numericValueExpression) +
+			Optional( ',' + Args(signedInteger) ) + ')' 
+		|	math2ArgFunctionName("fName") + '(' 
+			+ Args(numericValueExpression) 
+			+ ',' + Args(unsignedInteger) + ')')
 	userDefinedFunctionParam = valueExpression
 	userDefinedFunctionName = Regex(userFunctionPrefix+"[A-Za-z_]+")
-	userDefinedFunction = ( userDefinedFunctionName + '(' +
-		userDefinedFunctionParam + ZeroOrMore( "," + userDefinedFunctionParam ) 
+	userDefinedFunction = ( userDefinedFunctionName("fName") + '(' +
+		Args(userDefinedFunctionParam) 
+		+ ZeroOrMore( "," + Args(userDefinedFunctionParam) ) 
 			+ ')')
 	numericValueFunction << (trigFunction | mathFunction | userDefinedFunction |
 		numericGeometryFunction)
@@ -343,15 +369,16 @@ def getADQLGrammarCopy():
 # toplevel value expression
 	valueExpression << (numericValueExpression | stringValueExpression |
 		geometryValueExpression)
-	derivedColumn = valueExpression + Optional( asClause )
+	derivedColumn = valueExpression("expr") + Optional( asClause )
 
 # parts of select clauses
 	setQuantifier = (CaselessKeyword( "DISTINCT" ) 
 		| CaselessKeyword( "ALL" ))("setQuantifier")
 	setLimit = CaselessKeyword( "TOP" ) + unsignedInteger("setLimit")
-	selectSublist = derivedColumn | qualifier + "." + "*"
-	selectList = ("*" 
-		| selectSublist + ZeroOrMore( "," + selectSublist ))("selectList")
+	selectSublist = (derivedColumn | (qualifier + "." + "*")
+		).setResultsName("fieldSel", listAllMatches=True)
+	selectList = (Literal("*")("starSel")
+		| selectSublist + ZeroOrMore( "," + selectSublist ))
 
 # boolean terms
 	subquery = Forward()
@@ -384,7 +411,7 @@ def getADQLGrammarCopy():
 # Referencing tables
 	queryExpression = Forward()
 	correlationSpecification = (( CaselessKeyword("AS") | whitespace
-		) + correlationName("alias"))("corrSpec")
+		) + correlationName("alias"))
 	subquery << ('(' + queryExpression + ')')
 	derivedTable = subquery.copy() + correlationSpecification
 	joinedTable = Forward()
@@ -490,6 +517,7 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
-	res = syms["statement"].parseString("select * from\r\n browndwarfs.cat\r\n"
+	res = syms["statement"].parseString(
+			"select truncate(round((x*2)+4, 2)) from foo"
 			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

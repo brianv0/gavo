@@ -2,11 +2,13 @@
 Node classes and factories used in ADQL tree processing.
 """
 
+import itertools
 import pyparsing
 import sys
 import traceback
 import weakref
 
+from gavo import utils
 from gavo.adql.common import *
 
 
@@ -29,6 +31,7 @@ def symbolAction(*symbols):
 				func.parseActionFor.append(symbol)
 			else:
 				func.parseActionFor = [symbol]
+		func.fromParseResult = func
 		return func
 	return deco
 
@@ -53,16 +56,16 @@ def flatten(arg):
 		return arg.flatten()
 
 
-def getUniqueMatch(matches, colName):
-	"""returns the only item of matches if there is exactly one, raises an
-	appropriate exception if not.
+def autocollapse(nodeBuilder, children):
+	"""inhibts the construction via nodeBuilder if children consists of
+	a single ADQLNode.
+
+	This function will automatically be inserted into the the constructor
+	chain if the node defines an attribute collapsible=True.
 	"""
-	if len(matches)==1:
-		return matches[0]
-	elif not matches:
-		raise ColumnNotFound(colName)
-	else:
-		raise AmbiguousColumn(colName)
+	if len(children)==1 and isinstance(children[0], ADQLNode):
+		return children[0]
+	return nodeBuilder.fromParseResult(children)
 
 
 def collectUserData(infoChildren):
@@ -104,6 +107,58 @@ def flattenKWs(obj, *fmtTuples):
 	return " ".join(res)
 
 
+def cleanNamespace(ns):
+	"""removes all names starting with an underscore from the dict ns.
+
+	This is intended for _getInitKWs methods.  ns is changed in place *and*
+	returned for convenience
+	"""
+	return dict((k,v) for k,v in ns.iteritems() if not k.startswith("_")
+		and k!="cls")
+
+
+def getChildrenOfType(nodeSeq, type):
+	"""returns a list of children of type typ in the sequence nodeSeq.
+	"""
+	return [c for c in nodeSeq if getType(c)==type]
+
+
+def getChildrenOfClass(nodeSeq, cls):
+	return [c for c in nodeSeq if isinstance(c, cls)]
+
+
+class BOMB_OUT(object): pass
+
+def _uniquify(matches, default, exArgs):
+# helper method for getChildOfX -- see there
+	if len(matches)==0:
+		if default is not BOMB_OUT: 
+			return default
+		raise NoChild(*exArgs)
+	if len(matches)!=1:
+		raise MoreThanOneChild(*exArgs)
+	return matches[0]
+
+def getChildOfType(nodeSeq, type, default=BOMB_OUT):
+	"""returns the unique node of type in nodeSeq.
+
+	If there is no such node in nodeSeq or more than one, a NoChild or
+	MoreThanOneChild exception is raised,  Instead of raising NoChild,
+	default is returned if given.
+	"""
+	return _uniquify(getChildrenOfType(nodeSeq, type),
+		default, (type, nodeSeq))
+
+
+def getChildOfClass(nodeSeq, cls, default=BOMB_OUT):
+	"""returns the unique node of class in nodeSeq.
+
+	See getChildOfType.
+	"""
+	return _uniquify(getChildrenOfClass(nodeSeq, cls),
+		default, (cls, nodeSeq))
+
+
 ######################### Generic Node definitions
 
 @symbolAction("regularIdentifier")
@@ -114,79 +169,69 @@ def normalizeRIdentifier(toks):
 	return toks[0].lower()
 
 
-class ADQLNode(object):
-	"""is a node within an ADQL parse tree.
+class ADQLNode(utils.AutoNode):
+	"""A node within an ADQL parse tree.
 
-	All ADQLNodes have type and children attributes.  All elements of
-	children are either strings or ADQL nodes.
+	ADQL nodes may be parsed out; in that case, they have individual attributes
+	and are craftily flattened in special methods.  We do this for nodes
+	that are morphed.
 
-	ADQLNodes have a method flatten that return a string representation of
-	the SQL fragment below them.
+	Other nodes basically just have a children attribute, and their flattening
+	is just a concatenation for their flattened children.  This is convenient
+	as long as they are not morphed.
+	
+	To derive actual classes, define 
+	
+	* the _a_<name> class attributes you need,
+	* the type (a nonterminal from the ADQL grammar) 
+	* or bindings if the class handles more than one symbol,
+	* a class method _getInitKWs(cls, parseResult); see below.
+	* a method flatten() -> string if you define a parsed ADQLNode.
+	* a method _polish() that is called just before the constructor is
+	  done and can be used to create more attributes.  There is no need
+	  to call _polish of superclasses.
 
-	Derived classes can override the _processChildren method to do any
-	local analysis of self.children at construction time.  If they need to
-	call _processChildren of a superclass, the *must* use 
-	_processChildrenNext(cls) to do so.
+	The _getInitKWs methods must return a dictionary mapping constructor argument
+	names to values.  You do not need to manually call superclass _getInitKWs,
+	since the fromParseResult classmethod figures out all _getInitKWs in the
+	inheritance tree itself.  It calls all of them in the normal MRO and updates
+	the argument dictionary in reverse order.  The fromParseResult
+	class method additionally filters out all names starting with an
+	underscore; this is to allow easy returning of locals().
 	"""
 	type = None
 
-	def __init__(self, children):
-		self.children = children
+	@classmethod
+	def fromParseResult(cls, parseResult):
+		initArgs = {}
+		for superclass in reversed(cls.mro()):
+			if hasattr(superclass, "_getInitKWs"):
+				initArgs.update(superclass._getInitKWs( parseResult))
 		try:
-			self._processChildren()
-		except:
-			# Careful here: these exceptions may be masked by pyparsing,
-			# though I haven't yet investigated how that happens.
-			raise
+			return cls(**cleanNamespace(initArgs))
+		except TypeError:
+			raise BadKeywords("%s, %s"%(cls, cleanNamespace(initArgs)))
 
-	def __iter__(self):
-		return iter(self.children)
+	def _setupNode(self):
+		for cls in reversed(self.__class__.mro()):
+			if hasattr(cls, "_polish"):
+				cls._polish(self)
+		self._setupNodeNext(ADQLNode)
 
 	def __repr__(self):
-		return "<%s, %s>"%(self.type, self.children)
-
-	def iterNodes(self):
-		"""iterates over all children, ignoring string children.
-		"""
-		for c in self:
-			if isinstance(c, ADQLNode):
-				yield c
-
-	def _processChildrenNext(self, cls):
-		try:
-			pc = super(cls, self)._processChildren
-		except AttributeError:
-			pass
-		else:
-			pc()
-
-	def _processChildren(self):
-		self._processChildrenNext(ADQLNode)
-
-	def getChildrenOfType(self, type):
-		return [c for c in self if getType(c)==type]
-	
-	def getChildOfType(self, type, default=None):
-		res = self.getChildrenOfType(type)
-		if len(res)==0:
-			if default is not None: 
-				return default
-			raise NoChild(type, self)
-		if len(res)!=1:
-			raise MoreThanOneChild(type, self)
-		return res[0]
+		return "<ADQL Node %s>"%(self.type)
 
 	def flatten(self):
 		"""returns a string representation of the text content of the tree.
 
-		You will have to override this if there are Ignored elements
-		or if you do tree manipulations without updating children (which
-		in general is a good thing, since self.children manipulations
-		probably are quite brittle).
+		This default implementation will only work if you returned all parsed
+		elements as children.  This, in turn, is something you only want to
+		do if you are sure that the node is question will not be morphed.
 
-		See also the flattenKWs function.
+		Otherwise, override it to create an SQL fragment out of the parsed
+		attributes.
 		"""
-		return " ".join([flatten(c) for c in self])
+		return " ".join(flatten(c) for c in self.children)
 
 	def getFlattenedChildren(self):
 		"""returns a list of all preterminal children of all children of self.
@@ -203,84 +248,82 @@ class ADQLNode(object):
 		recurse(self)
 		return fl
 
-	def isPreterminal(self):
-		return bool(self.getChildrenOfType(str))
-
 	def asTree(self):
-		return tuple(isinstance(c, ADQLNode) and c.asTree() or c
-			for c in self)
+		res = []
+		for name, val in self.iterChildren():
+			if isinstance(val, ADQLNode):
+				res.append(val.asTree())
+		return self._treeRepr()+tuple(res)
 	
-	def find(self, type):
-		"""returns the leftmost node of type t below self.
+	def _treeRepr(self):
+		return (self.type,)
+	
 
-		The function returns None if no such node exists.
+class TransparentMixin(object):
+	"""a mixin just pulling through the children and serializing them.
+	"""
+	_a_children = ()
 
-		Actually, each node is tested first, so "leftmost" should be something
-		like "top-leftmost" or so, but you'll usually get what you expect.
-		"""
-		for c in self.iterNodes():
-			if c.type==type:
-				return c
-			res = c.find(type)
-			if res is not None:
-				return res
-			
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		return {"children": list(_parseResult)}
+
 
 class FunctionMixin(object):
 	"""is a mixin for ADQLNodes for parsing out arguments and a
 	function name.
 
-	The arguments have to be put into nodes at least so far that
-	no literal parens and commas are left in the function node's
-	children.
+	The rules having this as action must use the Arg "decorator" in
+	grammar.py around their arguments and must have a string-valued
+	result "fName".
 
-	What you get is an attribute funName (always uppercased for
-	convenience) and and an attribute args containing strings
-	flattened from the arguments.
+	Nodes mixing this in have attributes args (unflattened arguments),
+	and funName (a string containing the function name, all upper
+	case).
 	"""
-	def _parseFuncArgs(self):
-		toDo = self.children[:]
-		self.args, self.rawArgs, newArg = [], [], []
-		# before the opening paren: the name
-		self.funName = toDo.pop(0).upper()
-		assert toDo.pop(0)=='('
-		while 1:
-			tok = toDo.pop(0)
-			if tok==')':
-				break
-			elif tok==',':
-				self.args.append(" ".join(newArg))
-				self.rawArgs.append(newArg)
-				newArg = []
-			else:
-				newArg.append(flatten(tok))
-				self.rawArgs.append(tok)
-		if newArg:
-			self.args.append(" ".join(newArg))
-			self.rawArgs.append(newArg)
+	_a_args = ()
+	_a_funName = None
 
-	def _processChildren(self):
-		self._parseFuncArgs()
-		self._processChildrenNext(FunctionMixin)
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		args = []
+		try:
+			for _arg in _parseResult["args"]:
+				# _arg is either another ParseResult or an ADQLNode
+				if isinstance(_arg, ADQLNode):
+					args.append(_arg)
+				else:
+					args.append(autocollapse(NumericValueExpression, _arg))
+			args = tuple(args)
+		except KeyError: # Zero-Arg function
+			pass
+		funName = _parseResult["fName"].upper()
+		return locals()
+
+	def flatten(self):
+		return "%s(%s)"%(self.funName, ", ".join(flatten(a) for a in self.args))
 
 
 class FieldInfoedNode(ADQLNode):
 	"""is an ADQL node that carries a FieldInfo.
 
 	This is true for basically everything in the tree below a derived
-	column.
+	column.  This class is the basis for column annotation.
 
 	You'll usually have to override addFieldInfo.  The default implementation
 	just looks in its immediate children for anything having a fieldInfo,
 	and if there's exactly one such child, it adopts that fieldInfo as
 	its own, not changing anything.
+
+	FieldInfoedNode, when change()d, keep their field info.  This is usually
+	what you want when morphing, but sometimes you might need adjustments.
 	"""
 	fieldInfo = None
 
 	def _getInfoChildren(self):
-		return [c for c in self.children if getattr(c, "fieldInfo", None)]
+		return [c for c in self.iterNodeChildren() if hasattr(c, "fieldInfo")]
 
-	def addFieldInfo(self, colsInfo):
+	def addFieldInfo(self, ignored):
 		infoChildren = self._getInfoChildren()
 		if len(infoChildren)==1:
 			self.fieldInfo = infoChildren[0].fieldInfo
@@ -295,109 +338,192 @@ class FieldInfoedNode(ADQLNode):
 					self.__class__.__name__,
 					self.children))
 
+	def change(self, **kwargs):
+		other = ADQLNode.change(self, **kwargs)
+		other.fieldInfo = self.fieldInfo
+		return other
 
-class ColBearingMixin(object):
-	"""is a mixin for all Node types that provides columns with field infos.
 
-	It is mixed in by queries, tables, etc.
+class ColumnBearingNode(ADQLNode):
+	"""A Node types defining selectable columns.
+
+	These are tables, subqueries, etc.  This class is the basis for the
+	annotation of tables and subqueries.
+
+	Their getFieldInfo(name)->fi method gives annotation.FieldInfos 
+	objects for their columns, None for unknown columns.
+
+	These keep their fieldInfos on a change()
 	"""
 	fieldInfos = None
 
 	def getFieldInfo(self, name):
 		if self.fieldInfos:
 			return self.fieldInfos.getFieldInfo(name)
+	
+	def getAllNames(self):
+		"""yields all relation names mentioned in this node.
+		"""
+		raise TypeError("Override getAllNames for ColumnBearingNodes.")
+
+	def change(self, **kwargs):
+		other = ADQLNode.change(self, **kwargs)
+		other.fieldInfos = self.fieldInfos
+		return other
 
 
 ############# Toplevel query language node types (for query analysis)
 
 class TableName(ADQLNode):
 	type = "tableName"
-	cat = schema = name = None
-	def _processChildren(self):
-		parts = self.children[::2]
-		parts = [None]*(3-len(parts))+parts
-		self.cat, self.schema, self.name = parts
-		self.qName = ".".join([n for n in [self.cat, self.schema, self.name] if n])
+	_a_cat = None
+	_a_schema = None
+	_a_name = None
+
+	def _polish(self):
+		self.qName = ".".join(n for n in (self.cat, self.schema, self.name) if n)
+
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		_parts = _parseResult[::2]
+		cat, schema, name = [None]*(3-len(_parts))+_parts
+		return locals()
+
+	def flatten(self):
+		return self.qName
 
 
-class CorrelationSpecification(ADQLNode):
-	type = "correlationSpecification"
-	def _processChildren(self):
-		self.name = self.qName = self.children.get("alias")
-
-
-class TableReference(ADQLNode, ColBearingMixin):
-	"""is a table reference.
-
-	These always have a name (tableName); if a correlationSpecification
-	is given, this is whatever is behind AS.  The joinedTables attribute
-	contains further table references if any are joined in.
-
-	They may have an originalName if an actual table name (as opposed to a
-	subquery) was used to specify the table.  Otherwise, there's either
-	a subquery or a joined table that needs to be consulted to figure out
-	what fields are available from the table.
+class PlainTableRef(ColumnBearingNode):
+	"""A reference to a simple table.
+	
+	The tableName is the name this table can be referenced as from within
+	SQL, originalName is the name within the database; they are equal unless
+	a correlationSpecification has been given.
 	"""
 	type = "possiblyAliasedTable"
-	joinedTables = []
-	def __repr__(self):
-		return "<tableReference to %s>"%",".join(self.getAllNames())
+	feedInfosFromDB = True
+	_a_tableName = None
+	_a_originalTable = None
 
-	def _processChildren(self):
-		if self.children.get("corrSpec"):
-			self.tableName = self.children.get("corrSpec")
-			self.originalTable = self.children.get("tableName")
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		if _parseResult.get("alias"):
+			tableName = _parseResult.get("alias")
+			originalTable = _parseResult.get("tableName")
 		else:
-			self.tableName = self.originalTable = self.getChildOfType("tableName")
-		self.joinedTables = self.getChildrenOfType("tableReference")
+			tableName = getChildOfType(_parseResult, "tableName")
+			originalTable = flatten(tableName)
+		return locals()
+
+	def _polish(self):
+		self.qName = flatten(self.tableName)
+
+	def flatten(self):
+		if self.originalTable!=self.qName:
+			return "%s AS %s"%(flatten(self.tableName), self.originalTable)
+		else:
+			return self.qName
+
+	def getAllNames(self):
+		yield self.tableName.qName
+
+
+class DerivedTable(ADQLNode):
+	type = "derivedTable"
+	_a_query = None
+	_a_tableName = None
+
+# These just delegate all column bearing stuff to their embedded query
+	def getAllNames(self):
+		return self.query.getAllNames()
+	def getFieldInfo(self, name):
+		return self.query.getFieldInfo(name)
+	@property
+	def fieldInfos(self):
+		return self.query.fieldInfos
+
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		return {'tableName': TableName(name=str(_parseResult.get("alias"))),
+			'query': getChildOfClass(_parseResult, QuerySpecification),
+		}
+
+	def flatten(self):
+		return "(%s) AS %s"%(flatten(self.query), flatten(self.tableName))
+
+	def getAllNames(self):
+		yield self.tableName.qName
+
+
+class JoinedTable(ColumnBearingNode, TransparentMixin):
+	type = "joinedTable"
+	feedInfosFromDB = True
+
+	def _polish(self):
+		self.joinedTables = getChildrenOfClass(self.children, ColumnBearingNode)
 
 	def getAllNames(self):
 		"""iterates over all fully qualified table names mentioned in this
 		(possibly joined) table reference.
 		"""
-		yield self.tableName.qName
 		for t in self.joinedTables:
 			yield t.tableName.qName
 
 
-class WhereClause(ADQLNode):
+class TransparentNode(TransparentMixin, ADQLNode):
+	"""An abstract base for Nodes that don't parse out anything.
+	"""
+	type = None
+
+
+class WhereClause(TransparentNode):
 	type = "whereClause"
 
-class Grouping(ADQLNode):
+class Grouping(TransparentNode):
 	type = "groupByClause"
 
-class Having(ADQLNode):
+class Having(TransparentNode):
 	type = "havingClause"
 
-class OrderBy(ADQLNode):
+class OrderBy(TransparentNode):
 	type = "sortSpecification"
 
 
-class QuerySpecification(ADQLNode, ColBearingMixin): 
-	type = "statement"
+class QuerySpecification(ColumnBearingNode): 
+	type = "querySpecification"
 
-	def _processChildren(self):
-		for name in ["setQuantifier", "setLimit", "selectList", "fromClause",
-				"whereClause", "groupby", "having", "orderBy"]:
-			setattr(self, name, self.children.get(name))
+	_a_setQuantifier = None
+	_a_setLimit = None
+	_a_selectList = None
+	_a_fromClause = None
+	_a_whereClause = None
+	_a_groupby = None
+	_a_having = None
+	_a_orderBy = None
+
+	def _polish(self):
 		self.query = weakref.proxy(self)
-		self._processChildrenNext(QuerySpecification)
+
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		res = {}
+		for name in ["setQuantifier", "setLimit", "fromClause",
+				"whereClause", "groupby", "having", "orderBy"]:
+			res[name] = _parseResult.get(name)
+		res["selectList"] = getChildOfType(_parseResult, "selectList")
+		return res
 	
 	def getSelectFields(self):
-		if self.selectList.isAllFieldsQuery:
+		if self.selectList.allFieldsQuery:
 			return self.fromClause.getAllFields()
 		else:
 			return self.selectList.selectFields
 
-	def getSourceTableNames(self):
-		return self.fromClause.getTableNames()
-	
 	def resolveField(self, fieldName):
 		return self.fromClause.resolveField(fieldName)
 
 	def getAllNames(self):
-		for n in self.fromClause.getTableNames():
-			yield n
+		return self.fromClause.getAllNames()
 
 	def flatten(self):
 		return flattenKWs(self, ("SELECT", None),
@@ -411,34 +537,22 @@ class QuerySpecification(ADQLNode, ColBearingMixin):
 			("", "orderBy"),)
 
 
-class DerivedTable(QuerySpecification):
-	type = "derivedTable"
-	def _processChildren(self):
-		self._processChildrenNext(DerivedTable)
-		self.tableName = self.children.get("corrSpec")
-
-	def getAllNames(self):
-		yield self.tableName.qName
-		for n in QuerySpecification.getAllNames(self):
-			yield n
-
-	def flatten(self):
-		return "(%s) AS %s"%(QuerySpecification.flatten(self),
-			self.tableName.qName)
-
-
 class FromClause(ADQLNode):
 	type = "fromClause"
+	_a_tablesReferenced = ()
 
-	def _processChildren(self):
-		self.tablesReferenced = [t for t in self.children
-			if isinstance(t, ColBearingMixin)]
-	
-	def getTableNames(self):
-		res = []
-		for t in self.tablesReferenced:
-			res.append(t.tableName.qName)
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		res = {"tablesReferenced": list(_parseResult)[1::2]}
 		return res
+	
+	def flatten(self):
+		return "FROM %s"%(", ".join(flatten(r) for r in self.tablesReferenced))
+	
+	def getAllNames(self):
+		"""returns the names of all tables taking part in this from clause.
+		"""
+		return itertools.chain(*(t.getAllNames() for t in self.tablesReferenced))
 	
 	def resolveField(self, name):
 		matches = []
@@ -451,13 +565,16 @@ class FromClause(ADQLNode):
 		return getUniqueMatch(matches, name)
 
 	class FakeSelectField(object):
+		"""A helper class to wrap columns into selectFields when resolving
+		SELECT *...
+		"""
 		def __init__(self, name, fieldInfo):
 			self.name, self.fieldInfo = name, fieldInfo
 
-		def iterNodes(self):
+		def iterNodeChildren(self):
 			return []
 
-		def addFieldInfo(self, resolve):
+		def addFieldInfo(self, ignored):
 			pass # we were born with one.
 
 	def getAllFields(self):
@@ -470,68 +587,86 @@ class FromClause(ADQLNode):
 
 class ColumnReference(FieldInfoedNode):
 	type = "columnReference"
-	cat = schema = table = name = None
-	def _processChildren(self):
-		self.colName = "".join(self.children)
-		names = [c for c in self.children if c!="."]
-		names = [None]*(4-len(names))+names
-		self.cat, self.schema, self.table, self.name = names
+	_a_cat = None
+	_a_schema = None
+	_a_table = None
+	_a_name = None
 
-	def addFieldInfo(self, fieldResolver):
-		self.fieldInfo = fieldResolver(self.name)
+	def _polish(self):
+		self.colName = "".join(n for n in 
+			(self.cat, self.schema, self.table, self.name) if n)
 
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		_names = [_c for _c in _parseResult if _c!="."]
+		_names = [None]*(4-len(_names))+_names
+		cat, schema, table, name = _names
+		return locals()
 
-class AsClause(ADQLNode):
-	type = "asClause"
-	alias = None
+	def addFieldInfo(self, getFieldInfo):
+		self.fieldInfo = getFieldInfo(self.name)
+	
+	def flatten(self):
+		return self.colName
 
-	def _processChildren(self):
-		self.alias = self.children[-1]
+	def _treeRepr(self):
+		return (self.type, self.name)
 
 
 class DerivedColumn(FieldInfoedNode):
-	"""is a column within a select list.
-
-	DerivedColumns have the following attributes for the client's
-	convenience:
-
-	* name -- if there's an asClause, it's the alias; if the only
-	  child is a ColumnReference, it's its name; otherwise, its an
-	  artificial name.
-	* columnReferences -- a list of all columnReferences below the expression
-	* tainted -- true if there is any content in the expression that cannot
-    be safely interpreted in terms of the unit and ucd calculus.  This
-	  is true by default whenever there's more than a single columnReference
-	  and needs to be reset by things like ColumnResolver.
+	"""A column within a select list.
 	"""
 	type = "derivedColumn"
-	name = None
-	columnReferences = None
-	tainted = True
+	_a_expr = None
+	_a_alias = None
+	_a_tainted = True
+	_a_name = None
 
-	def _processChildren(self):
-		fc = [f for f in self.getFlattenedChildren() if getType(f)!="asClause"]
-		# typical case: We only have a single column.  Inherit its name
-		if len(fc)==1 and getType(fc[0])=="columnReference":
-			self.name = fc[0].name
+	def _polish(self):
+		if self.name is None:
+			if getType(self.expr)=="columnReference":
+				self.name = self.expr.name
+			else:
+				self.name = utils.intToFunnyWord(id(self))
+		if getType(self.expr)=="columnReference":
 			self.tainted = False
-		else:  # come up with an artificial name
-			self.name = "column_%x"%(id(self)+0x80000000)
-		alias = self.getChildOfType("asClause", Absent)
-		if alias is not Absent:
-			self.name = alias.alias
-		self.columnReferences = [c for c in fc if getType(c)=="columnReference"]
 
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		expr = _parseResult["expr"]
+		alias = _parseResult.get("alias")
+		if alias is not None:
+			name = alias
+		return locals()
+	
+	def flatten(self):
+		return flattenKWs(self,
+			("", "expr"),
+			("AS", "alias"))
+
+	def _treeRepr(self):
+		return (self.type, self.name)
 
 class SelectList(ADQLNode):
 	type = "selectList"
-	def _processChildren(self):
-		self.isAllFieldsQuery = len(self.children)==1 and self.children[0] == '*'
-		if self.isAllFieldsQuery:
-			self.selectFields = None  # Will be filled in by query, we don't have
-				# the from clause here.
+	_a_selectFields = ()
+	_a_allFieldsQuery = False
+
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		allFieldsQuery = _parseResult.get("starSel", False)
+		if allFieldsQuery:
+			selectFields = None  # Will be filled in by query, we don't have
+			                     # the from clause here.
 		else:
-			self.selectFields = self.getChildrenOfType("derivedColumn")
+			selectFields = list(_parseResult.get("fieldSel"))
+		return locals()
+	
+	def flatten(self):
+		if self.allFieldsQuery:
+			return self.allFieldsQuery
+		else:
+			return ", ".join(flatten(sf) for sf in self.selectFields)
 
 
 ######## all expression parts we need to consider when inferring units and such
@@ -541,22 +676,30 @@ class Comparison(ADQLNode):
 	a true boolean function call.
 	"""
 	type = "comparisonPredicate"
+	_a_op1 = None
+	_a_opr = None
+	_a_op2 = None
 
-	def _processChildren(self):
-		self.op1, self.opr, self.op2 = self.children
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		op1, opr, op2 = _parseResult
+		return locals()
+	
+	def flatten(self):
+		return "%s %s %s"%(flatten(self.op1), self.opr, flatten(self.op2))
 
 
-class Factor(FieldInfoedNode):
+class Factor(FieldInfoedNode, TransparentMixin):
 	"""is a factor within an SQL expression.
 
 	factors may have only one (direct) child with a field info and copy
-	this.  The can have no child with a field info, in which case they're
+	this.  They can have no child with a field info, in which case they're
 	dimless.
 	"""
 	type = "factor"
 	collapsible = True
 
-	def addFieldInfo(self, colsInfo):
+	def addFieldInfo(self, ignored):
 		infoChildren = self._getInfoChildren()
 		if infoChildren:
 			assert len(infoChildren)==1
@@ -566,7 +709,7 @@ class Factor(FieldInfoedNode):
 
 
 class CombiningFINode(FieldInfoedNode):
-	def addFieldInfo(self, colsInfo):
+	def addFieldInfo(self, ignored):
 		infoChildren = self._getInfoChildren()
 		if not infoChildren:
 			self.fieldInfo = dimlessFieldInfo
@@ -576,7 +719,7 @@ class CombiningFINode(FieldInfoedNode):
 			self.fieldInfo = self._combineFieldInfos()
 
 
-class Term(CombiningFINode):
+class Term(TransparentMixin, CombiningFINode):
 	type = "term"
 	collapsible = True
 
@@ -592,7 +735,7 @@ class Term(CombiningFINode):
 		return fi1
 
 
-class NumericValueExpression(CombiningFINode):
+class NumericValueExpression(CombiningFINode, TransparentMixin):
 	type = "numericValueExpression"
 	collapsible = True
 
@@ -606,7 +749,7 @@ class NumericValueExpression(CombiningFINode):
 		return fi1
 
 
-class GenericValueExpression(CombiningFINode):
+class GenericValueExpression(CombiningFINode, TransparentMixin):
 	"""is a container for value expressions that we don't want to look at
 	closer.
 
@@ -632,25 +775,26 @@ class GenericValueExpression(CombiningFINode):
 @symbolAction("valueExpression")
 def makeValueExpression(children):
 	if len(children)!=1:
-		res = GenericValueExpression(children)
+		res = GenericValueExpression.fromParseResult(children)
 		res.type = "valueExpression"
 		return res
 	else:
 		return children[0]
 
 
-class CountAll(FieldInfoedNode):
+class CountAll(FieldInfoedNode, TransparentMixin):
 	"""is a COUNT(*)-type node.
 	"""
 	type = "countAll"
 	fieldInfo = FieldInfo("", "meta.number")
 
-	# XXX TODO: We could inspect parents to figure out *what* we're counting
-	def addFieldInfo(self, colsInfo):
+	# We could inspect parents to figure out *what* we're counting to come up
+	# with a better UCD.
+	def addFieldInfo(self, ignored):
 		pass
 
 
-class SetFunction(FieldInfoedNode):
+class SetFunction(FieldInfoedNode, TransparentMixin):
 	"""is an aggregate function.
 
 	These typically amend the ucd by a word from the stat family and copy
@@ -665,7 +809,7 @@ class SetFunction(FieldInfoedNode):
 		'SUM': (None, None),
 		'COUNT': ('meta.number', ''),}
 
-	def addFieldInfo(self, colsInfo):
+	def addFieldInfo(self, ignored):
 		ucdPref, newUnit = self.funcDefs[self.children[0].upper()]
 		infoChildren = self._getInfoChildren()
 		if infoChildren:
@@ -684,7 +828,7 @@ class SetFunction(FieldInfoedNode):
 		self.fieldInfo = FieldInfo(unit, ucd, fi.userData, fi.tainted)
 
 
-class NumericValueFunction(FieldInfoedNode, FunctionMixin):
+class NumericValueFunction(FunctionMixin, FieldInfoedNode):
 	"""is a numeric function.
 
 	This is really a mixed bag.  We work through handlers here.  See table
@@ -694,8 +838,6 @@ class NumericValueFunction(FieldInfoedNode, FunctionMixin):
 	collapsible = True  # if it's a real function call, it has at least
 		# a name, parens and an argument and thus won't be collapsed.
 
-# XXX TODO: we could check and warn if there's something wrong with the
-# arguments in the handlers.
 	funcDefs = {
 		"ACOS": ('rad', '', None),
 		"ASIN": ('rad', '', None),
@@ -723,7 +865,7 @@ class NumericValueFunction(FieldInfoedNode, FunctionMixin):
 		fi = infoChildren[0].fieldInfo
 		return fi.unit, fi.ucd
 
-	def addFieldInfo(self, colsInfo):
+	def addFieldInfo(self, ignored):
 		infoChildren = self._getInfoChildren()
 		unit, ucd = '', ''
 		overrideUnit, overrideUCD, handlerName = self.funcDefs.get(
@@ -744,28 +886,38 @@ class CharacterStringLiteral(FieldInfoedNode):
 	type = "characterStringLiteral"
 	bindings = ["characterStringLiteral", "generalLiteral"]
 
-	def _processChildren(self):
-		self.value = "".join(c[1:-1] for c in self.children)
+	_a_value = None
+
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		value = "".join(c[1:-1] for c in _parseResult)
+		return locals()
+
+	def flatten(self):
+		return "'%s'"%(self.value.replace("'", "\\'"))
 
 	def addFieldInfo(self, ignored):
 		self.fieldInfo = dimlessFieldInfo
 
-###################### Geometry and stuff that needs morphing into real SQL
 
+###################### Geometry and stuff that needs morphing into real SQL
 
 class CoosysMixin(object):
 	"""is a mixin that works cooSys into FieldInfos for ADQL geometries.
 	"""
-	def addFieldInfo(self, colsInfo):
+	_a_cooSys = None
+
+	def addFieldInfo(self, ignored):
 		infoChildren = self._getInfoChildren()
 		self.fieldInfo = FieldInfo("", "", collectUserData(infoChildren)[0])
 		self.fieldInfo.cooSys = self.cooSys
 
-	def _processChildren(self):
-		self._processChildrenNext(CoosysMixin)
-		self.cooSys = self.children[2].value
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		return {"cooSys":  _parseResult["coordSys"][0].value}
 
-class _FunctionalNode(FieldInfoedNode, FunctionMixin):
+
+class _FunctionalNode(FunctionMixin, FieldInfoedNode):
 	pass
 
 
@@ -773,30 +925,30 @@ class Point(CoosysMixin, _FunctionalNode):
 	"""points have cooSys, x, and y attributes.
 	"""
 	type = "point"
+	_a_x = _a_y = None
 
-	def _processChildren(self):
-		self._processChildrenNext(Point)
-		self.x, self.y = self.args[1:]
+	def _polish(self):
+		self.x, self.y = self.args
 	
 
 class Circle(CoosysMixin, _FunctionalNode):
 	"""circles have cooSys, x, y, and radius attributes.
 	"""
 	type = "circle"
+	_a_x = _a_y = _a_radius = None
 
-	def _processChildren(self):
-		self._processChildrenNext(Circle)
-		self.x, self.y, self.radius = self.args[1:]
+	def _polish(self):
+		self.x, self.y, self.radius = self.args
 
 
 class Rectangle(CoosysMixin, _FunctionalNode):
 	"""rectangles have cooSys, x0, y0, x1, and y1 attributes.
 	"""
 	type = "rectangle"
+	_a_x0 = _a_y0 = _a_x1 = _a_y1 = None
 
-	def _processChildren(self):
-		self._processChildrenNext(Rectangle)
-		self.x0, self.y0, self.x1, self.y1 = self.args[1:]
+	def _polish(self):
+		self.x0, self.y0, self.x1, self.y1 = self.args
 
 
 class Polygon(CoosysMixin, _FunctionalNode):
@@ -804,14 +956,15 @@ class Polygon(CoosysMixin, _FunctionalNode):
 	coordinates in coos.
 	""" 
 	type = "polygon"
+	_a_coos = ()
 
-	def _processChildren(self):
-		self._processChildrenNext(Polygon) 
-		toDo = self.args[1:]
-		self.coos = [] 
+	def _polish(self):
+		toDo = list(self.args)
+		coos = []
 		while toDo:
-			self.coos.append(tuple(toDo[:2])) 
+			coos.append(tuple(toDo[:2])) 
 			del toDo[:2]
+		self.coos = tuple(coos)
 
 
 _regionMakers = [] 
@@ -846,36 +999,16 @@ def makeRegion(children):
 	
 
 class Centroid(_FunctionalNode):
-	"""centroids have an expression attribute.
-	"""
 	type = "centroid"
 
-	def _processChildren(self):
-		self._processChildrenNext(Centroid)
-		assert len(self.args)==1
-		self.expression = self.args[0]
-
-
 class Distance(_FunctionalNode):
-	"""The distance function -- 2 arguments, both points.
-	"""
 	type = "distanceFunction"
 
-
 class predicateGeometryFunction(_FunctionalNode):
-	"""CONTAINS or INTERSECTS calls -- two arguments, geometry expressions.
-	"""
 	type = "predicateGeometryFunction"
 
-
 class PointFunction(_FunctionalNode):
-	"""LONGITUDE or LATITUDE calls -- one argument, a geometry expression 
-	evaluating to a point.
-	"""
 	type = "pointFunction"
 
-
 class Area(_FunctionalNode):
-	"""one argument, a geometry expression.
-	"""
 	type = "area"

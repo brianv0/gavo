@@ -10,6 +10,7 @@ Definitions and shared code for STC processing.
 import itertools
 import operator
 
+from gavo import utils
 from gavo.utils import ElementTree
 
 class STCError(Exception):
@@ -90,51 +91,6 @@ stcTimeScales = set(["TT", "TDT", "ET", "TAI", "IAT", "UTC", "TEB", "TDB",
 
 # Nodes for ASTs
 
-class ASTNodeType(type):
-	"""is a metaclass for ASTs.
-
-	The idea is quite similar to the GAVO DC's Structure class, only we keep it
-	much simpler: Define children in a class definition and make sure they are
-	actually present.
-	
-	ASTNodes are supposed to be immutable; the are defined during construction.
-	Currently, nothing keeps you from changing them afterwards, but that may
-	change.
-
-	The classes' constructor is defined to accept all attributes as arguments
-	(you probably want to use keyword arguments here).  It is the constructor
-	that sets up the attributes, so ASTNodes must not have an __init__ method.
-	However, they may define a method _setupNode that is called just before the
-	artificial constructor returns.
-	
-	To define the attributes of the class, add _a_<attname> attributes
-	giving a default to the class.  The default should normally be either
-	None for 1:1 or 1:0 mappings or an empty tuple for 1:n mappings.
-	The defaults must return a repr that constructs them, since we create
-	a source fragment.
-	"""
-	def __init__(cls, name, bases, dict):
-		cls._collectAttributes()
-		cls._buildConstructor()
-	
-	def _collectAttributes(cls):
-		cls._nodeAttrs = []
-		for name in dir(cls):
-			if name.startswith("_a_"):
-				cls._nodeAttrs.append((name[3:], getattr(cls, name)))
-	
-	def _buildConstructor(cls):
-		argList, codeLines = ["self"], []
-		for argName, argDefault in cls._nodeAttrs:
-			argList.append("%s=%s"%(argName, repr(argDefault)))
-			codeLines.append("  self.%s = %s"%(argName, argName))
-		codeLines.append("  self._setupNode()\n")
-		codeLines.insert(0, "def constructor(%s):"%(", ".join(argList)))
-		ns = {}
-		exec "\n".join(codeLines) in ns
-		cls.__init__ = ns["constructor"]
-
-
 def _compareFloat(val1, val2):
 	"""returns true if val1==val2 up to a fudge factor.
 
@@ -178,29 +134,13 @@ def _aboutEqual(val1, val2):
 		return False
 
 
-class ASTNode(object):
-	__metaclass__ = ASTNodeType
-
+class ASTNode(utils.AutoNode):
+	"""The base class for all nodes in STC ASTs.
+	"""
 	_a_ucd = None
 	_a_id = None
 
 	inexactAttrs = set()
-
-	def _setupNodeNext(self, cls):
-		try:
-			pc = super(cls, self)._setupNode
-		except AttributeError:
-			pass
-		else:
-			pc()
-
-	def _setupNode(self):
-		self._setupNodeNext(ASTNode)
-
-	def __repr__(self):
-		return "<%s %s>"%(self.__class__.__name__, " ".join(
-			"%s=%s"%(name, repr(val))
-			for name, val in self.iterAttributes(skipEmpty=True)))
 
 	def __eq__(self, other):
 		if not isinstance(other, self.__class__):
@@ -220,39 +160,6 @@ class ASTNode(object):
 	def __ne__(self, other):
 		return not self==other
 	
-	def change(self, **kwargs):
-		"""returns a shallow copy of self with constructor arguments in kwargs
-		changed.
-		"""
-		if not kwargs:
-			return self
-		consArgs = dict(self.iterAttributes())
-		consArgs.update(kwargs)
-		return self.__class__(**consArgs)
-
-	def iterAttributes(self, skipEmpty=False):
-		"""yields pairs of attributeName, attributeValue for this node.
-		"""
-		for name, _ in self._nodeAttrs:
-			val = getattr(self, name)
-			if skipEmpty and not val:
-				continue
-			yield name, val
-	
-	def iterNodes(self):
-		"""iterates the tree preorder.
-
-		Only ASTNodes are returned, not python values.
-		"""
-		childIterators = []
-		for name, value in self.iterAttributes():
-			if isinstance(value, ASTNode):
-				childIterators.append(value.iterNodes())
-			elif isinstance(value, (list,tuple)) and value:
-				if isinstance(value[0], ASTNode):
-					childIterators.extend(c.iterNodes() for c in value)
-		return itertools.chain((self,), *childIterators)
-
 
 class ColRef(object):
 	"""A column reference instead of a true value, occurring in an STC-S tree.

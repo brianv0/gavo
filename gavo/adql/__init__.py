@@ -1,6 +1,7 @@
+from gavo.adql.annotations import annotate
 from gavo.adql.common import *
 from gavo.adql.tree import (
-	getTreeBuildingGrammar, addFieldInfos, registerNode)
+	getTreeBuildingGrammar, registerNode)
 from gavo.adql.nodes import (flatten, registerRegionMaker)
 from gavo.adql.grammar import (
 	getADQLGrammar as getRawGrammar, 
