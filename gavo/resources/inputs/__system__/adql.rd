@@ -18,6 +18,12 @@ To learn what ADQL is, see the service info.  You will find important
 information for seasoned ADQL users there as well.
 ]]>	
 	</meta>
+	<meta name="_footer" format="rst">
+		To protect your nerves, the server inserts a TOP 2000 phrase unless you
+		give a limit yourself.  Thus, if you hit the 2000 record limit and want
+		to override it, you can specify your limit yourself (like ``SELECT TOP
+		20000...``).
+	</meta>
 	<meta name="_longdoc" format="rst"><![CDATA[
 
 About this service

@@ -380,6 +380,18 @@ class TableName(ADQLNode):
 	_a_schema = None
 	_a_name = None
 
+	def __eq__(self, other):
+		if hasattr(other, "qName"):
+			return self.qName==other.qName
+		else:
+			return self.qName==other
+
+	def __ne__(self, other):
+		return not self==other
+
+	def __nonzero__(self):
+		return bool(self.name)
+
 	def _polish(self):
 		self.qName = ".".join(n for n in (self.cat, self.schema, self.name) if n)
 
@@ -402,14 +414,14 @@ class PlainTableRef(ColumnBearingNode):
 	"""
 	type = "possiblyAliasedTable"
 	feedInfosFromDB = True
-	_a_tableName = None
-	_a_originalTable = None
+	_a_tableName = None      # a TableName instance
+	_a_originalTable = None  # a string
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
 		if _parseResult.get("alias"):
-			tableName = _parseResult.get("alias")
-			originalTable = _parseResult.get("tableName")
+			tableName = TableName(name=_parseResult.get("alias"))
+			originalTable = flatten(_parseResult.get("tableName"))
 		else:
 			tableName = getChildOfType(_parseResult, "tableName")
 			originalTable = flatten(tableName)
@@ -420,7 +432,7 @@ class PlainTableRef(ColumnBearingNode):
 
 	def flatten(self):
 		if self.originalTable!=self.qName:
-			return "%s AS %s"%(flatten(self.tableName), self.originalTable)
+			return "%s AS %s"%(self.originalTable, flatten(self.tableName))
 		else:
 			return self.qName
 
@@ -512,12 +524,22 @@ class QuerySpecification(ColumnBearingNode):
 			res[name] = _parseResult.get(name)
 		res["selectList"] = getChildOfType(_parseResult, "selectList")
 		return res
-	
+
+	def _iterSelectList(self):
+		for f in self.selectList.selectFields:
+			if isinstance(f, DerivedColumn):
+				yield f
+			elif isinstance(f, QualifiedStar):
+				for sf in self.fromClause.getFieldsForTable(f.sourceTable):
+					yield sf
+			else:
+				raise Error("Unexpected %s in select list"%getType(f))
+
 	def getSelectFields(self):
 		if self.selectList.allFieldsQuery:
 			return self.fromClause.getAllFields()
 		else:
-			return self.selectList.selectFields
+			return self._iterSelectList()
 
 	def resolveField(self, fieldName):
 		return self.fromClause.resolveField(fieldName)
@@ -535,6 +557,36 @@ class QuerySpecification(ColumnBearingNode):
 			("", "groupby"),
 			("", "having"),
 			("", "orderBy"),)
+
+
+class ColumnReference(FieldInfoedNode):
+	type = "columnReference"
+	_a_refTable = None  # if given, a TableName instance
+	_a_name = None
+
+	def _polish(self):
+		self.colName = ".".join(
+			flatten(p) for p in (self.refTable, self.name) if p)
+
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		names = [_c for _c in _parseResult if _c!="."]
+		names = [None]*(4-len(names))+names
+		refTable = TableName(cat=names[0], schema=names[1], name=names[2])
+		if not refTable:
+			refTable = None
+		return {
+			"name": names[-1],
+			"refTable": refTable}
+
+	def addFieldInfo(self, getFieldInfo):
+		self.fieldInfo = getFieldInfo(self.name, self.refTable)
+
+	def flatten(self):
+		return self.colName
+
+	def _treeRepr(self):
+		return (self.type, self.name)
 
 
 class FromClause(ADQLNode):
@@ -564,54 +616,36 @@ class FromClause(ADQLNode):
 				pass
 		return getUniqueMatch(matches, name)
 
-	class FakeSelectField(object):
-		"""A helper class to wrap columns into selectFields when resolving
-		SELECT *...
+	def _makeColumnReference(self, sourceTable, colPair):
+		"""returns a ColumnReference object for a name, colInfo pair from a 
+		table's fieldInfos.
 		"""
-		def __init__(self, name, fieldInfo):
-			self.name, self.fieldInfo = name, fieldInfo
-
-		def iterNodeChildren(self):
-			return []
-
-		def addFieldInfo(self, ignored):
-			pass # we were born with one.
+		cr = ColumnReference(name=colPair[0], refTable=sourceTable)
+		cr.fieldInfo = colPair[1]
+		return cr
 
 	def getAllFields(self):
+		"""returns all fields from all tables in this FROM.
+
+		On an unannotated tree, this will return the empty list.
+		"""
 		res = []
 		for table in self.tablesReferenced:
 			for column in table.fieldInfos.seq:
-				res.append(self.FakeSelectField(*column))
+				res.append(self._makeColumnReference(table, column))
 		return res
 
+	def getFieldsForTable(self, srcTable):
+		"""returns the fields in srcTable.
 
-class ColumnReference(FieldInfoedNode):
-	type = "columnReference"
-	_a_cat = None
-	_a_schema = None
-	_a_table = None
-	_a_name = None
-
-	def _polish(self):
-		self.colName = "".join(n for n in 
-			(self.cat, self.schema, self.table, self.name) if n)
-
-	@classmethod
-	def _getInitKWs(cls, _parseResult):
-		_names = [_c for _c in _parseResult if _c!="."]
-		_names = [None]*(4-len(_names))+_names
-		cat, schema, table, name = _names
-		return locals()
-
-	def addFieldInfo(self, getFieldInfo):
-		self.fieldInfo = getFieldInfo(self.name)
-	
-	def flatten(self):
-		return self.colName
-
-	def _treeRepr(self):
-		return (self.type, self.name)
-
+		srcTable is a TableName of a table referenced by self.
+		"""
+		for table in self.tablesReferenced:
+			if table==srcTable:
+				return [self._makeColumnReference(table, ci)
+					for ci in table.fieldInfos.seq]
+		raise ColumnNotFound("No %s table to draw columns from in this clause"%(
+			srcTable.qName))
 
 class DerivedColumn(FieldInfoedNode):
 	"""A column within a select list.
@@ -646,6 +680,21 @@ class DerivedColumn(FieldInfoedNode):
 
 	def _treeRepr(self):
 		return (self.type, self.name)
+
+
+class QualifiedStar(ADQLNode):
+	type = "qualifiedStar"
+	_a_sourceTable = None  # A TableName for the column source
+
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		parts = _parseResult[:-2:2] # kill dots and star
+		cat, schema, name = [None]*(3-len(parts))+parts
+		return {"sourceTable": TableName(cat=cat, schema=schema, name=name)}
+	
+	def flatten(self):
+		return "%s.*"%flatten(self.sourceTable)
+
 
 class SelectList(ADQLNode):
 	type = "selectList"

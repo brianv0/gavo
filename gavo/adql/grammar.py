@@ -375,7 +375,8 @@ def getADQLGrammarCopy():
 	setQuantifier = (CaselessKeyword( "DISTINCT" ) 
 		| CaselessKeyword( "ALL" ))("setQuantifier")
 	setLimit = CaselessKeyword( "TOP" ) + unsignedInteger("setLimit")
-	selectSublist = (derivedColumn | (qualifier + "." + "*")
+	qualifiedStar = qualifier + "." + "*"
+	selectSublist = (qualifiedStar | derivedColumn
 		).setResultsName("fieldSel", listAllMatches=True)
 	selectList = (Literal("*")("starSel")
 		| selectSublist + ZeroOrMore( "," + selectSublist ))
@@ -518,6 +519,6 @@ if __name__=="__main__":
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
 	res = syms["statement"].parseString(
-			"select truncate(round((x*2)+4, 2)) from foo"
+			"select spatial.* from spatial, misc"
 			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

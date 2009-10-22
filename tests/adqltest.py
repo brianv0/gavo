@@ -335,7 +335,7 @@ class TreeParseTest(testhelpers.VerboseTest):
 	def testAliasedColumn(self):
 		q = "select foo+2 as fp2 from x"
 		res = self.grammar.parseString(q)[0]
-		field = res.getSelectFields()[0]
+		field = list(res.getSelectFields())[0]
 		self.assertEqual(field.name, "fp2")
 	
 	def testTainting(self):
@@ -347,7 +347,7 @@ class TreeParseTest(testhelpers.VerboseTest):
 			('select x+2 as " ""cute"" Monkeys" from z', 
 				('" ""cute"" Monkeys"', True)),
 		]:
-			res = self.grammar.parseString(q)[0].getSelectFields()[0]
+			res = list(self.grammar.parseString(q)[0].getSelectFields())[0]
 			self.assertEqual(res.tainted, exTaint, "Field taintedness wrong in %s"%
 				q)
 			if exName:
@@ -359,6 +359,14 @@ class TreeParseTest(testhelpers.VerboseTest):
 		self.assertEqual(compPred.op1.type, "numericValueExpression")
 		self.assertEqual(compPred.opr, ">")
 		self.assertEqual(compPred.op2.type, "valueExpression")
+
+	def testQualifiedStar(self):
+		t = adql.parseToTree("select t1.*, s1.t2.* from t1, s1.t2, s2.t3")
+		self.assertEqual(t.selectList.selectFields[0].type, "qualifiedStar")
+		self.assertEqual(t.selectList.selectFields[0].sourceTable.qName,
+			"t1")
+		self.assertEqual(t.selectList.selectFields[1].sourceTable.qName,
+			"s1.t2")
 
 
 spatialFields = [
@@ -424,7 +432,18 @@ class SelectClauseTest(ColumnTest):
 		self._assertColumns(cols, [
 			("", "", False),])
 
-		
+	def testBadRefRaises(self):
+		self.assertRaises(adql.ColumnNotFound, self._getColSeq, 
+			"select x, foo.* from spatial, misc")
+
+	def testQualifiedStar(self):
+		cols = self._getColSeq("select misc.* from spatial, misc")
+		self._assertColumns(cols, [
+			("kg", "phys.mass", False),
+			("mag", "phot.mag", False),
+			("km/s", "phys.veloc", False),])
+
+
 class ColResTest(ColumnTest):
 	"""tests for resolution of output columns from various expressions.
 	"""
@@ -723,7 +742,8 @@ class QueryTest(unittest.TestCase):
 
 	def _assertFieldProperties(self, dataField, expected):
 		for label, value in expected:
-			self.assertEqual(getattr(dataField, label, None), value, "Data field %s:"
+			self.assertEqual(getattr(dataField, label, None), value, 
+				"Data field %s:"
 				" Expected %s for %s, found %s"%(dataField.name, repr(value), 
 					label, repr(getattr(dataField, label, None))))
 
@@ -756,6 +776,16 @@ class QueryTest(unittest.TestCase):
 		self._assertFieldProperties(fields[3], [
 			("ucd", 'phys.veloc;pos.heliocentric'),
 			("description", 'A sample radial velocity'), ("unit", 'km/s')])
+	
+	def testQualifiedStarSelect(self):
+		res = adqlglue.query("select %s.* from %s, %s as q1 where q1.mag<-10"%(
+			self.tableName, self.tableName, self.tableName), queryProfile="test")
+		self.assertEqual(len(res.rows), 1)
+		self.assertEqual(len(res.rows[0]), 4)
+		fields = res.tableDef.columns
+		self._assertFieldProperties(fields[0], [("ucd", 'pos.eq.ra;meta.main'),
+			("description", 'A sample RA'), ("unit", 'deg'), 
+			("tablehead", "Raw RA")])
 
 	def testNoCase(self):
 		# will just raise an Exception if things are broken.
@@ -783,4 +813,4 @@ class QueryTest(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(PQMorphTest)
+	testhelpers.main(QueryTest)

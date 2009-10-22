@@ -129,7 +129,7 @@ class FieldInfosForQuery(FieldInfos):
 			if hasattr(subRef, "getFieldInfo"):
 				self.subTables[subRef.tableName.name] = subRef
 
-	def getFieldInfoFromSources(self, colName):
+	def getFieldInfoFromSources(self, colName, refTable=None):
 		"""returns a field info for colName from anything in the from clause.
 
 		That is, the columns in the select clause are ignored.  Use this to
@@ -138,23 +138,30 @@ class FieldInfosForQuery(FieldInfos):
 		colName = colName.lower()
 		matched = []
 		for t in self.subTables.values():
+			if refTable and t.tableName!=refTable:
+				continue
 			subCols = t.fieldInfos.columns
 			if colName in subCols and subCols[colName]:
 				matched.append(subCols[colName])
 		return getUniqueMatch(matched, colName)
 
-	def getFieldInfo(self, colName):
+	def getFieldInfo(self, colName, refTable=None):
 		"""returns a field info for colName in self and the joined tables.
 
 		To do that, it collects all fields of colName in self and subTables and
 		returns the matching field if there's exactly one.  Otherwise, it
 		will raise ColumnNotFound or AmbiguousColumn.
+
+		If refTable is given, the search will be restricted to the matching
+		tables.
 		"""
-		ownMatch = self.columns.get(colName, None)
+		ownMatch = None
+		if refTable is None:
+			ownMatch = self.columns.get(colName, None)
 		if ownMatch:
 			return ownMatch
 		else:
-			return self.getFieldInfoFromSources(colName)
+			return self.getFieldInfoFromSources(colName, refTable)
 
 
 def annotate(node, fieldInfoGetter):
