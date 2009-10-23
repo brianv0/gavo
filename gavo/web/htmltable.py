@@ -22,6 +22,7 @@ from gavo import base
 from gavo import utils
 from gavo.base import coords
 from gavo.base import valuemappers
+from gavo.protocols import products
 from gavo.rscdef import rmkfuncs
 from gavo.web import common
 
@@ -211,9 +212,9 @@ def _productMapperFactory(colDesc):
 	fixedArgs = ""
 	def coder(val):
 		if val:
+# there's products.makeProductLink -- use it.
 			return T.a(href=base.makeSitePath(
-#					"/__system__/products/products/p/get?key=%s%s"%(urllib.quote(val), fixedArgs)),
-					"/getproduct?key=%s%s"%(urllib.quote(val), fixedArgs)),
+					"/getproduct?key=%s%s"%(products.quoteProductKey(val), fixedArgs)),
 				onmouseover=mouseoverHandler,
 				class_="productlink")[re.sub("&.*", "", os.path.basename(val))]
 		else:

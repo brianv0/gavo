@@ -348,11 +348,20 @@ class ProductRMixin(rscdef.RMixinBase):
 rscdef.registerRMixin(ProductRMixin())
 
 
+def quoteProductKey(key):
+	"""URL-quotes product keys.
+
+	Actually, it url quotes any string, but the plus handling we have
+	here is particularly important for product keys.
+	"""
+	return urllib.quote_plus(key.replace("+", "%2B"))
+
+
 @utils.document
 def makeProductLink(key, withHost=True):
 	"""returns the URL at which a product can be retrieved.
 	"""
-	url = base.makeSitePath("/getproduct?key=%s"%urllib.quote(key))
+	url = base.makeSitePath("/getproduct?key=%s"%urllib.quoteProductKey(key))
 	if withHost:
 		url = urlparse.urljoin(base.getConfig("web", "serverURL"), url)
 	return url
