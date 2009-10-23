@@ -108,6 +108,7 @@ class ErrorPage(ErrorPageDebug):
 		'%s'
 		'</div></div></body></html>')
 
+
 	def getHTML(self, failure):
 		return (
 			"<h1>Internal Error</h1><p>A(n) %s occurred.  The"
@@ -267,7 +268,7 @@ class AuthenticatePage(rend.Page, common.CommonRenderers):
 		request.setResponseCode(401)
 		return super(AuthenticatePage, self).renderHTTP(ctx)
 	
-	docFacotry = common.doctypedStan(T.html[
+	docFactory = common.doctypedStan(T.html[
 		T.head[
 			T.title["GAVO DC -- Authentication requried"],
 			T.invisible(render=T.directive("commonhead")),

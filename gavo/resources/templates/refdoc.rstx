@@ -191,8 +191,11 @@ start with an underscore.  Among those are:
 
 * _intro -- used by the standard HTML template for explanatory text
   above the seach form.
-* _footer -- used by the standard HTML template for explanatory text
+* _bottominfo -- used by the standard HTML template for explanatory text
   below the seach form.
+* _copyright -- used by the standard HTML template for copyright-related
+  information (there's also copyright in RMI; the one with the
+  underscore is intended to be less formal).
 * _related -- used in the standard HTML template for links to related
   services.  As listed above, this is a link, i.e., you can give a
   title attribute.

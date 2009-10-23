@@ -322,8 +322,8 @@ class STCTest(testhelpers.VerboseTest):
 			'  <column name="dec" unit="deg"/>'
 			'  <column name="mag" unit="mag"/>'
 			'</table>')
-		self.assertEqual(td.getColumnByName("ra").stc.spaceFrame,
-			"ICRS")
+		self.assertEqual(td.getColumnByName("ra").stc.sysDef[
+			"AstroCoordSystem.SpaceFrame.CoordRefFrame"], "ICRS")
 		self.assertEqual(td.getColumnByName("mag").stc, None)
 
 	def testComplexSTC(self):
@@ -334,6 +334,8 @@ class STCTest(testhelpers.VerboseTest):
 			'  <stc>PositionInterval FK5 "raMin" "decMin"</stc>'
 			'  <column name="ra" unit="deg"/>'
 			'  <column name="dec" unit="deg"/>'
+			'  <column name="e_ra" unit="deg"/>'
+			'  <column name="e_dec" unit="deg"/>'
 			'  <column name="start" type="timestamp"/>'
 			'  <column name="end" type="timestamp"/>'
 			'  <column name="raMin" unit="deg"/>'
@@ -341,12 +343,15 @@ class STCTest(testhelpers.VerboseTest):
 			'  <column name="mag" unit="mag"/>'
 			'</table>')
 		bigSTC = td.getColumnByName("ra").stc
-		self.assertEqual(td.getColumnByName("ra").stc.spaceFrame,
-			"ICRS")
+		self.assertEqual(td.getColumnByName("ra").stc.sysDef[
+			"AstroCoordSystem.SpaceFrame.CoordRefFrame"], "ICRS")
 		self.assertEqual(td.getColumnByName("mag").stc, None)
 		self.assertEqual(td.getColumnByName("start").stc, bigSTC)
 		self.assertEqual(td.getColumnByName("end").stc, bigSTC)
-		self.assertEqual(td.getColumnByName("raMin").stc.spaceFrame, "FK5")
+		self.assertEqual(td.getColumnByName("start").stc.timeFrame.timeScale,
+			"TT")
+		self.assertEqual(td.getColumnByName("raMin").stc.sysDef[
+			"AstroCoordSystem.SpaceFrame.CoordRefFrame"], "FK5")
 
 	def testGeometrySTC(self):
 		td = base.parseFromString(rscdef.TableDef,
@@ -354,7 +359,8 @@ class STCTest(testhelpers.VerboseTest):
 			'  <stc>Box ICRS [bbox]</stc>'
 			'  <column name="bbox" type="box"/>'
 			'</table>')
-		self.assertEqual(td.getColumnByName("bbox").stc.spaceFrame, "ICRS")
+		self.assertEqual("ICRS",
+			td.getColumnByName("bbox").stc.spaceFrame.refFrame), 
 	
 	def testCopying(self):
 		td = base.parseFromString(rscdef.TableDef,
@@ -363,11 +369,12 @@ class STCTest(testhelpers.VerboseTest):
 			'  <column name="bbox" type="box"/>'
 			'</table>')
 		tdc = td.copy(None)
-		self.assertEqual(tdc.getColumnByName("bbox").stc.spaceFrame, "ICRS")
+		self.assertEqual(tdc.getColumnByName("bbox").stc.spaceFrame.refFrame, 
+			"ICRS")
 		self.failUnless(tdc.getColumnByName("bbox").stc is
 			td.getColumnByName("bbox").stc)
 
 # test exc. with duplicate names.
 
 if __name__=="__main__":
-	testhelpers.main(WrapTest)
+	testhelpers.main(STCTest)

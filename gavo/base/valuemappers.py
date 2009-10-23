@@ -342,6 +342,7 @@ class VColDesc(dict):
 	The SerManager tries to obtain votCasts from a such-named
 	attribute on the table passed in.
 	"""
+# XXX TODO: This should probably become a wrapper around column...
 	_nullvalueRanges = {
 		"char": (' ', '~'),
 		"unsignedByte": (0, 255),
@@ -362,6 +363,8 @@ class VColDesc(dict):
 		self["datatype"] = type
 		self["arraysize"] = size
 		self["displayHint"] = column.displayHint
+		self["stc"] = column.stc
+		self["stcUtype"] = column.stcUtype
 		for fieldName in ["ucd", "utype", "unit"]:
 			self[fieldName] = getattr(column, fieldName)
 		if votCast is not None:
@@ -448,7 +451,7 @@ class SerManager(utils.IdManagerMixin):
 		for column in self.table.tableDef:
 			self.colDescs.append(
 				VColDesc(column, self.table.votCasts.get(column.name)))
-			colId = self.idManager.makeIdFor(column)
+			colId = self.idManager.makeIdFor(column, column.name)
 			# Do not generate an id if the field is already defined somewhere else.
 			if colId is not None:
 				self.colDescs[-1]["ID"] = colId
@@ -546,6 +549,7 @@ class SerManager(utils.IdManagerMixin):
 		"""iterates over the table's rows as tuples with mapped values.
 		"""
 		return self._iterWithMaps(self.makeTupleMaker())
+
 
 def _test():
 	import doctest, valuemappers

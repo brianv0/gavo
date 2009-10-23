@@ -10,6 +10,7 @@ external code.
 import compiler
 import compiler.ast
 import imp
+import itertools
 import os
 import re
 import shutil
@@ -51,13 +52,15 @@ class IdManagerMixin(object):
 	The primaray use case is XML generation, where you want stable IDs
 	for objects, but IDs must be unique over an entire XML file.
 
-	The IdManagerMixin provides two methods for doing that:
+	The IdManagerMixin provides three methods for doing that:
 	
 	* makeIdFor(object) -- returns an id for object, or None if makeIdFor has
 	  already been called for that object (i.e., it presumable already is
 		in the document).
 	* getIdFor(object) -- returns an id for object if makeIdFor has already
 	  been called before.  Otherwise, a NotFoundError is raised
+	* getForId(id) -- returns the object belonging to an id that has
+	  been handed out before.  Raises a NotFoundError for unknown ids.
 	"""
 # Return a proxy instead of raising a KeyError here?  We probably no not
 # really want to generate xml with forward references, but who knows?
@@ -67,19 +70,32 @@ class IdManagerMixin(object):
 		except AttributeError:
 			self.__objectToId, self.__idsToObject = {}, {}
 			return self.__objectToId, self.__idsToObject
-	
-	def makeIdFor(self, ob):
+
+	def _fixSuggestion(self, suggestion, invMap):
+		for i in itertools.count():
+			newId = suggestion+str(i)
+			if newId not in invMap:
+				return newId
+
+	def makeIdFor(self, ob, suggestion=None):
 		map, invMap = self.__getIdMaps()
 		if id(ob) in map:
 			return None
 
-		# an intrinsic id has precedence except if it clashes
-		if hasattr(ob, "id") and ob.id not in invMap:
-			newId = ob.id
+		if suggestion is not None: 
+			if suggestion in invMap:
+				newId = self._fixSuggestion(suggestion, invMap)
+			else:
+				newId = suggestion
 		else:
 			newId = intToFunnyWord(id(ob))
+
+		# register id(ob) <-> newId map, avoiding refs to ob
 		map[id(ob)] = newId
-		invMap[newId] = weakref.proxy(ob)
+		try:
+			invMap[newId] = weakref.proxy(ob)
+		except TypeError:  # something we can't weakref to
+			invMap[newId] = ob
 		return newId
 	
 	def getIdFor(self, ob):
@@ -88,9 +104,16 @@ class IdManagerMixin(object):
 		except KeyError:
 			raise excs.NotFoundError("Attempt to reference object at %d"
 				" that has not been introduced to the id manager.",
-				lookedFor=ob, what="id")
+				lookedFor=ob, what="object")
 
-	
+	def getForId(self, id):
+		try:
+			return self.__getIdMaps()[1][id]
+		except KeyError:
+			raise excs.NotFoundError("Attempt to resolve id %s"
+				" that has not been handed out by the id manager.",
+				lookedFor=id, what="id")
+
 def _iterDerivedClasses(baseClass, objects):
 	"""iterates over all subclasses of baseClass in the sequence objects.
 	"""
@@ -349,7 +372,7 @@ def intToFunnyWord(anInt, translation=string.maketrans(
 		"zaeiousmnthwblpgd")):
 	"""returns a sometimes funny (but unique) word from an arbitrary integer.
 	"""
-	return ("%x"%anInt).translate(translation)
+	return "".join(reversed(("%x"%anInt).translate(translation)))
 
 
 def _test():

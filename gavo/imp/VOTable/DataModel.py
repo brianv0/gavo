@@ -176,12 +176,14 @@ class Table(VOObject):
         repr = super(Table, self).xml()
         
         # Create and add the sub-elements
-        # FIXME: Add support for GROUP
         if(self.description):
             description = ElementTree.Element('DESCRIPTION')
             description.text = self.description
             repr.append(description)
         
+        for g in self.groups:
+            repr.append(g.xml())
+
         for l in self.links:
             repr.append(l.xml())
         
@@ -267,6 +269,37 @@ class Param(Field):
         repr = super(Param, self).xml()
         if(self.value):
             repr.set('value', self.value)
+        return(repr)
+
+
+
+class Group(VOObject):
+    def __init__(self, **kwargs):
+        self.ID = None
+        self.utype = None
+        self.ref = None
+        self.description = None
+        self.fieldRefs = []
+        self.params = []
+        self.paramRefs = []
+        self.groups = []
+        self.setFromDict(kwargs)
+        super(Group, self).__init__(**kwargs)
+    
+    def xml(self):
+        repr = super(Group, self).xml()
+        if self.description:
+            description = ElementTree.Element('DESCRIPTION')
+            description.text = self.description
+            repr.append(description)
+        for fr in self.fieldRefs:
+            repr.append(fr.xml())
+        for p in self.params:
+            repr.append(p.xml())
+        for pr in self.paramRefs:
+            repr.append(pr.xml())
+        for g in self.groups:
+            repr.append(g.xml())
         return(repr)
 
 

@@ -38,5 +38,44 @@ class PrefixTest(testhelpers.VerboseTest):
 		("z", "abc", 0),]
 
 
+class IdManagerTest(testhelpers.VerboseTest):
+	"""tests for working id manager.
+	"""
+	def setUp(self):
+		self.im = utils.IdManagerMixin()
+
+	def testNoDupe(self):
+		testob = 1
+		self.assertEqual(self.im.makeIdFor(testob), 
+			utils.intToFunnyWord(id(testob)))
+		self.assertEqual(self.im.makeIdFor(testob), None)
+
+	def testRetrieve(self):
+		testob = "abc"
+		theId = self.im.makeIdFor(testob)
+		self.assertEqual(self.im.getIdFor(testob), theId)
+	
+	def testRefRes(self):
+		testob = "abc"
+		theId = self.im.makeIdFor(testob)
+		self.assertEqual(self.im.getForId(theId), testob)
+	
+	def testUnknownOb(self):
+		self.assertRaises(utils.NotFoundError, self.im.getIdFor, 1)
+
+	def testUnknownId(self):
+		self.assertRaises(utils.NotFoundError, self.im.getForId, "abc")
+
+	def testSuggestion(self):
+		testob = object()
+		givenId = self.im.makeIdFor(testob, "ob1")
+		self.assertEqual(givenId, "ob1")
+		testob2 = object()
+		id2 = self.im.makeIdFor(testob2, "ob1")
+		self.assertEqual(id2, "ob10")
+		self.failUnless(testob is self.im.getForId("ob1"))
+		self.failUnless(testob2 is self.im.getForId("ob10"))
+
+
 if __name__=="__main__":
-	testhelpers.main(PrefixTest)
+	testhelpers.main(IdManagerTest)

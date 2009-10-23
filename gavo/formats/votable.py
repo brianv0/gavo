@@ -127,6 +127,10 @@ class VOTableMaker(utils.IdManagerMixin):
 		res["arraysize"] = colDesc["arraysize"]
 		if colDesc.has_key("value"):  # for PARAMs
 			res["value"] = str(colDesc["value"])   # XXX TODO: use value mappers
+# Only if we absolutely must
+#		if colDesc["stc"]:
+#			res["ref"] = colDesc["stc"].id
+#			res["utype"] = colDesc["stcUtype"]
 		_addValuesKey(colDesc, res)
 		return res
 
@@ -143,14 +147,34 @@ class VOTableMaker(utils.IdManagerMixin):
 			if values.has_key(item.name):
 				cp["value"] = values[itemname]
 			resourceNode.params.append(DM.Param(**self._getVOFieldArgs(cp)))
-				
+
+	def _addSTC(self, votTable, tableDef, serManager):
+		"""adds STC groups for the systems to votTable fetching data from 
+		tableDef.
+		"""
+		for stcId, stcTypes in tableDef.getSTCSystems(self):
+			stcGroup = DM.Group(utype="stc:AstroCoordSystem", ID=stcId)
+			for utype, val in stcTypes.iteritems():
+				stcGroup.params.append(DM.Param(utype="stc:"+utype, value=val,
+					datatype="char", arraysize="*"))
+			votTable.groups.append(stcGroup)
+			cooGroup = DM.Group(utype="stc:AstroCoords", ref=stcId,
+				ID=stcId+"_coo")
+			for col in serManager:
+				if col["stcUtype"]:
+					cooGroup.groups.append(
+						DM.Group(utype="stc:"+col["stcUtype"], ref=col["ID"]))
+			votTable.groups.append(cooGroup)
+
 	def _makeTable(self, res, table):
 		"""returns a Table node for the table.Table instance table.
 		"""
-		t = DM.Table(name=table.tableDef.id, coder=_tableEncoders[self.tablecoding],
+		t = DM.Table(name=table.tableDef.id, 
+			coder=_tableEncoders[self.tablecoding],
 			description=unicode(table.tableDef.getMeta("description", 
 				propagate=False, default="")))
 		sm = valuemappers.SerManager(table, mfRegistry=self.mFRegistry)
+		self._addSTC(t, table.tableDef, sm)
 		self._defineFields(t, sm)
 		t.data = list(sm.getMappedTuples())
 		return t

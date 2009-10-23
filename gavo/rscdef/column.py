@@ -288,9 +288,10 @@ class Column(base.Structure):
 	_properties = base.PropertyAttribute(copyable=True)
 	_original = base.OriginalAttribute()
 
-	# The stc attribute is not managed but set by a parent from
-	# their attributes.
+	# The stc* attributes is not managed but set by a parent from
+	# their attributes; we copy them explictely, though.
 	stc = None
+	stcUtype = None
 
 	def __repr__(self):
 		return "<Column %s>"%self.name
@@ -368,7 +369,7 @@ class Column(base.Structure):
 
 	def copy(self, parent):
 		new = base.Structure.copy(self, parent)
-		new.stc = self.stc
+		new.stc, new.stcUtype = self.stc, self.stcUtype
 		return new
 
 	@classmethod

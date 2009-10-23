@@ -6,6 +6,7 @@ from cStringIO import StringIO
 import datetime
 import os
 import pkg_resources
+import re
 import unittest
 
 from gavo import base
@@ -192,7 +193,11 @@ class MetaTest(testhelpers.VerboseTest):
 			data.addMeta("copyright", "Please reference someone else")
 		self._assertVOTableContains(setupData, [
 			'<INFO name="legal" value="Please reference someone else"'])
-	
+
+
+def _pprintVOT(vot):
+	os.popen("xmlstarlet fo", "w").write(vot)
+
 
 class STCTest(testhelpers.VerboseTest):
 	"""tests for proper inclusion of STC in VOTables.
@@ -202,7 +207,14 @@ class STCTest(testhelpers.VerboseTest):
 		table = rsc.TableForDef(td, rows=[
 			{'alpha': 10, 'delta': -10, 'mag': -1, 'rv': -4}])
 		tx = votable.getAsVOTable(table)
-
+		self.failUnless(
+			re.search('<GROUP ID="[^"]*" utype="stc:AstroCoordSystem"', tx))
+		self.failUnless('<PARAM arraysize="*" datatype="char" utype="stc:AstroCoo'
+			'rdSystem.SpaceFrame.CoordRefFrame" value="ICRS" />' in tx)
+		self.failUnless('" utype="stc:AstroCoords"><GROUP ref="alpha"'
+			' utype="stc:AstroCoords.Position2D.Value2.C1"' in tx)
+		self.failUnless('<FIELD ID="alpha" ' in tx)
+			
 
 if __name__=="__main__":
-	testhelpers.main(MetaTest)
+	testhelpers.main(STCTest)

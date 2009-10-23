@@ -142,6 +142,7 @@ class ASTNode(utils.AutoNode):
 
 	inexactAttrs = set()
 
+	# we want fast comparison for identitical objects.
 	def __eq__(self, other):
 		if not isinstance(other, self.__class__):
 			return False
@@ -159,7 +160,16 @@ class ASTNode(utils.AutoNode):
 	
 	def __ne__(self, other):
 		return not self==other
-	
+
+	def __hash__(self):
+		return hash(id(self))
+
+	def ensureId(self):
+		"""sets id to some value if still None.
+		"""
+		if self.id is None:
+			self.id = utils.intToFunnyWord(id(self))
+
 
 class ColRef(object):
 	"""A column reference instead of a true value, occurring in an STC-S tree.

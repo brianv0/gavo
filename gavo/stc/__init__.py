@@ -33,7 +33,8 @@ from gavo.stc.times import (parseISODT,
 	bYearToDateTime, dateTimeToBYear,
 	jdnToDateTime, dateTimeToJdn)
 
-if sys.version_info[1]>4:  # hardcore stc only from 2.5 upwards
+# hardcore stc only from 2.5 upwards
+if sys.version_info[0]>=2 and sys.version_info[1]>4:  
 	from gavo.stc.conform import conform as conformTo
 
 	from gavo.stc.stcsast import parseSTCS, parseQSTCS
