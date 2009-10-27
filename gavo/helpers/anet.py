@@ -101,9 +101,10 @@ def _feedFile(targDir, fName, sexScript=anetSex, **ignored):
 	"""
 	os.symlink(os.path.join(os.getcwd(), fName), 
 		os.path.join(targDir, "in.fits"))
-	f = open(os.path.join(targDir,"anet.sex"), "w")
-	f.write(sexScript)
-	f.close()
+	if sexScript:
+		f = open(os.path.join(targDir,"anet.sex"), "w")
+		f.write(sexScript)
+		f.close()
 	f = open(os.path.join(targDir, "xylist.param"), "w")
 	f.write(sexParam)
 	f.close()
@@ -141,7 +142,7 @@ def _extractAnet(filterFunc=None):
 	_runShellCommand(image2xyBin, "in.fits")
 	if filterFunc is not None:
 		filterFunc("in.xy.fits")
-	_runShellCommand(tabsortBin, "-i in.xy.fits -o out.fits -c FLUX -d")
+	_runShellCommand(tabsortBin, "FLUX in.xy.fits out.fits -d")
 
 
 def _resolve(fName, solverParameters={}, sexScript=None, objectFilter=None,

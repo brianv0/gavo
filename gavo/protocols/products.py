@@ -361,7 +361,7 @@ def quoteProductKey(key):
 def makeProductLink(key, withHost=True):
 	"""returns the URL at which a product can be retrieved.
 	"""
-	url = base.makeSitePath("/getproduct?key=%s"%urllib.quoteProductKey(key))
+	url = base.makeSitePath("/getproduct?key=%s"%quoteProductKey(key))
 	if withHost:
 		url = urlparse.urljoin(base.getConfig("web", "serverURL"), url)
 	return url
