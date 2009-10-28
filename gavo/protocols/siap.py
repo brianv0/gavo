@@ -286,7 +286,7 @@ class SIAPCutoutCore(SIAPCore):
 		record["wcs_refPixel"] = numpy.array([centerPix[0]-lowerRight[0],
 			centerPix[1]-lowerRight[1]])
 		record["wcs_refValues"] = numpy.array([centerAlpha, centerDelta])
-		record["accref"] = record["accref"]+"&ra=%s&dec=%s&sra=%s&sdec=%s"%(
+		record["accref"] = products.CutoutProductKey(record["accref"],
 			centerAlpha, centerDelta, sizeAlpha, sizeDelta)
 		record["centerAlpha"] = centerAlpha
 		record["centerDelta"] = centerDelta

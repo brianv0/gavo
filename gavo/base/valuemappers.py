@@ -205,26 +205,6 @@ def datetimeMapperFactory(colDesc):
 _registerDefaultMF(datetimeMapperFactory)
 
 
-
-def _productMapperFactory(colDesc):
-	"""is a factory for columns containing product keys.
-
-	The result are links to the product delivery.
-	"""
-	from nevow import url
-	if colDesc["ucd"]=="VOX:Image_AccessReference":
-		def mapper(val):
-			if val is None:
-				return ""
-			else:
-				return urlparse.urljoin(
-					urlparse.urljoin(config.get("web", "serverURL"),
-						config.get("web", "nevowRoot")),
-					"getproduct?key=%s&siap=true"%urllib.quote(val))
-		return mapper
-_registerDefaultMF(_productMapperFactory)
-
-
 def _boxMapperFactory(colDesc):
 	"""A factory for Boxes.
 	"""

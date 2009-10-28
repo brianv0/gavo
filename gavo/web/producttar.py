@@ -14,6 +14,7 @@ import os
 import tarfile
 import tempfile
 import time
+import urllib
 
 from gavo import base
 from gavo import grammars
@@ -49,14 +50,14 @@ class UniqueNameGenerator:
 		for name in self._buildNames(baseName):
 			if name.lower() not in self.knownNames:
 				self.knownNames.add(name)
-				return name
+				return str(name)
 
 
 class ColToRowIterator(grammars.RowIterator):
 	"""is a RowIterator for ColToRowGrammars.
 
 	A hacky feature is that a ColToRowIterator will not return the same
-	row twice.  This is a convenience TarMakers to keep them from
+	row twice.  This is a convenience for TarMakers to keep them from
 	tarring in identical files that somehow manage to be mentioned more
 	than once in a result table.
 	"""
@@ -74,9 +75,10 @@ class ColToRowIterator(grammars.RowIterator):
 					# extract the first element and use that as access key
 					if isinstance(accref, list):
 						accref = accref[0]
-					if accref not in self.seenKeys:
+					# The str below is for product.CutoutProductKeys
+					if str(accref) not in self.seenKeys:
 						yield {self.grammar.targetKey: accref}
-						self.seenKeys.add(accref)
+						self.seenKeys.add(str(accref))
 
 
 class ColToRowGrammar(grammars.Grammar):
@@ -104,15 +106,7 @@ class ProductTarMaker(object):
 	You probably don't want to instanciate it directly but instead get a copy
 	through the getProductMaker function below.
 
-	You call writeProductTar(matchedRows, queryMeta, destination), 
-	which then will:
-
-	* extract the accrefs from matchedRows, raising a ValidationError on
-	  _OUTPUT if the accref column is missing,
-	* make an input data set containing only the accrefs,
-	* pass that to the product core,
-	* evaluate the result of the product core to add the files to a tar
-	  archive that is written to destination,
+	The main entry point to this class is deliverProductTar.
 	"""
 	def __init__(self):
 		self.rd = base.caches.getRD("__system__/products")

@@ -106,7 +106,7 @@ machinery -->
 
 	<table id="pCoreInput" namePath="products">
 		<meta name="description">Input table for the product core</meta>
-		<column original="key"/>
+		<column original="key" type="raw"/>
 	</table>
 
 	<productCore id="core" queriedTable="products">

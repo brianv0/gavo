@@ -212,11 +212,11 @@ def _productMapperFactory(colDesc):
 	fixedArgs = ""
 	def coder(val):
 		if val:
-# there's products.makeProductLink -- use it.
-			return T.a(href=base.makeSitePath(
-					"/getproduct?key=%s%s"%(products.quoteProductKey(val), fixedArgs)),
+# there's -- use it.
+			return T.a(href=products.makeProductLink(val)+fixedArgs,
 				onmouseover=mouseoverHandler,
-				class_="productlink")[re.sub("&.*", "", os.path.basename(val))]
+				class_="productlink")[re.sub("&.*", "", 
+					os.path.basename(urllib.unquote_plus(str(val)[4:])))]
 		else:
 			return ""
 	return coder

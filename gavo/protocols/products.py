@@ -18,6 +18,7 @@ from gavo import rscdef
 from gavo import svcs
 from gavo import utils
 from gavo.base import coords
+from gavo.base import valuemappers
 from gavo.protocols import creds
 from gavo.utils import fitstools
 
@@ -103,7 +104,7 @@ class NonExistingProduct(PlainProduct):
 
 
 class CutoutProduct(PlainProduct):
-	"""is a class returning cutouts from FITS files.
+	"""A class representing cutouts from FITS files.
 	"""
 	def __init__(self, sourcePath, cutoutPars, contentType):
 		self.fullFilePath = sourcePath
@@ -252,8 +253,11 @@ class ProductCore(svcs.DBCore):
 		These may have cutout specs.  None items in keys are dropped.
 		"""
 		for key in keys:
-			if key is not None:
-				yield dict(cgi.parse_qsl("key="+key))
+			if isinstance(key, CutoutProductKey):
+				yield key.asDict()
+			else:
+				if key is not None:
+					yield {"key": key}
 
 	def _getSQLWhere(self, inputData):
 		"""returns a query string fragment and the parameters
@@ -264,8 +268,8 @@ class ProductCore(svcs.DBCore):
 		sdec) for cutouts.  This key table is later the real
 		input for the ProductsGrammar.
 		"""
-		keys = [r["key"] for r in inputData.getPrimaryTable().rows
-			if "key" in r]
+		keys = [r["key"]
+			for r in inputData.getPrimaryTable().rows if "key" in r]
 		keysTableDef = self.rd.getById("parsedKeys")
 		keysTable = rsc.makeTableFromRows(keysTableDef, 
 			self._parseKeys(keys))
@@ -302,7 +306,7 @@ svcs.registerCore(ProductCore)
 
 
 ########## Finally, the product interface (the above core is used in the
-########## rd, so this must be defined later that the registerCore)
+########## rd, so this must be defined later than ProductCore's registerCore)
 
 class ProductRMixin(rscdef.RMixinBase):
 	"""A mixin for tables containing "products".
@@ -347,6 +351,27 @@ class ProductRMixin(rscdef.RMixinBase):
 
 rscdef.registerRMixin(ProductRMixin())
 
+class CutoutProductKey(object):
+	"""A product key for a cutout.
+
+	This consists of a key proper and of the four numbers specifying its
+	extent.  Stringifying it yields something quoted ready-made for URLs.
+	"""
+	def __init__(self, key, ra, dec, sra, sdec):
+		self.key, self.ra, self.dec, self.sra, self.sdec = \
+			str(key), ra, dec, sra, sdec
+	
+	def __str__(self):
+		return "key=%s&ra=%s&dec=%s&sra=%s&sdec=%s"%(
+			quoteProductKey(self.key), 
+			self.ra, self.dec, self.sra, self.sdec)
+
+	def __repr__(self):
+		return str(self)
+
+	def asDict(self):
+		return self.__dict__
+
 
 @utils.document
 def quoteProductKey(key):
@@ -355,6 +380,8 @@ def quoteProductKey(key):
 	Actually, it url quotes any string, but the plus handling we have
 	here is particularly important for product keys.
 	"""
+	if isinstance(key, CutoutProductKey):
+		return str(key)[4:]
 	return urllib.quote_plus(key.replace("+", "%2B"))
 rscdef.addRmkFunc("quoteProductKey", quoteProductKey)
 
@@ -368,3 +395,22 @@ def makeProductLink(key, withHost=True):
 		url = urlparse.urljoin(base.getConfig("web", "serverURL"), url)
 	return url
 rscdef.addRmkFunc("makeProductLink", makeProductLink)
+
+
+# Sigh -- the whole value mapping business needs to be cleaned up.
+def _productMapperFactory(colDesc):
+	"""is a factory for columns containing product keys.
+
+	The result are links to the product delivery.
+	"""
+	from nevow import url
+	if colDesc["ucd"]=="VOX:Image_AccessReference":
+		def mapper(val):
+			if val is None:
+				return ""
+			else:
+				makeProductLink(val, withHost=True)+"&siap=true"
+		return mapper
+valuemappers._registerDefaultMF(_productMapperFactory)
+
+

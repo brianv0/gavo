@@ -186,6 +186,7 @@ class ProductRenderer(grend.ServiceBasedRenderer):
 			data = {'key': request.args["key"][0]}
 		except KeyError, IndexError:
 			raise svcs.UnknownURI("No product specified")
+		print ">>>>>>>>>>>>>>", data
 		return self.runServiceWithContext(data, ctx
 			).addCallback(self._deliver, ctx)
 	
