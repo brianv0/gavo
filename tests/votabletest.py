@@ -13,6 +13,7 @@ from gavo import base
 from gavo import rsc
 from gavo import rscdesc
 from gavo.formats import votable
+from gavo.imp import VOTable
 from gavo.utils import ElementTree
 
 import testhelpers
@@ -199,13 +200,17 @@ def _pprintVOT(vot):
 	os.popen("xmlstarlet fo", "w").write(vot)
 
 
-class STCTest(testhelpers.VerboseTest):
+def _getTableWithSimpleSTC():
+	td = testhelpers.getTestRD().getById("adql").change(onDisk=False)
+	return rsc.TableForDef(td, rows=[
+		{'alpha': 10, 'delta': -10, 'mag': -1, 'rv': -4}])
+
+
+class STCEmbedTest(testhelpers.VerboseTest):
 	"""tests for proper inclusion of STC in VOTables.
 	"""
 	def testSimpleSTC(self):
-		td = testhelpers.getTestRD().getById("adql").change(onDisk=False)
-		table = rsc.TableForDef(td, rows=[
-			{'alpha': 10, 'delta': -10, 'mag': -1, 'rv': -4}])
+		table = _getTableWithSimpleSTC()
 		tx = votable.getAsVOTable(table)
 		self.failUnless(
 			re.search('<GROUP ID="[^"]*" utype="stc:AstroCoordSystem"', tx))
@@ -214,7 +219,21 @@ class STCTest(testhelpers.VerboseTest):
 		self.failUnless('" utype="stc:AstroCoords"><GROUP ref="alpha"'
 			' utype="stc:AstroCoords.Position2D.Value2.C1"' in tx)
 		self.failUnless('<FIELD ID="alpha" ' in tx)
-			
+		
+
+class STCParseTest(testhelpers.VerboseTest):
+	"""tests for parsing of STC info from VOTables.
+	"""
+	def testSimpleRoundtrip(self):
+		src = _getTableWithSimpleSTC()
+		vot = VOTable.parse(StringIO(votable.getAsVOTable(src)))
+		dddef = votable.makeDDForVOTable("testTable", vot)
+		td = dddef.getPrimary()
+		for orig, deser in zip(src.tableDef, td):
+			self.assertEqual(orig.name, deser.name)
+			self.assertEqual(orig.stcUtype, deser.stcUtype)
+			self.assertEqual(orig.stc, deser.stc)
+
 
 if __name__=="__main__":
-	testhelpers.main(STCTest)
+	testhelpers.main(STCParseTest)

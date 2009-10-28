@@ -113,6 +113,7 @@ class Resource(VOObject):
         
         self.resources = []
         self.tables = []
+        self.groups = []
         self.params = []
         self.setFromDict(kwargs)
         return
@@ -135,6 +136,9 @@ class Resource(VOObject):
         
         for p in self.params:
             repr.append(p.xml())
+
+        for g in self.groups:
+            repr.append(g.xml())
         
         for t in self.tables:
             repr.append(t.xml())

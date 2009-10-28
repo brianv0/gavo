@@ -322,8 +322,8 @@ class STCTest(testhelpers.VerboseTest):
 			'  <column name="dec" unit="deg"/>'
 			'  <column name="mag" unit="mag"/>'
 			'</table>')
-		self.assertEqual(td.getColumnByName("ra").stc.sysDef[
-			"AstroCoordSystem.SpaceFrame.CoordRefFrame"], "ICRS")
+		self.assertEqual(td.getColumnByName("ra").stc.spaceFrame.refFrame, 
+			"ICRS")
 		self.assertEqual(td.getColumnByName("mag").stc, None)
 
 	def testComplexSTC(self):
@@ -343,15 +343,14 @@ class STCTest(testhelpers.VerboseTest):
 			'  <column name="mag" unit="mag"/>'
 			'</table>')
 		bigSTC = td.getColumnByName("ra").stc
-		self.assertEqual(td.getColumnByName("ra").stc.sysDef[
-			"AstroCoordSystem.SpaceFrame.CoordRefFrame"], "ICRS")
+		self.assertEqual(td.getColumnByName("ra").stc.spaceFrame.refFrame, "ICRS")
 		self.assertEqual(td.getColumnByName("mag").stc, None)
 		self.assertEqual(td.getColumnByName("start").stc, bigSTC)
 		self.assertEqual(td.getColumnByName("end").stc, bigSTC)
 		self.assertEqual(td.getColumnByName("start").stc.timeFrame.timeScale,
 			"TT")
-		self.assertEqual(td.getColumnByName("raMin").stc.sysDef[
-			"AstroCoordSystem.SpaceFrame.CoordRefFrame"], "FK5")
+		self.assertEqual(td.getColumnByName("raMin").stc.spaceFrame.refFrame, 
+			"FK5")
 
 	def testGeometrySTC(self):
 		td = base.parseFromString(rscdef.TableDef,

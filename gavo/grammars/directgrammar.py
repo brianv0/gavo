@@ -170,13 +170,18 @@ def getNameForItem(item):
 	return "fi_"+item.name.lower()
 
 
-class ColCodeGenerator:
-	def __init__(self, option):
+class _CodeGenerator(object):
+	def __init__(self, options):
 		pass
-	
+		
 	def getSetupCode(self):
 		return []
+	
+	def getItemParser(self, item):
+		return []
 
+
+class ColCodeGenerator(_CodeGenerator):
 	def getItemParser(self, item):
 		t = item.type
 		if "int" in t:
@@ -194,9 +199,31 @@ class ColCodeGenerator:
 		return ["%s(inputLine, F(%s), start, len);"%(func, getNameForItem(item))]
 
 
-class SplitCodeGenerator:
-	def __init__(self, option):
-		self.splitChar = getattr(option, "split", "|")
+class BinCodeGenerator(_CodeGenerator):
+	def getItemParser(self, item):
+		t = item.type
+		if t=="integer":
+			pline = "MAKE_INT32(%s, *(int32_t*)(line+));"
+		elif t=="smallint":
+			pline = "MAKE_SHORT(%s, *(int16_t*)(line+ ));"
+		elif t=="double precision":
+			pline = "MAKE_DOUBLE(%s, *(double*)(line+ ));"
+		elif t=="real":
+			pline = "MAKE_FLOAT(%s, *(float*)(line+ ));"
+		elif t=="char":
+			pline = "MAKE_CHAR_NULL(%s, *(double*)(line+ ), '<nil>');"
+		elif t=="bytea":
+			pline = "MAKE_BYTE(%s, *(double*)(line+ ), '<nil>');"
+		else:
+			pline = "MAKE %s"
+		return ["/* %s (%s) */"%(item.description, t), 
+			pline%getNameForItem(item)]
+
+
+class SplitCodeGenerator(_CodeGenerator):
+	def __init__(self, options):
+		self.splitChar = getattr(options, "split", "|")
+		_CodeGenerator.__init__(self, options)
 
 	def getSetupCode(self):
 		return ['char *curCont = strtok(inputLine, "%s");'%self.splitChar]
@@ -227,6 +254,8 @@ class SplitCodeGenerator:
 
 
 def getCodeGen(opts):
+	if opts.binParser:
+		return BinCodeGenerator(opts)
 	if getattr(opts, "split", None):
 		return SplitCodeGenerator(opts)
 	else:
@@ -237,16 +266,12 @@ def printIndented(stringList, indentChar):
 	print indentChar+('\n'+indentChar).join(stringList)
 
 
-def buildSource(dd, opts):
+def buildSource(td, opts):
 	codeGen = getCodeGen(opts)
-	if len(dd.tables)!=1:
-		raise Error("Booster can only be defined on Data having exactly one"
-			" Record definition.")
-	items = dd.tables[0].columns
 	print '#include <math.h>\n#include <string.h>\n#include "boosterskel.h"\n'
-	print "#define QUERY_N_PARS %d\n"%len(items)
+	print "#define QUERY_N_PARS %d\n"%len(list(td))
 	print 'enum outputFields {'
-	for item in items:
+	for item in td:
 		desc = item.tablehead
 		if not desc:
 			desc = item.description
@@ -256,26 +281,28 @@ def buildSource(dd, opts):
 	print "Field *getTuple(char *inputLine)\n{"
 	print "\tstatic Field vals[QUERY_N_PARS];\n"
 	printIndented(codeGen.getSetupCode(), "\t")
-	for item in items:
+	for item in td:
 		printIndented(codeGen.getItemParser(item), "\t")
 	print "\treturn vals;"
 	print "}"
 
 
-def getDataDesc(rdName, ddId):
+def getTableDef(rdName, tdId):
 	try:
 		rd = base.caches.getRD(rdName)
 	except base.RDNotFound:
 		rd = base.caches.getRD(os.path.join(os.getcwd(), rdName))
-	return rd.getById(ddId)
+	return rd.getById(tdId)
 
 
 def parseCmdLine():
 	from optparse import OptionParser
-	parser = OptionParser(usage = "%prog [options] <rd-name> <data-id>")
+	parser = OptionParser(usage = "%prog [options] <rd-name> <table-id>")
 	parser.add_option("-s", "--splitter", help="generate a split skeleton"
 		" with split string SPLITTER", metavar="SPLITTER", action="store",
 		type="string", dest="split")
+	parser.add_option("-b", "--binary", help="generate a skeleton for"
+		" a binary parser", action="store_true", dest="binParser")
 	(opts, args) = parser.parse_args()
 	if len(args)!=2:
 		parser.print_help()
@@ -289,8 +316,8 @@ def main():
 # Some rds need db connectivity
 	base.setDBProfile("trustedquery")
 	try:
-		opts, (rdName, ddId) = parseCmdLine()
-		dd = getDataDesc(rdName, ddId)
-		src = buildSource(dd, opts)
+		opts, (rdName, tdId) = parseCmdLine()
+		td = getTableDef(rdName, tdId)
+		src = buildSource(td, opts)
 	except SystemExit, msg:
 		sys.exit(msg.code)

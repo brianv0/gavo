@@ -48,8 +48,12 @@ typedef struct Field_s {
 	F(fi)->type=VAL_SHORT; F(fi)->val.c_int16 = value;}
 #define MAKE_CHAR(fi, value) {\
 	F(fi)->type=VAL_CHAR; F(fi)->val.c_int8 = value;}
+#define MAKE_BYTE(fi, value) {\
+	F(fi)->type=VAL_CHAR; F(fi)->val.c_int8 = value;}
 #define MAKE_CHAR_NULL(fi, value, nullvalue) {\
 	if ((value)==(nullvalue)) { MAKE_NULL(fi); } else {MAKE_CHAR(fi, value);}}
+#define MAKE_JDATE(fi, value) {\
+	F(fi)->type=VAL_JDATE; F(fi)->val.c_double = value;}
 
 #define MAKE_WITH_NULL(type, fi, value, nullvalue) {\
 	if ((value)==(nullvalue)) { MAKE_NULL(fi); } else {\
@@ -73,6 +77,8 @@ int isWhitespaceOnly(char *str);
 void parseFloat(char *src, Field *field, int start, int len);
 void parseFloatWithMagicNULL(char *src, Field *field, int start, int len,
 		char *magicVal);
+void parseDoubleWithMagicNULL(char *src, Field *field, int start, int len,
+		char *magicVal);
 void parseDouble(char *src, Field *field, int start, int len);
 void parseInt(char *src, Field *field, int start, int len);
 void parseBlankBoolean(char *src, Field *field, int srcInd);
@@ -86,3 +92,4 @@ int degToDms(double deg, char *sign_out,
 	int *degs_out, int *minutes_out, double *seconds_out);
 int degToHms(double deg, 
 	int *hours_out, int *minutes_out, double *seconds_out);
+double jYearToJDN(double jYear);

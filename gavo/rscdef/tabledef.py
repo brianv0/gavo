@@ -152,12 +152,9 @@ class STCDef(base.Structure):
 	"""A definition of a space-time coordinate system using STC-S.
 	"""
 # Programmatically, you have 
-# * sysDef -- utype/value pairs for the system,
 # * compiled -- an AST of the entire specification
-# * spaceFrame -- an AST of the space frame (shortcut into compiled)
-# * timeFrame -- an AST of the space frame (shortcut into compiled)
 # * iterColTypes -- iterates over column name/utype pairs, for the 
-#	  embedding table only.
+#	  embedding table only; all others must not touch it
 
 	name_ = "stc"
 
@@ -167,9 +164,7 @@ class STCDef(base.Structure):
 	def completeElement(self):
 		self._onElementCompleteNext(STCDef)
 		self.compiled = stc.parseQSTCS(self.content_)
-		self.spaceFrame = self.compiled.astroSystem.spaceFrame
-		self.timeFrame = self.compiled.astroSystem.timeFrame
-		self.sysDef, self._origFields = stc.getUtypes(self.compiled)
+		_, self._origFields = stc.getUtypes(self.compiled)
 	
 	def iterColTypes(self):
 		return self._origFields.iteritems()
@@ -249,13 +244,15 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		return True
 
 	def _resolveSTC(self):
+		"""adds STC related attributes to this tables' columns.
+		"""
 		for stcDef in self.stc:
 			for name, type in stcDef.iterColTypes():
 				destCol = self.getColumnByName(name)
 				if destCol.stc is not None: 
 					raise base.LiteralParseError(
 						"Column %s is referenced twice from STC"%name, None, name)
-				destCol.stc = stcDef
+				destCol.stc = stcDef.compiled.astroSystem
 				destCol.stcUtype = type
 
 	def completeElement(self):
@@ -461,7 +458,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		if None in stcObjects: 
 			stcObjects.remove(None)
 		return [pair for pair in
-				((idManager.makeIdFor(stc), stc.sysDef) for stc in stcObjects)
+				((idManager.makeIdFor(stc), stc) for stc in stcObjects)
 			if pair[0] is not None]  # Weed out stcs already included
 
 	@staticmethod

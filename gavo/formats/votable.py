@@ -20,6 +20,7 @@ from cStringIO import StringIO
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
+from gavo import stc
 from gavo import utils
 from gavo.base import valuemappers
 from gavo.grammars import votablegrammar
@@ -152,9 +153,9 @@ class VOTableMaker(utils.IdManagerMixin):
 		"""adds STC groups for the systems to votTable fetching data from 
 		tableDef.
 		"""
-		for stcId, stcTypes in tableDef.getSTCSystems(self):
+		for stcId, system in tableDef.getSTCSystems(self):
 			stcGroup = DM.Group(utype="stc:AstroCoordSystem", ID=stcId)
-			for utype, val in stcTypes.iteritems():
+			for utype, val in stc.iterUtypesForSystem(system):
 				stcGroup.params.append(DM.Param(utype="stc:"+utype, value=val,
 					datatype="char", arraysize="*"))
 			votTable.groups.append(stcGroup)
@@ -256,10 +257,85 @@ def getAsVOTable(data, tablecoding="binary"):
 	return dest.getvalue()
 
 
-def makeTableDefForVOTable(tableId, votTable, **moreArgs):
+def _getSTCGroupsFromAny(votObj):
+	return [g for g in votObj.groups if g.utype and g.utype.startswith("stc:")]
+
+
+def _getSTCGroupsFromResource(votRes):
+	"""extracts STC groups from the VOTable resource votRes.
+
+	This is a helper for getSTCDefsFromVOTable.
+	"""
+	stcGroups = []
+	stcGroups.extend(_getSTCGroupsFromAny(votRes))
+	for t in votRes.tables:
+		stcGroups.extend(_getSTCGroupsFromAny(t))
+	for child in votRes.resources:
+		stcGroups.extend(_getSTCGroupsFromResource(child))
+	return stcGroups
+
+
+def _getSTCGroupsFromVOTable(vot):
+	"""extracts STC groups from the VOTable vot.
+
+	This is a helper for getSTCDefsFromVOTable.
+	"""
+	allSTC = []
+	for resource in vot.resources:
+		allSTC.extend(_getSTCGroupsFromResource(resource))
+	return allSTC
+
+
+def _getSTCColumnsFromGroups(stcGroups):
+	"""returns dictionaries containing STC information for systems and columns
+	from raw VOTable stc groups.
+
+	This is a helper for getSTCDefsFromVOTable; the argument is usually
+	obtained from _getSTCGroupsFromVOTable.
+
+	We remove the silly stc: "namespace prefix" from everything we can get
+	our hands on.
+	"""
+	systems, columns = {}, {}
+	for group in stcGroups:
+		if group.utype=="stc:AstroCoords":  # collect id -> (utype, system) map
+			for child in group.groups:
+				columns[child.ref] = (group.ref, child.utype.split(":")[-1])
+		elif group.utype=="stc:AstroCoordSystem": # parse system
+			systems[group.id] = stc.parseFromUtypes(dict(
+				(p.utype.split(":")[-1], p.value) for p in group.params), {}
+			).astroSystem
+		else:
+			raise base.Error("Invalid stc utype '%s'"%group.utype)
+	return systems, columns
+
+
+def getSTCDefsFromVOTable(vot):
+	"""returns a map from IDs (of columns, typically) to pairs of STC system
+	objects and the column's STC utype.
+
+	This looks at group children of resource and table, gathering groups with
+	utypes starting with "stc:"
+	"""
+	systems, columns = _getSTCColumnsFromGroups(
+		_getSTCGroupsFromVOTable(vot))
+	resolved = {}
+	for colID, (sysID, utype) in columns.iteritems():
+		try:
+			resolved[colID] = (systems[sysID], utype)
+		except KeyError:
+			raise base.NotFoundError(
+				"STC group %s referenced but not defined."%sysID,
+				sysID, "VOTable STC group")
+	return resolved
+
+
+def makeTableDefForVOTable(tableId, votTable, stcColumns, **moreArgs):
 	"""returns a TableDef for a Table element parsed from a VOTable.
 
 	Pass additional constructor arguments for the table in moreArgs.
+	stcColumns is a dictionary mapping IDs within the source VOTable
+	to pairs of stc and utype.
 	"""
 	columns = []
 # it's important to create the names exactly like in VOTableGrammar
@@ -273,6 +349,10 @@ def makeTableDefForVOTable(tableId, votTable, **moreArgs):
 			if getattr(f, attName, None) is not None:
 				kwargs[attName] = getattr(f, attName)
 		columns.append(MS(rscdef.Column, **kwargs))
+		# STC info is not in managed attributes
+		if f.ID in stcColumns:
+			c = columns[-1]
+			c.stc, c.stcUtype = stcColumns[f.ID]
 	res = MS(rscdef.TableDef, id=tableId, columns=columns,
 		**moreArgs)
 	res.hackMixinsAfterMakeStruct()
@@ -285,8 +365,10 @@ def makeDDForVOTable(tableId, vot, gunzip=False, **moreArgs):
 	moreArgs are additional keywords for the construction of the target
 	table.
 	"""
+	stcDefs = getSTCDefsFromVOTable(vot)
+# XXX TODO: locate other resources and tables in them
 	tableDef = makeTableDefForVOTable(tableId, vot.resources[0].tables[0],
-		**moreArgs)
+		stcDefs, **moreArgs)
 	return MS(rscdef.DataDescriptor,
 		grammar=MS(votablegrammar.VOTableGrammar, gunzip=gunzip),
 		makes=[MS(rscdef.Make, table=tableDef)])

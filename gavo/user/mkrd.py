@@ -152,7 +152,7 @@ def makeDataForFITS(rd, srcName, opts):
 def makeTableFromVOTable(rd, srcName, opts):
 	vot = VOTable.parse(srcName)
 	return votable.makeTableDefForVOTable(opts.tableName, 
-		vot.resources[0].tables[0], onDisk=True)
+		vot.resources[0].tables[0], {}, onDisk=True)
 
 
 def makeDataForVOTable(rd, srcName, opts):

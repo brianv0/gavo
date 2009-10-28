@@ -348,6 +348,7 @@ class ProductRMixin(rscdef.RMixinBase):
 rscdef.registerRMixin(ProductRMixin())
 
 
+@utils.document
 def quoteProductKey(key):
 	"""URL-quotes product keys.
 
@@ -355,6 +356,7 @@ def quoteProductKey(key):
 	here is particularly important for product keys.
 	"""
 	return urllib.quote_plus(key.replace("+", "%2B"))
+rscdef.addRmkFunc("quoteProductKey", quoteProductKey)
 
 
 @utils.document
@@ -365,5 +367,4 @@ def makeProductLink(key, withHost=True):
 	if withHost:
 		url = urlparse.urljoin(base.getConfig("web", "serverURL"), url)
 	return url
-
 rscdef.addRmkFunc("makeProductLink", makeProductLink)

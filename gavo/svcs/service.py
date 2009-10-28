@@ -359,6 +359,11 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		the resType meta item.
 		"""
 		if self.outputTable.columns:
+# XXX the NVO registry can't cope with tableService, so we declare
+# everything as a catalogService for now
+			self.resType = "catalogService"
+			return
+# XXX end NVO brain damage fixing hack
 			if (self.outputTable.getColumnsByUCDs("pos.eq.ra", 
 						"pos.eq.ra;meta.main", "POS_EQ_RA_MAIN")
 					or self.getMeta("coverage", default=None) is not None):

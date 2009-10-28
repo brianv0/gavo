@@ -179,3 +179,12 @@ def getUtypes(ast):
 	ctx = stcxgen.Context(ast)
 	cst = stcxgen.astToStan(ast, STC.STCSpec)
 	return _makeDicts(_getUtypeMaker(None).iterUtypes(cst, None))
+
+
+def iterUtypesForSystem(systemTree):
+	"""returns a utype dictionary for a dm.CoordSys object.
+	"""
+	ctx = stcxgen.Context(systemTree)
+	cst = stcxgen.nodeToStan(systemTree)
+	return _getUtypeMaker("AstroCoordSystem").iterUtypes(cst, 
+		"AstroCoordSystem")

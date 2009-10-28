@@ -450,9 +450,9 @@ def serialize_Convex(node, context):
 
 def serialize_MultiCompound(node, context):
 	if len(node.children)<2:
-		return nodeToStan(node)
+		return _nodeToStan(node)
 	return {"Union": STC.Union, "Intersection": STC.Intersection}[
-		node.__class__.__name__][[nodeToStan(c, context) for c in node.children]]
+		node.__class__.__name__][[_nodeToStan(c, context) for c in node.children]]
 			
 
 serialize_Union =  serialize_Intersection = serialize_MultiCompound
@@ -460,8 +460,8 @@ serialize_Union =  serialize_Intersection = serialize_MultiCompound
 def serialize_Difference(node, context):
 	if len(node.children)!=2:
 		raise STCValueError("Difference is only supported with two operands")
-	op1 = nodeToStan(node.children[0], context)
-	op2 = nodeToStan(node.children[1], context)
+	op1 = _nodeToStan(node.children[0], context)
+	op2 = _nodeToStan(node.children[1], context)
 	# Banzai!  To save myself the trouble of having all those icky *2
 	# elements around, I hack op2's name.
 	op2.name = op2.name+"2"
@@ -470,7 +470,7 @@ def serialize_Difference(node, context):
 def serialize_Not(node, context):
 	if len(node.children)!=1:
 		raise STCValueError("Not is only supported with one operand")
-	return STC.Negation[nodeToStan(node.children[0], context)]
+	return STC.Negation[_nodeToStan(node.children[0], context)]
 
 
 ############# Toplevel
@@ -483,17 +483,24 @@ def makeAreas(rootNode, context):
 	if not rootNode.areas:
 		return
 	elif len(rootNode.areas)==1:
-		return nodeToStan(rootNode.areas[0], context)
+		return _nodeToStan(rootNode.areas[0], context)
 	else:  # implicit union
 		return STC.Region[
 			STC.Union[
-				[nodeToStan(n, context) for n in rootNode.areas]]]
+				[_nodeToStan(n, context) for n in rootNode.areas]]]
 
 
-def nodeToStan(astNode, context):
+def _nodeToStan(astNode, context):
 	"""returns xmlstan for whatever is in astNode.
 	"""
 	return globals()["serialize_"+astNode.__class__.__name__](astNode, context)
+
+
+def nodeToStan(astNode):
+	"""returns xmlstan for an AST node.
+	"""
+	context = Context(astNode)
+	return _nodeToStan(astNode, context)
 
 
 def astToStan(rootNode, stcRoot):
@@ -503,16 +510,16 @@ def astToStan(rootNode, stcRoot):
 	the embedded coordinates and areas.
 	"""
 	context = Context(rootNode)
-	return stcRoot[nodeToStan(rootNode.astroSystem, context),
+	return stcRoot[_nodeToStan(rootNode.astroSystem, context),
 		STC.AstroCoords(coord_system_id=rootNode.astroSystem.id)[
-			[nodeToStan(n, context) for n in [rootNode.time,
+			[_nodeToStan(n, context) for n in [rootNode.time,
 				rootNode.place, rootNode.velocity, rootNode.freq, 
 					rootNode.redshift] if n]
 		],
 		STC.AstroCoordArea(coord_system_id=rootNode.astroSystem.id)[
-			[nodeToStan(n, context) for n in rootNode.timeAs],
+			[_nodeToStan(n, context) for n in rootNode.timeAs],
 			makeAreas(rootNode, context),
-			[nodeToStan(n, context) for n in 
+			[_nodeToStan(n, context) for n in 
 				itertools.chain(rootNode.velocityAs, rootNode.freqAs, 
 					rootNode.redshiftAs)]],
 	]

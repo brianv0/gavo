@@ -169,7 +169,7 @@ class Parser(object):
                                             'PARAM', 
                                             DataModel.Param)
         
-        # Parse the REASOURCE elements
+        # Parse the RESOURCE elements
         votable.resources = self._parseResources()
         
         # Update the votable instance variable.
@@ -198,6 +198,8 @@ class Parser(object):
                 # FIXME: Better LINK parsing.
                 r.link = link.get('href')
             
+            r.groups = self._parseGroups(rTree)
+
             # Attributes
             for a in rTree.attrib.keys():
                 setattr(r, a.lower(), rTree.get(a))
@@ -235,7 +237,7 @@ class Parser(object):
             t.params = self._parseElement(tTree, 'PARAM', DataModel.Param)
             t.fields = self._parseElement(tTree, 'FIELD', DataModel.Field,
                 self._postprocField)
-            # TODO: Support GROUP
+            t.groups = self._parseGroups(tTree)
             
             # Data
             data = self.find(tTree, 'DATA')
@@ -247,7 +249,22 @@ class Parser(object):
             # Update the output list.
             tables.append(t)
         return(tables)
-   
+  
+
+    def _parseGroups(self, parentTree):
+        groups = []
+        for gTree in self.findall(parentTree, 'GROUP'):
+            g = DataModel.Group()
+            for attName, value in gTree.attrib.iteritems():
+                setattr(g, attName.lower(), value)
+            description = self.find(gTree, 'DESCRIPTION')
+            if(description):
+                g.description = description.text
+            g.params = self._parseElement(gTree, 'PARAM', DataModel.Param)
+            g.groups = self._parseGroups(gTree)
+            groups.append(g)
+        return groups
+
 
     def _postprocField(self, fieldEl, fieldTree):
         fieldEl.values = self._parseElement(fieldTree, "VALUES",

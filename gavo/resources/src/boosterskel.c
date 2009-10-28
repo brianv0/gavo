@@ -204,8 +204,8 @@ int isWhitespaceOnly(char *str)
 	} 
 
 
-void parseFloatWithMagicNULL(char *src, Field *field, int start, int len,
-		char *magicVal)
+void _parseWithMagicNULL(char *sscanfFormat, valType destType, char *src, 
+	Field *field, int start, int len, char *magicVal)
 {
 	char input[len+1];
 
@@ -214,9 +214,24 @@ void parseFloatWithMagicNULL(char *src, Field *field, int start, int len,
 		field->type = VAL_NULL;
 		return;
 	}
-	field->type = VAL_FLOAT;
-	scanfWithWhitespace(input, "%f", field, float);
+	field->type = destType;
+	scanfWithWhitespace(input, sscanfFormat, field, float);
 }
+
+
+void parseFloatWithMagicNULL(char *src, Field *field, int start, int len,
+		char *magicVal)
+{
+	_parseWithMagicNULL("%f", VAL_FLOAT, src, field, start, len, magicVal);
+}
+
+
+void parseDoubleWithMagicNULL(char *src, Field *field, int start, int len,
+		char *magicVal)
+{
+	_parseWithMagicNULL("%lf", VAL_DOUBLE, src, field, start, len, magicVal);
+}
+
 
 void parseFloat(char *src, Field *field, int start, int len)
 {
@@ -339,8 +354,8 @@ void real_fieldscanf(char *str, Field *f, valType type, char *fieldName, ...)
 				f->val.time = mktime(&timeParts);
 			}}
 			break;
-		case VAL_JDATE:
-			itemsMatched = sscanf(str, "%f", &(f->val.c_float));
+		case VAL_JDATE: /* a julian day number to be dumped as a date */
+			itemsMatched = sscanf(str, "%lf", &(f->val.c_double));
 			break;
 	}
 	va_end(ap);
@@ -451,14 +466,13 @@ double round(double val)
 	return floor(val+0.5);
 }
 
-/* This one's bad.  Pq's dump has the number of days since the epoch 2000-1-1
- * in the dump format.  We estimate this from a julian float like this.  It's
- * not ideal but should work well enough.
+/* Pg's dump has the number of days since the epoch 2000-01-01 for dates.
+ * 2451545.0 is noon UTC, 2001-01-01, the round adds 12 hours back and forth.
  */
 void writeJdate(Field *field, void *destination)
 {
 	int32_t daysSinceEpoch=htonl(
-		(int32_t)(round((field->val.c_float-2000)*365.25)));
+		(int32_t)(round(field->val.c_double-2451545.0)));
 	uint32_t size=htonl(sizeof(int32_t));
 	
 	DATA_OUT(&size, 4, destination);
@@ -640,6 +654,12 @@ int degToDms(double deg, char *sign_out,
 	*minutes_out = (int)ipart;
 	*seconds_out = rest*60;
 	return 0;
+}
+
+
+double jYearToJDN(double jYear)
+{
+	return (jYear-2000)*365.25+2451545.0;
 }
 
 
