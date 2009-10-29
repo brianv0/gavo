@@ -9,16 +9,13 @@ from gavo import base
 from gavo import grammars
 from gavo import rsc
 from gavo import rscdef
-from gavo import rscdesc
-from gavo.protocols import basic
 
 import testhelpers
 
 
 class PredefinedRowfilterTest(testhelpers.VerboseTest):
 	def testOnIndex(self):
-		dd = base.caches.getRD(os.path.abspath("test.rd")
-			).getById("expandOnIndex")
+		dd = testhelpers.getTestRD().getById("expandOnIndex")
 		data = rsc.makeData(dd, forceSource=[{"b": 3, "c": 4, "a": "eins"}])
 		self.assertEqual(data.getPrimaryTable().rows,
 			[{'a': u'eins', 'c': 4, 'b': 3, 'd': 3}, 
@@ -52,8 +49,7 @@ class PredefinedRowfilterTest(testhelpers.VerboseTest):
 			{'a': u'line2', 'e': datetime.datetime(2005, 5, 8, 0, 0)}])
 
 	def testExpandComma(self):
-		dd = base.caches.getRD(os.path.abspath("test.rd")
-			).getById("expandComma")
+		dd = testhelpers.getTestRD().getById("expandComma")
 		data = rsc.makeData(dd, forceSource=[{"stuff": "x,yz,foo, bar ",
 			"b": 23}, {"stuff":"quux", "b": 3}])
 		self.assertEqual(data.getPrimaryTable().rows, [

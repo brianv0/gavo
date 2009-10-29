@@ -184,7 +184,11 @@ class UtypeASTTest(testhelpers.VerboseTest):
 	def testWithError(self):
 		ast = self._getASTFromSTCS('Position GALACTIC Error "e1" "e1"')
 		self.assertEqual(ast.place.error.radii[0].dest, "e1")
-	
+
+	def testWithEquinox(self):
+		ast = self._getASTFromSTCS("Position FK4 J1975.0")
+		self.assertEqual(ast.astroSystem.spaceFrame.equinox, "J1975.0")
+
 	def testTime(self):
 		ast = self._getASTFromSTCS(
 			'Time TT TOPOCENTER "dateObs" Error "clockdamage"')
@@ -245,4 +249,4 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(UtypeRoundtripTest)
+	testhelpers.main(UtypeASTTest)

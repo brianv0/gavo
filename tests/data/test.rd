@@ -212,6 +212,18 @@
 		<column name="delta" type="real" ucd="pos.eq.dec" verbLevel="15"/>
 	</table>
 
+	<table id="stcfancy">
+		<stc>Position ICRS BARYCENTER "ra" "dec" Error "e_pos" "e_pos"</stc>
+		<stc>Time TT TOPOCENTER "obsDate" Error "e_date"
+			Position FK5 B1975 TOPOCENTER "o_ra" "o_dec" VelocityInterval
+			Velocity "pma" "pmd" Error "e_pma" "e_pmd"</stc>
+		<GENERATOR>
+		for name in ["ra", "dec", "e_pos", "obsDate", "e_date", "o_ra", 
+				"o_dec", "pma", "pmd", "e_pma", "e_pmd"]:
+			yield ("element", "column", ("name", name))
+		</GENERATOR>
+	</table>
+
 	<rowmaker id="prodrowbase">
 		<map dest="object"/>
 		<map dest="alpha" src="hmsToDeg(alpha, ' ')"/>

@@ -162,9 +162,11 @@ class VOTableMaker(utils.IdManagerMixin):
 			cooGroup = DM.Group(utype="stc:AstroCoords", ref=stcId,
 				ID=stcId+"_coo")
 			for col in serManager:
+				# add column reference if column is described by this system
 				if col["stcUtype"]:
-					cooGroup.groups.append(
-						DM.Group(utype="stc:"+col["stcUtype"], ref=col["ID"]))
+					if col["stc"].id==stcId:
+						cooGroup.groups.append(
+							DM.Group(utype="stc:"+col["stcUtype"], ref=col["ID"]))
 			votTable.groups.append(cooGroup)
 
 	def _makeTable(self, res, table):

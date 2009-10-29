@@ -157,7 +157,7 @@ def _makeDicts(pairIter):
 	"""
 	sysDict, cooDict = {}, {}
 	for utype, val in pairIter:
-		if val is None:
+		if val is None or val=='':
 			continue
 		if utype.startswith("AstroCoordSystem"):
 			sysDict[utype] = val
@@ -186,5 +186,8 @@ def iterUtypesForSystem(systemTree):
 	"""
 	ctx = stcxgen.Context(systemTree)
 	cst = stcxgen.nodeToStan(systemTree)
-	return _getUtypeMaker("AstroCoordSystem").iterUtypes(cst, 
-		"AstroCoordSystem")
+	for utype, val in  _getUtypeMaker("AstroCoordSystem").iterUtypes(cst, 
+			"AstroCoordSystem"):
+		if val is None or val=='':
+			continue
+		yield utype, val

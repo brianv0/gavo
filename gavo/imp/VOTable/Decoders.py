@@ -290,6 +290,8 @@ class StreamDecoder(GenericDecoder):
         """
         # FIXME: Handle additional encoding styles.
         # Decode the stream.
+        if data is None:
+            data = ''
         if(encoding == 'base64'):
             rawData = binascii.a2b_base64(data)
         elif(encoding == 'gzip'):

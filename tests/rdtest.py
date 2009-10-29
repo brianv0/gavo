@@ -129,16 +129,16 @@ class ViewTest(testhelpers.VerboseTest):
 		self.assertRaisesWithMsg(base.StructureError, 
 			"No field 'noexist' in table test.prodtest", 
 			base.parseFromString, (tabledef.SimpleView, '<simpleView>'
-			'<fieldRef table="test#prodtest" column="noexist"/></simpleView>'))
+			'<fieldRef table="data/test#prodtest" column="noexist"/></simpleView>'))
 
 	def testTableDefCreation(self):
 		rd = base.parseFromString(rscdesc.RD,
 			'<resource schema="test2">'
 			'<simpleView id="vv">'
-			'<fieldRef table="test#prodtest" column="alpha"/>'
-			'<fieldRef table="test#prodtest" column="delta"/>'
-			'<fieldRef table="test#prodtest" column="object"/>'
-			'<fieldRef table="test#adql" column="mag"/>'
+			'<fieldRef table="data/test#prodtest" column="alpha"/>'
+			'<fieldRef table="data/test#prodtest" column="delta"/>'
+			'<fieldRef table="data/test#prodtest" column="object"/>'
+			'<fieldRef table="data/test#adql" column="mag"/>'
 			'</simpleView></resource>')
 		self.assertEqual(len(rd.tables), 1)
 		td = rd.tables[0]

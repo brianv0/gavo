@@ -264,7 +264,7 @@ def getTestRD():
 	from gavo import rscdesc
 	from gavo.protocols import basic
 	from gavo import base
-	return base.caches.getRD(os.path.abspath("test.rd"))
+	return base.caches.getRD(os.path.abspath("data/test.rd"))
 
 
 def getTestTable(tableName):

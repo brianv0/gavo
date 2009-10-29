@@ -19,7 +19,8 @@ from pyparsing import (Word, Literal, Optional, alphas, CaselessKeyword,
 		ZeroOrMore, OneOrMore, SkipTo, srange, StringEnd, Or, MatchFirst,
 		Suppress, Keyword, Forward, QuotedString, Group, printables, nums,
 		CaselessLiteral, ParseException, Regex, sglQuotedString, alphanums,
-		dblQuotedString, White, ParseException, ParseResults, Empty)
+		dblQuotedString, White, ParseException, ParseResults, Empty,
+		ParserElement)
 
 from gavo import utils
 from gavo.stc import stcsdefaults
@@ -175,6 +176,9 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 	numberLiteral and timeLiteral are pyparsing symbols for numbers and
 	datetimes, respectively.
 	"""
+# WARNING: Changing global state here temporarily.  This will be trouble in
+# threads.  This stuff is reset below to the default from base.__init__
+	ParserElement.setDefaultWhitespaceChars("\n\t\r ")
 	
 	number = numberLiteral
 	del numberLiteral
@@ -351,6 +355,8 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		Optional( spaceSubPhrase )("space") +
 		Optional( spectralSubPhrase )("spectral") +
 		Optional( redshiftSubPhrase )("redshift") ) + StringEnd()
+
+	ParserElement.setDefaultWhitespaceChars("\t ")
 
 	return _makeSymDict(locals(), _exportAll)
 

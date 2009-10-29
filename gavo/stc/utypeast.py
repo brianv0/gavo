@@ -2,9 +2,14 @@
 Parse utype sets into ASTs.
 
 The rough plan is to build an ElementTree from a pair of dictionaries,
-systemDict and columntDict, as returned by utypegen.getUtypes.  This
-ElementTree can then be used to build an AST using stcxast.  It contains
-common.ColRefs and thus cannot be serialized to a string.
+systemDict and columnDict, as returned by utypegen.getUtypes.  This
+ElementTree can then be used to build an AST using stcxast.  The ElementTree
+contains common.ColRefs and thus cannot be serialized to an XML string.
+
+Most of the magic happens in utypeParseToTree, where the utypes are
+dissected; it is important that the utypes sequence passed to this
+is sorted such that utypes for things below an STC-X node are actually
+immediately below the utype pair for their parent.
 """
 
 import itertools
@@ -63,6 +68,11 @@ def _makeParentAttributeMaker(attName):
 		yield ".".join(parseUtype(utype)[:-1]), _Attribute(attName, value)
 	return makeAttribute
 
+def _replaceUtype(utype):
+	def replacer(_, value):
+		yield utype, value
+	return replacer
+
 
 _utypeMorphers = {
 	'AstroCoordSystem.RedshiftFrame.ReferencePosition': _replaceLastWithValue,
@@ -72,7 +82,8 @@ _utypeMorphers = {
 	'AstroCoordSystem.SpaceFrame.CoordFlavor.coord_naxes': 
 		_makeAttributeMaker("coord_naxes"),
 	'AstroCoordSystem.SpaceFrame.CoordRefFrame': _replaceLastWithValue,
-	'AstroCoordSystem.SpaceFrame.CoordRefFrame.Equinox': _replaceLastWithValue,
+	'AstroCoordSystem.SpaceFrame.CoordRefFrame.Equinox': 
+		_replaceUtype('AstroCoordSystem.SpaceFrame.Equinox'),
 	'AstroCoordSystem.SpaceFrame.ReferencePosition': _replaceLastWithValue,
 	'AstroCoordSystem.SpectralFrame.ReferencePosition': _replaceLastWithValue,
 	'AstroCoordSystem.TimeFrame.ReferencePosition': _replaceLastWithValue,

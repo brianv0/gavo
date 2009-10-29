@@ -224,15 +224,40 @@ class STCEmbedTest(testhelpers.VerboseTest):
 class STCParseTest(testhelpers.VerboseTest):
 	"""tests for parsing of STC info from VOTables.
 	"""
-	def testSimpleRoundtrip(self):
-		src = _getTableWithSimpleSTC()
-		vot = VOTable.parse(StringIO(votable.getAsVOTable(src)))
+	def _doRoundtrip(self, table):
+		vot = VOTable.parse(StringIO(votable.getAsVOTable(table)))
 		dddef = votable.makeDDForVOTable("testTable", vot)
-		td = dddef.getPrimary()
-		for orig, deser in zip(src.tableDef, td):
+		return dddef.getPrimary()
+
+	def _assertSTCEquivalent(self, td1, td2):
+		for orig, deser in zip(td1, td2):
 			self.assertEqual(orig.name, deser.name)
 			self.assertEqual(orig.stcUtype, deser.stcUtype)
 			self.assertEqual(orig.stc, deser.stc)
+
+	def testSimpleRoundtrip(self):
+		src = _getTableWithSimpleSTC()
+		td = self._doRoundtrip(src)
+		self._assertSTCEquivalent(src.tableDef, td)
+
+	def testComplexRoundtrip(self):
+		src = rsc.TableForDef(testhelpers.getTestRD().getById("stcfancy"))
+		td = self._doRoundtrip(src)
+		self._assertSTCEquivalent(src.tableDef, td)
+
+	def testWhackyUtypesIgnored(self):
+		vot = VOTable.parse(StringIO("""
+		<VOTABLE version="1.1"><RESOURCE><TABLE><GROUP ID="ll" utype="stc:AstroCoordSystem"><PARAM arraysize="*" datatype="char" utype="stc:AstroCoordSystem.SpaceFrame.CoordRefFrame" value="ICRS" /><PARAM arraysize="*" datatype="char" utype="stc:AstroCoordSystem.SpaceFrame.Megablast" value="ENABLED" /></GROUP><GROUP ID="ll_coo" ref="ll" utype="stc:AstroCoords"><GROUP ref="alpha" utype="stc:AstroCoords.Position2D.Value2.C1" /><GROUP ref="delta" utype="stc:AstroCoords.BlasterLocation" /></GROUP><FIELD ID="alpha" arraysize="1" datatype="float" name="alpha" unit="deg"/><FIELD ID="delta" arraysize="1" datatype="float" name="delta" unit="deg"/></TABLE></RESOURCE></VOTABLE>"""))
+		dddef = votable.makeDDForVOTable("testTable", vot)
+		td = dddef.getPrimary()
+		self.assertEqual(
+			td.getColumnByName("alpha").stc.spaceFrame.refFrame, "ICRS")
+		self.assertEqual(
+			td.getColumnByName("alpha").stcUtype, 
+			"AstroCoords.Position2D.Value2.C1")
+		self.assertEqual(
+			td.getColumnByName("delta").stcUtype, 
+			"AstroCoords.BlasterLocation")
 
 
 if __name__=="__main__":
