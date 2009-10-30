@@ -127,6 +127,7 @@ class ViewTest(testhelpers.VerboseTest):
 
 	def testBadRefRaises(self):
 		self.assertRaisesWithMsg(base.StructureError, 
+			"At <internal source>, last known position: 1, 67: "
 			"No field 'noexist' in table test.prodtest", 
 			base.parseFromString, (tabledef.SimpleView, '<simpleView>'
 			'<fieldRef table="data/test#prodtest" column="noexist"/></simpleView>'))

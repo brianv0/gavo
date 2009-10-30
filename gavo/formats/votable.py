@@ -326,9 +326,9 @@ def getSTCDefsFromVOTable(vot):
 		try:
 			resolved[colID] = (systems[sysID], utype)
 		except KeyError:
-			raise base.NotFoundError(
-				"STC group %s referenced but not defined."%sysID,
-				sysID, "VOTable STC group")
+			raise base.NotFoundError(sysId, "STC system group", "VOTable",
+				hint="You probably have an invalid VOTable.  You could"
+					" try removing all STC groups.")
 	return resolved
 
 

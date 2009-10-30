@@ -254,7 +254,7 @@ def getRDInputStream(srcId):
 	srcPath = "/resources/inputs/"+srcId
 	if pkg_resources.resource_exists('gavo', srcPath):
 		return srcPath, pkg_resources.resource_stream('gavo', srcPath)
-	raise base.RDNotFound("No such resource descriptor: %s"%userInput)
+	raise base.RDNotFound(userInput)
 
 
 def mapParseErrors(ex, tag, ctx):

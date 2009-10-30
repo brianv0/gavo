@@ -26,17 +26,36 @@ from gavo.utils.fancyconfig import NoConfigItem
 class Error(Exception):
 	"""is the base class for all exceptions that can be expected to escape
 	a module.
-	"""
 
-class RDNotFound(Error):
-	"""is raised by top-level rscdesc if a requested resource descriptor
-	cannot be found.
+	Apart from the normal message, you can give a "hint" constructor argument.
 	"""
+	def __init__(self, msg, hint=None):
+		Exception.__init__(self, msg)
+		self.hint = hint
 
 class StructureError(Error):
 	"""is raised if an error occurs during the construction of
 	structures.
+
+	You can construct these with pos; this is an opaque object that, when
+	stringified, should expand to something that gives the user a rough idea
+	of where something went wrong.
+
+	Since you will usually not know where you are in the source document
+	when you want to raise a StructureError, xmlstruct will try
+	to fill pos in when it's still None when it sees a StructureError.
+	Thus, you're probably well advised to leave it blank.
 	"""
+	def __init__(self, msg, pos=None, hint=None):
+		Error.__init__(self, msg, hint=hint)
+		self.pos = pos
+
+
+	def __str__(self):
+		if self.pos is None:
+			return self.args[0]
+		else:
+			return "At %s: %s"%(str(self.pos), self.args[0])
 
 class ValidationError(Error):
 	"""is raised when the validation of a field fails.  It has a colName
@@ -92,9 +111,21 @@ class NotFoundError(Error):
 	lookedFor can be an arbitrary object, so be careful when your repr it --
 	that may be long.
 	"""
-	def __init__(self, msg, lookedFor, what=None):
-		Error.__init__(self, msg)
+	def __init__(self, lookedFor, what, within, hint=None):
+		Error.__init__(self, "ignored", hint=hint)
 		self.lookedFor, self.what = lookedFor, what
+		self.within = within
+
+	def __str__(self):
+		return "%s %r could not be located in %s"%(
+			self.what, self.lookedFor, self.within)
+
+class RDNotFound(NotFoundError):
+	"""is raised when an RD cannot be located.
+	"""
+	def __init__(self, rdId, hint=None):
+		NotFoundError.__init__(self, rdId, hint=hint, what="resource descriptor",
+			within="file system")
 
 
 class ExecutiveAction(Exception):

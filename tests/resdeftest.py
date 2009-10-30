@@ -58,15 +58,20 @@ class ColumnTest(testhelpers.VerboseTest):
 		self.assertRuns(col.validateValue, (None,))
 
 	def testRaises(self):
-		self.assertRaisesWithMsg(base.LiteralParseError, "zucki is not a"
+		self.assertRaisesWithMsg(base.LiteralParseError, 
+			'At <internal source>, unknown position: '
+			"zucki is not a"
 			" supported type", base.parseFromString, (rscdef.Column,
 				'<column name="foo" type="zucki"/>'))
-		self.assertRaisesWithMsg(base.LiteralParseError, "Invalid display hint"
+		self.assertRaisesWithMsg(base.LiteralParseError, 
+			'At <internal source>, unknown position: '
+			"Invalid display hint"
 			" 'xxyyz'", base.parseFromString, (rscdef.Column,
 				'<column name="foo" displayHint="xxyyz"/>'))
-		self.assertRaisesWithMsg(base.StructureError, "'foo x' is not a"
-			" valid column name" , base.parseFromString, (rscdef.Column,
-				'<column name="foo x"/>'))
+		self.assertRaisesWithMsg(base.StructureError, 
+			'At <internal source>, last known position: 1, 22: '
+			"'foo x' is not a valid column name" , 
+			base.parseFromString, (rscdef.Column, '<column name="foo x"/>'))
 
 
 class ValuesTest(testhelpers.VerboseTest):
@@ -168,6 +173,7 @@ class TableDefTest(testhelpers.VerboseTest):
 			'<column name="a"/><column name="b"/></table>')
 		self.assertEqual(t.primary, ["a", "b"])
 		self.assertRaisesWithMsg(base.LiteralParseError,
+			'At <internal source>, last known position: 1, 72: '
 			"Column tuple component quatsch is not in parent table",
 			base.parseFromString, (rscdef.TableDef, 
 				'<table id ="t" primary="a, quatsch">'

@@ -306,7 +306,7 @@ class TableInfoRenderer(MetaRenderer):
 			self.table = registry.getTableDef(tableName)
 			self.describingRD = self.table.rd
 		except base.NotFoundError, msg:
-			raise svcs.UnknownURI(msg)
+			raise svcs.UnknownURI(str(msg))
 
 	def data_forADQL(self, ctx, data):
 		return self.table.adql
@@ -407,8 +407,8 @@ class TableNoteRenderer(MetaRenderer):
 					self.noteHTML = mv.getContent(targetFormat="html")
 					break
 			else:
-				raise base.NotFoundError("No note '%s' for table %s"%(
-					noteTag, tableName), notTag, "note")
+				raise base.NotFoundError(noteTag, what="note tag", 
+					within="table %s"%tableName)
 		except base.NotFoundError, msg:
 			raise svcs.UnknownURI(msg)
 		self.noteTag = noteTag

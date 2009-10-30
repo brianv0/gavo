@@ -102,17 +102,19 @@ class IdManagerMixin(object):
 		try:
 			return self.__getIdMaps()[0][id(ob)]
 		except KeyError:
-			raise excs.NotFoundError("Attempt to reference object at %d"
-				" that has not been introduced to the id manager.",
-				lookedFor=ob, what="object")
+			raise excs.NotFoundError(repr(ob), what="object",
+				within="id manager %r"%(self,), hint="Someone asked for the"
+				" id of an object not managed by the id manager.  This usually"
+				" is a software bug.")
 
 	def getForId(self, id):
 		try:
 			return self.__getIdMaps()[1][id]
 		except KeyError:
-			raise excs.NotFoundError("Attempt to resolve id %s"
-				" that has not been handed out by the id manager.",
-				lookedFor=id, what="id")
+			raise excs.NotFoundError(id, what="id", within="id manager %r"%(self,),
+				hint="Someone asked for the object belonging to an id that has"
+				" been generated externally (i.e., not by this id manager).  This"
+				" usually is an internal error of the software.")
 
 def _iterDerivedClasses(baseClass, objects):
 	"""iterates over all subclasses of baseClass in the sequence objects.

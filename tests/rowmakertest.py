@@ -42,16 +42,20 @@ class RowmakerDefTest(testhelpers.VerboseTest):
 
 	def testRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
+			'At <internal source>, last known position: 1, 8: '
 			"You must set dest on map elements",
 			base.parseFromString, (rscdef.MapRule, '<map>bar</map>'))
 		self.assertRaisesWithMsg(base.LiteralParseError,
+			'At <internal source>, last known position: 1, 89: '
 			"'c = a+b' is not a valid python expression",
 			makeDD, ('<column name="x"/>',
 				'<map dest="x">c = a+b</map>'))
 		self.assertRaisesWithMsg(base.LiteralParseError,
+			"At <internal source>, last known position: 1, 83: "
 			"'-' is not correct python syntax",
 			makeDD, ('<column name="x"/>', '<map dest="x">-</map>'))
 		self.assertRaisesWithMsg(base.StructureError,
+			'At <internal source>, last known position: 1, 29: '
 			'Map must have exactly one of src attribute or element content',
 			base.parseFromString, 
 			(rscdef.MapRule,'<map dest="bar" src="foo">bar</map>'))
@@ -186,6 +190,7 @@ class ApplyTest(testhelpers.VerboseTest):
 	
 	def testRaising(self):
 		self.assertRaisesWithMsg(base.StructureError,
+			"At <internal source>, last known position: 1, 22: "
 			"Reference to unknown item 'quatsch'.  Note that elements"
 			" referenced must occur lexically before the referring element",
 			makeDD, ('', '<apply name="xy" procDef="quatsch"/>'))
@@ -213,9 +218,11 @@ class VarTest(testhelpers.VerboseTest):
 	"""
 	def testRaising(self):
 		self.assertRaisesWithMsg(base.StructureError,
+			'At <internal source>, last known position: 1, 67: '
 			"Var names must be valid python identifiers, and 77x is not",
 			makeDD, ('', '<var name="77x">a</var>'))
 		self.assertRaisesWithMsg(base.StructureError,
+			"At <internal source>, last known position: 1, 69: "
 			"'a=b' is not a valid python expression",
 			makeDD, ('', '<var name="x77">a=b</var>'))
 

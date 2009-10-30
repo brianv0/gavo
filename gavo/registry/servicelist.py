@@ -160,7 +160,7 @@ def cleanServiceTablesFor(targetRDId, connection):
 # -- or do we want a special mechanism similar to owningCondition of old?
 	for td in getServicesRD().getById("tables"):
 		rsc.TableForDef(td, connection=connection).deleteMatching(
-			"sourceRD=%(sourceRD)s", {"sourceRD": targetRDId})
+			"sourceRd=%(sourceRD)s", {"sourceRD": targetRDId})
 
 
 def updateServiceList(rds, metaToo=False, connection=None):
@@ -287,9 +287,9 @@ def getTableDef(tableName):
 			" tableName=%(tableName)s", {"tableName": tableName}).fetchall()
 	q.close()
 	if len(res)!=1:
-		raise base.NotFoundError(
-			"%s is no accessible table in the data center"%tableName,
-			tableName, "table")
+		raise base.NotFoundError(tableName, what="Table",
+			within="data center table listing.", hint="The table is missing from"
+			" the dc.tablemeta table.  This gets filled at gavoimp time.")
 	rdId = res[0][0]
 	return base.caches.getRD(rdId).getById(basename(tableName))
 

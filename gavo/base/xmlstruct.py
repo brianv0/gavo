@@ -11,8 +11,26 @@ from gavo.base import parsecontext
 from gavo.base import structure
 
 
+class ErrorPosition(object):
+	"""A wrapper for an error position for use with utils.excs.
+
+	Construct it with an SAX locator and a file like object.  None values
+	are ok.
+	"""
+	def __init__(self, locator, fObject):
+		self.line, self.col, self.srcName = "?", "?", "<internal>"
+		if locator is not None:
+			self.line = locator.getLineNumber() or '?' 
+			self.col = locator.getColumnNumber() or '?'
+		if fObject is not None and getattr(fObject, "name", None):
+			self.srcName  = fObject.name
+	
+	def __str__(self):
+		return "%s, line %s, col %s"%(self.srcName, self.line, self.col)
+
+
 class NodeBuilder(ContentHandler):
-	"""is a SAX content handler interfacing to the structure.EventProcessor.
+	"""A SAX content handler interfacing to the structure.EventProcessor.
 	"""
 	# These are attributes that may not occur in elements and are always
 	# processed first.  See original/parsecontext.OriginalAttribute as to why 
@@ -81,17 +99,17 @@ def parseFromStream(rootStruct, inputStream, context=None):
 		context = parsecontext.ParseContext()
 	evProc = structure.EventProcessor(rootStruct, context)
 	cHandler = NodeBuilder(evProc)
-	if context is not None:
-		context.parser = cHandler
+	context.parser = cHandler
 	parser.setContentHandler(cHandler)
 	try:
 		parser.parse(inputStream)
 	except SAXException, msg:
 		raise excs.ReportableError("Bad XML: %s"%unicode(msg))
 	except Exception, msg:
-		if context is not None and hasattr(context, "lastRow"):
-			msg.excRow = context.lastRow
-			msg.excCol = context.lastCol
+		# cHandler.locator isn't too useful in this context.  See if we can make
+		# it, but for now, hack around it.
+		#msg.pos = ErrorPosition(cHandler.locator, inputStream)
+		msg.pos = context.getLocation()
 		raise
 	return evProc.result
 

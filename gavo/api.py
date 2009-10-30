@@ -16,5 +16,5 @@ from gavo.base import (getConfig, getDBConnection, getDefaultDBConnection,
 	setDBProfile, SimpleQuerier)
 from gavo.rsc import (TableForDef, DBTable, makeData, parseValidating,
 	parseNonValidating)
-from gavo.utils import (Error, RDNotFound, StructureError, ValidationError,
-	ReportableError)
+from gavo.utils import (Error, StructureError, ValidationError,
+	ReportableError, NotFoundError, RDNotFound)

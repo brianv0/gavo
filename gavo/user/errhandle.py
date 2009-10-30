@@ -34,9 +34,6 @@ def runAndCatch(func):
 		errTx = unicode(msg).encode(base.getConfig("ui", "outputEncoding"))
 		sys.stderr.write(textwrap.fill(errTx, break_long_words=False)+"\n\n")
 		sys.exit(1)
-	except base.RDNotFound, msg:
-		sys.stderr.write("%s\n"%msg)
-		sys.exit(1)
 	except base.LiteralParseError, msg:
 		sys.stderr.write("While trying to parse literal %s for attribute %s:"
 			" %s"%(repr(msg.attVal), msg.attName, str(msg)))

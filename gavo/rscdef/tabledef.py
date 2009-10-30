@@ -384,7 +384,11 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 	def getColumnByName(self, name):
 		"""delegates to common.ColumnList.
 		"""
-		return self.columns.getColumnByName(name)
+		try:
+			return self.columns.getColumnByName(name)
+		except base.NotFoundError, msg:
+			msg.table = "table %s"%self.id
+			raise
 
 	def getColumnsByUCD(self, ucd):
 		"""delegates to common.ColumnList.

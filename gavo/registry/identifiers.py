@@ -44,14 +44,14 @@ def getRestupFromIdentifier(identifier):
 	if authority!=base.getConfig("ivoa", "authority"):
 		raise IdDoesNotExist(identifier)
 	if resKey.startswith("static/"):
-		sourceRd = STATICRSC_ID
+		sourceRD = STATICRSC_ID
 		internalId = resKey[len("static/"):]
 	else:
 		parts = resKey.split("/")
-		sourceRd = "/".join(parts[:-1])
+		sourceRD = "/".join(parts[:-1])
 		internalId = parts[-1]
 	matches = servicelist.queryServicesList(
-		"sourceRd=%(sourceRd)s AND internalId=%(internalId)s",
+		"sourceRd=%(sourceRD)s AND internalId=%(internalId)s",
 		locals(), tableName="services")
 	if len(matches)!=1:
 		raise IdDoesNotExist(identifier)
@@ -61,23 +61,23 @@ def getRestupFromIdentifier(identifier):
 def getResobFromRestup(restup):
 	"""returns a resob for a res tuple.
 
-	restup at least has to contain the sourceRd and internalId fields.
+	restup at least has to contain the sourceRD and internalId fields.
 
 	The item that is being returned is either a service or a StaticResource
 	object.  All of these have a getMeta method and should be able to
 	return the standard DC metadata.  Everything else depends on the type
 	of StaticResource.
 	"""
-	sourceRd, internalId = restup["sourceRd"], restup["internalId"]
-	if sourceRd==STATICRSC_ID:
+	sourceRD, internalId = restup["sourceRd"], restup["internalId"]
+	if sourceRD==STATICRSC_ID:
 		return staticresource.loadStaticResource(internalId)
 	else:
 		try:
-			return base.caches.getRD(sourceRd).serviceIndex[internalId]
+			return base.caches.getRD(sourceRD).serviceIndex[internalId]
 		except KeyError:
-			raise base.NotFoundError("No service %s in %s -- perhaps you want"
-				" to run gavopublish %s?"%(internalId, sourceRd, sourceRd),
-				internalId, "service")
+			raise base.NotFoundError(internalId, what="service",
+				within="RD %s"%sourceRD, hint="This usually happens when you"
+				" forgot to run gavopublish %s"%sourceRD)
 
 
 def getResobFromIdentifier(identifier):

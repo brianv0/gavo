@@ -150,7 +150,7 @@ class DirectGrammar(base.Structure):
 			ignoreBadRecords=self.ignoreBadRecords)
 		makes = self.parent.makes
 		if len(makes)!=1:
-			raise base.StructureError("Directgrammar only work in data having"
+			raise base.StructureError("Directgrammar only works for data having"
 				" exactly one table, but data '%s' has %d"%(
 					self.parent.id, len(makes)))
 		def copyIn(data):

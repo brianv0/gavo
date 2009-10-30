@@ -175,8 +175,8 @@ class ColumnList(list):
 		try:
 			return self[self.nameIndex[name]]
 		except KeyError:
-			raise base.NotFoundError("Column %s does not exist."%(
-				name), name, "column")
+			raise base.NotFoundError(name, what="column", within="unnamed table")
+				
 
 	def getColumnsByUCD(self, ucd):
 		"""returns all columns having ucd.
