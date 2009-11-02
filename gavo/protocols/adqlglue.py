@@ -9,6 +9,7 @@ from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo import svcs
+from gavo import utils
 from gavo.base import sqlsupport
 from gavo.base import typesystems
 
@@ -17,7 +18,7 @@ def makeFieldInfo(column):
 	"""returns an adql.tree.FieldInfo object from a rscdef.Column.
 	"""
 	return adql.FieldInfo(
-		column.unit, column.ucd, (column,))
+		column.unit, column.ucd, (column,), stc=column.stc)
 
 
 def makeColumnFromFieldInfo(colName, fi):
@@ -44,6 +45,8 @@ def makeColumnFromFieldInfo(colName, fi):
 		res = base.makeStruct(svcs.OutputField, name=colName)
 	res.ucd = fi.ucd
 	res.unit = fi.unit
+	# XXX TODO: do something with stc's broken attribute
+	res.stc = fi.stc
 	if len(fi.userData)>1:
 		res.description = ("This field has traces of: %s"%("; ".join([
 			f.description for f in fi.userData if f.description])))
@@ -65,9 +68,10 @@ def _getTableDescForOutput(parsedTree):
 
 def getFieldInfoGetter(accessProfile=None):
 	mth = rsc.MetaTableHandler(accessProfile)
+	@utils.memoized
 	def getFieldInfos(tableName):
 		return [(f.name, makeFieldInfo(f)) 
-			for f in mth.getColumnsForTable(tableName)]
+			for f in mth.getTableDefForTable(tableName)]
 	return getFieldInfos
 
 
@@ -85,11 +89,12 @@ def query(query, timeout=15, queryProfile="untrustedquery", metaProfile=None):
 	morphStatus, morphedTree = adql.morphPG(t)
 	# escape % to hide them form dbapi replacing
 	query = adql.flatten(morphedTree).replace("%", "%%")
-# XXX TODO: evalue warnings from status
 	for tuple in base.SimpleQuerier(useProfile=queryProfile).runIsolatedQuery(
 			query, timeout=timeout, silent=True, 
 			settings=(("enable_nestloop", False), ("enable_seqscan", False))):
 		table.addTuple(tuple)
+	for warning in morphStatus.warnings:
+		table.tableDef.addMeta("_warning", warning)
 	return table
 
 

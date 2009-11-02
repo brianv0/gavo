@@ -80,6 +80,12 @@ class MetaTableHandler(object):
 	
 	def getColumnsForTable(self, tableName):
 		"""returns a field definition list for tableName.
+
+		WARNING: This will produce columns according to the information in
+		the database.  This does, e.g., not include STC information.
+
+		Consider using the base.caches.getTableDefForTable method for 
+		RD-correct columns.
 		"""
 		if not "." in tableName:
 			tableName = "public."+tableName
@@ -92,7 +98,10 @@ class MetaTableHandler(object):
 	def getTableDefForTable(self, tableName):
 		if not "." in tableName:
 			tableName = "public."+tableName
-		res = list(self.tablesTable.iterQuery(self.tablesRowdef, 
-			" tableName=%(tableName)s", {"tableName": tableName}))[0]
-		return base.caches.getRD(res["sourceRd"]).getById(tableName.split(".")[1])
-
+		try:
+			tableRec = list(self.tablesTable.iterQuery(self.tablesRowdef, 
+				" tableName=%(tableName)s", {"tableName": tableName}))[0]
+		except IndexError:
+			raise base.NotFoundError(tableName, "Table", "dc_tables")
+		return base.caches.getRD(tableRec["sourceRd"]
+			).getById(tableName.split(".")[1])

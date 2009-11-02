@@ -8,10 +8,9 @@ from pprint import pprint
 
 import pyparsing
 
-from gavo import rscdesc
-from gavo import protocols
 from gavo import adql
 from gavo import base
+from gavo import stc
 from gavo import rsc
 from gavo import rscdef
 from gavo.adql import annotations
@@ -393,6 +392,18 @@ miscFields = [
 	rscdef.Column(None, name="mag", ucd="phot.mag", unit="mag"),
 	rscdef.Column(None, name="speed", ucd="phys.veloc", unit="km/s")]
 
+def _addSpatialSTC(sf):
+	ast1 = stc.parseQSTCS('Position ICRS "ra1" "dec" Size "width" "height"')
+	ast2 = stc.parseQSTCS('Position FK4 SPHER3 "ra2" "dec" "distance"')
+# XXX TODO: get utypes from ASTs
+	sf[0].stc, sf[0].stcUtype = ast2.astroSystem, None
+	sf[1].stc, sf[1].stcUtype = ast1.astroSystem, None
+	sf[2].stc, sf[2].stcUtype = ast1.astroSystem, None
+	sf[3].stc, sf[3].stcUtype = ast1.astroSystem, None
+	sf[4].stc, sf[4].stcUtype = ast2.astroSystem, None
+_addSpatialSTC(spatialFields)
+
+
 def _sampleFieldInfoGetter(tableName):
 	if tableName=='spatial':
 		return [(f.name, adqlglue.makeFieldInfo(f))
@@ -568,6 +579,26 @@ class ColResTest(ColumnTest):
 	def testErrorReporting(self):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
 			"select gnurks from spatial")
+
+
+class STCTest(ColumnTest):
+	"""tests for working STC inference in ADQL expressions.
+	"""
+	def testSimple(self):
+		cs = self._getColSeq("select ra1, ra2 from spatial")
+		self.assertEqual(cs[0][1].stc.spaceFrame.refFrame, 'ICRS')
+		self.assertEqual(cs[1][1].stc.spaceFrame.refFrame, 'FK4')
+
+	def testBroken(self):
+		cs = self._getColSeq("select ra1+ra2 from spatial")
+		self.failUnless(hasattr(cs[0][1].stc, "broken"))
+
+# XXXXXXX Hier weiter
+#	def testPoint(self):
+#		cs = self._getColSeq("select point('ICRS', ra1, 2, 3) from spatial")
+#		print cs[0][1].stc
+
+
 
 
 class FunctionNodeTest(unittest.TestCase):
@@ -846,4 +877,4 @@ class QueryTest(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(FlattenTest)
+	testhelpers.main(STCTest)

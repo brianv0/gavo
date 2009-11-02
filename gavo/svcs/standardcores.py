@@ -258,6 +258,9 @@ def mapDBErrors(excType, excValue, excTb):
 	if isinstance(excValue, sqlsupport.QueryCanceledError):
 		raise base.ValidationError("Query timed out (took too long).  See"
 			" our help.", "query")
+	elif isinstance(excValue, base.NotFoundError):
+		raise base.ValidationError("Could not locate %s '%s'"%(
+			excValue.what, excValue.lookedFor), "query")
 	elif isinstance(excValue, base.DBError):
 		raise base.ValidationError(unicode(excValue), "query")
 	else:
