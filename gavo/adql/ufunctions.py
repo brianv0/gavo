@@ -29,7 +29,7 @@ def gavo_resolve(args):
 	warnings.warn("Not resolving %s"%repr(args))
 
 
-class UserFunction(nodes.FieldInfoedNode, nodes.FunctionMixin):
+class UserFunction(nodes.FunctionNode):
 	"""is a node processing user functions.
 
 	All user functions must be declared lexically above this class

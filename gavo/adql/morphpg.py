@@ -75,19 +75,16 @@ insertQ3Calls = morphhelpers.Morpher(_q3Morphers).morph
 
 
 def _morphCircle(node, state):
-	assert len(node.args)==3
 	return "CIRCLE(POINT(%s, %s), %s)"%tuple(flatten(a)
-		for a in node.args)
+		for a in (node.x, node.y, node.radius))
 
 def _morphPoint(node, state):
-	assert len(node.args)==2
 	return "POINT(%s, %s)"%tuple(flatten(a) 
-		for a in node.args)
+		for a in (node.x, node.y))
 
 def _morphRectangle(node, state):
-	assert len(node.args)==4
 	return "POLYGON(BOX(%s, %s, %s, %s))"%tuple(flatten(a)
-		for a in node.args)
+		for a in (node.x0, node.y0, node.x1, node.y1))
 
 _cooLiteral = re.compile("[0-9]*(\.([0-9]*([eE][+-]?[0-9]*)?)?)?$")
 

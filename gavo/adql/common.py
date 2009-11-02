@@ -61,13 +61,14 @@ class FieldInfo(object):
 	one FieldInfo will have all userDatas of the combined FieldInfos in
 	its userData attribute.
 	"""
-	def __init__(self, unit, ucd, userData=(), tainted=False):
+	def __init__(self, unit, ucd, userData=(), tainted=False, stc=None):
 		self.ucd = ucd
+		self.unit = unit
+		self.stc = stc
+		self.userData = userData
+		self.tainted = tainted
 		self.warnings = []
 		self.errors = []
-		self.userData = userData
-		self.unit = unit
-		self.tainted = tainted
 	
 	def __repr__(self):
 		return "FieldInfo(%s, %s, %s)"%(repr(self.unit), repr(self.ucd),

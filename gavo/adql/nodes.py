@@ -159,6 +159,23 @@ def getChildOfClass(nodeSeq, cls, default=BOMB_OUT):
 		default, (cls, nodeSeq))
 
 
+def parseArgs(parseResult):
+	"""returns a sequence of ADQL nodes suitable as function arguments from 
+	parseResult.
+
+	This is for cleaning up _parseResults["args"], i.e. stuff from the
+	Args symbol decorator in grammar.
+	"""
+	args = []
+	for _arg in parseResult:
+		# _arg is either another ParseResult or an ADQLNode
+		if isinstance(_arg, ADQLNode):
+			args.append(_arg)
+		else:
+			args.append(autocollapse(NumericValueExpression, _arg))
+	return tuple(args)
+
+
 ######################### Generic Node definitions
 
 @symbolAction("regularIdentifier")
@@ -195,18 +212,21 @@ class ADQLNode(utils.AutoNode):
 	names to values.  You do not need to manually call superclass _getInitKWs,
 	since the fromParseResult classmethod figures out all _getInitKWs in the
 	inheritance tree itself.  It calls all of them in the normal MRO and updates
-	the argument dictionary in reverse order.  The fromParseResult
-	class method additionally filters out all names starting with an
-	underscore; this is to allow easy returning of locals().
+	the argument dictionary in reverse order.  
+	
+	The fromParseResult class method additionally filters out all names starting
+	with an underscore; this is to allow easy returning of locals().
 	"""
 	type = None
+# XXX Do we want this messy _getInitKWs business?  Or should we have
+# classic super()-type stuff?
 
 	@classmethod
 	def fromParseResult(cls, parseResult):
 		initArgs = {}
 		for superclass in reversed(cls.mro()):
 			if hasattr(superclass, "_getInitKWs"):
-				initArgs.update(superclass._getInitKWs( parseResult))
+				initArgs.update(superclass._getInitKWs(parseResult))
 		try:
 			return cls(**cleanNamespace(initArgs))
 		except TypeError:
@@ -269,43 +289,8 @@ class TransparentMixin(object):
 		return {"children": list(_parseResult)}
 
 
-class FunctionMixin(object):
-	"""is a mixin for ADQLNodes for parsing out arguments and a
-	function name.
-
-	The rules having this as action must use the Arg "decorator" in
-	grammar.py around their arguments and must have a string-valued
-	result "fName".
-
-	Nodes mixing this in have attributes args (unflattened arguments),
-	and funName (a string containing the function name, all upper
-	case).
-	"""
-	_a_args = ()
-	_a_funName = None
-
-	@classmethod
-	def _getInitKWs(cls, _parseResult):
-		args = []
-		try:
-			for _arg in _parseResult["args"]:
-				# _arg is either another ParseResult or an ADQLNode
-				if isinstance(_arg, ADQLNode):
-					args.append(_arg)
-				else:
-					args.append(autocollapse(NumericValueExpression, _arg))
-			args = tuple(args)
-		except KeyError: # Zero-Arg function
-			pass
-		funName = _parseResult["fName"].upper()
-		return locals()
-
-	def flatten(self):
-		return "%s(%s)"%(self.funName, ", ".join(flatten(a) for a in self.args))
-
-
 class FieldInfoedNode(ADQLNode):
-	"""is an ADQL node that carries a FieldInfo.
+	"""An ADQL node that carries a FieldInfo.
 
 	This is true for basically everything in the tree below a derived
 	column.  This class is the basis for column annotation.
@@ -342,6 +327,34 @@ class FieldInfoedNode(ADQLNode):
 		other = ADQLNode.change(self, **kwargs)
 		other.fieldInfo = self.fieldInfo
 		return other
+
+
+class FunctionNode(FieldInfoedNode):
+	"""An ADQLNodes having a function name and arguments.
+
+	The rules having this as action must use the Arg "decorator" in
+	grammar.py around their arguments and must have a string-valued
+	result "fName".
+
+	FunctionNodes have attributes args (unflattened arguments),
+	and funName (a string containing the function name, all upper
+	case).
+	"""
+	_a_args = ()
+	_a_funName = None
+
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		try:
+			args = parseArgs(_parseResult["args"])
+		except KeyError: # Zero-Arg function
+			pass
+		funName = _parseResult["fName"].upper()
+		return locals()
+
+	def flatten(self):
+		return "%s(%s)"%(self.funName, ", ".join(flatten(a) for a in self.args))
+
 
 
 class ColumnBearingNode(ADQLNode):
@@ -482,7 +495,7 @@ class JoinedTable(ColumnBearingNode, TransparentMixin):
 			yield t.tableName.qName
 
 
-class TransparentNode(TransparentMixin, ADQLNode):
+class TransparentNode(ADQLNode, TransparentMixin):
 	"""An abstract base for Nodes that don't parse out anything.
 	"""
 	type = None
@@ -768,7 +781,7 @@ class CombiningFINode(FieldInfoedNode):
 			self.fieldInfo = self._combineFieldInfos()
 
 
-class Term(TransparentMixin, CombiningFINode):
+class Term(CombiningFINode, TransparentMixin):
 	type = "term"
 	collapsible = True
 
@@ -843,7 +856,7 @@ class CountAll(FieldInfoedNode, TransparentMixin):
 		pass
 
 
-class SetFunction(FieldInfoedNode, TransparentMixin):
+class SetFunction(TransparentMixin, FieldInfoedNode):
 	"""is an aggregate function.
 
 	These typically amend the ucd by a word from the stat family and copy
@@ -877,7 +890,7 @@ class SetFunction(FieldInfoedNode, TransparentMixin):
 		self.fieldInfo = FieldInfo(unit, ucd, fi.userData, fi.tainted)
 
 
-class NumericValueFunction(FunctionMixin, FieldInfoedNode):
+class NumericValueFunction(FunctionNode):
 	"""is a numeric function.
 
 	This is really a mixed bag.  We work through handlers here.  See table
@@ -966,54 +979,68 @@ class CoosysMixin(object):
 		return {"cooSys":  _parseResult["coordSys"][0].value}
 
 
-class _FunctionalNode(FunctionMixin, FieldInfoedNode):
-	pass
+class GeometryNode(CoosysMixin, FieldInfoedNode):
+	"""Nodes for geometry constructors.
 
+	Although these look like functions, they are different in that their
+	"arguments" are explicitely named.  We repeat that here, so all
+	Geometries need _getInitKWs methods.
 
-class Point(CoosysMixin, _FunctionalNode):
-	"""points have cooSys, x, and y attributes.
+	Also, this needs custom flattening.  To keep it simple, they just define
+	argSeq attributes containing the names of the attributes to be flattened
+	to obtain the arguments.
 	"""
+	def flatten(self):
+		return "%s(%s)"%(self.type.upper(),
+			", ".join(flatten(getattr(self, name)) for name in self.argSeq))
+
+
+class Point(GeometryNode):
 	type = "point"
 	_a_x = _a_y = None
 
-	def _polish(self):
-		self.x, self.y = self.args
-	
+	argSeq = ("x", "y")
 
-class Circle(CoosysMixin, _FunctionalNode):
-	"""circles have cooSys, x, y, and radius attributes.
-	"""
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		x, y = parseArgs(_parseResult["args"])
+		return locals()
+
+class Circle(GeometryNode):
 	type = "circle"
 	_a_x = _a_y = _a_radius = None
+	argSeq = ("x", "y", "radius")
 
-	def _polish(self):
-		self.x, self.y, self.radius = self.args
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		x, y, radius = parseArgs(_parseResult["args"])
+		return locals()
 
 
-class Rectangle(CoosysMixin, _FunctionalNode):
-	"""rectangles have cooSys, x0, y0, x1, and y1 attributes.
-	"""
+class Rectangle(FunctionNode, CoosysMixin):
 	type = "rectangle"
 	_a_x0 = _a_y0 = _a_x1 = _a_y1 = None
+	argSeq = ("x0", "y0", "x1", "y1", "radius")
 
-	def _polish(self):
-		self.x0, self.y0, self.x1, self.y1 = self.args
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		x0, y0, x1, y1 = parseArgs(_parseResult["args"])
+		return locals()
 
 
-class Polygon(CoosysMixin, _FunctionalNode):
-	"""rectangles have a cooSys attribute, and store pairs of
-	coordinates in coos.
-	""" 
+class Polygon(FunctionNode, CoosysMixin):
 	type = "polygon"
 	_a_coos = ()
+	argSeq = ("coos")
 
-	def _polish(self):
-		toDo = list(self.args)
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		toDo = list(parseArgs(_parseResult["args"]))
 		coos = []
 		while toDo:
 			coos.append(tuple(toDo[:2])) 
 			del toDo[:2]
-		self.coos = tuple(coos)
+		return {"coos": tuple(coos)}
 
 
 _regionMakers = [] 
@@ -1047,17 +1074,17 @@ def makeRegion(children):
 		arg)
 	
 
-class Centroid(_FunctionalNode):
+class Centroid(FunctionNode):
 	type = "centroid"
 
-class Distance(_FunctionalNode):
+class Distance(FunctionNode):
 	type = "distanceFunction"
 
-class predicateGeometryFunction(_FunctionalNode):
+class predicateGeometryFunction(FunctionNode):
 	type = "predicateGeometryFunction"
 
-class PointFunction(_FunctionalNode):
+class PointFunction(FunctionNode):
 	type = "pointFunction"
 
-class Area(_FunctionalNode):
+class Area(FunctionNode):
 	type = "area"

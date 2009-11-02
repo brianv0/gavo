@@ -1,7 +1,4 @@
-An ADQL metadata inference and query morphing libaray.
-
-Let's try and keep this as free from dependencies to the rest of the GAVO 
-infrastructure as possible.
+An ADQL metadata inference and query morphing library.
 
 As a rule, I've tried to keep as much in plain strings as possible to
 avoid having gargantuous trees when we're really only interested in
@@ -13,6 +10,7 @@ What's where:
 * The grammar, parsing into basically nothing: grammar.py
 * Nodes, functioning as callbacks for the grammar and building a query
   structure: nodes.py
-* Processing of nodes for field resolution and similar: tree.py
+* Processing of nodes, actual tree building: tree.py
+* Metadata inference: annotations.py
 * Creation of actual postgres queries from the results of the above
-  modules: morphpg.py
+  modules: morphpg.py, morphhelpers.py

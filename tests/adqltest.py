@@ -3,8 +3,8 @@ Tests for ADQL parsing and reasoning about query results.
 """
 
 import os
-import pprint
 import unittest
+from pprint import pprint
 
 import pyparsing
 
@@ -26,6 +26,7 @@ import testhelpers
 
 class Error(Exception):
 	pass
+
 
 
 class SymbolsParseTest(testhelpers.VerboseTest):
@@ -293,6 +294,18 @@ class NakedParseTest(testhelpers.VerboseTest):
 			"select x.y.z.a.b from a",
 			"select x from a.b.c.d",
 		])
+
+
+class AsTreeTest(testhelpers.VerboseTest):
+	"""tests for asTree()
+	"""
+# This is an example from the docs; this is why I'd like some separate test.
+	def testSimple(self):
+		t = adql.parseToTree("SELECT * FROM t WHERE 1=CONTAINS("
+			"CIRCLE('ICRS', 4, 4, 2), POINT('', ra, dec))").asTree()
+		self.assertEqual(t[1][1][0], 'possiblyAliasedTable')
+		self.assertEqual(t[3][0], 'whereClause')
+		self.assertEqual(t[3][1][2][1][0], 'circle')
 
 
 class TreeParseTest(testhelpers.VerboseTest):
@@ -591,6 +604,25 @@ class ComplexExpressionTest(unittest.TestCase):
 		self.assertEqual(adql.flatten(t.whereClause.children[-1]), "'J2416643'")
 
 
+class FlattenTest(unittest.TestCase):
+	"""tests for flattening of plain ADQL trees.
+	"""
+	def _assertFlattensTo(self, rawADQL, flattenedADQL):
+		self.assertEqual(adql.flatten(adql.parseToTree(rawADQL)),
+			flattenedADQL)
+	
+	def testCircle(self):
+		self._assertFlattensTo("select alphaFloat, deltaFloat from ppmx.data"
+				" where contains(point('ICRS', alphaFloat, deltaFloat), "
+				" circle('ICRS', 23, 24, 0.2))=1",
+			"SELECT alphafloat, deltafloat FROM ppmx.data WHERE"
+				" CONTAINS(POINT(alphafloat, deltafloat), CIRCLE(23, 24, 0.2)) = 1")
+
+	def testFunctions(self):
+		self._assertFlattensTo(
+			"select round(x,2)as a, truncate(x,-2) as b from foo",
+			"SELECT ROUND(x, 2) AS a, TRUNCATE(x, - 2) AS b FROM foo")
+
 class Q3CMorphTest(unittest.TestCase):
 	"""tests the Q3C morphing of queries.
 	"""
@@ -619,6 +651,7 @@ class PQMorphTest(unittest.TestCase):
 	"""
 	def _testMorph(self, stIn, stOut):
 		tree = adql.parseToTree(stIn)
+		#pprint(tree.asTree())
 		status, t = adql.morphPG(tree)
 		self.assertEqual(nodes.flatten(t), stOut)
 
@@ -813,4 +846,4 @@ class QueryTest(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(QueryTest)
+	testhelpers.main(FlattenTest)
