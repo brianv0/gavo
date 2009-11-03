@@ -347,41 +347,39 @@ class DefaultingTest(testhelpers.VerboseTest):
 	def testSpatial(self):
 		self.assertEqual(stcs.getCST("PositionInterval ICRS"),
 			{'space': {'frame': 'ICRS', 'unit': 'deg', 'type': 'PositionInterval', 
-			'refpos': 'UNKNOWNRefPos', 'flavor': 'SPHER2'}})
+			'flavor': 'SPHER2'}})
 		self.assertEqual(stcs.getCST("PositionInterval ICRS VelocityInterval"
 			" Velocity 1 2"),
 			{'space': {'frame': 'ICRS', 'unit': 'deg', 'type': 'PositionInterval', 
-			'refpos': 'UNKNOWNRefPos', 'flavor': 'SPHER2',
+			'flavor': 'SPHER2',
 			'velocity': [{'pos': [1.0, 2.0], 'unit': 'm/s', 
 				'type': 'VelocityInterval'}]}})
 		self.assertEqual(stcs.getCST("PositionInterval ICRS unit arcsec"),
 			{'space': {'frame': 'ICRS', 'unit': 'arcsec', 
-			'type': 'PositionInterval', 'refpos': 'UNKNOWNRefPos', 
+			'type': 'PositionInterval',
 			'flavor': 'SPHER2'}})
 		self.assertEqual(stcs.getCST("Convex ICRS"),
 			{'space': {'frame': 'ICRS', 'unit': '', 'type': 'Convex', 
-			'refpos': 'UNKNOWNRefPos', 'flavor': 'UNITSPHER'}})
+			'flavor': 'UNITSPHER'}})
 		self.assertEqual(stcs.getCST("PositionInterval FK4 TOPOCENTER CART2"),
 			{'space': {'frame': 'FK4', 'unit': 'm', 'type': 'PositionInterval', 
 			'refpos': 'TOPOCENTER', 'flavor': 'CART2', "equinox": 'B1950.0'}})
 		self.assertEqual(stcs.getCST("PositionInterval GEO_C"),
 			{'space': {'frame': 'GEO_C', 'unit': 'deg deg m', 
-				'type': 'PositionInterval', 'refpos': 'UNKNOWNRefPos', 
-				'flavor': 'SPHER2'}})
+				'type': 'PositionInterval', 'flavor': 'SPHER2'}})
 
 	def testTemporal(self):
 		self.assertEqual(stcs.getCST("TimeInterval"), {'time': {'unit': 's', 
-			'type': 'TimeInterval', 'refpos': 'UNKNOWNRefPos', 
-			'timescale': 'nil'}})
+			'type': 'TimeInterval'}})
 
 	def testSpectral(self):
 		self.assertEqual(stcs.getCST("SpectralInterval"), {'spectral': 
-			{'type': 'SpectralInterval', 'refpos': 'UNKNOWNRefPos', 'unit': 'Hz'}})
+			{'type': 'SpectralInterval', 'unit': 'Hz'}})
 
 	def testRedshift(self):
 		self.assertEqual(stcs.getCST("RedshiftInterval"),
 			{'redshift': {'redshiftType': 'REDSHIFT', 'type': 'RedshiftInterval', 
-			'refpos': 'UNKNOWNRefPos', 'unit': 'nil', 'dopplerdef': 'OPTICAL'}})
+			'unit': 'nil', 'dopplerdef': 'OPTICAL'}})
 
 
 def assertMapsto(stcsInput, expectedOutput):
@@ -514,4 +512,4 @@ class ColrefTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(ColrefTest)
+	testhelpers.main(VelocitiesGenerationTest)

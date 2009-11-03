@@ -70,16 +70,19 @@ class GenericContext(object):
 ############## Coordinate systems
 
 def _makeRefpos(refposName):
+	if refposName=="UNKNOWNRefPos":
+		refposName = None
 	return dm.RefPos(standardOrigin=refposName)
 
 def _buildRedshiftFrame(node, context):
 	yield "redshiftFrame", dm.RedshiftFrame(dopplerDef=node["dopplerdef"], 
-		type=node["redshiftType"], refPos=_makeRefpos(node["refpos"]))
+		type=node["redshiftType"], refPos=_makeRefpos(node.get("refpos")))
 
 # Simple translations of reference frame names from STC-S to STC-X
 
 _frameTrans = {
-	"GALACTIC": "GALACTIC_II"}
+	"GALACTIC": "GALACTIC_II",
+	"UNKNOWNFrame": None,}
 
 def _buildSpaceFrame(node, context):
 	nDim, flavor = stcs.stcsFlavors[node["flavor"]]
@@ -91,17 +94,19 @@ def _buildSpaceFrame(node, context):
 			equinox = node["equinox"]
 		else: # allow J2000 and expand it to J2000.0
 			equinox = node["equinox"]+".0"
-	yield "spaceFrame", dm.SpaceFrame(refPos=_makeRefpos(node["refpos"]),
+	yield "spaceFrame", dm.SpaceFrame(refPos=_makeRefpos(node.get("refpos")),
 		flavor=flavor, nDim=nDim, refFrame=frame, equinox=equinox)
 
 def _buildSpectralFrame(node, context):
-	yield "spectralFrame", dm.SpectralFrame(refPos=_makeRefpos(node["refpos"]))
+	yield "spectralFrame", dm.SpectralFrame(
+		refPos=_makeRefpos(node.get("refpos")))
 
 def _buildTimeFrame(node, context):
-	if node["timescale"]=="nil":
-		node["timescale"] = None
-	yield "timeFrame", dm.TimeFrame(refPos=_makeRefpos(node["refpos"]),
-		timeScale=node["timescale"])
+	ts = node.get("timescale")
+	if ts=="nil":
+		ts = None
+	yield "timeFrame", dm.TimeFrame(refPos=_makeRefpos(node.get("refpos")),
+		timeScale=ts)
 
 def getCoordSys(cst):
 	"""returns constructor arguments for a CoordSys from an STC-S CST.

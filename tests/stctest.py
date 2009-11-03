@@ -140,8 +140,7 @@ class OtherCoordIntervalTest(testhelpers.VerboseTest):
 	def testSpecInterval(self):
 		ast = stcsast.parseSTCS("SpectralInterval 23 45 unit Hz")
 		self.assertEqual(len(ast.freqAs), 1)
-		self.assertEqual(ast.freqAs[0].frame.refPos.standardOrigin,
-			"UNKNOWNRefPos")
+		self.assertEqual(ast.freqAs[0].frame.refPos.standardOrigin, None)
 		self.assertEqual(ast.freqAs[0].lowerLimit, 23.0)
 		self.assertEqual(ast.freqAs[0].upperLimit, 45.0)
 
@@ -173,8 +172,7 @@ class OtherCoordIntervalTest(testhelpers.VerboseTest):
 class SpaceCoordIntervalTest(testhelpers.VerboseTest):
 	def testSimple2D(self):
 		ast = stcsast.parseSTCS("PositionInterval ICRS 12.25 23.75 13.5 25.0")
-		self.assertEqual(ast.areas[0].frame.refPos.standardOrigin, 
-			"UNKNOWNRefPos")
+		self.assertEqual(ast.areas[0].frame.refPos.standardOrigin, None)
 		self.assertEqual(len(ast.areas), 1)
 		self.assertEqual(ast.areas[0].lowerLimit, (12.25, 23.75))
 		self.assertEqual(ast.areas[0].upperLimit, (13.5, 25.0))
@@ -493,6 +491,76 @@ class EclipticEquinoxTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.place.frame.equinox, "J2000.0")
 
 
+class NullTest(testhelpers.VerboseTest):
+	"""tests for handling of UNKNOWNx.
+	"""
+	def testSpaceFromSTCS(self):
+		ast = stc.parseSTCS("Position UNKNOWNFrame UNKNOWNRefPos")
+		self.assertEqual(ast.astroSystem.spaceFrame.refFrame, None)
+		self.assertEqual(ast.astroSystem.spaceFrame.refPos.standardOrigin, None)
+
+	def testSpaceFromUtypes(self):
+		ast = stc.parseFromUtypes({
+			'AstroCoordSystem.SpaceFrame.CoordRefFrame': 'UNKNOWNFrame',
+			'AstroCoordSystem.SpaceFrame.ReferencePosition': 'UNKNOWNRefPos',
+		}, {})
+		self.assertEqual(ast.astroSystem.spaceFrame.refFrame, None)
+		self.assertEqual(ast.astroSystem.spaceFrame.refPos.standardOrigin, None)
+
+	def testSpaceFromSTCX(self):
+		ast = stc.parseSTCX(
+			'<STCSpec xmlns="http://www.ivoa.net/xml/STC/stc-v1.30.xsd">'
+			"<AstroCoordSystem><SpaceFrame><UNKNOWNFrame/>"
+			"<UNKNOWNRefPos/></SpaceFrame></AstroCoordSystem></STCSpec>")[0][1]
+		self.assertEqual(ast.astroSystem.spaceFrame.refFrame, None)
+		self.assertEqual(ast.astroSystem.spaceFrame.refPos.standardOrigin, None)
+
+	def testTimeFromSTCS(self):
+		ast = stc.parseSTCS("Time nil UNKNOWNRefPos")
+# XXX STC pain: only STC-S seems to allow entering None time scales.
+		self.assertEqual(ast.astroSystem.timeFrame.timeScale, None)
+		self.assertEqual(ast.astroSystem.timeFrame.refPos.standardOrigin, None)
+
+	def testTimeFromUtypes(self):
+		ast = stc.parseFromUtypes({
+			'AstroCoordSystem.TimeFrame.ReferencePosition': 'UNKNOWNRefPos',
+		}, {})
+		self.assertEqual(ast.astroSystem.timeFrame.timeScale, "TT")
+		self.assertEqual(ast.astroSystem.timeFrame.refPos.standardOrigin, None)
+
+	def testTimeFromSTCX(self):
+		ast = stc.parseSTCX(
+			'<STCSpec xmlns="http://www.ivoa.net/xml/STC/stc-v1.30.xsd">'
+			"<AstroCoordSystem><TimeFrame>"
+			"<UNKNOWNRefPos/></TimeFrame></AstroCoordSystem></STCSpec>")[0][1]
+		self.assertEqual(ast.astroSystem.timeFrame.timeScale, "TT")
+		self.assertEqual(ast.astroSystem.timeFrame.refPos.standardOrigin, None)
+
+	def _makeEmptySTC(self):
+		sys = dm.CoordSys(timeFrame=dm.TimeFrame(), spaceFrame=dm.SpaceFrame())
+		return dm.STCSpec(astroSystem=sys,
+			place=dm.SpaceCoo(frame=sys.spaceFrame), 
+			time=dm.TimeCoo(frame=sys.timeFrame))
+
+	def testToSTCS(self):
+		self.assertEqual(stc.getSTCS(self._makeEmptySTC()), 
+			'Time\nPosition UNKNOWNFrame')
+	
+	def testToSTCX(self):
+		self.assertEqual(
+			_purgeIds(stc.getSTCX(self._makeEmptySTC(), stc.STC.STCSpec).render()), 
+			'<STCSpec><AstroCoordSystem ><TimeFrame ><TimeScale /><UNKNOWNRefPos '
+			'/></TimeFrame><SpaceFrame ><UNKNOWNFrame /><UNKNOWNRefPos /><SPHERIC'
+			'AL coord_naxes="2" /></SpaceFrame></AstroCoordSystem></STCSpec>')
+
+	def testToUtypes(self):
+		self.assertEqual(stc.getUtypes(self._makeEmptySTC())[0], {
+			'AstroCoordSystem.SpaceFrame.CoordRefFrame': 'UNKNOWNFrame', 
+			'AstroCoordSystem.TimeFrame.ReferencePosition': 'UNKNOWNRefPos', 
+			'AstroCoordSystem.SpaceFrame.CoordFlavor': 'SPHERICAL', 
+			'AstroCoordSystem.SpaceFrame.ReferencePosition': 'UNKNOWNRefPos'})
+
+
 def _purgeIds(stcx):
 	return re.sub('(frame_|coord_system_)?id="[^"]*"', '', stcx)
 
@@ -535,4 +603,4 @@ class CLITest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(CLITest)
+	testhelpers.main(NullTest)

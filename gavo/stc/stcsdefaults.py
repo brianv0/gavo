@@ -26,7 +26,7 @@ def getSpaceFlavor(node):
 
 
 def getSpaceUnit(node):
-	if node["frame"].startswith("GEO"):
+	if node["frame"] and node["frame"].startswith("GEO"):
 		return "deg deg m"
 	elif node["flavor"].startswith("CART"):
 		return "m"
@@ -108,19 +108,14 @@ def _makeUndefaulter(defaults):
 
 defaults = {
 	"space": [
-		("refpos", "UNKNOWNRefPos"),
 		("flavor", getSpaceFlavor),
 		("equinox", getEquinox),
 		("unit", getSpaceUnit)],
 	"time": [
-		("timescale", "nil"),
-		("refpos", "UNKNOWNRefPos"),
 		("unit", "s")],
 	"spectral": [
-		("refpos", "UNKNOWNRefPos"),
 		("unit", "Hz")],
 	"redshift": [
-		("refpos", "UNKNOWNRefPos"),
 		("redshiftType", "REDSHIFT"),
 		("unit", getRedshiftUnit),
 		("dopplerdef", "OPTICAL")],

@@ -27,16 +27,26 @@ from gavo.stc.common import *
 class RefPos(ASTNode):
 	"""is a reference position.
 
-	Right now, this is just a wrapper for a RefPos id, as defined by STC-S.
+	Right now, this is just a wrapper for a RefPos id, as defined by STC-S,
+	or None for Unknown.
 	"""
-	_a_standardOrigin = "UNKNOWNRefPos"
+# If we ever support non-standard origins, they should go into a different
+# class, I guess.  Or, we'd need a sentinel for standardOrigin (like,
+# NONSTANDARD).  None, anyway, is for Unknown, and we shouldn't change that.
+	_a_standardOrigin = None
 
+
+NullRefPos = RefPos()
 
 class _CoordFrame(ASTNode):
 	"""is an astronomical coordinate frame.
 	"""
 	_a_name = None
 	_a_refPos = None
+
+	def _setupNode(self):
+		if self.refPos is None:
+			self.refPos = NullRefPos
 
 	def isSpherical(self):
 		"""returns True if this is a frame deemed suitable for space
@@ -59,7 +69,7 @@ class TimeFrame(_CoordFrame):
 class SpaceFrame(_CoordFrame):
 	_a_flavor = "SPHERICAL"   # default shouldn't be kicking in
 	_a_nDim = None
-	_a_refFrame = "UNKNOWNFrame"
+	_a_refFrame = None
 	_a_equinox = None  # if non-null, it has to match [BJ][0-9]+[.][0-9]+
 
 	def _setupNode(self):
@@ -69,6 +79,9 @@ class SpaceFrame(_CoordFrame):
 		elif self.refFrame=="B1950":
 			self.refFrame = "FK4"
 			self.equinox = "B1950.0"
+		if self.nDim is None:
+			self.nDim = 2
+		_CoordFrame._setupNode(self)
 
 	def getEquinox(self):
 		"""returns a datetime.datetime instance for the frame's equinox.

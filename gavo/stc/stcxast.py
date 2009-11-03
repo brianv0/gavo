@@ -403,7 +403,10 @@ def _buildAstroCoordSystem(node, buildArgs, context):
 
 
 def _buildRefpos(node, buildArgs, context):
-	yield 'refPos', dm.RefPos(standardOrigin=_localname(node.tag))
+	refposName = _localname(node.tag)
+	if refposName=="UNKNOWNRefPos":
+		refposName = None
+	yield 'refPos', dm.RefPos(standardOrigin=refposName)
 
 def _buildFlavor(node, buildArgs, context):
 	yield 'flavor', _localname(node.tag)
@@ -412,19 +415,27 @@ def _buildFlavor(node, buildArgs, context):
 		yield 'nDim', int(naxes)
 
 def _buildRefFrame(node, buildArgs, context):
-	yield 'refFrame', _localname(node.tag)
+	frameName  = _localname(node.tag)
+	if frameName=="UNKNOWNFrame":
+		yield 'refFrame', None
+	else:
+		yield 'refFrame', frameName
 	for item in buildArgs.iteritems():
 		yield item
 
-def _makeFrameBuilder(attName, frameObj):
+def _makeFrameBuilder(attName, frameObj, **defaults):
+	"""returns a function yielding keywords for frames.  
+	
+	You can pass additional defaults.
+	"""
 	def buildFrame(node, buildArgs, context):
 		if "value_type" in node.attrib:  # for redshifts
 			buildArgs["type"] = node.get("value_type")
 		buildArgs["id"] = node.get("id")
 
-		# only kicking in for invalid input
-		if "refPos" not in buildArgs:
-			buildArgs["refPos"] = dm.RefPos()
+		for key, val in defaults.iteritems():
+			if key not in buildArgs:
+				buildArgs[key] = val
 		yield attName, frameObj(**buildArgs)
 	return buildFrame
 
@@ -838,7 +849,8 @@ def _getHandlers():
 		_n("Offset"): _makeKwFloatBuilder("offset"),
 		_n("Halfspace"): _buildHalfspace,
 	
-		_n('TimeFrame'): _makeFrameBuilder('timeFrame', dm.TimeFrame),
+		_n('TimeFrame'): _makeFrameBuilder('timeFrame', dm.TimeFrame,
+			timeScale="TT"),
 		_n('SpaceFrame'): _makeFrameBuilder('spaceFrame', dm.SpaceFrame),
 		_n('SpectralFrame'): _makeFrameBuilder('spectralFrame', dm.SpectralFrame),
 		_n('RedshiftFrame'):  _makeFrameBuilder('redshiftFrame', dm.RedshiftFrame),
@@ -923,6 +935,8 @@ def parseFromETree(eTree):
 	context = STCXContext(elementHandlers=getHandlers(),
 		activeTags=getActiveTags())
 	parsed = dict(buildTree(eTree, context))
+	if "stcSpec" not in parsed:
+		raise STCXBadError("No STC-X found in or below %r"%eTree)
 	forest = parsed["stcSpec"]
 	resolveProxies(forest)
 	return [(rootTag, ast.polish()) for rootTag, ast in forest]

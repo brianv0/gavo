@@ -37,9 +37,6 @@ def _combine(*dicts):
 ############## Reference Frames to CST
 
 def refPosToCST(node):
-	if node.standardOrigin is None:
-		raise STCNotImplementedError("Cannot handle reference positions other"
-			" than standard origins yet.")
 	return {"refpos": node.standardOrigin}
 
 stcsFlavors = {
@@ -61,6 +58,7 @@ def _computeFlavor(node):
 # Simple translations of STC-X reference frame literals to STC-S
 _frameTrans = {
 	"GALACTIC_II": "GALACTIC",
+	None: "UNKNOWNFrame",
 }
 
 def _spaceFrameToCST(node):

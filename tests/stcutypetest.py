@@ -249,4 +249,4 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(UtypeASTTest)
+	testhelpers.main(UtypeRoundtripTest)

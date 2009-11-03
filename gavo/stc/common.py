@@ -48,6 +48,10 @@ class STCUnitError(STCError):
 	"""is raised when some impossible operation on units is requested.
 	"""
 
+class STCXBadError(STCError):
+	"""is raised when something is wrong with STC-X.
+	"""
+
 class STCNotImplementedError(STCError):
 	"""is raised when the current implementation limits are reached.
 	"""

@@ -50,6 +50,8 @@ def _getFromSTC(elName, itemDesc):
 	itemDesc is used in the error message.  This is a helper for
 	concise notation of reference frames.
 	"""
+	if elName is None:
+		elName = "UNKNOWNFrame"
 	try:
 		return getattr(STC, elName)
 	except AttributeError:
@@ -72,11 +74,8 @@ class Context(object):
 ############ Coordinate Systems
 
 def serialize_RefPos(node, context):
-	if node.standardOrigin is None:
-		raise STCNotImplementedError("Cannot handle reference positions other"
-			" than standard origins yet.")
 	try:
-		return getattr(STC, node.standardOrigin)
+		return getattr(STC, node.standardOrigin or "UNKNOWNRefPos")
 	except AttributeError:
 		raise STCValueError("No such standard origin: %s"%node.standardOrigin)
 
