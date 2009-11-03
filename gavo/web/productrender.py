@@ -183,8 +183,8 @@ class ProductRenderer(grend.ServiceBasedRenderer):
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		try:
-			data = {'key': request.args["key"][0]}
-		except KeyError, IndexError:
+			data = {'key': products.CutoutProductKey.fromRequest(request)}
+		except base.NotFoundError:
 			raise svcs.UnknownURI("No product specified")
 		return self.runServiceWithContext(data, ctx
 			).addCallback(self._deliver, ctx)

@@ -8,6 +8,7 @@ import sys
 import traceback
 import weakref
 
+from gavo import stc
 from gavo import utils
 from gavo.adql.common import *
 
@@ -321,7 +322,7 @@ class FieldInfoedNode(ADQLNode):
 				" no behaviour defined in %s, children %s"%(
 					msg,
 					self.__class__.__name__,
-					self.children))
+					list(self.iterChildren())))
 
 	def change(self, **kwargs):
 		other = ADQLNode.change(self, **kwargs)
@@ -923,7 +924,6 @@ class NumericValueFunction(FunctionNode):
 	}
 
 	def _handle_keepMeta(self, infoChildren):
-		assert len(infoChildren)==1
 		fi = infoChildren[0].fieldInfo
 		return fi.unit, fi.ucd
 
@@ -969,14 +969,19 @@ class CoosysMixin(object):
 	"""
 	_a_cooSys = None
 
-	def addFieldInfo(self, ignored):
-		infoChildren = self._getInfoChildren()
-		self.fieldInfo = FieldInfo("", "", collectUserData(infoChildren)[0])
-		self.fieldInfo.cooSys = self.cooSys
+	systemsDict = dict(
+		(sysName, stc.parseSTCS("Position %s"%sysName).astroSystem)
+		for sysName in ("FK4", "FK5", "ICRS", "ECLIPTIC", "GALACTIC_I",
+			"GALACTIC_II", "GALACTIC", "SUPER_GALACTIC"))
+	systemsDict[''] = None
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		return {"cooSys":  _parseResult["coordSys"][0].value}
+		system = _parseResult["coordSys"][0].value
+		try:
+			return {"cooSys":  cls.systemsDict[system]}
+		except KeyError:
+			raise BadKeywords("Illegal coordinate system %s"%system)
 
 
 class GeometryNode(CoosysMixin, FieldInfoedNode):
@@ -993,6 +998,15 @@ class GeometryNode(CoosysMixin, FieldInfoedNode):
 	def flatten(self):
 		return "%s(%s)"%(self.type.upper(),
 			", ".join(flatten(getattr(self, name)) for name in self.argSeq))
+
+	def addFieldInfo(self, ignored):
+# XXX TODO: Figure out how to do this.
+		fis = [getattr(self, arg).fieldInfo for arg in self.argSeq]
+#		self.fieldInfo = getattr(self, self.argSeq[0]).fieldInfo
+		childUserData = []
+		for fi in fis:
+			childUserData.extend(fi.userData)
+		self.fieldInfo = FieldInfo("", "", tuple(childUserData))
 
 
 class Point(GeometryNode):

@@ -380,6 +380,10 @@ class TreeParseTest(testhelpers.VerboseTest):
 		self.assertEqual(t.selectList.selectFields[1].sourceTable.qName,
 			"s1.t2")
 
+	def testBadSystem(self):
+		self.assertRaises(adql.BadKeywords, 
+			self.grammar.parseString, "select point('QUARK', 1, 2) from spatial")
+
 
 spatialFields = [
 	rscdef.Column(None, name="distance", ucd="phys.distance", unit="m"),
@@ -559,7 +563,7 @@ class ColResTest(ColumnTest):
 			("m", "phys.dim", False),
 			("km", "phys.dim", True)])
 
-	def testGeometricFunctions(self):
+	def testPoint(self):
 		cols = self._getColSeq("select point('ICRS', ra1, ra2) from spatial")
 		self._assertColumns(cols, [
 			('', '', False)])
@@ -593,12 +597,9 @@ class STCTest(ColumnTest):
 		cs = self._getColSeq("select ra1+ra2 from spatial")
 		self.failUnless(hasattr(cs[0][1].stc, "broken"))
 
-# XXXXXXX Hier weiter
 #	def testPoint(self):
 #		cs = self._getColSeq("select point('ICRS', ra1, 2, 3) from spatial")
 #		print cs[0][1].stc
-
-
 
 
 class FunctionNodeTest(unittest.TestCase):
@@ -611,7 +612,7 @@ class FunctionNodeTest(unittest.TestCase):
 		t = self.grammar.parseString("select POINT('ICRS', width,height)"
 			" from spatial")[0]
 		p = t.selectList.selectFields[0].expr
-		self.assertEqual(p.cooSys, "ICRS")
+		self.assertEqual(p.cooSys.spaceFrame.refFrame, "ICRS")
 		self.assertEqual(nodes.flatten(p.x), "width")
 		self.assertEqual(nodes.flatten(p.y), "height")
 
@@ -620,7 +621,7 @@ class FunctionNodeTest(unittest.TestCase):
 			"5*width+height*LOG(width),height)"
 			" from spatial")[0]
 		p = t.selectList.selectFields[0].expr
-		self.assertEqual(p.cooSys, "ICRS")
+		self.assertEqual(p.cooSys.spaceFrame.refFrame, "ICRS")
 		self.assertEqual(nodes.flatten(p.x), "5 * width + height * LOG(width)")
 		self.assertEqual(nodes.flatten(p.y), "height")
 
@@ -653,6 +654,7 @@ class FlattenTest(unittest.TestCase):
 		self._assertFlattensTo(
 			"select round(x,2)as a, truncate(x,-2) as b from foo",
 			"SELECT ROUND(x, 2) AS a, TRUNCATE(x, - 2) AS b FROM foo")
+
 
 class Q3CMorphTest(unittest.TestCase):
 	"""tests the Q3C morphing of queries.
@@ -877,4 +879,4 @@ class QueryTest(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(STCTest)
+	testhelpers.main(ColResTest)

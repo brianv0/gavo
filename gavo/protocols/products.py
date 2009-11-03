@@ -357,6 +357,8 @@ class CutoutProductKey(object):
 	This consists of a key proper and of the four numbers specifying its
 	extent.  Stringifying it yields something quoted ready-made for URLs.
 	"""
+	_buildKeys = ("ra", "dec", "sra", "sdec")
+
 	def __init__(self, key, ra, dec, sra, sdec):
 		self.key, self.ra, self.dec, self.sra, self.sdec = \
 			str(key), ra, dec, sra, sdec
@@ -368,6 +370,28 @@ class CutoutProductKey(object):
 
 	def __repr__(self):
 		return str(self)
+
+	@classmethod
+	def fromRequest(cls, request):
+		"""returns a product key from a nevow request.
+
+		Basically, it raises an error if there's no key at all, it will return
+		the first element of the key sequence if present, and it  will make
+		a cutout key if all items necessary are in request.args.
+		"""
+		a = request.args
+		if "key" not in a or not a["key"]:
+			raise base.NotFoundError("key", what="query parameter", 
+				within="request")
+		buildArgs = {
+			"key": a["key"][0]}
+		try:
+			for reqKey in cls._buildKeys:
+				buildArgs[reqKey] = float(a[reqKey][0])
+		except (KeyError, ValueError, IndexError):  # no (proper) cutout spec
+			return buildArgs["key"]
+		# everything needed for cutouts is on board, make a cutout key
+		return cls(**buildArgs)
 
 	def asDict(self):
 		return self.__dict__

@@ -148,3 +148,6 @@
 
 37/HIGH/2009-10-19
 	ROUND and TRUNCATE should accept a second argument in ADQL.
+
+38/MEDIUM/2009-11-03
+	You can select nonsensical (on-selected) fields in the sort widget.
