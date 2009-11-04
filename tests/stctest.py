@@ -7,8 +7,10 @@ import re
 import unittest
 
 from gavo import stc
+from gavo import utils
 from gavo.stc import cli
 from gavo.stc import dm
+from gavo.stc import eq
 from gavo.stc import stcs
 from gavo.stc import stcsast
 from gavo.stc import stcx
@@ -561,27 +563,6 @@ class NullTest(testhelpers.VerboseTest):
 			'AstroCoordSystem.SpaceFrame.ReferencePosition': 'UNKNOWNRefPos'})
 
 
-class EquivalenceTest(testhelpers.VerboseTest):
-	"""tests for equivalence policies.
-	"""
-	def testTrivial(self):
-		ep = stc.EquivalencePolicy([])
-		self.failUnless(ep.isEquivalent(None, "foo"))
-	
-	def testSimple(self):
-		ep = stc.EquivalencePolicy(["timeFrame.timeScale", "spaceFrame.refFrame"])
-		self._assertEquivalent(ep, "Position ICRS", "Position ICRS")
-		self._assertEquivalent(ep, "Position ICRS BARYCENTER", 
-			"Position ICRS TOPOCENTER")
-		self._assertEquivalent(ep, "Position ICRS", "Time TT Position ICRS")
-		self._assertEquivalent(ep, "Position ICRS", "Position UNKNOWNFrame")
-		self._assertEquivalent(ep, "Position ICRS", "Time TT")
-		self._assertEquivalent(ep, "Position FK5 J1980.0", "Position FK5 J1990.0")
-		self._assertNotEquivalent(ep, "Position ICRS", "Position FK5")
-		self._assertNotEquivalent(ep, "Time TT Position ICRS", 
-			"Time UTC Position ICRS")
-
-
 def _purgeIds(stcx):
 	return re.sub('(frame_|coord_system_)?id="[^"]*"', '', stcx)
 
@@ -624,4 +605,4 @@ class CLITest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(NullTest)
+	testhelpers.main(None)

@@ -4,6 +4,7 @@ Helper classes for the gavo unittest framework.
 
 import cPickle as pickle
 import gc
+import inspect
 import os
 import popen2
 import subprocess
@@ -308,8 +309,11 @@ def trialMain(testClass):
 	
 
 def main(testClass, methodPrefix=None):
+	
+	if len(sys.argv)>2:
+		testClass = inspect.stack()[1][0].f_globals[sys.argv[-2]]
 	if len(sys.argv)>1:
-		suite = unittest.makeSuite(testClass, methodPrefix or sys.argv[1])
+		suite = unittest.makeSuite(testClass, methodPrefix or sys.argv[-1])
 		runner = unittest.TextTestRunner()
 		runner.run(suite)
 	else:

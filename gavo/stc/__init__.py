@@ -37,6 +37,8 @@ from gavo.stc.times import (parseISODT,
 if sys.version_info[0]>=2 and sys.version_info[1]>4:  
 	from gavo.stc.conform import conform as conformTo
 
+	from gavo.stc.eq import EquivalencePolicy, defaultPolicy
+
 	from gavo.stc.stcsast import parseSTCS, parseQSTCS
 
 	from gavo.stc.stcsgen import getSTCS
