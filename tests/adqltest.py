@@ -422,10 +422,13 @@ class ColumnTest(testhelpers.VerboseTest):
 		self.fieldInfoGetter = _sampleFieldInfoGetter
 		self.grammar = adql.getGrammar()
 
-	def _getColSeq(self, query):
+	def _getColSeqAndCtx(self, query):
 		t = self.grammar.parseString(query)[0]
-		adql.annotate(t, self.fieldInfoGetter)
-		return t.fieldInfos.seq
+		ctx = adql.annotate(t, self.fieldInfoGetter)
+		return t.fieldInfos.seq, ctx
+
+	def _getColSeq(self, query):
+		return self._getColSeqAndCtx(query)[0]
 
 	def _assertColumns(self, resultColumns, assertProperties):
 		self.assertEqual(len(resultColumns), len(assertProperties))
@@ -566,7 +569,7 @@ class ColResTest(ColumnTest):
 	def testPoint(self):
 		cols = self._getColSeq("select point('ICRS', ra1, ra2) from spatial")
 		self._assertColumns(cols, [
-			('', '', False)])
+			('deg,rad', '', False)])
 		self.assert_(cols[0][1].userData[0] is spatialFields[3])
 
 	def testParenExprs(self):
@@ -597,9 +600,34 @@ class STCTest(ColumnTest):
 		cs = self._getColSeq("select ra1+ra2 from spatial")
 		self.failUnless(hasattr(cs[0][1].stc, "broken"))
 
-#	def testPoint(self):
-#		cs = self._getColSeq("select point('ICRS', ra1, 2, 3) from spatial")
-#		print cs[0][1].stc
+	def testOKPoint(self):
+		cs, ctx = self._getColSeqAndCtx(
+			"select point('ICRS', ra1, 2) from spatial")
+		self.assertEqual(cs[0][1].stc.spaceFrame.refFrame, 'ICRS')
+		self.assertEqual(ctx.errors, [])
+	
+	def testPointBadCoo(self):
+		cs, ctx = self._getColSeqAndCtx(
+			"select point('ICRS', ra2, 2) from spatial")
+		self.assertEqual(cs[0][1].stc.spaceFrame.refFrame, 'ICRS')
+		self.assertEqual(ctx.errors, ['When constructing point:'
+			' Argument 1 has incompatible STC'])
+
+	def testContainsIncompat(self):
+		cs, ctx = self._getColSeqAndCtx(
+			"select contains(point('ICRS',1,2), circle('FK4', 1,2,3)) from misc")
+		self.assertEqual(cs[0][1].stc, None)
+		self.assertEqual(ctx.warnings, 
+			["In predicateGeometryFunction: Arguments's systems are not compatible"])
+
+	def testPointFunctionsSelect(self):
+		cs, ctx = self._getColSeqAndCtx(
+			"select coordsys(p), coord1(p), coord2(p) from"
+			"	(select point('J2000', ra1, width) as p from spatial) as q")
+		self._assertColumns(cs, [
+			('', 'meta.ref;pos.frame', False),
+			('deg', None, False),
+			('m', None, False)])
 
 
 class FunctionNodeTest(unittest.TestCase):
@@ -757,9 +785,9 @@ class PQMorphTest(unittest.TestCase):
 			"(select point('ICRS', ra1, ra2) as p from spatial) as q")
 		ctx = adql.annotate(t, _sampleFieldInfoGetter)
 		self.assertEqual(ctx.errors[0], 
-			'When constructing point: Argument 1 has incompatible STC')
+			'When constructing point: Argument 2 has incompatible STC')
 		status, t = adql.morphPG(t)
-		self.assertEqual(nodes.flatten(t), "SELECT 'FK4' FROM (SELECT POINT"
+		self.assertEqual(nodes.flatten(t), "SELECT 'ICRS' FROM (SELECT POINT"
 			"(ra1, ra2) AS p FROM spatial) AS q")
 
 	def testBoringGeometryFunctions(self):

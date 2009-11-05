@@ -980,7 +980,7 @@ class CoosysMixin(object):
 	systemsDict = dict(
 		(sysName, stc.parseSTCS("Position %s"%sysName).astroSystem)
 		for sysName in ("FK4", "FK5", "ICRS", "ECLIPTIC", "GALACTIC_I",
-			"GALACTIC_II", "GALACTIC", "SUPER_GALACTIC"))
+			"GALACTIC_II", "GALACTIC", "SUPER_GALACTIC", "J2000", "B1950"))
 	systemsDict[''] = None
 
 	@classmethod
@@ -1008,17 +1008,18 @@ class GeometryNode(CoosysMixin, FieldInfoedNode):
 			", ".join(flatten(getattr(self, name)) for name in self.argSeq))
 
 	def addFieldInfo(self, context):
-		fis = [getattr(self, arg).fieldInfo for arg in self.argSeq]
-		# make sure all STCs are compatible, or issue a warning
-		fi0 = fis.pop()
+		fis = [fi 
+			for fi in (getattr(self, arg).fieldInfo for arg in self.argSeq)
+			if fi.stc]
+		childUserData, childUnits = [], []
 		for index, fi in enumerate(fis):
-			if not context.policy.match(fi.stc, fi0.stc):
+			childUserData.extend(fi.userData)
+			childUnits.append(fi.unit)
+			if not context.policy.match(fi.stc, self.cooSys):
 				context.errors.append("When constructing %s: Argument %d has"
 					" incompatible STC"%(self.type, index+1))
-		childUserData = []
-		for fi in fis:
-			childUserData.extend(fi.userData)
-		self.fieldInfo = FieldInfo("", "", tuple(childUserData), stc=fi0.stc)
+		self.fieldInfo = FieldInfo(unit=",".join(childUnits), ucd="", 
+			userData=tuple(childUserData), stc=self.cooSys)
 
 
 class Point(GeometryNode):
@@ -1107,11 +1108,48 @@ class Centroid(FunctionNode):
 class Distance(FunctionNode):
 	type = "distanceFunction"
 
-class predicateGeometryFunction(FunctionNode):
+class PredicateGeometryFunction(FunctionNode):
 	type = "predicateGeometryFunction"
+
+	def addFieldInfo(self, context):
+		# warn if systems don't match
+		if not context.policy.match(
+				self.args[0].fieldInfo.stc, self.args[1].fieldInfo.stc):
+			context.warnings.append("In %s: Arguments's systems are not compatible"%
+				self.type)
+		# swallow all upstream info, it really doesn't help here
+		self.fieldInfo = dimlessFieldInfo
+
 
 class PointFunction(FunctionNode):
 	type = "pointFunction"
+
+	def _makeCoordsysFieldInfo(self):
+		return FieldInfo(unit="", ucd="meta.ref;pos.frame")
+	
+	def _makeCoordFieldInfo(self):
+		# unfortunately, our current system gives us no way to access the
+		# actual point (that has proper field infos).  However,
+		# if there's two userData items in the child's field info, we
+		# save at least that.
+		ind = int(self.funName[-1])-1
+		cfi = self.args[0].fieldInfo
+		try:
+			unit = cfi.unit.split(",")[ind]
+		except (TypeError, ValueError, IndexError):
+			unit = None
+		userData = ()
+		if len(cfi.userData)==2:
+			userData = (cfi.userData[ind],)
+		return FieldInfo(ucd=None, unit=unit, userData=userData)
+
+	def addFieldInfo(self, context):
+		if self.funName=="COORDSYS":
+			makeFieldInfo = self._makeCoordsysFieldInfo
+		else: # it's coordN
+			makeFieldInfo = self._makeCoordFieldInfo
+		self.fieldInfo = makeFieldInfo()
+
 
 class Area(FunctionNode):
 	type = "area"

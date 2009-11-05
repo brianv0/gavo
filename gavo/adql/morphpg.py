@@ -141,7 +141,7 @@ def _pointFunctionToIndexExpression(node, state):
 		return "(%s)[1]"%flatten(node.args[0])
 	elif node.funName=="COORDSYS":
 		try:
-			cSys = repr(flatten(node.fieldInfo.stc.spaceFrame.refFrame))
+			cSys = repr(node.args[0].fieldInfo.stc.spaceFrame.refFrame)
 		except AttributeError: # bad field info, give up
 			cSys = "'NULL'"
 		return cSys
