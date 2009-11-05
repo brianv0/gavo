@@ -44,6 +44,7 @@ class TestTypes(unittest.TestCase):
 
 class TestWithTableCreation(unittest.TestCase):
 	tableName = None
+	rdId = "test.rd"
 	rows = []
 
 	def _assertPrivileges(self, foundPrivs, expPrivs):
@@ -61,7 +62,7 @@ class TestWithTableCreation(unittest.TestCase):
 			return
 		base.setDBProfile("test")
 		self.querier = base.SimpleQuerier(useProfile="test")
-		self.tableDef = testhelpers.getTestTable(self.tableName)
+		self.tableDef = testhelpers.getTestTable(self.tableName, self.rdId)
 		self.table = rsc.TableForDef(self.tableDef, rows=self.rows).commit()
 
 	def tearDown(self):
@@ -89,6 +90,7 @@ class TestADQLPrivs(TestPrivs):
 
 class TestRoleSetting(TestPrivs):
 	tableName = "privtable"
+	rdId = "privtest.rd"
 
 	def setUp(self):
 		base.setDBProfile("test")

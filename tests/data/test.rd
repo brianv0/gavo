@@ -37,12 +37,6 @@
 		</table>
 	</data>
 
-	<table id="privtable" onDisk="True">
-		<readRoles>defaults,privtestuser</readRoles>
-		<allRoles>testadmin</allRoles>
-		<column name="foo"/>
-	</table>
-
 	<table id="adqltable" onDisk="True" adql="True">
 		<column name="foo"
 			type="double precision" required="True"/>

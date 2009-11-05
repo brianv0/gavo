@@ -261,15 +261,15 @@ class SamplesBasedAutoTest(type):
 		return type.__new__(cls, name, bases, dict)
 
 
-def getTestRD():
+def getTestRD(id="test.rd"):
 	from gavo import rscdesc
 	from gavo.protocols import basic
 	from gavo import base
-	return base.caches.getRD(os.path.abspath("data/test.rd"))
+	return base.caches.getRD(os.path.abspath("data/%s"%id))
 
 
-def getTestTable(tableName):
-	return getTestRD().getTableDefById(tableName)
+def getTestTable(tableName, id="test.rd"):
+	return getTestRD(id).getTableDefById(tableName)
 
 
 def getTestData(dataId):
