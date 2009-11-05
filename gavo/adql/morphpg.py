@@ -140,19 +140,11 @@ def _pointFunctionToIndexExpression(node, state):
 		assert len(node.args)==1
 		return "(%s)[1]"%flatten(node.args[0])
 	elif node.funName=="COORDSYS":
-		# argument is either a geometry expression (take coosys from there)
-		# or a column reference (which we can resolve if fieldInfos have
-		# been added).
-		assert len(node.args)==1
-		arg = node.args[0]
 		try:
-			if nodes.getType(arg)=="columnReference":
-				cSys = flatten(arg.fieldInfo.cooSys)
-			else:
-				cSys = flatten(arg.cooSys)
-		except AttributeError: # probably no attached field infos, little I can do.
-			cSys = 'unknown'
-		return "'%s'"%(re.sub("[^\w]+", "", cSys))  # sanitize cSys
+			cSys = repr(flatten(node.fieldInfo.stc.spaceFrame.refFrame))
+		except AttributeError: # bad field info, give up
+			cSys = "'NULL'"
+		return cSys
 	else:
 		return node
 

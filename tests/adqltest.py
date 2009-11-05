@@ -750,14 +750,16 @@ class PQMorphTest(unittest.TestCase):
 		# communication is through field infos, which we don't have here.
 		self._testMorph("select coordsys(q.p) from (select point('ICRS', x, y)"
 			" as p from foo) as q", 
-			"SELECT 'unknown' FROM (SELECT POINT(x, y) AS p FROM foo) AS q")
+			"SELECT 'NULL' FROM (SELECT POINT(x, y) AS p FROM foo) AS q")
 
 	def testPointFunctionWithFieldInfo(self):
 		t = adql.parseToTree("select coordsys(q.p) from "
 			"(select point('ICRS', ra1, ra2) as p from spatial) as q")
-		adql.annotate(t, _sampleFieldInfoGetter)
+		ctx = adql.annotate(t, _sampleFieldInfoGetter)
+		self.assertEqual(ctx.errors[0], 
+			'When constructing point: Argument 1 has incompatible STC')
 		status, t = adql.morphPG(t)
-		self.assertEqual(nodes.flatten(t), "SELECT 'ICRS' FROM (SELECT POINT"
+		self.assertEqual(nodes.flatten(t), "SELECT 'FK4' FROM (SELECT POINT"
 			"(ra1, ra2) AS p FROM spatial) AS q")
 
 	def testBoringGeometryFunctions(self):

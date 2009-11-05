@@ -23,6 +23,7 @@ class provides addFieldInfo methods that know how to compute the
 field infos.
 """
 
+from gavo import stc
 from gavo.adql.common import *
 
 
@@ -73,17 +74,20 @@ class FieldInfos(object):
 		return fi
 
 
+# XXX TODO: The following two classes are ugly since the do way too
+# much magic during construction.  I guess we should move to factories here.
+
 class FieldInfosForTable(FieldInfos):
 	"""Field annotations for tables.
 
-	Instanciation needs a fieldInfoGetter that resolves table name and
-	column name to field infos.
+	Instanciation needs an AnnotationContext object.
 	"""
-	def __init__(self, tableNode, fieldInfoGetter):
+	def __init__(self, tableNode, context):
 		FieldInfos.__init__(self, tableNode)
 
 		# add infos for the table itself.
-		for colName, fieldInfo in fieldInfoGetter(tableNode.originalTable):
+		for colName, fieldInfo in context.retrieveFieldInfos(
+				tableNode.originalTable):
 			self.addColumn(colName, fieldInfo)
 
 		# add infos for joined tables as necessary; since we to a postorder
@@ -99,25 +103,24 @@ class FieldInfosForQuery(FieldInfos):
 
 	We want this for FieldInfos on queryExpressions.  When their select
 	expressions figure out their fieldInfos, they call getFieldInfoFromSources.
-
-	You must call collectSubTables(node) after construction.  We should
-	change this somehow, but let's wait for a good idea.
 	"""
-	def __init__(self, queryNode):
+	def __init__(self, queryNode, context):
 		FieldInfos.__init__(self, queryNode)
 		self._collectSubTables(queryNode)
-		self._annotateSelectChildren(queryNode)
+		self._annotateSelectChildren(queryNode, context)
 		self._collectColumns(queryNode)
 
-	def _annotateSelectChildren(self, queryNode):
-		getFieldInfos = queryNode.fieldInfos.getFieldInfo
-		def traverse(node):
+	def _annotateSelectChildren(self, queryNode, context):
+		def traverse(node, context):
 			for c in node.iterNodeChildren():
-				traverse(c)
+				traverse(c, context)
 			if hasattr(node, "addFieldInfo"):
-				node.addFieldInfo(getFieldInfos)
+				node.addFieldInfo(context)
+
+		context.pushCR(queryNode.fieldInfos.getFieldInfo)
 		for selField in queryNode.getSelectFields():
-			traverse(selField)
+			traverse(selField, context)
+		context.popCR()
 
 	def _collectColumns(self, queryNode):
 		for col in queryNode.getSelectFields():
@@ -164,18 +167,69 @@ class FieldInfosForQuery(FieldInfos):
 			return self.getFieldInfoFromSources(colName, refTable)
 
 
-def annotate(node, fieldInfoGetter):
+class AnnotationContext(object):
+	"""An context object for the annotation process.
+
+	It is constructed with a field info retriever function (see above)
+	and an equivalence policy for STC objects.
+
+	It has errors and warnings attributes consisting of user-exposable
+	error strings accrued during the annotation process.
+
+	The annotation context also manages the namespaces for column reference
+	resolution.  It maintains a stack of getters; when a new namespace
+	for column resolution opens, call pushCR ("column resolver") with
+	a function resolve(colName, tableName=None) -> fieldInfo.
+
+	When the namespace closes, call popCR.
+	"""
+	def __init__(self, retrieveFieldInfos, equivalencePolicy=stc.defaultPolicy):
+		self.retrieveFieldInfos = retrieveFieldInfos
+		self.policy = equivalencePolicy
+		self.colResolvers = []
+		self.errors, self.warnings = [], []
+
+	def pushCR(self, getter):
+		self.colResolvers.append(getter)
+	
+	def popCR(self):
+		return self.colResolvers.pop()
+
+	def getFieldInfo(self, colName, tableName):
+		"""returns the value of the current field info getter for tableName.
+
+		This should be a sequence of (colName, common.FieldInfo) pairs.
+		"""
+		return self.colResolvers[-1](colName, tableName)
+
+
+def _annotateTraverse(node, context):
+	"""does the real tree traversal for annotate.
+	"""
+	for c in node.iterNodeChildren():
+		_annotateTraverse(c, context)
+	if hasattr(node, "feedInfosFromDB"):
+		FieldInfosForTable(node, context)
+	if hasattr(node, "getSelectFields"):
+		FieldInfosForQuery(node, context)
+
+
+def annotate(node, context):
 	"""adds annotations to all objects coming from the database.
 
 	This is done by a postorder traversal of the tree, identifying all
 	annotable objects.
+
+	context should be an AnnotationContext instance.  You can also just
+	pass in a field info getter.  In that case, annotation runs with the
+	default stc equivalence policy.
+
+	The function returns the context used in any case.
 	"""
-	for c in node.iterNodeChildren():
-		annotate(c, fieldInfoGetter)
-	if hasattr(node, "feedInfosFromDB"):
-		FieldInfosForTable(node, fieldInfoGetter)
-	if hasattr(node, "getSelectFields"):
-		FieldInfosForQuery(node)
+	if not isinstance(context, AnnotationContext):
+		context = AnnotationContext(context)
+	_annotateTraverse(node, context)
+	return context
 
 
 def dumpFieldInfoedTree(tree):

@@ -309,7 +309,7 @@ class FieldInfoedNode(ADQLNode):
 	def _getInfoChildren(self):
 		return [c for c in self.iterNodeChildren() if hasattr(c, "fieldInfo")]
 
-	def addFieldInfo(self, ignored):
+	def addFieldInfo(self, context):
 		infoChildren = self._getInfoChildren()
 		if len(infoChildren)==1:
 			self.fieldInfo = infoChildren[0].fieldInfo
@@ -425,6 +425,9 @@ class PlainTableRef(ColumnBearingNode):
 	The tableName is the name this table can be referenced as from within
 	SQL, originalName is the name within the database; they are equal unless
 	a correlationSpecification has been given.
+
+	The feedInfosFromDB attribute tells annotate to retrieve column
+	metadata from the user field info getter.
 	"""
 	type = "possiblyAliasedTable"
 	feedInfosFromDB = True
@@ -482,6 +485,11 @@ class DerivedTable(ADQLNode):
 
 
 class JoinedTable(ColumnBearingNode, TransparentMixin):
+	"""A joined table.
+
+	The feedInfosFromDB attribute tells annotate to retrieve column
+	metadata from the user field info getter.
+	"""
 	type = "joinedTable"
 	feedInfosFromDB = True
 
@@ -593,8 +601,8 @@ class ColumnReference(FieldInfoedNode):
 			"name": names[-1],
 			"refTable": refTable}
 
-	def addFieldInfo(self, getFieldInfo):
-		self.fieldInfo = getFieldInfo(self.name, self.refTable)
+	def addFieldInfo(self, context):
+		self.fieldInfo = context.getFieldInfo(self.name, self.refTable)
 
 	def flatten(self):
 		return self.colName
@@ -762,7 +770,7 @@ class Factor(FieldInfoedNode, TransparentMixin):
 	type = "factor"
 	collapsible = True
 
-	def addFieldInfo(self, ignored):
+	def addFieldInfo(self, context):
 		infoChildren = self._getInfoChildren()
 		if infoChildren:
 			assert len(infoChildren)==1
@@ -772,7 +780,7 @@ class Factor(FieldInfoedNode, TransparentMixin):
 
 
 class CombiningFINode(FieldInfoedNode):
-	def addFieldInfo(self, ignored):
+	def addFieldInfo(self, context):
 		infoChildren = self._getInfoChildren()
 		if not infoChildren:
 			self.fieldInfo = dimlessFieldInfo
@@ -853,7 +861,7 @@ class CountAll(FieldInfoedNode, TransparentMixin):
 
 	# We could inspect parents to figure out *what* we're counting to come up
 	# with a better UCD.
-	def addFieldInfo(self, ignored):
+	def addFieldInfo(self, context):
 		pass
 
 
@@ -872,7 +880,7 @@ class SetFunction(TransparentMixin, FieldInfoedNode):
 		'SUM': (None, None),
 		'COUNT': ('meta.number', ''),}
 
-	def addFieldInfo(self, ignored):
+	def addFieldInfo(self, context):
 		ucdPref, newUnit = self.funcDefs[self.children[0].upper()]
 		infoChildren = self._getInfoChildren()
 		if infoChildren:
@@ -927,7 +935,7 @@ class NumericValueFunction(FunctionNode):
 		fi = infoChildren[0].fieldInfo
 		return fi.unit, fi.ucd
 
-	def addFieldInfo(self, ignored):
+	def addFieldInfo(self, context):
 		infoChildren = self._getInfoChildren()
 		unit, ucd = '', ''
 		overrideUnit, overrideUCD, handlerName = self.funcDefs.get(
@@ -958,7 +966,7 @@ class CharacterStringLiteral(FieldInfoedNode):
 	def flatten(self):
 		return "'%s'"%(self.value.replace("'", "\\'"))
 
-	def addFieldInfo(self, ignored):
+	def addFieldInfo(self, context):
 		self.fieldInfo = dimlessFieldInfo
 
 
@@ -999,14 +1007,18 @@ class GeometryNode(CoosysMixin, FieldInfoedNode):
 		return "%s(%s)"%(self.type.upper(),
 			", ".join(flatten(getattr(self, name)) for name in self.argSeq))
 
-	def addFieldInfo(self, ignored):
-# XXX TODO: Figure out how to do this.
+	def addFieldInfo(self, context):
 		fis = [getattr(self, arg).fieldInfo for arg in self.argSeq]
-#		self.fieldInfo = getattr(self, self.argSeq[0]).fieldInfo
+		# make sure all STCs are compatible, or issue a warning
+		fi0 = fis.pop()
+		for index, fi in enumerate(fis):
+			if not context.policy.match(fi.stc, fi0.stc):
+				context.errors.append("When constructing %s: Argument %d has"
+					" incompatible STC"%(self.type, index+1))
 		childUserData = []
 		for fi in fis:
 			childUserData.extend(fi.userData)
-		self.fieldInfo = FieldInfo("", "", tuple(childUserData))
+		self.fieldInfo = FieldInfo("", "", tuple(childUserData), stc=fi0.stc)
 
 
 class Point(GeometryNode):
@@ -1019,6 +1031,7 @@ class Point(GeometryNode):
 	def _getInitKWs(cls, _parseResult):
 		x, y = parseArgs(_parseResult["args"])
 		return locals()
+
 
 class Circle(GeometryNode):
 	type = "circle"

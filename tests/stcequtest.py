@@ -20,11 +20,11 @@ class EquivalenceBasicsTest(testhelpers.VerboseTest):
 
 	def testTrivial(self):
 		ep = stc.EquivalencePolicy([])
-		self.failUnless(ep.matches(None, "foo"))
+		self.failUnless(ep.match(None, "foo"))
 
 
-def _equPolSTCSmatches(policy, stcs1, stcs2):
-	return policy.matches(
+def _equPolSTCSmatch(policy, stcs1, stcs2):
+	return policy.match(
 		stc.parseSTCS(stcs1).astroSystem,
 		stc.parseSTCS(stcs2).astroSystem)
 
@@ -35,7 +35,7 @@ class EquivalenceTest(testhelpers.VerboseTest):
 
 	def _runTest(self, sample):
 		stcs1, stcs2 = sample
-		self.failUnless(_equPolSTCSmatches(self.policy, stcs1, stcs2),
+		self.failUnless(_equPolSTCSmatch(self.policy, stcs1, stcs2),
 			"%r and %r are not considered equivalent but should be"%(
 				stcs1, stcs2))
 
@@ -46,7 +46,7 @@ class NonEquivalenceTest(testhelpers.VerboseTest):
 
 	def _runTest(self, sample):
 		stcs1, stcs2 = sample
-		self.failIf(_equPolSTCSmatches(self.policy, stcs1, stcs2),
+		self.failIf(_equPolSTCSmatch(self.policy, stcs1, stcs2),
 			"%r and %r are considered equivalent but should not be"%(
 				stcs1, stcs2))
 

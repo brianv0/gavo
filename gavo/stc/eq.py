@@ -117,7 +117,7 @@ class EquivalencePolicy(object):
 			else:
 				self.conditions.append(KeysEquivalent(cond))
 	
-	def matches(self, ast1, ast2):
+	def match(self, ast1, ast2):
 		for cond in self.conditions:
 			if not cond.check(ast1, ast2):
 				return False
