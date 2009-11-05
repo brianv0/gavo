@@ -71,10 +71,7 @@ parity 2
 verify_pix 1
 tol 0.01
 distractors 0.25
-ratio_toprint 1000
-ratio_tokeep 1e+09
-ratio_tosolve 1e+09
-ratio_tobail 1e-100
+ratio_toprint 100
 tweak off
 tweak_aborder 3
 tweak_abporder 3

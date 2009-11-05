@@ -216,8 +216,6 @@ def getMatchingRestups(pars):
 	except KeyError, msg:
 		traceback.print_exc()
 		raise base.Error("Internal error, missing key: %s"%msg)
-	if not res:
-		raise NoRecordsMatch()
 	return res
 
 
