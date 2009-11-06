@@ -426,7 +426,7 @@ class GeneralGenerationTest(testhelpers.VerboseTest):
 		assertMapsto("Position ICRS -50 320",
 			'Position ICRS -50.0 320.0')
 
-	def testSpatialCooComplex(self):
+	def testComplexSpatialCoo(self):
 		assertMapsto("Position ICRS UNKNOWNRefPos CART3 -50 320 20 unit pc"
 			" Error 1 2 3 1.25 2.25 3.25 Resolution 0.125 0.125 0.125"
 			" Size 4 3 2",

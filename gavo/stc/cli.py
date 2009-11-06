@@ -32,13 +32,45 @@ def cmd_parseX(opts, srcFile):
 		for _, ast in asf)
 		
 
-
 def cmd_conform(opts, srcSTCS, dstSTCS):
 	"""<srcSTCS>. <dstSTCS>  -- prints srcSTCS in the system of dstSTCS.
 	"""
 	ast0, ast1 = stc.parseSTCS(srcSTCS), stc.parseSTCS(dstSTCS)
 	res = stc.conformTo(ast0, ast1)
 	print stc.getSTCS(res)
+
+
+def cmd_utypes(opts, srcSTCS):
+	"""<QSTCS> -- prints the utypes for the quoted STC string <QSTCS>.
+	"""
+	sys, cols = stc.getUtypes(stc.parseQSTCS(srcSTCS))
+	for utype, val in sys.iteritems():
+		print "%-60s = %s"%(utype, val)
+	for colId, utype in cols.iteritems():
+		print "%-60s -> %s"%(utype, colId)
+
+
+def cmd_parseUtypes(opts):
+	"""--- reads the output of utypes and prints quoted STC for it.
+	"""
+	sysTypes, colTypes = {}, {}
+	for ln in sys.stdin:
+		try:
+			utype, val = ln.split("=", 1)
+			sysTypes[utype.strip()] = val.strip()
+		except ValueError:
+			pass
+		else:
+			continue
+		try:
+			utype, val = ln.split("->", 1)
+			colTypes[val.strip()] = utype.strip()
+		except ValueError:
+			pass
+		else:
+			continue
+		raise ReportableError("Not a proper input line for STC-S: %r"%ln)
+	print stc.getSTCS(stc.parseFromUtypes(sysTypes, colTypes))
 
 
 def makeParser():
@@ -57,10 +89,9 @@ def cmd_help(opts):
 	"""
 	_cmdArgParser.print_help(file=sys.stdout)
 	sys.stdout.write("\nCommands include:\n")
-	for name in globals():
-		if name.startswith("cmd_"):
-			sys.stdout.write("%s %s\n"%(name[4:], 
-				globals()[name].__doc__.strip()))
+	for name in sorted(n for n in globals() if n.startswith("cmd_")):
+		sys.stdout.write("%s %s\n"%(name[4:], 
+			globals()[name].__doc__.strip()))
 	
 
 def parseArgs():

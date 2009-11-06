@@ -629,6 +629,20 @@ class STCTest(ColumnTest):
 			('deg', None, False),
 			('m', None, False)])
 
+	def testBadSTCSRegion(self):
+		self.assertRaisesWithMsg(adql.RegionError, 
+			"STC-S specifies no or more than one error",
+			self._getColSeqAndCtx, (
+				"select * from spatial where 1=intersects("
+				"region('Time TT'), circle('icrs', 1, 1, 0.1))",))
+
+	def testSTCSRegion(self):
+		cs, ctx = self._getColSeqAndCtx(
+				"select region('Circle FK4 B1970.0 10 10 1')"
+				" from spatial")
+		self.assertEqual(cs[0][1].unit, "deg")
+		self.assertEqual(cs[0][1].stc.spaceFrame.equinox, "B1970.0")
+
 
 class FunctionNodeTest(unittest.TestCase):
 	"""tests for nodes.FunctionMixin and friends.

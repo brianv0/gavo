@@ -1045,7 +1045,7 @@ class Circle(GeometryNode):
 		return locals()
 
 
-class Rectangle(FunctionNode, CoosysMixin):
+class Rectangle(GeometryNode):
 	type = "rectangle"
 	_a_x0 = _a_y0 = _a_x1 = _a_y1 = None
 	argSeq = ("x0", "y0", "x1", "y1", "radius")
@@ -1056,7 +1056,7 @@ class Rectangle(FunctionNode, CoosysMixin):
 		return locals()
 
 
-class Polygon(FunctionNode, CoosysMixin):
+class Polygon(GeometryNode):
 	type = "polygon"
 	_a_coos = ()
 	argSeq = ("coos")
@@ -1100,7 +1100,34 @@ def makeRegion(children):
 			return res
 	raise RegionError("'%s' is not a region specification I understand."%
 		arg)
+
+
+class STCRegion(GeometryNode):
+	bindings = []     # we're not created by the parser.
+	type = "stcRegion"
+
+	_a_ast = None
+
+	def addFieldInfo(self, context):
+		self.fieldInfo = FieldInfo(unit=self.ast.place.getUnitString(),
+			ucd=None, stc=self.ast.astroSystem)
 	
+	def flatten(self):
+		raise FlattenError("STCRegion objectcs cannot be flattened, they"
+			" must be morphed")
+
+
+def makeSTCRegion(spec):
+	try:
+		ast = stc.parseSTCS(spec)
+	except stc.STCError:  #Not a valid STC spec
+		return None
+	if len(ast.areas)!=1:
+		raise RegionError("STC-S specifies no or more than one error")
+	return STCRegion(ast)
+
+registerRegionMaker(makeSTCRegion)
+
 
 class Centroid(FunctionNode):
 	type = "centroid"

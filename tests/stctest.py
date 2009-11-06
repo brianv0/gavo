@@ -603,6 +603,23 @@ class CLITest(testhelpers.VerboseTest):
 				" VelocityInterval Velocity 0.00768930497899 0.00737459624525"
 				" unit deg/cy\n")
 
+	_utypeInput = 'Position GALACTIC "l" "b" VelocityInterval Velocity "vl" "vb"'
+	_utypeOutput = ('AstroCoordSystem.SpaceFrame.CoordRefFrame                '
+		'= GALACTIC_II\nAstroCoordSystem.SpaceFrame.CoordFlavor                 '
+		'= SPHERICAL\nAstroCoordSystem.SpaceFrame.ReferencePosition             '
+		'= UNKNOWNRefPos\nAstroCoords.Velocity2D.Value2.C2                      '
+		'-> vb\nAstroCoords.Position2D.Value2.C2                             -> '
+		'b\nAstroCoords.Velocity2D.Value2.C1                             -> vl\n'
+		'AstroCoords.Position2D.Value2.C1                             -> l\n')
+
+	def testUtypeGen(self):
+		self.assertOutput(cli.main, ["utypes", self._utypeInput],
+			expectedStdout=self._utypeOutput)
+
+	def testUtypeParse(self):
+		self.assertOutput(cli.main, ["parseUtypes"], input=self._utypeOutput,
+			expectedStdout=self._utypeInput+"\n")
+
 
 if __name__=="__main__":
 	testhelpers.main(None)

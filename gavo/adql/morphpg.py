@@ -86,13 +86,15 @@ def _morphRectangle(node, state):
 	return "POLYGON(BOX(%s, %s, %s, %s))"%tuple(flatten(a)
 		for a in (node.x0, node.y0, node.x1, node.y1))
 
-_cooLiteral = re.compile("[0-9]*(\.([0-9]*([eE][+-]?[0-9]*)?)?)?$")
+# SUCK, SUCK -- we don't actually check for these any more.  Move to
+# pgsphere, and quick.
+_cooLiteral = re.compile("[0-9]*(\.([0-9]*([eE][+-]?[0-9]*)?)?)?,.*$")
 
 def _morphPolygon(node, state):
 # Postgresql doesn't seem to support construction of polygons from lists of
 # points or similar.  We need to construct it using literal syntax, i.e.,
 # expressions are forbidden.
-	flArgs = [flatten(a) for a in node.args]
+	flArgs = [flatten(a[0])+", "+flatten(a[1]) for a in node.coos]
 	for a in flArgs:
 		if not _cooLiteral.match(a):
 			raise PostgresMorphError("%s is not a valid argument to polygon"
@@ -210,6 +212,11 @@ def _adqlFunctionToPG(node, state):
 	return node
 
 
+def _stcRegionToPGSphere(node, state):
+	# We only look at areas[0] -- maybe we should allow points, too?
+	area = node.stc.areas[0]
+# XXX TODO: Go on here.
+
 _miscMorphers = {
 	"pointFunction": _pointFunctionToIndexExpression,
 	"area": _areaToPG,
@@ -217,6 +224,7 @@ _miscMorphers = {
 	"centroid": _centroidToPG,
 	"region": _regionToPG,
 	"numericValueFunction": _adqlFunctionToPG,
+	"stcRegion": _stcRegionToPGSphere,
 }
 
 def morphMiscFunctions(tree):

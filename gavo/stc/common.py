@@ -16,7 +16,7 @@ from gavo.utils import ElementTree
 class STCError(Exception):
 	pass
 
-class STCSParseError(Exception):
+class STCSParseError(STCError):
 	"""is raised if an STC-S expression could not be parsed.
 
 	Low-level routines raise a pyparsing ParseException.  Only higher

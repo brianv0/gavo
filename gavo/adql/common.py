@@ -52,6 +52,10 @@ class RegionError(Error):
 	"""is raised if a region specification is in some way bad.
 	"""
 
+class FlattenError(Error):
+	"""is raised when something cannot be flattened.
+	"""
+
 
 class FieldInfo(object):
 	"""is a container for meta information on columns.

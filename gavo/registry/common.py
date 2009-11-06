@@ -29,7 +29,6 @@ class BadResumptionToken(OAIError): pass
 class BadVerb(OAIError): pass
 class CannotDisseminateFormat(OAIError): pass
 class IdDoesNotExist(OAIError): pass
-class NoRecordsMatch(OAIError): pass
 class NoMetadataFormats(OAIError): pass
 class NoSetHierarchy(OAIError): pass
 
@@ -81,6 +80,6 @@ __all__ = ["SERVICELIST_ID", "STATICRSC_ID", "METADATA_PREFIXES",
 "getResType", "getServicesRD", "getRegistryService",
 
 "OAIError", "BadArgument", "BadResumptionToken", "BadVerb",
-"CannotDisseminateFormat", "IdDoesNotExist", "NoRecordsMatch",
+"CannotDisseminateFormat", "IdDoesNotExist", 
 "NoMetadataFormats", "NoSetHierarchy",
 ]

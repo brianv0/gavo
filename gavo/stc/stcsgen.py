@@ -14,6 +14,7 @@ which is then added to the current dictionary.
 #c This program is free software, covered by the GNU GPL.  See COPYING.
 
 
+import datetime
 import itertools
 import pprint
 
@@ -306,120 +307,6 @@ def _spatialToCST(astRoot):
 
 ############## Flattening of the CST
 
-
-def _makeSequenceFlattener(keyword, valSerializer=str):
-	if keyword: 
-		fmt = "%s %%s"%keyword
-	else:
-		fmt = "%s"
-	def flatten(seq, node):
-		if seq:
-			return fmt%(" ".join(valSerializer(v) for v in seq))
-	return flatten
-
-
-def _makeKeywordFlattener(keyword):
-	def flatten(val, node):
-		if val is not None:
-			return "%s %s"%(keyword, val)
-	return flatten
-
-
-# Keyword based flattening
-_commonFlatteners = {
-	"fillfactor": _makeKeywordFlattener("fillfactor"),
-	"unit": _makeKeywordFlattener("unit"),
-	"error": _makeSequenceFlattener("Error"),
-	"resolution": _makeSequenceFlattener("Resolution"),
-	"pixSize": _makeSequenceFlattener("PixSize"),
-}
-
-def _serializeVector(v):
-	return " ".join(str(c) for c in v)
-
-
-def _makePosFlattener(key, stringify):
-	def flatten(val, node):
-		if val is not None:
-			val = stringify(val)
-			if node["type"]==key:
-				return val
-			else:
-				return "%s %s"%(key, val)
-	return flatten
-
-
-def _make1DCooFlattener(stringifyCoo, posKey, frameKeys):
-	flatteners = {"pos": _makePosFlattener(posKey, stringifyCoo),
-		"coos": _makeSequenceFlattener("", stringifyCoo)}
-	flatteners.update(_commonFlatteners)
-	keyList = ["type", "fillfactor"]+frameKeys+["coos", "pos", 
-		"unit", "error", "resolution", "pixSize"]
-	def flatten(node):
-		return _joinKeysWithNull(node, keyList, flatteners)
-	return flatten
-
-
-_vectorFlatteners = _commonFlatteners.copy()
-_vectorFlatteners.update({
-	"coos": _makeSequenceFlattener("", _serializeVector),
-	"error": _makeSequenceFlattener("Error", _serializeVector),
-	"size": _makeSequenceFlattener("Size", _serializeVector),
-	"resolution": _makeSequenceFlattener("Resolution", _serializeVector),
-	"pixSize": _makeSequenceFlattener("PixSize", _serializeVector),
-})
-
-_velFlatteners = {
-	"pos": _makePosFlattener("Velocity", _serializeVector),
-}
-_velFlatteners.update(_vectorFlatteners)
-
-
-def _flattenVelocity(val, node):
-	if val:
-		return "VelocityInterval "+_joinKeysWithNull(val, ["fillfactor",
-		"coos", "pos", "unit", "error", "resolution", "size", 
-		"pixSize"], _velFlatteners)
-	return ""
-
-
-def _flattenCompoundChildren(childList, node):
-	res = []
-	for c in childList:
-		if "geoCoos" in c:  # it's an atomic geometry
-			res.append("%s %s"%(
-				c["subtype"], _serializeVector(c["geoCoos"])))
-		else: # it's a compound
-			res.append("%s %s"%(c["subtype"],
-				_flattenCompoundChildren(c["children"], node)))
-	if "geoCoos" in node:  # it's atomic, no parens required
-		return " ".join(res)
-	else:
-		return "(%s)"%(" ".join(res))
-
-
-_posFlatteners = {
-	"pos": _makePosFlattener("Position", _serializeVector),
-	"geoCoos": _makeSequenceFlattener(""),
-	"velocity": _flattenVelocity,
-	"children": _flattenCompoundChildren,
-}
-_posFlatteners.update(_vectorFlatteners)
-
-
-def _flattenPosition(node):
-	return _joinKeysWithNull(node, ["type", "fillfactor", "frame", "equinox",
-		"refpos", "flavor", "coos", "geoCoos", "children", "pos", "unit", "error", 
-		"resolution", "size", "pixSize", "velocity"], _posFlatteners)
-
-
-_flattenTime = _make1DCooFlattener(lambda v: v.isoformat(), "Time",
-	["timescale", "refpos"])
-_flattenSpectral = _make1DCooFlattener(str, "Spectral",
-	["refpos"])
-_flattenRedshift = _make1DCooFlattener(str, "Redshift",
-	["refpos", "redshiftType", "dopplerdef"])
-
 def _joinWithNull(strList):
 	return " ".join(s for s in strList if s is not None)
 
@@ -429,6 +316,13 @@ def _joinKeysWithNull(node, kwList, flatteners):
 
 	To make things a bit more flexible, you can give lists in kwList.
 	Their elements will be inserted into the result as-is.
+
+	Flatteners is a dictionary mapping keys from kwList to functions
+
+	flat(val, node) -> string
+
+	that turn a value for the keyword to a complete string.  
+	_makeKeywordFlattener and _makeNoKeywordFlattener generate such functions.
 	"""
 	res = []
 	for key in kwList:
@@ -443,6 +337,151 @@ def _joinKeysWithNull(node, kwList, flatteners):
 	return _joinWithNull(res)
 
 
+def _flattenValue(val, node=None):
+	"""returns a sensible STC-S string representation for many sorts of
+	values, dispatched on their type.
+
+	This function can be used as a flattener.
+	"""
+	if val is None:
+		return ""
+	elif isinstance(val, basestring):
+		return str(val)
+	elif isinstance(val, (int, float)):
+		return str(val)
+	elif isinstance(val, (list, tuple)):
+		return " ".join(_flattenValue(v) for v in val)
+	elif isinstance(val, datetime.datetime):
+		return val.isoformat()
+	elif isinstance(val, ColRef):
+		return '"%s"'%val.dest
+	else:
+		raise STCValueError("Cannot serialize %r to STC-S"%val)
+
+
+def _makePosValueFlattener(key):
+	"""returns a flattener for position values of type key.
+
+	The trick is to suppress key when the node already represents a position
+	type.  Thus, we generate "Time 2" rather than Time Time 2 analogous to
+	"TimeInterval [...] Time  2".
+	"""
+	def flattenPosition(val, node):
+		if val is not None:
+			if node["type"]==key:
+				return _flattenValue(val)
+			else:
+				return "%s %s"%(key, _flattenValue(val))
+	return flattenPosition
+
+
+def _makeKeywordFlattener(keyword):
+	"""returns a function returning a flattened value with keyword in front.
+	"""
+	if keyword:
+		fmtStr = "%s %%s"%keyword
+	else:
+		fmtStr = "%s"
+	def flatten(val, node):
+		if val is not None and val!=():
+			return fmtStr%(_flattenValue(val))
+	return flatten
+
+
+# Keywords for items common to all coordinates.
+_commonFlatteners = {
+	"fillfactor": _makeKeywordFlattener("fillfactor"),
+	"unit": _makeKeywordFlattener("unit"),
+	"error": _makeKeywordFlattener("Error"),
+	"resolution": _makeKeywordFlattener("Resolution"),
+	"size": _makeKeywordFlattener("Size"),
+	"pixSize": _makeKeywordFlattener("PixSize"),
+	"coos": _flattenValue,
+}
+
+
+def _make1DCooFlattener(posKey, frameKeys):
+	"""returns a flattener for 1-D coordinates (time, spectral, redshift).
+	"""
+	flatteners = {
+		"pos": _makePosValueFlattener(posKey),
+		}
+	flatteners.update(_commonFlatteners)
+	keyList = ["type", "fillfactor"]+frameKeys+["coos", "pos", 
+		"unit", "error", "resolution", "pixSize"]
+	def flatten(node):
+		return _joinKeysWithNull(node, keyList, flatteners)
+	return flatten
+
+
+def _makeVelocityFlattener():
+	"""returns a flattener for velocities.
+
+	This is only used by _makePositionFlattener, since velocity is a subclause.
+	"""
+	flatteners = {
+		"pos": _makeKeywordFlattener("Velocity"),
+	}
+	flatteners.update(_commonFlatteners)
+
+	def flattenVelocity(val, node):
+		"""custom flattener for velocities, used by _flattenPosition.
+		"""
+		if val:
+			return "VelocityInterval "+_joinKeysWithNull(val, ["fillfactor",
+			"coos", "pos", "unit", "error", "resolution", "size", 
+			"pixSize"], flatteners)
+		return ""
+
+	return flattenVelocity
+
+
+def _makeSpatialFlattener():
+	def flattenCompoundChildren(childList, node):
+		"""custom flattener for compounds (i.e., and, or, not)
+		"""
+		res = []
+		for c in childList:
+			if "geoCoos" in c:  # it's an atomic geometry
+				res.append("%s %s"%(
+					c["subtype"], _flattenValue(c["geoCoos"])))
+			else: # it's a compound
+				res.append("%s %s"%(c["subtype"],
+					flattenCompoundChildren(c["children"], node)))
+		if "geoCoos" in node:  # it's atomic, no parens required
+			return " ".join(res)
+		else:
+			return "(%s)"%(" ".join(res))
+
+	flatteners = {
+		"pos": _makePosValueFlattener("Position"),
+		"geoCoos": _makeKeywordFlattener(""),
+		"velocity": _makeVelocityFlattener(),
+		"children": flattenCompoundChildren,
+	}
+	flatteners.update(_commonFlatteners)
+
+
+	def flattenPosition(node):
+		"""returns an STC-S representation of position and velocity.
+		"""
+		return _joinKeysWithNull(node, ["type", "fillfactor", "frame", 
+			"equinox", "refpos", "flavor", "coos", "geoCoos", "children", 
+			"pos", "unit", "error", "resolution", "size", "pixSize", "velocity"], 
+			flatteners)
+	
+	return flattenPosition
+
+
+# generate top-level flatteners
+
+_flattenTime = _make1DCooFlattener("Time", ["timescale", "refpos"])
+_flattenSpectral = _make1DCooFlattener("Spectral", ["refpos"])
+_flattenRedshift = _make1DCooFlattener("Redshift", 
+	["refpos", "redshiftType", "dopplerdef"])
+_flattenSpatial = _makeSpatialFlattener()
+
+
 def _flattenCST(cst):
 	"""returns a flattened string for an STCS CST.
 
@@ -450,7 +489,7 @@ def _flattenCST(cst):
 	"""
 	return "\n".join([s for s in (
 			_flattenTime(cst.get("time", {})),
-			_flattenPosition(cst.get("space", {})),
+			_flattenSpatial(cst.get("space", {})),
 			_flattenSpectral(cst.get("spectral", {})),
 			_flattenRedshift(cst.get("redshift", {})),)
 		if s])

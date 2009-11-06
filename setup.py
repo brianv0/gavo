@@ -37,4 +37,4 @@ setup(name="gavodachs",
 			'gavoserve = gavo.user.serve:main',
 		]
 	},
-	version="0.3")
+	version="0.41")
