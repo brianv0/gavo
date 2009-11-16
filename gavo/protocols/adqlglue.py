@@ -82,8 +82,8 @@ def query(query, timeout=15, queryProfile="untrustedquery", metaProfile=None):
 	if t.setLimit is None:
 		t.setLimit = str(base.getConfig("adql", "webDefaultLimit"))
 	adql.annotate(t, getFieldInfoGetter(metaProfile))
-	adql.insertQ3Calls(t)
-# XXX TODO: select an appropriate RD from the tables queried.
+# XXX FIXME: evaluate q3cstatus for warnings (currently, I think there ar none)
+	q3cstatus, t = adql.insertQ3Calls(t)
 	td = base.makeStruct(rscdef.TableDef, columns=_getTableDescForOutput(t))
 	table = rsc.TableForDef(td)
 	morphStatus, morphedTree = adql.morphPG(t)
