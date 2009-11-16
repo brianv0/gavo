@@ -364,7 +364,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		This method ventures a guess.  You can override this decision by setting
 		the resType meta item.
 		"""
-		if self.outputTable.columns:
+		if self.outputTable.columns or self.outputTable.verbLevel:
+			# need to check for verbLevel since at that point the outputTable
+			# has not onParentCompleted and thus columns is empty with verbLevel.
 # XXX the NVO registry can't cope with tableService, so we declare
 # everything as a catalogService for now
 			self.resType = "catalogService"

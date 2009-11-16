@@ -29,7 +29,7 @@ class Error(Exception):
 
 	Apart from the normal message, you can give a "hint" constructor argument.
 	"""
-	def __init__(self, msg, hint=None):
+	def __init__(self, msg="", hint=None):
 		Exception.__init__(self, msg)
 		self.hint = hint
 

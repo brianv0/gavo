@@ -183,7 +183,7 @@ def _parseOAIPars(pars):
 	if "until" in pars:
 		if not utils.dateRE.match(pars["until"]):
 			raise BadArgument("until")
-		sqlFrags.append("dateUpdated <= %%(%s)s"%base.getSQLKey("until",
+		sqlFrags.append("recTimestamp <= %%(%s)s"%base.getSQLKey("until",
 			pars["until"], sqlPars))
 	if "set" in pars:
 		setName = pars["set"]
@@ -216,6 +216,8 @@ def getMatchingRestups(pars, connection=None):
 	except KeyError, msg:
 		traceback.print_exc()
 		raise base.Error("Internal error, missing key: %s"%msg)
+	if not res:
+		raise NoRecordsMatch("No resource records match your criteria.")
 	return res
 
 

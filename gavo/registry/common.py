@@ -31,6 +31,7 @@ class CannotDisseminateFormat(OAIError): pass
 class IdDoesNotExist(OAIError): pass
 class NoMetadataFormats(OAIError): pass
 class NoSetHierarchy(OAIError): pass
+class NoRecordsMatch(OAIError): pass
 
 
 def getServicesRD():
@@ -84,4 +85,5 @@ __all__ = ["SERVICELIST_ID", "STATICRSC_ID", "METADATA_PREFIXES",
 "OAIError", "BadArgument", "BadResumptionToken", "BadVerb",
 "CannotDisseminateFormat", "IdDoesNotExist", 
 "NoMetadataFormats", "NoSetHierarchy",
+"NoRecordsMatch",
 ]

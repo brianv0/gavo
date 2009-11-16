@@ -146,8 +146,13 @@
 	setDefaultWhitespaceChars or similar.  Then remove the setDefault... calls in
 	adql.getGrammar.
 
-37/HIGH/2009-10-19
+37/HIGH/2009-10-19/FIXED
 	ROUND and TRUNCATE should accept a second argument in ADQL.
 
 38/MEDIUM/2009-11-03
 	You can select nonsensical (on-selected) fields in the sort widget.
+
+39/LOW/2009-11-16
+	Services with verbLevel-defined outputTables are misclassified as
+	TableServices if they contain positional data.  That's kinda hard
+	to fix except by delaying service type determination.
