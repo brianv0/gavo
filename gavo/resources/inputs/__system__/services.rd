@@ -8,7 +8,8 @@
 	<!-- Tables related to services. 
 	These have to match whatever is done in gavo.web.servicelist -->
 
-	<table system="True" id="services" forceUnique="True" onDisk="True">
+	<table system="True" id="services" forceUnique="True" onDisk="True"
+			dupePolicy="overwrite">
 		<column name="shortName" type="text"
 			tablehead="Service ID"/>
 		<column name="internalId" type="text"
@@ -19,6 +20,9 @@
 		<column name="description" type="text"/>
 		<column name="owner" type="text"/>
 		<column name="dateUpdated" type="timestamp"/>
+		<column name="recTimestamp" type="timestamp"
+			description="UTC of gavopublish run on the source RD"/>
+		<column name="deleted" type="boolean"/>
 		<primary>internalId,sourceRd</primary>
 	</table>
 
@@ -27,21 +31,14 @@
 		<column name="shortName" type="text"/>
 		<column name="accessURL" type="text"/>
 		<column name="renderer" type="text"/>
-<!-- scrap that field. It used be used to assign default sets, but
-that was folly -->
-		<column name="type" type="text">
-			<values>
-				<option>web</option>
-				<option>vo</option>
-			</values>
-		</column>
 		<primary>accessURL</primary>
 		<ignoreOn>
 			<keyIs key="accessURL" value="__NULL__"/>
 		</ignoreOn>
 	</table>
 
-	<table system="True" id="srv_sets" forceUnique="True" onDisk="True">
+	<table system="True" id="srv_sets" forceUnique="True" onDisk="True"
+			dupePolicy="overwrite">
 		<column name="shortName" type="text"/>
 		<column name="setName" type="text"/>
 		<column name="sourceRd" type="text" tablehead="Source RD"/>
@@ -66,7 +63,6 @@ that was folly -->
 		<make table="srv_subjs"/>
 	</data>
 
-	<!-- a join of services, interfaces, and sets tables - REPLACE WITH ADQL -->
 	<table id="srv_join" namePath="services" onDisk="true">
 		<column original="shortName"/>
 		<column original="internalId"/>
@@ -75,6 +71,8 @@ that was folly -->
 		<column original="description"/>
 		<column original="owner"/>
 		<column original="dateUpdated"/>
+		<column original="recTimestamp"/>
+		<column original="deleted"/>
 		<column original="srv_interfaces.accessURL"/>
 		<column original="srv_interfaces.renderer"/>
 		<column original="srv_sets.setName"/>
@@ -82,7 +80,8 @@ that was folly -->
 		<script type="viewCreation" name="create services join">
 			CREATE OR REPLACE VIEW srv_join AS (
 				SELECT shortName, internalId, sourceRd, title, description,
-					owner, dateUpdated, accessURL, renderer, setName 
+					owner, dateUpdated, recTimestamp, deleted, accessURL, renderer, 
+					setName 
 				FROM 
 					services 
 					NATURAL JOIN srv_sets
@@ -91,7 +90,6 @@ that was folly -->
 			  without interfaces -->
 	</table>
 
-	<!-- a join of locally defined services, by subject - REPLACE WITH ADQL -->
 	<table id="srv_subjs_join" namePath="services" onDisk="true">
 		<column original="srv_subjs.subject"/>
 		<column original="shortName"/>
@@ -107,7 +105,8 @@ that was folly -->
 						SELECT accessurl, sourceRd, shortName, renderer 
 						FROM srv_interfaces 
 							JOIN srv_sets USING (shortName, renderer, sourcerd) 
-						WHERE setName='local') AS q 
+						WHERE setName='local'
+					) AS q 
 					NATURAL JOIN services 
 					NATURAL JOIN srv_subjs 
 				ORDER BY subject);

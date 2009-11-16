@@ -90,14 +90,17 @@ def getResourceArgs(resob):
 	for service in a dictionary.
 	"""
 	return {
-		"created": str(resob.getMeta("creationDate")),
-		"updated": resob.getMeta("datetimeUpdated"),
-		"status": resob.getMeta("status"),
+		"created": base.getMetaText(resob, "creationDate", propagate=True),
+		"updated": base.getMetaText(resob, "recTimestamp", propagate=True),
+		"status": base.getMetaText(resob, "status"),
 	}
 
 
 def getOAIHeaderElementForRestup(restup):
-	return OAI.header [
+	status = None
+	if restup["deleted"]:
+		status = "deleted"
+	return OAI.header(status=status)[
 		OAI.identifier[identifiers.computeIdentifierFromRestup(restup)],
 		OAI.datestamp[restup["dateUpdated"].strftime("%Y-%m-%d")],
 		[
@@ -120,7 +123,7 @@ def getIdentifyElement(registryService):
 		OAI.protocolVersion["2.0"],
 		OAI.adminEmail[base.getConfig("operator")],
 		OAI.earliestDatestamp["1970-01-01"],
-		OAI.deletedRecord["no"],
+		OAI.deletedRecord["transient"],
 		OAI.granularity["YYYY-MM-DD"],
 		OAI.description[
 			getVORMetadataElement(registryService),
@@ -157,13 +160,27 @@ def getListSetsElement():
 	for set in servicelist.getSets()]]
 
 
-def getDCResourceElement(resob, setNames=_defaultSet):
+def getResourceElement(resob, setNames, metadataMaker):
+	"""helps get[VO|DC]ResourceElement.
+	"""
+	status = None
+	if base.getMetaText(resob, "status")=="deleted":
+		status = "deleted"
 	return OAI.record[
-		OAI.header[
+		OAI.header(status=status)[
 			_oaiHeaderBuilder.build(resob)],
 		OAI.metadata[
-			OAIDC.dc[
-				_dcBuilder.build(resob)]]]
+			metadataMaker(resob, setNames)
+		]
+	]
+
+
+def getDCMetadataElement(resob, setNames):
+	return OAIDC.dc[_dcBuilder.build(resob)]
+
+
+def getDCResourceElement(resob, setNames=_defaultSet):
+	return getResourceElement(resob, setNames, getDCMetadataElement)
 
 
 def getDCListRecordsElement(resobs, setNames, 
@@ -325,6 +342,12 @@ class AuthResourceMaker(ResourceMaker):
 			VOG.managingOrg[registry.getMeta("managingOrg")]]
 
 
+class DeletedResourceMaker(ResourceMaker):
+	resType = "deleted"
+	def _makeResource(self, res, setNames):
+		return []
+
+
 _getResourceMaker = utils.buildClassResolver(ResourceMaker, 
 	globals().values(), instances=True, 
 	key=lambda obj: obj.resType)
@@ -347,13 +370,7 @@ def getVOResourceElement(resob, setNames=_defaultSet):
 	but I can't see a way around it given the way our services are
 	described.
 	"""
-	return OAI.record[
-		OAI.header[
-			_oaiHeaderBuilder.build(resob)],
-		OAI.metadata[
-			getVORMetadataElement(resob, setNames)
-		]
-	]
+	return getResourceElement(resob, setNames, getVORMetadataElement)
 
 
 def getVOListRecordsElement(resobs, setNames):

@@ -100,7 +100,8 @@ class OAI:
 
 	class ListSets(OAIElement): pass
 
-	class header(OAIElement): pass
+	class header(OAIElement):
+		a_status = None
 
 	class error(OAIElement):
 		mayBeEmpty = True

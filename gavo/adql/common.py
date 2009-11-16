@@ -48,7 +48,11 @@ class UfuncError(Error):
 	function.
 	"""
 
-class RegionError(Error):
+class GeometryError(Error):
+	"""is raised if something is wrong with a geometry.
+	"""
+
+class RegionError(GeometryError):
 	"""is raised if a region specification is in some way bad.
 	"""
 

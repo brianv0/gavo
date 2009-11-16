@@ -26,7 +26,7 @@ import sys
 
 from gavo.stc.common import (STCError, STCSParseError, STCLiteralError,
 	STCValueError, STCNotImplementedError,
-	STCNamespace)
+	STCNamespace, stcSpaceRefFrames, stcRefPositions)
 
 from gavo.stc.times import (parseISODT, 
 	jYearToDateTime, dateTimeToJYear,

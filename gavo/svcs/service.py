@@ -227,7 +227,12 @@ class CustomRF(base.Structure):
 		self.func = vars[self.name]
 
 
-class ServiceVolatilesMixin(object):
+## This should really be in registry (and I could use servicelist then,
+## and of course the DB table used here is defined there).
+## However, registry uses svc, but we need these meta keys in service.
+## Maybe at some point have something in registry just add these meta
+## keys?
+class RegistryMetaMixin(object):
 	"""A mixin providing some metadata that is most easily read from
 	servicelist.
 
@@ -250,20 +255,18 @@ class ServiceVolatilesMixin(object):
 		# on the registry subpackage.
 		q = base.SimpleQuerier()
 		try:
-			res = q.runIsolatedQuery("SELECT dateUpdated, setName"
+			res = q.runIsolatedQuery("SELECT dateUpdated, recTimestamp, setName"
 				" FROM srv_join WHERE sourcerd=%(rdId)s AND internalid=%(id)s",
 				{"rdId": self.rd.sourceId, "id": self.id})
 		finally:
 			q.close()
 		if res:
+			row = res[0]
 			self.__dbRecord = {
-#				"dateUpdated": meta.makeMetaItem(res[0][0].strftime("%Y-%m-%d"), 
-#					name="dateUpdated"),
-#				"datetimeUpdated": meta.makeMetaItem(res[0][0].strftime(
-#					utils.isoTimestampFmt), name="dateUpdated"),
-				"sets": meta.makeMetaItem(list(set(row[1] for row in res)), 
+				"sets": meta.makeMetaItem(list(set(row[2] for row in res)), 
 					name="sets"),
-				"status": meta.makeMetaItem("active", name="status"),
+				"recTimestamp": meta.makeMetaItem(res[0][1].strftime(
+					utils.isoTimestampFmt), name="recTimestamp"),
 			}
 		else:
 			self.__dbRecord = None
@@ -275,15 +278,18 @@ class ServiceVolatilesMixin(object):
 	def _meta_datetimeUpdated(self):
 		return self.rd.getMeta("datetimeUpdated")
 	
+	def _meta_recTimestamp(self):
+		return self.__getFromDB("recTimestamp")
+
 	def _meta_sets(self):
 		return self.__getFromDB("sets")
 
 	def _meta_status(self):
-		return self.__getFromDB("status")
+		return "active"
 
 
 class Service(base.Structure, base.ComputedMetaMixin, 
-		rscdef.StandardMacroMixin, ServiceVolatilesMixin):
+		rscdef.StandardMacroMixin, RegistryMetaMixin):
 	"""A service definition.
 
 	A service is a combination of a core and one or more renderers.  They

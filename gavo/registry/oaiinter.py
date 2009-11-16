@@ -78,7 +78,6 @@ def run_ListRecords(pars):
 		lambda pars: (getMatchingResobs(pars), getSetNames(pars)))
 
 
-
 def run_ListIdentifiers(pars):
 	"""returns a tree of stanxml elements for a response to ListIdentifiers.
 
@@ -179,7 +178,7 @@ def _parseOAIPars(pars):
 	if "from" in pars:
 		if not utils.dateRE.match(pars["from"]):
 			raise BadArgument("from")
-		sqlFrags.append("dateUpdated >= %%(%s)s"%base.getSQLKey("from",
+		sqlFrags.append("recTimestamp >= %%(%s)s"%base.getSQLKey("from",
 			pars["from"], sqlPars))
 	if "until" in pars:
 		if not utils.dateRE.match(pars["until"]):
@@ -197,7 +196,7 @@ def _parseOAIPars(pars):
 	return " AND ".join(sqlFrags), sqlPars
 
 
-def getMatchingRestups(pars):
+def getMatchingRestups(pars, connection=None):
 	"""returns a list of res tuples matching the OAI query arguments pars.
 
 	pars is a dictionary mapping any of the following keys to values:
@@ -208,7 +207,8 @@ def getMatchingRestups(pars):
 	"""
 	frag, pars = _parseOAIPars(pars)
 	try:
-		srvTable = rsc.TableForDef(getServicesRD().getById("services"))
+		srvTable = rsc.TableForDef(getServicesRD().getById("services"),
+			connection=connection)
 		res = list(srvTable.iterQuery(srvTable.tableDef, frag, pars))
 		srvTable.close()
 	except base.DBError:

@@ -68,6 +68,8 @@ def makeBaseRecord(service):
 	rec["sourceRd"] = service.rd.sourceId
 	rec["internalId"] = service.id
 	rec["title"] = unicode(service.getMeta("title")) or rec["shortName"]
+	rec["deleted"] = False
+	rec["recTimestamp"] = datetime.datetime.utcnow()
 	rec["description"] = unicode(service.getMeta("description"
 		) or unicode(service.getMeta("_description")))
 	rec["owner"] = service.limitTo
@@ -97,7 +99,7 @@ def iterSvcRecs(service):
 	it if you can't process is between to visits in the iterator.
 	"""
 	if not service.publications:
-		return  # don't worry about missing meta if there are not publications
+		return  # don't worry about missing meta if there are no publications
 	ensureSufficientMeta(service)
 	rec = makeBaseRecord(service)
 	subjects = [str(item) for item in service.getMeta("subject")]
@@ -154,13 +156,27 @@ _staticRscGrammar = base.makeStruct(StaticRscGrammar)
 
 
 def cleanServiceTablesFor(targetRDId, connection):
-	"""deletes all entries coming from targetRDId in the service tables.
+	"""flags all entries coming from targetRDId in the service tables as deleted.
+
+	This is done by removing it from all by the services table.  This, in
+	turn, will be broken if registries start to harvest using sets since the
+	deleted records will not belong to any set.  If that happens, we need
+	to come up with something more sophisticated.
 	"""
 # XXX TODO: think about script type="newSource" for this kind of situation
 # -- or do we want a special mechanism similar to owningCondition of old?
-	for td in getServicesRD().getById("tables"):
+	# delete stuff from interfaces and subjs -- these are not queries by oai
+	for id in ["srv_interfaces", "srv_subjs"]:
+		td = getServicesRD().getById(id)
 		rsc.TableForDef(td, connection=connection).deleteMatching(
 			"sourceRd=%(sourceRD)s", {"sourceRD": targetRDId})
+	# sets and services are queried by oai, so I can't delete them
+	for id in ["srv_sets", "services"]:
+		table = rsc.TableForDef(getServicesRD().getById("services"),
+			connection=connection)
+		table.query("UPDATE %s SET deleted=True"
+			" WHERE sourceRD=%%(sourceRD)s"%table.tableDef.getQName(), 
+			{"sourceRD": targetRDId})
 
 
 def updateServiceList(rds, metaToo=False, connection=None):
@@ -357,7 +373,7 @@ def main():
 	opts, args = parseCommandLine()
 	getServicesRD().touchTimestamp()
 	if opts.all:
-		args = findAllRDs()
+		args = findAllRDs()+["__system__/services.rd", "__system__/adql.rd"]
 	updateServiceList(getRDs(args), metaToo=opts.meta)
 	if opts.all or opts.doFixed:  # also import fixed registry records
 		importFixed()

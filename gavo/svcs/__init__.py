@@ -33,7 +33,7 @@ from gavo.svcs.outputdef import OutputField, OutputTableDef
 from gavo.svcs.runner import runWithData
 
 from gavo.svcs.service import (Service, SvcResult, Publication,
-	registerRenderer, getRenderer)
+	registerRenderer, getRenderer, RegistryMetaMixin)
 
 from gavo.svcs.standardcores import (DBCore, CondDesc, registerCondDesc,
 	mapDBErrors)

@@ -68,6 +68,9 @@ def getResobFromRestup(restup):
 	return the standard DC metadata.  Everything else depends on the type
 	of StaticResource.
 	"""
+	if restup["deleted"]:
+		return staticresource.DeletedResource(
+			computeIdentifierFromRestup(restup), restup)
 	sourceRD, internalId = restup["sourceRd"], restup["internalId"]
 	if sourceRD==STATICRSC_ID:
 		return staticresource.loadStaticResource(internalId)

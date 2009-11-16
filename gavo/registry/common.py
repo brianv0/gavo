@@ -79,6 +79,8 @@ __all__ = ["SERVICELIST_ID", "STATICRSC_ID", "METADATA_PREFIXES",
 
 "getResType", "getServicesRD", "getRegistryService",
 
+"DateUpdatedMixin",
+
 "OAIError", "BadArgument", "BadResumptionToken", "BadVerb",
 "CannotDisseminateFormat", "IdDoesNotExist", 
 "NoMetadataFormats", "NoSetHierarchy",

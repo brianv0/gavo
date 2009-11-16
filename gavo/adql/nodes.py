@@ -972,24 +972,27 @@ class CharacterStringLiteral(FieldInfoedNode):
 
 ###################### Geometry and stuff that needs morphing into real SQL
 
+@utils.memoized
+def makeSystem(frameName):
+	"""returns an astroSystem for frame name.
+	"""
+	if frameName=='':
+		return None
+	return stc.parseSTCS("Position %s"%frameName).astroSystem
+
+
 class CoosysMixin(object):
 	"""is a mixin that works cooSys into FieldInfos for ADQL geometries.
 	"""
 	_a_cooSys = None
 
-	systemsDict = dict(
-		(sysName, stc.parseSTCS("Position %s"%sysName).astroSystem)
-		for sysName in ("FK4", "FK5", "ICRS", "ECLIPTIC", "GALACTIC_I",
-			"GALACTIC_II", "GALACTIC", "SUPER_GALACTIC", "J2000", "B1950"))
-	systemsDict[''] = None
-
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		system = _parseResult["coordSys"][0].value
+		refFrame = _parseResult["coordSys"][0].value
 		try:
-			return {"cooSys":  cls.systemsDict[system]}
-		except KeyError:
-			raise BadKeywords("Illegal coordinate system %s"%system)
+			return {"cooSys":  makeSystem(refFrame)}
+		except stc.STCSParseError:
+			raise BadKeywords("Illegal coordinate system %s"%refFrame)
 
 
 class GeometryNode(CoosysMixin, FieldInfoedNode):

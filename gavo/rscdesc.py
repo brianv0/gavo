@@ -21,6 +21,7 @@ import weakref
 
 from gavo import base
 from gavo import grammars
+from gavo import registry
 from gavo import rscdef
 from gavo import svcs
 from gavo import utils
@@ -28,7 +29,6 @@ from gavo.rsc import metatable
 from gavo.rscdef import common
 from gavo.rscdef import macros
 from gavo.rscdef import scripting
-from gavo.registry.common import DateUpdatedMixin
 
 
 class CoresAttribute(base.StructListAttribute):
@@ -46,7 +46,7 @@ class CoresAttribute(base.StructListAttribute):
 
 
 class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
-		macros.StandardMacroMixin, common.RolesMixin, DateUpdatedMixin):
+		macros.StandardMacroMixin, common.RolesMixin, registry.DateUpdatedMixin):
 	"""A resource descriptor (RD); the root for all elements described here.
 	
 	RDs collect all information about how to parse a particular source (like a

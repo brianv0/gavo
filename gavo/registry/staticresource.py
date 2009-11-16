@@ -15,10 +15,25 @@ from gavo import svcs
 from gavo import utils
 from gavo.base import meta
 from gavo.svcs import service
-from gavo.registry import common
 from gavo.registry.common import *
 
-class StaticResource(base.ComputedMetaMixin, common.DateUpdatedMixin):
+
+class NonServiceResource(base.ComputedMetaMixin, DateUpdatedMixin,
+		svcs.RegistryMetaMixin):
+	def __init__(self, datetimeUpdated):
+		# We're not a Structure, so we need to do this manually
+		base.ComputedMetaMixin.__init__(self)  
+		self.dateUpdated = datetimeUpdated
+
+		# we need a renderer to get into the service list.  This renderer
+		# should never kick in, though, since our types should not cause
+		# builders to use the automatic capability generation.
+		self.publications = [base.makeStruct(svcs.Publication,
+			render="static", sets=["ivo_managed"])]
+
+
+
+class StaticResource(NonServiceResource):
 	"""is a resource defined through a key value-based text file in
 	the __system directory.
 
@@ -26,22 +41,15 @@ class StaticResource(base.ComputedMetaMixin, common.DateUpdatedMixin):
 	to allow off-site WebBrowser services to be registred.
 	"""
 	def __init__(self, srcId):
-		self.publications = [base.makeStruct(svcs.Publication,
-			render="static", sets=["ivo_managed"])]
-		# we need a renderer to get into the service list.  This renderer
-		# should never kick in, though, since our types should not cause
-		# builders to use the automatic capability generation.
-		self.limitTo = None
-		self.id = srcId
-		self.srcName = srcId
 		self.rd = base.caches.getRD(STATICRSC_ID)
-		# We're not a Structure, so we need to do this manually
-		base.ComputedMetaMixin.__init__(self)  
-		self._updateDateUpdated()
+		self.id = srcId
+		self.limitTo = None
+		self.srcName = srcId
+		NonServiceResource.__init__(self, self._getDateUpdated())
 
-	def _updateDateUpdated(self):
+	def _getDateUpdated(self):
 		srcName = os.path.join(self.rd.resdir, self.id)
-		self.dateUpdated = datetime.datetime.utcfromtimestamp(
+		return datetime.datetime.utcfromtimestamp(
 			os.path.getmtime(srcName))
 
 	def getURL(self, renderer, absolute=True):
@@ -60,8 +68,34 @@ class StaticResource(base.ComputedMetaMixin, common.DateUpdatedMixin):
 			base.getConfig("ivoa", "authority"), 
 			self.id)
 
+	def _meta_recTimestamp(self):
+		return self.getMeta("datetimeUpdated")
+
 	def _meta_status(self):
 		return "active"
+
+
+class _FakeRD(object):
+	def __init__(self, id):
+		self.sourceId = id
+
+
+class DeletedResource(NonServiceResource):
+	"""a remainder of a deleted resource.  These are always built from information
+	in the database, since that is the only place they are remembered.
+	"""
+	resType = "deleted"
+
+	def __init__(self, ivoId, resTuple):
+		self.resTuple = resTuple
+		self.rd = _FakeRD(resTuple["sourceRd"])
+		self.id = resTuple["internalId"]
+		NonServiceResource.__init__(self, self.resTuple["dateUpdated"])
+		self.setMeta("identifier", ivoId)
+		self.setMeta("status", "deleted")
+		self.setMeta("recTimestamp", resTuple["recTimestamp"])
+		self.dateUpdated = resTuple["recTimestamp"]
+
 
 def makeStaticResource(srcId, srcPairs):
 	"""returns a StaticResource instance for the sequence of (metaKey,
