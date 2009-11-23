@@ -887,8 +887,7 @@ def stanFactory(tag, **kwargs):
 
 
 # Within this abomination of code, the following is particularly nasty.
-# It *must* go, and be replaced with something in which you can
-# communicate at least required elements.  And something with sane code.
+# It *must* go.
 
 class ModelBasedBuilder(object):
 	"""is a meta builder that can create stan-like structures from meta

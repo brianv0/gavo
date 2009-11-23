@@ -1,6 +1,6 @@
 import copy
 import sys
-import unittest
+import traceback
 from xml import sax
 
 from nevow import tags as T, flat
@@ -8,6 +8,7 @@ from nevow import tags as T, flat
 from gavo import api
 from gavo import base
 from gavo.base import meta
+from gavo.base import metavalidation
 from gavo.web import common as webcommon
 from gavo.registry import builders
 
@@ -528,10 +529,120 @@ class XMLTest(testhelpers.VerboseTest):
 			'have some "problem" (such as overexposure).')
 
 
-def singleTest():
-	suite = unittest.makeSuite(ModelBasedBuilderTest, "testWi")
-	runner = unittest.TextTestRunner()
-	runner.run(suite)
+class ModelValidationTest(testhelpers.VerboseTest):
+	def setUp(self):
+		self.model = metavalidation.parseModel(self.modelDesc)
+
+	def assertFailures(self, carrier, failures):
+		try:
+			self.model.validate(carrier)
+		except base.MetaValidationError, ex:
+			pass
+		except Exception, ex:
+			traceback.print_exc()
+			raise AssertionError("Expected MetaValidationError, saw %s"%
+				ex.__class__.__name__)
+		else:
+			raise AssertionError("MetaValidationError not raised")
+		self.assertEqual(set(ex.failures), set(failures))
+
+	def assertValidates(self, carrier):
+		self.assertRuns(self.model.validate, (carrier,))
+
+
+class ExistsValidationTest(ModelValidationTest):
+	modelDesc = "publisher.name"
+
+	def testOnEmpty(self):
+		m = _MetaCarrier(None)
+		self.assertFailures(m, ['Meta key publisher.name missing'])
+
+	def testOnCarrier(self):
+		m = _MetaCarrier(None)
+		m.setMeta("publisher.name", "bar")
+		self.assertValidates(m)
+
+	def testOnParent(self):
+		p = _MetaCarrier(None)
+		p.setMeta("publisher.name", "bar")
+		m = _MetaCarrier(None)
+		m.setMetaParent(p)
+		self.assertValidates(m)
+
+
+class Exists2ValidationTest(ExistsValidationTest):
+	modelDesc = "publisher.name()"
+
+
+class ExistsOnSelfValidationTest(ModelValidationTest):
+	modelDesc = "shortName(!)"
+
+	def testOnEmpty(self):
+		m = _MetaCarrier(None)
+		self.assertFailures(m, ['Meta key shortName missing'])
+
+	def testOnCarrier(self):
+		m = _MetaCarrier(None)
+		m.setMeta("shortName", "bar")
+		self.assertValidates(m)
+
+	def testNonAtomic(self):
+		m = _MetaCarrier(None)
+		m.setMeta("shortName", "bar")
+		m.addMeta("shortName", "foo")
+		self.assertFailures(m, ['Meta key shortName is not atomic'])
+
+	def testOnParent(self):
+		p = _MetaCarrier(None)
+		p.setMeta("shortName", "bar")
+		m = _MetaCarrier(None)
+		m.setMetaParent(p)
+		self.assertFailures(m, ['Meta key shortName missing'])
+
+
+class ExistsAtomicValidationTest(ModelValidationTest):
+	modelDesc = "shortName(1)"
+
+	def testOnEmpty(self):
+		m = _MetaCarrier(None)
+		self.assertFailures(m, ['Meta key shortName missing'])
+
+	def testOnCarrier(self):
+		m = _MetaCarrier(None)
+		m.setMeta("shortName", "bar")
+		self.assertValidates(m)
+
+	def testNonAtomic(self):
+		m = _MetaCarrier(None)
+		m.setMeta("shortName", "bar")
+		m.addMeta("shortName", "foo")
+		self.assertFailures(m, ['Meta key shortName is not atomic'])
+
+	def testOnParent(self):
+		p = _MetaCarrier(None)
+		p.setMeta("shortName", "bar")
+		m = _MetaCarrier(None)
+		m.setMetaParent(p)
+		self.assertValidates(m)
+
+
+class StructureValidationTest(testhelpers.VerboseTest):
+	def setUp(self):
+		class Foo(_MetaCarrier):
+			metaModel = "shortName(!),publisher"
+		self.TS = Foo
+
+	def testSynthFail(self):
+		s = base.makeStruct(self.TS)
+		self.assertRaises(base.MetaValidationError, base.validateStructure,
+			s)
+
+	def testSynthOk(self):
+		s = base.makeStruct(self.TS)
+		s.setMeta("shortName", "o")
+		s.addMeta("publisher", "United Leeches, Inc.")
+		s.addMeta("publisher", "Greedy University Press")
+		self.assertRuns(base.validateStructure, (s,))
 
 
 if __name__=="__main__":

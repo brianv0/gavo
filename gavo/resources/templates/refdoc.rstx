@@ -226,7 +226,8 @@ renderers -- include:
   each table, and each service.  In simple cases, though, you may get by
   by just having one global title on the resource and rely on metdata
   inheritance.
-* shortName
+* shortName -- a string that should indicate what the service is in 16
+  characters or less.
 * creationDate -- Use ISO format with time, UTC only, like this: 
   2007-10-04T12:00:00Z
 * subject -- as noted in the explanatory leaflet, these should be taken

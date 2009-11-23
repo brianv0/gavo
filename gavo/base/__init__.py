@@ -54,6 +54,8 @@ from gavo.base.meta import (
 	MetaMixin, ComputedMetaMixin,
 	getMetaText, makeMetaValue, makeMetaItem)
 
+from gavo.base.metavalidation import MetaValidationError, validateStructure
+
 from gavo.base.observer import ObserverBase, listensTo
 
 from gavo.base.parsecontext import (
