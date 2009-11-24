@@ -19,6 +19,10 @@ Whitespace is ignored.  Codes allowed in parens are:
 
 An example for a valid model description: 
 "publisher.name,creator.email(), identifier (!), dateUpdated(1)"
+
+These model descriptions can come in metaModel attributes of structures.
+If they are, you can use the validateStructure function below to validate
+an entire structure tree.
 """
 
 from gavo import utils

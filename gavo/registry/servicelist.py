@@ -26,38 +26,6 @@ from gavo.registry.common import *
 class Error(base.Error):
 	pass
 
-class MissingMeta(Error):
-	def __init__(self, msg, fields):
-		Error.__init__(self, msg)
-		self.fields = fields
-
-
-# These keys must be present to ensure a valid VOResource record can be
-# built.
-_voRequiredMeta = [
-	"title",
-	"creationDate", 
-	"description", 
-	"subject", 
-#	"referenceURL", (would be necessary, but we default to service URL
-	"shortName", # actually, that's in just because we need it.
-]
-
-
-def ensureSufficientMeta(service):
-	"""raises an MissingMeta if metadata absolutely necessary for registration
-	is missing from the service.
-	"""
-	missingKeys = []
-	for key in _voRequiredMeta:
-		try:
-			service.getMeta(key, raiseOnFail=True)
-		except base.MetaError:
-			missingKeys.append(key)
-	if missingKeys:
-		raise MissingMeta("Missing meta keys in %s#%s: %s"%(service.rd.sourceId, 
-			service.id, missingKeys), missingKeys)
-
 
 def makeBaseRecord(service):
 	"""returns a dictionary giving the metadata common to all publications
@@ -100,7 +68,7 @@ def iterSvcRecs(service):
 	"""
 	if not service.publications:
 		return  # don't worry about missing meta if there are no publications
-	ensureSufficientMeta(service)
+	base.validateStructure(service)
 	rec = makeBaseRecord(service)
 	subjects = [str(item) for item in service.getMeta("subject")]
 	rec["subject"] = subjects.pop()
@@ -192,8 +160,12 @@ def updateServiceList(rds, metaToo=False, connection=None):
 			raise Error("Resource descriptor ID may not be absolute, but"
 				" '%s' seems to be."%rd.sourceId)
 		cleanServiceTablesFor(rd.sourceId, connection)
-		rsc.makeData(dd, forceSource=rd, parseOptions=parseOptions,
-			connection=connection)
+		try:
+			rsc.makeData(dd, forceSource=rd, parseOptions=parseOptions,
+				connection=connection)
+		except base.MetaValidationError, ex:
+			warnings.warn("Aborting publication of '%s' at service '%s':\n * %s"%(
+				rd.sourceId, ex.carrier.id, "\n * ".join(ex.failures)))
 		if metaToo:
 			for dependentDD in rd:
 				rsc.Data.create(dependentDD, connection=connection).updateMeta()

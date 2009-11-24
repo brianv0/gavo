@@ -297,10 +297,6 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	"""
 	name_ = "service"
 
-	# formats that should query the same fields as HTML (the others behave
-	# like VOTables and offer a "verbosity" widget in forms).
-	htmlLikeFormats = ["HTML", "tar"]
-
 	_core = base.ReferenceAttribute("core", description="The core that"
 		" does the computations for this service.", forceType=core.Core,
 		copyable=True)
@@ -343,6 +339,13 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	_rd = rscdef.RDAttribute()
 	_props = base.PropertyAttribute()
 	_original = base.OriginalAttribute()
+
+	metaModel = ("title(1), creationDate(1), description(1),"
+		"subject, referenceURL(1), shortName(!)")
+
+	# formats that should query the same fields as HTML (the others behave
+	# like VOTables and offer a "verbosity" widget in forms).
+	htmlLikeFormats = ["HTML", "tar"]
 
 	def completeElement(self):
 		self._completeElementNext(Service)
