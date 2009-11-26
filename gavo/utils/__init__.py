@@ -34,7 +34,7 @@ from gavo.utils.ostricks import safeclose, urlopenRemote, fgetmtime
 from gavo.utils.stanxml import ElementTree
 
 from gavo.utils.texttricks import (formatSize, makeEllipsis, floatRE, 
-	dateRE, isoTimestampFmt, datetimeToRFC2616,
+	dateRE, datetimeRE, isoTimestampFmt, datetimeToRFC2616,
 	fixIndentation, parsePercentExpression, hmsToDeg, dmsToDeg,
 	fracHoursToDeg, degToHms, degToDms, getRelativePath, parseAssignments, 
 	NameMap, formatSimpleTable)

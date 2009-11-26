@@ -176,12 +176,12 @@ def _parseOAIPars(pars):
 	"""
 	sqlPars, sqlFrags = {}, []
 	if "from" in pars:
-		if not utils.dateRE.match(pars["from"]):
+		if not utils.datetimeRE.match(pars["from"]):
 			raise BadArgument("from")
 		sqlFrags.append("recTimestamp >= %%(%s)s"%base.getSQLKey("from",
 			pars["from"], sqlPars))
 	if "until" in pars:
-		if not utils.dateRE.match(pars["until"]):
+		if not utils.datetimeRE.match(pars["until"]):
 			raise BadArgument("until")
 		sqlFrags.append("recTimestamp <= %%(%s)s"%base.getSQLKey("until",
 			pars["until"], sqlPars))

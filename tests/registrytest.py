@@ -53,9 +53,10 @@ class DeletedTest(testhelpers.VerboseTest):
 
 	def _assertPublished(self):
 		# see if oaiinter functions see new service
-		yesterday = datetime.date.today()+ datetime.timedelta(days=-1)
+		yesterday = datetime.datetime.today()+ datetime.timedelta(days=-1)
 		matches = [tup for tup in oaiinter.getMatchingRestups(
-			{"from": yesterday.isoformat()}, connection=self.connection)
+			{"from": yesterday.strftime(utils.isoTimestampFmt)}, 
+				connection=self.connection)
 			if tup["sourceRd"]=='test/test']
 		self.failUnless(len(matches)==1, "Publication did not write record.")
 		match = matches[0]
@@ -64,9 +65,10 @@ class DeletedTest(testhelpers.VerboseTest):
 			"Stale publication record?  Your machine can't be that slow")
 
 	def _assertUnpublished(self):
-		yesterday = datetime.date.today()+ datetime.timedelta(days=-1)
+		yesterday = datetime.datetime.today()+ datetime.timedelta(days=-1)
 		matches = [tup for tup in oaiinter.getMatchingRestups(
-			{"from": yesterday.isoformat()}, connection=self.connection)
+			{"from": yesterday.strftime(utils.isoTimestampFmt)}, 
+				connection=self.connection)
 			if tup["sourceRd"]=='test/test']
 		self.failUnless(len(matches)==1, "Unpublication deleted record.")
 		match = matches[0]

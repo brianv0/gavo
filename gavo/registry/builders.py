@@ -122,9 +122,9 @@ def getIdentifyElement(registryService):
 		OAI.baseURL[registryService.getURL("pubreg.xml")],
 		OAI.protocolVersion["2.0"],
 		OAI.adminEmail[base.getConfig("operator")],
-		OAI.earliestDatestamp["1970-01-01"],
+		OAI.earliestDatestamp["1970-01-01T00:00:00Z"],
 		OAI.deletedRecord["transient"],
-		OAI.granularity["YYYY-MM-DD"],
+		OAI.granularity["YYYY-MM-DDThh:mm:ssZ"],
 		OAI.description[
 			getVORMetadataElement(registryService),
 		],

@@ -15,6 +15,7 @@ from gavo.utils.excs import Error, LiteralParseError
 
 floatRE = r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?"
 dateRE = re.compile("\d\d\d\d-\d\d-\d\d$")
+datetimeRE = re.compile("\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ?$")
 isoTimestampFmt = "%Y-%m-%dT%H:%M:%SZ"
 
 
