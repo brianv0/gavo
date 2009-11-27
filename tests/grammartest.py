@@ -118,5 +118,18 @@ class IgnoreTests(testhelpers.VerboseTest):
 		list(g.parse(ignoreTestData))
 
 
+class EmbeddedGrammarTest(testhelpers.VerboseTest):
+	def testSimple(self):
+		from gavo import rscdesc
+		rd = base.parseFromString(rscdesc.RD, 
+			"""<resource schema="test"><data id="fake"><embeddedGrammar>
+				<iterator><code>
+					yield {'x': 1, 'y': 2}
+					yield {'x': 2, 'y': 2}
+				</code></iterator></embeddedGrammar></data></resource>""")
+		self.assertEqual(list(rd.dds[0].grammar.parse(None)),
+			[{'y': 2, 'x': 1}, {'y': 2, 'x': 2}])
+
+
 if __name__=="__main__":
-	testhelpers.main(PredefinedRowfilterTest)
+	testhelpers.main(EmbeddedGrammarTest)

@@ -9,6 +9,7 @@ from columngrammar import ColumnGrammar
 from customgrammar import CustomRowIterator
 from dictlistgrammar import DictlistGrammar
 from directgrammar import DirectGrammar
+from embeddedgrammar import EmbeddedGrammar
 from fitsprodgrammar import FITSProdGrammar
 from freeregrammar import FreeREGrammar
 from kvgrammar import KeyValueGrammar
