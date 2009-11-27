@@ -168,44 +168,47 @@ class ScriptHandler(object):
 		runner.run(script, connection=connection)
 
 	def _runSqlScriptWithQuerier(self, script, querier):
-		"""runs a script blindly using querier.
+		"""runs an SQL script blindly using querier.
 
 		Any error conditions will abort the script and leave querier's
 		connection invalid until a rollback.
 		"""
 		SQLScriptRunner().runBlindly(script, querier=querier)
 
+	def _makePythonFun(self, source, argList):
+		ns = dict(globals())
+		code = ("def scriptFun(%s):\n"%argList+
+			utils.fixIndentation(source, "      ")+"\n")
+		exec code in ns
+		return ns["scriptFun"]
+
 	def _runPythonDDProc(self, script):
-		"""compiles and run script to a python function working on a
-		data descriptor's table(s).
+		"""compiles and runs a script working on a data descriptor's table(s).
 
 		The function receives the data descriptor (as dataDesc) and a 
 		database connection (as connection) as arguments.  The script only
 		contains the body of the function, never the header.
 		"""
-		def makeFun(script):
-			ns = dict(globals())
-			code = ("def someFun(dataDesc, connection):\n"+
-				utils.fixIndentation(script, "      ")+"\n")
-			exec code in ns
-			return ns["someFun"]
-		makeFun(script)(self.parent, sqlsupport.getDefaultDbConnection())
+		self._makePythonFun(script, "dataDesc, connection")(
+			self.parent, sqlsupport.getDefaultDbConnection())
 
 	def _runPythonTableProc(self, script, **kwargs):
-		"""compiles and run script to a python function working on a
-		with a tableWriter.
+		"""compiles and runs a script working with a tableWriter.
 
 		The function receives the TableDef and the TableWriter as recDef and
 		tw arguments.  The script only contains the body of the function, never 
 		the header.
 		"""
-		def makeFun(script):
-			ns = dict(globals())
-			code = ("def someFun(recDef, tw):\n"+
-				utils.fixIndentation(script, "      ")+"\n")
-			exec code in ns
-			return ns["someFun"]
-		makeFun(script)(self.parent, **kwargs)
+		self._makePythonFun(script, "recDef, tw")(self.parent, **kwargs)
+
+	def _runPythonSourceProc(self, script, **kwargs):
+		"""compiles and runs a script working on a new source in data ingestion.
+
+		The script has the names sourceToken and data.  This kind of
+		thing is usually used to clean up persistent tables (like services).
+		"""
+		self._makePythonFun(script, "sourceToken, data")(**kwargs)
+
 
 	handlers = {
 		"preCreation": _runSqlScript,
@@ -215,6 +218,7 @@ class ScriptHandler(object):
 		"preIndexSQL": _runSqlScriptInConnection,
 		"afterDrop": _runSqlScriptInConnection,
 		"viewCreation": _runSqlScriptWithQuerier,
+		"newSource": _runPythonSourceProc,
 	}
 	
 	def _runScript(self, script, macroExpander, **kwargs):

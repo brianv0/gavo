@@ -43,6 +43,7 @@
 		<column name="setName" type="text"/>
 		<column name="sourceRd" type="text" tablehead="Source RD"/>
 		<column name="renderer" type="text"/>
+		<column name="deleted" type="boolean"/>
 		<primary>shortName, setName, renderer</primary>
 	</table>
 			
@@ -56,6 +57,18 @@
 	<data id="tables">
 		<meta name="description">gavoimp system this to create the service tables.
 		servicelist has special grammars to feed these.</meta>
+		<script type="newSource">
+			# mark services from rd imported as deleted (or remove them if
+			# we don't need to keep a record)
+			for id in ["srv_interfaces", "srv_subjs"]:
+				data.tables[id].deleteMatching(
+					"sourceRd=%(sourceRD)s", {"sourceRD": sourceToken.sourceId})
+			# sets and services are queried by oai, so I can't delete them
+			for id in ["srv_sets", "services"]:
+				data.tables[id].query("UPDATE %s SET deleted=True"
+					" WHERE sourceRD=%%(sourceRD)s"%id, 
+					{"sourceRD": sourceToken.sourceId})
+		</script>
 		<nullGrammar/>
 		<make table="services"/>
 		<make table="srv_interfaces"/>

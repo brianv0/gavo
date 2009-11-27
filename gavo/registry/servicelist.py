@@ -20,7 +20,7 @@ from gavo.registry import staticresource
 from gavo.registry.common import *
 
 
-# XXX TODO: Refactor -- there's grammar-type, servicelist querying, and
+# XXX TODO: Factor -- there's grammar-type, servicelist querying, and
 # command line stuff in here that should each go in a separate module.
 
 class Error(base.Error):
@@ -123,30 +123,6 @@ class StaticRscGrammar(grammars.Grammar):
 _staticRscGrammar = base.makeStruct(StaticRscGrammar)
 
 
-def cleanServiceTablesFor(targetRDId, connection):
-	"""flags all entries coming from targetRDId in the service tables as deleted.
-
-	This is done by removing it from all by the services table.  This, in
-	turn, will be broken if registries start to harvest using sets since the
-	deleted records will not belong to any set.  If that happens, we need
-	to come up with something more sophisticated.
-	"""
-# XXX TODO: think about script type="newSource" for this kind of situation
-# -- or do we want a special mechanism similar to owningCondition of old?
-	# delete stuff from interfaces and subjs -- these are not queries by oai
-	for id in ["srv_interfaces", "srv_subjs"]:
-		td = getServicesRD().getById(id)
-		rsc.TableForDef(td, connection=connection).deleteMatching(
-			"sourceRd=%(sourceRD)s", {"sourceRD": targetRDId})
-	# sets and services are queried by oai, so I can't delete them
-	for id in ["srv_sets", "services"]:
-		table = rsc.TableForDef(getServicesRD().getById("services"),
-			connection=connection)
-		table.query("UPDATE %s SET deleted=True"
-			" WHERE sourceRD=%%(sourceRD)s"%table.tableDef.getQName(), 
-			{"sourceRD": targetRDId})
-
-
 def updateServiceList(rds, metaToo=False, connection=None):
 	"""updates the services defined in rds in the services table in the database.
 	"""
@@ -159,7 +135,6 @@ def updateServiceList(rds, metaToo=False, connection=None):
 		if rd.sourceId.startswith("/"):
 			raise Error("Resource descriptor ID may not be absolute, but"
 				" '%s' seems to be."%rd.sourceId)
-		cleanServiceTablesFor(rd.sourceId, connection)
 		try:
 			rsc.makeData(dd, forceSource=rd, parseOptions=parseOptions,
 				connection=connection)
@@ -174,11 +149,10 @@ def updateServiceList(rds, metaToo=False, connection=None):
 
 def importFixed():
 	connection = base.getDBConnection("admin")
-	cleanServiceTablesFor(STATICRSC_ID, connection)
-
-	dd = base.caches.getRD(STATICRSC_ID).getById("tables")
+	rd = base.caches.getRD(STATICRSC_ID)
+	dd = rd.getById("tables")
 	dd.grammar = _staticRscGrammar
-	rsc.makeData(dd, forceSource=object, parseOptions=rsc.parseValidating,
+	rsc.makeData(dd, forceSource=rd, parseOptions=rsc.parseValidating,
 		connection=connection)
 	connection.commit()
 

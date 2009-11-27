@@ -244,7 +244,7 @@ class DataDescriptor(base.Structure, base.MetaMixin, scripting.ScriptingMixin):
 	_original = base.OriginalAttribute()
 	_ref = base.RefAttribute()
 
-	validWaypoints = ["preCreation", "postCreation"]
+	validWaypoints = ["preCreation", "postCreation", "newSource"]
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(DataDescriptor)

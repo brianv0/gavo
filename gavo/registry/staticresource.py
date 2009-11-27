@@ -32,6 +32,10 @@ class NonServiceResource(base.ComputedMetaMixin, DateUpdatedMixin,
 			render="static", sets=["ivo_managed"])]
 
 
+	def iterChildren(self):
+		# structure emulation to let meta validation work here
+		if False: yield
+		
 
 class StaticResource(NonServiceResource):
 	"""is a resource defined through a key value-based text file in

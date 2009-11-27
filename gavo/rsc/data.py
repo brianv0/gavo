@@ -227,11 +227,14 @@ def _pipeRows(srcIter, feeder, opts):
 				raise _EnoughRows
 
 
-def processSource(res, source, feeder, opts):
-	if res.dd.grammar is None:
+def processSource(data, source, feeder, opts):
+	"""ingests source into the Data instance data.
+	"""
+	if data.dd.grammar is None:
 		raise base.ReportableError("The data descriptor %s cannot be used"
-			" to make data since it has no defined grammar."%res.dd.id)
-	srcIter = res.dd.grammar.parse(source, res)
+			" to make data since it has no defined grammar."%data.dd.id)
+	data.dd.runScripts("newSource", sourceToken=source, data=data)
+	srcIter = data.dd.grammar.parse(source, data)
 	if hasattr(srcIter, "getParameters"):  # is a "normal" grammar
 		try:
 			_pipeRows(srcIter, feeder, opts)
@@ -242,7 +245,7 @@ def processSource(res, source, feeder, opts):
 			traceback.print_exc()
 			raise base.SourceParseError("Error while parsing %s: %s"%(source, msg))
 	else:  # magic grammars (like those of boosters) return a callable
-		srcIter(res)
+		srcIter(data)
 
 
 def makeData(dd, parseOptions=common.parseNonValidating,
