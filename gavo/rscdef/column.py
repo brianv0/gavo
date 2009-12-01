@@ -333,17 +333,28 @@ class Column(base.Structure):
 					raise base.ValidationError("%s too large (must be less than %s)"%(
 						value, vals.max), self.name)
 
-	def asInfoDict(self):
-		"""returns a dictionary of certain, "user-intersting" properties
-		of the data field, in a dict of strings.
+	def isIndexed(self):
+		"""returns a guess as to whether this column is part of an index.
+
+		This may return True, False, or None (unknown).
 		"""
-		indexState = "unknown"
 		if self.parent and hasattr(self.parent, "indexedColumns"):
 				# parent is something like a TableDef
 			if self.name in self.parent.indexedColumns:
-				indexState = "indexed"
+				return True
 			else:
-				indexState = "notIndexed"
+				return False
+
+	_indexedCleartext = {
+		True: "indexed",
+		False: "notIndexed",
+		None: "unknown",
+	}
+
+	def asInfoDict(self):
+		"""returns a dictionary of certain, "user-interesting" properties
+		of the data field, in a dict of strings.
+		"""
 		return {
 			"name": self.name,
 			"description": self.description or "N/A",
@@ -351,7 +362,7 @@ class Column(base.Structure):
 			"unit": self.unit or "N/A",
 			"ucd": self.ucd or "N/A",
 			"verbLevel": self.verbLevel,
-			"indexState": indexState,
+			"indexState": self._indexedCleartext[self.isIndexed()],
 			"note": self.note and base.makeSitePath("/tablenote/%s"%self.note),
 		}
 	

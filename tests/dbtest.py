@@ -41,7 +41,6 @@ class TestTypes(unittest.TestCase):
 		self.assertEqual(rows[0]["box"][1], (1,3))
 
 
-
 class TestWithTableCreation(unittest.TestCase):
 	tableName = None
 	rdId = "test.rd"

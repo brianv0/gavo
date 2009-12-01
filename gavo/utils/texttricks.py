@@ -337,6 +337,7 @@ def datetimeToRFC2616(dt):
 	"""
 	return dt.strftime('%a, %d %b %Y %H:%M:%S GMT')
 
+
 class NameMap(object):
 	"""is a name mapper fed from a simple text file.
 

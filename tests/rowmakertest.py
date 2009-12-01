@@ -280,5 +280,25 @@ class PredefinedTest(testhelpers.VerboseTest):
 		self.assertEqual(res.getPrimaryTable().rows, 
 			[{'y': u'right', 'x': u'bar'}])
 
+
+class IgnoreOnTest(testhelpers.VerboseTest):
+	"""tests for working ignoreOn clauses.
+	"""
+	def testBasic(self):
+		dd, td = makeDD('<column name="si"/>',
+			'<ignoreOn><keyPresent key="y"/></ignoreOn><idmaps>*</idmaps>')
+		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
+		self.assertEqual(mapper({'si': '1'}), {'si': 1.0})
+		self.assertRaises(rscdef.IgnoreThisRow, mapper,
+			{'si': 1, 'y': None})
+	
+	def testBuilding(self):
+		dd, td = makeDD('<column name="si"/>',
+			'<ignoreOn><keyMissing key="y"/></ignoreOn><idmaps>*</idmaps>')
+		table = rsc.makeData(dd, forceSource=[{'si':1}, {'si':2, 'y':"yes"},
+			{'si': 3}]).getPrimaryTable()
+		self.assertEqual(table.rows, [{'si':2.}])
+
+
 if __name__=="__main__":
 	testhelpers.main(RowmakerMapTest)

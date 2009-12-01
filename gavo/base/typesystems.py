@@ -300,6 +300,32 @@ class ToNumpyConverter(FromSQLConverter):
 			return numpy.str
 
 
+class ToADQLConverter(FromSQLConverter):
+	typeSystem = "adql"
+
+	simpleMap = {
+		"smallint": ("SMALLINT", None),
+		"integer": ("INTEGER", None),
+		"bigint": ("BIGINT", None),
+		"real": ("REAL", None),
+		"boolean": ("INTEGER", None),
+		"double precision": ("DOUBLE", None),
+		"text": ("VARCHAR(*)", None),
+		"char": ("CHAR", 1),
+		"date": ("VARCHAR(*)", None),
+		"timestamp": ("VARCHAR(*)", None),
+		"time": ("VARCHAR(*)", None),
+		"box": ("VARCHAR(*)", None),
+		"spoint": ("VARCHAR(*)", None),
+		"scircle": ("VARCHAR(*)", None),
+		"spolygon": ("VARCHAR(*)", None),
+	}
+
+	def mapComplex(self, type, length):
+		if type in self._charTypes:
+			return ("VARCHAR(*)", None)
+
+
 ######## Helpers for conversion to python values
 
 def toPythonTimeDelta(days=0, hours=0, minutes=0, seconds=0):
@@ -425,6 +451,7 @@ class ToPythonCodeConverter(FromSQLConverter):
 
 toVOTableConverter = ToVOTableConverter()
 sqltypeToVOTable = toVOTableConverter.convert
+sqltypeToADQL = ToADQLConverter().convert
 sqltypeToXSD = ToXSDConverter().convert
 sqltypeToNumpy = ToNumpyConverter().convert
 sqltypeToPython = ToPythonConverter().convert

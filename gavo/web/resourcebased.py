@@ -291,7 +291,7 @@ class TextResponse(ServiceResource):
 		content = texttable.getAsText(data.original)
 		request.setHeader('content-disposition', 
 			'attachment; filename=table.tsv')
-		request.setHeader("content-type", "text/plain")
+		request.setHeader("content-type", "text/tab-separated-values")
 		request.setHeader("content-length", len(content))
 		request.write(content)
 		return ""

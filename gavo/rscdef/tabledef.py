@@ -15,16 +15,10 @@ from gavo.rscdef import common
 from gavo.rscdef import macros
 from gavo.rscdef import mixins
 from gavo.rscdef import rmkfuncs
-from gavo.rscdef import rowtriggers
 from gavo.rscdef import scripting
 
 
 MS = base.makeStruct
-
-class IgnoreThisRow(Exception):
-	"""is raised by TableDef.validateRow if a row should be ignored.
-	This exception must be caught upstream.
-	"""
 
 
 class DBIndex(base.Structure):
@@ -213,12 +207,6 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 	_system = base.BooleanAttribute("system", default=False,
 		description="Is this a system table?  If it is, it will not be"
 			" dropped on normal imports, and accesses to it will not be logged.")
-	_ignoreOn = base.StructAttribute("ignoreOn", default=None, copyable=True,
-		description="Conditions for excluding records from being written to the"
-			" DB.  Note that they are only evaluated if validation is enabled"
-			" in the parse options, e.g. via gavoimp (where validation is the"
-			" default).",
-		childFactory=rowtriggers.IgnoreOn)
 	# don't copy stc -- columns just keep the reference to the original
 	# stc on copy, and nothing should rely on column stc actually being
 	# defined in the parent tableDefs.
@@ -372,9 +360,6 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 			except base.ValidationError, ex:
 				ex.row = row
 				raise
-		if self.ignoreOn:
-			if self.ignoreOn(row):
-				raise IgnoreThisRow(row)
 
 	def getFieldIndex(self, fieldName):
 		"""returns the index of the field named fieldName.

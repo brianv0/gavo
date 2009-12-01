@@ -71,7 +71,8 @@
 		<column name="mag" unit="mag" ucd="phot.mag"
 			description="A sample magnitude"/>
 		<column name="rv" unit="km/s" ucd="phys.veloc;pos.heliocentric"
-			description="A sample radial velocity"/>
+			description="A sample radial velocity"
+			type="double precision"/>
 	</table>
 
 	<data id="ADQLTest">

@@ -11,6 +11,7 @@ from gavo import rscdef
 from gavo import rscdesc
 from gavo.base import meta
 from gavo.protocols import basic
+from gavo.protocols import tap
 from gavo.rscdef import tabledef
 
 import testhelpers
@@ -151,5 +152,73 @@ class ViewTest(testhelpers.VerboseTest):
 		self.assertEqual(rd.getById("vv"), td)
 
 
+class TAP_SchemaTest(testhelpers.VerboseTest):
+	"""test for working tap_schema export.
+
+	This is another mega test that runs a bunch of functions in sequence.
+	We really should have a place to put those.
+	"""
+	def setUp(self):
+		self.rd = testhelpers.getTestRD()
+		self.rd.getById("adqltable").foreignKeys.append(
+			base.parseFromString(tabledef.ForeignKey, 
+				'<foreignKey table="test.adql" source="foo" dest="rv"/>'))
+		self.conn = base.getDBConnection("test")
+
+	def tearDown(self):
+		self.rd.getById("adqltable").foreignKeys = []
+		self.conn.rollback()
+
+	def _checkPublished(self):
+		q = base.SimpleQuerier()
+		tables = set(r[0] for r in
+			(q.query("select table_name from TAP_SCHEMA.tables where sourcerd"
+			" like %(rdid)s", {"rdid": self.rd.sourceId})))
+		self.assertEqual(tables, set(['test.adqltable', 'test.adql']))
+		columns = set(r[0] for r in
+			(q.query("select column_name from TAP_SCHEMA.columns where sourcerd"
+			" like %(rdid)s", {"rdid": self.rd.sourceId})))
+		self.assertEqual(columns, 
+			set([u'alpha', u'rv', u'foo', u'mag', u'delta']))
+		fkeys = set(q.query("select from_table, target_table"
+				" from TAP_SCHEMA.keys where sourcerd"
+				" like %(rdid)s", {"rdid": self.rd.sourceId}))
+		self.assertEqual(fkeys, 
+			set([(u'test.adqltable', u'test.adql')]))
+		fkcols = set(r for r in
+			(q.query("select from_column, target_column"
+				" from TAP_SCHEMA.key_columns -- where sourcerd"
+				" like %(rdid)s", {"rdid": self.rd.sourceId})))
+		self.assertEqual(fkcols, set([(u'foo', u'rv')]))
+
+	def _checkUnpublished(self):
+		q = base.SimpleQuerier()
+		tables = set(r[0] for r in
+			(q.query("select table_name from TAP_SCHEMA.tables where sourcerd"
+			" like %(rdid)s", {"rdid": self.rd.sourceId})))
+		self.assertEqual(tables, set())
+		columns = set(r[0] for r in
+			(q.query("select column_name from TAP_SCHEMA.columns where sourcerd"
+			" like %(rdid)s", {"rdid": self.rd.sourceId})))
+		self.assertEqual(columns, set())
+		fkeys = set(q.query("select from_table, target_table"
+				" from TAP_SCHEMA.keys where sourcerd"
+				" like %(rdid)s", {"rdid": self.rd.sourceId}))
+		self.assertEqual(fkeys, set())
+		fkcols = set(r for r in
+			(q.query("select from_column, target_column"
+				" from TAP_SCHEMA.key_columns -- where sourcerd"
+				" like %(rdid)s", {"rdid": self.rd.sourceId})))
+		self.assertEqual(fkcols, set())
+
+	def testMega(self):
+		tap.publishToTAP(self.rd, self.conn)
+		self._checkPublished()
+		tap.publishToTAP(self.rd, self.conn)
+		self._checkPublished()
+		tap.unpublishFromTAP(self.rd, self.conn)
+		self._checkUnpublished()
+
+
 if __name__=="__main__":
-	testhelpers.main(ViewTest)
+	testhelpers.main(TAP_SchemaTest)

@@ -32,9 +32,6 @@
 		<column name="accessURL" type="text"/>
 		<column name="renderer" type="text"/>
 		<primary>accessURL</primary>
-		<ignoreOn>
-			<keyIs key="accessURL" value="__NULL__"/>
-		</ignoreOn>
 	</table>
 
 	<table system="True" id="srv_sets" forceUnique="True" onDisk="True"
@@ -70,8 +67,15 @@
 					{"sourceRD": sourceToken.sourceId})
 		</script>
 		<nullGrammar/>
+
+		<rowmaker id="make_interfaces" idmaps="*">
+			<ignoreOn>
+				<keyIs key="accessURL" value="__NULL__"/>
+			</ignoreOn>
+		</rowmaker>
+
 		<make table="services"/>
-		<make table="srv_interfaces"/>
+		<make table="srv_interfaces" rowmaker="make_interfaces"/>
 		<make table="srv_sets"/>
 		<make table="srv_subjs"/>
 	</data>

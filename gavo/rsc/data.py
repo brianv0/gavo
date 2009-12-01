@@ -40,7 +40,10 @@ class DataFeeder(table.Feeder):
 			feeder = table.getFeeder(batchSize=self.batchSize)
 			makeRow = make.rowmaker.compileForTable(table)
 			def addRow(srcRow, feeder=feeder, makeRow=makeRow):
-				feeder.add(makeRow(srcRow))
+				try:
+					feeder.add(makeRow(srcRow))
+				except rscdef.IgnoreThisRow, msg:
+					pass
 			if make.rowmaker.rowSource=='parameters':
 				parAdders.append(addRow)
 			else:

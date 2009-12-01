@@ -398,13 +398,14 @@ class HTMLDataRenderer(rend.Fragment):
 			mfRegistry=_htmlMFRegistry)
 		self.colDescIndex = dict((c["name"], c) for c in self.serManager)
 		self.defaultTds = []
-		for desc, field in zip(self.serManager, self.table.tableDef):
+		for index, (desc, field) in enumerate(
+				zip(self.serManager, self.table.tableDef)):
 			if field.wantsRow:
 				desc["wantsRow"] = True
 			if field.formatter:
 				formatter = self._compileRenderer(field.formatter)
 			else:
-				formatter=_htmlMFRegistry.getMapper(desc) # This may change desc!
+				formatter = self.serManager.mappers[index]
 			if desc.has_key("wantsRow"):
 				self.defaultTds.append(
 					T.td(formatter=formatter, render=T.directive("useformatter")))

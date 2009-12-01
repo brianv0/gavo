@@ -12,6 +12,7 @@ from gavo import grammars
 from gavo import rscdesc     # for registration
 from gavo import rsc
 from gavo.protocols import basic  # for registration
+from gavo.protocols import tap
 from gavo import user
 from gavo import web         # for registration
 from gavo.user import errhandle
@@ -34,6 +35,7 @@ def process(opts, args):
 		rd = base.caches.getRD(src, forImport=True)
 	connection = base.getDBConnection("admin")
 	rd.runScripts("preCreation", connection=connection)
+	tap.publishToTAP(rd, connection)
 	for dd in rd.dds:
 		if ddIds and not dd.id in ddIds:
 			continue
@@ -142,6 +144,7 @@ def drop(opts, rdId):
 		res = rsc.Data.create(dd, connection=connection).dropTables()
 	from gavo.registry import servicelist
 	servicelist.cleanServiceTablesFor(rd.sourceId, connection)
+	tap.unpubishFromTAP(rd, connection)
 	connection.commit()
 
 

@@ -19,6 +19,7 @@ from gavo.rscdef import common
 from gavo.rscdef import macros
 from gavo.rscdef import procdef
 from gavo.rscdef import rmkfuncs
+from gavo.rscdef import rowtriggers
 from gavo.rscdef import tabledef
 
 
@@ -255,6 +256,10 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		default="rows", validValues=["rows", "parameters"],
 		description="Source for the raw rows processed by this rowmaker.",
 		copyable=True)
+	_ignoreOn = base.StructAttribute("ignoreOn", default=None,
+		childFactory=rowtriggers.IgnoreOn, description="Conditions on the"
+		" input record (as delivered by the grammar) to cause the input"
+		" record to be dropped by the rowmaker.", copyable=True)
 	_original = base.OriginalAttribute()
 
 	@classmethod
@@ -302,6 +307,10 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 			line += source[-1].count("\n")
 			return line
 
+		if self.ignoreOn:
+			line = appendToSource("if checkTrigger(rowdict_):\n"
+				"  raise IgnoreThisRow(rowdict_)",
+				line, "Checking ignore")
 		for v in self.vars:
 			line = appendToSource(v.getCode(), line, "assigning "+v.name)
 		for a in self.apps:
@@ -315,6 +324,8 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		globals = {}
 		for a in self.apps:
 			globals[a.name] = a.compile()
+		if self.ignoreOn:
+			globals["checkTrigger"] = self.ignoreOn
 		globals["tableDef_"] = tableDef
 		globals["rd_"] = self.rd
 		return globals
@@ -377,8 +388,8 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 
 	def copyShallowly(self):
 		return base.makeStruct(self.__class__, maps=self.maps[:], 
-			vars=self.vars[:], idmaps=self.idmaps, rowSource=self.rowSource, 
-			apps=self.apps[:])
+			vars=self.vars[:], idmaps=self.idmaps[:], rowSource=self.rowSource, 
+			apps=self.apps[:], ignoreOn=self.ignoreOn)
 
 
 identityRowmaker = base.makeStruct(RowmakerDef, idmaps="*")
@@ -460,6 +471,8 @@ class Rowmaker(object):
 			vars["rowdict_"] = vars
 			exec self.code in self.globals, vars
 			return vars["_result"]
+		except rmkfuncs.IgnoreThisRow: # pass these on
+			raise
 		except base.ValidationError:  # hopefully downstream knows better than we
 			raise
 		except Exception, ex:

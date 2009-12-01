@@ -22,9 +22,8 @@ from gavo.rscdef.procdef import ProcDef, ProcApp
 
 from gavo.rscdef.rmkdef import RowmakerDef, MapRule
 
-from gavo.rscdef.rmkfuncs import addRmkFunc
+from gavo.rscdef.rmkfuncs import addRmkFunc, IgnoreThisRow
 
 from gavo.rscdef.rowtriggers import IgnoreOn, TriggerPulled
 
-from gavo.rscdef.tabledef import (TableDef, SimpleView, IgnoreThisRow,
-	makeTDForColumns)
+from gavo.rscdef.tabledef import (TableDef, SimpleView, makeTDForColumns)
