@@ -227,8 +227,6 @@ class TableDataDecoder(GenericDecoder):
                             # Scalars!
                             try:
                                 decodedField = pType(token)
-                                if voType=='unsignedByte':
-                                    decodedField = chr(decodedField)
                             except ValueError:
                                 decodedField = None
                         else:

@@ -206,7 +206,7 @@ class ToVOTableConverter(FromSQLConverter):
 		"vexpr-date": ("char", "*"),
 		"vexpr-float": ("double", "1"),
 		"raw": ("unsignedByte", "*"),
-		"bytea": ("unsignedByte", "1"),
+		"bytea": ("unsignedByte", "1"),  # ??? highly questionable
 	}
 
 	def mapComplex(self, type, length):
@@ -214,6 +214,8 @@ class ToVOTableConverter(FromSQLConverter):
 			length = '*'
 		if type in self._charTypes:
 			return "char", length
+		elif length!=1 and length!='1' and type=="bytea":
+			return ("unsignedByte", '*')
 		elif type in self.simpleMap:
 			return self.simpleMap[type][0], length
 
@@ -230,7 +232,7 @@ class FromVOTableConverter(object):
 		("double", None): "double precision",
 		("char", "*"): "text",
 		("char", None): "char",
-		("unsignedByte", None): "bytea",
+		("unsignedByte", None): "smallint",
 		("raw", None): "raw",
 	}
 
@@ -247,6 +249,8 @@ class FromVOTableConverter(object):
 			arraysize = ""
 		if type=="char":
 			return "text"
+		if type=="unsignedByte" and arraysize!="1" and arraysize!=1:
+			return "bytea[]"
 		if (type, None) in self.simpleMap:
 			return "%s[%s]"%(self.simpleMap[type, None], arraysize)
 		raise ConversionError("No SQL type for %s, %s"%(type, arraysize))

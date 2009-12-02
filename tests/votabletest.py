@@ -136,7 +136,7 @@ class ImportTest(testhelpers.VerboseTest):
 		self.assertEqual(row[5], 'NGC 104')
 		self.failUnless(isinstance(row[6], unicode))
 		self.assertAlmostEqual(row[7][0], 305.9)
-		self.assertEqual(str(row[9]), '"')
+		self.assertEqual(str(row[9]), 34)
 
 	def testNULLs(self):
 		row = self.data[1]
@@ -152,7 +152,7 @@ class ImportTest(testhelpers.VerboseTest):
 		self.assertEqual([f.type for f in self.tableDef], 
 			['double precision', 'double precision', 'double precision', 
 				'integer', 'smallint', 'text', 'text', 'real[2]', 'real', 
-				'bytea', 'real', 'text', 'text', 'char'])
+				'smallint', 'real', 'text', 'text', 'char'])
 
 
 class MetaTest(testhelpers.VerboseTest):
