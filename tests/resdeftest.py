@@ -59,14 +59,14 @@ class ColumnTest(testhelpers.VerboseTest):
 
 	def testRaises(self):
 		self.assertRaisesWithMsg(base.LiteralParseError, 
-			'At <internal source>, unknown position: '
-			"zucki is not a"
-			" supported type", base.parseFromString, (rscdef.Column,
+			"At <internal source>, unknown position: 'zucki' is not a"
+			" valid value for type",
+			base.parseFromString, (rscdef.Column,
 				'<column name="foo" type="zucki"/>'))
 		self.assertRaisesWithMsg(base.LiteralParseError, 
-			'At <internal source>, unknown position: '
-			"Invalid display hint"
-			" 'xxyyz'", base.parseFromString, (rscdef.Column,
+			"At <internal source>, unknown position: 'xxyyz'"
+			" is not a valid value for displayHint",
+			base.parseFromString, (rscdef.Column,
 				'<column name="foo" displayHint="xxyyz"/>'))
 		self.assertRaisesWithMsg(base.StructureError, 
 			'At <internal source>, last known position: 1, 22: '
@@ -133,7 +133,7 @@ class TableDefTest(testhelpers.VerboseTest):
 			' <column name="z" ucd="meta.id;meta.main"/></table>')
 		self.assertEqual(len(t.getColumnsByUCD("meta.id")), 2)
 		self.assertEqual(t.getColumnsByUCD("meta.id;meta.main")[0].name, "z")
-		self.assertRaises(base.Error, t.macro_nameForUCD, "meta.id")
+		self.assertRaises(ValueError, t.macro_nameForUCD, "meta.id")
 	
 	def testRoles(self):
 		t = base.parseFromString(rscdef.TableDef, '<table id="t"></table>')
@@ -173,8 +173,8 @@ class TableDefTest(testhelpers.VerboseTest):
 			'<column name="a"/><column name="b"/></table>')
 		self.assertEqual(t.primary, ["a", "b"])
 		self.assertRaisesWithMsg(base.LiteralParseError,
-			'At <internal source>, last known position: 1, 72: '
-			"Column tuple component quatsch is not in parent table",
+			"At <internal source>, last known position: 1, 72:"
+			" 'quatsch' is not a valid value for primary",
 			base.parseFromString, (rscdef.TableDef, 
 				'<table id ="t" primary="a, quatsch">'
 				'<column name="a"/><column name="b"/></table>'))

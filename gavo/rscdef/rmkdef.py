@@ -93,9 +93,9 @@ class MapRule(base.Structure):
 				code.append('_result["%s"] = %s'%(self.dest, 
 					base.sqltypeToPythonCode(colDef.type)%self.src))
 			except base.ConversionError:
-				raise base.LiteralParseError("Auto-mapping to %s is impossible since"
-					" no default map for %s is known"%(self.dest, colDef.type),
-					"map", colDef.type)
+				raise base.LiteralParseError("map", colDef.type,
+					hint="Auto-mapping to %s is impossible since"
+					" no default map for %s is known"%(self.dest, colDef.type))
 		code = "".join(code)
 		if self.nullExcs is not base.NotGiven:
 			code = 'try:\n%s\nexcept (%s): _result["%s"] = None'%(
@@ -130,8 +130,9 @@ class VarDef(base.Structure):
 		if self.content_:
 			utils.ensureExpression(self.content_, self.name_)
 		if not common.identifierPat.match(self.name):
-			raise base.LiteralParseError("Var names must be valid python"
-				" identifiers, and %s is not"%self.name, "name", self.name)
+			raise base.LiteralParseError("name", self.name,
+				hint="Var names must be valid python"
+				" identifiers, and '%s' is not"%self.name)
 
 	def getCode(self):
 		return "%s = %s"%(self.name, self.parent.expand(self.content_))
@@ -340,9 +341,9 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		for colName in self.idmaps:
 			matching = fnmatch.filter(baseNames, colName)
 			if not matching:
-				raise base.LiteralParseError("%s does not match any column"
-					" names from table %s"%(colName, tableDef.id), "idmaps", 
-					",".join(self.idmaps))
+				raise base.LiteralParseError("idmaps", ",".join(self.idmaps),
+					hint="%s does not match any column names from table %s"%(
+						colName, tableDef.id))
 			for dest in matching:
 				if dest not in existingMaps:
 					self.maps.append(MapRule(self, dest=dest).finishElement())
@@ -356,8 +357,9 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 			try:
 				tableDef.getColumnByName(map.dest)
 			except KeyError:
-				raise base.LiteralParseError("Cannot map to '%s' since it does"
-					" not exist in %s"%(map.dest, tableDef.id), self.name_, self.dest)
+				raise base.LiteralParseError(self.name_, self.dest, 
+					"Cannot map to '%s' since it does not exist in %s"%(
+						map.dest, tableDef.id))
 
 	def _buildForTable(self, tableDef):
 		"""returns a RowmakerDef with everything expanded and checked for
@@ -411,9 +413,7 @@ class Rowmaker(object):
 		try:
 			self.code = compile(source, "generated mapper code", "exec")
 		except SyntaxError, msg:
-			sys.stderr.write("Bad Code:\n%s\n"%source)
-			raise base.LiteralParseError("Bad code in rowmaker (%s)"%unicode(msg),
-				"rowmaker", source)
+			raise base.BadCode(source, "rowmaker", msg)
 		self.source, self.name = source, name
 		globals.update(rmkfuncs.__dict__)
 		self.globals, self.defaults = globals, defaults

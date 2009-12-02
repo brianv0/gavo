@@ -58,7 +58,7 @@ import weakref
 from gavo import utils
 from gavo.base import attrdef
 from gavo.base import parsecontext
-from gavo.utils.excs import StructureError, Replace, LiteralParseError
+from gavo.utils.excs import StructureError, Replace, BadCode
 
 
 class ChangeParser(Exception):
@@ -586,8 +586,7 @@ class Generator(Parser):
 			try:
 				exec self.code in vals
 			except Exception, msg:
-				raise LiteralParseError("Invalid code in generator (%s)"%
-					unicode(msg), "GENERATOR", self.code)
+				raise BadCode(code, "GENERATOR", ex)
 			for ev in vals["gen"]():
 				if ev[0]=="element":
 					self._expandElementEvent(ev, parent)

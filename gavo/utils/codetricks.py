@@ -307,9 +307,8 @@ def ensureExpression(expr, errName="unknown"):
 		expr = "''+"+expr
 	try:
 		ast = compiler.parse(expr)
-	except SyntaxError:
-		raise excs.LiteralParseError("'%s' is not correct python syntax"%
-			expr, errName, expr)
+	except SyntaxError, msg:
+		raise excs.BadCode(expr, "expression", msg)
 	# An ast for an expression is a Discard inside at Stmt inside the
 	# top-level Module
 	try:
@@ -318,9 +317,8 @@ def ensureExpression(expr, errName="unknown"):
 			raise ValueError("Not a single statement")
 		if not isinstance(exprNodes[0], compiler.ast.Discard):
 			raise ValueError("Not an expression")
-	except (ValueError, AttributeError):
-		raise excs.LiteralParseError("'%s' is not a valid python expression"%
-			expr, errName, expr)
+	except (ValueError, AttributeError), ex:
+		raise excs.BadCode(expr, "expression", ex)
 
 
 def loadPythonModule(fqName):

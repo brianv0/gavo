@@ -274,10 +274,10 @@ class FixupTest(testhelpers.VerboseTest):
 	"""tests for column fixup attributes.
 	"""
 	def testInvalidFixup(self):
-		self.assertRaisesWithMsg(base.LiteralParseError, 
-			"At <internal source>, last known position: 1, 50: "
-			"'9m+5s' is not correct python syntax", base.parseFromString,
-			(rscdef.TableDef, 
+		self.assertRaisesWithMsg(base.BadCode, 
+			"At <internal source>, last known position: 1, 50:"
+			" Bad source code in expression (invalid syntax (line 1))",
+			base.parseFromString, (rscdef.TableDef, 
 			'<table id="test"><column name="ab" fixup="9m+5s"/></table>'))
 	
 	def testSimpleFixup(self):

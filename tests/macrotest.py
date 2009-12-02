@@ -3,6 +3,7 @@ Tests for the macro expansion machinery.
 """
 
 from gavo import base
+from gavo import rscdef
 from gavo.rscdef import macros
 
 import testhelpers
@@ -47,11 +48,12 @@ class NakedMacroTest(testhelpers.VerboseTest):
 
 	def testErrors(self):
 		me = self.SimplePackage().getExpander()
-		self.assertRaisesWithMsg(base.LiteralParseError, 
-			r"No such macro available in this context: \unknown", 
+		self.assertRaisesWithMsg(rscdef.MacroError,
+			'Error during macro expansion: No such macro available in'
+			' this context: \\unknown',
 			me.expand, (r"an \unknown Macro",))
-		self.assertRaisesWithMsg(base.LiteralParseError, 
-			r"Invalid Arguments to \quote: []", 
+		self.assertRaisesWithMsg(rscdef.MacroError,
+			'Error during macro expansion: Invalid macro arguments to \\quote: []',
 			me.expand, (r"\quote takes an argument",))
 
 

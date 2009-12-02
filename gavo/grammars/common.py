@@ -106,12 +106,12 @@ class MapKeys(base.Structure):
 				if dest not in self.maps:
 					self.maps[src.strip()] = dest.strip()
 				else:
-					raise base.LiteralParseError("%s simple map clobbers map to %s"%(
-						"%s:%s"%(dest, src), self.maps[src]), "mapKeys",
-						src)
+					raise base.LiteralParseError(self.name_, literal, 
+						hint="%s clobbers an existing map within the row maker."%dest)
 		except ValueError:
-			raise base.LiteralParseError("'%s' does not have the format"
-				" k:v {,k:v}"%self.literal, self.name_, self.literal)
+			raise base.LiteralParseError(self.name_, literal,
+				hint="A key-value enumeration of the format k:v {,k:v}"
+				" is expected here")
 
 	def onElementComplete(self):
 		if self.content_:

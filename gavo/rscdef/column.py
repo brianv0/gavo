@@ -27,8 +27,9 @@ class TypeNameAttribute(AtomicAttribute):
 		try:
 			typesystems.sqltypeToPythonCode(value)
 		except base.Error:
-			raise LiteralParseError("%s is not a supported type"%value,
-				self.name_, value)
+			raise LiteralParseError(self.name_, value, hint="A supported SQL"
+				" type was expected here.  If in doubt, check base/typeconversions.py,"
+				" in particular ToPythonCodeConverter.")
 		return value
 	
 	def unparse(self, value):
@@ -88,8 +89,8 @@ class DisplayHintAttribute(AtomicAttribute):
 		try:
 			return dict([f.split("=") for f in value.split(",")])
 		except (ValueError, TypeError):
-			raise LiteralParseError("Invalid display hint '%s'"%value,
-				self.name_, value)
+			raise LiteralParseError(self.name_, value, hint="DisplayHints"
+				" have a format like tag=value{,tag=value}")
 
 	def unparse(self, value):
 		return ",".join(

@@ -186,16 +186,15 @@ class ColumnList(list):
 	def getColumnByUCD(self, ucd):
 		"""retuns the single, unique column having ucd.
 
-		It returns a LiteralParseError if there is no such column.
+		It raises a ValueError if there is no such column or more than one.
 		"""
 		cols = self.getColumnsByUCD(ucd)
 		if len(cols)==1:
 			return cols[0]
 		elif cols:
-			raise base.LiteralParseError("More than one column for %s"%ucd,
-				"ucd", ucd)
+			raise ValueError("More than one column for %s"%ucd)
 		else:
-			raise base.LiteralParseError("No column for %s"%ucd, "ucd", ucd)
+			raise ValueError("No column for %s"%ucd)
 
 	def getColumnByUCDs(self, *ucds):
 		"""returns the single, unique column having one of ucds.
@@ -208,10 +207,9 @@ class ColumnList(list):
 		for ucd in ucds:
 			try:
 				return self.getColumnByUCD(ucd)
-			except base.LiteralParseError:
+			except ValueError:
 				pass
-		raise base.LiteralParseError("No column for any of %s"%ucd, "ucd", 
-			", ".join(ucds))
+		raise ValueError("No column for any of %s"%ucd)
 
 
 class ColumnListAttribute(base.StructListAttribute):

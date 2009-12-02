@@ -71,7 +71,7 @@ class IgnoreSpec(base.Structure):
 		"""
 		try:
 			path = utils.getRelativePath(path, self.inputsDir)
-		except base.LiteralParseError: # not in inputs, use full path.
+		except ValueError: # not in inputs, use full path.
 			pass
 		if path in self.ignoredSet:
 			return True

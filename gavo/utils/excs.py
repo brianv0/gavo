@@ -7,7 +7,8 @@ one module.
 
 Of course, for certain errors, built-in exceptions (e.g., NotImplemented
 or so) may be raised and propagated as well, but these should always
-signify internal bugs, never things a user should be confronted with.
+signify internal bugs, never things a user should be confronted with
+under normal circumstances.
 
 And then there's stuff like fancyconfig that's supposed to live
 independently of the rest.  It's ok if those raise other Exceptions,
@@ -33,6 +34,7 @@ class Error(Exception):
 		Exception.__init__(self, msg)
 		self.hint = hint
 
+
 class StructureError(Error):
 	"""is raised if an error occurs during the construction of
 	structures.
@@ -57,13 +59,42 @@ class StructureError(Error):
 		else:
 			return "At %s: %s"%(str(self.pos), self.args[0])
 
-class ValidationError(Error):
-	"""is raised when the validation of a field fails.  It has a colName
-	attribute containing the field name and an optional row attribute
-	saying which row caused the error.
+
+class LiteralParseError(StructureError):
+	"""is raised if an attribute literal is somehow bad.
+
+	LiteralParseErrors are constructed with the name of the attribute
+	that was being parsed, the offending literal, and optionally a 
+	parse position and a hint.
 	"""
-	def __init__(self, msg, colName, row=None):
-		Error.__init__(self, msg)
+	def __init__(self, attName, literal, pos=None, hint=None):
+		StructureError.__init__(self, "'%s' is not a valid value for %s"%(
+			literal, attName), pos=pos, hint=hint)
+		self.attName, self.attVal = attName, literal
+
+
+class BadCode(StructureError):
+	"""is raised when some code could not be compiled.
+
+	BadCodes are constructed with the offending code, a code type,
+	the original exception, and optionally a hint and a position.
+	"""
+	def __init__(self, code, codeType, origExc, hint=None, pos=None):
+		StructureError.__init__(self, "Bad source code in %s (%s)"%(
+				codeType, unicode(origExc)), 
+			pos=pos, hint=hint)
+		self.code, self.codeType = code, codeType
+		self.origExc = origExc
+
+
+class ValidationError(Error):
+	"""is raised when the validation of a field fails.  
+	
+	ValidationErrors are constructed with a message, a column name,
+	and optionally a row (i.e., a dict) and a hint.
+	"""
+	def __init__(self, msg, colName, row=None, hint=None):
+		Error.__init__(self, msg, hint=hint)
 		self.msg = msg
 		self.colName, self.row = colName, row
 	
@@ -73,14 +104,6 @@ class ValidationError(Error):
 #			recStr = ", found in: row %s"%repr(self.row)
 		return "%s%s"%(self.msg, recStr)
 
-class LiteralParseError(StructureError):
-	"""is raised if an attribute literal is somehow bad.
-
-	These have extra attributes attName and attVal.
-	"""
-	def __init__(self, msg, name, literal):
-		StructureError.__init__(self, msg)
-		self.attName, self.attVal = name, literal
 
 class SourceParseError(Error):
 	"""is raised when some syntax error occurs during a source parse.
@@ -92,6 +115,7 @@ class SourceParseError(Error):
 	def __init__(self, msg, offending=None, location="unspecified location"):
 		Error.__init__(self, msg)
 		self.offending, self.location = offending, location
+
 
 class DataError(Error):
 	"""is raised when something is wrong with a data set.
@@ -132,6 +156,7 @@ class ExecutiveAction(Exception):
 	"""is a base class for exceptions that are supposed to break out of
 	deep things and trigger actions higher up.
 	"""
+
 
 class Replace(ExecutiveAction):
 	"""is caught during adoption of children by ParseableStructures.

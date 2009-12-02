@@ -77,7 +77,7 @@ def parseBooleanLiteral(literal):
 	elif literal in _falseLiterals:
 		return False
 	else:
-		raise utils.LiteralParseError(
+		raise ValueError(
 			"'%s' is no recognized boolean literal."%literal)
 
 

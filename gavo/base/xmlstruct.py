@@ -108,7 +108,6 @@ def parseFromStream(rootStruct, inputStream, context=None):
 	except Exception, msg:
 		# cHandler.locator isn't too useful in this context.  See if we can make
 		# it, but for now, hack around it.
-		#msg.pos = ErrorPosition(cHandler.locator, inputStream)
 		msg.pos = context.getLocation()
 		raise
 	return evProc.result

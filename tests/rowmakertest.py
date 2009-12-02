@@ -45,14 +45,14 @@ class RowmakerDefTest(testhelpers.VerboseTest):
 			'At <internal source>, last known position: 1, 8: '
 			"You must set dest on map elements",
 			base.parseFromString, (rscdef.MapRule, '<map>bar</map>'))
-		self.assertRaisesWithMsg(base.LiteralParseError,
-			'At <internal source>, last known position: 1, 89: '
-			"'c = a+b' is not a valid python expression",
+		self.assertRaisesWithMsg(base.BadCode,
+			"At <internal source>, last known position: 1, 89:"
+			" Bad source code in expression (Not an expression)",
 			makeDD, ('<column name="x"/>',
 				'<map dest="x">c = a+b</map>'))
-		self.assertRaisesWithMsg(base.LiteralParseError,
-			"At <internal source>, last known position: 1, 83: "
-			"'-' is not correct python syntax",
+		self.assertRaisesWithMsg(base.BadCode,
+			"At <internal source>, last known position: 1, 83: Bad source"
+			" code in expression (unexpected EOF while parsing (line 1))",
 			makeDD, ('<column name="x"/>', '<map dest="x">-</map>'))
 		self.assertRaisesWithMsg(base.StructureError,
 			'At <internal source>, last known position: 1, 29: '
@@ -218,12 +218,12 @@ class VarTest(testhelpers.VerboseTest):
 	"""
 	def testRaising(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			'At <internal source>, last known position: 1, 67: '
-			"Var names must be valid python identifiers, and 77x is not",
+			"At <internal source>, last known position: 1, 67:"
+			" '77x' is not a valid value for name",
 			makeDD, ('', '<var name="77x">a</var>'))
 		self.assertRaisesWithMsg(base.StructureError,
-			"At <internal source>, last known position: 1, 69: "
-			"'a=b' is not a valid python expression",
+			'At <internal source>, last known position: 1, 69: Bad source code in'
+			' expression (Not an expression)',
 			makeDD, ('', '<var name="x77">a=b</var>'))
 
 	def testBasic(self):

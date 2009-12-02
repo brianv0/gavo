@@ -245,7 +245,9 @@ class StructAttribute(AttributeDef):
 
 	def feed(self, ctx, instance, value):
 		raise LiteralParseError("%s items have no literals"%self.name_,
-			self.name_, value)
+			self.name_, value, hint="These attributes have no literals at all, i.e.,"
+				" they are for internal use only.  You cannot specify them in"
+				" resource descriptors.")
 
 	def create(self, structure, name):
 		return self.childFactory(structure)

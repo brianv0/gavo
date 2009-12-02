@@ -14,7 +14,7 @@ from gavo.rscdef.dddef import (DataDescriptor, registerGrammar, Make,
 	SourceSpec)
 
 from gavo.rscdef.macros import (StandardMacroMixin, MacroPackage,
-	MacDefAttribute)
+	MacDefAttribute, MacroError)
 
 from gavo.rscdef.mixins import RMixinBase, registerRMixin, getMixin
 

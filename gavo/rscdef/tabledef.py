@@ -88,8 +88,8 @@ class ColumnTupleAttribute(base.StringListAttribute):
 			try:
 				parent.getColumnByName(colName)
 			except base.NotFoundError:
-				raise base.LiteralParseError("Column tuple component %s is"
-					" not in parent table"%colName, self.name_, colName)
+				raise base.LiteralParseError(self.name_, colName, 
+					hint="Column tuple component %s is not in parent table"%colName)
 
 
 class ForeignKey(base.Structure):
@@ -238,8 +238,8 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 			for name, type in stcDef.iterColTypes():
 				destCol = self.getColumnByName(name)
 				if destCol.stc is not None: 
-					raise base.LiteralParseError(
-						"Column %s is referenced twice from STC"%name, None, name)
+					raise base.LiteralParseError("stc", self.stc.content_,
+						hint="Column %s is referenced twice from STC"%name)
 				destCol.stc = stcDef.compiled.astroSystem
 				destCol.stcUtype = type
 
@@ -282,7 +282,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 				if "\\" in col:
 					try:
 						self.indexedColumns.add(self.expand(col))
-					except base.Error:  # cannot expand yet, ignore
+					except (base.Error, ValueError):  # cannot expand yet, ignore
 						pass
 				else:
 					self.indexedColumns.add(col)

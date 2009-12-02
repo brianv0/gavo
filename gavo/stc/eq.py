@@ -18,7 +18,7 @@ def makeKeyGetter(key):
 	"""returns a function getting key from an object.
 
 	key is dot-seperated sequence of python identifiers (this is checked; a
-	LiteralParseError is raised at generation time for malformed keys).
+	ValueError is raised at generation time for malformed keys).
 
 	This function is used to generate functions accessing parts of
 	STC trees.  If any attribute within key does not exist, the generated
@@ -26,7 +26,7 @@ def makeKeyGetter(key):
 	"""
 	if (not key.strip() 
 			or None in (_identifierPat.match(p) for p in key.split("."))):
-		raise utils.LiteralParseError("Bad STC key", "key", key)
+		raise ValueError("'%s' is no valid STC key."%key)
 	getterSrc = "\n".join([
 		"def get(ob):",
 		"  try:",

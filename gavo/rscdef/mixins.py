@@ -47,8 +47,7 @@ class MixinAttribute(base.ListOfAtomsAttribute):
 
 	def _processEarly(self, instance, mixinName):
 		if mixinName not in _mixinRegistry:
-			raise base.LiteralParseError("No such mixin defined: %s"%mixinName,
-				"mixin", mixinName)
+			raise base.LiteralParseError("mixin", mixinName)
 		getMixin(mixinName).processEarly(instance)
 
 	def feed(self, ctx, instance, mixinName):

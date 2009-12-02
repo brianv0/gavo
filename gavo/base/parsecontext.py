@@ -41,7 +41,8 @@ def resolveComplexId(ctx, id, forceType=None):
 	try:
 		pId, name = id.split(".")
 	except ValueError:
-		raise LiteralParseError("%s is not a valid id"%id, "id", id)
+		raise LiteralParseError("id", id, hint="A complex reference"
+			" (parent.name) is expected here")
 	container = ctx.getById(pId)
 	try:
 		for ob in container:

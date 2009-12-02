@@ -60,8 +60,8 @@ class ColRangeAttribute(base.UnicodeAttribute):
 				col = int(value)
 				return col-1, col
 		except ValueError:
-			raise base.LiteralParseError("Bad column range: %s"%val,
-				"colRanges", val)
+			raise base.LiteralParseError("colRanges", val, hint="A column range,"
+				" (either int1-int2 or just an int) is expected here.")
 
 
 class ColumnGrammar(Grammar):

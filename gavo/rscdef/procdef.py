@@ -33,8 +33,8 @@ class ProcPar(base.Structure):
 	def validate(self):
 		self._validateNext(ProcPar)
 		if not common.identifierPat.match(self.key):
-			raise base.LiteralParseError("Bad key for procedure argument: '%s'"%
-				self.key, "key", self.key)
+			raise base.LiteralParseError("key", self.key, hint=
+				"The key you supplied was not defined by any procedure definition.")
 		# Allow non-python syntax when things look like macro calls.
 		if self.content_ and not "\\" in self.content_:
 			utils.ensureExpression(self.content_, self.key)

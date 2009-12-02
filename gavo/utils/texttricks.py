@@ -11,7 +11,7 @@ import os
 import re
 
 from gavo.utils import codetricks
-from gavo.utils.excs import Error, LiteralParseError
+from gavo.utils.excs import Error
 
 floatRE = r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?"
 dateRE = re.compile("\d\d\d\d-\d\d-\d\d$")
@@ -59,9 +59,8 @@ def getRelativePath(fullPath, rootPath):
 	exception otherwise.
 	"""
 	if not fullPath.startswith(rootPath):
-		raise LiteralParseError(
-			"Full path %s does not start with resource root %s"%(fullPath, rootPath),
-			None, fullPath)
+		raise ValueError(
+			"Full path %s does not start with resource root %s"%(fullPath, rootPath))
 	return fullPath[len(rootPath):].lstrip("/")
 
 
@@ -72,13 +71,11 @@ def resolvePath(rootPath, relPath):
 	relPath = relPath.lstrip("/")
 	fullPath = os.path.realpath(os.path.join(rootPath, relPath))
 	if not fullPath.startswith(rootPath):
-		raise LiteralParseError("I believe you are cheating -- you just tried to"
-			" access %s, which I am not authorized to give you."%fullPath,
-			None, relPath)
+		raise ValueError(
+			"Full path %s does not start with resource root %s"%(fullPath, rootPath))
 	if not os.path.exists(fullPath):
-		raise LiteralParseError(
-			"Invalid path %s.  This should not happen."%fullPath, None,
-			relPath)
+		raise ValueError(
+			"Invalid path %s. This should not happend."%(fullPath))
 	return fullPath
 
 
@@ -169,7 +166,7 @@ def parsePercentExpression(literal, format):
 	('12,xy', '33', '')
 	>>> r = parsePercentExpression("12,13,14", "%a:%b,%c")
 	Traceback (most recent call last):
-	LiteralParseError: '12,13,14' cannot be parsed using format '%a:%b,%c'
+	ValueError: '12,13,14' cannot be parsed using format '%a:%b,%c'
 	"""
 	parts = re.split(r"(%\w)", format)
 	newReParts = []
@@ -180,8 +177,8 @@ def parsePercentExpression(literal, format):
 			newReParts.append(re.escape(p))
 	mat = re.match("".join(newReParts)+"$", literal)
 	if not mat:
-		raise LiteralParseError("'%s' cannot be parsed using format '%s'"%(
-			literal, format), None, literal)
+		raise ValueError("'%s' cannot be parsed using format '%s'"%(
+			literal, format))
 	return mat.groupdict()
 
 
@@ -217,7 +214,7 @@ def hmsToDeg(hms, sepChar=" "):
 	'335.84708333'
 	>>> hmsToDeg("junk")
 	Traceback (most recent call last):
-	LiteralParseError: Invalid time with sepchar ' ': 'junk'
+	ValueError: Invalid time with sepchar ' ': 'junk'
 	"""
 	hms = hms.strip()
 	try:
@@ -234,8 +231,8 @@ def hmsToDeg(hms, sepChar=" "):
 			raise ValueError("Too many parts")
 		timeSeconds = int(hours)*3600+float(minutes)*60+float(seconds)
 	except ValueError:
-		raise LiteralParseError("Invalid time with sepchar %s: %s"%(
-			repr(sepChar), repr(hms)), None, hms)
+		raise ValueError("Invalid time with sepchar %s: %s"%(
+			repr(sepChar), repr(hms)))
 	return timeSeconds/3600/24*360
 
 
@@ -252,7 +249,7 @@ def dmsToDeg(dmsAngle, sepChar=" "):
 	'-45.50211111'
 	>>> dmsToDeg("junk")
 	Traceback (most recent call last):
-	LiteralParseError: Invalid dms declination with sepchar ' ': 'junk'
+	ValueError: Invalid dms declination with sepchar ' ': 'junk'
 	"""
 	dmsAngle = dmsAngle.strip()
 	sign = 1
@@ -274,8 +271,8 @@ def dmsToDeg(dmsAngle, sepChar=" "):
 			raise ValueError("Invalid # of parts")
 		arcSecs = sign*(int(deg)*3600+float(min)*60+float(sec))
 	except ValueError:
-		raise LiteralParseError("Invalid dms declination with sepchar %s: %s"%(
-			repr(sepChar), repr(dmsAngle)), None, dmsAngle)
+		raise ValueError("Invalid dms declination with sepchar %s: %s"%(
+			repr(sepChar), repr(dmsAngle)))
 	return arcSecs/3600
 
 
@@ -372,9 +369,8 @@ class NameMap(object):
 				for name in names.lower().split():
 					self.namesDict[name.decode("quoted-printable")] = ob
 		except ValueError:
-			raise excs.LiteralParseError(
-				"Syntax error in %s: Line %s not understood."%(src, repr(ln)),
-				src, ln)
+			raise ValueError(
+				"Syntax error in %s: Line %s not understood."%(src, repr(ln)))
 		f.close()
 	
 	def resolve(self, name):

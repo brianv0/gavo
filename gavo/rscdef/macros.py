@@ -12,6 +12,18 @@ from pyparsing import Word, OneOrMore, ZeroOrMore, QuotedString, Forward,\
 from gavo import base
 
 
+class MacroError(base.StructureError):
+	"""is raised when something bad happens during macro expansion.
+
+	It is constructed with an error message, a macro name, and optionally
+	a hint and a position.
+	"""
+	def __init__(self, message, macroName, hint=None, pos=None):
+		base.StructureError.__init__(self, "Error during macro expansion: %s"%(
+			message), pos=pos, hint=hint)
+		self.macroName, self.origMessage = macroName, message
+
+
 class MacroExpander(object):
 	"""is a generic "macro" expander for scripts of all kinds.
 
@@ -96,18 +108,19 @@ class MacroPackage(object):
 			fun = getattr(self.rd, "macro_"+macName, None)
 		if fun is not None:
 			return fun
-		raise base.LiteralParseError(
+		raise MacroError(
 			"No such macro available in this context: \\%s"%macName,
-			"macro", macName)
+			macName, hint="%s objects do not define this macro"%
+				self.__class__.__name__)
 
 	def execMacro(self, macName, args):
 		fun = self.__findMacro(macName)
 		try:
 			return fun(*args)
 		except TypeError:
-			raise base.LiteralParseError(
-				"Invalid Arguments to \\%s: %s"%(macName, args), "macro",
-					"%s/%s"%(macName, args))
+			raise MacroError(
+				"Invalid macro arguments to \\%s: %s"%(macName, args), macName,
+				hint="You supplied too few or too many arguments")
 
 	def getExpander(self):
 		try:

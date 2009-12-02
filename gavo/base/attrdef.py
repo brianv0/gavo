@@ -301,8 +301,8 @@ class EnumeratedUnicodeAttribute(UnicodeAttribute):
 	def parse(self, value):
 		value = UnicodeAttribute.parse(self, value)
 		if not value in self.validValues:
-			raise LiteralParseError("%s is not a valid value for %s"%(
-				value, self.name_), self.name_, value)
+			raise LiteralParseError(self.name_, value,
+				hint="Valid values include %s"%",".join(self.validValues))
 		return value
 
 
@@ -316,7 +316,8 @@ class IntAttribute(AtomicAttribute):
 		try:
 			return int(value)
 		except ValueError:
-			raise LiteralParseError("Not an integer literal", self.name_, value)
+			raise LiteralParseError(self.name_, value, hint="Value must be an"
+				" integer literal.")
 	
 	def unparse(self, value):
 		return str(value)
@@ -332,7 +333,8 @@ class FloatAttribute(AtomicAttribute):
 		try:
 			return float(value)
 		except ValueError:
-			raise LiteralParseError("Not a float literal", self.name_, value)
+			raise LiteralParseError(self.name_, value, hint="value must be a float"
+				" literal")
 	
 	def unparse(self, value):
 		return str(value)
@@ -347,7 +349,11 @@ class BooleanAttribute(AtomicAttribute):
 	typeDesc_ = "boolean"
 
 	def parse(self, value):
-		return literals.parseBooleanLiteral(value)
+		try:
+			return literals.parseBooleanLiteral(value)
+		except ValueError:
+			raise LiteralParseError(self.name_, val, 
+				hint="A boolean literal (e.g., True, False, yes, no) is expected here.")
 		
 	def unparse(self, value):
 		return {True: "True", False: "False"}[value]
@@ -409,8 +415,9 @@ class IdMapAttribute(AtomicAttribute):
 			return dict((k.strip(), v.strip()) 
 				for k,v in (p.split(":") for p in val.split(",")))
 		except ValueError:
-			raise LiteralParseError("'%s' does not have the format"
-				" k:v {,k:v}"%val, self.name_, val)
+			raise LiteralParseError(self.name_, val, 
+				hint="A key-value enumeration of the format k:v {,k:v}"
+				" is expected here")
 
 	def unparse(self, val):
 		if val is None:

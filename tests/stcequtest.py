@@ -14,8 +14,8 @@ class EquivalenceBasicsTest(testhelpers.VerboseTest):
 	"""tests for equivalence policies.
 	"""
 	def testBadKeysEquivalent(self):
-		self.assertRaises(utils.LiteralParseError, eq.KeysEquivalent, "")
-		self.assertRaises(utils.LiteralParseError, eq.KeysEquivalent, 
+		self.assertRaises(ValueError, eq.KeysEquivalent, "")
+		self.assertRaises(ValueError, eq.KeysEquivalent, 
 			";os.system('rm -rf /')")
 
 	def testTrivial(self):

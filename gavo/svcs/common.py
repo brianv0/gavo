@@ -118,7 +118,7 @@ class QueryMeta(dict):
 			self["verbosity"] = "HTML"  # VERB given, but not an int.
 		try:
 			self["tdEnc"] = base.parseBooleanLiteral(args.get("_TDENC", "False"))
-		except base.LiteralParseError:
+		except base.ValueError:
 			self["tdEnc"] = False
 		self["additionalFields"] = args.get("_ADDITEM", [])
 

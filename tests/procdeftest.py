@@ -89,14 +89,14 @@ class NoDefTest(testhelpers.VerboseTest):
 
 	def testBadKeyFails(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At <internal source>, last known position: 1, 43: "
-			"Bad key for procedure argument: ''",
+			"At <internal source>, last known position: 1, 43: ''"
+			" is not a valid value for key",
 			base.parseFromString, (Foo, "<foo><testApp name='x'>"
 			"<setup><par key=''/></setup>"
 			"</testApp></foo>"))
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At <internal source>, last known position: 1, 48: "
-			"Bad key for procedure argument: 'a key'",
+			"At <internal source>, last known position: 1, 48: 'a key'"
+			" is not a valid value for key",
 			base.parseFromString, (Foo, "<foo><testApp name='x'>"
 			"<setup><par key='a key'/></setup>"
 			"</testApp></foo>"))
