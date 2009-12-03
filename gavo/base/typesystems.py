@@ -328,6 +328,8 @@ class ToADQLConverter(FromSQLConverter):
 	def mapComplex(self, type, length):
 		if type in self._charTypes:
 			return ("VARCHAR(*)", None)
+		if type in self.simpleMap:
+			return self.simpleMap[type][0], length
 
 
 ######## Helpers for conversion to python values
