@@ -139,9 +139,12 @@ class SCSRenderer(DALRenderer):
 		pos.eq* to POS_EQ*.
 		"""
 		ucdCasts = {
-			"meta.id;meta.main": {"ucd": "ID_MAIN"},
-			"pos.eq.ra;meta.main": {"ucd": "POS_EQ_RA_MAIN", "type": "double"},
-			"pos.eq.dec;meta.main": {"ucd": "POS_EQ_DEC_MAIN", "type": "double"},
+			"meta.id;meta.main": {"ucd": "ID_MAIN", "datatype": "char", 
+				"arraysize": "*"},
+			"pos.eq.ra;meta.main": {"ucd": "POS_EQ_RA_MAIN", 
+				"datatype": "double"},
+			"pos.eq.dec;meta.main": {"ucd": "POS_EQ_DEC_MAIN", 
+				"datatype": "double"},
 		}
 		realCasts = {}
 		table = data.original.getPrimaryTable()
@@ -152,6 +155,12 @@ class SCSRenderer(DALRenderer):
 			return self._writeErrorTable(ctx, "Table cannot be formatted for"
 				" SCS.  Column(s) with the following new UCD(s) were missing in"
 				" output table: %s"%', '.join(ucdCasts))
+
+		# allow integers as ID_MAIN [HACK -- this needs to become saner.
+		# conditional cast functions?]
+		idCol = table.tableDef.getColumnByUCD("meta.id;meta.main")
+		if idCol.type in set(["integer", "bigint", "smallint"]):
+			realCasts[idCol.name]["castFunction"] = str
 		table.votCasts = realCasts
 		return DALRenderer._formatOutput(self, data, ctx)
 

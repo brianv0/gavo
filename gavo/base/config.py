@@ -306,6 +306,9 @@ _config = Configuration(
 				" templates...)"),
 		RootRelativeConfigItem("stateDir", default="state",
 			description="Path to the DC's state information (last imported,...)"),
+		RootRelativeConfigItem("uwsWD", default="uwsjobs",
+			description="Directory to keep uws jobs in.  This may need lots"
+				" of space if your users do large queries"),
 		EnumeratedConfigItem("logLevel", options=["info", "warning",
 			"debug", "error"], description="Verboseness of importer"),
 		StringConfigItem("operator", description=
@@ -373,6 +376,13 @@ _config = Configuration(
 			"Default timeout for adql queries via the web form"),
 		IntConfigItem("webDefaultLimit", "2000",
 			"Default match limit for ADQL queries via the web form"),
+	),
+
+	Section('async', "Settings concerning TAP, UWS, and friends",
+		IntConfigItem("defaultExecTime", "3600", "Default timeout"
+			" for UWS jobs, in seconds"),
+		IntConfigItem("defaultLifetime", "172800", "Default"
+			" time to destruction for UWS jobs, in seconds"),
 	),
 
 	Section('ui', "Settings concerning the local user interface",

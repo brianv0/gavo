@@ -128,7 +128,7 @@ class VOTableMaker(utils.IdManagerMixin):
 		res["arraysize"] = colDesc["arraysize"]
 		if colDesc.has_key("value"):  # for PARAMs
 			res["value"] = str(colDesc["value"])   # XXX TODO: use value mappers
-# Only if we absolutely must
+# Only if we absolutely must (obsolete standard)
 #		if colDesc["stc"]:
 #			res["ref"] = colDesc["stc"].id
 #			res["utype"] = colDesc["stcUtype"]

@@ -230,13 +230,14 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		self.query(self.tableDef.expand("ANALYZE %s"%self.tableName))
 		return self
 
-	def _deleteMatching(self, matchCondition):
+	def _deleteMatching(self, matchCondition, pars={}):
 		"""deletes all rows matching matchCondition.
 
 		For now, matchCondition a boolean SQL expression.  All rows matching
 		it will be deleted.
 		"""
-		self.query("DELETE FROM %s WHERE %s"%(self.tableName, matchCondition))
+		self.query("DELETE FROM %s WHERE %s"%(self.tableName, matchCondition),
+			pars)
 	
 	def copyIn(self, inFile):
 		cursor = self.connection.cursor()
