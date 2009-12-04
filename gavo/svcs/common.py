@@ -157,7 +157,7 @@ class QueryMeta(dict):
 			# just in case let's make sure we're seeing an SQL identifier.
 			# (We can't rely on dbapi's escaping since we're not talking values here)
 			frag.append("ORDER BY %s"%(",".join(
-				re.sub("[^A-Za-z_]+", "", key) for key in sortKeys)))
+				re.sub("[^A-Za-z0-9_]+", "", key) for key in sortKeys)))
 		if dbLimit:
 			frag.append("LIMIT %(_matchLimit)s")
 			pars["_matchLimit"] = int(dbLimit)+1

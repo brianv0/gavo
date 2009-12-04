@@ -728,7 +728,7 @@ class FormRenderer(object):
             if isinstance(error, validation.FieldError):
                 item = self.original.getItemByName(error.fieldName)
                 errorList[ T.li[ T.strong[ item.label, ' : ' ], error.message ] ]
-        return T.div(class_='errors')[ T.p['Please correct the following errors:'], errorList ]
+        return T.div(class_='errors')[ T.p['Please correct the following error(s):'], errorList ]
 
     def _renderItems(self, ctx, data):
         if self.original.items is None:

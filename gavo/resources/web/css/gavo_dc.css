@@ -372,6 +372,13 @@ table.shorttable {
 	margin-bottom: 5pt;
 }
 
+div.errors {
+	border: 2pt solid red;
+	padding: 5pt;
+	margin-bottom: 5pt;
+}
+
+
 .metaItem p span.target {
 	font-size: 12pt;
 	font-weight: bold;

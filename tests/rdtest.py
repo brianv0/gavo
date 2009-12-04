@@ -173,42 +173,42 @@ class TAP_SchemaTest(testhelpers.VerboseTest):
 		q = base.SimpleQuerier()
 		tables = set(r[0] for r in
 			(q.query("select table_name from TAP_SCHEMA.tables where sourcerd"
-			" like %(rdid)s", {"rdid": self.rd.sourceId})))
+			" = %(rdid)s", {"rdid": self.rd.sourceId})))
 		self.assertEqual(tables, set(['test.adqltable', 'test.adql']))
 		columns = set(r[0] for r in
 			(q.query("select column_name from TAP_SCHEMA.columns where sourcerd"
-			" like %(rdid)s", {"rdid": self.rd.sourceId})))
+			" = %(rdid)s", {"rdid": self.rd.sourceId})))
 		self.assertEqual(columns, 
 			set([u'alpha', u'rv', u'foo', u'mag', u'delta']))
 		fkeys = set(q.query("select from_table, target_table"
 				" from TAP_SCHEMA.keys where sourcerd"
-				" like %(rdid)s", {"rdid": self.rd.sourceId}))
+				" = %(rdid)s", {"rdid": self.rd.sourceId}))
 		self.assertEqual(fkeys, 
 			set([(u'test.adqltable', u'test.adql')]))
 		fkcols = set(r for r in
 			(q.query("select from_column, target_column"
-				" from TAP_SCHEMA.key_columns -- where sourcerd"
-				" like %(rdid)s", {"rdid": self.rd.sourceId})))
+				" from TAP_SCHEMA.key_columns where sourcerd"
+				" = %(rdid)s", {"rdid": self.rd.sourceId})))
 		self.assertEqual(fkcols, set([(u'foo', u'rv')]))
 
 	def _checkUnpublished(self):
 		q = base.SimpleQuerier()
 		tables = set(r[0] for r in
 			(q.query("select table_name from TAP_SCHEMA.tables where sourcerd"
-			" like %(rdid)s", {"rdid": self.rd.sourceId})))
+			" = %(rdid)s", {"rdid": self.rd.sourceId})))
 		self.assertEqual(tables, set())
 		columns = set(r[0] for r in
 			(q.query("select column_name from TAP_SCHEMA.columns where sourcerd"
-			" like %(rdid)s", {"rdid": self.rd.sourceId})))
+			" = %(rdid)s", {"rdid": self.rd.sourceId})))
 		self.assertEqual(columns, set())
 		fkeys = set(q.query("select from_table, target_table"
 				" from TAP_SCHEMA.keys where sourcerd"
-				" like %(rdid)s", {"rdid": self.rd.sourceId}))
+				" = %(rdid)s", {"rdid": self.rd.sourceId}))
 		self.assertEqual(fkeys, set())
 		fkcols = set(r for r in
 			(q.query("select from_column, target_column"
-				" from TAP_SCHEMA.key_columns -- where sourcerd"
-				" like %(rdid)s", {"rdid": self.rd.sourceId})))
+				" from TAP_SCHEMA.key_columns where sourcerd"
+				" = %(rdid)s", {"rdid": self.rd.sourceId})))
 		self.assertEqual(fkcols, set())
 
 	def testMega(self):
