@@ -483,11 +483,12 @@ void writeJdate(Field *field, void *destination)
 void writeDate(Field *field, void *destination)
 {
 	/* field->time is a unix time_t */
-	int32_t daysSinceEpoch = htonl((int32_t)((field->val.time-PqEpoch)/86400));
+	int32_t daysSinceEpoch=((field->val.time-PqEpoch)/86400);
+	uint32_t data=htonl(daysSinceEpoch);
 	uint32_t size=htonl(sizeof(int32_t));
 
 	DATA_OUT(&size, 4, destination);
-	DATA_OUT(&daysSinceEpoch, sizeof(int32_t), destination);
+	DATA_OUT(&data, sizeof(uint32_t), destination);
 }
 
 
