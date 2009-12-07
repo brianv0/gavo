@@ -2,7 +2,11 @@
 Simple tests for TAP and environs.
 """
 
+from __future__ import with_statement
+
 import os
+import Queue
+import threading
 
 from nevow.testutil import FakeRequest
 
@@ -61,15 +65,17 @@ class PlainActionsTest(testhelpers.VerboseTest):
 	
 
 class PlainJobCreationTest(testhelpers.VerboseTest):
-	"""tests for working job submission and destruction.
+	"""tests for working job creation and destruction.
 	"""
 # yet another huge, sequential test.  Ah well, better than nothing, I guess.
 
 	def _createJob(self):
-		return uws.create(FakeRequest(args={"foo": "bar"}), "plainActions")
+		with uws.create(FakeRequest(args={"foo": "bar"}), "plainActions") as job:
+			return job.jobid
 
-	def _deleteJob(self, job):
-		job.delete()
+	def _deleteJob(self, jobid):
+		with uws.makeFromId(jobid) as job:
+			job.delete()
 
 	def _assertJobCreated(self, jobid):
 		querier = base.SimpleQuerier()
@@ -91,12 +97,43 @@ class PlainJobCreationTest(testhelpers.VerboseTest):
 		self.failIf(os.path.exists(os.path.join(base.getConfig("uwsWD"), jobid)))
 
 	def testBigAndUgly(self):
-		job = self._createJob()
-		self._assertJobCreated(job.jobid)
-		self._deleteJob(job)
-		self._assertJobDeleted(job.jobid)
+		jobid = self._createJob()
+		self._assertJobCreated(jobid)
+		self._deleteJob(jobid)
+		self._assertJobDeleted(jobid)
 
 
+class LockingTest(testhelpers.VerboseTest):
+	"""tests for working impicit uws locking.
+	"""
+	def setUp(self):
+		with uws.create(FakeRequest(), "plainActions") as job:
+			self.jobid = job.jobid
+		self.queue = Queue.Queue()
+	
+	def tearDown(self):
+		with uws.makeFromId(self.jobid) as job:
+			job.delete()
+
+	def _blockingJob(self):
+		print "starting blocking job"
+		# this is started in a thread while self.jobid is held
+		self.queue.put("Child started")
+		q = base.SimpleQuerier()
+		with uws.makeFromId(self.jobid) as job:
+			self.queue.put("Job created")
+
+	def testLocking(self):
+		with uws.makeFromId(self.jobid) as job:
+			child = threading.Thread(target=self._blockingJob)
+			child.start()
+			# see that child process has started but could not create the job
+			self.assertEqual(self.queue.get(True, 1), "Child started")
+			# make sure we time out on waiting for another sign of the child --
+			# it should be blocking.
+			self.assertRaises(Queue.Empty, self.queue.get, True, 0.05)
+		# we've closed our handle on job, now child can run
+		self.assertEqual(self.queue.get(True, 1), "Job created")
 
 if __name__=="__main__":
-	testhelpers.main(PlainJobCreationTest)
+	testhelpers.main(LockingTest)

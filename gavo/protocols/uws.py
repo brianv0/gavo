@@ -5,6 +5,8 @@ This module contains the actual logic.  The UWS REST interface is dealt with
 in web.uwsrest.
 """
 
+from __future__ import with_statement
+
 import cPickle as pickle
 import datetime
 import os
@@ -30,14 +32,19 @@ ERROR = "ERROR"
 ABORTED = "ABORTED"
 DESTROYED = "DESTROYED"  # local extension
 
-@utils.memoized
+
 def getJobsTable():
+	"""returns an instanciated job table.
+
+	This will open a new connection every time.  Since this is an exclusive
+	table, "automatic" selects will block each other.  In this way, there
+	can always be only one UWSJob instance in memory for each job.
+	"""
 	conn = base.getDBConnection("admin")
 	jobsTable = rsc.TableForDef(base.caches.getRD(RD_ID).getById("jobs"), 
-		connection=conn)
-	# jobsTable really has an owned connection.  So, let's override its
-	# commit method
-	jobsTable.commit = conn.commit
+		connection=conn, exclusive=True)
+	# jobsTable really has an owned connection.  Tell it.
+	jobsTable.ownedConnection = True
 	return jobsTable
 
 
@@ -66,11 +73,21 @@ def deserializeData(serData):
 class UWSJob(object):
 	"""A job description within UWS.
 
-	These usually get serialized and deserialized from the uws.jobs table
-	defined in __system__/uws.  The construction usually works by using a 
-	row dict as keyword arguments.  See the RD of the meaning of the
-	constructor arguments.
-	
+	This keeps most of the data on a Worker.  Constructing these
+	is relatively expensive (in incurs constructing a DBTable, opening
+	a database connection, and doing a query).  On the other hand,
+	these things only need to be touched a couple of times during the
+	lifetime of a job, or to answer polls, and for those, other operations
+	are at least as expensive.
+
+	The DB takes care of avoiding races in status changes.  getJobsTable
+	above opens the jobs table in exclusive mode, whereas construction here
+	always opens a transaction.  This means that other processes accessing
+	the row will block.
+
+	UWSJobs should only be used as context managers to make sure the
+	transactions are closed in time.
+
 	To create a new UWSJob, use the create class method.  It is called
 	with a nevow request object and the name of an Actions object
 	(see below).
@@ -84,23 +101,29 @@ class UWSJob(object):
 	The UWSJob itself is just a managing class.  The actual actions
 	occurring on the phase chages are defined in the Actions object.
 	"""
-# XXX TODO: We *probably* want to lock the jobsTable while we have
-# an instance of UWSJob around (or at least the pertaining record)
-# This requires an explicit cleanup.  Make this a ContextManager?
+# Hm -- I believe things would be much smoother if locking happened
+# in __enter__, and the rest would just keep instanciated.  Well,
+# we can always clean this up later while keeping code assuming
+# the current semantics working.
 	_dbAttrs = ["jobid", "phase", "runId", "quote", "executionDuration",
 		"destructionTime", "owner", "parameters", "actions"]
 
-	def __init__(self, **kwargs):
+	def __init__(self, jobid, jobsTable=None):
+		self.jobsTable = jobsTable
+		self._closed = False
+		if self.jobsTable is None:
+			self.jobsTable = getJobsTable()
+
+		res = list(self.jobsTable.iterQuery(
+			self.jobsTable.tableDef, "jobid=%(jobid)s",
+			pars={"jobid": jobid}))
+		if not res:
+			self._closed = True
+			raise base.NotFoundError(jobid, "UWS job", "jobs table")
+		kws = res[0]
+
 		for att in self._dbAttrs:
-			try:
-				setattr(self, att, kwargs.pop(att))
-			except KeyError:
-				raise TypeError("UWSJob needs keyword argument %s"%(
-					repr(att)))
-		if kwargs:
-			att, val = kwargs.popitem()
-			raise TypeError("UWSJob got an unexpected keyword argument %s"%(
-				repr(att)))
+			setattr(self, att, kws[att])
 
 	@classmethod
 	def _allocateDataDir(cls):
@@ -114,28 +137,50 @@ class UWSJob(object):
 		request is something implementing nevow.IRequest, actions is the
 		name (i.e., a string) of a registred Actions class.
 		"""
-		newOb = cls(jobid=cls._allocateDataDir(),
-			quote=None,
-			executionDuration=base.getConfig("async", "defaultExecTime"),
-			destructionTime=datetime.datetime.utcnow()+datetime.timedelta(
-				seconds=base.getConfig("async", "defaultLifetime")),
-			phase=PENDING,
-			parameters = serializeData(request.args),
-			runId=getfirst(request, "RUNID"),
-			owner=None,
-			actions=actions)
-		newOb._persist()
-		return newOb
+		jobid = cls._allocateDataDir()
+		jobsTable = getJobsTable()
+		jobsTable.addRow({
+			"jobid": jobid,
+			"quote": None,
+			"executionDuration": base.getConfig("async", "defaultExecTime"),
+			"destructionTime": datetime.datetime.utcnow()+datetime.timedelta(
+					seconds=base.getConfig("async", "defaultLifetime")),
+			"phase": PENDING,
+			"parameters": serializeData(request.args),
+			"runId": getfirst(request, "RUNID"),
+			"owner": None,
+			"actions": actions})
+		# Can't race here since _allocateDataDir uses mkdtemp
+		jobsTable.commit() 
+		return cls(jobid, jobsTable)
 	
 	@classmethod
 	def makeFromId(cls, jobid):
-		jobsTable = getJobsTable()
-		res = list(jobsTable.iterQuery(jobsTable.tableDef, "jobid=%(jobid)s",
-			pars={"jobid": jobid}))
-		if not res:
-			raise base.NotFoundError(jobid, "UWS job", "jobs table")
-		kws = dict((str(k), v) for k, v in res[0].iteritems())
-		return cls(**kws)
+		return cls(jobid)
+
+	def __del__(self):
+		# if a job has not been closed, commit it (this may be hiding programming
+		# errors, though -- should we rather roll back?)
+		if not self._closed:
+			self.close()
+
+	def __enter__(self):
+		return self # transaction has been opened by makeFromId
+	
+	def __exit__(self, type, value, tb):
+		if tb is None:
+			self.close()
+		else:
+			# Implicit rollback
+			self.jobsTable.close()
+			self._closed = True
+			return False
+
+	def close(self):
+		self._persist()
+		self.jobsTable.commit()
+		self.jobsTable.close()
+		self._closed = True
 
 	def getWD(self):
 		return os.path.join(base.getConfig("uwsWD"), self.jobid)
@@ -158,23 +203,23 @@ class UWSJob(object):
 	def _persist(self):
 		"""updates or creates the job in the database table.
 		"""
+		if self._closed:
+			raise ValueError("Cannot persist closed UWSJob")
 		dbRec = self.getAsDBRec()
-		jobsTable = getJobsTable()
-		jobsTable.deleteMatching("jobid=%(jobid)s", dbRec)
-		if self.phase!=DESTROYED:
-			jobsTable.addRow(dbRec)
-		jobsTable.commit()
-		jobsTable.query("BEGIN")
+		if self.phase==DESTROYED:
+			self.jobsTable.deleteMatching("jobid=%(jobid)s", dbRec)
+		else:
+			self.jobsTable.addRow(dbRec)
 
 	def delete(self):
 		"""removes all traces of the job from the system.
 		"""
 		try:
-			self.changeToPhase("DESTROYED")
+			self.changeToPhase(DESTROYED)
 		except base.ValidationError: # actions don't want to do anything
 			pass                       # no problem
 		# Should we check whether destruction actions worked?
-		self.phase = "DESTROYED"
+		self.phase = DESTROYED
 		self._persist()
 		shutil.rmtree(self.getWD(), ignore_errors=True)
 	

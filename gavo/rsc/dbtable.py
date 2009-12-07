@@ -276,11 +276,16 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 
 	You can pass a nometa boolean kw argument to suppress entering the table
 	into the dc_tables.
+
+	You can pass an exclusive boolean kw argument; if you do, the
+	iterQuery (and possibly similar methods in the future) method
+	will block concurrent accesses to the table.
 	"""
 	def __init__(self, tableDef, **kwargs):
 		self.ownedConnection = False
 		self.suppressIndex = kwargs.pop("suppressIndex", False)
 		self.tableUpdates = kwargs.pop("tableUpdates", False)
+		self.exclusive = kwargs.pop("exclusive", False)
 		connection = kwargs.pop("connection", None)
 		table.BaseTable.__init__(self, tableDef, **kwargs)
 		if connection is None:
@@ -516,6 +521,8 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		if limits:
 			query.append(limits[0]+" ")
 			pars.update(limits[1])
+		if self.exclusive:
+			query.append("FOR UPDATE ")
 		for tupRow in self.query("".join(query), pars):
 			yield resultTableDef.makeRowFromTuple(tupRow)
 
