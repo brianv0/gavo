@@ -3,12 +3,11 @@
 This module contains basic support for manual SQL generation.
 """
 
-import re
-import sys
 import operator
 import os
+import re
+import sys
 import warnings
-
 from itertools import *
 
 from gavo.utils import excs
@@ -26,6 +25,10 @@ from psycopg2.extras import DictCursor
 class Error(excs.Error):
 	pass
 
+
+# Keep track of wether we have installed our extensions
+# (this is to not require a DB connection on just importing this)
+_PSYCOPG_INITED = False
 
 class SqlSetAdapter(object):
 	"""is an adapter that formats python sequences as SQL sets.
@@ -121,9 +124,12 @@ def getDBConnection(profile, debug=debug):
 				profile.port, profile.host, profile.user, 
 				profile.password)
 		if debug:
-			return psycopg2.connect(connString, connection_factory=DebugConnection)
+			conn = psycopg2.connect(connString, connection_factory=DebugConnection)
 		else:
-			return psycopg2.connect(connString)
+			conn = psycopg2.connect(connString)
+		if not _PSYCOPG_INITED:
+			_initPsycopg(conn)
+		return conn
 	except KeyError:
 		raise Error("Insufficient information to connect to database."
 			"  The operators need to check their profiles.")
@@ -554,12 +560,12 @@ class SimpleQuerier(QuerierMixin):
 	def __del__(self):
 		if self.ownedConnection and self.connection:
 			self.close()
-		
 
-if __name__=="__main__":
-	t = TableWriter("test.test", [("f1", "text", {}), ("f2", "text", {})])
-	t.ensureSchema("test")
-	t.createTable()
-	f = t.getFeeder()
-	f({"f1": "blabla", "f2": u"önögnü"})
-	f.close()
+
+def _initPsycopg(conn):
+# collect all DB setup in this function.  XXX TODO: in particular, the
+# Box mess from coords (if we still want it)
+	global _PSYCOPG_INITED
+	from gavo.utils import pgsphere
+	pgsphere.preparePgSphere(conn)
+	_PSYCOPG_INITED = True

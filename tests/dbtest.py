@@ -15,6 +15,7 @@ from gavo import svcs
 from gavo import protocols
 from gavo.base import coords
 from gavo.base import sqlsupport
+from gavo.utils import pgsphere
 
 import testhelpers
 
@@ -174,5 +175,44 @@ class TestMetaTableADQL(TestWithTableCreation):
 			(u'foo', 'double precision', 'foo'), ])
 
 
+class TestPgSphere(testhelpers.VerboseTest):
+	"""tests for the python interface to pgsphere.
+	"""
+	def setUp(self):
+		pgsphere.preparePgSphere(
+			base.getDefaultDBConnection())
+
+	def assertTripsRound(self, testedType, testValue):
+		conn = base.getDefaultDBConnection()
+		try:
+			cursor = conn.cursor()
+			cursor.execute("CREATE TABLE pgstest (col %s)"%testedType)
+			cursor.execute("INSERT INTO pgstest (col) VALUES (%(val)s)",
+				{"val": testValue})
+			cursor.execute("SELECT * from pgstest")
+			self.assertEqual(list(cursor)[0][0], testValue)
+			cursor.execute("DROP TABLE pgstest")
+		finally:
+			conn.close()
+
+	def testSPoints(self):
+		self.assertTripsRound("spoint", pgsphere.SPoint(2,0.5))
+
+	def testSCircle(self):
+		self.assertTripsRound("scircle",
+			pgsphere.SCircle(pgsphere.SPoint(2,0.5), 0.25))
+
+	def testSPoly(self):
+		self.assertTripsRound("spoly",
+			pgsphere.SPoly([pgsphere.SPoint(2,0.5),
+				pgsphere.SPoint(2.5,-0.5),
+				pgsphere.SPoint(1.5,0),]))
+
+	def testSBox(self):
+		self.assertTripsRound("sbox",
+			pgsphere.SBox(pgsphere.SPoint(2.5,-0.5),
+				pgsphere.SPoint(2.0,0.5)))
+
+
 if __name__=="__main__":
-	testhelpers.main(TestMetaTable)
+	testhelpers.main(TestPgSphere)

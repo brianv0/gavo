@@ -116,7 +116,6 @@ class LockingTest(testhelpers.VerboseTest):
 			job.delete()
 
 	def _blockingJob(self):
-		print "starting blocking job"
 		# this is started in a thread while self.jobid is held
 		self.queue.put("Child started")
 		q = base.SimpleQuerier()

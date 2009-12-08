@@ -116,6 +116,7 @@ class IdManagerMixin(object):
 				" been generated externally (i.e., not by this id manager).  This"
 				" usually is an internal error of the software.")
 
+
 def _iterDerivedClasses(baseClass, objects):
 	"""iterates over all subclasses of baseClass in the sequence objects.
 	"""
