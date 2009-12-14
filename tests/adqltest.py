@@ -566,6 +566,12 @@ class ColResTest(ColumnTest):
 			("m", "phys.dim", False),
 			("km", "phys.dim", True)])
 
+	def testAggFunctions(self):
+		cols = self._getColSeq("select max(ra1), min(ra1) from spatial")
+		self._assertColumns(cols, [
+			("deg", "stat.max;pos.eq.ra;meta.main", False),
+			("deg", "stat.min;pos.eq.ra;meta.main", False)])
+
 	def testPoint(self):
 		cols = self._getColSeq("select point('ICRS', ra1, ra2) from spatial")
 		self._assertColumns(cols, [

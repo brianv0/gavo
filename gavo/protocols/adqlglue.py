@@ -21,7 +21,21 @@ def makeFieldInfo(column):
 		column.unit, column.ucd, (column,), stc=column.stc)
 
 
-def makeColumnFromFieldInfo(colName, fi):
+class TDContext(object):
+	"""An object keeping track of the generation of a table definition
+	for ADQL output.
+	"""
+	def __init__(self):
+		self.existingNames = set()
+	
+	def getName(self, desiredName):
+		while desiredName in self.existingNames:
+			desiredName = desiredName+"_"
+		self.existingNames.add(desiredName)
+		return desiredName
+
+
+def _makeColumnFromFieldInfo(ctx, colName, fi):
 	"""constructs a rscdef.Column from a field info pair as left by the
 	ADQL machinery.
 
@@ -41,8 +55,11 @@ def makeColumnFromFieldInfo(colName, fi):
 	"""
 	if len(fi.userData)==1:
 		res = svcs.OutputField.fromColumn(fi.userData[0])
+		desiredName = fi.userData[0].name
 	else: 
 		res = base.makeStruct(svcs.OutputField, name=colName)
+		desiredName = colName
+	res.name = ctx.getName(desiredName)
 	res.ucd = fi.ucd
 	res.unit = fi.unit
 	# XXX TODO: do something with stc's broken attribute
@@ -63,7 +80,10 @@ def _getTableDescForOutput(parsedTree):
 	"""returns a sequence of Column instances describing the output of the
 	parsed and annotated ADQL query parsedTree.
 	"""
-	return [makeColumnFromFieldInfo(*fi) for fi in parsedTree.fieldInfos.seq]
+	ctx = TDContext()
+	columns = [_makeColumnFromFieldInfo(ctx, *fi) 
+			for fi in parsedTree.fieldInfos.seq]
+	return base.makeStruct(rscdef.TableDef, columns=columns)
 
 
 def getFieldInfoGetter(accessProfile=None):
@@ -82,9 +102,9 @@ def query(query, timeout=15, queryProfile="untrustedquery", metaProfile=None):
 	if t.setLimit is None:
 		t.setLimit = str(base.getConfig("adql", "webDefaultLimit"))
 	adql.annotate(t, getFieldInfoGetter(metaProfile))
-# XXX FIXME: evaluate q3cstatus for warnings (currently, I think there ar none)
 	q3cstatus, t = adql.insertQ3Calls(t)
-	td = base.makeStruct(rscdef.TableDef, columns=_getTableDescForOutput(t))
+# XXX FIXME: evaluate q3cstatus for warnings (currently, I think there are none)
+	td = _getTableDescForOutput(t)
 	table = rsc.TableForDef(td)
 	morphStatus, morphedTree = adql.morphPG(t)
 	# escape % to hide them form dbapi replacing

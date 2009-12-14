@@ -157,6 +157,6 @@
 	TableServices if they contain positional data.  That's kinda hard
 	to fix except by delaying service type determination.
 
-40/HIGH/2009-12-11
+40/HIGH/2009-12-11/FIXED
 	select max(ntotal), min(ntotal) from usnob.platecorrs only returns one 
 	column.
