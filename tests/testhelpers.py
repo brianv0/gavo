@@ -309,7 +309,6 @@ def trialMain(testClass):
 	
 
 def main(testClass, methodPrefix=None):
-	
 	if len(sys.argv)>2:
 		testClass = inspect.stack()[1][0].f_globals[sys.argv[-2]]
 	if len(sys.argv)>1:

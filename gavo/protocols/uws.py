@@ -106,7 +106,7 @@ class UWSJob(object):
 # we can always clean this up later while keeping code assuming
 # the current semantics working.
 	_dbAttrs = ["jobid", "phase", "runId", "quote", "executionDuration",
-		"destructionTime", "owner", "parameters", "actions"]
+		"destructionTime", "owner", "parameters", "actions", "pid"]
 
 	def __init__(self, jobid, jobsTable=None):
 		self.jobsTable = jobsTable
@@ -149,6 +149,7 @@ class UWSJob(object):
 			"parameters": serializeData(request.args),
 			"runId": getfirst(request, "RUNID"),
 			"owner": None,
+			"pid": None,
 			"actions": actions})
 		# Can't race here since _allocateDataDir uses mkdtemp
 		jobsTable.commit() 
@@ -177,6 +178,8 @@ class UWSJob(object):
 			return False
 
 	def close(self):
+		if self._closed:  # allow multiple closing
+			return
 		self._persist()
 		self.jobsTable.commit()
 		self.jobsTable.close()
@@ -270,6 +273,9 @@ class UWSActions(object):
 	When transitioning to DESTROYED, you do not need to remove the job's
 	working directory or the jobs table entry.  Typically, a transition
 	from COMPLETED to DESTROYED is a no-op.
+
+	Also, UWSJob will never ask UWSActions to transition from PENDING to QUEUED
+	since jobs are automatically QUEUED once they are created.
 	"""
 	def __init__(self, name, vertices):
 		self.name = name

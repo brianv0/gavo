@@ -156,3 +156,7 @@
 	Services with verbLevel-defined outputTables are misclassified as
 	TableServices if they contain positional data.  That's kinda hard
 	to fix except by delaying service type determination.
+
+40/HIGH/2009-12-11
+	select max(ntotal), min(ntotal) from usnob.platecorrs only returns one 
+	column.

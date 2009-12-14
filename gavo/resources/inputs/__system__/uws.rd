@@ -29,6 +29,8 @@
 		<column name="runId" type="text" description="User-chosen run Id"/>
 		<column name="actions" type="text" description=
 			"Name of the Transitions class managing phase changes for this job"/>
+		<column name="pid" type="integer" description=
+			"A unix pid to kill to make the job stop"/>
 	</table>
 
 	<data id="make_jobs">
