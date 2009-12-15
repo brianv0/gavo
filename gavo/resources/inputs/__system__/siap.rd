@@ -4,7 +4,7 @@
 <resource resdir="__system">
 	<schema>public</schema>
 
-	<table id="bboxSIAPcolumns" 
+	<table id="SIAPbase" 
 			original="__system__/products#productColumns">
 		<column name="centerAlpha"  ucd="POS_EQ_RA_MAIN"
 			type="double precision" unit="deg" 
@@ -14,12 +14,6 @@
 			type="double precision" unit="deg"
 			displayHint="type=sexagesimal,sf=0" verbLevel="0"
 			description="Approximate center of image, Dec"/>
-		<column name="primaryBbox"  
-			type="box" description="Bounding box of the image for internal use"
-			displayHint="type=suppress"/>
-		<column name="secondaryBbox"  
-			type="box" description="Bounding box of the image for internal use"
-			displayHint="type=suppress"/>
 		<column name="imageTitle"  ucd="VOX:Image_Title"
 			type="text" tablehead="Title" verbLevel="0"
 			description="Synthetic name of the image"/>
@@ -87,7 +81,24 @@
 			description="Flags specifying the processing done (C-original; F-resampled; Z-fluxes valid; X-not resampled; V-for display only"/>
 	</table>
 
-	<procDef type="apply" id="computeBboxSIAP" register="True">
+	<table id="bboxSIAPcolumns" original="SIAPbase">
+		<column name="primaryBbox"  
+			type="box" description="Bounding box of the image for internal use"
+			displayHint="type=suppress"/>
+		<column name="secondaryBbox"  
+			type="box" description="Bounding box of the image for internal use"
+			displayHint="type=suppress"/>
+	</table>
+
+
+	<table id="pgsSIAPcolumns" original="SIAPbase">
+		<column name="coverage" type="spoly" unit="deg"
+			description="Field covered by the image"
+			displayHint="type=suppress"/>
+	</table>
+
+
+	<procDef type="apply" id="computeSIAPbase" register="True">
 		<doc>
 			computes fields for the bboxSiap interface.
 
@@ -98,15 +109,16 @@
 			CDn_n (the transformation matrix; substitutable by CDELTn), NAXISn 
 			(the image size).
 
-			It leaves the primaryBbbox, secondaryBbox, centerDelta, centerAlpha,
-			nAxes, pixelSize, pixelScale and imageFormat.
-
 			Records without or with insufficient wcs keys are furnished with
 			all-NULL wcs info.
 		</doc>
+		<!-- Actually, this is a common base for both bbox and pgsphere based
+		procs -->
 		<setup>
 			<code>
-				wcskeys = ["primaryBbox", "secondaryBbox", "centerAlpha", "centerDelta",
+				from gavo.protocols import siap
+
+				wcskeys = ["centerAlpha", "centerDelta",
 					"nAxes",  "pixelSize", "pixelScale", "imageFormat", "wcs_projection",
 					"wcs_refPixel", "wcs_refValues", "wcs_cdmatrix", "wcs_equinox"]
 
@@ -136,38 +148,63 @@
 						return (math.sqrt(aVec[0]**2+aVec[1]**2),
 							math.sqrt(dVec[0]**2+dVec[1]**2))
 
-				from gavo.protocols import siap
+				def copyFromWCS(vars, wcs, result):
+					"""adds the "simple" WCS kes from the wcstools instance wcs to
+					the record result.
+					"""
+					result["imageFormat"] = "image/fits"
+					result["centerAlpha"], result["centerDelta"
+						] = coords.getCenterFromWCSFields(wcs)
+					result["nAxes"] = int(vars["NAXIS"])
+					axeInds = range(1, result["nAxes"]+1)
+					assert len(axeInds)==2   # probably not strictly necessary
+					dims = tuple(int(vars["NAXIS%d"%i]) 
+						for i in axeInds)
+					pixelGauge = PixelGauge(wcs, (dims[0]/2., dims[1]/2.))
+					result["pixelSize"] = dims
+					result["pixelScale"] = pixelGauge.getPixelScales()
+	
+					result["wcs_projection"] = vars.get("CTYPE1")
+					if result["wcs_projection"]:
+						result["wcs_projection"] = result["wcs_projection"][5:8]
+					result["wcs_refPixel"] = (
+						wcs.WCSStructure.xref, wcs.WCSStructure.yref)
+					result["wcs_refValues"] = (wcs.WCSStructure.xrefpix, 
+						wcs.WCSStructure.yrefpix)
+					result["wcs_cdmatrix"] = pixelGauge.cds[0]+pixelGauge.cds[1]
+					result["wcs_equinox"] = vars.get("EQUINOX", None)
+
+				def nullOutWCS(additionalKeys, result):
+					"""clears all wcs fields, plus the ones in additonalKeys.
+					"""
+					for key in wcskeys+additionalKeys:
+						result[key] = None
 			</code>
 		</setup>
+	</procDef>
+
+	<procDef type="apply" id="computeBboxSIAP" register="True"
+			original="computeSIAPbase">
 		<code>
 			wcs = coords.getWCS(vars)
-			result["imageFormat"] = "image/fits"
 			try:
+				copyFromWCS(vars, wcs, result)
 				result["primaryBbox"], result["secondaryBbox"
 					] = siap.splitCrossingBox(coords.getBboxFromWCSFields(wcs))
-				result["centerAlpha"], result["centerDelta"
-					] = coords.getCenterFromWCSFields(wcs)
-				result["nAxes"] = int(vars["NAXIS"])
-				axeInds = range(1, result["nAxes"]+1)
-				assert len(axeInds)==2   # probably not strictly necessary
-				dims = tuple(int(vars["NAXIS%d"%i]) 
-					for i in axeInds)
-				pixelGauge = PixelGauge(wcs, (dims[0]/2., dims[1]/2.))
-				result["pixelSize"] = dims
-				result["pixelScale"] = pixelGauge.getPixelScales()
-
-				result["wcs_projection"] = vars.get("CTYPE1")
-				if result["wcs_projection"]:
-					result["wcs_projection"] = result["wcs_projection"][5:8]
-				result["wcs_refPixel"] = (
-					wcs.WCSStructure.xref, wcs.WCSStructure.yref)
-				result["wcs_refValues"] = (wcs.WCSStructure.xrefpix, 
-					wcs.WCSStructure.yrefpix)
-				result["wcs_cdmatrix"] = pixelGauge.cds[0]+pixelGauge.cds[1]
-				result["wcs_equinox"] = vars.get("EQUINOX", None)
 			except (KeyError, AttributeError), msg:
-				for key in wcskeys:
-					result[key] = None
+				nullOutWCS(result, ["primaryBbox", "secondaryBbox"])
+		</code>
+	</procDef>
+
+	<procDef type="apply" id="computePGSSIAP" register="True"
+			original="computeSIAPbase">
+		<code>
+			wcs = coords.getWCS(vars)
+			try:
+				copyFromWCS(vars, wcs, result)
+				result["coverage"] = coords.getSpolyFromWCSFields(wcs)
+			except (KeyError, AttributeError), msg:
+				nullOutWCS(result, ["coverage"])
 		</code>
 	</procDef>
 
@@ -176,7 +213,6 @@
 			sets siap meta *and* product table fields.
 	
 			This is common stuff for all SIAP implementations.
-
 		</doc>
 		<setup>
 			<par key="title" late="True">None</par>
@@ -212,7 +248,9 @@
 		<phraseMaker>
 			<setup id="baseSetup">
 				<code>
+					from gavo import rscdef
 					from gavo.protocols import siap
+
 					def interpretFormat(inPars, sqlPars):
 						# Interprets a SIA FORMAT parameter.  METADATA is caught by the
 						# SIAP renderer, which of the magic values leaves ALL and 
@@ -226,6 +264,21 @@
 						else:
 							return "imageFormat=%%(%s)s"%base.getSQLKey(
 								"format", fmt, sqlPars)
+
+					def getQueriedTable(inputKeys):
+						"""tries to infer the table queried from the inputKeys passed to
+						the condDesc.
+
+						This will return None if it cannot find this parent table.
+						"""
+						try:
+							res = inputKeys[0].parent.parent.queriedTable
+						except (AttributeError, IndexError):
+							traceback.print_exc()
+							return None
+						if not isinstance(res, rscdef.TableDef):
+							return None
+						return res
 				</code>
 			</setup>
 		</phraseMaker>
@@ -275,7 +328,7 @@
 		<phraseMaker>
 			<setup original="baseSetup"/>
 			<code>
-				yield siap.getBboxQuery(inPars, outPars)
+				yield siap.getQuery(getQueriedTable(inputKeys), inPars, outPars)
 				yield interpretFormat(inPars, outPars)
 			</code>
 		</phraseMaker>
@@ -305,13 +358,14 @@
 				except ValueError:
 					data = base.caches.getSesame("web").query(pos)
 					if not data:
-						raise base.ValidationError("%r is neither a RA,DEC pair nor a simbad"
-						" resolvable object"%inPars.get("POS", "Not given"), "hPOS")
+						raise base.ValidationError("%r is neither a RA,DEC pair nor"
+								" a simbad resolvable object"%inPars.get("POS", "Not given"), 
+							"hPOS")
 					ra, dec = float(data["RA"]), float(data["dec"])
 				inPars = {
 					"POS": "%f, %f"%(ra, dec), "SIZE": inPars["hSIZE"],
 					"INTERSECT": inPars["hINTERSECT"], "FORMAT": inPars.get("hFORMAT")}
-				yield siap.getBboxQuery(inPars, outPars)
+				yield siap.getQuery(getQueriedTable(inputKeys), inPars, outPars)
 				yield interpretFormat(inPars, outPars)
 			</code>
 		</phraseMaker>

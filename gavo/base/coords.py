@@ -8,7 +8,9 @@ import re
 import warnings
 
 
+from gavo.utils import DEG
 from gavo.utils import excs
+from gavo.utils import pgsphere
 from gavo.utils import pyfits
 
 
@@ -22,18 +24,6 @@ class AstWCSLoader(object):
 		return getattr(astWCS, *args)
 
 astWCS = AstWCSLoader()
-
-
-def degToRad(deg):
-	"""returns the angle deg (in degrees) in radians.
-	"""
-	return deg/360.*2*math.pi
-
-
-def radToDeg(rad):
-	"""returns the angle rad (in radians) in degrees.
-	"""
-	return rad/2./math.pi*360
 
 
 fitsKwPat = re.compile("[A-Z0-9_-]{1,8}$")
@@ -132,6 +122,31 @@ def getBboxFromWCSFields(wcsFields):
 	if bbox[1][1]<-89:
 		bbox = Box((0, clampDelta(bbox[0][1])), (360, clampDelta(bbox[1][1])))
 	return bbox
+
+
+def _iterWCSCorners(wcs):
+	"""iterates over the four corners of a WCS spec.
+
+	The items returned are pgsphere.SPoints.
+	"""
+	width, height = float(wcs.header["NAXIS1"]), float(wcs.header["NAXIS2"])
+	yield pgsphere.SPoint.fromDegrees(*wcs.pix2wcs(0, 0))
+	yield pgsphere.SPoint.fromDegrees(*wcs.pix2wcs(0, height))
+	yield pgsphere.SPoint.fromDegrees(*wcs.pix2wcs(width, height))
+	yield pgsphere.SPoint.fromDegrees(*wcs.pix2wcs(width, 0))
+
+
+def getSpolyFromWCSFields(wcsFields):
+	"""returns a pgsphere spoly corresponding to wcsFields
+
+	wcsFields is passed to getWCS, see there for legal types.
+
+	The polygon returned is computed by using the four corner points
+	assuming a rectangular image.
+	"""
+	wcs = getWCS(wcsFields)
+	return pgsphere.SPoly(list(_iterWCSCorners(wcs)))
+
 
 
 def getCenterFromWCSFields(wcsFields):
@@ -365,7 +380,7 @@ def computeUnitSphereCoords(alpha, delta):
 	>>> print computeUnitSphereCoords(180, -45)
 	[-0.71,0,-0.71]
 	"""
-	alpha, delta = degToRad(alpha), degToRad(delta)
+	alpha, delta = alpha*DEG, delta*DEG
 	return Vector3(cos(alpha)*cos(delta),
 		sin(alpha)*cos(delta),
 		sin(delta))

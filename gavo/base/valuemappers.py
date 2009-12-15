@@ -182,24 +182,26 @@ def datetimeMapperFactory(colDesc):
 		unit = colDesc["unit"]
 		if "MJD" in colDesc.get("ucd", ""):  # like VOX:Image_MJDateObs
 			colDesc["unit"] = "d"
-			fun, destType = lambda val: val and dtToMJdn(val), (
-				"double", None)
+			fun = lambda val: (val and dtToMJdn(val)) or "N/A"
+			destType = ("double", None)
 		elif unit=="yr" or unit=="a":
-			fun, destType = lambda val: val and stc.dateTimeToJYear(val), (
-				"double", None)
+			fun = lambda val: (val and stc.dateTimeToJYear(val)) or "N/A"
+			destType = ("double", None)
 		elif unit=="d":
-			fun, destType = lambda val: val and stc.dateTimeToJdn(val), (
-				"double", None)
+			fun = lambda val: (val and stc.dateTimeToJdn(val)) or "N/A"
+			destType = ("double", None)
 		elif unit=="s":
-			fun, destType = lambda val: val and time.mktime(val.timetuple()), (
-				"double", None)
+			fun = lambda val: (val and time.mktime(val.timetuple())) or "N/A"
+			destType = ("double", None)
 		elif unit=="Y:M:D" or unit=="Y-M-D":
-			fun, destType = lambda val: val and val.isoformat(), ("char", "*")
+			fun = lambda val: (val and val.isoformat()) or "N/A"
+			destType = ("char", "*")
 		elif unit=="iso":
-			fun, destType = lambda val: val and val.isoformat(), ("char", "*")
+			fun = lambda val: (val and val.isoformat()) or "N/A"
+			destType = ("char", "*")
 		else:   # Fishy, but not our fault
-			fun, destType = lambda val: val and stc.dateTimeToJdn(val), (
-				"double", None)
+			fun = lambda val: (val and stc.dateTimeToJdn(val)) or "N/A"
+			destType = ("double", None)
 		colDesc["datatype"], colDesc["arraysize"] = destType
 		return fun
 _registerDefaultMF(datetimeMapperFactory)

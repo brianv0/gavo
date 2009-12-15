@@ -51,6 +51,22 @@ grammars and/or rowmakers feeding the tables mixing in a given mixin.
 
 .. replaceWithResult getMixinDocs(docStructure)
 
+
+Predefined Procedures
+=====================
+
+Procedures available for rowmaker apply
+'''''''''''''''''''''''''''''''''''''''
+
+.. replaceWithResult makeRmkProcDocs(docStructure)
+
+
+Procedures available for grammar rowfilters
+'''''''''''''''''''''''''''''''''''''''''''
+
+.. replaceWithResult makeRowfilterDocs(docStructure)
+
+
 Triggers
 ========
 

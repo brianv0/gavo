@@ -30,6 +30,9 @@ a sane way to concentrate value conversion here as well (though that's
 probably tricky).
 """
 
+# XXX TODO: Think how this can be "inverted" by just defining types and
+# collecting all their aspects in a single class
+
 import datetime
 import numpy
 import re
@@ -442,6 +445,10 @@ class ToPythonCodeConverter(FromSQLConverter):
 		"raw": "%s",
 		"file": "%s",
 		"box": "%s",
+		"spoint": "%s",  # Do we want some coercion here?
+		"scircle": "%s",
+		"spoly": "%s",
+		"sbox": "%s",
 		"vexpr-string": "%s",
 		"vexpr-float": "%s",
 		"vexpr-date": "%s",

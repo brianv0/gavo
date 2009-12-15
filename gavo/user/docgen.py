@@ -269,6 +269,46 @@ def getRmkFuncs(docStructure):
 	return _getModuleFunctionDocs(rmkfuncs)
 
 
+def _getProcdefDocs(procDefs):
+	"""returns documentation for the ProcDefs in the sequence procDefs.
+	"""
+	content = RSTFragment()
+	for pd in procDefs:
+		content.addHead2(pd.id)
+		if pd.doc is None:
+			content.addNormalizedPara("NOT DOCUMENTED")
+		else:
+			content.addNormalizedPara(pd.doc)
+		content.makeSpace()
+		if pd.setup.pars:
+			content.addNormalizedPara("Setup parameters for the procedure are:\n")
+		content.makeSpace()
+		for par in pd.setup.pars:
+			doc = ["* "]
+			if par.late:
+				doc.append("Late p")
+			else:
+				doc.append("P")
+			doc.append("arameter %s "%par.key)
+			if par.content_:
+				doc.append("defaults to '%s'"%par.content_)
+			content.addRaw(''.join(doc)+"\n")
+		content.makeSpace()
+	return content.content
+
+
+def _makeProcsDocumenter(typeToDoc):
+	def buildDocs(docStructure):
+		from gavo.rscdef import procdef
+		return _getProcdefDocs([proc for proc in procdef._registry.values()
+			if proc.type==typeToDoc])
+	return buildDocs
+
+
+makeRmkProcDocs = _makeProcsDocumenter("apply")
+makeRowfilterDocs = _makeProcsDocumenter("rowfilter")
+
+
 def getMetaTypeDocs():
 	from gavo.base import meta
 	content = RSTFragment()
@@ -316,5 +356,5 @@ def main():
 
 
 if __name__=="__main__":
-	from gavo.rscdef import rmkfuncs
-	print getModuleFunctionDocs(rmkfuncs)
+	from gavo import api
+	print getPredefinedProcsDoc(DocumentStructure())

@@ -442,7 +442,7 @@ class Rowmaker(object):
 		return self.lineMap[destInd][1]
 
 	def _guessError(self, ex, rowdict, tb):
-		"""tries to shoehorn a ValidationError our of ex.
+		"""tries to shoehorn a ValidationError out of ex.
 		"""
 		#traceback.print_tb(tb)
 		destName = self._guessExSourceName(tb)

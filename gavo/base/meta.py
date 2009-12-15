@@ -5,8 +5,8 @@ The meta information we deal with here is *not* column information (which
 is handled in datadef.py) but information on tables, services and
 resources as a whole.
 
-We deal with VO-style RMI metadata but also allow custom metadata.  Their
-keys should start with _, however.
+We deal with VO-style RMI metadata but also allow custom metadata.  Custom
+metadata keys should usually start with _.
 
 See develNotes for some discussion of why this is so messy and an explanation
 of why in particular addMeta and helpers are a minefield of selections.
@@ -490,6 +490,14 @@ class MetaItem(object):
 		return unicode(self)
 
 
+class _NoHyphenWrapper(textwrap.TextWrapper):
+# we don't want whitespace after hyphens in plain meta strings (looks
+# funny in HTML), so fix wordsep_re
+	wordsep_re = re.compile(
+        r'(\s+|'                                  # any whitespace
+        r'(?<=[\w\!\"\'\&\.\,\?])-{2,}(?=\w))')   # em-dash
+
+
 class MetaValue(MetaMixin):
 	"""is a piece of meta information about a resource.
 
@@ -503,6 +511,10 @@ class MetaValue(MetaMixin):
 	  the item will only be embedded into HTML templates).
 	"""
 	knownFormats = set(["literal", "rst", "plain", "raw"])
+	paragraphPat = re.compile("\n\\s*\n")
+	consecutiveWSPat = re.compile("\s\s+")
+	plainWrapper = _NoHyphenWrapper(break_long_words=False,
+		replace_whitespace=True)
 
 	def __init__(self, content="", format="plain"):
 		MetaMixin.__init__(self)
@@ -522,9 +534,9 @@ class MetaValue(MetaMixin):
 
 	def _preprocessContent(self):
 		if self.format=="plain":
-			self.content = "\n\n".join(["\n".join(textwrap.wrap(
-					re.sub("\s+", " ", para)))
-				for para in re.split("\n\s*\n", self.content)])
+			self.content = "\n\n".join(self.plainWrapper.fill(
+					self.consecutiveWSPat.sub(" ", para))
+				for para in self.paragraphPat.split(self.content))
 
 	def _getContentAsText(self, content):
 		return content

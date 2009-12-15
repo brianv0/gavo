@@ -10,14 +10,15 @@ import math
 from gavo import base
 from gavo import rsc
 from gavo import rscdesc
-from gavo.protocols import siap
 from gavo.base import coords
+from gavo.protocols import siap
+from gavo.utils import DEG
 
 import testhelpers
 
 
 def raCorr(dec):
-	return math.cos(coords.degToRad(dec))
+	return math.cos(dec*DEG)
 
 
 class TestWCSTrafos(unittest.TestCase):
@@ -253,7 +254,7 @@ class TestCoordinateQueries(unittest.TestCase):
 		try:
 			for center, size, expected in self._testcases:
 				pars = {}
-				fragment = siap.getBboxQuery({
+				fragment = siap.getQuery(None, {
 					"POS": center,
 					"SIZE": size,
 					"INTERSECT": type}, pars)

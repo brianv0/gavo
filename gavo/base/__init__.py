@@ -37,7 +37,7 @@ from gavo.base.config import(
 	setDBProfile, getDBProfile, getDBProfileByName,
 	makeSitePath, getBinaryName)
 
-from gavo.base.coords import degToRad, Box
+from gavo.base.coords import Box
 
 from gavo.base.events import EventDispatcher
 

@@ -3,10 +3,13 @@ Bindings for the pgsphere libarary and psycopg2.
 
 Basically, once per program run, you need to call preparePgSphere(connection),
 and you're done.
+
+All native representation is in rad.
 """
 
 # XXX TODO: handle remaining pgsphere types.
 
+import math
 import re
 
 import psycopg2
@@ -14,6 +17,16 @@ from psycopg2.extensions import (adapt, register_adapter, AsIs, register_type,
 	new_type)
 
 from gavo.utils import codetricks
+from gavo.utils import excs
+from gavo.utils.mathtricks import DEG
+
+
+class TwoSBoxes(excs.ExecutiveAction):
+	"""is raised when an SBox is constructed from center and size such that
+	it overlaps the pole.
+	"""
+	def __init__(self, box1, box2):
+		self.box1, self.box2 = box1, box2
 
 
 def _query(conn, query, pars=None):
@@ -51,6 +64,9 @@ class SPoint(PgSAdapter):
 	"""A point on a sphere from pgSphere.
 
 	The first constructor accepts a pair of (alpha, delta), angles are in rad.
+
+	You can optionally pass a "unit" argument.  This is simply multiplied
+	to each coordinate.
 	"""
 	pgType = "spoint"
 	checkedAttributes = ["x", "y"]
@@ -74,6 +90,9 @@ class SPoint(PgSAdapter):
 		if value is not None:
 			return cls(*map(float, cls.pattern.match(value).groups()))
 	
+	@classmethod
+	def fromDegrees(cls, x, y):
+		return cls(x*DEG, y*DEG)
 
 
 class SCircle(PgSAdapter):
@@ -146,7 +165,52 @@ class SBox(PgSAdapter):
 		if value is not None:
 			return cls(*[SPoint._castFromPgSphere(ptLit, cursor)
 				for ptLit in cls.pattern.findall(value)])
-	
+
+	@classmethod
+	def fromSIAPPars(cls, ra, dec, raSize, decSize):
+		"""returns an SBox corresponding to what SIAP passes in.
+
+		In particular, all values are in degrees, and a cartesian projection
+		is assumed.
+
+		This is for use with SIAP and tries to partially implement that silly
+		prescription of "folding" over at the poles.  If that happens,
+		a TwoSBoxes exception is raised.  It contains two SBoxes that
+		should be ORed.  I agree that sucks.  Let's fix SIAP.
+		"""
+		if 90-abs(dec)<0.1:  # Special handling at the pole
+			raSize = 360
+		else:
+			raSize = raSize/math.cos(dec*DEG)
+		decSize = abs(decSize) # inhibit auto swapping of points
+		minRA, maxRA = ra-raSize, ra+raSize
+		bottom, top = dec-decSize, dec+decSize
+		# folding over at the poles: raise an exception with two boxes,
+		# and let upstream handle it.  Foldover on both poles is not supported.
+		# All this isn't really thought out and probably doesn't work in
+		# many interesting cases.
+		# I hate that folding over.
+		if bottom<-90 and top>90:
+			raise ValueError("Cannot fold over at both poles")
+		elif bottom<-90:
+			raise TwoSBoxes(
+				cls(
+					SPoint.fromDegrees(minRA, -90), 
+					SPoint.fromDegrees(maxRA, top)),
+				cls(
+					SPoint.fromDegrees(180+minRA, -90),
+					SPoint.fromDegrees(180+maxRA, top)))
+		elif top>90:
+			raise TwoSBoxes(
+				cls(
+					SPoint.fromDegrees(minRA, bottom), 
+					SPoint.fromDegrees(maxRA, 90)),
+				cls(
+					SPoint.fromDegrees(180+minRA, bottom),
+					SPoint.fromDegrees(180+maxRA, 90)))
+		return cls(SPoint.fromDegrees(minRA, bottom), 
+			SPoint.fromDegrees(maxRA, top))
+
 
 _getPgSClass = codetricks.buildClassResolver(PgSAdapter, globals().values(),
 	key=lambda obj: obj.pgType, default=PgSAdapter)

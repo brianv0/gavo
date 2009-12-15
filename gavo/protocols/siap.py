@@ -15,37 +15,42 @@ from gavo import svcs
 from gavo.base import coords
 from gavo.protocols import products
 from gavo.protocols import simbadinterface
+from gavo.utils import DEG
+from gavo.utils import pgsphere
 
 
 MS = base.makeStruct
 
 
-class BboxSIAPRMixin(rscdef.RMixinBase):
-	"""A table mixin for simple support of SIAP.
+####################### bboxSIAP mixin
 
-	This currently only handles two-dimensional images.
+class BboxSIAPRMixin(rscdef.RMixinBase):
+	"""A table mixin for simple support of SIAP based on hand-made bboxes.
 
 	The columns added into the tables include
 
 	* (certain) FITS WCS headers 
-	* the primaryBbox, secondaryBbox, centerAlpha and centerDelta, nAxes, 
-	  pixelSize, pixelScale, imageFormat, wcs* fields calculated by the 
-	  computeBboxSIAPFields macro.   
 	* imageTitle (interpolateString should come in handy for these)
 	* instId -- some id for the instrument used
 	* dateObs -- a timestamp of the "characteristic" observation time
 	* the bandpass* values.  You're on your own with them...
 	* the values of the product interface.  
 	* mimetype -- the mime type of the product.
+	* the primaryBbox, secondaryBbox, centerAlpha and centerDelta, nAxes, 
+	  pixelSize, pixelScale, imageFormat, wcs* fields calculated by the 
+	  computeBboxSIAPFields macro.   
 
 	(their definition is in the siap system RD)
 
-	Tables mixin in bboxSIAP can be used for bbox-based SIAP querying and
+	Tables mixin in bboxSIAP can be used for SIAP querying and
 	automatically mix in `the products mixin`_.
 
 	To feed these tables, use the computeBboxSIAP and setSIAPMeta predefined 
 	procs.  Since you are dealing with products, you will also need the
 	defineProduct predefined rowgen in your grammar.
+
+	If you have pgSphere, you definitely should use the pgsSIAP mixin in
+	preference to this.
 	"""
 	name = "bboxSIAP"
 	
@@ -55,8 +60,8 @@ class BboxSIAPRMixin(rscdef.RMixinBase):
 	def processLate(self, tableDef):
 		rscdef.getMixin("products").processLate(tableDef)
 
-_mixin = BboxSIAPRMixin()
-rscdef.registerRMixin(_mixin)
+rscdef.registerRMixin(BboxSIAPRMixin())
+
 
 def getBboxFromSIAPPars(raDec, sizes, applyCosD=True):
 	"""returns a bounding box in decimal ra and dec for the siap parameters
@@ -74,7 +79,7 @@ def getBboxFromSIAPPars(raDec, sizes, applyCosD=True):
 	alpha, delta = raDec
 	sizeAlpha, sizeDelta = sizes
 	if applyCosD:
-		cosD = math.cos(base.degToRad(delta))
+		cosD = math.cos(delta*DEG)
 		if cosD<1e-10:
 			# People can't mean that
 			cosD = 1
@@ -121,7 +126,7 @@ def splitCrossingBox(bbox):
 
 # XXX TODO: Maybe rework this to make it use vizierexprs.getSQLKey?
 # (caution: that would mess up many unit tests...)
-_intersectQueries = {
+_INTERSECT_QUERIES = {
 	"COVERS": "primaryBbox ~ %(<p>roiPrimary)s AND (secondaryBbox IS NULL OR"
 	  " secondaryBbox ~ %(<p>roiSecondary)s)",
 	"ENCLOSED": "%(<p>roiPrimary)s ~ primaryBbox AND"
@@ -139,14 +144,83 @@ _intersectQueries = {
 	}
 
 
-def getBboxQueryFromBbox(intersect, bbox, center, prefix, sqlPars):
+def getBboxQuery(intersect, ra, dec, sizes, prefix, sqlPars):
+	"""returns SQL for a SIAP query on bboxSIAP tables.
+	"""
+	bbox = getBboxFromSIAPPars((ra, dec), sizes)
 	bboxes = splitCrossingBox(bbox)
 	sqlPars.update({prefix+"roiPrimary": bboxes[0], 
 		prefix+"roiSecondary": bboxes[1],
-		prefix+"roiAlpha": center[0],
-		prefix+"roiDelta": center[1],})
-	return _intersectQueries[intersect].replace("<p>", prefix) 
+		prefix+"roiAlpha": ra,
+		prefix+"roiDelta": dec,})
+	return _INTERSECT_QUERIES[intersect].replace("<p>", prefix) 
 
+
+####################### pgsSIAP mixin
+
+class PGSSIAPRMixin(rscdef.RMixinBase):
+	"""A table mixin for simple support of SIAP.
+
+	The columns added into the tables include
+
+	* (certain) FITS WCS headers 
+	* imageTitle (interpolateString should come in handy for these)
+	* instId -- some id for the instrument used
+	* dateObs -- a timestamp of the "characteristic" observation time
+	* the bandpass* values.  You're on your own with them...
+	* the values of the product interface.  
+	* mimetype -- the mime type of the product.
+	* the coverage, centerAlpha and centerDelta, nAxes, 
+	  pixelSize, pixelScale, imageFormat, wcs* fields calculated by the 
+	  computePGSSIAPFields macro.   
+
+	(their definition is in the siap system RD)
+
+	Tables mixin in pgsSIAP can be used for SIAP querying and
+	automatically mix in `the products mixin`_.
+
+	To feed these tables, use the computePGSSIAP and setSIAPMeta predefined 
+	procs.  Since you are dealing with products, you will also need the
+	defineProduct predefined rowgen in your grammar.
+	"""
+	name = "pgsSIAP"
+	
+	def __init__(self):
+		rscdef.RMixinBase.__init__(self, "__system__/siap", "pgsSIAPcolumns")
+
+	def processLate(self, tableDef):
+		rscdef.getMixin("products").processLate(tableDef)
+
+rscdef.registerRMixin(PGSSIAPRMixin())
+
+
+# expressions as used in getPGSQuery
+_PGS_OPERATORS = {
+		"COVERS": "coverage ~ %%(%s)s",
+		"ENCLOSED": "%%(%s)s ~ coverage",
+		"CENTER": None, # special handling below
+		"OVERLAPS": "%%(%s)s && coverage",
+}
+
+def getPGSQuery(intersect, ra, dec, sizes, prefix, sqlPars):
+	"""returns SQL for a SIAP query on pgsSIAP tables.
+	"""
+	if intersect=='CENTER':
+		return "%%(%s) @ coverage"%(
+			base.getSQLKey(prefix+"center", pgsphere.SPoint.fromDegrees(ra, dec)))
+
+	expr = _PGS_OPERATORS[intersect]
+	try:
+		targetBox = pgsphere.SBox.fromSIAPPars(ra, dec, sizes[0], sizes[1])
+		return expr%base.getSQLKey(prefix+"area", targetBox, sqlPars)
+	except pgsphere.TwoSBoxes, ex:
+		# Fold-over at pole, return a disjunction
+		return "( %s OR %s )"%(
+			expr%base.getSQLKey(prefix+"area1", ex.box1, sqlPars),
+			expr%base.getSQLKey(prefix+"area2", ex.box2, sqlPars))
+		
+
+####################### SIAP service helpers, cores, etc.
 
 def dissectPositions(posStr):
 	"""tries to infer RA and DEC from posStr.
@@ -166,7 +240,22 @@ def dissectPositions(posStr):
 	return ra, dec
 
 
-def getBboxQuery(parameters, sqlPars, prefix="sia"):
+def _getQueryMaker(queriedTable):
+	"""returns a query making function for SIAP appropriate for queriedTable.
+
+	getQuery uses this to return the right query fragments.  You can, in
+	a pinch, pass None for queriedTable, in which case this falls back
+	to bbox.
+	"""
+	if queriedTable is None:
+		return getBboxQuery
+	elif "coverage" in queriedTable:
+		return getPGSQuery
+	else:
+		return getBboxQuery
+
+
+def getQuery(queriedTable, parameters, sqlPars, prefix="sia"):
 	"""returns an SQL fragment for a SIAP query for bboxes.
 
 	The SQL is returned as a WHERE-fragment in a string.  The parameters
@@ -179,11 +268,8 @@ def getBboxQuery(parameters, sqlPars, prefix="sia"):
 	try:
 		ra, dec = dissectPositions(posStr)
 	except (ValueError, TypeError):
-		try:
-			ra, dec = simbadinterface.getSimbadPositions(posStr)
-		except KeyError:
-			raise base.ValidationError("%s is neither a RA,DEC pair nor a simbad"
-				" resolvable object"%posStr, "POS", posStr)
+		raise base.ValidationError("%s is not a RA,DEC pair."%posStr, 
+			"POS", posStr)
 	try:
 		sizes = map(float, parameters["SIZE"].split(","))
 	except ValueError:
@@ -191,9 +277,9 @@ def getBboxQuery(parameters, sqlPars, prefix="sia"):
 			" <degs>,<degs>", "SIZE", parameters["SIZE"])
 	if len(sizes)==1:
 		sizes = sizes*2
-	bbox = getBboxFromSIAPPars((ra, dec), sizes)
 	intersect = parameters.get("INTERSECT", "OVERLAPS")
-	query = getBboxQueryFromBbox(intersect, bbox, (ra, dec), prefix, sqlPars)
+	query = _getQueryMaker(queriedTable)(
+		intersect, ra, dec, sizes, prefix, sqlPars)
 	# the following are for the benefit of cutout queries.
 	sqlPars["_ra"], sqlPars["_dec"] = ra, dec
 	sqlPars["_sra"], sqlPars["_sdec"] = sizes
@@ -209,7 +295,7 @@ class SIAPCore(svcs.DBCore):
 	"""
 	name_ = "siapCore"
 
-	# columns required in our query
+	# columns required in a SIAP answer
 	copiedCols = ["centerAlpha", "centerDelta", "imageTitle", "instId",
 		"dateObs", "nAxes", "pixelSize", "pixelScale", "imageFormat",
 		"refFrame", "wcs_equinox", "wcs_projection", "wcs_refPixel",
@@ -217,14 +303,7 @@ class SIAPCore(svcs.DBCore):
 		"bandpassHi", "bandpassLo", "pixflags"]
 
 	def __init__(self, parent, **kwargs):
-		self.interfaceCols = _mixin.mixinTable.columns
-		condDescs = kwargs.setdefault("condDescs", [])
-		if "outputTable" in kwargs:
-			outputTable = kwargs["outputTable"]
-		else:
-			outputTable = MS(svcs.OutputTableDef)
-			for col in self.interfaceCols:
-				outputTable.feedObject("column", svcs.OutputField.fromColumn(col))
+		self.siapTable = base.caches.getRD("__system__/siap").getById("SIAPbase")
 		svcs.DBCore.__init__(self, parent, **kwargs)
 
 svcs.registerCore(SIAPCore)
@@ -253,8 +332,8 @@ class SIAPCutoutCore(SIAPCore):
 		cols = svcs.DBCore.getQueryCols(self, service, queryMeta)
 		for name in self.copiedCols:
 			cols.append(svcs.OutputField.fromColumn(
-				self.interfaceCols.getColumnByName(name)))
-		d = self.interfaceCols.getColumnByName("accsize").copy(self)
+				self.siapTable.getColumnByName(name)))
+		d = self.siapTable.getColumnByName("accsize").copy(self)
 		d.tablehead = "Est. file size"
 		cols.append(svcs.OutputField.fromColumn(d))
 		return cols
