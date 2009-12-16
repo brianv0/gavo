@@ -183,8 +183,8 @@ class SBox(PgSAdapter):
 		else:
 			raSize = raSize/math.cos(dec*DEG)
 		decSize = abs(decSize) # inhibit auto swapping of points
-		minRA, maxRA = ra-raSize, ra+raSize
-		bottom, top = dec-decSize, dec+decSize
+		minRA, maxRA = ra-raSize/2., ra+raSize/2.
+		bottom, top = dec-decSize/2., dec+decSize/2.
 		# folding over at the poles: raise an exception with two boxes,
 		# and let upstream handle it.  Foldover on both poles is not supported.
 		# All this isn't really thought out and probably doesn't work in

@@ -206,8 +206,8 @@ def getPGSQuery(intersect, ra, dec, sizes, prefix, sqlPars):
 	"""returns SQL for a SIAP query on pgsSIAP tables.
 	"""
 	if intersect=='CENTER':
-		return "%%(%s) @ coverage"%(
-			base.getSQLKey(prefix+"center", pgsphere.SPoint.fromDegrees(ra, dec)))
+		return "%%(%s)s @ coverage"%(base.getSQLKey(
+			prefix+"center", pgsphere.SPoint.fromDegrees(ra, dec), sqlPars))
 
 	expr = _PGS_OPERATORS[intersect]
 	try:

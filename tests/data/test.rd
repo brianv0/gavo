@@ -6,14 +6,15 @@
 	<meta name="test.inRd">from Rd</meta>
 	<schema>test</schema>
 
-	<table id="siaptable" mixin="bboxSIAP" onDisk="True"/>
+	<table id="bbox_siaptable" mixin="bboxSIAP" onDisk="True"/>
+	<table id="pgs_siaptable" mixin="pgsSIAP" onDisk="True"/>
 
-	<data id="siaptest">
+	<data id="siap_base" auto="False">
 		<dictlistGrammar>
 			<rowfilter predefined="defineProduct">
 				<bind key="key">row["accref"]</bind>
 				<bind key="fsize">row["accsize"]</bind>
-				<bind key="table">"test.siaptable"</bind>
+				<bind key="table">parent.parent.getProperty("destTable")</bind>
 				<bind key="path">row["accref"]</bind>
 			</rowfilter>
 		</dictlistGrammar>
@@ -24,9 +25,27 @@
 				<bind key="dateObs">vars["dateObs"]</bind>
 				<bind key="bandpassId">vars["bandpassId"]</bind>
 			</apply>
+		</rowmaker>
+	</data>
+
+	<data id="bbox_siaptest" original="siap_base">
+		<!-- for bbox-based searching -->
+		<property name="destTable">test.bbox_siaptable</property>
+		<rowmaker id="make_bboxsiaptable" original="st_siaptable">
 			<apply predefined="computeBboxSIAP"/>
 		</rowmaker>
-		<make table="siaptable" rowmaker="st_siaptable"/>
+		<make table="bbox_siaptable" rowmaker="make_bboxsiaptable" 
+			role="primary"/>
+	</data>
+
+	<data id="pgs_siaptest" original="siap_base">
+		<!-- for pgsphere-based searching -->
+		<property name="destTable">test.pgs_siaptable</property>
+		<rowmaker id="make_pgssiaptable" original="st_siaptable">
+			<apply predefined="computePGSSIAP"/>
+		</rowmaker>
+		<make table="pgs_siaptable" rowmaker="make_pgssiaptable"
+			role="primary"/>
 	</data>
 
 	<data id="metatest">

@@ -168,13 +168,18 @@ class TestWCSBbox(unittest.TestCase):
 			self._testOverlap(ra, dec)
 
 
-class TestCoordinateQueries(unittest.TestCase):
-	"""Tests for actual queries on the unit sphere with trivial WCS data.
+class CooQueryTestBase(unittest.TestCase):
+	"""base class for functional testing of the SIAP code.
 	"""
-# Ok, we should refactor this and the Bbox test.
+# since it's a functional test, we need extensive setup.  Thus,
+# in the end the instances end up as single, huge tests.
+	ddid = None
+
 	def setUp(self):
 		"""fills a database table with test data.
 		"""
+		if self.ddid is None:
+			return
 		def computeWCSKeys(pos, size):
 			imgPix = (1000., 1000.)
 			res = {
@@ -213,7 +218,7 @@ class TestCoordinateQueries(unittest.TestCase):
 			return res
 		base.setDBProfile("test")
 		rd = testhelpers.getTestRD()
-		dd = rd.getById("siaptest")
+		dd = rd.getById(self.ddid)
 		self.data = rsc.makeData(dd, forceSource=[
 			computeWCSKeys(pos, size) for pos, size in [
 				((0, 0), (10, 10)),
@@ -225,10 +230,14 @@ class TestCoordinateQueries(unittest.TestCase):
 				((160, 45), (2.1, 1.1)),
 				((161, 45), (4.1, 1.1)),
 				((162, 45), (2.1, 1.1))]])
-		self.tableName = self.data.tables["siaptable"].tableDef.getQName()
+		self.tableDef = self.data.getPrimaryTable().tableDef
+		self.tableName = self.tableDef.getQName()
 
 	def tearDown(self):
+		if self.ddid is None:
+			return
 		self.data.dropTables()
+		self.data.commitAll()
 		self.data.closeAll()
 
 	# queries with expected numbers of returned items
@@ -254,7 +263,7 @@ class TestCoordinateQueries(unittest.TestCase):
 		try:
 			for center, size, expected in self._testcases:
 				pars = {}
-				fragment = siap.getQuery(None, {
+				fragment = siap.getQuery(self.tableDef, {
 					"POS": center,
 					"SIZE": size,
 					"INTERSECT": type}, pars)
@@ -267,25 +276,38 @@ class TestCoordinateQueries(unittest.TestCase):
 		finally:
 			querier.close()
 
-	def testCOVERS(self):
-		"""test for COVERS queries.
-		"""
+	# queries with expected numbers of returned items
+	_testcases = [
+		("0,0", "1", (1, 0, 1, 1)),
+		("45,-45.6", "1", (0, 0, 0, 1)),
+		("1,45", "3,1", (1, 0, 3, 3)),
+		("1,46", "1.1", (0, 0, 0, 3)),
+		("161,45", "3,1", (1, 0, 3, 3)),
+		("161,46", "1.1", (0, 0, 0, 3)),
+		("0,90", "360,2", (0, 1, 1, 1)),
+# XXX TODO: do some more here
+	]
+
+	def testHugeAndUgly(self):
+		if self.ddid is None:
+			return
 		self._runTests("COVERS")
-	
-	def testENCLOSED(self):
-		"""test for ENCLOSED queries.
-		"""
 		self._runTests("ENCLOSED")
-
-	def testCENTER(self):
-		"""test for CENTER queries.
-		"""
 		self._runTests("CENTER")
-
-	def testOVERLAPS(self):
-		"""test for OVERLAP queries.
-		"""
 		self._runTests("OVERLAPS")
+
+
+class TestBboxQueries(CooQueryTestBase):
+	"""tests for actual queries on the unit sphere with trivial WCS data.
+	"""
+	ddid = "bbox_siaptest"
+
+
+class TestPgSphereQueries(CooQueryTestBase):
+	"""tests for actual queries on the unit sphere with trivial WCS data.
+	"""
+	ddid = "pgs_siaptest"
+
 
 
 def singleTest():
@@ -295,4 +317,4 @@ def singleTest():
 
 
 if __name__=="__main__":
-	testhelpers.main(TestCoordinateQueries)
+	testhelpers.main(TestPgSphereQueries)
