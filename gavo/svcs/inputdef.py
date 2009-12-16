@@ -66,11 +66,13 @@ class InputKey(rscdef.Column):
 		# If no widget factory has been specified, infer one
 		if self.widgetFactory is None:
 			if self.value is not None:
-				self.widgetFactory = formal.Hidden
+				self.useWidget = formal.Hidden
 			elif self.isEnumerated():
-				self.widgetFactory = customwidgets.EnumeratedWidget(self)
+				self.useWidget = customwidgets.EnumeratedWidget(self)
 			else:
-				self.widgetFactory = sqltypeToFormal(self.type)[1]
+				self.useWidget = sqltypeToFormal(self.type)[1]
+		else:
+			self.useWidget = self.widgetFactory
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(InputKey)
@@ -78,8 +80,8 @@ class InputKey(rscdef.Column):
 		# convert formalType to a real formal type if it's still a string.
 		if isinstance(self.formalType, basestring):
 			defaultType, defaultWidget = sqltypeToFormal(self.formalType)
-			if self.widgetFactory is None:
-				self.widgetFactory = defaultWidget
+			if self.useWidget is None:
+				self.useWidget = defaultWidget
 			self.formalType = defaultType(required=self.required)
 
 		# compute scaling if an input unit is given
@@ -88,8 +90,8 @@ class InputKey(rscdef.Column):
 			self.scaling = base.computeConversionFactor(self.inputUnit, self.unit)
 
 		# compile a widget factory if it's a string
-		if isinstance(self.widgetFactory, basestring):
-			self.widgetFactory = customwidgets.makeWidgetFactory(self.widgetFactory)
+		if isinstance(self.useWidget, basestring):
+			self.useWidget = customwidgets.makeWidgetFactory(self.useWidget)
 	
 	def getFormalVar(self):
 		return self.formalType(required=self.required)

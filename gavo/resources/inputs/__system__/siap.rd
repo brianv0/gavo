@@ -344,6 +344,7 @@
 		</inputKey>
 		<inputKey original="base_INTERSECT" name="hINTERSECT">
 			<property name="notForRenderer">siap.xml</property>
+			<values original="base_INTERSECT_values" default="COVERS"/>
 		</inputKey>
 		<inputKey original="base_FORMAT" name="hFORMAT" widgetFactory='Hidden'>
 			<property name="notForRenderer">siap.xml</property>

@@ -406,7 +406,7 @@ class FormMixin(formal.ResourceMixin, object):
 		label = inputKey.tablehead
 		form.addField(inputKey.name,
 			inputKey.formalType,
-			inputKey.widgetFactory,
+			inputKey.useWidget,
 			label=label+unit,
 			description=inputKey.description)
 

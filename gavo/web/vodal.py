@@ -190,13 +190,13 @@ class SIAPRenderer(DALRenderer):
 		return DALRenderer.renderHTTP(self, ctx)
 
 	_outputTableCasts = {
-		"pixelScale": {"datatype": "double"},
-		"wcs_cdmatrix": {"datatype": "double"},
-		"wcs_refValues": {"datatype": "double"},
+		"pixelScale": {"datatype": "double", "arraysize": "2"},
+		"wcs_cdmatrix": {"datatype": "double", "arraysize": "4"},
+		"wcs_refValues": {"datatype": "double", "arraysize": "2"},
 		"bandpassHi": {"datatype": "double"},
 		"bandpassLo": {"datatype": "double"},
 		"bandpassRefval": {"datatype": "double"},
-		"wcs_refPixel": {"datatype": "double"},
+		"wcs_refPixel": {"datatype": "double", "arraysize": "2"},
 		"wcs_projection": {"arraysize": "3", "castFunction": lambda s: s[:3]},
 	}
 

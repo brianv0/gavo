@@ -428,12 +428,13 @@ def _productMapperFactory(colDesc):
 	The result are links to the product delivery.
 	"""
 	from nevow import url
-	if colDesc["ucd"]=="VOX:Image_AccessReference":
+	if (colDesc["ucd"]=="VOX:Image_AccessReference" 
+			or colDesc["displayHint"].get("type")=="product"):
 		def mapper(val):
 			if val is None:
 				return ""
 			else:
-				makeProductLink(val, withHost=True)+"&siap=true"
+				return makeProductLink(val, withHost=True)+"&siap=true"
 		return mapper
 valuemappers._registerDefaultMF(_productMapperFactory)
 

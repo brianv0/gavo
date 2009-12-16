@@ -176,6 +176,7 @@ class Values(base.Structure):
 	_fromDB = ActionAttribute("fromdb", "_evaluateFromDB", description=
 		"A query returning just one column to fill options from (will"
 		" add to options if some are given).")
+	_original = base.OriginalAttribute()
 
 	def makePythonVal(self, literal, sqltype):
 		return typesystems.sqltypeToPython(sqltype)(literal)

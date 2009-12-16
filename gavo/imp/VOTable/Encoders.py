@@ -154,13 +154,10 @@ class StreamEncoder(GenericEncoder):
     encNanFloat = '\x7f\xc0\x00\x00'
     def _encodeFloat(self, val):
         """returns Nullvalue-correct floats.
-
-        This hurts because it slows us down big time, but !f doesn't work
-        with NaN in python 2.4.
         """
         try:
             return struct.pack("!f", val)
-        except SystemError:
+        except (SystemError, struct.error):
             return self.encNanFloat
 
     def _encodeDouble(self, val):
@@ -168,7 +165,7 @@ class StreamEncoder(GenericEncoder):
         """
         try:
             return struct.pack("!d", val)
-        except SystemError:
+        except (SystemError, struct.error):
             return self.encNanDouble
     
     _length1Indicators = set(["1", 1, None, ''])
@@ -176,16 +173,14 @@ class StreamEncoder(GenericEncoder):
     def _makeEncoderForField(self, type, length):
         typeCode = self.typedefs[type][0]
         if length in self._length1Indicators:
-            # Gruesome workaround for struct bug; side effect: python<2.5
-            # can't pack NULL floats in arrays (who cares?)
-            if sys.hexversion<=0x20404f0:
-                if type=="float":
-                    return self._encodeFloat, None
-                if type=="double":
-                    return self._encodeDouble, None
+            if type=="float":
+                return self._encodeFloat, None
+            if type=="double":
+                return self._encodeDouble, None
             return None, typeCode
         else:
-           return self._makeArrayEncoder(type, length), None
+            # Cannot have NULLs in float arrays
+            return self._makeArrayEncoder(type, length), None
     
     def _makeEncodingFunc(self, fields):
         """returns a python callable to encode data described by fields.

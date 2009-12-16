@@ -28,6 +28,9 @@ from gavo.base import config
 from gavo.base import typesystems
 
 
+naN = float("NaN")
+
+
 # XXX TODO: Most of this stuff should be moved to formats.VOTable
 
 
@@ -133,7 +136,6 @@ _registerDefaultMF(_booleanMapperFactory)
 
 def _floatMapperFactory(colDesc):
 	if colDesc["dbtype"]=="real" or colDesc["dbtype"].startswith("double"):
-		naN = float("NaN")
 		def coder(val):
 			if val is None:
 				return naN
@@ -182,25 +184,25 @@ def datetimeMapperFactory(colDesc):
 		unit = colDesc["unit"]
 		if "MJD" in colDesc.get("ucd", ""):  # like VOX:Image_MJDateObs
 			colDesc["unit"] = "d"
-			fun = lambda val: (val and dtToMJdn(val)) or "N/A"
+			fun = lambda val: (val and dtToMJdn(val)) or None
 			destType = ("double", None)
 		elif unit=="yr" or unit=="a":
-			fun = lambda val: (val and stc.dateTimeToJYear(val)) or "N/A"
+			fun = lambda val: (val and stc.dateTimeToJYear(val)) or None
 			destType = ("double", None)
 		elif unit=="d":
-			fun = lambda val: (val and stc.dateTimeToJdn(val)) or "N/A"
+			fun = lambda val: (val and stc.dateTimeToJdn(val)) or None
 			destType = ("double", None)
 		elif unit=="s":
-			fun = lambda val: (val and time.mktime(val.timetuple())) or "N/A"
+			fun = lambda val: (val and time.mktime(val.timetuple())) or None
 			destType = ("double", None)
 		elif unit=="Y:M:D" or unit=="Y-M-D":
-			fun = lambda val: (val and val.isoformat()) or "N/A"
+			fun = lambda val: (val and val.isoformat()) or None
 			destType = ("char", "*")
 		elif unit=="iso":
-			fun = lambda val: (val and val.isoformat()) or "N/A"
+			fun = lambda val: (val and val.isoformat()) or None
 			destType = ("char", "*")
 		else:   # Fishy, but not our fault
-			fun = lambda val: (val and stc.dateTimeToJdn(val)) or "N/A"
+			fun = lambda val: (val and stc.dateTimeToJdn(val)) or None
 			destType = ("double", None)
 		colDesc["datatype"], colDesc["arraysize"] = destType
 		return fun
