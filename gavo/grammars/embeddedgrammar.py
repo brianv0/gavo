@@ -36,6 +36,7 @@ class EmbeddedGrammar(common.Grammar):
 		self._onElementCompleteNext(EmbeddedGrammar)
 		class RowIterator(common.RowIterator):
 			_iterRows = self.iterator.compile()
+			notify = False
 		self.rowIterator = RowIterator
 
 rscdef.registerGrammar(EmbeddedGrammar)

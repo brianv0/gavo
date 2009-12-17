@@ -295,12 +295,6 @@ _registerHTMLMF(_urlMapperFactory)
 #  Insert new, more specific factories here
 
 
-def makeCutoutURL(accref, ra, dec, sra, sdec):
-	key = (accref+"&amp;ra=%s&amp;dec=%s&amp;sra=%s"
-		"&amp;sdec=%s"%(ra, dec, sra, sdec))
-	return base.makeSitePath("/getproduct?key="+urllib.quote(key))
-
-
 class HeadCellsMixin(object):
 	"""A mixin providing renders for table headings.
 

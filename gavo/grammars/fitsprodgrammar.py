@@ -58,7 +58,6 @@ class FITSProdIterator(RowIterator):
 		header = hdus[int(self.grammar.hdu)].header
 		hdus.close()
 		row = self._buildDictFromHeader(header)
-		base.ui.notifyIncomingRow(row)
 		yield self.grammar.mapKeys.doMap(row)
 	
 	def getLocator(self):

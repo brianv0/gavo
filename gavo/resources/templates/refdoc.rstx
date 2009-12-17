@@ -279,6 +279,83 @@ are usually set there:
   override creator.name
 
 
+Display Hints
+=============
+
+Display hints use an open vocabulary.  As you add value formatters, you can 
+evaluate any display hint you like.  Display hints understood by the
+built-in value formatters include:
+
+displayUnit
+  use the value of this hint as the unit to display a value in.
+
+humanTime
+  display values as h:m:s.
+
+nopreview
+  if this key is present with any value, no HTML code to generate
+  previews when mousing over a link will be generated.
+
+sepChar
+  a separation character for sexagesimal displays and the like.
+
+sf
+  "Significant figures" -- length of the mantissa for this column.
+  Will probably be replaced by a column attribute analoguous to what
+  VOTable does.
+
+type
+  a key that gives hints what to do with the column.  Values currently
+  understood include:
+
+  bar
+    display a numeric value as a bar of length value pixels.
+
+  bibcode
+   display the value as a link to an ADS bibcode query.
+
+  feedbackSelect
+    used by the feedback machinery to designate the column containing
+    the feedback key (will be rendered as a checkbox in HTML).
+
+  keephtml
+    lets you include raw HTML.  In VOTables, tags are removed.
+
+  product
+    treats the value as a product key and expands it to a URL for the
+    product (i.e., typically image).  This is defined in
+    protocols.products.  This display hint is also used by, e.g., the tar
+    format to identify which columns should contribute to the tar file.
+
+  sexagesimal
+    format a float as degree, minutes, seconds.
+
+  simbadlink
+    formats a column consisting of alpha and delta as a link to query
+    simbad.  You can add a coneMins displayHint to specify the search
+    radius.
+
+  suppress
+    do not automatically include this column in any table (e.g.,
+    verbLevel-based column selection).
+
+  time
+    force formatting of this column as a time (with unit like hms).
+
+  url
+    makes value a link in HTML tables.
+
+noxml
+  if 'true' (exactly like this), do not include this column in VOTables.
+
+width
+  preview width in pixels.
+
+Note that not any combination of display hints is correctly
+interpreted.  The interpretation is greedy, and only one formatter at a
+time attempts to interpret display hints.
+
+
 Writing Custom Cores
 ====================
 

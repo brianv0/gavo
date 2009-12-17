@@ -215,7 +215,8 @@ class _EnoughRows(base.ExecutiveAction):
 def _pipeRows(srcIter, feeder, opts):
 	feeder.addParameters(srcIter.getParameters())
 	for srcRow in srcIter:
-		base.ui.notifyIncomingRow(srcRow)
+		if srcIter.notify:
+			base.ui.notifyIncomingRow(srcRow)
 		if opts.dumpRows:
 			print srcRow
 		try:

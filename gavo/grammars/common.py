@@ -158,13 +158,16 @@ class RowIterator(object):
 	_iterRows should arrange for the instance variable recNo to be incremented
 	by one for each item returned.
 	"""
+	notify = True
+
 	def __init__(self, grammar, sourceToken, sourceRow=None):
 		self.grammar, self.sourceToken = grammar, sourceToken
 		self.sourceRow = sourceRow
 		self.recNo = 0
 
 	def __iter__(self):
-		base.ui.notifyNewSource(self.sourceToken)
+		if self.notify:
+			base.ui.notifyNewSource(self.sourceToken)
 		if hasattr(self, "rowfilter"):
 			baseIter = self._iterRowsProcessed()
 		else:
@@ -181,7 +184,8 @@ class RowIterator(object):
 		except:
 			base.ui.notifySourceError()
 			raise
-		base.ui.notifySourceFinished()
+		if self.notify:
+			base.ui.notifySourceFinished()
 
 	def _filteredIter(self, baseIter):
 		for row in baseIter:

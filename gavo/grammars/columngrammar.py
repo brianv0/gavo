@@ -22,7 +22,6 @@ class SplitLineIterator(FileRowIterator):
 				break
 			res = self._parse(inputLine)
 			res["parser_"] = self
-			base.ui.notifyIncomingRow(res)
 			yield res
 			self.lineNo += 1
 			self.recNo += 1
