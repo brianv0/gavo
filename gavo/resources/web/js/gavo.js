@@ -137,37 +137,43 @@ function makeBookmarkLink(form) {
 
 ///////////// Functions for the sidebar
 
+var expandedMetaWidth = '200px';
+
 function markFold(title, markstr) {
 	return title.slice(0, title.length-2)+markstr;
 }
 
 function toggleCollapsedMeta(el) {
-	parentBox = el.parentNode.parentNode;
-	if (parentBox.style.width=='200px') {
+	var contentBox = el.parentNode.nextSibling;
+	if (contentBox.style.visibility=='visible') {
 		el.childNodes[0].data = markFold(el.childNodes[0].data, ">>");
-		collapseMeta(parentBox);
+		collapseMeta(contentBox);
 	} else {
 		el.childNodes[0].data = markFold(el.childNodes[0].data, "<<");
-		expandMeta(parentBox);
+		expandMeta(contentBox);
 	}
 }
 
 function collapseMeta(box) {
-	box.style.minHeight = '12pt';
-	box.style.height = '12pt';
-	box.style.overflow = 'hidden';
-	box.style.width = '100px';
-	box.style.border = '0px none #707ca0';
-	box.style.background = 'none';
+	box.style.visibility = 'hidden';
+	box.style.height = '0px';
+	box.style.maxHeight = '0px';
+	parent = box.parentNode;
+	parent.style.border = '0px none #707ca0';
+	parent.style.padding = '1px';
+	parent.style.background = 'none';
 }
 
 function expandMeta(box) {
-	box.style.width = '200px';
-	box.style.minHeight = '70px';
+	box.style.visibility = 'visible';
+	box.style.height = 'auto';
 	box.style.maxHeight = '200px';
-	box.style.overflow = 'auto';
-	box.style.border = '1px solid #707ca0';
-	box.style.background = 'white';
+	box.style.width = expandedMetaWidth;
+	parent = box.parentNode;
+	parent.style.border = '1px solid #707ca0';
+	parent.style.padding = '3px';
+	parent.style.background = '#ffffff';
+	parent.style.width = expandedMetaWidth;
 }
 
 

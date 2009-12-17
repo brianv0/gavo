@@ -200,7 +200,8 @@ class GavoRenderMixin(common.CommonRenderers):
 					T.a(onclick="toggleCollapsedMeta(this)", 
 						class_="foldbutton")[title+" >>"],
 				],
-				self._doRenderMeta(ctx, raiseOnFail=True)]
+				T.div(class_="exploBody")[
+					self._doRenderMeta(ctx, raiseOnFail=True)]]
 		except base.MetaError:
 			return ""
 	

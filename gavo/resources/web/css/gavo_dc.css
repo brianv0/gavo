@@ -286,11 +286,12 @@ li.metaItem {
  margin: 4px;
 }
 
-.explodable {
-	height: 12pt;
-	overflow: hidden;
-	background: #d2dcf0;
-  margin-bottom:5px;
+div.explodable {
+	padding: 1px; /* must be in sync with gavo.js:*Meta */
+}
+
+div.explodable h4 {
+	margin-bottom: 1px;
 }
 
 h4.exploHead {
@@ -301,6 +302,16 @@ h4.exploHead {
 	padding: 0px;
 	background: none;
 	cursor: pointer;
+	overflow: visible;
+	white-space: nowrap;
+}
+
+div.exploBody {
+	overflow: auto;
+	height: 0px;
+	/* width is set in gavo.js:expandMeta */
+	visibility: hidden;
+	font-size: 11px;
 }
 
 .sidebaritem h3 {
@@ -308,11 +319,6 @@ h4.exploHead {
 	margin-top:7px;
 	margin-bottom:5px;
 	background: #F0F4FF;
-}
-
-div.explodable h4 {
-	padding: 0px;
-	margin: 0px;
 }
 
 div.copyright {
