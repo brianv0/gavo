@@ -409,20 +409,25 @@ function openDOMsubwindow(parent, innerDOM, callback) {
 }
 
 
-
-function bubbleUpByURL(srcNode, innerURL) {
-// opens a "subwindow" containing innerDOM.  This replaces srcNode in
-// the doc tree.
+function bubbleUpDOM(srcNode, innerDOM) {
+// opens a "subwindow" containing innerURL, replacing srcNode.
 //
-// returns false for cheapo event handling (we should change this...)
+// returns false for cheapo event handling
 	parent = srcNode.parentNode
 	parent.removeChild(srcNode);
 	function callback() {
 		parent.appendChild(srcNode);
 	}
-	bubbleUpDOM(parent,
-		MochiKit.DOM.createDOM('iframe', 
-			{'src': innerURL, 'class': 'innerBody'}),
-		callback);
+	openDOMsubwindow(parent, innerDOM, callback);
 	return false;
+}
+
+function bubbleUpByURL(srcNode, innerURL) {
+// opens a "subwindow" containing innerURL.  This replaces srcNode in
+// the doc tree.
+//
+// returns false for cheapo event handling
+	return bubbleUpDOM(srcNode,
+		MochiKit.DOM.createDOM('iframe', 
+			{'src': innerURL, 'class': 'innerBody'}));
 }
