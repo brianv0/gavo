@@ -361,6 +361,7 @@ class Form(AddHelperMixin, object):
         # Forward to FormItems methods
         self.add = self.items.add
         self.getItemByName = self.items.getItemByName
+        self.actionMaterial = None
 
 
     def addAction(self, callback, name="submit", validate=True, label=None):
@@ -745,6 +746,10 @@ class FormRenderer(object):
 
         for action in self.original.actions:
             yield T.invisible(data=action, render=self._renderAction)
+        
+        if self.original.actionMaterial:
+            yield self.original.actionMaterial
+
 
     def _renderAction(self, ctx, data):
         return T.input(type='submit', id='%s-action-%s'%(self.original.name, data.name), name=data.name, value=data.label)

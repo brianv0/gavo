@@ -448,6 +448,22 @@ class FormMixin(formal.ResourceMixin, object):
 		except AttributeError: # probably no wantsTableWidget method on core
 			pass
 
+	def _getFormLinks(self):
+		"""returns stan for widgets building GET-type strings for the current 
+		form content.
+		"""
+		return T.div(class_="formLinks")[
+				T.a(href="", class_="resultlink", onmouseover=
+						"this.href=makeResultLink(getEnclosingForm(this))")
+					["[Result link]"],
+				" ",
+				T.a(href="", class_="resultlink", onmouseover=
+						"this.href=makeBookmarkLink(getEnclosingForm(this))")[
+					T.img(src=base.makeSitePath("/builtin/img/bookmark.png"), 
+						class_="silentlink", title="Link to this form", alt="[bookmark]")
+				],
+			]
+
 	def form_genForm(self, ctx=None, data=None):
 		queryMeta = svcs.QueryMeta.fromContext(ctx)
 		if data is None and ctx is not None:
@@ -461,6 +477,7 @@ class FormMixin(formal.ResourceMixin, object):
 				formal.widgetFactory(svcs.OutputFormat, self.service, queryMeta),
 				label="Output format")
 		form.addAction(self.submitAction, label="Go")
+		form.actionMaterial = self._getFormLinks()
 		self.form = form
 		return form
 

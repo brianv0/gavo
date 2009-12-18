@@ -750,10 +750,12 @@ class BibcodeMeta(MetaValue):
 		return '<a href="%s">%s</a>'%(
 			self.adsMirror+"cgi-bin/nph-data_query?bibcode=%s&"
 				"link_type=ABSTRACT"%urllib.quote(matOb.group(0)),
-			matOb.group(0))
+			matOb.group(0))  
 
 	def _getContentAsHTML(self, content):
-		return self.bibcodePat.sub(self._makeADSLink, unicode(content))
+		return self.bibcodePat.sub(self._makeADSLink, unicode(content)
+			).replace("&", "&amp;")
+			# Yikes.  We should really quote such raw HTML properly...
 
 
 _metaTypeRegistry = {

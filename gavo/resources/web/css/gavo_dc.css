@@ -45,6 +45,11 @@ button.transparent {
 	border-style:None;
 }
 
+button.popButton {
+	background: white;
+	border: 2px solid gray;
+}
+
 .silentlink {
 	border-style:None;
 }
@@ -206,6 +211,7 @@ th.thHorizontal {
 	text-align: left;
 	background-color: #dddddd;
 	padding-right: 10pt;
+	position: relative;
 }
 
 .keyvalue tr td {
@@ -228,7 +234,8 @@ th.thVertical {
 	margin-bottom: 2px;
 	padding-left: 3px;
 	padding-right: 3px;
-	margin: 0px 0px 0px 0px
+	margin: 0px 0px 0px 0px;
+	position: relative;
 }
 
 .results td {
@@ -392,16 +399,35 @@ div.errors {
 
 div.innerWin {
 	position: absolute;
+	background: #ffffff;
+	border: 1px solid black;
+	z-index:100;
 }
 
 p.innerTitle {
-	background:#d2dcf0;
-	text-align:right;
-	margin-bottom: 0px;
+	background: #d2dcf0;
+	text-align: right;
+	font-weight: bold;
+	margin: 0px;
 	cursor: pointer;
+	width: auto;
+	max-width: none;
 }
 
 iframe.innerBody {
 	border: 1px solid #d2dcf0;
 	background: white;
+}
+
+div.formLinks {
+	text-align:right;
+	margin-top: -10px;
+}
+
+table#addSelection {
+	width:400px;
+}
+
+table#addSelection tr td {
+	vertical-align: middle;
 }

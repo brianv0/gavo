@@ -75,39 +75,40 @@ class OutputFormat(object):
 		                   # probably computes them
 				pass
 
-	def _makeFieldDescs(self):
-		descs = [(f.name, str(selected), urllib.quote(
-				f.tablehead)) for f, selected in self.availableFields]
-		descs.sort(key=lambda a:a[2].upper())
-		return "\n".join("%s %s %s"%d for d in descs)
+	def _makeAdditionalSelector(self):
+		"""returns an ul element containing form material for additional output
+		columns.
+		"""
+		checkLiterals = {True: "checked", False: None}
+		fields = [] 
+		for column, checked in sorted(
+				self.availableFields, key=lambda p:p[0].name):
+			fields.append(T.tr[
+				T.td[
+					T.input(type="checkbox", name="_ADDITEM", value=column.name,
+						checked=checkLiterals[checked])],
+				T.td(style="vertical-align:middle")[
+					" %s -- %s"%(column.name, column.description)]])
+		return T.table(id="addSelection")[fields]
 
 	_labelOverrides = {
 		"TSV": "Tab-separated ASCII",
 	}
 
 	def render(self, ctx, key, args, errors):
-		return T.div(id=render_cssid("_OUTPUT"))[
+		res = T.div(id=render_cssid("_OUTPUT"), style="position:relative")[
 			SelectChoice(formaltypes.String(), 
 				options=[(s, self._labelOverrides.get(s,s)) 
 					for s in self.availableFormats],
 				noneOption=("HTML", "HTML")).render(ctx, "_FORMAT", args, errors)(
-					onchange="output_broadcast(this.value)"),
-			T.span(id=render_cssid(key, "QlinkContainer"), 
-					style="padding-left:200px")[
-				T.a(href="", class_="resultlink", onmouseover=
-						"this.href=makeResultLink(getEnclosingForm(this))")
-					["[Result link]"],
-				" ",
-				T.a(href="", class_="resultlink", onmouseover=
-						"this.href=makeBookmarkLink(getEnclosingForm(this))")[
-					T.img(src=base.makeSitePath("/builtin/img/bookmark.png"), 
-						class_="silentlink", title="Link to this form", alt="[bookmark]")
-				],
-			],
-			T.br,
-			T.div(id="op_selectItems", style="visibility:hidden;position:absolute;"
-					"bottom:-10px", title="ignore")[
-						self._makeFieldDescs()]]
+					onchange="output_broadcast(this.value)")]
+		if self.availableFields:
+			res[
+				T.div(title="Additional output column selector", 
+					id=render_cssid("_ADDITEMS"),
+					style="visibility:hidden;position:absolute;")[
+							self._makeAdditionalSelector()]]
+		return res
 	
 	renderImmutable = render  # This is a lost case
 
@@ -339,7 +340,7 @@ class StringFieldWithBlurb(widget.TextInput):
 			plainTag, 
 			T.img(onclick="document.getElementById('genForm-%s').value=''"%key,
 				src="/builtin/img/clearButton.png", alt="[clear]", 
-				title="Clear field", style="vertical-align:bottom"),
+				title="Clear field", style="vertical-align:middle"),
 			" ",
 			T.span(class_="fieldlegend")[self.additionalMaterial]]
 

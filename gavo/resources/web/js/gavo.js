@@ -95,6 +95,8 @@ function makeQueryItem(element) {
 		case "SELECT":
 			return getSelectedEntries(element).join("&");
 			break;
+		case "BUTTON":  // no state here
+			break;
 		default:
 			alert("No handler for "+element.nodeName);
 	}
@@ -187,9 +189,6 @@ function expandMeta(box) {
 //  * a block element with id "genForm-_OUTPUT" in which the subwidgets are 
 //    displayed
 //  * a form element calling output_broadcast(this.value) on a change
-//  * an element with id op_selectItems (preferably invisible) that has
-//    one item per line, key first, then a space, finally a title, encoded
-//    for decodeURI
 //
 //  In the DC, the static QueryMeta method getOutputWidget cares for this.
 
@@ -236,7 +235,7 @@ function output_verbSelector(pars) {
 
 function output_tdEncSelector(pars) {
 	// returns a BussedElement to select VOTable encoding
-	var root = document.createElement("span")
+	var root = document.createElement("span");
 	var box = document.createElement("input");
 	var curSetting;
 
@@ -258,66 +257,53 @@ function output_tdEncSelector(pars) {
 }
 
 
-function output_getAvailableItems() {
-	// returns a mapping from keys to title for available items; see above
-	var res = new Array();
-	var node = document.getElementById("op_selectItems");
-	if (!node || !node.firstChild) {
-		return res;
+function output_makePopupCleanup(child, govButton) {
+// returns a function to put destNode back into the main form
+	return function() {
+		child.parentNode.removeChild(child);
+		child.style.visibility = "hidden";
+		child.style.position = "absolute";
+		appendChildNodes(document.getElementById("genForm"), child);
+		govButton.onclick = output_popupAddSel;
+		govButton.firstChild.data = "More output fields";
 	}
-	var pairs = node.firstChild.nodeValue.split("\n");
-	for (var ind in pairs) {
-		res.push(pairs[ind].split(" ", 3));
-	}
-	return res;
 }
 
-function output_expandSelectNode(ev) {
-	ev.currentTarget.size = 10;
-	ev.currentTarget.style.top = "-100px";
+
+function output_popupAddSel() {
+// pops up the dialog with the additional output items.  The popup
+// receives a cleanup function.
+	child = getElement("genForm-_ADDITEMS");
+	child.parentNode.removeChild(child);
+	child.style.visibility = "visible";
+	child.style.position = "static";
+	// I'd like to access the button via its id, but firefox doesn't let me.
+	govButton = output_bussedElements[2];
+	closer = openDOMsubwindow(getElement("genForm-_OUTPUT"), child,
+		output_makePopupCleanup(child, govButton), true);
+	govButton.onclick = closer;
+	govButton.firstChild.data = "Pop down field selection";
+	return false;
 }
 
-function output_collapseSelectNode(ev) {
-	ev.currentTarget.style.top = "0px";
-	ev.currentTarget.size = 1;
-}
 
 function output_itemSelector(pars) {
-	// returns a BussedElement to select additional fields
-	var root = document.createElement("span");
-	var selector = document.createElement("select");
+	// returns a Bussedelement to pop up the element Selector
+	var root = document.createElement("button");
 
-	root["class"] = "op_widget";
-	selector.name = "_ADDITEM";
-	var selected = pars['arg'+selector.name];
+	root["type"] = "button";
+	root["id"] = "op_addbutton";
+	root.setAttribute("class", "popButton");
+	root.onclick = output_popupAddSel;
+	root.appendChild(document.createTextNode("More output fields"));
 
-	if (selected==undefined) {
-		selected = new Array();
+	// show nowhere unless there actually is a dialogue
+	var showFor = new Array();
+	if (getElement("genForm-_ADDITEMS")) {
+		showFor.push('HTML');
 	}
-	selector.size = 1;
-	selector.style.maxWidth = '200px';
-	selector.style.position = "relative";
-	selector.addEventListener("mouseover", output_expandSelectNode, false);
-	selector.addEventListener("mouseout", output_collapseSelectNode, false);
-	selector.multiple = "multiple";
-	var availableItems = output_getAvailableItems();
-	for (var ind in availableItems) {
-		var key = availableItems[ind][0];
-		var opt = document.createElement("option");
-		opt.appendChild(document.createTextNode(
-			decodeURIComponent(availableItems[ind][2])));
-		opt.value = key;
-		if (isIn(opt.value, selected) || availableItems[ind][1]=="True") {
-			opt.selected = "selected";
-		}
-		selector.appendChild(opt);
-	}
-	if (availableItems.length) {
-		root.appendChild(document.createTextNode(" additional output fields "));
-		root.appendChild(selector);
-	}
-	return output_BussedElement(root, "op_addfields", ["HTML"]);
-}	
+	return output_BussedElement(root, "op_additem", showFor);
+}
 
 
 function output_hide(el) {
@@ -329,7 +315,9 @@ function output_hide(el) {
 
 function output_show(el) {
 	if (!document.getElementById(el.id)) {
-		document.getElementById("genForm-_OUTPUT").appendChild(el);
+		dest = document.getElementById("genForm-_OUTPUT");
+		dest.appendChild(document.createTextNode(" "));
+		dest.appendChild(el);
 	}
 }
 
@@ -389,29 +377,52 @@ if (window.addEventListener) {
 
 ///////////////// New, MochiKit dependent code (should grow over time)
 
-function killAncestor(node, levels) {
-	while (levels && node.parentNode) {
-		node = node.parentNode;
-		levels--;
+function makeCloser(node, callback) {
+	function close() {
+		if (callback) {
+			callback();
+		}
+		removeElement(node);
+		return false;  // make this work as an event handler
 	}
-	removeElement(node);
+	return close;
 }
 
 
-function bubbleUpByURL(sibling, innerURL) {
-// open a "subwindow" containing innerURL.  This only works if the "top level"
-// container has an id of "body"
-	makePositioned(sibling.parentNode);
-	destPos = getElementPosition(sibling.parentNode, 
-		document.getElementById("body"));
-	docWin = DIV({'class': 'innerWin'}, 
+function openDOMsubwindow(parent, innerDOM, callback) {
+// open a "subwindow" containing innerDOM.
+//
+// parent is a DOM element innerDOM is to be centered on.  callback
+// can be a function that is called when the window is being closed.
+//
+// returns a function that, when called, closes the "subwindow".
+	makePositioned(parent);
+	docWin = DIV({'class': 'innerWin'})
+	closeSubWindow = makeCloser(docWin, callback)
+	appendChildNodes(docWin,
 		P({'class': 'innerTitle'}, 
-			SPAN({'onclick': 'killAncestor(this, 2)'}, 'x')),
+			SPAN({'onclick': closeSubWindow}, 'x')),
+		innerDOM);
+	docWin.style.position = 'absolute';
+	parent.appendChild(docWin);
+	return closeSubWindow;
+}
+
+
+
+function bubbleUpByURL(srcNode, innerURL) {
+// opens a "subwindow" containing innerDOM.  This replaces srcNode in
+// the doc tree.
+//
+// returns false for cheapo event handling (we should change this...)
+	parent = srcNode.parentNode
+	parent.removeChild(srcNode);
+	function callback() {
+		parent.appendChild(srcNode);
+	}
+	bubbleUpDOM(parent,
 		MochiKit.DOM.createDOM('iframe', 
-			{'src': innerURL, 'class': 'innerBody'}));
-	destPos.x -= 20;
-	destPos.y -= 10;
-	setElementPosition(docWin, destPos);
-	appendChildNodes(sibling.parentNode, docWin);
+			{'src': innerURL, 'class': 'innerBody'}),
+		callback);
 	return false;
 }
