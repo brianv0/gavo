@@ -8,6 +8,7 @@ optionally tinkers with that data set.
 """
 
 import cStringIO
+import datetime
 import os
 import weakref
 
@@ -269,7 +270,12 @@ class RegistryMetaMixin(object):
 					utils.isoTimestampFmt), name="recTimestamp"),
 			}
 		else:
-			self.__dbRecord = None
+			self.__dbRecord = {
+				'sets': ['unpublished'],
+				'recTimestamp': meta.makeMetaItem(
+					datetime.datetime.utcnow().strftime(
+					utils.isoTimestampFmt), name="recTimestamp"),
+				}
 		return self.__getFromDB(metaKey)
 	
 	def _meta_dateUpdated(self):

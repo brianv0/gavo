@@ -63,10 +63,10 @@ def getResobFromRestup(restup):
 
 	restup at least has to contain the sourceRD and internalId fields.
 
-	The item that is being returned is either a service or a StaticResource
-	object.  All of these have a getMeta method and should be able to
-	return the standard DC metadata.  Everything else depends on the type
-	of StaticResource.
+	The item that is being returned is either a service, a
+	StaticResource object, or a DeletedResource.  All of these have
+	a getMeta method and should be able to return the standard DC
+	metadata.  Everything else depends on the type of StaticResource.
 	"""
 	if restup["deleted"]:
 		return staticresource.DeletedResource(

@@ -17,7 +17,6 @@ from gavo import svcs
 from gavo import utils
 from gavo.registry import builders
 from gavo.registry import identifiers
-from gavo.registry import servicelist
 from gavo.registry.common import *
 from gavo.registry.model import OAI
 from gavo.utils import ElementTree

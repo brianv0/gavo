@@ -4,7 +4,8 @@ Tests having to do with the registry code.
 
 # This is really hard to sensibly work out.  Sigh
 
-import datetime 
+import datetime
+import os
 
 from gavo import api
 from gavo import base
@@ -12,7 +13,7 @@ from gavo import registry
 from gavo import utils
 from gavo.registry import builders
 from gavo.registry import oaiinter
-from gavo.registry import servicelist
+from gavo.registry import publication
 
 import testhelpers
 
@@ -21,35 +22,25 @@ class DeletedTest(testhelpers.VerboseTest):
 	"""tests for deletion of record doing roughly what's necessary.
 	"""
 # All these things need to run in sequence.  Lousy.
-
-	srvTestRD = """
-	<resource schema="test">
-		<staticCore id="nullcore" file="forget"/>
-		<meta name="title">foosv</meta>
-		<meta name="creationDate">1970-01-01T05:20:00</meta>
-		<meta name="description">The foo service</meta>
-		<meta name="subject">Testing</meta>
-		<service id="moribund" core="nullcore">
-			<meta name="shortName">moribund</meta>
-			<publish render="form" sets="ivo_managed"/>
-		</service>
-	</resource>"""
+	rdId = 'data/pubtest'
 
 	def setUp(self):
+		self.oldInputs = base.getConfig("inputsDir")
+		base.setConfig("inputsDir", os.getcwd())
 		self.connection = base.getDBConnection(profile="test")
 	
 	def tearDown(self):
 		self.connection.rollback()
+		base.setConfig("inputsDir", self.oldInputs)
 
 	def _createPublication(self):
-		rd = base.parseFromString(api.RD, self.srvTestRD)
-		rd.sourceId = "test/test"
-		servicelist.updateServiceList([rd], connection=self.connection)
+		rd = api.getRD(self.rdId)
+		publication.updateServiceList([rd], connection=self.connection)
 
 	def _deletePublication(self):
-		rd =  base.parseFromString(api.RD, "<resource schema='test'/>")
-		rd.sourceId = "test/test"
-		servicelist.updateServiceList([rd], connection=self.connection)
+		rd = api.getRD(self.rdId)
+		del rd.services[0]
+		publication.updateServiceList([rd], connection=self.connection)
 
 	def _assertPublished(self):
 		# see if oaiinter functions see new service
@@ -57,7 +48,7 @@ class DeletedTest(testhelpers.VerboseTest):
 		matches = [tup for tup in oaiinter.getMatchingRestups(
 			{"from": yesterday.strftime(utils.isoTimestampFmt)}, 
 				connection=self.connection)
-			if tup["sourceRd"]=='test/test']
+			if tup["sourceRd"]==self.rdId]
 		self.failUnless(len(matches)==1, "Publication did not write record.")
 		match = matches[0]
 		self.failUnless(
@@ -69,7 +60,7 @@ class DeletedTest(testhelpers.VerboseTest):
 		matches = [tup for tup in oaiinter.getMatchingRestups(
 			{"from": yesterday.strftime(utils.isoTimestampFmt)}, 
 				connection=self.connection)
-			if tup["sourceRd"]=='test/test']
+			if tup["sourceRd"]==self.rdId]
 		self.failUnless(len(matches)==1, "Unpublication deleted record.")
 		match = matches[0]
 		self.failUnless(match["deleted"],
@@ -78,16 +69,16 @@ class DeletedTest(testhelpers.VerboseTest):
 	def _assertCanBuildResob(self):
 		restup = [tup for tup in oaiinter.getMatchingRestups(
 			{}, connection=self.connection)
-			if tup["sourceRd"]=='test/test'][0]
+			if tup["sourceRd"]==self.rdId][0]
 		resob = registry.getResobFromRestup(restup)
 		self.assertEqual(resob.resType, "deleted")
 		dcRepr = builders.getDCResourceElement(resob).render()
 		self.failUnless('<oai:header status="deleted"' in dcRepr)
-		self.failUnless("<oai:identifier>ivo://org.gavo.dc/test/test/moribund<"
+		self.failUnless("<oai:identifier>ivo://org.gavo.dc/data/pubtest/moribund<"
 			in dcRepr)
 		voRepr = builders.getVOResourceElement(resob).render()
 		self.failUnless('<oai:header status="deleted"' in voRepr)
-		self.failUnless("<oai:identifier>ivo://org.gavo.dc/test/test/moribund<"
+		self.failUnless("<oai:identifier>ivo://org.gavo.dc/data/pubtest/moribund<"
 			in voRepr)
 
 	def testBigAndUgly(self):
