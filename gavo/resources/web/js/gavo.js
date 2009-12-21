@@ -160,7 +160,7 @@ function collapseMeta(box) {
 	box.style.visibility = 'hidden';
 	box.style.height = '0px';
 	box.style.maxHeight = '0px';
-	parent = box.parentNode;
+	var parent = box.parentNode;
 	parent.style.border = '0px none #707ca0';
 	parent.style.padding = '1px';
 	parent.style.background = 'none';
@@ -171,7 +171,7 @@ function expandMeta(box) {
 	box.style.height = 'auto';
 	box.style.maxHeight = '200px';
 	box.style.width = expandedMetaWidth;
-	parent = box.parentNode;
+	var parent = box.parentNode;
 	parent.style.border = '1px solid #707ca0';
 	parent.style.padding = '3px';
 	parent.style.background = '#ffffff';
@@ -413,7 +413,7 @@ function bubbleUpDOM(srcNode, innerDOM) {
 // opens a "subwindow" containing innerURL, replacing srcNode.
 //
 // returns false for cheapo event handling
-	parent = srcNode.parentNode
+	var parent = srcNode.parentNode
 	parent.removeChild(srcNode);
 	function callback() {
 		parent.appendChild(srcNode);

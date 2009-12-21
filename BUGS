@@ -160,3 +160,7 @@
 40/HIGH/2009-12-11/FIXED
 	select max(ntotal), min(ntotal) from usnob.platecorrs only returns one 
 	column.
+
+41/MEDIUM/2009-12-21
+	When vo_managed-publishing something, try producing a resource record and
+	complain if that doesn't work out.

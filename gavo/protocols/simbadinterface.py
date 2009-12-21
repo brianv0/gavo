@@ -1,9 +1,10 @@
-import os
-import sys
 import cPickle
-import xml.sax
+import os
+import socket
+import sys
 import tempfile
 import warnings
+import xml.sax
 
 import SOAPpy
 import SOAPpy.WSDL
@@ -222,10 +223,15 @@ class Sesame(object):
 		try:
 			return self.cache.getItem(ident)
 		except KeyError:
-			newOb = self._parseXML(self.proxy.sesame(name=ident, 
-				resultType="SNx"))
-			self.cache.addItem(ident, newOb, save=self.saveNew)
-			return newOb
+			try:
+				newOb = self._parseXML(self.proxy.sesame(name=ident, 
+					resultType="SNx"))
+				self.cache.addItem(ident, newOb, save=self.saveNew)
+				return newOb
+			except socket.error: # Simbad is offline
+				raise base.ValidationError("Simbad is offline, cannot query.",
+					"hscs_pos", # really, this should be added by the widget
+					hint="If this problem persists, complain to us rather than simbad.")
 	
 	def getPositionFor(self, identifier):
 		data = self.query(identifier)

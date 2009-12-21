@@ -86,6 +86,7 @@ class OutputFormat(object):
 			fields.append(T.tr[
 				T.td[
 					T.input(type="checkbox", name="_ADDITEM", value=column.name,
+						style="width:auto",
 						checked=checkLiterals[checked])],
 				T.td(style="vertical-align:middle")[
 					" %s -- %s"%(column.name, column.description)]])
