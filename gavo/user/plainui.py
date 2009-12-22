@@ -50,3 +50,11 @@ class PlainUI(ObserverBase):
 		self.showMsg("--- Ignoring bad row: %s (%s)"%(
 			utils.makeEllipsis(str(row), 30), 
 			str(excInfo[1])))
+	
+	@listensTo("ScriptRunning")
+	def announceScriptRunning(self, script):
+		if script.name:
+			self.showMsg("Running %s script %s"%(script.type, script.name))
+		else:
+			self.showMsg("Running anonymous %s script (set its name attribute)."%(
+				script.type))

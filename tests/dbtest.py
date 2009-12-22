@@ -214,5 +214,42 @@ class TestPgSphere(testhelpers.VerboseTest):
 				pgsphere.SPoint(2.0,0.5)))
 
 
+class TestWithDataImport(testhelpers.VerboseTest):
+	"""base class for tests importing data up front.
+
+	You need to set the ddId, which must point into test.rd
+	"""
+	def setUp(self):
+		self.connection = base.getDBConnection("test")
+		dd = testhelpers.getTestRD().getById(self.ddId)
+		self.data = rsc.makeData(dd, connection=self.connection)
+	
+	def tearDown(self):
+		self.connection.rollback()
+		self.connection.close()
+	
+
+class TestPreIndexSQLRunning(TestWithDataImport):
+	"""tests for dbtables running preIndexSQL scripts.
+	"""
+	ddId = "import_sqlscript"
+
+	def testScriptRan(self):
+		q = base.SimpleQuerier(connection=self.connection)
+		ct = list(q.query("select count(*) from test.sqlscript"))[0][0]
+		self.assertEqual(ct, 3)
+
+
+class TestPreIndexPythonRunning(TestWithDataImport):
+	"""tests for dbtables running preIndexSQL scripts.
+	"""
+	ddId = "import_pythonscript"
+
+	def testScriptRan(self):
+		q = base.SimpleQuerier(connection=self.connection)
+		ct = list(q.query("select * from test.pythonscript"))[0][0]
+		self.assertEqual(ct, 123)
+
+	
 if __name__=="__main__":
 	testhelpers.main(TestPgSphere)

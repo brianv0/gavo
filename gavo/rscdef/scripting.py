@@ -222,6 +222,7 @@ class ScriptHandler(object):
 	}
 	
 	def _runScript(self, script, macroExpander, **kwargs):
+		base.ui.notifyScriptRunning(script)
 		source = macroExpander.expand(script.content_)
 		self.handlers[script.type](self, source, **kwargs)
 

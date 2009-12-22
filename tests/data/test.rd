@@ -271,6 +271,30 @@
 		<make table="prodtest" rowmaker="pid_rmk"/>
 	</data>
 
+	<table id="sqlscript" onDisk="True">
+		<column name="counter" type="integer"/>
+		<script type="preIndexSQL">
+			INSERT INTO \curtable VALUES (1)
+			INSERT INTO \curtable VALUES (2)
+			INSERT INTO \curtable VALUES (3)
+		</script>
+	</table>
+
+	<data id="import_sqlscript">
+		<make table="sqlscript"/>
+	</data>
+
+	<table id="pythonscript" onDisk="True">
+		<column name="counter" type="integer"/>
+		<script type="preIndex">
+			tw.query("INSERT INTO \curtable VALUES (123)")
+		</script>
+	</table>
+
+	<data id="import_pythonscript">
+		<make table="pythonscript"/>
+	</data>
+
 	<dbCore id="prodscore" queriedTable="prodtest"/>
 
 	<service id="basicprod" core="prodscore"/>

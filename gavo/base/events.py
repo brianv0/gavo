@@ -151,6 +151,14 @@ class EventDispatcher(object):
 		"""
 		return row, exc_info
 
+	def notifyScriptRunning(self, script):
+		"""is called when a script is being started.
+
+		The callback receives the script instance itself.
+		"""
+		return script
+
+
 
 if __name__=="__main__":
 	pass
