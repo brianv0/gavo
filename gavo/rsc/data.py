@@ -133,8 +133,7 @@ class Data(base.MetaMixin):
 				continue
 			if t.tableDef.onDisk:
 				t.recreate()
-		self.dd.runScripts("postCreation", connection=connection)
-	
+
 	def dropTables(self):
 		"""drops all tables in this RD that are onDisk.
 
@@ -292,6 +291,7 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 			connection.commit()
 		else:
 			res.commitAll()
+	dd.runScripts("postCreation", connection=connection)
 	res.nAffected = feeder.getAffected()
 	_makeDependents(dd, parseOptions, connection)
 	return res
