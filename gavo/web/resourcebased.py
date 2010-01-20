@@ -702,23 +702,24 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 	returning a table with with a column called "filename".  The
 	file designated in the first row will be used as-is.
 
-	Queries with remaining segments return files from the staticData
-	directory of the service, if defined.
+	Queries with remaining segments return files from a resdir-relative
+	directory in the service's staticData property, if set.
 	"""
 	name = "static"
 
 	def __init__(self, ctx, service):
 		grend.ServiceBasedRenderer.__init__(self, ctx, service)
-		if not service.staticData:
-			raise svcs.ForbiddenURI("No static data on this service") 
-		if "static" in self.service.templates:
+		self.customTemplate = None
+		if "static" in service.templates:
 			self.customTemplate = self.service.templates["static"]
-		self.basePath = os.path.join(service.rd.resdir,
-			service.staticData)
-		self.rend = static.File(self.basePath)
-	
+		try:
+			self.staticPath = os.path.join(service.rd.resdir, 
+				service.getProperty("staticData"))
+		except KeyError:
+			self.staticPath = None
+
 	def renderHTTP(self, ctx):
-		if inevow.ICurrentSegments(ctx)[-1] != '':
+		if inevow.ICurrentSegments(ctx)[-1]!='':
 			request = inevow.IRequest(ctx)
 			request.redirect(request.URLPath().child(''))
 			return ''
@@ -728,9 +729,13 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 			raise svcs.UnknownURI("No matching resource")
 	
 	def locateChild(self, ctx, segments):
-		if segments==('',):
+		if segments==('',) and self.customTemplate is not None:
 			return self, ()
-		return self.rend.locateChild(ctx, segments)
+		elif self.staticPath is None:
+			raise svcs.ForbiddenURI("No static data on this service") 
+		else:
+			print ">>>>>>>>>>>>>>>", self.staticPath, segments
+			return static.File(self.staticPath), segments
 
 svcs.registerRenderer(StaticRenderer)
 

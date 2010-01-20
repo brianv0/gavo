@@ -45,6 +45,11 @@ from gavo.web import weberrors
 from gavo.svcs import Error, UnknownURI, ForbiddenURI, WebRedirect
 
 
+# monkeypatch nevow static's mime types
+static.File.contentTypes[".ascii"] = "application/octet-stream"
+static.File.contentTypes[".vot"] = "application/x-votable+xml"
+
+
 class ReloadPage(grend.GavoRenderMixin, rend.Page):
 
 	modsToReload = ["gavo.web.dispatcher"]

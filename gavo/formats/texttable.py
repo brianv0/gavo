@@ -1,5 +1,5 @@
 """
-Renderers that convert the primary table of a data set as text.
+Writing Table objects as text.
 """
 
 import cStringIO

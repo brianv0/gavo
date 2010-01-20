@@ -318,9 +318,6 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	_limitTo = base.UnicodeAttribute("limitTo", default=None,
 		description="Limit access to the group given; the empty default disables"
 		" access control.", copyable="True")
-	_staticData = rscdef.ResdirRelativeAttribute("staticData",
-		default=None, description="resdir-relative path to static data.  This"
-		" is used by the static renderer.", copyable=True)
 	_customPage = rscdef.ResdirRelativeAttribute("customPage", default=None,
 		description="resdir-relative path to custom page code.  It is used"
 		" by the 'custom' renderer", copyable="True")
