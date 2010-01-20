@@ -53,7 +53,11 @@ def _makeExtension(serMan):
 	columns = []
 	for colInd, colDesc in enumerate(serMan):
 		if colDesc["datatype"]=="char":
-			arr = numpy.array([str(v[colInd]) for v in values], dtype=numpy.str)
+			try:
+				arr = numpy.array([str(v[colInd]) for v in values], dtype=numpy.str)
+			except UnicodeEncodeError:
+				arr = numpy.array([str(v[colInd].encode("utf-8")) for v in values], 
+					dtype=numpy.str)
 			typecode = "%dA"%arr.itemsize
 		else:
 			arr = numpy.array([v[colInd] for v in values])
@@ -88,7 +92,7 @@ def makeFITSTableFile(dataSet):
 	return pathname
 
 
-def writeTableAsFITS(data, outputFile):
+def writeDataAsFITS(data, outputFile):
 	"""a formats.common compliant data writer.
 	"""
 	fitsName = makeFITSTableFile(data)
@@ -99,4 +103,4 @@ def writeTableAsFITS(data, outputFile):
 	finally:
 		os.unlink(fitsName)
 
-common.registerDataWriter("fits", writeTableAsFITS)
+common.registerDataWriter("fits", writeDataAsFITS)

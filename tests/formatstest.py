@@ -24,6 +24,7 @@ from gavo import rscdesc
 from gavo.base import valuemappers
 from gavo.formats import fitstable
 from gavo.formats import texttable
+from gavo.formats import csvtable
 from gavo.utils import pyfits
 from gavo.web import resourcebased
 
@@ -174,7 +175,7 @@ class FormatDataTest(testhelpers.VerboseTest):
 		self.data = rsc.makeData(rd.getById("twotables"), forceSource=[
 			{"anint": 1, "afloat": 0.5, "atext": "eins", 
 				"adate": datetime.date(2003, 10, 10), "adouble": 1.5},
-			{"anint": 2, "afloat": -0.5, "atext": "zwei", 
+			{"anint": 2, "afloat": -0.5, "atext": "zw\xf6i".decode("iso-8859-1"), 
 				"adate": datetime.date(2013, 10, 10), "adouble": 2.5},])
 
 	def testRaising(self):
@@ -194,7 +195,7 @@ class FormatDataTest(testhelpers.VerboseTest):
 
 	def testTSV(self):
 		self.assertOutputContains("tsv", [
-			"1\t", "\t-0.5\t", "\teins\t", "\t2452922.5\n"])
+			"1\t", "\t-0.5\t", "\teins\t", "\t2452922.5\n", "zw\\xf6i"])
 
 	def testVOTable(self):
 		self.assertOutputContains("votable", [
@@ -208,14 +209,17 @@ class FormatDataTest(testhelpers.VerboseTest):
 			"XTENSION= 'BINTABLE'",
 			"TTYPE2  = 'afloat  '",
 			"TTYPE2  = 'adouble '",
-			"einsAB"])
+			"eins",
+			'zw\xc3\xb6i'])
 
 	def testHTML(self):
 		self.assertOutputContains("html", [
 			'<table class="results"><tr>',
 			'Real</th><th ',
-			'td>-0.5</td><td>zwei</td><td>2456575.5'])
+			'td>-0.5</td><td>zw\xc3\xb6i</td><td>2456575.5'])
 
+	def testCSV(self):
+		self.assertOutputContains("csv", ["2,-0.5,zw\xc3\xb6i,2456575.5"])
 
 if __name__=="__main__":
 	testhelpers.main(FormatDataTest)

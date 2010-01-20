@@ -126,9 +126,9 @@ class StreamEncoder(GenericEncoder):
             def encoder(data):
                 if data is None:
                     data = ""
-                l = len(data)
                 if isinstance(data, unicode):
                     data = data.encode("utf-8")
+                l = len(data)
                 return struct.pack("!i%d%s"%(l, typeCode), l,
                     *data)
         else:
@@ -136,12 +136,12 @@ class StreamEncoder(GenericEncoder):
                 length = 1
             else:
                 length = int(length)
-            formatString = "!%d%s"%(length, typeCode)
             def encoder(data):
                 if isinstance(data, unicode):
                     data = data.encode("utf-8")
                 if len(data)!=length:
                     data = data[:length]+padding*(length-len(data))
+                formatString = "!%d%s"%(length, typeCode)
                 try:
                     return struct.pack(formatString, *data)
                 except struct.error:

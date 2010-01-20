@@ -734,7 +734,6 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 		elif self.staticPath is None:
 			raise svcs.ForbiddenURI("No static data on this service") 
 		else:
-			print ">>>>>>>>>>>>>>>", self.staticPath, segments
 			return static.File(self.staticPath), segments
 
 svcs.registerRenderer(StaticRenderer)
