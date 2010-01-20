@@ -375,7 +375,7 @@ _config = Configuration(
 		IntConfigItem("webTimeout", "15",
 			"Default timeout for adql queries via the web form"),
 		IntConfigItem("webDefaultLimit", "2000",
-			"Default match limit for ADQL queries via the web form"),
+			"Default match limit for ADQL queries via a web form"),
 	),
 
 	Section('async', "Settings concerning TAP, UWS, and friends",
@@ -383,6 +383,8 @@ _config = Configuration(
 			" for UWS jobs, in seconds"),
 		IntConfigItem("defaultLifetime", "172800", "Default"
 			" time to destruction for UWS jobs, in seconds"),
+		IntConfigItem("defaultMAXREC", "2000",
+			"Default match limit for ADQL queries via the UWS/TAP"),
 	),
 
 	Section('ui', "Settings concerning the local user interface",

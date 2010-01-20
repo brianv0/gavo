@@ -1,5 +1,5 @@
 """
-A renderer for DataSets to HTML/stan
+A renderer for Data to HTML/stan
 """
 
 import datetime
@@ -12,13 +12,16 @@ import sys
 import traceback
 import weakref
 
-from nevow import rend
+from nevow import flat
 from nevow import loaders
+from nevow import rend
 from nevow import tags as T, entities as E
 
 from twisted.internet import reactor, defer
 
 from gavo import base
+from gavo import formats
+from gavo import svcs
 from gavo import utils
 from gavo.base import coords
 from gavo.base import valuemappers
@@ -349,8 +352,9 @@ class HTMLDataRenderer(rend.Fragment):
 	Both HTMLTableFragment (for complete tables) and HTMLKeyValueFragment
 	(for single rows) inherit from this.
 	"""
-	def __init__(self, table, queryMeta):
+	def __init__(self, table, queryMeta, yieldNowAndThen=True):
 		self.table, self.queryMeta = table, queryMeta
+		self.yieldNowAndThen = yieldNowAndThen
 		self.fieldDefs = self.table.tableDef.columns
 		super(HTMLDataRenderer, self).__init__()
 		self._computeDefaultTds()
@@ -394,12 +398,14 @@ class HTMLDataRenderer(rend.Fragment):
 		self.defaultTds = []
 		for index, (desc, field) in enumerate(
 				zip(self.serManager, self.table.tableDef)):
-			if field.wantsRow:
-				desc["wantsRow"] = True
-			if field.formatter:
-				formatter = self._compileRenderer(field.formatter)
-			else:
-				formatter = self.serManager.mappers[index]
+			formatter = self.serManager.mappers[index]
+			try:
+				if field.wantsRow:
+					desc["wantsRow"] = True
+				if field.formatter:
+					formatter = self._compileRenderer(field.formatter)
+			except AttributeError: # a column rather than an OutputField
+				pass
 			if desc.has_key("wantsRow"):
 				self.defaultTds.append(
 					T.td(formatter=formatter, render=T.directive("useformatter")))
@@ -427,9 +433,12 @@ class HTMLDataRenderer(rend.Fragment):
 # quite frequently in long tables.  Also, we return a deferred to
 # give other requests a chance to be processed when we render
 # huge tables.
-		d = defer.Deferred()
-		reactor.callLater(0.05, d.callback, self.headCellsStan)
-		return d
+		if self.yieldNowAndThen:
+			d = defer.Deferred()
+			reactor.callLater(0.05, d.callback, self.headCellsStan)
+			return d
+		else:
+			return self.headCellsStan
 
 	def data_fielddefs(self, ctx, data):
 		return self.table.tableDef.columns
@@ -535,3 +544,14 @@ class HTMLKeyValueFragment(HTMLDataRenderer, HeadCellsMixin):
 					for colDef, td in zip(self.fieldDefs, self.defaultTds)]]])
 	
 	docFactory = property(makeDocFactory)
+
+
+def writeDataAsHTML(data, outputFile):
+	"""writes data's primary table to outputFile.  
+	"""
+	fragment = HTMLTableFragment(data.getPrimaryTable(), svcs.emptyQueryMeta,
+		yieldNowAndThen=False)
+	outputFile.write(flat.flatten(fragment))
+
+
+formats.registerDataWriter("html", writeDataAsHTML)

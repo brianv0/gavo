@@ -780,7 +780,7 @@ def main():
 	f.write(javaSource%
     " ".join("%s %s"%(tns, xsd) for tns, xsd in getLocations()))
 	f.close()
-	os.system("javac -warn:none xsdval.java")
+	os.system("javac xsdval.java")
 	shutil.move("xsdval.class", "../tests/xsdval.class")
 
 

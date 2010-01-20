@@ -3,9 +3,9 @@
 	an universial worker service.</meta>
 	<!-- this must be kept in sync with protocols.uws -->
 
-	<table id="jobs" onDisk="True" system="True" primary="jobid"
+	<table id="jobs" onDisk="True" system="True" primary="jobId"
 			forceUnique="True" dupePolicy="overwrite">
-		<column name="jobid" type="text" description="Internal id of the job.  At the same time, uwsDir-relative name of the job directory."/>
+		<column name="jobId" type="text" description="Internal id of the job.  At the same time, uwsDir-relative name of the job directory."/>
 		<column name="phase" type="text" description="The state of the job.">
 			<values>
 				<option>PENDING</option>

@@ -1,12 +1,15 @@
 # -*- coding: iso-8859-1 -*-
-
 """
 Tests having to do with various output formats.
 """
 
+from __future__ import with_statement
+
+import datetime
 import math
 import os
 import unittest
+from cStringIO import StringIO
 
 from nevow import context
 from nevow import tags as T, entities as E
@@ -14,6 +17,7 @@ from nevow.testutil import FakeRequest
 
 
 from gavo import base
+from gavo import formats
 from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
@@ -162,5 +166,56 @@ class TextOutputTest(unittest.TestCase):
 				" das Volk ab\\tund w\\xe4hlte ein anderes?\t2453130.5\n")
 
 
+class FormatDataTest(testhelpers.VerboseTest):
+	"""A test trying various formats on a simple data.
+	"""
+	def setUp(self):
+		rd = testhelpers.getTestRD("testdata")
+		self.data = rsc.makeData(rd.getById("twotables"), forceSource=[
+			{"anint": 1, "afloat": 0.5, "atext": "eins", 
+				"adate": datetime.date(2003, 10, 10), "adouble": 1.5},
+			{"anint": 2, "afloat": -0.5, "atext": "zwei", 
+				"adate": datetime.date(2013, 10, 10), "adouble": 2.5},])
+
+	def testRaising(self):
+		self.assertRaises(formats.CannotSerializeIn, formats.formatData,
+			"wabbadubba", self.data, open("/dev/null"))
+
+	def assertOutputContains(self, format, fragments):
+		destF = StringIO()
+		formats.formatData(format, self.data, destF)
+		result = destF.getvalue()
+		for frag in fragments:
+			if not frag in result:
+				with open("res.data", "w") as f:
+					f.write(result)
+				raise AssertionError("Format %s: fragment '%s' not in result"
+					" (res.data)"%(format, frag))
+
+	def testTSV(self):
+		self.assertOutputContains("tsv", [
+			"1\t", "\t-0.5\t", "\teins\t", "\t2452922.5\n"])
+
+	def testVOTable(self):
+		self.assertOutputContains("votable", [
+			'<DESCRIPTION>Some test data with a reason',
+			'</TABLE><TABLE name="barsobal">',
+			'<STREAM encoding="base64">AAAAAT/4AAAAAAAAAAAAAkAEAAAA'])
+
+	def testFITS(self):
+		self.assertOutputContains("fits", [
+			'SIMPLE  =                    T',
+			"XTENSION= 'BINTABLE'",
+			"TTYPE2  = 'afloat  '",
+			"TTYPE2  = 'adouble '",
+			"einsAB"])
+
+	def testHTML(self):
+		self.assertOutputContains("html", [
+			'<table class="results"><tr>',
+			'Real</th><th ',
+			'td>-0.5</td><td>zwei</td><td>2456575.5'])
+
+
 if __name__=="__main__":
-	testhelpers.main(FITSWriterTest)
+	testhelpers.main(FormatDataTest)

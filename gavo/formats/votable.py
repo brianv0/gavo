@@ -23,6 +23,7 @@ from gavo import rscdef
 from gavo import stc
 from gavo import utils
 from gavo.base import valuemappers
+from gavo.formats import common
 from gavo.grammars import votablegrammar
 from gavo.utils import ElementTree
 
@@ -257,6 +258,15 @@ def getAsVOTable(data, tablecoding="binary"):
 	dest = StringIO()
 	maker.writeVOT(maker.makeVOT(data), dest)
 	return dest.getvalue()
+
+
+def writeDataAsVOTable(data, outputFile):
+	"""a formats.common compliant data writer.
+	"""
+	maker = VOTableMaker(tablecoding="binary")
+	maker.writeVOT(maker.makeVOT(data), outputFile)
+
+common.registerDataWriter("votable", writeDataAsVOTable)
 
 
 def _getSTCGroupsFromAny(votObj):

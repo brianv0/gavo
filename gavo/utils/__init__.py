@@ -29,7 +29,7 @@ from gavo.utils.fitstools import readPrimaryHeaderQuick, pyfits
 
 from gavo.utils.mathtricks import *
 
-from gavo.utils.ostricks import safeclose, urlopenRemote, fgetmtime
+from gavo.utils.ostricks import safeclose, urlopenRemote, fgetmtime, cat
 
 from gavo.utils.stanxml import ElementTree
 

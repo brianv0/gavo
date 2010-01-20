@@ -1,2 +1,5 @@
 The schemata that we might want to validate against.  They are mainly
 here for unit tests.
+
+If you add schema files, run makeValidator.py.  It will move its ouput
+file (xsdval.class) to the unit test directory automatically.

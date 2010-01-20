@@ -67,7 +67,7 @@ def unpublishFromTAP(rd, connection):
 
 ######################## running TAP jobs
 
-def _runTAP(jobid):
+def _runTAP(jobId):
 	"""sets up an execution environment for a TAP processor and starts the job.
 	"""
 # set signal handler
@@ -78,17 +78,17 @@ def _runTAP(jobid):
 # transition to completed
 
 def _forkTAPJob(job):
-	jobid = job.jobid
+	jobId = job.jobId
 	# Close the job before forking to avoid inheriting it
 	job.close()
 	pid = os.fork()
 	if pid==0:
 		# child
-		_runTAP(jobid)
+		_runTAP(jobId)
 		os._exit(0)
 	else:
 		# parent
-		with uws.makeFromId(jobid) as job:
+		with uws.makeFromId(jobId) as job:
 			job.pid = pid
 
 

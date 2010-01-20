@@ -1,5 +1,6 @@
 <resource schema="tap_schema">
 	<meta name="description">Support tables (views) for TAP</meta>
+	<property name="TAP_VERSION">1.0</property>
 
 	<table id="schemas" onDisk="True" system="True"
 			forceUnique="True" dupePolicy="drop" primary="schema_name"

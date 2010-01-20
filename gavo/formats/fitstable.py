@@ -9,7 +9,9 @@ import time
 import numpy
 
 from gavo import base
+from gavo import rsc
 from gavo import utils
+from gavo.formats import common
 from gavo.utils import pyfits
 
 
@@ -84,3 +86,17 @@ def makeFITSTableFile(dataSet):
 	utils.silence(hdulist.writeto, pathname, clobber=1)
 	os.close(handle)
 	return pathname
+
+
+def writeTableAsFITS(data, outputFile):
+	"""a formats.common compliant data writer.
+	"""
+	fitsName = makeFITSTableFile(data)
+	try:
+		src = open(fitsName)
+		utils.cat(src, outputFile)
+		src.close()
+	finally:
+		os.unlink(fitsName)
+
+common.registerDataWriter("fits", writeTableAsFITS)

@@ -71,36 +71,36 @@ class PlainJobCreationTest(testhelpers.VerboseTest):
 
 	def _createJob(self):
 		with uws.create(FakeRequest(args={"foo": "bar"}), "plainActions") as job:
-			return job.jobid
+			return job.jobId
 
-	def _deleteJob(self, jobid):
-		with uws.makeFromId(jobid) as job:
+	def _deleteJob(self, jobId):
+		with uws.makeFromId(jobId) as job:
 			job.delete()
 
-	def _assertJobCreated(self, jobid):
+	def _assertJobCreated(self, jobId):
 		querier = base.SimpleQuerier()
 		res = querier.runIsolatedQuery("SELECT quote FROM uws.jobs WHERE"
-			" jobid=%(jobid)s", locals())
+			" jobId=%(jobId)s", locals())
 		querier.close()
 		self.assertEqual(len(res), 1)
-		job = uws.makeFromId(jobid)
+		job = uws.makeFromId(jobId)
 		self.assertEqual(job.getParDict(), {"foo": "bar"})
 		self.failUnless(os.path.exists(job.getWD()))
 
-	def _assertJobDeleted(self, jobid):
+	def _assertJobDeleted(self, jobId):
 		querier = base.SimpleQuerier()
 		res = querier.runIsolatedQuery("SELECT quote FROM uws.jobs WHERE"
-			" jobid=%(jobid)s", locals())
+			" jobId=%(jobId)s", locals())
 		querier.close()
 		self.assertEqual(len(res), 0)
-		self.assertRaises(base.NotFoundError, uws.makeFromId, jobid)
-		self.failIf(os.path.exists(os.path.join(base.getConfig("uwsWD"), jobid)))
+		self.assertRaises(base.NotFoundError, uws.makeFromId, jobId)
+		self.failIf(os.path.exists(os.path.join(base.getConfig("uwsWD"), jobId)))
 
 	def testBigAndUgly(self):
-		jobid = self._createJob()
-		self._assertJobCreated(jobid)
-		self._deleteJob(jobid)
-		self._assertJobDeleted(jobid)
+		jobId = self._createJob()
+		self._assertJobCreated(jobId)
+		self._deleteJob(jobId)
+		self._assertJobDeleted(jobId)
 
 
 class LockingTest(testhelpers.VerboseTest):
@@ -108,22 +108,22 @@ class LockingTest(testhelpers.VerboseTest):
 	"""
 	def setUp(self):
 		with uws.create(FakeRequest(), "plainActions") as job:
-			self.jobid = job.jobid
+			self.jobId = job.jobId
 		self.queue = Queue.Queue()
 	
 	def tearDown(self):
-		with uws.makeFromId(self.jobid) as job:
+		with uws.makeFromId(self.jobId) as job:
 			job.delete()
 
 	def _blockingJob(self):
-		# this is started in a thread while self.jobid is held
+		# this is started in a thread while self.jobId is held
 		self.queue.put("Child started")
 		q = base.SimpleQuerier()
-		with uws.makeFromId(self.jobid) as job:
+		with uws.makeFromId(self.jobId) as job:
 			self.queue.put("Job created")
 
 	def testLocking(self):
-		with uws.makeFromId(self.jobid) as job:
+		with uws.makeFromId(self.jobId) as job:
 			child = threading.Thread(target=self._blockingJob)
 			child.start()
 			# see that child process has started but could not create the job

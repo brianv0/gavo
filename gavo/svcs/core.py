@@ -91,7 +91,7 @@ class Core(base.Structure):
 
 
 class StaticCore(Core):
-	"""A core that always returns a static file.
+	"""A core that always returns the content of a static file.
 
 	This core clearly will not run with most renderers.  It's also
 	not usually necessary since you can allow a static renderer on

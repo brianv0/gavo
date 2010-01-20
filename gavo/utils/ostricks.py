@@ -58,3 +58,13 @@ def fgetmtime(fileobj):
 		return os.fstat(fileobj.fileno()).st_mtime
 	except AttributeError:
 		raise os.error("Not a file: %s"%repr(fileobj))
+
+
+def cat(srcF, destF, chunkSize=1<<20):
+	"""reads srcF into destF in chunks.
+	"""
+	while True:
+		data = srcF.read(chunkSize)
+		if not data:
+			break
+		destF.write(data)

@@ -33,6 +33,15 @@ ABORTED = "ABORTED"
 DESTROYED = "DESTROYED"  # local extension
 
 
+class UWSError(base.Error):
+	def __init__(self, msg, jobId, hint=None):
+		base.Error.__init__(msg, hint)
+		self.jobId = jobId
+
+	def __str__(self):
+		return "Error in processing job %s: %s"%(self.jobId, self.msg)
+
+
 def getJobsTable():
 	"""returns an instanciated job table.
 
@@ -63,6 +72,7 @@ def serializeData(data):
 	"""returns a base64-encoded version of a pickle of data
 	"""
 	return pickle.dumps(data, 1).encode("base64")
+
 
 def deserializeData(serData):
 	"""does the inverse of serializedData.
@@ -105,21 +115,21 @@ class UWSJob(object):
 # in __enter__, and the rest would just keep instanciated.  Well,
 # we can always clean this up later while keeping code assuming
 # the current semantics working.
-	_dbAttrs = ["jobid", "phase", "runId", "quote", "executionDuration",
+	_dbAttrs = ["jobId", "phase", "runId", "quote", "executionDuration",
 		"destructionTime", "owner", "parameters", "actions", "pid"]
 
-	def __init__(self, jobid, jobsTable=None):
+	def __init__(self, jobId, jobsTable=None):
 		self.jobsTable = jobsTable
 		self._closed = False
 		if self.jobsTable is None:
 			self.jobsTable = getJobsTable()
 
 		res = list(self.jobsTable.iterQuery(
-			self.jobsTable.tableDef, "jobid=%(jobid)s",
-			pars={"jobid": jobid}))
+			self.jobsTable.tableDef, "jobId=%(jobId)s",
+			pars={"jobId": jobId}))
 		if not res:
 			self._closed = True
-			raise base.NotFoundError(jobid, "UWS job", "jobs table")
+			raise base.NotFoundError(jobId, "UWS job", "jobs table")
 		kws = res[0]
 
 		for att in self._dbAttrs:
@@ -137,10 +147,10 @@ class UWSJob(object):
 		request is something implementing nevow.IRequest, actions is the
 		name (i.e., a string) of a registred Actions class.
 		"""
-		jobid = cls._allocateDataDir()
+		jobId = cls._allocateDataDir()
 		jobsTable = getJobsTable()
 		jobsTable.addRow({
-			"jobid": jobid,
+			"jobId": jobId,
 			"quote": None,
 			"executionDuration": base.getConfig("async", "defaultExecTime"),
 			"destructionTime": datetime.datetime.utcnow()+datetime.timedelta(
@@ -153,11 +163,11 @@ class UWSJob(object):
 			"actions": actions})
 		# Can't race here since _allocateDataDir uses mkdtemp
 		jobsTable.commit() 
-		return cls(jobid, jobsTable)
+		return cls(jobId, jobsTable)
 	
 	@classmethod
-	def makeFromId(cls, jobid):
-		return cls(jobid)
+	def makeFromId(cls, jobId):
+		return cls(jobId)
 
 	def __del__(self):
 		# if a job has not been closed, commit it (this may be hiding programming
@@ -186,7 +196,7 @@ class UWSJob(object):
 		self._closed = True
 
 	def getWD(self):
-		return os.path.join(base.getConfig("uwsWD"), self.jobid)
+		return os.path.join(base.getConfig("uwsWD"), self.jobId)
 
 	def getParDict(self):
 		"""returns the current job parameter dictionary.
@@ -210,7 +220,7 @@ class UWSJob(object):
 			raise ValueError("Cannot persist closed UWSJob")
 		dbRec = self.getAsDBRec()
 		if self.phase==DESTROYED:
-			self.jobsTable.deleteMatching("jobid=%(jobid)s", dbRec)
+			self.jobsTable.deleteMatching("jobId=%(jobId)s", dbRec)
 		else:
 			self.jobsTable.addRow(dbRec)
 
@@ -218,7 +228,7 @@ class UWSJob(object):
 		"""removes all traces of the job from the system.
 		"""
 		try:
-			self.changeToPhase(DESTROYED)
+			self.changeToPhase(DESTROYED, None)
 		except base.ValidationError: # actions don't want to do anything
 			pass                       # no problem
 		# Should we check whether destruction actions worked?
@@ -239,31 +249,36 @@ class UWSJob(object):
 		self.executionDuration = newTime
 		self._persist()
 	
-	def changeToPhase(self, newPhase):
+	def changeToPhase(self, newPhase, input):
 		"""pushes to job to a new phase, if allowed by actions
 		object.
 		"""
 		getActions(self.actions).getTransition(
-			self.phase, newPhase)(newPhase, self)
+			self.phase, newPhase)(newPhase, self, input)
 		self._persist()
 
 
 class UWSActions(object):
 	"""An abstract base for classes defining the behaviour of an UWS.
 
-	These need to be defined for every service you want exposed.
+	This basically is the definition of a finite state machine with
+	arbitrary input (which is to say: the input "alphabet" is up to
+	the transitions).
+	
+	UWSActions need to be defined for every service you want exposed.
 	They must be named.  An instance of each class is stored in this
 	module and can be accessed using the getActions method.
 
 	The main interface to UWSActions is getTransition(p1, p2) -> callable
 	It returns a callable that should push the automaton from phase p1
 	to phase p2 or raise an ValidationError for a phase field.  The
-	default implementation should do.
+	default implementation should work.
 
-	The callable has the signature f(desiredState, uwsJob) -> None.
-	It must alter the uwsJob object as appropriate.
+	The callable has the signature f(desiredState, uwsJob, input) -> None.
+	It must alter the uwsJob object as appropriate.  input is some object
+	defined by the the transition.
 
-	To the transitions are implemented as simple methods having the signature
+	The transitions are implemented as simple methods having the signature
 	of the callables returned by getTransition.  
 	
 	To link transistions and methods, pass a vertices list to the constructor.
@@ -271,8 +286,8 @@ class UWSActions(object):
 	to are phase names (use the symbols from this module to ward against typos).
 
 	When transitioning to DESTROYED, you do not need to remove the job's
-	working directory or the jobs table entry.  Typically, a transition
-	from COMPLETED to DESTROYED is a no-op.
+	working directory or the jobs table entry.  Therefore typically, the
+	COMPLETED to DESTROYED is a no-op for UWSActions.
 
 	Also, UWSJob will never ask UWSActions to transition from PENDING to QUEUED
 	since jobs are automatically QUEUED once they are created.
