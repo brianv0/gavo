@@ -347,6 +347,7 @@ void real_fieldscanf(char *str, Field *f, valType type, char *fieldName, ...)
 		case VAL_DATE: {
 			char *dateFormat = va_arg(ap, char*);
 			struct tm timeParts;
+			memset(&timeParts, 0, sizeof(struct tm));
 			char *res = strptime(str, dateFormat, &timeParts);
 			if (!res || *res) { /* strptime didn't consume string */
 				itemsMatched = 0;
@@ -376,6 +377,16 @@ void writeHeader(void *destination)
 	DATA_OUT(&flags, 4, destination);
 	DATA_OUT(&headerLength, 4, destination);
 }
+
+
+void writeEndMarker(void *destination)
+{
+	int16_t endMarker = -1;
+
+	endMarker = htons(endMarker);
+	DATA_OUT(&endMarker, 2, destination);
+}
+
 
 void writeBoolean(Field *field, void *destination)
 {
@@ -487,6 +498,7 @@ void writeDate(Field *field, void *destination)
 	uint32_t data=htonl(daysSinceEpoch);
 	uint32_t size=htonl(sizeof(int32_t));
 
+/*	fprintf(stderr, "dse: %d\n", daysSinceEpoch);*/
 	DATA_OUT(&size, 4, destination);
 	DATA_OUT(&data, sizeof(uint32_t), destination);
 }
@@ -498,15 +510,17 @@ void writeDatetime(Field *field, void *destination)
 	I guess it's just the number of microseconds since the epoch. */
 #ifdef HAVE_INT64_TIMESTAMP
 	int64_t usecsSinceEpoch = (field->val.time-PqEpoch);
+	uint32_t size = sizeof(int64_t);
 	usecsSinceEpoch *= 1000000;
 #else
 	double usecsSinceEpoch = (field->val.time-PqEpoch);
+	uint32_t size = sizeof(double);
 #endif
-	uint32_t size=htonl(sizeof(int64_t));
+	uint32_t size_n=htonl(size);
 
-	mirrorBytes((char*)&usecsSinceEpoch, 8);
-	DATA_OUT(&size, 4, destination);
-	DATA_OUT(&usecsSinceEpoch, 8, destination);
+	mirrorBytes((char*)&usecsSinceEpoch, size);
+	DATA_OUT(&size_n, 4, destination);
+	DATA_OUT(&usecsSinceEpoch, size, destination);
 }
 
 
@@ -619,6 +633,7 @@ void createDumpfile(int argc, char **argv)
 			}
 		}
 	}
+	writeEndMarker(destination);
 	fprintf(stderr, "%08d records done.\n", lncount);
 }
 

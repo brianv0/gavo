@@ -73,6 +73,7 @@ class CBooster:
 				"\\", "\\\\"))
 		if self.ignoreBadRecords:
 			f.write("CFLAGS += -DIGNORE_BAD_RECORDS\n")
+		f.write("CFLAGS += -g\n")
 		f.write("booster: boosterskel.c func.c\n"
 			"\t$(CC) $(CFLAGS) $(LDFLAGS) -o booster $^\n")
 		f.close()

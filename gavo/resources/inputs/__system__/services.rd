@@ -2,7 +2,6 @@
 
 <resource resdir="__system">
 	<schema>public</schema>
-	<meta name="_related" title="Validate registry">http://rofr.ivoa.net/regvalidate/HarvestValidater?endpoint=http%3A//dc.zah.uni-heidelberg.de/oai.xml</meta>
 	<meta name="creationDate">2007-11-22T13:02:00Z</meta>
 
 	<!-- Tables related to services. 
@@ -149,6 +148,8 @@
 		<meta name="description">A list of all services published on the
 			GAVO Data Center, with links to information pages about them</meta>
 		<meta name="subject">Virtual Observatory</meta>
+		<meta name="_related" title="Validate registry">http://rofr.ivoa.net/regvalidate/HarvestValidater?endpoint=http%3A//dc.zah.uni-heidelberg.de/oai.xml</meta>
+		<meta name="_related" title="Stats">/logs/logs/stats/form</meta>
 
 		<!-- we abuse the service for an easy redirect to the central operator's
 			help site -->

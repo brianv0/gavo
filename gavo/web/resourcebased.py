@@ -713,6 +713,11 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 		if "static" in service.templates:
 			self.customTemplate = self.service.templates["static"]
 		try:
+			self.indexFile = os.path.join(service.rd.resdir, 
+				service.getProperty("indexFile"))
+		except KeyError:
+			self.indexFile = None
+		try:
 			self.staticPath = os.path.join(service.rd.resdir, 
 				service.getProperty("staticData"))
 		except KeyError:
@@ -720,16 +725,19 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 
 	def renderHTTP(self, ctx):
 		if inevow.ICurrentSegments(ctx)[-1]!='':
+			# force a trailing slash on the "index"
 			request = inevow.IRequest(ctx)
 			request.redirect(request.URLPath().child(''))
 			return ''
-		if self.customTemplate:
+		if self.indexFile:
+			return static.File(self.indexFile)
+		elif self.customTemplate:
 			return grend.ServiceBasedRenderer.renderHTTP(self, ctx)
 		else:
 			raise svcs.UnknownURI("No matching resource")
 	
 	def locateChild(self, ctx, segments):
-		if segments==('',) and self.customTemplate is not None:
+		if segments==('',):
 			return self, ()
 		elif self.staticPath is None:
 			raise svcs.ForbiddenURI("No static data on this service") 
