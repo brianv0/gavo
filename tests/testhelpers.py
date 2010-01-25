@@ -14,7 +14,24 @@ import tempfile
 import unittest
 from cStringIO import StringIO
 
-# this only needs to be set correctly if you run twisted trial-based tests
+import testresources
+from testresources import TestResource
+
+# Here's the deal on TestResource: When setting up complicated stuff for
+# tests (like, a DB table), define a TestResource for it.  Override
+# the make() method returning something and the clean() method to destroy
+# whatever you created in make().
+#
+# Then, in VerboseTests, have a class attribute
+# resource = [(name1, res1), (name2, res2)]
+# giving attribute names and resource *instances*.
+# There's an example in adqltest.py
+# 
+# If you use this and you have a setUp of your own, you *must* call 
+# the superclass's setUp method.
+
+# the following only needs to be set correctly if you run 
+# twisted trial-based tests (which currently doesn't happen at all).
 testsDir = "/home/msdemlei/gavo/trunk/tests"
 
 
@@ -118,7 +135,7 @@ class ForkingSubprocess(subprocess.Popen):
 				os.close(errwrite)
 
 
-class VerboseTest(unittest.TestCase):
+class VerboseTest(testresources.ResourcedTestCase):
 	"""A TestCase with a couple of convenient assert methods.
 	"""
 	def assertEqualForArgs(self, callable, result, *args):
@@ -312,7 +329,8 @@ def main(testClass, methodPrefix=None):
 	if len(sys.argv)>2:
 		testClass = inspect.stack()[1][0].f_globals[sys.argv[-2]]
 	if len(sys.argv)>1:
-		suite = unittest.makeSuite(testClass, methodPrefix or sys.argv[-1])
+		suite = unittest.makeSuite(testClass, methodPrefix or sys.argv[-1],
+			suiteClass=testresources.OptimisingTestSuite)
 		runner = unittest.TextTestRunner()
 		runner.run(suite)
 	else:

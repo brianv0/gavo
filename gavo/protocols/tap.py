@@ -6,6 +6,7 @@ from __future__ import with_statement
 
 import os
 import signal
+import subprocess
 
 from gavo import base
 from gavo import rsc
@@ -65,53 +66,28 @@ def unpublishFromTAP(rd, connection):
 	publishToTAP(rd, connection)
 
 
-######################## running TAP jobs
-
-def _runTAP(jobId):
-	"""sets up an execution environment for a TAP processor and starts the job.
-	"""
-# set signal handler
-# build data for core
-# fix job's pid to the pid of the worker process
-# start ADQL job
-# write VOTable to job.wd
-# transition to completed
-
-def _forkTAPJob(job):
-	jobId = job.jobId
-	# Close the job before forking to avoid inheriting it
-	job.close()
-	pid = os.fork()
-	if pid==0:
-		# child
-		_runTAP(jobId)
-		os._exit(0)
-	else:
-		# parent
-		with uws.makeFromId(jobId) as job:
-			job.pid = pid
-
 
 ########################## Maintaining TAP job
 
 class TAPActions(uws.UWSActions):
 	def __init__(self):
 		uws.UWSActions.__init__(self, "TAP", [
+			(uws.PENDING, uws.QUEUED, "noOp"),
+			(uws.PENDING, uws.EXECUTING, "startJob"),
 			(uws.QUEUED, uws.EXECUTING, "startJob"),
-			(uws.QUEUED, uws.ABORTED, "markNewState"),
-			(uws.EXECUTING, uws.COMPLETED, "markNewState"),
+			(uws.QUEUED, uws.ABORTED, "noOp"),
+			(uws.EXECUTING, uws.COMPLETED, "noOp"),
 			(uws.EXECUTING, uws.ABORTED, "killJob"),
 			])
 	
-	def startJob(self, newState, job):
+	def startJob(self, newState, job, ignored):
 		"""forks off a new Job.
 		"""
-		try:
-			_forkTAPJob(job)
-		except Exception, ex:
-			job.addError(ex)
+		child = subprocess.Popen(["gavo", "tap", job.jobId])
+		job.pid = child.pid
+		job.phase = uws.EXECUTING
 
-	def killJob(self, newState, job):
+	def killJob(self, newState, job, ignored):
 		"""tries to kill -TERM the pid the job has registred.
 
 		This will raise a TAPError with some description if that's not possible
@@ -131,7 +107,4 @@ class TAPActions(uws.UWSActions):
 			raise TAPError(None, ex)
 
 
-	def markNewState(self, newState, job):
-		"""just notes that job is now in newState.
-		"""
-		job.phase = newState
+uws.registerActions(TAPActions)

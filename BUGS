@@ -164,3 +164,7 @@
 41/MEDIUM/2009-12-21
 	When vo_managed-publishing something, try producing a resource record and
 	complain if that doesn't work out.
+
+42/MEDIUM/2010-01-25
+	Try condDesc original="ref" referring to a column; this results in a
+	completely unintelligble error message.

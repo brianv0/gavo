@@ -698,12 +698,15 @@ def compileCoreRenderer(source):
 class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 	"""is a renderer that just hands through files.
 
-	On this, you can have a template "static" or have a static core
-	returning a table with with a column called "filename".  The
-	file designated in the first row will be used as-is.
+	The standard operation here is to set a staticData property pointing
+	to a resdir-relative directory used to serve files for.  Indices
+	for directories are created.
 
-	Queries with remaining segments return files from a resdir-relative
-	directory in the service's staticData property, if set.
+	The other use is to define a root resource.  This can be either
+	through the definition of a "static" template (a nevow template
+	like other custom templates), or by giving an indexFile property
+	(which overrides the static template).  Both override the root
+	from staticData but can otherwise coexist with it.
 	"""
 	name = "static"
 
@@ -737,11 +740,13 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 			raise svcs.UnknownURI("No matching resource")
 	
 	def locateChild(self, ctx, segments):
-		if segments==('',):
+		if segments==('',) and (self.indexFile or self.customTemplate):
 			return self, ()
 		elif self.staticPath is None:
 			raise svcs.ForbiddenURI("No static data on this service") 
 		else:
+			if segments[-1]=="static": # no trailing slash given
+				segments = ()            # -- swallow the segment
 			return static.File(self.staticPath), segments
 
 svcs.registerRenderer(StaticRenderer)

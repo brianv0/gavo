@@ -376,6 +376,15 @@ def intToFunnyWord(anInt, translation=string.maketrans(
 	return "".join(reversed(("%x"%anInt).translate(translation)))
 
 
+def addDefaults(dataDict, defaultDict):
+	"""adds key-value pairs from defaultDict to dataDict if the key is missing
+	in dataDict.
+	"""
+	for key, value in defaultDict.iteritems():
+		if key not in dataDict:
+			dataDict[key] = value
+
+
 def _test():
 	import doctest, codetricks
 	doctest.testmod(codetricks)

@@ -9,7 +9,6 @@ self.grammar.dataPack to the row iterator.  Use this for expensive, one-time
 preparations your row iterator has to perform.
 """
 
-import imp
 import os
 import weakref
 

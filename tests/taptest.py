@@ -1,41 +1,46 @@
 """
 Simple tests for TAP and environs.
+
+All these tests really stink because TAP isn't really a good match for the
+basically stateless unit tests that are executed in an arbitrary order.
+
+How do other people test such stuff?
 """
 
 from __future__ import with_statement
 
 import os
 import Queue
+import time
 import threading
 
 from nevow.testutil import FakeRequest
 
 from gavo import base
 from gavo import rscdesc  # uws needs getRD
+from gavo.protocols import tap
 from gavo.protocols import uws
 
 import testhelpers
+import adqltest
 
 
 class _PlainActions(uws.UWSActions):
 	def __init__(self):
 		uws.UWSActions.__init__(self, "plainActions", [
-			(uws.PENDING, uws.QUEUED, "changeStatePlain"),
+			(uws.PENDING, uws.QUEUED, "noOp"),
 			(uws.QUEUED, uws.EXECUTING, "run"),
-			(uws.EXECUTING, uws.COMPLETED, "changeStatePlain"),
-			(uws.QUEUED, uws.ABORTED, "changeStatePlain"),
-			(uws.EXECUTING, uws.ABORTED, "changeStatePlain"),
-			(uws.COMPLETED, uws.DESTROYED, "changeStatePlain"),])
+			(uws.EXECUTING, uws.COMPLETED, "noOp"),
+			(uws.QUEUED, uws.ABORTED, "noOp"),
+			(uws.EXECUTING, uws.ABORTED, "noOp"),
+			(uws.COMPLETED, uws.DESTROYED, "noOp"),])
 	
-	def changeStatePlain(self, newState, uwsJob):
-		uwsJob.state = newState
-
-	def run(self, newState, uwsJob):
+	def run(self, newState, uwsJob, ignored):
 		uwsJob = uws.EXECUTING
 		f = open(os.path.join(uwsJob.getWD(), "ran"))
 		f.write("ran")
 		f.close()
-		uwsJob.changeState(uws.COMPLETED)
+		uwsJob.changeToPhase(uws.COMPLETED)
 
 
 uws.registerActions(_PlainActions)
@@ -44,8 +49,8 @@ uws.registerActions(_PlainActions)
 class _FakeJob(object):
 	"""A scaffolding class for UWSJob.
 	"""
-	def __init__(self, state):
-		self.state = state
+	def __init__(self, phase):
+		self.phase = phase
 
 
 class PlainActionsTest(testhelpers.VerboseTest):
@@ -56,8 +61,8 @@ class PlainActionsTest(testhelpers.VerboseTest):
 
 	def testSimpleTransition(self):
 		job = _FakeJob(object)
-		self.actions.getTransition(uws.PENDING, uws.QUEUED)(uws.QUEUED, job)
-		self.assertEqual(job.state, uws.QUEUED)
+		self.actions.getTransition(uws.PENDING, uws.QUEUED)(uws.QUEUED, job, None)
+		self.assertEqual(job.phase, uws.QUEUED)
 	
 	def testFailingTransition(self):
 		self.assertRaises(base.ValidationError,
@@ -70,7 +75,8 @@ class PlainJobCreationTest(testhelpers.VerboseTest):
 # yet another huge, sequential test.  Ah well, better than nothing, I guess.
 
 	def _createJob(self):
-		with uws.create(FakeRequest(args={"foo": "bar"}), "plainActions") as job:
+		with uws.createFromRequest(FakeRequest(args={"foo": "bar"}), 
+				"plainActions") as job:
 			return job.jobId
 
 	def _deleteJob(self, jobId):
@@ -103,11 +109,23 @@ class PlainJobCreationTest(testhelpers.VerboseTest):
 		self._assertJobDeleted(jobId)
 
 
+class UWSMiscTest(testhelpers.VerboseTest):
+	"""uws tests not fitting anywhere else.
+	"""
+	def testBadActionsRaise(self):
+		with uws.create(actions="Wullu_ulla99") as job:
+			try:
+				self.assertRaises(base.NotFoundError, 
+					job.changeToPhase, uws.EXECUTING)
+			finally:
+				job.delete()
+
+
 class LockingTest(testhelpers.VerboseTest):
 	"""tests for working impicit uws locking.
 	"""
 	def setUp(self):
-		with uws.create(FakeRequest(), "plainActions") as job:
+		with uws.create(actions="plainActions") as job:
 			self.jobId = job.jobId
 		self.queue = Queue.Queue()
 	
@@ -134,5 +152,47 @@ class LockingTest(testhelpers.VerboseTest):
 		# we've closed our handle on job, now child can run
 		self.assertEqual(self.queue.get(True, 1), "Job created")
 
+
+class SimpleRunnerTest(testhelpers.VerboseTest):
+	"""tests various taprunner scenarios.
+	"""
+	resources = [("ds", adqltest.adqlTestTable)]
+
+	def setUp(self):
+		testhelpers.VerboseTest.setUp(self)
+		self.tableName = self.ds.tables["adql"].tableDef.getQName()
+
+	def testSimpleJob(self):
+		jobId = None
+		try:
+			with uws.create(args={
+					"QUERY": "SELECT * FROM %s"%self.tableName,
+					"REQUEST": "doQuery",
+					"LANG": "ADQL"}) as job:
+				jobId = job.jobId
+				self.assertEqual(job.phase, uws.PENDING)
+				job.changeToPhase(uws.EXECUTING, None)
+
+			# let things run, but bail out if nothing happens 
+			for i in range(50):
+				time.sleep(0.1)
+				with uws.makeFromId(jobId) as job:
+					if job.phase!=uws.EXECUTING:
+						break
+			else:
+				raise AssertionError("Job does not finish.  Your machine cannot be"
+					" *that* slow?")
+
+			with uws.makeFromId(jobId) as job:
+				self.assertEqual(job.phase, uws.COMPLETED)
+				result = open(job.getResultName()).read()
+
+		finally:
+			if jobId is not None:
+				with uws.makeFromId(jobId) as job:
+					job.delete()
+		self.failUnless('xmlns="http://www.ivoa.net/xml/VOTable/' in result)
+	
+
 if __name__=="__main__":
-	testhelpers.main(LockingTest)
+	testhelpers.main(SimpleRunnerTest)

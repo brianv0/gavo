@@ -27,6 +27,20 @@ class Error(Exception):
 	pass
 
 
+class _ADQLTestTable(testhelpers.TestResource):
+	def make(self, deps):
+		base.setDBProfile("test")
+		self.rd = testhelpers.getTestRD()
+		self.ds = rsc.makeData(self.rd.getById("ADQLTest"),
+				forceSource=[
+				{"alpha": 22, "delta": 23, "mag": -27, "rv": 0},]).commitAll()
+		return self.ds
+	
+	def cleanup(self):
+		self.ds.dropTables()
+		self.ds.commitAll().closeAll()
+
+adqlTestTable = _ADQLTestTable()
 
 class SymbolsParseTest(testhelpers.VerboseTest):
 	"""tests for plain parsing on individual productions.
@@ -852,20 +866,14 @@ class PQMorphTest(unittest.TestCase):
 			' ORDER BY cmag LIMIT 100')
 
 
-class QueryTest(unittest.TestCase):
+class QueryTest(testhelpers.VerboseTest):
 	"""performs some actual queries to test the whole thing.
 	"""
-	def setUp(self):
-		base.setDBProfile("test")
-		self.rd = testhelpers.getTestRD()
-		self.ds = rsc.makeData(self.rd.getById("ADQLTest"),
-				forceSource=[
-				{"alpha": 22, "delta": 23, "mag": -27, "rv": 0},]).commitAll()
-		self.tableName = self.ds.tables["adql"].tableDef.getQName()
+	resources = [("ds",  adqlTestTable)]
 
-	def tearDown(self):
-		self.ds.dropTables()
-		self.ds.commitAll().closeAll()
+	def setUp(self):
+		testhelpers.VerboseTest.setUp(self)
+		self.tableName = self.ds.tables["adql"].tableDef.getQName()
 
 	def _assertFieldProperties(self, dataField, expected):
 		for label, value in expected:

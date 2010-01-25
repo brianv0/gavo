@@ -35,7 +35,8 @@ DESTROYED = "DESTROYED"  # local extension
 
 class UWSError(base.Error):
 	def __init__(self, msg, jobId, hint=None):
-		base.Error.__init__(msg, hint)
+		base.Error.__init__(self, msg, hint)
+		self.msg = msg
 		self.jobId = jobId
 
 	def __str__(self):
@@ -119,6 +120,7 @@ class UWSJob(object):
 		"destructionTime", "owner", "parameters", "actions", "pid"]
 
 	def __init__(self, jobId, jobsTable=None):
+		self.jobId = jobId
 		self.jobsTable = jobsTable
 		self._closed = False
 		if self.jobsTable is None:
@@ -141,29 +143,47 @@ class UWSJob(object):
 		return os.path.basename(jobDir)
 
 	@classmethod
-	def create(cls, request, actions):
-		"""creates a new job.
+	def create(cls, args={}, **kws):
+		"""creates a new job from a (partial) jobs table row.
 
-		request is something implementing nevow.IRequest, actions is the
-		name (i.e., a string) of a registred Actions class.
+		See jobs table for what you can give in kws, except for parameters.
+		These are passed in as a dictionary args.  jobId and phase are 
+		always overridden, many other colums will fill in defaults if necessary.
 		"""
-		jobId = cls._allocateDataDir()
+		kws["jobId"] = cls._allocateDataDir()
+		kws["phase"] = PENDING
+		kws["parameters"] = serializeData(args)
 		jobsTable = getJobsTable()
-		jobsTable.addRow({
-			"jobId": jobId,
+		utils.addDefaults(kws, {
 			"quote": None,
 			"executionDuration": base.getConfig("async", "defaultExecTime"),
 			"destructionTime": datetime.datetime.utcnow()+datetime.timedelta(
 					seconds=base.getConfig("async", "defaultLifetime")),
-			"phase": PENDING,
-			"parameters": serializeData(request.args),
-			"runId": getfirst(request, "RUNID"),
+			"runId": None,
 			"owner": None,
 			"pid": None,
-			"actions": actions})
-		# Can't race here since _allocateDataDir uses mkdtemp
-		jobsTable.commit() 
-		return cls(jobId, jobsTable)
+			"actions": "TAP",
+		})
+		jobsTable.addRow(kws)
+
+		# The following commit is really important so we can keep track
+		# of job directories in the DB even if user code crashes before
+		# commiting.
+		jobsTable.commit()
+
+		# Can't race for jobId here since _allocateDataDir uses mkdtemp
+		return cls(kws["jobId"], jobsTable)
+
+	@classmethod
+	def createFromRequest(cls, request, actions="TAP"):
+		"""creates a new job from something like a nevow request.
+
+		request is something implementing nevow.IRequest, actions is the
+		name (i.e., a string) of a registred Actions class.
+		"""
+		return cls.create(args=request.args,
+			runId=getfirst(request, "RUNID"),
+			actions=actions)
 	
 	@classmethod
 	def makeFromId(cls, jobId):
@@ -172,19 +192,17 @@ class UWSJob(object):
 	def __del__(self):
 		# if a job has not been closed, commit it (this may be hiding programming
 		# errors, though -- should we rather roll back?)
-		if not self._closed:
+		if self.jobsTable is not None and not self._closed:
 			self.close()
 
 	def __enter__(self):
 		return self # transaction has been opened by makeFromId
 	
 	def __exit__(self, type, value, tb):
-		if tb is None:
-			self.close()
-		else:
-			# Implicit rollback
-			self.jobsTable.close()
-			self._closed = True
+		# we want to persist no matter what, but we don't claim to handle
+		# any exception.
+		self.close()
+		if tb is not None: # exception came in, signal we did not handle it.
 			return False
 
 	def close(self):
@@ -229,34 +247,61 @@ class UWSJob(object):
 		"""
 		try:
 			self.changeToPhase(DESTROYED, None)
-		except base.ValidationError: # actions don't want to do anything
-			pass                       # no problem
+		except (base.ValidationError, base.NotFoundError):
+			# silently ignore failures in transitioning here
+			pass                       
 		# Should we check whether destruction actions worked?
 		self.phase = DESTROYED
-		self._persist()
 		shutil.rmtree(self.getWD(), ignore_errors=True)
 	
-	def changeDestructionTime(self, newDT):
-		"""changes the destruction time.  newDT must be a datetime.datetime 
-		instance.
-		"""
-		self.destructionTime = newDT
-		self._persist()
-	
-	def changeExecutionDuration(self, newTime):
-		"""changes the execution duration.  newTime must be an integer.
-		"""
-		self.executionDuration = newTime
-		self._persist()
-	
-	def changeToPhase(self, newPhase, input):
+	def changeToPhase(self, newPhase, input=None):
 		"""pushes to job to a new phase, if allowed by actions
 		object.
 		"""
-		getActions(self.actions).getTransition(
-			self.phase, newPhase)(newPhase, self, input)
-		self._persist()
+		try:
+			getActions(self.actions).getTransition(
+				self.phase, newPhase)(newPhase, self, input)
+		except Exception, exception:
+			# transition to error if possible.  If that fails at well,
+			# blindly set error and give up.
+			try:
+				self.changeToPhase(ERROR, exception)
+			except:
+				self.setError(exception)
+				self.phase = ERROR
+			raise exception
 
+	def setError(self, exception):
+		"""sets exception as the job's error.
+
+		Exception will be pickled and can be retrieved by getError.
+		Setting the error will not transition the job to ERROR;
+		it is generally assumed that this method is called in actions
+		transitioning there.
+		"""
+# Currently, this should be called exclusively by changeToPhase.
+# When and if we make error behaviour overrideable, this actually
+# makes sense as a user-exposed method.
+		with open(os.path.join(self.getWD(), "__EXCEPTION__"), "w") as f:
+			pickle.dump(exception, f)
+	
+	def getError(self):
+		"""returns the exception that caused the job to go into ERROR.
+
+		If no error has been posted, a ValueError is raised.
+		"""
+		try:
+			with open(os.path.join(self.getWD(), "__EXCEPTION__")) as f:
+				return pickle.load(f)
+		except IOError:
+			raise ValueError(
+				"No error has been posted on UWS job %s"%self.jobId)
+
+	def getResultName(self):
+		"""returns the name of the default result file.
+		"""
+		return os.path.join(self.getWD(), "__RESULT__")
+	
 
 class UWSActions(object):
 	"""An abstract base for classes defining the behaviour of an UWS.
@@ -274,7 +319,7 @@ class UWSActions(object):
 	to phase p2 or raise an ValidationError for a phase field.  The
 	default implementation should work.
 
-	The callable has the signature f(desiredState, uwsJob, input) -> None.
+	The callable has the signature f(desiredPhase, uwsJob, input) -> None.
 	It must alter the uwsJob object as appropriate.  input is some object
 	defined by the the transition.
 
@@ -298,6 +343,10 @@ class UWSActions(object):
 	
 	def _buildTransitions(self, vertices):
 		self.transitions = {}
+		# set some defaults
+		for phase in [PENDING, QUEUED, EXECUTING, ERROR]:
+			self.transitions.setdefault(phase, {})[ERROR] = "flagError"
+			self.transitions.setdefault(phase, {})[DESTROYED] = "noOp"
 		for fromPhase, toPhase, methodName in vertices:
 			self.transitions.setdefault(fromPhase, {})[toPhase] = methodName
 	
@@ -316,6 +365,19 @@ class UWSActions(object):
 				"phase", hint="This is an error in an internal protocol definition."
 				"  There probably is nothing you can do but complain.")
 
+	def noOp(self, newPhase, job, ignored):
+		"""a sample action just setting the new phase.
+
+		This is a no-op baseline sometimes useful in user code.
+		"""
+		job.phase = newPhase
+
+	def flagError(self, newPhase, job, exception):
+		"""the default action when transitioning to an error: dump exception and
+		mark phase as ACTION.
+		"""
+		job.phase = ERROR
+		job.setError(exception)
 
 _actionsRegistry = {}
 
@@ -323,7 +385,7 @@ def getActions(name):
 	try:
 		return _actionsRegistry[name]
 	except KeyError:
-		raise NotFoundError(name, "Actions", "registred Actions",
+		raise base.NotFoundError(name, "Actions", "registred Actions",
 			hint="Either you just made up the UWS actions name, or the"
 			" module defining these actions has not been imported yet.")
 
@@ -337,4 +399,5 @@ def registerActions(cls, *args, **kwargs):
 
 
 create = UWSJob.create
+createFromRequest = UWSJob.createFromRequest
 makeFromId = UWSJob.makeFromId

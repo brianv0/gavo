@@ -35,6 +35,7 @@ setup(name="gavodachs",
 			'gavogendoc = gavo.user.docgen:main',
 			'gavostc = gavo.stc.cli:main',
 			'gavoserve = gavo.user.serve:main',
+			'gavo = gavo.user.cli:main',
 		]
 	},
 	version="0.41")
