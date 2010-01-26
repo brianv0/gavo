@@ -519,6 +519,7 @@ if __name__=="__main__":
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
 	res = syms["statement"].parseString(
-			"select spatial.* from spatial, misc"
+			"select dist, speed, mass*height"
+			" from spatial join misc on (mass>height)"
 			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

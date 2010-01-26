@@ -407,7 +407,7 @@ class TableName(ADQLNode):
 		return bool(self.name)
 
 	def _polish(self):
-		self.qName = ".".join(n for n in (self.cat, self.schema, self.name) if n)
+		self.qName = ".".join(n for n in (self.cat, self.schema, self.name) if n) 
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
@@ -492,6 +492,8 @@ class JoinedTable(ColumnBearingNode, TransparentMixin):
 	"""
 	type = "joinedTable"
 	feedInfosFromDB = True
+	originalTable = None
+	tableName = TableName()
 
 	def _polish(self):
 		self.joinedTables = getChildrenOfClass(self.children, ColumnBearingNode)

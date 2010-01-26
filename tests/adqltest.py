@@ -400,7 +400,7 @@ class TreeParseTest(testhelpers.VerboseTest):
 
 
 spatialFields = [
-	rscdef.Column(None, name="distance", ucd="phys.distance", unit="m"),
+	rscdef.Column(None, name="dist", ucd="phys.distance", unit="m"),
 	rscdef.Column(None, name="width", ucd="phys.dim", unit="m"),
 	rscdef.Column(None, name="height", ucd="phys.dim", unit="km"),
 	rscdef.Column(None, name="ra1", ucd="pos.eq.ra;meta.main", unit="deg"),
@@ -412,7 +412,7 @@ miscFields = [
 
 def _addSpatialSTC(sf):
 	ast1 = stc.parseQSTCS('Position ICRS "ra1" "dec" Size "width" "height"')
-	ast2 = stc.parseQSTCS('Position FK4 SPHER3 "ra2" "dec" "distance"')
+	ast2 = stc.parseQSTCS('Position FK4 SPHER3 "ra2" "dec" "dist"')
 # XXX TODO: get utypes from ASTs
 	sf[0].stc, sf[0].stcUtype = ast2.astroSystem, None
 	sf[1].stc, sf[1].stcUtype = ast1.astroSystem, None
@@ -602,6 +602,14 @@ class ColResTest(ColumnTest):
 			" spatial) as q")
 		self._assertColumns(cols, [
 			('rad', 'pos.eq.ra', False)])
+
+	def testJoin(self):
+		cols = self._getColSeq("select dist, speed, 2*mass*height"
+			" from spatial join misc on (mass>height)")
+		self._assertColumns(cols, [
+			('m', 'phys.distance', False),
+			('km/s', 'phys.veloc', False),
+			('kg*km', '', True),])
 
 	def testErrorReporting(self):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq,

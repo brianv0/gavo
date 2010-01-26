@@ -86,14 +86,15 @@ class FieldInfosForTable(FieldInfos):
 		FieldInfos.__init__(self, tableNode)
 
 		# add infos for the table itself.
-		for colName, fieldInfo in context.retrieveFieldInfos(
-				tableNode.originalTable):
-			self.addColumn(colName, fieldInfo)
+		if tableNode.originalTable:
+			for colName, fieldInfo in context.retrieveFieldInfos(
+					tableNode.originalTable):
+				self.addColumn(colName, fieldInfo)
 
 		# add infos for joined tables as necessary; since we to a postorder
 		# traversal, those have already been annotated.
 		for jt in getattr(tableNode, "joinedTables", ()):
-			for label, info in jt.fieldInfos.iteritems():
+			for label, info in jt.fieldInfos.seq:
 				self.addColumn(label, info)
 
 
