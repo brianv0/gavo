@@ -75,7 +75,7 @@ _dcBuilder = meta.ModelBasedBuilder([
 
 _oaiHeaderBuilder = meta.ModelBasedBuilder([
 	('identifier', SF(OAI.identifier)),
-	('dateUpdated', SF(OAI.datestamp)),
+	('datetimeUpdated', SF(OAI.datestamp)),
 	('sets', SF(OAI.setSpec))])
 
 
@@ -102,7 +102,7 @@ def getOAIHeaderElementForRestup(restup):
 		status = "deleted"
 	return OAI.header(status=status)[
 		OAI.identifier[identifiers.computeIdentifierFromRestup(restup)],
-		OAI.datestamp[restup["recTimestamp"].strftime("%Y-%m-%d")],
+		OAI.datestamp[restup["recTimestamp"].strftime("%Y-%m-%dT%H:%M:%S")],
 		[
 			OAI.setSpec[setName] 
 				for setName in servicelist.getSetsForService(restup["shortName"])]]
