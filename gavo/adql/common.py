@@ -15,6 +15,10 @@ class ColumnNotFound(Error):
 	"""is raised if a column name cannot be resolved.
 	"""
 
+class TableNotFound(Error):
+	"""is raised when a table name cannot be resolved.
+	"""
+
 class AmbiguousColumn(Error):
 	"""is raised if a column name matches more than one column in a
 	compound query.

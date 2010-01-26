@@ -197,3 +197,16 @@ def _makeSimbadRegion(regionSpec):
 	return adql.getSymbols()["point"].parseString("POINT('ICRS',"
 		"%.10f, %.10f)"%(alpha, delta))
 adql.registerRegionMaker(_makeSimbadRegion)
+
+
+################### local query interface #########################
+
+def localquery():
+	"""run the argument as an ADQL query.
+	"""
+	from gavo import formats
+
+	q = sys.argv[1]
+	table = query(q, timeout=1000, queryProfile="trustedquery")
+	formats.formatData("votable", table, sys.stdout)
+

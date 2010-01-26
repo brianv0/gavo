@@ -671,6 +671,7 @@ class FromClause(ADQLNode):
 		raise ColumnNotFound("No %s table to draw columns from in this clause"%(
 			srcTable.qName))
 
+
 class DerivedColumn(FieldInfoedNode):
 	"""A column within a select list.
 	"""

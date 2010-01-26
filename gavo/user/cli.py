@@ -19,6 +19,7 @@ from gavo import api
 functions = {
 	"tap": ("protocols.taprunner", "main"),
 	"imp": ("commandline", "main"),
+	"adql": ("protocols.adqlglue", "localquery"),
 }
 
 def printHelp():

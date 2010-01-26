@@ -35,10 +35,7 @@ def makeBaseRecord(service):
 		) or unicode(service.getMeta("_description")))
 	rec["owner"] = service.limitTo
 	dateUpdated = service.getMeta("datetimeUpdated")
-	if dateUpdated is not None:
-		rec["dateUpdated"] = datetime.datetime(
-			*time.strptime(str(dateUpdated), utils.isoTimestampFmt)[:3])
-	else:
+	if dateUpdated is None:
 		rec["dateUpdated"] = datetime.datetime.utcnow()
 	return rec
 

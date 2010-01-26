@@ -611,6 +611,31 @@ class ColResTest(ColumnTest):
 			('km/s', 'phys.veloc', False),
 			('kg*km', '', True),])
 
+	def testUnderscore(self):
+		cols = self._getColSeq("select _dist"
+			" from (select dist as _dist from spatial) as q")
+		self._assertColumns(cols, [
+			('m', 'phys.distance', False)])
+
+	def testExReferenceBad(self):
+		self.assertRaises(adql.TableNotFound, self._getColSeq,
+			"select foo.dist from spatial join misc on (mass>height)")
+
+	def testExReference(self):
+		cols = self._getColSeq("select a.dist, b.dist"
+			" from spatial as a join spatial as b on (a.dist>b.dist)")
+		self._assertColumns(cols, [
+			('m', 'phys.distance', False),
+			('m', 'phys.distance', False)])
+
+	def testExReferenceMixed(self):
+		cols = self._getColSeq("select spatial.dist, b.speed"
+			" from spatial as a join misc as b on (a.dist>b.speed)")
+		self._assertColumns(cols, [
+			('m', 'phys.distance', False),
+			('km/s', 'phys.veloc', False)])
+
+
 	def testErrorReporting(self):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
 			"select gnurks from spatial")

@@ -48,9 +48,36 @@ class FieldInfos(object):
 	def __init__(self, parent):
 		self.seq, self.columns = [], {}
 		parent.fieldInfos = self
+		self._collectSubTables(parent)
 
 	def __repr__(self):
 		return "<Column information %s>"%(repr(self.seq))
+
+	def _namesMatch(self, table, toName):
+		"""returns true when table could be referred to by toName.
+
+		This means that either the name matches or toName is table's original
+		name.
+		"""
+		return (table.tableName.qName==toName.qName
+			or (
+				table.originalTable
+				and
+					table.originalTable==toName.qName))
+
+	def locateTable(self, refTable):
+		"""returns a table instance matching the TableName refName.
+
+		If no such table is in scope, the function raises a TableNotFound.
+		"""
+		for t in self.subTables:
+			if self._namesMatch(t, refTable):
+				return t
+			try:
+				return t.fieldInfos.locateTable(refTable)
+			except TableNotFound:
+				pass
+		raise TableNotFound("No table %s found."%refTable.qName)
 
 	def addColumn(self, label, info):
 		"""adds a new visible column to this info.
@@ -97,6 +124,10 @@ class FieldInfosForTable(FieldInfos):
 			for label, info in jt.fieldInfos.seq:
 				self.addColumn(label, info)
 
+	def _collectSubTables(self, node):
+		self.subTables = getattr(node, "joinedTables", [])
+
+
 
 class FieldInfosForQuery(FieldInfos):
 	"""A FieldInfos class that additionally knows how to obtain field infos
@@ -107,7 +138,6 @@ class FieldInfosForQuery(FieldInfos):
 	"""
 	def __init__(self, queryNode, context):
 		FieldInfos.__init__(self, queryNode)
-		self._collectSubTables(queryNode)
 		self._annotateSelectChildren(queryNode, context)
 		self._collectColumns(queryNode)
 
@@ -128,10 +158,10 @@ class FieldInfosForQuery(FieldInfos):
 			queryNode.fieldInfos.addColumn(col.name, col.fieldInfo)
 	
 	def _collectSubTables(self, queryNode):
-		self.subTables = {}
+		self.subTables = []
 		for subRef in queryNode.fromClause.tablesReferenced:
 			if hasattr(subRef, "getFieldInfo"):
-				self.subTables[subRef.tableName.name] = subRef
+				self.subTables.append(subRef)
 
 	def getFieldInfoFromSources(self, colName, refTable=None):
 		"""returns a field info for colName from anything in the from clause.
@@ -141,12 +171,18 @@ class FieldInfosForQuery(FieldInfos):
 		"""
 		colName = colName.lower()
 		matched = []
-		for t in self.subTables.values():
-			if refTable and t.tableName!=refTable:
-				continue
-			subCols = t.fieldInfos.columns
+		if refTable:
+			subCols = self.locateTable(refTable).fieldInfos.columns
 			if colName in subCols and subCols[colName]:
 				matched.append(subCols[colName])
+
+		else: # no explicit table reference, look everywhere
+			for t in self.subTables:
+				subCols = t.fieldInfos.columns
+				if colName in subCols and subCols[colName]:
+					matched.append(subCols[colName])
+
+		# XXX TODO: build a qualified colName here if necessary
 		return getUniqueMatch(matched, colName)
 
 	def getFieldInfo(self, colName, refTable=None):
@@ -216,7 +252,7 @@ def _annotateTraverse(node, context):
 
 
 def annotate(node, context):
-	"""adds annotations to all objects coming from the database.
+	"""adds annotations to all nodes wanting some.
 
 	This is done by a postorder traversal of the tree, identifying all
 	annotable objects.
