@@ -235,7 +235,7 @@ def getADQLGrammarCopy():
 	multOperator = Literal("*") | "/"
 	notKeyword = CaselessKeyword("NOT")
 
-	regularIdentifier = Word(alphas, alphanums+"_").addParseAction(
+	regularIdentifier = Word(alphas+"_", alphanums+"_").addParseAction(
 		_failOnReservedWord)
 	delimitedIdentifier = QuotedString(quoteChar='"', escQuote='"',
 		unquoteResults=False)
