@@ -107,7 +107,8 @@ class Element(object):
 		if (self.childSequence is not None and 
 				getattr(child, "name", None) not in self.allowedChildren and
 				type(child) not in self.allowedChildren):
-			raise ChildNotAllowed("No %s children in %s"%(child.name, self.name))
+			raise ChildNotAllowed("No %s children in %s"%(
+				getattr(child, "name", "text"), self.name))
 
 	def addChild(self, child):
 		"""adds child to the list of children.

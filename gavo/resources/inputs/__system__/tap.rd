@@ -235,4 +235,8 @@
 		<make table="keys" rowmaker="build_keys"/>
 		<make table="key_columns" rowmaker="build_key_columns"/>
 	</data>
+
+	<staticCore id="nullcore" file="no/file"/>
+
+	<service id="run" core="nullcore" allowed="tap"/>
 </resource>

@@ -22,6 +22,7 @@ from gavo import utils
 from gavo.base import valuemappers
 from gavo.helpers import filestuff
 from gavo.utils import pyfits
+from gavo.utils import stanxml
 
 import testhelpers
 
@@ -365,7 +366,25 @@ class RegistryTest(testhelpers.VerboseTest):
 		self.assertEqual(
 			model.VS1.voTableDataType["integer[20]"].render(),
 			'<dataType arraysize="20" xsi:type="vs1:VOTableType">int</dataType>')
-	
 
+
+class StanXMLTest(testhelpers.VerboseTest):
+	class Model(object):
+		class MEl(stanxml.Element): 
+			local = True
+		class Root(MEl):
+			childSequence = ["Child"]
+		class Child(MEl):
+			childSequence = ["Foo", None]
+
+	def testNoTextContent(self):
+		M = self.Model
+		self.assertRaises(stanxml.ChildNotAllowed, lambda:M.Root["abc"])
+	
+	def testTextContent(self):
+		M = self.Model
+		data = M.Root[M.Child[u"a\xA0bc"]]
+		self.assertEqual(data.render(), '<Root><Child>a&#160;bc</Child></Root>')
+	
 if __name__=="__main__":
-	testhelpers.main(MapperTest)
+	testhelpers.main(StanXMLTest)

@@ -14,12 +14,15 @@ import Queue
 import time
 import threading
 
+from nevow import inevow
 from nevow.testutil import FakeRequest
+from twisted.python.components import registerAdapter
 
 from gavo import base
 from gavo import rscdesc  # uws needs getRD
 from gavo.protocols import tap
 from gavo.protocols import uws
+from gavo.web import taprender
 
 import testhelpers
 import adqltest
@@ -51,6 +54,16 @@ class _FakeJob(object):
 	"""
 	def __init__(self, phase):
 		self.phase = phase
+
+
+class _FakeContext(object):
+	"""A scaffolding class for testing renderers.
+	"""
+	def __init__(self, **kwargs):
+		self.request = FakeRequest(args=kwargs)
+		self.args = kwargs
+
+registerAdapter(lambda ctx: ctx.request, _FakeContext, inevow.IRequest)
 
 
 class PlainActionsTest(testhelpers.VerboseTest):
@@ -192,7 +205,17 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 				with uws.makeFromId(jobId) as job:
 					job.delete()
 		self.failUnless('xmlns="http://www.ivoa.net/xml/VOTable/' in result)
-	
+
+
+class RenderTest(testhelpers.VerboseTest):
+	def testVersionError(self):
+		service = base.caches.getRD("__system__/tap").getById("run")
+		ctx = _FakeContext(args={"foo": "bar"})
+		res, _ = taprender.TAPRenderer(ctx, service).locateChild(ctx, ("sync"))
+		msg = res.renderHTTP(ctx)
+		self.failUnless('<INFO name="QUERY_STATUS" value="ERROR">Version mismatch'
+			in msg)
+
 
 if __name__=="__main__":
-	testhelpers.main(SimpleRunnerTest)
+	testhelpers.main(RenderTest)
