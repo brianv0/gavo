@@ -78,10 +78,10 @@ class VOTableMaker(utils.IdManagerMixin):
 		if isinstance(content, base.MetaInfoItem):
 			name, value, id = content.infoName, content.infoValue, content.infoId
 		if content:
-			content = str(content).strip()
+			content = unicode(content).strip()
 		if content or value:
-			i = DM.Info(name=name, text=str(content))
-			i.value = str(value)
+			i = DM.Info(name=name, text=unicode(content))
+			i.value = unicode(value)
 			if id:
 				i.ID = id
 			node.info.append(i)
