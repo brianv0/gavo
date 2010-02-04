@@ -56,8 +56,9 @@ class InputKey(rscdef.Column):
 # as strings and add properties to InputKeys like compiledWidgetFactory
 # or the like.
 		# Adapt type if we were built from a column.
-		if hasattr(self, "_originalObject") and isinstance(
-				self._originalObject, rscdef.Column):
+		if (hasattr(self, "_originalObject") 
+				and isinstance(self._originalObject, rscdef.Column)
+				and self.formalType is base.Undefined):
 			self.toVizierType()
 
 		if self.formalType is base.Undefined:

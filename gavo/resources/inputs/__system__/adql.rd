@@ -353,10 +353,17 @@ reasons we would be very reluctant to add such a functionality.
 			<table id="adqlInput">
 				<column name="query" tablehead="ADQL query" type="text"
 					description="A query in the Astronomical Data Query Language"/>
+				<column name="timeout" type="integer" unit="s" 
+					tablehead="Timeout after" 
+					description="Seconds until the query is aborted.  If you find yourself having to raise this beyond 200 or so, please contact the GAVO staff for hints on how to optimize your query">
+					<values default="5"/>
+				</column>
 			</table>
 			<contextGrammar>
 				<inputKey original="adqlInput.query"
 						widgetFactory="widgetFactory(ScalingTextArea, rows=15)"/>
+				<inputKey original="adqlInput.timeout" type="integer"
+					formalType="integer"/>
 			</contextGrammar>
 			<make table="adqlInput"/>
 		</inputDD>

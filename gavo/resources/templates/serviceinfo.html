@@ -9,9 +9,8 @@
 	<body n:render="withsidebar">
 		<h1 n:render="title"/>
 
-		<p>See also the metadata in the sidebar.  Most of these are not repeated
-		here.</p>
-	
+		<p style="background-color:#eeeeee;padding:5px;margin-left:5ex;margin-right:5ex"><n:invisible n:render="metahtml">description</n:invisible></p>
+
 		<n:invisible n:render="ifmeta _longdoc">
 			<h2 class="section">Service Documentation</h2>
 
@@ -19,9 +18,6 @@
 		</n:invisible>
 
 		<h2 class="section">Overview</h2>
-		<p><strong>Description:</strong>
-			<n:invisible n:render="metahtml">description</n:invisible></p>
-
 		<p><strong>Renderers</strong> 
 			(i.e., various means of accessing the data) available 
 			on this service include:</p>

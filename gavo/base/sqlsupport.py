@@ -429,7 +429,7 @@ class StandardQueryMixin(object):
 		timeout is in seconds.
 		"""
 		if timeout is not None:
-			self.query("SET statement_timeout TO %d"%int(timeout*1000))
+			self.query("SET statement_timeout TO %d"%(int(timeout)*1000))
 
 
 def dictifyRowset(descr, rows):
