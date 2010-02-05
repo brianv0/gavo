@@ -13,6 +13,17 @@ p, li {
 	max-width: 400px;
 }
 
+div.description {
+	max-width: 350px;
+	margin-left: 25px;
+	margin-right: 25px;
+	background-color:#eeeeee;
+	padding-left: 15px;
+	padding-right: 15px;
+	padding-top: 5px;
+	padding-bottom: 5px;
+}
+
 p.attribution {
 	max-width:100%;
 	width:100%;

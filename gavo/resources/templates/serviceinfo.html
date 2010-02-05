@@ -9,7 +9,9 @@
 	<body n:render="withsidebar">
 		<h1 n:render="title"/>
 
-		<p style="background-color:#eeeeee;padding:5px;margin-left:5ex;margin-right:5ex"><n:invisible n:render="metahtml">description</n:invisible></p>
+		<div class="description">
+			<n:invisible n:render="metahtml">description</n:invisible>
+		</div>
 
 		<n:invisible n:render="ifmeta _longdoc">
 			<h2 class="section">Service Documentation</h2>
