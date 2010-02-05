@@ -258,7 +258,7 @@ class VanityMap(object):
 
 	<target> <key> [<option>]
 
-	Target is a URI that must *not* include nevowRoot and must *not* start
+	Target is a path that must *not* include nevowRoot and must *not* start
 	with a slash (unless you're going for special effects).
 
 	Key is a single path element.  If this path element is found in the
@@ -272,8 +272,7 @@ class VanityMap(object):
 	as a server-relative URI, and a redirect to it is generated, but only
 	if only one or two segements are in the original query.  You can
 	use this to create shortcuts with the resource dir names.  This would
-	otherwise create endless loops.  This feature is a pain necessary for
-	historic reasons and should probably not be used.
+	otherwise create endless loops.
 
 	Empty lines and #-on-a-line-comments are allowed in the input.
 	"""
