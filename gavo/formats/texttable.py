@@ -6,6 +6,7 @@ import cStringIO
 import re
 
 from gavo import base
+from gavo import rsc
 from gavo.formats import common
 
 
@@ -16,10 +17,12 @@ def _makeString(val):
 	return str(val)
 
 
-def renderAsText(data, target):
-	"""writes a text (TSV) rendering of data's primary table to the file target.
+def renderAsText(table, target):
+	"""writes a text (TSV) rendering of table to the file target.
 	"""
-	sm = base.SerManager(data.getPrimaryTable())
+	if isinstance(table, rsc.Data):
+		table = table.getPrimaryTable()
+	sm = base.SerManager(table)
 	for row in sm.getMappedTuples():
 		target.write("\t".join([_makeString(s) for s in row])+"\n")
 

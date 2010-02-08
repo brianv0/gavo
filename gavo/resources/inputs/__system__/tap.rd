@@ -127,7 +127,7 @@
 			</simplemaps>
 		</rowmaker>
 
-		<script type="newSource">
+		<script type="newSource" name="delete stale TAP_SCHEMA.tables entries">
 			data.tables["tables"].deleteMatching("sourceRD=%(sourceRD)s",
 				{"sourceRD": sourceToken.sourceId})
 		</script>
@@ -175,7 +175,7 @@
 		</embeddedGrammar>
 		<make table="columns"/>
 
-		<script type="newSource">
+		<script type="newSource" name="delete stale TAP_SCHEMA.columns entries">
 			data.tables["columns"].deleteMatching("sourceRD=%(sourceRD)s",
 				{"sourceRD": sourceToken.sourceId})
 		</script>
@@ -225,7 +225,7 @@
 			<ignoreOn><not><keyIs key="dest" value="cols"/></not></ignoreOn>
 		</rowmaker>
 
-		<script type="newSource">
+		<script type="newSource" name="delete stale TAP_SCHEMA.keys entries">
 			data.tables["keys"].deleteMatching("sourceRD=%(sourceRD)s",
 				{"sourceRD": sourceToken.sourceId})
 			data.tables["key_columns"].deleteMatching("sourceRD=%(sourceRD)s",

@@ -47,6 +47,9 @@ class VOTable(object):
 	
 	# DEFINITIONS deprecated, see COOSYS
 
+	class DESCRIPTION(VOTElement):
+		childSequence = [None]
+
 	class FIELD(_TypedElement):
 		childSequence = ["DESCRIPTION", "VALUES", "LINK"]
 	

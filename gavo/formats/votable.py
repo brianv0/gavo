@@ -234,8 +234,7 @@ class VOTableMaker(utils.IdManagerMixin):
 
 		data can be a Data or Table instance.
 		"""
-		if isinstance(data, rsc.BaseTable):
-			data = rsc.wrapTable(data)
+		data = rsc.wrapTable(data)
 		vot = DM.VOTable()
 		self._setGlobalMeta(vot, data)
 		vot.resources.append(self._makeResource(data))
@@ -260,13 +259,15 @@ def getAsVOTable(data, tablecoding="binary"):
 	return dest.getvalue()
 
 
-def writeDataAsVOTable(data, outputFile):
+def writeDataAsVOTable(data, outputFile, tablecoding="binary"):
 	"""a formats.common compliant data writer.
 	"""
-	maker = VOTableMaker(tablecoding="binary")
+	maker = VOTableMaker(tablecoding=tablecoding)
 	maker.writeVOT(maker.makeVOT(data), outputFile)
 
 common.registerDataWriter("votable", writeDataAsVOTable)
+common.registerDataWriter("votabletd", lambda data, outputFile:
+	writeDataAsVOTable(data, outputFile, tablecoding="td"))
 
 
 def _getSTCGroupsFromAny(votObj):

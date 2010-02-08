@@ -30,14 +30,26 @@ FORMAT_CODES = {
 	"application/x-votable+xml": "votable",
 	"text/xml": "votable",
 	"votable": "votable",
+	"votable/td": "votabletd",
 	"text/csv": "csv",
 	"csv": "csv",
 	"text/tab-separated-values": "tsv",
+	"tsv": "tsv",
 	"application/fits": "fits",
 	"fits": "fits",
 	"text/html": "html",
 	"html": "html",
 }
+
+
+def normalizeTAPFormat(rawFmt):
+	format = rawFmt.lower()
+	try:
+		return FORMAT_CODES[format]
+	except KeyError:
+		raise base.ValidationError("Unsupported format '%s'."%format,
+			colName="FORMAT",
+			hint="Legal format codes include %s"%(", ".join(FORMAT_CODES)))
 
 
 def _parseTAPParameters(jobId, parameters):
@@ -51,11 +63,7 @@ def _parseTAPParameters(jobId, parameters):
 	except KeyError, key:
 		raise uws.UWSError("Required parameter %s missing."%key, jobId)
 
-	format = parameters.get("FORMAT", "votable").lower()
-	try:
-		format = FORMAT_CODES[format]
-	except KeyError:
-		raise uws.UWSError("Unsupported format '%s'."%format)
+	format = normalizeTAPFormat(parameters.get("FORMAT", "votable"))
 
 	try:
 		maxrec = int(parameters["MAXREC"])
@@ -66,9 +74,17 @@ def _parseTAPParameters(jobId, parameters):
 	return query, format, maxrec
 
 
-def _createResultFile(format, resultName, res):
-	with open(resultName, "w") as outF:
-		formats.formatData(format, res, outF)
+def writeResultTo(format, res, outF):
+	formats.formatData(format, res, outF)
+
+
+def runTAPQuery(query, timeout, queryProfile):
+	"""executes a TAP query and returns the result in a data instance.
+	"""
+	try:
+		return adqlglue.query(query, timeout=timeout, queryProfile=queryProfile)
+	except:
+		adqlglue.mapADQLErrors(*sys.exc_info())
 
 
 def runTAPJob(parameters, jobId, resultName, timeout, 
@@ -80,11 +96,9 @@ def runTAPJob(parameters, jobId, resultName, timeout,
 	Right now, we only execute ADQL queries and bail out on anything else.
 	"""
 	query, format, maxrec = _parseTAPParameters(jobId, parameters)
-	try:
-		res = adqlglue.query(query, timeout=timeout,  queryProfile=queryProfile)
-	except:
-		adqlglue.mapADQLErrors(*sys.exc_info())
-	_createResultFile(format, resultName, res)
+	res = runTAPQuery(query, timeout, queryProfile)
+	with open(resultName, "w") as outF:
+		writeResultTo(format, res, outF)
 
 
 ############### CLI interface

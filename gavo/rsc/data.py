@@ -315,11 +315,14 @@ def makeDataById(ddId, parseOptions=common.parseNonValidating,
 
 
 def wrapTable(table, rdSource=None):
-	"""returns a Data instance containing only table.
+	"""returns a Data instance containing only table (or table if it's already
+	a data instance).
 
 	If table has no rd, you must pass rdSource, which must be an object having
 	and rd attribute (rds, tabledefs, etc, work).
 	"""
+	if isinstance(table, Data):
+		return table
 	if rdSource is None:
 		rd = table.tableDef.rd
 	elif hasattr(rdSource, "rd"):

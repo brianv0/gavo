@@ -5,6 +5,7 @@ Writing table objects as CSV files.
 import csv
 
 from gavo import base
+from gavo import rsc
 from gavo.formats import common
 
 
@@ -21,13 +22,15 @@ def _encodeRow(row):
 	return res
 
 
-def writeDataAsCSV(data, target):
-	"""writes data's primary tables to the file target in CSV.
+def writeDataAsCSV(table, target):
+	"""writes table to the file target in CSV.
 
 	The CSV format chosen is controlled through the async/csvDialect
 	config item.
 	"""
-	sm = base.SerManager(data.getPrimaryTable())
+	if isinstance(table, rsc.Data):
+		table = table.getPrimaryTable()
+	sm = base.SerManager(table)
 	writer = csv.writer(target, base.getConfig("async", "csvDialect"))
 	for row in sm.getMappedTuples():
 		try:

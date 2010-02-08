@@ -95,6 +95,7 @@ def makeFITSTableFile(dataSet):
 def writeDataAsFITS(data, outputFile):
 	"""a formats.common compliant data writer.
 	"""
+	data = rsc.wrapTable(data)
 	fitsName = makeFITSTableFile(data)
 	try:
 		src = open(fitsName)

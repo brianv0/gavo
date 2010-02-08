@@ -38,6 +38,7 @@ from gavo import rsc
 from gavo import svcs
 from gavo.imp import formal
 from gavo.imp.formal import form
+from gavo.formats import csvtable
 from gavo.formats import fitstable
 from gavo.formats import texttable
 from gavo.formats import votable

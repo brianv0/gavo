@@ -207,15 +207,5 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 		self.failUnless('xmlns="http://www.ivoa.net/xml/VOTable/' in result)
 
 
-class RenderTest(testhelpers.VerboseTest):
-	def testVersionError(self):
-		service = base.caches.getRD("__system__/tap").getById("run")
-		ctx = _FakeContext(args={"foo": "bar"})
-		res, _ = taprender.TAPRenderer(ctx, service).locateChild(ctx, ("sync"))
-		msg = res.renderHTTP(ctx)
-		self.failUnless('<INFO name="QUERY_STATUS" value="ERROR">Version mismatch'
-			in msg)
-
-
 if __name__=="__main__":
-	testhelpers.main(RenderTest)
+	testhelpers.main(SimpleRunnerTest)

@@ -21,6 +21,19 @@ from gavo.base import meta
 from gavo.protocols import creds
 
 
+def getfirst(ctx, key, default):
+	"""returns the first value of key in the nevow context ctx.
+	"""
+	args = inevow.IRequest(ctx).args
+	try:
+		return args[key][0]
+	except KeyError:
+		if default is base.Undefined:
+			raise base.ValidationError("Missing mandatory parameter %s"%key,
+				colName=key)
+		return default
+
+
 class HTMLMetaBuilder(meta.MetaBuilder):
 	def __init__(self, macroPackage=None):
 		meta.MetaBuilder.__init__(self)
