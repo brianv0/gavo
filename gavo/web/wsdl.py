@@ -12,7 +12,7 @@ from ZSI import TC
 from gavo import base
 from gavo import svcs
 from gavo.base import valuemappers
-from gavo.utils.stanxml import Element, XSINamespace
+from gavo.utils.stanxml import Element, XSINamespace, schemaURL
 from gavo.utils import ElementTree
 
 
@@ -29,13 +29,10 @@ ElementTree._namespace_map[WSDLNamespace] = "wsdl"
 ElementTree._namespace_map[XSDNamespace] = "xsd"
 
 
-def _schemaURL(xsdName):
-	return "http://vo.ari.uni-heidelberg.de/docs/schemata/"+xsdName
-
 _schemaLocations = {
-	SOAPNamespace: _schemaURL("wsdlsoap-1.1.xsd"),
-	WSDLNamespace: _schemaURL("wsdl-1.1.xsd"),
-	XSDNamespace: _schemaURL("XMLSchema.xsd"),
+	SOAPNamespace: schemaURL("wsdlsoap-1.1.xsd"),
+	WSDLNamespace: schemaURL("wsdl-1.1.xsd"),
+	XSDNamespace: schemaURL("XMLSchema.xsd"),
 }
 
 
@@ -165,7 +162,7 @@ class XSD(object):
 	
 
 def makeTypesForService(service, queryMeta):
-	"""returns xmlstan definitions for the (SOAP) type of service.
+	"""returns stanxml definitions for the (SOAP) type of service.
 
 	Only "atomic" input parameters are supported so far, so we can
 	skip those.  The output type is always called outList and contains
@@ -187,7 +184,7 @@ def makeTypesForService(service, queryMeta):
 
 
 def makeMessagesForService(service):
-	"""returns xmlstan definitions for the SOAP messages exchanged when
+	"""returns stanxml definitions for the SOAP messages exchanged when
 	using the service.
 
 	Basically, the input message (called srvInput) consists of some 
@@ -206,7 +203,7 @@ def makeMessagesForService(service):
 
 
 def makePortTypeForService(service):
-	"""returns xmlstan for a port type named serviceSOAP.
+	"""returns stanxml for a port type named serviceSOAP.
 	"""
 	parameterOrder = " ".join([f.name 
 		for f in svcs.getRenderer("soap").getInputFields(service)])
@@ -219,7 +216,7 @@ def makePortTypeForService(service):
 
 
 def makeSOAPBindingForService(service):
-	"""returns xmlstan for a SOAP binding of service.
+	"""returns stanxml for a SOAP binding of service.
 	"""
 	tns = str(service.getMeta("identifier"))
 	return WSDL.binding(name="soapBinding", type="tns:serviceSOAP")[
@@ -235,7 +232,7 @@ def makeSOAPBindingForService(service):
 			
 
 def makeSOAPServiceForService(service):
-	"""returns xmlstan for a WSDL service definition of the SOAP interface
+	"""returns stanxml for a WSDL service definition of the SOAP interface
 	to service.
 	"""
 	shortName = str(service.getMeta("shortName"))
@@ -247,7 +244,7 @@ def makeSOAPServiceForService(service):
 
 
 def makeSOAPWSDLForService(service, queryMeta):
-	"""returns an xmlstan definitions element describing service.
+	"""returns an stanxml definitions element describing service.
 
 	The definitions element also introduces a namespace named after the
 	ivoa id of the service, accessible through the tns prefix.

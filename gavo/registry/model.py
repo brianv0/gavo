@@ -5,7 +5,7 @@ Data model for the VO registry interface.
 from gavo import base
 from gavo.base import typesystems
 from gavo.utils import ElementTree
-from gavo.utils.stanxml import Element, XSINamespace
+from gavo.utils.stanxml import Element, XSINamespace, schemaURL
 
 
 class Error(base.Error):
@@ -38,20 +38,18 @@ ElementTree._namespace_map[VS1Namespace] = "vs1"
 ElementTree._namespace_map[SCSNamespace] = "cs"
 ElementTree._namespace_map[SIANamespace] = "sia"
 
-def makeSchemaURL(xsdName):
-	return "http://vo.ari.uni-heidelberg.de/docs/schemata/"+xsdName
 
 _schemaLocations = {
-	OAINamespace: makeSchemaURL("OAI-PMH.xsd"),
-	OAIDCNamespace: makeSchemaURL("oai_dc.xsd"),
-	VORNamespace: makeSchemaURL("VOResource-v1.0.xsd"),
-	VOGNamespace: makeSchemaURL("VORegistry-v1.0.xsd"),
-	DCNamespace: makeSchemaURL("simpledc20021212.xsd"),
-	RINamespace: makeSchemaURL("RegistryInterface-v1.0.xsd"),
-	VSNamespace: makeSchemaURL("VODataService-v1.0.xsd"),
-	VS1Namespace: makeSchemaURL("VODataService-v1.1.xsd"),
-	SCSNamespace: makeSchemaURL("ConeSearch-v1.0.xsd"),
-	SIANamespace: makeSchemaURL("SIA-v1.0.xsd"),
+	OAINamespace: schemaURL("OAI-PMH.xsd"),
+	OAIDCNamespace: schemaURL("oai_dc.xsd"),
+	VORNamespace: schemaURL("VOResource-v1.0.xsd"),
+	VOGNamespace: schemaURL("VORegistry-v1.0.xsd"),
+	DCNamespace: schemaURL("simpledc20021212.xsd"),
+	RINamespace: schemaURL("RegistryInterface-v1.0.xsd"),
+	VSNamespace: schemaURL("VODataService-v1.0.xsd"),
+	VS1Namespace: schemaURL("VODataService-v1.1.xsd"),
+	SCSNamespace: schemaURL("ConeSearch-v1.0.xsd"),
+	SIANamespace: schemaURL("SIA-v1.0.xsd"),
 }
 
 

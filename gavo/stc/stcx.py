@@ -9,12 +9,12 @@ Building STC-X documents, xmlstan-style.
 
 from gavo.stc.common import *
 from gavo.utils import ElementTree
-from gavo.utils.stanxml import Element, XSINamespace, Error
+from gavo.utils.stanxml import Element, XSINamespace, Error, schemaURL
 
 
 _schemaLocations = {
-	STCNamespace: "http://vo.ari.uni-heidelberg.de/docs/schemata/stc-v1.30.xsd",
-	XlinkNamespace: "http://vo.ari.uni-heidelberg.de/docs/schemata/xlink.xsd",
+	STCNamespace: schemaURL("stc-v1.30.xsd"),
+	XlinkNamespace: schemaURL("xlink.xsd"),
 }
 
 

@@ -139,6 +139,45 @@ class ErrorPage(ErrorPageDebug):
 		return ""
 
 
+class BadMethodPage(rend.Page, common.CommonRenderers):
+	def __init__(self, errMsg=None):
+		self.errMsg = errMsg
+		rend.Page.__init__(self)
+
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setResponseCode(405)
+		return rend.Page.renderHTTP(self, ctx)
+
+	def render_explanation(self, ctx, data):
+		if self.errMsg:
+			return ctx.tag[self.errMsg]
+		else:
+			return ""
+
+	docFactory = common.doctypedStan(T.html[
+			T.head[T.title["GAVO DC -- Bad Method"],
+			T.invisible(render=T.directive("commonhead")),
+			T.style(type="text/css")[
+				"p.errmsg {background-color: #cccccc;padding:5pt}"],
+		],
+		T.body[
+			T.img(src="/builtin/img/logo_medium.png", style="position:absolute;"
+				"right:0pt"),
+			T.h1["Bad Method (405)"],
+			T.p["You just tried to use some HTTP method to access this resource"
+				" that this resource does not support.  This probably means that"
+				" this resource is for exclusive use for specialized clients."],
+			T.p["You may find whatever you were really looking"
+				" for by inspecting our ",
+				T.a(href="/")["list of published services"],
+				"."],
+			T.hr,
+			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
+				"gavo@ari.uni-heidelberg.de"]],
+		]])
+
+
 class NotFoundPage(rend.Page, common.CommonRenderers):
 	def __init__(self, errMsg=None):
 		self.errMsg = errMsg

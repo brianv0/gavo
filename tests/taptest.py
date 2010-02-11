@@ -4,7 +4,8 @@ Simple tests for TAP and environs.
 All these tests really stink because TAP isn't really a good match for the
 basically stateless unit tests that are executed in an arbitrary order.
 
-How do other people test such stuff?
+There's more TAP/UWS related tests in test_tap.py; these require a
+running reactor and are based on trial.
 """
 
 from __future__ import with_statement

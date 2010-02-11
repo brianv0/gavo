@@ -262,3 +262,11 @@ class Element(object):
 		if et is None:
 			return ""
 		return ElementTree.tostring(et)
+
+
+def schemaURL(xsdName):
+	"""returns the URL to the local mirror of the schema xsdName.
+
+	This is used by the various xmlstan clients to make schemaLocations.
+	"""
+	return "http://vo.ari.uni-heidelberg.de/docs/schemata/"+xsdName

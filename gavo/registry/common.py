@@ -6,6 +6,7 @@ import re
 
 from gavo import base
 from gavo import utils
+from gavo.utils import stanxml
 
 
 SERVICELIST_ID = "__system__/services"
@@ -13,9 +14,9 @@ STATICRSC_ID = "__system__/staticrsc"
 
 METADATA_PREFIXES = [
 # (prefix, schema-location, namespace)
-	("oai_dc", "http://vo.ari.uni-heidelberg.de/docs/schemata/OAI-PMH.xsd",
+	("oai_dc", stanxml.schemaURL("OAI-PMH.xsd"),
 		"http://www.openarchives.org/OAI/2.0/oai_dc/"),
-	("ivo_vor", "http://www.ivoa.net/xml/RegistryInterface/v1.0",
+	("ivo_vor", stanxml.schemaURL("VOResource-v1.0.xsd"),
 		"http://www.ivoa.net/xml/RegistryInterface/v1.0"),
 ]
 

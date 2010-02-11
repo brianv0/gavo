@@ -29,12 +29,18 @@ def registerDataWriter(key, writer):
 	_formatDataRegistry[key] = writer
 
 
+def checkFormatIsValid(formatName):
+	"""raises a CannotSerializeIn exception if formatData would fail with one.
+	"""
+	if formatName not in _formatDataRegistry:
+		raise CannotSerializeIn(formatName)
+
+
 def formatData(key, table, outputFile):
 	"""writes a table to outputFile in the format given by key.
 
 	key points into the _formatDataRegistry.  Table my be a table or a
 	Data instance.
 	"""
-	if key not in _formatDataRegistry:
-		raise CannotSerializeIn(key)
+	checkFormatIsValid(key)
 	_formatDataRegistry[key](table, outputFile)

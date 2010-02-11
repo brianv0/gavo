@@ -17,7 +17,7 @@ from gavo import utils
 from gavo.base import meta
 from gavo.registry import builders
 from gavo.utils import ElementTree
-from gavo.utils.stanxml import Element, XSINamespace
+from gavo.utils.stanxml import Element, XSINamespace, schemaURL
 from gavo.web import grend
 
 
@@ -67,7 +67,7 @@ class AVL(object):
 	
 	class availability(AVLElement):
 		a_xsi_schemaLocation = "%s %s"%(AVLNamespace, 
-			registry.makeSchemaURL("availability-0.4.xsd"))
+			schemaURL("availability-0.4.xsd"))
 		xsi_schemaLocation_name = "xsi:schemaLocation"
 		a_xmlns_xsi = XSINamespace
 		xmlns_xsi_name = "xmlns:xsi"

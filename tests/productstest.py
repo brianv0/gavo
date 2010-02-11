@@ -1,7 +1,12 @@
 """
-Tests for the products infrastructure.  Require DB access.
+XXX TODO: Resurrect this; this stuff is now synchronous and can thus
+be tested with the normal unittest framework.  You'll need to change
+ProductCoreTest and then derive it from testhelpers.VerboseTest.
+
+Tests for the products infrastructure.
 """
 
+'''
 from cStringIO import StringIO
 import os
 import unittest
@@ -55,7 +60,7 @@ def deleteTestUser():
 	querier.finish()
 
 
-class ProductCoreTest(TrialTest):
+class ProductCoreTest(object):
 	"""tests for the products core.
 	"""
 	timeout = 10
@@ -163,3 +168,4 @@ class ProductCoreTest(TrialTest):
 
 if __name__=="__main__":
 	testhelpers.trialMain(ProductCoreTest)
+'''

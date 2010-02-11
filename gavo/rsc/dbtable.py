@@ -497,17 +497,22 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		fragment and pars.
 
 		resultTableDef is a TableDef with svc.OutputField columns
-		(rscdef.Column instances will do), fragment is empty or
-		an SQL where-clause with dictionary placeholders, pars is
-		the dictionary filling fragment, distinct, if True, adds a
-		distinct clause, and limits, if given, is a pair of an SQL
-		string to be appended to the SELECT clause and parameters
-		filling it.  queryMeta.asSQL returns what you need here.
+		(rscdef.Column instances will do), or possibly just a list
+		of Columns,
+		fragment is empty or an SQL where-clause with dictionary placeholders, 
+		pars is the dictionary filling fragment, 
+		distinct, if True, adds a distinct clause, and 
+		limits, if given, is a pair of an SQL string to be appended to 
+		the SELECT clause and parameters filling it.  queryMeta.asSQL returns what
+		you need here.
 
 		pars may be mutated in the process.
 		"""
 		if pars is None:
 			pars = {}
+		if not isinstance(resultTableDef, rscdef.TableDef):
+			resultTableDef = base.makeStruct(rscdef.TableDef,
+				id="iterQuery", columns=resultTableDef)
 		query = ["SELECT "]
 		if distinct:
 			query.append("DISTINCT ")

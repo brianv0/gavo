@@ -53,20 +53,9 @@ def getJobsTable():
 	conn = base.getDBConnection("admin")
 	jobsTable = rsc.TableForDef(base.caches.getRD(RD_ID).getById("jobs"), 
 		connection=conn, exclusive=True)
-	# jobsTable really has an owned connection.  Tell it.
+	# jobsTable really has an owned connection.  Make it realize this.
 	jobsTable.ownedConnection = True
 	return jobsTable
-
-
-def getfirst(request, key):
-	"""returns the first value for key if it's present in request.args, None
-	otherwise.
-
-	request must implement newow.IRequest.
-	"""
-	vals = request.args.get(key)
-	if vals:
-		return vals[0]
 
 
 def serializeData(data):
@@ -153,6 +142,7 @@ class UWSJob(object):
 		kws["jobId"] = cls._allocateDataDir()
 		kws["phase"] = PENDING
 		kws["parameters"] = serializeData(args)
+		kws["runId"] = args.get("RUNID")
 		jobsTable = getJobsTable()
 		utils.addDefaults(kws, {
 			"quote": None,
@@ -181,9 +171,9 @@ class UWSJob(object):
 		request is something implementing nevow.IRequest, actions is the
 		name (i.e., a string) of a registred Actions class.
 		"""
-		return cls.create(args=request.args,
-			runId=getfirst(request, "RUNID"),
-			actions=actions)
+		args = dict((k, (len(v) and v[0]) or None) 
+			for k, v in request.args.iteritems())
+		return cls.create(args=request.args, actions=actions)
 	
 	@classmethod
 	def makeFromId(cls, jobId):

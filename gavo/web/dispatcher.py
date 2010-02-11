@@ -42,7 +42,7 @@ from gavo.web import common
 from gavo.web import grend
 from gavo.web import weberrors
 
-from gavo.svcs import Error, UnknownURI, ForbiddenURI, WebRedirect
+from gavo.svcs import Error, UnknownURI, ForbiddenURI, WebRedirect, BadMethod
 
 
 # monkeypatch nevow static's mime types
@@ -518,6 +518,8 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 			return weberrors.ForbiddenPage(str(exc)), ()
 		except UnknownURI, exc:
 			return weberrors.NotFoundPage(str(exc)), ()
+		except BadMethod, exc:
+			return weberrors.BadMethodPage(str(exc)), ()
 		except Exception, msg:
 			traceback.print_exc()
 			raise
