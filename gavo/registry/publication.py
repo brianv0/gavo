@@ -37,6 +37,8 @@ def makeBaseRecord(service):
 	dateUpdated = service.getMeta("datetimeUpdated")
 	if dateUpdated is None:
 		rec["dateUpdated"] = datetime.datetime.utcnow()
+	else:
+		rec["dateUpdated"] = str(dateUpdated)
 	return rec
 
 

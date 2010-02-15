@@ -96,6 +96,8 @@ def parseDefaultDate(literal):
 def parseDefaultDatetime(literal):
 	if literal is None or isinstance(literal, datetime.datetime):
 		return literal
+	if literal.endswith("Z"):
+		literal = literal[:-1]
 	return datetime.datetime(
 		*time.strptime(literal, '%Y-%m-%dT%H:%M:%S')[:6])
 
