@@ -214,8 +214,7 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		"""
 		if self.suppressIndex or not self.exists():
 			return
-		if not self.hasIndex(self.tableName, 
-				self.getPrimaryIndexName(self.tableDef.id)):
+		if self.tableDef.primary:
 			self._definePrimaryKey()
 		for index in self.tableDef.indices:
 			if not self.hasIndex(self.tableName, index.name):

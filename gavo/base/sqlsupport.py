@@ -197,9 +197,9 @@ class PostgresQueryMixin(object):
 		"""
 		schema, tableName = _parseTableName(tableName, schema)
 		res = self.query("SELECT indexname FROM"
-			" pg_indexes WHERE schemaname=%(schema)s AND"
-			" tablename=%(tableName)s AND"
-			" indexname=%(indexName)s", locals()).fetchall()
+			" pg_indexes WHERE schemaname=lower(%(schema)s) AND"
+			" tablename=lower(%(tableName)s) AND"
+			" indexname=lower(%(indexName)s)", locals()).fetchall()
 		return len(list(res))>0
 
 	def _getColIndices(self, relOID, colNames):
