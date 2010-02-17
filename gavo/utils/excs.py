@@ -157,10 +157,18 @@ class ExecutiveAction(Exception):
 	deep things and trigger actions higher up.
 	"""
 
-
 class Replace(ExecutiveAction):
 	"""is caught during adoption of children by ParseableStructures.
 	The exception's value will become the new child.
 	"""
 	def __init__(self, newOb, newName=None):
 		self.newOb, self.newName = newOb, newName
+
+
+class SkipThis(ExecutiveAction):
+	"""is caught in rsc.makeData.  You can raise this at any place during
+	source processing to skip the rest of this source but the go on.
+
+	You should pass something descriptive as message so upstream can
+	potentially report something is skipped.
+	"""

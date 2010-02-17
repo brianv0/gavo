@@ -277,6 +277,8 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 					processSource(res, source, feeder, parseOptions)
 				except _EnoughRows:
 					break
+				except base.SkipThis:
+					continue
 		else:
 			processSource(res, forceSource, feeder, parseOptions)
 	except:

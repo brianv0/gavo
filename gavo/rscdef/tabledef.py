@@ -110,8 +110,8 @@ class ForeignKey(base.Structure):
 			" etc. are done here.  If not given, defaults to source.")
 
 	def getDescription(self):
-		return "%s -> %s:%s"%(",".join(self.source), self.table, 
-			".".join(self.dest))
+		return "%s:%s -> %s:%s"%(self.parent.getQName(), ",".join(self.source), 
+			self.table, ".".join(self.dest))
 
 	def _parseList(self, raw):
 		return [s.strip() for s in raw.split(",") if s.strip()]
