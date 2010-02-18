@@ -142,7 +142,8 @@
 		<condDesc buildFrom="setName"/>
 	</dbCore>
 
-	<service id="overview" core="overviewcore" allowed="form,external">
+	<service id="overview" core="overviewcore" 
+			allowed="form,external,admin">
 		<meta name="shortName">_cs_srv</meta>
 		<meta name="title">Published Services</meta>
 		<meta name="description">A list of all services published on the

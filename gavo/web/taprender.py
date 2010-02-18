@@ -209,6 +209,6 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 		except base.Error, ex:
 			traceback.print_exc()
 			return ErrorResource(str(ex))
-		raise UnknownURI("Bad TAP path %s"%"/".join(segments))
+		raise common.UnknownURI("Bad TAP path %s"%"/".join(segments))
 
 svcs.registerRenderer(TAPRenderer)

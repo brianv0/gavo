@@ -216,11 +216,9 @@ class GavoRenderMixin(common.CommonRenderers):
 		return ctx.tag[T.a(href=str(targetURL))[
 			anchorText]]
 
-	def render_withsidebar(self, ctx, data):
-		oldChildren = ctx.tag.children
-		ctx.tag.children = []
-		return ctx.tag[
-			T.div(id="sidebar")[
+	def getSidebar(self, ctx):
+# XXX TODO: get this from disk soon.
+		res = T.div(id="sidebar")[
 				T.div(class_="sidebaritem")[
 					T.a(href="/", render=T.directive("rootlink"))[
 						T.img(src="/builtin/img/logo_medium.png", class_="silentlink",
@@ -274,7 +272,18 @@ class GavoRenderMixin(common.CommonRenderers):
 						" | ",
 						T.a(href="/static/doc/disclaimer.shtml",
 							render=T.directive("rootlink"))["Disclaimer"],],],
-			],
+			]
+		if inevow.IRequest(ctx).getUser()=="gavoadmin":
+			res[
+				T.hr,
+				T.a(href=self.service.getURL("admin"))["Admin me"]]
+		return res
+
+	def render_withsidebar(self, ctx, data):
+		oldChildren = ctx.tag.children
+		ctx.tag.children = []
+		return ctx.tag[
+			self.getSidebar(ctx),
 			T.div(id="body")[
 				T.a(name="body"),
 				oldChildren

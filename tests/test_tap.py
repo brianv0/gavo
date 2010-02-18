@@ -26,7 +26,6 @@ from nevow import url
 from nevow import util
 from twisted.python import threadable
 threadable.init()
-from twisted.trial.unittest import TestCase as TrialTest
 
 from gavo import base
 from gavo import rscdesc
@@ -35,92 +34,14 @@ from gavo.web import weberrors
 from gavo.web.taprender import TAPRenderer
 
 import testhelpers
+import trialhelpers
 
 
-_tapService = base.caches.getRD("__system__/tap").getById("run")
-
-
-def deferredRender(res, request):
-	d = util.maybeDeferred(res[0].renderHTTP,
-		context.PageContext(
-			tag=res[0], parent=context.RequestContext(
-			tag=request)))
-
-	def done(result):
-		if isinstance(result, str):
-			request.write(result)
-		elif isinstance(result, url.URL):
-			request.code = 303
-			request.headers["location"] = str(result)
-		elif hasattr(result, "renderHTTP"):
-			return deferredRender((result, ()), request)
-		else:
-			warnings.warn("Unsupported render result: %s"%result)
-		request.d.callback(request.accumulator)
-		return request.accumulator, request
-	
-	d.addCallback(done)
-	return d
-
-
-def _buildRequest(method, path, args):
-	args = dict((k, [v]) for k, v in args.iteritems())
-	req = testutil.AccumulatingFakeRequest(uri="/"+path, args=args)
-	req.headers = {}
-	req.method = method
-	return req
-
-
-def queryRenderer(renderer, method, path, args):
-	"""runs a query on the DC renderer.
-
-	The thing returns a deferred firing a pair of the result (a string)
-	and the request (from which you can glean headers and such.
-	"""
-	req = _buildRequest(method, "http://localhost/"+path, args)
-	ctx = context.WovenContext()
-	ctx.remember(req)
-	segments = path.split("/")
-	return util.maybeDeferred(
-			renderer(ctx, _tapService).locateChild, ctx, segments
-		).addCallback(deferredRender, req)
-
-
-class TAPRenderTest(TrialTest):
-	"""a base class for tests talking to remote HTTP servers.
-	"""
-	def assertStringsIn(self, result, strings, inverse=False):
-		content = result[0]
-		try:
-			for s in strings:
-				if inverse:
-					self.failIf(s in content, "'%s' in remote.data"%s)
-				else:
-					self.failIf(s not in content, "'%s' not in remote.data"%s)
-		except AssertionError:
-			with open("remote.data", "w") as f:
-				f.write(content)
-			raise
-		return result
-	
-	def assertResultHasStrings(self, method, path, args, strings, 
-			inverse=False):
-		return queryRenderer(TAPRenderer, method, path, args
-			).addCallback(self.assertStringsIn, strings, inverse=inverse)
-
-	def assertGETHasStrings(self, path, args, strings):
-		return self.assertResultHasStrings("GET", path, args, strings)
-
-	def assertGETLacksStrings(self, path, args, strings):
-		return self.assertResultHasStrings("GET", 
-			path, args, strings, inverse=True)
-
-	def assertPOSTHasStrings(self, path, args, strings):
-		return self.assertResultHasStrings("POST", path, args, strings)
-
-	def assertNotFound(self, path):
-		return queryRenderer(TAPRenderer, "GET", path, {}).addCallback(
-			lambda res: self.assertEqual(res[1].code, 404))
+class TAPRenderTest(trialhelpers.RenderTest):
+	_tapService = base.caches.getRD("__system__/tap").getById("run")
+	@property
+	def renderer(self):
+		return TAPRenderer(None, self._tapService)
 
 
 class SyncMetaTest(TAPRenderTest):
@@ -129,19 +50,19 @@ class SyncMetaTest(TAPRenderTest):
 	def testVersionRejected(self):
 		"""requests with bad version are rejected.
 		"""
-		return self.assertGETHasStrings("sync", {
+		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "getCapabilities", "VERSION": "0.1"},
 			['<INFO name="QUERY_STATUS" value="ERROR">Version mismatch'])
 
 	def testNoSyncPaths(self):
 		"""segments below sync are 404.
 		"""
-		return self.assertNotFound("sync/foo/bar")
+		return self.assertStatus("/sync/foo/bar", 404)
 
 	def testCapabilities(self):
 		"""simple get capabilities response looks ok.
 		"""
-		return self.assertGETHasStrings("sync", 
+		return self.assertGETHasStrings("/sync", 
 			{"REQUEST": "getCapabilities"},
 			['<ri:Resource ', '<referenceURL>http://'])
 
@@ -150,20 +71,20 @@ class SyncQueryTest(TAPRenderTest):
 	"""tests for querying sync queries.
 	"""
 	def testNoLangRejected(self):
-		return self.assertGETHasStrings("sync", {
+		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery", 
 				"QUERY": 'SELECT ra FROM roughtest.main WHERE ra<3'},
 			['<INFO name="QUERY_STATUS" value="ERROR">Unknown query language'])
 
 	def testBadLangRejected(self):
-		return self.assertGETHasStrings("sync", {
+		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "Furz",
 				"QUERY": 'SELECT ra FROM roughtest.main WHERE ra<3'},
 			['<INFO name="QUERY_STATUS" value="ERROR">Unknown query language'])
 
 	def testSimpleQuery(self):
-		return self.assertGETHasStrings("sync", {
+		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
 				"QUERY": 'SELECT ra FROM roughtest.main WHERE ra<2'},
@@ -171,7 +92,7 @@ class SyncQueryTest(TAPRenderTest):
 			' ucd="pos.eq.ra;meta.main" unit="deg"><DESCRIPTION>RA</DESCRIPTION>'])
 
 	def testBadFormat(self):
-		return self.assertGETHasStrings("sync", {
+		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
 				"QUERY": 'SELECT ra FROM roughtest.main WHERE ra<2',
@@ -179,7 +100,7 @@ class SyncQueryTest(TAPRenderTest):
 			['<INFO name="QUERY_STATUS" value="ERROR">Unsupported format \'xls\''])
 
 	def testClearVOT(self):
-		return self.assertGETHasStrings("sync", {
+		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
 				"QUERY": 'SELECT ra FROM roughtest.main WHERE ra<2',
@@ -187,7 +108,7 @@ class SyncQueryTest(TAPRenderTest):
 			['<DATA><TABLEDATA><TR><TD>0.96319</TD>'])
 
 	def testCSV(self):
-		return self.assertGETHasStrings("sync", {
+		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
 				"QUERY": 'SELECT ra,de FROM roughtest.main WHERE ra<2',
@@ -195,13 +116,12 @@ class SyncQueryTest(TAPRenderTest):
 			['0.96319,71.6269'])
 
 	def testTSV(self):
-		return self.assertGETHasStrings("sync", {
+		return self.assertGETHasStrings("/sync", {
 			"REQUEST": "doQuery",
 			"LANG": "ADQL",
 			"QUERY": 'SELECT ra FROM roughtest.main WHERE ra<2',
 			"FORMAT": "TSV"},
 			['0.96319', '\n', '0.56091'])
-
 
 
 class SimpleAsyncTest(TAPRenderTest):
@@ -210,13 +130,13 @@ class SimpleAsyncTest(TAPRenderTest):
 	def testVersionRejected(self):
 		"""requests with bad version are rejected.
 		"""
-		return self.assertPOSTHasStrings("async", {
+		return self.assertPOSTHasStrings("/async", {
 				"REQUEST": "getCapabilities",
 				"VERSION": "0.1"},
 			['<INFO name="QUERY_STATUS" value="ERROR">Version mismatch'])
 
 	def testJobList(self):
-		return self.assertGETHasStrings("async", {}, [
+		return self.assertGETHasStrings("/async", {}, [
 			'<uws:jobs xmlns:uws="http://www.ivoa.net/xml/UWS/v1.0'])
 
 	def testJobCycle(self):
@@ -224,13 +144,14 @@ class SimpleAsyncTest(TAPRenderTest):
 		"""
 		def assertDeleted(result, jobId):
 			self.assertEqual(result[1].code, 303)
-			next = result[1].headers["location"][len(_tapService.getURL("tap"))+1:]
-			self.assertEqual(next, "async",
+			next = result[1].headers["location"][len(
+				self._tapService.getURL("tap")):]
+			self.assertEqual(next, "/async",
 				"Deletion redirect doesn't point to job list but to %s"%next)
 			return self.assertGETLacksStrings(next, {}, ['jobref id="%s"'%jobId])
 
 		def delete(jobId):
-			return queryRenderer(TAPRenderer, "DELETE", "async/"+jobId, {}
+			return trialhelpers.runQuery(self.renderer, "DELETE", "/async/"+jobId, {}
 			).addCallback(assertDeleted, jobId)
 
 		def checkPosted(result):
@@ -238,11 +159,11 @@ class SimpleAsyncTest(TAPRenderTest):
 			request = result[1]
 			self.assertEqual(request.code, 303)
 			next = request.headers["location"]
-			self.failIf("async" not in next)
+			self.failIf("/async" not in next)
 			jobId = next.split("/")[-1]
 			return delete(jobId)
 
-		return queryRenderer(TAPRenderer, "POST", "async", {}
+		return trialhelpers.runQuery(self.renderer, "POST", "/async", {}
 		).addCallback(checkPosted)
 		
 

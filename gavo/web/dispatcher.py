@@ -285,6 +285,7 @@ class VanityMap(object):
 		__system__/services/overview/external odoc
 		__system__/dc_tables/show/tablenote tablenote
 		__system__/dc_tables/show/tableinfo tableinfo
+		__system__/services/overview/admin seffe
 	"""
 
 	def __init__(self):
@@ -438,7 +439,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 				if service is None:
 					raise KeyError("No such service: %s"%subId)
 				rendC = svcs.getRenderer(rendName)
-				if service.limitTo:
+				if service.limitTo: # XXX TODO: move this to grend.
 					rend = common.runAuthenticated(ctx, service.limitTo,
 						lambda service: rendC(ctx, service), service)
 				else:

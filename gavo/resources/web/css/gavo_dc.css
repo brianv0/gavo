@@ -30,6 +30,12 @@ p.attribution {
 	text-align:right;
 }
 
+.errmsg {
+	margin-left: 2em;
+	font-style: italic;
+	max-width:50em;
+}
+
 .wide {
 	max-width: 100%;
 }

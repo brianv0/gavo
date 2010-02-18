@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+		"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html mlns="http://www.w3.org/1999/xhtml"
+		xmlns:n="http://nevow.com/ns/nevow/0.1">
+<head n:render="commonhead">
+	<title n:render="rdId">Administration for</title>
+</head>
+
+<body n:render="withsidebar">
+	<h1 n:render="rdId">Administration for</h1>
+
+	<p>Services on this RD:</p>
+	<ul n:data="services" n:render="sequence">
+		<li n:pattern="item"><a n:render="svclink"/></li>
+	</ul>
+
+	<p n:render="ifmeta _scheduledDowntime">This service is expected to
+		go down at 
+		<n:invisible n:render="meta">_scheduledDowntime</n:invisible>.
+	</p>
+
+	<n:invisible n:render="form setDowntime"/>
+
+	<p>This service 
+		currently is <n:invisible n:render="string" n:data="blockstatus"/>.
+	</p>
+
+	<n:invisible n:render="form adminOps"/>
+
+</body>
+</html>
+

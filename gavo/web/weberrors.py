@@ -1,6 +1,7 @@
 """
 Rendering of errors and related code.
 """
+import sys
 
 from nevow import appserver
 from nevow import inevow
@@ -129,7 +130,7 @@ class ErrorPage(ErrorPageDebug):
 					).addCallback(lambda res: request.finishRequest(False)
 # XXX TODO: Complain about failing error renderer here
 					).addErrback(lambda res: request.finishRequest(False))
-		failure.printTraceback()
+		failure.printTraceback(sys.stderr)
 		request.setResponseCode(500)
 		log.msg("Arguments were %s"%request.args)
 		request.write(self.errorTemplate%self.getHTML(failure))  
@@ -192,13 +193,11 @@ class NotFoundPage(rend.Page, common.CommonRenderers):
 		if self.errMsg:
 			return ctx.tag[self.errMsg]
 		else:
-			return ""
+			return "No further info."
 
 	docFactory = common.doctypedStan(T.html[
 			T.head[T.title["GAVO DC -- Not found"],
 			T.invisible(render=T.directive("commonhead")),
-			T.style(type="text/css")[
-				"p.errmsg {background-color: #cccccc;padding:5pt}"],
 		],
 		T.body[
 			T.img(src="/builtin/img/logo_medium.png", style="position:absolute;"

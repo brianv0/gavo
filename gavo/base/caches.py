@@ -28,15 +28,21 @@ class CacheRegistry:
 	
 	def clearall(self):
 		for cache in self.knownCaches:
-			for key in cache.keys():
+			for key in cache:
 				del cache[key]
-	
+
+	def clearForName(self, key):
+		for cache in self.knownCaches:
+			if key in cache:
+				del cache[key]
+
 	def register(self, cache):
 		self.knownCaches.append(cache)
 
 
 _cacheRegistry = CacheRegistry()
 clearCaches = _cacheRegistry.clearall
+clearForName = _cacheRegistry.clearForName
 
 
 def _makeCache(creator):

@@ -1,7 +1,8 @@
-from gavo.web import qprenderer   # for registration
+from gavo.web import adminrender    # for registration
 from gavo.web import jpegrenderer   # for registration
 from gavo.web import metarender     # for registration
 from gavo.web import productrender  # for registration
+from gavo.web import qprenderer     # for registration
 from gavo.web import soaprender     # for registration
 from gavo.web import taprender      # for registration
 from gavo.web import vodal          # for registration

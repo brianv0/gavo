@@ -61,47 +61,6 @@ class MetaRenderer(grend.ServiceBasedRenderer):
 
 
 
-class BlockRDRenderer(MetaRenderer):
-	"""is a renderer used for blocking RDs from the web interface.
-	"""
-	name = "block"
-
-	def data_blockstate(self, ctx, data):
-		if hasattr(self.service.rd, "currently_blocked"):
-			return "blocked"
-		return "unblocked"
-
-	def data_rdId(self, ctx, data):
-		return str(self.service.rd.sourceId)
-
-	def renderHTTP(self, ctx):
-		return common.runAuthenticated(ctx, "admin", self.realRenderHTTP,
-			ctx)
-
-	def realRenderHTTP(self, ctx):
-		self.service.rd.currently_blocked = True
-		return grend.ServiceBasedRenderer.renderHTTP(self, ctx)
-
-	defaultDocFactory = common.doctypedStan(
-		T.html[
-			T.head[
-				T.title["RD blocked"],
-			],
-			T.body[
-				T.h1["RD blocked"],
-				T.p["All services defined in ", 
-					T.invisible(render=T.directive("data"), data=T.directive(
-						"rdId")),
-					" are now ",
-					T.invisible(render=T.directive("data"), data=T.directive(
-						"blockstate")),
-					".  To unblock, restart the server.",
-				],
-			]
-		])
-
-svcs.registerRenderer(BlockRDRenderer)
-
 class RendExplainer(object):
 	"""is a container for various functions having to do with explaining
 	renderers on services.
