@@ -276,7 +276,8 @@ class GavoRenderMixin(common.CommonRenderers):
 		if inevow.IRequest(ctx).getUser()=="gavoadmin":
 			res[
 				T.hr,
-				T.a(href=self.service.getURL("admin"))["Admin me"]]
+				T.a(href=base.makeSitePath("seffe/%s"%self.service.rd.sourceId))[
+					"Admin me"]]
 		return res
 
 	def render_withsidebar(self, ctx, data):
