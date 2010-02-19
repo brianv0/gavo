@@ -84,7 +84,7 @@ SF = meta.stanFactory
 _availabilityBuilder = meta.ModelBasedBuilder([
 	('available', SF(AVL.available)),
 	('upSince', SF(AVL.upSince)),
-	('downAt', SF(AVL.downAt)),
+	('_scheduledDowntime', SF(AVL.downAt)),
 	('backAt', SF(AVL.backAt)),
 	('availability_note', SF(AVL.note)),
 	])

@@ -34,20 +34,25 @@ class AdminTest(trialhelpers.RenderTest):
 				api.getRD("__system__/adql").getMeta, "_scheduledDowntime",
 				raiseOnFail=True)
 
+		def cancelDowntime(ignored):
+			return self.assertPOSTHasStrings("/seffe/__system__/adql", 
+				{"__nevow_form__": "setDowntime"}, [],
+				rm=self._makeAdmin)
+
 		def checkDowntime(ignored):
 			self.assertEqual(
 				str(api.getRD("__system__/adql").getMeta("_scheduledDowntime")),
 				'2009-10-13')
-			return self.assertPOSTHasStrings("/seffe/__system__/adql", 
-				{"__nevow_form__": "setDowntime"}, [],
-				rm=self._makeAdmin
-			).addCallback(checkDowntimeCanceled)
+			return self.assertGETHasStrings("/__system__/adql/query/availability", 
+				{}, ["<avl:downAt>2009-10-13<"])
 
 		return trialhelpers.runQuery(self.renderer,
 			"POST", "/seffe/__system__/adql", 
 			{"__nevow_form__": "setDowntime", "scheduled": "2009-10-13"}, 
 			self._makeAdmin
-		).addCallback(checkDowntime)
+		).addCallback(checkDowntime
+		).addCallback(cancelDowntime
+		).addCallback(checkDowntimeCanceled)
 
 	def testBlockAndReload(self):
 		def checkUnBlocked(ignored):

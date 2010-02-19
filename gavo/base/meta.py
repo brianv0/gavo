@@ -678,7 +678,7 @@ class NewsMeta(MetaValue):
 
 
 class NoteMeta(MetaValue):
-	"""A meta value representing a "note" items.
+	"""A meta value representing a "note" item.
 
 	This is like a footnote, typically on tables, and is rendered in table
 	infos.
