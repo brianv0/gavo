@@ -57,8 +57,8 @@ machinery -->
 		since the reference would have to go from the product table
 		to this one here, and there are may of those -->
 		<script type="preIndexSQL" name="create product cleanup rule">
-			CREATE OR REPLACE RULE cleanupProducts AS ON DELETE TO\
-				\curtable DO ALSO\
+			CREATE OR REPLACE RULE cleanupProducts AS ON DELETE TO
+				\curtable DO ALSO
 				DELETE FROM products WHERE key=OLD.accref
 		</script>
 		<script type="afterDrop" name="clean product table">

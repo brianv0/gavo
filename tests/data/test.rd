@@ -274,8 +274,8 @@
 	<table id="sqlscript" onDisk="True">
 		<column name="counter" type="integer"/>
 		<script type="preIndexSQL">
-			INSERT INTO \curtable VALUES (1)
-			INSERT INTO \curtable VALUES (2)
+			INSERT INTO \curtable VALUES (1);
+			INSERT INTO \curtable VALUES (2);
 			INSERT INTO \curtable VALUES (3)
 		</script>
 	</table>

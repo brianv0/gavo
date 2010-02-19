@@ -125,7 +125,7 @@
 					) AS q 
 					NATURAL JOIN services 
 					NATURAL JOIN srv_subjs 
-				ORDER BY subject);
+				ORDER BY subject)
 		</script>
 	</table>
 

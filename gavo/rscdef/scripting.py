@@ -23,8 +23,8 @@ def _getSQLScriptGrammar():
 	"""returns a pyparsing ParserElement that splits SQL scripts into
 	individual commands.
 
-	The rules are: One statement per line, but linebreaks are ignored
-	withing strings and inside of open parens.
+	The rules are: Statements are separated by semicolons, empty statements
+	are allowed.
 	"""
 	atom = Forward()
 	atom.setName("Atom")
@@ -34,56 +34,42 @@ def _getSQLScriptGrammar():
 	comment = sqlComment | cStyleComment
 
 	simpleStr = QuotedString(quoteChar="'", escChar="\\", unquoteResults=False)
+	quotedId = QuotedString(quoteChar='"', escChar="\\", unquoteResults=False)
 	dollarQuoted = Regex(r"(?s)\$(\w*)\$.*?\$\1\$")
 	dollarQuoted.setName("dollarQuoted")
-	strLiteral = simpleStr | dollarQuoted
+	# well, quotedId is not exactly a string literal.  I hate it, and so
+	# it's lumped in here.
+	strLiteral = simpleStr | dollarQuoted | quotedId
 	strLiteral.setName("strLiteral")
 
-	parenExpr = "(" + ZeroOrMore( atom | "\n" ) + ")"
-	parenExpr.setName("parenExpr")
-
-	other = Regex("[^(')$\n\\\\]+")
+	other = Regex("[^;'\"$]+")
 	other.setName("other")
 
-	ignoredLinebreak = Suppress(Literal("\\\n"))
-	ignoredLinebreak.setName("ignored linebreak")
-	literalBackslash = Literal("\\")
 	literalDollar = Literal("$") + ~ Literal("$")
-	statementEnd = ( Literal('\n') | StringEnd())
-	statementEnd.setName("end of line")
-	emptyLine = Regex("\\s*\n")
-	emptyLine.setName("empty line")
+	statementEnd = ( Literal(';') | StringEnd())
 
-	atom <<  ( ignoredLinebreak | Suppress(comment) | other | strLiteral | 
-		parenExpr | literalDollar | literalBackslash )
-	statement = OneOrMore(atom) + statementEnd
+	atom <<  ( Suppress(comment) | other | strLiteral | literalDollar )
+	statement = OneOrMore(atom) + Suppress( statementEnd )
 	statement.setName("statement")
 	statement.setParseAction(lambda s, p, toks: " ".join(toks))
 
-	script = OneOrMore( statement | emptyLine ) + StringEnd()
+	script = OneOrMore( statement ) + StringEnd()
 	script.setName("script")
 	script.setParseAction(lambda s, p, toks: [t for t in toks.asList()
-		if t.strip()])
+		if str(t).strip()])
 
 	if False:
 		atom.setDebug(True)
 		other.setDebug(True)
-		parenExpr.setDebug(True)
 		strLiteral.setDebug(True)
 		statement.setDebug(True)
 		statementEnd.setDebug(True)
 		dollarQuoted.setDebug(True)
 		literalDollar.setDebug(True)
-		literalBackslash.setDebug(True)
-		ignoredLinebreak.setDebug(True)
-		emptyLine.setDebug(True)
 	return script
 
 
-def getSQLScriptGrammar(memo=[]):
-	if not memo:
-		memo.append(_getSQLScriptGrammar())
-	return memo[0]
+getSQLScriptGrammar = utils.CachedGetter(_getSQLScriptGrammar)
 
 
 class SQLScriptRunner(object):
