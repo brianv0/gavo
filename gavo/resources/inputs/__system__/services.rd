@@ -134,10 +134,6 @@
 		<make table="srv_subjs_join"/>
 	</data>
 
-	<registryCore id="registrycore"/>
-
-	<service id="registry" core="registrycore" allowed="pubreg.xml"/>
-
 	<dbCore queriedTable="srv_join" id="overviewcore">
 		<condDesc buildFrom="setName"/>
 	</dbCore>
