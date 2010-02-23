@@ -615,6 +615,74 @@ The following types are defined right now:
 * beforeDrop -- when the table is about to be dropped
 
 
+Examples
+--------
+
+This snippet sets a flag when importing some source (in this case,
+that's an RD, so we can access sourceToken.sourceId::
+
+			<script type="newSource" lang="python" id="markDeleted">
+				table.query("UPDATE %s SET deleted=True"
+					" WHERE sourceRD=%%(sourceRD)s"%id, 
+					{"sourceRD": sourceToken.sourceId})
+			</script>
+
+
+This is a hacked way of ensuring some sort of referential integrity:
+When a table containing "products" is dropped, the corresponding entries
+in the products table are deleted::
+
+  <script type="beforeDrop" lang="SQL" name="clean product table">
+    DELETE FROM products WHERE sourceTable='\curtable'
+  </script>
+
+Note that this is actually quite hazardous because if the table is
+dropped in any way not using the make element in the RD, this will not
+be executed.  It's usually much smarter to tell the database to do the
+housekeeping.  Rules are typically set in postCreation scripts::
+
+  <script type="postCreation" lang="SQL">
+    CREATE OR REPLACE RULE cleanupProducts AS 
+      ON DELETE TO \curtable DO ALSO
+			DELETE FROM products WHERE key=OLD.accref
+  </script>
+
+The decision if such arrangements are make before the import, before the
+indexing or after the table is finished needs to be made based on the
+script's purpose.
+
+Another use for scripts is SQL function definition::
+
+			<script type="postCreation" lang="SQL" name="Define USNOB matcher">
+				CREATE OR REPLACE FUNCTION usnob_getmatch(alpha double precision, 
+					delta double precision, windowSecs float
+				) RETURNS SETOF usnob.data AS $$
+				DECLARE
+					rec RECORD;
+				BEGIN
+					FOR rec IN (SELECT * FROM usnob.data WHERE 
+						q3c_join(alpha, delta, raj2000, dej2000, windowSecs/3600.)) 
+					LOOP
+						RETURN NEXT rec;
+					END LOOP;
+				END;
+				$$ LANGUAGE plpgsql;
+			</script>
+
+You can also load data, most usefully in preIndex scripts (although
+beforeImport would work as well here)::
+
+		<script type="preIndex" lang="SQL" name="create USNOB-PPMX crossmatch">
+				SET work_mem=1000000;
+				INSERT INTO usnob.ppmxcross (
+					SELECT q3c_ang2ipix(raj2000, dej2000) AS ipix, p.localid 
+					FROM 
+						ppmx.data AS p, 
+						usnob.data AS u 
+					WHERE q3c_join(p.alphaFloat, p.deltaFloat, 
+						u.raj2000, u.dej2000, 1.5/3600.))
+			</script>
+
 
 
 Bibliography
