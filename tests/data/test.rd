@@ -273,26 +273,28 @@
 
 	<table id="sqlscript" onDisk="True">
 		<column name="counter" type="integer"/>
-		<script type="preIndexSQL">
-			INSERT INTO \curtable VALUES (1);
-			INSERT INTO \curtable VALUES (2);
-			INSERT INTO \curtable VALUES (3)
-		</script>
 	</table>
 
 	<data id="import_sqlscript">
-		<make table="sqlscript"/>
+		<make table="sqlscript">
+			<script type="preIndex" lang="SQL">
+				INSERT INTO \curtable VALUES (1);
+				INSERT INTO \curtable VALUES (2);
+				INSERT INTO \curtable VALUES (3)
+			</script>
+		</make>
 	</data>
 
 	<table id="pythonscript" onDisk="True">
 		<column name="counter" type="integer"/>
-		<script type="preIndex">
-			tw.query("INSERT INTO \curtable VALUES (123)")
-		</script>
 	</table>
 
 	<data id="import_pythonscript">
-		<make table="pythonscript"/>
+		<make table="pythonscript">
+			<script type="preIndex" lang="python">
+				table.query("INSERT INTO \curtable VALUES (123)")
+			</script>
+		</make>
 	</data>
 
 	<dbCore id="prodscore" queriedTable="prodtest"/>

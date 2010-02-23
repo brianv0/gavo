@@ -159,6 +159,9 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 	Note that many of them return the table so you can say drop().commit()
 	in hackish code.
 	"""
+
+	scripts = None  # set by data on import, defined by make
+
 	def _definePrimaryKey(self):
 		if self.tableDef.primary and not self.hasIndex(self.tableName,
 				self.getPrimaryIndexName(self.tableDef.id)):
@@ -280,6 +283,8 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 	iterQuery (and possibly similar methods in the future) method
 	will block concurrent accesses to the table.
 	"""
+	_runScripts = None
+
 	def __init__(self, tableDef, **kwargs):
 		self.ownedConnection = False
 		self.suppressIndex = kwargs.pop("suppressIndex", False)
@@ -340,16 +345,16 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		return Feeder(self, self.addCommand, **kwargs)
 
 	def importFinished(self):
-		self.tableDef.runScripts("preIndex", tw=self)
-		self.tableDef.runScripts("preIndexSQL", connection=self.connection)
+		self.runScripts("preIndex")
 		self.makeIndices()
+		self.runScripts("postCreation")
 		if self.ownedConnection:
 			self.connection.commit()
 		return self
 	
 	def importFailed(self, *excInfo):
-		if self.ownedConnection:
-			self.connection.rollback()
+		self.connection.rollback()
+		self.connection.close()
 		return False
 	
 	def feedRows(self, rows):
@@ -478,8 +483,8 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 	
 	def drop(self, what="TABLE"):
 		if self.exists():
+			self.runScripts("beforeDrop")
 			self.query("DROP %s %s CASCADE"%(what, self.tableName))
-			self.tableDef.runScripts("afterDrop", connection=self.connection)
 			if not self.nometa:
 				self.cleanFromMeta()
 		return self
@@ -537,11 +542,12 @@ class View(DBTable):
 	Strictly, I should derive both View and DBTable from a common
 	base, but that's currently not worth the effort.
 
-	Technically, Views are DBTables with a viewCreation script
+	Technically, Views are DBTables with a non-None viewStatement
 	(this is what TableForDef checks for when deciding whether to
 	construct a DBTable or a View).  You can get a feeder for them,
 	but trying to actually feed anything will raise a DataError.
 	"""
+
 	def __init__(self, *args, **kwargs):
 		DBTable.__init__(self, *args, **kwargs)
 		del self.addCommand
@@ -561,7 +567,7 @@ class View(DBTable):
 	
 	def create(self):
 		self.ensureSchema()
-		self.tableDef.runScripts("viewCreation", querier=self)
+		self.query(self.tableDef.viewStatement)
 		return self.configureTable()
 
 	def makeIndices(self):

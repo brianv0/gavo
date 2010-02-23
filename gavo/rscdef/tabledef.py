@@ -165,7 +165,7 @@ class STCDef(base.Structure):
 
 
 class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
-		scripting.ScriptingMixin, macros.StandardMacroMixin):
+		macros.StandardMacroMixin):
 	"""A definition of a table, both on-disk and internal.
 
 	Some attributes are ignored for the in-memory tables, (roles or adql)
@@ -181,6 +181,9 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 	_cols =  common.ColumnListAttribute("columns",
 		childFactory=column.Column, description="Columns making up this table.",
 		copyable=True)
+	_viewStatement = base.UnicodeAttribute("viewStatement", default=None,
+		description="A single SQL statement to create a view.  Setting this"
+		" makes this table a view.", copyable=True)
 	_onDisk = base.BooleanAttribute("onDisk", False, description=
 		"Table in the database rather than in memory?")  # this must not be copyable
 		  # since queries might copy the tds and havoc would result if the queries
@@ -217,8 +220,6 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 	_original = base.OriginalAttribute()
 	_namePath = common.NamePathAttribute()
 
-	validWaypoints = set(["preIndex", "preIndexSQL", "viewCreation", 
-		"afterDrop"])
 	fixupFunction = None
 
 	def __iter__(self):
@@ -509,7 +510,7 @@ class SimpleView(base.Structure, base.MetaMixin):
 	table ids and column names.  The view will be a natural join of
 	all tables involved.
 
-	For more complex views, use a normal table with a viewCreation script.
+	For more complex views, use a normal table with a viewStatement.
 
 	These elements can be referred to like normal tables (internally, they
 	are replaced by TableDefs when they are complete).
@@ -542,8 +543,7 @@ class SimpleView(base.Structure, base.MetaMixin):
 		"""
 		return MS(TableDef, parent_=self.parent, id=self.id, 
 			onDisk=True, columns=[c.getColumn() for c in self.colRefs],
-			scripts=[MS(scripting.Script, type="viewCreation", name="create view",
-			content_=self._getDDL())])
+			viewStatement=self._getDDL())
 
 
 def makeTDForColumns(name, cols, **moreKWs):

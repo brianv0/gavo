@@ -55,8 +55,6 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 	"""
 	name_ = "resource"
 
-	validWaypoints = set(["preCreation", "processTable", "postCreation"])
-
 	_resdir = base.FunctionRelativePathAttribute("resdir", 
 		default=None, baseFunction=lambda instance: base.getConfig("inputsDir"),
 		description="Base directory for source files and everything else"

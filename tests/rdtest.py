@@ -145,7 +145,7 @@ class ViewTest(testhelpers.VerboseTest):
 		self.assertEqual(len(rd.tables), 1)
 		td = rd.tables[0]
 		self.failUnless(isinstance(td, rscdef.TableDef))
-		self.assertEqual(td.scripts[0].content_, 'CREATE VIEW test2.vv AS'
+		self.assertEqual(td.viewStatement, 'CREATE VIEW test2.vv AS'
 			' (SELECT test.prodtest.alpha,test.prodtest.delta,test.prodtest.'
 			'object,test.adql.mag FROM test.prodtest NATURAL JOIN test.adql)')
 		self.assertEqual(td.onDisk, True)

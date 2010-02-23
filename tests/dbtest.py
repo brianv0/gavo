@@ -179,8 +179,11 @@ class TestPgSphere(testhelpers.VerboseTest):
 	"""tests for the python interface to pgsphere.
 	"""
 	def setUp(self):
-		pgsphere.preparePgSphere(
-			base.getDefaultDBConnection())
+		self.conn = base.getDefaultDBConnection()
+		pgsphere.preparePgSphere(self.conn)
+
+	def tearDown(self):
+		self.conn.close()
 
 	def assertTripsRound(self, testedType, testValue):
 		conn = base.getDefaultDBConnection()

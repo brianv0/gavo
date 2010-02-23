@@ -97,9 +97,9 @@ class ScriptTest(testhelpers.VerboseTest):
 	(but not actual scripting, that's somewhere else)
 	"""
 	def testOkScripts(self):
-		s = base.parseFromString(scripting.Script, '<script type="afterDrop"'
-			' name="test">drop table foo</script>')
-		self.assertEqual(s.type, "afterDrop")
+		s = base.parseFromString(scripting.Script, '<script type="beforeDrop"'
+			' lang="SQL" name="test">drop table foo</script>')
+		self.assertEqual(s.type, "beforeDrop")
 		self.assertEqual(s.name, "test")
 		self.assertEqual(s.content_, "drop table foo")
 

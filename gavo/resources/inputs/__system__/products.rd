@@ -51,21 +51,8 @@ machinery -->
 		<column name="accsize" ucd="VOX:Image_FileSize"
 			tablehead="File size" description="Size of the data in bytes"
 			type="integer" verbLevel="11" unit="byte"/>
-		<!-- The following rule makes sure the product
-		table entry is removed when a row is deleted.  There has to be
-		a better way to do this, but referencing doesn't help here,
-		since the reference would have to go from the product table
-		to this one here, and there are may of those -->
-		<script type="preIndexSQL" name="create product cleanup rule">
-			CREATE OR REPLACE RULE cleanupProducts AS ON DELETE TO
-				\curtable DO ALSO
-				DELETE FROM products WHERE key=OLD.accref
-		</script>
-		<script type="afterDrop" name="clean product table">
-			DELETE FROM products WHERE sourceTable='\curtable'
-		</script>
 	</table>
-
+	
 	<procDef type="rowfilter" id="defineProduct" register="True">
 		<doc>
 			enters the values defined by the product interface into result.

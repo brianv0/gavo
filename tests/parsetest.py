@@ -94,9 +94,16 @@ class TestProductsImport(testhelpers.VerboseTest):
 		rd = testhelpers.getTestRD()
 		self.tableDef = rd.getById("prodtest")
 		dd = rd.getDataDescById("productimport")
+		self.conn = base.getDefaultDBConnection()
 		self.data = rsc.makeData(dd, parseOptions=rsc.parseValidating, 
-			connection=base.getDefaultDBConnection())
-		
+			connection=self.conn)
+		self.conn.commit()
+
+	def tearDown(self):
+		t = self.data.tables["prodtest"].drop()
+		base.setConfig("inputsDir", self.oldInputs)
+		self.conn.commit()
+		self.conn.close()
 
 	def testWorkingImport(self):
 		assertRowset(self,
@@ -134,10 +141,6 @@ class TestProductsImport(testhelpers.VerboseTest):
 				'<resource schema="test"><table id="foo">'
 					'<mixin name="products"/></table></resource>',))
 
-	def tearDown(self):
-		t = rsc.TableForDef(self.tableDef).drop().commit()
-		base.setConfig("inputsDir", self.oldInputs)
-
 
 class TestCleanedup(unittest.TestCase):
 	"""tests for cleanup after table drop (may fail if other tests failed).
@@ -165,4 +168,4 @@ class TestCleanedup(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(TestMixins)
+	testhelpers.main(TestCleanedup)

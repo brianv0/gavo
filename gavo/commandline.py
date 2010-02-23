@@ -34,7 +34,6 @@ def process(opts, args):
 	except base.RDNotFound:
 		rd = base.caches.getRD(src, forImport=True)
 	connection = base.getDBConnection("admin")
-	rd.runScripts("preCreation", connection=connection)
 	tap.publishToTAP(rd, connection)
 	for dd in rd.dds:
 		if ddIds and not dd.id in ddIds:

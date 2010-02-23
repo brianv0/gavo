@@ -53,18 +53,6 @@
 	<data id="tables">
 		<meta name="description">gavoimp system this to create the service tables.
 		servicelist has special grammars to feed these.</meta>
-		<script type="newSource">
-			# mark services from rd imported as deleted (or remove them if
-			# we don't need to keep a record)
-			for id in ["srv_interfaces", "srv_subjs"]:
-				data.tables[id].deleteMatching(
-					"sourceRd=%(sourceRD)s", {"sourceRD": sourceToken.sourceId})
-			# sets and services are queried by oai, so I can't delete them
-			for id in ["srv_sets", "services"]:
-				data.tables[id].query("UPDATE %s SET deleted=True"
-					" WHERE sourceRD=%%(sourceRD)s"%id, 
-					{"sourceRD": sourceToken.sourceId})
-		</script>
 		<nullGrammar/>
 
 		<rowmaker id="make_interfaces" idmaps="*">
@@ -73,10 +61,32 @@
 			</ignoreOn>
 		</rowmaker>
 
-		<make table="services"/>
-		<make table="srv_interfaces" rowmaker="make_interfaces"/>
-		<make table="srv_sets"/>
-		<make table="srv_subjs"/>
+		<!-- the scripts in the makes mark services from the rd as deleted
+		  in sets and services since oai may query those.  In interfaces
+			and subjects we can safely delete them.  All that will be overwritten
+			by new entries if they come. -->
+		<make table="services">
+			<script type="newSource" lang="python" id="markDeleted">
+				table.query("UPDATE %s SET deleted=True"
+					" WHERE sourceRD=%%(sourceRD)s"%id, 
+					{"sourceRD": sourceToken.sourceId})
+			</script>
+		</make>
+
+		<make table="srv_interfaces" rowmaker="make_interfaces">
+			<script type="newSource" lang="python" id="deleteByRDId">
+				table.deleteMatching(
+					"sourceRd=%(sourceRD)s", {"sourceRD": sourceToken.sourceId})
+			</script>
+		</make>
+
+		<make table="srv_sets">
+			<script original="markDeleted"/>
+		</make>
+
+		<make table="srv_subjs">
+			<script original="deleteByRDId"/>
+		</make>
 	</data>
 
 	<table id="srv_join" namePath="services" onDisk="true">
@@ -93,7 +103,7 @@
 		<column original="srv_interfaces.renderer"/>
 		<column original="srv_sets.setName"/>
 
-		<script type="viewCreation" name="create services join">
+		<viewStatement>
 			CREATE OR REPLACE VIEW srv_join AS (
 				SELECT shortName, internalId, sourceRd, title, description,
 					owner, dateUpdated, recTimestamp, deleted, accessURL, renderer, 
@@ -102,7 +112,7 @@
 					services 
 					NATURAL JOIN srv_sets
 					NATURAL LEFT OUTER JOIN srv_interfaces)
-			</script> <!-- The left outer join is crucial for resource records
+		</viewStatement> <!-- The left outer join is crucial for resource records
 			  without interfaces -->
 	</table>
 
@@ -113,7 +123,7 @@
 		<column original="owner"/>
 		<column original="srv_interfaces.accessURL"/>
 
-		<script type="viewCreation" name="create subjects view">
+		<viewStatement>
 			CREATE OR REPLACE VIEW srv_subjs_join AS (
 				SELECT subject, shortName, title, owner, accessurl
 				FROM 
@@ -126,7 +136,7 @@
 					NATURAL JOIN services 
 					NATURAL JOIN srv_subjs 
 				ORDER BY subject)
-		</script>
+		</viewStatement>
 	</table>
 
 	<data id="views">

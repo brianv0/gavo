@@ -93,7 +93,7 @@
 					for table in rd.tables:
 						if not table.adql:
 							continue
-						if table.hasScript("viewCreation"):
+						if table.viewStatement:
 							tableType = "view"
 						else:
 							tableType = "table"
@@ -127,13 +127,15 @@
 			</simplemaps>
 		</rowmaker>
 
-		<script type="newSource" name="delete stale TAP_SCHEMA.tables entries">
-			data.tables["tables"].deleteMatching("sourceRD=%(sourceRD)s",
-				{"sourceRD": sourceToken.sourceId})
-		</script>
 
 		<make table="schemas" rowmaker="make_schemas"/>
-		<make table="tables" rowmaker="make_tables"/>
+		<make table="tables" rowmaker="make_tables">
+			<script type="newSource" lang="python" id="removeStale"
+					name="delete stale TAP_SCHEMA entries">
+				table.deleteMatching("sourceRD=%(sourceRD)s",
+					{"sourceRD": sourceToken.sourceId})
+			</script>
+		</make>
 	</data>
 
 	<data id="importColumnsFromRD">
@@ -173,12 +175,9 @@
 				</code>
 			</iterator>
 		</embeddedGrammar>
-		<make table="columns"/>
-
-		<script type="newSource" name="delete stale TAP_SCHEMA.columns entries">
-			data.tables["columns"].deleteMatching("sourceRD=%(sourceRD)s",
-				{"sourceRD": sourceToken.sourceId})
-		</script>
+		<make table="columns">
+			<script original="removeStale"/>
+		</make>
 	</data>
 
 	<data id="importFkeysFromRD">
@@ -225,15 +224,12 @@
 			<ignoreOn><not><keyIs key="dest" value="cols"/></not></ignoreOn>
 		</rowmaker>
 
-		<script type="newSource" name="delete stale TAP_SCHEMA.keys entries">
-			data.tables["keys"].deleteMatching("sourceRD=%(sourceRD)s",
-				{"sourceRD": sourceToken.sourceId})
-			data.tables["key_columns"].deleteMatching("sourceRD=%(sourceRD)s",
-				{"sourceRD": sourceToken.sourceId})
-		</script>
-
-		<make table="keys" rowmaker="build_keys"/>
-		<make table="key_columns" rowmaker="build_key_columns"/>
+		<make table="keys" rowmaker="build_keys">
+			<script original="removeStale"/>
+		</make>
+		<make table="key_columns" rowmaker="build_key_columns">
+			<script original="removeStale"/>
+		</make>
 	</data>
 
 	<staticCore id="nullcore" file="no/file"/>

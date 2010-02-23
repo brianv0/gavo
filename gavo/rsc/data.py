@@ -97,8 +97,11 @@ class Data(base.MetaMixin):
 		controlledTables = {}
 		for make in dd.makes:
 			tableDef = make.table
-			controlledTables[tableDef.id] = tables.TableForDef(tableDef,
+			newTable = tables.TableForDef(tableDef,
 				parseOptions=parseOptions, connection=connection, role=make.role)
+			make.enableScripts(newTable)
+			newTable.runScripts("preImport")
+			controlledTables[tableDef.id] = newTable
 		return cls(dd, controlledTables, parseOptions)
 
 	def __iter__(self):
@@ -127,7 +130,6 @@ class Data(base.MetaMixin):
 					if t.tableDef.onDisk:
 						t.dropIndices()
 			return
-		self.dd.runScripts("preCreation", connection=connection)
 		for t in self.tables.values() or self.dd:
 			if t.tableDef.system and not self.parseOptions.systemImport:
 				continue
@@ -204,6 +206,10 @@ class Data(base.MetaMixin):
 	def getFeeder(self, **kwargs):
 		return DataFeeder(self, **kwargs)
 
+	def runScripts(self, phase, **kwargs):
+		for t in self.tables.values():
+			t.runScripts(phase, **kwargs)
+
 
 class _EnoughRows(base.ExecutiveAction):
 	"""is an internal exception that allows processSource to tell makeData
@@ -236,7 +242,7 @@ def processSource(data, source, feeder, opts):
 	if data.dd.grammar is None:
 		raise base.ReportableError("The data descriptor %s cannot be used"
 			" to make data since it has no defined grammar."%data.dd.id)
-	data.dd.runScripts("newSource", sourceToken=source, data=data)
+	data.runScripts("newSource", sourceToken=source)
 	srcIter = data.dd.grammar.parse(source, data)
 	if hasattr(srcIter, "getParameters"):  # is a "normal" grammar
 		try:
@@ -293,7 +299,6 @@ def makeData(dd, parseOptions=common.parseNonValidating,
 			connection.commit()
 		else:
 			res.commitAll()
-	dd.runScripts("postCreation", connection=connection)
 	res.nAffected = feeder.getAffected()
 	_makeDependents(dd, parseOptions, connection)
 	return res

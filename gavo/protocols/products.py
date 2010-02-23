@@ -328,6 +328,17 @@ class ProductRMixin(rscdef.RMixinBase):
 	"""
 	name = "products"
 
+	# the following two scripts are inserted into makes for 
+	# tables mixing this in in processLate.
+	_cleanupRule = MS(rscdef.Script, type="postCreation", lang="SQL",
+		name="product cleanup",
+		content_="CREATE OR REPLACE RULE cleanupProducts AS ON DELETE TO"
+				" \\curtable DO ALSO"
+				" DELETE FROM products WHERE key=OLD.accref")
+	_dropScript = MS(rscdef.Script, type="beforeDrop", lang="SQL",
+		name="clean product table",
+		content_="DELETE FROM products WHERE sourceTable='\\curtable'")
+
 	def __init__(self):
 		rscdef.RMixinBase.__init__(self, "__system__/products", "productColumns")
 	
@@ -347,6 +358,8 @@ class ProductRMixin(rscdef.RMixinBase):
 			for make in dd.makes:
 				if make.table.id==tableDef.id:
 					make.rowmaker.feedFrom(self.rd.getById("prodcolUsertable"))
+					make.feedObject("script", self._cleanupRule.copy(make))
+					make.feedObject("script", self._dropScript.copy(make))
 
 
 rscdef.registerRMixin(ProductRMixin())

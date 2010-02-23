@@ -95,7 +95,10 @@ class EventDispatcher(object):
 		The callbacks are passed the name of the failing source.
 		"""
 		lastSource = self.sourceStack.pop()
-		self.curSource = self.sourceStack[-1]
+		try:
+			self.curSource = self.sourceStack[-1]
+		except IndexError: # this would be an internal error...
+			self.curSource = None
 		return lastSource
 
 	def notifySourceFinished(self):

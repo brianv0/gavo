@@ -169,7 +169,7 @@ class GrammarAttribute(base.StructAttribute):
 			" mentioned in `Grammars available`_.")
 
 
-class Make(base.Structure):
+class Make(base.Structure, scripting.ScriptingMixin):
 	"""A build recipe for tables belonging to a data descriptor.
 
 	All makes belonging to a DD will be processed in the order in which they
@@ -196,8 +196,20 @@ class Make(base.Structure):
 			else:
 				self.rowmaker = rmkdef.RowmakerDef.makeIdentityFromTable(self.table)
 
+	def getExpander(self):
+		"""used by the scripts of expanding their source.
 
-class DataDescriptor(base.Structure, base.MetaMixin, scripting.ScriptingMixin):
+		We always return the expander of the table being made.
+		"""
+		return self.table.getExpander()
+	
+	def enableScripts(self, table):
+		"""enables script running for table.
+		"""
+		table._runScripts = self.getRunner()
+
+
+class DataDescriptor(base.Structure, base.MetaMixin):
 	"""A description of how to process data from a given set of sources.
 
 	Data descriptors bring together a grammar, a source specification and
@@ -233,9 +245,7 @@ class DataDescriptor(base.Structure, base.MetaMixin, scripting.ScriptingMixin):
 	_updating = base.BooleanAttribute("updating", default=False,
 		description="Keep existing tables on import?  You usually want this"
 			" False unless you have some kind of sources management,"
-			" e.g., via a sources ignore specification.  Note that updating"
-			" data descriptors never execute their preCreation and"
-			" postCreation scripts.", copyable=True)
+			" e.g., via a sources ignore specification.", copyable=True)
 	_makes = base.StructListAttribute("makes", childFactory=Make,
 		copyable=True, description="Specification of a target table and the"
 			" rowmaker to feed them.")
@@ -243,8 +253,6 @@ class DataDescriptor(base.Structure, base.MetaMixin, scripting.ScriptingMixin):
 	_rd = common.RDAttribute()
 	_original = base.OriginalAttribute()
 	_ref = base.RefAttribute()
-
-	validWaypoints = ["preCreation", "postCreation", "newSource"]
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(DataDescriptor)
@@ -270,12 +278,6 @@ class DataDescriptor(base.Structure, base.MetaMixin, scripting.ScriptingMixin):
 			self.setMetaParent(value)
 	
 	parent = property(_getParent, _setParent)
-
-	def getExpander(self):
-		"""returns the current rd.
-		"""
-		# This is required by the ScriptingMixin
-		return self.rd
 
 	def iterSources(self, connection=None):
 		if self.sources:

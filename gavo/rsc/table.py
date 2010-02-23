@@ -92,6 +92,9 @@ class BaseTable(base.MetaMixin):
 	it may be much more efficient to call getFeeder (though for in-memory
 	tables, there is no advantage).
 
+	Tables can run "scripts" if someone furnishes them with a _runScripts
+	method.  This currently is only done for DBTables.  See Scripting_.
+
 	The metadata is available on the tableDef attribute.
 
 	Tables have to implement the following methods:
@@ -116,6 +119,8 @@ class BaseTable(base.MetaMixin):
 	  longer be used and resources should be cleared (e.g., for DBTables
 	  with private connections.
 	"""
+	_runScripts = None
+
 	def __init__(self, tableDef, **kwargs):
 		base.MetaMixin.__init__(self)
 		self.tableDef = tableDef
@@ -143,6 +148,11 @@ class BaseTable(base.MetaMixin):
 
 	def close(self):
 		pass
+
+	def runScripts(self, phase, **kwargs):
+		if self._runScripts:  # if defined, it was set by data and make.
+			self._runScripts(self, phase, **kwargs)
+
 
 
 class InMemoryTable(BaseTable):

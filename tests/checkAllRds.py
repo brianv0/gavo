@@ -32,7 +32,7 @@ def patchMySource(newIDs):
 builtinIDs = ["__system__/adql", "__system__/procs",
 	"__system__/scs", "__system__/siap", "__system__/tests",
 	"__system__/users", "__system__/dc_tables", "__system__/products",
-	"__system__/services",]
+	"__system__/services", "__system__/uws", "__system__/tap"]
 
 base.setDBProfile("trustedquery")
 if len(sys.argv)>1:

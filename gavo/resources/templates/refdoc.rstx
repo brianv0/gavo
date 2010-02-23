@@ -566,7 +566,55 @@ that are immediately accessible in the namespace:
 Scripting
 =========
 
-TBD
+As much as it is desirable to describe tables in a declarative manner,
+there are quite a few cases in which some imperative code helps a lot
+during table building or teardown.  Resource descriptors let you embed
+such imperative code using script elements.  These are children of the
+make elements since they are exclusively executed when actually
+importing into a table.
+
+Currently, you can enter scripts in SQL and python, which may be called
+at various phases during the import.
+
+SQL scripts
+-----------
+
+In SQL scripts, you separate statements with seimcolons.  Note that no
+statements in an SQL script may fail since that will invalidated the
+transaction.  You should, however, not commit or begin transactions in
+SQL scripts as long as Postgres  does not support nested transactions.
+
+You can use table macros in the SQL scripts to parametrize them; the
+most useful among those probably is ``\curtable`` containing the fully
+qualified name of the table being processed.
+
+Python scripts
+--------------
+
+Python scripts can be indented by a constant amount.
+
+The table object currently processed is accessible as table.  In
+particular, you can use this to issue queries using 
+``table.query(query, arguments)`` (parallel to dbapi.execute) and to
+delete rows using ``table.deleteMatching(condition, pars)``.
+
+Some types of scripts may have additional names available, but this
+currently is only true for newSource, where the sourceToken of the new
+source is provided.
+
+Script types
+------------
+
+The type of a script corresponds to the event triggering its execution.
+The following types are defined right now:
+
+* preImport -- before anything is written to the table
+* newSource -- every time a new source is started
+* preIndex -- before the indices on the table are built
+* postCreation -- after the table (incl. indices) is finished
+* beforeDrop -- when the table is about to be dropped
+
+
 
 
 Bibliography

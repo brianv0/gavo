@@ -25,7 +25,7 @@ def TableForDef(tableDef, suppressIndex=False,
 	if isinstance(tableDef, rscdef.SimpleView):
 		tableDef = tableDef.getTableDef()
 	if tableDef.onDisk:
-		if tableDef.hasScript("viewCreation"):
+		if tableDef.viewStatement:
 			cls = dbtable.View
 		else:
 			cls = dbtable.DBTable
