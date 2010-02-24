@@ -577,7 +577,7 @@ Currently, you can enter scripts in SQL and python, which may be called
 at various phases during the import.
 
 SQL scripts
------------
+'''''''''''
 
 In SQL scripts, you separate statements with seimcolons.  Note that no
 statements in an SQL script may fail since that will invalidated the
@@ -589,7 +589,7 @@ most useful among those probably is ``\curtable`` containing the fully
 qualified name of the table being processed.
 
 Python scripts
---------------
+''''''''''''''
 
 Python scripts can be indented by a constant amount.
 
@@ -603,7 +603,7 @@ currently is only true for newSource, where the sourceToken of the new
 source is provided.
 
 Script types
-------------
+''''''''''''
 
 The type of a script corresponds to the event triggering its execution.
 The following types are defined right now:
@@ -616,7 +616,7 @@ The following types are defined right now:
 
 
 Examples
---------
+''''''''
 
 This snippet sets a flag when importing some source (in this case,
 that's an RD, so we can access sourceToken.sourceId::

@@ -52,9 +52,6 @@ class PlainUI(ObserverBase):
 			str(excInfo[1])))
 	
 	@listensTo("ScriptRunning")
-	def announceScriptRunning(self, script):
-		if script.name:
-			self.showMsg("Running %s script %s"%(script.type, script.name))
-		else:
-			self.showMsg("Running anonymous %s script (set its name attribute)."%(
-				script.type))
+	def announceScriptRunning(self, runner):
+		self.showMsg("%s excecuting script %s"%(
+			runner.__class__.__name__, runner.name))

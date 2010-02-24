@@ -88,6 +88,7 @@ class ScriptRunner(object):
 	_prepare(script) which is called by __init__.
 	"""
 	def __init__(self, script):
+		self.name, self.notify = script.name, script.notify
 		self._prepare(script)
 	
 	def _prepare(self, script):
@@ -155,6 +156,9 @@ class Script(base.Structure):
 	_name = base.UnicodeAttribute("name", default="anonymous",
 		description="A human-consumable designation of the script.",
 		copyable=True)
+	_notify = base.BooleanAttribute("notify", default=True,
+		description="Send out a notification when running this"
+			" script.", copyable=True)
 	_content = base.DataContent(copyable=True, description="The script body.")
 	_original = base.OriginalAttribute()
 
@@ -191,6 +195,8 @@ class ScriptingMixin(object):
 			
 		def runScripts(table, phase, **kwargs):
 			for runner in runnersByPhase.get(phase, []):
+				if runner.notify:
+					base.ui.notifyScriptRunning(runner)
 				runner.run(table, **kwargs)
 		
 		return runScripts

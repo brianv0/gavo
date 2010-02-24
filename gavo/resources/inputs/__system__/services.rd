@@ -67,8 +67,8 @@
 			by new entries if they come. -->
 		<make table="services">
 			<script type="newSource" lang="python" id="markDeleted">
-				table.query("UPDATE %s SET deleted=True"
-					" WHERE sourceRD=%%(sourceRD)s"%id, 
+				table.query("UPDATE \curtable SET deleted=True"
+					" WHERE sourceRD=%(sourceRD)s",
 					{"sourceRD": sourceToken.sourceId})
 			</script>
 		</make>

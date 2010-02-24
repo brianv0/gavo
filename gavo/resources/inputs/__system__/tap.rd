@@ -131,7 +131,7 @@
 		<make table="schemas" rowmaker="make_schemas"/>
 		<make table="tables" rowmaker="make_tables">
 			<script type="newSource" lang="python" id="removeStale"
-					name="delete stale TAP_SCHEMA entries">
+					notify="False" name="delete stale TAP_SCHEMA entries">
 				table.deleteMatching("sourceRD=%(sourceRD)s",
 					{"sourceRD": sourceToken.sourceId})
 			</script>

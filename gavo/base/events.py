@@ -157,7 +157,8 @@ class EventDispatcher(object):
 	def notifyScriptRunning(self, script):
 		"""is called when a script is being started.
 
-		The callback receives the script instance itself.
+		The callback receives a scripting.ScriptRunner instance.  You probably
+		want to use the name attribute and not much else.
 		"""
 		return script
 

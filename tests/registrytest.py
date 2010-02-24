@@ -30,7 +30,10 @@ class DeletedTest(testhelpers.VerboseTest):
 		self.connection = base.getDBConnection(profile="test")
 	
 	def tearDown(self):
-		self.connection.rollback()
+		try:
+			self.connection.rollback()
+		except sqlsuppert.InterfaceError:  # connection already closed.
+			pass
 		base.setConfig("inputsDir", self.oldInputs)
 
 	def _createPublication(self):
