@@ -117,6 +117,9 @@ class AdminRenderer(formal.ResourceMixin, grend.ServiceBasedRenderer):
 			self.clientRD = base.caches.getRD(rdId)
 		except base.RDNotFound:
 			raise svcs.UnknownURI("No such resource descriptor: %s"%rdId)
+		except Exception, ex: # RD is botched.  Clear cache and give an error
+			base.caches.clearForName(self.clientRD.sourceId)
+			raise
 		return self, ()
 
 	defaultDocFactory =  common.doctypedStan(
