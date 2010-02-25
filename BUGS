@@ -169,6 +169,6 @@
 	Try condDesc original="ref" referring to a column; this results in a
 	completely unintelligble error message.
 
-43/HIGH/2010-02-25
+43/HIGH/2010-02-25/FIXED
 	rave.main and tspectra.data have no descriptions on 
 	__system__/dc_tables/list/form -- why?

@@ -326,11 +326,14 @@ class ToADQLConverter(FromSQLConverter):
 		"spoint": ("VARCHAR(*)", None),
 		"scircle": ("VARCHAR(*)", None),
 		"spolygon": ("VARCHAR(*)", None),
+		"bytea": ("BINARY", None),
 	}
 
 	def mapComplex(self, type, length):
 		if type in self._charTypes:
 			return ("VARCHAR(*)", None)
+		if type=="bytea":
+			return ("BINARY(*)", None)
 		if type in self.simpleMap:
 			return self.simpleMap[type][0], length
 
