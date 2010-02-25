@@ -3,6 +3,7 @@ Code dealing with the service list.
 """
 
 from gavo import base
+from gavo import utils
 from gavo import rsc
 from gavo import rscdef
 from gavo import svcs
@@ -60,12 +61,13 @@ def queryServicesList(whereClause="", pars={}, tableName="srv_join"):
 	table = rsc.TableForDef(td)
 	return [r for r in table.iterQuery(otd, whereClause, pars)]
 
-base.caches.makeCache("getWebServiceList", 
-	lambda ignored: queryServicesList("setName='local'"))
 
 
 def querySubjectsList():
 	"""returns a list of local services chunked by subjects.
+
+	This is mainly for the root page (see web.dispatcher).  Query the
+	cache using the __system__/services key to clear the cache on services
 	"""
 	svcsForSubjs = {}
 	td = base.caches.getRD(SERVICELIST_ID).getById("srv_subjs_join")
@@ -81,6 +83,22 @@ def querySubjectsList():
 
 base.caches.makeCache("getSubjectsList", 
 	lambda ignored: querySubjectsList())
+
+
+def getChunkedServiceList():
+	"""returns a list of local services chunked by title char.
+
+	This is mainly for the root page (see web.dispatcher).  Query the
+	cache using the __system__/services key to clear the cache on services
+	reload.
+	"""
+	return utils.chunk(
+		sorted(queryServicesList("setName='local'"), 
+			key=lambda s: s.get("title").lower()),
+		lambda srec: srec.get("title", ".")[0].upper())
+
+base.caches.makeCache("getChunkedServiceList", 
+	lambda ignored: getChunkedServiceList())
 
 
 def basename(tableName):

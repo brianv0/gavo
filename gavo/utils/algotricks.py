@@ -149,5 +149,39 @@ def commonPrefixLength(t1, t2):
 		return prefixLength
 
 
+def chunk(items, getChunkKey, getKeyKey=lambda a: a[0]):
+	"""returns items in a chunked form.
+
+	getChunkKey(item)->chunk key is a function returning the chunk title,
+	getKeyKey(chunk)->sort key a function returning a sort key for the
+	chunks (default is just the chunk key, i.e., chunk[0]
+
+	The chunked form is a sequence of pairs of a chunk key and a sequence
+	of items belonging to that chunk.
+
+	The internal order within each chunk is not disturbed, so you should sort
+	items as desired before passing things in.
+	
+	This is supposed to work like this:
+
+	>>> chunk(["abakus", "Analysis", "knopf", "Kasper", "kohl"],
+	...   lambda item: item[0].lower())
+	[('a', ['abakus', 'Analysis']), ('k', ['knopf', 'Kasper', 'kohl'])]
+	"""
+	chunks = {}
+	for item in items:
+		chunkKey = getChunkKey(item)
+		chunks.setdefault(chunkKey, []).append(item)
+	return sorted(chunks.items(), key=getKeyKey)
+
+
 def identity(val):
 	return val
+
+
+def _test():
+	import doctest, algotricks
+	doctest.testmod(algotricks)
+
+if __name__=="__main__":
+	_test()

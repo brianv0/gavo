@@ -352,6 +352,7 @@ specialChildren = {
 }
 
 
+
 class ArchiveService(common.CustomTemplateMixin, rend.Page, 
 		grend.GavoRenderMixin):
 
@@ -376,18 +377,12 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 	def data_chunkedServiceList(self, ctx, data):
 		"""returns a service list alphabetically chunked.
 		"""
-# XXX cache this?  but if, how do we get rid of the cache on updates?
-		srvList = base.caches.getWebServiceList(None)[:]
-		chunks = {}
-		for srv in srvList:
-			key = srv.get("title", ".")[0].upper()
-			chunks.setdefault(key, []).append(srv)
-		sList = [{"char": key, "chunk": val} for key, val in chunks.iteritems()]
-		sList.sort(lambda a,b: cmp(a["char"], b["char"]))
-		return sList
+		# The weird key to the cache makes it clear when you reload services
+		return base.caches.getChunkedServiceList("__system__/services")[:]
 
 	def data_subjectServiceList(self, ctx, data):
-		return base.caches.getSubjectsList(None)
+		# The weird key to the cache makes it clear when you reload services
+		return base.caches.getSubjectsList("__system__/services")
 
 	def render_ifprotected(self, ctx, data):
 		if data["owner"]:

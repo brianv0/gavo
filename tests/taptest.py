@@ -188,7 +188,7 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 				job.changeToPhase(uws.EXECUTING, None)
 
 			# let things run, but bail out if nothing happens 
-			for i in range(50):
+			for i in range(70):
 				time.sleep(0.1)
 				with uws.makeFromId(jobId) as job:
 					if job.phase!=uws.EXECUTING:

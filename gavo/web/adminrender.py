@@ -105,9 +105,9 @@ class AdminRenderer(formal.ResourceMixin, grend.ServiceBasedRenderer):
 			plain, self.clientRD)
 
 	def renderHTTP(self, ctx):
-		# naked renderer (i.e., no locateChild) is a non-existing resource
+		# naked renderer means admin services itself
 		if self.clientRD is None:
-			raise svcs.UnknownURI("No root on this renderer")
+			self.clientRD = base.caches.getRD("__system__/services")
 		return common.runAuthenticated(ctx, "admin", 
 			super(AdminRenderer, self).renderHTTP, ctx)
 

@@ -36,7 +36,8 @@
 	<table system="True" id="srv_sets" forceUnique="True" onDisk="True"
 			dupePolicy="overwrite">
 		<column name="shortName" type="text"/>
-		<column name="setName" type="text"/>
+		<column name="setName" type="text" tablehead="Set name"
+			description="Name of an OAI set.  Here, probably only 'local' and 'ivo_managed' will output anything sensible"/>
 		<column name="sourceRd" type="text" tablehead="Source RD"/>
 		<column name="renderer" type="text"/>
 		<column name="deleted" type="boolean"/>
