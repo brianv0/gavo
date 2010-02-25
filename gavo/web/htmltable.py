@@ -295,6 +295,24 @@ def _urlMapperFactory(colDesc):
 	return coder
 _registerHTMLMF(_urlMapperFactory)
 
+
+def _booleanCheckmarkFactory(colDesc):
+	"""inserts mappers for values with displayHint type=checkmark.
+
+	These render a check mark if the value is python-true, else nothing.
+	"""
+	if colDesc["displayHint"].get("type")!="checkmark":
+		return
+	def coder(data):
+		if data:
+			return u"\u2713"
+		return ""
+	return coder
+_registerHTMLMF(_booleanCheckmarkFactory)
+
+
+
+
 #  Insert new, more specific factories here
 
 

@@ -102,7 +102,8 @@ class OutputTableDef(rscdef.TableDef):
 	def onParentComplete(self):
 		if self.verbLevel is not None:
 			for c in self.parent.core.outputTable:
-				self._cols.feedObject(self, OutputField.fromColumn(c))
+				if c.verbLevel<self.verbLevel:
+					self._cols.feedObject(self, OutputField.fromColumn(c))
 
 	@classmethod
 	def fromColumns(cls, columns, **kwargs):
