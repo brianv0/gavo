@@ -17,6 +17,7 @@ from gavo.registry import oaiinter
 from gavo.registry import publication
 
 import testhelpers
+import tresc
 
 
 class DeletedTest(testhelpers.VerboseTest):
@@ -25,17 +26,7 @@ class DeletedTest(testhelpers.VerboseTest):
 # All these things need to run in sequence.  Lousy.
 	rdId = 'data/pubtest'
 
-	def setUp(self):
-		self.oldInputs = base.getConfig("inputsDir")
-		base.setConfig("inputsDir", os.getcwd())
-		self.connection = base.getDBConnection(profile="test")
-	
-	def tearDown(self):
-		try:
-			self.connection.rollback()
-		except sqlsuppert.InterfaceError:  # connection already closed.
-			pass
-		base.setConfig("inputsDir", self.oldInputs)
+	resources = [("connection", tresc.dbConnection)]
 
 	def _createPublication(self):
 		rd = api.getRD(self.rdId)

@@ -18,20 +18,24 @@ from gavo.base import sqlsupport
 from gavo.utils import pgsphere
 
 import testhelpers
+import tresc
 
 
-class TestTypes(unittest.TestCase):
+class TestTypes(testhelpers.VerboseTest):
 	"""Tests for some special adapters we provide.
 	"""
+	resources = [("conn", tresc.dbConnection)]
+
 	def setUp(self):
-		base.setDBProfile("test")
+		testhelpers.VerboseTest.setUp(self)
 		dd = testhelpers.getTestRD().getById("boxTest")
 		self.data = rsc.makeData(dd, forceSource=[{"box": coords.Box(1,2,3,4)}],
-			connection=base.getDefaultDBConnection())
+			connection=self.conn)
 		self.table = self.data.tables["misctypes"]
 
 	def tearDown(self):
-		self.data.dropTables().commitAll().closeAll()
+		self.data.dropTables()
+		testhelpers.VerboseTest.tearDown(self)
 
 	def testBoxUnpack(self):
 		rows = [r for r in 
@@ -178,25 +182,20 @@ class TestMetaTableADQL(TestWithTableCreation):
 class TestPgSphere(testhelpers.VerboseTest):
 	"""tests for the python interface to pgsphere.
 	"""
+	resources = [("conn", tresc.dbConnection)]
+
 	def setUp(self):
-		self.conn = base.getDefaultDBConnection()
+		testhelpers.VerboseTest.setUp(self)
 		pgsphere.preparePgSphere(self.conn)
 
-	def tearDown(self):
-		self.conn.close()
-
 	def assertTripsRound(self, testedType, testValue):
-		conn = base.getDefaultDBConnection()
-		try:
-			cursor = conn.cursor()
-			cursor.execute("CREATE TABLE pgstest (col %s)"%testedType)
-			cursor.execute("INSERT INTO pgstest (col) VALUES (%(val)s)",
-				{"val": testValue})
-			cursor.execute("SELECT * from pgstest")
-			self.assertEqual(list(cursor)[0][0], testValue)
-			cursor.execute("DROP TABLE pgstest")
-		finally:
-			conn.close()
+		cursor = self.conn.cursor()
+		cursor.execute("CREATE TABLE pgstest (col %s)"%testedType)
+		cursor.execute("INSERT INTO pgstest (col) VALUES (%(val)s)",
+			{"val": testValue})
+		cursor.execute("SELECT * from pgstest")
+		self.assertEqual(list(cursor)[0][0], testValue)
+		cursor.execute("DROP TABLE pgstest")
 
 	def testSPoints(self):
 		self.assertTripsRound("spoint", pgsphere.SPoint(2,0.5))
@@ -222,14 +221,12 @@ class TestWithDataImport(testhelpers.VerboseTest):
 
 	You need to set the ddId, which must point into test.rd
 	"""
+	resources = [("connection", tresc.dbConnection)]
+
 	def setUp(self):
-		self.connection = base.getDBConnection("test")
+		testhelpers.VerboseTest.setUp(self)
 		dd = testhelpers.getTestRD().getById(self.ddId)
 		self.data = rsc.makeData(dd, connection=self.connection)
-	
-	def tearDown(self):
-		self.connection.rollback()
-		self.connection.close()
 	
 
 class TestPreIndexSQLRunning(TestWithDataImport):

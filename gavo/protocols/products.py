@@ -331,12 +331,12 @@ class ProductRMixin(rscdef.RMixinBase):
 	# the following two scripts are inserted into makes for 
 	# tables mixing this in in processLate.
 	_cleanupRule = MS(rscdef.Script, type="postCreation", lang="SQL",
-		name="product cleanup",
+		name="product cleanup", notify=False,
 		content_="CREATE OR REPLACE RULE cleanupProducts AS ON DELETE TO"
 				" \\curtable DO ALSO"
 				" DELETE FROM products WHERE key=OLD.accref")
 	_dropScript = MS(rscdef.Script, type="beforeDrop", lang="SQL",
-		name="clean product table",
+		name="clean product table", notify=False,
 		content_="DELETE FROM products WHERE sourceTable='\\curtable'")
 
 	def __init__(self):

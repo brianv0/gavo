@@ -62,7 +62,6 @@ def queryServicesList(whereClause="", pars={}, tableName="srv_join"):
 	return [r for r in table.iterQuery(otd, whereClause, pars)]
 
 
-
 def querySubjectsList():
 	"""returns a list of local services chunked by subjects.
 
@@ -100,6 +99,17 @@ def getChunkedServiceList():
 base.caches.makeCache("getChunkedServiceList", 
 	lambda ignored: getChunkedServiceList())
 
+
+def cleanServiceTablesFor(rd, connection):
+	"""removes/invalidates all entries originating from rd from the service
+	tables.
+	"""
+# this is a bit of a hack: We're running services#tables' newSource
+#	skript without then importing anything new.
+	tables = rsc.Data.create(
+		getServicesRD().getById("tables"),
+		connection=connection)
+	tables.runScripts("newSource", sourceToken=rd)
 
 def basename(tableName):
 	if "." in tableName:

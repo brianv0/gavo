@@ -529,14 +529,14 @@ class SimpleQuerier(QuerierMixin):
 	change something, finish() does 'em both.
 	"""
 	def __init__(self, connection=None, useProfile=None):
-		self.ownedConnection = False
 		self.connection = None
 		self.defaultProfile = useProfile
 		if connection:
+			self.ownedConnection = False
 			self.connection = connection
 		else:
-			self.connection = getDBConnection(useProfile or config.getDBProfile())
 			self.ownedConnection = True
+			self.connection = getDBConnection(useProfile or config.getDBProfile())
 
 	def rollback(self):
 		self.connection.rollback()

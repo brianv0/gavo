@@ -18,7 +18,7 @@ import tresc
 class PlainDBServiceTest(testhelpers.VerboseTest):
 	"""tests for working db-based services, having defaults for everything.
 	"""
-	resources = [('conn', tresc.ProdtestTable())]
+	resources = [('conn', tresc.prodtestTable)]
 
 	def setUp(self):
 		testhelpers.VerboseTest.setUp(self)

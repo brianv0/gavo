@@ -226,7 +226,7 @@ class TestResource(object):
         self._call_result_method_if_exists(result, "startCleanResource", self)
         self.clean(resource)
         for name, manager in self.resources:
-            manager.finishedWith(getattr(resource, name))
+            manager.finishedWith(getattr(self, name))
         self._call_result_method_if_exists(result, "stopCleanResource", self)
 
     def clean(self, resource):
@@ -286,7 +286,7 @@ class TestResource(object):
                 return True
             res = mgr.getResource()
             try:
-                if res is not getattr(self._currentResource, name):
+                if res is not getattr(self, name):
                     return True
             finally:
                 mgr.finishedWith(res)
@@ -299,7 +299,7 @@ class TestResource(object):
             dependency_resources[name] = resource.getResource()
         resource = self.make(dependency_resources)
         for name, value in dependency_resources.items():
-            setattr(resource, name, value)
+            setattr(self, name, value)
         self._call_result_method_if_exists(result, "stopMakeResource", self)
         return resource
 

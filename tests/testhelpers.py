@@ -2,6 +2,8 @@
 Helper classes for the gavo unittest framework.
 """
 
+from __future__ import with_statement
+
 import cPickle as pickle
 import gc
 import inspect
@@ -183,8 +185,9 @@ class VerboseTest(testresources.ResourcedTestCase):
 				raise AssertionError("%s != %s within %d places"%(
 					first, second, places))
 	
-	def assertOutput(self, toExec, argList, expectedStdout="", 
-			expectedStderr="", expectedRetcode=0, input=None):
+	def assertOutput(self, toExec, argList, expectedStdout=None, 
+			expectedStderr="", expectedRetcode=0, input=None,
+			stdoutStrings=None):
 		"""checks that execName called with argList has the given output and return
 		value.
 
@@ -207,15 +210,34 @@ class VerboseTest(testresources.ResourcedTestCase):
 				stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
 		out, err = p.communicate(input=input)
 		retcode = p.wait()
-		self.assertEqual(expectedRetcode, retcode)
-		if isinstance(expectedStdout, basestring):
-			self.assertEqual(out, expectedStdout)
-		else:
-			self.failUnless(expectedStdout(out))
-		if isinstance(expectedStderr, basestring):
-			self.assertEqual(err, expectedStderr)
-		else:
-			self.failUnless(expectedStderr(err))
+
+		try:
+			self.assertEqual(expectedRetcode, retcode)
+
+			if isinstance(expectedStderr, basestring):
+				self.assertEqual(err, expectedStderr)
+			else:
+				self.failUnless(expectedStderr(err))
+		except AssertionError:
+			with open("output.stderr", "w") as f:
+				f.write(out)
+			raise
+
+		try:
+			if isinstance(expectedStdout, basestring):
+				self.assertEqual(out, expectedStdout)
+			elif expectedStdout is not None:
+				self.failUnless(expectedStdout(out))
+			if stdoutStrings:
+				for s in stdoutStrings:
+					self.failIf(s not in out, "%s missing"%s)
+		except AssertionError:
+			with open("output.stdout", "w") as f:
+				f.write(out)
+			raise
+
+
+
 
 
 class XSDTestMixin(object):
@@ -281,6 +303,7 @@ class SamplesBasedAutoTest(type):
 def getTestRD(id="test.rd"):
 	from gavo import rscdesc
 	from gavo.protocols import basic
+	from gavo.web import resourcebased  # for registration of the form renderer
 	from gavo import base
 	return base.caches.getRD(os.path.abspath("data/%s"%id))
 

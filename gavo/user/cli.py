@@ -23,7 +23,7 @@ from contextlib import contextmanager
 functions = {
 	"tap": ("protocols.taprunner", "main"),
 	"imp": ("user.importing", "main"),
-	"drop": ("user.importing", "dropCLI"),
+	"drop": ("user.dropping", "main"),
 	"cred": ("protocols.creds", "main"),
 	"pub": ("registry.publication", "main"),
 	"publish": ("registry.publication", "main"),

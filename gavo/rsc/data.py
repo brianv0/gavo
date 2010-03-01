@@ -100,7 +100,6 @@ class Data(base.MetaMixin):
 			newTable = tables.TableForDef(tableDef,
 				parseOptions=parseOptions, connection=connection, role=make.role)
 			make.enableScripts(newTable)
-			newTable.runScripts("preImport")
 			controlledTables[tableDef.id] = newTable
 		return cls(dd, controlledTables, parseOptions)
 
@@ -134,6 +133,7 @@ class Data(base.MetaMixin):
 			if t.tableDef.system and not self.parseOptions.systemImport:
 				continue
 			if t.tableDef.onDisk:
+				t.runScripts("preImport")
 				t.recreate()
 
 	def dropTables(self):

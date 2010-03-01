@@ -2,6 +2,8 @@
 Twisted trial-based tests for TAP and UWS.
 
 Synchronous tests go to taptest.py
+
+Some of these tests need the taptest tables installed.
 """
 
 # IMPORTANT: If you have deferreds in your tests, *return them* form
@@ -73,21 +75,21 @@ class SyncQueryTest(TAPRenderTest):
 	def testNoLangRejected(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery", 
-				"QUERY": 'SELECT ra FROM roughtest.main WHERE ra<3'},
+				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<3'},
 			['<INFO name="QUERY_STATUS" value="ERROR">Unknown query language'])
 
 	def testBadLangRejected(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "Furz",
-				"QUERY": 'SELECT ra FROM roughtest.main WHERE ra<3'},
+				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<3'},
 			['<INFO name="QUERY_STATUS" value="ERROR">Unknown query language'])
 
 	def testSimpleQuery(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
-				"QUERY": 'SELECT ra FROM roughtest.main WHERE ra<2'},
+				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<2'},
 			['<FIELD ID="ra" arraysize="1" datatype="float" name="ra"'
 			' ucd="pos.eq.ra;meta.main" unit="deg"><DESCRIPTION>RA</DESCRIPTION>'])
 
@@ -95,7 +97,7 @@ class SyncQueryTest(TAPRenderTest):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
-				"QUERY": 'SELECT ra FROM roughtest.main WHERE ra<2',
+				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<2',
 				"FORMAT": 'xls'},
 			['<INFO name="QUERY_STATUS" value="ERROR">Unsupported format \'xls\''])
 
@@ -103,7 +105,7 @@ class SyncQueryTest(TAPRenderTest):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
-				"QUERY": 'SELECT ra FROM roughtest.main WHERE ra<2',
+				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<2',
 				"FORMAT": "votable/td"},
 			['<DATA><TABLEDATA><TR><TD>0.96319</TD>'])
 
@@ -111,7 +113,7 @@ class SyncQueryTest(TAPRenderTest):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
-				"QUERY": 'SELECT ra,de FROM roughtest.main WHERE ra<2',
+				"QUERY": 'SELECT ra,de FROM taptest.main WHERE ra<2',
 				"FORMAT": "text/csv"},
 			['0.96319,71.6269'])
 
@@ -119,7 +121,7 @@ class SyncQueryTest(TAPRenderTest):
 		return self.assertGETHasStrings("/sync", {
 			"REQUEST": "doQuery",
 			"LANG": "ADQL",
-			"QUERY": 'SELECT ra FROM roughtest.main WHERE ra<2',
+			"QUERY": 'SELECT ra FROM taptest.main WHERE ra<2',
 			"FORMAT": "TSV"},
 			['0.96319', '\n', '0.56091'])
 

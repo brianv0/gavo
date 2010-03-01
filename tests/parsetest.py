@@ -43,10 +43,11 @@ class SimpleParseTest(testhelpers.VerboseTest):
 		_prepareData("testInput.txt", "xx1xxabc, xxxx\n")
 		try:
 			dd = self._getDD()
-			data = rsc.makeData(dd, connection=base.getDefaultDBConnection())
+			data = rsc.makeData(dd)
 			self.assertEqual(data.getPrimaryTable().rows, [{'y': u'abc,', 'x': 1}])
 		finally:
 			os.unlink("testInput.txt")
+			data.closeAll()
 	
 	def testRaising(self):
 		_prepareData("testInput.txt", "xxxxxabc, xxxx\n")
@@ -88,7 +89,7 @@ class TestProductsImport(testhelpers.VerboseTest):
 
 	This is more of an integration test, but never mind that.
 	"""
-	resources = [("conn", tresc.ProdtestTable())]
+	resources = [("conn", tresc.prodtestTable)]
 
 	def testWorkingImport(self):
 		assertRowset(self,

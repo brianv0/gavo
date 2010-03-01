@@ -2,6 +2,7 @@
 Dropping resources.  For now, you can only drop entire RDs.
 """
 
+import os
 import sys
 from optparse import OptionParser
 
@@ -20,8 +21,8 @@ def drop(opts, rdId):
 	for dd in rd.dds:
 		res = api.Data.create(dd, connection=connection).dropTables()
 	from gavo.registry import servicelist
-	servicelist.cleanServiceTablesFor(rd.sourceId, connection)
-	tap.unpubishFromTAP(rd, connection)
+	servicelist.cleanServiceTablesFor(rd, connection)
+	tap.unpublishFromTAP(rd, connection)
 	connection.commit()
 
 

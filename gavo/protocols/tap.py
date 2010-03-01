@@ -64,6 +64,7 @@ def unpublishFromTAP(rd, connection):
 	rd.setProperty("moribund", "True") # the embedded grammars take this
 	                                   # to mean "kill this"
 	publishToTAP(rd, connection)
+	rd.clearProperty("moribund")
 
 
 

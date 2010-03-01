@@ -13,8 +13,10 @@ from gavo.base import meta
 from gavo.protocols import basic
 from gavo.protocols import tap
 from gavo.rscdef import tabledef
+from gavo.web import resourcebased  # for registration of the form renderer
 
 import testhelpers
+import tresc
 
 
 class MetaTest(unittest.TestCase):
@@ -158,19 +160,22 @@ class TAP_SchemaTest(testhelpers.VerboseTest):
 	This is another mega test that runs a bunch of functions in sequence.
 	We really should have a place to put those.
 	"""
+	resources = [("conn", tresc.dbConnection)]
+
 	def setUp(self):
+		testhelpers.VerboseTest.setUp(self)
 		self.rd = testhelpers.getTestRD()
 		self.rd.getById("adqltable").foreignKeys.append(
 			base.parseFromString(tabledef.ForeignKey, 
 				'<foreignKey table="test.adql" source="foo" dest="rv"/>'))
-		self.conn = base.getDBConnection("test")
 
 	def tearDown(self):
+		tap.unpublishFromTAP(self.rd, self.conn)
 		self.rd.getById("adqltable").foreignKeys = []
-		self.conn.rollback()
+		testhelpers.VerboseTest.tearDown(self)
 
 	def _checkPublished(self):
-		q = base.SimpleQuerier()
+		q = base.SimpleQuerier(connection=self.conn)
 		tables = set(r[0] for r in
 			(q.query("select table_name from TAP_SCHEMA.tables where sourcerd"
 			" = %(rdid)s", {"rdid": self.rd.sourceId})))
@@ -192,7 +197,7 @@ class TAP_SchemaTest(testhelpers.VerboseTest):
 		self.assertEqual(fkcols, set([(u'foo', u'rv')]))
 
 	def _checkUnpublished(self):
-		q = base.SimpleQuerier()
+		q = base.SimpleQuerier(connection=self.conn)
 		tables = set(r[0] for r in
 			(q.query("select table_name from TAP_SCHEMA.tables where sourcerd"
 			" = %(rdid)s", {"rdid": self.rd.sourceId})))
