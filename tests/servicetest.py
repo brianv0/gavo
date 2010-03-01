@@ -12,24 +12,17 @@ from gavo import protocols
 from gavo.web import resourcebased
 
 import testhelpers
+import tresc
 
 
 class PlainDBServiceTest(testhelpers.VerboseTest):
 	"""tests for working db-based services, having defaults for everything.
 	"""
-	def setUp(self):
-		base.setDBProfile("test")
-		self.oldInputs = base.getConfig("inputsDir")
-		base.setConfig("inputsDir", os.getcwd())
-		self.rd = testhelpers.getTestRD()
-		self.tableDef = self.rd.getById("prodtest")
-		dd = self.rd.getDataDescById("productimport")
-		rsc.makeData(dd, parseOptions=rsc.parseValidating, 
-			connection=base.getDefaultDBConnection())
+	resources = [('conn', tresc.ProdtestTable())]
 
-	def tearDown(self):
-		t = rsc.TableForDef(self.tableDef).drop().commit()
-		base.setConfig("inputsDir", self.oldInputs)
+	def setUp(self):
+		testhelpers.VerboseTest.setUp(self)
+		self.rd = testhelpers.getTestRD()
 
 	def testEmptyQuery(self):
 		svc = self.rd.getById("basicprod")

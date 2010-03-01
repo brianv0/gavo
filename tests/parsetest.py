@@ -15,6 +15,7 @@ from gavo import rscdesc
 from gavo.base import sqlsupport
 
 import testhelpers
+import tresc
 
 
 def _prepareData(fName, content):
@@ -87,34 +88,18 @@ class TestProductsImport(testhelpers.VerboseTest):
 
 	This is more of an integration test, but never mind that.
 	"""
-	def setUp(self):
-		base.setDBProfile("test")
-		self.oldInputs = base.getConfig("inputsDir")
-		base.setConfig("inputsDir", os.getcwd())
-		rd = testhelpers.getTestRD()
-		self.tableDef = rd.getById("prodtest")
-		dd = rd.getDataDescById("productimport")
-		self.conn = base.getDefaultDBConnection()
-		self.data = rsc.makeData(dd, parseOptions=rsc.parseValidating, 
-			connection=self.conn)
-		self.conn.commit()
-
-	def tearDown(self):
-		t = self.data.tables["prodtest"].drop()
-		base.setConfig("inputsDir", self.oldInputs)
-		self.conn.commit()
-		self.conn.close()
+	resources = [("conn", tresc.ProdtestTable())]
 
 	def testWorkingImport(self):
 		assertRowset(self,
-			sqlsupport.SimpleQuerier().runIsolatedQuery("select object from"
-				" test.prodtest"),
+			list(sqlsupport.SimpleQuerier(connection=self.conn).query(
+				"select object from test.prodtest")),
 			[("gabriel",), ("michael",)])
 	
 	def testInProducts(self):
 		assertRowset(self,
-			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
-				" products where sourceTable='test.prodtest'"),
+			list(sqlsupport.SimpleQuerier(connection=self.conn).query(
+				"select * from products where sourceTable='test.prodtest'")),
 			[(u'data/a.imp', u'test', datetime.date(2030, 12, 31), 
 					u'data/a.imp', u'test.prodtest', 'image/fits'),
 			 (u'data/b.imp', u'test', datetime.date(2003, 12, 31), 
@@ -122,8 +107,8 @@ class TestProductsImport(testhelpers.VerboseTest):
 
 	def testInMetatable(self):
 		fields = sorted([(r[7], r[1], r[4]) for r in
-			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
-				" dc.columnmeta where tableName='test.prodtest'")])
+			sqlsupport.SimpleQuerier(connection=self.conn).query(
+				"select * from dc.columnmeta where tableName='test.prodtest'")])
 		assertRowset(self, fields, [
 			(0, u'accref', u'Access key for the data'),
 			(1, u'owner', u'Data owner'),

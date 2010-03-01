@@ -38,9 +38,8 @@ def importSomeProducts():
 def forgetSomeProducts(oldInputs):
 	rd = importparser.getRd("test")
 	tableDef = rd.getTableDefByName("prodtest")
-	tw = sqlsupport.TableWriter(tableDef)
-	tw.dropTable()
-	tw.finish()
+	tw = rsc.TableForDef(tableDef)
+	tw.drop().commit().close()
 	config.set("inputsDir", oldInputs)
 
 
