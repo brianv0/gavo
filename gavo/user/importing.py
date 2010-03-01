@@ -119,38 +119,5 @@ def main():
 	problemlog.dump("last.badrows")
 
 
-def drop(opts, rdId):
-	"""drops the data and services defined in the RD selected by rdId.
-	"""
-	try:
-		rd = base.caches.getRD(os.path.join(os.getcwd(), rdId))
-	except base.RDNotFound:
-		rd = base.caches.getRD(rdId, forImport=True)
-	connection = base.getDBConnection("admin")
-	for dd in rd.dds:
-		res = rsc.Data.create(dd, connection=connection).dropTables()
-	from gavo.registry import servicelist
-	servicelist.cleanServiceTablesFor(rd.sourceId, connection)
-	tap.unpubishFromTAP(rd, connection)
-	connection.commit()
-
-
-def dropCLI():
-	"""parses the command line and drops data and services for the
-	selected RD.
-	"""
-	def parseCmdline():
-		parser = OptionParser(usage="%prog [options] <rd-id>",
-			description="Drops all tables made in an RD's data element.")
-		(opts, args) = parser.parse_args()
-		if len(args)!=1:
-			parser.print_help()
-			sys.exit(1)
-		return opts, args
-
-	opts, args = parseCmdline()
-	drop(opts, args[0])
-
-
 if __name__=="__main__":
 	main()
