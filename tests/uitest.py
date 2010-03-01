@@ -65,5 +65,27 @@ class LoadModuleTest(testhelpers.VerboseTest):
 		self.assertRaises(ImportError, cli.loadGAVOModule, "noexist")
 
 
+class CLITest(testhelpers.VerboseTest):
+	"""tests for the CLI.
+	"""
+	def testUnhandledException(self):
+		self.assertOutput(cli.main, argList=["raise"], 
+			expectedStderr=lambda msg: "Unhandled exception" in msg,
+			expectedRetcode=1)
+
+	def testTopLevelHelp(self):
+		self.assertOutput(cli.main, argList=["--help"], 
+			expectedStdout=lambda msg: "<func> is one of adql" in msg)
+
+	def testSubCmdHelp(self):
+		self.assertOutput(cli.main, argList=["pub", "--help"], 
+			expectedStdout=lambda msg: "gavo pub [options] {<rd-name>}" in msg)
+
+	def testAProg(self):
+		self.assertOutput(cli.main, argList=["stc", "utypes", "Position ICRS"],
+			expectedStdout=lambda msg: 
+				"AstroCoordSystem.SpaceFrame.CoordRefFrame" in msg)
+
+
 if __name__=="__main__":
-	testhelpers.main(LoadModuleTest)
+	testhelpers.main(CLITest)

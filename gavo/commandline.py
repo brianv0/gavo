@@ -15,7 +15,6 @@ from gavo.protocols import basic  # for registration
 from gavo.protocols import tap
 from gavo import user
 from gavo import web         # for registration
-from gavo.user import errhandle
 
 
 def process(opts, args):
@@ -55,17 +54,9 @@ def main():
 	"""parses the command line and imports a set of data accordingly.
 	"""
 	def parseCmdline():
-		def enablePdb(opt, s, val, parser):
-			import pdb
-			def enterPdb(type, value, tb):
-				traceback.print_exception(type, value, tb)
-				pdb.pm()
-			sys.excepthook = enterPdb
-			errhandle.reraise = True
-
-		parser = OptionParser(usage="%prog [options] <rd-name> {<data-id>}")
-		parser.add_option("-z", "--start-pdb", help="run pdb  when an exception"
-			" is not caught", callback=enablePdb, action="callback")
+		parser = OptionParser(usage="%prog [options] <rd-name> {<data-id>}",
+			description="imports all (or just the selected) data from an RD"
+				" into the database.")
 		parser.add_option("-n", "--updateRows", help="Use UPDATE on primary"
 			" key rather than INSERT with rows inserted to DBTables.",
 			action="store_true", dest="doTableUpdates", default=False)
@@ -122,12 +113,9 @@ def main():
 		return opts, args
 
 
-	def doImport():
-		opts, args = parseCmdline()
-		process(opts, args)
-
 	problemlog = user.interfaces["problemlog"](base.ui)
-	errhandle.runAndCatch(doImport)
+	opts, args = parseCmdline()
+	process(opts, args)
 	problemlog.dump("last.badrows")
 
 
@@ -152,17 +140,16 @@ def dropCLI():
 	selected RD.
 	"""
 	def parseCmdline():
-		parser = OptionParser(usage="%prog [options] <rd-id>")
+		parser = OptionParser(usage="%prog [options] <rd-id>",
+			description="Drops all tables made in an RD's data element.")
 		(opts, args) = parser.parse_args()
 		if len(args)!=1:
 			parser.print_help()
 			sys.exit(1)
 		return opts, args
 
-	def doDrop():
-		opts, args = parseCmdline()
-		drop(opts, args[0])
-	return errhandle.runAndCatch(doDrop)
+	opts, args = parseCmdline()
+	drop(opts, args[0])
 
 
 if __name__=="__main__":

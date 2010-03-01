@@ -2,32 +2,39 @@
 The main entry point to CLI usage of GAVO code.
 """
 
+from __future__ import with_statement
+
+
 # The idea here is that you expose a CLI functionality by giving, as
 # strings, the module and function to call.
 #
-# The function's docstring is printed in the function directory.
-# If a valid function selector is given, this selector is removed
-# from sys.argv and control is handed over to the function selected.
-#
-# The module imports api so top-level components have getRD and friends.
+# We also give a little startup note if we're running on a tty.
+# While we do this, we import api; that should take care of most
+# of the real startup time.
 
 import imp
+import os
 import sys
+import textwrap
+import traceback
+from contextlib import contextmanager
 
-from gavo import api
 
 functions = {
 	"tap": ("protocols.taprunner", "main"),
 	"imp": ("commandline", "main"),
+	"drop": ("commandline", "dropCLI"),
+	"cred": ("protocols.creds", "main"),
+	"pub": ("registry.publication", "main"),
+	"publish": ("registry.publication", "main"),
+	"mkboost": ("grammars.directgrammar", "main"),
+	"config": ("base.config", "main"),
+	"gendoc": ("user.docgen", "main"),
+	"stc": ("stc.cli", "main"),
+	"serve": ("user.serve", "main"),
 	"adql": ("protocols.adqlglue", "localquery"),
+	"raise": ("user.errhandle", "bailOut"),
 }
-
-def printHelp():
-	print "Usage: %s <function> [<function arguments]"%sys.argv[0]
-	print "where <function> is one of %s"%(", ".join(sorted(functions)))
-	print ""
-	print "<function> = help gives explanations on what functions do."
-	print "Use %s <function> -h for help of individual functions."%sys.argv[0]
 
 
 def loadGAVOModule(moduleName):
@@ -58,13 +65,82 @@ def runFunction(module, funcName):
 	getattr(loadGAVOModule(module), funcName)()
 
 
-def main():
+def _enablePDB():
+# This can't be a callback to the --enable-pdb option since it needs
+# errhandle, and we only want to import this after the command line
+# is parsed
+	import pdb
+	def enterPdb(type, value, tb):
+		traceback.print_exception(type, value, tb)
+		pdb.pm()
+	sys.excepthook = enterPdb
+
+
+@contextmanager
+def _progressText():
+	"""a quick note that something is happening if we're on a tty.
+	"""
+# We probably should rather make import faster...
+	if os.isatty(sys.stdout.fileno()):
+		sys.stdout.write("Starting up...")
+		sys.stdout.flush()
+		yield None
+		sys.stdout.write("\r                 \r")
+		sys.stdout.flush()
+	else:
+		yield None
+
+
+def _parseCLArgs():
+	"""parses the command line and returns instructions on how to go on.
+
+	As a side effect, sys.argv is manipulated such that the program
+	called thinks it was execd in the first place.
+	"""
+	from optparse import OptionParser
+	parser = OptionParser(usage="%%prog {<global option>} <func>"
+		" {<func option>} {<func argument>}\n"+
+		textwrap.fill("<func> is one of %s"%(", ".join(sorted(functions))),
+		initial_indent='', subsequent_indent='  '),
+		description="Try %prog <func> --help for function-specific help")
+	parser.disable_interspersed_args()
+	parser.add_option("--traceback", help="print a traceback on all errors.",
+		action="store_true", dest="alwaysTracebacks")
+	parser.add_option("--enable-pdb", help="run pdb on all errors.",
+		action="store_true", dest="enablePDB")
+
+	opts, args = parser.parse_args()
+	if len(args)<1:
+		parser.print_help()
+		sys.exit(2)
+
 	try:
-		module, funcName = functions[sys.argv[1]]
-	except (IndexError, KeyError):
-		printHelp()
-	del sys.argv[1]
-	runFunction(module, funcName)
+		module, funcName = functions[args[0]]
+	except KeyError:
+		parser.print_help()
+		sys.exit(2)
+	
+	parser.destroy()
+	args[0] = "gavo "+args[0]
+	sys.argv = args
+	return opts, module, funcName
+
+	
+def main():
+	global api, errhandle
+	opts, module, funcName = _parseCLArgs()
+	with _progressText():
+		from gavo import api
+		from gavo.user import errhandle
+		if opts.enablePDB:
+			_enablePDB()
+
+	try:
+		runFunction(module, funcName)
+	except Exception, ex:
+		if opts.alwaysTracebacks:
+			traceback.print_exc()
+		errhandle.raiseAndCatch(opts)
 
 
 if __name__=="__main__":

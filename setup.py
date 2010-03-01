@@ -25,17 +25,7 @@ setup(name="gavodachs",
 		"http://www.stsci.edu/resources/software_hardware/pyfits/Download"],
 	entry_points={
 		'console_scripts': [
-			'gavoimp = gavo.commandline:main',
-			'gavodrop = gavo.commandline:dropCLI',
-			'gavocred = gavo.protocols.creds:main',
-			'gavomkrd = gavo.user.mkrd:main',
-			'gavopublish = gavo.registry.publication:main',
-			'gavomkboost = gavo.grammars.directgrammar:main',
-			'gavoconfig = gavo.base.config:main',
-			'gavogendoc = gavo.user.docgen:main',
-			'gavostc = gavo.stc.cli:main',
-			'gavoserve = gavo.user.serve:main',
 			'gavo = gavo.user.cli:main',
 		]
 	},
-	version="0.41")
+	version="0.5")

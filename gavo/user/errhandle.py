@@ -9,16 +9,18 @@ import traceback
 from gavo import base
 from gavo import grammars
 
-reraise = False
 
-def runAndCatch(func):
-	"""returns func(), catching and processing any exceptions
-	that might occur.
+def raiseAndCatch(opts):
+	"""raises the current exception and tries to come up with a good
+	error message for it.
+
+	This probably is just useful as a helper to user.cli.
 	"""
+	retval = 1
 	try:
-		return func()
+		raise
 	except SystemExit, msg:
-		sys.exit(msg.code)
+		retval = msg.code
 	except grammars.ParseError, msg:
 		errTx = unicode(msg)
 		if msg.location:
@@ -29,21 +31,31 @@ def runAndCatch(func):
 		if msg.record:
 			sys.stderr.write("Offending input was:\n")
 			sys.stderr.write(repr(msg.record)+"\n")
-		sys.exit(1)
 	except (base.ValidationError, base.ReportableError), msg:
 		errTx = unicode(msg).encode(base.getConfig("ui", "outputEncoding"))
 		sys.stderr.write(textwrap.fill(errTx, break_long_words=False)+"\n\n")
-		sys.exit(1)
 	except base.LiteralParseError, msg:
 		sys.stderr.write("While trying to parse literal %s for attribute %s:"
 			" %s"%(repr(msg.attVal), msg.attName, str(msg)))
-		sys.exit(1)
 	except Exception, msg:
 		if hasattr(msg, "excRow"):
 			sys.stderr.write("Snafu in %s, %s\n"%(msg.excRow, msg.excCol))
 		sys.stderr.write("Oops.  Unhandled exception.  Here's the traceback:\n")
-		if reraise:
+		if opts.enablePDB:
 			raise
 		else:
-			traceback.print_exc()
-			sys.exit(1)
+			if not opts.alwaysTracebacks:
+				traceback.print_exc()
+	sys.exit(retval)
+
+
+def bailOut():
+	"""is a fake cli operation just raising exceptions.
+
+	This is mainly for testing and development.
+	"""
+	if len(sys.argv)<2:
+		raise ValueError("Too short")
+	arg = sys.argv[0]
+	if arg=="--help":
+		raise base.Error("Hands off this.  For Developers only")

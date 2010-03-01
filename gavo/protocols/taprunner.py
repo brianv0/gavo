@@ -105,7 +105,8 @@ def runTAPJob(parameters, jobId, resultName, timeout,
 
 def parseCommandLine():
 	from optparse import OptionParser
-	parser = OptionParser(usage="%prog <jobid> -- run an enqueued UWS job.")
+	parser = OptionParser(usage="%prog <jobid>",
+		description="runs the TAP job with <jobid> from the UWS table.")
 	opts, args = parser.parse_args()
 	if len(args)!=1:
 		parser.print_help()
