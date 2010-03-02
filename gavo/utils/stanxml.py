@@ -10,11 +10,13 @@ try:
 	from xml.etree import ElementTree
 except ImportError:
 	from elementtree import ElementTree
-# We do not want cElementTree here since it doesn't have the _namespaceMap
-# we need to cope with shitty namespaced attribute values.
-#	try:
-#		import cElementTree as ElementTree
-#	except ImportError:
+# cElementTree has no _namespaceMap that we need to cope with shitty 
+# namespaced attribute values where XSD nightmares rule.  Elsewhere,
+# we can use it:
+try:
+	from xml.etree import cElementTree as FastElementTree
+except ImportError:
+	FastElementTree = ElementTree
 
 
 class Error(Exception):

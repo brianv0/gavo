@@ -9,15 +9,16 @@ VOTableNamespace = "http://www.ivoa.net/xml/VOTable/v1.2"
 class VOTable(object):
 	"""The container for VOTable elements.
 	"""
-	class VOTElement(Element):
+	class _VOTElement(Element):
 		namespace = VOTableNamespace
 		local = True
 
-	class _DescribedElement(VOTElement):
+	class _DescribedElement(_VOTElement):
 		a_ID = None
 		a_name = None
 		a_ucd = None
 		a_utype = None
+		mayBeEmpty = True
 
 	class _ValuedElement(_DescribedElement):
 		a_unit = None
@@ -37,17 +38,17 @@ class VOTable(object):
 		a_utype = None
 		childSequence = []
 
-	class BINARY(VOTElement):
+	class BINARY(_VOTElement):
 		childSequence = ["STREAM"]
 	
 	# COOSYS deprecated, we don't even include it.
 
-	class DATA(VOTElement):
+	class DATA(_VOTElement):
 		childSequence = ["INFO", "TABLEDATA", "BINARY", "FITS"]
 	
 	# DEFINITIONS deprecated, see COOSYS
 
-	class DESCRIPTION(VOTElement):
+	class DESCRIPTION(_VOTElement):
 		childSequence = [None]
 
 	class FIELD(_TypedElement):
@@ -55,7 +56,7 @@ class VOTable(object):
 	
 	class FIELDref(_RefElement): pass
 	
-	class FITS(VOTElement):
+	class FITS(_VOTElement):
 		childSequence = ["STREAM"]
 	
 	class GROUP(_DescribedElement):
@@ -67,7 +68,7 @@ class VOTable(object):
 		a_value = None
 		childSequence = [None]
 	
-	class LINK(VOTElement):
+	class LINK(_VOTElement):
 		a_ID = None
 		a_action = None
 		a_content_role = None
@@ -79,21 +80,25 @@ class VOTable(object):
 		a_title = None
 		a_value = None
 		childSequence = []
+		mayBeEmpty = True
 
-	class MAX(VOTElement):
+	class MAX(_VOTElement):
 		a_inclusive = None
 		a_value = None
 		childSequence = []
+		mayBeEmpty = True
 	
-	class MIN(VOTElement):
+	class MIN(_VOTElement):
 		a_inclusive = None
 		a_value = None
 		childSequence = []
+		mayBeEmpty = True
 
-	class OPTION(VOTElement):
+	class OPTION(_VOTElement):
 		a_name = None
 		a_value = None
 		childSequence = ["OPTION"]
+		mayBeEmpty = True
 	
 	class PARAM(_TypedElement):
 		a_value = None
@@ -101,7 +106,7 @@ class VOTable(object):
 
 	class PARAMref(_RefElement): pass
 
-	class RESOURCE(VOTElement):
+	class RESOURCE(_VOTElement):
 		a_ID = None
 		a_name = None
 		a_type = None
@@ -109,7 +114,7 @@ class VOTable(object):
 		childSequence = ["DESCRIPTION", "INFO", "GROUP", "PARAM", "LINK",
 			"TABLE", "RESOURCE"]
 	
-	class STREAM(VOTElement):
+	class STREAM(_VOTElement):
 		a_actuate = None
 		a_encoding = None
 		a_expires = None
@@ -123,24 +128,25 @@ class VOTable(object):
 		childSequence = ["DESCRIPTION", "INFO", "GROUP", "FIELD", "PARAM", "LINK",
 			"DATA"]
 	
-	class TABLEDATA(VOTElement):
+	class TABLEDATA(_VOTElement):
 		childSequence = ["TR"]
 	
-	class TD(VOTElement):
+	class TD(_VOTElement):
 		a_encoding = None
 		childSequence = [None]
+		mayBeEmpty = True
 	
-	class TR(VOTElement):
+	class TR(_VOTElement):
 		a_ID = None
 		childSequence = ["TD"]
 	
-	class VALUES(VOTElement):
+	class VALUES(_VOTElement):
 		a_ID = None
 		a_null = None
 		a_ref = None
 		a_type = None
 	
-	class VOTABLE(VOTElement):
+	class VOTABLE(_VOTElement):
 		a_ID = None
 		a_version = "1.2"
 		a_xmlns = VOTableNamespace
