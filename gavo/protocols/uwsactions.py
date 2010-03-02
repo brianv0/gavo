@@ -12,6 +12,8 @@ to the TAP service's root URL.
 
 from __future__ import with_statement
 
+import os
+
 from gavo import svcs
 from gavo import utils
 from gavo.protocols import uws
@@ -154,13 +156,13 @@ class PhaseAction(JobAction):
 	name = "phase"
 
 	def doPOST(self, job, request):
-		mustBeRUN = svcs.getfirst(request, "PHASE", "<not given>")
+		mustBeRUN = utils.getfirst(request.args, "PHASE", "<not given>")
 		if mustBeRUN=="RUN":
 			job.changeToPhase(uws.EXECUTING)
 		else:
 			raise uws.UWSError("Invalid PHASE value %s"%mustBeRun,
 				job.jobId)
-		print ">>>>>>Redirect to parent", dir(request)
+		raise svcs.WebRedirect("async/"+job.jobId)
 	
 	def doGET(self, job, request):
 		return UWS.makeRoot(UWS.phase[job.phase])
@@ -172,7 +174,7 @@ class _DateSettableAction(JobAction):
 	"""
 	def doPOST(self, job, request):
 		try:
-			val = parseISODT(svcs.getfirst(request, self.name.upper()))
+			val = parseISODT(utils.getfirst(request.args, self.name.upper()))
 		except ValueError:
 			raise uws.UWSError("Invalid %s value."%self.name.upper())
 		setattr(job, self.attName, val)

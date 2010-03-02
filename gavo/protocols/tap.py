@@ -84,7 +84,7 @@ class TAPActions(uws.UWSActions):
 	def startJob(self, newState, job, ignored):
 		"""forks off a new Job.
 		"""
-		child = subprocess.Popen(["gavo", "tap", job.jobId])
+		child = subprocess.Popen(["gavo", "--disable-spew", "tap", job.jobId])
 		job.pid = child.pid
 		job.phase = uws.EXECUTING
 

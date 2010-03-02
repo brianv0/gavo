@@ -505,11 +505,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		try:
 			res, segments = self._realLocateChild(ctx, segments)
 		except WebRedirect, redirTo:
-			root = base.getConfig("web", "nevowRoot")
-			if not root:
-				root = "/"
-			return url.URL.fromContext(ctx).click(root+
-				str(redirTo)), ()
+			return weberrors.RedirectPage(redirTo.args[0]), ()
 		except ForbiddenURI, exc:
 			return weberrors.ForbiddenPage(str(exc)), ()
 		except UnknownURI, exc:

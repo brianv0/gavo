@@ -4,6 +4,7 @@ Helpers for trial-based tests, in particular retrieving pages.
 
 from __future__ import with_statement
 
+import urlparse
 import warnings
 
 from nevow import context
@@ -68,6 +69,8 @@ def _buildRequest(method, path, rawArgs):
 			args[k] = v
 		else:
 			args[k] = [v]
+	if path.startswith("http://"):
+		path = urlparse.urlparse(path).path
 	req = testutil.AccumulatingFakeRequest(uri="/"+path, args=args)
 	req.headers = {}
 	req.method = method

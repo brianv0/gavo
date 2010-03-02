@@ -118,10 +118,13 @@ def main():
 	"""causes the execution of the job with jobId sys.argv[0].
 	"""
 	opts, jobId = parseCommandLine()
-	with uws.makeFromId(jobId) as job:
-		parameters = job.getParDict()
-		jobId, timeout = job.jobId, job.executionDuration
-		resultName = job.getResultName()
+	try:
+		with uws.makeFromId(jobId) as job:
+			parameters = job.getParDict()
+			jobId, timeout = job.jobId, job.executionDuration
+			resultName = job.getResultName()
+	except base.NotFoundError:  # Job was deleted before we came up...
+		sys.exit(1)  # ... there's nothing sensible we could do any more but quit.
 	try:
 		runTAPJob(parameters, jobId, resultName, timeout)
 	except Exception, ex:

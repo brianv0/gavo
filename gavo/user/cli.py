@@ -77,11 +77,11 @@ def _enablePDB():
 
 
 @contextmanager
-def _progressText():
+def _progressText(opts):
 	"""a quick note that something is happening if we're on a tty.
 	"""
 # We probably should rather make import faster...
-	if os.isatty(sys.stdout.fileno()):
+	if not opts.disableSpew and os.isatty(sys.stdout.fileno()):
 		sys.stdout.write("Starting up...")
 		sys.stdout.flush()
 		yield None
@@ -108,6 +108,8 @@ def _parseCLArgs():
 		action="store_true", dest="alwaysTracebacks")
 	parser.add_option("--enable-pdb", help="run pdb on all errors.",
 		action="store_true", dest="enablePDB")
+	parser.add_option("--disable-spew", help='Suppress silly "starting up".',
+		action="store_true", dest="disableSpew")
 
 	opts, args = parser.parse_args()
 	if len(args)<1:
@@ -129,7 +131,7 @@ def _parseCLArgs():
 def main():
 	global api, errhandle
 	opts, module, funcName = _parseCLArgs()
-	with _progressText():
+	with _progressText(opts):
 		from gavo import api
 		from gavo.user import errhandle
 		if opts.enablePDB:

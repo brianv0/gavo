@@ -31,9 +31,11 @@ from gavo.utils.fitstools import readPrimaryHeaderQuick, pyfits
 
 from gavo.utils.mathtricks import *
 
+from gavo.utils.misctricks import Undefined, getfirst
+
 from gavo.utils.ostricks import safeclose, urlopenRemote, fgetmtime, cat
 
-from gavo.utils.stanxml import ElementTree
+from gavo.utils.stanxml import ElementTree, xmlrender
 
 from gavo.utils.texttricks import (formatSize, makeEllipsis, floatRE, 
 	dateRE, datetimeRE, isoTimestampFmt, datetimeToRFC2616,

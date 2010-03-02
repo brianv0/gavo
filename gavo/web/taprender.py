@@ -15,6 +15,7 @@ from twisted.internet import threads
 from gavo import base
 from gavo import formats
 from gavo import svcs
+from gavo import utils
 from gavo.protocols import taprunner
 from gavo.protocols import uws
 from gavo.protocols import uwsactions
@@ -59,6 +60,7 @@ class TAPQueryResource(rend.Page):
 			return self._doRender(ctx
 				).addErrback(self._formatError)
 		except base.Error, ex:
+			traceback.print_exc()
 			return ErrorResource(unicode(ex))
 
 	def _formatError(self, failure):
@@ -124,9 +126,9 @@ class MethodAwareResource(rend.Page):
 
 class UWSErrorMixin(object):
 	def _deliverError(self, failure, request):
-		request.setHeader("content-type", "text/xml")
 		failure.printTraceback()
-		return ""
+		request.setHeader("content-type", "text/xml")
+		return ErrorResource(failure.getErrorMessage())
 
 
 class JoblistResource(MethodAwareResource, UWSErrorMixin):
@@ -161,18 +163,25 @@ class JobResource(rend.Page, UWSErrorMixin):
 		return threads.deferToThread(
 			uwsactions.doJobAction, request, self.segments
 		).addCallback(self._deliverResult, request
-		).addErrback(self._redirectAsNecessary
+		).addErrback(self._redirectAsNecessary, ctx
 		).addErrback(self._deliverError, request)
 
-	def _redirectAsNecessary(self, failure):
+	def _redirectAsNecessary(self, failure, ctx):
+		# Handle WebRedirects locally; globally, we give 301s and compute
+		# the destination path differently.
 		failure.trap(svcs.WebRedirect)
-		return url.URL.fromString("%s/%s"%(
-			self.service.getURL("tap"),
-			failure.value.args[0]))
+		nextURL = str(
+			"%s/%s"%(self.service.getURL("tap"), failure.value.args[0]))
+		req = inevow.IRequest(ctx)
+		req.code = 303
+		req.setHeader("location", nextURL)
+		req.setHeader("text/plain")
+		req.write("Go here: %s\n"%nextURL)
+		return ""
 
 	def _deliverResult(self, result, request):
 		request.setHeader("content-type", "text/xml")
-		return result
+		return utils.xmlrender(result)
 	
 
 def getAsyncResource(service, ctx, segments):
@@ -188,10 +197,6 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 	Basically, this just dispatches to the sync and async resources.
 	"""
 	name = "tap"
-
-	def _returnError(self, failure):
-		failure.printTraceback()
-		return ErrorResource(failure.getErrorMessage())
 
 	def locateChild(self, ctx, segments):
 		try:

@@ -270,3 +270,19 @@ def schemaURL(xsdName):
 	This is used by the various xmlstan clients to make schemaLocations.
 	"""
 	return "http://vo.ari.uni-heidelberg.de/docs/schemata/"+xsdName
+
+
+def xmlrender(tree):
+	"""returns a unicode object containing tree in serialized forms.
+
+	tree can be any object with a render method or some sort of string.
+	If it's a byte string, it must not contain any non-ASCII.
+	"""
+	if hasattr(tree, "render"):
+		return tree.render()
+	elif isinstance(tree, str):
+		return unicode(tree)
+	elif isinstance(tree, unicode):
+		return tree
+	else:
+		raise ValueError("Cannot render %s"%repr(tree))

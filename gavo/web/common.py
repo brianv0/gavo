@@ -17,6 +17,7 @@ from twisted.internet import defer
 
 
 from gavo import base
+from gavo import utils
 from gavo.base import meta
 from gavo.protocols import creds
 
@@ -24,14 +25,7 @@ from gavo.protocols import creds
 def getfirst(ctx, key, default):
 	"""returns the first value of key in the nevow context ctx.
 	"""
-	args = inevow.IRequest(ctx).args
-	try:
-		return args[key][0]
-	except KeyError:
-		if default is base.Undefined:
-			raise base.ValidationError("Missing mandatory parameter %s"%key,
-				colName=key)
-		return default
+	return utils.getfirst(inevow.IRequest(ctx).args, key, default)
 
 
 class HTMLMetaBuilder(meta.MetaBuilder):

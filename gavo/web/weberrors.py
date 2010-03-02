@@ -265,11 +265,13 @@ class ForbiddenPage(rend.Page, common.CommonRenderers):
 class RedirectPage(rend.Page, common.CommonRenderers):
 	def __init__(self, destURL):
 		self.destURL = str(destURL)
-	
+		if not self.destUrl.startwith("http"):
+			self.destURL = base.makeSitePath(self.destURL)
+
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(301)
-		request.setHeader("Location", self.destURL)
+		request.setHeader("location", self.destURL)
 		return super(RedirectPage, self).renderHTTP(ctx)
 	
 	def render_destLink(self, ctx, data):

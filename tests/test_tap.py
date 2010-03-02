@@ -141,8 +141,12 @@ class SimpleAsyncTest(TAPRenderTest):
 		return self.assertGETHasStrings("/async", {}, [
 			'<uws:jobs xmlns:uws="http://www.ivoa.net/xml/UWS/v1.0'])
 
-	def testJobCycle(self):
-		"""a job is created, and we are redirected to the proper resource.
+	def testNonExistingPhase(self):
+		return self.assertGETHasStrings("/async/23/phase", {},
+			['<VOTABLE ', 'ERROR">UWS job \'23\' could not'])
+
+	def testLifeCycle(self):
+		"""tests job creation, redirection, phase, and deletion.
 		"""
 		def assertDeleted(result, jobId):
 			self.assertEqual(result[1].code, 303)
@@ -156,6 +160,24 @@ class SimpleAsyncTest(TAPRenderTest):
 			return trialhelpers.runQuery(self.renderer, "DELETE", "/async/"+jobId, {}
 			).addCallback(assertDeleted, jobId)
 
+		def assertStarted(lastRes, jobId):
+			# lastRes must be a redirect to the job info page
+			req = lastRes[1]
+			self.failUnless(req.code, 303)
+			self.assertEqual(req.headers["location"], 
+				 "http://localhost:8080/__system__/tap/run/tap/async/"+jobId)
+			return delete(jobId)
+
+		def promote(ignored, jobId):
+			return trialhelpers.runQuery(self.renderer, "POST", 
+				"/async/%s/phase"%jobId, {"PHASE": "RUN"}
+			).addCallback(assertStarted, jobId)
+
+		def checkPhase(jobId):
+			return self.assertGETHasStrings("/async/%s/phase"%jobId, {},
+				['<uws:phase', 'PENDING</uws:phase>']
+				).addCallback(promote, jobId)
+
 		def checkPosted(result):
 			# jobId is in location of result[1]
 			request = result[1]
@@ -163,13 +185,9 @@ class SimpleAsyncTest(TAPRenderTest):
 			next = request.headers["location"]
 			self.failIf("/async" not in next)
 			jobId = next.split("/")[-1]
-			return delete(jobId)
+			return checkPhase(jobId)
 
-		return trialhelpers.runQuery(self.renderer, "POST", "/async", {}
+		return trialhelpers.runQuery(self.renderer, "POST", "/async", {
+			"REQUEST": "doQuery", "LANG": "ADQL", 
+			"QUERY": "SELECT ra FROM taptest.main WHERE ra<3"}
 		).addCallback(checkPosted)
-		
-
-
-class JobInfoTest(TAPRenderTest):
-	############# Hier weiter: testresource job, etc.
-	pass

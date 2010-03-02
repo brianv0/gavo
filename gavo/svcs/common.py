@@ -42,6 +42,8 @@ class Authenticate(Error):
 class WebRedirect(Error):
 	"""causes the dispatcher to redirect the client to the URL in the exception's
 	value.
+
+	The value can be relative (to webRoot) or absolute (starting with http).
 	"""
 
 def parseServicePath(serviceParts):

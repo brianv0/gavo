@@ -44,6 +44,7 @@ from gavo.base.events import EventDispatcher
 ui = EventDispatcher()
 del EventDispatcher
 
+from gavo.utils import Undefined
 from gavo.utils.excs import *
 
 from gavo.base.literals import *

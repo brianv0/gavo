@@ -22,17 +22,19 @@ of internal structure, add methods
 """
 
 from gavo.base import structure
-from gavo.base.attrdef import *
+from gavo.base import attrdef
 from gavo.utils.excs import *
 
 
-class CollOfAtomsAttribute(AtomicAttribute):
+class CollOfAtomsAttribute(attrdef.AtomicAttribute):
 	"""is a base class for simple collections of atomic
 	attributes.
 	"""
-	def __init__(self, name, default=[], itemAttD=UnicodeAttribute("listItem"), 
+	def __init__(self, name, default=[], 
+			itemAttD=attrdef.UnicodeAttribute("listItem"), 
 			**kwargs):
-		AttributeDef.__init__(self, name, default=Computed, **kwargs)
+		attrdef.AttributeDef.__init__(self, name, 
+			default=attrdef.Computed, **kwargs)
 		self.xmlName_ = itemAttD.name_
 		self.itemAttD = itemAttD
 		self.realDefault = default
@@ -113,17 +115,17 @@ class SetOfAtomsAttribute(CollOfAtomsAttribute):
 class DictParser(structure.Parser):
 	def __init__(self, dict, nextParser, parseValue, keyName):
 		self.dict, self.nextParser, self.parseValue = dict, nextParser, parseValue
-		self.key, self.keyName = Undefined, keyName
+		self.key, self.keyName = attrdef.Undefined, keyName
 
 	def value(self, ctx, name, value):
 		if name==self.keyName:
 			self.key = value
 		elif name=="content_":
-			if self.key is Undefined:
+			if self.key is attrdef.Undefined:
 				raise StructureError("Content '%s' has no %s attribute"%(
 					value, self.keyName))
 			self.dict[self.key] = self.parseValue(value)
-			self.key = Undefined
+			self.key = attrdef.Undefined
 		else:
 			raise StructureError("No %s attributes on mappings"%name)
 		return self
@@ -132,18 +134,19 @@ class DictParser(structure.Parser):
 		raise StructureError("No %s elements in mappings"%name)
 	
 	def end(self, ctx, name, value):
-		if self.key is not Undefined:
+		if self.key is not attrdef.Undefined:
 			self.dict[self.key] = None
-			self.key = Undefined
+			self.key = attrdef.Undefined
 		return self.nextParser
 
 
-class DictAttribute(AttributeDef):
+class DictAttribute(attrdef.AttributeDef):
 	"""defines defaults on the input keys the mapper receives.
 	"""
 	def __init__(self, name, description="Undocumented", 
-			itemAttD=UnicodeAttribute("value"), keyName="key", **kwargs):
-		AttributeDef.__init__(self, name, Computed, description, **kwargs)
+			itemAttD=attrdef.UnicodeAttribute("value"), keyName="key", **kwargs):
+		attrdef.AttributeDef.__init__(self, name, 
+			attrdef.Computed, description, **kwargs)
 		self.xmlName_ = itemAttD.name_
 		self.itemAttD = itemAttD
 		self.keyName = keyName
@@ -203,8 +206,8 @@ class PropertyAttribute(DictAttribute):
 			self.properties[name] = value
 		yield "setProperty", setProperty
 
-		def getProperty(self, name, default=Undefined):
-			if default is Undefined:
+		def getProperty(self, name, default=attrdef.Undefined):
+			if default is attrdef.Undefined:
 				return self.properties[name]
 			else:
 				return self.properties.get(name, default)
@@ -220,7 +223,7 @@ class PropertyAttribute(DictAttribute):
 			" name attribute to string values) -- %s"%self.description_)
 
 
-class StructAttribute(AttributeDef):
+class StructAttribute(attrdef.AttributeDef):
 	"""describes an attribute containing a Structure
 
 	These are constructed with a childFactory that must have a feedEvent
@@ -232,9 +235,9 @@ class StructAttribute(AttributeDef):
 	ParseableStruct instances call these when they receive their end
 	event during XML deserialization.
 	"""
-	def __init__(self, name, childFactory, default=Undefined, 
+	def __init__(self, name, childFactory, default=attrdef.Undefined, 
 			description="Undocumented", **kwargs):
-		AttributeDef.__init__(self, name, default, description, **kwargs)
+		attrdef.AttributeDef.__init__(self, name, default, description, **kwargs)
 		self.childFactory = childFactory
 		self.xmlName_ = self.childFactory.name_
 
@@ -292,7 +295,7 @@ class StructListAttribute(StructAttribute):
 	"""
 	def __init__(self, name, childFactory, description="Undocumented",
 			**kwargs):
-		StructAttribute.__init__(self, name, childFactory, Computed,
+		StructAttribute.__init__(self, name, childFactory, attrdef.Computed,
 			description, **kwargs)
 
 	@property

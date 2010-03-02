@@ -55,27 +55,9 @@ See structure on how to use all these.
 
 import os
 
+from gavo.utils import Undefined
 from gavo.base import literals
 from gavo.utils.excs import LiteralParseError, StructureError
-
-
-class UndefinedType(type):
-	def __str__(self):
-		raise StructureError("%s cannot be stringified"%self.__class__.__name__)
-
-	__unicode__ = __str__
-
-	def __repr__(self):
-		return "<Undefined>"
-
-	def __nonzero__(self):
-		return False
-
-
-class Undefined(object):
-	"""is a sentinel class for uninitialized defaultless values.
-	"""
-	__metaclass__ = UndefinedType
 
 
 class NotGivenType(type):
