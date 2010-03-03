@@ -27,7 +27,7 @@ class VOTable(object):
 
 	class _TypedElement(_ValuedElement):
 		a_ref = None
-		a_arraysize = None
+		a_arraysize = '1'
 		a_datatype = None
 		a_precision = None
 		a_ref = None

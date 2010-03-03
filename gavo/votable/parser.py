@@ -7,6 +7,7 @@ from cStringIO import StringIO
 from gavo import utils
 from gavo.utils import FastElementTree
 from gavo.votable import model
+from gavo.votable import tableparser
 
 
 DEFAULT_WATCHSET = [model.VOTable.TABLE]
@@ -103,10 +104,13 @@ def parse(inFile, watchset=DEFAULT_WATCHSET):
 			elId = node.get("ID")
 			if elId is not None:
 				idmap[elId] = elementStack[-1]
+			if node.tag=="DATA":
+				yield tableparser.Rows(elementStack[-2], iterator)
 
 		elif ev=="end":
 			nodeProc = processors.get(node.tag, _processNodeDefault)
-			child = nodeProc(node, elementStack.pop(), elementStack[-1])
+			preChild = elementStack.pop()
+			child = nodeProc(node, preChild, elementStack[-1])
 			if child is not None and child.__class__ in watchset:
 				child.idmap = idmap
 				yield child

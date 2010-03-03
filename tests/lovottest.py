@@ -78,6 +78,35 @@ class IdTest(testhelpers.VerboseTest):
 		self.assertRaises(StopIteration, iter.next)
 
 
+class TabledataDeserTest(testhelpers.VerboseTest):
+	"""tests for deserialization of TABLEDATA encoded values.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		fielddefs, literals, expected = sample
+		table = votable.parseString(
+			'<VOTABLE><RESOURCE><TABLE>'+
+			fielddefs+
+			'<DATA><TABLEDATA>'+
+			'\n'.join('<TR>%s</TR>'%''.join('<TD>%s</TD>'%l
+				for l in row) for row in literals)+
+			'</TABLEDATA></DATA>'
+			'</TABLE></RESOURCE></VOTABLE>').next()
+		self.assertEqual(list(table), expected)
+	
+	samples = [(
+			'<FIELD name="x" datatype="boolean"/>',
+			[['TRue'], ['T'],  ['False'], ['?']],
+			[[True],   [True], [False],   [None]]
+		), (
+			'<FIELD name="x" datatype="unsignedByte"/>'
+			'<FIELD name="y" datatype="unsignedByte"><VALUES null="10"/></FIELD>',
+			[['', ''], ['0x10', '0x10'], ['10', '10']],
+			[[None, None], [16, 16], [10, None]]
+		),
+	]
+	
 
 if __name__=="__main__":
-	testhelpers.main(IdTest)
+	testhelpers.main(TabledataDeserTest)

@@ -105,6 +105,28 @@ class Element(object):
 			self.name = self.__class__.__name__.split(".")[-1]
 		self(**kwargs)
 
+	def __getitem__(self, children):
+		self.addChild(children)
+		return self
+
+	def __call__(self, **kw):
+		if not kw:
+			return self
+
+		for k, v in kw.iteritems():
+			if k[-1] == '_':
+				k = k[:-1]
+			elif k[0] == '_':
+				k = k[1:]
+			attname = "a_"+k
+			# Only allow setting attributes already present
+			getattr(self, attname)
+			setattr(self, attname, v)
+		return self
+
+	def __iter__(self):
+		raise NotImplementedError, "Element instances are not iterable."
+
 	def bailIfBadChild(self, child):
 		if (self.childSequence is not None and 
 				getattr(child, "name", None) not in self.allowedChildren and
@@ -137,28 +159,6 @@ class Element(object):
 			raise Error("%s element %s cannot be added to %s node"%(
 				type(child), repr(child), self.name))
 
-	def __getitem__(self, children):
-		self.addChild(children)
-		return self
-
-	def __call__(self, **kw):
-		if not kw:
-			return self
-
-		for k, v in kw.iteritems():
-			if k[-1] == '_':
-				k = k[:-1]
-			elif k[0] == '_':
-				k = k[1:]
-			attname = "a_"+k
-			# Only allow setting attributes already present
-			getattr(self, attname)
-			setattr(self, attname, v)
-		return self
-
-	def __iter__(self):
-		raise NotImplementedError, "Element instances are not iterable."
-
 	def isEmpty(self):
 		if self.mayBeEmpty:  # We definitely want this item rendered.
 			return False
@@ -182,20 +182,12 @@ class Element(object):
 				xmlName = getattr(self, name[2:]+"_name", name[2:])
 				yield name, xmlName
 
-	def _makeAttrDict(self):
-		res = {}
-		for name, attName in self.iterAttNames():
-			if getattr(self, name) is not None:
-				res[attName] = str(getattr(self, name))
-		return res
-
-	def getFirstChildOfType(self, type):
-		"""returns the first child that is an instance of type, or None if there
-		is no such child.
+	def iterChildrenOfType(self, type):
+		"""iterates over all children having type.
 		"""
 		for c in self.children:
 			if isinstance(c, type):
-				return c
+				yield c
 
 	def makeChildDict(self):
 		cDict = {}
@@ -206,21 +198,6 @@ class Element(object):
 			else:
 				cDict.setdefault(c.name, []).append(c)
 		return cDict, "".join(textContent)
-
-	def _addChildrenAsIs(self, node):
-		for child in self.children:
-			if isinstance(child, basestring):
-				node.text = child
-			else:
-				child.asETree(node)
-
-	def _addChildrenInSequence(self, node):
-		cDict, text = self.makeChildDict()
-		node.text = text
-		for cName in self.childSequence:
-			if cName in cDict:
-				for c in cDict[cName]:
-					c.asETree(node)
 
 	def getElName(self):
 		"""returns the tag name of this element.
@@ -264,6 +241,28 @@ class Element(object):
 		if et is None:
 			return ""
 		return ElementTree.tostring(et)
+
+	def _makeAttrDict(self):
+		res = {}
+		for name, attName in self.iterAttNames():
+			if getattr(self, name) is not None:
+				res[attName] = str(getattr(self, name))
+		return res
+
+	def _addChildrenAsIs(self, node):
+		for child in self.children:
+			if isinstance(child, basestring):
+				node.text = child
+			else:
+				child.asETree(node)
+
+	def _addChildrenInSequence(self, node):
+		cDict, text = self.makeChildDict()
+		node.text = text
+		for cName in self.childSequence:
+			if cName in cDict:
+				for c in cDict[cName]:
+					c.asETree(node)
 
 
 def schemaURL(xsdName):
