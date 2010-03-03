@@ -108,6 +108,12 @@ class TabledataDeserTest(testhelpers.VerboseTest):
 			'<FIELD name="x" datatype="char"/>',
 			[[''],   ['a'], ['&apos;'], [u'\xe4'], ['&#xe4;']],
 			[[None], ['a'], ["'"],      [u'\xe4'], [u'\xe4']],
+		), (
+			'<FIELD name="x" datatype="short"><VALUES null="0"/></FIELD>'
+			'<FIELD name="y" datatype="int"/>'
+			'<FIELD name="z" datatype="long"><VALUES null="222399322"/></FIELD>',
+			[['0', '0', '0'], ['-3', '-300', '222399322'], ['0xff', '0xcafebabe', '0xcafebabedeadbeef',]],
+			[[None, 0,  0],   [-3,    -300,  None],        [255,    -889275714,   -3819410105021120785L]]
 		)
 	]
 	
