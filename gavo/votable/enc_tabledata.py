@@ -3,8 +3,64 @@ Coding and decoding from tabledata.
 """
 
 import re
+import traceback
 
 from gavo.votable import coding
+from gavo.votable import common
+
+
+# Values we accept as meaning "single value" in a FIELD's arraysize
+SINGLEVALUES = set([None, '', '1'])
+
+# literals for TDENC booleans
+TDENCBOOL = {
+	't': True,
+	'1': True,
+	'true': True,
+	'f': False,
+	'0': False,
+	'false': False,
+	'?': None,
+	'': None,
+}
+
+
+def tokenizeComplexArr(val):
+	"""iterates over suitable number literal pairs from val.
+	"""
+	last = None
+	if val is None:
+		return
+	for item in val.split():
+		if not item:
+			continue
+		if last is None:
+			last = item
+		else:
+			yield "%s %s"%(last, item)
+			last = None
+	if last:
+		yield last
+
+
+def tokenizeBitArr(val):
+	"""iterates over 0 or 1 tokens in val, discarding everything else.
+	"""
+	if val is None:
+		return
+	for item in val:
+		if item in "01":
+			yield item
+
+
+def tokenizeNormalArr(val):
+	"""iterates over all whitespace-separated tokens in val
+	"""
+	if val is None:
+		return
+	for item in val.split():
+		if item:
+			yield item
 
 
 def _addNullvalueCode(field, src, validator):
@@ -59,12 +115,21 @@ def _makeIntDecoder(field, maxInt):
 	return _addNullvalueCode(field, src, int)
 
 
-def _makeCharDecoder(field):
+def _makeCharDecoder(field, emptyIsNull=True):
+	"""parseString enables return of empty string (as opposed to None).
+	"""
 # Elementtree already makes sure we're only seeing unicode strings here
-	return [
-		'if not val:',
-		'  val = None',
-		'row.append(val)']
+	src = []
+	if emptyIsNull:
+		src.extend([
+			'if not val:',
+			'  val = None',])
+	else:
+		src.extend([
+			'if val is None:',
+			'  val = ""'])
+	src.append('row.append(val)')
+	return src
 
 
 def _makeBooleanDecoder(field):
@@ -90,10 +155,40 @@ _decoders = {
 	'doubleComplex': _makeComplexDecoder,
 }
 
+def _getArrayDecoderLines(field):
+	"""returns lines that decode arrays of literals.
+
+	Unfortunately, the spec is plain nuts, so we need to pull some tricks here.
+
+	We completely ignore any arraysize specification here.
+	"""
+	type, arraysize = field.a_datatype, field.a_arraysize
+	if type=='char' or type=='unicodeChar':
+		return _makeCharDecoder(field, emptyIsNull=False)
+	src = [ # OMG.  I'm still hellbound on not calling functions here.
+		'arrayLiteral = val',
+		'fullRow, row = row, []',
+		]
+	if type=='floatComplex' or type=='doubleComplex':
+		src.append("for val in tokenizeComplexArr(arrayLiteral):")
+	elif type=='bit':
+		src.append("for val in tokenizeBitArr(arrayLiteral):")
+	else:
+		src.append("for val in tokenizeNormalArr(arrayLiteral):")
+	src.extend(coding.indentList(_decoders[type](field), "  "))
+	src.append("fullRow.append(row)")
+	src.append("row = fullRow")
+	return src
+
+
 def getDecoderLines(field):
 	"""returns a sequence of python source lines to decode TABLEDATA-encoded
 	values for field.
 	"""
-	if field.a_arraysize not in coding.SINGLEVALUES:
+	if field.a_arraysize not in SINGLEVALUES:
 		return _getArrayDecoderLines(field)
 	return _decoders[field.a_datatype](field)
+
+
+def getGlobals():
+	return globals()

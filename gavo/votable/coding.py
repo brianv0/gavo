@@ -7,30 +7,7 @@ from gavo.votable import common
 from gavo.votable.model import VOTable
 
 
-# Values we accept as meaning "single value" in a FIELD's arraysize
-SINGLEVALUES = set([None, '', '1'])
-
-# literals for TDENC booleans
-TDENCBOOL = {
-	't': True,
-	'1': True,
-	'true': True,
-	'f': False,
-	'0': False,
-	'false': False,
-	'?': None,
-	'': None,
-}
-
-
-def makeRowDecoder(tableDefinition, getDecoderLines):
-	"""returns a compiled function taking raw data from a tableDefintion table
-	and returning a python list.
-
-	getDecoderLines is a function taking a model.FIELD instance and returning
-	source code lines (no base indent) that append a value for
-	that field to a list called row.
-	"""
+def _makeRowDecoderSource(tableDefinition, getDecoderLines):
 	source = ["def decodeRow(rawRow):", "  row = []"]
 	for index, field in enumerate(
 			tableDefinition.iterChildrenOfType(VOTable.FIELD)):
@@ -38,12 +15,25 @@ def makeRowDecoder(tableDefinition, getDecoderLines):
 		source.append("    val = rawRow[%d]"%index)
 		source.extend(indentList(getDecoderLines(field), "    "))
 		source.append("  except:")
+		source.append("    traceback.print_exc()")
 		source.append("    raise common.BadVOTableLiteral('%s', val)"%
 			field.a_datatype)
 	source.append("  return row")
+	return "\n".join(source)
+
+
+def makeRowDecoder(tableDefinition, getDecoderLines, decoderEnv):
+	"""returns a compiled function taking raw data from a tableDefintion table
+	and returning a python list.
+
+	getDecoderLines is a function taking a model.FIELD instance and returning
+	source code lines (no base indent) that append a value for
+	that field to a list called row.
+	"""
 	ns = {}
-	ns.update(globals())
-	source = "\n".join(source)
+	ns.update(decoderEnv)
+	source = _makeRowDecoderSource(tableDefinition, getDecoderLines)
+#	print(source)
 	try:
 		exec source in ns
 	except:

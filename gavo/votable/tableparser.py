@@ -11,7 +11,7 @@ class TableDataIterator(object):
 	def __init__(self, tableDefinition, nodeIterator):
 		self.nodeIterator = nodeIterator
 		self._decodeRawRow = coding.makeRowDecoder(tableDefinition,
-			enc_tabledata.getDecoderLines)
+			enc_tabledata.getDecoderLines, enc_tabledata.getGlobals())
 
 	def __iter__(self):
 		while True:
