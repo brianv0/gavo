@@ -91,6 +91,7 @@ def parse(inFile, watchset=DEFAULT_WATCHSET):
 	or PARAM of certain protocols.
 	"""
 	watchset = set(watchset)
+	idmap = {}
 	processors = computeEndProcessors()
 	elements = computeElements()
 	elementStack = [None]  # None is VOTABLE's parent
@@ -99,11 +100,15 @@ def parse(inFile, watchset=DEFAULT_WATCHSET):
 	for ev, node in iterator:
 		if ev=="start":
 			elementStack.append(elements[node.tag](**dict(node.items())))
+			elId = node.get("ID")
+			if elId is not None:
+				idmap[elId] = elementStack[-1]
 
 		elif ev=="end":
 			nodeProc = processors.get(node.tag, _processNodeDefault)
 			child = nodeProc(node, elementStack.pop(), elementStack[-1])
 			if child is not None and child.__class__ in watchset:
+				child.idmap = idmap
 				yield child
 
 		else:

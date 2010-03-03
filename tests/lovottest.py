@@ -55,6 +55,29 @@ class TextParseTest(testhelpers.VerboseTest):
 		self.assertEqual(res.children[0], u"\xe4rn")
 
 
+class IdTest(testhelpers.VerboseTest):
+	"""tests for collection of id attributes.
+	"""
+	def testSimpleId(self):
+		els = list(votable.parseString(
+			'<VOTABLE><INFO ID="xy">abc</INFO></VOTABLE>',
+			watchset=[V.INFO, V.VOTABLE]))
+		self.failUnless(els[0].idmap is els[1].idmap)
+		self.failUnless(els[0].idmap["xy"] is els[0])
+	
+	def testForwardReference(self):
+		iter = votable.parseString(
+			'<VOTABLE><INFO ID="xy" ref="z">abc</INFO>'
+			'<INFO ID="z" ref="xy">zz</INFO></VOTABLE>',
+			watchset=[V.INFO])
+		info0 = iter.next()
+		self.assertRaises(KeyError, lambda: info0.idmap[info0.a_ref])
+		info1 = iter.next()
+		self.failUnless(info0.idmap[info0.a_ref] is info1)
+		self.failUnless(info1.idmap[info1.a_ref] is info0)
+		self.assertRaises(StopIteration, iter.next)
+
+
 
 if __name__=="__main__":
-	testhelpers.main(TextParseTest)
+	testhelpers.main(IdTest)

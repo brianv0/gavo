@@ -15,6 +15,7 @@ class VOTable(object):
 
 	class _DescribedElement(_VOTElement):
 		a_ID = None
+		a_ref = None
 		a_name = None
 		a_ucd = None
 		a_utype = None
@@ -25,6 +26,7 @@ class VOTable(object):
 		a_xtype = None
 
 	class _TypedElement(_ValuedElement):
+		a_ref = None
 		a_arraysize = None
 		a_datatype = None
 		a_precision = None
