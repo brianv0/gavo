@@ -78,6 +78,7 @@ class IdTest(testhelpers.VerboseTest):
 		self.assertRaises(StopIteration, iter.next)
 
 
+
 class TabledataDeserTest(testhelpers.VerboseTest):
 	"""tests for deserialization of TABLEDATA encoded values.
 	"""
@@ -114,9 +115,48 @@ class TabledataDeserTest(testhelpers.VerboseTest):
 			'<FIELD name="z" datatype="long"><VALUES null="222399322"/></FIELD>',
 			[['0', '0', '0'], ['-3', '-300', '222399322'], ['0xff', '0xcafebabe', '0xcafebabedeadbeef',]],
 			[[None, 0,  0],   [-3,    -300,  None],        [255,    -889275714,   -3819410105021120785L]]
-		)
+		), (
+			'<FIELD name="x" datatype="float"><VALUES null="-999."/></FIELD>'
+			'<FIELD name="y" datatype="float"/>',
+			[['1', '0.5e10'], ['-999.', '']],
+			[[1.0, 5e09],     [None, None]]
+		), (
+			'<FIELD name="x" datatype="floatComplex"><VALUES null="-999. 0"/></FIELD>'
+			'<FIELD name="y" datatype="floatComplex"/>',
+			[['1 1', '0.5e10 -2e5'], ['-999. 0', '20']],
+			[[(1+1j), 5e09-2e5j],    [None, 20+0j]]
+		),
+
 	]
 	
+
+class FloatTDEncodingTest(testhelpers.VerboseTest):
+	"""tests for proper handling of special float values.
+	"""
+	def _decode(self, fielddefs, literals):
+		table = votable.parseString((
+			'<VOTABLE><RESOURCE><TABLE>'+
+			fielddefs+
+			'<DATA><TABLEDATA>'+
+			'\n'.join('<TR>%s</TR>'%''.join('<TD>%s</TD>'%l
+				for l in row) for row in literals)+
+			'</TABLEDATA></DATA>'
+			'</TABLE></RESOURCE></VOTABLE>').encode("utf-8")).next()
+		return list(table)
+
+	def testNAN(self):
+		vals = self._decode(
+			'<FIELD name="y" datatype="float"/>',
+			[['NaN']])[0]
+		self.failUnless(vals[0]!=vals[0])
+	
+	def testInfinities(self):
+		vals = self._decode(
+			'<FIELD name="y" datatype="float"/>',
+			[['+Inf'], ['-Inf']])
+		self.failUnless(vals[0][0]==2*vals[0][0])
+		self.failUnless(vals[1][0]==2*vals[1][0])
+
 
 if __name__=="__main__":
 	testhelpers.main(TabledataDeserTest)
