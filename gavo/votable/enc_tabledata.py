@@ -2,6 +2,8 @@
 Coding and decoding from tabledata.
 """
 
+import re
+
 from gavo.votable import coding
 
 
@@ -22,12 +24,31 @@ def _makeByteDecoder(field):
 	return src
 
 
+def _makeCharDecoder(field):
+# Note that Elementtree already made sure we're only seeing unicode strings
+# here.
+	return [
+		'if not val:',
+		'  val = None',
+		'else:',
+		'  if "&" in val:',
+		'    val = utils.remplaceXMLEntityRefs(val)',
+		'row.append(val)']
+
+
+def _makeBooleanDecoder(field):
+	return ['row.append(TDENCBOOL[val.strip().lower()])']
+
+
+def _makeBitDecoder(field):
+	return ['row.append(int(val))']
+
+
 _decoders = {
-	'boolean': [
-		'row.append(TDENCBOOL[val.strip().lower()])'],
-	'bit': [
-		'row.append(int(val))'],
+	'boolean': _makeBooleanDecoder,
+	'bit': _makeBitDecoder,
 	'unsignedByte': _makeByteDecoder,
+	'char': _makeCharDecoder,
 }
 
 def getDecoderLines(field):
@@ -36,8 +57,4 @@ def getDecoderLines(field):
 	"""
 	if field.a_arraysize not in coding.SINGLEVALUES:
 		return _getArrayDecoderLines(field)
-	dec = _decoders[field.a_datatype]
-	# dec may either be a list of a function to compute that list
-	if isinstance(dec, list):
-		return dec
-	return dec(field)
+	return _decoders[field.a_datatype](field)

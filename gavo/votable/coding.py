@@ -2,6 +2,7 @@
 Common code for coding and decoding VOTable table data.
 """
 
+from gavo import utils
 from gavo.votable import common
 from gavo.votable.model import VOTable
 
@@ -20,6 +21,7 @@ TDENCBOOL = {
 	'?': None,
 	'': None,
 }
+
 
 def makeRowDecoder(tableDefinition, getDecoderLines):
 	"""returns a compiled function taking raw data from a tableDefintion table

@@ -17,6 +17,15 @@ floatRE = r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?"
 dateRE = re.compile("\d\d\d\d-\d\d-\d\d$")
 datetimeRE = re.compile("\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ?$")
 isoTimestampFmt = "%Y-%m-%dT%H:%M:%SZ"
+entityrefPat = re.compile("&([^;])+;")
+
+xmlEntities = {
+		'lt': '<',
+		'gt': '>',
+		'amp': '&',
+		'apos': "'",
+		'quot': '"',
+}
 
 
 def formatSize(val, sf=1):
@@ -375,6 +384,22 @@ class NameMap(object):
 	
 	def resolve(self, name):
 		return self.namesDict[name.lower()]
+
+
+def _decodeEntityref(matob):
+	entRef = mat.group(1)
+	if entRef in _standardEntities:
+		return xmlEntites[entRef]
+	elif entRef.startswith("#x"):
+		return unichr(int(entRef[2:], 16))
+	elif entRef.startswith("#"):
+		return unichr(int(entRef[1:]))
+	else:
+		raise ValueError("Unknown entity reference: &%s;"%entRef)
+
+
+def replaceXMLEntityRefs(unicodeString):
+	return entityrefPat.sub(_decodeEntityref, unicodeString)
 
 
 def _test():

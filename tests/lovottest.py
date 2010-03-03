@@ -85,14 +85,14 @@ class TabledataDeserTest(testhelpers.VerboseTest):
 
 	def _runTest(self, sample):
 		fielddefs, literals, expected = sample
-		table = votable.parseString(
+		table = votable.parseString((
 			'<VOTABLE><RESOURCE><TABLE>'+
 			fielddefs+
 			'<DATA><TABLEDATA>'+
 			'\n'.join('<TR>%s</TR>'%''.join('<TD>%s</TD>'%l
 				for l in row) for row in literals)+
 			'</TABLEDATA></DATA>'
-			'</TABLE></RESOURCE></VOTABLE>').next()
+			'</TABLE></RESOURCE></VOTABLE>').encode("utf-8")).next()
 		self.assertEqual(list(table), expected)
 	
 	samples = [(
@@ -101,10 +101,14 @@ class TabledataDeserTest(testhelpers.VerboseTest):
 			[[True],   [True], [False],   [None]]
 		), (
 			'<FIELD name="x" datatype="unsignedByte"/>'
-			'<FIELD name="y" datatype="unsignedByte"><VALUES null="10"/></FIELD>',
-			[['', ''], ['0x10', '0x10'], ['10', '10']],
-			[[None, None], [16, 16], [10, None]]
-		),
+			'<FIELD name="y" datatype="unsignedByte"><VALUES null="16"/></FIELD>',
+			[['',   ''],   ['0x10', '0x10'], ['10', '16']],
+			[[None, None], [16,     16],     [10,    None]]
+		), (
+			'<FIELD name="x" datatype="char"/>',
+			[[''],   ['a'], ['&apos;'], [u'\xe4'], ['&#xe4;']],
+			[[None], ['a'], ["'"],      [u'\xe4'], [u'\xe4']],
+		)
 	]
 	
 
