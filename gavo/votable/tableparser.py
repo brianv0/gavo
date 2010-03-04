@@ -4,14 +4,14 @@ Parsing various forms of tabular data embedded in VOTables.
 
 from gavo.votable import coding
 from gavo.votable import common
-from gavo.votable import enc_tabledata
+from gavo.votable import dec_tabledata
 
 
 class TableDataIterator(object):
 	def __init__(self, tableDefinition, nodeIterator):
 		self.nodeIterator = nodeIterator
 		self._decodeRawRow = coding.makeRowDecoder(tableDefinition,
-			enc_tabledata.getDecoderLines, enc_tabledata.getGlobals())
+			dec_tabledata.getDecoderLines, dec_tabledata.getGlobals())
 
 	def __iter__(self):
 		while True:
