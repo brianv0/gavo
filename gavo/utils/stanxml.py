@@ -220,8 +220,10 @@ class Element(object):
 			return ElementTree.QName(self.namespace, self.name)
 
 	def traverse(self, visitor):
-		"""yields quadruples of name, attr, text, childIter for the
-		elements of the tree.
+		"""calls visitor(name, text, attrs, childIter).
+
+		This doesn't actually traverse; the expectation is that visitor
+		does something like (c.traverse(visitor) for c in childIter).
 		"""
 		try:
 			if self.isEmpty():

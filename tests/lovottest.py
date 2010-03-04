@@ -2,6 +2,8 @@
 Tests for our low-level VOTable interface.
 """
 
+import re
+
 from gavo import votable
 from gavo.votable import V
 
@@ -54,6 +56,7 @@ class TextParseTest(testhelpers.VerboseTest):
 		# xml defaults to utf-8
 		res = self._getInfoItem('<INFO name="t" value="0">\xc3\xa4rn</INFO>')
 		self.assertEqual(res.text, u"\xe4rn")
+
 
 
 class IdTest(testhelpers.VerboseTest):
@@ -149,7 +152,7 @@ class TabledataDeserTest(testhelpers.VerboseTest):
 			[[[(1+1j), 5e09-2e5j]]]
 		)
 	]
-	
+
 
 class FloatTDEncodingTest(testhelpers.VerboseTest):
 	"""tests for proper handling of special float values.
@@ -185,5 +188,25 @@ class FloatTDEncodingTest(testhelpers.VerboseTest):
 		self.assertEqual(repr(vals), '[[nan, inf, -inf]]')
 
 
+class TabledataWriteTest(testhelpers.VerboseTest):
+	"""tests for serializing TABLEDATA VOTables.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		fielddefs, input, expected = sample
+		vot = V.VOTABLE[V.RESOURCE[votable.DelayedTable(
+			V.TABLE[fielddefs], input, V.TABLEDATA)]]
+		mat = re.search("<TABLEDATA>(.*)</TABLEDATA>", votable.asString(vot))
+		content = mat and mat.group(1)
+		self.assertEqual(content, expected)
+
+	samples = [(
+			[V.FIELD(datatype="float")],
+			[[1],[None],[float("NaN")]],
+			"<TR><TD>1</TD></TR><TR><TD></TD></TR><TR><TD></TD></TR>"
+		),
+	]
+
 if __name__=="__main__":
-	testhelpers.main(TabledataDeserTest)
+	testhelpers.main(TabledataWriteTest)

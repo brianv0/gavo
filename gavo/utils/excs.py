@@ -32,6 +32,7 @@ class Error(Exception):
 	"""
 	def __init__(self, msg="", hint=None):
 		Exception.__init__(self, msg)
+		self.msg = msg
 		self.hint = hint
 
 

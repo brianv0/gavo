@@ -29,4 +29,4 @@ class BadVOTableData(VOTableError):
 		self.fieldName, self.val = fieldName, val
 	
 	def __str__(self):
-		return "Field %s, value %s: %s"%(self.fieldName, self.val, self.msg)
+		return "Field '%s', value %s: %s"%(self.fieldName, self.val, self.msg)

@@ -14,7 +14,7 @@ def getRowDecoderSource(tableDefinition, decoderModule):
 	tableDefinition is a VOTable.TABLE instance, decoderModule
 	is a function from one of the dec_XXX modules.
 	"""
-	source = ["def decodeRow(rawRow):", "  row = []"]
+	source = ["def codec(rawRow):", "  row = []"]
 	for index, field in enumerate(
 			tableDefinition.iterChildrenOfType(VOTable.FIELD)):
 		source.append("  try:")
@@ -31,24 +31,30 @@ def getRowDecoderSource(tableDefinition, decoderModule):
 
 def getRowEncoderSource(tableDefinition, encoderModule):
 	"""returns the source for a function encoding rows of tableDefition
-	in the format implied by encoderModule.
+	in the format implied encoderModule
 
 	tableDefinition is a VOTable.TABLE instance, encoderModule
-	is one of the enc_XXX modules.
+	is one of the enc_whatever modules (this function needs getLinesFor
+	and getPostamble from them).
 	"""
 
-	source = ["def encodeRow(tableRow):", "	tokens = []"]
+	source = [
+		"def codec(tableRow):", 
+		"  tokens = []",
+		"  val = None"]
 	for index, field in enumerate(
 			tableDefinition.iterChildrenOfType(VOTable.FIELD)):
-		source.append("  try:")
-		source.append("    val = tableRow[%d]"%index)
+		source.extend([
+			"  try:",
+			"    val = tableRow[%d]"%index])
 		source.extend(indentList(encoderModule.getLinesFor(field), "    "))
-		source.append("  except common.VOTableError:")
-		source.append("    raise")
-		source.append("  except Exception, ex:")
-		source.append("    traceback.print_exc()")
-		source.append("    raise common.BadVOTableData('%s', val, unicode(ex))"%
-			field.getDesignation)
+		source.extend([
+			"  except common.VOTableError:",
+			"    raise",
+			"  except Exception, ex:",
+			"    traceback.print_exc()",
+			"    raise common.BadVOTableData(unicode(ex), val, '%s')"%
+				field.getDesignation()])
 	source.extend(indentList(
 		encoderModule.getPostamble(tableDefinition), "  "))
 	return "\n".join(source)
@@ -62,7 +68,7 @@ def buildCodec(source, env):
 	"""
 	ns = {}
 	ns.update(env)
-#	print(source)
+	#print(source)
 	try:
 		exec source in ns
 	except:
@@ -71,7 +77,13 @@ def buildCodec(source, env):
 		sys.stderr.write(source)
 		traceback.print_exc()
 		sys.exit("")
-	return ns["decodeRow"]
+	return ns["codec"]
+
+
+def buildEncoder(tableDefinition, encoderModule):
+	return buildCodec(
+		getRowEncoderSource(tableDefinition, encoderModule),
+		encoderModule.getGlobals())
 
 
 def indentList(lines, indent):
