@@ -61,7 +61,7 @@ class Element(object):
 
 	This is loosely modelled after nevow stan.
 
-	Don't access the children attribute directly.  I may want to add
+	Don't add to the children attribute directly.  I may want to add
 	data model checking later, and that would go into addChild.
 
 	When deriving from Elements, you may need attribute names that are not
@@ -86,6 +86,9 @@ class Element(object):
 	The contents of the DOM may be anything recognized by addChild.
 	In particular, you can give objects a serializeToXMLStan method returning
 	strings or an Element to make them good DOM citizens.
+
+	Elements cannot harbour mixed content (or rather, there is only
+	one piece of text).
 	"""
 	__metaclass__ = _Autoconstructor
 
@@ -100,7 +103,9 @@ class Element(object):
 	xsi_type_name = "xsi:type"
 
 	def __init__(self, **kwargs):
+		self.__isEmpty = None
 		self.children = []
+		self.text = ""
 		if self.name is None:
 			self.name = self.__class__.__name__.split(".")[-1]
 		self(**kwargs)
@@ -127,6 +132,9 @@ class Element(object):
 	def __iter__(self):
 		raise NotImplementedError, "Element instances are not iterable."
 
+	def __nonzero__(self):
+		return self.isEmpty()
+
 	def bailIfBadChild(self, child):
 		if (self.childSequence is not None and 
 				getattr(child, "name", None) not in self.allowedChildren and
@@ -141,34 +149,39 @@ class Element(object):
 		strings.  Finally, child may be None, in which case nothing will be
 		added.
 		"""
+		self.__isEmpty = None
 		if hasattr(child, "serializeToXMLStan"):
-			self.children.append(child.serializeToXMLStan())
+			self.addChild(child.serializeToXMLStan())
 		elif child is None:
 			pass
-		elif isinstance(child, (basestring, Element)):
+		elif isinstance(child, basestring):
+			self.bailIfBadChild(child)
+			self.text = child
+		elif isinstance(child, Element):
 			self.bailIfBadChild(child)
 			self.children.append(child)
 		elif isinstance(child, (list, tuple)):
 			for c in child:
 				self.addChild(c)
 		elif isinstance(child, _Autoconstructor):
-			self.children.append(child())
+			self.addChild(child())
 		elif self.stringifyContent:
-			self.children.append(str(child))
+			self.addChild(unicode(child))
 		else:
 			raise Error("%s element %s cannot be added to %s node"%(
 				type(child), repr(child), self.name))
 
 	def isEmpty(self):
-		if self.mayBeEmpty:  # We definitely want this item rendered.
-			return False
-		for c in self.children:
-			if isinstance(c, basestring):
-				if c.strip():
-					return False
-			elif not c.isEmpty():
-				return False
-		return True
+		if self.__isEmpty is None:
+			self.__isEmpty = True
+			if self.mayBeEmpty or self.text.strip():
+				self.__isEmpty = False
+			else:
+				for c in self.children:
+					if not c.isEmpty():
+						self.__isEmpty = False
+						break
+		return self.__isEmpty
 
 	def iterAttNames(self):
 		"""iterates over the defined attribute names of this node.
@@ -191,13 +204,9 @@ class Element(object):
 
 	def makeChildDict(self):
 		cDict = {}
-		textContent = []
 		for c in self.children:
-			if isinstance(c, basestring):
-				textContent.append(c)
-			else:
-				cDict.setdefault(c.name, []).append(c)
-		return cDict, "".join(textContent)
+			cDict.setdefault(c.name, []).append(c)
+		return cDict
 
 	def getElName(self):
 		"""returns the tag name of this element.
@@ -210,32 +219,33 @@ class Element(object):
 		else:
 			return ElementTree.QName(self.namespace, self.name)
 
-	def asETree(self, parent=None):
-		"""returns an ElementTree instance for this node.
+	def traverse(self, visitor):
+		"""yields quadruples of name, attr, text, childIter for the
+		elements of the tree.
 		"""
 		try:
-			if not self.mayBeEmpty and self.isEmpty():
+			if self.isEmpty():
 				return
-			
 			elName = self.getElName()
 			attrs = self._makeAttrDict()
-			if parent is None:
-				node = ElementTree.Element(elName, attrs)
-			else:
-				node = ElementTree.SubElement(parent, elName, attrs)
-
 			if self.childSequence is None:
-				self._addChildrenAsIs(node)
+				childIter = iter(self.children)
 			else:
-				self._addChildrenInSequence(node)
-			return node
+				childIter = self._iterChildrenInSequence()
+			return visitor(self.getElName(), self.text,
+				self._makeAttrDict(), childIter)
 		except Error:
 			raise
 		except Exception, msg:
 			msg.args = (unicode(msg)+(" while building %s node"
 				" with children %s"%(self.name, self.children)),)+msg.args[1:]
 			raise
-	
+
+	def asETree(self):
+		"""returns an ElementTree instance for the tree below this node.
+		"""
+		return self.traverse(self._eTreeVisitor)
+
 	def render(self):
 		et = self.asETree()
 		if et is None:
@@ -249,20 +259,24 @@ class Element(object):
 				res[attName] = str(getattr(self, name))
 		return res
 
-	def _addChildrenAsIs(self, node):
-		for child in self.children:
-			if isinstance(child, basestring):
-				node.text = child
-			else:
-				child.asETree(node)
-
-	def _addChildrenInSequence(self, node):
-		cDict, text = self.makeChildDict()
-		node.text = text
+	def _iterChildrenInSequence(self):
+		cDict = self.makeChildDict()
 		for cName in self.childSequence:
 			if cName in cDict:
 				for c in cDict[cName]:
-					c.asETree(node)
+					yield c
+
+	def _eTreeVisitor(self, elName, content, attrDict, childIter):
+		"""helps asETree.
+		"""
+		node = ElementTree.Element(elName, **attrDict)
+		if content:
+			node.text = content
+		for child in childIter:
+			childNode = child.traverse(self._eTreeVisitor)
+			if childNode is not None:
+				node.append(childNode)
+		return node
 
 
 def schemaURL(xsdName):

@@ -4,6 +4,7 @@ Tests for the various modules in utils.
 
 from gavo import utils
 from gavo.utils import algotricks
+from gavo.utils import stanxml
 
 import testhelpers
 
@@ -77,5 +78,40 @@ class IdManagerTest(testhelpers.VerboseTest):
 		self.failUnless(testob2 is self.im.getForId("ob10"))
 
 
+class StanXMLTest(testhelpers.VerboseTest):
+	"""tests for our ad hoc XML DOM.
+	"""
+	class E(object):
+		class LocalElement(stanxml.Element):
+			namespace = "http://bar.com"
+			local = mayBeEmpty = True
+		class A(LocalElement):
+			a_x = None
+		class B(LocalElement):
+			a_y = None
+		class NSElement(stanxml.Element):
+			namespace = "http://foo.com"
+		class C(NSElement):
+			a_z = "ab"
+
+	def testTraversal(self):
+		tree = self.E.A[self.E.B, self.E.B, self.E.A]
+		def record(elName, content, attrDict, childIter):
+			return (elName,
+				[c.traverse(record) for c in childIter])
+		self.assertEqual(tree.traverse(record),
+			('A', [('B', []), ('B', []), ('A', [])]))
+	
+	def testSimpleRender(self):
+		tree = self.E.A[self.E.B, self.E.B, self.E.A]
+		self.assertEqual(tree.render(), '<A><B /><B /><A /></A>')
+	
+	def testRenderWithText(self):
+		E = self.E
+		tree = E.A[E.C["arg"], E.C(z="c")[E.B["muss"], E.A]]
+		self.assertEqual(tree.render(), 
+			'<A><ns0:C z="ab" xmlns:ns0="http://foo.com">arg</ns0:C><ns0:C z='
+			'"c" xmlns:ns0="http://foo.com"><B>muss</B><A /></ns0:C></A>')
+
 if __name__=="__main__":
-	testhelpers.main(IdManagerTest)
+	testhelpers.main(StanXMLTest)

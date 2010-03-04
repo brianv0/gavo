@@ -8,10 +8,16 @@ from gavo.votable import dec_tabledata
 
 
 class TableDataIterator(object):
+	"""An internal class used by Rows actually implement the iterator
+	the user sees.
+	"""
 	def __init__(self, tableDefinition, nodeIterator):
 		self.nodeIterator = nodeIterator
-		self._decodeRawRow = coding.makeRowDecoder(tableDefinition,
-			dec_tabledata.getDecoderLines, dec_tabledata.getGlobals())
+		self._decodeRawRow = coding.buildCodec(
+			coding.getRowDecoderSource(
+				tableDefinition,
+				dec_tabledata),
+			dec_tabledata.getGlobals())
 
 	def __iter__(self):
 		while True:

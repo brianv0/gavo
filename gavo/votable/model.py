@@ -2,6 +2,8 @@
 xmlstan elements of VOTable.
 """
 
+import re
+
 from gavo.utils.stanxml import Element
 
 VOTableNamespace = "http://www.ivoa.net/xml/VOTable/v1.2"
@@ -20,6 +22,22 @@ class VOTable(object):
 		a_ucd = None
 		a_utype = None
 		mayBeEmpty = True
+
+		_defusePat = re.compile("[^A-Za-z_0-9]")
+
+		def getDesignation(self):
+			"""returns something to "call" this element.
+
+			This is a name, if possible, else the id.  Weird characters are
+			replaced, so the result should be safe to embed in code.
+			"""
+			name = self.a_name
+			if name is None:
+				name = self.a_ID
+			if name is None:
+				name = "UNIDENTIFIED"
+			return self._defusePat.sub("?", name)
+
 
 	class _ValuedElement(_DescribedElement):
 		a_unit = None
@@ -40,9 +58,29 @@ class VOTable(object):
 		a_utype = None
 		childSequence = []
 
-	class BINARY(_VOTElement):
+	class _ContentElement(_VOTElement):
+		"""An element containing tabular data.
+
+		These are usually serialized using some kind of streaming.
+
+		See votable.tablewriter for details.
+		"""
+		def write(self, file, encoding):
+			self._preamble(file)
+			for row in self.iterRows():
+				file.write(row.encode(encoding))
+			self._postamble(file)
+
+
+	class BINARY(_ContentElement):
 		childSequence = ["STREAM"]
-	
+		def _preamble(self, file):
+			file.write("<STREAM>")
+
+		def _postamble(self, file):
+			file.write("</STREAM>")
+
+
 	# COOSYS deprecated, we don't even include it.
 
 	class DATA(_VOTElement):
@@ -129,10 +167,16 @@ class VOTable(object):
 		a_nrows = None
 		childSequence = ["DESCRIPTION", "INFO", "GROUP", "FIELD", "PARAM", "LINK",
 			"DATA"]
-	
-	class TABLEDATA(_VOTElement):
+
+
+	class TABLEDATA(_ContentElement):
 		childSequence = ["TR"]
-	
+
+		def _preamble(self, file):
+			pass
+		_postable = _preamble
+
+
 	class TD(_VOTElement):
 		a_encoding = None
 		childSequence = [None]

@@ -205,7 +205,7 @@ class ColRef(object):
 		return False
 
 	def serializeToXMLStan(self):
-		return self
+		return str(self)
 
 	def __mul__(self, other):
 		raise STCValueError("ColRefs (here, %s) cannot be used in arithmetic"

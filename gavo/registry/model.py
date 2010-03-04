@@ -422,29 +422,8 @@ def addBasicVSElements(baseNS, VSElement):
 		class name(VSElement): pass
 		
 		class description(VSElement): pass
-		
-		class dataType(VSElement):
-			a_arraysize = None
 
-		class simpleDataType(VSElement):
-			name = "dataType"  # dataType with vs:SimpleDataType sounds so stupid
-				# that I must have misunderstood something.  Well, I just hack it and
-				# do an ad-hoc type translation at tree building time.  Yikes.
-			
-			typeMap = {
-				"char": "string",
-				"short": "integer",
-				"int": "integer",
-				"long": "integer",
-				"float": "real",
-				"double": "real",
-			}
-			def asETree(self, parent):
-				if self.isEmpty():
-					return
-				self.children = [self.typeMap.get(self.children[0], self.children[0])]
-				return super(VS.simpleDataType, self).asETree(parent)
-		
+
 		class unit(VSElement): pass
 		
 		class ucd(VSElement): pass
@@ -496,7 +475,51 @@ def addBasicVSElements(baseNS, VSElement):
 			c_name = None
 			c_ucd = None
 			c_unit = None
+
+	
+		class dataType(VSElement):
+			# dataType is something of a mess with subtle changes from 1.0 to
+			# 1.1.  There are various type systems, and all of this is
+			# painful.  I don't try to untangle this here.
+			xsi_type_name = "xsi:type"
+			name = "dataType"
+			a_arraysize = None
+			a_delim = None
+			a_extendedSchema = None
+			a_extendedType = None
+
+			def addChild(self, item):
+				assert isinstance(item, basestring)
+				self.defineType(item)
+
+			def defineType(self, item):
+				self.text = item
+
+		class simpleDataType(dataType):
+			name = "dataType"  # dataType with vs:SimpleDataType sounds so stupid
+				# that I must have misunderstood something.
+			
+			typeMap = {
+				"char": "string",
+				"short": "integer",
+				"int": "integer",
+				"long": "integer",
+				"float": "real",
+				"double": "real",
+			}
+
+			def defineType(self, type):
+				self.text = self.typeMap.get(type, type)
 		
+		class voTableDataType(dataType):
+			a_xsi_type = "vs1:VOTableType"
+
+			def defineType(self, type):
+				typeName, arrLen = typesystems.toVOTableConverter.convert(type)
+				self.text = typeName
+				self(arraysize=str(arrLen))
+
+
 	return TNS
 
 # Elements common to VODataService 1.0 and 1.1 are added by addBasicVSElements
@@ -542,37 +565,6 @@ class _VS1_1Stub:
 
 	class fromColumn(VSElement): pass
 	class targetColumn(VSElement): pass
-
-	class dataType(VSElement):
-		# This is "abstract".  Various sub-types map to various vocabularies.
-		# We use base.typesystems mappers for this.  Give them in the 
-		# class's typeMapper attribute.  The values are sql types in all cases.
-		# You will have to define a defineType method receiving the result
-		# of the type mapper and changing the node attributes.
-		xsi_type_name = "xsi:type"
-		name = "dataType"
-		a_arraysize = None
-		a_delim = None
-		a_extendedSchema = None
-		a_extendedType = None
-
-		def asETree(self, parent=None):
-			if self.isEmpty():
-				return
-			dbType = self.children.pop(0)
-			self.defineType(self.typeMapper.convert(dbType))
-			return VS1.VSElement.asETree(self, parent)
-
-	class voTableDataType(dataType):
-		a_xsi_type = "vs1:VOTableType"
-		typeMapper = typesystems.toVOTableConverter
-
-		def defineType(self, voType):
-			typeName, arrLen = voType
-			self[typeName]
-			self(arraysize=str(arrLen))
-
-
 
 VS1 = addBasicVSElements(_VS1_1Stub, _VS1_1Stub.VSElement)
 

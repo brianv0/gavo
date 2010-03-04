@@ -74,9 +74,9 @@ class UtypeMaker(object):
 				yield pair
 
 	def iterUtypes(self, node, prefix):
-		children, content = node.makeChildDict()
-		if content:
-			yield prefix, content
+		children = node.makeChildDict()
+		if node.text:
+			yield prefix, node.text
 		for name, child in children.iteritems():
 			handler = getattr(self, "_gener_"+name, self._generPlain)
 			for pair in handler(name, child, prefix):

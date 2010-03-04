@@ -7,32 +7,61 @@ from gavo.votable import common
 from gavo.votable.model import VOTable
 
 
-def _makeRowDecoderSource(tableDefinition, getDecoderLines):
+def getRowDecoderSource(tableDefinition, decoderModule):
+	"""returns the source for a function decoding rows of tableDefition
+	encoded in the format implied by decoderModule.
+
+	tableDefinition is a VOTable.TABLE instance, decoderModule
+	is a function from one of the dec_XXX modules.
+	"""
 	source = ["def decodeRow(rawRow):", "  row = []"]
 	for index, field in enumerate(
 			tableDefinition.iterChildrenOfType(VOTable.FIELD)):
 		source.append("  try:")
 		source.append("    val = rawRow[%d]"%index)
-		source.extend(indentList(getDecoderLines(field), "    "))
+		source.extend(indentList(decoderModule.getLinesFor(field), "    "))
 		source.append("  except:")
 		source.append("    traceback.print_exc()")
 		source.append("    raise common.BadVOTableLiteral('%s', val)"%
 			field.a_datatype)
-	source.append("  return row")
+	source.extend(indentList(
+		decoderModule.getPostamble(tableDefinition), "  "))
 	return "\n".join(source)
 
 
-def makeRowDecoder(tableDefinition, getDecoderLines, decoderEnv):
-	"""returns a compiled function taking raw data from a tableDefintion table
-	and returning a python list.
+def getRowEncoderSource(tableDefinition, encoderModule):
+	"""returns the source for a function encoding rows of tableDefition
+	in the format implied by encoderModule.
 
-	getDecoderLines is a function taking a model.FIELD instance and returning
-	source code lines (no base indent) that append a value for
-	that field to a list called row.
+	tableDefinition is a VOTable.TABLE instance, encoderModule
+	is one of the enc_XXX modules.
+	"""
+
+	source = ["def encodeRow(tableRow):", "	tokens = []"]
+	for index, field in enumerate(
+			tableDefinition.iterChildrenOfType(VOTable.FIELD)):
+		source.append("  try:")
+		source.append("    val = tableRow[%d]"%index)
+		source.extend(indentList(encoderModule.getLinesFor(field), "    "))
+		source.append("  except common.VOTableError:")
+		source.append("    raise")
+		source.append("  except Exception, ex:")
+		source.append("    traceback.print_exc()")
+		source.append("    raise common.BadVOTableData('%s', val, unicode(ex))"%
+			field.getDesignation)
+	source.extend(indentList(
+		encoderModule.getPostamble(tableDefinition), "  "))
+	return "\n".join(source)
+
+
+def buildCodec(source, env):
+	"""returns a compiled function for source in env.
+
+	Source is the result of one of the makeXXX functions in this module,
+	env typically the result of a getGlobals() on the codec module.
 	"""
 	ns = {}
-	ns.update(decoderEnv)
-	source = _makeRowDecoderSource(tableDefinition, getDecoderLines)
+	ns.update(env)
 #	print(source)
 	try:
 		exec source in ns

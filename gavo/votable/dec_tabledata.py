@@ -181,13 +181,18 @@ def _getArrayDecoderLines(field):
 	return src
 
 
-def getDecoderLines(field):
+def getLinesFor(field):
 	"""returns a sequence of python source lines to decode TABLEDATA-encoded
 	values for field.
 	"""
 	if field.a_arraysize not in SINGLEVALUES:
 		return _getArrayDecoderLines(field)
 	return _decoders[field.a_datatype](field)
+
+
+def getPostamble(tableDefinition):
+	return [
+		"return row"]
 
 
 def getGlobals():
