@@ -93,10 +93,11 @@ def _makeComplexDecoder(field):
 		'    r, i = val.split()',
 		'  except ValueError:',
 		'    r, i = float(val), 0',
-		'  row.append(complex(float(r), float(i)))',]
-	def validateComplex(val):
-		re, im = map(float, val.split())
-	return _addNullvalueCode(field, src, validateComplex)
+		'  if r!=r or i!=i:',
+		'    row.append(None)',
+		'  else:'
+		'    row.append(complex(float(r), float(i)))',]
+	return _addNullvalueCode(field, src, common.validateTDComplex)
 
 
 def _makeIntDecoder(field, maxInt):

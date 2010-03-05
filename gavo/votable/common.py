@@ -30,3 +30,14 @@ class BadVOTableData(VOTableError):
 	
 	def __str__(self):
 		return "Field '%s', value %s: %s"%(self.fieldName, self.val, self.msg)
+
+
+def escapeCDATA(val):
+	return val.encode("utf-8"
+		).replace("&", "&amp;"
+		).replace('<', '&lt;'
+		).replace('>', '&gt;')
+
+
+def validateTDComplex(val):
+	re, im = map(float, val.split())

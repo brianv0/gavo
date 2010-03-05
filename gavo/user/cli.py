@@ -59,12 +59,6 @@ def loadGAVOModule(moduleName):
 	return modNS
 
 
-def runFunction(module, funcName):
-	"""imports funcName from module and calls it without arguments.
-	"""
-	getattr(loadGAVOModule(module), funcName)()
-
-
 def _enablePDB():
 # This can't be a callback to the --enable-pdb option since it needs
 # errhandle, and we only want to import this after the command line
@@ -136,9 +130,10 @@ def main():
 		from gavo.user import errhandle
 		if opts.enablePDB:
 			_enablePDB()
+		funcToRun = getattr(loadGAVOModule(module), funcName)
 
 	try:
-		runFunction(module, funcName)
+		funcToRun()
 	except Exception, ex:
 		if opts.alwaysTracebacks:
 			traceback.print_exc()

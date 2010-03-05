@@ -205,8 +205,45 @@ class TabledataWriteTest(testhelpers.VerboseTest):
 			[V.FIELD(datatype="float")],
 			[[1],[None],[float("NaN")]],
 			"<TR><TD>1</TD></TR><TR><TD></TD></TR><TR><TD></TD></TR>"
-		),
+		), (
+			[V.FIELD(datatype="double")],
+			[[1.52587890625e-05], [float("+Inf")]],
+			'<TR><TD>1.52587890625e-05</TD></TR><TR><TD>inf</TD></TR>'
+		), (
+			[V.FIELD(datatype="boolean")],
+			[[True], [False], [None]],
+			'<TR><TD>1</TD></TR><TR><TD>0</TD></TR><TR><TD>?</TD></TR>'
+		), ([
+				V.FIELD(datatype="bit"),
+				V.FIELD(datatype="unsignedByte"),
+				V.FIELD(datatype="short"),
+				V.FIELD(datatype="int"),
+				V.FIELD(datatype="long")],
+			[[0,1,2,3,4]],
+			'<TR><TD>0</TD><TD>1</TD><TD>2</TD><TD>3</TD><TD>4</TD></TR>'
+		), (
+			[V.FIELD(datatype="unicodeChar")],
+			[u'\xe4'],
+			'<TR><TD>\xc3\xa4</TD></TR>'
+		), (
+			[V.FIELD(datatype="char")],
+			[u'\xe4'],
+			'<TR><TD>\xc3\xa4</TD></TR>'
+		), (
+			[V.FIELD(datatype="floatComplex")],
+			[[0.5+0.25j]],
+			'<TR><TD>0.5 0.25</TD></TR>'
+		), ([
+				V.FIELD(datatype="unsignedByte")[V.VALUES(null="23")],
+				V.FIELD(datatype="unicodeChar")[V.VALUES(null="\x00")],
+				V.FIELD(datatype="float")[V.VALUES(null="-9999")]],
+			[[1, "a", 1.5], [None, None, None]],
+			'<TR><TD>1</TD><TD>a</TD><TD>1.5</TD></TR>'
+			'<TR><TD>23</TD><TD>\x00</TD><TD>-9999</TD></TR>'
+		)
+
 	]
+
 
 if __name__=="__main__":
 	testhelpers.main(TabledataWriteTest)

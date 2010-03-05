@@ -15,14 +15,7 @@ _encoders = {
 
 
 def _escapeAttrVal(val):
-	return '"%s"'%_escapeCDATA(val).replace('"', '&quot;')
-
-
-def _escapeCDATA(val):
-	return val.encode("utf-8"
-		).replace("&", "&amp;"
-		).replace('<', '&lt;'
-		).replace('>', '&gt;')
+	return ('"%s"'%common.escapeCDATA(val)).replace('"', '&quot;')
 
 
 def write(root, outputFile):

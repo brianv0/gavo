@@ -17,9 +17,9 @@ def _addNullvalueCode(field, src, validator, defaultNullValue=None):
 			action = ("  raise common.BadVOTableData('None passed for field"
 				" that has no NULL value', None, '%s')")%field.getDesignation()
 		else:
-			action = ("  row.append(%r)"%defaultNullValue)
+			action = ("  tokens.append(%r)"%defaultNullValue)
 	else:
-		action = "  row.append(%r)"%nullvalue
+		action = "  tokens.append(%r)"%nullvalue
 	return [
 			'if val is None:',
 			action,
@@ -27,17 +27,58 @@ def _addNullvalueCode(field, src, validator, defaultNullValue=None):
 
 
 def _makeFloatEncoder(field):
-	src = [
-		"if val is None or val!=val:",  # NaN is a null value, too
+	return _addNullvalueCode(field, [
+		"if val!=val:",  # NaN is a null value, too
 		"  tokens.append('')",
 		"else:",
-		"  tokens.append(repr(val))"]
-	return src
+		"  tokens.append(repr(val))"],
+		float, "")
+
+
+def _makeComplexEncoder(field):
+	return _addNullvalueCode(field, [
+		"try:",
+		"  tokens.append('%s %s'%(repr(val.real), repr(val.imag)))",
+		"except AttributeError:",
+		"  tokens.append(repr(val))",],
+		common.validateTDComplex, "")
+
+
+def _makeBooleanEncoder(field):
+	return [
+		"if val is None:",
+		"  tokens.append('?')",
+		"elif val:",
+		"  tokens.append('1')",
+		"else:",
+		"  tokens.append('0')",]
+
+
+def _makeIntEncoder(field):
+	return _addNullvalueCode(field, [
+		"tokens.append(str(val))"],
+		int)
+
+
+def _makeCharEncoder(field):
+	return _addNullvalueCode(field, [
+		"tokens.append(common.escapeCDATA(val))"],
+		lambda _: True)
 
 
 _encoders = {
+	'boolean': _makeBooleanEncoder,
+	'bit': _makeIntEncoder,
+	'unsignedByte': _makeIntEncoder,
+	'short': _makeIntEncoder,
+	'int': _makeIntEncoder,
+	'long': _makeIntEncoder,
+	'char': _makeCharEncoder,
+	'unicodeChar': _makeCharEncoder,
 	'float': _makeFloatEncoder,
 	'double': _makeFloatEncoder,
+	'floatComplex': _makeComplexEncoder,
+	'doubleComplex': _makeComplexEncoder,
 }
 
 
