@@ -3,8 +3,10 @@ Tests for our low-level VOTable interface.
 """
 
 import re
+import struct
 
 from gavo import votable
+from gavo.votable import common
 from gavo.votable import V
 
 from gavo.helpers import testhelpers
@@ -261,5 +263,30 @@ class TabledataWriteTest(testhelpers.VerboseTest):
 	]
 
 
+class BinaryWriteTest(testhelpers.VerboseTest):
+	"""tests for serializing BINARY VOTables.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		fielddefs, input, expected = sample
+		vot = V.VOTABLE[V.RESOURCE[votable.DelayedTable(
+			V.TABLE[fielddefs], input, V.BINARY)]]
+		mat = re.search('(?s)<STREAM encoding="base64">(.*)</STREAM>', 
+			votable.asString(vot))
+		content = mat and mat.group(1)
+		self.assertEqual(content.decode("base64"), expected)
+
+	samples = [(
+			[V.FIELD(datatype="float")],
+			[[1],[None],[common.NaN]],
+			struct.pack("!fff", 1, common.NaN, common.NaN)
+		), (
+			[V.FIELD(datatype="double")],
+			[[1],[None],[common.NaN]],
+			struct.pack("!ddd", 1, common.NaN, common.NaN)
+		)
+	]
+
 if __name__=="__main__":
-	testhelpers.main(TabledataWriteTest)
+	testhelpers.main(BinaryWriteTest)

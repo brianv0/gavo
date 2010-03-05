@@ -65,19 +65,29 @@ class VOTable(object):
 
 		See votable.tablewriter for details.
 		"""
-		def write(self, file, encoding):
-			self._preamble(file)
-			for row in self.iterRows():
-				file.write(row.encode(encoding))
-			self._postamble(file)
+		def write(self, file):
+			raise NotImplementedError("This _ContentElement cannot write yet")
 
 
 	class BINARY(_ContentElement):
 		childSequence = ["STREAM"]
-		def _preamble(self, file):
-			file.write("<STREAM>")
-
-		def _postamble(self, file):
+		encoding = "base64"
+		
+		def write(self, file):
+			# To be able to write incrementally, encode chunks of multiples
+			# of 57 bytes until the stream is finished.
+			blockSize = 57
+			buf, bufFil, flushThreshold = [], 0, blockSize*20
+			file.write('<STREAM encoding="base64">')
+			for data in self.iterSerialized():
+				buf.append(data)
+				bufFil + len(data)
+				if bufFil>flushThreshold:
+					curData = ''.join(buf)
+					curBlockLen = (len(curData)//blockSize)*blockSize
+					file.write(toOutput[:curBlockLen].encode("base64"))
+					buf = [curData[curBlockLen:]]
+			file.write("".join(buf).encode("base64"))
 			file.write("</STREAM>")
 
 
@@ -153,7 +163,8 @@ class VOTable(object):
 		a_utype = None
 		childSequence = ["DESCRIPTION", "INFO", "GROUP", "PARAM", "LINK",
 			"TABLE", "RESOURCE"]
-	
+
+
 	class STREAM(_VOTElement):
 		a_actuate = None
 		a_encoding = None
@@ -162,7 +173,8 @@ class VOTable(object):
 		a_rights = None
 		a_type = None
 		childSequence = [None]
-	
+
+
 	class TABLE(_DescribedElement):
 		a_nrows = None
 		childSequence = ["DESCRIPTION", "INFO", "GROUP", "FIELD", "PARAM", "LINK",
@@ -171,11 +183,15 @@ class VOTable(object):
 
 	class TABLEDATA(_ContentElement):
 		childSequence = ["TR"]
+		encoding = "utf-8"
 
-		def _preamble(self, file):
-			pass
-		_postable = _preamble
-
+		def write(self, file):
+			file.write("<TABLEDATA>")
+			enc = self.encoding
+			for row in self.iterSerialized():
+				file.write(row.encode(enc))
+			file.write("</TABLEDATA>")
+		
 
 	class TD(_VOTElement):
 		a_encoding = None

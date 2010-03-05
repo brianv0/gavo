@@ -92,7 +92,7 @@ def indentList(lines, indent):
 	return [indent+l for l in lines]
 
 
-def getNullvalue(field, validator):
+def getNullvalue(field, validator, default=None):
 	"""returns None or the nullvalue defined for field.
 
 	validator is a function that raises some exception if the nullvalue
@@ -104,6 +104,8 @@ def getNullvalue(field, validator):
 	for values in field.iterChildrenOfType(VOTable.VALUES):
 		if values.a_null is not None:
 			nullvalue = values.a_null
-	if nullvalue is not None:
+	if nullvalue is None:
+		return default
+	else:
 		_ = validator(nullvalue)
 	return nullvalue

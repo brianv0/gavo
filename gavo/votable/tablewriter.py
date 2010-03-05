@@ -6,20 +6,22 @@ from cStringIO import StringIO
 
 from gavo.votable import coding
 from gavo.votable import common
+from gavo.votable import enc_binary
 from gavo.votable import enc_tabledata
 from gavo.votable.model import VOTable
 
 _encoders = {
 	VOTable.TABLEDATA: enc_tabledata,
+	VOTable.BINARY: enc_binary,
 }
 
 
 def _escapeAttrVal(val):
-	return ('"%s"'%common.escapeCDATA(val)).replace('"', '&quot;')
+	return '"%s"'%(common.escapeCDATA(val).replace('"', '&quot;'))
 
 
 def write(root, outputFile):
-	"""writes the VOTable below row to outputFile in encoding.
+	"""writes the VOTable below row to outputFile.
 
 	stanxml has a render method that could do the same thing; however,
 	that uses ElementTree, and there is no way we can support streaming
@@ -75,15 +77,13 @@ def DelayedTable(tableDefinition, rowIterator, contentElement, **attrs):
 			hint="Try something like TABLEDATA or BINARY")
 	encodeRow = coding.buildEncoder(tableDefinition, _encoders[contentElement])
 
-	def write(outputFile):
-		outputFile.write("<TABLEDATA>")
+	def iterSerialized():
 		for row in rowIterator:
-			outputFile.write(encodeRow(row))
-		outputFile.write("</TABLEDATA>")
+			yield encodeRow(row)
 	
 	content = contentElement(**attrs)
-	content.write = write
 	content.text = "Placeholder for real data"
+	content.iterSerialized = iterSerialized
 
 	return tableDefinition[VOTable.DATA[
 		content]]
