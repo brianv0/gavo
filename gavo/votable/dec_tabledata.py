@@ -9,9 +9,6 @@ from gavo.votable import coding
 from gavo.votable import common
 
 
-# Values we accept as meaning "single value" in a FIELD's arraysize
-SINGLEVALUES = set([None, '', '1'])
-
 # literals for TDENC booleans
 TDENCBOOL = {
 	't': True,
@@ -113,7 +110,7 @@ def _makeIntDecoder(field, maxInt):
 		'    row.append(unsigned)',
 		'else:',
 		'  row.append(int(val))']
-	return _addNullvalueCode(field, src, int)
+	return _addNullvalueCode(field, src, common.validateVOTInt)
 
 
 def _makeCharDecoder(field, emptyIsNull=True):
@@ -166,7 +163,7 @@ def _getArrayDecoderLines(field):
 	type, arraysize = field.a_datatype, field.a_arraysize
 	if type=='char' or type=='unicodeChar':
 		return _makeCharDecoder(field, emptyIsNull=False)
-	src = [ # OMG.  I'm still hellbound on not calling functions here.
+	src = [ # OMG.  I'm still hellbent on not calling functions here.
 		'arrayLiteral = val',
 		'fullRow, row = row, []',
 		]
@@ -186,7 +183,7 @@ def getLinesFor(field):
 	"""returns a sequence of python source lines to decode TABLEDATA-encoded
 	values for field.
 	"""
-	if field.a_arraysize not in SINGLEVALUES:
+	if field.a_arraysize not in common.SINGLEVALUES:
 		return _getArrayDecoderLines(field)
 	return _decoders[field.a_datatype](field)
 

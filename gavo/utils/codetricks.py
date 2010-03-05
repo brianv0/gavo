@@ -33,8 +33,13 @@ class CachedGetter(object):
 
 	The resource is created on the first call, all further calls just return
 	references to the original object.
+
+	You can also leave out the getter argument and add an argumentless method 
+	impl computing the value to cache.
 	"""
 	def __init__(self, getter, *args, **kwargs):
+		if getter is None:
+			getter = self.impl
 		self.cache, self.getter = None, getter
 		self.args, self.kwargs = args, kwargs
 	
@@ -44,6 +49,21 @@ class CachedGetter(object):
 			del self.args
 			del self.kwargs
 		return self.cache
+
+
+class CachedResource(object):
+	"""is like CachedGetter but with a built-in getter.
+
+	Here, you define your class and have a class method impl returning
+	what you want.
+	"""
+	cache = None
+
+	@classmethod 
+	def __new__(cls, arg):
+		if cls.cache is None:
+			cls.cache = cls.impl()
+		return cls.cache
 
 
 class IdManagerMixin(object):

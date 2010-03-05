@@ -240,8 +240,24 @@ class TabledataWriteTest(testhelpers.VerboseTest):
 			[[1, "a", 1.5], [None, None, None]],
 			'<TR><TD>1</TD><TD>a</TD><TD>1.5</TD></TR>'
 			'<TR><TD>23</TD><TD>\x00</TD><TD>-9999</TD></TR>'
+		), (
+			[V.FIELD(datatype="unsignedByte", arraysize="2")[V.VALUES(null="0xff")]],
+			[[[]], [[2]], [None], [[2, 3, 4]]],
+		'<TR><TD>0xff 0xff</TD></TR><TR><TD>2 0xff</TD></TR>'
+		'<TR><TD>0xff 0xff</TD></TR><TR><TD>2 3</TD></TR>'
+		), (
+			[V.FIELD(datatype="bit", arraysize="*")],
+			[[430049293488]],
+			'<TR><TD>110010000100000111011110111010010110000</TD></TR>'
+		), (
+			[V.FIELD(datatype="doubleComplex", arraysize="2")[V.VALUES(null="0 0")]],
+			[[[2+2j, None, 4+4j]]],
+			'<TR><TD>2.0 2.0 0 0</TD></TR>'
+		), (
+			[V.FIELD(datatype="double", arraysize="*")[V.VALUES(null="23")]],
+			[[None], [[None]]],
+			"<TR><TD></TD></TR><TR><TD>23</TD></TR>"
 		)
-
 	]
 
 

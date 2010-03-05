@@ -4,6 +4,11 @@ Common definitions for the GAVO VOTable modules.
 
 from gavo import utils
 
+
+# Values we accept as meaning "single value" in a FIELD's arraysize
+SINGLEVALUES = set([None, '', '1'])
+
+
 class VOTableError(utils.Error):
 	"""Various VOTable-related errors.
 	"""
@@ -32,6 +37,7 @@ class BadVOTableData(VOTableError):
 		return "Field '%s', value %s: %s"%(self.fieldName, self.val, self.msg)
 
 
+
 def escapeCDATA(val):
 	return val.encode("utf-8"
 		).replace("&", "&amp;"
@@ -41,3 +47,11 @@ def escapeCDATA(val):
 
 def validateTDComplex(val):
 	re, im = map(float, val.split())
+
+def validateVOTInt(val):
+	"""raise an error if val is not a legal int for VOTables.
+	"""
+	try:
+		int(val)
+	except ValueError:
+		int(val[2:], 16)

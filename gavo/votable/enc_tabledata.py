@@ -4,6 +4,7 @@ Encoding to tabledata.
 
 import traceback
 
+from gavo import utils
 from gavo.votable import coding
 from gavo.votable import common
 
@@ -57,7 +58,7 @@ def _makeBooleanEncoder(field):
 def _makeIntEncoder(field):
 	return _addNullvalueCode(field, [
 		"tokens.append(str(val))"],
-		int)
+		common.validateVOTInt)
 
 
 def _makeCharEncoder(field):
@@ -82,11 +83,54 @@ _encoders = {
 }
 
 
+def _getArrayEncoderLines(field):
+	"""returns python lines to encode array values of field.
+
+	Again, the specs are a bit nuts, so we end up special casing almost 
+	everything.
+
+	If arraysize is given and non-"*", we enforce the given length by
+	cropping or adding nulls (except, currently, for bit and char arrays.
+	"""
+	type, arraysize = field.a_datatype, field.a_arraysize
+	# bit array literals are integers, real special handling
+	if type=="bit":  
+		return ['tokens.append(utils.toBinary(val))']
+	# char array literals are strings, real special handling
+	if type=='char' or type=='unicodeChar':
+		src.extend(_makeCharEncoder(field))
+
+	src = [ # Painful name juggling to avoid functions
+		'fullTokens = tokens',
+		'tokens = []',
+		'if val is None:',
+		'  arr = []',
+		'else:',
+		'  arr = val']
+
+	if arraysize!="*":
+		targetLength = int(arraysize)
+		src.extend([
+			'if len(arr)<%d:'%targetLength,
+			'  arr = arr+[None]*(%d-len(arr))'%targetLength,
+			'elif len(arr)>%d:'%targetLength,
+			'  arr = arr[:%d]'%targetLength])
+
+	src.extend(['for val in arr:']+coding.indentList(
+		_encoders[type](field), "  "))
+	src.append("fullTokens.append(' '.join(tokens))")
+	src.append("tokens = fullTokens")
+	return src
+
+
 def getLinesFor(field):
 	"""returns a sequence of python source lines to encode values described
 	by field into tabledata.
 	"""
-	return _encoders[field.a_datatype](field)
+	if field.a_arraysize in common.SINGLEVALUES:
+		return _encoders[field.a_datatype](field)
+	else:
+		return _getArrayEncoderLines(field)
 
 
 def getPostamble(tableDefinition):
