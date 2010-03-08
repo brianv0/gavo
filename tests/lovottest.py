@@ -60,7 +60,6 @@ class TextParseTest(testhelpers.VerboseTest):
 		self.assertEqual(res.text, u"\xe4rn")
 
 
-
 class IdTest(testhelpers.VerboseTest):
 	"""tests for collection of id attributes.
 	"""
@@ -285,8 +284,49 @@ class BinaryWriteTest(testhelpers.VerboseTest):
 			[V.FIELD(datatype="double")],
 			[[1],[None],[common.NaN]],
 			struct.pack("!ddd", 1, common.NaN, common.NaN)
+		), (
+			[V.FIELD(datatype="boolean")],
+			[[True],[False],[None]],
+			"10?"
+		), (
+			[V.FIELD(datatype="bit")],
+			[[1],[0]],
+			"\x01\x00"
+		), (
+			[V.FIELD(datatype="unsignedByte")],
+			[[20]],
+			"\x14"
+		), (  # 5
+			[V.FIELD(datatype="unsignedByte")[V.VALUES(null="23")]],
+			[[20], [None]],
+			"\x14\x17"
+		), (
+			[V.FIELD(datatype="short")],
+			[[20]],
+			"\x00\x14"
+		), (
+			[V.FIELD(datatype="int")],
+			[[-20]],
+			"\xff\xff\xff\xec"
+		), (
+			[V.FIELD(datatype="long")],
+			[[-20]],
+			"\xff\xff\xff\xff\xff\xff\xff\xec"
+		), (
+			[V.FIELD(datatype="char")[V.VALUES(null="x")]],
+			[['a'], [None]],
+			"ax"
+		), (
+			[V.FIELD(datatype="unicodeChar")[V.VALUES(null=u"\udead")]],
+			[['a'], ['\xe4'.decode("iso-8859-1")], [None]],
+			"\x00a\x00\xe4\xde\xad"
+		), (
+			[V.FIELD(datatype="floatComplex")],
+			[[6+7j], [None]],
+			struct.pack("!ff", 6, 7)+struct.pack("!ff", common.NaN, common.NaN)
 		)
 	]
+
 
 if __name__=="__main__":
 	testhelpers.main(BinaryWriteTest)
