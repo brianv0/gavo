@@ -4,12 +4,46 @@ Tests for our low-level VOTable interface.
 
 import re
 import struct
+from cStringIO import StringIO
 
 from gavo import votable
 from gavo.votable import common
 from gavo.votable import V
+from gavo.votable.iterparse import iterparse
 
 from gavo.helpers import testhelpers
+
+
+class IterParseTest(testhelpers.VerboseTest):
+	"""tests for our custom iterparser.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		xml, parsed = sample
+		self.assertEqual(list(iterparse(StringIO(xml))), parsed)
+	
+	samples = [
+		("<doc/>", [("start", "doc", {}), ("end", "doc")]),
+		('<doc href="x"/>', [("start", "doc", {"href": "x"}), ("end", "doc")]),
+		('<doc>fl\xc3\xb6ge</doc>', 
+			[("start", "doc", {}), ("data", u"fl\xf6ge"), ("end", "doc")]),
+		('<doc obj="fl\xc3\xb6ge"/>', 
+			[("start", "doc", {"obj": u"fl\xf6ge"}), ("end", "doc")]),
+		('<doc><abc>'+"unu"*10000+'</abc>\n<bcd>klutz</bcd></doc>', [
+			("start", "doc", {}), 
+			("start", "abc", {}),
+			("data", "unu"*10000),
+			("end", "abc"),
+			("data", "\n"),
+			("start", "bcd", {}),
+			("data", "klutz"),
+			("end", "bcd"),
+			("end", "doc")]),
+		('<doc xmlns="http://insane"/>', [
+			("start", "doc", {u'xmlns': u'http://insane'}), ("end", "doc"),])
+	]
+
 
 
 class TrivialParseTest(testhelpers.VerboseTest):
@@ -35,6 +69,32 @@ class TrivialParseTest(testhelpers.VerboseTest):
 			'<VOTABLE xmlns="http://www.ivoa.net/xml/VOTable/v1.1"/>',
 			watchset=[V.VOTABLE]))
 		self.failUnless(isinstance(res[0], V.VOTABLE))
+
+
+class ErrorParseTest(testhelpers.VerboseTest):
+	"""tests for more-or-less benign behaviour on input errors.
+	"""
+	def testExpatReporting(self):
+		try:
+			list(votable.parseString("<VOTABLE>"))
+		except Exception, ex:
+			pass
+		self.assertEqual(ex.__class__.__name__, "VOTableParseError")
+		self.assertEqual(str(ex), "no element found: line 1, column 9")
+
+	def testInternalReporting(self):
+		table = votable.parseString("<VOTABLE><RESOURCE><TABLE>\n"
+			'<FIELD name="x" datatype="boolean"/>\n'
+			'<DATA><TABLEDATA>\n'
+			'<TR><TDA>True</TDA></TR>\n'
+			'</TABLEDATA></DATA>\n'
+			"</TABLE></RESOURCE></VOTABLE>\n").next()
+		try:
+			list(table)
+		except Exception, ex:
+			pass
+		self.assertEqual(ex.__class__.__name__, "VOTableParseError")
+		self.assertEqual(str(ex), "Unexpected element TDA near line 7, column 0")
 
 
 class TextParseTest(testhelpers.VerboseTest):
@@ -226,7 +286,7 @@ class TabledataWriteTest(testhelpers.VerboseTest):
 			[V.FIELD(datatype="unicodeChar")],
 			[u'\xe4'],
 			'<TR><TD>\xc3\xa4</TD></TR>'
-		), (
+		), (  # 5
 			[V.FIELD(datatype="char")],
 			[u'\xe4'],
 			'<TR><TD>\xc3\xa4</TD></TR>'
@@ -324,9 +384,31 @@ class BinaryWriteTest(testhelpers.VerboseTest):
 			[V.FIELD(datatype="floatComplex")],
 			[[6+7j], [None]],
 			struct.pack("!ff", 6, 7)+struct.pack("!ff", common.NaN, common.NaN)
+		), (
+			[V.FIELD(datatype="bit", arraysize="17")],
+			[[1],[2**25-1]],
+			"\x00\x00\x01\xff\xff\xff"
+		), (
+			[V.FIELD(datatype="bit", arraysize="*")],
+			[[1],[2**25-1]],
+			"\x00\x00\x00\x08\x01"
+			"\x00\x00\x00\x20\x01\xff\xff\xff"
 		)
 	]
 
 
+class BinaryReadTest(testhelpers.VerboseTest):
+	"""tests for deserializing BINARY VOTables.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		fielddefs, content, expected = sample
+		vot = V.VOTABLE[V.RESOURCE[V.TABLE[fielddefs,
+			V.BINARY[V.STREAM(encoding="base64")[content.encode("base64")]]]]]
+		content = mat and mat.group(1)
+		self.assertEqual(content.decode("base64"), expected)
+
+
 if __name__=="__main__":
-	testhelpers.main(BinaryWriteTest)
+	testhelpers.main(ErrorParseTest)

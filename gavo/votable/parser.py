@@ -6,6 +6,7 @@ from cStringIO import StringIO
 
 from gavo import utils
 from gavo.utils import FastElementTree
+from gavo.votable import iterparse
 from gavo.votable import model
 from gavo.votable import tableparser
 
@@ -19,30 +20,30 @@ VOTABLE_NAMESPACES = [
 	"http://www.ivoa.net/xml/VOTable/v1.2"]
 
 
-def _processNodeDefault(node, child, parent):
+def _processNodeDefault(text, child, parent):
 	"""the default node processor: Append child to parent, return child.
 	"""
 	parent[child]
 	return child
 
 
-def _processNodeWithContent(node, child, parent):
+def _processNodeWithContent(text, child, parent):
 	"""the node processor for nodes with text content.
 	"""
-	if node.text and node.text.strip():
-		child[node.text]  # Attention: mixed content not supported
+	if text and text.strip():
+		child[text]  # Attention: mixed content not supported
 	parent[child]
 	return child
 
 _end_DESCRIPTION = _processNodeWithContent
 _end_INFO = _processNodeWithContent
-# STREAMs should ordinarily be processed by the table iterator, so this
-# really is only interesting for special applications.
+# STREAMs and TABLEDATA should ordinarily be processed by the table 
+# iterator, so this really is only interesting for special applications:
 _end_STREAM = _processNodeWithContent  
 _end_TD = _processNodeWithContent
 
 
-def _end_VOTABLE(node, child, parent):
+def _end_VOTABLE(text, child, parent):
 # VOTABLEs have no useful parents.
 	return child
 
@@ -59,7 +60,7 @@ def _computeEndProcessorsImpl():
 			elName = n[5:]
 			res[elName] = v
 			for ns in VOTABLE_NAMESPACES:
-				res[FastElementTree.QName(ns, elName)] = v
+				res["%s:%s"%(ns, elName)] = v
 	return res
 
 computeEndProcessors = utils.CachedGetter(_computeEndProcessorsImpl)
@@ -96,24 +97,37 @@ def parse(inFile, watchset=DEFAULT_WATCHSET):
 	processors = computeEndProcessors()
 	elements = computeElements()
 	elementStack = [None]  # None is VOTABLE's parent
-	iterator = iter(FastElementTree.iterparse(inFile, ("start", "end")))
+	iterator = iterparse.iterparse(inFile)
 
-	for ev, node in iterator:
-		if ev=="start":
-			elementStack.append(elements[node.tag](**dict(node.items())))
-			elId = node.get("ID")
+	for ev in iterator:
+		if ev[0]=="start":
+			_, name, attrs = ev
+			if attrs: # Force attr keys to the byte strings for kw args.
+				attrs = dict((str(k), v) for k, v in attrs.iteritems())
+			elementStack.append(elements[name](**attrs))
+			content = []
+			elId = attrs.get("ID")
 			if elId is not None:
 				idmap[elId] = elementStack[-1]
-			if node.tag=="DATA":
+			if name=="DATA":
 				yield tableparser.Rows(elementStack[-2], iterator)
 
-		elif ev=="end":
-			nodeProc = processors.get(node.tag, _processNodeDefault)
+		elif ev[0]=="end":
+			name = ev[1]
+			if content:
+				text = "".join(content)
+				content = []
+			else:
+				text = None
+			nodeProc = processors.get(name, _processNodeDefault)
 			preChild = elementStack.pop()
-			child = nodeProc(node, preChild, elementStack[-1])
+			child = nodeProc(text, preChild, elementStack[-1])
 			if child is not None and child.__class__ in watchset:
 				child.idmap = idmap
 				yield child
+
+		elif ev[0]=="data":
+			content.append(ev[1])
 
 		else:
 			assert False

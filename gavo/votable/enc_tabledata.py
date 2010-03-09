@@ -9,6 +9,23 @@ from gavo.votable import coding
 from gavo.votable import common
 
 
+def _getArrayShapingCode(field, padder):
+	"""returns common code for almost all array serialization.
+
+	Field must describe an array (as opposed to a single value).
+
+	padder must be python-source for whatever is used to pad
+	arrays that are too short.
+	"""
+	base = [
+		"if val is None: val = []"]
+	if field.a_arraysize=='*':
+		return base
+	else:
+		return base+["val = coding.trim(val, %s, %s)"%(
+			repr(field.a_arraysize), padder)]
+
+
 def _addNullvalueCode(field, src, validator, defaultNullValue=None):
 	"""adds code handle null values where not default representation exists.
 	"""
@@ -100,21 +117,11 @@ def _getArrayEncoderLines(field):
 	if type=='char' or type=='unicodeChar':
 		src.extend(_makeCharEncoder(field))
 
-	src = [ # Painful name juggling to avoid functions
+	src = _getArrayShapingCode(field, '[None]')
+	src.extend([ # Painful name juggling to avoid functions
 		'fullTokens = tokens',
 		'tokens = []',
-		'if val is None:',
-		'  arr = []',
-		'else:',
-		'  arr = val']
-
-	if arraysize!="*":
-		targetLength = int(arraysize)
-		src.extend([
-			'if len(arr)<%d:'%targetLength,
-			'  arr = arr+[None]*(%d-len(arr))'%targetLength,
-			'elif len(arr)>%d:'%targetLength,
-			'  arr = arr[:%d]'%targetLength])
+		'arr = val'])
 
 	src.extend(['for val in arr:']+coding.indentList(
 		_encoders[type](field), "  "))

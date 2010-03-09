@@ -17,7 +17,8 @@ _encoders = {
 
 
 def _escapeAttrVal(val):
-	return '"%s"'%(common.escapeCDATA(val).replace('"', '&quot;'))
+	return '"%s"'%(common.escapeCDATA(val).replace('"', '&quot;'
+		).encode("utf-8"))
 
 
 def write(root, outputFile):
@@ -42,7 +43,7 @@ def write(root, outputFile):
 			attrRepr = " "+attrRepr
 		outputFile.write("<%s%s>"%(name, attrRepr))
 		if text:
-			outputFile.write(_escapeCDATA(text))
+			outputFile.write(common.escapeCDATA(text).encode("utf-8"))
 		for c in childIter:
 			if hasattr(c, "write"):
 				c.write(outputFile)

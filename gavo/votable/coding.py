@@ -109,3 +109,20 @@ def getNullvalue(field, validator, default=None):
 	else:
 		_ = validator(nullvalue)
 	return nullvalue
+
+
+def trim(seq, arraysize, padder):
+	"""returns seq with length arraysize.
+
+	arraysize is interpreted as an int (and thus must not be '*'
+	or anything like that).  If seq is shorter, padder*missing will
+	be appended, if it is longer, seq will be shortened from the end.
+
+	This is intended as a helper for array encoders.
+	"""
+	goal = int(arraysize)
+	if len(seq)<goal:
+		seq = seq+padder*(goal-len(seq))
+	elif len(seq)>goal:
+		seq = seq[:goal]
+	return seq

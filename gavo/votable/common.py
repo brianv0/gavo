@@ -37,10 +37,18 @@ class BadVOTableData(VOTableError):
 	def __str__(self):
 		return "Field '%s', value %s: %s"%(self.fieldName, self.val, self.msg)
 
+class VOTableParseError(VOTableError):
+	"""Raised when something is grossly wrong with the document structure.
+
+	Note that the message passed already contains line and position.  I'd
+	like to have them in separate attributes, but the expat library mashes
+	them up.  iterparse.raiseParseError is the canoical way of raising these
+	when you have no positional information.
+	"""
 
 
 def escapeCDATA(val):
-	return val.encode("utf-8"
+	return (val
 		).replace("&", "&amp;"
 		).replace('<', '&lt;'
 		).replace('>', '&gt;')

@@ -13,6 +13,23 @@ floatNaN = struct.pack("!f", common.NaN)
 doubleNaN = struct.pack("!d", common.NaN)
 
 
+def _getArrayShapingCode(field, padder):
+	"""returns common code for almost all array serialization.
+
+	Field must describe an array (as opposed to a single value).
+
+	padder must be python-source for whatever is used to pad
+	arrays that are too short.
+	"""
+	base = [
+		"if val is None: val = []"]
+	if field.a_arraysize=='*':
+		return base+["tokens.append(struct.pack('!i', len(val)))"]
+	else:
+		return base+["val = coding.trim(val, %s, %s)"%(
+			repr(field.a_arraysize), padder)]
+
+
 def _addNullvalueCode(field, nullvalue, src):
 	"""adds code to let null values kick in a necessary.
  
@@ -42,9 +59,10 @@ def _makeBooleanEncoder(field):
 	]
 
 
-def _makeBitEncoder(field):
+def _makeBitEncoder(field, arraysize=None):
 	# bits and bit arrays are just (possibly long) integers
-	return [
+	# arraysize is only passed for actual arrays.
+	src = [
 		"if val is None:",
 		"  raise common.BadVOTableData('Bits have no NULL value', None,",
 		"    '%s')"%field.getDesignation(),
@@ -53,11 +71,24 @@ def _makeBitEncoder(field):
 		"while curByte:",
 		"  tmp.append(chr(curByte))",
 		"  curByte, rest = rest%256, rest//256",
-		"tmp.reverse()",
-		"if tmp:",
-		"  tokens.append(struct.pack('%ds'%len(tmp), ''.join(tmp)))",
-		"else:",
-		"  tokens.append(struct.pack('B', 0))"]
+		"if not tmp:",   # make sure we leave somthing even for 0
+		"  tmp.append(chr(0))",
+		"tmp.reverse()",]
+
+	if arraysize:  # this not just a single bit
+		if arraysize=="*":  # variable length: dump number of bits
+			src.extend([
+				"tokens.append(struct.pack('!i', len(tmp)*8))"])
+		else:  # crop/expand as necesary
+			numBytes = int(arraysize)//8+(not not int(arraysize)%8)
+			src.extend([
+				"if len(tmp)<%d: tmp = [chr(0)]*(%d-len(tmp))+tmp"%(
+					numBytes, numBytes),
+				"if len(tmp)>%d: tmp = tmp[-%d:]"%(numBytes, numBytes)])
+	
+	src.extend([
+		"tokens.append(struct.pack('%ds'%len(tmp), ''.join(tmp)))"])
+	return src
 
 
 def _generateFloatEncoderMaker(fmtCode, nullName):
@@ -122,6 +153,47 @@ _encoders = {
 		"doubleComplex": _generateComplexEncoderMaker("!dd", "doubleNaN"),
 		"floatComplex": _generateComplexEncoderMaker("!ff", "floatNaN"),
 }
+
+def _getArrayEncoderLines(field):
+	"""returns python lines to encode array values of field.
+	"""
+	type, arraysize = field.a_datatype, field.a_arraysize
+	# bit array literals are integers, same as bits
+	if type=="bit":
+		return _makeBitEncoder(field, arraysize)
+
+	# Everything else can use the common code since value comes in
+	# some kind of sequence.
+	if type=="char":
+		# strings
+		padder = "' '"
+		src = ["tokens.append(struct.pack('%ds'%len(val), val))"]
+
+	elif type=="unicodeChar":
+		padder = "' '"
+		src = [
+			"coded = val.encode('utf-16be')",
+			"tokens.append(struct.pack('%ds'%len(coded), coded))"]
+
+	else:  # everything else is just concatenating individual coded strings
+		padder = '[None]'
+		src = [ # Painful name juggling to avoid having to call functions.
+			"fullTokens = tokens",
+			"tokens = []",
+			"if val is None:",
+			"  arr = []",
+			"else:",
+			"  arr = val",
+			"for val in arr:"
+		]+coding.indentList(_encoders[field.a_datatype](field), "  ")
+
+		src.extend([
+			"fullTokens.append(''.join(tokens))",
+			"tokens = fullTokens"])
+			
+	return _getArrayShapingCode(field, padder)+src
+			
+			
 
 def getLinesFor(field):
 	"""returns a sequence of python source lines to encode values described

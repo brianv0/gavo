@@ -1,23 +1,28 @@
 """
 Parsing various forms of tabular data embedded in VOTables.
+
+WARNING: This will fail if the parser exposes namespaces in its
+events (votable.iterparse doesn't).
 """
 
 from gavo.votable import coding
 from gavo.votable import common
+from gavo.votable import dec_binary
 from gavo.votable import dec_tabledata
 
 
-class TableDataIterator(object):
-	"""An internal class used by Rows actually implement the iterator
-	the user sees.
+class DataIterator(object):
+	"""A base for the classes actually doing the iteration.
+
+	You need to give a decoderModule attribute and implement _getRawRow.
 	"""
 	def __init__(self, tableDefinition, nodeIterator):
 		self.nodeIterator = nodeIterator
 		self._decodeRawRow = coding.buildCodec(
 			coding.getRowDecoderSource(
 				tableDefinition,
-				dec_tabledata),
-			dec_tabledata.getGlobals())
+				self.decoderModule),
+			self.decoderModule.getGlobals())
 
 	def __iter__(self):
 		while True:
@@ -26,33 +31,78 @@ class TableDataIterator(object):
 				break
 			yield self._decodeRawRow(rawRow)
 
+
+class TableDataIterator(DataIterator):
+	"""An internal class used by Rows to actually iterate over rows
+	in TABLEDATA serialization.
+	"""
+	decoderModule = dec_tabledata
+
 	def _getRawRow(self):
 		"""returns a row in strings or None.
 		"""
-		ev, node = self.nodeIterator.next()
-		if ev=="end":  # end of TABLEDATA element
-			return None
-		assert node.tag=="TR"
+		# Wait for TR open
+		for ev in self.nodeIterator:
+			if ev==("end", "TABLEDATA"):
+				return None
+			elif ev[0]=="start":
+				if ev[1]=="TR":
+					break
+				else:
+					raise common.VOTableParseError("Unexpected element %s"%ev[1])
+			# ignore everything else; we're not validating, and sensible stuff
+			# might yet follow (usually, it's whitespace data anyway)
 
 		rawRow = []
-		for ev, node in self.nodeIterator:
-			if ev=="start":
-				continue
-			if node.tag=='TD':
-				rawRow.append(node.text)
+		for ev in self.nodeIterator:
+			if ev[0]=="start":   # new TD
+				if ev[1]=="TD":
+					cur = []
+				else:
+					raise self.nodeIterator.raiseParseError(
+						"Unexpected element %s"%ev[1],)
+			elif ev[0]=="data":  # TD content
+				cur.append(ev[1])
+			elif ev[0]=="end":
+				if ev[1]=="TR":
+					break
+				elif ev[1]=="TD":
+					rawRow.append("".join(cur))
+				else:
+					assert False
 			else:
-				assert node.tag=="TR"
-				return rawRow
+				assert False
+		return rawRow
 
 
-def _makeTableIterator(node, tableDefinition, nodeIterator):
+
+class BinaryIterator(DataIterator):
+	"""An internal class used by Rows to actually iterate over rows
+	in BINARY serialization.
+	"""
+	decoderModule = dec_binary
+
+	# I need to override __iter__ since we're not actually doing XML parsing
+	# there; almost all of our work is done within the stream element.
+	def __iter__(self):
+		ev, node = self.nodeIterator.next()
+		if not (ev=="start" 
+				and node.tag=="STREAM"
+				and node.get("encoding")=="base64"):
+			raise common.VOTableError("Can only read BINARY data from base64"
+				" encoded streams")
+
+
+def _makeTableIterator(elementName, tableDefinition, nodeIterator):
 	"""returns an iterator for the rows contained within node.
 	"""
-	if node.tag=='TABLEDATA':
+	if elementName=='TABLEDATA':
 		return iter(TableDataIterator(tableDefinition, nodeIterator))
+	elif elementName=='BINARY':
+		return iter(BinaryIterator(tableDefinition, nodeIterator))
 	else:
 		raise common.VOTableError("Unknown table serialization: %s"%
-			node.tag, hint="We only support TABLEDATA and BINARY coding")
+			elementName, hint="We only support TABLEDATA and BINARY coding")
 
 
 class Rows(object):
@@ -68,9 +118,9 @@ class Rows(object):
 		self.tableDefinition, self.nodeIterator = tableDefinition, nodeIterator
 	
 	def __iter__(self):
-		for ev, node in self.nodeIterator:
-			if node.tag=="INFO":
+		for ev in self.nodeIterator:
+			if ev[1]=="INFO":
 				pass   # XXX TODO: What to do with those INFOs?
 			else:
-				return _makeTableIterator(node, 
+				return _makeTableIterator(ev[1], 
 					self.tableDefinition, self.nodeIterator)
