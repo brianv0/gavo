@@ -31,8 +31,8 @@ class SplitLineIterator(FileRowIterator):
 	def _parse(self, inputLine):
 		res = {}
 		try:
-			for key, (start, end) in self.grammar.colRanges.iteritems():
-				res[key] = inputLine[start:end].strip()
+			for key, slice in self.grammar.colRanges.iteritems():
+				res[key] = inputLine[slice].strip()
 		except IndexError:
 			raise base.SourceParseError("Short line", inputLine, 
 				self.getLocator())
@@ -45,19 +45,25 @@ class SplitLineIterator(FileRowIterator):
 class ColRangeAttribute(base.UnicodeAttribute):
 	"""A range of indices.
 
-	Ranges can be specified as either <int1>-<int2> or just <int>
-	(which is equivalent to <int>-<int>) Ranges are, contrary to
+	Ranges can be specified as either <int1>-<int2>, just <int>
+	(which is equivalent to <int>-<int>), or as half-open ranges 
+	(<int>- or -<int>) Ranges are, contrary to
 	python slices, inclusive on both sides, and start counting
 	from one.
 	"""
 	def parse(self, value):
 		try:
 			if "-" in value:
-				start, end = map(int, value.split("-"))
-				return start-1, end
+				startLit, endLit = value.split("-")
+				start, end = None, None
+				if startLit.strip():
+					start = int(startLit)-1
+				if endLit.strip():
+					end = int(endLit)
+				return slice(start, end)
 			else:
 				col = int(value)
-				return col-1, col
+				return slice(col-1, col)
 		except ValueError:
 			raise base.LiteralParseError("colRanges", val, hint="A column range,"
 				" (either int1-int2 or just an int) is expected here.")
