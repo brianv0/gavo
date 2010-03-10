@@ -131,7 +131,6 @@ def cartToSpher(unitvector):
 	return (theta, phi)
 
 
-
 def _ensureSphericalFrame(coo):
 	"""raises an error if coo's frame is not suitable for holding spherical
 	coordinates.
