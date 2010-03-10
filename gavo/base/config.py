@@ -462,7 +462,7 @@ def makeSitePath(uri):
 
 	uri itself needs to be server-absolute (i.e., start with a slash).
 	"""
-	return get("web", "nevowRoot")+uri.lstrip("/")
+	return str(get("web", "nevowRoot")+uri.lstrip("/"))
 
 
 def getBinaryName(baseName):

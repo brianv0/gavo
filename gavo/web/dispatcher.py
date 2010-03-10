@@ -285,6 +285,7 @@ class VanityMap(object):
 		__system__/services/overview/external odoc
 		__system__/dc_tables/show/tablenote tablenote
 		__system__/dc_tables/show/tableinfo tableinfo
+		__system__/adql/query/form adql !redirect
 		__system__/services/overview/admin seffe
 	"""
 

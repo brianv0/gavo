@@ -265,7 +265,7 @@ class ForbiddenPage(rend.Page, common.CommonRenderers):
 class RedirectPage(rend.Page, common.CommonRenderers):
 	def __init__(self, destURL):
 		self.destURL = str(destURL)
-		if not self.destUrl.startwith("http"):
+		if not self.destURL.startswith("http"):
 			self.destURL = base.makeSitePath(self.destURL)
 
 	def renderHTTP(self, ctx):
