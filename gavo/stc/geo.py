@@ -11,7 +11,7 @@ class WGS84(object):
 	"""the WGS84 reference system.
 	"""
 	a = 6378137.
-	f1 = 298.257223563  # f^-1!
+	f = 1/298.257223563
 	GM = 3.986005e14    # m3s-1
 	J2 = 0.00108263
 	omega = 7.292115e-5 # rad s-1
@@ -24,10 +24,11 @@ def _getC_S(phi, refSys):
 
 	See Astron. Almanac, Appendix K.
 	"""
-	C = math.sqrt(
-			math.cos(phi)**2
-			+((1-1/refSys.f1)*math.sin(phi))**2)
-	S = (1-1/refSys.f1)**2*C
+	B = (1-refSys.f)**2
+	C = 1/math.sqrt(
+		math.cos(phi)**2
+		+B*math.sin(phi)**2)
+	S = C*B
 	return C, S
 
 
@@ -47,7 +48,7 @@ def geocToGeod(long, phip, rho=1, refSys=WGS84):
 	y = refSys.a*rho*math.cos(phip)*math.sin(long)
 	z = refSys.a*rho*math.sin(phip)
 
-	e2 = 2/refSys.f1-1/refSys.f1**2
+	e2 = 2*refSys.f-refSys.f**2
 	lam = math.atan2(y, x)
 	r = math.sqrt(x**2+y**2)
 	phi = math.atan2(z, r)
@@ -58,7 +59,7 @@ def geocToGeod(long, phip, rho=1, refSys=WGS84):
 		phi = math.atan2(z+refSys.a*C*e2*math.sin(phi1), r)
 		if abs(phi1-phi)<1e-14: # phi is always of order 1
 			break
-	return long/DEG, phi1/DEG, r/math.cos(phi)-refSys.a*C
+	return long/DEG, phi/DEG, r/math.cos(phi)-refSys.a*C
 
 
 
@@ -74,8 +75,8 @@ def geodToGeoc(long, phi, height, refSys=WGS84):
 	"""
 	long, phi = long*DEG, phi*DEG
 	C, S = _getC_S(phi, refSys)
-	rcp = (refSys.a*C+height)*math.cos(phi)/refSys.a
-	rsp = (refSys.a*S+height)*math.sin(phi)/refSys.a
+	rcp = (C+height/refSys.a)*math.cos(phi)
+	rsp = (S+height/refSys.a)*math.sin(phi)
 	rho = math.sqrt(rcp**2+rsp**2)
 	phip = math.atan2(rsp, rcp)
 	return long/DEG, phip/DEG, rho
