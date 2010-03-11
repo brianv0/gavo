@@ -35,6 +35,10 @@ class MetaTableHandler(object):
 		self.profile = overrideProfile or "admin"
 		self.rd = base.caches.getRD("__system__/dc_tables")
 		self.readQuerier = self._getQuerier()
+		if not self.readQuerier.tableExists("dc.columnmeta"):
+			# this is for bootstrapping: the first gavo imp dc_tables doesn't have
+			# dc tables yet but it doesn't need them either.
+			return
 		self.metaTable = dbtable.DBTable(
 			self.rd.getTableDefById("columnmeta"))
 		self.tablesTable = dbtable.DBTable(
