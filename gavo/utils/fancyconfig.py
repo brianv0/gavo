@@ -57,6 +57,7 @@ defaultSection = "general"  # must be all lowercase
 class ConfigError(Exception):
 	"""is the base class of the user visible exceptions from this module.
 	"""
+	fileName = "<internal>"
 
 class ParseError(ConfigError):
 	"""is raised by ConfigItem's parse methods if there is a problem with
@@ -724,8 +725,16 @@ def readConfiguration(config, systemFName, userFName):
 	File names that are none or point to non-existing locations are
 	ignored.
 	"""
-	_addToConfig(config, systemFName, "system")
-	_addToConfig(config, userFName, "user")
+	try:
+		_addToConfig(config, systemFName, "system")
+	except ConfigError, ex:
+		ex.fileName = systemFName
+		raise
+	try:
+		_addToConfig(config, userFName, "user")
+	except ConfigError, ex:
+		ex.fileName = userFName
+		raise
 
 
 def makeTxtDocs(config, underlineChar="."):

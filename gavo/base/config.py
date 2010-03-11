@@ -9,6 +9,7 @@ import os
 import re
 import shlex
 import sys
+import warnings
 
 from gavo.base import attrdef
 from gavo.utils import excs
@@ -426,11 +427,16 @@ _config = Configuration(
 			"Default match limit on DAL queries"),),
 )
 
+try:
+	fancyconfig.readConfiguration(_config,
+		os.environ.get("GAVOSETTINGS", "/etc/gavo.rc"),
+		os.environ.get("GAVOCUSTOM", 
+			os.path.join(os.environ.get("HOME", "/no_home"), ".gavorc")))
+except fancyconfig.ConfigError, ex:
+	# This is usually not be protected by top-level exception catcher
+	sys.exit("Bad configuration item in %s.  %s"%(
+		ex.fileName, unicode(ex).encode("utf-8")))
 
-fancyconfig.readConfiguration(_config,
-	os.environ.get("GAVOSETTINGS", "/etc/gavo.rc"),
-	os.environ.get("GAVOCUSTOM", os.path.join(os.environ.get("HOME", "/no_home"), 
-		".gavorc")))
 
 get = _config.get
 set = _config.set
@@ -443,6 +449,10 @@ def makeFallbackMeta():
 	"""fills meta.configMeta with items from $configDir/defaultmeta.txt.
 	"""
 	srcPath = os.path.join(get("configDir"), "defaultmeta.txt")
+	if not os.path.exists(srcPath):
+		warnings.warn("%s does not exist, registry interface  will be broken"%
+			srcPath)
+		return
 	f = open(srcPath)
 	for ln in f:
 		ln = ln.strip()
