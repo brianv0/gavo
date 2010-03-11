@@ -8,7 +8,14 @@
 </head>
 
 <body n:render="withsidebar">
-	<h1 n:render="rdId">Administration for</h1>
+	<h1 n:render="rdId">Administration for </h1>
+
+	<div n:render="ifexc" 
+			style="border:3px solid red;padding:0.5ex">
+		<p>The RD could not be loaded.  The exception raised was:</p>
+		<p n:render="exc"/>
+		<pre n:render="traceback" style="overflow:hide"/>
+	</div>
 
 	<p>Services on this RD:</p>
 	<ul n:data="services" n:render="sequence">

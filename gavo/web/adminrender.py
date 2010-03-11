@@ -3,6 +3,8 @@ A renderer to do RD-based maintainance.
 """
 
 import os
+import sys
+import traceback
 import urllib
 
 from nevow import inevow
@@ -29,6 +31,9 @@ class AdminRenderer(formal.ResourceMixin, grend.ServiceBasedRenderer):
 	name = "admin"
 	customTemplate = common.loadSystemTemplate("admin.html")
 	clientRD = None
+	# set below when RD loading failed.
+	reloadExc = None
+	reloadTB = None
 
 	def form_setDowntime(self, ctx):
 		form = formal.Form()
@@ -100,6 +105,20 @@ class AdminRenderer(formal.ResourceMixin, grend.ServiceBasedRenderer):
 		return grend.GavoRenderMixin.render_ifmeta(self, metaName,
 			metaCarrier=self.clientRD)
 
+	def render_ifexc(self, ctx, data):
+		"""render children if there was an exception during RD load.
+		"""
+		if self.reloadExc is None:
+			return ""
+		else:
+			return ctx.tag
+
+	def render_exc(self, ctx, data):
+		return ctx.tag[repr(self.reloadExc)]
+	
+	def render_traceback(self, ctx, data):
+		return ctx.tag[self.reloadTB]
+
 	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False):
 		return grend.GavoRenderMixin._doRenderMeta(self, ctx, raiseOnFail,
 			plain, self.clientRD)
@@ -111,6 +130,13 @@ class AdminRenderer(formal.ResourceMixin, grend.ServiceBasedRenderer):
 		return common.runAuthenticated(ctx, "admin", 
 			super(AdminRenderer, self).renderHTTP, ctx)
 
+	def _extractDamageInfo(self):
+		"""called when reload of RD failed; leaves exc. info in some attributes.
+		"""
+		type, value = sys.exc_info()[:2]
+		self.reloadExc = value
+		self.reloadTB = traceback.format_exc()
+
 	def locateChild(self, ctx, segments):
 		rdId = "/".join(segments)
 		try:
@@ -118,8 +144,8 @@ class AdminRenderer(formal.ResourceMixin, grend.ServiceBasedRenderer):
 		except base.RDNotFound:
 			raise svcs.UnknownURI("No such resource descriptor: %s"%rdId)
 		except Exception, ex: # RD is botched.  Clear cache and give an error
-			base.caches.clearForName(self.clientRD.sourceId)
-			raise
+			base.caches.clearForName(rdId)
+			self._extractDamageInfo()
 		return self, ()
 
 	defaultDocFactory =  common.doctypedStan(
