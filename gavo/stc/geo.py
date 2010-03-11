@@ -55,7 +55,7 @@ def geocToGeod(long, phip, rho=1, refSys=WGS84):
 
 	while True:
 		phi1 = phi
-		C = math.sqrt((1-e2*math.sin(phi1)**2))
+		C = 1/math.sqrt((1-e2*math.sin(phi1)**2))
 		phi = math.atan2(z+refSys.a*C*e2*math.sin(phi1), r)
 		if abs(phi1-phi)<1e-14: # phi is always of order 1
 			break
