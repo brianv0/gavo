@@ -125,6 +125,11 @@ def getDBConnection(profile, debug=debug):
 				profile.password)
 		if debug:
 			conn = psycopg2.connect(connString, connection_factory=DebugConnection)
+			print "NEW CONN", id(conn)
+			def closer():
+				print "CONNECTION CLOSE", id(conn)
+				return DebugConnection.close(conn)
+			conn.close = closer
 		else:
 			conn = psycopg2.connect(connString)
 		if not _PSYCOPG_INITED:
@@ -489,6 +494,10 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 				return dictifyRowset(descr, res)
 			else:
 				return res
+
+	def enableAutocommit(self):
+		self.connection.set_isolation_level(
+			psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
 	def query(self, query, data={}):
 		"""runs a single query in a new cursor and returns that cursor.

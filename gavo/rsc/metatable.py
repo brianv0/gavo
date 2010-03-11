@@ -45,13 +45,15 @@ class MetaTableHandler(object):
 			self.rd.getTableDefById("tablemeta"))
 		self.metaRowdef = self.rd.getTableDefById("metaRowdef")
 		self.tablesRowdef = self.rd.getTableDefById("tablemeta")
+		self.conn.rollback()
 
 	def _getQuerier(self):
 		"""returns the write-only querier for the meta table.
 
 		Do not use this querier to write information.
 		"""
-		return base.SimpleQuerier(useProfile=self.profile)
+		self.conn = base.getDBConnection(self.profile)
+		return base.SimpleQuerier(connection=self.conn)
 
 	def getColumn(self, colName, tableName=""):
 		"""returns a dictionary with the information available
@@ -64,23 +66,26 @@ class MetaTableHandler(object):
 		Table names are opaque to MetaTableHandler but will
 		usually include a schema.
 		"""
-		resDict = {}
-		parts = colName.split(".")
-		if len(parts)==2:
-			tableName, colName = parts
-		elif len(parts)==3:
-			tableName = ".".join(parts[:2])
-			colName = parts[2]
-		elif len(parts)!=1:
-			raise ColumnError("Invalid column specification: %s"%colName)
 		try:
-			match = self.metaTable.iterQuery(self.metaRowdef,
-					" tableName=%%(tableName)s AND colName=%%(colName)s", { 
-				"tableName": tableName,
-				"fieldName": colName,}).next()
-		except OperationalError:
-			raise ColumnError("No info for %s in %s"%(colName, tableName))
-		return rscdef.Column.fromMetaTableRow(match)
+			resDict = {}
+			parts = colName.split(".")
+			if len(parts)==2:
+				tableName, colName = parts
+			elif len(parts)==3:
+				tableName = ".".join(parts[:2])
+				colName = parts[2]
+			elif len(parts)!=1:
+				raise ColumnError("Invalid column specification: %s"%colName)
+			try:
+				match = self.metaTable.iterQuery(self.metaRowdef,
+						" tableName=%%(tableName)s AND colName=%%(colName)s", { 
+					"tableName": tableName,
+					"fieldName": colName,}).next()
+			except OperationalError:
+				raise ColumnError("No info for %s in %s"%(colName, tableName))
+			return rscdef.Column.fromMetaTableRow(match)
+		finally:
+			self.conn.rollback()
 	
 	def getColumnsForTable(self, tableName):
 		"""returns a field definition list for tableName.
@@ -91,21 +96,27 @@ class MetaTableHandler(object):
 		Consider using the base.caches.getTableDefForTable method for 
 		RD-correct columns.
 		"""
-		if not "." in tableName:
-			tableName = "public."+tableName
-		res = self.metaTable.iterQuery(self.metaRowdef, 
-			" tableName=%(tableName)s", {"tableName": tableName},
-			limits=("ORDER BY colInd", {}))
-		return [rscdef.Column.fromMetaTableRow(row)
-			for row in res]
+		try:
+			if not "." in tableName:
+				tableName = "public."+tableName
+			res = self.metaTable.iterQuery(self.metaRowdef, 
+				" tableName=%(tableName)s", {"tableName": tableName},
+				limits=("ORDER BY colInd", {}))
+			return [rscdef.Column.fromMetaTableRow(row)
+				for row in res]
+		finally:
+			self.conn.rollback()
 	
 	def getTableDefForTable(self, tableName):
-		if not "." in tableName:
-			tableName = "public."+tableName
 		try:
-			tableRec = list(self.tablesTable.iterQuery(self.tablesRowdef, 
-				" tableName=%(tableName)s", {"tableName": tableName}))[0]
-		except IndexError:
-			raise base.NotFoundError(tableName, "Table", "dc_tables")
-		return base.caches.getRD(tableRec["sourceRd"]
-			).getById(tableName.split(".")[1])
+			if not "." in tableName:
+				tableName = "public."+tableName
+			try:
+				tableRec = list(self.tablesTable.iterQuery(self.tablesRowdef, 
+					" tableName=%(tableName)s", {"tableName": tableName}))[0]
+			except IndexError:
+				raise base.NotFoundError(tableName, "Table", "dc_tables")
+			return base.caches.getRD(tableRec["sourceRd"]
+				).getById(tableName.split(".")[1])
+		finally:
+			self.conn.rollback()

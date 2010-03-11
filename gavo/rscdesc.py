@@ -326,4 +326,4 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False):
 base.caches.makeCache("getRD", getRD)
 
 base.caches.getRD("__system__/procs")  # pull in predefined procs
-metaHandler = metatable.MetaTableHandler()
+#metaHandler = metatable.MetaTableHandler()
