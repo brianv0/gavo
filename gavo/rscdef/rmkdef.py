@@ -141,7 +141,7 @@ class VarDef(base.Structure):
 class ApplyDef(procdef.ProcApp):
 	"""A code fragment to manipulate the result row (and possibly more).
 
-	Apply elements yaddayadda.
+	Apply elements allow embedding python code in rowmakers.
 
 	The current input fields from the grammar (including the rowmaker's vars) 
 	are available in the vars dictionary and can be changed there.  You can 

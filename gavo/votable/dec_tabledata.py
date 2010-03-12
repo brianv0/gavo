@@ -7,6 +7,7 @@ import traceback
 
 from gavo.votable import coding
 from gavo.votable import common
+from gavo.votable.model import VOTable
 
 
 # literals for TDENC booleans
@@ -188,9 +189,26 @@ def getLinesFor(field):
 	return _decoders[field.a_datatype](field)
 
 
-def getPostamble(tableDefinition):
-	return [
-		"return row"]
+def getRowDecoderSource(tableDefinition):
+	"""returns the source for a function deserializing rows of tableDefition
+	in TABLEDATA.
+
+	tableDefinition is a VOTable.TABLE instance.
+	"""
+	source = ["def codec(rawRow):", "  row = []"]
+	for index, field in enumerate(
+			tableDefinition.iterChildrenOfType(VOTable.FIELD)):
+		source.extend([
+			"  try:",
+			"    val = rawRow[%d]"%index,]+
+			coding.indentList(getLinesFor(field), "    ")+[
+			"  except:",
+			"    traceback.print_exc()",
+			"    raise common.BadVOTableLiteral('%s', val)"%field.a_datatype])
+	source.append("  return row")
+	return "\n".join(source)
+
+	return source
 
 
 def getGlobals():

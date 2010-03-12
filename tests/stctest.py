@@ -4,6 +4,7 @@ Tests for handling ivoa stc specifications.
 
 import datetime
 import re
+import math
 import unittest
 
 from gavo import stc
@@ -11,6 +12,7 @@ from gavo import utils
 from gavo.stc import cli
 from gavo.stc import dm
 from gavo.stc import eq
+from gavo.stc import geo
 from gavo.stc import stcs
 from gavo.stc import stcsast
 from gavo.stc import stcx
@@ -563,6 +565,51 @@ class NullTest(testhelpers.VerboseTest):
 			'AstroCoordSystem.SpaceFrame.ReferencePosition': 'UNKNOWNRefPos'})
 
 
+class GeoTest(testhelpers.VerboseTest):
+	"""tests for raw geographic conversions.
+	"""
+	def testForObs(self):
+		# Values from obscode list
+		long, cp, sp = 8.7216, 0.65211, 0.75570
+		phip = math.atan2(sp, cp)/utils.DEG
+		long, phi, h = geo.geocToGeod(long, phip, math.sqrt(cp**2+sp**2))
+		self.assertAlmostEqual(long, 8.7216, 4)
+		self.assertAlmostEqual(phi, 49.3986, 4)
+		self.assertAlmostEqual(h, 569, 0)
+
+	def testRoundtripFromGeod(self):
+		for sample in [
+				(245,80,300),
+				(145,60,300),
+				(45,30,-300),
+				(0,0,3000),
+				(0,0,0),
+				(90,0,0),
+				(180,0,0),
+				(270,0,0),
+				]:
+			res = geo.geocToGeod(*geo.geodToGeoc(*sample))
+			for i in range(3):
+				self.assertAlmostEqual(sample[i], res[i], 8, "Bad: %s, %s"%(
+					sample, res))
+
+	def testRoundtripFromGeoc(self):
+		for sample in [
+				(245,80,1.001),
+				(145,60,0.999),
+				(45,30,1),
+				(0,0,1.001),
+				(0,0,1),
+				(90,0,1),
+				(180,0,1),
+				(270,0,1),
+				]:
+			res = geo.geodToGeoc(*geo.geocToGeod(*sample))
+			for i in range(3):
+				self.assertAlmostEqual(sample[i], res[i], 8, "Bad: %s, %s"%(
+					sample, res))
+
+
 def _purgeIds(stcx):
 	return re.sub('(frame_|coord_system_)?id="[^"]*"', '', stcx)
 
@@ -616,4 +663,4 @@ class CLITest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(None)
+	testhelpers.main(GeoTest)

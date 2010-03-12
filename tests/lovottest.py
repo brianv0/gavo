@@ -376,7 +376,7 @@ class BinaryWriteTest(testhelpers.VerboseTest):
 			[V.FIELD(datatype="char")[V.VALUES(null="x")]],
 			[['a'], [None]],
 			"ax"
-		), (
+		), (  # 10
 			[V.FIELD(datatype="unicodeChar")[V.VALUES(null=u"\udead")]],
 			[['a'], ['\xe4'.decode("iso-8859-1")], [None]],
 			"\x00a\x00\xe4\xde\xad"
@@ -393,6 +393,30 @@ class BinaryWriteTest(testhelpers.VerboseTest):
 			[[1],[2**25-1]],
 			"\x00\x00\x00\x08\x01"
 			"\x00\x00\x00\x20\x01\xff\xff\xff"
+		), (
+			[V.FIELD(datatype="unsignedByte", arraysize="*")],
+			[[[]], [[1]], [[0, 1, 2]]],
+			"\x00\x00\x00\x00"
+			"\x00\x00\x00\x01\x01"
+			"\x00\x00\x00\x03\x00\x01\x02"
+		), (
+			[V.FIELD(datatype="unsignedByte", arraysize="2")[V.VALUES(null="255")]],
+			[[[]], [[1]], [[0, 1, 2]]],
+			"\xff\xff"
+			"\x01\xff"
+			"\x00\x01"
+		), (
+			[V.FIELD(datatype="char", arraysize="2")],
+			[["abc"], ["a"]],
+			"aba "
+		), (
+			[V.FIELD(datatype="char", arraysize="*")],
+			[["abc"], ["a"]],
+			"\0\0\0\x03abc\0\0\0\x01a"
+		), (
+			[V.FIELD(datatype="unicodeChar", arraysize="2")],
+			[[u"\u00e4bc"], [u"\u00e4"]],
+			'\x00\xe4\x00b\x00\xe4\x00 '
 		)
 	]
 
@@ -403,12 +427,23 @@ class BinaryReadTest(testhelpers.VerboseTest):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
 	def _runTest(self, sample):
-		fielddefs, content, expected = sample
-		vot = V.VOTABLE[V.RESOURCE[V.TABLE[fielddefs,
-			V.BINARY[V.STREAM(encoding="base64")[content.encode("base64")]]]]]
-		content = mat and mat.group(1)
-		self.assertEqual(content.decode("base64"), expected)
+		fielddefs, stuff, expected = sample
+		table = votable.parseString((
+			'<VOTABLE><RESOURCE><TABLE>'+
+			fielddefs+
+			'<DATA><BINARY><STREAM encoding="base64">'+
+			stuff.encode("base64")+
+			'</STREAM></BINARY></DATA>'
+			'</TABLE></RESOURCE></VOTABLE>').encode("utf-8")).next()
+		self.assertEqual(list(table), expected)
+
+	samples = [(
+			'<FIELD datatype="boolean"/>',
+			"10?",
+			[[True],[False],[None]],
+		), ]
+
 
 
 if __name__=="__main__":
-	testhelpers.main(ErrorParseTest)
+	testhelpers.main(BinaryReadTest)

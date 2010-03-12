@@ -7,13 +7,16 @@ import traceback
 
 from gavo.votable import coding
 from gavo.votable import common
+from gavo.votable.model import VOTable
 
 
 # literals for BINARY booleans
-BINBOOL = {
+BINENCBOOL = {
 	't': True,
+	'T': True,
 	'1': True,
 	'f': False,
+	'F': False,
 	'0': False,
 	'?': None,
 }
@@ -128,7 +131,8 @@ def _makeCharDecoder(field, emptyIsNull=True):
 
 
 def _makeBooleanDecoder(field):
-	return ['row.append(TDENCBOOL[input.read(1)])']
+	return [
+		'row.append(BINENCBOOL[inF.read(1)])']
 
 
 def _makeBitDecoder(field):
@@ -140,7 +144,7 @@ _decoders = {
 #	'bit': _makeBitDecoder,
 #	'unsignedByte': lambda v: _makeIntDecoder(v, 256),
 #	'char': _makeCharDecoder,
-#	'unicodeChar': _makeCharDecoder,  # heavy lifting done by the xml parser
+#	'unicodeChar': _makeCharDecoder,
 #	'short': lambda v: _makeIntDecoder(v, 32767),
 #	'int': lambda v: _makeIntDecoder(v, 2147483647),
 #	'long': lambda v: _makeIntDecoder(v, 9223372036854775807L),
@@ -185,9 +189,24 @@ def getLinesFor(field):
 	return _decoders[field.a_datatype](field)
 
 
-def getPostamble(tableDefinition):
-	return [
-		"return row"]
+def getRowDecoderSource(tableDefinition):
+	"""returns the source for a function deserializing a BINARY stream.
+
+	tableDefinition is a VOTable.TABLE instance.  The function returned
+	expects a file-like object.
+	"""
+	source = ["def codec(inF):", "  row = []"]
+	for index, field in enumerate(
+			tableDefinition.iterChildrenOfType(VOTable.FIELD)):
+		source.extend([
+			"  try:",]+
+			coding.indentList(getLinesFor(field), "    ")+[
+			"  except:",
+			"    traceback.print_exc()",
+			"    raise common.BadVOTableLiteral('%s', repr(inF.lastRes))"%(
+				field.a_datatype)])
+	source.append("  return row")
+	return "\n".join(source)
 
 
 def getGlobals():

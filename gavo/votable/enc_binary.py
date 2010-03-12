@@ -162,7 +162,7 @@ def _getArrayEncoderLines(field):
 	if type=="bit":
 		return _makeBitEncoder(field, arraysize)
 
-	# Everything else can use the common code since value comes in
+	# Everything else can use some common array shaping code since value comes in
 	# some kind of sequence.
 	if type=="char":
 		# strings

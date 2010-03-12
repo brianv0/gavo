@@ -267,12 +267,13 @@ class RedirectPage(rend.Page, common.CommonRenderers):
 		self.destURL = str(destURL)
 		if not self.destURL.startswith("http"):
 			self.destURL = base.makeSitePath(self.destURL)
+		rend.Page.__init__(self)
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(301)
 		request.setHeader("location", self.destURL)
-		return super(RedirectPage, self).renderHTTP(ctx)
+		return rend.Page.renderHTTP(self, ctx)
 	
 	def render_destLink(self, ctx, data):
 		return ctx.tag(href=self.destURL)

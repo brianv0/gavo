@@ -7,28 +7,6 @@ from gavo.votable import common
 from gavo.votable.model import VOTable
 
 
-def getRowDecoderSource(tableDefinition, decoderModule):
-	"""returns the source for a function decoding rows of tableDefition
-	encoded in the format implied by decoderModule.
-
-	tableDefinition is a VOTable.TABLE instance, decoderModule
-	is a function from one of the dec_XXX modules.
-	"""
-	source = ["def codec(rawRow):", "  row = []"]
-	for index, field in enumerate(
-			tableDefinition.iterChildrenOfType(VOTable.FIELD)):
-		source.append("  try:")
-		source.append("    val = rawRow[%d]"%index)
-		source.extend(indentList(decoderModule.getLinesFor(field), "    "))
-		source.append("  except:")
-		source.append("    traceback.print_exc()")
-		source.append("    raise common.BadVOTableLiteral('%s', val)"%
-			field.a_datatype)
-	source.extend(indentList(
-		decoderModule.getPostamble(tableDefinition), "  "))
-	return "\n".join(source)
-
-
 def getRowEncoderSource(tableDefinition, encoderModule):
 	"""returns the source for a function encoding rows of tableDefition
 	in the format implied encoderModule
@@ -84,6 +62,12 @@ def buildEncoder(tableDefinition, encoderModule):
 	return buildCodec(
 		getRowEncoderSource(tableDefinition, encoderModule),
 		encoderModule.getGlobals())
+
+
+def buildDecoder(tableDefinition, decoderModule):
+	return buildCodec(
+		decoderModule.getRowDecoderSource(tableDefinition),
+		decoderModule.getGlobals())
 
 
 def indentList(lines, indent):
