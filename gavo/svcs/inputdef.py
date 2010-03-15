@@ -34,7 +34,8 @@ class InputKey(rscdef.Column):
 		description="Type for the input widget, defaults to being computed"
 			" from the column's type.", copyable=True)
 	_widgetFactory = base.UnicodeAttribute("widgetFactory", default=None,
-		description="Python code for a custom widget factory for this input.",
+		description="Python code for a custom widget factory for this input,"
+		" e.g., 'Hidden' or 'widgetFactory(TextArea, rows=15, cols=30)'",
 		copyable=True)
 	_showItems = base.IntAttribute("showItems", default=3,
 		description="Number of items to show at one time on selection widgets.",

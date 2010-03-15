@@ -143,7 +143,6 @@ class IdTest(testhelpers.VerboseTest):
 		self.assertRaises(StopIteration, iter.next)
 
 
-
 class TabledataDeserTest(testhelpers.VerboseTest):
 	"""tests for deserialization of TABLEDATA encoded values.
 	"""
@@ -265,7 +264,7 @@ class TabledataWriteTest(testhelpers.VerboseTest):
 	samples = [(
 			[V.FIELD(datatype="float")],
 			[[1],[None],[float("NaN")]],
-			"<TR><TD>1</TD></TR><TR><TD></TD></TR><TR><TD></TD></TR>"
+			"<TR><TD>1</TD></TR><TR><TD>NaN</TD></TR><TR><TD>NaN</TD></TR>"
 		), (
 			[V.FIELD(datatype="double")],
 			[[1.52587890625e-05], [float("+Inf")]],
@@ -300,7 +299,7 @@ class TabledataWriteTest(testhelpers.VerboseTest):
 				V.FIELD(datatype="float")[V.VALUES(null="-9999")]],
 			[[1, "a", 1.5], [None, None, None]],
 			'<TR><TD>1</TD><TD>a</TD><TD>1.5</TD></TR>'
-			'<TR><TD>23</TD><TD>\x00</TD><TD>-9999</TD></TR>'
+			'<TR><TD>23</TD><TD>\x00</TD><TD>NaN</TD></TR>'
 		), (
 			[V.FIELD(datatype="unsignedByte", arraysize="2")[V.VALUES(null="0xff")]],
 			[[[]], [[2]], [None], [[2, 3, 4]]],
@@ -310,14 +309,14 @@ class TabledataWriteTest(testhelpers.VerboseTest):
 			[V.FIELD(datatype="bit", arraysize="*")],
 			[[430049293488]],
 			'<TR><TD>110010000100000111011110111010010110000</TD></TR>'
-		), (
+		), (  # 10
 			[V.FIELD(datatype="doubleComplex", arraysize="2")[V.VALUES(null="0 0")]],
 			[[[2+2j, None, 4+4j]]],
-			'<TR><TD>2.0 2.0 0 0</TD></TR>'
+			'<TR><TD>2.0 2.0 NaN NaN</TD></TR>'
 		), (
 			[V.FIELD(datatype="double", arraysize="*")[V.VALUES(null="23")]],
 			[[None], [[None]]],
-			"<TR><TD></TD></TR><TR><TD>23</TD></TR>"
+			"<TR><TD></TD></TR><TR><TD>NaN</TD></TR>"
 		)
 	]
 
@@ -441,7 +440,96 @@ class BinaryReadTest(testhelpers.VerboseTest):
 			'<FIELD datatype="boolean"/>',
 			"10?",
 			[[True],[False],[None]],
-		), ]
+		), (
+			'<FIELD datatype="bit"/>',
+			"\x01\x00\xff",
+			[[1],[0],[1]],
+		), (
+			'<FIELD datatype="bit" arraysize="9"/>',
+			"\x01\x00\xff\xff",
+			[[256],[511]],
+		), (
+			'<FIELD datatype="bit" arraysize="*"/>',
+			"\x00\x00\x00\x03\xff\x00\x00\x00\x45"
+				"\xff\x00\x00\x00\x00\x00\x00\x00\x01",
+			[[7],[0x1f0000000000000001]],
+		), (
+			'<FIELD datatype="char"><VALUES null="a"/></FIELD>',
+			"x\x00a",
+			[['x'],['\x00'], [None]],
+		), (
+			'<FIELD datatype="unicodeChar"><VALUES null="&#xbabe;"/></FIELD>',
+			"\x00a\x23\x42\xba\xbe",
+			[['a'],[u'\u2342'], [None]],
+		), (
+			'<FIELD datatype="unsignedByte"><VALUES null="12"/></FIELD>'
+				'<FIELD datatype="short"><VALUES null="12"/></FIELD>'
+				'<FIELD datatype="int"><VALUES null="12"/></FIELD>'
+				'<FIELD datatype="long"><VALUES null="12"/></FIELD>',
+			"\x0c\x00\x0c\x00\x00\x00\x0c\x00\x00\x00\x00\x00\x00\x00\x0c"
+			"\x0d\x0d\x0d\x00\x0d\x0d\x0c\x00\xdd\x00\x00\x00\x00\x00\x0c", [
+				[None, None, None, None],
+				[13, 3341, 855308, 62205969853054988L]]
+		), (
+			'<FIELD datatype="float"/>',
+			"\x7f\xc0\x00\x00:\x80\x00\x00",
+			[[None], [0.0009765625]]
+		), (
+			'<FIELD datatype="double"/>',
+			"\x7f\xf8\x00\x00\x00\x00\x00\x00?P\x00\x01\x00\x00\x00\x00",
+			[[None], [0.00097656343132257462]]
+		), (
+			'<FIELD datatype="doubleComplex"/>',
+			"\x7f\xf8\x00\x00\x00\x00\x00\x00?P\x00\x01\x00\x00\x00\x00"
+			'@\x04\x00\x00\x00\x00\x00\x00?\xe0\x00\x00\x00\x00\x00\x00',
+			[[None], [2.5+0.5j]]
+		), (
+			'<FIELD datatype="char" arraysize="4"><VALUES null="0000"/></FIELD>',
+			"abcd0000",
+			[["abcd"], [None]]
+		), (
+			'<FIELD datatype="char" arraysize="*"/>',
+			"\x00\x00\x00\x00\x00\x00\x00\x03abc",
+			[[""], ["abc"]]
+		), (
+			'<FIELD datatype="unicodeChar" arraysize="*"/>',
+			"\x00\x00\x00\x03\x00a\x23\x42bc",
+			[[u"a\u2342\u6263"]]
+		), (
+			'<FIELD datatype="unicodeChar" arraysize="2"/>',
+			"\x00a\x23\x42",
+			[[u"a\u2342"]]
+		), (
+			'<FIELD datatype="unsignedByte" arraysize="2"/>',
+			'\x00\x01',
+			[[[0, 1]]],
+		), (  # 15
+			'<FIELD datatype="short" arraysize="*"><VALUES null="16"/></FIELD>',
+			'\x00\x00\x00\x03\x00\x01\x00\x10\x00\x02',
+			[[[1, None, 2]]],
+		), (
+			'<FIELD datatype="int" arraysize="2"/>',
+			'\x00\x00\x00\x03\x00\x01\x00\x10',
+			[[[3, 0x10010]]],
+		), (
+			'<FIELD datatype="float" arraysize="2"/>',
+			'\x7f\xc0\x00\x00:\x80\x00\x00',
+			[[[None, 0.0009765625]]],
+		), (
+			'<FIELD datatype="double" arraysize="*"/>',
+			'\x00\x00\x00\x02\x7f\xf8\x00\x00\x00\x00\x00\x00'
+				'?P\x00\x01\x00\x00\x00\x00',
+			[[[None, 0.00097656343132257462]]]
+		), (
+			'<FIELD datatype="float" arraysize="2"><VALUES null="2"/></FIELD>',
+			'\x7f\xc0\x00\x00:\x80\x00\x00',
+			[[[None, 0.0009765625]]],
+		), (
+			'<FIELD datatype="floatComplex" arraysize="2"/>',
+			'\x7f\xc0\x00\x00:\x80\x00\x00'
+				'A\x80\x00\x00A\x0c\x00\x00',
+			[[[None, 16+8.75j]]],
+		)]
 
 
 

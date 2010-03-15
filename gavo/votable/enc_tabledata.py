@@ -45,21 +45,22 @@ def _addNullvalueCode(field, src, validator, defaultNullValue=None):
 
 
 def _makeFloatEncoder(field):
-	return _addNullvalueCode(field, [
-		"if val!=val:",  # NaN is a null value, too
-		"  tokens.append('')",
+	return [
+		"if val is None or val!=val:",  # NaN is a null value, too
+		"  tokens.append('NaN')",
 		"else:",
-		"  tokens.append(repr(val))"],
-		float, "")
+		"  tokens.append(repr(val))"]
 
 
 def _makeComplexEncoder(field):
-	return _addNullvalueCode(field, [
-		"try:",
-		"  tokens.append('%s %s'%(repr(val.real), repr(val.imag)))",
-		"except AttributeError:",
-		"  tokens.append(repr(val))",],
-		common.validateTDComplex, "")
+	return [
+		"if val is None:",
+		"  tokens.append('NaN NaN')",
+		"else:",
+		"  try:",
+		"    tokens.append('%s %s'%(repr(val.real), repr(val.imag)))",
+		"  except AttributeError:",
+		"    tokens.append(repr(val))",]
 
 
 def _makeBooleanEncoder(field):

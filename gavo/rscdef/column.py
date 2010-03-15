@@ -174,8 +174,9 @@ class Values(base.Structure):
 	_multiOk = BooleanAttribute("multiOk", False, "Allow selection of"
 		" multiple options", copyable=True)
 	_fromDB = ActionAttribute("fromdb", "_evaluateFromDB", description=
-		"A query returning just one column to fill options from (will"
-		" add to options if some are given).")
+		"A query fragment returning just one column to fill options from (will"
+		" add to options if some are given).  Do not write SELECT or anything,"
+		" just the column name and the where clause.")
 	_original = base.OriginalAttribute()
 
 	def makePythonVal(self, literal, sqltype):

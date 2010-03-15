@@ -126,8 +126,16 @@ def _makeCharDecoder(field, emptyIsNull=True):
 	else:
 		src.extend([
 			'if val is None:',
-			'  val = ""'])
-	src.append('row.append(val)')
+			'  val = ""'])	
+	nullvalue = coding.getNullvalue(field, str)
+	if nullvalue:
+		src.extend([
+			'if val==%s:'%repr(nullvalue),
+			'  row.append(None)',
+			'else:',
+			'  row.append(val)'])
+	else:
+		src.append('row.append(val)')
 	return src
 
 

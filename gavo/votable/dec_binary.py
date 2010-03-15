@@ -3,6 +3,7 @@ Coding and decoding from binary.
 """
 
 import re
+import struct
 import traceback
 
 from gavo.votable import coding
@@ -22,112 +23,51 @@ BINENCBOOL = {
 }
 
 
-def tokenizeComplexArr(val):
-	"""iterates over suitable number literal pairs from val.
-	"""
-	last = None
-	if val is None:
-		return
-	for item in val.split():
-		if not item:
-			continue
-		if last is None:
-			last = item
-		else:
-			yield "%s %s"%(last, item)
-			last = None
-	if last:
-		yield last
-
-
-def tokenizeBitArr(val):
-	"""iterates over 0 or 1 tokens in val, discarding everything else.
-	"""
-	if val is None:
-		return
-	for item in val:
-		if item in "01":
-			yield item
-
-
-def tokenizeNormalArr(val):
-	"""iterates over all whitespace-separated tokens in val
-	"""
-	if val is None:
-		return
-	for item in val.split():
-		if item:
-			yield item
-
-
 def _addNullvalueCode(field, src, validator):
 	"""adds code to catch nullvalues if required by field.
+
+	validator must be a function returning a valid python literal for
+	a nullvalue attribute or raise an exception.  This is security
+	critical since whatever validator returns gets embedded into
+	natively-run source code.
 	"""
 	nullvalue = coding.getNullvalue(field, validator)
 	if nullvalue:
-		src = [
-			'if val=="%s":'%nullvalue,
+		src.extend([
+			'if val==%s:'%validator(nullvalue),
 			'  row.append(None)',
-			'else:']+coding.indentList(src, "  ")
+			'else:',
+			'  row.append(val)',])
+	else:
+			src.append('row.append(val)')
 	return src
 
 
 def _makeFloatDecoder(field):
-	src = [
-		'if not val:',
+	numBytes, structCode = _typemap[field.a_datatype]
+	return [
+		'val = struct.unpack("!%s", inF.read(%d))[0]'%(structCode, numBytes),
+		'if val!=val:',
 		'  row.append(None)',
 		'else:',
-		'  row.append(float(val))',]
-	return _addNullvalueCode(field, src, float)
+		'  row.append(val)']
 
 
-def _makeComplexDecoder(field):
-	src = [
-		'if not val:',
+def _makeComplexDecoder(field, numBytes, structCode):
+	return [
+		'_re, _im = struct.unpack(%s, inF.read(%d))'%(repr(structCode), numBytes),
+		'if _re!=_re or _im!=_im:',
 		'  row.append(None)',
 		'else:',
-		'  try:',
-		'    r, i = val.split()',
-		'  except ValueError:',
-		'    r, i = float(val), 0',
-		'  if r!=r or i!=i:',
-		'    row.append(None)',
-		'  else:'
-		'    row.append(complex(float(r), float(i)))',]
-	return _addNullvalueCode(field, src, common.validateTDComplex)
+		'  row.append(_re+1j*_im)']
 
 
-def _makeIntDecoder(field, maxInt):
+def _makeIntDecoder(field):
+	numBytes, structCode = _typemap[field.a_datatype]
 	src = [
-		'if not val:',
-		'  row.append(None)',
-		'elif val.startswith("0x"):',
-		'  unsigned = int(val[2:], 16)',
-		# Python hex parsing is unsigned, fix manually based on maxInt
-		'  if unsigned>=%d:'%maxInt,
-		'    row.append(unsigned-%d)'%((maxInt+1)*2),
-		'  else:',
-		'    row.append(unsigned)',
-		'else:',
-		'  row.append(int(val))']
-	return _addNullvalueCode(field, src, common.validateVOTInt)
-
-
-def _makeCharDecoder(field, emptyIsNull=True):
-	"""parseString enables return of empty string (as opposed to None).
-	"""
-# Elementtree already makes sure we're only seeing unicode strings here
-	src = []
-	if emptyIsNull:
-		src.extend([
-			'if not val:',
-			'  val = None',])
-	else:
-		src.extend([
-			'if val is None:',
-			'  val = ""'])
-	src.append('row.append(val)')
-	return src
+		'val = struct.unpack("!%s", inF.read(%d))[0]'%(structCode, numBytes)
+	]
+	return _addNullvalueCode(field, src, int)
 
 
 def _makeBooleanDecoder(field):
@@ -135,24 +75,99 @@ def _makeBooleanDecoder(field):
 		'row.append(BINENCBOOL[inF.read(1)])']
 
 
+def _getArraysizeCode(field):
+	src = []
+	if field.a_arraysize=="*":
+		src.append('arraysize = struct.unpack("!i", inF.read(4))[0]')
+	else:
+		try:
+			src.append("arraysize = %d"%int(field.a_arraysize))
+		except ValueError:
+			src.append("arraysize = 1")
+	return src
+
+
 def _makeBitDecoder(field):
-	return ['row.append(int(val))']
+	# bits/bit arrays are just dumped bits we turn to integers
+	# it's basically the same thing for arrays and single values.
+	src = _getArraysizeCode(field)
+	src.extend([
+		'numBytes = arraysize/8+(not not arraysize%8)',
+		'topMask = (1<<(arraysize%8))-1',  # mask for payload in topmost byte
+		'if topMask==0: topMask = 0xff',
+		'bytes = struct.unpack("%dB"%numBytes, inF.read(numBytes))',
+		'res = bytes[0]&topMask',
+		'for b in bytes[1:]:',
+		'  res = (res<<8)+b',
+		'row.append(res)'])
+	return src
+
+
+def _makeString(field, customSrc):
+	src = _getArraysizeCode(field)
+	src.extend(customSrc)
+	return _addNullvalueCode(field, src, repr)
+
+
+def _makeCharDecoder(field):
+	return _makeString(field, [
+		'val = struct.unpack("%ds"%arraysize, inF.read(arraysize))[0]'])
+
+
+def _makeUnicodeCharDecoder(field):
+	# XXX BUG: Anything outside the BMP will kill this
+	return _makeString(field, [
+		'val = struct.unpack("%ds"%(2*arraysize), inF.read(2*arraysize)'
+			')[0].decode("utf-16be")'])
+
+
+_typemap = {
+	"unsignedByte": (1, 'B'),
+	"short": (2, 'h'),
+	"int": (4, 'i'),
+	"long": (8, 'q'),
+	"float": (4, 'f'),
+	"double": (8, 'd'),}
 
 
 _decoders = {
 	'boolean': _makeBooleanDecoder,
-#	'bit': _makeBitDecoder,
-#	'unsignedByte': lambda v: _makeIntDecoder(v, 256),
-#	'char': _makeCharDecoder,
-#	'unicodeChar': _makeCharDecoder,
-#	'short': lambda v: _makeIntDecoder(v, 32767),
-#	'int': lambda v: _makeIntDecoder(v, 2147483647),
-#	'long': lambda v: _makeIntDecoder(v, 9223372036854775807L),
-#	'float': _makeFloatDecoder,
-#	'double': _makeFloatDecoder,
-#	'floatComplex': _makeComplexDecoder,
-#	'doubleComplex': _makeComplexDecoder,
+	'bit': _makeBitDecoder,
+	'char': _makeCharDecoder,
+	'unicodeChar': _makeUnicodeCharDecoder,
+
+	'unsignedByte': _makeIntDecoder,
+	'short': _makeIntDecoder,
+	'int':  _makeIntDecoder,
+	'long': _makeIntDecoder,
+
+	'float': _makeFloatDecoder,
+	'double': _makeFloatDecoder,
+	'floatComplex': lambda v: _makeComplexDecoder(v, 8, '!ff'),
+	'doubleComplex': lambda v: _makeComplexDecoder(v, 16, '!dd'),
 }
+
+def _makeShortcutCode(field, type, arraysize):
+	"""returns None or code to quickly decode field array.
+
+	Fast decoding for whatever is mentioned in _typemap and no nullvalues
+	are defined.
+	"""
+	if type not in _typemap:
+		return None
+	if coding.getNullvalue(field, str) is not None:
+		return None
+	numBytes, typecode = _typemap[type]
+	src = _getArraysizeCode(field)
+	src.append(
+		'vals = struct.unpack("!%%d%s"%%arraysize, inF.read(arraysize*%d))'%(
+			typecode, numBytes))
+	if type=='float' or type=='double':
+		src.append(
+			'row.append([v!=v and None or v for v in vals])')
+	else:
+		src.append(
+			'row.append(list(vals))')
 
 def _getArrayDecoderLines(field):
 	"""returns lines that decode arrays of literals.
@@ -162,21 +177,31 @@ def _getArrayDecoderLines(field):
 	We completely ignore any arraysize specification here.
 	"""
 	type, arraysize = field.a_datatype, field.a_arraysize
-	if type=='char' or type=='unicodeChar':
-		return _makeCharDecoder(field, emptyIsNull=False)
+
+	# Weird things
+	if type=="bit":
+		return _makeBitDecoder(field)
+	elif type=='char':
+		return _makeCharDecoder(field)
+	elif type=='unicodeChar':
+		return _makeUnicodeCharDecoder(field)
+	
+	# Fast array decoding for fields without null values
+	src = _makeShortcutCode(field, type, arraysize)
+	if src is not None:
+		return src
+
+	# default processing
 	src = [ # OMG.  I'm still hellbent on not calling functions here.
-		'arrayLiteral = val',
 		'fullRow, row = row, []',
 		]
-	if type=='floatComplex' or type=='doubleComplex':
-		src.append("for val in tokenizeComplexArr(arrayLiteral):")
-	elif type=='bit':
-		src.append("for val in tokenizeBitArr(arrayLiteral):")
-	else:
-		src.append("for val in tokenizeNormalArr(arrayLiteral):")
+	src.extend(_getArraysizeCode(field))
+	src.extend([
+		"for i in range(arraysize):"])
 	src.extend(coding.indentList(_decoders[type](field), "  "))
-	src.append("fullRow.append(row)")
-	src.append("row = fullRow")
+	src.extend([
+		"fullRow.append(row)",
+		"row = fullRow"])
 	return src
 
 
