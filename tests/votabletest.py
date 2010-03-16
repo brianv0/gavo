@@ -254,10 +254,10 @@ class STCParseTest(testhelpers.VerboseTest):
 			td.getColumnByName("alpha").stc.spaceFrame.refFrame, "ICRS")
 		self.assertEqual(
 			td.getColumnByName("alpha").stcUtype, 
-			"AstroCoords.Position2D.Value2.C1")
+			"stc:AstroCoords.Position2D.Value2.C1")
 		self.assertEqual(
 			td.getColumnByName("delta").stcUtype, 
-			"AstroCoords.BlasterLocation")
+			"stc:AstroCoords.BlasterLocation")
 
 
 if __name__=="__main__":

@@ -156,8 +156,8 @@ class VOTableMaker(utils.IdManagerMixin):
 		"""
 		for stcId, system in tableDef.getSTCSystems(self):
 			stcGroup = DM.Group(utype="stc:AstroCoordSystem", ID=stcId)
-			for utype, val in stc.iterUtypesForSystem(system):
-				stcGroup.params.append(DM.Param(utype="stc:"+utype, value=val,
+			for utype, val in stc.getUtypesForSystem(system)[0]:
+				stcGroup.params.append(DM.Param(utype=utype, value=val,
 					datatype="char", arraysize="*"))
 			votTable.groups.append(stcGroup)
 			cooGroup = DM.Group(utype="stc:AstroCoords", ref=stcId,
@@ -167,7 +167,7 @@ class VOTableMaker(utils.IdManagerMixin):
 				if col["stcUtype"]:
 					if col["stc"].id==stcId:
 						cooGroup.groups.append(
-							DM.Group(utype="stc:"+col["stcUtype"], ref=col["ID"]))
+							DM.Group(utype=col["stcUtype"], ref=col["ID"]))
 			votTable.groups.append(cooGroup)
 
 	def _makeTable(self, res, table):
@@ -313,10 +313,10 @@ def _getSTCColumnsFromGroups(stcGroups):
 	for group in stcGroups:
 		if group.utype=="stc:AstroCoords":  # collect id -> (utype, system) map
 			for child in group.groups:
-				columns[child.ref] = (group.ref, child.utype.split(":")[-1])
+				columns[child.ref] = (group.ref, child.utype)
 		elif group.utype=="stc:AstroCoordSystem": # parse system
-			systems[group.id] = stc.parseFromUtypes(dict(
-				(p.utype.split(":")[-1], p.value) for p in group.params), {}
+			systems[group.id] = stc.parseFromUtypes([
+				(p.utype, p.value) for p in group.params], {}
 			).astroSystem
 		else:
 			raise base.Error("Invalid stc utype '%s'"%group.utype)

@@ -45,26 +45,24 @@ class UtypeMaker_t(type):
 
 
 class UtypeMaker(object):
-	"""An object encapsulating information on how to turn a stanxml node
-	into a sequence of utype/value pairs.
+	"""An object encapsulating information on how to turn a stanxml
+	node into a sequence of utype/value pairs.
 
-	This is an abstract base.  Concrete objects must fill out at least
-	the rootType attribute, giving the utype at which this UtypeMaker should
-	kick in.
-	
-	By default, utype/value pairs are only returned for nonempty element
-	content.  To change this, define _gener_<name>(node, prefix) -> iterator
-	methods.
+	This is an "universal" base, serving as a simple default.
+	Any class handling specific node types must fill out at least
+	the rootType attribute, giving the utype at which this UtypeMaker
+	should kick in.
 
-	The actual pairs are retrieved by calling iterUtypes(node, parentPrefix).
+	By default, utype/value pairs are only returned for nonempty
+	element content.  To change this, define _gener_<name>(node,
+	prefix) -> iterator methods.
+
+	The actual pairs are retrieved by calling iterUtypes(node,
+	parentPrefix).
 	"""
 	__metaclass__ = UtypeMaker_t
 
 	rootType = None
-
-	def _gener__colRef(self, name, child, prefix):
-		for item in child:
-			yield prefix, item.dest
 
 	def _generPlain(self, name, child, prefix):
 		childType = utypejoin(prefix, name)
@@ -72,6 +70,9 @@ class UtypeMaker(object):
 		for item in child:
 			for pair in maker.iterUtypes(item, childType):
 				yield pair
+
+	def _gener__colRef(self, name, child, prefix):
+		yield prefix, child[0]
 
 	def iterUtypes(self, node, prefix):
 		children = node.makeChildDict()
@@ -144,50 +145,42 @@ def utypejoin(*utypes):
 	return ".".join(u for u in utypes if u)
 
 
+# A resolver of element names to their handling classes.  For most
+# elements, this is just a plain UtypeMaker.
 _getUtypeMaker = utils.buildClassResolver(UtypeMaker, globals().values(),
 	instances=True, key=lambda obj:obj.rootType, default=UtypeMaker())
 
 
-def _makeDicts(pairIter):
-	"""generates the system and column dictionaries from the raw pair 
-	iterator.
+def _makeUtypes(stcx, rootUtype=None):
+	"""returns a pair of lists of of utype/value pairs for an STC-X
+	concrete tree.
 
-	It also filters out utype/value-pairs with None values.  For the
-	definition of the two dictionaries, see, getUtypes.
+	The first contains strings as values, the second ColRefs (this
+	separation is done for convenience).
 	"""
-	sysDict, cooDict = {}, {}
-	for utype, val in pairIter:
+	system, coords = [], []
+	for utype, val in _getUtypeMaker(rootUtype).iterUtypes(stcx, rootUtype):
 		if val is None or val=='':
 			continue
-		if utype.startswith("AstroCoordSystem"):
-			sysDict[utype] = val
+		if isinstance(val, common.ColRef):
+			dest = coords
 		else:
-			cooDict[val] = utype
-	return sysDict, cooDict
+			dest = system
+		dest.append(("stc:"+utype, val))
+	return system, coords
 
 
-def getUtypes(ast):
-	"""returns utype dictionaries for an STCSpec ast.
-
-	The utype dictionaries are
-
-	* the system dict, containing a mapping of utypes to values defining
-	  coordinate systems,
-	* the column dictitionary, containing a mapping of column names to
-	  the pertaining utype.
+def getUtypeGroups(ast):
+	"""returns a pair of lists of of utype/value pairs for an STC AST.
 	"""
-	ctx = stcxgen.Context(ast)
-	cst = stcxgen.astToStan(ast, STC.STCSpec)
-	return _makeDicts(_getUtypeMaker(None).iterUtypes(cst, None))
+	return _makeUtypes(stcxgen.astToStan(ast, STC.STCSpec))
 
 
-def iterUtypesForSystem(systemTree):
-	"""returns a utype dictionary for a dm.CoordSys object.
+def getUtypesForSystem(coordSys):
+	"""returns a pair of lists of of utype/value pairs for an STC 
+	AstroCoordSystem node.
+
+	The second list (with ColRefs) would usually be empty here.
 	"""
-	ctx = stcxgen.Context(systemTree)
-	cst = stcxgen.nodeToStan(systemTree)
-	for utype, val in  _getUtypeMaker("AstroCoordSystem").iterUtypes(cst, 
-			"AstroCoordSystem"):
-		if val is None or val=='':
-			continue
-		yield utype, val
+	return _makeUtypes(stcxgen.nodeToStan(coordSys), "AstroCoordSystem")
+

@@ -12,6 +12,7 @@ import operator
 
 from gavo import utils
 from gavo.utils import ElementTree
+from gavo.utils import stanxml
 
 class STCError(Exception):
 	pass
@@ -175,41 +176,24 @@ class ASTNode(utils.AutoNode):
 			self.id = utils.intToFunnyWord(id(self))
 
 
-class ColRef(object):
+class ColRef(stanxml.Stub):
 	"""A column reference instead of a true value, occurring in an STC-S tree.
 	"""
 	name = "_colRef"
-
-	def __init__(self, dest):
-		self.dest = dest
 
 	def __str__(self):
 		return self.dest 
 		# only for debugging: '"%s"'%self.dest
 
-	# ColRefs should hash and compare equal when their dest is identical
-	# (this may be trouble when joining tables; let's worry about that
-	# later).
-	def __hash__(self):
-		return hash(self.dest)
-	
-	def __eq__(self, other):
-		if hasattr(other, "dest"):
-			return self.dest==other.dest
-		return False
+	def __repr__(self):
+		return "%s(%s)"%(self.__class__.__name__, repr(self.dest))
 
 	def isoformat(self):
 		return self
 
-	def isEmpty(self):
-		return False
-
-	def serializeToXMLStan(self):
-		return str(self)
-
 	def __mul__(self, other):
 		raise STCValueError("ColRefs (here, %s) cannot be used in arithmetic"
-			" expressions.")
+			" expressions."%repr(self))
 
 
 class GeometryColRef(ColRef):

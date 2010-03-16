@@ -1,5 +1,5 @@
 """
-Common code for coding and decoding VOTable table data.
+Common code for coding and decoding VOTable data.
 """
 
 from gavo import utils

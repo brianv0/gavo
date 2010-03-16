@@ -99,6 +99,7 @@ def utypePairsToTree(utypes, nameQualifier=stcxast.STCElement):
 
 	The utype can be none, meaning "Use last node".
 	"""
+	utypes = list(utypes)
 	root = ElementTree.Element(nameQualifier("STCSpec"))
 	curParts, elementStack = (), [root]
 	for parts, val in ((parseUtype(u), v) for u, v in utypes):
@@ -145,18 +146,34 @@ def morphUtypes(morphers, utypeSeq):
 			yield (k, v)
 
 
-def _utypeDictsToUtypeSeq(sysDict, colDict):
-	"""returns a sorted sequence of utype, value pairs from sys/colDict.
-
-	The keys of colDict get wrapped into ColRefs while doing that.
+def _iterUtypePairs(sysUtypes, coordUtypes):
+	"""returns a sorted sequence of utype, value pairs from sys/coordUtypes.
 	"""
-	colIter = ((v, common.ColRef(k)) for k, v in colDict.iteritems())
-#	colIter = ((v, k) for k, v in colDict.iteritems())
-	return sorted(itertools.chain(sysDict.iteritems(), colIter))
+	for pair in sysUtypes:
+		yield pair
+	for key, value in coordUtypes:
+		if isinstance(value, basestring):
+			yield key, common.ColRef(value)
+		else:
+			yield key, value
 
 
-def parseFromUtypes(sysDict, colDict):
+def _cleanUtypes(utypeIter):
+	"""returns the content of utypeIter cleaned for the ugly prefix
+	and sorted.
+	"""
+	for key, value in sorted(utypeIter):
+		yield key.split(":")[-1], value
+
+
+def parseFromUtypes(sysUtypes, coordUtypes):
+	"""returns an STC AST for the pair of the sequences of utype-value-pairs.
+	
+	The two sequences can be as returned from getUtypeGroups.  In the
+	one, all values are cast to ColRefs if the are not already..
+	"""
 	eTree = utypePairsToTree(
 		morphUtypes(_utypeMorphers,
-			_utypeDictsToUtypeSeq(sysDict, colDict)))
-	return stcxast.parseFromETree(eTree)[0][1]
+			_cleanUtypes(_iterUtypePairs(sysUtypes, coordUtypes))))
+	res = stcxast.parseFromETree(eTree)[0][1]
+	return res

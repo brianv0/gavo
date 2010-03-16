@@ -56,8 +56,40 @@ class _Autoconstructor(type):
 		return cls()[items]
 
 
+class Stub(object):
+	"""A sentinel class for embedding objects not yet existing into
+	stanxml trees.
+
+	These have a single opaque object and need to be dealt with by the
+	user.  One example of how these can be used is the ColRefs in stc to
+	utype conversion.
+
+	Stubs are equal to each othter if their handles are identical.
+	"""
+	name = "stub"
+	text = None
+
+	def __init__(self, dest):
+		self.dest = dest
+	
+	def __eq__(self, other):
+		return self.dest==getattr(other, "dest", Stub)
+	
+	def __ne__(self, other):
+		return not self==other
+
+	def __hash__(self):
+		return hash(self.dest)
+
+	def isEmpty(self):
+		return False
+	
+	def makeChildDict(self):
+		return {}
+
+
 class Element(object):
-	"""is an element for serialization into XML.
+	"""An element for serialization into XML.
 
 	This is loosely modelled after nevow stan.
 
@@ -157,7 +189,7 @@ class Element(object):
 		elif isinstance(child, basestring):
 			self.bailIfBadChild(child)
 			self.text = child
-		elif isinstance(child, Element):
+		elif isinstance(child, (Element, Stub)):
 			self.bailIfBadChild(child)
 			self.children.append(child)
 		elif isinstance(child, (list, tuple)):

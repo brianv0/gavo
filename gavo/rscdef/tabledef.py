@@ -158,7 +158,8 @@ class STCDef(base.Structure):
 	def completeElement(self):
 		self._onElementCompleteNext(STCDef)
 		self.compiled = stc.parseQSTCS(self.content_)
-		_, self._origFields = stc.getUtypes(self.compiled)
+		self._origFields = dict((value.dest, utype) 
+			for utype, value in stc.getUtypeGroups(self.compiled)[1])
 	
 	def iterColTypes(self):
 		return self._origFields.iteritems()

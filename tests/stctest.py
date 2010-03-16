@@ -504,10 +504,10 @@ class NullTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.astroSystem.spaceFrame.refPos.standardOrigin, None)
 
 	def testSpaceFromUtypes(self):
-		ast = stc.parseFromUtypes({
-			'AstroCoordSystem.SpaceFrame.CoordRefFrame': 'UNKNOWNFrame',
-			'AstroCoordSystem.SpaceFrame.ReferencePosition': 'UNKNOWNRefPos',
-		}, {})
+		ast = stc.parseFromUtypes([
+			('AstroCoordSystem.SpaceFrame.CoordRefFrame', 'UNKNOWNFrame'),
+			('AstroCoordSystem.SpaceFrame.ReferencePosition', 'UNKNOWNRefPos'),
+		], [])
 		self.assertEqual(ast.astroSystem.spaceFrame.refFrame, None)
 		self.assertEqual(ast.astroSystem.spaceFrame.refPos.standardOrigin, None)
 
@@ -526,9 +526,9 @@ class NullTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.astroSystem.timeFrame.refPos.standardOrigin, None)
 
 	def testTimeFromUtypes(self):
-		ast = stc.parseFromUtypes({
-			'AstroCoordSystem.TimeFrame.ReferencePosition': 'UNKNOWNRefPos',
-		}, {})
+		ast = stc.parseFromUtypes([
+			('stc:AstroCoordSystem.TimeFrame.ReferencePosition', 'UNKNOWNRefPos')],
+			[])
 		self.assertEqual(ast.astroSystem.timeFrame.timeScale, "TT")
 		self.assertEqual(ast.astroSystem.timeFrame.refPos.standardOrigin, None)
 
@@ -558,11 +558,11 @@ class NullTest(testhelpers.VerboseTest):
 			'AL coord_naxes="2" /></SpaceFrame></AstroCoordSystem></STCSpec>')
 
 	def testToUtypes(self):
-		self.assertEqual(stc.getUtypes(self._makeEmptySTC())[0], {
-			'AstroCoordSystem.SpaceFrame.CoordRefFrame': 'UNKNOWNFrame', 
-			'AstroCoordSystem.TimeFrame.ReferencePosition': 'UNKNOWNRefPos', 
-			'AstroCoordSystem.SpaceFrame.CoordFlavor': 'SPHERICAL', 
-			'AstroCoordSystem.SpaceFrame.ReferencePosition': 'UNKNOWNRefPos'})
+		self.assertEqual(dict(stc.getUtypeGroups(self._makeEmptySTC())[0]), {
+			'stc:AstroCoordSystem.SpaceFrame.CoordRefFrame': 'UNKNOWNFrame', 
+			'stc:AstroCoordSystem.TimeFrame.ReferencePosition': 'UNKNOWNRefPos', 
+			'stc:AstroCoordSystem.SpaceFrame.CoordFlavor': 'SPHERICAL', 
+			'stc:AstroCoordSystem.SpaceFrame.ReferencePosition': 'UNKNOWNRefPos'})
 
 
 class GeoTest(testhelpers.VerboseTest):
@@ -651,7 +651,7 @@ class CLITest(testhelpers.VerboseTest):
 				" unit deg/cy\n")
 
 	_utypeInput = 'Position GALACTIC "l" "b" VelocityInterval Velocity "vl" "vb"'
-	_utypeOutput = 'eJyVztEKgjAUgOF7n8IXaNDuC8bKGomJll3G1BMI0xPbEnz7TAqKRqNzd8bh28+M1cgRdZ0PxkJL\n8qusINKyBTI9Z3CZttAxi3DDYsYPgp+FCJiPipTsUbugB5Wn23UmOIt/QmMOaOgqSNE0tsHuGzom\nu2R/SsbL8eYNM6QAhVVjB7oihVQ3oIRTd85zZsuwLz+I17f/EKUvYu6NUL4IL6GCOxDOhCM=\n'.decode("base64").decode("zlib")
+	_utypeOutput = 'eJyNz1ELgjAQB/B3P4VfoEE+BgVjZY3ExJU9xpoXCNOLbQl++0TqoRbmvd3u7sd/1qkFtc4gQzSl\n6KyDmoi7VBAbWQMZnmMtWzShV8tQZLtNzhlNAjsFyuE2dD60pQllR84unP+legUMNAoytJWrsPmk\nTuk+PZzTfquff2GWvG+iNSmkfkBEWOT/7FWzVXidIszHBO0JBWhUleumZmj9ED+I0RCtDp5ui4s/\n'.decode("base64").decode("zlib")
 
 	def testUtypeGen(self):
 		self.assertOutput(cli.main, ["utypes", self._utypeInput],

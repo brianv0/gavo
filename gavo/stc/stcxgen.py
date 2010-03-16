@@ -34,12 +34,20 @@ def addId(node):
 
 
 def strOrNull(val):
-	if val is not None:
+	if val is None:
+		return None
+	elif isinstance(val, ColRef):
+		return val
+	else:
 		return str(val)
 
 
 def isoformatOrNull(val):
-	if val is not None:
+	if val is None:
+		return None
+	elif isinstance(val, ColRef):
+		return val
+	else:
 		return val.isoformat()
 	
 
@@ -140,7 +148,8 @@ def serialize_CoordSys(node, context):
 
 ############ Coordinates
 
-def _wrapValues(element, valSeq, mapper=str):
+
+def _wrapValues(element, valSeq, mapper=strOrNull):
 	"""returns the items of valSeq as children of element, mapped with mapper.
 	"""
 	if valSeq is None:
@@ -155,9 +164,9 @@ def _serialize_Wiggle(node, serializer, wiggles):
 	if isinstance(node, dm.CooWiggle):
 		return _wrapValues(cooClass, node.values, serializer),
 	elif isinstance(node, dm.RadiusWiggle):
-		return [radiusClass[str(r)] for r in node.radii]
+		return [radiusClass[strOrNull(r)] for r in node.radii]
 	elif isinstance(node, dm.MatrixWiggle):
-		return [matrixClass[_wrapMatrix(m)] for m in node.matrices]
+		return [matrixClass[_wrapMatrix(m, strOrNull)] for m in node.matrices]
 	else:
 		STCValueError("Cannot serialize %s errors to STC-X"%
 			node.__class__.__name__)
@@ -237,10 +246,10 @@ def _wrap3D(val, unit=_nones, timeUnit=_nones):
 		STC.C2(pos_unit=unit[1], vel_time_unit=timeUnit[1])[val[1]], 
 		STC.C3(pos_unit=unit[2], vel_time_unit=timeUnit[2])[val[2]]]
 
-def _wrapMatrix(val):
+def _wrapMatrix(val, serializer):
 	for rowInd, row in enumerate(val):
 		for colInd, col in enumerate(row):
-			yield getattr(STC, "M%d%d"%(rowInd, colInd))[str(col)]
+			yield getattr(STC, "M%d%d"%(rowInd, colInd))[serializer(col)]
 
 _spatialPosClasses = (
 	(STC.Position1D, STC.Value, _wrap1D),
@@ -328,9 +337,9 @@ def _make1DIntervalSerializer(intervClass, lowerClass, upperClass,
 serialize_TimeInterval = _make1DIntervalSerializer(STC.TimeInterval,
 	STC.StartTime, STC.StopTime, lambda val: STC.ISOTime[isoformatOrNull(val)])
 serialize_SpectralInterval = _make1DIntervalSerializer(STC.SpectralInterval,
-	STC.LoLimit, STC.HiLimit, lambda val: str(val))
+	STC.LoLimit, STC.HiLimit, strOrNull)
 serialize_RedshiftInterval = _make1DIntervalSerializer(STC.RedshiftInterval,
-	STC.LoLimit, STC.HiLimit, lambda val: str(val))
+	STC.LoLimit, STC.HiLimit, strOrNull)
 
 
 _posIntervalClasses = [

@@ -43,28 +43,29 @@ def cmd_conform(opts, srcSTCS, dstSTCS):
 def cmd_utypes(opts, srcSTCS):
 	"""<QSTCS> -- prints the utypes for the quoted STC string <QSTCS>.
 	"""
-	sys, cols = stc.getUtypes(stc.parseQSTCS(srcSTCS))
-	for utype, val in sys.iteritems():
-		print "%-60s = %s"%(utype, val)
-	for colId, utype in cols.iteritems():
-		print "%-60s -> %s"%(utype, colId)
+	sys, cols = stc.getUtypeGroups(stc.parseQSTCS(srcSTCS))
+	for utype, val in sys+cols:
+		if isinstance(val, stc.ColRef):
+			print "%-60s -> %s"%(utype, val.dest)
+		else:
+			print "%-60s = %s"%(utype, val)
 
 
 def cmd_parseUtypes(opts):
 	"""--- reads the output of utypes and prints quoted STC for it.
 	"""
-	sysTypes, colTypes = {}, {}
+	sysTypes, colTypes = [], [] 
 	for ln in sys.stdin:
 		try:
 			utype, val = ln.split("=", 1)
-			sysTypes[utype.strip()] = val.strip()
+			sysTypes.append((utype.strip(), val.strip()))
 		except ValueError:
 			pass
 		else:
 			continue
 		try:
 			utype, val = ln.split("->", 1)
-			colTypes[val.strip()] = utype.strip()
+			colTypes.append((utype.strip(), stc.ColRef(val.strip())))
 		except ValueError:
 			pass
 		else:
