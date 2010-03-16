@@ -162,10 +162,10 @@ def _makeUtypes(stcx, rootUtype=None):
 	for utype, val in _getUtypeMaker(rootUtype).iterUtypes(stcx, rootUtype):
 		if val is None or val=='':
 			continue
-		if isinstance(val, common.ColRef):
-			dest = coords
-		else:
+		if utype.startswith("AstroCoordSystem"):
 			dest = system
+		else:
+			dest = coords
 		dest.append(("stc:"+utype, val))
 	return system, coords
 
@@ -180,7 +180,7 @@ def getUtypesForSystem(coordSys):
 	"""returns a pair of lists of of utype/value pairs for an STC 
 	AstroCoordSystem node.
 
-	The second list (with ColRefs) would usually be empty here.
+	The second list is always empty here.
 	"""
 	return _makeUtypes(stcxgen.nodeToStan(coordSys), "AstroCoordSystem")
 

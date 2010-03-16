@@ -149,31 +149,19 @@ def morphUtypes(morphers, utypeSeq):
 def _iterUtypePairs(sysUtypes, coordUtypes):
 	"""returns a sorted sequence of utype, value pairs from sys/coordUtypes.
 	"""
-	for pair in sysUtypes:
-		yield pair
-	for key, value in coordUtypes:
-		if isinstance(value, basestring):
-			yield key, common.ColRef(value)
-		else:
-			yield key, value
-
-
-def _cleanUtypes(utypeIter):
-	"""returns the content of utypeIter cleaned for the ugly prefix
-	and sorted.
-	"""
-	for key, value in sorted(utypeIter):
-		yield key.split(":")[-1], value
+	return sorted((key.split(":")[-1], value) 
+		for key, value in itertools.chain(sysUtypes, coordUtypes))
 
 
 def parseFromUtypes(sysUtypes, coordUtypes):
 	"""returns an STC AST for the pair of the sequences of utype-value-pairs.
 	
-	The two sequences can be as returned from getUtypeGroups.  In the
-	one, all values are cast to ColRefs if the are not already..
+	The two sequences can be as returned from getUtypeGroups.  This
+	function doesn't really care, though, since both sequences will be 
+	mashed together, so you could leave one empty if you wanted to.
 	"""
 	eTree = utypePairsToTree(
 		morphUtypes(_utypeMorphers,
-			_cleanUtypes(_iterUtypePairs(sysUtypes, coordUtypes))))
+			_iterUtypePairs(sysUtypes, coordUtypes)))
 	res = stcxast.parseFromETree(eTree)[0][1]
 	return res

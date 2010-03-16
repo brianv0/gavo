@@ -217,8 +217,9 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 		([('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS'),
 			('stc:AstroCoordSystem.SpaceFrame.CoordFlavor', 'CARTESIAN'),
 			('stc:AstroCoordSystem.SpaceFrame.CoordFlavor.coord_naxes', '3')],[]),
-		([('stc:AstroCoords.Time.TimeInstant.ISOTime', '2000-01-01T00:00:00')], 
-			[('stc:AstroCoordArea.Circle', stc.ColRef('errc'))]),
+		([], [
+			('stc:AstroCoords.Time.TimeInstant.ISOTime', '2000-01-01T00:00:00'),
+			('stc:AstroCoordArea.Circle', stc.ColRef('errc'))]),
 	]
 
 
