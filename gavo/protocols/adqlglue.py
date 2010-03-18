@@ -95,7 +95,7 @@ def getFieldInfoGetter(accessProfile=None):
 	return getFieldInfos
 
 
-def query(query, timeout=15, queryProfile="untrustedquery", metaProfile=None):
+def query(querier, query, timeout=15, metaProfile=None):
 	"""returns a DataSet for query (a string containing ADQL).
 	"""
 	t = adql.parseToTree(query)
@@ -109,9 +109,9 @@ def query(query, timeout=15, queryProfile="untrustedquery", metaProfile=None):
 	morphStatus, morphedTree = adql.morphPG(t)
 	# escape % to hide them form dbapi replacing
 	query = adql.flatten(morphedTree).replace("%", "%%")
-	for tuple in base.SimpleQuerier(useProfile=queryProfile).runIsolatedQuery(
+	for tuple in querier.runIsolatedQuery(
 			query, timeout=timeout, silent=True, 
-			settings=(("enable_nestloop", False), ("enable_seqscan", False))):
+			settings=[("enable_seqscan", False)]):
 		table.addTuple(tuple)
 	for warning in morphStatus.warnings:
 		table.tableDef.addMeta("_warning", warning)
@@ -141,6 +141,13 @@ class ADQLCore(svcs.Core):
 	"""
 	name_ = "adqlCore"
 
+	_querier = None
+
+	def _getQuerier(self):
+		if self._querier is None:
+			self._querier = base.SimpleQuerier(useProfile="untrustedquery")
+		return self._querier
+
 	def wantsTableWidget(self):
 		return False
 
@@ -151,9 +158,8 @@ class ADQLCore(svcs.Core):
 		if "timeout" in inRow:
 			timeout = inRow["timeout"]
 		try:
-			res = query(queryString,
-				timeout=timeout,
-				queryProfile="untrustedquery")
+			res = query(self._getQuerier(), queryString,
+				timeout=timeout)
 			res.noPostprocess = True
 			queryMeta["Matched"] = len(res.rows)
 			if len(res.rows)==base.getConfig("adql", "webDefaultLimit"):
@@ -211,6 +217,7 @@ def localquery():
 	from gavo import formats
 
 	q = sys.argv[1]
-	table = query(q, timeout=1000, queryProfile="trustedquery")
+	querier = base.SimpleQuerier(useProfile="untrustedquery")
+	table = querier.query(q, timeout=1000)
 	formats.formatData("votable", table, sys.stdout)
 

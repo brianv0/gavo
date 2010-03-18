@@ -31,16 +31,27 @@ class _ADQLTestTable(testhelpers.TestResource):
 	def make(self, deps):
 		base.setDBProfile("test")
 		self.rd = testhelpers.getTestRD()
-		self.ds = rsc.makeData(self.rd.getById("ADQLTest"),
+		ds = rsc.makeData(self.rd.getById("ADQLTest"),
 				forceSource=[
 				{"alpha": 22, "delta": 23, "mag": -27, "rv": 0},]).commitAll()
-		return self.ds
+		return ds
 	
-	def cleanup(self):
-		self.ds.dropTables()
-		self.ds.commitAll().closeAll()
+	def clean(self, ds):
+		ds.dropTables()
+		ds.commitAll().closeAll()
 
 adqlTestTable = _ADQLTestTable()
+
+
+class _ADQLQuerier(testhelpers.TestResource):
+	def make(self, deps):
+		return base.SimpleQuerier(useProfile="test")
+	
+	def clean(self, querier):
+		querier.close()
+
+adqlQuerier = _ADQLQuerier()
+
 
 class SymbolsParseTest(testhelpers.VerboseTest):
 	"""tests for plain parsing on individual productions.
@@ -926,7 +937,7 @@ class PQMorphTest(unittest.TestCase):
 class QueryTest(testhelpers.VerboseTest):
 	"""performs some actual queries to test the whole thing.
 	"""
-	resources = [("ds",  adqlTestTable)]
+	resources = [("ds",  adqlTestTable), ("querier", adqlQuerier)]
 
 	def setUp(self):
 		testhelpers.VerboseTest.setUp(self)
@@ -939,9 +950,13 @@ class QueryTest(testhelpers.VerboseTest):
 				" Expected %s for %s, found %s"%(dataField.name, repr(value), 
 					label, repr(getattr(dataField, label, None))))
 
+	def runQuery(self, query, **kwargs):
+		return adqlglue.query(self.querier, query, **kwargs)
+
 	def testPlainSelect(self):
-		res = adqlglue.query("select alpha, delta from %s where mag<-10"%
-			self.tableName, queryProfile="test", metaProfile="test")
+		res = self.runQuery(
+			"select alpha, delta from %s where mag<-10"%
+			self.tableName, metaProfile="test")
 		self.assertEqual(len(res.rows), 1)
 		self.assertEqual(len(res.rows[0]), 2)
 		self.assertEqual(res.rows[0]["alpha"], 22.0)
@@ -954,8 +969,8 @@ class QueryTest(testhelpers.VerboseTest):
 			("tablehead", 'delta')])
 
 	def testStarSelect(self):
-		res = adqlglue.query("select * from %s where mag<-10"%
-			self.tableName, metaProfile="test", queryProfile="test")
+		res = self.runQuery("select * from %s where mag<-10"%
+			self.tableName, metaProfile="test")
 		self.assertEqual(len(res.rows), 1)
 		self.assertEqual(len(res.rows[0]), 4)
 		fields = res.tableDef.columns
@@ -970,8 +985,8 @@ class QueryTest(testhelpers.VerboseTest):
 			("description", 'A sample radial velocity'), ("unit", 'km/s')])
 	
 	def testQualifiedStarSelect(self):
-		res = adqlglue.query("select %s.* from %s, %s as q1 where q1.mag<-10"%(
-			self.tableName, self.tableName, self.tableName), queryProfile="test")
+		res = self.runQuery("select %s.* from %s, %s as q1 where q1.mag<-10"%(
+			self.tableName, self.tableName, self.tableName))
 		self.assertEqual(len(res.rows), 1)
 		self.assertEqual(len(res.rows[0]), 4)
 		fields = res.tableDef.columns
@@ -981,13 +996,12 @@ class QueryTest(testhelpers.VerboseTest):
 
 	def testNoCase(self):
 		# will just raise an Exception if things are broken.
-		adqlglue.query("select ALPHA, DeLtA, MaG from %s"%self.tableName,
-			metaProfile="test", queryProfile="test")
+		self.runQuery("select ALPHA, DeLtA, MaG from %s"%self.tableName,
+			metaProfile="test")
 
 	def testTainting(self):
-		res = adqlglue.query("select delta*2, alpha*mag, alpha+delta"
-			" from %s where mag<-10"% self.tableName, metaProfile="test",
-			queryProfile="test")
+		res = self.runQuery("select delta*2, alpha*mag, alpha+delta"
+			" from %s where mag<-10"% self.tableName, metaProfile="test")
 		f1, f2, f3 = res.tableDef.columns
 		self._assertFieldProperties(f1, [("ucd", 'pos.eq.dec;meta.main'),
 			("description", 'A sample Dec -- *TAINTED*: the value was operated'

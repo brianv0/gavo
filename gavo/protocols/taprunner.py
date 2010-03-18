@@ -82,7 +82,8 @@ def runTAPQuery(query, timeout, queryProfile):
 	"""executes a TAP query and returns the result in a data instance.
 	"""
 	try:
-		return adqlglue.query(query, timeout=timeout, queryProfile=queryProfile)
+		querier = base.SimpleQuerier(useProfile=queryProfile)
+		return adqlglue.query(querier, query, timeout=timeout)
 	except:
 		adqlglue.mapADQLErrors(*sys.exc_info())
 
