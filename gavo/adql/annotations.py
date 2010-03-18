@@ -58,6 +58,8 @@ class FieldInfos(object):
 
 		This means that either the name matches or toName is table's original
 		name.
+
+		toName is a qualified name (i.e., including schema).
 		"""
 		return (table.tableName.qName==toName.qName
 			or (
@@ -65,19 +67,19 @@ class FieldInfos(object):
 				and
 					table.originalTable==toName.qName))
 
-	def locateTable(self, refTable):
-		"""returns a table instance matching the TableName refName.
+	def locateTable(self, refName):
+		"""returns a table instance matching the node.TableName refName.
 
 		If no such table is in scope, the function raises a TableNotFound.
 		"""
 		for t in self.subTables:
-			if self._namesMatch(t, refTable):
+			if self._namesMatch(t, refName):
 				return t
 			try:
-				return t.fieldInfos.locateTable(refTable)
+				return t.fieldInfos.locateTable(refName)
 			except TableNotFound:
 				pass
-		raise TableNotFound("No table %s found."%refTable.qName)
+		raise TableNotFound("No table %s found."%refName.qName)
 
 	def addColumn(self, label, info):
 		"""adds a new visible column to this info.
@@ -128,7 +130,6 @@ class FieldInfosForTable(FieldInfos):
 		self.subTables = getattr(node, "joinedTables", [])
 
 
-
 class FieldInfosForQuery(FieldInfos):
 	"""A FieldInfos class that additionally knows how to obtain field infos
 	in subtables.
@@ -163,16 +164,18 @@ class FieldInfosForQuery(FieldInfos):
 			if hasattr(subRef, "getFieldInfo"):
 				self.subTables.append(subRef)
 
-	def getFieldInfoFromSources(self, colName, refTable=None):
+	def getFieldInfoFromSources(self, colName, refName=None):
 		"""returns a field info for colName from anything in the from clause.
 
 		That is, the columns in the select clause are ignored.  Use this to
 		resolve expressions from the queries' select clause.
+
+		See getFieldInfo for reName
 		"""
 		colName = colName.lower()
 		matched = []
-		if refTable:
-			subCols = self.locateTable(refTable).fieldInfos.columns
+		if refName is not None:
+			subCols = self.locateTable(refName).fieldInfos.columns
 			if colName in subCols and subCols[colName]:
 				matched.append(subCols[colName])
 
@@ -185,23 +188,23 @@ class FieldInfosForQuery(FieldInfos):
 		# XXX TODO: build a qualified colName here if necessary
 		return getUniqueMatch(matched, colName)
 
-	def getFieldInfo(self, colName, refTable=None):
+	def getFieldInfo(self, colName, refName=None):
 		"""returns a field info for colName in self and the joined tables.
 
 		To do that, it collects all fields of colName in self and subTables and
 		returns the matching field if there's exactly one.  Otherwise, it
 		will raise ColumnNotFound or AmbiguousColumn.
 
-		If refTable is given, the search will be restricted to the matching
-		tables.
+		If the node.TableName instance refName is given, the search will be 
+		restricted to the matching tables.
 		"""
 		ownMatch = None
-		if refTable is None:
+		if refName is None:
 			ownMatch = self.columns.get(colName, None)
 		if ownMatch:
 			return ownMatch
 		else:
-			return self.getFieldInfoFromSources(colName, refTable)
+			return self.getFieldInfoFromSources(colName, refName)
 
 
 class AnnotationContext(object):

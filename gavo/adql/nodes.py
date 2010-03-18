@@ -370,6 +370,7 @@ class ColumnBearingNode(ADQLNode):
 	These keep their fieldInfos on a change()
 	"""
 	fieldInfos = None
+	originalTable = None
 
 	def getFieldInfo(self, name):
 		if self.fieldInfos:
@@ -405,6 +406,9 @@ class TableName(ADQLNode):
 
 	def __nonzero__(self):
 		return bool(self.name)
+
+	def __str__(self):
+		return "TableName(%s)"%self.qName
 
 	def _polish(self):
 		self.qName = ".".join(n for n in (self.cat, self.schema, self.name) if n) 
@@ -457,7 +461,7 @@ class PlainTableRef(ColumnBearingNode):
 		yield self.tableName.qName
 
 
-class DerivedTable(ADQLNode):
+class DerivedTable(ColumnBearingNode):
 	type = "derivedTable"
 	_a_query = None
 	_a_tableName = None
@@ -467,9 +471,12 @@ class DerivedTable(ADQLNode):
 		return self.query.getAllNames()
 	def getFieldInfo(self, name):
 		return self.query.getFieldInfo(name)
-	@property
-	def fieldInfos(self):
+	
+	def _get_fieldInfos(self):
 		return self.query.fieldInfos
+	def _set_fieldInfos(self, val):
+		self.query.fieldInfos = val
+	fieldInfos = property(_get_fieldInfos, _set_fieldInfos)
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
@@ -494,6 +501,7 @@ class JoinedTable(ColumnBearingNode, TransparentMixin):
 	feedInfosFromDB = True
 	originalTable = None
 	tableName = TableName()
+	qName = None
 
 	def _polish(self):
 		self.joinedTables = getChildrenOfClass(self.children, ColumnBearingNode)
@@ -585,26 +593,26 @@ class QuerySpecification(ColumnBearingNode):
 
 class ColumnReference(FieldInfoedNode):
 	type = "columnReference"
-	_a_refTable = None  # if given, a TableName instance
+	_a_refName = None  # if given, a TableName instance
 	_a_name = None
 
 	def _polish(self):
 		self.colName = ".".join(
-			flatten(p) for p in (self.refTable, self.name) if p)
+			flatten(p) for p in (self.refName, self.name) if p)
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
 		names = [_c for _c in _parseResult if _c!="."]
 		names = [None]*(4-len(names))+names
-		refTable = TableName(cat=names[0], schema=names[1], name=names[2])
-		if not refTable:
-			refTable = None
+		refName = TableName(cat=names[0], schema=names[1], name=names[2])
+		if not refName:
+			refName = None
 		return {
 			"name": names[-1],
-			"refTable": refTable}
+			"refName": refName}
 
 	def addFieldInfo(self, context):
-		self.fieldInfo = context.getFieldInfo(self.name, self.refTable)
+		self.fieldInfo = context.getFieldInfo(self.name, self.refName)
 
 	def flatten(self):
 		return self.colName
@@ -640,11 +648,11 @@ class FromClause(ADQLNode):
 				pass
 		return getUniqueMatch(matches, name)
 
-	def _makeColumnReference(self, sourceTable, colPair):
+	def _makeColumnReference(self, sourceTableName, colPair):
 		"""returns a ColumnReference object for a name, colInfo pair from a 
 		table's fieldInfos.
 		"""
-		cr = ColumnReference(name=colPair[0], refTable=sourceTable)
+		cr = ColumnReference(name=colPair[0], refName=sourceTableName)
 		cr.fieldInfo = colPair[1]
 		return cr
 
@@ -656,7 +664,7 @@ class FromClause(ADQLNode):
 		res = []
 		for table in self.tablesReferenced:
 			for column in table.fieldInfos.seq:
-				res.append(self._makeColumnReference(table, column))
+				res.append(self._makeColumnReference(table.tableName, column))
 		return res
 
 	def getFieldsForTable(self, srcTable):
@@ -666,7 +674,7 @@ class FromClause(ADQLNode):
 		"""
 		for table in self.tablesReferenced:
 			if table==srcTable:
-				return [self._makeColumnReference(table, ci)
+				return [self._makeColumnReference(table.tableName, ci)
 					for ci in table.fieldInfos.seq]
 		raise ColumnNotFound("No %s table to draw columns from in this clause"%(
 			srcTable.qName))

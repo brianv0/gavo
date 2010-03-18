@@ -24,7 +24,6 @@ import weakref
 
 from gavo import stc
 from gavo import utils
-from gavo.base import config
 from gavo.base import typesystems
 
 

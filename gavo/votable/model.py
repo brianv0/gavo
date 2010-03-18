@@ -176,9 +176,35 @@ class VOTable(object):
 
 
 	class TABLE(_DescribedElement):
+		"""A TABLE element.
+
+		If you want to access fields by name (getFIELDForName), make sure
+		name and ids are uniqe.
+		"""
 		a_nrows = None
 		childSequence = ["DESCRIPTION", "INFO", "GROUP", "FIELD", "PARAM", "LINK",
 			"DATA"]
+
+		_fieldIndex = None
+
+		def _getFieldIndex(self):
+			if self._fieldIndex is None:
+				index = {}
+				for child in self.getChildrenOfType("FIELD"):
+					if child.a_name:
+						index[child.a_name] = child
+					if child.a_ID:
+						index[child.a_ID] = child
+				self._fieldIndex = index
+			return self._fieldIndex
+
+		def getFIELDForName(self, name):
+			"""returns the FIELD having a name or id of name.
+
+			A KeyError is raised when the field does not exist; if names are
+			not unique, the last column with the name specified is returned.
+			"""
+			return self._getFieldIndex()["name"]
 
 
 	class TABLEDATA(_ContentElement):

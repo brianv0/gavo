@@ -611,6 +611,31 @@ class ColResTest(ColumnTest):
 			('km/s', 'phys.veloc', False),
 			('kg*km', '', True),])
 
+	def testJoinStar(self):
+		cols = self._getColSeq("select * from spatial as q join misc as p on"
+			" (1=contains(point('ICRS', q.dist, q.width), circle('ICRS',"
+			" p.mass, p.mag, 0.02)))")
+		self._assertColumns(cols, [
+			('m', 'phys.distance', False),
+			('m', 'phys.dim', False),
+			('km', 'phys.dim', False),
+			('deg', 'pos.eq.ra;meta.main', False),
+			('rad', 'pos.eq.ra', False),
+			('kg', 'phys.mass', False),
+			('mag', 'phot.mag', False),
+			('km/s', 'phys.veloc', False),
+			])
+
+	def testSubqueryJoin(self):
+		cols = self._getColSeq("SELECT * FROM ("
+  		"SELECT ALL q.mass, spatial.ra1 FROM ("
+    	"  SELECT TOP 100 mass, mag FROM misc"
+      "    WHERE speed BETWEEN 0 AND 1) AS q JOIN"
+    	"  spatial ON (mass=width)) AS f")
+		self._assertColumns(cols, [
+			('kg', 'phys.mass', False),
+			('deg', 'pos.eq.ra;meta.main', False)])
+
 	def testUnderscore(self):
 		cols = self._getColSeq("select _dist"
 			" from (select dist as _dist from spatial) as q")
@@ -634,7 +659,6 @@ class ColResTest(ColumnTest):
 		self._assertColumns(cols, [
 			('m', 'phys.distance', False),
 			('km/s', 'phys.veloc', False)])
-
 
 	def testErrorReporting(self):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
