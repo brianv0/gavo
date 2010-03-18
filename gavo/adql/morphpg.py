@@ -264,7 +264,7 @@ def _insertPGQS(node, state):
 	"""
 	offset = None
 	if node.setQuantifier and node.setQuantifier.lower()=="all":
-		offset = 0
+		offset = "0"
 	res = _PGQS.cloneFrom(node, offset=offset)
 	return res
 
