@@ -77,11 +77,11 @@ def _makeBooleanDecoder(field):
 
 def _getArraysizeCode(field):
 	src = []
-	if field.a_arraysize=="*":
+	if field.hasVarLength():
 		src.append('arraysize = struct.unpack("!i", inF.read(4))[0]')
 	else:
 		try:
-			src.append("arraysize = %d"%int(field.a_arraysize))
+			src.append("arraysize = %d"%field.getLength())
 		except ValueError:
 			src.append("arraysize = 1")
 	return src
@@ -147,7 +147,7 @@ _decoders = {
 	'doubleComplex': lambda v: _makeComplexDecoder(v, 16, '!dd'),
 }
 
-def _makeShortcutCode(field, type, arraysize):
+def _makeShortcutCode(field, type):
 	"""returns None or code to quickly decode field array.
 
 	Fast decoding for whatever is mentioned in _typemap and no nullvalues
@@ -169,14 +169,13 @@ def _makeShortcutCode(field, type, arraysize):
 		src.append(
 			'row.append(list(vals))')
 
+
 def _getArrayDecoderLines(field):
 	"""returns lines that decode arrays of literals.
 
 	Unfortunately, the spec is plain nuts, so we need to pull some tricks here.
-
-	We completely ignore any arraysize specification here.
 	"""
-	type, arraysize = field.a_datatype, field.a_arraysize
+	type = field.a_datatype
 
 	# Weird things
 	if type=="bit":
@@ -187,7 +186,7 @@ def _getArrayDecoderLines(field):
 		return _makeUnicodeCharDecoder(field)
 	
 	# Fast array decoding for fields without null values
-	src = _makeShortcutCode(field, type, arraysize)
+	src = _makeShortcutCode(field, type)
 	if src is not None:
 		return src
 
@@ -209,9 +208,10 @@ def getLinesFor(field):
 	"""returns a sequence of python source lines to decode BINARY-encoded
 	values for field.
 	"""
-	if field.a_arraysize not in common.SINGLEVALUES:
+	if field.isScalar():
+		return _decoders[field.a_datatype](field)
+	else:
 		return _getArrayDecoderLines(field)
-	return _decoders[field.a_datatype](field)
 
 
 def getRowDecoderSource(tableDefinition):

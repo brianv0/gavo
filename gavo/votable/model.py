@@ -52,6 +52,24 @@ class VOTable(object):
 		a_type = None
 		a_width = None
 
+		def isScalar(self):
+			return self.a_arraysize=='1'
+
+		def hasVarLength(self):
+			return self.a_arraysize.endswith("*")
+
+		def getLength(self):
+			"""returns the number of items one should expect in value, or
+			None for variable-length arrays.
+			"""
+			if self.a_arraysize.endswith("*"):
+				return None
+			elif "x" in self.a_arraysize: # multidimensional, my ass.
+				return reduce(lambda a, b: a*b, map(int, self.a_arraysize.split("x")))
+			else:
+				return int(self.a_arraysize)
+
+	
 	class _RefElement(_ValuedElement):
 		a_ref = None
 		a_ucd = None

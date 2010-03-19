@@ -23,11 +23,11 @@ def _getArrayShapingCode(field, padder):
 	"""
 	base = [
 		"if val is None: val = []"]
-	if field.a_arraysize=='*':
+	if field.hasVarLength():
 		return base+["tokens.append(struct.pack('!i', len(val)))"]
 	else:
 		return base+["val = coding.trim(val, %s, %s)"%(
-			repr(field.a_arraysize), padder)]
+			field.getLength(), padder)]
 
 
 def _addNullvalueCode(field, nullvalue, src):
@@ -59,9 +59,10 @@ def _makeBooleanEncoder(field):
 	]
 
 
-def _makeBitEncoder(field, arraysize=None):
+def _makeBitEncoder(field):
 	# bits and bit arrays are just (possibly long) integers
-	# arraysize is only passed for actual arrays.
+	# length may be None for var length.
+	length = field.getLength()
 	src = [
 		"if val is None:",
 		"  raise common.BadVOTableData('Bits have no NULL value', None,",
@@ -75,12 +76,12 @@ def _makeBitEncoder(field, arraysize=None):
 		"  tmp.append(chr(0))",
 		"tmp.reverse()",]
 
-	if arraysize:  # this not just a single bit
-		if arraysize=="*":  # variable length: dump number of bits
+	if length!=1:  # this not just a single bit
+		if length is None:  # variable length: dump number of bits
 			src.extend([
 				"tokens.append(struct.pack('!i', len(tmp)*8))"])
 		else:  # crop/expand as necesary
-			numBytes = int(arraysize)//8+(not not int(arraysize)%8)
+			numBytes = int(length)//8+(not not int(length)%8)
 			src.extend([
 				"if len(tmp)<%d: tmp = [chr(0)]*(%d-len(tmp))+tmp"%(
 					numBytes, numBytes),
@@ -157,10 +158,11 @@ _encoders = {
 def _getArrayEncoderLines(field):
 	"""returns python lines to encode array values of field.
 	"""
-	type, arraysize = field.a_datatype, field.a_arraysize
+	type = field.a_datatype
+
 	# bit array literals are integers, same as bits
 	if type=="bit":
-		return _makeBitEncoder(field, arraysize)
+		return _makeBitEncoder(field)
 
 	# Everything else can use some common array shaping code since value comes in
 	# some kind of sequence.
@@ -199,7 +201,7 @@ def getLinesFor(field):
 	"""returns a sequence of python source lines to encode values described
 	by field into tabledata.
 	"""
-	if field.a_arraysize in common.SINGLEVALUES:
+	if field.isScalar():
 		return _encoders[field.a_datatype](field)
 	else:
 		return _getArrayEncoderLines(field)

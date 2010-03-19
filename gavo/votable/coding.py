@@ -95,18 +95,40 @@ def getNullvalue(field, validator, default=None):
 	return nullvalue
 
 
+def unravelArray(arraysize, seq):
+	"""turns a flat sequence into an n-dim array as specfied by the votable
+	arraysize spec arraysize.
+
+	arraysize is <int>{"x"<int>}*?|*.
+
+	No padding or cropping will take place.  This means that the last
+	row(s) may have improper sizes if seq is incompatible with arraysize.
+	"""
+	parts = arraysize.split("x")
+	if len(parts)<2:
+		return seq
+	del parts[-1]
+	for step in map(int, parts):
+		seq = [seq[i:i+step] for i in range(0, len(seq), step)]
+	return seq
+
+
 def trim(seq, arraysize, padder):
 	"""returns seq with length arraysize.
 
-	arraysize is interpreted as an int (and thus must not be '*'
-	or anything like that).  If seq is shorter, padder*missing will
-	be appended, if it is longer, seq will be shortened from the end.
+	arraysize is an int; you should just use field.getLength() when
+	trimming VOTable arraysizes since the arraysize attribute is rather
+	complex.   Arraysize may be None for convenience; trim is a no-op then.
+	
+	If seq is shorter, padder*missing will be appended, if it is longer, seq will
+	be shortened from the end.
 
 	This is intended as a helper for array encoders.
 	"""
-	goal = int(arraysize)
-	if len(seq)<goal:
-		seq = seq+padder*(goal-len(seq))
-	elif len(seq)>goal:
-		seq = seq[:goal]
+	if arraysize is None:
+		return seq
+	if len(seq)<arraysize:
+		seq = seq+padder*(arraysize-len(seq))
+	elif len(seq)>arraysize:
+		seq = seq[:arraysize]
 	return seq

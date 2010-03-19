@@ -45,7 +45,6 @@ class IterParseTest(testhelpers.VerboseTest):
 	]
 
 
-
 class TrivialParseTest(testhelpers.VerboseTest):
 	"""tests operating on an empty VOTable.
 	"""
@@ -143,7 +142,7 @@ class IdTest(testhelpers.VerboseTest):
 		self.assertRaises(StopIteration, iter.next)
 
 
-class TabledataDeserTest(testhelpers.VerboseTest):
+class TabledataWriteTest(testhelpers.VerboseTest):
 	"""tests for deserialization of TABLEDATA encoded values.
 	"""
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
@@ -210,6 +209,10 @@ class TabledataDeserTest(testhelpers.VerboseTest):
 			'<FIELD name="y" datatype="floatComplex" arraysize="*"/>',
 			[['1 1 0.5e10 -2e5']],
 			[[[(1+1j), 5e09-2e5j]]]
+		), (
+			'<FIELD datatype="short" arraysize="2x3"/>',
+			'0 1 2 3 4 5',
+			[[[0,1,2,3,4,5]]],
 		)
 	]
 
@@ -405,6 +408,12 @@ class BinaryWriteTest(testhelpers.VerboseTest):
 			"\x01\xff"
 			"\x00\x01"
 		), (
+			[V.FIELD(datatype="short", arraysize="2*")],
+			[[[]], [[1]], [[0, 1, 2]]],
+			"\x00\x00\x00\x00"
+			"\x00\x00\x00\x01\x00\x01"
+			"\x00\x00\x00\x03\x00\x00\x00\x01\x00\x02"
+		), (
 			[V.FIELD(datatype="char", arraysize="2")],
 			[["abc"], ["a"]],
 			"aba "
@@ -416,6 +425,10 @@ class BinaryWriteTest(testhelpers.VerboseTest):
 			[V.FIELD(datatype="unicodeChar", arraysize="2")],
 			[[u"\u00e4bc"], [u"\u00e4"]],
 			'\x00\xe4\x00b\x00\xe4\x00 '
+		), (
+			[V.FIELD(datatype="short", arraysize="3x2")],
+			[[[1,2,3,4,5,6]]],
+			'\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06'
 		)
 	]
 
@@ -529,8 +542,38 @@ class BinaryReadTest(testhelpers.VerboseTest):
 			'\x7f\xc0\x00\x00:\x80\x00\x00'
 				'A\x80\x00\x00A\x0c\x00\x00',
 			[[[None, 16+8.75j]]],
+		), (
+			'<FIELD datatype="short" arraysize="2x3"/>',
+			'\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05',
+			[[[0,1,2,3,4,5]]],
 		)]
 
+
+class NDArrayTest(testhelpers.VerboseTest):
+	"""tests for the (non-existing) support for multi-D arrays.
+	"""
+	def _assertRavels(self, arrayspec, data, expected):
+		res = votable.unravelArray(arrayspec, data)
+		self.assertEqual(res, expected)
+
+	def testUnravelNull(self):
+		self._assertRavels("*", range(10), range(10))
+	
+	def testUnravelPlain(self):
+		self._assertRavels("3x2", range(6), [[0,1,2],[3,4,5]])
+
+	def testUnravelSkewed(self):
+		self._assertRavels("3x2", range(5), [[0,1,2],[3,4]])
+
+	def testUnravelOverlong(self):
+		self._assertRavels("3x2", range(9), [[0,1,2],[3,4,5],[6,7,8]])
+
+	def testUnravelAccpetsStar(self):
+		self._assertRavels("3x2*", range(9), [[0,1,2],[3,4,5],[6,7,8]])
+
+	def testUnravel3d(self):
+		self._assertRavels("3x2x2", range(12), 
+			[[[0,1,2],[3,4,5]], [[6,7,8],[9,10,11]]])
 
 
 if __name__=="__main__":

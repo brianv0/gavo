@@ -19,11 +19,11 @@ def _getArrayShapingCode(field, padder):
 	"""
 	base = [
 		"if val is None: val = []"]
-	if field.a_arraysize=='*':
+	if field.hasVarLength():
 		return base
 	else:
 		return base+["val = coding.trim(val, %s, %s)"%(
-			repr(field.a_arraysize), padder)]
+			field.getLength(), padder)]
 
 
 def _addNullvalueCode(field, src, validator, defaultNullValue=None):
@@ -107,10 +107,10 @@ def _getArrayEncoderLines(field):
 	Again, the specs are a bit nuts, so we end up special casing almost 
 	everything.
 
-	If arraysize is given and non-"*", we enforce the given length by
+	For fixed-length arrays we enforce the given length by
 	cropping or adding nulls (except, currently, for bit and char arrays.
 	"""
-	type, arraysize = field.a_datatype, field.a_arraysize
+	type = field.a_datatype
 	# bit array literals are integers, real special handling
 	if type=="bit":  
 		return ['tokens.append(utils.toBinary(val))']
@@ -135,7 +135,7 @@ def getLinesFor(field):
 	"""returns a sequence of python source lines to encode values described
 	by field into tabledata.
 	"""
-	if field.a_arraysize in common.SINGLEVALUES:
+	if field.isScalar():
 		return _encoders[field.a_datatype](field)
 	else:
 		return _getArrayEncoderLines(field)

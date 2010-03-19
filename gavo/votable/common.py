@@ -5,9 +5,6 @@ Common definitions for the GAVO VOTable modules.
 from gavo import utils
 
 
-# Values we accept as meaning "single value" in a FIELD's arraysize
-SINGLEVALUES = set([None, '', '1'])
-
 NaN = float("NaN")
 
 class VOTableError(utils.Error):

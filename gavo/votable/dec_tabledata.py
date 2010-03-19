@@ -166,10 +166,9 @@ def _getArrayDecoderLines(field):
 	"""returns lines that decode arrays of literals.
 
 	Unfortunately, the spec is plain nuts, so we need to pull some tricks here.
-
-	We completely ignore any arraysize specification here.
 	"""
-	type, arraysize = field.a_datatype, field.a_arraysize
+	type = field.a_datatype
+
 	if type=='char' or type=='unicodeChar':
 		return _makeCharDecoder(field, emptyIsNull=False)
 	src = [ # OMG.  I'm still hellbent on not calling functions here.
@@ -192,9 +191,10 @@ def getLinesFor(field):
 	"""returns a sequence of python source lines to decode TABLEDATA-encoded
 	values for field.
 	"""
-	if field.a_arraysize not in common.SINGLEVALUES:
+	if field.isScalar():
+		return _decoders[field.a_datatype](field)
+	else:
 		return _getArrayDecoderLines(field)
-	return _decoders[field.a_datatype](field)
 
 
 def getRowDecoderSource(tableDefinition):
