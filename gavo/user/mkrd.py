@@ -18,10 +18,10 @@ from itertools import *
 from gavo import base
 from gavo import grammars
 from gavo import rscdef
+from gavo import votable
 from gavo import utils
 from gavo.base import typesystems
-from gavo.imp import VOTable
-from gavo.formats import votable
+from gavo.formats import votableread
 from gavo.utils import ElementTree
 from gavo.utils import fitstools
 
@@ -150,9 +150,9 @@ def makeDataForFITS(rd, srcName, opts):
 
 
 def makeTableFromVOTable(rd, srcName, opts):
-	vot = VOTable.parse(srcName)
-	return votable.makeTableDefForVOTable(opts.tableName, 
-		vot.resources[0].tables[0], {}, onDisk=True)
+	rawTable = votable.parse(srcName).next().tableDefinition
+	return votableread.makeTableDefForVOTable(opts.tableName, 
+		tableDefinition, {}, onDisk=True)
 
 
 def makeDataForVOTable(rd, srcName, opts):

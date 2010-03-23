@@ -10,8 +10,8 @@ from itertools import *
 
 from gavo import base
 from gavo import rscdef
+from gavo import votable
 from gavo.grammars import common
-from gavo.imp import VOTable
 
 	
 
@@ -40,8 +40,8 @@ class VOTNameMaker(object):
 		return cls.blacklist
 
 	def makeName(self, field):
-		preName = re.sub("[^\w]+", "x", (getattr(field, "name", None) 
-			or getattr(field, "id", None)
+		preName = re.sub("[^\w]+", "x", (getattr(field, "a_name", None) 
+			or getattr(field, "a_ID", None)
 			or "field%02d"%self.index))
 		if not re.match("[A-Za-z_]", preName):
 			preName = "col_"+preName
@@ -53,18 +53,22 @@ class VOTNameMaker(object):
 
 
 class VOTableRowIterator(common.RowIterator):
+	"""An iterator returning rows of the first table within a VOTable.
+	"""
 	def __init__(self, grammar, sourceToken, **kwargs):
 		common.RowIterator.__init__(self, grammar, sourceToken, **kwargs)
 		if self.grammar.gunzip:
-			self.vot = VOTable.parse(gzip.open(sourceToken))
+			inF = gzip.open(sourceToken)
 		else:
-			self.vot = VOTable.parse(sourceToken)
+			inF = sourceToken
+		self.rowSource = votable.parse(inF).next()
 
 	def _iterRows(self):
-		srcTable = self.vot.resources[0].tables[0]
 		nameMaker = VOTNameMaker()
-		fieldNames = [nameMaker.makeName(f) for f in srcTable.fields]
-		for row in srcTable.data:
+		fieldNames = [nameMaker.makeName(f) 
+			for f in self.rowSource.tableDefinition.
+					iterChildrenOfType(votable.V.FIELD)]
+		for row in self.rowSource:
 			yield dict(izip(fieldNames, row))
 		self.grammar = None
 

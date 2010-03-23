@@ -184,16 +184,23 @@ class ColRef(stanxml.Stub):
 	def __str__(self):
 		return self.dest 
 		# only for debugging: '"%s"'%self.dest
+	
+	def __eq__(self, other):
+		return isinstance(other, ColRef) and other.dest==self.dest
+	
+	def __ne__(self, other):
+		return not self==other
 
 	def __repr__(self):
 		return "%s(%s)"%(self.__class__.__name__, repr(self.dest))
 
-	def isoformat(self):
-		return self
-
 	def __mul__(self, other):
 		raise STCValueError("ColRefs (here, %s) cannot be used in arithmetic"
 			" expressions."%repr(self))
+
+	def isoformat(self):
+		return self
+
 
 
 class GeometryColRef(ColRef):

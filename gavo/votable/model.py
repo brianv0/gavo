@@ -4,9 +4,12 @@ xmlstan elements of VOTable.
 
 import re
 
+from gavo.utils import ElementTree
 from gavo.utils.stanxml import Element
 
+
 VOTableNamespace = "http://www.ivoa.net/xml/VOTable/v1.2"
+
 
 class VOTable(object):
 	"""The container for VOTable elements.
@@ -96,6 +99,7 @@ class VOTable(object):
 			# of 57 bytes until the stream is finished.
 			blockSize = 57
 			buf, bufFil, flushThreshold = [], 0, blockSize*20
+			file.write('<BINARY>')
 			file.write('<STREAM encoding="base64">')
 			for data in self.iterSerialized():
 				buf.append(data)
@@ -107,6 +111,7 @@ class VOTable(object):
 					buf = [curData[curBlockLen:]]
 			file.write("".join(buf).encode("base64"))
 			file.write("</STREAM>")
+			file.write('</BINARY>')
 
 
 	# COOSYS deprecated, we don't even include it.
@@ -130,11 +135,16 @@ class VOTable(object):
 	class GROUP(_DescribedElement):
 		a_ref = None
 		childSequence = ["DESCRIPTION", "PARAM", "FIELDref", "PARAMref", "GROUP"]
-	
+
+
 	class INFO(_ValuedElement):
 		a_ref = None
 		a_value = None
 		childSequence = [None]
+
+		def isEmpty(self):
+			return self.a_value is None
+
 	
 	class LINK(_VOTElement):
 		a_ID = None
@@ -197,7 +207,7 @@ class VOTable(object):
 		"""A TABLE element.
 
 		If you want to access fields by name (getFIELDForName), make sure
-		name and ids are uniqe.
+		name and ids are unique.
 		"""
 		a_nrows = None
 		childSequence = ["DESCRIPTION", "INFO", "GROUP", "FIELD", "PARAM", "LINK",
@@ -257,3 +267,10 @@ class VOTable(object):
 		a_version = "1.2"
 		a_xmlns = VOTableNamespace
 
+
+def voTag(tagName):
+	"""returns the VOTable QName for tagName.
+
+	You only need this if you want to search in ElementTrees.
+	"""
+	return ElementTree.QName(VOTableNamespace, tagName)

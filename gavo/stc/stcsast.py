@@ -170,7 +170,7 @@ def _makeWiggleValues(nDim, val, minItems=None, maxItems=None, spatial=False):
 		return
 	if nDim>1:  # might be error radii if all values are equal
 		if set([1])==set(len(set(v)) for v in values):
-			return dm.RadiusWiggle(radii=[v[0] for v in values])
+			return dm.RadiusWiggle(radii=tuple(v[0] for v in values))
 	return dm.CooWiggle(values=values)
 
 

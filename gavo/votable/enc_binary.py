@@ -125,9 +125,9 @@ def _generateIntEncoderMaker(fmtCode):
 def _makeCharEncoder(field):
 	nullvalue = coding.getNullvalue(field, lambda _: True)
 	if nullvalue is not None:
-		nullvalue = repr(struct.pack("c", nullvalue))
+		nullvalue = repr(struct.pack("c", str(nullvalue)))
 	return _addNullvalueCode(field, nullvalue, [
-		"tokens.append(struct.pack('c', val))"])
+		"tokens.append(struct.pack('c', str(val)))"])
 
 
 def _makeUnicodeCharEncoder(field):
@@ -169,7 +169,7 @@ def _getArrayEncoderLines(field):
 	if type=="char":
 		# strings
 		padder = "' '"
-		src = ["tokens.append(struct.pack('%ds'%len(val), val))"]
+		src = ["tokens.append(struct.pack('%ds'%len(val), str(val)))"]
 
 	elif type=="unicodeChar":
 		padder = "' '"

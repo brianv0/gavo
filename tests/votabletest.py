@@ -12,125 +12,128 @@ import unittest
 from gavo import base
 from gavo import rsc
 from gavo import rscdesc
-from gavo.formats import votable
-from gavo.imp import VOTable
+from gavo import votable
+from gavo.formats import votableread, votablewrite
 from gavo.utils import ElementTree
 
 import testhelpers
 
-testData="""some silly test data
+class _TestVOTable(testhelpers.TestResource):
+	"""Used in VOTableTest.
+	"""
+
+	testData="""some silly test data
 -33  -3400abc
 23829328.9xxy
      22      
-          nas 
+          nas
 """
 
-class VotableTest(unittest.TestCase):
+	rdLiteral = """
+		<resource resdir="%s" schema="test">
+			<meta name="description">Some test data for VOTables.</meta>
+			<meta name="_legal">Hands off this fascinating data</meta>
+			<table id="foo">
+				<column name="anInt" type="integer"
+					description="This is a first data field"/>
+				<column name="aFloat"
+					description="This ain't &amp;alpha; for sure."/>
+				<column name="bla" type="text"/>
+			</table>
+			<data id="bar">
+				<meta name="_infolink">http://vo.org/x?a=b&amp;c=d</meta>
+				<columnGrammar topIgnoredLines="1">
+					<col key="anInt">1-5</col>
+					<col key="aFloat">6-10</col>
+					<col key="bla">11-13</col>
+				</columnGrammar>
+				<rowmaker id="_foo" idmaps="*"/>
+				<make table="foo" rowmaker="_foo"/>
+			</data>
+		</resource>"""%os.path.abspath("data")
+
 	def _makeRD(self):
 		"""returns a test resource descriptor.
 		"""
-		return base.parseFromString(rscdesc.RD, """
-			<resource resdir="%s" schema="test">
-				<meta name="description">Some test data for VOTables.</meta>
-				<meta name="_legal">Hands off this fascinating data</meta>
-				<cooSys id="sys1" equ="J2000.0" epoch="1998" system="eq_FK5"/>
-				<cooSys id="sys2" equ="J2000.0" system="ICRS"/>
-				<table id="foo">
-					<column name="anInt" type="integer"
-						description="This is a first data field"/>
-					<column name="aFloat"
-						description="This ain't &amp;alpha; for sure."/>
-					<column name="bla" type="text"/>
-				</table>
-				<data id="bar">
-					<meta name="_infolink">http://vo.org/x?a=b&amp;c=d</meta>
-					<columnGrammar topIgnoredLines="1">
-						<col key="anInt">1-5</col>
-						<col key="aFloat">6-10</col>
-						<col key="bla">11-13</col>
-					</columnGrammar>
-					<rowmaker id="_foo" idmaps="*"/>
-					<make table="foo" rowmaker="_foo"/>
-				</data>
-			</resource>"""%os.path.abspath("data"))
+		return base.parseFromString(rscdesc.RD, self.rdLiteral)
 
-	def setUp(self):
+	def make(self, ignored):
 		rd = self._makeRD()
-		dataSet = rsc.makeData(rd.getById("bar"), forceSource=StringIO(testData))
-		votMaker = votable.VOTableMaker(tablecoding="td")
-		output = StringIO()
-		votMaker.writeVOT(votMaker.makeVOT(dataSet), output)
-		self.rawVOTable = output.getvalue()
-		self.tree = ElementTree.fromstring(self.rawVOTable)
+		dataSet = rsc.makeData(rd.getById("bar"), 
+			forceSource=StringIO(self.testData))
+		rawVOTable = votablewrite.getAsVOTable(dataSet, tablecoding="td")
+		tree = ElementTree.fromstring(rawVOTable)
+		return rawVOTable, tree
+
+_testVOTable = _TestVOTable()
+
+
+class VOTableTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
+
+	resources = [("testData", _testVOTable)]
 
 	def testValidates(self):
 		"""test for validity of the generated VOTable.
 		"""
-		pipe = os.popen(
-			"xmlstarlet val --err --xsd %s -"
-				" > validationres.txt"%pkg_resources.resource_filename('gavo',
-					"resources/xml/VOTable-1.1.xsd"), "w")
-		pipe.write(self.rawVOTable)
-		res = pipe.close()
-		f = open("validationres.txt")
-		valprot = f.read()
-		f.close()
-		os.unlink("validationres.txt")
-		self.assertEqual(valprot.strip(), "- - valid", 
-			"Generated VOTable doesn't match schema:\n%s"%valprot)
+		self.assertValidates(self.testData[0])
 
 	def testNullvalues(self):
 		"""tests for correct serialization of Null values.
 		"""
-		tbldata = self.tree.find(".//%s"%votable.voTag("TABLEDATA"))
-		self.assertEqual(tbldata[3][1].text, None, "NaN isn't rendered as"
+		tree = self.testData[1]
+		tbldata = tree.find(".//%s"%votable.voTag("TABLEDATA"))
+		self.assertEqual(tbldata[3][1].text, 'NaN', "NaN isn't rendered as"
 			" NULL")
-		fields = self.tree.findall(".//%s"%votable.voTag("FIELD"))
-		f0Null = fields[0].find(votable.voTag("VALUES")).get("null")
+		fields = tree.findall(".//%s"%votable.voTag("FIELD"))
+		f0Null = fields[0].find(str(votable.voTag("VALUES"))).get("null")
 		self.assertEqual(tbldata[2][0].text, f0Null)
 
 	def testRanges(self):
 		"""tests for ranges given in VALUES.
 		"""
-		fields = self.tree.findall(".//%s"%votable.voTag("FIELD"))
-		f0 = fields[0].find(votable.voTag("VALUES"))
-		self.assertEqual(f0.find(votable.voTag("MIN")).get("value"), "-33",
+		tree = self.testData[1]
+		fields = tree.findall(".//%s"%votable.voTag("FIELD"))
+		f0 = fields[0].find(str(votable.voTag("VALUES")))
+		self.assertEqual(f0.find(str(votable.voTag("MIN"))).get("value"), "-33",
 			"integer minimum bad")
-		self.assertEqual(f0.find(votable.voTag("MAX")).get("value"), "23829",
+		self.assertEqual(f0.find(str(votable.voTag("MAX"))).get("value"), "23829",
 			"integer maximum bad")
-		f1 = fields[1].find(votable.voTag("VALUES"))
-		self.assertEqual(f1.find(votable.voTag("MIN")).get("value"), "-3400.0",
+		f1 = fields[1].find(str(votable.voTag("VALUES")))
+		self.assertEqual(f1.find(str(votable.voTag("MIN"))).get("value"), "-3400.0",
 			"float minimum bad")
-		self.assertEqual(f1.find(votable.voTag("MAX")).get("value"), "328.9",
+		self.assertEqual(f1.find(str(votable.voTag("MAX"))).get("value"), "328.9",
 			"float maximum bad")
-		self.assertEqual(fields[2].find(votable.voTag("VALUES")), None,
+		self.assertEqual(fields[2].find(str(votable.voTag("VALUES"))), None,
 			"VALUES element given for string data")
 
 
-def _makeImportTestData():
-# used by ImportTest, we want to cache this.
-	f = _makeImportTestData
-	if not hasattr(f, "data"):
+
+class _ImportTestData(testhelpers.TestResource):
+	# used by ImportTest
+	def make(self, ignored):
 		try:
 			conn = base.getDefaultDBConnection()
-			f.tableDef = votable.uploadVOTable("votabletest", 
+			tableDef = votableread.uploadVOTable("votabletest", 
 				open("data/importtest.vot"), conn).tableDef
 			querier = base.SimpleQuerier(connection=conn)
-			f.data = list(querier.query("select * from votabletest"))
+			data = list(querier.query("select * from votabletest"))
 		finally:
-			conn.close()
-	return f.tableDef, f.data
+			if not conn.closed:
+				conn.close()
+		return tableDef, data
+
+_importTestData = _ImportTestData()
 
 
 class ImportTest(testhelpers.VerboseTest):
 	"""tests for working VOTable DD generation.
 	"""
 # Ok, so isn't a *unit* test by any stretch.  Sue me.
-	def setUp(self):
-		self.tableDef, self.data = _makeImportTestData()
+	resources = [("testData", _importTestData)]
 
 	def testValidData(self):
-		row = self.data[0]
+		td, data = self.testData
+		row = data[0]
 		self.assertAlmostEqual(row[0], 72.183030)
 		self.assertEqual(row[3], 1)
 		self.assertEqual(row[5], 'NGC 104')
@@ -139,17 +142,20 @@ class ImportTest(testhelpers.VerboseTest):
 		self.assertEqual(row[9], 34)
 
 	def testNULLs(self):
-		row = self.data[1]
+		td, data = self.testData
+		row = data[1]
 		self.assertEqual(row, (None,)*len(row))
 
 	def testNames(self):
-		self.assertEqual([f.name for f in self.tableDef],
+		td, data = self.testData
+		self.assertEqual([f.name for f in td],
 			['_r', 'field', 'field_', 'class_', 'result__', 'Cluster', 
 				'RAJ2000', 'GLON', 'xFexHxz', 'n_xFexHxz', 'xFexHxc', 
 				'FileName', 'HR', 'n_VHB'])
 
 	def testTypes(self):
-		self.assertEqual([f.type for f in self.tableDef], 
+		td, data = self.testData
+		self.assertEqual([f.type for f in td], 
 			['double precision', 'double precision', 'double precision', 
 				'integer', 'smallint', 'text', 'text', 'real[2]', 'real', 
 				'smallint', 'real', 'text', 'text', 'char'])
@@ -169,7 +175,7 @@ class MetaTest(testhelpers.VerboseTest):
 	def _assertVOTableContains(self, setupFunc, expectedStrings):
 		data = self._getTestData()
 		setupFunc(data)
-		vot = votable.getAsVOTable(data)
+		vot = votablewrite.getAsVOTable(data)
 		try:
 			for s in expectedStrings:
 				self.failUnless(s in vot, "%r not in VOTable"%s)
@@ -185,13 +191,13 @@ class MetaTest(testhelpers.VerboseTest):
 				"Now, this *really* is the last warning")
 		self._assertVOTableContains(setupData, [
 			'<INFO name="warning" value="In table fud: Last warning:'
-				' Do not use &apos; or &quot;."',
+				' Do not use \' or &quot;."',
 			'<INFO name="warning" value="In table fud: Now, this *really*',
 		])
 	
 	def testLegal(self):
 		def setupData(data):
-			data.addMeta("copyright", "Please reference someone else")
+			data.dd.rd.addMeta("copyright", "Please reference someone else")
 		self._assertVOTableContains(setupData, [
 			'<INFO name="legal" value="Please reference someone else"'])
 
@@ -211,22 +217,22 @@ class STCEmbedTest(testhelpers.VerboseTest):
 	"""
 	def testSimpleSTC(self):
 		table = _getTableWithSimpleSTC()
-		tx = votable.getAsVOTable(table)
+		tx = votablewrite.getAsVOTable(table)
 		self.failUnless(
-			re.search('<GROUP ID="[^"]*" utype="stc:AstroCoordSystem"', tx))
-		self.failUnless('<PARAM arraysize="*" datatype="char" utype="stc:AstroCoo'
-			'rdSystem.SpaceFrame.CoordRefFrame" value="ICRS" />' in tx)
-		self.failUnless('" utype="stc:AstroCoords"><GROUP ref="alpha"'
-			' utype="stc:AstroCoords.Position2D.Value2.C1"' in tx)
-		self.failUnless('<FIELD ID="alpha" ' in tx)
-		
+			re.search('<GROUP [^>]*utype="stc:AstroCoordSystem"', tx))
+		self.failUnless(re.search('<PARAM [^>]*utype="stc:AstroCoo'
+			'rdSystem.SpaceFrame.CoordRefFrame"[^>]* value="ICRS"', tx))
+		self.failUnless(re.search('<FIELD[^>]* ID="alpha" ', tx))
+		self.failUnless('<FIELDref utype="stc:AstroCoords.Position2D.Value2.C2" ref="delta"' in tx)
+	
 
 class STCParseTest(testhelpers.VerboseTest):
 	"""tests for parsing of STC info from VOTables.
 	"""
 	def _doRoundtrip(self, table):
-		vot = VOTable.parse(StringIO(votable.getAsVOTable(table)))
-		dddef = votable.makeDDForVOTable("testTable", vot)
+		serialized = votablewrite.getAsVOTable(table)
+		vot = votable.readRaw(StringIO(serialized))
+		dddef = votableread.makeDDForVOTable("testTable", vot)
 		return dddef.getPrimary()
 
 	def _assertSTCEquivalent(self, td1, td2):
@@ -246,12 +252,12 @@ class STCParseTest(testhelpers.VerboseTest):
 		self._assertSTCEquivalent(src.tableDef, td)
 
 	def testWhackyUtypesIgnored(self):
-		vot = VOTable.parse(StringIO("""
-		<VOTABLE version="1.1"><RESOURCE><TABLE><GROUP ID="ll" utype="stc:AstroCoordSystem"><PARAM arraysize="*" datatype="char" utype="stc:AstroCoordSystem.SpaceFrame.CoordRefFrame" value="ICRS" /><PARAM arraysize="*" datatype="char" utype="stc:AstroCoordSystem.SpaceFrame.Megablast" value="ENABLED" /></GROUP><GROUP ID="ll_coo" ref="ll" utype="stc:AstroCoords"><GROUP ref="alpha" utype="stc:AstroCoords.Position2D.Value2.C1" /><GROUP ref="delta" utype="stc:AstroCoords.BlasterLocation" /></GROUP><FIELD ID="alpha" arraysize="1" datatype="float" name="alpha" unit="deg"/><FIELD ID="delta" arraysize="1" datatype="float" name="delta" unit="deg"/></TABLE></RESOURCE></VOTABLE>"""))
-		dddef = votable.makeDDForVOTable("testTable", vot)
+		vot = votable.readRaw(StringIO("""
+		<VOTABLE version="1.2"><RESOURCE><TABLE><GROUP ID="ll" utype="stc:AstroCoordSystem"><PARAM arraysize="*" datatype="char" utype="stc:AstroCoordSystem.SpaceFrame.CoordRefFrame" value="ICRS" /><PARAM arraysize="*" datatype="char" utype="stc:AstroCoordSystem.SpaceFrame.Megablast" value="ENABLED" /></GROUP><GROUP ID="ll_coo" ref="ll" utype="stc:AstroCoords"><FIELDref ref="alpha" utype="stc:AstroCoords.Position2D.Value2.C1" /><FIELDref ref="delta" utype="stc:AstroCoords.BlasterLocation" /></GROUP><FIELD ID="alpha" arraysize="1" datatype="float" name="alpha" unit="deg"/><FIELD ID="delta" arraysize="1" datatype="float" name="delta" unit="deg"/></TABLE></RESOURCE></VOTABLE>"""))
+		dddef = votableread.makeDDForVOTable("testTable", vot)
 		td = dddef.getPrimary()
 		self.assertEqual(
-			td.getColumnByName("alpha").stc.spaceFrame.refFrame, "ICRS")
+			td.getColumnByName("alpha").stc.sys.spaceFrame.refFrame, "ICRS")
 		self.assertEqual(
 			td.getColumnByName("alpha").stcUtype, 
 			"stc:AstroCoords.Position2D.Value2.C1")
@@ -261,4 +267,4 @@ class STCParseTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(STCParseTest)
+	testhelpers.main(ImportTest)

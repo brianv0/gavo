@@ -65,7 +65,7 @@ def _addNullvalueCode(field, src, validator):
 	"""adds code to catch nullvalues if required by field.
 	"""
 	nullvalue = coding.getNullvalue(field, validator)
-	if nullvalue:
+	if nullvalue is not None:
 		src = [
 			'if val=="%s":'%nullvalue,
 			'  row.append(None)',
@@ -127,7 +127,7 @@ def _makeCharDecoder(field, emptyIsNull=True):
 		src.extend([
 			'if val is None:',
 			'  val = ""'])	
-	nullvalue = coding.getNullvalue(field, str)
+	nullvalue = coding.getNullvalue(field, str, "")
 	if nullvalue:
 		src.extend([
 			'if val==%s:'%repr(nullvalue),
@@ -170,7 +170,7 @@ def _getArrayDecoderLines(field):
 	type = field.a_datatype
 
 	if type=='char' or type=='unicodeChar':
-		return _makeCharDecoder(field, emptyIsNull=False)
+		return _makeCharDecoder(field, emptyIsNull=True)
 	src = [ # OMG.  I'm still hellbent on not calling functions here.
 		'arrayLiteral = val',
 		'fullRow, row = row, []',
@@ -182,7 +182,7 @@ def _getArrayDecoderLines(field):
 	else:
 		src.append("for val in tokenizeNormalArr(arrayLiteral):")
 	src.extend(coding.indentList(_decoders[type](field), "  "))
-	src.append("fullRow.append(row)")
+	src.append("fullRow.append(tuple(row))")
 	src.append("row = fullRow")
 	return src
 

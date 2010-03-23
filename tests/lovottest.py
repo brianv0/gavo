@@ -248,7 +248,7 @@ class FloatTDEncodingTest(testhelpers.VerboseTest):
 		vals = self._decode(
 			'<FIELD name="y" datatype="float" arraysize="3"/>',
 			[['NaN +Inf -Inf']])[0]
-		self.assertEqual(repr(vals), '[[nan, inf, -inf]]')
+		self.assertEqual(repr(vals), '[(nan, inf, -inf)]')
 
 
 class TabledataWriteTest(testhelpers.VerboseTest):
@@ -515,37 +515,37 @@ class BinaryReadTest(testhelpers.VerboseTest):
 		), (
 			'<FIELD datatype="unsignedByte" arraysize="2"/>',
 			'\x00\x01',
-			[[[0, 1]]],
+			[[(0, 1)]],
 		), (  # 15
 			'<FIELD datatype="short" arraysize="*"><VALUES null="16"/></FIELD>',
 			'\x00\x00\x00\x03\x00\x01\x00\x10\x00\x02',
-			[[[1, None, 2]]],
+			[[(1, None, 2)]],
 		), (
 			'<FIELD datatype="int" arraysize="2"/>',
 			'\x00\x00\x00\x03\x00\x01\x00\x10',
-			[[[3, 0x10010]]],
+			[[(3, 0x10010)]],
 		), (
 			'<FIELD datatype="float" arraysize="2"/>',
 			'\x7f\xc0\x00\x00:\x80\x00\x00',
-			[[[None, 0.0009765625]]],
+			[[(None, 0.0009765625)]],
 		), (
 			'<FIELD datatype="double" arraysize="*"/>',
 			'\x00\x00\x00\x02\x7f\xf8\x00\x00\x00\x00\x00\x00'
 				'?P\x00\x01\x00\x00\x00\x00',
-			[[[None, 0.00097656343132257462]]]
+			[[(None, 0.00097656343132257462)]]
 		), (
 			'<FIELD datatype="float" arraysize="2"><VALUES null="2"/></FIELD>',
 			'\x7f\xc0\x00\x00:\x80\x00\x00',
-			[[[None, 0.0009765625]]],
+			[[(None, 0.0009765625)]],
 		), (
 			'<FIELD datatype="floatComplex" arraysize="2"/>',
 			'\x7f\xc0\x00\x00:\x80\x00\x00'
 				'A\x80\x00\x00A\x0c\x00\x00',
-			[[[None, 16+8.75j]]],
+			[[(None, 16+8.75j)]],
 		), (
 			'<FIELD datatype="short" arraysize="2x3"/>',
 			'\x00\x00\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05',
-			[[[0,1,2,3,4,5]]],
+			[[(0,1,2,3,4,5)]],
 		)]
 
 

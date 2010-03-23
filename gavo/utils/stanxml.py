@@ -93,8 +93,8 @@ class Element(object):
 
 	This is loosely modelled after nevow stan.
 
-	Don't add to the children attribute directly.  I may want to add
-	data model checking later, and that would go into addChild.
+	Don't add to the children attribute directly, use addChild or (more
+	usually) __getitem__
 
 	When deriving from Elements, you may need attribute names that are not
 	python identifiers (e.g., with dashes in them).  In that case, define
@@ -134,6 +134,9 @@ class Element(object):
 	a_xsi_type = None
 	xsi_type_name = "xsi:type"
 
+	# for type dispatching in addChild.
+	_generator_t = type((x for x in ()))
+
 	def __init__(self, **kwargs):
 		self.__isEmpty = None
 		self.children = []
@@ -149,12 +152,14 @@ class Element(object):
 	def __call__(self, **kw):
 		if not kw:
 			return self
-
+		
 		for k, v in kw.iteritems():
 			if k[-1] == '_':
 				k = k[:-1]
 			elif k[0] == '_':
 				k = k[1:]
+			elif ":" in k:  # ignore namespaced attributes for now
+				continue
 			attname = "a_"+k
 			# Only allow setting attributes already present
 			getattr(self, attname)
@@ -192,7 +197,7 @@ class Element(object):
 		elif isinstance(child, (Element, Stub)):
 			self.bailIfBadChild(child)
 			self.children.append(child)
-		elif isinstance(child, (list, tuple)):
+		elif isinstance(child, (list, tuple, self._generator_t)):
 			for c in child:
 				self.addChild(c)
 		elif isinstance(child, _Autoconstructor):

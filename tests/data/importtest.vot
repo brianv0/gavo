@@ -28,9 +28,11 @@
     </FIELD>
     <FIELD name="Cluster" ucd="ID_MAIN" datatype="char" arraysize="8*">
       <DESCRIPTION>Cluster name [datatype=char]</DESCRIPTION>
+			<VALUES null=""/>
     </FIELD>
     <FIELD name="RAJ2000" ucd="POS_EQ_RA" ref="J2000" datatype="char" arraysize="10" unit="&quot;h:m:s&quot;">
       <DESCRIPTION>Right Ascension (J2000)</DESCRIPTION>
+			<VALUES null=""/>
     </FIELD>
     <FIELD name="GLON" ucd="POS_GAL" datatype="float" width="6" precision="2" unit="deg" arraysize="2">
       <DESCRIPTION>Galactic position</DESCRIPTION>

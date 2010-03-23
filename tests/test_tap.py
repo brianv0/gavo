@@ -89,9 +89,10 @@ class SyncQueryTest(TAPRenderTest):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
-				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<2'},
-			['<FIELD ID="ra" arraysize="1" datatype="float" name="ra"'
-			' ucd="pos.eq.ra;meta.main" unit="deg"><DESCRIPTION>RA</DESCRIPTION>'])
+				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<2'}, [
+					'<FIELD name="ra" datatype="float" ucd="pos.eq.ra;meta.main"'
+					' arraysize="1" ID="ra" unit="deg">'
+				])
 
 	def testBadFormat(self):
 		return self.assertGETHasStrings("/sync", {
@@ -107,7 +108,7 @@ class SyncQueryTest(TAPRenderTest):
 				"LANG": "ADQL",
 				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<2',
 				"FORMAT": "votable/td"},
-			['<DATA><TABLEDATA><TR><TD>0.96319</TD>'])
+			['<DATA><TABLEDATA><TR><TD>0.9631899'])
 
 	def testCSV(self):
 		return self.assertGETHasStrings("/sync", {

@@ -323,7 +323,7 @@ class STCTest(testhelpers.VerboseTest):
 			'  <column name="dec" unit="deg"/>'
 			'  <column name="mag" unit="mag"/>'
 			'</table>')
-		self.assertEqual(td.getColumnByName("ra").stc.spaceFrame.refFrame, 
+		self.assertEqual(td.getColumnByName("ra").stc.sys.spaceFrame.refFrame, 
 			"ICRS")
 		self.assertEqual(td.getColumnByName("mag").stc, None)
 
@@ -344,13 +344,13 @@ class STCTest(testhelpers.VerboseTest):
 			'  <column name="mag" unit="mag"/>'
 			'</table>')
 		bigSTC = td.getColumnByName("ra").stc
-		self.assertEqual(td.getColumnByName("ra").stc.spaceFrame.refFrame, "ICRS")
+		self.assertEqual(td.getColumnByName("ra").stc.sys.spaceFrame.refFrame, "ICRS")
 		self.assertEqual(td.getColumnByName("mag").stc, None)
 		self.assertEqual(td.getColumnByName("start").stc, bigSTC)
 		self.assertEqual(td.getColumnByName("end").stc, bigSTC)
-		self.assertEqual(td.getColumnByName("start").stc.timeFrame.timeScale,
+		self.assertEqual(td.getColumnByName("start").stc.sys.timeFrame.timeScale,
 			"TT")
-		self.assertEqual(td.getColumnByName("raMin").stc.spaceFrame.refFrame, 
+		self.assertEqual(td.getColumnByName("raMin").stc.sys.spaceFrame.refFrame, 
 			"FK5")
 
 	def testGeometrySTC(self):
@@ -360,7 +360,7 @@ class STCTest(testhelpers.VerboseTest):
 			'  <column name="bbox" type="box"/>'
 			'</table>')
 		self.assertEqual("ICRS",
-			td.getColumnByName("bbox").stc.spaceFrame.refFrame), 
+			td.getColumnByName("bbox").stc.sys.spaceFrame.refFrame), 
 	
 	def testCopying(self):
 		td = base.parseFromString(rscdef.TableDef,
@@ -369,7 +369,7 @@ class STCTest(testhelpers.VerboseTest):
 			'  <column name="bbox" type="box"/>'
 			'</table>')
 		tdc = td.copy(None)
-		self.assertEqual(tdc.getColumnByName("bbox").stc.spaceFrame.refFrame, 
+		self.assertEqual(tdc.getColumnByName("bbox").stc.sys.spaceFrame.refFrame, 
 			"ICRS")
 		self.failUnless(tdc.getColumnByName("bbox").stc is
 			td.getColumnByName("bbox").stc)

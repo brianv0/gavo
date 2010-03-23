@@ -30,8 +30,6 @@ from gavo.base import typesystems
 naN = float("NaN")
 
 
-# XXX TODO: Most of this stuff should be moved to formats.VOTable
-
 
 class ValueMapperFactoryRegistry(object):
 	"""is an object clients can ask for functions fixing up values
@@ -184,16 +182,16 @@ def datetimeMapperFactory(colDesc):
 		if "MJD" in colDesc.get("ucd", ""):  # like VOX:Image_MJDateObs
 			colDesc["unit"] = "d"
 			fun = lambda val: (val and dtToMJdn(val)) or None
-			destType = ("double", None)
+			destType = ("double", '1')
 		elif unit=="yr" or unit=="a":
 			fun = lambda val: (val and stc.dateTimeToJYear(val)) or None
-			destType = ("double", None)
+			destType = ("double", '1')
 		elif unit=="d":
 			fun = lambda val: (val and stc.dateTimeToJdn(val)) or None
-			destType = ("double", None)
+			destType = ("double", '1')
 		elif unit=="s":
 			fun = lambda val: (val and time.mktime(val.timetuple())) or None
-			destType = ("double", None)
+			destType = ("double", '1')
 		elif unit=="Y:M:D" or unit=="Y-M-D":
 			fun = lambda val: (val and val.isoformat()) or None
 			destType = ("char", "*")
@@ -202,7 +200,7 @@ def datetimeMapperFactory(colDesc):
 			destType = ("char", "*")
 		else:   # Fishy, but not our fault
 			fun = lambda val: (val and stc.dateTimeToJdn(val)) or None
-			destType = ("double", None)
+			destType = ("double", '1')
 		colDesc["datatype"], colDesc["arraysize"] = destType
 		return fun
 _registerDefaultMF(datetimeMapperFactory)
@@ -346,8 +344,6 @@ class VColDesc(dict):
 		self["datatype"] = type
 		self["arraysize"] = size
 		self["displayHint"] = column.displayHint
-		self["stc"] = column.stc
-		self["stcUtype"] = column.stcUtype
 		for fieldName in ["ucd", "utype", "unit"]:
 			self[fieldName] = getattr(column, fieldName)
 		if votCast is not None:
@@ -391,9 +387,6 @@ class SerManager(utils.IdManagerMixin):
 	SerManager instances keep information on what values certain columns can
 	assume and how to map them to concrete values in VOTables, HTML or ASCII.
 	
-	Additionally, they currently manage STC serialisation as well, but
-	I'm not too happy about that.
-
 	They are constructed with a BaseTable instance.
 
 	You can additionally give:
@@ -411,13 +404,14 @@ class SerManager(utils.IdManagerMixin):
 	# Don't compute min, max, etc for these types
 	_noValuesTypes = set(["boolean", "bit", "unicodeChar",
 		"floatComplex", "doubleComplex"])
+	# Filled out on demand
+	_nameDict = None
 
 	def __init__(self, table, withRanges=True, idManager=None,
 			mfRegistry=defaultMFRegistry):
 		self.table = table
-		self.idManager = idManager
-		if self.idManager is None:
-			self.idManager = weakref.proxy(self)
+		if idManager is not None:
+			self.cloneFrom(idManager)
 		self._makeColDescs()
 		self._acquireSamples()
 		if withRanges:
@@ -434,8 +428,10 @@ class SerManager(utils.IdManagerMixin):
 		for column in self.table.tableDef:
 			self.colDescs.append(
 				VColDesc(column, self.table.votCasts.get(column.name)))
-			colId = self.idManager.makeIdFor(column, column.name)
+			colId = self.makeIdFor(column, column.name)
 			# Do not generate an id if the field is already defined somewhere else.
+			# (if that happens, STC definitions could be in trouble, so try
+			# to avoid it, all right?)
 			if colId is not None:
 				self.colDescs[-1]["ID"] = colId
 
@@ -497,6 +493,19 @@ class SerManager(utils.IdManagerMixin):
 		exec "\n".join(funDef) in buildNS
 		return buildNS["buildRec"]
 
+	def _iterWithMaps(self, buildRec):
+		colLabels = [f.name for f in self.table.tableDef]
+		if not colLabels:
+			yield ()
+			return
+		for row in self.table:
+			yield buildRec(row)
+
+	def getColDescByName(self, name):
+		if self._nameDict is None:
+			self._nameDict = dict((cd["name"], cd) for cd in self)
+		return self._nameDict[name]
+
 	def makeTupleMaker(self):
 		"""returns a function that returns a tuple of mapped values
 		for a row dictionary.
@@ -514,14 +523,6 @@ class SerManager(utils.IdManagerMixin):
 
 		exec "\n".join(funDef) in buildNS
 		return buildNS["buildRec"]
-
-	def _iterWithMaps(self, buildRec):
-		colLabels = [f.name for f in self.table.tableDef]
-		if not colLabels:
-			yield ()
-			return
-		for row in self.table:
-			yield buildRec(row)
 
 	def getMappedValues(self):
 		"""iterates over the table's rows as dicts with mapped values.

@@ -31,7 +31,7 @@ def getRowEncoderSource(tableDefinition, encoderModule):
 			"    raise",
 			"  except Exception, ex:",
 			"    traceback.print_exc()",
-			"    raise common.BadVOTableData(unicode(ex), val, '%s')"%
+			"    raise common.BadVOTableData(unicode(ex), repr(val), '%s')"%
 				field.getDesignation()])
 	source.extend(indentList(
 		encoderModule.getPostamble(tableDefinition), "  "))
@@ -88,7 +88,7 @@ def getNullvalue(field, validator, default=None):
 	for values in field.iterChildrenOfType(VOTable.VALUES):
 		if values.a_null is not None:
 			nullvalue = values.a_null
-	if nullvalue is None:
+	if nullvalue is None or nullvalue=='':
 		return default
 	else:
 		_ = validator(nullvalue)

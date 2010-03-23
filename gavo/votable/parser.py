@@ -20,7 +20,7 @@ from gavo.votable import model
 from gavo.votable import tableparser
 
 
-DEFAULT_WATCHSET = [model.VOTable.TABLE]
+DEFAULT_WATCHSET = []
 
 # We treat all VOTable versions as equal.
 VOTABLE_NAMESPACES = [
@@ -130,7 +130,7 @@ def parse(inFile, watchset=DEFAULT_WATCHSET):
 			if elId is not None:
 				idmap[elId] = elementStack[-1]
 
-			# ...and pass controlto special iterator if DATA is coming in.
+			# ...and pass control to special iterator if DATA is coming in.
 			if name=="DATA":
 				yield tableparser.Rows(elementStack[-2], iterator)
 
@@ -156,6 +156,18 @@ def parse(inFile, watchset=DEFAULT_WATCHSET):
 
 		else:
 			assert False
+
+
+def readRaw(inFile):
+	"""returns a V.VOTABLE instance with filled-in data for the input from
+	inFile.
+	"""
+	res = None
+	for el in parse(inFile, [model.VOTable.TABLE, model.VOTable.VOTABLE]):
+		if isinstance(el, tableparser.Rows):
+			el.tableDefinition.rows = list(el)
+	return el
+
 
 
 def parseString(string, watchset=DEFAULT_WATCHSET):

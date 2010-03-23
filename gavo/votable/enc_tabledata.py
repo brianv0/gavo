@@ -116,7 +116,7 @@ def _getArrayEncoderLines(field):
 		return ['tokens.append(utils.toBinary(val))']
 	# char array literals are strings, real special handling
 	if type=='char' or type=='unicodeChar':
-		src.extend(_makeCharEncoder(field))
+		return _makeCharEncoder(field)
 
 	src = _getArrayShapingCode(field, '[None]')
 	src.extend([ # Painful name juggling to avoid functions

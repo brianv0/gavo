@@ -21,9 +21,10 @@ from gavo import rscdef
 from gavo import rsc
 from gavo import svcs
 from gavo import utils
+from gavo import votable
 from gavo.imp import formal
-from gavo.imp.VOTable import DataModel as VOTable
 from gavo.utils import ElementTree
+from gavo.votable import V
 from gavo.web import grend
 from gavo.web import resourcebased
 
@@ -125,11 +126,10 @@ class SCSRenderer(DALRenderer):
 	def _writeErrorTable(self, ctx, msg):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
-		request.write(str(VOTable.VOTable(
-			description=self.service.getMeta("description").getContent(),
-			info=[
-				VOTable.Info(ID="Error", name="Error", 
-					value=str(msg).replace('"', '\\"'))])))
+		votable.write(V.VOTABLE[
+			V.DESCRIPTION[base.getMetaText(self.service, "description")],
+			V.INFO(ID="Error", name="Error",
+					value=str(msg).replace('"', '\\"'))], request)
 		return ""
 
 	def _formatOutput(self, data, ctx):

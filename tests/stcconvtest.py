@@ -157,7 +157,8 @@ class WiggleCoercionTest(testhelpers.VerboseTest):
 		self.assertAlmostEqual(pos.size.values[0][0], 6509222249623.3682)
 
 	def testOthersDefaultUnits(self):
-		ast = self._getAST('<Time><TimeInstant><ISOTime>2009-03-10T09:56:10'
+		ast = self._getAST('<Time unit="s"><TimeInstant>'
+			'<ISOTime>2009-03-10T09:56:10'
 			'</ISOTime></TimeInstant><Error>2</Error><Resolution unit="h">'
 			'0.001</Resolution><Size unit="yr">0.1</Size></Time>'
 			'<Spectral unit="Angstrom"><Value>12.0</Value><Error unit="nm">'

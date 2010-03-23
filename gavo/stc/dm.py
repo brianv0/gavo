@@ -761,6 +761,10 @@ class STCSpec(ASTNode):
 	_a_redshiftAs = ()
 	_a_velocityAs = ()
 
+	@property
+	def sys(self):
+		return self.astroSystem
+
 	def buildIdMap(self):
 		if hasattr(self, "idMap"):
 			return
@@ -822,3 +826,19 @@ class STCSpec(ASTNode):
 					self._colRefs.extend(
 						v.dest for v in n.getValues() if isinstance(v, ColRef))
 		return self._colRefs
+	
+	def stripUnits(self):
+		"""removes all unit specifications from this AST.
+
+		This is intended for non-standalone STC, e.g., in VOTables, where
+		external unit specifications are present.  Removing the units
+		prevents "bleeding out" of conflicting in-STC specifications
+		(that mostly enter through defaulting).
+
+		This ignores the immutability of nodes and is in general a major pain.
+		"""
+		for node in self.iterNodes():
+			if hasattr(node, "unit"):
+				node.unit = node.__class__._a_unit
+			if hasattr(node, "velTimeUnit"):
+				node.velTimeUnit = node.__class__._a_unit

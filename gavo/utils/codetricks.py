@@ -81,6 +81,9 @@ class IdManagerMixin(object):
 	  been called before.  Otherwise, a NotFoundError is raised
 	* getForId(id) -- returns the object belonging to an id that has
 	  been handed out before.  Raises a NotFoundError for unknown ids.
+	* cloneFrom(other) -- overwrites the self's id management dictionaries 
+	  with those from other.  You want this if two id managers must work
+	  on the same document.
 	"""
 # Return a proxy instead of raising a KeyError here?  We probably no not
 # really want to generate xml with forward references, but who knows?
@@ -96,6 +99,11 @@ class IdManagerMixin(object):
 			newId = suggestion+str(i)
 			if newId not in invMap:
 				return newId
+
+	def cloneFrom(self, other):
+		"""takes the id management dictionaries from other.
+		"""
+		self.__objectToId, self.__idsToObject = other.__getIdMaps()
 
 	def makeIdFor(self, ob, suggestion=None):
 		map, invMap = self.__getIdMaps()

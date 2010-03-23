@@ -227,21 +227,21 @@ class FromVOTableConverter(object):
 	typeSystem = "db"
 	
 	simpleMap = {
-		("short", None): "smallint",
-		("int", None): "integer",
-		("long", None): "bigint",
-		("float", None): "real",
-		("boolean", None): "boolean",
-		("double", None): "double precision",
+		("short", '1'): "smallint",
+		("int", '1'): "integer",
+		("long", '1'): "bigint",
+		("float", '1'): "real",
+		("boolean", '1'): "boolean",
+		("double", '1'): "double precision",
 		("char", "*"): "text",
-		("char", None): "char",
-		("unsignedByte", None): "smallint",
-		("raw", None): "raw",
+		("char", '1'): "char",
+		("unsignedByte", '1'): "smallint",
+		("raw", '1'): "raw",
 	}
 
 	def convert(self, type, arraysize):
-		if arraysize=="1" or arraysize=="":
-			arraysize = None
+		if arraysize=="1" or arraysize=="" or arraysize is None:
+			arraysize = "1"
 		if (type, arraysize) in self.simpleMap:
 			return self.simpleMap[type, arraysize]
 		else:
@@ -252,10 +252,10 @@ class FromVOTableConverter(object):
 			arraysize = ""
 		if type=="char":
 			return "text"
-		if type=="unsignedByte" and arraysize!="1" and arraysize!=1:
+		if type=="unsignedByte" and arraysize!="1":
 			return "bytea[]"
-		if (type, None) in self.simpleMap:
-			return "%s[%s]"%(self.simpleMap[type, None], arraysize)
+		if (type, '1') in self.simpleMap:
+			return "%s[%s]"%(self.simpleMap[type, '1'], arraysize)
 		raise ConversionError("No SQL type for %s, %s"%(type, arraysize))
 
 

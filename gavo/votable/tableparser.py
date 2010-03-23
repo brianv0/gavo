@@ -89,6 +89,18 @@ class _StreamData(object):
 		self.fPos = 0      # index of next char to be returned
 		self._eof = False  # True when we've seen the </STREAM> event
 
+	def _setEOF(self):
+		"""cleans up at end of stream and sets eof flag.
+		
+		This is called by _fillBuffer exclusively.
+		"""
+		for evtype, element in self.nodeIterator:
+			if evtype!="data":
+				break
+		# if the following assertion doesn't hold, expat has messed up.
+		assert element=="BINARY" and evtype=="end"
+		self._eof = True
+
 	def _fillBuffer(self, nBytes):
 		"""obtains events from node iterator fo fill curChunk.
 		"""
@@ -100,7 +112,7 @@ class _StreamData(object):
 
 		for ev in self.nodeIterator:
 			if ev[0]=="end":   # must be </STREAM> or expat would've crapped.
-				self._eof = True
+				self._setEOF()
 				break
 			assert ev[0]=="data"
 			encoded.append(ev[1])
@@ -173,7 +185,9 @@ class BinaryIterator(DataIterator):
 		
 		inF = _StreamData(self.nodeIterator)
 		while not inF.atEnd():
-			yield self._decodeRawRow(inF)
+			row = self._decodeRawRow(inF)
+			if row is not None:
+				yield row
 
 
 def _makeTableIterator(elementName, tableDefinition, nodeIterator):
@@ -202,7 +216,9 @@ class Rows(object):
 	
 	def __iter__(self):
 		for ev in self.nodeIterator:
-			if ev[1]=="INFO":
+			if ev[0]=="data": # ignore whitespace (or other stuff...)
+				pass
+			elif ev[1]=="INFO":
 				pass   # XXX TODO: What do we do with those INFOs?
 			else:
 				return _makeTableIterator(ev[1], 

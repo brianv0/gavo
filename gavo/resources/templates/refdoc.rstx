@@ -227,6 +227,10 @@ start with an underscore.  Among those are:
 * _noresultwarning -- displayed by the default response template instead
   of an empty table (use it for things like "No Foobar data for your
   query")
+* _type -- on Data instances, used by the VOTable writer to set the
+  ``type`` attribute on ``RESOURCE`` elements (to either "results"
+  or "meta").  Probably only useful internally.
+
 
 RMI-Style Metadata
 ''''''''''''''''''

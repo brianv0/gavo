@@ -41,7 +41,7 @@ from gavo.imp.formal import form
 from gavo.formats import csvtable
 from gavo.formats import fitstable
 from gavo.formats import texttable
-from gavo.formats import votable
+from gavo.formats import votablewrite
 from gavo.base import typesystems
 from gavo.web import common
 from gavo.web import grend
@@ -123,11 +123,9 @@ def streamVOTable(request, data):
 		to request.
 		"""
 		try:
-			tableMaker = votable.VOTableMaker({
-				True: "td",
-				False: "binary"}[data.queryMeta["tdEnc"]])
-			vot = tableMaker.makeVOT(data.original)
-			tableMaker.writeVOT(vot, outputFile)
+			tableMaker = votablewrite.writeAsVOTable(
+				data.original, outputFile,
+				tablecoding={ True: "td", False: "binary"}[data.queryMeta["tdEnc"]])
 		except:
 			sys.stderr.write("Yikes -- error during VOTable render:\n")
 			traceback.print_exc()

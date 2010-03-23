@@ -199,7 +199,7 @@ def _getArrayDecoderLines(field):
 		"for i in range(arraysize):"])
 	src.extend(coding.indentList(_decoders[type](field), "  "))
 	src.extend([
-		"fullRow.append(row)",
+		"fullRow.append(tuple(row))",
 		"row = fullRow"])
 	return src
 
@@ -226,6 +226,10 @@ def getRowDecoderSource(tableDefinition):
 		source.extend([
 			"  try:",]+
 			coding.indentList(getLinesFor(field), "    ")+[
+			"  except IOError:",  # EOF on empty row is ok.
+			"    if inF.atEnd and row==[]:",
+			"      return None",
+			"    raise",
 			"  except:",
 			"    traceback.print_exc()",
 			"    raise common.BadVOTableLiteral('%s', repr(inF.lastRes))"%(
