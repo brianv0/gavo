@@ -480,11 +480,15 @@ def movePm(alphaDeg, deltaDeg, pmAlpha, pmDelta, timeDiff, foreshort=0):
 
 
 def getGCDist(pos1, pos2):
-	"""returns the distance between two points in equatorial degrees along
-	a great circle in degrees.
+	"""returns the distance along a great circle between two points.
+
+	The distance is in degrees, the input positions are in degrees.
 	"""
-	return math.acos(
-		computeUnitSphereCoords(*pos1)*computeUnitSphereCoords(*pos2))*180/math.pi
+	scalarprod = computeUnitSphereCoords(*pos1)*computeUnitSphereCoords(*pos2)
+	# cope with numerical trouble
+	if scalarprod>=1:
+		return 0
+	return math.acos(scalarprod)
 
 
 try:
