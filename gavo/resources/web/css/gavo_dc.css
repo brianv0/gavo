@@ -349,6 +349,7 @@ div.copyright {
 	background-color: #cccccc;
 	padding: 5px;
 	margin-top: 5px;
+	max-width: 400px;
 }
 
 div.intro {
