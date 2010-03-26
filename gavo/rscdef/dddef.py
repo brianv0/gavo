@@ -91,6 +91,13 @@ class SourceSpec(base.Structure):
 		itemAttD=base.UnicodeAttribute("pattern", description="Shell pattern"
 			" for source file(s), relative to resource directory."),
 		copyable=True)
+	_items = base.ListOfAtomsAttribute("items", description=
+		"String literals to pass to grammars.  In contrast to patterns,"
+		" they are not interpreted as file names but passed to the"
+		" grammar verbatim.  Normal grammars do not like this. It is"
+		" mainly intended for use with custom or null grammars.",
+		itemAttD=base.UnicodeAttribute("item", 
+			description="Grammar-specific string"), copyable=True)
 	_recurse = base.BooleanAttribute("recurse", default=False,
 		description="Search for pattern(s) recursively in their directory"
 			" part(s)?", copyable=True)
@@ -130,6 +137,9 @@ class SourceSpec(base.Structure):
 
 	def iterSources(self, connection=None):
 		self.ignoredSources.prepare(connection)
+		for item in self.items:
+			if not self.ignoredSources.isIgnored(item):
+				yield item
 		for pattern in self.patterns:
 			dirPart, baseName = os.path.split(pattern)
 			if self.parent.rd:
@@ -145,7 +155,7 @@ class SourceSpec(base.Structure):
 						yield fullName
 	
 	def __nonzero__(self):
-		return not not self.patterns
+		return (not not self.patterns) or (not not self.items)
 
 
 class GrammarAttribute(base.StructAttribute):

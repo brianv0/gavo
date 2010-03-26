@@ -190,7 +190,8 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		"""
 		for fk in self.tableDef.foreignKeys:
 			if not self.tableDef.system:
-				base.ui.notifyIndexCreation(fk.getDescription())
+				base.ui.notifyIndexCreation(
+					self.tableDef.expand(fk.getDescription()))
 			fk.create(self)
 	
 	def _dropForeignKeys(self):
@@ -222,7 +223,8 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		for index in self.tableDef.indices:
 			if not self.hasIndex(self.tableName, index.dbname):
 				if not self.tableDef.system:
-					base.ui.notifyIndexCreation(index.dbname)
+					base.ui.notifyIndexCreation(
+						self.tableDef.expand(index.dbname))
 				self.query(self.tableDef.expand("CREATE INDEX %s ON %s (%s)"%(
 					index.dbname, self.tableName, index.content_)))
 			if index.cluster:
