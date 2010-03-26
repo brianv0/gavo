@@ -209,7 +209,7 @@ class ColumnList(list):
 				return self.getColumnByUCD(ucd)
 			except ValueError:
 				pass
-		raise ValueError("No column for any of %s"%ucd)
+		raise ValueError("No unique column for any of %s"%", ".join(ucds))
 
 
 class ColumnListAttribute(base.StructListAttribute):

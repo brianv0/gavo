@@ -30,7 +30,8 @@ class DBIndex(base.Structure):
 
 	_name = base.UnicodeAttribute("name", default=base.Undefined,
 		description="Name of the index (defaults to something computed from"
-			" columns)", copyable=True)
+			" columns; the name of the parent table will be prepended in the DB)", 
+			copyable=True)
 	_columns = base.StringListAttribute("columns", description=
 		"Table columns taking part in the index (must be given even if there"
 		" is an expression building the index and mention all columns taking"
@@ -48,10 +49,13 @@ class DBIndex(base.Structure):
 		if not self.columns:
 			raise base.StructureError("Index without columns is verboten.")
 		if self.name is base.Undefined:
-			self.name = "%s_%s"%(self.parent.id, re.sub("[^\w]+", "_",
-				"_".join(self.columns)))
+			self.name = "%s"%(re.sub("[^\w]+", "_", "_".join(self.columns)))
 		if not self.content_:
 			self.content_ = "%s"%",".join(self.columns)
+	
+	@property
+	def dbname(self):
+		return "%s_%s"%(self.parent.id, self.name)
 
 
 class ColumnTupleAttribute(base.StringListAttribute):

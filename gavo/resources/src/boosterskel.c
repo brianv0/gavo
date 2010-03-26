@@ -62,7 +62,7 @@ static void handleBadRecord(char *format, ...)
 	va_start(ap, format);
 	(void)fprintf(stderr, "importbooster: ");
 	if (context) {
-		(void)fprintf(stderr, "Bad Record: %s\n", context);
+		(void)fprintf(stderr, "Bad Record: '%s'\n", context);
 	}
 #ifndef IGNORE_BAD_RECORDS
 		die(format, ap);

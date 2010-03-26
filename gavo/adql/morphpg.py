@@ -37,7 +37,7 @@ def _containsToQ3c(node, state):
 	if shape.type=="circle":
 		state.killParentOperator = True
 		return ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(nodes.flatten, 
-			(shape.x, shape.y, p.x, p.y, shape.radius))))
+			(p.x, p.y, shape.x, shape.y, shape.radius))))
 	elif shape.type=="rectangle":
 		state.killParentOperator = True
 		return ("q3c_poly_query(%s, %s, ARRAY[%s, %s, %s, %s,"
