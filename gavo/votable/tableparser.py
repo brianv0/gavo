@@ -52,24 +52,26 @@ class TableDataIterator(DataIterator):
 			# might yet follow (usually, it's whitespace data anyway)
 
 		rawRow = []
+		dataBuffer = []
 		for ev in self.nodeIterator:
 			if ev[0]=="start":   # new TD
-				if ev[1]=="TD":
-					cur = []
-				else:
+				dataBuffer = []
+				if ev[1]!="TD":
 					raise self.nodeIterator.raiseParseError(
 						"Unexpected element %s"%ev[1],)
 
 			elif ev[0]=="data":  # TD content
-				cur.append(ev[1])
+				dataBuffer.append(ev[1])
 
-			elif ev[0]=="end":
+			elif ev[0]=="end":  # could be row end or cell end
 				if ev[1]=="TR":
 					break
 				elif ev[1]=="TD":
-					rawRow.append("".join(cur))
+					rawRow.append("".join(dataBuffer))
 				else:
 					assert False
+				dataBuffer = []
+
 			else:
 				assert False
 		return rawRow
