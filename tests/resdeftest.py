@@ -183,7 +183,7 @@ class TableDefTest(testhelpers.VerboseTest):
 		t = base.parseFromString(rscdef.TableDef, '<table id="test">'
 			'<column name="a"/><column name="b"/><index columns="a"/></table>')
 		self.assertEqual(t.indices[0].columns, ['a'])
-		self.assertEqual(t.indices[0].name, 'test_a')
+		self.assertEqual(t.indices[0].dbname, 'test_a')
 		self.assertEqual(t.indices[0].cluster, False)
 		self.assertEqual(t.indexedColumns, set(['a']))
 

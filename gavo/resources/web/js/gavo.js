@@ -386,7 +386,38 @@ function makeCloser(node, callback) {
 		return false;  // make this work as an event handler
 	}
 	return close;
-}
+};
+
+
+function makeDraggable(handle, item) {
+// makes item drabbable by handle
+// item needs to be positioned (i.e., position absolute or relative)
+	function startDrag(ev) {
+		mouseX0 = ev.clientX;
+		mouseY0 = ev.clientY;
+		pos0 = getElementPosition(item);
+
+		function moveHandler(inEv) {
+			alert("  "+pos0.x+" "+pos0.y);
+			curPos = {
+				'x': pos0.x+inEv.clientX-mouseX0,
+				'y': pos0.y+inEv.clientY-mouseY0};
+			setElementPosition(item, curPos);
+			return false;
+		};
+
+		function upHandler(inEv) {
+			document.removeEventListener("mousemove", moveHandler, true);
+			document.removeEventListener("mouseup", upHandler, true);
+		};
+
+		document.addEventListener("mousemove", moveHandler, true);
+		document.addEventListener("mouseup", upHandler, false);
+
+		return false;
+	}
+	handle.addEventListener("mousedown", startDrag, false);
+};
 
 
 function openDOMsubwindow(parent, innerDOM, callback) {
@@ -397,14 +428,15 @@ function openDOMsubwindow(parent, innerDOM, callback) {
 //
 // returns a function that, when called, closes the "subwindow".
 	makePositioned(parent);
-	docWin = DIV({'class': 'innerWin'})
-	closeSubWindow = makeCloser(docWin, callback)
-	appendChildNodes(docWin,
-		P({'class': 'innerTitle'}, 
-			SPAN({'onclick': closeSubWindow}, 'x')),
-		innerDOM);
+	docWin = DIV({'class': 'innerWin'});
+	closeSubWindow = makeCloser(docWin, callback);
+	titlebar = P({'class': 'innerTitle'}, 
+			SPAN({'onclick': closeSubWindow, 'title': 'Close this'}, 'x'));
+	appendChildNodes(docWin, titlebar, innerDOM);
 	docWin.style.position = 'absolute';
-	parent.appendChild(docWin);
+	appendChildNodes(parent, docWin);
+
+//	makeDraggable(titlebar, docWin);
 	return closeSubWindow;
 }
 
@@ -427,7 +459,11 @@ function bubbleUpByURL(srcNode, innerURL) {
 // the doc tree.
 //
 // returns false for cheapo event handling
-	return bubbleUpDOM(srcNode,
-		MochiKit.DOM.createDOM('iframe', 
-			{'src': innerURL, 'class': 'innerBody'}));
+	function callback(result) {
+		newNode = MochiKit.DOM.createDOM('div', {'class': 'innerBody'});
+		newNode.innerHTML = result.responseText;
+		bubbleUpDOM(srcNode, newNode);
+	}
+	doXHR(innerURL).addCallback(callback);
+	return false;
 }

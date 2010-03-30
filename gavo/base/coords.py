@@ -488,7 +488,7 @@ def getGCDist(pos1, pos2):
 	# cope with numerical trouble
 	if scalarprod>=1:
 		return 0
-	return math.acos(scalarprod)
+	return math.acos(scalarprod)/DEG
 
 
 try:

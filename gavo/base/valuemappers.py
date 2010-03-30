@@ -17,6 +17,7 @@ for serializing to VOTables and similar data machine-oriented data
 formats.
 """
 
+import datetime
 import re
 import urllib
 import urlparse
@@ -166,7 +167,6 @@ def _charMapperFactory(colDesc):
 _registerDefaultMF(_charMapperFactory)
 
 
-import datetime
 
 def datetimeMapperFactory(colDesc):
 	import time
@@ -344,6 +344,7 @@ class VColDesc(dict):
 		self["datatype"] = type
 		self["arraysize"] = size
 		self["displayHint"] = column.displayHint
+		self["note"] = None # filled in by serManager, if at all
 		for fieldName in ["ucd", "utype", "unit"]:
 			self[fieldName] = getattr(column, fieldName)
 		if votCast is not None:
@@ -412,6 +413,8 @@ class SerManager(utils.IdManagerMixin):
 		self.table = table
 		if idManager is not None:
 			self.cloneFrom(idManager)
+		self.notes = {}  # notes referenced by our fields
+
 		self._makeColDescs()
 		self._acquireSamples()
 		if withRanges:
@@ -434,6 +437,13 @@ class SerManager(utils.IdManagerMixin):
 			# to avoid it, all right?)
 			if colId is not None:
 				self.colDescs[-1]["ID"] = colId
+			# if column refers to a note, remember the note
+			if column.note:
+				try:
+					self.notes[column.note.tag] = column.note
+					self.colDescs[-1]["note"] = column.note
+				except (ValueError, utils.NotFoundError): 
+					pass # don't worry about missing notes
 
 	def _findRanges(self):
 		"""obtains minima, maxima, and the existence of null values for

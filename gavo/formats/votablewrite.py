@@ -187,6 +187,22 @@ def _iterSTC(tableDef, serManager):
 				for utype, value in cooTypes]]
 
 
+def _iterNotes(serManager):
+	"""yields GROUPs for table notes.
+
+	The idea is that the note is in the group's description, and the FIELDrefs
+	give the columns that the note applies to.
+	"""
+	# add notes as a group with FIELDrefs, but don't fail on them
+	for key, note in serManager.notes.iteritems():
+		noteId = serManager.getOrMakeIdFor(note)
+		noteGroup = V.GROUP(name="note-%s"%key, ID=noteId)[
+			V.DESCRIPTION[note.getContent(targetFormat="text")]]
+		for col in serManager:
+			if col["note"] is note:
+				noteGroup[V.FIELDref(ref=col["ID"])]
+		yield noteGroup
+
 def _makeTable(ctx, table):
 	"""returns a Table node for the table.Table instance table.
 	"""
@@ -195,7 +211,9 @@ def _makeTable(ctx, table):
 	result = V.TABLE(name=table.tableDef.id)[
 		V.DESCRIPTION[base.getMetaText(table.tableDef, "description")],
 		_iterSTC(table.tableDef, sm),
+		_iterNotes(sm),
 		_iterFields(sm)]
+
 	return votable.DelayedTable(result,
 		sm.getMappedTuples(),
 		tableEncoders[ctx.tablecoding])

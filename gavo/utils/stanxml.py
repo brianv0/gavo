@@ -295,7 +295,7 @@ class Element(object):
 		res = {}
 		for name, attName in self.iterAttNames():
 			if getattr(self, name) is not None:
-				res[attName] = str(getattr(self, name))
+				res[attName] = unicode(getattr(self, name))
 		return res
 
 	def _iterChildrenInSequence(self):

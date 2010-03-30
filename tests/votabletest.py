@@ -34,11 +34,13 @@ class _TestVOTable(testhelpers.TestResource):
 			<meta name="description">Some test data for VOTables.</meta>
 			<meta name="_legal">Hands off this fascinating data</meta>
 			<table id="foo">
+				<meta name="note" tag="1">Note 1</meta>
+				<meta name="note" tag="2">Note 2</meta>
 				<column name="anInt" type="integer"
-					description="This is a first data field"/>
+					description="This is a first data field" note="1"/>
 				<column name="aFloat"
-					description="This ain't &amp;alpha; for sure."/>
-				<column name="bla" type="text"/>
+					description="This ain't &amp;alpha; for sure." note="1"/>
+				<column name="bla" type="text" note="2"/>
 			</table>
 			<data id="bar">
 				<meta name="_infolink">http://vo.org/x?a=b&amp;c=d</meta>
@@ -106,6 +108,15 @@ class VOTableTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 		self.assertEqual(fields[2].find(str(votable.voTag("VALUES"))), None,
 			"VALUES element given for string data")
 
+	def testNotes(self):
+		tree = self.testData[1]
+		groups = tree.findall(".//%s"%votable.voTag("GROUP"))
+		self.assertEqual(groups[0].get("name"), "note-1")
+		self.assertEqual(groups[0][0].text, "Note 1")
+		self.assertEqual(groups[0][1].get("ref"), "anInt")
+		self.assertEqual(groups[0][2].get("ref"), "aFloat")
+		self.assertEqual(groups[1][0].text, "Note 2")
+		self.assertEqual(groups[1][1].get("ref"), "bla")
 
 
 class _ImportTestData(testhelpers.TestResource):

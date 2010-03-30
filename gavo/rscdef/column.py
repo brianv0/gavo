@@ -298,10 +298,15 @@ class Column(base.Structure):
 
 	def __repr__(self):
 		return "<Column %s>"%self.name
-	
+
 	def onParentComplete(self):
-		if self.note and "/" not in self.note:
-			self.note = "%s/%s"%(self.parent.getQName(), self.note)
+		# we need to resolve note on construction since columns are routinely
+		# copied to other tables and  meta info does not necessarily follow.
+		if isinstance(self.note, basestring):
+			try:
+				self.note = self.parent.getNote(self.note)
+			except base.NotFoundError: # non-existing notes silently ignored
+				self.note = None
 
 	def isEnumerated(self):
 		return self.values and self.values.options
@@ -366,7 +371,7 @@ class Column(base.Structure):
 			"ucd": self.ucd or "N/A",
 			"verbLevel": self.verbLevel,
 			"indexState": self._indexedCleartext[self.isIndexed()],
-			"note": self.note and base.makeSitePath("/tablenote/%s"%self.note),
+			"note": self.note,
 		}
 	
 	def getDDL(self):
@@ -386,6 +391,16 @@ class Column(base.Structure):
 		new.stc, new.stcUtype = self.stc, self.stcUtype
 		return new
 
+	def getLabel(self):
+		"""returns a short label for this column.
+
+		The label is either the tablehead or, missing it, the capitalized
+		column name.
+		"""
+		if self.tablehead is not None:
+			return self.tablehead
+		return self.name.capitalize()
+		
 	@classmethod
 	def fromMetaTableRow(cls, metaRow):
 		"""returns a Column instance for a row from the meta table.

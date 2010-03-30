@@ -799,7 +799,7 @@ class Q3CMorphTest(unittest.TestCase):
 		s, t = adql.insertQ3Calls(t)
 		self.assertEqual(adql.flatten(t),
 			"SELECT alphafloat, deltafloat FROM ppmx.data WHERE"
-				"  (q3c_join(23, 24, alphafloat, deltafloat, 0.2))")
+				"  (q3c_join(alphafloat, deltafloat, 23, 24, 0.2))")
 	
 	def testCircle2(self):
 		t = adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
@@ -808,7 +808,7 @@ class Q3CMorphTest(unittest.TestCase):
 		s, t = adql.insertQ3Calls(t)
 		self.assertEqual(adql.flatten(t),
 			"SELECT alphafloat, deltafloat FROM ppmx.data WHERE"
-				" NOT (q3c_join(23, 24, alphafloat, deltafloat, 0.2))")
+				" NOT (q3c_join(alphafloat, deltafloat, 23, 24, 0.2))")
 	
 	def testCircleAnnotated(self):
 		t = adql.parseToTree("SELECT TOP 10 * FROM spatial"
@@ -817,7 +817,7 @@ class Q3CMorphTest(unittest.TestCase):
 		ctx = adql.annotate(t, _sampleFieldInfoGetter)
 		s, t = adql.insertQ3Calls(t)
 		self.assertEqual(adql.flatten(t),
-			"SELECT TOP 10 * FROM spatial WHERE  (q3c_join(10, 10, ra1, ra2, 0.5))")
+			"SELECT TOP 10 * FROM spatial WHERE  (q3c_join(ra1, ra2, 10, 10, 0.5))")
 
 
 class PQMorphTest(unittest.TestCase):

@@ -6,6 +6,7 @@ import os
 import urllib
 
 from nevow import inevow
+from nevow import loaders
 from nevow import rend
 from nevow import tags as T, entities as E
 from nevow import url
@@ -15,6 +16,7 @@ from zope.interface import implements
 from gavo import base
 from gavo import registry
 from gavo import svcs
+from gavo import utils
 from gavo.web import common
 from gavo.web import grend
 from gavo.web import resourcebased
@@ -182,7 +184,7 @@ class RendExplainer(object):
 			cls._explainEverything)(service)
 
 
-class ServiceInfoRenderer(MetaRenderer):
+class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 	"""is a renderer that shows information about a service.
 	"""
 	name = "info"
@@ -192,6 +194,7 @@ class ServiceInfoRenderer(MetaRenderer):
 	def __init__(self, *args, **kwargs):
 		grend.ServiceBasedRenderer.__init__(self, *args, **kwargs)
 		self.describingRD = self.service.rd
+		self.footnotes = set()
 
 	def render_title(self, ctx, data):
 		return ctx.tag["Information on Service '%s'"%unicode(
@@ -200,10 +203,17 @@ class ServiceInfoRenderer(MetaRenderer):
 	def render_notebubble(self, ctx, data):
 		if not data["note"]:
 			return ""
-		noteURL = base.makeSitePath(urllib.quote(data["note"]))
-		return ctx.tag(href=noteURL, 
-			onclick="return bubbleUpByURL(this, '%s')"%noteURL)[
-				"Note"]
+		id = self.getOrMakeIdFor(data["note"])
+		self.footnotes.add(data["note"])
+		return ctx.tag(href="#%s"%id)["Note %s"%data["note"].tag]
+
+	def render_footnotes(self, ctx, data):
+		"""renders the footnotes as a definition list.
+		"""
+		return T.dl(class_="footnotes")[[
+				T.a(name=self.getIdFor(note))[
+					T.xml(note.getContent(targetFormat="html"))]
+			for note in sorted(self.footnotes)]]
 
 	def data_inputFields(self, ctx, data):
 		res = [f.asInfoDict() for f in self.service.getInputFields()+
@@ -274,7 +284,7 @@ class TableInfoRenderer(MetaRenderer):
 		res = [f.asInfoDict() for f in self.table]
 		for d in res:
 			if d["note"]:
-				d["noteKey"] = d["note"].split("/")[-1]
+				d["noteKey"] = d["note"].tag
 		if not "dbOrder" in inevow.IRequest(ctx).args:
 			res.sort(key=lambda item: item["name"].lower())
 		return res
@@ -360,23 +370,22 @@ class TableNoteRenderer(MetaRenderer):
 	def _retrieveNote(self, tableName, noteTag):
 		try:
 			table = registry.getTableDef(tableName)
-			mi = table.getMeta("note")
-			for mv in mi:
-				if mv.tag==noteTag:
-					self.noteHTML = mv.getContent(targetFormat="html")
-					break
-			else:
-				raise base.NotFoundError(noteTag, what="note tag", 
-					within="table %s"%tableName)
+			self.noteHTML = table.getNote(noteTag
+				).getContent(targetFormat="html")
 		except base.NotFoundError, msg:
 			raise svcs.UnknownURI(msg)
 		self.noteTag = noteTag
 		self.tableName = tableName
 
 	def locateChild(self, ctx, segments):
-		if len(segments)!=2:
+		if len(segments)==2:
+			self._retrieveNote(segments[0], segments[1])
+		elif len(segments)==3: # segments[0] may be anything, 
+			# but conventionally "inner"
+			self._retrieveNote(segments[1], segments[2])
+			self.docFactory = self.innerDocFactory
+		else:
 			return None, ()
-		self._retrieveNote(segments[0], segments[1])
 		return self, ()
 
 	def data_tableName(self, ctx, data):
@@ -397,6 +406,10 @@ class TableNoteRenderer(MetaRenderer):
 		],
 		T.body[
 			T.invisible(render=T.directive("noteHTML"))]])
+
+	innerDocFactory = loaders.stan(
+		T.invisible(render=T.directive("noteHTML")))
+
 
 svcs.registerRenderer(TableNoteRenderer)
 

@@ -72,13 +72,16 @@ class IdManagerMixin(object):
 	The primaray use case is XML generation, where you want stable IDs
 	for objects, but IDs must be unique over an entire XML file.
 
-	The IdManagerMixin provides three methods for doing that:
+	The IdManagerMixin provides some methods for doing that:
 	
 	* makeIdFor(object) -- returns an id for object, or None if makeIdFor has
-	  already been called for that object (i.e., it presumable already is
+	  already been called for that object (i.e., it presumably already is
 		in the document).
 	* getIdFor(object) -- returns an id for object if makeIdFor has already
 	  been called before.  Otherwise, a NotFoundError is raised
+	* getOrMakeIdFor(object) -- returns an id for object; if object has
+	  been seen before, it's the same id as before.  Identity is by equality
+		for purposes of dictionaries.
 	* getForId(id) -- returns the object belonging to an id that has
 	  been handed out before.  Raises a NotFoundError for unknown ids.
 	* cloneFrom(other) -- overwrites the self's id management dictionaries 
@@ -135,6 +138,12 @@ class IdManagerMixin(object):
 				" id of an object not managed by the id manager.  This usually"
 				" is a software bug.")
 
+	def getOrMakeIdFor(self, ob, suggestion=None):
+		try:
+			return self.getIdFor(ob)
+		except excs.NotFoundError:
+			return self.makeIdFor(ob, suggestion)
+
 	def getForId(self, id):
 		try:
 			return self.__getIdMaps()[1][id]
@@ -143,7 +152,7 @@ class IdManagerMixin(object):
 				hint="Someone asked for the object belonging to an id that has"
 				" been generated externally (i.e., not by this id manager).  This"
 				" usually is an internal error of the software.")
-
+	
 
 def _iterDerivedClasses(baseClass, objects):
 	"""iterates over all subclasses of baseClass in the sequence objects.

@@ -457,6 +457,23 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 				((idManager.makeIdFor(stc), stc) for stc in stcObjects)
 			if pair[0] is not None]  # Weed out stcs already included
 
+	def getNote(self, noteTag):
+		"""returns the table note meta value for noteTag.
+
+		This will raise a NotFoundError if we don't have such a note.
+
+		You will not usually use this to retrieve meta items since columns
+		have the meta values in their note attributes.  Columns, of course,
+		use this to get their note attribute value.
+		"""
+		mi = self.getMeta("note") or []
+		for mv in mi:
+			if mv.tag==noteTag:
+				return mv
+		else:
+			raise base.NotFoundError(noteTag, what="note tag", 
+				within="table %s"%self.id)
+
 	@staticmethod
 	def disambiguateColumns(columns):
 		"""returns a sequence of columns without duplicate names.

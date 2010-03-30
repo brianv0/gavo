@@ -415,7 +415,15 @@ div.errors {
 	font-weight: bold;
 }
 
-div.innerWin {
+div.innerWin { 
+	/* reset font parameters in case we're embedded somewhere funky */
+	text-decoration: none;
+	font-style: normal;
+	font-size: medium;
+	font-weight: normal;
+	max-width:20em;
+	overflow: hidden;
+	text-align: left;
 	position: absolute;
 	background: #ffffff;
 	border: 1px solid black;
@@ -432,9 +440,13 @@ p.innerTitle {
 	max-width: none;
 }
 
-iframe.innerBody {
+div.innerBody { /* like an iframe, except not in a frame */
 	border: 1px solid #d2dcf0;
 	background: white;
+	min-width: 20em;
+	max-height: 15em;
+	overflow: auto;
+	padding: 0.3ex;
 }
 
 div.formLinks {
@@ -448,4 +460,20 @@ table#addSelection {
 
 table#addSelection tr td {
 	vertical-align: middle;
+}
+
+.footsep {
+	width: 30%;
+	left: 0px;
+	margin-left: 0px;
+	margin-top: 2ex;
+	color: #CCCCCC;
+}
+
+dl.footnotes {
+	margin-top: 1.5ex;
+}
+
+.notehead {
+	font-weight: bold;
 }

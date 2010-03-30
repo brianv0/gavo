@@ -696,13 +696,16 @@ class NoteMeta(MetaValue):
 	    Better ignore this.
 	  </meta>
 	"""
-	def __init__(self, url, format="rst", tag=None):
-		MetaValue.__init__(self, url, format)
+	def __init__(self, content, format="rst", tag=None):
+		MetaValue.__init__(self, content, format)
 		self.tag = tag
 
 	def _getContentAsHTML(self, content):
-		return MetaValue._getContentAsHTML(self, "_`Note %s` --\n\n %s"%(
-			self.tag, content))
+		return ('<dt class="notehead">'
+				'<a name="note-%s">Note %s</a><dt><dd>%s</dd>')%(
+			self.tag,
+			self.tag,
+			MetaValue._getContentAsHTML(self, content))
 	
 	def _addMeta(self, atoms, metaValue):
 		if atoms[0]=="tag":

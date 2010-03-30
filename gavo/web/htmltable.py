@@ -139,7 +139,7 @@ def humanDatesFactory(colDesc):
 	format, unit = {"humanDatetime": ("%Y-%m-%d %H:%M:%S", "Y-M-D h:m:s"),
 		"humanDate": ("%Y-%m-%d", "Y-M-D"), }.get(
 			colDesc["displayHint"].get("type"), (None, None))
-	if format and isinstance(colDesc["sample"], datetime.date):
+	if format:
 		colDesc["unit"] = unit
 		def coder(val):
 			if val is None:
@@ -321,31 +321,24 @@ class HeadCellsMixin(object):
 
 	The class mixing in must provide the table column definitions as
 	self.fieldDefs, and the column properties as computed by
-	HTMLDataRenderer as colDesc.  HTMLDataRenderers already do
-	that.
+	HTMLDataRenderer as colDesc.
 	"""
 	def data_fielddefs(self, ctx, ignored):
 		return self.fieldDefs
 
 	def render_headCell(self, ctx, fieldDef):
 		cd = self.colDescIndex[fieldDef.name]
-		cont = fieldDef.tablehead
-		if cont is None:
-			cont = cd["description"]
-		if cont is None:
-			cont = fieldDef.name
+		cont = fieldDef.getLabel()
 		desc = cd["description"]
 		if desc is None:
 			desc = cont
 		tag = ctx.tag(title=desc)[T.xml(cont)]
 		if cd["unit"]:
 			tag[T.br, "[%s]"%cd["unit"]]
-		if fieldDef.note is not None and fieldDef.parent:
-			noteURL = base.makeSitePath(
-				"/tablenote/%s"%(urllib.quote(fieldDef.note)))
-			tag[T.br, 
-				T.a(href=noteURL, onclick="return bubbleUpByURL(this, '%s')"%noteURL)[
-						"Note"]]
+		note = cd["note"]
+		if note:
+			noteURL = "#note-%s"%note.tag
+			ctx.tag[T.sup[T.a(href=noteURL)[note.tag]]]
 		return tag
 
 
@@ -431,6 +424,14 @@ class HTMLDataRenderer(rend.Fragment):
 				self.defaultTds.append(T.td(data=T.slot(desc["name"]),
 					formatter=formatter,
 					render=T.directive("useformatter")))
+
+	def render_footnotes(self, ctx, data):
+		"""renders the footnotes as a definition list.
+		"""
+		yield T.hr(class_="footsep")
+		yield T.dl(class_="footnotes")[[
+			T.xml(note.getContent(targetFormat="html"))
+			for tag, note in sorted(self.serManager.notes.items())]]
 
 	def render_useformatter(self, ctx, data):
 		attrs = ctx.tag.attributes
@@ -538,6 +539,7 @@ class HTMLTableFragment(HTMLDataRenderer):
 			],
 			T.input(type="submit", value="Feedback Selected",
 				render=T.directive("iffeedback")),
+			T.invisible(render=T.directive("footnotes")),
 		]
 	)
 
@@ -559,7 +561,9 @@ class HTMLKeyValueFragment(HTMLDataRenderer, HeadCellsMixin):
 						td],
 					T.tr(class_="keyvaluedesc")[T.td(colspan=2)[
 						colDef.description]]]
-					for colDef, td in zip(self.fieldDefs, self.defaultTds)]]])
+					for colDef, td in zip(self.fieldDefs, self.defaultTds)]],
+			T.invisible(render=T.directive("footnotes")),
+			])
 	
 	docFactory = property(makeDocFactory)
 
