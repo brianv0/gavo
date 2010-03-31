@@ -107,7 +107,7 @@ class SQLScriptRunner(ScriptRunner):
 	
 	def run(self, dbTable, **kwargs):
 		for statement in self.statements:
-			dbTable.query(statement)
+			dbTable.query(statement.replace("%", "%%"))
 
 
 class PythonScriptRunner(ScriptRunner):

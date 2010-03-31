@@ -60,15 +60,14 @@ def parseServicePath(serviceParts):
 
 
 class QueryMeta(dict):
-	"""is a class keeping all data *about* a query, e.g., the
-	requested output format.
+	"""A class keeping information on the query environment.
 
-	It is constructed with a plain dictionary (constructors for nevow contexts
-	and requests are below).
+	It is constructed with a plain dictionary (there are alternative
+	constructors for nevow contexts and requests are below) mapping 
+	certain keys (you'll currently have to figure out which) to values, 
+	mostly strings, except for the keys listed in listKeys, which should 
+	be sequences of strings.
 	
-	The dictionary maps to values directly, so nevow request.args need
-	to be adapted (which is done in the constructor below).
-
 	If you pass an empty dict, some sane defaults will be used.  You
 	can get that "empty" query meta as common.emptyQueryMeta, but make
 	sure you don't mutate it.
@@ -87,7 +86,8 @@ class QueryMeta(dict):
 	# and the nevow infrastructure
 	metaKeys = set(["_DBOPTIONS", "_FILTER", "_OUTPUT", "_charset_", "_ADDITEM",
 		"__nevow_form__", "_FORMAT", "_VERB", "_TDENC", "formal_data",
-		"_SET"])
+		"_SET", "_TIMEOUT"])
+
 	# a set of keys that has sequences as values (needed for construction
 	# from nevow request.args)
 	listKeys = set(["_ADDITEM", "_DBOPTIONS_ORDER"])
@@ -101,7 +101,37 @@ class QueryMeta(dict):
 		self._fillOutput(initArgs)
 		self._fillDbOptions(initArgs)
 		self._fillSet(initArgs)
+
+	@classmethod
+	def fromNevowArgs(cls, nevowArgs):
+		"""constructs a QueryMeta from a nevow web arguments dictionary.
+		"""
+		args = {}
+		for key, value in nevowArgs.iteritems():
+			if key in cls.listKeys:
+				args[key] = value
+			else:
+				if value:
+					args[key] = value[0]
+		return cls(args)
+
+	@classmethod
+	def fromRequest(cls, request):
+		"""constructs a QueryMeta from a nevow request.
+
+		In addition to getting information from the arguments, this
+		also sets user and password.
+		"""
+		res = cls.fromNevowArgs(request.args)
+		res["user"], res["password"] = request.getUser(), request.getPassword()
+		return res
 	
+	@classmethod
+	def fromContext(cls, ctx):
+		"""constructs a QueryMeta from a nevow context.
+		"""
+		return cls.fromRequest(inevow.IRequest(ctx))
+
 	def _fillOutput(self, args):
 		"""interprets values left by the OutputFormat widget.
 		"""
@@ -135,14 +165,18 @@ class QueryMeta(dict):
 			self["columnSet"] = args["_SET"]
 
 	def _fillDbOptions(self, args):
-		self["dbLimit"] = base.getConfig("db", "defaultLimit")
+		self["dbSortKeys"] = [s.strip() 
+			for s in args.get("_DBOPTIONS_ORDER", []) if s.strip()]
+
 		try:
-			if "_DBOPTIONS_LIMIT" in args:
-				self["dbLimit"] = int(args["_DBOPTIONS_LIMIT"])
-		except ValueError:  # leave default limit
-			pass
-		self["dbSortKeys"] = [s.strip() for s in args.get("_DBOPTIONS_ORDER", [])
-			if s.strip()]
+			self["dbLimit"] = int(args["_DBOPTIONS_LIMIT"])
+		except (ValueError, KeyError):
+			self["dbLimit"] = base.getConfig("db", "defaultLimit")
+
+		try:
+			self["timeout"] = int(args["_TIMEOUT"])
+		except (ValueError, KeyError):
+			self["timeout"] = base.getConfig("web", "sqlTimeout")
 
 	def overrideDbOptions(self, sortKeys=None, limit=None):
 		if sortKeys is not None:
@@ -174,26 +208,6 @@ class QueryMeta(dict):
 		return dict((k, str(v)) for k, v in self["formal_data"].iteritems()
 			if not k in self.metaKeys and v and v!=[None])
 
-	@classmethod
-	def fromRequest(cls, request):
-		"""constructs a QueryMeta from a nevow request.
-		"""
-		args = {}
-		for key, value in request.args.iteritems():
-			if key in cls.listKeys:
-				args[key] = value
-			else:
-				if value:
-					args[key] = value[0]
-		res = cls(args)
-		res["user"], res["password"] = request.getUser(), request.getPassword()
-		return res
-	
-	@classmethod
-	def fromContext(cls, ctx):
-		"""constructs a QueryMeta from a nevow context.
-		"""
-		return cls.fromRequest(inevow.IRequest(ctx))
 
 
 emptyQueryMeta = QueryMeta()

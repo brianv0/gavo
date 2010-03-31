@@ -160,6 +160,24 @@ to clear the field.</p>
 <p>In effect, feedback queries provide a quick "find similar" facility
 in the Web interface.</p>
 
+<h2>Timeouts</h2>
+
+<p>The GAVO data center contains some large data sets, and it is trivial to
+construct queries that will run for days or weeks.  Ususally, this is not 
+intended by the users, and thus by default relatively short timeouts are
+imposed on the run time of the queries on the server (of the order 10 
+seconds).</p>
+
+<p>You can usually increase the timeout by generating a link to your query
+(see "Result link" above) and appending <tt>"&_TIMEOUT=100</tt> (or whatever
+number of seconds suits you) to the URL.  The ADQL form has an input field
+that does just this.</p>
+
+<p>However, usually long-running queries indicate that we should be adding
+some index to our tables.  Thus, please contact us with your queries and
+we will try to speed them up.</p>
+
+
 <h2>Login and logout</h2>
 
 <p>In the sidebar, you will usually see a login item.  You should normally

@@ -154,12 +154,9 @@ class ADQLCore(svcs.Core):
 	def run(self, service, inputData, queryMeta):
 		inRow = inputData.getPrimaryTable().rows[0]
 		queryString = inRow["query"]
-		timeout = base.getConfig("adql", "webTimeout")
-		if "timeout" in inRow:
-			timeout = inRow["timeout"]
 		try:
-			res = query(self._getQuerier(), queryString,
-				timeout=timeout)
+			res = query(self._getQuerier(), queryString, 
+				timeout=queryMeta["timeout"])
 			res.noPostprocess = True
 			queryMeta["Matched"] = len(res.rows)
 			if len(res.rows)==base.getConfig("adql", "webDefaultLimit"):

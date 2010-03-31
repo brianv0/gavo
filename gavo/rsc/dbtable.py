@@ -356,7 +356,8 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 	
 	def importFailed(self, *excInfo):
 		self.connection.rollback()
-		self.connection.close()
+		if self.ownedConnection and not self.connection.closed:
+			self.connection.close()
 		return False
 	
 	def feedRows(self, rows):

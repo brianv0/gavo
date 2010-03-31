@@ -373,8 +373,6 @@ _config = Configuration(
 	),
 
 	Section('adql', "Settings concerning the built-in ADQL core",
-		IntConfigItem("webTimeout", "15",
-			"Default timeout for adql queries via the web form"),
 		IntConfigItem("webDefaultLimit", "2000",
 			"Default match limit for ADQL queries via a web form"),
 	),
