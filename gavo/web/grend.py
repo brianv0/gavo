@@ -124,14 +124,14 @@ class GavoRenderMixin(common.CommonRenderers):
 	"""
 	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False, 
 			metaCarrier=None):
-		if not metaCarrier:
-			metaCarrier = self.service
-		if isinstance(metaCarrier, rscdef.MacroPackage):
-			htmlBuilder = common.HTMLMetaBuilder(metaCarrier)
-		else:
-			htmlBuilder = _htmlMetaBuilder
-		metaKey = ctx.tag.children[0]
 		try:
+			if not metaCarrier:
+				metaCarrier = self.service
+			if isinstance(metaCarrier, rscdef.MacroPackage):
+				htmlBuilder = common.HTMLMetaBuilder(metaCarrier)
+			else:
+				htmlBuilder = _htmlMetaBuilder
+			metaKey = ctx.tag.children[0]
 			if plain:
 				ctx.tag.clear()
 				return ctx.tag[metaCarrier.getMeta(metaKey, raiseOnFail=True
@@ -145,6 +145,8 @@ class GavoRenderMixin(common.CommonRenderers):
 			if raiseOnFail:
 				raise
 			return T.comment["Meta item %s not given."%metaKey]
+		except Exception, ex:
+			return T.comment["Meta %s bad (%s)"%(metaKey, str(ex))]
 
 	def render_meta(self, ctx, data):
 		return self._doRenderMeta(ctx, plain=True)

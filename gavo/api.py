@@ -15,8 +15,12 @@ RD = rscdesc.RD
 
 from gavo.base import (getConfig, getDBConnection, getDefaultDBConnection,
 	setDBProfile, SimpleQuerier, NoMetaKey)
+
+from gavo.formats.votablewrite import writeAsVOTable, getAsVOTable
+
 from gavo.rsc import (TableForDef, DBTable, makeData, parseValidating,
 	parseNonValidating, Data)
+
 from gavo.utils import (Error, StructureError, ValidationError,
 	ReportableError, NotFoundError, RDNotFound)
 
