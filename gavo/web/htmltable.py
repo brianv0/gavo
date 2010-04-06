@@ -330,7 +330,7 @@ class HeadCellsMixin(object):
 		cd = self.colDescIndex[fieldDef.name]
 		cont = fieldDef.getLabel()
 		desc = cd["description"]
-		if desc is None:
+		if not desc:
 			desc = cont
 		tag = ctx.tag(title=desc)[T.xml(cont)]
 		if cd["unit"]:

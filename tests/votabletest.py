@@ -11,6 +11,7 @@ import unittest
 
 from gavo import base
 from gavo import rsc
+from gavo import rscdef
 from gavo import rscdesc
 from gavo import votable
 from gavo.formats import votableread, votablewrite
@@ -234,8 +235,27 @@ class STCEmbedTest(testhelpers.VerboseTest):
 		self.failUnless(re.search('<PARAM [^>]*utype="stc:AstroCoo'
 			'rdSystem.SpaceFrame.CoordRefFrame"[^>]* value="ICRS"', tx))
 		self.failUnless(re.search('<FIELD[^>]* ID="alpha" ', tx))
-		self.failUnless('<FIELDref utype="stc:AstroCoords.Position2D.Value2.C2" ref="delta"' in tx)
-	
+		self.failUnless('<FIELDref utype="stc:AstroCoords.Position2D'
+			'.Value2.C2" ref="delta"' in tx)
+
+	def testMultiTables(self):
+		# twice the same table -- this is mainly for id mapping
+		table = _getTableWithSimpleSTC()
+		dd = base.makeStruct(rscdef.DataDescriptor, tables=[
+			table.tableDef, table.tableDef], parent_=table.tableDef.rd)
+		tdCopy = table.tableDef.copy(dd)
+		tdCopy.id = "copy"
+		tableCopy = rsc.TableForDef(tdCopy)
+		data = rsc.Data(dd, tables={table.tableDef.id: table,
+			"copy": tableCopy})
+		serialized = votablewrite.getAsVOTable(data)
+		for fragment in [
+				'Position2D.Value2.C2" ref="delta"',
+				'ID="delta"',
+				'Position2D.Value2.C2" ref="delta0"',
+				'ID="delta0"']:
+			self.failUnless(fragment in serialized)
+
 
 class STCParseTest(testhelpers.VerboseTest):
 	"""tests for parsing of STC info from VOTables.

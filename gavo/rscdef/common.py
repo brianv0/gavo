@@ -137,6 +137,13 @@ class ColumnList(list):
 			return myFields==otherFields
 		return False
 
+	def getIdIndex(self):
+		try:
+			return self.__idIndex
+		except AttributeError:
+			self.__idIndex = dict((c.id, c) for c in self if c.id is not None)
+			return self.__idIndex
+
 	def append(self, item):
 		"""adds the Column item to the data field list.
 
@@ -176,7 +183,16 @@ class ColumnList(list):
 			return self[self.nameIndex[name]]
 		except KeyError:
 			raise base.NotFoundError(name, what="column", within="unnamed table")
-				
+
+	def getColumnById(self, id):
+		"""returns the column with id.
+
+		It will raise a NotFoundError if no such column exists.
+		"""
+		try:
+			return self.getIdIndex()[id]
+		except KeyError:
+			raise base.NotFoundError(id, what="column", within="unnamed table")
 
 	def getColumnsByUCD(self, ucd):
 		"""returns all columns having ucd.

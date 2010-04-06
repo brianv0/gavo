@@ -21,6 +21,7 @@ from gavo.base import valuemappers
 from gavo.formats import common
 from gavo.grammars import votablegrammar
 from gavo.votable import V
+from gavo.votable import modelgroups
 
 
 class Error(base.Error):
@@ -159,29 +160,14 @@ def _iterParams(ctx, dataSet):
 ####################### Tables and Resources
 
 
-def _makeUtypeContainer(serManager, utype, value):
-	"""returns a PARAM or FIELDref element serializing the utype, value pair.
-
-	If the value is a ColRef, the result will be a FIELDref.  serManagers
-	make up IDs for their constituent fields, so we don't need to worry.
-	"""
-	if isinstance(value, stc.ColRef):
-		return V.FIELDref(utype=utype, ref=serManager.getColDescByName(
-			value.dest)["ID"])
-	else:
-		return V.PARAM(name=utype.split(".")[-1], utype=utype, value=value,
-			datatype="char", arraysize="*")
-
-
 def _iterSTC(tableDef, serManager):
 	"""adds STC groups for the systems to votTable fetching data from 
 	tableDef.
 	"""
-	for stcId, ast in tableDef.getSTCDefs(serManager):
-		yield V.GROUP(utype="stc:ObservationLocation", ID=stcId)[
-			[_makeUtypeContainer(serManager, utype, value)
-				for utype, value in stc.getUtypes(ast)]]
-
+	def getIdFor(colRef):
+		return serManager.getColDescByName(colRef.dest)["ID"]
+	for ast in tableDef.getSTCDefs():
+		yield modelgroups.marshal_STC(ast, getIdFor)
 
 def _iterNotes(serManager):
 	"""yields GROUPs for table notes.

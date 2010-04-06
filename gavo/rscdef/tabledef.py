@@ -383,6 +383,15 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 			msg.table = "table %s"%self.id
 			raise
 
+	def getColumnById(self, id):
+		"""delegates to common.ColumnList.
+		"""
+		try:
+			return self.columns.getColumnById(id)
+		except base.NotFoundError, msg:
+			msg.table = "table %s"%self.id
+			raise
+
 	def getColumnsByUCD(self, ucd):
 		"""delegates to common.ColumnList.
 		"""
@@ -439,21 +448,15 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		for mixinName in self.mixins:
 			mixins.getMixin(mixinName).processLate(self)
 
-	def getSTCDefs(self, idManager):
-		"""returns pairs of (id, stc AST) for all STC specs referenced in this
-		table.
-		
-		idManager must be an object mixing in IdManagerMixin.  This is used
-		here to check whether a given STC has been included already.  
+	def getSTCDefs(self):
+		"""returns a set of all STC specs referenced in this table as ASTs.
 		"""
 		# Do not use our stc attribute -- the columns may come from different
 		# tables and carry stc from there.
 		stcObjects = set(col.stc for col in self)
 		if None in stcObjects: 
 			stcObjects.remove(None)
-		return [pair for pair in
-				((idManager.makeIdFor(stc), stc) for stc in stcObjects)
-			if pair[0] is not None]  # Weed out stcs already included
+		return stcObjects
 
 	def getNote(self, noteTag):
 		"""returns the table note meta value for noteTag.

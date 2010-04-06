@@ -338,14 +338,12 @@ class VColDesc(dict):
 		self["sample"] = None
 		self["name"] = column.name
 		self["dbtype"] = column.type
-		self["description"] = (column.description or 
-			column.tablehead or "")
 		type, size = typesystems.sqltypeToVOTable(column.type)
 		self["datatype"] = type
 		self["arraysize"] = size
 		self["displayHint"] = column.displayHint
 		self["note"] = None # filled in by serManager, if at all
-		for fieldName in ["ucd", "utype", "unit"]:
+		for fieldName in ["ucd", "utype", "unit", "description"]:
 			self[fieldName] = getattr(column, fieldName)
 		if votCast is not None:
 			self.update(votCast)

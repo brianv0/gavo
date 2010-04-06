@@ -71,7 +71,10 @@ class Stub(object):
 
 	def __init__(self, dest):
 		self.dest = dest
-	
+
+	def __repr__(self):
+		return "%s(%s)"%(self.__class__.__name__, repr(self.dest))
+
 	def __eq__(self, other):
 		return self.dest==getattr(other, "dest", Stub)
 	

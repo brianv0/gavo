@@ -11,57 +11,13 @@ from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo import stc
+from gavo import utils
 from gavo import votable
 from gavo.grammars import votablegrammar
 from gavo.votable import V
+from gavo.votable import modelgroups
 
 MS = base.makeStruct
-
-
-def _getUtypedGroupsFromAny(votObj, utype):
-	return [g 
-		for g in votObj.iterChildrenOfType(V.GROUP) 
-		if g.a_utype and g.a_utype.startswith(utype)]
-
-
-def _getUtypedGroupsFromResource(votRes, utype):
-	"""yields groups of utype from below the V.RESOURCE votRes.
-
-	The function recursively searches child TABLE and RESOURCE
-	instances.
-	"""
-	stcGroups = []
-	stcGroups.extend(_getUtypedGroupsFromAny(votRes, utype))
-	for child in votRes.children:
-		if isinstance(child, V.TABLE):
-			stcGroups.extend(_getUtypedGroupsFromAny(child, utype))
-		elif isinstance(child, V.RESOURCE):
-			stcGroups.extend(_getUtypedGroupsFromResource(child, utype))
-	return stcGroups
-
-
-def _getUtypedGroupsFromVOTable(vot, utype):
-	"""returns a list of all groups of utype from a votable.
-
-	Make this available in the votable library?
-	"""
-	allGroups = []
-	for res in vot.iterChildrenOfType(V.RESOURCE):
-		allGroups.extend(_getUtypedGroupsFromResource(res, utype))
-	return allGroups
-
-
-def _extractUtypes(group):
-	"""yields utype-value pairs extracted from the children
-	of group.
-	"""
-	for child in group.children:
-		if isinstance(child, V.PARAM):
-			yield child.a_utype, child.a_value
-		elif isinstance(child, V.FIELDref):
-			yield child.a_utype, stc.ColRef(child.a_ref)
-		else:
-			pass # other children are ignored.
 
 
 def makeTableDefForVOTable(tableId, votTable, **moreArgs):
@@ -78,6 +34,7 @@ def makeTableDefForVOTable(tableId, votTable, **moreArgs):
 		colName = nameMaker.makeName(f)
 		kwargs = {"name": colName,
 			"tablehead": colName.capitalize(),
+			"id": getattr(f, "a_ID", None),
 			"type": base.voTableToSQLType(f.a_datatype, f.a_arraysize)}
 		for attName in ["ucd", "description", "unit"]:
 			if getattr(f, "a_"+attName, None) is not None:
@@ -90,18 +47,14 @@ def makeTableDefForVOTable(tableId, votTable, **moreArgs):
 	tableDef.hackMixinsAfterMakeStruct()
 
 	# Build STC info
-	for obsLocGroup in _getUtypedGroupsFromAny(votTable, 
-			"stc:ObservationLocation"):
-		utypes, columnsForSys = [], []
-		for utype, value in _extractUtypes(obsLocGroup):
-			if isinstance(value, stc.ColRef):
-				col = tableDef.getColumnByName(value.dest)
-				columnsForSys.append(col)
+	for colInfo, ast in votable.modelgroups.unmarshal_STC(votTable):
+		for colId, utype in colInfo.iteritems():
+			try:
+				col = tableDef.getColumnById(colId)
 				col.stcUtype = utype
-			utypes.append((utype, value))
-		ast = stc.parseFromUtypes(utypes)
-		for col in columnsForSys:
-			col.stc = ast
+				col.stc = ast
+			except utils.NotFoundError: # ignore broken STC
+				pass
 
 	return tableDef
 
