@@ -64,17 +64,7 @@ def _extractUtypes(group):
 			pass # other children are ignored.
 
 
-def getSTCSystemsFromVOTable(vot):
-	"""returns a dictionary of VOTable IDs to utype-value pairs for
-	groups of utype stc:AstroCoordSystem.
-
-	We do not care where these groups are.
-	"""
-	return dict((group.a_ID, list(_extractUtypes(group)))
-		for group in _getUtypedGroupsFromVOTable(vot, "stc:AstroCoordSystem"))
-
-
-def makeTableDefForVOTable(tableId, votTable, stcSystems, **moreArgs):
+def makeTableDefForVOTable(tableId, votTable, **moreArgs):
 	"""returns a TableDef for a Table element parsed from a VOTable.
 
 	Pass additional constructor arguments for the table in moreArgs.
@@ -100,16 +90,16 @@ def makeTableDefForVOTable(tableId, votTable, stcSystems, **moreArgs):
 	tableDef.hackMixinsAfterMakeStruct()
 
 	# Build STC info
-	for coordGroup in _getUtypedGroupsFromAny(votTable, "stc:AstroCoords"):
-		localPairs = stcSystems[coordGroup.a_ref][:]
-		columnsForSys = []
-		for utype, value in _extractUtypes(coordGroup):
+	for obsLocGroup in _getUtypedGroupsFromAny(votTable, 
+			"stc:ObservationLocation"):
+		utypes, columnsForSys = [], []
+		for utype, value in _extractUtypes(obsLocGroup):
 			if isinstance(value, stc.ColRef):
 				col = tableDef.getColumnByName(value.dest)
 				columnsForSys.append(col)
 				col.stcUtype = utype
-			localPairs.append((utype, value))
-		ast = stc.parseFromUtypes(localPairs)
+			utypes.append((utype, value))
+		ast = stc.parseFromUtypes(utypes)
 		for col in columnsForSys:
 			col.stc = ast
 
@@ -125,12 +115,11 @@ def makeDDForVOTable(tableId, vot, gunzip=False, **moreArgs):
 	Only the first resource  will be turned into a DD.  Currently,
 	only the first table is used.  This has to change.
 	"""
-	stcSystems = getSTCSystemsFromVOTable(vot)
 	for res in vot.iterChildrenOfType(V.RESOURCE):
 		tableDefs = []
 		for table in res.iterChildrenOfType(V.TABLE):
 			tableDefs.append(
-				makeTableDefForVOTable(tableId, table, stcSystems, **moreArgs))
+				makeTableDefForVOTable(tableId, table, **moreArgs))
 			break
 		break
 	return MS(rscdef.DataDescriptor,
