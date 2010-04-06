@@ -177,14 +177,10 @@ def _iterSTC(tableDef, serManager):
 	"""adds STC groups for the systems to votTable fetching data from 
 	tableDef.
 	"""
-	for stcId, ast in tableDef.getSTCSystems(serManager):
-		sysTypes, cooTypes = stc.getUtypeGroups(ast)
-		yield V.GROUP(utype="stc:AstroCoordSystem", ID=stcId)[
+	for stcId, ast in tableDef.getSTCDefs(serManager):
+		yield V.GROUP(utype="stc:ObservationLocation", ID=stcId)[
 			[_makeUtypeContainer(serManager, utype, value)
-				for utype, value in sysTypes]]
-		yield V.GROUP(utype="stc:AstroCoords", ref=stcId)[
-			[_makeUtypeContainer(serManager, utype, value)
-				for utype, value in cooTypes]]
+				for utype, value in stc.getUtypes(ast)]]
 
 
 def _iterNotes(serManager):
@@ -202,6 +198,7 @@ def _iterNotes(serManager):
 			if col["note"] is note:
 				noteGroup[V.FIELDref(ref=col["ID"])]
 		yield noteGroup
+
 
 def _makeTable(ctx, table):
 	"""returns a Table node for the table.Table instance table.

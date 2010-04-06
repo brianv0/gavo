@@ -15,7 +15,7 @@ class CoosysGenerTest(testhelpers.VerboseTest):
 	"""
 	def _assertSetmatch(self, literal, expected):
 		ast = stc.parseSTCS(literal)
-		self.assertEqual(dict(stc.getUtypeGroups(ast)[0]),
+		self.assertEqual(dict(stc.getUtypes(ast)),
 			expected)
 
 	def testSimpleSystems(self):
@@ -51,7 +51,8 @@ class CooGenerTest(testhelpers.VerboseTest):
 	"""
 	def _assertAssmatch(self, literal, truth):
 		ast = stc.parseQSTCS(literal)
-		gr = stc.getUtypeGroups(ast)[1]
+		gr = [p for p in stc.getUtypes(ast) 
+			if not p[0].startswith("stc:AstroCoordSystem")]
 		truth = dict((k, stc.ColRef(v)) for k, v in truth.iteritems())
 		self.assertEqual(dict(gr), truth)
 	
@@ -144,8 +145,8 @@ class UtypeASTTest(testhelpers.VerboseTest):
 	"""
 	def _getASTFromSTCS(self, stcs):
 		ast = stc.parseQSTCS(stcs)
-		sys, col = stc.getUtypeGroups(ast)
-		return stc.parseFromUtypes(sys, col)
+		utypes = stc.getUtypes(ast)
+		return stc.parseFromUtypes(utypes)
 
 	def testSimplePos(self):
 		ast = self._getASTFromSTCS('Position GALACTIC "long" "lat"')
@@ -189,21 +190,20 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 					k, full[k], sub[k]))
 
 	def _runTest(self, args):
-		sysTypes0, colTypes0 = args
-		ast = stc.parseFromUtypes(sysTypes0, colTypes0)
-		sysTypes1, colTypes1 = stc.getUtypeGroups(ast)
-		self.assertEqual(dict(colTypes0), dict(colTypes1))
+		inTypes = args
+		ast = stc.parseFromUtypes(inTypes)
+		outTypes = stc.getUtypes(ast)
 		#print colTypes1, sysTypes1
-		# allow additional key in the system, but all original ones must be there.
-		self._assertSublist(sysTypes0, sysTypes1)
+		# allow additional keys in output (non-removed defaults)
+		self._assertSublist(inTypes, outTypes)
 
 	samples = [
-		([], []),
-		([('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS')], []),
-		([], [
+		[],
+		[('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS')],
+		[
 		 ('stc:AstroCoords.Position2D.Value2.C1', stc.ColRef('ra')),
-		 ('stc:AstroCoords.Position2D.Value2.C2', stc.ColRef('dec'))]),
-		([('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS'),
+		 ('stc:AstroCoords.Position2D.Value2.C2', stc.ColRef('dec'))],
+		[('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS'),
 			('stc:AstroCoordSystem.TimeFrame.TimeScale', 'TT'),
 			('stc:AstroCoordSystem.RedshiftFrame.DopplerDefinition', 'OPTICAL'),
 			('stc:AstroCoordSystem.TimeFrame.ReferencePosition', 'UNKNOWNRefPos'),
@@ -211,15 +211,15 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 			('stc:AstroCoordSystem.RedshiftFrame.ReferencePosition', 'BARYCENTER'),
 			('stc:AstroCoordSystem.SpaceFrame.CoordFlavor', 'SPHERICAL'),
 			('stc:AstroCoordSystem.SpectralFrame.ReferencePosition', 'BARYCENTER'),
-			('stc:AstroCoordSystem.SpaceFrame.ReferencePosition', 'GEOCENTER')],
-		 [('stc:AstroCoords.Position2D.Value2.C1', stc.ColRef('ra')),
-		  ('stc:AstroCoords.Position2D.Value2.C2', stc.ColRef('dec'))]),
-		([('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS'),
+			('stc:AstroCoordSystem.SpaceFrame.ReferencePosition', 'GEOCENTER'),
+		 	('stc:AstroCoords.Position2D.Value2.C1', stc.ColRef('ra')),
+		  ('stc:AstroCoords.Position2D.Value2.C2', stc.ColRef('dec'))],
+		[('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS'),
 			('stc:AstroCoordSystem.SpaceFrame.CoordFlavor', 'CARTESIAN'),
-			('stc:AstroCoordSystem.SpaceFrame.CoordFlavor.coord_naxes', '3')],[]),
-		([], [
+			('stc:AstroCoordSystem.SpaceFrame.CoordFlavor.coord_naxes', '3')],
+		[
 			('stc:AstroCoords.Time.TimeInstant.ISOTime', '2000-01-01T00:00:00'),
-			('stc:AstroCoordArea.Circle', stc.ColRef('errc'))]),
+			('stc:AstroCoordArea.Circle', stc.ColRef('errc'))],
 	]
 
 

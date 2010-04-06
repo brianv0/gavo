@@ -507,7 +507,7 @@ class NullTest(testhelpers.VerboseTest):
 		ast = stc.parseFromUtypes([
 			('AstroCoordSystem.SpaceFrame.CoordRefFrame', 'UNKNOWNFrame'),
 			('AstroCoordSystem.SpaceFrame.ReferencePosition', 'UNKNOWNRefPos'),
-		], [])
+		])
 		self.assertEqual(ast.astroSystem.spaceFrame.refFrame, None)
 		self.assertEqual(ast.astroSystem.spaceFrame.refPos.standardOrigin, None)
 
@@ -527,8 +527,7 @@ class NullTest(testhelpers.VerboseTest):
 
 	def testTimeFromUtypes(self):
 		ast = stc.parseFromUtypes([
-			('stc:AstroCoordSystem.TimeFrame.ReferencePosition', 'UNKNOWNRefPos')],
-			[])
+			('stc:AstroCoordSystem.TimeFrame.ReferencePosition', 'UNKNOWNRefPos')])
 		self.assertEqual(ast.astroSystem.timeFrame.timeScale, "TT")
 		self.assertEqual(ast.astroSystem.timeFrame.refPos.standardOrigin, None)
 
@@ -558,7 +557,7 @@ class NullTest(testhelpers.VerboseTest):
 			'AL coord_naxes="2" /></SpaceFrame></AstroCoordSystem></STCSpec>')
 
 	def testToUtypes(self):
-		self.assertEqual(dict(stc.getUtypeGroups(self._makeEmptySTC())[0]), {
+		self.assertEqual(dict(stc.getUtypes(self._makeEmptySTC())), {
 			'stc:AstroCoordSystem.SpaceFrame.CoordRefFrame': 'UNKNOWNFrame', 
 			'stc:AstroCoordSystem.TimeFrame.ReferencePosition': 'UNKNOWNRefPos', 
 			'stc:AstroCoordSystem.SpaceFrame.CoordFlavor': 'SPHERICAL', 
@@ -651,7 +650,7 @@ class CLITest(testhelpers.VerboseTest):
 				" unit deg/cy\n")
 
 	_utypeInput = 'Position GALACTIC "l" "b" VelocityInterval Velocity "vl" "vb"'
-	_utypeOutput = 'eJyNz1ELgjAQB/B3P4VfoEE+BgVjZY3ExJU9xpoXCNOLbQl++0TqoRbmvd3u7sd/1qkFtc4gQzSl\n6KyDmoi7VBAbWQMZnmMtWzShV8tQZLtNzhlNAjsFyuE2dD60pQllR84unP+legUMNAoytJWrsPmk\nTuk+PZzTfquff2GWvG+iNSmkfkBEWOT/7FWzVXidIszHBO0JBWhUleumZmj9ED+I0RCtDp5ui4s/\n'.decode("base64").decode("zlib")
+	_utypeOutput = 'eJwrLkm2ciwuKcp3zs8vSgmuLC5JzdULLkhMTnUrSsxN1QMLu+UkluUXKWAAW4XgAA/XIE9nRx+u\nYmIMCkpNA/MwDXJ39HF0DvF0jvf0JGgU0JTUotS85NSA/OLMksz8PFSjQv28/fzD/YCqgPJohhXr\nwfQYueiFJeaUphrpORti+gwKdO0UcogxwQifCUkYJoSl5uQnZ5ZUEuuGMkxHYDECryPKkrgAcziL\nPw==\n'.decode("base64").decode("zlib")
 
 	def testUtypeGen(self):
 		self.assertOutput(cli.main, ["utypes", self._utypeInput],

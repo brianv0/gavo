@@ -109,7 +109,7 @@ def makeTableDefForVOTable(tableId, votTable, stcSystems, **moreArgs):
 				columnsForSys.append(col)
 				col.stcUtype = utype
 			localPairs.append((utype, value))
-		ast = stc.parseFromUtypes(localPairs, [])
+		ast = stc.parseFromUtypes(localPairs)
 		for col in columnsForSys:
 			col.stc = ast
 

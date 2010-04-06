@@ -3,10 +3,7 @@ Generating a utype/value sequence for ASTs.
 
 Yet another insane serialization for an insane data model.  Sigh.
 
-In what's documented about the utype serialization, there are subtle
-deviations from what STC-X does.  Thus, we hack around it using 
-transformations, and we use some markup to signify what nodes we
-want returned.
+The way we come up with the STC utypes here is described in an IVOA note.
 """
 
 from gavo import utils
@@ -147,40 +144,21 @@ def utypejoin(*utypes):
 
 # A resolver of element names to their handling classes.  For most
 # elements, this is just a plain UtypeMaker.
-_getUtypeMaker = utils.buildClassResolver(UtypeMaker, globals().values(),
-	instances=True, key=lambda obj:obj.rootType, default=UtypeMaker())
+_getUtypeMaker = utils.buildClassResolver(
+	UtypeMaker, 
+	globals().values(),
+	default=UtypeMaker(),
+	instances=True, 
+	key=lambda obj:obj.rootType)
 
 
-def _makeUtypes(stcx, rootUtype=None):
-	"""returns a pair of lists of of utype/value pairs for an STC-X
-	concrete tree.
-
-	The first contains strings as values, the second ColRefs (this
-	separation is done for convenience).
+def getUtypes(ast):
+	"""returns a lists of utype/value pairs for an STC AST.
 	"""
-	system, coords = [], []
-	for utype, val in _getUtypeMaker(rootUtype).iterUtypes(stcx, rootUtype):
+	cst = stcxgen.astToStan(ast, STC.STCSpec)
+	utypes = []
+	for utype, val in _getUtypeMaker("").iterUtypes(cst, ""):
 		if val is None or val=='':
 			continue
-		if utype.startswith("AstroCoordSystem"):
-			dest = system
-		else:
-			dest = coords
-		dest.append(("stc:"+utype, val))
-	return system, coords
-
-
-def getUtypeGroups(ast):
-	"""returns a pair of lists of of utype/value pairs for an STC AST.
-	"""
-	return _makeUtypes(stcxgen.astToStan(ast, STC.STCSpec))
-
-
-def getUtypesForSystem(coordSys):
-	"""returns a pair of lists of of utype/value pairs for an STC 
-	AstroCoordSystem node.
-
-	The second list is always empty here.
-	"""
-	return _makeUtypes(stcxgen.nodeToStan(coordSys), "AstroCoordSystem")
-
+		utypes.append(("stc:"+utype, val))
+	return utypes

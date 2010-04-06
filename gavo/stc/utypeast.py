@@ -1,8 +1,8 @@
 """
 Parse utype sets into ASTs.
 
-The rough plan is to build an ElementTree from a pair of dictionaries,
-systemDict and columnDict, as returned by utypegen.getUtypes.  This
+The rough plan is to build an ElementTree from a sequence of
+utype/value pairs (as returned by utypegen.getUtypes).  This
 ElementTree can then be used to build an AST using stcxast.  The ElementTree
 contains common.ColRefs and thus cannot be serialized to an XML string.
 
@@ -146,22 +146,20 @@ def morphUtypes(morphers, utypeSeq):
 			yield (k, v)
 
 
-def _iterUtypePairs(sysUtypes, coordUtypes):
-	"""returns a sorted sequence of utype, value pairs from sys/coordUtypes.
+def _iterSortedUtypes(utypeSeq):
+	"""returns a sorted sequence of utype, value pairs from utypeSeq
+
+	The result also has the abominable "stc:" cut off.
 	"""
 	return sorted((key.split(":")[-1], value) 
-		for key, value in itertools.chain(sysUtypes, coordUtypes))
+		for key, value in utypeSeq)
 
 
-def parseFromUtypes(sysUtypes, coordUtypes):
-	"""returns an STC AST for the pair of the sequences of utype-value-pairs.
-	
-	The two sequences can be as returned from getUtypeGroups.  This
-	function doesn't really care, though, since both sequences will be 
-	mashed together, so you could leave one empty if you wanted to.
+def parseFromUtypes(utypeSeq):
+	"""returns an STC AST for a sequence of utype-value pairs.
 	"""
 	eTree = utypePairsToTree(
 		morphUtypes(_utypeMorphers,
-			_iterUtypePairs(sysUtypes, coordUtypes)))
+			_iterSortedUtypes(utypeSeq)))
 	res = stcxast.parseFromETree(eTree)[0][1]
 	return res
