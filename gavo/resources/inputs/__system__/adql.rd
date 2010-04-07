@@ -162,9 +162,7 @@ the tables listing again, you come up with the
 `PPMX <http://vo.uni-hd.de/__system__/dc_tables/show/tableinfo?tableName=ppmx.data>`.  What you need is a crossmatch of PPMX with the little catalogue of
 QSOs relevant to you generated from the query above.
 
-In ADQL's lingo, a crossmatch could look like this:
-
-::
+In ADQL's lingo, a crossmatch could look like this::
 
   SELECT q.name, q.raj2000, q.dej2000, p.alphaFloat, p.deltaFloat FROM (
     SELECT TOP 100 raj2000, dej2000, name, z FROM veronqsos.data 

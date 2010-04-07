@@ -91,7 +91,7 @@ def getResourceArgs(resob):
 	"""
 	return {
 		"created": base.getMetaText(resob, "creationDate", propagate=True),
-		"updated": base.getMetaText(resob, "recTimestamp", propagate=True),
+		"updated": base.getMetaText(resob, "datetimeUpdated", propagate=True),
 		"status": base.getMetaText(resob, "status"),
 	}
 
