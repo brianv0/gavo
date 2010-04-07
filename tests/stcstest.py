@@ -17,34 +17,38 @@ import testhelpers
 
 
 class STCSParsesTestBase(testhelpers.VerboseTest):
-	"""an abstract base for simple parse tests.
-
-	Inherit from this for more simple parse test.  Fill out the shouldParse 
-	and shouldNotParse class variables.
+	"""an abstract base for STCS parse tests asserting valid expressions.
 	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
 	syms = stcs.getSymbols()
 
-	shouldParse, shouldNotParse = [], []
+	def _runTest(self, args):
+		sym, literal = args
+		try:
+			self.syms[sym].parseString(literal, parseAll=True)
+		except stcs.ParseException:
+			raise AssertionError("'%s' didn't parse but should have"%literal)
 
-	def testParseStuff(self):
-		# We're only interested in stuff not raising ParseErrors here
-		for sym, literal in self.shouldParse:
-			try:
-				self.syms[sym].parseString(literal, parseAll=True)
-			except stcs.ParseException:
-				raise AssertionError("'%s' didn't parse but should have"%literal)
-	
-	def testNoParseStuff(self):
-		for sym, literal in self.shouldNotParse:
-			self.assertRaisesVerbose(stcs.ParseException, self.syms[sym].parseString,
-				(literal, True), "No exception when parsing '%s' with %s"%
-				(literal, sym))
+
+class STCSFailsTestBase(testhelpers.VerboseTest):
+	"""an abstract base for STCS parse tests asserting invalid expressions.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	syms = stcs.getSymbols()
+
+	def _runTest(self, args):
+		sym, literal = args
+		self.assertRaisesVerbose(stcs.ParseException, self.syms[sym].parseString,
+			(literal, True), "No exception when parsing '%s' with %s"%
+			(literal, sym))
 
 
 class STCSTimeParsesTest(STCSParsesTestBase):
 	"""Tests for parsing of time sub-phrases.
 	"""
-	shouldParse = [
+	samples = [
 			("jdLiteral", "JD2569903.78"),
 			("jdLiteral", "JD 2569403.78"),
 			("mjdLiteral", "MJD2503.78"),
@@ -80,7 +84,11 @@ class STCSTimeParsesTest(STCSParsesTestBase):
 				" Time 2000-12-31 unit yr Error 1 2 Resolution 0.1 0.1 PixSize 19 20"),
 			]
 
-	shouldNotParse = [
+
+class STCSTimeFails(STCSFailsTestBase):
+	"""Tests for failing on invalid time sub-phrases.
+	"""
+	samples = [
 			("timeInterval", "TimeInterval unit s fillfactor 0.1"),
 			("timeInterval", "TimeInterval fillfactor 0.1 foobar"),
 			("timeInterval", "fillfactor 0.1 foobar"),
@@ -93,7 +101,7 @@ class STCSTimeParsesTest(STCSParsesTestBase):
 
 
 class STCSSpaceParsesTest(STCSParsesTestBase):
-	shouldParse = [
+	samples = [
 		("velocityUnit", "unit kpc/a"),
 		("velocityUnit", "unit kpc/a m/s"),
 		("positionInterval", "PositionInterval ICRS"),
@@ -111,11 +119,14 @@ class STCSSpaceParsesTest(STCSParsesTestBase):
 		("atomicGeometry", "Polygon GALACTIC_II 12 12 10 20 21 21 20 19"),
 		("atomicGeometry", "Convex GEO_C 12 12 10 20 21 21 20 19"),
 		("position", "Position UNKNOWNFrame 12 13 Error 0.1 0.1"),
-		("position", "Position UNKNOWNFrame 12 13 Error 0.1 0.1"
+		("position", "Position UNKNOWNFrame Epoch J1992.5 12 13 Error 0.1 0.1"
 			" VelocityInterval fillfactor 0.125 1 1.5 2 3 Error 0.25 0.5"
 			" Resolution 0.25 0.25 PixSize 0.5 0.75"),
 	]
-	shouldNotParse = [
+
+
+class STCSSpaceFailsTest(STCSFailsTestBase):
+	samples = [
 		("positionInterval", "PositionInterval"),
 		("positionInterval", "PositionInterval 12 12"),
 		("positionInterval", "PositionInterval 12 12 Error x"),
@@ -130,7 +141,7 @@ class STCSSpaceParsesTest(STCSParsesTestBase):
 
 
 class STCSRedshiftParsesTest(STCSParsesTestBase):
-	shouldParse = [
+	samples = [
 		("redshiftSubPhrase", "Redshift TOPOCENTER VELOCITY RELATIVISTIC 0.1"
 			" unit km/s Error 10 12 Resolution 1 2 PixSize 4 5"),
 		("redshiftSubPhrase", "RedshiftInterval fillfactor 0.4"
@@ -138,14 +149,16 @@ class STCSRedshiftParsesTest(STCSParsesTestBase):
 		("redshiftSubPhrase", "RedshiftInterval fillfactor 0.4"
 			" BARYCENTER REDSHIFT 12 13 Redshift 11.3"),
 	]
-	shouldNotParse = [
+
+class STCSRedshiftFailsTest(STCSFailsTestBase):
+	samples = [
 		("redshiftSubPhrase", "Redshift GEOCENTER 0.1 unit mm"),
 		("redshiftSubPhrase", "Redshift TOPOCENTER 0.1 RELATIVISTIC VELOCITY"),
 	]
 
 
 class STCSSpectralParsesTest(STCSParsesTestBase):
-	shouldParse = [
+	samples = [
 		("spectralSubPhrase", "Spectral 12 unit mm"),
 		("spectralSubPhrase", "Spectral NEPTUNE 12 unit mm"),
 		("spectralSubPhrase", "Spectral UNKNOWNRefPos 12 unit Angstrom Error 4 3"
@@ -153,7 +166,10 @@ class STCSSpectralParsesTest(STCSParsesTestBase):
 		("spectralSubPhrase", "SpectralInterval HELIOCENTER 12 13 Spectral 12.2"
 			" unit nm Error 4 Resolution 0.2 PixSize 12"),
 	]
-	shouldNotParse = [
+
+
+class STCSSpectralFailsTest(STCSFailsTestBase):
+	samples = [
 		("spectralSubPhrase", "Spectral ab"),
 		("spectralSubPhrase", "Spectral 1e10 unit pc"),
 		("spectralSubPhrase", "SpectralInterval ICRS 1e10 unit Angstrom"),
@@ -161,7 +177,7 @@ class STCSSpectralParsesTest(STCSParsesTestBase):
 
 
 class STCSCompoundParsesTest(STCSParsesTestBase):
-	shouldParse = [
+	samples = [
 		("compoundGeoPhrase", 
 			"Union ICRS (Circle 10 12 1 Circle 11 11 1)"),
 		("compoundGeoPhrase", 
@@ -183,7 +199,9 @@ class STCSCompoundParsesTest(STCSParsesTestBase):
 			" Ellipse 1 2 3 4 5)))))"),
 	]
 
-	shouldNotParse = [
+
+class STCSCompoundFailsTest(STCSFailsTestBase):
+	samples = [
 		("compoundGeoPhrase", 
 			"Not (Union ICRS (Circle 10 12 1 Circle 11 11 1))"),
 		("compoundGeoPhrase", 
@@ -196,7 +214,7 @@ class STCSCompoundParsesTest(STCSParsesTestBase):
 
 
 class STCSSpectralParsesTest(STCSParsesTestBase):
-	shouldParse = [
+	samples = [
 		("spectralSubPhrase", "Spectral 12 unit mm"),
 		("spectralSubPhrase", "Spectral NEPTUNE 12 unit mm"),
 		("spectralSubPhrase", "Spectral UNKNOWNRefPos 12 unit Angstrom Error 4 3"
@@ -204,7 +222,10 @@ class STCSSpectralParsesTest(STCSParsesTestBase):
 		("spectralSubPhrase", "SpectralInterval HELIOCENTER 12 13 Spectral 12.2"
 			" unit nm Error 4 Resolution 0.2 PixSize 12"),
 	]
-	shouldNotParse = [
+
+
+class STCSSpectralFailsTest(STCSFailsTestBase):
+	samples = [
 		("spectralSubPhrase", "Spectral ab"),
 		("spectralSubPhrase", "Spectral 1e10 unit pc"),
 		("spectralSubPhrase", "SpectralInterval ICRS 1e10 unit Angstrom"),
@@ -250,8 +271,9 @@ class SimpleSTCSTreesTest(STCSTreeParseTestBase):
 
 class ComplexSTCSTreesTest(STCSTreeParseTestBase):
 	samples = [
-		("positionInterval", "PositionInterval ICRS 2 3", 
-			{'coos': [2., 3.], 'frame': 'ICRS', 'type': 'PositionInterval'}),
+		("positionInterval", "PositionInterval ICRS Epoch J2003.4 2 3", 
+			{'coos': [2., 3.], 'frame': 'ICRS', 'type': 'PositionInterval',
+			'epoch': 'J2003.4'}),
 		("positionInterval", "PositionInterval ICRS 2 3 Error 5 7", 
 			{'coos': [2., 3.], 'frame': 'ICRS', 'type': 'PositionInterval',
 				'error': [5., 7.]}),
@@ -291,9 +313,9 @@ class STCSPhraseTest(STCSTreeParseTestBase):
 		("stcsPhrase", "StopTime TT 2009-03-10T09:56:10.015625",
 			{'time': {'coos': [datetime.datetime(2009, 3, 10, 9, 56, 10, 15625)], 
 				'type': 'StopTime', 'timescale': 'TT'}}),
-		("stcsPhrase", "AllSky FK4 B1975.0 Position 12 13",
+		("stcsPhrase", "AllSky FK4 B1975.0 Epoch J1970.0 Position 12 13",
 			{'space': {'type': 'AllSky', 'frame': 'FK4', 'equinox': 'B1975.0', 
-				'pos': [12., 13.]}}),
+				'pos': [12., 13.], 'epoch': 'J1970.0'}}),
 		("stcsPhrase", "Spectral BARYCENTER 200000 unit Hz PixSize 1",
 			{'spectral': {'type': 'Spectral', 'pos': [200000.], 
 				"refpos": "BARYCENTER", "unit": "Hz", "pixSize": [1.0]}}),
@@ -433,8 +455,10 @@ class GeneralGenerationTest(testhelpers.VerboseTest):
 			'Position ICRS CART3 -50.0 320.0 20.0 unit pc Error 1.0 2.0 3.0 1.25 2.25 3.25 Resolution 0.125 0.125 0.125 Size 4.0 3.0 2.0')
 	
 	def testSpatialInterval(self):
-		assertMapsto("PositionInterval J2000 12 13 19 29 Position 15 16",
-			'PositionInterval FK5 12.0 13.0 19.0 29.0 Position 15.0 16.0')
+		assertMapsto('PositionInterval J2000 Epoch J2010.2 12 13 19 29'
+			' Position 15 16',
+			'PositionInterval FK5 Epoch J2010.2 12.0 13.0 19.0 29.0'
+			' Position 15.0 16.0')
 
 
 class SampleGenerationTestBase(testhelpers.VerboseTest):

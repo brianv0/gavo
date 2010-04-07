@@ -173,7 +173,11 @@ class UtypeASTTest(testhelpers.VerboseTest):
 	def testGeoComp(self):
 		ast = self._getASTFromSTCS('Circle ICRS [errc]')
 		self.assertEqual(ast.areas[0].geoColRef.dest, "errc")
-	
+
+	def testTime(self):
+		ast = self._getASTFromSTCS('Time TDB "time"')
+		self.assertEqual(ast.time.frame.timeScale, 'TDB')
+
 
 class UtypeRoundtripTest(testhelpers.VerboseTest):
 	"""tests for working roundtrip of utype de-/serialization.
@@ -200,9 +204,11 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 	samples = [
 		[],
 		[('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS')],
-		[
-		 ('stc:AstroCoords.Position2D.Value2.C1', stc.ColRef('ra')),
-		 ('stc:AstroCoords.Position2D.Value2.C2', stc.ColRef('dec'))],
+		[('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS'),
+			('stc:AstroCoords.Position2D.epoch', 'J2002.0'),
+		],
+		[('stc:AstroCoords.Position2D.Value2.C1', stc.ColRef('ra')),
+			('stc:AstroCoords.Position2D.Value2.C2', stc.ColRef('dec'))],
 		[('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS'),
 			('stc:AstroCoordSystem.TimeFrame.TimeScale', 'TT'),
 			('stc:AstroCoordSystem.RedshiftFrame.DopplerDefinition', 'OPTICAL'),

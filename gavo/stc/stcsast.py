@@ -288,6 +288,8 @@ def _makeBasicCooArgs(node, frame, posClass, spatial=False):
 			spatial=spatial),
 		"frame": frame,
 	}
+	if spatial:
+		args["epoch"] = node.get("epoch")
 	_unitMakers[posClass.cType](args, node, frame)
 	return args
 
@@ -311,7 +313,7 @@ def _makeCooBuilder(frameName, intervalClass, intervalKey,
 	Single positions are always expected under the coo key.
 	"""
 	positionExclusiveKeys = ["error", "resolution", "pixSize", "value",
-		"size", "unit", "velTimeUnit"]
+		"size", "unit", "velTimeUnit", "epoch"]
 	def builder(node, context):
 		frame = getattr(context.system, frameName)
 		nDim = frame.nDim
@@ -436,7 +438,7 @@ def _makeGeometryBuilder(cls):
 	See _makeGeometryKeyIterator for the meaning of the arguments.
 	"""
 	return _makeCooBuilder("spaceFrame", cls, "areas", dm.SpaceCoo,
-		"place", _geometryKeyIterators[cls.__name__])
+		"place", _geometryKeyIterators[cls.__name__], spatial=True)
 
 
 def _compoundGeometryKeyIterator(node, nDim, spatial):
@@ -459,7 +461,7 @@ def _makeCompoundGeometryBuilder(cls):
 	"""returns a builder for compound geometries.
 	"""
 	return _makeCooBuilder("spaceFrame", cls, "areas", dm.SpaceCoo,
-		"place", _compoundGeometryKeyIterator)
+		"place", _compoundGeometryKeyIterator, spatial=True)
 
 
 ###################### Top level

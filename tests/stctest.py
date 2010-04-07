@@ -385,15 +385,15 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			" Size 1.0 1.1 4.8 2.3 PixSize 0.2 0.2"),
 		("PositionInterval UNKNOWNFrame CART1 1 2 unit mm",
 			"PositionInterval UNKNOWNFrame CART1 1.0 2.0 unit mm"),
-		("PositionInterval ICRS 12 13 14 15",
-			"PositionInterval ICRS 12.0 13.0 14.0 15.0"),
+		("PositionInterval ICRS Epoch J1900.3 12 13 14 15",
+			"PositionInterval ICRS Epoch J1900.3 12.0 13.0 14.0 15.0"),
 		("PositionInterval ICRS 12 13 14 15 Size 1 1.5 1.75 2",
 			"PositionInterval ICRS 12.0 13.0 14.0 15.0 Size 1.0 1.5 1.75 2.0"),
 # 5
 		("PositionInterval ECLIPTIC CART3 12 13 10 14 15 9 PixSize 1 1 1",
 			"PositionInterval ECLIPTIC CART3 12.0 13.0 10.0 14.0 15.0 9.0 PixSize 1.0 1.0 1.0"),
-		("Circle ICRS 12 13 1 unit arcsec",
-			"Circle ICRS 12.0 13.0 1.0 unit arcsec"),
+		("Circle ICRS Epoch J1999.9 12 13 1 unit arcsec",
+			"Circle ICRS Epoch J1999.9 12.0 13.0 1.0 unit arcsec"),
 		("Circle ICRS 12 13 1 unit arcsec Resolution 1 2 PixSize 2 1",
 			"Circle ICRS 12.0 13.0 1.0 unit arcsec Resolution 1.0 2.0 PixSize 2.0 1.0"),
 		("Ellipse ICRS 12 13 1 0.75 0 Resolution 1 1",
@@ -425,9 +425,10 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			" Redshift TOPOCENTER REDSHIFT RELATIVISTIC 0.1",
 			"Spectral NEPTUNE 12.0 unit Angstrom Error 4.0 3.0\nRedshift"
 			" TOPOCENTER RELATIVISTIC 0.1"),
-		("Position ICRS VelocityInterval Velocity 1 2 unit pc/cy Error 0.25 0.5",
-			"Position ICRS VelocityInterval Velocity 1.0 2.0 unit pc/cy"
-				" Error 0.25 0.5"),
+		('Position ICRS Epoch J1999.9 VelocityInterval Velocity 1 2'
+			' unit pc/cy Error 0.25 0.5',
+			'Position ICRS Epoch J1999.9 VelocityInterval Velocity 1.0 2.0'
+			' unit pc/cy Error 0.25 0.5'),
 		("Position ICRS VelocityInterval 0.25 0.5 2 3 Velocity 1 2",
 			"Position ICRS VelocityInterval 0.25 0.5 2.0 3.0 Velocity 1.0 2.0"),
 		("Position ICRS CART1 1 unit Mpc VelocityInterval 0.25 0.5 Velocity 2"
@@ -445,10 +446,10 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			"Redshift 2.0"),
 		("Time nil UNKNOWNRefPos MJD302",
 			"Time 1859-09-15T00:00:00"),
-		("Difference ICRS (AllSky Union (Circle 10 10 2"
+		("Difference ICRS Epoch J1999.9 (AllSky Union (Circle 10 10 2"
 			" Intersection (Polygon 10 2 2 10 10 10 Intersection( Ellipse 11 11 2 3 30"
 			" Not (Difference (Circle 12 12 3 Box 11 11 2 3))))))",
-			"Difference ICRS (AllSky  Union (Circle 10.0 10.0 2.0 Intersection (Polygon 10.0 2.0 2.0 10.0 10.0 10.0 Intersection (Ellipse 11.0 11.0 2.0 3.0 30.0 Not (Difference (Circle 12.0 12.0 3.0 Box 11.0 11.0 2.0 3.0))))))"),
+			"Difference ICRS Epoch J1999.9 (AllSky  Union (Circle 10.0 10.0 2.0 Intersection (Polygon 10.0 2.0 2.0 10.0 10.0 10.0 Intersection (Ellipse 11.0 11.0 2.0 3.0 30.0 Not (Difference (Circle 12.0 12.0 3.0 Box 11.0 11.0 2.0 3.0))))))"),
 # 25
 		("Union ICRS (Circle 1 1 0.5 Box 0.5 0.5 0.25 0.125) unit rad"
 			" Error 0.0001 0.0001",

@@ -59,6 +59,11 @@ class UtypeMaker(object):
 	"""
 	__metaclass__ = UtypeMaker_t
 
+	# attributes that don't get serialized to utypes per spec
+	bannedAttributes = set("id frame_id coord_system_id unit"
+		" pos_angle_unit pos_unit spectral_unit time_unit"
+		" vel_time_unit gen_unit xlink:href xsi:type ucd".split())
+
 	rootType = None
 
 	def _generPlain(self, name, child, prefix):
@@ -75,6 +80,11 @@ class UtypeMaker(object):
 		children = node.makeChildDict()
 		if node.text:
 			yield prefix, node.text
+		for attName, name in node.iterAttNames():
+			if name not in self.bannedAttributes:
+				val = getattr(node, attName)
+				if val is not None:
+					yield "%s.%s"%(prefix, name), val
 		for name, child in children.iteritems():
 			handler = getattr(self, "_gener_"+name, self._generPlain)
 			for pair in handler(name, child, prefix):

@@ -87,6 +87,9 @@ _utypeMorphers = {
 	'AstroCoordSystem.SpaceFrame.ReferencePosition': _replaceLastWithValue,
 	'AstroCoordSystem.SpectralFrame.ReferencePosition': _replaceLastWithValue,
 	'AstroCoordSystem.TimeFrame.ReferencePosition': _replaceLastWithValue,
+	'AstroCoords.Position1D.epoch': _makeParentAttributeMaker("epoch"),
+	'AstroCoords.Position2D.epoch': _makeParentAttributeMaker("epoch"),
+	'AstroCoords.Position3D.epoch': _makeParentAttributeMaker("epoch"),
 }
 
 def utypePairsToTree(utypes, nameQualifier=stcxast.STCElement):

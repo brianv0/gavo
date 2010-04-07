@@ -43,7 +43,7 @@ class STC(object):
 		namespace = STCNamespace
 		local = True
 		# We may not want all of these an all elements, but it's not
-		# worth the effort discriminating here.
+		# worth the effort to discriminate here.
 		a_href = None
 		href_name = "xlink:href"
 		a_type = None
@@ -105,6 +105,12 @@ class STC(object):
 
 	class T_coordinate(T_double2):
 		a_frame_id = None
+		a_epoch = None
+
+		def isEmpty(self):
+			if self.a_epoch is not None:
+				return False
+			return STC.T_double2.isEmpty(self)
 
 	class Position(T_coordinate): pass
 	class Position1D(T_coordinate): pass
@@ -118,7 +124,6 @@ class STC(object):
 	class Offset(T_double1): pass
 
 	class T_Region(OptionalSTCElement):
-		a_epoch = None
 		a_fill_factor = None
 		a_hi_include = None
 		a_lo_include = None

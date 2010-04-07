@@ -370,6 +370,8 @@ def _makePositionBuilder(kw, astClass, frameName, tuplify=False):
 			buildArgs[key] = value
 		_fixWiggles(buildArgs)
 		_fixUnits(frameName, node, buildArgs, context)
+		if "epoch" in node.attrib:
+			buildArgs["epoch"] = node.get("epoch")
 		context.popDim()
 		yield kw, astClass(**buildArgs)
 	return buildPosition

@@ -349,6 +349,13 @@ class UnitsTest(SimpleSTCXSrcTest):
 		self.assertEqual(ast.place.unit, ("deg", "arcsec"))
 
 
+class MiscSrcTest(SimpleSTCXSrcTest):
+	def testEpoch(self):
+		ast = self._getAST("<SpaceFrame><ICRS/></SpaceFrame>",
+			'<Position2D epoch="B400"/>')
+		self.assertEqual(ast.place.epoch, "B400")
+
+
 class CompoundParseTest(XMLSrcTestBase):
 	"""tests for various aspects of parsing compound geometries.
 	"""

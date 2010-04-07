@@ -168,6 +168,17 @@ def _makeSymDict(locals, exportAll):
 	return syms
 
 
+def _stringifyBlank(s, p, t):
+	"""a parse action joining items in parse results with blanks.
+	"""
+	return " ".join(t)
+
+def _stringify(s, p, t):
+	"""a parse action joining items in parse results.
+	"""
+	return "".join(t)
+
+
 def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		_addGeoReferences=False):
 	"""returns a dictionary of symbols for a grammar parsing STC-S into
@@ -175,6 +186,9 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 
 	numberLiteral and timeLiteral are pyparsing symbols for numbers and
 	datetimes, respectively.
+
+	_addGeoReferences lets you write quoted references to vectors
+	(like Circle "center" 20.).
 	"""
 # WARNING: Changing global state here temporarily.  This will be trouble in
 # threads.  This stuff is reset below to the default from base.__init__
@@ -188,16 +202,18 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 	_spaceUnitWord = Regex(_reFromKeys(spatialUnits))
 	_timeUnitWord = Regex(_reFromKeys(temporalUnits))
 	spaceUnit = _unitOpener + OneOrMore( _spaceUnitWord ).addParseAction(
-		lambda s,p,t: " ".join(t))("unit")
+		_stringifyBlank)("unit")
 	timeUnit = _unitOpener + _timeUnitWord("unit")
 	spectralUnit = _unitOpener + Regex(_reFromKeys(spectralUnits))("unit")
-	redshiftUnit = _unitOpener + ( (_spaceUnitWord + "/" + _timeUnitWord
-		).addParseAction(lambda s,p,t: "".join(t)) | Keyword("nil") )("unit")
-	velocityUnit = _unitOpener + OneOrMore( (_spaceUnitWord + "/" + _timeUnitWord
-		).addParseAction(lambda s,p,t: "".join(t)) ).addParseAction(
-			lambda s,p,t: " ".join(t))("unit")
+	redshiftUnit = _unitOpener + ( 
+		(_spaceUnitWord + "/" + _timeUnitWord).addParseAction(_stringify) 
+		| Keyword("nil") )("unit")
+	velocityUnit = _unitOpener + (OneOrMore( 
+		(_spaceUnitWord + "/" + _timeUnitWord).addParseAction(_stringify) 
+		).addParseAction(_stringifyBlank))("unit")
 
 # basic productions common to most STC-S subphrases
+	astroYear = Regex("[BJ][0-9]+([.][0-9]*)?")
 	fillfactor = (Suppress( Keyword("fillfactor") ) + number("fillfactor"))
 	noEqFrame = (Keyword("J2000") | Keyword("B1950") | Keyword("ICRS") | 
 		Keyword("GALACTIC") | Keyword("GALACTIC_I") | Keyword("GALACTIC_II") | 
@@ -205,8 +221,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		Keyword("UNKNOWNFrame"))("frame")
 	eqFrameName = (Keyword("FK5") | Keyword("FK4") | Keyword("ECLIPTIC")
 		)("frame")
-	eqSpec = Regex("[BJ][0-9]+([.][0-9]*)?")("equinox")
-	eqFrame = eqFrameName + Optional( eqSpec )
+	eqFrame = eqFrameName + Optional( astroYear("equinox") )
 	frame = eqFrame | noEqFrame
 	refpos = (Regex(_reFromKeys(stcRefPositions)))("refpos")
 	flavor = (Regex(_reFromKeys(stcsFlavors)))("flavor")
@@ -221,6 +236,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		_coos = complexColRef("coos") | _coos
 		_pos = complexColRef("pos") | _pos
 	positionSpec = Suppress( Keyword("Position") ) + _pos
+	epochSpec = Suppress( Keyword("Epoch") ) + astroYear
 	error = Suppress( Keyword("Error") ) + OneOrMore( number )
 	resolution = Suppress( Keyword("Resolution") ) + OneOrMore( number )
 	size = Suppress( Keyword("Size") ) + OneOrMore(number)
@@ -238,7 +254,8 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		Optional( velocityInterval )("velocity"))
 	_regionTail = Optional( positionSpec ) + _spatialTail
 	_commonSpaceItems = ( frame + Optional( refpos ) + 
-		Optional( flavor ))
+		Optional( flavor ) + Optional( 
+			epochSpec("epoch").addParseAction(_stringify) ))
 	_commonRegionItems = Optional( fillfactor ) + _commonSpaceItems
 
 # times and time intervals

@@ -332,8 +332,12 @@ class _OneDMixin(object):
 
 class _SpatialMixin(object):
 	"""provides attributes for positional coordinates.
+
+	In addition to unit management, this is also epoch.  Epoch has values
+	like B1965.2 or J2003.4.
 	"""
 	_a_unit = ()
+	_a_epoch = None
 
 	cType = SpaceType
 
@@ -366,6 +370,7 @@ class _VelocityMixin(object):
 	"""
 	_a_unit = ()
 	_a_velTimeUnit = ()
+	_a_epoch = None
 
 	cType = VelocityType
 

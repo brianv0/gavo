@@ -216,6 +216,8 @@ def _spatialCooToCST(node, getBase=_makeCooTreeMapper("Position")):
 		return {}
 	cstNode = getBase(node)
 	cstNode["size"] = _wiggleToCST(node.size, node.frame.nDim)
+	if node.epoch is not None:
+		cstNode["epoch"] = node.epoch
 	return cstNode
 
 
@@ -396,6 +398,7 @@ _commonFlatteners = {
 	"resolution": _makeKeywordFlattener("Resolution"),
 	"size": _makeKeywordFlattener("Size"),
 	"pixSize": _makeKeywordFlattener("PixSize"),
+	"epoch": _makeKeywordFlattener("Epoch"),
 	"coos": _flattenValue,
 }
 
@@ -461,12 +464,11 @@ def _makeSpatialFlattener():
 	}
 	flatteners.update(_commonFlatteners)
 
-
 	def flattenPosition(node):
 		"""returns an STC-S representation of position and velocity.
 		"""
 		return _joinKeysWithNull(node, ["type", "fillfactor", "frame", 
-			"equinox", "refpos", "flavor", "coos", "geoCoos", "children", 
+			"equinox", "refpos", "flavor", "epoch", "coos", "geoCoos", "children", 
 			"pos", "unit", "error", "resolution", "size", "pixSize", "velocity"], 
 			flatteners)
 	
