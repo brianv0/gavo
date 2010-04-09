@@ -4,6 +4,7 @@ Tests for conversion between utype sequences and STC ASTs.
 
 from gavo import stc
 from gavo import utils
+from gavo.stc import dm
 from gavo.stc import utypeast
 from gavo.utils import ElementTree
 
@@ -17,6 +18,12 @@ class CoosysGenerTest(testhelpers.VerboseTest):
 		ast = stc.parseSTCS(literal)
 		self.assertEqual(dict(stc.getUtypes(ast)),
 			expected)
+
+	def testRef(self):
+		tree = dm.STCSpec(astroSystem=stc.getLibrarySystem("TT-ICRS-OPT-BARY-TOPO"))
+		self.assertEqual(stc.getUtypes(tree), 
+			[('stc:AstroCoordSystem.href', 
+				'ivo://STClib/CoordSys#TT-ICRS-OPT-BARY-TOPO')])
 
 	def testSimpleSystems(self):
 		self._assertSetmatch("Time TT Position ICRS GEOCENTER Spectral BARYCENTER"
@@ -226,6 +233,9 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 		[
 			('stc:AstroCoords.Time.TimeInstant.ISOTime', '2000-01-01T00:00:00'),
 			('stc:AstroCoordArea.Circle', stc.ColRef('errc'))],
+		[
+			('stc:AstroCoordSystem.href', 
+				'ivo://STClib/CoordSys#TT-ICRS-OPT-BARY-TOPO')],
 	]
 
 

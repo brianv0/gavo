@@ -662,5 +662,25 @@ class CLITest(testhelpers.VerboseTest):
 			expectedStdout=self._utypeInput+"\n")
 
 
+class SystemLibraryTest(testhelpers.VerboseTest):
+	"""tests for retrieving library systems.
+	"""
+	def testBasic(self):
+		res = stc.getLibrarySystem("TT-ICRS-TOPO")
+		self.assertEqual(res.timeFrame.timeScale, "TT")
+		self.failUnless(stc.getLibrarySystem("TT-ICRS-TOPO") is res)
+
+	def testResolvesWithId(self):
+		self.assertRuns(stc.getLibrarySystem, 
+			("ivo://STClib/CoordSys#TT-FK5-TOPO",))
+
+	def testRaising(self):
+		self.assertRaisesWithMsg(utils.NotFoundError,
+			"STC library system 'JUNK-RANDOM-LOST' could not be located"
+			" in IVOA defined systems", 
+			stc.getLibrarySystem, ("JUNK-RANDOM-LOST",))
+
+
+
 if __name__=="__main__":
 	testhelpers.main(GeoTest)

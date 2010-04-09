@@ -4,6 +4,22 @@ Generating a utype/value sequence for ASTs.
 Yet another insane serialization for an insane data model.  Sigh.
 
 The way we come up with the STC utypes here is described in an IVOA note.
+
+Since the utypes are basically xpaths into STC-X, there is not terribly
+much we need to do here.  However, due to STC-X being a nightmare,
+certain rules need to be formulated what utypes to generate.
+
+Here, we use UtypeMakers for this.  There's a default UtypeMaker
+that implements the basic algorithm of the STC note (in iterUtypes,
+a method that yields all utype/value pairs for an STC-X node, which
+is a stanxml Element).
+
+To customize what is being generated, define _gener_<child name>
+methods, where <child name> is a key within the dictionaries
+returned by stanxml.Element's makeChildDict method.
+
+To make the definition of the _gener_ methods easer, there's
+the handles decorator that you can pass a list of such child names.
 """
 
 from gavo import utils
@@ -62,7 +78,7 @@ class UtypeMaker(object):
 	# attributes that don't get serialized to utypes per spec
 	bannedAttributes = set("id frame_id coord_system_id unit"
 		" pos_angle_unit pos_unit spectral_unit time_unit"
-		" vel_time_unit gen_unit xlink:href xsi:type ucd".split())
+		" vel_time_unit gen_unit xsi:type ucd".split())
 
 	rootType = None
 
@@ -84,7 +100,7 @@ class UtypeMaker(object):
 			if name not in self.bannedAttributes:
 				val = getattr(node, attName)
 				if val is not None:
-					yield "%s.%s"%(prefix, name), val
+					yield "%s.%s"%(prefix, name.split(":")[-1]), val
 		for name, child in children.iteritems():
 			handler = getattr(self, "_gener_"+name, self._generPlain)
 			for pair in handler(name, child, prefix):

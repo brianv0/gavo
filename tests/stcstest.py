@@ -12,6 +12,7 @@ from gavo import stc
 from gavo.stc import dm
 from gavo.stc import stcs
 from gavo.stc import stcsgen
+from gavo.stc import syslib
 
 import testhelpers
 
@@ -535,5 +536,17 @@ class ColrefTest(testhelpers.VerboseTest):
 		self.assertEqual(tree.place.error.radii[0].dest, "p1")
 
 
+class SyslibTest(testhelpers.VerboseTest):
+	"""tests for syslib definitions still working.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	samples = syslib.SYSDEFS
+
+	def _runTest(self, sysId):
+		self.assertRuns(syslib.getLibrarySystem, (sysId,),
+			"Cannot build system %s"%sysId)
+
+
 if __name__=="__main__":
-	testhelpers.main(VelocitiesGenerationTest)
+	testhelpers.main(SyslibTest)

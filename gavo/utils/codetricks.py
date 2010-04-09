@@ -11,6 +11,7 @@ import compiler
 import compiler.ast
 import imp
 import itertools
+import functools
 import os
 import re
 import shutil
@@ -389,7 +390,7 @@ def memoized(origFun):
 		if args not in cache:
 			cache[args] = origFun(*args)
 		return cache[args]
-	return fun
+	return functools.update_wrapper(fun, origFun)
 
 
 def document(origFun):

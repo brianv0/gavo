@@ -139,11 +139,15 @@ def serialize_RedshiftFrame(node, context):
 
 def serialize_CoordSys(node, context):
 	addId(node)
-	return STC.AstroCoordSystem(id=node.id)[
-		serialize_TimeFrame(node.timeFrame, context),
-		serialize_SpaceFrame(node.spaceFrame, context),
-		serialize_SpectralFrame(node.spectralFrame, context),
-		serialize_RedshiftFrame(node.redshiftFrame, context),]
+	if node.libraryId:
+		return STC.AstroCoordSystem(id=node.id,
+			href=node.libraryId)
+	else:
+		return STC.AstroCoordSystem(id=node.id)[
+			serialize_TimeFrame(node.timeFrame, context),
+			serialize_SpaceFrame(node.spaceFrame, context),
+			serialize_SpectralFrame(node.spectralFrame, context),
+			serialize_RedshiftFrame(node.redshiftFrame, context),]
 
 
 ############ Coordinates

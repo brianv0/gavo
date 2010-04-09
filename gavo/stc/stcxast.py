@@ -22,6 +22,7 @@ not allowed.
 
 from gavo import utils
 from gavo.stc import dm
+from gavo.stc import syslib
 from gavo.stc import times
 from gavo.stc import units
 from gavo.stc.common import *
@@ -31,7 +32,7 @@ class SIBLING_ASTRO_SYSTEM(object):
 	"""A sentinel class to tell the id resolver to use the sibling AstroCoordSys
 	element."""
 
-_xlinkHref = str(ElementTree.QName(XlinkNamespace, "href"))
+xlinkHref = str(ElementTree.QName(XlinkNamespace, "href"))
 
 
 ####################### Helpers
@@ -393,10 +394,12 @@ class ContextActions(object):
 ################ Coordinate systems
 
 def _buildAstroCoordSystem(node, buildArgs, context):
-	if _xlinkHref in node.attrib:
-		raise STCNotImplementedError("Cannot evaluate hrefs yet")
 	buildArgs["id"] = node.get("id", None)
-	newEl = dm.CoordSys(**buildArgs)
+	if xlinkHref in node.attrib:
+		newEl = syslib.getLibrarySystem(node.attrib[xlinkHref]
+			).change(**buildArgs)
+	else:
+		newEl = dm.CoordSys(**buildArgs)
 	# Hack -- make sure we have a good id here, even when this means
 	# a violation of our non-mutability ideology.
 	if newEl.id is None:

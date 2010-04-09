@@ -171,8 +171,10 @@ class VerboseTest(testresources.ResourcedTestCase):
 		try:
 			callable(*args)
 		except Exception, ex:
-			raise self.failureException("Should run, but raises %s (%s) exception"%(
-				ex.__class__.__name__, str(ex)))
+			if msg is None:
+				msg = ("Should run, but raises %s (%s) exception"%(
+					ex.__class__.__name__, str(ex)))
+			raise self.failureException(msg)
 
 	def assertAlmostEqualVector(self, first, second, places=7, msg=None):
 		try:

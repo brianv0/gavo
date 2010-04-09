@@ -31,7 +31,7 @@ class XMLSrcTestBase(testhelpers.VerboseTest):
 			self.asf = stc.parseSTCX(_unwrapSample(self.data))
 
 
-class M81EventHrefTest(testhelpers.VerboseTest):
+class M81EventHrefTest(XMLSrcTestBase):
 	"""The M81 event example with hrefs.
 	
 	Make this an XMLSrcTestBased test when we grow hrefs.
@@ -52,9 +52,13 @@ class M81EventHrefTest(testhelpers.VerboseTest):
     'CepRZDaq8ycJHLJNKIhaWlTK4jPWShlUhSuBBOA6iGGAYVKIkYENovlY6kJ1aCEE'
     'bUZhkWIiAzwq8HMycp0016msgGQgf4u5IpwoSA6YOIGA')
 	
-	def testCooSys(self):
-		self.assertRaises(stc.STCNotImplementedError, stc.parseSTCX,
-			_unwrapSample(self.data))
+	def testRefPresent(self):
+		sys = self.asf[1][1].astroSystem
+		self.assertEqual(sys.libraryId, "ivo://STClib/CoordSys#TT-ICRS-TOPO")
+
+	def testValuesPresent(self):
+		sys = self.asf[1][1].astroSystem
+		self.assertEqual(sys.spaceFrame.refFrame, "ICRS")
 
 
 class M81ImageTest(XMLSrcTestBase):
@@ -449,4 +453,4 @@ if __name__=="__main__":
 	if len(sys.argv)>1 and sys.argv[1].startswith("/"):
 		_wrapSample(sys.argv[1])
 	else:
-		testhelpers.main(M81ImageTest)
+		testhelpers.main(M81EventHrefTest)

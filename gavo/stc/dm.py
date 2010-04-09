@@ -131,6 +131,7 @@ class CoordSys(ASTNode):
 	_a_spectralFrame = None
 	_a_redshiftFrame = None
 	_a_name = None
+	_a_libraryId = None   # for standard coordinate systems, the ivo://whatever.
 
 
 class _CooTypeSentinel(object):

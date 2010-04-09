@@ -87,6 +87,8 @@ _utypeMorphers = {
 	'AstroCoordSystem.SpaceFrame.ReferencePosition': _replaceLastWithValue,
 	'AstroCoordSystem.SpectralFrame.ReferencePosition': _replaceLastWithValue,
 	'AstroCoordSystem.TimeFrame.ReferencePosition': _replaceLastWithValue,
+	'AstroCoordSystem.href': _makeParentAttributeMaker(
+		stcxast.xlinkHref),
 	'AstroCoords.Position1D.epoch': _makeParentAttributeMaker("epoch"),
 	'AstroCoords.Position2D.epoch': _makeParentAttributeMaker("epoch"),
 	'AstroCoords.Position3D.epoch': _makeParentAttributeMaker("epoch"),

@@ -49,6 +49,8 @@ if sys.version_info[0]>=2 and sys.version_info[1]>4:
 
 	from gavo.stc.stcxgen import astToStan, getSTCXProfile, nodeToStan
 
+	from gavo.stc.syslib import getLibrarySystem
+
 	from gavo.stc.utypegen import getUtypes
 
 	from gavo.stc.utypeast import parseFromUtypes

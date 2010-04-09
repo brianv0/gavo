@@ -218,6 +218,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 	noEqFrame = (Keyword("J2000") | Keyword("B1950") | Keyword("ICRS") | 
 		Keyword("GALACTIC") | Keyword("GALACTIC_I") | Keyword("GALACTIC_II") | 
 		Keyword("SUPER_GALACTIC") | Keyword("GEO_C") | Keyword("GEO_D") | 
+		Keyword("HPR") | Keyword("HGS") | Keyword("HGC") | Keyword("HPC") |
 		Keyword("UNKNOWNFrame"))("frame")
 	eqFrameName = (Keyword("FK5") | Keyword("FK4") | Keyword("ECLIPTIC")
 		)("frame")
