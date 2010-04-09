@@ -90,8 +90,8 @@ class SyncQueryTest(TAPRenderTest):
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
 				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<2'}, [
-					'<FIELD name="ra" datatype="float" ucd="pos.eq.ra;meta.main"'
-					' arraysize="1" ID="ra" unit="deg">'
+					'<FIELD datatype="float" ucd="pos.eq.ra;meta.main" ID="ra"'
+					' unit="deg" name="ra">'
 				])
 
 	def testBadFormat(self):

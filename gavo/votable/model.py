@@ -48,7 +48,7 @@ class VOTable(object):
 
 	class _TypedElement(_ValuedElement):
 		a_ref = None
-		a_arraysize = '1'
+		a_arraysize = None
 		a_datatype = None
 		a_precision = None
 		a_ref = None
@@ -56,15 +56,17 @@ class VOTable(object):
 		a_width = None
 
 		def isScalar(self):
-			return self.a_arraysize=='1'
+			return self.a_arraysize is None or self.a_arraysize=='1'
 
 		def hasVarLength(self):
-			return self.a_arraysize.endswith("*")
+			return self.a_arraysize and self.a_arraysize.endswith("*")
 
 		def getLength(self):
 			"""returns the number of items one should expect in value, or
 			None for variable-length arrays.
 			"""
+			if self.a_arraysize is None:
+				return 1
 			if self.a_arraysize.endswith("*"):
 				return None
 			elif "x" in self.a_arraysize: # multidimensional, my ass.

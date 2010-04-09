@@ -107,8 +107,7 @@ def _makeValuesForColDesc(colDesc):
 
 
 # keys copied from colDescs to FIELDs in _getFieldFor
-_voFieldCopyKeys = ["name", "ID", "datatype", "ucd",
-	"utype", "unit"]
+_voFieldCopyKeys = ["name", "ID", "datatype", "ucd", "utype"]
 
 def _defineField(element, colDesc):
 	"""adds attributes and children to element from colDesc.
@@ -122,8 +121,11 @@ def _defineField(element, colDesc):
 	# Element, things would appear to work, but changes are lost when
 	# this function ends.
 	assert not isinstance(element, type)
-	element(arraysize=colDesc["arraysize"],
-		**dict((key, colDesc.get(key)) for key in _voFieldCopyKeys))[
+	if colDesc["arraysize"]!='1':
+		element(arraysize=colDesc["arraysize"])
+	if colDesc["unit"]:
+		element(unit=colDesc["unit"])
+	element(**dict((key, colDesc.get(key)) for key in _voFieldCopyKeys))[
 		_makeValuesForColDesc(colDesc),
 		V.DESCRIPTION[colDesc["description"]]]
 
