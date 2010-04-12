@@ -172,3 +172,7 @@
 43/HIGH/2010-02-25/FIXED
 	rave.main and tspectra.data have no descriptions on 
 	__system__/dc_tables/list/form -- why?
+
+44/WISHLIST/2010-04-10
+	Make a "noform" renderer (or so) from the runOnEmptyInputs case of
+	resourcebased.form

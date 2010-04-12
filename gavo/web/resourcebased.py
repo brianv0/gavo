@@ -481,39 +481,6 @@ class FormMixin(formal.ResourceMixin, object):
 		return form
 
 
-def _formBehaviour_renderHTTP(self, ctx):
-	# This function is monkeypatched into the resource.__behaviour to
-	# make it accept form requests no matter what the request method is.
-	request = inevow.IRequest(ctx)
-	formName = request.args.get(form.FORMS_KEY, [None])[0]
-	if formName is None:
-			return None
-	self.remember(ctx)
-	d = defer.succeed(ctx)
-	d.addCallback(form.locateForm, formName)
-	d.addCallback(self._processForm, ctx)
-	return d
-
-
-def _makeNoParsBehaviour(action):
-	def b(self, ctx):
-		# This function is monkeypatched into the resource.__behaviour if
-		# the underlying service doesn't have any input parameters at all
-		# to always run the defined query.  This is probably only interesting
-		# for FixedQueryCores.
-		formName = "genForm"
-		request = inevow.IRequest(ctx)
-		if "_noPars" in request.args:  # break infinite recursion
-			return None
-		request.args["_noPars"] = [True]
-		self.remember(ctx)
-		d = defer.succeed(ctx)
-		d.addCallback(form.locateForm, formName)
-		d.addCallback(self._processForm, ctx)
-		return d
-	return b
-
-
 class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 	"""is a page that provides a search form for the selected service
 	and doubles as render page for HTML tables.
@@ -525,24 +492,22 @@ class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 	the form.
 	"""
 	name = "form"
+	runOnEmptyInputs = False
 
 	def __init__(self, ctx, service):
 		grend.ServiceBasedRenderer.__init__(self, ctx, service)
 		if "form" in self.service.templates:
 			self.customTemplate = self.service.templates["form"]
-		# A service with no inputs will be run even if no form data
-		# can be located (but you should use the qp renderer or something here):
-		if self.getInputFields(self.service):
-			self._ResourceMixin__behaviour().renderHTTP = new.instancemethod(
-				_formBehaviour_renderHTTP, self._ResourceMixin__behaviour(),
-				form.FormsResourceBehaviour)
-		else:
-			self._ResourceMixin__behaviour().renderHTTP = new.instancemethod(
-				_makeNoParsBehaviour(self.submitAction), 
-				self._ResourceMixin__behaviour(), form.FormsResourceBehaviour)
+
+		# enable special handling if I'm rendering fixed-behaviour services
+		# (i.e., ones that never have inputs)
+		if not self.getInputFields(self.service):
+			self.runOnEmptyInputs = True
 		self.queryResult = None
 
 	def renderHTTP(self, ctx):
+		if self.runOnEmptyInputs:
+			inevow.IRequest(ctx).args[form.FORMS_KEY] = ["genForm"]
 		res = defer.maybeDeferred(
 			super(Form, self).renderHTTP, ctx)
 		res.addErrback(self._crashAndBurn, ctx)

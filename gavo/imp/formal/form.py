@@ -539,13 +539,12 @@ class FormsResourceBehaviour(object):
     def renderHTTP(self, ctx):
         # Get hold of the request
         request = inevow.IRequest(ctx)
-        # Intercept POST requests to see if it's for me
-        if request.method != 'POST':
-            return None
         # Try to find the form name
         formName = request.args.get(FORMS_KEY, [None])[0]
         if formName is None:
             return None
+				# delete forms key to prevent infinite recursion.
+        del request.args[FORMS_KEY]
         # Find the actual form and process it
         self.remember(ctx)
         d = defer.succeed(ctx)
