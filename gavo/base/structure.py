@@ -585,8 +585,8 @@ class Generator(Parser):
 			vals = {"context": ctx}
 			try:
 				exec self.code in vals
-			except Exception, msg:
-				raise BadCode(code, "GENERATOR", ex)
+			except Exception, ex:
+				raise BadCode(self.code, "GENERATOR", ex)
 			for ev in vals["gen"]():
 				if ev[0]=="element":
 					self._expandElementEvent(ev, parent)
