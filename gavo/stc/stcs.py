@@ -178,6 +178,14 @@ def _stringify(s, p, t):
 	"""
 	return "".join(t)
 
+def _makeSingle(s, p, t):
+	"""a parse action that returns the first item of the tokens.
+
+	You typically want this when you know there's only one token, e.g.,
+	on Disjunctions or such
+	"""
+	return t[0]
+
 
 def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		_addGeoReferences=False):
@@ -405,7 +413,8 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 	return _makeSymDict(locals(), _exportAll)
 
 
-def getSymbols(_exportAll=False):
+def getSymbols(_exportAll=False, _colrefLiteral=None,
+		_addGeoReferences=False):
 	"""returns an STC-S grammar with terminal values.
 	"""
 	_exactNumericRE = r"[+-]?\d+(\.(\d+)?)?|[+-]?\.\d+"
@@ -421,7 +430,11 @@ def getSymbols(_exportAll=False):
 		).addParseAction(lambda s,p,toks: times.parseISODT(toks[0]))
 	timeLiteral = (isoTimeLiteral | jdLiteral | mjdLiteral)
 
-	res = _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll)
+	if _colrefLiteral:
+		numberLiteral = _colrefLiteral ^ numberLiteral
+		timeLiteral = _colrefLiteral ^ timeLiteral
+	res = _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll,
+		_addGeoReferences=_addGeoReferences)
 	res.update(_makeSymDict(locals(), _exportAll))
 	return res
 
@@ -433,10 +446,11 @@ def getColrefSymbols():
 	on ambiguities.  We only accept simple identifiers (i.e., not quoted in
 	the SQL sense), though.
 	"""
+	def makeColRef(s, p, toks):
+		return ColRef(toks[0][1:-1])
 	atomicColRef = Regex('"[A-Za-z_][A-Za-z_0-9]*"').addParseAction(
-		lambda s,p,toks: ColRef(toks[0][1:-1]))
-
-	return _getSTCSGrammar(atomicColRef, atomicColRef, _addGeoReferences=True)
+		makeColRef)
+	return getSymbols(_colrefLiteral=atomicColRef, _addGeoReferences=True)
 
 
 def enableDebug(syms, debugNames=None):

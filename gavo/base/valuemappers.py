@@ -179,7 +179,7 @@ def datetimeMapperFactory(colDesc):
 	if (isinstance(colDesc["sample"], (datetime.date, datetime.datetime))
 			or (colDesc["sample"] is None and colDesc["dbtype"]=="timestamp")):
 		unit = colDesc["unit"]
-		if "MJD" in colDesc.get("ucd", ""):  # like VOX:Image_MJDateObs
+		if colDesc["ucd"] and "MJD" in colDesc["ucd"]:  # like VOX:Image_MJDateObs
 			colDesc["unit"] = "d"
 			fun = lambda val: (val and dtToMJdn(val)) or None
 			destType = ("double", '1')
@@ -345,6 +345,8 @@ class VColDesc(dict):
 		self["note"] = None # filled in by serManager, if at all
 		for fieldName in ["ucd", "utype", "unit", "description"]:
 			self[fieldName] = getattr(column, fieldName)
+			if not self[fieldName]:
+				self[fieldName] = None
 		if votCast is not None:
 			self.update(votCast)
 

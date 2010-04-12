@@ -60,7 +60,11 @@ class CooGenerTest(testhelpers.VerboseTest):
 		ast = stc.parseQSTCS(literal)
 		gr = [p for p in stc.getUtypes(ast) 
 			if not p[0].startswith("stc:AstroCoordSystem")]
-		truth = dict((k, stc.ColRef(v)) for k, v in truth.iteritems())
+		for k in truth:
+			if isinstance(truth[k], basestring):
+				truth[k] = stc.ColRef(truth[k])
+			else:
+				truth[k] = str(truth[k])
 		self.assertEqual(dict(gr), truth)
 	
 	def testTrivialPos(self):
@@ -68,7 +72,13 @@ class CooGenerTest(testhelpers.VerboseTest):
 			'stc:AstroCoords.Position2D.Value2.C1': "ra",
 			'stc:AstroCoords.Position2D.Value2.C2': "dec", 
 		})
-		
+
+	def testMixedPos(self):
+		self._assertAssmatch('Position ICRS "ra" 20.0', {
+			'stc:AstroCoords.Position2D.Value2.C1': "ra",
+			'stc:AstroCoords.Position2D.Value2.C2': 20.0, 
+		})
+
 	def testVecPos(self):
 		self._assertAssmatch('Position ICRS [point]', 
 			{'stc:AstroCoords.Position2D.Value2': "point"})

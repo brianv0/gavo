@@ -32,7 +32,7 @@ class MapperTest(unittest.TestCase):
 	"""
 	def testJdMap(self):
 		colDesc = {"sample": datetime.datetime(2005, 6, 4, 23, 12, 21),
-			"unit": "d"}
+			"unit": "d", "ucd": None}
 		mapper = valuemappers.datetimeMapperFactory(colDesc)
 		self.assertAlmostEqual(2453526.4669097224,
 			mapper(datetime.datetime(2005, 6, 4, 23, 12, 21)))
