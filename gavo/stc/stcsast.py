@@ -9,6 +9,7 @@ Transformation of STC-S CSTs to STC ASTs.
 
 from gavo.stc import dm
 from gavo.stc import stcs
+from gavo.stc import syslib
 from gavo.stc.common import *
 
 
@@ -521,7 +522,10 @@ def parseSTCS(literal, grammarFactory=None):
 	"""returns an STC AST for an STC-S expression.
 	"""
 	cst = stcs.getCST(literal, grammarFactory)
-	system = getCoordSys(cst)[1]
+	if "libSystem" in cst:
+		system = syslib.getLibrarySystem(cst["libSystem"])
+	else:
+		system = getCoordSys(cst)[1]
 	args = {"astroSystem": system}
 	args.update(getCoords(cst, system))
 	return dm.STCSpec(**args).polish()

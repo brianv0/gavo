@@ -9,7 +9,6 @@ If and when there are additional library systems, you need to amend sysdefs.
 """
 
 from gavo import utils
-from gavo.stc import stcsast
 
 
 STC_IVORN = "ivo://STClib/CoordSys"
@@ -63,14 +62,24 @@ def getLibrarySystem(sysId):
 	Unknown sysIds result in NotFoundErrors.  Results are memoized, so
 	make sure you do not mess with what you are returned.
 	"""
-	if sysId.startswith(STC_IVORN):
-		sysId = sysId[len(STC_IVORN)+1:]
+	sysId = stripIVORN(sysId)
 	try:
 		sDef = SYSDEFS[sysId]
 	except KeyError:
 		raise utils.NotFoundError(sysId, "STC library system",
 			"IVOA defined systems", hint="The systems available are defined"
 			" in an appendix of the STC recommendation")
+	from gavo.stc import stcsast
 	system = stcsast.parseSTCS(sDef).astroSystem
 	system.libraryId = "%s#%s"%(STC_IVORN, sysId)
 	return system
+
+
+def stripIVORN(sysId):
+	"""returns sysId with the STC IVORN root removed.
+
+	If sysId does not start with the STC IVORN, it is returned unchanged.
+	"""
+	if sysId.startswith(STC_IVORN):
+		sysId = sysId[len(STC_IVORN)+1:]
+	return sysId

@@ -330,23 +330,35 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 			+ _compoundGeoOperandsNary("children") + _regionTail )
 
 # space subphrase
-	positionInterval = ( Keyword("PositionInterval")("type") +
-		_commonRegionItems + _coos + _regionTail )
-	position = ( Keyword("Position")("type") + 
-		_commonSpaceItems + _pos + _spatialTail )
-	spaceSubPhrase = ( positionInterval | position | atomicGeometry |
-		compoundGeoPhrase ).addParseAction(makeTree)
+	positionInterval = ( Keyword("PositionInterval")("type") 
+		+ _commonRegionItems 
+		+ _coos 
+		+ _regionTail )
+	position = ( Keyword("Position")("type") 
+		+ _commonSpaceItems 
+		+ _pos 
+		+ _spatialTail )
+	spaceSubPhrase = ( positionInterval 
+		| position 
+		| atomicGeometry 
+		| compoundGeoPhrase ).addParseAction(makeTree)
 
 # spectral subphrase
 	spectralSpec = (Suppress( Keyword("Spectral") ) + number)("pos")
-	_spectralTail = (Optional( spectralUnit ) + 
-		Optional( error("error") ) + 
-		Optional( resolution("resolution") ) + Optional( pixSize("pixSize") ))
-	spectralInterval = (Keyword("SpectralInterval")("type") +
-		Optional( fillfactor ) + Optional( refpos ) + _coos + 
-		Optional( spectralSpec ) + _spectralTail)
-	spectral = (Keyword("Spectral")("type") + Optional( refpos ) +
-		_pos + _spectralTail)
+	_spectralTail = (Optional( spectralUnit ) 
+		+ Optional( error("error") ) 
+		+ Optional( resolution("resolution") ) 
+		+ Optional( pixSize("pixSize") ))
+	spectralInterval = (Keyword("SpectralInterval")("type") 
+		+ Optional( fillfactor ) 
+		+ Optional( refpos ) 
+		+ _coos 
+		+ Optional( spectralSpec ) 
+		+ _spectralTail)
+	spectral = (Keyword("Spectral")("type") 
+		+ Optional( refpos ) 
+		+ _pos 
+		+ _spectralTail)
 	spectralSubPhrase = (spectralInterval | spectral ).addParseAction(
 		makeTree)
 
@@ -354,25 +366,39 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 	redshiftType = Regex("VELOCITY|REDSHIFT")("redshiftType")
 	redshiftSpec = (Suppress( Keyword("Redshift") ) + number)("pos")
 	dopplerdef = Regex("OPTICAL|RADIO|RELATIVISTIC")("dopplerdef")
-	_redshiftTail = ( Optional( redshiftUnit ) +
-		Optional( error("error") ) + Optional( resolution("resolution") ) + 
-		Optional( pixSize("pixSize") ))
-	redshiftInterval = (Keyword("RedshiftInterval")("type") + 
-		Optional( fillfactor ) + Optional( refpos ) + 
-		Optional( redshiftType ) + Optional( dopplerdef ) +
-		_coos + Optional( redshiftSpec ) + _redshiftTail)
-	redshift = (Keyword("Redshift")("type") + Optional( refpos ) +
-		Optional( redshiftType ) + Optional( dopplerdef ) +
-		_pos + 
-		_redshiftTail)
-	redshiftSubPhrase = (redshiftInterval | redshift ).addParseAction(
+	_redshiftTail = (Optional( redshiftUnit )
+		+ Optional( error("error") )
+		+ Optional( resolution("resolution") )
+		+ Optional( pixSize("pixSize") ))
+	redshiftInterval = (Keyword("RedshiftInterval")("type") 
+		+ Optional( fillfactor ) 
+		+ Optional( refpos ) 
+		+ Optional( redshiftType ) 
+		+ Optional( dopplerdef ) 
+		+ _coos 
+		+ Optional( redshiftSpec ) 
+		+ _redshiftTail)
+	redshift = (Keyword("Redshift")("type") 
+		+ Optional( refpos ) 
+		+ Optional( redshiftType ) 
+		+ Optional( dopplerdef ) 
+		+ _pos 
+		+ _redshiftTail)
+	redshiftSubPhrase = (redshiftInterval | redshift).addParseAction(
 		makeTree)
+
+# system subphrase (extension, see docs)
+	# ids match Name from XML spec; we're not doing char refs and similar here
+	xmlName = Word(alphas+"_:", alphanums+'.-_:').addParseAction(_stringify)
+	systemDefinition = (Suppress( Keyword("System") ) + xmlName("libSystem"))
+		
 
 # top level
 	stcsPhrase = (Optional( timeSubPhrase )("time") +
 		Optional( spaceSubPhrase )("space") +
 		Optional( spectralSubPhrase )("spectral") +
-		Optional( redshiftSubPhrase )("redshift") ) + StringEnd()
+		Optional( redshiftSubPhrase )("redshift") +
+		Optional( systemDefinition ) ) + StringEnd()
 
 	ParserElement.setDefaultWhitespaceChars("\t ")
 

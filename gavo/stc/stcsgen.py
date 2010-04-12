@@ -20,6 +20,7 @@ import pprint
 
 from gavo.stc import dm
 from gavo.stc import stcs
+from gavo.stc import syslib
 from gavo.stc.common import *
 
 
@@ -246,6 +247,10 @@ _velocityToCST = _makePhraseTreeMapper(
 	_makeAreaTreeMapper("VelocityInterval"),
 	lambda _: {},  # Frame provided by embedding position
 	_makeASTItemsGetter("velocity", "velocityAs"))
+
+def _sysIdToCST(astRoot):
+	if astRoot.astroSystem.libraryId:
+		return syslib.stripIVORN(astRoot.astroSystem.libraryId)
 
 
 def _makeAllSkyCoos(node):
@@ -483,6 +488,10 @@ _flattenRedshift = _make1DCooFlattener("Redshift",
 	["refpos", "redshiftType", "dopplerdef"])
 _flattenSpatial = _makeSpatialFlattener()
 
+def _flattenSystem(node):
+	if node:
+		return "System %s"%node
+
 
 def _flattenCST(cst):
 	"""returns a flattened string for an STCS CST.
@@ -493,7 +502,8 @@ def _flattenCST(cst):
 			_flattenTime(cst.get("time", {})),
 			_flattenSpatial(cst.get("space", {})),
 			_flattenSpectral(cst.get("spectral", {})),
-			_flattenRedshift(cst.get("redshift", {})),)
+			_flattenRedshift(cst.get("redshift", {})),
+			_flattenSystem(cst.get("libSystem")),)
 		if s])
 
 
@@ -505,5 +515,6 @@ def getSTCS(astRoot):
 		"space": _spatialToCST(astRoot),
 		"spectral": _spectralToCST(astRoot),
 		"redshift": _redshiftToCST(astRoot),
+		"libSystem": _sysIdToCST(astRoot),
 	})
 	return _flattenCST(cst)

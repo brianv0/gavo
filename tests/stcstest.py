@@ -267,6 +267,8 @@ class SimpleSTCSTreesTest(STCSTreeParseTestBase):
 			1995, 10, 9, 23, 59, 59, 999997)]),
 		("redshiftType", "VELOCITY", {'redshiftType': 'VELOCITY'}),
 		("frame", "FK4 B1940.5", {'frame': 'FK4', 'equinox': 'B1940.5'}),
+		("systemDefinition", "System TT-ICRS-TOPO", 
+			{'libSystem': 'TT-ICRS-TOPO'}),
 	]
 
 
@@ -325,6 +327,9 @@ class STCSPhraseTest(STCSTreeParseTestBase):
 				[datetime.datetime(2008, 5, 5, 12, 33, 45)], 'timescale': 'TT'}}),
 		("stcsPhrase", "AllSky ICRS",
 			{'space': {'type': 'AllSky', 'frame': 'ICRS'}}),
+		("stcsPhrase", "Position ECLIPTIC System TT-ICRS-TOPO",
+			{'libSystem': 'TT-ICRS-TOPO', 'space': 
+				{'frame': 'ECLIPTIC', 'type': 'Position'}}),
 	]
 
 
@@ -461,6 +466,9 @@ class GeneralGenerationTest(testhelpers.VerboseTest):
 			'PositionInterval FK5 Epoch J2010.2 12.0 13.0 19.0 29.0'
 			' Position 15.0 16.0')
 
+	def testSystem(self):
+		assertMapsto('Position FK5 J2010 15 16 System TT-ICRS-TOPO',
+			"Position ICRS TOPOCENTER 15.0 16.0\nSystem TT-ICRS-TOPO")
 
 class SampleGenerationTestBase(testhelpers.VerboseTest):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
@@ -537,7 +545,7 @@ class ColrefTest(testhelpers.VerboseTest):
 
 
 class SyslibTest(testhelpers.VerboseTest):
-	"""tests for syslib definitions still working.
+	"""tests for syslib definitions ok.
 	"""
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
