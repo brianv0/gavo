@@ -162,6 +162,25 @@ class SpectralFrameMaker(_CoordFrameMaker):
 	rootType = "AstroCoordSystem.SpectralFrame"
 
 
+class _TimeValueMaker(UtypeMaker):
+	@handles(["ISOTime", "JDTime", "MJDTime"])
+	def _absoluteTime(self, name, child, prefix):
+		yield utypejoin(prefix, "xtype"), name
+		for item in child:
+			for pair in self.iterUtypes(item, prefix):
+				yield pair
+
+
+class TimeInstantMaker(_TimeValueMaker):
+	rootType = "AstroCoords.Time.TimeInstant"
+
+class StartTimeMaker(_TimeValueMaker):
+	rootType = "AstroCoordArea.TimeInterval.StartTime"
+
+class StopTimeMaker(_TimeValueMaker):
+	rootType = "AstroCoordArea.TimeInterval.StopTime"
+
+
 #################### toplevel code
 
 def utypejoin(*utypes):

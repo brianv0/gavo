@@ -41,7 +41,8 @@ class STCSFailsTestBase(testhelpers.VerboseTest):
 
 	def _runTest(self, args):
 		sym, literal = args
-		self.assertRaisesVerbose(stcs.ParseException, self.syms[sym].parseString,
+		self.assertRaisesVerbose((stcs.ParseException, stcs.ParseSyntaxException),
+			self.syms[sym].parseString,
 			(literal, True), "No exception when parsing '%s' with %s"%
 			(literal, sym))
 

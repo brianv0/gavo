@@ -74,6 +74,12 @@ def _replaceUtype(utype):
 	return replacer
 
 
+def _appendFragment(frag):
+	def appender(orig, value):
+		yield "%s.%s"%(orig, frag), value
+	return appender
+
+
 _utypeMorphers = {
 	'AstroCoordSystem.RedshiftFrame.ReferencePosition': _replaceLastWithValue,
 	'AstroCoordSystem.RedshiftFrame.value_type': 
@@ -92,6 +98,9 @@ _utypeMorphers = {
 	'AstroCoords.Position1D.epoch': _makeParentAttributeMaker("epoch"),
 	'AstroCoords.Position2D.epoch': _makeParentAttributeMaker("epoch"),
 	'AstroCoords.Position3D.epoch': _makeParentAttributeMaker("epoch"),
+	'AstroCoords.Time.TimeInstant': _appendFragment('ISOTime'),
+	'AstroCoords.TimeInterval.StartTime': _appendFragment('ISOTime'),
+	'AstroCoords.TimeInterval.EndTime': _appendFragment('ISOTime'),
 }
 
 def utypePairsToTree(utypes, nameQualifier=stcxast.STCElement):
@@ -123,7 +132,7 @@ def utypePairsToTree(utypes, nameQualifier=stcxast.STCElement):
 			elementStack[-1].attrib[val.name] = val.value
 
 		# All other values go to the element content; if nothing was
-		# opened or closed, add another node rather than clobbering the
+		# opened or closed, add another node rather than clobber the
 		# last one.
 		else: 
 			if not toClose and not toOpen:

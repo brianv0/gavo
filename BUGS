@@ -176,3 +176,6 @@
 44/WISHLIST/2010-04-10
 	Make a "noform" renderer (or so) from the runOnEmptyInputs case of
 	resourcebased.form
+
+45/MEDIUM/2010-04-13
+	Fields with formatters are not included in VOTables at all?

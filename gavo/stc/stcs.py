@@ -20,7 +20,7 @@ from pyparsing import (Word, Literal, Optional, alphas, CaselessKeyword,
 		Suppress, Keyword, Forward, QuotedString, Group, printables, nums,
 		CaselessLiteral, ParseException, Regex, sglQuotedString, alphanums,
 		dblQuotedString, White, ParseException, ParseResults, Empty,
-		ParserElement)
+		ParserElement, ParseSyntaxException)
 
 from gavo import utils
 from gavo.stc import stcsdefaults
@@ -209,14 +209,14 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 	_unitOpener = Suppress( Keyword("unit") )
 	_spaceUnitWord = Regex(_reFromKeys(spatialUnits))
 	_timeUnitWord = Regex(_reFromKeys(temporalUnits))
-	spaceUnit = _unitOpener + OneOrMore( _spaceUnitWord ).addParseAction(
+	spaceUnit = _unitOpener - OneOrMore( _spaceUnitWord ).addParseAction(
 		_stringifyBlank)("unit")
-	timeUnit = _unitOpener + _timeUnitWord("unit")
-	spectralUnit = _unitOpener + Regex(_reFromKeys(spectralUnits))("unit")
-	redshiftUnit = _unitOpener + ( 
+	timeUnit = _unitOpener - _timeUnitWord("unit")
+	spectralUnit = _unitOpener - Regex(_reFromKeys(spectralUnits))("unit")
+	redshiftUnit = _unitOpener - ( 
 		(_spaceUnitWord + "/" + _timeUnitWord).addParseAction(_stringify) 
 		| Keyword("nil") )("unit")
-	velocityUnit = _unitOpener + (OneOrMore( 
+	velocityUnit = _unitOpener - (OneOrMore( 
 		(_spaceUnitWord + "/" + _timeUnitWord).addParseAction(_stringify) 
 		).addParseAction(_stringifyBlank))("unit")
 
@@ -477,7 +477,7 @@ def getCST(literal, grammarFactory=None):
 		grammarFactory = getGrammar
 	try:
 		tree = makeTree(grammarFactory()["stcsPhrase"].parseString(literal))
-	except ParseException, ex:
+	except (ParseException, ParseSyntaxException), ex:
 		raise STCSParseError("Invalid STCS expression (%s at %s)"%(ex.msg, ex.loc),
 			expr=literal, pos=ex.loc)
 	addDefaults(tree)

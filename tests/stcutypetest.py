@@ -53,6 +53,9 @@ class CoosysGenerTest(testhelpers.VerboseTest):
 			'stc:AstroCoordSystem.SpaceFrame.ReferencePosition': 'BARYCENTER'})
 
 
+CR = stc.ColRef
+
+
 class CooGenerTest(testhelpers.VerboseTest):
 	"""tests for generation of column utype dicts from STC ASTs.
 	"""
@@ -60,77 +63,75 @@ class CooGenerTest(testhelpers.VerboseTest):
 		ast = stc.parseQSTCS(literal)
 		gr = [p for p in stc.getUtypes(ast) 
 			if not p[0].startswith("stc:AstroCoordSystem")]
-		for k in truth:
-			if isinstance(truth[k], basestring):
-				truth[k] = stc.ColRef(truth[k])
-			else:
-				truth[k] = str(truth[k])
 		self.assertEqual(dict(gr), truth)
 	
 	def testTrivialPos(self):
 		self._assertAssmatch('Position ICRS "ra" "dec"', {
-			'stc:AstroCoords.Position2D.Value2.C1': "ra",
-			'stc:AstroCoords.Position2D.Value2.C2': "dec", 
+			'stc:AstroCoords.Position2D.Value2.C1': CR("ra"),
+			'stc:AstroCoords.Position2D.Value2.C2': CR("dec"), 
 		})
 
 	def testMixedPos(self):
 		self._assertAssmatch('Position ICRS "ra" 20.0', {
-			'stc:AstroCoords.Position2D.Value2.C1': "ra",
-			'stc:AstroCoords.Position2D.Value2.C2': 20.0, 
+			'stc:AstroCoords.Position2D.Value2.C1': CR("ra"),
+			'stc:AstroCoords.Position2D.Value2.C2': '20.0', 
 		})
 
 	def testVecPos(self):
 		self._assertAssmatch('Position ICRS [point]', 
-			{'stc:AstroCoords.Position2D.Value2': "point"})
+			{'stc:AstroCoords.Position2D.Value2': CR("point")})
 	
 	def testVecPos3(self):
 		self._assertAssmatch('Position ICRS SPHER3 [point]', 
-			{'stc:AstroCoords.Position3D.Value3': 'point'})
+			{'stc:AstroCoords.Position3D.Value3': CR('point')})
 
 	def testVeloc(self):
 		self._assertAssmatch(
 			'Position ICRS VelocityInterval Velocity "pmra" "pmde"', {
-				'stc:AstroCoords.Velocity2D.Value2.C2': 'pmde',
-				'stc:AstroCoords.Velocity2D.Value2.C1': 'pmra'})
+				'stc:AstroCoords.Velocity2D.Value2.C2': CR('pmde'),
+				'stc:AstroCoords.Velocity2D.Value2.C1': CR('pmra')})
 
 	def testErrorRadius(self):
 		self._assertAssmatch(
 			'Position ICRS Error "ep" "ep"', {
-				'stc:AstroCoords.Position2D.Error2Radius': 'ep'})
+				'stc:AstroCoords.Position2D.Error2Radius': CR('ep')})
 
 	def testTime(self):
-		self._assertAssmatch('Time TT "obsDate"',
-			{'stc:AstroCoords.Time.TimeInstant.ISOTime': "obsDate"})
+		self._assertAssmatch('Time TT "obsDate"', {
+			'stc:AstroCoords.Time.TimeInstant': CR("obsDate"),
+			'stc:AstroCoords.Time.TimeInstant.xtype': "ISOTime"})
 
 	def testTimeA(self):
 		self._assertAssmatch(
 			'TimeInterval TT "start" "end"', {
-				'stc:AstroCoordArea.TimeInterval.StartTime.ISOTime': 'start', 
-				'stc:AstroCoordArea.TimeInterval.StopTime.ISOTime': 'end'})
+				'stc:AstroCoordArea.TimeInterval.StartTime.xtype': "ISOTime",
+				'stc:AstroCoordArea.TimeInterval.StopTime.xtype': "ISOTime",
+				'stc:AstroCoordArea.TimeInterval.StartTime': CR('start'), 
+				'stc:AstroCoordArea.TimeInterval.StopTime': CR('end')})
 	
 	def testGeoRef(self):
 		self._assertAssmatch('Circle FK5 J1000.0 [circle]', {
-			'stc:AstroCoordArea.Circle': 'circle'})
+			'stc:AstroCoordArea.Circle': CR('circle')})
 		self._assertAssmatch('Box FK5 J1000.0 [bbox]', {
-			'stc:AstroCoordArea.Box': 'bbox'})
+			'stc:AstroCoordArea.Box': CR('bbox')})
 		self._assertAssmatch('Polygon FK5 J1000.0 [poly]', {
-			'stc:AstroCoordArea.Polygon': 'poly'})
+			'stc:AstroCoordArea.Polygon': CR('poly')})
 
 	def testGeoSplit(self):
 		self._assertAssmatch('Circle FK5 J1000.0 "cx" "cy" "radius"', {
-			'stc:AstroCoordArea.Circle.Center.C2': 'cy',
-			'stc:AstroCoordArea.Circle.Center.C1': 'cx',
-			'stc:AstroCoordArea.Circle.Radius': 'radius'})
+			'stc:AstroCoordArea.Circle.Center.C2': CR('cy'),
+			'stc:AstroCoordArea.Circle.Center.C1': CR('cx'),
+			'stc:AstroCoordArea.Circle.Radius': CR('radius')})
 
 	def testError(self):
 		self._assertAssmatch('Position ICRS Error "e_ra" "e_dec"', {
-			'stc:AstroCoords.Position2D.Error2.C1': 'e_ra', 
-			'stc:AstroCoords.Position2D.Error2.C2': 'e_dec'})
+			'stc:AstroCoords.Position2D.Error2.C1': CR('e_ra'), 
+			'stc:AstroCoords.Position2D.Error2.C2': CR('e_dec')})
 
 	def testRedshift(self):
 		self._assertAssmatch('Redshift "z" Error "zErr"', {
-			'stc:AstroCoords.Redshift.Value': 'z',
-			'stc:AstroCoords.Redshift.Error': 'zErr'
+			'stc:AstroCoords.Redshift.Value': CR('z'),
+			'stc:AstroCoords.Redshift.Error': CR('zErr')
 		})
 
 	def testCombined(self):
@@ -139,21 +140,22 @@ class CooGenerTest(testhelpers.VerboseTest):
 			'   Error "e_ra" "e_dec" Size "s_ra" "s_dec"'
 			' SpectralInterval "bandLow" "bandHigh"'
 			' Redshift "z" Error "zErr"', {
-					'stc:AstroCoordArea.SpectralInterval.HiLimit': 'bandHigh', 
-					'stc:AstroCoordArea.SpectralInterval.LoLimit': 'bandLow',
-					'stc:AstroCoordArea.Circle.Center.C2': 'cdec', 
-					'stc:AstroCoordArea.Circle.Center.C1': 'cra',
-					'stc:AstroCoordArea.Circle.Radius': 'crad',
-					'stc:AstroCoords.Time.TimeInstant.ISOTime': 'dateObs', 
-					'stc:AstroCoords.Position2D.Value2.C2': 'dec',
-					'stc:AstroCoords.Position2D.Error2.C2': 'e_dec', 
-					'stc:AstroCoords.Position2D.Error2.C1': 'e_ra', 
-					'stc:AstroCoords.Time.Error': 'e_date',
-					'stc:AstroCoords.Position2D.Value2.C1': 'ra',
-					'stc:AstroCoords.Position2D.Size2.C2': 's_dec',
-					'stc:AstroCoords.Position2D.Size2.C1': 's_ra', 
-					'stc:AstroCoords.Redshift.Value': 'z',
-					'stc:AstroCoords.Redshift.Error': 'zErr',
+					'stc:AstroCoordArea.SpectralInterval.HiLimit': CR('bandHigh'), 
+					'stc:AstroCoordArea.SpectralInterval.LoLimit': CR('bandLow'),
+					'stc:AstroCoordArea.Circle.Center.C2': CR('cdec'), 
+					'stc:AstroCoordArea.Circle.Center.C1': CR('cra'),
+					'stc:AstroCoordArea.Circle.Radius': CR('crad'),
+					'stc:AstroCoords.Time.TimeInstant': CR('dateObs'), 
+					'stc:AstroCoords.Time.TimeInstant.xtype': 'ISOTime', 
+					'stc:AstroCoords.Position2D.Value2.C2': CR('dec'),
+					'stc:AstroCoords.Position2D.Error2.C2': CR('e_dec'), 
+					'stc:AstroCoords.Position2D.Error2.C1': CR('e_ra'), 
+					'stc:AstroCoords.Time.Error': CR('e_date'),
+					'stc:AstroCoords.Position2D.Value2.C1': CR('ra'),
+					'stc:AstroCoords.Position2D.Size2.C2': CR('s_dec'),
+					'stc:AstroCoords.Position2D.Size2.C1': CR('s_ra'), 
+					'stc:AstroCoords.Redshift.Value': CR('z'),
+					'stc:AstroCoords.Redshift.Error': CR('zErr'),
 				})
 
 
@@ -214,7 +216,7 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 		inTypes = args
 		ast = stc.parseFromUtypes(inTypes)
 		outTypes = stc.getUtypes(ast)
-		#print colTypes1, sysTypes1
+		#print outTypes
 		# allow additional keys in output (non-removed defaults)
 		self._assertSublist(inTypes, outTypes)
 
@@ -241,7 +243,8 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 			('stc:AstroCoordSystem.SpaceFrame.CoordFlavor', 'CARTESIAN'),
 			('stc:AstroCoordSystem.SpaceFrame.CoordFlavor.coord_naxes', '3')],
 		[
-			('stc:AstroCoords.Time.TimeInstant.ISOTime', '2000-01-01T00:00:00'),
+			('stc:AstroCoords.Time.TimeInstant', '2000-01-01T00:00:00'),
+			('stc:AstroCoords.Time.TimeInstant.xtype', 'ISOTime'),
 			('stc:AstroCoordArea.Circle', stc.ColRef('errc'))],
 		[
 			('stc:AstroCoordSystem.href', 

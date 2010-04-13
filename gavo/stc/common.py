@@ -189,9 +189,14 @@ class ColRef(stanxml.Stub):
 		raise STCValueError("ColRefs (here, %s) cannot be used in arithmetic"
 			" expressions."%repr(self))
 
+	def encode(self, encoding): # for ElementTree.dump
+		return self.dest.encode(encoding)
+
 	def isoformat(self):
 		return self
 
+	def traverse(self, visitor):
+		return visitor("ColRef", self.dest, {}, [])
 
 
 class GeometryColRef(ColRef):
