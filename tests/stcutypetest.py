@@ -215,7 +215,7 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 	def _runTest(self, args):
 		inTypes = args
 		ast = stc.parseFromUtypes(inTypes)
-		outTypes = stc.getUtypes(ast)
+		outTypes = stc.getUtypes(ast, includeDMURI=True)
 		#print outTypes
 		# allow additional keys in output (non-removed defaults)
 		self._assertSublist(inTypes, outTypes)
@@ -225,6 +225,7 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 		[('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS')],
 		[('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS'),
 			('stc:AstroCoords.Position2D.epoch', 'J2002.0'),
+			('stc:DataModel.URI', 'http://www.ivoa.net/xml/STC/stc-v1.30.xsd'),
 		],
 		[('stc:AstroCoords.Position2D.Value2.C1', stc.ColRef('ra')),
 			('stc:AstroCoords.Position2D.Value2.C2', stc.ColRef('dec'))],

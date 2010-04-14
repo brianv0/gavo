@@ -197,8 +197,11 @@ _getUtypeMaker = utils.buildClassResolver(
 	key=lambda obj:obj.rootType)
 
 
-def getUtypes(ast):
+def getUtypes(ast, includeDMURI=False):
 	"""returns a lists of utype/value pairs for an STC AST.
+
+	If you pass includeDMURI, a utype/value pair for the data model URI will
+	be  generated in addition to what comes in from ast.
 	"""
 	cst = stcxgen.astToStan(ast, STC.STCSpec)
 	utypes = []
@@ -206,4 +209,6 @@ def getUtypes(ast):
 		if val is None or val=='':
 			continue
 		utypes.append(("stc:"+utype, val))
+	if includeDMURI:
+		utypes.append(("stc:DataModel.URI", common.STCNamespace))
 	return utypes

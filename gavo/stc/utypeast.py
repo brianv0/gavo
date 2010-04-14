@@ -73,12 +73,15 @@ def _replaceUtype(utype):
 		yield utype, value
 	return replacer
 
-
 def _appendFragment(frag):
 	def appender(orig, value):
 		yield "%s.%s"%(orig, frag), value
 	return appender
 
+def _ignore(utype, value):
+	if False:
+		yield None
+	
 
 _utypeMorphers = {
 	'AstroCoordSystem.RedshiftFrame.ReferencePosition': _replaceLastWithValue,
@@ -101,6 +104,9 @@ _utypeMorphers = {
 	'AstroCoords.Time.TimeInstant': _appendFragment('ISOTime'),
 	'AstroCoords.TimeInterval.StartTime': _appendFragment('ISOTime'),
 	'AstroCoords.TimeInterval.EndTime': _appendFragment('ISOTime'),
+	'DataModel.Uri': _ignore,
+	'DataModel.Name': _ignore,
+	'DataModel.Version': _ignore,
 }
 
 def utypePairsToTree(utypes, nameQualifier=stcxast.STCElement):

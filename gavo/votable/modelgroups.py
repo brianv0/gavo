@@ -125,4 +125,4 @@ def marshal_STC(ast, getIdFor):
 	"""
 	return V.GROUP(utype="stc:ObservationLocation")[
 		[_makeUtypeContainer(utype, value, getIdFor)
-			for utype, value in stc.getUtypes(ast)]]
+			for utype, value in stc.getUtypes(ast, includeDMURI=True)]]
