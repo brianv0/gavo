@@ -183,4 +183,8 @@ def getUniqueMatch(matches, colName):
 	elif not matches:
 		raise ColumnNotFound(colName)
 	else:
-		raise AmbiguousColumn(colName)
+		matches = set(matches)
+		if len(matches)!=1:
+			raise AmbiguousColumn(colName)
+		else:
+			return matches.pop()

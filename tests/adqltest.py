@@ -499,6 +499,16 @@ class SelectClauseTest(ColumnTest):
 			("mag", "phot.mag", False),
 			("km/s", "phys.veloc", False),])
 
+	def testMixedQualifiedStar(self):
+		cols = self._getColSeq("select misc.*, dist, round(mass/10)"
+			" from spatial, misc")
+		self._assertColumns(cols, [
+			("kg", "phys.mass", False),
+			("mag", "phot.mag", False),
+			("km/s", "phys.veloc", False),
+			("m", "phys.distance", False),
+			("kg", "phys.mass", True),])
+
 
 class ColResTest(ColumnTest):
 	"""tests for resolution of output columns from various expressions.

@@ -214,6 +214,7 @@ def localquery():
 	from gavo import formats
 
 	q = sys.argv[1]
-	querier = base.SimpleQuerier(useProfile="trustedquery")
+	base.setDBProfile("trustedquery")
+	querier = base.SimpleQuerier()
 	table = query(querier, q, timeout=1000)
 	formats.formatData("votable", table, sys.stdout)

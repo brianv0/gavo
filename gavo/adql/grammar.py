@@ -519,7 +519,6 @@ if __name__=="__main__":
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
 	res = syms["statement"].parseString(
-			"select dist, speed, mass*height"
-			" from spatial join misc on (mass>height)"
+			"""select ucac3.icrscorr.*, round(x/10) as u from ucac3.icrscorr"""
 			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

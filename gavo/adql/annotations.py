@@ -89,7 +89,8 @@ class FieldInfos(object):
 		# XXX TODO: handle delimited identifiers
 		label = label.lower()
 		if label in self.columns:
-			self.columns[label] = None # Sentinel for ambiguous names
+			if self.columns[label]!=info:
+				self.columns[label] = None # Sentinel for ambiguous names
 		else:
 			self.columns[label] = info
 		self.seq.append((label, info))
@@ -184,7 +185,6 @@ class FieldInfosForQuery(FieldInfos):
 				subCols = t.fieldInfos.columns
 				if colName in subCols and subCols[colName]:
 					matched.append(subCols[colName])
-
 		# XXX TODO: build a qualified colName here if necessary
 		return getUniqueMatch(matched, colName)
 
