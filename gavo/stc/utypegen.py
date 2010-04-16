@@ -120,6 +120,8 @@ class _CoordFrameMaker(UtypeMaker):
 	@handles(common.stcRefPositions)
 	def _refPos(self, name, child, prefix):
 		yield utypejoin(prefix, "ReferencePosition"), name
+		for pair in self._generPlain("ReferencePosition", child, prefix):
+			yield pair
 
 
 class TimeFrameMaker(_CoordFrameMaker):
@@ -197,7 +199,7 @@ _getUtypeMaker = utils.buildClassResolver(
 	key=lambda obj:obj.rootType)
 
 
-def getUtypes(ast, includeDMURI=False):
+def getUtypes(ast, includeDMURI=False, suppressXtype=True):
 	"""returns a lists of utype/value pairs for an STC AST.
 
 	If you pass includeDMURI, a utype/value pair for the data model URI will
@@ -208,6 +210,9 @@ def getUtypes(ast, includeDMURI=False):
 	for utype, val in _getUtypeMaker("").iterUtypes(cst, ""):
 		if val is None or val=='':
 			continue
+		if suppressXtype:
+			if utype.endswith("xtype"):
+				continue
 		utypes.append(("stc:"+utype, val))
 	if includeDMURI:
 		utypes.append(("stc:DataModel.URI", common.STCNamespace))

@@ -36,6 +36,15 @@ class _Attribute(object):
 		self.name, self.value = name, value
 
 
+class _Child(object):
+	"""a "value" for utypesParisToTree that causes a child to be appended
+
+	This is for morph functions on substitution groups.
+	"""
+	def __init__(self, name, value):
+		self.name, self.value = name, value
+
+
 def _unifyTuples(fromTuple, toTuple):
 	"""returns a pair fromTail, toTail of tuples to bring fromTuple to toTuple.
 
@@ -68,6 +77,12 @@ def _makeParentAttributeMaker(attName):
 		yield ".".join(parseUtype(utype)[:-1]), _Attribute(attName, value)
 	return makeAttribute
 
+def _makeChildMaker(childName):
+	def makeChild(utype, value):
+		yield None, _Child(childName, value)
+	return makeChild
+
+
 def _replaceUtype(utype):
 	def replacer(_, value):
 		yield utype, value
@@ -98,6 +113,14 @@ _utypeMorphers = {
 	'AstroCoordSystem.TimeFrame.ReferencePosition': _replaceLastWithValue,
 	'AstroCoordSystem.href': _makeParentAttributeMaker(
 		stcxast.xlinkHref),
+	'AstroCoordSystem.SpaceFrame.ReferencePosition.PlanetaryEphem':
+		_makeChildMaker("PlanetaryEphem"),
+	'AstroCoordSystem.TimeFrame.ReferencePosition.PlanetaryEphem':
+		_makeChildMaker("PlanetaryEphem"),
+	'AstroCoordSystem.SpectralFrame.ReferencePosition.PlanetaryEphem':
+		_makeChildMaker("PlanetaryEphem"),
+	'AstroCoordSystem.RedshiftFrame.ReferencePosition.PlanetaryEphem':
+		_makeChildMaker("PlanetaryEphem"),
 	'AstroCoords.Position1D.Epoch': _makeParentAttributeMaker("Epoch"),
 	'AstroCoords.Position2D.Epoch': _makeParentAttributeMaker("Epoch"),
 	'AstroCoords.Position3D.Epoch': _makeParentAttributeMaker("Epoch"),
@@ -136,6 +159,10 @@ def utypePairsToTree(utypes, nameQualifier=stcxast.STCElement):
 		# _Attributes get special handling
 		if isinstance(val, _Attribute):
 			elementStack[-1].attrib[val.name] = val.value
+		elif isinstance(val, _Child):
+			ElementTree.SubElement(elementStack[-1], 
+				nameQualifier(val.name)).text = val.value
+
 
 		# All other values go to the element content; if nothing was
 		# opened or closed, add another node rather than clobber the

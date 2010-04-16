@@ -52,6 +52,14 @@ class CoosysGenerTest(testhelpers.VerboseTest):
 			'stc:AstroCoordSystem.SpaceFrame.CoordFlavor': 'SPHERICAL',
 			'stc:AstroCoordSystem.SpaceFrame.ReferencePosition': 'BARYCENTER'})
 
+	def testWithPleph(self):
+		self._assertSetmatch("Position ICRS BARYCENTER JPL-DE405", {
+			'stc:AstroCoordSystem.SpaceFrame.CoordFlavor': 'SPHERICAL', 
+			'stc:AstroCoordSystem.SpaceFrame.CoordRefFrame': 'ICRS', 
+			'stc:AstroCoordSystem.SpaceFrame.ReferencePosition.PlanetaryEphem': 
+				'JPL-DE405', 
+			'stc:AstroCoordSystem.SpaceFrame.ReferencePosition': 'BARYCENTER'})
+
 
 CR = stc.ColRef
 
@@ -200,6 +208,11 @@ class UtypeASTTest(testhelpers.VerboseTest):
 	def testTime(self):
 		ast = self._getASTFromSTCS('Time TDB "time"')
 		self.assertEqual(ast.time.frame.timeScale, 'TDB')
+
+	def testPleph(self):
+		ast = self._getASTFromSTCS('Time TDB TOPOCENTER JPL-DE405')
+		self.assertEqual(ast.astroSystem.timeFrame.refPos.planetaryEphemeris, 
+			"JPL-DE405")
 
 
 class UtypeRoundtripTest(testhelpers.VerboseTest):
