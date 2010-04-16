@@ -85,6 +85,10 @@ class CooGenerTest(testhelpers.VerboseTest):
 		self._assertAssmatch('Position ICRS SPHER3 [point]', 
 			{'stc:AstroCoords.Position3D.Value3': CR('point')})
 
+	def testVecEpoch(self):
+		self._assertAssmatch('Position ICRS Epoch J2010.5', 
+			{'stc:AstroCoords.Position2D.Epoch': 'J2010.5'})
+
 	def testVeloc(self):
 		self._assertAssmatch(
 			'Position ICRS VelocityInterval Velocity "pmra" "pmde"', {
@@ -224,7 +228,7 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 		[],
 		[('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS')],
 		[('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS'),
-			('stc:AstroCoords.Position2D.epoch', 'J2002.0'),
+			('stc:AstroCoords.Position2D.Epoch', 'J2002.0'),
 			('stc:DataModel.URI', 'http://www.ivoa.net/xml/STC/stc-v1.30.xsd'),
 		],
 		[('stc:AstroCoords.Position2D.Value2.C1', stc.ColRef('ra')),

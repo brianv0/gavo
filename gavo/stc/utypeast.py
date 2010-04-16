@@ -98,9 +98,9 @@ _utypeMorphers = {
 	'AstroCoordSystem.TimeFrame.ReferencePosition': _replaceLastWithValue,
 	'AstroCoordSystem.href': _makeParentAttributeMaker(
 		stcxast.xlinkHref),
-	'AstroCoords.Position1D.epoch': _makeParentAttributeMaker("epoch"),
-	'AstroCoords.Position2D.epoch': _makeParentAttributeMaker("epoch"),
-	'AstroCoords.Position3D.epoch': _makeParentAttributeMaker("epoch"),
+	'AstroCoords.Position1D.Epoch': _makeParentAttributeMaker("epoch"),
+	'AstroCoords.Position2D.Epoch': _makeParentAttributeMaker("epoch"),
+	'AstroCoords.Position3D.Epoch': _makeParentAttributeMaker("epoch"),
 	'AstroCoords.Time.TimeInstant': _appendFragment('ISOTime'),
 	'AstroCoords.TimeInterval.StartTime': _appendFragment('ISOTime'),
 	'AstroCoords.TimeInterval.EndTime': _appendFragment('ISOTime'),

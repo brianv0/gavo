@@ -105,10 +105,10 @@ class STC(object):
 
 	class T_coordinate(T_double2):
 		a_frame_id = None
-		a_epoch = None
+		a_Epoch = None
 
 		def isEmpty(self):
-			if self.a_epoch is not None:
+			if self.a_Epoch is not None:
 				return False
 			return STC.T_double2.isEmpty(self)
 

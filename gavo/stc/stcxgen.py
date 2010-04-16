@@ -303,7 +303,7 @@ def _makeSpatialCooSerializer(stcClasses):
 					for wiggleType in ["error", "resolution", "size", "pixSize"]],
 			]
 		if node.epoch:
-			res(epoch=node.epoch)
+			res(Epoch=node.epoch)
 		if not res.isEmpty():
 			return res(frame_id=node.frame.id, **clsArgs)
 	return serialize
