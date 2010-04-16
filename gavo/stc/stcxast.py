@@ -407,11 +407,18 @@ def _buildAstroCoordSystem(node, buildArgs, context):
 	yield "astroSystem", newEl
 
 
+def _buildPlanetaryEphem(node, buildArgs, context):
+	res = node.text.strip()
+	if res:
+		yield 'planetaryEphemeris', res
+
+
 def _buildRefpos(node, buildArgs, context):
 	refposName = _localname(node.tag)
 	if refposName=="UNKNOWNRefPos":
 		refposName = None
-	yield 'refPos', dm.RefPos(standardOrigin=refposName)
+	yield 'refPos', dm.RefPos(standardOrigin=refposName,
+		**buildArgs)
 
 def _buildFlavor(node, buildArgs, context):
 	yield 'flavor', _localname(node.tag)
@@ -820,6 +827,7 @@ _stcBuilders = [
 def _getHandlers():
 	handlers = {
 		_n("AstroCoordSystem"): _buildAstroCoordSystem,
+		_n("PlanetaryEphem"): _buildPlanetaryEphem,
 		_n("Error"): _makeKwFloatBuilder("error", units=_yieldErrUnits),
 		_n("PixSize"): _makeKwFloatBuilder("pixSize", units=_yieldPSUnits),
 		_n("Resolution"): _makeKwFloatBuilder("resolution", units=_yieldResUnits),

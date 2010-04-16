@@ -39,7 +39,9 @@ def _combine(*dicts):
 ############## Reference Frames to CST
 
 def refPosToCST(node):
-	return {"refpos": node.standardOrigin}
+	return {
+		"refpos": node.standardOrigin,
+		"planetaryEphemeris": node.planetaryEphemeris,}
 
 stcsFlavors = {
 	(2, "SPHERICAL"): "SPHER2",
@@ -315,7 +317,10 @@ def _spatialToCST(astRoot):
 ############## Flattening of the CST
 
 def _joinWithNull(strList):
-	return " ".join(s for s in strList if s is not None)
+	res = " ".join(s for s in strList if s is not None)
+	if not res:
+		return None
+	return res
 
 
 def _joinKeysWithNull(node, kwList, flatteners):
@@ -395,6 +400,10 @@ def _makeKeywordFlattener(keyword):
 	return flatten
 
 
+def _flattenRefPos(val, node):
+	return _joinWithNull([node["refpos"], node["planetaryEphemeris"]])
+
+
 # Keywords for items common to all coordinates.
 _commonFlatteners = {
 	"fillfactor": _makeKeywordFlattener("fillfactor"),
@@ -405,6 +414,7 @@ _commonFlatteners = {
 	"pixSize": _makeKeywordFlattener("PixSize"),
 	"epoch": _makeKeywordFlattener("Epoch"),
 	"coos": _flattenValue,
+	"refpos": _flattenRefPos,
 }
 
 

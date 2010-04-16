@@ -83,7 +83,8 @@ class Context(object):
 
 def serialize_RefPos(node, context):
 	try:
-		return getattr(STC, node.standardOrigin or "UNKNOWNRefPos")
+		return getattr(STC, node.standardOrigin or "UNKNOWNRefPos")[
+			STC.PlanetaryEphem[node.planetaryEphemeris]]
 	except AttributeError:
 		raise STCValueError("No such standard origin: %s"%node.standardOrigin)
 

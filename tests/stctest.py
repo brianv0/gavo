@@ -48,6 +48,11 @@ class CoordSysTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.astroSystem.spaceFrame.getEquinox(),
 			datetime.datetime(1974, 12, 31, 23, 28, 56, 228856))
 
+	def testPlanetaryEphemeris(self):
+		ast = stcsast.parseSTCS("Time TT TOPOCENTER JPL-DE200")
+		self.assertEqual(ast.astroSystem.timeFrame.refPos.planetaryEphemeris,
+			"JPL-DE200")
+
 
 class OtherCoordTest(testhelpers.VerboseTest):
 	def testSimpleTime(self):
@@ -460,6 +465,8 @@ class STCSRoundtripTest(testhelpers.VerboseTest):
 			"Union ICRS TOPOCENTER (Circle 180.0 10.0 20.0 Circle 190.0 20.0 20.0 Intersection (Circle 120.0 -10.0 20.0 Difference (Circle 130.0 -10.0 20.0 Circle 125.0 -10.0 2.0) Not (Circle 118.0 -8.0 3.0)))"),
 		("Redshift VELOCITY 2",
 			"Redshift VELOCITY 2.0"),
+		("Redshift BARYCENTER JPL-DE405 3.5",
+			"Redshift BARYCENTER JPL-DE405 3.5"),
 	]
 
 

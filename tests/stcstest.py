@@ -124,6 +124,7 @@ class STCSSpaceParsesTest(STCSParsesTestBase):
 		("position", "Position UNKNOWNFrame Epoch J1992.5 12 13 Error 0.1 0.1"
 			" VelocityInterval fillfactor 0.125 1 1.5 2 3 Error 0.25 0.5"
 			" Resolution 0.25 0.25 PixSize 0.5 0.75"),
+		("position", "Position ICRS TOPOCENTER JPL-DE200"),
 	]
 
 
@@ -151,6 +152,7 @@ class STCSRedshiftParsesTest(STCSParsesTestBase):
 		("redshiftSubPhrase", "RedshiftInterval fillfactor 0.4"
 			" BARYCENTER REDSHIFT 12 13 Redshift 11.3"),
 	]
+
 
 class STCSRedshiftFailsTest(STCSFailsTestBase):
 	samples = [
@@ -419,6 +421,7 @@ def assertMapsto(stcsInput, expectedOutput):
 		raise AssertionError("Didn't get expected STC-S for example '%s';"
 			" non-matching part: '%s'"%(stcsInput, foundOutput[matchLen:]))
 
+
 class GeneralGenerationTest(testhelpers.VerboseTest):
 	"""tests for STCS-STCS-round trips.
 	"""
@@ -471,11 +474,18 @@ class GeneralGenerationTest(testhelpers.VerboseTest):
 		assertMapsto('Position FK5 J2010 15 16 System TT-ICRS-TOPO',
 			"Position ICRS TOPOCENTER 15.0 16.0\nSystem TT-ICRS-TOPO")
 
+
 class SampleGenerationTestBase(testhelpers.VerboseTest):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 	samples = []
 	def _runTest(self, sample):
 		assertMapsto(*sample)
+
+
+class BaseGenerationTest(SampleGenerationTestBase):
+	samples = [
+		("Redshift BARYCENTER JPL-DE405 3.5",
+			"Redshift BARYCENTER JPL-DE405 3.5"),]
 
 
 class GeometriesGenerationTest(SampleGenerationTestBase):

@@ -232,7 +232,9 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		)("frame")
 	eqFrame = eqFrameName + Optional( astroYear("equinox") )
 	frame = eqFrame | noEqFrame
-	refpos = (Regex(_reFromKeys(stcRefPositions)))("refpos")
+	plEphemeris = Keyword("JPL-DE200") | Keyword("JPL-DE405")
+	refpos = ((Regex(_reFromKeys(stcRefPositions)))("refpos")
+    + Optional( plEphemeris("plEphemeris") ))
 	flavor = (Regex(_reFromKeys(stcsFlavors)))("flavor")
 
 
@@ -275,7 +277,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		Optional( pixSize("pixSize") ) )
 	_intervalOpener = ( Optional( fillfactor ) + 
 		Optional( timescale("timescale") ) +
-		Optional( refpos("refpos") ) )
+		Optional( refpos ) )
 	_intervalCloser = Optional( timephrase("pos") ) + _commonTimeItems
 
 	timeInterval =  (Keyword("TimeInterval")("type") + 
@@ -286,7 +288,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 	stopTime = (Keyword("StopTime")("type") + _intervalOpener + 
 		timeLiteral.setResultsName("coos", True) + _intervalCloser)
 	time = (Keyword("Time")("type")  + Optional( timescale("timescale") ) + 
-		Optional( refpos("refpos") ) + Optional(
+		Optional( refpos ) + Optional(
 			timeLiteral.setResultsName("pos", True) ) + _commonTimeItems)
 	timeSubPhrase = (timeInterval | startTime | stopTime | time).addParseAction(
 		makeTree)
@@ -490,5 +492,5 @@ if __name__=="__main__":
 #	print getCST("PositionInterval ICRS 1 2 3 4")
 	enableDebug(syms)
 	pprint.pprint(makeTree(syms["stcsPhrase"].parseString(
-		'Position ICRS "foo" "bar" Error "e_foo" "e_bar"'
+		"Position ICRS TOPOCENTER JPL-DE200"
 		, parseAll=True)))

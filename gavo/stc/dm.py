@@ -34,6 +34,7 @@ class RefPos(ASTNode):
 # class, I guess.  Or, we'd need a sentinel for standardOrigin (like,
 # NONSTANDARD).  None, anyway, is for Unknown, and we shouldn't change that.
 	_a_standardOrigin = None
+	_a_planetaryEphemeris = None
 
 
 NullRefPos = RefPos()

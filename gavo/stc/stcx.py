@@ -321,7 +321,10 @@ class STC(object):
 	
 	class Center(OptionalSTCElement):
 		pass
-	
+
+	class PlanetaryEphem(OptionalSTCElement):
+		pass
+
 
 STC._addSubsGroup(STC.T_double1, ["C1", "C2", "C3", "e", 
 	"Error", "Size", "Resolution", "PixSize",
