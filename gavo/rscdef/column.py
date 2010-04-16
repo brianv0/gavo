@@ -288,6 +288,8 @@ class Column(base.Structure):
 	_note = UnicodeAttribute("note", description="Reference to a note meta"
 		" on this table explaining more about this column", default=None,
 		copyable=True)
+	_xtype = UnicodeAttribute("xtype", description="VOTable xtype giving"
+		" the serialization form", default=None, copyable=True)
 	_properties = base.PropertyAttribute(copyable=True)
 	_original = base.OriginalAttribute()
 

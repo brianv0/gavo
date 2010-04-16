@@ -356,7 +356,7 @@ class UnitsTest(SimpleSTCXSrcTest):
 class MiscSrcTest(SimpleSTCXSrcTest):
 	def testEpoch(self):
 		ast = self._getAST("<SpaceFrame><ICRS/></SpaceFrame>",
-			'<Position2D epoch="B400"/>')
+			'<Position2D Epoch="B400"/>')
 		self.assertEqual(ast.place.epoch, "B400")
 
 

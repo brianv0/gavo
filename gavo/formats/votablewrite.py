@@ -107,7 +107,7 @@ def _makeValuesForColDesc(colDesc):
 
 
 # keys copied from colDescs to FIELDs in _getFieldFor
-_voFieldCopyKeys = ["name", "ID", "datatype", "ucd", "utype"]
+_voFieldCopyKeys = ["name", "ID", "datatype", "ucd", "utype", "xtype"]
 
 def _defineField(element, colDesc):
 	"""adds attributes and children to element from colDesc.

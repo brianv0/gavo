@@ -38,7 +38,8 @@ class _TestVOTable(testhelpers.TestResource):
 				<meta name="note" tag="1">Note 1</meta>
 				<meta name="note" tag="2">Note 2</meta>
 				<column name="anInt" type="integer"
-					description="This is a first data field" note="1"/>
+					description="This is a first data field" note="1"
+					xtype="test:junk"/>
 				<column name="aFloat"
 					description="This ain't &amp;alpha; for sure." note="1"/>
 				<column name="bla" type="text" note="2"/>
@@ -118,6 +119,11 @@ class VOTableTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 		self.assertEqual(groups[0][2].get("ref"), "aFloat")
 		self.assertEqual(groups[1][0].text, "Note 2")
 		self.assertEqual(groups[1][1].get("ref"), "bla")
+
+	def testXtype(self):
+		tree = self.testData[1]
+		intCol = tree.findall(".//%s"%votable.voTag("FIELD"))[0]
+		self.assertEqual(intCol.get("xtype"), "test:junk")
 
 
 class _ImportTestData(testhelpers.TestResource):

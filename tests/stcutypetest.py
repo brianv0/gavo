@@ -220,7 +220,6 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 		inTypes = args
 		ast = stc.parseFromUtypes(inTypes)
 		outTypes = stc.getUtypes(ast, includeDMURI=True)
-		#print outTypes
 		# allow additional keys in output (non-removed defaults)
 		self._assertSublist(inTypes, outTypes)
 

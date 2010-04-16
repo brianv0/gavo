@@ -167,7 +167,6 @@ def _charMapperFactory(colDesc):
 _registerDefaultMF(_charMapperFactory)
 
 
-
 def datetimeMapperFactory(colDesc):
 	import time
 
@@ -176,8 +175,10 @@ def datetimeMapperFactory(colDesc):
 		"""
 		return stc.dateTimeToJdn(val)-2400000.5
 	
-	if (isinstance(colDesc["sample"], (datetime.date, datetime.datetime))
-			or (colDesc["sample"] is None and colDesc["dbtype"]=="timestamp")):
+	if (
+			(colDesc["sample"] is None and colDesc["dbtype"]=="timestamp")
+			or (colDesc.get("xtype")=="adql:TIMESTAMP")
+			or isinstance(colDesc["sample"], (datetime.date, datetime.datetime))):
 		unit = colDesc["unit"]
 		if colDesc["ucd"] and "MJD" in colDesc["ucd"]:  # like VOX:Image_MJDateObs
 			colDesc["unit"] = "d"
@@ -192,7 +193,10 @@ def datetimeMapperFactory(colDesc):
 		elif unit=="s":
 			fun = lambda val: (val and time.mktime(val.timetuple())) or None
 			destType = ("double", '1')
-		elif unit=="Y:M:D" or unit=="Y-M-D":
+		elif (
+				unit=="Y:M:D" 
+				or unit=="Y-M-D" 
+				or colDesc["xtype"]=="adql:TIMESTAMP"):
 			fun = lambda val: (val and val.isoformat()) or None
 			destType = ("char", "*")
 		elif unit=="iso":
@@ -338,6 +342,7 @@ class VColDesc(dict):
 		self["sample"] = None
 		self["name"] = column.name
 		self["dbtype"] = column.type
+		self["xtype"] = column.xtype
 		type, size = typesystems.sqltypeToVOTable(column.type)
 		self["datatype"] = type
 		self["arraysize"] = size

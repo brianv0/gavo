@@ -36,7 +36,7 @@ def makeTableDefForVOTable(tableId, votTable, **moreArgs):
 			"tablehead": colName.capitalize(),
 			"id": getattr(f, "a_ID", None),
 			"type": base.voTableToSQLType(f.a_datatype, f.a_arraysize)}
-		for attName in ["ucd", "description", "unit"]:
+		for attName in ["ucd", "description", "unit", "xtype"]:
 			if getattr(f, "a_"+attName, None) is not None:
 				kwargs[attName] = getattr(f, "a_"+attName)
 		columns.append(MS(rscdef.Column, **kwargs))
