@@ -28,7 +28,7 @@ class CacheRegistry:
 	
 	def clearall(self):
 		for cache in self.knownCaches:
-			for key in cache:
+			for key in cache.keys():
 				del cache[key]
 
 	def clearForName(self, key):
