@@ -119,7 +119,8 @@ class _NotImplementedUtypeMaker(UtypeMaker):
 class _CoordFrameMaker(UtypeMaker):
 	@handles(common.stcRefPositions)
 	def _refPos(self, name, child, prefix):
-		yield utypejoin(prefix, "ReferencePosition"), name
+		if name!='UNKNOWNRefPos':
+			yield utypejoin(prefix, "ReferencePosition"), name
 		for pair in self._generPlain("ReferencePosition", child, prefix):
 			yield pair
 

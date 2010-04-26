@@ -31,7 +31,6 @@ class CoosysGenerTest(testhelpers.VerboseTest):
 				'stc:AstroCoordSystem.SpaceFrame.CoordRefFrame': 'ICRS',
 				'stc:AstroCoordSystem.TimeFrame.TimeScale': 'TT',
 				'stc:AstroCoordSystem.RedshiftFrame.DopplerDefinition': 'OPTICAL',
-				'stc:AstroCoordSystem.TimeFrame.ReferencePosition': 'UNKNOWNRefPos',
 				'stc:AstroCoordSystem.RedshiftFrame.value_type': 'VELOCITY',
 				'stc:AstroCoordSystem.RedshiftFrame.ReferencePosition': 'BARYCENTER',
 				'stc:AstroCoordSystem.SpaceFrame.CoordFlavor': 'SPHERICAL',
@@ -42,8 +41,7 @@ class CoosysGenerTest(testhelpers.VerboseTest):
 		self._assertSetmatch("Position FK4 J1975.0", {
 			'stc:AstroCoordSystem.SpaceFrame.CoordRefFrame': 'FK4',
 			'stc:AstroCoordSystem.SpaceFrame.CoordRefFrame.Equinox': 'J1975.0',
-			'stc:AstroCoordSystem.SpaceFrame.CoordFlavor': 'SPHERICAL',
-			'stc:AstroCoordSystem.SpaceFrame.ReferencePosition': 'UNKNOWNRefPos'})
+			'stc:AstroCoordSystem.SpaceFrame.CoordFlavor': 'SPHERICAL',})
 	
 	def testWithDistance(self):
 		self._assertSetmatch("Position ICRS BARYCENTER SPHER3 unit deg deg pc",{
@@ -110,14 +108,11 @@ class CooGenerTest(testhelpers.VerboseTest):
 
 	def testTime(self):
 		self._assertAssmatch('Time TT "obsDate"', {
-			'stc:AstroCoords.Time.TimeInstant': CR("obsDate"),
-			'stc:AstroCoords.Time.TimeInstant.xtype': "ISOTime"})
+			'stc:AstroCoords.Time.TimeInstant': CR("obsDate"),})
 
 	def testTimeA(self):
 		self._assertAssmatch(
 			'TimeInterval TT "start" "end"', {
-				'stc:AstroCoordArea.TimeInterval.StartTime.xtype': "ISOTime",
-				'stc:AstroCoordArea.TimeInterval.StopTime.xtype': "ISOTime",
 				'stc:AstroCoordArea.TimeInterval.StartTime': CR('start'), 
 				'stc:AstroCoordArea.TimeInterval.StopTime': CR('end')})
 	
@@ -158,7 +153,6 @@ class CooGenerTest(testhelpers.VerboseTest):
 					'stc:AstroCoordArea.Circle.Center.C1': CR('cra'),
 					'stc:AstroCoordArea.Circle.Radius': CR('crad'),
 					'stc:AstroCoords.Time.TimeInstant': CR('dateObs'), 
-					'stc:AstroCoords.Time.TimeInstant.xtype': 'ISOTime', 
 					'stc:AstroCoords.Position2D.Value2.C2': CR('dec'),
 					'stc:AstroCoords.Position2D.Error2.C2': CR('e_dec'), 
 					'stc:AstroCoords.Position2D.Error2.C1': CR('e_ra'), 
@@ -248,7 +242,6 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 		[('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS'),
 			('stc:AstroCoordSystem.TimeFrame.TimeScale', 'TT'),
 			('stc:AstroCoordSystem.RedshiftFrame.DopplerDefinition', 'OPTICAL'),
-			('stc:AstroCoordSystem.TimeFrame.ReferencePosition', 'UNKNOWNRefPos'),
 			('stc:AstroCoordSystem.RedshiftFrame.value_type', 'VELOCITY'),
 			('stc:AstroCoordSystem.RedshiftFrame.ReferencePosition', 'BARYCENTER'),
 			('stc:AstroCoordSystem.SpaceFrame.CoordFlavor', 'SPHERICAL'),
@@ -261,7 +254,6 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 			('stc:AstroCoordSystem.SpaceFrame.CoordFlavor.coord_naxes', '3')],
 		[
 			('stc:AstroCoords.Time.TimeInstant', '2000-01-01T00:00:00'),
-			('stc:AstroCoords.Time.TimeInstant.xtype', 'ISOTime'),
 			('stc:AstroCoordArea.Circle', stc.ColRef('errc'))],
 		[
 			('stc:AstroCoordSystem.href', 

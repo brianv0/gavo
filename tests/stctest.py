@@ -566,10 +566,8 @@ class NullTest(testhelpers.VerboseTest):
 
 	def testToUtypes(self):
 		self.assertEqual(dict(stc.getUtypes(self._makeEmptySTC())), {
-			'stc:AstroCoordSystem.SpaceFrame.CoordRefFrame': 'UNKNOWNFrame', 
-			'stc:AstroCoordSystem.TimeFrame.ReferencePosition': 'UNKNOWNRefPos', 
-			'stc:AstroCoordSystem.SpaceFrame.CoordFlavor': 'SPHERICAL', 
-			'stc:AstroCoordSystem.SpaceFrame.ReferencePosition': 'UNKNOWNRefPos'})
+			'stc:AstroCoordSystem.SpaceFrame.CoordFlavor': 'SPHERICAL',
+			'stc:AstroCoordSystem.SpaceFrame.CoordRefFrame': 'UNKNOWNFrame'})
 
 
 class GeoTest(testhelpers.VerboseTest):
@@ -658,7 +656,7 @@ class CLITest(testhelpers.VerboseTest):
 				" unit deg/cy\n")
 
 	_utypeInput = 'Position GALACTIC "l" "b" VelocityInterval Velocity "vl" "vb"'
-	_utypeOutput = 'eJwrLkm2ciwuKcp3zs8vSgmuLC5JzdULLkhMTnUrSsxN1QMLu+UkluUXKWAAW4XgAA/XIE9nRx+u\nYmIMCkpNA/MwDXJ39HF0DvF0jvf0JGgU0JTUotS85NSA/OLMksz8PFSjQv28/fzD/YCqgPJohhXr\nwfQYueiFJeaUphrpORti+gwKdO0UcogxwQifCUkYJoSl5uQnZ5ZUEuuGMkxHYDECryPKkrgAcziL\nPw==\n'.decode("base64").decode("zlib")
+	_utypeOutput = 'eJwrLkm2ciwuKcp3zs8vSgmuLC5JzdULLkhMTnUrSsxN1QMLu+UkluUXKWAAW4XgAA/XIE9nRx+u\nYmIMCkpNA/MwDXJ39HF0DvF0jvf0RDOqWC8gvzizJDM/z8hFLywxpzTVSM/ZENMxUKBrp5BDjAlG\n+ExIwjAhLDUnPzmzpJJYN5RhOgKLEXgdUZbEBQBATnG5\n'.decode("base64").decode("zlib")
 
 	def testUtypeGen(self):
 		self.assertOutput(cli.main, ["utypes", self._utypeInput],

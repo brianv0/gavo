@@ -103,7 +103,7 @@ def parseCards(aString):
 		
 
 def hdr2str(hdr):
-	repr = "".join(map(str, hdr.ascardlist()))
+	repr = "".join(c.ascardimage() for c in hdr.ascardlist())
 	repr = repr+_pad('END')
 	repr = repr+_padLength(len(repr))*' '
 	return repr
