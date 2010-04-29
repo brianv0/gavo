@@ -122,6 +122,7 @@ _staticRscGrammar = base.makeStruct(StaticRscGrammar)
 def updateServiceList(rds, metaToo=False, connection=None):
 	"""updates the services defined in rds in the services table in the database.
 	"""
+	recordsWritten = 0
 	parseOptions = rsc.getParseOptions(validateRows=True, batchSize=20)
 	if connection is None:
 		connection = base.getDBConnection("admin")
@@ -132,8 +133,9 @@ def updateServiceList(rds, metaToo=False, connection=None):
 			raise Error("Resource descriptor ID may not be absolute, but"
 				" '%s' seems to be."%rd.sourceId)
 		try:
-			rsc.makeData(dd, forceSource=rd, parseOptions=parseOptions,
+			data = rsc.makeData(dd, forceSource=rd, parseOptions=parseOptions,
 				connection=connection)
+			recordsWritten += data.nAffected
 		except base.MetaValidationError, ex:
 			warnings.warn("Aborting publication of '%s' at service '%s':\n * %s"%(
 				rd.sourceId, ex.carrier.id, "\n * ".join(ex.failures)))
@@ -145,6 +147,7 @@ def updateServiceList(rds, metaToo=False, connection=None):
 			for dependentDD in rd:
 				rsc.Data.create(dependentDD, connection=connection).updateMeta()
 	connection.commit()
+	return recordsWritten
 
 
 def importFixed():

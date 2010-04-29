@@ -103,28 +103,40 @@ class SymbolsParseTest(testhelpers.VerboseTest):
 		self._assertParses("searchCondition", "5+9<'b' || 'foo'")
 
 
-class NakedParseTest(testhelpers.VerboseTest):
-	"""tests for plain parsing (without tree building).
+class _ADQLParsesTest(testhelpers.VerboseTest):
+	"""an abstract base for tests checking whether ADQL expressions parse.
 	"""
 	def setUp(self):
 		_, self.grammar = adql.getRawGrammar()
+		testhelpers.VerboseTest.setUp(self)
 
+	def _assertGoodADQL(self, statement):
+		try:
+			self.grammar.parseString(statement)
+		except adql.ParseException:
+			raise AssertionError("%s doesn't parse but should."%statement)
+		except RuntimeError:
+			raise Error("%s causes an infinite recursion"%statement)
+
+	def _assertBadADQL(self, statement):
+			try:
+				self.assertRaisesVerbose(adql.ParseException, 
+					self.grammar.parseString, (statement,), 
+					"Parses but shouldn't: %s"%statement)
+			except RuntimeError:
+				raise Error("%s causes an infinite recursion"%statement)
+
+
+class NakedParseTest(_ADQLParsesTest):
+	"""tests for plain parsing (without tree building).
+	"""
 	def _assertParse(self, correctStatements):
 		for stmt in correctStatements:
-			try:
-				self.grammar.parseString(stmt)
-			except adql.ParseException:
-				raise AssertionError("%s doesn't parse but should."%stmt)
-			except RuntimeError:
-				raise Error("%s causes an infinite recursion"%stmt)
+			self._assertGoodADQL(stmt)
 
 	def _assertDontParse(self, badStatements):
 		for stmt in badStatements:
-			try:
-				self.assertRaisesVerbose(adql.ParseException, 
-					self.grammar.parseString, (stmt,), "Parses but shouldn't: %s"%stmt)
-			except RuntimeError:
-				raise Error("%s causes an infinite recursion"%stmt)
+			self._assertBadADQL(stmt)
 
 	def testPlainSelects(self):
 		"""tests for non-errors on some elementary select expressions parse.
@@ -264,23 +276,6 @@ class NakedParseTest(testhelpers.VerboseTest):
 			p+"CENTROID(CENTROID(POINT('fk4', 2, 3)))=x",
 		])
 
-	def testFunctions(self):
-		"""tests for parsing of ADQL functions.
-		"""
-		p = "select x from y where "
-		self._assertParse([
-			p+"ABS(-3)<3",
-			p+"ABS(-3.0)<3",
-			p+"ABS(-3.0E4)<3",
-			p+"ABS(-3.0e-4)<3",
-			p+"ATAN2(-3.0e-4, 4.5)=x",
-			p+"RAND(4)=x",
-			p+"RAND()=x",
-			p+"ROUND(23)=x",
-			p+"ROUND(23,2)=x",
-			p+"ROUND(PI(),2)=3.14",
-		])
-
 	def testsBadFunctions(self):
 		"""tests for rejection of bad function calls.
 		"""
@@ -318,6 +313,31 @@ class NakedParseTest(testhelpers.VerboseTest):
 			"select x.y.z.a.b from a",
 			"select x from a.b.c.d",
 		])
+
+
+class FunctionsParseTest(_ADQLParsesTest):
+	"""tests for parsing of valid statements containing functions.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		self._assertGoodADQL("select x from y where "+sample)
+
+	samples = [
+		"ABS(-3)<3",
+		"ABS(-3.0)<3",
+		"ABS(-3.0E4)<3",
+		"ABS(-3.0e-4)<3",
+		"ABS(x)<3",
+		"ATAN2(-3.0e-4, 4.5)=x",
+		"RAND(4)=x",
+		"RAND()=x",
+		"ROUND(23)=x",
+		"ROUND(23,2)=x",
+		"ROUND(PI(),2)=3.14",
+		"POWER(x,10)=3.14",
+		"POWER(10,x)=3.14",
+	]
 
 
 class AsTreeTest(testhelpers.VerboseTest):

@@ -134,7 +134,8 @@ class SvcResult(object):
 		return resultmeta
 
 	def data_querypars(self, ctx=None):
-		return self.queryMeta.getQueryPars()
+		return dict((k, unicode(v)) 
+			for k, v in self.queryMeta.getQueryPars().iteritems())
 	
 	def data_inputRec(self, ctx=None):
 		try:

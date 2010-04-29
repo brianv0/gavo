@@ -353,7 +353,7 @@ def getADQLGrammarCopy():
 			Optional( ',' + Args(signedInteger) ) + ')' 
 		|	math2ArgFunctionName("fName") + '(' 
 			+ Args(numericValueExpression) 
-			+ ',' + Args(unsignedInteger) + ')')
+			+ ',' + Args(numericValueExpression) + ')')
 	userDefinedFunctionParam = valueExpression
 	userDefinedFunctionName = Regex(userFunctionPrefix+"[A-Za-z_]+")
 	userDefinedFunction = ( userDefinedFunctionName("fName") + '(' +
@@ -519,6 +519,6 @@ if __name__=="__main__":
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
 	res = syms["statement"].parseString(
-			"""select ucac3.icrscorr.*, round(x/10) as u from ucac3.icrscorr"""
+			"""select power(x/10, 10) as u from ucac3.icrscorr"""
 			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

@@ -399,7 +399,9 @@ The core needs an InputDD and an OutputTable like all cores.  You
     </outputTable>
   </customCore>
 
-However, frequently custom cores have fixed inputDD and outputTables.
+However, frequently custom cores have inputDD and outputTables either
+defined by the core itself (rather than, e.g., a service or a core
+definition from XML) or computed dynamically.
 To accomodate this, you can give your core definitions attributes
 grammarXML and outputTableXML, like this::
 
@@ -414,7 +416,7 @@ grammarXML and outputTableXML, like this::
       </contextGrammar>
       """
     # we don't know what's going to be in the output table until we
-    # know both the uploaded tabel and the tableName
+    # know both the uploaded table and the tableName
     outputTableXML = """<outputTable/>"""
 
 If you don't define the attributes, the cores need the specifications
@@ -460,6 +462,18 @@ contextGrammars), you will find the inputs by saying::
 You should return a Table instance.  Frequently, you do not want the
 service to adapt the result to its idea of output fields.  To do this,
 set a noPostprocess atttribute on the table to any value.
+
+
+Errors
+''''''
+
+To bail out from processing, raise a validation error.  Construct it
+with a message and the name of an input key.  At least for the form
+renderer, this causes a sensible error message with some hint as the the
+originating input field::
+
+	raise base.ValidationError("Invalid file name", "rdsrc")
+
 
 Database Options
 ''''''''''''''''

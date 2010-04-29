@@ -338,24 +338,29 @@ class HTMLResultRenderMixin(object):
 	def data_result(self, ctx, data):
 		return self.result
 
+	def _makeParPair(self, key, value, fieldDict):
+		title = key
+		if key in fieldDict:
+			title = fieldDict[key].tablehead
+			if fieldDict[key].type=="file":
+				value = "File upload '%s'"%value[0]
+			else:
+				value = unicode(value)
+		return title, value
+
 	__suppressedParNames = set(["submit"])
 
 	def data_queryseq(self, ctx, data):
 		if not self.result:
 			return []
+
 		if self.service:
 			fieldDict = dict((f.name, f) 
 				for f in self.getInputFields(self.service))
 		else:
 			fieldDict = {}
-
-		def getTitle(key):
-			title = None
-			if key in fieldDict:
-				title = fieldDict[key].tablehead
-			return title or key
-		
-		s = [(getTitle(k), v) 
+	
+		s = [self._makeParPair(k, v, fieldDict) 
 			for k, v in self.result.queryMeta.getQueryPars().iteritems()
 			if k not in self.__suppressedParNames and not k.startswith("_")]
 		s.sort()

@@ -205,7 +205,7 @@ class QueryMeta(dict):
 	def getQueryPars(self):
 		if not "formal_data" in self:
 			return {}
-		return dict((k, str(v)) for k, v in self["formal_data"].iteritems()
+		return dict((k, v) for k, v in self["formal_data"].iteritems()
 			if not k in self.metaKeys and v and v!=[None])
 
 
