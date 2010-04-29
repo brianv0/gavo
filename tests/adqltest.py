@@ -677,6 +677,14 @@ class ColResTest(ColumnTest):
 			('kg', 'phys.mass', False),
 			('deg', 'pos.eq.ra;meta.main', False)])
 
+	def testUsingJoin(self):
+		cols = self._getColSeq("SELECT * FROM "
+    	" misc JOIN misc AS u USING (mass)")
+		self._assertColumns(cols, [
+			('kg', 'phys.mass', False),
+			('mag', 'phot.mag', False),
+			('km/s', 'phys.veloc', False)]*2)
+
 	def testUnderscore(self):
 		cols = self._getColSeq("select _dist"
 			" from (select dist as _dist from spatial) as q")

@@ -597,6 +597,8 @@ class ColumnReference(FieldInfoedNode):
 	_a_name = None
 
 	def _polish(self):
+		if not self.refName:
+			self.refName = None
 		self.colName = ".".join(
 			flatten(p) for p in (self.refName, self.name) if p)
 

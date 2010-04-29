@@ -79,7 +79,20 @@ class FieldInfo(object):
 		self.stc = stc
 		self.userData = userData
 		self.tainted = tainted
+
+	def __eq__(self, other):
+		try:
+			return (self.ucd==other.ucd 
+				and self.unit==other.unit 
+				and self.stc==other.stc
+				and self.userData==other.userData
+				and self.tainted==other.tainted)
+		except AttributeError:
+			return False
 	
+	def __ne__(self, other):
+		return not self==other
+
 	def __repr__(self):
 		return "FieldInfo(%s, %s, %s)"%(repr(self.unit), repr(self.ucd),
 			repr(self.userData))
