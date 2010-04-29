@@ -436,12 +436,16 @@ spatialFields = [
 	rscdef.Column(None, name="height", ucd="phys.dim", unit="km"),
 	rscdef.Column(None, name="ra1", ucd="pos.eq.ra;meta.main", unit="deg"),
 	rscdef.Column(None, name="ra2", ucd="pos.eq.ra", unit="rad"),]
+spatial2Fields = [
+	rscdef.Column(None, name="ra1", ucd="pos.eq.ra;meta.main", unit="deg"),
+	rscdef.Column(None, name="dec", ucd="pos.eq.dec;meta.main", unit="deg"),
+	rscdef.Column(None, name="dist", ucd="phys.distance", unit="m"),]
 miscFields = [
 	rscdef.Column(None, name="mass", ucd="phys.mass", unit="kg"),
 	rscdef.Column(None, name="mag", ucd="phot.mag", unit="mag"),
 	rscdef.Column(None, name="speed", ucd="phys.veloc", unit="km/s")]
 
-def _addSpatialSTC(sf):
+def _addSpatialSTC(sf, sf2):
 	ast1 = stc.parseQSTCS('Position ICRS "ra1" "dec" Size "width" "height"')
 	ast2 = stc.parseQSTCS('Position FK4 SPHER3 "ra2" "dec" "dist"')
 # XXX TODO: get utypes from ASTs
@@ -450,13 +454,19 @@ def _addSpatialSTC(sf):
 	sf[2].stc, sf[2].stcUtype = ast1.astroSystem, None
 	sf[3].stc, sf[3].stcUtype = ast1.astroSystem, None
 	sf[4].stc, sf[4].stcUtype = ast2.astroSystem, None
-_addSpatialSTC(spatialFields)
+	sf2[0].stc, sf2[0].stcUtype = ast1.astroSystem, None
+	sf2[1].stc, sf2[0].stcUtype = ast1.astroSystem, None
+	sf2[2].stc, sf2[0].stcUtype = ast2.astroSystem, None
+_addSpatialSTC(spatialFields, spatial2Fields)
 
 
 def _sampleFieldInfoGetter(tableName):
 	if tableName=='spatial':
 		return [(f.name, adqlglue.makeFieldInfo(f))
 			for f in spatialFields]
+	elif tableName=='spatial2':
+		return [(f.name, adqlglue.makeFieldInfo(f))
+			for f in spatial2Fields]
 	elif tableName=='misc':
 		return [(f.name, adqlglue.makeFieldInfo(f))
 			for f in miscFields]
@@ -652,6 +662,28 @@ class ColResTest(ColumnTest):
 			('km/s', 'phys.veloc', False),
 			('kg*km', '', True),])
 
+	def testUnderscore(self):
+		cols = self._getColSeq("select _dist"
+			" from (select dist as _dist from spatial) as q")
+		self._assertColumns(cols, [
+			('m', 'phys.distance', False)])
+
+	def testErrorReporting(self):
+		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
+			"select gnurks from spatial")
+
+
+class ColResJoinTest(ColumnTest):
+	"""tests for column resolution with joins.
+	"""
+	def testJoin(self):
+		cols = self._getColSeq("select dist, speed, 2*mass*height"
+			" from spatial join misc on (mass>height)")
+		self._assertColumns(cols, [
+			('m', 'phys.distance', False),
+			('km/s', 'phys.veloc', False),
+			('kg*km', '', True),])
+
 	def testJoinStar(self):
 		cols = self._getColSeq("select * from spatial as q join misc as p on"
 			" (1=contains(point('ICRS', q.dist, q.width), circle('ICRS',"
@@ -677,19 +709,15 @@ class ColResTest(ColumnTest):
 			('kg', 'phys.mass', False),
 			('deg', 'pos.eq.ra;meta.main', False)])
 
-	def testUsingJoin(self):
+	def testSelfUsingJoin(self):
 		cols = self._getColSeq("SELECT * FROM "
     	" misc JOIN misc AS u USING (mass)")
 		self._assertColumns(cols, [
 			('kg', 'phys.mass', False),
 			('mag', 'phot.mag', False),
-			('km/s', 'phys.veloc', False)]*2)
-
-	def testUnderscore(self):
-		cols = self._getColSeq("select _dist"
-			" from (select dist as _dist from spatial) as q")
-		self._assertColumns(cols, [
-			('m', 'phys.distance', False)])
+			('km/s', 'phys.veloc', False),
+			('mag', 'phot.mag', False),
+			('km/s', 'phys.veloc', False) ])
 
 	def testExReferenceBad(self):
 		self.assertRaises(adql.TableNotFound, self._getColSeq,
@@ -708,11 +736,40 @@ class ColResTest(ColumnTest):
 		self._assertColumns(cols, [
 			('m', 'phys.distance', False),
 			('km/s', 'phys.veloc', False)])
+	
+	def testNaturalJoin(self):
+		cols = self._getColSeq("SELECT * FROM"
+			" spatial JOIN spatial2")
+		self._assertColumns(cols, [
+			("m", "phys.distance", False),
+			("m", "phys.dim", False),
+			("km", "phys.dim", False),
+			("deg", "pos.eq.ra;meta.main", False),
+			("rad", "pos.eq.ra", False),
+			("deg", "pos.eq.dec;meta.main", False)])
 
-	def testErrorReporting(self):
-		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
-			"select gnurks from spatial")
+	def testUsingJoin1(self):
+		cols = self._getColSeq("SELECT * FROM"
+			" spatial JOIN spatial2 USING (ra1)")
+		self._assertColumns(cols, [
+			("m", "phys.distance", False),
+			("m", "phys.dim", False),
+			("km", "phys.dim", False),
+			("deg", "pos.eq.ra;meta.main", False),
+			("rad", "pos.eq.ra", False),
+			("deg", "pos.eq.dec;meta.main", False),
+			("m", "phys.distance", False)])
 
+	def testUsingJoin2(self):
+		cols = self._getColSeq("SELECT * FROM"
+			" spatial JOIN spatial2 USING (ra1, dist)")
+		self._assertColumns(cols, [
+			("m", "phys.distance", False),
+			("m", "phys.dim", False),
+			("km", "phys.dim", False),
+			("deg", "pos.eq.ra;meta.main", False),
+			("rad", "pos.eq.ra", False),
+			("deg", "pos.eq.dec;meta.main", False)])
 
 class STCTest(ColumnTest):
 	"""tests for working STC inference in ADQL expressions.

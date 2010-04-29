@@ -491,6 +491,26 @@ class DerivedTable(ColumnBearingNode):
 		yield self.tableName.qName
 
 
+class JoinSpecification(ADQLNode):
+	"""A join specification ("ON" or "USING").
+	"""
+	type = "joinSpecification"
+	
+	_a_children = ()
+	_a_joinType = None
+	_a_usingColumns = ()
+
+	@classmethod
+	def _getInitKWs(cls, _parseResult):
+		joinType = _parseResult[0].upper()
+		if joinType=="USING":
+			usingColumns = [n for n in _parseResult["columnNames"] if n!=',']
+			del n
+		children = list(_parseResult)
+		return locals()
+
+
+
 class JoinedTable(ColumnBearingNode, TransparentMixin):
 	"""A joined table.
 
@@ -505,6 +525,9 @@ class JoinedTable(ColumnBearingNode, TransparentMixin):
 
 	def _polish(self):
 		self.joinedTables = getChildrenOfClass(self.children, ColumnBearingNode)
+		self.joinSpecification = getChildOfClass(
+				self.children, JoinSpecification, default=None)
+
 
 	def getAllNames(self):
 		"""iterates over all fully qualified table names mentioned in this

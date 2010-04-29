@@ -14,7 +14,7 @@ include:
 
 (1) TableReference
 
-Trouble is the naked joined_table.  Important rules here:
+Trouble that table_reference is left-recursive in the following rules.
 
   <table_reference> ::=
      <table_name> [ <correlation_specification> ]
@@ -29,28 +29,21 @@ Trouble is the naked joined_table.  Important rules here:
       <table_reference> [ NATURAL ] [ <join_type> ] JOIN
       <table_reference> [ <join_specification> ]
 
-Now, it's clear that the first element of a join is either a name
-or has to start with an opening paren, in which we are in the second
-disjunction of <joined_table>.
+We fix this by adding rules
 
-So, we can rewrite the above rules as:
-
-  <nojoin_table_reference> ::=
+	<sub_join> ::= '(' <joinedTable> ')'
+  <join_opener> ::=
      <table_name> [ <correlation_specification> ]
    | <derived_table> <correlation_specification>
-	
-	<table_reference> ::=
-    <joined_table>
-		| <nojoin_table_reference>
+	 | <sub_join>
 
-  <joined_table> ::=
-      <left_paren> <joined_table> <right_paren> {<join_tail>}
-    | <nojoin_table_reference> <join_tail> {<join_tail>}
+and then writing
 
-	<join_tail> ::= [ NATURAL ] [ <join_type> ] JOIN
+  <qualified_join> ::=
+      <join_opener> [ NATURAL ] [ <join_type> ] JOIN
       <table_reference> [ <join_specification> ]
 
--- this is what's implemented below.
+
 
 (2) statement
 
@@ -415,28 +408,33 @@ def getADQLGrammarCopy():
 		) + correlationName("alias"))
 	subquery << ('(' + queryExpression + ')')
 	derivedTable = subquery.copy() + correlationSpecification
-	joinedTable = Forward()
 	possiblyAliasedTable = tableName + Optional( correlationSpecification)
-	nojoinTableReference =  possiblyAliasedTable | derivedTable
-	tableReference =  joinedTable | nojoinTableReference 
+	joinedTable = Forward()
+	subJoin = '(' + joinedTable + ')'
+	joinOpener = (possiblyAliasedTable 
+		| derivedTable
+		| subJoin)
+	tableReference =  joinedTable | possiblyAliasedTable | derivedTable
 
 # JOINs
 	columnNameList = columnName + ZeroOrMore( "," + columnName)
 	namedColumnsJoin = (CaselessKeyword("USING") + '(' +
-		columnNameList + ')')
+		columnNameList("columnNames") + ')')
 	joinCondition = CaselessKeyword("ON") + searchCondition
 	joinSpecification = joinCondition | namedColumnsJoin
-	outerJoinType = CaselessKeyword("LEFT") | CaselessKeyword("RIGHT"
-		) | CaselessKeyword("FULL")
-	joinType = CaselessKeyword("INNER") | (
-		outerJoinType + CaselessKeyword("OUTER"))
-	joinTail = (Optional( CaselessKeyword("NATURAL") ) +
-		Optional( joinType ) + 
-		CaselessKeyword("JOIN") + 
-		tableReference +
-		Optional( joinSpecification ))
-	joinedTable << ('(' + joinedTable + ')' + ZeroOrMore( joinTail )
-		| nojoinTableReference + OneOrMore( joinTail ))
+	outerJoinType = (CaselessKeyword("LEFT") 
+		| CaselessKeyword("RIGHT") 
+		| CaselessKeyword("FULL"))
+	joinType = (CaselessKeyword("INNER") 
+		| (outerJoinType + CaselessKeyword("OUTER")))
+	qualifiedJoin = (joinOpener
+		+ Optional( CaselessKeyword("NATURAL") )
+		+ Optional( joinType )
+		+ CaselessKeyword( "JOIN" )
+		+ tableReference
+		+ Optional( joinSpecification ))
+	joinedTable << (qualifiedJoin 
+		| subJoin)
 
 # Detritus in table expressions
 	groupByClause = (CaselessKeyword( "GROUP" ) + CaselessKeyword( "BY" ) 
@@ -518,7 +516,8 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
-	res = syms["statement"].parseString(
-			"""select power(x/10, 10) as u from ucac3.icrscorr"""
+	res = grammar.parseString(
+			"select AREA(circle('ICRS', COORD1(p1), coord2(p1), 2)), DISTANCE(p1,p2), centroid(rectangle('ICRS', coord1(p1), coord2(p1), coord1(p2), coord2(p2))) from (select point('ICRS', ra1, dec1) as p1,"
+				"   point('ICRS', ra2, dec2) as p2 from foo) as q"
 			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

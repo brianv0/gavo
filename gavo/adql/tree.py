@@ -67,3 +67,7 @@ def getTreeBuildingGrammar():
 		bindObject(ob)
 
 	return syms, root
+
+
+if __name__=="__main__":
+	getTreeBuildingGrammar()[1].parseString('select * from z join x')

@@ -24,6 +24,7 @@ field infos.
 """
 
 from gavo import stc
+from gavo.adql import nodes
 from gavo.adql.common import *
 
 
@@ -115,6 +116,9 @@ class FieldInfosForTable(FieldInfos):
 	def __init__(self, tableNode, context):
 		FieldInfos.__init__(self, tableNode)
 
+		commonColumns = self._computeCommonColumns(tableNode)
+		emittedCommonColumns = set()
+
 		# add infos for the table itself.
 		if tableNode.originalTable:
 			for colName, fieldInfo in context.retrieveFieldInfos(
@@ -125,8 +129,34 @@ class FieldInfosForTable(FieldInfos):
 		# traversal, those have already been annotated.
 		for jt in getattr(tableNode, "joinedTables", ()):
 			for label, info in jt.fieldInfos.seq:
-				self.addColumn(label, info)
+				if label in commonColumns:
+					if label not in emittedCommonColumns:
+						self.addColumn(label, info)
+						emittedCommonColumns.add(label)
+				else:
+					self.addColumn(label, info)
 
+	def _computeCommonColumns(self, tableNode):
+		"""returns a set of column names that only occur once in the result
+		table.
+
+		For a natural join, that's all column names occurring in all tables,
+		for a USING join, that's all names occurring in USING, else it's 
+		an empty set.
+		"""
+		if not isinstance(tableNode, nodes.JoinedTable):
+			return set()
+		if tableNode.joinSpecification is None: 
+			# NATURAL JOIN, collect common names
+			return reduce(lambda a,b: a&b, 
+				[set(t.fieldInfos.columns) for t in tableNode.joinedTables])
+		elif tableNode.joinSpecification.joinType=="ON":
+			# JOIN ON, no columns vanish
+			return set()
+		else:
+			# JOIN USING, collect all column names from joinSpec.
+			return set(tableNode.joinSpecification.usingColumns)
+	
 	def _collectSubTables(self, node):
 		self.subTables = getattr(node, "joinedTables", [])
 
