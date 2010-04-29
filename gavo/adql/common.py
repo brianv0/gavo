@@ -85,7 +85,6 @@ class FieldInfo(object):
 			return (self.ucd==other.ucd 
 				and self.unit==other.unit 
 				and self.stc==other.stc
-				and self.userData==other.userData
 				and self.tainted==other.tainted)
 		except AttributeError:
 			return False
