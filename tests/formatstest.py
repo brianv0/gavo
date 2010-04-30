@@ -64,9 +64,9 @@ class VOPlotTest(unittest.TestCase):
 		tag = vop.render_voplotArea(ctx, None).children[1]
 		self.assertEqual(
 			tag.attributes["parameters"],
-			"?_FORMAT=VOTable&foo=33.3&bar=w&bar=v&_TDENC=True")
+			"__nevow_form__=genForm&_FORMAT=VOTable&foo=33.3&bar=w&bar=v&_TDENC=True")
 		self.assertEqual(
-			tag.attributes["votablepath"], "http://urgl.wap.no/nv")
+			tag.attributes["votablepath"], "http://urgl.wap.no/nv?")
 
 
 class FITSWriterTest(unittest.TestCase):

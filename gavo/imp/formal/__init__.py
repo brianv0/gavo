@@ -14,7 +14,8 @@ from gavo.imp.formal.widget import *
 from gavo.imp.formal.widgets.restwidget import *
 from gavo.imp.formal.widgets.multiselect import *
 from gavo.imp.formal.widgets.richtextarea import *
-from gavo.imp.formal.form import Form, Field, Group, ResourceMixin, renderForm
+from gavo.imp.formal.form import (
+	Form, Field, Group, ResourceMixin, renderForm, FORMS_KEY)
 from gavo.imp.formal import iformal
 
 def widgetFactory(widgetClass, *a, **k):

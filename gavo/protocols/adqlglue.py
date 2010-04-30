@@ -4,6 +4,8 @@ Code to bind the adql library to the data center software.
 
 import sys
 
+from twisted.python import log
+
 from gavo import adql
 from gavo import base
 from gavo import rsc
@@ -109,6 +111,7 @@ def query(querier, query, timeout=15, metaProfile=None):
 	morphStatus, morphedTree = adql.morphPG(t)
 	# escape % to hide them form dbapi replacing
 	query = adql.flatten(morphedTree).replace("%", "%%")
+	log.msg("Sending ADQL query: %s"%query)
 	for tuple in querier.runIsolatedQuery(
 			query, timeout=timeout, silent=True, 
 			settings=[("enable_seqscan", False)]):

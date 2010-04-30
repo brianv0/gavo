@@ -185,33 +185,25 @@ class VOPlotResponse(ServiceResource, grend.GavoRenderMixin):
 	def render_voplotArea(self, ctx, data):
 		request = inevow.IRequest(ctx)
 		parameters = request.args.copy()
+		parameters[formal.FORMS_KEY] = "genForm"
 		parameters["_FORMAT"]=["VOTable"]
 		parameters["_TDENC"]=["True"]
 		return ctx.tag[tag_embed(type = "application/x-java-applet",
 				code="com.jvt.applets.PlotVOApplet",
 				codebase=base.getConfig("web", "voplotCodebase"),
 				votablepath=urlparse.urljoin(base.getConfig("web", "serverURL"),
-					request.path),
+					request.path)+"?",
 				userguideURL=base.getConfig("web", "voplotUserman"),
-				archive=("voplot.jar,voplot_3rdParty/Aladin.jar,voplot_3rdParty/"
-					"cern.jar,voplot_3rdParty/fits-0.99.1-1.4-compiled.jar,"
-					"voplot_3rdParty/commons-discovery-0.2.jar,"
-					"voplot_3rdParty/commons-logging-1.0.4.jar,"
-					"voplot_3rdParty/axis.jar,voplot_3rdParty/jaxrpc.jar,"
-					"voplot_3rdParty/log4j-1.2.8.jar,voplot_3rdParty/saaj.jar,"
-					"voplot_3rdParty/wsdl4j-1.5.1.jar"),
+				archive="voplot.jar",
 				width="850",
 				height="650",
-				parameters="?"+urllib.urlencode(parameters, doseq=True),
+				parameters=urllib.urlencode(parameters, doseq=True),
 				MAYSCRIPT="true",
 				background="#faf0e6",
 				scriptable="true",
 				pluginspage="http://java.sun.com/products/plugin/1.3.1/"
 					"plugin-install.html")[
-					tag_noembed["No Java Plug-in support for applet, see, e.g., ",
-						T.a(href="http://java.sun.com/products/plugin/")[
-							"http://java.sun.com/products/plugin"],
-						"."]]]
+					tag_noembed["You need proper Java support for VOPlot"]]]
 
 	docFactory = common.doctypedStan(T.html[
 		T.head[
