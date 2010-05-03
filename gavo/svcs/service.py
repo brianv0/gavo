@@ -211,7 +211,7 @@ class CustomRF(base.Structure):
 
 	As an example, the following code returns the current data as a link::
 
-		return ctx.data[T.a(href=data)[data]]
+		return ctx.tag[T.a(href=data)[data]]
 	"""
 	name_ = "customRF"
 	_name = base.UnicodeAttribute("name", default=base.Undefined,

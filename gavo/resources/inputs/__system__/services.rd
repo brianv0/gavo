@@ -52,8 +52,8 @@
 	</table>
 
 	<data id="tables">
-		<meta name="description">gavoimp system this to create the service tables.
-		servicelist has special grammars to feed these.</meta>
+		<meta name="description">gavo imp --system this to create the service 
+		tables.  servicelist has special grammars to feed these.</meta>
 		<nullGrammar/>
 
 		<rowmaker id="make_interfaces" idmaps="*">
@@ -123,19 +123,16 @@
 		<column original="title"/>
 		<column original="owner"/>
 		<column original="srv_interfaces.accessURL"/>
+		<column original="srv_sets.setName"/>
 
 		<viewStatement>
 			CREATE OR REPLACE VIEW srv_subjs_join AS (
-				SELECT subject, shortName, title, owner, accessurl
+				SELECT subject, shortName, title, owner, accessurl, setName
 				FROM 
-					(
-						SELECT accessurl, sourceRd, shortName, renderer 
-						FROM srv_interfaces 
-							JOIN srv_sets USING (shortName, renderer, sourcerd) 
-						WHERE setName='local'
-					) AS q 
+					srv_interfaces 
 					NATURAL JOIN services 
 					NATURAL JOIN srv_subjs 
+					NATURAL JOIN srv_sets
 				ORDER BY subject)
 		</viewStatement>
 	</table>

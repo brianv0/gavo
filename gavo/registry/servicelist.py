@@ -62,19 +62,21 @@ def queryServicesList(whereClause="", pars={}, tableName="srv_join"):
 	return [r for r in table.iterQuery(otd, whereClause, pars)]
 
 
-def querySubjectsList():
+def querySubjectsList(setName=None):
 	"""returns a list of local services chunked by subjects.
 
 	This is mainly for the root page (see web.dispatcher).  Query the
 	cache using the __system__/services key to clear the cache on services
 	"""
+	setName = setName or 'local'
 	svcsForSubjs = {}
 	td = base.caches.getRD(SERVICELIST_ID).getById("srv_subjs_join")
 	otd = svcs.OutputTableDef.fromTableDef(td)
-	for row in rsc.TableForDef(td).iterQuery(otd, ""):
+	for row in rsc.TableForDef(td).iterQuery(otd, 
+			"setName=%(setName)s", {"setName": setName}):
 		svcsForSubjs.setdefault(row["subject"], []).append(row)
 	for s in svcsForSubjs.values():
-		s.sort(lambda a,b: cmp(a["title"], b["title"]))
+		s.sort(key=lambda a: a["title"])
 	res = [{"subject": subject, "chunk": s}
 		for subject, s in svcsForSubjs.iteritems()]
 	res.sort(lambda a,b: cmp(a["subject"], b["subject"]))
@@ -84,15 +86,16 @@ base.caches.makeCache("getSubjectsList",
 	lambda ignored: querySubjectsList())
 
 
-def getChunkedServiceList():
+def getChunkedServiceList(setName=None):
 	"""returns a list of local services chunked by title char.
 
 	This is mainly for the root page (see web.dispatcher).  Query the
 	cache using the __system__/services key to clear the cache on services
 	reload.
 	"""
+	setName = setName or 'local'
 	return utils.chunk(
-		sorted(queryServicesList("setName='local'"), 
+		sorted(queryServicesList("setName=%(setName)s", {"setName": setName}), 
 			key=lambda s: s.get("title").lower()),
 		lambda srec: srec.get("title", ".")[0].upper())
 
