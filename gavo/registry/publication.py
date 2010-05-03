@@ -119,7 +119,7 @@ class StaticRscGrammar(grammars.Grammar):
 _staticRscGrammar = base.makeStruct(StaticRscGrammar)
 
 
-def updateServiceList(rds, metaToo=False, connection=None):
+def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 	"""updates the services defined in rds in the services table in the database.
 	"""
 	recordsWritten = 0
@@ -128,6 +128,7 @@ def updateServiceList(rds, metaToo=False, connection=None):
 		connection = base.getDBConnection("admin")
 	dd = getServicesRD().getById("tables")
 	dd.grammar = _svcRscGrammar
+	msg = None
 	for rd in rds:
 		if rd.sourceId.startswith("/"):
 			raise Error("Resource descriptor ID may not be absolute, but"
@@ -137,12 +138,19 @@ def updateServiceList(rds, metaToo=False, connection=None):
 				connection=connection)
 			recordsWritten += data.nAffected
 		except base.MetaValidationError, ex:
-			warnings.warn("Aborting publication of '%s' at service '%s':\n * %s"%(
-				rd.sourceId, ex.carrier.id, "\n * ".join(ex.failures)))
+			msg = "Aborting publication of '%s' at service '%s':\n * %s"%(
+				rd.sourceId, ex.carrier.id, "\n * ".join(ex.failures))
 		except base.NoMetaKey, ex:
-			warnings.warn("Aborting publication of '%s' at service '%s': Resource"
+			msg = ("Aborting publication of '%s' at service '%s': Resource"
 				" record generation failed: %s"%(
 				rd.sourceId, 'whatever', str(ex)))
+
+		if msg is not None:
+			if onlyWarn:
+				warnings.warn(msg)
+			else:
+				raise base.ReportableError(msg)
+
 		if metaToo:
 			for dependentDD in rd:
 				rsc.Data.create(dependentDD, connection=connection).updateMeta()
@@ -207,7 +215,7 @@ def updateRegistryTimestamp():
 		" WHERE sourcerd=%(rdId)s AND internalid=%(sId)s", {
 		"rdId": regSrv.rd.sourceId,
 		"sId": regSrv.id,
-		"now": datetime.datetime.now(),
+		"now": datetime.datetime.utcnow(),
 	})
 	q.close()
 	getServicesRD().touchTimestamp()

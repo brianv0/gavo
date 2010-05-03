@@ -507,3 +507,22 @@ class FixedQueryCore(core.Core):
 
 core.registerCore(FixedQueryCore)
 
+
+class NullCore(core.Core):
+	"""A core always returning None.
+
+	This core will not work with the common renderers.  It is really
+	intended to go with coreless services (i.e. those in which the
+	renderer computes everthing itself and never calls service.runX).
+	As an example, the external renderer could go with this.
+	"""
+
+	name_ = "nullCore"
+
+	grammarXML = "<contextGrammar/>"
+	outputTableXML = "<outputTable/>"
+
+	def run(self, service, inputData, queryMeta):
+		return None
+
+core.registerCore(NullCore)

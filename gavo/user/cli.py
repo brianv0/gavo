@@ -92,7 +92,7 @@ def _parseCLArgs():
 	called thinks it was execd in the first place.
 	"""
 	from optparse import OptionParser
-	parser = OptionParser(usage="%%prog {<global option>} <func>"
+	parser = OptionParser(usage="%prog {<global option>} <func>"
 		" {<func option>} {<func argument>}\n"+
 		textwrap.fill("<func> is one of %s"%(", ".join(sorted(functions))),
 		initial_indent='', subsequent_indent='  '),
