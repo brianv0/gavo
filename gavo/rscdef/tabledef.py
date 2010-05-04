@@ -44,7 +44,12 @@ class DBIndex(base.Structure):
 		" indexed for.  If not given, the expression will be generated from"
 		" columns (which is what you usually want).")
 
+	rawSQLAllowed = True
+
 	def completeElement(self):
+		if self.content_ and not self.rawSQLAllowed:
+			raise base.RestrictedElement("index", hint="Free-form SQL on indices"
+				" is not allowed in restricted mode")
 		self._completeElementNext(DBIndex)
 		if not self.columns:
 			raise base.StructureError("Index without columns is verboten.")
@@ -52,7 +57,10 @@ class DBIndex(base.Structure):
 			self.name = "%s"%(re.sub("[^\w]+", "_", "_".join(self.columns)))
 		if not self.content_:
 			self.content_ = "%s"%",".join(self.columns)
-	
+
+	def setParseContext(self, ctx):
+		self.rawSQLAllowed = not ctx.restricted
+
 	@property
 	def dbname(self):
 		return "%s_%s"%(self.parent.id, self.name)
@@ -228,6 +236,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 	_namePath = common.NamePathAttribute()
 
 	fixupFunction = None
+	rawSQLAllowed = True
 
 	def __iter__(self):
 		return iter(self.columns)
@@ -251,7 +260,13 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 				destCol.stc = stcDef.compiled
 				destCol.stcUtype = type
 
+	def setParseContext(self, ctx):
+		self.rawSQLAllowed = not ctx.restricted
+
 	def completeElement(self):
+		if not self.rawSQLAllowed and self.viewStatement:
+			raise base.RestrictedElement("table", hint="tables with"
+				" view creation statements are not allowed in restricted mode")
 		# allow iterables to be passed in for columns and convert them
 		# to a ColumnList here
 		if not isinstance(self.columns, common.ColumnList):

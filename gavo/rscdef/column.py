@@ -298,8 +298,13 @@ class Column(base.Structure):
 	stc = None
 	stcUtype = None
 
+	restrictedMode = False
+
 	def __repr__(self):
 		return "<Column %s>"%self.name
+
+	def setParseContext(self, ctx):
+		self.restrictedMode = ctx.restricted
 
 	def onParentComplete(self):
 		# we need to resolve note on construction since columns are routinely
@@ -315,6 +320,8 @@ class Column(base.Structure):
 
 	def validate(self):
 		self._validateNext(Column)
+		if self.restrictedMode and self.fixup:
+			raise base.RestrictedElement("fixup")
 		if not IDENTIFIER_PATTERN.match(self.name):
 			raise base.StructureError("'%s' is not a valid column name"%self.name)
 		if self.fixup is not None:

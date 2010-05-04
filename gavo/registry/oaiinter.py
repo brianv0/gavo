@@ -232,7 +232,7 @@ def getMatchingResobs(pars):
 
 ########################### The registry core
 
-class RegistryCore(svcs.Core):
+class RegistryCore(svcs.Core, base.RestrictionMixin):
 	"""is a core processing OAI requests.
 
 	Its signature requires a single input key containing the complete

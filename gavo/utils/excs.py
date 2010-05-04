@@ -74,6 +74,21 @@ class LiteralParseError(StructureError):
 		self.attName, self.attVal = attName, literal
 
 
+class RestrictedElement(StructureError):
+	"""is raised when elements forbidden in restricted RDs are encountered
+	when restricted parsing is in effect.
+	"""
+	def __init__(self, elName, pos=None, hint=None):
+		if hint is None:
+			hint='If you are actually sure this RD is what you think it it,'
+			' you could always gavo imp it from the command line'
+		StructureError.__init__(self, "'%s' is an illegal attribute or element"
+			" when parsing from untrusted sources."%elName,
+			hint=hint)
+		self.elName = elName
+
+
+
 class BadCode(StructureError):
 	"""is raised when some code could not be compiled.
 
@@ -122,6 +137,7 @@ class DataError(Error):
 	"""is raised when something is wrong with a data set.
 	"""
 
+
 class ReportableError(Error):
 	"""is raised when something decides it can come up with an error message
 	that should be presented to the user as-is.
@@ -129,6 +145,7 @@ class ReportableError(Error):
 	UIs should, consequently, just dump the payload and not try adornments.
 	The content should be treated as a unicode string.
 	"""
+
 
 class NotFoundError(Error):
 	"""is raised when something is asked for something that does not exist.
@@ -145,6 +162,7 @@ class NotFoundError(Error):
 		return "%s %r could not be located in %s"%(
 			self.what, self.lookedFor, self.within)
 
+
 class RDNotFound(NotFoundError):
 	"""is raised when an RD cannot be located.
 	"""
@@ -157,6 +175,7 @@ class ExecutiveAction(Exception):
 	"""is a base class for exceptions that are supposed to break out of
 	deep things and trigger actions higher up.
 	"""
+
 
 class Replace(ExecutiveAction):
 	"""is caught during adoption of children by ParseableStructures.

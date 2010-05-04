@@ -67,7 +67,7 @@ class PhraseMaker(rscdef.ProcApp):
 	getSQLKey will make sure unique names in outPars are chosen and
 	enters the values there.
 	"""
-	name_ = "PhraseMaker"
+	name_ = "phraseMaker"
 
 	requiredType = "phraseMaker"
 	formalArgs = "self, inputKeys, inPars, outPars"
@@ -339,7 +339,7 @@ class TableBasedCore(core.Core):
 		return res
 
 
-class FancyQueryCore(TableBasedCore):
+class FancyQueryCore(TableBasedCore, base.RestrictionMixin):
 	"""A core executing a pre-specified query with fancy conditions.
 
 	Unless you select \*, you *must* define the outputTable here; 
@@ -463,7 +463,7 @@ def makeFeedbackColumn(cols, columnName):
 	return ff
 
 
-class FixedQueryCore(core.Core):
+class FixedQueryCore(core.Core, base.RestrictionMixin):
 	"""A core executing a predefined query.
 
 	This usually is not what you want, unless you want to expose the current

@@ -125,7 +125,7 @@ class ProcSetup(base.Structure):
 _emptySetup = ProcSetup(None, code="")
 
 
-class ProcDef(base.Structure):
+class ProcDef(base.Structure, base.RestrictionMixin):
 	"""An embedded procedure.
 
 	Embedded procedures are code fragments that do fancy things in, e.g.,

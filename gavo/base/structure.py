@@ -58,7 +58,7 @@ import weakref
 from gavo import utils
 from gavo.base import attrdef
 from gavo.base import parsecontext
-from gavo.utils.excs import StructureError, Replace, BadCode
+from gavo.utils.excs import StructureError, Replace, BadCode, RestrictedElement
 
 
 class ChangeParser(Exception):
@@ -276,6 +276,8 @@ class StructureBase(object):
 				raise StructureError("%s objects have no attribute %s"%(
 					self.__class__.__name__, name))
 
+	def _nop(self, *args, **kwargs):
+		pass
 
 	def getAttributes(self, attDefsFrom=None):
 		"""returns a dict of the current attributes, suitable for making
@@ -360,6 +362,12 @@ class ParseableStructure(StructureBase):
 	But it knows how to be fed from a parser, plus you have feed and feedObject
 	methods that look up the attribute names and call the methods on the
 	respective attribute definitions.
+
+	ParseableStructures have a hook setParseContext that is called when
+	they are parsed from XML; it is called with a ParseContext by
+	StructAttribute.create (and from similar places).  Do not rely on
+	the method being called, since for internally built, copied, etc
+	structures, it won't.
 	"""
 	def __init__(self, parent, **kwargs):
 		StructureBase.__init__(self, parent, **kwargs)
@@ -423,7 +431,7 @@ class ParseableStructure(StructureBase):
 		if isinstance(attDef, attrdef.AtomicAttribute):
 			return name
 		else:
-			return attDef.create(self, name).getParser(self)
+			return attDef.create(self, ctx, name).getParser(self)
 
 	def getParser(self, parent):
 		if hasattr(self, "feedEvent"):
@@ -476,6 +484,17 @@ class ParseableStructure(StructureBase):
 		for ev in other.iterEvents():
 			evProc.feed(*ev)
 
+	def setParseContext(self, ctx):
+		"""may be called by a structure parser to advertise the parse
+		context to be used for this structure.
+
+		You cannot rely on this method being called at any time (i.e.,
+		structures must work without any of the stuff done in their
+		setParseContext methods.
+		"""
+		getattr(
+			super(ParseableStructure, self), "setParseContext", self._nop)(ctx)
+		
 
 class Structure(ParseableStructure):
 	"""is the base class for user-defined structures.
@@ -532,6 +551,16 @@ class Structure(ParseableStructure):
 		self._onElementCompleteNext(Structure)
 
 	_onElementCompleteNext = _makeUpwardCaller("onElementComplete")
+
+
+class RestrictionMixin(object):
+	"""A mixin for structure classes not allowed in untrusted RDs.
+	"""
+	def setParseContext(self, ctx):
+		if ctx.restricted:
+			raise RestrictedElement(self.name_)
+		getattr(
+			super(RestrictionMixin, self), "setParseContext", self._nop)(ctx)
 
 
 def makeStructureReference(aStruct, parseParent):

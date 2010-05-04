@@ -49,6 +49,11 @@ class OutputField(rscdef.Column):
 		return "<OutputField %s>"%self.name
 
 	def completeElement(self):
+		if self.restrictedMode and (
+				self.formatter
+				or self.select):
+			raise base.RestrictedElement(self.name_, hint="formatter and select"
+				" attributes on output fields are not allowed in restricted mode.")
 		if self.select is base.Undefined:
 			self.select = self.name
 		self._completeElementNext(OutputField)

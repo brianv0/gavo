@@ -171,7 +171,7 @@ class GrammarAttribute(base.StructAttribute):
 		base.AttributeDef.__init__(self, name, 
 			default=None, description=description, **kwargs)
 
-	def create(self, structure, name):
+	def create(self, structure, ctx, name):
 		return getGrammar(name)(structure)
 
 	def makeUserDoc(self):

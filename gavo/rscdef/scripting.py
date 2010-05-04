@@ -134,7 +134,7 @@ class PythonScriptRunner(ScriptRunner):
 		self.scriptFun(dbTable, **kwargs)
 
 
-class Script(base.Structure):
+class Script(base.Structure, base.RestrictionMixin):
 	"""A script, i.e., some executable item within a resource descriptor.
 
 	The content of scripts is given by their type -- usually, they are

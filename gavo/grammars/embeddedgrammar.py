@@ -21,7 +21,7 @@ class EmbeddedIterator(rscdef.ProcApp):
 	formalArgs = "self"
 
 
-class EmbeddedGrammar(common.Grammar):
+class EmbeddedGrammar(common.Grammar, base.RestrictionMixin):
 	"""A Grammar defined by a code application.
 
 	To define this grammar, write a ProcApp leading to code yielding

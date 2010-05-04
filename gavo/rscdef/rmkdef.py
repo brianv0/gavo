@@ -45,6 +45,7 @@ class MapRule(base.Structure):
 	If src is not given, it defaults to dest.
 	"""
 	name_ = "map"
+	restrictedMode = False
 
 	_dest = base.UnicodeAttribute("dest", default=base.Undefined, 
 		description="Name of the column the value is to end up in.",
@@ -58,8 +59,13 @@ class MapRule(base.Structure):
 	_expr = base.DataContent(copyable=True, description="A python"
 		" expression giving the value to end up in dest")
 
+	def setParseContext(self, ctx):
+		self.restrictedMode = ctx.restricted
 
 	def completeElement(self):
+		if self.restrictedMode and self.content_:
+			raise base.RestrictedElement("map", hint="In restricted mode, only"
+				" maps with a src attribute are allowed.")
 		if not self.content_ and not self.src:
 			self.src = self.dest
 		if self.content_ and "\\" in self.content_:
@@ -103,7 +109,7 @@ class MapRule(base.Structure):
 		return code
 
 
-class VarDef(base.Structure):
+class VarDef(base.Structure, base.RestrictionMixin):
 	"""A definition of a rowmaker variable.
 
 	It consists of a name and a python expression, including function

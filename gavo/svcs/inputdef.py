@@ -52,6 +52,9 @@ class InputKey(rscdef.Column):
 
 	def completeElement(self):
 		self._completeElementNext(InputKey)
+		if self.restrictedMode and self.widgetFactory:
+			raise base.RestrictedElement("widgetFactory")
+
 # XXX TODO: Fix the mess with widgetFactory and formalType by defining
 # special attribute types for them.  Leave the attribute defined
 # as strings and add properties to InputKeys like compiledWidgetFactory

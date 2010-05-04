@@ -180,7 +180,7 @@ class MetaAttribute(attrdef.AttributeDef):
 			newMeta[key] = mi.copy()
 		return oldDict
 	
-	def create(self, parent, name):
+	def create(self, parent, ctx, name):
 		return self  # we're it...
 
 	def makeUserDoc(self):

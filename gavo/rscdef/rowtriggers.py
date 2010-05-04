@@ -92,7 +92,7 @@ class TriggerAttribute(base.StructListAttribute):
 		base.StructListAttribute.__init__(self, name, childFactory=TriggerBase,
 			description=description, **kwargs)
 
-	def create(self, structure, name):
+	def create(self, structure, ctx, name):
 		return getTrigger(name)(structure)
 	
 	def makeUserDoc(self):

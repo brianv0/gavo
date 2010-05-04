@@ -90,7 +90,7 @@ class Core(base.Structure):
 			" mentioned in `Cores Available`_ .")
 
 
-class StaticCore(Core):
+class StaticCore(Core, base.RestrictionMixin):
 	"""A core that always returns the content of a static file.
 
 	This core clearly will not run with most renderers.  It's also

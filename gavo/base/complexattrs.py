@@ -7,10 +7,12 @@ These come with parsers of their own, in some way or other.
 Structure attributes, which do not have string literals and have some sort
 of internal structure, add methods
 
-* create(instance, name) -> structure -- creates a new object of the required 
-  type and returns it.  This is what should later be fed to feedObject and
-  must have a getParser attribute.  The name argument gives the name of
-  the element that caused the create call, allowing for polymorphic attrs.
+* create(instance, ctx, name) -> structure -- creates a new object suitable
+	as attribute value and returns it (for stuctures, instance becomes the
+	parent of the new structure as a side effect of this operation).  This 
+	is what should later be fed to feedObject and must have a getParser 
+	attribute.  The name argument gives the name of the element that caused 
+	the create call, allowing for polymorphic attrs.
 * getParser(instance) -> callable -- returns a callable that receives
   parse events to fill instance
 * replace(instance, oldVal, newVal) -> None -- replaces oldVal with newVal; this
@@ -167,7 +169,7 @@ class DictAttribute(attrdef.AttributeDef):
 		return DictParser(getattr(instance, self.name_), 
 			instance.getParser(instance), self.itemAttD.parse, keyName=self.keyName)
 
-	def create(self, parent, name):
+	def create(self, parent, ctx, name):
 		return self
 
 	def iterEvents(self, instance):
@@ -257,8 +259,10 @@ class StructAttribute(attrdef.AttributeDef):
 				" they are for internal use only.  You cannot specify them in"
 				" resource descriptors.")
 
-	def create(self, structure, name):
-		return self.childFactory(structure)
+	def create(self, structure, ctx, name):
+		res = self.childFactory(structure)
+		res.setParseContext(ctx)
+		return res
 
 	def getCopy(self, instance, newParent):
 		val = getattr(instance, self.name_)

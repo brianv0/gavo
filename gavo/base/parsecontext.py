@@ -191,11 +191,13 @@ class ParseContext(object):
 	methods.
 
 	These objects are available to the feed methods as their
-	first objects.  This may be overridden, but the id map should
-	remain.
+	first objects.
+
+	If restricted is True, embedded code must raise an error.
 	"""
-	def __init__(self):
+	def __init__(self, restricted=False):
 		self.idmap = {}
+		self.restricted = restricted
 	
 	def registerId(self, elId, value):
 		"""enters a value in the id map.

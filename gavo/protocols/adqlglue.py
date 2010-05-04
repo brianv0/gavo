@@ -135,7 +135,7 @@ def mapADQLErrors(excType, excValue, excTb):
 		svcs.mapDBErrors(excType, excValue, excTb)
 
 
-class ADQLCore(svcs.Core):
+class ADQLCore(svcs.Core, base.RestrictionMixin):
 	"""A core taking an ADQL query from its query argument and returning the
 	result of that query in a standard table.
 

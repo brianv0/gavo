@@ -30,7 +30,7 @@ def getModuleName():
 			return name
 
 
-class CustomGrammar(common.Grammar):
+class CustomGrammar(common.Grammar, base.RestrictionMixin):
 	"""A Grammar with a user-defined row iterator taken from a module.
 
 	See the separate document on user code in the DC on how to define custom

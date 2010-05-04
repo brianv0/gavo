@@ -225,5 +225,31 @@ class TAP_SchemaTest(testhelpers.VerboseTest):
 		self._checkUnpublished()
 
 
+class RestrictionTest(testhelpers.VerboseTest):
+	"""Tests for rejection of constructs disallowed in restricted RDs.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		context = rscdesc.RDParseContext(restricted=True)
+		context.srcPath = os.getcwd()
+		self.assertRaises(base.RestrictedElement, base.parseFromString,
+			rscdesc.RD, '<resource schema="testing">'
+				'<table id="test"><column name="x"/></table>'
+				'%s</resource>'%sample,
+				context)
+		
+	samples = [
+		'<procDef><code>pass</code></procDef>',
+		'<dbCore queriedTable="test"><condDesc><phraseMaker/></condDesc></dbCore>',
+		'<nullCore id="null"/><service core="null"><customRF name="foo"/>'
+			'</service>',
+		'<table id="test2"><column name="x"/><index columns="x">'
+			'CREATE</index></table>',
+		'<table id="test2"><column name="x" fixup="__+\'x\'"/></table>',
+		'<data><embeddedGrammar><iterator/></data>',
+		'<staticCore id="foo" file="xy"/>',
+	]
+
 if __name__=="__main__":
 	testhelpers.main(TAP_SchemaTest)

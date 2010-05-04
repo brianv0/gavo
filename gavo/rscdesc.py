@@ -41,8 +41,10 @@ class CoresAttribute(base.StructListAttribute):
 		base.StructListAttribute.__init__(self, name, childFactory=svcs.Core,
 			description=description, **kwargs)
 
-	def create(self, structure, name):
-		return svcs.getCore(name)(structure)
+	def create(self, structure, ctx, name):
+		res = svcs.getCore(name)(structure)
+		res.setParseContext(ctx)
+		return res
 
 
 class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
@@ -230,10 +232,11 @@ class RDParseContext(base.ParseContext):
 	to parse XML snippets with a standard parse context, so use 
 	getattr(ctx, "doQueries", True) or somesuch.
 	"""
-	def __init__(self, forImport, doQueries, dumpTracebacks):
+	def __init__(self, forImport=False, doQueries=True, dumpTracebacks=False, 
+			restricted=False):
 		self.forImport, self.doQueries = forImport, doQueries
 		self.dumpTracebacks = dumpTracebacks
-		base.ParseContext.__init__(self)
+		base.ParseContext.__init__(self, restricted)
 
 
 def getRDInputStream(srcId):
@@ -295,7 +298,8 @@ def setRDDateTime(rd, inputFile):
 	rd.dateUpdated = max(dataUpdated, rdUpdated)
 
 
-def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False):
+def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
+		restricted=False):
 	"""returns a ResourceDescriptor for srcId.
 
 	srcId is something like an input-relative path; you'll generally
@@ -305,7 +309,7 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False):
 	the mapping from id to object collected by the parse context.
 	"""
 	srcPath, inputFile = getRDInputStream(srcId)
-	context = RDParseContext(forImport, doQueries, dumpTracebacks)
+	context = RDParseContext(forImport, doQueries, dumpTracebacks, restricted)
 	context.srcPath = srcPath
 	rd = RD(None)
 	rd.idmap = context.idmap

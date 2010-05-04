@@ -195,7 +195,7 @@ class Publication(base.Structure, base.ComputedMetaMixin):
 		return getRenderer(self.render).resultType
 
 
-class CustomRF(base.Structure):
+class CustomRF(base.Structure, base.RestrictionMixin):
 	"""A custom render function for a service.
 
 	Custom render functions can be used to expose certain aspects of a service
