@@ -27,7 +27,7 @@ class DebugPage(rend.Page):
 
 	name = "debug"
 
-	def __init__(self, ctx, *args, **kwargs):
+	def __init__(self, *args, **kwargs):
 		self.args, self.kwargs = args, kwargs
 
 	def data_args(self, ctx, data):

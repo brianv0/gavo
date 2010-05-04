@@ -104,6 +104,9 @@ def _parseCLArgs():
 		action="store_true", dest="enablePDB")
 	parser.add_option("--disable-spew", help='Suppress silly "starting up".',
 		action="store_true", dest="disableSpew")
+	parser.add_option("--profile-to", metavar="PROFILEPATH",
+		help="enable profiling and write a profile to PROFILEPATH",
+		action="store", dest="profilePath", default=None)
 
 	opts, args = parser.parse_args()
 	if len(args)<1:
@@ -131,6 +134,11 @@ def main():
 		if opts.enablePDB:
 			_enablePDB()
 		funcToRun = getattr(loadGAVOModule(module), funcName)
+
+	if opts.profilePath:
+		import cProfile
+		cProfile.runctx("funcToRun()", globals(), locals(), opts.profilePath)
+		return
 
 	try:
 		funcToRun()

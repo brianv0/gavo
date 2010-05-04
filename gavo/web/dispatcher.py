@@ -55,7 +55,7 @@ class ReloadPage(grend.GavoRenderMixin, rend.Page):
 
 	modsToReload = ["gavo.web.dispatcher"]
 
-	def __init__(self, ctx, *args, **kwargs):
+	def __init__(self, *args, **kwargs):
 		super(ReloadPage, self).__init__()
 		self.modulesReloaded = []
 	
@@ -145,7 +145,6 @@ class LoginPage(rend.Page):
 				return url.URL.fromContext(ctx).click(self.nextURL)
 			else: # ... and want to log in.
 				return self.doAuth(ctx)
-
 
 	docFactory = common.doctypedStan(
 		T.html[T.head[T.title["GAVO: Credentials Info"]],
@@ -347,13 +346,6 @@ class VanityMap(object):
 _vanityMap = VanityMap()
 
 
-specialChildren = {
-	"debug": (lambda ctx, segs, cls: cls(ctx, segs), weberrors.DebugPage),
-	"reload": (lambda ctx, segs, cls: cls(ctx, segs), ReloadPage),
-	"login": (lambda ctx, segs, cls: cls(ctx), LoginPage),
-}
-
-
 
 class ArchiveService(common.CustomTemplateMixin, rend.Page, 
 		grend.GavoRenderMixin):
@@ -403,23 +395,6 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		]
 	])
 
-	def _locateSpecialChild(self, ctx, segments):
-		"""returns a renderer for one of the special render classes above.
-
-		For them, the URIs always have the form 
-		<anything>/<action>, where action is the key
-		given in specialChildren.
-		"""
-# XXX TODO: Do away with them, replacing them either with a child_ on
-# ArchiveService or custom pages on services (Registry!).
-		act = segments[-1]
-		try:
-			fFunc, cls = specialChildren[act]
-			res = fFunc(ctx, segments[:-1], cls)
-		except (UnknownURI, KeyError):
-			res = None
-		return res
-
 	def _locateResourceBasedChild(self, ctx, segments):
 		"""returns a standard, resource-based service renderer.
 
@@ -464,6 +439,8 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 
 	child_static = StaticServer()
 	child_builtin = BuiltinServer()
+	child_debug = weberrors.DebugPage()
+	child_reload = ReloadPage()
 
 	def _realLocateChild(self, ctx, segments):
 # XXX TODO: refactor this mess, clean up strange names by pulling more
@@ -471,22 +448,22 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		self._hackHostHeader(ctx)
 		if os.path.exists(self.maintFile):
 			return MaintPage(), ()
-		if segments[:self.rootLen]!=self.rootSegments:
-			return None, ()
-		segments = segments[self.rootLen:]
+
+		if self.rootSegments:  # remove off-root path elements
+			if segments[:self.rootLen]!=self.rootSegments:
+				return None, ()
+			segments = segments[self.rootLen:]
+
 		if not segments or len(segments)==1 and segments[0]=='':
 			return self, ()
 
 		# handle vanity names and shortcuts
 		segments = _vanityMap.map(segments)
 
-		# Special URLs (favicon.ico, TODO: robots.txt)
-		if len(segments)==1 and segments[0]=="favicon.ico":
-			faviconPath = base.getConfig("web", "favicon")
-			if faviconPath and faviconPath!="None" and os.path.exists(faviconPath):
-				return static.File(faviconPath), ()
-			else:
-				return None, ()
+		# Hm... there has to be a smarter way to do such things...?
+		# Pending sanitized dispatcher...
+		if segments[0]=="login":
+			return LoginPage(ctx), ()
 
 		# base handling
 		name = segments[0]
@@ -494,11 +471,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 			res = getattr(self, "child_"+name), segments[1:]
 		else:
 			try:
-				sc = self._locateSpecialChild(ctx, segments)
-				if sc:
-					res = sc, ()
-				else:
-					res = self._locateResourceBasedChild(ctx, segments)
+				res = self._locateResourceBasedChild(ctx, segments)
 			except grend.RDBlocked:
 				return BlockedPage(segments), ()
 		return res
@@ -525,6 +498,10 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 
 setattr(ArchiveService, 'child_formal.css', formal.defaultCSS)
 setattr(ArchiveService, 'child_js', formal.formsJS)
+if (base.getConfig("web", "favicon")
+		and os.path.exists(base.getConfig("web", "favicon"))):
+	setattr(ArchiveService, "child_favicon.ico",
+		static.File(base.getConfig("web", "favicon")))
 
 
 if base.getConfig("web", "errorPage")=="debug":
