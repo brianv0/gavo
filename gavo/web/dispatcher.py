@@ -17,6 +17,7 @@ import urlparse
 
 
 from twisted.internet import defer
+from twisted.internet import reactor
 from twisted.python import components
 from twisted.python import failure
 # we put some calculations into threads.
@@ -464,6 +465,8 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		# Pending sanitized dispatcher...
 		if segments[0]=="login":
 			return LoginPage(ctx), ()
+		elif segments[0]=="exit":
+			reactor.stop()
 
 		# base handling
 		name = segments[0]

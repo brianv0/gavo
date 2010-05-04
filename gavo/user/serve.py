@@ -2,9 +2,21 @@
 A wrapper script suitable for starting the server.
 """
 
+import datetime
 import os
 import pkg_resources
 import sys
+
+from nevow import appserver
+from nevow import inevow
+from nevow import rend
+from twisted.internet import reactor
+from twisted.python import log
+
+from gavo import base
+from gavo import utils
+from gavo.web import dispatcher
+from gavo.base import config
 
 
 TWISTD_BIN="/usr/bin/twistd"
@@ -61,9 +73,23 @@ def serverAction(act):
 	'''
 
 
+class ExitPage(rend.Page):
+	def renderHTTP(self, ctx):
+		req = inevow.IRequest(ctx)
+		req.setHeader("content-type", "text/plain")
+		reactor.stop()
+		return "exiting."
+
+
 def debugAction():
-	os.execl(TWISTD_BIN, TWISTD_BIN, "-noy", 
-		pkg_resources.resource_filename("gavo", "standalone.tac"))
+	log.startLogging(sys.stderr)
+	config.setMeta("upSince", datetime.datetime.utcnow().strftime(
+		utils.isoTimestampFmt))
+	root = dispatcher.ArchiveService()
+	root.child_exit = ExitPage()
+	factory = appserver.NevowSite(root)
+	reactor.listenTCP(int(base.getConfig("web", "serverPort")), factory)
+	reactor.run()
 
 
 def main():
