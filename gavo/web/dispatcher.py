@@ -465,8 +465,6 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		# Pending sanitized dispatcher...
 		if segments[0]=="login":
 			return LoginPage(ctx), ()
-		elif segments[0]=="exit":
-			reactor.stop()
 
 		# base handling
 		name = segments[0]
