@@ -95,7 +95,8 @@ def getChunkedServiceList(setName=None):
 	"""
 	setName = setName or 'local'
 	return utils.chunk(
-		sorted(queryServicesList("setName=%(setName)s", {"setName": setName}), 
+		sorted(queryServicesList("setName=%(setName)s and not deleted", 
+			{"setName": setName}), 
 			key=lambda s: s.get("title").lower()),
 		lambda srec: srec.get("title", ".")[0].upper())
 
