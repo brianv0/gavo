@@ -122,7 +122,8 @@ def query(querier, query, timeout=15, metaProfile=None):
 
 
 def mapADQLErrors(excType, excValue, excTb):
-	if isinstance(excValue, adql.ParseException):
+	if (isinstance(excValue, adql.ParseException)
+			or isinstance(excValue, adql.ParseSyntaxException)):
 		raise base.ValidationError("Could not parse your query: %s"%
 			unicode(excValue), "query")
 	elif isinstance(excValue, adql.ColumnNotFound):
