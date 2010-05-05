@@ -41,209 +41,11 @@ from gavo import registry    # for registration
 from gavo.imp import formal
 from gavo.web import common
 from gavo.web import grend
+from gavo.web import ifpages
 from gavo.web import weberrors
 
 from gavo.svcs import Error, UnknownURI, ForbiddenURI, WebRedirect, BadMethod
 
-
-# monkeypatch nevow static's mime types
-static.File.contentTypes[".ascii"] = "application/octet-stream"
-static.File.contentTypes[".vot"] = "application/x-votable+xml"
-static.File.contentTypes[".rd"] = "application/x-gavo-descriptor+xml"
-
-
-class ReloadPage(grend.GavoRenderMixin, rend.Page):
-
-	modsToReload = ["gavo.web.dispatcher"]
-
-	def __init__(self, *args, **kwargs):
-		super(ReloadPage, self).__init__()
-		self.modulesReloaded = []
-	
-	def data_reloadedModules(self, ctx, data):
-		return self.modulesReloaded
-
-	def renderHTTP(self, ctx):
-		return common.runAuthenticated(ctx, "admin", self._reload, ctx)
-
-	def _reloadModules(self):
-		for modPath in self.modsToReload:
-			parts = modPath.split(".")
-			exec "from %s import %s;reload(%s)"%(".".join(parts[:-1]), parts[-1],
-				parts[-1])
-			self.modulesReloaded.append(modPath)
-
-	def _reload(self, ctx):
-		base.caches.clearCaches()
-		self._reloadModules()
-		return self._renderHTTP(ctx)
-	
-	docFactory = loaders.xmlstr("""<html xmlns:n='http://nevow.com/ns/nevow/0.1'>
-    <head><title>Caches cleared</title>
-    </head>
-    <body><h1>Caches cleared</h1>
-		<p>The caches were cleared successfully.</p>
-		<p>Modules reloaded: 
-			<span n:render="sequence" n:data="reloadedModules">
-				<span n:pattern="item"><n:invisible n:render="data"/>, </span>
-			</span>
-		</p>
-		<p>You can:</p>
-		<ul>
-		<li><a href="/reload" n:render="rootlink">Reload again</a></li>
-		<li>Go to <a href="/" n:render="rootlink">Main Page</a></li>
-		<li><a href="/__system__/services/overview/form" 
-			n:render="rootlink">Inspect services</a></li>
-		</ul>
-    </body></html>
-    """)
-
-
-class LoginPage(rend.Page):
-	"""is a page that logs people in or out.
-
-	You should usually give a nextURL parameter in the context, the page
-	the user is returned to afte login.
-
-	If the user is already authenticated, this will do a logout (by
-	sending a 403).
-	"""
-	def __init__(self, ctx):
-		rend.Page.__init__(self)
-		self.request = inevow.IRequest(ctx)
-		self.nextURL = self.request.args.get("nextURL", ["/"])[0]
-
-	def render_nextURL(self, ctx, data):
-		return ctx.tag(href=self.nextURL)
-
-	def render_iflogged(self, ctx, data):
-		if self.request.getUser():
-			return ctx.tag
-		return ""
-	
-	def render_ifnotlogged(self, ctx, data):
-		if not self.request.getUser():
-			return ctx.tag
-		return ""
-
-	def data_loggedUser(self, ctx, data):
-		return self.request.getUser()
-
-	def doAuth(self, ctx):
-		self.request.setResponseCode(401)
-		self.request.setHeader('WWW-Authenticate', 'Basic realm="Gavo"')
-		return rend.Page.renderHTTP(self, ctx)
-
-	def renderHTTP(self, ctx):
-		relogging = self.request.args.get("relog", None)
-		if self.request.getUser():  # user is logged in...
-			if relogging: # ...and wants to log out: show login dialog...
-				return self.doAuth(ctx)
-			else:   # ...and has just logged in: forward to destination
-				return url.URL.fromContext(ctx).click(self.nextURL)
-		else:  # user is not logged in
-			if relogging:  #...but was and has just logged out: forward to dest
-				return url.URL.fromContext(ctx).click(self.nextURL)
-			else: # ... and want to log in.
-				return self.doAuth(ctx)
-
-	docFactory = common.doctypedStan(
-		T.html[T.head[T.title["GAVO: Credentials Info"]],
-			T.body[
-				T.h1["Credentials Info"],
-				T.p(render=T.directive("iflogged"))["You are currently logged in"
-					" as ", 
-					T.span(class_="loggedUser", render=T.directive("data"),
-						data=T.directive("loggedUser")),
-					"."],
-				T.p(render=T.directive("ifnotlogged"))["You are currently logged out"],
-				T.p["Go to ",
-					T.a(render=T.directive("nextURL"))["the last page"],
-					" or ",
-					T.a(href=base.getConfig("web", "nevowRoot"))["DC home"],
-					"."]]])
-
-
-def _replaceConfigStrings(srcPath, registry):
-	src = open(srcPath).read().decode("utf-8")
-	src = src.replace("__site_path__", base.getConfig("web", "nevowRoot"))
-	src = src.replace("__site_url__", os.path.join(
-		base.getConfig("web", "serverURL")+base.getConfig("web", "nevowRoot")))
-	return src.encode("utf-8")
-
-
-class StaticServer(static.File):
-	"""is a server for various static files.
-
-	There's only one hack in here: We register a processor for .shtml
-	files.  In them, certain strings are replaced with *site-global*
-	values.  This probably should only be used for the server URL and
-	the application prefix.  Anything more dynamic should be done properly
-	via renderers.
-	"""
-	def __init__(self, *args, **kwargs):
-		if not args:
-			static.File.__init__(self, os.path.join(base.getConfig("webDir"), 
-				"nv_static"))
-		else:
-			static.File.__init__(self, *args, **kwargs)
-
-	processors = {
-		".shtml": _replaceConfigStrings,
-	}
-
-
-class BuiltinServer(StaticServer):
-	"""is a server for the built-in resources.
-
-	This works via setuptool's pkg_config; the built-in resources are in
-	gavo/resources in SVN.
-	"""
-	builtinRoot = pkg_resources.resource_filename('gavo', "resources/web")
-	def __init__(self, *args, **kwargs):
-		if not args:
-			static.File.__init__(self, self.builtinRoot)
-		else:
-			static.File.__init__(self, *args, **kwargs)
-
-
-class MaintPage(rend.Page):
-	"""will be displayed during maintenance.
-	"""
-	docFactory = loaders.stan(T.html[
-		T.head[
-			T.title["Archive Service"]
-		],
-		T.body[
-			T.h1["Maintenance"],
-			T.p["The archive service is currently shut down for maintenance."],
-		]
-	])
-
-
-class BlockedPage(grend.GavoRenderMixin, rend.Page):
-	"""will be displayed when a service on a blocked resource descriptor
-	is requested.
-	"""
-	def __init__(self, segments):
-		self.segments = segments
-		super(BlockedPage, self).__init__()
-
-	docFactory = loaders.stan(T.html[
-		T.head[
-			T.title["Service temporarily taken down"],
-			T.invisible(render=T.directive("commonhead")),
-		],
-		T.body[
-			T.h1["Service temporarily taken down"],
-			T.p["The service you requested is currently under maintanence."
-				" This could take from a few minutes to a day.  We are sorry for"
-				" any inconvenience."],
-			T.p["If the service has not come back within 24 hours, please"
-				" contact ",
-				T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
-					"gavo@ari.uni-heidelberg.de"],
-				".",]]])
 
 
 class VanityLineError(Error):
@@ -438,17 +240,16 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		from gavo.web import webtests
 		child_test = webtests.Tests()
 
-	child_static = StaticServer()
-	child_builtin = BuiltinServer()
+	child_static = ifpages.StaticServer()
+	child_builtin = ifpages.BuiltinServer()
 	child_debug = weberrors.DebugPage()
-	child_reload = ReloadPage()
 
 	def _realLocateChild(self, ctx, segments):
 # XXX TODO: refactor this mess, clean up strange names by pulling more
 # into proper services.
 		self._hackHostHeader(ctx)
 		if os.path.exists(self.maintFile):
-			return MaintPage(), ()
+			return static.File(common.getTemplatePath("maintenance.html")), ()
 
 		if self.rootSegments:  # remove off-root path elements
 			if segments[:self.rootLen]!=self.rootSegments:
@@ -464,7 +265,9 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		# Hm... there has to be a smarter way to do such things...?
 		# Pending sanitized dispatcher...
 		if segments[0]=="login":
-			return LoginPage(ctx), ()
+			return ifpages.LoginPage(ctx), ()
+		elif segments[0]=="reload":
+			return ifpages.ReloadPage(ctx), ()
 
 		# base handling
 		name = segments[0]
@@ -474,7 +277,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 			try:
 				res = self._locateResourceBasedChild(ctx, segments)
 			except grend.RDBlocked:
-				return BlockedPage(segments), ()
+				return static.File(common.getTemplatePath("blocked.html")), () 
 		return res
 	
 	def locateChild(self, ctx, segments):

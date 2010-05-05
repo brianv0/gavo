@@ -69,20 +69,25 @@ class HTMLMetaBuilder(meta.MetaBuilder):
 		self.resultTree = [[]]
 
 
-def loadSystemTemplate(path):
-	"""returns a nevow template for system pages from path.
+def getTemplatePath(key):
+	"""see loadSystemTemplate.
+	"""
+	userPath = os.path.join(base.getConfig("rootDir"), "web/templates", key)
+	if os.path.exists(userPath):
+		return userPath
+	else:
+		return pkg_resources.resource_filename('gavo',
+			os.path.join("resources", "templates", key))
+
+def loadSystemTemplate(key):
+	"""returns a nevow template for system pages from key.
 
 	path is interpreted as relative to gavo_root/web/templates (first)
 	and package internal (last).  If no template is found, None is
 	returned (this harmonizes with the fallback in CustomTemplateMixin).
 	"""
 	try:
-		userPath = os.path.join(base.getConfig("rootDir"), "web/templates", path)
-		if os.path.exists(userPath):
-			return loaders.xmlfile(userPath)
-		else:
-			return loaders.xmlfile(pkg_resources.resource_filename('gavo',
-				"resources/templates/"+path))
+		return loaders.xmlfile(getTemplatePath(key))
 	except IOError:
 		pass
 
