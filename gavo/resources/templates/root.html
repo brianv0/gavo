@@ -1,0 +1,118 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+       "html-dtd/xhtml1-strict.dtd">
+<html xmlns:n="http://nevow.com/ns/nevow/0.1" 
+		xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>
+			The GAVO Data Center
+		</title>
+    <n:invisible n:render="commonhead"/>
+
+		<style type="text/css">
+		#listselector {margin-bottom: 0px;display: table-row;}
+		#listselector li {
+			display: table-cell; 
+			padding: 4px;
+			border-top:1px solid grey;
+			border-left:1px solid grey;
+			border-right:1px solid grey;
+			border-collapse:collapse;
+		}
+		.pane {
+			padding: 5px;
+			background-color: #DDDDEE;
+		}
+	</style>
+
+	<script type="text/javascript">
+		function hideElement(element) {
+			element.style.visibility = 'hidden';
+			element.style.position = 'fixed';
+		}
+
+		function unhideElement(element) {
+			element.style.visibility = 'visible';
+			element.style.position = 'static';
+		}
+
+		function showSubjects() {
+			hideElement(document.getElementById("servicelist"));
+			unhideElement(document.getElementById("subjectlist"));
+			document.getElementById("subjsel").style.background = '#DDDDEE';
+			document.getElementById("titlesel").style.background = '#FFFFFF';
+		}
+
+		function showTitles() {
+			unhideElement(document.getElementById("servicelist"));
+			hideElement(document.getElementById("subjectlist"));
+			document.getElementById("titlesel").style.background = '#DDDDEE';
+			document.getElementById("subjsel").style.background = '#FFFFFF';
+		}
+	</script>
+
+  </head>
+  <body>
+		<div id="header">
+			<img src="/static/img/logo_big.png" alt="[GAVO logo]" 
+				n:render="rootlink"/>
+			<h1>The GAVO Data Center</h1>
+		</div>
+		<p>Welcome to the GAVO data center, provided by 
+		<a href="http://www.zah.uni-hd.de">Zentrum für Astronomie
+		Heidelberg</a> on behalf of the 
+		<a href="http://www.g-vo.org">German Astrophysical Virtual 
+		Observatory</a>.</p>
+		<p>The software driving this site is still under heavy development.  
+		This means that despite all regression testing you
+		are likely to hit a snag or two.  Please do 
+		<a href="mailto:gavo@ari.uni-heidelberg.de">contact us</a> if that
+		happens, we depend on your bug reports (and suggestions).  Also,
+		have a look at our <a href="/builtin/help.shtml">site help</a>.</p>
+		<p>Services marked with a [P] are password protected.  In most cases,
+		we will provide access data for these services on request.</p>
+		<hr/>
+		<h2>Services available here</h2>
+				<ul id="listselector">
+			<li style="background-color:#DDDDEE" onclick="showSubjects()"
+				id="subjsel">By subject</li>
+			<li id="titlesel" onclick="showTitles()">By title</li></ul>
+		<div class="container" style="max-width:600px">
+		<div id="servicelist" style="visibility:hidden; position:fixed" n:data="chunkedServiceList" n:render="sequence" class="pane">
+			<n:invisible n:pattern="item">
+				<h3><n:invisible n:render="string" n:data="0"/>...</h3>
+				<ul n:data="1" n:render="sequence">
+					<li n:pattern="item" n:render="mapping">
+						<span n:render="ifprotected">[P]</span>
+						<a><n:attr name="href"><n:slot name="accessURL"/></n:attr><n:slot name="title"/></a>
+						<span class="srvDesc"> &ndash; <n:slot name="description"/></span>
+					</li>
+				</ul>
+			</n:invisible>
+		</div>
+
+		<div id="subjectlist" n:data="subjectServiceList" n:render="sequence"
+				style="position:static" class="pane">
+			<n:invisible n:pattern="item" n:render="mapping">
+				<h3><n:slot name="subject"/></h3>
+				<ul n:data="chunk" n:render="sequence">
+					<li n:pattern="item" n:render="mapping">
+						<span n:render="ifprotected">[P]</span>
+						<a><n:attr name="href"><n:slot name="accessURL"/></n:attr><n:slot name="title"/></a>
+					</li>
+				</ul>
+			</n:invisible>
+		</div>
+		</div>
+
+		<p><a href="http://www.g-vo.org/www/Products/Products">Further 
+			services</a> developed by GAVO are available on the 
+			<a href="http://www.g-vo.org">GAVO home page</a>.</p>
+		<p>Please review the data center's 
+			<a href="/static/doc/privpol.shtml" n:render="rootlink">Privacy Policy</a> and our <a href="/static/doc/disclaimer.shtml">Disclaimer</a>.</p>
+		<p class="attribution">
+			<a href="mailto:gavo@ari.uni-heidelberg.de">Contact us</a>
+			<a href="/reload" n:render="rootlink">[r]</a>
+			<a href="/__system__/services/overview/form" n:render="rootlink">[s]</a>
+		</p>
+  </body>
+</html>

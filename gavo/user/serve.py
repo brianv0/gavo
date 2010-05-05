@@ -15,7 +15,7 @@ from twisted.python import log
 
 from gavo import base
 from gavo import utils
-from gavo.web import dispatcher
+from gavo.web import root
 from gavo.base import config
 
 
@@ -85,9 +85,9 @@ def debugAction():
 	log.startLogging(sys.stderr)
 	config.setMeta("upSince", datetime.datetime.utcnow().strftime(
 		utils.isoTimestampFmt))
-	root = dispatcher.ArchiveService()
-	root.child_exit = ExitPage()
-	factory = appserver.NevowSite(root)
+	rootRes = root.ArchiveService()
+	rootRes.child_exit = ExitPage()
+	factory = appserver.NevowSite(rootRes)
 	reactor.listenTCP(int(base.getConfig("web", "serverPort")), factory)
 	reactor.run()
 

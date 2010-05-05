@@ -34,7 +34,7 @@ from gavo.web import weberrors
 
 class RDBlocked(Exception):
 	"""is raised when a ResourceDescriptor is blocked due to maintanence
-	and caught by the dispatcher.
+	and caught by the root resource..
 	"""
 
 

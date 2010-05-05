@@ -16,13 +16,13 @@ from gavo import rscdesc         # for getRD in base.caches
 from gavo import utils
 from gavo.protocols import basic # for registration
 from gavo.base import config
-from gavo.web import dispatcher
+from gavo.web import root
 
 debug = False
 
 class Reloader(rend.Page):
 	def locateChild(self, ctx, segments):
-		page = dispatcher.ArchiveService()
+		page = root.ArchiveService()
 		return page.locateChild(ctx, segments)
 
 
@@ -44,7 +44,7 @@ application = service.Application("archive", uid=uid)
 if debug:
 	mainPage = Reloader()
 else:
-	mainPage = dispatcher.ArchiveService()
+	mainPage = root.ArchiveService()
 
 config.setMeta("upSince", datetime.datetime.utcnow().strftime(
 	utils.isoTimestampFmt))

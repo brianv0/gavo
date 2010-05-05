@@ -1,5 +1,5 @@
 """
-The dispatcher for the new nevow-based web interface.
+The root resource of the data center.
 """
 
 
@@ -149,28 +149,9 @@ class VanityMap(object):
 _vanityMap = VanityMap()
 
 
-
-class ArchiveService(common.CustomTemplateMixin, rend.Page, 
-		grend.GavoRenderMixin):
-
-	def __init__(self):
-		self.maintFile = os.path.join(base.getConfig("stateDir"), "MAINT")
-		self.customTemplate = os.path.join(base.getConfig("web", "templateDir"),
-			"root.html")
-		rend.Page.__init__(self)
-		self.rootSegments = tuple(s for s in 
-			base.getConfig("web", "nevowRoot").split("/") if s)
-		self.rootLen = len(self.rootSegments)
-
-	def renderHTTP(self, ctx):
-		return rend.Page.renderHTTP(self, ctx
-			).addErrback(self._handleEscapedErrors, ctx)
-	
-	def _handleEscapedErrors(self, failure, ctx):
-		if isinstance(failure.value, svcs.UnknownURI):
-			return weberrors.NotFoundPage()
-		return failure
-
+class RootPage(common.CustomTemplateMixin, rend.Page, grend.GavoRenderMixin):
+	"""The data center's "home page".
+	"""
 	def data_chunkedServiceList(self, ctx, data):
 		"""returns a service list alphabetically chunked.
 		"""
@@ -187,16 +168,29 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 		else:
 			return ""
 
-	defaultDocFactory = loaders.stan(T.html[
-		T.head[
-			T.title["Archive Service"]
-		],
-		T.body[
-			T.h1["Archive Service"],
-			T.p["The operators of this site did not create a root.html template."
-				"  So, you're seeing this fallback page."],
-		]
-	])
+	defaultDocFactory = common.loadSystemTemplate("root.html")
+
+
+class ArchiveService(rend.Page):
+
+	def __init__(self):
+		self.maintFile = os.path.join(base.getConfig("stateDir"), "MAINT")
+		rend.Page.__init__(self)
+		self.rootSegments = tuple(s for s in 
+			base.getConfig("web", "nevowRoot").split("/") if s)
+		self.rootLen = len(self.rootSegments)
+
+	def renderHTTP(self, ctx):
+		# this is only ever executed on the root URL.  For consistency
+		# (e.g., caching), we route this through locateChild though
+		# we know we're going to return RootPage.  locateChild must
+		# thus *never* return self.
+		return self.locateChild(ctx, (""))
+	
+	def _handleEscapedErrors(self, failure, ctx):
+		if isinstance(failure.value, svcs.UnknownURI):
+			return weberrors.NotFoundPage()
+		return failure
 
 	def _locateResourceBasedChild(self, ctx, segments):
 		"""returns a standard, resource-based service renderer.
@@ -257,7 +251,7 @@ class ArchiveService(common.CustomTemplateMixin, rend.Page,
 			segments = segments[self.rootLen:]
 
 		if not segments or len(segments)==1 and segments[0]=='':
-			return self, ()
+			return RootPage(), ()
 
 		# handle vanity names and shortcuts
 		segments = _vanityMap.map(segments)

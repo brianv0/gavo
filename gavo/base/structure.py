@@ -638,7 +638,7 @@ class Generator(Parser):
 
 
 class EventProcessor(object):
-	"""is a dispatcher for parse events to structures.
+	"""A dispatcher for parse events to structures.
 
 	It is constructed with the root structure of the result tree, either
 	as a type or as an instance.

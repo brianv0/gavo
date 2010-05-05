@@ -65,7 +65,7 @@ def queryServicesList(whereClause="", pars={}, tableName="srv_join"):
 def querySubjectsList(setName=None):
 	"""returns a list of local services chunked by subjects.
 
-	This is mainly for the root page (see web.dispatcher).  Query the
+	This is mainly for the root page (see web.root).  Query the
 	cache using the __system__/services key to clear the cache on services
 	"""
 	setName = setName or 'local'
@@ -89,7 +89,7 @@ base.caches.makeCache("getSubjectsList",
 def getChunkedServiceList(setName=None):
 	"""returns a list of local services chunked by title char.
 
-	This is mainly for the root page (see web.dispatcher).  Query the
+	This is mainly for the root page (see web.root).  Query the
 	cache using the __system__/services key to clear the cache on services
 	reload.
 	"""

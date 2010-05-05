@@ -112,7 +112,7 @@ def getJobList():
 
 
 class _JobActions(object):
-	"""a collection of "actions" performed on UWS jobs.
+	"""A collection of "actions" performed on UWS jobs.
 
 	These correspond to the resources specified in the UWS spec.
 
