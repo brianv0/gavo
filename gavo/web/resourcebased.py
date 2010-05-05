@@ -41,7 +41,6 @@ from gavo.imp.formal import form
 from gavo.formats import csvtable
 from gavo.formats import fitstable
 from gavo.formats import texttable
-from gavo.formats import votablewrite
 from gavo.base import typesystems
 from gavo.web import common
 from gavo.web import grend
@@ -115,25 +114,6 @@ class ServiceResource(grend.ServiceBasedRenderer):
 			]])
 
 
-def streamVOTable(request, data):
-	"""streams out the payload of an SvcResult as a VOTable.
-	"""
-	def writeVOTable(outputFile):
-		"""writes a VOTable representation of the SvcResult instance data
-		to request.
-		"""
-		try:
-			tableMaker = votablewrite.writeAsVOTable(
-				data.original, outputFile,
-				tablecoding={ True: "td", False: "binary"}[data.queryMeta["tdEnc"]])
-		except:
-			sys.stderr.write("Yikes -- error during VOTable render:\n")
-			traceback.print_exc()
-			outputFile.write(">>>> INTERNAL ERROR, INVALID OUTPUT <<<<")
-			return ""
-	return streaming.streamOut(writeVOTable, request)
-
-
 class VOTableResponse(ServiceResource):
 	"""is a renderer for queries for VOTables.  
 	
@@ -151,7 +131,7 @@ class VOTableResponse(ServiceResource):
 		request.setHeader("content-type", "application/x-votable")
 		request.setHeader('content-disposition', 
 			'attachment; filename=%s'%fName)
-		return streamVOTable(request, data)
+		return streaming.streamVOTable(request, data)
 
 	errorFactory = common.doctypedStan(T.html[
 			T.head[

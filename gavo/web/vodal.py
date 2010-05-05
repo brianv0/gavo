@@ -27,6 +27,7 @@ from gavo.utils import ElementTree
 from gavo.votable import V
 from gavo.web import grend
 from gavo.web import resourcebased
+from gavo.web import streaming
 
 
 MS = base.makeStruct
@@ -53,6 +54,7 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 			reqArgs["_DBOPTIONS_LIMIT"] = [
 				str(base.getConfig("ivoa", "dalDefaultLimit"))]
 		reqArgs["_FORMAT"] = ["VOTable"]
+		reqArgs["_VOTABLE_VERSION"] = ["1.1"]
 		resourcebased.Form.__init__(self, ctx, *args, **kwargs)
 
 	@classmethod
@@ -69,7 +71,7 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 		result = self._makeErrorTable(ctx, errmsg)
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
-		return defer.maybeDeferred(resourcebased.streamVOTable, request, 
+		return defer.maybeDeferred(streaming.streamVOTable, request, 
 				result
 			).addCallback(lambda _: request.finishRequest(False) or ""
 			).addErrback(lambda _: request.finishRequest(False) or "")
@@ -79,7 +81,7 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 		request.setHeader('content-disposition', 
 			'attachment; filename="votable.xml"')
 		request.setHeader("content-type", self.resultType)
-		return resourcebased.streamVOTable(request, data)
+		return streaming.streamVOTable(request, data)
 
 	def renderHTTP_exception(self, ctx, failure):
 		failure.printTraceback()
@@ -227,7 +229,7 @@ class SIAPRenderer(DALRenderer):
 		metaData = self._makeMetadataData(svcs.QueryMeta.fromContext(ctx))
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "text/xml+votable")
-		return resourcebased.streamVOTable(request, metaData)
+		return streaming.streamVOTable(request, metaData)
 
 	def _formatOutput(self, data, ctx):
 		data.original.addMeta("info", base.makeMetaValue("OK", name="info",

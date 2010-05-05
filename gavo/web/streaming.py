@@ -13,6 +13,7 @@ from twisted.python import threadable
 
 from zope.interface import implements
 
+from gavo.formats import votablewrite
 
 class DataStreamer(threading.Thread):
 	"""is a twisted-enabled Thread to stream out large files produced
@@ -112,3 +113,23 @@ def streamOut(writeStreamTo, request):
 	t = DataStreamer(writeStreamTo, request)
 	t.start()
 	return request.deferred.addCallback(joinThread, t)
+
+
+def streamVOTable(request, data):
+	"""streams out the payload of an SvcResult as a VOTable.
+	"""
+	def writeVOTable(outputFile):
+		"""writes a VOTable representation of the SvcResult instance data
+		to request.
+		"""
+		try:
+			tableMaker = votablewrite.writeAsVOTable(
+				data.original, outputFile,
+				tablecoding={ True: "td", False: "binary"}[data.queryMeta["tdEnc"]],
+				version=data.queryMeta.get("VOTableVersion"))
+		except:
+			sys.stderr.write("Yikes -- error during VOTable render:\n")
+			traceback.print_exc()
+			outputFile.write(">>>> INTERNAL ERROR, INVALID OUTPUT <<<<")
+			return ""
+	return streamOut(writeVOTable, request)

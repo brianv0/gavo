@@ -45,9 +45,10 @@ class VOTableContext(utils.IdManagerMixin):
 	* a value mapper registry (typically, valuemappers.defaultMFRegistry)
 	* the tablecoding (one of the keys of votable.tableEncoders).
 	"""
-	def __init__(self, mfRegistry, tablecoding='binary'):
+	def __init__(self, mfRegistry, tablecoding='binary', version=None):
 		self.mfRegistry = mfRegistry
 		self.tablecoding = tablecoding
+		self.version = version or (1,2)
 
 
 ################# Turning simple metadata into VOTable elements.
@@ -195,9 +196,11 @@ def _makeTable(ctx, table):
 		idManager=ctx)
 	result = V.TABLE(name=table.tableDef.id)[
 		V.DESCRIPTION[base.getMetaText(table.tableDef, "description")],
-		_iterSTC(table.tableDef, sm),
 		_iterNotes(sm),
 		_iterFields(sm)]
+
+	if ctx.version>(1,1):
+		result[_iterSTC(table.tableDef, sm)]
 
 	return votable.DelayedTable(result,
 		sm.getMappedTuples(),
@@ -228,36 +231,41 @@ def makeVOTable(ctx, data):
 	ctx is a VOTableContext instance.
 	"""
 	data = rsc.wrapTable(data)
-	vot = V.VOTABLE()
+	if ctx.version==(1,1):
+		vot = V.VOTABLE11()
+	elif ctx.version==(1,2):
+		vot = V.VOTABLE()
+	else:
+		raise common.VOTableError("No toplevel element for VOTable version %s"%
+			ctx.version)
 	vot[_iterToplevelMeta(ctx, data)]
 	vot[_makeResource(ctx, data)]
 	return vot
 
 
-def writeAsVOTable(data, outputFile, tablecoding="binary"):
+def writeAsVOTable(data, outputFile, tablecoding="binary", version=None):
 	"""a formats.common compliant data writer.
 
 	data can be a data or a table instance, tablecoding any key in
 	votable.tableEncoders.
 
 	data can be a Data or Table instance.
+
+	version, if given, must be a tuple of integers (like (1,2) for VOTable 1.2).
 	"""
 	ctx = VOTableContext(valuemappers.defaultMFRegistry,
-		tablecoding=tablecoding)
+		tablecoding=tablecoding, version=version)
 	vot = makeVOTable(ctx, data)
 	votable.write(vot, outputFile)
 
 
-def getAsVOTable(data, tablecoding="binary"):
+def getAsVOTable(data, tablecoding="binary", version=None):
 	"""returns a string containing a VOTable representation of data.
 
-	This is mainly intended for debugging and "known-small" tables.
-
-	data can be a data or a table instance, tablecoding any key in
-	votable.tableEncoders.
+	For information on the arguments, refer do writeAsVOTable.
 	"""
 	dest = StringIO()
-	writeAsVOTable(data, dest, tablecoding=tablecoding)
+	writeAsVOTable(data, dest, tablecoding=tablecoding, version=version)
 	return dest.getvalue()
 
 

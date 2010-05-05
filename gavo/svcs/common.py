@@ -86,7 +86,7 @@ class QueryMeta(dict):
 	# and the nevow infrastructure
 	metaKeys = set(["_DBOPTIONS", "_FILTER", "_OUTPUT", "_charset_", "_ADDITEM",
 		"__nevow_form__", "_FORMAT", "_VERB", "_TDENC", "formal_data",
-		"_SET", "_TIMEOUT"])
+		"_SET", "_TIMEOUT", "_VOTABLE_VERSION"])
 
 	# a set of keys that has sequences as values (needed for construction
 	# from nevow request.args)
@@ -151,10 +151,18 @@ class QueryMeta(dict):
 				self["verbosity"] = 20
 		except ValueError:
 			self["verbosity"] = "HTML"  # VERB given, but not an int.
+
 		try:
 			self["tdEnc"] = base.parseBooleanLiteral(args.get("_TDENC", "False"))
 		except base.ValueError:
 			self["tdEnc"] = False
+
+		try:
+			self["VOTableVersion"] = tuple(int(v) for v in
+				args["_VOTABLE_VERSION"].split("."))
+		except:  # simple ignore malformed version specs
+			pass
+
 		self["additionalFields"] = args.get("_ADDITEM", [])
 
 	def _fillSet(self, args):

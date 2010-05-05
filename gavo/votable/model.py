@@ -253,21 +253,35 @@ class VOTable(object):
 		a_encoding = None
 		childSequence = [None]
 		mayBeEmpty = True
-	
+
+
 	class TR(_VOTElement):
 		a_ID = None
 		childSequence = ["TD"]
-	
+
+
 	class VALUES(_VOTElement):
 		a_ID = None
 		a_null = None
 		a_ref = None
 		a_type = None
-	
+
+
 	class VOTABLE(_VOTElement):
 		a_ID = None
 		a_version = "1.2"
 		a_xmlns = VOTableNamespace
+
+
+	class VOTABLE11(_VOTElement):
+# An incredibly nasty hack that kinda works due to the fact that
+# all elements here are local -- make this your top-level element
+# and only use what's legal in VOTable 1.1, and you get a VOTable1.1
+# conforming document
+		name = "VOTABLE"
+		a_ID = None
+		a_version = "1.1"
+		a_xmlns = "http://www.ivoa.net/xml/VOTable/v1.1"
 
 
 def voTag(tagName):
