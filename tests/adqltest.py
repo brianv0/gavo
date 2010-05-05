@@ -69,7 +69,7 @@ class SymbolsParseTest(testhelpers.VerboseTest):
 	def _assertDoesntParse(self, symbol, literal):
 		try:
 			(self.symbols[symbol]+pyparsing.StringEnd()).parseString(literal)
-		except adql.ParseException:
+		except (adql.ParseException, adql.ParseSyntaxException):
 			pass
 		else:
 			raise AssertionError("%s parses %s but shouldn't."%(symbol,
@@ -113,14 +113,15 @@ class _ADQLParsesTest(testhelpers.VerboseTest):
 	def _assertGoodADQL(self, statement):
 		try:
 			self.grammar.parseString(statement)
-		except adql.ParseException:
+		except (adql.ParseException, adql.ParseSyntaxException):
 			raise AssertionError("%s doesn't parse but should."%statement)
 		except RuntimeError:
 			raise Error("%s causes an infinite recursion"%statement)
 
 	def _assertBadADQL(self, statement):
 			try:
-				self.assertRaisesVerbose(adql.ParseException, 
+				self.assertRaisesVerbose(
+					(adql.ParseException,adql.ParseSyntaxException), 
 					self.grammar.parseString, (statement,), 
 					"Parses but shouldn't: %s"%statement)
 			except RuntimeError:
@@ -428,6 +429,48 @@ class TreeParseTest(testhelpers.VerboseTest):
 	def testBadSystem(self):
 		self.assertRaises(adql.BadKeywords, 
 			self.grammar.parseString, "select point('QUARK', 1, 2) from spatial")
+
+
+class ParseErrorTest(testhelpers.VerboseTest):
+	"""tests for sensible error messages.
+	"""
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		query, msgFragment = sample
+		try:
+			adql.getGrammar().parseString(query)
+		except (adql.ParseException, adql.ParseSyntaxException), ex:
+			msg = unicode(ex)
+			self.failUnless(msgFragment in msg,
+				"'%s' does not contain '%s'"%(msg, msgFragment))
+		else:
+			self.fail("'%s' parses but should not"%query)
+
+	samples = [
+		("", 'Expected "SELECT" (at char 0)'),
+		("SELECT TOP foo FROM x", 'Expected unsigned integer (at char 11)'),
+		("SELECT FROM x", 'Expected "*" (at char 7)'),
+		("SELECT x, FROM y", 'Reserved word not allowed here (at char 10)'),
+		("SELECT * FROM distinct", 'Reserved word not allowed here (at char 14)'),
+		("SELECT DISTINCT FROM y", 'Expected "*" (at char 16)'),
+		("SELECT *", 'Expected "FROM" (at char 8)'),
+		("SELECT * FROM y WHERE", 'Expected boolean expression (at char 21)'),
+		("SELECT * FROM y WHERE y u 2", 
+			'Expected comparison operator (at char 24)'),
+		("SELECT * FROM y WHERE y < 2 AND", 
+			'Expected boolean expression (at char 31)'),
+		("SELECT * FROM y WHERE y < 2 OR", 
+			'Expected boolean expression (at char 30)'),
+		("SELECT * FROM y WHERE y IS 3", 'Expected "NULL" (at char 27)'),
+		("SELECT * FROM y WHERE CONTAINS(a,b)", 
+			'Expected comparison operator (at char 35)'),
+		("SELECT * FROM y WHERE 1=CONTAINS(POINT('ICRS',x,'sy')"
+			" ,CIRCLE('ICRS',x,y,z))", 
+			'Expected numeric expression (at char 48)'),
+		("SELECT * FROM (SELECT * FROM x)", 'Expected "AS" (at char 31)'),
+		("SELECT * FROM x WHERE EXISTS z", 'Expected subquery (at char 29)'),
+	]
 
 
 spatialFields = [
@@ -770,6 +813,7 @@ class ColResJoinTest(ColumnTest):
 			("deg", "pos.eq.ra;meta.main", False),
 			("rad", "pos.eq.ra", False),
 			("deg", "pos.eq.dec;meta.main", False)])
+
 
 class STCTest(ColumnTest):
 	"""tests for working STC inference in ADQL expressions.

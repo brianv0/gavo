@@ -66,6 +66,7 @@ def getTreeBuildingGrammar():
 	for ob in _additionalNodes:
 		bindObject(ob)
 
+	_grammarCache = syms, root
 	return syms, root
 
 

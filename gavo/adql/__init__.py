@@ -5,7 +5,7 @@ from gavo.adql.tree import (
 from gavo.adql.nodes import (flatten, registerRegionMaker)
 from gavo.adql.grammar import (
 	getADQLGrammar as getRawGrammar, 
-	ParseException)
+	ParseException, ParseSyntaxException)
 from gavo.adql.morphpg import (
 	morphPG,
 	insertQ3Calls)

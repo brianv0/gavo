@@ -1024,7 +1024,11 @@ class CoosysMixin(object):
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		refFrame = _parseResult["coordSys"][0].value
+		frameContainer = _parseResult["coordSys"][0]
+		if isinstance(frameContainer, ColumnReference):
+			raise NotImplementedError("Cannot handle systems as column references"
+				" yet")
+		refFrame = frameContainer.value
 		try:
 			return {"cooSys":  makeSystem(refFrame)}
 		except stc.STCSParseError:

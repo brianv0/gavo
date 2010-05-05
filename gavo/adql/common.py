@@ -4,7 +4,12 @@ Exceptions and helper functions for adql processing.
 This module should be clean for from import *
 """
 
-class Error(Exception):
+from gavo import utils
+
+class Error(utils.Error):
+	"""A base class for the exceptions from this module.
+	"""
+# XXX todo: We should wrap pyparsing ParseExceptions as well.
 	pass
 
 class NotImplementedError(Error):

@@ -121,7 +121,7 @@ from pyparsing import Word, Literal, Optional, alphas, CaselessKeyword,\
 	ZeroOrMore, OneOrMore, SkipTo, srange, StringEnd, Or, MatchFirst,\
 	Suppress, Keyword, Forward, QuotedString, Group, printables, nums,\
 	CaselessLiteral, ParseException, Regex, sglQuotedString, alphanums,\
-	dblQuotedString, ParserElement, White
+	dblQuotedString, ParserElement, White, ParseSyntaxException
 
 adqlReservedWords = set([ "ABS", "ACOS", "AREA", "ASIN", "ATAN", "ATAN2",
 	"CEILING", "CENTROID", "CIRCLE", "CONTAINS", "COS", "DEGREES", "DISTANCE",
@@ -215,6 +215,7 @@ def getADQLGrammarCopy():
 	separator = Optional( sqlComment ) + Optional(Word(" \t\n\r"))
 
 	unsignedInteger = Word(nums)
+	unsignedInteger.setName("unsigned integer")
 	_exactNumericRE = r"\d+(\.(\d+)?)?|\.\d+"
 	exactNumericLiteral = Regex(_exactNumericRE)
 	approximateNumericLiteral = Regex(r"(?i)(%s)E[+-]?\d+"%_exactNumericRE)
@@ -225,6 +226,7 @@ def getADQLGrammarCopy():
 	unsignedLiteral = unsignedNumericLiteral # !!! DEVIATION | generalLiteral
 	sign = Literal("+") | "-"
 	signedInteger = Optional( sign ) + unsignedInteger 
+	signedInteger.setName("signed integer")
 	multOperator = Literal("*") | "/"
 	notKeyword = CaselessKeyword("NOT")
 
@@ -236,6 +238,7 @@ def getADQLGrammarCopy():
 
 # Operators
 	compOp = Regex("=|!=|<=|>=|<|>")
+	compOp.setName("comparison operator")
 
 # Column names and such
 	columnName = identifier.copy()
@@ -320,9 +323,12 @@ def getADQLGrammarCopy():
 	numericGeometryFunction = (predicateGeometryFunction | 
 		nonPredicateGeometryFunction)
 
-
 # numeric, system, user defined functions
 	trig1ArgFunctionName = Regex("(?i)ACOS|ASIN|ATAN|COS|COT|SIN|TAN")
+	# trig1ArgFunction is what causes a parse failure on common numeric
+	# value expressions.  We take the liberty of misnaming it for better
+	# error messages in most cases.
+	trig1ArgFunctionName.setName("numeric expression")
 	trigFunction = (
 			trig1ArgFunctionName("fName") + '('
 				+ Args(numericValueExpression) + ')' 
@@ -367,46 +373,52 @@ def getADQLGrammarCopy():
 # parts of select clauses
 	setQuantifier = (CaselessKeyword( "DISTINCT" ) 
 		| CaselessKeyword( "ALL" ))("setQuantifier")
-	setLimit = CaselessKeyword( "TOP" ) + unsignedInteger("setLimit")
+	setLimit = CaselessKeyword( "TOP" ) - unsignedInteger("setLimit")
 	qualifiedStar = qualifier + "." + "*"
 	selectSublist = (qualifiedStar | derivedColumn
 		).setResultsName("fieldSel", listAllMatches=True)
 	selectList = (Literal("*")("starSel")
-		| selectSublist + ZeroOrMore( "," + selectSublist ))
+		| selectSublist + ZeroOrMore( "," - selectSublist ))
+	selectList.setName("select list")
 
 # boolean terms
 	subquery = Forward()
 	searchCondition = Forward()
 	comparisonPredicate = valueExpression + compOp + valueExpression
 	betweenPredicate = (valueExpression + Optional( notKeyword ) + 
-		CaselessKeyword("BETWEEN") + valueExpression + 
-		CaselessKeyword("AND") + valueExpression)
+		CaselessKeyword("BETWEEN") - valueExpression + 
+		CaselessKeyword("AND") - valueExpression)
 	inValueList = valueExpression + ZeroOrMore( ',' + valueExpression )
 	inPredicateValue = subquery | ( "(" + inValueList + ")" )
 	inPredicate = (valueExpression + Optional( notKeyword ) + 
 		CaselessKeyword("IN") + inPredicateValue)
-	existsPredicate = CaselessKeyword("EXISTS") + subquery
+	existsPredicate = CaselessKeyword("EXISTS") - subquery
 	likePredicate = (characterValueExpression + Optional( notKeyword ) + 
 		CaselessKeyword("LIKE") + characterValueExpression)
 	nullPredicate = (columnReference + CaselessKeyword("IS") +
-		Optional( notKeyword ) + CaselessKeyword("NULL"))
+		Optional( notKeyword ) - CaselessKeyword("NULL"))
 	predicate = (comparisonPredicate | betweenPredicate | inPredicate | 
 		likePredicate | nullPredicate | existsPredicate)
-	booleanPrimary = '(' + searchCondition + ')' | predicate
+	booleanPrimaryOpener = Literal('(')  # for error messages
+	booleanPrimaryOpener.setName("boolean expression")
+	booleanPrimary = booleanPrimaryOpener + searchCondition + ')' | predicate
 	booleanFactor = Optional( notKeyword ) + booleanPrimary
 	booleanTerm = ( booleanFactor + 
-		ZeroOrMore( CaselessKeyword("AND") + booleanFactor ))
+		ZeroOrMore( CaselessKeyword("AND") - booleanFactor ))
 
 # WHERE clauses and such
 	searchCondition << ( booleanTerm + 
-		ZeroOrMore( CaselessKeyword("OR") + booleanTerm ))
-	whereClause = (CaselessKeyword("WHERE") + searchCondition)("whereClause")
+		ZeroOrMore( CaselessKeyword("OR") - booleanTerm ))
+	searchCondition.setName("search condition")
+	whereClause = (CaselessKeyword("WHERE") - searchCondition)("whereClause")
 
 # Referencing tables
 	queryExpression = Forward()
 	correlationSpecification = (( CaselessKeyword("AS") | whitespace
 		) + correlationName("alias"))
-	subquery << ('(' + queryExpression + ')')
+	subqueryOpener = Literal('(')
+	subqueryOpener.setName("subquery")  # for error reporting
+	subquery << (subqueryOpener + queryExpression + ')')
 	derivedTable = subquery.copy() + correlationSpecification
 	possiblyAliasedTable = tableName + Optional( correlationSpecification)
 	joinedTable = Forward()
