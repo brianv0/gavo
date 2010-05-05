@@ -169,7 +169,9 @@ def _getArrayEncoderLines(field):
 	if type=="char":
 		# strings
 		padder = "' '"
-		src = ["tokens.append(struct.pack('%ds'%len(val), str(val)))"]
+		src = [
+			"if isinstance(val, unicode): val = val.encode('iso-8859-1')",
+			"tokens.append(struct.pack('%ds'%len(val), str(val)))"]
 
 	elif type=="unicodeChar":
 		padder = "' '"

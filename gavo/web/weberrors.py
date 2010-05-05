@@ -63,7 +63,7 @@ def handleRedirect(ctx, failure):
 
 def handleAuthentication(ctx, failure):
 	if isinstance(failure.value, Authenticate):
-		return AuthenticatePage("Gavo")
+		return AuthenticatePage(base.getConfig("web", "realm"))
 
 
 class ErrorPageDebug(rend.Page):
@@ -305,9 +305,9 @@ class AuthenticatePage(rend.Page, common.CommonRenderers):
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(401)
-		request.setHeader('WWW-Authenticate', 'Basic realm="%s"'%self.realm)
+		request.setHeader('WWW-Authenticate', 'Basic realm="%s"'%str(self.realm))
 		request.setResponseCode(401)
-		return super(AuthenticatePage, self).renderHTTP(ctx)
+		return rend.Page.renderHTTP(self, ctx)
 	
 	docFactory = common.doctypedStan(T.html[
 		T.head[

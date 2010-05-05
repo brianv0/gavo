@@ -43,7 +43,8 @@ class TAPRenderTest(trialhelpers.RenderTest):
 	_tapService = base.caches.getRD("__system__/tap").getById("run")
 	@property
 	def renderer(self):
-		return TAPRenderer(None, self._tapService)
+		ctx = trialhelpers.getRequestContext("/async")
+		return TAPRenderer(ctx, self._tapService)
 
 
 class SyncMetaTest(TAPRenderTest):

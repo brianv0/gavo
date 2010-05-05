@@ -58,9 +58,9 @@ class VOPlotTest(unittest.TestCase):
 	def testUrlProduction(self):
 		"""tests for correct URLs in the VOPlot embed element.
 		"""
-		vop = resourcebased.VOPlotResponse(None, 
-			testhelpers.getTestRD().getById("basicprod"), self.testData)
 		ctx = context.WovenContext(self.context, T.div[""])
+		vop = resourcebased.VOPlotResponse(ctx, 
+			testhelpers.getTestRD().getById("basicprod"), self.testData)
 		tag = vop.render_voplotArea(ctx, None).children[1]
 		self.assertEqual(
 			tag.attributes["parameters"],

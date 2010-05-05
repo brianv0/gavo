@@ -77,6 +77,16 @@ def _buildRequest(method, path, rawArgs):
 	return req
 
 
+def getRequestContext(path, method="GET", args=None, requestMogrifier=None):
+	if args is None:
+		args = {}
+	req = _buildRequest(method, "http://localhost"+path, args)
+	if requestMogrifier is not None:
+		requestMogrifier(req)
+	ctx = context.WovenContext()
+	ctx.remember(req)
+	return ctx
+
 def runQuery(page, method, path, args, requestMogrifier=None):
 	"""runs a query on a page.
 
@@ -85,11 +95,7 @@ def runQuery(page, method, path, args, requestMogrifier=None):
 	The thing returns a deferred firing a pair of the result (a string)
 	and the request (from which you can glean headers and such).
 	"""
-	req = _buildRequest(method, "http://localhost"+path, args)
-	if requestMogrifier is not None:
-		requestMogrifier(req)
-	ctx = context.WovenContext()
-	ctx.remember(req)
+	ctx = getRequestContext(path, method, args, requestMogrifier)
 	segments = tuple(path.split("/"))[1:]
 	return util.maybeDeferred(
 			page.locateChild, ctx, segments

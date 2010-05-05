@@ -333,6 +333,8 @@ _config = Configuration(
 		EnsureTrailingSlashesItem("nevowRoot", default="/",
 			description="Path fragment to the server's root for operation off the"
 				" server's root"),
+		StringConfigItem("realm", default="Gavo", description="Authentication"
+			" realm to be used (currently, only one, server-wide, is supported)"),
 		StringConfigItem("errorPage", default="debug",
 			description="set to 'debug' for error pages with tracebacks, anything"
 				" else for a less informative page"),

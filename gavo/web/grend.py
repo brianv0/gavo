@@ -26,6 +26,7 @@ from gavo import base
 from gavo import svcs
 from gavo import rscdef
 from gavo.imp import formal
+from gavo.protocols import creds
 from gavo.web import common
 from gavo.web import htmltable
 from gavo.web import weberrors
@@ -449,10 +450,18 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 
 	def __init__(self, ctx, service):
 		ResourceBasedRenderer.__init__(self, ctx, service.rd)
+		request = inevow.IRequest(ctx)
+
+		if service.limitTo:
+			if not creds.hasCredentials(request.getUser(), request.getPassword(),
+					service.limitTo):
+				raise svcs.Authenticate(base.getConfig("web", "realm"))
 		self.service = service
-		# Do our input fields differ from the services?
+
+		# Do our input fields differ from the service's?
 		# This becomes true when getInputFields swallows InputKeys.
 		self.fieldsChanged = False 
+
 		if self.checkedRenderer and self.name not in self.service.allowed:
 			raise svcs.ForbiddenURI(
 				"The renderer %s is not allowed on this service."%self.name)

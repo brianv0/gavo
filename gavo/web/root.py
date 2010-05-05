@@ -44,7 +44,7 @@ from gavo.web import grend
 from gavo.web import ifpages
 from gavo.web import weberrors
 
-from gavo.svcs import Error, UnknownURI, ForbiddenURI, WebRedirect, BadMethod
+from gavo.svcs import Error, UnknownURI, ForbiddenURI, WebRedirect, BadMethod, Authenticate
 
 
 
@@ -186,39 +186,7 @@ class ArchiveService(rend.Page):
 		# we know we're going to return RootPage.  locateChild must
 		# thus *never* return self.
 		return self.locateChild(ctx, (""))
-	
-	def _handleEscapedErrors(self, failure, ctx):
-		if isinstance(failure.value, svcs.UnknownURI):
-			return weberrors.NotFoundPage()
-		return failure
 
-	def _locateResourceBasedChild(self, ctx, segments):
-		"""returns a standard, resource-based service renderer.
-
-		Their URIs look like <rd id>/<service id>{/<anything>}.
-		"""
-		for srvInd in range(1, len(segments)-1):
-			try:
-				rd = base.caches.getRD("/".join(segments[:srvInd]))
-			except base.RDNotFound:
-				continue
-			try:
-				subId, rendName = segments[srvInd], segments[srvInd+1]
-				service = rd.getService(subId)
-				if service is None:
-					raise KeyError("No such service: %s"%subId)
-				rendC = svcs.getRenderer(rendName)
-				if service.limitTo: # XXX TODO: move this to grend.
-					rend = common.runAuthenticated(ctx, service.limitTo,
-						lambda service: rendC(ctx, service), service)
-				else:
-					rend = rendC(ctx, service)
-				return rend, segments[srvInd+2:]
-			except (IndexError, KeyError):
-				traceback.print_exc()
-				return None, ()
-		return None, ()
-			
 	def _hackHostHeader(self, ctx):
 		"""works around host-munging of forwarders.
 
@@ -229,7 +197,7 @@ class ArchiveService(rend.Page):
 		fwHost = request.getHeader("x-forwarded-host")
 		if fwHost:
 			request.setHost(fwHost, 80)
-
+		
 	if base.getConfig("web", "enabletests"):
 		from gavo.web import webtests
 		child_test = webtests.Tests()
@@ -237,6 +205,40 @@ class ArchiveService(rend.Page):
 	child_static = ifpages.StaticServer()
 	child_builtin = ifpages.BuiltinServer()
 	child_debug = weberrors.DebugPage()
+
+	def _locateResourceBasedChild(self, ctx, segments):
+		"""returns a standard, resource-based service renderer.
+
+		Their URIs look like <rd id>/<service id>{/<anything>}.
+
+		This works by successively trying to use parts of the query path 
+		of increasing length as RD ids.  If one matches, the next
+		segment is the service id, and the following one the renderer.
+
+		The remaining segments are returned unconsumed.
+
+		If no RD matches, an UnknwownURI exception is raised.
+		"""
+		for srvInd in range(1, len(segments)-1):
+			try:
+				rd = base.caches.getRD("/".join(segments[:srvInd]))
+			except base.RDNotFound:
+				continue
+			else:
+				break
+		else:
+			raise UnknownURI("No matching RD")
+		try:
+			subId, rendName = segments[srvInd], segments[srvInd+1]
+		except IndexError:
+			raise UnknownURI("Bad segments after existing resource: %s"%(
+				"/".join(segments[srvInd:])))
+			
+		service = rd.getService(subId)
+		if service is None:
+			raise UnknownURI("No such service: %s"%subId)
+		rendC = svcs.getRenderer(rendName)
+		return rendC(ctx, service), segments[srvInd+2:]
 
 	def _realLocateChild(self, ctx, segments):
 # XXX TODO: refactor this mess, clean up strange names by pulling more
@@ -282,9 +284,12 @@ class ArchiveService(rend.Page):
 		except ForbiddenURI, exc:
 			return weberrors.ForbiddenPage(str(exc)), ()
 		except UnknownURI, exc:
+			traceback.print_exc()
 			return weberrors.NotFoundPage(str(exc)), ()
 		except BadMethod, exc:
 			return weberrors.BadMethodPage(str(exc)), ()
+		except Authenticate, exc:
+			return weberrors.AuthenticatePage(exc.args[0]), ()
 		except Exception, msg:
 			traceback.print_exc()
 			raise

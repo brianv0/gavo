@@ -3,7 +3,7 @@ Tests for various parts of the server infrastructure, using trial.
 """
 
 from gavo import api
-from gavo.web import dispatcher
+from gavo.web import root
 
 import testhelpers
 import trialhelpers
@@ -12,7 +12,7 @@ import trialhelpers
 class AdminTest(trialhelpers.RenderTest):
 	"""tests for the admin renderer.
 	"""
-	renderer = dispatcher.ArchiveService()
+	renderer = root.ArchiveService()
 
 	def _makeAdmin(self, req):
 		req.user = "gavoadmin"
