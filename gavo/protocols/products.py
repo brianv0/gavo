@@ -397,7 +397,7 @@ class CutoutProductKey(object):
 			raise base.NotFoundError("key", what="query parameter", 
 				within="request")
 		buildArgs = {
-			"key": a["key"][0]}
+			"key": urllib.unquote(a["key"][0])}
 		try:
 			for reqKey in cls._buildKeys:
 				buildArgs[reqKey] = float(a[reqKey][0])
