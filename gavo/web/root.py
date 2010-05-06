@@ -3,37 +3,19 @@ The root resource of the data center.
 """
 
 
-import cStringIO
-import glob
-import math
-import new
 import os
-import pkg_resources
-import re
-import sys
 import traceback
-import urllib
-import urlparse
+from cStringIO import StringIO
 
-
-from twisted.internet import defer
-from twisted.internet import reactor
-from twisted.python import components
 from twisted.python import failure
 # we put some calculations into threads.
 from twisted.python import threadable
 threadable.init()
 
-from nevow import appserver
-from nevow import context
 from nevow import inevow
-from nevow import loaders
 from nevow import rend
 from nevow import static
-from nevow import tags as T, entities as E
 from nevow import url
-
-from zope.interface import implements
 
 from gavo import base
 from gavo import svcs
@@ -51,102 +33,50 @@ from gavo.svcs import Error, UnknownURI, ForbiddenURI, WebRedirect, BadMethod, A
 class VanityLineError(Error):
 	"""parse error in vanity file.
 	"""
-	pass
+	def __init__(self, msg, lineNo, src):
+		Error.__init__("Mapping file %s, line %d: %s"%(repr(src), msg, lineNo))
+		self.msg, self.lineNo, self.src = msg, lineNo, src
 
 
-class VanityMap(object):
-	"""is a container for redirects and URI rewriting.
+builtinVanity = """
+	__system__/products/p/get getproduct
+	__system__/services/registry/pubreg.xml oai.xml
+	__system__/services/overview/external odoc
+	__system__/dc_tables/show/tablenote tablenote
+	__system__/dc_tables/show/tableinfo tableinfo
+	__system__/adql/query/form adql !redirect
+	__system__/services/overview/admin seffe
+"""
 
-	VanityMaps are constructed from files containing lines of the format
 
-	<target> <key> [<option>]
+def makeDynamicPage(pageClass):
+	"""returns a resource that returns a "dynamic" resource of pageClass.
 
-	Target is a path that must *not* include nevowRoot and must *not* start
-	with a slash (unless you're going for special effects).
+	pageClass must be a rend.Page subclass that is constructed with a
+	request context (like ifpages.LoginPage).  We want such things
+	when the pages have some internal state (since you're not supposed
+	to keep such things in the context any more, which I personally agree
+	with).
 
-	Key is a single path element.  If this path element is found in the
-	first segment, it is replaced with the segments in target.  This
-	could be used at some point to hide the inputsDir structure even
-	for user RDs, but it's a bit hard to feed the vanity map then (since
-	the service would have to know about its vanity name, and we don't want
-	to have to parse all RDs to come up with the VanityMap).
-
-	<option> can be !redirect right now.  If it is, target is interpreted
-	as a server-relative URI, and a redirect to it is generated, but only
-	if only one or two segements are in the original query.  You can
-	use this to create shortcuts with the resource dir names.  This would
-	otherwise create endless loops.
-
-	Empty lines and #-on-a-line-comments are allowed in the input.
+	The dynamic pages are directly constructed, their locateChild methods
+	are not called (do we want to change this)?
 	"""
+	class DynPage(rend.Page):
+		def renderHTTP(self, ctx):
+			return pageClass(ctx)
+	return DynPage()
 
-	knownOptions = set(["!redirect"])
 
-	builtinRedirects = """
-		__system__/products/p/get getproduct
-		__system__/services/registry/pubreg.xml oai.xml
-		__system__/services/overview/external odoc
-		__system__/dc_tables/show/tablenote tablenote
-		__system__/dc_tables/show/tableinfo tableinfo
-		__system__/adql/query/form adql !redirect
-		__system__/services/overview/admin seffe
+def _hackHostHeader(ctx):
+	"""works around host-munging of forwarders.
+
+	This is a hack in that I hardcode port 80 for the forwarder.  Ah
+	well, I don't think I have a choice there.
 	"""
-
-	def __init__(self):
-		self.redirects, self.mappings = {}, {}
-		for ln in self.builtinRedirects.split("\n"):
-			self._parseLine(ln)
-		self._loadFromFile()
-
-	def _loadFromFile(self):
-		srcName = os.path.join(base.getConfig("webDir"), 
-			base.getConfig("web", "vanitynames"))
-		if not os.path.isfile(srcName):
-			return
-		f = open(srcName)
-		lineNo = 1
-		for ln in f:
-			try:
-				self._parseLine(ln)
-			except VanityLineError, msg:
-				raise VanityLineError("%s, line %s: %s"%(srcName, lineNo, str(msg)))
-			lineNo += 1
-		f.close()
-
-	def _parseLine(self, ln):
-		ln = ln.strip()
-		if not ln or ln.startswith("#"):
-			return
-		parts = ln.split()
-		if not 1<len(parts)<4:
-			raise VanityLineError("Wrong number of words in '%s'"%ln)
-		option = None
-		if len(parts)>2:
-			option = parts.pop()
-			if option not in self.knownOptions:
-				raise VanityLineError("Bad option '%s'"%option)
-		dest, src = parts
-		if option=='!redirect':
-			self.redirects[src] = dest
-		else:
-			self.mappings[src] = dest.split("/")
-
-	def map(self, segments):
-		"""changes the nevow-type segments list according to the mapping.
-
-		It may raise a WebRedirect exception.
-		"""
-		if not segments:
-			return segments
-		key = segments[0]
-		if key in self.redirects and len(segments)<3:
-			raise WebRedirect(self.redirects[key])
-		if key in self.mappings:
-			segments = self.mappings[key]+list(segments[1:])
-		return segments
-		
-
-_vanityMap = VanityMap()
+	request = inevow.IRequest(ctx)
+	fwHost = request.getHeader("x-forwarded-host")
+	if fwHost:
+		request.setHost(fwHost, 80)
 
 
 class RootPage(common.CustomTemplateMixin, rend.Page, grend.GavoRenderMixin):
@@ -172,39 +102,125 @@ class RootPage(common.CustomTemplateMixin, rend.Page, grend.GavoRenderMixin):
 
 
 class ArchiveService(rend.Page):
+	"""The root resource on the data center.
+
+	It does the main dispatching based on four mechanisms:
+
+	(0) redirects -- one-segments fragments that redirect somewhere else.
+	    This is for "bad" shortcuts corresponding to input directory name
+	    exclusively (since it's so messy).  These will not match if
+	    path has more than one segment.
+	(1) statics -- first segment leads to a resource that gets passed any
+	    additional segments.
+	(2) mappings -- first segment is replaced by something else, processing
+	    continues.
+	(3) resource base -- consisting of an RD id, a service id, a renderer and
+	    possibly further segments.
+	
+	The first three mechanisms only look at the first segment to determine
+	any action (except that redirect is skipped if len(segments)>1).
+
+	The statics and mappings are configured on the class level.
+	"""
+	statics = {}
+	mappings = {}
+	redirects = {}
 
 	def __init__(self):
-		self.maintFile = os.path.join(base.getConfig("stateDir"), "MAINT")
 		rend.Page.__init__(self)
+		self.maintFile = os.path.join(base.getConfig("stateDir"), "MAINT")
 		self.rootSegments = tuple(s for s in 
 			base.getConfig("web", "nevowRoot").split("/") if s)
 		self.rootLen = len(self.rootSegments)
 
+	@classmethod
+	def addRedirect(cls, key, destination):
+		cls.redirects[key] = destination
+
+	@classmethod
+	def addStatic(cls, key, resource):
+		cls.statics[key] = resource
+
+	@classmethod
+	def addMapping(cls, key, segments):
+		cls.mappings[key] = segments
+
+	knownVanityOptions = set(["!redirect"])
+
+	@classmethod
+	def _parseVanityLines(cls, src):
+		"""a helper for parseVanityMap.
+		"""
+		lineNo = 0
+		for ln in src:
+			lineNo += 1
+			ln = ln.strip()
+			if not ln or ln.startswith("#"):
+				continue
+			parts = ln.split()
+			if not 1<len(parts)<4:
+				raise VanityLineError("Wrong number of words in '%s'"%ln, lineNo, src)
+			options = []
+			if len(parts)>2:
+				options.append(parts.pop())
+				if options[-1] not in cls.knownVanityOptions:
+					raise VanityLineError("Bad option '%s'"%option, lineNo, src)
+			dest, src = parts
+			yield src, dest, options
+	
+	@classmethod
+	def _addVanityRedirect(cls, src, dest, options):
+		"""a helper for parseVanityMap.
+		"""
+		if '!redirect' in options:
+			cls.addRedirect(src, base.makeSitePath(dest))
+		else:
+			cls.addMapping(src, dest.split("/"))
+
+	@classmethod
+	def parseVanityMap(cls, inFile):
+		"""adds mappings from inFile (which can be a file object or a name).
+
+		The input files contain lines of the format
+
+		<target> <key> [<option>]
+
+		Target is a path that must *not* include nevowRoot and must *not* start
+		with a slash (unless you're going for special effects).
+
+		Key is a single path element.  If this path element is found in the
+		first segment, it is replaced with the segments in target.  This
+		could be used at some point to hide the inputsDir structure even
+		for user RDs, but it's a bit hard to feed the vanity map then (since
+		the service would have to know about its vanity name, and we don't want
+		to have to parse all RDs to come up with the VanityMap).
+
+		<option> can be !redirect right now.  If it is, target is interpreted
+		as a server-relative URI, and a redirect to it is generated, but only
+		if only one or two segments are in the original query.  You can
+		use this to create shortcuts with the resource dir names.  This would
+		otherwise create endless loops.
+
+		Empty lines and #-on-a-line-comments are allowed in the input.
+
+		In case inFile is a file object, it will be closed as a side effect.
+		"""
+		if isinstance(inFile, basestring):
+			if not os.path.isfile(inFile):
+				return
+			inFile = open(inFile)
+		try:
+			for src, dest, options in cls._parseVanityLines(inFile):
+				cls._addVanityRedirect(src, dest, options)
+		finally:
+			inFile.close()
+		
 	def renderHTTP(self, ctx):
 		# this is only ever executed on the root URL.  For consistency
 		# (e.g., caching), we route this through locateChild though
 		# we know we're going to return RootPage.  locateChild must
 		# thus *never* return self.
-		return self.locateChild(ctx, (""))
-
-	def _hackHostHeader(self, ctx):
-		"""works around host-munging of forwarders.
-
-		This is a hack in that I hardcode port 80 for the forwarder.  Ah
-		well, I don't think I have a choice there.
-		"""
-		request = inevow.IRequest(ctx)
-		fwHost = request.getHeader("x-forwarded-host")
-		if fwHost:
-			request.setHost(fwHost, 80)
-		
-	if base.getConfig("web", "enabletests"):
-		from gavo.web import webtests
-		child_test = webtests.Tests()
-
-	child_static = ifpages.StaticServer()
-	child_builtin = ifpages.BuiltinServer()
-	child_debug = weberrors.DebugPage()
+		return self.locateChild(ctx, ("",))
 
 	def _locateResourceBasedChild(self, ctx, segments):
 		"""returns a standard, resource-based service renderer.
@@ -241,40 +257,29 @@ class ArchiveService(rend.Page):
 		return rendC(ctx, service), segments[srvInd+2:]
 
 	def _realLocateChild(self, ctx, segments):
-# XXX TODO: refactor this mess, clean up strange names by pulling more
-# into proper services.
-		self._hackHostHeader(ctx)
+		# prepare request: host headers, maintenance check, off-root handling
+		_hackHostHeader(ctx)
 		if os.path.exists(self.maintFile):
 			return static.File(common.getTemplatePath("maintenance.html")), ()
-
-		if self.rootSegments:  # remove off-root path elements
+		if self.rootSegments:
 			if segments[:self.rootLen]!=self.rootSegments:
-				return None, ()
+				raise UnknownURI("Misconfiguration: Saw a URL outside of the server's"
+					" scope")
 			segments = segments[self.rootLen:]
 
-		if not segments or len(segments)==1 and segments[0]=='':
-			return RootPage(), ()
+		if len(segments)==1 and segments[0] in self.redirects:
+			raise WebRedirect(self.redirects[segments[0]])
 
-		# handle vanity names and shortcuts
-		segments = _vanityMap.map(segments)
+		if segments[0] in self.statics:
+			return self.statics[segments[0]], segments[1:]
 
-		# Hm... there has to be a smarter way to do such things...?
-		# Pending sanitized dispatcher...
-		if segments[0]=="login":
-			return ifpages.LoginPage(ctx), ()
-		elif segments[0]=="reload":
-			return ifpages.ReloadPage(ctx), ()
+		if segments[0] in self.mappings:
+			segments = self.mappings[segments[0]]+list(segments[1:])
 
-		# base handling
-		name = segments[0]
-		if name and hasattr(self, "child_"+name):
-			res = getattr(self, "child_"+name), segments[1:]
-		else:
-			try:
-				res = self._locateResourceBasedChild(ctx, segments)
-			except grend.RDBlocked:
-				return static.File(common.getTemplatePath("blocked.html")), () 
-		return res
+		try:
+			return self._locateResourceBasedChild(ctx, segments)
+		except grend.RDBlocked:
+			return static.File(common.getTemplatePath("blocked.html")), () 
 	
 	def locateChild(self, ctx, segments):
 		try:
@@ -299,16 +304,27 @@ class ArchiveService(rend.Page):
 			return res, segments
 
 
-setattr(ArchiveService, 'child_formal.css', formal.defaultCSS)
-setattr(ArchiveService, 'child_js', formal.formsJS)
+ArchiveService.addStatic("login", makeDynamicPage(ifpages.LoginPage))
+ArchiveService.addStatic("reload", makeDynamicPage(ifpages.ReloadPage))
+ArchiveService.addStatic("", makeDynamicPage(RootPage))
+
+# TODO: unify static and builtin
+ArchiveService.addStatic("static", ifpages.StaticServer())
+ArchiveService.addStatic("builtin", ifpages.BuiltinServer())
+ArchiveService.addStatic("debug", weberrors.DebugPage())
+
+
+ArchiveService.addStatic('formal.css', formal.defaultCSS)
+ArchiveService.addStatic('js', formal.formsJS)
+
+if base.getConfig("web", "enabletests"):
+	from gavo.web import webtests
+	ArchiveService.addStatic("test", webtests.Tests())
 if (base.getConfig("web", "favicon")
 		and os.path.exists(base.getConfig("web", "favicon"))):
-	setattr(ArchiveService, "child_favicon.ico",
+	ArchiveService.addStatic("child_favicon.ico",
 		static.File(base.getConfig("web", "favicon")))
 
-
-if base.getConfig("web", "errorPage")=="debug":
-	appserver.DefaultExceptionHandler = weberrors.ErrorPageDebug
-else:
-	appserver.DefaultExceptionHandler = weberrors.ErrorPage
-#root = ArchiveService()
+ArchiveService.parseVanityMap(StringIO(builtinVanity))
+ArchiveService.parseVanityMap(os.path.join(base.getConfig("webDir"), 
+	base.getConfig("web", "vanitynames")))

@@ -39,6 +39,8 @@ def registerRenderer(aRenderer):
 	_rendererRegistry[aRenderer.name] = aRenderer
 
 def getRenderer(rendName):
+	if rendName not in _rendererRegistry:
+		raise common.UnknownURI("No such renderer: %s"%repr(rendName))
 	return _rendererRegistry[rendName]
 
 

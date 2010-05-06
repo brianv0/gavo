@@ -335,9 +335,6 @@ _config = Configuration(
 				" server's root"),
 		StringConfigItem("realm", default="Gavo", description="Authentication"
 			" realm to be used (currently, only one, server-wide, is supported)"),
-		StringConfigItem("errorPage", default="debug",
-			description="set to 'debug' for error pages with tracebacks, anything"
-				" else for a less informative page"),
 		WebRelativeConfigItem("templateDir", default="templates",
 			description="webDir-relative location of global nevow templates"),
 		StringConfigItem("adminpasswd", default="",

@@ -4,7 +4,6 @@ The main entry point to CLI usage of GAVO code.
 
 from __future__ import with_statement
 
-
 # The idea here is that you expose a CLI functionality by giving, as
 # strings, the module and function to call.
 #
