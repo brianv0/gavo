@@ -46,7 +46,6 @@ from gavo.web import common
 from gavo.web import grend
 from gavo.web import producttar
 from gavo.web import streaming
-from gavo.web import weberrors
 
 from gavo.svcs import Error, UnknownURI, ForbiddenURI
 
@@ -482,15 +481,7 @@ class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 			inevow.IRequest(ctx).args[form.FORMS_KEY] = ["genForm"]
 		res = defer.maybeDeferred(
 			super(Form, self).renderHTTP, ctx)
-		res.addErrback(self._crashAndBurn, ctx)
 		return res
-
-	def _crashAndBurn(self, failure, ctx):
-		"""is called on errors nobody else cared to handle.
-		"""
-
-		res = weberrors.ErrorPage()
-		return res.renderHTTP_exception(ctx, failure)
 
 	knownResultPages = {
 		"TSV": TextResponse,

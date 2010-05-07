@@ -7,11 +7,15 @@ import os
 import traceback
 from cStringIO import StringIO
 
+from twisted.internet import defer
 from twisted.python import failure
+from twisted.python import log
 # we put some calculations into threads.
 from twisted.python import threadable
 threadable.init()
 
+from nevow import appserver
+from nevow import context
 from nevow import inevow
 from nevow import rend
 from nevow import static
@@ -256,8 +260,7 @@ class ArchiveService(rend.Page):
 		rendC = svcs.getRenderer(rendName)
 		return rendC(ctx, service), segments[srvInd+2:]
 
-	def _realLocateChild(self, ctx, segments):
-		# prepare request: host headers, maintenance check, off-root handling
+	def locateChild(self, ctx, segments):
 		_hackHostHeader(ctx)
 		if os.path.exists(self.maintFile):
 			return static.File(common.getTemplatePath("maintenance.html")), ()
@@ -281,27 +284,6 @@ class ArchiveService(rend.Page):
 		except grend.RDBlocked:
 			return static.File(common.getTemplatePath("blocked.html")), () 
 	
-	def locateChild(self, ctx, segments):
-		try:
-			res, segments = self._realLocateChild(ctx, segments)
-		except WebRedirect, redirTo:
-			return weberrors.RedirectPage(redirTo.args[0]), ()
-		except ForbiddenURI, exc:
-			return weberrors.ForbiddenPage(str(exc)), ()
-		except UnknownURI, exc:
-			traceback.print_exc()
-			return weberrors.NotFoundPage(str(exc)), ()
-		except BadMethod, exc:
-			return weberrors.BadMethodPage(str(exc)), ()
-		except Authenticate, exc:
-			return weberrors.AuthenticatePage(exc.args[0]), ()
-		except Exception, msg:
-			traceback.print_exc()
-			raise
-		if res is None:
-			return weberrors.NotFoundPage(), ()
-		else:
-			return res, segments
 
 
 ArchiveService.addStatic("login", makeDynamicPage(ifpages.LoginPage))
@@ -311,7 +293,6 @@ ArchiveService.addStatic("", makeDynamicPage(RootPage))
 # TODO: unify static and builtin
 ArchiveService.addStatic("static", ifpages.StaticServer())
 ArchiveService.addStatic("builtin", ifpages.BuiltinServer())
-ArchiveService.addStatic("debug", weberrors.DebugPage())
 
 
 ArchiveService.addStatic('formal.css', formal.defaultCSS)
@@ -328,3 +309,26 @@ if (base.getConfig("web", "favicon")
 ArchiveService.parseVanityMap(StringIO(builtinVanity))
 ArchiveService.parseVanityMap(os.path.join(base.getConfig("webDir"), 
 	base.getConfig("web", "vanitynames")))
+
+root = ArchiveService()
+
+# Nevow's ICanHandleException and friends is completely broken for my
+# purposes (or just extremely obscure).  Let's go monkeypatching...
+
+def processingFailed(error, request, ctx):
+	try:
+		handler = weberrors.getDCErrorPage(error)
+		handler.renderHTTP(ctx)
+	except:
+		error = failure.Failure()
+		weberrors.PanicPage(error).renderHTTP_exception(ctx, error)
+	request.finishRequest(False)
+	return appserver.errorMarker
+
+appserver.processingFailed = processingFailed
+
+site =appserver.NevowSite(root)
+# the next line unfortunately has no effect with 2010 twisted, but
+# should eventually replace the handleDCException hack.  If it does,
+# we can do away with ErrorCatchingNevowSite, too.
+site.remember(weberrors.DCExceptionHandler)

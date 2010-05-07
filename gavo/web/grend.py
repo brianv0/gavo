@@ -417,19 +417,9 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 			raise RDBlocked()
 		super(ResourceBasedRenderer, self).__init__()
 	
-	def renderHTTP(self, ctx):
-		res = defer.maybeDeferred(
-			super(ResourceBasedRenderer, self).renderHTTP, ctx)
-		res.addErrback(self._crashAndBurn, ctx)
-		return res
-	
 	def _output(self, res, ctx):
 		print res
 		return res
-
-	def _crashAndBurn(self, failure, ctx):
-		res = weberrors.ErrorPage()
-		return res.renderHTTP_exception(ctx, failure)
 
 	@classmethod
 	def makeAccessURL(cls, baseURL):

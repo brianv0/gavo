@@ -85,10 +85,8 @@ def debugAction():
 	log.startLogging(sys.stderr)
 	config.setMeta("upSince", datetime.datetime.utcnow().strftime(
 		utils.isoTimestampFmt))
-	rootRes = root.ArchiveService()
-	rootRes.child_exit = ExitPage()
-	factory = appserver.NevowSite(rootRes)
-	reactor.listenTCP(int(base.getConfig("web", "serverPort")), factory)
+	root.root.child_exit = ExitPage()
+	reactor.listenTCP(int(base.getConfig("web", "serverPort")), root.site)
 	reactor.run()
 
 

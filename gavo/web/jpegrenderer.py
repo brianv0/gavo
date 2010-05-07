@@ -133,8 +133,7 @@ class MachineJpegRenderer(JpegRenderer):
 		# We're not going thorugh the motions of form processing here
 		# and to what little we'd want from formal right here.
 		return defer.maybeDeferred(self._realRenderHTTP, ctx
-			).addErrback(self._handleInputErrors, ctx
-			).addErrback(self._crashAndBurn, ctx)
+			).addErrback(self._handleInputErrors, ctx)
 
 	def _handleInputErrors(self, failure, ctx):
 		failure.trap(base.ValidationError)
@@ -146,15 +145,6 @@ class MachineJpegRenderer(JpegRenderer):
 		request.finishRequest(False)
 		return appserver.errorMarker
 	
-	def _crashAndBurn(self, failure, ctx):
-		request = inevow.IRequest(ctx)
-		request.setResponseCode(500)
-		request.setHeader("content-type", "text/plain")
-		request.write("Internal problem: %s\n"%
-			failure.getErrorMessage())
-		request.finishRequest(False)
-		return appserver.errorMarker
-
 svcs.registerRenderer(MachineJpegRenderer)
 
 palettes = {

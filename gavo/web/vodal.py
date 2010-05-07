@@ -88,10 +88,6 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 		return self._writeErrorTable(ctx,
 			"Unexpected failure, error message: %s"%failure.getErrorMessage())
 	
-	def _crashAndBurn(self, failure, ctx):
-		failure.printTraceback()
-		return self.renderHTTP_exception(ctx, failure)
-
 	def _handleInputErrors(self, errors, ctx):
 		def formatError(e):
 			if isinstance(e, formal.FieldError):

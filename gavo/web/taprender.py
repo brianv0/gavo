@@ -11,6 +11,7 @@ from nevow import rend
 from nevow import url
 from nevow import util
 from twisted.internet import threads
+from twisted.python import log
 
 from gavo import base
 from gavo import formats
@@ -23,7 +24,6 @@ from gavo.web import common
 from gavo.web import grend
 from gavo.web import streaming
 from gavo.web import vosi
-from gavo.web import weberrors
 from gavo.votable import V
 
 
@@ -97,7 +97,7 @@ def getQueryResource(service, ctx):
 
 def getSyncResource(service, ctx, segments):
 	if segments:
-		return weberrors.NotFoundPage("No resources below sync")
+		raise svcs.UnknownURI("No resources below sync")
 	request = common.getfirst(ctx, "REQUEST", base.Undefined)
 	if request=="doQuery":
 		return getQueryResource(service, ctx)
@@ -171,7 +171,7 @@ class JobResource(rend.Page, UWSErrorMixin):
 		# the destination path differently.
 		failure.trap(svcs.WebRedirect)
 		nextURL = str(
-			"%s/%s"%(self.service.getURL("tap"), failure.value.args[0]))
+			"%s/%s"%(self.service.getURL("tap"), failure.value.rawDest))
 		req = inevow.IRequest(ctx)
 		req.code = 303
 		req.setHeader("location", nextURL)
@@ -211,9 +211,11 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 				else:
 					res = None
 				return res, ()
+		except svcs.UnknownURI:
+			raise
 		except base.Error, ex:
-			traceback.print_exc()
-			return ErrorResource(str(ex))
+			log.err(_why="TAP error")
+			return ErrorResource(str(ex)), ()
 		raise common.UnknownURI("Bad TAP path %s"%"/".join(segments))
 
 svcs.registerRenderer(TAPRenderer)

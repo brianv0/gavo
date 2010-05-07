@@ -71,7 +71,5 @@ class MachineUploader(Uploader):
 			data.original.getPrimaryTable().rows[0]["nAffected"])).encode("utf-8"))
 		return ""
 
-	_crashAndBurn = _handleInputErrors
-
 
 svcs.registerRenderer(MachineUploader)

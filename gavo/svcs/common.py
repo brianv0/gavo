@@ -36,15 +36,31 @@ class ForbiddenURI(Error):
 	"""
 
 class Authenticate(Error):
-	"""signifies that a HTTP 401 should be returned by the dispatcher.
+	"""is raised when an authentication should be performed.
+
+	Authenticates are optionally constructed with the realm the user 
+	shall authenticate in.  If you leave the realm out, the DC-wide default
+	will be used.
 	"""
+	def __init__(self, realm=base.getConfig("web", "realm")):
+		self.realm = realm
+		Error.__init__(self, "This is a request to authenticate against %s"%realm)
+
 
 class WebRedirect(Error):
-	"""causes the dispatcher to redirect the client to the URL in the exception's
-	value.
+	"""is raised when the user agent should look somwhere else.
 
-	The value can be relative (to webRoot) or absolute (starting with http).
+	WebRedirectes are constructed with the destination URL that can be
+	relative (to webRoot) or absolute (starting with http).
 	"""
+	def __init__(self, dest):
+		self.rawDest = dest
+		dest = str(dest)
+		if not dest.startswith("http"):
+			dest = base.getConfig("web", "serverURL")+base.makeSitePath(dest)
+		self.dest = dest
+		Error.__init__(self, "This is supposed to redirect to %s"%dest)
+
 
 def parseServicePath(serviceParts):
 	"""returns a tuple of resourceDescriptor, serviceName.

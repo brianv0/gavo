@@ -60,7 +60,9 @@ class SyncMetaTest(TAPRenderTest):
 	def testNoSyncPaths(self):
 		"""segments below sync are 404.
 		"""
-		return self.assertStatus("/sync/foo/bar", 404)
+		return trialhelpers.runQuery(self.renderer, "GET", "/sync/foo/bar", {}
+			).addCallback(lambda res: ddt
+			).addErrback(lambda res: None)
 
 	def testCapabilities(self):
 		"""simple get capabilities response looks ok.

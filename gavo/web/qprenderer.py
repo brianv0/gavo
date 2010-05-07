@@ -9,7 +9,6 @@ from twisted.internet import defer
 from gavo import svcs
 from gavo.web import common
 from gavo.web import grend
-from gavo.web import weberrors
 
 
 class QPRenderer(grend.HTMLResultRenderMixin, 
@@ -28,7 +27,7 @@ class QPRenderer(grend.HTMLResultRenderMixin,
 
 	def renderHTTP(self, ctx):
 		if not self.queryValue:
-			return weberrors.NotFoundPage("This page is a root page for a"
+			return svcs.UnknownURI("This page is a root page for a"
 				" query-based service.  You have to give a valid value in the"
 				" path.")
 		data = {self.service.getProperty("queryField"): self.queryValue}
@@ -39,7 +38,7 @@ class QPRenderer(grend.HTMLResultRenderMixin,
 	def _formatOutput(self, res, ctx):
 		nMatched = res.queryMeta.get("Matched", 0)
 		if nMatched==0:
-			return weberrors.NotFoundPage("No record matching %s."%(
+			return svcs.UnknownURI("No record matching %s."%(
 				self.queryValue))
 		elif nMatched==1:
 			self.customTemplate = self.getTemplate("resultline")
@@ -52,7 +51,7 @@ class QPRenderer(grend.HTMLResultRenderMixin,
 	def _handleError(self, failure, ctx):
 		# all errors are translated to 404s
 		failure.printTraceback()
-		return weberrors.NotFoundPage("The query initiated by your URL failed,"
+		return svcs.UnknownURI("The query initiated by your URL failed,"
 			" yielding a message '%s'."%failure.getErrorMessage())
 
 	def locateChild(self, ctx, segments):

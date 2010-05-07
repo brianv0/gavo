@@ -41,12 +41,8 @@ if user:
 		sys.exit(1)
 
 application = service.Application("archive", uid=uid)
-if debug:
-	mainPage = Reloader()
-else:
-	mainPage = root.ArchiveService()
 
 config.setMeta("upSince", datetime.datetime.utcnow().strftime(
 	utils.isoTimestampFmt))
-internet.TCPServer(base.getConfig("web", "serverPort"), appserver.NevowSite(
-	mainPage), interface=interface).setServiceParent(application)
+internet.TCPServer(base.getConfig("web", "serverPort"), 
+	root.site), interface=interface).setServiceParent(application)

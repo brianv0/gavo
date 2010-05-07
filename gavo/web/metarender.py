@@ -20,7 +20,6 @@ from gavo import utils
 from gavo.web import common
 from gavo.web import grend
 from gavo.web import resourcebased
-from gavo.web import weberrors
 
 
 class MetaRenderer(grend.ServiceBasedRenderer):
@@ -265,7 +264,7 @@ class TableInfoRenderer(MetaRenderer):
 	def renderHTTP(self, ctx):
 		if not hasattr(self, "table"):  
 			# _retrieveTableDef did not run, i.e., no tableName was given
-			return weberrors.NotFoundPage(
+			raise svcs.UnknownURI(
 				"You must provide a table name to this renderer.")
 		return super(TableInfoRenderer, self).renderHTTP(ctx)
 
@@ -363,7 +362,7 @@ class TableNoteRenderer(MetaRenderer):
 	def renderHTTP(self, ctx):
 		if not hasattr(self, "noteTag"):  
 			# _retrieveTableDef did not run, i.e., no tableName was given
-			return weberrors.NotFoundPage(
+			return svcs.UnknownURI(
 				"You must provide table name and note tag to this renderer.")
 		return super(TableNoteRenderer, self).renderHTTP(ctx)
 
@@ -433,6 +432,6 @@ class ExternalRenderer(grend.ServiceBasedRenderer):
 				break
 		else: # no publication, 404
 			raise svcs.UnknownURI()
-		return weberrors.RedirectPage(str(pub.getMeta("accessURL")))
+		return svcs.UnknownURI(str(pub.getMeta("accessURL")))
 
 svcs.registerRenderer(ExternalRenderer)

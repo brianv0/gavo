@@ -22,7 +22,6 @@ from gavo.imp import formal
 from gavo.web import common
 from gavo.web import grend
 from gavo.web import resourcebased
-from gavo.web import weberrors
 
 
 class AdminRenderer(formal.ResourceMixin, grend.ServiceBasedRenderer):
