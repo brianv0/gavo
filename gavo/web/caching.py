@@ -10,6 +10,8 @@ import time
 from nevow import inevow
 from nevow import rend
 
+from gavo import utils
+
 
 def instrumentRequestForCaching(request, finishAction):
 	"""changes request such that finishAction is called with the request and
@@ -54,6 +56,7 @@ class CachedPage(rend.Page):
 		request = inevow.IRequest(ctx)
 		for key, value in self.headers.iteritems():
 			request.setHeader(key, value)
+		request.setHeader('date', utils.formatRFC2616Date())
 		return self.content
 
 

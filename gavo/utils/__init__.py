@@ -39,6 +39,7 @@ from gavo.utils.stanxml import FastElementTree, ElementTree, xmlrender
 
 from gavo.utils.texttricks import (formatSize, makeEllipsis, floatRE, 
 	dateRE, datetimeRE, isoTimestampFmt, datetimeToRFC2616,
+	formatRFC2616Date, parseRFC2616Date,
 	fixIndentation, parsePercentExpression, hmsToDeg, dmsToDeg,
 	fracHoursToDeg, degToHms, degToDms, getRelativePath, parseAssignments, 
 	NameMap, formatSimpleTable, replaceXMLEntityRefs)

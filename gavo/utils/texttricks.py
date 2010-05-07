@@ -9,6 +9,8 @@ Formatting and text manipulation code independent of GAVO code.
 import math
 import os
 import re
+import time
+from email import utils as emailutils
 
 from gavo.utils import codetricks
 from gavo.utils.excs import Error
@@ -342,6 +344,32 @@ def datetimeToRFC2616(dt):
 	This may crap when you fuzz with the locale.
 	"""
 	return dt.strftime('%a, %d %b %Y %H:%M:%S GMT')
+
+
+def parseRFC2616Date(s):
+	"""returns seconds since unix epoch representing UTC from the HTTP-compatible
+	time specification s.
+	"""
+	parts = emailutils.parsedate_tz(s)
+	return emailutils.mktime_tz(parts)
+
+
+# The following timegm implementation is due to Frederik Lundh
+def _d(y, m, d, days=(0,31,59,90,120,151,181,212,243,273,304,334,365)): 
+		return (((y - 1901)*1461)/4 + days[m-1] + d + (
+			(m > 2 and not y % 4 and (y % 100 or not y % 400)) and 1))
+
+def timegm(tm, epoch=_d(1970,1,1)): 
+		year, month, day, h, m, s = tm[:6] 
+		return (_d(year, month, day) - epoch)*86400 + h*3600 + m*60 + s
+
+
+def formatRFC2616Date(secs=None):
+	"""returns an RFC2616 date string for UTC seconds since unix epoch.
+	"""
+	if secs is None:
+		secs = time.time()
+	return emailutils.formatdate(secs, localtime=False, usegmt=True)
 
 
 class NameMap(object):
