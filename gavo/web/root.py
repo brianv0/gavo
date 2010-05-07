@@ -25,6 +25,7 @@ from gavo import base
 from gavo import svcs
 from gavo import registry    # for registration
 from gavo.imp import formal
+from gavo.web import caching
 from gavo.web import common
 from gavo.web import grend
 from gavo.web import ifpages
@@ -103,6 +104,10 @@ class RootPage(common.CustomTemplateMixin, rend.Page, grend.GavoRenderMixin):
 			return ""
 
 	defaultDocFactory = common.loadSystemTemplate("root.html")
+
+
+# A cache for pages on the ArchiveService page
+base.caches.makeCache("getRootPageCache", lambda ignored: {})
 
 
 class ArchiveService(rend.Page):
@@ -242,6 +247,7 @@ class ArchiveService(rend.Page):
 		for srvInd in range(1, len(segments)-1):
 			try:
 				rd = base.caches.getRD("/".join(segments[:srvInd]))
+# XXX TODO: set the last modified header to the larger of (rdModTime, serverStartTime) here.
 			except base.RDNotFound:
 				continue
 			else:
@@ -260,6 +266,21 @@ class ArchiveService(rend.Page):
 		rendC = svcs.getRenderer(rendName)
 		return rendC(ctx, service), segments[srvInd+2:]
 
+	_rootCacheItems = set([("",)])
+
+	def _getFromCache(self, ctx, segments):
+		if segments not in self._rootCacheItems:
+			return None
+		request = inevow.IRequest(ctx)
+		if request.args:
+			return None
+		cache = base.caches.getRootPageCache("__system__/services")
+		if segments in cache:
+			return cache[segments]
+		caching.instrumentRequestForCaching(request,
+			caching.enterIntoCacheAs(segments, cache))
+		return None
+
 	def locateChild(self, ctx, segments):
 		_hackHostHeader(ctx)
 		if os.path.exists(self.maintFile):
@@ -269,6 +290,10 @@ class ArchiveService(rend.Page):
 				raise UnknownURI("Misconfiguration: Saw a URL outside of the server's"
 					" scope")
 			segments = segments[self.rootLen:]
+
+		cached = self._getFromCache(ctx, segments)
+		if cached:
+			return cached, ()
 
 		if len(segments)==1 and segments[0] in self.redirects:
 			raise WebRedirect(self.redirects[segments[0]])
@@ -289,11 +314,9 @@ class ArchiveService(rend.Page):
 ArchiveService.addStatic("login", makeDynamicPage(ifpages.LoginPage))
 ArchiveService.addStatic("reload", makeDynamicPage(ifpages.ReloadPage))
 ArchiveService.addStatic("", makeDynamicPage(RootPage))
-
 # TODO: unify static and builtin
 ArchiveService.addStatic("static", ifpages.StaticServer())
 ArchiveService.addStatic("builtin", ifpages.BuiltinServer())
-
 
 ArchiveService.addStatic('formal.css', formal.defaultCSS)
 ArchiveService.addStatic('js', formal.formsJS)
@@ -327,8 +350,7 @@ def processingFailed(error, request, ctx):
 
 appserver.processingFailed = processingFailed
 
-site =appserver.NevowSite(root)
+site = appserver.NevowSite(root)
 # the next line unfortunately has no effect with 2010 twisted, but
-# should eventually replace the handleDCException hack.  If it does,
-# we can do away with ErrorCatchingNevowSite, too.
+# should eventually replace the processingFailed hack above.
 site.remember(weberrors.DCExceptionHandler)
