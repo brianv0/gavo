@@ -359,8 +359,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			self.allowed.add("form")
 		# undefined cores are only allowed with custom pages.
 		if self.core is base.Undefined and self.customPage:
-			self.core = core.getCore("staticCore")(self.rd,
-				file=None).finishElement()
+			self.core = core.getCore("nullCore")(self.rd).finishElement()
 		# Pain: since renderers may override InputKey sequences, they
 		# may require inputDDs of their own.  We cache them here
 		# as necessary.
@@ -390,7 +389,6 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				self.resType = "tableService"
 		else: # no output table defined, we're a plain service
 			self.resType = "nonTabularService"
-
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(Service)
@@ -619,6 +617,21 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		if absolute:
 			basePath = base.getConfig("web", "serverURL")+basePath
 		return getRenderer(rendName).makeAccessURL(basePath)
+
+	_browserURLrenderers = ["form", "custom", "external"]
+
+	def getBrowserURL(self):
+		"""returns a published URL that's suitable for a web browser or None if
+		no such URL can be guessed.
+		"""
+		# I fear we'll have to refine this; custom and external could basically
+		# be anything.  Hm...
+		for rend in self._browserURLrenderers:
+			if rend in self.allowed:
+				return self.getURL(rend)
+		if "static" in self.allowed:
+			if self.getProperty("indexFile", None) or "static" in self.templates:
+				return self.getURL("static")
 
 	def _meta_referenceURL(self):
 		return meta.makeMetaItem(self.getURL("info"),

@@ -232,7 +232,7 @@
 		</make>
 	</data>
 
-	<staticCore id="nullcore" file="no/file"/>
+	<nullCore id="null"/>
 
-	<service id="run" core="nullcore" allowed="tap"/>
+	<service id="run" core="null" allowed="tap"/>
 </resource>

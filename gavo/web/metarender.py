@@ -241,12 +241,8 @@ class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 			for p in self.service.publications if p.sets]
 		return sorted(res, key=lambda v: v["render"])
 
-	_browserURLrenderers = ["form", "custom", "external"]
-
 	def data_browserURL(self, ctx, data):
-		for rend in self._browserURLrenderers:
-			if rend in self.service.allowed:
-				return self.service.getURL(rend)
+		return self.service.getBrowserURL()
 
 	defaultDocFactory = common.doctypedStan(
 		T.html[

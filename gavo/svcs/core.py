@@ -88,33 +88,3 @@ class Core(base.Structure):
 	def makeUserDoc(self):
 		return ("Polymorphous core element.  May contain any of the cores"
 			" mentioned in `Cores Available`_ .")
-
-
-class StaticCore(Core, base.RestrictionMixin):
-	"""A core that always returns the content of a static file.
-
-	This core clearly will not run with most renderers.  It's also
-	not usually necessary since you can allow a static renderer on
-	services that does the same thing (and better).
-
-	So, this is for really weird situations.
-	"""
-	name_ = "staticCore"
-
-	_file = rscdef.ResdirRelativeAttribute("file", default=base.Undefined,
-		description="Resdir-relative path of the file to deliver.")
-
-	def completeElement(self):
-		if self.outputTable is base.Undefined:
-			self.outputTable = base.makeStruct(outputdef.OutputTableDef)
-		if self.inputDD is base.Undefined:
-			self.inputDD = base.makeStruct(inputdef.InputDescriptor)
-		self._completeElementNext(StaticCore)
-
-	def run(self, service, inputData, queryMeta):
-		f = open(self.file)
-		res = f.read()
-		f.close()
-		return res
-
-registerCore(StaticCore)

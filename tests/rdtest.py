@@ -248,7 +248,6 @@ class RestrictionTest(testhelpers.VerboseTest):
 			'CREATE</index></table>',
 		'<table id="test2"><column name="x" fixup="__+\'x\'"/></table>',
 		'<data><embeddedGrammar><iterator/></data>',
-		'<staticCore id="foo" file="xy"/>',
 	]
 
 if __name__=="__main__":
