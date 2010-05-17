@@ -1,6 +1,8 @@
 // javascript support code for the GAVO data center
 
 
+////////////////////////////// possibly generic functions
+
 function decodeGetPars(queryString) {
 // an incredibly crappy approach to getting whatever was in the query string
 // into javascript.

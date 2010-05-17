@@ -24,6 +24,22 @@ div.metadescription {
 	padding-bottom: 5px;
 }
 
+div#useservice {
+	float: right;
+	background: white;
+	width: 200px;
+	padding-left: 20px;
+	margin-right: 10px;
+	background: #F0F4FF;
+}
+
+input.largebutton {
+	width: 200px;
+	font-size: 14pt;
+	text-align:center;
+	white-space:normal;
+}
+
 p.attribution {
 	max-width:100%;
 	width:100%;
@@ -157,11 +173,10 @@ h1, h2, h3, h4, h5 { color: #666; }
 h1 { 
 	font-size: 17pt;
 	font-weight: bold;
-	letter-spacing: 0.1em;
 	font-family: Arial, Verdana, Helvetica, sans-serif;
 	color: #042E74;
 	background: #F0F4FF;
-	line-height:2em
+	padding-left: 0.5ex;
 }
 
 h2 { 

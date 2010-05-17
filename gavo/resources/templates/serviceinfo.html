@@ -4,9 +4,19 @@
   <head>
     <title n:render="title"/>
 		<meta name="robots" content="nofollow"/>
+		<meta http-equiv="Content-type" content="text/html;charset=UTF-8"/>
 		<n:invisible n:render="commonhead"/>
   </head>
 	<body n:render="withsidebar">
+		<div id="useservice" n:data="browserURL" n:render="ifdata">
+			<form method="GET">
+				<n:attr name="action" n:render="string"/>
+				<input type="submit" class="largebutton"
+					value="Use this service from your browser"/>
+			</form>
+			<p>Further access options are discussed <a href="#overview">below</a></p>
+		</div>
+
 		<h1 n:render="title"/>
 
 		<div class="metadescription">
@@ -19,10 +29,8 @@
 			<n:invisible n:render="metahtml">_longdoc</n:invisible>
 		</n:invisible>
 
-		<h2 class="section">Overview</h2>
-		<p><strong>Renderers</strong> 
-			(i.e., various means of accessing the data) available 
-			on this service include:</p>
+		<h2 class="section" id="overview">Overview</h2>
+		<p><strong>You can access</strong> this service using:</p>
 		<ul n:data="rendAvail" n:render="sequence">
 			<li n:render="mapping" n:pattern="item">
 				<em><n:slot name="rendName"/></em> --
@@ -38,15 +46,17 @@
 				it is under development, abandoned in development or otherwise
 				unfinished.  Exercise caution.</p>
 			<n:invisible n:render="ifdata">
-				<p>This service is <strong>published</strong> as follows 
-					(a <em>local</em> in sets
-					means it is listed on our front page, an <em>ivo_managed</em> means
-					it has a record in the VO registry):</p>
+				<p>This service is <strong>published</strong> as follows:</p>
 				<ul n:render="sequence">
 					<li n:render="mapping" n:pattern="item">Within the
 						set(s) <em><n:slot name="sets"/></em> with the renderer
 						<em><n:slot name="render"/></em></li>
 				</ul>
+				<p><em>local</em> means it is listed on our front page, 
+				<em>ivo_managed</em> means
+				it has a record in the VO registry, <em>gvo</em> means it
+				is within GAVO's service registry.</p>
+	
 			</n:invisible>
 		</div>
 
