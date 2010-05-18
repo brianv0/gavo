@@ -71,6 +71,11 @@ def iterSvcRecs(service):
 	for pub in service.publications:
 		rec["renderer"] = pub.render
 		rec["accessURL"] = service.getURL(pub.render, absolute=False)
+		rec["referenceURL"] = base.getMetaText(service, "referenceURL")
+		try:
+			rec["browseable"] = service.isBrowseableWith(pub.render)
+		except AttributeError:  # service is not a ResourceBasedRenderer
+			rec["browseable"] = False
 		for setName in pub.sets:
 			rec["setName"] = setName
 			yield rec
@@ -150,6 +155,7 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 				warnings.warn(msg)
 			else:
 				raise base.ReportableError(msg)
+		msg = None
 
 		if metaToo:
 			for dependentDD in rd:

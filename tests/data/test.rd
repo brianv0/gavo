@@ -322,13 +322,14 @@
 
 	<service id="basiccat" core="abccatcore"/>
 
-	<service id="convcat" core="abccatcore">
+	<service id="convcat" core="abccatcore" allowed="form, static">
 		<meta name="title">Somebody else's problem</meta>
 		<meta name="creationDate">1975-01-01T12:00:00</meta>
 		<meta name="subject">Problems, somebody else's</meta>
 		<meta name="shortName">no looks</meta>
 		<meta name="description">If you are seeing this service, a unit test
 			forgot to clean up.</meta>
+		<property name="indexFile">index.html</property>
 		<publish render="form" sets="local"/>
 		<outputTable namePath="abcd">
 			<column original="a" verbLevel="15"/>

@@ -61,6 +61,10 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 	def makeAccessURL(cls, baseURL):
 		return "%s/%s?"%(baseURL, cls.name)
 
+	@classmethod
+	def isBrowseable(self, service):
+		return False
+
 	_generateForm = resourcebased.Form.form_genForm
 
 	def _getResource(self, outputName):

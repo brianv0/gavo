@@ -422,6 +422,13 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 		return res
 
 	@classmethod
+	def isBrowseable(self, service):
+		"""returns True if this renderer applied to service is usable using a
+		plain web browser.
+		"""
+		return False
+
+	@classmethod
 	def makeAccessURL(cls, baseURL):
 		"""returns an accessURL for a service with baseURL to this renderer.
 		"""

@@ -8,7 +8,7 @@
 	These have to match whatever is done in gavo.web.servicelist -->
 
 	<table system="True" id="services" forceUnique="True" onDisk="True"
-			dupePolicy="overwrite">
+			dupePolicy="overwrite" primary="internalId,sourceRd">
 		<column name="shortName" type="text"
 			tablehead="Service ID"/>
 		<column name="internalId" type="text"
@@ -22,33 +22,33 @@
 		<column name="recTimestamp" type="timestamp"
 			description="UTC of gavopublish run on the source RD"/>
 		<column name="deleted" type="boolean"/>
-		<primary>internalId,sourceRd</primary>
 	</table>
 
-	<table system="True" id="srv_interfaces" forceUnique="True" onDisk="True">
+	<table system="True" id="srv_interfaces" forceUnique="True" onDisk="True"
+			primary="accessURL">
 		<column name="sourceRd" type="text" tablehead="Source RD"/>
 		<column name="shortName" type="text"/>
 		<column name="accessURL" type="text"/>
+		<column name="referenceURL" type="text"/>
+		<column name="browseable" type="boolean"/>
 		<column name="renderer" type="text"/>
-		<primary>accessURL</primary>
 	</table>
 
 	<table system="True" id="srv_sets" forceUnique="True" onDisk="True"
-			dupePolicy="overwrite">
+			dupePolicy="overwrite" primary="shortName, setName, renderer">
 		<column name="shortName" type="text"/>
 		<column name="setName" type="text" tablehead="Set name"
 			description="Name of an OAI set.  Here, probably only 'local' and 'ivo_managed' will output anything sensible"/>
 		<column name="sourceRd" type="text" tablehead="Source RD"/>
 		<column name="renderer" type="text"/>
 		<column name="deleted" type="boolean"/>
-		<primary>shortName, setName, renderer</primary>
 	</table>
 			
-	<table system="True" id="srv_subjs" forceUnique="True" onDisk="True">
+	<table system="True" id="srv_subjs" forceUnique="True" onDisk="True"
+			primary="shortName, subject">
 		<column name="shortName" type="text"/>
 		<column name="sourceRd" type="text" tablehead="Source RD"/>
 		<column name="subject" type="text"/>
-		<primary>shortName, subject</primary>
 	</table>
 
 	<data id="tables">
@@ -101,14 +101,14 @@
 		<column original="recTimestamp"/>
 		<column original="deleted"/>
 		<column original="srv_interfaces.accessURL"/>
+		<column original="srv_interfaces.referenceURL"/>
+		<column original="srv_interfaces.browseable"/>
 		<column original="srv_interfaces.renderer"/>
 		<column original="srv_sets.setName"/>
 
 		<viewStatement>
 			CREATE OR REPLACE VIEW srv_join AS (
-				SELECT shortName, internalId, sourceRd, title, description,
-					owner, dateUpdated, recTimestamp, deleted, accessURL, renderer, 
-					setName 
+				SELECT \colNames
 				FROM 
 					services 
 					NATURAL JOIN srv_sets
@@ -123,11 +123,13 @@
 		<column original="title"/>
 		<column original="owner"/>
 		<column original="srv_interfaces.accessURL"/>
+		<column original="srv_interfaces.referenceURL"/>
+		<column original="srv_interfaces.browseable"/>
 		<column original="srv_sets.setName"/>
 
 		<viewStatement>
 			CREATE OR REPLACE VIEW srv_subjs_join AS (
-				SELECT subject, shortName, title, owner, accessurl, setName
+				SELECT \colNames
 				FROM 
 					srv_interfaces 
 					NATURAL JOIN services 

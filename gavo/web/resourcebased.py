@@ -476,6 +476,10 @@ class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 			self.runOnEmptyInputs = True
 		self.queryResult = None
 
+	@classmethod
+	def isBrowseable(self, service):
+		return True
+
 	def renderHTTP(self, ctx):
 		if self.runOnEmptyInputs:
 			inevow.IRequest(ctx).args[form.FORMS_KEY] = ["genForm"]
@@ -652,6 +656,11 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 		except KeyError:
 			self.staticPath = None
 
+	@classmethod
+	def isBrowseable(self, service):
+		return (service.getProperty("indexFile", None) 
+			or "static" in service.templates)
+
 	def renderHTTP(self, ctx):
 		if inevow.ICurrentSegments(ctx)[-1]!='':
 			# force a trailing slash on the "index"
@@ -724,6 +733,10 @@ class CustomRenderer(grend.ServiceBasedRenderer):
 			raise svcs.UnknownURI("No custom page defined for this service.")
 		pageClass, self.reloadInfo = service.customPageCode
 		self.realPage = pageClass(ctx, service)
+
+	@classmethod
+	def isBrowseable(self, service):
+		return True  # this may be somewhat broad.
 
 	def _reload(self, ctx):
 		mod = imp.load_module(*self.reloadInfo)

@@ -618,20 +618,35 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			basePath = base.getConfig("web", "serverURL")+basePath
 		return getRenderer(rendName).makeAccessURL(basePath)
 
-	_browserURLrenderers = ["form", "custom", "external"]
+	# used by getBrowserURL
+	_browserScores = {"form": 10, "external": 5, "custom": 3, "static": 1}
 
-	def getBrowserURL(self):
+	def getBrowserURL(self, fq=True):
 		"""returns a published URL that's suitable for a web browser or None if
 		no such URL can be guessed.
+
+		If you pass fq=False, you will get a path rather than a URL.
 		"""
-		# I fear we'll have to refine this; custom and external could basically
-		# be anything.  Hm...
-		for rend in self._browserURLrenderers:
-			if rend in self.allowed:
-				return self.getURL(rend)
-		if "static" in self.allowed:
-			if self.getProperty("indexFile", None) or "static" in self.templates:
-				return self.getURL("static")
+		# There can be multiple candidates for browser URLs (like when a service
+		# has both form, static, and external renderers).  If so, we select
+		# by plain scores.
+		browseables = []
+		for rendName in self.allowed:
+			if self.isBrowseableWith(rendName):
+				browseables.append((self._browserScores[rendName], rendName))
+		if browseables:
+			return self.getURL(max(browseables)[1], absolute=fq)
+		else:
+			return None
+		
+	def isBrowseableWith(self, rendName):
+		"""returns true if rendering this service through rendName results 
+		in something pretty in a web browser.
+		"""
+		try:
+			return bool(getRenderer(rendName).isBrowseable(self))
+		except common.UnknownURI: # renderer name not known
+			return False
 
 	def _meta_referenceURL(self):
 		return meta.makeMetaItem(self.getURL("info"),

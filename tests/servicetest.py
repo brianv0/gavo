@@ -99,8 +99,44 @@ class ComputedServiceTest(testhelpers.VerboseTest):
 		svc = self.rd.getById("convcat")
 		res = svc.runAsForm({"a": "xy", "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01", "_ADDITEM":["c", "e"]})
-		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, ["a", "b", "d", 
-			"c", "e"])
+		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, 
+			["a", "b", "d", "c", "e"])
+
+
+class BrowsableTest(testhelpers.VerboseTest):
+	"""tests for selection of URLs for browser users.
+	"""
+	def setUp(self):
+		self.oldInputs = base.getConfig("inputsDir")
+		base.setConfig("inputsDir", os.getcwd())
+
+	def tearDown(self):
+		base.setConfig("inputsDir", self.oldInputs)
+
+	def testBrowseableMethod(self):
+		service = testhelpers.getTestRD("pubtest.rd").getById("moribund")
+		self.failUnless(service.isBrowseableWith("form"))
+		self.failUnless(service.isBrowseableWith("external"))
+		self.failIf(service.isBrowseableWith("static"))
+		self.failIf(service.isBrowseableWith("scs.xml"))
+		self.failIf(service.isBrowseableWith("oai.xml"))
+	
+	def testStaticWithIndex(self):
+		service = testhelpers.getTestRD().getById("convcat")
+		# service has an indexFile property
+		self.failUnless(service.isBrowseableWith("static"))
+
+	def testURLSelection(self):
+		service = testhelpers.getTestRD("pubtest.rd").getById("moribund")
+		self.assertEqual(service.getBrowserURL(), 
+			"http://localhost:8080/data/pubtest/moribund/form")
+
+	def testRelativeURLSelection(self):
+		service = testhelpers.getTestRD("pubtest.rd").getById("moribund")
+		self.assertEqual(service.getBrowserURL(fq=False), 
+			"/data/pubtest/moribund/form")
+	
+
 
 
 if __name__=="__main__":

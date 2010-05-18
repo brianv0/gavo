@@ -324,6 +324,11 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		for mixinName in self.mixins:
 			self._mixins._processEarly(self, mixinName)
 
+	def macro_colNames(self):
+		"""returns an SQL-ready list of column names of this table.
+		"""
+		return ", ".join(c.name for c in self.columns)
+
 	def macro_curtable(self):
 		"""returns the qualified name of the current table.
 		"""

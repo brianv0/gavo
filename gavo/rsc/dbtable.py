@@ -570,7 +570,7 @@ class View(DBTable):
 	
 	def create(self):
 		self.ensureSchema()
-		self.query(self.tableDef.viewStatement)
+		self.query(self.tableDef.expand(self.tableDef.viewStatement))
 		return self.configureTable()
 
 	def makeIndices(self):

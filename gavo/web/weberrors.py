@@ -228,7 +228,7 @@ class InternalServerErrorPage(ErrorPage):
 			T.img(src="/builtin/img/logo_medium.png", style="position:absolute;"
 				"right:0pt"),
 			T.h1["Server Error (500)"],
-			T.p["Your action has caused an ",
+			T.p["Your action has caused a(n) ",
 				T.span(render=str, data=T.directive("excname")),
 				" exception to occur.  As additional info, the failing code"
 				" gave:"],

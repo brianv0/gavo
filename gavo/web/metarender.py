@@ -428,6 +428,10 @@ class ExternalRenderer(grend.ServiceBasedRenderer):
 	"""
 	name = "external"
 
+	@classmethod
+	def isBrowseable(self, service):
+		return True # we probably need some way to say when that's wrong...
+
 	def renderHTTP(self, ctx):
 		# look for a matching publication in the parent service...
 		for pub in self.service.publications:
