@@ -197,6 +197,24 @@
 		<meta name="publisher">GAVO Data Center Team</meta>
 		<meta name="contact.name">GAVO Data Center Team</meta>
 		<meta name="contact.email">gavo@ari.uni-heidelberg.de</meta>
+	</service>
 
+	<nullCore id="null"/>
+
+	<service id="root" core="null" allowed="static">
+		<meta name="description">The root page, vanity-named to /</meta>
+		<template key="static">//root.html</template>
+		<customDF name="chunkedServiceList">
+			return base.caches.getChunkedServiceList("\RDid")
+		</customDF>
+		<customDF name="subjectServiceList">
+			return base.caches.getSubjectsList("\RDid")
+		</customDF>
+		<customRF name="ifprotected">
+			if data["owner"]:
+				return ctx.tag
+			else:
+				return ""
+		</customRF>
 	</service>
 </resource>

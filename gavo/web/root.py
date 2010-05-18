@@ -84,30 +84,11 @@ def _hackHostHeader(ctx):
 		request.setHost(fwHost, 80)
 
 
-class RootPage(common.CustomTemplateMixin, rend.Page, grend.GavoRenderMixin):
-	"""The data center's "home page".
-	"""
-	def data_chunkedServiceList(self, ctx, data):
-		"""returns a service list alphabetically chunked.
-		"""
-		# The weird key to the cache makes it clear when you reload services
-		return base.caches.getChunkedServiceList("__system__/services")[:]
-
-	def data_subjectServiceList(self, ctx, data):
-		# The weird key to the cache makes it clear when you reload services
-		return base.caches.getSubjectsList("__system__/services")
-
-	def render_ifprotected(self, ctx, data):
-		if data["owner"]:
-			return ctx.tag
-		else:
-			return ""
-
-	defaultDocFactory = common.loadSystemTemplate("root.html")
-
-
-# A cache for pages on the ArchiveService page
-base.caches.makeCache("getRootPageCache", lambda ignored: {})
+# A cache for RD-specific page caches.  Each of these maps segments
+# (tuples) to a finished text document.  The argument is the id of the
+# RD responsible for generating that data.  This ensures that pre-computed
+# data is cleared when the RD is reloaded.
+base.caches.makeCache("getPageCache", lambda rdId: {})
 
 
 class ArchiveService(rend.Page):
@@ -123,7 +104,7 @@ class ArchiveService(rend.Page):
 	    additional segments.
 	(2) mappings -- first segment is replaced by something else, processing
 	    continues.
-	(3) resource base -- consisting of an RD id, a service id, a renderer and
+	(3) resource based -- consisting of an RD id, a service id, a renderer and
 	    possibly further segments.
 	
 	The first three mechanisms only look at the first segment to determine
@@ -228,8 +209,29 @@ class ArchiveService(rend.Page):
 		# this is only ever executed on the root URL.  For consistency
 		# (e.g., caching), we route this through locateChild though
 		# we know we're going to return RootPage.  locateChild must
-		# thus *never* return self.
-		return self.locateChild(ctx, ("",))
+		# thus *never* return self, ().
+		return self.locateChild(ctx, self.rootSegments)
+
+	def _processCache(self, ctx, service, rendC, segments):
+		"""shortcuts if ctx's request can be cached with rendC.
+
+		This function returns a cached item if a page is in the cache and
+		request allows caching, None otherwise.  For cacheable requests,
+		it instruments the request such that the page is actually cached.
+
+		Requests with arguments or a user info are never cacheable.
+		"""
+		request = inevow.IRequest(ctx)
+		if request.method=="GET" or request.args or request.getUser():
+			return None
+		if not rendC.isCacheable(request):
+			return None
+		cache = base.caches.getPageCache(service.rd.sourceId)
+		if segments in cache:
+			return cache[segments]
+		caching.instrumentRequestForCaching(request,
+			caching.enterIntoCacheAs(segments, cache))
+		return None
 
 	def _locateResourceBasedChild(self, ctx, segments):
 		"""returns a standard, resource-based service renderer.
@@ -264,22 +266,12 @@ class ArchiveService(rend.Page):
 		if service is None:
 			raise UnknownURI("No such service: %s"%subId)
 		rendC = svcs.getRenderer(rendName)
-		return rendC(ctx, service), segments[srvInd+2:]
 
-	_rootCacheItems = set([("",)])
-
-	def _getFromCache(self, ctx, segments):
-		if segments not in self._rootCacheItems:
-			return None
-		request = inevow.IRequest(ctx)
-		if request.args:
-			return None
-		cache = base.caches.getRootPageCache("__system__/services")
-		if segments in cache:
-			return cache[segments]
-		caching.instrumentRequestForCaching(request,
-			caching.enterIntoCacheAs(segments, cache))
-		return None
+		cached = self._processCache(ctx, service, rendC, segments)
+		if cached:
+			return cached
+		else:
+			return rendC(ctx, service), segments[srvInd+2:]
 
 	def locateChild(self, ctx, segments):
 		_hackHostHeader(ctx)
@@ -290,10 +282,9 @@ class ArchiveService(rend.Page):
 				raise UnknownURI("Misconfiguration: Saw a URL outside of the server's"
 					" scope")
 			segments = segments[self.rootLen:]
-
-		cached = self._getFromCache(ctx, segments)
-		if cached:
-			return cached, ()
+		
+		if segments==('',):
+			segments = ("__system__", "services", "root", "static")
 
 		if len(segments)==1 and segments[0] in self.redirects:
 			raise WebRedirect(self.redirects[segments[0]])
@@ -313,7 +304,6 @@ class ArchiveService(rend.Page):
 
 ArchiveService.addStatic("login", makeDynamicPage(ifpages.LoginPage))
 ArchiveService.addStatic("reload", makeDynamicPage(ifpages.ReloadPage))
-ArchiveService.addStatic("", makeDynamicPage(RootPage))
 # TODO: unify static and builtin
 ArchiveService.addStatic("static", ifpages.StaticServer())
 ArchiveService.addStatic("builtin", ifpages.BuiltinServer())

@@ -188,7 +188,7 @@ class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 	"""
 	name = "info"
 	
-	customTemplate = common.loadSystemTemplate("serviceinfo.html")
+	customTemplate = svcs.loadSystemTemplate("serviceinfo.html")
 
 	def __init__(self, *args, **kwargs):
 		grend.ServiceBasedRenderer.__init__(self, *args, **kwargs)
@@ -262,7 +262,7 @@ class TableInfoRenderer(MetaRenderer):
 	it is run on __system__/dc_tables/show.
 	"""
 	name = "tableinfo"
-	customTemplate = common.loadSystemTemplate("tableinfo.html")
+	customTemplate = svcs.loadSystemTemplate("tableinfo.html")
 
 	def renderHTTP(self, ctx):
 		if not hasattr(self, "table"):  

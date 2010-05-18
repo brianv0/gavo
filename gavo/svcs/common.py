@@ -9,6 +9,7 @@ import urllib
 
 from nevow import tags as T, entities as E
 from nevow import inevow
+from nevow import loaders
 
 import pkg_resources
 
@@ -233,5 +234,28 @@ class QueryMeta(dict):
 			if not k in self.metaKeys and v and v!=[None])
 
 
-
 emptyQueryMeta = QueryMeta()
+
+
+def getTemplatePath(key):
+	"""see loadSystemTemplate.
+	"""
+	userPath = os.path.join(base.getConfig("rootDir"), "web/templates", key)
+	if os.path.exists(userPath):
+		return userPath
+	else:
+		return pkg_resources.resource_filename('gavo',
+			os.path.join("resources", "templates", key))
+
+
+def loadSystemTemplate(key):
+	"""returns a nevow template for system pages from key.
+
+	path is interpreted as relative to gavo_root/web/templates (first)
+	and package internal (last).  If no template is found, None is
+	returned (this harmonizes with the fallback in CustomTemplateMixin).
+	"""
+	try:
+		return loaders.xmlfile(getTemplatePath(key))
+	except IOError:
+		pass

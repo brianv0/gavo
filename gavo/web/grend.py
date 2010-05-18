@@ -444,6 +444,17 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 		return False
 
 	@classmethod
+	def isCacheable(self, request):
+		"""should return true if the content rendered will only change
+		when the associated RD changes.
+
+		request is a nevow request object.  web.root.ArchiveService already
+		makes sure that you only see GET request without arguments and
+		without a user, so you do not need to check this.
+		"""
+		return False
+
+	@classmethod
 	def makeAccessURL(cls, baseURL):
 		"""returns an accessURL for a service with baseURL to this renderer.
 		"""
@@ -478,16 +489,6 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 			raise svcs.ForbiddenURI(
 				"The renderer %s is not allowed on this service."%self.name)
 
-	def renderer(self, ctx, name):
-		"""returns code for a nevow render function named name.
-
-		This overrides the method inherited from nevow's RenderFactory to
-		add a lookup in the page's service service.
-		"""
-		if name in self.service.nevowRenderers:
-			return self.service.nevowRenderers[name]
-		return ResourceBasedRenderer.renderer(self, ctx, name)
-
 	@classmethod
 	def getInputDD(cls, service):
 		"""returns an inputDD appropriate for service and this renderer.
@@ -500,24 +501,6 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 			return None
 		return base.makeStruct(svcs.InputDescriptor,
 			grammar=base.makeStruct(svcs.ContextGrammar, inputKeys=ifs))
-
-	def processData(self, rawData, queryMeta):
-		"""produces input data for the service in runs the service.
-		"""
-		inputData = self.service.makeDataFor(self, rawData)
-		return self.service.runWithData(inputData, queryMeta)
-	
-	def runService(self, rawData, queryMeta):
-		"""takes raw data and returns a deferred firing the service result.
-		"""
-		return threads.deferToThread(self.processData, rawData, queryMeta)
-
-	def runServiceWithContext(self, rawData, context):
-		"""calls runService, first making a queryMeta from nevow context.
-		"""
-		queryMeta = svcs.QueryMeta.fromContext(context)
-		queryMeta["formal_data"] = rawData
-		return self.runService(rawData, queryMeta)
 
 	@classmethod
 	def getInputFields(cls, service):
@@ -542,3 +525,43 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 		if changed:
 			return res
 		return serviceFields
+
+	def renderer(self, ctx, name):
+		"""returns code for a nevow render function named name.
+
+		This overrides the method inherited from nevow's RenderFactory to
+		add a lookup in the page's service service.
+		"""
+		if name in self.service.nevowRenderers:
+			return self.service.nevowRenderers[name]
+		return ResourceBasedRenderer.renderer(self, ctx, name)
+
+	def child(self, ctx, name):
+		"""returns code for a nevow data function named name.
+
+		In addition to nevow's action, this also looks methods up in the
+		service.
+		"""
+		if name in self.service.nevowDataFunctions:
+			return self.service.nevowDataFunctions[name]
+		return ResourceBasedRenderer.child(self, ctx, name)
+
+
+	def processData(self, rawData, queryMeta):
+		"""produces input data for the service in runs the service.
+		"""
+		inputData = self.service.makeDataFor(self, rawData)
+		return self.service.runWithData(inputData, queryMeta)
+	
+	def runService(self, rawData, queryMeta):
+		"""takes raw data and returns a deferred firing the service result.
+		"""
+		return threads.deferToThread(self.processData, rawData, queryMeta)
+
+	def runServiceWithContext(self, rawData, context):
+		"""calls runService, first making a queryMeta from nevow context.
+		"""
+		queryMeta = svcs.QueryMeta.fromContext(context)
+		queryMeta["formal_data"] = rawData
+		return self.runService(rawData, queryMeta)
+

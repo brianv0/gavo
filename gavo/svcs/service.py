@@ -197,7 +197,25 @@ class Publication(base.Structure, base.ComputedMetaMixin):
 		return getRenderer(self.render).resultType
 
 
-class CustomRF(base.Structure, base.RestrictionMixin):
+class CustomPageFunction(base.Structure, base.RestrictionMixin):
+	"""An abstract base for nevow.rend.Page-related functions on services.
+	"""
+	_name = base.UnicodeAttribute("name", default=base.Undefined,
+		description="Name of the render function (use this in the"
+			" n:render attribute in custom templates).", copyable=True)
+	_code = base.DataContent(description="Function body of the renderer; the"
+		" arguments are named ctx and data.", copyable=True)
+
+	def onElementComplete(self):
+		self._onElementCompleteNext(CustomPageFunction)
+		vars = globals()
+		exec ("def %s(ctx, data):\n%s"%(self.name,
+				utils.fixIndentation(self.content_, newIndent="  ",
+					governingLine=1).rstrip())) in vars
+		self.func = vars[self.name]
+
+
+class CustomRF(CustomPageFunction):
 	"""A custom render function for a service.
 
 	Custom render functions can be used to expose certain aspects of a service
@@ -216,19 +234,27 @@ class CustomRF(base.Structure, base.RestrictionMixin):
 		return ctx.tag[T.a(href=data)[data]]
 	"""
 	name_ = "customRF"
-	_name = base.UnicodeAttribute("name", default=base.Undefined,
-		description="Name of the render function (use this in the"
-			" n:render attribute in custom templates).", copyable=True)
-	_code = base.DataContent(description="Function body of the renderer; the"
-		" arguments are named ctx and data.", copyable=True)
 
-	def onElementComplete(self):
-		self._onElementCompleteNext(CustomRF)
-		vars = globals()
-		exec ("def %s(ctx, data):\n%s"%(self.name,
-				utils.fixIndentation(self.content_, newIndent="  ",
-					governingLine=1).rstrip())) in vars
-		self.func = vars[self.name]
+
+class CustomDF(CustomPageFunction):
+	"""A custom data function for a service.
+
+	Custom data functions can be used to expose certain aspects of a service
+	to Nevow templates.  Thus, their definition usually only makes sense with
+	custom templates, though you could, in principle, override built-in
+	render functions.
+
+	In the data functions, you have the names ctx for nevow's context and
+	data for whatever data the template passes to the renderer. 
+
+	You can return arbitrary python objects -- whatever the render functions
+	can deal with.  You could, e.g., write
+
+	<customDF name="now">
+		return datetime.datetime.utcnow()
+	</customDF>
+	"""
+	name_ = "customDF"
 
 
 ## This should really be in registry (and I could use servicelist then,
@@ -330,6 +356,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	_customRF = base.StructListAttribute("customRFs",
 		description="Custom render functions for use in custom templates.",
 		childFactory=CustomRF, copyable=True)
+	_customDF = base.StructListAttribute("customDFs",
+		description="Custom data functions for use in custom templates.",
+		childFactory=CustomDF, copyable=True)
 	_inputData = base.StructAttribute("inputDD", default=base.NotGiven,
 		childFactory=inputdef.InputDescriptor, description="A data descriptor"
 			" for obtaining the core's input, usually based on a contextGrammar."
@@ -390,6 +419,19 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		else: # no output table defined, we're a plain service
 			self.resType = "nonTabularService"
 
+	def _loadTemplates(self):
+		from nevow import loaders
+		for key, tp in self.templates.iteritems():
+			if isinstance(tp, basestring):
+				# Hack: let people ask for system templates if they want using two
+				# dashes in front of the name.  This is used in services.py to
+				# load root.html
+				if tp.startswith("//"):
+					self.templates[key] = common.loadSystemTemplate(tp[2:])
+				else:
+					self.templates[key] = loaders.xmlfile(
+						os.path.join(self.rd.resdir, tp))
+
 	def onElementComplete(self):
 		self._onElementCompleteNext(Service)
 		
@@ -398,16 +440,15 @@ class Service(base.Structure, base.ComputedMetaMixin,
 
 		# Load local templates if necessary
 		if self.templates:
-			from nevow import loaders
-			for key, tp in self.templates.iteritems():
-				if isinstance(tp, basestring):
-					self.templates[key] = loaders.xmlfile(
-						os.path.join(self.rd.resdir, tp))
+			self._loadTemplates()
 
-		# Index custom render functions
+		# Index custom Page functions
 		self.nevowRenderers = {}
 		for customRF in self.customRFs:
 			self.nevowRenderers[customRF.name] = customRF.func
+		self.nevowDataFunctions = {}
+		for customDF in self.customDFs:
+			self.nevowDataFunctions[customDF.name] = customDF.func
 
 		# compile custom page if present
 		if self.customPage:

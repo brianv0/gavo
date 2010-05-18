@@ -28,7 +28,7 @@ class AdminRenderer(formal.ResourceMixin, grend.ServiceBasedRenderer):
 	"""A renderer allowing to block and/or reload services.
 	"""
 	name = "admin"
-	customTemplate = common.loadSystemTemplate("admin.html")
+	customTemplate = svcs.loadSystemTemplate("admin.html")
 	clientRD = None
 	# set below when RD loading failed.
 	reloadExc = None

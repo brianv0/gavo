@@ -553,7 +553,7 @@ class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 		ctx =  context.WovenContext(ctx, T.invisible[doc])
 		return self.flattenFactory(doc, ctx, request.write, finisher)
 
-	defaultDocFactory = common.loadSystemTemplate("defaultresponse.html")
+	defaultDocFactory = svcs.loadSystemTemplate("defaultresponse.html")
 
 svcs.registerRenderer(Form)
 

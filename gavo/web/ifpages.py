@@ -11,6 +11,7 @@ from nevow import url
 import pkg_resources
 
 from gavo import base
+from gavo import svcs
 from gavo.web import common
 from gavo.web import grend
 
@@ -47,7 +48,7 @@ class ReloadPage(grend.GavoRenderMixin, rend.Page):
 		self._reloadModules()
 		return self._renderHTTP(ctx)
 	
-	docFactory = common.loadSystemTemplate("reloaded.html")
+	docFactory = svcs.loadSystemTemplate("reloaded.html")
 
 
 class LoginPage(rend.Page, grend.GavoRenderMixin):
@@ -98,7 +99,7 @@ class LoginPage(rend.Page, grend.GavoRenderMixin):
 			else: # ... and want to log in.
 				return self.doAuth(ctx)
 
-	docFactory = common.loadSystemTemplate("loginout.html")
+	docFactory = svcs.loadSystemTemplate("loginout.html")
 
 
 def _replaceConfigStrings(srcPath, registry):

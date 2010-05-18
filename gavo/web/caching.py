@@ -45,12 +45,17 @@ class CacheItemBuilder(object):
 		self.contentBuffer.append(data)
 	
 	def finish(self, request):
-		self.finishAction(request, "".join(self.contentBuffer))
+		result = "".join(self.contentBuffer)
+		# never cache empty results (most likely from successful if-modified-since)
+		if result:
+			self.finishAction(request, result)
 
 
 class CachedPage(rend.Page):
-	def __init__(self, content, headers):
+	def __init__(self, content, headers, changeStamp):
 		self.content, self.headers = content, headers
+		self.headers["x-cache-creation"] = str(time.time())
+		self.changeStamp = changeStamp
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
@@ -64,5 +69,9 @@ def enterIntoCacheAs(key, destDict):
 	"""returns a finishAction that enters a page into destDict under key.
 	"""
 	def finishAction(request, content):
-		destDict[key] = CachedPage(content, request.headers)
+		try:
+			lastModified = base.parseRFC2616Date(request.headers["last-modified"])
+		except:  # don't fail because of caching weirdness
+			lastModified = None
+		destDict[key] = CachedPage(content, request.headers, lastModified)
 	return finishAction
