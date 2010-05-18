@@ -224,7 +224,7 @@ class ArchiveService(rend.Page):
 		request = inevow.IRequest(ctx)
 		if request.method=="GET" or request.args or request.getUser():
 			return None
-		if not rendC.isCacheable(request):
+		if not rendC.isCacheable(segments, request):
 			return None
 		cache = base.caches.getPageCache(service.rd.sourceId)
 		if segments in cache:

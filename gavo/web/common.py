@@ -17,6 +17,7 @@ from twisted.internet import defer
 
 
 from gavo import base
+from gavo import svcs
 from gavo import utils
 from gavo.base import meta
 from gavo.protocols import creds
@@ -140,3 +141,24 @@ class CommonRenderers(object):
 			T.script(src=base.makeSitePath("/builtin/js/gavo.js"), 
 				type="text/javascript"),
 		]
+
+
+def bailIfNotModified(request, changeStamp):
+	"""raises a NotChanged exception if request contains an if-modified-since
+	header, changeDate is non-None and earlier than i-m-s.
+
+	ChangeStamp is a unix timestamp (in GMT) and may be None (in which
+	case this function is a no-op.
+	"""
+	if (not changeStamp
+			or "if-modified-since" not in request.received_headers
+			or request.method!="GET"
+			or request.isSponsor):
+		return
+	try:
+		thresh = utils.parseRFC2616Date(
+			request.received_headers["if-modified-since"])
+	except:  # never fail on messy input here
+		thresh = datetime.datetime(1990, 1, 1)
+	if thresh>=changeStamp:
+		raise svcs.NotModified()

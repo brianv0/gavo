@@ -27,6 +27,10 @@ class MetaRenderer(grend.ServiceBasedRenderer):
 	"""
 	checkedRenderer = False
 
+	@classmethod
+	def isCacheable(self, segments, request):
+		return True
+
 	def data_otherServices(self, ctx, data):
 		"""returns a list of dicts describing other services provided by the
 		the describing RD.

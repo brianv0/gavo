@@ -444,7 +444,7 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 		return False
 
 	@classmethod
-	def isCacheable(self, request):
+	def isCacheable(self, segments, request):
 		"""should return true if the content rendered will only change
 		when the associated RD changes.
 

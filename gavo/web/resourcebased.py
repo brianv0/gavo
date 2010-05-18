@@ -480,6 +480,10 @@ class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 	def isBrowseable(self, service):
 		return True
 
+	@classmethod
+	def isCacheable(self, segments, request):
+		return segments==()
+
 	def renderHTTP(self, ctx):
 		if self.runOnEmptyInputs:
 			inevow.IRequest(ctx).args[form.FORMS_KEY] = ["genForm"]

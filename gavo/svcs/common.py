@@ -47,7 +47,6 @@ class Authenticate(Error):
 		self.realm = realm
 		Error.__init__(self, "This is a request to authenticate against %s"%realm)
 
-
 class WebRedirect(Error):
 	"""is raised when the user agent should look somwhere else.
 
@@ -61,6 +60,12 @@ class WebRedirect(Error):
 			dest = base.getConfig("web", "serverURL")+base.makeSitePath(dest)
 		self.dest = dest
 		Error.__init__(self, "This is supposed to redirect to %s"%dest)
+
+class NotModified(Error):
+	"""signifies that a 304 NotModified should be sent to the UA.
+	"""
+	def __init__(self):
+		Error.__init__(self, "This resource was not modified.")
 
 
 def parseServicePath(serviceParts):

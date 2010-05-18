@@ -45,10 +45,8 @@ class CacheItemBuilder(object):
 		self.contentBuffer.append(data)
 	
 	def finish(self, request):
-		result = "".join(self.contentBuffer)
-		# never cache empty results (most likely from successful if-modified-since)
-		if result:
-			self.finishAction(request, result)
+		if request.code==200:
+			self.finishAction(request, "".join(self.contentBuffer))
 
 
 class CachedPage(rend.Page):

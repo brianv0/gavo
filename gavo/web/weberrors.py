@@ -208,6 +208,15 @@ class BadMethodPage(ErrorPage):
 		]])
 
 
+class NotModifiedPage(ErrorPage):
+	handles = svcs.NotModified
+	status = 304
+	class docFactory(object):
+		@staticmethod
+		def load(*args):
+			return ""
+
+
 class InternalServerErrorPage(ErrorPage):
 	"""A catch-all page served when no other error page seemed responsible.
 	"""

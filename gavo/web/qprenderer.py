@@ -25,6 +25,10 @@ class QPRenderer(grend.HTMLResultRenderMixin,
 	name = "qp"
 	queryValue = None
 
+	@classmethod
+	def isCacheable(self, segments, request):
+		return False  # That's the default, but let's be sure here...
+
 	def renderHTTP(self, ctx):
 		if not self.queryValue:
 			return svcs.UnknownURI("This page is a root page for a"

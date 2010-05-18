@@ -13,12 +13,12 @@ from twisted.internet import defer
 from twisted.internet import threads
 
 from nevow import inevow
-from nevow import static
 
 from zope.interface import implements
 
 from gavo import base
 from gavo import svcs
+from gavo import utils
 from gavo.protocols import products
 from gavo.web import grend
 from gavo.web import resourcebased
@@ -209,6 +209,8 @@ class ProductRenderer(grend.ServiceBasedRenderer):
 		try:
 			request.setHeader('content-length', str(os.path.getsize(
 				resource.sourcePath)))
+			request.setHeader('last-modified', utils.formatRFC2616Date(
+				os.path.getmtime(resource.sourcePath)))
 		except (TypeError, os.error):  # size doesn't matter
 			pass
 		return streaming.streamOut(resource, request)
