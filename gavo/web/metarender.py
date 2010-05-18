@@ -116,6 +116,10 @@ class RendExplainer(object):
 	def _explain_static(cls, service):
 		return T.invisible["static (i.e. prepared) data or custom client-side"
 			" code; probably used to access ancillary files here"]
+
+	@classmethod
+	def _explain_fixed(cls, service):
+		return T.invisible["a custom page, possibly with dynamic content"]
 	
 	@classmethod
 	def _explain_text(cls, service):

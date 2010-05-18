@@ -636,19 +636,12 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 	to a resdir-relative directory used to serve files for.  Indices
 	for directories are created.
 
-	The other use is to define a root resource.  This can be either
-	through the definition of a "static" template (a nevow template
-	like other custom templates), or by giving an indexFile property
-	(which overrides the static template).  Both override the root
-	from staticData but can otherwise coexist with it.
+	You can define a root resource by giving an indexFile property on
+	the service.
 	"""
 	name = "static"
 
 	def __init__(self, ctx, service):
-		grend.ServiceBasedRenderer.__init__(self, ctx, service)
-		self.customTemplate = None
-		if "static" in service.templates:
-			self.customTemplate = self.service.templates["static"]
 		try:
 			self.indexFile = os.path.join(service.rd.resdir, 
 				service.getProperty("indexFile"))
@@ -662,8 +655,7 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 
 	@classmethod
 	def isBrowseable(self, service):
-		return (service.getProperty("indexFile", None) 
-			or "static" in service.templates)
+		return service.getProperty("indexFile", None) 
 
 	def renderHTTP(self, ctx):
 		if inevow.ICurrentSegments(ctx)[-1]!='':
@@ -673,13 +665,11 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 			return ''
 		if self.indexFile:
 			return static.File(self.indexFile)
-		elif self.customTemplate:
-			return grend.ServiceBasedRenderer.renderHTTP(self, ctx)
 		else:
 			raise svcs.UnknownURI("No matching resource")
 	
 	def locateChild(self, ctx, segments):
-		if segments==('',) and (self.indexFile or self.customTemplate):
+		if segments==('',) and self.indexFile:
 			return self, ()
 		elif self.staticPath is None:
 			raise svcs.ForbiddenURI("No static data on this service") 
@@ -689,6 +679,28 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 			return static.File(self.staticPath), segments
 
 svcs.registerRenderer(StaticRenderer)
+
+
+class FixedPageRenderer(grend.ServiceBasedRenderer):
+	"""A renderer that always returns a single file.
+
+	The file is given in the service's fixed template.
+	"""
+	name = "fixed"
+
+	def __init__(self, ctx, service):
+		grend.ServiceBasedRenderer.__init__(self, ctx, service)
+		self.customTemplate = None
+		try:
+			self.customTemplate = self.service.templates["fixed"]
+		except KeyError:
+			raise svcs.UnknownURI("fixed renderer needs a 'fixed' template")
+
+	@classmethod
+	def isCacheable(cls, segments, request):
+		return True
+
+svcs.registerRenderer(FixedPageRenderer)
 
 
 class TextRenderer(grend.ServiceBasedRenderer):

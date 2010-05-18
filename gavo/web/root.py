@@ -222,11 +222,12 @@ class ArchiveService(rend.Page):
 		Requests with arguments or a user info are never cacheable.
 		"""
 		request = inevow.IRequest(ctx)
-		if request.method=="GET" or request.args or request.getUser():
+		if request.method!="GET" or request.args or request.getUser():
 			return None
 		if not rendC.isCacheable(segments, request):
 			return None
 		cache = base.caches.getPageCache(service.rd.sourceId)
+		segments = tuple(segments)
 		if segments in cache:
 			return cache[segments]
 		caching.instrumentRequestForCaching(request,
@@ -269,7 +270,7 @@ class ArchiveService(rend.Page):
 
 		cached = self._processCache(ctx, service, rendC, segments)
 		if cached:
-			return cached
+			return cached, ()
 		else:
 			return rendC(ctx, service), segments[srvInd+2:]
 
@@ -284,7 +285,7 @@ class ArchiveService(rend.Page):
 			segments = segments[self.rootLen:]
 		
 		if segments==('',):
-			segments = ("__system__", "services", "root", "static")
+			segments = ("__system__", "services", "root", "fixed")
 
 		if len(segments)==1 and segments[0] in self.redirects:
 			raise WebRedirect(self.redirects[segments[0]])

@@ -201,9 +201,9 @@
 
 	<nullCore id="null"/>
 
-	<service id="root" core="null" allowed="static">
+	<service id="root" core="null" allowed="fixed">
 		<meta name="description">The root page, vanity-named to /</meta>
-		<template key="static">//root.html</template>
+		<template key="fixed">//root.html</template>
 		<customDF name="chunkedServiceList">
 			return base.caches.getChunkedServiceList("\RDid")
 		</customDF>

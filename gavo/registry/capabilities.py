@@ -151,6 +151,9 @@ class FormInterface(WebBrowserInterface):
 # Actually, statics, externals and customs could be anything, but if you
 # register it, it's better be something a web browser can handle.
 
+class FixedInterface(WebBrowserInterface):
+	renderer = "fixed"
+
 class StaticInterface(WebBrowserInterface):
 	renderer = "static"
 
