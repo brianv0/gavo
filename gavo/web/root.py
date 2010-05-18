@@ -326,7 +326,7 @@ if base.getConfig("web", "enabletests"):
 	ArchiveService.addStatic("test", webtests.Tests())
 if (base.getConfig("web", "favicon")
 		and os.path.exists(base.getConfig("web", "favicon"))):
-	ArchiveService.addStatic("child_favicon.ico",
+	ArchiveService.addStatic("favicon.ico",
 		static.File(base.getConfig("web", "favicon")))
 
 ArchiveService.parseVanityMap(StringIO(builtinVanity))

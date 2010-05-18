@@ -170,6 +170,21 @@ class GavoRenderMixin(common.CommonRenderers):
 		else:
 			return ""
 
+	def render_ifslot(self, slotName):
+		"""renders the children for slotName is present and true.
+
+		This will not work properly if the slot values come from a deferred.
+		"""
+		def render(ctx, data):
+			try:
+				if ctx.locateSlotData(slotName):
+					return ctx.tag
+				else:
+					return ""
+			except KeyError:
+				return ""
+		return render
+
 	def render_ifmeta(self, metaName, metaCarrier=None):
 		if metaCarrier is None:
 			metaCarrier = self.service

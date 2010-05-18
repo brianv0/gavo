@@ -618,8 +618,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			basePath = base.getConfig("web", "serverURL")+basePath
 		return getRenderer(rendName).makeAccessURL(basePath)
 
-	# used by getBrowserURL
-	_browserScores = {"form": 10, "external": 5, "custom": 3, "static": 1}
+	# used by getBrowserURL; keep external higher than form as long as
+	# we have that Potsdam CdC mess.
+	_browserScores = {"form": 10, "external": 12, "custom": 3, "static": 1}
 
 	def getBrowserURL(self, fq=True):
 		"""returns a published URL that's suitable for a web browser or None if
