@@ -372,7 +372,7 @@ class TableNoteRenderer(MetaRenderer):
 	def renderHTTP(self, ctx):
 		if not hasattr(self, "noteTag"):  
 			# _retrieveTableDef did not run, i.e., no tableName was given
-			return svcs.UnknownURI(
+			raise svcs.UnknownURI(
 				"You must provide table name and note tag to this renderer.")
 		return super(TableNoteRenderer, self).renderHTTP(ctx)
 
@@ -446,6 +446,6 @@ class ExternalRenderer(grend.ServiceBasedRenderer):
 				break
 		else: # no publication, 404
 			raise svcs.UnknownURI()
-		return svcs.UnknownURI(str(pub.getMeta("accessURL")))
+		raise svcs.WebRedirect(str(pub.getMeta("accessURL")))
 
 svcs.registerRenderer(ExternalRenderer)
