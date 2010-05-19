@@ -306,6 +306,9 @@ class CustomCapabilityMaker(CapabilityMaker):
 class JPEGCapabilityMaker(CapabilityMaker):
 	renderer = "img.jpeg"
 
+class FixedCapabilityMaker(CapabilityMaker):
+	renderer = "fixed"
+
 
 _getCapabilityMaker = utils.buildClassResolver(CapabilityMaker, 
 	globals().values(), instances=True, 

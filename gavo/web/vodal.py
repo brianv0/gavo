@@ -74,6 +74,7 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 	def _writeErrorTable(self, ctx, errmsg):
 		result = self._makeErrorTable(ctx, errmsg)
 		request = inevow.IRequest(ctx)
+		request.setResponseCode(400)
 		request.setHeader("content-type", "application/x-votable")
 		return defer.maybeDeferred(streaming.streamVOTable, request, 
 				result
@@ -315,7 +316,7 @@ class RegistryRenderer(grend.ServiceBasedRenderer):
 			traceback.print_exc()
 			failure.printTraceback()
 			request = inevow.IRequest(ctx)
-			request.setResponseCode(500)
+			request.setResponseCode(400)
 			request.setHeader("content-type", "text/plain")
 			request.write("Internal error.  Please notify site maintainer")
 			request.finishRequest(False)

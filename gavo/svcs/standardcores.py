@@ -156,12 +156,15 @@ class CondDesc(base.Structure):
 	# scs.rd), and they can't be compiled there (since macros may
 	# be missing); thus, we dispatch on the first call.
 	def _getPhraseMaker(self):
-		if self.phraseMaker is not None:
-			val = self.phraseMaker.compile()
-		else:
-			val = self.makePhraseDefault
-		self.__dict__["makePhrase"] = val
-		return val
+		try:
+			return self.__compiledPhrase
+		except AttributeError:
+			if self.phraseMaker is not None:
+				val = self.phraseMaker.compile()
+			else:
+				val = self.makePhraseDefault
+			self.__compiledPhrase = val
+		return self.__compiledPhrase
 	makePhrase = property(_getPhraseMaker)
 
 	def makePhraseDefault(self, ignored, inputKeys, inPars, outPars):
