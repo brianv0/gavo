@@ -175,10 +175,9 @@ class RendExplainer(object):
 
 	@classmethod
 	def _explain_mimg_jpeg(cls, service):
-		return T.invisible["a ",
-			T.a(href=service.getURL("img.jpeg"))["form-based interface"],
-			" to generate jpeg images from the underlying data; the replies"
-			" are intended for machine consumption"]
+		return T.invisible["an interface to image creation targeted at machines."
+			"  The interface is at %s."%service.getURL("img.jpeg"),
+			"  This is probably irrelevant to you."]
 
 	@classmethod
 	def _explainEverything(cls, service):

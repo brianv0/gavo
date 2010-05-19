@@ -112,10 +112,14 @@ class MachineJpegRenderer(JpegRenderer):
 	name = "mimg.jpeg"
 	useURL = "base"
 	resultType = "image/jpeg"
-	
+
+	@classmethod
+	def isBrowseable(cls, service):
+		return False
+
 	@classmethod
 	def makeAccessURL(cls, baseURL):
-		return "%s/%s?"(baseURL, cls.name)
+		return "%s/%s?"%(baseURL, cls.name)
 
 	def _realRenderHTTP(self, ctx):
 		args = inevow.IRequest(ctx).args
