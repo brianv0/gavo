@@ -45,4 +45,4 @@ application = service.Application("archive", uid=uid)
 config.setMeta("upSince", datetime.datetime.utcnow().strftime(
 	utils.isoTimestampFmt))
 internet.TCPServer(base.getConfig("web", "serverPort"), 
-	root.site), interface=interface).setServiceParent(application)
+	root.site, interface=interface).setServiceParent(application)

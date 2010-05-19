@@ -661,7 +661,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 
 	# used by getBrowserURL; keep external higher than form as long as
 	# we have that Potsdam CdC mess.
-	_browserScores = {"form": 10, "external": 12, "custom": 3, "static": 1}
+	_browserScores = {"form": 10, "external": 12, "fixed": 15,
+		"custom": 3, "static": 1}
 
 	def getBrowserURL(self, fq=True):
 		"""returns a published URL that's suitable for a web browser or None if
@@ -675,7 +676,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		browseables = []
 		for rendName in self.allowed:
 			if self.isBrowseableWith(rendName):
-				browseables.append((self._browserScores[rendName], rendName))
+				browseables.append((self._browserScores.get(rendName, -1), rendName))
 		if browseables:
 			return self.getURL(max(browseables)[1], absolute=fq)
 		else:

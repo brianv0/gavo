@@ -128,7 +128,7 @@ class SCSRenderer(DALRenderer):
 	def _writeErrorTable(self, ctx, msg):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
-		votable.write(V.VOTABLE[
+		votable.write(V.VOTABLE11[
 			V.DESCRIPTION[base.getMetaText(self.service, "description")],
 			V.INFO(ID="Error", name="Error",
 					value=str(msg).replace('"', '\\"'))], request)

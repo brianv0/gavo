@@ -699,6 +699,10 @@ class FixedPageRenderer(grend.ServiceBasedRenderer):
 	@classmethod
 	def isCacheable(cls, segments, request):
 		return True
+	
+	@classmethod
+	def isBrowseable(self, service):
+		return True
 
 svcs.registerRenderer(FixedPageRenderer)
 
