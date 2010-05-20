@@ -1,5 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-       "html-dtd/xhtml1-strict.dtd">
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
 <html xmlns:n="http://nevow.com/ns/nevow/0.1" 
 		xmlns="http://www.w3.org/1999/xhtml">
   <head>
@@ -9,7 +10,7 @@
     <n:invisible n:render="commonhead"/>
 
 		<style type="text/css">
-		#listselector {margin-bottom: 0px;display: table-row;}
+		#listselector {margin-bottom: 0px;margin-left:0px;padding-left:0px;}
 		#listselector li {
 			display: table-cell; 
 			padding: 4px;
@@ -53,8 +54,8 @@
   </head>
   <body>
 		<div id="header">
-			<img src="/static/img/logo_big.png" alt="[GAVO logo]" 
-				n:render="rootlink"/>
+			<img src="/static/img/logo_medium.png" alt="[GAVO logo]" 
+				n:render="rootlink" class="logo"/>
 			<h1>The GAVO Data Center</h1>
 		</div>
 		<p>Welcome to the GAVO data center, provided by 
@@ -72,23 +73,39 @@
 		we will provide access data for these services on request.</p>
 		<hr/>
 		<h2>Services available here</h2>
-			<ul id="listselector">
+
+		<div class="container">
+		<ul id="listselector">
 			<li style="background-color:#DDDDEE" onclick="showSubjects()"
 				id="subjsel">By subject</li>
-			<li id="titlesel" onclick="showTitles()">By title</li></ul>
-		<div class="container" style="max-width:600px">
-		<div id="servicelist" style="visibility:hidden; position:fixed" n:data="chunkedServiceList" n:render="sequence" class="pane">
+			<li id="titlesel" onclick="showTitles()">By title</li>
+		</ul>
+
+
+		<div id="servicelist" style="visibility:hidden; position:fixed" 
+				n:data="chunkedServiceList" n:render="sequence" class="pane">
 			<n:invisible n:pattern="item">
 				<h3><n:invisible n:render="string" n:data="0"/>...</h3>
 				<ul n:data="1" n:render="sequence">
 					<li n:pattern="item" n:render="mapping">
 						<span n:render="ifprotected">[P]</span>
 						<n:slot name="title"/>
-						<a><n:attr name="href"><n:slot name="referenceURL"/></n:attr>[Info]</a>
+						<a class="linkicon">
+							<n:attr name="href"><n:slot name="referenceURL"/></n:attr>
+							<img src="/builtin/img/icon_info.png" 
+								alt="[Service information]"
+								title="Service information"/>
+							</a>
 						<n:invisible n:render="ifslot browseable">
-							<a><n:attr name="href"><n:slot name="accessURL"/></n:attr>[Query]</a>
+							<a class="linkicon">
+								<n:attr name="href"><n:slot name="accessURL"/></n:attr>
+								<img src="/builtin/img/icon_query.png" 
+									alt="[Use the service]"
+									title="Use the service"/>
+							</a>
 						</n:invisible>
-						<span class="srvDesc"> &ndash; <n:slot name="description"/></span>
+						<br/>
+						<div class="srvDesc"><n:slot name="description"/></div>
 					</li>
 				</ul>
 			</n:invisible>
@@ -102,9 +119,19 @@
 					<li n:pattern="item" n:render="mapping">
 						<span n:render="ifprotected">[P]</span>
 						<n:slot name="title"/>
-						<a><n:attr name="href"><n:slot name="referenceURL"/></n:attr>[Info]</a>
+						<a class="linkicon">
+							<n:attr name="href"><n:slot name="referenceURL"/></n:attr>
+							<img src="/builtin/img/icon_info.png" 
+								alt="[Service information]"
+								title="Service information"/>
+							</a>
 						<n:invisible n:render="ifslot browseable">
-							<a><n:attr name="href"><n:slot name="accessURL"/></n:attr>[Query]</a>
+							<a class="linkicon">
+								<n:attr name="href"><n:slot name="accessURL"/></n:attr>
+								<img src="/builtin/img/icon_query.png" 
+									alt="[Use the service]"
+									title="Use the service"/>
+							</a>
 						</n:invisible>
 					</li>
 				</ul>

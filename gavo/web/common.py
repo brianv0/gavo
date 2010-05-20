@@ -140,6 +140,8 @@ class CommonRenderers(object):
 				'/js/formal.js')),
 			T.script(src=base.makeSitePath("/builtin/js/gavo.js"), 
 				type="text/javascript"),
+			T.meta(**{"http-equiv": "Content-type", 
+				"content": "text/html;charset=UTF-8"}),
 		]
 
 

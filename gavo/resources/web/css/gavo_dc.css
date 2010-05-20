@@ -163,6 +163,7 @@ table.results {
 div#header, div#chdr {
 	background: #899dbf;
 	margin-bottom: 34px;
+	height: 48px;
 	width: 100%;
 }
 
@@ -210,9 +211,9 @@ h4.metacat {
 	white-space: nowrap;
 	position: absolute;
 	background:none;
-	left:245px;
-	top:20px;
+	left:180px;
 	overflow:hidden;
+	margin-top: 7px;
 }
 
 #chdr h1 {
@@ -387,6 +388,8 @@ hr.scoreBar {
 
 .srvDesc {
 	font-size: 72%;
+	padding-left: 1em;
+	margin-bottom: 0.5ex,
 }
 
 table.shorttable {
@@ -492,4 +495,13 @@ dl.footnotes {
 
 .notehead {
 	font-weight: bold;
+}
+
+a.linkicon img {
+	border: none;
+}
+
+img.logo {
+	padding: 0px;
+	margin-bottom: 0px;
 }
