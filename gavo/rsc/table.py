@@ -129,8 +129,14 @@ class BaseTable(base.MetaMixin):
 		self.role = kwargs.get("role")
 
 	def _failIncomplete(self, *args, **kwargs):
-		raise NotImplementedError("%s is an incomplete Table implementation"%
-			self.__class__.__name__)
+		try:
+			import inspect
+			curName = str(inspect.getargspec(inspect.currentframe()))
+		except: # don't worry if you can't find out the name of the current method
+			curName = "-Unknown-"
+		raise NotImplementedError("%s is an incomplete Table implementation:"
+			"  Missing %s method."%
+			self.__class__.__name__, curName)
 
 	__iter__ = _failIncomplete
 	__len__ = _failIncomplete

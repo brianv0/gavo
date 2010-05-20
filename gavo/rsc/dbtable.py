@@ -310,7 +310,7 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		if not self.tableUpdates:
 			self.addCommand = ("INSERT INTO %s (%s) VALUES (%s)"%(
 				self.tableName, 
-				", ".join([c.name for c in self.tableDef.columns]),
+				", ".join([str(c.name) for c in self.tableDef.columns]),
 				", ".join(["%%(%s)s"%c.name for c in self.tableDef.columns])))
 		else:
 			self.addCommand = "UPDATE %s SET %s WHERE %s"%(

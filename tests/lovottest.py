@@ -142,7 +142,7 @@ class IdTest(testhelpers.VerboseTest):
 		self.assertRaises(StopIteration, iter.next)
 
 
-class TabledataWriteTest(testhelpers.VerboseTest):
+class TabledataReadTest(testhelpers.VerboseTest):
 	"""tests for deserialization of TABLEDATA encoded values.
 	"""
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
@@ -191,28 +191,28 @@ class TabledataWriteTest(testhelpers.VerboseTest):
 		), (
 			'<FIELD name="x" datatype="boolean" arraysize="*"/>',
 			[['true false ? T'],        [' T'], ['']],
-			[[[True, False, None, True]], [[True]], [[]]]
+			[[(True, False, None, True)], [(True,)], [()]]
 		), (
 			'<FIELD name="y" datatype="unsignedByte" arraysize="*">'
 			' <VALUES null="16"/></FIELD>',
 			[['10 0x10\t 16 \n 0x16']],
-			[[[10, 16, None, 22]]]
+			[[(10, 16, None, 22)]]
 		), (
 			'<FIELD name="x" datatype="char" arraysize="4"/>',
 			[[''], ['auto'], ['&apos;xx&quot;'], [u'\xe4'], ['&#xe4;']],
-			[[''], ['auto'], ["'xx\""],          [u'\xe4'], [u'\xe4']],
+			[[None], ['auto'], ["'xx\""],          [u'\xe4'], [u'\xe4']],
 		), (
 			'<FIELD name="x" datatype="short" arraysize="*"><VALUES null="0"/></FIELD>',
 			[['1 2 3 0 1']], 
-			[[[1,2,3,None,1]]]
+			[[(1,2,3,None,1)]]
 		), (
 			'<FIELD name="y" datatype="floatComplex" arraysize="*"/>',
 			[['1 1 0.5e10 -2e5']],
-			[[[(1+1j), 5e09-2e5j]]]
+			[[((1+1j), 5e09-2e5j)]]
 		), (
 			'<FIELD datatype="short" arraysize="2x3"/>',
-			'0 1 2 3 4 5',
-			[[[0,1,2,3,4,5]]],
+			[['0 1 2 3 4 5']],
+			[[(0,1,2,3,4,5)]],
 		)
 	]
 

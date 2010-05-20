@@ -31,7 +31,7 @@ from gavo.utils.fitstools import readPrimaryHeaderQuick, pyfits
 
 from gavo.utils.mathtricks import *
 
-from gavo.utils.misctricks import Undefined, getfirst
+from gavo.utils.misctricks import Undefined, QuotedName, getfirst
 
 from gavo.utils.ostricks import safeclose, urlopenRemote, fgetmtime, cat
 

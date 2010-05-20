@@ -20,16 +20,44 @@ from gavo.votable import modelgroups
 MS = base.makeStruct
 
 
-def makeTableDefForVOTable(tableId, votTable, **moreArgs):
+class QuotedNameMaker(object):
+	"""A name maker for makeTableDefForVOTable implementing TAP's requirements.
+	"""
+	def __init__(self):
+		self.index, self.seenNames = 0, set()
+
+	def makeName(self, field):
+		res = getattr(field, "a_name", None)
+		if res is None:
+			raise base.ValidationError("Field without name in upload.",
+				"UPLOAD")
+		if res in self.seenNames:
+			raise base.ValidationError("Duplicate column name illegal in"
+				" uploaded tables (%s)"%res, "UPLOAD")
+		self.seenNames.add(res)
+		return utils.QuotedName(res)
+
+
+def makeTableDefForVOTable(tableId, votTable, 
+		forceQuotedNames=False, **moreArgs):
 	"""returns a TableDef for a Table element parsed from a VOTable.
 
 	Pass additional constructor arguments for the table in moreArgs.
 	stcColumns is a dictionary mapping IDs within the source VOTable
 	to pairs of stc and utype.
+
+	Pass forceBadNames=True to maintain VOTable names verbatim rather
+	than forcing them to be valid identifiers.  This is generally a
+	bad idea since weird names give no end of trouble.  For TAP, it's
+	unfortunately (almost) necessary.
 	"""
-	# Make columns
+	if forceQuotedNames:
+		nameMaker = QuotedNameMaker()
+	else:
+		nameMaker = votablegrammar.VOTNameMaker()
+
+	# make columns
 	columns = []
-	nameMaker = votablegrammar.VOTNameMaker()
 	for f in votTable.iterChildrenOfType(V.FIELD):
 		colName = nameMaker.makeName(f)
 		kwargs = {"name": colName,

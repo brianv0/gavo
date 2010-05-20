@@ -5,6 +5,7 @@ from gavo.adql.tree import (
 from gavo.adql.nodes import (flatten, registerRegionMaker)
 from gavo.adql.grammar import (
 	getADQLGrammar as getRawGrammar, 
+	allReservedWords,
 	ParseException, ParseSyntaxException)
 from gavo.adql.morphpg import (
 	morphPG,

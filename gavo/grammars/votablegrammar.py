@@ -8,15 +8,22 @@ import gzip
 import re
 from itertools import *
 
+from gavo import adql
 from gavo import base
 from gavo import rscdef
 from gavo import votable
 from gavo.grammars import common
 
-	
 
 class VOTNameMaker(object):
 	"""A class for generating db-unique names from VOTable fields.
+
+	This is important to avoid all kinds of weird names the remaining
+	infrastructure will not handle.  "Normal" TableDefs assume unquoted
+	SQL identifiers as names, and want all names unique.
+
+	Using this class ensures these expectations are met in a reproducible
+	way (i.e., given the same table, the same names will be assigned).
 	"""
 	def __init__(self):
 		self.knownNames, self.index = self._getNameBlacklist().copy(), 0
@@ -32,10 +39,11 @@ class VOTNameMaker(object):
 		"""
 		if not hasattr(cls, "blacklist"):
 			import keyword
-			blacklist = set(keyword.kwlist)
 			from gavo.rscdef import rmkfuncs
-			blacklist |= set(dir(rmkfuncs))
-			blacklist |= cls.customNameBlacklist
+			blacklist = (set(keyword.kwlist)
+				| set(dir(rmkfuncs))
+				| cls.customNameBlacklist
+				| adql.allReservedWords)
 			cls.blacklist = blacklist
 		return cls.blacklist
 

@@ -44,6 +44,48 @@ class Undefined(object):
 		raise TypeError("Undefined cannot be instantiated.")
 
 
+class QuotedName(object):
+	"""A string-like thing basically representing SQL quoted identifiers.
+
+	This has some features that make handling these relatively painless
+	in ADQL code.
+
+	The most horrible feature is that these hash and compare as their embedded
+	names, except to other QuotedNamess.
+
+	>>> n1, n2, n3 = QuotedName("foo"), QuotedName('foo"l'), QuotedName("foo")
+	>>> n1==n2,n1==n3,hash(n1)==hash("foo")
+	(False, True, True)
+	>>> print n1, n2
+	"foo" "foo""l"
+	"""
+	def __init__(self, name):
+		self.name = name
+	
+	def __hash__(self):
+		return hash(self.name)
+	
+	def __eq__(self, other):
+		if isinstance(other, QuotedName):
+			return self.name==other.name
+		else:
+			return self.name==other
+
+	def __ne__(self, other):
+		return not self==other
+
+	def __str__(self):
+		return '"%s"'%(self.name.replace('"', '""'))
+
+	def __repr__(self):
+		return 'QuotedName(%s)'%repr(self.name)
+
+	def lower(self):  # service to ADQL name resolution
+		return self
+	
+	def capitalize(self):  # service for table head and such
+		return self
+
 
 def getfirst(args, key, default=Undefined):
 	"""returns the first value of key in the web argument-like object args.

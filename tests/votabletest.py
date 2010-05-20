@@ -127,12 +127,15 @@ class VOTableTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 
 
 class _ImportTestData(testhelpers.TestResource):
-	# used by ImportTest
+	def __init__(self, fName):
+		self.fName = fName
+		testhelpers.TestResource.__init__(self)
+
 	def make(self, ignored):
 		try:
 			conn = base.getDefaultDBConnection()
 			tableDef = votableread.uploadVOTable("votabletest", 
-				open("data/importtest.vot"), conn).tableDef
+				open(self.fName), conn).tableDef
 			querier = base.SimpleQuerier(connection=conn)
 			data = list(querier.query("select * from votabletest"))
 		finally:
@@ -142,10 +145,10 @@ class _ImportTestData(testhelpers.TestResource):
 
 
 class ImportTest(testhelpers.VerboseTest):
-	"""tests for working VOTable DD generation.
+	"""tests for working VOTable ingestion.
 	"""
 # Ok, so isn't a *unit* test by any stretch.  Sue me.
-	resources = [("testData", _ImportTestData())]
+	resources = [("testData", _ImportTestData("data/importtest.vot"))]
 
 	def testValidData(self):
 		td, data = self.testData
@@ -175,6 +178,53 @@ class ImportTest(testhelpers.VerboseTest):
 			['double precision', 'double precision', 'double precision', 
 				'integer', 'smallint', 'text', 'text', 'real[2]', 'real', 
 				'smallint', 'real', 'text', 'text', 'char'])
+
+
+class NastyImportTest(testhelpers.VerboseTest):
+	"""tests for working VOTable ingestion with ugly VOTables.
+	"""
+	def _assertAfterIngestion(self, fielddefs, literals, testCode):
+		conn = base.getDefaultDBConnection()
+		table = votableread.uploadVOTable("junk",
+			StringIO(
+			'<VOTABLE><RESOURCE><TABLE>'+
+			fielddefs+
+			'<DATA><TABLEDATA>'+
+			'\n'.join('<TR>%s</TR>'%''.join('<TD>%s</TD>'%l
+				for l in row) for row in literals)+
+			'</TABLEDATA></DATA>'
+			'</TABLE></RESOURCE></VOTABLE>'.encode("utf-8")),
+			conn, forceQuotedNames=True)
+		testCode(table)
+		conn.close()
+
+	def testDupesRejected(self):
+		self.assertRaises(base.ValidationError,
+			self._assertAfterIngestion,
+			'<FIELD name="condition-x" datatype="boolean"/>'
+			'<FIELD name="condition-x" datatype="int"/>',
+			[['True', '0']], None)
+
+	def testNastyName(self):
+		def test(table):
+			self.assertEqual(list(table), [{'"condition-x"': True}])
+			self.assertEqual(table.tableDef.columns[0].name, "condition-x")
+
+		self._assertAfterIngestion(
+			'<FIELD name="condition-x" datatype="boolean"/>',
+			[['True']], test)
+	
+	def testNastierName(self):
+		def test(table):
+			self.assertEqual(list(table), 
+				 [{'"altogehter ""messy"" shit"': True}])
+			self.assertEqual(table.tableDef.columns[0].name, 
+				'altogehter "messy" shit')
+
+		self._assertAfterIngestion(
+			'<FIELD name=\'altogehter "messy" shit\' datatype="boolean"/>',
+			[['True']], test)
+	
 
 
 class MetaTest(testhelpers.VerboseTest):

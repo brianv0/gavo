@@ -322,7 +322,9 @@ class Column(base.Structure):
 		self._validateNext(Column)
 		if self.restrictedMode and self.fixup:
 			raise base.RestrictedElement("fixup")
-		if not IDENTIFIER_PATTERN.match(self.name):
+		if isinstance(self.name, utils.QuotedName):
+			pass   # these are valid by definition
+		elif not IDENTIFIER_PATTERN.match(self.name):
 			raise base.StructureError("'%s' is not a valid column name"%self.name)
 		if self.fixup is not None:
 			utils.ensureExpression(self.fixup, "fixup")
@@ -387,7 +389,7 @@ class Column(base.Structure):
 		"""returns SQL describing this column ready for inclusion in a 
 		DDL statement.
 		"""
-		items = [self.name, self.type]
+		items = [str(self.name), self.type]
 		if self.required:
 			items.append("NOT NULL")
 		return " ".join(items)
