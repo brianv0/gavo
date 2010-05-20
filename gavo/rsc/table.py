@@ -140,6 +140,9 @@ class BaseTable(base.MetaMixin):
 	removeRow = _failIncomplete
 	getFeeder = _failIncomplete
 
+	def addTuple(self, tupRow):
+		self.addRow(self.tableDef.makeRowFromTuple(tupRow))
+
 	def importFinished(self):
 		pass
 	
@@ -182,8 +185,6 @@ class InMemoryTable(BaseTable):
 				return
 		self.rows.append(row)
 
-	def addTuple(self, tupRow):
-		self.addRow(self.tableDef.makeRowFromTuple(tupRow))
 
 	def getRow(self, *args):
 		raise ValueError("Cannot use getRow in index-less table")

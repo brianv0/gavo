@@ -140,14 +140,12 @@ class _ImportTestData(testhelpers.TestResource):
 				conn.close()
 		return tableDef, data
 
-_importTestData = _ImportTestData()
-
 
 class ImportTest(testhelpers.VerboseTest):
 	"""tests for working VOTable DD generation.
 	"""
 # Ok, so isn't a *unit* test by any stretch.  Sue me.
-	resources = [("testData", _importTestData)]
+	resources = [("testData", _ImportTestData())]
 
 	def testValidData(self):
 		td, data = self.testData

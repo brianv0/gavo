@@ -66,7 +66,7 @@ def makeDDForVOTable(tableId, vot, gunzip=False, **moreArgs):
 	table.
 
 	Only the first resource  will be turned into a DD.  Currently,
-	only the first table is used.  This has to change.
+	only the first table is used.  This probably has to change.
 	"""
 	for res in vot.iterChildrenOfType(V.RESOURCE):
 		tableDefs = []
@@ -80,24 +80,21 @@ def makeDDForVOTable(tableId, vot, gunzip=False, **moreArgs):
 		makes=[MS(rscdef.Make, table=tableDefs[0])])
 
 
-def uploadVOTable(tableId, srcFile, connection, gunzip=False, **moreArgs):
-	"""creates a temporary table with tableId containing the first table
-	of the first resource in the VOTable that can be read from srcFile.
+def uploadVOTable(tableId, srcFile, connection, gunzip=False, **tableArgs):
+	"""creates a temporary table with tableId containing the first
+	table in the VOTable in srcFile.
 
-	The corresponding DBTable instance is returned.
+	The function returns a DBTable instance for the new file.
 
-	This function is very inefficient and cannot handle arbitrary
-	VOTable names.  Use a TBD alterative.
+	srcFile must be an open file object (or some similar object).
 	"""
 	if gunzip:
-		inputFile = StringIO(gzip.GzipFile(fileobj=srcFile, mode="r").read())
-	else:
-		inputFile = StringIO(srcFile.read())
-	srcFile.close()
-	vot = votable.readRaw(inputFile)
-	myArgs = {"onDisk": True, "temporary": True}
-	myArgs.update(moreArgs)
-	dd = makeDDForVOTable(tableId, vot, **myArgs)
-	inputFile.seek(0)
-	return rsc.makeData(dd, forceSource=inputFile, connection=connection,
-		).getPrimaryTable()
+		srcFile = gzip.GzipFile(fileobj=srcFile, mode="r")
+	rows = votable.parse(srcFile).next()
+	args = {"onDisk": True, "temporary": True}
+	args.update(tableArgs)
+	td = makeTableDefForVOTable(tableId, rows.tableDefinition, **args)
+	table = rsc.TableForDef(td, connection=connection)
+	for row in rows:
+		table.addTuple(row)
+	return table
