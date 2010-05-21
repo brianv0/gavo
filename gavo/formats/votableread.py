@@ -38,8 +38,22 @@ class QuotedNameMaker(object):
 		return utils.QuotedName(res)
 
 
+class InventingQuotedNameMaker(QuotedNameMaker):
+	"""A QuotedNameMaker that will make up new names for illegal quoted names.
+	"""
+	def makeName(self, field):
+		try:
+			return QuotedNameMaker.makeName(self, field)
+		except base.ValidationError:
+			stem, dis = "Field%02d"%self.index, ""
+			while True:
+				if stem+dis not in self.seenNames:
+					return stem+dis
+				dis = dis+"_"
+
+
 def makeTableDefForVOTable(tableId, votTable, 
-		forceQuotedNames=False, **moreArgs):
+		forceQuotedNames=False, allowInventedNames=False, **moreArgs):
 	"""returns a TableDef for a Table element parsed from a VOTable.
 
 	Pass additional constructor arguments for the table in moreArgs.
@@ -52,7 +66,10 @@ def makeTableDefForVOTable(tableId, votTable,
 	unfortunately (almost) necessary.
 	"""
 	if forceQuotedNames:
-		nameMaker = QuotedNameMaker()
+		if allowInventedNames:
+			nameMaker = InventingQuotedNameMaker()
+		else:
+			nameMaker = QuotedNameMaker()
 	else:
 		nameMaker = votablegrammar.VOTNameMaker()
 

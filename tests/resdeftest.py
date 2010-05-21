@@ -12,6 +12,7 @@ from gavo import base
 from gavo import grammars
 from gavo import rscdef
 from gavo import rscdesc
+from gavo import utils
 from gavo.rscdef import scripting
 
 
@@ -69,7 +70,7 @@ class ColumnTest(testhelpers.VerboseTest):
 			base.parseFromString, (rscdef.Column,
 				'<column name="foo" displayHint="xxyyz"/>'))
 		self.assertRaisesWithMsg(base.StructureError, 
-			'At <internal source>, last known position: 1, 22: '
+			'At <internal source>, unknown position: '
 			"'foo x' is not a valid column name" , 
 			base.parseFromString, (rscdef.Column, '<column name="foo x"/>'))
 
@@ -167,9 +168,25 @@ class TableDefTest(testhelpers.VerboseTest):
 			base.parseFromString, (rscdef.TableDef, '<table id="abs"/>'))
 
 	def testDuplicateColumns(self):
+		# Behavior here: old column def is overwritten
 		t = base.parseFromString(rscdef.TableDef, '<table id="t">'	
 			'<column name="one" type="text"/><column name="one"/>'
 			'</table>')
+		fields = list(t)
+		self.assertEqual(len(fields), 1)
+		self.assertEqual(fields[0].type, "real")
+
+	def testQuotedIdentifier(self):
+		t = base.parseFromString(rscdef.TableDef, '<table id="t">'
+			'<column name="quoted/id number" type="integer"/>'
+			'<column name="quoted/table" type="text"/>'
+			'<column name="quoted/Harmless"/>'
+			'</table>')
+		self.failUnless(isinstance(t.getColumnByName("id number").name,
+			utils.QuotedName))
+		self.assertEqual(t.getColumnByName("id number").type, "integer")
+		self.assertRaises(base.NotFoundError, t.getColumnByName, "harmless")
+		self.assertEqual(t.getColumnByName("Harmless").type, "real")
 
 	def testPrimary(self):
 		t = base.parseFromString(rscdef.TableDef, '<table id="test" primary="a">'

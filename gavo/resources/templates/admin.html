@@ -22,18 +22,18 @@
 		<li n:pattern="item"><a n:render="svclink"/></li>
 	</ul>
 
+	<p>This service 
+		currently is <n:invisible n:render="string" n:data="blockstatus"/>.
+	</p>
+
+	<n:invisible n:render="form adminOps"/>
+
 	<p n:render="ifmeta _scheduledDowntime">This service is expected to
 		go down at 
 		<n:invisible n:render="meta">_scheduledDowntime</n:invisible>.
 	</p>
 
 	<n:invisible n:render="form setDowntime"/>
-
-	<p>This service 
-		currently is <n:invisible n:render="string" n:data="blockstatus"/>.
-	</p>
-
-	<n:invisible n:render="form adminOps"/>
 
 </body>
 </html>

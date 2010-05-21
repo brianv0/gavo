@@ -15,7 +15,7 @@ IDENTIFIER_PATTERN = re.compile("[A-Za-z_][A-Za-z_0-9]*$")
 
 
 class TypeNameAttribute(AtomicAttribute):
-	"""is an attribute with values constrained to types we understand.
+	"""An attribute with values constrained to types we understand.
 	"""
 	@property
 	def typeDesc_(self):
@@ -34,6 +34,34 @@ class TypeNameAttribute(AtomicAttribute):
 	
 	def unparse(self, value):
 		return value
+
+
+class ColumnNameAttribute(UnicodeAttribute):
+	"""An attribute containing a column name.
+
+	Column names are special in that you can prefix them with "quoted/"
+	and then get a delimited identifier.  This is something you probably
+	shouldn't use.
+	"""
+	@property
+	def typeDesc_(self):
+		return ("a column name within an SQL table.  These have to match"
+			" %s.  In a desperate pinch, you can generate delimited identifiers"
+			" (that can contain anything) by prefixing the name with 'quoted/'."
+			)%IDENTIFIER_PATTERN.pattern
+	
+	def parse(self, value):
+		if value.startswith("quoted/"):
+			return utils.QuotedName(value[7:])
+		if not IDENTIFIER_PATTERN.match(value):
+			raise base.StructureError("'%s' is not a valid column name"%value)
+		return value
+	
+	def unparse(self, value):
+		if isinstance(value, utils.QuotedName):
+			return "quoted/"+value.name
+		else:
+			return value
 
 
 class TableheadAttribute(UnicodeAttribute):
@@ -246,7 +274,7 @@ class Column(base.Structure):
 	"""
 	name_ = "column"
 
-	_name = UnicodeAttribute("name", default=base.Undefined,
+	_name = ColumnNameAttribute("name", default=base.Undefined,
 		description="Name of the column (must be SQL-valid for onDisk tables).",
 		copyable=True, before="type")
 	_type = TypeNameAttribute("type", default="real", description=
@@ -322,10 +350,6 @@ class Column(base.Structure):
 		self._validateNext(Column)
 		if self.restrictedMode and self.fixup:
 			raise base.RestrictedElement("fixup")
-		if isinstance(self.name, utils.QuotedName):
-			pass   # these are valid by definition
-		elif not IDENTIFIER_PATTERN.match(self.name):
-			raise base.StructureError("'%s' is not a valid column name"%self.name)
 		if self.fixup is not None:
 			utils.ensureExpression(self.fixup, "fixup")
 
