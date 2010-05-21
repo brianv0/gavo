@@ -470,7 +470,7 @@ class SerManager(utils.IdManagerMixin):
 		To do that, it iterates through the table until it has samples for
 		all items.  Thus, this may be slow.
 		"""
-		colIndex = dict((c["name"], c) for c in self)
+		colIndex = dict((str(c["name"]), c) for c in self)
 		noSampleCols = set(colIndex)
 		for row in self.table:
 			newSampleCols = set()

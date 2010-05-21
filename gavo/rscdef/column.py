@@ -47,7 +47,8 @@ class ColumnNameAttribute(UnicodeAttribute):
 	def typeDesc_(self):
 		return ("a column name within an SQL table.  These have to match"
 			" %s.  In a desperate pinch, you can generate delimited identifiers"
-			" (that can contain anything) by prefixing the name with 'quoted/'."
+			" (that can contain anything) by prefixing the name with 'quoted/' (but"
+			" you cannot use rowmakers to fill such tables)."
 			)%IDENTIFIER_PATTERN.pattern
 	
 	def parse(self, value):

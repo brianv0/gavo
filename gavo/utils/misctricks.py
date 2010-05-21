@@ -87,8 +87,11 @@ class QuotedName(object):
 		return str(self)
 
 	def capitalize(self):  # service for table head and such
-		return self
-
+		return self.name.capitalize()
+	
+	def __add__(self, other):  # for disambiguateColumns
+		return QuotedName(self.name+other)
+	
 
 def getfirst(args, key, default=Undefined):
 	"""returns the first value of key in the web argument-like object args.

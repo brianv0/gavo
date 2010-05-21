@@ -27,6 +27,7 @@ class QuotedNameMaker(object):
 		self.index, self.seenNames = 0, set()
 
 	def makeName(self, field):
+		self.index += 1
 		res = getattr(field, "a_name", None)
 		if res is None:
 			raise base.ValidationError("Field without name in upload.",

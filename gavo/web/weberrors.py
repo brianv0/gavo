@@ -9,6 +9,7 @@ but rather just raise the appropriate exceptions from svcs.
 
 import sys
 
+from nevow import context
 from nevow import inevow
 from nevow import loaders
 from nevow import rend
@@ -217,6 +218,28 @@ class NotModifiedPage(ErrorPage):
 			return ""
 
 
+# HTML mess for last-resort type error handling.
+errorTemplate = (
+		'<body><div style="position:fixed;left:4px;top:4px;'
+		'visibility:visible;overflow:visible !important;'
+		'max-width:600px !important;z-index:500">'
+		'<div style="border:2px solid red;'
+		'width:400px !important;background:white">'
+		'%s'
+		'</div></div></body></html>')
+
+def _formatFailure(failure):
+	return errorTemplate%(
+		"<h1>Internal Error</h1><p>Error handling failed with a(n)"
+		" %s exception.  The"
+		" accompanying message is: '%s'</p>"
+		"<p>If you are seeing this, it is always a bug in our code"
+		" or the data descriptions, and we would be extremely grateful"
+		" for a report at"
+		" gavo@ari.uni-heidelberg.de</p>"%(failure.value.__class__.__name__,
+			escapeForHTML(failure.getErrorMessage())))
+
+
 class InternalServerErrorPage(ErrorPage):
 	"""A catch-all page served when no other error page seemed responsible.
 	"""
@@ -226,6 +249,25 @@ class InternalServerErrorPage(ErrorPage):
 	def data_excname(self, ctx, data):
 		log.err(self.failure, _why="Uncaught exception")
 		return self.failure.value.__class__.__name__
+
+	def renderInnerException(self, ctx):
+		"""called when rendering already has started.
+
+		We don't know where we're sitting, so we try to break out as well
+		as we can.
+		"""
+		request = inevow.IRequest(ctx)
+		request.write(_formatFailure(self.failure))
+		request.finishRequest(False)
+		return ""
+
+	def renderHTTP(self, ctx):
+		if isinstance(ctx, context.PageContext):
+			# exception happened while rendering a page; make sure you break
+			# out...
+			return self.renderInnerException(ctx)
+		else:
+			return ErrorPage.renderHTTP(self, ctx)
 
 	docFactory = common.doctypedStan(T.html[
 			T.head[T.title["GAVO DC -- Uncaught Exception"],
@@ -257,26 +299,6 @@ class PanicPage(rend.Page):
 	"""
 	implements(inevow.ICanHandleException)
 
-	errorTemplate = ("<html><head><title>Severe Error</title></head>"
-		'<body><div style="position:fixed;left:4px;top:4px;'
-		'visibility:visible;overflow:visible !important;'
-		'max-width:600px !important;z-index:500">'
-		'<div style="border:2px solid red;'
-		'width:400px !important;background:white">'
-		'%s'
-		'</div></div></body></html>')
-
-	def getHTML(self, failure):
-		return (
-			"<h1>Internal Error</h1><p>Error handling failed with a(n)"
-			" %s exception.  The"
-			" accompanying message is: '%s'</p>"
-			"<p>If you are seeing this, it is always a bug in our code"
-			" or the data descriptions, and we would be extremely grateful"
-			" for a report at"
-			" gavo@ari.uni-heidelberg.de</p>"%(failure.value.__class__.__name__,
-				escapeForHTML(failure.getErrorMessage())))
-
 	def renderHTTP_exception(self, ctx, failure):
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(500)
@@ -284,7 +306,10 @@ class PanicPage(rend.Page):
 		log.msg("Arguments were %s"%request.args)
 			# write out some HTML and hope
 			# for the best (it might well turn up in the middle of random output)
-		request.write(self.errorTemplate%self.getHTML(failure))  
+		request.write(
+			"<html><head><title>Severe Error</title></head>"+
+			_formatFailure(failure)+
+			"</html>")
 
 
 _getErrorPage = utils.buildClassResolver(
