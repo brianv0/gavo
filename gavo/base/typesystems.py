@@ -209,7 +209,7 @@ class ToVOTableConverter(FromSQLConverter):
 		"vexpr-date": ("char", "*"),
 		"vexpr-float": ("double", "1"),
 		"raw": ("unsignedByte", "*"),
-		"bytea": ("unsignedByte", "1"),  # ??? highly questionable
+		"bytea": ("unsignedByte", "1"),
 	}
 
 	def mapComplex(self, type, length):

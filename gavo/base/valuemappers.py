@@ -340,7 +340,7 @@ class VColDesc(dict):
 		self["hasNulls"] = True # Safe default
 		self.nullSeen = False
 		self["sample"] = None
-		self["name"] = column.name
+		self["name"] = column.key
 		self["dbtype"] = column.type
 		self["xtype"] = column.xtype
 		type, size = typesystems.sqltypeToVOTable(column.type)
@@ -436,7 +436,7 @@ class SerManager(utils.IdManagerMixin):
 		for column in self.table.tableDef:
 			self.colDescs.append(
 				VColDesc(column, self.table.votCasts.get(column.name)))
-			colId = self.makeIdFor(column, column.name)
+			colId = self.makeIdFor(column, column.key)
 			# Do not generate an id if the field is already defined somewhere else.
 			# (if that happens, STC definitions could be in trouble, so try
 			# to avoid it, all right?)
@@ -470,7 +470,7 @@ class SerManager(utils.IdManagerMixin):
 		To do that, it iterates through the table until it has samples for
 		all items.  Thus, this may be slow.
 		"""
-		colIndex = dict((str(c["name"]), c) for c in self)
+		colIndex = dict((c["name"], c) for c in self)
 		noSampleCols = set(colIndex)
 		for row in self.table:
 			newSampleCols = set()
@@ -496,7 +496,7 @@ class SerManager(utils.IdManagerMixin):
 		"""
 		buildNS = dict(("map%d"%index, mapper) 
 			for index, mapper in enumerate(self.mappers))
-		colLabels = [c["name"] for c in self]
+		colLabels = [str(c["name"]) for c in self]
 
 		funDef = ["def buildRec(rowDict):"]
 		for index, label in enumerate(colLabels):

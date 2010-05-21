@@ -124,6 +124,9 @@ def _defineField(element, colDesc):
 	assert not isinstance(element, type)
 	if colDesc["arraysize"]!='1':
 		element(arraysize=colDesc["arraysize"])
+	# (for char, keep arraysize='1' to keep topcat happy)
+	if colDesc["datatype"]=='char' and colDesc["arraysize"]=='1':
+		element(arraysize='1')
 	if colDesc["unit"]:
 		element(unit=colDesc["unit"])
 	element(**dict((key, colDesc.get(key)) for key in _voFieldCopyKeys))[

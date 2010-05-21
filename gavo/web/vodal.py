@@ -204,10 +204,9 @@ class SIAPRenderer(DALRenderer):
 	}
 
 	def _makeMetadataData(self, queryMeta):
-		inputFields = [svcs.InputKey.fromColumn(f) 
+		inputFields = [
+			svcs.InputKey.fromColumn(f, name="quoted/INPUT:"+f.name)
 			for f in self.getInputFields(self.service)]
-		for f in inputFields:
-			f.name = "INPUT:"+f.name
 		inputTable = MS(rscdef.TableDef, columns=inputFields)
 		outputTable = MS(rscdef.TableDef, columns=
 			self.service.getCurOutputFields(queryMeta), id="result")

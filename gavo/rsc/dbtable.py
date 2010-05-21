@@ -311,11 +311,11 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 			self.addCommand = ("INSERT INTO %s (%s) VALUES (%s)"%(
 				self.tableName, 
 				", ".join([str(c.name) for c in self.tableDef.columns]),
-				", ".join(["%%(%s)s"%c.name for c in self.tableDef.columns])))
+				", ".join(["%%(%s)s"%c.key for c in self.tableDef.columns])))
 		else:
 			self.addCommand = "UPDATE %s SET %s WHERE %s"%(
 				self.tableName,
-				", ".join("%s=%%(%s)s"%(f.name, f.name) 
+				", ".join("%s=%%(%s)s"%(f.name, f.key) 
 					for f in self.tableDef),
 			" AND ".join("%s=%%(%s)s"%(n, n) for n in self.tableDef.primary))
 		if "rows" in kwargs:

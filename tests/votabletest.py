@@ -207,7 +207,7 @@ class NastyImportTest(testhelpers.VerboseTest):
 
 	def testNastyName(self):
 		def test(table):
-			self.assertEqual(list(table), [{'"condition-x"': True}])
+			self.assertEqual(list(table), [{'condition-x': True}])
 			self.assertEqual(table.tableDef.columns[0].name, "condition-x")
 
 		self._assertAfterIngestion(
@@ -217,7 +217,7 @@ class NastyImportTest(testhelpers.VerboseTest):
 	def testNastierName(self):
 		def test(table):
 			self.assertEqual(list(table), 
-				 [{'"altogehter ""messy"" shit"': True}])
+				 [{'altogehter "messy" shit': True}])
 			self.assertEqual(table.tableDef.columns[0].name, 
 				'altogehter "messy" shit')
 

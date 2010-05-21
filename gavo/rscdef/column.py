@@ -272,6 +272,10 @@ class Column(base.Structure):
 	specify basically SQL types.  Types for other type systems (like
 	VOTable, XSD, or the software-internal representation in python values)
 	are inferred from them.
+
+	Columns can have delimited identifiers as names.  Don't do this, it's
+	no end of trouble.  For this reason, however, you should not use name
+	but rather key to programmatially obtain field's values from rows.
 	"""
 	name_ = "column"
 
@@ -343,6 +347,13 @@ class Column(base.Structure):
 				self.note = self.parent.getNote(self.note)
 			except base.NotFoundError: # non-existing notes silently ignored
 				self.note = None
+
+	def completeElement(self):
+		if isinstance(self.name, utils.QuotedName):
+			self.key = self.name.name
+		else:
+			self.key = self.name
+		self._completeElementNext(Column)
 
 	def isEnumerated(self):
 		return self.values and self.values.options

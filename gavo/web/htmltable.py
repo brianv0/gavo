@@ -327,7 +327,7 @@ class HeadCellsMixin(object):
 		return self.fieldDefs
 
 	def render_headCell(self, ctx, fieldDef):
-		cd = self.colDescIndex[str(fieldDef.name)]
+		cd = self.colDescIndex[fieldDef.key]
 		cont = fieldDef.getLabel()
 		desc = cd["description"]
 		if not desc:
@@ -405,7 +405,7 @@ class HTMLDataRenderer(rend.Fragment):
 		"""
 		self.serManager = valuemappers.SerManager(self.table, withRanges=False,
 			mfRegistry=_htmlMFRegistry)
-		self.colDescIndex = dict((str(c["name"]), c) for c in self.serManager)
+		self.colDescIndex = dict((c["name"], c) for c in self.serManager)
 		self.defaultTds = []
 		for index, (desc, field) in enumerate(
 				zip(self.serManager, self.table.tableDef)):

@@ -305,7 +305,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 	def onElementComplete(self):
 		if self.adql:
 			self.readRoles = self.readRoles | base.getConfig("db", "adqlRoles")
-		self.dictKeys = [str(c.name) for c in self]
+		self.dictKeys = [c.key for c in self]
 		self.indexedColumns = set()
 		for index in self.indices:
 			for col in index.columns:

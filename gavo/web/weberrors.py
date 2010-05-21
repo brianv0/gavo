@@ -257,14 +257,15 @@ class InternalServerErrorPage(ErrorPage):
 		as we can.
 		"""
 		request = inevow.IRequest(ctx)
+		request.setResponseCode(500)  # probably too late, but log still profit.
 		request.write(_formatFailure(self.failure))
 		request.finishRequest(False)
 		return ""
 
 	def renderHTTP(self, ctx):
+		log.err(self.failure, _why="Internal server error")
 		if isinstance(ctx, context.PageContext):
-			# exception happened while rendering a page; make sure you break
-			# out...
+			# exception happened while rendering a page.
 			return self.renderInnerException(ctx)
 		else:
 			return ErrorPage.renderHTTP(self, ctx)
