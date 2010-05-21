@@ -13,6 +13,7 @@ from gavo import base
 from gavo import stc
 from gavo import rsc
 from gavo import rscdef
+from gavo import utils
 from gavo.adql import annotations
 from gavo.adql import morphpg
 from gavo.adql import nodes
@@ -101,6 +102,11 @@ class SymbolsParseTest(testhelpers.VerboseTest):
 
 	def testConditions(self):
 		self._assertParses("searchCondition", "5+9<'b' || 'foo'")
+	
+	def testDelId(self):
+		self._assertParses("delimitedIdentifier", '"a"')
+		self._assertParses("delimitedIdentifier", '"a""b"')
+		self._assertParses("comparisonPredicate", '"ja ja"<"Umph"')
 
 
 class _ADQLParsesTest(testhelpers.VerboseTest):
@@ -148,6 +154,10 @@ class NakedParseTest(_ADQLParsesTest):
 				"SELECT x, v FROM y WHERE z=0 AND v>2",
 				"SELECT 89 FROM X",
 			])
+
+	def testDelimited(self):
+		self._assertParse([
+			'SELECT "f-bar", "c""ho" FROM "nons-ak" WHERE "ja ja"<"Umph"'])
 
 	def testSimpleSyntaxErrors(self):
 		"""tests for rejection of gross syntactic errors.
@@ -364,7 +374,8 @@ class TreeParseTest(testhelpers.VerboseTest):
 			("select a from z", ["a"]),
 			("select x.a from z", ["a"]),
 			("select x.a, b from z", ["a", "b"]),
-			('select "one weird name", b from z', ['"one weird name"', "b"]),
+			('select "one weird name", b from z', 
+				[utils.QuotedName('one weird name'), "b"]),
 		]:
 			res = [c.name for c in self.grammar.parseString(q)[0].getSelectFields()]
 			self.assertEqual(res, e, 
@@ -401,9 +412,10 @@ class TreeParseTest(testhelpers.VerboseTest):
 			("select x from z", ("x", False)),
 			("select x as u from z", ("u", False)),
 			("select x+2 from z", (None, True)),
-			('select x+2 as "99 Monkeys" from z', ('"99 Monkeys"', True)),
+			('select x+2 as "99 Monkeys" from z', (utils.QuotedName("99 Monkeys"), 
+				True)),
 			('select x+2 as " ""cute"" Monkeys" from z', 
-				('" ""cute"" Monkeys"', True)),
+				(utils.QuotedName(' "cute" Monkeys'), True)),
 		]:
 			res = list(self.grammar.parseString(q)[0].getSelectFields())[0]
 			self.assertEqual(res.tainted, exTaint, "Field taintedness wrong in %s"%
@@ -487,11 +499,18 @@ miscFields = [
 	rscdef.Column(None, name="mass", ucd="phys.mass", unit="kg"),
 	rscdef.Column(None, name="mag", ucd="phot.mag", unit="mag"),
 	rscdef.Column(None, name="speed", ucd="phys.veloc", unit="km/s")]
+quotedFields = [
+	rscdef.Column(None, name=utils.QuotedName("left-right"), ucd="mess", 
+		unit="bg"),
+	rscdef.Column(None, name=utils.QuotedName('inch"ing'), ucd="imperial.mess",
+		unit="fin"),
+	rscdef.Column(None, name=utils.QuotedName('plain'), ucd="boring.stuff",
+		unit="pc"),]
 
 def _addSpatialSTC(sf, sf2):
 	ast1 = stc.parseQSTCS('Position ICRS "ra1" "dec" Size "width" "height"')
 	ast2 = stc.parseQSTCS('Position FK4 SPHER3 "ra2" "dec" "dist"')
-# XXX TODO: get utypes from ASTs
+	# XXX TODO: get utypes from ASTs
 	sf[0].stc, sf[0].stcUtype = ast2.astroSystem, None
 	sf[1].stc, sf[1].stcUtype = ast1.astroSystem, None
 	sf[2].stc, sf[2].stcUtype = ast1.astroSystem, None
@@ -513,6 +532,9 @@ def _sampleFieldInfoGetter(tableName):
 	elif tableName=='misc':
 		return [(f.name, adqlglue.makeFieldInfo(f))
 			for f in miscFields]
+	elif tableName=='quoted':
+		return [(f.name, adqlglue.makeFieldInfo(f))
+			for f in quotedFields]
 
 
 class ColumnTest(testhelpers.VerboseTest):
@@ -714,6 +736,40 @@ class ColResTest(ColumnTest):
 	def testErrorReporting(self):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
 			"select gnurks from spatial")
+
+
+class QuotedColResTest(ColumnTest):
+	"""tests for column resolution with delimited identifiers.
+	"""
+	def testSimpleStar(self):
+		cols = self._getColSeq("select * from quoted")
+		self._assertColumns(cols, [
+			('bg', "mess", False),
+			('fin', "imperial.mess", False),
+			('pc', "boring.stuff", False),])
+	
+	def testSimpleJoin(self):
+		cols = self._getColSeq('select "inch""ing", mass from misc join'
+			' quoted on ("left-right"=speed)')
+		self._assertColumns(cols, [
+			('fin', "imperial.mess", False),
+			('kg', 'phys.mass', False)])
+
+	def testPlainAndSubselect(self):
+		cols = self._getColSeq('select "inch""ing", plain from ('
+			'select TOP 5 * from quoted where boring<"inch""ing") as q')
+		self._assertColumns(cols, [
+			('fin', "imperial.mess", False),
+			('pc', "boring.stuff", False),])
+	
+	def testQuotedExpressions(self):
+		cols = self._getColSeq('select 4*plain*"inch""ing" from quoted')
+		self._assertColumns(cols, [
+			('pc*fin', None, True)])
+
+	def testCaseSensitive(self):
+		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
+			'select "Inch""ing" from quoted')
 
 
 class ColResJoinTest(ColumnTest):

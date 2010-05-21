@@ -123,6 +123,11 @@ from pyparsing import Word, Literal, Optional, alphas, CaselessKeyword,\
 	CaselessLiteral, ParseException, Regex, sglQuotedString, alphanums,\
 	dblQuotedString, ParserElement, White, ParseSyntaxException
 
+from gavo import utils
+
+
+# all SQL and ADQL reserved words are expected in uppercase by this and
+# other modules.
 adqlReservedWords = set([ "ABS", "ACOS", "AREA", "ASIN", "ATAN", "ATAN2",
 	"CEILING", "CENTROID", "CIRCLE", "CONTAINS", "COS", "DEGREES", "DISTANCE",
 	"EXP", "FLOOR", "INTERSECTS", "LATITUDE", "LOG", "LOG10", "COORD1",
@@ -184,6 +189,12 @@ def _failOnReservedWord(s, pos, toks):
 		raise ParseException(s, pos, "Reserved word not allowed here")
 
 
+def _makeQuotedName(s, p, t):
+# Parse action for delimitedIdentifer.  No longer necessary when we can
+# rely on working pyparsing QuotedString
+	return utils.QuotedName(str(t[0])[1:-1].replace('""', '"'))
+
+
 def Args(pyparseSymbol):
 	"""wraps pyparseSymbol such that matches get added to an adqlArgs list
 	on the parent node.
@@ -232,8 +243,14 @@ def getADQLGrammarCopy():
 
 	regularIdentifier = Word(alphas+"_", alphanums+"_").addParseAction(
 		_failOnReservedWord)
-	delimitedIdentifier = QuotedString(quoteChar='"', escQuote='"',
-		unquoteResults=False)
+# There's a bug with QuotedString in some versions of pyparsing.
+# So, don't use this:
+#	delimitedIdentifier = QuotedString(quoteChar='"', escQuote='"',
+#		unquoteResults=True).addParseAction(
+#			lambda s,p,t: utils.QuotedName(str(t)))
+# but rather
+	delimitedIdentifier = Regex('("[^"]*")+').addParseAction(
+		_makeQuotedName)
 	identifier = regularIdentifier | delimitedIdentifier
 
 # Operators
@@ -528,8 +545,7 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
-	res = grammar.parseString(
-			"select AREA(circle('ICRS', COORD1(p1), coord2(p1), 2)), DISTANCE(p1,p2), centroid(rectangle('ICRS', coord1(p1), coord2(p1), coord1(p2), coord2(p2))) from (select point('ICRS', ra1, dec1) as p1,"
-				"   point('ICRS', ra2, dec2) as p2 from foo) as q"
+	res = syms["comparisonPredicate"].parseString(
+			'SELECT "f-bar", "c""ho" FROM "nons-ak" WHERE "ja ja"<"Umph"'
 			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

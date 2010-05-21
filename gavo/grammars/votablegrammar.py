@@ -40,10 +40,10 @@ class VOTNameMaker(object):
 		if not hasattr(cls, "blacklist"):
 			import keyword
 			from gavo.rscdef import rmkfuncs
-			blacklist = (set(keyword.kwlist)
-				| set(dir(rmkfuncs))
+			blacklist = (set(k.lower() for k in keyword.kwlist)
+				| set(k.lower() for k in dir(rmkfuncs))
 				| cls.customNameBlacklist
-				| adql.allReservedWords)
+				| set(k.lower() for k in adql.allReservedWords))
 			cls.blacklist = blacklist
 		return cls.blacklist
 

@@ -159,7 +159,13 @@ class TableDefTest(testhelpers.VerboseTest):
 		self.assertEqual(t.adql, True)
 		for role in base.getConfig("db", "adqlRoles"):
 			self.assert_(role in t.readRoles)
-	
+
+	def testReservedWordBails(self):
+		self.assertRaisesWithMsg(base.StructureError, 
+			'At <internal source>, last known position: 1, 17: Reserved word'
+			' abs is not allowed as a table name',
+			base.parseFromString, (rscdef.TableDef, '<table id="abs"/>'))
+
 	def testDuplicateColumns(self):
 		t = base.parseFromString(rscdef.TableDef, '<table id="t">'	
 			'<column name="one" type="text"/><column name="one"/>'

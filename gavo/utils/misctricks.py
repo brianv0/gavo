@@ -82,7 +82,10 @@ class QuotedName(object):
 
 	def lower(self):  # service to ADQL name resolution
 		return self
-	
+
+	def flatten(self): # ADQL query serialization
+		return str(self)
+
 	def capitalize(self):  # service for table head and such
 		return self
 

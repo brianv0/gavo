@@ -6,6 +6,7 @@ import itertools
 import re
 import traceback
 
+from gavo import adql
 from gavo import base
 from gavo import stc
 from gavo import utils
@@ -183,7 +184,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		macros.StandardMacroMixin):
 	"""A definition of a table, both on-disk and internal.
 
-	Some attributes are ignored for the in-memory tables, (roles or adql)
+	Some attributes are ignored for the in-memory tables, e.g., roles or adql.
 	"""
 	name_ = "table"
 
@@ -247,6 +248,12 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		except base.NotFoundError:
 			return False
 		return True
+
+	def validate(self):
+		if self.id.upper() in adql.allReservedWords:
+			raise base.StructureError("Reserved word %s is not allowed as a table"
+				" name"%self.id)
+		self._validateNext(TableDef)
 
 	def _resolveSTC(self):
 		"""adds STC related attributes to this tables' columns.
