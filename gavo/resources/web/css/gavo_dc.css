@@ -499,7 +499,9 @@ dl.footnotes {
 
 a.linkicon img {
 	border: none;
+	margin-bottom: -2px;
 }
+
 
 img.logo {
 	padding: 0px;
