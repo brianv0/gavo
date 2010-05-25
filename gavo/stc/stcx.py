@@ -105,12 +105,10 @@ class STC(object):
 
 	class T_coordinate(T_double2):
 		a_frame_id = None
-		a_Epoch = None
 
-		def isEmpty(self):
-			if self.a_Epoch is not None:
-				return False
-			return STC.T_double2.isEmpty(self)
+	# !!! Addition to 1.30 STC model
+	class Epoch(OptionalSTCElement):
+		a_yearDef = None
 
 	class Position(T_coordinate): pass
 	class Position1D(T_coordinate): pass

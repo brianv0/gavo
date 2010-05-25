@@ -291,8 +291,9 @@ def _makeBasicCooArgs(node, frame, posClass, spatial=False):
 			spatial=spatial),
 		"frame": frame,
 	}
-	if spatial:
-		args["epoch"] = node.get("epoch")
+	if spatial and node.get("epoch"):
+		args["epoch"] = float(node["epoch"][1:])
+		args["yearDef"] = node["epoch"][0]
 	_unitMakers[posClass.cType](args, node, frame)
 	return args
 
@@ -316,7 +317,7 @@ def _makeCooBuilder(frameName, intervalClass, intervalKey,
 	Single positions are always expected under the coo key.
 	"""
 	positionExclusiveKeys = ["error", "resolution", "pixSize", "value",
-		"size", "unit", "velTimeUnit", "epoch"]
+		"size", "unit", "velTimeUnit", "epoch", "yearDef"]
 	def builder(node, context):
 		frame = getattr(context.system, frameName)
 		nDim = frame.nDim

@@ -92,8 +92,14 @@ class CooGenerTest(testhelpers.VerboseTest):
 			{'stc:AstroCoords.Position3D.Value3': CR('point')})
 
 	def testVecEpoch(self):
-		self._assertAssmatch('Position ICRS Epoch J2010.5', 
-			{'stc:AstroCoords.Position2D.Epoch': 'J2010.5'})
+		self._assertAssmatch('Position ICRS Epoch J2010.5', {
+			'stc:AstroCoords.Position2D.Epoch': '2010.5',
+			'stc:AstroCoords.Position2D.Epoch.yearDef': 'J'})
+
+	def testBesselEpoch(self):
+		self._assertAssmatch('Position ICRS Epoch B2010.5', {
+			'stc:AstroCoords.Position2D.Epoch': '2010.5',
+			'stc:AstroCoords.Position2D.Epoch.yearDef': 'B'})
 
 	def testVeloc(self):
 		self._assertAssmatch(
@@ -184,8 +190,10 @@ class UtypeASTTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.place.error.radii[0].dest, "e1")
 
 	def testWithEquinox(self):
-		ast = self._getASTFromSTCS("Position FK4 J1975.0")
+		ast = self._getASTFromSTCS("Position FK4 J1975.0 Epoch B2000.0")
 		self.assertEqual(ast.astroSystem.spaceFrame.equinox, "J1975.0")
+		self.assertEqual(ast.place.yearDef, "B")
+		self.assertEqual(ast.place.epoch, 2000.)
 
 	def testTime(self):
 		ast = self._getASTFromSTCS(
@@ -234,7 +242,7 @@ class UtypeRoundtripTest(testhelpers.VerboseTest):
 		[],
 		[('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS')],
 		[('stc:AstroCoordSystem.SpaceFrame.CoordRefFrame', 'ICRS'),
-			('stc:AstroCoords.Position2D.Epoch', 'J2002.0'),
+			('stc:AstroCoords.Position2D.Epoch', '2002.0'),
 			('stc:DataModel.URI', 'http://www.ivoa.net/xml/STC/stc-v1.30.xsd'),
 		],
 		[('stc:AstroCoords.Position2D.Value2.C1', stc.ColRef('ra')),

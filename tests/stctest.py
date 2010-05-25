@@ -1,5 +1,5 @@
 """
-Tests for handling ivoa stc specifications.
+Generic tests for the STC library.
 """
 
 import datetime

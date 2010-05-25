@@ -371,8 +371,6 @@ def _makePositionBuilder(kw, astClass, frameName, tuplify=False):
 			buildArgs[key] = value
 		_fixWiggles(buildArgs)
 		_fixUnits(frameName, node, buildArgs, context)
-		if "Epoch" in node.attrib:
-			buildArgs["epoch"] = node.get("Epoch")
 		context.popDim()
 		yield kw, astClass(**buildArgs)
 	return buildPosition
@@ -506,6 +504,10 @@ def _buildVector(node, buildArgs, context):
 		if uk in buildArgs:
 			yield "unit", tuple(buildArgs[uk])
 	
+
+def _buildEpoch(node, buildArgs, context):
+	yield "yearDef", node.get("yearDef", "J")
+	yield "epoch", float(node.text)
 
 
 ################# Geometries
@@ -847,6 +849,7 @@ def _getHandlers():
 		_n("Equinox"): _makeKeywordBuilder("equinox"),
 		_n("Value"): _makeKwFloatBuilder("vals"),
 
+		_n("Epoch"): _buildEpoch,
 		_n("Radius"): _makeKwFloatBuilder("radius", multiple=False,
 			units=_makeUnitYielder(("pos_unit",), "radius")),
 		_n("Center"): _makeKwValueBuilder("center", tuplify=True,

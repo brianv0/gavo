@@ -220,7 +220,10 @@ def _spatialCooToCST(node, getBase=_makeCooTreeMapper("Position")):
 	cstNode = getBase(node)
 	cstNode["size"] = _wiggleToCST(node.size, node.frame.nDim)
 	if node.epoch is not None:
-		cstNode["epoch"] = node.epoch
+		yearDef = node.yearDef
+		if yearDef is None:
+			yearDef = "J"
+		cstNode["epoch"] = yearDef+str(node.epoch)
 	return cstNode
 
 
