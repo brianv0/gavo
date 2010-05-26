@@ -37,10 +37,37 @@ class ErrorResource(rend.Page):
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "text/xml")
+		request.setResponseCode(400)  # make some informed choice here?
 		doc = V.VOTABLE[
 			V.INFO(name="QUERY_STATUS", value="ERROR")[
 					self.errMsg]]
 		return doc.render()
+
+
+class UWSRedirect(rend.Page):
+	"""a redirection for UWS (i.e., 303).
+
+	The DC-global redirects use a 302 status, munge redirection URLs, and 
+	we don't want any HTML payload here anyway.
+
+	The locactions used here are relative to the tap-renderer's URL
+	(i.e., async/ points to the async root).
+	"""
+	def __init__(self, location):
+		self.location = str(
+			"%s/%s"%(self.getServiceURL(), location))
+
+	@utils.memoized
+	def getServiceURL(self):
+		return base.caches.getRD("__system__/tap").getById("run").getURL("tap")
+
+	def renderHTTP(self, ctx):
+		req = inevow.IRequest(ctx)
+		req.code = 303
+		req.setHeader("location", self.location)
+		req.setHeader("content-type", "text/plain")
+		req.write("Go here: %s\n"%self.location)
+		return ""
 
 
 class TAPQueryResource(rend.Page):
@@ -142,14 +169,11 @@ class JoblistResource(MethodAwareResource, UWSErrorMixin):
 	def _doPOST(self, ctx, request):
 		with uws.createFromRequest(request) as job:
 			jobId = job.jobId
-		return url.URL.fromString("%s/async/%s"%(
-			self.service.getURL("tap"),
-			jobId))
+		return UWSRedirect("async/%s"%jobId)
 
 	def _deliverResult(self, res, request):
 		request.setHeader("content-type", "text/xml")
 		return res
-	
 
 
 class JobResource(rend.Page, UWSErrorMixin):
@@ -167,21 +191,13 @@ class JobResource(rend.Page, UWSErrorMixin):
 		).addErrback(self._deliverError, request)
 
 	def _redirectAsNecessary(self, failure, ctx):
-		# Handle WebRedirects locally; globally, we give 301s and compute
-		# the destination path differently.
 		failure.trap(svcs.WebRedirect)
-		nextURL = str(
-			"%s/%s"%(self.service.getURL("tap"), failure.value.rawDest))
-		req = inevow.IRequest(ctx)
-		req.code = 303
-		req.setHeader("location", nextURL)
-		req.setHeader("text/plain")
-		req.write("Go here: %s\n"%nextURL)
-		return ""
+		return UWSRedirect(failure.value.rawDest)
 
 	def _deliverResult(self, result, request):
 		request.setHeader("content-type", "text/xml")
-		return utils.xmlrender(result)
+		request.write(utils.xmlrender(result).encode("utf-8"))
+		return ""
 	
 
 def getAsyncResource(service, ctx, segments):

@@ -287,8 +287,7 @@ tr.even {
 
 div#sidebar {
 	float: left;
-	width: 100px;
-	height: 100%;
+	width: 120px;
 	background: #d2dcf0;
 }
 
@@ -299,10 +298,13 @@ div#sidebar {
 }
 
 div#body {
-	margin-left: 110px;
-	min-width: 550px;
-	width: 80%;
+	min-width: 450px;
+	width: 100%;
 	position: absolute;
+	border-left: 120px solid #d2dcf0;
+	padding-left: 10px;
+	float:left;
+	background:white;
 }
 
 .sidebaritem {

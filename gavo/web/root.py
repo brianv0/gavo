@@ -34,6 +34,12 @@ from gavo.web import weberrors
 from gavo.svcs import Error, UnknownURI, ForbiddenURI, WebRedirect, BadMethod, Authenticate
 
 
+###  some global manipulations of nevow/twisted
+# monkeypatch static's mime magic
+static.File.contentTypes[".ascii"] = "application/octet-stream"
+static.File.contentTypes[".vot"] = "application/x-votable+xml"
+static.File.contentTypes[".rd"] = "application/x-gavo-descriptor+xml"
+
 
 class VanityLineError(Error):
 	"""parse error in vanity file.
@@ -51,6 +57,7 @@ builtinVanity = """
 	__system__/dc_tables/show/tableinfo tableinfo
 	__system__/adql/query/form adql !redirect
 	__system__/services/overview/admin seffe
+	__system__/tap/run/tap tap
 """
 
 
@@ -300,7 +307,6 @@ class ArchiveService(rend.Page):
 			return self._locateResourceBasedChild(ctx, segments)
 		except grend.RDBlocked:
 			return static.File(common.getTemplatePath("blocked.html")), () 
-	
 
 
 ArchiveService.addStatic("login", makeDynamicPage(ifpages.LoginPage))

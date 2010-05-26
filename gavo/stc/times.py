@@ -10,48 +10,16 @@ Helpers for time parsing and conversion.
 import bisect
 import datetime
 import math
-import re
 
 from gavo import utils
 from gavo.stc.common import *
 
-_isoDTRE = re.compile(r"(?P<year>\d\d\d\d)-?(?P<month>\d\d)-?(?P<day>\d\d)"
-		r"(?:T(?P<hour>\d\d):?(?P<minute>\d\d):?"
-		r"(?P<seconds>\d\d)(?P<secFracs>\.\d*)?Z?)?$")
 
-def parseISODT(literal):
-	"""returns a datetime object for a ISO time literal.
-
-	There's no timezone support yet.
-
-	>>> parseISODT("1998-12-14")
-	datetime.datetime(1998, 12, 14, 0, 0)
-	>>> parseISODT("1998-12-14T13:30:12")
-	datetime.datetime(1998, 12, 14, 13, 30, 12)
-	>>> parseISODT("1998-12-14T13:30:12Z")
-	datetime.datetime(1998, 12, 14, 13, 30, 12)
-	>>> parseISODT("1998-12-14T13:30:12.224Z")
-	datetime.datetime(1998, 12, 14, 13, 30, 12, 224000)
-	>>> parseISODT("19981214T133012Z")
-	datetime.datetime(1998, 12, 14, 13, 30, 12)
-	>>> parseISODT("junk")
-	Traceback (most recent call last):
-	STCLiteralError: Bad ISO datetime literal: junk
-	"""
-	mat = _isoDTRE.match(literal.strip())
-	if not mat:
-		raise STCLiteralError("Bad ISO datetime literal: %s"%literal,
-			literal)
-	parts = mat.groupdict()
-	if parts["hour"] is None:
-		parts["hour"] = parts["minute"] = parts["seconds"] = 0
-	if parts["secFracs"] is None:
-		parts["secFracs"] = 0
-	else:
-		parts["secFracs"] = "0"+parts["secFracs"]
-	return datetime.datetime(int(parts["year"]), int(parts["month"]),
-		int(parts["day"]), int(parts["hour"]), int(parts["minute"]), 
-		int(parts["seconds"]), int(float(parts["secFracs"])*1000000))
+def parseISODT(value):
+	try:
+		return utils.parseISODT(value)
+	except ValueError, ex:
+		raise STCLiteralError(unicode(ex), value)
 
 
 def jdnToDateTime(jd):

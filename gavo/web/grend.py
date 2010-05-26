@@ -301,7 +301,7 @@ class GavoRenderMixin(common.CommonRenderers):
 	def render_withsidebar(self, ctx, data):
 		oldChildren = ctx.tag.children
 		ctx.tag.children = []
-		return ctx.tag[
+		return ctx.tag(class_="container")[
 			self.getSidebar(ctx),
 			T.div(id="body")[
 				T.a(name="body"),

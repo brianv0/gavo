@@ -68,7 +68,7 @@ def unpublishFromTAP(rd, connection):
 
 
 
-########################## Maintaining TAP job
+########################## Maintaining TAP jobs
 
 class TAPActions(uws.UWSActions):
 	def __init__(self):
@@ -87,6 +87,7 @@ class TAPActions(uws.UWSActions):
 		child = subprocess.Popen(["gavo", "--disable-spew", "tap", job.jobId])
 		job.pid = child.pid
 		job.phase = uws.EXECUTING
+
 
 	def killJob(self, newState, job, ignored):
 		"""tries to kill -TERM the pid the job has registred.

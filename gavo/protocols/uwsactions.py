@@ -169,28 +169,37 @@ class PhaseAction(JobAction):
 _JobActions.addAction(PhaseAction)
 
 
-class _DateSettableAction(JobAction):
+class _SettableAction(JobAction):
 	"""Abstract base for ExecDAction and DestructionAction.
 	"""
 	def doPOST(self, job, request):
+		raw = utils.getfirst(request.args, self.name.upper(), None)
+		if raw is None:  # with no parameter, fall back to GET
+			return self.doGET(job, request)
 		try:
-			val = parseISODT(utils.getfirst(request.args, self.name.upper()))
-		except ValueError:
-			raise uws.UWSError("Invalid %s value."%self.name.upper())
+			val = self.deserializeValue(raw)
+		except ValueError:  
+			raise uws.UWSError("Invalid %s value: %s."%(
+				self.name.upper(), repr(raw)))
 		setattr(job, self.attName, val)
+		raise svcs.WebRedirect("async/"+job.jobId)
 
 	def doGET(self, job, request):
 		request.setHeader("content-type", "text/plain")
-		return getattr(job, self.attName)
+		return self.serializeValue(getattr(job, self.attName))
 
-class ExecDAction(_DateSettableAction):
+class ExecDAction(_SettableAction):
 	name = "executionduration"
-	attName = 'executionDuration '
+	attName = 'executionDuration'
+	serializeValue = str
+	deserializeValue = float
 _JobActions.addAction(ExecDAction)
 
-class DestructionAction(_DateSettableAction):
+class DestructionAction(_SettableAction):
 	name = "destruction"
 	attName = "destructionTime"
+	serializeValue = str
+	deserializeValue = utils.parseISODT
 _JobActions.addAction(DestructionAction)
 
 

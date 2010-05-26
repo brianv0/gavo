@@ -16,12 +16,6 @@ from gavo.web import common
 from gavo.web import grend
 
 
-# monkeypatch nevow static's mime types
-static.File.contentTypes[".ascii"] = "application/octet-stream"
-static.File.contentTypes[".vot"] = "application/x-votable+xml"
-static.File.contentTypes[".rd"] = "application/x-gavo-descriptor+xml"
-
-
 class ReloadPage(grend.GavoRenderMixin, rend.Page):
 
 	modsToReload = []
