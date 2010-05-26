@@ -163,7 +163,7 @@ table.results {
 div#header, div#chdr {
 	background: #899dbf;
 	margin-bottom: 34px;
-	height: 48px;
+	height: 58px;
 	width: 100%;
 }
 
@@ -207,13 +207,12 @@ h4.metacat {
 	font-family: Helvetica,Arial;
 	font-weight: 600;
 	font-size: 28px;
-	letter-spacing: 1px;
 	white-space: nowrap;
 	position: absolute;
 	background:none;
-	left:180px;
+	left:160px;
 	overflow:hidden;
-	margin-top: 7px;
+	margin-top: 11px;
 }
 
 #chdr h1 {
