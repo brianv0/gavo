@@ -24,14 +24,20 @@ div.metadescription {
 	padding-bottom: 5px;
 }
 
+div#wrapuseservice {
+	float: right;
+	background: white;
+	width: 240px;
+}
+
 div#useservice {
 	float: right;
 	background: white;
 	width: 200px;
-	padding-left: 20px;
-	padding-right: 20px;
+	padding-left: 10px;
+	padding-right: 10px;
 	padding-top: 10px;
-	background: #F0F4FF;
+	background: #D2DCF0; /* #F0F4FF; */
 }
 
 input.largebutton {
@@ -39,6 +45,17 @@ input.largebutton {
 	font-size: 14pt;
 	text-align:center;
 	white-space:normal;
+}
+
+.largebutton {
+	width: 100%;
+	height: 50px;
+	font-size: normal;
+	text-align:center;
+	white-space:normal;
+	background: url(/builtin/img/red.png);
+	border: 1px solid silver;*/
+	cursor: pointer; 
 }
 
 p.attribution {
@@ -307,7 +324,7 @@ div#body {
 }
 
 .sidebaritem {
-	margin-bottom:5px;
+	margin-bottom:15px;	/* 5px */
 	position: relative;
 	z-index:10;
 }
@@ -362,6 +379,40 @@ div.exploBody {
 	margin-bottom:5px;
 	background: #F0F4FF;
 }
+
+.sidebaritem div.navimainitem {
+	background: url(/builtin/img/grey-s.png);
+	border: 1px solid silver;
+	margin: 5px;
+	padding: 2px;
+	text-align: center;
+	margin-bottom: 10px;
+} 
+
+.sidebaritem div.navimainitem_here {
+	background: url(/builtin/img/blue-s.png);
+	border: 1px solid silver;
+	margin: 5px;
+	padding: 2px;
+	text-align: center;
+	margin-bottom: 10px;
+
+}
+
+.sidebaritem a.button {
+	text-decoration: none;
+	color: #042e74;
+}
+
+.sidebaritem a.button :hover {
+        text-decoration: underline;
+}
+
+.sidebaritem a.button :visited {
+	color: #9d11b3
+}
+
+
 
 div.copyright {
 	background-color: #cccccc;
