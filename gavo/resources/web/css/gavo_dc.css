@@ -315,7 +315,7 @@ div#sidebar {
 
 div#body {
 	min-width: 450px;
-	width: 100%;
+	width: 80%;
 	position: absolute;
 	border-left: 120px solid #d2dcf0;
 	padding-left: 10px;

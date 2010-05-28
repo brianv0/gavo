@@ -217,4 +217,22 @@
 				return ""
 		</customRF>
 	</service>
+
+
+	<!-- Temporary thing to experiment with root sidebar, remove later -->
+	<service id="sroot" core="null" allowed="fixed">
+		<template key="fixed">//root-sidebar.html</template>
+		<customDF name="chunkedServiceList">
+			return base.caches.getChunkedServiceList("\RDid")
+		</customDF>
+		<customDF name="subjectServiceList">
+			return base.caches.getSubjectsList("\RDid")
+		</customDF>
+		<customRF name="ifprotected">
+			if data["owner"]:
+				return ctx.tag
+			else:
+				return ""
+		</customRF>
+	</service>
 </resource>

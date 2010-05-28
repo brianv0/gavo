@@ -294,7 +294,9 @@ class ArchiveService(rend.Page):
 		if segments==('',):
 			segments = ("__system__", "services", "root", "fixed")
 
-		if len(segments)==1 and segments[0] in self.redirects:
+		if ((len(segments)==1 or (
+					len(segments)==2 and segments[1]==''))
+				and segments[0] in self.redirects):
 			raise WebRedirect(self.redirects[segments[0]])
 
 		if segments[0] in self.statics:
