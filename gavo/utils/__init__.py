@@ -19,7 +19,7 @@ from gavo.utils.autonode import AutoNode
 from gavo.utils.codetricks import (silence, ensureExpression, compileFunction,
 	loadPythonModule, memoized, identity, runInSandbox, document, 
 	buildClassResolver, CachedGetter, intToFunnyWord, IdManagerMixin,
-	addDefaults)
+	addDefaults, iterDerivedClasses)
 
 from gavo.utils.excs import *
 
@@ -40,7 +40,9 @@ from gavo.utils.plainxml import StartEndHandler
 from gavo.utils.stanxml import FastElementTree, ElementTree, xmlrender
 
 from gavo.utils.texttricks import (formatSize, makeEllipsis, floatRE, 
-	dateRE, datetimeRE, isoTimestampFmt, datetimeToRFC2616, parseISODT,
+	dateRE, datetimeRE, 
+	datetimeToRFC2616, 
+	isoTimestampFmt, parseISODT, formatISODT,
 	formatRFC2616Date, parseRFC2616Date,
 	fixIndentation, parsePercentExpression, hmsToDeg, dmsToDeg,
 	fracHoursToDeg, degToHms, degToDms, getRelativePath, parseAssignments, 

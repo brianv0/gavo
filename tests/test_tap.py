@@ -167,14 +167,14 @@ class SimpleAsyncTest(TAPRenderTest):
 		def assertStarted(lastRes, jobId):
 			# lastRes must be a redirect to the job info page
 			req = lastRes[1]
-			self.failUnless(req.code, 303)
+			self.assertEqual(req.code, 303)
 			self.assertEqual(req.headers["location"], 
 				 "http://localhost:8080/__system__/tap/run/tap/async/"+jobId)
 			return delete(jobId)
 
 		def promote(ignored, jobId):
 			return trialhelpers.runQuery(self.renderer, "POST", 
-				"/async/%s/phase"%jobId, {"PHASE": "RUN"}
+				"/async/%s/phase"%jobId, {"PHASE": "QUEUED"}
 			).addCallback(assertStarted, jobId)
 
 		def checkPhase(jobId):

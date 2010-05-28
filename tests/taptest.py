@@ -29,6 +29,14 @@ import testhelpers
 import adqltest
 
 
+
+class TAPFakeRequest(FakeRequest):
+# The UWS machinery wants its arguments in scalars, hence this class.
+	def __init__(self, *args, **kwargs):
+		FakeRequest.__init__(self, *args, **kwargs)
+		self.scalars = self.args
+
+
 class _PlainActions(uws.UWSActions):
 	def __init__(self):
 		uws.UWSActions.__init__(self, "plainActions", [
@@ -61,7 +69,7 @@ class _FakeContext(object):
 	"""A scaffolding class for testing renderers.
 	"""
 	def __init__(self, **kwargs):
-		self.request = FakeRequest(args=kwargs)
+		self.request = TAPFakeRequest(args=kwargs)
 		self.args = kwargs
 
 registerAdapter(lambda ctx: ctx.request, _FakeContext, inevow.IRequest)
@@ -89,12 +97,12 @@ class PlainJobCreationTest(testhelpers.VerboseTest):
 # yet another huge, sequential test.  Ah well, better than nothing, I guess.
 
 	def _createJob(self):
-		with uws.createFromRequest(FakeRequest(args={"foo": "bar"}), 
+		with uws.UWSJob.createFromRequest(TAPFakeRequest(args={"foo": "bar"}), 
 				"plainActions") as job:
 			return job.jobId
 
 	def _deleteJob(self, jobId):
-		with uws.makeFromId(jobId) as job:
+		with uws.UWSJob.makeFromId(jobId) as job:
 			job.delete()
 
 	def _assertJobCreated(self, jobId):
@@ -103,8 +111,8 @@ class PlainJobCreationTest(testhelpers.VerboseTest):
 			" jobId=%(jobId)s", locals())
 		querier.close()
 		self.assertEqual(len(res), 1)
-		job = uws.makeFromId(jobId)
-		self.assertEqual(job.getParDict(), {"foo": "bar"})
+		job = uws.UWSJob.makeFromId(jobId)
+		self.assertEqual(job.getParameter("foo"), "bar")
 		self.failUnless(os.path.exists(job.getWD()))
 
 	def _assertJobDeleted(self, jobId):
@@ -113,7 +121,7 @@ class PlainJobCreationTest(testhelpers.VerboseTest):
 			" jobId=%(jobId)s", locals())
 		querier.close()
 		self.assertEqual(len(res), 0)
-		self.assertRaises(base.NotFoundError, uws.makeFromId, jobId)
+		self.assertRaises(base.NotFoundError, uws.UWSJob.makeFromId, jobId)
 		self.failIf(os.path.exists(os.path.join(base.getConfig("uwsWD"), jobId)))
 
 	def testBigAndUgly(self):
@@ -127,7 +135,7 @@ class UWSMiscTest(testhelpers.VerboseTest):
 	"""uws tests not fitting anywhere else.
 	"""
 	def testBadActionsRaise(self):
-		with uws.create(actions="Wullu_ulla99") as job:
+		with uws.UWSJob.create(actions="Wullu_ulla99") as job:
 			try:
 				self.assertRaises(base.NotFoundError, 
 					job.changeToPhase, uws.EXECUTING)
@@ -139,23 +147,23 @@ class LockingTest(testhelpers.VerboseTest):
 	"""tests for working impicit uws locking.
 	"""
 	def setUp(self):
-		with uws.create(actions="plainActions") as job:
+		with uws.UWSJob.create(actions="plainActions") as job:
 			self.jobId = job.jobId
 		self.queue = Queue.Queue()
 	
 	def tearDown(self):
-		with uws.makeFromId(self.jobId) as job:
+		with uws.UWSJob.makeFromId(self.jobId) as job:
 			job.delete()
 
 	def _blockingJob(self):
 		# this is started in a thread while self.jobId is held
 		self.queue.put("Child started")
 		q = base.SimpleQuerier()
-		with uws.makeFromId(self.jobId) as job:
+		with uws.UWSJob.makeFromId(self.jobId) as job:
 			self.queue.put("Job created")
 
 	def testLocking(self):
-		with uws.makeFromId(self.jobId) as job:
+		with uws.UWSJob.makeFromId(self.jobId) as job:
 			child = threading.Thread(target=self._blockingJob)
 			child.start()
 			# see that child process has started but could not create the job
@@ -179,7 +187,7 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 	def testSimpleJob(self):
 		jobId = None
 		try:
-			with uws.create(args={
+			with uws.UWSJob.create(args={
 					"QUERY": "SELECT * FROM %s"%self.tableName,
 					"REQUEST": "doQuery",
 					"LANG": "ADQL"}) as job:
@@ -190,22 +198,49 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 			# let things run, but bail out if nothing happens 
 			for i in range(70):
 				time.sleep(0.1)
-				with uws.makeFromId(jobId) as job:
+				with uws.UWSJob.makeFromId(jobId) as job:
 					if job.phase!=uws.EXECUTING:
 						break
 			else:
 				raise AssertionError("Job does not finish.  Your machine cannot be"
 					" *that* slow?")
 
-			with uws.makeFromId(jobId) as job:
+			with uws.UWSJob.makeFromId(jobId) as job:
 				self.assertEqual(job.phase, uws.COMPLETED)
 				result = open(job.getResultName()).read()
 
 		finally:
 			if jobId is not None:
-				with uws.makeFromId(jobId) as job:
+				with uws.UWSJob.makeFromId(jobId) as job:
 					job.delete()
 		self.failUnless('xmlns="http://www.ivoa.net/xml/VOTable/' in result)
+
+
+class UploadSyntaxOKTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+	def _runTest(self, sample):
+		s, e = sample
+		self.assertEqual(tap.parseUploadString(s), e)
+	
+	samples = [
+		('a,b', [('a', 'b'),]),
+		('a5_ug,http://knatter?RA=99&DEC=1.54', 
+			[('a5_ug', 'http://knatter?RA=99&DEC=1.54'),]),
+		('a5_ug,http://knatter?RA=99&DEC=1.54;a,b', 
+			[('a5_ug', 'http://knatter?RA=99&DEC=1.54'), ('a', 'b')]),]
+
+
+class UploadSyntaxNotOKTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+	def _runTest(self, sample):
+		self.assertRaises(base.ValidationError, tap.parseUploadString,
+			sample)
+	
+	samples = [
+		'a,',
+		',http://wahn',
+		'a,b;',
+		'a,b;whacky/name,b',]
 
 
 if __name__=="__main__":

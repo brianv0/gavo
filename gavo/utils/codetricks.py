@@ -11,6 +11,7 @@ import compiler
 import compiler.ast
 import imp
 import itertools
+import inspect
 import functools
 import os
 import re
@@ -158,7 +159,7 @@ class IdManagerMixin(object):
 				" usually is an internal error of the software.")
 	
 
-def _iterDerivedClasses(baseClass, objects):
+def iterDerivedClasses(baseClass, objects):
 	"""iterates over all subclasses of baseClass in the sequence objects.
 	"""
 	for cand in objects:
@@ -190,7 +191,7 @@ def buildClassResolver(baseClass, objects, instances=False,
 		registry = algotricks.DeferringDict()
 	else:
 		registry = {}
-	for cls in _iterDerivedClasses(baseClass, objects):
+	for cls in iterDerivedClasses(baseClass, objects):
 		clsKey = key(cls)
 		if clsKey is not None:
 			registry[clsKey] = cls
@@ -258,7 +259,7 @@ def makeClassDocs(baseClass, objects):
 	else:
 		return False
 	docs = []
-	for cls in _iterDerivedClasses(baseClass, objects):
+	for cls in iterDerivedClasses(baseClass, objects):
 		try:
 			title = cls.name
 		except AttributeError:
@@ -424,6 +425,21 @@ def addDefaults(dataDict, defaultDict):
 	for key, value in defaultDict.iteritems():
 		if key not in dataDict:
 			dataDict[key] = value
+
+
+def stealVar(varName):
+	"""returns the first local variable called varName in the frame stack
+	above my caller.
+
+	This is obviously abominable.  This is only used within the DC code where
+	the author deemed the specification ugly.
+	"""
+	frame = inspect.currentframe().f_back.f_back
+	while frame:
+		if varName in frame.f_locals:
+			return frame.f_locals[varName]
+		frame = frame.f_back
+	raise ValueError("No local %s in the stack"%varName)
 
 
 def _test():

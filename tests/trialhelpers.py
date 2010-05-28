@@ -62,6 +62,24 @@ def _deferredRender(res, ctx):
 		return _doRender(page, ctx)
 
 
+class FakeFieldStorage(object):
+	filename = None
+	def __init__(self, args):
+		self.args = args
+
+	def __iter__(self):
+		return iter(self.args)
+	
+	def getfirst(self, key):
+		return self.args[key][0]
+	
+	def __getitem__(self, key):
+		return FakeFieldStorage  # just so filename is None
+
+	def keys(self):
+		return self.args.keys()
+
+
 def _buildRequest(method, path, rawArgs):
 	args = {}
 	for k, v in rawArgs.iteritems():
@@ -72,6 +90,8 @@ def _buildRequest(method, path, rawArgs):
 	if path.startswith("http://"):
 		path = urlparse.urlparse(path).path
 	req = testutil.AccumulatingFakeRequest(uri="/"+path, args=args)
+	# Service for my TAPRequest hack (see web.taprender).
+	req.fields = FakeFieldStorage(args)
 	req.headers = {}
 	req.method = method
 	return req

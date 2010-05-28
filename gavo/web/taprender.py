@@ -17,6 +17,7 @@ from gavo import base
 from gavo import formats
 from gavo import svcs
 from gavo import utils
+from gavo.protocols import tap
 from gavo.protocols import taprunner
 from gavo.protocols import uws
 from gavo.protocols import uwsactions
@@ -27,8 +28,8 @@ from gavo.web import vosi
 from gavo.votable import V
 
 
-TAP_VERSION = "1.0"
-
+######## XXX TODO: Unify the running and checking stuff below with what's
+# in protocols.tap.
 
 class ErrorResource(rend.Page):
 	def __init__(self, errMsg):
@@ -167,7 +168,7 @@ class JoblistResource(MethodAwareResource, UWSErrorMixin):
 		return uwsactions.getJobList()
 	
 	def _doPOST(self, ctx, request):
-		with uws.createFromRequest(request) as job:
+		with tap.TAPJob.createFromRequest(request) as job:
 			jobId = job.jobId
 		return UWSRedirect("async/%s"%jobId)
 
@@ -195,6 +196,8 @@ class JobResource(rend.Page, UWSErrorMixin):
 		return UWSRedirect(failure.value.rawDest)
 
 	def _deliverResult(self, result, request):
+		if hasattr(result, "renderHTTP"):  # it's a finished resource
+			return result
 		request.setHeader("content-type", "text/xml")
 		request.write(utils.xmlrender(result).encode("utf-8"))
 		return ""
@@ -207,6 +210,23 @@ def getAsyncResource(service, ctx, segments):
 		return JoblistResource(service)
 
 
+def reparseRequestArgs(ctx):
+	"""adds attributes scalars and files to ctx's request.
+
+	Scalars contains non-field arguments, files the files.  Both are
+	dictionaries containing the first item found for a key.
+	"""
+	request = inevow.IRequest(ctx)
+	request.scalars, request.files = {}, {}
+	if request.fields:
+		for key in request.fields:
+			field = request.fields[key]
+			if field.filename:
+				request.files[key] = field
+			else:
+				request.scalars[key] = request.fields.getfirst(key)
+
+
 class TAPRenderer(grend.ServiceBasedRenderer):
 	"""A renderer for the synchronous version of TAP.
 
@@ -215,10 +235,11 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 	name = "tap"
 
 	def locateChild(self, ctx, segments):
+		reparseRequestArgs(ctx)
 		try:
-			if common.getfirst(ctx, "VERSION", TAP_VERSION)!=TAP_VERSION:
+			if common.getfirst(ctx, "VERSION", tap.TAP_VERSION)!=tap.TAP_VERSION:
 				return ErrorResource("Version mismatch; this service only supports"
-					" TAP version %s."%TAP_VERSION), ()
+					" TAP version %s."%tap.TAP_VERSION), ()
 			if segments:
 				if segments[0]=='sync':
 					res = getSyncResource(self.service, ctx, segments[1:])

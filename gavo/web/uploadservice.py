@@ -13,7 +13,7 @@ from gavo.web import resourcebased
 
 
 class Uploader(resourcebased.Form):
-	"""is a renderer allowing for updates to individual using file upload.
+	"""is a renderer allowing for updates to individual records using file upload.
 	"""
 
 	name = "upload"

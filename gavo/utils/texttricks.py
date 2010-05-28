@@ -342,7 +342,9 @@ def degToDms(deg, sepChar=" ", secondFracs=2):
 def datetimeToRFC2616(dt):
 	"""returns a UTC datetime object in the format requried by http.
 
-	This may crap when you fuzz with the locale.
+	This may crap when you fuzz with the locale.  In general, when handling
+	"real" times within the DC, prefer unix timestamps over datetimes and
+	use the other *RFC2616 functions.
 	"""
 	return dt.strftime('%a, %d %b %Y %H:%M:%S GMT')
 
@@ -410,6 +412,16 @@ def parseISODT(literal):
 	return datetime.datetime(int(parts["year"]), int(parts["month"]),
 		int(parts["day"]), int(parts["hour"]), int(parts["minute"]), 
 		int(parts["seconds"]), int(float(parts["secFracs"])*1000000))
+
+
+def formatISODT(dt):
+	"""returns some ISO8601 representation of a datetime instance.
+
+	The reason for preferring this function over a simple str is that
+	datetime's default representation is too difficult for some other
+	code (e.g., itself).
+	"""
+	return dt.strftime(isoTimestampFmt)
 
 
 class NameMap(object):

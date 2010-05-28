@@ -9,6 +9,7 @@ from __future__ import with_statement
 
 import cPickle as pickle
 import datetime
+import itertools
 import os
 import shutil
 import tempfile
@@ -58,16 +59,133 @@ def getJobsTable():
 	return jobsTable
 
 
-def serializeData(data):
+def serializeParameters(data):
 	"""returns a base64-encoded version of a pickle of data
 	"""
+	# data should only contain strings, and I'm forcing them all to
+	# be shorter than 1k; this should ward off broken clients that 
+	# might push in files as "harmless" parameters.
+	for key in data.keys():
+		if len(data[key])>1000:
+			del data[key]
 	return pickle.dumps(data, 1).encode("base64")
 
 
-def deserializeData(serData):
+def deserializeParameters(serData):
 	"""does the inverse of serializedData.
 	"""
 	return pickle.loads(serData.decode("base64"))
+
+
+class ParameterRef(object):
+	"""A reference to a UWS parameter.
+
+	This always contains a URL.  In case of uploads, the tap renderer makes
+	sure the upload is placed into the upload directory and generates a
+	URL; in that case, local is True.
+	"""
+	def __init__(self, url, local=False):
+		self.local = local
+		self.url = url
+
+
+class ProtocolParameter(object):
+	"""A UWS protocol parameter.
+
+	All methods of these are class methods since ProtocolParameters are 
+	never instanciated.
+
+	Methods:
+
+	* addParam(value, job) -> None -- parse value and perform some action
+	  (typically, set an attribute) on job.
+	* getParam(job) -> string -- infer a string representation of the
+	  protocol parameter on job.
+
+	The default implementation just dumps/gets name from the job's
+	parameters dict.
+	"""
+	name = None
+	_deserialize, _serialize = str, str
+
+	@classmethod
+	def addParam(cls, value, job):
+		assert cls.name is not None
+		job.parameters[cls.name] = cls._deserialize(value)
+
+	@classmethod
+	def getParam(cls, job):
+		return cls._serialize(job.parameters[cls.name])
+
+
+class SerializingProtocolParameter(ProtocolParameter):
+	"""is a ProtocolParameter for writing to parsed job attributes.
+
+	It looks at the _serialize, _deserialize, and _destAttr attributes
+	to figure out what to do.
+	"""
+	name = None
+
+	@classmethod
+	def addParam(cls, value, job):
+		return getattr(job, cls._deserialize(cls._destAttr))
+	
+	@classmethod
+	def getParam(cls, job):
+		return setattr(job, cls._destAttr, cls._serialize(value))
+
+
+class DestructionParameter(SerializingProtocolParameter):
+	name = "DESTRUCTION"
+	_serialize, _deserialize, _destAttr = \
+		utils.formatISODT, utils.parseISODT, "destructionTime"
+
+
+class ExecDParameter(SerializingProtocolParameter):
+	name = "EXECUTIONDURATION"
+	_serialize, _deserialize, _destAttr = \
+		str, int, "executionDuration"
+
+
+class RunIdParameter(SerializingProtocolParameter):
+	name = "RUNID"
+
+	_serialize, _deserialize, _destAttr = \
+		str, str, "runId"
+
+
+class UWSParameters(object):
+	"""A container for the protocol parameters of an UWS job.
+
+	UWSJobs have a protocolParameters class attribute containing this.
+	"""
+	def __init__(self, base, *parameters):
+		self.paramClasses = {}
+		for par in itertools.chain(base, parameters):
+			self._addParamClass(par)
+
+	def __iter__(self):
+		for p in self.paramClasses.values():
+			yield p
+
+	def _addParamClass(self, par):
+		self.paramClasses[par.name.upper()] = par
+	
+	def addParam(self, job, name, value):
+		"""adds a name/value pair to the job's parameters.
+
+		This is really supposed to be called by UWSJob.xParam, so don't bother.
+		"""
+		if name.upper() in self.paramClasses:
+			self.paramClasses[name.upper()].addParam(value, job)
+		else:
+			job.parameters[name] = value
+
+	def getParam(self, job, name):
+		if name.upper() in self.paramClasses:
+			return self.paramClasses[name.upper()].getParam(job)
+		else:
+			return job.parameters[name]
 
 
 class UWSJob(object):
@@ -92,9 +210,9 @@ class UWSJob(object):
 	with a nevow request object and the name of an Actions object
 	(see below).
 
-	Note that the parameters attribute isn't terribly useful.  Use
-	getParDict/setParDict to work with it (this is probably a silly
-	optimization).
+	In general, you should not access the parameters dictionary directly, since
+	the protocol parameters may do some processing.  Use addParameter,
+	getParameter, delParameter, and iterParameters instead.
 
 	Some of the items given in the UWS data model are actually kept in dataDir.
 
@@ -106,7 +224,10 @@ class UWSJob(object):
 # we can always clean this up later while keeping code assuming
 # the current semantics working.
 	_dbAttrs = ["jobId", "phase", "runId", "quote", "executionDuration",
-		"destructionTime", "owner", "parameters", "actions", "pid"]
+		"destructionTime", "owner", "actions", "pid"]
+
+	protocolParameters = UWSParameters((), DestructionParameter,
+		ExecDParameter)
 
 	def __init__(self, jobId, jobsTable=None):
 		self.jobId = jobId
@@ -125,6 +246,7 @@ class UWSJob(object):
 
 		for att in self._dbAttrs:
 			setattr(self, att, kws[att])
+		self.parameters = deserializeParameters(kws["parameters"])
 
 	@classmethod
 	def _allocateDataDir(cls):
@@ -141,8 +263,7 @@ class UWSJob(object):
 		"""
 		kws["jobId"] = cls._allocateDataDir()
 		kws["phase"] = PENDING
-		kws["parameters"] = serializeData(args)
-		kws["runId"] = args.get("RUNID")
+		kws["parameters"] = serializeParameters({})
 		jobsTable = getJobsTable()
 		utils.addDefaults(kws, {
 			"quote": None,
@@ -162,7 +283,10 @@ class UWSJob(object):
 		jobsTable.commit()
 
 		# Can't race for jobId here since _allocateDataDir uses mkdtemp
-		return cls(kws["jobId"], jobsTable)
+		res = cls(kws["jobId"], jobsTable)
+		for key, value in args.iteritems():
+			res.addParameter(key, value)
+		return res
 
 	@classmethod
 	def createFromRequest(cls, request, actions="TAP"):
@@ -171,9 +295,8 @@ class UWSJob(object):
 		request is something implementing nevow.IRequest, actions is the
 		name (i.e., a string) of a registred Actions class.
 		"""
-		args = dict((k, (len(v) and v[0]) or None) 
-			for k, v in request.args.iteritems())
-		return cls.create(args=request.args, actions=actions)
+		# XXX TODO: Allow UPLOAD spec in initial POST?
+		return cls.create(args=request.scalars, actions=actions)
 	
 	@classmethod
 	def makeFromId(cls, jobId):
@@ -206,20 +329,22 @@ class UWSJob(object):
 	def getWD(self):
 		return os.path.join(base.getConfig("uwsWD"), self.jobId)
 
-	def getParDict(self):
-		"""returns the current job parameter dictionary.
-		"""
-		return deserializeData(self.parameters)
-	
-	def setParDict(self, parDict):
-		"""replaces the parameter dictionary with the argument.
-		"""
-		self.parameters = serializeData(parDict)
+	def addParameter(self, name, value):
+		self.protocolParameters.addParam(self, name, value)
+
+	def getParameter(self, name):
+		return self.protocolParameters.getParam(self, name)
+
+	def iterParameters(self):
+		for name in self.parameters:
+			yield name, self.getParameter(name)
 
 	def getAsDBRec(self):
 		"""returns self's representation in the jobs table.
 		"""
-		return dict((att, getattr(self, att)) for att in self._dbAttrs)
+		res = dict((att, getattr(self, att)) for att in self._dbAttrs)
+		res["parameters"] = serializeParameters(self.parameters)
+		return res
 
 	def _persist(self):
 		"""updates or creates the job in the database table.
@@ -291,7 +416,16 @@ class UWSJob(object):
 		"""returns the name of the default result file.
 		"""
 		return os.path.join(self.getWD(), "__RESULT__")
-	
+
+	def openFile(self, name, mode="r"):
+		"""returns an open file object for a file within the job's work directory.
+
+		No path parts are allowed on name.
+		"""
+		if "/" in name:
+			raise ValueError("No path components allowed on job files.")
+		return open(os.path.join(self.getWD(), name), mode)
+
 
 class UWSActions(object):
 	"""An abstract base for classes defining the behaviour of an UWS.
@@ -386,8 +520,3 @@ def registerActions(cls, *args, **kwargs):
 	"""
 	newActions = cls(*args, **kwargs)
 	_actionsRegistry[newActions.name] = newActions
-
-
-create = UWSJob.create
-createFromRequest = UWSJob.createFromRequest
-makeFromId = UWSJob.makeFromId

@@ -120,8 +120,8 @@ def main():
 	"""
 	opts, jobId = parseCommandLine()
 	try:
-		with uws.makeFromId(jobId) as job:
-			parameters = job.getParDict()
+		with tap.TAPJob.makeFromId(jobId) as job:
+			parameters = job.parameters
 			jobId, timeout = job.jobId, job.executionDuration
 			resultName = job.getResultName()
 	except base.NotFoundError:  # Job was deleted before we came up...
@@ -134,5 +134,5 @@ def main():
 			# This creates an error document in our WD.
 			job.changeToPhase(uws.ERROR, ex)
 	else:
-		with uws.makeFromId(jobId) as job:
+		with tap.TAPJob.makeFromId(jobId) as job:
 			job.changeToPhase(uws.COMPLETED, None)
