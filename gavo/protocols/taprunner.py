@@ -42,6 +42,13 @@ FORMAT_CODES = {
 }
 
 
+# The following would point to executors for other languages at some point.
+SUPPORTED_LANGS = {
+	'ADQL': None,
+	'ADQL-2.0': None,
+}
+
+
 def normalizeTAPFormat(rawFmt):
 	format = rawFmt.lower()
 	try:
@@ -54,10 +61,12 @@ def normalizeTAPFormat(rawFmt):
 
 def _parseTAPParameters(jobId, parameters):
 	try:
-		# VERSION is checked at submission
+		if parameters.get("VERSION", tap.TAP_VERSION)!=tap.TAP_VERSION:
+			raise uws.UWSError("Version mismatch.  This service only supports"
+				" TAP version %s"%tap.TAP_VERSION, jobId)
 		if parameters["REQUEST"]!="doQuery":
 			raise uws.UWSError("This service only supports REQUEST=doQuery", jobId)
-		if parameters["LANG"]!="ADQL":
+		if parameters["LANG"] not in SUPPORTED_LANGS:
 			raise uws.UWSError("This service only supports LANG=ADQL", jobId)
 		query = parameters["QUERY"]
 	except KeyError, key:
@@ -88,7 +97,7 @@ def runTAPQuery(query, timeout, queryProfile):
 		adqlglue.mapADQLErrors(*sys.exc_info())
 
 
-def runTAPJob(parameters, jobId, resultName, timeout, 
+def runTAPJob(parameters, jobId, timeout, 
 		queryProfile="untrustedquery"):
 	"""executes a TAP job defined by parameters.  
 	
@@ -98,8 +107,10 @@ def runTAPJob(parameters, jobId, resultName, timeout,
 	"""
 	query, format, maxrec = _parseTAPParameters(jobId, parameters)
 	res = runTAPQuery(query, timeout, queryProfile)
-	with open(resultName, "w") as outF:
-		writeResultTo(format, res, outF)
+	with tap.TAPJob.makeFromId(jobId) as job:
+		destF = job.openResult(formats.getMIMEFor(format), "result")
+	writeResultTo(format, res, destF)
+	destF.close()
 
 
 ############### CLI interface
@@ -123,14 +134,13 @@ def main():
 		with tap.TAPJob.makeFromId(jobId) as job:
 			parameters = job.parameters
 			jobId, timeout = job.jobId, job.executionDuration
-			resultName = job.getResultName()
 	except base.NotFoundError:  # Job was deleted before we came up...
 		sys.exit(1)  # ... there's nothing sensible we could do any more but quit.
 	try:
-		runTAPJob(parameters, jobId, resultName, timeout)
+		runTAPJob(parameters, jobId, timeout)
 	except Exception, ex:
 		traceback.print_exc()
-		with uws.makeFromId(jobId) as job:
+		with tap.TAPJob.makeFromId(jobId) as job:
 			# This creates an error document in our WD.
 			job.changeToPhase(uws.ERROR, ex)
 	else:

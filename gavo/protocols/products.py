@@ -44,14 +44,10 @@ class PlainProduct(object):
 		self._makeName()
 
 	def __call__(self, outFile):
-# XXX it was probably a bad idea to use __call__ for something like write.
-# A well.
+# XXX TODO: it was probably a bad idea to use __call__ for something like write.
+# Ah well.
 		f = open(self.sourcePath)
-		while True:
-			data = f.read(self.chunkSize)
-			if not data:
-				break
-			outFile.write(data)
+		utils.cat(f, outFile)
 		f.close()
 
 	def __str__(self):

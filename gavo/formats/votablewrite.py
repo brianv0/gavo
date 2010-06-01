@@ -272,6 +272,7 @@ def getAsVOTable(data, tablecoding="binary", version=None):
 	return dest.getvalue()
 
 
-common.registerDataWriter("votable", writeAsVOTable)
+common.registerDataWriter("votable", writeAsVOTable, 
+	"application/x-votable+xml")
 common.registerDataWriter("votabletd", functools.partial(
-	writeAsVOTable, tablecoding="td"))
+	writeAsVOTable, tablecoding="td"), "text/xml")

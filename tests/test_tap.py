@@ -174,7 +174,7 @@ class SimpleAsyncTest(TAPRenderTest):
 
 		def promote(ignored, jobId):
 			return trialhelpers.runQuery(self.renderer, "POST", 
-				"/async/%s/phase"%jobId, {"PHASE": "QUEUED"}
+				"/async/%s/phase"%jobId, {"PHASE": "RUN"}
 			).addCallback(assertStarted, jobId)
 
 		def checkPhase(jobId):

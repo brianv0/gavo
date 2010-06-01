@@ -34,4 +34,4 @@ def getAsText(data):
 
 
 # NOTE: This will only serialize the primary table.
-common.registerDataWriter("tsv", renderAsText)
+common.registerDataWriter("tsv", renderAsText, "text/tab-separated-values")

@@ -40,4 +40,4 @@ def writeDataAsCSV(table, target):
 	
 
 # NOTE: This will only serialize the primary table
-common.registerDataWriter("csv", writeDataAsCSV)
+common.registerDataWriter("csv", writeDataAsCSV, "text/csv")

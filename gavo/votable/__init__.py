@@ -11,3 +11,5 @@ from gavo.votable.model import VOTable as V, voTag
 from gavo.votable.parser import parse, parseString, readRaw
 
 from gavo.votable.tablewriter import DelayedTable, write, asString
+
+from gavo.votable.tapquery import ADQLTAPJob

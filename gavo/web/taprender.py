@@ -28,9 +28,8 @@ from gavo.web import vosi
 from gavo.votable import V
 
 
-######## XXX TODO: Unify the running and checking stuff below with what's
-# in protocols.tap.
-
+######## XXX TODO: Remove almost all the sync stuff and replace it with
+# protocols.taprunner
 class ErrorResource(rend.Page):
 	def __init__(self, errMsg):
 		self.errMsg = errMsg
@@ -210,6 +209,12 @@ def getAsyncResource(service, ctx, segments):
 		return JoblistResource(service)
 
 
+# Sadly, TAP protocol keys need to be case insensitive (2.3.10)
+# In general, this is, of course, an extremely unwelcome feature,
+# so we restrict it to the keys specified in the TAP spec.
+_caseInsensitiveKeys = set(["REQUEST", "VERSION", "LANG", "QUERY", 
+	"FORMAT", "MAXREC", "RUNID", "UPLOAD"])
+
 def reparseRequestArgs(ctx):
 	"""adds attributes scalars and files to ctx's request.
 
@@ -224,6 +229,8 @@ def reparseRequestArgs(ctx):
 			if field.filename:
 				request.files[key] = field
 			else:
+				if key.upper() in _caseInsensitiveKeys:
+					key = key.upper()
 				request.scalars[key] = request.fields.getfirst(key)
 
 

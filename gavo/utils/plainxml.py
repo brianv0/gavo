@@ -71,3 +71,11 @@ class StartEndHandler(ContentHandler):
 	def parseString(self, string):
 		xml.sax.parseString(string, self)
 		return self
+	
+	def getAttrsAsDict(self, attrs):
+		"""returns attrs as received from SAX as a dictionary.
+
+		The main selling point is that any namespace prefixes are removed from
+		the attribute names.  Any prefixes on attrs remain, though.
+		"""
+		return dict((k.split(":")[-1], v) for k, v in attrs.items())

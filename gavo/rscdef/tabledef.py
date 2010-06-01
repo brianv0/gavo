@@ -142,6 +142,7 @@ class ForeignKey(base.Structure):
 				self.source, self.dest):
 			return querier.query("ALTER TABLE %s ADD FOREIGN KEY (%s)"
 				" REFERENCES %s (%s)"
+				" ON DELETE CASCADE"
 				" DEFERRABLE INITIALLY DEFERRED"%(self.parent.getQName(),
 					",".join(self.source), self.table, ",".join(self.dest)))
 

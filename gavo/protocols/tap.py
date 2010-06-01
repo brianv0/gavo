@@ -194,7 +194,7 @@ class UploadParameter(uws.ProtocolParameter):
 		try:
 			uploadData = codetricks.stealVar("request").files[uploadName]
 		except KeyError:
-			raise base.ValidationError("No upload '%s' found"%uploadName)
+			raise base.ValidationError("No upload '%s' found"%uploadName, "UPLOAD")
 		destFName = cls._cleanName(uploadData.filename)
 		with job.openFile(destFName, "w") as f:
 			f.write(uploadData.file.read())
@@ -211,11 +211,10 @@ class TAPJob(uws.UWSJob):
 ########################## Maintaining TAP jobs
 
 class TAPActions(uws.UWSActions):
+# XXX TODO: Implement a real queue rather than starting blindly
 	def __init__(self):
 		uws.UWSActions.__init__(self, "TAP", [
-			(uws.PENDING, uws.QUEUED, "noOp"),
-			(uws.PENDING, uws.EXECUTING, "startJob"),
-			(uws.QUEUED, uws.EXECUTING, "startJob"),
+			(uws.PENDING, uws.QUEUED, "startJob"),
 			(uws.QUEUED, uws.ABORTED, "noOp"),
 			(uws.EXECUTING, uws.COMPLETED, "noOp"),
 			(uws.EXECUTING, uws.ABORTED, "killJob"),

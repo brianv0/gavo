@@ -14,6 +14,7 @@ instance.
 from gavo import base
 
 _formatDataRegistry = {}
+_formatsMIMERegistry = {}
 
 
 class CannotSerializeIn(base.Error):
@@ -25,8 +26,17 @@ class CannotSerializeIn(base.Error):
 			" known at this point: %s."%", ".join(_formatDataRegistry))
 
 
-def registerDataWriter(key, writer):
+def registerDataWriter(key, writer, mime):
 	_formatDataRegistry[key] = writer
+	_formatsMIMERegistry[key] = mime
+
+
+def getMIMEFor(formatName):
+	"""returns a MIME type for our internal formatName.
+
+	This will return application/octet-stream for unknown formats.
+	"""
+	return _formatsMIMERegistry.get(formatName, "application/octet-stream")
 
 
 def checkFormatIsValid(formatName):

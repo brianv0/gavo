@@ -104,4 +104,4 @@ def writeDataAsFITS(data, outputFile):
 	finally:
 		os.unlink(fitsName)
 
-common.registerDataWriter("fits", writeDataAsFITS)
+common.registerDataWriter("fits", writeDataAsFITS, "application/fits")

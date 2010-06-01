@@ -21,6 +21,8 @@ import os
 
 from nevow import static
 
+from gavo import base
+from gavo import rsc
 from gavo import svcs
 from gavo import utils
 from gavo.protocols import tap
@@ -208,7 +210,12 @@ class PhaseAction(JobAction):
 
 	def doPOST(self, job, request):
 		newPhase = request.scalars.get("PHASE", None)
-		job.changeToPhase(newPhase)
+		if newPhase=="RUN":
+			job.changeToPhase(uws.QUEUED)
+		elif newPhase=="ABORT":
+			job.changeToPhase(uws.ABORTED)
+		else:
+			raise base.ValidationError("Bad phase: %s"%newPhase, "phase")
 		raise svcs.WebRedirect("async/"+job.jobId)
 	
 	def doGET(self, job, request):
@@ -263,27 +270,43 @@ class QuoteAction(JobAction):
 			quote = str(job.quote)
 		return UWS.makeRoot(UWS.quote[quote])
 	
-	doPOST = doGET
 _JobActions.addAction(QuoteAction)
 
 
+class OwnerAction(JobAction):
+	# we do not support auth yet, so this is a no-op.
+	name = "owner"
+	def doGET(self, job, request):
+		request.setHeader("content-type", "text/plain")
+		request.write("None")
+		return ""
+
+_JobActions.addAction(OwnerAction)
+		
+
 class ResultsAction(JobAction):
-	"""Extension: access uploaded (and other) files in job directory.
+	"""Access result (Extension: and other) files in job directory.
 	"""
 	name = "results"
 
 	def getResource(self, job, request, segments):
 		if not segments:
-			return self
+			return JobAction.getResource(self, job, request, segments)
 		filePath = os.path.join(job.getWD(), *segments)
 		if not os.path.exists(filePath):
 			raise svcs.UnknownURI("File not found")
 		return static.File(filePath)
 
 	def doGET(self, job, request):
-		raise NotImplementedError("No result lists yet")
-		
+		baseURL = "%s/async/%s/results/"%(
+			base.caches.getRD(tap.RD_ID).getById("run").getURL("tap"),
+			job.jobId)
+		return UWS.results[[
+				UWS.result(id=res["resultName"], href=baseURL+res["resultName"])
+			for res in job.getResults()]]
+
 _JobActions.addAction(ResultsAction)
+
 
 
 class RootAction(JobAction):
@@ -307,8 +330,6 @@ class RootAction(JobAction):
 			getParametersElement(job),
 			UWS.results()]).render()
 _JobActions.addAction(RootAction)
-
-
 
 
 def doJobAction(request, segments):

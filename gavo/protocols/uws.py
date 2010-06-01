@@ -346,6 +346,48 @@ class UWSJob(object):
 		res["parameters"] = serializeParameters(self.parameters)
 		return res
 
+	def addResult(self, source, mimeType, name=None):
+		"""adds a result, with data taken from source.
+
+		source may be a file-like object or a byte string.
+
+		If no name is passed, a name is auto-generated.
+		"""
+		if name is None:
+			name = utils.intToFunnyName(id(source))
+		with open(os.path.join(self.getWD(), name), "w") as destF:
+			if isinstance(source, baseString):
+				destF.write(source)
+			else:
+				utils.cat(source, destF)
+		self._addResultToTable(mimeType, name)
+
+	def openResult(self, mimeType, name):
+		"""returns a writable file that adds a result.
+		"""
+		self._addResultToTable(mimeType, name)
+		return open(os.path.join(self.getWD(), name), "w")
+
+	def _addResultToTable(self, mimeType, name):
+		resTable = rsc.TableForDef(base.caches.getRD(RD_ID).getById("results"),
+			connection=self.jobsTable.connection)
+		resTable.addRow(
+			{'jobId': self.jobId, 'resultName': name, 'resultType': mimeType})
+		resTable.commit()
+		resTable.close()
+
+	def getResults(self):
+		"""returns a list of this service's results.
+
+		The list contains (dict) records from uws.results.
+		"""
+		resTable = rsc.TableForDef(base.caches.getRD(RD_ID).getById("results"),
+			connection=self.jobsTable.connection)
+		results = list(resTable.iterQuery(resTable.tableDef, 
+			"jobId=%(jobId)s", pars={"jobId": self.jobId}))
+		resTable.close()
+		return results
+
 	def _persist(self):
 		"""updates or creates the job in the database table.
 		"""
@@ -412,11 +454,6 @@ class UWSJob(object):
 			raise ValueError(
 				"No error has been posted on UWS job %s"%self.jobId)
 
-	def getResultName(self):
-		"""returns the name of the default result file.
-		"""
-		return os.path.join(self.getWD(), "__RESULT__")
-
 	def openFile(self, name, mode="r"):
 		"""returns an open file object for a file within the job's work directory.
 
@@ -440,7 +477,7 @@ class UWSActions(object):
 
 	The main interface to UWSActions is getTransition(p1, p2) -> callable
 	It returns a callable that should push the automaton from phase p1
-	to phase p2 or raise an ValidationError for a phase field.  The
+	to phase p2 or raise an ValidationError for a field phase.  The
 	default implementation should work.
 
 	The callable has the signature f(desiredPhase, uwsJob, input) -> None.
@@ -458,8 +495,6 @@ class UWSActions(object):
 	working directory or the jobs table entry.  Therefore typically, the
 	COMPLETED to DESTROYED is a no-op for UWSActions.
 
-	Also, UWSJob will never ask UWSActions to transition from PENDING to QUEUED
-	since jobs are automatically QUEUED once they are created.
 	"""
 	def __init__(self, name, vertices):
 		self.name = name
@@ -468,7 +503,7 @@ class UWSActions(object):
 	def _buildTransitions(self, vertices):
 		self.transitions = {}
 		# set some defaults
-		for phase in [PENDING, QUEUED, EXECUTING, ERROR]:
+		for phase in [PENDING, QUEUED, EXECUTING, ERROR, ABORTED]:
 			self.transitions.setdefault(phase, {})[ERROR] = "flagError"
 			self.transitions.setdefault(phase, {})[DESTROYED] = "noOp"
 		for fromPhase, toPhase, methodName in vertices:

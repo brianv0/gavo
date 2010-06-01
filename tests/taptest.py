@@ -193,7 +193,7 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 					"LANG": "ADQL"}) as job:
 				jobId = job.jobId
 				self.assertEqual(job.phase, uws.PENDING)
-				job.changeToPhase(uws.EXECUTING, None)
+				job.changeToPhase(uws.QUEUED, None)
 
 			# let things run, but bail out if nothing happens 
 			for i in range(70):
@@ -207,7 +207,8 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 
 			with uws.UWSJob.makeFromId(jobId) as job:
 				self.assertEqual(job.phase, uws.COMPLETED)
-				result = open(job.getResultName()).read()
+				result = open(os.path.join(job.getWD(), 
+					job.getResults()[0]["resultName"])).read()
 
 		finally:
 			if jobId is not None:
