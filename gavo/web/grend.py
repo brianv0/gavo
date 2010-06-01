@@ -123,6 +123,8 @@ class GavoRenderMixin(common.CommonRenderers):
 	has a service attribute that's enough of a service (i.e., carries meta
 	and knows how to generate URLs).
 	"""
+	_sidebar = svcs.loadSystemTemplate("sidebar.html")
+
 	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False, 
 			metaCarrier=None):
 		try:
@@ -149,6 +151,27 @@ class GavoRenderMixin(common.CommonRenderers):
 		except Exception, ex:
 			return T.comment["Meta %s bad (%s)"%(metaKey, str(ex))]
 
+	def data_serviceURL(self, renderer):
+		"""returns a relative URL for this service using the renderer.
+
+		This is ususally used like this:
+
+		<a><n:attr name="href" n:data="serviceURL info" n:render="data">x</a>
+		"""
+		def get(ctx, data):
+			return self.service.getURL(renderer, absolute="False")
+		return get
+
+	def data_rdId(self, ctx, data):
+		return self.service.rd.sourceId
+
+	def data_meta(self, metaName):
+		"""returns the value for the meta key metaName on this service.
+		"""
+		def get(ctx, data):
+			return self.service.getMeta(metaName)
+		return get
+		
 	def render_meta(self, ctx, data):
 		return self._doRenderMeta(ctx, plain=True)
 	
@@ -234,75 +257,11 @@ class GavoRenderMixin(common.CommonRenderers):
 		return ctx.tag[T.a(href=str(targetURL))[
 			anchorText]]
 
-	def getSidebar(self, ctx):
-# XXX TODO: get this from disk soon.
-		res = T.div(id="sidebar")[
-				T.div(class_="sidebaritem")[
-					T.a(href="/", render=T.directive("rootlink"))[
-						T.img(src="/builtin/img/logo_medium.png", class_="silentlink",
-							render=T.directive("rootlink"), alt="[Gavo logo]")],
-				],
-				T.a(href="#body", class_="invisible")["Skip Header"],
-				T.div(class_="sidebaritem")[
-					T.p[T.a(href="/builtin/help.shtml")["Help"]],
-					T.p(render=T.directive("authinfo")),
-					T.p[T.a(href=self.service.getURL("info", absolute=False))[
-						"Service info"]],
-				],
-				T.div(render=T.directive("ifdata"), class_="sidebaritem",
-					data=self.service.getMeta("_related"))[
-					T.h3["Related"],
-					T.invisible(render=T.directive("metahtml"))["_related"],
-				],
-				T.div(class_="sidebaritem")[
-					T.h3["Metadata"],
-					T.invisible(title="News",
-						render=T.directive("explodableMeta"))["_news"],
-					T.invisible(
-						render=T.directive("explodableMeta"))["description"],
-					T.invisible(title="Keywords",
-						render=T.directive("explodableMeta"))["subject"],
-					T.invisible(
-						render=T.directive("explodableMeta"))["creator"],
-					T.invisible(title="Created",
-						render=T.directive("explodableMeta"))["creationDate"],
-					T.invisible(title="Data updated",
-						render=T.directive("explodableMeta"))["dateUpdated"],
-					T.invisible(
-						render=T.directive("explodableMeta"))["copyright"],
-					T.invisible(
-						render=T.directive("explodableMeta"))["source"],
-					T.invisible(title="Reference URL",
-						render=T.directive("explodableMeta"))["referenceURL"],
-				],
-				T.div(class_="sidebaritem", style="font-size: 90%; padding-top:10px;"
-					" border-top: 1px solid grey; margin-top:40px")[
-						"Try ",
-						T.a(href="/__system__/adql/query/form")["ADQL"],
-						" to query our data."],
-				T.div(class_="sidebaritem", style="font-size: 62%; padding-top:5px;"
-						" border-top: 1px solid grey; margin-top:10px;")[
-					T.p(class_="breakable")["Please report errors and problems to ",
-						T.a(href="mailto:gavo.ari.uni-heidelberg.de")["GAVO staff"],
-						".  Thanks."],
-					T.p[T.a(href="/static/doc/privpol.shtml", 
-							render=T.directive("rootlink"))["Privacy"],
-						" | ",
-						T.a(href="/static/doc/disclaimer.shtml",
-							render=T.directive("rootlink"))["Disclaimer"],],],
-			]
-		if inevow.IRequest(ctx).getUser()=="gavoadmin":
-			res[
-				T.hr,
-				T.a(href=base.makeSitePath("seffe/%s"%self.service.rd.sourceId))[
-					"Admin me"]]
-		return res
-
 	def render_withsidebar(self, ctx, data):
 		oldChildren = ctx.tag.children
 		ctx.tag.children = []
 		return ctx.tag(class_="container")[
-			self.getSidebar(ctx),
+			self._sidebar,
 			T.div(id="body")[
 				T.a(name="body"),
 				oldChildren

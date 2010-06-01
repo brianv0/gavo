@@ -16,8 +16,6 @@ import urllib
 import urlparse
 
 
-import pkg_resources
-
 from nevow import context
 from nevow import flat
 from nevow import inevow

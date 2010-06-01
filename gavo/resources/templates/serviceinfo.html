@@ -7,16 +7,13 @@
 		<n:invisible n:render="commonhead"/>
   </head>
 	<body n:render="withsidebar">
-		<div id="wrapuseservice">
-			<div id="useservice" n:data="browserURL" n:render="ifdata">
-				<form method="GET">
-					<n:attr name="action" n:render="string"/>
-					<button class="largebutton" border="2"><img src="/builtin/img/Webform2-s.png" align="left" height="40px" style="margin-top: 0px;"/><div style="margin-top: 2px">Use this service<br/> from your browser</div></button>
-				<!-- 
-				<input type="submit" class="largebutton"
-					value="Use this service from your browser"/>
-				-->
-				</form>
+		<div class="wrapuseservice">
+			<div class="useservice" n:data="browserURL" n:render="ifdata">
+				<a>
+					<n:attr name="href" n:render="string"/>
+					<img src="/builtin/img/usesvcbutton.png" class="silentlink"
+						alt="[Use this service from your browser]"/>
+				</a>
 				<p>Further access options are discussed <a href="#overview">below</a></p>
 			</div>
 		</div>

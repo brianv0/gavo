@@ -1,0 +1,45 @@
+<!-- a template for the sidebar on the GAVO DC.  
+Use renderers from grend.GavoRenderMixin here -->
+<div id="sidebar" 
+		xmlns:n="http://nevow.com/ns/nevow/0.1" 
+		xmlns="http://www.w3.org/1999/xhtml">
+	<div class="sidebaritem">
+		<a href="/" n:render="rootlink">
+			<img src="/builtin/img/logo_medium.png" class="silentlink"
+					n:render="rootlink" alt="[Gavo logo]"/></a>
+		<a href="#body" class="invisible">Skip Header</a></div>
+	<div class="sidebaritem">
+		<div class="navimainitem" onclick="followEmbeddedLink(this)">
+			<a href="/builtin/help.shtml">Help</a></div>
+		<div class="navimainitem" onclick="followEmbeddedLink(this)">
+			<a><n:attr name="href" n:data="serviceURL info" n:render="string"/>
+				Service info</a></div>
+	<div n:render="ifdata" class="sidebaritem" n:data="meta _related">
+		<h3>Related</h3>
+		<n:invisible n:render="metahtml">_related</n:invisible></div>
+	<div class="sidebaritem">
+		<h3>Metadata</h3>
+		<n:invisible title="News" n:render="explodableMeta">_news</n:invisible>
+		<n:invisible n:render="explodableMeta">description</n:invisible>
+		<n:invisible title="Keywords" n:render="explodableMeta">subject</n:invisible>
+		<n:invisible n:render="explodableMeta">creator</n:invisible>
+		<n:invisible title="Created" n:render="explodableMeta">creationDate</n:invisible>
+		<n:invisible title="Data updated" n:render="explodableMeta">dateUpdated</n:invisible>
+		<n:invisible n:render="explodableMeta">copyright</n:invisible>
+		<n:invisible n:render="explodableMeta">source</n:invisible>
+		<n:invisible title="Reference URL" n:render="explodableMeta">referenceURL</n:invisible></div>
+	<div class="sidebarnote">
+		<a href="/adql">Try ADQL</a> to query our data.</div>
+	<div class="sidebarmicro">
+		<p class="breakable">Please report errors and problems to 
+			<a href="mailto:gavo.ari.uni-heidelberg.de">GAVO staff</a>.
+			Thanks.</p>
+		<p><a href="/static/doc/privpol.shtml" n:render="rootlink">Privacy</a> | 
+			<a href="/static/doc/disclaimer.shtml" 
+				n:render="rootlink">Disclaimer</a></p>
+		<p n:render="authinfo"/></div>
+	<n:invisible n:render="ifadmin"><hr/>
+	<a>
+		<n:attr name="href" n:render="rootlink">/seffe/<n:invisible n:data="rdId" n:render="string"/></n:attr>
+					Admin me</a></n:invisible></div>
+</div>

@@ -180,6 +180,11 @@ function expandMeta(box) {
 	parent.style.width = expandedMetaWidth;
 }
 
+function followEmbeddedLink(element) {
+// forwards the browser to the first child's href.
+// this is for the button-type decoration around links.
+	window.location = element.firstChild.href;
+}
 
 ///////////// Functions dealing with the output format widget
 // This incredibly verbose crap hides and shows widgets selecting aspects
@@ -192,7 +197,7 @@ function expandMeta(box) {
 //    displayed
 //  * a form element calling output_broadcast(this.value) on a change
 //
-//  In the DC, the static QueryMeta method getOutputWidget cares for this.
+//  In the DC, the static QueryMeta method getOutputWidget worries about this.
 
 
 function output_BussedElement(domNode, id, visibleFor) {

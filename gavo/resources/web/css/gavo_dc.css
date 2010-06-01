@@ -24,38 +24,23 @@ div.metadescription {
 	padding-bottom: 5px;
 }
 
-div#wrapuseservice {
+.wrapuseservice {
 	float: right;
 	background: white;
 	width: 240px;
 }
 
-div#useservice {
-	float: right;
+.useservice p {
+	margin-bottom: 0px;
+}
+
+.useservice {
 	background: white;
 	width: 200px;
-	padding-left: 10px;
-	padding-right: 10px;
-	padding-top: 10px;
-	background: #D2DCF0; /* #F0F4FF; */
-}
-
-input.largebutton {
-	width: 200px;
-	font-size: 14pt;
-	text-align:center;
-	white-space:normal;
-}
-
-.largebutton {
-	width: 100%;
-	height: 50px;
-	font-size: normal;
-	text-align:center;
-	white-space:normal;
-	background: url(/builtin/img/red.png);
-	border: 1px solid silver;*/
-	cursor: pointer; 
+	padding: 1ex;
+	background: #D2DCF0;
+	margin-bottom: 2ex;
+	margin-left: 2ex;
 }
 
 p.attribution {
@@ -313,6 +298,26 @@ div#sidebar {
 	padding: 1px;
 }
 
+.sidebaritem {
+	margin-bottom:15px;	/* 5px */
+	position: relative;
+	z-index:10;
+}
+
+.sidebarnote {
+	font-size: 90%; 
+	padding-top:2ex;
+	border-top: 1px solid grey; 
+	margin-top:4ex;
+}
+
+.sidebarmicro {
+	font-size: 62%; 
+	padding-top:2ex;
+	border-top: 1px solid grey; 
+	margin-top:3ex;
+}
+
 div#body {
 	min-width: 450px;
 	width: 80%;
@@ -321,12 +326,6 @@ div#body {
 	padding-left: 10px;
 	float:left;
 	background:white;
-}
-
-.sidebaritem {
-	margin-bottom:15px;	/* 5px */
-	position: relative;
-	z-index:10;
 }
 
 .metaEnum {
@@ -389,17 +388,7 @@ div.exploBody {
 	margin-bottom: 10px;
 } 
 
-.sidebaritem div.navimainitem_here {
-	background: url(/builtin/img/blue-s.png);
-	border: 1px solid silver;
-	margin: 5px;
-	padding: 2px;
-	text-align: center;
-	margin-bottom: 10px;
-
-}
-
-.sidebaritem a.button {
+div.navimainitem a {
 	text-decoration: none;
 	color: #042e74;
 }
