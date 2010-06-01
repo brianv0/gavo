@@ -117,6 +117,8 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		# real dateUpdated is set by getRD, this is just for RDs created
 		# on the fly.
 		self.dateUpdated = datetime.datetime.utcnow()
+		# this is for modified-since and friends.
+		self.loadedAt = time.time()
 
 	def __iter__(self):
 		return iter(self.dds)

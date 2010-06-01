@@ -52,7 +52,8 @@ class CacheItemBuilder(object):
 class CachedPage(rend.Page):
 	def __init__(self, content, headers, changeStamp):
 		self.content, self.headers = content, headers
-		self.headers["x-cache-creation"] = str(time.time())
+		self.creationStamp = time.time()
+		self.headers["x-cache-creation"] = str(self.creationStamp)
 		self.changeStamp = changeStamp
 
 	def renderHTTP(self, ctx):

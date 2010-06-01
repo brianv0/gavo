@@ -7,6 +7,7 @@ import time
 
 import pkg_resources
 from nevow import inevow
+from nevow import loaders
 from nevow import rend
 from nevow import static
 from nevow import url
@@ -109,6 +110,21 @@ def _replaceConfigStrings(srcPath, registry):
 	return src.encode("utf-8")
 
 
+class TemplatedPage(rend.Page, grend.GavoRenderMixin):
+	def __init__(self, docFactory):
+		self.docFactory = docFactory
+		self.service = base.caches.getRD(registry.SERVICELIST_ID
+			).getById("root")
+		rend.Page.__init__(self)
+
+
+def expandTemplate(fName, request):
+	"""renders fName as a template on the root service.
+	"""
+	return TemplatedPage(loaders.xmlfile(fName))
+
+
+
 class StaticFile(rend.Page):
 	"""a file from the file system, served pretty directly.
 
@@ -118,18 +134,18 @@ class StaticFile(rend.Page):
 	The cache is bound to the servicelist RD ID and thus will be cleared
 	on a server reload.
 	"""
-	mimesByExt = static.loadMimeTypes()
 	defaultType = "application/octet-stream"
-	startedAt = time.time()
 
-	magicMimes = {}
+	magicMimes = {
+		"text/nevow-template": expandTemplate,
+	}
 
 	def __init__(self, fName):
 		self.fName = fName
 
 	def getMimeType(self):
 		ext = os.path.splitext(self.fName)[-1]
-		return self.mimesByExt.get(ext, self.defaultType)
+		return static.File.contentTypes.get(ext, self.defaultType)
 
 	def renderPlain(self, request):
 		static.FileTransfer(
@@ -137,17 +153,21 @@ class StaticFile(rend.Page):
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
-		if request.setLastModified(
-				max(self.startedAt, os.path.getmtime(self.fName))) is http.CACHED:
+		rd = base.caches.getRD(registry.SERVICELIST_ID)
+
+		modStamp = max(rd.loadedAt, os.path.getmtime(self.fName))
+		if request.setLastModified(modStamp) is http.CACHED:
 			return ''
-		cache = base.caches.getPageCache(registry.SERVICELIST_ID)
-		if self.fName in cache:
-			return cache[segments]
+		cache = base.caches.getPageCache(rd.sourceId)
+		cachedRes = cache.get(self.fName)
+		if cachedRes is not None and cachedRes.creationStamp>modStamp:
+			return cachedRes
 		caching.instrumentRequestForCaching(request,
 			caching.enterIntoCacheAs(self.fName, cache))
+
 		mime = self.getMimeType()
 		if mime in self.magicMimes:
-			self.magicMimes[mime](request)
+			return self.magicMimes[mime](self.fName, request)
 		else:
 			request.setHeader("content-type", mime)
 			self.renderPlain(request)

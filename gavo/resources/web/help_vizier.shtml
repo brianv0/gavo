@@ -1,12 +1,11 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
 	"http://www.w3.org/TR/html4/loose.dtd">
-<html>
-<head>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:n="http://nevow.com/ns/nevow/0.1">
+<head n:render="commonhead">
 <title>Help: Vizier-like expressions</title>
-<link rel="stylesheet" type="text/css"
-	href="/static/css/gavo_dc.css"/>
 </head>
-<body>
+<body n:render="withsidebar">
 <h1>Help on Vizier-like expressions</h1>
 <p>The GAVO archive supports search expressions modelled after <a href="http://vizier.u-strasbg.fr/cgi-bin/Help?VizieR/syntax">what 
 CDS' Vizier service provides</a>.  Our implementation is not yet complete. 
@@ -50,14 +49,14 @@ equal to their operands.</li>
 
 <h3>Grammar</h3>
 <p>For those into such things, here is the grammar we currently use to parse
-numeric expressions (the base nonterminal is expr).
+numeric expressions (the base nonterminal is expr).</p>
 
 <pre>
-	preOp    ::= "=" |  ">=" | ">" | "<=" | "<"
+	preOp    ::= "=" |  ">=" | ">" | "&lt;=" | "&lt;"
 	rangeOp  ::= ".."
 	pmOp     ::= "+/-" | "\xb1"  (this is the &#xb1; character)
 	orOp     ::= "|"
-	andOp    ::= "&"
+	andOp    ::= "&amp;"
 	notOp    ::= "!"
 	commaOp  ::= ","
 
@@ -83,7 +82,7 @@ numeric expressions (the base nonterminal is expr).
 except that the "error" in expressions with +/- is a simple float.  Dates
 are given in ISO format, i.e., YYYY-MM-DD or YYYY-MM-DDTHH-MM-SS.  Times
 without dates are not yet supported.  Note that a date without a time
-is interpreted as 00:00 of that day, so an expression like "<= 2006-10-06" 
+is interpreted as 00:00 of that day, so an expression like "&lt;= 2006-10-06" 
 will <em>not</em> match anything that has a time and is on Oct 6, 2006.</p>
 
 <h3>Examples</h3>
@@ -91,7 +90,7 @@ will <em>not</em> match anything that has a time and is on Oct 6, 2006.</p>
 <p>See also the examples for <a href="#float">numeric expressions</a>.</p>
 
 <ul>
-<li><code><2003-04-06</code> -- select values earlier than 
+<li><code>&lt;2003-04-06</code> -- select values earlier than 
 April 6th, 2003.</li>
 <li><code>2003-04-06 +/- 4</code> -- select values four days around 
 April 6th, 2003.</li>
@@ -217,7 +216,7 @@ matching the pattern x in the sample (in this case , only x and X would match).<
 work for all other metacharacters as well.</li>
 <li><code>=~m4</code> matches nothing, because the pattern has to match the
 <em>entire</em> string, and all strings in the sample have some annexes to
-their variations of m4.</code>
+their variations of m4.</li>
 <li><code>M*</code> only matches "M*" since the default on our system is
 literal matching.  This expression would have behaved completely differently on
 Vizier.</li>
@@ -227,7 +226,7 @@ Vizier.</li>
 
 <p>The following grammar describes the parsing of string expressions:</p>
 <pre>
-	simpleOperator   ::= "==" | "!=" | ">=" | ">" | "<=" | "<"
+	simpleOperator   ::= "==" | "!=" | ">=" | ">" | "&lt;=" | "&lt;"
 	simpleOperand    ::= Regex(".*")
 	simpleExpr       ::= simpleOperator + simpleOperand
 	

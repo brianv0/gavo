@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
 	"http://www.w3.org/TR/html4/loose.dtd">
-<html>
-<head>
+<html xmlns:n='http://nevow.com/ns/nevow/0.1'
+	xmlns="http://www.w3.org/1999/xhtml">
+<head n:render="commonhead">
 <title>GAVO Data Center -- Interface Documentation</title>
-<link rel="stylesheet" type="text/css"
-	href="/static/css/gavo_dc.css"/>
 </head>
-<body>
+<body n:render="withsidebar">
 <h1>The GAVO Data Center</h1>
 <p>This document is the main documentation index for users of the
 GAVO Data Center (GDC).</p>
@@ -46,17 +45,17 @@ a <a href="http://nvo.stsci.edu/voregistry/index.aspx">Virtual Observatory regis
 consist of a series of input fields that either take</p>
 <ul>
 <li>numeric expressions -- you can recognize those from the little "[?num. expr.]" tag 
-behind them.  In addition to raw numbers, you can enter <a href="/static/help_vizier.shtml#floats">Vizier-like numeric expressions</a> here.</li>
+behind them.  In addition to raw numbers, you can enter <a href="/static/help_vizier.shtml#floats" n:render="rootlink">Vizier-like numeric expressions</a> here.</li>
 <li>string expressions -- these have a little "[?char expr.]" tag and
 by default match using patterns, evaluating metacharacters like * or ?
 much like you may know from file name patterns.  To force literal matching,
-prepend your strings with ==.  <a href="/static/help_vizier.shtml#strings">Other operators available for string expressions</a> include
+prepend your strings with ==.  <a href="/static/help_vizier.shtml#strings" n:render="rootlink">Other operators available for string expressions</a> include
 caseless matching, string comparisons, or negation.</li>
 <li>date expressions -- these are marked with "[?date expr.]" tags.  Dates must
 be given in the ISO format (YYYY-MM-DD).  Among the more useful of the
-<a href="/static/help_vizier.shtml#dates">supported operators</a>
+<a href="/static/help_vizier.shtml#dates" n:render="rootlink">supported operators</a>
 is the range -- you can say 2004-01-02 .. 2005-05-01 to specify a range of
-dates between Jan 2nd, 2004 and May 1st, 2005.</p>
+dates between Jan 2nd, 2004 and May 1st, 2005.</li>
 <li>Selection boxes -- these are either drop down, in which case you can only 
 select one entry, or open boxes you can select more than one entry in,
 usually (depending on your user interface) using control-click.</li>
@@ -169,7 +168,7 @@ imposed on the run time of the queries on the server (of the order 10
 seconds).</p>
 
 <p>You can usually increase the timeout by generating a link to your query
-(see "Result link" above) and appending <tt>"&_TIMEOUT=100</tt> (or whatever
+(see "Result link" above) and appending <tt>"&amp;_TIMEOUT=100</tt> (or whatever
 number of seconds suits you) to the URL.  The ADQL form has an input field
 that does just this.</p>
 

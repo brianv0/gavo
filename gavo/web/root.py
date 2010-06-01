@@ -39,6 +39,8 @@ from gavo.svcs import Error, UnknownURI, ForbiddenURI, WebRedirect, BadMethod, A
 static.File.contentTypes[".ascii"] = "application/octet-stream"
 static.File.contentTypes[".vot"] = "application/x-votable+xml"
 static.File.contentTypes[".rd"] = "application/x-gavo-descriptor+xml"
+# this one is for co-operation with ifpages
+static.File.contentTypes[".shtml"] = "text/nevow-template"
 
 
 class VanityLineError(Error):

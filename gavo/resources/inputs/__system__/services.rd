@@ -3,6 +3,9 @@
 <resource resdir="__system">
 	<schema>public</schema>
 	<meta name="creationDate">2007-11-22T13:02:00Z</meta>
+	<meta name="description">The GAVO data center is a collection of
+		services providing astronomical and related data on behalf of
+		the German Astronomical Observatory.</meta>
 
 	<!-- Tables related to services. 
 	These have to match whatever is done in gavo.web.servicelist -->
@@ -202,8 +205,8 @@
 	<nullCore id="null"/>
 
 	<service id="root" core="null" allowed="fixed">
-		<meta name="description">The root page, vanity-named to /</meta>
 		<template key="fixed">//root.html</template>
+		<meta name="title">The GAVO Data Center</meta>
 		<customDF name="chunkedServiceList">
 			return base.caches.getChunkedServiceList("\RDid")
 		</customDF>
@@ -222,6 +225,7 @@
 	<!-- Temporary thing to experiment with root sidebar, remove later -->
 	<service id="sroot" core="null" allowed="fixed">
 		<template key="fixed">//root-sidebar.html</template>
+		<meta name="title">The GAVO Data Center</meta>
 		<customDF name="chunkedServiceList">
 			return base.caches.getChunkedServiceList("\RDid")
 		</customDF>

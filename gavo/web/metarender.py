@@ -79,6 +79,12 @@ class RendExplainer(object):
 			T.a(href=service.getURL("form"))["HTML form"]]
 
 	@classmethod
+	def _explain_fixed(cls, service):
+		return T.invisible["a ",
+			T.a(href=service.getURL("fixed"))["custom page"],
+			", possibly with dynamic content"]
+	
+	@classmethod
 	def _explain_soap(cls, service):
 
 		def generateArguments():
@@ -117,10 +123,7 @@ class RendExplainer(object):
 		return T.invisible["static (i.e. prepared) data or custom client-side"
 			" code; probably used to access ancillary files here"]
 
-	@classmethod
-	def _explain_fixed(cls, service):
-		return T.invisible["a custom page, possibly with dynamic content"]
-	
+
 	@classmethod
 	def _explain_text(cls, service):
 		return T.invisible["a text interface not intended for user"
