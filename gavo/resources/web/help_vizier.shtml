@@ -4,7 +4,7 @@
 <head>
 <title>Help: Vizier-like expressions</title>
 <link rel="stylesheet" type="text/css"
-	href="__site_path__/builtin/css/gavo_dc.css"/>
+	href="/static/css/gavo_dc.css"/>
 </head>
 <body>
 <h1>Help on Vizier-like expressions</h1>

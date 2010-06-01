@@ -427,7 +427,7 @@ class FormMixin(formal.ResourceMixin, object):
 				" ",
 				T.a(href="", class_="resultlink", onmouseover=
 						"this.href=makeBookmarkLink(getEnclosingForm(this))")[
-					T.img(src=base.makeSitePath("/builtin/img/bookmark.png"), 
+					T.img(src=base.makeSitePath("/static/img/bookmark.png"), 
 						class_="silentlink", title="Link to this form", alt="[bookmark]")
 				],
 			]

@@ -313,9 +313,7 @@ class ArchiveService(rend.Page):
 
 ArchiveService.addStatic("login", makeDynamicPage(ifpages.LoginPage))
 ArchiveService.addStatic("reload", makeDynamicPage(ifpages.ReloadPage))
-# TODO: unify static and builtin
 ArchiveService.addStatic("static", ifpages.StaticServer())
-ArchiveService.addStatic("builtin", ifpages.BuiltinServer())
 
 ArchiveService.addStatic('formal.css', formal.defaultCSS)
 ArchiveService.addStatic('js', formal.formsJS)

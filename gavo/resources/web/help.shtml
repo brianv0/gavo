@@ -5,7 +5,7 @@
 <head>
 <title>GAVO Data Center -- Interface Documentation</title>
 <link rel="stylesheet" type="text/css"
-	href="__site_path__builtin/css/gavo_dc.css"/>
+	href="/static/css/gavo_dc.css"/>
 </head>
 <body>
 <h1>The GAVO Data Center</h1>
@@ -46,15 +46,15 @@ a <a href="http://nvo.stsci.edu/voregistry/index.aspx">Virtual Observatory regis
 consist of a series of input fields that either take</p>
 <ul>
 <li>numeric expressions -- you can recognize those from the little "[?num. expr.]" tag 
-behind them.  In addition to raw numbers, you can enter <a href="__site_path__builtin/help_vizier.shtml#floats">Vizier-like numeric expressions</a> here.</li>
+behind them.  In addition to raw numbers, you can enter <a href="/static/help_vizier.shtml#floats">Vizier-like numeric expressions</a> here.</li>
 <li>string expressions -- these have a little "[?char expr.]" tag and
 by default match using patterns, evaluating metacharacters like * or ?
 much like you may know from file name patterns.  To force literal matching,
-prepend your strings with ==.  <a href="__site_path__builtin/help_vizier.shtml#strings">Other operators available for string expressions</a> include
+prepend your strings with ==.  <a href="/static/help_vizier.shtml#strings">Other operators available for string expressions</a> include
 caseless matching, string comparisons, or negation.</li>
 <li>date expressions -- these are marked with "[?date expr.]" tags.  Dates must
 be given in the ISO format (YYYY-MM-DD).  Among the more useful of the
-<a href="__site_path__builtin/help_vizier.shtml#dates">supported operators</a>
+<a href="/static/help_vizier.shtml#dates">supported operators</a>
 is the range -- you can say 2004-01-02 .. 2005-05-01 to specify a range of
 dates between Jan 2nd, 2004 and May 1st, 2005.</p>
 <li>Selection boxes -- these are either drop down, in which case you can only 
@@ -125,7 +125,7 @@ this to send a query result to colleagues, but it is particularly useful with
 the VOTable output format -- you can drag and drop that link into Topcat's
 "Open" dialogue or use it together with S&eacute;bastien Derriere's <a href="http://astro.u-strasbg.fr/~derriere/PLASTIC/">PLASTIC extension for firefox</a>.</p>
 
-<p>The star (<img src="__site_path__builtin/img/bookmark.png"/>) lets you
+<p>The star (<img src="/static/img/bookmark.png"/>) lets you
 bookmark the current form -- it is basically like the result link but
 doesn't actually perform the query.  This should come in handy to store
 and communicate preset queries.</p>
@@ -154,7 +154,7 @@ table.  This will result in a new query form that has all fields allowing
 expressions filled out with the ranges encountered for the result set
 you selected.  You can edit this query as usual.  To tell the system you do 
 not want a certain peroperty to be relevant for the feedback query, use the
-yellow clear buttons (<img src="__site_path__builtin/img/clearButton.png"/>)
+yellow clear buttons (<img src="/static/img/clearButton.png"/>)
 to clear the field.</p>
 
 <p>In effect, feedback queries provide a quick "find similar" facility

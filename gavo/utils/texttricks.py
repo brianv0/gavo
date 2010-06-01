@@ -482,6 +482,12 @@ def replaceXMLEntityRefs(unicodeString):
 	return entityrefPat.sub(_decodeEntityref, unicodeString)
 
 
+def ensureOneSlash(s):
+	"""returns s with exactly one trailing slash.
+	"""
+	return s.rstrip("/")+"/"
+
+
 def _test():
 	import doctest, texttricks
 	doctest.testmod(texttricks)

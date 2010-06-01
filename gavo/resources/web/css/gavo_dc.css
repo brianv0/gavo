@@ -380,7 +380,7 @@ div.exploBody {
 }
 
 .sidebaritem div.navimainitem {
-	background: url(/builtin/img/grey-s.png);
+	background: url(/static/img/grey-s.png);
 	border: 1px solid silver;
 	margin: 5px;
 	padding: 2px;

@@ -341,7 +341,7 @@ class StringFieldWithBlurb(widget.TextInput):
 		return T.span(style="white-space:nowrap")[
 			plainTag, 
 			T.img(onclick="document.getElementById('genForm-%s').value=''"%key,
-				src="/builtin/img/clearButton.png", alt="[clear]", 
+				src="/static/img/clearButton.png", alt="[clear]", 
 				title="Clear field", style="vertical-align:middle"),
 			" ",
 			T.span(class_="fieldlegend")[self.additionalMaterial]]
@@ -349,17 +349,17 @@ class StringFieldWithBlurb(widget.TextInput):
 
 class NumericExpressionField(StringFieldWithBlurb):
 	additionalMaterial = T.a(href=base.makeSitePath(
-			"/builtin/help_vizier.shtml#floats"))[
+			"/static/help_vizier.shtml#floats"))[
 		"[?num. expr.]"]
 
 class DateExpressionField(StringFieldWithBlurb):
 	additionalMaterial = T.a(href=base.makeSitePath(
-			"/builtin/help_vizier.shtml#dates"))[
+			"/static/help_vizier.shtml#dates"))[
 		"[?date expr.]"]
 
 class StringExpressionField(StringFieldWithBlurb):
 	additionalMaterial = T.a(href=base.makeSitePath(
-			"/builtin/help_vizier.shtml#string"))[
+			"/static/help_vizier.shtml#string"))[
 		"[?char expr.]"]
 
 

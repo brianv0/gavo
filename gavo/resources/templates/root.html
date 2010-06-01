@@ -58,7 +58,7 @@
   </head>
   <body>
 		<div id="header">
-			<img src="/builtin/img/logo_medium.png" alt="[GAVO logo]" 
+			<img src="/static/img/logo_medium.png" alt="[GAVO logo]" 
 				n:render="rootlink" class="logo"/>
 			<h1>The GAVO Data Center</h1>
 		</div>
@@ -72,7 +72,7 @@
 		are likely to hit a snag or two.  Please do 
 		<a href="mailto:gavo@ari.uni-heidelberg.de">contact us</a> if that
 		happens, we depend on your bug reports (and suggestions).  Also,
-		have a look at our <a href="/builtin/help.shtml">site help</a>.</p>
+		have a look at our <a href="/static/help.shtml">site help</a>.</p>
 		<p>Services marked with a [P] are password protected.  In most cases,
 		we will provide access data for these services on request.</p>
 		<hr/>
@@ -97,14 +97,14 @@
 						<span class="hbox">
 						<a class="linkicon">
 							<n:attr name="href"><n:slot name="referenceURL"/></n:attr>
-							<img src="/builtin/img/icon_info.png" 
+							<img src="/static/img/icon_info.png" 
 								alt="[Service information]"
 								title="Service information"/>
 							</a>
 						<n:invisible n:render="ifslot browseable">
 							<a class="linkicon">
 								<n:attr name="href"><n:slot name="accessURL"/></n:attr>
-								<img src="/builtin/img/icon_query.png" 
+								<img src="/static/img/icon_query.png" 
 									alt="[Use the service]"
 									title="Use the service"/>
 							</a>
@@ -128,14 +128,14 @@
 						<span class="hbox">
 						<a class="linkicon">
 							<n:attr name="href"><n:slot name="referenceURL"/></n:attr>
-							<img src="/builtin/img/icon_info.png" 
+							<img src="/static/img/icon_info.png" 
 								alt="[Service information]"
 								title="Service information"/>
 							</a>
 						<n:invisible n:render="ifslot browseable">
 							<a class="linkicon">
 								<n:attr name="href"><n:slot name="accessURL"/></n:attr>
-								<img src="/builtin/img/icon_query.png" 
+								<img src="/static/img/icon_query.png" 
 									alt="[Use the service]"
 									title="Use the service"/>
 							</a>

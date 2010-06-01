@@ -217,4 +217,5 @@ def getUtypes(ast, includeDMURI=False, suppressXtype=True):
 		utypes.append(("stc:"+utype, val))
 	if includeDMURI:
 		utypes.append(("stc:DataModel.URI", common.STCNamespace))
+	utypes.sort()
 	return utypes

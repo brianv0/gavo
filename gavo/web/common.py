@@ -133,12 +133,12 @@ class CommonRenderers(object):
 			T.link(rel="stylesheet", href=base.makeSitePath("/formal.css"), 
 				type="text/css"),
 			T.link(rel="stylesheet", href=base.makeSitePath(
-				"/builtin/css/gavo_dc.css"), type="text/css"),
+				"/static/css/gavo_dc.css"), type="text/css"),
 			T.script(src=base.getConfig("web", "mochiURL"),
 				type="text/javascript"),
 			T.script(type='text/javascript', src=base.makeSitePath(
 				'/js/formal.js')),
-			T.script(src=base.makeSitePath("/builtin/js/gavo.js"), 
+			T.script(src=base.makeSitePath("/static/js/gavo.js"), 
 				type="text/javascript"),
 			T.meta(**{"http-equiv": "Content-type", 
 				"content": "text/html;charset=UTF-8"}),

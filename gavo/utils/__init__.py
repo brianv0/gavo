@@ -46,4 +46,5 @@ from gavo.utils.texttricks import (formatSize, makeEllipsis, floatRE,
 	formatRFC2616Date, parseRFC2616Date,
 	fixIndentation, parsePercentExpression, hmsToDeg, dmsToDeg,
 	fracHoursToDeg, degToHms, degToDms, getRelativePath, parseAssignments, 
-	NameMap, formatSimpleTable, replaceXMLEntityRefs)
+	NameMap, formatSimpleTable, replaceXMLEntityRefs,
+	ensureOneSlash)

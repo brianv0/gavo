@@ -75,7 +75,7 @@ class NotFoundPage(ErrorPage):
 			T.invisible(render=T.directive("commonhead")),
 		],
 		T.body[
-			T.img(src="/builtin/img/logo_medium.png", style="position:absolute;"
+			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
 				"right:0pt"),
 			T.h1["Resource Not Found (404)"],
 			T.p["We're sorry, but the resource you requested could not be located."],
@@ -115,7 +115,7 @@ class ForbiddenPage(ErrorPage):
 				"p.errmsg {background-color: #cccccc;padding:5pt}"],
 		],
 		T.body[
-			T.img(src="/builtin/img/logo_medium.png", style="position:absolute;"
+			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
 				"right:0pt"),
 			T.h1["Access denied (403)"],
 			T.p["We're sorry, but the resource you requested is forbidden."],
@@ -146,7 +146,7 @@ class RedirectPage(ErrorPage):
 			T.invisible(render=T.directive("commonhead")),
 		],
 		T.body[
-			T.img(src="/builtin/img/logo_medium.png", style="position:absolute;"
+			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
 				"right:0pt"),
 			T.h1["Moved permanently (301)"],
 			T.p["The resource you requested is available from a ",
@@ -193,7 +193,7 @@ class BadMethodPage(ErrorPage):
 				"p.errmsg {background-color: #cccccc;padding:5pt}"],
 		],
 		T.body[
-			T.img(src="/builtin/img/logo_medium.png", style="position:absolute;"
+			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
 				"right:0pt"),
 			T.h1["Bad Method (405)"],
 			T.p["You just tried to use some HTTP method to access this resource"
@@ -277,7 +277,7 @@ class InternalServerErrorPage(ErrorPage):
 				"p.errmsg {background-color: #cccccc;padding:5pt}"],
 		],
 		T.body[
-			T.img(src="/builtin/img/logo_medium.png", style="position:absolute;"
+			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
 				"right:0pt"),
 			T.h1["Server Error (500)"],
 			T.p["Your action has caused a(n) ",

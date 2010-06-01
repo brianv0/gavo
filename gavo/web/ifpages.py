@@ -3,15 +3,20 @@ Infrastructure pages.
 """
 
 import os
+import time
 
+import pkg_resources
 from nevow import inevow
 from nevow import rend
 from nevow import static
 from nevow import url
-import pkg_resources
+from twisted.web import http
 
 from gavo import base
+from gavo import registry
 from gavo import svcs
+from gavo import utils
+from gavo.web import caching
 from gavo.web import common
 from gavo.web import grend
 
@@ -104,40 +109,80 @@ def _replaceConfigStrings(srcPath, registry):
 	return src.encode("utf-8")
 
 
-class StaticServer(static.File):
+class StaticFile(rend.Page):
+	"""a file from the file system, served pretty directly.
+
+	Since these really are static files that are not supposed to change
+	for e.g., admins, we can cache very aggressively.
+
+	The cache is bound to the servicelist RD ID and thus will be cleared
+	on a server reload.
+	"""
+	mimesByExt = static.loadMimeTypes()
+	defaultType = "application/octet-stream"
+	startedAt = time.time()
+
+	magicMimes = {}
+
+	def __init__(self, fName):
+		self.fName = fName
+
+	def getMimeType(self):
+		ext = os.path.splitext(self.fName)[-1]
+		return self.mimesByExt.get(ext, self.defaultType)
+
+	def renderPlain(self, request):
+		static.FileTransfer(
+			open(self.fName), os.path.getsize(self.fName), request)
+
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		if request.setLastModified(
+				max(self.startedAt, os.path.getmtime(self.fName))) is http.CACHED:
+			return ''
+		cache = base.caches.getPageCache(registry.SERVICELIST_ID)
+		if self.fName in cache:
+			return cache[segments]
+		caching.instrumentRequestForCaching(request,
+			caching.enterIntoCacheAs(self.fName, cache))
+		mime = self.getMimeType()
+		if mime in self.magicMimes:
+			self.magicMimes[mime](request)
+		else:
+			request.setHeader("content-type", mime)
+			self.renderPlain(request)
+		return request.deferred
+
+
+class StaticServer(rend.Page):
 	"""is a server for various static files.
 
-	There's only one hack in here: We register a processor for .shtml
-	files.  In them, certain strings are replaced with *site-global*
-	values.  That's a nasty hack that should be replaced with ordinary,
-	run-of-the-mill macros (or something like this).
+	This is basically like static.File, except
 
-	And this whole thing should be replaced with a static renderer on
-	a system service.
+	* we don't do directory listings
+	* we don't bother with ranges
+	* we look for each file in a user area and then in the system area.
 	"""
-	def __init__(self, *args, **kwargs):
-		if not args:
-			static.File.__init__(self, os.path.join(base.getConfig("webDir"), 
-				"nv_static"))
-		else:
-			static.File.__init__(self, *args, **kwargs)
+	def __init__(self):
+		rend.Page.__init__(self)
+		self.userPath = utils.ensureOneSlash(
+			os.path.join(base.getConfig("webDir"), "nv_static"))
+		self.systemPath = utils.ensureOneSlash(
+			pkg_resources.resource_filename('gavo', "resources/web"))
 
+	def renderHTTP(self, ctx):
+		raise svcs.UnknownURI("What did you expect here?")
+
+	def locateChild(self, ctx, segments):
+		relPath = "/".join(segments)
+		path = self.userPath+relPath
+		if os.path.exists(path):
+			return StaticFile(path), ()
+		path = self.systemPath+relPath
+		if os.path.exists(path):
+			return StaticFile(path), ()
+		raise svcs.UnknownURI("No matching file,"
+			" neither built-in nor user-provided")
 	processors = {
 		".shtml": _replaceConfigStrings,
 	}
-
-
-class BuiltinServer(StaticServer):
-	"""is a server for the built-in resources.
-
-	This works via setuptool's pkg_config; the built-in resources are in
-	gavo/resources in SVN.
-
-	This is pain.  see StaticServer
-	"""
-	builtinRoot = pkg_resources.resource_filename('gavo', "resources/web")
-	def __init__(self, *args, **kwargs):
-		if not args:
-			static.File.__init__(self, self.builtinRoot)
-		else:
-			static.File.__init__(self, *args, **kwargs)

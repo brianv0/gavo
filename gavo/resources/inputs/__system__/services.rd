@@ -193,7 +193,7 @@
 		<meta name="full">false</meta>
 		<meta name="maxRecords">10000</meta>
 		<meta name="managedAuthority">org.gavo.dc</meta>
-		<meta name="referenceURL">http://vo.uni-hd.de/builtin/help.shtml</meta>
+		<meta name="referenceURL">http://vo.uni-hd.de/static/help.shtml</meta>
 		<meta name="publisher">GAVO Data Center Team</meta>
 		<meta name="contact.name">GAVO Data Center Team</meta>
 		<meta name="contact.email">gavo@ari.uni-heidelberg.de</meta>
