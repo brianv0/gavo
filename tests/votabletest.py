@@ -285,7 +285,7 @@ class STCEmbedTest(testhelpers.VerboseTest):
 		table = _getTableWithSimpleSTC()
 		tx = votablewrite.getAsVOTable(table)
 		self.failUnless(
-			re.search('<GROUP [^>]*utype="stc:ObservationLocation"', tx))
+			re.search('<GROUP [^>]*utype="stc:CatalogEntryLocation"', tx))
 		self.failUnless(re.search('<PARAM [^>]*utype="stc:AstroCoo'
 			'rdSystem.SpaceFrame.CoordRefFrame"[^>]* value="ICRS"', tx))
 		self.failUnless(re.search('<FIELD[^>]* ID="alpha" ', tx))
@@ -338,7 +338,7 @@ class STCParseTest(testhelpers.VerboseTest):
 
 	def testWhackyUtypesIgnored(self):
 		vot = votable.readRaw(StringIO("""
-		<VOTABLE version="1.2"><RESOURCE><TABLE><GROUP ID="ll" utype="stc:ObservationLocation"><PARAM arraysize="*" datatype="char" utype="stc:AstroCoordSystem.SpaceFrame.CoordRefFrame" value="ICRS" /><PARAM arraysize="*" datatype="char" utype="stc:AstroCoordSystem.SpaceFrame.Megablast" value="ENABLED" /><FIELDref ref="alpha" utype="stc:AstroCoords.Position2D.Value2.C1" /><FIELDref ref="delta" utype="stc:AstroCoords.BlasterLocation" /></GROUP><FIELD ID="alpha" arraysize="1" datatype="float" name="alpha" unit="deg"/><FIELD ID="delta" arraysize="1" datatype="float" name="delta" unit="deg"/></TABLE></RESOURCE></VOTABLE>"""))
+		<VOTABLE version="1.2"><RESOURCE><TABLE><GROUP ID="ll" utype="stc:CatalogEntryLocation"><PARAM arraysize="*" datatype="char" utype="stc:AstroCoordSystem.SpaceFrame.CoordRefFrame" value="ICRS" /><PARAM arraysize="*" datatype="char" utype="stc:AstroCoordSystem.SpaceFrame.Megablast" value="ENABLED" /><FIELDref ref="alpha" utype="stc:AstroCoords.Position2D.Value2.C1" /><FIELDref ref="delta" utype="stc:AstroCoords.BlasterLocation" /></GROUP><FIELD ID="alpha" arraysize="1" datatype="float" name="alpha" unit="deg"/><FIELD ID="delta" arraysize="1" datatype="float" name="delta" unit="deg"/></TABLE></RESOURCE></VOTABLE>"""))
 		dddef = votableread.makeDDForVOTable("testTable", vot)
 		td = dddef.getPrimary()
 		self.assertEqual(

@@ -88,7 +88,7 @@ def unmarshal_STC(tableNode):
 	"""
 	columnsInfo = {}
 	for obsLocGroup in _getUtypedGroupsFromAny(tableNode, 
-			"stc:ObservationLocation"):
+			"stc:CatalogEntryLocation"):
 		utypes, colInfo = [], {}
 		for utype, value in _extractUtypes(obsLocGroup, stc.ColRef):
 			if isinstance(value, stc.ColRef):
@@ -112,7 +112,7 @@ def _makeUtypeContainer(utype, value, getIdFor):
 
 
 def marshal_STC(ast, getIdFor):
-	"""returns an stc:ObservationLocation group for ast.
+	"""returns an stc:CatalogEntryLocation group for ast.
 
 	ast is an AST object from GAVO's STC library.
 
@@ -123,6 +123,10 @@ def marshal_STC(ast, getIdFor):
 	the FIELDs (e.g. using utils.IdManagerMixin).  getIdFor must resolve
 	ColRefs (with column names in their dest) to unique ids.
 	"""
-	return V.GROUP(utype="stc:ObservationLocation")[
-		[_makeUtypeContainer(utype, value, getIdFor)
-			for utype, value in stc.getUtypes(ast, includeDMURI=True)]]
+	container = V.GROUP(utype="stc:CatalogEntryLocation")
+	for utype, value in stc.getUtypes(ast, includeDMURI=True):
+		try:
+			container[_makeUtypeContainer(utype, value, getIdFor)]
+		except KeyError:  # column referenced is not in result
+			pass
+	return container
