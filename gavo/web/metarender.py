@@ -65,7 +65,6 @@ class MetaRenderer(grend.ServiceBasedRenderer):
 		return render
 
 
-
 class RendExplainer(object):
 	"""is a container for various functions having to do with explaining
 	renderers on services.
@@ -279,6 +278,7 @@ class TableInfoRenderer(MetaRenderer):
 			# _retrieveTableDef did not run, i.e., no tableName was given
 			raise svcs.UnknownURI(
 				"You must provide a table name to this renderer.")
+		self.setMetaParent(self.table)
 		return super(TableInfoRenderer, self).renderHTTP(ctx)
 
 	def _retrieveTableDef(self, tableName):
@@ -304,45 +304,20 @@ class TableInfoRenderer(MetaRenderer):
 	def render_title(self, ctx, data):
 		return ctx.tag["Table information for '%s'"%self.tableName]
 	
-	def render_tablemeta(self, ctx, data):
-		return self._doRenderMeta(ctx, metaCarrier=self.table)
-
-	def render_iftablemeta(self, metaName):
-		if self.table.getMeta(metaName, propagate=False):
-			return lambda ctx, data: ctx.tag
-		else:
-			return lambda ctx, data: ""
-
-	def render_iftablemetap(self, metaName):
-		if self.table.getMeta(metaName, propagate=False):
-			return lambda ctx, data: ctx.tag
-		else:
-			return lambda ctx, data: ""
-
 	def render_rdmeta(self, ctx, data):
-		return self._doRenderMeta(ctx, metaCarrier=self.table.rd)
+		metaKey = ctx.tag.children[0]
+		ctx.tag.clear()
+		htmlBuilder = common.HTMLMetaBuilder(self.rd)
+		try:
+			return ctx.tag[T.xml(self.rd.buildRepr(metaKey, htmlBuilder))]
+		except base.NoMetaKey:
+			return ""
 
 	def render_ifrdmeta(self, metaName):
 		if self.table.rd.getMeta(metaName, propagate=False):
 			return lambda ctx, data: ctx.tag
 		else:
 			return lambda ctx, data: ""
-
-	# overridden to insert table instead of the service as the thing to take
-	# metadata from.
-	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False, 
-			metaCarrier=None):
-		if not metaCarrier:
-			metaCarrier = self.table
-		res = grend.ServiceBasedRenderer._doRenderMeta(
-			self, ctx, raiseOnFail, plain, metaCarrier)
-		return res
-
-	def render_ifmeta(self, metaName, metaCarrier=None):
-		if metaCarrier is None:
-			metaCarrier = self.table
-		return grend.ServiceBasedRenderer._doRenderMeta(
-			self, metaName, metaCarrier)
 
 	def locateChild(self, ctx, segments):
 		if len(segments)!=1:
@@ -382,6 +357,7 @@ class TableNoteRenderer(MetaRenderer):
 	def _retrieveNote(self, tableName, noteTag):
 		try:
 			table = registry.getTableDef(tableName)
+			self.setMetaParent(table)
 			self.noteHTML = table.getNote(noteTag
 				).getContent(targetFormat="html")
 		except base.NotFoundError, msg:

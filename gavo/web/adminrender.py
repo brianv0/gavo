@@ -100,10 +100,6 @@ class AdminRenderer(formal.ResourceMixin, grend.ServiceBasedRenderer):
 	def render_rdId(self, ctx, data):
 		return ctx.tag[self.clientRD.sourceId]
 
-	def render_ifmeta(self, metaName):
-		return grend.GavoRenderMixin.render_ifmeta(self, metaName,
-			metaCarrier=self.clientRD)
-
 	def render_ifexc(self, ctx, data):
 		"""render children if there was an exception during RD load.
 		"""
@@ -118,9 +114,6 @@ class AdminRenderer(formal.ResourceMixin, grend.ServiceBasedRenderer):
 	def render_traceback(self, ctx, data):
 		return ctx.tag[self.reloadTB]
 
-	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False):
-		return grend.GavoRenderMixin._doRenderMeta(self, ctx, raiseOnFail,
-			plain, self.clientRD)
 
 	def renderHTTP(self, ctx):
 		# naked renderer means admin services itself
@@ -136,10 +129,14 @@ class AdminRenderer(formal.ResourceMixin, grend.ServiceBasedRenderer):
 		self.reloadExc = value
 		self.reloadTB = traceback.format_exc()
 
+	# the locateChild here is actually the constructor, as it were --
+	# each request gets a new AdminRender by web.root
 	def locateChild(self, ctx, segments):
 		rdId = "/".join(segments)
 		try:
 			self.clientRD = base.caches.getRD(rdId)
+			self.setMetaParent(self.clientRD)
+			self.macroPackage = self.clientRD
 		except base.RDNotFound:
 			raise svcs.UnknownURI("No such resource descriptor: %s"%rdId)
 		except Exception, ex: # RD is botched.  Clear cache and give an error

@@ -153,7 +153,7 @@ tag_embed = T.Proto("embed")
 tag_noembed = T.Proto("noembed")
 
 
-class VOPlotResponse(ServiceResource, grend.GavoRenderMixin):
+class VOPlotResponse(ServiceResource):
 	"""returns a page embedding the VOPlot applet.
 	"""
 	def renderHTTP(self, ctx):

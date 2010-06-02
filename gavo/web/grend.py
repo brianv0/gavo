@@ -104,10 +104,7 @@ class CustomErrorMixin(object):
 		return self.renderHTTP_exception(ctx, failure)
 
 
-_htmlMetaBuilder = common.HTMLMetaBuilder()
-
-
-class GavoRenderMixin(common.CommonRenderers):
+class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 	"""is a mixin with renderers useful throughout the data center.
 
 	Rendering of meta information:
@@ -125,24 +122,26 @@ class GavoRenderMixin(common.CommonRenderers):
 	"""
 	_sidebar = svcs.loadSystemTemplate("sidebar.html")
 
-	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False, 
-			metaCarrier=None):
+	# macro package to use when expanding macros.  Just set this
+	# in the constructor as necessary (ServiceBasedRenderer has the
+	# service here)
+	macroPackage = None
+
+	def _initGavoRender(self):
+		# call this to initialize this mixin.
+		base.MetaMixin.__init__(self)
+
+	def _doRenderMeta(self, ctx, raiseOnFail=False, plain=False):
 		try:
-			if not metaCarrier:
-				metaCarrier = self.service
-			if isinstance(metaCarrier, rscdef.MacroPackage):
-				htmlBuilder = common.HTMLMetaBuilder(metaCarrier)
-			else:
-				htmlBuilder = _htmlMetaBuilder
+			htmlBuilder = common.HTMLMetaBuilder(self.macroPackage)
 			metaKey = ctx.tag.children[0]
 			if plain:
 				ctx.tag.clear()
-				return ctx.tag[metaCarrier.getMeta(metaKey, raiseOnFail=True
+				return ctx.tag[self.getMeta(metaKey, raiseOnFail=True
 					).getContent("text")]
 			else:
-				htmlBuilder.clear()
 				ctx.tag.clear()
-				return ctx.tag[T.xml(metaCarrier.buildRepr(metaKey, htmlBuilder,
+				return ctx.tag[T.xml(self.buildRepr(metaKey, htmlBuilder,
 					raiseOnFail=True))]
 		except base.NoMetaKey:
 			if raiseOnFail:
@@ -150,20 +149,6 @@ class GavoRenderMixin(common.CommonRenderers):
 			return T.comment["Meta item %s not given."%metaKey]
 		except Exception, ex:
 			return T.comment["Meta %s bad (%s)"%(metaKey, str(ex))]
-
-	def data_serviceURL(self, renderer):
-		"""returns a relative URL for this service using the renderer.
-
-		This is ususally used like this:
-
-		<a><n:attr name="href" n:data="serviceURL info" n:render="data">x</a>
-		"""
-		def get(ctx, data):
-			return self.service.getURL(renderer, absolute="False")
-		return get
-
-	def data_rdId(self, ctx, data):
-		return self.service.rd.sourceId
 
 	def data_meta(self, metaName):
 		"""returns the value for the meta key metaName on this service.
@@ -187,8 +172,29 @@ class GavoRenderMixin(common.CommonRenderers):
 		munge("href")
 		return tag
 
+	def render_ifmeta(self, metaName, propagate=True):
+		# accept direct parent as "own" meta as well.
+		if propagate:
+			hasMeta = self.getMeta(metaName) is not None
+		else:
+			hasMeta = (self.getMeta(metaName, propagate=False) is not None
+				or self.getMetaParent().getMeta(metaName, propagate=False) is not None)
+		if hasMeta:
+			return lambda ctx, data: ctx.tag
+		else:
+			return lambda ctx, data: ""
+
+	def render_ifownmeta(self, metaName):
+		return self.render_ifmeta(metaName, propagate=False)
+
 	def render_ifdata(self, ctx, data):
 		if data:
+			return ctx.tag
+		else:
+			return ""
+
+	def render_ifnodata(self, ctx, data):
+		if not data:
 			return ctx.tag
 		else:
 			return ""
@@ -207,20 +213,6 @@ class GavoRenderMixin(common.CommonRenderers):
 			except KeyError:
 				return ""
 		return render
-
-	def render_ifmeta(self, metaName, metaCarrier=None):
-		if metaCarrier is None:
-			metaCarrier = self.service
-		if metaCarrier.getMeta(metaName):
-			return lambda ctx, data: ctx.tag
-		else:
-			return lambda ctx, data: ""
-
-	def render_ifnodata(self, ctx, data):
-		if not data:
-			return ctx.tag
-		else:
-			return ""
 
 	def render_ifadmin(self, ctx, data):
 		# NOTE: use of this renderer is *not* enough to protect critical operations
@@ -345,6 +337,7 @@ class HTMLResultRenderMixin(object):
 class ErrorPage(GavoRenderMixin, rend.Page):
 	def __init__(self, failure, *args, **kwargs):
 		self.failure = failure
+		self._initGavoRender()
 		super(ErrorPage, self).__init__(*args, **kwargs)
 
 	def renderHTTP(self, ctx):
@@ -389,6 +382,7 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 		self.rd = rd
 		if hasattr(self.rd, "currently_blocked"):
 			raise RDBlocked()
+		self._initGavoRender()
 		super(ResourceBasedRenderer, self).__init__()
 	
 	def _output(self, res, ctx):
@@ -419,6 +413,9 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 		"""
 		return "%s/%s"%(baseURL, cls.name)
 
+	def data_rdId(self, ctx, data):
+		return self.service.rd.sourceId
+
 
 class ServiceBasedRenderer(ResourceBasedRenderer):
 	"""A resource based renderer using subId as a service id.
@@ -447,6 +444,8 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 		if self.checkedRenderer and self.name not in self.service.allowed:
 			raise svcs.ForbiddenURI(
 				"The renderer %s is not allowed on this service."%self.name)
+		self.setMetaParent(self.service)
+		self.macroPackage = self.service
 
 	@classmethod
 	def getInputDD(cls, service):
@@ -523,4 +522,16 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 		queryMeta = svcs.QueryMeta.fromContext(context)
 		queryMeta["formal_data"] = rawData
 		return self.runService(rawData, queryMeta)
+
+	def data_serviceURL(self, renderer):
+		"""returns a relative URL for this service using the renderer.
+
+		This is ususally used like this:
+
+		<a><n:attr name="href" n:data="serviceURL info" n:render="data">x</a>
+		"""
+		def get(ctx, data):
+			return self.service.getURL(renderer, absolute="False")
+		return get
+
 

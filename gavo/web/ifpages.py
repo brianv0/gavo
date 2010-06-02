@@ -2,6 +2,7 @@
 Infrastructure pages.
 """
 
+import datetime
 import os
 import time
 
@@ -110,19 +111,26 @@ def _replaceConfigStrings(srcPath, registry):
 	return src.encode("utf-8")
 
 
-class TemplatedPage(rend.Page, grend.GavoRenderMixin):
-	def __init__(self, docFactory):
-		self.docFactory = docFactory
-		self.service = base.caches.getRD(registry.SERVICELIST_ID
-			).getById("root")
-		rend.Page.__init__(self)
+class TemplatedPage(grend.ServiceBasedRenderer):
+	"""a "server-wide" template.
+
+	For now, they all are based on the dc root service.
+	"""
+	checkedRenderer = False
+	def __init__(self, ctx, fName):
+		self.customTemplate = fName
+		grend.ServiceBasedRenderer.__init__(self, ctx,
+			base.caches.getRD(registry.SERVICELIST_ID
+			).getById("root"))
+		self.setMeta("dateUpdated", 
+			utils.formatISODT(
+				datetime.datetime.fromtimestamp(os.path.getmtime(fName))))
 
 
-def expandTemplate(fName, request):
+def expandTemplate(ctx, fName):
 	"""renders fName as a template on the root service.
 	"""
-	return TemplatedPage(loaders.xmlfile(fName))
-
+	return TemplatedPage(ctx, fName)
 
 
 class StaticFile(rend.Page):
@@ -167,7 +175,7 @@ class StaticFile(rend.Page):
 
 		mime = self.getMimeType()
 		if mime in self.magicMimes:
-			return self.magicMimes[mime](self.fName, request)
+			return self.magicMimes[mime](ctx, self.fName)
 		else:
 			request.setHeader("content-type", mime)
 			self.renderPlain(request)

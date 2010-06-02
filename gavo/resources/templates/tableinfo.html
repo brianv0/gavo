@@ -10,8 +10,8 @@
 	<body n:render="withsidebar">
 		<h1 n:render="title"/>
 		<h2 class="section">General</h2>
-		<p n:render="iftablemeta description"><strong>Table Description:</strong>
-			<n:invisible n:render="tablemeta">description</n:invisible></p>
+		<p n:render="ifownmeta description"><strong>Table Description:</strong>
+			<n:invisible n:render="metahtml">description</n:invisible></p>
 
 		<p n:render="ifrdmeta description"><strong>Resource Description:</strong>
 			<n:invisible n:render="rdmeta">description</n:invisible></p>
@@ -24,10 +24,10 @@
 			<a href="/__system__/adql/query/form" n:render="rootlink">
 				<strong>ADQL</strong> queries</a>.</p>
 
-		<n:invisible n:render="iftablemetap _longdoc">
+		<n:invisible n:render="ifownmeta _longdoc">
 			<h2 class="section">Table Documentation</h2>
 
-			<n:invisible n:render="tablemeta">_longdoc</n:invisible>
+			<n:invisible n:render="metahtml">_longdoc</n:invisible>
 		</n:invisible>
 
 		<h2 class="section">Fields</h2>
@@ -63,12 +63,12 @@
 				</li>
 			</ul>
 		</div>
-		<n:invisible n:render="iftablemeta note">
+		<n:invisible n:render="ifmeta note">
 			<h2 class="section">Notes</h2>
-			<n:invisible n:render="tablemeta">note</n:invisible>
+			<n:invisible n:render="metahtml">note</n:invisible>
 		</n:invisible>
-		<p n:render="iftablemeta copyright"><strong>Copyright and such:</strong> 
-			<n:invisible n:render="tablemeta">copyright</n:invisible></p>
+		<p n:render="ifmeta copyright"><strong>Copyright and such:</strong> 
+			<n:invisible n:render="meta">copyright</n:invisible></p>
 	</body>
 </html>
 

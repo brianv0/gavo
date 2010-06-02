@@ -628,7 +628,7 @@ class MetaURL(MetaValue):
 		self.title = title
 	
 	def _getContentAsHTML(self, content):
-		return '<a href="%s">%s</a>'%(content, self.title or content)
+		return '<a href="%s">%s</a>'%(content.strip(), self.title or content)
 	
 	def _addMeta(self, atoms, metaValue):
 		if atoms[0]=="title":
@@ -740,7 +740,7 @@ class LogoMeta(MetaValue):
 	"""
 	def _getContentAsHTML(self, content):
 		return u'<img class="metalogo" src="%s" height="16" alt="[Logo]"/>'%(
-				unicode(content))
+				unicode(content).strip())
 
 
 class BibcodeMeta(MetaValue):
