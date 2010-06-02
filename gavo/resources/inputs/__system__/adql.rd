@@ -158,7 +158,7 @@ Now, which of these objects have a "good" guide star?  Say our device
 works best of guide stars in the magnitude range of 10 to 11 in V, 
 and the guide star should be no farther away than 0.3 degrees.  Consulting
 the tables listing again, you come up with the 
-`PPMX <http://vo.uni-hd.de/__system__/dc_tables/show/tableinfo?tableName=ppmx.data>`.  What you need is a crossmatch of PPMX with the little catalogue of
+`PPMX <http://vo.uni-hd.de/__system__/dc_tables/show/tableinfo/ppmx.data>`.  What you need is a crossmatch of PPMX with the little catalogue of
 QSOs relevant to you generated from the query above.
 
 In ADQL's lingo, a crossmatch could look like this::
@@ -275,7 +275,7 @@ Story II: Historic Lights
 Suppose you read in an old amateur observer's log there was an unexpected
 object on the night sky in the cold winter nights of the week between January 
 12th and 18th, 1903.
-The \RSTservicelink{/__system__/dc_tables/show/tableinfo?tableName=lsw.plates}{table with plate scans from Heidelberg} 
+The \RSTservicelink{/__system__/dc_tables/show/tableinfo/lsw.plates}{table with plate scans from Heidelberg} 
 could contain plates of that age.  Let's try it:
 
 ::

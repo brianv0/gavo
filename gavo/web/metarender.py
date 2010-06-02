@@ -102,8 +102,8 @@ class RendExplainer(object):
 				pass
 
 		return T.invisible["enables remote procedure calls; to use it,"
-			" feed the ", 
-			T.a(href=service.getURL("soap")+"/go?wsdl")["WSDL URL"],
+			" feed the WSDL URL "+
+			service.getURL("soap")+"/go?wsdl"+
 			" to your SOAP library; the function signature is"
 			"  useService(",
 			generateArguments(),
