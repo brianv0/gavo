@@ -106,8 +106,7 @@ sitting on the south pole, and you'll need a guide star, and it'd be nice if
 the object were in the redshift range of 0.5 to 1.  
 
 In the
-table list, you notice `this list of QSOs 
-<http://vo.uni-hd.de/__system__/dc_tables/show/tableinfo?tableName=veronqsos.data>`_, 
+table list, you notice `this list of QSOs <http://dc.zah.uni-heidelberg.de/__system__/dc_tables/show/tableinfo/veronqsos.data>`_, 
 and you see there's a column specifying whether these quasars are detected in
 radio; also, you want the thing to be far enough south, and you specify the
 redshift:
