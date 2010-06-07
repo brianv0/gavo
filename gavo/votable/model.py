@@ -116,12 +116,17 @@ class VOTable(object):
 			file.write('</BINARY>')
 
 
-	# COOSYS deprecated, we don't even include it.
+	class COOSYS(_VOTElement):
+		a_ID = None
+		a_epoch = None
+		a_equinox = None
+		a_system = None
 
 	class DATA(_VOTElement):
 		childSequence = ["INFO", "TABLEDATA", "BINARY", "FITS"]
 	
-	# DEFINITIONS deprecated, see COOSYS
+	class DEFINITIONS(_VOTElement):
+		pass
 
 	class DESCRIPTION(_VOTElement):
 		childSequence = [None]
@@ -162,37 +167,43 @@ class VOTable(object):
 		childSequence = []
 		mayBeEmpty = True
 
+
 	class MAX(_VOTElement):
 		a_inclusive = None
 		a_value = None
 		childSequence = []
 		mayBeEmpty = True
-	
+
+
 	class MIN(_VOTElement):
 		a_inclusive = None
 		a_value = None
 		childSequence = []
 		mayBeEmpty = True
 
+
 	class OPTION(_VOTElement):
 		a_name = None
 		a_value = None
 		childSequence = ["OPTION"]
 		mayBeEmpty = True
-	
+
+
 	class PARAM(_TypedElement):
 		a_value = None
 		childSequence = ["DESCRIPTION", "VALUES", "LINK"]
 
+
 	class PARAMref(_RefElement): pass
+
 
 	class RESOURCE(_VOTElement):
 		a_ID = None
 		a_name = None
 		a_type = None
 		a_utype = None
-		childSequence = ["DESCRIPTION", "INFO", "GROUP", "PARAM", "LINK",
-			"TABLE", "RESOURCE"]
+		childSequence = ["DESCRIPTION", "DEFINITIONS", "COOSYS", "INFO", "GROUP", 
+			"PARAM", "LINK", "TABLE", "RESOURCE"]
 
 
 	class STREAM(_VOTElement):

@@ -4,6 +4,7 @@ An interface to querying TAP servers.
 
 import datetime
 import httplib
+import time
 import traceback
 import urllib
 import urlparse
@@ -13,6 +14,8 @@ from xml import sax
 
 from gavo import utils
 
+
+WAITING_PHASES = set(["QUEUED", "EXECUTING"])
 
 debug = True
 
@@ -37,6 +40,22 @@ class WrongStatus(ProtocolError):
 	def __init__(self, msg, foundStatus, payload, hint=None):
 		ProtocolError.__init__(self, msg, hint)
 		self.payload, self.foundStatus = payload, foundStatus
+
+
+class RemoteError(Error):
+	"""is raised when the remote size signals an error.
+
+	The content of the remote error document can be retrieved in the 
+	remoteMessage attribute.
+	"""
+	def __init__(self, remoteMessage):
+		self.remoteMessage = remoteMessage
+		Error.__init__(self, 
+			"Remote failure (%s)"%utils.makeEllipsis(remoteMessage, 30),
+			hint="This means that"
+			" something in your query was bad according to the server."
+			"  Details may be available in the Exceptions' remoteMessage"
+			" attribute")
 
 
 class _FormData(MIMEMultipart):
@@ -230,7 +249,8 @@ class ADQLTAPJob(object):
 			self.destHost = "%s:%s"%(self.destHost, parts.port)
 		self.destPath = parts.path
 		if self.destPath.endswith("/"):
-			self.destPath = destPath[:-1]
+			self.destPath = self.destPath[:-1]
+		self.destPath = self.destPath+"/async"
 		self.query = query
 		self.jobId, self.jobPath = None, None
 		self._createJob()
@@ -268,6 +288,22 @@ class ADQLTAPJob(object):
 		response = request(self.destHost, self.jobPath+"/phase", 
 			{"PHASE": "ABORT"}, method="POST", expectedStatus=303)
 
+	def run(self, pollInterval=1):
+		"""runs the job and waits until it has finished.
+
+		The function raises an exception with an error message gleaned from the
+		server.
+		"""
+		self.start()
+		while self.phase in WAITING_PHASES:
+			time.sleep(pollInterval)
+			# initially, do an exponential backoff until you are up to
+			# querying every two minutes.  The magic number is 2**(1/4.)
+			pollInterval = min(120, pollInterval*1.189207115002721)
+		print ">>>>>>>>>>>", self.phase
+		if self.phase!="COMPLETED":
+			raise RemoteError(self.getErrorFromServer())
+
 	executionduration = property(
 		_makeAtomicValueGetter("/executionduration", _makeFlatParser(float)),
 		_makeAtomicValueSetter("/executionduration", str, "EXECUTIONDURATION"))
@@ -275,7 +311,10 @@ class ADQLTAPJob(object):
 	destruction = property(
 		_makeAtomicValueGetter("/destruction", _makeFlatParser(utils.parseISODT)),
 		_makeAtomicValueSetter("/destruction", utils.formatISODT, "DESTRUCTION"))
-	
+
+	def makeJobURL(self, jobPath):
+		return self.endpointURL+"/async/%s%s"%(self.jobId, jobPath)
+
 	def _queryJobResource(self, path, parser):
 		# a helper for phase, quote, etc.
 		response = request(self.destHost, self.jobPath+path,
@@ -315,6 +354,11 @@ class ADQLTAPJob(object):
 		"""returns a list of UWSResult instances.
 		"""
 		return self._queryJobResource("/results", ResultsParser())
+
+	def openresult(self):
+		"""returns a file-like object you can read the result off.
+		"""
+		return urllib.urlopen(self.makeJobURL("results/result"))
 
 	def setParameter(self, key, value):
 		request(self.destHost, self.jobPath+"/parameters",
