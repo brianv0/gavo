@@ -335,8 +335,9 @@ class HTMLResultRenderMixin(object):
 
 
 class ErrorPage(GavoRenderMixin, rend.Page):
-	def __init__(self, failure, *args, **kwargs):
+	def __init__(self, failure, docFactory, *args, **kwargs):
 		self.failure = failure
+		self.docFactory = docFactory
 		self._initGavoRender()
 		super(ErrorPage, self).__init__(*args, **kwargs)
 

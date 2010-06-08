@@ -16,13 +16,20 @@ class NotImplementedError(Error):
 	"""is raised for features we don't (yet) support.
 	"""
 
-class ColumnNotFound(Error):
+class ColumnNotFound(Error, utils.NotFoundError):
 	"""is raised if a column name cannot be resolved.
 	"""
+	def __init__(self, colName, hint=None):
+		utils.NotFoundError.__init__(self, colName, "column", "table metadata",
+			hint=hint)
 
-class TableNotFound(Error):
+class TableNotFound(Error, utils.NotFoundError):
 	"""is raised when a table name cannot be resolved.
 	"""
+	def __init__(self, tableName, hint=None):
+		utils.NotFoundError.__init__(self, tableName, "table", "table metadata",
+			hint=hint)
+
 
 class AmbiguousColumn(Error):
 	"""is raised if a column name matches more than one column in a

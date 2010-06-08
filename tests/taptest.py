@@ -194,12 +194,13 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 				jobId = job.jobId
 				self.assertEqual(job.phase, uws.PENDING)
 				job.changeToPhase(uws.QUEUED, None)
-
+			
+			runningPhases = set([uws.QUEUED, uws.EXECUTING])
 			# let things run, but bail out if nothing happens 
 			for i in range(70):
 				time.sleep(0.1)
 				with uws.UWSJob.makeFromId(jobId) as job:
-					if job.phase!=uws.EXECUTING:
+					if job.phase not in runningPhases:
 						break
 			else:
 				raise AssertionError("Job does not finish.  Your machine cannot be"

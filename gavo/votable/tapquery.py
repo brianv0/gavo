@@ -300,7 +300,6 @@ class ADQLTAPJob(object):
 			# initially, do an exponential backoff until you are up to
 			# querying every two minutes.  The magic number is 2**(1/4.)
 			pollInterval = min(120, pollInterval*1.189207115002721)
-		print ">>>>>>>>>>>", self.phase
 		if self.phase!="COMPLETED":
 			raise RemoteError(self.getErrorFromServer())
 
@@ -356,9 +355,9 @@ class ADQLTAPJob(object):
 		return self._queryJobResource("/results", ResultsParser())
 
 	def openresult(self):
-		"""returns a file-like object you can read the result off.
+		"""returns a file-like object you can read the default TAP result off.
 		"""
-		return urllib.urlopen(self.makeJobURL("results/result"))
+		return urllib.urlopen(self.makeJobURL("/results/result"))
 
 	def setParameter(self, key, value):
 		request(self.destHost, self.jobPath+"/parameters",

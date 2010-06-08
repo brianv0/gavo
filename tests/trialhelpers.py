@@ -107,6 +107,7 @@ def getRequestContext(path, method="GET", args=None, requestMogrifier=None):
 	ctx.remember(req)
 	return ctx
 
+
 def runQuery(page, method, path, args, requestMogrifier=None):
 	"""runs a query on a page.
 

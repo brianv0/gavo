@@ -16,10 +16,12 @@ from __future__ import with_statement
 
 import os
 import sys
+import urllib
 import traceback
 
 from gavo import base
 from gavo import formats
+from gavo.formats import votableread
 from gavo.protocols import adqlglue
 from gavo.protocols import tap
 from gavo.protocols import uws
@@ -87,30 +89,62 @@ def writeResultTo(format, res, outF):
 	formats.formatData(format, res, outF)
 
 
-def runTAPQuery(query, timeout, queryProfile):
+def runTAPQuery(query, timeout, connection, tdsForUploads):
 	"""executes a TAP query and returns the result in a data instance.
 	"""
 	try:
-		querier = base.SimpleQuerier(useProfile=queryProfile)
-		return adqlglue.query(querier, query, timeout=timeout)
+		querier = base.SimpleQuerier(connection=connection)
+		return adqlglue.query(querier, query, timeout=timeout,
+			tdsForUploads=tdsForUploads)
 	except:
 		adqlglue.mapADQLErrors(*sys.exc_info())
 
 
-def runTAPJob(parameters, jobId, timeout, 
-		queryProfile="untrustedquery"):
+def _ingestUploads(uploads, connection):
+	tds = []
+	for destName, src in uploads:
+		if isinstance(src, tap.LocalFile):
+			srcF = open(src.fullPath)
+		else:
+			srcF = urllib.urlopen(src)
+		tds.append(votableread.uploadVOTable(destName, srcF, connection,
+				forceQuotedNames=True).tableDef)
+		srcF.close()
+	return tds
+
+
+def _runTAPJob(parameters, jobId, timeout, queryProfile):
 	"""executes a TAP job defined by parameters.  
 	
-	As a side effect, it will create a file result.data in jobWD.
-
-	Right now, we only execute ADQL queries and bail out on anything else.
+	This does not do state management.  Use runTAPJob if you need it.
 	"""
 	query, format, maxrec = _parseTAPParameters(jobId, parameters)
-	res = runTAPQuery(query, timeout, queryProfile)
+	connectionForQuery = base.getDBConnection(queryProfile)
+	tdsForUploads = _ingestUploads(parameters.get("UPLOAD", ""), 
+		connectionForQuery)
+	with tap.TAPJob.makeFromId(jobId) as job:
+		job.phase = uws.EXECUTING
+	res = runTAPQuery(query, timeout, connectionForQuery,
+		tdsForUploads)
 	with tap.TAPJob.makeFromId(jobId) as job:
 		destF = job.openResult(formats.getMIMEFor(format), "result")
 	writeResultTo(format, res, destF)
 	destF.close()
+
+
+def runTAPJob(parameters, jobId, timeout, queryProfile="untrustedquery"):
+	"""executes a TAP job defined by parameters and job id.
+	"""
+	try:
+		_runTAPJob(parameters, jobId, timeout, queryProfile)
+	except Exception, ex:
+		traceback.print_exc()
+		with tap.TAPJob.makeFromId(jobId) as job:
+			# This creates an error document in our WD.
+			job.changeToPhase(uws.ERROR, ex)
+	else:
+		with tap.TAPJob.makeFromId(jobId) as job:
+			job.changeToPhase(uws.COMPLETED, None)
 
 
 ############### CLI interface
@@ -129,20 +163,15 @@ def parseCommandLine():
 def main():
 	"""causes the execution of the job with jobId sys.argv[0].
 	"""
+	# there's a problem in CLI behaviour in that if anything goes wrong in 
+	# main, a job that may have been created will remain QUEUED forever.
+	# There's little we can do about that, though, since we cannot put
+	# a job into ERROR when we don't know its id or cannot get it from the DB.
 	opts, jobId = parseCommandLine()
 	try:
 		with tap.TAPJob.makeFromId(jobId) as job:
 			parameters = job.parameters
 			jobId, timeout = job.jobId, job.executionDuration
-	except base.NotFoundError:  # Job was deleted before we came up...
-		sys.exit(1)  # ... there's nothing sensible we could do any more but quit.
-	try:
-		runTAPJob(parameters, jobId, timeout)
-	except Exception, ex:
-		traceback.print_exc()
-		with tap.TAPJob.makeFromId(jobId) as job:
-			# This creates an error document in our WD.
-			job.changeToPhase(uws.ERROR, ex)
-	else:
-		with tap.TAPJob.makeFromId(jobId) as job:
-			job.changeToPhase(uws.COMPLETED, None)
+	except base.NotFoundError:  # Job was deleted before we came up.
+		sys.exit(1)
+	runTAPJob(parameters, jobId, timeout)

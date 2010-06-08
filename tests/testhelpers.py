@@ -239,9 +239,6 @@ class VerboseTest(testresources.ResourcedTestCase):
 			raise
 
 
-
-
-
 class XSDTestMixin(object):
 	"""provides a assertValidates method doing XSD validation.
 

@@ -88,22 +88,38 @@ def _getTableDescForOutput(parsedTree):
 	return base.makeStruct(rscdef.TableDef, columns=columns)
 
 
-def getFieldInfoGetter(accessProfile=None):
+def _getSchema(tableName):
+# tableName is a nodes.TableName instance
+	return tableName.schema or ""
+
+
+def getFieldInfoGetter(accessProfile=None, tdsForUploads=[]):
 	mth = rsc.MetaTableHandler(accessProfile)
+	tap_uploadSchema = dict((td.id, td) for td in tdsForUploads)
 	@utils.memoized
 	def getFieldInfos(tableName):
+		if _getSchema(tableName).upper()=="TAP_UPLOAD":
+			try:
+				td = tap_uploadSchema[tableName.name]
+			except KeyError:
+				raise adql.TableNotFound(tableName.qName)
+		else:
+			td = mth.getTableDefForTable(adql.flatten(tableName))
 		return [(f.name, makeFieldInfo(f)) 
-			for f in mth.getTableDefForTable(tableName)]
+			for f in td]
 	return getFieldInfos
 
 
-def query(querier, query, timeout=15, metaProfile=None):
+def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[]):
 	"""returns a DataSet for query (a string containing ADQL).
+
+	This will set timeouts and other things for the connection in
+	question.  You should have one allocated especially for this query.
 	"""
 	t = adql.parseToTree(query)
 	if t.setLimit is None:
 		t.setLimit = str(base.getConfig("adql", "webDefaultLimit"))
-	adql.annotate(t, getFieldInfoGetter(metaProfile))
+	adql.annotate(t, getFieldInfoGetter(metaProfile, tdsForUploads))
 	q3cstatus, t = adql.insertQ3Calls(t)
 # XXX FIXME: evaluate q3cstatus for warnings (currently, I think there are none)
 	td = _getTableDescForOutput(t)
@@ -111,10 +127,10 @@ def query(querier, query, timeout=15, metaProfile=None):
 	morphStatus, morphedTree = adql.morphPG(t)
 	# escape % to hide them form dbapi replacing
 	query = adql.flatten(morphedTree).replace("%", "%%")
+	querier.setTimeout(timeout)
+	querier.configureConnection([("enable_seqscan", False)])
 	log.msg("Sending ADQL query: %s"%query)
-	for tuple in querier.runIsolatedQuery(
-			query, timeout=timeout, silent=True, 
-			settings=[("enable_seqscan", False)]):
+	for tuple in querier.query(query):
 		table.addTuple(tuple)
 	for warning in morphStatus.warnings:
 		table.tableDef.addMeta("_warning", warning)
@@ -173,8 +189,6 @@ class ADQLCore(svcs.Core, base.RestrictionMixin):
 
 
 svcs.registerCore(ADQLCore)
-
-
 
 
 ################ region makers (maybe put these in a separate module later)

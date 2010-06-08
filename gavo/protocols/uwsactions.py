@@ -61,7 +61,9 @@ class UWS(object):
 
 
 	class job(UWSElement): pass
-	class jobs(UWSElement): pass
+	class jobs(UWSElement):
+		mayBeEmpty = True
+
 	class parameters(UWSElement): pass
 
 	class destruction(UWSElement): pass
@@ -107,6 +109,7 @@ class UWS(object):
 
 	class results(UWSElement):
 		mayBeEmpty = True
+
 
 def getJobList():
 	jobstable = uws.getJobsTable()
@@ -185,7 +188,8 @@ class ErrorAction(JobAction):
 		try:
 			request.write(unicode(job.getError()).encode("utf-8", "ignore"))
 		except ValueError:  # no error posted so far
-			return ""
+			pass
+		return ""
 
 	doPOST = doGET
 _JobActions.addAction(ErrorAction)

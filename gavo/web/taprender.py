@@ -78,8 +78,9 @@ class TAPQueryResource(rend.Page):
 			common.getfirst(ctx, 'FORMAT', 'votable'))
 		formats.checkFormatIsValid(format)
 		query = common.getfirst(ctx, 'QUERY', base.Undefined)
+		conn = base.getDBConnection("untrustedquery")
 		return threads.deferToThread(taprunner.runTAPQuery,
-			query, 5, 'untrustedquery'
+			query, 5, conn, []
 			).addCallback(self._format, format, ctx)
 
 	def renderHTTP(self, ctx):
@@ -164,7 +165,8 @@ class JoblistResource(MethodAwareResource, UWSErrorMixin):
 	GET yields a job list, POST creates a job.
 	"""
 	def _doGET(self, ctx, request):
-		return uwsactions.getJobList()
+		res = uwsactions.getJobList()
+		return res
 	
 	def _doPOST(self, ctx, request):
 		with tap.TAPJob.createFromRequest(request) as job:

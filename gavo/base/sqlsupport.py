@@ -144,12 +144,6 @@ def getDefaultDBConnection(debug=debug):
 	return getDBConnection(config.getDBProfile(), debug=debug)
 
 
-def configureConnection(connection, settings):
-	cursor = connection.cursor()
-	for key, val in settings:
-		cursor.execute("SET %s=%%(val)s"%key, {"val": val})
-	cursor.close()
-
 
 def encodeDBMsg(msg):
 	"""returns the string or sql exception msg in ascii.
@@ -454,6 +448,12 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 	"""
 	defaultProfile = None
 
+	def configureConnection(self, settings):
+		cursor = self.connection.cursor()
+		for key, val in settings:
+			cursor.execute("SET %s=%%(val)s"%key, {"val": val})
+		cursor.close()
+
 	def runIsolatedQuery(self, query, data={}, silent=False, raiseExc=True,
 			timeout=None, asDict=False, settings=()):
 		"""runs a query over a connection of its own and returns a rowset of 
@@ -464,7 +464,7 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 		I can do.
 		"""
 		connection = getDBConnection(self.defaultProfile)
-		configureConnection(connection, settings)
+		self.configureConnection(settings)
 		cursor = connection.cursor()
 		try:
 			if timeout:  # *** Postgres specific ***

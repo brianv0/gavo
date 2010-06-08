@@ -540,7 +540,7 @@ def getADQLGrammar():
 
 if __name__=="__main__":
 	def printCs(s, pos, toks):
-		print ">>>>>>>>>>>>>>>", toks
+		print "Tokens:", toks
 	import pprint, sys
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)

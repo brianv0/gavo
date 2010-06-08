@@ -136,8 +136,9 @@ class LocalFile(object):
 	"""A sentinel class representing a file within a job work directory
 	(as resulting from an upload).
 	"""
-	def __init__(self, jobId, fileName):
+	def __init__(self, jobId, wd, fileName):
 		self.jobId, self.fileName = jobId, fileName
+		self.fullPath = os.path.join(wd, fileName)
 
 	def __str__(self):
 		# stringify to a URL for easy UPLOAD string generation.
@@ -155,9 +156,8 @@ class LocalFile(object):
 
 
 class UploadParameter(uws.ProtocolParameter):
-# the way this is specified, inline uploads are quite tricky.  In
-# this implementation, uploaded files are stored in the job directory.
-# To make this happen, we must access the request, which we don't have
+# the way this is specified, inline uploads are quite tricky. 
+# To obtain the data, we must access the request, which we don't have
 # here.  Since I happen to think this is a major wart in the spec,
 # I solve this through a major wart: I get the request from some
 # frame upstack.
@@ -172,7 +172,7 @@ class UploadParameter(uws.ProtocolParameter):
 				newUploads.append(
 					(tableName, cls._saveUpload(job, upload[6:])))
 			else:
-				newUploads.append(tableName, upload)
+				newUploads.append((tableName, upload))
 		job.parameters["UPLOAD"] = job.parameters.get("UPLOAD", []
 			)+newUploads
 
@@ -198,7 +198,7 @@ class UploadParameter(uws.ProtocolParameter):
 		destFName = cls._cleanName(uploadData.filename)
 		with job.openFile(destFName, "w") as f:
 			f.write(uploadData.file.read())
-		return LocalFile(job.jobId, destFName)
+		return LocalFile(job.jobId, job.getWD(), destFName)
 
 
 class TAPJob(uws.UWSJob):
@@ -223,9 +223,13 @@ class TAPActions(uws.UWSActions):
 	def startJob(self, newState, job, ignored):
 		"""forks off a new Job.
 		"""
-		child = subprocess.Popen(["gavo", "--disable-spew", "tap", job.jobId])
-		job.pid = child.pid
-		job.phase = uws.EXECUTING
+		try:
+			child = subprocess.Popen(["gavo", "--disable-spew", "--", 
+				"tap", job.jobId])
+			job.phase = uws.QUEUED
+			job.pid = child.pid
+		except Exception, ex:
+			job.changeToPhase(uws.ERROR, ex)
 
 
 	def killJob(self, newState, job, ignored):

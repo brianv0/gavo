@@ -28,30 +28,33 @@ class Error(Exception):
 	pass
 
 
-class _ADQLTestTable(testhelpers.TestResource):
-	def make(self, deps):
-		base.setDBProfile("test")
-		self.rd = testhelpers.getTestRD()
-		ds = rsc.makeData(self.rd.getById("ADQLTest"),
-				forceSource=[
-				{"alpha": 22, "delta": 23, "mag": -27, "rv": 0},]).commitAll()
-		return ds
-	
-	def clean(self, ds):
-		ds.dropTables()
-		ds.commitAll().closeAll()
 
-adqlTestTable = _ADQLTestTable()
-
-
+# The resources below are used elsewhere (e.g., taptest).
 class _ADQLQuerier(testhelpers.TestResource):
 	def make(self, deps):
 		return base.SimpleQuerier(useProfile="test")
 	
 	def clean(self, querier):
 		querier.close()
-
 adqlQuerier = _ADQLQuerier()
+
+
+class _ADQLTestTable(testhelpers.TestResource):
+	resources = [("adqlQuerier", adqlQuerier)]
+
+	def make(self, deps):
+		base.setDBProfile("test")
+		self.rd = testhelpers.getTestRD()
+		ds = rsc.makeData(self.rd.getById("ADQLTest"),
+				forceSource=[
+				{"alpha": 22, "delta": 23, "mag": -27, "rv": 0},],
+				connection=deps["adqlQuerier"].connection).commitAll()
+		return ds
+	
+	def clean(self, ds):
+		ds.dropTables()
+		ds.commitAll().closeAll()
+adqlTestTable = _ADQLTestTable()
 
 
 class SymbolsParseTest(testhelpers.VerboseTest):
@@ -772,7 +775,7 @@ class QuotedColResTest(ColumnTest):
 			'select "Inch""ing" from quoted')
 
 
-class ColResJoinTest(ColumnTest):
+class JoinColResTest(ColumnTest):
 	"""tests for column resolution with joins.
 	"""
 	def testJoin(self):
@@ -869,6 +872,27 @@ class ColResJoinTest(ColumnTest):
 			("deg", "pos.eq.ra;meta.main", False),
 			("rad", "pos.eq.ra", False),
 			("deg", "pos.eq.dec;meta.main", False)])
+
+
+class UploadColResTest(ColumnTest):
+	def setUp(self):
+		ColumnTest.setUp(self)
+		self.fieldInfoGetter = adqlglue.getFieldInfoGetter(tdsForUploads=[
+			testhelpers.getTestTable("adql")])
+	
+	def testNormalResolution(self):
+		cols = self._getColSeq("select alpha, rv from TAP_UPLOAD.adql")
+		self._assertColumns(cols, [
+			('deg', 'pos.eq.ra;meta.main', False),
+			('km/s', 'phys.veloc;pos.heliocentric', False),])
+	
+	def testFailedResolutionCol(self):
+		self.assertRaises(base.NotFoundError, self._getColSeq,
+			'select alp, rv from TAP_UPLOAD.adql')
+	
+	def testFailedResolutionTable(self):
+		self.assertRaises(base.NotFoundError, self._getColSeq,
+			'select alpha, rv from TAP_UPLOAD.junk')
 
 
 class STCTest(ColumnTest):
@@ -1128,6 +1152,14 @@ class PQMorphTest(unittest.TestCase):
 			" order by cmag", 'SELECT * FROM ppmx.data WHERE cmag > 10'
 			' ORDER BY cmag LIMIT 100')
 
+	def testUploadKilled(self):
+		self._testMorph("select * from TAP_UPLOAD.abc",
+			"SELECT * FROM abc")
+
+	def testAliasedUploadKilled(self):
+		self._testMorph("select * from TAP_UPLOAD.abc as o",
+			"SELECT * FROM abc AS o")
+
 
 class QueryTest(testhelpers.VerboseTest):
 	"""performs some actual queries to test the whole thing.
@@ -1211,6 +1243,7 @@ class QueryTest(testhelpers.VerboseTest):
 				' -- *TAINTED*: the value was operated on in a way that unit and'
 				' ucd may be severely wrong'),
 			("unit", 'deg')])
+
 
 
 if __name__=="__main__":

@@ -436,24 +436,25 @@ class PlainTableRef(ColumnBearingNode):
 	type = "possiblyAliasedTable"
 	feedInfosFromDB = True
 	_a_tableName = None      # a TableName instance
-	_a_originalTable = None  # a string
+	_a_originalTable = None  # a TableName instance
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
 		if _parseResult.get("alias"):
 			tableName = TableName(name=_parseResult.get("alias"))
-			originalTable = flatten(_parseResult.get("tableName"))
+			originalTable = _parseResult.get("tableName")
 		else:
 			tableName = getChildOfType(_parseResult, "tableName")
-			originalTable = flatten(tableName)
+			originalTable = tableName
 		return locals()
 
 	def _polish(self):
 		self.qName = flatten(self.tableName)
 
 	def flatten(self):
-		if self.originalTable!=self.qName:
-			return "%s AS %s"%(self.originalTable, flatten(self.tableName))
+		ot = flatten(self.originalTable)
+		if ot!=self.qName:
+			return "%s AS %s"%(ot, flatten(self.tableName))
 		else:
 			return self.qName
 
@@ -508,7 +509,6 @@ class JoinSpecification(ADQLNode):
 			del n
 		children = list(_parseResult)
 		return locals()
-
 
 
 class JoinedTable(ColumnBearingNode, TransparentMixin):

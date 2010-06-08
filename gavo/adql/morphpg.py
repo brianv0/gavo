@@ -217,6 +217,21 @@ def _stcRegionToPGSphere(node, state):
 	area = node.stc.areas[0]
 # XXX TODO: Go on here.
 
+
+def _removeUploadSchema(node, state):
+	"""removes TAP_UPLOAD schema specs.
+
+	This assumes TAP_UPLOADs are handled via temporary tables.  If that
+	is not true any more, this needs to be exposed to client code.
+
+	node is a TableName.
+	"""
+	if node.schema and node.schema.upper()=="TAP_UPLOAD":
+		return node.name
+	else:
+		return node
+
+
 _miscMorphers = {
 	"pointFunction": _pointFunctionToIndexExpression,
 	"area": _areaToPG,
@@ -225,6 +240,7 @@ _miscMorphers = {
 	"region": _regionToPG,
 	"numericValueFunction": _adqlFunctionToPG,
 	"stcRegion": _stcRegionToPGSphere,
+	"tableName": _removeUploadSchema,
 }
 
 def morphMiscFunctions(tree):

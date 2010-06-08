@@ -440,16 +440,17 @@ class UWSJob(object):
 # When and if we make error behaviour overrideable, this actually
 # makes sense as a user-exposed method.
 		with open(os.path.join(self.getWD(), "__EXCEPTION__"), "w") as f:
-			pickle.dump(exception, f)
+			f.write(unicode(exception).encode("utf-8"))
 	
 	def getError(self):
-		"""returns the exception that caused the job to go into ERROR.
+		"""returns an error text set by setError or raises a ValueError if None
+		has been set.
 
 		If no error has been posted, a ValueError is raised.
 		"""
 		try:
 			with open(os.path.join(self.getWD(), "__EXCEPTION__")) as f:
-				return pickle.load(f)
+				return f.read()
 		except IOError:
 			raise ValueError(
 				"No error has been posted on UWS job %s"%self.jobId)
