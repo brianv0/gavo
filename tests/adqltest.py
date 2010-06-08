@@ -996,8 +996,8 @@ class FlattenTest(unittest.TestCase):
 		self._assertFlattensTo("select alphaFloat, deltaFloat from ppmx.data"
 				" where contains(point('ICRS', alphaFloat, deltaFloat), "
 				" circle('ICRS', 23, 24, 0.2))=1",
-			"SELECT alphafloat, deltafloat FROM ppmx.data WHERE"
-				" CONTAINS(POINT(alphafloat, deltafloat), CIRCLE(23, 24, 0.2)) = 1")
+			"SELECT alphaFloat, deltaFloat FROM ppmx.data WHERE"
+				" CONTAINS(POINT(alphaFloat, deltaFloat), CIRCLE(23, 24, 0.2)) = 1")
 
 	def testFunctions(self):
 		self._assertFlattensTo(
@@ -1017,8 +1017,8 @@ class Q3CMorphTest(unittest.TestCase):
 				" circle('ICRS', 23, 24, 0.2))=1")
 		s, t = adql.insertQ3Calls(t)
 		self.assertEqual(adql.flatten(t),
-			"SELECT alphafloat, deltafloat FROM ppmx.data WHERE"
-				"  (q3c_join(alphafloat, deltafloat, 23, 24, 0.2))")
+			"SELECT alphaFloat, deltaFloat FROM ppmx.data WHERE"
+				"  (q3c_join(alphaFloat, deltaFloat, 23, 24, 0.2))")
 	
 	def testCircle2(self):
 		t = adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
@@ -1026,8 +1026,8 @@ class Q3CMorphTest(unittest.TestCase):
 				" circle('ICRS', 23, 24, 0.2))")
 		s, t = adql.insertQ3Calls(t)
 		self.assertEqual(adql.flatten(t),
-			"SELECT alphafloat, deltafloat FROM ppmx.data WHERE"
-				" NOT (q3c_join(alphafloat, deltafloat, 23, 24, 0.2))")
+			"SELECT alphaFloat, deltaFloat FROM ppmx.data WHERE"
+				" NOT (q3c_join(alphaFloat, deltaFloat, 23, 24, 0.2))")
 	
 	def testCircleAnnotated(self):
 		t = adql.parseToTree("SELECT TOP 10 * FROM spatial"

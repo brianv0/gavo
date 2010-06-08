@@ -179,13 +179,6 @@ def parseArgs(parseResult):
 
 ######################### Generic Node definitions
 
-@symbolAction("regularIdentifier")
-def normalizeRIdentifier(toks):
-	"""returns toks[0] in lowercase.
-	"""
-	assert len(toks)==1
-	return toks[0].lower()
-
 
 class ADQLNode(utils.AutoNode):
 	"""A node within an ADQL parse tree.
