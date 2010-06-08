@@ -7,6 +7,7 @@ them through this module.
 """
 
 from gavo.formats.votableread import (makeTableDefForVOTable,
-	makeDDForVOTable, uploadVOTable)
+	makeDDForVOTable, uploadVOTable,
+	AutoQuotedNameMaker, QuotedNameMaker)
 from gavo.formats.votablewrite import (getAsVOTable,
 	writeAsVOTable, makeVOTable)

@@ -39,39 +39,49 @@ class QuotedNameMaker(object):
 		return utils.QuotedName(res)
 
 
-class InventingQuotedNameMaker(QuotedNameMaker):
-	"""A QuotedNameMaker that will make up new names for illegal quoted names.
+class AutoQuotedNameMaker(object):
+	"""A name maker for makeTableDefForVOTable quoting names as necessary.
 	"""
+	def __init__(self, forRowmaker=False):
+		self.seenNames = set()
+	
 	def makeName(self, field):
-		try:
-			return QuotedNameMaker.makeName(self, field)
-		except base.ValidationError:
-			stem, dis = "Field%02d"%self.index, ""
-			while True:
-				if stem+dis not in self.seenNames:
-					return stem+dis
-				dis = dis+"_"
+		name = getattr(field, "a_name", None)
+		if name is None:
+			raise base.ValidationError("Field without name in upload.",
+				"UPLOAD")
+		if votablegrammar.needsQuoting(name):
+			if name in self.seenNames:
+				raise base.ValidationError("Duplicate column name illegal in"
+					" uploaded tables (%s)"%name, "UPLOAD")
+			self.seenNames.add(name)
+			return utils.QuotedName(name)
+		else:
+			if name.lower() in self.seenNames:
+				raise base.ValidationError("Duplicate column name illegal in"
+					" uploaded tables (%s)"%name, "UPLOAD")
+			self.seenNames.add(name.lower())
+			return name
 
 
-def makeTableDefForVOTable(tableId, votTable, 
-		forceQuotedNames=False, allowInventedNames=False, **moreArgs):
+def makeTableDefForVOTable(tableId, votTable, nameMaker=None,
+		**moreArgs):
 	"""returns a TableDef for a Table element parsed from a VOTable.
 
 	Pass additional constructor arguments for the table in moreArgs.
 	stcColumns is a dictionary mapping IDs within the source VOTable
 	to pairs of stc and utype.
 
-	Pass forceBadNames=True to maintain VOTable names verbatim rather
-	than forcing them to be valid identifiers.  This is generally a
-	bad idea since weird names give no end of trouble.  For TAP, it's
-	unfortunately (almost) necessary.
+	nameMaker is an optional argument; if given, it must be an object
+	having a makeName(field) -> string or utils.QuotedName method.
+	It must return unique objects from VOTable fields and to that
+	reproducibly, i.e., for a given field the same name is returned.
+
+	The default corresponds to votablegrammar.VOTNameMaker, but
+	you can also use InventinQuotedNameMaker, QuotedNameMaker, or
+	AutoQuotedNameMaker from this module.
 	"""
-	if forceQuotedNames:
-		if allowInventedNames:
-			nameMaker = InventingQuotedNameMaker()
-		else:
-			nameMaker = QuotedNameMaker()
-	else:
+	if nameMaker is None:
 		nameMaker = votablegrammar.VOTNameMaker()
 
 	# make columns

@@ -13,6 +13,7 @@ from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
+from gavo import utils
 from gavo import votable
 from gavo.formats import votableread, votablewrite
 from gavo.utils import ElementTree
@@ -183,7 +184,8 @@ class ImportTest(testhelpers.VerboseTest):
 class NastyImportTest(testhelpers.VerboseTest):
 	"""tests for working VOTable ingestion with ugly VOTables.
 	"""
-	def _assertAfterIngestion(self, fielddefs, literals, testCode):
+	def _assertAfterIngestion(self, fielddefs, literals, testCode,
+			nameMaker):
 		conn = base.getDefaultDBConnection()
 		table = votableread.uploadVOTable("junk",
 			StringIO(
@@ -194,7 +196,7 @@ class NastyImportTest(testhelpers.VerboseTest):
 				for l in row) for row in literals)+
 			'</TABLEDATA></DATA>'
 			'</TABLE></RESOURCE></VOTABLE>'.encode("utf-8")),
-			conn, forceQuotedNames=True)
+			conn, nameMaker=nameMaker)
 		testCode(table)
 		conn.close()
 
@@ -203,7 +205,7 @@ class NastyImportTest(testhelpers.VerboseTest):
 			self._assertAfterIngestion,
 			'<FIELD name="condition-x" datatype="boolean"/>'
 			'<FIELD name="condition-x" datatype="int"/>',
-			[['True', '0']], None)
+			[['True', '0']], None, nameMaker=votableread.QuotedNameMaker())
 
 	def testNastyName(self):
 		def test(table):
@@ -212,19 +214,30 @@ class NastyImportTest(testhelpers.VerboseTest):
 
 		self._assertAfterIngestion(
 			'<FIELD name="condition-x" datatype="boolean"/>',
-			[['True']], test)
+			[['True']], test, nameMaker=votableread.QuotedNameMaker())
 	
 	def testNastierName(self):
 		def test(table):
 			self.assertEqual(list(table), 
-				 [{'altogehter "messy" shit': True}])
+				 [{'altogether "messy" shit': True}])
 			self.assertEqual(table.tableDef.columns[0].name, 
-				'altogehter "messy" shit')
+				'altogether "messy" shit')
 
 		self._assertAfterIngestion(
-			'<FIELD name=\'altogehter "messy" shit\' datatype="boolean"/>',
-			[['True']], test)
-	
+			'<FIELD name=\'altogether "messy" shit\' datatype="boolean"/>',
+			[['True']], test, nameMaker=votableread.QuotedNameMaker())
+
+	def testNoIdentifiers(self):
+		def test(table):
+			self.failUnless(isinstance(table.tableDef.columns[0].name,
+				utils.QuotedName))
+			self.failUnless(isinstance(table.tableDef.columns[1].name,
+				basestring))
+
+		self._assertAfterIngestion(
+			'<FIELD name="SELECT" datatype="boolean"/>'
+			'<FIELD name="SELECT_" datatype="boolean"/>',
+			[['True', 'False']], test, nameMaker=votableread.AutoQuotedNameMaker())
 
 
 class MetaTest(testhelpers.VerboseTest):

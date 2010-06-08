@@ -108,7 +108,7 @@ def _ingestUploads(uploads, connection):
 		else:
 			srcF = urllib.urlopen(src)
 		tds.append(votableread.uploadVOTable(destName, srcF, connection,
-				forceQuotedNames=True).tableDef)
+				nameMaker=votableread.AutoQuotedNameMaker()).tableDef)
 		srcF.close()
 	return tds
 

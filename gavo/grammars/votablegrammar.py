@@ -11,8 +11,40 @@ from itertools import *
 from gavo import adql
 from gavo import base
 from gavo import rscdef
+from gavo import utils
 from gavo import votable
 from gavo.grammars import common
+
+
+@utils.memoized
+def getNameBlacklist(forRowmaker=False):
+	"""returns a set of names not suitable for table column names.
+
+	This comprises SQL reserved words in lower case and, if forRowmaker
+	is true, also some names damaging row makers (e.g. python reserved
+	words).
+	"""
+	res = set(k.lower() for k in adql.allReservedWords)
+	if forRowmaker:
+		import keyword
+		from gavo.rscdef import rmkfuncs
+		res = (res 
+			| set(["result_", "rowdict_"])
+			| set(k.lower() for k in keyword.kwlist)
+			| set(k.lower() for k in dir(rmkfuncs)))
+	return frozenset(res)
+
+
+_idPattern = re.compile("[A-Za-z_][A-Za-z0-9_]*$")
+
+def needsQuoting(identifier, forRowmaker=False):
+	"""returns True if identifier needs quoting in an SQL statement.
+	"""
+	if _idPattern.match(identifier) is None:
+		return True
+	if identifier.lower() in getNameBlacklist(forRowmaker):
+		return True
+	return False
 
 
 class VOTNameMaker(object):
@@ -26,26 +58,8 @@ class VOTNameMaker(object):
 	way (i.e., given the same table, the same names will be assigned).
 	"""
 	def __init__(self):
-		self.knownNames, self.index = self._getNameBlacklist().copy(), 0
+		self.knownNames, self.index = set(getNameBlacklist(True)), 0
 
-	# words not allowed as column names generated for VOTable FIELDs, in addition
-	# to python keywords and names used in rscdef.rmkfuncs
-	customNameBlacklist = set(["result_", "rowdict_"])
-
-	@classmethod
-	def _getNameBlacklist(cls):
-		"""returns a set of names not suitable for table column names since
-		they would damage rowmakers.
-		"""
-		if not hasattr(cls, "blacklist"):
-			import keyword
-			from gavo.rscdef import rmkfuncs
-			blacklist = (set(k.lower() for k in keyword.kwlist)
-				| set(k.lower() for k in dir(rmkfuncs))
-				| cls.customNameBlacklist
-				| set(k.lower() for k in adql.allReservedWords))
-			cls.blacklist = blacklist
-		return cls.blacklist
 
 	def makeName(self, field):
 		preName = re.sub("[^\w]+", "x", (getattr(field, "a_name", None) 
