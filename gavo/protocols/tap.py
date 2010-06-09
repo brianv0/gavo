@@ -22,6 +22,23 @@ RD_ID = "__system__/tap"
 TAP_VERSION = "1.0"
 
 
+FORMAT_CODES = {
+# A mapping of values of TAP's FORMAT parameter to our formats.format codes.
+	"application/x-votable+xml": "votable",
+	"text/xml": "votable",
+	"votable": "votable",
+	"votable/td": "votabletd",
+	"text/csv": "csv",
+	"csv": "csv",
+	"text/tab-separated-values": "tsv",
+	"tsv": "tsv",
+	"application/fits": "fits",
+	"fits": "fits",
+	"text/html": "html",
+	"html": "html",
+}
+
+
 class TAPError(base.Error):
 	"""TAP-related errors, mainly to communicate with web renderers.
 
@@ -99,8 +116,10 @@ def parseUploadString(uploadString):
 	try:
 		return getUploadGrammar().parseString(uploadString).asList()
 	except ParseException, ex:
-		raise base.ValidationError("Syntax error in upload string (near %s)"%(
-			ex.loc), "UPLOAD")
+		raise base.ValidationError("Syntax error in UPLOAD parameter (near %s)"%(
+			ex.loc), "UPLOAD",
+			hint="Note that we only allow regular SQL identifiers as table names,"
+				" i.e., basically only alphanumerics are allowed.")
 
 
 class LangParameter(uws.ProtocolParameter):
@@ -120,11 +139,6 @@ class QueryParameter(uws.ProtocolParameter):
 
 class FormatParameter(uws.ProtocolParameter):
 	name = "FORMAT"
-
-	@classmethod
-	def addParam(cls, value, job):
-		formats.checkFormatIsValid(value)
-		job.parameters["FORMAT"] = value
 
 
 class MaxrecParameter(uws.ProtocolParameter):

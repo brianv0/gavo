@@ -47,8 +47,12 @@ class VanityLineError(Error):
 	"""parse error in vanity file.
 	"""
 	def __init__(self, msg, lineNo, src):
-		Error.__init__("Mapping file %s, line %d: %s"%(repr(src), msg, lineNo))
+		Error.__init__(msg)
 		self.msg, self.lineNo, self.src = msg, lineNo, src
+
+	def __str__(self):
+		return "Mapping file %s, line %d: %s"%(
+			repr(self.src), self.msg, self.lineNo)
 
 
 builtinVanity = """

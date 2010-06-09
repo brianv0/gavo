@@ -445,6 +445,18 @@ class TreeParseTest(testhelpers.VerboseTest):
 		self.assertRaises(adql.BadKeywords, 
 			self.grammar.parseString, "select point('QUARK', 1, 2) from spatial")
 
+	def testQuotedTableName(self):
+		t = adql.parseToTree('select "abc-g".* from "abc-g" JOIN "select"')
+		self.assertEqual(t.selectList.selectFields[0].sourceTable.name, "abc-g")
+		self.assertEqual(t.selectList.selectFields[0].sourceTable.qName, '"abc-g"')
+
+	def testQuotedSchemaName(self):
+		t = adql.parseToTree('select * from "Murks Schema"."Murks Tabelle"')
+		self.assertEqual(t.fromClause.tablesReferenced[0].tableName.name,
+			"Murks Tabelle")
+		self.assertEqual(t.fromClause.tablesReferenced[0].tableName.schema,
+			"Murks Schema")
+
 
 class ParseErrorTest(testhelpers.VerboseTest):
 	"""tests for sensible error messages.
@@ -752,7 +764,7 @@ class QuotedColResTest(ColumnTest):
 			('pc', "boring.stuff", False),])
 	
 	def testSimpleJoin(self):
-		cols = self._getColSeq('select "inch""ing", mass from misc join'
+		cols = self._getColSeq('select "inch""ing", "mass" from misc join'
 			' quoted on ("left-right"=speed)')
 		self._assertColumns(cols, [
 			('fin', "imperial.mess", False),

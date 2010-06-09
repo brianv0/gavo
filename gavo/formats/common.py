@@ -20,10 +20,14 @@ _formatsMIMERegistry = {}
 class CannotSerializeIn(base.Error):
 	def __init__(self, format):
 		self.format = format
-		base.Error.__init__(self, "Cannot serialize in %s."%self.format,
-			hint="Either you gave an invalid format id or the a known format"
+		base.Error.__init__(self, format,
+			hint="Either you gave an invalid format id or a known format"
 			" did not get registred for some reason.  Format codes"
 			" known at this point: %s."%", ".join(_formatDataRegistry))
+		self.args = [format]
+	
+	def __str__(self):
+		return "Cannot serialize in '%s'."%self.format
 
 
 def registerDataWriter(key, writer, mime):

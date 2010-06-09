@@ -19,9 +19,13 @@ class MacroError(base.StructureError):
 	a hint and a position.
 	"""
 	def __init__(self, message, macroName, hint=None, pos=None):
-		base.StructureError.__init__(self, "Error during macro expansion: %s"%(
-			message), pos=pos, hint=hint)
-		self.macroName, self.origMessage = macroName, message
+		base.StructureError.__init__(self, macroName+" failed", pos=pos, hint=hint)
+		self.args = [message, macroName, hint, pos]
+		self.macroName, self.message = macroName, message
+
+	def __str__(self):
+		return "Error during macro expansion: %s"%(
+			self.message)
 
 
 class MacroExpander(object):

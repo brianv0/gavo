@@ -16,32 +16,17 @@ from __future__ import with_statement
 
 import os
 import sys
-import urllib
 import traceback
 
 from gavo import base
 from gavo import formats
+from gavo import utils
+from gavo.grammars import votablegrammar
 from gavo.formats import votableread
 from gavo.protocols import adqlglue
 from gavo.protocols import tap
 from gavo.protocols import uws
 
-
-FORMAT_CODES = {
-# A mapping of values of TAP's FORMAT parameter to our formats.format codes.
-	"application/x-votable+xml": "votable",
-	"text/xml": "votable",
-	"votable": "votable",
-	"votable/td": "votabletd",
-	"text/csv": "csv",
-	"csv": "csv",
-	"text/tab-separated-values": "tsv",
-	"tsv": "tsv",
-	"application/fits": "fits",
-	"fits": "fits",
-	"text/html": "html",
-	"html": "html",
-}
 
 
 # The following would point to executors for other languages at some point.
@@ -54,11 +39,11 @@ SUPPORTED_LANGS = {
 def normalizeTAPFormat(rawFmt):
 	format = rawFmt.lower()
 	try:
-		return FORMAT_CODES[format]
+		return tap.FORMAT_CODES[format]
 	except KeyError:
 		raise base.ValidationError("Unsupported format '%s'."%format,
 			colName="FORMAT",
-			hint="Legal format codes include %s"%(", ".join(FORMAT_CODES)))
+			hint="Legal format codes include %s"%(", ".join(tap.FORMAT_CODES)))
 
 
 def _parseTAPParameters(jobId, parameters):
@@ -106,7 +91,18 @@ def _ingestUploads(uploads, connection):
 		if isinstance(src, tap.LocalFile):
 			srcF = open(src.fullPath)
 		else:
-			srcF = urllib.urlopen(src)
+			try:
+				srcF = utils.urlopenRemote(src)
+			except IOError, ex:
+				raise base.ValidationError("Upload '%s' cannot be retrieved"%(
+					src), "UPLOAD", hint="The I/O operation failed with the message: "+
+					str(ex))
+		if votablegrammar.needsQuoting(destName):
+			raise base.ValidationError("'%s' is not a valid table name on"
+				" this site"%destName, "UPLOAD", hint="It either contains"
+				" non-alphanumeric characters or conflicts with an ADQL"
+				" reserved word.  Quoted table names are not supported"
+				" at this site.")
 		tds.append(votableread.uploadVOTable(destName, srcF, connection,
 				nameMaker=votableread.AutoQuotedNameMaker()).tableDef)
 		srcF.close()
@@ -138,7 +134,6 @@ def runTAPJob(parameters, jobId, timeout, queryProfile="untrustedquery"):
 	try:
 		_runTAPJob(parameters, jobId, timeout, queryProfile)
 	except Exception, ex:
-		traceback.print_exc()
 		with tap.TAPJob.makeFromId(jobId) as job:
 			# This creates an error document in our WD.
 			job.changeToPhase(uws.ERROR, ex)

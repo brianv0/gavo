@@ -21,6 +21,11 @@ become an even worse nightmare than it already is.
 #c
 #c This program is free software, covered by the GNU GPL.  See COPYING.
 
+# NOTE -- due to a bug in python 2.5, you need to set the args attribute
+# in your constructors, or else they'll bomb on unpickling
+# XXX TODO: We probably should move that into a metaclass and automatically
+# infer args;  beware, however, of traps due to inheritance.
+
 from gavo.utils.fancyconfig import NoConfigItem
 
 
@@ -32,8 +37,12 @@ class Error(Exception):
 	"""
 	def __init__(self, msg="", hint=None):
 		Exception.__init__(self, msg)
+		self.args = [msg, hint]
 		self.msg = msg
 		self.hint = hint
+
+	def __str__(self):
+		return self.msg
 
 
 class StructureError(Error):
@@ -51,14 +60,17 @@ class StructureError(Error):
 	"""
 	def __init__(self, msg, pos=None, hint=None):
 		Error.__init__(self, msg, hint=hint)
+		self.args = [msg, pos, hint]
 		self.pos = pos
 
-
-	def __str__(self):
+	def addPos(self, baseMsg):
 		if self.pos is None:
 			return self.args[0]
 		else:
-			return "At %s: %s"%(str(self.pos), self.args[0])
+			return "At %s: %s"%(str(self.pos), baseMsg)
+
+	def __str__(self):
+		return self.addPos(self.msg)
 
 
 class LiteralParseError(StructureError):
@@ -69,9 +81,13 @@ class LiteralParseError(StructureError):
 	parse position and a hint.
 	"""
 	def __init__(self, attName, literal, pos=None, hint=None):
-		StructureError.__init__(self, "'%s' is not a valid value for %s"%(
-			literal, attName), pos=pos, hint=hint)
-		self.attName, self.attVal = attName, literal
+		StructureError.__init__(self, literal, pos=pos, hint=hint)
+		self.args = [attName, literal, pos, hint]
+		self.attName, self.literal = attName, literal
+
+	def __str__(self):
+		return self.addPos(
+			"'%s' is not a valid value for %s"%(self.literal, self.attName))
 
 
 class RestrictedElement(StructureError):
@@ -82,11 +98,13 @@ class RestrictedElement(StructureError):
 		if hint is None:
 			hint='If you are actually sure this RD is what you think it it,'
 			' you could always gavo imp it from the command line'
-		StructureError.__init__(self, "'%s' is an illegal attribute or element"
-			" when parsing from untrusted sources."%elName,
-			hint=hint)
+		StructureError.__init__(self, "Illegal: "+elName, pos=pos, hint=hint)
+		self.args = [elName, pos, hint]
 		self.elName = elName
 
+	def __str__(self):
+		return self.addPos("'%s' is an illegal attribute or element"
+			" when parsing from untrusted sources."%self.elName)
 
 
 class BadCode(StructureError):
@@ -96,11 +114,14 @@ class BadCode(StructureError):
 	the original exception, and optionally a hint and a position.
 	"""
 	def __init__(self, code, codeType, origExc, hint=None, pos=None):
-		StructureError.__init__(self, "Bad source code in %s (%s)"%(
-				codeType, unicode(origExc)), 
-			pos=pos, hint=hint)
+		StructureError.__init__(self, "Bad code", pos=pos, hint=hint)
+		self.args = [code, codeType, origExc, hint, pos]
 		self.code, self.codeType = code, codeType
 		self.origExc = origExc
+
+	def __str__(self):
+		return self.addPos(
+			"Bad source code in %s (%s)"%(self.codeType, unicode(self.origExc)))
 
 
 class ValidationError(Error):
@@ -111,6 +132,7 @@ class ValidationError(Error):
 	"""
 	def __init__(self, msg, colName, row=None, hint=None):
 		Error.__init__(self, msg, hint=hint)
+		self.args = [msg, colName, row, hint]
 		self.msg = msg
 		self.colName, self.row = colName, row
 	
@@ -119,6 +141,8 @@ class ValidationError(Error):
 #		if self.row:
 #			recStr = ", found in: row %s"%repr(self.row)
 		return "%s%s"%(self.msg, recStr)
+	
+	__unicode__ = __str__
 
 
 class SourceParseError(Error):
@@ -130,8 +154,11 @@ class SourceParseError(Error):
 	"""
 	def __init__(self, msg, offending=None, location="unspecified location"):
 		Error.__init__(self, msg)
+		self.args = [msg, offending, location]
 		self.offending, self.location = offending, location
 
+	def __str__(self):
+		return "At %s: %s, offending %s"%(self.location, self.msg, self.offending)
 
 class DataError(Error):
 	"""is raised when something is wrong with a data set.
@@ -155,6 +182,7 @@ class NotFoundError(Error):
 	"""
 	def __init__(self, lookedFor, what, within, hint=None):
 		Error.__init__(self, "ignored", hint=hint)
+		self.args = [lookedFor, what, within, hint]
 		self.lookedFor, self.what = lookedFor, what
 		self.within = within
 
@@ -169,6 +197,7 @@ class RDNotFound(NotFoundError):
 	def __init__(self, rdId, hint=None):
 		NotFoundError.__init__(self, rdId, hint=hint, what="resource descriptor",
 			within="file system")
+		self.args = [rdId, hint]
 
 
 class ExecutiveAction(Exception):

@@ -24,7 +24,7 @@ def _requestDone(result, request, ctx):
 	elif hasattr(result, "renderHTTP"):
 		return _deferredRender((result, ()), ctx)
 	else:
-		warnings.warn("Unsupported render result: %s"%result)
+		warnings.warn("Unsupported render result: %s"%repr(result))
 	request.d.callback(request.accumulator)
 	return request.accumulator, request
 

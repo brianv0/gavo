@@ -18,6 +18,7 @@ class ParseError(base.Error):
 	def __init__(self, msg, location=None, record=None):
 		base.Error.__init__(self, msg)
 		self.location, self.record = location, record
+		args = [msg, location, record]
 
 
 class Rowfilter(procdef.ProcApp):

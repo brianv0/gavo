@@ -4,6 +4,7 @@ A renderer for TAP, both sync and async.
 
 from __future__ import with_statement
 
+import os
 import traceback
 
 from nevow import inevow
@@ -31,8 +32,9 @@ from gavo.votable import V
 ######## XXX TODO: Remove almost all the sync stuff and replace it with
 # protocols.taprunner
 class ErrorResource(rend.Page):
-	def __init__(self, errMsg):
+	def __init__(self, errMsg, exc=None):
 		self.errMsg = errMsg
+		self.hint = getattr(exc, "hint", None)
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
@@ -41,6 +43,9 @@ class ErrorResource(rend.Page):
 		doc = V.VOTABLE[
 			V.INFO(name="QUERY_STATUS", value="ERROR")[
 					self.errMsg]]
+		if self.hint:
+			doc[V.INFO(name="HINT", value="HINT")[
+				self.hint]]
 		return doc.render()
 
 
@@ -72,35 +77,61 @@ class UWSRedirect(rend.Page):
 
 class TAPQueryResource(rend.Page):
 	"""the resource executing sync TAP queries.
+
+	While not really going through UWS, this does create a UWS job and
+	tears it down later.
 	"""
 	def _doRender(self, ctx):
-		format = taprunner.normalizeTAPFormat(
-			common.getfirst(ctx, 'FORMAT', 'votable'))
-		formats.checkFormatIsValid(format)
-		query = common.getfirst(ctx, 'QUERY', base.Undefined)
-		conn = base.getDBConnection("untrustedquery")
-		return threads.deferToThread(taprunner.runTAPQuery,
-			query, 5, conn, []
-			).addCallback(self._format, format, ctx)
+		with tap.TAPJob.createFromRequest(inevow.IRequest(ctx)) as job:
+			parameters = job.parameters
+			jobId = job.jobId
+		taprunner.runTAPJob(parameters, jobId, base.getConfig("async",
+			"defaultExecTimeSync"))
+		with tap.TAPJob.makeFromId(jobId) as job:
+			if job.phase==uws.COMPLETED:
+				# This is TAP, so there's exactly one result
+				res = job.getResults()[0]
+				name, type = res["resultName"], res["resultType"]
+				# hold on to the result fd so its inode is not lost when we delete
+				# the job.
+				f = open(os.path.join(job.getWD(), name))
+				job.delete()
+				return (f, type)
+			elif job.phase==uws.ERROR:
+				exc = job.getError()
+				job.delete()
+				raise exc
+			elif job.phase==uws.ABORTED:
+				job.delete()
+				raise uws.UWSError("Job was manually aborted.  For synchronous"
+					" jobs, this probably means the operators killed it.",
+					jobId)
+			else:
+				job.delete()
+				raise uws.UWSError("Internal error.  Invalid UWS phase.")
 
 	def renderHTTP(self, ctx):
 		try:
-			return self._doRender(ctx
+			return threads.deferToThread(self._doRender, ctx
+				).addCallback(self._formatResult, ctx
 				).addErrback(self._formatError)
 		except base.Error, ex:
 			traceback.print_exc()
-			return ErrorResource(unicode(ex))
+			return ErrorResource(unicode(ex), ex)
 
 	def _formatError(self, failure):
 		failure.printTraceback()
-		return ErrorResource(failure.getErrorMessage())
+		return ErrorResource(failure.getErrorMessage(), failure.value)
 
-	def _format(self, res, format, ctx):
-		def writeTable(outputFile):
-			return taprunner.writeResultTo(format, res, outputFile)
-
+	def _formatResult(self, res, ctx):
 		request = inevow.IRequest(ctx)
-		# if request has an accumulator, we're testing and don't stream
+		f, type = res
+
+		def writeTable(outputFile):
+			utils.cat(f, outputFile)
+
+		request.setHeader("content-type", type)
+		# if request has an accumulator, we're testing.
 		if hasattr(request, "accumulator"):
 			writeTable(request)
 			return ""
@@ -108,27 +139,12 @@ class TAPQueryResource(rend.Page):
 			return streaming.streamOut(writeTable, request)
 
 
-SUPPORTED_LANGS = {
-	'ADQL': TAPQueryResource,
-	'ADQL-2.0': TAPQueryResource,
-}
-
-
-def getQueryResource(service, ctx):
-	lang = common.getfirst(ctx, 'LANG', None)
-	try:
-		generator = SUPPORTED_LANGS[lang]
-	except KeyError:
-		return ErrorResource("Unknown query language '%s'"%lang)
-	return generator()
-
-
 def getSyncResource(service, ctx, segments):
 	if segments:
 		raise svcs.UnknownURI("No resources below sync")
 	request = common.getfirst(ctx, "REQUEST", base.Undefined)
 	if request=="doQuery":
-		return getQueryResource(service, ctx)
+		return TAPQueryResource(service, ctx)
 	elif request=="getCapabilities":
 		return vosi.VOSICapabilityRenderer(ctx, service)
 	return ErrorResource("Invalid REQUEST: '%s'"%request)
@@ -156,7 +172,7 @@ class UWSErrorMixin(object):
 	def _deliverError(self, failure, request):
 		failure.printTraceback()
 		request.setHeader("content-type", "text/xml")
-		return ErrorResource(failure.getErrorMessage())
+		return ErrorResource(failure.getErrorMessage(), failure.value)
 
 
 class JoblistResource(MethodAwareResource, UWSErrorMixin):
@@ -261,7 +277,7 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 			raise
 		except base.Error, ex:
 			log.err(_why="TAP error")
-			return ErrorResource(str(ex)), ()
+			return ErrorResource(str(ex), ex), ()
 		raise common.UnknownURI("Bad TAP path %s"%"/".join(segments))
 
 svcs.registerRenderer(TAPRenderer)

@@ -14,7 +14,7 @@ from gavo import utils
 from gavo.utils import ElementTree
 from gavo.utils import stanxml
 
-class STCError(Exception):
+class STCError(utils.Error):
 	pass
 
 class STCSParseError(STCError):
@@ -25,8 +25,10 @@ class STCSParseError(STCError):
 	the expr attribute, the start position of the offending phrase in pos.
 	"""
 	def __init__(self, msg, expr=None, pos=None):
-		Exception.__init__(self, msg)
+		STCError.__init__(self, msg)
+		args = [msg, expr, pos]
 		self.pos, self.expr = pos, expr
+	
 
 class STCLiteralError(STCError):
 	"""is raised when a literal is not well-formed.
@@ -34,7 +36,8 @@ class STCLiteralError(STCError):
 	There is an attribute literal giving the malformed literal.
 	"""
 	def __init__(self, msg, literal=None):
-		Exception.__init__(self, msg)
+		STCError.__init__(self, msg)
+		self.args = [msg, literal]
 		self.literal = literal
 
 class STCInternalError(STCError):

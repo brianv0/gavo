@@ -1,5 +1,5 @@
 """
-An interface to querying TAP servers.
+An interface to querying TAP servers (i.e., a TAP client).
 """
 
 import datetime
@@ -39,6 +39,7 @@ class WrongStatus(ProtocolError):
 	"""
 	def __init__(self, msg, foundStatus, payload, hint=None):
 		ProtocolError.__init__(self, msg, hint)
+		self.args = [msg, foundStatus, payload, hint]
 		self.payload, self.foundStatus = payload, foundStatus
 
 
@@ -51,11 +52,15 @@ class RemoteError(Error):
 	def __init__(self, remoteMessage):
 		self.remoteMessage = remoteMessage
 		Error.__init__(self, 
-			"Remote failure (%s)"%utils.makeEllipsis(remoteMessage, 30),
+			"Remote: "+remoteMessage,
 			hint="This means that"
 			" something in your query was bad according to the server."
 			"  Details may be available in the Exceptions' remoteMessage"
 			" attribute")
+		self.args = [remoteMessage]
+
+	def __str__(self):
+		return "Remote failure (%s)"%utils.makeEllipsis(self.remoteMessage, 30)
 
 
 class _FormData(MIMEMultipart):

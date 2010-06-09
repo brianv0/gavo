@@ -4,6 +4,9 @@ Twisted trial-based tests for TAP and UWS.
 Synchronous tests go to taptest.py
 
 Some of these tests need the taptest tables installed.
+
+The real big integration tap tests use the HTTP interface and are in
+an external resource package taptest.
 """
 
 # IMPORTANT: If you have deferreds in your tests, *return them* form
@@ -79,14 +82,15 @@ class SyncQueryTest(TAPRenderTest):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery", 
 				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<3'},
-			['<INFO name="QUERY_STATUS" value="ERROR">Unknown query language'])
+			["<INFO", "Required parameter 'LANG' missing.</INFO>"])
 
 	def testBadLangRejected(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",
 				"LANG": "Furz",
 				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<3'},
-			['<INFO name="QUERY_STATUS" value="ERROR">Unknown query language'])
+			['<INFO name="QUERY_STATUS" value="ERROR">This service does'
+				' not support the query language Furz'])
 
 	def testSimpleQuery(self):
 		return self.assertGETHasStrings("/sync", {
@@ -102,8 +106,9 @@ class SyncQueryTest(TAPRenderTest):
 				"REQUEST": "doQuery",
 				"LANG": "ADQL",
 				"QUERY": 'SELECT ra FROM taptest.main WHERE ra<2',
-				"FORMAT": 'xls'},
-			['<INFO name="QUERY_STATUS" value="ERROR">Unsupported format \'xls\''])
+				"FORMAT": 'xls'}, [
+				'<INFO name="QUERY_STATUS" value="ERROR">Unsupported format \'xls\'',
+				'Legal format codes include'])
 
 	def testClearVOT(self):
 		return self.assertGETHasStrings("/sync", {
@@ -129,6 +134,53 @@ class SyncQueryTest(TAPRenderTest):
 			"FORMAT": "TSV"},
 			['0.96319', '\n', '0.56091'])
 
+	def testBadUploadSyntax(self):
+		return self.assertPOSTHasStrings("/sync", {
+			"REQUEST": "doQuery",
+			"UPLOAD": "bar",
+			"LANG": "ADQL",
+			"QUERY": 'SELECT * FROM taptest.main'}, [
+			"only allow regular SQL identifiers"
+			])
+
+	def testBadUploadSyntax2(self):
+		return self.assertPOSTHasStrings("/sync", {
+			"REQUEST": "doQuery",
+			"UPLOAD": "bar,http://x.y;",
+			"LANG": "ADQL",
+			"QUERY": 'SELECT * FROM taptest.main'}, [
+			"only allow regular SQL identifiers"
+			])
+
+	def testNonExistingUpload(self):
+		return self.assertPOSTHasStrings("/sync", {
+			"REQUEST": "doQuery",
+			"UPLOAD": "bar,http://127.0.0.1:65000",
+			"LANG": "ADQL",
+			"QUERY": 'SELECT * FROM taptest.main'}, [
+			"'http://127.0.0.1:65000' cannot be retrieved</INFO",
+			"Connection refused"
+			])
+
+	def testUploadCannotReadLocalFile(self):
+		return self.assertPOSTHasStrings("/sync", {
+			"REQUEST": "doQuery",
+			"UPLOAD": "bar,file:///etc/passwd",
+			"LANG": "ADQL",
+			"QUERY": 'SELECT * FROM taptest.main'}, [
+			"'file:///etc/passwd' cannot be retrieved</INFO",
+			"unknown url type"
+			])
+
+	def testMalformedUploadURL(self):
+		return self.assertPOSTHasStrings("/sync", {
+			"REQUEST": "doQuery",
+			"UPLOAD": "http://fit://file://x.ab",
+			"LANG": "ADQL",
+			"QUERY": 'SELECT * FROM taptest.main'}, [
+			'<INFO name="QUERY_STATUS" value="ERROR">Syntax error in UPLOAD parameter'
+			])
+
 
 class SimpleAsyncTest(TAPRenderTest):
 	"""tests for some non-ADQL async queries.
@@ -152,6 +204,9 @@ class SimpleAsyncTest(TAPRenderTest):
 	def testLifeCycle(self):
 		"""tests job creation, redirection, phase, and deletion.
 		"""
+		# This one is too huge and much too slow for a unit test.  Still
+		# I want at least one integration-type test in here since the
+		# big test probably won't be run at every commit.
 		def assertDeleted(result, jobId):
 			self.assertEqual(result[1].code, 303)
 			next = result[1].headers["location"][len(

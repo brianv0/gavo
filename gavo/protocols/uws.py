@@ -1,8 +1,5 @@
 """
 Support classes for the universal worker service.
-
-This module contains the actual logic.  The UWS REST interface is dealt with
-in web.uwsrest.
 """
 
 from __future__ import with_statement
@@ -13,6 +10,8 @@ import itertools
 import os
 import shutil
 import tempfile
+
+from twisted.python import log
 
 from gavo import base
 from gavo import rsc
@@ -37,6 +36,7 @@ DESTROYED = "DESTROYED"  # local extension
 class UWSError(base.Error):
 	def __init__(self, msg, jobId, hint=None):
 		base.Error.__init__(self, msg, hint)
+		self.args = [msg, jobId, hint]
 		self.msg = msg
 		self.jobId = jobId
 
@@ -440,7 +440,7 @@ class UWSJob(object):
 # When and if we make error behaviour overrideable, this actually
 # makes sense as a user-exposed method.
 		with open(os.path.join(self.getWD(), "__EXCEPTION__"), "w") as f:
-			f.write(unicode(exception).encode("utf-8"))
+			pickle.dump(exception, f)
 	
 	def getError(self):
 		"""returns an error text set by setError or raises a ValueError if None
@@ -450,7 +450,7 @@ class UWSJob(object):
 		"""
 		try:
 			with open(os.path.join(self.getWD(), "__EXCEPTION__")) as f:
-				return f.read()
+				return pickle.load(f)
 		except IOError:
 			raise ValueError(
 				"No error has been posted on UWS job %s"%self.jobId)
@@ -537,6 +537,7 @@ class UWSActions(object):
 		mark phase as ACTION.
 		"""
 		job.phase = ERROR
+		#log.err(_why="Error duing UWS execution")
 		job.setError(exception)
 
 _actionsRegistry = {}

@@ -404,7 +404,8 @@ class TableName(ADQLNode):
 		return "TableName(%s)"%self.qName
 
 	def _polish(self):
-		self.qName = ".".join(n for n in (self.cat, self.schema, self.name) if n) 
+		self.qName = ".".join(flatten(n) 
+			for n in (self.cat, self.schema, self.name) if n) 
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):

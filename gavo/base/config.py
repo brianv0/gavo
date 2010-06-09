@@ -377,6 +377,8 @@ _config = Configuration(
 	),
 
 	Section('async', "Settings concerning TAP, UWS, and friends",
+		IntConfigItem("defaultExecTimeSync", "60", "Default timeout"
+			" for synchronous UWS jobs, in seconds"),
 		IntConfigItem("defaultExecTime", "3600", "Default timeout"
 			" for UWS jobs, in seconds"),
 		IntConfigItem("defaultLifetime", "172800", "Default"

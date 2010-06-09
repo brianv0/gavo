@@ -111,7 +111,7 @@ class AtomListStructureTest(unittest.TestCase):
 			s1._att1.feed(None, s1, "x4")
 		except LiteralParseError, msg:
 			self.assertEqual(msg.attName, "item")
-			self.assertEqual(msg.attVal, "x4")
+			self.assertEqual(msg.literal, "x4")
 		else:
 			self.fail("Bad integer literal doesn't raise correct exc. in list")
 

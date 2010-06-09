@@ -18,6 +18,7 @@ class DbTableError(ResourceError):
 	def __init__(self, msg, qName):
 		ResourceError.__init__(self, msg)
 		self.qName = qName
+		self.args = [msg, qName]
 
 
 class ParseOptions(object):
