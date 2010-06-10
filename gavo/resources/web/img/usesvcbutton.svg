@@ -105,16 +105,16 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="3.959798"
-     inkscape:cx="211.70288"
+     inkscape:zoom="4"
+     inkscape:cx="116.46898"
      inkscape:cy="912.41881"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
      inkscape:window-width="1068"
-     inkscape:window-height="667"
-     inkscape:window-x="47"
-     inkscape:window-y="519" />
+     inkscape:window-height="726"
+     inkscape:window-x="114"
+     inkscape:window-y="222" />
   <metadata
      id="metadata7">
     <rdf:RDF>
@@ -139,7 +139,7 @@
        y="-148.16576"
        transform="scale(1,-1)" />
     <rect
-       style="opacity:1;fill-opacity:1;stroke:none;stroke-width:3.54330707000000000;stroke-miterlimit:4;stroke-dasharray:7.08661416999999982, 3.54330708999999988;stroke-dashoffset:0;stroke-opacity:1;fill:url(#linearGradient4649)"
+       style="opacity:1;fill-opacity:1;stroke:#c0c0c0;stroke-width:1;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;fill:url(#linearGradient4649)"
        id="rect2402"
        width="123.57143"
        height="31.964285"
