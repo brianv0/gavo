@@ -15,7 +15,14 @@ from xml import sax
 from gavo import utils
 
 
-WAITING_PHASES = set(["QUEUED", "EXECUTING"])
+# Ward against typos
+PENDING = "PENDING"
+QUEUED = "QUEUED"
+EXECUTING = "EXECUTING"
+COMPLETED = "COMPLETED"
+ERROR = "ERROR"
+ABORTED = "ABORTED"
+
 
 debug = True
 
@@ -61,6 +68,18 @@ class RemoteError(Error):
 
 	def __str__(self):
 		return "Remote failure (%s)"%utils.makeEllipsis(self.remoteMessage, 30)
+
+
+class RemoteAbort(Error):
+	"""is raised by certain check functions when the remote side has aborted
+	the job.
+	"""
+	def __init__(self):
+		Error.__init__(self, "Aborted")
+		self.args = []
+	
+	def __str__(self):
+		return "The remote side has aborted the job"
 
 
 class _FormData(MIMEMultipart):
@@ -293,6 +312,43 @@ class ADQLTAPJob(object):
 		response = request(self.destHost, self.jobPath+"/phase", 
 			{"PHASE": "ABORT"}, method="POST", expectedStatus=303)
 
+	def raiseIfError(self):
+		"""raises an appropriate error message if job has thrown an error or
+		has been aborted.
+		"""
+		phase = self.phase
+		if phase==ERROR:
+			raise RemoteError(self.getErrorFromServer())
+		elif phase==ABORTED:
+			raise RemoteAbort()
+
+	def waitForPhases(self, phases, pollInterval=1, increment=1.189207115002721,
+			giveUpAfter=None):
+		"""waits for the job's phase to become one of the set phases.
+
+		This method polls.  Initially, it does increases poll times
+		exponentially with increment until it queries every two minutes.
+
+		The magic number in increment is 2**(1/4.).
+
+		giveUpAfter, if given, is the number of iterations this method will
+		do.  If none of the desired phases have been found until then,
+		raise a ProtocolError.
+		"""
+		attempts = 0
+		while True:
+			curPhase = self.phase 
+			if curPhase in phases:
+				break
+			time.sleep(pollInterval)
+			pollInterval = min(120, pollInterval*increment)
+			attempts += 1
+			if giveUpAfter:
+				if attempts>giveUpAfter:
+					raise ProtocolError("None of the states in %s were reached"
+						" in time."%repr(phases),
+					hint="After %d attempts, phase was %s"%(attempts, curPhase))
+
 	def run(self, pollInterval=1):
 		"""runs the job and waits until it has finished.
 
@@ -300,13 +356,8 @@ class ADQLTAPJob(object):
 		server.
 		"""
 		self.start()
-		while self.phase in WAITING_PHASES:
-			time.sleep(pollInterval)
-			# initially, do an exponential backoff until you are up to
-			# querying every two minutes.  The magic number is 2**(1/4.)
-			pollInterval = min(120, pollInterval*1.189207115002721)
-		if self.phase!="COMPLETED":
-			raise RemoteError(self.getErrorFromServer())
+		self.waitForPhases(set([COMPLETED, ABORTED, ERROR]))
+		self.raiseIfError()
 
 	executionduration = property(
 		_makeAtomicValueGetter("/executionduration", _makeFlatParser(float)),

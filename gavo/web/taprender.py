@@ -29,8 +29,11 @@ from gavo.web import vosi
 from gavo.votable import V
 
 
-######## XXX TODO: Remove almost all the sync stuff and replace it with
-# protocols.taprunner
+@utils.memoized
+def getTAPVersion():
+	return base.caches.getRD(tap.RD_ID).getProperty("TAP_VERSION")
+
+
 class ErrorResource(rend.Page):
 	def __init__(self, errMsg, exc=None):
 		self.errMsg = errMsg
@@ -64,7 +67,7 @@ class UWSRedirect(rend.Page):
 
 	@utils.memoized
 	def getServiceURL(self):
-		return base.caches.getRD("__system__/tap").getById("run").getURL("tap")
+		return base.caches.getRD(tap.RD_ID).getById("run").getURL("tap")
 
 	def renderHTTP(self, ctx):
 		req = inevow.IRequest(ctx)
@@ -84,9 +87,9 @@ class TAPQueryResource(rend.Page):
 	def _doRender(self, ctx):
 		with tap.TAPJob.createFromRequest(inevow.IRequest(ctx)) as job:
 			parameters = job.parameters
+			job.executionduration = base.getConfig("async", "defaultExecTimeSync")
 			jobId = job.jobId
-		taprunner.runTAPJob(parameters, jobId, base.getConfig("async",
-			"defaultExecTimeSync"))
+		taprunner.runTAPJob(parameters, jobId)
 		with tap.TAPJob.makeFromId(jobId) as job:
 			if job.phase==uws.COMPLETED:
 				# This is TAP, so there's exactly one result
@@ -261,10 +264,12 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 
 	def locateChild(self, ctx, segments):
 		reparseRequestArgs(ctx)
+		request = inevow.IRequest(ctx)
 		try:
-			if common.getfirst(ctx, "VERSION", tap.TAP_VERSION)!=tap.TAP_VERSION:
-				return ErrorResource("Version mismatch; this service only supports"
-					" TAP version %s."%tap.TAP_VERSION), ()
+			if "VERSION" in request.scalars:
+				if request.scalars["VERSION"]!=getTAPVersion():
+					return ErrorResource("Version mismatch; this service only supports"
+						" TAP version %s."%getTAPVersion()), ()
 			if segments:
 				if segments[0]=='sync':
 					res = getSyncResource(self.service, ctx, segments[1:])

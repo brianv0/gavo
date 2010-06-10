@@ -17,21 +17,12 @@ from gavo import base
 from gavo import rsc
 from gavo import utils
 
-# So, this is the first instance where an ORM might actually be nice.
-# But, aw, I'm not pulling in SQLAlchemy just yet.
-
-
 RD_ID = "__system__/uws"
 
 # Ward against typos
-PENDING = "PENDING"
-QUEUED = "QUEUED"
-EXECUTING = "EXECUTING"
-COMPLETED = "COMPLETED"
-ERROR = "ERROR"
-ABORTED = "ABORTED"
+from gavo.votable.tapquery import (PENDING, QUEUED, EXECUTING, COMPLETED,
+	ERROR, ABORTED)
 DESTROYED = "DESTROYED"  # local extension
-
 
 class UWSError(base.Error):
 	def __init__(self, msg, jobId, hint=None):
@@ -42,6 +33,14 @@ class UWSError(base.Error):
 
 	def __str__(self):
 		return "Error in processing job %s: %s"%(self.jobId, self.msg)
+
+
+class JobNotFound(base.NotFoundError, UWSError):
+	pass
+
+
+# So, this is the first instance where an ORM might actually be nice.
+# But, aw, I'm not pulling in SQLAlchemy just yet.
 
 
 def getJobsTable():
@@ -241,7 +240,7 @@ class UWSJob(object):
 			pars={"jobId": jobId}))
 		if not res:
 			self._closed = True
-			raise base.NotFoundError(jobId, "UWS job", "jobs table")
+			raise JobNotFound(jobId, "UWS job", "jobs table")
 		kws = res[0]
 
 		for att in self._dbAttrs:
@@ -537,10 +536,13 @@ class UWSActions(object):
 		mark phase as ACTION.
 		"""
 		job.phase = ERROR
-		#log.err(_why="Error duing UWS execution")
+# Before enabling this, think of some way to avoid trial failures just
+# because of log entries.
+		#log.err(_why="Error duing UWS execution of job %s"%job.jobId)
 		job.setError(exception)
 
 _actionsRegistry = {}
+
 
 def getActions(name):
 	try:
@@ -549,6 +551,7 @@ def getActions(name):
 		raise base.NotFoundError(name, "Actions", "registred Actions",
 			hint="Either you just made up the UWS actions name, or the"
 			" module defining these actions has not been imported yet.")
+
 
 def registerActions(cls, *args, **kwargs):
 	"""registers an Actions class.

@@ -170,7 +170,7 @@ class SyncQueryTest(TAPRenderTest):
 			"QUERY": 'SELECT * FROM taptest.main'}, [
 			"'file:///etc/passwd' cannot be retrieved</INFO",
 			"unknown url type"
-			])
+			]).addErrback(lambda failure: None)
 
 	def testMalformedUploadURL(self):
 		return self.assertPOSTHasStrings("/sync", {

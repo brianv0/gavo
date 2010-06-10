@@ -455,7 +455,8 @@ def getADQLGrammarCopy():
 		| CaselessKeyword("RIGHT") 
 		| CaselessKeyword("FULL"))
 	joinType = (CaselessKeyword("INNER") 
-		| (outerJoinType + CaselessKeyword("OUTER")))
+		| (outerJoinType + CaselessKeyword("OUTER"))
+		| CaselessKeyword("CROSS"))  # local extension
 	qualifiedJoin = (joinOpener
 		+ Optional( CaselessKeyword("NATURAL") )
 		+ Optional( joinType )

@@ -8,15 +8,19 @@ the database and have to have a job directory.
 Primarily for testing an alternative interface rabRun exists that takes that
 takes jobid, and parameters.
 
-The tap runner takes the job to either COMPLETED, ABORTED or ERROR states.
-It will not, however, change to EXECUTING.  That is the parent's job.
+The tap runner takes the job to EXECUTING shortly before sending the
+query to the DB server.  When done, the job's state is one of COMPLETED, 
+ABORTED or ERROR.
 """
 
 from __future__ import with_statement
 
 import os
 import sys
+import time
 import traceback
+
+from twisted.python import log
 
 from gavo import base
 from gavo import formats
@@ -36,6 +40,11 @@ SUPPORTED_LANGS = {
 }
 
 
+# The pid of the worker db backend.  This is used in the signal handler
+# try and kill the running query.
+_WORKER_PID = None
+
+
 def normalizeTAPFormat(rawFmt):
 	format = rawFmt.lower()
 	try:
@@ -47,10 +56,12 @@ def normalizeTAPFormat(rawFmt):
 
 
 def _parseTAPParameters(jobId, parameters):
+	rd = base.caches.getRD("__system__/tap")
+	version = rd.getProperty("TAP_VERSION")
 	try:
-		if parameters.get("VERSION", tap.TAP_VERSION)!=tap.TAP_VERSION:
+		if parameters.get("VERSION", version)!=version:
 			raise uws.UWSError("Version mismatch.  This service only supports"
-				" TAP version %s"%tap.TAP_VERSION, jobId)
+				" TAP version %s"%version, jobId)
 		if parameters["REQUEST"]!="doQuery":
 			raise uws.UWSError("This service only supports REQUEST=doQuery", jobId)
 		if parameters["LANG"] not in SUPPORTED_LANGS:
@@ -109,17 +120,44 @@ def _ingestUploads(uploads, connection):
 	return tds
 
 
-def _runTAPJob(parameters, jobId, timeout, queryProfile):
+def _notWorkerPID(conn):
+	"""stores conn's worker PID in _WORKER_PID.
+	"""
+	global _WORKER_PID
+	curs = conn.cursor()
+	_WORKER_PID = curs.execute("SELECT pg_backend_pid()").fetchall()[0][0]
+	curs.close()
+
+
+def _hangIfMagic(jobId, parameters):
+# Test intrumentation. There are more effective ways to DoS me.
+	if parameters.get("QUERY")=="JUST HANG around":
+		with tap.TAPJob.makeFromId(jobId) as job:
+			job.phase = uws.EXECUTING
+		time.sleep(20)
+		with tap.TAPJob.makeFromId(jobId) as job:
+			job.phase = uws.COMPLETED
+		sys.exit()
+
+
+def _runTAPJob(parameters, jobId, queryProfile):
 	"""executes a TAP job defined by parameters.  
 	
 	This does not do state management.  Use runTAPJob if you need it.
 	"""
+	_hangIfMagic(jobId, parameters)
 	query, format, maxrec = _parseTAPParameters(jobId, parameters)
 	connectionForQuery = base.getDBConnection(queryProfile)
+	try:
+		_noteWorkerPID(connectionForQuery)
+	except: # Don't fail just because we can't kill workers
+		pass
 	tdsForUploads = _ingestUploads(parameters.get("UPLOAD", ""), 
 		connectionForQuery)
+
 	with tap.TAPJob.makeFromId(jobId) as job:
 		job.phase = uws.EXECUTING
+		timeout = job.executionDuration
 	res = runTAPQuery(query, timeout, connectionForQuery,
 		tdsForUploads)
 	with tap.TAPJob.makeFromId(jobId) as job:
@@ -128,21 +166,60 @@ def _runTAPJob(parameters, jobId, timeout, queryProfile):
 	destF.close()
 
 
-def runTAPJob(parameters, jobId, timeout, queryProfile="untrustedquery"):
+def runTAPJob(parameters, jobId, queryProfile="untrustedquery"):
 	"""executes a TAP job defined by parameters and job id.
 	"""
 	try:
-		_runTAPJob(parameters, jobId, timeout, queryProfile)
+		_runTAPJob(parameters, jobId, queryProfile)
 	except Exception, ex:
 		with tap.TAPJob.makeFromId(jobId) as job:
 			# This creates an error document in our WD.
 			job.changeToPhase(uws.ERROR, ex)
+		#log.err(_why="Job %s failed"%jobId)
 	else:
 		with tap.TAPJob.makeFromId(jobId) as job:
 			job.changeToPhase(uws.COMPLETED, None)
 
 
-############### CLI interface
+############### CLI
+
+
+def setINTHandler(jobId):
+	"""installs a signal handler that pushes our job to aborted on SIGINT.
+	"""
+	import signal
+
+	def handler(signo, frame):
+		# Let's be reckless for now and kill from the signal handler.
+		with tap.TAPJob.makeFromId(jobId) as job:
+			job.phase = uws.ABORTED
+			if _WORKER_PID:
+				killConn = base.getDBConnection("feed")
+				curs = killConn.cursor()
+				curs.execute("SELECT pg_cancel_backend(%d)"%_WORKER_PID)
+				curs.close()
+				killConn.close()
+			sys.exit(2)
+
+	signal.signal(signal.SIGINT, handler)
+
+
+def joinInterruptibly(t):
+	while True: 
+		t.join(timeout=0.5)
+		if not t.isAlive():
+			return
+
+
+def _runInThread(target):
+	# The standalone tap runner must run the query in a thread since
+	# it must be able to react to a SIGINT.
+	import threading
+	t = threading.Thread(target=target)
+	t.setDaemon(True)
+	t.start()
+	joinInterruptibly(t)
+
 
 def parseCommandLine():
 	from optparse import OptionParser
@@ -163,10 +240,22 @@ def main():
 	# There's little we can do about that, though, since we cannot put
 	# a job into ERROR when we don't know its id or cannot get it from the DB.
 	opts, jobId = parseCommandLine()
+	setINTHandler(jobId)
+	try:
+		log.startLogging(
+			open(os.path.join(base.getConfig("logDir"), "taprunner"), "w"))
+	except: # don't die just because logging fails
+		pass
+
 	try:
 		with tap.TAPJob.makeFromId(jobId) as job:
 			parameters = job.parameters
-			jobId, timeout = job.jobId, job.executionDuration
-	except base.NotFoundError:  # Job was deleted before we came up.
-		sys.exit(1)
-	runTAPJob(parameters, jobId, timeout)
+		
+		_runInThread(lambda: runTAPJob(parameters, jobId))
+	except SystemExit:
+		pass
+	except uws.JobNotFound: # someone destroyed the job before I was done
+		pass
+	except:
+		log.err(_why="Taprunner major failure")
+		raise

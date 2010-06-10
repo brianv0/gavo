@@ -7,6 +7,7 @@ from __future__ import with_statement
 import os
 import signal
 import subprocess
+import warnings
 
 from pyparsing import ParseException
 
@@ -19,7 +20,6 @@ from gavo.utils import codetricks
 
 
 RD_ID = "__system__/tap"
-TAP_VERSION = "1.0"
 
 
 FORMAT_CODES = {
@@ -46,7 +46,7 @@ class TAPError(base.Error):
 	autogenerate one) and optionally a source exception and a hint.
 	"""
 	def __init__(self, msg, sourceEx=None, hint=None):
-		gavo.Error.__init__(self, msg, hint=hint)
+		base.Error.__init__(self, msg, hint=hint)
 		self.sourceEx = sourceEx
 	
 	def __str__(self):
@@ -238,16 +238,15 @@ class TAPActions(uws.UWSActions):
 		"""forks off a new Job.
 		"""
 		try:
-			child = subprocess.Popen(["gavo", "--disable-spew", "--", 
-				"tap", job.jobId])
+			child = subprocess.Popen(["gavo", "--disable-spew", 
+				"tap", "--", job.jobId])
 			job.phase = uws.QUEUED
 			job.pid = child.pid
 		except Exception, ex:
 			job.changeToPhase(uws.ERROR, ex)
 
-
 	def killJob(self, newState, job, ignored):
-		"""tries to kill -TERM the pid the job has registred.
+		"""tries to kill -INT the pid the job has registred.
 
 		This will raise a TAPError with some description if that's not possible
 		for some reason.
@@ -259,7 +258,7 @@ class TAPActions(uws.UWSActions):
 			pid = job.pid
 			if pid is None:
 				raise TAPError("Job is not running")
-			os.kill(pid, signal.SIGTERM)
+			os.kill(pid, signal.SIGINT)
 		except TAPError:
 			raise
 		except Exception, ex:
