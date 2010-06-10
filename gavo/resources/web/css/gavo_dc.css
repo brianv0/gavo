@@ -181,6 +181,9 @@ h1 {
 	color: #042E74;
 	background: #F0F4FF;
 	padding-left: 0.5ex;
+	margin-top: 0px;
+	padding-top: 15px;
+	padding-bottom: 15px;
 }
 
 h2 { 
@@ -377,6 +380,7 @@ div.exploBody {
 	margin-top:7px;
 	margin-bottom:5px;
 	background: #F0F4FF;
+	text-align: center;
 }
 
 .sidebaritem div.navimainitem {
