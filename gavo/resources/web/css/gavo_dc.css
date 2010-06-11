@@ -10,7 +10,7 @@ th {
 }
 
 p, li {
-	max-width: 400px;
+	max-width: 30em;
 }
 
 div.metadescription {
@@ -60,7 +60,7 @@ p.attribution {
 }
 
 ul {
-	max-width: 400px;
+	max-width: 30em;
 }
 
 code {
@@ -134,7 +134,7 @@ div.condition {
 div.legal {
 	padding-top: 10px;
 	font-size: 72%;
-	max-width: 400px;
+	max-width: 30em;
 }
 
 table.results {
@@ -182,8 +182,8 @@ h1 {
 	background: #F0F4FF;
 	padding-left: 0.5ex;
 	margin-top: 0px;
-	padding-top: 15px;
-	padding-bottom: 15px;
+	padding-top: 1ex;
+	padding-bottom: 1ex;
 }
 
 h2 { 
@@ -380,7 +380,6 @@ div.exploBody {
 	margin-top:7px;
 	margin-bottom:5px;
 	background: #F0F4FF;
-	text-align: center;
 }
 
 .sidebaritem div.navimainitem {
@@ -411,12 +410,12 @@ div.copyright {
 	background-color: #cccccc;
 	padding: 5px;
 	margin-top: 5px;
-	max-width: 400px;
+	max-width: 30em;
 }
 
 div.intro {
 	margin-bottom: 15px;
-	max-width: 400px;
+	max-width: 30em;
 }
 
 textarea { /* fix silly nevow formal css */

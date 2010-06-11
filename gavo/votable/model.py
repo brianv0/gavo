@@ -26,8 +26,6 @@ class VOTable(object):
 		a_utype = None
 		mayBeEmpty = True
 
-		_defusePat = re.compile("[^A-Za-z_0-9]")
-
 		def getDesignation(self):
 			"""returns something to "call" this element.
 
@@ -39,7 +37,18 @@ class VOTable(object):
 				name = self.a_ID
 			if name is None:
 				name = "UNIDENTIFIED"
-			return self._defusePat.sub("?", name)
+
+		def getDesignation(self):
+			"""returns some name-like thing for a FIELD or PARAM.
+			"""
+			if self.a_name:
+				res = self.a_name
+			elif self.a_ID:
+				res = self.a_ID
+			else:
+				res = "%s_%s"%(self.__class__.__name__, "%x"%id(self))
+			return res.encode("ascii", "ignore")
+
 
 
 	class _ValuedElement(_DescribedElement):
@@ -74,7 +83,24 @@ class VOTable(object):
 			else:
 				return int(self.a_arraysize)
 
-	
+		def getShape(self):
+			"""returns a numpy-compatible shape.
+			"""
+			if self.a_arraysize is None:
+				return None
+			if self.a_datatype=="char" and not "x" in self.a_arraysize:
+				# special case: 1d char arrays are just scalar strings
+				return None
+			if self.a_arraysize=="*":
+				return None  # What should we really return here?
+			val = self.a_arraysize.replace("*", "")
+			if "x" in val:
+				if val.endswith("x"):  # variable last dimension
+					val = val+'1'
+				tuple(int(d) for d in val.split("x"))
+			else:
+				return (int(val),)
+
 	class _RefElement(_ValuedElement):
 		a_ref = None
 		a_ucd = None
@@ -133,7 +159,7 @@ class VOTable(object):
 
 	class FIELD(_TypedElement):
 		childSequence = ["DESCRIPTION", "VALUES", "LINK"]
-	
+
 	class FIELDref(_RefElement): pass
 	
 	class FITS(_VOTElement):
@@ -231,7 +257,7 @@ class VOTable(object):
 		def _getFieldIndex(self):
 			if self._fieldIndex is None:
 				index = {}
-				for child in self.getChildrenOfType("FIELD"):
+				for child in self.iterChildrenOfType(VOTable.FIELD):
 					if child.a_name:
 						index[child.a_name] = child
 					if child.a_ID:

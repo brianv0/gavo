@@ -330,23 +330,6 @@ def captureOutput(callable, args=(), kwargs={}):
 	return retVal, outCont, errCont
 
 
-def trialMain(testClass):
-	from twisted.trial import runner
-	from twisted.scripts import trial as script
-	config = script.Options()
-	config.parseOptions()
-	trialRunner = script._makeRunner(config)
-	if len(sys.argv)>1:
-		suite = runner.TestSuite()
-		for t in sys.argv[1:]:
-			suite.addTest(testClass(t))
-	else:
-		sys.argv.append(sys.argv[0])
-		config.parseOptions()
-		suite = script._getSuite(config)
-	trialRunner.run(suite)
-	
-
 def main(testClass, methodPrefix=None):
 	if len(sys.argv)>2:
 		testClass = inspect.stack()[1][0].f_globals[sys.argv[-2]]

@@ -364,5 +364,14 @@ class STCParseTest(testhelpers.VerboseTest):
 			"stc:AstroCoords.BlasterLocation")
 
 
+class SimpleAPIReadTest(testhelpers.VerboseTest):
+	def testSimpleData(self):
+		data, metadata = votable.open("data/importtest.vot")
+		self.assertEqual(len(metadata), 14)
+		self.assertEqual(metadata[0].a_name, "_r")
+		self.assertEqual(data[0][3], 1)
+		self.assertEqual(data[1][0], None)
+
+
 if __name__=="__main__":
 	testhelpers.main(ImportTest)

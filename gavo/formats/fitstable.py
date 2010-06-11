@@ -15,16 +15,6 @@ from gavo.formats import common
 from gavo.utils import pyfits
 
 
-_naTypesMap = {
-	"short": numpy.int16,
-	"int": numpy.int32,
-	"long": numpy.int64,
-	"float": numpy.float32,
-	"double": numpy.float64,
-	"boolean": numpy.bool,
-	"char": numpy.str,
-}
-
 _fitsCodeMap = {
 	"short": "I",
 	"int": "J",
@@ -34,16 +24,6 @@ _fitsCodeMap = {
 	"boolean": "L",
 	"char": "A",
 }
-
-def makeArrayForVOType(type, arrsz, numItems):
-# not needed for now
-	if arrsz!="1":
-		if type=="char":
-			return numpy.array(shape=(numItems,), dtype=numpy.str)
-		else:
-			raise utils.Error("Won't represent arrays within numpy arrays (%s, %s)"%(
-				type, arrlen))
-	return numpy.array(dtype=_naTypesMap[type], shape=(numItems,))
 
 
 def _makeExtension(serMan):

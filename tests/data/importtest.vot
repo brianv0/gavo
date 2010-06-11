@@ -9,7 +9,7 @@
 <RESOURCE ID="ConeSearch" name="crazy stuff;'nasty">
   <DESCRIPTION>Ugly mess</DESCRIPTION>
   <TABLE ID="sausage/" name="/catalog">
-    <DESCRIPTION>The actualy uglyness {whoa}</DESCRIPTION>
+    <DESCRIPTION>The actual uglyness {whoa}</DESCRIPTION>
     <FIELD name="_r" ucd="POS_ANG_DIST_GENERAL" datatype="double" width="9" precision="5" unit="deg">
       <DESCRIPTION>Distance from center</DESCRIPTION>
     </FIELD>
