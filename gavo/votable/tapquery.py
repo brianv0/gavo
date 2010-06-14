@@ -67,7 +67,7 @@ class RemoteError(Error):
 		self.args = [remoteMessage]
 
 	def __str__(self):
-		return "Remote failure (%s)"%utils.makeEllipsis(self.remoteMessage, 30)
+		return self.remoteMessage
 
 
 class RemoteAbort(Error):

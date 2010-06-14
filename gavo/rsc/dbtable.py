@@ -2,6 +2,8 @@
 Tables on disk
 """
 
+from __future__ import with_statement
+
 import os
 import sys
 
@@ -327,6 +329,12 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		cursor.execute("SELECT * FROM %s"%self.tableName)
 		for row in cursor:
 			yield self.tableDef.makeRowFromTuple(row)
+		cursor.close()
+
+	def __len__(self):
+		with self.connection.cursor() as cursor:
+			cursor.execute("SELECT count(*) FROM %s"%self.tableName)
+			return cursor.fetchall()[0][0]
 
 	def exists(self):
 		if self.tableDef.temporary:

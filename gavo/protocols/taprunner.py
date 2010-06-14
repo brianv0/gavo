@@ -68,7 +68,7 @@ def _parseTAPParameters(jobId, parameters):
 			raise uws.UWSError("This service only supports LANG=ADQL", jobId)
 		query = parameters["QUERY"]
 	except KeyError, key:
-		raise uws.UWSError("Required parameter %s missing."%key, jobId)
+		raise base.ValidationError("Required parameter %s missing."%key, key)
 
 	format = normalizeTAPFormat(parameters.get("FORMAT", "votable"))
 
@@ -114,50 +114,48 @@ def _ingestUploads(uploads, connection):
 				" non-alphanumeric characters or conflicts with an ADQL"
 				" reserved word.  Quoted table names are not supported"
 				" at this site.")
-		tds.append(votableread.uploadVOTable(destName, srcF, connection,
-				nameMaker=votableread.AutoQuotedNameMaker()).tableDef)
+		uploadedTable = votableread.uploadVOTable(destName, srcF, connection,
+				nameMaker=votableread.AutoQuotedNameMaker())
+		if uploadedTable is not None:
+			tds.append(uploadedTable.tableDef)
 		srcF.close()
 	return tds
 
 
-def _notWorkerPID(conn):
+def _noteWorkerPID(conn):
 	"""stores conn's worker PID in _WORKER_PID.
 	"""
 	global _WORKER_PID
 	curs = conn.cursor()
-	_WORKER_PID = curs.execute("SELECT pg_backend_pid()").fetchall()[0][0]
+	curs.execute("SELECT pg_backend_pid()")
+	_WORKER_PID = curs.fetchall()[0][0]
 	curs.close()
 
 
-def _hangIfMagic(jobId, parameters):
+def _hangIfMagic(jobId, parameters, timeout):
 # Test intrumentation. There are more effective ways to DoS me.
 	if parameters.get("QUERY")=="JUST HANG around":
-		with tap.TAPJob.makeFromId(jobId) as job:
-			job.phase = uws.EXECUTING
-		time.sleep(20)
+		time.sleep(timeout)
 		with tap.TAPJob.makeFromId(jobId) as job:
 			job.phase = uws.COMPLETED
 		sys.exit()
 
 
-def _runTAPJob(parameters, jobId, queryProfile):
+def _runTAPJob(parameters, jobId, queryProfile, timeout):
 	"""executes a TAP job defined by parameters.  
 	
 	This does not do state management.  Use runTAPJob if you need it.
 	"""
-	_hangIfMagic(jobId, parameters)
+	_hangIfMagic(jobId, parameters, timeout)
 	query, format, maxrec = _parseTAPParameters(jobId, parameters)
 	connectionForQuery = base.getDBConnection(queryProfile)
 	try:
 		_noteWorkerPID(connectionForQuery)
 	except: # Don't fail just because we can't kill workers
-		pass
+		log.err(_why="Could not obtain PID for the worker, job %s"%jobId)
 	tdsForUploads = _ingestUploads(parameters.get("UPLOAD", ""), 
 		connectionForQuery)
 
-	with tap.TAPJob.makeFromId(jobId) as job:
-		job.phase = uws.EXECUTING
-		timeout = job.executionDuration
 	res = runTAPQuery(query, timeout, connectionForQuery,
 		tdsForUploads)
 	with tap.TAPJob.makeFromId(jobId) as job:
@@ -169,13 +167,15 @@ def _runTAPJob(parameters, jobId, queryProfile):
 def runTAPJob(parameters, jobId, queryProfile="untrustedquery"):
 	"""executes a TAP job defined by parameters and job id.
 	"""
+	with tap.TAPJob.makeFromId(jobId) as job:
+		job.phase = uws.EXECUTING
+		timeout = job.executionDuration
 	try:
-		_runTAPJob(parameters, jobId, queryProfile)
+		_runTAPJob(parameters, jobId, queryProfile, timeout)
 	except Exception, ex:
 		with tap.TAPJob.makeFromId(jobId) as job:
-			# This creates an error document in our WD.
+			# This creates an error document in our WD and writes a log.
 			job.changeToPhase(uws.ERROR, ex)
-		#log.err(_why="Job %s failed"%jobId)
 	else:
 		with tap.TAPJob.makeFromId(jobId) as job:
 			job.changeToPhase(uws.COMPLETED, None)
@@ -191,10 +191,11 @@ def setINTHandler(jobId):
 
 	def handler(signo, frame):
 		# Let's be reckless for now and kill from the signal handler.
+		log.msg("Runner for job %s received SIGINT, wpid %s"%(jobId, _WORKER_PID))
 		with tap.TAPJob.makeFromId(jobId) as job:
 			job.phase = uws.ABORTED
 			if _WORKER_PID:
-				killConn = base.getDBConnection("feed")
+				killConn = base.getDBConnection("admin")
 				curs = killConn.cursor()
 				curs.execute("SELECT pg_cancel_backend(%d)"%_WORKER_PID)
 				curs.close()
@@ -242,8 +243,10 @@ def main():
 	opts, jobId = parseCommandLine()
 	setINTHandler(jobId)
 	try:
-		log.startLogging(
-			open(os.path.join(base.getConfig("logDir"), "taprunner"), "w"))
+		theLog = logfile.LogFile("taprunner", base.getConfig("logDir"))
+		# this will race since potentially many tap runners log to the
+		# same file, but the logs are only for emergencies anyway.
+		log.startLogging(theLog)
 	except: # don't die just because logging fails
 		pass
 

@@ -146,7 +146,10 @@ def uploadVOTable(tableId, srcFile, connection, gunzip=False, **tableArgs):
 	"""
 	if gunzip:
 		srcFile = gzip.GzipFile(fileobj=srcFile, mode="r")
-	rows = votable.parse(srcFile).next()
+	try:
+		rows = votable.parse(srcFile).next()
+	except StopIteration: # no table contained, not our problem
+		return
 	args = {"onDisk": True, "temporary": True}
 	args.update(tableArgs)
 	td = makeTableDefForVOTable(tableId, rows.tableDefinition, **args)

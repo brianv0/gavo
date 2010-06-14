@@ -224,6 +224,22 @@ class TAPJob(uws.UWSJob):
 
 ########################## Maintaining TAP jobs
 
+
+def _replaceFDs(inFName, outFName):
+# This is used for clean forking and doesn't actually belong here.
+# utils.ostricks should take this.
+  """closes all (findable) file descriptors and replaces stdin with inF
+  and stdout/err with outF.
+  """
+  for fd in range(255, -1, -1):
+    try:
+      os.close(fd)
+    except os.error:
+      pass
+  ifF, outF = open(inFName), open(outFName, "w")
+  os.dup(outF.fileno())
+
+
 class TAPActions(uws.UWSActions):
 # XXX TODO: Implement a real queue rather than starting blindly
 	def __init__(self):
@@ -238,10 +254,16 @@ class TAPActions(uws.UWSActions):
 		"""forks off a new Job.
 		"""
 		try:
-			child = subprocess.Popen(["gavo", "--disable-spew", 
-				"tap", "--", job.jobId])
-			job.phase = uws.QUEUED
-			job.pid = child.pid
+			pid = os.fork()
+			if pid==0:
+				_replaceFDs("/dev/zero", "/dev/null")
+				os.execlp("gavo", "gavo", "--disable-spew", 
+					"tap", "--", job.jobId)
+			elif pid>0:
+				job.phase = uws.QUEUED
+				job.pid = pid
+			else:
+				raise Exception("Could not fork")
 		except Exception, ex:
 			job.changeToPhase(uws.ERROR, ex)
 

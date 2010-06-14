@@ -67,6 +67,13 @@ class Feeder(object):
 				raise
 	
 
+def _makeFailIncomplete(name):
+	def fail(self, *args, **kwargs):
+		raise NotImplementedError("%s is an incomplete Table implementation."
+			"  No method '%s' defined."%(self.__class__.__name__, name))
+	return fail
+
+
 class BaseTable(base.MetaMixin):
 	"""is a container for row data.
 
@@ -128,23 +135,12 @@ class BaseTable(base.MetaMixin):
 		self.votCasts = kwargs.get("votCasts", {})
 		self.role = kwargs.get("role")
 
-	def _failIncomplete(self, *args, **kwargs):
-		try:
-			import inspect
-			curName = str(inspect.getargspec(inspect.currentframe()))
-		except: # don't worry if you can't find out the name of the current method
-			curName = "-Unknown-"
-		raise NotImplementedError("%s is an incomplete Table implementation:"
-			"  Missing %s method."%
-			self.__class__.__name__, curName)
-
-	__iter__ = _failIncomplete
-	__len__ = _failIncomplete
-	removeRow = _failIncomplete
-	addRow = _failIncomplete
-	getRow = _failIncomplete
-	removeRow = _failIncomplete
-	getFeeder = _failIncomplete
+	__iter__ = _makeFailIncomplete("__iter__")
+	__len__ = _makeFailIncomplete("__len__")
+	removeRow = _makeFailIncomplete("removeRow")
+	addRow = _makeFailIncomplete("addRow")
+	getRow = _makeFailIncomplete("getRow")
+	getFeeder = _makeFailIncomplete("getFeeder")
 
 	def addTuple(self, tupRow):
 		self.addRow(self.tableDef.makeRowFromTuple(tupRow))

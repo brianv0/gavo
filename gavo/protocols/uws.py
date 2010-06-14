@@ -536,9 +536,11 @@ class UWSActions(object):
 		mark phase as ACTION.
 		"""
 		job.phase = ERROR
-# Before enabling this, think of some way to avoid trial failures just
-# because of log entries.
-		#log.err(_why="Error duing UWS execution of job %s"%job.jobId)
+		# Validation errors don't get logged -- for one, they probably
+		# are the user's fault, and for a second, logging them upsets
+		# trial during testing, since trial examines the log.
+		if not isinstance(exception, base.ValidationError):
+			log.err(_why="Error duing UWS execution of job %s"%job.jobId)
 		job.setError(exception)
 
 _actionsRegistry = {}
