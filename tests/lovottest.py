@@ -24,24 +24,27 @@ class IterParseTest(testhelpers.VerboseTest):
 		self.assertEqual(list(iterparse(StringIO(xml))), parsed)
 	
 	samples = [
-		("<doc/>", [("start", "doc", {}), ("end", "doc")]),
-		('<doc href="x"/>', [("start", "doc", {"href": "x"}), ("end", "doc")]),
-		('<doc>fl\xc3\xb6ge</doc>', 
-			[("start", "doc", {}), ("data", u"fl\xf6ge"), ("end", "doc")]),
+		("<doc/>", [("start", "doc", {}), ("end", "doc", None)]),
+		('<doc href="x"/>', 
+			[("start", "doc", {"href": "x"}), ("end", "doc", None)]),
+		('<doc>fl\xc3\xb6ge</doc>', [
+			("start", "doc", {}), 
+			("data", None, u"fl\xf6ge"), 
+			("end", "doc", None)]),
 		('<doc obj="fl\xc3\xb6ge"/>', 
-			[("start", "doc", {"obj": u"fl\xf6ge"}), ("end", "doc")]),
+			[("start", "doc", {"obj": u"fl\xf6ge"}), ("end", "doc", None)]),
 		('<doc><abc>'+"unu"*10000+'</abc>\n<bcd>klutz</bcd></doc>', [
 			("start", "doc", {}), 
 			("start", "abc", {}),
-			("data", "unu"*10000),
-			("end", "abc"),
-			("data", "\n"),
+			("data", None, "unu"*10000),
+			("end", "abc", None),
+			("data", None, "\n"),
 			("start", "bcd", {}),
-			("data", "klutz"),
-			("end", "bcd"),
-			("end", "doc")]),
+			("data", None, "klutz"),
+			("end", "bcd", None),
+			("end", "doc", None)]),
 		('<doc xmlns="http://insane"/>', [
-			("start", "doc", {u'xmlns': u'http://insane'}), ("end", "doc"),])
+			("start", "doc", {u'xmlns': u'http://insane'}), ("end", "doc", None),])
 	]
 
 

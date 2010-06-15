@@ -112,36 +112,33 @@ def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
 	elementStack = [None]  # None is VOTABLE's parent
 	iterator = iterparse.iterparse(inFile)
 
-	for ev in iterator:
-		if ev[0]=="data":
-			content.append(ev[1])
+	for type, tag, payload in iterator:
+		if type=="data":
+			content.append(payload)
 
-		elif ev[0]=="start":
+		elif type=="start":
 			# Element open: push new node on the stack...
-			_, name, attrs = ev
-			name = name.split(":")[-1]  # ignore namespaces
-			if name not in elements:
-				raise iterator.raiseParseError("Unknown tag: %s"%name)
-			if attrs: # Force attr keys to the byte strings for kw args.
-				attrs = dict((str(k.replace("-", "_")), v) 
-					for k, v in attrs.iteritems())
-			elementStack.append(elements[name](**attrs))
+			if tag not in elements:
+				raise iterator.raiseParseError("Unknown tag: %s"%tag)
+			if payload: # Force attr keys to the byte strings for kw args.
+				payload = dict((str(k.replace("-", "_")), v) 
+					for k, v in payload.iteritems())
+			elementStack.append(elements[tag](**payload))
 
 			# ...prepare for new content,...
 			content = []
 
 			# ...add the node to the id map if it has an ID...
-			elId = attrs.get("ID")
+			elId = payload.get("ID")
 			if elId is not None:
 				idmap[elId] = elementStack[-1]
 
 			# ...and pass control to special iterator if DATA is coming in.
-			if name=="DATA":
+			if tag=="DATA":
 				yield tableparser.Rows(elementStack[-2], iterator)
 
-		elif ev[0]=="end":
+		elif type=="end":
 			# Element close: process text content...
-			name = ev[1].split(":")[-1]  # ignore namespaces
 			if content:
 				text = "".join(content)
 				content = []
@@ -149,7 +146,7 @@ def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
 				text = None
 
 			# ...see if we have any special procssing to do for the node type...
-			nodeProc = processors.get(name, _processNodeDefault)
+			nodeProc = processors.get(tag, _processNodeDefault)
 			preChild = elementStack.pop()
 			# ...call handler with the current node and its future parent...
 			child = nodeProc(text, preChild, elementStack[-1])

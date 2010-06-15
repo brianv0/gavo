@@ -18,7 +18,8 @@ chunkSize = 2**20
 class iterparse(object):
 	"""iterates over start, data, and end events in source.
 
-	Note that no namespace processing takes place here.
+	To keep things simple downstream, we swallow all namespace prefix,
+	if present.
 	"""
 	def __init__(self, source):
 		self.source = source
@@ -29,11 +30,11 @@ class iterparse(object):
 		self.parser.returns_unicode = True
 		self.evBuf = collections.deque()
 		self.parser.StartElementHandler = (lambda name, attrs, buf=self.evBuf: 
-			buf.append(("start", name, attrs)))
+			buf.append(("start", name.split(":")[-1], attrs)))
 		self.parser.EndElementHandler = (lambda name, buf=self.evBuf: 
-			buf.append(("end", name)))
+			buf.append(("end", name.split(":")[-1], None)))
 		self.parser.CharacterDataHandler = (lambda data, buf=self.evBuf:
-			buf.append(("data", data)))
+			buf.append(("data", None, data)))
 
 	def __iter__(self):
 		return self
@@ -44,7 +45,7 @@ class iterparse(object):
 				nextChunk = self.source.read(chunkSize)
 				if not nextChunk:
 					self.close()
-					raise StopIteration("File is empty")
+					raise StopIteration("File is exhausted")
 				self.parser.Parse(nextChunk)
 			except expat.ExpatError, ex:
 				raise common.VOTableParseError(ex.message)

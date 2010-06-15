@@ -40,33 +40,34 @@ class TableDataIterator(DataIterator):
 		"""returns a row in strings or None.
 		"""
 		# Wait for TR open
-		for ev in self.nodeIterator:
-			if ev==("end", "TABLEDATA"):
+		for type, tag, payload in self.nodeIterator:
+			if type=="end" and tag=="TABLEDATA":
 				return None
-			elif ev[0]=="start":
-				if ev[1]=="TR":
+			elif type=="start":
+				if tag=="TR":
 					break
 				else:
-					raise self.nodeIterator.raiseParseError("Unexpected element %s"%ev[1])
+					raise self.nodeIterator.raiseParseError(
+						"Unexpected element %s"%tag)
 			# ignore everything else; we're not validating, and sensible stuff
 			# might yet follow (usually, it's whitespace data anyway)
 
 		rawRow = []
 		dataBuffer = []
-		for ev in self.nodeIterator:
-			if ev[0]=="start":   # new TD
+		for type, tag, payload in self.nodeIterator:
+			if type=="start":   # new TD
 				dataBuffer = []
-				if ev[1]!="TD":
+				if tag!="TD":
 					raise self.nodeIterator.raiseParseError(
-						"Unexpected element %s"%ev[1],)
+						"Unexpected element %s"%tag)
 
-			elif ev[0]=="data":  # TD content
-				dataBuffer.append(ev[1])
+			elif type=="data":  # TD content
+				dataBuffer.append(payload)
 
-			elif ev[0]=="end":  # could be row end or cell end
-				if ev[1]=="TR":
+			elif type=="end":  # could be row end or cell end
+				if tag=="TR":
 					break
-				elif ev[1]=="TD":
+				elif tag=="TD":
 					rawRow.append("".join(dataBuffer))
 				else:
 					assert False
@@ -96,7 +97,7 @@ class _StreamData(object):
 		
 		This is called by _fillBuffer exclusively.
 		"""
-		for evtype, element in self.nodeIterator:
+		for evtype, element, payload in self.nodeIterator:
 			if evtype!="data":
 				break
 		# if the following assertion doesn't hold, expat has messed up.
@@ -112,14 +113,14 @@ class _StreamData(object):
 		curBytes, hadLf = 0, False
 		encoded = []
 
-		for ev in self.nodeIterator:
-			if ev[0]=="end":   # must be </STREAM> or expat would've crapped.
+		for type, tag, payload in self.nodeIterator:
+			if type=="end":   # must be </STREAM> or expat would've crapped.
 				self._setEOF()
 				break
-			assert ev[0]=="data"
-			encoded.append(ev[1])
-			curBytes += len(ev[1])
-			hadLf = hadLf or "\n" in ev[1] or "\r" in ev[1]
+			assert type=="data"
+			encoded.append(payload)
+			curBytes += len(payload)
+			hadLf = hadLf or "\n" in payload[1] or "\r" in payload
 			if hadLf and curBytes>destBytes:
 				break
 		
@@ -176,12 +177,12 @@ class BinaryIterator(DataIterator):
 	# I need to override __iter__ since we're not actually doing XML parsing
 	# here; almost all of our work is done within the stream element.
 	def __iter__(self):
-		for ev in self.nodeIterator:
-			if ev[0]!="data":
+		for type, tag, payload in self.nodeIterator:
+			if type!="data":
 				break
-		if not (ev[0]=="start" 
-				and ev[1]=="STREAM"
-				and ev[2].get("encoding")=="base64"):
+		if not (type=="start" 
+				and tag=="STREAM"
+				and payload.get("encoding")=="base64"):
 			raise common.VOTableError("Can only read BINARY data from base64"
 				" encoded streams")
 		
@@ -217,11 +218,11 @@ class Rows(object):
 		self.tableDefinition, self.nodeIterator = tableDefinition, nodeIterator
 	
 	def __iter__(self):
-		for ev in self.nodeIterator:
-			if ev[0]=="data": # ignore whitespace (or other stuff...)
+		for type, tag, payload in self.nodeIterator:
+			if type=="data": # ignore whitespace (or other stuff...)
 				pass
-			elif ev[1]=="INFO":
+			elif tag=="INFO":
 				pass   # XXX TODO: What do we do with those INFOs?
 			else:
-				return _makeTableIterator(ev[1], 
+				return _makeTableIterator(tag, 
 					self.tableDefinition, self.nodeIterator)
