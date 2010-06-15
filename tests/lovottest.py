@@ -576,5 +576,27 @@ class NDArrayTest(testhelpers.VerboseTest):
 			[[[0,1,2],[3,4,5]], [[6,7,8],[9,10,11]]])
 
 
+class WeirdTablesTest(testhelpers.VerboseTest):
+	"""tests with malformed tables an fringe cases.
+	"""
+	def testEmpty(self):
+		for data in votable.parseString("<VOTABLE/>"):
+			self.fail("A table is returned for an empty VOTable")
+
+	def testEmptySimple(self):
+		data, metadata = votable.load(StringIO("<VOTABLE/>"))
+		self.failUnless(data is None)
+
+	def testBadTag(self):
+		it = votable.parseString("<VOTABLE><FOO/></VOTABLE>")
+		self.assertRaisesWithMsg(votable.VOTableParseError, 
+			"Unknown tag: FOO near line 1, column 25", list, it)
+
+	def testBadStructure(self):
+		it = votable.parseString("<VOTABLE>")
+		self.assertRaisesWithMsg(votable.VOTableParseError, 
+			"no element found: line 1, column 9", list, it)
+
+
 if __name__=="__main__":
 	testhelpers.main(BinaryReadTest)

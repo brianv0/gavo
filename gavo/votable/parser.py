@@ -15,6 +15,7 @@ from cStringIO import StringIO
 
 from gavo import utils
 from gavo.utils import FastElementTree
+from gavo.votable import common
 from gavo.votable import iterparse
 from gavo.votable import model
 from gavo.votable import tableparser
@@ -93,7 +94,7 @@ def _computeElementsImpl():
 computeElements = utils.CachedGetter(_computeElementsImpl)
 
 
-def parse(inFile, watchset=DEFAULT_WATCHSET):
+def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
 	"""returns an iterator yielding items of interest.
 
 	inFile is whatever is ok for ElementTree.iterparse.
@@ -118,11 +119,15 @@ def parse(inFile, watchset=DEFAULT_WATCHSET):
 		elif ev[0]=="start":
 			# Element open: push new node on the stack...
 			_, name, attrs = ev
+			name = name.split(":")[-1]  # ignore namespaces
+			if name not in elements:
+				raise iterator.raiseParseError("Unknown tag: %s"%name)
 			if attrs: # Force attr keys to the byte strings for kw args.
-				attrs = dict((str(k), v) for k, v in attrs.iteritems())
+				attrs = dict((str(k.replace("-", "_")), v) 
+					for k, v in attrs.iteritems())
 			elementStack.append(elements[name](**attrs))
 
-			# ...prepare for new content, (text at last element's tail is discarded)
+			# ...prepare for new content,...
 			content = []
 
 			# ...add the node to the id map if it has an ID...
@@ -136,7 +141,7 @@ def parse(inFile, watchset=DEFAULT_WATCHSET):
 
 		elif ev[0]=="end":
 			# Element close: process text content...
-			name = ev[1]
+			name = ev[1].split(":")[-1]  # ignore namespaces
 			if content:
 				text = "".join(content)
 				content = []

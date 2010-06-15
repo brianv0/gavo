@@ -71,7 +71,7 @@ def makeDtype(tableMetadata):
 	return dtypes
 
 
-def open(source):
+def load(source):
 	"""returns (data, metadata) from the first table of a VOTable.
 
 	data is a list of records (as a list), metadata a TableMetadata instance.

@@ -47,7 +47,7 @@ class TableDataIterator(DataIterator):
 				if ev[1]=="TR":
 					break
 				else:
-					raise common.VOTableParseError("Unexpected element %s"%ev[1])
+					raise self.nodeIterator.raiseParseError("Unexpected element %s"%ev[1])
 			# ignore everything else; we're not validating, and sensible stuff
 			# might yet follow (usually, it's whitespace data anyway)
 

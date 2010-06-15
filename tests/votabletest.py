@@ -366,7 +366,7 @@ class STCParseTest(testhelpers.VerboseTest):
 
 class SimpleAPIReadTest(testhelpers.VerboseTest):
 	def testSimpleData(self):
-		data, metadata = votable.open("data/importtest.vot")
+		data, metadata = votable.load("data/importtest.vot")
 		self.assertEqual(len(metadata), 14)
 		self.assertEqual(metadata[0].a_name, "_r")
 		self.assertEqual(data[0][3], 1)

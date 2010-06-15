@@ -39,7 +39,7 @@ class VOTableParseError(VOTableError):
 
 	Note that the message passed already contains line and position.  I'd
 	like to have them in separate attributes, but the expat library mashes
-	them up.  iterparse.raiseParseError is the canoical way of raising these
+	them up.  iterparse.raiseParseError is the canonical way of raising these
 	when you have no positional information.
 	"""
 
