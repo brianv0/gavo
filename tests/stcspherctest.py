@@ -144,7 +144,6 @@ class SixVectorTest(testhelpers.VerboseTest):
 		self.assertAlmostEqualST(pos, newPos, vel, newVel)
 
 
-
 class SpherMathTest(testhelpers.VerboseTest):
 	"""tests for some basic functionality of sphermath.
 	"""
@@ -175,9 +174,9 @@ class SpherMathTest(testhelpers.VerboseTest):
 		for theta, phi in [(0, -90), (20, -89), (180, -45), (270, 0),
 				(358, 45), (0, 90)]:
 			thetaObs, phiObs = sphermath.cartToSpher(
-				sphermath.spherToCart(theta/180.*math.pi, phi/180.*math.pi))
-			self.assertAlmostEqual(theta, thetaObs/math.pi*180)
-			self.assertAlmostEqual(phi, phiObs/math.pi*180)
+				sphermath.spherToCart(theta*DEG, phi*DEG))
+			self.assertAlmostEqual(theta, thetaObs/DEG)
+			self.assertAlmostEqual(phi, phiObs/DEG)
 
 	def testArtificialRotation(self):
 		transMat = sphermath.computeTransMatrixFromPole((0, math.pi/4), 
@@ -195,6 +194,40 @@ class SpherMathTest(testhelpers.VerboseTest):
 			a, b = trans(t, p)
 			self.assertAlmostEqual(a0, a)
 			self.assertAlmostEqual(b0, b)
+
+	def _assertEulerMatch(self, eulers):
+		afterRoundtrip = sphermath.getEulerAnglesFromMatrix(
+			sphermath.getMatrixFromEulerAngles(*[e*DEG for e in eulers]))
+		afterRoundtrip = tuple([v/DEG for v in afterRoundtrip])
+		for i in range(3):
+			self.assertAlmostEqual(eulers[i], afterRoundtrip[i], 8, "%s!=%s"%(
+				eulers, afterRoundtrip))
+
+	def testEulerFromMatrix(self):
+		# Cave degeneration of euler angles; when in doubt, check the matrices.
+		self._assertEulerMatch((-88, 8, 3))
+		self._assertEulerMatch((92, 94, 133))
+		self._assertEulerMatch((92, 94, 33))
+		self._assertEulerMatch((92, 4, 33))
+		self._assertEulerMatch((27, 4, 33))
+		self._assertEulerMatch((27, 94, 33))
+		self._assertEulerMatch((-27, 94, 33))
+		self._assertEulerMatch((-27, 94, -33))
+
+	def _assertThreeVecRoundtrip(self, long, lat):
+		afterRoundtrip = sphermath.toSpherical(
+			sphermath.toThreeVec(long*DEG, lat*DEG))
+		self.assertAlmostEqual(long, afterRoundtrip[0]/DEG)
+		self.assertAlmostEqual(lat, afterRoundtrip[1]/DEG)
+
+	def testThreeVec(self):
+		for lat in [0, -60, 40]:
+			self._assertThreeVecRoundtrip(0, lat)
+			self._assertThreeVecRoundtrip(90, lat)
+			self._assertThreeVecRoundtrip(180, lat)
+			self._assertThreeVecRoundtrip(-90, lat)
+		self._assertThreeVecRoundtrip(0, 90)
+		self._assertThreeVecRoundtrip(0, -90)
 
 
 class ToGalacticTest(testhelpers.VerboseTest):

@@ -40,11 +40,11 @@ from gavo.utils.plainxml import StartEndHandler
 from gavo.utils.stanxml import FastElementTree, ElementTree, xmlrender
 
 from gavo.utils.texttricks import (formatSize, makeEllipsis, floatRE, 
-	dateRE, datetimeRE, 
+	dateRE, datetimeRE, identifierRE,
 	datetimeToRFC2616, 
 	isoTimestampFmt, parseISODT, formatISODT,
 	formatRFC2616Date, parseRFC2616Date,
 	fixIndentation, parsePercentExpression, hmsToDeg, dmsToDeg,
 	fracHoursToDeg, degToHms, degToDms, getRelativePath, parseAssignments, 
 	NameMap, formatSimpleTable, replaceXMLEntityRefs,
-	ensureOneSlash)
+	ensureOneSlash,)

@@ -124,6 +124,7 @@ from pyparsing import Word, Literal, Optional, alphas, CaselessKeyword,\
 	dblQuotedString, ParserElement, White, ParseSyntaxException
 
 from gavo import utils
+from gavo.adql import tapstc
 
 
 # all SQL and ADQL reserved words are expected in uppercase by this and
@@ -131,8 +132,8 @@ from gavo import utils
 adqlReservedWords = set([ "ABS", "ACOS", "AREA", "ASIN", "ATAN", "ATAN2",
 	"CEILING", "CENTROID", "CIRCLE", "CONTAINS", "COS", "DEGREES", "DISTANCE",
 	"EXP", "FLOOR", "INTERSECTS", "LATITUDE", "LOG", "LOG10", "COORD1",
-	"COORD2", "COORDSYS",
-	"MOD", "PI", "POINT", "POLYGON", "POWER", "RADIANS", "RECTANGLE", "REGION",
+	"COORD2", "COORDSYS", "BOX",
+	"MOD", "PI", "POINT", "POLYGON", "POWER", "RADIANS", "REGION",
 	"RAND", "ROUND", "SIN", "SQUARE", "SQRT", "TOP", "TAN", "TRUNCATE",])
 
 sqlReservedWords = set([
@@ -305,20 +306,31 @@ def getADQLGrammarCopy():
 	numericValueExpression << (term + ZeroOrMore( ( Literal("+") | "-" ) + term ))
 
 # geometry types and expressions
-	coordSys = stringValueExpression("coordSys")
+	coordSys = Regex("(?i)'(?P<sys>%s)'"%"|".join(tapstc.TAP_SYSTEMS)
+		).addParseAction(lambda s,p,t: t["sys"].upper()
+		).setResultsName("coordSys")
+	coordSys.setName("coordinate system literal (ICRS, GALACTIC,...)")
 	coordinates = (Args(numericValueExpression) 
 		+ ',' + Args(numericValueExpression))
-	point = (CaselessKeyword("POINT")("fName") + '(' + coordSys + ',' 
+	box = (CaselessKeyword("BOX")("fName") 
+		- '(' - coordSys + ','
+		+ coordinates +  ','
 		+ coordinates + ')')
-	circle = (CaselessKeyword("CIRCLE")("fName") + '(' + coordSys + ',' 
-		+ coordinates + ',' + Args(numericValueExpression) + ')')
-	rectangle = (CaselessKeyword("RECTANGLE")("fName") +  '(' + coordSys + ',' 
-		+ coordinates + ',' + coordinates + ')')
-	polygon = (CaselessKeyword("POLYGON")("fName") + '(' + coordSys + ',' 
-		+ coordinates + OneOrMore( ',' + coordinates ) + ')')
-	region = (CaselessKeyword("REGION")("fName") + '(' 
+	point = (CaselessKeyword("POINT")("fName") 
+		- '(' - coordSys - ',' 
+		+ coordinates + ')')
+	circle = (CaselessKeyword("CIRCLE")("fName") 
+		- '(' - coordSys + ',' 
+		+ coordinates + ',' 
+		+ Args(numericValueExpression) + ')')
+	polygon = (CaselessKeyword("POLYGON")("fName") 
+		- '(' - coordSys + ',' 
+		+ coordinates 
+		+ OneOrMore( ',' + coordinates ) + ')')
+	region = (CaselessKeyword("REGION")("fName") 
+		+ '(' 
 		+ Args(stringValueExpression) + ')')
-	geometryExpression = point | circle | rectangle | polygon | region
+	geometryExpression = box | point | circle | polygon | region
 	geometryValue = columnReference.copy()
 	coordValue = point | columnReference
 	centroid = (CaselessKeyword("CENTROID")("fName") 
@@ -546,7 +558,7 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
-	res = syms["comparisonPredicate"].parseString(
-			'SELECT "f-bar", "c""ho" FROM "nons-ak" WHERE "ja ja"<"Umph"'
+	res = syms["point"].parseString(
+			"POINT('ICRS',x,y)"
 			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

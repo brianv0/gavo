@@ -4,11 +4,9 @@ Morphing ADQL into queries that postgres can understand.
 Basically, Postgres support most of the stuff out of the box, and it's
 just a matter of syntax.
 
-However, we use BOXes internally.  When formatting results, we cannot use
-them since there are already rules on how to deserialize them, which is bad
-for when we need to format geometries in result columns.  So, for
-geometries, we only use POINT, CIRCLE, and POLYGON, mapping RECTANGLEs
-to POLYGONs.
+We morph most of the geometry stuff to pgsphere; while some of it would
+work with plain postgres in a plane approximation, it's certainly not
+worth the effort.
 
 There's also code to replace certain CONTAINS calls with q3c function
 calls.
@@ -18,6 +16,7 @@ import re
 
 from gavo.adql import morphhelpers
 from gavo.adql import nodes
+from gavo.adql import tapstc
 from gavo.adql.nodes import flatten
 
 
@@ -31,21 +30,20 @@ def _containsToQ3c(node, state):
 	if node.funName!='CONTAINS':
 		return node
 	args = node.args
+
+	# leave morphing to someone else if we don't check for point in shape
+	# or if system transformations are required.
 	if len(args)!=2 or nodes.getType(args[0])!="point":
 		return node
+# XXX TODO: Make this a check for "compatible" (empty string should match anything...)
+	if args[0].cooSys!=args[1].cooSys:
+		return node
+
 	p, shape = args
 	if shape.type=="circle":
 		state.killParentOperator = True
 		return ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(nodes.flatten, 
 			(p.x, p.y, shape.x, shape.y, shape.radius))))
-	elif shape.type=="rectangle":
-		state.killParentOperator = True
-		return ("q3c_poly_query(%s, %s, ARRAY[%s, %s, %s, %s,"
-			" %s, %s, %s, %s])"%tuple(map(nodes.flatten, (p.x, p.y,
-				shape.x0, shape.y0,
-				shape.x0, shape.y1,
-				shape.x1, shape.y1,
-				shape.x1, shape.y0))))
 	elif shape=="polygon":
 		state.killParentOperator = True
 		return "q3c_poly_query(%s, %s, ARRAY[%s])"%(
@@ -55,125 +53,135 @@ def _containsToQ3c(node, state):
 		return node
 
 
-# These have to be applied *before* PG morphing
 _q3Morphers = {
 	'predicateGeometryFunction': _containsToQ3c,
 	'comparisonPredicate': morphhelpers.killGeoBooleanOperator,
 }
 
 
-# The following detects CONTAINS calls q3c can evidently handle and replaces
-# them with q3c function calls.
-#
-#	Basically, it looks for contains(point, [Circle,Rectangle,Polygon]) calls.
-#
 #	This has to run *before* morphPG.
-
 insertQ3Calls = morphhelpers.Morpher(_q3Morphers).morph
+
 
 ######### End q3c specials
 
 
+
+######### Begin morphing to pgSphere
+
+
+class PgSphereCode(object):
+	"""A node that contains serialized pgsphere expressions plus
+	a coordinate system id for cases in which we must conform.
+	"""
+	type = "pgsphere literal"
+
+	def __init__(self, cooSys, content):
+		self.cooSys, self.content = cooSys, content
+	
+	def flatten(self):
+		return self.content
+
+
 def _morphCircle(node, state):
-	return "CIRCLE(POINT(%s, %s), %s)"%tuple(flatten(a)
-		for a in (node.x, node.y, node.radius))
+	return PgSphereCode(node.cooSys,
+		"scircle(spoint(RADIANS(%s), RADIANS(%s)), RADIANS(%s))"%tuple(flatten(a)
+			for a in (node.x, node.y, node.radius)))
+
 
 def _morphPoint(node, state):
-	return "POINT(%s, %s)"%tuple(flatten(a) 
-		for a in (node.x, node.y))
+	return PgSphereCode(node.cooSys,
+		"spoint(RADIANS(%s), RADIANS(%s))"%tuple(
+			flatten(a) for a in (node.x, node.y)))
 
-def _morphRectangle(node, state):
-	return "POLYGON(BOX(%s, %s, %s, %s))"%tuple(flatten(a)
-		for a in (node.x0, node.y0, node.x1, node.y1))
 
-# SUCK, SUCK -- we don't actually check for these any more.  Move to
-# pgsphere, and quick.
-_cooLiteral = re.compile("[0-9]*(\.([0-9]*([eE][+-]?[0-9]*)?)?)?,.*$")
+def _makePoly(cooSys, points):
+# helper for _morph(Polygon|Box)
+	return PgSphereCode(cooSys,
+		"(SELECT spoly(q.p) FROM (VALUES %s ORDER BY column1) as q(ind,p))"%", ".join(
+			'(%d, %s)'%(i, p) for i, p in enumerate(points)))
+
 
 def _morphPolygon(node, state):
-# Postgresql doesn't seem to support construction of polygons from lists of
-# points or similar.  We need to construct it using literal syntax, i.e.,
-# expressions are forbidden.
-	flArgs = [flatten(a[0])+", "+flatten(a[1]) for a in node.coos]
-	for a in flArgs:
-		if not _cooLiteral.match(a):
-			raise PostgresMorphError("%s is not a valid argument to polygon"
-				" in postgres.  Only literals are allowed."%a)
-	return "'%s'::polygon"%", ".join(flArgs)
+	points = ['spoint(RADIANS(%s), RADIANS(%s))'%(flatten(a[0]), flatten(a[1]))
+		for a in node.coos]
+	return _makePoly(node.cooSys, points)
+
+
+def _morphBox(node, state):
+	args = tuple("RADIANS(%s)"%flatten(v) for v in (
+			node.x, node.width, node.y, node.height))
+	points = [
+		"spoint(%s-%s/2, %s-%s/2)"%args,
+		"spoint(%s-%s/2, %s+%s/2)"%args,
+		"spoint(%s+%s/2, %s+%s/2)"%args,
+		"spoint(%s+%s/2, %s-%s/2)"%args]
+	return _makePoly(node.cooSys, points)
+
 
 def _morphGeometryPredicate(node, state):
+	arg1Str, arg2Str = flatten(node.args[0]), flatten(node.args[1])
+	if node.args[0].cooSys!=node.args[1].cooSys:
+		trafo = tapstc.getPGSphereTrafo(node.args[0].cooSys, node.args[1].cooSys)
+		if trafo is not None:
+			arg1Str = "(%s)%s"%(arg1Str, trafo)
 	if node.funName=="CONTAINS":
 		state.killParentOperator = True
-		return "(%s) ~ (%s)"%(flatten(node.args[0]), flatten(node.args[1]))
+		return "(%s) @ (%s)"%(arg1Str, arg2Str)
 	elif node.funName=="INTERSECTS":
 		state.killParentOperator = True
-		return "(%s) ?# (%s)"%(flatten(node.args[0]), flatten(node.args[1]))
+		return "(%s) && (%s)"%(arg1Str, arg2Str)
 	else:
 		return node # Leave mess to someone else
 
 
-_geoMorphers = {
-	'circle': _morphCircle,
-	'point': _morphPoint,
-	'rectangle': _morphRectangle,
-	'polygon': _morphPolygon,
-	'predicateGeometryFunction': _morphGeometryPredicate,
-	'comparisonPredicate': morphhelpers.killGeoBooleanOperator,
-}
-
-
-def morphGeometries(tree):
-	"""replaces ADQL geometry expressions with postgres geometry
-	expressions.
-
-	WARNING: We do not do anything about coordinate systems yet.
-
-	This is a function mostly for unit tests, morphPG does these 
-	transformations.
-	"""
-	return morphhelpers.morphTreeWithMorphers(tree, _geoMorphers)
-
-
-def _pointFunctionToIndexExpression(node, state):
+def _computePointFunction(node, state):
 	if node.funName=="COORD1":
-		assert len(node.args)==1
-		return "(%s)[0]"%flatten(node.args[0])
+		node.funName = "long"
+		return node
 	elif node.funName=="COORD2":
-		assert len(node.args)==1
-		return "(%s)[1]"%flatten(node.args[0])
+		node.funName = "lat"
+		return node
 	elif node.funName=="COORDSYS":
-		try:
-			cSys = repr(node.args[0].fieldInfo.stc.spaceFrame.refFrame)
-		except AttributeError: # bad field info, give up
-			cSys = "'NULL'"
-		return cSys
+		if node.args[0].fieldInfo:
+			cSys = tapstc.getTAPSTC(node.args[0].fieldInfo.stc)
+		else:
+			cSys = getattr(node.args[0], "cooSys", "UNKNOWN")
+		return "'%s'"%cSys
 	else:
 		return node
 
 
-def _areaToPG(node, state):
-# postgres understands AREA, but of course the area is wrong, so:
-# XXX TODO: do spherical geometry here.
-	state.warnings.append("AREA is currently calculated in a plane"
-		" approximation.  AREAs will be severely wrong for larger shapes.")
-	return node
-
-
 def _distanceToPG(node, state):
-# We need the postgastro extension here.
-	return "celDistPP(%s, %s)"%tuple(flatten(a) for a in node.args)
+	return "(%s) <-> (%s)"%tuple(flatten(a) for a in node.args)
 
 
 def _centroidToPG(node, state):
-# XXX TODO: figure out if the (planar) centers computed by postgres are
-# badly off and replace with spherical calculation if so.
-	return "center(%s)"%(flatten(node.args[0]))
+	return "@@(%s)"%(flatten(node.args[0]))
 
 
 def _regionToPG(node, state):
-# This one is too dangerous for me.  Maybe I'll allow STC/s expressions
-# here at some point
-	raise NotImplementedError("REGION is not supported on this server.")
+# Too obscure right now.
+	raise NotImplementedError("The REGION string you supplied is not"
+		" supported on this server")
+
+
+_pgsphereMorphers = {
+	'circle': _morphCircle,
+	'point': _morphPoint,
+	'box': _morphBox,
+	'polygon': _morphPolygon,
+	'predicateGeometryFunction': _morphGeometryPredicate,
+	'comparisonPredicate': morphhelpers.killGeoBooleanOperator,
+	"pointFunction": _computePointFunction,
+	"distanceFunction": _distanceToPG,
+	"centroid": _centroidToPG,
+	"region": _regionToPG,
+}
+
+
+########## End morphing to pgSphere
+
 
 
 _renamedFunctions = {
@@ -215,6 +223,8 @@ def _adqlFunctionToPG(node, state):
 def _stcRegionToPGSphere(node, state):
 	# We only look at areas[0] -- maybe we should allow points, too?
 	area = node.stc.areas[0]
+	raise NotImplementedError("The REGION string you supplied is not"
+		" supported on this server")
 # XXX TODO: Go on here.
 
 
@@ -233,11 +243,6 @@ def _removeUploadSchema(node, state):
 
 
 _miscMorphers = {
-	"pointFunction": _pointFunctionToIndexExpression,
-	"area": _areaToPG,
-	"distanceFunction": _distanceToPG,
-	"centroid": _centroidToPG,
-	"region": _regionToPG,
 	"numericValueFunction": _adqlFunctionToPG,
 	"stcRegion": _stcRegionToPGSphere,
 	"tableName": _removeUploadSchema,
@@ -292,7 +297,7 @@ _syntaxMorphers = {
 # Warning: if ever there are two Morphers for the same type, this will
 # break, and we'll need to allow lists of Morphers (and need to think
 # about their sequence...)
-_allMorphers = _geoMorphers.copy()
+_allMorphers = _pgsphereMorphers.copy()
 _allMorphers.update(_miscMorphers)
 _allMorphers.update(_syntaxMorphers)
 

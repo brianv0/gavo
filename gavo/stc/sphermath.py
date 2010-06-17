@@ -54,8 +54,21 @@ def getMatrixFromEulerAngles(z1, x, z2):
 
 	There are some functions to obtain such angles below.
 	"""
-	return numpy.dot(numpy.dot(getRotZ(z1), getRotX(x)),
-		getRotZ(z2))
+	return numpy.dot(
+		numpy.dot(getRotZ(z2), getRotX(x)), getRotZ(z1))
+
+
+def getEulerAnglesFromMatrix(matrix):
+	"""returns zxz Euler angles from a rotation matrix.
+
+	This is improvised, and someone should look up a numerically sound way
+	to do this.
+	"""
+# while I cannot see why, this clearly is broken in some way.
+	z1 = math.atan2(matrix[2,0], -matrix[2,1])
+	z2 = math.atan2(matrix[0,2], matrix[1,2])
+	x = math.atan2(math.sqrt(matrix[2,0]**2+matrix[2,1]**2), matrix[2,2])
+	return z1, x, z2
 
 
 def getMatrixFromEulerVector(eulerVector):
@@ -415,3 +428,20 @@ class SVConverter(object):
 		return cls(pos, posUnit, vel, velUnitS, velUnitT, **kwargs)
 
 
+def toSpherical(threeVec):
+	"""returns spherical coordinates for a cartesian 3-vector.
+
+	threeVec needs not be normalized.
+	"""
+	rho = math.sqrt(threeVec[0]**2+threeVec[1]**2)
+	long = math.atan2(threeVec[1], threeVec[0])
+	lat = math.atan2(threeVec[2], rho)
+	return long, lat
+
+
+def toThreeVec(long, lat):
+	"""returns a cartesian 3-vector for longitude and latitude.
+	"""
+	return (math.cos(lat)*math.cos(long), 
+		math.cos(lat)*math.sin(long), 
+		math.sin(lat))

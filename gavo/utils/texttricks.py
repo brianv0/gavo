@@ -19,6 +19,7 @@ from gavo.utils.excs import Error
 floatRE = r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?"
 dateRE = re.compile("\d\d\d\d-\d\d-\d\d$")
 datetimeRE = re.compile("\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ?$")
+identifierRE = re.compile("[A-Za-z_][A-Za-z0-9_]*")
 isoTimestampFmt = "%Y-%m-%dT%H:%M:%SZ"
 entityrefPat = re.compile("&([^;])+;")
 

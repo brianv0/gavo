@@ -10,6 +10,7 @@ import weakref
 
 from gavo import stc
 from gavo import utils
+from gavo.adql import tapstc
 from gavo.adql.common import *
 
 
@@ -1002,15 +1003,6 @@ class CharacterStringLiteral(FieldInfoedNode):
 
 ###################### Geometry and stuff that needs morphing into real SQL
 
-@utils.memoized
-def makeSystem(frameName):
-	"""returns an astroSystem for frame name.
-	"""
-	if frameName=='':
-		return None
-	return stc.parseSTCS("Position %s"%frameName).astroSystem
-
-
 class CoosysMixin(object):
 	"""is a mixin that works cooSys into FieldInfos for ADQL geometries.
 	"""
@@ -1018,15 +1010,11 @@ class CoosysMixin(object):
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		frameContainer = _parseResult["coordSys"][0]
-		if isinstance(frameContainer, ColumnReference):
-			raise NotImplementedError("Cannot handle systems as column references"
-				" yet")
-		refFrame = frameContainer.value
-		try:
-			return {"cooSys":  makeSystem(refFrame)}
-		except stc.STCSParseError:
-			raise BadKeywords("Illegal coordinate system %s"%refFrame)
+		refFrame = _parseResult.get("coordSys", "")
+		if isinstance(refFrame, ColumnReference):
+			raise NotImplementedError("References frames must not be column"
+				" references.")
+		return {"cooSys":  refFrame}
 
 
 class GeometryNode(CoosysMixin, FieldInfoedNode):
@@ -1049,14 +1037,17 @@ class GeometryNode(CoosysMixin, FieldInfoedNode):
 			for fi in (getattr(self, arg).fieldInfo for arg in self.argSeq)
 			if fi.stc]
 		childUserData, childUnits = [], []
+		thisSystem = tapstc.getSTCForTAP(self.cooSys)
 		for index, fi in enumerate(fis):
 			childUserData.extend(fi.userData)
 			childUnits.append(fi.unit)
-			if not context.policy.match(fi.stc, self.cooSys):
+			if not context.policy.match(fi.stc, thisSystem):
 				context.errors.append("When constructing %s: Argument %d has"
 					" incompatible STC"%(self.type, index+1))
-		self.fieldInfo = FieldInfo(unit=",".join(childUnits), ucd="", 
-			userData=tuple(childUserData), stc=self.cooSys)
+		self.fieldInfo = FieldInfo(unit=",".join(childUnits), 
+			ucd="", 
+			userData=tuple(childUserData), 
+			stc=thisSystem)
 
 
 class Point(GeometryNode):
@@ -1082,14 +1073,14 @@ class Circle(GeometryNode):
 		return locals()
 
 
-class Rectangle(GeometryNode):
-	type = "rectangle"
-	_a_x0 = _a_y0 = _a_x1 = _a_y1 = None
-	argSeq = ("x0", "y0", "x1", "y1", "radius")
+class Box(GeometryNode):
+	type = "box"
+	_a_x = _a_y = _a_width = _a_height = None
+	argSeq = ("x", "y", "width", "height")
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
-		x0, y0, x1, y1 = parseArgs(_parseResult["args"])
+		x, y, width, height = parseArgs(_parseResult["args"])
 		return locals()
 
 
@@ -1169,18 +1160,15 @@ registerRegionMaker(makeSTCRegion)
 class Centroid(FunctionNode):
 	type = "centroid"
 
+
 class Distance(FunctionNode):
 	type = "distanceFunction"
+
 
 class PredicateGeometryFunction(FunctionNode):
 	type = "predicateGeometryFunction"
 
 	def addFieldInfo(self, context):
-		# warn if systems don't match
-		if not context.policy.match(
-				self.args[0].fieldInfo.stc, self.args[1].fieldInfo.stc):
-			context.warnings.append("In %s: Arguments's systems are not compatible"%
-				self.type)
 		# swallow all upstream info, it really doesn't help here
 		self.fieldInfo = dimlessFieldInfo
 

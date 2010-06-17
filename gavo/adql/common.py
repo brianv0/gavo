@@ -119,9 +119,8 @@ class FieldInfo(object):
 		Two STC systems are compatible if at least one is None or if they
 		are equal.
 
-		If this method discovers incompatible systems, it will create a
-		new STC object with a "broken" attribute containing some sort
-		for error message.
+		If this method discovers incompatible systems, it will set the
+		stc attribute to "BROKEN".
 		"""
 		if fi1.stc is None and fi2.stc is None:
 			return None

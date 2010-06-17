@@ -6,6 +6,9 @@ Spherical sky coordinates and helpers.
 #c
 #c This program is free software, covered by the GNU GPL.  See COPYING.
 
+# XXX TODO: Replace the actual transformations performed here with
+# stuff from kapteyn, or astropysics, after clarifying their licenses
+# and getting the stuff packaged up.
 
 from itertools import *
 from math import sin, cos
@@ -481,7 +484,7 @@ def icrsToFK5(sixTrans, svICRS):
 ############### Reference positions
 # XXX TODO: We don't transform anything here.  Yet.  This will not
 # hurt for moderate accuracy requirements in the stellar and
-# extragalactic regime but makes this libarary basically useless for
+# extragalactic regime but makes this library basically useless for
 # solar system work.
 
 def _transformRefpos(fromSTC, toSTC, sixTrans):
