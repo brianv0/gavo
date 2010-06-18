@@ -1048,11 +1048,13 @@ class GeometryNode(CoosysMixin, FieldInfoedNode):
 			ucd="", 
 			userData=tuple(childUserData), 
 			stc=thisSystem)
+		self.fieldInfo.properties["xtype"] = self.xtype
 
 
 class Point(GeometryNode):
 	type = "point"
 	_a_x = _a_y = None
+	xtype = "adql:POINT"
 
 	argSeq = ("x", "y")
 
@@ -1066,6 +1068,7 @@ class Circle(GeometryNode):
 	type = "circle"
 	_a_x = _a_y = _a_radius = None
 	argSeq = ("x", "y", "radius")
+	xtype = "adql:REGION"
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
@@ -1077,6 +1080,7 @@ class Box(GeometryNode):
 	type = "box"
 	_a_x = _a_y = _a_width = _a_height = None
 	argSeq = ("x", "y", "width", "height")
+	xtype = "adql:REGION"
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
@@ -1088,6 +1092,7 @@ class Polygon(GeometryNode):
 	type = "polygon"
 	_a_coos = ()
 	argSeq = ("coos")
+	xtype = "adql:REGION"
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
@@ -1133,6 +1138,7 @@ def makeRegion(children):
 class STCRegion(GeometryNode):
 	bindings = []     # we're not created by the parser.
 	type = "stcRegion"
+	xtype = "adql:REGION"
 
 	_a_ast = None
 

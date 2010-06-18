@@ -61,7 +61,7 @@ def getPGSphereTrafo(fromSys, toSys):
 
 
 def getTAPSTC(stcInstance):
-	"""returns a tap system identifier for an STC AST.
+	"""returns a tap system identifier for an STC AstroSystem.
 
 	This is stc.spaceFrame.refFrame if existing and TAP-defined, UNKNOWN
 	otherwise.

@@ -84,6 +84,11 @@ class FieldInfo(object):
 	a sequence of opaque objects.  A FieldInfo combined from more than 
 	one FieldInfo will have all userDatas of the combined FieldInfos in
 	its userData attribute.
+
+	There's also a properties dictionary you can use to set arbitrary
+	keys in.  These should not be inherited.  This is used for:
+
+	* xtype -- where applicable, write an ADQL xtype.
 	"""
 	def __init__(self, unit, ucd, userData=(), tainted=False, stc=None):
 		self.ucd = ucd
@@ -91,6 +96,7 @@ class FieldInfo(object):
 		self.stc = stc
 		self.userData = userData
 		self.tainted = tainted
+		self.properties = {}
 
 	def __eq__(self, other):
 		try:

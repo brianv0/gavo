@@ -64,16 +64,27 @@ def _makeColumnFromFieldInfo(ctx, colName, fi):
 	res.name = ctx.getName(desiredName)
 	res.ucd = fi.ucd
 	res.unit = fi.unit
+
 	# XXX TODO: do something with stc's broken attribute
 	res.stc = fi.stc
+
 	if len(fi.userData)>1:
 		res.description = ("This field has traces of: %s"%("; ".join([
 			f.description for f in fi.userData if f.description])))
 		res.type = typesystems.getSubsumingType([f.type
 			for f in fi.userData])
+	# XXX TODO: how can we infer a type when no user data is available at all?
+
 	if fi.tainted:
 		res.description = (res.description+" -- *TAINTED*: the value"
 			" was operated on in a way that unit and ucd may be severely wrong")
+
+	# The xtype may be set by the node classes; this is used downstream
+	# to transform to STC-S strings.
+	if "xtype" in fi.properties:
+		res.xtype = fi.properties["xtype"]
+		res.needMunging = True
+
 	res.verbLevel = 1
 	return res
 
@@ -91,6 +102,34 @@ def _getTableDescForOutput(parsedTree):
 def _getSchema(tableName):
 # tableName is a nodes.TableName instance
 	return tableName.schema or ""
+
+
+def _getTupleAdder(table):
+	"""returns a function that adds a tuple as returned by the database
+	to table.
+
+	This thing is only necessary because of the insanity of having to
+	mash metadata into table rows when STC-S strings need to be generated
+	for TAP.  Sigh.
+	"""
+	stcsOutputCols = []
+	for colInd, col in enumerate(table.tableDef):
+		# needMunging set above.  Sigh.
+		if getattr(col, "needMunging", False):
+			stcsOutputCols.append((colInd, col))
+	if not stcsOutputCols: # Yay!
+		return table.addTuple
+	else:  # Sigh.  I need to define a function fumbling the mess together.
+		parts, lastInd = [], -1
+		for index, col in stcsOutputCols:
+			parts.append("row[%s:%s]"%(lastInd+1, index))
+			parts.append("(row[%s].asSTCS(%r),)"%(index, adql.getTAPSTC(col.stc)))
+			lastInd = index
+		parts.append("row[%s:%s]"%(lastInd, len(table.tableDef.columns)))
+		return utils.compileFunction(
+			"def addTuple(row): table.addTuple(%s)"%("+".join(parts)), 
+			"addTuple",
+			locals())
 
 
 def getFieldInfoGetter(accessProfile=None, tdsForUploads=[]):
@@ -122,16 +161,21 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[]):
 	adql.annotate(t, getFieldInfoGetter(metaProfile, tdsForUploads))
 	q3cstatus, t = adql.insertQ3Calls(t)
 # XXX FIXME: evaluate q3cstatus for warnings (currently, I think there are none)
+
 	td = _getTableDescForOutput(t)
 	table = rsc.TableForDef(td)
+	# Fiddle in system metadata if unlucky enough to have STC-S in output
+	addTuple = _getTupleAdder(table)
+
 	morphStatus, morphedTree = adql.morphPG(t)
 	# escape % to hide them form dbapi replacing
 	query = adql.flatten(morphedTree).replace("%", "%%")
 	querier.setTimeout(timeout)
 	querier.configureConnection([("enable_seqscan", False)])
+
 	log.msg("Sending ADQL query: %s"%query)
 	for tuple in querier.query(query):
-		table.addTuple(tuple)
+		addTuple(tuple)
 	for warning in morphStatus.warnings:
 		table.tableDef.addMeta("_warning", warning)
 	return table

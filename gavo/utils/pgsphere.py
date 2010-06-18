@@ -76,10 +76,7 @@ class SPoint(PgSAdapter):
 		self.x, self.y = float(x), float(y)
 
 	def __repr__(self):
-		return "spoint(%r, %r)"%(self.x, self.y)
-
-	def p(self):   # helps below
-		return "(%r, %r)"%(self.x, self.y)
+		return "SPoint(%r, %r)"%(self.x, self.y)
 
 	@staticmethod
 	def _adaptToPgSphere(spoint):
@@ -93,6 +90,12 @@ class SPoint(PgSAdapter):
 	@classmethod
 	def fromDegrees(cls, x, y):
 		return cls(x*DEG, y*DEG)
+
+	def asSTCS(self, systemString):
+		return "Position %s %f %f"%(systemString, self.x/DEG, self.y/DEG)
+
+	def p(self):   # helps below
+		return "(%r, %r)"%(self.x, self.y)
 
 
 class SCircle(PgSAdapter):
@@ -117,6 +120,12 @@ class SCircle(PgSAdapter):
 			pt, radius = cls.pattern.match(value).groups()
 			return cls(SPoint._castFromPgSphere(pt, cursor), radius)
 
+	def asSTCS(self, systemString):
+		return "Circle %s %f %f %f"%(systemString, 
+			self.center.x/DEG, self.center.y/DEG,
+			self.radius/DEG)
+
+
 
 class SPoly(PgSAdapter):
 	"""A spherical polygon from pgSphere.
@@ -139,6 +148,10 @@ class SPoly(PgSAdapter):
 		if value is not None:
 			return cls([SPoint._castFromPgSphere(ptLit, cursor)
 				for ptLit in cls.pattern.findall(value)])
+
+	def asSTCS(self, systemString):
+		return "Polygon %s %s"%(systemString, 
+			" ".join("%f %f"%(p.x, p.y) for p in self.points))
 
 
 class SBox(PgSAdapter):
@@ -210,6 +223,11 @@ class SBox(PgSAdapter):
 					SPoint.fromDegrees(180+maxRA, 90)))
 		return cls(SPoint.fromDegrees(minRA, bottom), 
 			SPoint.fromDegrees(maxRA, top))
+
+	def asSTCS(self, systemString):
+		raise NotImplementedError("PositionInterval is tricky between"
+			" ADQL, TAP and STC-S")
+
 
 
 _getPgSClass = codetricks.buildClassResolver(PgSAdapter, globals().values(),

@@ -476,6 +476,7 @@ class ParseErrorTest(testhelpers.VerboseTest):
 
 	samples = [
 		("", 'Expected "SELECT" (at char 0)'),
+		("select mag from %s", 'Expected identifier (at char 16)'),
 		("SELECT TOP foo FROM x", 'Expected unsigned integer (at char 11)'),
 		("SELECT FROM x", 'Expected "*" (at char 7)'),
 		("SELECT x, FROM y", 'Reserved word not allowed here (at char 10)'),
@@ -1265,6 +1266,27 @@ class QueryTest(testhelpers.VerboseTest):
 				' -- *TAINTED*: the value was operated on in a way that unit and'
 				' ucd may be severely wrong'),
 			("unit", 'deg')])
+
+	def testGeometry(self):
+		res = self.runQuery("select mag from %s where"
+			" 1=intersects(circle('galactic', alpha, delta, 1),"
+			"   box('galactic', alpha+1, delta+2, 3, 3))"%self.tableName)
+		self.assertEqual(list(res)[0]["mag"], -27.0)
+	
+	def testTransformation(self):
+		res = self.runQuery("select mag from %s where"
+			" 1=contains(point('galactic', 133.792, -39.0994),"
+			"   circle('icrs', alpha, delta, 1))"%self.tableName)
+		self.assertEqual(list(res)[0]["mag"], -27.0)
+
+	def testSTCSOutput(self):
+		res = self.runQuery(
+			"select rv, point('icrs', alpha, delta) as p, mag from %s"
+			%self.tableName)
+		self.assertEqual(list(res)[0]["p"], 'Position ICRS 22.000000 23.000000')
+		self.assertEqual(list(res)[0]["rv"], 0)
+		self.assertEqual(res.tableDef.getColumnByName("p").xtype,
+			"adql:POINT")
 
 
 if __name__=="__main__":

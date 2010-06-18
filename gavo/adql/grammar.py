@@ -244,6 +244,7 @@ def getADQLGrammarCopy():
 
 	regularIdentifier = Word(alphas+"_", alphanums+"_").addParseAction(
 		_failOnReservedWord)
+	regularIdentifier.setName("identifier")
 # There's a bug with QuotedString in some versions of pyparsing.
 # So, don't use this:
 #	delimitedIdentifier = QuotedString(quoteChar='"', escQuote='"',
@@ -558,7 +559,7 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
-	res = syms["point"].parseString(
-			"POINT('ICRS',x,y)"
+	res = syms["statement"].parseString(
+			"select mag from %s"
 			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)
