@@ -1298,10 +1298,12 @@ class SimpleSTCSTest(testhelpers.VerboseTest):
 		res = self.parse("Position 10 20 ")
 		self.assertEqual(res.pgType, "spoint")
 		self.assertAlmostEqual(res.x, 0.174532925199432)
+		self.assertEqual(res.cooSys, "UNKNOWN")
 	
 	def testCircleParses(self):
 		res = self.parse(" Circle ICRS 10 20 1e0")
 		self.assertEqual(res.pgType, "scircle")
+		self.assertEqual(res.cooSys, "ICRS")
 
 	def testBadCircleRaises(self):
 		self.assertRaisesWithMsg(adql.RegionError, 
@@ -1322,6 +1324,7 @@ class SimpleSTCSTest(testhelpers.VerboseTest):
 		self.failUnless(isinstance(res, tapstc.STCSRegion))
 		self.assertEqual(len(res.operands), 1)
 		self.assertAlmostEqual(res.operands[0].points[0].x, -0.00872664626)
+		self.assertEqual(res.cooSys, "UNKNOWN")
 	
 	def testSimpleOpParses(self):
 		res = self.parse("UNiON (Box ICRS 1 2 3 4 Circle 1 2 3)")
@@ -1330,13 +1333,16 @@ class SimpleSTCSTest(testhelpers.VerboseTest):
 		self.assertEqual(len(res.operands), 2)
 		self.assertEqual(res.operands[0].pgType, "spoly")
 		self.assertEqual(res.operands[1].pgType, "scircle")
+		self.assertEqual(res.cooSys, "UNKNOWN")
 		
 	def testComplexOpParses(self):
 		res = self.parse("INtersection FK4 ("
 			"UNiON BARYCENTER (Box ICRS 1 2 3 4 Circle 1 2 3)"
 			" Polygon ICRS GEOCENTER 2 3 4 5 6 7"
 			" Circle Fk4 spherical2 3 4 5)")
-		self.assertEqual
+		self.assertEqual(res.operands[0].operator, "UNION")
+		self.assertEqual(res.operands[1].cooSys, "ICRS")
+		self.assertEqual(res.cooSys, "FK4")
 
 	def testCartesianRaises(self):
 		self.assertRaisesWithMsg(adql.RegionError, 

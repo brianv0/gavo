@@ -113,17 +113,16 @@ def getSTCForTAP(tapIdentifier):
 #
 # The regions expressible in pgsphere are returned as pgsphre objects.
 # This is because I feel all this should only be used for ingesting data
-# ("table upload") and thus carrying around the frame is pointless.
-# Frames in region statements have many issues anyway (should
-# union gal circle icrs ... polygon fk4 ... actually do all the transformations?).
-# I bet nobody is ever going to implement any of this correctly, so I'm not
-# going to sweat it.
+# ("table upload") and thus carrying around the frame is pointless;
+# you can, however, retrieve a guess for the frame from the returned
+# object's cooSys attribute (which is convenient for the morphers).
 
 
 class STCSRegion(object):
 	"""a sentinel object to be processed by morphers.
 	"""
-	def __init__(self, operator, operands):
+	def __init__(self, frame, operator, operands):
+		self.cooSys = frame
 		self.operator, self.operands = operator, operands
 	
 	def flatten(self):
@@ -172,22 +171,27 @@ def _makePgSphereInstance(match):
 	# refFrame gets thrown away here; to use it, we'd have to generate
 	# ADQL nodes, and that would be clumsy for uploads.  See rant above.
 	handler = globals()["_make_pgs%s"%match["shape"].lower()]
-	return handler(
+	res = handler(
 		tuple(float(s)*utils.DEG for s in match["coords"].strip().split() if s))
+	res.cooSys = refFrame
+	return res
 
+def _makeRE(strings):
+	return "|".join(sorted(strings, key=lambda s: -len(s)))
 
 @utils.memoized
 def getSimpleSTCSParser():
 	from pyparsing import (Regex, CaselessKeyword, OneOrMore, Forward, Suppress,
-		ParseException, ParseSyntaxException)
+		Optional, ParseException, ParseSyntaxException)
 
+	frameRE = _makeRE(TAP_SYSTEMS)
+	refposRE = _makeRE(TAP_REFPOS)
+	flavorRE = _makeRE(TAP_FLAVORS)
 	systemRE = (r"(?i)\s*"
 		r"(?P<frame>%s)?\s*"
 		r"(?P<refpos>%s)?\s*"
 		r"(?P<flavor>%s)?\s*")%(
-		"|".join(sorted(TAP_SYSTEMS, key=lambda s: -len(s))),
-		"|".join(TAP_REFPOS),
-		"|".join(TAP_FLAVORS))
+			frameRE, refposRE, flavorRE)
 	coordsRE = r"(?P<coords>(%s\s*)+)"%utils.floatRE
 
 	simpleStatement = Regex("(?i)\s*"
@@ -200,20 +204,24 @@ def getSimpleSTCSParser():
 	system.setName("STC-S system spec")
 	region = Forward()
 	notExpr = CaselessKeyword("NOT") + Suppress('(') + region + Suppress(')')
-	notExpr.addParseAction(lambda s,p,t: STCSRegion("NOT", (t[1],)))
+	notExpr.addParseAction(lambda s,p,t: STCSRegion("UNKNOWN", "NOT", (t[1],)))
 	opExpr = (
 		(CaselessKeyword("UNION") | CaselessKeyword("INTERSECTION"))("op")
-		+ system
+		+ Optional(Regex(frameRE))("frame") 
+		+ Optional(Regex(refposRE)) + Optional(Regex(flavorRE))
 		+ Suppress("(")
 		+ region + OneOrMore(region)
 		+ Suppress(")"))
 	opExpr.addParseAction(
-		lambda s,p,t: STCSRegion(t[0].upper(), t[2:]))
+		lambda s,p,t: STCSRegion(str(t["frame"]), t[0].upper(), t[2:]))
 	region << (simpleStatement | opExpr | notExpr)
 	
 	def parse(s):
 		try:
-			return region.parseString(s, parseAll=True)[0]
+			res = region.parseString(s, parseAll=True)[0]
+			if not res.cooSys or res.cooSys.lower()=='unknownframe':  # Sigh.
+				res.cooSys = "UNKNOWN"
+			return res
 		except (ParseException, ParseSyntaxException), msg:
 			raise common.RegionError("Invalid STCS (%s)"%str(msg))
 
