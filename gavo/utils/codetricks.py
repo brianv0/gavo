@@ -406,6 +406,23 @@ def document(origFun):
 	return origFun
 
 
+def iterConsecutivePairs(sequence):
+	"""returns pairs of consecutive items from sequence.
+
+	If the last item cannot be paired, it is dropped.
+
+	>>> list(iterConsecutivePairs(range(6)))
+	[(0, 1), (2, 3), (4, 5)]
+	>>> list(iterConsecutivePairs(range(5)))
+	[(0, 1), (2, 3)]
+	"""
+	iter1, iter2 = iter(sequence), iter(sequence)
+	iter2.next()
+	return itertools.izip(
+		itertools.islice(iter1, None, None, 2),
+		itertools.islice(iter2, None, None, 2))
+
+
 def identity(x):
 	return x
 

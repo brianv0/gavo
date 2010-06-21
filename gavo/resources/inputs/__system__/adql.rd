@@ -69,11 +69,14 @@ your own protection.  If you want more rows (make sure you don't throw
 them at your browser, i.e., select VOTable output), use SELECT TOP 100000
 or something along those lines.
 
-We currently ignore the coordinate system specification to ADQL geometries.
-We will fix this when the desired semantics is specified in some way.
+System specifications on STC-S literals in REGION are ignored.  You
+probably should refrain from using this mess anyway; if you use it,
+make sure you write your expressions in the system of the table you
+query against.  In particular, when doing set operations (e.g., UNION),
+no conforming of coordinate systems will be performed.
 
-The output of ADQL geometries is not standard compliant.  This can
-be easily fixed, complain if it bugs you.
+The output of ADQL geometries follows the TAP standard (simplified STC-S)
+rather than the ADQL standard (something similarly messy).
 
 SELECT and SELECT ALL are not exactly the same thing.  The latter will add
 an OFFSET 0 to the resulting postgresql query.  Use this when the query

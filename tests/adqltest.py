@@ -17,6 +17,7 @@ from gavo import utils
 from gavo.adql import annotations
 from gavo.adql import morphpg
 from gavo.adql import nodes
+from gavo.adql import tapstc
 from gavo.adql import tree
 from gavo.protocols import adqlglue
 
@@ -1287,6 +1288,61 @@ class QueryTest(testhelpers.VerboseTest):
 		self.assertEqual(list(res)[0]["rv"], 0)
 		self.assertEqual(res.tableDef.getColumnByName("p").xtype,
 			"adql:POINT")
+
+
+class SimpleSTCSTest(testhelpers.VerboseTest):
+	def setUp(self):
+		self.parse = tapstc.getSimpleSTCSParser()
+
+	def testPosParses(self):
+		res = self.parse("Position 10 20 ")
+		self.assertEqual(res.pgType, "spoint")
+		self.assertAlmostEqual(res.x, 0.174532925199432)
+	
+	def testCircleParses(self):
+		res = self.parse(" Circle ICRS 10 20 1e0")
+		self.assertEqual(res.pgType, "scircle")
+
+	def testBadCircleRaises(self):
+		self.assertRaisesWithMsg(adql.RegionError, 
+			'STC-S circles want three numbers.',
+			self.parse,
+			("Circle 2 1",))
+
+	def testBoxParses(self):
+		res = self.parse("box TOPOCENTER SPHERICAL2 -10  20 2.1 5.4")
+		self.assertEqual(res.pgType, "spoly")
+	
+	def testPolyParses(self):
+		res = self.parse("PolyGon FK4 TOPOCENTER SPHERICAL2 -10  20 2.1 5.4 1 3")
+		self.assertEqual(res.pgType, "spoly")
+
+	def testNotParses(self):
+		res = self.parse("NOT  (Box ICRS 1 2 3 4)")
+		self.failUnless(isinstance(res, tapstc.STCSRegion))
+		self.assertEqual(len(res.operands), 1)
+		self.assertAlmostEqual(res.operands[0].points[0].x, -0.00872664626)
+	
+	def testSimpleOpParses(self):
+		res = self.parse("UNiON (Box ICRS 1 2 3 4 Circle 1 2 3)")
+		self.failUnless(isinstance(res, tapstc.STCSRegion))
+		self.assertEqual(res.operator, "UNION")
+		self.assertEqual(len(res.operands), 2)
+		self.assertEqual(res.operands[0].pgType, "spoly")
+		self.assertEqual(res.operands[1].pgType, "scircle")
+		
+	def testComplexOpParses(self):
+		res = self.parse("INtersection FK4 ("
+			"UNiON BARYCENTER (Box ICRS 1 2 3 4 Circle 1 2 3)"
+			" Polygon ICRS GEOCENTER 2 3 4 5 6 7"
+			" Circle Fk4 spherical2 3 4 5)")
+		self.assertEqual
+
+	def testCartesianRaises(self):
+		self.assertRaisesWithMsg(adql.RegionError, 
+			'Only SPHERICAL2 STC-S supported here',
+			self.parse,
+			("Position CARTESIAN3 1 2 3",))
 
 
 if __name__=="__main__":

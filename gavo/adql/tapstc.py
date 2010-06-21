@@ -10,10 +10,23 @@ reference systems that require special handling anyway.
 from gavo import stc
 from gavo import utils
 from gavo.adql import common
+from gavo.utils import pgsphere
 
 
 TAP_SYSTEMS = set(
 	['ICRS', 'FK4', 'FK5', 'GALACTIC', 'RELOCATABLE', 'UNKNOWN', '', "BROKEN"])
+
+# universally ignored
+TAP_REFPOS = set(
+	['BARYCENTER', 'GEOCENTER', 'HELIOCENTER', 'LSR', 'TOPOCENTER',
+		'RELOCATABLE', 'UNKNOWNREFPOS'])
+
+# only SPHERICAL2 supported, all others raise errors
+TAP_FLAVORS = set(
+	["CARTESIAN2", "CARTESIAN3", "SPHERICAL2"])
+
+
+################## transformations between TAP STC reference systems
 
 UNIVERSALLY_COMPATIBLE = set(['RELOCATABLE', 'UNKNOWN', '', "BROKEN"])
 
@@ -85,6 +98,126 @@ def getSTCForTAP(tapIdentifier):
 	if tapIdentifier=='BROKEN':
 		ast.broken = True
 	return ast
+
+
+
+############################# TAP simplified STC-S
+# The simplified STC-S is a simple regular grammar for the position specs
+# plus a context-free part for set operations.  The regular part we
+# do with REs, for the rest there's a simple recursive descent parser.
+#
+# From the literal we either create a pgsphere geometry ready for ingestion
+# or, when operators enter, an STCSRegion object.  Since at least pgsphere
+# does not support geometric operators, this must be handled in the morph code.
+# To make this clear, its flatten method just raises an Exception.
+#
+# The regions expressible in pgsphere are returned as pgsphre objects.
+# This is because I feel all this should only be used for ingesting data
+# ("table upload") and thus carrying around the frame is pointless.
+# Frames in region statements have many issues anyway (should
+# union gal circle icrs ... polygon fk4 ... actually do all the transformations?).
+# I bet nobody is ever going to implement any of this correctly, so I'm not
+# going to sweat it.
+
+
+class STCSRegion(object):
+	"""a sentinel object to be processed by morphers.
+	"""
+	def __init__(self, operator, operands):
+		self.operator, self.operands = operator, operands
+	
+	def flatten(self):
+		raise ValueError("STCSRegions must be morphed away before serialization")
+
+
+def _make_pgsposition(coords):
+	if len(coords)!=2:
+		raise common.RegionError("STC-S points want two coordinates.")
+	return pgsphere.SPoint(*coords)
+
+
+def _make_pgscircle(coords):
+	if len(coords)!=3:
+		raise common.RegionError("STC-S circles want three numbers.")
+	return pgsphere.SCircle(pgsphere.SPoint(*coords[:2]), coords[2])
+
+
+def _make_pgsbox(coords):
+	if len(coords)!=4:
+		raise common.RegionError("STC-S boxes want four numbers.")
+	x,y,w,h = coords
+	return pgsphere.SPoly((
+		pgsphere.SPoint(x-w/2, y-h/2),
+		pgsphere.SPoint(x-w/2, y+h/2),
+		pgsphere.SPoint(x+w/2, y+h/2),
+		pgsphere.SPoint(x+w/2, y-h/2)))
+
+
+def _make_pgspolygon(coords):
+	if len(coords)<6 or len(coords)%2:
+		raise common.RegionError("STC-S polygons want at least three number pairs")
+	return pgsphere.SPoly(
+		[pgsphere.SPoint(*p) for p in utils.iterConsecutivePairs(coords)])
+
+
+def _makePgSphereInstance(match):
+	"""returns a utils.pgsphere instance from a match of simpleStatement in
+	the simple STCS parser below.
+	"""
+	if match["flavor"] and match["flavor"].strip().upper()!="SPHERICAL2":
+		raise common.RegionError("Only SPHERICAL2 STC-S supported here")
+	refFrame = 'UnknownFrame'
+	if match["frame"]:
+		refFrame = match["frame"].strip()
+	# refFrame gets thrown away here; to use it, we'd have to generate
+	# ADQL nodes, and that would be clumsy for uploads.  See rant above.
+	handler = globals()["_make_pgs%s"%match["shape"].lower()]
+	return handler(
+		tuple(float(s)*utils.DEG for s in match["coords"].strip().split() if s))
+
+
+@utils.memoized
+def getSimpleSTCSParser():
+	from pyparsing import (Regex, CaselessKeyword, OneOrMore, Forward, Suppress,
+		ParseException, ParseSyntaxException)
+
+	systemRE = (r"(?i)\s*"
+		r"(?P<frame>%s)?\s*"
+		r"(?P<refpos>%s)?\s*"
+		r"(?P<flavor>%s)?\s*")%(
+		"|".join(sorted(TAP_SYSTEMS, key=lambda s: -len(s))),
+		"|".join(TAP_REFPOS),
+		"|".join(TAP_FLAVORS))
+	coordsRE = r"(?P<coords>(%s\s*)+)"%utils.floatRE
+
+	simpleStatement = Regex("(?i)\s*"
+		"(?P<shape>position|circle|box|polygon)"
+		+systemRE
+		+coordsRE)
+	simpleStatement.setName("STC-S geometry")
+	simpleStatement.addParseAction(lambda s,p,t: _makePgSphereInstance(t))
+	system = Regex(systemRE)
+	system.setName("STC-S system spec")
+	region = Forward()
+	notExpr = CaselessKeyword("NOT") + Suppress('(') + region + Suppress(')')
+	notExpr.addParseAction(lambda s,p,t: STCSRegion("NOT", (t[1],)))
+	opExpr = (
+		(CaselessKeyword("UNION") | CaselessKeyword("INTERSECTION"))("op")
+		+ system
+		+ Suppress("(")
+		+ region + OneOrMore(region)
+		+ Suppress(")"))
+	opExpr.addParseAction(
+		lambda s,p,t: STCSRegion(t[0].upper(), t[2:]))
+	region << (simpleStatement | opExpr | notExpr)
+	
+	def parse(s):
+		try:
+			return region.parseString(s, parseAll=True)[0]
+		except (ParseException, ParseSyntaxException), msg:
+			raise common.RegionError("Invalid STCS (%s)"%str(msg))
+
+	return parse
 
 
 if __name__=="__main__":
