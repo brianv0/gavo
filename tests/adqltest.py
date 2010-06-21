@@ -952,17 +952,16 @@ class STCTest(ColumnTest):
 
 	def testBadSTCSRegion(self):
 		self.assertRaisesWithMsg(adql.RegionError, 
-			"STC-S specifies no or more than one error",
+			"'Time TT' is not a region specification I understand.",
 			self._getColSeqAndCtx, (
 				"select * from spatial where 1=intersects("
 				"region('Time TT'), circle('icrs', 1, 1, 0.1))",))
 
 	def testSTCSRegion(self):
 		cs, ctx = self._getColSeqAndCtx(
-				"select region('Circle FK4 B1970.0 10 10 1')"
+				"select region('Circle FK4 10 10 1')"
 				" from spatial")
 		self.assertEqual(cs[0][1].unit, "deg")
-		self.assertEqual(cs[0][1].stc.spaceFrame.equinox, "B1970.0")
 
 
 class FunctionNodeTest(unittest.TestCase):
@@ -1128,6 +1127,25 @@ class PQMorphTest(unittest.TestCase):
 		self._testMorph("select * from TAP_UPLOAD.abc as o",
 			"SELECT * FROM abc AS o")
 
+	def testSTCSSingle(self):
+		self._testMorph(
+			"select * from foo where 1=CONTAINS(REGION('Position ICRS 1 2'), x)",
+			"SELECT * FROM foo WHERE "
+			" ((spoint '(0.0174532925,0.0349065850)') @ (x))")
+
+	def testSTCSExpr(self):
+		self._testMorph(
+			"select * from foo where 1=CONTAINS("
+				"REGION('Union ICRS (Position 1 2 Intersection"
+				" (circle  1 2 3 box 1 2 3 4 circle 30 40 2))'),"
+				" REGION('circle GALACTIC 1 2 3'))",
+			"SELECT * FROM foo WHERE  ((spoint '(0.0174532925,0.0349065850)' @ ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >')+strans(1.346356,-1.097319,0.574771))) OR ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >' @ ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >')+strans(1.346356,-1.097319,0.574771))) AND (spoly '{(-0.0087266463,0.0000000000),(-0.0087266463,0.0698131701),(0.0436332313,0.0698131701),(0.0436332313,0.0000000000)}' @ ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >')+strans(1.346356,-1.097319,0.574771))) AND (scircle '< (0.5235987756, 0.6981317008), 0.0349065850 >' @ ((scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >')+strans(1.346356,-1.097319,0.574771)))))")
+
+	def testSTCSNotRegion(self):
+		self._testMorph(
+			"select * from foo where 1=INTERSECTS(REGION('NOT (circle  1 2 3)'), x)",
+			"SELECT * FROM foo WHERE  (NOT (scircle '< (0.0174532925, 0.0349065850), 0.0523598776 >' && (x)))")
+
 
 class PGSMorphTest(testhelpers.VerboseTest):
 	"""tests for some pgSphere morphing.
@@ -1178,7 +1196,7 @@ class PGSMorphTest(testhelpers.VerboseTest):
 			"SELECT (SELECT spoly(q.p) FROM (VALUES (0, spoint(RADIANS(alphaFloat)-RADIANS(pmra * 100)/2, RADIANS(deltaFloat)-RADIANS(pmde * 100)/2)), (1, spoint(RADIANS(alphaFloat)-RADIANS(pmra * 100)/2, RADIANS(deltaFloat)+RADIANS(pmde * 100)/2)), (2, spoint(RADIANS(alphaFloat)+RADIANS(pmra * 100)/2, RADIANS(deltaFloat)+RADIANS(pmde * 100)/2)), (3, spoint(RADIANS(alphaFloat)+RADIANS(pmra * 100)/2, RADIANS(deltaFloat)-RADIANS(pmde * 100)/2)) ORDER BY column1) as q(ind,p)) FROM ppmx.data WHERE pmra != 0 AND pmde != 0"),
 		("select * from data where 1=contains(point('fk4', 1,2),"
 			" circle('Galactic',2,3,4))",
-			'SELECT * FROM data WHERE  (((spoint(RADIANS(1), RADIANS(2)))-strans(1.565186,-0.004859,-1.576368)) @ (scircle(spoint(RADIANS(2), RADIANS(3)), RADIANS(4))))'),
+			'SELECT * FROM data WHERE  (((spoint(RADIANS(1), RADIANS(2)))-strans(1.565186,-0.004859,-1.576368)+strans(1.346356,-1.097319,0.574771)) @ (scircle(spoint(RADIANS(2), RADIANS(3)), RADIANS(4))))'),	
 		("select * from data where 1=contains(point('UNKNOWN', ra,de),"
 			" circle('Galactic',2,3,4))", 
 			"SELECT * FROM data WHERE  ((spoint(RADIANS(ra), RADIANS(de))) @ (scircle(spoint(RADIANS(2), RADIANS(3)), RADIANS(4))))"),
@@ -1321,20 +1339,20 @@ class SimpleSTCSTest(testhelpers.VerboseTest):
 
 	def testNotParses(self):
 		res = self.parse("NOT  (Box ICRS 1 2 3 4)")
-		self.failUnless(isinstance(res, tapstc.STCSRegion))
+		self.failUnless(isinstance(res, tapstc.GeomExpr))
 		self.assertEqual(len(res.operands), 1)
 		self.assertAlmostEqual(res.operands[0].points[0].x, -0.00872664626)
 		self.assertEqual(res.cooSys, "UNKNOWN")
 	
 	def testSimpleOpParses(self):
 		res = self.parse("UNiON (Box ICRS 1 2 3 4 Circle 1 2 3)")
-		self.failUnless(isinstance(res, tapstc.STCSRegion))
+		self.failUnless(isinstance(res, tapstc.GeomExpr))
 		self.assertEqual(res.operator, "UNION")
 		self.assertEqual(len(res.operands), 2)
 		self.assertEqual(res.operands[0].pgType, "spoly")
 		self.assertEqual(res.operands[1].pgType, "scircle")
 		self.assertEqual(res.cooSys, "UNKNOWN")
-		
+	
 	def testComplexOpParses(self):
 		res = self.parse("INtersection FK4 ("
 			"UNiON BARYCENTER (Box ICRS 1 2 3 4 Circle 1 2 3)"

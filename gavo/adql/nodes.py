@@ -1135,32 +1135,32 @@ def makeRegion(children):
 		arg)
 
 
-class STCRegion(GeometryNode):
-	bindings = []     # we're not created by the parser.
-	type = "stcRegion"
+class STCSRegion(FieldInfoedNode):
+	bindings = []     # we're constructed by makeSTCSRegion, not by the parser
+	type = "stcsRegion"
 	xtype = "adql:REGION"
 
-	_a_ast = None
+	_a_tapstcObj = None # from tapstc -- STCSRegion or a utils.pgshere object
+
+	def _polish(self):
+		self.cooSys = self.tapstcObj.cooSys
 
 	def addFieldInfo(self, context):
-		self.fieldInfo = FieldInfo(unit=self.ast.place.getUnitString(),
-			ucd=None, stc=self.ast.astroSystem)
+		self.fieldInfo = FieldInfo(unit="deg", ucd=None, 
+			stc=tapstc.getSTCForTAP(self.cooSys))
 	
 	def flatten(self):
 		raise FlattenError("STCRegion objectcs cannot be flattened, they"
-			" must be morphed")
+			" must be morphed.")
 
 
-def makeSTCRegion(spec):
+def makeSTCSRegion(spec):
 	try:
-		ast = stc.parseSTCS(spec)
-	except stc.STCError:  #Not a valid STC spec
+		return STCSRegion(tapstc.getSimpleSTCSParser()(spec))
+	except RegionError:  #Not a valid STC spec, try next region parser
 		return None
-	if len(ast.areas)!=1:
-		raise RegionError("STC-S specifies no or more than one error")
-	return STCRegion(ast)
 
-registerRegionMaker(makeSTCRegion)
+registerRegionMaker(makeSTCSRegion)
 
 
 class Centroid(FunctionNode):

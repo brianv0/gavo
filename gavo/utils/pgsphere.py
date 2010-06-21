@@ -94,6 +94,9 @@ class SPoint(PgSAdapter):
 	def asSTCS(self, systemString):
 		return "Position %s %f %f"%(systemString, self.x/DEG, self.y/DEG)
 
+	def asPgSphere(self):
+		return "spoint '(%.10f,%.10f)'"%(self.x, self.y)
+
 	def p(self):   # helps below
 		return "(%r, %r)"%(self.x, self.y)
 
@@ -125,6 +128,9 @@ class SCircle(PgSAdapter):
 			self.center.x/DEG, self.center.y/DEG,
 			self.radius/DEG)
 
+	def asPgSphere(self):
+		return "scircle '< (%.10f, %.10f), %.10f >'"%(
+			self.center.x, self.center.y, self.radius)
 
 
 class SPoly(PgSAdapter):
@@ -152,6 +158,11 @@ class SPoly(PgSAdapter):
 	def asSTCS(self, systemString):
 		return "Polygon %s %s"%(systemString, 
 			" ".join("%f %f"%(p.x, p.y) for p in self.points))
+
+
+	def asPgSphere(self):
+		return "spoly '{%s}'"%(",".join("(%.10f,%.10f)"%(p.x, p.y)
+			for p in self.points))
 
 
 class SBox(PgSAdapter):

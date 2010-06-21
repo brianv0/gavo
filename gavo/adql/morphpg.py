@@ -119,20 +119,44 @@ def _morphBox(node, state):
 	return _makePoly(node.cooSys, points)
 
 
-def _morphGeometryPredicate(node, state):
-	arg1Str, arg2Str = flatten(node.args[0]), flatten(node.args[1])
-	if node.args[0].cooSys!=node.args[1].cooSys:
-		trafo = tapstc.getPGSphereTrafo(node.args[0].cooSys, node.args[1].cooSys)
+def _getSystem(node):
+	return getattr(node, "cooSys", None)
+
+
+def _transformSystems(pgLiteral, fromSystem, toSystem):
+# a helper to _morphGeometryPredicate
+	if fromSystem!=toSystem:
+		trafo = tapstc.getPGSphereTrafo(fromSystem, toSystem)
 		if trafo is not None:
-			arg1Str = "(%s)%s"%(arg1Str, trafo)
+			pgLiteral = "(%s)%s"%(pgLiteral, trafo)
+	return pgLiteral
+
+
+def _morphGeometryPredicate(node, state):
 	if node.funName=="CONTAINS":
 		state.killParentOperator = True
-		return "(%s) @ (%s)"%(arg1Str, arg2Str)
+		operator = "@"
 	elif node.funName=="INTERSECTS":
 		state.killParentOperator = True
-		return "(%s) && (%s)"%(arg1Str, arg2Str)
+		operator = "&&"
 	else:
 		return node # Leave mess to someone else
+
+	sys1, sys2 = _getSystem(node.args[0]), _getSystem(node.args[1])
+	if isinstance(node.args[0], tapstc.GeomExpr):
+		if isinstance(node.args[1], tapstc.GeomExpr):
+			raise NotImplementedError("Cannot have compound regions in both"
+				" arguments of a geometry predicate")
+		arg2Str = _transformSystems(flatten(node.args[1]), sys1, sys2)
+		return node.args[0].asLogic("%%s %s (%s)"%(operator, arg2Str))
+	elif isinstance(node.args[1], tapstc.GeomExpr):
+		arg1Str = _transformSystems(flatten(node.args[0]), sys2, sys1)
+		return node.args[0].asLogic("(%s) %s (%%s)"%(arg1Str, operator))
+	else: # both arguments plain
+		arg1Str = _transformSystems(flatten(node.args[0]), sys1, sys2)
+		arg2Str = flatten(node.args[1])
+		return "(%s) %s (%s)"%(arg1Str, operator, arg2Str)
+
 
 
 def _computePointFunction(node, state):
@@ -166,6 +190,19 @@ def _regionToPG(node, state):
 		" supported on this server")
 
 
+def _stcsRegionToPGSphere(node, state):
+	# STCSRegions embed something returned by tapstc's parser.  This is
+	# a pgsphere instance if we're lucky (just dump the thing as a string)
+	# or a tapstc.GeomExpr object if we're unlucky -- in that case, we
+	# leave the GeomExpr here and leave it to a contains or intersects
+	# handler to rewrite the entire expression.
+	if isinstance(node.tapstcObj, tapstc.GeomExpr):
+		return node.tapstcObj
+	else:
+		return PgSphereCode(node.cooSys, node.tapstcObj.asPgSphere())
+
+
+
 _pgsphereMorphers = {
 	'circle': _morphCircle,
 	'point': _morphPoint,
@@ -177,6 +214,7 @@ _pgsphereMorphers = {
 	"distanceFunction": _distanceToPG,
 	"centroid": _centroidToPG,
 	"region": _regionToPG,
+	"stcsRegion": _stcsRegionToPGSphere,
 }
 
 
@@ -220,13 +258,6 @@ def _adqlFunctionToPG(node, state):
 	return node
 
 
-def _stcRegionToPGSphere(node, state):
-	# We only look at areas[0] -- maybe we should allow points, too?
-	area = node.stc.areas[0]
-	raise NotImplementedError("The REGION string you supplied is not"
-		" supported on this server")
-# XXX TODO: Go on here.
-
 
 def _removeUploadSchema(node, state):
 	"""removes TAP_UPLOAD schema specs.
@@ -244,7 +275,6 @@ def _removeUploadSchema(node, state):
 
 _miscMorphers = {
 	"numericValueFunction": _adqlFunctionToPG,
-	"stcRegion": _stcRegionToPGSphere,
 	"tableName": _removeUploadSchema,
 }
 

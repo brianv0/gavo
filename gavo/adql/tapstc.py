@@ -28,7 +28,7 @@ TAP_FLAVORS = set(
 
 ################## transformations between TAP STC reference systems
 
-UNIVERSALLY_COMPATIBLE = set(['RELOCATABLE', 'UNKNOWN', '', "BROKEN"])
+UNIVERSALLY_COMPATIBLE = set(['RELOCATABLE', 'UNKNOWN', '', "BROKEN", None])
 
 TRANSFORMS = {
 # From "ICRS" (really, FK5 J2000, and the lo-prec) to...
@@ -60,6 +60,7 @@ def getPGSphereTrafo(fromSys, toSys):
 		return None
 	if fromSys=='ICRS':
 		template = "+strans(%f,%f,%f)"
+		angles = _getEulersFor(toSys)
 	elif toSys=='ICRS':
 		angles = _getEulersFor(fromSys)
 		template = "-strans(%f,%f,%f)"
@@ -67,7 +68,6 @@ def getPGSphereTrafo(fromSys, toSys):
 		t1 = getPGSphereTrafo(fromSys, 'ICRS')
 		t2 = getPGSphereTrafo('ICRS', toSys)
 		return "%s%s"%(t1 or "", t2 or "")
-	angles = _getEulersFor(fromSys)
 	if angles:
 		return template%angles
 	return None
@@ -107,7 +107,7 @@ def getSTCForTAP(tapIdentifier):
 # do with REs, for the rest there's a simple recursive descent parser.
 #
 # From the literal we either create a pgsphere geometry ready for ingestion
-# or, when operators enter, an STCSRegion object.  Since at least pgsphere
+# or, when operators enter, an GeomExpr object.  Since at least pgsphere
 # does not support geometric operators, this must be handled in the morph code.
 # To make this clear, its flatten method just raises an Exception.
 #
@@ -118,16 +118,33 @@ def getSTCForTAP(tapIdentifier):
 # object's cooSys attribute (which is convenient for the morphers).
 
 
-class STCSRegion(object):
+class GeomExpr(object):
 	"""a sentinel object to be processed by morphers.
 	"""
 	def __init__(self, frame, operator, operands):
 		self.cooSys = frame
-		self.operator, self.operands = operator, operands
-	
-	def flatten(self):
-		raise ValueError("STCSRegions must be morphed away before serialization")
+		self.operator, self.operands = operator.upper(), operands
 
+	def flatten(self):
+		raise common.RegionError("Cannot serialize STC-S.  Did you use"
+			" Union or Intersection outside of CONTAINS or INTERSECTS?")
+
+	def _flatLogic(self, template, operand):
+		if isinstance(operand, GeomExpr):
+			return operand.asLogic(template)
+		else:
+			return template%operand.asPgSphere()
+
+	def asLogic(self, template):
+		if self.operator=="UNION":
+			logOp = " OR "
+		elif self.operator=="INTERSECTION":
+			logOp = " AND "
+		elif self.operator=="NOT":
+			return "NOT (%s)"%self._flatLogic(template, self.operands[0])
+			raise NotImplementedError("No logic for operator '%s'"%self.operator)
+		return logOp.join(
+			'(%s)'%self._flatLogic(template, op) for op in self.operands)
 
 def _make_pgsposition(coords):
 	if len(coords)!=2:
@@ -204,7 +221,7 @@ def getSimpleSTCSParser():
 	system.setName("STC-S system spec")
 	region = Forward()
 	notExpr = CaselessKeyword("NOT") + Suppress('(') + region + Suppress(')')
-	notExpr.addParseAction(lambda s,p,t: STCSRegion("UNKNOWN", "NOT", (t[1],)))
+	notExpr.addParseAction(lambda s,p,t: GeomExpr("UNKNOWN", "NOT", (t[1],)))
 	opExpr = (
 		(CaselessKeyword("UNION") | CaselessKeyword("INTERSECTION"))("op")
 		+ Optional(Regex(frameRE))("frame") 
@@ -213,7 +230,7 @@ def getSimpleSTCSParser():
 		+ region + OneOrMore(region)
 		+ Suppress(")"))
 	opExpr.addParseAction(
-		lambda s,p,t: STCSRegion(str(t["frame"]), t[0].upper(), t[2:]))
+		lambda s,p,t: GeomExpr(str(t["frame"]), t[0].upper(), t[2:]))
 	region << (simpleStatement | opExpr | notExpr)
 	
 	def parse(s):
