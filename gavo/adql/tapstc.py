@@ -76,12 +76,12 @@ def getPGSphereTrafo(fromSys, toSys):
 def getTAPSTC(stcInstance):
 	"""returns a tap system identifier for an STC AstroSystem.
 
-	This is stc.spaceFrame.refFrame if existing and TAP-defined, UNKNOWN
-	otherwise.
+	This is stc.astroSystem.spaceFrame.refFrame if existing and 
+	TAP-defined, UNKNOWN otherwise.
 	"""
 	rf = None
-	if stcInstance.spaceFrame:
-		rf = stcInstance.spaceFrame.refFrame
+	if stcInstance.astroSystem and stcInstance.astroSystem.spaceFrame:
+		rf = stcInstance.astroSystem.spaceFrame.refFrame
 	if rf not in TAP_SYSTEMS:
 		return "UNKNOWN"
 	return rf
@@ -94,7 +94,7 @@ def getSTCForTAP(tapIdentifier):
 	tapIdentifier = utils.identifierRE.findall(tapIdentifier)[0]
 	if tapIdentifier in ["BROKEN", '', "UNKNOWN"]:
 		tapIdentifier = "UNKNOWNFrame"
-	ast = stc.parseSTCS("Position %s"%tapIdentifier).astroSystem
+	ast = stc.parseSTCS("Position %s"%tapIdentifier)
 	if tapIdentifier=='BROKEN':
 		ast.broken = True
 	return ast

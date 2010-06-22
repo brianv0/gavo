@@ -535,14 +535,14 @@ def _addSpatialSTC(sf, sf2):
 	ast1 = stc.parseQSTCS('Position ICRS "ra1" "dec" Size "width" "height"')
 	ast2 = stc.parseQSTCS('Position FK4 SPHER3 "ra2" "dec" "dist"')
 	# XXX TODO: get utypes from ASTs
-	sf[0].stc, sf[0].stcUtype = ast2.astroSystem, None
-	sf[1].stc, sf[1].stcUtype = ast1.astroSystem, None
-	sf[2].stc, sf[2].stcUtype = ast1.astroSystem, None
-	sf[3].stc, sf[3].stcUtype = ast1.astroSystem, None
-	sf[4].stc, sf[4].stcUtype = ast2.astroSystem, None
-	sf2[0].stc, sf2[0].stcUtype = ast1.astroSystem, None
-	sf2[1].stc, sf2[0].stcUtype = ast1.astroSystem, None
-	sf2[2].stc, sf2[0].stcUtype = ast2.astroSystem, None
+	sf[0].stc, sf[0].stcUtype = ast2, None
+	sf[1].stc, sf[1].stcUtype = ast1, None
+	sf[2].stc, sf[2].stcUtype = ast1, None
+	sf[3].stc, sf[3].stcUtype = ast1, None
+	sf[4].stc, sf[4].stcUtype = ast2, None
+	sf2[0].stc, sf2[0].stcUtype = ast1, None
+	sf2[1].stc, sf2[0].stcUtype = ast1, None
+	sf2[2].stc, sf2[0].stcUtype = ast2, None
 _addSpatialSTC(spatialFields, spatial2Fields)
 
 
@@ -921,8 +921,8 @@ class STCTest(ColumnTest):
 	"""
 	def testSimple(self):
 		cs = self._getColSeq("select ra1, ra2 from spatial")
-		self.assertEqual(cs[0][1].stc.spaceFrame.refFrame, 'ICRS')
-		self.assertEqual(cs[1][1].stc.spaceFrame.refFrame, 'FK4')
+		self.assertEqual(cs[0][1].stc.astroSystem.spaceFrame.refFrame, 'ICRS')
+		self.assertEqual(cs[1][1].stc.astroSystem.spaceFrame.refFrame, 'FK4')
 
 	def testBroken(self):
 		cs = self._getColSeq("select ra1+ra2 from spatial")
@@ -931,13 +931,13 @@ class STCTest(ColumnTest):
 	def testOKPoint(self):
 		cs, ctx = self._getColSeqAndCtx(
 			"select point('ICRS', ra1, 2) from spatial")
-		self.assertEqual(cs[0][1].stc.spaceFrame.refFrame, 'ICRS')
+		self.assertEqual(cs[0][1].stc.astroSystem.spaceFrame.refFrame, 'ICRS')
 		self.assertEqual(ctx.errors, [])
 	
 	def testPointBadCoo(self):
 		cs, ctx = self._getColSeqAndCtx(
 			"select point('ICRS', ra2, 2) from spatial")
-		self.assertEqual(cs[0][1].stc.spaceFrame.refFrame, 'ICRS')
+		self.assertEqual(cs[0][1].stc.astroSystem.spaceFrame.refFrame, 'ICRS')
 		self.assertEqual(ctx.errors, ['When constructing point:'
 			' Argument 1 has incompatible STC'])
 

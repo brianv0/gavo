@@ -108,6 +108,8 @@ class EquivalencePolicy(object):
 	checkedKeys is a sequence of EquivalenceConditions or strings.  If
 	strings are passed, they are turned into KeysEquivalent conditions
 	for the keys specified in the strings.
+
+	You can also pass entire STC trees to match.
 	"""
 	def __init__(self, checkedKeys):
 		self.conditions = []
@@ -118,6 +120,8 @@ class EquivalencePolicy(object):
 				self.conditions.append(KeysEquivalent(cond))
 	
 	def match(self, ast1, ast2):
+		ast1 = getattr(ast1, "astroSystem", ast1)
+		ast2 = getattr(ast2, "astroSystem", ast2)
 		for cond in self.conditions:
 			if not cond.check(ast1, ast2):
 				return False
