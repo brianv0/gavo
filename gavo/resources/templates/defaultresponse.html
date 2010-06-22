@@ -7,13 +7,17 @@
 	<title n:render="meta">title</title>
 	<script type="text/javascript">//<![CDATA[
 		function watchKey(ev) {
-			if (ev.which==13 && ev.shiftKey) {
-				document.getElementById("genForm-action-submit").click();
+			if (ev.which==13 && ev.ctrlKey) {
 				ev.stopPropagation();
+				if (ev.cancelable) {
+					ev.preventDefault();
+				}
+				document.getElementById("genForm-action-submit").click();
 			}
 		}
 		if (document.addEventListener) {
-			document.addEventListener("keyup", watchKey, true);
+			// the keydown lets us swallow mozilla's textbox events.  Other browsers?
+			document.addEventListener("keydown", watchKey, true);
 		}
 	//]]></script>
 </head>

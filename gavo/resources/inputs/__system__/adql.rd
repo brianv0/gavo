@@ -14,8 +14,8 @@ On this page, you can use
 `ADQL <http://www.ivoa.net/Documents/latest/ADQL.html>`_ to query 
 \RSTservicelink{/__system__/dc_tables/list/form}{some of our tables}.
 
-To learn what ADQL is, see the service info.  You will find important 
-information for seasoned ADQL users there as well.
+To learn what ADQL is or for further information on this implementation, see the
+\RSTservicelink{/__system__/adql/query/info}{service info}.  
 ]]>	
 	</meta>
 	<meta name="_bottominfo" format="rst">
@@ -57,8 +57,8 @@ might be useful.
 
 Also have a look at the Examples_ below.
 
-Known Bugs and Problems
-=======================
+Local guide
+===========
 
 Standards Compliance
 ''''''''''''''''''''
@@ -69,10 +69,7 @@ your own protection.  If you want more rows (make sure you don't throw
 them at your browser, i.e., select VOTable output), use SELECT TOP 100000
 or something along those lines.
 
-System specifications on STC-S literals in REGION are ignored.  You
-probably should refrain from using this mess anyway; if you use it,
-make sure you write your expressions in the system of the table you
-query against.  In particular, when doing set operations (e.g., UNION),
+In particular, when doing set operations (e.g., UNION) in STC-S,
 no conforming of coordinate systems will be performed.
 
 The output of ADQL geometries follows the TAP standard (simplified STC-S)
@@ -82,20 +79,20 @@ SELECT and SELECT ALL are not exactly the same thing.  The latter will add
 an OFFSET 0 to the resulting postgresql query.  Use this when the query
 planner messes up; see the `Story I: Guide Star`_ below.
 
-Date literals can be specified `as for Postgresql <http://www.postgresql.org/docs/8.1/static/datatype-datetime.html#DATATYPE-DATETIME-INPUT>`_;
+Date literals can be specified `as for Postgresql <http://www.postgresql.org/docs/8.3/static/datatype-datetime.html#DATATYPE-DATETIME-INPUT>`_;
 you always need to use strings.  So, ``'2000-12-31'`` or ``'J2416642.5'``
 are both valid date specifications.  See also `Story II: Historic Lights`_
 
 Usability
 '''''''''
 
-The error messages on parse errors are, ahem, sometimes misleading.  Due to the
-parse technology we use, the error position is right after the last completely
-parsed element.  Since a WHERE clause is one such element, an error
-somewhere deep within the clause will appear to originate right before the
-WHERE.  We are thinking about a solution, but since it is not straightforward,
-we are waiting on the amount of usage the service gets before embarking
-on this medium-sized project.
+Hint: You can send off your query by typing control-return from within the
+input text box.
+
+Error messages for parse (and other) errors are not always as helpful as
+we would like them to be.  Feel free to complain to us with concrete examples
+of where we messed up, and we'll try to improve.
+
 
 Examples
 ========

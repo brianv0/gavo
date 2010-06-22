@@ -83,6 +83,7 @@ def _makeColumnFromFieldInfo(ctx, colName, fi):
 	# to transform to STC-S strings.
 	if "xtype" in fi.properties:
 		res.xtype = fi.properties["xtype"]
+		res.type = "text"
 		res.needMunging = True
 
 	res.verbLevel = 1
@@ -170,12 +171,15 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[]):
 	morphStatus, morphedTree = adql.morphPG(t)
 	# escape % to hide them form dbapi replacing
 	query = adql.flatten(morphedTree).replace("%", "%%")
-	querier.setTimeout(timeout)
-	querier.configureConnection([("enable_seqscan", False)])
+	try:
+		querier.setTimeout(timeout)
+		querier.configureConnection([("enable_seqscan", False)])
 
-	log.msg("Sending ADQL query: %s"%query)
-	for tuple in querier.query(query):
-		addTuple(tuple)
+		log.msg("Sending ADQL query: %s"%query)
+		for tuple in querier.query(query):
+			addTuple(tuple)
+	finally:
+		querier.rollback()
 	for warning in morphStatus.warnings:
 		table.tableDef.addMeta("_warning", warning)
 	return table
