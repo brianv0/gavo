@@ -121,12 +121,14 @@ def _getTupleAdder(table):
 	if not stcsOutputCols: # Yay!
 		return table.addTuple
 	else:  # Sigh.  I need to define a function fumbling the mess together.
-		parts, lastInd = [], -1
+		parts, lastInd = [], 0
 		for index, col in stcsOutputCols:
-			parts.append("row[%s:%s]"%(lastInd+1, index))
+			if lastInd!=index:
+				parts.append("row[%s:%s]"%(lastInd, index))
 			parts.append("(row[%s].asSTCS(%r),)"%(index, adql.getTAPSTC(col.stc)))
-			lastInd = index
-		parts.append("row[%s:%s]"%(lastInd, len(table.tableDef.columns)))
+			lastInd = index+1
+		if lastInd!=index:
+			parts.append("row[%s:%s]"%(lastInd, len(table.tableDef.columns)))
 		return utils.compileFunction(
 			"def addTuple(row): table.addTuple(%s)"%("+".join(parts)), 
 			"addTuple",

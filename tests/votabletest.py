@@ -239,6 +239,26 @@ class NastyImportTest(testhelpers.VerboseTest):
 			'<FIELD name="SELECT_" datatype="boolean"/>',
 			[['True', 'False']], test, nameMaker=votableread.AutoQuotedNameMaker())
 
+	def testXtypes(self):
+		def test(table):
+			self.assertEqual(table.tableDef.columns[0].type, 'spoint')
+			data = list(table)
+			self.assertEqual(data[0]["p"], None)
+			self.assertEqual(data[0]["d"], None)
+			self.assertAlmostEqual(data[1]["p"].x, 2*utils.DEG)
+			self.assertAlmostEqual(data[1]["p"].y, 3*utils.DEG)
+			self.assertEqual(data[1]["d"], datetime.datetime(2005, 5, 6, 21, 10, 19))
+			self.assertEqual(data[1]["u"], '2005-05-06T21:10:19')
+
+		self._assertAfterIngestion(
+			'<FIELD name="p" datatype="char" arraysize="*" xtype="adql:POINT"/>'
+			'<FIELD name="u" datatype="char" arraysize="*" xtype="adql:FANTASY"/>'
+			'<FIELD name="d" datatype="char" arraysize="*" xtype="adql:TIMESTAMP"/>',
+			[['', '', ''], 
+				['Position ICRS 2 3', '2005-05-06T21:10:19', '2005-05-06T21:10:19']], 
+			test, nameMaker=votableread.AutoQuotedNameMaker())
+
+
 
 class MetaTest(testhelpers.VerboseTest):
 	"""tests for inclusion of some meta items.

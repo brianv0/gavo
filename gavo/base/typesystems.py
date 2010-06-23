@@ -239,7 +239,15 @@ class FromVOTableConverter(object):
 		("raw", '1'): "raw",
 	}
 
-	def convert(self, type, arraysize):
+	xtypeMap = {
+		"adql:POINT": "spoint",
+		"adql:REGION": None,    # ignore the useless REGION xtype.
+		"adql:TIMESTAMP": "timestamp",
+	}
+
+	def convert(self, type, arraysize, xtype=None):
+		if self.xtypeMap.get(xtype):
+			return self.xtypeMap[xtype]
 		if arraysize=="1" or arraysize=="" or arraysize is None:
 			arraysize = "1"
 		if (type, arraysize) in self.simpleMap:
@@ -444,14 +452,14 @@ class ToPythonCodeConverter(FromSQLConverter):
 		"date": "parseDefaultDate(%s)",
 		"timestamp": "parseDefaultDatetime(%s)",
 		"time": "parseDefaultTime(%s)",
+		"spoint": "parseSimpleSTCS(%s)",  # import this from gavo.stc
+		"scircle": "parseSimpleSTCS(%s)",
+		"spoly": "parseSimpleSTCS(%s)",
+		"sbox": "%s",  # hmha, there's not STC-S for this kind of box...
 		"bytea": "%s",
 		"raw": "%s",
 		"file": "%s",
 		"box": "%s",
-		"spoint": "%s",  # Do we want some coercion here?
-		"scircle": "%s",
-		"spoly": "%s",
-		"sbox": "%s",
 		"vexpr-string": "%s",
 		"vexpr-float": "%s",
 		"vexpr-date": "%s",

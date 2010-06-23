@@ -20,6 +20,7 @@ from gavo import stc
 from gavo import utils
 from gavo.base import coords, parseBooleanLiteral, parseInt, vizierexprs
 from gavo.base.literals import *
+from gavo.stc import parseSimpleSTCS
 from gavo.utils import dmsToDeg, hmsToDeg
 
 
@@ -27,6 +28,7 @@ class IgnoreThisRow(Exception):
 	"""can be raised by user code to indicate that a row should be
 	skipped when building a table.
 	"""
+
 
 def addCartesian(result, alpha, delta):
 	"""inserts c_x, c_y, and c_z for the equatorial position alpha, delta

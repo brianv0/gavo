@@ -1,6 +1,20 @@
 <resource schema="tap_schema">
 	<meta name="description">Support tables (views) for TAP</meta>
 	<property name="TAP_VERSION">1.0</property>
+	<meta name="_longdoc">
+
+	Issues
+	======
+
+	For information on our ADQL implementation, see the
+	\RSTServicelink{__system__/adql/query/info}{ADQL service info}.
+
+	While columns with xtype adql:POINT are correctly ingested into the
+	database, adql:REGION columns are left alone (i.e., they are
+	strings in the database).  The reason for this behaviour is that
+	in order to infer a column type, one would have to inspect the
+	entire table up front.
+	</meta>
 
 	<table id="schemas" onDisk="True" system="True"
 			forceUnique="True" dupePolicy="drop" primary="schema_name"

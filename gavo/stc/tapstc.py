@@ -1,15 +1,14 @@
 """
 The subset of STC proposed by the TAP spec.
 
-We mostly use this this subset rather than the full-blown STC library
-since we don't have the latter in the database, and it's much slower
-for generating (or parsing) STC-S strings.  Also, there are the ADQL
-reference systems that require special handling anyway.
+Use this rather than the full-blown STC library for TAP and friends.
+TAP's semi-sanitation of STC needs some special handling anyway,
+and this is much faster than the full-blown mess.
 """
 
-from gavo import stc
 from gavo import utils
-from gavo.adql import common
+from gavo.stc import common
+from gavo.stc import stcsast
 from gavo.utils import pgsphere
 
 
@@ -41,7 +40,7 @@ TRANSFORMS = {
 
 def _getEulersFor(frame):
 	if not frame in TRANSFORMS:
-		raise common.GeometryError("Unknown reference frame: %s"%frame)
+		raise common.STCValueError("Unknown reference frame: %s"%frame)
 	return TRANSFORMS[frame]
 
 
@@ -94,7 +93,7 @@ def getSTCForTAP(tapIdentifier):
 	tapIdentifier = utils.identifierRE.findall(tapIdentifier)[0]
 	if tapIdentifier in ["BROKEN", '', "UNKNOWN"]:
 		tapIdentifier = "UNKNOWNFrame"
-	ast = stc.parseSTCS("Position %s"%tapIdentifier)
+	ast = stcsast.parseSTCS("Position %s"%tapIdentifier)
 	if tapIdentifier=='BROKEN':
 		ast.broken = True
 	return ast
@@ -126,7 +125,7 @@ class GeomExpr(object):
 		self.operator, self.operands = operator.upper(), operands
 
 	def flatten(self):
-		raise common.RegionError("Cannot serialize STC-S.  Did you use"
+		raise common.STCSParseError("Cannot serialize STC-S.  Did you use"
 			" Union or Intersection outside of CONTAINS or INTERSECTS?")
 
 	def _flatLogic(self, template, operand):
@@ -148,19 +147,19 @@ class GeomExpr(object):
 
 def _make_pgsposition(coords):
 	if len(coords)!=2:
-		raise common.RegionError("STC-S points want two coordinates.")
+		raise common.STCSParseError("STC-S points want two coordinates.")
 	return pgsphere.SPoint(*coords)
 
 
 def _make_pgscircle(coords):
 	if len(coords)!=3:
-		raise common.RegionError("STC-S circles want three numbers.")
+		raise common.STCSParseError("STC-S circles want three numbers.")
 	return pgsphere.SCircle(pgsphere.SPoint(*coords[:2]), coords[2])
 
 
 def _make_pgsbox(coords):
 	if len(coords)!=4:
-		raise common.RegionError("STC-S boxes want four numbers.")
+		raise common.STCSParseError("STC-S boxes want four numbers.")
 	x,y,w,h = coords
 	return pgsphere.SPoly((
 		pgsphere.SPoint(x-w/2, y-h/2),
@@ -171,7 +170,7 @@ def _make_pgsbox(coords):
 
 def _make_pgspolygon(coords):
 	if len(coords)<6 or len(coords)%2:
-		raise common.RegionError("STC-S polygons want at least three number pairs")
+		raise common.STCSParseError("STC-S polygons want at least three number pairs")
 	return pgsphere.SPoly(
 		[pgsphere.SPoint(*p) for p in utils.iterConsecutivePairs(coords)])
 
@@ -181,7 +180,7 @@ def _makePgSphereInstance(match):
 	the simple STCS parser below.
 	"""
 	if match["flavor"] and match["flavor"].strip().upper()!="SPHERICAL2":
-		raise common.RegionError("Only SPHERICAL2 STC-S supported here")
+		raise common.STCSParseError("Only SPHERICAL2 STC-S supported here")
 	refFrame = 'UnknownFrame'
 	if match["frame"]:
 		refFrame = match["frame"].strip()
@@ -234,13 +233,15 @@ def getSimpleSTCSParser():
 	region << (simpleStatement | opExpr | notExpr)
 	
 	def parse(s):
+		if s is None or not s.strip(): # special service: Null values
+			return None
 		try:
 			res = region.parseString(s, parseAll=True)[0]
 			if not res.cooSys or res.cooSys.lower()=='unknownframe':  # Sigh.
 				res.cooSys = "UNKNOWN"
 			return res
 		except (ParseException, ParseSyntaxException), msg:
-			raise common.RegionError("Invalid STCS (%s)"%str(msg))
+			raise common.STCSParseError("Invalid STCS (%s)"%str(msg))
 
 	return parse
 

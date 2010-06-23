@@ -80,7 +80,7 @@ class SPoint(PgSAdapter):
 
 	@staticmethod
 	def _adaptToPgSphere(spoint):
-		return AsIs("spoint '(%f,%f)'"%(spoint.x, spoint.y))
+		return AsIs("spoint '(%.10f,%.10f)'"%(spoint.x, spoint.y))
 	
 	@classmethod
 	def _castFromPgSphere(cls, value, cursor):
@@ -92,7 +92,7 @@ class SPoint(PgSAdapter):
 		return cls(x*DEG, y*DEG)
 
 	def asSTCS(self, systemString):
-		return "Position %s %f %f"%(systemString, self.x/DEG, self.y/DEG)
+		return "Position %s %.10f %.10f"%(systemString, self.x/DEG, self.y/DEG)
 
 	def asPgSphere(self):
 		return "spoint '(%.10f,%.10f)'"%(self.x, self.y)
@@ -124,7 +124,7 @@ class SCircle(PgSAdapter):
 			return cls(SPoint._castFromPgSphere(pt, cursor), radius)
 
 	def asSTCS(self, systemString):
-		return "Circle %s %f %f %f"%(systemString, 
+		return "Circle %s %.10f %.10f %.10f"%(systemString, 
 			self.center.x/DEG, self.center.y/DEG,
 			self.radius/DEG)
 
@@ -157,7 +157,7 @@ class SPoly(PgSAdapter):
 
 	def asSTCS(self, systemString):
 		return "Polygon %s %s"%(systemString, 
-			" ".join("%f %f"%(p.x, p.y) for p in self.points))
+			" ".join("%.10f %.10f"%(p.x, p.y) for p in self.points))
 
 
 	def asPgSphere(self):

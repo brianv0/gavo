@@ -35,6 +35,8 @@ from gavo.stc.times import (parseISODT,
 
 # hardcore stc only from 2.5 upwards
 if sys.version_info[0]>=2 and sys.version_info[1]>4:  
+	from gavo.stc import tapstc
+
 	from gavo.stc.conform import conform as conformTo
 
 	from gavo.stc.eq import EquivalencePolicy, defaultPolicy
@@ -54,6 +56,8 @@ if sys.version_info[0]>=2 and sys.version_info[1]>4:
 	from gavo.stc.utypegen import getUtypes
 
 	from gavo.stc.utypeast import parseFromUtypes
+
+	parseSimpleSTCS = tapstc.getSimpleSTCSParser()
 
 	def getSTCX(ast, rootElement):
 		return astToStan(ast, rootElement)

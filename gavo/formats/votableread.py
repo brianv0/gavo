@@ -91,7 +91,7 @@ def makeTableDefForVOTable(tableId, votTable, nameMaker=None,
 		kwargs = {"name": colName,
 			"tablehead": colName.capitalize(),
 			"id": getattr(f, "a_ID", None),
-			"type": base.voTableToSQLType(f.a_datatype, f.a_arraysize)}
+			"type": base.voTableToSQLType(f.a_datatype, f.a_arraysize, f.a_xtype)}
 		for attName in ["ucd", "description", "unit", "xtype"]:
 			if getattr(f, "a_"+attName, None) is not None:
 				kwargs[attName] = getattr(f, "a_"+attName)
@@ -136,6 +136,46 @@ def makeDDForVOTable(tableId, vot, gunzip=False, **moreArgs):
 		makes=[MS(rscdef.Make, table=tableDefs[0])])
 
 
+_xtypeParsers = {
+	'adql:POINT': "parseSimpleSTCS",
+	'adql:REGION': "parseSimpleSTCS", # actually, this is not used since
+		                                # there is not column type for these
+	'adql:TIMESTAMP': "parseDefaultDatetime",
+}
+
+
+# XXX TODO: quite parallel code in adqlglue: can we abstract a bit?
+def _getTupleAdder(table):
+	"""returns a function adding a row to table.
+
+	This is necessary for xtype handling (for everything else, the VOTable
+	library returns the right types).
+	"""
+	from gavo.base.literals import parseDefaultDatetime
+	from gavo.stc import parseSimpleSTCS
+
+	xtypeCols = []
+	for colInd, col in enumerate(table.tableDef):
+		if _xtypeParsers.get(col.xtype):
+			xtypeCols.append((colInd, col))
+	if not xtypeCols:
+		return table.addTuple
+	else:
+		parts, lastInd = [], 0 
+		for index, col in xtypeCols:
+			if lastInd!=index:
+				parts.append("row[%s:%s]"%(lastInd, index))
+			parts.append("(%s(row[%s]),)"%(_xtypeParsers[col.xtype], index))
+			lastInd = index+1
+		if lastInd!=index:
+			parts.append("row[%s:%s]"%(lastInd, len(table.tableDef.columns)))
+		return utils.compileFunction(
+			"def addTuple(row): table.addTuple(%s)"%("+".join(parts)), 
+			"addTuple",
+			locals())
+
+
+
 def uploadVOTable(tableId, srcFile, connection, gunzip=False, **tableArgs):
 	"""creates a temporary table with tableId containing the first
 	table in the VOTable in srcFile.
@@ -154,6 +194,7 @@ def uploadVOTable(tableId, srcFile, connection, gunzip=False, **tableArgs):
 	args.update(tableArgs)
 	td = makeTableDefForVOTable(tableId, rows.tableDefinition, **args)
 	table = rsc.TableForDef(td, connection=connection)
+	addTuple = _getTupleAdder(table)
 	for row in rows:
-		table.addTuple(row)
+		addTuple(tuple(row))
 	return table
