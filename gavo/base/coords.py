@@ -492,37 +492,6 @@ def getGCDist(pos1, pos2):
 	return math.acos(scalarprod)/DEG
 
 
-try:
-	import _gavoext
-
-	_sysConverters = {
-		("J2000", "B1950"): _gavoext.fk524,
-		("B1950", "J2000"): _gavoext.fk425,
-	}
-
-	def convertSys(alpha, delta, srcEq, destEq):
-# XXX remove this
-		"""returns alpha and delta in the destination Equinox.
-
-		alpha and delta must be degrees, srcEq and destEq must come from
-		a controlled vocabulary (like "J2000" or "B1950"); see _sysConverters.
-		>>> "%.4f %.4f"%convertSys(82.1119567, -74.962704, "J2000", "B1950")
-		'82.5000 -75.0000'
-		>>> "%.4f %.4f"%convertSys(100.29064705, -20.048423505, "J2000", "B1950")
-		'99.7500 -20.0000'
-		"""
-		try:
-			return _sysConverters[srcEq, destEq](alpha, delta)
-		except KeyError:
-			raise common.logOldExc(excs.Error("Don't know how"
-				" to transform from %s to %s"%(srcEq, destEq)))
-
-except (ImportError, AttributeError):  # _gavoext not available
-	def convertSys(*args):
-		raise excs.Error("You need the _gavoext C extension for"
-			" coordinate transformations.")
-
-
 def _test():
 	import doctest, coords
 	doctest.testmod(coords)
