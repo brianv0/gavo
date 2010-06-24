@@ -156,7 +156,8 @@ class _JobActions(object):
 		try:
 			resFactory = cls.actions[action]
 		except KeyError:
-			raise svcs.UnknownURI("Invalid UWS action '%s'"%action)
+			raise base.ui.logOldExc(
+				svcs.UnknownURI("Invalid UWS action '%s'"%action))
 		return resFactory.getResource(job, request, segments)
 		
 
@@ -176,7 +177,7 @@ class JobAction(object):
 		try:
 			handler = getattr(self, "do"+request.method)
 		except AttributeError:
-			raise svcs.BadMethod(request.method)
+			raise base.ui.logOldExc(svcs.BadMethod(request.method))
 		return handler(job, request)
 
 
@@ -237,8 +238,8 @@ class _SettableAction(JobAction):
 		try:
 			val = self.deserializeValue(raw)
 		except ValueError:  
-			raise uws.UWSError("Invalid %s value: %s."%(
-				self.name.upper(), repr(raw)))
+			raise base.ui.logOldExc(uws.UWSError("Invalid %s value: %s."%(
+				self.name.upper(), repr(raw))))
 		setattr(job, self.attName, val)
 		raise svcs.WebRedirect("async/"+job.jobId)
 

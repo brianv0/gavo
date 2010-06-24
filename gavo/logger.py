@@ -1,9 +1,10 @@
 """
-Some helpers for logging VO events.
+Some helpers for logging events in the data center.
 
 The module primarily defines a member logger which is a 
 """
 
+# XXX TODO: Remove this after making sure nobody still uses it.
 import os
 import sys
 import logging

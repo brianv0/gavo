@@ -101,8 +101,8 @@ class ColumnTupleAttribute(base.StringListAttribute):
 			try:
 				parent.getColumnByName(colName)
 			except base.NotFoundError:
-				raise base.LiteralParseError(self.name_, colName, 
-					hint="Column tuple component %s is not in parent table"%colName)
+				raise base.ui.logOldExc(base.LiteralParseError(self.name_, colName, 
+					hint="Column tuple component %s is not in parent table"%colName))
 
 
 class ForeignKey(base.Structure):

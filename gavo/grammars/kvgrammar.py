@@ -31,8 +31,8 @@ class KVIterator(FileRowIterator):
 						completeRecord[key.strip()] = value.strip()
 			except:
 				self.inputFile.close()
-				raise base.SourceParseError("Not a key value pair: %s"%(
-					repr(rec)))
+				raise base.ui.logOldExc(
+					base.SourceParseError("Not a key value pair: %s"%(repr(rec))))
 		if not self.grammar.yieldPairs:
 			yield self.grammar.mapKeys.doMap(completeRecord)
 		self.inputFile.close()

@@ -38,6 +38,7 @@ except ImportError:
 
 from gavo import utils
 from gavo.base import attrdef
+from gavo.base import common
 from gavo.base import structure
 
 
@@ -815,13 +816,14 @@ def makeMetaValue(value="", **kwargs):
 			try:
 				cls = _metaTypeRegistry[kwargs["type"]]
 			except KeyError:
-				raise MetaError("No such meta value type: %s"%kwargs["type"])
+				raise common.logOldExc(
+					MetaError("No such meta value type: %s"%kwargs["type"]))
 		del kwargs["type"]
 	try:
 		return cls(value, **kwargs)
 	except TypeError:
-		raise MetaError(
-			"Invalid arguments for %s meta items :%s"%(cls.__name__, str(kwargs)))
+		raise common.logOldExc(MetaError(
+			"Invalid arguments for %s meta items :%s"%(cls.__name__, str(kwargs))))
 
 
 def makeMetaItem(value="", **kwargs):
@@ -977,10 +979,9 @@ class ModelBasedBuilder(object):
 				except utils.Error:
 					raise
 				except:
-					traceback.print_exc()
-					raise utils.ReportableError(
+					raise common.raiseOldExc(utils.ReportableError(
 						"Invalid constructor func in %s, meta container active %s"%(
-							repr(item), repr(metaContainer)))
+							repr(item), repr(metaContainer))))
 		return result
 
 	def build(self, metaContainer):

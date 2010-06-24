@@ -2,7 +2,7 @@
 General event handling.
 
 Basically, everything roughly classified as user interaction should go
-through this module.  gavo.base, on input, creates an instance of 
+through this module.  gavo.base, on import, creates an instance of 
 EventDispatcher and installs it as base.ui.  The rest of the library
 can then call methods of base.ui.
 
@@ -10,6 +10,9 @@ Clients can then register observers (probably derived from
 base.observer.Observer) that subscribe to events and can display or 
 log them in some form appropriate to the client.
 """
+
+import sys
+
 
 class DispatcherType(type):
 	"""is a metaclass for dispatching of messages.
@@ -63,14 +66,20 @@ class EventDispatcher(object):
 	def subscribe(self, evName, callback):
 		self.callbacks[evName].append(callback)
 
-	def notifyException(self, exc):
-		"""is called the exception object when an exception is caught.
+	def notifyExceptionMutation(self, newExc):
+		"""is called when an exception is being handled by raising newExc.
 
-		The exception will be propagated to the subscribers.  To make
-		error messages from them, use the formatException function in this
-		module.
+		The callbacks are passed a pair of sys.exc_info() and newExc.
 		"""
-		return exc
+		return sys.exc_info(), newExc
+
+	def logOldExc(self, newExc):
+		"""notifies of and ExceptionMutation and returns newExc.
+	
+		This is just a convenience when mutating exceptions.
+		"""
+		self.notifyExceptionMutation(newExc)
+		return newExc
 
 	def notifyNewSource(self, sourceToken):
 		"""is called when a new source is being operated on.
@@ -162,6 +171,19 @@ class EventDispatcher(object):
 		"""
 		return script
 
+	def notifyErrorOccurred(self, errmsg):
+		"""is called when something wants to put out an error message.
+
+		The handlers receive the error message as-is.
+		"""
+		return errmsg
+
+	def notifyInfo(self, message):
+		"""is called when something tries to emit auxillary information.
+
+		The handlers receive the message as-is
+		"""
+		return message
 
 
 if __name__=="__main__":

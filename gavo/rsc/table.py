@@ -247,7 +247,8 @@ class UniqueForcedTable(InMemoryIndexedTable):
 				"overwrite": self._overwriteOld,
 			}[self.tableDef.dupePolicy]
 		except KeyError, msg:
-			raise Error("Invalid conflict resolution strategy: %s"%str(msg))
+			raise base.ui.logOldExc(
+				Error("Invalid conflict resolution strategy: %s"%str(msg)))
 		for row in rows:
 			self.addRow(row)
 

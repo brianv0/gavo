@@ -273,8 +273,8 @@ class ArchiveService(rend.Page):
 		try:
 			subId, rendName = segments[srvInd], segments[srvInd+1]
 		except IndexError:
-			raise UnknownURI("Bad segments after existing resource: %s"%(
-				"/".join(segments[srvInd:])))
+			raise base.ui.logOldExc(UnknownURI("Bad segments after existing"
+				" resource: %s"%("/".join(segments[srvInd:]))))
 			
 		service = rd.getService(subId)
 		if service is None:

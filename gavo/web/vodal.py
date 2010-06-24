@@ -311,9 +311,7 @@ class RegistryRenderer(grend.ServiceBasedRenderer):
 			return self._renderXML(self._getErrorTree(failure.value, pars),
 				ctx)
 		except:
-			import traceback
-			traceback.print_exc()
-			failure.printTraceback()
+			ui.notifyErrorOccurred("Cannot create registry error document")
 			request = inevow.IRequest(ctx)
 			request.setResponseCode(400)
 			request.setHeader("content-type", "text/plain")

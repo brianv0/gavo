@@ -34,8 +34,8 @@ class SplitLineIterator(FileRowIterator):
 			for key, slice in self.grammar.colRanges.iteritems():
 				res[key] = inputLine[slice].strip()
 		except IndexError:
-			raise base.SourceParseError("Short line", inputLine, 
-				self.getLocator())
+			raise base.ui.logOldExc(base.SourceParseError("Short line", inputLine, 
+				self.getLocator()))
 		return res
 
 	def getLocator(self):
@@ -65,8 +65,9 @@ class ColRangeAttribute(base.UnicodeAttribute):
 				col = int(value)
 				return slice(col-1, col)
 		except ValueError:
-			raise base.LiteralParseError("colRanges", val, hint="A column range,"
-				" (either int1-int2 or just an int) is expected here.")
+			raise base.ui.logOldExc(
+				base.LiteralParseError("colRanges", val, hint="A column range,"
+				" (either int1-int2 or just an int) is expected here."))
 
 
 class ColumnGrammar(Grammar):

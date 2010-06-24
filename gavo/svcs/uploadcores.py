@@ -79,8 +79,8 @@ class UploadCore(core.Core):
 			targetDir = os.path.join(self.rd.resdir, 
 				self.destDD.getProperty("stagingDir"))
 		except KeyError:
-			raise base.ValidationError("Uploading is only supported for data having"
-				" a staging directory.", "File")
+			raise base.ui.logOldExc(base.ValidationError("Uploading is only"
+				" supported for data having a staging directory.", "File"))
 		if not os.path.exists(targetDir):
 			raise base.ValidationError("Staging directory does not exist.",
 				"File")
@@ -107,8 +107,8 @@ class UploadCore(core.Core):
 			res = rsc.makeData(self.destDD, parseOptions=parseOptions, 
 				forceSource=sourcePath, connection=base.getDBConnection('admin'))
 		except Exception, msg:
-			raise base.ValidationError("Cannot enter %s in database: %s"%
-				(os.path.basename(sourcePath), str(msg)), "File")
+			raise base.ui.logOldExc(base.ValidationError("Cannot enter %s in"
+				" database: %s"%(os.path.basename(sourcePath), str(msg)), "File"))
 		return res.nAffected
 
 	def _saveData(self, srcFile, fName, mode):

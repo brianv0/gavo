@@ -41,13 +41,12 @@ class SOAPProcessor(soap.SOAPPublisher):
 			self._sendResponse(request, 
 				wsdl.formatFault(failure.value, self.service), status=500)
 		except:
-			traceback.print_exc()
+			base.ui.logError("Error while writing SOAP error:")
 
 	def soap_useService(self, *args):
 		try:
 			return self.runServiceFromArgs(self.ctx, args)
 		except Exception, exc:
-			traceback.print_exc()
 			return self._formatError(exc)
 
 	def _formatError(self, exc):

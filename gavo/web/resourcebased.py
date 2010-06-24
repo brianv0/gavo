@@ -351,7 +351,6 @@ class FormMixin(formal.ResourceMixin, object):
 				self.form.errors.add(formal.FieldValidationError(
 					str(failure.getErrorMessage()), failedField))
 			except KeyError: # Failing field cannot be determined
-				failure.printTraceback()
 				self.form.errors.add(formal.FormError("Problem with input"
 					" in the internal or generated field '%s': %s"%(
 						failure.value.colName, failure.getErrorMessage())))
@@ -505,8 +504,9 @@ class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 		try:
 			return self.knownResultPages[outputName]
 		except KeyError:
-			raise base.ValidationError("Invalid output format: %s"%outputName,
-				colName="_OUTPUT")
+			raise base.ui.logOldExc(
+				base.ValidationError("Invalid output format: %s"%outputName,
+					colName="_OUTPUT"))
 
 	def _realSubmitAction(self, ctx, form, data):
 		"""is a helper for submitAction that does the real work.
@@ -621,9 +621,8 @@ def compileCoreRenderer(source):
 		"    raise\n")
 	try:
 		exec code in ns
-	except SyntaxError:
-		sys.stderr.write("Invalid source:\n%s\n"%code)
-		raise
+	except SyntaxError, ex:
+		raise base.ui.logOldExc(base.BadCode(code, "core renderer", ex))
 	return ns["renderForNevow"]
 
 
@@ -692,7 +691,8 @@ class FixedPageRenderer(grend.ServiceBasedRenderer):
 		try:
 			self.customTemplate = self.service.templates["fixed"]
 		except KeyError:
-			raise svcs.UnknownURI("fixed renderer needs a 'fixed' template")
+			raise base.ui.logOldExc(
+				svcs.UnknownURI("fixed renderer needs a 'fixed' template"))
 
 	@classmethod
 	def isCacheable(cls, segments, request):

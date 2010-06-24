@@ -56,7 +56,8 @@ class AdminRenderer(formal.ResourceMixin, grend.ServiceBasedRenderer):
 				stc.parseISODT(scheduleFor)  # check syntax
 				self.clientRD.setMeta("_scheduledDowntime", scheduleFor)
 			except stc.STCLiteralError: # bad date syntax
-				raise formal.FieldError("Doesn't look like ISO", "scheduleFor")
+				raise base.ui.logOldExc(
+					formal.FieldError("Doesn't look like ISO", "scheduleFor"))
 
 	def form_adminOps(self, ctx):
 		form = formal.Form()
@@ -138,7 +139,8 @@ class AdminRenderer(formal.ResourceMixin, grend.ServiceBasedRenderer):
 			self.setMetaParent(self.clientRD)
 			self.macroPackage = self.clientRD
 		except base.RDNotFound:
-			raise svcs.UnknownURI("No such resource descriptor: %s"%rdId)
+			raise base.ui.logOldExc(
+				svcs.UnknownURI("No such resource descriptor: %s"%rdId))
 		except Exception, ex: # RD is botched.  Clear cache and give an error
 			base.caches.clearForName(rdId)
 			self._extractDamageInfo()

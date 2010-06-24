@@ -451,8 +451,8 @@ class UWSJob(object):
 			with open(os.path.join(self.getWD(), "__EXCEPTION__")) as f:
 				return pickle.load(f)
 		except IOError:
-			raise ValueError(
-				"No error has been posted on UWS job %s"%self.jobId)
+			raise base.ui.logOldExc(ValueError(
+				"No error has been posted on UWS job %s"%self.jobId))
 
 	def openFile(self, name, mode="r"):
 		"""returns an open file object for a file within the job's work directory.
@@ -513,16 +513,18 @@ class UWSActions(object):
 		try:
 			methodName = self.transitions[fromPhase][toPhase]
 		except KeyError:
-			raise base.ValidationError("No transition from %s to %s defined"
+			raise base.ui.logOldExc(
+				base.ValidationError("No transition from %s to %s defined"
 				" for %s Actions"%(fromPhase, toPhase, self.name),
-				"phase", hint="This almost always points to an implementation error")
+				"phase", hint="This almost always points to an implementation error"))
 		try:
 			return getattr(self, methodName)
 		except AttributeError:
-			raise base.ValidationError("%s Actions have no %s methods"%(self.name,
+			raise base.ui.logOldExc(
+				base.ValidationError("%s Actions have no %s methods"%(self.name,
 				methodName),
 				"phase", hint="This is an error in an internal protocol definition."
-				"  There probably is nothing you can do but complain.")
+				"  There probably is nothing you can do but complain."))
 
 	def noOp(self, newPhase, job, ignored):
 		"""a sample action just setting the new phase.
@@ -550,9 +552,10 @@ def getActions(name):
 	try:
 		return _actionsRegistry[name]
 	except KeyError:
-		raise base.NotFoundError(name, "Actions", "registred Actions",
+		raise base.ui.logOldExc(
+			base.NotFoundError(name, "Actions", "registred Actions",
 			hint="Either you just made up the UWS actions name, or the"
-			" module defining these actions has not been imported yet.")
+			" module defining these actions has not been imported yet."))
 
 
 def registerActions(cls, *args, **kwargs):

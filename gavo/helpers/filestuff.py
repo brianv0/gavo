@@ -59,7 +59,7 @@ class FileRenamer(object):
 					raise Error("Two mappings for %s"%old)
 				map[old] = new
 		except ValueError:
-			raise Error("Invalid mapping line: %s"%repr(ln))
+			raise base.ui.logOldExc(Error("Invalid mapping line: %s"%repr(ln)))
 		return cls(map, **kwargs)
 
 	def getFileMap(self, path):

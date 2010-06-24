@@ -214,9 +214,9 @@ def makeProc(funcName, code, setupCode, parent):
 	if setupCode.strip():
 		try:
 			exec setupCode.rstrip() in funcNs
-		except SyntaxError:
-			sys.stderr.write("Bad setup code:\n%s"%setupCode.rstrip())
-			raise
+		except SyntaxError, ex:
+			raise base.ui.logOldExc(
+				base.BadCode(setupCode, "setup code", ex))
 	return utils.compileFunction(code.rstrip(), funcName, funcNs)
 
 

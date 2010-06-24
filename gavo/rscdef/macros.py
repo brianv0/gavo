@@ -122,9 +122,9 @@ class MacroPackage(object):
 		try:
 			return fun(*args)
 		except TypeError:
-			raise MacroError(
+			raise base.ui.logOldExc(MacroError(
 				"Invalid macro arguments to \\%s: %s"%(macName, args), macName,
-				hint="You supplied too few or too many arguments")
+				hint="You supplied too few or too many arguments"))
 
 	def getExpander(self):
 		try:

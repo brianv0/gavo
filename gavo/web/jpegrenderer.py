@@ -130,7 +130,8 @@ class MachineJpegRenderer(JpegRenderer):
 			formalData["palette"] = str(args.get("palette", [""])[0])
 			formalData["plotField"] = str(args.get("plotField", [""])[0])
 		except:
-			raise base.ValidationError("Invalid input parameters %s"%args, "line")
+			raise base.ui.logOldExc(
+				base.ValidationError("Invalid input parameters %s"%args, "line"))
 		return JpegRenderer._realSubmitAction(self, ctx, None, formalData)
 
 	def renderHTTP(self, ctx):

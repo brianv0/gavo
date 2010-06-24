@@ -11,6 +11,7 @@ from pyparsing import Word, Literal, Regex, Optional, ZeroOrMore, StringEnd
 from pyparsing import MatchFirst, ParseException, ParserElement
 
 from gavo.utils import excs
+from gavo.base import common
 
 ParserElement.enablePackrat()
 
@@ -250,8 +251,8 @@ def parseUnit(unitStr, unitGrammar=getUnitGrammar()):
 	try:
 		return unitGrammar.parseString(unitStr)[0]
 	except ParseException, msg:
-#		traceback.print_exc()
-		raise BadUnit("%s at col. %d"%(repr(unitStr), msg.column))
+		raise common.logOldExc(
+			BadUnit("%s at col. %d"%(repr(unitStr), msg.column)))
 
 
 def computeConversionFactor(unitStr1, unitStr2):

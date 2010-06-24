@@ -38,7 +38,7 @@ class DataStreamer(threading.Thread):
 	implements(IPushProducer)
 
 	chunkSize = 8192 # XXX TODO: Figure out a good chunk size for the
-		# network stack
+	                 # network stack
 
 	def __init__(self, writeStreamTo, consumer):
 		threading.Thread.__init__(self)
@@ -79,9 +79,8 @@ class DataStreamer(threading.Thread):
 		try:
 			self.writeStreamTo(self)
 		except:
-			sys.stderr.write("Exception while streaming:\n")
-			traceback.print_exc()
-			sys.stderr.write("Ignored, closing connection.\n")
+			base.ui.notifyErrorOccurred("Exception while streaming"
+				" (closing connection):\n")
 		# All producing is done in thread, so when no one's writing any
 		# more, we should have delivered everything to the consumer
 		reactor.callFromThread(self.consumer.unregisterProducer)
@@ -96,7 +95,7 @@ def joinThread(res, thread):
 	"""tries to join thread.
 
 	This is inserted into the request's callback chain to avoid having
-	lots of died thread lie around.
+	lots of dead thread lie around.
 	"""
 	thread.join(0.01)
 	return res
@@ -128,8 +127,7 @@ def streamVOTable(request, data):
 				tablecoding={ True: "td", False: "binary"}[data.queryMeta["tdEnc"]],
 				version=data.queryMeta.get("VOTableVersion"))
 		except:
-			sys.stderr.write("Yikes -- error during VOTable render:\n")
-			traceback.print_exc()
+			base.ui.notifyErrorOccurred("Yikes -- error during VOTable render.\n")
 			outputFile.write(">>>> INTERNAL ERROR, INVALID OUTPUT <<<<")
 			return ""
 	return streamOut(writeVOTable, request)

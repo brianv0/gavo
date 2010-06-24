@@ -13,6 +13,7 @@ import warnings
 
 from gavo.base import attrdef
 from gavo.utils import excs
+from gavo.base import common
 from gavo.base import meta
 from gavo.base import structure
 from gavo.utils import fancyconfig
@@ -185,8 +186,9 @@ class ProfileParser(object):
 		return self.profile
 
 	def _raiseError(self, msg):
-		raise ProfileParseError(self.parser.error_leader()+msg)
-
+		raise common.logOldExc(
+			ProfileParseError(self.parser.error_leader()+msg))
+	
 	def _state_init(self, token):
 		if token in self.commands:
 			return self.commands[token]
@@ -460,7 +462,7 @@ def makeFallbackMeta():
 		try:
 			key, val = ln.split(":", 1)
 		except ValueError:
-			raise excs.Error("Bad line in %s: '%s'"%(srcPath, ln))
+			raise common.logOldExc(excs.Error("Bad line in %s: '%s'"%(srcPath, ln)))
 		meta.configMeta.addMeta(key.strip(), val.strip())
 
 makeFallbackMeta()

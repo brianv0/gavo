@@ -229,9 +229,10 @@ class Sesame(object):
 				self.cache.addItem(ident, newOb, save=self.saveNew)
 				return newOb
 			except socket.error: # Simbad is offline
-				raise base.ValidationError("Simbad is offline, cannot query.",
+				raise base.ui.raiseOldExc(base.ValidationError(
+					"Simbad is offline, cannot query.",
 					"hscs_pos", # really, this should be added by the widget
-					hint="If this problem persists, complain to us rather than simbad.")
+					hint="If this problem persists, complain to us rather than simbad."))
 	
 	def getPositionFor(self, identifier):
 		data = self.query(identifier)

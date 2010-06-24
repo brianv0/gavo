@@ -69,9 +69,9 @@ class REAttribute(base.UnicodeAttribute):
 		try:
 			return re.compile(value)
 		except re.error, msg:
-			raise base.LiteralParseError(self.name_, value,
+			raise base.ui.logOldExc(base.LiteralParseError(self.name_, value,
 				hint="A python regular expression was expected here.  Compile"
-					" complained: %s"%unicode(msg))
+					" complained: %s"%unicode(msg)))
 	
 	def unparse(self, value):
 		if value is None:

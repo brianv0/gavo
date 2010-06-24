@@ -287,7 +287,7 @@ class TableInfoRenderer(MetaRenderer):
 			self.table = registry.getTableDef(tableName)
 			self.describingRD = self.table.rd
 		except base.NotFoundError, msg:
-			raise svcs.UnknownURI(str(msg))
+			raise base.ui.logOldExc(svcs.UnknownURI(str(msg)))
 
 	def data_forADQL(self, ctx, data):
 		return self.table.adql
@@ -361,7 +361,7 @@ class TableNoteRenderer(MetaRenderer):
 			self.noteHTML = table.getNote(noteTag
 				).getContent(targetFormat="html")
 		except base.NotFoundError, msg:
-			raise svcs.UnknownURI(msg)
+			raise base.ui.logOldExc(svcs.UnknownURI(msg))
 		self.noteTag = noteTag
 		self.tableName = tableName
 

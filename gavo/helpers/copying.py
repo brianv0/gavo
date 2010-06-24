@@ -116,8 +116,8 @@ def readCDs(destBase, cdHandler):
 			cdHandler.mount()
 			shutil.copytree(cdHandler.mountPath, dest)
 		except (subprocess.CalledProcessError, shutil.Error, KeyboardInterrupt):
-			print ("Copying failed or interrupted.  Removing destination %s."
-				"  Try again.")%dest
+			base.ui.notifyErrorOccurred("Copying failed or interrupted."
+				"  Removing destination %s. Try again.")%dest
 			if os.path.exists(dest):
 				shutil.rmtree(dest)
 			sys.exit(1)

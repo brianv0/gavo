@@ -22,18 +22,18 @@ class EventDispatcherTest(testhelpers.VerboseTest):
 		"""tests for the various notifications not bombing out by themselves.
 		"""
 		ed = events.EventDispatcher()
-		ed.notifyException(Exception())
+		ed.notifyErrorOccurred("Something")
 
-	def testNotifyException(self):
+	def testNotifyError(self):
 		def callback(ex):
-			raise ex
+			raise Exception(ex)
 		ed = events.EventDispatcher()
-		ed.subscribeException(callback)
-		fooEx = Exception("foo")
+		ed.subscribeErrorOccurred(callback)
+		fooMsg = "WumpMessage"
 		try:
-			ed.notifyException(fooEx)
+			ed.notifyErrorOccurred(fooMsg)
 		except Exception, foundEx:
-			self.assertEqual(fooEx, foundEx)
+			self.assertEqual(fooMsg, foundEx.args[0])
 
 	def testObserver(self):
 		ed = events.EventDispatcher()

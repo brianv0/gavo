@@ -67,7 +67,7 @@ def structToETree(aStruct):
 			else:
 				raise base.Error("Invalid struct event: %s"%evType)
 		except:
-			sys.stderr.write("Badness occurred in element %s, event %s,"
+			base.ui.notifyError("Badness occurred in element %s, event %s,"
 				" value %s\n"%(elName, evType, value))
 			raise
 	return nodeStack[-1]

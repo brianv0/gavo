@@ -390,9 +390,8 @@ class HTMLDataRenderer(rend.Fragment):
 			"    raise\n")
 		try:
 			exec code in ns
-		except SyntaxError:
-			sys.stderr.write("Invalid source:\n%s\n"%code)
-			raise
+		except SyntaxError, ex:
+			raise base.BadCode(code, "column render function", ex)
 		return ns["format"]
 
 	def _computeDefaultTds(self):

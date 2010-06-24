@@ -119,8 +119,7 @@ class TAPQueryResource(rend.Page):
 				).addCallback(self._formatResult, ctx
 				).addErrback(self._formatError)
 		except base.Error, ex:
-			traceback.print_exc()
-			return ErrorResource(unicode(ex), ex)
+			return base.ui.logOldExc(ErrorResource(unicode(ex), ex))
 
 	def _formatError(self, failure):
 		failure.printTraceback()
@@ -283,7 +282,7 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 		except base.Error, ex:
 			# see flagError in protocols.uws for the reason for the next if
 			if not isinstance(exception, base.ValidationError):
-				log.err(_why="TAP error")
+				base.ui.notifyErrorOccurred("TAP error")
 			return ErrorResource(str(ex), ex), ()
 		raise common.UnknownURI("Bad TAP path %s"%"/".join(segments))
 

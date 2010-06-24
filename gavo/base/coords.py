@@ -8,6 +8,7 @@ import re
 import warnings
 
 
+from gavo.base import common
 from gavo.utils import DEG
 from gavo.utils import excs
 from gavo.utils import pgsphere
@@ -500,6 +501,7 @@ try:
 	}
 
 	def convertSys(alpha, delta, srcEq, destEq):
+# XXX remove this
 		"""returns alpha and delta in the destination Equinox.
 
 		alpha and delta must be degrees, srcEq and destEq must come from
@@ -512,8 +514,8 @@ try:
 		try:
 			return _sysConverters[srcEq, destEq](alpha, delta)
 		except KeyError:
-			raise excs.Error("Don't know how to transform from %s to %s"%(
-				srcEq, destEq))
+			raise common.logOldExc(excs.Error("Don't know how"
+				" to transform from %s to %s"%(srcEq, destEq)))
 
 except (ImportError, AttributeError):  # _gavoext not available
 	def convertSys(*args):

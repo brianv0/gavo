@@ -50,9 +50,9 @@ def normalizeTAPFormat(rawFmt):
 	try:
 		return tap.FORMAT_CODES[format]
 	except KeyError:
-		raise base.ValidationError("Unsupported format '%s'."%format,
-			colName="FORMAT",
-			hint="Legal format codes include %s"%(", ".join(tap.FORMAT_CODES)))
+		raise base.ui.logOldExc(base.ValidationError(
+			"Unsupported format '%s'."%format, colName="FORMAT",
+			hint="Legal format codes include %s"%(", ".join(tap.FORMAT_CODES))))
 
 
 def _parseTAPParameters(jobId, parameters):
@@ -68,14 +68,16 @@ def _parseTAPParameters(jobId, parameters):
 			raise uws.UWSError("This service only supports LANG=ADQL", jobId)
 		query = parameters["QUERY"]
 	except KeyError, key:
-		raise base.ValidationError("Required parameter %s missing."%key, key)
+		raise base.ui.logOldExc(base.ValidationError(
+			"Required parameter %s missing."%key, key))
 
 	format = normalizeTAPFormat(parameters.get("FORMAT", "votable"))
 
 	try:
 		maxrec = int(parameters["MAXREC"])
 	except ValueError:
-		raise uws.UWSError("Invalid MAXREC literal '%s'."%parameters["MAXREC"])
+		raise base.ui.logOldError(
+			uws.UWSError("Invalid MAXREC literal '%s'."%parameters["MAXREC"]))
 	except KeyError:
 		maxrec = base.getConfig("async", "defaultMAXREC")
 	return query, format, maxrec
@@ -105,9 +107,10 @@ def _ingestUploads(uploads, connection):
 			try:
 				srcF = utils.urlopenRemote(src)
 			except IOError, ex:
-				raise base.ValidationError("Upload '%s' cannot be retrieved"%(
+				raise base.ui.logOldExc(
+					base.ValidationError("Upload '%s' cannot be retrieved"%(
 					src), "UPLOAD", hint="The I/O operation failed with the message: "+
-					str(ex))
+					str(ex)))
 		if votablegrammar.needsQuoting(destName):
 			raise base.ValidationError("'%s' is not a valid table name on"
 				" this site"%destName, "UPLOAD", hint="It either contains"
@@ -152,7 +155,8 @@ def _runTAPJob(parameters, jobId, queryProfile, timeout):
 	try:
 		_noteWorkerPID(connectionForQuery)
 	except: # Don't fail just because we can't kill workers
-		log.err(_why="Could not obtain PID for the worker, job %s"%jobId)
+		base.ui.notifyErrorOccurred(
+			"Could not obtain PID for the worker, job %s"%jobId)
 	tdsForUploads = _ingestUploads(parameters.get("UPLOAD", ""), 
 		connectionForQuery)
 
@@ -260,5 +264,5 @@ def main():
 	except uws.JobNotFound: # someone destroyed the job before I was done
 		pass
 	except:
-		log.err(_why="Taprunner major failure")
+		base.ui.notifyErrorOccurred("Taprunner major failure")
 		raise

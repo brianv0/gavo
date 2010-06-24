@@ -185,7 +185,7 @@ class ProductRenderer(grend.ServiceBasedRenderer):
 		try:
 			data = {'key': products.CutoutProductKey.fromRequest(request)}
 		except base.NotFoundError:
-			raise svcs.UnknownURI("No product specified")
+			raise base.ui.logOldExc(svcs.UnknownURI("No product specified"))
 		return self.runServiceWithContext(data, ctx
 			).addCallback(self._deliver, ctx)
 	

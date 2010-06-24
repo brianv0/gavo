@@ -268,13 +268,13 @@ def getQuery(queriedTable, parameters, sqlPars, prefix="sia"):
 	try:
 		ra, dec = dissectPositions(posStr)
 	except (ValueError, TypeError):
-		raise base.ValidationError("%s is not a RA,DEC pair."%posStr, 
-			"POS", posStr)
+		raise base.ui.raiseOldExc(base.ValidationError(
+			"%s is not a RA,DEC pair."%posStr, "POS", posStr))
 	try:
 		sizes = map(float, parameters["SIZE"].split(","))
 	except ValueError:
-		raise base.ValidationError("Size specification has to be <degs> or"
-			" <degs>,<degs>", "SIZE", parameters["SIZE"])
+		raise base.ui.raiseOldExc(base.ValidationError("Size specification"
+			" has to be <degs> or <degs>,<degs>", "SIZE", parameters["SIZE"]))
 	if len(sizes)==1:
 		sizes = sizes*2
 	intersect = parameters.get("INTERSECT", "OVERLAPS")

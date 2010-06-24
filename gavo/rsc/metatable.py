@@ -82,7 +82,8 @@ class MetaTableHandler(object):
 					"tableName": tableName,
 					"fieldName": colName,}).next()
 			except OperationalError:
-				raise ColumnError("No info for %s in %s"%(colName, tableName))
+				raise base.ui.logOldExc(
+					ColumnError("No info for %s in %s"%(colName, tableName)))
 			return rscdef.Column.fromMetaTableRow(match)
 		finally:
 			self.conn.rollback()
@@ -115,7 +116,8 @@ class MetaTableHandler(object):
 				tableRec = list(self.tablesTable.iterQuery(self.tablesRowdef, 
 					" tableName=%(tableName)s", {"tableName": tableName}))[0]
 			except IndexError:
-				raise base.NotFoundError(tableName, "Table", "dc_tables")
+				raise base.ui.logOldExc(
+					base.NotFoundError(tableName, "Table", "dc_tables"))
 			return base.caches.getRD(tableRec["sourceRd"]
 				).getById(tableName.split(".")[1])
 		finally:

@@ -10,6 +10,7 @@ Based on this, we provide some attribute definitions.
 
 from gavo.base import attrdef
 from gavo.base import caches
+from gavo.base import common
 from gavo.utils.excs import StructureError, LiteralParseError
 
 
@@ -41,15 +42,16 @@ def resolveComplexId(ctx, id, forceType=None):
 	try:
 		pId, name = id.split(".")
 	except ValueError:
-		raise LiteralParseError("id", id, hint="A complex reference"
-			" (parent.name) is expected here")
+		raise common.logOldExc(LiteralParseError("id", id, 
+			hint="A complex reference (parent.name) is expected here"))
 	container = ctx.getById(pId)
 	try:
 		for ob in container:
 			if hasattr(ob, "name") and ob.name==name:
 				return assertType(id, ob, forceType)
 	except TypeError:
-		raise StructureError("Element %s is not allowed in namePath"%pId)
+		raise common.logOldExc(StructureError("Element %s is not allowed"
+			" in namePath"%pId))
 	raise StructureError("Element %s has no child with name %s"%(
 		pId, name))
 

@@ -99,9 +99,9 @@ class MapRule(base.Structure):
 				code.append('_result["%s"] = %s'%(self.dest, 
 					base.sqltypeToPythonCode(colDef.type)%self.src))
 			except base.ConversionError:
-				raise base.LiteralParseError("map", colDef.type,
+				raise base.ui.logOldExc(base.LiteralParseError("map", colDef.type,
 					hint="Auto-mapping to %s is impossible since"
-					" no default map for %s is known"%(self.dest, colDef.type))
+					" no default map for %s is known"%(self.dest, colDef.type)))
 		code = "".join(code)
 		if self.nullExcs is not base.NotGiven:
 			code = 'try:\n%s\nexcept (%s): _result["%s"] = None'%(
@@ -363,9 +363,9 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 			try:
 				tableDef.getColumnByName(map.dest)
 			except KeyError:
-				raise base.LiteralParseError(self.name_, self.dest, 
+				raise base.ui.logOldExc(base.LiteralParseError(self.name_, self.dest, 
 					"Cannot map to '%s' since it does not exist in %s"%(
-						map.dest, tableDef.id))
+						map.dest, tableDef.id)))
 
 	def _buildForTable(self, tableDef):
 		"""returns a RowmakerDef with everything expanded and checked for
@@ -419,7 +419,8 @@ class Rowmaker(object):
 		try:
 			self.code = compile(source, "generated mapper code", "exec")
 		except SyntaxError, msg:
-			raise base.BadCode(source, "rowmaker", msg)
+			raise base.ui.logOldExc(
+				base.BadCode(source, "rowmaker", msg))
 		self.source, self.name = source, name
 		globals.update(rmkfuncs.__dict__)
 		self.globals, self.defaults = globals, defaults
@@ -450,24 +451,21 @@ class Rowmaker(object):
 	def _guessError(self, ex, rowdict, tb):
 		"""tries to shoehorn a ValidationError out of ex.
 		"""
-		#traceback.print_tb(tb)
 		destName = self._guessExSourceName(tb)
 		try:
 			if "_result" in rowdict: del rowdict["_result"]
 			if "parser_" in rowdict: del rowdict["parser_"]
 			if "rowdict_" in rowdict: del rowdict["rowdict_"]
 		except TypeError:
-			import sys
-			sys.stderr.write("Internal failure in parse code:\n")
-			traceback.print_tb(tb)
+			base.ui.notifyErrorOccurred("Internal failure in parse code:\n")
 			rowdict = {"error": "Rowdict was no dictionary"}
 		if isinstance(ex, KeyError):
 			msg = ("Key %s not found in a mapping; probably the grammar"
 				" did not yield the required field"%unicode(ex))
 		else:
 			msg = unicode(str(ex), "iso-8859-1", "replace")
-		raise base.ValidationError("While %s in %s: %s"%(destName, 
-			self.name, msg), destName.split()[-1], rowdict)
+		raise base.ui.logOldExc(base.ValidationError("While %s in %s: %s"%(
+			destName, self.name, msg), destName.split()[-1], rowdict))
 
 	def __call__(self, vars):
 		try:

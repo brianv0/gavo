@@ -78,9 +78,9 @@ def getResobFromRestup(restup):
 		try:
 			return base.caches.getRD(sourceRD).serviceIndex[internalId]
 		except KeyError:
-			raise base.NotFoundError(internalId, what="service",
+			raise base.ui.logOldExc(base.NotFoundError(internalId, what="service",
 				within="RD %s"%sourceRD, hint="This usually happens when you"
-				" forgot to run gavopublish %s"%sourceRD)
+				" forgot to run gavopublish %s"%sourceRD))
 
 
 def getResobFromIdentifier(identifier):

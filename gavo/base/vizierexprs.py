@@ -9,8 +9,9 @@ from pyparsing import Word, Literal, Optional, Forward, Group,\
 	OneOrMore, Or, MatchFirst, CharsNotIn
 
 from gavo import utils
-from gavo.utils import excs
+from gavo.base import common
 from gavo.base import typesystems
+from gavo.utils import excs
 
 
 class ParseNode(object):
@@ -398,8 +399,8 @@ def getSQL(field, inPars, sqlPars):
 				return "%s=%%(%s)s"%(field.name, getSQLKey(field.name,
 					val, sqlPars))
 	except ParseException:
-		raise excs.ValidationError(
-			"Invalid input (see help on search expressions)", field.name)
+		raise common.logOldExc(excs.ValidationError(
+			"Invalid input (see help on search expressions)", field.name))
 
 
 def joinOperatorExpr(operator, operands):

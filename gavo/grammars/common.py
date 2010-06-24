@@ -110,9 +110,9 @@ class MapKeys(base.Structure):
 					raise base.LiteralParseError(self.name_, literal, 
 						hint="%s clobbers an existing map within the row maker."%dest)
 		except ValueError:
-			raise base.LiteralParseError(self.name_, literal,
+			raise base.ui.logOldExc(base.LiteralParseError(self.name_, literal,
 				hint="A key-value enumeration of the format k:v {,k:v}"
-				" is expected here")
+				" is expected here"))
 
 	def onElementComplete(self):
 		if self.content_:

@@ -48,8 +48,9 @@ def getTreeBuildingGrammar():
 				syms[symName].addParseAction(lambda s, pos, toks: 
 					nodeClass.fromParseResult(toks))
 		except KeyError:
-			raise KeyError("%s asks for non-existing symbol %s"%(
-				nodeClass.__name__ , symName))
+			raise base.ui.logOldExc(
+				KeyError("%s asks for non-existing symbol %s"%(
+					nodeClass.__name__ , symName)))
 
 	def bindObject(ob):
 		if isinstance(ob, type) and issubclass(ob, nodes.ADQLNode):

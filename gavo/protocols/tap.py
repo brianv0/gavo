@@ -116,10 +116,10 @@ def parseUploadString(uploadString):
 	try:
 		return getUploadGrammar().parseString(uploadString).asList()
 	except ParseException, ex:
-		raise base.ValidationError("Syntax error in UPLOAD parameter (near %s)"%(
-			ex.loc), "UPLOAD",
+		raise base.ui.logOldExc(base.ValidationError(
+			"Syntax error in UPLOAD parameter (near %s)"%(ex.loc), "UPLOAD",
 			hint="Note that we only allow regular SQL identifiers as table names,"
-				" i.e., basically only alphanumerics are allowed.")
+				" i.e., basically only alphanumerics are allowed."))
 
 
 class LangParameter(uws.ProtocolParameter):
@@ -208,7 +208,8 @@ class UploadParameter(uws.ProtocolParameter):
 		try:
 			uploadData = codetricks.stealVar("request").files[uploadName]
 		except KeyError:
-			raise base.ValidationError("No upload '%s' found"%uploadName, "UPLOAD")
+			raise base.ui.raiseOldExc(
+				base.ValidationError("No upload '%s' found"%uploadName, "UPLOAD"))
 		destFName = cls._cleanName(uploadData.filename)
 		with job.openFile(destFName, "w") as f:
 			f.write(uploadData.file.read())

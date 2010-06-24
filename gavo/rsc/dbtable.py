@@ -34,14 +34,12 @@ class Feeder(table.Feeder):
 			try:
 				self.cursor.executemany(self.feedCommand, self.batchCache)
 			except sqlsupport.IntegrityError:
-				import pprint
-				sys.stderr.write("One or more of the following rows clashed:\n")
-				pprint.pprint(self.batchCache, sys.stderr)
+				base.ui.notifyInfo("One or more of the following rows clashed: "+
+					str(self.batchCache))
 				raise
 			except sqlsupport.DataError:
-				sys.stderr.write("Bad input.  Run with -b1 to pin down offending"
-					" record.  First rec:\n")
-				sys.stderr.write("%s\n"%self.batchCache[0])
+				base.ui.notifyInfo("Bad input.  Run with -b1 to pin down offending"
+					" record.  First rec: %s"%self.batchCache[0])
 				raise
 			except sqlsupport.ProgrammingError:
 				raise
@@ -173,8 +171,9 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 				self.query("ALTER TABLE %s ADD PRIMARY KEY (%s)"%(
 					self.tableName, ", ".join(self.tableDef.primary)))
 			except sqlsupport.DBError, msg:
-				raise common.DbTableError("Primary key %s could not be added (%s)"%(
-					self.tableDef.primary, repr(str(msg))), self.tableName)
+				raise base.ui.logOldExc(
+					common.DbTableError("Primary key %s could not be added (%s)"%(
+						self.tableDef.primary, repr(str(msg))), self.tableName))
 
 	def _dropPrimaryKey(self):
 		"""drops a primary key if it exists.
@@ -392,9 +391,10 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		try:
 			self.query(self.addCommand, row)
 		except sqlsupport.IntegrityError:
-			raise base.ValidationError("Row %s cannot be added since it clashes"
-				" with an existing record on the primary key"%row, row=row,
-				colName="unknown")
+			raise base.ui.logOldExc(
+				base.ValidationError("Row %s cannot be added since it clashes"
+					" with an existing record on the primary key"%row, row=row,
+					colName="unknown"))
 
 	def getRow(self, *key):
 		"""returns the row with the primary key key from the table.

@@ -259,15 +259,14 @@ def mapDBErrors(excType, excValue, excTb):
 	if hasattr(excValue, "cursor"):
 		log.msg("Failed DB query: %s"%excValue.cursor.query)
 	if isinstance(excValue, sqlsupport.QueryCanceledError):
-		raise base.ValidationError("Query timed out (took too long).  See"
-			" our help.", "query")
+		raise base.ui.logOldExc(base.ValidationError("Query timed out"
+			" (took too long).  See our help.", "query"))
 	elif isinstance(excValue, base.NotFoundError):
-		raise base.ValidationError("Could not locate %s '%s'"%(
-			excValue.what, excValue.lookedFor), "query")
+		raise base.ui.logOldExc(base.ValidationError("Could not locate %s '%s'"%(
+			excValue.what, excValue.lookedFor), "query"))
 	elif isinstance(excValue, base.DBError):
-		raise base.ValidationError(unicode(excValue), "query")
+		raise base.ui.logOldExc(base.ValidationError(unicode(excValue), "query"))
 	else:
-		traceback.print_exc()
 		raise
 
 

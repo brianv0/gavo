@@ -167,8 +167,8 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		try:
 			res = self.idmap[id]
 		except KeyError:
-			raise base.StructureError(
-				"No element with id '%s' found in RD %s"%(id, self.sourceId))
+			raise base.ui.logOldExc(base.StructureError(
+				"No element with id '%s' found in RD %s"%(id, self.sourceId)))
 		if forceType:
 			if not isinstance(res, forceType):
 				raise base.StructureError("Element with id '%s' is not a %s"%(
@@ -187,10 +187,11 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		"""
 		fn = self.getTimestampPath()
 		try:
-			try: os.unlink(fn)
-			except os.error: pass
+			try: 
+				os.unlink(fn)
+			except os.error: 
+				pass
 			f = open(fn, "w")
-			f.write("\n")
 			f.close()
 			os.chmod(fn, 0664)
 			try:
@@ -270,15 +271,13 @@ def mapParseErrors(ex, tag, ctx):
 # XXX TODO: reraise ex right away for now to have errhandle to its work.
 # fix this later by giving the DC exceptions explainer methods and such.
 	raise
-	if True or ctx.dumpTracebacks:
-		traceback.print_exc()
 	location = ctx.getLocation()
 	if location:
-		raise base.ReportableError("%s in %s: %s"%(tag,
-			location, unicode(ex)))
+		raise base.ui.logOldExc(base.ReportableError("%s in %s: %s"%(tag,
+			location, unicode(ex))))
 	else:
-		raise base.ReportableError("%s in %s: %s"%(tag, ctx.srcPath,
-			unicode(ex)))
+		raise base.ui.logOldExc(base.ReportableError("%s in %s: %s"%(tag, 
+			ctx.srcPath, unicode(ex))))
 	ex.srcPath = ctx.srcPath
 	raise
 

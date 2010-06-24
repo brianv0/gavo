@@ -211,10 +211,9 @@ def getMatchingRestups(pars, connection=None):
 		res = list(srvTable.iterQuery(srvTable.tableDef, frag, pars))
 		srvTable.close()
 	except base.DBError:
-		raise BadArgument("Bad syntax in some parameter value")
+		raise base.ui.logOldExc(BadArgument("Bad syntax in some parameter value"))
 	except KeyError, msg:
-		traceback.print_exc()
-		raise base.Error("Internal error, missing key: %s"%msg)
+		raise base.ui.logOldExc(base.Error("Internal error, missing key: %s"%msg))
 	if not res:
 		raise NoRecordsMatch("No resource records match your criteria.")
 	return res
@@ -271,11 +270,12 @@ class RegistryCore(svcs.Core, base.RestrictionMixin):
 		try:
 			verb = pars["verb"]
 		except KeyError:
-			raise BadArgument("verb")
+			raise base.ui.logOldExc(BadArgument("verb"))
 		try:
 			handler = globals()["run_"+verb]
 		except KeyError:
-			raise BadVerb("'%s' is an unsupported operation."%pars["verb"])
+			raise base.ui.logOldExc(
+				BadVerb("'%s' is an unsupported operation."%pars["verb"]))
 		return ElementTree.ElementTree(handler(pars).asETree())
 
 	def run(self, service, inputData, queryMeta):

@@ -57,6 +57,7 @@ import weakref
 
 from gavo import utils
 from gavo.base import attrdef
+from gavo.base import common
 from gavo.base import parsecontext
 from gavo.utils.excs import StructureError, Replace, BadCode, RestrictedElement
 
@@ -264,8 +265,8 @@ class StructureBase(object):
 				                                 # set up by attributes.
 					setattr(self, val.name_, val.default_)
 			except AttributeError: # default on property given
-				raise StructureError("%s attributes on %s have builtin"
-					" defaults only."%(val.name_, self.name_))
+				raise common.logOldExc(StructureError("%s attributes on %s have builtin"
+					" defaults only."%(val.name_, self.name_)))
 		
 		# set keyword arguments
 		for name, val in kwargs.iteritems():
@@ -294,8 +295,8 @@ class StructureBase(object):
 			return dict([(att.name_, getattr(self, att.name_))
 				for att in attrs])
 		except AttributeError, msg:
-			raise StructureError("Attempt to copy from invalid source: %s"%
-				unicode(msg))
+			raise common.logOldExc(StructureError(
+				"Attempt to copy from invalid source: %s"%unicode(msg)))
 
 	def getCopyableAttributes(self, ignoreKeys=set()):
 		"""returns a dictionary mapping attribute names to copyable children.
@@ -615,7 +616,7 @@ class Generator(Parser):
 			try:
 				exec self.code in vals
 			except Exception, ex:
-				raise BadCode(self.code, "GENERATOR", ex)
+				raise common.logOldExc(BadCode(self.code, "GENERATOR", ex))
 			for ev in vals["gen"]():
 				if ev[0]=="element":
 					self._expandElementEvent(ev, parent)

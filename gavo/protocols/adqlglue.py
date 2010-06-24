@@ -144,7 +144,7 @@ def getFieldInfoGetter(accessProfile=None, tdsForUploads=[]):
 			try:
 				td = tap_uploadSchema[tableName.name]
 			except KeyError:
-				raise adql.TableNotFound(tableName.qName)
+				raise base.ui.logOldExc(adql.TableNotFound(tableName.qName))
 		else:
 			td = mth.getTableDefForTable(adql.flatten(tableName))
 		return [(f.name, makeFieldInfo(f)) 
@@ -190,14 +190,15 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[]):
 def mapADQLErrors(excType, excValue, excTb):
 	if (isinstance(excValue, adql.ParseException)
 			or isinstance(excValue, adql.ParseSyntaxException)):
-		raise base.ValidationError("Could not parse your query: %s"%
-			unicode(excValue), "query")
+		raise base.ui.logOldExc(
+			base.ValidationError("Could not parse your query: %s"%
+				unicode(excValue), "query"))
 	elif isinstance(excValue, adql.ColumnNotFound):
-		raise base.ValidationError("No such field known: %s"%
-			unicode(excValue), "query")
+		raise base.ui.logOldExc(base.ValidationError("No such field known: %s"%
+			unicode(excValue), "query"))
 	elif isinstance(excValue, adql.AmbiguousColumn):
-		raise base.ValidationError("%s needs to be qualified."%
-			unicode(excValue), "query")
+		raise base.ui.logOldExc(base.ValidationError("%s needs to be qualified."%
+			unicode(excValue), "query"))
 	else:
 		svcs.mapDBErrors(excType, excValue, excTb)
 
@@ -268,7 +269,8 @@ def _makeSimbadRegion(regionSpec):
 	try:
 		alpha, delta = resolver.getPositionFor(object)
 	except KeyError:
-		raise adql.RegionError("No simbad position for '%s'"%object)
+		raise base.ui.logOldExc(
+			adql.RegionError("No simbad position for '%s'"%object))
 	return adql.getSymbols()["point"].parseString("POINT('ICRS',"
 		"%.10f, %.10f)"%(alpha, delta))
 adql.registerRegionMaker(_makeSimbadRegion)

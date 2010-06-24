@@ -45,8 +45,9 @@ class RowIterator(common.FileRowIterator):
 					res = dict((k, v.strip()) for k, v in res.iteritems())
 				yield res
 			except AttributeError:
-				raise common.ParseError("Malformed input, parseRE did not match.",
-					self.getLocator(), rawRec)
+				raise base.ui.logOldExc(
+					common.ParseError("Malformed input, parseRE did not match.",
+						self.getLocator(), rawRec))
 
 	def getLocator(self):
 		return "%s, line %d"%(self.sourceToken, self.curLine)

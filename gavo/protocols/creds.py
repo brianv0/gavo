@@ -82,8 +82,8 @@ def _addUser(querier, user, password, remarks=""):
 		querier.query("INSERT INTO users.users (username, password, remarks)"
 			" VALUES (%(user)s, %(password)s, %(remarks)s)", locals())
 	except sqlsupport.IntegrityError:
-		raise ArgError("User %s already exists.  Use 'change' command to edit."%
-			user)
+		raise base.ui.logOldExc(ArgError("User %s already exists."
+			"  Use 'change' command to edit."%user))
 	querier.query("INSERT INTO users.groups (username, groupname)"
 		" VALUES (%(user)s, %(user)s)", locals())
 
@@ -104,7 +104,7 @@ def _addGroup(querier, user, group):
 		querier.query("INSERT INTO users.groups (username, groupname)"
 			" VALUES (%(user)s, %(group)s)", locals())
 	except sqlsupport.IntegrityError:
-		raise ArgError("User %s doesn't exist."%user)
+		raise base.ui.logOldExc(ArgError("User %s doesn't exist."%user))
 
 
 def _listUsers(querier):
@@ -179,7 +179,6 @@ def main():
 		_actions[action][0](querier, *args)
 		querier.commit()
 	except TypeError:
-		traceback.print_exc()
 		print _getUsage()
 	except ArgError, msg:
 		sys.stderr.write(str(msg))
