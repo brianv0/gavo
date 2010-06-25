@@ -20,19 +20,19 @@ from contextlib import contextmanager
 
 
 functions = {
-	"tap": ("protocols.taprunner", "main"),
-	"imp": ("user.importing", "main"),
-	"drop": ("user.dropping", "main"),
-	"cred": ("protocols.creds", "main"),
-	"pub": ("registry.publication", "main"),
-	"publish": ("registry.publication", "main"),
-	"mkboost": ("grammars.directgrammar", "main"),
-	"config": ("base.config", "main"),
-	"gendoc": ("user.docgen", "main"),
-	"stc": ("stc.cli", "main"),
-	"serve": ("user.serve", "main"),
+	"admin": ("user.admin", "main"),
 	"adql": ("protocols.adqlglue", "localquery"),
+	"config": ("base.config", "main"),
+	"cred": ("protocols.creds", "main"),
+	"drop": ("user.dropping", "main"),
+	"gendoc": ("user.docgen", "main"),
+	"imp": ("user.importing", "main"),
+	"mkboost": ("grammars.directgrammar", "main"),
+	"publish": ("registry.publication", "main"),
 	"raise": ("user.errhandle", "bailOut"),
+	"serve": ("user.serve", "main"),
+	"stc": ("stc.cli", "main"),
+	"tap": ("protocols.taprunner", "main"),
 }
 
 

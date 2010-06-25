@@ -63,7 +63,7 @@ from gavo.base.parsecontext import (
 	IdAttribute, OriginalAttribute, ReferenceAttribute, ParseContext,
 	resolveId)
 
-from gavo.base.sqlsupport import (DBError,
+from gavo.base.sqlsupport import (DBError, QueryCanceledError,
 	getDBConnection, getDefaultDBConnection,
 	SimpleQuerier, encodeDBMsg)
 

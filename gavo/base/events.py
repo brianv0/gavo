@@ -178,6 +178,13 @@ class EventDispatcher(object):
 		"""
 		return errmsg
 
+	def notifyWarning(self, message):
+		"""is called when something tries to emit communicate non-fatal trouble.
+
+		The handlers receive the message as-is
+		"""
+		return message
+
 	def notifyInfo(self, message):
 		"""is called when something tries to emit auxillary information.
 
@@ -185,6 +192,9 @@ class EventDispatcher(object):
 		"""
 		return message
 
+	def notifyWebServerUp(self):
+		"""is called when the webserver is up and running.
 
-if __name__=="__main__":
-	pass
+		No arguments are transmitted.
+		"""
+		return ()

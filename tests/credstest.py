@@ -9,6 +9,7 @@ import unittest
 from gavo import base
 from gavo import rscdesc
 from gavo.protocols import creds
+from gavo.user import admin
 
 
 creds.adminProfile = "test"
@@ -17,9 +18,9 @@ class TestGroupsMembership(unittest.TestCase):
 	def setUp(self):
 		base.setDBProfile("test")
 		self.querier = base.SimpleQuerier()
-		creds._addUser(self.querier, "X_test", "megapass")
-		creds._addUser(self.querier, "Y_test", "megapass", "second test user")
-		creds._addGroup(self.querier, "X_test", "X_testgroup")
+		admin._addUser(self.querier, "X_test", "megapass")
+		admin._addUser(self.querier, "Y_test", "megapass", "second test user")
+		admin._addGroup(self.querier, "X_test", "X_testgroup")
 		self.querier.commit()
 
 	def testGroupsForUser(self):
@@ -33,8 +34,8 @@ class TestGroupsMembership(unittest.TestCase):
 			set(["Y_test"]))
 
 	def tearDown(self):
-		creds._delUser(self.querier, "X_test")
-		creds._delUser(self.querier, "Y_test")
+		admin._delUser(self.querier, "X_test")
+		admin._delUser(self.querier, "Y_test")
 		self.querier.finish()
 
 

@@ -15,8 +15,9 @@ from twisted.python import log
 
 from gavo import base
 from gavo import utils
-from gavo.web import root
 from gavo.base import config
+from gavo.base import cron
+from gavo.web import root
 
 
 TWISTD_BIN="/usr/bin/twistd"
@@ -87,6 +88,8 @@ def debugAction():
 		utils.isoTimestampFmt))
 	root.root.child_exit = ExitPage()
 	reactor.listenTCP(int(base.getConfig("web", "serverPort")), root.site)
+	base.ui.notifyWebServerUp()
+	cron.registerScheduleFunction(reactor.callLater)
 	reactor.run()
 
 

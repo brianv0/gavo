@@ -16,6 +16,7 @@ from twisted.python import log
 from gavo import base
 from gavo import rsc
 from gavo import utils
+from gavo.base import cron
 
 RD_ID = "__system__/uws"
 
@@ -36,21 +37,32 @@ class UWSError(base.Error):
 
 
 class JobNotFound(base.NotFoundError, UWSError):
-	pass
+	def __init__(self, jobId):
+		base.NotFoundError.__init__(self, str(jobId), "UWS job", "jobs table")
+	
+	def __str__(self):
+		return base.NotFoundError.__str__(self)
 
 
 # So, this is the first instance where an ORM might actually be nice.
 # But, aw, I'm not pulling in SQLAlchemy just yet.
 
 
-def getJobsTable():
+def getJobsTable(timeout=None):
 	"""returns an instanciated job table.
 
 	This will open a new connection every time.  Since this is an exclusive
 	table, "automatic" selects will block each other.  In this way, there
 	can always be only one UWSJob instance in memory for each job.
+
+	timeout, if given, specifies after how many seconds the machine should
+	give up when waiting for another instance to give up a lock on
+	a job.
 	"""
 	conn = base.getDBConnection("admin")
+	q = base.SimpleQuerier(connection=conn)
+	if timeout is not None:
+		q.configureConnection([("statement_timeout", timeout*1000)])
 	jobsTable = rsc.TableForDef(base.caches.getRD(RD_ID).getById("jobs"), 
 		connection=conn, exclusive=True)
 	# jobsTable really has an owned connection.  Make it realize this.
@@ -224,23 +236,24 @@ class UWSJob(object):
 # the current semantics working.
 	_dbAttrs = ["jobId", "phase", "runId", "quote", "executionDuration",
 		"destructionTime", "owner", "actions", "pid"]
+	_closed = True
 
 	protocolParameters = UWSParameters((), DestructionParameter,
 		ExecDParameter)
 
-	def __init__(self, jobId, jobsTable=None):
+	def __init__(self, jobId, jobsTable=None, timeout=None):
 		self.jobId = jobId
 		self.jobsTable = jobsTable
-		self._closed = False
 		if self.jobsTable is None:
-			self.jobsTable = getJobsTable()
+			self.jobsTable = getJobsTable(timeout)
 
 		res = list(self.jobsTable.iterQuery(
 			self.jobsTable.tableDef, "jobId=%(jobId)s",
 			pars={"jobId": jobId}))
 		if not res:
 			self._closed = True
-			raise JobNotFound(jobId, "UWS job", "jobs table")
+			raise JobNotFound(jobId)
+		self._closed = False
 		kws = res[0]
 
 		for att in self._dbAttrs:
@@ -298,8 +311,8 @@ class UWSJob(object):
 		return cls.create(args=request.scalars, actions=actions)
 	
 	@classmethod
-	def makeFromId(cls, jobId):
-		return cls(jobId)
+	def makeFromId(cls, jobId, timeout=None):
+		return cls(jobId, timeout=timeout)
 
 	def __del__(self):
 		# if a job has not been closed, commit it (this may be hiding programming
@@ -478,6 +491,27 @@ class UWSJob(object):
 		if "/" in name:
 			raise ValueError("No path components allowed on job files.")
 		return open(os.path.join(self.getWD(), name), mode)
+
+
+def cleanupJobsTable():
+	toDestroy = []
+	now = datetime.datetime.utcnow()
+	jt = getJobsTable(timeout=10)
+	for row in jt.iterQuery(jt.tableDef, ""):
+		if row["destructionTime"]<now:
+			toDestroy.append(row["jobId"])
+	jt.close()
+	for jobId in toDestroy:
+		try:
+			with UWSJob.makeFromId(jobId, timeout=5) as job:
+				job.delete()
+		except base.QueryCanceledError: # job locked by something, don't hang
+			base.ui.notifyWarning("Postponing destruction of %s: Locked"%
+				jobId)
+			pass
+
+
+cron.every(3600*12, cleanupJobsTable)
 
 
 class UWSActions(object):

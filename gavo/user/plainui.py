@@ -71,3 +71,8 @@ class PlainUI(ObserverBase):
 	@listensTo("Info")
 	def printInfo(self, message):
 		self.showMsg(message)
+
+	@listensTo("Warning")
+	def printWarning(self, message):
+		self.showMsg(message)
+	

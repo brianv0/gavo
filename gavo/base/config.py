@@ -439,6 +439,9 @@ except fancyconfig.ConfigError, ex:
 		ex.fileName, unicode(ex).encode("utf-8")))
 
 
+if os.environ.has_key("GAVO_INPUTSDIR"):
+	_config.set("inputsDir", os.environ["GAVO_INPUTSDIR"])
+
 get = _config.get
 set = _config.set
 setDBProfile = _config.setDBProfile

@@ -76,11 +76,11 @@ class CLITest(testhelpers.VerboseTest):
 
 	def testTopLevelHelp(self):
 		self.assertOutput(cli.main, argList=["--help"], 
-			expectedStdout=lambda msg: "<func> is one of adql" in msg)
+			expectedStdout=lambda msg: "<func> is one of admin" in msg)
 
 	def testSubCmdHelp(self):
-		self.assertOutput(cli.main, argList=["pub", "--help"], 
-			expectedStdout=lambda msg: "gavo pub [options] {<rd-name>}" in msg)
+		self.assertOutput(cli.main, argList=["publish", "--help"], 
+			expectedStdout=lambda msg: "gavo publish [options] {<rd-name>}" in msg)
 
 	def testAProg(self):
 		self.assertOutput(cli.main, argList=["stc", "utypes", "Position ICRS"],

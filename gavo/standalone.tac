@@ -9,12 +9,14 @@ import sys
 import urlparse
 
 from twisted.application import service, internet
+from twisted.internet import reactor
 from nevow import rend, loaders, appserver
 
 from gavo import base
 from gavo import rscdesc         # for getRD in base.caches
 from gavo import utils
 from gavo.protocols import basic # for registration
+from gavo.base import cron
 from gavo.base import config
 from gavo.web import root
 
@@ -44,5 +46,7 @@ application = service.Application("archive", uid=uid)
 
 config.setMeta("upSince", datetime.datetime.utcnow().strftime(
 	utils.isoTimestampFmt))
+base.ui.notifyWebServerUp()
+cron.registerScheduleFunction(reactor.callLater)
 internet.TCPServer(base.getConfig("web", "serverPort"), 
 	root.site, interface=interface).setServiceParent(application)
