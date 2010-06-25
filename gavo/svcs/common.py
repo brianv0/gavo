@@ -27,6 +27,9 @@ class Error(base.Error):
 class BadMethod(Error):
 	"""signifies that a HTTP 405 should be returned by the dispatcher.
 	"""
+	def __str__(self):
+		return "This resource cannot respond to the HTTP '%s' method"%self.msg
+
 
 class UnknownURI(Error):
 	"""signifies that a HTTP 404 should be returned by the dispatcher.

@@ -262,6 +262,9 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 	name = "tap"
 
 	def locateChild(self, ctx, segments):
+		if segments and not segments[-1]: # trailing slashes are forbidden here
+			raise svcs.WebRedirect(
+				self.service.getURL("tap")+"/"+"/".join(segments[:-1]))
 		reparseRequestArgs(ctx)
 		request = inevow.IRequest(ctx)
 		try:

@@ -375,15 +375,32 @@ class UWSJob(object):
 		resTable.commit()
 		resTable.close()
 
-	def getResults(self):
+	def getResult(self, resName):
+		"""returns a pair of file name and mime type for a named job result.
+
+		If the result does not exist, a NotFoundError is raised.
+		"""
+		res = self.getResults("resultName=%(resultName)s", {"resultName": resName})
+		if not res:
+			raise base.NotFoundError(resName, "job result",
+				"uws job %s"%self.jobId)
+		res = res[0]
+		return os.path.join(self.getWD(), res["resultName"]), res["resultType"]
+
+	def getResults(self, addFragment=None, addPars={}):
 		"""returns a list of this service's results.
 
 		The list contains (dict) records from uws.results.
 		"""
 		resTable = rsc.TableForDef(base.caches.getRD(RD_ID).getById("results"),
 			connection=self.jobsTable.connection)
+		fragment = "jobId=%(jobId)s"
+		pars={"jobId": self.jobId}
+		if addFragment:
+			fragment = fragment+" AND "+addFragment
+			pars.update(addPars)
 		results = list(resTable.iterQuery(resTable.tableDef, 
-			"jobId=%(jobId)s", pars={"jobId": self.jobId}))
+			fragment, pars=pars))
 		resTable.close()
 		return results
 
@@ -442,8 +459,7 @@ class UWSJob(object):
 			pickle.dump(exception, f)
 	
 	def getError(self):
-		"""returns an error text set by setError or raises a ValueError if None
-		has been set.
+		"""returns an exception object previously set by setError.
 
 		If no error has been posted, a ValueError is raised.
 		"""

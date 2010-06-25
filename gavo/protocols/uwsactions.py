@@ -37,6 +37,13 @@ ElementTree._namespace_map[UWSNamespace] = "uws"
 ElementTree._namespace_map[XlinkNamespace] = "xlink"
 
 
+def _flattenEtreeWithProlog(prolog, etree):
+	# it's not obvious how to add a prolog to an etree.  So, I do this hack,
+	# relying on the fact that elementtree implementations don't generate
+	# an xml declaration unless you ask the to.
+	return prolog+ElementTree.tostring(etree)
+
+
 class UWS(object):
 	"""the container for elements from the uws namespace.
 	"""
@@ -85,7 +92,7 @@ class UWS(object):
 		type_name = "xlink:type"
 	
 	class errorSummary(UWSElement):
-		type = None  # transient | fatal
+		a_type = None  # transient | fatal
 
 	class jobref(UWSElement):
 		a_id = None
@@ -122,7 +129,19 @@ def getJobList():
 			UWS.jobref(id=row["jobId"])[
 				UWS.phase[row["phase"]]]]
 	jobstable.close()
-	return result.render()
+	return _flattenEtreeWithProlog(
+		"<?xml-stylesheet href='%s' type='text/xsl'?>"%
+			"/static/xsl/uws-joblist-to-html.xsl",
+			result.asETree())
+
+
+def getErrorSummary(job):
+# all our errors are fatal, and for now .../error yields the same thing
+# as we include here, so we hardcode the attributes.
+	if job.phase!=uws.ERROR:
+		return None
+	return UWS.errorSummary(type="fatal")[
+		str(job.getError())]
 
 
 def getParametersElement(job):
@@ -297,6 +316,20 @@ class ResultsAction(JobAction):
 	def getResource(self, job, request, segments):
 		if not segments:
 			return JobAction.getResource(self, job, request, segments)
+
+		# first try a "real" UWS result from the job
+		if len(segments)==1:
+			try:
+				fName, resultType = job.getResult(segments[0])
+				res = static.File(fName)
+				res.type = str(resultType)
+				res.encoding = None
+				return res
+			except base.NotFoundError: # segments[0] does not name a result
+				pass                     # fall through to other files
+
+		# if that doesn't work, try to return some other file fromt the
+		# job directory.  This is so we can deliver uploads.
 		filePath = os.path.join(job.getWD(), *segments)
 		if not os.path.exists(filePath):
 			raise svcs.UnknownURI("File not found")
@@ -321,9 +354,17 @@ class RootAction(JobAction):
 	def doDELETE(self, job, request):
 		job.delete()
 		raise svcs.WebRedirect("async")
-	
+
+	def doPOST(self, job, request):
+		# (Extension to let web browser delete jobs)
+		if utils.getfirst(request.args, "ACTION")=="DELETE":
+			self.doDELETE(job, request)
+		else:
+			raise svcs.BadMethod("POST")
+
+
 	def doGET(self, job, request):
-		return UWS.makeRoot(UWS.job[
+		tree = UWS.makeRoot(UWS.job[
 			UWS.jobId[job.jobId],
 			UWS.runId[job.runId],
 			UWS.ownerId(nil="true"),
@@ -333,7 +374,12 @@ class RootAction(JobAction):
 			UWS.executionDuration[str(job.executionDuration)],
 			UWS.destruction[job.destructionTime.isoformat()],
 			getParametersElement(job),
-			UWS.results()]).render()
+			UWS.results(),
+			getErrorSummary(job)]).asETree()
+		return _flattenEtreeWithProlog(
+			"<?xml-stylesheet href='%s' type='text/xsl'?>"%
+				"/static/xsl/uws-job-to-html.xsl", tree)
+
 _JobActions.addAction(RootAction)
 
 
