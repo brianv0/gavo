@@ -6,8 +6,7 @@ from cStringIO import StringIO
 from xml.sax import make_parser, SAXException
 from xml.sax.handler import ContentHandler
 
-from gavo.utils import excs
-from gavo.base import common
+from gavo import utils
 from gavo.base import parsecontext
 from gavo.base import structure
 
@@ -105,7 +104,7 @@ def parseFromStream(rootStruct, inputStream, context=None):
 	try:
 		parser.parse(inputStream)
 	except SAXException, msg:
-		raise common.logOldExc(excs.ReportableError("Bad XML: %s"%unicode(msg)))
+		raise utils.logOldExc(utils.ReportableError("Bad XML: %s"%unicode(msg)))
 	except Exception, msg:
 		# cHandler.locator isn't too useful in this context.  See if we can make
 		# it, but for now, hack around it.

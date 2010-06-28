@@ -11,7 +11,6 @@ from pyparsing import Word, Literal, Optional, Forward, Group,\
 from gavo import utils
 from gavo.base import common
 from gavo.base import typesystems
-from gavo.utils import excs
 
 
 class ParseNode(object):
@@ -399,7 +398,7 @@ def getSQL(field, inPars, sqlPars):
 				return "%s=%%(%s)s"%(field.name, getSQLKey(field.name,
 					val, sqlPars))
 	except ParseException:
-		raise common.logOldExc(excs.ValidationError(
+		raise utils.logOldExc(utils.ValidationError(
 			"Invalid input (see help on search expressions)", field.name))
 
 

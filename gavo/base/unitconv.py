@@ -10,15 +10,14 @@ import traceback
 from pyparsing import Word, Literal, Regex, Optional, ZeroOrMore, StringEnd
 from pyparsing import MatchFirst, ParseException, ParserElement
 
-from gavo.utils import excs
-from gavo.base import common
+from gavo import utils
 
 ParserElement.enablePackrat()
 
-class IncompatibleUnits(excs.Error):
+class IncompatibleUnits(utils.Error):
 	pass
 
-class BadUnit(excs.Error):
+class BadUnit(utils.Error):
 	pass
 
 
@@ -251,7 +250,7 @@ def parseUnit(unitStr, unitGrammar=getUnitGrammar()):
 	try:
 		return unitGrammar.parseString(unitStr)[0]
 	except ParseException, msg:
-		raise common.logOldExc(
+		raise utils.logOldExc(
 			BadUnit("%s at col. %d"%(repr(unitStr), msg.column)))
 
 
@@ -289,7 +288,7 @@ def computeColumnConversions(newColumns, oldColumns):
 	res = {}
 	for newCol in newColumns:
 		if not newCol.name in oldColumns:
-			raise excs.DataError(
+			raise utils.DataError(
 				"Request for column %s from %s cannot be satisfied in %s"%(
 					newCol.name, oldColumns, newColumns))
 		oldCol = oldColumns.getColumnByName(newCol.name)

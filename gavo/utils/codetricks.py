@@ -22,6 +22,7 @@ import tempfile
 import weakref
 
 from gavo.utils import algotricks
+from gavo.utils import misctricks
 from gavo.utils import excs
 
 
@@ -335,9 +336,8 @@ def compileFunction(src, funcName, useGlobals=None):
 		useGlobals = globals()
 	try:
 		exec src in useGlobals, locals
-	except:
-		sys.stderr.write("Bad code:\n%s\n"%src)
-		raise
+	except Exception, ex:
+		raise misctricks.logOldExc(excs.BadCode(src, "function", ex))
 	return locals[funcName]
 
 
@@ -351,7 +351,7 @@ def ensureExpression(expr, errName="unknown"):
 	try:
 		ast = compiler.parse(expr)
 	except SyntaxError, msg:
-		raise excs.BadCode(expr, "expression", msg)
+		raise misctricks.logOldExc(excs.BadCode(expr, "expression", msg))
 	# An ast for an expression is a Discard inside at Stmt inside the
 	# top-level Module
 	try:
@@ -361,7 +361,7 @@ def ensureExpression(expr, errName="unknown"):
 		if not isinstance(exprNodes[0], compiler.ast.Discard):
 			raise ValueError("Not an expression")
 	except (ValueError, AttributeError), ex:
-		raise excs.BadCode(expr, "expression", ex)
+		raise misctricks.logOldExc(excs.BadCode(expr, "expression", ex))
 
 
 def loadPythonModule(fqName):

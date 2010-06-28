@@ -119,7 +119,7 @@ def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
 		elif type=="start":
 			# Element open: push new node on the stack...
 			if tag not in elements:
-				raise iterator.raiseParseError("Unknown tag: %s"%tag)
+				raise iterator.getParseError("Unknown tag: %s"%tag)
 			if payload: # Force attr keys to the byte strings for kw args.
 				payload = dict((str(k.replace("-", "_")), v) 
 					for k, v in payload.iteritems())

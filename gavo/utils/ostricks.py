@@ -9,6 +9,8 @@ OS abstractions and related.
 import os
 import urllib2
 
+from gavo.utils import misctricks
+
 
 def safeclose(f):
 	"""syncs and closes the python file f.
@@ -57,7 +59,7 @@ def fgetmtime(fileobj):
 	try:
 		return os.fstat(fileobj.fileno()).st_mtime
 	except AttributeError:
-		raise os.error("Not a file: %s"%repr(fileobj))
+		raise misctricks.logOldExc(os.error("Not a file: %s"%repr(fileobj)))
 
 
 def cat(srcF, destF, chunkSize=1<<20):

@@ -14,7 +14,6 @@ import re
 import time
 
 from gavo import utils
-from gavo.base import common
 
 
 @utils.document
@@ -151,7 +150,7 @@ def parseCooPair(soup):
 				return utils.hmsToDeg(mat.group(1)), utils.dmsToDeg(
 					mat.group(2))
 			except utils.Error, msg:
-				raise common.logOldExc(ValueError(str(msg)))
+				raise utils.logOldExc(ValueError(str(msg)))
 
 	for func in [parseFloatPair, parseTimeangleDms]:
 		res = func(soup)

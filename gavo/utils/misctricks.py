@@ -120,6 +120,36 @@ def getfirst(args, key, default=Undefined):
 		return default
 
 
+def sendUIEvent(eventName, *args):
+	"""sends an eventName to the DC event dispatcher.
+
+	If no event dispatcher is available, do nothing.
+
+	The base.ui object that the GAVO DC software uses for event dispatching
+	is only available to sub-packages above base.  Other code should not
+	use or need it under normal circumstances, but if it does, it can
+	use this.
+
+	All other code should use base.ui.notify<eventName>(*args) directly.
+	"""
+	try:
+		from gavo.base import ui
+		getattr(ui, "notify"+eventName)(*args)
+	except ImportError:
+		pass
+
+
+
+def logOldExc(exc):
+	"""logs the mutation of the currently handled exception to exc.
+
+	This just does a notifyExceptionMutation using sendUIEvent; it should
+	only be used by code at or below base.
+	"""
+	sendUIEvent("ExceptionMutation", exc)
+	return exc
+
+
 def _test():
 	import doctest, misctricks
 	doctest.testmod(misctricks)

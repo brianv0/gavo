@@ -16,7 +16,7 @@
 	formalTypes for InputKeys should be computed at form construction time
 	to fix the mess with required condDescs having non-required InputKeys.
 
-6/WISHLIST/2009-01-27
+6/WISHLIST/2009-01-27/FIXED
 	The sidebar should become a template on disk.
 
 7/LOW/2009-02-02

@@ -2,6 +2,7 @@
 Trees of ADQL expressions and operations on them.
 """
 
+from gavo import utils
 from gavo.adql import grammar
 from gavo.adql import nodes
 from gavo.adql.common import *
@@ -48,7 +49,7 @@ def getTreeBuildingGrammar():
 				syms[symName].addParseAction(lambda s, pos, toks: 
 					nodeClass.fromParseResult(toks))
 		except KeyError:
-			raise base.ui.logOldExc(
+			raise utils.logOldExc(
 				KeyError("%s asks for non-existing symbol %s"%(
 					nodeClass.__name__ , symName)))
 

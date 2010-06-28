@@ -57,7 +57,6 @@ import weakref
 
 from gavo import utils
 from gavo.base import attrdef
-from gavo.base import common
 from gavo.base import parsecontext
 from gavo.utils.excs import StructureError, Replace, BadCode, RestrictedElement
 
@@ -265,7 +264,7 @@ class StructureBase(object):
 				                                 # set up by attributes.
 					setattr(self, val.name_, val.default_)
 			except AttributeError: # default on property given
-				raise common.logOldExc(StructureError("%s attributes on %s have builtin"
+				raise utils.logOldExc(StructureError("%s attributes on %s have builtin"
 					" defaults only."%(val.name_, self.name_)))
 		
 		# set keyword arguments

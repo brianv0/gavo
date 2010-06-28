@@ -55,8 +55,8 @@ See structure on how to use all these.
 
 import os
 
+from gavo import utils
 from gavo.utils import Undefined
-from gavo.base import common
 from gavo.base import literals
 from gavo.utils.excs import LiteralParseError, StructureError
 
@@ -299,7 +299,7 @@ class IntAttribute(AtomicAttribute):
 		try:
 			return int(value)
 		except ValueError:
-			raise common.logOldExc(
+			raise utils.logOldExc(
 				LiteralParseError(self.name_, value, hint="Value must be an"
 				" integer literal."))
 	
@@ -317,7 +317,7 @@ class FloatAttribute(AtomicAttribute):
 		try:
 			return float(value)
 		except ValueError:
-			raise common.logOldExc(
+			raise utils.logOldExc(
 				LiteralParseError(self.name_, value, hint="value must be a float"
 					" literal"))
 	
@@ -337,7 +337,7 @@ class BooleanAttribute(AtomicAttribute):
 		try:
 			return literals.parseBooleanLiteral(value)
 		except ValueError:
-			raise common.logOldExc(LiteralParseError(self.name_, val, hint=
+			raise utils.logOldExc(LiteralParseError(self.name_, val, hint=
 				"A boolean literal (e.g., True, False, yes, no) is expected here."))
 		
 	def unparse(self, value):
@@ -400,7 +400,7 @@ class IdMapAttribute(AtomicAttribute):
 			return dict((k.strip(), v.strip()) 
 				for k,v in (p.split(":") for p in val.split(",")))
 		except ValueError:
-			raise common.logOldExc(LiteralParseError(self.name_, val, 
+			raise utils.logOldExc(LiteralParseError(self.name_, val, 
 				hint="A key-value enumeration of the format k:v {,k:v}"
 				" is expected here"))
 

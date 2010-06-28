@@ -10,9 +10,8 @@ import sys
 import warnings
 from itertools import *
 
-from gavo.base import common
+from gavo import utils
 from gavo.base import config
-from gavo.utils import excs
 
 debug = "GAVO_SQL_DEBUG" in os.environ
 
@@ -23,7 +22,7 @@ psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 
 from psycopg2.extras import DictCursor
 
-class Error(excs.Error):
+class Error(utils.Error):
 	pass
 
 
@@ -137,7 +136,7 @@ def getDBConnection(profile, debug=debug):
 			_initPsycopg(conn)
 		return conn
 	except KeyError:
-		raise common.logOldExc(Error("Insufficient information to connect"
+		raise utils.logOldExc(Error("Insufficient information to connect"
 			" to database. The operators need to check their profiles."))
 
 

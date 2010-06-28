@@ -10,6 +10,7 @@ import collections
 
 from xml.parsers import expat
 
+from gavo import utils
 from gavo.votable import common
 
 chunkSize = 2**20
@@ -48,7 +49,7 @@ class iterparse(object):
 					raise StopIteration("File is exhausted")
 				self.parser.Parse(nextChunk)
 			except expat.ExpatError, ex:
-				raise common.VOTableParseError(ex.message)
+				raise utils.logOldExc(common.VOTableParseError(ex.message))
 		return self.evBuf.popleft()
 
 	def close(self):
@@ -58,6 +59,6 @@ class iterparse(object):
 	def pos(self):
 		return (self.parser.CurrentLineNumber, self.parser.CurrentColumnNumber)
 
-	def raiseParseError(self, msg):
-		raise common.VOTableParseError("%s %s"%(msg,
+	def getParseError(self, msg):
+		return common.VOTableParseError("%s %s"%(msg,
 			"near line %d, column %d"%self.pos))

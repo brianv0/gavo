@@ -14,6 +14,7 @@ import time
 from email import utils as emailutils
 
 from gavo.utils import codetricks
+from gavo.utils import misctricks
 from gavo.utils.excs import Error
 
 floatRE = r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?"
@@ -284,8 +285,9 @@ def dmsToDeg(dmsAngle, sepChar=" "):
 			raise ValueError("Invalid # of parts")
 		arcSecs = sign*(int(deg)*3600+float(min)*60+float(sec))
 	except ValueError:
-		raise ValueError("Invalid dms declination with sepchar %s: %s"%(
-			repr(sepChar), repr(dmsAngle)))
+		raise misctricks.logOldExc(
+			ValueError("Invalid dms declination with sepchar %s: %s"%(
+				repr(sepChar), repr(dmsAngle))))
 	return arcSecs/3600
 
 
@@ -459,8 +461,8 @@ class NameMap(object):
 				for name in names.lower().split():
 					self.namesDict[name.decode("quoted-printable")] = ob
 		except ValueError:
-			raise ValueError(
-				"Syntax error in %s: Line %s not understood."%(src, repr(ln)))
+			raise misctricks.logOldExc(ValueError(
+				"Syntax error in %s: Line %s not understood."%(src, repr(ln))))
 		f.close()
 	
 	def resolve(self, name):

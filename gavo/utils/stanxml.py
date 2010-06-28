@@ -170,7 +170,7 @@ class Element(object):
 		return self
 
 	def __iter__(self):
-		raise NotImplementedError, "Element instances are not iterable."
+		raise NotImplementedError("Element instances are not iterable.")
 
 	def __nonzero__(self):
 		return self.isEmpty()

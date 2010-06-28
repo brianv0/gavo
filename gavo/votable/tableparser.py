@@ -47,7 +47,7 @@ class TableDataIterator(DataIterator):
 				if tag=="TR":
 					break
 				else:
-					raise self.nodeIterator.raiseParseError(
+					raise self.nodeIterator.getParseError(
 						"Unexpected element %s"%tag)
 			# ignore everything else; we're not validating, and sensible stuff
 			# might yet follow (usually, it's whitespace data anyway)
@@ -58,7 +58,7 @@ class TableDataIterator(DataIterator):
 			if type=="start":   # new TD
 				dataBuffer = []
 				if tag!="TD":
-					raise self.nodeIterator.raiseParseError(
+					raise self.nodeIterator.getParseError(
 						"Unexpected element %s"%tag)
 
 			elif type=="data":  # TD content

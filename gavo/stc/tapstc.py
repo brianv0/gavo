@@ -141,6 +141,7 @@ class GeomExpr(object):
 			logOp = " AND "
 		elif self.operator=="NOT":
 			return "NOT (%s)"%self._flatLogic(template, self.operands[0])
+		else:
 			raise NotImplementedError("No logic for operator '%s'"%self.operator)
 		return logOp.join(
 			'(%s)'%self._flatLogic(template, op) for op in self.operands)
@@ -170,7 +171,8 @@ def _make_pgsbox(coords):
 
 def _make_pgspolygon(coords):
 	if len(coords)<6 or len(coords)%2:
-		raise common.STCSParseError("STC-S polygons want at least three number pairs")
+		raise common.STCSParseError(
+			"STC-S polygons want at least three number pairs")
 	return pgsphere.SPoly(
 		[pgsphere.SPoint(*p) for p in utils.iterConsecutivePairs(coords)])
 

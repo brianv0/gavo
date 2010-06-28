@@ -7,10 +7,9 @@ you're free to insert additional attributes.
 Based on this, we provide some attribute definitions.
 """
 
-
+from gavo import utils
 from gavo.base import attrdef
 from gavo.base import caches
-from gavo.base import common
 from gavo.utils.excs import StructureError, LiteralParseError
 
 
@@ -42,7 +41,7 @@ def resolveComplexId(ctx, id, forceType=None):
 	try:
 		pId, name = id.split(".")
 	except ValueError:
-		raise common.logOldExc(LiteralParseError("id", id, 
+		raise utils.logOldExc(LiteralParseError("id", id, 
 			hint="A complex reference (parent.name) is expected here"))
 	container = ctx.getById(pId)
 	try:
@@ -50,7 +49,7 @@ def resolveComplexId(ctx, id, forceType=None):
 			if hasattr(ob, "name") and ob.name==name:
 				return assertType(id, ob, forceType)
 	except TypeError:
-		raise common.logOldExc(StructureError("Element %s is not allowed"
+		raise utils.logOldExc(StructureError("Element %s is not allowed"
 			" in namePath"%pId))
 	raise StructureError("Element %s has no child with name %s"%(
 		pId, name))

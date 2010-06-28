@@ -293,7 +293,8 @@ class ADQLTAPJob(object):
 				response.getheader("location", "")).path.split("/")[-1]
 			self.jobPath = "%s/%s"%(self.destPath, self.jobId)
 		except ValueError:
-			raise ProtocolError("Job creation returned invalid job id")
+			raise utils.logOldExc(
+				ProtocolError("Job creation returned invalid job id"))
 
 	def delete(self):
 		"""removes the job on the remote side.

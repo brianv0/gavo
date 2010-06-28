@@ -8,9 +8,8 @@ import re
 import warnings
 
 
-from gavo.base import common
+from gavo import utils
 from gavo.utils import DEG
-from gavo.utils import excs
 from gavo.utils import pgsphere
 from gavo.utils import pyfits
 

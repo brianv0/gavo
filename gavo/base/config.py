@@ -11,9 +11,8 @@ import shlex
 import sys
 import warnings
 
+from gavo import utils
 from gavo.base import attrdef
-from gavo.utils import excs
-from gavo.base import common
 from gavo.base import meta
 from gavo.base import structure
 from gavo.utils import fancyconfig
@@ -96,7 +95,7 @@ class ProfileItem(StringConfigItem):
 		self.default = None
 
 
-class Error(excs.Error):
+class Error(utils.Error):
 	pass
 
 class ProfileParseError(Error):
@@ -186,7 +185,7 @@ class ProfileParser(object):
 		return self.profile
 
 	def _raiseError(self, msg):
-		raise common.logOldExc(
+		raise utils.logOldExc(
 			ProfileParseError(self.parser.error_leader()+msg))
 	
 	def _state_init(self, token):
@@ -272,7 +271,7 @@ class Configuration(fancyconfig.Configuration):
 			try:
 				self._dbProfileCache[profileName] = self._getProfileParser().parse(
 					profileName, self.get("profiles", profileName))
-			except excs.NoConfigItem:
+			except utils.NoConfigItem:
 				raise ProfileParseError("Undefined DB profile: %s"%profileName)
 		return self._dbProfileCache[profileName]
 
@@ -465,7 +464,7 @@ def makeFallbackMeta():
 		try:
 			key, val = ln.split(":", 1)
 		except ValueError:
-			raise common.logOldExc(excs.Error("Bad line in %s: '%s'"%(srcPath, ln)))
+			raise utils.logOldExc(utils.Error("Bad line in %s: '%s'"%(srcPath, ln)))
 		meta.configMeta.addMeta(key.strip(), val.strip())
 
 makeFallbackMeta()
