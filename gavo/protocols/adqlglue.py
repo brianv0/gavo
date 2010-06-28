@@ -136,7 +136,7 @@ def _getTupleAdder(table):
 
 
 def getFieldInfoGetter(accessProfile=None, tdsForUploads=[]):
-	mth = rsc.MetaTableHandler(accessProfile)
+	mth = base.caches.getMTH(accessProfile)
 	tap_uploadSchema = dict((td.id, td) for td in tdsForUploads)
 	@utils.memoized
 	def getFieldInfos(tableName):

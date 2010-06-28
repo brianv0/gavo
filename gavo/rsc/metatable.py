@@ -128,4 +128,4 @@ class MetaTableHandler(object):
 		finally:
 			self.conn.rollback()
 
-base.caches.makeCache("getMTH", lambda key: MetaTableHandler())
+base.caches.makeCache("getMTH", lambda profile: MetaTableHandler(profile))
