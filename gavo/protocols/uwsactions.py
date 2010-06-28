@@ -37,12 +37,6 @@ ElementTree._namespace_map[UWSNamespace] = "uws"
 ElementTree._namespace_map[XlinkNamespace] = "xlink"
 
 
-def _flattenEtreeWithProlog(prolog, etree):
-	# it's not obvious how to add a prolog to an etree.  So, I do this hack,
-	# relying on the fact that elementtree implementations don't generate
-	# an xml declaration unless you ask the to.
-	return prolog+ElementTree.tostring(etree)
-
 
 class UWS(object):
 	"""the container for elements from the uws namespace.
@@ -129,10 +123,8 @@ def getJobList():
 			UWS.jobref(id=row["jobId"])[
 				UWS.phase[row["phase"]]]]
 	jobstable.close()
-	return _flattenEtreeWithProlog(
-		"<?xml-stylesheet href='%s' type='text/xsl'?>"%
-			"/static/xsl/uws-joblist-to-html.xsl",
-			result.asETree())
+	return stanxml.xmlrender(result, "<?xml-stylesheet "
+		"href='/static/xsl/uws-joblist-to-html.xsl' type='text/xsl'?>")
 
 
 def getErrorSummary(job):
@@ -375,10 +367,10 @@ class RootAction(JobAction):
 			UWS.destruction[job.destructionTime.isoformat()],
 			getParametersElement(job),
 			UWS.results(),
-			getErrorSummary(job)]).asETree()
-		return _flattenEtreeWithProlog(
+			getErrorSummary(job)])
+		return stanxml.xmlrender(tree,
 			"<?xml-stylesheet href='%s' type='text/xsl'?>"%
-				"/static/xsl/uws-job-to-html.xsl", tree)
+				"/static/xsl/uws-job-to-html.xsl")
 
 _JobActions.addAction(RootAction)
 

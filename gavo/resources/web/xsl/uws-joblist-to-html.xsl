@@ -15,8 +15,10 @@
 		<xsl:template match="uws:jobref">
 			<li>
 				<a>
-					<xsl:attribute name="href">async/<xsl:value-of select="@id"/></xsl:attribute>
-					<xsl:value-of select="@id"/></a>
+					<xsl:attribute name="href">async/<xsl:value-of select="@id"/>
+					</xsl:attribute>
+					<xsl:value-of select="@id"/>
+				</a>
 				(<xsl:apply-templates/>)</li>
 		</xsl:template>
 	
@@ -24,9 +26,18 @@
 			<html>
 				<head>
 					<title>UWS job list</title></head>
+					<meta name="robots" content="nofollow"/>
 				<body>
 					<h1>UWS jobs</h1>
 					<ul>
-						<xsl:apply-templates/></ul></body></html>
+						<xsl:apply-templates/>
+					</ul>
+					<form action="async" method="POST">
+						<input type="submit" value="New job..."/>
+						<input type="hidden" name="LANG" value="ADQL"/>
+						<input type="hidden" name="REQUEST" value="doQuery"/>
+					</form>
+				</body>
+			</html>
 		</xsl:template>
 </xsl:stylesheet>

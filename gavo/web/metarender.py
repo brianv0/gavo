@@ -152,6 +152,15 @@ class RendExplainer(object):
 					"&op=Validate")["Validate"]]]
 
 	@classmethod
+	def _explain_tap(cls, service):
+		return T.invisible["the interface to this site's Table Access Protocol"
+			" service.  This protocol is best used using specialized clients"
+			" or libraries, but an XSL-enabled web browser lets you"
+			" operate ",
+			T.a(href=service.getURL("tap")+"/async")["the service"],
+			" as well."]
+
+	@classmethod
 	def _explain_qp(cls, service):
 		return T.invisible["an interface that uses the last path element"
 			" to query the column %s in the underlying table."%

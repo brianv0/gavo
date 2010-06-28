@@ -329,17 +329,27 @@ def schemaURL(xsdName):
 	return "http://vo.ari.uni-heidelberg.de/docs/schemata/"+xsdName
 
 
-def xmlrender(tree):
+def xmlrender(tree, prolog=None):
 	"""returns a unicode object containing tree in serialized forms.
 
 	tree can be any object with a render method or some sort of string.
 	If it's a byte string, it must not contain any non-ASCII.
+
+	If prolog is given, it must be a string that will be prepended to the
+	serialization of tree.  The way ElementTree currently is implemented,
+	you can use this for xml declarations or stylesheet processing 
+	instructions.
 	"""
 	if hasattr(tree, "render"):
-		return tree.render()
+		res = tree.render()
+	elif hasattr(tree, "getchildren"):  # hopefully an xml.etree Element
+		res = ElementTree.tostring(tree)
 	elif isinstance(tree, str):
-		return unicode(tree)
+		res = unicode(tree)
 	elif isinstance(tree, unicode):
-		return tree
+		res = tree
 	else:
 		raise ValueError("Cannot render %s"%repr(tree))
+	if prolog:
+		res = prolog+res
+	return res

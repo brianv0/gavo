@@ -141,7 +141,7 @@ class TAPQueryResource(rend.Page):
 			return streaming.streamOut(writeTable, request)
 
 
-def getSyncResource(service, ctx, segments):
+def getSyncResource(ctx, service, segments):
 	if segments:
 		raise svcs.UnknownURI("No resources below sync")
 	request = common.getfirst(ctx, "REQUEST", base.Undefined)
@@ -222,7 +222,7 @@ class JobResource(rend.Page, UWSErrorMixin):
 		return ""
 	
 
-def getAsyncResource(service, ctx, segments):
+def getAsyncResource(ctx, service, segments):
 	if segments:
 		return JobResource(service, segments)
 	else:
@@ -261,8 +261,15 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 	"""
 	name = "tap"
 
+	def renderHTTP(self, ctx):
+		# we *could* have some nice intro here, but really -- let's just
+		# redirect to info and save some work, ok?
+		raise svcs.WebRedirect(self.service.getURL("info", absolute=False))
+
 	def locateChild(self, ctx, segments):
-		if segments and not segments[-1]: # trailing slashes are forbidden here
+		if not segments[-1]: # trailing slashes are forbidden here
+			if len(segments)==1: # root resource; don't redirect, it would be a loop
+				return self, ()
 			raise svcs.WebRedirect(
 				self.service.getURL("tap")+"/"+"/".join(segments[:-1]))
 		reparseRequestArgs(ctx)
@@ -274,11 +281,17 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 						" TAP version %s."%getTAPVersion()), ()
 			if segments:
 				if segments[0]=='sync':
-					res = getSyncResource(self.service, ctx, segments[1:])
+					res = getSyncResource(ctx, self.service, segments[1:])
 				elif segments[0]=='async':
-					res = getAsyncResource(self.service, ctx, segments[1:])
+					res = getAsyncResource(ctx, self.service, segments[1:])
+				elif segments[0]=='availability':
+					res = vosi.VOSIAvailabilityRenderer(ctx, self.service)
+				elif segments[0]=='capabilities':
+					res = vosi.VOSICapabilityRenderer(ctx, self.service)
+				elif segments[0]=='tables':
+					res = vosi.VOSITablesetRenderer(ctx, self.service)
 				else:
-					res = None
+					raise svcs.UnknownURI("Bad TAP path %s"%"/".join(segments))
 				return res, ()
 		except svcs.UnknownURI:
 			raise

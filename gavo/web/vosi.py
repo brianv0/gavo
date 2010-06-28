@@ -39,7 +39,8 @@ class VOSIRenderer(grend.ServiceBasedRenderer):
 			).addErrback(self._sendError, request)
 	
 	def _shipout(self, response, ctx):
-		return response.render()
+		return utils.xmlrender(response,
+			"<?xml-stylesheet href='/static/xsl/vosi.xsl' type='text/xsl'?>")
 
 	def _sendError(self, failure, request):
 		request.setResponseCode(500)

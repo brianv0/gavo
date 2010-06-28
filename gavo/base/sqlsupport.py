@@ -113,7 +113,7 @@ class DebugConnection(psycopg2.extensions.connection):
 		return psycopg2.extensions.connection.cursor(self, *args, **kwargs)
 
 
-def getDBConnection(profile, debug=debug):
+def getDBConnection(profile, debug=debug, autocommitted=False):
 	if isinstance(profile, basestring):
 		profile = config.getDBProfileByName(profile)
 	elif profile is None:
@@ -134,6 +134,8 @@ def getDBConnection(profile, debug=debug):
 			conn = psycopg2.connect(connString)
 		if not _PSYCOPG_INITED:
 			_initPsycopg(conn)
+		if autocommitted:
+			conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 		return conn
 	except KeyError:
 		raise utils.logOldExc(Error("Insufficient information to connect"

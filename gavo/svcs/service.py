@@ -660,7 +660,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		return getRenderer(rendName).makeAccessURL(basePath)
 
 	# used by getBrowserURL; keep external higher than form as long as
-	# we have that Potsdam CdC mess.
+	# we have mess like Potsdam CdC.
 	_browserScores = {"form": 10, "external": 12, "fixed": 15,
 		"custom": 3, "static": 1}
 
@@ -690,6 +690,23 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			return bool(getRenderer(rendName).isBrowseable(self))
 		except common.UnknownURI: # renderer name not known
 			return False
+
+	def getTableSet(self):
+		"""returns a list of table definitions that have something to do with
+		this service.
+
+		This is for VOSI-type queries.  Usually, that's just the core's
+		queried table, except when there is a TAP renderer on the service.
+		"""
+		tables = [getattr(self.core, "queriedTable", None)]
+		if "tap" in self.allowed:
+			mth = base.caches.getMTH(None)
+			for row in mth.queryTablesTable("adql"):
+				try:
+					tables.append(mth.getTableDefForTable(row["tableName"]))
+				except base.NotFoundError:
+					pass
+		return [t for t in tables if t is not None]
 
 	def _meta_referenceURL(self):
 		return meta.makeMetaItem(self.getURL("info"),

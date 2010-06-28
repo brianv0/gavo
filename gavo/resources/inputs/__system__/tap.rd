@@ -1,13 +1,13 @@
 <resource schema="tap_schema">
-	<meta name="description">Support tables (views) for TAP</meta>
+	<meta name="description">Data and services dealing with the
+		Table Access Protocol TAP.</meta>
 	<property name="TAP_VERSION">1.0</property>
-	<meta name="_longdoc">
-
+	<meta name="_longdoc" format="rst">
 	Issues
 	======
 
 	For information on our ADQL implementation, see the
-	\RSTServicelink{__system__/adql/query/info}{ADQL service info}.
+	\RSTservicelink{__system__/adql/query/info}{ADQL service info}.
 
 	While columns with xtype adql:POINT are correctly ingested into the
 	database, adql:REGION columns are left alone (i.e., they are
@@ -248,5 +248,13 @@
 
 	<nullCore id="null"/>
 
-	<service id="run" core="null" allowed="tap"/>
+	<service id="run" core="null" allowed="tap">
+		<meta name="shortName">GAVO DC TAP</meta>
+		<meta name="title">GAVO Data Center TAP service</meta>
+		<meta name="description">The GAVO data center's TAP end point.  The
+			Table Access Protocol (TAP) lets you execute queries against our
+			database table, inspect various metadata, and upload your own
+			data.  It is thus the VO's premier way to access public data
+			holdings.</meta>
+	</service>
 </resource>

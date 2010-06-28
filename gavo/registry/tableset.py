@@ -61,14 +61,9 @@ def getTableForTableDef(tableDef):
 def getTablesetForService(service):
 	"""returns a VS1.tableset for a service.
 
-	This is for VOSI queries.  Since I can see little sense in 
-	returning info on the output table (which does not have any correspondence
-	in the database anyway), this function only generates meaningful info
-	for services exposing a dbCore and then returns its queriedTable.
+	This is for VOSI queries.  It uses the service's getTableset
+	method to find out the service's table set.
 	"""
-	tables = []
-	if isinstance(service.core, svcs.getCore("dbCore")):
-		tables.append(service.core.queriedTable)
 	return VS1.tableset[
 		getSchemaForRD(service.rd)[[
-			getTableForTableDef(t) for t in tables]]]
+			getTableForTableDef(t) for t in service.getTableSet()]]]

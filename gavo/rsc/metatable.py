@@ -28,8 +28,8 @@ class MetaTableHandler(object):
 	hurt, though, since you shouldn't need to access the meta table shortly
 	after writing to it.
 
-	Though you can construct MetaTableHandlers of your own, the metaHandler
-	from rscdesc should usually do.
+	Though you can construct MetaTableHandlers of your own, you should
+	use base.caches.getMTH(None) when reading.
 	"""
 	def __init__(self, overrideProfile=None):
 		self.profile = overrideProfile or "admin"
@@ -48,12 +48,17 @@ class MetaTableHandler(object):
 		self.conn.rollback()
 
 	def _getQuerier(self):
-		"""returns the write-only querier for the meta table.
+		"""returns the read-only querier for the meta table.
 
 		Do not use this querier to write information.
 		"""
-		self.conn = base.getDBConnection(self.profile)
+		self.conn = base.getDBConnection(self.profile, autocommitted=True)
 		return base.SimpleQuerier(connection=self.conn)
+
+	
+	def queryTablesTable(self, fragment, pars={}):
+		return self.tablesTable.iterQuery(self.tablesTable.tableDef, 
+			fragment, pars)
 
 	def getColumn(self, colName, tableName=""):
 		"""returns a dictionary with the information available
@@ -122,3 +127,5 @@ class MetaTableHandler(object):
 				).getById(tableName.split(".")[1])
 		finally:
 			self.conn.rollback()
+
+base.caches.makeCache("getMTH", lambda key: MetaTableHandler())

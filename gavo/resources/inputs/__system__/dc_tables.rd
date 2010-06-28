@@ -109,8 +109,6 @@ tables and the RDs the tables come from. -->
 	</fixedQueryCore>
 
 	<service id="show" allowed="tableinfo" core="queryList">
-			<!-- actually, we have a null core here since tableinfo doesn't call
-			     a core -->
 		<meta name="shortName">GAVO tab infos</meta>
 		<meta name="description">Information on tables within the GAVO data
 			center</meta>
