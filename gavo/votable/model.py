@@ -4,6 +4,7 @@ xmlstan elements of VOTable.
 
 import re
 
+from gavo import utils
 from gavo.utils import ElementTree
 from gavo.utils.stanxml import Element
 
@@ -254,10 +255,14 @@ class VOTable(object):
 
 		_fieldIndex = None
 
+		@utils.memoized
+		def getFields(self):
+			return list(self.iterChildrenOfType(VOTable.FIELD))
+
 		def _getFieldIndex(self):
 			if self._fieldIndex is None:
 				index = {}
-				for child in self.iterChildrenOfType(VOTable.FIELD):
+				for child in self.getFields():
 					if child.a_name:
 						index[child.a_name] = child
 					if child.a_ID:

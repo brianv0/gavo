@@ -11,6 +11,7 @@ import warnings
 
 from pyparsing import ParseException
 from twisted.internet import reactor
+from twisted.internet import protocol
 import twisted.internet.utils
 
 from gavo import base
@@ -243,6 +244,32 @@ def _replaceFDs(inFName, outFName):
   os.dup(outF.fileno())
 
 
+class _TAPBackendProtocol(protocol.ProcessProtocol):
+	"""The protocol used for taprunners when spawning them under a twisted
+	reactor.
+	"""
+	def __init__(self, jobId):
+		self.jobId = jobId
+
+	def outReceived(self, data):
+		base.ui.notifyInfo("TAP client %s produced output: %s"%(
+			self.jobId, data))
+	
+	def errReceived(self, data):
+		base.ui.notifyInfo("TAP client %s produced an error message: %s"%(
+			self.jobId, data))
+	
+	def processEnded(self, statusObject):
+		"""tries to ensure the job is in an admitted end state.
+		"""
+		with uws.UWSJob.makeFromId(self.jobId) as job:
+			if job.phase==uws.QUEUED or job.phase==uws.EXECUTING:
+				try:
+					raise uws.UWSError("Job hung in %s"%job.phase, job.jobId)
+				except uws.UWSError, ex:
+					job.changeToPhase(uws.ERROR, ex)
+
+
 class TAPActions(uws.UWSActions):
 # XXX TODO: Implement a real queue rather than starting blindly
 	def __init__(self):
@@ -253,29 +280,13 @@ class TAPActions(uws.UWSActions):
 			(uws.EXECUTING, uws.ABORTED, "killJob"),
 			])
 
-	def _notifyJobEnded(self, arg, jobId):
-		# A callback for startJob -- when the gavo tap job has finished,
-		# this makes sure we're not in QUEUED or EXECUTING any more.
-		with uws.UWSJob.makeFromId(jobId) as job:
-			if job.phase==uws.QUEUED or job.phase==uws.EXECUTING:
-				try:
-					raise uws.UWSError("Job hung in %s"%job.phase, job.jobId)
-				except uws.UWSError, ex:
-					job.changeToPhase(uws.ERROR, ex)
-				if isinstance(arg, basestring):
-					print arg
-				else:
-					arg.printTraceback()
-
-
 	def _startJobTwisted(self, newState, job, ignored):
 		"""starts a job when we're running within a twisted reactor.
 		"""
-		return twisted.internet.utils.getProcessOutput("gavo", args=[
-				"--disable-spew", "tap", "--", str(job.jobId)],
-				env=os.environ
-			).addErrback(self._notifyJobEnded, job.jobId
-			).addCallback(self._notifyJobEnded, job.jobId)
+		pt = reactor.spawnProcess(_TAPBackendProtocol(job.jobId),
+			"gavo", args=["gavo", "--disable-spew", "tap", "--", str(job.jobId)],
+				env=os.environ)
+		job.pid = pt.pid
 		job.phase = uws.QUEUED
 
 	def _startJobNonTwisted(self, newState, job, ignored):

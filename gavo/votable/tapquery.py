@@ -13,6 +13,7 @@ from email.MIMEMultipart import MIMEMultipart
 from xml import sax
 
 from gavo import utils
+from gavo.votable.model import VOTable as V
 
 
 # Ward against typos
@@ -184,6 +185,96 @@ class _ParametersParser(utils.StartEndHandler):
 		return self.parameters
 
 
+class _AvailabilityParser(utils.StartEndHandler):
+# VOSI
+	available = None
+	def _end_available(self, name, attrs, content):
+		content = content.strip()
+		if content=="true":
+			self.available = True
+		elif content=="false":
+			self.available = False
+
+	def getResult(self):
+		return self.available
+
+
+class _CapabilitiesParser(utils.StartEndHandler):
+# VOSI
+	def __init__(self):
+		utils.StartEndHandler.__init__(self)
+		self.properties = {}
+	
+	def _end_title(self, name, attrs, content):
+		self.properties["title"] = content.strip()
+	
+	def _end_identifier(self, name, attrs, content):
+		self.properties["identifier"] = content.strip()
+	
+	def _end_email(self, name, attrs, content):
+		if self.getParentTag()=="contact":
+			self.properties["contact"] = content.strip()
+
+	def _end_referenceURL(self, name, attrs, content):
+		self.properties["referenceURL"] = content.strip()
+
+	def getResult(self):
+		return self.properties
+
+
+class _TablesParser(utils.StartEndHandler):
+# VOSI
+	def __init__(self):
+		utils.StartEndHandler.__init__(self)
+		self.tables = []
+		self.curCol = None
+	
+	def _start_table(self, name, attrs):
+		self.tables.append(V.TABLE())
+	
+	def _start_column(self, name, attrs):
+		self.curCol = V.FIELD()
+
+	def _end_column(self, name, attrs, content):
+		self.tables[-1][self.curCol]
+		self.curCol = None
+
+	def _end_description(self, attName, attrs, content):
+		if self.getParentTag()=="table":
+			destObj = self.tables[-1]
+		elif self.getParentTag()=="column":
+			destObj = self.curCol
+		else:
+			# name/desc of something else -- ignore
+			return
+		destObj[V.DESCRIPTION[content]]
+
+	def _endColOrTableAttr(self, attName, attrs, content):
+		if self.getParentTag()=="table":
+			destObj = self.tables[-1]
+		elif self.getParentTag()=="column":
+			destObj = self.curCol
+		else:
+			# name/desc of something else -- ignore
+			return
+		destObj(**{str(attName): content.strip()})
+	
+	_end_name = _endColOrTableAttr
+	
+	def _endColAttr(self, attName, attrs, content):
+		self.curCol(**{str(attName): content.strip()})
+
+	_end_unit = _end_ucd = _endColAttr
+	
+	def _end_dataType(self, attName, attrs, content):
+		self.curCol(datatype=content.strip())
+		if attrs.has_key("arraysize"):
+			self.curCol(arraysize=attrs["arraysize"])
+
+	def getResult(self):
+		return self.tables
+
+
 class UWSResult(object):
 	"""a container type for a result returned by an UWS service.
 
@@ -248,6 +339,7 @@ def _makeAtomicValueGetter(methodPath, parser):
 		return _parseWith(parser(), response.data)
 	return getter
 
+
 def _makeAtomicValueSetter(methodPath, serializer, parameterName):
 # This is for building ADQLTAPJob's properties (phase, etc.)
 	def setter(self, value):
@@ -258,14 +350,11 @@ def _makeAtomicValueSetter(methodPath, serializer, parameterName):
 	return setter
 
 
-class ADQLTAPJob(object):
-	"""A facade for an ADQL-based async TAP job.
-
-	Construct it with the URL of the async endpoint and a query.
+class _WithEndpoint(object):
+	"""A helper class for classes constructed with an ADQL endpoint.
 	"""
-	def __init__(self, endpointURL, query, lang="ADQL-2.0", userParams={}):
+	def _defineEndpoint(self, endpointURL):
 		self.endpointURL = endpointURL
-		self.lang = lang
 		parts = urlparse.urlsplit(self.endpointURL)
 		assert parts.scheme=="http"
 		self.destHost = parts.hostname
@@ -274,10 +363,20 @@ class ADQLTAPJob(object):
 		self.destPath = parts.path
 		if self.destPath.endswith("/"):
 			self.destPath = self.destPath[:-1]
-		self.destPath = self.destPath+"/async"
+
+
+class ADQLTAPJob(_WithEndpoint):
+	"""A facade for an ADQL-based async TAP job.
+
+	Construct it with the URL of the async endpoint and a query.
+	"""
+	def __init__(self, endpointURL, query, lang="ADQL-2.0", userParams={}):
+		self._defineEndpoint(endpointURL)
+		self.lang = lang
 		self.query = query
 		self.jobId, self.jobPath = None, None
 		self._createJob(userParams)
+		self.destPath = self.destPath+"/async"
 
 	def _createJob(self, userParams):
 		params = {
@@ -450,3 +549,54 @@ class ADQLTAPJob(object):
 			data=form.as_string(), expectedStatus=303, 
 			customHeaders={"content-type": 
 				form.get_content_type()+'; boundary="%s"'%(form.get_boundary())})
+
+
+class ADQLEndpoint(_WithEndpoint):
+	"""A facade for an ADQL endpoint.
+
+	This is only needed for inspecting server metadata (i.e., in general
+	only for rather fancy applications).
+	"""
+	def __init__(self, endpointURL):
+		self._defineEndpoint(endpointURL)
+	
+	def createJob(self, query, lang="ADQL-2.0", userParams={}):
+		return ADQLTAPJob(self.endpointURL, query, lang, userParams)
+
+	@property
+	def available(self):
+		"""returns True, False, or None (undecidable).
+
+		None is returned when /availability gives a 404 (which is legal)
+		or the returned document doesn't parse.
+		"""
+		try:
+			response = request(self.destHost, self.destPath+"/availability",
+				expectedStatus=200)
+			res = _parseWith(_AvailabilityParser(), response.data)
+		except WrongStatus:
+			res = None
+		return res
+	
+	@property
+	def capabilities(self):
+		"""returns a dictionary containing some meta info on the remote service.
+
+		Keys to look for include title, identifier, contact (the mail address),
+		and referenceURL.
+
+		If the remote server doesn't return capabilities as expected, an
+		empty dict is returned.
+		"""
+		return _parseWith(_CapabilitiesParser(), 
+				request(self.destHost, self.destPath+"/capabilities").data)
+
+	@property
+	def tables(self):
+		"""returns a sequence of table definitions for the tables accessible
+		through this service.
+
+		The table definitions come as gavo.votable.Table instances.
+		"""
+		return _parseWith(_TablesParser(),
+				request(self.destHost, self.destPath+"/tables").data)
