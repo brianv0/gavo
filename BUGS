@@ -133,7 +133,7 @@
 	some standard way to answer availability questions, and the main system
 	should be able to override what the service says.
 
-34/LOW/2009-10-05
+34/LOW/2009-10-05/FIXED
 	Replace RDNotFound exception with the more generic NotFoundError.
 
 35/MEDIUM/2009-10-08

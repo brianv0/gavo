@@ -40,7 +40,7 @@ def raiseAndCatch(opts):
 	except Exception, msg:
 		if hasattr(msg, "excRow"):
 			sys.stderr.write("Snafu in %s, %s\n"%(msg.excRow, msg.excCol))
-		sys.stderr.write("Oops.  Unhandled exception.  Here's the traceback:\n")
+		sys.stderr.write("Oops.  Unhandled exception %s.\n"%msg)
 		if opts.enablePDB:
 			raise
 		else:

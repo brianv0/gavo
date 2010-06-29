@@ -17,7 +17,8 @@ from gavo import rscdesc         # for getRD in base.caches
 from gavo import utils
 from gavo.protocols import basic # for registration
 from gavo.base import cron
-from gavo.base import config
+ffrom gavo.base import config
+from gavo.user import serve
 from gavo.web import root
 
 debug = False
@@ -44,9 +45,6 @@ if user:
 
 application = service.Application("archive", uid=uid)
 
-config.setMeta("upSince", datetime.datetime.utcnow().strftime(
-	utils.isoTimestampFmt))
-base.ui.notifyWebServerUp()
-cron.registerScheduleFunction(reactor.callLater)
+serve.setupServer(application)
 internet.TCPServer(base.getConfig("web", "serverPort"), 
 	root.site, interface=interface).setServiceParent(application)

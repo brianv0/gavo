@@ -29,6 +29,7 @@ from nevow import flat
 from nevow import testutil
 from nevow import url
 from nevow import util
+from twisted.internet import reactor
 from twisted.python import threadable
 threadable.init()
 
@@ -213,7 +214,8 @@ class SimpleAsyncTest(TAPRenderTest):
 				self._tapService.getURL("tap")):]
 			self.assertEqual(next, "/async",
 				"Deletion redirect doesn't point to job list but to %s"%next)
-			return self.assertGETLacksStrings(next, {}, ['jobref id="%s"'%jobId])
+			return self.assertGETLacksStrings(next, {}, ['jobref id="%s"'%jobId]
+			).addCallback(lambda res: reactor.disconnectAll())
 
 		def delete(jobId):
 			return trialhelpers.runQuery(self.renderer, "DELETE", "/async/"+jobId, {}

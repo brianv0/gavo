@@ -14,6 +14,9 @@ on verbal permission here. -->
       doctype-public="-//W3C//DTD XHTML 1.0 Strict//EN"
       doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"/>
 
+    <!-- Don't spill the content of unknown elements. -->
+    <xsl:template match="text()"/>
+
     <xsl:template match="uws:parameter">
       <dt><xsl:value-of select="@id"/></dt>
       <dd><xsl:value-of select="text()"/></dd>
@@ -81,8 +84,8 @@ on verbal permission here. -->
               <input type="submit" value="Execute query"/>
           </form>
 
-          <p>If you change anything in the next field, you must hit
-          "Change query". Otherwise, "Execute query" will not pick up 
+          <p>If you edit the query, you must hit
+          "Set query". Otherwise, "Execute query" will not pick up 
           your changes.</p>
 
           <form method="post">
@@ -91,7 +94,7 @@ on verbal permission here. -->
               <textarea name="QUERY" style="width:100%">
                 <xsl:value-of select="//uws:parameter[@id='QUERY']"/>
               </textarea>
-              <input type="submit" value="Change query"/>
+              <input type="submit" value="Set query"/>
           </form>
         </xsl:if>
       <xsl:if test="$phase='EXECUTING' or $phase='QUEUED'">

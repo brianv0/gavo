@@ -15,6 +15,7 @@ ABORTED or ERROR.
 
 from __future__ import with_statement
 
+import datetime
 import os
 import sys
 import time
@@ -141,6 +142,7 @@ def _hangIfMagic(jobId, parameters, timeout):
 		time.sleep(timeout)
 		with tap.TAPJob.makeFromId(jobId) as job:
 			job.phase = uws.COMPLETED
+			job.endTime = datetime.datetime.utcnow()
 		sys.exit()
 
 
@@ -173,6 +175,7 @@ def runTAPJob(parameters, jobId, queryProfile="untrustedquery"):
 	"""
 	with tap.TAPJob.makeFromId(jobId) as job:
 		job.phase = uws.EXECUTING
+		job.startTime = datetime.datetime.utcnow()
 		timeout = job.executionDuration
 	try:
 		_runTAPJob(parameters, jobId, queryProfile, timeout)
@@ -180,9 +183,11 @@ def runTAPJob(parameters, jobId, queryProfile="untrustedquery"):
 		with tap.TAPJob.makeFromId(jobId) as job:
 			# This creates an error document in our WD and writes a log.
 			job.changeToPhase(uws.ERROR, ex)
+			job.endTime = datetime.datetime.utcnow()
 	else:
 		with tap.TAPJob.makeFromId(jobId) as job:
 			job.changeToPhase(uws.COMPLETED, None)
+			job.endTime = datetime.datetime.utcnow()
 
 
 ############### CLI
@@ -263,6 +268,10 @@ def main():
 		pass
 	except uws.JobNotFound: # someone destroyed the job before I was done
 		pass
-	except:
+	except Exception, ex:
 		base.ui.notifyErrorOccurred("Taprunner major failure")
+		# try to push job into the error state -- this may well fail given
+		# that we're quite hosed, but it's worth the try
+		with tap.TAPJob.makeFromId(jobId) as job:
+			job.changeToPhase(uws.ERROR, ex)
 		raise

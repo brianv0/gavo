@@ -5,6 +5,7 @@ A wrapper script suitable for starting the server.
 import datetime
 import os
 import pkg_resources
+import signal
 import sys
 
 from nevow import appserver
@@ -23,15 +24,10 @@ from gavo.web import root
 TWISTD_BIN="/usr/bin/twistd"
 
 
-def parseCmdLine():
-	import optparse
-	knownActions = ("start", "stop", "restart", "debug")
-	parser = optparse.OptionParser(usage="%%prog %s"%("|".join(knownActions)))
-	opts, args = parser.parse_args()
-	if len(args)!=1 or args[0] not in knownActions:
-		parser.print_help()
-		sys.exit(1)
-	return opts, args
+def setupServer(rootPage):
+	config.setMeta("upSince", utils.formatISODT(datetime.datetime.utcnow()))
+	base.ui.notifyWebServerUp()
+	cron.registerScheduleFunction(reactor.callLater)
 
 
 def serverAction(act):
@@ -82,15 +78,24 @@ class ExitPage(rend.Page):
 		return "exiting."
 
 
+
 def debugAction():
 	log.startLogging(sys.stderr)
-	config.setMeta("upSince", datetime.datetime.utcnow().strftime(
-		utils.isoTimestampFmt))
 	root.root.child_exit = ExitPage()
 	reactor.listenTCP(int(base.getConfig("web", "serverPort")), root.site)
-	base.ui.notifyWebServerUp()
-	cron.registerScheduleFunction(reactor.callLater)
+	setupServer(root)
 	reactor.run()
+
+
+def parseCmdLine():
+	import optparse
+	knownActions = ("start", "stop", "restart", "debug")
+	parser = optparse.OptionParser(usage="%%prog %s"%("|".join(knownActions)))
+	opts, args = parser.parse_args()
+	if len(args)!=1 or args[0] not in knownActions:
+		parser.print_help()
+		sys.exit(1)
+	return opts, args
 
 
 def main():

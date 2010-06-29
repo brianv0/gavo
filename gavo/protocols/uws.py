@@ -235,7 +235,7 @@ class UWSJob(object):
 # we can always clean this up later while keeping code assuming
 # the current semantics working.
 	_dbAttrs = ["jobId", "phase", "runId", "quote", "executionDuration",
-		"destructionTime", "owner", "actions", "pid"]
+		"destructionTime", "owner", "actions", "pid", "startTime", "endTime"]
 	_closed = True
 
 	protocolParameters = UWSParameters((), DestructionParameter,
@@ -285,6 +285,8 @@ class UWSJob(object):
 			"runId": None,
 			"owner": None,
 			"pid": None,
+			"startTime": None,
+			"endTime": None,
 			"actions": "TAP",
 		})
 		jobsTable.addRow(kws)
@@ -445,13 +447,13 @@ class UWSJob(object):
 		object.
 		"""
 		try:
-			getActions(self.actions).getTransition(
+			return getActions(self.actions).getTransition(
 				self.phase, newPhase)(newPhase, self, input)
 		except Exception, exception:
 			# transition to error if possible.  If that fails at well,
 			# blindly set error and give up.
 			try:
-				self.changeToPhase(ERROR, exception)
+				return self.changeToPhase(ERROR, exception)
 			except:
 				self.setError(exception)
 				self.phase = ERROR

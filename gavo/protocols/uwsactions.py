@@ -338,6 +338,11 @@ class ResultsAction(JobAction):
 _JobActions.addAction(ResultsAction)
 
 
+def _serializeTime(element, dt):
+	if dt is None:
+		return element(nil="true")
+	return element[utils.formatISODT(dt)]
+
 
 class RootAction(JobAction):
 	"""Actions for async/jobId.
@@ -361,10 +366,10 @@ class RootAction(JobAction):
 			UWS.runId[job.runId],
 			UWS.ownerId(nil="true"),
 			UWS.phase[job.phase],
-			UWS.startTime(nil="true"),
-			UWS.endTime(nil="true"),
+			_serializeTime(UWS.startTime, job.startTime),
+			_serializeTime(UWS.endTime, job.endTime),
 			UWS.executionDuration[str(job.executionDuration)],
-			UWS.destruction[job.destructionTime.isoformat()],
+			UWS.destruction[utils.formatISODT(job.destructionTime)],
 			getParametersElement(job),
 			UWS.results(),
 			getErrorSummary(job)])

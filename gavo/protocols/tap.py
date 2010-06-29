@@ -10,6 +10,8 @@ import subprocess
 import warnings
 
 from pyparsing import ParseException
+from twisted.internet import reactor
+import twisted.internet.utils
 
 from gavo import base
 from gavo import formats
@@ -250,9 +252,34 @@ class TAPActions(uws.UWSActions):
 			(uws.EXECUTING, uws.COMPLETED, "noOp"),
 			(uws.EXECUTING, uws.ABORTED, "killJob"),
 			])
-	
-	def startJob(self, newState, job, ignored):
-		"""forks off a new Job.
+
+	def _notifyJobEnded(self, arg, jobId):
+		# A callback for startJob -- when the gavo tap job has finished,
+		# this makes sure we're not in QUEUED or EXECUTING any more.
+		with uws.UWSJob.makeFromId(jobId) as job:
+			if job.phase==uws.QUEUED or job.phase==uws.EXECUTING:
+				try:
+					raise uws.UWSError("Job hung in %s"%job.phase, job.jobId)
+				except uws.UWSError, ex:
+					job.changeToPhase(uws.ERROR, ex)
+				if isinstance(arg, basestring):
+					print arg
+				else:
+					arg.printTraceback()
+
+
+	def _startJobTwisted(self, newState, job, ignored):
+		"""starts a job when we're running within a twisted reactor.
+		"""
+		return twisted.internet.utils.getProcessOutput("gavo", args=[
+				"--disable-spew", "tap", "--", str(job.jobId)],
+				env=os.environ
+			).addErrback(self._notifyJobEnded, job.jobId
+			).addCallback(self._notifyJobEnded, job.jobId)
+		job.phase = uws.QUEUED
+
+	def _startJobNonTwisted(self, newState, job, ignored):
+		"""forks off a new job when (hopefully) a manual child reaper is in place.
 		"""
 		try:
 			pid = os.fork()
@@ -267,6 +294,17 @@ class TAPActions(uws.UWSActions):
 				raise Exception("Could not fork")
 		except Exception, ex:
 			job.changeToPhase(uws.ERROR, ex)
+
+	def startJob(self, newState, job, ignored):
+		"""starts a job.
+
+		The method will venture a guess whether there is a twisted reactor
+		and dispatch to _startReactorX methods based on this guess.
+		"""
+		if reactor.running:
+			return self._startJobTwisted(newState, job, ignored)
+		else:
+			return self._startJobNonTwisted(newState, job, ignored)
 
 	def killJob(self, newState, job, ignored):
 		"""tries to kill -INT the pid the job has registred.

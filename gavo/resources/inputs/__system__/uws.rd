@@ -31,6 +31,10 @@
 			"Name of the Transitions class managing phase changes for this job"/>
 		<column name="pid" type="integer" description=
 			"A unix pid to kill to make the job stop"/>
+		<column name="startTime" type="timestamp" description=
+			"UTC job execution started"/>
+		<column name="endTime" type="timestamp" description=
+			"UTC job execution finished"/>
 	</table>
 
 	<table id="results" onDisk="True" system="True" primary="jobId,resultName"
