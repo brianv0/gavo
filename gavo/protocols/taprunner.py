@@ -16,12 +16,11 @@ ABORTED or ERROR.
 from __future__ import with_statement
 
 import datetime
+import logging
 import os
 import sys
 import time
 import traceback
-
-from twisted.python import log
 
 from gavo import base
 from gavo import formats
@@ -42,7 +41,7 @@ SUPPORTED_LANGS = {
 
 
 # The pid of the worker db backend.  This is used in the signal handler
-# try and kill the running query.
+# when it tries to kill the running query.
 _WORKER_PID = None
 
 
@@ -88,13 +87,13 @@ def writeResultTo(format, res, outF):
 	formats.formatData(format, res, outF)
 
 
-def runTAPQuery(query, timeout, connection, tdsForUploads):
+def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec):
 	"""executes a TAP query and returns the result in a data instance.
 	"""
 	try:
 		querier = base.SimpleQuerier(connection=connection)
 		return adqlglue.query(querier, query, timeout=timeout,
-			tdsForUploads=tdsForUploads)
+			tdsForUploads=tdsForUploads, externalLimit=maxrec)
 	except:
 		adqlglue.mapADQLErrors(*sys.exc_info())
 
@@ -163,7 +162,7 @@ def _runTAPJob(parameters, jobId, queryProfile, timeout):
 		connectionForQuery)
 
 	res = runTAPQuery(query, timeout, connectionForQuery,
-		tdsForUploads)
+		tdsForUploads, maxrec)
 	with tap.TAPJob.makeFromId(jobId) as job:
 		destF = job.openResult(formats.getMIMEFor(format), "result")
 	writeResultTo(format, res, destF)
@@ -200,7 +199,8 @@ def setINTHandler(jobId):
 
 	def handler(signo, frame):
 		# Let's be reckless for now and kill from the signal handler.
-		log.msg("Runner for job %s received SIGINT, wpid %s"%(jobId, _WORKER_PID))
+		logging.info("Runner for job %s received SIGINT, wpid %s"%(
+			jobId, _WORKER_PID))
 		with tap.TAPJob.makeFromId(jobId) as job:
 			job.phase = uws.ABORTED
 			if _WORKER_PID:
@@ -252,12 +252,17 @@ def main():
 	opts, jobId = parseCommandLine()
 	setINTHandler(jobId)
 	try:
-		theLog = logfile.LogFile("taprunner", base.getConfig("logDir"))
+		import logging.handlers
+		logHandler = logging.handlers.RotatingFileHandler(
+			os.path.join(base.getConfig("logDir"), "taprunner"),
+			maxBytes=500000, backupCount=1)
 		# this will race since potentially many tap runners log to the
 		# same file, but the logs are only for emergencies anyway.
-		log.startLogging(theLog)
+		logging.getLogger("").addHandler(logHandler)
+		logging.getLogger("").setLevel(logging.DEBUG)
+		logging.info("taprunner for %s started"%jobId)
 	except: # don't die just because logging fails
-		pass
+		traceback.print_exc()
 
 	try:
 		with tap.TAPJob.makeFromId(jobId) as job:
@@ -269,7 +274,7 @@ def main():
 	except uws.JobNotFound: # someone destroyed the job before I was done
 		pass
 	except Exception, ex:
-		base.ui.notifyErrorOccurred("Taprunner major failure")
+		logging.error("taprunner %s major failure"%jobId, exc_info=True)
 		# try to push job into the error state -- this may well fail given
 		# that we're quite hosed, but it's worth the try
 		with tap.TAPJob.makeFromId(jobId) as job:

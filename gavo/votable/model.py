@@ -246,7 +246,7 @@ class VOTable(object):
 	class TABLE(_DescribedElement):
 		"""A TABLE element.
 
-		If you want to access fields by name (getFIELDForName), make sure
+		If you want to access fields by name (getFieldForName), make sure
 		name and ids are unique.
 		"""
 		a_nrows = None
@@ -270,7 +270,7 @@ class VOTable(object):
 				self._fieldIndex = index
 			return self._fieldIndex
 
-		def getFIELDForName(self, name):
+		def getFieldForName(self, name):
 			"""returns the FIELD having a name or id of name.
 
 			A KeyError is raised when the field does not exist; if names are

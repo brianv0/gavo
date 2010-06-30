@@ -77,7 +77,7 @@ def serializeParameters(data):
 	# be shorter than 1k; this should ward off broken clients that 
 	# might push in files as "harmless" parameters.
 	for key in data.keys():
-		if len(data[key])>1000:
+		if isinstance(data[key], basestring) and len(data[key])>1000:
 			del data[key]
 	return pickle.dumps(data, 1).encode("base64")
 

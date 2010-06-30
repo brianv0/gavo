@@ -372,18 +372,19 @@ class ADQLTAPJob(_WithEndpoint):
 	"""
 	def __init__(self, endpointURL, query, lang="ADQL-2.0", userParams={}):
 		self._defineEndpoint(endpointURL)
+		self.destPath = self.destPath+"/async"
 		self.lang = lang
 		self.query = query
 		self.jobId, self.jobPath = None, None
 		self._createJob(userParams)
-		self.destPath = self.destPath+"/async"
 
 	def _createJob(self, userParams):
 		params = {
 			"REQUEST": "doQuery",
 			"LANG": self.lang,
 			"QUERY": self.query}
-		params.update(userParams)
+		for k,v in userParams.iteritems():
+			params[k] = str(v)
 		response = request(self.destHost, self.destPath, params,
 			method="POST", expectedStatus=303)
 		# The last part of headers[location] now contains the job id

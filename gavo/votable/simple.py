@@ -49,6 +49,9 @@ class TableMetadata(object):
 	def __getitem__(self, index):
 		return self.fields[index]
 
+	def getFields(self):
+		return self.votTable.getFields()
+
 
 def makeDtype(tableMetadata):
 	"""returns an record array datatype for a given table metadata.

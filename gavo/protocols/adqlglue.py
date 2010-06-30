@@ -152,7 +152,8 @@ def getFieldInfoGetter(accessProfile=None, tdsForUploads=[]):
 	return getFieldInfos
 
 
-def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[]):
+def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
+		externalLimit=None):
 	"""returns a DataSet for query (a string containing ADQL).
 
 	This will set timeouts and other things for the connection in
@@ -160,7 +161,10 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[]):
 	"""
 	t = adql.parseToTree(query)
 	if t.setLimit is None:
-		t.setLimit = str(base.getConfig("adql", "webDefaultLimit"))
+		if externalLimit is None:
+			t.setLimit = str(base.getConfig("adql", "webDefaultLimit"))
+		else:
+			t.setLimit = str(int(externalLimit))
 	adql.annotate(t, getFieldInfoGetter(metaProfile, tdsForUploads))
 	q3cstatus, t = adql.insertQ3Calls(t)
 # XXX FIXME: evaluate q3cstatus for warnings (currently, I think there are none)
