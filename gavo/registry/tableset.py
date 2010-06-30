@@ -2,6 +2,7 @@
 Generation of VODataService 1.1 tablesets from resources.
 """
 
+from gavo import base
 from gavo import svcs
 from gavo.registry import capabilities
 from gavo.registry.model import VS1
@@ -49,7 +50,7 @@ def getTableForTableDef(tableDef):
 	"""returns a VS1.table instance for a rscdef.TableDef.
 	"""
 	return VS1.table[
-		VS1.name["%s.%s"%(tableDef.rd.schema, tableDef.id)],
+		VS1.name[tableDef.getQName()],
 		VS1.title[tableDef.getMeta("title", propagate=False)],
 		VS1.title[tableDef.getMeta("description", propagate=False)], [
 			getTableColumnFromColumn(col, VS1.voTableDataType)
@@ -59,11 +60,21 @@ def getTableForTableDef(tableDef):
 
 
 def getTablesetForService(service):
-	"""returns a VS1.tableset for a service.
+	"""returns a VS1.tableset for a dbCore-based service.
 
 	This is for VOSI queries.  It uses the service's getTableset
 	method to find out the service's table set.
 	"""
-	return VS1.tableset[
-		getSchemaForRD(service.rd)[[
-			getTableForTableDef(t) for t in service.getTableSet()]]]
+	tables = service.getTableSet()
+	byRD = {}
+	for t in tables:
+		byRD.setdefault(t.rd.sourceId, []).append(t)
+	if tables:
+		return VS1.tableset[[ 
+				getSchemaForRD(base.caches.getRD(rdId))[[
+					getTableForTableDef(t) for t in tables]]
+			for rdId, tables in byRD.iteritems()]]
+	else:
+		return VS1.tableset[
+			VS1.schema[
+				VS1.name["default"]]]

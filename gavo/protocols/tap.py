@@ -262,12 +262,15 @@ class _TAPBackendProtocol(protocol.ProcessProtocol):
 	def processEnded(self, statusObject):
 		"""tries to ensure the job is in an admitted end state.
 		"""
-		with uws.UWSJob.makeFromId(self.jobId) as job:
-			if job.phase==uws.QUEUED or job.phase==uws.EXECUTING:
-				try:
-					raise uws.UWSError("Job hung in %s"%job.phase, job.jobId)
-				except uws.UWSError, ex:
-					job.changeToPhase(uws.ERROR, ex)
+		try:
+			with uws.UWSJob.makeFromId(self.jobId) as job:
+				if job.phase==uws.QUEUED or job.phase==uws.EXECUTING:
+					try:
+						raise uws.UWSError("Job hung in %s"%job.phase, job.jobId)
+					except uws.UWSError, ex:
+						job.changeToPhase(uws.ERROR, ex)
+		except uws.JobNotFound: # job already deleted
+			pass
 
 
 class TAPActions(uws.UWSActions):
