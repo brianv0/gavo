@@ -33,10 +33,12 @@ class TableMetadata(object):
 	"""Metadata for a VOTable table instance, i.e., column definitions, groups,
 	etc.
 
-	These are constructed with a VOTable TABLE instance.
+	These are constructed with a VOTable TABLE instance and infos, a dictionary
+	mapping info names to lists of V.INFO items.
 	"""
-	def __init__(self, tableElement):
+	def __init__(self, tableElement, infos):
 		self.votTable = tableElement
+		self.infos = infos
 		self.fields = list(tableElement.iterChildrenOfType(V.FIELD))
 # ... do stuff ...
 
@@ -84,10 +86,20 @@ def load(source):
 	"""
 	if isinstance(source, basestring):
 		source = file(source)
+	infos = {}
+
+	# the following loop is a bit weird since we want to catch info items
+	# after the table and thus only exit the loop when the next table starts
+	# or the iterator is exhausted.
 	rows = None
-	for rows in parser.parse(source):
-		break
+	for element in parser.parse(source, [V.INFO]):
+		if isinstance(element, V.INFO):
+			infos.setdefault(element.a_name, []).append(element)
+		else:
+			if rows is not None:
+				break
+			fields = TableMetadata(element.tableDefinition, infos)
+			rows = list(element)
 	if rows is None: # No table included
 		return None, None
-	fields = TableMetadata(rows.tableDefinition)
-	return list(rows), fields
+	return rows, fields

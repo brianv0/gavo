@@ -730,6 +730,13 @@ class InfoItem(MetaValue):
 		self.infoId = infoId
 
 
+class EndInfoItem(InfoItem):
+	"""An InfoItem that's supposed to be below TABLE in a RESOURCE.
+
+	This is a hack to accomodate a somewhat baroque requirement in TAP.
+	"""
+
+
 class LogoMeta(MetaValue):
 	"""A MetaItem corresponding to a small image.
 
@@ -764,6 +771,7 @@ class BibcodeMeta(MetaValue):
 _metaTypeRegistry = {
 	"link": MetaURL,
 	"info": InfoItem,
+	"endinfo": EndInfoItem,
 	"logo": LogoMeta,
 	"bibcodes": BibcodeMeta,
 	"news": NewsMeta,
@@ -775,6 +783,7 @@ _typesForKeys = {
 	"_news": "news",
 	"referenceURL": "link",
 	"info": "info",
+	"endinfo": "endinfo",
 	"logo": "logo",
 	"source": "bibcodes",
 	"note": "note",

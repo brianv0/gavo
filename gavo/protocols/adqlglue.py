@@ -188,6 +188,8 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
 		querier.rollback()
 	for warning in morphStatus.warnings:
 		table.tableDef.addMeta("_warning", warning)
+	if len(table)==int(t.setLimit):
+		table.addMeta("_overflow", t.setLimit)
 	return table
 
 

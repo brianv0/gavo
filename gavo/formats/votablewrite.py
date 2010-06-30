@@ -59,7 +59,9 @@ def _iterInfoInfos(dataSet):
 	for infoItem in dataSet.getMeta("info", default=[]):
 		name, value, id = infoItem.infoName, infoItem.infoValue, infoItem.infoId
 		yield V.INFO(name=name, value=value, id=id)[infoItem.getContent()]
-
+	for infoItem in dataSet.getMeta("endinfo", default=[]):
+		name, value, id = infoItem.infoName, infoItem.infoValue, infoItem.infoId
+		yield V.INFO_atend(name=name, value=value, id=id)[infoItem.getContent()]
 
 def _iterWarningInfos(dataSet):
 	"""yields INFO items containing warnings from the tables in dataSet.

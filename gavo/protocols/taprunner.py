@@ -24,6 +24,7 @@ import traceback
 
 from gavo import base
 from gavo import formats
+from gavo import rsc
 from gavo import utils
 from gavo.grammars import votablegrammar
 from gavo.formats import votableread
@@ -81,6 +82,22 @@ def _parseTAPParameters(jobId, parameters):
 	except KeyError:
 		maxrec = base.getConfig("async", "defaultMAXREC")
 	return query, format, maxrec
+
+
+def _makeDataFor(resultTable, job):
+	"""returns an rsc.Data instance containing resultTable and some
+	additional metadata.
+	"""
+	resData = rsc.wrapTable(resultTable)
+	resData.addMeta("info", base.makeMetaValue("Query successful",
+		name="info", infoName="QUERY_STATUS", infoValue="OK"))
+	overflowedNo = base.getMetaText(resultTable, "_overflow")
+	if overflowedNo:
+		resData.addMeta("endinfo", base.makeMetaValue("Query (probably)"
+			" truncated at element %s"%overflowedNo,
+			name="endinfo", infoName="QUERY_STATUS", infoValue="OVERFLOW"))
+
+	return resData
 
 
 def writeResultTo(format, res, outF):
@@ -165,6 +182,7 @@ def _runTAPJob(parameters, jobId, queryProfile, timeout):
 		tdsForUploads, maxrec)
 	with tap.TAPJob.makeFromId(jobId) as job:
 		destF = job.openResult(formats.getMIMEFor(format), "result")
+		res = _makeDataFor(res, job)
 	writeResultTo(format, res, destF)
 	destF.close()
 

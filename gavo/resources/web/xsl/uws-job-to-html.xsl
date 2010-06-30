@@ -57,10 +57,8 @@ on verbal permission here. -->
         <dt><xsl:text>Destruction time:</xsl:text></dt>
         <dd><xsl:value-of select="uws:destruction"/></dd>
 
-        <xsl:if test="$phase='PENDING'">
-          <dt>Parameters</dt>
-          <dd><xsl:apply-templates/></dd>
-        </xsl:if>
+        <dt>Parameters</dt>
+        <dd><xsl:apply-templates/></dd>
 
         <xsl:if test="$phase='COMPLETED'">
           <dt><xsl:text>Query results:</xsl:text></dt>

@@ -179,6 +179,11 @@ class VOTable(object):
 		def isEmpty(self):
 			return self.a_value is None
 
+	class INFO_atend(INFO):
+		# a bad hack; TAP mandates INFO items below table, and this is
+		# the least complicated way to force this.
+		def getElName(self):
+			return "INFO"
 	
 	class LINK(_VOTElement):
 		a_ID = None
@@ -230,7 +235,7 @@ class VOTable(object):
 		a_type = None
 		a_utype = None
 		childSequence = ["DESCRIPTION", "DEFINITIONS", "COOSYS", "INFO", "GROUP", 
-			"PARAM", "LINK", "TABLE", "RESOURCE"]
+			"PARAM", "LINK", "TABLE", "INFO_atend", "RESOURCE"]
 
 
 	class STREAM(_VOTElement):

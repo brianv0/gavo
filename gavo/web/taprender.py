@@ -119,7 +119,8 @@ class TAPQueryResource(rend.Page):
 				).addCallback(self._formatResult, ctx
 				).addErrback(self._formatError)
 		except base.Error, ex:
-			return base.ui.logOldExc(ErrorResource(unicode(ex), ex))
+			base.ui.notifyExceptionMutation(None)
+			return ErrorResource(unicode(ex))
 
 	def _formatError(self, failure):
 		failure.printTraceback()
@@ -132,7 +133,7 @@ class TAPQueryResource(rend.Page):
 		def writeTable(outputFile):
 			utils.cat(f, outputFile)
 
-		request.setHeader("content-type", type)
+		request.setHeader("content-type", str(type))
 		# if request has an accumulator, we're testing.
 		if hasattr(request, "accumulator"):
 			writeTable(request)
@@ -252,6 +253,12 @@ def reparseRequestArgs(ctx):
 				if key.upper() in _caseInsensitiveKeys:
 					key = key.upper()
 				request.scalars[key] = request.fields.getfirst(key)
+	else:
+		for key, val in request.args.iteritems():
+			if val:
+				request.scalars[key] = val[0]
+			else:
+				request.scalars[key] = None
 
 
 class TAPRenderer(grend.ServiceBasedRenderer):
@@ -297,7 +304,7 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 			raise
 		except base.Error, ex:
 			# see flagError in protocols.uws for the reason for the next if
-			if not isinstance(exception, base.ValidationError):
+			if not isinstance(ex, base.ValidationError):
 				base.ui.notifyErrorOccurred("TAP error")
 			return ErrorResource(str(ex), ex), ()
 		raise common.UnknownURI("Bad TAP path %s"%"/".join(segments))
