@@ -1,6 +1,11 @@
 <resource schema="tap_schema">
 	<meta name="description">Data and services dealing with the
 		Table Access Protocol TAP.</meta>
+	<meta name="creationDate">2009-12-01T10:00:00</meta>
+	<meta name="subject">Virtual observatory</meta>
+	<meta name="subject">Catalogs</meta>
+
+
 	<property name="TAP_VERSION">1.0</property>
 	<meta name="_longdoc" format="rst">
 	Issues
@@ -256,5 +261,6 @@
 			database table, inspect various metadata, and upload your own
 			data.  It is thus the VO's premier way to access public data
 			holdings.</meta>
+		<publish render="tap" sets="ivo_managed,local"/>
 	</service>
 </resource>

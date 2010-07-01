@@ -129,7 +129,10 @@ def main():
 	opts, module, funcName = _parseCLArgs()
 	with _progressText(opts):
 		from gavo import api
+		from gavo import base
 		from gavo.user import errhandle
+		from gavo.user import logui
+		logui.LoggingUI(base.ui)
 		if opts.enablePDB:
 			_enablePDB()
 		funcToRun = getattr(loadGAVOModule(module), funcName)

@@ -649,3 +649,20 @@ class SCS:
 	class dec(SCSElement): pass
 	class sr(SCSElement): pass
 	class extras(SCSElement): pass
+
+
+class TAP:
+	"""is a container for elements describing TAP services.
+
+	A schema for this doesn't exist as of 2010-07, so I'm basically defining
+	an interface element with a couple of attributes as suggested by Ray
+	Plante in http://www.ivoa.net/forum/dal/0910/1620.htm.
+	"""
+	class interface(VOR.interface):
+		a_role = "std"
+		a_xsi_type = "vs:ParamHTTP"
+		a_xmlns_vs = VSNamespace
+		xmlns_vs_name = "xmlns:vs"
+
+	class capability(VOR.capability):
+		a_standardID = 	"ivo://ivoa.net/std/TAP"

@@ -1,10 +1,10 @@
-"""
+""" 
 VOResource capability/interface elements.
 
 The basic mapping from our RD elements to VOResource elements is that
 each renderer on a service translates to a capability with one interface.
-Thus, in the module we mostly deal with publication objects.  If you need
-the service, it's right there in publication.parent.
+Thus, in the module we mostly deal with publication objects.  If you
+need the service object, use publication.parent.
 """
 
 from gavo import base
@@ -12,7 +12,8 @@ from gavo import svcs
 from gavo import utils
 from gavo.base import typesystems
 from gavo.registry.common import *
-from gavo.registry.model import (OAI, VOR, VOG, DC, RI, VS, SIA, SCS, OAIDC)
+from gavo.registry.model import (OAI, OAIDC, VOR, VOG, DC, RI, VS,
+	SIA, SCS, TAP)
 
 
 ###################### Helpers
@@ -119,6 +120,14 @@ class SIAPInterface(InterfaceWithParams):
 class SCSInterface(InterfaceWithParams):
 	renderer = "scs.xml"
 	interfaceClass = SCS.interface
+
+
+class TAPInterface(InterfaceMaker):
+# for TAP, result type is tricky, and we don't have good metadata
+# on the accepted input parameters (QUERY, etc).  We should really
+# provide them when we have extensions...
+	renderer = "tap"
+	interfaceClass = TAP.interface
 
 
 class SOAPInterface(InterfaceMaker):
@@ -258,6 +267,11 @@ class SCSCapabilityMaker(CapabilityMaker):
 		]
 
 
+class TAPCapabilityMaker(CapabilityMaker):
+	renderer = "tap"
+	capabilityClass = TAP.capability
+
+
 class RegistryCapabilityMaker(CapabilityMaker):
 	renderer = "pubreg.xml"
 	capabilityClass = VOG.Harvest
@@ -275,6 +289,7 @@ class VOSICapabilityMaker(CapabilityMaker):
 		return CapabilityMaker._makeCapability(self, publication)(
 			standardID=self.standardID)
 
+
 class VOSIAvCapabilityMaker(VOSICapabilityMaker):
 	renderer = "availability"
 	standardID = "ivo://ivoa.net/stc/VOSI#availability"
@@ -286,7 +301,6 @@ class VOSICapCapabilityMaker(VOSICapabilityMaker):
 class VOSITMCapabilityMaker(VOSICapabilityMaker):
 	renderer = "tableMetadata"
 	standardID = "ivo://ivoa.net/stc/VOSI#tables"
-
 
 class SOAPCapabilityMaker(CapabilityMaker):
 	renderer = "soap"

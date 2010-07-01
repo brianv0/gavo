@@ -267,6 +267,7 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 	Basically, this just dispatches to the sync and async resources.
 	"""
 	name = "tap"
+	urlUse = "base"
 
 	def renderHTTP(self, ctx):
 		# we *could* have some nice intro here, but really -- let's just

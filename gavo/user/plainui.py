@@ -3,8 +3,6 @@ An observer that dumps all kinds of events to the screen with little or
 no formatting.
 """
 
-import logging
-
 from gavo import utils
 from gavo.base import ObserverBase, listensTo
 
@@ -58,11 +56,6 @@ class PlainUI(ObserverBase):
 	def announceScriptRunning(self, runner):
 		self.showMsg("%s excecuting script %s"%(
 			runner.__class__.__name__, runner.name))
-	
-	@listensTo("ExceptionMutation")
-	def logOldException(self, excInfo, newExc):
-		log.info("Swallowed the exception below, re-raising %s"%
-			str(newExc), exc_info=excInfo)
 	
 	@listensTo("ErrorOccurred")
 	def printErrMsg(self, errMsg):

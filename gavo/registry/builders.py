@@ -3,6 +3,14 @@ Functions returning xmlstan for various OAI/VOR documents.
 
 This comprises basic VOResource elements; capabilities and interfaces
 (i.e. everything to do with renderers) are in registry.capabilities.
+
+All this only becomes difficult when actually generating VOResource
+metadata (OAI is plain).  For every type of VO resource (CatalogService,
+Registry, etc), there's a XYResourceMaker, all inheriting ResourceMaker.
+
+The decision what VOResource type a given service has is passed
+using common.getResType; this means the resType meta is tried first,
+using resob.resType as a fallback.
 """
 
 import traceback
@@ -13,6 +21,7 @@ from gavo import utils
 from gavo.base import meta
 from gavo.registry import capabilities
 from gavo.registry import identifiers
+from gavo.registry import tableset
 from gavo.registry import servicelist
 from gavo.registry.common import *
 from gavo.registry.model import (OAI, VOR, VOG, DC, RI, VS, SIA, SCS, OAIDC)
@@ -276,27 +285,18 @@ class TabularServiceResourceMaker(DataServiceResourceMaker):
 	"""a base class for Catalog und TableServices.
 
 	This is necessary because coverage meta has this cumbersome location.
-
-	Override the _getCoverage method (returning xmlstan) to actually
-	fill in coverage.
 	"""
-	def _getCoverage(self, service):
-		return None
-
 	def _makeResource(self, service, setNames):
 		return DataServiceResourceMaker._makeResource(self, service, setNames)[
 			VS.table(role="out")[
-				self._getCoverage(service),
 				[capabilities.getTableParamFromColumn(f)
 					for f in service.getAllOutputFields()]]]
+# when we have VS version 1.1: tableset.getTablesetForService(service)]
 
 
 class CatalogServiceResourceMaker(TabularServiceResourceMaker):
 	resourceClass = VS.CatalogService
 	resType = "catalogService"
-
-	def _getCoverage(self, service):
-		return None # XXX TODO: insert actual coverage.
 
 
 class TableServiceResourceMaker(TabularServiceResourceMaker):
