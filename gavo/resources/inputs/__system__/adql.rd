@@ -13,6 +13,8 @@
 On this page, you can use
 `ADQL <http://www.ivoa.net/Documents/latest/ADQL.html>`_ to query 
 \RSTservicelink{/__system__/dc_tables/list/form}{some of our tables}.
+This is mainly for dabbling; use \RSTservicelink{/tap}{TAP} for larger
+jobs.
 
 To learn what ADQL is or for further information on this implementation, see the
 \RSTservicelink{/__system__/adql/query/info}{service info}.  

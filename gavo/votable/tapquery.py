@@ -199,27 +199,40 @@ class _AvailabilityParser(utils.StartEndHandler):
 		return self.available
 
 
+def _pruneAttrNS(attrs):
+	return dict((k.split(":")[-1], v) for k,v in attrs.items())
+
+
 class _CapabilitiesParser(utils.StartEndHandler):
-# VOSI
+# VOSI; each capability is a dict with at least a key interfaces.
+# each interface is a dict with key type (namespace prefix not expanded; 
+# change that?), accessURL, and use.
 	def __init__(self):
 		utils.StartEndHandler.__init__(self)
-		self.properties = {}
-	
-	def _end_title(self, name, attrs, content):
-		self.properties["title"] = content.strip()
-	
-	def _end_identifier(self, name, attrs, content):
-		self.properties["identifier"] = content.strip()
-	
-	def _end_email(self, name, attrs, content):
-		if self.getParentTag()=="contact":
-			self.properties["contact"] = content.strip()
+		self.capabilities = []
 
-	def _end_referenceURL(self, name, attrs, content):
-		self.properties["referenceURL"] = content.strip()
+	def _start_capability(self, name, attrs):
+		self.curCap = {"interfaces": []}
+		self.curCap["standardID"] = attrs.get("standardID")
 
+	def _end_capability(self, name, attrs, content):
+		self.capabilities.append(self.curCap)
+		self.curCap = None
+
+	def _start_interface(self, name, attrs):
+		attrs = _pruneAttrNS(attrs)
+		self.curInterface = {"type": attrs["type"], "role": attrs.get("role")}
+
+	def _end_interface(self,name, attrs, content):
+		self.curCap["interfaces"].append(self.curInterface)
+		self.curInterface = None
+
+	def _end_accessURL(self, name, attrs, content):
+		self.curInterface["accessURL"] = content.strip()
+		self.curInterface["use"] = attrs.get("use")
+	
 	def getResult(self):
-		return self.properties
+		return self.capabilities
 
 
 class _TablesParser(utils.StartEndHandler):
