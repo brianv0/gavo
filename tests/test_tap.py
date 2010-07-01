@@ -72,8 +72,9 @@ class SyncMetaTest(TAPRenderTest):
 		"""simple get capabilities response looks ok.
 		"""
 		return self.assertGETHasStrings("/sync", 
-			{"REQUEST": "getCapabilities"},
-			['<ri:Resource ', '<referenceURL>http://'])
+			{"REQUEST": "getCapabilities"}, [
+				'<capability standardID="ivo://ivoa.net/std/TAP">', 
+				'ParamHTTP">'])
 
 
 class SyncQueryTest(TAPRenderTest):

@@ -22,6 +22,8 @@ VSNamespace ="http://www.ivoa.net/xml/VODataService/v1.0"
 VS1Namespace ="http://www.ivoa.net/xml/VODataService/v1.1"
 SCSNamespace = "http://www.ivoa.net/xml/ConeSearch/v1.0" 
 SIANamespace="http://www.ivoa.net/xml/SIA/v1.0" 
+AVLNamespace = "http://www.ivoa.net/xml/VOSIAvailability/v1.0"
+CAPNamespace = "http://www.ivoa.net/xml/VOSICapabilities/v1.0"
 
 # Since we usually have the crappy namespaced attribute values (yikes!),
 # and ElementTree is (IMHO rightly) unaware of schemata, we need this 
@@ -37,6 +39,8 @@ ElementTree._namespace_map[VSNamespace] = "vs"
 ElementTree._namespace_map[VS1Namespace] = "vs1"
 ElementTree._namespace_map[SCSNamespace] = "cs"
 ElementTree._namespace_map[SIANamespace] = "sia"
+ElementTree._namespace_map[AVLNamespace] = "avl"
+ElementTree._namespace_map[CAPNamespace] = "cap"
 
 
 _schemaLocations = {
@@ -50,6 +54,8 @@ _schemaLocations = {
 	VS1Namespace: schemaURL("VODataService-v1.1.xsd"),
 	SCSNamespace: schemaURL("ConeSearch-v1.0.xsd"),
 	SIANamespace: schemaURL("SIA-v1.0.xsd"),
+	AVLNamespace: schemaURL("VOSIAvailability-v1.0.xsd"),
+	CAPNamespace: schemaURL("VOSICapabilities-v1.0.xsd"),
 }
 
 

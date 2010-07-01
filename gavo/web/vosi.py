@@ -15,7 +15,8 @@ from gavo import registry
 from gavo import svcs
 from gavo import utils
 from gavo.base import meta
-from gavo.registry import builders
+from gavo.registry import capabilities
+from gavo.registry import model
 from gavo.utils import ElementTree
 from gavo.utils.stanxml import Element, XSINamespace, schemaURL
 from gavo.web import grend
@@ -57,19 +58,14 @@ class VOSIRenderer(grend.ServiceBasedRenderer):
 
 ############ The availability data model (no better place for it yet)
 
-AVLNamespace = "http://www.ivoa.net/xml/Availability/v0.4"
-ElementTree._namespace_map[AVLNamespace] = "avl"
 
 class AVL(object):
-	"""The container for elements from this IVOA availability schema.
+	"""The container for elements from the VOSI availability schema.
 	"""
 	class AVLElement(Element):
-		namespace = AVLNamespace
+		namespace = model.AVLNamespace
 	
 	class availability(AVLElement):
-		a_xsi_schemaLocation = "%s %s"%(AVLNamespace, 
-			schemaURL("availability-0.4.xsd"))
-		xsi_schemaLocation_name = "xsi:schemaLocation"
 		a_xmlns_xsi = XSINamespace
 		xmlns_xsi_name = "xmlns:xsi"
 	
@@ -78,6 +74,17 @@ class AVL(object):
 	class downAt(AVLElement): pass
 	class backAt(AVLElement): pass
 	class note(AVLElement): pass
+
+
+class CAP(object):
+	"""The container for element from the VOSI capabilities schema.
+	"""
+	class CAPElement(Element):
+		namespace = model.CAPNamespace
+	
+	class capabilities(CAPElement):
+		a_xmlns_xsi = XSINamespace
+		xmlns_xsi_name = "xmlns:xsi"
 
 
 SF = meta.stanFactory
@@ -97,24 +104,27 @@ class VOSIAvailabilityRenderer(VOSIRenderer):
 	name = "availability"
 
 	def _getTree(self, request):
-		return AVL.availability[
+		root = AVL.availability[
 			_availabilityBuilder.build(self.service)]
+		registry.addSchemaLocations(root)
+		return root
 
 svcs.registerRenderer(VOSIAvailabilityRenderer)
 
 
 class VOSICapabilityRenderer(VOSIRenderer):
 	"""A renderer for a VOSI capability endpoint.
-
-	We just return the complete service record since inventing some
-	container element doesn't really cut it here.
 	"""
 	name = "capabilities"
+
+	vosiSet = set(['ivo_managed'])
 
 	def _getTree(self, request):
 		request.setHeader("Last-Modified", 
 			utils.datetimeToRFC2616(self.service.rd.dateUpdated))
-		root = registry.getVORMetadataElement(self.service)
+		root = CAP.capabilities[[
+			capabilities.getCapabilityElement(pub)
+				for pub in self.service.getPublicationsForSet(self.vosiSet)]]
 		registry.addSchemaLocations(root)
 		return root
 
