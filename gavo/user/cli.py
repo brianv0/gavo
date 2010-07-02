@@ -106,6 +106,9 @@ def _parseCLArgs():
 	parser.add_option("--profile-to", metavar="PROFILEPATH",
 		help="enable profiling and write a profile to PROFILEPATH",
 		action="store", dest="profilePath", default=None)
+	parser.add_option("--suppress-log", help="Do not log exceptions and such"
+		" to the gavo-specific log files", action="store_true",
+		dest="suppressLog")
 
 	opts, args = parser.parse_args()
 	if len(args)<1:
@@ -132,7 +135,8 @@ def main():
 		from gavo import base
 		from gavo.user import errhandle
 		from gavo.user import logui
-		logui.LoggingUI(base.ui)
+		if not opts.suppressLog:
+			logui.LoggingUI(base.ui)
 		if opts.enablePDB:
 			_enablePDB()
 		funcToRun = getattr(loadGAVOModule(module), funcName)
