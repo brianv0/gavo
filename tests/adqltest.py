@@ -712,12 +712,12 @@ class ColResTest(ColumnTest):
 			" PI(), ABS(width), Ceiling(Width), Truncate(height*2)"
 			" from spatial")
 		self._assertColumns(cols, [
-			("rad", "", False),
-			("deg", "pos.eq.ra", False),
-			("rad", "pos.eq.ra;meta.main", False),
-			("", "", False),
-			("m", "phys.dim", False),
-			("m", "phys.dim", False),
+			("rad", "", True),
+			("deg", "pos.eq.ra", True),
+			("rad", "pos.eq.ra;meta.main", True),
+			("", "", True),
+			("m", "phys.dim", True),
+			("m", "phys.dim", True),
 			("km", "phys.dim", True)])
 
 	def testAggFunctions(self):

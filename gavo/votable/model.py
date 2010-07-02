@@ -28,18 +28,6 @@ class VOTable(object):
 		mayBeEmpty = True
 
 		def getDesignation(self):
-			"""returns something to "call" this element.
-
-			This is a name, if possible, else the id.  Weird characters are
-			replaced, so the result should be safe to embed in code.
-			"""
-			name = self.a_name
-			if name is None:
-				name = self.a_ID
-			if name is None:
-				name = "UNIDENTIFIED"
-
-		def getDesignation(self):
 			"""returns some name-like thing for a FIELD or PARAM.
 			"""
 			if self.a_name:
@@ -50,6 +38,13 @@ class VOTable(object):
 				res = "%s_%s"%(self.__class__.__name__, "%x"%id(self))
 			return res.encode("ascii", "ignore")
 
+		def getDescription(self):
+			"""returns the description for this element, or an empty string.
+			"""
+			try:
+				return self.iterChildrenOfType(VOTable.DESCRIPTION).next().text
+			except StopIteration:
+				return ""
 
 
 	class _ValuedElement(_DescribedElement):

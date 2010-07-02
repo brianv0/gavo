@@ -308,10 +308,7 @@ class RegistryRenderer(grend.ServiceBasedRenderer):
 
 	def _renderError(self, failure, ctx, pars):
 		try:
-			try:
-				failure.raiseException()
-			except:
-				base.ui.logOldExc(None)
+			base.ui.notifyFailure(failure)
 			return self._renderXML(self._getErrorTree(failure.value, pars),
 				ctx)
 		except:

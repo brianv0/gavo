@@ -978,6 +978,7 @@ class NumericValueFunction(FunctionNode):
 		if overrideUCD:
 			ucd = overrideUCD
 		self.fieldInfo = FieldInfo(unit, ucd, *collectUserData(infoChildren))
+		self.fieldInfo.tainted = True
 
 
 class CharacterStringLiteral(FieldInfoedNode):

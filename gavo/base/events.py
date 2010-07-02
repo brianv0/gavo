@@ -175,8 +175,23 @@ class EventDispatcher(object):
 		"""is called when something wants to put out an error message.
 
 		The handlers receive the error message as-is.
+
+		In general, you will be in an exception context when you receive
+		this error, but your handlers should not bomb out when you are not.
 		"""
 		return errmsg
+
+	def notifyFailure(self, failure):
+		"""is called when an unexpected twisted failure is being processed.
+
+		You should not listen on this, since the handler just receives None.
+		Rather, these events are converted to ErrorOccurreds including the
+		failure's traceback.
+		"""
+		try:
+			failure.raiseException()
+		except Exception, ex:
+			self.notifyErrorOccurred(str(ex))
 
 	def notifyWarning(self, message):
 		"""is called when something tries to emit communicate non-fatal trouble.

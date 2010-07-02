@@ -86,10 +86,9 @@ class TAPQueryResource(rend.Page):
 	"""
 	def _doRender(self, ctx):
 		with tap.TAPJob.createFromRequest(inevow.IRequest(ctx)) as job:
-			parameters = job.parameters
 			job.executionduration = base.getConfig("async", "defaultExecTimeSync")
 			jobId = job.jobId
-		taprunner.runTAPJob(parameters, jobId)
+		taprunner.runTAPJob(jobId)
 		with tap.TAPJob.makeFromId(jobId) as job:
 			if job.phase==uws.COMPLETED:
 				# This is TAP, so there's exactly one result
@@ -123,7 +122,7 @@ class TAPQueryResource(rend.Page):
 			return ErrorResource(unicode(ex))
 
 	def _formatError(self, failure):
-		failure.printTraceback()
+		base.ui.notifyFailure(failure)
 		return ErrorResource(failure.getErrorMessage(), failure.value)
 
 	def _formatResult(self, res, ctx):

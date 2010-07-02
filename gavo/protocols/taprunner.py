@@ -187,13 +187,14 @@ def _runTAPJob(parameters, jobId, queryProfile, timeout):
 	destF.close()
 
 
-def runTAPJob(parameters, jobId, queryProfile="untrustedquery"):
+def runTAPJob(jobId, queryProfile="untrustedquery"):
 	"""executes a TAP job defined by parameters and job id.
 	"""
 	with tap.TAPJob.makeFromId(jobId) as job:
 		job.phase = uws.EXECUTING
 		job.startTime = datetime.datetime.utcnow()
 		timeout = job.executionDuration
+		parameters = job.parameters
 	try:
 		_runTAPJob(parameters, jobId, queryProfile, timeout)
 	except Exception, ex:
@@ -201,6 +202,8 @@ def runTAPJob(parameters, jobId, queryProfile="untrustedquery"):
 			# This creates an error document in our WD and writes a log.
 			job.changeToPhase(uws.ERROR, ex)
 			job.endTime = datetime.datetime.utcnow()
+		base.ui.notifyErrorOccurred("While executing TAP job %s: %s"%(
+			jobId, ex))
 	else:
 		with tap.TAPJob.makeFromId(jobId) as job:
 			job.changeToPhase(uws.COMPLETED, None)
@@ -283,14 +286,12 @@ def main():
 		traceback.print_exc()
 
 	try:
-		with tap.TAPJob.makeFromId(jobId) as job:
-			parameters = job.parameters
-		
-		_runInThread(lambda: runTAPJob(parameters, jobId))
+		_runInThread(lambda: runTAPJob(jobId))
+		logging.info("taprunner for %s finished successfully"%jobId)
 	except SystemExit:
 		pass
 	except uws.JobNotFound: # someone destroyed the job before I was done
-		pass
+		logging.info("giving up non-existing TAP job %s."%jobId)
 	except Exception, ex:
 		logging.error("taprunner %s major failure"%jobId, exc_info=True)
 		# try to push job into the error state -- this may well fail given

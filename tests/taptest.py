@@ -21,7 +21,9 @@ from twisted.python.components import registerAdapter
 
 from gavo import base
 from gavo import rscdesc  # uws needs getRD
+from gavo import votable
 from gavo.protocols import tap
+from gavo.protocols import taprunner
 from gavo.protocols import uws
 from gavo.web import taprender
 
@@ -183,6 +185,25 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 	def setUp(self):
 		testhelpers.VerboseTest.setUp(self)
 		self.tableName = self.ds.tables["adql"].tableDef.getQName()
+	
+	def _getQueryResult(self, query):
+		# returns a votable.simple result for query.
+		with tap.TAPJob.create(args={
+				"QUERY": query,
+				"REQUEST": "doQuery",
+				"LANG": "ADQL"}) as job:
+			jobId = job.jobId
+		try:
+			taprunner.runTAPJob(jobId)
+			with tap.TAPJob.makeFromId(jobId) as job:
+				if job.phase==uws.ERROR:
+					self.fail("Job died with msg %s"%job.getError())
+				name, mime = job.getResult("result")
+				res = votable.load(name)
+		finally:
+			with tap.TAPJob.makeFromId(jobId) as job:
+				job.delete()
+		return res
 
 	def testSimpleJob(self):
 		jobId = None
@@ -216,6 +237,33 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 				with uws.UWSJob.makeFromId(jobId) as job:
 					job.delete()
 		self.failUnless('xmlns="http://www.ivoa.net/xml/VOTable/' in result)
+
+	def testColumnNames(self):
+		table, meta = self._getQueryResult(
+			'SELECT cos(delta) as frob, alpha as "AlPhA", delta, "delta",'
+			' 20+30, 20+30 AS constant, rv as "AS"'
+			' from %s'%self.tableName)
+		fields = meta.getFields()
+		self.assertEqual(fields[0].a_name, "frob")
+		self.assertEqual(fields[0].getDescription(), "A sample Dec --"
+			" *TAINTED*: the value was operated on in a way that unit and"
+			" ucd may be severely wrong")
+		self.assertEqual(fields[1].a_name, "AlPhA")
+		self.assertEqual(fields[2].a_name, "delta")
+		# the next line tests for a documented violation of the spec.
+		self.assertEqual(fields[3].a_name, "delta_")
+		self.failUnless(isinstance(fields[4].a_name, basestring))
+		self.assertEqual(fields[5].a_name, "constant")
+		self.assertEqual(fields[6].a_name, "AS")
+
+	def testColumnTypes(self):
+		table, meta = self._getQueryResult(
+			"SELECT rv, point('icrs', alpha, delta), PI() from %s"%self.tableName)
+		fields = meta.getFields()
+		self.assertEqual(fields[0].a_datatype, "double")
+		self.assertEqual(fields[1].a_datatype, "char")
+		self.assertEqual(fields[1].a_xtype, "adql:POINT")
+		self.assertEqual(fields[2].a_datatype, "float")
 
 
 class UploadSyntaxOKTest(testhelpers.VerboseTest):

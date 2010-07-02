@@ -19,6 +19,13 @@
 	strings in the database).  The reason for this behaviour is that
 	in order to infer a column type, one would have to inspect the
 	entire table up front.
+
+	If multiple output columns in a query would end up having the same name,
+	in the output VOTable they are disambiguated by appending underscores.
+	This is in violation of the specification, but since fixing it would
+	require rather intrusive changes into our software and it is not
+	clear why one should want to use names when they are not unique to begin
+	with, this will probably not be fixed.
 	</meta>
 
 	<table id="schemas" onDisk="True" system="True"

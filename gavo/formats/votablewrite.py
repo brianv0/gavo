@@ -177,6 +177,7 @@ def _iterSTC(tableDef, serManager):
 	for ast in tableDef.getSTCDefs():
 		yield modelgroups.marshal_STC(ast, getIdFor)
 
+
 def _iterNotes(serManager):
 	"""yields GROUPs for table notes.
 

@@ -57,15 +57,13 @@ def _makeColumnFromFieldInfo(ctx, colName, fi):
 	"""
 	if len(fi.userData)==1:
 		res = svcs.OutputField.fromColumn(fi.userData[0])
-		desiredName = fi.userData[0].name
 	else: 
 		res = base.makeStruct(svcs.OutputField, name=colName)
-		desiredName = colName
-	res.name = ctx.getName(desiredName)
+	res.name = ctx.getName(colName)
 	res.ucd = fi.ucd
 	res.unit = fi.unit
 
-	# XXX TODO: do something with stc's broken attribute
+	# XXX TODO: do something with stc's "broken" attribute
 	res.stc = fi.stc
 
 	if len(fi.userData)>1:
@@ -87,6 +85,7 @@ def _makeColumnFromFieldInfo(ctx, colName, fi):
 		res.needMunging = True
 
 	res.verbLevel = 1
+	res.completeElement()
 	return res
 
 
