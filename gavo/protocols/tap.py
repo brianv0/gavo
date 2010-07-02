@@ -31,8 +31,9 @@ FORMAT_CODES = {
 	"text/xml": "votable",
 	"votable": "votable",
 	"votable/td": "votabletd",
-	"text/csv": "csv",
-	"csv": "csv",
+	"text/csv": "csv+header",
+	"csv": "csv+header",
+	"csv/plain": "csv",
 	"text/tab-separated-values": "tsv",
 	"tsv": "tsv",
 	"application/fits": "fits",
@@ -281,6 +282,7 @@ class TAPActions(uws.UWSActions):
 			(uws.QUEUED, uws.ABORTED, "noOp"),
 			(uws.EXECUTING, uws.COMPLETED, "noOp"),
 			(uws.EXECUTING, uws.ABORTED, "killJob"),
+			(uws.COMPLETED, uws.ERROR, "ignoreAndLog"),
 			])
 
 	def _startJobTwisted(self, newState, job, ignored):
@@ -339,4 +341,7 @@ class TAPActions(uws.UWSActions):
 		except Exception, ex:
 			raise TAPError(None, ex)
 
+	def ignoreAndLog(self, newState, job, exc):
+		base.ui.logErrorOccurred("Request to push COMPLETED job to ERROR: %s"%
+			str(exc))
 uws.registerActions(TAPActions)

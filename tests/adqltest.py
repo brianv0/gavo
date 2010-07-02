@@ -952,10 +952,19 @@ class STCTest(ColumnTest):
 
 	def testBadSTCSRegion(self):
 		self.assertRaisesWithMsg(adql.RegionError, 
-			"'Time TT' is not a region specification I understand.",
+			"Invalid argument to REGION: 'Time TT'.",
 			self._getColSeqAndCtx, (
 				"select * from spatial where 1=intersects("
 				"region('Time TT'), circle('icrs', 1, 1, 0.1))",))
+
+	def testRegionExpressionRaises(self):
+		self.assertRaisesWithMsg(adql.RegionError, 
+			"Invalid argument to REGION: ''Position'||alphaName||deltaName'.",
+			self._getColSeqAndCtx, (
+				"select * from spatial where 1=intersects("
+				"region('Position' || alphaName || deltaName),"
+				" circle('icrs', 1, 1, 0.1))",))
+
 
 	def testSTCSRegion(self):
 		cs, ctx = self._getColSeqAndCtx(
@@ -1096,10 +1105,6 @@ class PQMorphTest(unittest.TestCase):
 		status, t = adql.morphPG(t)
 		self.assertEqual(nodes.flatten(t), "SELECT 'ICRS' FROM (SELECT spoint"
 			"(RADIANS(ra1), RADIANS(ra2)) AS p FROM spatial) AS q")
-
-	def testWeirdRegionRaises(self):
-		self.assertRaises(adql.RegionError, self._testMorph,
-			"select REGION('mystery') from foo", "")
 
 	def testNumerics(self):
 		self._testMorph("select log10(x), log(x), rand(), rand(5), square(x+x),"

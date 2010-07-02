@@ -51,9 +51,9 @@ def normalizeTAPFormat(rawFmt):
 	try:
 		return tap.FORMAT_CODES[format]
 	except KeyError:
-		raise base.ui.logOldExc(base.ValidationError(
+		raise base.ValidationError(
 			"Unsupported format '%s'."%format, colName="FORMAT",
-			hint="Legal format codes include %s"%(", ".join(tap.FORMAT_CODES))))
+			hint="Legal format codes include %s"%(", ".join(tap.FORMAT_CODES)))
 
 
 def _parseTAPParameters(jobId, parameters):
@@ -162,6 +162,20 @@ def _hangIfMagic(jobId, parameters, timeout):
 		sys.exit()
 
 
+_preservedMIMEs = set([ # Spec, 2.7.1
+	"text/xml", "application/x-votable+xml"])
+
+def _getResultType(formatProduced, formatOrdered):
+	"""returns the mime type for a TAP result.
+
+	All this logic is necessary to pull through VOTable MIME types from
+	the request format as mandated by the spec.
+	"""
+	if formatOrdered in _preservedMIMEs:
+		return formatOrdered
+	return formats.getMIMEFor(formatProduced)
+
+
 def _runTAPJob(parameters, jobId, queryProfile, timeout):
 	"""executes a TAP job defined by parameters.  
 	
@@ -181,7 +195,8 @@ def _runTAPJob(parameters, jobId, queryProfile, timeout):
 	res = runTAPQuery(query, timeout, connectionForQuery,
 		tdsForUploads, maxrec)
 	with tap.TAPJob.makeFromId(jobId) as job:
-		destF = job.openResult(formats.getMIMEFor(format), "result")
+		destF = job.openResult(
+			_getResultType(format, job.parameters.get("FORMAT")), "result")
 		res = _makeDataFor(res, job)
 	writeResultTo(format, res, destF)
 	destF.close()

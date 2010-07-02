@@ -555,7 +555,8 @@ class UWSActions(object):
 	def _buildTransitions(self, vertices):
 		self.transitions = {}
 		# set some defaults
-		for phase in [PENDING, QUEUED, EXECUTING, ERROR, ABORTED]:
+		for phase in [PENDING, QUEUED, EXECUTING, ERROR, ABORTED, COMPLETED,
+				DESTROYED]:
 			self.transitions.setdefault(phase, {})[ERROR] = "flagError"
 			self.transitions.setdefault(phase, {})[DESTROYED] = "noOp"
 		for fromPhase, toPhase, methodName in vertices:

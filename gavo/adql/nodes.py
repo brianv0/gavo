@@ -1125,15 +1125,21 @@ def registerRegionMaker(fun):
 @symbolAction("region")
 def makeRegion(children):
 	if len(children)!=4 or not isinstance(children[2], CharacterStringLiteral):
-		raise RegionError("'%s' is not a Region expression I understand"%
-			"".join(flatten(c) for c in children))
+		raise RegionError("Invalid argument to REGION: '%s'."%
+			"".join(flatten(c) for c in children[2:-1]),
+			hint="Here, regions must be simple strings; concatenations or"
+			" non-constant parts are forbidden.  Use ADQL geometry expressions"
+			" instead.")
 	arg = children[2].value
 	for r in _regionMakers:
 		res = r(arg)
 		if res is not None:
 			return res
-	raise RegionError("'%s' is not a region specification I understand."%
-		arg)
+	raise RegionError("Invalid argument to REGION: '%s'."%
+		arg, hint="None of the region parsers known to this service could"
+		" make anything of your string.  While STC-S should in general"
+		" be comprehendable to TAP services, it's probably better to"
+		" use ADQL geometry functions.")
 
 
 class STCSRegion(FieldInfoedNode):

@@ -48,4 +48,4 @@ class LoggingUI(ObserverBase):
 	
 	@listensTo("ErrorOccurred")
 	def logError(self, message):
-		self.errorLogger.error(message, exc_info=True)
+		self.errorLogger.error(str(message), exc_info=True)
