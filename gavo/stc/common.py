@@ -182,7 +182,7 @@ class ASTNode(utils.AutoNode):
 class ColRef(stanxml.Stub):
 	"""A column reference instead of a true value, occurring in an STC-S tree.
 	"""
-	name = "_colRef"
+	_name = "_colRef"
 
 	def __str__(self):
 		return self.dest 
@@ -198,8 +198,8 @@ class ColRef(stanxml.Stub):
 	def isoformat(self):
 		return self
 
-	def traverse(self, visitor):
-		return visitor("ColRef", self.dest, {}, [])
+	def apply(self, func):
+		return func("ColRef", self.dest, {}, [])
 
 
 class GeometryColRef(ColRef):

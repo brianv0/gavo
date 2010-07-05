@@ -120,9 +120,10 @@ def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
 			# Element open: push new node on the stack...
 			if tag not in elements:
 				raise iterator.getParseError("Unknown tag: %s"%tag)
-			if payload: # Force attr keys to the byte strings for kw args.
+			if payload: # Force attr keys to the byte strings for kw args and
+					# drop namespaced attributes (probably xmlns:xsi or similar junk
 				payload = dict((str(k.replace("-", "_")), v) 
-					for k, v in payload.iteritems())
+					for k, v in payload.iteritems() if not ":" in k)
 			elementStack.append(elements[tag](**payload))
 
 			# ...prepare for new content,...

@@ -94,8 +94,8 @@ class UtypeMaker(object):
 
 	def iterUtypes(self, node, prefix):
 		children = node.makeChildDict()
-		if node.text:
-			yield prefix, node.text
+		if node._text:
+			yield prefix, node._text
 		for attName, name in node.iterAttNames():
 			if name not in self.bannedAttributes:
 				val = getattr(node, attName)
@@ -147,16 +147,16 @@ class SpaceFrameMaker(_CoordFrameMaker):
 		prefix = utypejoin(prefix, "CoordFlavor")
 		yield prefix, name
 		if child:
-			if child[0].a_coord_naxes!="2":
-				yield utypejoin(prefix, "coord_naxes"), child[0].a_coord_naxes
-			yield utypejoin(prefix, "handedness"), child[0].a_handedness
+			if child[0].coord_naxes!="2":
+				yield utypejoin(prefix, "coord_naxes"), child[0].coord_naxes
+			yield utypejoin(prefix, "handedness"), child[0].handedness
 
 
 class RedshiftFrameMaker(_CoordFrameMaker):
 	rootType = "AstroCoordSystem.RedshiftFrame"
 	
 	def iterUtypes(self, node, prefix):
-		yield utypejoin(prefix, "value_type"), node.a_value_type
+		yield utypejoin(prefix, "value_type"), node.value_type
 		for pair in _CoordFrameMaker.iterUtypes(self, node, prefix):
 			yield pair
 

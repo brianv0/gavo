@@ -18,6 +18,7 @@ try:
 except ImportError:
 	FastElementTree = ElementTree
 
+from gavo.utils import autonode
 
 class Error(Exception):
 	pass
@@ -35,22 +36,19 @@ XSINamespace = "http://www.w3.org/2001/XMLSchema-instance"
 ElementTree._namespace_map[XSINamespace] = "xsi"
 
 
-class _Autoconstructor(type):
-	"""is a metaclass that constructs an instance of itself on getitem.
+class _Autoconstructor(autonode.AutoNodeType):
+	"""A metaclass used for Elements.
 
-	We want this so we save a parentheses pair on Elements without
-	attributes.
-	
-	As an added feature, it also checks for an attribute childSequence
-	on construction.  If it is present, it generates an allowedChildren
-	attribute from it.
+	On the one hand, it does autonode's constructor magic with _a_<attrname>
+	attributes, on the other, it will instanciate itself when indexed
+	-- that we want for convenient stan-like notation.
 	"""
 	def __init__(cls, name, bases, dict):
-		type.__init__(cls, name, bases, dict)
-		if hasattr(cls, "childSequence") and cls.childSequence is not None:
-			cls.allowedChildren = set(cls.childSequence)
+		autonode.AutoNodeType.__init__(cls, name, bases, dict)
+		if hasattr(cls, "_childSequence") and cls._childSequence is not None:
+			cls._allowedChildren = set(cls._childSequence)
 		else:
-			cls.childSequence = None
+			cls._childSequence = None
 
 	def __getitem__(cls, items):
 		return cls()[items]
@@ -66,8 +64,8 @@ class Stub(object):
 
 	Stubs are equal to each othter if their handles are identical.
 	"""
-	name = "stub"
-	text = None
+	_name = "stub"
+	_text = None
 
 	def __init__(self, dest):
 		self.dest = dest
@@ -90,6 +88,10 @@ class Stub(object):
 	def makeChildDict(self):
 		return {}
 
+	def iterAttNames(self):
+		if False:
+			yield
+
 
 class Element(object):
 	"""An element for serialization into XML.
@@ -97,11 +99,19 @@ class Element(object):
 	This is loosely modelled after nevow stan.
 
 	Don't add to the children attribute directly, use addChild or (more
-	usually) __getitem__
+	usually) __getitem__.
 
+	Elements have attributes and children.  The attributes are defined,
+	complete with defaults, in _a_<name> attributes as in AutoNodes.
+	Attributes are checked.
+
+	Children are not usually checked, but you can set a _childSequence
+	attribute containing a list of (unqualified) element names.  These
+	children will be emitted in the sequence given.
+	
 	When deriving from Elements, you may need attribute names that are not
 	python identifiers (e.g., with dashes in them).  In that case, define
-	an attribute <att>_name and point it to any string you want as the
+	an attribute _name_a_<att> and point it to any string you want as the
 	attribute.
 
 	When building an ElementTree out of this, empty elements (i.e. those
@@ -110,7 +120,7 @@ class Element(object):
 	mayBeEmpty to True.
 
 	Since insane XSD mandates that local elements must not be qualified when
-	elementFormDefault is unqualified, you need to set local=True on
+	elementFormDefault is unqualified, you need to set _local=True on
 	such local elements to suppress the namespace prefix.  Attribute names
 	are never qualified here.  If you need qualified attributes, you'll
 	have to use attribute name translation.
@@ -118,7 +128,7 @@ class Element(object):
 	Local elements like this will only work properly if you give the parent 
 	elements the appropriate xmlns attribute.
 
-	The contents of the DOM may be anything recognized by addChild.
+	The content of the DOM may be anything recognized by addChild.
 	In particular, you can give objects a serializeToXMLStan method returning
 	strings or an Element to make them good DOM citizens.
 
@@ -127,26 +137,17 @@ class Element(object):
 	"""
 	__metaclass__ = _Autoconstructor
 
-	name = None
-	a_id = None
-	namespace = ""
-	mayBeEmpty = False
-	stringifyContent = False
-	local = False
-
-	a_xsi_type = None
-	xsi_type_name = "xsi:type"
+	_name = None
+	_a_id = None
+	_namespace = ""
+	_mayBeEmpty = False
+	_local = False
+	_stringifyContent = False
 
 	# for type dispatching in addChild.
 	_generator_t = type((x for x in ()))
 
-	def __init__(self, **kwargs):
-		self.__isEmpty = None
-		self.children = []
-		self.text = ""
-		if self.name is None:
-			self.name = self.__class__.__name__.split(".")[-1]
-		self(**kwargs)
+	# see _setupNode below for __init__
 
 	def __getitem__(self, children):
 		self.addChild(children)
@@ -155,18 +156,12 @@ class Element(object):
 	def __call__(self, **kw):
 		if not kw:
 			return self
-		
+	
+		# XXX TODO: namespaced attributes?
 		for k, v in kw.iteritems():
-			if k[-1] == '_':
-				k = k[:-1]
-			elif k[0] == '_':
-				k = k[1:]
-			elif ":" in k:  # ignore namespaced attributes for now
-				continue
-			attname = "a_"+k
 			# Only allow setting attributes already present
-			getattr(self, attname)
-			setattr(self, attname, v)
+			getattr(self, k)
+			setattr(self, k, v)
 		return self
 
 	def __iter__(self):
@@ -175,12 +170,28 @@ class Element(object):
 	def __nonzero__(self):
 		return self.isEmpty()
 
+	def _setupNodeNext(self, cls):
+		try:
+			pc = super(cls, self)._setupNode
+		except AttributeError:
+			pass
+		else:
+			pc()
+
+	def _setupNode(self):
+		self.__isEmpty = None
+		self._children = []
+		self._text = ""
+		if self._name is None:
+			self._name = self.__class__.__name__.split(".")[-1]
+		self._setupNodeNext(Element)
+
 	def bailIfBadChild(self, child):
-		if (self.childSequence is not None and 
-				getattr(child, "name", None) not in self.allowedChildren and
-				type(child) not in self.allowedChildren):
+		if (self._childSequence is not None 
+				and getattr(child, "_name", None) not in self._allowedChildren 
+				and type(child) not in self._allowedChildren):
 			raise ChildNotAllowed("No %s children in %s"%(
-				getattr(child, "name", "text"), self.name))
+				getattr(child, "_name", "text"), self._name))
 
 	def addChild(self, child):
 		"""adds child to the list of children.
@@ -196,28 +207,28 @@ class Element(object):
 			pass
 		elif isinstance(child, basestring):
 			self.bailIfBadChild(child)
-			self.text = child
+			self._text = child
 		elif isinstance(child, (Element, Stub)):
 			self.bailIfBadChild(child)
-			self.children.append(child)
+			self._children.append(child)
 		elif isinstance(child, (list, tuple, self._generator_t)):
 			for c in child:
 				self.addChild(c)
 		elif isinstance(child, _Autoconstructor):
 			self.addChild(child())
-		elif self.stringifyContent:
+		elif self._stringifyContent:
 			self.addChild(unicode(child))
 		else:
 			raise Error("%s element %s cannot be added to %s node"%(
-				type(child), repr(child), self.name))
+				type(child), repr(child), self._name))
 
 	def isEmpty(self):
 		if self.__isEmpty is None:
 			self.__isEmpty = True
-			if self.mayBeEmpty or self.text.strip():
+			if self._mayBeEmpty or self._text.strip():
 				self.__isEmpty = False
 			else:
-				for c in self.children:
+				for c in self._children:
 					if not c.isEmpty():
 						self.__isEmpty = False
 						break
@@ -226,67 +237,78 @@ class Element(object):
 	def iterAttNames(self):
 		"""iterates over the defined attribute names of this node.
 		
-		Each element returned is a pair of the node attribute name (always
-		starting with a_) and the xml name (which may include a namespace
-		prefix).
+		Each element returned is a pair of the node attribute name and the 
+		xml name (which may be translated via _a_name_<att>
 		"""
-		for name in dir(self):
-			if name.startswith("a_"):
-				xmlName = getattr(self, name[2:]+"_name", name[2:])
-				yield name, xmlName
+		for name, default in self._nodeAttrs:
+			xmlName = getattr(self, "_name_a_"+name, name)
+			yield name, xmlName
+
+	def addAttribute(self, attName, attValue):
+		"""adds attName, attValue to this Element's attributes when instanciated.
+
+		You cannot add _a_<attname> attributes to instances.  Thus, when
+		in a pinch, use this.
+		"""
+		attName = str(attName)
+		self._nodeAttrs.append((attName, attValue))
+		setattr(self, attName, attValue)
 
 	def iterChildrenOfType(self, type):
 		"""iterates over all children having type.
 		"""
-		for c in self.children:
+		for c in self._children:
 			if isinstance(c, type):
 				yield c
 
+	def iterChildren(self):
+		return iter(self._children)
+
 	def makeChildDict(self):
 		cDict = {}
-		for c in self.children:
-			cDict.setdefault(c.name, []).append(c)
+		for c in self._children:
+			cDict.setdefault(c._name, []).append(c)
 		return cDict
 
-	def getElName(self):
+	def _getElName(self):
 		"""returns the tag name of this element.
 
 		This will be an ElementTree.QName instance unless the element is
 		local.
 		"""
-		if self.local or isinstance(self.name, ElementTree.QName):
-			return self.name
+		if self._local or isinstance(self._name, ElementTree.QName):
+			return self._name
 		else:
-			return ElementTree.QName(self.namespace, self.name)
+			return ElementTree.QName(self._namespace, self._name)
 
-	def traverse(self, visitor):
-		"""calls visitor(name, text, attrs, childIter).
+	def apply(self, func):
+		"""calls func(name, text, attrs, childIter).
 
-		This doesn't actually traverse; the expectation is that visitor
-		does something like (c.traverse(visitor) for c in childIter).
+		This is a building block for tree traversals; the expectation is that 
+		func does something like (c.apply(visitor) for c in childIter).
 		"""
 		try:
 			if self.isEmpty():
 				return
-			elName = self.getElName()
+			elName = self._getElName()
 			attrs = self._makeAttrDict()
-			if self.childSequence is None:
-				childIter = iter(self.children)
+			if self._childSequence is None:
+				childIter = iter(self._children)
 			else:
 				childIter = self._iterChildrenInSequence()
-			return visitor(self.getElName(), self.text,
+			return func(self._getElName(), self._text,
 				self._makeAttrDict(), childIter)
 		except Error:
 			raise
 		except Exception, msg:
 			msg.args = (unicode(msg)+(" while building %s node"
-				" with children %s"%(self.name, self.children)),)+msg.args[1:]
+				" with children %s"%(self._name, self._children)),)+msg.args[1:]
 			raise
 
 	def asETree(self):
 		"""returns an ElementTree instance for the tree below this node.
 		"""
-		return self.traverse(self._eTreeVisitor)
+		return self.apply(self._eTreeVisitor)
 
 	def render(self):
 		et = self.asETree()
@@ -303,7 +325,7 @@ class Element(object):
 
 	def _iterChildrenInSequence(self):
 		cDict = self.makeChildDict()
-		for cName in self.childSequence:
+		for cName in self._childSequence:
 			if cName in cDict:
 				for c in cDict[cName]:
 					yield c
@@ -315,10 +337,18 @@ class Element(object):
 		if content:
 			node.text = content
 		for child in childIter:
-			childNode = child.traverse(self._eTreeVisitor)
+			childNode = child.apply(self._eTreeVisitor)
 			if childNode is not None:
 				node.append(childNode)
 		return node
+
+
+class XSITypeMixin(object):
+	_a_xsi_type = None
+	_name_a_xsi_type = "xsi:type"
+	_a_xmlns_xsi = XSINamespace
+	_name_a_xmlns_xsi = "xmlns:xsi"
+
 
 
 def schemaURL(xsdName):

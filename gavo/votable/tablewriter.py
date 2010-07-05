@@ -48,11 +48,11 @@ def write(root, outputFile):
 			if hasattr(c, "write"):
 				c.write(outputFile)
 			else:
-				c.traverse(visit)
+				c.apply(visit)
 		outputFile.write("</%s>"%name)
 
 	outputFile.write("<?xml version='1.0' encoding='utf-8'?>\n")
-	root.traverse(visit)
+	root.apply(visit)
 	
 
 def asString(root):
@@ -83,7 +83,7 @@ def DelayedTable(tableDefinition, rowIterator, contentElement, **attrs):
 			yield encodeRow(row)
 	
 	content = contentElement(**attrs)
-	content.text = "Placeholder for real data"
+	content._text = "Placeholder for real data"
 	content.iterSerialized = iterSerialized
 
 	return tableDefinition[VOTable.DATA[

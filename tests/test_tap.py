@@ -73,7 +73,7 @@ class SyncMetaTest(TAPRenderTest):
 		"""
 		return self.assertGETHasStrings("/sync", 
 			{"REQUEST": "getCapabilities"}, [
-				'<capability standardID="ivo://ivoa.net/std/TAP">', 
+				'<capability standardID="ivo://ivoa.net/std/TAP', 
 				'ParamHTTP">'])
 
 

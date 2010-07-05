@@ -67,11 +67,11 @@ def makeDtype(tableMetadata):
 		seen.add(name)
 		shape = f.getShape()
 		if shape is None:
-			dtypes.append((name, numpyType[f.a_datatype]))
+			dtypes.append((name, numpyType[f.datatype]))
 		else:
 			dtypes.append((
 				name,
-				numpyType[f.a_datatype],
+				numpyType[f.datatype],
 				shape))
 	return dtypes
 
@@ -94,7 +94,7 @@ def load(source):
 	rows = None
 	for element in parser.parse(source, [V.INFO]):
 		if isinstance(element, V.INFO):
-			infos.setdefault(element.a_name, []).append(element)
+			infos.setdefault(element.name, []).append(element)
 		else:
 			if rows is not None:
 				break

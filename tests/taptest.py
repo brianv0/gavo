@@ -244,26 +244,26 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 			' 20+30, 20+30 AS constant, rv as "AS"'
 			' from %s'%self.tableName)
 		fields = meta.getFields()
-		self.assertEqual(fields[0].a_name, "frob")
+		self.assertEqual(fields[0].name, "frob")
 		self.assertEqual(fields[0].getDescription(), "A sample Dec --"
 			" *TAINTED*: the value was operated on in a way that unit and"
 			" ucd may be severely wrong")
-		self.assertEqual(fields[1].a_name, "AlPhA")
-		self.assertEqual(fields[2].a_name, "delta")
+		self.assertEqual(fields[1].name, "AlPhA")
+		self.assertEqual(fields[2].name, "delta")
 		# the next line tests for a documented violation of the spec.
-		self.assertEqual(fields[3].a_name, "delta_")
-		self.failUnless(isinstance(fields[4].a_name, basestring))
-		self.assertEqual(fields[5].a_name, "constant")
-		self.assertEqual(fields[6].a_name, "AS")
+		self.assertEqual(fields[3].name, "delta_")
+		self.failUnless(isinstance(fields[4].name, basestring))
+		self.assertEqual(fields[5].name, "constant")
+		self.assertEqual(fields[6].name, "AS")
 
 	def testColumnTypes(self):
 		table, meta = self._getQueryResult(
 			"SELECT rv, point('icrs', alpha, delta), PI() from %s"%self.tableName)
 		fields = meta.getFields()
-		self.assertEqual(fields[0].a_datatype, "double")
-		self.assertEqual(fields[1].a_datatype, "char")
-		self.assertEqual(fields[1].a_xtype, "adql:POINT")
-		self.assertEqual(fields[2].a_datatype, "float")
+		self.assertEqual(fields[0].datatype, "double")
+		self.assertEqual(fields[1].datatype, "char")
+		self.assertEqual(fields[1].xtype, "adql:POINT")
+		self.assertEqual(fields[2].datatype, "float")
 
 
 class UploadSyntaxOKTest(testhelpers.VerboseTest):

@@ -16,24 +16,24 @@ class VOTable(object):
 	"""The container for VOTable elements.
 	"""
 	class _VOTElement(Element):
-		namespace = VOTableNamespace
-		local = True
+		_namespace = VOTableNamespace
+		_local = True
 
 	class _DescribedElement(_VOTElement):
-		a_ID = None
-		a_ref = None
-		a_name = None
-		a_ucd = None
-		a_utype = None
-		mayBeEmpty = True
+		_a_ID = None
+		_a_ref = None
+		_a_name = None
+		_a_ucd = None
+		_a_utype = None
+		_mayBeEmpty = True
 
 		def getDesignation(self):
 			"""returns some name-like thing for a FIELD or PARAM.
 			"""
-			if self.a_name:
-				res = self.a_name
-			elif self.a_ID:
-				res = self.a_ID
+			if self.name:
+				res = self.name
+			elif self.ID:
+				res = self.ID
 			else:
 				res = "%s_%s"%(self.__class__.__name__, "%x"%id(self))
 			return res.encode("ascii", "ignore")
@@ -42,54 +42,54 @@ class VOTable(object):
 			"""returns the description for this element, or an empty string.
 			"""
 			try:
-				return self.iterChildrenOfType(VOTable.DESCRIPTION).next().text
+				return self.iterChildrenOfType(VOTable.DESCRIPTION).next()._text
 			except StopIteration:
 				return ""
 
 
 	class _ValuedElement(_DescribedElement):
-		a_unit = None
-		a_xtype = None
+		_a_unit = None
+		_a_xtype = None
 
 	class _TypedElement(_ValuedElement):
-		a_ref = None
-		a_arraysize = None
-		a_datatype = None
-		a_precision = None
-		a_ref = None
-		a_type = None
-		a_width = None
+		_a_ref = None
+		_a_arraysize = None
+		_a_datatype = None
+		_a_precision = None
+		_a_ref = None
+		_a_type = None
+		_a_width = None
 
 		def isScalar(self):
-			return self.a_arraysize is None or self.a_arraysize=='1'
+			return self.arraysize is None or self.arraysize=='1'
 
 		def hasVarLength(self):
-			return self.a_arraysize and self.a_arraysize.endswith("*")
+			return self.arraysize and self.arraysize.endswith("*")
 
 		def getLength(self):
 			"""returns the number of items one should expect in value, or
 			None for variable-length arrays.
 			"""
-			if self.a_arraysize is None:
+			if self.arraysize is None:
 				return 1
-			if self.a_arraysize.endswith("*"):
+			if self.arraysize.endswith("*"):
 				return None
-			elif "x" in self.a_arraysize: # multidimensional, my ass.
-				return reduce(lambda a, b: a*b, map(int, self.a_arraysize.split("x")))
+			elif "x" in self.arraysize: # multidimensional, my ass.
+				return reduce(lambda a, b: a*b, map(int, self.arraysize.split("x")))
 			else:
-				return int(self.a_arraysize)
+				return int(self.arraysize)
 
 		def getShape(self):
 			"""returns a numpy-compatible shape.
 			"""
-			if self.a_arraysize is None:
+			if self.arraysize is None:
 				return None
-			if self.a_datatype=="char" and not "x" in self.a_arraysize:
+			if self.datatype=="char" and not "x" in self.arraysize:
 				# special case: 1d char arrays are just scalar strings
 				return None
-			if self.a_arraysize=="*":
+			if self.arraysize=="*":
 				return None  # What should we really return here?
-			val = self.a_arraysize.replace("*", "")
+			val = self.arraysize.replace("*", "")
 			if "x" in val:
 				if val.endswith("x"):  # variable last dimension
 					val = val+'1'
@@ -98,9 +98,9 @@ class VOTable(object):
 				return (int(val),)
 
 	class _RefElement(_ValuedElement):
-		a_ref = None
-		a_ucd = None
-		a_utype = None
+		_a_ref = None
+		_a_ucd = None
+		_a_utype = None
 		childSequence = []
 
 	class _ContentElement(_VOTElement):
@@ -115,12 +115,12 @@ class VOTable(object):
 
 
 	class BINARY(_ContentElement):
-		childSequence = ["STREAM"]
+		_childSequence = ["STREAM"]
 		encoding = "base64"
 		
 		def write(self, file):
 			# To be able to write incrementally, encode chunks of multiples
-			# of 57 bytes until the stream is finished.
+			# of base64's block size until the stream is finished.
 			blockSize = 57
 			buf, bufFil, flushThreshold = [], 0, blockSize*20
 			file.write('<BINARY>')
@@ -139,108 +139,108 @@ class VOTable(object):
 
 
 	class COOSYS(_VOTElement):
-		a_ID = None
-		a_epoch = None
-		a_equinox = None
-		a_system = None
+		_a_ID = None
+		_a_epoch = None
+		_a_equinox = None
+		_a_system = None
 
 	class DATA(_VOTElement):
-		childSequence = ["INFO", "TABLEDATA", "BINARY", "FITS"]
+		_childSequence = ["INFO", "TABLEDATA", "BINARY", "FITS"]
 	
 	class DEFINITIONS(_VOTElement):
 		pass
 
 	class DESCRIPTION(_VOTElement):
-		childSequence = [None]
+		_childSequence = [None]
 
 	class FIELD(_TypedElement):
-		childSequence = ["DESCRIPTION", "VALUES", "LINK"]
+		_childSequence = ["DESCRIPTION", "VALUES", "LINK"]
 
 	class FIELDref(_RefElement): pass
 	
 	class FITS(_VOTElement):
-		childSequence = ["STREAM"]
+		_childSequence = ["STREAM"]
 	
 	class GROUP(_DescribedElement):
-		a_ref = None
-		childSequence = ["DESCRIPTION", "PARAM", "FIELDref", "PARAMref", "GROUP"]
+		_a_ref = None
+		_childSequence = ["DESCRIPTION", "PARAM", "FIELDref", "PARAMref", "GROUP"]
 
 
 	class INFO(_ValuedElement):
-		a_ref = None
-		a_value = None
-		childSequence = [None]
+		_a_ref = None
+		_a_value = None
+		_childSequence = [None]
 
 		def isEmpty(self):
-			return self.a_value is None
+			return self.value is None
 
 	class INFO_atend(INFO):
 		# a bad hack; TAP mandates INFO items below table, and this is
 		# the least complicated way to force this.
-		def getElName(self):
+		def _getElName(self):
 			return "INFO"
 	
 	class LINK(_VOTElement):
-		a_ID = None
-		a_action = None
-		a_content_role = None
-		content_role_name = "content-role"
-		a_content_type = None
-		content_type_name = "content-type"
-		a_gref = None
-		a_href = None
-		a_title = None
-		a_value = None
-		childSequence = []
-		mayBeEmpty = True
+		_a_ID = None
+		_a_action = None
+		_a_content_role = None
+		_name_a_content_role = "content-role"
+		_a_content_type = None
+		_name_a_content_type = "content-type"
+		_a_gref = None
+		_a_href = None
+		_a_title = None
+		_a_value = None
+		_childSequence = []
+		_mayBeEmpty = True
 
 
 	class MAX(_VOTElement):
-		a_inclusive = None
-		a_value = None
-		childSequence = []
-		mayBeEmpty = True
+		_a_inclusive = None
+		_a_value = None
+		_childSequence = []
+		_mayBeEmpty = True
 
 
 	class MIN(_VOTElement):
-		a_inclusive = None
-		a_value = None
-		childSequence = []
-		mayBeEmpty = True
+		_a_inclusive = None
+		_a_value = None
+		_childSequence = []
+		_mayBeEmpty = True
 
 
 	class OPTION(_VOTElement):
-		a_name = None
-		a_value = None
-		childSequence = ["OPTION"]
-		mayBeEmpty = True
+		_a_name = None
+		_a_value = None
+		_childSequence = ["OPTION"]
+		_mayBeEmpty = True
 
 
 	class PARAM(_TypedElement):
-		a_value = None
-		childSequence = ["DESCRIPTION", "VALUES", "LINK"]
+		_a_value = None
+		_childSequence = ["DESCRIPTION", "VALUES", "LINK"]
 
 
 	class PARAMref(_RefElement): pass
 
 
 	class RESOURCE(_VOTElement):
-		a_ID = None
-		a_name = None
-		a_type = None
-		a_utype = None
-		childSequence = ["DESCRIPTION", "DEFINITIONS", "COOSYS", "INFO", "GROUP", 
+		_a_ID = None
+		_a_name = None
+		_a_type = None
+		_a_utype = None
+		_childSequence = ["DESCRIPTION", "DEFINITIONS", "COOSYS", "INFO", "GROUP", 
 			"PARAM", "LINK", "TABLE", "INFO_atend", "RESOURCE"]
 
 
 	class STREAM(_VOTElement):
-		a_actuate = None
-		a_encoding = None
-		a_expires = None
-		a_href = None
-		a_rights = None
-		a_type = None
-		childSequence = [None]
+		_a_actuate = None
+		_a_encoding = None
+		_a_expires = None
+		_a_href = None
+		_a_rights = None
+		_a_type = None
+		_childSequence = [None]
 
 
 	class TABLE(_DescribedElement):
@@ -249,8 +249,8 @@ class VOTable(object):
 		If you want to access fields by name (getFieldForName), make sure
 		name and ids are unique.
 		"""
-		a_nrows = None
-		childSequence = ["DESCRIPTION", "INFO", "GROUP", "FIELD", "PARAM", "LINK",
+		_a_nrows = None
+		_childSequence = ["DESCRIPTION", "INFO", "GROUP", "FIELD", "PARAM", "LINK",
 			"DATA"]
 
 		_fieldIndex = None
@@ -263,10 +263,10 @@ class VOTable(object):
 			if self._fieldIndex is None:
 				index = {}
 				for child in self.getFields():
-					if child.a_name:
-						index[child.a_name] = child
-					if child.a_ID:
-						index[child.a_ID] = child
+					if child.name:
+						index[child.name] = child
+					if child.ID:
+						index[child.ID] = child
 				self._fieldIndex = index
 			return self._fieldIndex
 
@@ -280,7 +280,7 @@ class VOTable(object):
 
 
 	class TABLEDATA(_ContentElement):
-		childSequence = ["TR"]
+		_childSequence = ["TR"]
 		encoding = "utf-8"
 
 		def write(self, file):
@@ -292,27 +292,27 @@ class VOTable(object):
 		
 
 	class TD(_VOTElement):
-		a_encoding = None
-		childSequence = [None]
-		mayBeEmpty = True
+		_a_encoding = None
+		_childSequence = [None]
+		_mayBeEmpty = True
 
 
 	class TR(_VOTElement):
-		a_ID = None
-		childSequence = ["TD"]
+		_a_ID = None
+		_childSequence = ["TD"]
 
 
 	class VALUES(_VOTElement):
-		a_ID = None
-		a_null = None
-		a_ref = None
-		a_type = None
+		_a_ID = None
+		_a_null = None
+		_a_ref = None
+		_a_type = None
 
 
 	class VOTABLE(_VOTElement):
-		a_ID = None
-		a_version = "1.2"
-		a_xmlns = VOTableNamespace
+		_a_ID = None
+		_a_version = "1.2"
+		_a_xmlns = VOTableNamespace
 
 
 	class VOTABLE11(_VOTElement):
@@ -320,10 +320,10 @@ class VOTable(object):
 # all elements here are local -- make this your top-level element
 # and only use what's legal in VOTable 1.1, and you get a VOTable1.1
 # conforming document
-		name = "VOTABLE"
-		a_ID = None
-		a_version = "1.1"
-		a_xmlns = "http://www.ivoa.net/xml/VOTable/v1.1"
+		_name = "VOTABLE"
+		_a_ID = None
+		_a_version = "1.1"
+		_a_xmlns = "http://www.ivoa.net/xml/VOTable/v1.1"
 
 
 def voTag(tagName):

@@ -18,7 +18,7 @@ from gavo.base import meta
 from gavo.registry import capabilities
 from gavo.registry import model
 from gavo.utils import ElementTree
-from gavo.utils.stanxml import Element, XSINamespace, schemaURL
+from gavo.utils.stanxml import Element, XSITypeMixin, schemaURL
 from gavo.web import grend
 
 
@@ -63,12 +63,9 @@ class AVL(object):
 	"""The container for elements from the VOSI availability schema.
 	"""
 	class AVLElement(Element):
-		namespace = model.AVLNamespace
+		_namespace = model.AVLNamespace
 	
-	class availability(AVLElement):
-		a_xmlns_xsi = XSINamespace
-		xmlns_xsi_name = "xmlns:xsi"
-	
+	class availability(AVLElement, XSITypeMixin): pass
 	class available(AVLElement): pass
 	class upSince(AVLElement): pass
 	class downAt(AVLElement): pass
@@ -80,11 +77,11 @@ class CAP(object):
 	"""The container for element from the VOSI capabilities schema.
 	"""
 	class CAPElement(Element):
-		namespace = model.CAPNamespace
+		_namespace = model.CAPNamespace
 	
-	class capabilities(CAPElement):
-		a_xmlns_xsi = XSINamespace
-		xmlns_xsi_name = "xmlns:xsi"
+	class capabilities(CAPElement, XSITypeMixin):
+		_a_xmlns_vr = model.VORNamespace
+		_name_a_xmlns_vr = "xmlns:vr"
 
 
 SF = meta.stanFactory
@@ -140,10 +137,8 @@ class VOSITablesetRenderer(VOSIRenderer):
 		request.setHeader("Last-Modified", 
 			utils.datetimeToRFC2616(self.service.rd.dateUpdated))
 		root = registry.getTablesetForService(self.service)
-		root.a_xmlns_vs1 = root.namespace
-		root.xmlns_vs1_name = "xmlns:vs1"
-		root.a_xsi_type = "vs1:TableSet"
-		root.xsi_type_name = "xsi:type"
+		root.addAttribute("xmlns:vs1", model.VS1Namespace)
+		root.addAttribute("xsi:type", "vs1:TableSet")
 		registry.addSchemaLocations(root)
 		return root
 

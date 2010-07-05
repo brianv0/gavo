@@ -616,7 +616,8 @@ class GeoTest(testhelpers.VerboseTest):
 
 
 def _purgeIds(stcx):
-	return re.sub('(frame_|coord_system_)?id="[^"]*"', '', stcx)
+	return re.sub(' xsi:schemaLocation="[^"]*"', '',
+		re.sub('(frame_|coord_system_)?id="[^"]*"', '', stcx))
 
 
 class CLITest(testhelpers.VerboseTest):
@@ -635,8 +636,10 @@ class CLITest(testhelpers.VerboseTest):
 
 	baseResprof = '<STCResourceProfile xmlns="http://www.ivoa.net/xml/STC/stc-v1.30.xsd" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ivoa.net/xml/STC/stc-v1.30.xsd http://vo.ari.uni-heidelberg.de/docs/schemata/stc-v1.30.xsd http://www.w3.org/1999/xlink http://vo.ari.uni-heidelberg.de/docs/schemata/xlink.xsd"><AstroCoordSystem id="thenmtl"><SpaceFrame id="thendil"><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea coord_system_id="thenmtl"><Circle frame_id="thendil" unit="deg"><Center><C1>10.0</C1><C2>10.0</C2></Center><Radius>4.0</Radius></Circle></AstroCoordArea></STCResourceProfile>\n'
 	def testResprofGood(self):
+		def test(res):
+			return _purgeIds(self.baseResprof)==_purgeIds(res)
 		self.assertOutput(cli.main, ["resprof", "Circle ICRS 10 10 4"],
-			lambda res: _purgeIds(self.baseResprof)==_purgeIds(res)) 
+			test)
 
 	def testResprofError(self):
 		self.assertOutput(cli.main, ["resprof", "Circle ICRS 10 10 quatsch"],

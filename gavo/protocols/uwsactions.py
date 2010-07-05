@@ -42,28 +42,28 @@ class UWS(object):
 	"""the container for elements from the uws namespace.
 	"""
 	class UWSElement(stanxml.Element):
-		namespace = UWSNamespace
+		_namespace = UWSNamespace
 
 	@staticmethod
 	def makeRoot(ob):
-		ob.a_xsi_schemaLocation = "%s %s %s %s"%(
+		ob._a_xsi_schemaLocation = "%s %s %s %s"%(
 			UWSNamespace, stanxml.schemaURL("uws-1.0.xsd"),
 			XlinkNamespace, stanxml.schemaURL("xlink.xsd"))
-		ob.xsi_schemaLocation_name = "xsi:schemaLocation"
-		ob.a_xmlns_xsi = stanxml.XSINamespace
-		ob.xmlns_xsi_name = "xmlns:xsi"
-		ob.mayBeEmpty = True
+		ob._name_a_xsi_schemaLocation = "xsi:schemaLocation"
+		ob._a_xmlns_xsi = stanxml.XSINamespace
+		ob._name_xmlns_xsi = "xmlns:xsi"
+		ob._mayBeEmpty = True
 		return ob
 
 	class NillableMixin(object):
-		mayBeEmpty = True
-		a_nil = None
-		nil_name = "xsi:nil"
+		_mayBeEmpty = True
+		_a_nil = None
+		_name_a_nil = "xsi:nil"
 
 
 	class job(UWSElement): pass
 	class jobs(UWSElement):
-		mayBeEmpty = True
+		_mayBeEmpty = True
 
 	class parameters(UWSElement): pass
 
@@ -80,36 +80,36 @@ class UWS(object):
 	class startTime(UWSElement, NillableMixin): pass
 	
 	class detail(UWSElement):
-		a_href = None
-		a_type = None
-		href_name = "xlink:href"
-		type_name = "xlink:type"
+		_a_href = None
+		_a_type = None
+		_name_a_href = "xlink:href"
+		_name_a_type = "xlink:type"
 	
 	class errorSummary(UWSElement):
-		a_type = None  # transient | fatal
+		_a_type = None  # transient | fatal
 
 	class jobref(UWSElement):
-		a_id = None
-		a_href = None
-		a_type = None
-		href_name = "xlink:href"
-		type_name = "xlink:type"
+		_a_id = None
+		_a_href = None
+		_a_type = None
+		_name_a_href = "xlink:href"
+		_name_a_type = "xlink:type"
 
 	class parameter(UWSElement):
-		a_byReference = None
-		a_id = None
-		a_isPost = None
+		_a_byReference = None
+		_a_id = None
+		_a_isPost = None
 
 	class result(UWSElement):
-		mayBeEmpty = True
-		a_id = None
-		a_href = None
-		a_type = None
-		href_name = "xlink:href"
-		type_name = "xlink:type"
+		_mayBeEmpty = True
+		_a_id = None
+		_a_href = None
+		_a_type = None
+		_href_name = "xlink:href"
+		_type_name = "xlink:type"
 
 	class results(UWSElement):
-		mayBeEmpty = True
+		_mayBeEmpty = True
 
 
 def getJobList():

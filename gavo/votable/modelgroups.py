@@ -31,7 +31,7 @@ except ImportError:
 def _getUtypedGroupsFromAny(votObj, utype):
 	return [g 
 		for g in votObj.iterChildrenOfType(V.GROUP) 
-		if g.a_utype and g.a_utype.startswith(utype)]
+		if g.utype and g.utype.startswith(utype)]
 
 
 def _getUtypedGroupsFromResource(votRes, utype):
@@ -42,7 +42,7 @@ def _getUtypedGroupsFromResource(votRes, utype):
 	"""
 	stcGroups = []
 	stcGroups.extend(_getUtypedGroupsFromAny(votRes, utype))
-	for child in votRes.children:
+	for child in votRes.iterChildren():
 		if isinstance(child, V.TABLE):
 			stcGroups.extend(_getUtypedGroupsFromAny(child, utype))
 		elif isinstance(child, V.RESOURCE):
@@ -67,11 +67,11 @@ def _extractUtypes(group, refClass):
 	refClass is the class to be used for column references.  This will
 	usually be a stanxml.Stub derived class.
 	"""
-	for child in group.children:
+	for child in group.iterChildren():
 		if isinstance(child, V.PARAM):
-			yield child.a_utype, child.a_value
+			yield child.utype, child.value
 		elif isinstance(child, V.FIELDref):
-			yield child.a_utype, refClass(child.a_ref)
+			yield child.utype, refClass(child.ref)
 		else:
 			pass # other children are ignored.
 

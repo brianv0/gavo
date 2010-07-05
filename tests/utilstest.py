@@ -83,23 +83,23 @@ class StanXMLTest(testhelpers.VerboseTest):
 	"""
 	class E(object):
 		class LocalElement(stanxml.Element):
-			namespace = "http://bar.com"
-			local = mayBeEmpty = True
+			_namespace = "http://bar.com"
+			_local = _mayBeEmpty = True
 		class A(LocalElement):
-			a_x = None
+			_a_x = None
 		class B(LocalElement):
-			a_y = None
+			_a_y = None
 		class NSElement(stanxml.Element):
-			namespace = "http://foo.com"
+			_namespace = "http://foo.com"
 		class C(NSElement):
-			a_z = "ab"
+			_a_z = "ab"
 
 	def testTraversal(self):
 		tree = self.E.A[self.E.B, self.E.B, self.E.A]
 		def record(elName, content, attrDict, childIter):
 			return (elName,
-				[c.traverse(record) for c in childIter])
-		self.assertEqual(tree.traverse(record),
+				[c.apply(record) for c in childIter])
+		self.assertEqual(tree.apply(record),
 			('A', [('B', []), ('B', []), ('A', [])]))
 	
 	def testSimpleRender(self):

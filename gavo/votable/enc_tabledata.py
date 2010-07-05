@@ -110,7 +110,7 @@ def _getArrayEncoderLines(field):
 	For fixed-length arrays we enforce the given length by
 	cropping or adding nulls (except, currently, for bit and char arrays.
 	"""
-	type = field.a_datatype
+	type = field.datatype
 	# bit array literals are integers, real special handling
 	if type=="bit":  
 		return ['tokens.append(utils.toBinary(val))']
@@ -136,7 +136,7 @@ def getLinesFor(field):
 	by field into tabledata.
 	"""
 	if field.isScalar():
-		return _encoders[field.a_datatype](field)
+		return _encoders[field.datatype](field)
 	else:
 		return _getArrayEncoderLines(field)
 

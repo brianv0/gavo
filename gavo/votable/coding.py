@@ -86,8 +86,8 @@ def getNullvalue(field, validator, default=None):
 	"""
 	nullvalue = None
 	for values in field.iterChildrenOfType(VOTable.VALUES):
-		if values.a_null is not None:
-			nullvalue = values.a_null
+		if values.null is not None:
+			nullvalue = values.null
 	if nullvalue is None or nullvalue=='':
 		return default
 	else:

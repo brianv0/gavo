@@ -12,7 +12,7 @@ from ZSI import TC
 from gavo import base
 from gavo import svcs
 from gavo.base import valuemappers
-from gavo.utils.stanxml import Element, XSINamespace, schemaURL
+from gavo.utils.stanxml import (Element, schemaURL, XSITypeMixin)
 from gavo.utils import ElementTree
 
 
@@ -40,125 +40,123 @@ class WSDL(object):
 	"""is a container for elements from the wsdl 1.1 schema.
 	"""
 	class WSDLElement(Element):
-		namespace = WSDLNamespace
+		_namespace = WSDLNamespace
 
 	class _tParam(WSDLElement):
-		a_message = None
-		a_name = None
+		_a_message = None
+		_a_name = None
 
 	class binding(WSDLElement):
-		a_name = None
-		a_type = None
+		_a_name = None
+		_a_type = None
 
-	class definitions(WSDLElement):
-		a_name = None
-		a_targetNamespace = None
-		a_xmlns_tns = None
-		xmlns_tns_name = "xmlns:tns"
-		a_xmlns_xsd = XSDNamespace
-		xmlns_xsd_name = "xmlns:xsd"
-#		a_xsi_schemaLocation =  " ".join(["%s %s"%(ns, xs) 
+	class definitions(WSDLElement, XSITypeMixin):
+		_a_name = None
+		_a_targetNamespace = None
+		_a_xmlns_tns = None
+		_name_a_xmlns_tns_name = "xmlns:tns"
+		_a_xmlns_xsd = XSDNamespace
+		_name_a_xmlns_xsd = "xmlns:xsd"
+#		_a_xsi_schemaLocation =  " ".join(["%s %s"%(ns, xs) 
 #			for ns, xs in _schemaLocations.iteritems()])
-#		xsi_schemaLocation_name = "xsi:schemaLocation"
-		a_xmlns_xsi = XSINamespace
-		xmlns_xsi_name = "xmlns:xsi"
+#		_name_a_xsi_schemaLocation = "xsi:schemaLocation"
 	
 	class documentation(WSDLElement): pass
 	
 	class fault(WSDLElement):
-		a_name = None
+		_a_name = None
 	
 	class import_(WSDLElement):
-		name = "import"
-		a_location = None
-		a_namespace = None
+		_name = "import"
+		_a_location = None
+		_a_namespace = None
 
 	class input(_tParam): 
-		mayBeEmpty = True
+		_mayBeEmpty = True
 
 	class message(WSDLElement):
-		a_name = None
+		_a_name = None
 	
 	class operation(WSDLElement):
-		a_name = None
-		a_parameterOrder = None
+		_a_name = None
+		_a_parameterOrder = None
 
 	class output(_tParam):
-		mayBeEmpty = True
-		a_name = None
-		a_message = None
+		_mayBeEmpty = True
+		_a_name = None
+		_a_message = None
 
 	class part(WSDLElement):
-		mayBeEmpty = True
-		a_name = None
-		a_type = None
+		_mayBeEmpty = True
+		_a_name = None
+		_a_type = None
 
 	class port(WSDLElement):
-		mayBeEmpty = True
-		a_binding = None
-		a_name = None
+		_mayBeEmpty = True
+		_a_binding = None
+		_a_name = None
 
 	class portType(WSDLElement):
-		a_name = None
+		_a_name = None
 
 	class service(WSDLElement):
-		a_name = None
+		_a_name = None
 	
 	class types(WSDLElement): pass
 	
 
 class SOAP(object):
 	class SOAPElement(Element):
-		namespace = SOAPNamespace
+		_namespace = SOAPNamespace
 
 	class binding(SOAPElement):
-		mayBeEmpty = True
-		a_style = "rpc"
-		a_transport = "http://schemas.xmlsoap.org/soap/http"
+		_mayBeEmpty = True
+		_a_style = "rpc"
+		_a_transport = "http://schemas.xmlsoap.org/soap/http"
 
 	class body(SOAPElement):
-		mayBeEmpty = True
-		a_use = "encoded"
-		a_namespace = None
-		a_encodingStyle = "http://schemas.xmlsoap.org/soap/encoding"
+		_mayBeEmpty = True
+		_a_use = "encoded"
+		_a_namespace = None
+		_a_encodingStyle = "http://schemas.xmlsoap.org/soap/encoding"
 	
 	class operation(SOAPElement):
-		a_name = None
-		a_soapAction = None
-		a_style = "rpc"
+		_a_name = None
+		_a_soapAction = None
+		_a_style = "rpc"
 	
 	class address(SOAPElement):
-		mayBeEmpty = True
-		a_location = None
+		_mayBeEmpty = True
+		_a_location = None
 
 
 class XSD(object):
 	"""is a container for elements from XML schema.
 	"""
 	class XSDElement(Element):
-		namespace = XSDNamespace
-		local = True
+		_namespace = XSDNamespace
+		_local = True
 
 	class schema(XSDElement):
-		a_xmlns = XSDNamespace
-		a_targetNamespace = None
+		_a_xmlns = XSDNamespace
+		_a_targetNamespace = None
 
 	class element(XSDElement):
-		mayBeEmpty = True
-		a_name = None
-		a_type = None
+		_mayBeEmpty = True
+		_a_name = None
+		_a_type = None
 	
 	class complexType(XSDElement):
-		a_name = None
+		_a_name = None
 	
 	class all(XSDElement): pass
 
 	class list(XSDElement):
-		mayBeEmpty = True
-		a_itemType = None
+		_mayBeEmpty = True
+		_a_itemType = None
 	
 	class simpleType(XSDElement):
-		a_name = None
+		_a_name = None
 	
 
 def makeTypesForService(service, queryMeta):

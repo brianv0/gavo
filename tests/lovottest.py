@@ -109,21 +109,21 @@ class TextParseTest(testhelpers.VerboseTest):
 
 	def testEmptyInfo(self):
 		res = self._getInfoItem('<INFO name="t" value="0"/>')
-		self.assertEqual(res.a_value, "0")
-		self.assertEqual(res.a_name, "t")
+		self.assertEqual(res.value, "0")
+		self.assertEqual(res.name, "t")
 	
 	def testFullInfo(self):
 		res = self._getInfoItem('<INFO name="t" value="0">abc</INFO>')
-		self.assertEqual(res.text, "abc")
+		self.assertEqual(res._text, "abc")
 
 	def testUnicode(self):
 		# xml defaults to utf-8
 		res = self._getInfoItem('<INFO name="t" value="0">\xc3\xa4rn</INFO>')
-		self.assertEqual(res.text, u"\xe4rn")
+		self.assertEqual(res._text, u"\xe4rn")
 
 
 class IdTest(testhelpers.VerboseTest):
-	"""tests for collection of id attributes.
+	"""tests for the management of id attributes.
 	"""
 	def testSimpleId(self):
 		els = list(votable.parseString(
@@ -138,10 +138,10 @@ class IdTest(testhelpers.VerboseTest):
 			'<INFO ID="z" ref="xy">zz</INFO></VOTABLE>',
 			watchset=[V.INFO])
 		info0 = iter.next()
-		self.assertRaises(KeyError, lambda: info0.idmap[info0.a_ref])
+		self.assertRaises(KeyError, lambda: info0.idmap[info0.ref])
 		info1 = iter.next()
-		self.failUnless(info0.idmap[info0.a_ref] is info1)
-		self.failUnless(info1.idmap[info1.a_ref] is info0)
+		self.failUnless(info0.idmap[info0.ref] is info1)
+		self.failUnless(info1.idmap[info1.ref] is info0)
 		self.assertRaises(StopIteration, iter.next)
 
 
@@ -263,7 +263,8 @@ class TabledataWriteTest(testhelpers.VerboseTest):
 		fielddefs, input, expected = sample
 		vot = V.VOTABLE[V.RESOURCE[votable.DelayedTable(
 			V.TABLE[fielddefs], input, V.TABLEDATA)]]
-		mat = re.search("<TABLEDATA>(.*)</TABLEDATA>", votable.asString(vot))
+		res = votable.asString(vot)
+		mat = re.search("<TABLEDATA>(.*)</TABLEDATA>", res)
 		content = mat and mat.group(1)
 		self.assertEqual(content, expected)
 

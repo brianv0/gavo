@@ -350,32 +350,32 @@ class RemoteURLTest(testhelpers.VerboseTest):
 class RegistryTest(testhelpers.VerboseTest):
 	def testVSNamespaces(self):
 		from gavo.registry import model
-		self.assertEqual(model.VS.ucd().namespace,
+		self.assertEqual(model.VS.ucd()._namespace,
 			model.VSNamespace)
-		self.assertEqual(model.VS1.ucd().namespace,
+		self.assertEqual(model.VS1.ucd()._namespace,
 			model.VS1Namespace)
 
 	def testVOTableDataType(self):
 		from gavo.registry import model
 		self.assertEqual(
 			model.VS1.voTableDataType["char"].render(),
-			'<dataType arraysize="1" xsi:type="vs1:VOTableType">char</dataType>')
+			'<dataType arraysize="1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="vs1:VOTableType">char</dataType>')
 		self.assertEqual(
 			model.VS1.voTableDataType["text"].render(),
-			'<dataType arraysize="*" xsi:type="vs1:VOTableType">char</dataType>')
+			'<dataType arraysize="*" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="vs1:VOTableType">char</dataType>')
 		self.assertEqual(
 			model.VS1.voTableDataType["integer[20]"].render(),
-			'<dataType arraysize="20" xsi:type="vs1:VOTableType">int</dataType>')
+			'<dataType arraysize="20" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="vs1:VOTableType">int</dataType>')
 
 
 class StanXMLTest(testhelpers.VerboseTest):
 	class Model(object):
 		class MEl(stanxml.Element): 
-			local = True
+			_local = True
 		class Root(MEl):
-			childSequence = ["Child"]
+			_childSequence = ["Child"]
 		class Child(MEl):
-			childSequence = ["Foo", None]
+			_childSequence = ["Foo", None]
 
 	def testNoTextContent(self):
 		M = self.Model

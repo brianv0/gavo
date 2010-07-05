@@ -167,7 +167,7 @@ def _getArrayDecoderLines(field):
 
 	Unfortunately, the spec is plain nuts, so we need to pull some tricks here.
 	"""
-	type = field.a_datatype
+	type = field.datatype
 
 	if type=='char' or type=='unicodeChar':
 		return _makeCharDecoder(field, emptyIsNull=True)
@@ -192,7 +192,7 @@ def getLinesFor(field):
 	values for field.
 	"""
 	if field.isScalar():
-		return _decoders[field.a_datatype](field)
+		return _decoders[field.datatype](field)
 	else:
 		return _getArrayDecoderLines(field)
 
@@ -212,7 +212,7 @@ def getRowDecoderSource(tableDefinition):
 			coding.indentList(getLinesFor(field), "    ")+[
 			"  except:",
 			"    traceback.print_exc()",
-			"    raise common.BadVOTableLiteral('%s', val)"%field.a_datatype])
+			"    raise common.BadVOTableLiteral('%s', val)"%field.datatype])
 	source.append("  return row")
 	return "\n".join(source)
 

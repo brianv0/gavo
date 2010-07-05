@@ -28,7 +28,7 @@ class QuotedNameMaker(object):
 
 	def makeName(self, field):
 		self.index += 1
-		res = getattr(field, "a_name", None)
+		res = getattr(field, "name", None)
 		if res is None:
 			raise base.ValidationError("Field without name in upload.",
 				"UPLOAD")
@@ -46,7 +46,7 @@ class AutoQuotedNameMaker(object):
 		self.seenNames = set()
 	
 	def makeName(self, field):
-		name = getattr(field, "a_name", None)
+		name = getattr(field, "name", None)
 		if name is None:
 			raise base.ValidationError("Field without name in upload.",
 				"UPLOAD")
@@ -90,11 +90,11 @@ def makeTableDefForVOTable(tableId, votTable, nameMaker=None,
 		colName = nameMaker.makeName(f)
 		kwargs = {"name": colName,
 			"tablehead": colName.capitalize(),
-			"id": getattr(f, "a_ID", None),
-			"type": base.voTableToSQLType(f.a_datatype, f.a_arraysize, f.a_xtype)}
+			"id": getattr(f, "ID", None),
+			"type": base.voTableToSQLType(f.datatype, f.arraysize, f.xtype)}
 		for attName in ["ucd", "description", "unit", "xtype"]:
-			if getattr(f, "a_"+attName, None) is not None:
-				kwargs[attName] = getattr(f, "a_"+attName)
+			if getattr(f, attName, None) is not None:
+				kwargs[attName] = getattr(f, attName)
 		columns.append(MS(rscdef.Column, **kwargs))
 
 	# Create the table definition

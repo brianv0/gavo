@@ -44,7 +44,7 @@ def _addNullvalueCode(field, src, validator):
 
 
 def _makeFloatDecoder(field):
-	numBytes, structCode = _typemap[field.a_datatype]
+	numBytes, structCode = _typemap[field.datatype]
 	return [
 		'val = struct.unpack("!%s", inF.read(%d))[0]'%(structCode, numBytes),
 		'if val!=val:',
@@ -63,7 +63,7 @@ def _makeComplexDecoder(field, numBytes, structCode):
 
 
 def _makeIntDecoder(field):
-	numBytes, structCode = _typemap[field.a_datatype]
+	numBytes, structCode = _typemap[field.datatype]
 	src = [
 		'val = struct.unpack("!%s", inF.read(%d))[0]'%(structCode, numBytes)
 	]
@@ -175,7 +175,7 @@ def _getArrayDecoderLines(field):
 
 	Unfortunately, the spec is plain nuts, so we need to pull some tricks here.
 	"""
-	type = field.a_datatype
+	type = field.datatype
 
 	# Weird things
 	if type=="bit":
@@ -209,7 +209,7 @@ def getLinesFor(field):
 	values for field.
 	"""
 	if field.isScalar():
-		return _decoders[field.a_datatype](field)
+		return _decoders[field.datatype](field)
 	else:
 		return _getArrayDecoderLines(field)
 
@@ -233,7 +233,7 @@ def getRowDecoderSource(tableDefinition):
 			"  except:",
 			"    traceback.print_exc()",
 			"    raise common.BadVOTableLiteral('%s', repr(inF.lastRes))"%(
-				field.a_datatype)])
+				field.datatype)])
 	source.append("  return row")
 	return "\n".join(source)
 

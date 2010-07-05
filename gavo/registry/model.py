@@ -5,7 +5,7 @@ Data model for the VO registry interface.
 from gavo import base
 from gavo.base import typesystems
 from gavo.utils import ElementTree
-from gavo.utils.stanxml import Element, XSINamespace, schemaURL
+from gavo.utils.stanxml import Element, XSITypeMixin, schemaURL, XSINamespace
 
 
 class Error(base.Error):
@@ -59,36 +59,47 @@ _schemaLocations = {
 }
 
 
-def addSchemaLocations(object):
-	object.a_xsi_schemaLocation = " ".join(["%s %s"%(ns, xs) 
+
+class SchemaLocationMixin(object):
+	_a_xmlns_xsi = XSINamespace
+	_name_a_xmlns_xsi = "xmlns:xsi"
+	_a_xsi_schemaLocation = " ".join(["%s %s"%(ns, xs) 
 		for ns, xs in _schemaLocations.iteritems()])
-	object.xsi_schemaLocation_name = "xsi:schemaLocation"
-	object.a_xmlns_xsi = XSINamespace
-	object.xmlns_xsi_name = "xmlns:xsi"
+	_name_a_xsi_schemaLocation = "xsi:schemaLocation"
 
 
-class OAI:
+def addSchemaLocations(object):
+	"""adds schema locations to for the common VO schemata to an xmlstan
+	object.
+
+	This is the equivalent of using the SchemaLocationMixin stanxml classes.
+	"""
+	object.addAttribute("xsi:schemaLocation", 
+		SchemaLocationMixin._a_xsi_schemaLocation)
+	object.addAttribute("xmlns:xsi", XSINamespace)
+
+
+class OAI(object):
 	"""is a container for classes modelling OAI elements.
 	"""
 	class OAIElement(Element):
-		namespace = OAINamespace
+		_namespace = OAINamespace
 
-	class PMH(OAIElement):
-		name = "OAI-PMH"
-		a_xmlns_sia = SIANamespace
-		xmlns_sia_name = "xmlns:sia"
-		a_xmlns_cs = SCSNamespace
-		xmlns_cs_name = "xmlns:cs"
-		a_xmlns_vs = VSNamespace
-		xmlns_vs_name = "xmlns:vs"
-	addSchemaLocations(PMH)
+	class PMH(OAIElement, SchemaLocationMixin):
+		_name = "OAI-PMH"
+		_a_xmlns_sia = SIANamespace
+		_name_a_xmlns_sia = "xmlns:sia"
+		_a_xmlns_cs = SCSNamespace
+		_name_a_xmlns_cs = "xmlns:cs"
+		_a_xmlns_vs = VSNamespace
+		_name_a_xmlns_vs = "xmlns:vs"
 	
 	class responseDate(OAIElement): pass
 
 	class request(OAIElement):
-		mayBeEmpty = True
-		a_verb = None
-		a_metadataPrefix = None
+		_mayBeEmpty = True
+		_a_verb = None
+		_a_metadataPrefix = None
 
 	class metadata(OAIElement): pass
 
@@ -105,11 +116,11 @@ class OAI:
 	class ListSets(OAIElement): pass
 
 	class header(OAIElement):
-		a_status = None
+		_a_status = None
 
 	class error(OAIElement):
-		mayBeEmpty = True
-		a_code = None
+		_mayBeEmpty = True
+		_a_code = None
 
 	class record(OAIElement): pass
 
@@ -148,13 +159,13 @@ class OAI:
 	class setSpec(OAIElement): pass
 	
 	class setName(OAIElement): pass
-		
+
 
 class OAIDC:
 	"""is a container for OAI's Dublin Core metadata model.
 	"""
 	class OAIDCElement(Element):
-		namespace = OAIDCNamespace
+		_namespace = OAIDCNamespace
 	
 	class dc(OAIDCElement):
 		pass
@@ -164,20 +175,20 @@ class VOR:
 	"""is a container for classes modelling elements from VO Resource.
 	"""
 	class VORElement(Element):
-		namespace = VORNamespace
-		local = True
+		_namespace = VORNamespace
+		_local = True
 
-	class Resource(VORElement):
+	class Resource(VORElement, XSITypeMixin):
 # This is "abstract" in that only derived elements may be present
 # in an instance document (since VOR doesn't define any global elements).
 # Typically, this will be ri:Resource elements with some funky xsi:type
-		a_created = None
-		a_updated = None
-		a_status = None
-		
-		name = ElementTree.QName(RINamespace, "Resource")
-		local = False
-
+		_a_created = None
+		_a_updated = None
+		_a_status = None
+		_name = ElementTree.QName(RINamespace, "Resource")
+		_local = False
+		_a_xmlns_vr = VORNamespace
+		_name_a_xmlns_vr = "xmlns:vr"
 		c_title = None
 		c_curation = None
 		c_identifier = None
@@ -185,27 +196,23 @@ class VOR:
 		c_title = None
 
 	class Organisation(Resource):
-		a_xsi_type = "vr:Organisation"
-		a_xmlns_vr = VORNamespace
-		xmlns_vr_name = "xmlns:vr"
+		_a_xsi_type = "vr:Organisation"
 		c_facility = []
 		c_instrument = []
 		
 	class Service(Resource):
-		a_xsi_type = "vr:Service"
-		a_xmlns_vr = VORNamespace
-		xmlns_vr_name = "xmlns:vr"
+		_a_xsi_type = "vr:Service"
 
 	class validationLevel(VORElement):
-		a_validatedBy = None
+		_a_validatedBy = None
 	
 	class title(VORElement): pass
 	
 	class shortName(VORElement): pass
 
 	class ResourceName(VORElement):
-		a_ivo_id = None
-		ivo_id_name = "ivo-id"
+		_a_ivo_id = None
+		_name_a_ivo_id = "ivo-id"
 
 	class identifier(VORElement): pass
 
@@ -218,7 +225,7 @@ class VOR:
 	class contributor(ResourceName): pass
 	
 	class date(VORElement):
-		a_role = None
+		_a_role = None
 	
 	class version(VORElement): pass
 	
@@ -258,85 +265,81 @@ class VOR:
 	
 	class rights(VORElement): pass
 	
-	class capability(VORElement): 
-		name = "capability"
-		a_standardID = None
+	class capability(VORElement, XSITypeMixin):
+		_name = "capability"
+		_a_standardID = None
 	
-	class interface(VORElement):
-		name = "interface"
-		a_version = None
-		a_role = None
-		a_qtype = None
+	class interface(VORElement, XSITypeMixin):
+		_name = "interface"
+		_a_version = None
+		_a_role = None
+		_a_qtype = None
 
 	class WebBrowser(interface):
-		a_xsi_type = "vr:WebBrowser"
-		a_xmlns_vr = VORNamespace
-		xmlns_vr_name = "xmlns:vr"
+		_a_xsi_type = "vr:WebBrowser"
 	
 	class WebService(interface):
-		a_xsi_type = "vr:WebService"
-		a_xmlns_vr = VORNamespace
-		xmlns_vr_name = "xmlns:vr"
+		_a_xsi_type = "vr:WebService"
 
 	class wsdlURL(VORElement): pass
 
 	class accessURL(VORElement):
-		a_use = None
+		_a_use = None
 	
 	class securityMethod(VORElement):
 		def isEmpty(self):
-			return self.a_standardId is None
-		a_standardId = None
+			return self.standardId is None
+		_a_standardId = None
 	
 
 class RI:
 	"""is a container for classes modelling elements from IVOA Registry Interface.
 	"""
 	class RIElement(Element):
-		namespace = RINamespace
+		_namespace = RINamespace
 	
 	class VOResources(RIElement): pass
 
 	class Resource(VOR.Resource):
-		name = ElementTree.QName(RINamespace, "Resource")
+		_name = ElementTree.QName(RINamespace, "Resource")
 
 
 class VOG:
 	"""is a container for classes modelling elements from VO Registry.
 	"""
 	class VOGElement(Element):
-		namespace = VOGNamespace
-		local = True
+		_namespace = VOGNamespace
+		_local = True
 
 	class Resource(RI.Resource):
-		a_xsi_type = "vg:Registry"
-		a_xmlns_vg = VOGNamespace
-		xmlns_vg_name = "xmlns:vg"
+		_a_xsi_type = "vg:Registry"
+		_a_xmlns_vg = VOGNamespace
+		_name_a_xmlns_vg = "xmlns:vg"
 
 	class Authority(RI.Resource):
-		a_xsi_type = "vg:Authority"
-		a_xmlns_vg = VOGNamespace
-		xmlns_vg_name = "xmlns:vg"
+		_a_xsi_type = "vg:Authority"
+		_a_xmlns_vg = VOGNamespace
+		_name_a_xmlns_vg = "xmlns:vg"
 
 	class capability(VOR.capability):
-		a_standardID = "ivo://ivoa.net/std/Registry"
+		_a_standardID = "ivo://ivoa.net/std/Registry"
 	
 	class Harvest(capability):
-		a_xsi_type = "vg:Harvest"
-		a_xmlns_vg = VOGNamespace
-		xmlns_vg_name = "xmlns:vg"
+		_a_xsi_type = "vg:Harvest"
+		_a_xmlns_vg = VOGNamespace
+		_name_a_xmlns_vg = "xmlns:vg"
 
 	class Search(VOGElement):
-		a_xsi_type = "vg:Search"
-		a_xmlns_vg = VOGNamespace
-		xmlns_vg_name = "xmlns:vg"
+		_a_xsi_type = "vg:Search"
+		_a_xmlns_vg = VOGNamespace
+		_name_a_xmlns_vg = "xmlns:vg"
 
 	class OAIHTTP(VOR.interface):
-		a_xsi_type = "vg:OAIHTTP"
+		_a_xsi_type = "vg:OAIHTTP"
 		# namespace declaration has happened in enclosing element
 
 	class OAISOAP(VOR.interface):
-		a_xsi_type = "vg:OAISOAP"
+		_a_xsi_type = "vg:OAISOAP"
 		# namespace declaration has happened in enclosing element
 
 	class description(VOGElement): pass
@@ -364,7 +367,7 @@ class DC:
 	"""is a container for classes modelling elements from Dublin Core.
 	"""
 	class DCElement(Element):
-		namespace = DCNamespace
+		_namespace = DCNamespace
 
 	class contributor(DCElement): pass
 
@@ -408,16 +411,16 @@ def addBasicVSElements(baseNS, VSElement):
 		class coverage(VSElement): pass
 		
 		class format(VSElement): 
-			a_isMIMEType = None
+			_a_isMIMEType = None
 		
 		class rights(VSElement): pass
 		
 		class accessURL(VSElement): pass
 		
 		class ParamHTTP(VOR.interface):
-			a_xsi_type = "vs:ParamHTTP"
-			a_xmlns_vs = VSNamespace
-			xmlns_vs_name = "xmlns:vs"
+			_a_xsi_type = "vs:ParamHTTP"
+			_a_xmlns_vs = VSNamespace
+			_name_a_xmlns_vs = "xmlns:vs"
 
 		class resultType(VSElement): pass
 		
@@ -428,7 +431,6 @@ def addBasicVSElements(baseNS, VSElement):
 		class name(VSElement): pass
 		
 		class description(VSElement): pass
-
 
 		class unit(VSElement): pass
 		
@@ -446,30 +448,30 @@ def addBasicVSElements(baseNS, VSElement):
 			c_interface = []
 
 		class DataService(Service):
-			a_xsi_type = "vs:DataService"
-			a_xmlns_vs = VSNamespace
-			xmlns_vs_name = "xmlns:vs"
+			_a_xsi_type = "vs:DataService"
+			_a_xmlns_vs = VSNamespace
+			_name_a_xmlns_vs = "xmlns:vs"
 			c_table = []
 
 		class TableService(Service):
 			c_facility = []
 			c_instrument = []
 			c_table = []
-			a_xsi_type = "vs:TableService"
-			a_xmlns_vs = VSNamespace
-			xmlns_vs_name = "xmlns:vs"
+			_a_xsi_type = "vs:TableService"
+			_a_xmlns_vs = VSNamespace
+			_name_a_xmlns_vs = "xmlns:vs"
 
 		class CatalogService(Service):
-			a_xsi_type = "vs:CatalogService"
-			a_xmlns_vs = VSNamespace
-			xmlns_vs_name = "xmlns:vs"
+			_a_xsi_type = "vs:CatalogService"
+			_a_xmlns_vs = VSNamespace
+			_name_a_xmlns_vs = "xmlns:vs"
 
 		class ServiceReference(VSElement):
-			a_ivo_id = None
-			ivo_id_name = "ivo-id"
+			_a_ivo_id = None
+			_name_a_ivo_id = "ivo-id"
 
 		class table(VSElement):
-			a_role = None
+			_a_role = None
 
 			c_column = []
 			c_description = None
@@ -483,26 +485,25 @@ def addBasicVSElements(baseNS, VSElement):
 			c_unit = None
 
 	
-		class dataType(VSElement):
+		class dataType(VSElement, XSITypeMixin):
 			# dataType is something of a mess with subtle changes from 1.0 to
 			# 1.1.  There are various type systems, and all of this is
 			# painful.  I don't try to untangle this here.
-			xsi_type_name = "xsi:type"
-			name = "dataType"
-			a_arraysize = None
-			a_delim = None
-			a_extendedSchema = None
-			a_extendedType = None
+			_name = "dataType"
+			_a_arraysize = None
+			_a_delim = None
+			_a_extendedSchema = None
+			_a_extendedType = None
 
 			def addChild(self, item):
 				assert isinstance(item, basestring)
-				self.defineType(item)
+				self._defineType(item)
 
-			def defineType(self, item):
-				self.text = item
+			def _defineType(self, item):
+				self._text = item
 
 		class simpleDataType(dataType):
-			name = "dataType"  # dataType with vs:SimpleDataType sounds so stupid
+			_name = "dataType"  # dataType with vs:SimpleDataType sounds so stupid
 				# that I must have misunderstood something.
 			
 			typeMap = {
@@ -514,15 +515,15 @@ def addBasicVSElements(baseNS, VSElement):
 				"double": "real",
 			}
 
-			def defineType(self, type):
-				self.text = self.typeMap.get(type, type)
+			def _defineType(self, type):
+				self._text = self.typeMap.get(type, type)
 		
 		class voTableDataType(dataType):
-			a_xsi_type = "vs1:VOTableType"
+			_a_xsi_type = "vs1:VOTableType"
 
-			def defineType(self, type):
+			def _defineType(self, type):
 				typeName, arrLen = typesystems.toVOTableConverter.convert(type)
-				self.text = typeName
+				self._text = typeName
 				self(arraysize=str(arrLen))
 
 
@@ -530,12 +531,12 @@ def addBasicVSElements(baseNS, VSElement):
 
 # Elements common to VODataService 1.0 and 1.1 are added by addBasicVSElements
 
-class _VS1_0Stub:
+class _VS1_0Stub(object):
 	"""The stub for VODataService 1.0.
 	"""
 	class VSElement(Element):
-		namespace = VSNamespace
-		local = True
+		_namespace = VSNamespace
+		_local = True
 
 VS = addBasicVSElements(_VS1_0Stub, _VS1_0Stub.VSElement)
 
@@ -543,31 +544,31 @@ class _VS1_1Stub:
 	"""The stub for VODataService 1.1.
 	"""
 	class VSElement(Element):
-		namespace = VS1Namespace
-		local = True
+		_namespace = VS1Namespace
+		_local = True
 
-	class tableset(VSElement):
-		mayBeEmpty = True
-		childSequence = ["schema"]
+	class tableset(VSElement, XSITypeMixin):
+		_mayBeEmpty = True
+		_childSequence = ["schema"]
 	
 	class schema(VSElement):
-		childSequence = ["name", "title", "description", "utype",
+		_childSequence = ["name", "title", "description", "utype",
 			"table"]
 	
 	class title(VSElement): pass
 	class utype(VSElement): pass
 	
 	class table(VSElement):
-		childSequence = ["name", "title", "description", "utype",
+		_childSequence = ["name", "title", "description", "utype",
 			"column", "foreignKey"]
 
 	class foreignKey(VSElement):
-		childSequence = ["targetTable", "fkColumn", "description", "utype"]
+		_childSequence = ["targetTable", "fkColumn", "description", "utype"]
 	
 	class targetTable(VSElement): pass
 	
 	class fkColumn(VSElement):
-		childSequence = ["fromColumn", "targetColumn"]
+		_childSequence = ["fromColumn", "targetColumn"]
 
 	class fromColumn(VSElement): pass
 	class targetColumn(VSElement): pass
@@ -575,26 +576,26 @@ class _VS1_1Stub:
 VS1 = addBasicVSElements(_VS1_1Stub, _VS1_1Stub.VSElement)
 
 
-class SIA:
+class SIA(object):
 	"""is a container for classes modelling elements for describing simple
 	image access services.
 	"""
 	class SIAElement(Element):
-		namespace = SIANamespace
-		local = True
+		_namespace = SIANamespace
+		_local = True
 
 	class interface(VOR.interface):
-		namespace = SIANamespace
-		a_role = "std"
-		a_xsi_type = "vs:ParamHTTP"
-		a_xmlns_vs = VSNamespace
-		xmlns_vs_name = "xmlns:vs"
+		_namespace = SIANamespace
+		_a_role = "std"
+		_a_xsi_type = "vs:ParamHTTP"
+		_a_xmlns_vs = VSNamespace
+		_name_a_xmlns_vs = "xmlns:vs"
 
 	class capability(VOR.capability):
-		a_standardID = 	"ivo://ivoa.net/std/SIA"
-		a_xsi_type = "sia:SimpleImageAccess"
-		a_xmlns_sia = SIANamespace
-		xmlns_sia_name = "xmlns:sia"
+		_a_standardID = 	"ivo://ivoa.net/std/SIA"
+		_a_xsi_type = "sia:SimpleImageAccess"
+		_a_xmlns_sia = SIANamespace
+		_name_a_xmlns_sia = "xmlns:sia"
 	
 	class imageServiceType(SIAElement): pass
 	
@@ -619,30 +620,30 @@ class SIA:
 	class size(SIAElement): pass
 
 	
-class SCS:
+class SCS(object):
 	"""is a container for elements describing Simple Cone Search services.
 	"""
 	class SCSElement(Element):
-		namespace = SCSNamespace
-		local = True
+		_namespace = SCSNamespace
+		_local = True
 
 	class Resource(RI.Resource):
-		a_xsi_type = "cs:ConeSearch"
-		a_xmlns_cs = SCSNamespace
-		xmlns_cs_name = "xmlns:cs"
+		_a_xsi_type = "cs:ConeSearch"
+		_a_xmlns_cs = SCSNamespace
+		_name_a_xmlns_cs = "xmlns:cs"
 
 	class interface(VOR.interface):
-		namespace = SCSNamespace
-		a_role = "std"
-		a_xsi_type = "vs:ParamHTTP"
-		a_xmlns_vs = VSNamespace
-		xmlns_vs_name = "xmlns:vs"
+		_namespace = SCSNamespace
+		_a_role = "std"
+		_a_xsi_type = "vs:ParamHTTP"
+		_a_xmlns_vs = VSNamespace
+		_name_a_xmlns_vs = "xmlns:vs"
 
-	class capability(SCSElement):
-		a_standardID = 	"ivo://ivoa.net/std/ConeSearch"
-		a_xsi_type = "cs:ConeSearch"
-		a_xmlns_sia = SCSNamespace
-		xmlns_sia_name = "xmlns:cs"
+	class capability(VOR.capability):
+		_a_standardID = 	"ivo://ivoa.net/std/ConeSearch"
+		_a_xmlns_cs = SCSNamespace
+		_name_a_xmlns_cs = "xmlns:cs"
+		_a_xsi_type = "cs:ConeSearch"
 	
 	class maxSR(SCSElement): pass
 	
@@ -665,10 +666,10 @@ class TAP:
 	Plante in http://www.ivoa.net/forum/dal/0910/1620.htm.
 	"""
 	class interface(VOR.interface):
-		a_role = "std"
-		a_xsi_type = "vs:ParamHTTP"
-		a_xmlns_vs = VSNamespace
-		xmlns_vs_name = "xmlns:vs"
+		_a_role = "std"
+		_a_xsi_type = "vs:ParamHTTP"
+		_a_xmlns_vs = VSNamespace
+		_name_a_xmlns_vs = "xmlns:vs"
 
 	class capability(VOR.capability):
-		a_standardID = 	"ivo://ivoa.net/std/TAP"
+		_a_standardID = 	"ivo://ivoa.net/std/TAP"

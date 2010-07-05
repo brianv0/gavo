@@ -158,7 +158,7 @@ _encoders = {
 def _getArrayEncoderLines(field):
 	"""returns python lines to encode array values of field.
 	"""
-	type = field.a_datatype
+	type = field.datatype
 
 	# bit array literals are integers, same as bits
 	if type=="bit":
@@ -189,7 +189,7 @@ def _getArrayEncoderLines(field):
 			"else:",
 			"  arr = val",
 			"for val in arr:"
-		]+coding.indentList(_encoders[field.a_datatype](field), "  ")
+		]+coding.indentList(_encoders[field.datatype](field), "  ")
 
 		src.extend([
 			"fullTokens.append(''.join(tokens))",
@@ -204,7 +204,7 @@ def getLinesFor(field):
 	by field into tabledata.
 	"""
 	if field.isScalar():
-		return _encoders[field.a_datatype](field)
+		return _encoders[field.datatype](field)
 	else:
 		return _getArrayEncoderLines(field)
 
