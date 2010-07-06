@@ -32,8 +32,6 @@ class SIBLING_ASTRO_SYSTEM(object):
 	"""A sentinel class to tell the id resolver to use the sibling AstroCoordSys
 	element."""
 
-xlinkHref = str(ElementTree.QName(XlinkNamespace, "href"))
-
 
 ####################### Helpers
 
@@ -391,10 +389,12 @@ class ContextActions(object):
 
 ################ Coordinate systems
 
+_xlinkHref = utils.ElementTree.QName(XlinkNamespace, "href")
+
 def _buildAstroCoordSystem(node, buildArgs, context):
 	buildArgs["id"] = node.get("id", None)
-	if xlinkHref in node.attrib:
-		newEl = syslib.getLibrarySystem(node.attrib[xlinkHref]
+	if _xlinkHref in node.attrib:
+		newEl = syslib.getLibrarySystem(node.attrib[_xlinkHref]
 			).change(**buildArgs)
 	else:
 		newEl = dm.CoordSys(**buildArgs)

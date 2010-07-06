@@ -29,19 +29,21 @@ def write(root, outputFile):
 	rendering using that mechanism.
 
 	This function is more or less a subset of ElementTree.write (in particular:
-	No namespaces, not processing instructions since we don't need them for
+	No namespaces, no processing instructions since we don't need them for
 	VOTables yet, fixed encoding utf-8), with the extension that xmlstan nodes 
 	can define a write(file, encoding) method that, if defined, will be used 
 	instead of the standard serialization.
 	"""
 # This should be in a different module, really.  It's too specialized
 # for xmlstan itself, though.
-	def visit(name, text, attrs, childIter):
+	def visit(node, text, attrs, childIter):
 		attrRepr = " ".join("%s=%s"%(k, _escapeAttrVal(v))
 			for k, v in attrs.iteritems())
 		if attrRepr:
 			attrRepr = " "+attrRepr
-		outputFile.write("<%s%s>"%(name, attrRepr))
+		if getattr(node, "_fixedTagMaterial", None):
+			attrRepr = attrRepr+" "+node._fixedTagMaterial
+		outputFile.write("<%s%s>"%(node.name_, attrRepr))
 		if text:
 			outputFile.write(common.escapeCDATA(text).encode("utf-8"))
 		for c in childIter:
@@ -49,7 +51,7 @@ def write(root, outputFile):
 				c.write(outputFile)
 			else:
 				c.apply(visit)
-		outputFile.write("</%s>"%name)
+		outputFile.write("</%s>"%node.name_)
 
 	outputFile.write("<?xml version='1.0' encoding='utf-8'?>\n")
 	root.apply(visit)
@@ -83,7 +85,7 @@ def DelayedTable(tableDefinition, rowIterator, contentElement, **attrs):
 			yield encodeRow(row)
 	
 	content = contentElement(**attrs)
-	content._text = "Placeholder for real data"
+	content.text_ = "Placeholder for real data"
 	content.iterSerialized = iterSerialized
 
 	return tableDefinition[VOTable.DATA[

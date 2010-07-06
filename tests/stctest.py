@@ -559,8 +559,9 @@ class NullTest(testhelpers.VerboseTest):
 	
 	def testToSTCX(self):
 		self.assertEqual(
-			_purgeIds(stc.getSTCX(self._makeEmptySTC(), stc.STC.STCSpec).render()), 
-			'<STCSpec><AstroCoordSystem ><TimeFrame ><TimeScale /><UNKNOWNRefPos '
+			testhelpers.cleanXML(
+				stc.getSTCX(self._makeEmptySTC(), stc.STC.STCSpec).render()), 
+			'<STCSpec ><AstroCoordSystem ><TimeFrame ><TimeScale /><UNKNOWNRefPos '
 			'/></TimeFrame><SpaceFrame ><UNKNOWNFrame /><UNKNOWNRefPos /><SPHERIC'
 			'AL coord_naxes="2" /></SpaceFrame></AstroCoordSystem></STCSpec>')
 
@@ -615,11 +616,6 @@ class GeoTest(testhelpers.VerboseTest):
 					sample, res))
 
 
-def _purgeIds(stcx):
-	return re.sub(' xsi:schemaLocation="[^"]*"', '',
-		re.sub('(frame_|coord_system_)?id="[^"]*"', '', stcx))
-
-
 class CLITest(testhelpers.VerboseTest):
 	"""tests for working cli.
 
@@ -634,10 +630,10 @@ class CLITest(testhelpers.VerboseTest):
 		self.assertOutput(cli.main, ["help"], 
 			lambda out: "Commands include" in out)
 
-	baseResprof = '<STCResourceProfile xmlns="http://www.ivoa.net/xml/STC/stc-v1.30.xsd" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ivoa.net/xml/STC/stc-v1.30.xsd http://vo.ari.uni-heidelberg.de/docs/schemata/stc-v1.30.xsd http://www.w3.org/1999/xlink http://vo.ari.uni-heidelberg.de/docs/schemata/xlink.xsd"><AstroCoordSystem id="thenmtl"><SpaceFrame id="thendil"><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea coord_system_id="thenmtl"><Circle frame_id="thendil" unit="deg"><Center><C1>10.0</C1><C2>10.0</C2></Center><Radius>4.0</Radius></Circle></AstroCoordArea></STCResourceProfile>\n'
+	baseResprof = '<STCResourceProfile xmlns="http://www.ivoa.net/xml/STC/stc-v1.30.xsd" xmlns:stc="http://www.ivoa.net/xml/STC/stc-v1.30.xsd" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.w3.org/1999/xlink http://vo.ari.uni-heidelberg.de/docs/schemata/xlink.xsd http://www.ivoa.net/xml/STC/stc-v1.30.xsd http://vo.ari.uni-heidelberg.de/docs/schemata/stc-v1.30.xsd"><AstroCoordSystem id="luoopnh"><SpaceFrame id="lggopnh"><ICRS /><UNKNOWNRefPos /><SPHERICAL coord_naxes="2" /></SpaceFrame></AstroCoordSystem><AstroCoordArea coord_system_id="luoopnh"><Circle frame_id="lggopnh" unit="deg"><Center><C1>10.0</C1><C2>10.0</C2></Center><Radius>4.0</Radius></Circle></AstroCoordArea></STCResourceProfile>'
 	def testResprofGood(self):
 		def test(res):
-			return _purgeIds(self.baseResprof)==_purgeIds(res)
+			return testhelpers.cleanXML(self.baseResprof)==testhelpers.cleanXML(res)
 		self.assertOutput(cli.main, ["resprof", "Circle ICRS 10 10 4"],
 			test)
 

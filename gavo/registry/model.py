@@ -5,94 +5,45 @@ Data model for the VO registry interface.
 from gavo import base
 from gavo.base import typesystems
 from gavo.utils import ElementTree
-from gavo.utils.stanxml import Element, XSITypeMixin, schemaURL, XSINamespace
+from gavo.utils.stanxml import Element, schemaURL, registerPrefix, xsiPrefix
 
 
 class Error(base.Error):
 	pass
 
 
-OAINamespace = "http://www.openarchives.org/OAI/2.0/"
-OAIDCNamespace = "http://www.openarchives.org/OAI/2.0/oai_dc/"
-RINamespace = "http://www.ivoa.net/xml/RegistryInterface/v1.0"
-VOGNamespace = "http://www.ivoa.net/xml/VORegistry/v1.0"
-VORNamespace = "http://www.ivoa.net/xml/VOResource/v1.0"
-DCNamespace = "http://purl.org/dc/elements/1.1/"
-VSNamespace ="http://www.ivoa.net/xml/VODataService/v1.0"
-VS1Namespace ="http://www.ivoa.net/xml/VODataService/v1.1"
-SCSNamespace = "http://www.ivoa.net/xml/ConeSearch/v1.0" 
-SIANamespace="http://www.ivoa.net/xml/SIA/v1.0" 
-AVLNamespace = "http://www.ivoa.net/xml/VOSIAvailability/v1.0"
-CAPNamespace = "http://www.ivoa.net/xml/VOSICapabilities/v1.0"
-
-# Since we usually have the crappy namespaced attribute values (yikes!),
-# and ElementTree is (IMHO rightly) unaware of schemata, we need this 
-# mapping badly.  Don't change it without making sure the namespaces 
-# in question aren't referenced in attributes.
-ElementTree._namespace_map[VORNamespace] = "vr"
-ElementTree._namespace_map[VOGNamespace] = "vg"
-ElementTree._namespace_map[OAINamespace] = "oai"
-ElementTree._namespace_map[OAIDCNamespace] = "oai_dc"
-ElementTree._namespace_map[DCNamespace] = "dc"
-ElementTree._namespace_map[RINamespace] = "ri"
-ElementTree._namespace_map[VSNamespace] = "vs"
-ElementTree._namespace_map[VS1Namespace] = "vs1"
-ElementTree._namespace_map[SCSNamespace] = "cs"
-ElementTree._namespace_map[SIANamespace] = "sia"
-ElementTree._namespace_map[AVLNamespace] = "avl"
-ElementTree._namespace_map[CAPNamespace] = "cap"
-
-
-_schemaLocations = {
-	OAINamespace: schemaURL("OAI-PMH.xsd"),
-	OAIDCNamespace: schemaURL("oai_dc.xsd"),
-	VORNamespace: schemaURL("VOResource-v1.0.xsd"),
-	VOGNamespace: schemaURL("VORegistry-v1.0.xsd"),
-	DCNamespace: schemaURL("simpledc20021212.xsd"),
-	RINamespace: schemaURL("RegistryInterface-v1.0.xsd"),
-	VSNamespace: schemaURL("VODataService-v1.0.xsd"),
-	VS1Namespace: schemaURL("VODataService-v1.1.xsd"),
-	SCSNamespace: schemaURL("ConeSearch-v1.0.xsd"),
-	SIANamespace: schemaURL("SIA-v1.0.xsd"),
-	AVLNamespace: schemaURL("VOSIAvailability-v1.0.xsd"),
-	CAPNamespace: schemaURL("VOSICapabilities-v1.0.xsd"),
-}
-
-
-
-class SchemaLocationMixin(object):
-	_a_xmlns_xsi = XSINamespace
-	_name_a_xmlns_xsi = "xmlns:xsi"
-	_a_xsi_schemaLocation = " ".join(["%s %s"%(ns, xs) 
-		for ns, xs in _schemaLocations.iteritems()])
-	_name_a_xsi_schemaLocation = "xsi:schemaLocation"
-
-
-def addSchemaLocations(object):
-	"""adds schema locations to for the common VO schemata to an xmlstan
-	object.
-
-	This is the equivalent of using the SchemaLocationMixin stanxml classes.
-	"""
-	object.addAttribute("xsi:schemaLocation", 
-		SchemaLocationMixin._a_xsi_schemaLocation)
-	object.addAttribute("xmlns:xsi", XSINamespace)
+# See stanxml for the root of all the following evil.
+registerPrefix("oai", "http://www.openarchives.org/OAI/2.0/",
+	schemaURL("OAI-PMH.xsd"))
+registerPrefix("oai_dc", "http://www.openarchives.org/OAI/2.0/oai_dc/",
+	schemaURL("oai_dc.xsd"))
+registerPrefix("ri",
+	"http://www.ivoa.net/xml/RegistryInterface/v1.0",
+	schemaURL("RegistryInterface-v1.0.xsd"))
+registerPrefix("vg", "http://www.ivoa.net/xml/VORegistry/v1.0",
+	schemaURL("VORegistry-v1.0.xsd"))
+registerPrefix("vr", "http://www.ivoa.net/xml/VOResource/v1.0",
+	schemaURL("VOResource-v1.0.xsd"))
+registerPrefix("dc", "http://purl.org/dc/elements/1.1/",
+	schemaURL("simpledc20021212.xsd"))
+registerPrefix("vs", "http://www.ivoa.net/xml/VODataService/v1.0",
+	schemaURL("VODataService-v1.0.xsd"))
+registerPrefix("vs1", "http://www.ivoa.net/xml/VODataService/v1.1",
+	schemaURL("VODataService-v1.1.xsd"))
+registerPrefix("cs", "http://www.ivoa.net/xml/ConeSearch/v1.0",
+	schemaURL("ConeSearch-v1.0.xsd"))
+registerPrefix("sia", "http://www.ivoa.net/xml/SIA/v1.0",
+	schemaURL("SIA-v1.0.xsd"))
 
 
 class OAI(object):
 	"""is a container for classes modelling OAI elements.
 	"""
 	class OAIElement(Element):
-		_namespace = OAINamespace
+		_prefix = "oai"
 
-	class PMH(OAIElement, SchemaLocationMixin):
-		_name = "OAI-PMH"
-		_a_xmlns_sia = SIANamespace
-		_name_a_xmlns_sia = "xmlns:sia"
-		_a_xmlns_cs = SCSNamespace
-		_name_a_xmlns_cs = "xmlns:cs"
-		_a_xmlns_vs = VSNamespace
-		_name_a_xmlns_vs = "xmlns:vs"
+	class PMH(OAIElement):
+		name_ = "OAI-PMH"
 	
 	class responseDate(OAIElement): pass
 
@@ -165,7 +116,7 @@ class OAIDC:
 	"""is a container for OAI's Dublin Core metadata model.
 	"""
 	class OAIDCElement(Element):
-		_namespace = OAIDCNamespace
+		_prefix = "oai_dc"
 	
 	class dc(OAIDCElement):
 		pass
@@ -175,20 +126,19 @@ class VOR:
 	"""is a container for classes modelling elements from VO Resource.
 	"""
 	class VORElement(Element):
-		_namespace = VORNamespace
+		_prefix = "vr"
 		_local = True
 
-	class Resource(VORElement, XSITypeMixin):
+	class Resource(VORElement):
 # This is "abstract" in that only derived elements may be present
 # in an instance document (since VOR doesn't define any global elements).
 # Typically, this will be ri:Resource elements with some funky xsi:type
 		_a_created = None
 		_a_updated = None
 		_a_status = None
-		_name = ElementTree.QName(RINamespace, "Resource")
+		name_ = "ri:Resource"
 		_local = False
-		_a_xmlns_vr = VORNamespace
-		_name_a_xmlns_vr = "xmlns:vr"
+		_additionalPrefixes = frozenset(["vr", "ri", "xsi"])
 		c_title = None
 		c_curation = None
 		c_identifier = None
@@ -265,12 +215,14 @@ class VOR:
 	
 	class rights(VORElement): pass
 	
-	class capability(VORElement, XSITypeMixin):
-		_name = "capability"
+	class capability(VORElement):
+		name_ = "capability"
+		_additionalPrefixes = xsiPrefix
 		_a_standardID = None
 	
-	class interface(VORElement, XSITypeMixin):
-		_name = "interface"
+	class interface(VORElement):
+		name_ = "interface"
+		_additionalPrefixes = xsiPrefix
 		_a_version = None
 		_a_role = None
 		_a_qtype = None
@@ -296,43 +248,39 @@ class RI:
 	"""is a container for classes modelling elements from IVOA Registry Interface.
 	"""
 	class RIElement(Element):
-		_namespace = RINamespace
+		_prefix = "ri"
 	
 	class VOResources(RIElement): pass
 
 	class Resource(VOR.Resource):
-		_name = ElementTree.QName(RINamespace, "Resource")
+		name_ = "ri:Resource"
 
 
 class VOG:
 	"""is a container for classes modelling elements from VO Registry.
 	"""
 	class VOGElement(Element):
-		_namespace = VOGNamespace
+		_prefix = "vg"
 		_local = True
 
 	class Resource(RI.Resource):
 		_a_xsi_type = "vg:Registry"
-		_a_xmlns_vg = VOGNamespace
-		_name_a_xmlns_vg = "xmlns:vg"
+		_additionalPrefixes = frozenset(["vg", "xsi"])
 
 	class Authority(RI.Resource):
 		_a_xsi_type = "vg:Authority"
-		_a_xmlns_vg = VOGNamespace
-		_name_a_xmlns_vg = "xmlns:vg"
+		_additionalPrefixes = frozenset(["vg", "xsi"])
 
 	class capability(VOR.capability):
 		_a_standardID = "ivo://ivoa.net/std/Registry"
 	
 	class Harvest(capability):
 		_a_xsi_type = "vg:Harvest"
-		_a_xmlns_vg = VOGNamespace
-		_name_a_xmlns_vg = "xmlns:vg"
+		_additionalPrefixes = frozenset(["vg", "xsi"])
 
 	class Search(VOGElement):
 		_a_xsi_type = "vg:Search"
-		_a_xmlns_vg = VOGNamespace
-		_name_a_xmlns_vg = "xmlns:vg"
+		_additionalPrefixes = frozenset(["vg", "xsi"])
 
 	class OAIHTTP(VOR.interface):
 		_a_xsi_type = "vg:OAIHTTP"
@@ -367,7 +315,7 @@ class DC:
 	"""is a container for classes modelling elements from Dublin Core.
 	"""
 	class DCElement(Element):
-		_namespace = DCNamespace
+		_prefix = "dc"
 
 	class contributor(DCElement): pass
 
@@ -419,8 +367,7 @@ def addBasicVSElements(baseNS, VSElement):
 		
 		class ParamHTTP(VOR.interface):
 			_a_xsi_type = "vs:ParamHTTP"
-			_a_xmlns_vs = VSNamespace
-			_name_a_xmlns_vs = "xmlns:vs"
+			_additionalPrefixes = frozenset(["vg", "xsi"])
 
 		class resultType(VSElement): pass
 		
@@ -449,8 +396,7 @@ def addBasicVSElements(baseNS, VSElement):
 
 		class DataService(Service):
 			_a_xsi_type = "vs:DataService"
-			_a_xmlns_vs = VSNamespace
-			_name_a_xmlns_vs = "xmlns:vs"
+			_additionalPrefixes = frozenset(["vs", "xsi"])
 			c_table = []
 
 		class TableService(Service):
@@ -458,13 +404,11 @@ def addBasicVSElements(baseNS, VSElement):
 			c_instrument = []
 			c_table = []
 			_a_xsi_type = "vs:TableService"
-			_a_xmlns_vs = VSNamespace
-			_name_a_xmlns_vs = "xmlns:vs"
+			_additionalPrefixes = frozenset(["vs", "xsi"])
 
 		class CatalogService(Service):
 			_a_xsi_type = "vs:CatalogService"
-			_a_xmlns_vs = VSNamespace
-			_name_a_xmlns_vs = "xmlns:vs"
+			_additionalPrefixes = frozenset(["vs", "xsi"])
 
 		class ServiceReference(VSElement):
 			_a_ivo_id = None
@@ -485,11 +429,12 @@ def addBasicVSElements(baseNS, VSElement):
 			c_unit = None
 
 	
-		class dataType(VSElement, XSITypeMixin):
+		class dataType(VSElement):
 			# dataType is something of a mess with subtle changes from 1.0 to
 			# 1.1.  There are various type systems, and all of this is
 			# painful.  I don't try to untangle this here.
-			_name = "dataType"
+			name_ = "dataType"
+			_additionalPrefixes = xsiPrefix
 			_a_arraysize = None
 			_a_delim = None
 			_a_extendedSchema = None
@@ -500,10 +445,10 @@ def addBasicVSElements(baseNS, VSElement):
 				self._defineType(item)
 
 			def _defineType(self, item):
-				self._text = item
+				self.text_ = item
 
 		class simpleDataType(dataType):
-			_name = "dataType"  # dataType with vs:SimpleDataType sounds so stupid
+			name_ = "dataType"  # dataType with vs:SimpleDataType sounds so stupid
 				# that I must have misunderstood something.
 			
 			typeMap = {
@@ -516,14 +461,14 @@ def addBasicVSElements(baseNS, VSElement):
 			}
 
 			def _defineType(self, type):
-				self._text = self.typeMap.get(type, type)
+				self.text_ = self.typeMap.get(type, type)
 		
 		class voTableDataType(dataType):
 			_a_xsi_type = "vs1:VOTableType"
 
 			def _defineType(self, type):
 				typeName, arrLen = typesystems.toVOTableConverter.convert(type)
-				self._text = typeName
+				self.text_ = typeName
 				self(arraysize=str(arrLen))
 
 
@@ -535,7 +480,7 @@ class _VS1_0Stub(object):
 	"""The stub for VODataService 1.0.
 	"""
 	class VSElement(Element):
-		_namespace = VSNamespace
+		_prefix = "vs"
 		_local = True
 
 VS = addBasicVSElements(_VS1_0Stub, _VS1_0Stub.VSElement)
@@ -544,10 +489,11 @@ class _VS1_1Stub:
 	"""The stub for VODataService 1.1.
 	"""
 	class VSElement(Element):
-		_namespace = VS1Namespace
+		_prefix = "vs1"
 		_local = True
 
-	class tableset(VSElement, XSITypeMixin):
+	class tableset(VSElement):
+		_additionalPrefixes = xsiPrefix
 		_mayBeEmpty = True
 		_childSequence = ["schema"]
 	
@@ -581,21 +527,19 @@ class SIA(object):
 	image access services.
 	"""
 	class SIAElement(Element):
-		_namespace = SIANamespace
+		_prefix = "sia"
 		_local = True
 
 	class interface(VOR.interface):
-		_namespace = SIANamespace
+		_prefix = "sia"
 		_a_role = "std"
+		_additionalPrefixes = frozenset(["vs", "xsi"])
 		_a_xsi_type = "vs:ParamHTTP"
-		_a_xmlns_vs = VSNamespace
-		_name_a_xmlns_vs = "xmlns:vs"
 
 	class capability(VOR.capability):
 		_a_standardID = 	"ivo://ivoa.net/std/SIA"
 		_a_xsi_type = "sia:SimpleImageAccess"
-		_a_xmlns_sia = SIANamespace
-		_name_a_xmlns_sia = "xmlns:sia"
+		_additionalPrefixes = frozenset(["sia", "xsi"])
 	
 	class imageServiceType(SIAElement): pass
 	
@@ -624,26 +568,23 @@ class SCS(object):
 	"""is a container for elements describing Simple Cone Search services.
 	"""
 	class SCSElement(Element):
-		_namespace = SCSNamespace
+		_prefix = "cs"
 		_local = True
 
 	class Resource(RI.Resource):
 		_a_xsi_type = "cs:ConeSearch"
-		_a_xmlns_cs = SCSNamespace
-		_name_a_xmlns_cs = "xmlns:cs"
+		_additionalPrefixes = frozenset(["xsi", "cs"])
 
 	class interface(VOR.interface):
-		_namespace = SCSNamespace
+		_prefix = "cs"
 		_a_role = "std"
 		_a_xsi_type = "vs:ParamHTTP"
-		_a_xmlns_vs = VSNamespace
-		_name_a_xmlns_vs = "xmlns:vs"
+		_additionalPrefixes = frozenset(["xsi", "vs"])
 
 	class capability(VOR.capability):
 		_a_standardID = 	"ivo://ivoa.net/std/ConeSearch"
-		_a_xmlns_cs = SCSNamespace
-		_name_a_xmlns_cs = "xmlns:cs"
 		_a_xsi_type = "cs:ConeSearch"
+		_additionalPrefixes = frozenset(["xsi", "vs"])
 	
 	class maxSR(SCSElement): pass
 	
@@ -668,8 +609,7 @@ class TAP:
 	class interface(VOR.interface):
 		_a_role = "std"
 		_a_xsi_type = "vs:ParamHTTP"
-		_a_xmlns_vs = VSNamespace
-		_name_a_xmlns_vs = "xmlns:vs"
+		_additionalPrefixes = frozenset(["xsi", "vs"])
 
 	class capability(VOR.capability):
 		_a_standardID = 	"ivo://ivoa.net/std/TAP"

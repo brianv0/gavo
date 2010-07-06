@@ -94,8 +94,8 @@ class UtypeMaker(object):
 
 	def iterUtypes(self, node, prefix):
 		children = node.makeChildDict()
-		if node._text:
-			yield prefix, node._text
+		if node.text_:
+			yield prefix, node.text_
 		for attName, name in node.iterAttNames():
 			if name not in self.bannedAttributes:
 				val = getattr(node, attName)

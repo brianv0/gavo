@@ -44,7 +44,6 @@ class _ADQLTestTable(testhelpers.TestResource):
 	resources = [("adqlQuerier", adqlQuerier)]
 
 	def make(self, deps):
-		base.setDBProfile("test")
 		self.rd = testhelpers.getTestRD()
 		ds = rsc.makeData(self.rd.getById("ADQLTest"),
 				forceSource=[

@@ -112,7 +112,7 @@ _utypeMorphers = {
 	'AstroCoordSystem.SpectralFrame.ReferencePosition': _replaceLastWithValue,
 	'AstroCoordSystem.TimeFrame.ReferencePosition': _replaceLastWithValue,
 	'AstroCoordSystem.href': _makeParentAttributeMaker(
-		stcxast.xlinkHref),
+		utils.ElementTree.QName(common.XlinkNamespace, "href")),
 	'AstroCoordSystem.SpaceFrame.ReferencePosition.PlanetaryEphem':
 		_makeChildMaker("PlanetaryEphem"),
 	'AstroCoordSystem.TimeFrame.ReferencePosition.PlanetaryEphem':

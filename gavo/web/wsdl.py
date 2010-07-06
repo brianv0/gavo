@@ -12,7 +12,8 @@ from ZSI import TC
 from gavo import base
 from gavo import svcs
 from gavo.base import valuemappers
-from gavo.utils.stanxml import (Element, schemaURL, XSITypeMixin)
+from gavo.utils.stanxml import (Element, schemaURL, xsiPrefix,
+	registerPrefix)
 from gavo.utils import ElementTree
 
 
@@ -22,25 +23,24 @@ MIMENamespace = 'http://schemas.xmlsoap.org/wsdl/mime/'
 WSDLNamespace = 'http://schemas.xmlsoap.org/wsdl/'
 XSDNamespace = "http://www.w3.org/2001/XMLSchema"
 
-ElementTree._namespace_map[SOAPNamespace] = "soap"
-ElementTree._namespace_map[HTTPNamespace] = "http"
-ElementTree._namespace_map[MIMENamespace] = "mime"
-ElementTree._namespace_map[WSDLNamespace] = "wsdl"
-ElementTree._namespace_map[XSDNamespace] = "xsd"
+registerPrefix("soap", SOAPNamespace,
+	schemaURL("wsdlsoap-1.1.xsd"))
+registerPrefix("http", HTTPNamespace,
+	schemaURL("wsdlhttp-1.1.xsd"))
+registerPrefix("mime", MIMENamespace,
+	schemaURL("wsdlmime-1.1.xsd"))
+registerPrefix("wsdl", WSDLNamespace,
+	schemaURL("wsdl-1.1.xsd"))
+registerPrefix("xsd", XSDNamespace,
+	schemaURL("XMLSchema.xsd"))
 
-
-_schemaLocations = {
-	SOAPNamespace: schemaURL("wsdlsoap-1.1.xsd"),
-	WSDLNamespace: schemaURL("wsdl-1.1.xsd"),
-	XSDNamespace: schemaURL("XMLSchema.xsd"),
-}
 
 
 class WSDL(object):
 	"""is a container for elements from the wsdl 1.1 schema.
 	"""
 	class WSDLElement(Element):
-		_namespace = WSDLNamespace
+		_prefix = "wsdl"
 
 	class _tParam(WSDLElement):
 		_a_message = None
@@ -50,16 +50,14 @@ class WSDL(object):
 		_a_name = None
 		_a_type = None
 
-	class definitions(WSDLElement, XSITypeMixin):
+	class definitions(WSDLElement):
+		_additionalPrefixes = frozenset(["xsi"])
 		_a_name = None
 		_a_targetNamespace = None
 		_a_xmlns_tns = None
 		_name_a_xmlns_tns_name = "xmlns:tns"
 		_a_xmlns_xsd = XSDNamespace
 		_name_a_xmlns_xsd = "xmlns:xsd"
-#		_a_xsi_schemaLocation =  " ".join(["%s %s"%(ns, xs) 
-#			for ns, xs in _schemaLocations.iteritems()])
-#		_name_a_xsi_schemaLocation = "xsi:schemaLocation"
 	
 	class documentation(WSDLElement): pass
 	
@@ -67,7 +65,7 @@ class WSDL(object):
 		_a_name = None
 	
 	class import_(WSDLElement):
-		_name = "import"
+		name_ = "import"
 		_a_location = None
 		_a_namespace = None
 
@@ -107,7 +105,7 @@ class WSDL(object):
 
 class SOAP(object):
 	class SOAPElement(Element):
-		_namespace = SOAPNamespace
+		_prefix = "soap"
 
 	class binding(SOAPElement):
 		_mayBeEmpty = True
@@ -134,7 +132,7 @@ class XSD(object):
 	"""is a container for elements from XML schema.
 	"""
 	class XSDElement(Element):
-		_namespace = XSDNamespace
+		_prefix = "xsd"
 		_local = True
 
 	class schema(XSDElement):

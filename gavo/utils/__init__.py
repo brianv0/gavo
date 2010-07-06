@@ -38,7 +38,7 @@ from gavo.utils.ostricks import safeclose, urlopenRemote, fgetmtime, cat
 
 from gavo.utils.plainxml import StartEndHandler
 
-from gavo.utils.stanxml import FastElementTree, ElementTree, xmlrender
+from gavo.utils.stanxml import ElementTree, xmlrender
 
 from gavo.utils.texttricks import (formatSize, makeEllipsis, floatRE, 
 	dateRE, datetimeRE, identifierRE,

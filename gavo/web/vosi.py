@@ -18,8 +18,14 @@ from gavo.base import meta
 from gavo.registry import capabilities
 from gavo.registry import model
 from gavo.utils import ElementTree
-from gavo.utils.stanxml import Element, XSITypeMixin, schemaURL
+from gavo.utils.stanxml import Element, registerPrefix, schemaURL, xsiPrefix
 from gavo.web import grend
+
+
+registerPrefix("avl", "http://www.ivoa.net/xml/VOSIAvailability/v1.0",
+	schemaURL("VOSIAvailability-v1.0.xsd"))
+registerPrefix("cap", "http://www.ivoa.net/xml/VOSICapabilities/v1.0",
+	schemaURL("VOSICapabilities-v1.0.xsd"))
 
 
 class VOSIRenderer(grend.ServiceBasedRenderer):
@@ -63,9 +69,10 @@ class AVL(object):
 	"""The container for elements from the VOSI availability schema.
 	"""
 	class AVLElement(Element):
-		_namespace = model.AVLNamespace
+		_prefix = "avl"
 	
-	class availability(AVLElement, XSITypeMixin): pass
+	class availability(AVLElement):
+		_additionalPrefixes = xsiPrefix
 	class available(AVLElement): pass
 	class upSince(AVLElement): pass
 	class downAt(AVLElement): pass
@@ -77,11 +84,9 @@ class CAP(object):
 	"""The container for element from the VOSI capabilities schema.
 	"""
 	class CAPElement(Element):
-		_namespace = model.CAPNamespace
+		_prefix = "cap"
 	
-	class capabilities(CAPElement, XSITypeMixin):
-		_a_xmlns_vr = model.VORNamespace
-		_name_a_xmlns_vr = "xmlns:vr"
+	class capabilities(CAPElement): pass
 
 
 SF = meta.stanFactory
@@ -103,7 +108,6 @@ class VOSIAvailabilityRenderer(VOSIRenderer):
 	def _getTree(self, request):
 		root = AVL.availability[
 			_availabilityBuilder.build(self.service)]
-		registry.addSchemaLocations(root)
 		return root
 
 svcs.registerRenderer(VOSIAvailabilityRenderer)
@@ -122,7 +126,6 @@ class VOSICapabilityRenderer(VOSIRenderer):
 		root = CAP.capabilities[[
 			capabilities.getCapabilityElement(pub)
 				for pub in self.service.getPublicationsForSet(self.vosiSet)]]
-		registry.addSchemaLocations(root)
 		return root
 
 svcs.registerRenderer(VOSICapabilityRenderer)
@@ -137,9 +140,7 @@ class VOSITablesetRenderer(VOSIRenderer):
 		request.setHeader("Last-Modified", 
 			utils.datetimeToRFC2616(self.service.rd.dateUpdated))
 		root = registry.getTablesetForService(self.service)
-		root.addAttribute("xmlns:vs1", model.VS1Namespace)
 		root.addAttribute("xsi:type", "vs1:TableSet")
-		registry.addSchemaLocations(root)
 		return root
 
 svcs.registerRenderer(VOSITablesetRenderer)

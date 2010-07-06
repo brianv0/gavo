@@ -80,6 +80,18 @@ class SyncMetaTest(TAPRenderTest):
 class SyncQueryTest(TAPRenderTest):
 	"""tests for querying sync queries.
 	"""
+# XXX TODO: use some of "our" test tables rather than taptest here;
+# then remove setUp and tearDown
+	def setUp(self):
+		self.testInputs = base.getConfig("inputsDir")
+		if "GAVO_INPUTSDIR" in os.environ:
+			del os.environ["GAVO_INPUTSDIR"]
+		base.setConfig("inputsDir", testhelpers.origInputs)
+	
+	def tearDown(self):
+		base.setConfig("inputsDir", self.testInputs)
+		os.environ["GAVO_INPUTSDIR"] = self.testInputs
+
 	def testNoLangRejected(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery", 

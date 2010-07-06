@@ -6,17 +6,23 @@ import re
 
 from gavo import utils
 from gavo.utils import ElementTree
-from gavo.utils.stanxml import Element
+from gavo.utils.stanxml import Element, registerPrefix, getPrefixInfo, schemaURL
 
 
-VOTableNamespace = "http://www.ivoa.net/xml/VOTable/v1.2"
+NAMESPACES = {
+	"1.2": "http://www.ivoa.net/xml/VOTable/v1.2",
+	"1.1": "http://www.ivoa.net/xml/VOTable/v1.1",
+}
 
+registerPrefix("vot", NAMESPACES["1.2"], schemaURL("VOTable-1.2.xsd"))
+registerPrefix("vot1", NAMESPACES["1.1"], schemaURL("VOTable-1.1.xsd"))
+	
 
 class VOTable(object):
 	"""The container for VOTable elements.
 	"""
 	class _VOTElement(Element):
-		_namespace = VOTableNamespace
+		_prefix = "vot"
 		_local = True
 
 	class _DescribedElement(_VOTElement):
@@ -42,7 +48,7 @@ class VOTable(object):
 			"""returns the description for this element, or an empty string.
 			"""
 			try:
-				return self.iterChildrenOfType(VOTable.DESCRIPTION).next()._text
+				return self.iterChildrenOfType(VOTable.DESCRIPTION).next().text_
 			except StopIteration:
 				return ""
 
@@ -312,7 +318,15 @@ class VOTable(object):
 	class VOTABLE(_VOTElement):
 		_a_ID = None
 		_a_version = "1.2"
-		_a_xmlns = VOTableNamespace
+		_prefix = "vot"
+		_supressedPrefix = "vot"
+		# The following is for when the xmlstan tree is processed by 
+		# tablewriter.write rather than asETree
+		_fixedTagMaterial = ('xmlns="%s" xmlns:xsi="%s"'
+				' xsi:schemaLocation="%s %s"')%((
+					getPrefixInfo("vot")[0],
+					getPrefixInfo("xsi")[0])
+				+getPrefixInfo("vot"))
 
 
 	class VOTABLE11(_VOTElement):
@@ -320,15 +334,23 @@ class VOTable(object):
 # all elements here are local -- make this your top-level element
 # and only use what's legal in VOTable 1.1, and you get a VOTable1.1
 # conforming document
-		_name = "VOTABLE"
+		name_ = "VOTABLE"
 		_a_ID = None
 		_a_version = "1.1"
-		_a_xmlns = "http://www.ivoa.net/xml/VOTable/v1.1"
+		_prefix = "vot1"
+		_supressedPrefix = "vot1"
+		# The following is for when the xmlstan tree is processed by 
+		# tablewriter.write rather than asETree
+		_fixedTagMaterial = ('xmlns="%s" xmlns:xsi="%s"'
+				' xsi:schemaLocation="%s %s"')%((
+					getPrefixInfo("vot1")[0],
+					getPrefixInfo("xsi")[0])
+				+getPrefixInfo("vot1"))
 
 
-def voTag(tagName):
+def voTag(tagName, version="1.2"):
 	"""returns the VOTable QName for tagName.
 
 	You only need this if you want to search in ElementTrees.
 	"""
-	return ElementTree.QName(VOTableNamespace, tagName)
+	return ElementTree.QName(NAMESPACES[version], tagName)

@@ -37,7 +37,6 @@ from gavo.registry.builders import (getVOResourceElement,
 	getVORMetadataElement)
 from gavo.registry.identifiers import (getResobFromIdentifier,
 	getResobFromRestup)
-from gavo.registry.model import addSchemaLocations
 from gavo.registry.publication import findAllRDs
 from gavo.registry.servicelist import getTableDef
 from gavo.registry.tableset import getTablesetForService

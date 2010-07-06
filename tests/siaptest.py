@@ -216,7 +216,6 @@ class CooQueryTestBase(unittest.TestCase):
 				"owner": None,
 			}
 			return res
-		base.setDBProfile("test")
 		rd = testhelpers.getTestRD()
 		dd = rd.getById(self.ddid)
 		self.data = rsc.makeData(dd, forceSource=[

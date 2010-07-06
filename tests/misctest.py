@@ -206,7 +206,7 @@ class ProcessorTest(testhelpers.VerboseTest):
 		f.close()
 
 	def tearDown(self):
-		base.setConfig("tempDir", self.origInputs)
+		base.setConfig("inputsDir", self.origInputs)
 		shutil.rmtree(self.resdir, True)
 
 	class SimpleProcessor(helpers.HeaderProcessor):
@@ -350,22 +350,21 @@ class RemoteURLTest(testhelpers.VerboseTest):
 class RegistryTest(testhelpers.VerboseTest):
 	def testVSNamespaces(self):
 		from gavo.registry import model
-		self.assertEqual(model.VS.ucd()._namespace,
-			model.VSNamespace)
-		self.assertEqual(model.VS1.ucd()._namespace,
-			model.VS1Namespace)
+		self.assertEqual(model.VS.ucd()._prefix, "vs")
+			
+		self.assertEqual(model.VS1.ucd()._prefix, "vs1")
 
 	def testVOTableDataType(self):
 		from gavo.registry import model
 		self.assertEqual(
-			model.VS1.voTableDataType["char"].render(),
-			'<dataType arraysize="1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="vs1:VOTableType">char</dataType>')
+			testhelpers.cleanXML(model.VS1.voTableDataType["char"].render()),
+			'<dataType arraysize="1" xsi:type="vs1:VOTableType">char</dataType>')
 		self.assertEqual(
-			model.VS1.voTableDataType["text"].render(),
-			'<dataType arraysize="*" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="vs1:VOTableType">char</dataType>')
+			testhelpers.cleanXML(model.VS1.voTableDataType["text"].render()),
+			'<dataType arraysize="*" xsi:type="vs1:VOTableType">char</dataType>')
 		self.assertEqual(
-			model.VS1.voTableDataType["integer[20]"].render(),
-			'<dataType arraysize="20" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="vs1:VOTableType">int</dataType>')
+			testhelpers.cleanXML(model.VS1.voTableDataType["integer[20]"].render()),
+			'<dataType arraysize="20" xsi:type="vs1:VOTableType">int</dataType>')
 
 
 class StanXMLTest(testhelpers.VerboseTest):

@@ -9,13 +9,7 @@ Building STC-X documents, xmlstan-style.
 
 from gavo.stc.common import *
 from gavo.utils import ElementTree
-from gavo.utils.stanxml import Element, XSITypeMixin, Error, schemaURL
-
-
-_schemaLocations = {
-	STCNamespace: schemaURL("stc-v1.30.xsd"),
-	XlinkNamespace: schemaURL("xlink.xsd"),
-}
+from gavo.utils.stanxml import Element, Error, schemaURL
 
 
 class NamespaceWithSubsGroup(type):
@@ -29,7 +23,7 @@ class NamespaceWithSubsGroup(type):
 		"""
 		for n in validNames:
 			class dynamicallyDefined(baseClass):
-				_name = n
+				name_ = n
 			setattr(cls, n, dynamicallyDefined)
 
 
@@ -40,7 +34,7 @@ class STC(object):
 
 	class STCElement(Element):
 		_mayBeEmpty = True
-		_namespace = STCNamespace
+		_prefix = "stc"
 		_local = True
 		# We may not want all of these an all elements, but it's not
 		# worth the effort to discriminate here.
@@ -55,14 +49,10 @@ class STC(object):
 	class OptionalSTCElement(STCElement):
 		_mayBeEmpty = False
 
-	class _Toplevel(STCElement, XSITypeMixin):
-		_a_xmlns = STCNamespace
-		_a_xmlns_xlink = XlinkNamespace
-		_name_a_xmlns_xlink = "xmlns:xlink"
-		_name_a_xsi_schemaLocation = " ".join(["%s %s"%(ns, xs)
-			for ns, xs in _schemaLocations.iteritems()])
-		_name_a_xsi_schemaLocation = "xsi:schemaLocation"
-
+	class _Toplevel(STCElement):
+		_local = False
+		_suppressedPrefix = "stc"
+		_additionalPrefixes = frozenset(["xlink", "xsi"])
 
 	class STCResourceProfile(_Toplevel): pass
 	class ObsDataLocation(_Toplevel): pass

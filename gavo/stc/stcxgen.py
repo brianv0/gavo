@@ -479,7 +479,7 @@ def serialize_Difference(node, context):
 	op2 = _nodeToStan(node.children[1], context)
 	# Banzai!  To save myself the trouble of having all those icky *2
 	# elements around, I hack op2's name.
-	op2._name = op2._name+"2"
+	op2.name_ = op2.name_+"2"
 	return STC.Difference[op1, op2]
 
 def serialize_Not(node, context):

@@ -25,22 +25,18 @@ creds.adminProfile = "test"
 
 def importSomeProducts():
 	config.setDbProfile("test")
-	oldInputs = config.get("inputsDir")
-	config.set("inputsDir", testhelpers.testsDir)
-	rd = importparser.getRd("test")
+	rd = testhelpers.getRd("data/test")
 	tableDef = rd.getTableDefByName("prodtest")
 	res = resource.Resource(rd)
 	res.importData(None, ["productimport"])
 	res.export("sql", ["productimport"])
-	return oldInputs
 
 
-def forgetSomeProducts(oldInputs):
+def forgetSomeProducts():
 	rd = importparser.getRd("test")
 	tableDef = rd.getTableDefByName("prodtest")
 	tw = rsc.TableForDef(tableDef)
 	tw.drop().commit().close()
-	config.set("inputsDir", oldInputs)
 
 
 def createTestUser():
@@ -65,7 +61,7 @@ class ProductCoreTest(object):
 	timeout = 10
 
 	def setUp(self):
-		self.oldInputs = importSomeProducts()
+		importSomeProducts()
 		self.rd = importparser.getRd("__system__/products/products")
 		self.core = product.ProductCore(self.rd, {})
 		self.service = service.Service(self.rd, {"condDescs":
@@ -74,7 +70,7 @@ class ProductCoreTest(object):
 		self.service.set_core(self.core)
 
 	def tearDown(self):
-		forgetSomeProducts(self.oldInputs)
+		forgetSomeProducts()
 	
 	def _testCoreRun(self, input, checker, queryMeta=common.emptyQueryMeta):
 		"""runs input through the core, sending the result to the checker callback.

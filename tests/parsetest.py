@@ -131,13 +131,11 @@ class TestProductsImport(testhelpers.VerboseTest):
 class TestCleanedup(unittest.TestCase):
 	"""tests for cleanup after table drop (may fail if other tests failed).
 	"""
-	def setUp(self):
-		base.setDBProfile("admin")
-
 	def testNotInProducts(self):
 		assertRowset(self,
-			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
-				" products where sourceTable='test.prodtest'"),
+			sqlsupport.SimpleQuerier(useProfile="admin"
+				).runIsolatedQuery(
+				"select * from products where sourceTable='test.prodtest'"),
 			[])
 
 	def testNotInMetatable(self):

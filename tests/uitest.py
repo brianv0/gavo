@@ -90,8 +90,6 @@ class CLITest(testhelpers.VerboseTest):
 	def testLifecycle(self):
 		"""runs a complete lifecycle of a resource.
 		"""
-		base.setDBProfile("test")
-		base.setConfig("inputsDir", os.getcwd())
 		querier = base.SimpleQuerier()
 		try:
 			self.assertOutput(cli.main, 
@@ -108,9 +106,8 @@ class CLITest(testhelpers.VerboseTest):
 				" WHERE subject=%(s)s", {'s': "Problems, somebody else's"})))
 
 			# drop it all, make sure all traces are gone
-
 			self.assertOutput(cli.main,
-				argList=["drop", "data/test"])
+				argList=["drop", "data/test"], expectedStdout="", expectedStderr="")
 
 			self.failIf(list(querier.query("SELECT * FROM srv_subjs"
 				" WHERE subject=%(s)s", {'s': "Problems, somebody else's"})))

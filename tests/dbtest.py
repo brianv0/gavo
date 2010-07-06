@@ -64,7 +64,6 @@ class TestWithTableCreation(unittest.TestCase):
 	def setUp(self):
 		if self.tableName is None:
 			return
-		base.setDBProfile("test")
 		self.querier = base.SimpleQuerier(useProfile="test")
 		self.tableDef = testhelpers.getTestTable(self.tableName, self.rdId)
 		self.table = rsc.TableForDef(self.tableDef, rows=self.rows).commit()
@@ -97,7 +96,6 @@ class TestRoleSetting(TestPrivs):
 	rdId = "privtest.rd"
 
 	def setUp(self):
-		base.setDBProfile("test")
 		q = base.SimpleQuerier()
 		try:
 			q.query("create user privtestuser")

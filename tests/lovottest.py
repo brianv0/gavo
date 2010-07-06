@@ -114,12 +114,12 @@ class TextParseTest(testhelpers.VerboseTest):
 	
 	def testFullInfo(self):
 		res = self._getInfoItem('<INFO name="t" value="0">abc</INFO>')
-		self.assertEqual(res._text, "abc")
+		self.assertEqual(res.text_, "abc")
 
 	def testUnicode(self):
 		# xml defaults to utf-8
 		res = self._getInfoItem('<INFO name="t" value="0">\xc3\xa4rn</INFO>')
-		self.assertEqual(res._text, u"\xe4rn")
+		self.assertEqual(res.text_, u"\xe4rn")
 
 
 class IdTest(testhelpers.VerboseTest):

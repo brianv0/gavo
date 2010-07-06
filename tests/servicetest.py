@@ -106,13 +106,6 @@ class ComputedServiceTest(testhelpers.VerboseTest):
 class BrowsableTest(testhelpers.VerboseTest):
 	"""tests for selection of URLs for browser users.
 	"""
-	def setUp(self):
-		self.oldInputs = base.getConfig("inputsDir")
-		base.setConfig("inputsDir", os.getcwd())
-
-	def tearDown(self):
-		base.setConfig("inputsDir", self.oldInputs)
-
 	def testBrowseableMethod(self):
 		service = testhelpers.getTestRD("pubtest.rd").getById("moribund")
 		self.failUnless(service.isBrowseableWith("form"))

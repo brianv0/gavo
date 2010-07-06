@@ -11,28 +11,9 @@ from gavo.base import sqlsupport
 import testhelpers
 
 
-class TestEnv(testhelpers.TestResource):
-	"""sets a fitting inputs dir and the test DB profile.
-
-	The value is the new current input dir.
-	"""
-	def make(self, ignored):
-		base.setDBProfile("test")
-		self.oldInputs = base.getConfig("inputsDir")
-		base.setConfig("inputsDir", os.getcwd())
-		return base.getConfig("inputsDir")
-	
-	def clean(self, ignored):
-		base.setConfig("inputsDir", self.oldInputs)
-
-
-testEnv = TestEnv()
-
 class DBConnection(testhelpers.TestResource):
 	"""sets up a DB connection.
 	"""
-	resources = [('inputsDir', testEnv)]
-	
 	def make(self, ignored):
 		return base.getDefaultDBConnection()
 	

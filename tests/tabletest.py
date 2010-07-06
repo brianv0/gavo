@@ -158,9 +158,6 @@ class DBUniqueForcedTest(UniqueForcedTest):
 	"""
 	_tt = '<resource schema="test"><table onDisk="True" id="bla" %s</resource>'
 
-	def setUp(self):
-		base.setDBProfile("test")
-
 	def tearDown(self):
 		base.SimpleQuerier().runIsolatedQuery("DROP TABLE test.bla")
 

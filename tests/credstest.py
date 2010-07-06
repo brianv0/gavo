@@ -16,7 +16,6 @@ creds.adminProfile = "test"
 
 class TestGroupsMembership(unittest.TestCase):
 	def setUp(self):
-		base.setDBProfile("test")
 		self.querier = base.SimpleQuerier()
 		admin._addUser(self.querier, "X_test", "megapass")
 		admin._addUser(self.querier, "Y_test", "megapass", "second test user")

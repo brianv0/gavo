@@ -1,5 +1,15 @@
 """
 A stan-like model for building namespaced XML trees.
+
+The main reason for this module is that much of the VO's XML mess is based
+on XML schema and thus has namespaced attributes.  This single design
+decision ruins the entire XML design.  To retain some rests of
+sanity, I treat the prefixes themselves as namespaces and maintain
+a single central registry from prefixes to namespaces in this module.
+
+Then, the elements only use these prefixes, and this module makes sure
+that during serialization the instance document's root element contains
+the namespace mapping (and the schema locations) required.
 """
 
 #c Copyright 2009 the GAVO Project.
@@ -7,16 +17,9 @@ A stan-like model for building namespaced XML trees.
 #c This program is free software, covered by the GNU GPL.  See COPYING.
 
 try:
-	from xml.etree import ElementTree
+	from xml.etree import cElementTree as ElementTree
 except ImportError:
 	from elementtree import ElementTree
-# cElementTree has no _namespaceMap that we need to cope with shitty 
-# namespaced attribute values where XSD nightmares rule.  Elsewhere,
-# we can use it:
-try:
-	from xml.etree import cElementTree as FastElementTree
-except ImportError:
-	FastElementTree = ElementTree
 
 from gavo.utils import autonode
 
@@ -30,10 +33,6 @@ class ChildNotAllowed(Error):
 
 encoding = "utf-8"
 XML_HEADER = '<?xml version="1.0" encoding="%s"?>'%encoding
-
-# That bugger is never defined and has a fixed map to xsi
-XSINamespace = "http://www.w3.org/2001/XMLSchema-instance"
-ElementTree._namespace_map[XSINamespace] = "xsi"
 
 
 class _Autoconstructor(autonode.AutoNodeType):
@@ -64,8 +63,8 @@ class Stub(object):
 
 	Stubs are equal to each othter if their handles are identical.
 	"""
-	_name = "stub"
-	_text = None
+	name_ = "stub"
+	text_ = None
 
 	def __init__(self, dest):
 		self.dest = dest
@@ -137,12 +136,17 @@ class Element(object):
 	"""
 	__metaclass__ = _Autoconstructor
 
-	_name = None
+	name_ = None
 	_a_id = None
-	_namespace = ""
+	_prefix = ""
+	_additionalPrefixes = frozenset()
 	_mayBeEmpty = False
 	_local = False
 	_stringifyContent = False
+
+	# should probably do this in the elements needing it (quite a lot of them
+	# do, however...)
+	_name_a_xsi_type = "xsi:type"
 
 	# for type dispatching in addChild.
 	_generator_t = type((x for x in ()))
@@ -181,17 +185,31 @@ class Element(object):
 	def _setupNode(self):
 		self.__isEmpty = None
 		self._children = []
-		self._text = ""
-		if self._name is None:
-			self._name = self.__class__.__name__.split(".")[-1]
+		self.text_ = ""
+		if self.name_ is None:
+			self.name_ = self.__class__.__name__.split(".")[-1]
 		self._setupNodeNext(Element)
+
+	def _makeAttrDict(self):
+		res = {}
+		for name, attName in self.iterAttNames():
+			if getattr(self, name) is not None:
+				res[attName] = unicode(getattr(self, name))
+		return res
+
+	def _iterChildrenInSequence(self):
+		cDict = self.makeChildDict()
+		for cName in self._childSequence:
+			if cName in cDict:
+				for c in cDict[cName]:
+					yield c
 
 	def bailIfBadChild(self, child):
 		if (self._childSequence is not None 
-				and getattr(child, "_name", None) not in self._allowedChildren 
+				and getattr(child, "name_", None) not in self._allowedChildren 
 				and type(child) not in self._allowedChildren):
 			raise ChildNotAllowed("No %s children in %s"%(
-				getattr(child, "_name", "text"), self._name))
+				getattr(child, "name_", "text"), self.name_))
 
 	def addChild(self, child):
 		"""adds child to the list of children.
@@ -207,7 +225,7 @@ class Element(object):
 			pass
 		elif isinstance(child, basestring):
 			self.bailIfBadChild(child)
-			self._text = child
+			self.text_ = child
 		elif isinstance(child, (Element, Stub)):
 			self.bailIfBadChild(child)
 			self._children.append(child)
@@ -220,12 +238,12 @@ class Element(object):
 			self.addChild(unicode(child))
 		else:
 			raise Error("%s element %s cannot be added to %s node"%(
-				type(child), repr(child), self._name))
+				type(child), repr(child), self.name_))
 
 	def isEmpty(self):
 		if self.__isEmpty is None:
 			self.__isEmpty = True
-			if self._mayBeEmpty or self._text.strip():
+			if self._mayBeEmpty or self.text_.strip():
 				self.__isEmpty = False
 			else:
 				for c in self._children:
@@ -233,6 +251,7 @@ class Element(object):
 						self.__isEmpty = False
 						break
 		return self.__isEmpty
+
 
 	def iterAttNames(self):
 		"""iterates over the defined attribute names of this node.
@@ -267,19 +286,8 @@ class Element(object):
 	def makeChildDict(self):
 		cDict = {}
 		for c in self._children:
-			cDict.setdefault(c._name, []).append(c)
+			cDict.setdefault(c.name_, []).append(c)
 		return cDict
-
-	def _getElName(self):
-		"""returns the tag name of this element.
-
-		This will be an ElementTree.QName instance unless the element is
-		local.
-		"""
-		if self._local or isinstance(self._name, ElementTree.QName):
-			return self._name
-		else:
-			return ElementTree.QName(self._namespace, self._name)
 
 	def apply(self, func):
 		"""calls func(name, text, attrs, childIter).
@@ -290,66 +298,102 @@ class Element(object):
 		try:
 			if self.isEmpty():
 				return
-			elName = self._getElName()
 			attrs = self._makeAttrDict()
 			if self._childSequence is None:
 				childIter = iter(self._children)
 			else:
 				childIter = self._iterChildrenInSequence()
-			return func(self._getElName(), self._text,
+			return func(self, self.text_,
 				self._makeAttrDict(), childIter)
 		except Error:
 			raise
 		except Exception, msg:
 			msg.args = (unicode(msg)+(" while building %s node"
-				" with children %s"%(self._name, self._children)),)+msg.args[1:]
+				" with children %s"%(self.name_, self._children)),)+msg.args[1:]
 			raise
 
-	def asETree(self):
+	def asETree(self, suppressedPrefix=None):
 		"""returns an ElementTree instance for the tree below this node.
 		"""
-		return self.apply(self._eTreeVisitor)
+		if suppressedPrefix is None:
+			# A service for STC and VOTable: They cheat by defining all their
+			# elements as local, when they are not by their schema.  So, I must
+			# make sure that the empty prefix is bound to their namespace
+			# in their roots, and I do that through the magic _suppressedPrefix
+			# attribute.
+			suppressedPrefix = getattr(self, "_suppressedPrefix", None)
+		return DOMMorpher(suppressedPrefix, NSRegistry).getMorphed(self)
 
-	def render(self):
-		et = self.asETree()
+	def render(self, suppressedPrefix=None):
+		et = self.asETree(suppressedPrefix=suppressedPrefix)
 		if et is None:
 			return ""
 		return ElementTree.tostring(et)
 
-	def _makeAttrDict(self):
-		res = {}
-		for name, attName in self.iterAttNames():
-			if getattr(self, name) is not None:
-				res[attName] = unicode(getattr(self, name))
-		return res
 
-	def _iterChildrenInSequence(self):
-		cDict = self.makeChildDict()
-		for cName in self._childSequence:
-			if cName in cDict:
-				for c in cDict[cName]:
-					yield c
+class NSRegistry(object):
+	"""A container for a registry of namespace prefixes to namespaces.
 
-	def _eTreeVisitor(self, elName, content, attrDict, childIter):
-		"""helps asETree.
-		"""
-		node = ElementTree.Element(elName, **attrDict)
-		if content:
-			node.text = content
-		for child in childIter:
-			childNode = child.apply(self._eTreeVisitor)
-			if childNode is not None:
-				node.append(childNode)
-		return node
+	This is used to have fixed namespace prefixes (IMHO the only way
+	to have namespaced attributes and retain sanity).  The
+	class is never instanciated.  It is used through the module-level
+	method registerPrefix and by DOMMorpher.
+	"""
+	_registry = {}
+	_reverseRegistry = {}
+	_schemaLocations = {}
+
+	@classmethod
+	def registerPrefix(cls, prefix, ns, schemaLocation):
+		if prefix in cls._registry:
+			if ns!=cls._registry[prefix]:
+				raise ValueError("Prefix %s is already allocated for namespace %s"%
+					(prefix, ns))
+		cls._registry[prefix] = ns
+		cls._reverseRegistry[ns] = prefix
+		cls._schemaLocations[prefix] = schemaLocation
+
+	@classmethod
+	def getPrefixForNS(cls, ns):
+		try:
+			return cls._reverseRegistry[ns]
+		except KeyError:
+			raise excs.NotFoundError(ns, "XML namespace",
+				"registry of XML namespaces.", hint="The registry is filled"
+				" by modules as they are imported -- maybe you need to import"
+				" the right module?")
+
+	@classmethod
+	def getNSForPrefix(cls, prefix):
+		try:
+			return cls._registry[prefix]
+		except KeyError:
+			raise excs.NotFoundError(ns, "XML namespace prefix",
+				"registry of prefixes.", hint="The registry is filled"
+				" by modules as they are imported -- maybe you need to import"
+				" the right module?")
+
+	@classmethod
+	def addNamespaceDeclarations(cls, root, prefixes):
+		schemaLocations = []
+		if prefixes:  # we'll need xsi for schemaLocation if we declare some
+			prefixes.add("xsi")
+		for pref in prefixes:
+			root.attrib["xmlns:%s"%pref] = cls._registry[pref]
+			if cls._schemaLocations[pref]:
+				schemaLocations.append("%s %s"%(
+					cls._registry[pref],
+					cls._schemaLocations[pref]))
+		if schemaLocations:
+			root.attrib["xsi:schemaLocation"] = " ".join(schemaLocations)
+
+	@classmethod
+	def getPrefixInfo(cls, prefix):
+		return (cls._registry[prefix], cls._schemaLocations[prefix])
 
 
-class XSITypeMixin(object):
-	_a_xsi_type = None
-	_name_a_xsi_type = "xsi:type"
-	_a_xmlns_xsi = XSINamespace
-	_name_a_xmlns_xsi = "xmlns:xsi"
-
-
+registerPrefix = NSRegistry.registerPrefix
+getPrefixInfo = NSRegistry.getPrefixInfo
 
 def schemaURL(xsdName):
 	"""returns the URL to the local mirror of the schema xsdName.
@@ -359,7 +403,48 @@ def schemaURL(xsdName):
 	return "http://vo.ari.uni-heidelberg.de/docs/schemata/"+xsdName
 
 
-def xmlrender(tree, prolog=None):
+registerPrefix("xsi","http://www.w3.org/2001/XMLSchema-instance",  None)
+xsiPrefix = frozenset(["xsi"])
+
+
+class DOMMorpher(object):
+	"""An object encapsulating the process of turning a stanxml.Element
+	tree into an ElementTree.
+
+	Discard instances after single use.
+	"""
+	def __init__(self, suppressedPrefix=None, nsRegistry=NSRegistry):
+		self.suppressedPrefix, self.nsRegistry = suppressedPrefix, nsRegistry
+		self.prefixesUsed = set()
+	
+	def _morphNode(self, stanEl, content, attrDict, childIter):
+		name = stanEl.name_
+		if stanEl._prefix:
+			self.prefixesUsed.add(stanEl._prefix)
+			if not (stanEl._local or stanEl._prefix==self.suppressedPrefix):
+				name = "%s:%s"%(stanEl._prefix, stanEl.name_)
+		if stanEl._additionalPrefixes:
+			self.prefixesUsed.update(stanEl._additionalPrefixes)
+
+		node = ElementTree.Element(name, **attrDict)
+		if content:
+			node.text = content
+		for child in childIter:
+			childNode = child.apply(self._morphNode)
+			if childNode is not None:
+				node.append(childNode)
+		return node
+
+	def getMorphed(self, stan):
+		root = stan.apply(self._morphNode)
+		self.nsRegistry.addNamespaceDeclarations(root, self.prefixesUsed)
+		if self.suppressedPrefix:
+			root.attrib["xmlns"] = self.nsRegistry.getNSForPrefix(
+				self.suppressedPrefix)
+		return root
+
+
+def xmlrender(tree, prolog=None, suppressedPrefix=None):
 	"""returns a unicode object containing tree in serialized forms.
 
 	tree can be any object with a render method or some sort of string.
@@ -371,7 +456,7 @@ def xmlrender(tree, prolog=None):
 	instructions.
 	"""
 	if hasattr(tree, "render"):
-		res = tree.render()
+		res = tree.render(suppressedPrefix=suppressedPrefix)
 	elif hasattr(tree, "getchildren"):  # hopefully an xml.etree Element
 		res = ElementTree.tostring(tree)
 	elif isinstance(tree, str):

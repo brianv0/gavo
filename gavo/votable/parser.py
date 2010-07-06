@@ -14,7 +14,7 @@ builds an xmlstan tree (mainly through the _processNodeDefault method).
 from cStringIO import StringIO
 
 from gavo import utils
-from gavo.utils import FastElementTree
+from gavo.utils import ElementTree
 from gavo.votable import common
 from gavo.votable import iterparse
 from gavo.votable import model
@@ -88,7 +88,7 @@ def _computeElementsImpl():
 			val = getattr(model.VOTable, n)
 			res[n] = val
 			for ns in VOTABLE_NAMESPACES:
-				res[FastElementTree.QName(ns, n)] = val
+				res[ElementTree.QName(ns, n)] = val
 	return res
 
 computeElements = utils.CachedGetter(_computeElementsImpl)
@@ -120,10 +120,12 @@ def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
 			# Element open: push new node on the stack...
 			if tag not in elements:
 				raise iterator.getParseError("Unknown tag: %s"%tag)
-			if payload: # Force attr keys to the byte strings for kw args and
-					# drop namespaced attributes (probably xmlns:xsi or similar junk
+			if payload: 
+					# Force attr keys to the byte strings for kw args and drop everything
+					# that's namespace related -- it's not necessary for VOTables
+					# and people mess it up anyway.
 				payload = dict((str(k.replace("-", "_")), v) 
-					for k, v in payload.iteritems() if not ":" in k)
+					for k, v in payload.iteritems() if (not ":" in k and k!="xmlns"))
 			elementStack.append(elements[tag](**payload))
 
 			# ...prepare for new content,...

@@ -352,7 +352,6 @@ class StringQueryTest(unittest.TestCase):
 	"""Tests for string vizier-expressions in a database.
 	"""
 	def setUp(self):
-		base.setDBProfile("test")
 		dd = testhelpers.getTestRD().getById("viziertest")
 		self.data = rsc.makeData(dd, forceSource=[{"s": ""},
 			{"s": "a"}, {"s": "A"}, {"s": "aaab"}, {"s": "baaab"},
@@ -456,7 +455,6 @@ class MatchMatrixTest(unittest.TestCase):
 	]
 
 	def setUp(self):
-		base.setDBProfile("test")
 		dd = testhelpers.getTestRD().getById("viziertest")
 		self.itemsInDb = self.matchMatrix[0][1:]
 		self.data = rsc.makeData(dd, forceSource=[{"s": item}

@@ -12,7 +12,8 @@ import operator
 
 from gavo import utils
 from gavo.utils import ElementTree
-from gavo.utils import stanxml
+from gavo.utils.stanxml import Stub, registerPrefix, schemaURL
+
 
 class STCError(utils.Error):
 	pass
@@ -68,8 +69,10 @@ secsPerJCy = 36525*86400.
 STCNamespace = "http://www.ivoa.net/xml/STC/stc-v1.30.xsd"
 XlinkNamespace = "http://www.w3.org/1999/xlink"
 
-ElementTree._namespace_map[STCNamespace] = "stc"
-ElementTree._namespace_map[XlinkNamespace] = "xlink"
+registerPrefix("stc", STCNamespace,
+	schemaURL("stc-v1.30.xsd"))
+registerPrefix("xlink", XlinkNamespace,
+	schemaURL("xlink.xsd"))
 
 
 # The following lists have to be updated when the STC standard is
@@ -179,10 +182,10 @@ class ASTNode(utils.AutoNode):
 			self.id = utils.intToFunnyWord(id(self))
 
 
-class ColRef(stanxml.Stub):
+class ColRef(Stub):
 	"""A column reference instead of a true value, occurring in an STC-S tree.
 	"""
-	_name = "_colRef"
+	name_ = "_colRef"
 
 	def __str__(self):
 		return self.dest 
@@ -199,7 +202,7 @@ class ColRef(stanxml.Stub):
 		return self
 
 	def apply(self, func):
-		return func("ColRef", self.dest, {}, [])
+		return func(name, self.dest, {}, [])
 
 
 class GeometryColRef(ColRef):

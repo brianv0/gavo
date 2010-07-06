@@ -33,25 +33,24 @@ from gavo.utils import ElementTree
 
 UWSNamespace = 'http://www.ivoa.net/xml/UWS/v1.0rc3'
 XlinkNamespace = "http://www.w3.org/1999/xlink"
-ElementTree._namespace_map[UWSNamespace] = "uws"
-ElementTree._namespace_map[XlinkNamespace] = "xlink"
+stanxml.registerPrefix("uws", UWSNamespace,
+	stanxml.schemaURL("uws-1.0.xsd"))
+stanxml.registerPrefix("xlink", XlinkNamespace,
+	stanxml.schemaURL("xlink.xsd"))
 
+
+_xsiPrefix = frozenset(["xsi"])
 
 
 class UWS(object):
 	"""the container for elements from the uws namespace.
 	"""
 	class UWSElement(stanxml.Element):
-		_namespace = UWSNamespace
+		_prefix = "uws"
 
 	@staticmethod
 	def makeRoot(ob):
-		ob._a_xsi_schemaLocation = "%s %s %s %s"%(
-			UWSNamespace, stanxml.schemaURL("uws-1.0.xsd"),
-			XlinkNamespace, stanxml.schemaURL("xlink.xsd"))
-		ob._name_a_xsi_schemaLocation = "xsi:schemaLocation"
-		ob._a_xmlns_xsi = stanxml.XSINamespace
-		ob._name_xmlns_xsi = "xmlns:xsi"
+		ob._additionalPrefixes = _xsiPrefix
 		ob._mayBeEmpty = True
 		return ob
 

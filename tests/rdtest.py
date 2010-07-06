@@ -120,14 +120,6 @@ class MacroTest(unittest.TestCase):
 class ViewTest(testhelpers.VerboseTest):
 	"""tests for interpretation of view elements.
 	"""
-	def setUp(self):
-		# tweak inputs such that test.rd will be found
-		self.origInputs = base.getConfig("inputsDir")
-		base.setConfig("inputsDir", os.getcwd())
-
-	def tearDown(self):
-		base.setConfig("inputsDir", self.origInputs)
-
 	def testBadRefRaises(self):
 		self.assertRaisesWithMsg(base.StructureError, 
 			"At <internal source>, last known position: 1, 67: "
