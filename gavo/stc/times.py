@@ -222,6 +222,7 @@ def UTCtoTT(utc):
 	"""returns TT from UTC.
 
 	The leap second table is complete through 2009-5.
+
 	>>> getLeapSeconds(datetime.datetime(1998,12,31,23,59,58))
 	datetime.timedelta(0, 31)
 	>>> TTtoTAI(UTCtoTT(datetime.datetime(1998,12,31,23,59,59)))

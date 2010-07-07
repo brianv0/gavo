@@ -52,6 +52,7 @@ def toBinary(anInt, desiredLength=None):
 
 	If desiredLength is given and the binary expansion is shorter,
 	the value will be padded with zeros.
+
 	>>> toBinary(349)
 	'101011101'
 	>>> toBinary(349, 10)

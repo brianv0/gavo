@@ -100,6 +100,7 @@ def getfirst(args, key, default=Undefined):
 	the first element of the list is returned; else, or if the list is
 	empty, default if given.  If not, a Validation error for the requested
 	column is raised.
+
 	>>> getfirst({'x': [1,2,3]}, 'x')
 	1
 	>>> getfirst({'x': []}, 'x')

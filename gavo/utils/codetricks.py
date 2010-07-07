@@ -331,6 +331,7 @@ def compileFunction(src, funcName, useGlobals=None):
 	namespace.
 
 	This is typically used to define functions, like this:
+
 	>>> resFunc = compileFunction("def f(x): print x", "f")
 	>>> resFunc(1); resFunc("abc")
 	1

@@ -201,6 +201,7 @@ class IntConfigItem(ConfigItem):
 	"""A config item containing an integer.
 
 	It supports a Null value through the special None literal.
+
 	>>> ci = IntConfigItem("foo"); print ci.value
 	None
 	>>> ci = IntConfigItem("foo", default="23"); ci.value
@@ -230,6 +231,7 @@ class FloatConfigItem(ConfigItem):
 	"""A config item containing a float.
 
 	It supports a Null value through the special None literal.
+
 	>>> ci = FloatConfigItem("foo"); print ci.value
 	None
 	>>> ci = FloatConfigItem("foo", default="23"); ci.value

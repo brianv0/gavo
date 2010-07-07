@@ -132,6 +132,7 @@ def fixIndentation(code, newIndent, governingLine=0):
 	governingLine lets you select a line different from the first one
 	for the determination of the leading white space.  Lines before that
 	line are left alone.
+
 	>>> fixIndentation("  foo\\n  bar", "")
 	'foo\\nbar'
 	>>> fixIndentation("  foo\\n   bar", " ")
@@ -176,6 +177,7 @@ def parsePercentExpression(literal, format):
 	is up to two digits" or so).
 
 	This is really only meant as a quick hack to support times like 25:33.
+
 	>>> r=parsePercentExpression("12,xy:33,","%a:%b,%c"); r["a"], r["b"], r["c"]
 	('12,xy', '33', '')
 	>>> r = parsePercentExpression("12,13,14", "%a:%b,%c")
@@ -327,6 +329,7 @@ def degToHms(deg, sepChar=" ", secondFracs=3):
 
 def degToDms(deg, sepChar=" ", secondFracs=2):
 	"""converts a float angle in degrees to a sexagesimal string.
+
 	>>> degToDms(0)
 	'+0 00 00.00'
 	>>> degToDms(-23.50, secondFracs=4)

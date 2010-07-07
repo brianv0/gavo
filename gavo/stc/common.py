@@ -106,6 +106,7 @@ def _compareFloat(val1, val2):
 	"""returns true if val1==val2 up to a fudge factor.
 
 	This only works for floats.
+
 	>>> _compareFloat(30.0, 29.999999999999996)
 	True
 	"""
