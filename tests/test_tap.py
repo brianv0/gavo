@@ -18,6 +18,7 @@ from __future__ import with_statement
 import datetime
 import httplib
 import re
+import os
 import sys
 import unittest
 import urllib

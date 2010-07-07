@@ -172,6 +172,8 @@ class StaticFile(rend.Page):
 			return cachedRes
 		caching.instrumentRequestForCaching(request,
 			caching.enterIntoCacheAs(self.fName, cache))
+		if not os.path.isfile(self.fName):
+			raise svcs.ForbiddenURI("Only plain files are served here")
 
 		mime = self.getMimeType()
 		if mime in self.magicMimes:
