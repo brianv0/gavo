@@ -10,7 +10,7 @@ import weakref
 
 from gavo import stc
 from gavo import utils
-from gavo.adql import tapstc
+from gavo.stc import tapstc
 from gavo.adql.common import *
 
 

@@ -124,7 +124,7 @@ from pyparsing import Word, Literal, Optional, alphas, CaselessKeyword,\
 	dblQuotedString, ParserElement, White, ParseSyntaxException
 
 from gavo import utils
-from gavo.adql import tapstc
+from gavo.stc import tapstc
 
 
 # all SQL and ADQL reserved words are expected in uppercase by this and

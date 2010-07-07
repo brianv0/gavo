@@ -16,8 +16,8 @@ import re
 
 from gavo.adql import morphhelpers
 from gavo.adql import nodes
-from gavo.adql import tapstc
 from gavo.adql.nodes import flatten
+from gavo.stc import tapstc
 
 
 class PostgresMorphError(morphhelpers.MorphError):

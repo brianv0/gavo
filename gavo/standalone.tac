@@ -17,7 +17,7 @@ from gavo import rscdesc         # for getRD in base.caches
 from gavo import utils
 from gavo.protocols import basic # for registration
 from gavo.base import cron
-ffrom gavo.base import config
+from gavo.base import config
 from gavo.user import serve
 from gavo.web import root
 

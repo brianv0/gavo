@@ -10,8 +10,6 @@ from gavo.adql.grammar import (
 from gavo.adql.morphpg import (
 	morphPG,
 	insertQ3Calls)
-from gavo.adql.tapstc import (
-	getTAPSTC)
 
 def getSymbols():
 	return getTreeBuildingGrammar()[0]
