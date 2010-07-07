@@ -220,9 +220,7 @@ class ADQLCore(svcs.Core, base.RestrictionMixin):
 	_querier = None
 
 	def _getQuerier(self):
-		if self._querier is None:
-			self._querier = base.SimpleQuerier(useProfile="untrustedquery")
-		return self._querier
+		return base.SimpleQuerier(useProfile="untrustedquery")
 
 	def wantsTableWidget(self):
 		return False
