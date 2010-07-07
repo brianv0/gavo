@@ -124,7 +124,7 @@ from pyparsing import Word, Literal, Optional, alphas, CaselessKeyword,\
 	dblQuotedString, ParserElement, White, ParseSyntaxException
 
 from gavo import utils
-from gavo.stc import tapstc
+from gavo import stc
 
 
 # all SQL and ADQL reserved words are expected in uppercase by this and
@@ -307,7 +307,7 @@ def getADQLGrammarCopy():
 	numericValueExpression << (term + ZeroOrMore( ( Literal("+") | "-" ) + term ))
 
 # geometry types and expressions
-	coordSys = Regex("(?i)'(?P<sys>%s)'"%"|".join(tapstc.TAP_SYSTEMS)
+	coordSys = Regex("(?i)'(?P<sys>%s)'"%"|".join(stc.TAP_SYSTEMS)
 		).addParseAction(lambda s,p,t: t["sys"].upper()
 		).setResultsName("coordSys")
 	coordSys.setName("coordinate system literal (ICRS, GALACTIC,...)")

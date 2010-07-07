@@ -1163,8 +1163,8 @@ class STCSRegion(FieldInfoedNode):
 
 def makeSTCSRegion(spec):
 	try:
-		return STCSRegion(tapstc.getSimpleSTCSParser()(spec))
-	except RegionError:  #Not a valid STC spec, try next region parser
+		return STCSRegion(stc.parseSimpleSTCS(spec))
+	except stc.STCSParseError:  #Not a valid STC spec, try next region parser
 		return None
 
 registerRegionMaker(makeSTCSRegion)

@@ -10,6 +10,7 @@ from gavo import adql
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
+from gavo import stc
 from gavo import svcs
 from gavo import utils
 from gavo.base import sqlsupport
@@ -124,7 +125,7 @@ def _getTupleAdder(table):
 		for index, col in stcsOutputCols:
 			if lastInd!=index:
 				parts.append("row[%s:%s]"%(lastInd, index))
-			parts.append("(row[%s].asSTCS(%r),)"%(index, adql.getTAPSTC(col.stc)))
+			parts.append("(row[%s].asSTCS(%r),)"%(index, stc.getTAPSTC(col.stc)))
 			lastInd = index+1
 		if lastInd!=index:
 			parts.append("row[%s:%s]"%(lastInd, len(table.tableDef.columns)))

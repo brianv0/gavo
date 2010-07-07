@@ -17,9 +17,9 @@ from gavo import utils
 from gavo.adql import annotations
 from gavo.adql import morphpg
 from gavo.adql import nodes
-from gavo.adql import tapstc
 from gavo.adql import tree
 from gavo.protocols import adqlglue
+from gavo.stc import tapstc
 
 
 import testhelpers
@@ -1329,7 +1329,7 @@ class SimpleSTCSTest(testhelpers.VerboseTest):
 		self.assertEqual(res.cooSys, "ICRS")
 
 	def testBadCircleRaises(self):
-		self.assertRaisesWithMsg(adql.RegionError, 
+		self.assertRaisesWithMsg(stc.STCSParseError,
 			'STC-S circles want three numbers.',
 			self.parse,
 			("Circle 2 1",))
@@ -1368,7 +1368,7 @@ class SimpleSTCSTest(testhelpers.VerboseTest):
 		self.assertEqual(res.cooSys, "FK4")
 
 	def testCartesianRaises(self):
-		self.assertRaisesWithMsg(adql.RegionError, 
+		self.assertRaisesWithMsg(stc.STCSParseError, 
 			'Only SPHERICAL2 STC-S supported here',
 			self.parse,
 			("Position CARTESIAN3 1 2 3",))
