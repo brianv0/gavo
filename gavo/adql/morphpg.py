@@ -35,15 +35,20 @@ def _containsToQ3c(node, state):
 	# or if system transformations are required.
 	if len(args)!=2 or nodes.getType(args[0])!="point":
 		return node
-# XXX TODO: Make this a check for "compatible" (empty string should match anything...)
-	if args[0].cooSys!=args[1].cooSys:
+	if tapstc.getPGSphereTrafo(args[0].cooSys, args[1].cooSys) is not None:
+		# we'll need a transform; q3c cannot do this.
 		return node
 
 	p, shape = args
 	if shape.type=="circle":
 		state.killParentOperator = True
-		return ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(nodes.flatten, 
-			(p.x, p.y, shape.x, shape.y, shape.radius))))
+		# The pg planner works much smoother if you have constants first.
+		if p.x.type=='columnReference':
+			return ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(nodes.flatten, 
+				(shape.x, shape.y, p.x, p.y, shape.radius))))
+		else:
+			return ("q3c_join(%s, %s, %s, %s, %s)"%tuple(map(nodes.flatten, 
+				(p.x, p.y, shape.x, shape.y, shape.radius))))
 	elif shape=="polygon":
 		state.killParentOperator = True
 		return "q3c_poly_query(%s, %s, ARRAY[%s])"%(

@@ -1032,24 +1032,33 @@ class Q3CMorphTest(unittest.TestCase):
 	def setUp(self):
 		self.grammar = adql.getGrammar()
 
-	def testCircle1(self):
+	def testCircleIn(self):
 		t = adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
 			" where contains(point('ICRS', alphaFloat, deltaFloat), "
 				" circle('ICRS', 23, 24, 0.2))=1")
 		s, t = adql.insertQ3Calls(t)
 		self.assertEqual(adql.flatten(t),
 			"SELECT alphaFloat, deltaFloat FROM ppmx.data WHERE"
-				"  (q3c_join(alphaFloat, deltaFloat, 23, 24, 0.2))")
+				"  (q3c_join(23, 24, alphaFloat, deltaFloat, 0.2))")
 	
-	def testCircle2(self):
+	def testCircleOut(self):
 		t = adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
 			" where 0=contains(point('ICRS', alphaFloat, deltaFloat),"
 				" circle('ICRS', 23, 24, 0.2))")
 		s, t = adql.insertQ3Calls(t)
 		self.assertEqual(adql.flatten(t),
 			"SELECT alphaFloat, deltaFloat FROM ppmx.data WHERE"
-				" NOT (q3c_join(alphaFloat, deltaFloat, 23, 24, 0.2))")
-	
+				" NOT (q3c_join(23, 24, alphaFloat, deltaFloat, 0.2))")
+
+	def testConstantsFirst(self):
+		t = adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
+			" where 0=contains(point('ICRS', 23, 24),"
+				" circle('ICRS', alphaFloat, deltaFloat, 0.2))")
+		s, t = adql.insertQ3Calls(t)
+		self.assertEqual(adql.flatten(t),
+			"SELECT alphaFloat, deltaFloat FROM ppmx.data WHERE"
+				" NOT (q3c_join(23, 24, alphaFloat, deltaFloat, 0.2))")
+
 	def testCircleAnnotated(self):
 		t = adql.parseToTree("SELECT TOP 10 * FROM spatial"
 			" WHERE 1=CONTAINS(POINT('ICRS', ra1, ra2),"
@@ -1057,7 +1066,7 @@ class Q3CMorphTest(unittest.TestCase):
 		ctx = adql.annotate(t, _sampleFieldInfoGetter)
 		s, t = adql.insertQ3Calls(t)
 		self.assertEqual(adql.flatten(t),
-			"SELECT TOP 10 * FROM spatial WHERE  (q3c_join(ra1, ra2, 10, 10, 0.5))")
+			"SELECT TOP 10 * FROM spatial WHERE  (q3c_join(10, 10, ra1, ra2, 0.5))")
 
 
 class PQMorphTest(unittest.TestCase):
