@@ -45,9 +45,9 @@ class FileRenamer(object):
 
 		The format of fName is line-base, with each line being one of
 		
-		* empty -- ignored
-		* beginning with a hash -- ignored
-		* <old> -> <new> -- introducing a map
+			- empty -- ignored
+			- beginning with a hash -- ignored
+			- <old> -> <new> -- introducing a map
 		"""
 		map = {}
 		try:
@@ -100,11 +100,11 @@ class FileRenamer(object):
 
 		The rules are:
 
-		* extensions are ignored -- if we map foo to bar, foo.txt and foo.asc
-		  will be renamed bar.txt and foo.txt respectively
-		* the order of statements in the source is irrelevant.  However, we try
-		  not to clobber anything we've just renamed and will complain about
-		  cycles.  Also, each file will be renamed not more than once.
+			- extensions are ignored -- if we map foo to bar, foo.txt and foo.asc
+				will be renamed bar.txt and foo.txt respectively
+			- the order of statements in the source is irrelevant.  However, we try
+				not to clobber anything we've just renamed and will complain about
+				cycles.  Also, each file will be renamed not more than once.
 		"""
 		fileMap = self.getFileMap(path)
 		for src, dest in self.makeRenameProc(fileMap):

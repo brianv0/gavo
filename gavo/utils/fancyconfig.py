@@ -1,4 +1,4 @@
-"""
+r"""
 A wrapper around ConfigParser that defines syntax and types within
 the configuration options.
 
@@ -6,34 +6,34 @@ This tries to do for configuration processing what optparse did for
 command line option processing: A declarative way of handling the main
 chores.
 
-The idea is that, in a client program, you say something like
+The idea is that, in a client program, you say something like::
 
-from pftf.fancyconfig import (Configuration, Section, ConfigError,
-	...(items you want)...)
-
-_config = Config(
-	Section(...
-		XYConfigItem(...)
-	),
-	Section(...
-	...
+	from pftf.fancyconfig import (Configuration, Section, ConfigError,
+		...(items you want)...)
+	
+	_config = Config(
+		Section(...
+			XYConfigItem(...)
+		),
+		Section(...
+		...
+		)
 	)
-)
-
-get = _config.get
-set = _config.set
-
-
-if __name__=="__main__":
-	print fancyconfig.makeTxtDocs(_config)
-else:
-	try:
-		fancyconfig.readConfiguration(_config, None, 
-			os.path.join(dataDir, "config"))
-	except ConfigError, msg:
-		import sys
-		sys.stderr.write("%s: %s\n"%(sys.argv[0], unicode(msg).encode("utf-8")))
-		sys.exit(1)
+			
+	get = _config.get
+	set = _config.set
+			
+	if __name__=="__main__":
+		print fancyconfig.makeTxtDocs(_config)
+	else:
+		try:
+			fancyconfig.readConfiguration(_config, None, 
+				os.path.join(dataDir, "config"))
+		except ConfigError, msg:
+			import sys
+			sys.stderr.write("%s: %s\n"%(
+				sys.argv[0], unicode(msg).encode("utf-8")))
+			sys.exit(0)
 
 and be done with most of it.
 
@@ -87,7 +87,7 @@ class SyntaxError(ConfigError):
 
 
 class ConfigItem(object):
-	"""is a description of a configuration item including methods
+	"""A description of a configuration item including methods
 	to parse and unparse them.
 
 	This class is an abstract base class for options with real syntax
@@ -149,7 +149,7 @@ class ConfigItem(object):
 
 
 class StringConfigItem(ConfigItem):
-	"""is a config item containing unicode strings.
+	"""A config item containing unicode strings.
 
 	The serialization of the config file is supposed to be utf-8.
 
@@ -181,7 +181,7 @@ class StringConfigItem(ConfigItem):
 
 
 class BytestringConfigItem(ConfigItem):
-	"""is a config item containing byte strings.  No characters outside
+	"""A config item containing byte strings.  No characters outside
 	of ASCII are allowed.
 	"""
 
@@ -198,7 +198,7 @@ class BytestringConfigItem(ConfigItem):
 
 
 class IntConfigItem(ConfigItem):
-	"""is a config item containing an integer.
+	"""A config item containing an integer.
 
 	It supports a Null value through the special None literal.
 	>>> ci = IntConfigItem("foo"); print ci.value
@@ -227,7 +227,7 @@ class IntConfigItem(ConfigItem):
 
 
 class FloatConfigItem(ConfigItem):
-	"""is a config item containing a float.
+	"""A config item containing a float.
 
 	It supports a Null value through the special None literal.
 	>>> ci = FloatConfigItem("foo"); print ci.value
@@ -256,7 +256,7 @@ class FloatConfigItem(ConfigItem):
 
 
 class ListConfigItem(StringConfigItem):
-	r"""is a ConfigItem containing a list of strings, comma separated.
+	r"""A ConfigItem containing a list of strings, comma separated.
 
 	The values are space-normalized.  Trailing whitespace-only items are
 	discarded, so "" is an empty list, "," is a list containing one
@@ -292,7 +292,7 @@ class ListConfigItem(StringConfigItem):
 
 
 class SetConfigItem(ListConfigItem):
-	"""is like ListConfigItem, only the value is a set, speeding up lookups.
+	"""A set-valued ListConfigItem for quick existence lookups.
 	"""
 	typedesc = "set of strings"
 
@@ -301,7 +301,7 @@ class SetConfigItem(ListConfigItem):
 
 
 class IntListConfigItem(ListConfigItem):
-	"""is a ConfigItem containing a list of ints, comma separated.
+	"""A ConfigItem containing a comma separated list of ints.
 
 	Literal handling is analoguos to ListConfigItem.
 
@@ -330,7 +330,7 @@ class IntListConfigItem(ListConfigItem):
 
 
 class IntSetConfigItem(IntListConfigItem):
-	"""is like IntListConfigItem, only the value is a set, speeding up lookups.
+	"""A set-valued IntListConfigItem for fast existence lookups.
 	"""
 	typedesc = "set of integers"
 
@@ -339,7 +339,7 @@ class IntSetConfigItem(IntListConfigItem):
 
 
 class DictConfigItem(ListConfigItem):
-	r"""is a config item that contains a concise representation of
+	r"""A config item that contains a concise representation of
 	a string-string mapping.
 
 	The literal format is {<key>:<value>,}, where whitespace is ignored
@@ -380,7 +380,7 @@ class DictConfigItem(ListConfigItem):
 
 
 class BooleanConfigItem(ConfigItem):
-	"""is a config item that contains a boolean and can be parsed from
+	"""A config item that contains a boolean and can be parsed from
 	many fancy representations.
 	"""
 
@@ -403,7 +403,7 @@ class BooleanConfigItem(ConfigItem):
 
 
 class EnumeratedConfigItem(StringConfigItem):
-	"""is a ConfigItem taking string values out of a set of possible strings.
+	"""A ConfigItem taking string values out of a set of possible strings.
 
 	Use the keyword argument options to pass in the possible strings.
 	The first item becomes the default unless you give a default.
@@ -429,7 +429,7 @@ class EnumeratedConfigItem(StringConfigItem):
 
 
 class PathConfigItem(StringConfigItem):
-	"""is a ConfigItem for a unix shell-type path.
+	"""A ConfigItem for a unix shell-type path.
 
 	The individual items are separated by colons, ~ is replaced by the
 	current value of $HOME (or "/", if unset), and $<key> substitutions
@@ -475,7 +475,7 @@ class PathConfigItem(StringConfigItem):
 
 
 class PathRelativeConfigItem(StringConfigItem):
-	"""is a configuration item that is interpreted relative to a path
+	"""A configuration item interpreted relative to a path
 	given in the general section.
 	
 	Basically, this is a replacement for ConfigParser's %(x)s interpolation.
@@ -501,11 +501,11 @@ class PathRelativeConfigItem(StringConfigItem):
 
 
 class _Undefined(object):
-	"""is a sentinel for section.get.
+	"""A sentinel for section.get.
 	"""
 
 class Section(object):
-	"""is a section within the configuration.
+	"""A section within the configuration.
 
 	It is constructed with a name, a documentation, and the configuration
 	items.
@@ -559,7 +559,7 @@ class DefaultSection(Section):
 
 
 class MagicSection(Section):
-	"""is a section that creates new keys on the fly.
+	"""A section that creates new keys on the fly.
 
 	Use this a dictionary-like thing when successive edits are
 	necessary or the DictConfigItem becomes too unwieldy.
@@ -586,7 +586,7 @@ class MagicSection(Section):
 
 
 class Configuration(object):
-	"""is a collection of config Sections and provides an interface to access 
+	"""A collection of config Sections and provides an interface to access 
 	them and their items.
 
 	You construct it with the Sections you want and then use the get

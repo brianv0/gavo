@@ -57,16 +57,16 @@ class ServiceResource(grend.ServiceBasedRenderer):
 
 	Deriving classes should override 
 	
-	* _obtainOutput(ctx) -- returns the result of running the service 
-		conditioned on the specific resource type; the default implementation 
-		may do.  *Note*: _obtainOutput must return a deferred, whereas the
-		standard service is synchronous.
-	* _formatOutput(result, ctx) -- receives the result of _obtainOutput
-	  and has to do the formatting
-	* _handleOtherErrors(failure, ctx) -- is called when an exception
-	  occurs that cannot be displayed in a form.  The default implementation
-		delivers a page built from stan in the errorFactory class attribute,
-		using grend.ErrorPage as renderer.
+		- _obtainOutput(ctx) -- returns the result of running the service 
+			conditioned on the specific resource type; the default implementation 
+			may do.  *Note*: _obtainOutput must return a deferred, whereas the
+			standard service is synchronous.
+		- _formatOutput(result, ctx) -- receives the result of _obtainOutput
+			and has to do the formatting
+		- _handleOtherErrors(failure, ctx) -- is called when an exception
+			occurs that cannot be displayed in a form.  The default implementation
+			delivers a page built from stan in the errorFactory class attribute,
+			using grend.ErrorPage as renderer.
 	"""
 	name = "form"
 	def __init__(self, ctx, service, formalData):

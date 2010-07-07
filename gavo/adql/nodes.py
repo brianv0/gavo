@@ -182,7 +182,8 @@ def parseArgs(parseResult):
 
 
 class ADQLNode(utils.AutoNode):
-	"""A node within an ADQL parse tree.
+	"""
+	A node within an ADQL parse tree.
 
 	ADQL nodes may be parsed out; in that case, they have individual attributes
 	and are craftily flattened in special methods.  We do this for nodes
@@ -194,14 +195,14 @@ class ADQLNode(utils.AutoNode):
 	
 	To derive actual classes, define 
 	
-	* the _a_<name> class attributes you need,
-	* the type (a nonterminal from the ADQL grammar) 
-	* or bindings if the class handles more than one symbol,
-	* a class method _getInitKWs(cls, parseResult); see below.
-	* a method flatten() -> string if you define a parsed ADQLNode.
-	* a method _polish() that is called just before the constructor is
-	  done and can be used to create more attributes.  There is no need
-	  to call _polish of superclasses.
+		- the _a_<name> class attributes you need,
+		- the type (a nonterminal from the ADQL grammar) 
+		- or bindings if the class handles more than one symbol,
+		- a class method _getInitKWs(cls, parseResult); see below.
+		- a method flatten() -> string if you define a parsed ADQLNode.
+		- a method _polish() that is called just before the constructor is
+			done and can be used to create more attributes.  There is no need
+			to call _polish of superclasses.
 
 	The _getInitKWs methods must return a dictionary mapping constructor argument
 	names to values.  You do not need to manually call superclass _getInitKWs,

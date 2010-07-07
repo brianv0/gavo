@@ -179,9 +179,9 @@ class ProcApp(ProcDef):
 
 	Deriving classes need to provide:
 
-	* a requiredType attribute specifying what ProcDefs can be applied.
-	* a formalArgs attribute containing a (python) formal argument list
-	* of course, a name_ for XML purposes.
+		- a requiredType attribute specifying what ProcDefs can be applied.
+		- a formalArgs attribute containing a (python) formal argument list
+		- of course, a name_ for XML purposes.
 	"""
 	_procDef = base.ReferenceAttribute("procDef", forceType=ProcDef,
 		default=base.NotGiven, description="Reference to the procedure"

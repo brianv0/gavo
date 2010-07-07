@@ -4,7 +4,6 @@ Support for IVOA DAL and registry protocols.
 
 import datetime
 
-
 from nevow import appserver
 from nevow import inevow
 from nevow import rend
@@ -32,6 +31,8 @@ from gavo.web import streaming
 
 MS = base.makeStruct
 
+
+__docformat__ = "restructuredtext en"
 
 class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 	"""is a base class for renderers for the usual IVOA DAL protocols.
@@ -108,7 +109,8 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 
 
 class SCSRenderer(DALRenderer):
-	"""is a renderer for the Simple Cone Search protocol.
+	"""
+	A renderer for the Simple Cone Search protocol.
 
 	These do their error signaling in the value attribute of an
 	INFO child of RESOURCE.
@@ -122,7 +124,7 @@ class SCSRenderer(DALRenderer):
 	this renderer if you want to register them:
 
 	* testQuery.ra, testQuery.dec -- A position for which an object is present
-	  within 0.001 degrees.
+		within 0.001 degrees.
 	"""
 	name = "scs.xml"
 
@@ -179,10 +181,10 @@ class SIAPRenderer(DALRenderer):
 	It is recommended to set the following metadata items on services
 	using this renderer:
 
-	* testQuery.pos.ra, testQuery.pos.dec -- RA and Dec for a query that
-	  yields at least one image
-	* testQuery.size.ra, testQuery.size.dec -- RoI extent for a query that 
-		yields at least one image.
+		- testQuery.pos.ra, testQuery.pos.dec -- RA and Dec for a query that
+			yields at least one image
+		- testQuery.size.ra, testQuery.size.dec -- RoI extent for a query that 
+			yields at least one image.
 	"""
 	name = "siap.xml"
 

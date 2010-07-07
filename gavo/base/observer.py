@@ -22,7 +22,7 @@ class ObserverBase(object):
 	decorator above to make the connections.  The actual event subscriptions
 	are done in the constructor.
 
-	The signature of the listeners always is 
+	The signature of the listeners always is::
 	
 	  listener(dispatcher, arg) -> ignored
 	

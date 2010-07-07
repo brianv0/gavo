@@ -44,11 +44,11 @@ class PhraseMaker(rscdef.ProcApp):
 
 	The following names are available to them:
 
-	* inputKeys -- the list of input keys for the parent CondDesc
-	* inPars -- a dictionary mapping inputKey names to the values
-	  provided by the user
-	* outPars -- a dictionary that is later used as the parameter
-	  dictionary to the query.
+		- inputKeys -- the list of input keys for the parent CondDesc
+		- inPars -- a dictionary mapping inputKey names to the values
+		  provided by the user
+		- outPars -- a dictionary that is later used as the parameter
+			dictionary to the query.
 	
 	To interpret the content of an inputKey as a vizier-like expression,
 	say::

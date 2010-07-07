@@ -376,10 +376,10 @@ def _makeGeometryKeyIterator(argDesc, clsName):
 	ArgDesc describes what keys should be parsed from the node's coos key.  
 	It consists for tuples of name and type code, where type code is one of:
 
-	* r -- a single real value.
-	* v -- a vector of dimensionality given by the system (i.e., nDim).
-	* rv -- a sequence of v items of arbitrary length.
-	* cv -- a sequence of "Convex" vectors (dim 4) of arbitrary length.
+		- r -- a single real value.
+		- v -- a vector of dimensionality given by the system (i.e., nDim).
+		- rv -- a sequence of v items of arbitrary length.
+		- cv -- a sequence of "Convex" vectors (dim 4) of arbitrary length.
 
 	rv may only occur at the end of argDesc since it will consume all
 	remaining coordinates.

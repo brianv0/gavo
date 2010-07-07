@@ -27,11 +27,11 @@ class Feeder(object):
 	A feeder becomes active with construction with a table and provides 
 	the methods
 
-	* add(row) -> None -- add row to table.  This may raise all kinds
-	  of crazy exceptions.
-	* exit(excType=None, excVal=None, excTb=None) -> None -- must
-	  be called when all rows are added.  If an exception happened,
-	  pass sys.exc_info() here; see below on what the method really does.
+		- add(row) -> None -- add row to table.  This may raise all kinds
+			of crazy exceptions.
+		- exit(excType=None, excVal=None, excTb=None) -> None -- must
+			be called when all rows are added.  If an exception happened,
+			pass sys.exc_info() here; see below on what the method really does.
 
 	The default implementation of exit calls importFinished and importFailed of
 	the parent table if an exception happens.  In importFinished raises and
@@ -87,13 +87,13 @@ class BaseTable(base.MetaMixin):
 
 	Here's a list of keywords used by known subclasses of BaseTables:
 
-	validateRows -- have rows be validated by the tableDef before addition
-	  (all Tables)
-	rows -- a list of rows the table has at start (InMemoryTables; DbTables
-	  will raise an error on these).
-	connection -- a database connection to use for accessing DbTables.
-	votCasts -- a dictionary mapping column names to dictionaries overriding
-	  keys of valuemappers.VColDescs.
+		- validateRows -- have rows be validated by the tableDef before addition
+			(all Tables)
+		- rows -- a list of rows the table has at start (InMemoryTables; DbTables
+			will raise an error on these).
+		- connection -- a database connection to use for accessing DbTables.
+		- votCasts -- a dictionary mapping column names to dictionaries overriding
+			keys of valuemappers.VColDescs.
 
 	You can add rows using the addRow method.  For bulk additions, however,
 	it may be much more efficient to call getFeeder (though for in-memory
@@ -106,25 +106,25 @@ class BaseTable(base.MetaMixin):
 
 	Tables have to implement the following methods:
 
-	* __iter__
-	* __len__
-	* __getitem__(n) -- returns the n-th row or raises an IndexError
-	* removeRow(row) removes a row from the table or raises an
-	  IndexError if the row does not exist.  This is a slow, O(n) operation.
-	* addRow(row) -- appends new data to the table
-	* getRow(*args) -- returns a row by the primary key.  If no primary key
-	  is defined, a ValueError is raised, if the key is not present, a
-	  KeyError.  An atomic primary key is accessed through its value,
-	  for compound primary keys a tuple must be passed.
-	* getFeeder(**kwargs) -> feeder object -- returns an object with add and 
-	  exit methods.  See feeder above.
-	* importFinished() -> None -- called when a feeder exits successfully
-	* importFailed(*excInfo) -> boolean -- called when feeding has failed;
-	  when returning True, the exception that has caused the failure
-	  is not propagated.
-	* close() -> may be called by clients to signify the table will no
-	  longer be used and resources should be cleared (e.g., for DBTables
-	  with private connections.
+		- __iter__
+		- __len__
+		- __getitem__(n) -- returns the n-th row or raises an IndexError
+		- removeRow(row) removes a row from the table or raises an
+			IndexError if the row does not exist.  This is a slow, O(n) operation.
+		- addRow(row) -- appends new data to the table
+		- getRow(*args) -- returns a row by the primary key.  If no primary key
+			is defined, a ValueError is raised, if the key is not present, a
+			KeyError.  An atomic primary key is accessed through its value,
+			for compound primary keys a tuple must be passed.
+		- getFeeder(**kwargs) -> feeder object -- returns an object with add and 
+			exit methods.  See feeder above.
+		- importFinished() -> None -- called when a feeder exits successfully
+		- importFailed(*excInfo) -> boolean -- called when feeding has failed;
+			when returning True, the exception that has caused the failure
+			is not propagated.
+		- close() -> may be called by clients to signify the table will no
+			longer be used and resources should be cleared (e.g., for DBTables
+			with private connections.
 	"""
 	_runScripts = None
 

@@ -9,16 +9,16 @@ user code.
 
 Extensions to what the note says:
 
-* After flavor, you can add an epoch using something like "Epoch J2000.0".
-* After the FK5, FK4 and ECLIPTIC frame specs, you can add an optional
-  astroYear (Bnnnn, Jnnnn) designating a custom equinox.
-* There is a system subphrase that lets you specify a system from the
-  STC library (without the ivo:// decoration).  It starts with System
-  and is specifed last.  It will override all other system specifications.
-* If enabled, you can use identifiers in double quotes whereever values
-  are allowed; this will generate column references.
-* After the reference position, you can optionally mention the planetary
-  ephemeris used; currently, only JPL-DE200 and JPL-DE405 are allowed.
+	- After flavor, you can add an epoch using something like "Epoch J2000.0".
+	- After the FK5, FK4 and ECLIPTIC frame specs, you can add an optional
+		astroYear (Bnnnn, Jnnnn) designating a custom equinox.
+	- There is a system subphrase that lets you specify a system from the
+		STC library (without the ivo:// decoration).  It starts with System
+		and is specifed last.  It will override all other system specifications.
+	- If enabled, you can use identifiers in double quotes whereever values
+		are allowed; this will generate column references.
+	- After the reference position, you can optionally mention the planetary
+		ephemeris used; currently, only JPL-DE200 and JPL-DE405 are allowed.
 """
 
 #c Copyright 2009 the GAVO Project.

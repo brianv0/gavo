@@ -37,10 +37,10 @@ class MapRule(base.Structure):
 
 	To specify the source of a mapping, you can either
 	
-	* use a key emitted by the grammar or defined using var.  The value of 
-	  of the key is converted to a python value and stored.
-	* or give a python expression in the body.  In that case, no further
-	  type conversion will be attempted.
+		- use a key emitted by the grammar or defined using var.  The value of 
+			of the key is converted to a python value and stored.
+		- or give a python expression in the body.  In that case, no further
+			type conversion will be attempted.
 
 	If src is not given, it defaults to dest.
 	"""

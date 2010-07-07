@@ -16,8 +16,8 @@ import tempfile
 import unittest
 from cStringIO import StringIO
 
-import testresources
-from testresources import TestResource
+from gavo.imp import testresources
+from gavo.imp.testresources import TestResource
 
 # Here's the deal on TestResource: When setting up complicated stuff for
 # tests (like, a DB table), define a TestResource for it.  Override

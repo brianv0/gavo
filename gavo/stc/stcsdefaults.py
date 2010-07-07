@@ -4,10 +4,10 @@ Functions for adding defaults to STC-S concrete syntax trees.
 Default addition is governed by the two dicts at the bottom of
 the module:
 
-* pathFunctions -- maps path tuples to handling functions.  If there
-  is a match here, no name-based defaulting is done
-* nodeNameFunctions -- maps the last element of a path tuple to
-  handling functions.
+	- pathFunctions -- maps path tuples to handling functions.  If there
+		is a match here, no name-based defaulting is done
+	- nodeNameFunctions -- maps the last element of a path tuple to
+		handling functions.
 """
 
 #c Copyright 2009 the GAVO Project.

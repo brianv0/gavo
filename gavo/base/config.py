@@ -142,7 +142,7 @@ class ProfileParser(object):
 	syntax.  Each line either contains an assignment (x=y) or is of the
 	form command arg*.  Recognized commands include:
 
-	* include f -- read instructions from file f, searched along profilePath
+		- include f -- read instructions from file f, searched along profilePath
 
 	>>> p = ProfileParser()
 	>>> p.parse(None, "x", "host=foo.bar\n").host

@@ -222,10 +222,10 @@ class ProductCore(svcs.DBCore):
 
 	It does:
 
-	* the actual query, 
-	* access validation (i.e., makes sure the user has access to the product), 
-	* cutout processing (via a special construct deferring cutouts until they
-	  are needed)
+		- the actual query, 
+		- access validation (i.e., makes sure the user has access to the product), 
+		- cutout processing (via a special construct deferring cutouts until they
+			are needed)
 
 	The rd it is constructed with must contain a table named products
 	with at least the fields this table has in products.rd (so,

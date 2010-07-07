@@ -3,11 +3,11 @@ Definition and conversion of units in STC
 
 For every physical quantity we deal with, there is a standard unit defined:
 
-* angles: deg  (we way want to use rad here)
-* distances: m
-* time: s
-* frequencies: Hz
-* wavelength/energy: m
+	- angles: deg  (we way want to use rad here)
+	- distances: m
+	- time: s
+	- frequencies: Hz
+	- wavelength/energy: m
 
 We keep dictionaries of conversion factors to those units.  Since turning
 things around, these factors give "how many bases are in the unit", e.g.

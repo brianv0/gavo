@@ -106,12 +106,12 @@ class ProtocolParameter(object):
 	All methods of these are class methods since ProtocolParameters are 
 	never instanciated.
 
-	Methods:
+	Methods you must override:
 
-	* addParam(value, job) -> None -- parse value and perform some action
-	  (typically, set an attribute) on job.
-	* getParam(job) -> string -- infer a string representation of the
-	  protocol parameter on job.
+		- addParam(value, job) -> None -- parse value and perform some action
+			(typically, set an attribute) on job.
+		- getParam(job) -> string -- infer a string representation of the
+			protocol parameter on job.
 
 	The default implementation just dumps/gets name from the job's
 	parameters dict.

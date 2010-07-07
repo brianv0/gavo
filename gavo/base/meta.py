@@ -193,15 +193,15 @@ class MetaMixin(object):
 
 	The meta mixin provides the followng methods:
 
-	* setMetaParent(m) -- sets the name of the meta container enclosing the
-	  current one.  m has to have the Meta mixin as well.
-	* getMeta(key, propagate=True, raiseOnFail=False, default=None) -- returns 
-	  meta information for key or default.
-	* addMeta(key, metaItem) -- adds a piece of meta information here.  Key
-	  may be a compound.
-	* setMeta(key, metaItem) -- like addMeta, only previous value(s) are
-	  overwritten
-	* delMeta(key) -- removes a meta value(s) for key.
+		- setMetaParent(m) -- sets the name of the meta container enclosing the
+			current one.  m has to have the Meta mixin as well.
+		- getMeta(key, propagate=True, raiseOnFail=False, default=None) -- returns 
+			meta information for key or default.
+		- addMeta(key, metaItem) -- adds a piece of meta information here.  Key
+			may be a compound.
+		- setMeta(key, metaItem) -- like addMeta, only previous value(s) are
+			overwritten
+		- delMeta(key) -- removes a meta value(s) for key.
 
 	When querying meta information, by default all parents are queried as
 	well (propagate=True).
@@ -504,11 +504,15 @@ class MetaValue(MetaMixin):
 	The content is always a string.
 
 	The text content may be in different formats, notably
-	* literal
-	* rst (restructured text)
-	* plain (the default)
-	* raw (for embedded HTML, mainly -- only use this if you know
-	  the item will only be embedded into HTML templates).
+
+		- literal
+
+		- rst (restructured text)
+
+		- plain (the default)
+
+		- raw (for embedded HTML, mainly -- only use this if you know
+			the item will only be embedded into HTML templates).
 	"""
 	knownFormats = set(["literal", "rst", "plain", "raw"])
 	paragraphPat = re.compile("\n\\s*\n")
@@ -926,10 +930,10 @@ class ModelBasedBuilder(object):
 
 	Each node in the tree can be one of:
 	
-	* a meta key and a callable,
-	* this, and a sequence of child nodes
-	* this, and a dictionary mapping argument names for the callable
-	  to meta keys of the node.
+		- a meta key and a callable,
+		- this, and a sequence of child nodes
+		- this, and a dictionary mapping argument names for the callable
+			to meta keys of the node.
 	
 	The callable can also be None, which causes the corresponding items
 	to be inlined into the parent (this is for flattening nested meta

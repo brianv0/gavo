@@ -32,6 +32,7 @@ def setupServer(rootPage):
 
 def serverAction(act):
 # XXX TODO: Fix this
+	pass
 	'''
 	PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin
 	LOGFILE=/data/gavo/logs/web.log

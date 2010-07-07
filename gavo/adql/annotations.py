@@ -7,8 +7,8 @@ all columns in a query.
 
 We have two kinds of annotations:
 
-* FieldInfos object for columns and expressinos
-* fieldInfo attributes for columns
+	- FieldInfos object for columns and expressinos
+	- fieldInfo attributes for columns
 
 fieldInfo is None in nodes coming from the parser.  Filling these out is the
 object of this module.
@@ -29,18 +29,19 @@ from gavo.adql.common import *
 
 
 class FieldInfos(object):
-	"""A base class for field annotations.
+	"""
+	A base class for field annotations.
 
 	Subclasses of those are attached to physical tables, joins, and
 	subqueries.
 
 	The information on columns is kept in two places:
 	
-	* seq -- a sequence of attributes of the columns in the
-	  order in which they are selected (this is random if the table comes
-	  from the db)
-	* columns -- maps column names to attributes or None if a column
-	  name is not unique.  Column names are normalized by lowercasing here.
+		- seq -- a sequence of attributes of the columns in the
+			order in which they are selected (this is random if the table comes
+			from the db)
+		- columns -- maps column names to attributes or None if a column
+			name is not unique.  Column names are normalized by lowercasing here.
 
 	A FieldInfos object is instanciated with the object it will annotate,
 	and the annotation (i.e., setting of the fieldInfos attribute on

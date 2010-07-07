@@ -80,8 +80,8 @@ def readPrimaryHeaderQuick(f):
 def parseCards(aString):
 	"""returns a list of pyfits Cards parsed from aString.
 
-	This will raise a ValueError if aString's length is not divisible by
-	80.  It may also return pyfits errors for malformed cards.
+	This will raise a ValueError if aString's length is not divisible by 80.  
+	It may also return pyfits errors for malformed cards.
 
 	Empty (i.e., all-whitespace) cards are ignored.  If an END card is
 	encoundered processing is aborted.

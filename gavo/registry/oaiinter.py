@@ -200,9 +200,9 @@ def getMatchingRestups(pars, connection=None):
 
 	pars is a dictionary mapping any of the following keys to values:
 
-	* from
-	* until -- these give a range for which changed records are being returned
-	* set -- maps to a sequence of set names to be matched.
+		- from
+		- until -- these give a range for which changed records are being returned
+		- set -- maps to a sequence of set names to be matched.
 	"""
 	frag, pars = _parseOAIPars(pars)
 	try:

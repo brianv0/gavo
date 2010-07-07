@@ -29,16 +29,16 @@ class BboxSIAPRMixin(rscdef.RMixinBase):
 
 	The columns added into the tables include
 
-	* (certain) FITS WCS headers 
-	* imageTitle (interpolateString should come in handy for these)
-	* instId -- some id for the instrument used
-	* dateObs -- a timestamp of the "characteristic" observation time
-	* the bandpass* values.  You're on your own with them...
-	* the values of the product interface.  
-	* mimetype -- the mime type of the product.
-	* the primaryBbox, secondaryBbox, centerAlpha and centerDelta, nAxes, 
-	  pixelSize, pixelScale, imageFormat, wcs* fields calculated by the 
-	  computeBboxSIAPFields macro.   
+		- (certain) FITS WCS headers 
+		- imageTitle (interpolateString should come in handy for these)
+		- instId -- some id for the instrument used
+		- dateObs -- a timestamp of the "characteristic" observation time
+		- the bandpass* values.  You're on your own with them...
+		- the values of the product interface.  
+		- mimetype -- the mime type of the product.
+		- the primaryBbox, secondaryBbox, centerAlpha and centerDelta, nAxes, 
+			pixelSize, pixelScale, imageFormat, wcs* fields calculated by the 
+			computeBboxSIAPFields macro.   
 
 	(their definition is in the siap system RD)
 
@@ -163,16 +163,16 @@ class PGSSIAPRMixin(rscdef.RMixinBase):
 
 	The columns added into the tables include
 
-	* (certain) FITS WCS headers 
-	* imageTitle (interpolateString should come in handy for these)
-	* instId -- some id for the instrument used
-	* dateObs -- a timestamp of the "characteristic" observation time
-	* the bandpass* values.  You're on your own with them...
-	* the values of the product interface.  
-	* mimetype -- the mime type of the product.
-	* the coverage, centerAlpha and centerDelta, nAxes, 
-	  pixelSize, pixelScale, imageFormat, wcs* fields calculated by the 
-	  computePGSSIAPFields macro.   
+		- (certain) FITS WCS headers 
+		- imageTitle (interpolateString should come in handy for these)
+		- instId -- some id for the instrument used
+		- dateObs -- a timestamp of the "characteristic" observation time
+		- the bandpass* values.  You're on your own with them...
+		- the values of the product interface.  
+		- mimetype -- the mime type of the product.
+		- the coverage, centerAlpha and centerDelta, nAxes, 
+			pixelSize, pixelScale, imageFormat, wcs* fields calculated by the 
+			computePGSSIAPFields macro.   
 
 	(their definition is in the siap system RD)
 

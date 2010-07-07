@@ -189,9 +189,9 @@ class StaticServer(rend.Page):
 
 	This is basically like static.File, except
 
-	* we don't do directory listings
-	* we don't bother with ranges
-	* we look for each file in a user area and then in the system area.
+		- we don't do directory listings
+		- we don't bother with ranges
+		- we look for each file in a user area and then in the system area.
 	"""
 	def __init__(self):
 		rend.Page.__init__(self)

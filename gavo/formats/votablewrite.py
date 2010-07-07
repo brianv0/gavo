@@ -42,8 +42,8 @@ class VOTableContext(utils.IdManagerMixin):
 
 	VOTableContexts are constructed with
 
-	* a value mapper registry (typically, valuemappers.defaultMFRegistry)
-	* the tablecoding (one of the keys of votable.tableEncoders).
+		- a value mapper registry (typically, valuemappers.defaultMFRegistry)
+		- the tablecoding (one of the keys of votable.tableEncoders).
 	"""
 	def __init__(self, mfRegistry, tablecoding='binary', version=None):
 		self.mfRegistry = mfRegistry

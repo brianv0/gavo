@@ -388,6 +388,7 @@ def computeUnitSphereCoords(alpha, delta):
 
 def dirVecToCelCoos(dirVec):
 	"""returns alpha, delta in degrees for the direction vector dirVec.
+
 	>>> dirVecToCelCoos(computeUnitSphereCoords(25.25, 12.125))
 	(25.25, 12.125)
 	>>> dirVecToCelCoos(computeUnitSphereCoords(25.25, 12.125)*16)

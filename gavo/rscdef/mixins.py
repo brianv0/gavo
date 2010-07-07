@@ -7,10 +7,10 @@ not.
 They are used to define and implement certain behaviours components of
 the DC software want to see:
 
-* products want to be added into their table, and certain fields are required
-  within tables describing products
-* tables containing positions need some basic machinery to support scs.
-* siap needs quite a bunch of fields
+	- products want to be added into their table, and certain fields are required
+		within tables describing products
+	- tables containing positions need some basic machinery to support scs.
+	- siap needs quite a bunch of fields
 
 etc.
 

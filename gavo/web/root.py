@@ -109,16 +109,16 @@ class ArchiveService(rend.Page):
 
 	It does the main dispatching based on four mechanisms:
 
-	(0) redirects -- one-segments fragments that redirect somewhere else.
-	    This is for "bad" shortcuts corresponding to input directory name
-	    exclusively (since it's so messy).  These will not match if
-	    path has more than one segment.
-	(1) statics -- first segment leads to a resource that gets passed any
-	    additional segments.
-	(2) mappings -- first segment is replaced by something else, processing
-	    continues.
-	(3) resource based -- consisting of an RD id, a service id, a renderer and
-	    possibly further segments.
+		0. redirects -- one-segments fragments that redirect somewhere else.
+			 This is for "bad" shortcuts corresponding to input directory name
+			 exclusively (since it's so messy).  These will not match if
+			 path has more than one segment.
+		1. statics -- first segment leads to a resource that gets passed any
+			 additional segments.
+		2. mappings -- first segment is replaced by something else, processing
+			 continues.
+		3. resource based -- consisting of an RD id, a service id, a renderer and
+			 possibly further segments.
 	
 	The first three mechanisms only look at the first segment to determine
 	any action (except that redirect is skipped if len(segments)>1).

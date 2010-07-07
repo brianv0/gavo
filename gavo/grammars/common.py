@@ -86,9 +86,9 @@ class MapKeys(base.Structure):
 
 	mapKeys is necessary in grammars like keyValueGrammar or fitsProdGrammar.
 	In these, the source files themselves give key names.  Within the GAVO
-	DC, keys are required to be valid python identifiers (roughly, 
-	[A-Za-z\_][A-Za-z\_0-9]*).  If keys coming in do not have this form, mapping
-	can force proper names.
+	DC, keys are required to be valid python identifiers (i.e., match
+	``[A-Za-z\_][A-Za-z\_0-9]*``).  If keys coming in do not have this form, 
+	mapping can force proper names.
 
 	mapKeys could also be used to make incoming names more suitable for
 	matching with shell patterns (like in rowmaker idmaps).

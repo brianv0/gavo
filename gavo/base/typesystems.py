@@ -3,12 +3,12 @@ Conversions between type systems.
 
 The DC software has to deal with a quite a few type systems:
 
- * Python
- * SQL
- * VOTable
- * XSD
- * Twisted formal
- * numpy
+ - Python
+ - SQL
+ - VOTable
+ - XSD
+ - Twisted formal
+ - numpy
 
 In general, we keep metadata in the SQL type system (although one could
 argue one should use the richest one...).  In this module, we want to
@@ -17,13 +17,13 @@ types (and possibly the other way round).
 
 In fact, we use a couple of extensions:
 
-* file -- this corresponds to a file upload from the web (i.e., a pair
-  (filename, file object)).  It would be conceivable to turn this into
-  blobs at some point, but right now we simply don't touch it.
-* vexpr-float, -text, -date -- vizier-like expressions coming in from
-  the web.  These are always strings.
-* raw -- handed right through, whatever it is.  For target formats that
-  can't do this, usually strings are used.
+	- file -- this corresponds to a file upload from the web (i.e., a pair
+		(filename, file object)).  It would be conceivable to turn this into
+		blobs at some point, but right now we simply don't touch it.
+	- vexpr-float, -text, -date -- vizier-like expressions coming in from
+		the web.  These are always strings.
+	- raw -- handed right through, whatever it is.  For target formats that
+		can't do this, usually strings are used.
 
 We should move all type conversion code here, and probably figure out
 a sane way to concentrate value conversion here as well (though that's
@@ -141,6 +141,7 @@ def getSubsumingType(sqlTypes):
 	where earlier types get clobbered by later ones.  And then there's
 	messy stuff like dates.  We don't want to fail here, so if all else
 	fails, we just make it a text.
+
 	>>> getSubsumingType(["smallint", "integer"])
 	'integer'
 	>>> getSubsumingType(["double precision", "integer", "bigint"])

@@ -70,26 +70,31 @@ class CachedResource(object):
 
 
 class IdManagerMixin(object):
-	"""A mixin for objects requiring unique IDs.
-
+	"""
+	A mixin for objects requiring unique IDs.
+	
 	The primaray use case is XML generation, where you want stable IDs
 	for objects, but IDs must be unique over an entire XML file.
-
-	The IdManagerMixin provides some methods for doing that:
 	
-	* makeIdFor(object) -- returns an id for object, or None if makeIdFor has
-	  already been called for that object (i.e., it presumably already is
-		in the document).
-	* getIdFor(object) -- returns an id for object if makeIdFor has already
-	  been called before.  Otherwise, a NotFoundError is raised
-	* getOrMakeIdFor(object) -- returns an id for object; if object has
-	  been seen before, it's the same id as before.  Identity is by equality
-		for purposes of dictionaries.
-	* getForId(id) -- returns the object belonging to an id that has
-	  been handed out before.  Raises a NotFoundError for unknown ids.
-	* cloneFrom(other) -- overwrites the self's id management dictionaries 
-	  with those from other.  You want this if two id managers must work
-	  on the same document.
+	The IdManagerMixin provides some methods for doing that:
+		
+		- makeIdFor(object) -- returns an id for object, or None if makeIdFor has
+			already been called for that object (i.e., it presumably already is
+			in the document).
+
+		- getIdFor(object) -- returns an id for object if makeIdFor has already
+			been called before.  Otherwise, a NotFoundError is raised
+
+		- getOrMakeIdFor(object) -- returns an id for object; if object has
+			been seen before, it's the same id as before.  Identity is by equality
+			for purposes of dictionaries.
+
+		- getForId(id) -- returns the object belonging to an id that has
+			been handed out before.  Raises a NotFoundError for unknown ids.
+
+		- cloneFrom(other) -- overwrites the self's id management dictionaries 
+			with those from other.  You want this if two id managers must work
+			on the same document.
 	"""
 	__cleanupPat = re.compile("[^A-Za-z_]+")
 # Return a proxy instead of raising a KeyError here?  We probably no not
@@ -246,11 +251,11 @@ def makeClassDocs(baseClass, objects):
 	and optionally a char to build underlines from) in the command line,
 	False if not (and it doesn't print anything in this case) if not.
 
-	Thus, you'll usually use it like this:
+	Thus, you'll usually use it like this::
 
-	if __name__=="__main__":	
-		if not makeClassDocs(Macro, globals().values()):
-			_test()
+		if __name__=="__main__":	
+			if not makeClassDocs(Macro, globals().values()):
+				_test()
 	"""
 	if len(sys.argv) in [2,3] and sys.argv[1]=="docs":
 		if len(sys.argv)==3:

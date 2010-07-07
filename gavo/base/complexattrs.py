@@ -7,20 +7,20 @@ These come with parsers of their own, in some way or other.
 Structure attributes, which do not have string literals and have some sort
 of internal structure, add methods
 
-* create(instance, ctx, name) -> structure -- creates a new object suitable
-	as attribute value and returns it (for stuctures, instance becomes the
-	parent of the new structure as a side effect of this operation).  This 
-	is what should later be fed to feedObject and must have a getParser 
-	attribute.  The name argument gives the name of the element that caused 
-	the create call, allowing for polymorphic attrs.
-* getParser(instance) -> callable -- returns a callable that receives
-  parse events to fill instance
-* replace(instance, oldVal, newVal) -> None -- replaces oldVal with newVal; this
-  works like feedObject, except that an old value is overwritten.  We
-	need such functionality with structure.RefAttribute and 
-	structure.CopyAttribute.
-* iterEvents(instance) -> events -- yields events to recreate its value
-  on another instance.
+	- create(instance, ctx, name) -> structure -- creates a new object suitable
+		as attribute value and returns it (for stuctures, instance becomes the
+		parent of the new structure as a side effect of this operation).  This 
+		is what should later be fed to feedObject and must have a getParser 
+		attribute.  The name argument gives the name of the element that caused 
+		the create call, allowing for polymorphic attrs.
+	- getParser(instance) -> callable -- returns a callable that receives
+		parse events to fill instance
+	- replace(instance, oldVal, newVal) -> None -- replaces oldVal with newVal; this
+		works like feedObject, except that an old value is overwritten.  We
+		need such functionality with structure.RefAttribute and 
+		structure.CopyAttribute.
+	- iterEvents(instance) -> events -- yields events to recreate its value
+		on another instance.
 """
 
 from gavo.base import structure

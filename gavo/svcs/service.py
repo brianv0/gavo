@@ -248,11 +248,11 @@ class CustomDF(CustomPageFunction):
 	data for whatever data the template passes to the renderer. 
 
 	You can return arbitrary python objects -- whatever the render functions
-	can deal with.  You could, e.g., write
+	can deal with.  You could, e.g., write::
 
-	<customDF name="now">
-		return datetime.datetime.utcnow()
-	</customDF>
+		<customDF name="now">
+			return datetime.datetime.utcnow()
+		</customDF>
 	"""
 	name_ = "customDF"
 

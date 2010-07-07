@@ -397,15 +397,15 @@ class SerManager(utils.IdManagerMixin):
 
 	You can additionally give:
 
-	* withRanges -- iterate over the whole table to figure out minima,
-	  maxima, and the appearance of null values (this is currently required
-	  for reliable null value determination in VOTables with integers).  Default
-		is True.
-	* idManager -- an object mixing in utils.IdManagerMixin.  This is important
-	  if the ids we are assigning here end up in a larger document.  In that
-	  case, pass in the id manager of that larger document.  Default is the
-		SerManager itself
-	* mfRegistry -- a map factory registry.  Default is the defaltMFRegistry.
+		- withRanges -- iterate over the whole table to figure out minima,
+			maxima, and the appearance of null values (this is currently required
+			for reliable null value determination in VOTables with integers).  Default
+			is True.
+		- idManager -- an object mixing in utils.IdManagerMixin.  This is important
+			if the ids we are assigning here end up in a larger document.  In that
+			case, pass in the id manager of that larger document.  Default is the
+			SerManager itself
+		- mfRegistry -- a map factory registry.  Default is the defaltMFRegistry.
 	"""
 	# Don't compute min, max, etc for these types
 	_noValuesTypes = set(["boolean", "bit", "unicodeChar",

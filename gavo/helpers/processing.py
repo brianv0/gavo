@@ -158,18 +158,18 @@ class HeaderProcessor(FileProcessor):
 
 	This basic flow is influenced by the following opts attributes:
 
-	* reProcess -- even if a cache is present, recompute header values
-	* applyHeaders -- actually replace old headers with new headers
-	* reHeader -- even if _isProcessed returns True, write a new header
-	* compute -- perform computations
+		- reProcess -- even if a cache is present, recompute header values
+		- applyHeaders -- actually replace old headers with new headers
+		- reHeader -- even if _isProcessed returns True, write a new header
+		- compute -- perform computations
 
 	The idea is that you can:
 
-	* generate headers without touching the original files: proc
-	* write all cached headers to files that don't have them
-	  proc --applyheaders --nocompute
-	* after a bugfix force all headers to be regenerated:
-	  proc --reprocess --applyheaders --reheader
+		- generate headers without touching the original files: proc
+		- write all cached headers to files that don't have them
+			proc --applyheaders --nocompute
+		- after a bugfix force all headers to be regenerated:
+			proc --reprocess --applyheaders --reheader
 	
 	All this leads to the messy logic.  Sorry 'bout this.
 	"""

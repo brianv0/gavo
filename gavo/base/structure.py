@@ -11,7 +11,7 @@ information in the constructed objects themselves.
 
 
 Parseables
-----------
+==========
 
 Parseables are object having a method
 
@@ -23,9 +23,9 @@ queries" or a map of ids and objects).
 
 type can be:
 
-* value -- causes the feed method on the attribute name to be called.
-* start -- returns a new feed receiver for the attribute name.
-* end -- returns a new feed receiver for the current attribute's parent.
+	- value -- causes the feed method on the attribute name to be called.
+	- start -- returns a new feed receiver for the attribute name.
+	- end -- returns a new feed receiver for the current attribute's parent.
 
 feedEvent returns either a callable (that be called on the next event
 call) or a unicode object name to signify that whatever is being parsed is
@@ -38,7 +38,7 @@ whole thing a bit clearer and more robust.
 
 
 Structures
-----------
+==========
 
 These contain attribute definitions (shared between all instances) and
 attribute values (instance specific).

@@ -18,14 +18,14 @@ resource descriptor.
 
 This package deals with two ways to represent resources: 
 
-* res tuples, as returned by servicelist.queryServicesList and used
-  whenever no or little metadata is necessary.  Contrary to what their
-  name suggests, they are actually dictionaries.
+	- res tuples, as returned by servicelist.queryServicesList and used
+		whenever no or little metadata is necessary.  Contrary to what their
+		name suggests, they are actually dictionaries.
 
-* res objects.  Those are the actual objects (e.g., svc.Service or
-  similar).  Since they may be expensive to construct (though, of
-  course, most of them ought to be cached on reasonably busy sites),
-  they are only constructed when real metadata is required.
+	- res objects.  Those are the actual objects (e.g., svc.Service or
+		similar).  Since they may be expensive to construct (though, of
+		course, most of them ought to be cached on reasonably busy sites),
+		they are only constructed when real metadata is required.
 """
 
 from gavo.registry.common import *

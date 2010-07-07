@@ -4,18 +4,18 @@ Meta information validation.
 The idea is that you define certain assertions about the meta information
 of a given object type.  Defined assertions are 
 
-* MetaExists -- a key is present
-* MetaIsAtomic -- a key is present and a "leaf", i.e., has a single value
-* MetaAtomicExistsOnSelf -- a key is present even without meta inheritance,
-  and has a single value
+	- MetaExists -- a key is present
+	- MetaIsAtomic -- a key is present and a "leaf", i.e., has a single value
+	- MetaAtomicExistsOnSelf -- a key is present even without meta inheritance,
+		and has a single value
 
 Validators are usually built using model descriptions.  These are enumerations
 of meta keys, separated by commata, with an optional code in parenteses.
 Whitespace is ignored.  Codes allowed in parens are:
 
-* empty (default): plain existence
-* !: atomic existance on self
-* 1: atomic existance
+	- empty (default): plain existence
+	- !: atomic existance on self
+	- 1: atomic existance
 
 An example for a valid model description: 
 "publisher.name,creator.email(), identifier (!), dateUpdated(1)"
@@ -43,15 +43,19 @@ class MetaValidationError(meta.MetaError):
 class MetaAssertion(object):
 	"""An assertion about the meta content of an object.
 
-	These must have one method:
-	
-	* check(metaCarrier) -> string or None; returns None if the assertion 
-	  is true, a user-displayable string of what failed otherwise.
-	"""
+	You must override the C{check} method.
+		"""
 	def __init__(self, key):
 		self.key = key
 
 	def check(self, metaCarrier):
+		"""returns None if the assertion is true, a user-displayable string of 
+		what failed otherwise.
+
+		This must be overridden in derived classes.
+		@param metaCarrier: an object mixing in L{MetaMixin}.
+		"""
+
 		return "Null assertion on %s always fails"%self.key
 
 

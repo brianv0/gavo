@@ -88,7 +88,7 @@ class FieldInfo(object):
 	There's also a properties dictionary you can use to set arbitrary
 	keys in.  These should not be inherited.  This is used for:
 
-	* xtype -- where applicable, write an ADQL xtype.
+		- xtype -- where applicable, write an ADQL xtype.
 	"""
 	def __init__(self, unit, ucd, userData=(), tainted=False, stc=None):
 		self.ucd = ucd
