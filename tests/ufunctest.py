@@ -7,12 +7,12 @@ import unittest
 
 from gavo import adql
 from gavo import rscdesc
+from gavo.helpers import testhelpers
 from gavo.protocols import adqlglue
 from gavo.protocols import simbadinterface # for getSesame registration
 from gavo.adql import ufunctions # magic registration of ufuncs takes place
                                  # during import
 
-import testhelpers
 
 
 class BasicTest(unittest.TestCase):

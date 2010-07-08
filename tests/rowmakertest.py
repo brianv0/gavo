@@ -11,9 +11,9 @@ from gavo import grammars
 from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
+from gavo.helpers import testhelpers
 from gavo.rscdef import rmkdef
 
-import testhelpers
 
 
 class _FakeTable(object):

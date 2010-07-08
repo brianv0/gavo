@@ -1,5 +1,5 @@
 """
-Exceptions and helper functions for adql processing.
+Exceptions and helper functions for ADQL processing.
 
 This module should be clean for from import *
 """

@@ -1,5 +1,5 @@
 """
-Data model for the VO registry interface.
+The schema and XML namespaces for OAI/VOR documents.
 """
 
 from gavo import base

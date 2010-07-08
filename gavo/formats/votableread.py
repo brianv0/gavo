@@ -1,7 +1,8 @@
 """
 Parsing and translating VOTables to internal data structures.
 
-This is glue code to the more generic votable library.
+This is glue code to the more generic votable library.  In general, you
+should access this module through formats.votable.
 """
 
 import gzip

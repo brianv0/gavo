@@ -4,9 +4,9 @@ Tests for the macro expansion machinery.
 
 from gavo import base
 from gavo import rscdef
+from gavo.helpers import testhelpers
 from gavo.rscdef import macros
 
-import testhelpers
 
 
 class NakedMacroTest(testhelpers.VerboseTest):

@@ -1,5 +1,5 @@
 """
-Code to obtain WCS headers for fits files using astrometry.net
+Code to obtain WCS headers for FITS files using astrometry.net
 """
 
 from cStringIO import StringIO

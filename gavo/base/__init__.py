@@ -1,10 +1,6 @@
 """
-The base sub-package.  We export quite a few names through this package 
-__init__, so most non-fancy clients can get by saying 
-
-from gavo import base.
-
-This module may not be imported by anything within base.
+Basic code for defining objects in the data center: Structures, their 
+attributes, fundamental VO conventions.
 """
 
 

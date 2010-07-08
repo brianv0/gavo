@@ -18,11 +18,9 @@ from gavo.adql import annotations
 from gavo.adql import morphpg
 from gavo.adql import nodes
 from gavo.adql import tree
+from gavo.helpers import testhelpers
 from gavo.protocols import adqlglue
 from gavo.stc import tapstc
-
-
-import testhelpers
 
 
 class Error(Exception):

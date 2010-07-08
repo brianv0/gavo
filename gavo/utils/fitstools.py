@@ -1,5 +1,5 @@
 """
-Some utility functions to deal with fits files.
+Some utility functions to deal with FITS files.
 """
 
 #c Copyright 2009 the GAVO Project.

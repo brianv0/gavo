@@ -1,5 +1,5 @@
 """
-Generic support for querying for areas, SIAP-style.
+IVOA SIAP: mixins and CondDescs
 
 See develNotes for info on our SIAP implementation
 """

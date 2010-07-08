@@ -1,5 +1,5 @@
 """
-Grammars defined by code embedded in the RD.
+A grammars defined by code embedded in the RD.
 """
 
 from gavo import base

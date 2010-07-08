@@ -1,5 +1,5 @@
 """
-Adding field infos to columns and other objects in an ADQL tree.
+Adding field infos to columns and other objects in an ADQL parse tree.
 
 When we want to generate VOTables from ADQL queries, we must know types,
 units, ucds, and the like, and we need to know STC information for

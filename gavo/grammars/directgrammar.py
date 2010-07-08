@@ -1,5 +1,6 @@
 """
-Grammars for writing into the database without rowmakers.
+A grammar supporting C language boosters (or possibly other mechanisms 
+bypassing internal dbtable).
 
 These actually bypass most of our machinery and should only be used if
 performance is paramount.  Otherwise, CustomGrammars play much nicer with

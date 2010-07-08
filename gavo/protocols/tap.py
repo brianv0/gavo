@@ -1,5 +1,5 @@
 """
-Code to help TAP.
+TAP: schema maintenance, job/parameter definition incl. upload and UWS actions.
 """
 
 from __future__ import with_statement

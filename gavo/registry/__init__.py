@@ -1,5 +1,5 @@
 """
-Modules dealing with generation and delivery of registry records.
+Registry interface: service list, record generation, OAI endpoint.
 
 Our identifiers have the form
 

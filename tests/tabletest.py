@@ -9,8 +9,7 @@ from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
 from gavo import svcs
-
-import testhelpers
+from gavo.helpers import testhelpers
 
 
 class MemoryPrimaryKeyTest(testhelpers.VerboseTest):

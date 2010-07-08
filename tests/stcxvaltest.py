@@ -3,9 +3,9 @@ STC tests requiring XSD validation (slow...)
 """
 
 from gavo import stc
+from gavo.helpers import testhelpers
 from gavo.stc import stcxgen
 
-import testhelpers
 
 class StanValidationTests(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 	"""tests for generation of XSD-valid documents from the xml stan.

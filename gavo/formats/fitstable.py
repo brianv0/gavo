@@ -1,5 +1,5 @@
 """
-Utilities to write FITS tables
+Writing data in FITS binary tables
 """
 
 import os

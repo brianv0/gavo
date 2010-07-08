@@ -1,5 +1,5 @@
 """
-AST definition for STC.
+Definition of the structure of the internal representation (the AST).
 
 For now, we want to be able to capture what STC-S can do.  This
 means that we do not support generic coordinates (yet), elements,

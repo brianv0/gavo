@@ -98,9 +98,6 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		childFactory=rscdef.SimpleView, description="Definitions of views"
 		" created from natural joins", default=None)
 	_properties = base.PropertyAttribute()
-	_systems = base.StructListAttribute("systems",
-		childFactory=rscdef.CooSys, description="Legacy specification of"
-		" coordinate systems used within this resource.", before="tables")
 
 	def __init__(self, parent, **kwargs):
 	#	parent should in general be None, I guess, but I'll leave the signature

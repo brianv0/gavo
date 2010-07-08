@@ -6,9 +6,9 @@ import math
 
 from gavo import stc
 from gavo import utils
+from gavo.helpers import testhelpers
 from gavo.stc import units
 
-import testhelpers
 
 
 class UnitTest(testhelpers.VerboseTest):

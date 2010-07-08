@@ -1,5 +1,5 @@
 """
-Special gavo widgets and their corresponding types based on nevow formal.
+Widgets used by the DC (e.g., definition of output formats).
 """
 
 import urllib

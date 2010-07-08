@@ -1,5 +1,5 @@
 """
-Code to support simple cone search.
+IVOA code search: mixins and CondDescs.
 """
 
 from nevow import inevow

@@ -1,5 +1,5 @@
 """
-Writing table objects as CSV files.
+Wrinting data in CSV.
 """
 
 import csv

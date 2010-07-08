@@ -14,10 +14,10 @@ import unittest
 from twisted.trial.unittest import TestCase as TrialTest
 
 from gavo import config, sqlsupport, record
+from gavo.helpers import testhelpers
 from gavo.parsing import importparser, resource
 from gavo.web import product, service, standardcores, common, creds
 
-import testhelpers
 
 
 creds.adminProfile = "test"

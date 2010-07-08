@@ -13,9 +13,9 @@ from gavo import rsc
 from gavo import rscdesc
 from gavo.protocols import products
 from gavo.base import vizierexprs
+from gavo.helpers import testhelpers
 from gavo.svcs import inputdef
 
-import testhelpers
 
 
 class GrammarTest(testhelpers.VerboseTest):

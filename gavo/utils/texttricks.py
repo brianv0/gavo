@@ -1,5 +1,5 @@
 """
-Formatting and text manipulation code independent of GAVO code.
+Formatting, text manipulation, string constants, and such.
 """
 
 #c Copyright 2009 the GAVO Project.

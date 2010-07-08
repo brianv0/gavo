@@ -12,11 +12,11 @@ from gavo import base
 from gavo import registry
 from gavo import utils
 from gavo.base import sqlsupport
+from gavo.helpers import testhelpers
 from gavo.registry import builders
 from gavo.registry import oaiinter
 from gavo.registry import publication
 
-import testhelpers
 import tresc
 
 

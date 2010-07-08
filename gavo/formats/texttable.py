@@ -1,5 +1,9 @@
 """
-Writing Table objects as text.
+Writing data as plain text.
+
+Currently, we only do TSV.  It would probably be nice to support "formatted
+ASCII as well, though that may be a bit tricky given that we do not
+really store sane formatting hints for most columns.
 """
 
 import cStringIO

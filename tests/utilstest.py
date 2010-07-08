@@ -3,10 +3,10 @@ Tests for the various modules in utils.
 """
 
 from gavo import utils
+from gavo.helpers import testhelpers
 from gavo.utils import algotricks
 from gavo.utils import stanxml
 
-import testhelpers
 
 class TopoSortTest(testhelpers.VerboseTest):
 	def testEmpty(self):

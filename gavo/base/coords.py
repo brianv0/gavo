@@ -1,5 +1,8 @@
 """
-Code to handle coordinate systems and transform between them.
+(Mostly deprecated) code to handle coordinate systems and transform 
+between them.  
+
+Basically all of this should be taken over by stc and astropysics.
 """
 
 import math

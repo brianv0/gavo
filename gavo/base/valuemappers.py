@@ -1,5 +1,5 @@
 """
-ValueMappers, their factories and a registry.
+Turning values in our tables into strings (e.g., in VOTables or HTML).
 
 A value mapper is a function used for serialization of (python) values
 to strings, e.g., for HTML or VOTables.

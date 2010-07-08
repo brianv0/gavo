@@ -16,8 +16,8 @@ from gavo import protocols
 from gavo.base import coords
 from gavo.base import sqlsupport
 from gavo.utils import pgsphere
+from gavo.helpers import testhelpers
 
-import testhelpers
 import tresc
 
 

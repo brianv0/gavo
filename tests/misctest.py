@@ -21,10 +21,10 @@ from gavo import stc
 from gavo import utils
 from gavo.base import valuemappers
 from gavo.helpers import filestuff
+from gavo.helpers import testhelpers
 from gavo.utils import pyfits
 from gavo.utils import stanxml
 
-import testhelpers
 
 
 class MapperTest(unittest.TestCase):

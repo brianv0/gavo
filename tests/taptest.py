@@ -22,12 +22,12 @@ from twisted.python.components import registerAdapter
 from gavo import base
 from gavo import rscdesc  # uws needs getRD
 from gavo import votable
+from gavo.helpers import testhelpers
 from gavo.protocols import tap
 from gavo.protocols import taprunner
 from gavo.protocols import uws
 from gavo.web import taprender
 
-import testhelpers
 import adqltest
 
 

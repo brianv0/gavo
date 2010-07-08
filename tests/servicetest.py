@@ -9,9 +9,9 @@ from gavo import base
 from gavo import rsc
 from gavo import rscdesc
 from gavo import protocols
+from gavo.helpers import testhelpers
 from gavo.web import resourcebased
 
-import testhelpers
 import tresc
 
 

@@ -9,8 +9,8 @@ from gavo import base
 from gavo.base import structure
 from gavo.base import xmlstruct
 from gavo.base.attrdef import *
+from gavo.helpers import testhelpers
 
-import testhelpers
 
 
 # Some test struct defs

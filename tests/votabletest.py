@@ -16,9 +16,9 @@ from gavo import rscdesc
 from gavo import utils
 from gavo import votable
 from gavo.formats import votableread, votablewrite
+from gavo.helpers import testhelpers
 from gavo.utils import ElementTree
 
-import testhelpers
 
 class _TestVOTable(testhelpers.TestResource):
 	"""Used in VOTableTest.

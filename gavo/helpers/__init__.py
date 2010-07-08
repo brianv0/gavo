@@ -1,5 +1,5 @@
 """
-Code to support user scripts working on DC data holdings.
+Code to support DC-external code (preprocessing, testing...)
 """
 
 from gavo.helpers.filestuff import iterSources, FileRenamer

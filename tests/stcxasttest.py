@@ -8,9 +8,9 @@ import datetime
 
 from gavo import stc
 from gavo import utils
+from gavo.helpers import testhelpers
 from gavo.stc import dm
 
-import testhelpers
 
 def _unwrapSample(samp):
 	return bz2.decompress(samp.decode("base64"))

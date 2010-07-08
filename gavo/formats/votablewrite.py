@@ -1,11 +1,12 @@
 """
-Functions for generating VOTables to and from internal data
-representations.
+Generating VOTables from internal data representations.
 
 This is glue code to the more generic GAVO votable library.  In particular,
 it governs the application of base.SerManagers and their column descriptions
 (which are what is passed around as colDescs in this module to come up with 
 VOTable FIELDs and the corresponding values.
+
+You should access this module through formats.votable.
 """
 
 import functools

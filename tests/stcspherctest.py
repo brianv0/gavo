@@ -10,6 +10,7 @@ import numpy
 
 from gavo import stc
 from gavo import utils
+from gavo.helpers import testhelpers
 from gavo.stc import common
 from gavo.stc import conform
 from gavo.stc import spherc
@@ -19,7 +20,6 @@ from gavo.stc import times
 from gavo.utils import DEG
 
 import stcgroundtruth
-import testhelpers
 
 
 class PrecAnglesTest(testhelpers.VerboseTest):

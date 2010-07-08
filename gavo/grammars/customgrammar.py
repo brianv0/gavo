@@ -1,5 +1,5 @@
 """
-A Grammar class that imports a user-defined module and takes the RowIterator
+A grammar that imports a user-defined module and takes the RowIterator
 from there.
 
 The module has to define a RowIterator derived from CustomRowIterator.  It may

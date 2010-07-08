@@ -36,11 +36,11 @@ threadable.init()
 
 from gavo import base
 from gavo import rscdesc
+from gavo.helpers import testhelpers
 from gavo.protocols import scs  # for table's q3c mixin
 from gavo.web import weberrors
 from gavo.web.taprender import TAPRenderer
 
-import testhelpers
 import trialhelpers
 
 

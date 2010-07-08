@@ -7,11 +7,11 @@ import struct
 from cStringIO import StringIO
 
 from gavo import votable
+from gavo.helpers import testhelpers
 from gavo.votable import common
 from gavo.votable import V
 from gavo.votable.iterparse import iterparse
 
-from gavo.helpers import testhelpers
 
 
 class IterParseTest(testhelpers.VerboseTest):

@@ -1,5 +1,5 @@
 """
-Functions for parsing and generating VOTables to and from internal data
+A facade for parsing and generating VOTables to and from internal data
 representations.
 
 The actual implementations are in two separate modules.  Always access

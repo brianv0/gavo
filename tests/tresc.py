@@ -7,8 +7,7 @@ import os
 from gavo import base
 from gavo import rsc
 from gavo.base import sqlsupport
-
-import testhelpers
+from gavo.helpers import testhelpers
 
 
 class DBConnection(testhelpers.TestResource):

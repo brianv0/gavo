@@ -1,5 +1,6 @@
 """
-Publishing records -- grammar-type stuff and UI.
+"Publishing" (i.e. entering into the services table) service records -- 
+grammar-type stuff and UI.
 """
 
 import datetime

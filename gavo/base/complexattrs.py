@@ -1,6 +1,6 @@
 """
 Attributes with structure (i.e., containing structures or more than one
-atom.
+atom).
 
 These come with parsers of their own, in some way or other.
 

@@ -1,5 +1,5 @@
 """
-Support for VO-Type Space-Time-Coordinates.
+Support for the IVOA Space-Time-Coordinate data model.
 
 We're dealing with a huge data model here that probably can't be
 fully implemented in any sense of the word.

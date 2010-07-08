@@ -7,9 +7,9 @@ import traceback
 
 from gavo import base
 from gavo.base import events
+from gavo.helpers import testhelpers
 from gavo.user import cli
 
-import testhelpers
 
 
 class Tell(Exception):

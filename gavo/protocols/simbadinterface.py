@@ -1,3 +1,7 @@
+"""
+A caching proxy for CDS' Simbad object resolver.
+"""
+
 import cPickle
 import os
 import socket

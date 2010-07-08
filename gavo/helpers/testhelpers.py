@@ -1,5 +1,5 @@
 """
-Helper classes for the gavo unittest framework.
+Helper classes for the GAVO's unit tests.
 """
 
 from __future__ import with_statement
@@ -9,6 +9,7 @@ import gc
 import inspect
 import os
 import popen2
+import re
 import subprocess
 import sys
 import traceback
@@ -237,7 +238,19 @@ class VerboseTest(testresources.ResourcedTestCase):
 			raise
 
 
+_xmlJunkPat = re.compile("|".join([
+	'(xmlns(:[a-z0-9]+)?="[^"]*"\s*)',
+	'((frame_|coord_system_)?id="[^"]*")',
+	'(xsi:schemaLocation="[^"]*"\s*)']))
 
+def cleanXML(aString):
+	"""removes IDs and some other detritus from XML literals.
+
+	The result will be invalid XML, and all this assumes the fixed-prefix
+	logic of the DC software.  Still, it may help making tests against XML
+	literals a bit more stable.
+	"""
+	return re.sub("\s+", " ", _xmlJunkPat.sub('', aString)).strip()
 
 
 class XSDTestMixin(object):
@@ -358,3 +371,18 @@ def main(testClass, methodPrefix=None):
 		runner.run(suite)
 	else:
 		unittest.main()
+
+
+try:
+# do a q'n'd test setup of the DC software if possible.  It would probably
+# be better to use stuff like testEnv tresc.py had until rev. 1328 and
+# have tests declare they need this -- but aw, there's little to be gained
+# by this sort of bureaucracy.
+	from gavo import base
+	origInputs = base.getConfig("inputsDir")
+	base.setConfig("inputsDir", os.getcwd())
+	os.environ["GAVO_INPUTSDIR"] = os.getcwd()
+	base.setDBProfile("test")
+except ImportError:
+	pass
+

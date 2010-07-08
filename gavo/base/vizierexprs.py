@@ -9,7 +9,6 @@ from pyparsing import Word, Literal, Optional, Forward, Group,\
 	OneOrMore, Or, MatchFirst, CharsNotIn
 
 from gavo import utils
-from gavo.base import common
 from gavo.base import typesystems
 
 

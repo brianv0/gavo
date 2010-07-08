@@ -1,5 +1,5 @@
 """
-Helpers for defining service output
+Output tables and their components.
 """
 
 from gavo import base 

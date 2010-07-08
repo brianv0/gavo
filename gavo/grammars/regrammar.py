@@ -1,6 +1,6 @@
 """
-A grammar that just splits the source into input lines and then
-lets you name character ranges.
+A grammar splitting the input file into lines and lines into records
+using REs.
 """
 
 import re

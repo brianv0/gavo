@@ -4,8 +4,8 @@ Tests for various parts of the server infrastructure, using trial.
 
 from gavo import api
 from gavo.web import root
+from gavo.helpers import testhelpers
 
-import testhelpers
 import trialhelpers
 
 

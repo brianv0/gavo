@@ -13,8 +13,8 @@ from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
 from gavo.base import sqlsupport
+from gavo.helpers import testhelpers
 
-import testhelpers
 import tresc
 
 

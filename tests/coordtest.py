@@ -6,8 +6,7 @@ import unittest
 
 import gavo
 from gavo.base import coords
-
-import testhelpers
+from gavo.helpers import testhelpers
 
 
 interestingPlaces = [ (250, 89), (0,0), (23.0, 42.0), (23.0, -42.0), 

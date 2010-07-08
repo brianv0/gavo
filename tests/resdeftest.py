@@ -13,10 +13,10 @@ from gavo import grammars
 from gavo import rscdef
 from gavo import rscdesc
 from gavo import utils
+from gavo.helpers import testhelpers
 from gavo.rscdef import scripting
 
 
-import testhelpers
 
 class ColumnTest(testhelpers.VerboseTest):
 	"""tests the rscdef.Column class.

@@ -1,5 +1,5 @@
 """
-Helpers for manipulating fits files.
+Helpers for manipulating FITS files.
 
 In contrast to fitstools, this is not for online processing or import of
 files, but just for the manipulation before processing.

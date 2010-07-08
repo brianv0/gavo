@@ -1,5 +1,5 @@
 """
-Morphing ADQL into queries that postgres can understand.
+Morphing ADQL into queries that postgres/pgSphere can understand.
 
 Basically, Postgres support most of the stuff out of the box, and it's
 just a matter of syntax.

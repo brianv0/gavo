@@ -1,5 +1,5 @@
 """
-Handling table metadata in db tables.
+Handling table metadata in the dc.(table|column)meta tables.
 """
 
 from gavo import base

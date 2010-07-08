@@ -1,5 +1,5 @@
 """
-Descriptions of the various Field types in the DC.
+Description of columns (and I/O fields).
 """
 
 import re

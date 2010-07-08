@@ -1,5 +1,5 @@
 """
-Code dealing with the service list.
+The (DC-internal) service list: querying, adding records, etc.
 """
 
 from gavo import base

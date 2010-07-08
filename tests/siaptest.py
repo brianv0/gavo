@@ -11,10 +11,10 @@ from gavo import base
 from gavo import rsc
 from gavo import rscdesc
 from gavo.base import coords
+from gavo.helpers import testhelpers
 from gavo.protocols import siap
 from gavo.utils import DEG
 
-import testhelpers
 
 
 def raCorr(dec):

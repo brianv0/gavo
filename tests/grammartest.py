@@ -9,8 +9,8 @@ from gavo import base
 from gavo import grammars
 from gavo import rsc
 from gavo import rscdef
+from gavo.helpers import testhelpers
 
-import testhelpers
 
 
 class PredefinedRowfilterTest(testhelpers.VerboseTest):

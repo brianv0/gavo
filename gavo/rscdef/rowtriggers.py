@@ -1,5 +1,5 @@
 """
-Framework for ignoring dictionaries based on various conditions.
+Framework for ignoring rows based on various conditions.
 """
 
 from gavo import base

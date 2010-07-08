@@ -1,5 +1,5 @@
 """
-Regexp-based grammars based on repeated application of REs
+A grammar based on repeated application of REs
 """
 
 import re

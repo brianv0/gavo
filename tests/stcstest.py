@@ -9,12 +9,12 @@ import os
 import unittest
 
 from gavo import stc
+from gavo.helpers import testhelpers
 from gavo.stc import dm
 from gavo.stc import stcs
 from gavo.stc import stcsgen
 from gavo.stc import syslib
 
-import testhelpers
 
 
 class STCSParsesTestBase(testhelpers.VerboseTest):

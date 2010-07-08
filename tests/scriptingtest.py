@@ -2,9 +2,9 @@
 Tests dealing with script parsing and execution.
 """
 
+from gavo.helpers import testhelpers
 from gavo.rscdef import scripting
 
-import testhelpers
 
 
 class SQLSplittingTest(testhelpers.VerboseTest):

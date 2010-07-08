@@ -1,5 +1,5 @@
 """
-Modules external to the data center.
+Miscellaneous helper modules for GAVO's python modules.
 
 This comprises helpers and wrappers that do not need gavo.base but for some
 reason or another should be within the dc package.

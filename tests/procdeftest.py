@@ -3,10 +3,10 @@ Tests for function definitions and applications.
 """
 
 from gavo import base
+from gavo.helpers import testhelpers
 from gavo.rscdef import macros
 from gavo.rscdef import procdef
 
-import testhelpers
 
 
 class TestApp(procdef.ProcApp):

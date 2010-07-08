@@ -9,10 +9,10 @@ from gavo import api
 from gavo import base
 from gavo.base import meta
 from gavo.base import metavalidation
-from gavo.web import common as webcommon
+from gavo.helpers import testhelpers
 from gavo.registry import builders
+from gavo.web import common as webcommon
 
-import testhelpers
 
 class KeyTest(testhelpers.VerboseTest):
 	"""tests for parsing of meta keys.

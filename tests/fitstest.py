@@ -9,11 +9,9 @@ import tempfile
 import unittest
 
 
+from gavo.helpers import testhelpers
 from gavo.utils import fitstools
 from gavo.utils import pyfits
-
-
-import testhelpers
 
 
 _fitsgz1 = \

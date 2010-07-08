@@ -1,6 +1,5 @@
 """
-This module contains code for using key value pairs from plain text files
-for data parsing.
+A grammar parsing key-value pairs from plain text files.
 """
 
 import re

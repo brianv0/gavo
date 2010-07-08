@@ -1,5 +1,5 @@
 """
-Services.
+Services, i.e. combinations of a core and at least one renderer.
 
 A Service is something that receives some sort of structured data (typically,
 a nevow context, processes it into input data using a grammar (default is

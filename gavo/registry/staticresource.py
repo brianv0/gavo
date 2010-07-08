@@ -1,9 +1,11 @@
 """
-Code to deal with "static" resources. 
+Resources defined through simple key-value files.
 
 Static resources are defined by hand somewhere below
 inputs/__system__/services/*.rr as sets of key-value pairs.  These are
 parsed here into StaticResource instances.  They only contain meta data.
+
+This is probably a dead end.  I guess there should be an RD defining these.
 """
 
 import datetime

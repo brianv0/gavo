@@ -1,3 +1,8 @@
+"""
+Parsing, annotating, and morphing queries in the Astronomical Data
+Query Language.
+"""
+
 from gavo.adql.annotations import annotate
 from gavo.adql.common import *
 from gavo.adql.tree import (

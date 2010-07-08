@@ -1,6 +1,9 @@
 # -*- encoding: iso-8859-1 -*-
 """
-This module contains basic support for manual SQL generation.
+Basic support for communicating with the database server.
+
+This is currently very postgres specific.  If we really wanted to
+support some other database, this would need massive refactoring.
 """
 
 import operator

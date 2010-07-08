@@ -1,14 +1,17 @@
 """
-The rscdef subpackage, concerned with defining resources and their structures,
-plus quite a bit of source parsing.
+Resources and their structures (DDs, TableDefs, etc), plus quite a bit 
+of source parsing.
+
+The top-level resource descriptor currently is described in a top-level 
+modules.  This should probably change, it should go into this package;
+that would take some work, though, since rscdesc currently needs to know
+about grammars, cores, etc, available.
 """
 
 from gavo.rscdef.column import Column, Option, Values, makeOptions
 
 from gavo.rscdef.common import (RDAttribute, ResdirRelativeAttribute,
 	ColumnListAttribute, NamePathAttribute, ColumnList)
-
-from gavo.rscdef.coosys import CooSys
 
 from gavo.rscdef.dddef import (DataDescriptor, registerGrammar, Make,
 	SourceSpec)

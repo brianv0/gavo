@@ -1,6 +1,5 @@
 """
-This module contains a settings class and a way to fill it from a
-simple ini-style file .gavosettings
+Definition of DC config options and their management including I/O.
 """
 
 import ConfigParser
