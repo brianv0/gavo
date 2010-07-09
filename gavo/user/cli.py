@@ -19,21 +19,21 @@ import traceback
 from contextlib import contextmanager
 
 
-functions = {
-	"admin": ("user.admin", "main"),
-	"adql": ("protocols.adqlglue", "localquery"),
-	"config": ("base.config", "main"),
-	"cred": ("protocols.creds", "main"),
-	"drop": ("user.dropping", "main"),
-	"gendoc": ("user.docgen", "main"),
-	"imp": ("user.importing", "main"),
-	"mkboost": ("grammars.directgrammar", "main"),
-	"publish": ("registry.publication", "main"),
-	"raise": ("user.errhandle", "bailOut"),
-	"serve": ("user.serve", "main"),
-	"stc": ("stc.cli", "main"),
-	"tap": ("protocols.taprunner", "main"),
-}
+functions = [
+	("admin", ("user.admin", "main")),
+	("adql", ("protocols.adqlglue", "localquery")),
+	("config", ("base.config", "main")),
+	("credentials", ("protocols.creds", "main")),
+	("drop", ("user.dropping", "main")),
+	("gendoc", ("user.docgen", "main")),
+	("import", ("user.importing", "main")),
+	("mkboost", ("grammars.directgrammar", "main")),
+	("publish", ("registry.publication", "main")),
+	("raise", ("user.errhandle", "bailOut")),
+	("serve", ("user.serve", "main")),
+	("stc", ("stc.cli", "main")),
+	("taprun", ("protocols.taprunner", "main")),
+]
 
 
 def loadGAVOModule(moduleName):
@@ -84,6 +84,27 @@ def _progressText(opts):
 		yield None
 
 
+def _getMatchingFunction(funcSelector, parser):
+	"""returns the module name and a funciton name within the module for
+	the function selector funcSelector.
+
+	The function will exit if funcSelector is not a unique prefix within
+	functions.
+	"""
+	matches = []
+	for key, res in functions:
+		if key.startswith(funcSelector):
+			matches.append(res)
+	if len(matches)==1:
+		return matches[0]
+	if matches:
+		sys.stderr.write("Multiple matches for function %s.\n\n"%funcSelector)
+	else:
+		sys.stderr.write("No match for function %s.\n\n"%funcSelector)
+	parser.print_help(file=sys.stderr)
+	sys.exit(1)
+
+
 def _parseCLArgs():
 	"""parses the command line and returns instructions on how to go on.
 
@@ -91,9 +112,11 @@ def _parseCLArgs():
 	called thinks it was execd in the first place.
 	"""
 	from optparse import OptionParser
+	sels = [n for n,x in functions]
+	sels.sort()
 	parser = OptionParser(usage="%prog {<global option>} <func>"
 		" {<func option>} {<func argument>}\n"+
-		textwrap.fill("<func> is one of %s"%(", ".join(sorted(functions))),
+		textwrap.fill("<func> is a unique prefix into {%s}"%(", ".join(sels)),
 		initial_indent='', subsequent_indent='  '),
 		description="Try %prog <func> --help for function-specific help")
 	parser.disable_interspersed_args()
@@ -115,12 +138,7 @@ def _parseCLArgs():
 		parser.print_help()
 		sys.exit(2)
 
-	try:
-		module, funcName = functions[args[0]]
-	except KeyError:
-		parser.print_help()
-		sys.exit(2)
-	
+	module, funcName = _getMatchingFunction(args[0], parser)
 	parser.destroy()
 	args[0] = "gavo "+args[0]
 	sys.argv = args

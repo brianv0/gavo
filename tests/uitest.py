@@ -76,7 +76,20 @@ class CLITest(testhelpers.VerboseTest):
 
 	def testTopLevelHelp(self):
 		self.assertOutput(cli.main, argList=["--help"], 
-			expectedStdout=lambda msg: "<func> is one of admin" in msg)
+			expectedStdout=lambda msg: "<func> is a unique" in msg)
+
+	def testNonUniqueMatch(self):
+		self.assertOutput(cli.main, argList=["a"], 
+			expectedRetcode=1,
+			expectedStderr=
+				lambda msg: msg.startswith("Multiple matches for function a"))
+
+	def testNoMatch(self):
+		self.assertOutput(cli.main, argList=["xyloph"], 
+			expectedRetcode=1,
+			expectedStderr=
+				lambda msg: msg.startswith("No match for function xyloph"))
+
 
 	def testSubCmdHelp(self):
 		self.assertOutput(cli.main, argList=["publish", "--help"], 
