@@ -268,7 +268,7 @@ def getQuery(queriedTable, parameters, sqlPars, prefix="sia"):
 	try:
 		ra, dec = dissectPositions(posStr)
 	except (ValueError, TypeError):
-		raise base.ui.raiseOldExc(base.ValidationError(
+		raise base.ui.logOldExc(base.ValidationError(
 			"%s is not a RA,DEC pair."%posStr, "POS", posStr))
 	try:
 		sizes = map(float, parameters["SIZE"].split(","))

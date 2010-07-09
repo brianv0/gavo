@@ -991,7 +991,7 @@ class ModelBasedBuilder(object):
 				except utils.Error:
 					raise
 				except:
-					raise utils.raiseOldExc(utils.ReportableError(
+					raise utils.logOldExc(utils.ReportableError(
 						"Invalid constructor func in %s, meta container active %s"%(
 							repr(item), repr(metaContainer))))
 		return result

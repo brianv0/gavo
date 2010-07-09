@@ -212,7 +212,7 @@ class UploadParameter(uws.ProtocolParameter):
 		try:
 			uploadData = codetricks.stealVar("request").files[uploadName]
 		except KeyError:
-			raise base.ui.raiseOldExc(
+			raise base.ui.logOldExc(
 				base.ValidationError("No upload '%s' found"%uploadName, "UPLOAD"))
 		destFName = cls._cleanName(uploadData.filename)
 		with job.openFile(destFName, "w") as f:
