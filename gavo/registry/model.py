@@ -139,16 +139,9 @@ class VOR:
 		name_ = "ri:Resource"
 		_local = False
 		_additionalPrefixes = frozenset(["vr", "ri", "xsi"])
-		c_title = None
-		c_curation = None
-		c_identifier = None
-		c_shortName = None
-		c_title = None
 
 	class Organisation(Resource):
 		_a_xsi_type = "vr:Organisation"
-		c_facility = []
-		c_instrument = []
 		
 	class Service(Resource):
 		_a_xsi_type = "vr:Service"
@@ -383,26 +376,15 @@ def addBasicVSElements(baseNS, VSElement):
 		
 		class ucd(VSElement): pass
 
-		class DataCollection(RI.Resource):
-			c_facility = []
-			c_instrument = []
-			c_coverage = []
-			c_format = []
-			c_rights = []
-			c_accessURL = []
+		class DataCollection(RI.Resource): pass
 
-		class Service(RI.Resource):
-			c_interface = []
+		class Service(RI.Resource): pass
 
 		class DataService(Service):
 			_a_xsi_type = "vs:DataService"
 			_additionalPrefixes = frozenset(["vs", "xsi"])
-			c_table = []
 
 		class TableService(Service):
-			c_facility = []
-			c_instrument = []
-			c_table = []
 			_a_xsi_type = "vs:TableService"
 			_additionalPrefixes = frozenset(["vs", "xsi"])
 
@@ -417,17 +399,7 @@ def addBasicVSElements(baseNS, VSElement):
 		class table(VSElement):
 			_a_role = None
 
-			c_column = []
-			c_description = None
-			c_name = None
-
-		class column(VSElement):
-			c_dataType = None
-			c_description = None
-			c_name = None
-			c_ucd = None
-			c_unit = None
-
+		class column(VSElement): pass
 	
 		class dataType(VSElement):
 			# dataType is something of a mess with subtle changes from 1.0 to
