@@ -201,6 +201,7 @@ class FieldInfo(object):
 
 
 dimlessFieldInfo = FieldInfo("", "")
+"""A Null field info singleton."""
 
 
 def getUniqueMatch(matches, colName):

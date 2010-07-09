@@ -2,7 +2,7 @@
 # 
 
 """
-GAV0's code; most of this isn support code for running a data center within the
+GAVO's code; most of this isn support code for running a data center within the
 Virtual Observatory (VO), but some packages are interesting for the VO client
 as well. 
 """

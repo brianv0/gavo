@@ -75,13 +75,13 @@ class NotGivenType(type):
 
 
 class NotGiven(object):
-	"""is a sentinel class for defaultless values that can remain undefined.
+	"""A sentinel class for defaultless values that can remain undefined.
 	"""
 	__metaclass__ = NotGivenType
 
 
 class Computed(object):
-	"""is a sentinel class for computed (property) defaults.
+	"""A sentinel class for computed (property) defaults.
 
 	Use this to construct AttributeDefs with defaults that are properties
 	to inhibit assigning to them.  This should only be required in calls
@@ -153,7 +153,7 @@ class AttributeDef(object):
 
 
 class AtomicAttribute(AttributeDef):
-	"""is a base class for attributes than can be immediately parsed
+	"""A base class for attributes than can be immediately parsed
 	and unparsed from strings.
 
 	They need to provide a parse method taking a unicode object and
@@ -207,7 +207,7 @@ class AtomicAttribute(AttributeDef):
 
 
 class UnicodeAttribute(AtomicAttribute):
-	"""is an attribute definition for an item containing a unicode string.
+	"""An attribute definition for an item containing a unicode string.
 	"""
 
 	typeDesc_ = "unicode string"
@@ -224,7 +224,7 @@ class UnicodeAttribute(AtomicAttribute):
 
 
 class RelativePathAttribute(UnicodeAttribute):
-	"""is a (utf-8 encoded) path relative to some base path.
+	"""A (utf-8 encoded) path relative to some base path.
 	"""
 	typeDesc_ = "relative path"
 
@@ -241,7 +241,7 @@ class RelativePathAttribute(UnicodeAttribute):
 
 
 class FunctionRelativePathAttribute(UnicodeAttribute):
-	"""is a (utf-8 encoded) path relative to the result of some function
+	"""A (utf-8 encoded) path relative to the result of some function
 	at runtime.
 
 	This is used to make things relative to config items.
@@ -270,7 +270,7 @@ class FunctionRelativePathAttribute(UnicodeAttribute):
 
 
 class EnumeratedUnicodeAttribute(UnicodeAttribute):
-	"""is an attribute definition for an item that can only take on one
+	"""An attribute definition for an item that can only take on one
 	of a finite set of values.
 	"""
 	def __init__(self, name, default, validValues, **kwargs):
@@ -290,7 +290,7 @@ class EnumeratedUnicodeAttribute(UnicodeAttribute):
 
 
 class IntAttribute(AtomicAttribute):
-	"""is an attribute definition for integer attributes.
+	"""An attribute definition for integer attributes.
 	"""
 
 	typeDesc_ = "integer"
@@ -308,7 +308,7 @@ class IntAttribute(AtomicAttribute):
 
 
 class FloatAttribute(AtomicAttribute):
-	"""is an attribute definition for floating point attributes.
+	"""An attribute definition for floating point attributes.
 	"""
 
 	typeDesc_ = "float"
@@ -326,7 +326,7 @@ class FloatAttribute(AtomicAttribute):
 
 
 class BooleanAttribute(AtomicAttribute):
-	"""is a boolean attribute.
+	"""A boolean attribute.
 
 	Boolean literals are strings like True, false, on, Off, yes, No in
 	some capitalization.
@@ -345,7 +345,7 @@ class BooleanAttribute(AtomicAttribute):
 
 
 class StringListAttribute(AtomicAttribute):
-	"""is an attribute containing a list of comma separated strings.
+	"""An attribute containing a list of comma separated strings.
 
 	The value is a list.  This is similar to a complexattrs.ListOfAtoms
 	with UnicodeAttribute items, except the literal is easier to write
@@ -373,7 +373,7 @@ class StringListAttribute(AtomicAttribute):
 
 
 class StringSetAttribute(StringListAttribute):
-	"""is like StringListAttribute, except the result is a set.
+	"""A StringListAttribute, except the result is a set.
 	"""
 	realDefault = set()
 
@@ -386,7 +386,7 @@ class StringSetAttribute(StringListAttribute):
 
 
 class IdMapAttribute(AtomicAttribute):
-	"""is an attribute allowing a quick specification of identifiers to
+	"""An attribute allowing a quick specification of identifiers to
 	identifiers.
 
 	The literal format is <id>:<id>{,<id>:<id>} with ignored whitespace.
@@ -411,7 +411,7 @@ class IdMapAttribute(AtomicAttribute):
 
 
 class ActionAttribute(UnicodeAttribute):
-	"""is an attribute definition for attributes triggering a method call
+	"""An attribute definition for attributes triggering a method call
 	on the parent instance.
 	
 	They do create an attribute on parent which is None by default

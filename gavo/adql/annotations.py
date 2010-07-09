@@ -5,22 +5,15 @@ When we want to generate VOTables from ADQL queries, we must know types,
 units, ucds, and the like, and we need to know STC information for
 all columns in a query.
 
-We have two kinds of annotations:
+Basically, we fill out fieldInfo attributes on derivedColumns and
+friends (everything inheriting from FiedlInfoedNode).  fieldInfo is None
+in nodes coming from the parser (see adql.nodes).  The actual smarts
+of coming up the the values in fieldInfo for a given node type is
+in the addFieldInfo methods; this is defined in adql.nodes.
 
-	- FieldInfos object for columns and expressinos
-	- fieldInfo attributes for columns
-
-fieldInfo is None in nodes coming from the parser.  Filling these out is the
-object of this module.
-
-To do that, we obtain the annotations for all columns actually
-coming from the database.  This happens for all nodes having a
-feedInfosFromDB attribute.
-
-The fieldInfo attributes are filled out in all nodes having a
-getSelectFields method (queryExpression, mainly).  The FieldInfoedNode
-class provides addFieldInfo methods that know how to compute the
-field infos.
+To be able to do that, we annotate tables and such (anything with
+either feedInfosFromDB (table) or getSelectFields (queries)) with 
+fieldInfos attributes.
 """
 
 from gavo import stc
@@ -38,10 +31,10 @@ class FieldInfos(object):
 	The information on columns is kept in two places:
 	
 		- seq -- a sequence of attributes of the columns in the
-			order in which they are selected (this is random if the table comes
-			from the db)
+			order in which they are selected
 		- columns -- maps column names to attributes or None if a column
-			name is not unique.  Column names are normalized by lowercasing here.
+			name is not unique.  Column names are normalized by lowercasing here
+			(which, however, does not affect L{utils.QuotedName}s).
 
 	A FieldInfos object is instanciated with the object it will annotate,
 	and the annotation (i.e., setting of the fieldInfos attribute on
@@ -88,7 +81,6 @@ class FieldInfos(object):
 
 		This entails both entering it in self.columns and in self.seq.
 		"""
-		# XXX TODO: handle delimited identifiers
 		label = label.lower()
 		if label in self.columns:
 			if self.columns[label]!=info:
@@ -98,7 +90,10 @@ class FieldInfos(object):
 		self.seq.append((label, info))
 
 	def getFieldInfo(self, colName):
-		# XXX TODO: handle delimited identifiers
+		"""returns a FieldInfo object for colName.
+
+		Unknown columns result in a columnNotFound exception.
+		"""
 		colName = colName.lower()
 		fi = self.columns.get(colName, nodes.Absent)
 		if fi is nodes.Absent:
@@ -112,7 +107,9 @@ class FieldInfos(object):
 class FieldInfosForTable(FieldInfos):
 	"""Field annotations for tables.
 
-	Instanciation needs an AnnotationContext object.
+	These are constructed with an ADQL table-like node and and
+	AnnotationContext.  The table-like node needs an originalTable
+	attribute which is used to retrieve the column info.
 	"""
 	def __init__(self, tableNode, context):
 		FieldInfos.__init__(self, tableNode)
@@ -168,6 +165,9 @@ class FieldInfosForQuery(FieldInfos):
 
 	We want this for FieldInfos on queryExpressions.  When their select
 	expressions figure out their fieldInfos, they call getFieldInfoFromSources.
+
+	FieldInfosForQuery are constructed with an ADQL node having a
+	getSelectFields method and an AnnotationContext.
 	"""
 	def __init__(self, queryNode, context):
 		FieldInfos.__init__(self, queryNode)
@@ -304,6 +304,10 @@ def annotate(node, context):
 
 
 def dumpFieldInfoedTree(tree):
+	"""dumps an ADQL parse tree, giving the computed annotations.
+
+	For debugging.
+	"""
 	import pprint
 	def traverse(node):
 		res = []

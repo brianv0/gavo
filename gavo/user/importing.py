@@ -45,7 +45,7 @@ def process(opts, args):
 		else:
 			res = rsc.makeData(dd, parseOptions=opts, connection=connection)
 		if hasattr(res, "nAffected"):
-			print "Columns affected:", res.nAffected
+			base.ui.notifyInfo("Columns affected: %s"%res.nAffected)
 	connection.commit()
 	rd.touchTimestamp()
 

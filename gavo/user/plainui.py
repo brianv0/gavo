@@ -1,13 +1,13 @@
 """
-An observer that dumps all kinds of events to the screen with little or
-no formatting.
+Observers for running interactive programs in the terminal.
 """
 
 from gavo import utils
 from gavo.base import ObserverBase, listensTo
 
-
-class PlainUI(ObserverBase):
+class StingyPlainUI(ObserverBase):
+	"""An Observer swallowing infos, warnings, and the like.
+	"""
 	def __init__(self, eh):
 		ObserverBase.__init__(self, eh)
 		self.curIndent = ""
@@ -35,7 +35,16 @@ class PlainUI(ObserverBase):
 	def announceSourceError(self, srcString):
 		self.popIndent()
 		self.showMsg("Failed %s"%srcString)
-	
+
+	@listensTo("ErrorOccurred")
+	def printErrMsg(self, errMsg):
+		self.showMsg("*X*X* "+errMsg)
+
+
+class PlainUI(StingyPlainUI):
+	"""An Observer spitting out most info to the screen.
+	"""
+
 	@listensTo("Shipout")
 	def announceShipout(self, noShipped):
 		self.showMsg("Shipped %d/%d"%(
@@ -57,10 +66,6 @@ class PlainUI(ObserverBase):
 		self.showMsg("%s excecuting script %s"%(
 			runner.__class__.__name__, runner.name))
 	
-	@listensTo("ErrorOccurred")
-	def printErrMsg(self, errMsg):
-		self.showMsg("*X*X* "+errMsg)
-
 	@listensTo("Info")
 	def printInfo(self, message):
 		self.showMsg(message)
@@ -68,4 +73,6 @@ class PlainUI(ObserverBase):
 	@listensTo("Warning")
 	def printWarning(self, message):
 		self.showMsg(message)
-	
+
+
+
