@@ -132,11 +132,11 @@ class VOR:
 	class Resource(VORElement):
 # This is "abstract" in that only derived elements may be present
 # in an instance document (since VOR doesn't define any global elements).
-# Typically, this will be ri:Resource elements with some funky xsi:type
+# Typically, this will be vr:Resource elements with some funky xsi:type
 		_a_created = None
 		_a_updated = None
 		_a_status = None
-		name_ = "ri:Resource"
+		name_ = "Resource"
 		_local = False
 		_additionalPrefixes = frozenset(["vr", "ri", "xsi"])
 
@@ -238,6 +238,8 @@ class VOR:
 	
 
 class RI:
+# XXX TODO: This is for the SOAP registry interface.  I guess we should
+# punt the whole thing.
 	"""is a container for classes modelling elements from IVOA Registry Interface.
 	"""
 	class RIElement(Element):
@@ -246,7 +248,7 @@ class RI:
 	class VOResources(RIElement): pass
 
 	class Resource(VOR.Resource):
-		name_ = "ri:Resource"
+		_prefix = "ri"
 
 
 class VOG:
@@ -256,11 +258,11 @@ class VOG:
 		_prefix = "vg"
 		_local = True
 
-	class Resource(RI.Resource):
+	class Resource(VOR.Resource):
 		_a_xsi_type = "vg:Registry"
 		_additionalPrefixes = frozenset(["vg", "xsi"])
 
-	class Authority(RI.Resource):
+	class Authority(VOR.Resource):
 		_a_xsi_type = "vg:Authority"
 		_additionalPrefixes = frozenset(["vg", "xsi"])
 
@@ -376,9 +378,9 @@ def addBasicVSElements(baseNS, VSElement):
 		
 		class ucd(VSElement): pass
 
-		class DataCollection(RI.Resource): pass
+		class DataCollection(VOR.Resource): pass
 
-		class Service(RI.Resource): pass
+		class Service(VOR.Resource): pass
 
 		class DataService(Service):
 			_a_xsi_type = "vs:DataService"
@@ -543,7 +545,7 @@ class SCS(object):
 		_prefix = "cs"
 		_local = True
 
-	class Resource(RI.Resource):
+	class Resource(VOR.Resource):
 		_a_xsi_type = "cs:ConeSearch"
 		_additionalPrefixes = frozenset(["xsi", "cs"])
 

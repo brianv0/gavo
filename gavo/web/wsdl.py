@@ -12,8 +12,7 @@ from ZSI import TC
 from gavo import base
 from gavo import svcs
 from gavo.base import valuemappers
-from gavo.utils.stanxml import (Element, schemaURL, xsiPrefix,
-	registerPrefix)
+from gavo.utils.stanxml import (Element, schemaURL, registerPrefix)
 from gavo.utils import ElementTree
 
 

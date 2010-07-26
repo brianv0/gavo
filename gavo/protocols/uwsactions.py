@@ -39,9 +39,6 @@ stanxml.registerPrefix("xlink", XlinkNamespace,
 	stanxml.schemaURL("xlink.xsd"))
 
 
-_xsiPrefix = frozenset(["xsi"])
-
-
 class UWS(object):
 	"""the container for elements from the uws namespace.
 	"""
@@ -50,7 +47,7 @@ class UWS(object):
 
 	@staticmethod
 	def makeRoot(ob):
-		ob._additionalPrefixes = _xsiPrefix
+		ob._additionalPrefixes = stanxml.xsiPrefix
 		ob._mayBeEmpty = True
 		return ob
 

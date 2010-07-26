@@ -404,6 +404,8 @@ def schemaURL(xsdName):
 
 
 registerPrefix("xsi","http://www.w3.org/2001/XMLSchema-instance",  None)
+# convenience for _additionalPrefixes of elements needing the xsi prefix
+# (and no others) in their attributes.
 xsiPrefix = frozenset(["xsi"])
 
 

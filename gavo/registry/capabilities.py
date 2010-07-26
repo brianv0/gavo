@@ -7,6 +7,8 @@ Thus, in the module we mostly deal with publication objects.  If you
 need the service object, use publication.parent.
 """
 
+# XXX TODO: On the move to VODataService 1.1, don't forget regionOfRegard for USNO2X corrections and Magellanic Cloud.
+
 from gavo import base
 from gavo import svcs
 from gavo import utils
