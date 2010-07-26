@@ -307,7 +307,7 @@ _config = Configuration(
 				" templates...)"),
 		RootRelativeConfigItem("stateDir", default="state",
 			description="Path to the DC's state information (last imported,...)"),
-		RootRelativeConfigItem("uwsWD", default="uwsjobs",
+		RootRelativeConfigItem("uwsWD", default="state/uwsjobs",
 			description="Directory to keep uws jobs in.  This may need lots"
 				" of space if your users do large queries"),
 		EnumeratedConfigItem("logLevel", options=["info", "warning",

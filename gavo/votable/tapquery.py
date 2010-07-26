@@ -526,8 +526,11 @@ class ADQLTAPJob(_WithEndpoint):
 		"""
 		return self._queryJobResource("/results", ResultsParser())
 
-	def openresult(self):
+	def openResult(self):
 		"""returns a file-like object you can read the default TAP result off.
+
+		To have the embedded VOTable returned, say
+		votable.load(job.openResult()).
 		"""
 		return urllib.urlopen(self.makeJobURL("/results/result"))
 

@@ -37,5 +37,23 @@ def getAsText(data):
 	return target.getvalue()
 
 
+def readTSV(inFile):
+	"""returns a list of tuples for a tab-separated-values file.
+
+	Lines starting with # and lines containing only whitespace are ignored.  
+	Whitespace at front and back is stripped.
+
+	No checks are done at this point, i.e., the tuples could be of varying 
+	lengths.
+	"""
+	data = []
+	for ln in inFile:
+		ln = ln.strip()
+		if not ln or ln.startswith("#"):
+			continue
+		data.append(tuple(ln.split("\t")))
+	return data
+
+
 # NOTE: This will only serialize the primary table.
 common.registerDataWriter("tsv", renderAsText, "text/tab-separated-values")

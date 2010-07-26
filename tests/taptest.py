@@ -266,6 +266,26 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 		self.assertEqual(fields[2].datatype, "float")
 
 
+class TAPSchemaTest(testhelpers.VerboseTest):
+	"""tests for accessability of TAP_SCHEMA from ADQL.
+	"""
+	def setUp(self):
+		with tap.TAPJob.create(args={
+				"QUERY": "SELECT TOP 1 * FROM TAP_SCHEMA.tables",
+				"REQUEST": "doQuery",
+				"LANG": "ADQL"}) as job:
+			self.jobId = job.jobId
+	
+	def tearDown(self):
+		with tap.TAPJob(self.jobId) as job:
+			job.delete()
+
+	def testTAP_tables(self):
+		taprunner.runTAPJob(self.jobId)
+		with tap.TAPJob(self.jobId) as job:
+			self.assertEqual(job.phase, uws.COMPLETED)
+
+
 class UploadSyntaxOKTest(testhelpers.VerboseTest):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 	def _runTest(self, sample):

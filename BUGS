@@ -179,3 +179,6 @@
 
 45/MEDIUM/2010-04-13
 	Fields with formatters are not included in VOTables at all?
+
+46/LOW/2010-07-26
+	UWS job directory is not created if it does not exist yet.
