@@ -238,8 +238,6 @@ class VOR:
 	
 
 class RI:
-# XXX TODO: This is for the SOAP registry interface.  I guess we should
-# punt the whole thing.
 	"""is a container for classes modelling elements from IVOA Registry Interface.
 	"""
 	class RIElement(Element):

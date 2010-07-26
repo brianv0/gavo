@@ -244,11 +244,15 @@ class ResourceMaker(object):
 	resType = None
 
 	def _makeResource(self, resob, setNames):
-		return self.resourceClass(**getResourceArgs(resob))[
+		res = self.resourceClass(**getResourceArgs(resob))[
 			VOR.validationLevel(validatedBy=str(resob.getMeta("validatedBy")))[
 				resob.getMeta("validationLevel")],
 			_vrResourceBuilder.build(resob),]
-	
+		# Registry interface mandates ri:Resource (rather than, say, vr:Resource)
+		# even in OAI.  No idea why, but let's just force it.
+		res._prefix = "ri"
+		return res
+
 	def __call__(self, resob, setNames):
 		return self._makeResource(resob, setNames)
 
@@ -256,7 +260,7 @@ class ResourceMaker(object):
 class ServiceResourceMaker(ResourceMaker):
 	"""A ResourceMaker adding rights and capabilities.
 	"""
-	resourceClass = VOR.Service
+	resourceClass = VS.DataService
 	resType = "nonTabularService"
 
 	def _makeResource(self, service, setNames):
