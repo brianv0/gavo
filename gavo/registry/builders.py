@@ -240,7 +240,7 @@ class ResourceMaker(object):
 	of set names.  You will want to override the _makeResource(resob)
 	-> xmlstan method and probably the resourceClass element.
 	"""
-	resourceClass = VOR.Resource
+	resourceClass = RI.Resource
 	resType = None
 
 	def _makeResource(self, resob, setNames):

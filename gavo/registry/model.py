@@ -258,11 +258,11 @@ class VOG:
 		_prefix = "vg"
 		_local = True
 
-	class Resource(VOR.Resource):
+	class Resource(RI.Resource):
 		_a_xsi_type = "vg:Registry"
 		_additionalPrefixes = frozenset(["vg", "xsi"])
 
-	class Authority(VOR.Resource):
+	class Authority(RI.Resource):
 		_a_xsi_type = "vg:Authority"
 		_additionalPrefixes = frozenset(["vg", "xsi"])
 
@@ -378,9 +378,9 @@ def addBasicVSElements(baseNS, VSElement):
 		
 		class ucd(VSElement): pass
 
-		class DataCollection(VOR.Resource): pass
+		class DataCollection(RI.Resource): pass
 
-		class Service(VOR.Resource): pass
+		class Service(RI.Resource): pass
 
 		class DataService(Service):
 			_a_xsi_type = "vs:DataService"
@@ -545,7 +545,7 @@ class SCS(object):
 		_prefix = "cs"
 		_local = True
 
-	class Resource(VOR.Resource):
+	class Resource(RI.Resource):
 		_a_xsi_type = "cs:ConeSearch"
 		_additionalPrefixes = frozenset(["xsi", "cs"])
 
