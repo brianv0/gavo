@@ -16,6 +16,7 @@ def raiseAndCatch(opts):
 
 	This probably is just useful as a helper to user.cli.
 	"""
+# XXX TODO: Use event framework for emitting all this info.
 	retval = 1
 	try:
 		raise

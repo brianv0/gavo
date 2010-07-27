@@ -59,8 +59,8 @@ from gavo.base.parsecontext import (
 	IdAttribute, OriginalAttribute, ReferenceAttribute, ParseContext,
 	resolveId)
 
-from gavo.base.sqlsupport import (DBError, QueryCanceledError,
-	getDBConnection, getDefaultDBConnection,
+from gavo.base.sqlsupport import (getDBConnection, getDefaultDBConnection,
+	DBError, QueryCanceledError, IntegrityError,
 	SimpleQuerier, encodeDBMsg)
 
 from gavo.base.structure import (Structure, ParseableStructure, 

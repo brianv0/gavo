@@ -5,6 +5,7 @@ DC administration interface.
 import sys
 
 from gavo import base
+from gavo.user.common import Arg, exposedFunction, makeParser
 from gavo.protocols import uws
 
 
@@ -12,40 +13,83 @@ class ArgError(base.Error):
 	pass
 
 
-def _addUser(querier, user, password, remarks=""):
+@exposedFunction([
+	Arg("user", help="the user name"),
+	Arg("password", help="a password for the user"),
+	Arg("remarks", help="optional remarks", 
+		default="", nargs='?')],
+	help="add a user/password pair and a matching group to the DC server")
+def adduser(querier, args):
 	try:
 		querier.query("INSERT INTO users.users (username, password, remarks)"
-			" VALUES (%(user)s, %(password)s, %(remarks)s)", locals())
-	except sqlsupport.IntegrityError:
+			" VALUES (%(user)s, %(password)s, %(remarks)s)", args.__dict__)
+	except base.IntegrityError:
 		raise base.ui.logOldExc(ArgError("User %s already exists."
-			"  Use 'changeuser' command to edit."%user))
+			"  Use 'changeuser' command to edit."%args.user))
 	querier.query("INSERT INTO users.groups (username, groupname)"
-		" VALUES (%(user)s, %(user)s)", locals())
+		" VALUES (%(user)s, %(user)s)", args.__dict__)
 
 
-def _changeUser(querier, user, password, remarks=None):
-		if remarks is None:
+@exposedFunction([
+	Arg("user", help="the user name to remove")],
+	help="remove a user from the DC server")
+def deluser(querier, args):
+	c = querier.query("DELETE FROM users.users WHERE username=%(user)s",
+		args.__dict__)
+	rowsAffected = c.rowcount
+	c = querier.query("DELETE FROM users.groups WHERE username=%(user)s",
+		args.__dict__)
+	rowsAffected += c.rowcount
+	if not rowsAffected:
+		sys.stderr.write("Warning: No rows deleted while deleting user %s\n"%
+			args.user)
+
+
+@exposedFunction([
+	Arg("user", help="the user name"),
+	Arg("password", help="a password for the user"),
+	Arg("remarks", help="optional remarks", 
+		default="", nargs='?')],
+	help="change remarks and/or password for a DC user")
+def changeuser(querier, args):
+		if args.remarks is None:
 			c = querier.query("UPDATE users.users SET password=%(password)s"
-			" WHERE username=%(user)s", locals())
+			" WHERE username=%(user)s", args.__dict__)
 		else:
 			c = querier.query("UPDATE users.users SET password=%(password)s,"
-			" remarks=%(remarks)s WHERE username=%(user)s", locals())
+			" remarks=%(remarks)s WHERE username=%(user)s", args.__dict__)
 		if not c.rowcount:
-			sys.stderr.write("Warning: No rows changed for user %s\n"%user)
+			sys.stderr.write("Warning: No rows changed for user %s\n"%args.user)
 
 
-def _addGroup(querier, user, group):
+@exposedFunction([
+	Arg("user", help="a user name"),
+	Arg("group", help="the group to add the user to")],
+	help="add a user to a group")
+def addtogroup(querier, args):
 	try:
 		querier.query("INSERT INTO users.groups (username, groupname)"
-			" VALUES (%(user)s, %(group)s)", locals())
+			" VALUES (%(user)s, %(group)s)", args.__dict__)
 	except sqlsupport.IntegrityError:
-		raise base.ui.logOldExc(ArgError("User %s doesn't exist."%user))
+		raise base.ui.logOldExc(ArgError("User %s doesn't exist."%args.user))
 
 
-def _listUsers(querier):
+@exposedFunction([
+	Arg("user", help="a user name"),
+	Arg("group", help="the group to remove the user from")],
+	help="remove a user from a group")
+def delfromgroup(querier, args):
+	c = querier.query("DELETE FROM users.groups WHERE groupname=%(group)s"
+		" and username=%(user)s", args.__dict__)
+	if not c.rowcount:
+		sys.stderr.write("Warning: No rows deleted while deleting user"
+			" %s from group %s\n"%(args.user, args.group))
+
+
+@exposedFunction(help="list users known to the DC")
+def listusers(querier, args):
 	data = querier.query("SELECT username, groupname, remarks"
-		" FROM users.users NATURAL JOIN users.groups"
-		" GROUP BY username, groupname, remarks").fetchall()
+		" FROM users.users NATURAL JOIN users.groups ORDER BY username").fetchall()
 	curUser = None
 	for user, group, remark in data:
 		if user!=curUser:
@@ -55,74 +99,15 @@ def _listUsers(querier):
 	print
 
 
-def _delUser(querier, user):
-	c = querier.query("DELETE FROM users.users WHERE username=%(user)s",
-		locals())
-	rowsAffected = c.rowcount
-	c = querier.query("DELETE FROM users.groups WHERE username=%(user)s",
-		locals())
-	rowsAffected += c.rowcount
-	if not rowsAffected:
-		sys.stderr.write("Warning: No rows deleted while deleting user %s\n"%user)
-
-
-def _delGroup(querier, group):
-	c = querier.query("DELETE FROM users.groups WHERE groupname=%(group)s",
-		locals())
-	if not c.rowcount:
-		sys.stderr.write("Warning: No rows deleted while deleting group %s\n"%
-			group)
-
-
-def _cleanUWS(querier):
+@exposedFunction(help="remove expired UWS jobs")
+def cleanuws(querier, args):
 	uws.cleanupJobsTable()
-
-
-_actions = {
-	"adduser": (_addUser, "<user> <password> [<remark>] --"
-		" adds a user with password"),
-	"changeuser": (_changeUser, "<user> <password> [<remark>] --"
-		" changes user's data"),
-	"deluser": (_delUser, "<user> --"
-		" deletes a user"),
-	"addgroup": (_addGroup, "<user> <group> -- adds user to group"),
-	"delgroup": (_delGroup, "<group> -- deletes a group"),
-	"listusers": (_listUsers, "-- lists known users with groups"),
-	"cleanuws": (_cleanUWS, "-- removes expired UWS jobs"),
-}
-
-
-def _getUsage():
-	return ("Usage: %s <action> <args>\n"
-		"where action may be:\n"+
-		"\n".join(["  %s %s"%(action, usage)
-				for action, (fun, usage) in _actions.items()]))%sys.argv[0]
-
-
-def _parseCmdLine():
-	from optparse import OptionParser
-	parser = OptionParser(usage=_getUsage())
-	opts, args = parser.parse_args()
-	if len(args)<1:
-		parser.print_help()
-		sys.exit(1)
-	return opts, args
 
 
 def main():
 	base.setDBProfile("admin")
 	querier = base.SimpleQuerier()
-	opts, args = _parseCmdLine()
-	action, args = args[0], args[1:]
-	try:
-		_actions[action][0](querier, *args)
-		querier.commit()
-	except TypeError:
-		import traceback
-		traceback.print_exc()
-		print _getUsage()
-	except ArgError, msg:
-		sys.stderr.write(str(msg))
-		sys.stderr.write("\nRun without arguments for usage.\n")
-		sys.exit(1)
+	args = makeParser(globals()).parse_args()
+	args.subAction(querier, args)
+	querier.commit()
 

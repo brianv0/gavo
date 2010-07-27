@@ -14,12 +14,20 @@ from gavo.user import admin
 
 creds.adminProfile = "test"
 
+class _NS(object): 
+	def __init__(self, **kwargs):
+		for k,v in kwargs.iteritems():
+			setattr(self, k, v)
+
+
 class TestGroupsMembership(unittest.TestCase):
 	def setUp(self):
 		self.querier = base.SimpleQuerier()
-		admin._addUser(self.querier, "X_test", "megapass")
-		admin._addUser(self.querier, "Y_test", "megapass", "second test user")
-		admin._addGroup(self.querier, "X_test", "X_testgroup")
+		admin.adduser(self.querier, 
+			_NS(user="X_test", password="megapass", remarks=""))
+		admin.adduser(self.querier, 
+			_NS(user="Y_test", password="megapass", remarks="second test user"))
+		admin.addtogroup(self.querier, _NS(user="X_test", group="Y_test"))
 		self.querier.commit()
 
 	def testGroupsForUser(self):
@@ -28,13 +36,13 @@ class TestGroupsMembership(unittest.TestCase):
 		self.assertEqual(creds.getGroupsForUser("X_test", "wrongpass"),
 			set(), "Wrong password should yield empty set but doesn't")
 		self.assertEqual(creds.getGroupsForUser("X_test", "megapass"),
-			set(["X_test", "X_testgroup"]))
+			set(["X_test", "Y_test"]))
 		self.assertEqual(creds.getGroupsForUser("Y_test", "megapass"),
 			set(["Y_test"]))
 
 	def tearDown(self):
-		admin._delUser(self.querier, "X_test")
-		admin._delUser(self.querier, "Y_test")
+		admin.deluser(self.querier, _NS(user="X_test"))
+		admin.deluser(self.querier, _NS(user="Y_test"))
 		self.querier.finish()
 
 

@@ -18,10 +18,9 @@ from gavo import base
 from gavo import utils
 from gavo.base import config
 from gavo.base import cron
+from gavo.user.common import exposedFunction, makeParser
 from gavo.web import root
 
-
-TWISTD_BIN="/usr/bin/twistd"
 
 
 def setupServer(rootPage):
@@ -71,6 +70,16 @@ def serverAction(act):
 	'''
 
 
+@exposedFunction(help="start the server and put it in the background.")
+def start(args):
+	print "starting server"
+
+
+@exposedFunction(help="stop a running server.")
+def stop(args):
+	print "stopping server"
+
+
 class ExitPage(rend.Page):
 	def renderHTTP(self, ctx):
 		req = inevow.IRequest(ctx)
@@ -79,8 +88,9 @@ class ExitPage(rend.Page):
 		return "exiting."
 
 
-
-def debugAction():
+@exposedFunction(help="run a server and remain in the foreground, dumping"
+	" all kinds of stuff to the terminal")
+def debug(args):
 	log.startLogging(sys.stderr)
 	root.root.child_exit = ExitPage()
 	reactor.listenTCP(int(base.getConfig("web", "serverPort")), root.site)
@@ -88,23 +98,9 @@ def debugAction():
 	reactor.run()
 
 
-def parseCmdLine():
-	import optparse
-	knownActions = ("start", "stop", "restart", "debug")
-	parser = optparse.OptionParser(usage="%%prog %s"%("|".join(knownActions)))
-	opts, args = parser.parse_args()
-	if len(args)!=1 or args[0] not in knownActions:
-		parser.print_help()
-		sys.exit(1)
-	return opts, args
-
-
 def main():
-	opts, args = parseCmdLine()
-	if args[0]=="debug":
-		debugAction()
-	else:
-		serverAction(args[0])
+	args = makeParser(globals()).parse_args()
+	args.subAction(args)
 
 
 if __name__=="__main__":
