@@ -187,7 +187,7 @@ def _runTAPJob(parameters, jobId, queryProfile, timeout):
 	try:
 		_noteWorkerPID(connectionForQuery)
 	except: # Don't fail just because we can't kill workers
-		base.ui.notifyErrorOccurred(
+		base.ui.notifyError(
 			"Could not obtain PID for the worker, job %s"%jobId)
 	tdsForUploads = _ingestUploads(parameters.get("UPLOAD", ""), 
 		connectionForQuery)
@@ -217,7 +217,7 @@ def runTAPJob(jobId, queryProfile="untrustedquery"):
 			# This creates an error document in our WD and writes a log.
 			job.changeToPhase(uws.ERROR, ex)
 			job.endTime = datetime.datetime.utcnow()
-		base.ui.notifyErrorOccurred("While executing TAP job %s: %s"%(
+		base.ui.notifyError("While executing TAP job %s: %s"%(
 			jobId, ex))
 	else:
 		with tap.TAPJob.makeFromId(jobId) as job:

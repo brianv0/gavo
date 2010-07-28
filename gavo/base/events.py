@@ -171,7 +171,7 @@ class EventDispatcher(object):
 		"""
 		return script
 
-	def notifyErrorOccurred(self, errmsg):
+	def notifyError(self, errmsg):
 		"""is called when something wants to put out an error message.
 
 		The handlers receive the error message as-is.
@@ -191,7 +191,7 @@ class EventDispatcher(object):
 		try:
 			failure.raiseException()
 		except Exception, ex:
-			self.notifyErrorOccurred(str(ex))
+			self.notifyError(str(ex))
 
 	def notifyWarning(self, message):
 		"""is called when something tries to emit communicate non-fatal trouble.

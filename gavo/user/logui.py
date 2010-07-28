@@ -46,6 +46,6 @@ class LoggingUI(ObserverBase):
 	def logWarning(self, message):
 		self.infoLogger.warning(message)
 	
-	@listensTo("ErrorOccurred")
+	@listensTo("Error")
 	def logError(self, message):
 		self.errorLogger.error(str(message), exc_info=True)

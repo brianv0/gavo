@@ -305,7 +305,7 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 		except base.Error, ex:
 			# see flagError in protocols.uws for the reason for the next if
 			if not isinstance(ex, base.ValidationError):
-				base.ui.notifyErrorOccurred("TAP error")
+				base.ui.notifyError("TAP error")
 			return ErrorResource(str(ex), ex), ()
 		raise common.UnknownURI("Bad TAP path %s"%"/".join(segments))
 

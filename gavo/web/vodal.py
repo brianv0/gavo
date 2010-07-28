@@ -314,7 +314,7 @@ class RegistryRenderer(grend.ServiceBasedRenderer):
 			return self._renderXML(self._getErrorTree(failure.value, pars),
 				ctx)
 		except:
-			base.ui.notifyErrorOccurred("Cannot create registry error document")
+			base.ui.notifyError("Cannot create registry error document")
 			request = inevow.IRequest(ctx)
 			request.setResponseCode(400)
 			request.setHeader("content-type", "text/plain")

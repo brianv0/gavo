@@ -2,17 +2,22 @@
 A wrapper script suitable for starting the server.
 """
 
+from __future__ import with_statement
+
 import datetime
 import os
 import pkg_resources
+import pwd
 import signal
 import sys
+import time
 
 from nevow import appserver
 from nevow import inevow
 from nevow import rend
 from twisted.internet import reactor
 from twisted.python import log
+from twisted.python import logfile
 
 from gavo import base
 from gavo import utils
@@ -22,62 +27,194 @@ from gavo.user.common import exposedFunction, makeParser
 from gavo.web import root
 
 
-
 def setupServer(rootPage):
 	config.setMeta("upSince", utils.formatISODT(datetime.datetime.utcnow()))
 	base.ui.notifyWebServerUp()
 	cron.registerScheduleFunction(reactor.callLater)
 
 
-def serverAction(act):
-# XXX TODO: Fix this
-	pass
-	'''
-	PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin
-	LOGFILE=/data/gavo/logs/web.log
-	PIDFILE=/data/gavo/state/twistd.pid
-	APP=/home/msdemlei/checkout/gavo/standalone.tac
+class _PIDManager(object):
+	"""A manager for the PID of the server.
 
-	TWISTD_OPTS="--no_save --logfile $LOGFILE --pidfile $PIDFILE --rundir /tmp"
+	There's a single instance of this below.
+	"""
+	def __init__(self):
+		self.path = os.path.join(base.getConfig("stateDir"), "web.pid")
+	
+	def getPID(self):
+		"""returns the PID of the currently running server, or None.
+		"""
+		try:
+			with open(self.path) as f:
+				pidString = f.readline()
+		except IOError: # PID file does not exist (or we're beyond repair)
+			return None
+		try:
+			return int(pidString)
+		except ValueError: # junk in PID file -- no sense in keeping it
+			base.ui.notifyWarning("%s contained garbage, attempting to unlink"%
+				self.path)
+			self.clearPID()
 
-	test -f /lib/lsb/init-functions || exit 1
-	. /lib/lsb/init-functions
+	def setPID(self):
+		"""writes the current process' PID to the PID file.
 
-	case "${1}" in
-	("start")
-			log_begin_msg "Starting VO Server"
-			echo "$TWISTD_BIN $TWISTD_OPTS $APP"
-			$TWISTD_BIN $TWISTD_OPTS --python $APP
-			log_end_msg $?
-			exit $?
-			;;
-	("stop")
-			log_begin_msg "Stopping VO Server..."
-			kill -INT `cat $PIDFILE`
-			log_end_msg $?
-			exit $?
-			;;
-	("restart" | "force-reload")
-			"${0}" stop &&
-			"${0}" start
-			exit $?
-			;;
-	(*)
-			log_success_msg "Usage: $0 {start|stop|restart|force-reload}" >&2
-			exit 3
-			;;
-	esac
-	'''
+		Any existing content will be clobbered; thus, you could have
+		races here (and since both daemons would bind to the same socket,
+		only one would survive, possibly the wrong one).  Let's just stipulate
+		people won't start two competing daemons.
+		"""
+		try:
+			with open(self.path, "w") as f:
+				f.write(str(os.getpid()))
+		except IOError: # Cannot write PID.  This would suggest that much else
+		                # is broken as well, so we bail out
+			base.ui.notifyError("Cannot write PID file %s. Assuming all is"
+				" broken, bailing out."%self.file)
+			sys.exit(1)
+
+	def clearPID(self):
+		"""removes the PID file.
+		"""
+		try:
+			os.unlink(self.path)
+		except os.error, ex:
+			if ex.errno==2: # ENOENT, we don't have to do anything
+				pass
+			else:
+				base.ui.notifyError("Cannot remove PID file %s (%s).  This"
+					" probably means some other server owns it now."%(
+						self.file, str(ex)))
+
+
+PIDManager = _PIDManager()
+
+
+def _reloadConfig():
+	"""should clear as many caches as we can get hold of.
+	"""
+	base.ui.notifyError("No reloading yet")
+
+
+def _dropPrivileges():
+	uid = None
+	user = base.getConfig("web", "user")
+	if user:
+		try:
+			uid = pwd.getpwnam(user)[2]
+		except KeyError:
+			base.ui.notifyError("Cannot change to user %s (not found)\n"%user)
+			sys.exit(1)
+		try:
+			os.setuid(uid)
+		except os.error, ex:
+			base.ui.notifyError("Cannot change to user %s (%s)\n"%(
+				user, str(ex)))
+
+
+def daemonize(logFile, callable):
+	# We translate TERMs to INTs to ensure finally: code is executed
+	signal.signal(signal.SIGTERM, 
+		lambda a,b: os.kill(os.getpid(), signal.SIGINT))
+	pid = os.fork()
+	if pid == 0:
+		os.setsid() 
+		pid = os.fork() 
+		if pid==0:
+			os.close(0)
+			os.close(1)
+			os.close(2)
+			os.dup(logFile.fileno())
+			os.dup(logFile.fileno())
+			os.dup(logFile.fileno())
+			callable()
+		else:
+			os._exit(0)
+	else:
+		os._exit(0)
+
+
+def _configureTwistedLog():
+	theLog = logfile.LogFile("web.log", base.getConfig("logDir"))
+	log.startLogging(theLog, setStdout=False)
+	def rotator():
+		theLog.shouldRotate()
+		reactor.callLater(86400, rotator)
+	rotator()
+
+
+def _startServer():
+	"""runs a detached server, dropping privileges and all.
+	"""
+	reactor.listenTCP(int(base.getConfig("web", "serverPort")), root.site)
+	_dropPrivileges()
+	_configureTwistedLog()
+	
+	PIDManager.setPID()
+	try:
+		setupServer(root)
+		signal.signal(signal.SIGHUP, lambda sig, stack: 
+			reactor.callLater(0, _reloadConfig))
+		reactor.run()
+	finally:
+		PIDManager.clearPID()
 
 
 @exposedFunction(help="start the server and put it in the background.")
 def start(args):
-	print "starting server"
+	oldPID = PIDManager.getPID()
+	if oldPID is not None:  # Presumably, there already is a server running
+		sys.exit("It seems there's already a server (pid %s) running."
+			" Try 'gavo serve stop'."%(PIDManager.getPID()))
+	daemonize(
+		open(os.path.join(base.getConfig("logDir"), "server.stderr"), "a"), 
+		_startServer)
+
+
+def _waitForServerExit(timeout=5):
+	"""waits for server process to terminate.
+	
+	It does so by polling the server pid file.
+	"""
+	for i in range(int(timeout*10)):
+		if PIDManager.getPID() is None:
+			break
+		time.sleep(0.1)
+	else:
+		sys.exit("The server with pid %d refuses to die.  Please try manually"%
+			pid)
+
+
+def _stopServer():
+	pid = PIDManager.getPID()
+	if pid is None:  # No server running, nothing to do
+		return
+	try:
+		os.kill(pid, signal.SIGTERM)
+	except os.error, ex:
+		if ex.errno==3: # no such process
+			PIDManager.clearPID()
+			base.ui.notifyWarning("Removed stale PID file.")
+			return
+		else:
+			raise
+	_waitForServerExit()
 
 
 @exposedFunction(help="stop a running server.")
 def stop(args):
-	print "stopping server"
+	_stopServer()
+
+
+@exposedFunction(help="restart the server")
+def restart(args):
+	_stopServer()
+	start(args)
+
+
+@exposedFunction(help="reload server configuration (incomplete)")
+def reload(args):
+	os.kill(PIDManager.getPID(), signal.SIGHUP)
 
 
 class ExitPage(rend.Page):

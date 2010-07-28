@@ -36,7 +36,7 @@ class StingyPlainUI(ObserverBase):
 		self.popIndent()
 		self.showMsg("Failed %s"%srcString)
 
-	@listensTo("ErrorOccurred")
+	@listensTo("Error")
 	def printErrMsg(self, errMsg):
 		self.showMsg("*X*X* "+errMsg)
 

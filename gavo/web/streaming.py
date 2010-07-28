@@ -79,7 +79,7 @@ class DataStreamer(threading.Thread):
 		try:
 			self.writeStreamTo(self)
 		except:
-			base.ui.notifyErrorOccurred("Exception while streaming"
+			base.ui.notifyError("Exception while streaming"
 				" (closing connection):\n")
 		# All producing is done in thread, so when no one's writing any
 		# more, we should have delivered everything to the consumer
@@ -127,7 +127,7 @@ def streamVOTable(request, data):
 				tablecoding={ True: "td", False: "binary"}[data.queryMeta["tdEnc"]],
 				version=data.queryMeta.get("VOTableVersion"))
 		except:
-			base.ui.notifyErrorOccurred("Yikes -- error during VOTable render.\n")
+			base.ui.notifyError("Yikes -- error during VOTable render.\n")
 			outputFile.write(">>>> INTERNAL ERROR, INVALID OUTPUT <<<<")
 			return ""
 	return streamOut(writeVOTable, request)

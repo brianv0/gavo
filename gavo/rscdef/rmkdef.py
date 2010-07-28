@@ -457,7 +457,7 @@ class Rowmaker(object):
 			if "parser_" in rowdict: del rowdict["parser_"]
 			if "rowdict_" in rowdict: del rowdict["rowdict_"]
 		except TypeError:
-			base.ui.notifyErrorOccurred("Internal failure in parse code:\n")
+			base.ui.notifyError("Internal failure in parse code:\n")
 			rowdict = {"error": "Rowdict was no dictionary"}
 		if isinstance(ex, KeyError):
 			msg = ("Key %s not found in a mapping; probably the grammar"
