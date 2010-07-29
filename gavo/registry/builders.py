@@ -294,7 +294,8 @@ class TabularServiceResourceMaker(DataServiceResourceMaker):
 		return DataServiceResourceMaker._makeResource(self, service, setNames)[
 			VS.table(role="out")[
 				[capabilities.getTableParamFromColumn(f)
-					for f in service.getAllOutputFields()]]]
+					for f in service.getAllOutputFields()]],
+			tableset.getVS1_0TablesetForService(service)]
 # when we have VS version 1.1: tableset.getTablesetForService(service)]
 
 
@@ -385,4 +386,3 @@ def getVOListRecordsElement(resobs, setNames):
 def getVOGetRecordElement(resob):
 	return OAI.GetRecord[
 		getVOResourceElement(resob)]
-		

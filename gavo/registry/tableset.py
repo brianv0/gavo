@@ -1,11 +1,12 @@
 """
-Generation of VODataService 1.1 tablesets from resources.
+Generation of VODataService 1.1 tablesets from resources, plus 1.0 hacks.
 """
 
 from gavo import base
 from gavo import svcs
+from gavo.base import typesystems
 from gavo.registry import capabilities
-from gavo.registry.model import VS1
+from gavo.registry.model import VS1, VS
 
 
 def getSchemaForRD(rd):
@@ -78,3 +79,29 @@ def getTablesetForService(service):
 		return VS1.tableset[
 			VS1.schema[
 				VS1.name["default"]]]
+
+
+def getVS1type(col):
+	dt, arrsize = typesystems.sqltypeToVOTable(col.type)
+	if arrsize==1:
+		arrsize = None
+	return VS.dataType(arraysize=arrsize)[dt]
+
+
+def getVS1_0TablesetForService(service):
+	"""returns a sequence of VS.Table elements for tables related to service.
+
+	This is for VODataService 1.0.  Let's hope we can soon kill it.
+	"""
+	return [
+		VS.table[
+			VS.name[td.getQName()],
+			VS.description[base.getMetaText(td, "description")], [
+				VS.column[
+					VS.name[col.name],
+					VS.description[col.description],
+					VS.unit[col.unit],
+					VS.ucd[col.ucd],
+					getVS1type(col)]
+				for col in td]]
+		for td in service.getTableSet()]
