@@ -183,8 +183,7 @@ class VOTable(object):
 	class INFO_atend(INFO):
 		# a bad hack; TAP mandates INFO items below table, and this is
 		# the least complicated way to force this.
-		def _getElName(self):
-			return "INFO"
+		name_ = "INFO"
 	
 	class LINK(_VOTElement):
 		_a_ID = None

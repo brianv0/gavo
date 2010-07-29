@@ -250,7 +250,7 @@ class SimpleAsyncTest(TAPRenderTest):
 
 		def checkPhase(jobId):
 			return self.assertGETHasStrings("/async/%s/phase"%jobId, {},
-				['<uws:phase', 'PENDING</uws:phase>']
+				['PENDING']
 				).addCallback(promote, jobId)
 
 		def checkPosted(result):

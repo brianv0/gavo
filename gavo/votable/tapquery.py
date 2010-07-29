@@ -311,8 +311,18 @@ class ResultsParser(utils.StartEndHandler):
 		return self.results
 
 
+def _canUseFormEncoding(params):
+	"""returns true if userParams can be transmitted in a 
+	x-www-form-urlencoded payload.
+	"""
+	for val in params.values():
+		if not isinstance(val, basestring):
+			return False
+	return True
+
+
 def request(host, path, data="", customHeaders={}, method="GET",
-		expectedStatus=None, encodeAsForm=False):
+		expectedStatus=None):
 	"""returns a HTTPResponse object for an HTTP request to path on host.
 
 	This function builds a new connection for every request.
@@ -326,7 +336,7 @@ def request(host, path, data="", customHeaders={}, method="GET",
 	headers = {"connection": "close",
 		"user-agent": "Python TAP library http://vo.uni-hd.de/odocs"}
 	if not isinstance(data, basestring):
-		if encodeAsForm:
+		if _canUseFormEncoding(data):
 			data = urllib.urlencode(data)
 			headers["Content-Type"] = "application/x-www-form-urlencoded"
 		else:
@@ -392,17 +402,7 @@ class ADQLTAPJob(_WithEndpoint):
 		self.lang = lang
 		self.query = query
 		self.jobId, self.jobPath = None, None
-		self.encodeAsForm = encodeAsForm
 		self._createJob(userParams)
-
-	def _canUseFormEncoding(self, userParams):
-		"""returns true if userParams can be transmitted in a 
-		x-www-form-urlencoded payload.
-		"""
-		for val in userParams.values():
-			if not isinstance(val, basestring):
-				return False
-		return True
 
 	def _createJob(self, userParams):
 		params = {
@@ -412,7 +412,7 @@ class ADQLTAPJob(_WithEndpoint):
 		for k,v in userParams.iteritems():
 			params[k] = str(v)
 		response = request(self.destHost, self.destPath, params,
-			method="POST", expectedStatus=303, encodeAsForm=self.encodeAsForm)
+			method="POST", expectedStatus=303)
 		# The last part of headers[location] now contains the job id
 		try:
 			self.jobId = urlparse.urlsplit(
@@ -509,13 +509,20 @@ class ADQLTAPJob(_WithEndpoint):
 	def phase(self):
 		"""returns the phase the job is in according to the server.
 		"""
-		return self._queryJobResource("/phase", _PhaseParser())
+		return self._queryJobResource("/phase", _makeFlatParser(str)())
+
+
+	def _intOrNone(self, val):
+		if not val.strip():
+			return None
+		else:
+			return int(val)
 
 	@property
 	def quote(self):
 		"""returns the estimate the server gives for the run time of the job.
 		"""
-		return self._queryJobResource("/quote", _QuoteParser())
+		return self._queryJobResource("/quote", _makeFlatParser(self._intOrNone)())
 
 	@property
 	def owner(self):

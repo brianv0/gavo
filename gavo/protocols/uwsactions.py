@@ -231,7 +231,7 @@ class PhaseAction(JobAction):
 		raise svcs.WebRedirect("async/"+job.jobId)
 	
 	def doGET(self, job, request):
-		return UWS.makeRoot(UWS.phase[job.phase])
+		return job.phase
 _JobActions.addAction(PhaseAction)
 
 
@@ -280,7 +280,7 @@ class QuoteAction(JobAction):
 			quote = ""
 		else:
 			quote = str(job.quote)
-		return UWS.makeRoot(UWS.quote[quote])
+		return quote
 	
 _JobActions.addAction(QuoteAction)
 
