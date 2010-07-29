@@ -337,4 +337,7 @@ def wrapTable(table, rdSource=None):
 		raise TypeError("Invalid RD source: %s"%rdSource)
 	newDD = base.makeStruct(rscdef.DataDescriptor, tables=[table.tableDef],
 		parent_=rd)
-	return Data(newDD, tables={table.tableDef.id: table})
+	res = Data(newDD, tables={table.tableDef.id: table})
+	if not res.getMeta("_type", propagate=False, default=None):
+		res.setMeta("_type", "results")  # mostly for TAP
+	return res

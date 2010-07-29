@@ -44,8 +44,9 @@ class ErrorResource(rend.Page):
 		request.setHeader("content-type", "text/xml")
 		request.setResponseCode(400)  # make some informed choice here?
 		doc = V.VOTABLE[
-			V.INFO(name="QUERY_STATUS", value="ERROR")[
-					self.errMsg]]
+			V.RESOURCE(type="results") [
+				V.INFO(name="QUERY_STATUS", value="ERROR")[
+						self.errMsg]]]
 		if self.hint:
 			doc[V.INFO(name="HINT", value="HINT")[
 				self.hint]]

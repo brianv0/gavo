@@ -13,6 +13,7 @@ from twisted.python import threadable
 
 from zope.interface import implements
 
+from gavo import base
 from gavo.formats import votablewrite
 
 class DataStreamer(threading.Thread):

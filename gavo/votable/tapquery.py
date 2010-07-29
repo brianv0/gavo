@@ -312,7 +312,7 @@ class ResultsParser(utils.StartEndHandler):
 
 
 def request(host, path, data="", customHeaders={}, method="GET",
-		expectedStatus=None):
+		expectedStatus=None, encodeAsForm=False):
 	"""returns a HTTPResponse object for an HTTP request to path on host.
 
 	This function builds a new connection for every request.
@@ -326,11 +326,14 @@ def request(host, path, data="", customHeaders={}, method="GET",
 	headers = {"connection": "close",
 		"user-agent": "Python TAP library http://vo.uni-hd.de/odocs"}
 	if not isinstance(data, basestring):
-		#data = urllib.urlencode(data)
-		form = _FormData.fromDict(data)
-		data = form.as_string()
-		headers["Content-Type"] = form.get_content_type()+'; boundary="%s"'%(
-				form.get_boundary())
+		if encodeAsForm:
+			data = urllib.urlencode(data)
+			headers["Content-Type"] = "application/x-www-form-urlencoded"
+		else:
+			form = _FormData.fromDict(data)
+			data = form.as_string()
+			headers["Content-Type"] = form.get_content_type()+'; boundary="%s"'%(
+					form.get_boundary())
 	headers.update(customHeaders)
 	conn = httplib.HTTPConnection(host)
 	conn.request(method, path, data, headers)
@@ -383,13 +386,23 @@ class ADQLTAPJob(_WithEndpoint):
 
 	Construct it with the URL of the async endpoint and a query.
 	"""
-	def __init__(self, endpointURL, query, lang="ADQL-2.0", userParams={}):
+	def __init__(self, endpointURL, query, lang="ADQL", userParams={}):
 		self._defineEndpoint(endpointURL)
 		self.destPath = self.destPath+"/async"
 		self.lang = lang
 		self.query = query
 		self.jobId, self.jobPath = None, None
+		self.encodeAsForm = encodeAsForm
 		self._createJob(userParams)
+
+	def _canUseFormEncoding(self, userParams):
+		"""returns true if userParams can be transmitted in a 
+		x-www-form-urlencoded payload.
+		"""
+		for val in userParams.values():
+			if not isinstance(val, basestring):
+				return False
+		return True
 
 	def _createJob(self, userParams):
 		params = {
@@ -399,7 +412,7 @@ class ADQLTAPJob(_WithEndpoint):
 		for k,v in userParams.iteritems():
 			params[k] = str(v)
 		response = request(self.destHost, self.destPath, params,
-			method="POST", expectedStatus=303)
+			method="POST", expectedStatus=303, encodeAsForm=self.encodeAsForm)
 		# The last part of headers[location] now contains the job id
 		try:
 			self.jobId = urlparse.urlsplit(
