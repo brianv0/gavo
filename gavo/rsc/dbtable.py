@@ -501,7 +501,17 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		self.drop()
 		self.create()
 		return self
-	
+
+	def query(self, query, data={}):
+		"""runs query within this table's connection.
+
+		query is macro-expanded within the table definition (i.e., you can,
+		e.g., write \qName to obtain the table's qualified name).
+		"""
+		if "\\" in query:
+			query = self.tableDef.expand(query)
+		return DBMethodsMixin.query(self, query, data)
+
 	def iterQuery(self, resultTableDef, fragment, pars=None, 
 			distinct=False, limits=None, groupBy=None):
 		"""returns an iterator over rows for a table defined
@@ -510,13 +520,12 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 
 		resultTableDef is a TableDef with svc.OutputField columns
 		(rscdef.Column instances will do), or possibly just a list
-		of Columns,
-		fragment is empty or an SQL where-clause with dictionary placeholders, 
-		pars is the dictionary filling fragment, 
-		distinct, if True, adds a distinct clause, and 
-		limits, if given, is a pair of an SQL string to be appended to 
-		the SELECT clause and parameters filling it.  queryMeta.asSQL returns what
-		you need here.
+		of Columns, fragment is empty or an SQL where-clause with
+		dictionary placeholders, pars is the dictionary filling
+		fragment, distinct, if True, adds a distinct clause,
+		and limits, if given, is a pair of an SQL string to be
+		appended to the SELECT clause and parameters filling it.
+		queryMeta.asSQL returns what you need here.
 
 		pars may be mutated in the process.
 		"""

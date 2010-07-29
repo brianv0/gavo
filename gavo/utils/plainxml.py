@@ -19,12 +19,20 @@ class StartEndHandler(ContentHandler):
 	name, attributes and contents.	If the _end_xxx method returns a
 	string (or similar), this value will be added to the content of the
 	enclosing element.
+
+	Rather than overriding __init__, you probably want to override
+	the _initialize() method to create the data structures you want
+	to fill from XML.
 	"""
 	def __init__(self):
 		ContentHandler.__init__(self)
 		self.realHandler = weakref.proxy(self)
 		self.elementStack = []
 		self.contentsStack = [[]]
+		self._initialize()
+
+	def _initialize(self):
+		pass
 
 	def processingInstruction(self, target, data):
 		self.contentsStack[-1].append(data)

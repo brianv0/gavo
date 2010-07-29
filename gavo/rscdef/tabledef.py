@@ -341,7 +341,12 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		"""returns the qualified name of the current table.
 		"""
 		return self.getQName()
-
+	
+	def macro_qName(self):
+		"""returns the qualified name of the current table.
+		"""
+		return self.getQName()
+	
 	def macro_tablename(self):
 		"""returns the unqualified name of the current table.
 		"""

@@ -10,6 +10,7 @@ import unittest
 
 from gavo import base
 from gavo import rsc
+from gavo import rscdef
 from gavo import rscdesc
 from gavo import svcs
 from gavo import protocols
@@ -248,6 +249,22 @@ class TestPreIndexPythonRunning(TestWithDataImport):
 		ct = list(q.query("select * from test.pythonscript"))[0][0]
 		self.assertEqual(ct, 123)
 
-	
+
+class TestQueryExpands(TestWithTableCreation):
+	"""tests for expansion of macros in dbtable's query.
+	"""
+	tableName = "adqltable"
+
+	def testExpandedQuery(self):
+		self.table.query("insert into \qName (\colNames) values (-133.0)")
+		self.assertEqual(
+			len(list(self.table.iterQuery([self.tableDef.getColumnByName("foo")],
+				"foo=-133.0"))),
+			1)
+
+	def testBadMacroRaises(self):
+		self.assertRaises(rscdef.MacroError, self.table.query, "\monkmacrobad")
+
+
 if __name__=="__main__":
 	testhelpers.main(TestPgSphere)
