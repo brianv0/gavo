@@ -16,37 +16,47 @@ def raiseAndCatch(opts):
 
 	This probably is just useful as a helper to user.cli.
 	"""
-# XXX TODO: Use event framework for emitting all this info.
+# Messages are reformatted by textwrap.fill (though it's probably ok
+# to just call output(someString) to write to the user directly.
+#
+# To write messages, append strings to the messages list.  An empty string
+# would produce a paragraph.  Append unicode or ASCII.
 	retval = 1
+	messages = []
+	output = lambda tx: sys.stderr.write(tx.encode(
+			base.getConfig("ui", "outputEncoding")))
 	try:
 		raise
 	except SystemExit, msg:
 		retval = msg.code
 	except grammars.ParseError, msg:
-		errTx = unicode(msg)
 		if msg.location:
-			errTx = "Parse error at %s: %s"%(msg.location, errTx)
+			messages.append("Parse error at %s: %s"%(msg.location, unicode(msg)))
 		else:
-			errTx = "Parse error: %s"%errTx
-		sys.stderr.write(textwrap.fill(errTx, break_long_words=False)+"\n\n")
+			messages.append("Parse error: %s"%unicode(msg))
 		if msg.record:
-			sys.stderr.write("Offending input was:\n")
-			sys.stderr.write(repr(msg.record)+"\n")
-	except (base.ValidationError, base.ReportableError), msg:
-		errTx = unicode(msg).encode(base.getConfig("ui", "outputEncoding"))
-		sys.stderr.write(textwrap.fill(errTx, break_long_words=False)+"\n\n")
-	except base.LiteralParseError, msg:
-		sys.stderr.write("While trying to parse literal %s for attribute %s:"
-			" %s"%(repr(msg.attVal), msg.attName, str(msg)))
+			messsages.append("")
+			messages.append("Offending input was:\n")
+			messages.append(repr(msg.record)+"\n")
+	except (base.ValidationError, base.ReportableError, 
+			base.LiteralParseError, base.StructureError), msg:
+		messages.append(unicode(msg))
 	except Exception, msg:
 		if hasattr(msg, "excRow"):
-			sys.stderr.write("Snafu in %s, %s\n"%(msg.excRow, msg.excCol))
-		sys.stderr.write("Oops.  Unhandled exception %s.\n"%msg)
+			messages.append("Snafu in %s, %s\n"%(msg.excRow, msg.excCol))
+			messages.append("")
+		messages.append("Oops.  Unhandled exception %s.\n"%unicode(msg))
 		if opts.enablePDB:
 			raise
 		else:
 			if not opts.alwaysTracebacks:
 				traceback.print_exc()
+	if messages:
+		errTx = unicode("*** Error: "+"\n".join(messages))
+		output(textwrap.fill(errTx, break_long_words=False)+"\n\n")
+		if opts.showHints and getattr(msg, "hint", None):
+			output(textwrap.fill("Hint: "+msg.hint, break_long_words=False)+"\n\n")
+
 	sys.exit(retval)
 
 

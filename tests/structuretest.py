@@ -289,8 +289,7 @@ class CopyTest(testhelpers.VerboseTest):
 	def testBadId(self):
 		self.assertRaisesWithMsg(base.StructureError, 
 			"At <internal source>, unknown position:"
-			" Reference to unknown item 'xy'.  Note that elements"
-				" referenced must occur lexically before the referring element",
+			" Reference to unknown item 'xy'.",
 			xmlstruct.parseFromString, (Palette, '<pal><color original="xy"/>'
 			'</pal>'))
 

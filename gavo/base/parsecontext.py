@@ -216,9 +216,11 @@ class ParseContext(object):
 		resource descriptor resolution.
 		"""
 		if id not in self.idmap:
-			raise StructureError("Reference to unknown item '%s'.  Note that"
-				" elements referenced must occur lexically before the referring"
-				" element"%id)
+			raise StructureError("Reference to unknown item '%s'."%id,
+				hint="Elements referenced must occur lexically (i.e., within the"
+					" input file) before the reference.  If this actually gives"
+					" you trouble, contact the authors.  Usually, though, this"
+					" error just means you mistyped a name.")
 		res = self.idmap[id]
 		return assertType(id, res, forceType)
 

@@ -122,6 +122,8 @@ def _parseCLArgs():
 	parser.disable_interspersed_args()
 	parser.add_option("--traceback", help="print a traceback on all errors.",
 		action="store_true", dest="alwaysTracebacks")
+	parser.add_option("--hints", help="if there are hints on an error, display"
+		" them", action="store_true", dest="showHints")
 	parser.add_option("--enable-pdb", help="run pdb on all errors.",
 		action="store_true", dest="enablePDB")
 	parser.add_option("--disable-spew", help='Suppress silly "starting up".',

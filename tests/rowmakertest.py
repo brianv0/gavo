@@ -191,8 +191,7 @@ class ApplyTest(testhelpers.VerboseTest):
 	def testRaising(self):
 		self.assertRaisesWithMsg(base.StructureError,
 			"At <internal source>, last known position: 1, 22: "
-			"Reference to unknown item 'quatsch'.  Note that elements"
-			" referenced must occur lexically before the referring element",
+			"Reference to unknown item 'quatsch'.",
 			makeDD, ('', '<apply name="xy" procDef="quatsch"/>'))
 
 	def testArgExpansion(self):
