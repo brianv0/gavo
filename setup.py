@@ -7,22 +7,23 @@ ez_setup.use_setuptools()
 from setuptools import setup, find_packages, Extension
 
 install_requires = []
-# install_requires = ["pyfits", "VOTable", "numpy", "pyparsing"]
+# Theoretically, we could define dependencies here, more or less like this:
+# install_requires = ["pyfits", "numpy", "pyparsing", "psycopg2"]
+# -- but we don't, since in practice it seems it's more trouble than it's
+# worth.
 
 setup(name="gavodachs",
 	description="ZAH GAVO data center complete package",
 	url="http://www.g-vo.org",
 	license="GPL",
 	author="Markus Demleitner",
-	author_email="msdemlei@ari.uni-heidelberg.de",
+	author_email="gavo@ari.uni-heidelberg.de",
 	packages=find_packages(),
 	py_modules=["ez_setup"],
+	# Really, I think we should be zip_safe, but there's a weird output requriring investigation
+	zip_safe=False,
 	include_package_data = True,
 	install_requires=install_requires,
-	dependency_links=["http://vo.ari.uni-heidelberg.de/soft/python",
-		"http://sourceforge.net/project/showfiles.php?group_id=16528",
-		"http://sourceforge.net/project/showfiles.php?group_id=1369",
-		"http://www.stsci.edu/resources/software_hardware/pyfits/Download"],
 	entry_points={
 		'console_scripts': [
 			'gavo = gavo.user.cli:main',
