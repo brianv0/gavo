@@ -134,7 +134,14 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 				return DebugConnection.close(conn)
 			conn.close = closer
 		else:
-			conn = psycopg2.connect(connString)
+			try:
+				conn = psycopg2.connect(connString)
+			except OperationalError, msg:
+				raise utils.ReportableError("Cannot connect to the database server."
+					" The database library reported:\n\n%s"%msg,
+					hint="This usually means you must adapt either the access profiles"
+					" in $GAVO_DIR/etc or your database config (in particular,"
+					" pg_hba.conf).")
 		if not _PSYCOPG_INITED:
 			_initPsycopg(conn)
 		if autocommitted:

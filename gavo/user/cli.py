@@ -149,6 +149,11 @@ def _parseCLArgs():
 	
 def main():
 	global api, errhandle
+
+	if sys.argv[1]=="init":  # Special case: initial setup, no api working yet
+		from gavo.user import initdachs
+		sys.exit(initdachs.main())
+
 	opts, module, funcName = _parseCLArgs()
 	with _progressText(opts):
 		from gavo import api

@@ -319,7 +319,10 @@ _config = Configuration(
 		StringConfigItem("gavoGroup", description="Name of the unix group that"
 			" administers the DC", default="gavo"),
 		StringConfigItem("defaultProfileName", description="Default profile name"
-			" (used to construct system entities)", default="admin")),
+			" (used to construct system entities)", default="admin"),
+		StringConfigItem("group", description="Name of the group that may write"
+			" into the log directory", default="gavo"),
+		),
 
 	Section('web', 'Settings related to serving content to the web.',
 		StringConfigItem("serverURL", default="http://localhost:8080",
@@ -452,6 +455,8 @@ def makeFallbackMeta():
 	"""
 	srcPath = os.path.join(get("configDir"), "defaultmeta.txt")
 	if not os.path.exists(srcPath):
+		# python warning rather than event interface since this is very early
+		# init.
 		warnings.warn("%s does not exist, registry interface  will be broken"%
 			srcPath)
 		return
