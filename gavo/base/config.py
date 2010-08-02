@@ -331,8 +331,8 @@ _config = Configuration(
 			"Interface to bind to"),
 		IntConfigItem("serverPort", default="8080",
 			description="Port to bind the server to"),
-		StringConfigItem("user", default="None", description="Run server as"
-			" this user (leave empty to not change user)"),
+		StringConfigItem("user", default="gavo", description="Run server as"
+			" this user."),
 		EnsureTrailingSlashesItem("nevowRoot", default="/",
 			description="Path fragment to the server's root for operation off the"
 				" server's root"),
