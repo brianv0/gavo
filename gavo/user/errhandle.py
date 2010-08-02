@@ -39,7 +39,7 @@ def raiseAndCatch(opts):
 			messages.append("Offending input was:\n")
 			messages.append(repr(msg.record)+"\n")
 	except (base.ValidationError, base.ReportableError, 
-			base.LiteralParseError, base.StructureError), msg:
+			base.LiteralParseError, base.StructureError, base.RDNotFound), msg:
 		messages.append(unicode(msg))
 	except Exception, msg:
 		if hasattr(msg, "excRow"):
@@ -61,7 +61,7 @@ def raiseAndCatch(opts):
 
 
 def bailOut():
-	"""is a fake cli operation just raising exceptions.
+	"""A fake cli operation just raising exceptions.
 
 	This is mainly for testing and development.
 	"""
