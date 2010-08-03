@@ -722,5 +722,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 # XXX TODO: have this ask the core
 		return "true"
 
+	def macro_tablesForTAP(self):
+		from gavo.protocols import tap
+		return ", ".join(tap.getAccessibleTables())
 	def translateFieldName(self, name):
 		return name

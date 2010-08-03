@@ -357,22 +357,17 @@ class ComputedMetaMixin(MetaMixin):
 	The _meta_<key> methods can return MetaItems; if something else
 	is returned, it is automatically packed into one.
 	"""
-	def getMeta(self, key, raiseOnFail=False, default=None, **kwargs):
+	def _getFromAtom(self, atom):
 		try:
-			res = MetaMixin.getMeta(self, key, default=default, raiseOnFail=True, 
-				**kwargs)
+			return MetaMixin._getFromAtom(self, atom)
 		except NoMetaKey:
-			methName = "_meta_"+key.replace(".", "__")
+			methName = "_meta_"+atom
 			if hasattr(self, methName):
 				res = getattr(self, methName)()
 				if res is not None and not isinstance(res, MetaItem):
-					res = makeMetaItem(res, name=key)
-			else:
-				if raiseOnFail:
-					raise
-				else:
-					res = default
-		return res
+					res = makeMetaItem(res, name=atom)
+				return res
+			raise
 
 
 class MetaItem(object):

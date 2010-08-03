@@ -49,8 +49,8 @@ class NakedMacroTest(testhelpers.VerboseTest):
 	def testErrors(self):
 		me = self.SimplePackage().getExpander()
 		self.assertRaisesWithMsg(rscdef.MacroError,
-			'Error during macro expansion: No such macro available in'
-			' this context: \\unknown',
+			'Error during macro expansion: No macro'
+			' \\unknown available in a SimplePackage context',
 			me.expand, (r"an \unknown Macro",))
 		self.assertRaisesWithMsg(rscdef.MacroError,
 			'Error during macro expansion: Invalid macro arguments to \\quote: []',

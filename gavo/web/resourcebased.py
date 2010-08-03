@@ -709,7 +709,7 @@ class TextRenderer(grend.ServiceBasedRenderer):
 	"""is a renderer that runs the service, expects back a string and
 	displays that as text/plain.
 
-	I don't think the is useful, but it's convenient for tests.
+	I don't think this is useful, but it's convenient for tests.
 	"""
 	name = "text"
 

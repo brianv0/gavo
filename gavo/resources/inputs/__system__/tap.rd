@@ -7,7 +7,23 @@
 
 
 	<property name="TAP_VERSION">1.0</property>
-	<meta name="_longdoc" format="rst">
+
+	<meta name="_longdoc" format="rst"><![CDATA[
+	You will usually want to use some sort of client to query TAP services;
+	the VODesktop_ suite contains one, the `GAVO VOTable library`_ another.
+	You can, however, use our service in an XML-enabled browser (see below under
+	`Overview <#overview>`_), too: click on "New job..." in the job list,
+	enter your query, click "Set query", then "Execute query".  Reload the
+	page you are redirected to now and then to see when your job is finished,
+	then retrieve the result.
+
+	Also see the `table metadata`_ of the tables exposed here.
+
+	.. _VODesktop: http://www.astrogrid.org/wiki/Install/Downloads
+	.. _GAVO VOTable library: http://vo.ari.uni-heidelberg.de/soft
+	.. _table metadata: /__system__/tap/run/tableMetadata
+
+
 	Issues
 	======
 
@@ -25,7 +41,7 @@
 	This is in violation of the specification, but since fixing it would
 	require rather intrusive changes into our software and it is not
 	clear why one should want to use names when they are not unique to begin
-	with, this will probably not be fixed.
+	with, this will probably not be fixed.]]>
 	</meta>
 
 	<table id="schemas" onDisk="True" system="True"
@@ -265,9 +281,12 @@
 		<meta name="title">GAVO Data Center TAP service</meta>
 		<meta name="description">The GAVO data center's TAP end point.  The
 			Table Access Protocol (TAP) lets you execute queries against our
-			database table, inspect various metadata, and upload your own
+			database tables, inspect various metadata, and upload your own
 			data.  It is thus the VO's premier way to access public data
-			holdings.</meta>
+			holdings.
+		
+			Tables exposed through this endpoint include: \tablesForTAP.
+			</meta>
 		<publish render="tap" sets="ivo_managed,local"/>
 	</service>
 </resource>

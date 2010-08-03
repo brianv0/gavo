@@ -148,7 +148,9 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 				raise
 			return T.comment["Meta item %s not given."%metaKey]
 		except Exception, ex:
-			return T.comment["Meta %s bad (%s)"%(metaKey, str(ex))]
+			msg = "Meta %s bad (%s)"%(metaKey, str(ex))
+			base.ui.notifyError(msg)
+			return T.comment[msg]
 
 	def data_meta(self, metaName):
 		"""returns the value for the meta key metaName on this service.
@@ -235,7 +237,7 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 				],
 				T.div(class_="exploBody")[
 					self._doRenderMeta(ctx, raiseOnFail=True)]]
-		except base.MetaError:
+		except base.MetaError, ex:
 			return ""
 	
 	def render_authinfo(self, ctx, data):

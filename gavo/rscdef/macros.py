@@ -113,7 +113,8 @@ class MacroPackage(object):
 		if fun is not None:
 			return fun
 		raise MacroError(
-			"No such macro available in this context: \\%s"%macName,
+			"No macro \\%s available in a %s context"%(
+				macName, self.__class__.__name__),
 			macName, hint="%s objects do not define this macro"%
 				self.__class__.__name__)
 

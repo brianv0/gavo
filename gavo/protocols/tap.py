@@ -94,6 +94,18 @@ def unpublishFromTAP(rd, connection):
 	rd.clearProperty("moribund")
 
 
+def getAccessibleTables():
+	"""returns a list of qualified table names for the TAP-published tables.
+	"""
+	tapRD = base.caches.getRD(RD_ID)
+	td = tapRD.getById("tables")
+	table = rsc.TableForDef(td)
+	res = [r["table_name"] for r in 
+		table.iterQuery([td.getColumnByName("table_name")], "")]
+	table.close()
+	return res
+
+
 ########################## The TAP UWS job
 
 
