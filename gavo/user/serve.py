@@ -12,6 +12,7 @@ import pwd
 import signal
 import sys
 import time
+import warnings
 
 from nevow import appserver
 from nevow import inevow
@@ -107,11 +108,12 @@ def _dropPrivileges():
 			base.ui.notifyError("Cannot change to user %s (not found)\n"%user)
 			sys.exit(1)
 		try:
-			os.setuid(uid)
 			try:
 				os.setgid(grp.getgrnam(base.getConfig("group"))[2])
-			except: # don't fail because of setgid failure (should I rather?)
-				pass
+			except Exception, ex: 
+				# don't fail because of setgid failure (should I rather?)
+				warnings.warn("Could not sgid to gavo group (%s)."%(str(ex)))
+			os.setuid(uid)
 		except os.error, ex:
 			base.ui.notifyError("Cannot change to user %s (%s)\n"%(
 				user, str(ex)))
