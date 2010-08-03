@@ -5,6 +5,7 @@ A wrapper script suitable for starting the server.
 from __future__ import with_statement
 
 import datetime
+import grp
 import os
 import pkg_resources
 import pwd
@@ -107,6 +108,10 @@ def _dropPrivileges():
 			sys.exit(1)
 		try:
 			os.setuid(uid)
+			try:
+				os.setgid(grp.getgrnam(base.getConfig("group"))[2])
+			except: # don't fail because of setgid failure (should I rather?)
+				pass
 		except os.error, ex:
 			base.ui.notifyError("Cannot change to user %s (%s)\n"%(
 				user, str(ex)))
@@ -146,7 +151,10 @@ def _configureTwistedLog():
 def _startServer():
 	"""runs a detached server, dropping privileges and all.
 	"""
-	reactor.listenTCP(int(base.getConfig("web", "serverPort")), root.site)
+	reactor.listenTCP(
+		int(base.getConfig("web", "serverPort")), 
+		root.site,
+		interface=base.getConfig("web", "bindAddress"))
 	_dropPrivileges()
 	_configureTwistedLog()
 	
