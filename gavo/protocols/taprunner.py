@@ -288,10 +288,10 @@ def main():
 	opts, jobId = parseCommandLine()
 	setINTHandler(jobId)
 	try:
-		import logging.handlers
-		logHandler = logging.handlers.RotatingFileHandler(
+		from gavo.protocols.gavolog import RotatingFileHandler
+		logHandler = RotatingFileHandler(
 			os.path.join(base.getConfig("logDir"), "taprunner"),
-			maxBytes=500000, backupCount=1)
+			maxBytes=500000, backupCount=1, mode=0664)
 		# this will race since potentially many tap runners log to the
 		# same file, but the logs are only for emergencies anyway.
 		logging.getLogger("").addHandler(logHandler)

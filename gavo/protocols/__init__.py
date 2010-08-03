@@ -10,6 +10,6 @@ Both commandline.py and standalone.tac import gavo.protocols.basic to get a
 common set of "standard" protocols/mixins defined.
 
 The guiding line should be: Stuff that depends on nevow (or even twisted)
-should go to web, generic code should be here.  Of course, these
+should go to web or svcs, generic code should be here.  Of course, these
 rules are constantly bent.
 """

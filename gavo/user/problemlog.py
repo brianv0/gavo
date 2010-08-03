@@ -7,6 +7,7 @@ import os
 
 from gavo.base import ObserverBase, listensTo
 
+
 class FailedRowCollector(ObserverBase):
 	def __init__(self, eh):
 		ObserverBase.__init__(self, eh)

@@ -6,10 +6,10 @@ No synchronization takes place; it's probably not worth sweating this.
 
 import logging
 import os
-from logging.handlers import RotatingFileHandler
 
 from gavo import base
 from gavo.base import ObserverBase, listensTo
+from gavo.protocols.gavolog import RotatingFileHandler
 
 
 class LoggingUI(ObserverBase):
@@ -17,7 +17,7 @@ class LoggingUI(ObserverBase):
 		ObserverBase.__init__(self, eh)
 		errH = RotatingFileHandler(
 			os.path.join(base.getConfig("logDir"), "dcErrors"),
-			maxBytes=500000, backupCount=3)
+			maxBytes=500000, backupCount=3, mode=0664)
 		errH.setFormatter(
 			logging.Formatter("[%(process)s] %(message)s"))
 		self.errorLogger = logging.getLogger("dcErrors")
@@ -25,7 +25,7 @@ class LoggingUI(ObserverBase):
 
 		infoH = RotatingFileHandler(
 			os.path.join(base.getConfig("logDir"), "dcInfos"),
-			maxBytes=500000, backupCount=1)
+			maxBytes=500000, backupCount=1, mode=0664)
 		infoH.setFormatter(
 			logging.Formatter("%(levelname)s [%(process)s] %(message)s"))
 		self.infoLogger = logging.getLogger("dcInfos")
