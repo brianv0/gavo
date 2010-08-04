@@ -300,6 +300,7 @@ class ArchiveService(rend.Page):
 		if segments==('',):
 			segments = ("__system__", "services", "root", "fixed")
 
+		# redirect only single-segment paths (but trailing / is ok)
 		if ((len(segments)==1 or (
 					len(segments)==2 and segments[1]==''))
 				and segments[0] in self.redirects):

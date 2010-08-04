@@ -51,14 +51,19 @@ class CacheItemBuilder(object):
 
 class CachedPage(rend.Page):
 	def __init__(self, content, headers, changeStamp):
-		self.content, self.headers = content, headers
+		self.content = content
 		self.creationStamp = time.time()
-		self.headers["x-cache-creation"] = str(self.creationStamp)
+		headers["x-cache-creation"] = str(self.creationStamp)
 		self.changeStamp = changeStamp
+		self.headers = headers.items()
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
-		for key, value in self.headers.iteritems():
+		# nuke/ignore the last modified from the incoming request; we know
+		# better, since our info is from the generation of the resource.
+		if self.changeStamp:
+			request.lastModified = None
+		for key, value in self.headers:
 			request.setHeader(key, value)
 		request.setHeader('date', utils.formatRFC2616Date())
 		return self.content
@@ -69,7 +74,8 @@ def enterIntoCacheAs(key, destDict):
 	"""
 	def finishAction(request, content):
 		try:
-			lastModified = base.parseRFC2616Date(request.headers["last-modified"])
+			lastModified = base.parseRFC2616Date(
+				request.headers["last-modified"])
 		except:  # don't fail because of caching weirdness
 			lastModified = None
 		destDict[key] = CachedPage(content, request.headers, lastModified)

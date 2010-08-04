@@ -182,8 +182,7 @@ class ColumnList(list):
 		try:
 			return self[self.nameIndex[name]]
 		except KeyError:
-			raise base.ui.logOldExc(
-				base.NotFoundError(name, what="column", within="unnamed table"))
+			raise base.NotFoundError(name, what="column", within="unnamed table")
 
 	def getColumnById(self, id):
 		"""returns the column with id.
@@ -193,8 +192,7 @@ class ColumnList(list):
 		try:
 			return self.getIdIndex()[id]
 		except KeyError:
-			raise base.ui.logOldExc(
-				base.NotFoundError(id, what="column", within="unnamed table"))
+			raise base.NotFoundError(id, what="column", within="unnamed table")
 
 	def getColumnsByUCD(self, ucd):
 		"""returns all columns having ucd.

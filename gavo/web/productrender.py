@@ -209,8 +209,7 @@ class ProductRenderer(grend.ServiceBasedRenderer):
 		try:
 			request.setHeader('content-length', str(os.path.getsize(
 				resource.sourcePath)))
-			request.setHeader('last-modified', utils.formatRFC2616Date(
-				os.path.getmtime(resource.sourcePath)))
+			request.lastModified = os.path.getmtime(resource.sourcePath)
 		except (TypeError, os.error):  # size doesn't matter
 			pass
 		return streaming.streamOut(resource, request)

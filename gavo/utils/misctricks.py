@@ -2,6 +2,7 @@
 Various helpers that didn't fit into any other xTricks.
 """
 
+import time
 from gavo.utils import excs
 
 
@@ -138,7 +139,6 @@ def sendUIEvent(eventName, *args):
 		getattr(ui, "notify"+eventName)(*args)
 	except ImportError:
 		pass
-
 
 
 def logOldExc(exc):

@@ -121,8 +121,7 @@ class VOSICapabilityRenderer(VOSIRenderer):
 	vosiSet = set(['ivo_managed'])
 
 	def _getTree(self, request):
-		request.setHeader("Last-Modified", 
-			utils.datetimeToRFC2616(self.service.rd.dateUpdated))
+		request.lastModified = self.service.rd.timestampUpdated
 		root = CAP.capabilities[[
 			capabilities.getCapabilityElement(pub)
 				for pub in self.service.getPublicationsForSet(self.vosiSet)]]
@@ -137,8 +136,7 @@ class VOSITablesetRenderer(VOSIRenderer):
 	name = "tableMetadata"
 
 	def _getTree(self, request):
-		request.setHeader("Last-Modified", 
-			utils.datetimeToRFC2616(self.service.rd.dateUpdated))
+		request.lastModified = self.service.rd.timestampUpdated
 		root = registry.getTablesetForService(self.service)
 		root.addAttribute("xsi:type", "vs1:TableSet")
 		return root

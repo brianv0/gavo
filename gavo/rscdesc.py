@@ -287,13 +287,14 @@ def setRDDateTime(rd, inputFile):
 	"""
 # this would look better as a method on RD, and maybe it would be cool
 # to just try to infer the inputFile from the ID?
-	rdUpdated = datetime.datetime.utcfromtimestamp(utils.fgetmtime(inputFile))
+	rdTimestamp = utils.fgetmtime(inputFile)
 	try:
-		dataUpdated = datetime.datetime.utcfromtimestamp(
-			os.path.getmtime(rd.getTimestampPath()))
+		dataTimestamp = os.path.getmtime(rd.getTimestampPath())
 	except os.error: # no timestamp yet
-		dataUpdated = rdUpdated
-	rd.dateUpdated = max(dataUpdated, rdUpdated)
+		dataTimestamp = rdTimestamp
+	rd.timestampUpdated = max(dataTimestamp, rdTimestamp)
+	rd.dateUpdated = datetime.datetime.utcfromtimestamp(
+		rd.timestampUpdated)
 
 
 def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
