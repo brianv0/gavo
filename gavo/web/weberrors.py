@@ -209,15 +209,6 @@ class BadMethodPage(ErrorPage):
 		]])
 
 
-class NotModifiedPage(ErrorPage):
-	handles = svcs.NotModified
-	status = 304
-	class docFactory(object):
-		@staticmethod
-		def load(*args):
-			return ""
-
-
 # HTML mess for last-resort type error handling.
 errorTemplate = (
 		'<body><div style="position:fixed;left:4px;top:4px;'

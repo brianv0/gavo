@@ -13,7 +13,7 @@ structure carrying lots of information on the query being processed.
 """
 
 from gavo.svcs.common import (Error, UnknownURI, ForbiddenURI, WebRedirect,
-	Authenticate, BadMethod, NotModified,
+	Authenticate, BadMethod,
 	QueryMeta, emptyQueryMeta, loadSystemTemplate)
 
 from gavo.svcs.core import registerCore, getCore, Core

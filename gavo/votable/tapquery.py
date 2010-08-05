@@ -511,7 +511,6 @@ class ADQLTAPJob(_WithEndpoint):
 		"""
 		return self._queryJobResource("/phase", _makeFlatParser(str)())
 
-
 	def _intOrNone(self, val):
 		if not val.strip():
 			return None

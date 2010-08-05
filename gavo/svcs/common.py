@@ -64,12 +64,6 @@ class WebRedirect(Error):
 		self.dest = dest
 		Error.__init__(self, "This is supposed to redirect to %s"%dest)
 
-class NotModified(Error):
-	"""signifies that a 304 NotModified should be sent to the UA.
-	"""
-	def __init__(self):
-		Error.__init__(self, "This resource was not modified.")
-
 
 def parseServicePath(serviceParts):
 	"""returns a tuple of resourceDescriptor, serviceName.

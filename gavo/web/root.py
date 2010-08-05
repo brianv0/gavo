@@ -4,6 +4,7 @@ The root resource of the data center.
 
 
 import os
+import time
 import traceback
 from cStringIO import StringIO
 
@@ -125,6 +126,7 @@ class ArchiveService(rend.Page):
 
 	The statics and mappings are configured on the class level.
 	"""
+	timestampStarted = time.time()
 	statics = {}
 	mappings = {}
 	redirects = {}
@@ -232,6 +234,8 @@ class ArchiveService(rend.Page):
 		request allows caching, None otherwise.  For cacheable requests,
 		it instruments the request such that the page is actually cached.
 
+		Cacheable pages also cause request's lastModified to be set.
+
 		Requests with arguments or a user info are never cacheable.
 		"""
 		request = inevow.IRequest(ctx)
@@ -239,6 +243,8 @@ class ArchiveService(rend.Page):
 			return None
 		if not rendC.isCacheable(segments, request):
 			return None
+		request.setLastModified(
+			max(self.timestampStarted, service.rd.timestampUpdated))
 		cache = base.caches.getPageCache(service.rd.sourceId)
 		segments = tuple(segments)
 		if segments in cache:
@@ -263,7 +269,6 @@ class ArchiveService(rend.Page):
 		for srvInd in range(1, len(segments)-1):
 			try:
 				rd = base.caches.getRD("/".join(segments[:srvInd]))
-# XXX TODO: set the last modified header to the larger of (rdModTime, serverStartTime) here.
 			except base.RDNotFound:
 				continue
 			else:
