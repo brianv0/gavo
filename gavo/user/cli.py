@@ -105,6 +105,11 @@ def _getMatchingFunction(funcSelector, parser):
 	sys.exit(1)
 
 
+def _enableDebug(*args):
+	from gavo import base
+	base.DEBUG = True
+
+
 def _parseCLArgs():
 	"""parses the command line and returns instructions on how to go on.
 
@@ -134,6 +139,8 @@ def _parseCLArgs():
 	parser.add_option("--suppress-log", help="Do not log exceptions and such"
 		" to the gavo-specific log files", action="store_true",
 		dest="suppressLog")
+	parser.add_option("--debug", help="Produce debug info as appropirate.",
+		action="callback", callback=_enableDebug)
 
 	opts, args = parser.parse_args()
 	if len(args)<1:

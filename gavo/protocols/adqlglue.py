@@ -229,6 +229,7 @@ class ADQLCore(svcs.Core, base.RestrictionMixin):
 	def run(self, service, inputData, queryMeta):
 		inRow = inputData.getPrimaryTable().rows[0]
 		queryString = inRow["query"]
+		base.ui.notifyInfo("Incoming ADQL query: %s"%queryString)
 		try:
 			res = query(self._getQuerier(), queryString, 
 				timeout=queryMeta["timeout"])

@@ -79,4 +79,4 @@ from gavo.base.unitconv import (
 
 from gavo.base.xmlstruct import parseFromString, parseFromStream
 
-
+DEBUG = False

@@ -34,9 +34,10 @@ class LoggingUI(ObserverBase):
 
 	@listensTo("ExceptionMutation")
 	def logOldException(self, res):
-		excInfo, newExc = res
-		self.infoLogger.info("Swallowed the exception below, re-raising %s"%
-			str(newExc), exc_info=excInfo)
+		if base.DEBUG:
+			excInfo, newExc = res
+			self.infoLogger.info("Swallowed the exception below, re-raising %s"%
+				str(newExc), exc_info=excInfo)
 	
 	@listensTo("Info")
 	def logInfo(self, message):

@@ -163,7 +163,19 @@ class IdManagerMixin(object):
 				hint="Someone asked for the object belonging to an id that has"
 				" been generated externally (i.e., not by this id manager).  This"
 				" usually is an internal error of the software.")
+
+
+class NullObject(object):
+	"""A Null object, i.e. one that accepts any method call whatsoever.
+
+	This mainly here for use in scaffolding.
+	"""
+	def __getattr__(self, name):
+		return self
 	
+	def __call__(self, *args, **kwargs):
+		pass
+
 
 def iterDerivedClasses(baseClass, objects):
 	"""iterates over all subclasses of baseClass in the sequence objects.
