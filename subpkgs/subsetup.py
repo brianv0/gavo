@@ -45,9 +45,6 @@ setupHead = """# setup.py for GAVO DC subpackage.
 import os
 import sys
 
-import ez_setup
-ez_setup.use_setuptools()
-
 from setuptools import setup, Extension
 
 setup("""
@@ -65,7 +62,7 @@ baseKeys = {
 	"namespace_packages": ["gavo"],
 }
 
-baseFiles = ["ez_setup.py", "gavo/__init__.py"]
+baseFiles = ["gavo/__init__.py"]
 
 subpkgs = {
 	"utils": {

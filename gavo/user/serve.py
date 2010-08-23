@@ -95,7 +95,8 @@ PIDManager = _PIDManager()
 def _reloadConfig():
 	"""should clear as many caches as we can get hold of.
 	"""
-	base.ui.notifyError("No reloading yet")
+	base.caches.clearCaches()
+	base.ui.notifyInfo("Cleared all caches on SIGHUP")
 
 
 def _dropPrivileges():
@@ -224,7 +225,11 @@ def restart(args):
 
 @exposedFunction(help="reload server configuration (incomplete)")
 def reload(args):
-	os.kill(PIDManager.getPID(), signal.SIGHUP)
+	pid = PIDManager.getPID()
+	if pid is None:
+		raise base.ReportableError("No DaCHS server appears to be running."
+			"  Thus, not reloading.")
+	os.kill(pid, signal.SIGHUP)
 
 
 class ExitPage(rend.Page):
