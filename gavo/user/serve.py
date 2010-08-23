@@ -244,6 +244,7 @@ class ExitPage(rend.Page):
 	" all kinds of stuff to the terminal")
 def debug(args):
 	log.startLogging(sys.stderr)
+	base.DEBUG = True
 	root.root.child_exit = ExitPage()
 	reactor.listenTCP(int(base.getConfig("web", "serverPort")), root.site)
 	setupServer(root)

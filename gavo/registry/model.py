@@ -350,7 +350,9 @@ def addBasicVSElements(baseNS, VSElement):
 		class instrument(VSElement): pass
 		
 		class coverage(VSElement): pass
-		
+	
+		class waveband(VSElement): pass
+
 		class format(VSElement): 
 			_a_isMIMEType = None
 		

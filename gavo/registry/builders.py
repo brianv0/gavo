@@ -17,6 +17,7 @@ import traceback
 import warnings
 
 from gavo import base
+from gavo import stc
 from gavo import utils
 from gavo.base import meta
 from gavo.registry import capabilities
@@ -89,9 +90,30 @@ _oaiHeaderBuilder = meta.ModelBasedBuilder([
 
 
 _orgMetaBuilder = meta.ModelBasedBuilder([
-	('facility', meta.stanFactory(VOR.facility)),# XXX TODO: look up ivo-ids?
-	('instrument', meta.stanFactory(VOR.instrument)),
+	('facility', SF(VOR.facility)),# XXX TODO: look up ivo-ids?
+	('instrument', SF(VOR.instrument)),
 ])
+
+
+def _stcResourceProfile(metaValue, localattrs=None):
+# This is a helper for the coverageMetaBuilder; it expects
+# STC-S and will return an STC resource profile for literal
+# embedding.
+	if not metaValue:
+		return None
+	try:
+		return stc.astToStan(
+			stc.parseSTCS(metaValue[0]),
+			stc.STC.STCResourceProfile)
+	except Exception, exc:
+		base.ui.notifyError("Coverage profile '%s' bad while generating "
+			" registry (%s).  It is left out."%(metaValue, str(exc)))
+
+
+_coverageMetaBuilder = meta.ModelBasedBuilder([
+	('coverage', SF(VS.coverage), [
+		('profile', _stcResourceProfile),
+		('waveband', SF(VS.waveband)),])])
 
 
 def getResourceArgs(resob):
@@ -282,7 +304,7 @@ class DataServiceResourceMaker(ServiceResourceMaker):
 	def _makeResource(self, service, setNames):
 		return ServiceResourceMaker._makeResource(self, service, setNames)[
 			_orgMetaBuilder.build(service),
-			VS.coverage[service.getMeta("coverage")]]
+			_coverageMetaBuilder.build(service)]
 
 
 class TabularServiceResourceMaker(DataServiceResourceMaker):
@@ -356,7 +378,6 @@ class DeletedResourceMaker(ResourceMaker):
 _getResourceMaker = utils.buildClassResolver(ResourceMaker, 
 	globals().values(), instances=True, 
 	key=lambda obj: obj.resType)
-
 
 
 def getVORMetadataElement(resob, setNames=_defaultSet):
