@@ -230,7 +230,7 @@ class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 		return T.dl(class_="footnotes")[[
 				T.a(name=self.getIdFor(note))[
 					T.xml(note.getContent(targetFormat="html"))]
-			for note in sorted(self.footnotes)]]
+			for note in sorted(self.footnotes, key=lambda n: n.tag)]]
 
 	def data_inputFields(self, ctx, data):
 		res = [f.asInfoDict() for f in self.service.getInputFields()+
