@@ -99,9 +99,17 @@ def listusers(querier, args):
 	print
 
 
-@exposedFunction(help="remove expired UWS jobs")
+@exposedFunction([
+	Arg("-f", help="also remove all jobs in ERROR and QUEUED states (only use"
+		" if you are sure what you are doing).", action="store_true",
+		dest="includeFailed"),
+	Arg("--nuke-completed", help="also remove COMPLETEd jobs (this is"
+		" particularly unfriendly.  Dont' use this", action="store_true",
+		dest="includeCompleted"),],
+	help="remove expired UWS jobs")
 def cleanuws(querier, args):
-	uws.cleanupJobsTable()
+	uws.cleanupJobsTable(includeFailed=args.includeFailed,
+		includeCompleted=args.includeCompleted)
 
 
 def main():

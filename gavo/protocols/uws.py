@@ -495,12 +495,30 @@ class UWSJob(object):
 		return open(os.path.join(self.getWD(), name), mode)
 
 
-def cleanupJobsTable():
+def cleanupJobsTable(includeFailed=False, includeCompleted=False):
+	"""removes expired jobs from the UWS jobs table.
+
+	The uws service arranges for this to be called roughly once a day.
+	The functionality is also exposed through gavo admin cleanuws; this
+	also lets you use the includeFailed and includeCompleted flags.  These
+	should not be used on production services since you'd probably nuke
+	jobs still interesting to your users.
+	"""
+	phasesToKill = set()
+	if includeFailed:
+		phasesToKill.add(ERROR)
+		phasesToKill.add(QUEUED)
+	if includeCompleted:
+		phasesToKill.add(COMPLETED)
+
 	toDestroy = []
 	now = datetime.datetime.utcnow()
 	jt = getJobsTable(timeout=10)
+
 	for row in jt.iterQuery(jt.tableDef, ""):
 		if row["destructionTime"]<now:
+			toDestroy.append(row["jobId"])
+		elif row["phase"] in phasesToKill:
 			toDestroy.append(row["jobId"])
 	jt.close()
 	for jobId in toDestroy:

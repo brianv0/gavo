@@ -256,7 +256,7 @@ def mapDBErrors(excType, excValue, excTb):
 	"""
 # This is a helper to all DB-based cores and should probably become
 # a method of a baseclass of them when we refactor this mess
-	if hasattr(excValue, "cursor"):
+	if getattr(excValue, "cursor", None) is not None:
 		base.ui.notifyWarning("Failed DB query: %s"%excValue.cursor.query)
 	if isinstance(excValue, sqlsupport.QueryCanceledError):
 		raise base.ui.logOldExc(base.ValidationError("Query timed out"
