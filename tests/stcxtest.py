@@ -30,7 +30,8 @@ class SpaceFrameTest(testhelpers.VerboseTest):
 	def testSimple(self):
 		assertEqualWithoutIds(stcxgen._nodeToStan(dm.SpaceFrame(
 			flavor="CARTESIAN", nDim=2, refFrame="ICRS", name="rotten",
-			refPos=dm.RefPos(standardOrigin="GEOCENTER")), None).render(),
+			refPos=dm.RefPos(standardOrigin="GEOCENTER")), None).render(
+				emptyPrefix="stc"),
 		'<SpaceFrame ><Name>rotten</Name><ICRS /><GEOCENTER />'
 			'<CARTESIAN coord_naxes="2" /></SpaceFrame>')
 
@@ -61,7 +62,7 @@ class V(stc.STC.STCElement):
 class STCMappingTest(testhelpers.VerboseTest):
 	def assertMapsto(self, stcsLiteral, stcxExpected):
 		ast = stc.parseSTCS(stcsLiteral)
-		stcxResult = stcxgen.astToStan(ast, V).render()
+		stcxResult = stcxgen.astToStan(ast, V).render(emptyPrefix="stc")
 		assertEqualWithoutIds(stcxResult, stcxExpected,
 			stcsLiteral)
 

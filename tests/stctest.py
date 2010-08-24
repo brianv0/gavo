@@ -560,7 +560,8 @@ class NullTest(testhelpers.VerboseTest):
 	def testToSTCX(self):
 		self.assertEqual(
 			testhelpers.cleanXML(
-				stc.getSTCX(self._makeEmptySTC(), stc.STC.STCSpec).render()), 
+				stc.getSTCX(self._makeEmptySTC(), stc.STC.STCSpec).render(
+					emptyPrefix="stc")), 
 			'<STCSpec ><AstroCoordSystem ><TimeFrame ><TimeScale /><UNKNOWNRefPos '
 			'/></TimeFrame><SpaceFrame ><UNKNOWNFrame /><UNKNOWNRefPos /><SPHERIC'
 			'AL coord_naxes="2" /></SpaceFrame></AstroCoordSystem></STCSpec>')

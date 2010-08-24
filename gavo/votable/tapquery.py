@@ -157,8 +157,16 @@ def _parseWith(parser, data):
 
 
 class _PhaseParser(utils.StartEndHandler):
+	"""A parser accepting both plain text and HTML replies.
+	"""
 	def _end_phase(self, name, attrs, content):
 		return content
+	
+	def parseString(self, data):
+		if data.strip().startswith("<"): # XML :-)
+			utils.StartEndHandler.parseString(self, data)
+		else:
+			self.result = str(data).strip()
 
 
 class _QuoteParser(utils.StartEndHandler):
@@ -422,12 +430,19 @@ class ADQLTAPJob(_WithEndpoint):
 			raise utils.logOldExc(
 				ProtocolError("Job creation returned invalid job id"))
 
-	def delete(self):
+	def delete(self, usePOST=False):
 		"""removes the job on the remote side.
+
+		usePOST=True can be used for servers that do not support the DELETE
+		HTTP method (a.k.a. "are broken").
 		"""
 		if self.jobPath is not None:
-			response = request(self.destHost, self.jobPath, method="DELETE",
-				expectedStatus=303)
+			if usePOST:
+				response = request(self.destHost, self.jobPath, method="POST",
+					data={"ACTION": "DELETE"}, expectedStatus=303)
+			else:
+				response = request(self.destHost, self.jobPath, method="DELETE",
+					expectedStatus=303)
 
 	def start(self):
 		"""asks the remote side to start the job.
@@ -509,7 +524,7 @@ class ADQLTAPJob(_WithEndpoint):
 	def phase(self):
 		"""returns the phase the job is in according to the server.
 		"""
-		return self._queryJobResource("/phase", _makeFlatParser(str)())
+		return self._queryJobResource("/phase", _PhaseParser())
 
 	def _intOrNone(self, val):
 		if not val.strip():
@@ -545,13 +560,21 @@ class ADQLTAPJob(_WithEndpoint):
 		"""
 		return self._queryJobResource("/results", ResultsParser())
 
-	def openResult(self):
+	def openResult(self, simple=True):
 		"""returns a file-like object you can read the default TAP result off.
 
 		To have the embedded VOTable returned, say
 		votable.load(job.openResult()).
+
+		If you pass simple=False, the URL will be taken from the
+		service's result list (the first one given there).  Otherwise (the
+		default), results/result is used.
 		"""
-		return urllib.urlopen(self.makeJobURL("/results/result"))
+		if simple:
+			resURL = self.makeJobURL("/results/result")
+		else:
+			resURL = self.allResults[0].href
+		return urllib.urlopen(resURL)
 
 	def setParameter(self, key, value):
 		request(self.destHost, self.jobPath+"/parameters",

@@ -158,7 +158,10 @@ class SourceParseError(Error):
 		self.offending, self.location = offending, location
 
 	def __str__(self):
-		return "At %s: %s, offending %s"%(self.location, self.msg, self.offending)
+		if self.offending:
+			return "At %s: %s, offending %s"%(self.location, self.msg, self.offending)
+		else:
+			return "At %s: %s"%(self.location, self.msg)
 
 class DataError(Error):
 	"""is raised when something is wrong with a data set.

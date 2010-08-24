@@ -312,20 +312,13 @@ class Element(object):
 				" with children %s"%(self.name_, self._children)),)+msg.args[1:]
 			raise
 
-	def asETree(self, suppressedPrefix=None):
+	def asETree(self, emptyPrefix=None):
 		"""returns an ElementTree instance for the tree below this node.
 		"""
-		if suppressedPrefix is None:
-			# A service for STC and VOTable: They cheat by defining all their
-			# elements as local, when they are not by their schema.  So, I must
-			# make sure that the empty prefix is bound to their namespace
-			# in their roots, and I do that through the magic _suppressedPrefix
-			# attribute.
-			suppressedPrefix = getattr(self, "_suppressedPrefix", None)
-		return DOMMorpher(suppressedPrefix, NSRegistry).getMorphed(self)
+		return DOMMorpher(emptyPrefix, NSRegistry).getMorphed(self)
 
-	def render(self, suppressedPrefix=None):
-		et = self.asETree(suppressedPrefix=suppressedPrefix)
+	def render(self, emptyPrefix=None):
+		et = self.asETree(emptyPrefix=emptyPrefix)
 		if et is None:
 			return ""
 		return ElementTree.tostring(et)
@@ -415,15 +408,15 @@ class DOMMorpher(object):
 
 	Discard instances after single use.
 	"""
-	def __init__(self, suppressedPrefix=None, nsRegistry=NSRegistry):
-		self.suppressedPrefix, self.nsRegistry = suppressedPrefix, nsRegistry
+	def __init__(self, emptyPrefix=None, nsRegistry=NSRegistry):
+		self.emptyPrefix, self.nsRegistry = emptyPrefix, nsRegistry
 		self.prefixesUsed = set()
 	
 	def _morphNode(self, stanEl, content, attrDict, childIter):
 		name = stanEl.name_
 		if stanEl._prefix:
 			self.prefixesUsed.add(stanEl._prefix)
-			if not (stanEl._local or stanEl._prefix==self.suppressedPrefix):
+			if not (stanEl._local or stanEl._prefix==self.emptyPrefix):
 				name = "%s:%s"%(stanEl._prefix, stanEl.name_)
 		if stanEl._additionalPrefixes:
 			self.prefixesUsed.update(stanEl._additionalPrefixes)
@@ -440,13 +433,13 @@ class DOMMorpher(object):
 	def getMorphed(self, stan):
 		root = stan.apply(self._morphNode)
 		self.nsRegistry.addNamespaceDeclarations(root, self.prefixesUsed)
-		if self.suppressedPrefix:
+		if self.emptyPrefix:
 			root.attrib["xmlns"] = self.nsRegistry.getNSForPrefix(
-				self.suppressedPrefix)
+				self.emptyPrefix)
 		return root
 
 
-def xmlrender(tree, prolog=None, suppressedPrefix=None):
+def xmlrender(tree, prolog=None, emptyPrefix=None):
 	"""returns a unicode object containing tree in serialized forms.
 
 	tree can be any object with a render method or some sort of string.
@@ -458,7 +451,7 @@ def xmlrender(tree, prolog=None, suppressedPrefix=None):
 	instructions.
 	"""
 	if hasattr(tree, "render"):
-		res = tree.render(suppressedPrefix=suppressedPrefix)
+		res = tree.render(emptyPrefix=emptyPrefix)
 	elif hasattr(tree, "getchildren"):  # hopefully an xml.etree Element
 		res = ElementTree.tostring(tree)
 	elif isinstance(tree, str):

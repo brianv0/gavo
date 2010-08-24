@@ -6,6 +6,7 @@ import sys
 
 from gavo import base
 from gavo import rscdef
+from gavo import utils
 from gavo.base import sqlsupport
 from gavo.rsc import common
 from gavo.rsc import dbtable
@@ -251,7 +252,8 @@ def processSource(data, source, feeder, opts):
 			raise
 		except Exception, msg:
 			raise base.ui.logOldExc(
-				base.SourceParseError("Error while parsing %s: %s"%(source, msg)))
+				base.SourceParseError("Error while parsing %s: %s"%(
+					utils.makeEllipsis(str(source), 80), msg)))
 	else:  # magic grammars (like those of boosters) return a callable
 		srcIter(data)
 

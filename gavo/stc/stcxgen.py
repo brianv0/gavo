@@ -542,4 +542,5 @@ def astToStan(rootNode, stcRoot):
 
 
 def getSTCXProfile(rootNode):
-	return astToStan(rootNode, STC.STCResourceProfile).render()
+	return astToStan(rootNode, STC.STCResourceProfile).render(
+		emptyPrefix="stc")

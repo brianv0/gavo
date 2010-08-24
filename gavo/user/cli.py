@@ -153,7 +153,7 @@ def _parseCLArgs():
 	sys.argv = args
 	return opts, module, funcName
 
-	
+
 def main():
 	global api, errhandle
 

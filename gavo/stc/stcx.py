@@ -35,7 +35,6 @@ class STC(object):
 	class STCElement(Element):
 		_mayBeEmpty = True
 		_prefix = "stc"
-		_local = True
 		# We may not want all of these an all elements, but it's not
 		# worth the effort to discriminate here.
 		_a_href = None
@@ -50,8 +49,6 @@ class STC(object):
 		_mayBeEmpty = False
 
 	class _Toplevel(STCElement):
-		_local = False
-		_suppressedPrefix = "stc"
 		_additionalPrefixes = frozenset(["xlink", "xsi"])
 
 	class STCResourceProfile(_Toplevel): pass

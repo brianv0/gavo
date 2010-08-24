@@ -9,6 +9,7 @@ import sys
 
 from gavo import base
 from gavo import rscdef
+from gavo import utils
 from gavo.base import sqlsupport
 from gavo.rsc import common
 from gavo.rsc import table
@@ -34,8 +35,8 @@ class Feeder(table.Feeder):
 			try:
 				self.cursor.executemany(self.feedCommand, self.batchCache)
 			except sqlsupport.IntegrityError:
-				base.ui.notifyInfo("One or more of the following rows clashed: "+
-					str(self.batchCache))
+	#			base.ui.notifyInfo("One or more of the following rows clashed: "+
+	#				str(self.batchCache))
 				raise
 			except sqlsupport.DataError:
 				base.ui.notifyInfo("Bad input.  Run with -b1 to pin down offending"
