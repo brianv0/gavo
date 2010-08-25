@@ -219,7 +219,7 @@ class ArchiveService(rend.Page):
 				cls._addVanityRedirect(src, dest, options)
 		finally:
 			inFile.close()
-		
+	
 	def renderHTTP(self, ctx):
 		# this is only ever executed on the root URL.  For consistency
 		# (e.g., caching), we route this through locateChild though
