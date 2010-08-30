@@ -351,6 +351,12 @@ class Column(base.Structure):
 	def completeElement(self):
 		if isinstance(self.name, utils.QuotedName):
 			self.key = self.name.name
+			if ')' in self.key:
+				# No '()' allowed in key for that breaks the %()s syntax (sigh!).
+				# Work around with the following quick hack that would break
+				# if people carefully chose proper names.  Anyone using delim.
+				# ids in SQL deserves a good spanking anyway.
+				self.key = self.key.replace(')', "__").replace('(', "__")
 		else:
 			self.key = self.name
 		self._completeElementNext(Column)

@@ -302,7 +302,7 @@ def main():
 
 	try:
 		_runInThread(lambda: runTAPJob(jobId))
-		logging.info("taprunner for %s finished successfully"%jobId)
+		logging.info("taprunner for %s finished"%jobId)
 	except SystemExit:
 		pass
 	except uws.JobNotFound: # someone destroyed the job before I was done

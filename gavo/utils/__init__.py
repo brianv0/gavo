@@ -32,7 +32,7 @@ from gavo.utils.fitstools import readPrimaryHeaderQuick, pyfits
 from gavo.utils.mathtricks import *
 
 from gavo.utils.misctricks import (Undefined, QuotedName, getfirst,
-	logOldExc)
+	logOldExc, sendUIEvent)
 
 from gavo.utils.ostricks import safeclose, urlopenRemote, fgetmtime, cat
 

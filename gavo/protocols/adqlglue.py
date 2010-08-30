@@ -181,7 +181,6 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
 		querier.setTimeout(timeout)
 		querier.configureConnection([("enable_seqscan", False)])
 
-		log.msg("Sending ADQL query: %s"%query)
 		for tuple in querier.query(query):
 			addTuple(tuple)
 	finally:

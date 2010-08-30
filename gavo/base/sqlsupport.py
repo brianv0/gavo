@@ -526,8 +526,8 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 		try:
 			cursor.execute(query, data)
 		except DBError:
-			warnings.warn("Failed db query: '%s'"%getattr(cursor, "query",
-				query))
+			utils.sendUIEvent("Info", "Failed db query: '%s'"%
+				getattr(cursor, "query", query))
 			raise
 		return cursor
 

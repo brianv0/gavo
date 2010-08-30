@@ -128,15 +128,15 @@ class VOTableTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 
 
 class _ImportTestData(testhelpers.TestResource):
-	def __init__(self, fName):
-		self.fName = fName
+	def __init__(self, fName, nameMaker=None):
+		self.fName, self.nameMaker = fName, nameMaker
 		testhelpers.TestResource.__init__(self)
 
 	def make(self, ignored):
 		try:
 			conn = base.getDefaultDBConnection()
 			tableDef = votableread.uploadVOTable("votabletest", 
-				open(self.fName), conn).tableDef
+				open(self.fName), conn, nameMaker=self.nameMaker).tableDef
 			querier = base.SimpleQuerier(connection=conn)
 			data = list(querier.query("select * from votabletest"))
 		finally:
@@ -179,6 +179,19 @@ class ImportTest(testhelpers.VerboseTest):
 			['double precision', 'double precision', 'double precision', 
 				'integer', 'smallint', 'text', 'text', 'real[2]', 'real', 
 				'smallint', 'real', 'text', 'text', 'char'])
+
+
+class VizierImportTest(testhelpers.VerboseTest):
+	"""tests for ingestion of a random vizier VOTable.
+	"""
+	resources = [("testData", _ImportTestData("data/vizier_votable.vot",
+		nameMaker=votableread.AutoQuotedNameMaker()))]
+
+	def testWorked(self):
+		td, data = self.testData
+		self.assertEqual(td.columns[4].name.name, "RA(ICRS)")
+		self.assertEqual(td.columns[4].key, 'RA__ICRS__')
+		self.assertEqual(data[0][4], "04 26 20.741")
 
 
 class NastyImportTest(testhelpers.VerboseTest):

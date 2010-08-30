@@ -35,8 +35,8 @@ class Feeder(table.Feeder):
 			try:
 				self.cursor.executemany(self.feedCommand, self.batchCache)
 			except sqlsupport.IntegrityError:
-	#			base.ui.notifyInfo("One or more of the following rows clashed: "+
-	#				str(self.batchCache))
+				base.ui.notifyInfo("One or more of the following rows clashed: "+
+					str(self.batchCache))
 				raise
 			except sqlsupport.DataError:
 				base.ui.notifyInfo("Bad input.  Run with -b1 to pin down offending"

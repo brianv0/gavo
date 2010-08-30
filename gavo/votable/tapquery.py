@@ -550,7 +550,8 @@ class ADQLTAPJob(_WithEndpoint):
 
 	destruction = property(
 		_makeAtomicValueGetter("/destruction", _makeFlatParser(utils.parseISODT)),
-		_makeAtomicValueSetter("/destruction", utils.formatISODT, "DESTRUCTION"))
+		_makeAtomicValueSetter("/destruction", 
+			lambda dt: dt.strftime("%Y-%m-%dT%H:%M:%S.000"), "DESTRUCTION"))
 
 	def makeJobURL(self, jobPath):
 		return self.endpointURL+"/async/%s%s"%(self.jobId, jobPath)
