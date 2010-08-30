@@ -19,19 +19,34 @@ from gavo.utils import ostricks
 # import that all others should use (from gavo.utils import pyfits).
 # see also utils/__init__.py
 os.environ["NUMERIX"] = "numpy"
-import pyfits  # not from gavo.utils (this is the original)
+try:
+	import pyfits  # not from gavo.utils (this is the original)
+except ImportError:  
+	# pyfits is not installed; don't die, since the rest of gavo.utils
+	# will still work.
+	class _NotInstalledModuleStub(object):
+		def __init__(self, modName):
+			self.modName = modName
+
+		def __getattr__(self, name):
+			raise RuntimeError("%s not installed"%self.modName)
+	pyfits = _NotInstalledModuleStub("pyfits")
+
+else:
+	# I need some parts of pyfits' internals, and it's version-dependent
+	# where they are found
+	if hasattr(pyfits, "core"):
+		_TempHDU = pyfits.core._TempHDU
+		_pad = pyfits.core._pad
+		_padLength = pyfits.core._padLength
+	else:
+		_TempHDU = pyfits._TempHDU
+		_pad = pyfits._pad
+		_padLength = pyfits._padLength
 
 
 blockLen = 2880
 
-if hasattr(pyfits, "core"):
-	_TempHDU = pyfits.core._TempHDU
-	_pad = pyfits.core._pad
-	_padLength = pyfits.core._padLength
-else:
-	_TempHDU = pyfits._TempHDU
-	_pad = pyfits._pad
-	_padLength = pyfits._padLength
 
 
 class FITSError(Exception):

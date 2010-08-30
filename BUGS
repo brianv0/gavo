@@ -186,3 +186,6 @@
 47/HIGH/2010-07-30
 	See input/glots: The createView data is touched but has no effect when
 	doing createTables.
+
+48/LOW/2010-08-26
+	taprender should return http 404 code rather than 400 for a NotFoundError

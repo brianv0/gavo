@@ -25,7 +25,7 @@ ERROR = "ERROR"
 ABORTED = "ABORTED"
 
 
-debug = True
+debug = False
 
 
 class Error(utils.Error):
@@ -157,16 +157,21 @@ def _parseWith(parser, data):
 
 
 class _PhaseParser(utils.StartEndHandler):
-	"""A parser accepting both plain text and HTML replies.
+	"""A parser accepting both plain text and XML replies.
+
+	Of course, the XML replies are against the standard, but -- ah, well.
 	"""
 	def _end_phase(self, name, attrs, content):
-		return content
+		self.result = content
 	
 	def parseString(self, data):
 		if data.strip().startswith("<"): # XML :-)
 			utils.StartEndHandler.parseString(self, data)
 		else:
 			self.result = str(data).strip()
+	
+	def getResult(self):
+		return self.result
 
 
 class _QuoteParser(utils.StartEndHandler):
@@ -182,15 +187,53 @@ class _QuoteParser(utils.StartEndHandler):
 
 
 class _ParametersParser(utils.StartEndHandler):
-	def __init__(self):
+	def _initialize(self):
 		self.parameters = {}
-		utils.StartEndHandler.__init__(self)
 
 	def _end_parameter(self, name, attrs, content):
 		self.parameters[attrs["id"]] = content
 	
 	def getResult(self):
 		return self.parameters
+
+
+class _ResultsParser(utils.StartEndHandler):
+	def _initialize(self):
+		self.results = []
+
+	def _end_result(self, name, attrs, content):
+		attrs = self.getAttrsAsDict(attrs)
+		self.results.append(UWSResult(attrs["href"],
+			attrs.get("id"), attrs.get("type", "simple")))
+	
+	def getResult(self):
+		return self.results
+
+
+class _InfoParser(_ParametersParser, _ResultsParser):
+	def _initialize(self):
+		self.info = {}
+		_ParametersParser._initialize(self)
+		_ResultsParser._initialize(self)
+	
+	def _end_jobId(self, name, attrs, content):
+		self.info[name] = content
+	
+	_end_phase = _end_jobId
+	
+	def _end_executionDuration(self, name, attrs, content):
+		self.info[name] = float(content)
+	
+	def _end_destruction(self, name, attrs, content):
+		self.info[name] = utils.parseISODT(content)
+	
+	def _end_job(self,name, attrs, content):
+		self.info["results"] = self.results
+		self.info["parameters"] = self.parameters
+	
+	def getResult(self):
+		return self.info
+	
 
 
 class _AvailabilityParser(utils.StartEndHandler):
@@ -305,20 +348,6 @@ class UWSResult(object):
 		self.href, self.id, self.type = href, id, type
 
 
-class ResultsParser(utils.StartEndHandler):
-	def __init__(self):
-		self.results = []
-		utils.StartEndHandler.__init__(self)
-
-	def _end_result(self, name, attrs, content):
-		attrs = self.getAttrsAsDict(attrs)
-		self.results.append(UWSResult(attrs["href"],
-			attrs.get("id"), attrs.get("type", "simple")))
-	
-	def getResult(self):
-		return self.results
-
-
 def _canUseFormEncoding(params):
 	"""returns true if userParams can be transmitted in a 
 	x-www-form-urlencoded payload.
@@ -403,20 +432,33 @@ class ADQLTAPJob(_WithEndpoint):
 	"""A facade for an ADQL-based async TAP job.
 
 	Construct it with the URL of the async endpoint and a query.
-	"""
-	def __init__(self, endpointURL, query, lang="ADQL", userParams={}):
-		self._defineEndpoint(endpointURL)
-		self.destPath = self.destPath+"/async"
-		self.lang = lang
-		self.query = query
-		self.jobId, self.jobPath = None, None
-		self._createJob(userParams)
 
-	def _createJob(self, userParams):
+	Alternatively, you can give the endpoint URL and a jobId as a
+	keyword parameter.  This only makes sense if the service has
+	handed out the jobId before (e.g., when a different program takes
+	up handling of a job started before).
+	"""
+	def __init__(self, endpointURL, query=None, jobId=None, lang="ADQL", 
+			userParams={}):
+		self._defineEndpoint(endpointURL)
+		self.destPath = utils.ensureOneSlash(self.destPath)+"async"
+		if query is not None:
+			self.jobId, self.jobPath = None, None
+			self._createJob(query, lang, userParams)
+		elif jobId is not None:
+			self.jobId = jobId
+		else:
+			raise Error("Must construct ADQLTAPJob with at least query or jobId")
+		self._computeJobPath()
+	
+	def _computeJobPath(self):
+		self.jobPath = "%s/%s"%(self.destPath, self.jobId)
+
+	def _createJob(self, query, lang, userParams):
 		params = {
 			"REQUEST": "doQuery",
-			"LANG": self.lang,
-			"QUERY": self.query}
+			"LANG": lang,
+			"QUERY": query}
 		for k,v in userParams.iteritems():
 			params[k] = str(v)
 		response = request(self.destHost, self.destPath, params,
@@ -425,7 +467,6 @@ class ADQLTAPJob(_WithEndpoint):
 		try:
 			self.jobId = urlparse.urlsplit(
 				response.getheader("location", "")).path.split("/")[-1]
-			self.jobPath = "%s/%s"%(self.destPath, self.jobId)
 		except ValueError:
 			raise utils.logOldExc(
 				ProtocolError("Job creation returned invalid job id"))
@@ -521,6 +562,12 @@ class ADQLTAPJob(_WithEndpoint):
 		return _parseWith(parser, response.data)
 
 	@property
+	def info(self):
+		"""returns a dictionary of much job-related information.
+		"""
+		return self._queryJobResource("", _InfoParser())
+
+	@property
 	def phase(self):
 		"""returns the phase the job is in according to the server.
 		"""
@@ -558,7 +605,15 @@ class ADQLTAPJob(_WithEndpoint):
 	def allResults(self):
 		"""returns a list of UWSResult instances.
 		"""
-		return self._queryJobResource("/results", ResultsParser())
+		return self._queryJobResource("/results", _ResultsParser())
+
+	def getResultURL(self, simple=True):
+		"""returns the URL of the ADQL result table.
+		"""
+		if simple:
+			return self.makeJobURL("/results/result")
+		else:
+			return self.allResults[0].href
 
 	def openResult(self, simple=True):
 		"""returns a file-like object you can read the default TAP result off.
@@ -570,11 +625,7 @@ class ADQLTAPJob(_WithEndpoint):
 		service's result list (the first one given there).  Otherwise (the
 		default), results/result is used.
 		"""
-		if simple:
-			resURL = self.makeJobURL("/results/result")
-		else:
-			resURL = self.allResults[0].href
-		return urllib.urlopen(resURL)
+		return urllib.urlopen(self.getResultURL())
 
 	def setParameter(self, key, value):
 		request(self.destHost, self.jobPath+"/parameters",

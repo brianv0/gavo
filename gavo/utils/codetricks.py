@@ -188,6 +188,14 @@ def iterDerivedClasses(baseClass, objects):
 			pass
 
 
+def iterDerivedObjects(baseClass, objects):
+	"""iterates over all instances of baseClass in the sequence objects.
+	"""
+	for cand in objects:
+		if isinstance(cand, baseClass):
+			yield cand
+
+
 def buildClassResolver(baseClass, objects, instances=False,
 		key=lambda obj: getattr(obj, "name", None), default=None):
 	"""returns a function resolving classes deriving from baseClass

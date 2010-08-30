@@ -14,12 +14,11 @@ install_requires = []
 
 setup(name="gavodachs",
 	description="ZAH GAVO data center complete package",
-	url="http://www.g-vo.org",
+	url="http://vo.ari.uni-heidelberg.de/soft",
 	license="GPL",
 	author="Markus Demleitner",
 	author_email="gavo@ari.uni-heidelberg.de",
 	packages=find_packages(),
-	py_modules=["ez_setup"],
 	# Really, I think we should be zip_safe, but there's a weird output requriring investigation
 	zip_safe=False,
 	include_package_data = True,
