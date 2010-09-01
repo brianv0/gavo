@@ -180,10 +180,16 @@ function expandMeta(box) {
 	parent.style.width = expandedMetaWidth;
 }
 
-function followEmbeddedLink(element) {
-// forwards the browser to the first child's href.
+function followEmbeddedLink(parent) {
+// forwards the browser to the href of the first child that has one.
 // this is for the button-type decoration around links.
-	window.location = element.firstChild.href;
+	for (index in parent.childNodes) {
+		child = parent.childNodes[index];
+		if (child.href) {
+			window.location = child.href;
+			break;
+		}
+	}
 }
 
 ///////////// Functions dealing with the output format widget
