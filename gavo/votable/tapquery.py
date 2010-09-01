@@ -4,6 +4,7 @@ An interface to querying TAP servers (i.e., a TAP client).
 
 import datetime
 import httplib
+import socket
 import time
 import traceback
 import urllib
@@ -81,6 +82,11 @@ class RemoteAbort(Error):
 	
 	def __str__(self):
 		return "The remote side has aborted the job"
+
+
+class NetworkError(Error):
+	"""is raised when a generic network error happens (can't connect,...)
+	"""
 
 
 class _FormData(MIMEMultipart):
@@ -382,8 +388,12 @@ def request(host, path, data="", customHeaders={}, method="GET",
 			headers["Content-Type"] = form.get_content_type()+'; boundary="%s"'%(
 					form.get_boundary())
 	headers.update(customHeaders)
-	conn = httplib.HTTPConnection(host)
-	conn.request(method, path, data, headers)
+	try:
+		conn = httplib.HTTPConnection(host)
+		conn.request(method, path, data, headers)
+	except (socket.error, httplib.error), ex:
+		raise NetworkError("Problem connecting to %s (%s)"%
+			(host, str(ex)))
 	resp = conn.getresponse()
 	resp.data = resp.read()
 	conn.close()
