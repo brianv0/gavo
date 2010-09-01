@@ -393,9 +393,12 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		and the relevant field if not.
 		"""
 		for column in self:
-			if column.name not in row:
+			if column.key not in row:
 				raise base.ValidationError("Column %s missing"%column.name,
-					column.name, row)
+					column.name, row, hint="The table %s has a column named '%s',"
+					" but the input row %s does not give it.  This typically means"
+					" bad input or a rowmaker failing on some corner case."%(
+						self.id, column.name, row))
 			try:
 				column.validateValue(row[column.name])
 			except base.ValidationError, ex:
