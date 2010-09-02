@@ -490,6 +490,8 @@ class PathRelativeConfigItem(StringConfigItem):
 	_value = ""
 
 	def _getValue(self):
+		if self._value is None:
+			return None
 		if self._value.startswith("~"):
 			return os.environ.get("HOME", "/no_home")+self._value[1:]
 		if self.baseKey:

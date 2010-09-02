@@ -427,7 +427,7 @@ class _WithEndpoint(object):
 	"""A helper class for classes constructed with an ADQL endpoint.
 	"""
 	def _defineEndpoint(self, endpointURL):
-		self.endpointURL = endpointURL
+		self.endpointURL = endpointURL.rstrip("/")
 		parts = urlparse.urlsplit(self.endpointURL)
 		assert parts.scheme=="http"
 		self.destHost = parts.hostname
