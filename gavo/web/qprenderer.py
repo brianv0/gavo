@@ -3,12 +3,33 @@ A renderer that queries a single field in a service.
 """
 
 from nevow import inevow
+from nevow import rend
 from nevow import tags as T, entities as E
 from twisted.internet import defer
 
 from gavo import svcs
 from gavo.web import common
 from gavo.web import grend
+from gavo.web import streaming
+
+
+class VOTableResource(rend.Page):
+# A quick hack to support VOTable responses.  We should really build
+# on this and move the mess currently in resourcebased towards this.
+	def __init__(self, res):
+		rend.Page.__init__(self)
+		self.res = res
+	
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		if self.res.queryMeta.get("Overflow"):
+			fName = "truncated_votable.xml"
+		else:
+			fName = "votable.xml"
+		request.setHeader("content-type", "application/x-votable")
+		request.setHeader('content-disposition', 
+			'attachment; filename=%s'%fName)
+		return streaming.streamVOTable(request, self.res)
 
 
 class QPRenderer(grend.HTMLResultRenderMixin, 
@@ -40,6 +61,10 @@ class QPRenderer(grend.HTMLResultRenderMixin,
 			).addErrback(self._handleError, ctx)
 	
 	def _formatOutput(self, res, ctx):
+# XXX TODO: We need a sensible common output framework, and quick.
+# Then do away with the quick VOTable hack
+		if res.queryMeta["format"]=="VOTable":
+			return VOTableResource(res)
 		nMatched = res.queryMeta.get("Matched", 0)
 		if nMatched==0:
 			raise svcs.UnknownURI("No record matching %s."%(

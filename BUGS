@@ -193,7 +193,7 @@
 49/MEDIUM/2010-09-02
 	No notes on service info pages
 
-50/HIGH/2010-09-02
+50/HIGH/2010-09-02/FIXED
 	select ab || 'cd' from x doesn't parse in adql (valueExpression needs 
 	to reconsider if numericValueExpression parses but bad things happen
 	downstring).
