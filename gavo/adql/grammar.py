@@ -17,31 +17,31 @@ include:
 Trouble that table_reference is left-recursive in the following rules.
 
   <table_reference> ::=
-     <table_name> [ <correlation_specification> ]
+	 <table_name> [ <correlation_specification> ]
    | <derived_table> <correlation_specification>
    | <joined_table>
 
   <joined_table> ::=
-      <qualified_join>
-    | <left_paren> <joined_table> <right_paren>
+	  <qualified_join>
+	| <left_paren> <joined_table> <right_paren>
 
   <qualified_join> ::=
-      <table_reference> [ NATURAL ] [ <join_type> ] JOIN
-      <table_reference> [ <join_specification> ]
+	  <table_reference> [ NATURAL ] [ <join_type> ] JOIN
+	  <table_reference> [ <join_specification> ]
 
 We fix this by adding rules
 
 	<sub_join> ::= '(' <joinedTable> ')'
   <join_opener> ::=
-     <table_name> [ <correlation_specification> ]
+	 <table_name> [ <correlation_specification> ]
    | <derived_table> <correlation_specification>
 	 | <sub_join>
 
 and then writing
 
   <qualified_join> ::=
-      <join_opener> [ NATURAL ] [ <join_type> ] JOIN
-      <table_reference> [ <join_specification> ]
+	  <join_opener> [ NATURAL ] [ <join_type> ] JOIN
+	  <table_reference> [ <join_specification> ]
 
 
 
@@ -117,11 +117,12 @@ characterPrimary production.
 """
 
 
-from pyparsing import Word, Literal, Optional, alphas, CaselessKeyword,\
-	ZeroOrMore, OneOrMore, SkipTo, srange, StringEnd, Or, MatchFirst,\
-	Suppress, Keyword, Forward, QuotedString, Group, printables, nums,\
-	CaselessLiteral, ParseException, Regex, sglQuotedString, alphanums,\
-	dblQuotedString, ParserElement, White, ParseSyntaxException
+from pyparsing import (Word, Literal, Optional, alphas, CaselessKeyword,
+	ZeroOrMore, OneOrMore, SkipTo, srange, StringEnd, Or, MatchFirst,
+	Suppress, Keyword, Forward, QuotedString, Group, printables, nums,
+	CaselessLiteral, ParseException, Regex, sglQuotedString, alphanums,
+	dblQuotedString, ParserElement, White, ParseSyntaxException,
+	ParseExpression)
 
 from gavo import utils
 from gavo import stc
@@ -180,16 +181,6 @@ allReservedWords = adqlReservedWords | sqlReservedWords
 userFunctionPrefix = "gavo_"
 
 
-def _failOnReservedWord(s, pos, toks):
-	"""raises a ParseException if toks[0] is a reserved word.
-
-	This is a parse action on identifiers and, given SQL's crazy grammar,
-	all-important for parsing.
-	"""
-	if toks and toks[0].upper() in allReservedWords:
-		raise ParseException(s, pos, "Reserved word not allowed here")
-
-
 def _makeQuotedName(s, p, t):
 # Parse action for delimitedIdentifer.  No longer necessary when we can
 # rely on working pyparsing QuotedString
@@ -205,6 +196,84 @@ def Args(pyparseSymbol):
 
 def _joinChildren(s, p, toks):
 	return " ".join(toks)
+
+
+class RegularIdentifier(Word):
+	"""regular identifiers are all C-style identifiers except reserved
+	words.
+
+	Filtering these in the parse action doesn't always work properly for
+	all versions of pyparsing, thus this special class.
+
+	reservedWords are assumed to be in upper case, but matching 
+	case-insensitively.
+	"""
+	def __init__(self, reservedWords):
+		self.reservedWords = reservedWords
+		super(RegularIdentifier, self).__init__(alphas+"_", alphanums+"_")
+
+	def parseImpl(self, instring, loc, doActions=True):
+		locNew, match = super(RegularIdentifier, self).parseImpl(instring,
+			loc, doActions)
+		if match.upper() in self.reservedWords:
+			raise ParseException(instring, loc, "Reserved word not allowed here")
+		return locNew, match
+
+
+class LongestMatch(ParseExpression):
+	"""pyparsing's Or, except that ParseFatalExceptions are still propagated.
+	"""
+	def __init__(self, exprs, savelist=False):
+		super(LongestMatch, self).__init__(exprs, savelist)
+		self.mayReturnEmpty = False
+		for e in self.exprs:
+			if e.mayReturnEmpty:
+				self.mayReturnEmpty = True
+				break
+
+	def parseImpl(self, instring, loc, doActions=True):
+		maxExcLoc = -1
+		maxMatchLoc = -1
+		maxException = None
+		for e in self.exprs:
+			try:
+				loc2 = e._parse(instring, loc, doActions=False)[0]
+			except ParseException, err:
+				if err.loc>maxExcLoc:
+					maxException = err
+					maxExcLoc = err.loc
+			except IndexError:
+				if len(instring)>maxExcLoc:
+					maxException = ParseException(
+						instring, len(instring), e.errmsg, self)
+					maxExcLoc = len(instring)
+			else:
+				if loc2>maxMatchLoc:
+					maxMatchLoc = loc2
+					maxMatchExp = e
+
+		if maxMatchLoc<0:
+			if maxException is not None:
+				raise maxException
+			else:
+				raise ParseException(instring, loc, 
+					"no defined alternatives to match", self)
+
+		return maxMatchExp._parse(instring, loc, doActions)
+
+	def __str__( self ):
+		if hasattr(self,"name"):
+			return self.name
+
+		if self.strRepr is None:
+			self.strRepr = "{" + " ^ ".join( [ _ustr(e) for e in self.exprs ] ) + "}"
+
+		return self.strRepr
+
+	def checkRecursion( self, parseElementList ):
+		subRecCheckList = parseElementList[:] + [ self ]
+		for e in self.exprs:
+			e.checkRecursion( subRecCheckList )
 
 
 def getADQLGrammarCopy():
@@ -239,11 +308,11 @@ def getADQLGrammarCopy():
 	sign = Literal("+") | "-"
 	signedInteger = Optional( sign ) + unsignedInteger 
 	signedInteger.setName("signed integer")
-	multOperator = Literal("*") | "/"
+	multOperator = Literal("*") | Literal("/")
+	addOperator =  Literal("+") | Literal("-")
 	notKeyword = CaselessKeyword("NOT")
 
-	regularIdentifier = Word(alphas+"_", alphanums+"_").addParseAction(
-		_failOnReservedWord)
+	regularIdentifier = RegularIdentifier(allReservedWords)
 	regularIdentifier.setName("identifier")
 # There's a bug with QuotedString in some versions of pyparsing.
 # So, don't use this:
@@ -302,9 +371,8 @@ def getADQLGrammarCopy():
 		| setFunctionSpecification | '(' + valueExpression + ')')
 	numericPrimary = numericValueFunction | valueExpressionPrimary 
 	factor = Optional( sign ) + numericPrimary
-	term = Forward()
-	term << (factor + ZeroOrMore( multOperator + factor ))
-	numericValueExpression << (term + ZeroOrMore( ( Literal("+") | "-" ) + term ))
+	term = (factor + ZeroOrMore( multOperator + factor ))
+	numericValueExpression << (term + ZeroOrMore( addOperator + term ))
 
 # geometry types and expressions
 	coordSys = Regex("(?i)'(?P<sys>%s)'"%"|".join(stc.TAP_SYSTEMS)
@@ -385,6 +453,7 @@ def getADQLGrammarCopy():
 			+ ',' + Args(numericValueExpression) + ')')
 	userDefinedFunctionParam = valueExpression
 	userDefinedFunctionName = Regex(userFunctionPrefix+"[A-Za-z_]+")
+	userDefinedFunctionName.setName("Name of locally defined function")
 	userDefinedFunction = ( userDefinedFunctionName("fName") + '(' +
 		Args(userDefinedFunctionParam) 
 		+ ZeroOrMore( "," + Args(userDefinedFunctionParam) ) 
@@ -396,8 +465,10 @@ def getADQLGrammarCopy():
 		userDefinedFunction)
 
 # toplevel value expression
-	valueExpression << (numericValueExpression | stringValueExpression |
-		geometryValueExpression)
+	valueExpression << LongestMatch([
+		numericValueExpression,
+		stringValueExpression,
+		geometryValueExpression])
 	derivedColumn = valueExpression("expr") + Optional( asClause )
 
 # parts of select clauses
@@ -560,6 +631,6 @@ if __name__=="__main__":
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
 	res = syms["statement"].parseString(
-			"select mag from %s"
+			"select point('QUARK', 1, 2) from spatial"
 			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

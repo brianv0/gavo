@@ -326,6 +326,10 @@ class NakedParseTest(_ADQLParsesTest):
 			"select x from a.b.c.d",
 		])
 
+	def testStringExpressionSelect(self):
+		self._assertParse([
+			"select m || 'ab' from q",])
+
 
 class FunctionsParseTest(_ADQLParsesTest):
 	"""tests for parsing of valid statements containing functions.

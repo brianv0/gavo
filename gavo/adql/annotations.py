@@ -241,7 +241,7 @@ class FieldInfosForQuery(FieldInfos):
 class AnnotationContext(object):
 	"""An context object for the annotation process.
 
-	It is constructed with a field info retriever function (see above)
+	It is constructed with a field info retriever function (see below)
 	and an equivalence policy for STC objects.
 
 	It has errors and warnings attributes consisting of user-exposable

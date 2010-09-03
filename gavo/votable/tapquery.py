@@ -365,7 +365,7 @@ def _canUseFormEncoding(params):
 
 
 def request(host, path, data="", customHeaders={}, method="GET",
-		expectedStatus=None):
+		expectedStatus=None, followRedirects=False):
 	"""returns a HTTPResponse object for an HTTP request to path on host.
 
 	This function builds a new connection for every request.
@@ -397,6 +397,13 @@ def request(host, path, data="", customHeaders={}, method="GET",
 	resp = conn.getresponse()
 	resp.data = resp.read()
 	conn.close()
+
+	if followRedirects and resp.status==303:
+		parts = urlparse.urlparse(resp.getheader("location"))
+		assert parts.scheme=="http"
+		return request(parts.netloc, parts.path+'?'+parts.query, 
+			data, customHeaders, method, expectedStatus)
+
 	if expectedStatus is not None:
 		if resp.status!=expectedStatus:
 			raise WrongStatus("Expected status %s, got status %s"%(
@@ -646,7 +653,7 @@ class ADQLTAPJob(_WithEndpoint):
 		"""returns the error message the server gives, verbatim.
 		"""
 		return request(self.destHost, self.jobPath+"/error",
-			expectedStatus=200).data
+			expectedStatus=200, followRedirects=True).data
 
 	def addUpload(self, name, data):
 		"""adds uploaded tables, either from a file or as a remote URL.

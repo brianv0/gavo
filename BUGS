@@ -189,3 +189,11 @@
 
 48/LOW/2010-08-26
 	taprender should return http 404 code rather than 400 for a NotFoundError
+
+49/MEDIUM/2010-09-02
+	No notes on service info pages
+
+50/HIGH/2010-09-02
+	select ab || 'cd' from x doesn't parse in adql (valueExpression needs 
+	to reconsider if numericValueExpression parses but bad things happen
+	downstring).
