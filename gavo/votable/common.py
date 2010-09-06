@@ -54,6 +54,7 @@ def escapeCDATA(val):
 def validateTDComplex(val):
 	re, im = map(float, val.split())
 
+
 def validateVOTInt(val):
 	"""raise an error if val is not a legal int for VOTables.
 	"""
@@ -61,3 +62,18 @@ def validateVOTInt(val):
 		int(val)
 	except ValueError:
 		int(val[2:], 16)
+
+
+def iterflattened(arr):
+	"""iterates over all "atomic" values in arr.
+
+	"atomic" means "not list, not tuple".
+
+	TODO: Check if this sequence is compatible with VOTable spec (as it is)
+	"""
+	for val in arr:
+		if isinstance(val, (list, tuple)):
+			for subval in val:
+				yield subval
+		else:
+			yield val

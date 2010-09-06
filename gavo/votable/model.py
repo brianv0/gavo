@@ -69,6 +69,9 @@ class VOTable(object):
 		def isScalar(self):
 			return self.arraysize is None or self.arraysize=='1'
 
+		def isMultiDim(self):
+			return self.arraysize is not None and "x" in self.arraysize
+
 		def hasVarLength(self):
 			return self.arraysize and self.arraysize.endswith("*")
 
@@ -80,7 +83,7 @@ class VOTable(object):
 				return 1
 			if self.arraysize.endswith("*"):
 				return None
-			elif "x" in self.arraysize: # multidimensional, my ass.
+			elif self.isMultiDim():
 				return reduce(lambda a, b: a*b, map(int, self.arraysize.split("x")))
 			else:
 				return int(self.arraysize)

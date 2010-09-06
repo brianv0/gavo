@@ -405,7 +405,7 @@ class BinaryWriteTest(testhelpers.VerboseTest):
 			"\x00\x00\x00\x00"
 			"\x00\x00\x00\x01\x01"
 			"\x00\x00\x00\x03\x00\x01\x02"
-		), (
+		), ( # 15
 			[V.FIELD(datatype="unsignedByte", arraysize="2")[V.VALUES(null="255")]],
 			[[[]], [[1]], [[0, 1, 2]]],
 			"\xff\xff"
@@ -429,7 +429,7 @@ class BinaryWriteTest(testhelpers.VerboseTest):
 			[V.FIELD(datatype="unicodeChar", arraysize="2")],
 			[[u"\u00e4bc"], [u"\u00e4"]],
 			'\x00\xe4\x00b\x00\xe4\x00 '
-		), (
+		), ( #20
 			[V.FIELD(datatype="short", arraysize="3x2")],
 			[[[1,2,3,4,5,6]]],
 			'\x00\x01\x00\x02\x00\x03\x00\x04\x00\x05\x00\x06'
@@ -601,6 +601,23 @@ class WeirdTablesTest(testhelpers.VerboseTest):
 		self.assertRaisesWithMsg(votable.VOTableParseError, 
 			"no element found: line 1, column 9", list, it)
 
+
+class StringArrayTest(testhelpers.VerboseTest):
+	"""tests for the extra-special case of 2+D char arrays.
+	"""
+	def _get2DTable(self, enc):
+		return V.VOTABLE[V.RESOURCE[votable.DelayedTable(
+			V.TABLE[V.FIELD(name="test", datatype="char", arraysize="2x*")], 
+			[[("ab", "cd")]], enc)]]
+
+	def test2dTdencWrite(self):
+		self.failUnless("<TD>ab cd</TD>" in votable.asString(
+			self._get2DTable(V.TABLEDATA)))
+
+	def test2dBinaryWrite(self):
+		self.assertRaises(NotImplementedError,
+			lambda: votable.asString(self._get2DTable(V.BINARY)))
+		
 
 if __name__=="__main__":
 	testhelpers.main(BinaryReadTest)

@@ -197,3 +197,7 @@
 	select ab || 'cd' from x doesn't parse in adql (valueExpression needs 
 	to reconsider if numericValueExpression parses but bad things happen
 	downstring).
+
+51/MEDIUM/2010-09-06
+	N-dimensional arrays basically don't work in votable for N>1.  Even for
+	N=1, it's not pretty.

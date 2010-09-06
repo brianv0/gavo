@@ -131,4 +131,4 @@ def trim(seq, arraysize, padder):
 		seq = seq+padder*(arraysize-len(seq))
 	elif len(seq)>arraysize:
 		seq = seq[:arraysize]
-	return seq
+	return list(common.iterflattened(seq))

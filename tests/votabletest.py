@@ -272,7 +272,6 @@ class NastyImportTest(testhelpers.VerboseTest):
 			test, nameMaker=votableread.AutoQuotedNameMaker())
 
 
-
 class MetaTest(testhelpers.VerboseTest):
 	"""tests for inclusion of some meta items.
 	"""

@@ -80,9 +80,16 @@ def _makeIntEncoder(field):
 
 
 def _makeCharEncoder(field):
-	return _addNullvalueCode(field, [
-		"tokens.append(common.escapeCDATA(val))"],
-		lambda _: True)
+	if field.isMultiDim():
+		# 2+d char arrays are string arrays -- the serialization is insane
+		return _addNullvalueCode(field, [
+			"tokens.append(common.escapeCDATA(' '.join("
+			" s.replace(' ', '%20') for s in common.iterflattened(val))))"],
+			lambda _: True)
+	else:
+		return _addNullvalueCode(field, [
+			"tokens.append(common.escapeCDATA(val))"],
+			lambda _: True)
 
 
 _encoders = {
@@ -108,7 +115,7 @@ def _getArrayEncoderLines(field):
 	everything.
 
 	For fixed-length arrays we enforce the given length by
-	cropping or adding nulls (except, currently, for bit and char arrays.
+	cropping or adding nulls (except, currently, for bit and char arrays).
 	"""
 	type = field.datatype
 	# bit array literals are integers, real special handling
@@ -124,7 +131,7 @@ def _getArrayEncoderLines(field):
 		'tokens = []',
 		'arr = val'])
 
-	src.extend(['for val in arr:']+coding.indentList(
+	src.extend(['for val in common.iterflattened(arr):']+coding.indentList(
 		_encoders[type](field), "  "))
 	src.append("fullTokens.append(' '.join(tokens))")
 	src.append("tokens = fullTokens")

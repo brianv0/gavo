@@ -140,6 +140,35 @@ def _makeUnicodeCharEncoder(field):
 		"tokens.append(struct.pack('%ds'%len(coded), coded))"])
 
 
+def _makeCharArrayEncoder(field):
+# special handling for character arrays, since we don't want to treat
+# those as character arrays in python.
+	if field.isMultiDim():
+		# String arrays -- implement some other day
+		raise NotImplementedError("Cannot do string arrays yet.  Could you"
+			" help out?")
+
+	src = []
+	if field.hasVarLength():
+		src.append("tokens.append(struct.pack('!i', len(val)))")
+	else:
+		src.append("val = val[:%d]+' '*(%d-len(val))"%(
+			field.getLength(), field.getLength()))
+
+	if field.datatype=="char":
+		src.append(
+			"if isinstance(val, unicode): val = val.encode('iso-8859-1')")
+	else:
+		src.append("val = val.encode('utf-16be')")
+
+	src.append("tokens.append(struct.pack('%ds'%len(val), val))")
+
+	nullvalue = coding.getNullvalue(field, lambda _: True)
+	if nullvalue is not None:
+		nullvalue = repr(struct.pack("c", str(nullvalue)))
+	return _addNullvalueCode(field, nullvalue, src)
+
+
 _encoders = {
 		"boolean": _makeBooleanEncoder,
 		"bit": _makeBitEncoder,
@@ -164,39 +193,28 @@ def _getArrayEncoderLines(field):
 	if type=="bit":
 		return _makeBitEncoder(field)
 
+	if type=="char" or type=="unicodeChar":
+		return _makeCharArrayEncoder(field)
+
+
 	# Everything else can use some common array shaping code since value comes in
 	# some kind of sequence.
-	if type=="char":
-		# strings
-		padder = "' '"
-		src = [
-			"if isinstance(val, unicode): val = val.encode('iso-8859-1')",
-			"tokens.append(struct.pack('%ds'%len(val), str(val)))"]
+	padder = '[None]'
+	src = [ # Painful name juggling to avoid having to call functions.
+		"fullTokens = tokens",
+		"tokens = []",
+		"if val is None:",
+		"  arr = []",
+		"else:",
+		"  arr = val",
+		"for val in arr:"
+	]+coding.indentList(_encoders[field.datatype](field), "  ")
 
-	elif type=="unicodeChar":
-		padder = "' '"
-		src = [
-			"coded = val.encode('utf-16be')",
-			"tokens.append(struct.pack('%ds'%len(coded), coded))"]
-
-	else:  # everything else is just concatenating individual coded strings
-		padder = '[None]'
-		src = [ # Painful name juggling to avoid having to call functions.
-			"fullTokens = tokens",
-			"tokens = []",
-			"if val is None:",
-			"  arr = []",
-			"else:",
-			"  arr = val",
-			"for val in arr:"
-		]+coding.indentList(_encoders[field.datatype](field), "  ")
-
-		src.extend([
-			"fullTokens.append(''.join(tokens))",
-			"tokens = fullTokens"])
+	src.extend([
+		"fullTokens.append(''.join(tokens))",
+		"tokens = fullTokens"])
 			
 	return _getArrayShapingCode(field, padder)+src
-			
 			
 
 def getLinesFor(field):
