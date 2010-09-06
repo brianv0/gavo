@@ -192,6 +192,7 @@ def _runTAPJob(parameters, jobId, queryProfile, timeout):
 	tdsForUploads = _ingestUploads(parameters.get("UPLOAD", ""), 
 		connectionForQuery)
 
+	logging.info("taprunner executing %s"%query)
 	res = runTAPQuery(query, timeout, connectionForQuery,
 		tdsForUploads, maxrec)
 	with tap.TAPJob.makeFromId(jobId) as job:
@@ -235,11 +236,11 @@ def setINTHandler(jobId):
 
 	def handler(signo, frame):
 		# Let's be reckless for now and kill from the signal handler.
-		logging.info("Runner for job %s received SIGINT, wpid %s"%(
-			jobId, _WORKER_PID))
 		with tap.TAPJob.makeFromId(jobId) as job:
 			job.phase = uws.ABORTED
 			if _WORKER_PID:
+				logging.info("Trying to abort %s, wpid %s"%(
+					jobId, _WORKER_PID))
 				killConn = base.getDBConnection("admin")
 				curs = killConn.cursor()
 				curs.execute("SELECT pg_cancel_backend(%d)"%_WORKER_PID)
@@ -295,14 +296,14 @@ def main():
 		# this will race since potentially many tap runners log to the
 		# same file, but the logs are only for emergencies anyway.
 		logging.getLogger("").addHandler(logHandler)
-		logging.getLogger("").setLevel(logging.DEBUG)
-		logging.info("taprunner for %s started"%jobId)
+		logging.getLogger("").setLevel(logging.INFO)
+		logging.debug("taprunner for %s started"%jobId)
 	except: # don't die just because logging fails
 		traceback.print_exc()
 
 	try:
 		_runInThread(lambda: runTAPJob(jobId))
-		logging.info("taprunner for %s finished"%jobId)
+		logging.debug("taprunner for %s finished"%jobId)
 	except SystemExit:
 		pass
 	except uws.JobNotFound: # someone destroyed the job before I was done

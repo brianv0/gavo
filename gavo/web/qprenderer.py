@@ -90,6 +90,8 @@ class QPRenderer(grend.HTMLResultRenderMixin,
 		return self, ()
 
 	def getTemplate(self, resultFormat):
+		if resultFormat in self.service.templates:
+			return self.service.templates[resultFormat]
 		return common.doctypedStan(
 			T.html[
 				T.head(render=T.directive("commonhead"))[
