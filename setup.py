@@ -12,20 +12,24 @@ install_requires = []
 # -- but we don't, since in practice it seems it's more trouble than it's
 # worth.
 
-setup(name="gavodachs",
-	description="ZAH GAVO data center complete package",
-	url="http://vo.ari.uni-heidelberg.de/soft",
-	license="GPL",
-	author="Markus Demleitner",
-	author_email="gavo@ari.uni-heidelberg.de",
-	packages=find_packages(),
+SETUP_ARGS = {
+	"name": "gavodachs",
+	"description": "ZAH GAVO data center complete package",
+	"url": "http://vo.ari.uni-heidelberg.de/soft",
+	"license": "GPL",
+	"author": "Markus Demleitner",
+	"author_email": "gavo@ari.uni-heidelberg.de",
+	"packages": find_packages(),
 	# Really, I think we should be zip_safe, but there's a weird output requriring investigation
-	zip_safe=False,
-	include_package_data = True,
-	install_requires=install_requires,
-	entry_points={
+	"zip_safe": False,
+	"include_package_data":  True,
+	"install_requires": install_requires,
+	"entry_points": {
 		'console_scripts': [
 			'gavo = gavo.user.cli:main',
 		]
 	},
-	version="0.60")
+	"version": "0.60",
+}
+
+setup(**SETUP_ARGS)
