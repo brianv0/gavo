@@ -32,4 +32,5 @@ SETUP_ARGS = {
 	"version": "0.60",
 }
 
-setup(**SETUP_ARGS)
+if __name__=="__main__":
+	setup(**SETUP_ARGS)
