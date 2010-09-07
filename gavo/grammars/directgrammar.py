@@ -13,6 +13,7 @@ import os
 import pkg_resources
 import re
 import shutil
+import subprocess
 
 from gavo import base
 from gavo import utils
@@ -80,7 +81,7 @@ class CBooster:
 		f.close()
 	
 	def _build(self):
-		if os.system("make"):
+		if subprocess.call("make"):
 			raise Error("Booster build failed")
 	
 	def _retrieveBinary(self, od):

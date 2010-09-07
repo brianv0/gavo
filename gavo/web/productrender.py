@@ -4,7 +4,7 @@ Code dealing with product (i.e., fits file) delivery.
 
 import cStringIO
 import datetime
-import md5
+import hashlib
 import os
 import subprocess
 import tempfile
@@ -67,7 +67,7 @@ class PreviewCacheManager(object):
 
 	@classmethod
 	def getCacheName(cls, args):
-		return os.path.join(cls.cachePath, md5.new(str(args)).hexdigest())
+		return os.path.join(cls.cachePath, hashlib.md5(str(args)).hexdigest())
 
 	@classmethod
 	def saveToCache(self, data, cacheName):

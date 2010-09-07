@@ -5,7 +5,6 @@ trivial.
 
 import cgi
 import datetime
-import md5
 import os
 import subprocess
 import urllib

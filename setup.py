@@ -28,4 +28,4 @@ setup(name="gavodachs",
 			'gavo = gavo.user.cli:main',
 		]
 	},
-	version="0.5")
+	version="0.60")
