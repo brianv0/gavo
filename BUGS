@@ -201,3 +201,8 @@
 51/MEDIUM/2010-09-06
 	N-dimensional arrays basically don't work in votable for N>1.  Even for
 	N=1, it's not pretty.
+
+52/LOW/2010-09-09
+	The argparse framework in user (used, e.g., in gavo admin) requires
+	subcommands to be spelt out.  So, you can say gavo ad listusers but
+	not gavo ad listu.

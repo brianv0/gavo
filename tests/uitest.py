@@ -90,7 +90,6 @@ class CLITest(testhelpers.VerboseTest):
 			expectedStderr=
 				lambda msg: msg.startswith("No match for function xyloph"))
 
-
 	def testSubCmdHelp(self):
 		self.assertOutput(cli.main, argList=["publish", "--help"], 
 			expectedStdout=lambda msg: "gavo publish [options] {<rd-name>}" in msg)

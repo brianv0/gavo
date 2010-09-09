@@ -18,12 +18,12 @@ import textwrap
 import traceback
 from contextlib import contextmanager
 
+from gavo.user import common
 
 functions = [
 	("admin", ("user.admin", "main")),
 	("adql", ("protocols.adqlglue", "localquery")),
 	("config", ("base.config", "main")),
-	("credentials", ("protocols.creds", "main")),
 	("drop", ("user.dropping", "main")),
 	("gendoc", ("user.docgen", "main")),
 	("import", ("user.importing", "main")),
@@ -84,27 +84,6 @@ def _progressText(opts):
 		yield None
 
 
-def _getMatchingFunction(funcSelector, parser):
-	"""returns the module name and a funciton name within the module for
-	the function selector funcSelector.
-
-	The function will exit if funcSelector is not a unique prefix within
-	functions.
-	"""
-	matches = []
-	for key, res in functions:
-		if key.startswith(funcSelector):
-			matches.append(res)
-	if len(matches)==1:
-		return matches[0]
-	if matches:
-		sys.stderr.write("Multiple matches for function %s.\n\n"%funcSelector)
-	else:
-		sys.stderr.write("No match for function %s.\n\n"%funcSelector)
-	parser.print_help(file=sys.stderr)
-	sys.exit(1)
-
-
 def _enableDebug(*args):
 	from gavo import base
 	base.DEBUG = True
@@ -147,7 +126,7 @@ def _parseCLArgs():
 		parser.print_help()
 		sys.exit(2)
 
-	module, funcName = _getMatchingFunction(args[0], parser)
+	module, funcName = common.getMatchingFunction(args[0], functions, parser)
 	parser.destroy()
 	args[0] = "gavo "+args[0]
 	sys.argv = args

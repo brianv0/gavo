@@ -4,8 +4,8 @@ Common functionality for the DC user interface.
 This module contains, in partiular, the interface for having "easy subcommands"
 using argparse.  The idea is to use the exposedFunction decorator on functions
 that should be callable from the command line as subcommands; the functions
-only take a single argument, the stuff returned from argparse.  Then, say
-in the module containing them,
+must all have the same signature. For example, if they all took the stuff
+returned by argparse, you could say in the module containing them,
 
 	args = _makeParser(globals()).parse_args()
 	args.subAction(args)
@@ -14,6 +14,7 @@ To specify the command line arguments to the function, use Args.  See
 admin.py for an example.
 """
 
+import sys
 
 from gavo.imp import argparse
 
@@ -66,3 +67,25 @@ def makeParser(functions):
 				arg.add(subForName)
 			subForName.set_defaults(subAction=val)
 	return parser
+
+
+def getMatchingFunction(funcSelector, functions, parser):
+	"""returns the module name and a funciton name within the module for
+	the function selector funcSelector.
+
+	The function will exit if funcSelector is not a unique prefix within
+	functions.
+	"""
+	matches = []
+	for key, res in functions:
+		if key.startswith(funcSelector):
+			matches.append(res)
+	if len(matches)==1:
+		return matches[0]
+	if matches:
+		sys.stderr.write("Multiple matches for function %s.\n\n"%funcSelector)
+	else:
+		sys.stderr.write("No match for function %s.\n\n"%funcSelector)
+	parser.print_help(file=sys.stderr)
+	sys.exit(1)
+
