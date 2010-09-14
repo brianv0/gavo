@@ -561,7 +561,7 @@ class ADQLTAPJob(_WithEndpoint):
 		self.waitForPhases(set([COMPLETED, ABORTED, ERROR]))
 		self.raiseIfError()
 
-	executionduration = property(
+	executionDuration = property(
 		_makeAtomicValueGetter("/executionduration", _makeFlatParser(float)),
 		_makeAtomicValueSetter("/executionduration", str, "EXECUTIONDURATION"))
 
