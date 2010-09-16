@@ -6,27 +6,31 @@ The basic idea is: open(...) -> (table, metadata),
 where table is a numpy array.
 """
 
-import numpy
-from numpy import rec
+try:
+	import numpy
+	from numpy import rec
+
+	# map from VOTable datatypes to numpy type designators:
+	numpyType = {
+		"short": numpy.int16,
+		"int": numpy.int32,
+		"long": numpy.int64,
+		"float": numpy.float32,
+		"double": numpy.float64,
+		"boolean": numpy.bool,
+		"char": str,
+		"floatComplex": numpy.complex64,
+		"doubleComplex": numpy.complex128,
+		"unsignedByte": numpy.uint8,
+		"unicodeChar": numpy.unicode_
+	}
+except ImportError:
+	# keep numpy optional
+	pass
 
 from gavo.votable import parser
 from gavo.votable.model import VOTable as V
 
-
-# map from VOTable datatypes to numpy type designators:
-numpyType = {
-	"short": numpy.int16,
-	"int": numpy.int32,
-	"long": numpy.int64,
-	"float": numpy.float32,
-	"double": numpy.float64,
-	"boolean": numpy.bool,
-	"char": str,
-	"floatComplex": numpy.complex64,
-	"doubleComplex": numpy.complex128,
-	"unsignedByte": numpy.uint8,
-	"unicodeChar": numpy.unicode_
-}
 
 
 class TableMetadata(object):

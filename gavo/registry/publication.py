@@ -10,6 +10,8 @@ import time
 import traceback
 import warnings
 
+import pkg_resources
+
 from gavo import base
 from gavo import grammars
 from gavo import rsc
@@ -178,15 +180,20 @@ def importFixed():
 ################ UI stuff
 
 def findAllRDs():
-	"""returns all RDs in inputsDir.
-
-	System RDs are not returned.
+	"""returns ids of all RDs (inputs and built-in) known to the system.
 	"""
 	rds = []
-	for dir, dirs, files in os.walk(base.getConfig("inputsDir")):
+	inputsDir = base.getConfig("inputsDir")
+	for dir, dirs, files in os.walk(inputsDir):
 		for file in files:
 			if file.endswith(".rd"):
-				rds.append(os.path.join(dir, file))
+				rds.append(os.path.splitext(
+					utils.getRelativePath(os.path.join(dir, file), inputsDir))[0])
+	for name in pkg_resources.resource_listdir('gavo', 
+			"resources/inputs/__system__"):
+		if name.startswith("."):  # ignore VCS files (and possibly others:-)
+			continue
+		rds.append(os.path.splitext("__system__/%s"%name)[0])
 	return rds
 
 
@@ -238,7 +245,7 @@ def main():
 	opts, args = parseCommandLine()
 	getServicesRD().touchTimestamp()
 	if opts.all:
-		args = findAllRDs()+["__system__/services.rd", "__system__/adql.rd"]
+		args = findAllRDs()
 	updateServiceList(getRDs(args), metaToo=opts.meta)
 	if opts.all or opts.doFixed:  # also import fixed registry records
 		importFixed()

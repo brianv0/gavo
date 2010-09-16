@@ -67,9 +67,8 @@ subpkgs = {
 		"name":"gavoutils",
 		"description": "DaCHS basic helper modules.",
 		"packages": ["gavo", "gavo.utils"],
-		"install_requires": ["pyfits", "numpy"],
-		"dependency_links": ["http://vo.ari.uni-heidelberg.de/soft/dist",
-			"http://www.stsci.edu/resources/software_hardware/pyfits/Download"],
+		"install_requires": [],
+		"dependency_links": [],
 		"MAIN_TREE_FILES": ["gavo/utils", "gavo/__init__.py"],
 		"DEBIAN_NAME": "python-gavoutils",
 	},
@@ -78,7 +77,7 @@ subpkgs = {
 		"name": "gavostc",
 		"description": "A library for processing IVOA STC information",
 		"packages": ["gavo", "gavo.stc"],
-		"install_requires": ["gavoutils"],
+		"install_requires": ["gavoutils", "pyparsing"],
 		"dependency_links": ["http://vo.ari.uni-heidelberg.de/soft/dist"],
 		"MAIN_TREE_FILES": [
 			"tests/"+n for n in os.listdir("../tests") if n.startswith("stc")]
@@ -188,7 +187,7 @@ def copyTreeFiles(destDir, treeFiles):
 
 	The function returns MANIFEST.in statements for all items copied.
 	"""
-	manifestItems = ["include ez_setup.py"]
+	manifestItems = []
 	for path in itertools.chain(baseFiles, treeFiles):
 		src = os.path.join("..", path)
 		if os.path.isdir(src):
