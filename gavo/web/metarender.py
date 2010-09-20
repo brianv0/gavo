@@ -314,16 +314,17 @@ class TableInfoRenderer(MetaRenderer):
 		return ctx.tag["Table information for '%s'"%self.tableName]
 	
 	def render_rdmeta(self, ctx, data):
+		# rdmeta: Meta info at the table's rd (since there's ownmeta)
 		metaKey = ctx.tag.children[0]
 		ctx.tag.clear()
-		htmlBuilder = common.HTMLMetaBuilder(self.rd)
+		htmlBuilder = common.HTMLMetaBuilder(self.describingRD)
 		try:
-			return ctx.tag[T.xml(self.rd.buildRepr(metaKey, htmlBuilder))]
+			return ctx.tag[T.xml(self.describingRD.buildRepr(metaKey, htmlBuilder))]
 		except base.NoMetaKey:
 			return ""
 
 	def render_ifrdmeta(self, metaName):
-		if self.table.rd.getMeta(metaName, propagate=False):
+		if self.describingRD.getMeta(metaName, propagate=False):
 			return lambda ctx, data: ctx.tag
 		else:
 			return lambda ctx, data: ""
