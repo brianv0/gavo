@@ -211,6 +211,10 @@ class ToVOTableConverter(FromSQLConverter):
 		"vexpr-float": ("double", "1"),
 		"raw": ("unsignedByte", "*"),
 		"bytea": ("unsignedByte", "1"),
+		"spoint": ("char", "*"),  # client code would need to deal with xtype.
+		"scircle": ("char", "*"),
+		"sbox": ("char", "*"),
+		"spoly": ("char", "*"),
 	}
 
 	def mapComplex(self, type, length):
@@ -334,7 +338,7 @@ class ToADQLConverter(FromSQLConverter):
 		"box": ("VARCHAR(*)", None),
 		"spoint": ("VARCHAR(*)", None),
 		"scircle": ("VARCHAR(*)", None),
-		"spolygon": ("VARCHAR(*)", None),
+		"spoly": ("VARCHAR(*)", None),
 		"bytea": ("BINARY", None),
 	}
 

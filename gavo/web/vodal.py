@@ -297,7 +297,8 @@ class RegistryRenderer(grend.ServiceBasedRenderer):
 			code = code[0].lower()+code[1:]
 			message = str(exception)
 		else:
-			raise exception
+			code = "badArgument" # Why the hell don't they have a serverError?
+			message = "Internal Error: "+str(exception)
 		return ElementTree.ElementTree(OAI.PMH[
 			OAI.responseDate[datetime.datetime.now().strftime(
 				utils.isoTimestampFmt)],
