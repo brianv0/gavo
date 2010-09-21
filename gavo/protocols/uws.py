@@ -471,7 +471,10 @@ class UWSJob(object):
 # When and if we make error behaviour overrideable, this actually
 # makes sense as a user-exposed method.
 		with open(os.path.join(self.getWD(), "__EXCEPTION__"), "w") as f:
-			pickle.dump(exception, f)
+			try:
+				pickle.dump(exception, f)
+			except TypeError: # something in the exc cannot be pickled, use a String
+				pickle.dump(Exception(str(exception)), f)
 	
 	def getError(self):
 		"""returns an exception object previously set by setError.

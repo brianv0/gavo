@@ -327,7 +327,7 @@ class GzHeaderManipulator(PlainHeaderManipulator):
 	def __init__(self, fName, compressLevel=5):
 		self.origFile = fName
 		handle, self.uncompressedName = tempfile.mkstemp(
-			suffix="fits", dir=base.getConfig("tempDir"))
+			suffix="fits")
 		destFile = os.fdopen(handle, "w")
 		destFile.write(gzip.open(fName).read())
 		destFile.close()
