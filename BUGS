@@ -12,7 +12,7 @@
 	gavoimp should have some functionality to delete everything described
 	by an RD [gavodrop does this]
 
-4/MEDIUM/2009-01-24
+4/MEDIUM/2009-01-24/FIXED
 	Remove imageFormat column in SIAP mixin and take the data from
 	product's mime.
 

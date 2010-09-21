@@ -97,6 +97,17 @@ class CompoundTest(testhelpers.VerboseTest):
 		self.assert_(m.getMeta("creator").getMeta("name") is
 			m.getMeta("creator.name"))
 
+	def testDoubleChildren(self):
+		m = base.MetaMixin()
+		m.addMeta("testQuery.pos.ra", "340")
+		m.addMeta("testQuery.pos.dec", "3")
+		m.addMeta("testQuery.size.ra", "0.5")
+		m.addMeta("testQuery.size.dec", "1")
+		self.assertEqual(str(m.getMeta("testQuery.pos.ra")), "340")
+		self.assertEqual(str(m.getMeta("testQuery.pos.dec")), "3")
+		self.assertEqual(str(m.getMeta("testQuery.size.dec")), "1")
+		self.assertEqual(str(m.getMeta("testQuery.size.ra")), "0.5")
+
 
 class SequenceTest(testhelpers.VerboseTest):
 	"""tests for correct buildup of sequence-like meta items.

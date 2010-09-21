@@ -281,8 +281,8 @@ class MetaMixin(object):
 		if primary in self.meta_:
 			self.meta_[primary]._addMeta(atoms[1:], metaValue)
 		else:
-			self.meta_[primary] = MetaItem.fromAtoms(atoms[1:], metaValue,
-				primary)
+			self.meta_[primary] = MetaItem.fromAtoms(
+				atoms[1:], metaValue, primary)
 
 	def addMeta(self, key, metaValue):
 		"""adds metaItem to self under key.
@@ -592,7 +592,7 @@ class MetaValue(MetaMixin):
 
 			# Case 3.2: metaItem is on a branch that needs yet to be created.
 			else:
-				self._setForAtom(primary, MetaItem.fromAtoms(atoms, 
+				self._setForAtom(primary, MetaItem.fromAtoms(atoms[1:], 
 					metaValue, primary))
 
 	def copy(self):
@@ -787,6 +787,17 @@ _typesForKeys = {
 	"source": "bibcodes",
 	"note": "note",
 }
+
+
+def printMetaTree(metaContainer, curKey=""):
+	#for debugging
+	md = metaContainer.meta_
+	for childName in md:
+		childKey = curKey+"."+childName
+		print childKey
+		for item in md[childName]:
+			printMetaTree(item, childKey)
+
 
 def makeMetaValue(value="", **kwargs):
 	"""returns a MetaValue instance depending on kwargs.
