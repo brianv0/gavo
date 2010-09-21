@@ -141,7 +141,7 @@
 			vars[destination] = map.resolve(str(value))
 		except KeyError:
 			if logFailures:
-				sys.stderr.write("Name %s could not be mapped\n"%value)
+				base.ui.notifyWarning("Name %s could not be mapped\n"%value)
 			if failuresAreNone:
 				vars[destination] = None
 			else:

@@ -10,13 +10,13 @@ machinery -->
 	that have tables implementing products -->
 	<table id="products" primary="key" system="True" onDisk="True">
 		<column name="key" type="text" tablehead="Product key"
-			description="System-globally unique key identifying the product"
-			verbLevel="1"/>
+			description="Access key for the data"
+			verbLevel="1" displayHint="type=product"/>
 		<column name="owner" type="text" tablehead="Owner"
-			verbLevel="21" description="Owner of the data as an interface group"/>
+			verbLevel="25" description="Owner of the data"/>
 		<column name="embargo" type="date" tablehead="Embargo ends" 
-			verbLevel="21" description=
-			"Date on which the data becomes or became freely accessible"/>
+			verbLevel="25" unit="Y-M-D" description=
+			"Date the data will become/became public"/>
 		<column name="accessPath" type="text" tablehead="Path to access data" 
 			required="True" verbLevel="5" 
 			description="Inputs-relative filesystem path to the file"/>
@@ -38,16 +38,11 @@ machinery -->
 	</rowmaker>
 
 	<!-- material for tables mixing in products -->
-	<table id="productColumns">
-		<column name="accref" ucd="VOX:Image_AccessReference"
-			type="text" verbLevel="1" displayHint="type=product" 
-			tablehead="Product" description="Access key for the data"/>
-		<column name="owner" type="text"
-			tablehead="Product owner" verbLevel="25"
-			description="Data owner"/>
-		<column name="embargo" type="date"
-			tablehead="Embargo ends" unit="Y-M-D" verbLevel="25"
-			description="Date the data will become/became public"/>
+	<table id="productColumns" namePath="products">
+		<column original="key" name="accref"/>
+		<column original="owner"/>
+		<column original="embargo"/>
+		<column original="mime"/>
 		<column name="accsize" ucd="VOX:Image_FileSize"
 			tablehead="File size" description="Size of the data in bytes"
 			type="integer" verbLevel="11" unit="byte"/>
@@ -89,6 +84,7 @@ machinery -->
 		<map dest="owner" src="prodtblOwner"/>
 		<map dest="embargo" src="prodtblEmbargo"/>
 		<map dest="accsize" src="prodtblFsize"/>
+		<map dest="mime" src="prodtblMime"/>
 	</rowmaker>
 
 	<table id="pCoreInput" namePath="products">

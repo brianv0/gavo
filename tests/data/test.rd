@@ -253,6 +253,7 @@
         <bind key="owner">"test"</bind>
         <bind key="embargo">row["embargo"]</bind>
         <bind key="table">"test.prodtest"</bind>
+        <bind key="mime">"text/plain"</bind>
 			</rowfilter>
 		</keyValueGrammar>
 		<rowmaker id="pi_rmk" original="prodrowbase"/>

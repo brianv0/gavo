@@ -35,9 +35,6 @@
 			type="real[]" verbLevel="12" tablehead="Scales"
 			description="The pixel scale on each image axis"
 			unit="deg/pix"/>
-		<column name="imageFormat"  type="text"
-			ucd="VOX:Image_Format" verbLevel="20"
-			description="Format the data is delivered in"/>
 		<column name="refFrame"  type="text"
 			ucd="VOX:STC_CoordRefFrame" verbLevel="20"
 			tablehead="Ref. Frame" 
@@ -119,7 +116,7 @@
 				from gavo.protocols import siap
 
 				wcskeys = ["centerAlpha", "centerDelta",
-					"nAxes",  "pixelSize", "pixelScale", "imageFormat", "wcs_projection",
+					"nAxes",  "pixelSize", "pixelScale", "wcs_projection",
 					"wcs_refPixel", "wcs_refValues", "wcs_cdmatrix", "wcs_equinox"]
 
 				class PixelGauge(object):
@@ -152,7 +149,7 @@
 					"""adds the "simple" WCS kes from the wcstools instance wcs to
 					the record result.
 					"""
-					result["imageFormat"] = "image/fits"
+					result["mime"] = "image/fits"
 					result["centerAlpha"], result["centerDelta"
 						] = coords.getCenterFromWCSFields(wcs)
 					result["nAxes"] = int(vars["NAXIS"])
@@ -174,7 +171,7 @@
 					result["wcs_cdmatrix"] = pixelGauge.cds[0]+pixelGauge.cds[1]
 					result["wcs_equinox"] = vars.get("EQUINOX", None)
 
-				def nullOutWCS(additionalKeys, result):
+				def nullOutWCS(result, additionalKeys):
 					"""clears all wcs fields, plus the ones in additonalKeys.
 					"""
 					for key in wcskeys+additionalKeys:
@@ -218,7 +215,6 @@
 			<par key="title" late="True">None</par>
 			<par key="instrument" late="True">None</par>
 			<par key="dateObs" late="True">None</par>
-			<par key="imageFormat" late="True">'image/fits'</par>
 			<par key="bandpassId" late="True">None</par>
 			<par key="bandpassUnit" late="True">None</par>
 			<par key="bandpassRefval" late="True">None</par>
@@ -231,7 +227,6 @@
 			result["imageTitle"] = title
 			result["instId"] = instrument
 			result["dateObs"] = dateObs
-			result["imageFormat"] = imageFormat
 			result["bandpassId"] = bandpassId
 			result["bandpassUnit"] = bandpassUnit
 			result["bandpassRefval"] = bandpassRefval
@@ -259,10 +254,10 @@
 						if fmt is None or fmt=="ALL":
 							return ""
 						elif fmt=="GRAPHIC":
-							return "imageFormat IN %%(%s)s"%base.getSQLKey("format", 
+							return "mime IN %%(%s)s"%base.getSQLKey("format", 
 								base.getConfig("graphicMimes"), sqlPars)
 						else:
-							return "imageFormat=%%(%s)s"%base.getSQLKey(
+							return "mime=%%(%s)s"%base.getSQLKey(
 								"format", fmt, sqlPars)
 
 					def getQueriedTable(inputKeys):

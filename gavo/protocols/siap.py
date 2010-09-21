@@ -37,7 +37,7 @@ class BboxSIAPRMixin(rscdef.RMixinBase):
 		- the values of the product interface.  
 		- mimetype -- the mime type of the product.
 		- the primaryBbox, secondaryBbox, centerAlpha and centerDelta, nAxes, 
-			pixelSize, pixelScale, imageFormat, wcs* fields calculated by the 
+			pixelSize, pixelScale, wcs* fields calculated by the 
 			computeBboxSIAPFields macro.   
 
 	(their definition is in the siap system RD)
@@ -171,7 +171,7 @@ class PGSSIAPRMixin(rscdef.RMixinBase):
 		- the values of the product interface.  
 		- mimetype -- the mime type of the product.
 		- the coverage, centerAlpha and centerDelta, nAxes, 
-			pixelSize, pixelScale, imageFormat, wcs* fields calculated by the 
+			pixelSize, pixelScale, wcs* fields calculated by the 
 			computePGSSIAPFields macro.   
 
 	(their definition is in the siap system RD)
@@ -297,7 +297,7 @@ class SIAPCore(svcs.DBCore):
 
 	# columns required in a SIAP answer
 	copiedCols = ["centerAlpha", "centerDelta", "imageTitle", "instId",
-		"dateObs", "nAxes", "pixelSize", "pixelScale", "imageFormat",
+		"dateObs", "nAxes", "pixelSize", "pixelScale", "mime",
 		"refFrame", "wcs_equinox", "wcs_projection", "wcs_refPixel",
 		"wcs_refValues", "wcs_cdmatrix", "bandpassId", "bandpassUnit",
 		"bandpassHi", "bandpassLo", "pixflags"]

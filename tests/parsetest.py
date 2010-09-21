@@ -102,9 +102,9 @@ class TestProductsImport(testhelpers.VerboseTest):
 			list(sqlsupport.SimpleQuerier(connection=self.conn).query(
 				"select * from products where sourceTable='test.prodtest'")),
 			[(u'data/a.imp', u'test', datetime.date(2030, 12, 31), 
-					u'data/a.imp', u'test.prodtest', 'image/fits'),
+					u'data/a.imp', u'test.prodtest', 'text/plain'),
 			 (u'data/b.imp', u'test', datetime.date(2003, 12, 31), 
-					u'data/b.imp', u'test.prodtest', 'image/fits'),])
+					u'data/b.imp', u'test.prodtest', 'text/plain'),])
 
 	def testInMetatable(self):
 		fields = sorted([(r[7], r[1], r[4]) for r in
@@ -112,12 +112,13 @@ class TestProductsImport(testhelpers.VerboseTest):
 				"select * from dc.columnmeta where tableName='test.prodtest'")])
 		assertRowset(self, fields, [
 			(0, u'accref', u'Access key for the data'),
-			(1, u'owner', u'Data owner'),
+			(1, u'owner', u'Owner of the data'),
 			(2, u'embargo', u'Date the data will become/became public'),
-			(3, u'accsize', u'Size of the data in bytes'),
-			(4, u'object', u''),
-			(5, u'alpha', u''),
-			(6, u'delta', u'')])
+			(3, u'mime', u'MIME type of the file served'),
+			(4, u'accsize', u'Size of the data in bytes'),
+			(5, u'object', u''),
+			(6, u'alpha', u''),
+			(7, u'delta', u'')])
 
 	def testNoMixinInMem(self):
 		self.assertRaisesWithMsg(base.StructureError, 

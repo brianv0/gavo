@@ -1,8 +1,12 @@
 1/LOW/2009-01-27/FIXED
 	Naming in protocols/scs.py -- SCS should be consistently upper case
 
-2/MEDIUM/2008-10-20
-	StreamWriter errors cannot be propagated up yet.
+2/MEDIUM/2008-10-20/WONTFIX
+	StreamWriter errors cannot be propagated up yet. [Error handling must
+	really be in the writing thread, since the calling function cannot know
+	if anything has been written yet.  Of course, when things go wrong
+	between the handover and the start of stream writing, there may
+	be empty output, but this needs to be handled some other way]
 
 3/WISHLIST/2009-01-10/FIXED
 	gavoimp should have some functionality to delete everything described

@@ -39,8 +39,8 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 
 	The main difference to the standard VOTable renderer is the custom
 	error reporting.  For this, the inheriting class has to define
-	a method _makeErrorTable(ctx, errorMessage) that must return a SvcResult
-	instance producing a VOTable according to specification.
+	a method _makeErrorTable(ctx, errorMessage) that must return a 
+	VOTable according to specification.
 	"""
 
 	implements(inevow.ICanHandleException)
@@ -75,12 +75,8 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 	def _writeErrorTable(self, ctx, errmsg):
 		result = self._makeErrorTable(ctx, errmsg)
 		request = inevow.IRequest(ctx)
-		request.setResponseCode(400)
 		request.setHeader("content-type", "application/x-votable")
-		return defer.maybeDeferred(streaming.streamVOTable, request, 
-				result
-			).addCallback(lambda _: request.finishRequest(False) or ""
-			).addErrback(lambda _: request.finishRequest(False) or "")
+		return result.render()
 
 	def _formatOutput(self, data, ctx):
 		request = inevow.IRequest(ctx)
@@ -203,6 +199,8 @@ class SIAPRenderer(DALRenderer):
 		"bandpassRefval": {"datatype": "double"},
 		"wcs_refPixel": {"datatype": "double", "arraysize": "*"},
 		"wcs_projection": {"arraysize": "3", "castFunction": lambda s: s[:3]},
+		"mime": {"ucd": "VOX:Image_Format"},
+		"accref": {"ucd": "VOX:Image_AccessReference"},
 	}
 
 	def _makeMetadataData(self, queryMeta):
@@ -241,12 +239,10 @@ class SIAPRenderer(DALRenderer):
 		return DALRenderer._formatOutput(self, data, ctx)
 	
 	def _makeErrorTable(self, ctx, msg):
-		dataDesc = MS(rscdef.DataDescriptor, parent_=self.service.rd)
-		data = rsc.makeData(dataDesc)
-		data.addMeta("info", base.makeMetaValue(str(msg), name="info",
-			infoValue="ERROR", infoName="QUERY_STATUS"))
-		data.setMeta("_type", "results")
-		return svcs.SvcResult(data, {}, svcs.QueryMeta.fromContext(ctx))
+		return V.VOTABLE[
+			V.RESOURCE(type="results")[
+				V.INFO(name="QUERY_STATUS", value="ERROR")[
+					str(msg)]]]
 
 svcs.registerRenderer(SIAPRenderer)
 

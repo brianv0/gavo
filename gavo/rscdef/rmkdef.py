@@ -438,6 +438,8 @@ class Rowmaker(object):
 		"""
 		if tb.tb_next:
 			excLine = tb.tb_next.tb_lineno
+			base.ui.notifyInfo(
+				"Here's the traceback:\n%s"%"".join(traceback.format_tb(tb)))
 		else: # toplevel failure, internal
 			return "in toplevel (internal failure)"
 		destInd = min(len(self.lineMap)-1, 
@@ -451,6 +453,8 @@ class Rowmaker(object):
 	def _guessError(self, ex, rowdict, tb):
 		"""tries to shoehorn a ValidationError out of ex.
 		"""
+		base.ui.notifyInfo("Rowmaker failed.  Exception below.  Failing source"
+			" is:\n%s"%self.source)
 		destName = self._guessExSourceName(tb)
 		try:
 			if "_result" in rowdict: del rowdict["_result"]
