@@ -362,7 +362,21 @@ class FormMixin(formal.ResourceMixin, object):
 	def translateFieldName(self, name):
 		return self.service.translateFieldName(name)
 
-	def _addInputKey(self, form, inputKey, data):
+	def _addDefaults(self, ctx, form):
+		"""adds defaults from request arguments.
+		"""
+		if ctx is None:  # no request context, no arguments
+			return
+		args = inevow.IRequest(ctx).args
+		for item in form.items:
+			try:
+				if item.key in args:
+					form.data[item.key] = item.makeWidget().processInput(
+						ctx, item.key, args)
+			except:  # don't fail on junky things in default arguments
+				pass
+			
+	def _addInputKey(self, form, inputKey):
 		"""adds a form field for an inputKey to the form.
 		"""
 		unit = ""
@@ -376,37 +390,24 @@ class FormMixin(formal.ResourceMixin, object):
 			inputKey.getCurrentWidgetFactory(),
 			label=label+unit,
 			description=inputKey.description)
-
-	def _addFromInputKey(self, inputKey, form, data):
-		self._addInputKey(form, inputKey, data)
-		if data and data.has_key(inputKey.name):
-			form.data[inputKey.name] = data[inputKey.name]
-		elif inputKey.values and inputKey.values.default:
+		if inputKey.values and inputKey.values.default:
 			form.data[inputKey.name] = inputKey.values.default
 
-	def _addQueryFields(self, form, data):
+	def _addFromInputKey(self, form, inputKey):
+		self._addInputKey(form, inputKey)
+
+	def _addQueryFields(self, form):
 		"""adds the inputFields of the service to form, setting proper defaults
 		from the field or from data.
 		"""
 		for inputKey in self.getInputFields(self.service):
-			self._addFromInputKey(inputKey, form, data)
+			self._addFromInputKey(form, inputKey)
 
-	def _fakeDefaults(self, form, ctx):
-		"""adds keys not yet in form.data but present in ctx to form.data.
-
-		The idea here is that you can bookmark template forms.  The
-		values in the bookmark are not normally picked up by formal
-		since _processForm doesn't run.
-		"""
-		for key, val in inevow.IRequest(ctx).args.iteritems():
-			if key not in form.data:
-				form.data[key] = val
-
-	def _addMetaFields(self, form, queryMeta, data):
+	def _addMetaFields(self, form, queryMeta):
 		"""adds fields to choose output properties to form.
 		"""
 		for serviceKey in self.service.serviceKeys:
-			self._addFromInputKey(serviceKey, form, data)
+			self._addFromInputKey(form, serviceKey)
 		try:
 			if self.service.core.wantsTableWidget():
 				form.addField("_DBOPTIONS", svcs.FormalDict,
@@ -433,12 +434,10 @@ class FormMixin(formal.ResourceMixin, object):
 
 	def form_genForm(self, ctx=None, data=None):
 		queryMeta = svcs.QueryMeta.fromContext(ctx)
-		if data is None and ctx is not None:
-			data = dict((k,v[0]) for k,v in inevow.IRequest(ctx).args.iteritems())
 		form = formal.Form()
-		self._addQueryFields(form, data)
-		self._addMetaFields(form, queryMeta, data)
-		self._fakeDefaults(form, ctx)
+		self._addQueryFields(form)
+		self._addMetaFields(form, queryMeta)
+		self._addDefaults(ctx, form)
 		if self.name=="form":
 			form.addField("_OUTPUT", formal.String, 
 				formal.widgetFactory(svcs.OutputFormat, self.service, queryMeta),

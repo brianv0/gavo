@@ -213,12 +213,12 @@ class SimpleSelectChoice(SelectChoice):
 
 # MultiSelectChoice is like formal's choice except you can specify a size.
 
-class MultiSelectChoice(widget.SelectChoice):
+class MultiSelectChoice(SelectChoice):
 	size = 3
 	def __init__(self, original,  size=None, **kwargs):
 		if size is not None:
 			self.size=size
-		widget.SelectChoice.__init__(self, original, **kwargs)
+		SelectChoice.__init__(self, original, **kwargs)
 
 	def _renderTag(self, ctx, key, value, converter, disabled):
 		if not isinstance(value, (list, tuple)):
