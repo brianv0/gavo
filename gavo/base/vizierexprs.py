@@ -384,9 +384,9 @@ def getSQL(field, inPars, sqlPars):
 		val = inPars[field.name]
 		if val is None:
 			return None
-		if (field.type.startswith("vexpr") and isinstance(val, basestring)
+		if (field.formalType.startswith("vexpr") and isinstance(val, basestring)
 				and not field.isEnumerated()):
-			return parsers[field.type](val).asSQL(field, sqlPars)
+			return parsers[field.formalType](val).asSQL(field, sqlPars)
 		else:
 			if isinstance(val, (list, tuple)):
 				if len(val)==0 or (len(val)==1 and val[0] is None):

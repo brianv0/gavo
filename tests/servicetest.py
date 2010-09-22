@@ -5,10 +5,14 @@ Tests for services and cores.
 import datetime
 import os
 
+from nevow import context
+
 from gavo import base
 from gavo import rsc
 from gavo import rscdesc
 from gavo import protocols
+from gavo import svcs
+from gavo.imp import formal
 from gavo.helpers import testhelpers
 from gavo.web import resourcebased
 
@@ -130,6 +134,65 @@ class BrowsableTest(testhelpers.VerboseTest):
 			"/data/pubtest/moribund/form")
 	
 
+class InputKeyTest(testhelpers.VerboseTest):
+	"""tests for type/widget inference with input keys.
+	"""
+	def _getKeyProps(self, src):
+		cd = base.parseFromString(svcs.CondDesc, src)
+		ftype = cd.inputKeys[0].getCurrentFormalType()
+		fwid = cd.inputKeys[0].getCurrentWidgetFactory()
+		ctx = context.WovenContext()
+		rendered = fwid(ftype).render(ctx, "foo", {}, None)
+		return ftype, fwid, rendered
+
+	def testAllAuto(self):
+		ftype, fwid, rendered = self._getKeyProps(
+			'<condDesc><inputKey name="foo" type="text"/></condDesc>')
+		self.failUnless(isinstance(ftype, formal.String))
+		self.assertEqual(ftype.required, False)
+		self.assertEqual(rendered.attributes["type"], "text")
+
+	def testRequiredCondDesc(self):
+		ftype, fwid, rendered = self._getKeyProps(
+			'<condDesc required="True"><inputKey name="foo" type="text"/></condDesc>')
+		self.assertEqual(ftype.required, True)
+
+	def testNotRequiredCondDesc(self):
+		ftype, fwid, rendered = self._getKeyProps(
+			'<condDesc><inputKey name="foo" type="text" required="True"/></condDesc>')
+		self.assertEqual(ftype.required, False)
+
+	def testWithFormalType(self):
+		ftype, fwid, rendered = self._getKeyProps(
+			'<condDesc><inputKey name="foo" type="text" formalType="int"/>'
+			'</condDesc>')
+		self.failUnless(isinstance(ftype, formal.types.Integer))
+
+	def testWithOriginal(self):
+		ftype, fwid, rendered = self._getKeyProps(
+			'<condDesc><inputKey original="data/testdata#data.afloat"/></condDesc>')
+		self.failUnless(isinstance(ftype, formal.types.String))
+		self.assertEqual(rendered.children[3].children[0].children[0],
+			"[?num. expr.]")
+
+	def testWithOriginalAndFT(self):
+		ftype, fwid, rendered = self._getKeyProps(
+			'<condDesc><inputKey original="data/testdata#data.afloat"'
+				' formalType="int"/></condDesc>')
+		self.failUnless(isinstance(ftype, formal.types.Integer))
+
+	def testWithEnumeratedOriginal(self):
+		ftype, fwid, rendered = self._getKeyProps(
+			'<condDesc><inputKey original="data/testdata#nork.cho"/></condDesc>')
+		self.failUnless(isinstance(ftype, formal.types.String))
+		opts = list(rendered.children[0](None, None))
+		self.assertEqual(opts[0].children[0].attributes["type"], "radio")
+
+	def testManualWF(self):
+		ftype, fwid, rendered = self._getKeyProps(
+			'<condDesc><inputKey type="text" name="x" widgetFactory="'
+				'widgetFactory(ScalingTextArea, rows=15)"/></condDesc>')
+		self.assertEqual(rendered.attributes["rows"], 15)
 
 
 if __name__=="__main__":

@@ -202,7 +202,7 @@ class CondDesc(base.Structure):
 				# We need the separate check for defaults because some renderes
 				# might not use makeData to parse their input and thus miss
 				# the defaulting done in rowmakers (this should be done away with,
-				# though because it breaks _isActive).
+				# though, because it breaks _isActive).
 				if f.values is not None and f.values.default:
 					inPars[f.name] = f.values.default
 					keysFound.append(f)
@@ -212,7 +212,7 @@ class CondDesc(base.Structure):
 				keysFound.append(f)
 		if not keysMissing:
 			return True
-		# keys are missing.  That's ok if none were found and we're required
+		# keys are missing.  That's ok if none were found and we're not required
 		if not self.required and not keysFound:
 			return False
 		if self.required:

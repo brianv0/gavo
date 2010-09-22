@@ -326,8 +326,9 @@ def EnumeratedWidget(ik):
 			baseWidget = RadioChoice
 		else:
 			baseWidget = SelectChoice
-	return formal.widgetFactory(baseWidget, options=options,
+	res = formal.widgetFactory(baseWidget, options=options,
 		**moreArgs)
+	return res
 
 
 class StringFieldWithBlurb(widget.TextInput):

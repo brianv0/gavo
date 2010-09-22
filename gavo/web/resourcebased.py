@@ -372,8 +372,8 @@ class FormMixin(formal.ResourceMixin, object):
 				unit = " [%s]"%unit
 		label = inputKey.tablehead
 		form.addField(inputKey.name,
-			inputKey.formalType,
-			inputKey.useWidget,
+			inputKey.getCurrentFormalType(),
+			inputKey.getCurrentWidgetFactory(),
 			label=label+unit,
 			description=inputKey.description)
 

@@ -31,8 +31,9 @@ class InputKey(rscdef.Column):
 	name_ = "inputKey"
 
 	_formalType = base.UnicodeAttribute("formalType", default=base.Undefined,
-		description="Type for the input widget, defaults to being computed"
-			" from the column's type.", copyable=True)
+		description="(Database) type for the input widget, defaults to being"
+			" computed from the column's type, usually to a Vizier-like"
+			" expression.", copyable=True)
 	_widgetFactory = base.UnicodeAttribute("widgetFactory", default=None,
 		description="Python code for a custom widget factory for this input,"
 		" e.g., 'Hidden' or 'widgetFactory(TextArea, rows=15, cols=30)'",
@@ -50,56 +51,44 @@ class InputKey(rscdef.Column):
 	def __repr__(self):
 		return "<InputKey %s (%s)>"%(self.name, self.type)
 
+	def getCurrentFormalType(self):
+		# If we have a condDesc parent, we inherit its requiredness.
+		if self.parent:
+			required = getattr(self.parent, "required", self.required)
+		return sqltypeToFormal(self.formalType)[0](required=required)
+
+	def getCurrentWidgetFactory(self):
+		widgetFactory = self.widgetFactory
+		if widgetFactory is None:
+			if self.value is not None:
+				widgetFacotry = formal.Hidden
+			elif self.isEnumerated():
+				widgetFactory = customwidgets.EnumeratedWidget(self)
+			else:
+				widgetFactory = sqltypeToFormal(self.formalType)[1]
+		if isinstance(widgetFactory, basestring):
+			widgetFactory = customwidgets.makeWidgetFactory(widgetFactory)
+		return widgetFactory
+
 	def completeElement(self):
 		self._completeElementNext(InputKey)
 		if self.restrictedMode and self.widgetFactory:
 			raise base.RestrictedElement("widgetFactory")
 
-# XXX TODO: Fix the mess with widgetFactory and formalType by defining
-# special attribute types for them.  Leave the attribute defined
-# as strings and add properties to InputKeys like compiledWidgetFactory
-# or the like.
-		# Adapt type if we were built from a column.
+		# if the input key was built from a column, infer a formalType.
 		if (hasattr(self, "_originalObject") 
 				and isinstance(self._originalObject, rscdef.Column)
 				and self.formalType is base.Undefined):
 			self.toVizierType()
-
 		if self.formalType is base.Undefined:
-			self.formalType = sqltypeToFormal(self.type)[0](required=self.required)
-
-		# If no widget factory has been specified, infer one
-		if self.widgetFactory is None:
-			if self.value is not None:
-				self.useWidget = formal.Hidden
-			elif self.isEnumerated():
-				self.useWidget = customwidgets.EnumeratedWidget(self)
-			else:
-				self.useWidget = sqltypeToFormal(self.type)[1]
-		else:
-			self.useWidget = self.widgetFactory
+			self.formalType = self.type
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(InputKey)
-
-		# convert formalType to a real formal type if it's still a string.
-		if isinstance(self.formalType, basestring):
-			defaultType, defaultWidget = sqltypeToFormal(self.formalType)
-			if self.useWidget is None:
-				self.useWidget = defaultWidget
-			self.formalType = defaultType(required=self.required)
-
 		# compute scaling if an input unit is given
 		self.scaling = None
 		if self.inputUnit:
 			self.scaling = base.computeConversionFactor(self.inputUnit, self.unit)
-
-		# compile a widget factory if it's a string
-		if isinstance(self.useWidget, basestring):
-			self.useWidget = customwidgets.makeWidgetFactory(self.useWidget)
-	
-	def getFormalVar(self):
-		return self.formalType(required=self.required)
 
 	def toVizierType(self):
 		"""turns a normal column type into a type for inputting vizier expressions.
@@ -110,9 +99,9 @@ class InputKey(rscdef.Column):
 		if self.isEnumerated():
 			return
 		try:
-			self.type = vizierexprs.getVexprFor(self.type)
+			self.formalType = vizierexprs.getVexprFor(self.type)
 		except base.ConversionError: # no vexpr type, leave raw type
-			pass
+			self.formalType = self.type
 
 	@classmethod
 	def fromColumn(cls, column, **kwargs):

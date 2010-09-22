@@ -21,4 +21,10 @@
 		<make table="data" role="primary"/>
 		<make table="barsobal"/>
 	</data>
+
+	<table id="nork">
+		<column name="cho" type="text">
+			<values><option>a</option><option>b</option></values>
+		</column>
+	</table>
 </resource>
