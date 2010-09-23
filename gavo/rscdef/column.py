@@ -221,7 +221,7 @@ class Values(base.Structure):
 				self._options.feedObject(self, base.makeStruct(Option,
 					content_=row[0]))
 		except base.DBError: # Table probably doesn't exist yet, ignore.
-			warnings.warn("Values fromdb '%s' failed, ignoring"%self.fromdb)
+			base.ui.notifyWarning("Values fromdb '%s' failed, ignoring"%self.fromdb)
 
 	def onParentComplete(self):
 		"""converts min, max, and options from string literals to python

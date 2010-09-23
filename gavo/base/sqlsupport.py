@@ -10,7 +10,6 @@ import operator
 import os
 import re
 import sys
-import warnings
 from itertools import *
 
 from gavo import utils
@@ -425,7 +424,8 @@ class StandardQueryMixin(object):
 				self.query("GRANT %s ON %s TO %s"%(shouldPrivs[role], objectName,
 					role))
 			else:
-				warnings.warn("Request to grant privileges to non-existing"
+				utils.sendUIEvent("Warning", 
+					"Request to grant privileges to non-existing"
 					" database user %s dropped"%role)
 		for role in set(shouldPrivs)&set(foundPrivs):
 			if shouldPrivs[role]!=foundPrivs[role]:
@@ -487,7 +487,7 @@ class QuerierMixin(PostgresQueryMixin, StandardQueryMixin):
 			connection.rollback()
 			connection.close()
 			if not silent:
-				warnings.warn("Failed query %s with"
+				utils.sendUIEvent("Warning", "Failed query %s with"
 					" arguments %s (%s)\n"%(repr(cursor.query), data, str(msg).strip()))
 			if raiseExc:
 				raise

@@ -54,11 +54,23 @@ def reformatMessage(msg):
 	return r.get()
 
 
-def raiseAndCatch(opts):
-	"""raises the current exception and tries to come up with a good
-	error message for it.
+def outputError(message):
+	sys.stderr.write(message.encode(
+		base.getConfig("ui", "outputEncoding"), "replace"))
 
-	This probably is just useful as a helper to user.cli.
+
+def raiseAndCatch(opts=None, output=outputError):
+	"""raises the current exception and tries write a good error message 
+	for it.
+
+	opts can be an object with some attribute (read the source); this
+	usually comes from user.cli's main.
+
+	output must be a function accepting a single string, defaulting to
+	something just encoding the string for the output found and dumping
+	it to stderr.
+
+	The function returns a suggested return value for the whole program.
 	"""
 # Messages are reformatted by reformatMessage (though it's probably ok
 # to just call output(someString) to write to the user directly.
@@ -67,8 +79,6 @@ def raiseAndCatch(opts):
 # would produce a paragraph.  Append unicode or ASCII.
 	retval = 1
 	messages = []
-	output = lambda tx: sys.stderr.write(tx.encode(
-			base.getConfig("ui", "outputEncoding"), "replace"))
 	try:
 		raise
 	except SystemExit, msg:
@@ -83,25 +93,26 @@ def raiseAndCatch(opts):
 			messages.append("Offending input was:\n")
 			messages.append(repr(msg.record)+"\n")
 	except (base.ValidationError, base.ReportableError, 
-			base.LiteralParseError, base.StructureError, base.RDNotFound), msg:
+			base.LiteralParseError, base.StructureError, base.RDNotFound,
+			base.MetaValidationError), msg:
 		messages.append(unicode(msg))
 	except Exception, msg:
 		if hasattr(msg, "excRow"):
 			messages.append("Snafu in %s, %s\n"%(msg.excRow, msg.excCol))
 			messages.append("")
 		messages.append("Oops.  Unhandled exception %s.\n"%unicode(msg))
-		if opts.enablePDB:
+		if getattr(opts, "enablePDB", False):
 			raise
 		else:
-			if not opts.alwaysTracebacks:
+			if not getattr(opts, "alwaysTracebacks", False):
 				traceback.print_exc()
 	if messages:
 		errTx = unicode("*** Error: "+"\n".join(messages))
 		output(reformatMessage(errTx)+"\n")
-	if opts.showHints and getattr(msg, "hint", None):
+	if getattr(opts, "showHints", True) and getattr(msg, "hint", None):
 		output(reformatMessage("Hint: "+msg.hint)+"\n")
 
-	sys.exit(retval)
+	return retval
 
 
 def bailOut():

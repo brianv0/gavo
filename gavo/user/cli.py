@@ -33,6 +33,7 @@ functions = [
 	("serve", ("user.serve", "main")),
 	("stc", ("stc.cli", "main")),
 	("taprun", ("protocols.taprunner", "main")),
+	("validate", ("user.validation", "main")),
 ]
 
 
@@ -163,7 +164,7 @@ def main():
 	except Exception, ex:
 		if opts.alwaysTracebacks:
 			traceback.print_exc()
-		errhandle.raiseAndCatch(opts)
+		sys.exit(errhandle.raiseAndCatch(opts))
 
 
 if __name__=="__main__":

@@ -30,10 +30,10 @@ from gavo.registry.model import (OAI, VOR, VOG, DC, RI, VS, SIA, SCS, OAIDC)
 
 SF = meta.stanFactory
 _defaultSet = set(["ivo_managed"])
-
-# XXX TODO: Figure out a smart way to superficially validate result
-# trees (e.g., "have a title", etc.).  Forcing thing into the 
-# ModelBasedBuilder doesn't seem too smart.
+# Set this to true to disable some lame "don't fail" error handlings;
+# this will raise more exceptions and is not recommended in the actual
+# OAI interface (where *some* info is better than none at all).
+VALIDATING = False
 
 
 ################## ModelBasedBuilders for simple metadata handling
@@ -106,6 +106,8 @@ def _stcResourceProfile(metaValue, localattrs=None):
 			stc.parseSTCS(metaValue[0]),
 			stc.STC.STCResourceProfile)
 	except Exception, exc:
+		if VALIDATING:
+			raise
 		base.ui.notifyError("Coverage profile '%s' bad while generating "
 			" registry (%s).  It is left out."%(metaValue, str(exc)))
 

@@ -171,7 +171,11 @@ class STCDef(base.Structure):
 
 	def completeElement(self):
 		self._onElementCompleteNext(STCDef)
-		self.compiled = stc.parseQSTCS(self.content_)
+		try:
+			self.compiled = stc.parseQSTCS(self.content_)
+		except stc.STCSParseError, msg:
+			raise base.ui.logOldExc(base.StructureError(
+				"Bad stc definition: %s"%str(msg)))
 		self.compiled.stripUnits()
 		self._origFields = dict((value.dest, utype) 
 			for utype, value in stc.getUtypes(self.compiled)

@@ -1,5 +1,8 @@
 """
 Helper classes for the GAVO's unit tests.
+
+WARNING: This messes up some global state.  DO NOT import into modules
+doing regular work.  testtricks is the module for that kind for stuff.
 """
 
 from __future__ import with_statement
@@ -17,6 +20,7 @@ import tempfile
 import unittest
 from cStringIO import StringIO
 
+from gavo.helpers.testtricks import *
 from gavo.imp import testresources
 from gavo.imp.testresources import TestResource
 
@@ -251,49 +255,6 @@ def cleanXML(aString):
 	literals a bit more stable.
 	"""
 	return re.sub("\s+", " ", _xmlJunkPat.sub('', aString)).strip()
-
-
-class XSDTestMixin(object):
-	"""provides a assertValidates method doing XSD validation.
-
-	assertValidates raises an assertion error with the validator's
-	messages on an error.  You can optionally pass a leaveOffending
-	argument to make the method store the offending document in
-	badDocument.xml.
-
-	The whole thing needs Xerces-J in the form of xsdval.class in the
-	current directory.
-
-	The validator itself is a java class xsdval.class built by 
-	../schemata/makeValidator.py.  If you have java installed, calling
-	that in the schemata directory should just work (TM).  With that
-	validator and the schemata in place, no network connection should
-	be necessary to run validation tests.
-	"""
-	classpath = (
-		".:/usr/share/java/xercesImpl.jar:/usr/share/java/xmlParserAPIs.jar")
-
-	def assertValidates(self, xmlSource, leaveOffending=False):
-		if not os.path.exists("xsdval.class"):
-			raise AssertionError("Validation test fails since xsdval.class"
-				" is not present.  Run python schemata/makeValidator.py")
-		handle, inName = tempfile.mkstemp("xerctest", "rm")
-		try:
-			f = os.fdopen(handle, "w")
-			f.write(xmlSource)
-			f.close()
-			f = popen2.Popen4("java -cp %s xsdval -n -v -s -f '%s'"%(
-				self.classpath, inName))
-			xercMsgs = f.fromchild.read()
-			status = f.wait()
-			if status or "Error]" in xercMsgs:
-				if leaveOffending:
-					of = open("badDocument.xml", "w")
-					of.write(xmlSource)
-					of.close()
-				raise AssertionError(xercMsgs)
-		finally:
-			os.unlink(inName)
 
 
 class SamplesBasedAutoTest(type):

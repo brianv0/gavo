@@ -322,6 +322,9 @@ _config = Configuration(
 			" (used to construct system entities)", default="admin"),
 		StringConfigItem("group", description="Name of the group that may write"
 			" into the log directory", default="gavo"),
+		StringConfigItem("xsdclasspath", description="Classpath necessary"
+			" to validate XSD using an xsdval java class.  You want GAVO's"
+			" VO schemata collection for this.", default="None"),
 		),
 
 	Section('web', 'Settings related to serving content to the web.',
