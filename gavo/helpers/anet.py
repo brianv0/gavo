@@ -1,5 +1,79 @@
 """
 Code to obtain WCS headers for FITS files using astrometry.net
+
+Astrometry.net has oodles of configurable parameters.  They are
+passed in via the solverParameters argument to getWCSFieldsFor,
+a dictionary that can have the following keys:
+
+index_statements
+	(defaults to index <indexPath>/index-218.fits) -- these can be
+	arbitrary statements, but they must set up some indices.  Index files
+	themselves are provided by astrometry.net or can be computed.  In
+	generally you don't want to set this but rather indices.
+
+indices
+	(no default) -- use in preference to index_statements.  Simply list
+	the file names from anet's index directory you want to have used.
+	This could be something like::
+	
+		["index-207.fits", "index-208.fits", "index-209.fits"]
+	
+	for largeish images or::
+
+		["index-200-%02d.fits"%i for i in range(12)]
+	
+	for small ones.
+
+	total_timelimit
+		(defaults to 600) -- number of seconds after which the anet run
+		should cancel itself.
+	
+	tweak
+		(defaults on on) -- try to obtain a polynomic correction to the
+		entire image after obtaining a solution.  This can go wrong in
+		particular for exposures with many objects, so you might want to 
+		set it to off for such cases.
+
+	fields
+		(default to 1) -- FITS extension to work on
+
+	startob
+		(defalt to 0) -- first object (in the order provided by the source
+		extractor, i.e. usually by brightness) to be processed.
+
+	endob
+		(defaults to 200) -- last object to be processed.  You don't want to
+		raise this too high.  The library will only pass on 10 objects at a
+		time anyway, but going too high here will waste lots of time on images
+		that are probably not going to resolve anyway.
+
+	lower_pix
+		(defaults to 0.2) -- smallest permissible pixel size in arcsecs.  If
+		at all possible, constrain this for much better results.
+		
+	upper_pix
+		(defaults to 60) -- largest permissible pixel size in arcsecs.
+		See lower_pix.
+
+	fieldsize
+		(defaults to empty) -- this should usually be empty.  If you give it,
+		it must be ``fieldw <num>\\nfieldh <num>`` and give the pixel size
+		of the field.  This is only necessary if no original FITS is accessible,
+		i.e., you are resolving from a source list.
+
+	xcol
+		(default to X) -- name of the column containing the x coordinate in
+		the input source list.  You don't usually need to set this.
+
+	ycol
+		(defaults to Y) -- see xcol
+	
+	ratio_tokeep
+		(defaults to 1e9) -- a belief limit to keep a candidate solution.  This
+		probably is not a useful knob.
+	
+	ratio_toprint
+		(defaults to 1000) -- a limit for logging of candidate solutions.
 """
 
 from cStringIO import StringIO
@@ -59,7 +133,9 @@ class ShellCommandFailed(Error):
 
 
 # Template for control file for blind.
-controlTemplate="""sdepth %(startob)s
+controlTemplate="""
+logtostderr
+sdepth %(startob)s
 depth %(endob)s
 fieldunits_lower %(lower_pix)s
 fieldunits_upper %(upper_pix)s
@@ -68,25 +144,27 @@ quadsize_min 80
 %(index_statements)s
 fields %(fields)s
 parity 2
+verify 1
 verify_pix 1
-tol 0.01
 distractors 0.25
-ratio_toprint 100
-tweak off
-tweak_aborder 3
-tweak_abporder 3
-tweak_skipshift
+tol 0.01
+ratio_toprint %(ratio_toprint)f
+ratio_tokeep %(ratio_tokeep)f
+ratio_tosolve 1e+09
+ratio_tobail 1e-100
+tweak %(tweak)s
+tweak_aborder 2
+tweak_abporder 2
 field out.fits
 solved out.solved
 match out.match.fits
 indexrdls out.rd.fits
 wcs out.wcs
-log out.log
 cancel out.cancel
 xcol %(xcol)s
 ycol %(ycol)s
 total_timelimit %(total_timelimit)s
-total_cpulimit %(total_cpulimit)s
+verbose 1
 run
 """
 
@@ -109,13 +187,15 @@ def _feedFile(targDir, fName, sexScript=anetSex, **ignored):
 
 def _runShellCommand(cmd, args):
 	cmdline = "%s %s"%(cmd, args)
-	proc = subprocess.Popen(cmdline, shell=True, stdout=subprocess.PIPE,
+	logF = open("out.log", "a")
+	proc = subprocess.Popen(cmdline, shell=True, stdout=logF,
 		stderr=subprocess.STDOUT)
-	msg = proc.communicate()[0]
+	proc.communicate()
+	logF.close()
 	if proc.returncode==-2:
 		raise KeyboardInterrupt("Child was siginted")
 	elif proc.returncode:
-		raise ShellCommandFailed(msg, proc.returncode)
+		raise ShellCommandFailed("See out.log", proc.returncode)
 
 
 def _extractSex(filterFunc=None):
@@ -163,10 +243,13 @@ def _resolve(fName, solverParameters={}, sexScript=None, objectFilter=None,
 		"startob": "0",
 		"endob": "200",
 		"lower_pix": 0.2,
-		"upper_pix": 0.3,
+		"upper_pix": 60,
 		"fieldsize": "",
 		"xcol": "X",
 		"ycol": "Y",
+		"tweak": "on",
+		"ratio_tokeep": 1e9,
+		"ratio_toprint": 1000,
 	}
 	if sexScript:
 		_extractSex(objectFilter)
@@ -184,7 +267,8 @@ def _resolve(fName, solverParameters={}, sexScript=None, objectFilter=None,
 	f = open("blind.control", "w")
 	f.write("\n\n".join(controlFragments))
 	f.close()
-	f = os.popen(blindBin, "w")
+	# XXX TODO: Fix this to use runShellCommand above.
+	f = os.popen(blindBin + ">>out.log 2>&1", "w")
 	f.write("\n\n".join(controlFragments))
 	f.flush()
 	status = f.close()
