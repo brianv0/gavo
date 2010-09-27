@@ -369,6 +369,31 @@ class VelocityTest(testhelpers.VerboseTest):
 		self.assertEqual(ast.velocity.pixSize.radii[0], 0.5)
 
 
+class BinarizationTest(testhelpers.VerboseTest):
+	def testSimpleBinarization(self):
+		ast = stc.parseSTCS("Union ICRS (Circle 10 10 1"
+			" Circle 10 11 1 Circle 11 10 1)").binarize()
+		self.failUnless(isinstance(ast.areas[0], dm.Union))
+		left, right = ast.areas[0].children
+		self.failUnless(isinstance(right, dm.Union))
+		self.failUnless(isinstance(left, dm.Circle))
+
+	def testComplexBinarization(self):
+		ast = stc.parseSTCS("Union ICRS (Difference (Box 1 2 3 4 Circle 10 10 1)"
+			" Circle 10 11 1"
+			" Intersection (Circle 11 10 1 Circle 12 10 1 Box 11 11 3 3 ))"
+		).binarize()
+		self.failUnless(isinstance(ast.areas[0].children[1].children[1].
+			children[1], dm.Intersection))
+
+	def testDebinarization(self):
+		ast0 = stc.parseSTCS("Union ICRS (Difference (Box 1 2 3 4 Circle 10 10 1)"
+			" Circle 10 11 1"
+			" Intersection (Circle 11 10 1 Circle 12 10 1 Box 11 11 3 3 ))")
+		ast1 = ast0.binarize().debinarize()
+		self.assertEqual(ast0, ast1)
+
+
 class STCSRoundtripTest(testhelpers.VerboseTest):
 	"""tests for STC-S strings going though parsing, STC-X generation, STC-X parsing, and STC-Sgeneration largely unscathed.
 	"""

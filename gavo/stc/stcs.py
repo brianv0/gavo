@@ -219,7 +219,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 	del numberLiteral
 
 # units
-	_unitOpener = Suppress( Keyword("unit") )
+	_unitOpener = Suppress( CaselessKeyword("unit") )
 	_spaceUnitWord = Regex(_reFromKeys(spatialUnits))
 	_timeUnitWord = Regex(_reFromKeys(temporalUnits))
 	spaceUnit = _unitOpener - OneOrMore( _spaceUnitWord ).addParseAction(
@@ -228,24 +228,35 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 	spectralUnit = _unitOpener - Regex(_reFromKeys(spectralUnits))("unit")
 	redshiftUnit = _unitOpener - ( 
 		(_spaceUnitWord + "/" + _timeUnitWord).addParseAction(_stringify) 
-		| Keyword("nil") )("unit")
+		| CaselessKeyword("nil") )("unit")
 	velocityUnit = _unitOpener - (OneOrMore( 
 		(_spaceUnitWord + "/" + _timeUnitWord).addParseAction(_stringify) 
 		).addParseAction(_stringifyBlank))("unit")
 
 # basic productions common to most STC-S subphrases
 	astroYear = Regex("[BJ][0-9]+([.][0-9]*)?")
-	fillfactor = (Suppress( Keyword("fillfactor") ) + number("fillfactor"))
-	noEqFrame = (Keyword("J2000") | Keyword("B1950") | Keyword("ICRS") | 
-		Keyword("GALACTIC") | Keyword("GALACTIC_I") | Keyword("GALACTIC_II") | 
-		Keyword("SUPER_GALACTIC") | Keyword("GEO_C") | Keyword("GEO_D") | 
-		Keyword("HPR") | Keyword("HGS") | Keyword("HGC") | Keyword("HPC") |
-		Keyword("UNKNOWNFrame"))("frame")
-	eqFrameName = (Keyword("FK5") | Keyword("FK4") | Keyword("ECLIPTIC")
-		)("frame")
+	fillfactor = (Suppress( CaselessKeyword("fillfactor") 
+		) + number("fillfactor"))
+	noEqFrame = (CaselessKeyword("J2000") 
+		| CaselessKeyword("B1950") 
+		| CaselessKeyword("ICRS") 
+		| CaselessKeyword("GALACTIC") 
+		| CaselessKeyword("GALACTIC_I") 
+		| CaselessKeyword("GALACTIC_II") 
+		| CaselessKeyword("SUPER_GALACTIC") 
+		| CaselessKeyword("GEO_C") 
+		| CaselessKeyword("GEO_D") 
+		| CaselessKeyword("HPR") 
+		| CaselessKeyword("HGS") 
+		| CaselessKeyword("HGC") 
+		| CaselessKeyword("HPC") 
+		| CaselessKeyword("UNKNOWNFrame"))("frame")
+	eqFrameName = (CaselessKeyword("FK5") 
+		| CaselessKeyword("FK4") 
+		| CaselessKeyword("ECLIPTIC"))("frame")
 	eqFrame = eqFrameName + Optional( astroYear("equinox") )
 	frame = eqFrame | noEqFrame
-	plEphemeris = Keyword("JPL-DE200") | Keyword("JPL-DE405")
+	plEphemeris = CaselessKeyword("JPL-DE200") | CaselessKeyword("JPL-DE405")
 	refpos = ((Regex(_reFromKeys(stcRefPositions)))("refpos")
     + Optional( plEphemeris("plEphemeris") ))
 	flavor = (Regex(_reFromKeys(stcsFlavors)))("flavor")
@@ -259,17 +270,17 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 			lambda s,p,toks: GeometryColRef(toks[0][1:-1]))
 		_coos = complexColRef("coos") | _coos
 		_pos = complexColRef("pos") | _pos
-	positionSpec = Suppress( Keyword("Position") ) + _pos
-	epochSpec = Suppress( Keyword("Epoch") ) - astroYear
-	error = Suppress( Keyword("Error") ) + OneOrMore( number )
-	resolution = Suppress( Keyword("Resolution") ) + OneOrMore( number )
-	size = Suppress( Keyword("Size") ) + OneOrMore(number)
-	pixSize = Suppress( Keyword("PixSize") ) + OneOrMore(number)
+	positionSpec = Suppress( CaselessKeyword("Position") ) + _pos
+	epochSpec = Suppress( CaselessKeyword("Epoch") ) - astroYear
+	error = Suppress( CaselessKeyword("Error") ) + OneOrMore( number )
+	resolution = Suppress( CaselessKeyword("Resolution") ) + OneOrMore( number )
+	size = Suppress( CaselessKeyword("Size") ) + OneOrMore(number)
+	pixSize = Suppress( CaselessKeyword("PixSize") ) + OneOrMore(number)
 	_spatialProps = (Optional( spaceUnit ) +
 		Optional( error("error") ) + Optional( resolution("resolution") ) + 
 		Optional( size("size") ) + Optional( pixSize("pixSize") ))
-	velocitySpec = Suppress( Keyword("Velocity") ) + OneOrMore( number )("pos")
-	velocityInterval = ( Keyword("VelocityInterval")("type") + 
+	velocitySpec = Suppress( CaselessKeyword("Velocity") ) + OneOrMore( number )("pos")
+	velocityInterval = ( CaselessKeyword("VelocityInterval")("type") + 
 		Optional( fillfactor ) + _coos + Optional( velocitySpec ) + 
 		Optional( velocityUnit ) +
 		Optional( error("error") ) + Optional( resolution("resolution") ) + 
@@ -284,7 +295,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 
 # times and time intervals
 	timescale = (Regex("|".join(stcTimeScales)))("timescale")
-	timephrase = Suppress( Keyword("Time") ) + timeLiteral
+	timephrase = Suppress( CaselessKeyword("Time") ) + timeLiteral
 	_commonTimeItems = (	Optional( timeUnit ) + Optional( 
 		error("error") ) + Optional( resolution("resolution") ) + 
 		Optional( pixSize("pixSize") ) )
@@ -293,14 +304,14 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		Optional( refpos ) )
 	_intervalCloser = Optional( timephrase("pos") ) + _commonTimeItems
 
-	timeInterval =  (Keyword("TimeInterval")("type") + 
+	timeInterval =  (CaselessKeyword("TimeInterval")("type") + 
 		_intervalOpener + ZeroOrMore( timeLiteral )("coos") + 
 		_intervalCloser)
-	startTime = (Keyword("StartTime")("type") + _intervalOpener + 
+	startTime = (CaselessKeyword("StartTime")("type") + _intervalOpener + 
 		timeLiteral.setResultsName("coos", True) + _intervalCloser)
-	stopTime = (Keyword("StopTime")("type") + _intervalOpener + 
+	stopTime = (CaselessKeyword("StopTime")("type") + _intervalOpener + 
 		timeLiteral.setResultsName("coos", True) + _intervalCloser)
-	time = (Keyword("Time")("type")  + Optional( timescale("timescale") ) + 
+	time = (CaselessKeyword("Time")("type")  + Optional( timescale("timescale") ) + 
 		Optional( refpos ) + Optional(
 			timeLiteral.setResultsName("pos", True) ) + _commonTimeItems)
 	timeSubPhrase = (timeInterval | startTime | stopTime | time).addParseAction(
@@ -309,30 +320,36 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 # atomic "geometries"; I do not bother to specify their actual
 # arguments since, without knowing the frame, they may be basically
 # anthing.   Also, I want to allow geometry column references.
-	_atomicGeometryKey = ( Keyword("AllSky") | Keyword("Circle") |
-		Keyword("Ellipse") | Keyword("Box") | Keyword("Polygon") |
-		Keyword("Convex") )
-	atomicGeometry = ( _atomicGeometryKey("type") + _commonRegionItems + 
-		_coos + _regionTail )
+	_atomicGeometryKey = ( CaselessKeyword("AllSky") 
+		| CaselessKeyword("Circle") 
+		| CaselessKeyword("Ellipse") 
+		| CaselessKeyword("Box") 
+		| CaselessKeyword("Polygon") 
+		| CaselessKeyword("Convex") )
+	atomicGeometry = ( _atomicGeometryKey("type") 
+		+ _commonRegionItems 
+		+ _coos 
+		+ _regionTail )
 
 # compound "geometries"
 	_compoundGeoExpression = Forward()
 	_compoundGeoOperand  = (( _atomicGeometryKey("subtype") + _coos )
 		| _compoundGeoExpression ).addParseAction(lambda s,p,t: dict(t))
 
-	_compoundGeoOperatorUnary = Keyword("Not")
+	_compoundGeoOperatorUnary = CaselessKeyword("Not")
 	_compoundGeoOperandsUnary =  ( Suppress( '(' ) 
 		+ _compoundGeoOperand + Suppress( ')' ) )
 	_compoundGeoExprUnary = ( _compoundGeoOperatorUnary("subtype")
 		+ _compoundGeoOperandsUnary("children") )
 
-	_compoundGeoOperatorBinary = Keyword("Difference")
+	_compoundGeoOperatorBinary = CaselessKeyword("Difference")
 	_compoundGeoOperandsBinary =  ( Suppress( '(' ) 
 		+ _compoundGeoOperand + _compoundGeoOperand + Suppress( ')' ) )
 	_compoundGeoExprBinary = ( _compoundGeoOperatorBinary("subtype")
 		+ _compoundGeoOperandsBinary("children") )
 
-	_compoundGeoOperatorNary = ( Keyword("Union") | Keyword("Intersection") )
+	_compoundGeoOperatorNary = ( CaselessKeyword("Union") 
+		| CaselessKeyword("Intersection") )
 	_compoundGeoOperandsNary =  ( Suppress( '(' ) 
 		+ _compoundGeoOperand + _compoundGeoOperand 
 		+ ZeroOrMore( _compoundGeoOperand ) + Suppress( ')' ) )
@@ -350,14 +367,14 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 			+ _compoundGeoOperandsBinary("children") + _regionTail 
 		| _compoundGeoOperatorNary("type") 
 			+ _commonRegionItems 
-			+ _compoundGeoOperandsNary("children") + _regionTail )
+			- _compoundGeoOperandsNary("children") + _regionTail )
 
 # space subphrase
-	positionInterval = ( Keyword("PositionInterval")("type") 
+	positionInterval = ( CaselessKeyword("PositionInterval")("type") 
 		+ _commonRegionItems 
 		+ _coos 
 		+ _regionTail )
-	position = ( Keyword("Position")("type") 
+	position = ( CaselessKeyword("Position")("type") 
 		+ _commonSpaceItems 
 		+ _pos 
 		+ _spatialTail )
@@ -367,18 +384,19 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		| compoundGeoPhrase ).addParseAction(makeTree)
 
 # spectral subphrase
-	spectralSpec = (Suppress( Keyword("Spectral") ) + number)("pos")
+	spectralSpec = (Suppress( CaselessKeyword("Spectral") ) 
+		+ number)("pos")
 	_spectralTail = (Optional( spectralUnit ) 
 		+ Optional( error("error") ) 
 		+ Optional( resolution("resolution") ) 
 		+ Optional( pixSize("pixSize") ))
-	spectralInterval = (Keyword("SpectralInterval")("type") 
+	spectralInterval = (CaselessKeyword("SpectralInterval")("type") 
 		+ Optional( fillfactor ) 
 		+ Optional( refpos ) 
 		+ _coos 
 		+ Optional( spectralSpec ) 
 		+ _spectralTail)
-	spectral = (Keyword("Spectral")("type") 
+	spectral = (CaselessKeyword("Spectral")("type") 
 		+ Optional( refpos ) 
 		+ _pos 
 		+ _spectralTail)
@@ -387,13 +405,13 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 
 # redshift subphrase
 	redshiftType = Regex("VELOCITY|REDSHIFT")("redshiftType")
-	redshiftSpec = (Suppress( Keyword("Redshift") ) + number)("pos")
+	redshiftSpec = (Suppress( CaselessKeyword("Redshift") ) + number)("pos")
 	dopplerdef = Regex("OPTICAL|RADIO|RELATIVISTIC")("dopplerdef")
 	_redshiftTail = (Optional( redshiftUnit )
 		+ Optional( error("error") )
 		+ Optional( resolution("resolution") )
 		+ Optional( pixSize("pixSize") ))
-	redshiftInterval = (Keyword("RedshiftInterval")("type") 
+	redshiftInterval = (CaselessKeyword("RedshiftInterval")("type") 
 		+ Optional( fillfactor ) 
 		+ Optional( refpos ) 
 		+ Optional( redshiftType ) 
@@ -401,7 +419,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		+ _coos 
 		+ Optional( redshiftSpec ) 
 		+ _redshiftTail)
-	redshift = (Keyword("Redshift")("type") 
+	redshift = (CaselessKeyword("Redshift")("type") 
 		+ Optional( refpos ) 
 		+ Optional( redshiftType ) 
 		+ Optional( dopplerdef ) 
@@ -413,7 +431,8 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 # system subphrase (extension, see docs)
 	# ids match Name from XML spec; we're not doing char refs and similar here
 	xmlName = Word(alphas+"_:", alphanums+'.-_:').addParseAction(_stringify)
-	systemDefinition = (Suppress( Keyword("System") ) + xmlName("libSystem"))
+	systemDefinition = (Suppress( CaselessKeyword("System") ) 
+		+ xmlName("libSystem"))
 		
 
 # top level
