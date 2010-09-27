@@ -15,12 +15,29 @@ from gavo import rscdesc
 from gavo import svcs
 from gavo import protocols
 from gavo.base import coords
+from gavo.base import config
 from gavo.base import sqlsupport
 from gavo.utils import pgsphere
 from gavo.helpers import testhelpers
 
 import tresc
 
+
+class ProfileTest(testhelpers.VerboseTest):
+	parser = config.ProfileParser("data")
+
+	def testEmptyProfile(self):
+		nullProfile = self.parser.parse("test1", None, "")
+		self.assertRaisesWithMsg(base.StructureError,
+			"Insufficient information to connect to the database in profile 'test1'.",
+			base.getDBConnection,
+			(nullProfile,))
+
+	def testInvalidProfile(self):
+		self.assertRaisesWithMsg(config.ProfileParseError,
+			"\"internal\", line 3: unknown setting 'hsot'",
+			self.parser.parse,
+			("test2", "internal", "database=gavo\nhsot=bar\n"))
 
 class TestTypes(testhelpers.VerboseTest):
 	"""Tests for some special adapters we provide.

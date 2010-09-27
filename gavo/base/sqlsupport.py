@@ -125,30 +125,33 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 			" user='%s' password='%s'")%(profile.database, 
 				profile.port, profile.host, profile.user, 
 				profile.password)
-		if debug:
-			conn = psycopg2.connect(connString, connection_factory=DebugConnection)
-			print "NEW CONN", id(conn)
-			def closer():
-				print "CONNECTION CLOSE", id(conn)
-				return DebugConnection.close(conn)
-			conn.close = closer
-		else:
-			try:
-				conn = psycopg2.connect(connString)
-			except OperationalError, msg:
-				raise utils.ReportableError("Cannot connect to the database server."
-					" The database library reported:\n\n%s"%msg,
-					hint="This usually means you must adapt either the access profiles"
-					" in $GAVO_DIR/etc or your database config (in particular,"
-					" pg_hba.conf).")
-		if not _PSYCOPG_INITED:
-			_initPsycopg(conn)
-		if autocommitted:
-			conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
-		return conn
-	except KeyError:
-		raise utils.logOldExc(Error("Insufficient information to connect"
-			" to database. The operators need to check their profiles."))
+	except (utils.StructureError, AttributeError):
+		raise utils.logOldExc(utils.StructureError("Insufficient information"
+			" to connect to the database in profile '%s'."%(
+				profile.profileName)))
+
+
+	if debug:
+		conn = psycopg2.connect(connString, connection_factory=DebugConnection)
+		print "NEW CONN", id(conn)
+		def closer():
+			print "CONNECTION CLOSE", id(conn)
+			return DebugConnection.close(conn)
+		conn.close = closer
+	else:
+		try:
+			conn = psycopg2.connect(connString)
+		except OperationalError, msg:
+			raise utils.ReportableError("Cannot connect to the database server."
+				" The database library reported:\n\n%s"%msg,
+				hint="This usually means you must adapt either the access profiles"
+				" in $GAVO_DIR/etc or your database config (in particular,"
+				" pg_hba.conf).")
+	if not _PSYCOPG_INITED:
+		_initPsycopg(conn)
+	if autocommitted:
+		conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+	return conn
 
 
 def getDefaultDBConnection(debug=debug):

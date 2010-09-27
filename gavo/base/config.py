@@ -111,6 +111,7 @@ class DBProfile(structure.Structure):
 	"""is a profile for DB access.
 	"""
 	name_ = "dbProfile"
+	profileName = "anonymous"
 
 	_name = attrdef.UnicodeAttribute("name", default=attrdef.Undefined,
 		description="An identifier for this profile")
@@ -157,6 +158,8 @@ class ProfileParser(object):
 	Traceback (most recent call last):
 	ProfileParseError: "x", line 1: unexpected end of file (missing line feed?)
 	"""
+	profileKeys = set(["host", "port", "database", "user", "password"])
+
 	def __init__(self, sourcePath=["."]):
 		self.commands = {
 			"include": self._state_include,
@@ -171,6 +174,7 @@ class ProfileParser(object):
 			stream = open(sourceName)
 		elif isinstance(stream, basestring):
 			stream = cStringIO.StringIO(stream)
+
 		self.parser = shlex.shlex(stream, sourceName, posix=True)
 		self.parser.whitespace = " \t\r"
 		self.profile = DBProfile(None, name=profileName)
@@ -181,6 +185,8 @@ class ProfileParser(object):
 			self._feed(tok)
 		if self.stateFun!=self._state_init:
 			self._raiseError("unexpected end of file (missing line feed?)")
+		if profileName:
+			self.profile.profileName = profileName
 		return self.profile
 
 	def _raiseError(self, msg):
@@ -229,10 +235,9 @@ class ProfileParser(object):
 			key = self.tokenStack.pop(0)
 			val = "".join(self.tokenStack)
 			self.tokenStack = []
-			try:
-				setattr(self.profile, key, val)
-			except AttributeError:
+			if not key in self.profileKeys:
 				self._raiseError("unknown setting %s"%repr(key))
+			setattr(self.profile, key, val)
 			return self._state_init
 		else:
 			self.tokenStack.append(token)

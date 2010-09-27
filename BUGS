@@ -55,10 +55,10 @@
 14/MEDIUM/2009-02-14/FIXED
 	SELECT 1 as size is not parsed.
 
-15/MEDIUM/2009-02-18
+15/MEDIUM/2009-02-18/FIXED
 	The whole formalType/inputWidget thing with InputKeys is an absolute
 	pain.  At least there should be way to suppress or override the automatic 
-	vizier type conversion.
+	vizier type conversion. [using formalType]
 
 16/MEDIUM/2009-04-17/FIXED
 	Conversion between from TAI to UTC computes location of leap seconds based
@@ -84,7 +84,7 @@
 	create all necessary widgets in the result tree and scrap the dynamic
 	building from gavo.js.
 
-21/MEDIUM/2009-07-17
+21/MEDIUM/2009-07-17/FIXED
 	Bad profiles (e.g., no database set) will cause getDBConnection to bomb
 	out in an ugly way.  It should at least provide some sensible information.
 
@@ -96,9 +96,9 @@
 	Conversion of unknown VOTable types leads to None with FromVOTableConverter.
 	It should yield an exception.
 
-24/SEVERE/2009-07-21
+24/SEVERE/2009-07-21/FIXED
 	A Cone Search of 180 degrees around 10,10 doesn't return the whole table
-	(actually, it apparently returns nothing).
+	(actually, it apparently returns nothing) [was a q3c problem]
 
 25/SEVERE/2009-07-21/FIXED
 	Linefeeds embedded in queries coming from the form cause the service
