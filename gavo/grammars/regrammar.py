@@ -7,7 +7,7 @@ import re
 
 from gavo import base
 from gavo import rscdef
-from gavo.grammars.common import Grammar, FileRowIterator
+from gavo.grammars.common import Grammar, FileRowIterator, REAttribute
 
 
 class REIterator(FileRowIterator):
@@ -58,26 +58,6 @@ class REIterator(FileRowIterator):
 
 	def getLocator(self):
 		return "%s, line %d"%(self.sourceToken, self.curLine)
-
-
-class REAttribute(base.UnicodeAttribute):
-	"""is an attribute containing (compiled) RE
-	"""
-	def parse(self, value):
-		if value is None or not value:
-			return None
-		try:
-			return re.compile(value)
-		except re.error, msg:
-			raise base.ui.logOldExc(base.LiteralParseError(self.name_, value,
-				hint="A python regular expression was expected here.  Compile"
-					" complained: %s"%unicode(msg)))
-	
-	def unparse(self, value):
-		if value is None:
-			return ""
-		else:
-			return value.pattern
 
 
 class REGrammar(Grammar):

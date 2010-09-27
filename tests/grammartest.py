@@ -1,14 +1,17 @@
+# -*- coding: iso-8859-1 -*-
 """
 Tests for grammars and their helpers.
 """
 
 import datetime
 import os
+from cStringIO import StringIO
 
 from gavo import base
 from gavo import grammars
 from gavo import rsc
 from gavo import rscdef
+from gavo.grammars import kvgrammar
 from gavo.helpers import testhelpers
 
 
@@ -129,6 +132,33 @@ class EmbeddedGrammarTest(testhelpers.VerboseTest):
 				</code></iterator></embeddedGrammar></data></resource>""")
 		self.assertEqual(list(rd.dds[0].grammar.parse(None)),
 			[{'y': 2, 'x': 1}, {'y': 2, 'x': 2}])
+
+
+class KVGrammarTest(testhelpers.VerboseTest):
+	def testSimple(self):
+		grammar = base.parseFromString(kvgrammar.KeyValueGrammar,
+			'<keyValueGrammar commentPattern="--.*?\*/" enc="utf-8"/>')
+		rec = list(grammar.parse(StringIO("a=b\nc=2 --nothing*/\n"
+			"wonkö:Närd".decode("iso-8859-1").encode("utf-8"))))[0]
+		self.assertEqual(rec["a"], 'b')
+		self.assertEqual(rec["c"], '2')
+		self.assertEqual(rec[u"wonkö"], u'Närd')
+	
+	def testPairs(self):
+		grammar = base.parseFromString(kvgrammar.KeyValueGrammar,
+			'<keyValueGrammar kvSeparators="/" pairSeparators="%"'
+			' yieldPairs="True"/>')
+		recs = [(v['key'], v['value']) 
+			for v in grammar.parse(StringIO("a/b%c/d"))]
+		self.assertEqual(recs, [('a', 'b'), ('c', 'd')])
+
+	def testError(self):
+		self.assertRaisesWithMsg(base.LiteralParseError,
+			"At <internal source>, unknown position: '**' is not a valid"
+				" value for commentPattern",
+			base.parseFromString, 
+			(kvgrammar.KeyValueGrammar,
+			'<keyValueGrammar commentPattern="**"/>'))
 
 
 if __name__=="__main__":

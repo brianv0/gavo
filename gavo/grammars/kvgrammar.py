@@ -6,7 +6,7 @@ import re
 
 from gavo import base
 from gavo import rscdef
-from gavo.grammars.common import Grammar, FileRowIterator, MapKeys
+from gavo.grammars.common import Grammar, FileRowIterator, MapKeys, REAttribute
 
 
 class KVIterator(FileRowIterator):
@@ -17,8 +17,10 @@ class KVIterator(FileRowIterator):
 	"""
 	def _iterRows(self):
 		data = self.inputFile.read()
+		if self.grammar.enc:
+			data = data.decode(self.grammar.enc)
 		completeRecord = {"parser_": self}
-		data = re.sub(self.grammar.compiledComment, "", data)
+		data = re.sub(self.grammar.commentPattern, "", data)
 		items = {}
 		for rec in self.grammar.recSplitter.split(data):
 			try:
@@ -56,7 +58,7 @@ class KeyValueGrammar(Grammar):
 		description="Characters accepted as separators between key and value")
 	_pairSeps = base.UnicodeAttribute("pairSeparators", default="\n",
 		description="Characters accepted as separators between pairs")
-	_cmtPat = base.UnicodeAttribute("commentPattern", default="(?m)#.*",
+	_cmtPat = REAttribute("commentPattern", default=re.compile("(?m)#.*"),
 		description="A regular expression describing comments.")
 	_yieldPairs = base.BooleanAttribute("yieldPairs", default=False,
 		description="Yield key-value pairs instead of complete records?")
@@ -71,7 +73,6 @@ class KeyValueGrammar(Grammar):
 		self.recSplitter = re.compile("[%s]"%self.pairSeparators)
 		self.pairSplitter = re.compile("([^%s]+)[%s](.*)"%(
 			self.kvSeparators, self.kvSeparators))
-		self.compiledComment = re.compile(self.commentPattern)
 		if self.mapKeys is None:
 			self.mapKeys = base.makeStruct(MapKeys)
 		self._onElementCompleteNext(KeyValueGrammar)

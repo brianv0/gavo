@@ -32,11 +32,12 @@
 	such that an OutputTable doesn't have an adql attribute.  It simply looks
 	bad in the docs.
 
-9/LOW/2009-02-11
+9/LOW/2009-02-11/FIXED
 	Unify credentials checking in services (runAuthenticated) and products.
-	Probably both should be using the Authenticate exception.
+	Probably both should be using the Authenticate exception. [has been
+	fixed for quite a while before revision 1466]
 
-10/LOW/2009-02-11
+10/LOW/2009-02-11/FIXED
 	Turn UnicodeAttributes in grammars/kvgrammar.py to REAttributes as 
 	appropriate.
 
@@ -210,3 +211,12 @@
 	The argparse framework in user (used, e.g., in gavo admin) requires
 	subcommands to be spelt out.  So, you can say gavo ad listusers but
 	not gavo ad listu.
+
+53/MEDIUM/2010-09-27
+	Have grammars be referred to by name rather than as object from outside
+	the grammar sub-package.  Then, stop preloading all grammars.
+
+54/MEDIUM/2010-09-27
+	Do away with all the "predefined" mess with procs and such.  They
+	should be referred to by references (possibly allowing skipping
+	__system__).  Then, do away with the preloading crap for mixin RDs.

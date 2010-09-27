@@ -4,6 +4,7 @@ Base classes and common code for grammars.
 
 import codecs
 import gzip
+import re
 
 from gavo import base
 from gavo import rscdef
@@ -19,6 +20,26 @@ class ParseError(base.Error):
 		base.Error.__init__(self, msg)
 		self.location, self.record = location, record
 		args = [msg, location, record]
+
+
+class REAttribute(base.UnicodeAttribute):
+	"""is an attribute containing (compiled) RE
+	"""
+	def parse(self, value):
+		if value is None or not value:
+			return None
+		try:
+			return re.compile(value)
+		except re.error, msg:
+			raise base.ui.logOldExc(base.LiteralParseError(self.name_, value,
+				hint="A python regular expression was expected here.  Compile"
+					" complained: %s"%unicode(msg)))
+	
+	def unparse(self, value):
+		if value is None:
+			return ""
+		else:
+			return value.pattern
 
 
 class Rowfilter(procdef.ProcApp):

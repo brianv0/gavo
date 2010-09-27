@@ -260,7 +260,7 @@ class ProductCore(svcs.DBCore):
 
 		In addition, the function will return a keysTable
 		containing a "parsed" keys (i.e., (key, ra, dec, sra,
-		sdec) for cutouts.  This key table is later the real
+		sdec)) for cutouts.  This key table is later the real
 		input for the ProductsGrammar.
 		"""
 		keys = [r["key"]

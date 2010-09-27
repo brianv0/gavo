@@ -217,6 +217,10 @@ def makeProc(funcName, code, setupCode, parent):
 		except SyntaxError, ex:
 			raise base.ui.logOldExc(
 				base.BadCode(setupCode, "setup code", ex))
+		except NameError, ex:
+			raise base.ui.logOldExc(
+				base.BadCode(setupCode, "setup code", ex, hint="This typically happens when"
+					" you forget to put quotes around variable names or the like."))
 	return utils.compileFunction(code.rstrip(), funcName, funcNs)
 
 
