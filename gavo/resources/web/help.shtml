@@ -14,9 +14,6 @@ GAVO Data Center (GDC).</p>
 offering both web-based
 and <a href="http://www.ivoa.net">VO</a>-enabled services.</p>
 
-<p>It is still under heavy development, so you may experience transient
-outages and quirks now and then.</p>
-
 <p>Though most of the services should work even in text-based browsers, we
 recommend a web browser with CSS and Javascript enabled to access the
 web-based services.</p>
@@ -127,7 +124,9 @@ the VOTable output format -- you can drag and drop that link into Topcat's
 <p>The star (<img src="/static/img/bookmark.png"/>) lets you
 bookmark the current form -- it is basically like the result link but
 doesn't actually perform the query.  This should come in handy to store
-and communicate preset queries.</p>
+and communicate preset queries. Note that for split-up fields (e.g., date
+inputs with year, month and day) you need to enter all pieces of information
+for this to work.</p>
 
 <p>Both the result and the bookmark links require Javascript to work.</p>
 

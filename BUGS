@@ -88,9 +88,10 @@
 	Bad profiles (e.g., no database set) will cause getDBConnection to bomb
 	out in an ugly way.  It should at least provide some sensible information.
 
-22/SEVERE/2009-07-17
+22/SEVERE/2009-07-17/WONTFIX
 	The creation of metaHandler in rscdesc leads to a deadlock when 
-	dc_tables does not exist yet.
+	dc_tables does not exist yet. ["So don't do that" -- this has not
+	been necessary for quite a while]
 
 23/MEDIUM/2009-07-21/WONTFIX
 	Conversion of unknown VOTable types leads to None with FromVOTableConverter.
@@ -107,7 +108,7 @@
 26/MEDIUM/2009-07-30/FIXED
 	binarize on STC ASTs with compounds doesn't work any more.
 
-27/WISHLIST/2009-08-04
+27/WISHLIST/2009-08-04/FIXED
 	It would probably be helpful if instanciating an RD with a non existing
 	resdir would at least issue a warning of some sort.
 
@@ -130,8 +131,9 @@
 	STC information is missing in the Box mapper in valuemappers.  It's not
 	always ICRS like we're claiming now.
 
-32/MEDIUM/2009-09-08
-	Form values in split-up date fields are not preserved.
+32/MEDIUM/2009-09-08/WONTFIX
+	Form values in split-up date fields are not preserved. [Actually, they
+	are, if all items are given; partial values are very hard to preserve]
 
 33/MEDIUM/2009-10-02
 	We do not actually give availability information so far.  Cores should have
@@ -166,9 +168,10 @@
 	select max(ntotal), min(ntotal) from usnob.platecorrs only returns one 
 	column.
 
-41/MEDIUM/2009-12-21
+41/MEDIUM/2009-12-21/FIXED
 	When vo_managed-publishing something, try producing a resource record and
-	complain if that doesn't work out.
+	complain if that doesn't work out. [this has been fixed a while before
+	revision 1466]
 
 42/MEDIUM/2010-01-25
 	Try condDesc original="ref" referring to a column; this results in a

@@ -370,9 +370,8 @@ class FormMixin(formal.ResourceMixin, object):
 		args = inevow.IRequest(ctx).args
 		for item in form.items:
 			try:
-				if item.key in args:
-					form.data[item.key] = item.makeWidget().processInput(
-						ctx, item.key, args)
+				form.data[item.key] = item.makeWidget().processInput(
+					ctx, item.key, args)
 			except:  # don't fail on junky things in default arguments
 				pass
 			

@@ -142,6 +142,9 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 			svc.setMetaParent(self)
 		for dd in self.dds:
 			dd.setMetaParent(self)
+		if self.resdir and not os.path.isdir(self.resdir):
+			base.ui.notifyWarning("RD %s: resource directory '%s' does not exist"%(
+				self.sourceId, self.resdir))
 		self._onElementCompleteNext(RD)
 
 	def _inferResdir(self, value):
