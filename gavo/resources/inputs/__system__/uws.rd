@@ -1,4 +1,4 @@
-<resource schema="uws">
+<resource schema="uws" resdir="__system">
 	<meta name="description">Tables and helpers for the support of 
 	an universial worker service.</meta>
 	<!-- this must be kept in sync with protocols.uws -->

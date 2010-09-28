@@ -22,7 +22,7 @@ from gavo.web import grend
 from gavo.web import resourcebased
 
 
-class MetaRenderer(grend.ServiceBasedRenderer):
+class MetaRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	"""Renderers that are allowed on all services.
 	"""
 	checkedRenderer = False
@@ -209,7 +209,7 @@ class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 	customTemplate = svcs.loadSystemTemplate("serviceinfo.html")
 
 	def __init__(self, *args, **kwargs):
-		grend.ServiceBasedRenderer.__init__(self, *args, **kwargs)
+		grend.ServiceBasedPage.__init__(self, *args, **kwargs)
 		self.describingRD = self.service.rd
 		self.footnotes = set()
 
@@ -412,7 +412,7 @@ class TableNoteRenderer(MetaRenderer):
 svcs.registerRenderer(TableNoteRenderer)
 
 
-class ExternalRenderer(grend.ServiceBasedRenderer):
+class ExternalRenderer(grend.ServiceBasedPage):
 	"""A renderer redirecting to an external resource.
 
 	These try to access an external publication on the parent service

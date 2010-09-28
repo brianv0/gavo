@@ -10,4 +10,7 @@ from gavo.web import vosi           # for registration
 from gavo.web import uploadservice  # for registration
 
 from gavo.web.resourcebased import Form
-from gavo.web.grend import GavoRenderMixin, ServiceBasedRenderer
+from gavo.web.grend import GavoRenderMixin, ServiceBasedPage
+
+# XXX DEPRECATED, fix custom renderers and delete the following line
+from gavo.web.grend import ServiceBasedPage as ServiceBasedRenderer

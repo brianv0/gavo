@@ -481,6 +481,9 @@ class FormErrors(object):
     def __init__(self):
         self.errors = []
 
+    def __iter__(self):
+      return iter(self.errors)
+
     def add(self, error):
         self.errors.append(error)
 
@@ -621,6 +624,7 @@ class ResourceMixin(object):
         s = super(ResourceMixin, self)
         if hasattr(s,'formFactory'):
             return s.formFactory(ctx, name)
+
 
 
 class IKnownForms(Interface):

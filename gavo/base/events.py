@@ -188,10 +188,9 @@ class EventDispatcher(object):
 		Rather, these events are converted to ErrorOccurreds including the
 		failure's traceback.
 		"""
-		try:
-			failure.raiseException()
-		except Exception, ex:
-			self.notifyError(str(ex))
+		self.notifyError(failure.getErrorMessage()+" (see info for traceback)")
+		self.notifyInfo("Traceback of failure just logged:\n%s"%
+			failure.getTraceback())
 
 	def notifyWarning(self, message):
 		"""is called when something tries to emit communicate non-fatal trouble.

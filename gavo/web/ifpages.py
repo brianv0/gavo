@@ -111,7 +111,7 @@ def _replaceConfigStrings(srcPath, registry):
 	return src.encode("utf-8")
 
 
-class TemplatedPage(grend.ServiceBasedRenderer):
+class TemplatedPage(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	"""a "server-wide" template.
 
 	For now, they all are based on the dc root service.
@@ -119,7 +119,7 @@ class TemplatedPage(grend.ServiceBasedRenderer):
 	checkedRenderer = False
 	def __init__(self, ctx, fName):
 		self.customTemplate = fName
-		grend.ServiceBasedRenderer.__init__(self, ctx,
+		grend.ServiceBasedPage.__init__(self, ctx,
 			base.caches.getRD(registry.SERVICELIST_ID
 			).getById("root"))
 		self.setMeta("dateUpdated", 

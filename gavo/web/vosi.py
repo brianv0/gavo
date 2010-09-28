@@ -28,7 +28,7 @@ registerPrefix("cap", "http://www.ivoa.net/xml/VOSICapabilities/v1.0",
 	schemaURL("VOSICapabilities-v1.0.xsd"))
 
 
-class VOSIRenderer(grend.ServiceBasedRenderer):
+class VOSIRenderer(grend.ServiceBasedPage):
 	"""An abstract base for renderers handling VOSI requests.
 
 	All of these return some sort of XML and are legal on all services.

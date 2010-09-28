@@ -33,7 +33,8 @@ class VOTableResource(rend.Page):
 
 
 class QPRenderer(grend.HTMLResultRenderMixin, 
-		grend.ServiceBasedRenderer):
+		grend.CustomTemplateMixin,
+		grend.ServiceBasedPage):
 	"""The Query Path renderer extracts a query argument from the query path.
 
 	Basically, whatever segments are left after the path to the renderer

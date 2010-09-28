@@ -24,7 +24,9 @@ from gavo.web import grend
 from gavo.web import resourcebased
 
 
-class AdminRenderer(formal.ResourceMixin, grend.ServiceBasedRenderer):
+class AdminRenderer(formal.ResourceMixin, 
+		grend.CustomTemplateMixin,
+		grend.ServiceBasedPage):
 	"""A renderer allowing to block and/or reload services.
 	"""
 	name = "admin"

@@ -48,7 +48,7 @@ from gavo.web import streaming
 from gavo.svcs import Error, UnknownURI, ForbiddenURI
 
 
-class ServiceResource(grend.ServiceBasedRenderer):
+class ServiceResource(grend.ServiceBasedPage):
 	"""is a base class for resources answering the form renderer.
 
 	They receive a service and the form data from formal.
@@ -63,32 +63,21 @@ class ServiceResource(grend.ServiceBasedRenderer):
 			standard service is synchronous.
 		- _formatOutput(result, ctx) -- receives the result of _obtainOutput
 			and has to do the formatting
-		- _handleOtherErrors(failure, ctx) -- is called when an exception
-			occurs that cannot be displayed in a form.  The default implementation
-			delivers a page built from stan in the errorFactory class attribute,
-			using grend.ErrorPage as renderer.
 	"""
 	name = "form"
 	def __init__(self, ctx, service, formalData):
-		grend.ServiceBasedRenderer.__init__(self, ctx, service)
+		grend.ServiceBasedPage.__init__(self, ctx, service)
 		self.formalData = formalData
 
 	def renderHTTP(self, ctx):
 		return self._obtainOutput(ctx
-			).addCallback(self._formatOutput, ctx
-			).addErrback(self._handleOtherErrors, ctx)
+			).addCallback(self._formatOutput, ctx)
 
 	def _obtainOutput(self, ctx):
 		return self.runServiceWithContext(self.formalData, ctx)
 
 	def _formatOutput(self, res, ctx):
 		return ""
-
-	def _handleOtherErrors(self, failure, ctx):
-		failure.printTraceback()
-		if isinstance(failure, (base.ValidationError, formal.FormError)):
-			return failure
-		return grend.ErrorPage(failure, docFactory=self.errorFactory)
 
 	errorFactory = common.doctypedStan(T.html[
 			T.head[
@@ -310,144 +299,10 @@ class TarResponse(ServiceResource):
 			]])
 
 
-class FormMixin(formal.ResourceMixin, object):
-	"""is a mixin to produce input forms for services and display
-	errors within these forms.
-	"""
-	# used for error display on form-less pages
-	errorFactory = common.doctypedStan(T.html[
-			T.head[
-				T.title["Error in service parameters"],
-				T.invisible(render=T.directive("commonhead")),
-			],
-			T.body[
-				T.h1["Error in Service Parameters"],
-				T.p["Something went wrong in processing your (probably implicit,"
-					" since you are seeing this rather than a note in an input"
-					" form) input."],
-				T.p["The system claims the following went wrong:"],
-				T.p(style="text-align: center")[
-					T.tt(render=T.directive("errmsg")),],
-				T.p["You may want to report this to gavo@ari.uni-heidelberg.de."],
-			]])
-
-	def _handleInputErrors(self, failure, ctx):
-		"""goes as an errback to form handling code to allow correction form
-		rendering at later stages than validation.
-		"""
-		if not hasattr(self, "form"): # no reporting in form possible
-			if isinstance(failure.value, base.ValidationError):
-				return grend.ErrorPage(failure, docFactory=self.errorFactory)
-			raise failure.value
-		if isinstance(failure.value, formal.FormError):
-			self.form.errors.add(failure.value)
-		elif isinstance(failure.value, base.ValidationError) and isinstance(
-				failure.value.colName, basestring):
-			try:
-				# Find out the formal name of the failing field...
-				failedField = self.translateFieldName(failure.value.colName)
-				# ...and make sure it exists
-				self.form.items.getItemByName(failedField)
-				self.form.errors.add(formal.FieldValidationError(
-					str(failure.getErrorMessage()), failedField))
-			except KeyError: # Failing field cannot be determined
-				self.form.errors.add(formal.FormError("Problem with input"
-					" in the internal or generated field '%s': %s"%(
-						failure.value.colName, failure.getErrorMessage())))
-		else:
-			failure.printTraceback()
-			return failure
-		return self.form.errors
-
-	def translateFieldName(self, name):
-		return self.service.translateFieldName(name)
-
-	def _addDefaults(self, ctx, form):
-		"""adds defaults from request arguments.
-		"""
-		if ctx is None:  # no request context, no arguments
-			return
-		args = inevow.IRequest(ctx).args
-		for item in form.items:
-			try:
-				form.data[item.key] = item.makeWidget().processInput(
-					ctx, item.key, args)
-			except:  # don't fail on junky things in default arguments
-				pass
-			
-	def _addInputKey(self, form, inputKey):
-		"""adds a form field for an inputKey to the form.
-		"""
-		unit = ""
-		if inputKey.type!="date":  # Sigh.
-			unit = inputKey.inputUnit or inputKey.unit or ""
-			if unit:
-				unit = " [%s]"%unit
-		label = inputKey.tablehead
-		form.addField(inputKey.name,
-			inputKey.getCurrentFormalType(),
-			inputKey.getCurrentWidgetFactory(),
-			label=label+unit,
-			description=inputKey.description)
-		if inputKey.values and inputKey.values.default:
-			form.data[inputKey.name] = inputKey.values.default
-
-	def _addFromInputKey(self, form, inputKey):
-		self._addInputKey(form, inputKey)
-
-	def _addQueryFields(self, form):
-		"""adds the inputFields of the service to form, setting proper defaults
-		from the field or from data.
-		"""
-		for inputKey in self.getInputFields(self.service):
-			self._addFromInputKey(form, inputKey)
-
-	def _addMetaFields(self, form, queryMeta):
-		"""adds fields to choose output properties to form.
-		"""
-		for serviceKey in self.service.serviceKeys:
-			self._addFromInputKey(form, serviceKey)
-		try:
-			if self.service.core.wantsTableWidget():
-				form.addField("_DBOPTIONS", svcs.FormalDict,
-					formal.widgetFactory(svcs.DBOptions, self.service, queryMeta),
-					label="Table")
-		except AttributeError: # probably no wantsTableWidget method on core
-			pass
-
-	def _getFormLinks(self):
-		"""returns stan for widgets building GET-type strings for the current 
-		form content.
-		"""
-		return T.div(class_="formLinks")[
-				T.a(href="", class_="resultlink", onmouseover=
-						"this.href=makeResultLink(getEnclosingForm(this))")
-					["[Result link]"],
-				" ",
-				T.a(href="", class_="resultlink", onmouseover=
-						"this.href=makeBookmarkLink(getEnclosingForm(this))")[
-					T.img(src=base.makeSitePath("/static/img/bookmark.png"), 
-						class_="silentlink", title="Link to this form", alt="[bookmark]")
-				],
-			]
-
-	def form_genForm(self, ctx=None, data=None):
-		queryMeta = svcs.QueryMeta.fromContext(ctx)
-		form = formal.Form()
-		self._addQueryFields(form)
-		self._addMetaFields(form, queryMeta)
-		self._addDefaults(ctx, form)
-		if self.name=="form":
-			form.addField("_OUTPUT", formal.String, 
-				formal.widgetFactory(svcs.OutputFormat, self.service, queryMeta),
-				label="Output format")
-		form.addAction(self.submitAction, label="Go")
-		form.actionMaterial = self._getFormLinks()
-		self.form = form
-		return form
-
-
-class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
+class Form(grend.FormMixin, 
+		grend.CustomTemplateMixin,
+		grend.HTMLResultRenderMixin, 
+		grend.ServiceBasedPage):
 	"""is a page that provides a search form for the selected service
 	and doubles as render page for HTML tables.
 
@@ -461,7 +316,7 @@ class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 	runOnEmptyInputs = False
 
 	def __init__(self, ctx, service):
-		grend.ServiceBasedRenderer.__init__(self, ctx, service)
+		grend.ServiceBasedPage.__init__(self, ctx, service)
 		if "form" in self.service.templates:
 			self.customTemplate = self.service.templates["form"]
 
@@ -482,9 +337,7 @@ class Form(FormMixin, grend.ServiceBasedRenderer, grend.HTMLResultRenderMixin):
 	def renderHTTP(self, ctx):
 		if self.runOnEmptyInputs:
 			inevow.IRequest(ctx).args[form.FORMS_KEY] = ["genForm"]
-		res = defer.maybeDeferred(
-			super(Form, self).renderHTTP, ctx)
-		return res
+		return grend.FormMixin.renderHTTP(self, ctx)
 
 	knownResultPages = {
 		"TSV": TextResponse,
@@ -624,7 +477,7 @@ def compileCoreRenderer(source):
 	return ns["renderForNevow"]
 
 
-class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
+class StaticRenderer(grend.FormMixin, grend.ServiceBasedPage):
 	"""is a renderer that just hands through files.
 
 	The standard operation here is to set a staticData property pointing
@@ -676,7 +529,7 @@ class StaticRenderer(FormMixin, grend.ServiceBasedRenderer):
 svcs.registerRenderer(StaticRenderer)
 
 
-class FixedPageRenderer(grend.ServiceBasedRenderer):
+class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	"""A renderer that always returns a single file.
 
 	The file is given in the service's fixed template.
@@ -684,7 +537,7 @@ class FixedPageRenderer(grend.ServiceBasedRenderer):
 	name = "fixed"
 
 	def __init__(self, ctx, service):
-		grend.ServiceBasedRenderer.__init__(self, ctx, service)
+		grend.ServiceBasedPage.__init__(self, ctx, service)
 		self.customTemplate = None
 		try:
 			self.customTemplate = self.service.templates["fixed"]
@@ -703,7 +556,7 @@ class FixedPageRenderer(grend.ServiceBasedRenderer):
 svcs.registerRenderer(FixedPageRenderer)
 
 
-class TextRenderer(grend.ServiceBasedRenderer):
+class TextRenderer(grend.ServiceBasedPage):
 	"""is a renderer that runs the service, expects back a string and
 	displays that as text/plain.
 
@@ -712,7 +565,7 @@ class TextRenderer(grend.ServiceBasedRenderer):
 	name = "text"
 
 	def __init__(self, ctx, service):
-		grend.ServiceBasedRenderer.__init__(self, ctx, service)
+		grend.ServiceBasedPage.__init__(self, ctx, service)
 	
 	def renderHTTP(self, ctx):
 		d = self.runServiceWithContext(inevow.IRequest(ctx).args, ctx
@@ -727,7 +580,7 @@ class TextRenderer(grend.ServiceBasedRenderer):
 		return request.finishRequest(False) or ""
 	
 
-class CustomRenderer(grend.ServiceBasedRenderer):
+class CustomRenderer(grend.ServiceBasedPage):
 	"""is a wrapper for user-defined renderers.
 
 	The services defining this must have a customPage field. 
@@ -744,7 +597,7 @@ class CustomRenderer(grend.ServiceBasedRenderer):
 	name = "custom"
 
 	def __init__(self, ctx, service):
-		grend.ServiceBasedRenderer.__init__(self, ctx, service)
+		grend.ServiceBasedPage.__init__(self, ctx, service)
 		if not self.service.customPage:
 			raise svcs.UnknownURI("No custom page defined for this service.")
 		pageClass, self.reloadInfo = service.customPageCode

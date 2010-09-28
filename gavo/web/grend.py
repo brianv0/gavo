@@ -1,14 +1,12 @@
 """
-Web Renderers.
+Basic Code for Renderers.
 
 Renderers are frontends for services.  They provide the glue to
 somehow acquire input (typically, nevow contexts) and then format
-the result in VOTables, HTML tables, etc.
-
-Currently, they also know how to deliver the result of the rendering
-process (i.e., push it out onto a socket), but we should have deliverers
-at some point, e.g., for asynchronous operation.
+the result for the user.
 """
+
+import os
 
 from nevow import tags as T, entities as E
 from nevow import loaders
@@ -39,70 +37,7 @@ class RDBlocked(Exception):
 	"""
 
 
-class CustomErrorMixin(object):
-	"""is a mixin for renderers containing formal forms to emit
-	custom error messages.
-
-	This mixin expects to see "the" form as self.form and relies on
-	the presence of a method _generateForm that arranges for that .
-	This can usually be an alias for the form_xy method you need for
-	formal (we actually pass a nevow context object to that function),
-	but make sure you actually set self.form in there.
-
-	You need to ctx.remember(self, inevow.ICanHandleException) in your __init__.
-	"""
-	implements(inevow.ICanHandleException)
-
-	def renderHTTP(self, ctx):
-		# This is mainly an extract of what we need of formal.Form.process
-		# generate the form
-		try:
-			self._generateForm(ctx)
-			request = inevow.IRequest(ctx)
-			charset = nevowutil.getPOSTCharset(ctx)
-			# Get the request args and decode the arg names
-			args = dict([(k.decode(charset),v) for k,v in request.args.items()])
-			self.form.errors.data = args
-			# Iterate the items and collect the form data and/or errors.
-			for item in self.form.items:
-				item.process(ctx, self.form, args, self.form.errors)
-			# format validation errors
-			if self.form.errors:
-				return self._handleInputErrors(self.form.errors.errors, ctx)
-			return self.submitAction(ctx, self.form, self.form.data)
-		except:
-			return self.renderHTTP_exception(ctx, failure.Failure())
-
-	def renderHTTP_exception(self, ctx, failure):
-		"""override for to emit custom errors for general failures.
-
-		You'll usually want to do all writing yourself, finishRequest(False) your
-		request and return appserver.errorMarker here.
-		"""
-		failure.printTraceback()
-		return ""
-
-	def _handleInputErrors(self, errors, ctx):
-		"""override to emit custom error messages for formal validation errors.
-		"""
-		if isinstance(errors, formal.FormError):
-			msg = "Error(s) in given Parameters: %s"%"; ".join(
-				[str(e) for e in errors])
-		else:
-			try:
-				msg = errors.getErrorMessage()
-			except AttributeError:
-				msg = str(errors)
-		return msg
-
-	def _handleError(self, failure, ctx):
-		"""use or override this to handle errors occurring during processing
-		"""
-		if isinstance(failure.value, base.ValidationError):
-			return self._handleInputErrors(["Parameter %s: %s"%(
-				failure.value.colName, failure.getErrorMessage())], ctx)
-		return self.renderHTTP_exception(ctx, failure)
-
+########## Useful mixins for Renderers
 
 class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 	"""is a mixin with renderers useful throughout the data center.
@@ -336,34 +271,162 @@ class HTMLResultRenderMixin(object):
 		return s
 
 
-class ErrorPage(GavoRenderMixin, rend.Page):
-	def __init__(self, failure, docFactory, *args, **kwargs):
-		self.failure = failure
-		self.docFactory = docFactory
-		self._initGavoRender()
-		super(ErrorPage, self).__init__(*args, **kwargs)
+class FormMixin(formal.ResourceMixin):
+	"""A mixin to produce input forms for services and display
+	errors within these forms.
+	"""
+	def _handleInputErrors(self, failure, ctx):
+		"""goes as an errback to form handling code to allow correction form
+		rendering at later stages than validation.
+		"""
+		if isinstance(failure.value, formal.FormError):
+			self.form.errors.add(failure.value)
+		elif isinstance(failure.value, base.ValidationError) and isinstance(
+				failure.value.colName, basestring):
+			try:
+				# Find out the formal name of the failing field...
+				failedField = self.translateFieldName(failure.value.colName)
+				# ...and make sure it exists
+				self.form.items.getItemByName(failedField)
+				self.form.errors.add(formal.FieldValidationError(
+					str(failure.getErrorMessage()), failedField))
+			except KeyError: # Failing field cannot be determined
+				self.form.errors.add(formal.FormError("Problem with input"
+					" in the internal or generated field '%s': %s"%(
+						failure.value.colName, failure.getErrorMessage())))
+		else:
+			failure.printTraceback()
+			return failure
+		return self.form.errors
 
-	def renderHTTP(self, ctx):
-		request = inevow.IRequest(ctx)
-		request.setResponseCode(500)
-		return defer.maybeDeferred(super(ErrorPage, self).renderHTTP(ctx)
-			).addErrback(lambda _: request.finishRequest(False) or "")
+	def translateFieldName(self, name):
+		return self.service.translateFieldName(name)
+
+	def _addDefaults(self, ctx, form):
+		"""adds defaults from request arguments.
+		"""
+		if ctx is None:  # no request context, no arguments
+			return
+		args = inevow.IRequest(ctx).args
+		for item in form.items:
+			try:
+				form.data[item.key] = item.makeWidget().processInput(
+					ctx, item.key, args)
+			except:  # don't fail on junky things in default arguments
+				pass
+			
+	def _addInputKey(self, form, inputKey):
+		"""adds a form field for an inputKey to the form.
+		"""
+		unit = ""
+		if inputKey.type!="date":  # Sigh.
+			unit = inputKey.inputUnit or inputKey.unit or ""
+			if unit:
+				unit = " [%s]"%unit
+		label = inputKey.tablehead
+		form.addField(inputKey.name,
+			inputKey.getCurrentFormalType(),
+			inputKey.getCurrentWidgetFactory(),
+			label=label+unit,
+			description=inputKey.description)
+		if inputKey.values and inputKey.values.default:
+			form.data[inputKey.name] = inputKey.values.default
+
+	def _addFromInputKey(self, form, inputKey):
+		self._addInputKey(form, inputKey)
+
+	def _addQueryFields(self, form):
+		"""adds the inputFields of the service to form, setting proper defaults
+		from the field or from data.
+		"""
+		for inputKey in self.getInputFields(self.service):
+			self._addFromInputKey(form, inputKey)
+
+	def _addMetaFields(self, form, queryMeta):
+		"""adds fields to choose output properties to form.
+		"""
+		for serviceKey in self.service.serviceKeys:
+			self._addFromInputKey(form, serviceKey)
+		try:
+			if self.service.core.wantsTableWidget():
+				form.addField("_DBOPTIONS", svcs.FormalDict,
+					formal.widgetFactory(svcs.DBOptions, self.service, queryMeta),
+					label="Table")
+		except AttributeError: # probably no wantsTableWidget method on core
+			pass
+
+	def _getFormLinks(self):
+		"""returns stan for widgets building GET-type strings for the current 
+		form content.
+		"""
+		return T.div(class_="formLinks")[
+				T.a(href="", class_="resultlink", onmouseover=
+						"this.href=makeResultLink(getEnclosingForm(this))")
+					["[Result link]"],
+				" ",
+				T.a(href="", class_="resultlink", onmouseover=
+						"this.href=makeBookmarkLink(getEnclosingForm(this))")[
+					T.img(src=base.makeSitePath("/static/img/bookmark.png"), 
+						class_="silentlink", title="Link to this form", alt="[bookmark]")
+				],
+			]
+
+	def form_genForm(self, ctx=None, data=None):
+		queryMeta = svcs.QueryMeta.fromContext(ctx)
+		form = formal.Form()
+		self._addQueryFields(form)
+		self._addMetaFields(form, queryMeta)
+		self._addDefaults(ctx, form)
+		if self.name=="form":
+			form.addField("_OUTPUT", formal.String, 
+				formal.widgetFactory(svcs.OutputFormat, self.service, queryMeta),
+				label="Output format")
+		form.addAction(self.submitAction, label="Go")
+		form.actionMaterial = self._getFormLinks()
+		self.form = form
+		return form
+
+
+class CustomTemplateMixin(object):
+	"""is a mixin providing for customized templates.
+
+	This works by making docFactory a property first checking if
+	the instance has a customTemplate attribute evaluating to true.
+	If it has and it is referring to a string, its content is used
+	as an absolute path to a nevow XML template.  If it has and
+	it is not a string, it will be used as a template directly
+	(it's already "loaded"), else defaultDocFactory attribute of
+	the instance is used.
+	"""
+	customTemplate = None
+
+	def getDocFactory(self):
+		if not self.customTemplate:
+			return self.defaultDocFactory
+		elif isinstance(self.customTemplate, basestring):
+			if not os.path.exists(self.customTemplate):
+				return self.defaultDocFactory
+			return loaders.xmlfile(self.customTemplate)
+		else:
+			return self.customTemplate
 	
-	def render_errmsg(self, ctx, data):
-		return ctx.tag[str(self.failure.getErrorMessage())]
+	docFactory = property(getDocFactory)
 
 
-class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page, 
-		GavoRenderMixin):
-	"""is a page based on a resource descriptor.
 
-	It is constructed with a resource descriptor and leaves it
+############# nevow Resource derivatives used here.
+
+
+class ResourceBasedRenderer(GavoRenderMixin):
+	"""A base for renderers based on RDs.
+
+	It is constructed with the resource descriptor and leaves it
 	in the rd attribute.
 
-	This class is abstract in the sense that it doesn't to anything
-	sensible.
+	You will have to override the renderHTTP(ctx) -> whatever method, 
+	possibly locateChild(ctx, segments) -> resource, too.
 
-	The preferredMethod attribute is used for generation of registryRecords
+	The preferredMethod attribute is used for generation of registry records
 	and currently should be either GET or POST.  urlUse should be one
 	of full, base, post, or dir, in accord with VOResource.
 
@@ -375,7 +438,12 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 	could be used to make a Form renderer into a ParamHTTP interface by
 	attaching ?__nevow_form__=genForm&, and the soap renderer does
 	nontrivial things there).
+
+	Within DaCHS, this class is mainly used as a base for ServiceBasedRenderer,
+	since almost always only services talk to the world.
 	"""
+	implements(inevow.IResource)
+
 	preferredMethod = "GET"
 	urlUse = "full"
 	resultType = None
@@ -386,11 +454,12 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 		if hasattr(self.rd, "currently_blocked"):
 			raise RDBlocked()
 		self._initGavoRender()
-		super(ResourceBasedRenderer, self).__init__()
+
+	def renderHTTP(self, ctx):
+		return super(ResourceBasedRenderer, self).renderHTTP(ctx)
 	
-	def _output(self, res, ctx):
-		print res
-		return res
+	def locateChild(self, ctx, segments):
+		return self, ()
 
 	@classmethod
 	def isBrowseable(self, service):
@@ -421,10 +490,8 @@ class ResourceBasedRenderer(common.CustomTemplateMixin, rend.Page,
 
 
 class ServiceBasedRenderer(ResourceBasedRenderer):
-	"""A resource based renderer using subId as a service id.
+	"""A mixin for pages based on RD services.
 
-	All of our renderers inherit from this, since there is no way
-	a resource could define anything to render (now).
 	"""
 	# set to false for renderers intended to be allowed on all services
 	# (i.e., "meta" renderers).
@@ -487,27 +554,6 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 			return res
 		return serviceFields
 
-	def renderer(self, ctx, name):
-		"""returns code for a nevow render function named name.
-
-		This overrides the method inherited from nevow's RenderFactory to
-		add a lookup in the page's service service.
-		"""
-		if name in self.service.nevowRenderers:
-			return self.service.nevowRenderers[name]
-		return ResourceBasedRenderer.renderer(self, ctx, name)
-
-	def child(self, ctx, name):
-		"""returns code for a nevow data function named name.
-
-		In addition to nevow's action, this also looks methods up in the
-		service.
-		"""
-		if name in self.service.nevowDataFunctions:
-			return self.service.nevowDataFunctions[name]
-		return ResourceBasedRenderer.child(self, ctx, name)
-
-
 	def processData(self, rawData, queryMeta):
 		"""produces input data for the service in runs the service.
 		"""
@@ -538,3 +584,41 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 		return get
 
 
+class ServiceBasedPage(ServiceBasedRenderer, rend.Page):
+	"""the base class for renderers turning service-based info into HTML.
+
+	You will need to provide some way to give rend.Page nevow templates,
+	either by supplying a docFactory or (usually preferably) mixing in
+	CustomTemplateMixin.
+
+	The class overrides nevow's child and render methods to allow the
+	service to define render_X and data_X methods, too.
+	"""
+	def __init__(self, ctx, service):
+		# I don't want super() here since the constructors have different
+		# signatures.
+		rend.Page.__init__(self)
+		ServiceBasedRenderer.__init__(self, ctx, service)
+
+	def renderer(self, ctx, name):
+		"""returns a nevow render function named name.
+
+		This overrides the method inherited from nevow's RenderFactory to
+		add a lookup in the page's service service.
+		"""
+		if name in self.service.nevowRenderers:
+			return self.service.nevowRenderers[name]
+		return rend.Page.renderer(self, ctx, name)
+
+	def child(self, ctx, name):
+		"""returns a nevow data function named name.
+
+		In addition to nevow's action, this also looks methods up in the
+		service.
+		"""
+		if name in self.service.nevowDataFunctions:
+			return self.service.nevowDataFunctions[name]
+		return rend.Page.child(self, ctx, name)
+
+	def renderHTTP(self, ctx):
+		return rend.Page.renderHTTP(self, ctx)

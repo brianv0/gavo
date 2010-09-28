@@ -70,32 +70,6 @@ class HTMLMetaBuilder(meta.MetaBuilder):
 		self.resultTree = [[]]
 
 
-class CustomTemplateMixin(object):
-	"""is a mixin providing for customized templates.
-
-	This works by making docFactory a property first checking if
-	the instance has a customTemplate attribute evaluating to true.
-	If it has and it is referring to a string, its content is used
-	as an absolute path to a nevow XML template.  If it has and
-	it is not a string, it will be used as a template directly
-	(it's already "loaded"), else defaultDocFactory attribute of
-	the instance is used.
-	"""
-	customTemplate = None
-
-	def getDocFactory(self):
-		if not self.customTemplate:
-			return self.defaultDocFactory
-		elif isinstance(self.customTemplate, basestring):
-			if not os.path.exists(self.customTemplate):
-				return self.defaultDocFactory
-			return loaders.xmlfile(self.customTemplate)
-		else:
-			return self.customTemplate
-	
-	docFactory = property(getDocFactory)
-
-
 def runAuthenticated(ctx, reqGroup, fun, *args):
 	"""returns the value of fun(*args) if the logged in user is in reqGroup,
 	requests authentication otherwise.

@@ -221,8 +221,8 @@ errorTemplate = (
 
 def _formatFailure(failure):
 	return errorTemplate%(
-		"<h1>Internal Error</h1><p>Error handling failed with a(n)"
-		" %s exception.  The"
+		"<h1>Internal Error</h1><p>A(n)"
+		" %s exception occurred.  The"
 		" accompanying message is: '%s'</p>"
 		"<p>If you are seeing this, it is always a bug in our code"
 		" or the data descriptions, and we would be extremely grateful"
@@ -254,7 +254,10 @@ class InternalServerErrorPage(ErrorPage):
 		return ""
 
 	def renderHTTP(self, ctx):
-		log.err(self.failure, _why="Internal server error")
+		self.failure.printTraceback()
+		base.ui.notifyFailure(self.failure)
+		base.ui.notifyInfo("Arguments of failed request: %s"%
+			repr(inevow.IRequest(ctx).args))
 		if isinstance(ctx, context.PageContext):
 			# exception happened while rendering a page.
 			return self.renderInnerException(ctx)
@@ -294,8 +297,8 @@ class PanicPage(rend.Page):
 	def renderHTTP_exception(self, ctx, failure):
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(500)
-		log.err(failure, _why="Exception page bombed out")
-		log.msg("Arguments were %s"%request.args)
+		base.ui.notifyFailure(failure)
+		base.ui.notifyInfo("Arguments were %s"%request.args)
 			# write out some HTML and hope
 			# for the best (it might well turn up in the middle of random output)
 		request.write(

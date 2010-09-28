@@ -22,10 +22,10 @@ from gavo import svcs
 from gavo import utils
 from gavo import votable
 from gavo.imp import formal
+from gavo.imp.formal import form
 from gavo.utils import ElementTree
 from gavo.votable import V
 from gavo.web import grend
-from gavo.web import resourcebased
 from gavo.web import streaming
 
 
@@ -34,13 +34,15 @@ MS = base.makeStruct
 
 __docformat__ = "restructuredtext en"
 
-class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
+
+class DALRenderer(grend.FormMixin, grend.ServiceBasedPage):
 	"""is a base class for renderers for the usual IVOA DAL protocols.
 
-	The main difference to the standard VOTable renderer is the custom
-	error reporting.  For this, the inheriting class has to define
-	a method _makeErrorTable(ctx, errorMessage) that must return a 
-	VOTable according to specification.
+	This is for simple, GET-based DAL renderers (where we allow POST as 
+	well).  They work using nevow forms, but with standard-compliant error
+	reporting (i.e., in VOTables).
+
+	Since DALRenderer mixes in FormMixin, it always has the form genFrom.
 	"""
 
 	implements(inevow.ICanHandleException)
@@ -49,14 +51,13 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 	urlUse = "base"
 
 	def __init__(self, ctx, *args, **kwargs):
-		ctx.remember(self, inevow.ICanHandleException)
 		reqArgs = inevow.IRequest(ctx).args
 		if not "_DBOPTIONS_LIMIT" in reqArgs:
 			reqArgs["_DBOPTIONS_LIMIT"] = [
 				str(base.getConfig("ivoa", "dalDefaultLimit"))]
 		reqArgs["_FORMAT"] = ["VOTable"]
 		reqArgs["_VOTABLE_VERSION"] = ["1.1"]
-		resourcebased.Form.__init__(self, ctx, *args, **kwargs)
+		grend.ServiceBasedPage.__init__(self, ctx, *args, **kwargs)
 
 	@classmethod
 	def makeAccessURL(cls, baseURL):
@@ -66,17 +67,30 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 	def isBrowseable(self, service):
 		return False
 
-	_generateForm = resourcebased.Form.form_genForm
-
 	def _getResource(self, outputName):
 		# These always render themselves
 		return None
+
+	def renderHTTP(self, ctx):
+		# the weird _handleInputErrors is because form.process returns
+		# form errors rather than raising an exception when something is
+		# wrong.  _handleInputErrors knows all is fine if it receives a None.
+		return defer.maybeDeferred(self.form_genForm, ctx
+			).addCallback(lambda res: res.process(ctx)
+			).addCallback(self._handleInputErrors, ctx
+			).addErrback(self._handleInputErrors, ctx
+			).addErrback(self._handleRandomFailure, ctx)
+
+	def submitAction(self, ctx, form, data):
+		return self.runServiceWithContext(data, ctx
+			).addCallback(self._formatOutput, ctx)
 
 	def _writeErrorTable(self, ctx, errmsg):
 		result = self._makeErrorTable(ctx, errmsg)
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
-		return result.render()
+		request.write(result.render()+"\n")
+		return ""
 
 	def _formatOutput(self, data, ctx):
 		request = inevow.IRequest(ctx)
@@ -85,22 +99,21 @@ class DALRenderer(grend.CustomErrorMixin, resourcebased.Form):
 		request.setHeader("content-type", self.resultType)
 		return streaming.streamVOTable(request, data)
 
-	def renderHTTP_exception(self, ctx, failure):
-		failure.printTraceback()
+	def _handleRandomFailure(self, failure, ctx):
+		base.ui.notifyFailure(failure)
 		return self._writeErrorTable(ctx,
 			"Unexpected failure, error message: %s"%failure.getErrorMessage())
 	
 	def _handleInputErrors(self, errors, ctx):
+		if not errors:  # flag from form.process: All is fine.
+			return ""
 		def formatError(e):
-			if isinstance(e, formal.FieldError):
-				return "%s: %s"%(e.fieldName, str(e))
-			else:
-				return str(e.getErrorMessage())
-		if isinstance(errors, list):
+			return "%s: %s"%(e.fieldName, str(e))
+		try:
+			msg = errors.getErrorMessage()
+		except AttributeError:
 			msg = "Error(s) in given Parameters: %s"%"; ".join(
 				[formatError(e) for e in errors])
-		else:
-			msg = formatError(errors)
 		return self._writeErrorTable(ctx, msg)
 
 
@@ -131,6 +144,7 @@ class SCSRenderer(DALRenderer):
 			V.DESCRIPTION[base.getMetaText(self.service, "description")],
 			V.INFO(ID="Error", name="Error",
 					value=str(msg).replace('"', '\\"'))], request)
+		request.write("\n")
 		return ""
 
 	def _formatOutput(self, data, ctx):

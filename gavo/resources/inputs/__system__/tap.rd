@@ -1,4 +1,4 @@
-<resource schema="tap_schema">
+<resource schema="tap_schema" resdir="__system">
 	<meta name="description">Data and services dealing with the
 		Table Access Protocol TAP.</meta>
 	<meta name="creationDate">2009-12-01T10:00:00</meta>

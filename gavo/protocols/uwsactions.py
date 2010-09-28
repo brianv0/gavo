@@ -355,7 +355,6 @@ class RootAction(JobAction):
 		else:
 			raise svcs.BadMethod("POST")
 
-
 	def doGET(self, job, request):
 		tree = UWS.makeRoot(UWS.job[
 			UWS.jobId[job.jobId],
