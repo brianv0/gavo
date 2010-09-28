@@ -2,9 +2,13 @@
 Writing data in FITS binary tables
 """
 
+from __future__ import with_statement
+
+import mutex
 import os
 import tempfile
 import time
+from contextlib import contextmanager
 
 import numpy
 
@@ -13,6 +17,19 @@ from gavo import rsc
 from gavo import utils
 from gavo.formats import common
 from gavo.utils import pyfits
+
+
+# pyfits obviously is not thread-safe.  We put a mutex around table generation
+# and hope we'll be fine.
+_FITS_TABLE_MUTEX = mutex.mutex()
+
+@contextmanager
+def exclusiveFits():
+	while not _FITS_TABLE_MUTEX.testandset():
+		time.sleep(0.1)
+	yield
+	_FITS_TABLE_MUTEX.unlock()
+
 
 
 _fitsCodeMap = {
@@ -48,8 +65,11 @@ def _makeExtension(serMan):
 	return pyfits.new_table(pyfits.ColDefs(columns))
 	
 
-def makeFITSTable(dataSet):
+def _makeFITSTableNOLOCK(dataSet):
 	"""returns a hdulist containing extensions for the tables in dataSet.
+
+	You must make sure that this function is only executed once
+	since pyfits is not thread-safe.
 	"""
 	tables = [base.SerManager(table) for table in dataSet.tables.values()]
 	extensions = [_makeExtension(table) for table in tables]
@@ -57,6 +77,17 @@ def makeFITSTable(dataSet):
 	primary.header.update("DATE", time.strftime("%Y-%m-%d"), 
 		"Date file was written")
 	return pyfits.HDUList([primary]+extensions)
+
+
+def makeFITSTable(dataSet):
+	"""returns a hdulist containing extensions for the tables in dataSet.
+
+	This function may block basically forever.  Never call this from
+	the main server, always use threads or separate processes (until
+	pyfits is fixed to be thread-safe).
+	"""
+	with exclusiveFits():
+		return _makeFITSTableNOLOCK(dataSet)
 
 
 def makeFITSTableFile(dataSet):

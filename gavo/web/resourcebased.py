@@ -36,284 +36,30 @@ from gavo import rsc
 from gavo import svcs
 from gavo.imp import formal
 from gavo.imp.formal import form
-from gavo.formats import csvtable
-from gavo.formats import fitstable
-from gavo.formats import texttable
 from gavo.base import typesystems
 from gavo.web import common
 from gavo.web import grend
 from gavo.web import producttar
+from gavo.web import serviceresults
 from gavo.web import streaming
 
 from gavo.svcs import Error, UnknownURI, ForbiddenURI
-
-
-class ServiceResource(grend.ServiceBasedPage):
-	"""is a base class for resources answering the form renderer.
-
-	They receive a service and the form data from formal.
-
-	This whole interplay is governed by the form renderer below.
-
-	Deriving classes should override 
-	
-		- _obtainOutput(ctx) -- returns the result of running the service 
-			conditioned on the specific resource type; the default implementation 
-			may do.  *Note*: _obtainOutput must return a deferred, whereas the
-			standard service is synchronous.
-		- _formatOutput(result, ctx) -- receives the result of _obtainOutput
-			and has to do the formatting
-	"""
-	name = "form"
-	def __init__(self, ctx, service, formalData):
-		grend.ServiceBasedPage.__init__(self, ctx, service)
-		self.formalData = formalData
-
-	def renderHTTP(self, ctx):
-		return self._obtainOutput(ctx
-			).addCallback(self._formatOutput, ctx)
-
-	def _obtainOutput(self, ctx):
-		return self.runServiceWithContext(self.formalData, ctx)
-
-	def _formatOutput(self, res, ctx):
-		return ""
-
-	errorFactory = common.doctypedStan(T.html[
-			T.head[
-				T.title["Unexpected Exception"],
-				T.invisible(render=T.directive("commonhead")),
-			],
-			T.body[
-				T.h1["Unexpected Exception"],
-				T.p["An unexpected error happened, and we would be very"
-					" grateful if you could report what you did to",
-					T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
-						"gavo@ari.uni-heidelberg.de"],
-					", since figuring out what went wrong is much easier"
-					" knowing this than by just expecting our server's local"
-					" problem report."],
-				T.p["You should include the following error message and the"
-					" URL you were using with your bug report: ",
-					T.tt(render=T.directive("errmsg")),],
-				T.p["Thanks."],
-			]])
-
-
-class VOTableResponse(ServiceResource):
-	"""is a renderer for queries for VOTables.  
-	
-	It's not immediately suitable for "real" VO services since it will return
-	HTML error pages and re-display forms if their values don't validate.
-
-	An example for a "real" VO service is siapservice.SiapService.
-	"""
-	def _formatOutput(self, data, ctx):
-		request = inevow.IRequest(ctx)
-		if data.queryMeta.get("Overflow"):
-			fName = "truncated_votable.xml"
-		else:
-			fName = "votable.xml"
-		request.setHeader("content-type", "application/x-votable")
-		request.setHeader('content-disposition', 
-			'attachment; filename=%s'%fName)
-		return streaming.streamVOTable(request, data)
-
-	errorFactory = common.doctypedStan(T.html[
-			T.head[
-				T.title["VOTable generation failed"],
-				T.invisible(render=T.directive("commonhead")),
-			],
-			T.body[
-				T.h1["VOTable generation failed"],
-				T.p["We're sorry, but there was an error on our side"
-					" while generating the VOTable.  We would be very grateful"
-					" if you could report this error, together with the"
-					" URL you used and the following message to"
-					" gavo@ari.uni-heidelberg.de: ",
-					T.tt(render=T.directive("errmsg")),],
-				T.p["Thanks -- meanwhile, chances are we'll render your"
-					' VOTable all right if you check "human readable" under'
-					' "Output Format".']],
-			])
-
-
-tag_embed = T.Proto("embed")
-tag_noembed = T.Proto("noembed")
-
-
-class VOPlotResponse(ServiceResource):
-	"""returns a page embedding the VOPlot applet.
-	"""
-	def renderHTTP(self, ctx):
-		return rend.Page.renderHTTP(self, ctx)
-
-	def render_voplotArea(self, ctx, data):
-		request = inevow.IRequest(ctx)
-		parameters = request.args.copy()
-		parameters[formal.FORMS_KEY] = "genForm"
-		parameters["_FORMAT"]=["VOTable"]
-		parameters["_TDENC"]=["True"]
-		return ctx.tag[tag_embed(type = "application/x-java-applet",
-				code="com.jvt.applets.PlotVOApplet",
-				codebase=base.getConfig("web", "voplotCodebase"),
-				votablepath=urlparse.urljoin(base.getConfig("web", "serverURL"),
-					request.path)+"?",
-				userguideURL=base.getConfig("web", "voplotUserman"),
-				archive="voplot.jar",
-				width="850",
-				height="650",
-				parameters=urllib.urlencode(parameters, doseq=True),
-				MAYSCRIPT="true",
-				background="#faf0e6",
-				scriptable="true",
-				pluginspage="http://java.sun.com/products/plugin/1.3.1/"
-					"plugin-install.html")[
-					tag_noembed["You need proper Java support for VOPlot"]]]
-
-	docFactory = common.doctypedStan(T.html[
-		T.head[
-			T.title(render=T.directive("meta"))["title"],
-			T.invisible(render=T.directive("commonhead")),
-		],
-		T.body[
-			T.div(class_="voplotarea", render=T.directive("voplotArea"),
-				style="text-align:center"),
-		]
-	])
-
-
-# pyfits obviously is not thread-safe.  We put a mutex around it
-# and hope we'll be fine.
-_fitsTableMutex = mutex.mutex()
-
-class FITSTableResponse(ServiceResource):
-	"""is a resource turning the data into a FITS binary table.
-	"""
-	def generateFile(self, request):
-		while not _fitsTableMutex.testandset():
-			time.sleep(0.1)
-		try:
-			res = fitstable.makeFITSTableFile(self.svcResult.original)
-		finally:
-			_fitsTableMutex.unlock()
-		return res
-	
-	def getTargetName(self):
-		if self.svcResult.queryMeta.get("Overflow"):
-			return "truncated_data.fits", "application/x-fits"
-		else:
-			return "data.fits", "application/x-fits"
-
-	def _formatOutput(self, data, ctx):
-		self.svcResult = data
-		request = inevow.IRequest(ctx)
-		return threads.deferToThread(self.generateFile, request
-			).addCallback(self._serveFile, request)
-
-	def _serveFile(self, filePath, request):
-		name, mime = self.getTargetName()
-		request.setHeader("content-type", mime)
-		request.setHeader('content-disposition', 
-			'attachment; filename=%s'%name)
-		static.FileTransfer(open(filePath), os.path.getsize(filePath),
-			request)
-		os.unlink(filePath)
-		return request.deferred
-
-	errorFactory = common.doctypedStan(T.html[
-			T.head[
-				T.title["FITS generation failed"],
-				T.invisible(render=T.directive("commonhead")),
-			],
-			T.body[
-				T.h1["FITS generation failed"],
-				T.p["We're sorry, but the generation of the FITS file didn't work"
-					" out.  You're welcome to report this failure, but, frankly,"
-					" our main output format for structured data is the VOTable,"
-					" and you should consider using it.  Check out ",
-					T.a(href="http://www.star.bris.ac.uk/~mbt/topcat/")[
-						"topcat"],
-					" for starters."],
-				T.p["Anyway, here's the error message you should send in together"
-					" with the URL you were using with your bug report: ",
-					T.tt(render=T.directive("errmsg")),],
-				T.p["Thanks."],
-			]])
-
-
-class TextResponse(ServiceResource):
-	def _formatOutput(self, data, ctx):
-		request = inevow.IRequest(ctx)
-		content = texttable.getAsText(data.original)
-		request.setHeader('content-disposition', 
-			'attachment; filename=table.tsv')
-		request.setHeader("content-type", "text/tab-separated-values")
-		request.setHeader("content-length", len(content))
-		request.write(content)
-		return ""
-
-	errorFactory = common.doctypedStan(T.html[
-			T.head[
-				T.title["Text table generation failed"],
-				T.invisible(render=T.directive("commonhead")),
-			],
-			T.body[
-				T.h1["Text table generation failed"],
-				T.p["We're sorry, but there was an error while rendering the"
-					" text table."
-					" You're welcome to report this failure, but, frankly,"
-					" our main output format for structured data is the VOTable,"
-					" and you should consider using it.  Check out ",
-					T.a(href="http://www.star.bris.ac.uk/~mbt/topcat/")[
-						"topcat"],
-					" for starters."],
-				T.p["Anyway, here's the error message you should send in together"
-					" with the URL you were using with your bug report: ",
-					T.tt(render=T.directive("errmsg")),],
-				T.p["Thanks."],
-			]])
-
-
-class TarResponse(ServiceResource):
-	"""delivers a tar of products requested.
-	"""
-	def _formatOutput(self, data, ctx):
-		queryMeta = data.queryMeta
-		request = inevow.IRequest(ctx)
-		return producttar.getTarMaker().deliverProductTar(data, request, queryMeta)
-			
-
-	errorFactory = common.doctypedStan(T.html[
-			T.head[
-				T.title["tar generation failed"],
-				T.invisible(render=T.directive("commonhead")),
-			],
-			T.body[
-				T.h1["tar generation failed"],
-				T.p["We're sorry, but the creation of the tar file didn't work"
-					" out.  Please report this failure to the operators"
-					" giving the URL you were using and the following message: ",
-					T.tt(render=T.directive("errmsg"))],
-				T.p["Thanks."],
-			]])
 
 
 class Form(grend.FormMixin, 
 		grend.CustomTemplateMixin,
 		grend.HTMLResultRenderMixin, 
 		grend.ServiceBasedPage):
-	"""is a page that provides a search form for the selected service
-	and doubles as render page for HTML tables.
+	"""The "normal" renderer within DaCHS for web-facing services.
 
-	In partiular, it will dispatch the various output formats defined
-	through svcs.
+	It will display a form and allow outputs in various formats.
 
 	It also does error reporting as long as that is possible within
 	the form.
 	"""
 	name = "form"
 	runOnEmptyInputs = False
+	compute = True
 
 	def __init__(self, ctx, service):
 		grend.ServiceBasedPage.__init__(self, ctx, service)
@@ -321,7 +67,7 @@ class Form(grend.FormMixin,
 			self.customTemplate = self.service.templates["form"]
 
 		# enable special handling if I'm rendering fixed-behaviour services
-		# (i.e., ones that never have inputs)
+		# (i.e., ones that never have inputs) XXX TODO: Figure out where I used this and fix that to use the fixed renderer (or whatever)
 		if not self.getInputFields(self.service):
 			self.runOnEmptyInputs = True
 		self.queryResult = None
@@ -339,46 +85,26 @@ class Form(grend.FormMixin,
 			inevow.IRequest(ctx).args[form.FORMS_KEY] = ["genForm"]
 		return grend.FormMixin.renderHTTP(self, ctx)
 
-	knownResultPages = {
-		"TSV": TextResponse,
-		"VOTable": VOTableResponse,
-		"VOPlot": VOPlotResponse,
-		"FITS": FITSTableResponse,
-		"tar": TarResponse,
-		"HTML": None,
-	}
-
-	def _getResource(self, outputName):
-		"""returns a nevow Resource subclass that produces outputName
-		documents.
-		"""
-		try:
-			return self.knownResultPages[outputName]
-		except KeyError:
-			raise base.ui.logOldExc(
-				base.ValidationError("Invalid output format: %s"%outputName,
-					colName="_OUTPUT"))
-
 	def _realSubmitAction(self, ctx, form, data):
 		"""is a helper for submitAction that does the real work.
 
 		It is here so we can add an error handler in submitAction.
 		"""
-		try:
-			queryMeta = svcs.QueryMeta.fromContext(ctx)
-			queryMeta["formal_data"] = data
-			if (self.service.core.outputTable.columns and 
-					not self.service.getCurOutputFields(queryMeta)):
-				raise base.ValidationError("These output settings yield no"
-					" output fields", "_OUTPUT")
-			managingResource = self._getResource(queryMeta["format"])
-		except:
-			return defer.fail()
-		if managingResource is None:  # render result inline
-			return self.runService(data, queryMeta
-				).addCallback(self._formatOutput, ctx)
+		queryMeta = svcs.QueryMeta.fromContext(ctx)
+		queryMeta["formal_data"] = data
+		if (self.service.core.outputTable.columns and 
+				not self.service.getCurOutputFields(queryMeta)):
+			raise base.ValidationError("These output settings yield no"
+				" output fields", "_OUTPUT")
+		if queryMeta["format"]=="HTML":
+			resultWriter = self
 		else:
-			return defer.succeed(managingResource(ctx, self.service, data))
+			resultWriter = serviceresults.getFormat(queryMeta["format"])
+		if resultWriter.compute:
+			d = self.runService(data, queryMeta)
+		else:
+			d = defer.succeed(None)
+		return d.addCallback(resultWriter._formatOutput, ctx)
 
 	def submitAction(self, ctx, form, data):
 		"""is called by formal when input arguments indicate the service should
@@ -389,7 +115,7 @@ class Form(grend.FormMixin,
 
 		The method returns a deferred resource.
 		"""
-		return self._realSubmitAction(ctx, form, data
+		return defer.maybeDeferred(self._realSubmitAction, ctx, form, data
 			).addErrback(self._handleInputErrors, ctx)
 
 	def _formatOutput(self, res, ctx):

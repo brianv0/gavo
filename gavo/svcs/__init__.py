@@ -20,7 +20,7 @@ from gavo.svcs.core import registerCore, getCore, Core
 
 from gavo.svcs.customcore import CustomCore
 
-from gavo.svcs.customwidgets import (OutputFormat, DBOptions, FormalDict, 
+from gavo.svcs.customwidgets import (DBOptions, FormalDict, 
 	SimpleSelectChoice, 
 	NumericExpressionField, DateExpressionField, StringExpressionField, 
 	ScalingTextArea)

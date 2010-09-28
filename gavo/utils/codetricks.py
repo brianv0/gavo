@@ -228,6 +228,7 @@ def buildClassResolver(baseClass, objects, instances=False,
 			if default is not None:
 				return default
 			raise
+	resolve.registry = registry
 	return resolve
 
 

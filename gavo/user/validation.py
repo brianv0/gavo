@@ -126,7 +126,12 @@ def validateAll(args):
 	"""validates all accessible RDs.
 	"""
 	for rdId in publication.findAllRDs():
+		if args.verbose:
+			sys.stdout.write(rdId+" ")
+			sys.stdout.flush()
 		validateOne(rdId, args)
+	if args.verbose:
+		sys.stdout.write("\n")
 
 
 def parseCommandLine():
@@ -138,6 +143,8 @@ def parseCommandLine():
 	parser.add_argument("-x", "--check-xsd", help="Do schema validation"
 		" of registry record (requires extra software, see docs)",
 		action="store_true", dest="doXSD")
+	parser.add_argument("-v", "--verbose", help="Talk while working",
+		action="store_true", dest="verbose")
 	return parser.parse_args()
 
 

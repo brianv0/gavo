@@ -352,9 +352,7 @@ _config = Configuration(
 			description="Password for online administration, leave empty to disable"),
 		StringConfigItem("sitename", "GAVO data center",
 			"A short name for your site"),
-		BooleanConfigItem("voplotEnable", "False", "Enable the VOPlot"
-			" output format (requires some external software)"),
-		RelativeURL("voplotCodeBase", "static/voplot/VOPlot",
+		RelativeURL("voplotCodeBase", "None",
 			"URL of the code base for VOPlot"),
 		RelativeURL("voplotUserman",  
 			"static/voplot/docs/VOPlot_UserGuide_1_4.html",

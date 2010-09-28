@@ -11,10 +11,6 @@ import os
 import unittest
 from cStringIO import StringIO
 
-from nevow import context
-from nevow import tags as T, entities as E
-from nevow.testutil import FakeRequest
-
 
 from gavo import base
 from gavo import formats
@@ -27,7 +23,6 @@ from gavo.formats import texttable
 from gavo.formats import csvtable
 from gavo.helpers import testhelpers
 from gavo.utils import pyfits
-from gavo.web import resourcebased
 
 
 
@@ -44,29 +39,6 @@ _colDefs = {
 
 def _getFields(*args):
 	return [_colDefs[a] for a in args]
-
-
-class VOPlotTest(unittest.TestCase):
-	"""test for the VOPlot renderer.
-	"""
-	testData = {"foo": ["33.3"], "bar": ["w", "v"]}
-	def setUp(self):
-		self.request = FakeRequest(args=self.testData)
-		self.request.path = "http://urgl.wap.no/nv"
-		self.context = context.RequestContext(tag=self.request)
-
-	def testUrlProduction(self):
-		"""tests for correct URLs in the VOPlot embed element.
-		"""
-		ctx = context.WovenContext(self.context, T.div[""])
-		vop = resourcebased.VOPlotResponse(ctx, 
-			testhelpers.getTestRD().getById("basicprod"), self.testData)
-		tag = vop.render_voplotArea(ctx, None).children[1]
-		self.assertEqual(
-			tag.attributes["parameters"],
-			"__nevow_form__=genForm&_FORMAT=VOTable&foo=33.3&bar=w&bar=v&_TDENC=True")
-		self.assertEqual(
-			tag.attributes["votablepath"], "http://urgl.wap.no/nv?")
 
 
 class FITSWriterTest(unittest.TestCase):

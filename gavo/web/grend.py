@@ -27,6 +27,7 @@ from gavo.imp import formal
 from gavo.protocols import creds
 from gavo.web import common
 from gavo.web import htmltable
+from gavo.web import serviceresults
 from gavo.web import weberrors
 
 
@@ -379,7 +380,8 @@ class FormMixin(formal.ResourceMixin):
 		self._addDefaults(ctx, form)
 		if self.name=="form":
 			form.addField("_OUTPUT", formal.String, 
-				formal.widgetFactory(svcs.OutputFormat, self.service, queryMeta),
+				formal.widgetFactory(serviceresults.OutputFormat, 
+				self.service, queryMeta),
 				label="Output format")
 		form.addAction(self.submitAction, label="Go")
 		form.actionMaterial = self._getFormLinks()

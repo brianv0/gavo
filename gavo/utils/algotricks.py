@@ -137,6 +137,9 @@ class DeferringDict(dict):
 			dict.__setitem__(self, key, val)
 		return val
 
+	def iteritems(self):
+		for key in self:
+			yield key, self[key]
 
 def commonPrefixLength(t1, t2):
 	"""returns the length of the common prefix of the sequences t1, t2.
