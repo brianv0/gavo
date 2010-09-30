@@ -1,7 +1,10 @@
 """
-A renderer that makes jpegs out of database lines.
+"Odd" renderers that should have been CustomRenderers all along.
 
-It expects pairs of line number and base64-encoded 8-bit single-channel
+I probably should move them out of here soon, before someone starts using
+them.
+
+The jpeg renderer expects pairs of line number and base64-encoded 8-bit single-channel
 image data in its input.
 
 This is, admittedly, a bit special.  Maybe it should become a custom

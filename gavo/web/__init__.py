@@ -1,8 +1,10 @@
 from gavo.web import adminrender    # for registration
-from gavo.web import jpegrenderer   # for registration
+from gavo.web import constantrender # for registration
+from gavo.web import customrender   # for registration
 from gavo.web import formrender     # for registration
 from gavo.web import metarender     # for registration
 from gavo.web import productrender  # for registration
+from gavo.web import oddrender      # for registration
 from gavo.web import qprenderer     # for registration
 from gavo.web import soaprender     # for registration
 from gavo.web import taprender      # for registration
