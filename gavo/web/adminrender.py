@@ -21,7 +21,6 @@ from gavo import svcs
 from gavo.imp import formal
 from gavo.web import common
 from gavo.web import grend
-from gavo.web import resourcebased
 
 
 class AdminRenderer(formal.ResourceMixin, 

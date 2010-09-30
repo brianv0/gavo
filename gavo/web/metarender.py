@@ -19,7 +19,6 @@ from gavo import svcs
 from gavo import utils
 from gavo.web import common
 from gavo.web import grend
-from gavo.web import resourcebased
 
 
 class MetaRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):

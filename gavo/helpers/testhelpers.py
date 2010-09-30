@@ -277,7 +277,6 @@ class SamplesBasedAutoTest(type):
 def getTestRD(id="test.rd"):
 	from gavo import rscdesc
 	from gavo.protocols import basic
-	from gavo.web import resourcebased  # for registration of the form renderer
 	from gavo import base
 	return base.caches.getRD(os.path.abspath("data/%s"%id))
 

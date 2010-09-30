@@ -14,8 +14,8 @@ from gavo.web import streaming
 
 
 class VOTableResource(rend.Page):
-# A quick hack to support VOTable responses.  We should really build
-# on this and move the mess currently in resourcebased towards this.
+# A quick hack to support VOTable responses.
+# Kill this in favour of serviceresults.
 	def __init__(self, res):
 		rend.Page.__init__(self)
 		self.res = res
