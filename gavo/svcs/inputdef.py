@@ -138,11 +138,14 @@ class ContextRowIterator(grammars.RowIterator):
 
 	def _completeRow(self, rawRow):
 		if self.grammar.defaults:
-			val = self.grammar.defaults.copy()
+			procRow = self.grammar.defaults.copy()
 		else:
-			val = {}
-		val.update(rawRow)
-		return val
+			procRow = {}
+		# No update here: We don't want to clobber defaults with None
+		for key, val in rawRow.iteritems():
+			if val is not None or key not in procRow:
+				procRow[key] = val
+		return procRow
 
 	def _iterRows(self):
 		yield self._completeRow(self.sourceToken)
@@ -157,7 +160,7 @@ class ContextRowIterator(grammars.RowIterator):
 class ContextGrammar(grammars.Grammar):
 	"""A grammar for web inputs.
 
-	These are almost exclusively in InputDD.  They hold InputKeys defining
+	These are almost exclusively in InputDDs.  They hold InputKeys defining
 	what they take from the context.
 
 	For DBCores, the InputDDs are generally defined implicitely via

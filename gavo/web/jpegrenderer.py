@@ -25,9 +25,9 @@ from zope.interface import implements
 
 from gavo import base
 from gavo import svcs
-from gavo.web import resourcebased
+from gavo.web import grend
 
-class JpegRenderer(resourcebased.Form):
+class JpegRenderer(grend.FormMixin, grend.ServiceBasedRenderer):
 	name="img.jpeg"
 	resultType = "image/jpeg"
 

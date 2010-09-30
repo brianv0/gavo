@@ -8,11 +8,10 @@ from nevow import tags as T, entities as E
 
 from gavo import base
 from gavo import svcs
-from gavo.web import grend
-from gavo.web import resourcebased
+from gavo.web import formrender
 
 
-class Uploader(resourcebased.Form):
+class Uploader(formrender.Form):
 	"""is a renderer allowing for updates to individual records using file upload.
 	"""
 

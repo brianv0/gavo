@@ -621,8 +621,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				inputDD = self.core.inputDD
 			else:
 				inputDD = self.getInputDDFor(renderer)
-		return rsc.makeData(inputDD,
+		res = rsc.makeData(inputDD,
 			parseOptions=rsc.parseValidating, forceSource=rawData)
+		return res
 
 	def runWithData(self, inputData, queryMeta):
 		"""runs the service, returning an SvcResult.

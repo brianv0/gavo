@@ -248,9 +248,7 @@ class OutputFormat(object):
 	def _computeAvailableFormats(self, queryMeta):
 		"""sets the availableFormats property.
 
-		It contains a list of strings of possible output formats.  Since
-		OutputFormat is rendered by resourcebased.Form, this is pretty
-		much constant; we add tar if the service delivers products.
+		This is a helper for the constructor, inspecting serviceresults' globals().
 		"""
 		self.availableFormats = [
 			(code, format.getLabel())
