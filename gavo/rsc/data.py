@@ -252,8 +252,8 @@ def processSource(data, source, feeder, opts):
 			raise
 		except Exception, msg:
 			raise base.ui.logOldExc(
-				base.SourceParseError("Error while parsing %s: %s"%(
-					utils.makeEllipsis(str(source), 80), msg)))
+				base.SourceParseError(str(msg), 
+					source=utils.makeEllipsis(unicode(source), 80)))
 	else:  # magic grammars (like those of boosters) return a callable
 		srcIter(data)
 

@@ -383,7 +383,7 @@ class UWSJob(object):
 		return open(os.path.join(self.getWD(), name), "w")
 
 	def _addResultToTable(self, mimeType, name):
-		resTable = rsc.TableForDef(base.caches.getRD(RD_ID).getById("results"),
+		resTable = rsc.TableForDef(base.caches.getRD(RD_ID).getById("uwsresults"),
 			connection=self.jobsTable.connection)
 		resTable.addRow(
 			{'jobId': self.jobId, 'resultName': name, 'resultType': mimeType})
@@ -405,9 +405,9 @@ class UWSJob(object):
 	def getResults(self, addFragment=None, addPars={}):
 		"""returns a list of this service's results.
 
-		The list contains (dict) records from uws.results.
+		The list contains (dict) records from dc.uwsresults.
 		"""
-		resTable = rsc.TableForDef(base.caches.getRD(RD_ID).getById("results"),
+		resTable = rsc.TableForDef(base.caches.getRD(RD_ID).getById("uwsresults"),
 			connection=self.jobsTable.connection)
 		fragment = "jobId=%(jobId)s"
 		pars={"jobId": self.jobId}

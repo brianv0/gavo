@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<resource resdir="__system">
-	<schema>public</schema>
+<resource resdir="__system" schema="dc">
 	<meta name="creationDate">2007-11-22T13:02:00Z</meta>
 	<meta name="description">The GAVO data center is a collection of
 		services providing astronomical and related data on behalf of
@@ -110,12 +109,12 @@
 		<column original="srv_sets.setName"/>
 
 		<viewStatement>
-			CREATE OR REPLACE VIEW srv_join AS (
+			CREATE OR REPLACE VIEW dc.srv_join AS (
 				SELECT \colNames
 				FROM 
-					services 
-					NATURAL JOIN srv_sets
-					NATURAL LEFT OUTER JOIN srv_interfaces)
+					dc.services 
+					NATURAL JOIN dc.srv_sets
+					NATURAL LEFT OUTER JOIN dc.srv_interfaces)
 		</viewStatement> <!-- The left outer join is crucial for resource records
 			  without interfaces -->
 	</table>
@@ -131,13 +130,13 @@
 		<column original="srv_sets.setName"/>
 
 		<viewStatement>
-			CREATE OR REPLACE VIEW srv_subjs_join AS (
+			CREATE OR REPLACE VIEW dc.srv_subjs_join AS (
 				SELECT \colNames
 				FROM 
-					srv_interfaces 
-					NATURAL JOIN services 
-					NATURAL JOIN srv_subjs 
-					NATURAL JOIN srv_sets
+					dc.srv_interfaces 
+					NATURAL JOIN dc.services 
+					NATURAL JOIN dc.srv_subjs 
+					NATURAL JOIN dc.srv_sets
 				ORDER BY subject)
 		</viewStatement>
 	</table>
@@ -175,6 +174,7 @@
 			<outputField original="dateUpdated" unit="Y-M-D"/>
 			<outputField original="renderer"/>
 			<outputField original="setName"/>
+			<outputField original="deleted"/>
 		</outputTable>
 	</service>
 

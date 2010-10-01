@@ -2,7 +2,7 @@
 
 <!-- The ADQL service and related data -->
 
-<resource resdir="__system" schema="public">
+<resource resdir="__system" schema="dc">
 	<meta name="description">An endpoint for submitting ADQL queries
 		to the data center and retrieving the result in various forms.</meta>
 	<meta name="subject">Virtual observatory</meta>

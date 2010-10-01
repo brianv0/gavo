@@ -37,7 +37,7 @@
 			"UTC job execution finished"/>
 	</table>
 
-	<table id="results" onDisk="True" system="True" primary="jobId,resultName"
+	<table id="uwsresults" onDisk="True" system="True" primary="jobId,resultName"
 			forceUnique="True" dupePolicy="overwrite">
 		<foreignKey dest="jobId" source="jobId" table="uws.jobs"/>
 		<column name="jobId" original="jobs.jobId"/>
@@ -49,6 +49,6 @@
 
 	<data id="make_jobs">
 		<make table="jobs"/>
-		<make table="results"/>
+		<make table="uwsresults"/>
 	</data>
 </resource>

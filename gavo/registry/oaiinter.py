@@ -188,7 +188,7 @@ def _parseOAIPars(pars):
 		setName = pars["set"]
 	else:
 		setName = "ivo_managed"
-	sqlFrags.append("EXISTS (SELECT setName from srv_sets WHERE"
+	sqlFrags.append("EXISTS (SELECT setName from dc.srv_sets WHERE"
 		" srv_sets.shortName=services.shortName"
 		" AND setname=%%(%s)s)"%(base.getSQLKey("set", 
 		setName, sqlPars)))

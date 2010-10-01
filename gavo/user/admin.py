@@ -21,12 +21,12 @@ class ArgError(base.Error):
 	help="add a user/password pair and a matching group to the DC server")
 def adduser(querier, args):
 	try:
-		querier.query("INSERT INTO users.users (username, password, remarks)"
+		querier.query("INSERT INTO dc.users (username, password, remarks)"
 			" VALUES (%(user)s, %(password)s, %(remarks)s)", args.__dict__)
 	except base.IntegrityError:
 		raise base.ui.logOldExc(ArgError("User %s already exists."
 			"  Use 'changeuser' command to edit."%args.user))
-	querier.query("INSERT INTO users.groups (username, groupname)"
+	querier.query("INSERT INTO dc.groups (username, groupname)"
 		" VALUES (%(user)s, %(user)s)", args.__dict__)
 
 
@@ -34,10 +34,10 @@ def adduser(querier, args):
 	Arg("user", help="the user name to remove")],
 	help="remove a user from the DC server")
 def deluser(querier, args):
-	c = querier.query("DELETE FROM users.users WHERE username=%(user)s",
+	c = querier.query("DELETE FROM dc.users WHERE username=%(user)s",
 		args.__dict__)
 	rowsAffected = c.rowcount
-	c = querier.query("DELETE FROM users.groups WHERE username=%(user)s",
+	c = querier.query("DELETE FROM dc.groups WHERE username=%(user)s",
 		args.__dict__)
 	rowsAffected += c.rowcount
 	if not rowsAffected:
@@ -53,10 +53,10 @@ def deluser(querier, args):
 	help="change remarks and/or password for a DC user")
 def changeuser(querier, args):
 		if args.remarks is None:
-			c = querier.query("UPDATE users.users SET password=%(password)s"
+			c = querier.query("UPDATE dc.users SET password=%(password)s"
 			" WHERE username=%(user)s", args.__dict__)
 		else:
-			c = querier.query("UPDATE users.users SET password=%(password)s,"
+			c = querier.query("UPDATE dc.users SET password=%(password)s,"
 			" remarks=%(remarks)s WHERE username=%(user)s", args.__dict__)
 		if not c.rowcount:
 			sys.stderr.write("Warning: No rows changed for user %s\n"%args.user)
@@ -68,7 +68,7 @@ def changeuser(querier, args):
 	help="add a user to a group")
 def addtogroup(querier, args):
 	try:
-		querier.query("INSERT INTO users.groups (username, groupname)"
+		querier.query("INSERT INTO dc.groups (username, groupname)"
 			" VALUES (%(user)s, %(group)s)", args.__dict__)
 	except sqlsupport.IntegrityError:
 		raise base.ui.logOldExc(ArgError("User %s doesn't exist."%args.user))
@@ -79,7 +79,7 @@ def addtogroup(querier, args):
 	Arg("group", help="the group to remove the user from")],
 	help="remove a user from a group")
 def delfromgroup(querier, args):
-	c = querier.query("DELETE FROM users.groups WHERE groupname=%(group)s"
+	c = querier.query("DELETE FROM dc.groups WHERE groupname=%(group)s"
 		" and username=%(user)s", args.__dict__)
 	if not c.rowcount:
 		sys.stderr.write("Warning: No rows deleted while deleting user"
@@ -89,7 +89,7 @@ def delfromgroup(querier, args):
 @exposedFunction(help="list users known to the DC")
 def listusers(querier, args):
 	data = querier.query("SELECT username, groupname, remarks"
-		" FROM users.users NATURAL JOIN users.groups ORDER BY username").fetchall()
+		" FROM dc.users NATURAL JOIN dc.groups ORDER BY username").fetchall()
 	curUser = None
 	for user, group, remark in data:
 		if user!=curUser:

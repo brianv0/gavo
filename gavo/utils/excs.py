@@ -152,16 +152,20 @@ class SourceParseError(Error):
 	or similar, None in a pinch) and the result of the grammar's getLocator
 	call.
 	"""
-	def __init__(self, msg, offending=None, location="unspecified location"):
+	def __init__(self, msg, offending=None, location="unspecified location",
+			source="<unspecified source>"):
 		Error.__init__(self, msg)
-		self.args = [msg, offending, location]
+		self.args = [msg, offending, location, source]
 		self.offending, self.location = offending, location
+		self.source = source
 
 	def __str__(self):
 		if self.offending:
-			return "At %s: %s, offending %s"%(self.location, self.msg, self.offending)
+			return "At %s: %s, offending %s"%(self.location, self.msg, 
+				repr(self.offending))
 		else:
 			return "At %s: %s"%(self.location, self.msg)
+
 
 class DataError(Error):
 	"""is raised when something is wrong with a data set.

@@ -36,7 +36,7 @@ def getGroupsForUser(username, password):
 	if username=='gavoadmin' and (
 			password and password==base.getConfig("web", "adminpasswd")):
 		return AllSet()
-	query = ("SELECT groupname FROM users.groups NATURAL JOIN users.users as u"
+	query = ("SELECT groupname FROM dc.groups NATURAL JOIN dc.users as u"
 		" where username=%(username)s AND u.password=%(password)s")
 	pars = {"username": username, "password": password}
 	return parseResponse(
@@ -53,14 +53,14 @@ def hasCredentials(user, password, reqGroup):
 		return True
 
 	conn = base.SimpleQuerier(useProfile=adminProfile)
-	dbRes = conn.runIsolatedQuery("select password from users.users where"
+	dbRes = conn.runIsolatedQuery("select password from dc.users where"
 		" username=%(user)s", {"user": user})
 	if not dbRes or not dbRes[0]:
 		return False
 	dbPw = dbRes[0][0]
 	if dbPw!=password:
 		return False
-	dbRes = conn.runIsolatedQuery("select groupname from users.groups where"
+	dbRes = conn.runIsolatedQuery("select groupname from dc.groups where"
 		" username=%(user)s and groupname=%(group)s", 
 		{"user": user, "group": reqGroup,})
 	return not not dbRes

@@ -3,8 +3,7 @@
 <!-- definitions needed for the product mixin and the products delivery
 machinery -->
 
-<resource resdir="__system">
-	<schema>public</schema>
+<resource resdir="__system" schema="dc">
 
 	<!-- the following two will be inserted into all data elements
 	that have tables implementing products -->

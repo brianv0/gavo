@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- definition of the position-related interfaces (and later SCS fragments) -->
 
-<resource resdir="__system" schema="public">
+<resource resdir="__system" schema="dc">
 	<table id="q3cIndexDef">
 		<index name="q3c_\tablename" cluster="True">
 			<columns>\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN}, \nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN}</columns>

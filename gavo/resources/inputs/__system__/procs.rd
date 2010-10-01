@@ -1,4 +1,4 @@
-<resource schema="public">
+<resource schema="dc">
 <meta name="description">Predefined procedures in the GAVO DC.</meta>
 
 <procDef type="apply" id="simpleSelect" register="True">

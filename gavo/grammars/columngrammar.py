@@ -35,11 +35,11 @@ class SplitLineIterator(FileRowIterator):
 				res[key] = inputLine[slice].strip()
 		except IndexError:
 			raise base.ui.logOldExc(base.SourceParseError("Short line", inputLine, 
-				self.getLocator()))
+				self.getLocator(), self.sourceToken))
 		return res
 
 	def getLocator(self):
-		return "%s, line %d"%(self.sourceToken, self.lineNo)
+		return "line %d"%self.lineNo
 
 
 class ColRangeAttribute(base.UnicodeAttribute):

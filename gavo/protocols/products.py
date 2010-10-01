@@ -329,10 +329,10 @@ class ProductRMixin(rscdef.RMixinBase):
 		name="product cleanup", notify=False,
 		content_="CREATE OR REPLACE RULE cleanupProducts AS ON DELETE TO"
 				" \\curtable DO ALSO"
-				" DELETE FROM products WHERE key=OLD.accref")
+				" DELETE FROM dc.products WHERE key=OLD.accref")
 	_dropScript = MS(rscdef.Script, type="beforeDrop", lang="SQL",
 		name="clean product table", notify=False,
-		content_="DELETE FROM products WHERE sourceTable='\\curtable'")
+		content_="DELETE FROM dc.products WHERE sourceTable='\\curtable'")
 
 	def __init__(self):
 		rscdef.RMixinBase.__init__(self, "__system__/products", "productColumns")

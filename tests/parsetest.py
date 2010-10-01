@@ -14,6 +14,7 @@ from gavo import rscdef
 from gavo import rscdesc
 from gavo.base import sqlsupport
 from gavo.helpers import testhelpers
+from gavo.web import formrender
 
 import tresc
 
@@ -100,7 +101,7 @@ class TestProductsImport(testhelpers.VerboseTest):
 	def testInProducts(self):
 		assertRowset(self,
 			list(sqlsupport.SimpleQuerier(connection=self.conn).query(
-				"select * from products where sourceTable='test.prodtest'")),
+				"select * from dc.products where sourceTable='test.prodtest'")),
 			[(u'data/a.imp', u'test', datetime.date(2030, 12, 31), 
 					u'data/a.imp', u'test.prodtest', 'text/plain'),
 			 (u'data/b.imp', u'test', datetime.date(2003, 12, 31), 
@@ -136,7 +137,7 @@ class TestCleanedup(unittest.TestCase):
 		assertRowset(self,
 			sqlsupport.SimpleQuerier(useProfile="admin"
 				).runIsolatedQuery(
-				"select * from products where sourceTable='test.prodtest'"),
+				"select * from dc.products where sourceTable='test.prodtest'"),
 			[])
 
 	def testNotInMetatable(self):

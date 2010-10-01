@@ -52,12 +52,12 @@ class REIterator(FileRowIterator):
 			cleanMat = self.grammar.recordCleaner.match(inputLine)
 			if not cleanMat:
 				raise base.SourceParseError("'%s' does not match cleaner"%inputLine)
-			inputLine = " ".join(cleanMat.groups())
+			inputLine = " ".join(cleanMat.groups(), source=str(self.sourceToken))
 		return dict(zip(self.grammar.names, self.grammar.fieldSep.split(
 			inputLine)))
 
 	def getLocator(self):
-		return "%s, line %d"%(self.sourceToken, self.curLine)
+		return "line %d"%self.curLine
 
 
 class REGrammar(Grammar):

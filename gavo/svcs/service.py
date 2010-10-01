@@ -286,7 +286,7 @@ class RegistryMetaMixin(object):
 		q = base.SimpleQuerier()
 		try:
 			res = q.runIsolatedQuery("SELECT dateUpdated, recTimestamp, setName"
-				" FROM srv_join WHERE sourcerd=%(rdId)s AND internalid=%(id)s",
+				" FROM dc.srv_join WHERE sourcerd=%(rdId)s AND internalid=%(id)s",
 				{"rdId": self.rd.sourceId, "id": self.id})
 		finally:
 			q.close()

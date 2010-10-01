@@ -10,6 +10,7 @@ import re
 import sys
 
 from gavo import base
+from gavo import rsc
 from gavo import stc
 from gavo.helpers import testtricks
 from gavo.imp import argparse
@@ -113,6 +114,15 @@ def validateServices(rd, args):
 					" %s:\n%s"%(svc.id, str(msg)))
 
 
+def validateRowmakers(rd, args):
+	"""tries to build all rowmakers mentioned in the RD and bails out
+	if one is bad.
+	"""
+	for dd in rd:
+		for m in dd.makes:
+			rawTable = rsc.TableForDef(m.table.change(onDisk=False))
+			m.rowmaker.compileForTable(rawTable)
+
 def validateOne(rdId, args):
 	"""outputs to stdout various information on the RD identified by rdId.
 	"""
@@ -120,6 +130,7 @@ def validateOne(rdId, args):
 	if rd is None:
 		return
 	validateServices(rd, args)
+	validateRowmakers(rd, args)
 
 
 def validateAll(args):

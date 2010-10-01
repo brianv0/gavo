@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<resource resdir="__system" schema="users">
+<resource resdir="__system" schema="dc">
 
 <!-- This has to match whatever is done in gavo.web.creds.
 -->

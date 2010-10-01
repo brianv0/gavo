@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- mixin definition for tables implementing the siap interface(s) -->
 
-<resource resdir="__system">
-	<schema>public</schema>
+<resource resdir="__system" schema="dc">
 
 	<table id="SIAPbase" 
 			original="__system__/products#productColumns">

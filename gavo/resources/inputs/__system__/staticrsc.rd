@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<resource resdir="__system">
-	<schema>public</schema>
+<resource resdir="__system" schema="dc">
 	<meta name="description">Static resources, imported to services.
 		This exists mainly for easy identification of static resources.</meta>
 	

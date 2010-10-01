@@ -16,9 +16,12 @@ class KVIterator(FileRowIterator):
 	one row or one pair per row.
 	"""
 	def _iterRows(self):
-		data = self.inputFile.read()
-		if self.grammar.enc:
-			data = data.decode(self.grammar.enc)
+		try:
+			data = self.inputFile.read()
+			if isinstance(data, str) and self.grammar.enc:
+				data = data.decode(self.grammar.enc)
+		except UnicodeDecodeError, msg:
+			raise base.SourceParseError(unicode(msg), source=self.inputFile.name)
 		completeRecord = {"parser_": self}
 		data = re.sub(self.grammar.commentPattern, "", data)
 		items = {}
@@ -33,7 +36,8 @@ class KVIterator(FileRowIterator):
 			except:
 				self.inputFile.close()
 				raise base.ui.logOldExc(
-					base.SourceParseError("Not a key value pair: %s"%(repr(rec))))
+					base.SourceParseError("Not a key value pair: %s"%(repr(rec)),
+						source=self.inputFile.name))
 		if not self.grammar.yieldPairs:
 			yield self.grammar.mapKeys.doMap(completeRecord)
 		self.inputFile.close()

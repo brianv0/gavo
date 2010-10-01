@@ -92,6 +92,22 @@ def raiseAndCatch(opts=None, output=outputError):
 			messsages.append("")
 			messages.append("Offending input was:\n")
 			messages.append(repr(msg.record)+"\n")
+
+	except base.SourceParseError, msg:
+		messages.append("While parsing source %s, near %s:\n"%(
+			msg.source, msg.location))
+		messages.append(msg.msg+"\n")
+		if msg.offending:
+			messages.append("Offending literal: %s\n"%repr(offending))
+
+	except base.BadCode, msg:
+		messages.append("Bad user %s:\n"%msg.codeType)
+		messages.append(msg.code)
+		messages.append("User %s caused an error: %s\n"%(
+			msg.codeType, str(msg.origExc)))
+		if msg.pos:
+			messages.append("(At %s)"%msg.pos)
+
 	except (base.ValidationError, base.ReportableError, 
 			base.LiteralParseError, base.StructureError, base.RDNotFound,
 			base.MetaValidationError), msg:
