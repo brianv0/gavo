@@ -3,6 +3,7 @@ Framework for ignoring rows based on various conditions.
 """
 
 from gavo import base
+from gavo.base import typesystems
 
 
 class TriggerPulled(base.Error):
@@ -73,15 +74,26 @@ registerTrigger(KeyMissing)
 class KeyIs(KeyedCondition):
 	"""A trigger firing when the value of key in row is equal to the value given.
 
-	Only strings can be checked in this way.  Missing keys are ok.
+	Missing keys are always accepted.  You can define an SQL type; value will
+	then be interpreted as a literal for this type, and this literal's value will
+	be compared against the key's value.  This is only needed for grammars like
+	fitsProductGrammar that actually yield typed values.
 	"""
 	name_ = "keyIs"
 
 	_value = base.UnicodeAttribute("value", default=base.Undefined,
 		description="The string value to fire on.", copyable=True)
+	_type = base.UnicodeAttribute("type", default="text",
+		description="An SQL type the python equivalent of which the value"
+		" should be converted to before checking.")
+
+	def onElementComplete(self):
+		self.compValue = self.value
+		if self.type!="text":
+			self.compValue = typesystems.sqltypeToPython(self.type)(self.value)
 
 	def __call__(self, dict):
-		return self.key in dict and dict[self.key]==self.value
+		return self.key in dict and dict[self.key]==self.compValue
 
 registerTrigger(KeyIs)
 
