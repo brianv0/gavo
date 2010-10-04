@@ -65,7 +65,7 @@ class StructureError(Error):
 
 	def addPos(self, baseMsg):
 		if self.pos is None:
-			return self.args[0]
+			return baseMsg
 		else:
 			return "At %s: %s"%(str(self.pos), baseMsg)
 

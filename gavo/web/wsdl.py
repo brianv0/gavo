@@ -54,7 +54,7 @@ class WSDL(object):
 		_a_name = None
 		_a_targetNamespace = None
 		_a_xmlns_tns = None
-		_name_a_xmlns_tns_name = "xmlns:tns"
+		_name_a_xmlns_tns = "xmlns:tns"
 		_a_xmlns_xsd = XSDNamespace
 		_name_a_xmlns_xsd = "xmlns:xsd"
 	

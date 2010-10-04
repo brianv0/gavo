@@ -232,27 +232,39 @@
 				elif isinstance(val, datetime.date):
 					return datetime.datetime(val.year, val.month, val.day)
 				else:
-					return datetime.datetime(*time.strptime(val, "%Y-%m-%d")[:3])
+					return utils.parseISODT(val)
 			except Exception, msg:
-				raise base.ValidationError("Bad date from %s (%s)"%(name,
+				raise base.ValidationError("Bad date from %s (%s)"%(fieldName,
 					unicode(msg)), dest)
 		</code>
 	</setup>
-	<code>
+	<code><![CDATA[
 		stampTime = _parseTime(row[start], "start")
 		endTime = _parseTime(row[end], "end")
 		endTime = endTime+datetime.timedelta(hours=23)
+
 		try:
-			interval = datetime.timedelta(hours=float(hrInterval))
+			interval = float(hrInterval)
 		except ValueError:
 			raise base.ValidationError("Not a time interval: '%s'"%hrInterval,
 				"hrInterval")
-		while stampTime&lt;=endTime:
+		if interval<0.01:
+			interval = 0.01
+		interval = datetime.timedelta(hours=interval)
+
+		try:
+			matchLimit = getQueryMeta()["dbLimit"]
+		except ValueError:
+			matchLimit = 1000000
+		while stampTime<=endTime:
+			matchLimit -= 1
+			if matchLimit<0:
+				break
 			newRow = row.copy()
 			newRow[dest] = stampTime
 			yield newRow
 			stampTime = stampTime+interval
-	</code>
+	]]></code>
 </procDef>
 
 

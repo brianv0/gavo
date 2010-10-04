@@ -21,6 +21,7 @@ from gavo import utils
 from gavo.base import coords, parseBooleanLiteral, parseInt, vizierexprs
 from gavo.base.literals import *
 from gavo.stc import parseSimpleSTCS
+from gavo.utils import codetricks
 from gavo.utils import dmsToDeg, hmsToDeg
 
 
@@ -61,6 +62,15 @@ def combinePMs(result, pma, pmd):
 	result["pm_total"] = tpm
 	result["pm_posang"] = pmpa
 
+
+@utils.document
+def getQueryMeta():
+	"""returns a query meta object from somewhere up the stack.
+
+	This is for row makers running within a service.  This can be used
+	to, e.g., enforce match limits by writing getQueryMeta()["dbLimit"].
+	"""
+	return codetricks.stealVar("queryMeta")
 
 @utils.document
 def parseTime(literal, format="%H:%M:%S"):

@@ -481,7 +481,7 @@ class Rowmaker(object):
 			return vars["_result"]
 		except rmkfuncs.IgnoreThisRow: # pass these on
 			raise
-		except base.ValidationError:  # hopefully downstream knows better than we
+		except base.ValidationError:   # hopefully downstream knows better than we
 			raise
 		except Exception, ex:
 			self._guessError(ex, vars, sys.exc_info()[2])
