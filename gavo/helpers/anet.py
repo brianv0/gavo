@@ -76,12 +76,16 @@ indices
 		(defaults to 1000) -- a limit for logging of candidate solutions.
 """
 
+from __future__ import with_statement
+
 from cStringIO import StringIO
+import gzip
 import os
 import shutil
 import subprocess
 
 from gavo import base
+from gavo import utils
 from gavo.utils import fitstools
 from gavo.utils import codetricks
 from gavo.utils import pyfits
@@ -150,8 +154,6 @@ distractors 0.25
 tol 0.01
 ratio_toprint %(ratio_toprint)f
 ratio_tokeep %(ratio_tokeep)f
-ratio_tosolve 1e+09
-ratio_tobail 1e-100
 tweak %(tweak)s
 tweak_aborder 2
 tweak_abporder 2
@@ -172,10 +174,18 @@ run
 def _feedFile(targDir, fName, sexScript=anetSex, **ignored):
 	"""links fName to "in.fits" in the sandbox.
 
-	It also writes a config file anet.sex for sextractor.
+	It also writes a config file anet.sex for sextractor.  
+	
+	If fName ends with .gz, the function assumes it's a gzipped file and
+	unzips it to in.fits instead.
 	"""
-	os.symlink(os.path.join(os.getcwd(), fName), 
-		os.path.join(targDir, "in.fits"))
+	srcName = os.path.join(os.getcwd(), fName)
+	destName = os.path.join(targDir, "in.fits")
+	if fName.endswith(".gz"):
+		with open(destName, "w") as destF:
+			utils.cat(gzip.open(srcName), destF)
+	else:
+		os.symlink(srcName, destName)
 	if sexScript:
 		f = open(os.path.join(targDir,"anet.sex"), "w")
 		f.write(sexScript)
@@ -256,6 +266,13 @@ def _resolve(fName, solverParameters={}, sexScript=None, objectFilter=None,
 		paramDefaults["xcol"], paramDefaults["ycol"] = "X_IMAGE", "Y_IMAGE"
 	else:
 		_extractAnet(objectFilter)
+
+	if not "fieldsize" in solverParameters:
+		solverParameters["fieldsize"] = _makeFieldsize("in.fits")
+	if "indices" in solverParameters:
+		solverParameters["index_statements"] = "\n".join("index %s"%
+			os.path.join(anetIndexPath, n) for n in solverParameters["indices"])
+
 	paramDefaults.update(solverParameters)
 	minInd, maxInd = int(paramDefaults["startob"]), int(
 		paramDefaults["endob"])
@@ -314,11 +331,6 @@ def getWCSFieldsFor(fName, solverParameters, sexScript=None, objectFilter=None,
 	the appropriate index_statements will be generated for you.  indices
 	override any index_statements keys.
 	"""
-	if not "fieldsize" in solverParameters:
-		solverParameters["fieldsize"] = _makeFieldsize(fName)
-	if "indices" in solverParameters:
-		solverParameters["index_statements"] = "\n".join("index %s"%
-			os.path.join(anetIndexPath, n) for n in solverParameters["indices"])
 	try:
 		res = codetricks.runInSandbox(_feedFile, _resolve, _retrieveWCS,
 			fName, solverParameters=solverParameters, sexScript=sexScript,
