@@ -5,10 +5,10 @@ This module contains, in partiular, the interface for having "easy subcommands"
 using argparse.  The idea is to use the exposedFunction decorator on functions
 that should be callable from the command line as subcommands; the functions
 must all have the same signature. For example, if they all took the stuff
-returned by argparse, you could say in the module containing them,
+returned by argparse, you could say in the module containing them::
 
-	args = _makeParser(globals()).parse_args()
-	args.subAction(args)
+  args = _makeParser(globals()).parse_args()
+  args.subAction(args)
 
 To specify the command line arguments to the function, use Args.  See
 admin.py for an example.

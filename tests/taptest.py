@@ -218,7 +218,7 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 			
 			runningPhases = set([uws.QUEUED, uws.EXECUTING])
 			# let things run, but bail out if nothing happens 
-			for i in range(70):
+			for i in range(100):
 				time.sleep(0.1)
 				with uws.UWSJob.makeFromId(jobId) as job:
 					if job.phase not in runningPhases:

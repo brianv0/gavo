@@ -6,74 +6,73 @@ passed in via the solverParameters argument to getWCSFieldsFor,
 a dictionary that can have the following keys:
 
 index_statements
-	(defaults to index <indexPath>/index-218.fits) -- these can be
-	arbitrary statements, but they must set up some indices.  Index files
-	themselves are provided by astrometry.net or can be computed.  In
-	generally you don't want to set this but rather indices.
-
+  (defaults to index <indexPath>/index-218.fits) -- these can be
+  arbitrary statements, but they must set up some indices.  Index files
+  themselves are provided by astrometry.net or can be computed.  In
+  generally you don't want to set this but rather indices.
 indices
-	(no default) -- use in preference to index_statements.  Simply list
-	the file names from anet's index directory you want to have used.
-	This could be something like::
-	
-		["index-207.fits", "index-208.fits", "index-209.fits"]
-	
-	for largeish images or::
+  (no default) -- use in preference to index_statements.  Simply list
+  the file names from anet's index directory you want to have used.
+  This could be something like::
+  
+    ["index-207.fits", "index-208.fits", "index-209.fits"]
+  
+  for largeish images or::
 
-		["index-200-%02d.fits"%i for i in range(12)]
-	
-	for small ones.
+    ["index-200-%02d.fits"%i for i in range(12)]
+  
+  for small ones.
 
-	total_timelimit
-		(defaults to 600) -- number of seconds after which the anet run
-		should cancel itself.
-	
-	tweak
-		(defaults on on) -- try to obtain a polynomic correction to the
-		entire image after obtaining a solution.  This can go wrong in
-		particular for exposures with many objects, so you might want to 
-		set it to off for such cases.
+  total_timelimit
+    (defaults to 600) -- number of seconds after which the anet run
+    should cancel itself.
+  
+  tweak
+    (defaults on on) -- try to obtain a polynomic correction to the
+    entire image after obtaining a solution.  This can go wrong in
+    particular for exposures with many objects, so you might want to 
+    set it to off for such cases.
 
-	fields
-		(default to 1) -- FITS extension to work on
+  fields
+    (default to 1) -- FITS extension to work on
 
-	startob
-		(defalt to 0) -- first object (in the order provided by the source
-		extractor, i.e. usually by brightness) to be processed.
+  startob
+    (defalt to 0) -- first object (in the order provided by the source
+    extractor, i.e. usually by brightness) to be processed.
 
-	endob
-		(defaults to 200) -- last object to be processed.  You don't want to
-		raise this too high.  The library will only pass on 10 objects at a
-		time anyway, but going too high here will waste lots of time on images
-		that are probably not going to resolve anyway.
+  endob
+    (defaults to 200) -- last object to be processed.  You don't want to
+    raise this too high.  The library will only pass on 10 objects at a
+    time anyway, but going too high here will waste lots of time on images
+    that are probably not going to resolve anyway.
 
-	lower_pix
-		(defaults to 0.2) -- smallest permissible pixel size in arcsecs.  If
-		at all possible, constrain this for much better results.
-		
-	upper_pix
-		(defaults to 60) -- largest permissible pixel size in arcsecs.
-		See lower_pix.
+  lower_pix
+    (defaults to 0.2) -- smallest permissible pixel size in arcsecs.  If
+    at all possible, constrain this for much better results.
+    
+  upper_pix
+    (defaults to 60) -- largest permissible pixel size in arcsecs.
+    See lower_pix.
 
-	fieldsize
-		(defaults to empty) -- this should usually be empty.  If you give it,
-		it must be ``fieldw <num>\\nfieldh <num>`` and give the pixel size
-		of the field.  This is only necessary if no original FITS is accessible,
-		i.e., you are resolving from a source list.
+  fieldsize
+    (defaults to empty) -- this should usually be empty.  If you give it,
+    it must be ``fieldw <num>\\nfieldh <num>`` and give the pixel size
+    of the field.  This is only necessary if no original FITS is accessible,
+    i.e., you are resolving from a source list.
 
-	xcol
-		(default to X) -- name of the column containing the x coordinate in
-		the input source list.  You don't usually need to set this.
+  xcol
+    (default to X) -- name of the column containing the x coordinate in
+    the input source list.  You don't usually need to set this.
 
-	ycol
-		(defaults to Y) -- see xcol
-	
-	ratio_tokeep
-		(defaults to 1e9) -- a belief limit to keep a candidate solution.  This
-		probably is not a useful knob.
-	
-	ratio_toprint
-		(defaults to 1000) -- a limit for logging of candidate solutions.
+  ycol
+    (defaults to Y) -- see xcol
+  
+  ratio_tokeep
+    (defaults to 1e9) -- a belief limit to keep a candidate solution.  This
+    probably is not a useful knob.
+  
+  ratio_toprint
+    (defaults to 1000) -- a limit for logging of candidate solutions.
 """
 
 from __future__ import with_statement

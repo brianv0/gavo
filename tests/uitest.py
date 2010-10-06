@@ -3,6 +3,7 @@ Tests for event propagation and user interaction.
 """
 
 import os
+import sys
 import traceback
 
 from gavo import base
@@ -34,6 +35,17 @@ class EventDispatcherTest(testhelpers.VerboseTest):
 			ed.notifyError(fooMsg)
 		except Exception, foundEx:
 			self.assertEqual(fooMsg, foundEx.args[0])
+
+	def testUnsubscribe(self):
+		res = []
+		def callback(arg):
+			res.append(arg)
+		ed = events.EventDispatcher()
+		ed.subscribeInfo(callback)
+		ed.notifyInfo("a")
+		ed.unsubscribeInfo(callback)
+		ed.notifyInfo("b")
+		self.assertEqual(res, ["a"])
 
 	def testObserver(self):
 		ed = events.EventDispatcher()
@@ -105,23 +117,25 @@ class CLITest(testhelpers.VerboseTest):
 		querier = base.SimpleQuerier()
 		try:
 			self.assertOutput(cli.main, 
-				argList=["imp", "data/test", "productimport"],
+				argList=["--disable-spew", "--suppress-log",
+					"imp", "data/test", "productimport"],
 				stdoutStrings=["Columns affected: 2"])
 
 			self.failUnless(querier.tableExists("test.prodtest"))
 			self.failIf(querier.tableExists("test.typestable"))
 
 			self.assertOutput(cli.main,
-				argList=["publish", "data/test"])
+				argList=["--disable-spew", "--suppress-log", "publish", "data/test"])
 
-			self.failUnless(list(querier.query("SELECT * FROM srv_subjs"
+			self.failUnless(list(querier.query("SELECT * FROM dc.srv_subjs"
 				" WHERE subject=%(s)s", {'s': "Problems, somebody else's"})))
 
 			# drop it all, make sure all traces are gone
 			self.assertOutput(cli.main,
-				argList=["drop", "data/test"], expectedStdout="", expectedStderr="")
+				argList=["--disable-spew", "--suppress-log",
+					"drop", "data/test"], expectedStdout="", expectedStderr="")
 
-			self.failIf(list(querier.query("SELECT * FROM srv_subjs"
+			self.failIf(list(querier.query("SELECT * FROM dc.srv_subjs"
 				" WHERE subject=%(s)s", {'s': "Problems, somebody else's"})))
 			self.failIf(querier.tableExists("test.prodtest"))
 		finally:

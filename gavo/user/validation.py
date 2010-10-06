@@ -120,7 +120,8 @@ def validateRowmakers(rd, args):
 	"""
 	for dd in rd:
 		for m in dd.makes:
-			rawTable = rsc.TableForDef(m.table.change(onDisk=False))
+			m.table.onDisk = False
+			rawTable = rsc.TableForDef(m.table)
 			m.rowmaker.compileForTable(rawTable)
 
 def validateOne(rdId, args):

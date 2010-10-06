@@ -37,9 +37,12 @@ class DispatcherType(type):
 				callback(res)
 			return res
 		def subscribe(self, callback):
-			self.callbacks[name].append(callback)
+			self.subscribe(name, callback)
+		def unsubscribe(self, callback):
+			self.unsubscribe(name, callback)
 		setattr(cls, "notify"+name, notify)
 		setattr(cls, "subscribe"+name, subscribe)
+		setattr(cls, "unsubscribe"+name, unsubscribe)
 
 	def _makeNotifiers(cls, dict):
 		for name, val in dict.iteritems():
@@ -65,6 +68,16 @@ class EventDispatcher(object):
 
 	def subscribe(self, evName, callback):
 		self.callbacks[evName].append(callback)
+
+	def unsubscribe(self, evName, callback):
+		"""removes a callback from evName's callback list.
+
+		It is not an error to unsubscribe a callback that's not subscribed.
+		"""
+		try:
+			self.callbacks[evName].remove(callback)
+		except ValueError:
+			pass
 
 	def notifyExceptionMutation(self, newExc):
 		"""is called when an exception is being handled by raising newExc.
