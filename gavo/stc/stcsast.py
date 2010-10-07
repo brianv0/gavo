@@ -187,6 +187,10 @@ def _validateCoos(values, nDim, minItems, maxItems):
 		values.expectedLength = nDim
 	numItems = len(values)/nDim
 	if numItems*nDim!=len(values):
+		# special case: a *single* ColRef is good for anything (could be
+		# an array or something)
+		if len(values)==1 and isinstance(values[0], ColRef):
+			return
 		raise STCSParseError("%s is not valid input to create %d-dimensional"
 			" coordinates"%(values, nDim))
 	if minItems is not None and numItems<minItems:

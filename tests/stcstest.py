@@ -81,6 +81,7 @@ class STCSTimeParsesTest(STCSParsesTestBase):
 			("stopTime", "StopTime 1900-01-01 unit yr Resolution 19"),
 			("stopTime", "StopTime 1900-01-01 unit yr Resolution 19 20"),
 			("stopTime", "StopTime 1900-01-01 unit yr PixSize 19"),
+			("stopTime", "StopTime 1900-01-01 unit yr Size 19"),
 			("stopTime", "StopTime 1900-01-01 unit yr PixSize 19 20"),
 			("stopTime", "StopTime fillfactor 0.1 TT GEOCENTER 1900-01-01"
 				" Time 2000-12-31 unit yr Error 1 2 Resolution 0.1 0.1 PixSize 19 20"),
@@ -146,7 +147,7 @@ class STCSSpaceFailsTest(STCSFailsTestBase):
 class STCSRedshiftParsesTest(STCSParsesTestBase):
 	samples = [
 		("redshiftSubPhrase", "Redshift TOPOCENTER VELOCITY RELATIVISTIC 0.1"
-			" unit km/s Error 10 12 Resolution 1 2 PixSize 4 5"),
+			" unit km/s Error 10 12 Resolution 1 2 Size 3 PixSize 4 5"),
 		("redshiftSubPhrase", "RedshiftInterval fillfactor 0.4"
 			" BARYCENTER REDSHIFT"),
 		("redshiftSubPhrase", "RedshiftInterval fillfactor 0.4"
@@ -164,6 +165,7 @@ class STCSRedshiftFailsTest(STCSFailsTestBase):
 class STCSSpectralParsesTest(STCSParsesTestBase):
 	samples = [
 		("spectralSubPhrase", "Spectral 12 unit mm"),
+		("spectralSubPhrase", "Spectral 12 unit mm Size 3"),
 		("spectralSubPhrase", "Spectral NEPTUNE 12 unit mm"),
 		("spectralSubPhrase", "Spectral UNKNOWNRefPos 12 unit Angstrom Error 4 3"
 			" Resolution 0.2 PixSize 12"),

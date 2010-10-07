@@ -261,6 +261,15 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
     + Optional( plEphemeris("plEphemeris") ))
 	flavor = (Regex(_reFromKeys(stcsFlavors)))("flavor")
 
+# properties of coordinates
+	error = Suppress( CaselessKeyword("Error") ) + OneOrMore( number )
+	resolution = Suppress( CaselessKeyword("Resolution") ) + OneOrMore( number )
+	size = Suppress( CaselessKeyword("Size") ) + OneOrMore(number)
+	pixSize = Suppress( CaselessKeyword("PixSize") ) + OneOrMore(number)
+	cooProps = (Optional( error("error") ) 
+		+ Optional( resolution("resolution") ) 
+		+ Optional( size("size") ) 
+		+ Optional( pixSize("pixSize") ))
 
 # properties of most spatial specs
 	_coos = ZeroOrMore( number )("coos")
@@ -272,19 +281,14 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 		_pos = complexColRef("pos") | _pos
 	positionSpec = Suppress( CaselessKeyword("Position") ) + _pos
 	epochSpec = Suppress( CaselessKeyword("Epoch") ) - astroYear
-	error = Suppress( CaselessKeyword("Error") ) + OneOrMore( number )
-	resolution = Suppress( CaselessKeyword("Resolution") ) + OneOrMore( number )
-	size = Suppress( CaselessKeyword("Size") ) + OneOrMore(number)
-	pixSize = Suppress( CaselessKeyword("PixSize") ) + OneOrMore(number)
-	_spatialProps = (Optional( spaceUnit ) +
-		Optional( error("error") ) + Optional( resolution("resolution") ) + 
-		Optional( size("size") ) + Optional( pixSize("pixSize") ))
+	_spatialProps = Optional( spaceUnit ) + cooProps
 	velocitySpec = Suppress( CaselessKeyword("Velocity") ) + OneOrMore( number )("pos")
-	velocityInterval = ( CaselessKeyword("VelocityInterval")("type") + 
-		Optional( fillfactor ) + _coos + Optional( velocitySpec ) + 
-		Optional( velocityUnit ) +
-		Optional( error("error") ) + Optional( resolution("resolution") ) + 
-		Optional( pixSize("pixSize") )).addParseAction(makeTree)
+	velocityInterval = (CaselessKeyword("VelocityInterval")("type") 
+		+ Optional( fillfactor ) 
+		+ _coos 
+		+ Optional( velocitySpec ) 
+		+ Optional( velocityUnit ) 
+		+ cooProps).addParseAction(makeTree)
 	_spatialTail = (_spatialProps + 
 		Optional( velocityInterval )("velocity"))
 	_regionTail = Optional( positionSpec ) + _spatialTail
@@ -296,9 +300,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 # times and time intervals
 	timescale = (Regex("|".join(stcTimeScales)))("timescale")
 	timephrase = Suppress( CaselessKeyword("Time") ) + timeLiteral
-	_commonTimeItems = (	Optional( timeUnit ) + Optional( 
-		error("error") ) + Optional( resolution("resolution") ) + 
-		Optional( pixSize("pixSize") ) )
+	_commonTimeItems = Optional( timeUnit ) + cooProps
 	_intervalOpener = ( Optional( fillfactor ) + 
 		Optional( timescale("timescale") ) +
 		Optional( refpos ) )
@@ -386,10 +388,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 # spectral subphrase
 	spectralSpec = (Suppress( CaselessKeyword("Spectral") ) 
 		+ number)("pos")
-	_spectralTail = (Optional( spectralUnit ) 
-		+ Optional( error("error") ) 
-		+ Optional( resolution("resolution") ) 
-		+ Optional( pixSize("pixSize") ))
+	_spectralTail = Optional( spectralUnit ) + cooProps
 	spectralInterval = (CaselessKeyword("SpectralInterval")("type") 
 		+ Optional( fillfactor ) 
 		+ Optional( refpos ) 
@@ -407,10 +406,7 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 	redshiftType = Regex("VELOCITY|REDSHIFT")("redshiftType")
 	redshiftSpec = (Suppress( CaselessKeyword("Redshift") ) + number)("pos")
 	dopplerdef = Regex("OPTICAL|RADIO|RELATIVISTIC")("dopplerdef")
-	_redshiftTail = (Optional( redshiftUnit )
-		+ Optional( error("error") )
-		+ Optional( resolution("resolution") )
-		+ Optional( pixSize("pixSize") ))
+	_redshiftTail = Optional( redshiftUnit ) + cooProps
 	redshiftInterval = (CaselessKeyword("RedshiftInterval")("type") 
 		+ Optional( fillfactor ) 
 		+ Optional( refpos ) 
