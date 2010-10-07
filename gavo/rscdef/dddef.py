@@ -13,6 +13,7 @@ import os
 
 from gavo import base
 from gavo import utils
+from gavo.rscdef import builtingrammars
 from gavo.rscdef import common
 from gavo.rscdef import rmkdef
 from gavo.rscdef import scripting
@@ -172,7 +173,7 @@ class GrammarAttribute(base.StructAttribute):
 			default=None, description=description, **kwargs)
 
 	def create(self, structure, ctx, name):
-		return getGrammar(name)(structure)
+		return builtingrammars.getGrammar(name)(structure)
 
 	def makeUserDoc(self):
 		return ("Polymorphous grammar attribute.  May contain any of the grammars"
@@ -271,7 +272,7 @@ class DataDescriptor(base.Structure, base.MetaMixin):
 
 	def getDynamicAttribute(self, name):
 		try:
-			grammarClass = getGrammar(name)
+			grammarClass = builtingrammars.getGrammar(name)
 		except KeyError:  # no such grammar, let Structure raise its error
 			return
 		self.managedAttrs[name] = self._grammar
@@ -334,14 +335,3 @@ class DataDescriptor(base.Structure, base.MetaMixin):
 		"""
 		return DataDescriptor(self.parent, rowmakers=self.rowmakers[:],
 			tables=self.tables[:], grammar=self.grammar, makes=self.makes[:])
-
-
-_grammarRegistry = {}
-
-def registerGrammar(grammarClass):
-	elName = grammarClass.name_
-	_grammarRegistry[elName] = grammarClass
-
-
-def getGrammar(grammarName):
-	return _grammarRegistry[grammarName]

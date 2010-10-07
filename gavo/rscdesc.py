@@ -247,6 +247,8 @@ def getRDInputStream(srcId):
 	descriptor with srcId.
 	"""
 	userInput = srcId
+	if srcId.startswith("//"):
+		srcId = "__system__"+srcId[1:]
 	srcPath = os.path.join(base.getConfig("inputsDir"), srcId)
 	if os.path.isfile(srcPath):
 		return srcPath, open(srcPath)

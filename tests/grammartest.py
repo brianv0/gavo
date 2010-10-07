@@ -8,10 +8,8 @@ import os
 from cStringIO import StringIO
 
 from gavo import base
-from gavo import grammars
 from gavo import rsc
 from gavo import rscdef
-from gavo.grammars import kvgrammar
 from gavo.helpers import testhelpers
 
 
@@ -69,12 +67,12 @@ ignoreTestData = [
 
 class IgnoreTests(testhelpers.VerboseTest):
 	def _makeGrammar(self, ignoreClauses):
-		return base.parseFromString(grammars.DictlistGrammar, 
+		return base.parseFromString(rscdef.getGrammar("dictlistGrammar"), 
 			"<dictlistGrammar><ignoreOn>%s</ignoreOn></dictlistGrammar>"%
 				ignoreClauses)
 
 	def _makeBailingGrammar(self, ignoreClauses):
-		return base.parseFromString(grammars.DictlistGrammar, 
+		return base.parseFromString(rscdef.getGrammar("dictlistGrammar"), 
 			"<dictlistGrammar><ignoreOn bail='True'>%s</ignoreOn></dictlistGrammar>"%
 				ignoreClauses)
 
@@ -136,7 +134,7 @@ class EmbeddedGrammarTest(testhelpers.VerboseTest):
 
 class KVGrammarTest(testhelpers.VerboseTest):
 	def testSimple(self):
-		grammar = base.parseFromString(kvgrammar.KeyValueGrammar,
+		grammar = base.parseFromString(rscdef.getGrammar("keyValueGrammar"),
 			'<keyValueGrammar commentPattern="--.*?\*/" enc="utf-8"/>')
 		rec = list(grammar.parse(StringIO("a=b\nc=2 --nothing*/\n"
 			"wonkö:Närd".decode("iso-8859-1").encode("utf-8"))))[0]
@@ -145,7 +143,7 @@ class KVGrammarTest(testhelpers.VerboseTest):
 		self.assertEqual(rec[u"wonkö"], u'Närd')
 	
 	def testPairs(self):
-		grammar = base.parseFromString(kvgrammar.KeyValueGrammar,
+		grammar = base.parseFromString(rscdef.getGrammar("keyValueGrammar"),
 			'<keyValueGrammar kvSeparators="/" pairSeparators="%"'
 			' yieldPairs="True"/>')
 		recs = [(v['key'], v['value']) 
@@ -157,7 +155,7 @@ class KVGrammarTest(testhelpers.VerboseTest):
 			"At <internal source>, unknown position: '**' is not a valid"
 				" value for commentPattern",
 			base.parseFromString, 
-			(kvgrammar.KeyValueGrammar,
+			(rscdef.getGrammar("keyValueGrammar"),
 			'<keyValueGrammar commentPattern="**"/>'))
 
 

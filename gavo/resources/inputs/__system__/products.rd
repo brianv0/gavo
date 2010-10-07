@@ -10,7 +10,8 @@ machinery -->
 	<table id="products" primary="key" system="True" onDisk="True">
 		<column name="key" type="text" tablehead="Product key"
 			description="Access key for the data"
-			verbLevel="1" displayHint="type=product"/>
+			verbLevel="1" displayHint="type=product"
+			utype="Access.Reference"/>
 		<column name="owner" type="text" tablehead="Owner"
 			verbLevel="25" description="Owner of the data"/>
 		<column name="embargo" type="date" tablehead="Embargo ends" 
@@ -24,7 +25,8 @@ machinery -->
 			description="Name of table containing metadata" required="True"/>
 		<column name="mime" type="text" verbLevel="20"
 			tablehead="Type"
-			description="MIME type of the file served"/>
+			description="MIME type of the file served"
+			utype="Access.Format"/>
 		<primary>key</primary>
 	</table>
 	<rowmaker id="productsMaker">
@@ -44,7 +46,7 @@ machinery -->
 		<column original="mime"/>
 		<column name="accsize" ucd="VOX:Image_FileSize"
 			tablehead="File size" description="Size of the data in bytes"
-			type="integer" verbLevel="11" unit="byte"/>
+			type="integer" verbLevel="11" unit="byte" utype="Access.Size"/>
 	</table>
 	
 	<procDef type="rowfilter" id="defineProduct" register="True">

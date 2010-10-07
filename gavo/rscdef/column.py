@@ -289,7 +289,7 @@ class Column(base.Structure):
 		"Unit of the values", copyable=True, before="ucd")
 	_ucd = UnicodeAttribute("ucd", default="", description=
 		"UCD of the column", copyable=True, before="description")
-	_description = UnicodeAttribute("description", 
+	_description = NWUnicodeAttribute("description", 
 		default="", copyable=True,
 		description="A short (one-line) description of the values in this column.")
 	_tablehead = TableheadAttribute("tablehead",

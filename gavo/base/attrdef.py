@@ -54,6 +54,7 @@ See structure on how to use all these.
 """
 
 import os
+import re
 
 from gavo import utils
 from gavo.utils import Undefined
@@ -221,6 +222,22 @@ class UnicodeAttribute(AtomicAttribute):
 		if value is None:
 			return "__NULL__"
 		return value
+
+
+class NWUnicodeAttribute(UnicodeAttribute):
+	"""A UnicodeAttribute that has its whitespace normalized.
+
+	Normalization consists of stripping whitespace at the ends and replacing
+	any runs or internal whitespace by a single blank.  The whitespace
+	will not be added back on unparsing.
+	"""
+	typeDesc_ = "whitespace normalized unicode string"
+
+	def parse(self, value):
+		value = UnicodeAttribute.parse(self, value)
+		if value is None:
+			return value
+		return re.sub("\s+", " ", value.strip())
 
 
 class RelativePathAttribute(UnicodeAttribute):
@@ -439,4 +456,5 @@ __all__ = ["LiteralParseError", "Undefined", "UnicodeAttribute",
 	"EnumeratedUnicodeAttribute", "AttributeDef", "Computed",
 	"RelativePathAttribute", "FunctionRelativePathAttribute",
 	"StringListAttribute", "ActionAttribute", "FloatAttribute",
-	"StringSetAttribute", "NotGiven", "IdMapAttribute"]
+	"StringSetAttribute", "NotGiven", "IdMapAttribute",
+	"NWUnicodeAttribute"]

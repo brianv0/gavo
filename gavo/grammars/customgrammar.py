@@ -57,8 +57,6 @@ class CustomGrammar(common.Grammar, base.RestrictionMixin):
 			self._initUserGrammar()
 		return common.Grammar.parse(self, *args, **kwargs)
 
-rscdef.registerGrammar(CustomGrammar)
-
 
 class CustomRowIterator(common.RowIterator):
 	"""is a base class for custom row iterators.

@@ -38,5 +38,3 @@ class EmbeddedGrammar(common.Grammar, base.RestrictionMixin):
 			_iterRows = self.iterator.compile()
 			notify = False
 		self.rowIterator = RowIterator
-
-rscdef.registerGrammar(EmbeddedGrammar)

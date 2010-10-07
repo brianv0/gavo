@@ -375,4 +375,3 @@ class NullGrammar(Grammar):
 	"""A grammar that never returns any rows.
 	"""
 	name_ = "nullGrammar"
-rscdef.registerGrammar(NullGrammar)

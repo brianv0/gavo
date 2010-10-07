@@ -420,7 +420,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		try:
 			return self.columns.getColumnByName(name)
 		except base.NotFoundError, msg:
-			msg.table = "table %s"%self.id
+			msg.within = "table %s"%self.id
 			raise
 
 	def getColumnById(self, id):

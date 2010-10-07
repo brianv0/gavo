@@ -6,7 +6,6 @@ import re
 import sys
 
 from gavo import base
-from gavo import rscdef
 from gavo.grammars import common
 from gavo.grammars import regrammar
 
@@ -71,5 +70,3 @@ class FreeREGrammar(common.Grammar):
 	_stripTokens = base.BooleanAttribute("stripTokens", default=False,
 		description="Strip whitespace from result tokens?")
 	rowIterator = RowIterator
-
-rscdef.registerGrammar(FreeREGrammar)

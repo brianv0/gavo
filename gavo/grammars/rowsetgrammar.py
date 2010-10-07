@@ -6,7 +6,6 @@ of a table.
 import itertools
 
 from gavo import base
-from gavo import rscdef
 from gavo.grammars import common
 
 class RowsetIterator(common.RowIterator):
@@ -57,5 +56,3 @@ class RowsetGrammar(common.Grammar):
 	def onElementComplete(self):
 		self._onElementCompleteNext(RowsetGrammar)
 		self.names = [c.name for c in self.fieldsFrom]
-
-rscdef.registerGrammar(RowsetGrammar)

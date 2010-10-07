@@ -5,7 +5,6 @@ A grammar parsing key-value pairs from plain text files.
 import re
 
 from gavo import base
-from gavo import rscdef
 from gavo.grammars.common import Grammar, FileRowIterator, MapKeys, REAttribute
 
 
@@ -80,6 +79,3 @@ class KeyValueGrammar(Grammar):
 		if self.mapKeys is None:
 			self.mapKeys = base.makeStruct(MapKeys)
 		self._onElementCompleteNext(KeyValueGrammar)
-
-
-rscdef.registerGrammar(KeyValueGrammar)

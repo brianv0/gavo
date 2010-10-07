@@ -157,7 +157,7 @@ def makeTableFromVOTable(rd, srcName, opts):
 
 def makeDataForVOTable(rd, srcName, opts):
 	return MS(rscdef.DataDescriptor,
-		grammar=MS(grammars.VOTableGrammar),
+		grammar=MS(rscdef.getGrammar("voTableGrammar")),
 		sources=MS(rscdef.SourceSpec, pattern=srcName),
 		makes=[MS(rscdef.Make, table=rd.tables[0])])
 

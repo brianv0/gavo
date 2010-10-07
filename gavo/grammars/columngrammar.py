@@ -4,7 +4,6 @@ lets you name character ranges.
 """
 
 from gavo import base
-from gavo import rscdef
 from gavo.grammars.common import Grammar, FileRowIterator
 
 
@@ -87,5 +86,3 @@ class ColumnGrammar(Grammar):
 		" while reading?", default=False)
 	
 	rowIterator = SplitLineIterator
-	
-rscdef.registerGrammar(ColumnGrammar)

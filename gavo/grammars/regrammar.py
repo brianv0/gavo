@@ -6,7 +6,6 @@ using REs.
 import re
 
 from gavo import base
-from gavo import rscdef
 from gavo.grammars.common import Grammar, FileRowIterator, REAttribute
 
 
@@ -83,5 +82,3 @@ class REGrammar(Grammar):
 		"Names for the parsed columns, in sequence of the fields.")
 	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"
 		" while reading?", default=False)
-
-rscdef.registerGrammar(REGrammar)

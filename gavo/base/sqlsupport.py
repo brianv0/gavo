@@ -158,7 +158,6 @@ def getDefaultDBConnection(debug=debug):
 	return getDBConnection(config.getDBProfile(), debug=debug)
 
 
-
 def encodeDBMsg(msg):
 	"""returns the string or sql exception msg in ascii.
 	"""
@@ -179,7 +178,6 @@ def _parseTableName(tableName, schema=None):
 		if "." in tableName:
 			schema, tableName = tableName.split(".")
 		return schema.lower(), tableName.lower()
-
 
 
 class PostgresQueryMixin(object):

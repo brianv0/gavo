@@ -200,7 +200,6 @@ class ContextGrammar(grammars.Grammar):
 		"""
 		return cls.fromInputKeys([InputKey.fromColumn(c) for c in srcColumns])
 
-rscdef.registerGrammar(ContextGrammar)
 
 
 class InputDescriptor(rscdef.DataDescriptor):

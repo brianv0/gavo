@@ -163,8 +163,6 @@ class DirectGrammar(base.Structure):
 					sourceToken)
 		return copyIn
 
-rscdef.registerGrammar(DirectGrammar)
-
 # booster source code generating functions
 
 import sys

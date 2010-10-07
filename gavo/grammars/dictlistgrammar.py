@@ -3,7 +3,6 @@ A (quite trivial) grammar that iterates over lists of dicts.
 """
 
 from gavo import base
-from gavo import rscdef
 from gavo.grammars.common import Grammar, RowIterator
 
 
@@ -32,6 +31,3 @@ class DictlistGrammar(Grammar):
 	"""
 	name_ = "dictlistGrammar"
 	rowIterator = ListIterator
-
-
-rscdef.registerGrammar(DictlistGrammar)

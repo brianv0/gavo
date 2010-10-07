@@ -273,13 +273,15 @@ class DataDescTest(testhelpers.VerboseTest):
 	def testGrammars(self):
 		dd = base.parseFromString(rscdef.DataDescriptor,
 			'<data><nullGrammar/></data>')
-		self.assert_(isinstance(dd.grammar, grammars.NullGrammar))
+		self.failUnless(isinstance(dd.grammar, rscdef.getGrammar("nullGrammar")))
 		dd = base.parseFromString(rscdef.DataDescriptor,
 			'<data><fitsProdGrammar qnd="True"/></data>')
-		self.assert_(isinstance(dd.grammar, grammars.FITSProdGrammar))
+		self.failUnless(
+			isinstance(dd.grammar, rscdef.getGrammar("fitsProdGrammar")))
 		dd = base.parseFromString(rscdef.DataDescriptor,
 			'<data><dictlistGrammar/></data>')
-		self.assert_(isinstance(dd.grammar, grammars.DictlistGrammar))
+		self.failUnless(isinstance(dd.grammar, 
+			rscdef.getGrammar("dictlistGrammar")))
 
 	def testIgnorePats(self):
 		dd = base.parseFromString(rscdef.DataDescriptor,

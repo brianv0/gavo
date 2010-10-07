@@ -13,6 +13,7 @@ import pkg_resources
 
 from gavo import api
 from gavo import base
+from gavo import rscdef
 from gavo import rscdesc
 from gavo import utils
 
@@ -221,8 +222,8 @@ def getStructDocsFromRegistry(registry, docStructure):
 
 
 def getGrammarDocs(docStructure):
-	from gavo.rscdef import dddef
-	return getStructDocsFromRegistry(dddef._grammarRegistry, docStructure)
+	registry = dict((n, rscdef.getGrammar(n) for n in rscdef.grammarRegistry))
+	return getStructDocsFromRegistry(registry, docStructure)
 		
 
 def getCoreDocs(docStructure):

@@ -10,7 +10,6 @@ from itertools import *
 
 from gavo import adql
 from gavo import base
-from gavo import rscdef
 from gavo import utils
 from gavo import votable
 from gavo.grammars import common
@@ -113,5 +112,3 @@ class VOTableGrammar(common.Grammar):
 		" while reading?", default=False)
 
 	rowIterator = VOTableRowIterator
-
-rscdef.registerGrammar(VOTableGrammar)

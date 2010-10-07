@@ -223,3 +223,8 @@
 	Do away with all the "predefined" mess with procs and such.  They
 	should be referred to by references (possibly allowing skipping
 	__system__).  Then, do away with the preloading crap for mixin RDs.
+
+55/WISHLIST/2010-10-07
+	A few utility functions from votablegrammar should be put somewhere else
+	(valuemapper?) so taprunner, formats.votable* and friends don't need to
+	import it any more on startup.

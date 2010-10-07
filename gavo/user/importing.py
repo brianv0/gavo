@@ -8,7 +8,6 @@ import traceback
 from optparse import OptionParser
 
 from gavo import base
-from gavo import grammars
 from gavo import rscdesc     # for registration
 from gavo import rsc
 from gavo.protocols import basic  # for registration

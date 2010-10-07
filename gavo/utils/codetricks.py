@@ -391,10 +391,40 @@ def ensureExpression(expr, errName="unknown"):
 		raise misctricks.logOldExc(excs.BadCode(expr, "expression", ex))
 
 
+def importModule(modName):
+	"""imports a module from the module path.
+
+	Use this to programmatically import "normal" modules, e.g., dc-internal
+	ones.  It uses python's standard import mechanism and returns the
+	module object.
+
+	We're using exec and python's normal import, so the semantics
+	should be identical to saying import modName except that the
+	caller's namespace is not changed.
+
+	The function returns the imported module.
+	"""
+	# ward against exploits (we're about to use exec): check syntax
+	if not re.match("([A-Za-z_]+)(\.[A-Za-z_]+)*", modName):
+		raise excs.Error("Invalid name in internal import: %s"%modName)
+	parts = modName.split(".")
+	vars = {}
+	if len(parts)==1:
+		exec "import %s"%modName in vars
+	else:
+		exec "from %s import %s"%(".".join(parts[:-1]), parts[-1]) in vars
+	return vars[parts[-1]]
+
+
 def loadPythonModule(fqName):
 	"""imports fqName and returns the module with a module description.
 
-	The module description is what what find_module returns.
+	The module description is what what find_module returns; you may
+	need this for reloading and similar.
+
+	Do not use this function to import DC-internal modules; this may
+	mess up singletons since you could bypass python's mechanisms
+	to prevent multiple imports of the same module.
 
 	fqName is a fully qualified path to the module without the .py.
 	"""

@@ -112,7 +112,8 @@ class ProductTarMaker(object):
 		self.rd = base.caches.getRD("__system__/products")
 		self.core = self.rd.getById("forTar")
 		self.inputDD = self.core.inputDD.copy(None)
-		self.inputDD.grammar = base.makeStruct(grammars.DictlistGrammar)
+		self.inputDD.grammar = base.makeStruct(
+			rscdef.getGrammar("dictlistGrammar"))
 
 	def _getEmbargoedFile(self, name):
 		stuff = StringIO("This file is embargoed.  Sorry.\n")

@@ -8,12 +8,14 @@ that would take some work, though, since rscdesc currently needs to know
 about grammars, cores, etc, available.
 """
 
+from gavo.rscdef.builtingrammars import (grammarRegistry, getGrammar)
+
 from gavo.rscdef.column import Column, Option, Values, makeOptions
 
 from gavo.rscdef.common import (RDAttribute, ResdirRelativeAttribute,
 	ColumnListAttribute, NamePathAttribute, ColumnList)
 
-from gavo.rscdef.dddef import (DataDescriptor, registerGrammar, Make,
+from gavo.rscdef.dddef import (DataDescriptor, Make,
 	SourceSpec)
 
 from gavo.rscdef.macros import (StandardMacroMixin, MacroPackage,

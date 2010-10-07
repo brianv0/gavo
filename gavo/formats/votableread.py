@@ -20,7 +20,6 @@ from gavo.votable import modelgroups
 
 MS = base.makeStruct
 
-
 class QuotedNameMaker(object):
 	"""A name maker for makeTableDefForVOTable implementing TAP's requirements.
 	"""

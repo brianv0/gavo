@@ -25,13 +25,13 @@ import traceback
 from gavo import base
 from gavo import formats
 from gavo import rsc
+from gavo import rscdef
 from gavo import utils
 from gavo.grammars import votablegrammar
 from gavo.formats import votableread
 from gavo.protocols import adqlglue
 from gavo.protocols import tap
 from gavo.protocols import uws
-
 
 
 # The following would point to executors for other languages at some point.

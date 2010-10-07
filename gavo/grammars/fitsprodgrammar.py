@@ -8,7 +8,6 @@ import gzip
 import re
 
 from gavo import base
-from gavo import rscdef
 from gavo.grammars.common import Grammar, RowIterator, MapKeys
 from gavo.utils import fitstools
 
@@ -85,5 +84,3 @@ class FITSProdGrammar(Grammar):
 		if self.mapKeys is None:
 			self.mapKeys = base.makeStruct(MapKeys)
 		self._onElementCompleteNext(FITSProdGrammar)
-
-rscdef.registerGrammar(FITSProdGrammar)
