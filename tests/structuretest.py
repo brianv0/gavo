@@ -132,7 +132,7 @@ class MiscAttributeTest(unittest.TestCase):
 
 
 def _feedInto(baseStruct, eventList):
-	ep = structure.EventProcessor(baseStruct, base.ParseContext())
+	ep = xmlstruct.EventProcessor(baseStruct, base.ParseContext())
 	for ev in eventList:
 		ep.feed(*ev)
 	return ep.result

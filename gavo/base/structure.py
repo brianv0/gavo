@@ -23,9 +23,9 @@ queries" or a map of ids and objects).
 
 type can be:
 
-	- value -- causes the feed method on the attribute name to be called.
-	- start -- returns a new feed receiver for the attribute name.
-	- end -- returns a new feed receiver for the current attribute's parent.
+- value -- causes the feed method on the attribute name to be called.
+- start -- returns a new parser for the attribute name.
+- end -- returns a new parser for the current attribute's parent.
 
 feedEvent returns either a callable (that be called on the next event
 call) or a unicode object name to signify that whatever is being parsed is
@@ -33,8 +33,9 @@ atomic and they will expect a feed("value", name, value) for the content
 of the element.  If feedEvent returns None it means that the root
 element has finished.
 
-You can build feedEvent methods using the Parser class; this make the
-whole thing a bit clearer and more robust.
+You can build feedEvent methods using the Parser class; these are
+constructed with a method each to handle start, value, and events,
+respectively.
 
 
 Structures
@@ -477,9 +478,10 @@ class ParseableStructure(StructureBase):
 
 		This is mainly intended to be used by mixins.
 		"""
+		from gavo.base import xmlstruct
 		if ctx is None:
 			ctx = parsecontext.ParseContext()
-		evProc = EventProcessor(None, ctx)
+		evProc = xmlstruct.EventProcessor(None, ctx)
 		evProc.setRoot(self)
 		for ev in other.iterEvents():
 			evProc.feed(*ev)
@@ -594,145 +596,3 @@ def makeStruct(structClass, **kwargs):
 	if "parent_" in kwargs:
 		parent = kwargs.pop("parent_")
 	return structClass(parent, **kwargs).finishElement()
-
-
-class Generator(Parser):
-	"""is an event generator created from python source code embedded
-	in an XML element.
-	"""
-	def __init__(self, parent):
-		nextParser = parent.curParser
-		self.code = ""
-		def start(ctx, name, value):
-			raise StructureError("GENERATORs have no children")
-		def value(ctx, name, value):
-			if name!="content_":
-				raise StructureError("GENERATORs have no children")
-			self.code = parent.rootStruct.expand(("def gen():\n"+value).rstrip())
-			return self
-		def end(ctx, name, value):
-			vals = {"context": ctx}
-			try:
-				exec self.code in vals
-			except Exception, ex:
-				raise common.logOldExc(BadCode(self.code, "GENERATOR", ex))
-			for ev in vals["gen"]():
-				if ev[0]=="element":
-					self._expandElementEvent(ev, parent)
-				elif ev[0]=="values":
-					self._expandValuesEvent(ev, parent)
-				else:
-					parent.eventQueue.append(ev)
-			return nextParser
-		Parser.__init__(self, start, value, end)
-	
-	def _expandElementEvent(self, ev, parent):
-		parent.eventQueue.append(("start", ev[1]))
-		for key, val in ev[2:]:
-			parent.eventQueue.append(("value", key, val))
-		parent.eventQueue.append(("end", ev[1]))
-
-	def _expandValuesEvent(self, ev, parent):
-		for key, val in ev[1:]:
-			parent.eventQueue.append(("value", key, val))
-
-
-class EventProcessor(object):
-	"""A dispatcher for parse events to structures.
-
-	It is constructed with the root structure of the result tree, either
-	as a type or as an instance.
-
-	After that, events can be fed to the feed method that makes sure
-	they are routed to the proper object.
-	"""
-
-# The event processor distinguishes between parsing atoms (just one
-# value) and structured data using the next attribute.  If it is not
-# None, the next value coming in will be turned to a "value" event
-# on the current parser.  If it is None, we hand through the event
-# to the current structure.
-
-	def __init__(self, rootStruct, ctx):
-		self.rootStruct = rootStruct
-		self.curParser, self.next = self._parse, None
-		self.result, self.ctx = None, ctx
-		# a queue of events to replay after the current structured
-		# element has been processed
-		self.eventQueue = []
-
-	def _processEventQueue(self):
-		while self.eventQueue:
-			self.feed(*self.eventQueue.pop(0))
-
-	def _feedToAtom(self, type, name, value):
-		if type=='start':
-			raise StructureError("%s elements cannot have %s children"%(
-				self.next, name))
-		elif type=='value' or type=="parsedvalue":
-			self.curParser(self.ctx, 'value', self.next, value)
-		elif type=='end':
-			self.next = None
-
-	def _feedToStructured(self, type, name, value):
-		next = self.curParser(self.ctx, type, name, value)
-		if isinstance(next, basestring):
-			self.next = next
-		else:
-			self.curParser = next
-		if type=="end":
-			self._processEventQueue()
-
-	def feed(self, type, name, value=None):
-		"""feeds an event.
-
-		This is the main entry point for user calls.
-		"""
-		if type=="start" and name=="GENERATOR":
-			self.curParser = Generator(self)
-			return
-		try:
-			if self.next is None:
-				self._feedToStructured(type, name, value)
-			else:
-				self._feedToAtom(type, name, value)
-		except ChangeParser, ex:
-			self.curParser = ex.newParser
-	
-	def _parse(self, ctx, evType, name, value):
-		"""dispatches an event to the root structure.
-
-		Do not call this yourself unless you know what you're doing.  The
-		method to feed "real" events to is feed.
-		"""
-		if name!=self.rootStruct.name_:
-			raise StructureError("Expected root element %s, found %s"%(
-				self.rootStruct.name_, name))
-		if evType=="start":
-			if isinstance(self.rootStruct, type):
-				self.result = self.rootStruct(None)
-			else:
-				self.result = self.rootStruct
-			self.result.idmap = ctx.idmap
-			return self.result.feedEvent
-		else:
-			raise StructureError("Bad document structure")
-	
-	def setRoot(self, root):
-		"""artifically inserts an instanciated root element.
-
-		This is only required in odd cases like structure.feedFrom
-		"""
-		self.result = root
-		self.curParser = root.feedEvent
-		self.result.idmap = self.ctx.idmap
-	
-	def notifyPosition(self, line, col):
-		"""tells the processor a "last known position".
-
-		xmlstruct does this when ending elements, since that's when all
-		the validators run.  Unfortunately, for those, the sax parser
-		usually doesn't give locations, so we use this hack.
-		"""
-		self.ctx.lastRow = line
-		self.ctx.lastCol = col
