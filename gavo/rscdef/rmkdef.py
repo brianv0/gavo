@@ -49,15 +49,15 @@ class MapRule(base.Structure):
 
 	_dest = base.UnicodeAttribute("dest", default=base.Undefined, 
 		description="Name of the column the value is to end up in.",
-		copyable=True)
+		copyable=True, strip=True)
 	_src = base.UnicodeAttribute("src", default=None,
 		description="Source key name to convert to column value (either a grammar"
-		" key or a var).", copyable=True)
+		" key or a var).", copyable=True, strip=True)
 	_nullExcs = base.UnicodeAttribute("nullExcs", default=base.NotGiven,
 		description="Exceptions that should be caught and"
 		" cause the value to be NULL, separated by commas.")
 	_expr = base.DataContent(copyable=True, description="A python"
-		" expression giving the value to end up in dest")
+		" expression giving the value to end up in dest", strip=True)
 
 	def setParseContext(self, ctx):
 		self.restrictedMode = ctx.restricted
@@ -120,9 +120,10 @@ class VarDef(base.Structure, base.RestrictionMixin):
 	
 	_name = base.UnicodeAttribute("name", default=base.Undefined, 
 		description="Name of the variable (under which it can later be"
-			" referred to", copyable=True)
+			" referred to", copyable=True, strip=True)
 	_expr = base.DataContent(copyable=True, description="A python expression."
-		" Its value is accessible under the key name in the input row.")
+		" Its value is accessible under the key name in the input row.",
+		strip=True)
 
 	def completeElement(self):
 		if self.content_ and "\\" in self.content_:
@@ -262,7 +263,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 	_rowSource = base.EnumeratedUnicodeAttribute("rowSource", 
 		default="rows", validValues=["rows", "parameters"],
 		description="Source for the raw rows processed by this rowmaker.",
-		copyable=True)
+		copyable=True, strip=True)
 	_ignoreOn = base.StructAttribute("ignoreOn", default=None,
 		childFactory=rowtriggers.IgnoreOn, description="Conditions on the"
 		" input record (as delivered by the grammar) to cause the input"

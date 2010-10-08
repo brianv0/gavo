@@ -169,7 +169,6 @@ class AtomicAttribute(AttributeDef):
 	programmatic input can blow up the thing; I consider this
 	pythonesque :-).
 	"""
-
 	def parse(self, value):
 		"""returns a typed python value for the string representation value.
 
@@ -209,13 +208,23 @@ class AtomicAttribute(AttributeDef):
 
 class UnicodeAttribute(AtomicAttribute):
 	"""An attribute definition for an item containing a unicode string.
+
+	In addition to AtomicAttribute's keywords, you can use ``strip`` (default
+	false) to have leading and trailing whitespace be removed on parse.
+	(Unparsing will not add it back).
 	"""
 
 	typeDesc_ = "unicode string"
 
+	def __init__(self, name, **kwargs):
+		self.strip = kwargs.pop("strip", False)
+		AtomicAttribute.__init__(self, name, **kwargs)
+
 	def parse(self, value):
 		if value=="__NULL__":
 			return None
+		if self.strip:
+			value = value.strip()
 		return value
 
 	def unparse(self, value):
@@ -247,7 +256,8 @@ class RelativePathAttribute(UnicodeAttribute):
 
 	def __init__(self, name, default=None, basePath="", 
 			description="Undocumented"):
-		UnicodeAttribute.__init__(self, name, default, description)
+		UnicodeAttribute.__init__(self, name, default=default, 
+			description=description, strip=True)
 		self.basePath = basePath
 
 	def parse(self, value):
@@ -265,7 +275,9 @@ class FunctionRelativePathAttribute(UnicodeAttribute):
 	"""
 	def __init__(self, name, baseFunction, default=None,
 			description="Undocumented", **kwargs):
-		UnicodeAttribute.__init__(self, name, default, description, **kwargs)
+		kwargs["strip"] = kwargs.get("strip", True)
+		UnicodeAttribute.__init__(self, name, default=default, 
+			description=description, **kwargs)
 		self.baseFunction = baseFunction
 		self.hiddenAttName = "_real_"+self.name_
 
@@ -291,7 +303,8 @@ class EnumeratedUnicodeAttribute(UnicodeAttribute):
 	of a finite set of values.
 	"""
 	def __init__(self, name, default, validValues, **kwargs):
-		UnicodeAttribute.__init__(self, name, default, **kwargs)
+		kwargs["strip"] = kwargs.get("strip", True)
+		UnicodeAttribute.__init__(self, name, default=default, **kwargs)
 		self.validValues = set(validValues)
 	
 	@property
@@ -438,8 +451,10 @@ class ActionAttribute(UnicodeAttribute):
 	"""
 	def __init__(self, name, methodName, description="Undocumented",
 			**kwargs):
+		kwargs["strip"] = kwargs.get("strip", True)
 		self.methodName = methodName
-		UnicodeAttribute.__init__(self, name, None, description, **kwargs)
+		UnicodeAttribute.__init__(self, name, default=None, 
+			description=description, **kwargs)
 	
 	def feed(self, ctx, instance, value):
 		UnicodeAttribute.feed(self, ctx, instance, value)

@@ -123,8 +123,8 @@ class TestProductsImport(testhelpers.VerboseTest):
 
 	def testNoMixinInMem(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			'At <internal source>, last known position: 1, 72: '
-			"Tables mixing in product must be onDisk, but foo is not",
+			'At (1, 72):'
+			" Tables mixing in product must be onDisk, but foo is not",
 			base.parseFromString, (rscdesc.RD, 
 				'<resource schema="test"><table id="foo">'
 					'<mixin name="products"/></table></resource>',))

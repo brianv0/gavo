@@ -1,7 +1,7 @@
 """
 ParseContexts for parsing into structures.
 
-A Context is a scratchpad from XML.  It always provides an idmap, but
+A Context is a scratchpad for struct parsing.  It always provides an idmap, but
 you're free to insert additional attributes.
 
 Based on this, we provide some attribute definitions.
@@ -89,6 +89,9 @@ def resolveId(ctx, id, instance=None, forceType=None):
 		raise StructureError("Cannot cross-reference when parsing without"
 			" a context")
 	if "#" in id:
+		rdId, rest = id.split("#", 1)
+		if rdId==ctx.forRD:
+			return resolveId(ctx, rest, instance, forceType)
 		return resolveCrossId(id, forceType)
 	if "." in id:
 		return resolveComplexId(ctx, id, forceType)
@@ -110,6 +113,7 @@ class IdAttribute(attrdef.UnicodeAttribute):
 	def feed(self, ctx, parent, literal):
 		attrdef.UnicodeAttribute.feed(self, ctx, parent, literal)
 		ctx.registerId(parent.id, parent)
+		parent.qualifiedId = ctx.getQualifiedId(literal)
 	
 	def getCopy(self, parent, newParent):
 		return None  # ids may not be copied
@@ -133,6 +137,9 @@ class OriginalAttribute(attrdef.AtomicAttribute):
 	parser so it makes sure they are processed first.  This currently
 	works by name, and "original" is reserved for this purpose.  Other
 	names will raise an AssertionError right now.
+
+	As a safety mechanism, OriginalAttribute checks if it is replacing
+	a "pristine" object, i.e. one that has not had events fed to it.
 	"""
 	computed_ = True
 	typeDesc_ = "id reference"
@@ -146,23 +153,23 @@ class OriginalAttribute(attrdef.AtomicAttribute):
 			**kwargs)
 		self.forceType = forceType
 
+	def feedObject(self, instance, original, ctx=None):
+		if not instance.pristine:
+			raise utils.StructureError("Original must be applied before modifying"
+				" the destination structure.", hint="You should normally use"
+				" original only as attribute.  If you insist on having it as"
+				" an element, it must be the first one and all other structure"
+				" members must be set through elements, too")
+		instance._originalObject = original 
+		instance.feedFrom(original, ctx)
+
 	def feed(self, ctx, instance, literal):
-		if isinstance(literal, basestring):
-			srcOb = resolveId(ctx, literal, instance, self.forceType)
-		else: # You can feed references programmatically if you like
-			srcOb = literal
-		instance._originalObject = srcOb 
-		# XXX TODO: Check if copy() won't do it here
-		for att in set(srcOb.managedAttrs.values()):
-			if att.copyable:
-				if getattr(srcOb, att.name_) is not None:
-					copy = att.getCopy(srcOb, instance)
-					att.feedObject(instance, copy)
+		self.feedObject(instance,
+			resolveId(ctx, literal, instance, self.forceType), ctx)
 
 
 class ReferenceAttribute(attrdef.AtomicAttribute):
-	"""is an attribute that enters reference to some other structure into
-	the attribute.
+	"""An attribute keeping a reference to some other structure
 
 	Do not confuse this with structure.RefAttribute -- here, the parent remains
 	unscathed, and it's much less messy overall.
@@ -178,13 +185,25 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 	def feed(self, ctx, instance, literal):
 		if literal is None: # ref attribute empty during a copy
 			return            # do nothing, since nothing was ref'd in original
-		self.feedObject(instance,
-			resolveId(ctx, literal, instance, self.forceType))
+
+		# HACK: when copying around structures, it's possible that anonymous
+		# structures can be fed in here.  We *really* don't want to make
+		# up ids for them.  Thus, we allow them out in unparse and in here
+		# again.
+		if hasattr(literal, "unparse-approved-anonymous"):
+			self.feedObject(instance, literal)
+		else:
+			self.feedObject(instance,
+				resolveId(ctx, literal, instance, self.forceType))
 
 	def unparse(self, value):
 		if value is None:  # ref attribute was empty
 			return None
-		return value.id
+		if hasattr(value, "qualifiedId"):
+			return value.qualifiedId
+		else: # See HACK notice in feed
+			setattr(value, "unparse-approved-anonymous", True)
+			return value
 
 
 class ParseContext(object):
@@ -196,10 +215,19 @@ class ParseContext(object):
 
 	If restricted is True, embedded code must raise an error.
 	"""
-	def __init__(self, restricted=False):
+	def __init__(self, restricted=False, forRD=None):
 		self.idmap = {}
 		self.restricted = restricted
-	
+		self.forRD = forRD
+
+	def getQualifiedId(self, id):
+		"""returns an id including the current RD's id, if known, otherwise id
+		itself.
+		"""
+		if self.forRD:
+			return "%s#%s"%(self.forRD, id)
+		return id
+
 	def registerId(self, elId, value):
 		"""enters a value in the id map.
 
@@ -230,25 +258,3 @@ class ParseContext(object):
 		See the resolveId function.
 		"""
 		return resolveId(self, id, instance, forceType)
-
-	def getLocator(self):
-		if hasattr(self, "parser") and hasattr(self.parser, "locator"):
-			return self.parser.locator
-		
-	def getLocation(self):
-		"""returns a current position if it has the necessary information.
-		"""
-		src = getattr(self, "srcPath", "<internal source>")
-		locator = self.getLocator()
-		if locator:
-			row, col = locator.getLineNumber(), locator.getColumnNumber()
-			if col is None: # locator doesn't tell us where the parser is.
-				if hasattr(self, "lastRow"):
-					posStr = "last known position: %d, %d"%(self.lastRow, self.lastCol)
-				else:
-					posStr = "unknown position"
-			else:
-				posStr = "%d, %d"%(row, col)
-		else:
-			posStr = "unknown position"
-		return "%s, %s"%(src, posStr)

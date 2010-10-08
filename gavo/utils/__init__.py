@@ -37,7 +37,7 @@ from gavo.utils.misctricks import (Undefined, QuotedName, getfirst,
 
 from gavo.utils.ostricks import safeclose, urlopenRemote, fgetmtime, cat
 
-from gavo.utils.plainxml import StartEndHandler
+from gavo.utils.plainxml import StartEndHandler, iterparse
 
 from gavo.utils.stanxml import ElementTree, xmlrender
 

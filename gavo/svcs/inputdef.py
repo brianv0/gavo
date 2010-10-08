@@ -108,7 +108,7 @@ class InputKey(rscdef.Column):
 		"""returns an InputKey for query input to dataField
 		"""
 		instance = cls(None)
-		instance.feed("original", column)
+		instance.feedObject("original", column)
 		for k,v in kwargs.iteritems():
 			instance.feed(k, v)
 		return instance.finishElement()

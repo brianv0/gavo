@@ -79,8 +79,8 @@ class NoDefTest(testhelpers.VerboseTest):
 
 	def testUnboundFails(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			'At <internal source>, last known position: 4, 33: '
-			"Parameter count is not defaulted in x and thus must be bound.",
+			'At (4, 33):'
+			" Parameter count is not defaulted in x and thus must be bound.",
 			base.parseFromString, (Foo, "<foo><testApp name='x'><code>\n"
 			"\t\tfor i in range(count):\n"
 			"\t\t\tdest[i] = 42-i</code>\n"
@@ -89,14 +89,14 @@ class NoDefTest(testhelpers.VerboseTest):
 
 	def testBadKeyFails(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At <internal source>, last known position: 1, 43: ''"
-			" is not a valid value for key",
+			"At (1, 43):"
+			" '' is not a valid value for key",
 			base.parseFromString, (Foo, "<foo><testApp name='x'>"
 			"<setup><par key=''/></setup>"
 			"</testApp></foo>"))
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At <internal source>, last known position: 1, 48: 'a key'"
-			" is not a valid value for key",
+			"At (1, 48):"
+			" 'a key' is not a valid value for key",
 			base.parseFromString, (Foo, "<foo><testApp name='x'>"
 			"<setup><par key='a key'/></setup>"
 			"</testApp></foo>"))
@@ -155,8 +155,8 @@ class WithDefTest(testhelpers.VerboseTest):
 
 	def testNoFillRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			'At <internal source>, last known position: 1, 131: '
-			"Parameter par is not defaulted in x and thus must be bound.",
+			'At (1, 131):'
+			" Parameter par is not defaulted in x and thus must be bound.",
 			base.parseFromString, (Foo, "<foo><procDef type='t_t' id='b'>"
 			"<setup><par key='par'/></setup>"
 			"<code>dest['par']=par</code></procDef>"
@@ -165,8 +165,8 @@ class WithDefTest(testhelpers.VerboseTest):
 
 	def testFillRandomRaises(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			'At <internal source>, last known position: 1, 190: '
-			"May not bind non-existing parameter(s) random.",
+			'At (1, 190):'
+			" May not bind non-existing parameter(s) random.",
 			base.parseFromString, (Foo, "<foo><procDef type='t_t' id='b'>"
 			"<setup><par key='par'/></setup>"
 			"<code>dest['par']=par</code></procDef>"

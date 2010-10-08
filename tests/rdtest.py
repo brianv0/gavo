@@ -122,8 +122,8 @@ class ViewTest(testhelpers.VerboseTest):
 	"""
 	def testBadRefRaises(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At <internal source>, last known position: 1, 67: "
-			"No field 'noexist' in table test.prodtest", 
+			"At (1, 67):"
+			" No field 'noexist' in table test.prodtest", 
 			base.parseFromString, (tabledef.SimpleView, '<simpleView>'
 			'<fieldRef table="data/test#prodtest" column="noexist"/></simpleView>'))
 
@@ -239,7 +239,7 @@ class RestrictionTest(testhelpers.VerboseTest):
 		'<table id="test2"><column name="x"/><index columns="x">'
 			'CREATE</index></table>',
 		'<table id="test2"><column name="x" fixup="__+\'x\'"/></table>',
-		'<data><embeddedGrammar><iterator/></data>',
+		'<data><embeddedGrammar><iterator/></embeddedGrammar></data>',
 	]
 
 if __name__=="__main__":

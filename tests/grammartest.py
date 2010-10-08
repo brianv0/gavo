@@ -152,8 +152,8 @@ class KVGrammarTest(testhelpers.VerboseTest):
 
 	def testError(self):
 		self.assertRaisesWithMsg(base.LiteralParseError,
-			"At <internal source>, unknown position: '**' is not a valid"
-				" value for commentPattern",
+			"At (1, 0):"
+			" '**' is not a valid value for commentPattern",
 			base.parseFromString, 
 			(rscdef.getGrammar("keyValueGrammar"),
 			'<keyValueGrammar commentPattern="**"/>'))

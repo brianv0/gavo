@@ -60,18 +60,18 @@ class ColumnTest(testhelpers.VerboseTest):
 
 	def testRaises(self):
 		self.assertRaisesWithMsg(base.LiteralParseError, 
-			"At <internal source>, unknown position: 'zucki' is not a"
+			"At (1, 0): 'zucki' is not a"
 			" valid value for type",
 			base.parseFromString, (rscdef.Column,
 				'<column name="foo" type="zucki"/>'))
 		self.assertRaisesWithMsg(base.LiteralParseError, 
-			"At <internal source>, unknown position: 'xxyyz'"
+			"At (1, 0): 'xxyyz'"
 			" is not a valid value for displayHint",
 			base.parseFromString, (rscdef.Column,
 				'<column name="foo" displayHint="xxyyz"/>'))
 		self.assertRaisesWithMsg(base.StructureError, 
-			'At <internal source>, unknown position: '
-			"'foo x' is not a valid column name" , 
+			'At (1, 0):'
+			" 'foo x' is not a valid column name" , 
 			base.parseFromString, (rscdef.Column, '<column name="foo x"/>'))
 
 
@@ -163,7 +163,7 @@ class TableDefTest(testhelpers.VerboseTest):
 
 	def testReservedWordBails(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			'At <internal source>, last known position: 1, 17: Reserved word'
+			'At (1, 17): Reserved word'
 			' abs is not allowed as a table name',
 			base.parseFromString, (rscdef.TableDef, '<table id="abs"/>'))
 
@@ -196,7 +196,7 @@ class TableDefTest(testhelpers.VerboseTest):
 			'<column name="a"/><column name="b"/></table>')
 		self.assertEqual(t.primary, ["a", "b"])
 		self.assertRaisesWithMsg(base.LiteralParseError,
-			"At <internal source>, last known position: 1, 72:"
+			"At (1, 72):"
 			" 'quatsch' is not a valid value for primary",
 			base.parseFromString, (rscdef.TableDef, 
 				'<table id ="t" primary="a, quatsch">'

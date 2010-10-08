@@ -78,7 +78,7 @@ class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 		grend.ServiceBasedPage.__init__(self, ctx, service)
 		self.customTemplate = None
 		try:
-			self.customTemplate = self.service.templates["fixed"]
+			self.customTemplate = self.service.getTemplate("fixed")
 		except KeyError:
 			raise base.ui.logOldExc(
 				svcs.UnknownURI("fixed renderer needs a 'fixed' template"))

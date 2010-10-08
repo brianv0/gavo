@@ -261,7 +261,7 @@
 	</data>
 
 	<data id="productimportdefaults">
-		<table ref="prodtest"/>
+		<table original="prodtest"/>
 		<sources><pattern>data/*.imp</pattern></sources>
 		<keyValueGrammar>
 			<rowfilter predefined="defineProduct">

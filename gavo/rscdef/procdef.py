@@ -22,9 +22,9 @@ class ProcPar(base.Structure):
 	"""
 	name_ = "par"
 	_key = base.UnicodeAttribute("key", default=base.Undefined,
-		description="The name of the parameter", copyable=True)
+		description="The name of the parameter", copyable=True, strip=True)
 	_expr = base.DataContent(description="A python expression for"
-		" the default of the parameter", copyable=True)
+		" the default of the parameter", copyable=True, strip=True)
 	_late = base.BooleanAttribute("late", default=False,
 		description="Bind the key not at setup time but while applying"
 		" the procedure.  This allows you to refer to procedure arguments"
@@ -155,7 +155,8 @@ class ProcDef(base.Structure, base.RestrictionMixin):
 	_type = base.EnumeratedUnicodeAttribute("type", default=None, description=
 		"The type of the procedure definition.  The procedure applications"
 		" will in general require certain types of definitions.",
-		validValues=["t_t", "apply", "rowfilter", "sourceFields"], copyable=True)
+		validValues=["t_t", "apply", "rowfilter", "sourceFields"], copyable=True,
+		strip=True)
 	_register = base.BooleanAttribute("register", default=False,
 		description="Register this procDef in the global registry under its"
 			" id?")
@@ -196,7 +197,7 @@ class ProcApp(ProcDef):
 		description="A name of the proc.  ProcApps compute their (python)"
 		" names to be somwhat random strings.  Set a name manually to"
 		" receive easier decipherable error messages.  If you do that,"
-		" you have to care about name clashes yourself, though.")
+		" you have to care about name clashes yourself, though.", strip=True)
 
 	def _resolvePredefined(self, ctx):
 		self._procDef.feedObject(self, _registry[self.predefined])

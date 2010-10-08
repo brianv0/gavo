@@ -271,7 +271,7 @@ class FixupTest(testhelpers.VerboseTest):
 	"""
 	def testInvalidFixup(self):
 		self.assertRaisesWithMsg(base.BadCode, 
-			"At <internal source>, last known position: 1, 50:"
+			"At (1, 50):"
 			" Bad source code in expression (invalid syntax (line 1))",
 			base.parseFromString, (rscdef.TableDef, 
 			'<table id="test"><column name="ab" fixup="9m+5s"/></table>'))

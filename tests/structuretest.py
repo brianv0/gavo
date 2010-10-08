@@ -26,7 +26,7 @@ class CopyableColor(Color):
 class Foo(structure.ParseableStructure):
 	name_ = "foo"
 	_color = base.StructAttribute("color", childFactory=Color, copyable=True)
-	_name = UnicodeAttribute("name", base.Undefined)
+	_name = UnicodeAttribute("name", default=base.Undefined)
 	_content = structure.DataContent(copyable=True)
 
 class Foos(structure.ParseableStructure):
@@ -58,7 +58,7 @@ class SimpleStructureTest(unittest.TestCase):
 	"""
 	def _getStruct(self):
 		class Bla(structure.ParseableStructure):
-			_att1 = UnicodeAttribute("att1", "default")
+			_att1 = UnicodeAttribute("att1", default="default")
 		return Bla
 
 	def testSimpleAttSetting(self):
@@ -121,8 +121,8 @@ class MiscAttributeTest(unittest.TestCase):
 	"""
 	def testEnumUnicode(self):
 		class En(structure.ParseableStructure):
-			_att1 = EnumeratedUnicodeAttribute("att1", "left",
-				["left", "right"])
+			_att1 = EnumeratedUnicodeAttribute("att1", default="left",
+				validValues=["left", "right"])
 		e = En(None)
 		self.assertEqual(e.att1, "left")
 		e._att1.feed(None, e, "right")
@@ -144,7 +144,7 @@ class AtomicFeedTest(testhelpers.VerboseTest):
 	def _getPlainStructure(self):
 		class Bla(structure.ParseableStructure):
 			name_ = "bla"
-			_foo = UnicodeAttribute("foo", "default")
+			_foo = UnicodeAttribute("foo", default="default")
 			_bar = IntAttribute("bar", 0)
 		return Bla
 
@@ -207,19 +207,19 @@ class XMLParseTest(testhelpers.VerboseTest):
 
 	def testWrongRootElement(self):
 		self.assertRaisesWithMsg(structure.StructureError, 
-			"At <internal source>, unknown position: "
-			"Expected root element color, found foo",
+			"At (1, 0):"
+			" Expected root element color, found foo",
 			xmlstruct.parseFromStream, (Color, StringIO("""<foo name="red">
 			<color g="0" b="0"/></foo>""")))
 
 	def testBadChild(self):
 		self.assertRaisesWithMsg(structure.StructureError,
-			"At <internal source>, unknown position: "
-				"color elements have no noAtt attributes",
+			"At (1, 0):"
+			" color elements have no noAtt attributes",
 			xmlstruct.parseFromString, (Color, '<color noAtt="30"/>'))
 		self.assertRaisesWithMsg(structure.StructureError,
-			"At <internal source>, unknown position: "
-				"Color objects cannot have noAtt children",
+			"At (1, 7):"
+			" Color objects cannot have noAtt children",
 			xmlstruct.parseFromString, (Color, '<color><noAtt>30</noAtt></color>'))
 
 	def testAtomListParse(self):
@@ -231,7 +231,7 @@ class XMLParseTest(testhelpers.VerboseTest):
 		f = xmlstruct.parseFromString(Foo, '<foo name="xy">Some content</foo>')
 		self.assertEqual(f.content_, "Some content")
 		self.assertRaisesWithMsg(structure.StructureError,
-			"At <internal source>, last known position: 1, 19: "
+			"At (1, 19): "
 			"color elements must not have character data content "
 				"(found 'Some content')",
 			xmlstruct.parseFromString, (Color, '<color>Some content</color>'))
@@ -274,21 +274,21 @@ class CopyTest(testhelpers.VerboseTest):
 
 	def testTypecheck(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At <internal source>, last known position: 1, 19: "
-			"Reference to 'xy' yielded object of type Foo, expected Color", 
+			"At (1, 19):"
+			" Reference to 'xy' yielded object of type Foo, expected Color", 
 			xmlstruct.parseFromString, (Palette, '<pal><foo id="xy"/>'
 			'<color original="xy"/></pal>'))
 
 	def testElementRefusal(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At <internal source>, last known position: 1, 19:"
-			" original is only allowed as an attribute",
-			xmlstruct.parseFromString, (Palette, '<pal><foo id="xy"/>'
-			'<foo><original>xy</original></foo></pal>'))
+			"At (1, 46):"
+			" Original must be applied before modifying the destination structure.",
+			xmlstruct.parseFromString, (Palette, '<pal><color id="xy"/>'
+			'<color r="2"><original>xy</original></color></pal>'))
 
 	def testBadId(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At <internal source>, unknown position:"
+			"At (1, 5):"
 			" Reference to unknown item 'xy'.",
 			xmlstruct.parseFromString, (Palette, '<pal><color original="xy"/>'
 			'</pal>'))
@@ -305,16 +305,16 @@ class RefTest(testhelpers.VerboseTest):
 
 	def testChangeRefusal(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At <internal source>, last known position: 1, 21: "
-			"Referenced elements cannot have attributes or children",
+			"At (1, 36):"
+			" Referenced elements cannot have attributes or children",
 			xmlstruct.parseFromString, (PalCollection, 
 				'<pals><pal id="foo"/><pal ref="foo"><color/></pal></pals>'))
 
 	def testTypecheck(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At <internal source>, last known position: 1, 49: "
-				"Reference to 'pal1' yielded object of type CopyableColor,"
-				" expected PaletteBase",
+			"At (1, 55):"
+			" Reference to 'pal1' yielded object of type CopyableColor,"
+			" expected PaletteBase",
 			xmlstruct.parseFromString, (PalCollection, 
 				'<pals><pal><color r="0" id="pal1"/><color g="0"/></pal>'
 				'<pal ref="pal1"/></pals>'))

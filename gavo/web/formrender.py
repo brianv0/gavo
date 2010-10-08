@@ -33,7 +33,7 @@ class Form(grend.FormMixin,
 	def __init__(self, ctx, service):
 		grend.ServiceBasedPage.__init__(self, ctx, service)
 		if "form" in self.service.templates:
-			self.customTemplate = self.service.templates["form"]
+			self.customTemplate = self.service.getTemplate("form")
 
 		# enable special handling if I'm rendering fixed-behaviour services
 		# (i.e., ones that never have inputs) XXX TODO: Figure out where I used this and fix that to use the fixed renderer (or whatever)
@@ -90,7 +90,7 @@ class Form(grend.FormMixin,
 	def _formatOutput(self, res, ctx):
 		self.result = res
 		if "response" in self.service.templates:
-			self.customTemplate = self.service.templates["response"]
+			self.customTemplate = self.service.getTemplate("response")
 		return grend.ServiceBasedPage.renderHTTP(self, ctx)
 
 	defaultDocFactory = svcs.loadSystemTemplate("defaultresponse.html")

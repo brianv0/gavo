@@ -1,7 +1,13 @@
 """
 Code to parse structures from XML sources.
+
+The purpose of much of the mess here is to symmetrized XML attributes
+and values.  Basically, we want start, value, end events whether
+or not a piece of data comes in an element with a certain tag name or
+via a named attribute.
 """
 
+import re
 from cStringIO import StringIO
 from xml.sax import make_parser, SAXException
 from xml.sax.handler import ContentHandler
@@ -9,6 +15,10 @@ from xml.sax.handler import ContentHandler
 from gavo import utils
 from gavo.base import parsecontext
 from gavo.base import structure
+from gavo.utils import excs
+
+
+ALL_WHITESPACE = re.compile("\s*$")
 
 
 class ErrorPosition(object):
@@ -27,6 +37,7 @@ class ErrorPosition(object):
 	
 	def __str__(self):
 		return "%s, line %s, col %s"%(self.srcName, self.line, self.col)
+
 
 class Generator(structure.Parser):
 	"""is an event generator created from python source code embedded
@@ -159,73 +170,23 @@ class EventProcessor(object):
 		self.curParser = root.feedEvent
 		self.result.idmap = self.ctx.idmap
 	
-	def notifyPosition(self, line, col):
-		"""tells the processor a "last known position".
 
-		xmlstruct does this when ending elements, since that's when all
-		the validators run.  Unfortunately, for those, the sax parser
-		usually doesn't give locations, so we use this hack.
-		"""
-		self.ctx.lastRow = line
-		self.ctx.lastCol = col
-
-
-class NodeBuilder(ContentHandler):
-	"""A SAX content handler interfacing to the EventProcessor.
+def _synthesizeAttributeEvents(evProc, context, attrs):
+	"""generates value events for the attributes in attrs.
 	"""
-	# These are attributes that may not occur in elements and are always
-	# processed first.  See original/parsecontext.OriginalAttribute as to why 
-	# we need this hack.
-	specialAttributes = set(["original", "ref"])
-	
-	# These are elements for which character content is not stripped
-	# XXX TODO: figure out how to let structures tell NodeBuilder about those
-	preserveWhitespaceNames = set(["meta", "script", "proc", "rowgen",
-		"consComp", "customRF", "macDef", "GENERATOR", "formatter", "code"])
+	# original attributes must be fed first since they will ususally
+	# yield a different target object
+	original = attrs.pop("original", None)
+	if original:
+		evProc.feed("value", "original", original)
 
-	def __init__(self, evProc):
-		ContentHandler.__init__(self)
-		self.elementsById = {}
-		self.charData = []
-		self.evProc = evProc
-		self.nameStack = [None]
-		self.locator = None
-	
-	def setDocumentLocator(self, locator):
-		self.locator = locator
-
-	def startElement(self, name, attrs):
-		if name in self.specialAttributes:
-			raise structure.StructureError("%s is only allowed as an attribute"%
-				name)
-		self._deliverCharData(self.nameStack[-1])
-		self.nameStack.append(name)
-		self.evProc.feed("start", name)
-		for n in attrs.keys():
-			if n in self.specialAttributes:
-				self.evProc.feed("value", n, attrs[n])
-		for key, val in attrs.items():
-			if key not in self.specialAttributes:
-				self.evProc.feed("value", key, val)
-
-	def _deliverCharData(self, name):
-		if self.charData:
-			cd = "".join(self.charData)
-			if name not in self.preserveWhitespaceNames:
-				cd = cd.strip()
-			if cd:
-				self.evProc.feed("value", "content_", cd)
-			self.charData = []
-
-	def endElement(self, name):
-		self.evProc.notifyPosition(self.locator.getLineNumber(), 
-			self.locator.getColumnNumber())
-		self._deliverCharData(name)
-		self.nameStack.pop()
-		self.evProc.feed("end", name)
-	
-	def characters(self, chars):
-		self.charData.append(chars)
+# XXX TODO: Remove the ref mess soon.
+	ref = attrs.pop("ref", None)
+	if ref:
+		evProc.feed("value", "ref", ref)
+#		raise excs.Error("The ref attribute was a bad error.")
+	for key, val in attrs.iteritems():
+		evProc.feed("value", key, val)
 
 
 def parseFromStream(rootStruct, inputStream, context=None):
@@ -235,22 +196,41 @@ def parseFromStream(rootStruct, inputStream, context=None):
 	a type subclass, it will be instanciated to create a root
 	element, if it is an instance, this instance will be the root.
 	"""
-	parser = make_parser()
 	if context is None:
 		context = parsecontext.ParseContext()
 	evProc = EventProcessor(rootStruct, context)
-	cHandler = NodeBuilder(evProc)
-	context.parser = cHandler
-	parser.setContentHandler(cHandler)
+	eventSource = utils.iterparse(inputStream)
+	buf = []
+
 	try:
-		parser.parse(inputStream)
-	except SAXException, msg:
-		raise utils.logOldExc(utils.ReportableError("Bad XML: %s"%unicode(msg)))
-	except Exception, msg:
-		# cHandler.locator isn't too useful in this context.  See if we can make
-		# it, but for now, hack around it.
-		msg.pos = context.getLocation()
+		for type, name, payload in eventSource:
+
+			# buffer data
+			if type=="data":
+				buf.append(payload)
+				continue
+			else:
+				if buf:
+					res = "".join(buf)
+					if not ALL_WHITESPACE.match(res):
+						evProc.feed("value", "content_", res)
+				buf = []
+
+			# "normal" event feed
+			evProc.feed(type, name, payload)
+
+			# start event: Synthesize value events for attributes.
+			if type=="start" and payload:  
+				_synthesizeAttributeEvents(evProc, context, payload)
+				payload = None
+	except Exception, ex:
+		if (not getattr(ex, "posInMsg", False) 
+				and getattr(ex, "pos", None) is None):
+			# only add pos when the message string does not already have it.
+			ex.pos = eventSource.pos
+			ex.posInMsg = True
 		raise
+
 	return evProc.result
 
 

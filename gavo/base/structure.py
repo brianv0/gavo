@@ -43,14 +43,6 @@ Structures
 
 These contain attribute definitions (shared between all instances) and
 attribute values (instance specific).
-
-One hack with them is content addition.  The parser in xmlstruct turns
-content on a structure itself into value events with the name of the element
-itself.  By default, this will cause an error to be raised.  However,
-if a structure has an attribute with a StructureContent value, the content
-will be stored as a unicode string in the content attribute.  This is
-a bit bad because structures may in this way not have attributes named
-like themselves.
 """
 
 import new
@@ -63,9 +55,8 @@ from gavo.utils.excs import StructureError, Replace, BadCode, RestrictedElement
 
 
 class ChangeParser(Exception):
-	"""is an exception that can be raised at some point during a parse
-	to notify the EventProcessor to change its current parser "out of
-	order".
+	"""An that during a parse notifies the EventProcessor to change its 
+	current parser "out of order".
 
 	Again, this is a hack for ref=-Attributes.
 	"""
@@ -217,15 +208,17 @@ class StructType(type):
 
 
 class DataContent(attrdef.UnicodeAttribute):
-	"""is a magic attribute that allows character content to be added to
+	"""A magic attribute that allows character content to be added to
 	a structure.
+
+	You can configure it with all the arguments available for UnicodeAttribute.
 	"""
 	typeDesc_ = "string"
 
 	def __init__(self, default="", 
 			description="Undocumented", **kwargs):
-		attrdef.UnicodeAttribute.__init__(self, "content_", default, 
-			description, **kwargs)
+		attrdef.UnicodeAttribute.__init__(self, "content_", default=default, 
+			description=description, **kwargs)
 
 	def makeUserDoc(self):
 		return ("Character content of the element (defaulting to %s) -- %s"%(
@@ -290,7 +283,7 @@ class StructureBase(object):
 		if attDefsFrom is None:
 			attrs = set(self.managedAttrs.values())
 		else:
-			attrs = set(attDefsFrom.managedAttrs.values())
+			attrs = set(attDefsFrom.managedAttrs.itervalues())
 		try:
 			return dict([(att.name_, getattr(self, att.name_))
 				for att in attrs])
@@ -370,6 +363,8 @@ class ParseableStructure(StructureBase):
 	the method being called, since for internally built, copied, etc
 	structures, it won't.
 	"""
+	pristine = True
+
 	def __init__(self, parent, **kwargs):
 		StructureBase.__init__(self, parent, **kwargs)
 		self.feedEvent = Parser(self._doStart, self._doValue, self._doEnd)
@@ -419,6 +414,7 @@ class ParseableStructure(StructureBase):
 			self.managedAttrs[name].feed(ctx, self, value)
 		except Replace, ex:
 			return ex.newOb.feedEvent
+		self.pristine = False
 		return self.feedEvent
 	
 	def _doStart(self, ctx, name, value):
@@ -457,7 +453,8 @@ class ParseableStructure(StructureBase):
 		"""yields an event sequence that transfers the copyable information
 		from self to something receiving the events.
 
-		If something is copyable or not is specified by the AttributeDefinition.
+		If something is not copyable, it is ignored (i.e., keeps its default
+		on the target object).
 		"""
 		for att in self.attrSeq:
 			if not att.copyable:

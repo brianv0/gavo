@@ -236,10 +236,10 @@ class RDParseContext(base.ParseContext):
 	getattr(ctx, "doQueries", True) or somesuch.
 	"""
 	def __init__(self, forImport=False, doQueries=True, dumpTracebacks=False, 
-			restricted=False):
+			restricted=False, forRD=None):
 		self.forImport, self.doQueries = forImport, doQueries
 		self.dumpTracebacks = dumpTracebacks
-		base.ParseContext.__init__(self, restricted)
+		base.ParseContext.__init__(self, restricted, forRD)
 
 
 def getRDInputStream(srcId):
@@ -261,27 +261,6 @@ def getRDInputStream(srcId):
 	if pkg_resources.resource_exists('gavo', srcPath):
 		return srcPath, pkg_resources.resource_stream('gavo', srcPath)
 	raise base.RDNotFound(userInput)
-
-
-def mapParseErrors(ex, tag, ctx):
-	"""tries to come up with reasonable error messages for
-	certain kinds of exceptions occuring during xml parsing.
-
-	It will re-raise ex if that is not possible.  Tag is
-	inserted before the error message proper.
-	"""
-# XXX TODO: reraise ex right away for now to have errhandle to its work.
-# fix this later by giving the DC exceptions explainer methods and such.
-	raise
-	location = ctx.getLocation()
-	if location:
-		raise base.ui.logOldExc(base.ReportableError("%s in %s: %s"%(tag,
-			location, unicode(ex))))
-	else:
-		raise base.ui.logOldExc(base.ReportableError("%s in %s: %s"%(tag, 
-			ctx.srcPath, unicode(ex))))
-	ex.srcPath = ctx.srcPath
-	raise
 
 
 def setRDDateTime(rd, inputFile):
@@ -318,12 +297,9 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
 	rd = RD(None)
 	rd.idmap = context.idmap
 	rd.computeSourceId(srcPath)
+	context.forRD = rd.sourceId
 	try:
 		rd = base.parseFromStream(rd, inputFile, context=context)
-	except (base.LiteralParseError, base.ConversionError), ex:
-		mapParseErrors(ex, "Bad content", context)
-	except base.StructureError, ex:
-		mapParseErrors(ex, "Bad structure", context)
 	except Exception, ex:
 		ex.srcPath = srcPath
 		raise

@@ -202,7 +202,7 @@ class CustomPageFunction(base.Structure, base.RestrictionMixin):
 	"""
 	_name = base.UnicodeAttribute("name", default=base.Undefined,
 		description="Name of the render function (use this in the"
-			" n:render attribute in custom templates).", copyable=True)
+			" n:render attribute in custom templates).", copyable=True, strip=True)
 	_code = base.DataContent(description="Function body of the renderer; the"
 		" arguments are named ctx and data.", copyable=True)
 
@@ -336,8 +336,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		" does the computations for this service.", forceType=core.Core,
 		copyable=True)
 	_templates = base.DictAttribute("templates", description="Custom"
-		" nevow templates for this service; use key=form to replace the Form"
-		" renderer's standard template.", 
+		' nevow templates for this service; use key "form" to replace the Form'
+		" renderer's standard template.  Start the path with two slashes to"
+		" access system templates.", 
 		itemAttD=rscdef.ResdirRelativeAttribute(
 			"template", description="resdir-relative path to a nevow template"
 			" used for the function given in key."), copyable=True)
@@ -393,6 +394,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		# may require inputDDs of their own.  We cache them here
 		# as necessary.
 		self.inputDDsForRenderers = {}
+		self._loadedTemplates = {}
 			
 	def _computeResourceType(self):
 		"""sets the resType attribute.
@@ -421,28 +423,22 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		else: # no output table defined, we're a plain service
 			self.resType = "nonTabularService"
 
-	def _loadTemplates(self):
-		from nevow import loaders
-		for key, tp in self.templates.iteritems():
-			if isinstance(tp, basestring):
-				# Hack: let people ask for system templates if they want using two
-				# dashes in front of the name.  This is used in services.py to
-				# load root.html
-				if tp.startswith("//"):
-					self.templates[key] = common.loadSystemTemplate(tp[2:])
-				else:
-					self.templates[key] = loaders.xmlfile(
-						os.path.join(self.rd.resdir, tp))
+	def getTemplate(self, key):
+		if key not in self._loadedTemplates:
+			from nevow import loaders
+			tp = self.templates[key]
+			if tp.startswith("//"):
+				self._loadedTemplates[key] = common.loadSystemTemplate(tp[2:])
+			else:
+				self._loadedTemplates[key] = loaders.xmlfile(
+					os.path.join(self.rd.resdir, tp))
+		return self._loadedTemplates[key]
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(Service)
 		
 		if self.outputTable is base.NotGiven:
 			self.outputTable = self.core.outputTable
-
-		# Load local templates if necessary
-		if self.templates:
-			self._loadTemplates()
 
 		# Index custom Page functions
 		self.nevowRenderers = {}

@@ -146,10 +146,10 @@ class Script(base.Structure, base.RestrictionMixin):
 	name_ = "script"
 	typeDesc_ = "Embedded executable code with a type definition"
 
-	_lang = base.EnumeratedUnicodeAttribute("lang", base.Undefined,
+	_lang = base.EnumeratedUnicodeAttribute("lang", default=base.Undefined,
 		description="Language of the script.", 
 		validValues=["SQL", "python"], copyable=True)
-	_type = base.EnumeratedUnicodeAttribute("type", base.Undefined,
+	_type = base.EnumeratedUnicodeAttribute("type", default=base.Undefined,
 		description="Point of time at which script is to run.", 
 		validValues=["preImport", "newSource", "preIndex", "postCreation",
 			"beforeDrop"], copyable=True)

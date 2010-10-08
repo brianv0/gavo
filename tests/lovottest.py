@@ -96,7 +96,7 @@ class ErrorParseTest(testhelpers.VerboseTest):
 		except Exception, ex:
 			pass
 		self.assertEqual(ex.__class__.__name__, "VOTableParseError")
-		self.assertEqual(str(ex), "Unexpected element TDA near line 7, column 0")
+		self.assertEqual(str(ex), "At (4, 4): Unexpected element TDA")
 
 
 class TextParseTest(testhelpers.VerboseTest):
@@ -594,7 +594,7 @@ class WeirdTablesTest(testhelpers.VerboseTest):
 	def testBadTag(self):
 		it = votable.parseString("<VOTABLE><FOO/></VOTABLE>")
 		self.assertRaisesWithMsg(votable.VOTableParseError, 
-			"Unknown tag: FOO near line 1, column 25", list, it)
+			"At (1, 9): Unknown tag: FOO", list, it)
 
 	def testBadStructure(self):
 		it = votable.parseString("<VOTABLE>")

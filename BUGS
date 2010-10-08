@@ -228,3 +228,7 @@
 	A few utility functions from votablegrammar should be put somewhere else
 	(valuemapper?) so taprunner, formats.votable* and friends don't need to
 	import it any more on startup.
+
+56/LOW/2010-10-08
+	Kill the ref attribute and the underlying mechanism for structures.
+	It has been a pain and not terribly useful.

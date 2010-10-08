@@ -1,7 +1,7 @@
 """
 Stream parsing of VOTables.
 
-This module builds on a shallow wrapping of expat in votable.iterparse.
+This module builds on a shallow wrapping of expat in utils.iterparse.
 There is an "almost-tight" parsing loop in the parse method.  It
 builds an xmlstan tree (mainly through the _processNodeDefault method).
 """
@@ -16,7 +16,6 @@ from cStringIO import StringIO
 from gavo import utils
 from gavo.utils import ElementTree
 from gavo.votable import common
-from gavo.votable import iterparse
 from gavo.votable import model
 from gavo.votable import tableparser
 
@@ -97,7 +96,7 @@ computeElements = utils.CachedGetter(_computeElementsImpl)
 def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
 	"""returns an iterator yielding items of interest.
 
-	inFile is whatever is ok for ElementTree.iterparse.
+	inFile is a something that supports read(bytes)
 
 	watchset is a sequence of items of VOTable you want yielded.  By
 	default, that's just VOTable.TABLE.  You may want to see INFO
@@ -110,7 +109,7 @@ def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
 	processors = computeEndProcessors()
 	elements = computeElements()
 	elementStack = [None]  # None is VOTABLE's parent
-	iterator = iterparse.iterparse(inFile)
+	iterator = utils.iterparse(inFile, common.VOTableParseError)
 
 	for type, tag, payload in iterator:
 		if type=="data":

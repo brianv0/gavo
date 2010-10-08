@@ -188,16 +188,16 @@ class Values(base.Structure):
 	"""
 	name_ = "values"
 
-	_min = UnicodeAttribute("min", None, description="Minimum acceptable"
+	_min = UnicodeAttribute("min", default=None, description="Minimum acceptable"
 		" value as a datatype literal", copyable=True)
-	_max = UnicodeAttribute("max", None, description="Maximum acceptable"
+	_max = UnicodeAttribute("max", default=None, description="Maximum acceptable"
 		" value as a datatype literal", copyable=True)
 	_options = base.StructListAttribute("options", 
 		childFactory=Option,
 		description="List of acceptable values (if set)", copyable=True)
-	_default = UnicodeAttribute("default", None, description="A default"
+	_default = UnicodeAttribute("default", default=None, description="A default"
 		" value (currently only used for options).", copyable=True)
-	_nullLiteral = UnicodeAttribute("nullLiteral", None, description=
+	_nullLiteral = UnicodeAttribute("nullLiteral", default=None, description=
 		"String representing a null for this column in string literals",
 		copyable=True)
 	_multiOk = BooleanAttribute("multiOk", False, "Allow selection of"
