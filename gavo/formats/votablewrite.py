@@ -20,7 +20,6 @@ from gavo import stc
 from gavo import utils
 from gavo import votable
 from gavo.base import valuemappers
-from gavo.grammars import votablegrammar
 from gavo.formats import common
 from gavo.votable import V
 from gavo.votable import modelgroups

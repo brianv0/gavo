@@ -128,7 +128,7 @@ def _ingestUploads(uploads, connection):
 					base.ValidationError("Upload '%s' cannot be retrieved"%(
 					src), "UPLOAD", hint="The I/O operation failed with the message: "+
 					str(ex)))
-		if votablegrammar.needsQuoting(destName):
+		if valuemappers.needsQuoting(destName):
 			raise base.ValidationError("'%s' is not a valid table name on"
 				" this site"%destName, "UPLOAD", hint="It either contains"
 				" non-alphanumeric characters or conflicts with an ADQL"

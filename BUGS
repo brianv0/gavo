@@ -215,7 +215,7 @@
 	subcommands to be spelt out.  So, you can say gavo ad listusers but
 	not gavo ad listu.
 
-53/MEDIUM/2010-09-27
+53/MEDIUM/2010-09-27/FIXED
 	Have grammars be referred to by name rather than as object from outside
 	the grammar sub-package.  Then, stop preloading all grammars.
 
@@ -224,7 +224,7 @@
 	should be referred to by references (possibly allowing skipping
 	__system__).  Then, do away with the preloading crap for mixin RDs.
 
-55/WISHLIST/2010-10-07
+55/WISHLIST/2010-10-07/FIXED
 	A few utility functions from votablegrammar should be put somewhere else
 	(valuemapper?) so taprunner, formats.votable* and friends don't need to
 	import it any more on startup.

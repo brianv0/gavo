@@ -154,10 +154,19 @@ def _configureTwistedLog():
 def _startServer():
 	"""runs a detached server, dropping privileges and all.
 	"""
-	reactor.listenTCP(
-		int(base.getConfig("web", "serverPort")), 
-		root.site,
-		interface=base.getConfig("web", "bindAddress"))
+	try:
+		reactor.listenTCP(
+			int(base.getConfig("web", "serverPort")), 
+			root.site,
+			interface=base.getConfig("web", "bindAddress"))
+	except CannotListenError:
+		raise base.ReportableError("Someone already listens on the"
+			" configured port %s."%base.getConfig("web", "serverPort"),
+			hint="This could mean that a DaCHS server is already running."
+			" You would have to manually kill it then since its PID file"
+			" got lost somehow.  It's more likely that some"
+			" other server is already taking up this port; you may want to change"
+			" the [web] serverPort setting in that case.")
 	_dropPrivileges()
 	_configureTwistedLog()
 	

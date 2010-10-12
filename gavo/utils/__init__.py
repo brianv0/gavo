@@ -42,7 +42,7 @@ from gavo.utils.plainxml import StartEndHandler, iterparse
 from gavo.utils.stanxml import ElementTree, xmlrender
 
 from gavo.utils.texttricks import (formatSize, makeEllipsis, floatRE, 
-	dateRE, datetimeRE, identifierRE,
+	dateRE, datetimeRE, identifierPattern,
 	datetimeToRFC2616, 
 	isoTimestampFmt, parseISODT, formatISODT,
 	formatRFC2616Date, parseRFC2616Date,

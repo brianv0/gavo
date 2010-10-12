@@ -90,7 +90,7 @@ def getTAPSTC(stcInstance):
 def getSTCForTAP(tapIdentifier):
 	"""returns an stc AST for a tap reference system identifier.
 	"""
-	tapIdentifier = utils.identifierRE.findall(tapIdentifier)[0]
+	tapIdentifier = utils.identifierPattern.findall(tapIdentifier)[0]
 	if tapIdentifier in ["BROKEN", '', "UNKNOWN"]:
 		tapIdentifier = "UNKNOWNFrame"
 	ast = stcsast.parseSTCS("Position %s"%tapIdentifier)

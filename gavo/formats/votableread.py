@@ -14,6 +14,7 @@ from gavo import rscdef
 from gavo import stc
 from gavo import utils
 from gavo import votable
+from gavo.base import valuemappers
 from gavo.grammars import votablegrammar
 from gavo.votable import V
 from gavo.votable import modelgroups
@@ -50,7 +51,7 @@ class AutoQuotedNameMaker(object):
 		if name is None:
 			raise base.ValidationError("Field without name in upload.",
 				"UPLOAD")
-		if votablegrammar.needsQuoting(name):
+		if valuemappers.needsQuoting(name):
 			if name in self.seenNames:
 				raise base.ValidationError("Duplicate column name illegal in"
 					" uploaded tables (%s)"%name, "UPLOAD")
@@ -77,12 +78,12 @@ def makeTableDefForVOTable(tableId, votTable, nameMaker=None,
 	It must return unique objects from VOTable fields and to that
 	reproducibly, i.e., for a given field the same name is returned.
 
-	The default corresponds to votablegrammar.VOTNameMaker, but
+	The default is valuemappers.VOTNameMaker, but
 	you can also use InventinQuotedNameMaker, QuotedNameMaker, or
 	AutoQuotedNameMaker from this module.
 	"""
 	if nameMaker is None:
-		nameMaker = votablegrammar.VOTNameMaker()
+		nameMaker = valuemappers.VOTNameMaker()
 
 	# make columns
 	columns = []

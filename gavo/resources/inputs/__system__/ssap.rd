@@ -17,15 +17,16 @@
 			SpectralInterval "ssa_specstart" "ssa_specend"
 				Spectral "ssa_specmid" Size "ssa_specext"</stc>
 
-		<column original="accref" utype="ssa:Access.Reference"/>
+		<column original="accref" utype="ssa:Access.Reference"
+			ucd="meta.number"/>
 		<column original="mime" utype="ssa:Access.Format"/>
 		<column original="accsize" utype="ssa:Access.Size"/>
 		<column name="ssa_dstitle" type="text"
-			utype="ssa:DataID.title" 
+			utype="ssa:DataID.title" ucd="meta.title;meta.dataset"
 			tablehead="Title" verbLevel="15"
 			description="Title or the dataset (usually, spectrum)"/>
 		<column name="ssa_creatorDID" type="text"
-			utype="ssa:DataID.CreatorDID"
+			utype="ssa:DataID.CreatorDID" ucd="meta.id"
 			tablehead="C. DID" verbLevel="29"
 			description="Dataset identifier assigned by the creator"/>
 		<column name="ssa_pubDID" type="text"
@@ -33,7 +34,7 @@
 			tablehead="P. DID" verbLevel="25" 
 			description="Dataset identifier assigned by the publisher"/>
 		<column name="ssa_cdate" type="timestamp"
-			utype="ssa:DataID.Date"
+			utype="ssa:DataID.Date" ucd="time;meta.dataset"
 			tablehead="Proc. Date" verbLevel="25" 
 			description="Processing/Creation date"/>
 		<column name="ssa_pdate" type="timestamp"
@@ -41,60 +42,63 @@
 			tablehead="Pub. Date" verbLevel="25" 
 			description="Date last published."/>
 		<column name="ssa_bandpass" type="text"
-			utype="ssa:DataID.Bandpass"
+			utype="ssa:DataID.Bandpass" ucd="instr.bandpass"
 			tablehead="Bandpass" verbLevel="15" 
 			description="Bandpass (i.e., rough spectral location) of this dataset"/>
 		<column name="ssa_cversion" type="text"
-			utype="ssa:DataID.Version"
+			utype="ssa:DataID.Version" ucd="meta.version;meta.dataset"
 			tablehead="C. Version" verbLevel="25" 
 			description="Creator assigned version for this dataset (will be 
 				incremented when this particular item is changed)."/>
 		<column name="ssa_targname" type="text"
-			utype="ssa:Target.Name"
+			utype="ssa:Target.Name" ucd="meta.id;src"
 			tablehead="Object" verbLevel="15" 
 			description="Common name of object observed."/>
-		<column name="ssa_targclass" 
-			utype="ssa:Target.Class" type="text"
+		<column name="ssa_targclass" type="text"
+			utype="ssa:Target.Class" ucd="src.class"
 			tablehead="Ob. cls" verbLevel="25"
 			description="Object class (star, QSO,...)"/>
 		<column name="ssa_redshift" 
-			utype="ssa:Target.Redshift"
+			utype="ssa:Target.Redshift" ucd="src.redshift"
 			tablehead="z" verbLevel="25"
 			description="Redshift of target object"/>
 		<column name="ssa_snr" 
-			utype="ssa:Derived.SNR"
+			utype="ssa:Derived.SNR" ucd="stat.snr"
 			tablehead="SNR" verbLevel="25"
 			description="Signal-to-noise ratio estimated for this dataset"/>
 		<column name="ssa_location" type="spoint"
 			utype="ssa:Char.SpatialAxis.Coverage.Location.Value"
+			ucd="pos.eq"
 			verbLevel="5" tablehead="Location"
 			description="ICRS location of target object" unit="deg,deg"/>
 		<column name="ssa_aperture" 
-			utype="ssa:Char.SpatialAxis.Coverage.Bounds.Extent"
+			utype="ssa:Char.SpatialAxis.Coverage.Bounds.Extent" ucd="instr.fov"
 			verbLevel="15" tablehead="Aperture" unit="deg"
 			description="Angular diameter of aperture"/>
 		<column name="ssa_dateObs" type="timestamp"
-			utype="ssa:Char.TimeAxis.Coverage.Location.Value"
+			utype="ssa:Char.TimeAxis.Coverage.Location.Value" ucd="time.epoch"
 			verbLevel="5" tablehead="Date Obs."
 			description="Midpoint of exposure"/>
 		<column name="ssa_timeExt"
-			utype="Char.TimeAxis.Coverage.Bounds.Extent"
+			utype="Char.TimeAxis.Coverage.Bounds.Extent" ucd="time.duration"
 			verbLevel="5" tablehead="Exp. Time"
 			description="Exposure duration"/>
 		<column name="ssa_specmid"
 			utype="Char.SpectralAxis.Coverage.Location.Value"
+			ucd="em.wl;instr.bandpass"
 			verbLevel="15" tablehead="Mid. Band" unit="m"
 			description="Midpoint of region covered in this dataset"/>
 		<column name="ssa_specext"
-			utype="Char.SpectralAxis.Coverage.Location.Extent"
+			utype="Char.SpectralAxis.Coverage.Bounds.Extent"
+			ucd="em.wl;instr.bandwidth"
 			verbLevel="15" tablehead="Band width" unit="m"
 			description="Width of the spectrum"/>
 		<column name="ssa_specstart"
-			utype="Char.SpectralAxis.Coverage.Location.Start"
+			utype="Char.SpectralAxis.Coverage.Location.Start" ucd="em.wl;stat.min"
 			verbLevel="15" tablehead="Band start" unit="m"
 			description="Lower value of spectral coordinate"/>
 		<column name="ssa_specend"
-			utype="Char.SpectralAxis.Coverage.Location.Stop"
+			utype="Char.SpectralAxis.Coverage.Location.Stop" ucd="em.wl;stat.max"
 			verbLevel="15" tablehead="Band end" unit="m"
 			description="Upper value of spectral coordinate"/>
 	</table>
@@ -155,7 +159,7 @@
 			tablehead="Collection" verbLevel="25" 
 			description="IOVA Id of the originating dataset collection"/>
 		<column name="ssa_instrument" type="text"
-			utype="ssa:DataID.Instrument"
+			utype="ssa:DataID.Instrument" ucd="meta.id;instr"
 			tablehead="Instrument" verbLevel="25" 
 			description="Instrument or code used to produce these datasets"/>
 		<column name="ssa_datasource" type="text"
@@ -183,10 +187,12 @@
 				not come as VOTable)"/>
 		<column name="ssa_statError" 
 			utype="ssa:Char.FluxAxis.Accuracy.StatError"
+			ucd="stat.error;phot.flux.density;em"
 			verbLevel="25"
 			description="Statistical error in flux"/>
 		<column name="ssa_sysError" 
 			utype="ssa:Char.FluxAxis.Accuracy.SysError"
+			ucd="stat.error.sys;phot.flux.density;em"
 			verbLevel="25"
 			description="Systematic error in flux"/>
 		<column name="ssa_fluxcalib" type="text"
@@ -194,35 +200,35 @@
 			verbLevel="25"
 			description="Type of flux calibration"/>
 		<column name="ssa_binSize"
-			utype="Char.SpectralAxis.Accuracy.BinSize"
+			utype="Char.SpectralAxis.Accuracy.BinSize" ucd="em.wl;spect.binSize"
 			verbLevel="25" unit="m"
 			description="Bin size in wavelength"/>
 		<column name="ssa_statError"
-			utype="Char.SpectralAxis.Accuracy.StatError"
+			utype="Char.SpectralAxis.Accuracy.StatError" ucd="stat.error;em"
 			verbLevel="25" unit="m"
 			description="Statistical error in wavelength"/>
 		<column name="ssa_sysError"
-			utype="Char.SpectralAxis.Accuracy.StatError"
+			utype="Char.SpectralAxis.Accuracy.StatError" ucd="stat.error.sys;em"
 			verbLevel="25" unit="m"
 			description="Systematic error in wavelength"/>
 		<column name="ssa_speccalib" type="text"
-			utype="ssa:Char.SpectralAxis.Calibration"
+			utype="ssa:Char.SpectralAxis.Calibration" ucd="meta.code.qual"
 			verbLevel="25"
 			description="Type of wavelength calibration"/>
 		<column name="ssa_specres" 
-			utype="ssa:Char.SpectralAxis.Resolution"
+			utype="ssa:Char.SpectralAxis.Resolution" ucd="spect.resolution;em"
 			verbLevel="25" unit="m"
 			description="Resolution on the spectral axis"/>
 		<column name="ssa_spaceError"
-			utype="ssa:Char.SpatialAxis.Accuracy.StatError"
+			utype="ssa:Char.SpatialAxis.Accuracy.StatError" ucd="stat.error;pos.eq"
 			verbLevel="15" unit="deg"
 			description="Statistical error in position"/>
 		<column name="ssa_spaceCalib" type="text"
-			utype="Char.SpatialAxis.Calibration"
+			utype="Char.SpatialAxis.Calibration" ucd="meta.code.qual"
 			verbLevel="25"
 			description="Type of calibration in spatial coordinates"/>
 		<column name="ssa_spaceRes"
-			utype="Char.SpatialAxis.Resolution"
+			utype="Char.SpatialAxis.Resolution" ucd="pos.angResolution"
 			verbLevel="25" unit="deg"
 			description="Spatial resolution of data"/>
 	</table>

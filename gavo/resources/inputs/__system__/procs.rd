@@ -158,17 +158,23 @@
 	Argument:
 
 	* query -- an SQL query
+	* errCol -- a column name to use when raising a ValidationError on failure.
 
 	The locals() will be passed as data, so you can define more bindings
 	and refer to their keys in the query.
 	]]></doc>
 	<setup>
 		<par key="query"/>
+		<par key="errCol">'&lt;unknown&gt;'</par>
 	</setup>
 	<code>
 		q = base.SimpleQuerier()
 		res = q.runIsolatedQuery(query, data=locals(), asDict=True)
-		vars.update(res[0])
+		try:
+			vars.update(res[0])
+		except IndexError:
+			raise base.ValidationError("Could not find a matching row",
+				errCol)
 	</code>
 </procDef>
 
