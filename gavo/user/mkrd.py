@@ -89,7 +89,7 @@ class EventStorage(object):
 		self.events, self.handlerStack = [], []
 		for k,v in kwargs.iteritems():
 			self.feedEvent("value", k, v)
-		self.handlerStack.append(parent and parent.feedEvent)
+		self.handlerStack.append(parent)
 	
 	def finishElement(self):
 		return self
@@ -98,13 +98,13 @@ class EventStorage(object):
 		if type=="start":
 			if self.name_ is None:  # enclosing element, baptize me
 				self.name_ = name
-				self.handlerStack.append(lambda *args: self.handlerStack.pop())
+				self.handlerStack.append(self)
 			else:  # memorize we've swallowed an element
 				self.handlerStack.append(self.feedEvent)
 		self.events.append((type, name, val))
 		if type=="end":
 			return self.handlerStack.pop()
-		return self.feedEvent
+		return self
 	
 	def iterEvents(self):
 		return islice(self.events, 1, len(self.events)-1)

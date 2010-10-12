@@ -218,11 +218,28 @@ class ParseContext(object):
 	first objects.
 
 	If restricted is True, embedded code must raise an error.
+
+	You should set an eventSource using the setter provided.  This is
+	the iterparse instance the events are coming from (or something else
+	that has a pos attribute returning the current position).
 	"""
 	def __init__(self, restricted=False, forRD=None):
 		self.idmap = {}
 		self.restricted = restricted
 		self.forRD = forRD
+		self.eventSource = None
+
+	def setEventSource(self, evSource):
+		self.eventSource = evSource
+
+	@property
+	def pos(self):
+		"""returns a token stringifying into a position guess.
+		"""
+		if self.eventSource is None:
+			return "(while parsing sourceless)"
+		else:
+			return self.eventSource.pos
 
 	def getQualifiedId(self, id):
 		"""returns an id including the current RD's id, if known, otherwise id

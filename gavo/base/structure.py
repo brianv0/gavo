@@ -67,21 +67,24 @@ class ChangeParser(Exception):
 
 
 class Parser(object):
-	"""is a callable that routes events.
+	"""is an object that routes events.
 
 	It is constructed with up to three functions for handling start,
-	value, and end events.
+	value, and end events; these would override methods start_, end_,
+	or value_.  Thus, you can simply implement when inheriting from
+	Parser.  In that case, no call the the constructor is necessary
+	(i.e., Parser works as a mixin as well).
 	"""
 	def __init__(self, start=None, value=None, end=None):
 		self.start, self.value, self.end = start, value, end
 	
-	def __call__(self, ctx, type, name, value):
+	def feedEvent(self, ctx, type, name, value):
 		if type=="start":
-			return self.start(ctx, name, value)
+			return self.start_(ctx, name, value)
 		elif type=="value":
-			return self.value(ctx, name, value)
+			return self.value_(ctx, name, value)
 		elif type=="end":
-			return self.end(ctx, name, value)
+			return self.end_(ctx, name, value)
 		else:
 			raise StructureError("Illegal event type while building: '%s'"%type)
 
@@ -308,7 +311,7 @@ class StructureBase(object):
 		return cls(newParent, **consArgs)
 
 
-class ParseableStructure(StructureBase):
+class ParseableStructure(StructureBase, Parser):
 	"""is a base class for Structures parseable from EventProcessors (and
 	thus XML).
 	
@@ -327,7 +330,6 @@ class ParseableStructure(StructureBase):
 
 	def __init__(self, parent, **kwargs):
 		StructureBase.__init__(self, parent, **kwargs)
-		self.feedEvent = Parser(self._doStart, self._doValue, self._doEnd)
 
 	def finishElement(self):
 		return self
@@ -347,7 +349,7 @@ class ParseableStructure(StructureBase):
 		If this method returns None, the unknown name will raise an error.
 		"""
 
-	def _doEnd(self, ctx, name, value):
+	def end_(self, ctx, name, value):
 		try:
 			self.finishElement()
 		except Replace, ex:
@@ -360,9 +362,9 @@ class ParseableStructure(StructureBase):
 			if self.parent:
 				self.parent.feedObject(name, self)
 		# del self.feedEvent (at some point we might selectively reclaim parsers)
-		return getattr(self.parent, "feedEvent", None)
+		return self.parent
 
-	def _doValue(self, ctx, name, value):
+	def value_(self, ctx, name, value):
 		if not name in self.managedAttrs:
 			if name=="content_":
 				raise StructureError("%s elements must not have character data"
@@ -373,11 +375,11 @@ class ParseableStructure(StructureBase):
 		try:
 			self.managedAttrs[name].feed(ctx, self, value)
 		except Replace, ex:
-			return ex.newOb.feedEvent
+			return ex.newOb
 		self.pristine = False
-		return self.feedEvent
+		return self
 	
-	def _doStart(self, ctx, name, value):
+	def start_(self, ctx, name, value):
 		if not name in self.managedAttrs:
 			attDef = self.getDynamicAttribute(name)
 			if not attDef:
@@ -392,7 +394,7 @@ class ParseableStructure(StructureBase):
 
 	def getParser(self, parent):
 		if hasattr(self, "feedEvent"):
-			return self.feedEvent
+			return self
 		raise StructureError("%s element was asked for a parser after"
 			" parsing."%self.name_)
 
@@ -520,29 +522,6 @@ class RestrictionMixin(object):
 			raise RestrictedElement(self.name_)
 		getattr(
 			super(RestrictionMixin, self), "setParseContext", self._nop)(ctx)
-
-
-def makeStructureReference(aStruct, parseParent):
-	"""returns a root structure having references of aStruct's attributes but
-	raising errors on feedEvent attempts.
-
-	parseParent is the structure that receives the new structure and
-	keeps on parsing.
-
-	This is used for ref=-attributes to make sure they are not changed
-	from within XML (since that would change the original.  Programmatic
-	manipulations still remain possible, and the effort to foil those
-	is probably not worth it.
-	"""
-	newStruct = aStruct.__class__.fromStructure(None, aStruct)
-	def doEnd(ctx, name, value):
-		parseParent.feedObject(name, newStruct)
-		return parseParent.feedEvent
-	def raiseError(ctx, name, value):
-		raise StructureError("Referenced elements cannot have attributes"
-			" or children")
-	newStruct.feedEvent = Parser(raiseError, raiseError, doEnd)
-	return newStruct.finishElement()
 
 
 def makeStruct(structClass, **kwargs):

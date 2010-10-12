@@ -105,14 +105,14 @@ class MetaParser(structure.Parser):
 	def addMeta(self, *value):
 		self.children.append(value)
 
-	def start(self, ctx, name, value):
+	def start_(self, ctx, name, value):
 		if name=="meta":
 			return MetaParser(self, self)
 		else:
 			self.next = name
 			return self
 
-	def value(self, ctx, name, value):
+	def value_(self, ctx, name, value):
 		if self.next is None:
 			self.attrs[str(name)] = value
 		else:
@@ -128,7 +128,7 @@ class MetaParser(structure.Parser):
 				" name attribute")
 		return self.attrs.pop("name"), mv
 
-	def end(self, ctx, name, value):
+	def end_(self, ctx, name, value):
 		if name=="meta":
 			key, mv = self._getMetaValue()
 			for child in self.children:
@@ -159,7 +159,7 @@ class MetaAttribute(attrdef.AttributeDef):
 		return {}
 
 	def getParser(self, parent):
-		return MetaParser(parent, parent.feedEvent)
+		return MetaParser(parent, parent)
 
 	def feedObject(self, instance, value):
 		self.meta_ = value

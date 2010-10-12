@@ -13,8 +13,8 @@ of internal structure, add methods
 		is what should later be fed to feedObject and must have a getParser 
 		attribute.  The name argument gives the name of the element that caused 
 		the create call, allowing for polymorphic attrs.
-	- getParser(instance) -> callable -- returns a callable that receives
-		parse events to fill instance
+	- getParser(instance) -> callable -- returns an object that has
+		a feedEvent method handling parse events
 	- replace(instance, oldVal, newVal) -> None -- replaces oldVal with newVal; this
 		works like feedObject, except that an old value is overwritten.
 	- iterEvents(instance) -> events -- yields events to recreate its value
@@ -117,7 +117,7 @@ class DictParser(structure.Parser):
 		self.dict, self.nextParser, self.parseValue = dict, nextParser, parseValue
 		self.key, self.keyName = attrdef.Undefined, keyName
 
-	def value(self, ctx, name, value):
+	def value_(self, ctx, name, value):
 		if name==self.keyName:
 			self.key = value
 		elif name=="content_":
@@ -130,10 +130,10 @@ class DictParser(structure.Parser):
 			raise StructureError("No %s attributes on mappings"%name)
 		return self
 	
-	def start(self, ctx, name, value):
+	def start_(self, ctx, name, value):
 		raise StructureError("No %s elements in mappings"%name)
 	
-	def end(self, ctx, name, value):
+	def end_(self, ctx, name, value):
 		if self.key is not attrdef.Undefined:
 			self.dict[self.key] = None
 			self.key = attrdef.Undefined
