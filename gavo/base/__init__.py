@@ -64,7 +64,7 @@ from gavo.base.sqlsupport import (getDBConnection, getDefaultDBConnection,
 	SimpleQuerier, encodeDBMsg)
 
 from gavo.base.structure import (Structure, ParseableStructure, 
-	RefAttribute, DataContent, makeStruct, RestrictionMixin)
+	DataContent, makeStruct, RestrictionMixin)
 
 from gavo.base.typesystems import *
 

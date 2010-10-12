@@ -236,7 +236,6 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 	# defined in the parent tableDefs.
 	_stcs = base.StructListAttribute("stc", description="STC-S definitions"
 		" of coordinate systems.", childFactory=STCDef)
-	_ref = base.RefAttribute()
 	_mixins = mixins.MixinAttribute(copyable=True)
 	_original = base.OriginalAttribute()
 	_namePath = common.NamePathAttribute()

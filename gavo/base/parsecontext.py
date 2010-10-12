@@ -171,8 +171,12 @@ class OriginalAttribute(attrdef.AtomicAttribute):
 class ReferenceAttribute(attrdef.AtomicAttribute):
 	"""An attribute keeping a reference to some other structure
 
-	Do not confuse this with structure.RefAttribute -- here, the parent remains
-	unscathed, and it's much less messy overall.
+	This is a bit messy since the value referred to keeps its original
+	parent, so self.attr.parent!=self for these attributes.  This is
+	ok for many applications, but it will certainly not work for, e.g.
+	tables (roughly, it's always trouble when an attribute value's 
+	implementation refers to self.parent; this is particularly true
+	for structures having an RDAttribute.
 	"""
 	typeDesc_ = "id reference"
 

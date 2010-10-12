@@ -225,7 +225,7 @@ class DBTableQueryTest(testhelpers.VerboseTest):
 			'<table id="xy" onDisk="True">'
 			'<column name="x" type="integer"/>'
 			'<column name="y" type="text"/></table>'
-			'<data id="xyData"><dictlistGrammar/><table ref="xy"/>'
+			'<data id="xyData"><dictlistGrammar/><table original="xy"/>'
 			'<rowmaker id="d_xy" idmaps="x,y"/>'
 			'<make table="xy" rowmaker="d_xy"/></data>'
 			'</resource>')

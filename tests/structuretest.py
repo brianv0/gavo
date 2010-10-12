@@ -38,14 +38,11 @@ class Bla(structure.ParseableStructure):
 	_att1 = base.ListOfAtomsAttribute("items",
 		itemAttD=IntAttribute("item"), copyable=True)
 
-class PaletteBase(structure.ParseableStructure):
+class Palette(structure.ParseableStructure):
 	name_ = "pal"
 	_colors = base.StructListAttribute("colors", childFactory=CopyableColor,
 		copyable=True)
 	_foo = base.StructListAttribute("foos", childFactory=Foo, copyable=True)
-
-class Palette(PaletteBase):
-	_ref = structure.RefAttribute(forceType=PaletteBase)
 
 class PalCollection(structure.ParseableStructure):
 	name_ = "pals"
@@ -294,39 +291,13 @@ class CopyTest(testhelpers.VerboseTest):
 			'</pal>'))
 
 
-class RefTest(testhelpers.VerboseTest):
-	"""tests for ref in structures.
-	"""
-	def testListRef(self):
-		f = xmlstruct.parseFromString(PalCollection, 
-			'<pals><pal id="pal1"><color r="0"/><color g="0"/></pal>'
-			'<pal ref="pal1"/></pals>')
-		self.assert_(f.pals[0].colors[0] is f.pals[1].colors[0])
-
-	def testChangeRefusal(self):
-		self.assertRaisesWithMsg(base.StructureError,
-			"At (1, 36):"
-			" Referenced elements cannot have attributes or children",
-			xmlstruct.parseFromString, (PalCollection, 
-				'<pals><pal id="foo"/><pal ref="foo"><color/></pal></pals>'))
-
-	def testTypecheck(self):
-		self.assertRaisesWithMsg(base.StructureError,
-			"At (1, 55):"
-			" Reference to 'pal1' yielded object of type CopyableColor,"
-			" expected PaletteBase",
-			xmlstruct.parseFromString, (PalCollection, 
-				'<pals><pal><color r="0" id="pal1"/><color g="0"/></pal>'
-				'<pal ref="pal1"/></pals>'))
-
-
 class FeedFromTest(testhelpers.VerboseTest):
 	"""tests for working of feedFrom hackery.
 	"""
 	def testBasic(self):
-		f = xmlstruct.parseFromString(PaletteBase, 
+		f = xmlstruct.parseFromString(Palette, 
 			'<pal id="pal1"><foo><color r="0"/>content</foo></pal>')
-		f2 = xmlstruct.parseFromString(PaletteBase, 
+		f2 = xmlstruct.parseFromString(Palette, 
 			'<pal id="pal2"/>')
 		f2.feedFrom(f)
 		self.assertEqual(f2.foos[0].content_, "content",

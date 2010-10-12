@@ -16,9 +16,7 @@ of internal structure, add methods
 	- getParser(instance) -> callable -- returns a callable that receives
 		parse events to fill instance
 	- replace(instance, oldVal, newVal) -> None -- replaces oldVal with newVal; this
-		works like feedObject, except that an old value is overwritten.  We
-		need such functionality with structure.RefAttribute and 
-		structure.CopyAttribute.
+		works like feedObject, except that an old value is overwritten.
 	- iterEvents(instance) -> events -- yields events to recreate its value
 		on another instance.
 """

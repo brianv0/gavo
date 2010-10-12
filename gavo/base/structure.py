@@ -65,47 +65,6 @@ class ChangeParser(Exception):
 		self.newParser = newParser
 
 
-class RefAttribute(attrdef.AttributeDef):
-	"""is an attribute that replaces the current parent with a reference
-	to an item coming from the context's idmap.
-	
-	This is a bit tricky in that whatever is referenced keeps its parent,
-	and of course you have all kinds of aliasing nightmares.
-
-	I wouldn't have come up with this mess if it weren't so useful in RDs.
-
-	One could think about stuffing these into R/O proxies, but let's see
-	if we're hurting.  Plus, there's OriginalAttribute that doesn't
-	have such pitfalls (but is much slower due to copying).
-
-	See parsecontext.OriginalAttribute of a discussion on name.
-	"""
-	computed_ = True
-	typeDesc_ = "id reference"
-
-	def __init__(self, name="ref", description="A reference to another node"
-			" that will stand in here.  You cannot add attributes or children"
-			" to the element referenced here.  Do not use this unless you know"
-			" what you are doing.", forceType=None):
-		assert name=='ref'
-		attrdef.AttributeDef.__init__(self, name, attrdef.Computed, description)
-		self.forceType = forceType
-
-	@property
-	def default_(self):
-		return None
-
-	def feed(self, ctx, parent, literal):
-		if literal is None:
-			return
-		srcOb = ctx.getById(literal, self.forceType)
-		newOb = makeStructureReference(srcOb, parent.parent)
-		raise ChangeParser(newOb.feedEvent)
-
-	def getCopy(self, instance, newParent):
-		return None  # these have no content
-
-
 class Parser(object):
 	"""is a callable that routes events.
 

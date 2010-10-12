@@ -263,7 +263,6 @@ class DataDescriptor(base.Structure, base.MetaMixin):
 	_properties = base.PropertyAttribute()
 	_rd = common.RDAttribute()
 	_original = base.OriginalAttribute()
-	_ref = base.RefAttribute()
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(DataDescriptor)
