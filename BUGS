@@ -229,6 +229,6 @@
 	(valuemapper?) so taprunner, formats.votable* and friends don't need to
 	import it any more on startup.
 
-56/LOW/2010-10-08
+56/LOW/2010-10-08/FIXED
 	Kill the ref attribute and the underlying mechanism for structures.
 	It has been a pain and not terribly useful.

@@ -46,6 +46,7 @@ attribute values (instance specific).
 """
 
 import new
+import warnings
 import weakref
 
 from gavo import utils
@@ -279,9 +280,9 @@ class StructureBase(object):
 
 		This is a bit haphazard since we assume the parent has an attribute
 		of our name.  This should normally be the case, but there are no
-		guarantees.  So, this might fail.  It's not that bad, though, since
-		we mainly need this for ref=-type attributes.
+		guarantees.  So, this might fail.
 		"""
+		warnings.warn("replace() called", DeprecationWarning)
 		self.parent.managedAttrs[self.name_].replace(self.parent, self, newObject)
 		newObject.parent = self.parent
 	
