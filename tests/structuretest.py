@@ -158,7 +158,7 @@ class AtomicFeedTest(testhelpers.VerboseTest):
 
 	def testRaising(self):
 		Bla = self._getPlainStructure()
-		self.assertRaisesWithMsg(structure.StructureError, 
+		self.assertRaisesWithMsg(base.StructureError, 
 			"Bla objects cannot have xxx children", _feedInto, 
 			(Bla, [("start", "bla"), ("start", "xxx")]))
 
@@ -203,18 +203,18 @@ class XMLParseTest(testhelpers.VerboseTest):
 		self.assertEqual(f.plups[1].color.id, "y")
 
 	def testWrongRootElement(self):
-		self.assertRaisesWithMsg(structure.StructureError, 
+		self.assertRaisesWithMsg(base.StructureError, 
 			"At (1, 0):"
 			" Expected root element color, found foo",
 			xmlstruct.parseFromStream, (Color, StringIO("""<foo name="red">
 			<color g="0" b="0"/></foo>""")))
 
 	def testBadChild(self):
-		self.assertRaisesWithMsg(structure.StructureError,
+		self.assertRaisesWithMsg(base.StructureError,
 			"At (1, 0):"
 			" color elements have no noAtt attributes",
 			xmlstruct.parseFromString, (Color, '<color noAtt="30"/>'))
-		self.assertRaisesWithMsg(structure.StructureError,
+		self.assertRaisesWithMsg(base.StructureError,
 			"At (1, 7):"
 			" Color objects cannot have noAtt children",
 			xmlstruct.parseFromString, (Color, '<color><noAtt>30</noAtt></color>'))
@@ -227,7 +227,7 @@ class XMLParseTest(testhelpers.VerboseTest):
 	def testStructContent(self):
 		f = xmlstruct.parseFromString(Foo, '<foo name="xy">Some content</foo>')
 		self.assertEqual(f.content_, "Some content")
-		self.assertRaisesWithMsg(structure.StructureError,
+		self.assertRaisesWithMsg(base.StructureError,
 			"At (1, 19): "
 			"color elements must not have character data content "
 				"(found 'Some content')",

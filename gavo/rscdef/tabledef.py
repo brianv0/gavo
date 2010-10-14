@@ -283,7 +283,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		if not isinstance(self.columns, common.ColumnList):
 			self.columns = common.ColumnList(self.columns)
 		if self.id is base.NotGiven:
-			self.id = hex(id(self))[2:]
+			self.id = utils.intToFunnyWord(id(self))
 		self._resolveSTC()
 		self._completeElementNext(TableDef)
 

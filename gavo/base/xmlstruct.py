@@ -99,7 +99,7 @@ class EventProcessor(object):
 
 	def _feedToAtom(self, type, name, value):
 		if type=='start':
-			raise structure.StructureError("%s elements cannot have %s children"%(
+			raise excs.StructureError("%s elements cannot have %s children"%(
 				self.next, name))
 		elif type=='value' or type=="parsedvalue":
 			self.curParser.feedEvent(self.ctx, 'value', self.next, value)
@@ -122,19 +122,16 @@ class EventProcessor(object):
 		"""
 		if type=="start" and activetags.isActive(name):
 			self.curParser = activetags.getActiveTag(name)(
-				self.ctx, self.curParser)
+				self.curParser, evproc_=self)
 			return
 # XXX TODO: Deprecated
 		if type=="start" and name=="GENERATOR":
 			self.curParser = Generator(self)
 			return
-		try:
-			if self.next is None:
-				self._feedToStructured(type, name, value)
-			else:
-				self._feedToAtom(type, name, value)
-		except structure.ChangeParser, ex:
-			self.curParser = ex.newParser
+		if self.next is None:
+			self._feedToStructured(type, name, value)
+		else:
+			self._feedToAtom(type, name, value)
 	
 	def feedEvent(self, ctx, evType, name, value):
 		"""dispatches an event to the root structure.
@@ -143,7 +140,7 @@ class EventProcessor(object):
 		method to feed "real" events to is feed.
 		"""
 		if name!=self.rootStruct.name_:
-			raise structure.StructureError("Expected root element %s, found %s"%(
+			raise excs.StructureError("Expected root element %s, found %s"%(
 				self.rootStruct.name_, name))
 		if evType=="start":
 			if isinstance(self.rootStruct, type):
@@ -153,7 +150,7 @@ class EventProcessor(object):
 			self.result.idmap = ctx.idmap
 			return self.result
 		else:
-			raise structure.StructureError("Bad document structure")
+			raise excs.StructureError("Bad document structure")
 	
 	def setRoot(self, root):
 		"""artifically inserts an instanciated root element.
@@ -163,7 +160,10 @@ class EventProcessor(object):
 		self.result = root
 		self.curParser = root
 		self.result.idmap = self.ctx.idmap
-	
+
+	def clone(self):
+		return EventProcessor(self.rootStruct, self.ctx)
+
 
 def _synthesizeAttributeEvents(evProc, context, attrs):
 	"""generates value events for the attributes in attrs.

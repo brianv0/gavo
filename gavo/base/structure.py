@@ -8,41 +8,6 @@ going on in our resource definitions, so we want a certain amount of
 rigorous structure.  Finally, a monolithic parser for that stuff
 becomes *really* huge and tedious, so I want to keep the XML parsing
 information in the constructed objects themselves.
-
-
-Parseables
-==========
-
-Parseables are object having a method
-
-feedEvent(ctx, type, name, value=None) -> callable, unicode or None
-
-These process parse events.  ctx is a parse context, basically a container
-you can use to communicate parse information (like "make no database
-queries" or a map of ids and objects).
-
-type can be:
-
-- value -- causes the feed method on the attribute name to be called.
-- start -- returns a new parser for the attribute name.
-- end -- returns a new parser for the current attribute's parent.
-
-feedEvent returns either a callable (that be called on the next event
-call) or a unicode object name to signify that whatever is being parsed is
-atomic and they will expect a feed("value", name, value) for the content
-of the element.  If feedEvent returns None it means that the root
-element has finished.
-
-You can build feedEvent methods using the Parser class; these are
-constructed with a method each to handle start, value, and events,
-respectively.
-
-
-Structures
-==========
-
-These contain attribute definitions (shared between all instances) and
-attribute values (instance specific).
 """
 
 import new
@@ -52,18 +17,26 @@ import weakref
 from gavo import utils
 from gavo.base import attrdef
 from gavo.base import parsecontext
-from gavo.utils.excs import StructureError, Replace, BadCode, RestrictedElement
+from gavo.utils import excs
 
 
-class ChangeParser(Exception):
-	"""An that during a parse notifies the EventProcessor to change its 
-	current parser "out of order".
+class Ignore(excs.ExecutiveAction):
+	"""An executive action causing an element to be not adopted by its
+	parent.
 
-	Again, this is a hack for ref=-Attributes.
+	Raise this in -- typically -- onElementComplete if the element just
+	built goes somewhere else but into its parent structure (or is
+	somehow benignly unusable).  Classic use case: Active Tags.
 	"""
-	def __init__(self, newParser):
-		Exception.__init__(self, "You should never see this")
-		self.newParser = newParser
+
+class Replace(excs.ExecutiveAction):
+	"""An executive action replacing the current child with the Exception's
+	argument.
+
+	Use this sparingly.  I'd like to get rid of it.
+	"""
+	def __init__(self, newOb, newName=None):
+		self.newOb, self.newName = newOb, newName
 
 
 class Parser(object):
@@ -86,7 +59,7 @@ class Parser(object):
 		elif type=="end":
 			return self.end_(ctx, name, value)
 		else:
-			raise StructureError("Illegal event type while building: '%s'"%type)
+			raise excs.StructureError("Illegal event type while building: '%s'"%type)
 
 
 def sortAttrs(attrSeq):
@@ -221,8 +194,9 @@ class StructureBase(object):
 				                                 # set up by attributes.
 					setattr(self, val.name_, val.default_)
 			except AttributeError: # default on property given
-				raise utils.logOldExc(StructureError("%s attributes on %s have builtin"
-					" defaults only."%(val.name_, self.name_)))
+				raise utils.logOldExc(excs.StructureError(
+					"%s attributes on %s have builtin defaults only."%(
+						val.name_, self.name_)))
 		
 		# set keyword arguments
 		for name, val in kwargs.iteritems():
@@ -230,7 +204,7 @@ class StructureBase(object):
 				if not hasattr(self.managedAttrs[name], "computed_"):
 					self.managedAttrs[name].feedObject(self, val)
 			else:
-				raise StructureError("%s objects have no attribute %s"%(
+				raise excs.StructureError("%s objects have no attribute %s"%(
 					self.__class__.__name__, name))
 
 	def _nop(self, *args, **kwargs):
@@ -251,7 +225,7 @@ class StructureBase(object):
 			return dict([(att.name_, getattr(self, att.name_))
 				for att in attrs])
 		except AttributeError, msg:
-			raise common.logOldExc(StructureError(
+			raise common.logOldExc(excs.StructureError(
 				"Attempt to copy from invalid source: %s"%unicode(msg)))
 
 	def getCopyableAttributes(self, ignoreKeys=set()):
@@ -358,6 +332,8 @@ class ParseableStructure(StructureBase, Parser):
 			if ex.newOb.id is not None:
 				ctx.registerId(ex.newOb.id, ex.newOb)
 			self.parent.feedObject(name, ex.newOb)
+		except Ignore, ex:
+			pass
 		else:
 			if self.parent:
 				self.parent.feedObject(name, self)
@@ -367,10 +343,10 @@ class ParseableStructure(StructureBase, Parser):
 	def value_(self, ctx, name, value):
 		if not name in self.managedAttrs:
 			if name=="content_":
-				raise StructureError("%s elements must not have character data"
+				raise excs.StructureError("%s elements must not have character data"
 					" content (found '%s')"%(self.name_, 
 						utils.makeEllipsis(value, 20)))
-			raise StructureError(
+			raise excs.StructureError(
 				"%s elements have no %s attributes"%(self.name_, name))
 		try:
 			self.managedAttrs[name].feed(ctx, self, value)
@@ -383,7 +359,7 @@ class ParseableStructure(StructureBase, Parser):
 		if not name in self.managedAttrs:
 			attDef = self.getDynamicAttribute(name)
 			if not attDef:
-				raise StructureError(
+				raise excs.StructureError(
 					"%s objects cannot have %s children"%(self.__class__.__name__, name))
 		else:
 			attDef = self.managedAttrs[name]
@@ -395,7 +371,7 @@ class ParseableStructure(StructureBase, Parser):
 	def getParser(self, parent):
 		if hasattr(self, "feedEvent"):
 			return self
-		raise StructureError("%s element was asked for a parser after"
+		raise excs.StructureError("%s element was asked for a parser after"
 			" parsing."%self.name_)
 
 	def feed(self, name, literal, ctx=None):
@@ -500,7 +476,7 @@ class Structure(ParseableStructure):
 	def validate(self):
 		for val in set(self.managedAttrs.itervalues()):
 			if getattr(self, val.name_) is attrdef.Undefined:
-				raise StructureError("You must set %s on %s elements"%(
+				raise excs.StructureError("You must set %s on %s elements"%(
 					val.name_, self.name_))
 			if hasattr(val, "validate"):
 				val.validate(self)
@@ -519,7 +495,7 @@ class RestrictionMixin(object):
 	"""
 	def setParseContext(self, ctx):
 		if ctx.restricted:
-			raise RestrictedElement(self.name_)
+			raise excs.RestrictedElement(self.name_)
 		getattr(
 			super(RestrictionMixin, self), "setParseContext", self._nop)(ctx)
 
