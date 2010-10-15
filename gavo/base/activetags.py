@@ -96,26 +96,16 @@ class EventStream(ActiveTag):
 		return self
 
 
-class ReplayedEvents(ActiveTag, macros.MacroPackage):
-	"""An active tag that takes an event stream and replays the events,
-	possibly filling variables.
-
-	This element supports arbitrary attributes with unicode values.  These
-	values are available as macros for replayed values.
+class ReplayBase(ActiveTag, macros.MacroPackage):
+	"""An "abstract base" for active tags replaying streams.
 	"""
-	name_ = "FEED"
+	name_ = None  # not a usable active tag
 
 	_source = attrdef.ActionAttribute("source", "_setupReplay",
 		description="id of a stream to replay")
 
 	def __init__(*args, **kwargs):
 		ActiveTag.__init__(*args, **kwargs)
-
-	def completeElement(self):
-		self._completeElementNext(ReplayedEvents)
-		if not hasattr(self, "_replayer"):
-			raise excs.StructureError("FEED elements need a source attribute")
-		self._replayer()
 
 	def _setupReplay(self, ctx):
 		def replayer():
@@ -155,7 +145,24 @@ class ReplayedEvents(ActiveTag, macros.MacroPackage):
 		return newAtt
 
 
-class Loop(ReplayedEvents):
+
+class ReplayedEvents(ReplayBase):
+	"""An active tag that takes an event stream and replays the events,
+	possibly filling variables.
+
+	This element supports arbitrary attributes with unicode values.  These
+	values are available as macros for replayed values.
+	"""
+	name_ = "FEED"
+
+	def completeElement(self):
+		self._completeElementNext(ReplayedEvents)
+		if not hasattr(self, "_replayer"):
+			raise excs.StructureError("FEED elements need a source attribute")
+		self._replayer()
+
+
+class Loop(ReplayBase):
 	"""An active tag that replays a feed several times, each time with
 	different values.
 	"""
@@ -166,8 +173,7 @@ class Loop(ReplayedEvents):
 		strip=True)
 
 	def completeElement(self):
-		# No upcall here since I don't want ReplayedEvents' completeElement to
-		# run here.
+		self._completeElementNext(Loop)
 		if not hasattr(self, "_replayer"):
 			raise excs.StructureError("LOOP elements need a source attribute")
 		csvItems = csv.DictReader(StringIO(self.csvItems.encode("utf-8")))
@@ -177,7 +183,6 @@ class Loop(ReplayedEvents):
 			self._replayer()
 
 			
-
 getActiveTag = utils.buildClassResolver(ActiveTag, globals().values(),
 	key=lambda obj: getattr(obj, "name_", None))
 
