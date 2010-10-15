@@ -13,7 +13,6 @@ from gavo import utils
 from gavo.base import structure
 from gavo.rscdef import column
 from gavo.rscdef import common
-from gavo.rscdef import macros
 from gavo.rscdef import mixins
 from gavo.rscdef import rmkfuncs
 from gavo.rscdef import scripting
@@ -186,7 +185,7 @@ class STCDef(base.Structure):
 
 
 class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
-		macros.StandardMacroMixin):
+		base.StandardMacroMixin):
 	"""A definition of a table, both on-disk and internal.
 
 	Some attributes are ignored for the in-memory tables, e.g., roles or adql.

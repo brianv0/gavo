@@ -18,9 +18,6 @@ from gavo.rscdef.common import (RDAttribute, ResdirRelativeAttribute,
 from gavo.rscdef.dddef import (DataDescriptor, Make,
 	SourceSpec)
 
-from gavo.rscdef.macros import (StandardMacroMixin, MacroPackage,
-	MacDefAttribute, MacroError)
-
 from gavo.rscdef.mixins import RMixinBase, registerRMixin, getMixin
 
 from gavo.rscdef.procdef import ProcDef, ProcApp

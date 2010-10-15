@@ -341,15 +341,20 @@ class ParseableStructure(StructureBase, Parser):
 		return self.parent
 
 	def value_(self, ctx, name, value):
-		if not name in self.managedAttrs:
-			if name=="content_":
-				raise excs.StructureError("%s elements must not have character data"
-					" content (found '%s')"%(self.name_, 
-						utils.makeEllipsis(value, 20)))
-			raise excs.StructureError(
-				"%s elements have no %s attributes"%(self.name_, name))
+		if name in self.managedAttrs:
+			attDef = self.managedAttrs[name]
+		else:
+			attDef = self.getDynamicAttribute(name)
+			if attDef is None:
+				if name=="content_":
+					raise excs.StructureError("%s elements must not have character data"
+						" content (found '%s')"%(self.name_, 
+							utils.makeEllipsis(value, 20)))
+				raise excs.StructureError(
+					"%s elements have no %s attributes"%(self.name_, name))
+
 		try:
-			self.managedAttrs[name].feed(ctx, self, value)
+			attDef.feed(ctx, self, value)
 		except Replace, ex:
 			return ex.newOb
 		self.pristine = False

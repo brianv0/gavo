@@ -6,9 +6,14 @@ the name "active tags" much better, and there's too much talk of elements
 in this source as it is.
 """
 
+import csv
+from cStringIO import StringIO
+
 from gavo import utils
 from gavo.base import attrdef
+from gavo.base import macros
 from gavo.base import structure
+from gavo.utils import excs
 
 
 class EvprocAttribute(attrdef.AtomicAttribute):
@@ -53,51 +58,125 @@ class EventStream(ActiveTag):
 	# Warning: Attributes defined here will be ignored -- structure parsing
 	# is not in effect for EventStream.
 	name_ = "STREAM"
+	_doc = attrdef.UnicodeAttribute("doc", description="A description of"
+		" this stream (should be restructured text).")
 
 	def __init__(self, *args, **kwargs):
 		self.events = []
-		self.inRoot = True
+		self.tagStack = []
 		ActiveTag.__init__(self, *args, **kwargs)
 
 	def start_(self, ctx, name, value):
-		self.inRoot = False
-		self.events.append(("start", name, value, ctx.pos))
-		return self
+		if name in self.managedAttrs and not self.tagStack:
+			res = ActiveTag.start_(self, ctx, name, value)
+		else:
+			self.events.append(("start", name, value, ctx.pos))
+			res = self
+			self.tagStack.append(name)
+		return res
 
 	def end_(self, ctx, name, value):
-		if name==self.name_:
+		if not self.tagStack: # end of STREAM element
 			res = self.parent
-			self.parent = None, None
+			self.parent = None
 			return res
+		self.tagStack.pop()
+		if name in self.managedAttrs:
+			ActiveTag.end_(self, ctx, name, value)
 		else:
 			self.events.append(("end", name, value, ctx.pos))
-			return self
+		return self
 	
 	def value_(self, ctx, name, value):
-		if self.inRoot and name=="id":
-			self.id = value
-			ctx.registerId(self.id, self)
+		if name in self.managedAttrs and not self.tagStack:
+			# our attribute
+			ActiveTag.value_(self, ctx, name, value)
 		else:
 			self.events.append(("value", name, value, ctx.pos))
 		return self
 
 
-class ReplayedEvents(ActiveTag):
+class ReplayedEvents(ActiveTag, macros.MacroPackage):
 	"""An active tag that takes an event stream and replays the events,
 	possibly filling variables.
+
+	This element supports arbitrary attributes with unicode values.  These
+	values are available as macros for replayed values.
 	"""
 	name_ = "FEED"
 
-	_source = attrdef.ActionAttribute("source", "_replayStream",
+	_source = attrdef.ActionAttribute("source", "_setupReplay",
 		description="id of a stream to replay")
 
-	def _replayStream(self, ctx):
-		stream = ctx.getById(self.source)
-		evTarget = self.evproc_.clone()
-		evTarget.setRoot(self.parent)
-		for type, name, val, pos in stream.events:
-			evTarget.feed(type, name, val)
+	def __init__(*args, **kwargs):
+		ActiveTag.__init__(*args, **kwargs)
+
+	def completeElement(self):
+		self._completeElementNext(ReplayedEvents)
+		if not hasattr(self, "_replayer"):
+			raise excs.StructureError("FEED elements need a source attribute")
+		self._replayer()
+
+	def _setupReplay(self, ctx):
+		def replayer():
+			stream = ctx.getById(self.source)
+			evTarget = self.evproc_.clone()
+			evTarget.setRoot(self.parent)
+			for type, name, val, pos in stream.events:
+				if type=="value" and "\\" in val:
+					try:
+						val = self.expand(val)
+					except macros.MacroError, ex:
+						ex.hint = ("This probably means that you should have set a %s"
+							" attribute in the FEED tag.  For details see the"
+							" documentation of the %s STREAM."%(
+								ex.macroName,
+								self.source))
+						raise
+				try:
+					evTarget.feed(type, name, val)
+				except Exception, msg:
+					msg.pos = "%s (replaying, real error position %s)"%(
+						ctx.pos, pos)
+					raise
+		self._replayer = replayer
 	
+	def getDynamicAttribute(self, name):
+		def m():
+			return getattr(self, name)
+		setattr(self, "macro_"+name, m)
+		# crazy hack: Since all our peudo attributes are atomic, we do not
+		# enter them into managedAttributes.  Actually, we *must not* do
+		# so (for now) since managedAttributes is a *class* attribute
+		# and entering something there would keep getDynamicAttribute
+		# from being called for a second instance.  That instance would
+		# then not receive the macro_X method an thus fail.
+		newAtt = attrdef.UnicodeAttribute(name)
+		return newAtt
+
+
+class Loop(ReplayedEvents):
+	"""An active tag that replays a feed several times, each time with
+	different values.
+	"""
+	name_ = "LOOP"
+
+	_csvItems = attrdef.UnicodeAttribute("csvItems", default=utils.Undefined,
+		description="The items to loop over, in CSV-with-labels format.",
+		strip=True)
+
+	def completeElement(self):
+		# No upcall here since I don't want ReplayedEvents' completeElement to
+		# run here.
+		if not hasattr(self, "_replayer"):
+			raise excs.StructureError("LOOP elements need a source attribute")
+		csvItems = csv.DictReader(StringIO(self.csvItems.encode("utf-8")))
+		for row in csvItems:
+			for name, value in row.iteritems():
+				setattr(self, "macro_"+name, lambda v=value: v.strip())
+			self._replayer()
+
+			
 
 getActiveTag = utils.buildClassResolver(ActiveTag, globals().values(),
 	key=lambda obj: getattr(obj, "name_", None))

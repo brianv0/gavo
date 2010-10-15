@@ -280,7 +280,7 @@ class TestQueryExpands(TestWithTableCreation):
 			1)
 
 	def testBadMacroRaises(self):
-		self.assertRaises(rscdef.MacroError, self.table.query, "\monkmacrobad")
+		self.assertRaises(base.MacroError, self.table.query, "\monkmacrobad")
 
 
 if __name__=="__main__":

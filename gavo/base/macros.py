@@ -9,17 +9,22 @@ from pyparsing import Word, OneOrMore, ZeroOrMore, QuotedString, Forward,\
 	Literal, White, ParseException, dblQuotedString
 
 
-from gavo import base
+from gavo import utils
+from gavo.base import attrdef
+from gavo.base import complexattrs
+from gavo.base import config
+from gavo.base import structure
+from gavo.utils import excs 
 
 
-class MacroError(base.StructureError):
+class MacroError(excs.StructureError):
 	"""is raised when something bad happens during macro expansion.
 
 	It is constructed with an error message, a macro name, and optionally
 	a hint and a position.
 	"""
 	def __init__(self, message, macroName, hint=None, pos=None):
-		base.StructureError.__init__(self, macroName+" failed", pos=pos, hint=hint)
+		excs.StructureError.__init__(self, macroName+" failed", pos=pos, hint=hint)
 		self.args = [message, macroName, hint, pos]
 		self.macroName, self.message = macroName, message
 
@@ -123,7 +128,7 @@ class MacroPackage(object):
 		try:
 			return fun(*args)
 		except TypeError:
-			raise base.ui.logOldExc(MacroError(
+			raise utils.logOldExc(MacroError(
 				"Invalid macro arguments to \\%s: %s"%(macName, args), macName,
 				hint="You supplied too few or too many arguments"))
 
@@ -156,13 +161,13 @@ class StandardMacroMixin(MacroPackage):
 	def macro_RSTservicelink(self, serviceId, title=None):
 		if title is None:
 			title = serviceId
-		return "`%s <%s>`_"%(title, base.makeSitePath(serviceId))
+		return "`%s <%s>`_"%(title, config.makeSitePath(serviceId))
 
 	def macro_servicelink(self, serviceId):
-		return base.makeSitePath(serviceId)
+		return config.makeSitePath(serviceId)
 	
 	def macro_internallink(self, relPath):
-		return base.makeSitePath(relPath)
+		return config.makeSitePath(relPath)
 
 	def macro_today(self):
 		return str(datetime.date.today())
@@ -175,7 +180,7 @@ class StandardMacroMixin(MacroPackage):
 		"""
 		if name is None:
 			section, name = "general", section
-		return str(base.getConfig(section, name))
+		return str(config.get(section, name))
 
 	def macro_test(self, *args):
 		"""always replaces macro call with "test macro expansion"
@@ -185,16 +190,16 @@ class StandardMacroMixin(MacroPackage):
 		return "test macro expansion"
 
 
-class MacDef(base.Structure):
+class MacDef(structure.Structure):
 	"""A macro definition within an RD.
 
 	The macro defined is available on the parent.
 	"""
 	name_ = "macDef"
 
-	_name = base.UnicodeAttribute("name", description="Name the macro"
-		" will be available as", copyable=True, default=base.Undefined)
-	_content = base.DataContent(description="Replacement text of the"
+	_name = attrdef.UnicodeAttribute("name", description="Name the macro"
+		" will be available as", copyable=True, default=utils.Undefined)
+	_content = structure.DataContent(description="Replacement text of the"
 		" macro")
 
 	def onElementComplete(self):
@@ -205,5 +210,5 @@ class MacDef(base.Structure):
 
 
 def MacDefAttribute(**kwargs):
-	return base.StructListAttribute("macDefs", childFactory=MacDef,
+	return complexattrs.StructListAttribute("macDefs", childFactory=MacDef,
 		**kwargs)

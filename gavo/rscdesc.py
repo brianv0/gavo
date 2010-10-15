@@ -27,7 +27,6 @@ from gavo import svcs
 from gavo import utils
 from gavo.rsc import metatable
 from gavo.rscdef import common
-from gavo.rscdef import macros
 from gavo.rscdef import scripting
 
 
@@ -48,7 +47,7 @@ class CoresAttribute(base.StructListAttribute):
 
 
 class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
-		macros.StandardMacroMixin, common.RolesMixin, registry.DateUpdatedMixin):
+		base.StandardMacroMixin, common.RolesMixin, registry.DateUpdatedMixin):
 	"""A resource descriptor (RD); the root for all elements described here.
 	
 	RDs collect all information about how to parse a particular source (like a
@@ -87,7 +86,7 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 	_services = base.StructListAttribute("services", 
 		childFactory=svcs.Service, description="Services exposing data from"
 		" this resource.", copyable=True)
-	_macDefs = rscdef.MacDefAttribute(before="tables", description=
+	_macDefs = base.MacDefAttribute(before="tables", description=
 		"User-defined macros available on this RD")
 	# The next attrs are polymorphic through getDynamicAttribute
 	_cores = CoresAttribute("cores", 

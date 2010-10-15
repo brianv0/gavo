@@ -37,6 +37,9 @@ from gavo.base.coords import Box
 
 from gavo.base.events import EventDispatcher
 
+from gavo.base.macros import (StandardMacroMixin, MacroPackage,
+	MacDefAttribute, MacroError)
+
 ui = EventDispatcher()
 del EventDispatcher
 

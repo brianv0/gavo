@@ -324,7 +324,7 @@ class RegistryMetaMixin(object):
 
 
 class Service(base.Structure, base.ComputedMetaMixin, 
-		rscdef.StandardMacroMixin, RegistryMetaMixin):
+		base.StandardMacroMixin, RegistryMetaMixin):
 	"""A service definition.
 
 	A service is a combination of a core and one or more renderers.  They

@@ -16,7 +16,6 @@ from gavo import base
 from gavo import utils
 from gavo.base import structure
 from gavo.rscdef import common
-from gavo.rscdef import macros
 from gavo.rscdef import procdef
 from gavo.rscdef import rmkfuncs
 from gavo.rscdef import rowtriggers
@@ -167,7 +166,7 @@ class ApplyDef(procdef.ProcApp):
 	formalArgs = "vars, result, targetTable"
 
 
-class RowmakerMacroMixin(macros.StandardMacroMixin):
+class RowmakerMacroMixin(base.StandardMacroMixin):
 	"""is a collection of macros available to rowmakers.
 
 	NOTE: All macros should return only one single physical python line,

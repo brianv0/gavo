@@ -262,7 +262,7 @@ class FileRowIterator(RowIterator):
 			self.inputFile = gzip.GzipFile(fileobj=self.inputFile)
 
 
-class GrammarMacroMixin(rscdef.StandardMacroMixin):
+class GrammarMacroMixin(base.StandardMacroMixin):
 	"""is a collection of macros available to rowfilters.
 
 	NOTE: All macros should return only one single physical python line,

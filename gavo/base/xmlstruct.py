@@ -48,7 +48,7 @@ class Generator(structure.Parser):
 		try:
 			exec self.code in vals
 		except Exception, ex:
-			raise common.logOldExc(BadCode(self.code, "GENERATOR", ex))
+			raise utils.logOldExc(BadCode(self.code, "GENERATOR", ex))
 		for ev in vals["gen"]():
 			if ev[0]=="element":
 				self._expandElementEvent(ev)
