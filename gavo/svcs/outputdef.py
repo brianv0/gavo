@@ -46,7 +46,7 @@ class OutputField(rscdef.Column):
 		copyable=True)
 
 	def __repr__(self):
-		return "<OutputField %s>"%self.name
+		return "<OutputField %s>"%repr(self.name)
 
 	def completeElement(self):
 		if self.restrictedMode and (

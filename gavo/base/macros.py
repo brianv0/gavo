@@ -120,8 +120,11 @@ class MacroPackage(object):
 		raise MacroError(
 			"No macro \\%s available in a %s context"%(
 				macName, self.__class__.__name__),
-			macName, hint="%s objects do not define this macro"%
-				self.__class__.__name__)
+			macName, hint="%s objects have the following macros: %s."%(
+				self.__class__.__name__, ", ".join(self.listMacros())))
+
+	def listMacros(self):
+		return [n[6:] for n in dir(self) if n.startswith("macro_")]
 
 	def execMacro(self, macName, args):
 		fun = self.__findMacro(macName)

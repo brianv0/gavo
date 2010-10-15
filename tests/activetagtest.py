@@ -155,6 +155,16 @@ class LoopTest(testhelpers.VerboseTest):
 		self.assertEqual(cols[-1].name, "orig_c")
 
 
+class RDBasedTest(testhelpers.VerboseTest):
+	def setUp(self):
+		self.rd = testhelpers.getTestRD("activetest")
 	
+	def testCSVMacrosExpandedInTable(self):
+		cols = list(self.rd.getById("mags"))
+		self.assertEqual(len(cols), 6)
+		self.assertEqual(cols[0].name, "jmag")
+		self.assertEqual(cols[-1].description, "Error in magnitude in the K band")
+
+
 if __name__=="__main__":
-	testhelpers.main(LoopTest)
+	testhelpers.main(RDBasedTest)

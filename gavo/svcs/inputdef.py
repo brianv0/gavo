@@ -49,7 +49,7 @@ class InputKey(rscdef.Column):
 		copyable=True)
 
 	def __repr__(self):
-		return "<InputKey %s (%s)>"%(self.name, self.type)
+		return "<InputKey %s (%s)>"%(repr(self.name), self.type)
 
 	def getCurrentFormalType(self):
 		# If we have a condDesc parent, we inherit its requiredness.

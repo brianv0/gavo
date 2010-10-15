@@ -334,7 +334,7 @@ class Column(base.Structure):
 	restrictedMode = False
 
 	def __repr__(self):
-		return "<Column %s>"%self.name
+		return "<Column %s>"%repr(self.name)
 
 	def setParseContext(self, ctx):
 		self.restrictedMode = ctx.restricted

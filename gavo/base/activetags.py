@@ -153,7 +153,7 @@ class ReplayBase(ActiveTag, macros.MacroPackage, GhostMixin):
 							" attribute in the FEED tag.  For details see the"
 							" documentation of the STREAM with id %s."%(
 								ex.macroName,
-								self.source.id))
+								getattr(self.source, "id", "<embedded>")))
 						raise
 				try:
 					evTarget.feed(type, name, val)
@@ -166,19 +166,6 @@ class ReplayBase(ActiveTag, macros.MacroPackage, GhostMixin):
 	def end_(self, ctx, name, value):
 		self._setupReplay(ctx)
 		return ActiveTag.end_(self, ctx, name, value)
-
-	def getDynamicAttribute(self, name):
-		def m():
-			return getattr(self, name)
-		setattr(self, "macro_"+name, m)
-		# crazy hack: Since all our peudo attributes are atomic, we do not
-		# enter them into managedAttributes.  Actually, we *must not* do
-		# so (for now) since managedAttributes is a *class* attribute
-		# and entering something there would keep getDynamicAttribute
-		# from being called for a second instance.  That instance would
-		# then not receive the macro_X method an thus fail.
-		newAtt = attrdef.UnicodeAttribute(name)
-		return newAtt
 
 
 class ReplayedEvents(ReplayBase):
@@ -193,6 +180,19 @@ class ReplayedEvents(ReplayBase):
 	def completeElement(self):
 		self._completeElementNext(ReplayedEvents)
 		self._replayer()
+
+	def getDynamicAttribute(self, name):
+		def m():
+			return getattr(self, name)
+		setattr(self, "macro_"+name.strip(), m)
+		# crazy hack: Since all our peudo attributes are atomic, we do not
+		# enter them into managedAttributes.  Actually, we *must not* do
+		# so (for now) since managedAttributes is a *class* attribute
+		# and entering something there would keep getDynamicAttribute
+		# from being called for a second instance.  That instance would
+		# then not receive the macro_X method an thus fail.
+		newAtt = attrdef.UnicodeAttribute(name)
+		return newAtt
 
 
 class Loop(ReplayBase):
@@ -209,18 +209,26 @@ class Loop(ReplayBase):
 		" items.  Each item will show up once, as 'item' macro.",
 		strip=True)
 
+	def maybeExpand(self, val):
+		if hasattr(self.parent, "expand") and "\\" in val:
+			return self.parent.expand(val)
+		return val
+
 	def _makeRowIteratorFromListItems(self):
 		if self.listItems is None:
 			return None
 		def rowIterator():
-			for item in self.listItems.split():
+			for item in self.maybeExpand(self.listItems.split()):
 				yield {"item": item}
 		return rowIterator()
 	
 	def _makeRowIteratorFromCSV(self):
 		if self.csvItems is None:
 			return None
-		return csv.DictReader(StringIO(self.csvItems.encode("utf-8")))
+		# I'd rather not do the encode below, but 2.5 csv throws a weird
+		# exception if I pass unicode strings...
+		src = self.maybeExpand(self.csvItems).strip().encode("utf-8")
+		return iter(csv.DictReader(StringIO(src), skipinitialspace=True))
 
 	def _getRowIterator(self):
 		rowIterators = [ri for ri in [
@@ -235,7 +243,7 @@ class Loop(ReplayBase):
 		self._completeElementNext(Loop)
 		for row in self._getRowIterator():
 			for name, value in row.iteritems():
-				setattr(self, "macro_"+name, lambda v=value: v.strip())
+				setattr(self, "macro_"+name.strip(), lambda v=value.strip(): v)
 			self._replayer()
 
 			

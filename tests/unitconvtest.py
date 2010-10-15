@@ -149,8 +149,8 @@ class ColumnConvTest(testhelpers.VerboseTest):
 	def testRaises(self):
 		# Bad: Col in new but not in old.
 		self.assertRaisesWithMsg(base.DataError, "Request for column col2 from"
-				" [<Column col0>, <Column col1>] cannot be satisfied"
-				" in [<Column col0>, <Column col1>, <Column col2>]",
+				" [<Column 'col0'>, <Column 'col1'>] cannot be satisfied"
+				" in [<Column 'col0'>, <Column 'col1'>, <Column 'col2'>]",
 			base.computeColumnConversions, (self._mCL("km", "s", "arcsec"),
 			self._mCL("m", "h")))
 		# Ok: Col in old but not in new
