@@ -72,7 +72,7 @@ class ReplayMacroTest(testhelpers.VerboseTest):
 
 	def testMissingSource(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (3, 24): FEED elements need a source attribute",
+			"At (3, 24): Need exactly one of source and events on FEED elements",
 			base.parseFromString, (rscdef.DataDescriptor, 
 			"""<data><STREAM id="foo"><table id="\\tabname" onDisk="True">
 			<column name="x"/></table></STREAM>
@@ -87,7 +87,7 @@ class ReplayMacroTest(testhelpers.VerboseTest):
 		except base.MacroError, ex:
 			self.assertEqual(ex.hint, "This probably means that you should"
 				" have set a tabname attribute in the FEED tag.  For details"
-				" see the documentation of the foo STREAM.")
+				" see the documentation of the STREAM with id foo.")
 			return
 		self.fail("MacroError not raised")
 
@@ -108,6 +108,28 @@ class LoopTest(testhelpers.VerboseTest):
 		self.assertEqual(len(cols), 2)
 		self.assertEqual(cols[0].name, "c_anInt")
 		self.assertEqual(cols[1].type, "text")
+
+	def testEmbedded(self):
+		res = base.parseFromString(rscdef.DataDescriptor, 
+			r"""<data>
+			<table id="gook">
+			<LOOP><csvItems>
+				band,desc
+				B,Johnson B
+				C,Kernighan C
+				d,"cumbersome, outdated band d"
+				</csvItems>
+				<events>
+					<column name="mag\band" tablehead="m_\band"
+						description="Magnitude in \desc"/>
+					<column name="e_mag\band" tablehead="Err. m_\band"
+						description="Error in \desc magnitude."/>
+				</events>
+				</LOOP></table></data>""")
+		cols = list(res.tables[0])
+		self.assertEqual(len(cols), 6)
+		self.assertEqual(cols[-1].description, 
+			"Error in cumbersome, outdated band d magnitude.")
 
 
 if __name__=="__main__":

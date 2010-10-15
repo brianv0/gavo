@@ -34,7 +34,7 @@ About this service
 To find out what tables are available for querying, see the
 \RSTservicelink{__system__/dc_tables/list/form}{ADQL table list}.
 
-Be sure to read `Known Bugs and Problems`_ below.
+Be sure to read `Standards Compliance`_ below.
 
 About ADQL
 ==========

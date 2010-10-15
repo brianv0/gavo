@@ -11,7 +11,9 @@ from cStringIO import StringIO
 
 from gavo import utils
 from gavo.base import attrdef
+from gavo.base import complexattrs
 from gavo.base import macros
+from gavo.base import parsecontext
 from gavo.base import structure
 from gavo.utils import excs
 
@@ -28,36 +30,34 @@ class EvprocAttribute(attrdef.AtomicAttribute):
 
 class ActiveTag(structure.Structure):
 	"""The base class for active tags.
-
-	All active tags are constructed with a parse context and a parser
-	class that is to take over on this element's end tag.
-
-	The input events are passed in through the feedEvent(type, name, value)
-	function.
 	"""
 	name_ = None
 	
 	_evproc = EvprocAttribute()
+
+
+class GhostMixin(object):
+	"""A mixin to make a Structure ghostly.
 	
+	Most active tags are "ghostly", i.e., the do not (directly)
+	show up in their parents.  Therefore, as a part of the wrap-up
+	of the new element, we raise an Ignore exception, which tells
+	the Structure's end_ method to not feed us to the parent.
+	"""
 	def onElementComplete(self):
-		# All active tags are "ghostly", i.e., the do not (directly)
-		# show up in their parents.  Therefore, as a part of the wrap-up
-		# of the new element, we raise an Ignore exception, which tells
-		# the Structure's end_ method to not feed us to the parent.
-		self._onElementCompleteNext(ActiveTag)
+		self._onElementCompleteNext(GhostMixin)
 		self.evproc_ = None
 		raise structure.Ignore(self)
 
 
-class EventStream(ActiveTag):
-	"""An active tag that records events as they come in.
+class RecordingBase(ActiveTag):
+	"""An "abstract base" for active tags doing event recording.
 
-	Their only direct effect is to leave a trace in the parser's id map.
-	The resulting event stream can be played back later.
+	The recorded events are available in the events attribute.
 	"""
+	name_ = None
 	# Warning: Attributes defined here will be ignored -- structure parsing
 	# is not in effect for EventStream.
-	name_ = "STREAM"
 	_doc = attrdef.UnicodeAttribute("doc", description="A description of"
 		" this stream (should be restructured text).")
 
@@ -76,10 +76,6 @@ class EventStream(ActiveTag):
 		return res
 
 	def end_(self, ctx, name, value):
-		if not self.tagStack: # end of STREAM element
-			res = self.parent
-			self.parent = None
-			return res
 		self.tagStack.pop()
 		if name in self.managedAttrs:
 			ActiveTag.end_(self, ctx, name, value)
@@ -96,20 +92,56 @@ class EventStream(ActiveTag):
 		return self
 
 
-class ReplayBase(ActiveTag, macros.MacroPackage):
+class EventStream(RecordingBase, GhostMixin):
+	"""An active tag that records events as they come in.
+
+	Their only direct effect is to leave a trace in the parser's id map.
+	The resulting event stream can be played back later.
+	"""
+	name_ = "STREAM"
+
+	def end_(self, ctx, name, value):
+		# keep self out of the parse tree
+		if not self.tagStack: # end of STREAM element
+			res = self.parent
+			self.parent = None
+			return res
+		return RecordingBase.end_(self, ctx, name, value)
+
+
+class EmbeddedStream(RecordingBase):
+	"""An event stream as a child of another element.
+	"""
+	name_ = "events"  # Lower case since it's really a "normal" element that's
+	                  # added into the parse tree.
+	def end_(self, ctx, name, value):
+		if not self.tagStack: # end of my element, do standard structure thing.
+			return ActiveTag.end_(self, ctx, name, value)
+		return RecordingBase.end_(self, ctx, name, value)
+
+
+class ReplayBase(ActiveTag, macros.MacroPackage, GhostMixin):
 	"""An "abstract base" for active tags replaying streams.
 	"""
 	name_ = None  # not a usable active tag
 
-	_source = attrdef.ActionAttribute("source", "_setupReplay",
-		description="id of a stream to replay")
+	_source = parsecontext.ReferenceAttribute("source",
+		description="id of a stream to replay", default=None)
+	_events = complexattrs.StructAttribute("events",
+		EmbeddedStream, description="Alternatively to source, an XML fragment"
+			" to be replayed", default=None)
 
 	def __init__(*args, **kwargs):
 		ActiveTag.__init__(*args, **kwargs)
 
 	def _setupReplay(self, ctx):
+		sources = [s for s in [self.source, self.events] if s]
+		if len(sources)!=1:
+			raise excs.StructureError("Need exactly one of source and events"
+				" on %s elements"%self.name_)
+		stream = sources[0]
+
 		def replayer():
-			stream = ctx.getById(self.source)
 			evTarget = self.evproc_.clone()
 			evTarget.setRoot(self.parent)
 			for type, name, val, pos in stream.events:
@@ -119,9 +151,9 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 					except macros.MacroError, ex:
 						ex.hint = ("This probably means that you should have set a %s"
 							" attribute in the FEED tag.  For details see the"
-							" documentation of the %s STREAM."%(
+							" documentation of the STREAM with id %s."%(
 								ex.macroName,
-								self.source))
+								self.source.id))
 						raise
 				try:
 					evTarget.feed(type, name, val)
@@ -130,7 +162,11 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 						ctx.pos, pos)
 					raise
 		self._replayer = replayer
-	
+
+	def end_(self, ctx, name, value):
+		self._setupReplay(ctx)
+		return ActiveTag.end_(self, ctx, name, value)
+
 	def getDynamicAttribute(self, name):
 		def m():
 			return getattr(self, name)
@@ -143,7 +179,6 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 		# then not receive the macro_X method an thus fail.
 		newAtt = attrdef.UnicodeAttribute(name)
 		return newAtt
-
 
 
 class ReplayedEvents(ReplayBase):
