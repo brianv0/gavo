@@ -192,8 +192,6 @@ class ReplayedEvents(ReplayBase):
 
 	def completeElement(self):
 		self._completeElementNext(ReplayedEvents)
-		if not hasattr(self, "_replayer"):
-			raise excs.StructureError("FEED elements need a source attribute")
 		self._replayer()
 
 
@@ -203,16 +201,39 @@ class Loop(ReplayBase):
 	"""
 	name_ = "LOOP"
 
-	_csvItems = attrdef.UnicodeAttribute("csvItems", default=utils.Undefined,
+	_csvItems = attrdef.UnicodeAttribute("csvItems", default=None,
 		description="The items to loop over, in CSV-with-labels format.",
 		strip=True)
+	_listItems = attrdef.UnicodeAttribute("listItems", default=None,
+		description="The items to loop over, as space-separated single"
+		" items.  Each item will show up once, as 'item' macro.",
+		strip=True)
 
+	def _makeRowIteratorFromListItems(self):
+		if self.listItems is None:
+			return None
+		def rowIterator():
+			for item in self.listItems.split():
+				yield {"item": item}
+		return rowIterator()
+	
+	def _makeRowIteratorFromCSV(self):
+		if self.csvItems is None:
+			return None
+		return csv.DictReader(StringIO(self.csvItems.encode("utf-8")))
+
+	def _getRowIterator(self):
+		rowIterators = [ri for ri in [
+			self._makeRowIteratorFromListItems(),
+			self._makeRowIteratorFromCSV()] if ri]
+		if len(rowIterators)!=1:
+				raise excs.StructureError("Must give exactly one data source in"
+					" LOOP")
+		return rowIterators[0]
+			
 	def completeElement(self):
 		self._completeElementNext(Loop)
-		if not hasattr(self, "_replayer"):
-			raise excs.StructureError("LOOP elements need a source attribute")
-		csvItems = csv.DictReader(StringIO(self.csvItems.encode("utf-8")))
-		for row in csvItems:
+		for row in self._getRowIterator():
 			for name, value in row.iteritems():
 				setattr(self, "macro_"+name, lambda v=value: v.strip())
 			self._replayer()

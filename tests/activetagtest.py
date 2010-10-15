@@ -131,6 +131,30 @@ class LoopTest(testhelpers.VerboseTest):
 		self.assertEqual(cols[-1].description, 
 			"Error in cumbersome, outdated band d magnitude.")
 
+	def testNoTwoRowSources(self):
+		self.assertRaisesWithMsg(base.StructureError,
+			"At (5, 4): Must give exactly one data source in LOOP",
+			base.parseFromString, (rscdef.DataDescriptor,
+			r"""<data>
+			<table id="gook">
+			<LOOP listItems="a b"><csvItems>band,desc</csvItems>
+				<events><column name="mag\band"/></events>
+				</LOOP></table></data>"""))
+	
+	def testListItems(self):
+		res = base.parseFromString(rscdef.DataDescriptor, 
+			r"""<data>
+			<table id="gook">
+			<LOOP listItems="a b c">
+				<events>
+					<column name="orig_\item"/>
+				</events>
+				</LOOP></table></data>""")
+		cols = list(res.tables[0])
+		self.assertEqual(len(cols), 3)
+		self.assertEqual(cols[-1].name, "orig_c")
 
+
+	
 if __name__=="__main__":
 	testhelpers.main(LoopTest)
