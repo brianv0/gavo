@@ -202,7 +202,7 @@ def _waitForServerExit(timeout=5):
 		time.sleep(0.1)
 	else:
 		sys.exit("The server with pid %d refuses to die.  Please try manually"%
-			pid)
+			PIDManager.getPID())
 
 
 def _stopServer():

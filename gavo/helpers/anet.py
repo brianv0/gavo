@@ -147,8 +147,6 @@ quadsize_min 80
 %(index_statements)s
 fields %(fields)s
 parity 2
-verify 1
-verify_pix 1
 distractors 0.25
 tol 0.01
 ratio_toprint %(ratio_toprint)f

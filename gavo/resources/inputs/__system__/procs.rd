@@ -259,7 +259,7 @@
 		interval = datetime.timedelta(hours=interval)
 
 		try:
-			matchLimit = getQueryMeta()["dbLimit"]
+			matchLimit = 100000 #getQueryMeta()["dbLimit"]
 		except ValueError:
 			matchLimit = 1000000
 		while stampTime<=endTime:
