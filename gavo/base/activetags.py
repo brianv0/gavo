@@ -195,6 +195,21 @@ class ReplayedEvents(ReplayBase):
 		return newAtt
 
 
+class GeneratorAttribute(attrdef.UnicodeAttribute):
+	"""An attribute containing a generator working on the parse context.
+	"""
+	def feed(self, ctx, instance, literal):
+		if ctx.restricted:
+			raise excs.RestrictedElement("codeItems")
+		attrdef.UnicodeAttribute.feed(self, ctx, instance, literal)
+		src = utils.fixIndentation(
+			getattr(instance, self.name_), 
+			"  ", governingLine=1)
+		src = "def makeRows():\n"+src+"\n"
+		instance.iterRowsFromCode = utils.compileFunction(
+			src, "makeRows", useGlobals={"context": ctx})
+
+
 class Loop(ReplayBase):
 	"""An active tag that replays a feed several times, each time with
 	different values.
@@ -208,17 +223,25 @@ class Loop(ReplayBase):
 		description="The items to loop over, as space-separated single"
 		" items.  Each item will show up once, as 'item' macro.",
 		strip=True)
+	_codeItems = GeneratorAttribute("codeItems", default=None,
+		description="A python generator body that yields dictionaries"
+		" that are then used as loop items.  You can access the parse context"
+		" as the context variable in these code snippets.", strip=False)
 
 	def maybeExpand(self, val):
-		if hasattr(self.parent, "expand") and "\\" in val:
-			return self.parent.expand(val)
+		if "\\" in val:
+			el = self.parent
+			while el:
+				if hasattr(el, "expand"):
+					return el.expand(val)
+				el = el.parent
 		return val
 
 	def _makeRowIteratorFromListItems(self):
 		if self.listItems is None:
 			return None
 		def rowIterator():
-			for item in self.maybeExpand(self.listItems.split()):
+			for item in self.maybeExpand(self.listItems).split():
 				yield {"item": item}
 		return rowIterator()
 	
@@ -230,10 +253,16 @@ class Loop(ReplayBase):
 		src = self.maybeExpand(self.csvItems).strip().encode("utf-8")
 		return iter(csv.DictReader(StringIO(src), skipinitialspace=True))
 
+	def _makeRowIteratorFromCode(self):
+		if self.codeItems is None:
+			return None
+		return self.iterRowsFromCode()
+
 	def _getRowIterator(self):
 		rowIterators = [ri for ri in [
 			self._makeRowIteratorFromListItems(),
-			self._makeRowIteratorFromCSV()] if ri]
+			self._makeRowIteratorFromCSV(),
+			self._makeRowIteratorFromCode()] if ri]
 		if len(rowIterators)!=1:
 				raise excs.StructureError("Must give exactly one data source in"
 					" LOOP")

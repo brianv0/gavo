@@ -76,13 +76,9 @@ class Form(grend.FormMixin,
 		return d.addCallback(resultWriter._formatOutput, ctx)
 
 	def submitAction(self, ctx, form, data):
-		"""is called by formal when input arguments indicate the service should
-		run.
+		"""executes the service.
 
-		This happens either when the service takes no input data or when
-		the sentinel argument of the form is present.
-
-		The method returns a deferred resource.
+		This is a callback for the formal form.
 		"""
 		return defer.maybeDeferred(self._realSubmitAction, ctx, form, data
 			).addErrback(self._handleInputErrors, ctx)

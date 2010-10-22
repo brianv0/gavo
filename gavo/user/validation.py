@@ -80,6 +80,7 @@ def isIVOPublished(svc):
 def validateServices(rd, args):
 	"""outputs to stdout various diagnostics about the services on rd.
 	"""
+	validSoFar = True
 	for svc in rd.services:
 		# If it's not published, metadata are nobody's business.
 		if not svc.publications:  
@@ -87,21 +88,24 @@ def validateServices(rd, args):
 		try:
 			base.validateStructure(svc)
 		except base.MetaValidationError, ex:
+			validSoFar = False
 			outputWarning(rd.sourceId, "Missing metadata for publication of"
 				" service %s:\n%s"%(svc.id, str(ex)))
-			return # further checks will just add verbosity
+			continue # further checks will just add verbosity
 
 		if not isIVOPublished(svc):
 			# require sane metadata only if the VO will see the service
-			return
+			continue
 		svcId = base.getMetaText(svc, "identifier")
 		registryRecord = None
 		try:
 			registryRecord = builders.getVORMetadataElement(svc)
 		except stc.STCSParseError, msg:
+			validSoFar = False
 			outputWarning(rd.sourceId, "Invalid STC-S (probably in coverage meta)"
 				": %s"%str(msg))
 		except:
+			validSoFar = False
 			outputWarning(rd.sourceId, "Error when producing registry record"
 				" of service %s:"%svc.id, True)
 
@@ -110,8 +114,11 @@ def validateServices(rd, args):
 				_XSD_VALIDATOR.assertValidates(
 					registryRecord.render(), leaveOffending=True)
 			except AssertionError, msg:
+				validSoFar = False
 				outputWarning(rd.sourceId, "Invalid registry record for service"
 					" %s:\n%s"%(svc.id, str(msg)))
+
+	return validSoFar
 
 
 def validateRowmakers(rd, args):
@@ -123,6 +130,8 @@ def validateRowmakers(rd, args):
 			m.table.onDisk = False
 			rawTable = rsc.TableForDef(m.table)
 			m.rowmaker.compileForTable(rawTable)
+	return True
+
 
 def validateOne(rdId, args):
 	"""outputs to stdout various information on the RD identified by rdId.
@@ -130,8 +139,9 @@ def validateOne(rdId, args):
 	rd = loadRD(rdId)
 	if rd is None:
 		return
-	validateServices(rd, args)
-	validateRowmakers(rd, args)
+	validSoFar = validateServices(rd, args)
+	validSoFar = validSoFar and validateRowmakers(rd, args)
+	return validSoFar
 
 
 def validateAll(args):
@@ -167,4 +177,7 @@ def main():
 		validateAll(args)
 	else:
 		for rd in args.rd:
-			validateOne(rd, args)
+			print rd, "--",
+			sys.stdout.flush()
+			if validateOne(rd, args):
+				print "OK"

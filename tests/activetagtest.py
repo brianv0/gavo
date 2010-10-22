@@ -154,6 +154,20 @@ class LoopTest(testhelpers.VerboseTest):
 		self.assertEqual(len(cols), 3)
 		self.assertEqual(cols[-1].name, "orig_c")
 
+	def testCodeItems(self):
+		ctx = base.ParseContext()
+		base.parseFromString(rscdef.DataDescriptor,
+			r"""<data>
+				<table id="nok"><column name="a"/><column name="b"/></table>
+				<table id="cop"><LOOP><codeItems>
+					for item in context.getById("nok"):
+						yield {"copName": item.name+"_copy"}</codeItems>
+					<events>
+						<column name="\copName"/>
+					</events></LOOP></table></data>""", context=ctx)
+		cols = list(ctx.getById("cop"))
+		self.assertEqual(",".join(c.name for c in cols), "a_copy,b_copy")
+
 
 class RDBasedTest(testhelpers.VerboseTest):
 	def setUp(self):

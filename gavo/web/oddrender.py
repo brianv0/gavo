@@ -30,9 +30,13 @@ from gavo import base
 from gavo import svcs
 from gavo.web import grend
 
-class JpegRenderer(grend.FormMixin, grend.ServiceBasedRenderer):
+
+class JpegRenderer(grend.FormMixin, grend.ServiceBasedPage,
+		grend.HTMLResultRenderMixin):
 	name="img.jpeg"
 	resultType = "image/jpeg"
+
+# this is crap, too.  See below at MachineJpegRender
 
 	def _realSubmitAction(self, ctx, form, data):
 # fiddle in plotField into the service output if necessary
@@ -42,6 +46,10 @@ class JpegRenderer(grend.FormMixin, grend.ServiceBasedRenderer):
 						data["plotField"])
 		return self.runServiceWithContext(data, ctx
 			).addCallback(self._formatOutput, ctx)
+
+	def submitAction(self, ctx, form, data):
+		return defer.maybeDeferred(self._realSubmitAction, ctx, form, data
+			).addErrback(self._handleInputErrors, ctx)
 
 	def _computeLinesWithCurve(self, rawRecs, plotField):
 		curveMin = float(self.service.getProperty("curveMin", 0))
@@ -100,6 +108,8 @@ class JpegRenderer(grend.FormMixin, grend.ServiceBasedRenderer):
 	def _formatOutput(self, data, ctx):
 		return threads.deferToThread(self._createImage, data
 			).addCallback(self._deliverJpeg, ctx)
+
+	docFactory = svcs.loadSystemTemplate("defaultresponse.html")
 
 svcs.registerRenderer(JpegRenderer)
 
