@@ -368,7 +368,7 @@ class FancyQueryCore(TableBasedCore, base.RestrictionMixin):
 			try:
 				return self._makeTable(
 					querier.runIsolatedQuery(self.query%fragment, pars,
-							silent=True, timeout=5, asDict=True), 
+							silent=True, timeout=queryMeta["timeout"], asDict=True), 
 						self.outputTable, queryMeta)
 			except:
 				mapDBErrors(*sys.exc_info())
