@@ -49,7 +49,7 @@ def _makeFloatEncoder(field):
 		"if val is None or val!=val:",  # NaN is a null value, too
 		"  tokens.append('NaN')",
 		"else:",
-		"  tokens.append(repr(val))"]
+		"  tokens.append(repr(float(val)))"]
 
 
 def _makeComplexEncoder(field):
