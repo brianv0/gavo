@@ -7,6 +7,7 @@ in this source as it is.
 """
 
 import csv
+import re
 from cStringIO import StringIO
 
 from gavo import utils
@@ -18,22 +19,18 @@ from gavo.base import structure
 from gavo.utils import excs
 
 
-class EvprocAttribute(attrdef.AtomicAttribute):
-	def __init__(self):
-		attrdef.AtomicAttribute.__init__(self, "evproc_", 
-			default=utils.Undefined,
-			description="Used internally, do not attempt to set (you can't).")
-	
-	def feedObject(self, instance, value):
-		instance.evproc_ = value
-
-
 class ActiveTag(structure.Structure):
 	"""The base class for active tags.
 	"""
 	name_ = None
-	
-	_evproc = EvprocAttribute()
+
+	def _hasActiveParent(self):
+		el = self.parent
+		while el:
+			if isinstance(el, ActiveTag):
+				return True
+			el = el.parent
+		return False
 
 
 class GhostMixin(object):
@@ -46,8 +43,31 @@ class GhostMixin(object):
 	"""
 	def onElementComplete(self):
 		self._onElementCompleteNext(GhostMixin)
-		self.evproc_ = None
 		raise structure.Ignore(self)
+
+
+class _PreparedEventSource(object):
+	"""An event source for xmlstruct.
+
+	It is constructed with a list of events as recorded by classes
+	inheriting from RecordingBase.
+	"""
+	def __init__(self, events):
+		self.events = events
+		self.curEvent = -1
+		self.pos = None
+	
+	def __iter__(self):
+		return _PreparedEventSource(self.events)
+	
+	def next(self):
+		self.curEvent += 1
+		try:
+			nextItem = self.events[self.curEvent]
+		except IndexError:
+			raise StopIteration()
+		res, self.pos = nextItem[:3], nextItem[-1]
+		return res
 
 
 class RecordingBase(ActiveTag):
@@ -56,10 +76,9 @@ class RecordingBase(ActiveTag):
 	The recorded events are available in the events attribute.
 	"""
 	name_ = None
-	# Warning: Attributes defined here will be ignored -- structure parsing
-	# is not in effect for EventStream.
+
 	_doc = attrdef.UnicodeAttribute("doc", description="A description of"
-		" this stream (should be restructured text).")
+		" this stream (should be restructured text).", strip=False)
 
 	def __init__(self, *args, **kwargs):
 		self.events = []
@@ -90,6 +109,11 @@ class RecordingBase(ActiveTag):
 		else:
 			self.events.append(("value", name, value, ctx.pos))
 		return self
+	
+	def getEventSource(self):
+		"""returns an object suitable as event source in xmlstruct.
+		"""
+		return _PreparedEventSource(self.events)
 
 
 class EventStream(RecordingBase, GhostMixin):
@@ -120,7 +144,27 @@ class EmbeddedStream(RecordingBase):
 		return RecordingBase.end_(self, ctx, name, value)
 
 
-class ReplayBase(ActiveTag, macros.MacroPackage, GhostMixin):
+class Edit(EmbeddedStream):
+	"""an event stream targeted at editing other structures.
+	"""
+	name_ = "EDIT"
+
+	_ref = attrdef.UnicodeAttribute("ref", description="Destination of"
+		" the edits, the form elementName[<name or id>]", default=utils.Undefined)
+
+	refPat = re.compile(
+		r"([A-Za-z_][A-Za-z0-9_]*)\[([A-Za-z_][A-Za-z0-9_]*)\]")
+
+	def onElementComplete(self):
+		mat = self.refPat.match(self.ref)
+		if not mat:
+			raise excs.LiteralParseError("ref", self.ref, 
+				hint="edit references have the form <element name>[<value of"
+					" name or id attribute>]")
+		self.triggerEl, self.triggerId = mat.groups()
+	
+
+class ReplayBase(ActiveTag, macros.MacroPackage):
 	"""An "abstract base" for active tags replaying streams.
 	"""
 	name_ = None  # not a usable active tag
@@ -128,39 +172,100 @@ class ReplayBase(ActiveTag, macros.MacroPackage, GhostMixin):
 	_source = parsecontext.ReferenceAttribute("source",
 		description="id of a stream to replay", default=None)
 	_events = complexattrs.StructAttribute("events",
-		EmbeddedStream, description="Alternatively to source, an XML fragment"
-			" to be replayed", default=None)
+		childFactory=EmbeddedStream, default=None,
+		description="Alternatively to source, an XML fragment to be replayed")
+	_edits = complexattrs.StructListAttribute("edits",
+		childFactory=Edit, description="Changes to be performed on the"
+		" events played back.")
 
-	def __init__(*args, **kwargs):
-		ActiveTag.__init__(*args, **kwargs)
+	def _ensureEditsDict(self):
+		if not hasattr(self, "editsDict"):
+			self.editsDict = {}
+			for edit in self.edits:
+				self.editsDict[edit.triggerEl, edit.triggerId] = edit
 
+	def _replayTo(self, events, evTarget, ctx, doExpansions):
+		"""pushes stored events into an event processor.
+
+		The public interface is replay (that receives a structure rather
+		than an event processor).
+		"""
+		idStack = []
+		
+		for type, name, val, pos in events:
+			if doExpansions and type=="value" and "\\" in val:
+				try:
+					val = self.expand(val)
+				except macros.MacroError, ex:
+					ex.hint = ("This probably means that you should have set a %s"
+						" attribute in the FEED tag.  For details see the"
+						" documentation of the STREAM with id %s."%(
+							ex.macroName,
+							getattr(self.source, "id", "<embedded>")))
+					raise
+
+			# the following mess is to notice when we should edit and
+			# replay EDIT content when necessary
+			if type=="start":
+				idStack.append(set())
+			elif type=="value":
+				if name=="id" or name=="name":
+					idStack[-1].add(val)
+			elif type=="end":
+				ids = idStack.pop()
+				for foundId in ids:
+					if (name, foundId) in self.editsDict:
+						self._replayTo(self.editsDict[name, foundId].events,
+							evTarget,
+							ctx, doExpansions)
+
+			try:
+				evTarget.feed(type, name, val)
+			except Exception, msg:
+				msg.pos = "%s (replaying, real error position %s)"%(
+					ctx.pos, pos)
+				raise
+
+	def replay(self, events, destination, ctx):
+		"""pushes the stored events into the destination structure.
+
+		While doing this, local macros are expanded.  There is a hack, though,
+		in that we must not expand if we're (going to be) fed into anyother 
+		replayer, since multiple expansions would foul up macros intended for 
+		the element being played into.  Thus, we check if we have an active
+		parent and suppress macro expansion if so.
+		"""
+		# XXX TODO: Circular import here.  Think again and resolve.
+		from gavo.base.xmlstruct import EventProcessor
+		evTarget = EventProcessor(None, ctx)
+		evTarget.setRoot(destination)
+
+		self._ensureEditsDict()
+		doExpansions = not self._hasActiveParent()
+		self._replayTo(events, evTarget, ctx, doExpansions)
+
+
+class DelayedReplayBase(ReplayBase, GhostMixin):
+	"""An base class for active tags wanting to replay streams from
+	where the context is invisible.
+
+	These define a _replayer attribute that, when called, replays
+	the stored events *within the context at its end* and to the
+	parent.
+
+	This is what you want for the FEED and LOOP since they always work
+	on the embedding element and, by virtue of being ghosts, cannot
+	be copied.  If the element embedding an event stream can be
+	copied, this will almost certainly not do what you want.
+	"""
 	def _setupReplay(self, ctx):
 		sources = [s for s in [self.source, self.events] if s]
 		if len(sources)!=1:
 			raise excs.StructureError("Need exactly one of source and events"
 				" on %s elements"%self.name_)
-		stream = sources[0]
-
+		stream = sources[0].events
 		def replayer():
-			evTarget = self.evproc_.clone()
-			evTarget.setRoot(self.parent)
-			for type, name, val, pos in stream.events:
-				if type=="value" and "\\" in val:
-					try:
-						val = self.expand(val)
-					except macros.MacroError, ex:
-						ex.hint = ("This probably means that you should have set a %s"
-							" attribute in the FEED tag.  For details see the"
-							" documentation of the STREAM with id %s."%(
-								ex.macroName,
-								getattr(self.source, "id", "<embedded>")))
-						raise
-				try:
-					evTarget.feed(type, name, val)
-				except Exception, msg:
-					msg.pos = "%s (replaying, real error position %s)"%(
-						ctx.pos, pos)
-					raise
+			self.replay(stream, self.parent, ctx)
 		self._replayer = replayer
 
 	def end_(self, ctx, name, value):
@@ -168,7 +273,7 @@ class ReplayBase(ActiveTag, macros.MacroPackage, GhostMixin):
 		return ActiveTag.end_(self, ctx, name, value)
 
 
-class ReplayedEvents(ReplayBase):
+class ReplayedEvents(DelayedReplayBase):
 	"""An active tag that takes an event stream and replays the events,
 	possibly filling variables.
 
@@ -210,7 +315,7 @@ class GeneratorAttribute(attrdef.UnicodeAttribute):
 			src, "makeRows", useGlobals={"context": ctx})
 
 
-class Loop(ReplayBase):
+class Loop(DelayedReplayBase):
 	"""An active tag that replays a feed several times, each time with
 	different values.
 	"""
@@ -278,6 +383,10 @@ class Loop(ReplayBase):
 			
 getActiveTag = utils.buildClassResolver(ActiveTag, globals().values(),
 	key=lambda obj: getattr(obj, "name_", None))
+
+
+def registerActiveTag(activeTag):
+	getActiveTag.registry[activeTag.name_] = activeTag
 
 
 def isActive(name):

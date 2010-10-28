@@ -8,6 +8,7 @@ via a named attribute.
 """
 
 import re
+import warnings
 from cStringIO import StringIO
 from xml.sax import make_parser, SAXException
 from xml.sax.handler import ContentHandler
@@ -120,12 +121,16 @@ class EventProcessor(object):
 
 		This is the main entry point for user calls.
 		"""
+		# Special handling for acitve tags: They may occur everywhere and
+		# thus are not not parsed by the element parsers but by us.
 		if type=="start" and activetags.isActive(name):
-			self.curParser = activetags.getActiveTag(name)(
-				self.curParser, evproc_=self)
+			self.curParser = activetags.getActiveTag(name)(self.curParser)
 			return
 # XXX TODO: Deprecated
 		if type=="start" and name=="GENERATOR":
+			warnings.warn("GENERATOR is deprecated and will go away soon."
+				"  Use LOOP instead.",
+				DeprecationWarning)
 			self.curParser = Generator(self)
 			return
 		if self.next is None:
@@ -155,7 +160,9 @@ class EventProcessor(object):
 	def setRoot(self, root):
 		"""artifically inserts an instanciated root element.
 
-		This is only required in odd cases like structure.feedFrom
+		In particular, this bypasses any checks that the event stream coming
+		is is actually destined for root.  Use this for replay-type things
+		(feedFrom, active tags) exclusively.
 		"""
 		self.result = root
 		self.curParser = root
@@ -183,18 +190,21 @@ def _synthesizeAttributeEvents(evProc, context, attrs):
 		evProc.feed("value", key, val)
 
 
-def parseFromStream(rootStruct, inputStream, context=None):
-	"""parses a tree rooted in rootStruct from some file-like object inputStream.
+def feedTo(rootStruct, eventSource, context, feedInto=False):
+	"""feeds events from eventSource to rootStruct.
 
-	It returns the root element of the resulting tree.  If rootStruct is
-	a type subclass, it will be instanciated to create a root
-	element, if it is an instance, this instance will be the root.
+	A new event processor is used for feeding.  No context
+	exit functions are run.
+
+	The processed root structure is returned.
+
+	if feedInto is true, the event creating the root structure is not
+	expected (TODO: this is crap; fix it so that this is always the
+	case when rootStruct is an instance).
 	"""
-	eventSource = utils.iterparse(inputStream)
-	if context is None:
-		context = parsecontext.ParseContext()
-	context.setEventSource(eventSource)
 	evProc = EventProcessor(rootStruct, context)
+	if feedInto:
+		evProc.setRoot(rootStruct)
 	buf = []
 
 	try:
@@ -225,8 +235,23 @@ def parseFromStream(rootStruct, inputStream, context=None):
 			ex.pos = eventSource.pos
 			ex.posInMsg = True
 		raise
-
 	return evProc.result
+
+
+def parseFromStream(rootStruct, inputStream, context=None):
+	"""parses a tree rooted in rootStruct from some file-like object inputStream.
+
+	It returns the root element of the resulting tree.  If rootStruct is
+	a type subclass, it will be instanciated to create a root
+	element, if it is an instance, this instance will be the root.
+	"""
+	eventSource = utils.iterparse(inputStream)
+	if context is None:
+		context = parsecontext.ParseContext()
+	context.setEventSource(eventSource)
+	res = feedTo(rootStruct, eventSource, context)
+	context.runExitFuncs(res)
+	return res
 
 
 def parseFromString(rootStruct, inputString, context=None):

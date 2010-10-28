@@ -240,7 +240,7 @@ class PredefinedTest(testhelpers.VerboseTest):
 	def testSimbad(self):
 		dd, td = makeDD('  <column name="alpha" type="real"/>'
 			'  <column name="delta" type="real"/>',
-			'  <apply predefined="resolveObject">'
+			'  <apply procDef="//procs#resolveObject">'
 			'		<bind key="identifier">vars["src"]</bind>'
 			'	</apply>'
 			' <map dest="alpha">simbadAlpha</map>'

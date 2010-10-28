@@ -94,7 +94,7 @@ class ColToRowGrammar(grammars.Grammar):
 	rowIterator = ColToRowIterator
 
 	_targetKey = base.UnicodeAttribute("targetKey", default=base.Undefined,
-		description="Name of the target columns")
+		description="Name of the target column")
 	_sourceKeys = base.ListOfAtomsAttribute("sourceKeys",
 		description="Names of the source columns.", 
 		itemAttD=base.UnicodeAttribute("sourceKey"))
@@ -185,7 +185,7 @@ class ProductTarMaker(object):
 			raise base.ValidationError("This query does not select any"
 				" columns with access references", "_OUTPUT")
 		inputDD = MS(svcs.InputDescriptor, 
-			grammar= MS(ColToRowGrammar, targetKey="key",
+			grammar= MS(ColToRowGrammar, targetKey="accref",
 				sourceKeys=productColumns),
 			makes=MS(rscdef.Make, table=self.rd.getById("pCoreInput")))
 		inputData = rsc.makeData(inputDD, forceSource=table.rows)

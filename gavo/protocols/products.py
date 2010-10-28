@@ -186,9 +186,9 @@ class ProductIterator(grammars.RowIterator):
 		parsedKeys, productMap = self.sourceToken
 		for row in parsedKeys.rows:
 			try:
-				prodRow = productMap.getRow(row["key"])
+				prodRow = productMap.getRow(row["accref"])
 			except KeyError:
-				rsc = NonExistingProduct(row["key"])
+				rsc = NonExistingProduct(row["accref"])
 			else:
 				rsc = self._makeProductForRow(row, prodRow)
 			yield {
@@ -252,7 +252,7 @@ class ProductCore(svcs.DBCore):
 				yield key.asDict()
 			else:
 				if key is not None:
-					yield {"key": key}
+					yield {"accref": key}
 
 	def _getSQLWhere(self, inputData):
 		"""returns a query string fragment and the parameters
@@ -263,14 +263,14 @@ class ProductCore(svcs.DBCore):
 		sdec)) for cutouts.  This key table is later the real
 		input for the ProductsGrammar.
 		"""
-		keys = [r["key"]
-			for r in inputData.getPrimaryTable().rows if "key" in r]
+		keys = [r["accref"]
+			for r in inputData.getPrimaryTable().rows if "accref" in r]
 		keysTableDef = self.rd.getById("parsedKeys")
 		keysTable = rsc.makeTableFromRows(keysTableDef, 
 			self._parseKeys(keys))
 		if not keys: # stupid SQL doesn't know the empty set
 			return keysTable, "FALSE", {}
-		return keysTable, "key IN %(keys)s", {"keys": set(r["key"] 
+		return keysTable, "accref IN %(keys)s", {"keys": set(r["accref"] 
 			for r in keysTable.rows)}
 
 	def _getGroups(self, user, password):
@@ -302,62 +302,6 @@ svcs.registerCore(ProductCore)
 
 ########## Finally, the product interface (the above core is used in the
 ########## rd, so this must be defined later than ProductCore's registerCore)
-
-class ProductRMixin(rscdef.RMixinBase):
-	"""A mixin for tables containing "products".
-
-	A "product" here is some kind of binary, typically a FITS file.
-	The table receives the columns accref, accsize, owner, and embargo
-	(which is defined in __system__/products#prodcolUsertable).
-
-	owner and embargo let you introduce access control.  Embargo is a
-	date at which the product will become publicly available.  As long
-	as this date is in the future, only authenticated users belonging to
-	the *group* owner are allowed to access the product.
-
-	In addition, the mixin arranges for the products to be added to the
-	system table products, which is important when delivering the files.
-
-	Tables mixing this in should be fed from grammars using the defineProduct
-	rowgen.
-	"""
-	name = "products"
-
-	# the following two scripts are inserted into makes for 
-	# tables mixing this in in processLate.
-	_cleanupRule = MS(rscdef.Script, type="postCreation", lang="SQL",
-		name="product cleanup", notify=False,
-		content_="CREATE OR REPLACE RULE cleanupProducts AS ON DELETE TO"
-				" \\curtable DO ALSO"
-				" DELETE FROM dc.products WHERE key=OLD.accref")
-	_dropScript = MS(rscdef.Script, type="beforeDrop", lang="SQL",
-		name="clean product table", notify=False,
-		content_="DELETE FROM dc.products WHERE sourceTable='\\curtable'")
-
-	def __init__(self):
-		rscdef.RMixinBase.__init__(self, "__system__/products", "productColumns")
-	
-	def processLate(self, tableDef):
-		# find all DDs referencing tableDef and add a maker for the products
-		# table to them.  Then, fiddle the mappings for productColumns into 
-		# the table's rowmaker
-		if not tableDef.onDisk:
-			raise base.StructureError("Tables mixing in product must be"
-				" onDisk, but %s is not"%tableDef.id)
-		for dd in tableDef.rd.iterDDs():
-			for td in dd:
-				if td.id==tableDef.id:
-					dd._makes.feedObject(dd, rscdef.Make(dd, 
-						table=self.rd.getTableDefById("products"),
-						rowmaker=self.rd.getById("productsMaker")))
-			for make in dd.makes:
-				if make.table.id==tableDef.id:
-					make.rowmaker.feedFrom(self.rd.getById("prodcolUsertable"))
-					make.feedObject("script", self._cleanupRule.copy(make))
-					make.feedObject("script", self._dropScript.copy(make))
-
-
-rscdef.registerRMixin(ProductRMixin())
 
 class CutoutProductKey(object):
 	"""A product key for a cutout.
@@ -402,7 +346,12 @@ class CutoutProductKey(object):
 		return cls(**buildArgs)
 
 	def asDict(self):
-		return self.__dict__
+		return {
+			"accref": self.key,
+			"ra": self.ra,
+			"dec": self.dec,
+			"sra": self.sra,
+			"sdec": self.sdec,}
 
 
 @utils.document

@@ -3,13 +3,11 @@
 
 
 <resource resdir="__system" schema="dc">
-	<table id="ssabase" 
-			original="//products#productColumns"
-			namePath="//products#productColumns">
+	<STREAM id="base_columns"> 
 		<!-- a table containing columns required for all SSA tables.
 		
 		There is no CoordSys metadata here; it is assumed that all our
-		Tables are ICRS/TT to the required accuracy.  Any you should
+		Tables are ICRS/TT to the required accuracy.  And you should
 		convey such information via STC anyway...
 		-->
 		<stc>Time TT "ssa_dateObs" Size "ssa_timeExt" 
@@ -17,10 +15,13 @@
 			SpectralInterval "ssa_specstart" "ssa_specend"
 				Spectral "ssa_specmid" Size "ssa_specext"</stc>
 
-		<column original="accref" utype="ssa:Access.Reference"
-			ucd="meta.number"/>
-		<column original="mime" utype="ssa:Access.Format"/>
-		<column original="accsize" utype="ssa:Access.Size"/>
+		<FEED source="//products#tablecols">
+			<EDIT ref="column[accref]" utype="ssa:Access.Reference"
+				ucd="meta.number"/>
+			<EDIT ref="column[mime]" utype="ssa:Access.Format"/>
+			<EDIT ref="column[accsize]" utype="ssa:Access.Size"/>
+		</FEED>
+
 		<column name="ssa_dstitle" type="text"
 			utype="ssa:DataID.title" ucd="meta.title;meta.dataset"
 			tablehead="Title" verbLevel="15"
@@ -101,34 +102,36 @@
 			utype="Char.SpectralAxis.Coverage.Location.Stop" ucd="em.wl;stat.max"
 			verbLevel="15" tablehead="Band end" unit="m"
 			description="Upper value of spectral coordinate"/>
-	</table>
+	</STREAM>
 
 	<!-- The SSA metadata is huge, and many arrangements are conceivable.  
 	To come up with some generally useful interface definitions, I'll
 	first define a table for a "homogeneous" data collection, the ssahcd
 	case.  There's also a core for this. -->
 	
-	<table id="ssahcd_fields"> 
+	<STREAM id="hcd_fields"> 
 		<!-- the SSA (HCD) fields for an instance table -->
+		<FEED source="//ssap#base_columns"/>
 		<column name="ssa_length" type="integer"
 			utype="ssa:Dataset.Length" tablehead="Length"
 			verbLevel="5" 
 			description="Number of points in the spectrum"/>
-	</table>
+	</STREAM>
 
-	<table id="ssahcd_outtable" original="ssahcd_fields">
+	<STREAM id="hcd_outtable">
 		<!-- the output table definition for a homogeneous data collection.
 		Everything not in here is handled via params. -->
-		<column original="//products#productColumns.accref"/>
+		<FEED source="//ssap#hcd_fields"/>
+		<column original="//products#instance.accref"/>
 		<column name="ssa_score" 
 				utype="ssa:Query.Score" 
 				tablehead="Score" verbLevel="15">
 			<description>A measure of how closely the record matches your
 				query.  Higher numbers mean better matches.</description>
 		</column>
-	</table>
+	</STREAM>
 
-	<table id="ssahcd_outpars">
+	<STREAM id="hcd_outpars">
 		<!-- the parameters table for an SSA (HCD) result.  The definition
 		of the homogeneous in HCD is that all these parameters are
 		constant for all datasets within a table ("collection").  -->
@@ -231,5 +234,12 @@
 			utype="Char.SpatialAxis.Resolution" ucd="pos.angResolution"
 			verbLevel="25" unit="deg"
 			description="Spatial resolution of data"/>
-	</table>
+	</STREAM>
+
+	<mixinDef id="hcd">
+		<FEED source="//products#hackProductsData"/>
+		<events>
+			<FEED source="//ssap#hcd_fields"/>
+		</events>
+	</mixinDef>
 </resource>

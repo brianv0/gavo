@@ -18,7 +18,7 @@ from gavo.rscdef.common import (RDAttribute, ResdirRelativeAttribute,
 from gavo.rscdef.dddef import (DataDescriptor, Make,
 	SourceSpec)
 
-from gavo.rscdef.mixins import RMixinBase, registerRMixin, getMixin
+from gavo.rscdef.mixins import MixinDef
 
 from gavo.rscdef.procdef import ProcDef, ProcApp
 

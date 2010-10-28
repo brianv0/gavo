@@ -5,10 +5,8 @@ machinery -->
 
 <resource resdir="__system" schema="dc">
 
-	<!-- the following two will be inserted into all data elements
-	that have tables implementing products -->
-	<table id="products" primary="key" system="True" onDisk="True">
-		<column name="key" type="text" tablehead="Product key"
+	<STREAM id="basicColumns">
+		<column name="accref" type="text" tablehead="Product key"
 			description="Access key for the data"
 			verbLevel="1" displayHint="type=product"
 			utype="Access.Reference"/>
@@ -17,20 +15,28 @@ machinery -->
 		<column name="embargo" type="date" tablehead="Embargo ends" 
 			verbLevel="25" unit="Y-M-D" description=
 			"Date the data will become/became public"/>
+		<column name="mime" type="text" verbLevel="20"
+			tablehead="Type"
+			description="MIME type of the file served"
+			utype="Access.Format"/>
+	</STREAM>
+
+	<table id="products" primary="accref" system="True" onDisk="True">
+		<FEED source="basicColumns"/>
 		<column name="accessPath" type="text" tablehead="Path to access data" 
 			required="True" verbLevel="5" 
 			description="Inputs-relative filesystem path to the file"/>
 		<column name="sourceTable" type="text" verbLevel="10"
 			tablehead="Source Table"
 			description="Name of table containing metadata" required="True"/>
-		<column name="mime" type="text" verbLevel="20"
-			tablehead="Type"
-			description="MIME type of the file served"
-			utype="Access.Format"/>
-		<primary>key</primary>
 	</table>
+
+	<data id="import">
+		<make table="products"/>
+	</data>
+
 	<rowmaker id="productsMaker">
- 		<map dest="key" src="prodtblKey"/>
+ 		<map dest="accref" src="prodtblAccref"/>
 		<map dest="owner" src="prodtblOwner"/>
 		<map dest="embargo">prodtblEmbargo</map>
 		<map dest="accessPath" src="prodtblPath"/>
@@ -39,16 +45,19 @@ machinery -->
 	</rowmaker>
 
 	<!-- material for tables mixing in products -->
-	<table id="productColumns" namePath="products">
-		<column original="key" name="accref"/>
-		<column original="owner"/>
-		<column original="embargo"/>
-		<column original="mime"/>
+	<STREAM id="tablecols">
+		<FEED source="//products#basicColumns"/>
 		<column name="accsize" ucd="VOX:Image_FileSize"
 			tablehead="File size" description="Size of the data in bytes"
 			type="integer" verbLevel="11" unit="byte" utype="Access.Size"/>
+	</STREAM>
+
+	<table id="instance">
+		<!-- actual sample columns for reference (this should not be necessary,
+		reaaly) -->
+		<FEED source="tablecols"/>
 	</table>
-	
+
 	<procDef type="rowfilter" id="defineProduct" register="True">
 		<doc>
 			enters the values defined by the product interface into result.
@@ -57,7 +66,7 @@ machinery -->
 		</doc>
 		<setup>
 			<par key="table"/>
-			<par late="True" key="key">\inputRelativePath</par>
+			<par late="True" key="accref">\inputRelativePath</par>
 			<par late="True" key="owner">None</par>
 			<par late="True" key="embargo">None</par>
 			<par late="True" key="path">\inputRelativePath</par>
@@ -67,8 +76,8 @@ machinery -->
 		<code>
 			newVars = {}
 			if path is None:
-				path = key
-			row["prodtblKey"] = key
+				path = accref
+			row["prodtblAccref"] = accref
 			row["prodtblOwner"] = owner
 			row["prodtblEmbargo"] = embargo
 			row["prodtblPath"] = path
@@ -79,29 +88,124 @@ machinery -->
 		</code>
 	</procDef>
 
-	<rowmaker id="prodcolUsertable">
-		<!-- fragment for mapping the result of defineProduct into a user table -->
-		<map dest="accref" src="prodtblKey"/>
+	<STREAM id="prodcolMaps">
+		<doc>
+			Fragment for mapping the result of defineProduct into a user table;
+			this is replayed into every rowmaker making a table mixing in
+			products.
+		</doc>
+		<map dest="accref" src="prodtblAccref"/>
 		<map dest="owner" src="prodtblOwner"/>
 		<map dest="embargo" src="prodtblEmbargo"/>
 		<map dest="accsize" src="prodtblFsize"/>
 		<map dest="mime" src="prodtblMime"/>
-	</rowmaker>
+	</STREAM>
+
+	<STREAM id="productsMake">
+		<make table="//products#products" rowmaker="//products#productsMaker"/>
+	</STREAM>
+
+	<STREAM id="hostTableMakerItems">
+		<doc>
+			These items are mixed into every make bulding a table mixing
+			in products.
+		</doc>
+		<script type="postCreation" lang="SQL" name="product cleanup"
+				notify="False">
+			CREATE OR REPLACE RULE cleanupProducts AS ON DELETE TO \\curtable 
+			DO ALSO
+			DELETE FROM dc.products WHERE accref=OLD.accref
+		</script>
+		<script type="beforeDrop" lang="SQL" name="clean product table"
+				notify="False">
+			DELETE FROM dc.products WHERE sourceTable='\\curtable'
+		</script>
+	</STREAM>
+
+	<STREAM id="hackProductsData">
+		<doc>
+			This defines a processLate proc that hacks data instances
+			building tables with products such that the products table
+			is fed and the products instance columns are assigned to.
+		</doc>
+		<!-- This sucks.  We want a mechanism that lets us
+			deposit events within the table definition; strutures referring
+			to them could then replay them -->
+		<processLate>
+			<setup>
+				<code>
+					from gavo import rscdef
+				</code>
+			</setup>
+			<code><![CDATA[
+				if not substrate.onDisk:
+					raise base.StructureError("Tables mixing in product must be"
+						" onDisk, but %s is not"%substrate.id)
+
+				# Now locate all DDs we are referenced in and...
+				prodRD = base.caches.getRD("//products")
+				for dd in substrate.rd.iterDDs():
+					for td in dd:
+						if td.id==substrate.id:
+							# ...feed instructions to make the row table to it and...
+							dd._makes.feedObject(dd, rscdef.Make(dd, 
+								table=prodRD.getTableDefById("products"),
+								rowmaker=prodRD.getById("productsMaker")))
+							# ...add some rules to ensure prodcut table cleanup,
+							# and add mappings for the embedding table.
+							for make in dd.makes:
+								if make.table.id==substrate.id:
+									base.feedTo(make.rowmaker,
+										prodRD.getById("prodcolMaps").getEventSource(), context,
+										True)
+									base.feedTo(make,
+										prodRD.getById("hostTableMakerItems").getEventSource(), 
+										context, True)
+			]]></code>
+		</processLate>
+	</STREAM>
+
+	<mixinDef id="table">
+		<doc>
+			A mixin for tables containing "products".
+
+			A "product" here is some kind of binary, typically a FITS file.
+			The table receives the columns accref, accsize, owner, and embargo
+			(which is defined in __system__/products#prodcolUsertable).
+
+			owner and embargo let you introduce access control.  Embargo is a
+			date at which the product will become publicly available.  As long
+			as this date is in the future, only authenticated users belonging to
+			the *group* owner are allowed to access the product.
+
+			In addition, the mixin arranges for the products to be added to the
+			system table products, which is important when delivering the files.
+
+			Tables mixing this in should be fed from grammars using the defineProduct
+			rowgen.
+		</doc>
+		
+		<FEED source="//products#hackProductsData"/>
+		<events>
+			<FEED source="//products#tablecols"/>
+		</events>
+
+	</mixinDef>
 
 	<table id="pCoreInput" namePath="products">
 		<meta name="description">Input table for the product core</meta>
-		<column original="key" type="raw"/>
+		<column original="accref" type="raw"/>
 	</table>
 
 	<productCore id="core" queriedTable="products">
 		<!-- core used for the product delivery service -->
 		<inputDD>
 			<rowmaker id="build_input">
-				<map dest="key">key</map>
+				<map dest="accref">accref</map>
 			</rowmaker>
 			<make table="pCoreInput" rowmaker="build_input" role="parameters"/>
 		</inputDD>
-		<condDesc buildFrom="pCoreInput.key"/>
+		<condDesc buildFrom="pCoreInput.accref"/>
 
 		<outputTable id="pCoreOutput">
 			<column name="source" type="raw"
@@ -114,7 +218,7 @@ machinery -->
 		producttar uses an inputDD of its own here. -->
 		<inputDD>
 			<rowmaker id="build_forTar">
-				<map dest="key">accref</map>
+				<map dest="accref">accref</map>
 			</rowmaker>
 			<make table="pCoreInput" role="primary"/>
 		</inputDD>
@@ -122,7 +226,7 @@ machinery -->
 
 	<table id="parsedKeys">
 		<meta name="description">Used internally by the product core.</meta>
-		<column original="products.key"/>
+		<column original="products.accref"/>
 		<column name="ra"/>
 		<column name="dec"/>
 		<column name="sra"/>

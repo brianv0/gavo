@@ -179,9 +179,10 @@ class OriginalTest(testhelpers.VerboseTest):
 	"""tests for ProcApp's setup inheritance.
 	"""
 	def testSCSCondDesc(self):
-		from gavo import rscdesc, svcs
+		from gavo import api, svcs
 		base.caches.getRD("__system__/scs")
-		core = base.parseFromString(svcs.DBCore, '<dbCore queriedTable="__system__/scs#q3cIndexDef"><condDesc predefined='
+		core = base.parseFromString(svcs.DBCore, 
+			'<dbCore queriedTable="data/test#adql"><condDesc predefined='
 			'"humanSCS"/></dbCore>')
 		self.failUnless("genQuery", core.condDescs[0].phraseMaker.getFuncCode())
 		self.failUnless("genQuery", core.condDescs[0].phraseMaker.getSetupCode())

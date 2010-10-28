@@ -1,6 +1,5 @@
 """
 Basic handling for embedded procedures.
-
 """
 
 import itertools
@@ -11,6 +10,7 @@ from gavo.rscdef import common
 from gavo.rscdef import rmkfuncs
 
 _registry = {}
+
 
 class ProcPar(base.Structure):
 	"""A parameter of a procedure definition.
@@ -62,7 +62,7 @@ class ProcSetup(base.Structure):
 
 	You can add names to this namespace you using par(ameter)s.
 	If a parameter has no default and an procedure application does
-	not provide them, an errror is raised.
+	not provide them, an error is raised.
 
 	You can also add names by providing a code attribute containing
 	a python function body in code.  Within, the parameters are
@@ -155,7 +155,8 @@ class ProcDef(base.Structure, base.RestrictionMixin):
 	_type = base.EnumeratedUnicodeAttribute("type", default=None, description=
 		"The type of the procedure definition.  The procedure applications"
 		" will in general require certain types of definitions.",
-		validValues=["t_t", "apply", "rowfilter", "sourceFields"], copyable=True,
+		validValues=["t_t", "apply", "rowfilter", "sourceFields", "mixinProc"], 
+			copyable=True,
 		strip=True)
 	_register = base.BooleanAttribute("register", default=False,
 		description="Register this procDef in the global registry under its"
@@ -198,6 +199,8 @@ class ProcApp(ProcDef):
 		" names to be somwhat random strings.  Set a name manually to"
 		" receive easier decipherable error messages.  If you do that,"
 		" you have to care about name clashes yourself, though.", strip=True)
+
+	requiredType = None
 
 	def _resolvePredefined(self, ctx):
 		self._procDef.feedObject(self, _registry[self.predefined])
@@ -267,9 +270,15 @@ class ProcApp(ProcDef):
 		return "def %s(%s):\n%s"%(self.name, self.formalArgs,
 			body)
 
-	def compile(self):
+	def compile(self, parent=None):
 		"""returns a callable for this procedure application.
+
+		You can pass a different parent; it will then be used to
+		expand macros.  If you do not give it, the embedding structure will
+		be used.
 		"""
+		if parent is None:
+			parent = self.parent
 		return rmkfuncs.makeProc(
-			self.name, self.parent.expand(self.getFuncCode()), 
-			self.parent.expand(self.getSetupCode()), self.parent)
+			self.name, parent.expand(self.getFuncCode()), 
+			parent.expand(self.getSetupCode()), parent)

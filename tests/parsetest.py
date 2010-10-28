@@ -103,9 +103,9 @@ class TestProductsImport(testhelpers.VerboseTest):
 			list(sqlsupport.SimpleQuerier(connection=self.conn).query(
 				"select * from dc.products where sourceTable='test.prodtest'")),
 			[(u'data/a.imp', u'test', datetime.date(2030, 12, 31), 
-					u'data/a.imp', u'test.prodtest', 'text/plain'),
+					'text/plain', u'data/a.imp', u'test.prodtest'),
 			 (u'data/b.imp', u'test', datetime.date(2003, 12, 31), 
-					u'data/b.imp', u'test.prodtest', 'text/plain'),])
+					'text/plain', u'data/b.imp', u'test.prodtest'),])
 
 	def testInMetatable(self):
 		fields = sorted([(r[7], r[1], r[4]) for r in
@@ -123,11 +123,10 @@ class TestProductsImport(testhelpers.VerboseTest):
 
 	def testNoMixinInMem(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			'At (1, 72):'
-			" Tables mixing in product must be onDisk, but foo is not",
+			"Tables mixing in product must be onDisk, but foo is not",
 			base.parseFromString, (rscdesc.RD, 
-				'<resource schema="test"><table id="foo">'
-					'<mixin name="products"/></table></resource>',))
+				'<resource schema="test"><table id="foo" mixin="//products#table">'
+					'</table></resource>',))
 
 
 class TestCleanedup(unittest.TestCase):

@@ -310,7 +310,8 @@ def _makeDependents(srcDD, parseOptions, connection):
 	connection.
 	"""
 	for dependentId in srcDD.dependents:
-		makeDataById(dependentId, parseOptions, connection, inRD=srcDD.rd)
+		makeDataById(dependentId, parseOptions, connection,
+			inRD=srcDD.rd)
 
 
 def makeDataById(ddId, parseOptions=common.parseNonValidating,

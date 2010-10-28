@@ -6,18 +6,19 @@ from gavo import api
 from gavo.helpers import testhelpers
 
 def getRD():
-	return api.getRD("//ssap")
+	return testhelpers.getTestRD("ssatest.rd")
 
 
 class RDTest(testhelpers.VerboseTest):
 # tests for some aspects of the ssap rd.
 	def testUtypes(self):
+		srcTable = getRD().getById("hcdtest")
 		self.assertEqual("ssa:Access.Reference",
-			getRD().getById("ssabase").getColumnByName("accref").utype)
+			srcTable.getColumnByName("accref").utype)
 
 	def testNormalizedDescription(self):
 		self.failUnless("matches your query" in
-			getRD().getById("ssahcd_outtable").getColumnByName("ssa_score"
+			getRD().getById("hcdtestout").getColumnByName("ssa_score"
 				).description)
 			
 

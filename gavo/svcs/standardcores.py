@@ -124,8 +124,9 @@ class CondDesc(base.Structure):
 			registerCondDesc(self.id, self)
 
 	def feedFromInputKey(self, ctx):
-		raise base.Replace(CondDesc.fromColumn(base.resolveId(ctx, self.buildFrom,
-			instance=self), parent_=self.parent))
+		raise base.Replace(CondDesc.fromColumn(
+			base.resolveId(ctx, self.buildFrom, instance=self), 
+			parent_=self.parent))
 
 	def replaceWithPredefined(self, ctx):
 		raise base.Replace(getCondDesc(self.predefined).copy(self.parent))

@@ -1,7 +1,5 @@
 """
-IVOA SIAP: mixins and CondDescs
-
-See develNotes for info on our SIAP implementation
+Support code for the Simple Image Access Protocol.
 """
 
 import math
@@ -23,45 +21,6 @@ MS = base.makeStruct
 
 
 ####################### bboxSIAP mixin
-
-class BboxSIAPRMixin(rscdef.RMixinBase):
-	"""A table mixin for simple support of SIAP based on hand-made bboxes.
-
-	The columns added into the tables include
-
-		- (certain) FITS WCS headers 
-		- imageTitle (interpolateString should come in handy for these)
-		- instId -- some id for the instrument used
-		- dateObs -- a timestamp of the "characteristic" observation time
-		- the bandpass* values.  You're on your own with them...
-		- the values of the product interface.  
-		- mimetype -- the mime type of the product.
-		- the primaryBbox, secondaryBbox, centerAlpha and centerDelta, nAxes, 
-			pixelSize, pixelScale, wcs* fields calculated by the 
-			computeBboxSIAPFields macro.   
-
-	(their definition is in the siap system RD)
-
-	Tables mixin in bboxSIAP can be used for SIAP querying and
-	automatically mix in `the products mixin`_.
-
-	To feed these tables, use the computeBboxSIAP and setSIAPMeta predefined 
-	procs.  Since you are dealing with products, you will also need the
-	defineProduct predefined rowgen in your grammar.
-
-	If you have pgSphere, you definitely should use the pgsSIAP mixin in
-	preference to this.
-	"""
-	name = "bboxSIAP"
-	
-	def __init__(self):
-		rscdef.RMixinBase.__init__(self, "__system__/siap", "bboxSIAPcolumns")
-
-	def processLate(self, tableDef):
-		rscdef.getMixin("products").processLate(tableDef)
-
-rscdef.registerRMixin(BboxSIAPRMixin())
-
 
 def getBboxFromSIAPPars(raDec, sizes, applyCosD=True):
 	"""returns a bounding box in decimal ra and dec for the siap parameters
@@ -157,42 +116,6 @@ def getBboxQuery(intersect, ra, dec, sizes, prefix, sqlPars):
 
 
 ####################### pgsSIAP mixin
-
-class PGSSIAPRMixin(rscdef.RMixinBase):
-	"""A table mixin for simple support of SIAP.
-
-	The columns added into the tables include
-
-		- (certain) FITS WCS headers 
-		- imageTitle (interpolateString should come in handy for these)
-		- instId -- some id for the instrument used
-		- dateObs -- a timestamp of the "characteristic" observation time
-		- the bandpass* values.  You're on your own with them...
-		- the values of the product interface.  
-		- mimetype -- the mime type of the product.
-		- the coverage, centerAlpha and centerDelta, nAxes, 
-			pixelSize, pixelScale, wcs* fields calculated by the 
-			computePGSSIAPFields macro.   
-
-	(their definition is in the siap system RD)
-
-	Tables mixin in pgsSIAP can be used for SIAP querying and
-	automatically mix in `the products mixin`_.
-
-	To feed these tables, use the computePGSSIAP and setSIAPMeta predefined 
-	procs.  Since you are dealing with products, you will also need the
-	defineProduct predefined rowgen in your grammar.
-	"""
-	name = "pgsSIAP"
-	
-	def __init__(self):
-		rscdef.RMixinBase.__init__(self, "__system__/siap", "pgsSIAPcolumns")
-
-	def processLate(self, tableDef):
-		rscdef.getMixin("products").processLate(tableDef)
-
-rscdef.registerRMixin(PGSSIAPRMixin())
-
 
 # expressions as used in getPGSQuery
 _PGS_OPERATORS = {
@@ -332,8 +255,8 @@ class SIAPCutoutCore(SIAPCore):
 		cols = svcs.DBCore.getQueryCols(self, service, queryMeta)
 		for name in self.copiedCols:
 			cols.append(svcs.OutputField.fromColumn(
-				self.siapTable.getColumnByName(name)))
-		d = self.siapTable.getColumnByName("accsize").copy(self)
+				self.queriedTable.getColumnByName(name)))
+		d = self.queriedTable.getColumnByName("accsize").copy(self)
 		d.tablehead = "Est. file size"
 		cols.append(svcs.OutputField.fromColumn(d))
 		return cols

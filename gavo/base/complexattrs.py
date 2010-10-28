@@ -27,8 +27,7 @@ from gavo.utils.excs import *
 
 
 class CollOfAtomsAttribute(attrdef.AtomicAttribute):
-	"""is a base class for simple collections of atomic
-	attributes.
+	"""A base class for simple collections of atomic attributes.
 	"""
 	def __init__(self, name, default=[], 
 			itemAttD=attrdef.UnicodeAttribute("listItem"), 

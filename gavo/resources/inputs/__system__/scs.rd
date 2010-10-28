@@ -2,14 +2,20 @@
 <!-- definition of the position-related interfaces (and later SCS fragments) -->
 
 <resource resdir="__system" schema="dc">
-	<table id="q3cIndexDef">
-		<index name="q3c_\tablename" cluster="True">
-			<columns>\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN}, \nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN}</columns>
-			q3c_ang2ipix(\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN}, \nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN})
+	<STREAM id="q3cIndexDef">
+		<doc>
+			Definition of a q3c index over the main position of a table.
+		</doc>
+		<index name="q3c_\\tablename" cluster="True">
+			<columns>\\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN}, \\nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN}</columns>
+			q3c_ang2ipix(\\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN}, \\nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN})
 		</index>
-	</table>
+	</STREAM>
 
-	<table id="positionsFields">
+	<STREAM id="positionsFields">
+		<doc>
+			Old-style positions.  Use naked q3c instead.
+		</doc>
 		<!-- fill these using the handleEquatorialPosition macro defined below;
 		no rowmakers required. -->
 		<column name="alphaFloat" unit="deg" type="double precision" 
@@ -27,16 +33,71 @@
 		<column name="c_z" type="real" verbLevel="30" tablehead="c_z" 
 			unit="" ucd="pos.cartesian.z" description=
 			"z coordinate of intersection of radius vector and unit sphere"/>
-	</table>
+	</STREAM>
 
-	<table id="q3cPositionsFields" original="positionsFields">
-		<!-- positions with q3c index -->
-		<!-- XXX TODO: once we have replay or similar, get this from q3cindexdef -->
-		<index name="q3c_\tablename" cluster="True">
-			<columns>\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN},\nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN}</columns>
-			q3c_ang2ipix(\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN},\nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN})
-		</index>
-	</table>
+	<mixinDef id="positions">
+		<doc><![CDATA[
+			A mixin adding standardized columns for equatorial positions to the
+			table.
+	
+			It consists of the fields alphaFloat, deltaFloat (float angles
+			in degrees, J2000.0) and c_x, c_y, c_z (intersection of the radius
+			vector to alphaFloat, deltaFloat with the unit sphere).
+
+			You will usually use it in conjunction with the predefined proc
+			handleEquatorialPosition that preparse these fields for you.
+
+			Thus, you could say::
+
+				<proc predefined="handleEquatorialPosition">
+					<arg name="alpha">alphaSrc</arg>
+					<arg name="delta">deltaSrc</arg>
+				</proc>
+			
+			Note, however, that it's usually much better to not mess with the
+			table structure and handle positions using the q3cindex mixin.
+		]]></doc>
+		<events>
+			<FEED source="//scs#positionsFields"/>
+		</events>
+	</mixinDef>
+
+	<mixinDef id="q3cpositions">
+		<doc>
+			An extension of `the positions mixin`_ adding a positional index.
+		
+			This works exactly like the positions interface, except that behind
+			the scenes some magic code generates a q3c index on the fields
+			alphaFloat and deltaFloat.
+
+			This will fail without the q3c extension to postgres.  Again,
+			in general use the plain q3cindex.
+		</doc>
+		<events>
+			<FEED source="//scs#positionsFields"/>
+			<FEED source="//scs#q3cIndexDef"/>
+		</events>
+	</mixinDef>
+
+	<mixinDef id="q3cindex">
+		<doc>
+			A mixin adding an index to the main equatorial positions.
+
+			This is what you usually want if your input data already has
+			"sane" (i.e., ICRS or at least J2000) positions or you convert
+			the positions manually.
+
+			You have to designate exactly one column with the ucds pos.eq.ra;meta.main
+			pos.eq.dec;meta.main, respectively.  These columns receive the
+			positional index.
+
+			This will fail without the q3c extension to postgres.
+		</doc>
+		<events>
+			<FEED source="//scs#q3cIndexDef"/>
+		</events>
+	</mixinDef>
+
 
 	<procDef id="handleEquatorialPosition" register="True">
 		<doc>

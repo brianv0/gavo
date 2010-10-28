@@ -101,7 +101,6 @@ def makeTableDefForVOTable(tableId, votTable, nameMaker=None,
 	# Create the table definition
 	tableDef = MS(rscdef.TableDef, id=tableId, columns=columns,
 		**moreArgs)
-	tableDef.hackMixinsAfterMakeStruct()
 
 	# Build STC info
 	for colInfo, ast in votable.modelgroups.unmarshal_STC(votTable):

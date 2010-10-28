@@ -1,90 +1,127 @@
 """
-RMixins are resource descriptor fragments rooted in tables.  They
-can, in principle, manipulate the entire parse tree.  The name RMixin
-should distinguish them from mixins for python classes, which they are
-not.
+Resource mixins.
+"""
 
-They are used to define and implement certain behaviours components of
-the DC software want to see:
+import warnings
+
+from gavo import base
+from gavo.base import activetags
+from gavo.rscdef import procdef
+
+
+class ProcessEarly(procdef.ProcApp):
+	"""A code fragment run by the mixin machinery when the structure
+	being worked on is being finished.
+
+	Access the structure mixed in as "substrate".
+	"""
+	name_ = "processEarly"
+	formalArgs = "substrate"
+
+
+class ProcessLate(procdef.ProcApp):
+	"""A code fragment run by the mixin machinery when the parser parsing
+	everything exits.
+
+	Access the structure mixed in as "substrate", the root structure of
+	the whole parse tree as root, and the context that is just about
+	finishing as context.
+	"""
+	name_ = "processLate"
+	formalArgs = "substrate, root, context"
+
+
+class MixinDef(activetags.ReplayBase):
+	"""A definition for a resource mixin.
+
+	Resource mixins are resource descriptor fragments typically rooted
+	in tables (though it's conceivable that other structures could
+	grow mixin attributes as well).
+
+	They are used to define and implement certain behaviours components of
+	the DC software want to see:
 
 	- products want to be added into their table, and certain fields are required
 		within tables describing products
 	- tables containing positions need some basic machinery to support scs.
 	- siap needs quite a bunch of fields
 
-etc.
+	Mixins consist of events that are played back on the structure
+	mixing in before anything else happens (much like original) and
+	two procedure definitions, viz, processEarly and processLate.
+	These can access the structure that has the mixin as substrate.
 
-Technically, rmixins are implemented as objects having two methods,
-processEarly(tableDef) -> None and processLate(tableDef) -> None.  The first is
-called as soon as the mixin element is encountered, the second when the
-enclosing resource descriptor is finished.
+	processEarly is called as part of the substrate's completeElement
+	method.  processLate is executed just before the parser exits.  This
+	is the place to fix up anything that uses the table mixed in.  Note,
+	however, that you should be as conservative as possible here -- you
+	should think of DC structures as immutable as long as possible.
 
-You should, in general, base rmixins on resource descriptors as far as
-possible.  RMixins are defined near the components that need them and
-registred here.
-
-You can check if a certain table mixes in something by calling its
-mixesIn method.
-"""
-
-from gavo import base
-
-class MixinAttribute(base.ListOfAtomsAttribute):
-	"""is an attribute listing the mixins of a table.
-
-	The attribute relies on the parent being a table.
-
-	It takes care of calling the processEarly callback.  For calling
-	the processLate callback it relies on the resource descriptor's
-	cooperation.
+	Programmatically, you can check if a certain table mixes in 
+	something by calling its mixesIn method.
 	"""
-	name_ = "mixin"
+	name_ = "mixinDef"
 
+	_doc = base.UnicodeAttribute("doc", description="Documentation for"
+		" this mixin", strip=False)
+	_events = base.StructAttribute("events", 
+		childFactory=activetags.EmbeddedStream,
+		description="Events to be played back into the structure mixing"
+		" this in", copyable=True)
+	_processEarly = base.StructAttribute("processEarly", 
+		default=None, 
+		childFactory=ProcessEarly,
+		description="Code executed at element fixup.")
+	_processLate = base.StructAttribute("processLate", 
+		default=None, 
+		childFactory=ProcessLate,
+		description="Code executed resource fixup.")
+
+	def applyTo(self, destination, ctx):
+		"""replays the stored events on destination and arranges for processEarly
+		and processLate to be run.
+		"""
+		self.replay(self.events.events, destination, ctx)
+		if self.processEarly is not None:
+			self.processEarly.compile(destination)(destination)
+		if self.processLate is not None:
+			def procLate(rootStruct, parseContext):
+				self.processLate.compile(destination)(
+					destination, rootStruct, parseContext)
+			ctx.addExitFunc(procLate)
+
+
+class MixinAttribute(base.SetOfAtomsAttribute):
 	def __init__(self, **kwargs):
-		base.ListOfAtomsAttribute.__init__(self, "mixins", 
-			itemAttD=base.UnicodeAttribute("mixin", default=base.Undefined), 
-			description="Mixins this table will satisfy.  See `Mixins`_.", **kwargs)
+		kwargs["itemAttD"] = base.UnicodeAttribute("mixin", strip=True)
+		kwargs["description"] = kwargs.get("description", 
+			"Reference to a mixin this table should contain.")
+		base.SetOfAtomsAttribute.__init__(self, "mixin", **kwargs)
+		# Hack: Remove at about svn revision 2000
 
-	def _processEarly(self, instance, mixinName):
-		if mixinName not in _mixinRegistry:
-			raise base.LiteralParseError("mixin", mixinName)
-		getMixin(mixinName).processEarly(instance)
+	_deprecatedNamesMap = {
+		"positions": "//scs#positions",
+		"q3cpositions": "//scs#q3cpositions",
+		"q3cindex": "//scs#q3cindex",
+		"bboxSIAP": "//siap#bbox",
+		"pgsSIAP": "//siap#pgs",
+		"products": "//products#table",
+	}	
 
-	def feed(self, ctx, instance, mixinName):
-		self._processEarly(instance, mixinName)
-		base.ListOfAtomsAttribute.feedObject(self, instance, mixinName)
+	def feed(self, ctx, instance, mixinRef):
+		if mixinRef in self._deprecatedNamesMap:
+			warnings.warn("Deprecated id %s mixed in, use %s instead"%(
+					mixinRef, self._deprecatedNamesMap[mixinRef]),
+				DeprecationWarning)
+			mixinRef = self._deprecatedNamesMap[mixinRef]
+		mixin = ctx.resolveId(mixinRef, instance=instance, forceType=MixinDef)
+		mixin.applyTo(instance, ctx)
+		base.SetOfAtomsAttribute.feed(self, ctx, instance, mixinRef)
 
 	def iterParentMethods(self):
-		def mixesIn(instance, mixinName):
-			return mixinName in instance.mixins
+		def mixesIn(instance, mixinRef):
+			return mixinRef in instance.mixins
 		yield "mixesIn", mixesIn
 
-
-class RMixinBase(object):
-	"""is a base class for RD-based mixins.
-
-	There's no reason to actually inherit from this for your mixins, but
-	for RD-based mixins, it's more convenient.
-
-	It is constructed with an id of a resource descriptor and the id of
-	a table therein.  Certain attributes of the table will be moved over
-	in processEarly.  Everything else is still up to you.
-	"""
-	def __init__(self, rdId, interfaceTable):
-		self.rd = base.caches.getRD(rdId)
-		self.mixinTable = self.rd.getTableDefById(interfaceTable)
-
-	def processLate(self, tableDef):
-		pass
-	
-	def processEarly(self, tableDef):
-		tableDef.feedFrom(self.mixinTable)
-
-
-_mixinRegistry = {}
-
-def registerRMixin(mixin):
-	_mixinRegistry[mixin.name] = mixin
-
-def getMixin(mixinName):
-	return _mixinRegistry[mixinName]
+	# no need to override feedObject: On copy and such, replay has already
+	# happened.

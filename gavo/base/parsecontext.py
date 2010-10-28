@@ -49,8 +49,8 @@ def resolveComplexId(ctx, id, forceType=None):
 			if hasattr(ob, "name") and ob.name==name:
 				return assertType(id, ob, forceType)
 	except TypeError:
-		raise utils.logOldExc(StructureError("Element %s is not allowed"
-			" in namePath"%pId))
+		raise utils.logOldExc(StructureError("Element %s is of type %s"
+			" and thus unsuitable for name path"%(pId, type(ob))))
 	raise StructureError("Element %s has no child with name %s"%(
 		pId, name))
 
@@ -66,6 +66,9 @@ def _resolveOnNamepath(ctx, id, instance):
 
 def resolveId(ctx, id, instance=None, forceType=None):
 	"""tries to resolve id in context.
+
+	ctx is some object having a getById method; this could be an RD
+	or a parse context.
 
 	The rules for id are as follows:
 
@@ -85,16 +88,14 @@ def resolveId(ctx, id, instance=None, forceType=None):
 	(#) ask the ParseContext ctx's getById method to resolve id, not
 	catching the StructureError this will raise if the id is not known.
 	"""
-	if ctx is None:
-		raise StructureError("Cannot cross-reference when parsing without"
-			" a context")
 	if "#" in id:
-		rdId, rest = id.split("#", 1)
-		if rdId==ctx.forRD:
-			return resolveId(ctx, rest, instance, forceType)
 		return resolveCrossId(id, forceType)
+	if ctx is None:
+		raise StructureError("Cannot intra-reference when parsing without"
+			" a context")
 	if "." in id:
 		return resolveComplexId(ctx, id, forceType)
+
 	srcOb = None
 	if instance is not None:
 		try:
@@ -222,15 +223,24 @@ class ParseContext(object):
 	You should set an eventSource using the setter provided.  This is
 	the iterparse instance the events are coming from (or something else
 	that has a pos attribute returning the current position).
+
+	You can register exit functions to do some "global" cleanup.  Parsers 
+	should call runExitFuncs right before they return the results; this arranges
+	for these functions to be called.  The signature of an exit function is
+	exitfunc(rootStruct, parseContext) -> whatever.
 	"""
 	def __init__(self, restricted=False, forRD=None):
 		self.idmap = {}
 		self.restricted = restricted
 		self.forRD = forRD
 		self.eventSource = None
+		self.exitFuncs = []
 
 	def setEventSource(self, evSource):
 		self.eventSource = evSource
+
+	def addExitFunc(self, callable):
+		self.exitFuncs.append(callable)
 
 	@property
 	def pos(self):
@@ -279,3 +289,7 @@ class ParseContext(object):
 		See the resolveId function.
 		"""
 		return resolveId(self, id, instance, forceType)
+	
+	def runExitFuncs(self, root):
+		for func in self.exitFuncs:
+			func(root, self)

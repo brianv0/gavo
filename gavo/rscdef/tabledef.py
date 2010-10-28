@@ -324,16 +324,6 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		self._defineFixupFunction()
 		self._onElementCompleteNext(TableDef)
 
-	def hackMixinsAfterMakeStruct(self):
-		"""tries to apply mixins not fed.
-
-		This is a hack for when you makeStructed a table but still want
-		mixins that need to be fed.  It will only work if
-		the mixins no not need a parse context.
-		"""
-		for mixinName in self.mixins:
-			self._mixins._processEarly(self, mixinName)
-
 	def macro_colNames(self):
 		"""returns an SQL-ready list of column names of this table.
 		"""
@@ -482,10 +472,6 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 				defaults[col.name] = None
 		return defaults
 				
-	def processMixinsLate(self):
-		for mixinName in self.mixins:
-			mixins.getMixin(mixinName).processLate(self)
-
 	def getSTCDefs(self):
 		"""returns a set of all STC specs referenced in this table as ASTs.
 		"""
@@ -537,7 +523,6 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		res = MS(cls, 
 			columns=common.ColumnList(cls.disambiguateColumns(columns)),
 			**kwargs)
-		res.hackMixinsAfterMakeStruct()
 		return res
 		
 

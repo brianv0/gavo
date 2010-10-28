@@ -96,7 +96,7 @@ class doctypedStan(loaders.stan):
 
 
 class CommonRenderers(object):
-	"""A base for renderer mixins within the DC.
+	"""A base for renderer (python) mixins within the DC.
 
 	Including standard stylesheets/js/whatever:
 	<head>...<n:invisible n:render="commonhead"/>...</head>

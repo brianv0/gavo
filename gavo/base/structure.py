@@ -415,8 +415,6 @@ class ParseableStructure(StructureBase, Parser):
 
 		This only works if the other structure is a of the same or a superclass
 		of self.
-
-		This is mainly intended to be used by mixins.
 		"""
 		from gavo.base import xmlstruct
 		if ctx is None:

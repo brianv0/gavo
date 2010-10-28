@@ -6,13 +6,13 @@
 	<meta name="test.inRd">from Rd</meta>
 	<schema>test</schema>
 
-	<table id="bbox_siaptable" mixin="bboxSIAP" onDisk="True"/>
-	<table id="pgs_siaptable" mixin="pgsSIAP" onDisk="True"/>
+	<table id="bbox_siaptable" mixin="//siap#bbox" onDisk="True"/>
+	<table id="pgs_siaptable" mixin="//siap#pgs" onDisk="True"/>
 
 	<data id="siap_base" auto="False">
 		<dictlistGrammar>
-			<rowfilter predefined="defineProduct">
-				<bind key="key">row["accref"]</bind>
+			<rowfilter procDef="//products#defineProduct">
+				<bind key="accref">row["accref"]</bind>
 				<bind key="fsize">row["accsize"]</bind>
 				<bind key="table">parent.parent.getProperty("destTable")</bind>
 				<bind key="path">row["accref"]</bind>
@@ -220,7 +220,7 @@
 		<make table="abcd" rowmaker="ec_abcd"/>
 	</data>
 
-	<table id="prodtest" mixin="products" onDisk="True">
+	<table id="prodtest" mixin="//products#table" onDisk="True">
 		<column name="object" type="text" verbLevel="1"/>
 		<column name="alpha" type="real" ucd="pos.eq.ra" verbLevel="15"/>
 		<column name="delta" type="real" ucd="pos.eq.dec" verbLevel="15"/>
@@ -231,11 +231,12 @@
 		<stc>Time TT TOPOCENTER "obsDate" Error "e_date"
 			Position FK5 B1975 TOPOCENTER "o_ra" "o_dec" VelocityInterval
 			Velocity "pma" "pmd" Error "e_pma" "e_pmd"</stc>
-		<GENERATOR>
-		for name in ["ra", "dec", "e_pos", "obsDate", "e_date", "o_ra", 
-				"o_dec", "pma", "pmd", "e_pma", "e_pmd"]:
-			yield ("element", "column", ("name", name))
-		</GENERATOR>
+		<LOOP listItems="ra dec e_pos obsDate e_date o_ra o_dec
+				pma pmd e_pma e_pmd">
+			<events>
+				<column name="\item"/>
+			</events>
+		</LOOP>
 	</table>
 
 	<rowmaker id="prodrowbase">
@@ -249,7 +250,7 @@
 		./tests to import this -->
 		<sources><pattern>data/*.imp</pattern></sources>
 		<keyValueGrammar>
-			<rowfilter predefined="defineProduct">
+			<rowfilter procDef="//products#defineProduct">
         <bind key="owner">"test"</bind>
         <bind key="embargo">row["embargo"]</bind>
         <bind key="table">"test.prodtest"</bind>
@@ -261,10 +262,10 @@
 	</data>
 
 	<data id="productimportdefaults">
-		<table original="prodtest"/>
+		<table original="prodtest" onDisk="True" id="proddefaults"/>
 		<sources><pattern>data/*.imp</pattern></sources>
 		<keyValueGrammar>
-			<rowfilter predefined="defineProduct">
+			<rowfilter procDef="//products#defineProduct">
         <bind key="table">"test.prodtest"</bind>
 			</rowfilter>
 		</keyValueGrammar>

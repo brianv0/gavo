@@ -88,6 +88,9 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		" this resource.", copyable=True)
 	_macDefs = base.MacDefAttribute(before="tables", description=
 		"User-defined macros available on this RD")
+	_mixinDefs = base.StructListAttribute("mixdefs",
+		childFactory=rscdef.MixinDef,
+		description="Mixin definitions (usually not for users)")
 	# The next attrs are polymorphic through getDynamicAttribute
 	_cores = CoresAttribute("cores", 
 		description="Cores available in this resource.", copyable=True,
@@ -132,7 +135,6 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 
 	def onElementComplete(self):
 		for table in self.tables:
-			table.processMixinsLate()
 			self.readRoles = self.readRoles|table.readRoles
 			table.setMetaParent(self)
 		self.serviceIndex = {}
@@ -280,6 +282,12 @@ def setRDDateTime(rd, inputFile):
 		rd.timestampUpdated)
 
 
+# in _currentlyParsing, getRD keeps track of what RDs are currently being
+# parsed.  For those, the unfinished RD is being returned.  This allows
+# qualified references within RDs and to some extent even circular
+# cross-RD references.
+_currentlyParsing = {}
+
 def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
 		restricted=False):
 	"""returns a ResourceDescriptor for srcId.
@@ -296,12 +304,19 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
 	rd = RD(None)
 	rd.idmap = context.idmap
 	rd.computeSourceId(srcPath)
+	if rd.sourceId in _currentlyParsing:
+		return _currentlyParsing[rd.sourceId]
+	else:
+		_currentlyParsing[rd.sourceId] = rd
 	context.forRD = rd.sourceId
 	try:
-		rd = base.parseFromStream(rd, inputFile, context=context)
-	except Exception, ex:
-		ex.srcPath = srcPath
-		raise
+		try:
+			rd = base.parseFromStream(rd, inputFile, context=context)
+		except Exception, ex:
+			ex.srcPath = srcPath
+			raise
+	finally:
+		del _currentlyParsing[rd.sourceId]
 	setRDDateTime(rd, inputFile)
 	return rd
 

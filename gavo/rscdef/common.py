@@ -269,7 +269,7 @@ class NamePathAttribute(base.AtomicAttribute):
 				np = getattr(instance.parent, "namePath", None)
 			if np is None:
 				raise base.StructureError("No namePath here")
-			res = base.resolveId(context, np+"."+id)
+			res = context.resolveId(np+"."+id)
 			return res
 		yield "resolveName", resolveName
 					

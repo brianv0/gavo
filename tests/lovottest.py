@@ -270,8 +270,8 @@ class TabledataWriteTest(testhelpers.VerboseTest):
 
 	samples = [(
 			[V.FIELD(datatype="float")],
-			[[1],[None],[float("NaN")]],
-			"<TR><TD>1</TD></TR><TR><TD>NaN</TD></TR><TR><TD>NaN</TD></TR>"
+			[[1],[None],[float("NaN")], [3L]],
+			"<TR><TD>1.0</TD></TR><TR><TD>NaN</TD></TR><TR><TD>NaN</TD></TR><TR><TD>3.0</TD></TR>"
 		), (
 			[V.FIELD(datatype="double")],
 			[[1.52587890625e-05], [float("+Inf")]],

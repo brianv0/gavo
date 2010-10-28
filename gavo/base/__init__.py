@@ -80,6 +80,6 @@ from gavo.base.unitconv import (
 	computeConversionFactor, parseUnit, computeColumnConversions,
 	IncompatibleUnits, BadUnit)
 
-from gavo.base.xmlstruct import parseFromString, parseFromStream
+from gavo.base.xmlstruct import parseFromString, parseFromStream, feedTo
 
 DEBUG = False

@@ -3,8 +3,8 @@
 
 <resource resdir="__system" schema="dc">
 
-	<table id="SIAPbase" 
-			original="__system__/products#productColumns">
+	<STREAM id="SIAPbase">
+		<FEED source="//products#tablecols"/>
 		<column name="centerAlpha"  ucd="POS_EQ_RA_MAIN"
 			type="double precision" unit="deg" 
 			displayHint="type=time,sf=0" verbLevel="0" tablehead="Ctr. RA"
@@ -75,23 +75,87 @@
 		<column name="pixflags" ucd="VOX:Image_PixFlags" verbLevel="20"
 			 type="text" tablehead="P. Flags"
 			description="Flags specifying the processing done (C-original; F-resampled; Z-fluxes valid; X-not resampled; V-for display only"/>
-	</table>
+	</STREAM>
 
-	<table id="bboxSIAPcolumns" original="SIAPbase">
-		<column name="primaryBbox"  
-			type="box" description="Bounding box of the image for internal use"
-			displayHint="type=suppress"/>
-		<column name="secondaryBbox"  
-			type="box" description="Bounding box of the image for internal use"
-			displayHint="type=suppress"/>
-	</table>
+	<mixinDef id="bbox">
+		<doc>
+			A table mixin for simple support of SIAP based on hand-made bboxes.
+
+			The columns added into the tables include
+
+				- (certain) FITS WCS headers 
+				- imageTitle (interpolateString should come in handy for these)
+				- instId -- some id for the instrument used
+				- dateObs -- a timestamp of the "characteristic" observation time
+				- the bandpass* values.  You're on your own with them...
+				- the values of the product interface.  
+				- mimetype -- the mime type of the product.
+				- the primaryBbox, secondaryBbox, centerAlpha and centerDelta, nAxes, 
+					pixelSize, pixelScale, wcs* fields calculated by the 
+					computeBboxSIAPFields macro.   
+
+			(their definition is in the siap system RD)
+
+			Tables mixin in bboxSIAP can be used for SIAP querying and
+			automatically mix in `the products mixin`_.
+
+			To feed these tables, use the computeBboxSIAP and setSIAPMeta predefined 
+			procs.  Since you are dealing with products, you will also need the
+			defineProduct predefined rowgen in your grammar.
+
+			If you have pgSphere, you definitely should use the pgs mixin in
+			preference to this.
+		</doc>
+		
+		<FEED source="//products#hackProductsData"/>
+
+		<events>
+			<FEED source="//siap#SIAPbase"/>
+			<column name="primaryBbox"  
+				type="box" description="Bounding box of the image for internal use"
+				displayHint="type=suppress"/>
+			<column name="secondaryBbox"  
+				type="box" description="Bounding box of the image for internal use"
+				displayHint="type=suppress"/>
+		</events>
+	</mixinDef>
 
 
-	<table id="pgsSIAPcolumns" original="SIAPbase">
-		<column name="coverage" type="spoly" unit="deg"
-			description="Field covered by the image"
-			displayHint="type=suppress"/>
-	</table>
+	<mixinDef id="pgs">
+		<doc>
+			A table mixin for simple support of SIAP.
+
+			The columns added into the tables include
+
+				- (certain) FITS WCS headers 
+				- imageTitle (interpolateString should come in handy for these)
+				- instId -- some id for the instrument used
+				- dateObs -- a timestamp of the "characteristic" observation time
+				- the bandpass* values.  You're on your own with them...
+				- the values of the product interface.  
+				- mimetype -- the mime type of the product.
+				- the coverage, centerAlpha and centerDelta, nAxes, 
+					pixelSize, pixelScale, wcs* fields calculated by the 
+					computePGSSIAPFields macro.   
+
+			(their definition is in the siap system RD)
+
+			Tables mixing in pgs can be used for SIAP querying and
+			automatically mix in `the products mixin`_.
+
+			To feed these tables, use the computePGSSIAP and setSIAPMeta predefined 
+			procs.  Since you are dealing with products, you will also need the
+			defineProduct predefined rowgen in your grammar.
+		</doc>
+		<FEED source="//products#hackProductsData"/>
+
+		<events>
+			<FEED source="//siap#SIAPbase"/>
+			<column name="coverage" type="spoly" unit="deg"
+				description="Field covered by the image"
+				displayHint="type=suppress"/>
+		</events>
+	</mixinDef>
 
 
 	<procDef type="apply" id="computeSIAPbase" register="True">

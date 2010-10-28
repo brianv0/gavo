@@ -4,6 +4,7 @@ Tests for active tags within RDs (and friends).
 
 from gavo import base
 from gavo import rscdef
+from gavo import rscdesc
 from gavo.helpers import testhelpers
 
 
@@ -90,6 +91,93 @@ class ReplayMacroTest(testhelpers.VerboseTest):
 				" see the documentation of the STREAM with id foo.")
 			return
 		self.fail("MacroError not raised")
+
+
+class NestedTest(testhelpers.VerboseTest):
+	def testDoubleNest(self):
+		res = base.parseFromString(rscdesc.RD, 
+			r"""<resource schema="test"><STREAM id="cols">
+					<column name="from2"/>
+					<index columns="\\curtable"/></STREAM>
+				<STREAM id="foo">
+					<table id="\tabname" onDisk="True">
+					<FEED source="cols"/>
+					<column name="from1"/></table></STREAM>
+				<FEED source="foo" tabname="abc"/></resource>""")
+		td = res.tables[0]
+		self.assertEqual(td.id, "abc")
+		self.assertEqual(", ".join(c.name for c in td), "from2, from1")
+		self.assertEqual(res.tables[0].indexedColumns.pop(), 
+			"test.abc")
+
+
+class EditTest(testhelpers.VerboseTest):
+	def testProd(self):
+		# Temporary import until we've sorted out the self-registration mess
+		from gavo import api
+		res = base.parseFromString(rscdef.TableDef, 
+				"""<table><FEED source="//products#tablecols">
+					<EDIT ref="column[accref]" utype="ssa:Access.Reference">
+						<values default="notfound.fits"/></EDIT></FEED>
+					</table>""")
+		self.assertEqual(res.columns[0].utype, "ssa:Access.Reference")
+		self.assertEqual(res.columns[0].values.default, "notfound.fits")
+
+	def testInBetween(self):
+		res = base.parseFromString(rscdef.DataDescriptor, 
+				"""<data><STREAM id="foo"><table id="bla" onDisk="True">
+				<column name="x"/><column name="y"/></table></STREAM>
+				<FEED source="foo"><EDIT ref="column[x]" type="text"/></FEED></data>""")
+		td = res.tables[0]
+		self.assertEqual(", ".join(c.type for c in td), "text, real")
+
+	def testDoubleEdit(self):
+		res = base.parseFromString(rscdef.DataDescriptor, 
+				"""<data>
+				<STREAM id="inc"><column name="grok"/></STREAM>
+				<STREAM id="foo"><table id="bla" onDisk="True">
+				<column name="x"/><column name="y"/>
+				<FEED source="inc">
+					<EDIT ref="column[grok]" type="spoint"/></FEED></table></STREAM>
+				<FEED source="foo"><EDIT ref="column[x]" type="text"/></FEED></data>""")
+		td = res.tables[0]
+		self.assertEqual(", ".join(c.type for c in td), "text, real, spoint")
+
+	def testRecursiveEdit(self):
+		res = base.parseFromString(rscdef.DataDescriptor, 
+				"""<data>
+				<STREAM id="stage0"><column name="grok"/><column name="nok"/></STREAM>
+				<STREAM id="stage1"><FEED source="stage0">
+					<EDIT ref="column[grok]" type="text"/></FEED></STREAM>
+				<STREAM id="stage2"><FEED source="stage1"/></STREAM>
+				<table><FEED source="stage2"/></table></data>""")
+		td = res.tables[0]
+		self.assertEqual(", ".join(c.type for c in td), "text, real")
+	
+	def testRecursiveDoubleEdit(self):
+		res = base.parseFromString(rscdef.DataDescriptor, 
+				"""<data>
+				<STREAM id="stage0"><column name="grok"/><column name="nok"/></STREAM>
+				<STREAM id="stage1"><FEED source="stage0">
+					<EDIT ref="column[nok]" type="text"/></FEED></STREAM>
+				<STREAM id="stage2"><FEED source="stage1">
+					<EDIT ref="column[nok]" type="char"/></FEED></STREAM>
+				<STREAM id="stage3"><FEED source="stage2"/></STREAM>
+				<table><FEED source="stage3"/></table></data>""")
+		td = res.tables[0]
+		self.assertEqual(", ".join(c.type for c in td), "real, char")
+	
+	def testRemoteEdit(self):
+		res = base.parseFromString(rscdef.DataDescriptor, 
+				"""<data>
+				<STREAM id="stage0"><column name="grok"/><column name="nok"/></STREAM>
+				<STREAM id="stage1"><FEED source="stage0"/></STREAM>
+				<STREAM id="stage2"><FEED source="stage1">
+					<EDIT ref="column[grok]" type="text"/></FEED></STREAM>
+				<table><FEED source="stage2"/></table></data>""")
+		td = res.tables[0]
+		self.assertEqual(", ".join(c.type for c in td), "text, real")
+
 
 
 class LoopTest(testhelpers.VerboseTest):
