@@ -514,15 +514,15 @@ Writing Custom Grammars
 
 A custom grammar simply is a python module located within a resource
 directory defining a row iterator class derived from
-gavo.grammars.CustomRowIterator; this class must be called RowIterator.
-You want to override the _iterRows method.  It will have to yield row
-dictionaries, i.e., dictionaries mapping string keys to something
-(preferably strings, but you will usually get away with returning
-complete values even without fancy rowmakers).  
+gavo.grammars.customgrammar.CustomRowIterator; this class must be called
+RowIterator.  You want to override the _iterRows method.  It will have
+to yield row dictionaries, i.e., dictionaries mapping string keys to
+something (preferably strings, but you will usually get away with
+returning complete values even without fancy rowmakers).  
 
 So, a custom grammar module could look like this::
 
-  from gavo.grammars import CustomRowIterator
+  from gavo.grammars.customgrammar import CustomRowIterator
 
   class RowIterator(CustomRowIterator):
     def _iterRows(self):
@@ -568,6 +568,8 @@ Then you could have the following in res/grammar.py::
 
 and access the table in the row iterator.
 
+Also look into EmbeddedGrammar, which may be a more convenient way to
+achieve the same thing.
 
 
 Functions Available for Row Makers

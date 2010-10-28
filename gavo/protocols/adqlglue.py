@@ -243,8 +243,6 @@ class ADQLCore(svcs.Core, base.RestrictionMixin):
 			mapADQLErrors(*sys.exc_info())
 
 
-svcs.registerCore(ADQLCore)
-
 
 ################ region makers (maybe put these in a separate module later)
 # The region maker should in general either call the parser with an ADQL

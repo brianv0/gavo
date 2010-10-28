@@ -1,8 +1,7 @@
 """
 User-defined cores
 
-XXX TODO: Once we have an event recording and replaying infrastructure,
-revise this to have events before module replayed.
+XXX TODO: Revise this to have events before module replayed.
 """
 
 import os
@@ -39,5 +38,3 @@ class CustomCore(core.Core):
 
 	_module = ModuleAttribute("module", default=base.Undefined,
 		description="Path to the module containing the core definition.")
-
-core.registerCore(CustomCore)

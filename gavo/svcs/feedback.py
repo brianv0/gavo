@@ -122,8 +122,6 @@ class FeedbackCore(standardcores.DBCore):
 			rowdict[n] = "%s .. %s"%(result[2*index], result[2*index+1])
 		return self._queryEnumerated(rowdict, enumeratedNames, feedbackKeys)
 
-core.registerCore(FeedbackCore)
-
 
 class FeedbackService(service.Service):
 	"""describes a feedback service.

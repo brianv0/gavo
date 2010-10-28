@@ -376,8 +376,6 @@ class FancyQueryCore(TableBasedCore, base.RestrictionMixin):
 		finally:
 			querier.close()
 
-core.registerCore(FancyQueryCore)
-
 
 class DBCore(TableBasedCore):
 	"""A core performing database queries on one table or view.
@@ -453,8 +451,6 @@ class DBCore(TableBasedCore):
 		queryMeta["sqlQueryPars"] = pars
 		return self._runQuery(resultTableDef, fragment, pars, queryMeta)
 
-core.registerCore(DBCore)
-
 
 def makeFeedbackColumn(cols, columnName):
 	ff = outputdef.OutputField.fromColumn(cols.getColumnByName(columnName))
@@ -508,8 +504,6 @@ class FixedQueryCore(core.Core, base.RestrictionMixin):
 					for k,v in itertools.izip(fieldNames, row))
 				for row in dbResponse])
 
-core.registerCore(FixedQueryCore)
-
 
 class NullCore(core.Core):
 	"""A core always returning None.
@@ -527,5 +521,3 @@ class NullCore(core.Core):
 
 	def run(self, service, inputData, queryMeta):
 		return None
-
-core.registerCore(NullCore)

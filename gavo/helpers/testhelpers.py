@@ -276,7 +276,6 @@ class SamplesBasedAutoTest(type):
 
 def getTestRD(id="test.rd"):
 	from gavo import rscdesc
-	from gavo.protocols import basic
 	from gavo import base
 	from gavo.svcs import service
 	if not "form" in service._rendererRegistry:

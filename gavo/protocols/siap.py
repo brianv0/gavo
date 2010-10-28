@@ -229,7 +229,6 @@ class SIAPCore(svcs.DBCore):
 		self.siapTable = base.caches.getRD("__system__/siap").getById("SIAPbase")
 		svcs.DBCore.__init__(self, parent, **kwargs)
 
-svcs.registerCore(SIAPCore)
 
 
 class SIAPCutoutCore(SIAPCore):
@@ -310,8 +309,6 @@ class SIAPCutoutCore(SIAPCore):
 		for record in res:
 			self._fixRecord(record, sqlPars["_ra"], sqlPars["_dec"], sra, sdec)
 		return res
-
-svcs.registerCore(SIAPCutoutCore)
 
 
 def _test():

@@ -222,7 +222,7 @@ def getStructDocsFromRegistry(registry, docStructure):
 
 
 def getGrammarDocs(docStructure):
-	registry = dict((n, rscdef.getGrammar(n) for n in rscdef.grammarRegistry))
+	registry = dict((n, rscdef.getGrammar(n) for n in rscdef.GRAMMAR_REGISTRY))
 	return getStructDocsFromRegistry(registry, docStructure)
 		
 

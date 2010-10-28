@@ -239,7 +239,6 @@ def main():
 	"""handles the user interaction for gavopublish.
 	"""
 	from gavo import rscdesc
-	from gavo.protocols import basic
 	from gavo import web
 	base.setDBProfile("admin")
 	opts, args = parseCommandLine()

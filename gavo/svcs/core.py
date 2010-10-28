@@ -1,5 +1,9 @@
 """
 Cores are the standard data structure for computing things in the DC.
+
+This module also contains the registry for cores.  If you want to
+be able to refer to cores from within an RD, you need to enter your
+core here.
 """
 
 import sets
@@ -7,17 +11,40 @@ import weakref
 
 from gavo import base
 from gavo import rscdef
+from gavo import utils
 from gavo.svcs import inputdef
 from gavo.svcs import outputdef
 
 
-_coreRegistry = {}
+CORE_REGISTRY = {
+#	elementName -> module (without gavo.), class name
+	"adqlCore": ("protocols.adqlglue", "ADQLCore"),
+	"productCore": ("protocols.products", "ProductCore"),
+	"siapCore": ("protocols.siap", "SIAPCore"),
+	"siapCutoutCore": ("protocols.siap", "SIAPCutoutCore"),
+	"registryCore": ("registry.oaiinter", "RegistryCore"),
+	"computedCore": ("svcs.computedcore", "ComputedCore"),
+	"customCore": ("svcs.customcore", "CustomCore"),
+	"feedback": ('svcs.feedback', "FeedbackCore"),
+	"fancyQueryCore": ("svcs.standardcores", "FancyQueryCore"),
+	"dbCore": ("svcs.standardcores", "DBCore"),
+	"fixedQueryCore": ("svcs.standardcores", "FixedQueryCore"),
+	"nullCore": ("svcs.standardcores", "NullCore"),
+	"uploadCore": ("svcs.uploadcores", "UploadCore"),
+	"editCore": ("svcs.uploadcores", "EditCore"),
+}
 
-def registerCore(core):
-	_coreRegistry[core.name_] = core
 
 def getCore(name):
-	return _coreRegistry[name]
+	if name not in CORE_REGISTRY:
+		raise base.NotFoundError(name, "core", "registred cores")
+	cls = utils.loadInternalObject(*CORE_REGISTRY[name])
+	if cls.name_!=name:
+		raise base.ReportableError("Internal Error: Core %s is registred"
+			" under the wrong name."%name,
+			hint="This is probably a typo in svcs.core; it needs"
+			" to be fixed there")
+	return cls
 
 
 class Core(base.Structure):

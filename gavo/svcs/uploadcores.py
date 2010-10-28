@@ -139,7 +139,6 @@ class UploadCore(core.Core):
 		return rsc.TableForDef(self.outputTable, 
 			rows=[{"nAffected": totalAffected}])
 	
-core.registerCore(UploadCore)
 
 
 class EditCore(standardcores.TableBasedCore):
@@ -166,5 +165,3 @@ class EditCore(standardcores.TableBasedCore):
 		conn.close()
 		return rsc.TableForDef(self.outputTable, 
 			rows=[{"nAffected": 1}])
-
-core.registerCore(EditCore)

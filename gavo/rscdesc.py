@@ -20,7 +20,6 @@ import warnings
 import weakref
 
 from gavo import base
-from gavo import grammars
 from gavo import registry
 from gavo import rscdef
 from gavo import svcs

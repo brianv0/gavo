@@ -9,7 +9,6 @@ from gavo import base
 from gavo import rscdesc
 from gavo import votable
 from gavo import web
-from gavo.protocols import basic
 
 getRD = base.caches.getRD
 RD = rscdesc.RD

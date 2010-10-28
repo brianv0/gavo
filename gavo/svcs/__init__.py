@@ -16,7 +16,7 @@ from gavo.svcs.common import (Error, UnknownURI, ForbiddenURI, WebRedirect,
 	Authenticate, BadMethod,
 	QueryMeta, emptyQueryMeta, loadSystemTemplate)
 
-from gavo.svcs.core import registerCore, getCore, Core
+from gavo.svcs.core import getCore, Core, CORE_REGISTRY
 
 from gavo.svcs.customcore import CustomCore
 

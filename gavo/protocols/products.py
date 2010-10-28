@@ -297,11 +297,6 @@ class ProductCore(svcs.DBCore):
 			make=[MS(rscdef.Make, table=self.outputTable)])
 		return rsc.makeData(dd, forceSource=(keysTable, resTable))
 
-svcs.registerCore(ProductCore)
-
-
-########## Finally, the product interface (the above core is used in the
-########## rd, so this must be defined later than ProductCore's registerCore)
 
 class CutoutProductKey(object):
 	"""A product key for a cutout.

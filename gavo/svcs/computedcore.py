@@ -129,7 +129,3 @@ class ComputedCore(core.Core):
 		res = rsc.makeData(self.resultParse,
 			forceSource=StringIO(self._runAndCapture(inputData)))
 		return res.getPrimaryTable()
-
-
-core.registerCore(ComputedCore)
-

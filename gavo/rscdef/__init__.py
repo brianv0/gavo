@@ -8,7 +8,7 @@ that would take some work, though, since rscdesc currently needs to know
 about grammars, cores, etc, available.
 """
 
-from gavo.rscdef.builtingrammars import (grammarRegistry, getGrammar)
+from gavo.rscdef.builtingrammars import (GRAMMAR_REGISTRY, getGrammar)
 
 from gavo.rscdef.column import Column, Option, Values, makeOptions
 

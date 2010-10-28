@@ -439,6 +439,19 @@ def loadPythonModule(fqName):
 	return modNs, moddesc
 
 
+def loadInternalObject(relativeName, objectName):
+	"""gets a name from an internal module.
+
+	relativeName is the python module path (not including "gavo."),
+	objectName the name of something within the module.
+
+	This is used for "manual" registries (grammars, cores,...).
+	"""
+	modName = "gavo."+relativeName
+	module = importModule(modName)
+	return getattr(module, objectName)
+
+
 def memoized(origFun):
 	"""is a very simple memoizing decorator.
 

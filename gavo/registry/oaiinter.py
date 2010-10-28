@@ -284,5 +284,3 @@ class RegistryCore(svcs.Core, base.RestrictionMixin):
 		"""
 		args = inputData.getPrimaryTable().rows[0]["args"]
 		return self.runWithPMHDict(args)
-
-svcs.registerCore(RegistryCore)

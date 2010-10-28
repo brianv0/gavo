@@ -313,7 +313,6 @@ def parseCmdLine():
 
 def main():
 	from gavo import rscdesc
-	from gavo.protocols import basic
 # Some rds need db connectivity
 	base.setDBProfile("trustedquery")
 	try:

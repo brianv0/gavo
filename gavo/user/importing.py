@@ -10,7 +10,6 @@ from optparse import OptionParser
 from gavo import base
 from gavo import rscdesc     # for registration
 from gavo import rsc
-from gavo.protocols import basic  # for registration
 from gavo.protocols import tap
 from gavo import user
 from gavo import web         # for registration

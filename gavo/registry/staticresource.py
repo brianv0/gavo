@@ -134,7 +134,6 @@ def iterStaticResources():
 
 if __name__=="__main__":
 	from gavo import rscdesc
-	from gavo.protocols import basic
 	from gavo import web
 	m = loadStaticResource("registryrecs/ari.rr")
 	print unicode(m.getMeta("title", raiseOnFail=True)).encode("iso-8859-1")
