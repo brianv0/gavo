@@ -91,8 +91,6 @@ class Form(grend.FormMixin,
 
 	defaultDocFactory = svcs.loadSystemTemplate("defaultresponse.html")
 
-svcs.registerRenderer(Form)
-
 
 class FeedbackForm(Form):
 	"""is a page that renders a form with vexprs filled in of a feedback 
@@ -133,5 +131,3 @@ class FeedbackForm(Form):
 	def _buildForm(self, feedbackExprs, request, ctx):
 		request.args = feedbackExprs.original
 		return Form(ctx, self.service)
-
-svcs.registerRenderer(FeedbackForm)

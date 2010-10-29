@@ -110,8 +110,6 @@ class VOSIAvailabilityRenderer(VOSIRenderer):
 			_availabilityBuilder.build(self.service)]
 		return root
 
-svcs.registerRenderer(VOSIAvailabilityRenderer)
-
 
 class VOSICapabilityRenderer(VOSIRenderer):
 	"""A renderer for a VOSI capability endpoint.
@@ -126,8 +124,6 @@ class VOSICapabilityRenderer(VOSIRenderer):
 				for pub in self.service.getPublicationsForSet(self.vosiSet)]]
 		return root
 
-svcs.registerRenderer(VOSICapabilityRenderer)
-
 
 class VOSITablesetRenderer(VOSIRenderer):
 	"""A renderer for a VOSI table metadata endpoint.
@@ -138,5 +134,3 @@ class VOSITablesetRenderer(VOSIRenderer):
 		root = registry.getTablesetForService(self.service)
 		root.addAttribute("xsi:type", "vs1:TableSet")
 		return root
-
-svcs.registerRenderer(VOSITablesetRenderer)

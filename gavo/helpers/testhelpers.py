@@ -277,9 +277,6 @@ class SamplesBasedAutoTest(type):
 def getTestRD(id="test.rd"):
 	from gavo import rscdesc
 	from gavo import base
-	from gavo.svcs import service
-	if not "form" in service._rendererRegistry:
-		service._rendererRegistry["form"] = None
 	return base.caches.getRD(os.path.abspath("data/%s"%id))
 
 

@@ -30,18 +30,8 @@ from gavo.svcs import common
 from gavo.svcs import core
 from gavo.svcs import inputdef
 from gavo.svcs import outputdef
+from gavo.svcs import renderers
 from gavo.svcs import standardcores
-
-
-_rendererRegistry = {}
-
-def registerRenderer(aRenderer):
-	_rendererRegistry[aRenderer.name] = aRenderer
-
-def getRenderer(rendName):
-	if rendName not in _rendererRegistry:
-		raise common.UnknownURI("No such renderer: %s"%repr(rendName))
-	return _rendererRegistry[rendName]
 
 
 def adaptTable(origTable, newColumns):
@@ -180,7 +170,7 @@ class Publication(base.Structure, base.ComputedMetaMixin):
 	def validate(self):
 		self._validateNext(Publication)
 		try:
-			getRenderer(self.render)
+			renderers.getRenderer(self.render)
 		except KeyError:
 			raise base.StructureError("Unknown renderer: %s"%self.render)
 
@@ -188,13 +178,13 @@ class Publication(base.Structure, base.ComputedMetaMixin):
 		return self.parent.getURL(self.render)
 
 	def _meta_urlUse(self):
-		return getRenderer(self.render).urlUse
+		return renderers.getRenderer(self.render).urlUse
 
 	def _meta_requestMethod(self):
-		return getRenderer(self.render).preferredMethod
+		return renderers.getRenderer(self.render).preferredMethod
 	
 	def _meta_resultType(self):
-		return getRenderer(self.render).resultType
+		return renderers.getRenderer(self.render).resultType
 
 
 class CustomPageFunction(base.Structure, base.RestrictionMixin):
@@ -594,7 +584,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		if self.inputDD is not base.NotGiven:
 			return self.inputDD
 		if isinstance(renderer, basestring):
-			renderer = getRenderer(renderer)
+			renderer = renderers.getRenderer(renderer)
 		if renderer.name not in self.inputDDsForRenderers:
 			newDD = renderer.getInputDD(self)
 			if newDD is None:
@@ -640,7 +630,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		This is mainly a convenience method for unit tests.
 		"""
 		queryMeta = common.QueryMeta(rawData)
-		inputData = self.makeDataFor(getRenderer("form"), rawData)
+		inputData = self.makeDataFor(renderers.getRenderer("form"), rawData)
 		return self.runWithData(inputData, queryMeta)
 
 	def getURL(self, rendName, absolute=True):
@@ -656,7 +646,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			self.rd.sourceId, self.id)
 		if absolute:
 			basePath = base.getConfig("web", "serverURL")+basePath
-		return getRenderer(rendName).makeAccessURL(basePath)
+		return renderers.getRenderer(rendName).makeAccessURL(basePath)
 
 	# used by getBrowserURL; keep external higher than form as long as
 	# we have mess like Potsdam CdC.
@@ -686,8 +676,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		in something pretty in a web browser.
 		"""
 		try:
-			return bool(getRenderer(rendName).isBrowseable(self))
-		except common.UnknownURI: # renderer name not known
+			return bool(renderers.getRenderer(rendName).isBrowseable(self))
+		except common.NotFoundError: # renderer name not known
 			return False
 
 	def getTableSet(self):

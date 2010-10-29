@@ -31,10 +31,12 @@ from gavo.svcs.inputdef import InputKey, ContextGrammar, InputDescriptor
 
 from gavo.svcs.outputdef import OutputField, OutputTableDef
 
+from gavo.svcs.renderers import RENDERER_REGISTRY, getRenderer
+
 from gavo.svcs.runner import runWithData
 
 from gavo.svcs.service import (Service, SvcResult, Publication,
-	registerRenderer, getRenderer, RegistryMetaMixin)
+	RegistryMetaMixin)
 
 from gavo.svcs.standardcores import (DBCore, CondDesc,
 	mapDBErrors)

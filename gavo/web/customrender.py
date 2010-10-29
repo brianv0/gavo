@@ -44,5 +44,3 @@ class CustomRenderer(grend.ServiceBasedPage):
 	
 	def locateChild(self, ctx, segments):
 		return self.realPage.locateChild(ctx, segments)
-
-svcs.registerRenderer(CustomRenderer)

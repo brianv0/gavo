@@ -64,8 +64,6 @@ class StaticRenderer(grend.FormMixin, grend.ServiceBasedPage):
 				segments = ()            # -- swallow the segment
 			return static.File(self.staticPath), segments
 
-svcs.registerRenderer(StaticRenderer)
-
 
 class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	"""A renderer that renders a single template.
@@ -91,4 +89,3 @@ class FixedPageRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	def isBrowseable(self, service):
 		return True
 
-svcs.registerRenderer(FixedPageRenderer)

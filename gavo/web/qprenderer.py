@@ -101,5 +101,3 @@ class QPRenderer(grend.HTMLResultRenderMixin,
 					T.h1(render=T.directive("meta"))['title'],
 					T.div(class_="result", data=T.directive("result")) [
 						T.invisible(render=T.directive(resultFormat))]]])
-
-svcs.registerRenderer(QPRenderer)

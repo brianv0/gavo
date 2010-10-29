@@ -24,7 +24,6 @@ from gavo import registry
 from gavo import rscdef
 from gavo import svcs
 from gavo import utils
-from gavo.rsc import metatable
 from gavo.rscdef import common
 from gavo.rscdef import scripting
 

@@ -309,5 +309,3 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 				base.ui.notifyError("TAP error")
 			return ErrorResource(str(ex), ex), ()
 		raise common.UnknownURI("Bad TAP path %s"%"/".join(segments))
-
-svcs.registerRenderer(TAPRenderer)

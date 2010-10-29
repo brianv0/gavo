@@ -212,5 +212,3 @@ class ProductRenderer(grend.ServiceBasedRenderer):
 		except (TypeError, os.error):  # size doesn't matter
 			pass
 		return streaming.streamOut(resource, request)
-
-svcs.registerRenderer(ProductRenderer)

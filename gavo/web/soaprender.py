@@ -55,7 +55,7 @@ class SOAPProcessor(soap.SOAPPublisher):
 			status=500)
 
 
-class SoapRenderer(grend.ServiceBasedRenderer):
+class SOAPRenderer(grend.ServiceBasedRenderer):
 	"""is a renderer that receives and formats SOAP messages.
 	"""
 	name="soap"
@@ -101,5 +101,3 @@ class SoapRenderer(grend.ServiceBasedRenderer):
 		if request.uri.endswith("?wsdl"): # XXX TODO: use parsed headers here
 			return self, ()
 		return SOAPProcessor(ctx, self.service, self.runServiceFromArgs), ()
-
-svcs.registerRenderer(SoapRenderer)

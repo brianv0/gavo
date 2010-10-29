@@ -100,6 +100,10 @@ class NotFoundPage(ErrorPage):
 		]])
 
 
+class OtherNotFoundPage(NotFoundPage):
+	handles = base.NotFoundError
+
+
 class RDNotFoundPage(NotFoundPage):
 	handles = base.RDNotFound
 

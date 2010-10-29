@@ -155,4 +155,3 @@ class AdminRenderer(formal.ResourceMixin,
 				T.p["Admin services are only available with a admin.html template"]]
 		])
 
-svcs.registerRenderer(AdminRenderer)

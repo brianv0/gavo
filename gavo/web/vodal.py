@@ -179,8 +179,6 @@ class SCSRenderer(DALRenderer):
 		table.votCasts = realCasts
 		return DALRenderer._formatOutput(self, data, ctx)
 
-svcs.registerRenderer(SCSRenderer)
-
 
 class SIAPRenderer(DALRenderer):
 	"""is a renderer for a the Simple Image Access Protocol.
@@ -258,7 +256,6 @@ class SIAPRenderer(DALRenderer):
 				V.INFO(name="QUERY_STATUS", value="ERROR")[
 					str(msg)]]]
 
-svcs.registerRenderer(SIAPRenderer)
 
 
 class RegistryRenderer(grend.ServiceBasedRenderer):
@@ -333,5 +330,3 @@ class RegistryRenderer(grend.ServiceBasedRenderer):
 			request.write("Internal error.  Please notify site maintainer")
 			request.finishRequest(False)
 		return appserver.errorMarker
-			
-svcs.registerRenderer(RegistryRenderer)

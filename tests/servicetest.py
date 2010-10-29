@@ -116,7 +116,8 @@ class BrowsableTest(testhelpers.VerboseTest):
 		self.failUnless(service.isBrowseableWith("external"))
 		self.failIf(service.isBrowseableWith("static"))
 		self.failIf(service.isBrowseableWith("scs.xml"))
-		self.failIf(service.isBrowseableWith("oai.xml"))
+		self.failIf(service.isBrowseableWith("pubreg.xml"))
+		self.failIf(service.isBrowseableWith("bizarro"))
 	
 	def testStaticWithIndex(self):
 		service = testhelpers.getTestRD().getById("convcat")

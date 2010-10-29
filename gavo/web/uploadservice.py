@@ -41,8 +41,6 @@ class Uploader(formrender.Form):
 		]
 	])
 
-svcs.registerRenderer(Uploader)
-
 
 class MachineUploader(Uploader):
 	"""is a renderer allowing for updates to individual records using file 
@@ -69,6 +67,3 @@ class MachineUploader(Uploader):
 			data.inputData.getPrimaryTable().rows[0]["File"][0],
 			data.original.getPrimaryTable().rows[0]["nAffected"])).encode("utf-8"))
 		return ""
-
-
-svcs.registerRenderer(MachineUploader)

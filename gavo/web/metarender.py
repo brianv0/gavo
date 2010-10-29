@@ -269,8 +269,6 @@ class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 				T.p["Infos are only available with a serviceinfo.html template"]]
 		])
 
-svcs.registerRenderer(ServiceInfoRenderer)
-
 
 class TableInfoRenderer(MetaRenderer):
 	"""A renderer for displaying table information.
@@ -342,8 +340,6 @@ class TableInfoRenderer(MetaRenderer):
 				T.p["Infos are only available with a tableinfo.html template"]]
 		])
 
-svcs.registerRenderer(TableInfoRenderer)
-
 
 class TableNoteRenderer(MetaRenderer):
 	"""A renderer for displaying table notes.
@@ -408,9 +404,6 @@ class TableNoteRenderer(MetaRenderer):
 		T.invisible(render=T.directive("noteHTML")))
 
 
-svcs.registerRenderer(TableNoteRenderer)
-
-
 class ExternalRenderer(grend.ServiceBasedPage):
 	"""A renderer redirecting to an external resource.
 
@@ -435,5 +428,3 @@ class ExternalRenderer(grend.ServiceBasedPage):
 		else: # no publication, 404
 			raise svcs.UnknownURI()
 		raise svcs.WebRedirect(str(pub.getMeta("accessURL")))
-
-svcs.registerRenderer(ExternalRenderer)

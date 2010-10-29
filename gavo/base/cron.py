@@ -46,21 +46,32 @@ class Queue(object):
 	def _scheduleJob(self, job):
 		with self.lock:
 			heapq.heappush(self.jobs, (time.time(), job))
+		self._scheduleWakeup()
 
 	def _scheduleJobNext(self, job):
 		with self.lock:
 			heapq.heappush(self.jobs, (time.time()+job.interval, job))
+		self._scheduleWakeup()
 
-	def _scheduleNext(self):
-		with self.lock:
-			nextTime, job = heapq.heappop(self.jobs)
-		def runCron():
-			try:
-				job.run()
-			finally:
-				self._scheduleJobNext(job)
-				self._scheduleNext()
-		self.scheduleFunction(max(0, nextTime-time.time()), runCron)
+	def _runNextJob(self):
+		try:
+			with self.lock:
+				jobTime, job = heapq.heappop(self.jobs)
+				if jobTime>time.time()+60:
+					# spurious wakeup, forget about it
+					heapq.heappush(jobTime, job)
+				else:
+					job.run()
+		finally:
+			self._scheduleJobNext(job)
+	
+	def _scheduleWakeup(self):
+		if not self.jobs:  
+			# Nothing to run; we'll be called when someone schedules something
+			return
+		nextWakeup = self.jobs[0][0]
+		if self.scheduleFunction is not None:
+			self.scheduleFunction(max(0, nextWakeup-time.time()), self._runNextJob)
 
 	def every(self, seconds, callable):
 		self._scheduleJob(Job(seconds, callable))
@@ -68,7 +79,7 @@ class Queue(object):
 	def registerScheduleFunction(self, scheduleFunction):
 		if self.scheduleFunction is None:
 			self.scheduleFunction = scheduleFunction
-			self._scheduleNext()
+			self._scheduleWakeup()
 
 
 _queue = Queue()
