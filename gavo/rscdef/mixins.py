@@ -97,23 +97,8 @@ class MixinAttribute(base.SetOfAtomsAttribute):
 		kwargs["description"] = kwargs.get("description", 
 			"Reference to a mixin this table should contain.")
 		base.SetOfAtomsAttribute.__init__(self, "mixin", **kwargs)
-		# Hack: Remove at about svn revision 2000
-
-	_deprecatedNamesMap = {
-		"positions": "//scs#positions",
-		"q3cpositions": "//scs#q3cpositions",
-		"q3cindex": "//scs#q3cindex",
-		"bboxSIAP": "//siap#bbox",
-		"pgsSIAP": "//siap#pgs",
-		"products": "//products#table",
-	}	
 
 	def feed(self, ctx, instance, mixinRef):
-		if mixinRef in self._deprecatedNamesMap:
-			warnings.warn("Deprecated id %s mixed in, use %s instead"%(
-					mixinRef, self._deprecatedNamesMap[mixinRef]),
-				DeprecationWarning)
-			mixinRef = self._deprecatedNamesMap[mixinRef]
 		mixin = ctx.resolveId(mixinRef, instance=instance, forceType=MixinDef)
 		mixin.applyTo(instance, ctx)
 		base.SetOfAtomsAttribute.feed(self, ctx, instance, mixinRef)

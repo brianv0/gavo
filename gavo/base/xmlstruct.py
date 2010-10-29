@@ -23,53 +23,6 @@ from gavo.utils import excs
 ALL_WHITESPACE = re.compile("\s*$")
 
 
-class Generator(structure.Parser):
-	"""is an event generator created from python source code embedded
-	in an XML element.
-
-	XXX TODO: Deprecated
-	"""
-	def __init__(self, parent):
-		self.nextParser = parent.curParser
-		self.parent = parent
-		self.code = ""
-
-	def start_(self, ctx, name, value):
-		raise StructureError("GENERATORs have no children")
-
-	def value_(self, ctx, name, value):
-		if name!="content_":
-			raise StructureError("GENERATORs have no children")
-		self.code = self.parent.rootStruct.expand((
-			"def gen():\n"+value).rstrip())
-		return self
-
-	def end_(self, ctx, name, value):
-		vals = {"context": ctx}
-		try:
-			exec self.code in vals
-		except Exception, ex:
-			raise utils.logOldExc(BadCode(self.code, "GENERATOR", ex))
-		for ev in vals["gen"]():
-			if ev[0]=="element":
-				self._expandElementEvent(ev)
-			elif ev[0]=="values":
-				self._expandValuesEvent(ev)
-			else:
-				self.parent.eventQueue.append(ev)
-		return self.nextParser
-	
-	def _expandElementEvent(self, ev):
-		self.parent.eventQueue.append(("start", ev[1]))
-		for key, val in ev[2:]:
-			self.parent.eventQueue.append(("value", key, val))
-		self.parent.eventQueue.append(("end", ev[1]))
-
-	def _expandValuesEvent(self, ev):
-		for key, val in ev[1:]:
-			self.parent.eventQueue.append(("value", key, val))
-
-
 class EventProcessor(object):
 	"""A dispatcher for parse events to structures.
 
@@ -125,13 +78,6 @@ class EventProcessor(object):
 		# thus are not not parsed by the element parsers but by us.
 		if type=="start" and activetags.isActive(name):
 			self.curParser = activetags.getActiveTag(name)(self.curParser)
-			return
-# XXX TODO: Deprecated
-		if type=="start" and name=="GENERATOR":
-			warnings.warn("GENERATOR is deprecated and will go away soon."
-				"  Use LOOP instead.",
-				DeprecationWarning)
-			self.curParser = Generator(self)
 			return
 		if self.next is None:
 			self._feedToStructured(type, name, value)
