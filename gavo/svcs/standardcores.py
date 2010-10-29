@@ -14,8 +14,6 @@ import sys
 import traceback
 import weakref
 
-from twisted.python import log
-
 from gavo import base
 from gavo import rsc
 from gavo import rscdef

@@ -4,6 +4,8 @@ Widgets used by the DC (e.g., definition of output formats).
 
 import urllib
 
+from twisted.python import components
+
 from nevow import tags as T, entities as E
 from nevow import inevow
 from nevow.util import getPOSTCharset
@@ -259,10 +261,12 @@ class NumericExpressionField(StringFieldWithBlurb):
 			"/static/help_vizier.shtml#floats"))[
 		"[?num. expr.]"]
 
+
 class DateExpressionField(StringFieldWithBlurb):
 	additionalMaterial = T.a(href=base.makeSitePath(
 			"/static/help_vizier.shtml#dates"))[
 		"[?date expr.]"]
+
 
 class StringExpressionField(StringFieldWithBlurb):
 	additionalMaterial = T.a(href=base.makeSitePath(
@@ -283,3 +287,25 @@ class ScalingTextArea(widget.TextArea):
 
 def makeWidgetFactory(code):
 	return eval(code)
+
+
+############# formal adapters for DaCHS objects
+
+# column options
+from gavo.rscdef import column
+
+class ToFormalAdapter(object):
+	implements(iformal.ILabel, iformal.IKey)
+
+	def __init__(self, original):
+		self.original = original
+
+	def label(self):
+		return unicode(self.original.title)
+
+	def key(self):
+		return unicode(self.original.content_)
+
+components.registerAdapter(ToFormalAdapter, column.Option, iformal.ILabel)
+components.registerAdapter(ToFormalAdapter, column.Option, iformal.IKey)
+

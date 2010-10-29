@@ -677,7 +677,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		"""
 		try:
 			return bool(renderers.getRenderer(rendName).isBrowseable(self))
-		except common.NotFoundError: # renderer name not known
+		except base.NotFoundError: # renderer name not known
 			return False
 
 	def getTableSet(self):

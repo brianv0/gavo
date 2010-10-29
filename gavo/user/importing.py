@@ -12,7 +12,6 @@ from gavo import rscdesc     # for registration
 from gavo import rsc
 from gavo.protocols import tap
 from gavo import user
-from gavo import web         # for registration
 
 
 def process(opts, args):

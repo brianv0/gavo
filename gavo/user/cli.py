@@ -16,9 +16,9 @@ import os
 import sys
 import textwrap
 import traceback
-from contextlib import contextmanager
 
 from gavo.user import common
+
 
 functions = [
 	("admin", ("user.admin", "main")),
@@ -37,28 +37,6 @@ functions = [
 ]
 
 
-def loadGAVOModule(moduleName):
-	"""loads the a module from the gavo packages.
-
-	In effect, this loads "gavo."+moduleName, where moduleName may contain
-	dots.
-	"""
-	names = ["gavo"]+moduleName.split(".")
-	path = None
-	for name in names:
-		moddesc = imp.find_module(name, path)
-		imp.acquire_lock()
-		try:
-			modNS = imp.load_module(name, *moddesc)
-			try:
-				path = modNS.__path__
-			except AttributeError: 
-				pass # NS is a non-package module; this should be the end of the loop.
-		finally:
-			imp.release_lock()
-	return modNS
-
-
 def _enablePDB():
 # This can't be a callback to the --enable-pdb option since it needs
 # errhandle, and we only want to import this after the command line
@@ -68,21 +46,6 @@ def _enablePDB():
 		traceback.print_exception(type, value, tb)
 		pdb.pm()
 	sys.excepthook = enterPdb
-
-
-@contextmanager
-def _progressText(opts):
-	"""a quick note that something is happening if we're on a tty.
-	"""
-# We probably should rather make import faster...
-	if not opts.disableSpew and os.isatty(sys.stdout.fileno()):
-		sys.stdout.write("Starting up...")
-		sys.stdout.flush()
-		yield None
-		sys.stdout.write("\r                 \r")
-		sys.stdout.flush()
-	else:
-		yield None
 
 
 def _enableDebug(*args):
@@ -111,7 +74,7 @@ def _parseCLArgs():
 		" them", action="store_true", dest="showHints")
 	parser.add_option("--enable-pdb", help="run pdb on all errors.",
 		action="store_true", dest="enablePDB")
-	parser.add_option("--disable-spew", help='Suppress silly "starting up".',
+	parser.add_option("--disable-spew", help='Ignored.',
 		action="store_true", dest="disableSpew")
 	parser.add_option("--profile-to", metavar="PROFILEPATH",
 		help="enable profiling and write a profile to PROFILEPATH",
@@ -134,8 +97,9 @@ def _parseCLArgs():
 	return opts, module, funcName
 
 
+
+
 def main():
-	global api, errhandle
 
 	if len(sys.argv)>1 and sys.argv[1]=="init":  
 		# Special case: initial setup, no api working yet
@@ -143,16 +107,15 @@ def main():
 		sys.exit(initdachs.main())
 
 	opts, module, funcName = _parseCLArgs()
-	with _progressText(opts):
-		from gavo import api
-		from gavo import base
-		from gavo.user import errhandle
-		from gavo.user import logui
-		if not opts.suppressLog:
-			logui.LoggingUI(base.ui)
-		if opts.enablePDB:
-			_enablePDB()
-		funcToRun = getattr(loadGAVOModule(module), funcName)
+	from gavo import base
+	from gavo import utils
+	from gavo.user import errhandle
+	from gavo.user import logui
+	if not opts.suppressLog:
+		logui.LoggingUI(base.ui)
+	if opts.enablePDB:
+		_enablePDB()
+	funcToRun = utils.loadInternalObject(module, funcName)
 
 	if opts.profilePath:
 		import cProfile

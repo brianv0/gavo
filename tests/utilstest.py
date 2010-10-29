@@ -119,5 +119,21 @@ class StanXMLTest(testhelpers.VerboseTest):
 
 # XXX TODO: add a test for _addtionalPrefixes
 
+
+class LoadModuleTest(testhelpers.VerboseTest):
+	"""tests for cli's module loader.
+	"""
+	def testLoading(self):
+		ob = utils.loadInternalObject("utils.codetricks", "loadPythonModule")
+		self.failUnless(hasattr(ob, "__call__"))
+	
+	def testNotLoading(self):
+		self.assertRaises(ImportError, utils.loadInternalObject, "noexist", "u")
+	
+	def testBadName(self):
+		self.assertRaises(AttributeError, utils.loadInternalObject, 
+			"utils.codetricks", "noexist")
+
+
 if __name__=="__main__":
 	testhelpers.main(StanXMLTest)

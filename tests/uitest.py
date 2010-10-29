@@ -67,17 +67,6 @@ class EventDispatcherTest(testhelpers.VerboseTest):
 		self.assertEqual(ex.args[0], '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 1')
 
 
-class LoadModuleTest(testhelpers.VerboseTest):
-	"""tests for cli's module loader.
-	"""
-	def testLoading(self):
-		ns = cli.loadGAVOModule("utils.codetricks")
-		self.failUnless("loadPythonModule" in dir(ns))
-	
-	def testNotLoading(self):
-		self.assertRaises(ImportError, cli.loadGAVOModule, "noexist")
-
-
 class CLITest(testhelpers.VerboseTest):
 	"""tests for the CLI.
 	"""

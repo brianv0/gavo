@@ -17,7 +17,6 @@ from zope.interface import implements
 
 from gavo import base
 from gavo.base import meta
-from gavo.imp import formal
 
 
 class Error(base.Error):

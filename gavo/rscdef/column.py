@@ -155,31 +155,6 @@ def makeOptions(*args):
 	return [base.makeStruct(Option, content_=arg) for arg in args]
 
 
-# Adapters to make options work in formal choice widgets (not in class
-# since we don't want to require formal and twisted at this point)
-try:
-	from gavo.imp.formal import iformal
-	from twisted.python import components
-	from zope.interface import implements
-
-	class ToFormalAdapter(object):
-		implements(iformal.ILabel, iformal.IKey)
-
-		def __init__(self, original):
-			self.original = original
-
-		def label(self):
-			return unicode(self.original.title)
-
-		def key(self):
-			return unicode(self.original.content_)
-	
-	components.registerAdapter(ToFormalAdapter, Option, iformal.ILabel)
-	components.registerAdapter(ToFormalAdapter, Option, iformal.IKey)
-except ImportError: # no formal/twisted -- let's hope we won't need it.
-	pass
-
-
 class Values(base.Structure):
 	"""Information on a column's values, in particular its domain.
 

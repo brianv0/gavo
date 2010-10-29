@@ -26,6 +26,7 @@ from gavo import base
 from gavo import formats
 from gavo import rsc
 from gavo import rscdef
+from gavo import rscdesc
 from gavo import utils
 from gavo.base import valuemappers
 from gavo.grammars import votablegrammar

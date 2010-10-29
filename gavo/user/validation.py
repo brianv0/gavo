@@ -11,6 +11,7 @@ import sys
 
 from gavo import base
 from gavo import rsc
+from gavo import rscdesc
 from gavo import stc
 from gavo.helpers import testtricks
 from gavo.imp import argparse

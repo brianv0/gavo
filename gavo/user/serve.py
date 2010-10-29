@@ -22,6 +22,7 @@ from twisted.python import log
 from twisted.python import logfile
 
 from gavo import base
+from gavo import rscdesc
 from gavo import utils
 from gavo.base import config
 from gavo.base import cron
