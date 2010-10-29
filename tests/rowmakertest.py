@@ -5,9 +5,7 @@ Tests for the various structures in rscdef.
 import datetime
 import os
 
-import gavo
 from gavo import base
-from gavo import grammars
 from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
@@ -235,7 +233,7 @@ class VarTest(testhelpers.VerboseTest):
 
 
 class PredefinedTest(testhelpers.VerboseTest):
-	"""tests for using predefined procedures.
+	"""tests for procedures from //procs.
 	"""
 	def testSimbad(self):
 		dd, td = makeDD('  <column name="alpha" type="real"/>'
@@ -253,7 +251,7 @@ class PredefinedTest(testhelpers.VerboseTest):
 	def testSimbadFail(self):
 		dd, td = makeDD('<column name="alpha" type="real"/>'
 			'  <column name="delta" type="real"/>',
-			'  <apply predefined="resolveObject">'
+			'  <apply procDef="//procs#resolveObject">'
 			'  <bind key="ignoreUnknowns">False</bind>'
 			'	 <bind key="identifier">src</bind>'
 			'	</apply>'
@@ -265,11 +263,11 @@ class PredefinedTest(testhelpers.VerboseTest):
 	def testNoAliasing(self):
 		dd, td = makeDD('<column name="x" type="text"/>'
 				'<column name="y" type="text"/>',
-			'<apply predefined="mapValue">'
+			'<apply procDef="//procs#mapValue">'
 				'<bind key="sourceName">"%s"</bind>'
 				'<bind key="destination">"x"</bind><bind key="value">'
 				'vars["in1"]</bind></apply>'
-			'<apply predefined="mapValue">'
+			'<apply procDef="//procs#mapValue">'
 				'<bind key="sourceName">"%s"</bind>'
 				'<bind key="destination">"y"</bind><bind key="value">'
 				'vars["in2"]</bind></apply>'

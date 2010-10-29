@@ -58,7 +58,7 @@ machinery -->
 		<FEED source="tablecols"/>
 	</table>
 
-	<procDef type="rowfilter" id="defineProduct" register="True">
+	<procDef type="rowfilter" id="define">
 		<doc>
 			enters the values defined by the product interface into result.
 
@@ -90,7 +90,7 @@ machinery -->
 
 	<STREAM id="prodcolMaps">
 		<doc>
-			Fragment for mapping the result of defineProduct into a user table;
+			Fragment for mapping the result of the define proc into a user table;
 			this is replayed into every rowmaker making a table mixing in
 			products.
 		</doc>
@@ -181,7 +181,7 @@ machinery -->
 			In addition, the mixin arranges for the products to be added to the
 			system table products, which is important when delivering the files.
 
-			Tables mixing this in should be fed from grammars using the defineProduct
+			Tables mixing this in should be fed from grammars using the define
 			rowgen.
 		</doc>
 		

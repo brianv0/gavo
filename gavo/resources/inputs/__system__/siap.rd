@@ -96,12 +96,12 @@
 
 			(their definition is in the siap system RD)
 
-			Tables mixin in bboxSIAP can be used for SIAP querying and
+			Tables mixing in //siap#bbox can be used for SIAP querying and
 			automatically mix in `the products mixin`_.
 
-			To feed these tables, use the computeBboxSIAP and setSIAPMeta predefined 
-			procs.  Since you are dealing with products, you will also need the
-			defineProduct predefined rowgen in your grammar.
+			To feed these tables, use the //siap#computeBbox and 
+			//siap#setMeta procs.  Since you are dealing with products, you will also
+			need the //products#define rowgen in your grammar.
 
 			If you have pgSphere, you definitely should use the pgs mixin in
 			preference to this.
@@ -136,16 +136,16 @@
 				- mimetype -- the mime type of the product.
 				- the coverage, centerAlpha and centerDelta, nAxes, 
 					pixelSize, pixelScale, wcs* fields calculated by the 
-					computePGSSIAPFields macro.   
+					computePGS macro.   
 
 			(their definition is in the siap system RD)
 
 			Tables mixing in pgs can be used for SIAP querying and
 			automatically mix in `the products mixin`_.
 
-			To feed these tables, use the computePGSSIAP and setSIAPMeta predefined 
-			procs.  Since you are dealing with products, you will also need the
-			defineProduct predefined rowgen in your grammar.
+			To feed these tables, use the //siap#computePGS and 
+			//siap#setMeta procs.  Since you are dealing with products, 
+			you will also need the //products#define rowgen in your grammar.
 		</doc>
 		<FEED source="//products#hackProductsData"/>
 
@@ -158,9 +158,9 @@
 	</mixinDef>
 
 
-	<procDef type="apply" id="computeSIAPbase" register="True">
+	<procDef type="apply" id="computeInputBase">
 		<doc>
-			computes fields for the bboxSiap interface.
+			computes input for SIAP tables.
 
 			It takes no arguments but expects WCS-like keywords in rowdict, i.e.,
 			CRVAL1, CRVAL2 (interpreted as float deg), CRPIX1, CRPIX2 (pixel
@@ -243,8 +243,8 @@
 		</setup>
 	</procDef>
 
-	<procDef type="apply" id="computeBboxSIAP" register="True"
-			original="computeSIAPbase">
+	<procDef type="apply" id="computeBbox"
+			original="computeInputBase">
 		<code>
 			wcs = coords.getWCS(vars)
 			try:
@@ -256,8 +256,7 @@
 		</code>
 	</procDef>
 
-	<procDef type="apply" id="computePGSSIAP" register="True"
-			original="computeSIAPbase">
+	<procDef type="apply" id="computePGS" original="computeInputBase">
 		<code>
 			wcs = coords.getWCS(vars)
 			try:
@@ -268,7 +267,7 @@
 		</code>
 	</procDef>
 
-	<procDef type="apply" id="setSIAPMeta" register="True">
+	<procDef type="apply" id="setMeta">
 		<doc>
 			sets siap meta *and* product table fields.
 	
@@ -370,7 +369,7 @@
 		</inputKey>
 	</condDesc>
 
-	<condDesc id="siap" register="True">
+	<condDesc id="protoInput">
 		<inputKey original="base_POS">
 			<property name="onlyForRenderer">siap.xml</property>
 		</inputKey>
@@ -392,7 +391,7 @@
 		</phraseMaker>
 	</condDesc>
 
-	<condDesc id="humanSIAP" register="True">
+	<condDesc id="humanInput">
 		<inputKey original="base_POS" name="hPOS"
 			description="ICRS Position, RA,DEC, or Simbad object (e.g., 234.234,-32.45)">
 			<property name="notForRenderer">siap.xml</property>

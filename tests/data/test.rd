@@ -11,7 +11,7 @@
 
 	<data id="siap_base" auto="False">
 		<dictlistGrammar>
-			<rowfilter procDef="//products#defineProduct">
+			<rowfilter procDef="//products#define">
 				<bind key="accref">row["accref"]</bind>
 				<bind key="fsize">row["accsize"]</bind>
 				<bind key="table">parent.parent.getProperty("destTable")</bind>
@@ -19,7 +19,7 @@
 			</rowfilter>
 		</dictlistGrammar>
 		<rowmaker id="st_siaptable">
-			<apply predefined="setSIAPMeta">
+			<apply procDef="//siap#setMeta">
 				<bind key="title">vars["imageTitle"]</bind>
 				<bind key="instrument">vars["instId"]</bind>
 				<bind key="dateObs">vars["dateObs"]</bind>
@@ -32,7 +32,7 @@
 		<!-- for bbox-based searching -->
 		<property name="destTable">test.bbox_siaptable</property>
 		<rowmaker id="make_bboxsiaptable" original="st_siaptable">
-			<apply predefined="computeBboxSIAP"/>
+			<apply procDef="//siap#computeBbox"/>
 		</rowmaker>
 		<make table="bbox_siaptable" rowmaker="make_bboxsiaptable" 
 			role="primary"/>
@@ -42,7 +42,7 @@
 		<!-- for pgsphere-based searching -->
 		<property name="destTable">test.pgs_siaptable</property>
 		<rowmaker id="make_pgssiaptable" original="st_siaptable">
-			<apply predefined="computePGSSIAP"/>
+			<apply procDef="//siap#computePGS"/>
 		</rowmaker>
 		<make table="pgs_siaptable" rowmaker="make_pgssiaptable"
 			role="primary"/>
@@ -162,7 +162,7 @@
 
 	<data id="expandOnIndex">
 		<dictlistGrammar>
-			<rowfilter predefined="expandIntegers">
+			<rowfilter procDef="//procs#expandIntegers">
 				<bind key="startName">"b"</bind>
 				<bind key="endName">"c"</bind>
 				<bind key="indName">"d"</bind>
@@ -250,7 +250,7 @@
 		./tests to import this -->
 		<sources><pattern>data/*.imp</pattern></sources>
 		<keyValueGrammar>
-			<rowfilter procDef="//products#defineProduct">
+			<rowfilter procDef="//products#define">
         <bind key="owner">"test"</bind>
         <bind key="embargo">row["embargo"]</bind>
         <bind key="table">"test.prodtest"</bind>
@@ -265,7 +265,7 @@
 		<table original="prodtest" onDisk="True" id="proddefaults"/>
 		<sources><pattern>data/*.imp</pattern></sources>
 		<keyValueGrammar>
-			<rowfilter procDef="//products#defineProduct">
+			<rowfilter procDef="//products#define">
         <bind key="table">"test.prodtest"</bind>
 			</rowfilter>
 		</keyValueGrammar>

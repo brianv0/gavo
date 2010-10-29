@@ -101,13 +101,6 @@ class CondDesc(base.Structure):
 	_phraseMaker = base.StructAttribute("phraseMaker", default=None,
 		description="Code to generate custom SQL from the input keys", 
 		childFactory=PhraseMaker, copyable=True)
-	_register = base.BooleanAttribute("register", default=False,
-		description="Register this condDesc in a global registry so it"
-		" can be referenced using predefined.")
-	_predefined = base.ActionAttribute("predefined", "replaceWithPredefined",
-		description="Name of a predefined CondDesc to base this CondDesc on."
-		"  Note that any further specifications on the CondDesc are ignored"
-		" when predefined is used.")
 	_original = base.OriginalAttribute()
 	
 	def __init__(self, parent, **kwargs):
@@ -116,20 +109,10 @@ class CondDesc(base.Structure):
 		if hasattr(self.parent, "resolveName"):
 			self.resolveName = self.parent.resolveName
 
-	def onElementComplete(self):
-		self._onElementCompleteNext(CondDesc)
-		if self.register:
-			if not self.id:
-				raise base.StructureError("Cannot register anonymous condDesc")
-			registerCondDesc(self.id, self)
-
 	def feedFromInputKey(self, ctx):
 		raise base.Replace(CondDesc.fromColumn(
 			base.resolveId(ctx, self.buildFrom, instance=self), 
 			parent_=self.parent))
-
-	def replaceWithPredefined(self, ctx):
-		raise base.Replace(getCondDesc(self.predefined).copy(self.parent))
 
 	def expand(self, *args, **kwargs):
 		"""hands macro expansion requests (from phraseMakers) upwards.
@@ -241,15 +224,6 @@ class CondDesc(base.Structure):
 	@classmethod
 	def fromColumn(cls, col, **kwargs):
 		return cls.fromInputKey(ik=inputdef.InputKey.fromColumn(col), **kwargs)
-
-
-_condDescRegistry = {}
-
-def registerCondDesc(name, condDesc):
-	_condDescRegistry[name] = condDesc
-
-def getCondDesc(name):
-	return _condDescRegistry[name]
 
 
 def mapDBErrors(excType, excValue, excTb):

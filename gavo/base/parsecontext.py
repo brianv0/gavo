@@ -10,7 +10,7 @@ Based on this, we provide some attribute definitions.
 from gavo import utils
 from gavo.base import attrdef
 from gavo.base import caches
-from gavo.utils.excs import StructureError, LiteralParseError
+from gavo.utils.excs import StructureError, LiteralParseError, RDNotFound
 
 
 def assertType(id, ob, forceType):
@@ -29,7 +29,11 @@ def resolveCrossId(id, forceType):
 	"""resolves id, where id is of the form rdId#id.
 	"""
 	rdId, rest = id.split("#")
-	srcRd = caches.getRD(rdId)
+	try:
+		srcRd = caches.getRD(rdId)
+	except RDNotFound:
+		raise StructureError("Reference to %s cannot be resolved since"
+			" the RD referenced could not be opened."%id)
 	return resolveId(srcRd, rest, forceType=forceType)
 
 

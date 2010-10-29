@@ -39,17 +39,17 @@
 		<doc><![CDATA[
 			A mixin adding standardized columns for equatorial positions to the
 			table.
-	
+
 			It consists of the fields alphaFloat, deltaFloat (float angles
 			in degrees, J2000.0) and c_x, c_y, c_z (intersection of the radius
 			vector to alphaFloat, deltaFloat with the unit sphere).
 
-			You will usually use it in conjunction with the predefined proc
-			handleEquatorialPosition that preparse these fields for you.
+			You will usually use it in conjunction with the //scs#eqFloat procDef that
+			preparse these fields for you.
 
 			Thus, you could say::
 
-				<proc predefined="handleEquatorialPosition">
+				<proc procDef="//scs#eqFloat">
 					<arg name="alpha">alphaSrc</arg>
 					<arg name="delta">deltaSrc</arg>
 				</proc>
@@ -99,10 +99,13 @@
 	</mixinDef>
 
 
-	<procDef id="handleEquatorialPosition" register="True">
+	<procDef id="eqFloat">
 		<doc>
-			is a macro that compute several derived quantities from 
-			literal equatorial coordinates.
+			A proc feeding alphaFloat and deltaFloat as well as c_[x|y|z] from
+			equatorial coordinates.
+
+			This is now considered a misguided experiment.  Do not use it in new
+			RDs.
 
 			Specifically, it generates alphaFloat, deltaFloat as well as
 			c_x, c_y, c_z (cartesian coordinates of the intersection of the 
@@ -198,7 +201,7 @@
 		</phraseMaker>
 	</condDesc>
 
-	<condDesc id="scs" register="True">
+	<condDesc id="protoInput">
 		<inputKey name="RA" type="double precision" unit="deg" ucd="pos.eq.ra"
 			description="Right Ascension (ICRS decimal)" tablehead="Alpha (ICRS)"
 			required="True">
@@ -221,7 +224,7 @@
 		</phraseMaker>
 	</condDesc>
 
-	<condDesc id="humanSCS" register="True">
+	<condDesc id="humanInput">
 		<inputKey name="hscs_pos" type="text"
 			description= "Coordinates (as h m s, d m s or decimal degrees), or SIMBAD-resolvable object" tablehead="Position/Name">
 			<property name="notForRenderer">scs.xml</property>

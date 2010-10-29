@@ -182,8 +182,8 @@ class OriginalTest(testhelpers.VerboseTest):
 		from gavo import api, svcs
 		base.caches.getRD("__system__/scs")
 		core = base.parseFromString(svcs.DBCore, 
-			'<dbCore queriedTable="data/test#adql"><condDesc predefined='
-			'"humanSCS"/></dbCore>')
+			'<dbCore queriedTable="data/test#adql"><condDesc original='
+			'"//scs#humanInput"/></dbCore>')
 		self.failUnless("genQuery", core.condDescs[0].phraseMaker.getFuncCode())
 		self.failUnless("genQuery", core.condDescs[0].phraseMaker.getSetupCode())
 

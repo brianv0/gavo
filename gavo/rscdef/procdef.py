@@ -9,8 +9,6 @@ from gavo import utils
 from gavo.rscdef import common
 from gavo.rscdef import rmkfuncs
 
-_registry = {}
-
 
 class ProcPar(base.Structure):
 	"""A parameter of a procedure definition.
@@ -158,9 +156,6 @@ class ProcDef(base.Structure, base.RestrictionMixin):
 		validValues=["t_t", "apply", "rowfilter", "sourceFields", "mixinProc"], 
 			copyable=True,
 		strip=True)
-	_register = base.BooleanAttribute("register", default=False,
-		description="Register this procDef in the global registry under its"
-			" id?")
 	_original = base.OriginalAttribute()
 
 	def getCode(self):
@@ -170,10 +165,6 @@ class ProcDef(base.Structure, base.RestrictionMixin):
 			return ""
 		else:
 			return utils.fixIndentation(self.code, "  ", governingLine=1)
-
-	def onElementComplete(self):
-		_registry[self.id] = self
-		self._onElementCompleteNext(ProcDef)
 
 
 class ProcApp(ProcDef):
@@ -188,9 +179,6 @@ class ProcApp(ProcDef):
 	_procDef = base.ReferenceAttribute("procDef", forceType=ProcDef,
 		default=base.NotGiven, description="Reference to the procedure"
 		" definition to apply", copyable=True)
-	_predefined = base.ActionAttribute("predefined", "_resolvePredefined",
-		description="Get procDef with this name from the global registry; do not"
-		" give both prodefined and procDef, since they clobber each other.")
 	_bindings = base.StructListAttribute("bindings", description=
 		"Values for parameters of the procedure definition",
 		childFactory=Binding, copyable=True)
@@ -201,9 +189,6 @@ class ProcApp(ProcDef):
 		" you have to care about name clashes yourself, though.", strip=True)
 
 	requiredType = None
-
-	def _resolvePredefined(self, ctx):
-		self._procDef.feedObject(self, _registry[self.predefined])
 
 	def completeElement(self):
 		self._completeElementNext(ProcApp)

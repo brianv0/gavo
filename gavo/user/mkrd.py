@@ -135,7 +135,7 @@ def makeDataForFITS(rd, srcName, opts):
 	grammar = grammars.FITSProdGrammar(dd)
 	grammar.feedObject("qnd", True)
 	rowgen = base.parseFromString(EventStorage, """<events>
-		<rowgen predefined="defineProduct">
+		<rowgen procDef="//products#define">
 				<arg key="table">"%s"</arg>
 				<arg key="owner">"FILLIN"</arg>
 				<arg key="embargo">"FILLIN"</arg>
@@ -223,7 +223,7 @@ def main():
 if __name__=="__main__":
 	#main()
 	base.parseFromString(EventStorage, """<events>
-		<rowgen predefined="defineProduct">
+		<rowgen procDef="//products#define">
 				<arg key="table">"%s"</arg>
 				<arg key="owner">"FILLIN"</arg>
 				<arg key="embargo">"FILLIN"</arg>

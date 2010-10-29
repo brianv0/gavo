@@ -1,7 +1,7 @@
 <resource schema="dc">
 <meta name="description">Predefined procedures in the GAVO DC.</meta>
 
-<procDef type="apply" id="simpleSelect" register="True">
+<procDef type="apply" id="simpleSelect">
 	<setup>
 		<par key="assignments"/>
 		<par key="table"/>
@@ -57,7 +57,7 @@
 	]]></code>
 </procDef>
 
-<procDef type="apply" id="resolveObject" register="True">
+<procDef type="apply" id="resolveObject">
 	<setup>
 		<par key="ignoreUnknowns">True</par>
 		<par key="identifier" late="True"/>
@@ -92,7 +92,7 @@
 	</code>
 </procDef>
 
-<procDef type="apply" id="mapValue" register="True">
+<procDef type="apply" id="mapValue">
 	<doc><![CDATA[
 	is a macro that translates vaules via a utils.NameMap
 	
@@ -150,7 +150,7 @@
 	</code>
 </procDef>
 
-<procDef type="apply" id="fullQuery" register="True">
+<procDef type="apply" id="fullQuery">
 	<doc><![CDATA[
 	runs a free query against the data base and enters the first result 
 	record into vars.

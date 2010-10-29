@@ -262,6 +262,9 @@ def _getRegionId(regionSpec, pat=re.compile("[A-Za-z_]+")):
 	if mat:
 		return mat.group()
 
+# simbadregion needs sesame services, so have them register themselves in
+# the cache
+from gavo.protocols import simbadinterface
 
 def _makeSimbadRegion(regionSpec):
 	if not _getRegionId(regionSpec)=="simbad":

@@ -90,6 +90,10 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 	_mixinDefs = base.StructListAttribute("mixdefs",
 		childFactory=rscdef.MixinDef,
 		description="Mixin definitions (usually not for users)")
+	_require = base.ActionAttribute("require", 
+		methodName="importModule",
+		description="Import the named gavo module (for when you need something"
+		" registred)")
 	# The next attrs are polymorphic through getDynamicAttribute
 	_cores = CoresAttribute("cores", 
 		description="Cores available in this resource.", copyable=True,
@@ -123,6 +127,9 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 
 	def __repr__(self):
 		return "<resource descriptor for %s>"%self.sourceId
+
+	def importModule(self, ctx):
+		utils.loadInternalObject(self.require, "__doc__")
 
 	def getDynamicAttribute(self, name):
 		try:
@@ -321,5 +328,3 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
 
 
 base.caches.makeCache("getRD", getRD)
-
-base.caches.getRD("__system__/procs")  # pull in predefined procs
