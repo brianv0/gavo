@@ -92,10 +92,25 @@ class MixinDef(activetags.ReplayBase):
 
 
 class MixinAttribute(base.SetOfAtomsAttribute):
+	"""An attribute defining a mixin.
+
+	This currently is only offered on tables, though in principle we could
+	have it anywhere now, though we might want some compatibility checking
+	then.
+
+	This is never copyable since this would meaning playing the same
+	stuff into an object twice.
+
+	This means trouble for magic scripts (in particular processLate); e.g.,
+	if you copy a table mixing in products, the data element for that table
+	will not receive the product table.  Goes to show the whole process
+	mess is ugly and needs a good idea.
+	"""
 	def __init__(self, **kwargs):
 		kwargs["itemAttD"] = base.UnicodeAttribute("mixin", strip=True)
 		kwargs["description"] = kwargs.get("description", 
 			"Reference to a mixin this table should contain.")
+		kwargs["copyable"] = False
 		base.SetOfAtomsAttribute.__init__(self, "mixin", **kwargs)
 
 	def feed(self, ctx, instance, mixinRef):
