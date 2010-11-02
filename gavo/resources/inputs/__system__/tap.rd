@@ -10,7 +10,8 @@
 
 	<meta name="_longdoc" format="rst"><![CDATA[
 	You will usually want to use some sort of client to query TAP services;
-	the VODesktop_ suite contains one, the `GAVO VOTable library`_ another.
+	the VODesktop_ suite contains one, the `GAVO VOTable library`_ another,
+	and there's the `TAP shell`_.
 	You can, however, use our service in an XML-enabled browser (see below under
 	`Overview <#overview>`_), too: click on "New job..." in the job list,
 	enter your query, click "Set query", then "Execute query".  Reload the
@@ -20,7 +21,8 @@
 	Also see the `table metadata`_ of the tables exposed here.
 
 	.. _VODesktop: http://www.astrogrid.org/wiki/Install/Downloads
-	.. _GAVO VOTable library: http://vo.ari.uni-heidelberg.de/soft
+	.. _GAVO VOTable library: http://vo.ari.uni-heidelberg.de/soft/subpkgs
+	.. _TAP shell: http://vo.ari.uni-heidelberg.de/soft/tapsh
 	.. _table metadata: /__system__/tap/run/tableMetadata
 
 
@@ -47,6 +49,8 @@
 	<table id="schemas" onDisk="True" system="True"
 			forceUnique="True" dupePolicy="drop" primary="schema_name"
 			readRoles="defaults,untrusted">
+		<meta name="description">Schmemas containing tables available for ADQL
+			querying.</meta>
 	<!-- since schemata may be shared between RDs, nothing will ever
 	     get deleted from here -->
 		<column name="schema_name" type="text" 
@@ -59,6 +63,7 @@
 	
 	<table id="tables" onDisk="True" system="True" primary="table_name"
 			readRoles="defaults,untrusted">
+		<meta name="description">Tables available for ADQL querying.</meta>
 		<column name="schema_name" type="text" 
 			description="Fully qualified schema name"/>
 		<column name="table_name" type="text" 
@@ -74,6 +79,8 @@
 
 	<table id="columns" onDisk="True" system="True"
 			primary="table_name,column_name" readRoles="defaults,untrusted">
+		<meta name="description">Columns in tables available for ADQL querying.
+		</meta>
 		<column name="table_name" type="text" 
 			description="Fully qualified table name"/>
 		<column name="column_name" type="text" description="Column name"/>
@@ -101,6 +108,9 @@
 
 	<table id="keys" onDisk="True" system="True"
 			primary="key_id" readRoles="defaults,untrusted">
+		<meta name="description">Foreign key relationships between tables 
+			available for ADQL querying.
+		</meta>
 		<column name="key_id" type="text" 
 			description="Unique key identifier"/>
 		<column name="from_table" type="text" 
@@ -116,6 +126,9 @@
 
 	<table id="key_columns" onDisk="True" system="True"
 			readRoles="defaults,untrusted">
+		<meta name="description">Columns participating in foreign key 
+			relationships between tables available for ADQL querying.
+		</meta>
 		<column name="key_id" type="text" 
 			description="Key identifier from TAP_SCHEMA.keys"/>
 		<column name="from_column" type="text" 
@@ -125,11 +138,15 @@
 		<column name="sourceRD" type="text" description="Id of the originating rd"/>
 	</table>
 
-	<data id="importTablesFromRD">
+	<data id="importTablesFromRD" auto="False">
 		<embeddedGrammar>
 			<iterator>
 				<code>
 					rd = self.sourceToken
+					# the moribund property is set by external code if the
+					# rd is to be removed from TAP_SCHEMA.  The removal
+					# is already done by the the newSource script in make
+					# below, thus we only need to do nothing here.
 					if rd.getProperty("moribund", False):
 						return
 					for table in rd.tables:
@@ -180,7 +197,7 @@
 		</make>
 	</data>
 
-	<data id="importColumnsFromRD">
+	<data id="importColumnsFromRD" auto="False">
 		<embeddedGrammar>
 			<iterator>
 				<setup>
@@ -222,7 +239,7 @@
 		</make>
 	</data>
 
-	<data id="importFkeysFromRD">
+	<data id="importFkeysFromRD" auto="False">
 		<embeddedGrammar>
 			<iterator>
 				<code>
@@ -271,6 +288,30 @@
 		</make>
 		<make table="key_columns" rowmaker="build_key_columns">
 			<script original="removeStale"/>
+		</make>
+	</data>
+
+	<data id="createSchema">
+		<!-- run this to create the TAP schema initially, or to recreate it
+		later.  Use gavo pub -ma to re-insert info on the currently published
+		tables after recreation. -->
+		<make table="schemas"/>
+		<make table="tables"/>
+		<make table="columns"/>
+		<make table="keys"/>
+		<make table="key_columns">
+			<!-- this script is for bootstrapping.  The tables have no
+			  adql attribute since tap_schema isn't there when the tables
+				are imported.  Thus, I need to fiddle them in when they are
+				there; this happens here" -->
+			<script type="postCreation" lang="python" 
+					name="Add TAP_SCHEMA to TAP_SCHEMA">
+				from gavo.protocols import tap
+				rd = table.tableDef.rd
+				for id in "schemas tables columns keys key_columns".split():
+					rd.getById(id).adql = True
+				tap.publishToTAP(rd, table.connection)
+			</script>
 		</make>
 	</data>
 

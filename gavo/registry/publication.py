@@ -161,8 +161,10 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 		msg = None
 
 		if metaToo:
+			from gavo.protocols import tap
 			for dependentDD in rd:
 				rsc.Data.create(dependentDD, connection=connection).updateMeta()
+			tap.publishToTAP(rd, connection)
 	connection.commit()
 	return recordsWritten
 
@@ -170,8 +172,7 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 def importFixed():
 	connection = base.getDBConnection("admin")
 	rd = base.caches.getRD(STATICRSC_ID)
-	dd = rd.getById("tables")
-	dd.grammar = _staticRscGrammar
+	dd = base.caches.getRD("//services").getById("tables").copy(rd)
 	rsc.makeData(dd, forceSource=rd, parseOptions=rsc.parseValidating,
 		connection=connection)
 	connection.commit()

@@ -112,6 +112,21 @@ def cleanuws(querier, args):
 		includeCompleted=args.includeCompleted)
 
 
+@exposedFunction(help="Re-import column information from all RDs"
+	" (incl. TAP_SCHEMA; like gavo imp -m <all rds>)")
+def allcols(querier, args):
+	from gavo import registry
+	from gavo import rsc
+	from gavo import rscdesc
+	from gavo.protocols import tap
+
+	for rdId in registry.findAllRDs():
+		rd = base.caches.getRD(rdId)
+		for dd in rd:
+			rsc.Data.create(dd, connection=querier.connection).updateMeta()
+		tap.publishToTAP(rd, querier.connection)
+
+
 def main():
 	base.setDBProfile("admin")
 	querier = base.SimpleQuerier()

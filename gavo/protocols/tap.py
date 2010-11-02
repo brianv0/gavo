@@ -88,7 +88,7 @@ def publishToTAP(rd, connection):
 def unpublishFromTAP(rd, connection):
 	"""removes all information originating from rd from TAP_SCHEMA.
 	"""
-	rd.setProperty("moribund", "True") # the embedded grammars take this
+	rd.setProperty("moribund", "True") # the embedded grammar take this
 	                                   # to mean "kill this"
 	publishToTAP(rd, connection)
 	rd.clearProperty("moribund")
