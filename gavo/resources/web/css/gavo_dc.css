@@ -559,3 +559,17 @@ img.logo {
 	padding: 0px;
 	margin-bottom: 0px;
 }
+
+table.docutils {
+	empty-cells: show;
+	border-style: none;
+	border-spacing: 0px;
+	border-collapse: collapse;
+	border-top: 2px solid #999999;
+	border-bottom: 2px solid #999999;
+}	
+
+table.docutils td {
+	padding: 0.5ex;
+	border: 1px solid #999999;
+}
