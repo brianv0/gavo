@@ -533,7 +533,8 @@ table#addSelection tr td {
 }
 
 dl.footnotes {
-	margin-top: 1.5ex;
+	border-top: 1px solid black;
+	margin-top: 3ex;
 }
 
 dt {
@@ -543,6 +544,9 @@ dt {
 
 .notehead {
 	font-weight: bold;
+	border-left: 3px solid blue;
+	padding-left: 3px;
+	margin-top: 2ex;
 }
 
 a.linkicon img {
