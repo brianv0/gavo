@@ -1,8 +1,9 @@
 <!-- a template for the sidebar on the GAVO DC.  
 Use renderers from grend.GavoRenderMixin here -->
-<div id="sidebar" 
-		xmlns:n="http://nevow.com/ns/nevow/0.1" 
-		xmlns="http://www.w3.org/1999/xhtml">
+<n:invisible 
+	xmlns:n="http://nevow.com/ns/nevow/0.1" 
+	xmlns="http://www.w3.org/1999/xhtml">
+<div id="sidebar">
 	<div class="sidebaritem">
 		<a href="/" n:render="rootlink">
 			<img src="/static/img/logo_medium.png" class="silentlink"
@@ -44,3 +45,4 @@ Use renderers from grend.GavoRenderMixin here -->
 		<n:attr name="href" n:render="rootlink">/seffe/<n:invisible n:data="rdId" n:render="string"/></n:attr>
 					Admin me</a></n:invisible></div>
 </div>
+</n:invisible>

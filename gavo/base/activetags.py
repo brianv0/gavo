@@ -377,7 +377,9 @@ class Loop(DelayedReplayBase):
 		self._completeElementNext(Loop)
 		for row in self._getRowIterator():
 			for name, value in row.iteritems():
-				setattr(self, "macro_"+name.strip(), lambda v=value.strip(): v)
+				if value:
+					value = value.strip()
+				setattr(self, "macro_"+name.strip(), lambda v=value: v)
 			self._replayer()
 
 			

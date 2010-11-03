@@ -536,6 +536,11 @@ dl.footnotes {
 	margin-top: 1.5ex;
 }
 
+dt {
+	margin-top: 1ex;
+	font-weight: bold;
+}
+
 .notehead {
 	font-weight: bold;
 }

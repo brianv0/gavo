@@ -701,7 +701,7 @@ class NoteMeta(MetaValue):
 
 	def _getContentAsHTML(self, content):
 		return ('<dt class="notehead">'
-				'<a name="note-%s">Note %s</a><dt><dd>%s</dd>')%(
+				'<a name="note-%s">Note %s</a></dt><dd>%s</dd>')%(
 			self.tag,
 			self.tag,
 			MetaValue._getContentAsHTML(self, content))

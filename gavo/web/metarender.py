@@ -227,8 +227,7 @@ class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 		"""renders the footnotes as a definition list.
 		"""
 		return T.dl(class_="footnotes")[[
-				T.a(name=self.getIdFor(note))[
-					T.xml(note.getContent(targetFormat="html"))]
+				T.xml(note.getContent(targetFormat="html"))
 			for note in sorted(self.footnotes, key=lambda n: n.tag)]]
 
 	def data_inputFields(self, ctx, data):
