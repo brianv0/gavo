@@ -26,6 +26,7 @@ ParserElement.setDefaultWhitespaceChars(" \t")
 from gavo.base import caches
 
 from gavo.base.attrdef import *
+
 from gavo.base.complexattrs import *
 
 from gavo.base.config import(
@@ -44,7 +45,8 @@ ui = EventDispatcher()
 del EventDispatcher
 
 from gavo.utils import Undefined
-from gavo.utils.excs import *
+
+from gavo.base.common import *
 
 from gavo.base.literals import *
 
@@ -67,7 +69,8 @@ from gavo.base.sqlsupport import (getDBConnection, getDefaultDBConnection,
 	SimpleQuerier, encodeDBMsg)
 
 from gavo.base.structure import (Structure, ParseableStructure, 
-	DataContent, makeStruct, RestrictionMixin, Replace)
+	DataContent, makeStruct, RestrictionMixin)
+
 
 from gavo.base.typesystems import *
 

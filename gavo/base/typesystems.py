@@ -38,9 +38,9 @@ import numpy
 import re
 import time
 
-from gavo.utils.excs import Error
+from gavo.base import common
 
-class ConversionError(Error):
+class ConversionError(common.Error):
 	pass
 
 

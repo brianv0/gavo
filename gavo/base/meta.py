@@ -38,7 +38,7 @@ except ImportError:
 
 from gavo import utils
 from gavo.base import attrdef
-from gavo.base import structure
+from gavo.base import common
 
 
 class MetaError(utils.Error):
@@ -90,7 +90,7 @@ def parseKey(metaKey):
 	return metaKey.split(".")
 
 
-class MetaParser(structure.Parser):
+class MetaParser(common.Parser):
 	"""is a structure parser that kicks in when meta information is 
 	parsed from XML.
 	"""
@@ -124,7 +124,7 @@ class MetaParser(structure.Parser):
 		content = utils.fixIndentation(content, "", 1).rstrip()
 		mv = makeMetaValue(content, **self.attrs)
 		if not "name" in self.attrs:
-			raise structure.StructureError("meta elements must have a"
+			raise common.StructureError("meta elements must have a"
 				" name attribute")
 		return self.attrs.pop("name"), mv
 
@@ -158,9 +158,6 @@ class MetaAttribute(attrdef.AttributeDef):
 	def default_(self):
 		return {}
 
-	def getParser(self, parent):
-		return MetaParser(parent, parent)
-
 	def feedObject(self, instance, value):
 		self.meta_ = value
 
@@ -181,7 +178,7 @@ class MetaAttribute(attrdef.AttributeDef):
 		return oldDict
 	
 	def create(self, parent, ctx, name):
-		return self  # we're it...
+		return MetaParser(parent, parent)
 
 	def makeUserDoc(self):
 		return ("**meta** -- a piece of meta information, giving at least a name"
@@ -518,7 +515,7 @@ class MetaValue(MetaMixin):
 	def __init__(self, content="", format="plain"):
 		MetaMixin.__init__(self)
 		if format not in self.knownFormats:
-			raise structure.StructureError(
+			raise common.StructureError(
 				"Unknown meta format '%s'; allowed are %s."%(
 					format, ", ".join(self.knownFormats)))
 		self.content = content

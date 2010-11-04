@@ -12,11 +12,11 @@ from cStringIO import StringIO
 
 from gavo import utils
 from gavo.base import attrdef
+from gavo.base import common
 from gavo.base import complexattrs
 from gavo.base import macros
 from gavo.base import parsecontext
 from gavo.base import structure
-from gavo.utils import excs
 
 
 class ActiveTag(structure.Structure):
@@ -43,7 +43,7 @@ class GhostMixin(object):
 	"""
 	def onElementComplete(self):
 		self._onElementCompleteNext(GhostMixin)
-		raise structure.Ignore(self)
+		raise common.Ignore(self)
 
 
 class _PreparedEventSource(object):
@@ -158,7 +158,7 @@ class Edit(EmbeddedStream):
 	def onElementComplete(self):
 		mat = self.refPat.match(self.ref)
 		if not mat:
-			raise excs.LiteralParseError("ref", self.ref, 
+			raise common.LiteralParseError("ref", self.ref, 
 				hint="edit references have the form <element name>[<value of"
 					" name or id attribute>]")
 		self.triggerEl, self.triggerId = mat.groups()
@@ -261,7 +261,7 @@ class DelayedReplayBase(ReplayBase, GhostMixin):
 	def _setupReplay(self, ctx):
 		sources = [s for s in [self.source, self.events] if s]
 		if len(sources)!=1:
-			raise excs.StructureError("Need exactly one of source and events"
+			raise common.StructureError("Need exactly one of source and events"
 				" on %s elements"%self.name_)
 		stream = sources[0].events
 		def replayer():
@@ -305,7 +305,7 @@ class GeneratorAttribute(attrdef.UnicodeAttribute):
 	"""
 	def feed(self, ctx, instance, literal):
 		if ctx.restricted:
-			raise excs.RestrictedElement("codeItems")
+			raise common.RestrictedElement("codeItems")
 		attrdef.UnicodeAttribute.feed(self, ctx, instance, literal)
 		src = utils.fixIndentation(
 			getattr(instance, self.name_), 
@@ -369,7 +369,7 @@ class Loop(DelayedReplayBase):
 			self._makeRowIteratorFromCSV(),
 			self._makeRowIteratorFromCode()] if ri]
 		if len(rowIterators)!=1:
-				raise excs.StructureError("Must give exactly one data source in"
+				raise common.StructureError("Must give exactly one data source in"
 					" LOOP")
 		return rowIterators[0]
 			

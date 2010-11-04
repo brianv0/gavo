@@ -49,6 +49,15 @@ class PalCollection(structure.ParseableStructure):
 	_pals = base.StructListAttribute("pals", childFactory=Palette)
 # End of test struct defs
 
+class Image(structure.ParseableStructure):
+	name_ = "image"
+	_pal = base.ReferenceAttribute("pal", forceType=Palette)
+
+class Root(structure.ParseableStructure):
+	name_ = "root"
+	_ims = base.StructListAttribute("ims", childFactory=Image)
+	_pals = base.StructListAttribute("pals", childFactory=Palette)
+
 
 class SimpleStructureTest(unittest.TestCase):
 	"""tests for very basic structures.
@@ -322,6 +331,28 @@ class BeforeTest(testhelpers.VerboseTest):
 				_att3 = base.UnicodeAttribute("c", before="b")
 		self.assertRaises(ValueError, defineBadStruct)
 
+
+class ReferenceAttTest(testhelpers.VerboseTest):
+	def testRealReference(self):
+		res = base.parseFromString(Root, '<root>'
+			'<pal id="pal1"><color r="20"/></pal>'
+			'<image pal="pal1"/></root>')
+		self.assertEqual(res.ims[0].pal.colors[0].r, 20)
+		self.assertEqual(res.ims[0].pal.parent, res)
+
+	def testElementReference(self):
+		res = base.parseFromString(Root, '<root>'
+			'<pal id="pal1"><color r="20"/></pal>'
+			'<image><pal>pal1</pal></image></root>')
+		self.assertEqual(res.ims[0].pal.colors[0].r, 20)
+		self.assertEqual(res.ims[0].pal.parent, res)
+
+	def testImmediateReference(self):
+		res = base.parseFromString(Root, '<root>'
+			'<image><pal id="pal1"><color r="20"/></pal>'
+			'</image></root>')
+		self.assertEqual(res.ims[0].pal.colors[0].r, 20)
+		self.assertEqual(res.ims[0].pal.parent, res.ims[0])
 
 
 if __name__=="__main__":

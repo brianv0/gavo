@@ -11,20 +11,21 @@ from pyparsing import Word, OneOrMore, ZeroOrMore, QuotedString, Forward,\
 
 from gavo import utils
 from gavo.base import attrdef
+from gavo.base import common
 from gavo.base import complexattrs
 from gavo.base import config
 from gavo.base import structure
-from gavo.utils import excs 
 
 
-class MacroError(excs.StructureError):
+class MacroError(common.StructureError):
 	"""is raised when something bad happens during macro expansion.
 
 	It is constructed with an error message, a macro name, and optionally
 	a hint and a position.
 	"""
 	def __init__(self, message, macroName, hint=None, pos=None):
-		excs.StructureError.__init__(self, macroName+" failed", pos=pos, hint=hint)
+		common.StructureError.__init__(
+			self, macroName+" failed", pos=pos, hint=hint)
 		self.args = [message, macroName, hint, pos]
 		self.macroName, self.message = macroName, message
 

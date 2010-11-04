@@ -10,7 +10,7 @@ Based on this, we provide some attribute definitions.
 from gavo import utils
 from gavo.base import attrdef
 from gavo.base import caches
-from gavo.utils.excs import StructureError, LiteralParseError, RDNotFound
+from gavo.base import common
 
 
 def assertType(id, ob, forceType):
@@ -19,7 +19,7 @@ def assertType(id, ob, forceType):
 	"""
 	if forceType:
 		if not isinstance(ob, forceType):
-			raise StructureError("Reference to '%s' yielded object of type"
+			raise common.StructureError("Reference to '%s' yielded object of type"
 				" %s, expected %s"%(id, ob.__class__.__name__, 
 				forceType.__name__))
 	return ob
@@ -31,8 +31,8 @@ def resolveCrossId(id, forceType):
 	rdId, rest = id.split("#")
 	try:
 		srcRd = caches.getRD(rdId)
-	except RDNotFound:
-		raise StructureError("Reference to %s cannot be resolved since"
+	except common.RDNotFound:
+		raise common.StructureError("Reference to %s cannot be resolved since"
 			" the RD referenced could not be opened."%id)
 	return resolveId(srcRd, rest, forceType=forceType)
 
@@ -45,7 +45,7 @@ def resolveComplexId(ctx, id, forceType=None):
 	try:
 		pId, name = id.split(".")
 	except ValueError:
-		raise utils.logOldExc(LiteralParseError("id", id, 
+		raise utils.logOldExc(common.LiteralParseError("id", id, 
 			hint="A complex reference (parent.name) is expected here"))
 	container = ctx.getById(pId)
 	try:
@@ -53,9 +53,9 @@ def resolveComplexId(ctx, id, forceType=None):
 			if hasattr(ob, "name") and ob.name==name:
 				return assertType(id, ob, forceType)
 	except TypeError:
-		raise utils.logOldExc(StructureError("Element %s is of type %s"
+		raise utils.logOldExc(common.StructureError("Element %s is of type %s"
 			" and thus unsuitable for name path"%(pId, type(ob))))
-	raise StructureError("Element %s has no child with name %s"%(
+	raise common.StructureError("Element %s has no child with name %s"%(
 		pId, name))
 
 
@@ -65,7 +65,7 @@ def _resolveOnNamepath(ctx, id, instance):
 	if (instance and instance.parent and 
 			hasattr(instance.parent, "resolveName")):
 		return instance.parent.resolveName(ctx, id)
-	raise StructureError("No such name on name path: %s"%id)
+	raise common.StructureError("No such name on name path: %s"%id)
 
 
 def resolveId(ctx, id, instance=None, forceType=None):
@@ -95,7 +95,7 @@ def resolveId(ctx, id, instance=None, forceType=None):
 	if "#" in id:
 		return resolveCrossId(id, forceType)
 	if ctx is None:
-		raise StructureError("Cannot intra-reference when parsing without"
+		raise common.StructureError("Cannot intra-reference when parsing without"
 			" a context")
 	if "." in id:
 		return resolveComplexId(ctx, id, forceType)
@@ -104,7 +104,7 @@ def resolveId(ctx, id, instance=None, forceType=None):
 	if instance is not None:
 		try:
 			srcOb = _resolveOnNamepath(ctx, id, instance)
-		except StructureError:  # no such named element, try element with id
+		except common.StructureError:  # no such named element, try element with id
 			pass
 	if srcOb is None and ctx is not None:
 		srcOb = ctx.getById(id, forceType)
@@ -160,7 +160,7 @@ class OriginalAttribute(attrdef.AtomicAttribute):
 
 	def feedObject(self, instance, original, ctx=None):
 		if not instance.pristine:
-			raise utils.StructureError("Original must be applied before modifying"
+			raise common.StructureError("Original must be applied before modifying"
 				" the destination structure.", hint="You should normally use"
 				" original only as attribute.  If you insist on having it as"
 				" an element, it must be the first one and all other structure"
@@ -173,6 +173,50 @@ class OriginalAttribute(attrdef.AtomicAttribute):
 			resolveId(ctx, literal, instance, self.forceType), ctx)
 
 
+class _ReferenceParser(common.Parser):
+	"""A helper class for the ReferenceAttribute.
+	"""
+	def __init__(self, refAttr, parent):
+		self.refAttr, self.parent = refAttr, parent
+		self.child = None
+
+	def _makeChild(self):
+		# creates an "immediate value" in case we're not passed a plain
+		# reference.  This will bomb unless the parent attribute says
+		# what kind of object the reference should point to.
+		if self.refAttr.forceType is None:
+			raise common.StructureError("Only references allowed for %s, but"
+				" an immediate object was found"%self.refAttr.name_, 
+				hint="This means that"
+				" you tried to replace a reference to an element with"
+				" the element itself.  This is only allowed if the reference"
+				" forces a type, which is not the case here.")
+		self.child = self.refAttr.forceType(self.parent)
+
+	def start_(self, ctx, name, value):
+		# start event: we have an immediate child.  Create it and feed this
+		# event to the newly created child.
+		self._makeChild()
+		return self.child.feedEvent(ctx, "start", name, value)
+	
+	def end_(self, ctx, name, value):
+		if self.child:
+			self.child.finishElement()
+			self.parent.feedObject(name, self.child)
+		return self.parent
+	
+	def value_(self, ctx, name, value):
+		# value event: If it's a content_, it's a reference, else it's an
+		# attribute on a child of ours.
+		if name=="content_":
+			self.refAttr.feed(ctx, self.parent, value)
+			return self
+		else:
+			self._makeChild()
+			return self.child.feedEvent(ctx, "value", name, value)
+
+
+
 class ReferenceAttribute(attrdef.AtomicAttribute):
 	"""An attribute keeping a reference to some other structure
 
@@ -181,7 +225,7 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 	ok for many applications, but it will certainly not work for, e.g.
 	tables (roughly, it's always trouble when an attribute value's 
 	implementation refers to self.parent; this is particularly true
-	for structures having an RDAttribute.
+	for structures having an RDAttribute).
 	"""
 	typeDesc_ = "id reference"
 
@@ -213,6 +257,13 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 		else: # See HACK notice in feed
 			setattr(value, "unparse-approved-anonymous", True)
 			return value
+
+	def create(self, structure, ctx, name):
+		# we don't know at this point whether or not the next event will be
+		# an open (-> create a new instance of self.forceType) or a
+		# value (-> resolve).  Thus, create an intermediate parser that
+		# does the right thing.
+		return _ReferenceParser(self, structure)
 
 
 class ParseContext(object):
@@ -279,7 +330,7 @@ class ParseContext(object):
 		resource descriptor resolution.
 		"""
 		if id not in self.idmap:
-			raise StructureError("Reference to unknown item '%s'."%id,
+			raise common.StructureError("Reference to unknown item '%s'."%id,
 				hint="Elements referenced must occur lexically (i.e., within the"
 					" input file) before the reference.  If this actually gives"
 					" you trouble, contact the authors.  Usually, though, this"

@@ -59,7 +59,7 @@ import re
 from gavo import utils
 from gavo.utils import Undefined
 from gavo.base import literals
-from gavo.utils.excs import LiteralParseError, StructureError
+from gavo.base.common import LiteralParseError, StructureError
 
 
 class NotGivenType(type):

@@ -10,20 +10,18 @@ of internal structure, add methods
 	- create(instance, ctx, name) -> structure -- creates a new object suitable
 		as attribute value and returns it (for stuctures, instance becomes the
 		parent of the new structure as a side effect of this operation).  This 
-		is what should later be fed to feedObject and must have a getParser 
-		attribute.  The name argument gives the name of the element that caused 
-		the create call, allowing for polymorphic attrs.
-	- getParser(instance) -> callable -- returns an object that has
-		a feedEvent method handling parse events
+		is what should later be fed to feedObject.  It must work as a parser,
+		i.e., have a feedEvent method. The name argument gives the name of 
+		the element that caused the create call, allowing for polymorphic attrs.
 	- replace(instance, oldVal, newVal) -> None -- replaces oldVal with newVal; this
 		works like feedObject, except that an old value is overwritten.
 	- iterEvents(instance) -> events -- yields events to recreate its value
 		on another instance.
 """
 
-from gavo.base import structure
 from gavo.base import attrdef
-from gavo.utils.excs import *
+from gavo.base import common
+from gavo.base import structure
 
 
 class CollOfAtomsAttribute(attrdef.AtomicAttribute):
@@ -111,9 +109,10 @@ class SetOfAtomsAttribute(CollOfAtomsAttribute):
 		return set(getattr(instance, self.name_))
 
 
-class DictParser(structure.Parser):
+class _DictAttributeParser(common.Parser):
 	def __init__(self, dict, nextParser, parseValue, keyName):
-		self.dict, self.nextParser, self.parseValue = dict, nextParser, parseValue
+		self.dict, self.nextParser, self.parseValue =\
+			dict, nextParser, parseValue
 		self.key, self.keyName = attrdef.Undefined, keyName
 
 	def value_(self, ctx, name, value):
@@ -121,16 +120,16 @@ class DictParser(structure.Parser):
 			self.key = value
 		elif name=="content_":
 			if self.key is attrdef.Undefined:
-				raise StructureError("Content '%s' has no %s attribute"%(
+				raise common.StructureError("Content '%s' has no %s attribute"%(
 					value, self.keyName))
 			self.dict[self.key] = self.parseValue(value)
 			self.key = attrdef.Undefined
 		else:
-			raise StructureError("No %s attributes on mappings"%name)
+			raise common.StructureError("No %s attributes on mappings"%name)
 		return self
 	
 	def start_(self, ctx, name, value):
-		raise StructureError("No %s elements in mappings"%name)
+		raise common.StructureError("No %s elements in mappings"%name)
 	
 	def end_(self, ctx, name, value):
 		if self.key is not attrdef.Undefined:
@@ -162,12 +161,9 @@ class DictAttribute(attrdef.AttributeDef):
 		setattr(instance, self.name_, value)
 		self.doCallbacks(instance, value)
 
-	def getParser(self, instance):
-		return DictParser(getattr(instance, self.name_), 
-			instance.getParser(instance), self.itemAttD.parse, keyName=self.keyName)
-
 	def create(self, parent, ctx, name):
-		return self
+		return _DictAttributeParser(getattr(parent, self.name_), 
+			parent, self.itemAttD.parse, keyName=self.keyName)
 
 	def iterEvents(self, instance):
 		for key, value in getattr(instance, self.name_).iteritems():
@@ -251,10 +247,9 @@ class StructAttribute(attrdef.AttributeDef):
 		self.doCallbacks(instance, value)
 
 	def feed(self, ctx, instance, value):
-		raise LiteralParseError("%s items have no literals"%self.name_,
+		raise common.LiteralParseError("%s items have no literals"%self.name_,
 			self.name_, value, hint="These attributes have no literals at all, i.e.,"
-				" they are for internal use only.  You cannot specify them in"
-				" resource descriptors.")
+				" they are for internal use only.")
 
 	def create(self, structure, ctx, name):
 		res = self.childFactory(structure)

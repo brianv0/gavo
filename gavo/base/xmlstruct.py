@@ -15,9 +15,9 @@ from xml.sax.handler import ContentHandler
 
 from gavo import utils
 from gavo.base import activetags
+from gavo.base import common
 from gavo.base import parsecontext
 from gavo.base import structure
-from gavo.utils import excs
 
 
 ALL_WHITESPACE = re.compile("\s*$")
@@ -53,7 +53,7 @@ class EventProcessor(object):
 
 	def _feedToAtom(self, type, name, value):
 		if type=='start':
-			raise excs.StructureError("%s elements cannot have %s children"%(
+			raise common.StructureError("%s elements cannot have %s children"%(
 				self.next, name))
 		elif type=='value' or type=="parsedvalue":
 			self.curParser.feedEvent(self.ctx, 'value', self.next, value)
@@ -91,7 +91,7 @@ class EventProcessor(object):
 		method to feed "real" events to is feed.
 		"""
 		if name!=self.rootStruct.name_:
-			raise excs.StructureError("Expected root element %s, found %s"%(
+			raise common.StructureError("Expected root element %s, found %s"%(
 				self.rootStruct.name_, name))
 		if evType=="start":
 			if isinstance(self.rootStruct, type):
@@ -101,7 +101,7 @@ class EventProcessor(object):
 			self.result.idmap = ctx.idmap
 			return self.result
 		else:
-			raise excs.StructureError("Bad document structure")
+			raise common.StructureError("Bad document structure")
 	
 	def setRoot(self, root):
 		"""artifically inserts an instanciated root element.
@@ -131,7 +131,7 @@ def _synthesizeAttributeEvents(evProc, context, attrs):
 	ref = attrs.pop("ref", None)
 	if ref:
 		evProc.feed("value", "ref", ref)
-#		raise excs.Error("The ref attribute was a bad error.")
+#		raise common.Error("The ref attribute was a bad error.")
 	for key, val in attrs.iteritems():
 		evProc.feed("value", key, val)
 
