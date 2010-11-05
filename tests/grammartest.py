@@ -184,6 +184,17 @@ class ColDefTest(testhelpers.VerboseTest):
 		del res["parser_"]
 		self.assertEqual(res, {'a': 'efg', 'B': 'abcde'})
 
+	def testBeauty(self):
+		g = base.parseFromString(columngrammar.ColumnGrammar,
+			"""<columnGrammar><colDefs>
+				a:      5- 
+				B:      -5
+				gnugga: 1-2
+				</colDefs></columnGrammar>""")
+		res = list(g.parse(StringIO("abcdefg")))[0]
+		del res["parser_"]
+		self.assertEqual(res, {'a': 'efg', 'B': 'abcde', 'gnugga': 'ab'})
+
 	def testErrorBadChar(self):
 		self.assertRaisesWithMsg(base.LiteralParseError,
 			"At (1, 34): 'a:5-% B:-5' is not a valid value for colDefs",

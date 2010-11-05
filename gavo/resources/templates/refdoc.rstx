@@ -410,7 +410,8 @@ grammarXML and outputTableXML, like this::
       <inputKey name="fileSrc" type="file" tablehead="Local file"
         description="A local file to upload (overrides source URL if given).">
       <inputKey name="tableName" type="text" tablehead="Target Table"
-        description="Name of the table to match against.  Only tables available for ADQL (see there) can be used here.">
+        description="Name of the table to match against.  
+          Only tables available for ADQL (see there) can be used here.">
         <values fromdb="tablename from dc_tables where adql=True"/>
       </inputKey>
       </contextGrammar>

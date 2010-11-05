@@ -101,6 +101,8 @@ class ColumnGrammar(Grammar):
 		" way of defining cols", methodName="_parseColDefs")
 
 	def _getColDefGrammar(self):
+# XXX TODO: make a proper context manager for this.
+		pyparsing.ParserElement.setDefaultWhitespaceChars("\n\t\r ")
 		intLiteral = pyparsing.Word(pyparsing.nums)
 		# need to manually swallow whitespace after literals
 		blindWhite = pyparsing.Suppress(pyparsing.Optional(pyparsing.White()))
@@ -118,6 +120,7 @@ class ColumnGrammar(Grammar):
 			).addParseAction(lambda s,p,t: (t[0], t[2]))
 		colDefs = pyparsing.ZeroOrMore(clause)+pyparsing.StringEnd()
 		# range.setDebug(True);identifier.setDebug(True);clause.setDebug(True)
+		pyparsing.ParserElement.setDefaultWhitespaceChars("\t ")
 		return colDefs
 
 	def _parseColDefs(self, ctx):
