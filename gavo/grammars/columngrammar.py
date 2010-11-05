@@ -3,7 +3,10 @@ A grammar that just splits the source into input lines and then
 lets you name character ranges.
 """
 
+import pyparsing
+
 from gavo import base
+from gavo import utils
 from gavo.grammars.common import Grammar, FileRowIterator
 
 
@@ -75,6 +78,16 @@ class ColumnGrammar(Grammar):
 	This works by using the colRanges attribute like <col key="mag">12-16</col>,
 	which will take the characters 12 through 16 inclusive from each input
 	line to build the input column mag.
+
+	As a shortcut, you can also use the colDefs attribute; it contains
+	a string with of the form {<key>:<range>}, i.e.,
+	a whitespace-separated list of colon-separated items of key and range
+	as accepted by cols, e.g.::
+		
+		<colDefs>
+			a: 3-4
+			_u: 7
+		</colDefs>
 	"""
 	name_ = "columnGrammar"
 
@@ -84,5 +97,39 @@ class ColumnGrammar(Grammar):
 		" source keys to column ranges.", itemAttD=ColRangeAttribute("col"))
 	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"
 		" while reading?", default=False)
-	
+	_colDefs = base.ActionAttribute("colDefs", description="Shortcut"
+		" way of defining cols", methodName="_parseColDefs")
+
+	def _getColDefGrammar(self):
+		intLiteral = pyparsing.Word(pyparsing.nums)
+		# need to manually swallow whitespace after literals
+		blindWhite = pyparsing.Suppress(pyparsing.Optional(pyparsing.White()))
+		dash = blindWhite + pyparsing.Literal("-") + blindWhite
+
+		range = pyparsing.Combine(
+			dash + blindWhite + intLiteral
+			| intLiteral + pyparsing.Optional(dash + pyparsing.Optional(intLiteral)))
+		range.setName("Column range")
+
+		identifier = pyparsing.Regex(utils.identifierPattern.pattern[:-1])
+		identifier.setName("Column key")
+
+		clause = (identifier + pyparsing.Literal(":") + blindWhite + range
+			).addParseAction(lambda s,p,t: (t[0], t[2]))
+		colDefs = pyparsing.ZeroOrMore(clause)+pyparsing.StringEnd()
+		# range.setDebug(True);identifier.setDebug(True);clause.setDebug(True)
+		return colDefs
+
+	def _parseColDefs(self, ctx):
+		# the handler for colDefs -- parse shortcut colDefs
+		try:
+			for key, range in self._getColDefGrammar().parseString(self.colDefs):
+				self.colRanges[key] = self._cols.itemAttD.parse(range)
+		except pyparsing.ParseException, ex:
+			raise base.LiteralParseError("colDefs", self.colDefs,
+				hint="colDefs is a whitespace-separated list of key:range pairs."
+				" Your literal doesn't look like this, and here's what the"
+				" parser had to complain: %s"%ex)
+
+		
 	rowIterator = SplitLineIterator

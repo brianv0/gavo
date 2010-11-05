@@ -10,6 +10,7 @@ from cStringIO import StringIO
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
+from gavo.grammars import columngrammar
 from gavo.helpers import testhelpers
 
 
@@ -159,5 +160,47 @@ class KVGrammarTest(testhelpers.VerboseTest):
 			'<keyValueGrammar commentPattern="**"/>'))
 
 
+class ColDefTest(testhelpers.VerboseTest):
+	def testSimple(self):
+		g = base.parseFromString(columngrammar.ColumnGrammar,
+			'<columnGrammar colDefs="a:1 B:2-5 C_dfoo:4 _gobble:6-8"/>')
+		res = list(g.parse(StringIO("abcdefghijklmnoq")))[0]
+		del res["parser_"]
+		self.assertEqual(res, {'a': 'a', 'C_dfoo': 'd', 'B': 'bcde', 
+			'_gobble': 'fgh'})
+
+	def testFunkyWhite(self):
+		g = base.parseFromString(columngrammar.ColumnGrammar,
+			'<columnGrammar colDefs="a :1 B: 2 - 5 C_dfoo: 4 _gobble : 6 -8"/>')
+		res = list(g.parse(StringIO("abcdefghijklmnoq")))[0]
+		del res["parser_"]
+		self.assertEqual(res, {'a': 'a', 'C_dfoo': 'd', 'B': 'bcde', 
+			'_gobble': 'fgh'})
+	
+	def testHalfopen(self):
+		g = base.parseFromString(columngrammar.ColumnGrammar,
+			'<columnGrammar><colDefs>a:5- B:-5</colDefs></columnGrammar>')
+		res = list(g.parse(StringIO("abcdefg")))[0]
+		del res["parser_"]
+		self.assertEqual(res, {'a': 'efg', 'B': 'abcde'})
+
+	def testErrorBadChar(self):
+		self.assertRaisesWithMsg(base.LiteralParseError,
+			"At (1, 34): 'a:5-% B:-5' is not a valid value for colDefs",
+			base.parseFromString, (columngrammar.ColumnGrammar,
+			'<columnGrammar><colDefs>a:5-% B:-5</colDefs></columnGrammar>'))
+	
+	def testErrorNiceHint(self):
+		try:
+			base.parseFromString(columngrammar.ColumnGrammar,
+				'<columnGrammar><colDefs>a:5- B:c</colDefs></columnGrammar>')
+		except base.LiteralParseError, ex:
+			self.failUnless(ex.hint.endswith(
+				"Expected end of text (at char 5), (line:1, col:6)"))
+		else:
+			self.fail("LiteralParseError not raised")
+		 
+		
+
 if __name__=="__main__":
-	testhelpers.main(EmbeddedGrammarTest)
+	testhelpers.main(ColDefTest)
