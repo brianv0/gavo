@@ -106,6 +106,8 @@ class SourceSpec(base.Structure):
 		IgnoreSpec, description="Specification of sources that should not"
 			" be processed although they match patterns.  Typically used"
 			" in update-type data descriptors.", copyable=True)
+	_file = base.DataContent(copyable=True, description="A single"
+		" file name (this is for convenience)")
 
 	def __iter__(self):
 		return self.iterSources()
@@ -141,10 +143,15 @@ class SourceSpec(base.Structure):
 		for item in self.items:
 			if not self.ignoredSources.isIgnored(item):
 				yield item
+
+		baseDir = ""
+		if self.parent.rd:
+			baseDir = self.parent.rd.resdir
+
 		for pattern in self.patterns:
 			dirPart, baseName = os.path.split(pattern)
 			if self.parent.rd:
-				dirParts = [os.path.join(self.parent.rd.resdir, dirPart)]
+				dirParts = [os.path.join(baseDir, dirPart)]
 			else:
 				dirParts = [dirPart]
 			if self.recurse:
@@ -154,9 +161,12 @@ class SourceSpec(base.Structure):
 					fullName = os.path.abspath(name)
 					if not self.ignoredSources.isIgnored(fullName):
 						yield fullName
+		if self.content_:
+			yield os.path.abspath(os.path.join(baseDir, self.content_))
 	
 	def __nonzero__(self):
-		return (not not self.patterns) or (not not self.items)
+		return (not not self.patterns) or (not not self.items
+			) or (not not self.content_)
 
 
 class GrammarAttribute(base.StructAttribute):
