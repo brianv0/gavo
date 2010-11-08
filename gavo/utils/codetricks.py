@@ -9,6 +9,7 @@ external code.
 
 import compiler
 import compiler.ast
+import contextlib
 import imp
 import itertools
 import inspect
@@ -297,22 +298,21 @@ def makeClassDocs(baseClass, objects):
 	return True
 
 
-def silence(fun, *args, **kwargs):
-	"""executes fun(*args, **kwargs) with stdout redirected to /dev/null.
+@contextlib.contextmanager
+def silence()
+	"""a context manager to temporarily redirect stdout to /dev/null.
 
-	This would be a classic for context managers once we have python 2.5.
-
-	This is necessary to shut up silly output from libraries like pyparsing
-	and pyfits.
+	This is used to shut up some versions of pyparsing and pyfits that
+	insist on spewing stuff to stdout from deep within in relatively
+	normal situations.
 	"""
 	realstdout = sys.stdout
 	sys.stdout = open("/dev/null", "w")
 	try:
-		res = fun(*args, **kwargs)
+		yield
 	finally:
 		sys.stdout.close()
 		sys.stdout = realstdout
-	return res
 
 
 def runInSandbox(setUp, func, tearDown, *args, **kwargs):

@@ -98,7 +98,8 @@ def makeFITSTableFile(dataSet):
 	"""
 	hdulist = makeFITSTable(dataSet)
 	handle, pathname = tempfile.mkstemp(".fits")
-	utils.silence(hdulist.writeto, pathname, clobber=1)
+	with utils.silence():
+		hdulist.writeto(pathname, clobber=1)
 	os.close(handle)
 	return pathname
 
