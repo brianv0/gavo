@@ -6,6 +6,8 @@ TAP's semi-sanitation of STC needs some special handling anyway,
 and this is much faster than the full-blown mess.
 """
 
+from __future__ import with_statement
+
 from gavo import utils
 from gavo.stc import common
 from gavo.stc import stcsast
@@ -202,38 +204,39 @@ def getSimpleSTCSParser():
 	from pyparsing import (Regex, CaselessKeyword, OneOrMore, Forward, Suppress,
 		Optional, ParseException, ParseSyntaxException)
 
-	frameRE = _makeRE(TAP_SYSTEMS)
-	refposRE = _makeRE(TAP_REFPOS)
-	flavorRE = _makeRE(TAP_FLAVORS)
-	systemRE = (r"(?i)\s*"
-		r"(?P<frame>%s)?\s*"
-		r"(?P<refpos>%s)?\s*"
-		r"(?P<flavor>%s)?\s*")%(
-			frameRE, refposRE, flavorRE)
-	coordsRE = r"(?P<coords>(%s\s*)+)"%utils.floatRE
+	with utils.pyparsingWhitechars(" \t\n\r"):
+		frameRE = _makeRE(TAP_SYSTEMS)
+		refposRE = _makeRE(TAP_REFPOS)
+		flavorRE = _makeRE(TAP_FLAVORS)
+		systemRE = (r"(?i)\s*"
+			r"(?P<frame>%s)?\s*"
+			r"(?P<refpos>%s)?\s*"
+			r"(?P<flavor>%s)?\s*")%(
+				frameRE, refposRE, flavorRE)
+		coordsRE = r"(?P<coords>(%s\s*)+)"%utils.floatRE
 
-	simpleStatement = Regex("(?i)\s*"
-		"(?P<shape>position|circle|box|polygon)"
-		+systemRE
-		+coordsRE)
-	simpleStatement.setName("STC-S geometry")
-	simpleStatement.addParseAction(lambda s,p,t: _makePgSphereInstance(t))
-	system = Regex(systemRE)
-	system.setName("STC-S system spec")
-	region = Forward()
-	notExpr = CaselessKeyword("NOT") + Suppress('(') + region + Suppress(')')
-	notExpr.addParseAction(lambda s,p,t: GeomExpr("UNKNOWN", "NOT", (t[1],)))
-	opExpr = (
-		(CaselessKeyword("UNION") | CaselessKeyword("INTERSECTION"))("op")
-		+ Optional(Regex(frameRE))("frame") 
-		+ Optional(Regex(refposRE)) + Optional(Regex(flavorRE))
-		+ Suppress("(")
-		+ region + OneOrMore(region)
-		+ Suppress(")"))
-	opExpr.addParseAction(
-		lambda s,p,t: GeomExpr(str(t["frame"]), t[0].upper(), t[2:]))
-	region << (simpleStatement | opExpr | notExpr)
-	
+		simpleStatement = Regex("(?i)\s*"
+			"(?P<shape>position|circle|box|polygon)"
+			+systemRE
+			+coordsRE)
+		simpleStatement.setName("STC-S geometry")
+		simpleStatement.addParseAction(lambda s,p,t: _makePgSphereInstance(t))
+		system = Regex(systemRE)
+		system.setName("STC-S system spec")
+		region = Forward()
+		notExpr = CaselessKeyword("NOT") + Suppress('(') + region + Suppress(')')
+		notExpr.addParseAction(lambda s,p,t: GeomExpr("UNKNOWN", "NOT", (t[1],)))
+		opExpr = (
+			(CaselessKeyword("UNION") | CaselessKeyword("INTERSECTION"))("op")
+			+ Optional(Regex(frameRE))("frame") 
+			+ Optional(Regex(refposRE)) + Optional(Regex(flavorRE))
+			+ Suppress("(")
+			+ region + OneOrMore(region)
+			+ Suppress(")"))
+		opExpr.addParseAction(
+			lambda s,p,t: GeomExpr(str(t["frame"]), t[0].upper(), t[2:]))
+		region << (simpleStatement | opExpr | notExpr)
+		
 	def parse(s):
 		if s is None or not s.strip(): # special service: Null values
 			return None

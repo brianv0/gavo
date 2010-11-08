@@ -2,7 +2,10 @@
 Various helpers that didn't fit into any other xTricks.
 """
 
+import contextlib
+import threading
 import time
+
 from gavo.utils import excs
 
 
@@ -149,6 +152,55 @@ def logOldExc(exc):
 	"""
 	sendUIEvent("ExceptionMutation", exc)
 	return exc
+
+
+
+####################### Pyparsing hacks
+# This may not be the best place to put this, but I don't really have a
+# better one at this point.  We need some configuration of pyparsing, and
+# this is probably imported by all modules doing pyparsing.
+
+try:
+	from pyparsing import ParserElement, ParseException
+	ParserElement.enablePackrat()
+	# Hack to get around behaviour swings of setParseAction; we use
+	# addParseAction throughout and retrofit it to pyparsings that don't have it.
+	if not hasattr(ParserElement, "addParseAction"):
+		ParserElement.addParseAction = ParserElement.setParseAction
+
+	_PYPARSE_LOCK = threading.Lock()
+
+	@contextlib.contextmanager
+	def pyparsingWhitechars(whiteChars):
+		"""a context manager that serializes pyparsing grammar compilation
+		and manages its whitespace chars.
+
+		We need different whitespace definitions in some parts of DaCHS.
+		(The default used to be " \\t" for a while, so this is what things
+		get reset to).
+
+		Since whitespace apparently can only be set globally for pyparsing,
+		we provide this c.m.  Since it is possible that grammars will be
+		compiled in threads (e.g., as a side effect of getRD), this is
+		protected by a lock.  This, in turn, means that this can 
+		potentially block for a long time.
+
+		Bottom line: When compiling pyparsing grammars, *always* set
+		the whitespace chars explicitely, and do it through this c.m.
+		"""
+		_PYPARSE_LOCK.acquire()
+		ParserElement.setDefaultWhitespaceChars(whiteChars)
+		try:
+			yield
+		finally:
+			ParserElement.setDefaultWhitespaceChars(" \t")
+			_PYPARSE_LOCK.release()
+except ImportError, ex:  # no pyparsing, let clients bomb if they need it.
+	@contextlib.contextmanager
+	def pyparsingWhitechars(arg):
+		raise ex
+		yield
+
 
 
 def _test():

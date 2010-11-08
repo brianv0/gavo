@@ -2,6 +2,8 @@
 Classes and methods to support vizier-type specifications on fields.
 """
 
+from __future__ import with_statement
+
 import re
 
 from pyparsing import Word, Literal, Optional, Forward, Group,\
@@ -220,47 +222,48 @@ def getComplexGrammar(baseLiteral, pmBuilder, errorLiteral=None):
 	if errorLiteral is None:
 		errorLiteral = baseLiteral
 
-	preOp = Literal("=") |  Literal(">=") | Literal(">"
-		) | Literal("<=") | Literal("<")
-	rangeOp = Literal("..")
-	pmOp = Literal("+/-") | Literal("\xb1".decode("iso-8859-1"))
-	orOp = Literal("|")
-	andOp = Literal("&")
-	notOp = Literal("!")
-	commaOp = Literal(",")
+	with utils.pyparsingWhitechars(" \t"):
+		preOp = Literal("=") |  Literal(">=") | Literal(">"
+			) | Literal("<=") | Literal("<")
+		rangeOp = Literal("..")
+		pmOp = Literal("+/-") | Literal("\xb1".decode("iso-8859-1"))
+		orOp = Literal("|")
+		andOp = Literal("&")
+		notOp = Literal("!")
+		commaOp = Literal(",")
 
-	preopExpr = Optional(preOp) + baseLiteral
-	rangeExpr = baseLiteral + Suppress(rangeOp) + baseLiteral
-	valList = baseLiteral + OneOrMore( Suppress(commaOp) + baseLiteral)
-	pmExpr = baseLiteral + Suppress(pmOp) + errorLiteral
-	simpleExpr = rangeExpr | pmExpr | valList | preopExpr
+		preopExpr = Optional(preOp) + baseLiteral
+		rangeExpr = baseLiteral + Suppress(rangeOp) + baseLiteral
+		valList = baseLiteral + OneOrMore( Suppress(commaOp) + baseLiteral)
+		pmExpr = baseLiteral + Suppress(pmOp) + errorLiteral
+		simpleExpr = rangeExpr | pmExpr | valList | preopExpr
 
-	expr = Forward()
+		expr = Forward()
 
-	notExpr = Optional(notOp) +  simpleExpr
-	andExpr = notExpr + ZeroOrMore( Suppress(andOp) + notExpr )
-	orExpr = andExpr + ZeroOrMore( Suppress(orOp) + expr)
-	expr << orExpr
-	exprInString = expr + StringEnd()
+		notExpr = Optional(notOp) +  simpleExpr
+		andExpr = notExpr + ZeroOrMore( Suppress(andOp) + notExpr )
+		orExpr = andExpr + ZeroOrMore( Suppress(orOp) + expr)
+		expr << orExpr
+		exprInString = expr + StringEnd()
 
-	rangeExpr.setName("rangeEx")
-	rangeOp.setName("rangeOp")
-	notExpr.setName("notEx")
-	andExpr.setName("andEx")
-	andOp.setName("&")
-	orExpr.setName("orEx")
-	expr.setName("expr")
-	simpleExpr.setName("simpleEx")
+		rangeExpr.setName("rangeEx")
+		rangeOp.setName("rangeOp")
+		notExpr.setName("notEx")
+		andExpr.setName("andEx")
+		andOp.setName("&")
+		orExpr.setName("orEx")
+		expr.setName("expr")
+		simpleExpr.setName("simpleEx")
 
-	preopExpr.addParseAction(_makeSimpleExprNode)
-	rangeExpr.addParseAction(_getNodeFactory("..", NumericNode))
-	pmExpr.addParseAction(pmBuilder)
-	valList.addParseAction(_getNodeFactory(",", NumericNode))
-	notExpr.addParseAction(_makeNotNode)
-	andExpr.addParseAction(_getBinopFactory("AND"))
-	orExpr.addParseAction(_getBinopFactory("OR"))
+		preopExpr.addParseAction(_makeSimpleExprNode)
+		rangeExpr.addParseAction(_getNodeFactory("..", NumericNode))
+		pmExpr.addParseAction(pmBuilder)
+		valList.addParseAction(_getNodeFactory(",", NumericNode))
+		notExpr.addParseAction(_makeNotNode)
+		andExpr.addParseAction(_getBinopFactory("AND"))
+		orExpr.addParseAction(_getBinopFactory("OR"))
 
-	return exprInString
+		return exprInString
 
 
 def parseFloat(s, pos, tok):
@@ -303,65 +306,66 @@ def getStringGrammar():
 	"""returns a grammar for parsing vizier-like string expressions.
 	"""
 # XXX TODO: should we cut at =| (which is currently parsed as = |)?
-	simpleOperator = Literal("==") | Literal("!=") | Literal(">=") |\
-		Literal(">") | Literal("<=") | Literal("<") | Literal("=~") |\
-		Literal("=,")
-	simpleOperand = Regex(r"[^\s].*|")
-	# XXX probably a bug in pyparsing: White shouldn't be necessary here
-	White = Word(" \t")
-	simpleExpr = simpleOperator + Optional( White ) + simpleOperand
+	with utils.pyparsingWhitechars(" \t"):
+		simpleOperator = Literal("==") | Literal("!=") | Literal(">=") |\
+			Literal(">") | Literal("<=") | Literal("<") | Literal("=~") |\
+			Literal("=,")
+		simpleOperand = Regex(r"[^\s].*|")
+		# XXX probably a bug in pyparsing: White shouldn't be necessary here
+		White = Word(" \t")
+		simpleExpr = simpleOperator + Optional( White ) + simpleOperand
 
-	commaOperand = Regex("[^,]+")
-	barOperand = Regex("[^|]+")
-	commaEnum = Literal("=,") + commaOperand + ZeroOrMore(
-		Suppress(",") + commaOperand)
-	exclusionEnum = Literal("!=,") + commaOperand + ZeroOrMore(
-		Suppress(",") + commaOperand)
-	barEnum = Literal("=|") + barOperand + ZeroOrMore(
-		Suppress("|") + barOperand)
-	enumExpr = exclusionEnum | commaEnum | barEnum
+		commaOperand = Regex("[^,]+")
+		barOperand = Regex("[^|]+")
+		commaEnum = Literal("=,") + commaOperand + ZeroOrMore(
+			Suppress(",") + commaOperand)
+		exclusionEnum = Literal("!=,") + commaOperand + ZeroOrMore(
+			Suppress(",") + commaOperand)
+		barEnum = Literal("=|") + barOperand + ZeroOrMore(
+			Suppress("|") + barOperand)
+		enumExpr = exclusionEnum | commaEnum | barEnum
 
-	patLiterals = CharsNotIn("[*?")
-	wildStar = Literal("*")
-	wildQmark = Literal("?")
-	setElems = CharsNotIn("]")
-	setSpec = Suppress("[") + setElems + Suppress("]")
-	pattern = OneOrMore(setSpec | wildStar | wildQmark | patLiterals)
+		patLiterals = CharsNotIn("[*?")
+		wildStar = Literal("*")
+		wildQmark = Literal("?")
+		setElems = CharsNotIn("]")
+		setSpec = Suppress("[") + setElems + Suppress("]")
+		pattern = OneOrMore(setSpec | wildStar | wildQmark | patLiterals)
 
-	patternOperator = Literal("~") | Literal("=") | Literal("!~") |\
-		Literal("!")
-	patternExpr = patternOperator + Optional( White ) + pattern
-	nakedExpr = Regex("[^=!~|><]") + Optional( simpleOperand )
+		patternOperator = Literal("~") | Literal("=") | Literal("!~") |\
+			Literal("!")
+		patternExpr = patternOperator + Optional( White ) + pattern
+		nakedExpr = Regex("[^=!~|><]") + Optional( simpleOperand )
 
-	stringExpr = enumExpr | simpleExpr | patternExpr | nakedExpr
-	
-	doc = stringExpr + StringEnd()
+		stringExpr = enumExpr | simpleExpr | patternExpr | nakedExpr
+		
+		doc = stringExpr + StringEnd()
 
-	stringExpr.setName("StringExpr")
-	enumExpr.setName("EnumExpr")
-	simpleOperand.setName("Operand")
-	simpleOperator.setName("Operator")
-	nakedExpr.setName("SingleOperand")
+		stringExpr.setName("StringExpr")
+		enumExpr.setName("EnumExpr")
+		simpleOperand.setName("Operand")
+		simpleOperator.setName("Operator")
+		nakedExpr.setName("SingleOperand")
 
-	debug = False
-	stringExpr.setDebug(debug)
-	enumExpr.setDebug(debug)
-	patLiterals.setDebug(debug)
-	simpleOperand.setDebug(debug)
-	simpleOperator.setDebug(debug)
-	nakedExpr.setDebug(debug)
+		debug = False
+		stringExpr.setDebug(debug)
+		enumExpr.setDebug(debug)
+		patLiterals.setDebug(debug)
+		simpleOperand.setDebug(debug)
+		simpleOperator.setDebug(debug)
+		nakedExpr.setDebug(debug)
 
-	simpleExpr.addParseAction(_makeOpNode)
-	patternExpr.addParseAction(_makeOpNode)
-	enumExpr.addParseAction(_makeOpNode)
-	makeDefaultExpr = _getNodeFactory("==", StringNode)
-	nakedExpr.addParseAction(lambda s,p,toks: makeDefaultExpr(s,p,
-		["".join(toks)]))
-	wildStar.addParseAction(_makeOpNode)
-	wildQmark.addParseAction(_makeOpNode)
-	setElems.addParseAction(_getNodeFactory("[", StringNode))
+		simpleExpr.addParseAction(_makeOpNode)
+		patternExpr.addParseAction(_makeOpNode)
+		enumExpr.addParseAction(_makeOpNode)
+		makeDefaultExpr = _getNodeFactory("==", StringNode)
+		nakedExpr.addParseAction(lambda s,p,toks: makeDefaultExpr(s,p,
+			["".join(toks)]))
+		wildStar.addParseAction(_makeOpNode)
+		wildQmark.addParseAction(_makeOpNode)
+		setElems.addParseAction(_getNodeFactory("[", StringNode))
 
-	return doc
+		return doc
 
 
 def parseStringExpr(str, baseSymbol=getStringGrammar()):

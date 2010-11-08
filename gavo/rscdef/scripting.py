@@ -2,9 +2,11 @@
 Support code for attaching scripts to objects.
 
 Scripts can be either in python or in SQL.  They always live on
-make instances.  For details, see Scripting_ in the reference
+make instances.  For details, see Scripting in the reference
 documentation.
 """
+
+from __future__ import with_statement
 
 import re
 import sys
@@ -31,47 +33,48 @@ def _getSQLScriptGrammar():
 	The rules are: Statements are separated by semicolons, empty statements
 	are allowed.
 	"""
-	atom = Forward()
-	atom.setName("Atom")
+	with utils.pyparsingWhitechars(" \t"):
+		atom = Forward()
+		atom.setName("Atom")
 
-	sqlComment = Literal("--")+SkipTo("\n", include=True)
-	cStyleComment = Literal("/*")+SkipTo("*/", include=True)
-	comment = sqlComment | cStyleComment
+		sqlComment = Literal("--")+SkipTo("\n", include=True)
+		cStyleComment = Literal("/*")+SkipTo("*/", include=True)
+		comment = sqlComment | cStyleComment
 
-	simpleStr = QuotedString(quoteChar="'", escChar="\\", unquoteResults=False)
-	quotedId = QuotedString(quoteChar='"', escChar="\\", unquoteResults=False)
-	dollarQuoted = Regex(r"(?s)\$(\w*)\$.*?\$\1\$")
-	dollarQuoted.setName("dollarQuoted")
-	# well, quotedId is not exactly a string literal.  I hate it, and so
-	# it's lumped in here.
-	strLiteral = simpleStr | dollarQuoted | quotedId
-	strLiteral.setName("strLiteral")
+		simpleStr = QuotedString(quoteChar="'", escChar="\\", unquoteResults=False)
+		quotedId = QuotedString(quoteChar='"', escChar="\\", unquoteResults=False)
+		dollarQuoted = Regex(r"(?s)\$(\w*)\$.*?\$\1\$")
+		dollarQuoted.setName("dollarQuoted")
+		# well, quotedId is not exactly a string literal.  I hate it, and so
+		# it's lumped in here.
+		strLiteral = simpleStr | dollarQuoted | quotedId
+		strLiteral.setName("strLiteral")
 
-	other = Regex("[^;'\"$]+")
-	other.setName("other")
+		other = Regex("[^;'\"$]+")
+		other.setName("other")
 
-	literalDollar = Literal("$") + ~ Literal("$")
-	statementEnd = ( Literal(';') | StringEnd())
+		literalDollar = Literal("$") + ~ Literal("$")
+		statementEnd = ( Literal(';') | StringEnd())
 
-	atom <<  ( Suppress(comment) | other | strLiteral | literalDollar )
-	statement = OneOrMore(atom) + Suppress( statementEnd )
-	statement.setName("statement")
-	statement.setParseAction(lambda s, p, toks: " ".join(toks))
+		atom <<  ( Suppress(comment) | other | strLiteral | literalDollar )
+		statement = OneOrMore(atom) + Suppress( statementEnd )
+		statement.setName("statement")
+		statement.setParseAction(lambda s, p, toks: " ".join(toks))
 
-	script = OneOrMore( statement ) + StringEnd()
-	script.setName("script")
-	script.setParseAction(lambda s, p, toks: [t for t in toks.asList()
-		if str(t).strip()])
+		script = OneOrMore( statement ) + StringEnd()
+		script.setName("script")
+		script.setParseAction(lambda s, p, toks: [t for t in toks.asList()
+			if str(t).strip()])
 
-	if False:
-		atom.setDebug(True)
-		other.setDebug(True)
-		strLiteral.setDebug(True)
-		statement.setDebug(True)
-		statementEnd.setDebug(True)
-		dollarQuoted.setDebug(True)
-		literalDollar.setDebug(True)
-	return script
+		if False:
+			atom.setDebug(True)
+			other.setDebug(True)
+			strLiteral.setDebug(True)
+			statement.setDebug(True)
+			statementEnd.setDebug(True)
+			dollarQuoted.setDebug(True)
+			literalDollar.setDebug(True)
+		return script
 
 
 getSQLScriptGrammar = utils.CachedGetter(_getSQLScriptGrammar)

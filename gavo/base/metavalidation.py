@@ -25,6 +25,8 @@ If they are, you can use the validateStructure function below to validate
 an entire structure tree.
 """
 
+from __future__ import with_statement
+
 from gavo import utils
 from gavo.base import meta
 
@@ -117,12 +119,13 @@ def _getModelGrammar():
 	from pyparsing import (Literal, Optional, StringEnd, Suppress, 
 		Word, ZeroOrMore, alphas)
 
-	metaKey = Word(alphas+".")
-	modChar = Literal('!') | '1'
-	modifier = Suppress('(') + Optional(modChar) + Suppress(')')
-	assertion = metaKey("key")+Optional(modifier)("mod")
-	model = assertion + ZeroOrMore( 
-		Suppress(',') + assertion ) + StringEnd()
+	with utils.pyparsingWhitechars(" \t"):
+		metaKey = Word(alphas+".")
+		modChar = Literal('!') | '1'
+		modifier = Suppress('(') + Optional(modChar) + Suppress(')')
+		assertion = metaKey("key")+Optional(modifier)("mod")
+		model = assertion + ZeroOrMore( 
+			Suppress(',') + assertion ) + StringEnd()
 
 	def _buildAssertion(s, p, toks):
 		key = str(toks["key"])

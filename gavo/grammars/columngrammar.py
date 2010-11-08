@@ -3,6 +3,8 @@ A grammar that just splits the source into input lines and then
 lets you name character ranges.
 """
 
+from __future__ import with_statement
+
 import pyparsing
 
 from gavo import base
@@ -101,27 +103,25 @@ class ColumnGrammar(Grammar):
 		" way of defining cols", methodName="_parseColDefs")
 
 	def _getColDefGrammar(self):
-# XXX TODO: make a proper context manager for this.
-		pyparsing.ParserElement.setDefaultWhitespaceChars("\n\t\r ")
-		intLiteral = pyparsing.Word(pyparsing.nums)
-		# need to manually swallow whitespace after literals
-		blindWhite = pyparsing.Suppress(pyparsing.Optional(pyparsing.White()))
-		dash = blindWhite + pyparsing.Literal("-") + blindWhite
+		with utils.pyparsingWhitechars("\n\t\r "):
+			intLiteral = pyparsing.Word(pyparsing.nums)
+			# need to manually swallow whitespace after literals
+			blindWhite = pyparsing.Suppress(pyparsing.Optional(pyparsing.White()))
+			dash = blindWhite + pyparsing.Literal("-") + blindWhite
 
-		range = pyparsing.Combine(
-			dash + blindWhite + intLiteral
-			| intLiteral + pyparsing.Optional(dash + pyparsing.Optional(intLiteral)))
-		range.setName("Column range")
+			range = pyparsing.Combine(
+				dash + blindWhite + intLiteral
+				| intLiteral + pyparsing.Optional(dash + pyparsing.Optional(intLiteral)))
+			range.setName("Column range")
 
-		identifier = pyparsing.Regex(utils.identifierPattern.pattern[:-1])
-		identifier.setName("Column key")
+			identifier = pyparsing.Regex(utils.identifierPattern.pattern[:-1])
+			identifier.setName("Column key")
 
-		clause = (identifier + pyparsing.Literal(":") + blindWhite + range
-			).addParseAction(lambda s,p,t: (t[0], t[2]))
-		colDefs = pyparsing.ZeroOrMore(clause)+pyparsing.StringEnd()
-		# range.setDebug(True);identifier.setDebug(True);clause.setDebug(True)
-		pyparsing.ParserElement.setDefaultWhitespaceChars("\t ")
-		return colDefs
+			clause = (identifier + pyparsing.Literal(":") + blindWhite + range
+				).addParseAction(lambda s,p,t: (t[0], t[2]))
+			colDefs = pyparsing.ZeroOrMore(clause)+pyparsing.StringEnd()
+			# range.setDebug(True);identifier.setDebug(True);clause.setDebug(True)
+			return colDefs
 
 	def _parseColDefs(self, ctx):
 		# the handler for colDefs -- parse shortcut colDefs

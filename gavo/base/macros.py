@@ -2,6 +2,8 @@
 A macro mechanism primarily for string replacement in resource descriptors.
 """
 
+from __future__ import with_statement
+
 import datetime
 
 from pyparsing import Word, OneOrMore, ZeroOrMore, QuotedString, Forward,\
@@ -62,7 +64,7 @@ class MacroExpander(object):
 	"""
 	def __init__(self, package):
 		self.package = package
-		self.grammar = self.getGrammar()
+		self._macroGrammar = self._getMacroGrammar()
 
 	def _execMacro(self, s, loc, toks):
 		toks = toks.asList()
@@ -70,38 +72,30 @@ class MacroExpander(object):
 		return self.package.execMacro(macName, args)
 
 	def expand(self, aString):
-		return self.grammar.transformString(aString)
+		return self._macroGrammar.transformString(aString)
 
-	def getGrammar(self, debug=False):
-		macro = Forward()
-		quoteEscape = (Literal("\\{").addParseAction(lambda *args: "{") | 
-			Literal("\\}").addParseAction(lambda *args: "}"))
-		charRun = Regex(r"[^}\\]+")
-		argElement = macro | quoteEscape | charRun
-		argument = Suppress("{") + ZeroOrMore(argElement) + Suppress("}")
-		argument.addParseAction(lambda s, pos, toks: "".join(toks))
-		arguments = ZeroOrMore(argument)
-		arguments.setWhitespaceChars("")
-		macroName = Regex("[A-Za-z_][A-Za-z_0-9]+")
-		macroName.setWhitespaceChars("")
-		macro << Suppress( "\\" ) + macroName + arguments
-		macro.addParseAction(self._execMacro)
-		literalBackslash = Literal("\\\\")
-		literalBackslash.addParseAction(lambda *args: "\\")
-		suppressedLF = Literal("\\\n")
-		suppressedLF.addParseAction(lambda *args: " ")
-		glue = Literal("\\+")
-		glue.addParseAction(lambda *args: "")
-		if debug:
-			macro.setDebug(True)
-			macro.setName("macro")
-			argument.setDebug(True)
-			argument.setName("arg")
-			arguments.setDebug(True)
-			arguments.setName("args")
-			macroName.setDebug(True)
-			macroName.setName("macname")
-		return literalBackslash | suppressedLF | glue | macro
+	def _getMacroGrammar(self, debug=False):
+		with utils.pyparsingWhitechars(" \t"):
+			macro = Forward()
+			quoteEscape = (Literal("\\{").addParseAction(lambda *args: "{") | 
+				Literal("\\}").addParseAction(lambda *args: "}"))
+			charRun = Regex(r"[^}\\]+")
+			argElement = macro | quoteEscape | charRun
+			argument = Suppress("{") + ZeroOrMore(argElement) + Suppress("}")
+			argument.addParseAction(lambda s, pos, toks: "".join(toks))
+			arguments = ZeroOrMore(argument)
+			arguments.setWhitespaceChars("")
+			macroName = Regex("[A-Za-z_][A-Za-z_0-9]+")
+			macroName.setWhitespaceChars("")
+			macro << Suppress( "\\" ) + macroName + arguments
+			macro.addParseAction(self._execMacro)
+			literalBackslash = Literal("\\\\")
+			literalBackslash.addParseAction(lambda *args: "\\")
+			suppressedLF = Literal("\\\n")
+			suppressedLF.addParseAction(lambda *args: " ")
+			glue = Literal("\\+")
+			glue.addParseAction(lambda *args: "")
+			return literalBackslash | suppressedLF | glue | macro
 
 
 class MacroPackage(object):

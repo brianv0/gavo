@@ -3,6 +3,8 @@ A module to parse unit strings a la
 http://vizier.u-strasbg.fr/doc/catstd-3.2.htx and compute conversion factors.
 """
 
+from __future__ import with_statement
+
 import math
 import re
 import traceback
@@ -208,42 +210,37 @@ class Expression(object):
 
 
 def getUnitGrammar():
-	unitStrings = units.keys()
-	unitStrings.sort(lambda a,b: -cmp(len(a), len(b)))
-# funkyUnits those that would partially parse, like mas or mag
-	funkyUnit = Regex("cd|Pa|mas|mag")
-	unit = Regex("|".join(unitStrings))
-	unit.setWhitespaceChars("")
-	prefix = Regex("|".join(prefixes))
-	prefix.setParseAction(Prefix)
-	number = Regex(r"[+-]?(\d+(?:\.?\d+)?)(x10[+-]\d+)?").setParseAction(
-		ExedFloat)
-	integer = Regex(r"[+-]?(?:\d+)").setParseAction(lambda s, p, toks: 
-		int(toks[0]))
-	operator = Literal(".") | Literal("/")
-	completeUnit = (Optional(number) + ( funkyUnit | Optional(prefix) + unit ) + 
-		Optional(integer))
-	prefixlessUnit = Optional(number) + unit + Optional(integer)
+	with utils.pyparsingWhitechars(" \t"):
+		unitStrings = units.keys()
+		unitStrings.sort(lambda a,b: -cmp(len(a), len(b)))
+		# funkyUnits those that would partially parse, like mas or mag
+		funkyUnit = Regex("cd|Pa|mas|mag")
+		unit = Regex("|".join(unitStrings))
+		unit.setWhitespaceChars("")
+		prefix = Regex("|".join(prefixes))
+		prefix.setParseAction(Prefix)
+		number = Regex(r"[+-]?(\d+(?:\.?\d+)?)(x10[+-]\d+)?").setParseAction(
+			ExedFloat)
+		integer = Regex(r"[+-]?(?:\d+)").setParseAction(lambda s, p, toks: 
+			int(toks[0]))
+		operator = Literal(".") | Literal("/")
+		completeUnit = (Optional(number) + ( funkyUnit | Optional(prefix) + unit ) + 
+			Optional(integer))
+		prefixlessUnit = Optional(number) + unit + Optional(integer)
 # The longest match here is a bit unfortunate, but it's necessary to keep
 # the machinery from happily accepting the m in ms as a unit and then
 # stumble since there's not operator or number following
-	unitLiteral = completeUnit | prefixlessUnit
-	unitLiteral.setParseAction(Unit)
-	expression = ( unitLiteral + ZeroOrMore( operator + unitLiteral ) +
-		StringEnd() ).setParseAction(Expression)
+		unitLiteral = completeUnit | prefixlessUnit
+		unitLiteral.setParseAction(Unit)
+		expression = ( unitLiteral + ZeroOrMore( operator + unitLiteral ) +
+			StringEnd() ).setParseAction(Expression)
 
-	prefix.setName("metric prefix")
-	unit.setName("naked unit")
-	completeUnit.setName("unit with prefix")
-	prefixlessUnit.setName("unit without prefix")
+		prefix.setName("metric prefix")
+		unit.setName("naked unit")
+		completeUnit.setName("unit with prefix")
+		prefixlessUnit.setName("unit without prefix")
 
-	if False:
-		unit.setDebug(True)
-		prefix.setDebug(True)
-		prefixlessUnit.setDebug(True)
-		completeUnit.setDebug(True)
-		unitLiteral.setDebug(True)
-	return expression
+		return expression
 
 
 def parseUnit(unitStr, unitGrammar=getUnitGrammar()):

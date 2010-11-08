@@ -220,3 +220,9 @@ class SkipThis(ExecutiveAction):
 	You should pass something descriptive as message so upstream can
 	potentially report something is skipped.
 	"""
+
+
+try:
+	from pyparsing import ParseException
+except ImportError:
+	pass

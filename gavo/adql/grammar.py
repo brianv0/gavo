@@ -4,9 +4,7 @@ A parser for ADQL.
 The grammar follows the official BNF grammar quite closely, except where
 pyparsing makes a different approach desirable; the names should mostly
 match except for the obious underscore to camel case map.
-"""
 
-"""
 The grammar given in the spec has some nasty rules when you're parsing
 without backtracking and by recursive descent (which is what pyparsing
 does).  I need some reformulations.  The more interesting of those 
@@ -116,6 +114,7 @@ To make the whole thing work, I added the generalLiteral to the
 characterPrimary production.
 """
 
+from __future__ import with_statement
 
 from pyparsing import (Word, Literal, Optional, alphas, CaselessKeyword,
 	ZeroOrMore, OneOrMore, SkipTo, srange, StringEnd, Or, MatchFirst,
@@ -283,306 +282,304 @@ def getADQLGrammarCopy():
 	of the ADQL grammar.  Otherwise, use getADQLGrammar or a wrapper
 	function defined by a client module.
 	"""
-# WARNING: Changing global state here temporarily.  This will be trouble in
-# threads.  This stuff is reset below to the default from base.__init__
-	ParserElement.setDefaultWhitespaceChars("\n\t\r ")
+	with utils.pyparsingWhitechars("\n\t\r "):
 # Be careful when using setResultsName here.  The handlers are bound
 # at a later point, and names cause copies of the pyparsing objects,
 # so that elements named in rules will not be bound later.  Rather
 # name elements on their construction.
-	sqlComment = Literal("--") + SkipTo("\n" | StringEnd())
-	whitespace = Word(" \t\n")   # sometimes necessary to avoid sticking 
-		# together numbers and identifiers
-	separator = Optional( sqlComment ) + Optional(Word(" \t\n\r"))
+		sqlComment = Literal("--") + SkipTo("\n" | StringEnd())
+		whitespace = Word(" \t\n")   # sometimes necessary to avoid sticking 
+			# together numbers and identifiers
+		separator = Optional( sqlComment ) + Optional(Word(" \t\n\r"))
 
-	unsignedInteger = Word(nums)
-	unsignedInteger.setName("unsigned integer")
-	_exactNumericRE = r"\d+(\.(\d+)?)?|\.\d+"
-	exactNumericLiteral = Regex(_exactNumericRE)
-	approximateNumericLiteral = Regex(r"(?i)(%s)E[+-]?\d+"%_exactNumericRE)
-	unsignedNumericLiteral = ( approximateNumericLiteral | exactNumericLiteral )
-	characterStringLiteral = sglQuotedString + ZeroOrMore(
-		separator + sglQuotedString)
-	generalLiteral = characterStringLiteral.copy()
-	unsignedLiteral = unsignedNumericLiteral # !!! DEVIATION | generalLiteral
-	sign = Literal("+") | "-"
-	signedInteger = Optional( sign ) + unsignedInteger 
-	signedInteger.setName("signed integer")
-	multOperator = Literal("*") | Literal("/")
-	addOperator =  Literal("+") | Literal("-")
-	notKeyword = CaselessKeyword("NOT")
+		unsignedInteger = Word(nums)
+		unsignedInteger.setName("unsigned integer")
+		_exactNumericRE = r"\d+(\.(\d+)?)?|\.\d+"
+		exactNumericLiteral = Regex(_exactNumericRE)
+		approximateNumericLiteral = Regex(r"(?i)(%s)E[+-]?\d+"%_exactNumericRE)
+		unsignedNumericLiteral = ( approximateNumericLiteral | exactNumericLiteral )
+		characterStringLiteral = sglQuotedString + ZeroOrMore(
+			separator + sglQuotedString)
+		generalLiteral = characterStringLiteral.copy()
+		unsignedLiteral = unsignedNumericLiteral # !!! DEVIATION | generalLiteral
+		sign = Literal("+") | "-"
+		signedInteger = Optional( sign ) + unsignedInteger 
+		signedInteger.setName("signed integer")
+		multOperator = Literal("*") | Literal("/")
+		addOperator =  Literal("+") | Literal("-")
+		notKeyword = CaselessKeyword("NOT")
 
-	regularIdentifier = RegularIdentifier(allReservedWords)
-	regularIdentifier.setName("identifier")
+		regularIdentifier = RegularIdentifier(allReservedWords)
+		regularIdentifier.setName("identifier")
 # There's a bug with QuotedString in some versions of pyparsing.
 # So, don't use this:
 #	delimitedIdentifier = QuotedString(quoteChar='"', escQuote='"',
 #		unquoteResults=True).addParseAction(
 #			lambda s,p,t: utils.QuotedName(str(t)))
 # but rather
-	delimitedIdentifier = Regex('("[^"]*")+').addParseAction(
-		_makeQuotedName)
-	identifier = regularIdentifier | delimitedIdentifier
+		delimitedIdentifier = Regex('("[^"]*")+').addParseAction(
+			_makeQuotedName)
+		identifier = regularIdentifier | delimitedIdentifier
 
 # Operators
-	compOp = Regex("=|!=|<=|>=|<|>")
-	compOp.setName("comparison operator")
+		compOp = Regex("=|!=|<=|>=|<|>")
+		compOp.setName("comparison operator")
 
 # Column names and such
-	columnName = identifier.copy()
-	correlationName = identifier.copy()
-	qualifier = (identifier 
-		+ Optional( "." + identifier )
-		+ Optional( "." + identifier ))
-	tableName = qualifier("tableName")
-	columnReference = (identifier 
-		+ Optional( "." + identifier )
-		+ Optional( "." + identifier )
-		+ Optional( "." + identifier ))
-	asClause = ( CaselessKeyword("AS") | whitespace ) + columnName("alias")
+		columnName = identifier.copy()
+		correlationName = identifier.copy()
+		qualifier = (identifier 
+			+ Optional( "." + identifier )
+			+ Optional( "." + identifier ))
+		tableName = qualifier("tableName")
+		columnReference = (identifier 
+			+ Optional( "." + identifier )
+			+ Optional( "." + identifier )
+			+ Optional( "." + identifier ))
+		asClause = ( CaselessKeyword("AS") | whitespace ) + columnName("alias")
 
-	valueExpression = Forward()
+		valueExpression = Forward()
 
 # set functions
-	setFunctionType = Regex("(?i)AVG|MAX|MIN|SUM|COUNT")
-	setQuantifier = Regex("(?i)DISTINCT|ALL")
-	generalSetFunction = (setFunctionType("fName") 
-		+ '(' + Optional( setQuantifier ) + Args(valueExpression) + ')')
-	countAll = (CaselessLiteral("COUNT")("fName") 
-		+ '(' + Args(Literal('*')) + ')')
-	setFunctionSpecification = (countAll | generalSetFunction)
+		setFunctionType = Regex("(?i)AVG|MAX|MIN|SUM|COUNT")
+		setQuantifier = Regex("(?i)DISTINCT|ALL")
+		generalSetFunction = (setFunctionType("fName") 
+			+ '(' + Optional( setQuantifier ) + Args(valueExpression) + ')')
+		countAll = (CaselessLiteral("COUNT")("fName") 
+			+ '(' + Args(Literal('*')) + ')')
+		setFunctionSpecification = (countAll | generalSetFunction)
 
 # value expressions
-	valueExpressionPrimary = ( unsignedLiteral |
-		columnReference | setFunctionSpecification |
-		'(' + valueExpression + ')')
+		valueExpressionPrimary = ( unsignedLiteral |
+			columnReference | setFunctionSpecification |
+			'(' + valueExpression + ')')
 
 # string literal stuff
-	characterPrimary = Forward() 
-	characterFactor = characterPrimary
-	characterValueExpression = ( characterFactor + 
-		ZeroOrMore( "||" + characterFactor ))
-	stringValueExpression = characterValueExpression
+		characterPrimary = Forward() 
+		characterFactor = characterPrimary
+		characterValueExpression = ( characterFactor + 
+			ZeroOrMore( "||" + characterFactor ))
+		stringValueExpression = characterValueExpression
 
 # numeric expressions/terms
-	numericValueExpression = Forward()
-	numericValueFunction = Forward()
-	numericExpressionPrimary = ( unsignedLiteral | columnReference
-		| setFunctionSpecification | '(' + valueExpression + ')')
-	numericPrimary = numericValueFunction | valueExpressionPrimary 
-	factor = Optional( sign ) + numericPrimary
-	term = (factor + ZeroOrMore( multOperator + factor ))
-	numericValueExpression << (term + ZeroOrMore( addOperator + term ))
+		numericValueExpression = Forward()
+		numericValueFunction = Forward()
+		numericExpressionPrimary = ( unsignedLiteral | columnReference
+			| setFunctionSpecification | '(' + valueExpression + ')')
+		numericPrimary = numericValueFunction | valueExpressionPrimary 
+		factor = Optional( sign ) + numericPrimary
+		term = (factor + ZeroOrMore( multOperator + factor ))
+		numericValueExpression << (term + ZeroOrMore( addOperator + term ))
 
 # geometry types and expressions
-	coordSys = Regex("(?i)'(?P<sys>%s)'"%"|".join(stc.TAP_SYSTEMS)
-		).addParseAction(lambda s,p,t: t["sys"].upper()
-		).setResultsName("coordSys")
-	coordSys.setName("coordinate system literal (ICRS, GALACTIC,...)")
-	coordinates = (Args(numericValueExpression) 
-		+ ',' + Args(numericValueExpression))
-	box = (CaselessKeyword("BOX")("fName") 
-		- '(' - coordSys + ','
-		+ coordinates +  ','
-		+ coordinates + ')')
-	point = (CaselessKeyword("POINT")("fName") 
-		- '(' - coordSys - ',' 
-		+ coordinates + ')')
-	circle = (CaselessKeyword("CIRCLE")("fName") 
-		- '(' - coordSys + ',' 
-		+ coordinates + ',' 
-		+ Args(numericValueExpression) + ')')
-	polygon = (CaselessKeyword("POLYGON")("fName") 
-		- '(' - coordSys + ',' 
-		+ coordinates 
-		+ OneOrMore( ',' + coordinates ) + ')')
-	region = (CaselessKeyword("REGION")("fName") 
-		+ '(' 
-		+ Args(stringValueExpression) + ')')
-	geometryExpression = box | point | circle | polygon | region
-	geometryValue = columnReference.copy()
-	coordValue = point | columnReference
-	centroid = (CaselessKeyword("CENTROID")("fName") 
-		+ '(' + Args(geometryExpression) + ')')
-	geometryValueExpression = geometryExpression | geometryValue | centroid
+		coordSys = Regex("(?i)'(?P<sys>%s)'"%"|".join(stc.TAP_SYSTEMS)
+			).addParseAction(lambda s,p,t: t["sys"].upper()
+			).setResultsName("coordSys")
+		coordSys.setName("coordinate system literal (ICRS, GALACTIC,...)")
+		coordinates = (Args(numericValueExpression) 
+			+ ',' + Args(numericValueExpression))
+		box = (CaselessKeyword("BOX")("fName") 
+			- '(' - coordSys + ','
+			+ coordinates +  ','
+			+ coordinates + ')')
+		point = (CaselessKeyword("POINT")("fName") 
+			- '(' - coordSys - ',' 
+			+ coordinates + ')')
+		circle = (CaselessKeyword("CIRCLE")("fName") 
+			- '(' - coordSys + ',' 
+			+ coordinates + ',' 
+			+ Args(numericValueExpression) + ')')
+		polygon = (CaselessKeyword("POLYGON")("fName") 
+			- '(' - coordSys + ',' 
+			+ coordinates 
+			+ OneOrMore( ',' + coordinates ) + ')')
+		region = (CaselessKeyword("REGION")("fName") 
+			+ '(' 
+			+ Args(stringValueExpression) + ')')
+		geometryExpression = box | point | circle | polygon | region
+		geometryValue = columnReference.copy()
+		coordValue = point | columnReference
+		centroid = (CaselessKeyword("CENTROID")("fName") 
+			+ '(' + Args(geometryExpression) + ')')
+		geometryValueExpression = geometryExpression | geometryValue | centroid
 
 # geometry functions
-	distanceFunction = (CaselessKeyword("DISTANCE")("fName") 
-		+ '(' + Args(coordValue) + ',' + Args(coordValue) + ')')
-	pointFunction = (Regex("(?i)COORD[12]|COORDSYS")("fName") + '(' +
-		Args(coordValue) + ')')
-	area = (CaselessKeyword("AREA")("fName") 
-		+ '(' + Args(geometryValueExpression) + ')')
-	nonPredicateGeometryFunction = (distanceFunction | pointFunction | area)
-	predicateGeoFunctionName = Regex("(?i)CONTAINS|INTERSECTS")
-	predicateGeometryFunction = (predicateGeoFunctionName("fName") 
-		+ '(' + Args(geometryValueExpression) 
-		+ ',' + Args(geometryValueExpression) + ')')
-	numericGeometryFunction = (predicateGeometryFunction | 
-		nonPredicateGeometryFunction)
+		distanceFunction = (CaselessKeyword("DISTANCE")("fName") 
+			+ '(' + Args(coordValue) + ',' + Args(coordValue) + ')')
+		pointFunction = (Regex("(?i)COORD[12]|COORDSYS")("fName") + '(' +
+			Args(coordValue) + ')')
+		area = (CaselessKeyword("AREA")("fName") 
+			+ '(' + Args(geometryValueExpression) + ')')
+		nonPredicateGeometryFunction = (distanceFunction | pointFunction | area)
+		predicateGeoFunctionName = Regex("(?i)CONTAINS|INTERSECTS")
+		predicateGeometryFunction = (predicateGeoFunctionName("fName") 
+			+ '(' + Args(geometryValueExpression) 
+			+ ',' + Args(geometryValueExpression) + ')')
+		numericGeometryFunction = (predicateGeometryFunction | 
+			nonPredicateGeometryFunction)
 
 # numeric, system, user defined functions
-	trig1ArgFunctionName = Regex("(?i)ACOS|ASIN|ATAN|COS|COT|SIN|TAN")
-	# trig1ArgFunction is what causes a parse failure on common numeric
-	# value expressions.  We take the liberty of misnaming it for better
-	# error messages in most cases.
-	trig1ArgFunctionName.setName("numeric expression")
-	trigFunction = (
-			trig1ArgFunctionName("fName") + '('
+		trig1ArgFunctionName = Regex("(?i)ACOS|ASIN|ATAN|COS|COT|SIN|TAN")
+		# trig1ArgFunction is what causes a parse failure on common numeric
+		# value expressions.  We take the liberty of misnaming it for better
+		# error messages in most cases.
+		trig1ArgFunctionName.setName("numeric expression")
+		trigFunction = (
+				trig1ArgFunctionName("fName") + '('
+					+ Args(numericValueExpression) + ')' 
+			|	CaselessKeyword("ATAN2")("fName") + '(' + 
+				Args(numericValueExpression) + ',' 
+					+ Args(numericValueExpression) + ')')
+		math0ArgFunctionName = Regex("(?i)PI")
+		optIntFunctionName = Regex("(?i)RAND")
+		math1ArgFunctionName = Regex("(?i)ABS|CEILING|DEGREES|EXP|FLOOR|LOG10|"
+			"LOG|RADIANS|SQUARE|SQRT")
+		optPrecArgFunctionName = Regex("(?i)ROUND|TRUNCATE")
+		math2ArgFunctionName = Regex("(?i)POWER")
+		mathFunction = (
+				math0ArgFunctionName("fName") + '(' + ')' 
+			|	optIntFunctionName("fName") + '(' 
+				+ Optional( Args(unsignedInteger) ) + ')' 
+			|	math1ArgFunctionName("fName") + '(' 
 				+ Args(numericValueExpression) + ')' 
-		|	CaselessKeyword("ATAN2")("fName") + '(' + 
-			Args(numericValueExpression) + ',' 
-				+ Args(numericValueExpression) + ')')
-	math0ArgFunctionName = Regex("(?i)PI")
-	optIntFunctionName = Regex("(?i)RAND")
-	math1ArgFunctionName = Regex("(?i)ABS|CEILING|DEGREES|EXP|FLOOR|LOG10|"
-		"LOG|RADIANS|SQUARE|SQRT")
-	optPrecArgFunctionName = Regex("(?i)ROUND|TRUNCATE")
-	math2ArgFunctionName = Regex("(?i)POWER")
-	mathFunction = (
-			math0ArgFunctionName("fName") + '(' + ')' 
-		|	optIntFunctionName("fName") + '(' 
-			+ Optional( Args(unsignedInteger) ) + ')' 
-		|	math1ArgFunctionName("fName") + '(' 
-			+ Args(numericValueExpression) + ')' 
-		| optPrecArgFunctionName("fName") + '(' 
-			+ Args(numericValueExpression) +
-			Optional( ',' + Args(signedInteger) ) + ')' 
-		|	math2ArgFunctionName("fName") + '(' 
-			+ Args(numericValueExpression) 
-			+ ',' + Args(numericValueExpression) + ')')
-	userDefinedFunctionParam = valueExpression
-	userDefinedFunctionName = Regex(userFunctionPrefix+"[A-Za-z_]+")
-	userDefinedFunctionName.setName("Name of locally defined function")
-	userDefinedFunction = ( userDefinedFunctionName("fName") + '(' +
-		Args(userDefinedFunctionParam) 
-		+ ZeroOrMore( "," + Args(userDefinedFunctionParam) ) 
-			+ ')')
-	numericValueFunction << (trigFunction | mathFunction | userDefinedFunction |
-		numericGeometryFunction)
+			| optPrecArgFunctionName("fName") + '(' 
+				+ Args(numericValueExpression) +
+				Optional( ',' + Args(signedInteger) ) + ')' 
+			|	math2ArgFunctionName("fName") + '(' 
+				+ Args(numericValueExpression) 
+				+ ',' + Args(numericValueExpression) + ')')
+		userDefinedFunctionParam = valueExpression
+		userDefinedFunctionName = Regex(userFunctionPrefix+"[A-Za-z_]+")
+		userDefinedFunctionName.setName("Name of locally defined function")
+		userDefinedFunction = ( userDefinedFunctionName("fName") + '(' +
+			Args(userDefinedFunctionParam) 
+			+ ZeroOrMore( "," + Args(userDefinedFunctionParam) ) 
+				+ ')')
+		numericValueFunction << (trigFunction | mathFunction | userDefinedFunction |
+			numericGeometryFunction)
 
-	characterPrimary << (generalLiteral | valueExpressionPrimary | 
-		userDefinedFunction)
+		characterPrimary << (generalLiteral | valueExpressionPrimary | 
+			userDefinedFunction)
 
 # toplevel value expression
-	valueExpression << LongestMatch([
-		numericValueExpression,
-		stringValueExpression,
-		geometryValueExpression])
-	derivedColumn = valueExpression("expr") + Optional( asClause )
+		valueExpression << LongestMatch([
+			numericValueExpression,
+			stringValueExpression,
+			geometryValueExpression])
+		derivedColumn = valueExpression("expr") + Optional( asClause )
 
 # parts of select clauses
-	setQuantifier = (CaselessKeyword( "DISTINCT" ) 
-		| CaselessKeyword( "ALL" ))("setQuantifier")
-	setLimit = CaselessKeyword( "TOP" ) - unsignedInteger("setLimit")
-	qualifiedStar = qualifier + "." + "*"
-	selectSublist = (qualifiedStar | derivedColumn
-		).setResultsName("fieldSel", listAllMatches=True)
-	selectList = (Literal("*")("starSel")
-		| selectSublist + ZeroOrMore( "," - selectSublist ))
-	selectList.setName("select list")
+		setQuantifier = (CaselessKeyword( "DISTINCT" ) 
+			| CaselessKeyword( "ALL" ))("setQuantifier")
+		setLimit = CaselessKeyword( "TOP" ) - unsignedInteger("setLimit")
+		qualifiedStar = qualifier + "." + "*"
+		selectSublist = (qualifiedStar | derivedColumn
+			).setResultsName("fieldSel", listAllMatches=True)
+		selectList = (Literal("*")("starSel")
+			| selectSublist + ZeroOrMore( "," - selectSublist ))
+		selectList.setName("select list")
 
 # boolean terms
-	subquery = Forward()
-	searchCondition = Forward()
-	comparisonPredicate = valueExpression + compOp + valueExpression
-	betweenPredicate = (valueExpression + Optional( notKeyword ) + 
-		CaselessKeyword("BETWEEN") - valueExpression + 
-		CaselessKeyword("AND") - valueExpression)
-	inValueList = valueExpression + ZeroOrMore( ',' + valueExpression )
-	inPredicateValue = subquery | ( "(" + inValueList + ")" )
-	inPredicate = (valueExpression + Optional( notKeyword ) + 
-		CaselessKeyword("IN") + inPredicateValue)
-	existsPredicate = CaselessKeyword("EXISTS") - subquery
-	likePredicate = (characterValueExpression + Optional( notKeyword ) + 
-		CaselessKeyword("LIKE") + characterValueExpression)
-	nullPredicate = (columnReference + CaselessKeyword("IS") +
-		Optional( notKeyword ) - CaselessKeyword("NULL"))
-	predicate = (comparisonPredicate | betweenPredicate | inPredicate | 
-		likePredicate | nullPredicate | existsPredicate)
-	booleanPrimaryOpener = Literal('(')  # for error messages
-	booleanPrimaryOpener.setName("boolean expression")
-	booleanPrimary = booleanPrimaryOpener + searchCondition + ')' | predicate
-	booleanFactor = Optional( notKeyword ) + booleanPrimary
-	booleanTerm = ( booleanFactor + 
-		ZeroOrMore( CaselessKeyword("AND") - booleanFactor ))
+		subquery = Forward()
+		searchCondition = Forward()
+		comparisonPredicate = valueExpression + compOp + valueExpression
+		betweenPredicate = (valueExpression + Optional( notKeyword ) + 
+			CaselessKeyword("BETWEEN") - valueExpression + 
+			CaselessKeyword("AND") - valueExpression)
+		inValueList = valueExpression + ZeroOrMore( ',' + valueExpression )
+		inPredicateValue = subquery | ( "(" + inValueList + ")" )
+		inPredicate = (valueExpression + Optional( notKeyword ) + 
+			CaselessKeyword("IN") + inPredicateValue)
+		existsPredicate = CaselessKeyword("EXISTS") - subquery
+		likePredicate = (characterValueExpression + Optional( notKeyword ) + 
+			CaselessKeyword("LIKE") + characterValueExpression)
+		nullPredicate = (columnReference + CaselessKeyword("IS") +
+			Optional( notKeyword ) - CaselessKeyword("NULL"))
+		predicate = (comparisonPredicate | betweenPredicate | inPredicate | 
+			likePredicate | nullPredicate | existsPredicate)
+		booleanPrimaryOpener = Literal('(')  # for error messages
+		booleanPrimaryOpener.setName("boolean expression")
+		booleanPrimary = booleanPrimaryOpener + searchCondition + ')' | predicate
+		booleanFactor = Optional( notKeyword ) + booleanPrimary
+		booleanTerm = ( booleanFactor + 
+			ZeroOrMore( CaselessKeyword("AND") - booleanFactor ))
 
 # WHERE clauses and such
-	searchCondition << ( booleanTerm + 
-		ZeroOrMore( CaselessKeyword("OR") - booleanTerm ))
-	searchCondition.setName("search condition")
-	whereClause = (CaselessKeyword("WHERE") - searchCondition)("whereClause")
+		searchCondition << ( booleanTerm + 
+			ZeroOrMore( CaselessKeyword("OR") - booleanTerm ))
+		searchCondition.setName("search condition")
+		whereClause = (CaselessKeyword("WHERE") - searchCondition)("whereClause")
 
 # Referencing tables
-	queryExpression = Forward()
-	correlationSpecification = (( CaselessKeyword("AS") | whitespace
-		) + correlationName("alias"))
-	subqueryOpener = Literal('(')
-	subqueryOpener.setName("subquery")  # for error reporting
-	subquery << (subqueryOpener + queryExpression + ')')
-	derivedTable = subquery.copy() + correlationSpecification
-	possiblyAliasedTable = tableName + Optional( correlationSpecification)
-	joinedTable = Forward()
-	subJoin = '(' + joinedTable + ')'
-	joinOpener = (possiblyAliasedTable 
-		| derivedTable
-		| subJoin)
-	tableReference =  joinedTable | possiblyAliasedTable | derivedTable
+		queryExpression = Forward()
+		correlationSpecification = (( CaselessKeyword("AS") | whitespace
+			) + correlationName("alias"))
+		subqueryOpener = Literal('(')
+		subqueryOpener.setName("subquery")  # for error reporting
+		subquery << (subqueryOpener + queryExpression + ')')
+		derivedTable = subquery.copy() + correlationSpecification
+		possiblyAliasedTable = tableName + Optional( correlationSpecification)
+		joinedTable = Forward()
+		subJoin = '(' + joinedTable + ')'
+		joinOpener = (possiblyAliasedTable 
+			| derivedTable
+			| subJoin)
+		tableReference =  joinedTable | possiblyAliasedTable | derivedTable
 
 # JOINs
-	columnNameList = columnName + ZeroOrMore( "," + columnName)
-	namedColumnsJoin = (CaselessKeyword("USING") + '(' +
-		columnNameList("columnNames") + ')')
-	joinCondition = CaselessKeyword("ON") + searchCondition
-	joinSpecification = joinCondition | namedColumnsJoin
-	outerJoinType = (CaselessKeyword("LEFT") 
-		| CaselessKeyword("RIGHT") 
-		| CaselessKeyword("FULL"))
-	joinType = (CaselessKeyword("INNER") 
-		| (outerJoinType + CaselessKeyword("OUTER"))
-		| CaselessKeyword("CROSS"))  # local extension
-	qualifiedJoin = (joinOpener
-		+ Optional( CaselessKeyword("NATURAL") )
-		+ Optional( joinType )
-		+ CaselessKeyword( "JOIN" )
-		+ tableReference
-		+ Optional( joinSpecification ))
-	joinedTable << (qualifiedJoin 
-		| subJoin)
+		columnNameList = columnName + ZeroOrMore( "," + columnName)
+		namedColumnsJoin = (CaselessKeyword("USING") + '(' +
+			columnNameList("columnNames") + ')')
+		joinCondition = CaselessKeyword("ON") + searchCondition
+		joinSpecification = joinCondition | namedColumnsJoin
+		outerJoinType = (CaselessKeyword("LEFT") 
+			| CaselessKeyword("RIGHT") 
+			| CaselessKeyword("FULL"))
+		joinType = (CaselessKeyword("INNER") 
+			| (outerJoinType + CaselessKeyword("OUTER"))
+			| CaselessKeyword("CROSS"))  # local extension
+		qualifiedJoin = (joinOpener
+			+ Optional( CaselessKeyword("NATURAL") )
+			+ Optional( joinType )
+			+ CaselessKeyword( "JOIN" )
+			+ tableReference
+			+ Optional( joinSpecification ))
+		joinedTable << (qualifiedJoin 
+			| subJoin)
 
 # Detritus in table expressions
-	groupByClause = (CaselessKeyword( "GROUP" ) + CaselessKeyword( "BY" ) 
-		+ columnReference 
-		+ ZeroOrMore( ',' + columnReference ))("groupby")
-	havingClause = (CaselessKeyword( "HAVING" ) 
-		+ searchCondition)("having")
-	orderingSpecification = (CaselessKeyword( "ASC") 
-		| CaselessKeyword("DESC"))
-	sortKey = columnName | unsignedInteger
-	sortSpecification = sortKey + Optional( orderingSpecification )
-	orderByClause = (CaselessKeyword("ORDER") 
-		+ CaselessKeyword("BY") + sortSpecification 
-		+ ZeroOrMore( ',' + sortSpecification ))("orderBy")
+		groupByClause = (CaselessKeyword( "GROUP" ) + CaselessKeyword( "BY" ) 
+			+ columnReference 
+			+ ZeroOrMore( ',' + columnReference ))("groupby")
+		havingClause = (CaselessKeyword( "HAVING" ) 
+			+ searchCondition)("having")
+		orderingSpecification = (CaselessKeyword( "ASC") 
+			| CaselessKeyword("DESC"))
+		sortKey = columnName | unsignedInteger
+		sortSpecification = sortKey + Optional( orderingSpecification )
+		orderByClause = (CaselessKeyword("ORDER") 
+			+ CaselessKeyword("BY") + sortSpecification 
+			+ ZeroOrMore( ',' + sortSpecification ))("orderBy")
 
 # FROM fragments and such
-	fromClause = ( CaselessKeyword("FROM") 
-		+ tableReference 
-		+ ZeroOrMore( ',' + tableReference ))("fromClause")
-	tableExpression = (fromClause + Optional( whereClause ) 
-		+ Optional( groupByClause )  + Optional( havingClause ) 
-		+ Optional( orderByClause ))
+		fromClause = ( CaselessKeyword("FROM") 
+			+ tableReference 
+			+ ZeroOrMore( ',' + tableReference ))("fromClause")
+		tableExpression = (fromClause + Optional( whereClause ) 
+			+ Optional( groupByClause )  + Optional( havingClause ) 
+			+ Optional( orderByClause ))
 
 # toplevel select clause
-	querySpecification = Forward()
-	queryExpression << ( querySpecification |  joinedTable )
-	querySpecification << ( CaselessKeyword("SELECT") 
-		+ Optional( setQuantifier )
-		+ Optional( setLimit ) 
-		+ selectList + tableExpression )
-	statement = querySpecification + Optional( White() ) + StringEnd()
-	ParserElement.setDefaultWhitespaceChars("\t ")
-	return dict((k, v) for k, v in locals().iteritems()
-		if isinstance(v, ParserElement)), statement
+		querySpecification = Forward()
+		queryExpression << ( querySpecification |  joinedTable )
+		querySpecification << ( CaselessKeyword("SELECT") 
+			+ Optional( setQuantifier )
+			+ Optional( setLimit ) 
+			+ selectList + tableExpression )
+		statement = querySpecification + Optional( White() ) + StringEnd()
+		ParserElement.setDefaultWhitespaceChars("\t ")
+		return dict((k, v) for k, v in locals().iteritems()
+			if isinstance(v, ParserElement)), statement
 
 
 _grammarCache = None

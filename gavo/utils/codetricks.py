@@ -299,7 +299,7 @@ def makeClassDocs(baseClass, objects):
 
 
 @contextlib.contextmanager
-def silence()
+def silence():
 	"""a context manager to temporarily redirect stdout to /dev/null.
 
 	This is used to shut up some versions of pyparsing and pyfits that

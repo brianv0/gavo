@@ -25,6 +25,8 @@ Extensions to what the note says:
 #c
 #c This program is free software, covered by the GNU GPL.  See COPYING.
 
+from __future__ import with_statement
+
 
 import copy
 
@@ -211,236 +213,235 @@ def _getSTCSGrammar(numberLiteral, timeLiteral, _exportAll=False,
 	_addGeoReferences lets you write quoted references to vectors
 	(like Circle "center" 20.).
 	"""
-# WARNING: Changing global state here temporarily.  This will be trouble in
-# threads.  This stuff is reset below to the default from base.__init__
-	ParserElement.setDefaultWhitespaceChars("\n\t\r ")
+	with utils.pyparsingWhitechars("\n\t\r "):
 	
-	number = numberLiteral
-	del numberLiteral
+		number = numberLiteral
+		del numberLiteral
 
 # units
-	_unitOpener = Suppress( CaselessKeyword("unit") )
-	_spaceUnitWord = Regex(_reFromKeys(spatialUnits))
-	_timeUnitWord = Regex(_reFromKeys(temporalUnits))
-	spaceUnit = _unitOpener - OneOrMore( _spaceUnitWord ).addParseAction(
-		_stringifyBlank)("unit")
-	timeUnit = _unitOpener - _timeUnitWord("unit")
-	spectralUnit = _unitOpener - Regex(_reFromKeys(spectralUnits))("unit")
-	redshiftUnit = _unitOpener - ( 
-		(_spaceUnitWord + "/" + _timeUnitWord).addParseAction(_stringify) 
-		| CaselessKeyword("nil") )("unit")
-	velocityUnit = _unitOpener - (OneOrMore( 
-		(_spaceUnitWord + "/" + _timeUnitWord).addParseAction(_stringify) 
-		).addParseAction(_stringifyBlank))("unit")
+		_unitOpener = Suppress( CaselessKeyword("unit") )
+		_spaceUnitWord = Regex(_reFromKeys(spatialUnits))
+		_timeUnitWord = Regex(_reFromKeys(temporalUnits))
+		spaceUnit = _unitOpener - OneOrMore( _spaceUnitWord ).addParseAction(
+			_stringifyBlank)("unit")
+		timeUnit = _unitOpener - _timeUnitWord("unit")
+		spectralUnit = _unitOpener - Regex(_reFromKeys(spectralUnits))("unit")
+		redshiftUnit = _unitOpener - ( 
+			(_spaceUnitWord + "/" + _timeUnitWord).addParseAction(_stringify) 
+			| CaselessKeyword("nil") )("unit")
+		velocityUnit = _unitOpener - (OneOrMore( 
+			(_spaceUnitWord + "/" + _timeUnitWord).addParseAction(_stringify) 
+			).addParseAction(_stringifyBlank))("unit")
 
 # basic productions common to most STC-S subphrases
-	astroYear = Regex("[BJ][0-9]+([.][0-9]*)?")
-	fillfactor = (Suppress( CaselessKeyword("fillfactor") 
-		) + number("fillfactor"))
-	noEqFrame = (CaselessKeyword("J2000") 
-		| CaselessKeyword("B1950") 
-		| CaselessKeyword("ICRS") 
-		| CaselessKeyword("GALACTIC") 
-		| CaselessKeyword("GALACTIC_I") 
-		| CaselessKeyword("GALACTIC_II") 
-		| CaselessKeyword("SUPER_GALACTIC") 
-		| CaselessKeyword("GEO_C") 
-		| CaselessKeyword("GEO_D") 
-		| CaselessKeyword("HPR") 
-		| CaselessKeyword("HGS") 
-		| CaselessKeyword("HGC") 
-		| CaselessKeyword("HPC") 
-		| CaselessKeyword("UNKNOWNFrame"))("frame")
-	eqFrameName = (CaselessKeyword("FK5") 
-		| CaselessKeyword("FK4") 
-		| CaselessKeyword("ECLIPTIC"))("frame")
-	eqFrame = eqFrameName + Optional( astroYear("equinox") )
-	frame = eqFrame | noEqFrame
-	plEphemeris = CaselessKeyword("JPL-DE200") | CaselessKeyword("JPL-DE405")
-	refpos = ((Regex(_reFromKeys(stcRefPositions)))("refpos")
-    + Optional( plEphemeris("plEphemeris") ))
-	flavor = (Regex(_reFromKeys(stcsFlavors)))("flavor")
+		astroYear = Regex("[BJ][0-9]+([.][0-9]*)?")
+		fillfactor = (Suppress( CaselessKeyword("fillfactor") 
+			) + number("fillfactor"))
+		noEqFrame = (CaselessKeyword("J2000") 
+			| CaselessKeyword("B1950") 
+			| CaselessKeyword("ICRS") 
+			| CaselessKeyword("GALACTIC") 
+			| CaselessKeyword("GALACTIC_I") 
+			| CaselessKeyword("GALACTIC_II") 
+			| CaselessKeyword("SUPER_GALACTIC") 
+			| CaselessKeyword("GEO_C") 
+			| CaselessKeyword("GEO_D") 
+			| CaselessKeyword("HPR") 
+			| CaselessKeyword("HGS") 
+			| CaselessKeyword("HGC") 
+			| CaselessKeyword("HPC") 
+			| CaselessKeyword("UNKNOWNFrame"))("frame")
+		eqFrameName = (CaselessKeyword("FK5") 
+			| CaselessKeyword("FK4") 
+			| CaselessKeyword("ECLIPTIC"))("frame")
+		eqFrame = eqFrameName + Optional( astroYear("equinox") )
+		frame = eqFrame | noEqFrame
+		plEphemeris = CaselessKeyword("JPL-DE200") | CaselessKeyword("JPL-DE405")
+		refpos = ((Regex(_reFromKeys(stcRefPositions)))("refpos")
+			+ Optional( plEphemeris("plEphemeris") ))
+		flavor = (Regex(_reFromKeys(stcsFlavors)))("flavor")
 
 # properties of coordinates
-	error = Suppress( CaselessKeyword("Error") ) + OneOrMore( number )
-	resolution = Suppress( CaselessKeyword("Resolution") ) + OneOrMore( number )
-	size = Suppress( CaselessKeyword("Size") ) + OneOrMore(number)
-	pixSize = Suppress( CaselessKeyword("PixSize") ) + OneOrMore(number)
-	cooProps = (Optional( error("error") ) 
-		+ Optional( resolution("resolution") ) 
-		+ Optional( size("size") ) 
-		+ Optional( pixSize("pixSize") ))
+		error = Suppress( CaselessKeyword("Error") ) + OneOrMore( number )
+		resolution = Suppress( CaselessKeyword("Resolution") 
+			) + OneOrMore( number )
+		size = Suppress( CaselessKeyword("Size") ) + OneOrMore(number)
+		pixSize = Suppress( CaselessKeyword("PixSize") ) + OneOrMore(number)
+		cooProps = (Optional( error("error") ) 
+			+ Optional( resolution("resolution") ) 
+			+ Optional( size("size") ) 
+			+ Optional( pixSize("pixSize") ))
 
 # properties of most spatial specs
-	_coos = ZeroOrMore( number )("coos")
-	_pos = Optional( ZeroOrMore( number )("pos") )
-	if _addGeoReferences: # include references to vectors, for getColrefSymbols
-		complexColRef = Regex('[[][A-Za-z_][A-Za-z_0-9]*[]]').addParseAction(
-			lambda s,p,toks: GeometryColRef(toks[0][1:-1]))
-		_coos = complexColRef("coos") | _coos
-		_pos = complexColRef("pos") | _pos
-	positionSpec = Suppress( CaselessKeyword("Position") ) + _pos
-	epochSpec = Suppress( CaselessKeyword("Epoch") ) - astroYear
-	_spatialProps = Optional( spaceUnit ) + cooProps
-	velocitySpec = Suppress( CaselessKeyword("Velocity") ) + OneOrMore( number )("pos")
-	velocityInterval = (CaselessKeyword("VelocityInterval")("type") 
-		+ Optional( fillfactor ) 
-		+ _coos 
-		+ Optional( velocitySpec ) 
-		+ Optional( velocityUnit ) 
-		+ cooProps).addParseAction(makeTree)
-	_spatialTail = (_spatialProps + 
-		Optional( velocityInterval )("velocity"))
-	_regionTail = Optional( positionSpec ) + _spatialTail
-	_commonSpaceItems = ( frame + Optional( refpos ) + 
-		Optional( flavor ) + Optional( 
-			epochSpec("epoch").addParseAction(_stringify) ))
-	_commonRegionItems = Optional( fillfactor ) + _commonSpaceItems
+		_coos = ZeroOrMore( number )("coos")
+		_pos = Optional( ZeroOrMore( number )("pos") )
+		if _addGeoReferences: # include references to vectors, for getColrefSymbols
+			complexColRef = Regex('[[][A-Za-z_][A-Za-z_0-9]*[]]').addParseAction(
+				lambda s,p,toks: GeometryColRef(toks[0][1:-1]))
+			_coos = complexColRef("coos") | _coos
+			_pos = complexColRef("pos") | _pos
+		positionSpec = Suppress( CaselessKeyword("Position") ) + _pos
+		epochSpec = Suppress( CaselessKeyword("Epoch") ) - astroYear
+		_spatialProps = Optional( spaceUnit ) + cooProps
+		velocitySpec = Suppress( CaselessKeyword("Velocity") ) + OneOrMore( number )("pos")
+		velocityInterval = (CaselessKeyword("VelocityInterval")("type") 
+			+ Optional( fillfactor ) 
+			+ _coos 
+			+ Optional( velocitySpec ) 
+			+ Optional( velocityUnit ) 
+			+ cooProps).addParseAction(makeTree)
+		_spatialTail = (_spatialProps + 
+			Optional( velocityInterval )("velocity"))
+		_regionTail = Optional( positionSpec ) + _spatialTail
+		_commonSpaceItems = ( frame + Optional( refpos ) + 
+			Optional( flavor ) + Optional( 
+				epochSpec("epoch").addParseAction(_stringify) ))
+		_commonRegionItems = Optional( fillfactor ) + _commonSpaceItems
 
 # times and time intervals
-	timescale = (Regex("|".join(stcTimeScales)))("timescale")
-	timephrase = Suppress( CaselessKeyword("Time") ) + timeLiteral
-	_commonTimeItems = Optional( timeUnit ) + cooProps
-	_intervalOpener = ( Optional( fillfactor ) + 
-		Optional( timescale("timescale") ) +
-		Optional( refpos ) )
-	_intervalCloser = Optional( timephrase("pos") ) + _commonTimeItems
+		timescale = (Regex("|".join(stcTimeScales)))("timescale")
+		timephrase = Suppress( CaselessKeyword("Time") ) + timeLiteral
+		_commonTimeItems = Optional( timeUnit ) + cooProps
+		_intervalOpener = ( Optional( fillfactor ) + 
+			Optional( timescale("timescale") ) +
+			Optional( refpos ) )
+		_intervalCloser = Optional( timephrase("pos") ) + _commonTimeItems
 
-	timeInterval =  (CaselessKeyword("TimeInterval")("type") + 
-		_intervalOpener + ZeroOrMore( timeLiteral )("coos") + 
-		_intervalCloser)
-	startTime = (CaselessKeyword("StartTime")("type") + _intervalOpener + 
-		timeLiteral.setResultsName("coos", True) + _intervalCloser)
-	stopTime = (CaselessKeyword("StopTime")("type") + _intervalOpener + 
-		timeLiteral.setResultsName("coos", True) + _intervalCloser)
-	time = (CaselessKeyword("Time")("type")  + Optional( timescale("timescale") ) + 
-		Optional( refpos ) + Optional(
-			timeLiteral.setResultsName("pos", True) ) + _commonTimeItems)
-	timeSubPhrase = (timeInterval | startTime | stopTime | time).addParseAction(
-		makeTree)
+		timeInterval =  (CaselessKeyword("TimeInterval")("type") + 
+			_intervalOpener + ZeroOrMore( timeLiteral )("coos") + 
+			_intervalCloser)
+		startTime = (CaselessKeyword("StartTime")("type") + _intervalOpener + 
+			timeLiteral.setResultsName("coos", True) + _intervalCloser)
+		stopTime = (CaselessKeyword("StopTime")("type") + _intervalOpener + 
+			timeLiteral.setResultsName("coos", True) + _intervalCloser)
+		time = (CaselessKeyword("Time")("type")  + Optional( timescale("timescale") ) + 
+			Optional( refpos ) + Optional(
+				timeLiteral.setResultsName("pos", True) ) + _commonTimeItems)
+		timeSubPhrase = (timeInterval 
+			| startTime 
+			| stopTime 
+			| time).addParseAction(makeTree)
 
 # atomic "geometries"; I do not bother to specify their actual
 # arguments since, without knowing the frame, they may be basically
 # anthing.   Also, I want to allow geometry column references.
-	_atomicGeometryKey = ( CaselessKeyword("AllSky") 
-		| CaselessKeyword("Circle") 
-		| CaselessKeyword("Ellipse") 
-		| CaselessKeyword("Box") 
-		| CaselessKeyword("Polygon") 
-		| CaselessKeyword("Convex") )
-	atomicGeometry = ( _atomicGeometryKey("type") 
-		+ _commonRegionItems 
-		+ _coos 
-		+ _regionTail )
+		_atomicGeometryKey = ( CaselessKeyword("AllSky") 
+			| CaselessKeyword("Circle") 
+			| CaselessKeyword("Ellipse") 
+			| CaselessKeyword("Box") 
+			| CaselessKeyword("Polygon") 
+			| CaselessKeyword("Convex") )
+		atomicGeometry = ( _atomicGeometryKey("type") 
+			+ _commonRegionItems 
+			+ _coos 
+			+ _regionTail )
 
 # compound "geometries"
-	_compoundGeoExpression = Forward()
-	_compoundGeoOperand  = (( _atomicGeometryKey("subtype") + _coos )
-		| _compoundGeoExpression ).addParseAction(lambda s,p,t: dict(t))
+		_compoundGeoExpression = Forward()
+		_compoundGeoOperand  = (( _atomicGeometryKey("subtype") + _coos )
+			| _compoundGeoExpression ).addParseAction(lambda s,p,t: dict(t))
 
-	_compoundGeoOperatorUnary = CaselessKeyword("Not")
-	_compoundGeoOperandsUnary =  ( Suppress( '(' ) 
-		+ _compoundGeoOperand + Suppress( ')' ) )
-	_compoundGeoExprUnary = ( _compoundGeoOperatorUnary("subtype")
-		+ _compoundGeoOperandsUnary("children") )
+		_compoundGeoOperatorUnary = CaselessKeyword("Not")
+		_compoundGeoOperandsUnary =  ( Suppress( '(' ) 
+			+ _compoundGeoOperand + Suppress( ')' ) )
+		_compoundGeoExprUnary = ( _compoundGeoOperatorUnary("subtype")
+			+ _compoundGeoOperandsUnary("children") )
 
-	_compoundGeoOperatorBinary = CaselessKeyword("Difference")
-	_compoundGeoOperandsBinary =  ( Suppress( '(' ) 
-		+ _compoundGeoOperand + _compoundGeoOperand + Suppress( ')' ) )
-	_compoundGeoExprBinary = ( _compoundGeoOperatorBinary("subtype")
-		+ _compoundGeoOperandsBinary("children") )
+		_compoundGeoOperatorBinary = CaselessKeyword("Difference")
+		_compoundGeoOperandsBinary =  ( Suppress( '(' ) 
+			+ _compoundGeoOperand + _compoundGeoOperand + Suppress( ')' ) )
+		_compoundGeoExprBinary = ( _compoundGeoOperatorBinary("subtype")
+			+ _compoundGeoOperandsBinary("children") )
 
-	_compoundGeoOperatorNary = ( CaselessKeyword("Union") 
-		| CaselessKeyword("Intersection") )
-	_compoundGeoOperandsNary =  ( Suppress( '(' ) 
-		+ _compoundGeoOperand + _compoundGeoOperand 
-		+ ZeroOrMore( _compoundGeoOperand ) + Suppress( ')' ) )
-	_compoundGeoExprNary = ( _compoundGeoOperatorNary("subtype")
-		+ _compoundGeoOperandsNary("children") )
+		_compoundGeoOperatorNary = ( CaselessKeyword("Union") 
+			| CaselessKeyword("Intersection") )
+		_compoundGeoOperandsNary =  ( Suppress( '(' ) 
+			+ _compoundGeoOperand + _compoundGeoOperand 
+			+ ZeroOrMore( _compoundGeoOperand ) + Suppress( ')' ) )
+		_compoundGeoExprNary = ( _compoundGeoOperatorNary("subtype")
+			+ _compoundGeoOperandsNary("children") )
 
-	_compoundGeoExpression << ( _compoundGeoExprUnary
-		| _compoundGeoExprBinary
-		| _compoundGeoExprNary )
-	compoundGeoPhrase = ( _compoundGeoOperatorUnary("type") 
-			+ _commonRegionItems 
-			+ _compoundGeoOperandsUnary("children") + _regionTail 
-		| _compoundGeoOperatorBinary("type") 
-			+ _commonRegionItems 
-			+ _compoundGeoOperandsBinary("children") + _regionTail 
-		| _compoundGeoOperatorNary("type") 
-			+ _commonRegionItems 
-			- _compoundGeoOperandsNary("children") + _regionTail )
+		_compoundGeoExpression << ( _compoundGeoExprUnary
+			| _compoundGeoExprBinary
+			| _compoundGeoExprNary )
+		compoundGeoPhrase = ( _compoundGeoOperatorUnary("type") 
+				+ _commonRegionItems 
+				+ _compoundGeoOperandsUnary("children") + _regionTail 
+			| _compoundGeoOperatorBinary("type") 
+				+ _commonRegionItems 
+				+ _compoundGeoOperandsBinary("children") + _regionTail 
+			| _compoundGeoOperatorNary("type") 
+				+ _commonRegionItems 
+				- _compoundGeoOperandsNary("children") + _regionTail )
 
 # space subphrase
-	positionInterval = ( CaselessKeyword("PositionInterval")("type") 
-		+ _commonRegionItems 
-		+ _coos 
-		+ _regionTail )
-	position = ( CaselessKeyword("Position")("type") 
-		+ _commonSpaceItems 
-		+ _pos 
-		+ _spatialTail )
-	spaceSubPhrase = ( positionInterval 
-		| position 
-		| atomicGeometry 
-		| compoundGeoPhrase ).addParseAction(makeTree)
+		positionInterval = ( CaselessKeyword("PositionInterval")("type") 
+			+ _commonRegionItems 
+			+ _coos 
+			+ _regionTail )
+		position = ( CaselessKeyword("Position")("type") 
+			+ _commonSpaceItems 
+			+ _pos 
+			+ _spatialTail )
+		spaceSubPhrase = ( positionInterval 
+			| position 
+			| atomicGeometry 
+			| compoundGeoPhrase ).addParseAction(makeTree)
 
 # spectral subphrase
-	spectralSpec = (Suppress( CaselessKeyword("Spectral") ) 
-		+ number)("pos")
-	_spectralTail = Optional( spectralUnit ) + cooProps
-	spectralInterval = (CaselessKeyword("SpectralInterval")("type") 
-		+ Optional( fillfactor ) 
-		+ Optional( refpos ) 
-		+ _coos 
-		+ Optional( spectralSpec ) 
-		+ _spectralTail)
-	spectral = (CaselessKeyword("Spectral")("type") 
-		+ Optional( refpos ) 
-		+ _pos 
-		+ _spectralTail)
-	spectralSubPhrase = (spectralInterval | spectral ).addParseAction(
-		makeTree)
+		spectralSpec = (Suppress( CaselessKeyword("Spectral") ) 
+			+ number)("pos")
+		_spectralTail = Optional( spectralUnit ) + cooProps
+		spectralInterval = (CaselessKeyword("SpectralInterval")("type") 
+			+ Optional( fillfactor ) 
+			+ Optional( refpos ) 
+			+ _coos 
+			+ Optional( spectralSpec ) 
+			+ _spectralTail)
+		spectral = (CaselessKeyword("Spectral")("type") 
+			+ Optional( refpos ) 
+			+ _pos 
+			+ _spectralTail)
+		spectralSubPhrase = (spectralInterval | spectral ).addParseAction(
+			makeTree)
 
 # redshift subphrase
-	redshiftType = Regex("VELOCITY|REDSHIFT")("redshiftType")
-	redshiftSpec = (Suppress( CaselessKeyword("Redshift") ) + number)("pos")
-	dopplerdef = Regex("OPTICAL|RADIO|RELATIVISTIC")("dopplerdef")
-	_redshiftTail = Optional( redshiftUnit ) + cooProps
-	redshiftInterval = (CaselessKeyword("RedshiftInterval")("type") 
-		+ Optional( fillfactor ) 
-		+ Optional( refpos ) 
-		+ Optional( redshiftType ) 
-		+ Optional( dopplerdef ) 
-		+ _coos 
-		+ Optional( redshiftSpec ) 
-		+ _redshiftTail)
-	redshift = (CaselessKeyword("Redshift")("type") 
-		+ Optional( refpos ) 
-		+ Optional( redshiftType ) 
-		+ Optional( dopplerdef ) 
-		+ _pos 
-		+ _redshiftTail)
-	redshiftSubPhrase = (redshiftInterval | redshift).addParseAction(
-		makeTree)
+		redshiftType = Regex("VELOCITY|REDSHIFT")("redshiftType")
+		redshiftSpec = (Suppress( CaselessKeyword("Redshift") ) + number)("pos")
+		dopplerdef = Regex("OPTICAL|RADIO|RELATIVISTIC")("dopplerdef")
+		_redshiftTail = Optional( redshiftUnit ) + cooProps
+		redshiftInterval = (CaselessKeyword("RedshiftInterval")("type") 
+			+ Optional( fillfactor ) 
+			+ Optional( refpos ) 
+			+ Optional( redshiftType ) 
+			+ Optional( dopplerdef ) 
+			+ _coos 
+			+ Optional( redshiftSpec ) 
+			+ _redshiftTail)
+		redshift = (CaselessKeyword("Redshift")("type") 
+			+ Optional( refpos ) 
+			+ Optional( redshiftType ) 
+			+ Optional( dopplerdef ) 
+			+ _pos 
+			+ _redshiftTail)
+		redshiftSubPhrase = (redshiftInterval | redshift).addParseAction(
+			makeTree)
 
 # system subphrase (extension, see docs)
-	# ids match Name from XML spec; we're not doing char refs and similar here
-	xmlName = Word(alphas+"_:", alphanums+'.-_:').addParseAction(_stringify)
-	systemDefinition = (Suppress( CaselessKeyword("System") ) 
-		+ xmlName("libSystem"))
-		
+		# ids match Name from XML spec; we're not doing char refs and similar here
+		xmlName = Word(alphas+"_:", alphanums+'.-_:').addParseAction(_stringify)
+		systemDefinition = (Suppress( CaselessKeyword("System") ) 
+			+ xmlName("libSystem"))
+			
 
 # top level
-	stcsPhrase = (Optional( timeSubPhrase )("time") +
-		Optional( spaceSubPhrase )("space") +
-		Optional( spectralSubPhrase )("spectral") +
-		Optional( redshiftSubPhrase )("redshift") +
-		Optional( systemDefinition ) ) + StringEnd()
+		stcsPhrase = (Optional( timeSubPhrase )("time") +
+			Optional( spaceSubPhrase )("space") +
+			Optional( spectralSubPhrase )("spectral") +
+			Optional( redshiftSubPhrase )("redshift") +
+			Optional( systemDefinition ) ) + StringEnd()
 
-	ParserElement.setDefaultWhitespaceChars("\t ")
-
-	return _makeSymDict(locals(), _exportAll)
+		return _makeSymDict(locals(), _exportAll)
 
 
 def getSymbols(_exportAll=False, _colrefLiteral=None,

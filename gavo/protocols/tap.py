@@ -113,14 +113,15 @@ def _makeUploadGrammar():
 	from pyparsing import (Word, ZeroOrMore, Suppress, StringEnd,
 		alphas, alphanums, CharsNotIn)
 	# Should we allow more tableNames?
-	tableName = Word( alphas+"_", alphanums+"_" )
-	# What should we allow/forbid in terms of URIs?
-	uri = CharsNotIn(" ;,")
-	uploadSpec = tableName("name") + "," + uri("uri")
-	uploads = uploadSpec + ZeroOrMore(
-		Suppress(";") + uploadSpec) + StringEnd()
-	uploadSpec.addParseAction(lambda s,p,t: (t["name"], t["uri"]))
-	return uploads
+	with utils.pyparsingWhitechars(" \t"):
+		tableName = Word( alphas+"_", alphanums+"_" )
+		# What should we allow/forbid in terms of URIs?
+		uri = CharsNotIn(" ;,")
+		uploadSpec = tableName("name") + "," + uri("uri")
+		uploads = uploadSpec + ZeroOrMore(
+			Suppress(";") + uploadSpec) + StringEnd()
+		uploadSpec.addParseAction(lambda s,p,t: (t["name"], t["uri"]))
+		return uploads
 
 
 getUploadGrammar = utils.CachedGetter(_makeUploadGrammar)

@@ -10,19 +10,6 @@ import locale, os
 os.environ["LC_ALL"] = 'C'
 locale.setlocale(locale.LC_ALL, 'C')
 
-from pyparsing import ParseException
-
-# This may not be the best place to put this, but I don't really have a
-# better one at this point.  We need some configuration of pyparsing, and
-# this is probably imported by all modules doing pyparsing.
-from pyparsing import ParserElement
-# Hack to get around behaviour swings of setParseAction; we use
-# addParseAction throughout and retrofit it to pyparsings that don't have it.
-if not hasattr(ParserElement, "addParseAction"):
-	ParserElement.addParseAction = ParserElement.setParseAction
-ParserElement.enablePackrat()
-ParserElement.setDefaultWhitespaceChars(" \t")
-
 from gavo.base import caches
 
 from gavo.base.attrdef import *
