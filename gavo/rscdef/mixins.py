@@ -90,6 +90,25 @@ class MixinDef(activetags.ReplayBase):
 					destination, rootStruct, parseContext)
 			ctx.addExitFunc(procLate)
 
+	def applyToFinished(self, destination):
+		"""applies the mixin to an object already parsed.
+
+		Late callbacks will only be executed if destination has an rd
+		attribute; if that is the case, this rd's idmap will be amended
+		with anything the mixin comes up with.
+		"""
+		rd = None
+		if hasattr(destination, "rd"):
+			rd = destination.rd
+
+		ctx = base.ParseContext()
+		if rd is not None:
+			ctx.idmap = destination.rd.idmap
+		self.applyTo(destination, ctx)
+		
+		if rd is not None:
+			ctx.runExitFuncs(rd)
+
 
 class MixinAttribute(base.SetOfAtomsAttribute):
 	"""An attribute defining a mixin.

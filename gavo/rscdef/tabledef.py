@@ -348,7 +348,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		"""returns the (unique!) name of the field having ucd in this table.
 
 		If there is no or more than one field with the ucd in this table,
-		we raise an exception.
+		we raise a ValueError.
 		"""
 		return self.getColumnByUCD(ucd).name
 

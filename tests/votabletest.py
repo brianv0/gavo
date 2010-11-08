@@ -405,5 +405,30 @@ class SimpleAPIReadTest(testhelpers.VerboseTest):
 		self.assertEqual(data[1][0], None)
 
 
+class VOTReadTest(testhelpers.VerboseTest):
+	def testQ3CIndex(self):
+		rows = votable.parse(StringIO(
+			"""<VOTABLE><RESOURCE><TABLE>
+				<FIELD name="a" datatype="float" ucd="pos.eq.ra;meta.main"/>
+				<FIELD name="d" datatype="float" ucd="pos.eq.dec;meta.main"/>
+				<DATA><TABLEDATA><TR><TD>1</TD><TD>2</TD></TR></TABLEDATA></DATA>
+				</TABLE></RESOURCE></VOTABLE>""")).next()
+		td = votableread.makeTableDefForVOTable("foo", rows.tableDefinition)
+		self.assertEqual(td.indices[0].content_.strip(),
+			r"q3c_ang2ipix(\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN},"
+			r" \nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN})")
+	
+	def testNoIndex(self):
+		# The thing shouldn't crash or do anything stupid with silly UCDs.
+		rows = votable.parse(StringIO(
+			"""<VOTABLE><RESOURCE><TABLE>
+				<FIELD name="a" datatype="float" ucd="pos.eq.ra;meta.main"/>
+				<FIELD name="d" datatype="float" ucd="pos.eq.ra;meta.main"/>
+				<DATA><TABLEDATA><TR><TD>1</TD><TD>2</TD></TR></TABLEDATA></DATA>
+				</TABLE></RESOURCE></VOTABLE>""")).next()
+		td = votableread.makeTableDefForVOTable("foo", rows.tableDefinition)
+		self.assertEqual(td.indices, [])
+			
+
 if __name__=="__main__":
-	testhelpers.main(ImportTest)
+	testhelpers.main(VOTReadTest)

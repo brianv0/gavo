@@ -65,6 +65,20 @@ class AutoQuotedNameMaker(object):
 			return name
 
 
+def addQ3CIndex(tableDef):
+	"""if td as unique main positions (by UCD), add an index to the table
+	definition.
+	"""
+	try:
+		raField = tableDef.getColumnByUCDs("pos.eq.ra;meta.main", 
+			"POS_EQ_RA_MAIN").name
+		decField = tableDef.getColumnByUCDs("pos.eq.dec;meta.main", 
+			"POS_EQ_RA_MAIN").name
+	except ValueError: # No unique positions
+		return
+	base.resolveId(None, "//scs#q3cindex").applyToFinished(tableDef)
+
+
 def makeTableDefForVOTable(tableId, votTable, nameMaker=None,
 		**moreArgs):
 	"""returns a TableDef for a Table element parsed from a VOTable.
@@ -81,6 +95,9 @@ def makeTableDefForVOTable(tableId, votTable, nameMaker=None,
 	The default is valuemappers.VOTNameMaker, but
 	you can also use InventinQuotedNameMaker, QuotedNameMaker, or
 	AutoQuotedNameMaker from this module.
+
+	If unique "main" positions are given, a spatial q3c index will be
+	added.
 	"""
 	if nameMaker is None:
 		nameMaker = valuemappers.VOTNameMaker()
@@ -101,6 +118,7 @@ def makeTableDefForVOTable(tableId, votTable, nameMaker=None,
 	# Create the table definition
 	tableDef = MS(rscdef.TableDef, id=tableId, columns=columns,
 		**moreArgs)
+	addQ3CIndex(tableDef)
 
 	# Build STC info
 	for colInfo, ast in votable.modelgroups.unmarshal_STC(votTable):
