@@ -169,27 +169,6 @@ class SourceSpec(base.Structure):
 			) or (not not self.content_)
 
 
-class GrammarAttribute(base.StructAttribute):
-	"""is an attribute containing some kind of grammar.
-
-	This is a bit funky in that it's polymorphous.  We look up the
-	class that's actually going to be created in the parent's class
-	registry.
-
-	This really only works on DataDescriptors.
-	"""
-	def __init__(self, name, description, **kwargs):
-		base.AttributeDef.__init__(self, name, 
-			default=None, description=description, **kwargs)
-
-	def create(self, structure, ctx, name):
-		return builtingrammars.getGrammar(name)(structure)
-
-	def makeUserDoc(self):
-		return ("Polymorphous grammar attribute.  May contain any of the grammars"
-			" mentioned in `Grammars available`_.")
-
-
 class Make(base.Structure, scripting.ScriptingMixin):
 	"""A build recipe for tables belonging to a data descriptor.
 
@@ -250,9 +229,11 @@ class DataDescriptor(base.Structure, base.MetaMixin):
 		childFactory=tabledef.TableDef, 
 		description="Embedded table definitions (usually, tables are defined"
 			" toplevel)", copyable=True)
-	# polymorphous through getDynamicAttribute
-	_grammar = GrammarAttribute("grammar", description="Grammar used"
-		" to parse this data set.", copyable=True)
+	_grammar = base.MultiStructAttribute("grammar", 
+		childFactory=builtingrammars.getGrammar,
+		childNames=builtingrammars.GRAMMAR_REGISTRY.keys(),
+		default=None,
+		description="Grammar used to parse this data set.", copyable=True)
 	_sources = base.StructAttribute("sources", default=None, 
 		childFactory=SourceSpec,
 		description="Specification of sources that should be fed to the grammar.",
@@ -278,14 +259,6 @@ class DataDescriptor(base.Structure, base.MetaMixin):
 		self._onElementCompleteNext(DataDescriptor)
 		for t in self.tables:
 			t.setMetaParent(self)
-
-	def getDynamicAttribute(self, name):
-		try:
-			grammarClass = builtingrammars.getGrammar(name)
-		except KeyError:  # no such grammar, let Structure raise its error
-			return
-		self.managedAttrs[name] = self._grammar
-		return self._grammar
 
 	# since we want DDs to be dynamically created, they must find their
 	# meta parent (RD) themselves.  We do this while the DD is being adopted.

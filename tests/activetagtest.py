@@ -32,7 +32,7 @@ class BasicTest(testhelpers.VerboseTest):
 	def testPlainError(self):
 		self.assertRaisesWithMsg(base.StructureError, 
 			"At (3, 40) (replaying, real error position (2, 48)):"
-			" TableDef objects cannot have honk children",
+			" table elements have no honk attributes or children.",
 			base.parseFromString, (rscdef.DataDescriptor, """<data id="bar">
 			<STREAM id="foo"><table id="u" onDisk="True"><honk name="x"/>
 			</table></STREAM><FEED source="foo"/></data>"""))
@@ -113,8 +113,6 @@ class NestedTest(testhelpers.VerboseTest):
 
 class EditTest(testhelpers.VerboseTest):
 	def testProd(self):
-		# Temporary import until we've sorted out the self-registration mess
-		from gavo import api
 		res = base.parseFromString(rscdef.TableDef, 
 				"""<table><FEED source="//products#tablecols">
 					<EDIT ref="column[accref]" utype="ssa:Access.Reference">

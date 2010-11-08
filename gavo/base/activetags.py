@@ -282,22 +282,25 @@ class ReplayedEvents(DelayedReplayBase):
 	"""
 	name_ = "FEED"
 
+	def __init__(self, *args, **kwargs):
+		DelayedReplayBase.__init__(self, *args, **kwargs)
+		# managedAttrs in general is a class attribute.  Here, we want
+		# to add values for the macros, and these are instance-local.
+		self.managedAttrs = self.managedAttrs.copy()
+
 	def completeElement(self):
 		self._completeElementNext(ReplayedEvents)
 		self._replayer()
 
-	def getDynamicAttribute(self, name):
-		def m():
-			return getattr(self, name)
-		setattr(self, "macro_"+name.strip(), m)
-		# crazy hack: Since all our peudo attributes are atomic, we do not
-		# enter them into managedAttributes.  Actually, we *must not* do
-		# so (for now) since managedAttributes is a *class* attribute
-		# and entering something there would keep getDynamicAttribute
-		# from being called for a second instance.  That instance would
-		# then not receive the macro_X method an thus fail.
-		newAtt = attrdef.UnicodeAttribute(name)
-		return newAtt
+	def getAttribute(self, name):
+		try:
+			return DelayedReplayBase.getAttribute(self, name)
+		except common.StructureError: # no "real" attribute, it's a macro def
+			def m():
+				return getattr(self, name)
+			setattr(self, "macro_"+name.strip(), m)
+			self.managedAttrs[name] = attrdef.UnicodeAttribute(name)
+			return self.managedAttrs[name]
 
 
 class GeneratorAttribute(attrdef.UnicodeAttribute):

@@ -98,21 +98,6 @@ class KeyIs(KeyedCondition):
 registerTrigger(KeyIs)
 
 
-class TriggerAttribute(base.StructListAttribute):
-	"""is an attribute containing a list triggers.
-	"""
-	def __init__(self, name, description="Ignored", **kwargs):
-		base.StructListAttribute.__init__(self, name, childFactory=TriggerBase,
-			description=description, **kwargs)
-
-	def create(self, structure, ctx, name):
-		return getTrigger(name)(structure)
-	
-	def makeUserDoc(self):
-		return ("One or more conditions joined by an implicit logical or."
-			"  See `Triggers`_ for information on what can stand here.")
-
-
 class ConditionBase(TriggerBase):
 	"""is an abstract base for anything that can incorporate the
 	basic triggers.
@@ -120,16 +105,11 @@ class ConditionBase(TriggerBase):
 	If you don't override __call__, the basic operation is or-ing together
 	all embedded conditions.
 	"""
-	_triggers = TriggerAttribute("triggers", copyable=True)
+	_triggers = base.MultiStructListAttribute("triggers", 
+		childFactory=getTrigger, childNames=_triggerRegistry,
+		description=("One or more conditions joined by an implicit logical or."
+			"  See Triggers_ for information on what can stand here."))
 
-	def getDynamicAttribute(self, name):
-		try:
-			triggerClass = getTrigger(name)
-		except KeyError:
-			return
-		self.managedAttrs[name] = self._triggers
-		return self._triggers
-	
 	def __call__(self, dict):
 		for t in self.triggers:
 			if t(dict):

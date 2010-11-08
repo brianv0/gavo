@@ -255,20 +255,19 @@ class ParseableStructure(StructureBase, common.Parser):
 	def finishElement(self):
 		return self
 
-	def getDynamicAttribute(self, name):
-		"""returns an AttributeDef for name or None.
+	def getAttribute(self, name):
+		"""Returns an attribute instance from name.
 
-		The function is only called for names not already present in 
-		managedAttributes.
-
-		This is intended for polymorphic attributes that can't go the registry-type
-		way (e.g., grammar attribute on data descriptors).
-
-		The AttributeDef returned *must* be entered into managedAttributes
-		unless you insist on chaos.
-
-		If this method returns None, the unknown name will raise an error.
+		This function will raise a StructureError if no matching attribute 
+		definition is found.
 		"""
+		if name in self.managedAttrs:
+			return self.managedAttrs[name]
+		if name=="content_":
+			raise common.StructureError("%s elements must not have character data"
+				" content."%(self.name_))
+		raise common.StructureError(
+			"%s elements have no %s attributes or children."%(self.name_, name))
 
 	def end_(self, ctx, name, value):
 		try:
@@ -288,18 +287,7 @@ class ParseableStructure(StructureBase, common.Parser):
 		return self.parent
 
 	def value_(self, ctx, name, value):
-		if name in self.managedAttrs:
-			attDef = self.managedAttrs[name]
-		else:
-			attDef = self.getDynamicAttribute(name)
-			if attDef is None:
-				if name=="content_":
-					raise common.StructureError("%s elements must not have character data"
-						" content (found '%s')"%(self.name_, 
-							utils.makeEllipsis(value, 20)))
-				raise common.StructureError(
-					"%s elements have no %s attributes"%(self.name_, name))
-
+		attDef = self.getAttribute(name)
 		try:
 			attDef.feed(ctx, self, value)
 		except common.Replace, ex:
@@ -308,13 +296,7 @@ class ParseableStructure(StructureBase, common.Parser):
 		return self
 	
 	def start_(self, ctx, name, value):
-		if not name in self.managedAttrs:
-			attDef = self.getDynamicAttribute(name)
-			if not attDef:
-				raise common.StructureError(
-					"%s objects cannot have %s children"%(self.__class__.__name__, name))
-		else:
-			attDef = self.managedAttrs[name]
+		attDef = self.getAttribute(name)
 		if hasattr(attDef, "create"):
 			return attDef.create(self, ctx, name)
 		else:
@@ -385,7 +367,7 @@ class Structure(ParseableStructure):
 	hook.
 
 	Also, it supports onParentComplete callbacks; this works by checking
-	if any managedAttribute has a onParentComplete method and calling it
+	if any managedAttr has a onParentComplete method and calling it
 	with the current value of that attribute if necessary.
 	"""
 	def callCompletedCallbacks(self):

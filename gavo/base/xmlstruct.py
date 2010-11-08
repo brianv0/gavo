@@ -126,12 +126,6 @@ def _synthesizeAttributeEvents(evProc, context, attrs):
 	original = attrs.pop("original", None)
 	if original:
 		evProc.feed("value", "original", original)
-
-# XXX TODO: Remove the ref mess soon.
-	ref = attrs.pop("ref", None)
-	if ref:
-		evProc.feed("value", "ref", ref)
-#		raise common.Error("The ref attribute was a bad error.")
 	for key, val in attrs.iteritems():
 		evProc.feed("value", key, val)
 

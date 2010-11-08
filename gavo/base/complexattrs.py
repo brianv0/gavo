@@ -234,11 +234,12 @@ class StructAttribute(attrdef.AttributeDef):
 			description="Undocumented", **kwargs):
 		attrdef.AttributeDef.__init__(self, name, default, description, **kwargs)
 		self.childFactory = childFactory
-		self.xmlName_ = self.childFactory.name_
+		if self.childFactory is not None:
+			self.xmlName_ = self.childFactory.name_
 
 	@property
 	def typeDesc_(self):
-		return self.childStruct.name_
+		return self.childFactory.name_
 
 	def feedObject(self, instance, value):
 		if value is not None and value.parent is None:  # adopt if necessary
@@ -286,6 +287,34 @@ class StructAttribute(attrdef.AttributeDef):
 			self.name_, self.childFactory.name_, self.description_)
 
 
+class MultiStructAttribute(StructAttribute):
+	"""describes an attribute containing one of a class of Structures.
+
+	This is to support things like grammars or cores -- these can
+	be of many types.
+
+	This works like StructAttribute, except that childFactory now is
+	a *function* returning elements (i.e., it's a childFactoryFactory).
+	"""
+	def __init__(self, name, childFactory, childNames, **kwargs):
+		StructAttribute.__init__(self, name, None, **kwargs)
+		self.childFactory = childFactory
+		self.aliases = childNames
+
+	@property
+	def typeDesc_(self):
+		return ("one of %s"%", ".join(self.aliases))
+	
+	def create(self, structure, ctx, name):
+		res = self.childFactory(name)(structure)
+		res.setParseContext(ctx)
+		return res
+
+	def makeUserDoc(self):
+		return "%s (contains one of %s) -- %s"%(
+			self.name_, ", ".join(self.aliases), self.description_)
+
+
 class StructListAttribute(StructAttribute):
 	"""describes an attribute containing a homogeneous list of structures.
 	"""
@@ -300,7 +329,7 @@ class StructListAttribute(StructAttribute):
 
 	@property
 	def typeDesc_(self):
-		return "List of %s"%self.childStruct.name_
+		return "List of %s"%self.childFactory.name_
 	
 	def feedObject(self, instance, value):
 		if isinstance(value, list):
@@ -326,10 +355,10 @@ class StructListAttribute(StructAttribute):
 
 	def iterEvents(self, instance):
 		for val in getattr(instance, self.name_):
-			yield ("start", self.xmlName_, None)
+			yield ("start", val.name_, None)
 			for ev in val.iterEvents():
 				yield ev
-			yield ("end", self.xmlName_, None)
+			yield ("end", val.name_, None)
 
 	def iterChildren(self, instance):
 		return iter(getattr(instance, self.name_))
@@ -345,5 +374,30 @@ class StructListAttribute(StructAttribute):
 			" times) -- %s")%(self.name_, self.childFactory.name_, self.description_)
 
 
+# Ok, so the inheritance here is evil.  I'll fix it if it needs more work.
+class MultiStructListAttribute(StructListAttribute, MultiStructAttribute):
+	"""describes a list of polymorphous children.
+
+	See rscdesc cores as to why one could want this; the arguments are
+	as for MultiStructAttribute.
+	"""
+	def __init__(self, name, childFactory, childNames, **kwargs):
+		StructListAttribute.__init__(self, name, None, **kwargs)
+		self.childFactory = childFactory
+		self.aliases = childNames
+
+	@property
+	def typeDesc_(self):
+		return "List of any of %s"%(", ".join(self.aliases))
+
+	def create(self, structure, ctx, name):
+		return MultiStructAttribute.create(self, structure, ctx, name)
+
+	def makeUserDoc(self):
+		return ("%s (contains any of %_ and may be repeated zero or more"
+			" times) -- %s")%(self.name_, ",".join(self.aliases), self.description_)
+
+
 __all__ = ["ListOfAtomsAttribute", "DictAttribute", "StructAttribute",
-	"StructListAttribute", "SetOfAtomsAttribute", "PropertyAttribute"]
+	"MultiStructAttribute", "StructListAttribute", "MultiStructListAttribute",
+	"SetOfAtomsAttribute", "PropertyAttribute"]

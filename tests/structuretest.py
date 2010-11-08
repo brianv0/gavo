@@ -168,7 +168,7 @@ class AtomicFeedTest(testhelpers.VerboseTest):
 	def testRaising(self):
 		Bla = self._getPlainStructure()
 		self.assertRaisesWithMsg(base.StructureError, 
-			"Bla objects cannot have xxx children", _feedInto, 
+			"bla elements have no xxx attributes or children.", _feedInto, 
 			(Bla, [("start", "bla"), ("start", "xxx")]))
 
 
@@ -218,14 +218,16 @@ class XMLParseTest(testhelpers.VerboseTest):
 			xmlstruct.parseFromStream, (Color, StringIO("""<foo name="red">
 			<color g="0" b="0"/></foo>""")))
 
-	def testBadChild(self):
+	def testMsgBadAtt(self):
 		self.assertRaisesWithMsg(base.StructureError,
 			"At (1, 0):"
-			" color elements have no noAtt attributes",
+			" color elements have no noAtt attributes or children.",
 			xmlstruct.parseFromString, (Color, '<color noAtt="30"/>'))
+
+	def testMsgBadChild(self):
 		self.assertRaisesWithMsg(base.StructureError,
 			"At (1, 7):"
-			" Color objects cannot have noAtt children",
+			" color elements have no noAtt attributes or children.",
 			xmlstruct.parseFromString, (Color, '<color><noAtt>30</noAtt></color>'))
 
 	def testAtomListParse(self):
@@ -238,8 +240,7 @@ class XMLParseTest(testhelpers.VerboseTest):
 		self.assertEqual(f.content_, "Some content")
 		self.assertRaisesWithMsg(base.StructureError,
 			"At (1, 19): "
-			"color elements must not have character data content "
-				"(found 'Some content')",
+			"color elements must not have character data content.",
 			xmlstruct.parseFromString, (Color, '<color>Some content</color>'))
 
 
@@ -355,5 +356,28 @@ class ReferenceAttTest(testhelpers.VerboseTest):
 		self.assertEqual(res.ims[0].pal.parent, res.ims[0])
 
 
+def _getArg(name):
+	return {"color": Color, "foo": Foo}[name]
+
+
+class _MultiBase(base.Structure):
+	name_ = "mb"
+	_ma = base.MultiStructAttribute("arg", childFactory=_getArg,
+		childNames=["color", "foo"])
+
+
+class MultiTest(testhelpers.VerboseTest):
+	def testSimpleMulti(self):
+		res = base.parseFromString(_MultiBase, '<mb><color r="2"/></mb>')
+		self.assertEqual(res.arg.r, 2)
+
+	def testAliasInheritance(self):
+		class Imp(_MultiBase):
+			name_ = "imp"
+			pass
+		res = base.parseFromString(Imp, '<imp><color r="2"/></imp>')
+		self.assertEqual(res.arg.r, 2)
+
+
 if __name__=="__main__":
-	testhelpers.main(BeforeTest)
+	testhelpers.main(MultiTest)

@@ -28,22 +28,6 @@ from gavo.rscdef import common
 from gavo.rscdef import scripting
 
 
-class CoresAttribute(base.StructListAttribute):
-	"""is an attribute containing a list of cores available.
-
-	On creation, we check what core class is actually requested, so
-	the list may contain all kinds of cores as long as they are registred.
-	"""
-	def __init__(self, name, description, **kwargs):
-		base.StructListAttribute.__init__(self, name, childFactory=svcs.Core,
-			description=description, **kwargs)
-
-	def create(self, structure, ctx, name):
-		res = svcs.getCore(name)(structure)
-		res.setParseContext(ctx)
-		return res
-
-
 class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		base.StandardMacroMixin, common.RolesMixin, registry.DateUpdatedMixin):
 	"""A resource descriptor (RD); the root for all elements described here.
@@ -94,7 +78,8 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		description="Import the named gavo module (for when you need something"
 		" registred)")
 	# The next attrs are polymorphic through getDynamicAttribute
-	_cores = CoresAttribute("cores", 
+	_cores = base.MultiStructListAttribute("cores", 
+		childFactory=svcs.getCore, childNames=svcs.CORE_REGISTRY.keys(),
 		description="Cores available in this resource.", copyable=True,
 		before="services")
 	# These replace themselves with expanded tables
@@ -129,14 +114,6 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 
 	def importModule(self, ctx):
 		utils.loadInternalObject(self.require, "__doc__")
-
-	def getDynamicAttribute(self, name):
-		try:
-			coreClass = svcs.getCore(name)
-		except KeyError: # No such core, have structure raise its error
-			return
-		self.managedAttrs[name] = self._cores
-		return self._cores
 
 	def onElementComplete(self):
 		for table in self.tables:
