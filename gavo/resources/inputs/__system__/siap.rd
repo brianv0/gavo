@@ -88,7 +88,7 @@
 				- instId -- some id for the instrument used
 				- dateObs -- a timestamp of the "characteristic" observation time
 				- the bandpass* values.  You're on your own with them...
-				- the values of the product interface.  
+				- the values of the //products#table mixin.  
 				- mimetype -- the mime type of the product.
 				- the primaryBbox, secondaryBbox, centerAlpha and centerDelta, nAxes, 
 					pixelSize, pixelScale, wcs* fields calculated by the 
@@ -97,7 +97,7 @@
 			(their definition is in the siap system RD)
 
 			Tables mixing in //siap#bbox can be used for SIAP querying and
-			automatically mix in `the products mixin`_.
+			automatically mix in the products table mixin.
 
 			To feed these tables, use the //siap#computeBbox and 
 			//siap#setMeta procs.  Since you are dealing with products, you will also
@@ -132,7 +132,7 @@
 				- instId -- some id for the instrument used
 				- dateObs -- a timestamp of the "characteristic" observation time
 				- the bandpass* values.  You're on your own with them...
-				- the values of the product interface.  
+				- the values of the product mixin.  
 				- mimetype -- the mime type of the product.
 				- the coverage, centerAlpha and centerDelta, nAxes, 
 					pixelSize, pixelScale, wcs* fields calculated by the 
@@ -141,7 +141,7 @@
 			(their definition is in the siap system RD)
 
 			Tables mixing in pgs can be used for SIAP querying and
-			automatically mix in `the products mixin`_.
+			automatically mix in the products table mixin.
 
 			To feed these tables, use the //siap#computePGS and 
 			//siap#setMeta procs.  Since you are dealing with products, 

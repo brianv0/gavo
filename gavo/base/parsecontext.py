@@ -28,7 +28,12 @@ def assertType(id, ob, forceType):
 def resolveCrossId(id, forceType):
 	"""resolves id, where id is of the form rdId#id.
 	"""
-	rdId, rest = id.split("#")
+	try:
+		rdId, rest = id.split("#")
+	except ValueError:
+		raise common.LiteralParseError("id", id, hint="There must be exactly"
+			" one hash sign ('#') in cross ids, separating the rd identifier"
+			" from the rd-internal id")
 	try:
 		srcRd = caches.getRD(rdId)
 	except common.RDNotFound:

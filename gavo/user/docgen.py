@@ -18,6 +18,17 @@ from gavo import rscdesc
 from gavo import utils
 
 
+PUBLIC_MIXINS = ["//products#table", "//scs#positions", "//scs#q3cindex",
+	"//siap#bbox", "//siap#pgs"]
+
+PUBLIC_APPLYS = ["//procs#simpleSelect", "//procs#resolveObject",
+	"//procs#mapValue", "//procs#fullQuery", "//siap#computePGS",
+	"//siap#computeBbox"]
+
+PUBLIC_ROWFILTERS = ["//procs#expandComma", "//procs#expandDates",
+	"//products#define", "//procs#expandIntegers"]
+
+
 def _indent(stuff, indent):
 	return re.sub("(?m)^", indent, stuff)
 
@@ -222,13 +233,14 @@ def getStructDocsFromRegistry(registry, docStructure):
 
 
 def getGrammarDocs(docStructure):
-	registry = dict((n, rscdef.getGrammar(n) for n in rscdef.GRAMMAR_REGISTRY))
+	registry = dict((n, rscdef.getGrammar(n)) for n in rscdef.GRAMMAR_REGISTRY)
 	return getStructDocsFromRegistry(registry, docStructure)
 		
 
 def getCoreDocs(docStructure):
 	from gavo.svcs import core
-	return getStructDocsFromRegistry(core._coreRegistry, docStructure)
+	registry = dict((n, core.getCore(n)) for n in core.CORE_REGISTRY)
+	return getStructDocsFromRegistry(registry, docStructure)
 
 
 def getTriggerDocs(docStructure):
@@ -237,14 +249,14 @@ def getTriggerDocs(docStructure):
 
 
 def getMixinDocs(docStructure):
-	from gavo.rscdef import mixins
 	content = RSTFragment()
-	for name, mixin in sorted(mixins._mixinRegistry.items()):
+	for name in sorted(PUBLIC_MIXINS):
+		mixin = base.resolveId(None, name)
 		content.addHead1("The %s Mixin"%name)
-		if mixin.__doc__ is None:
+		if mixin.doc is None:
 			content.addNormalizedPara("NOT DOCUMENTED")
 		else:
-			content.addNormalizedPara(mixin.__doc__)
+			content.addNormalizedPara(mixin.doc)
 	return content.content
 
 
@@ -274,8 +286,8 @@ def _getProcdefDocs(procDefs):
 	"""returns documentation for the ProcDefs in the sequence procDefs.
 	"""
 	content = RSTFragment()
-	for pd in procDefs:
-		content.addHead2(pd.id)
+	for id, pd in procDefs:
+		content.addHead2(id)
 		if pd.doc is None:
 			content.addNormalizedPara("NOT DOCUMENTED")
 		else:
@@ -298,16 +310,15 @@ def _getProcdefDocs(procDefs):
 	return content.content
 
 
-def _makeProcsDocumenter(typeToDoc):
+def _makeProcsDocumenter(idList):
 	def buildDocs(docStructure):
-		from gavo.rscdef import procdef
-		return _getProcdefDocs([proc for proc in procdef._registry.values()
-			if proc.type==typeToDoc])
+		return _getProcdefDocs([(id, base.resolveId(None, id))
+			for id in idList])
 	return buildDocs
 
 
-makeRmkProcDocs = _makeProcsDocumenter("apply")
-makeRowfilterDocs = _makeProcsDocumenter("rowfilter")
+makeRmkProcDocs = _makeProcsDocumenter(PUBLIC_APPLYS)
+makeRowfilterDocs = _makeProcsDocumenter(PUBLIC_ROWFILTERS)
 
 
 def getMetaTypeDocs():

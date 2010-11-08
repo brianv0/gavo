@@ -137,10 +137,14 @@ class MixinAttribute(base.SetOfAtomsAttribute):
 		mixin.applyTo(instance, ctx)
 		base.SetOfAtomsAttribute.feed(self, ctx, instance, mixinRef)
 
+	# no need to override feedObject: On copy and such, replay has already
+	# happened.
+
 	def iterParentMethods(self):
 		def mixesIn(instance, mixinRef):
 			return mixinRef in instance.mixins
 		yield "mixesIn", mixesIn
 
-	# no need to override feedObject: On copy and such, replay has already
-	# happened.
+	def makeUserDoc(self):
+		return ("A mixin reference, typically to support certain protocol."
+			"  See Mixins_.")
