@@ -231,6 +231,9 @@ def replacePrimaryHeaderInPlace(fitsName, newHeader):
 	try:
 		targetFile = os.fdopen(handle, "w")
 		inputFile = open(fitsName)
+		if fitsName.endswith(".gz"):
+			targetFile = gzip.GzipFile(mode="wb", fileobj=targetFile)
+			inputFile = gzip.GzipFile(fileobj=inputFile)
 		replacePrimaryHeader(inputFile, newHeader, targetFile)
 		inputFile.close()
 		ostricks.safeclose(targetFile)

@@ -309,6 +309,7 @@ class AnetHeaderProcessor(HeaderProcessor):
 	}
 	sexScript = None
 	objectFilter = None
+	indexFile = None
 
 	noCopyHeaders = set(["simple", "bitpix", "naxis", "imageh", "imagew",
 		"naxis1", "naxis2", "datamin", "datamax", "date"])
@@ -329,7 +330,7 @@ class AnetHeaderProcessor(HeaderProcessor):
 
 	def _runAnet(self, srcName, solverParameters, sexScript, objectFilter):
 		return anet.getWCSFieldsFor(srcName, solverParameters,
-			sexScript, objectFilter, self.opts.copyTo)
+			sexScript, objectFilter, self.opts.copyTo, self.indexFile)
 
 	def _solveAnet(self, srcName):
 		if self.opts.runAnet:

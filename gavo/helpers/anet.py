@@ -193,6 +193,7 @@ def _feedFile(targDir, fName, sexScript=anetSex, **ignored):
 
 
 def _runShellCommand(cmd, args):
+# XXX TODO: Sanitize this and callers for shell=False
 	cmdline = "%s %s"%(cmd, args)
 	logF = open("out.log", "a")
 	proc = subprocess.Popen(cmdline, shell=True, stdout=logF,
@@ -229,18 +230,10 @@ def _extractAnet(filterFunc=None):
 	_runShellCommand(tabsortBin, "FLUX in.xy.fits out.fits -d")
 
 
-def _resolve(fName, solverParameters={}, sexScript=None, objectFilter=None,
-		copyTo=None):
-	"""runs the astrometric calibration pipeline.
+def _solveCustom(fName, solverParameters, sexScript, objectFilter):
+	"""tries to solve an image using my custom machinery.
 
-	solverParameters maps any of the keys defined in controlTemplate
-	to desired values; some defaults are provided in the function.
-
-	This function litters the working directory with all kinds of files and does
-	not clean up, so you'd better run it in a sandbox.
-
-	It raises a NotSolved exception if no solution could be found; otherwise
-	you should find the solution in out.wcs (or whatever you gave for wcs).
+	See _resolve for the meaning of the arguments.
 	"""
 	paramDefaults = {
 		"index_statements": "index %s/index-218.fits"%anetIndexPath,
@@ -286,6 +279,34 @@ def _resolve(fName, solverParameters={}, sexScript=None, objectFilter=None,
 	f.write("\n\n".join(controlFragments))
 	f.flush()
 	status = f.close()
+
+
+def _solveSolveField(fName, indexFile):
+	with open("backend.cfg", "w") as f:
+		f.write("index %s\n"
+			"inparallel\n"%indexFile)
+	os.rename("in.fits", "out.fits")
+	_runShellCommand("solve-field", "--backend-config backend.cfg"
+		" out.fits")
+
+
+def _resolve(fName, solverParameters={}, sexScript=None, objectFilter=None,
+		copyTo=None, indexFile=None):
+	"""runs the astrometric calibration pipeline.
+
+	solverParameters maps any of the keys defined in controlTemplate
+	to desired values; some defaults are provided in the function.
+
+	This function litters the working directory with all kinds of files and does
+	not clean up, so you'd better run it in a sandbox.
+
+	It raises a NotSolved exception if no solution could be found; otherwise
+	you should find the solution in out.wcs (or whatever you gave for wcs).
+	"""
+	if indexFile is not None:
+		_solveSolveField(fName, indexFile)
+	else:
+		_solveCustom(fName, solverParameters, sexScript, objectFilter)
 	if copyTo is not None:
 		try:
 			shutil.rmtree(copyTo)
@@ -312,7 +333,7 @@ def _makeFieldsize(fName):
 
 
 def getWCSFieldsFor(fName, solverParameters, sexScript=None, objectFilter=None,
-		copyTo=None):
+		copyTo=None, indexFile=None):
 	"""returns a pyfits cardlist for the WCS fields on fName.
 
 	solverParameters is a dictionary mapping solver keys to their values,
@@ -327,11 +348,15 @@ def getWCSFieldsFor(fName, solverParameters, sexScript=None, objectFilter=None,
 	files you want to use with names relative to anet.anetIndexPath, and
 	the appropriate index_statements will be generated for you.  indices
 	override any index_statements keys.
+
+	With indexFile, you can pass in a custom index file and run
+	the default solve-field program using that.  All other options are 
+	ignored.
 	"""
 	try:
 		res = codetricks.runInSandbox(_feedFile, _resolve, _retrieveWCS,
 			fName, solverParameters=solverParameters, sexScript=sexScript,
-			objectFilter=objectFilter, copyTo=copyTo)
+			objectFilter=objectFilter, copyTo=copyTo, indexFile=indexFile)
 	except NotSolved:
 		return None
 	return res
