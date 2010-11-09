@@ -16,7 +16,6 @@ import re
 import subprocess
 import sys
 import traceback
-import tempfile
 import unittest
 from cStringIO import StringIO
 

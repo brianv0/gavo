@@ -21,6 +21,9 @@ class ProcPar(base.Structure):
 	name_ = "par"
 	_key = base.UnicodeAttribute("key", default=base.Undefined,
 		description="The name of the parameter", copyable=True, strip=True)
+	_descr = base.NWUnicodeAttribute("description", default=None,
+		description="Some human-readable description of what the"
+		" parameter is about", copyable=True, strip=True)
 	_expr = base.DataContent(description="A python expression for"
 		" the default of the parameter", copyable=True, strip=True)
 	_late = base.BooleanAttribute("late", default=False,

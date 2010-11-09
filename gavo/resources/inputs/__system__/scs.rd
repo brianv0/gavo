@@ -127,11 +127,18 @@
 			this using preprocessing macros.
 		</doc>
 		<setup>
-			<par key="alphaFormat">'hour'</par>
-			<par key="deltaFormat">'sexag'</par>
-			<par key="alphaKey">'alpha'</par>
-			<par key="deltaKey">'delta'</par>
-			<par key="sepChar">None</par>
+			<par key="alphaFormat"><description>the literal format of Right 
+				Ascension.  Supported formats include
+				mas (RA in milliarcsecs), hour (hours minutes seconds), sexag
+				(degrees minutes seconds), and binary (copy through).
+				</description>'hour'</par>
+			<par key="deltaFormat" description="see alphaFormat">'sexag'</par>
+			<par key="alphaKey" description="name of the column containing the RA"
+				>'alpha'</par>
+			<par key="deltaKey" description="name of the column containing the
+				Declination">'delta'</par>
+			<par key="sepChar" description="separator for RA and Dec (default
+				means any whitespace)">None</par>
 			<code>
 				coordComputer = {
 					"hour": lambda hms: utils.hmsToDeg(hms, sepChar),

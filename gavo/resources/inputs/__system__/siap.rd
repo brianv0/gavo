@@ -160,7 +160,7 @@
 
 	<procDef type="apply" id="computeInputBase">
 		<doc>
-			computes input for SIAP tables.
+			Computes WCS information for SIA tables from FITS WCS keys.
 
 			It takes no arguments but expects WCS-like keywords in rowdict, i.e.,
 			CRVAL1, CRVAL2 (interpreted as float deg), CRPIX1, CRPIX2 (pixel
@@ -171,6 +171,9 @@
 
 			Records without or with insufficient wcs keys are furnished with
 			all-NULL wcs info.
+
+			Use either computePGS or computeBbbox depending on what mixin
+			the table has.  PGS is much preferable.
 		</doc>
 		<!-- Actually, this is a common base for both bbox and pgsphere based
 		procs -->
@@ -271,19 +274,30 @@
 		<doc>
 			sets siap meta *and* product table fields.
 	
-			This is common stuff for all SIAP implementations.
+			These fields are common to all SIAP implementations.
 		</doc>
 		<setup>
-			<par key="title" late="True">None</par>
-			<par key="instrument" late="True">None</par>
-			<par key="dateObs" late="True">None</par>
-			<par key="bandpassId" late="True">None</par>
-			<par key="bandpassUnit" late="True">None</par>
-			<par key="bandpassRefval" late="True">None</par>
-			<par key="bandpassHi" late="True">None</par>
-			<par key="bandpassLo" late="True">None</par>
-			<par key="refFrame" late="True">'ICRS'</par>
-			<par key="pixflags" late="True">None</par>
+			<par key="title" late="True" description="image title.  This
+				should, in as few characters as possible, convey some idea what
+				the image will show (e.g., instrument, object, bandpass">None</par>
+			<par key="instrument" late="True" description="a short identifier
+				for the instrument used">None</par>
+			<par key="dateObs" late="True" description="the midpoint of the 
+				observation (a datetime)">None</par>
+			<par key="bandpassId" late="True" description="a rough indicator
+				of the bandpass, like Johnson bands">None</par>
+			<par key="bandpassUnit" late="True" description="the unit of
+				the bandpassRefval and friends">None</par>
+			<par key="bandpassRefval" late="True" description="characteristic
+				frequency or wavelength of the exposure">None</par>
+			<par key="bandpassHi" late="True" description="lower value of
+				wavelength or frequency">None</par>
+			<par key="bandpassLo" late="True" description="upper value of
+				the wavelength or frequency">None</par>
+			<par key="refFrame" late="True" description="reference frame
+				of the coordinates (change at your peril)">'ICRS'</par>
+			<par key="pixflags" late="True" description="processing flags 
+				(see spec)">None</par>
 		</setup>
 		<code>
 			result["imageTitle"] = title

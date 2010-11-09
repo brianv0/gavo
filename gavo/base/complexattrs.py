@@ -394,7 +394,7 @@ class MultiStructListAttribute(StructListAttribute, MultiStructAttribute):
 		return MultiStructAttribute.create(self, structure, ctx, name)
 
 	def makeUserDoc(self):
-		return ("%s (contains any of %_ and may be repeated zero or more"
+		return ("%s (contains any of %s and may be repeated zero or more"
 			" times) -- %s")%(self.name_, ",".join(self.aliases), self.description_)
 
 

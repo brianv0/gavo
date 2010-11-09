@@ -236,7 +236,82 @@
 			description="Spatial resolution of data"/>
 	</STREAM>
 
+	<procDef type="apply" id="setMeta">
+		<doc>
+			Sets metadata for SSAP.
+		</doc>
+		<setup>
+			<par key="dstitle" late="True" description="a title for the data set
+				(e.g., instrument, filter, target in some short form; must be filled
+				in)"/>
+			<par key="creatorDID" late="True" description="id given by the
+				creator (leave out if not applicable)">None</par>
+			<par key="pubDID" late="True" description="Id provided by the
+				publisher (i.e., you); this is an opaque string and must be given"/>
+			<par key="cdate" late="True" description="date the file was
+				created (or processed; optional)">None</par>
+			<par key="pdate" late="True" description="date the file was
+				last published (in gerneral, the default is fine)"
+				>datetime.datetime.utcnow()</par>
+			<par key="bandpass" late="True" description="bandpass (i.e., rough
+				spectral location) of this dataset">None</par>
+			<par key="cversion" late="True" description="creator assigned version 
+				for this file (should be incremented when it is changed)."
+				>None</par>
+			<par key="targname" late="True" description="common name of 
+				the object observed.">None</par>
+			<par key="targclass" late="True" description="object class (star,
+				QSO,...)">None</par>
+			<par key="redshift" late="True" description="source redshift">
+				None</par>
+			<par key="snr" late="True" description="signal-to-noise ratio 
+				estimated for this dataset">None</par>
+			<par key="alpha" late="True" description="right ascension of target
+				(ICRS degrees)" >None</par>
+			<par key="delta" late="True" description="declination of target
+				(ICRS degrees)">None</par>
+			<par key="aperture" late="True" description="angular diameter of
+				aperture (expected in degrees)">None</par>
+			<par key="dateObs" late="True" description="observation midpoint
+				(datetime or iso format)">None</par>
+			<par key="timeExt" late="True" description="exposure time
+				(in seconds)">None</par>
+			<par key="specmid" late="True" description="central wavelength
+				(in meters)">None</par>
+			<par key="specext" late="True" description="width of bandpass
+				(in meters of wavelength)">None</par>
+			<par key="specstart" late="True" description="lower bound of
+				wavelength interval (in meters)">None</par>
+			<par key="specend" late="True" description="upper bound of
+				wavelength interval (in meters)">None</par>
+			<code>
+				copiedKWs = ['dstitle', 'creatorDID', 'pubDID', 'cdate', 
+					'pdate', 'bandpass', 'cversiontargname', 'targclass', 
+					'redshift', 'snr', 'aperture', 'dateObs', 'timeExt', 
+					'specmid', 'specext', 'specstart', 'specend']
+			</code>
+		</setup>
+		<code>
+			# write to vars to give mappers a chance to convert
+			for kw in copiedKWs:
+				vars["ssa_"+kw] = vars[copiedKWs]
+			alpha = parseFloat(alpha)
+			delta = parseFloat(alpha)
+			if alpha is not None and delta is not None:
+				result["ssa_location"] = pgsphere.SPoint(alpha, delta)
+		</code>
+	</procDef>
+
 	<mixinDef id="hcd">
+		<doc>
+			This mixin is for "homogeneous" data collections, where homogeneous
+			means that all values in hcd_outpars are constant for all datasets
+			in the collection.  This is usually the case if they call come
+			from one instrument.
+
+			Rowmakers for tables using this mixin should use the //ssap#setMeta
+			proc application.
+		</doc>
 		<FEED source="//products#hackProductsData"/>
 		<events>
 			<FEED source="//ssap#hcd_fields"/>

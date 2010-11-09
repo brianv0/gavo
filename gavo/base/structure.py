@@ -247,7 +247,7 @@ class ParseableStructure(StructureBase, common.Parser):
 	the method being called, since for internally built, copied, etc
 	structures, it won't.
 	"""
-	pristine = True
+	_pristine = True
 
 	def __init__(self, parent, **kwargs):
 		StructureBase.__init__(self, parent, **kwargs)
@@ -292,7 +292,7 @@ class ParseableStructure(StructureBase, common.Parser):
 			attDef.feed(ctx, self, value)
 		except common.Replace, ex:
 			return ex.newOb
-		self.pristine = False
+		self._pristine = False
 		return self
 	
 	def start_(self, ctx, name, value):

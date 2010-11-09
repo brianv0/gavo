@@ -164,7 +164,7 @@ class OriginalAttribute(attrdef.AtomicAttribute):
 		self.forceType = forceType
 
 	def feedObject(self, instance, original, ctx=None):
-		if not instance.pristine:
+		if not instance._pristine:
 			raise common.StructureError("Original must be applied before modifying"
 				" the destination structure.", hint="You should normally use"
 				" original only as attribute.  If you insist on having it as"

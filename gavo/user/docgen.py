@@ -16,6 +16,7 @@ from gavo import base
 from gavo import rscdef
 from gavo import rscdesc
 from gavo import utils
+from gavo.base import structure
 
 
 PUBLIC_MIXINS = ["//products#table", "//scs#positions", "//scs#q3cindex",
@@ -23,7 +24,7 @@ PUBLIC_MIXINS = ["//products#table", "//scs#positions", "//scs#q3cindex",
 
 PUBLIC_APPLYS = ["//procs#simpleSelect", "//procs#resolveObject",
 	"//procs#mapValue", "//procs#fullQuery", "//siap#computePGS",
-	"//siap#computeBbox"]
+	"//siap#computeBbox", "//siap#setMeta", "//ssap#setMeta"]
 
 PUBLIC_ROWFILTERS = ["//procs#expandComma", "//procs#expandDates",
 	"//products#define", "//procs#expandIntegers"]
@@ -183,7 +184,7 @@ class StructDocMaker(object):
 		for att in self._iterAttsOfBase(klass, base.StructAttribute):
 			try:
 				content.addULItem(att.makeUserDoc())
-				if hasattr(att, "childFactory"):
+				if isinstance(getattr(att, "childFactory", None), structure.StructType):
 					children.append(att.childFactory.name_)
 					if att.childFactory not in self.visitedClasses:
 						self.addDocsFrom(att.childFactory)
@@ -304,7 +305,9 @@ def _getProcdefDocs(procDefs):
 				doc.append("P")
 			doc.append("arameter %s "%par.key)
 			if par.content_:
-				doc.append("defaults to '%s'"%par.content_)
+				doc.append("defaults to ``%s``"%par.content_)
+			if par.description:
+				doc.append(" -- "+par.description)
 			content.addRaw(''.join(doc)+"\n")
 		content.makeSpace()
 	return content.content
@@ -313,7 +316,7 @@ def _getProcdefDocs(procDefs):
 def _makeProcsDocumenter(idList):
 	def buildDocs(docStructure):
 		return _getProcdefDocs([(id, base.resolveId(None, id))
-			for id in idList])
+			for id in sorted(idList)])
 	return buildDocs
 
 
@@ -364,7 +367,7 @@ def makeReferenceDocs():
 
 
 def main():
-	print makeReferenceDocs()
+	print makeReferenceDocs().replace("\\", "\\\\")
 
 
 if __name__=="__main__":

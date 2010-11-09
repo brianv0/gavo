@@ -65,13 +65,20 @@ machinery -->
 			See the documentation on the product interface.
 		</doc>
 		<setup>
-			<par key="table"/>
-			<par late="True" key="accref">\inputRelativePath</par>
-			<par late="True" key="owner">None</par>
-			<par late="True" key="embargo">None</par>
-			<par late="True" key="path">\inputRelativePath</par>
-			<par late="True" key="fsize">\inputSize</par>
-			<par late="True" key="mime">'image/fits'</par>
+			<par key="table" description="the table this product is managed in.
+				You must fill this in."/>
+			<par late="True" key="accref" description="an access reference
+				(this ususally is the input-relative path)">\inputRelativePath</par>
+			<par late="True" key="owner" description="for proprietary data,
+				the owner as a gavo creds-created user">None</par>
+			<par late="True" key="embargo" description="for proprietary data,
+				the date the file will become public">None</par>
+			<par late="True" key="path" description="the inputs-relative path
+				to the product file (change at your peril)">\inputRelativePath</par>
+			<par late="True" key="fsize" description="the size of the input"
+				>\inputSize</par>
+			<par late="True" key="mime" description="MIME-type for the product"
+				>'image/fits'</par>
 		</setup>
 		<code>
 			newVars = {}

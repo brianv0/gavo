@@ -2,10 +2,23 @@
 <meta name="description">Predefined procedures in the GAVO DC.</meta>
 
 <procDef type="apply" id="simpleSelect">
+	<doc>
+		Fill variables from a simple  database query.
+
+		The idea is to obtain a set of values from the data base into some
+		columns within vars (i.e., available for mapping) based on comparing
+		a single input value against a database column.  The query should
+		always return exactly one row.  If more rows are returned, the
+		first one will be used (which makes the whole thing a bit of a gamble),
+		if none are returned, a ValidationError is raised.
+	</doc>
 	<setup>
-		<par key="assignments"/>
-		<par key="table"/>
-		<par key="column"/>
+		<par key="assignments"><description><![CDATA[mapping from database 
+			column names to vars column names, in the format 
+			{<db colname>:<vars name>}"]]></description></par>
+		<par key="table" description="name of the database table to query"/>
+		<par key="column" description="the column to compare the input value
+			against"/>
 		<par key="errCol">'&lt;unknown&gt;'</par>
 		<par key="val" late="True"/>
 		<code>
@@ -59,8 +72,10 @@
 
 <procDef type="apply" id="resolveObject">
 	<setup>
-		<par key="ignoreUnknowns">True</par>
-		<par key="identifier" late="True"/>
+		<par key="ignoreUnknowns" description="Return Nones for unknown
+			objects?  (if false, ValidationErrors will be raised)">True</par>
+		<par key="identifier" late="True" 
+			description="The identifier to be resolved."/>
 		<code>
 			from gavo.protocols import simbadinterface
 			resolver = simbadinterface.Sesame(saveNew=True)
@@ -75,9 +90,6 @@
 
 		It leaves J2000.0 positions as floats  in the simbadAlpha and 
 		simbadDelta variables.
-
-		If you set the consArg ignoreUnknowns to false, unknown objects will
-		yield ValidationErrors.
 	</doc>
 	<code>
 		ra, dec = None, None
@@ -96,17 +108,6 @@
 	<doc><![CDATA[
 	is a macro that translates vaules via a utils.NameMap
 	
-	Bindings:
-
-	* sourceName -- an inputsDir-relative path to the NameMap source file,
-	* logFailures (optional) -- if somehow true, non-resolved names will 
-	  be logged
-	* destination -- the field the mapped value should be written into.
-
-	Late Bindings:
-
-	* value -- the value to be mapped.
-
 	If an object cannot be resolved, a null value is entered (i.e., you
 	shouldn't get an exception out of this macro but can weed out "bad"
 	records through notnull-conditions later if you wish).
@@ -126,11 +127,14 @@
 	signs (which become =3D).
 ]]></doc>
 	<setup>
-		<par key="destination"/>
-		<par key="logFailures">False</par>
-		<par key="failuresAreNone">False</par>
-		<par key="sourceName"/>
-		<par key="value" late="True"/>
+		<par key="destination" description="name of the field the mapped 
+			value should be written into"/>
+		<par key="logFailures" description="Log non-resolved names?">False</par>
+		<par key="failuresAreNone" description="Rather than raise an error,
+			assign NULL to values not found">False</par>
+		<par key="sourceName" description="An inputsDir-relative path to 
+			the NameMap source file."/>
+		<par key="value" late="True" description="The value to be mapped."/>
 		<code>
 			map = utils.NameMap(os.path.join(
 				base.getConfig("inputsDir"), sourceName))
@@ -155,17 +159,14 @@
 	runs a free query against the data base and enters the first result 
 	record into vars.
 
-	Argument:
-
-	* query -- an SQL query
-	* errCol -- a column name to use when raising a ValidationError on failure.
-
-	The locals() will be passed as data, so you can define more bindings
+	locals() will be passed as data, so you can define more bindings
 	and refer to their keys in the query.
 	]]></doc>
 	<setup>
-		<par key="query"/>
-		<par key="errCol">'&lt;unknown&gt;'</par>
+		<par key="query" description="an SQL query"/>
+		<par key="errCol" description="a column name to use when raising a
+			ValidationError on failure."
+			>'&lt;unknown&gt;'</par>
 	</setup>
 	<code>
 		q = base.SimpleQuerier()
@@ -185,16 +186,11 @@
 	The idea is that sometimes rows have specifications like "Star 10
 	through Star 100".  These are a pain if untreated.  A RowExpander
 	could create 90 individual rows from this.
-
-	A RowExpander has three arguments: The names of the nonterminals
-	giving the beginning and the end of the range (both must be int-able
-	strings), and the name of the nonterminal that the new index should 
-	be assigned to.
 	</doc>
 	<setup>
-		<par key="startName"/>
-		<par key="endName"/>
-		<par key="indName"/>
+		<par key="startName" description="column containing the start value"/>
+		<par key="endName" description="column containing the end value"/>
+		<par key="indName" description="name the counter should appear under"/>
 	</setup>
 	<code>
 		try:
@@ -217,18 +213,15 @@
 
 	The finished dates are left in destination as datetime.datetime
 	instances
-
-	* dest -- name of the field we're writing into.
-	* start -- the start date, as either a datetime object or a column ref.
-	* end -- the end date
-	* hrInterval -- a float literal specifying how many hours should be between
-	  the generated timestamps
 	</doc>
 	<setup>
-		<par key="dest">'curTime'</par>
-		<par key="start"/>
-		<par key="end"/>
-		<par key="hrInterval" late="True">24</par>
+		<par key="dest" description="name of the column the time should
+			appear in">'curTime'</par>
+		<par key="start" description="the start date(time), as either 
+			a datetime object or a column ref"/>
+		<par key="end" description="the end date(time)"/>
+		<par key="hrInterval" late="True" description="difference
+			 between generated timestamps in hours">24</par>
 		<code>
 		def _parseTime(val, fieldName):
 			try:
@@ -276,12 +269,14 @@
 
 <procDef id="expandComma" type="rowfilter">
 	<doc>
-	is a row generator that reads comma seperated values from a
+	A row generator that reads comma seperated values from a
 	field and returns one row with a new field for each of them.
 	</doc>
 	<setup>
-		<par key="srcField"/>
-		<par key="destField"/>
+		<par key="srcField" description="Name of the column containing
+			the full string"/>
+		<par key="destField" description="Name of the column the individual
+			columns are written to"/>
 	</setup>
 	<code>
 		src = row[srcField]
