@@ -700,7 +700,7 @@ class Configuration(object):
 		"""writes the config items changed by the user to destName.
 		"""
 		uc = self.getUserConfig()
-		fd, tmpName = tempfile.mkstemp("temp", "", os.path.dirname(destName))
+		fd, tmpName = tempfile.mkstemp("temp", "", dir=os.path.dirname(destName))
 		f = os.fdopen(fd, "w")
 		uc.write(f)
 		f.flush()

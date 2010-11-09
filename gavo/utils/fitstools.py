@@ -6,6 +6,8 @@ Some utility functions to deal with FITS files.
 #c
 #c This program is free software, covered by the GNU GPL.  See COPYING.
 
+from __future__ import with_statement
+
 import tempfile
 import os
 import sys
@@ -227,7 +229,7 @@ def replacePrimaryHeaderInPlace(fitsName, newHeader):
 	"""
 	targetDir = os.path.abspath(os.path.dirname(fitsName))
 	oldMode = os.stat(fitsName)[0]
-	handle, tempName = tempfile.mkstemp(".temp", "", targetDir)
+	handle, tempName = tempfile.mkstemp(".temp", "", dir=targetDir)
 	try:
 		targetFile = os.fdopen(handle, "w")
 		inputFile = open(fitsName)
@@ -252,7 +254,8 @@ def openGz(fitsName):
 	Scrap that as soon as we have gzipped fits support (i.e. newer pyfits)
 	in debian.
 	"""
-	handle, pathname = tempfile.mkstemp(suffix="fits", dir=base.getConfig("tempDir"))
+	handle, pathname = tempfile.mkstemp(suffix="fits", 
+		dir=base.getConfig("tempDir"))
 	f = os.fdopen(handle, "w")
 	f.write(gzip.open(fitsName).read())
 	f.close()
@@ -270,8 +273,10 @@ def writeGz(hdus, fitsName, compressLevel=5, mode=0664):
 	zipped files (which is a bit tricky, admittedly).  So, we'll probably
 	have to live with this kludge for a while.
 	"""
-	handle, pathname = tempfile.mkstemp(suffix="fits", dir=base.getConfig("tempDir"))
-	base.silence(hdus.writeto, pathname, clobber=True)
+	handle, pathname = tempfile.mkstemp(suffix="fits", 
+		dir=base.getConfig("tempDir"))
+	with base.silence():
+		hdus.writeto(pathname, clobber=True)
 	os.close(handle)
 	rawFitsData = open(pathname).read()
 	os.unlink(pathname)
@@ -330,7 +335,7 @@ class GzHeaderManipulator(PlainHeaderManipulator):
 	def __init__(self, fName, compressLevel=5):
 		self.origFile = fName
 		handle, self.uncompressedName = tempfile.mkstemp(
-			suffix="fits")
+			suffix="fits", dir=base.getConfig("tempDir"))
 		destFile = os.fdopen(handle, "w")
 		destFile.write(gzip.open(fName).read())
 		destFile.close()

@@ -334,7 +334,9 @@ def runInSandbox(setUp, func, tearDown, *args, **kwargs):
 	be called.  The sandbox will be torn down, though.
 	"""
 	owd = os.getcwd()
-	wd = tempfile.mkdtemp("sandbox")
+	# within DaCHS, this should be within tempDir, but we don't bother to
+	# get access to DaCHS' config.  So there.
+	wd = tempfile.mkdtemp("sandbox")  
 	try:
 		if setUp:
 			setUp(wd, *args, **kwargs)

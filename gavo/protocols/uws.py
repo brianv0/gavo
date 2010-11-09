@@ -262,7 +262,7 @@ class UWSJob(object):
 
 	@classmethod
 	def _allocateDataDir(cls):
-		jobDir = tempfile.mkdtemp("", "", base.getConfig("uwsWD"))
+		jobDir = tempfile.mkdtemp("", "", dir=base.getConfig("uwsWD"))
 		return os.path.basename(jobDir)
 
 	@classmethod

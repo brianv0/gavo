@@ -97,7 +97,7 @@ def makeFITSTableFile(dataSet):
 	The caller is responsible to remove the file.
 	"""
 	hdulist = makeFITSTable(dataSet)
-	handle, pathname = tempfile.mkstemp(".fits")
+	handle, pathname = tempfile.mkstemp(".fits", dir=base.getConfig("tempDir"))
 	with utils.silence():
 		hdulist.writeto(pathname, clobber=1)
 	os.close(handle)

@@ -12,7 +12,6 @@ must at least contain accref, owner, embargo, and accsize fields.
 from cStringIO import StringIO
 import os
 import tarfile
-import tempfile
 import time
 import urllib
 

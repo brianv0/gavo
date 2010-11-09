@@ -101,7 +101,8 @@ class PreviewCacheManager(object):
 
 
 def _makePreviewFromCutout(args, prod, request):
-	handle, fName = tempfile.mkstemp(".fits", "cutout", base.getConfig("tempDir"))
+	handle, fName = tempfile.mkstemp(".fits", "cutout", 
+		dir=base.getConfig("tempDir"))
 	f = os.fdopen(handle, "w")
 	mime = prod.contentType
 
