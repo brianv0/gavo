@@ -189,6 +189,13 @@ class ImportTest(testhelpers.VerboseTest):
 				'integer', 'smallint', 'text', 'text', 'real[2]', 'real', 
 				'smallint', 'real', 'text', 'text', 'char'])
 
+	def testParams(self):
+		td, data = self.testData
+		self.assertEqual(td.params[0].name, "qua1")
+		self.assertEqual(td.params[1].name, "qua2")
+		self.assertEqual(td.params[0].value, "first param")
+		self.assertEqual(td.params[1].value, 2)
+
 
 class VizierImportTest(testhelpers.VerboseTest):
 	"""tests for ingestion of a random vizier VOTable.

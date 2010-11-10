@@ -79,6 +79,23 @@ def addQ3CIndex(tableDef):
 	base.resolveId(None, "//scs#q3cindex").applyToFinished(tableDef)
 
 
+def _getColArgs(votInstance, name):
+	"""returns constructor arguments for an RD column or param from
+	a VOTable FIELD or PARAM.
+	"""
+	kwargs = {"name": name,
+		"tablehead": name.capitalize(),
+		"id": getattr(votInstance, "ID", None),
+		"type": base.voTableToSQLType(
+			votInstance.datatype, votInstance.arraysize, votInstance.xtype)}
+	for attName in ["ucd", "description", "unit", "xtype"]:
+		if getattr(votInstance, attName, None) is not None:
+			kwargs[attName] = getattr(votInstance, attName)
+	if getattr(votInstance, "value", None) is not None:
+		kwargs["content_"] = votInstance.value
+	return kwargs
+	
+
 def makeTableDefForVOTable(tableId, votTable, nameMaker=None,
 		**moreArgs):
 	"""returns a TableDef for a Table element parsed from a VOTable.
@@ -105,19 +122,20 @@ def makeTableDefForVOTable(tableId, votTable, nameMaker=None,
 	# make columns
 	columns = []
 	for f in votTable.iterChildrenOfType(V.FIELD):
-		colName = nameMaker.makeName(f)
-		kwargs = {"name": colName,
-			"tablehead": colName.capitalize(),
-			"id": getattr(f, "ID", None),
-			"type": base.voTableToSQLType(f.datatype, f.arraysize, f.xtype)}
-		for attName in ["ucd", "description", "unit", "xtype"]:
-			if getattr(f, attName, None) is not None:
-				kwargs[attName] = getattr(f, attName)
-		columns.append(MS(rscdef.Column, **kwargs))
+		columns.append(MS(rscdef.Column,
+			**_getColArgs(f, nameMaker.makeName(f))))
+
+	# make params
+	params = []
+	for f in votTable.iterChildrenOfType(V.PARAM):
+		try:
+			params.append(MS(rscdef.Param, **_getColArgs(f, f.name)))
+		except Exception, ex:  # never die because of failing params
+			base.ui.notifyError("Unsupported PARAM ignored (%s)"%ex)
 
 	# Create the table definition
 	tableDef = MS(rscdef.TableDef, id=tableId, columns=columns,
-		**moreArgs)
+		params=params, **moreArgs)
 	addQ3CIndex(tableDef)
 
 	# Build STC info

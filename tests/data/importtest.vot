@@ -10,6 +10,8 @@
   <DESCRIPTION>Ugly mess</DESCRIPTION>
   <TABLE ID="sausage/" name="/catalog">
     <DESCRIPTION>The actual uglyness {whoa}</DESCRIPTION>
+		<PARAM name="qua1" datatype="char" arraysize="*" value="first param"/>
+		<PARAM name="qua2" datatype="int" value="2"/>
     <FIELD name="_r" ucd="POS_ANG_DIST_GENERAL" datatype="double" width="9" precision="5" unit="deg">
       <DESCRIPTION>Distance from center</DESCRIPTION>
     </FIELD>
