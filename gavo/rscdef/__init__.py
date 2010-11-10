@@ -10,7 +10,8 @@ about grammars, cores, etc, available.
 
 from gavo.rscdef.builtingrammars import (GRAMMAR_REGISTRY, getGrammar)
 
-from gavo.rscdef.column import Column, Option, Values, makeOptions
+from gavo.rscdef.column import (Column, Option, Values, makeOptions,
+	Param)
 
 from gavo.rscdef.common import (RDAttribute, ResdirRelativeAttribute,
 	ColumnListAttribute, NamePathAttribute, ColumnList)

@@ -2,9 +2,8 @@
 Tests for the various structures in rscdef.
 """
 
-from datetime import date
+import datetime
 import os
-import unittest
 import weakref
 
 import gavo
@@ -86,10 +85,10 @@ class ValuesTest(testhelpers.VerboseTest):
 			'<column name="foo" type="date"><values><option>'
 			'2000-01-01</option><option>2000-01-02</option></values></column>')
 		self.assertEqual(col.values.validValues, 
-			set([date(2000, 1, 1), date(2000, 1, 2)]))
-		self.assertRuns(col.validateValue, (date(2000, 1, 1),))
+			set([datetime.date(2000, 1, 1), datetime.date(2000, 1, 2)]))
+		self.assertRuns(col.validateValue, (datetime.date(2000, 1, 1),))
 		self.assertRaises(base.ValidationError, col.validateValue, 
-			(date(1999, 1, 1),))
+			(datetime.date(1999, 1, 1),))
 
 
 class ScriptTest(testhelpers.VerboseTest):
@@ -295,5 +294,44 @@ class DataDescTest(testhelpers.VerboseTest):
 		self.failUnless(dd.sources.ignoredSources.isIgnored("baga/kafobar.foo"))
 
 
+class ParamTest(testhelpers.VerboseTest):
+	def testReal(self):
+		res = base.parseFromString(rscdef.Param,
+			'<param name="u">3.0</param>')
+		self.assertEqual(res.content_, "3.0")
+		self.assertEqual(res.value, 3.0)
+
+	def testTimestamp(self):
+		res = base.parseFromString(rscdef.Param,
+			'<param name="u" type="timestamp">1969-04-06T04:20:23</param>')
+		self.assertEqual(res.value, datetime.datetime(1969, 4, 6, 4, 20, 23))
+
+	def testEmptyNotreq(self):
+		res = base.parseFromString(rscdef.Param,
+			'<param name="u" type="timestamp"/>')
+		self.assertEqual(res.value, None)
+	
+	def testEmptyReq(self):
+		self.assertRaisesWithMsg(base.StructureError,
+			"At (1, 50): Required value not given for param u",
+			base.parseFromString,
+			(rscdef.Param,
+			'<param name="u" type="timestamp" required="True"/>'))
+
+	def testBadLiteral(self):
+		self.assertRaisesWithMsg(base.StructureError,
+			"At (1, 38): 'nothing' is not a valid value for u",
+			base.parseFromString,
+			(rscdef.Param,
+			'<param name="u" type="integer">nothing</param>'))
+	
+	def testCopying(self):
+		res = base.parseFromString(rscdef.TableDef,
+			'<table><param name="foo" id="foo">2</param>'
+			'<param original="foo" name="bar"/></table>')
+		self.assertEqual(res.params[1].name, "bar")
+		self.assertEqual(res.params[1].value, 2.0)
+
+
 if __name__=="__main__":
-	testhelpers.main(DataDescTest)
+	testhelpers.main(ParamTest)

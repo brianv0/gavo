@@ -159,6 +159,19 @@ def parseCooPair(soup):
 	raise ValueError("%s has no discernible position in it"%soup)
 
 
+@utils.memoized
+def getDefaultValueParsers():
+	"""returns a dict containing all exported names from this module.
+
+	This is useful with typesystems.ToPythonCodeConverter; see
+	rscdef.column.Parameter for an example.
+
+	This is always the same dict; thus, if you change it, copy it first.
+	"""
+	all = set(__all__)
+	return dict((n,v) for n,v in globals().iteritems() if n in all)
+
+
 def _test():
 	import doctest, literals
 	doctest.testmod(literals)
@@ -170,4 +183,4 @@ if __name__=="__main__":
 
 __all__ = ["parseInt", "parseFloat", "parseBooleanLiteral", "parseUnicode",
 	"parseDefaultDate", "parseDefaultTime", "parseDefaultDatetime",
-	"parseCooPair"]
+	"parseCooPair", "getDefaultValueParsers"]

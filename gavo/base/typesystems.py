@@ -442,7 +442,7 @@ class ToPythonCodeConverter(FromSQLConverter):
 	single %s for the name of the variable to be converted.  
 
 	The code assumes whatever executes those literals has done a
-	from gavo.base.literals import *.
+	from gavo.base.literals import * or use gavo.base.literals.defaultParsers()
 	"""
 	typeSystem = "pythonsrc"
 	simpleMap = {
@@ -460,7 +460,7 @@ class ToPythonCodeConverter(FromSQLConverter):
 		"spoint": "parseSimpleSTCS(%s)",  # import this from gavo.stc
 		"scircle": "parseSimpleSTCS(%s)",
 		"spoly": "parseSimpleSTCS(%s)",
-		"sbox": "%s",  # hmha, there's not STC-S for this kind of box...
+		"sbox": "%s",  # hmha, there's no STC-S for this kind of box...
 		"bytea": "%s",
 		"raw": "%s",
 		"file": "%s",

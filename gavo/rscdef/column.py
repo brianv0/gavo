@@ -7,11 +7,9 @@ import warnings
 
 from gavo import base
 from gavo import utils
+from gavo.base import literals
 from gavo.base import typesystems
 from gavo.base.attrdef import *
-
-
-IDENTIFIER_PATTERN = re.compile("[A-Za-z_][A-Za-z_0-9]*$")
 
 
 class TypeNameAttribute(AtomicAttribute):
@@ -49,12 +47,12 @@ class ColumnNameAttribute(UnicodeAttribute):
 			" ``%s``.  In a desperate pinch, you can generate delimited identifiers"
 			" (that can contain anything) by prefixing the name with 'quoted/' (but"
 			" you cannot use rowmakers to fill such tables)."
-			)%IDENTIFIER_PATTERN.pattern
+			)%utils.identifierPattern.pattern
 	
 	def parse(self, value):
 		if value.startswith("quoted/"):
 			return utils.QuotedName(value[7:])
-		if not IDENTIFIER_PATTERN.match(value):
+		if not utils.identifierPattern.match(value):
 			raise base.StructureError("'%s' is not a valid column name"%value)
 		return value
 	
@@ -441,3 +439,50 @@ class Column(base.Structure):
 				("displayHint", "displayHint")]:
 			col.feedEvent(None, "value", dest, metaRow[src])
 		return col
+
+
+class Param(Column):
+	"""A table parameter.
+
+	This is like a column, except that it conceptually applies to all
+	rows in the table.  In VOTables, params will be rendered as
+	PARAMs.  
+	
+	While we validate the values passed using the DC default parsers,
+	at least the VOTable params will be literal copies of the string
+	passed in.
+
+	You can obtain a parsed value using value.
+	"""
+	name_ = "param"
+
+	_value = base.DataContent(description="The value of parameter."
+		" It is parsed according to the param's type using the default"
+		" parser for the type as in rowmakers.", default=base.NotGiven,
+		copyable=True)
+
+	_valueCache = base.Undefined
+
+	@property
+	def value(self):
+		if self._valueCache is base.Undefined:
+			if self.content_ is base.NotGiven:
+				self._valueCache = None
+			else:
+				self._valueCache = eval(
+					base.sqltypeToPythonCode(self.type)%repr(self.content_),
+					base.getDefaultValueParsers())
+		return self._valueCache
+
+	def validate(self):
+		self._validateNext(Param)
+		if self.required and self.content_ is base.NotGiven:
+			raise base.StructureError("Required value not given for param"
+				" %s"%self.name)
+		# the value property will bomb on malformed literals
+		try:
+			_ = self.value
+		except ValueError, msg:
+			raise base.LiteralParseError(self.name, self.content_,
+				hint="Param content must be parseable by the DC default parsers."
+					"  The value you passed caused the error: %s"%msg)

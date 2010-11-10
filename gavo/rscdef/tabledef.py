@@ -201,6 +201,9 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 	_cols =  common.ColumnListAttribute("columns",
 		childFactory=column.Column, description="Columns making up this table.",
 		copyable=True)
+	_params = base.StructListAttribute("params",
+		childFactory=column.Param, description='Param ("global columns") for'
+		' this table.', copyable=True)
 	_viewStatement = base.UnicodeAttribute("viewStatement", default=None,
 		description="A single SQL statement to create a view.  Setting this"
 		" makes this table a view.", copyable=True)
