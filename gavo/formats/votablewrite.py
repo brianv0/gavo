@@ -121,7 +121,7 @@ def _defineField(element, colDesc):
 	This function returns None to remind people we're changing in place
 	here.
 	"""
-	# complain if you got an Element rather than an instance -- with an
+	# bomb if you got an Element rather than an instance -- with an
 	# Element, things would appear to work, but changes are lost when
 	# this function ends.
 	assert not isinstance(element, type)
@@ -146,9 +146,20 @@ def _iterFields(serManager):
 		yield el
 
 
-def _iterParams(ctx, dataSet):
-	"""iterates over the entries in the parameters row of dataSet.
+def _iterTableParams(serManager):
+	"""iterates over V.PARAMs based on the table's param elements.
 	"""
+	for param in serManager.table.params:
+		el = V.PARAM()
+		_defineField(el, valuemappers.VColDesc(param))
+		el.value = param.content_
+		yield el
+
+
+def _iterParams(ctx, dataSet):
+	"""iterates over the entries in the parameters table of dataSet.
+	"""
+# DEPRECATE?
 	try:
 		parTable = dataSet.getTableWithRole("parameters")
 	except base.DataError:  # no parameter table
@@ -204,6 +215,7 @@ def _makeTable(ctx, table):
 	result = V.TABLE(name=table.tableDef.id)[
 		V.DESCRIPTION[base.getMetaText(table.tableDef, "description")],
 		_iterNotes(sm),
+		_iterTableParams(sm),
 		_iterFields(sm)]
 
 	if ctx.version>(1,1):

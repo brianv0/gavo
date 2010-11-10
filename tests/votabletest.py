@@ -44,6 +44,7 @@ class _TestVOTable(testhelpers.TestResource):
 				<column name="aFloat"
 					description="This ain't &amp;alpha; for sure." note="1"/>
 				<column name="bla" type="text" note="2"/>
+				<param name="somePar" type="double precision">3.500</param>
 			</table>
 			<data id="bar">
 				<meta name="_infolink">http://vo.org/x?a=b&amp;c=d</meta>
@@ -125,6 +126,14 @@ class VOTableTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 		tree = self.testData[1]
 		intCol = tree.findall(".//%s"%votable.voTag("FIELD"))[0]
 		self.assertEqual(intCol.get("xtype"), "test:junk")
+
+	def testParam(self):
+		tree = self.testData[1]
+		table = tree.findall(".//%s"%votable.voTag("TABLE"))[0]
+		params = table.findall(".//%s"%votable.voTag("PARAM"))
+		self.assertEqual(params[0].get("value"), "3.500")
+		self.assertEqual(params[0].get("name"), "somePar")
+		self.assertEqual(params[0].get("datatype"), "double")
 
 
 class _ImportTestData(testhelpers.TestResource):

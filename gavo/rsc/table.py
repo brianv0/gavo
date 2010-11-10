@@ -194,6 +194,10 @@ class InMemoryTable(BaseTable):
 	def getFeeder(self, **kwargs):
 		return Feeder(self, **kwargs)
 
+	@property
+	def params(self):
+		return self.tableDef.params
+
 
 class InMemoryIndexedTable(InMemoryTable):
 	"""is an InMemoryTable for a TableDef with a primary key.
