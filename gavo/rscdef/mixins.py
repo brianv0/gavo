@@ -31,6 +31,15 @@ class ProcessLate(procdef.ProcApp):
 	formalArgs = "substrate, root, context"
 
 
+class MixinPar(procdef.RDParameter):
+	"""A parameter definition for mixins.  
+	
+	The (optional) body provides a default for the parameter.
+	"""
+	name_ = "mixinPar"
+
+
+
 class MixinDef(activetags.ReplayBase):
 	"""A definition for a resource mixin.
 
@@ -76,11 +85,41 @@ class MixinDef(activetags.ReplayBase):
 		default=None, 
 		childFactory=ProcessLate,
 		description="Code executed resource fixup.")
+	_pars = base.StructListAttribute("pars",
+		childFactory=MixinPar,
+		description="Parameters available for this mixin.")
 
-	def applyTo(self, destination, ctx):
+	def _defineMacros(self, fillers):
+		self.macroExpansions = {}
+		for p in self.pars:
+			if p.key in fillers:
+				self.macroExpansions[p.key] = fillers.pop(p.key)
+			elif p.content_:
+				self.macroExpansions[p.key] = p.content_
+			else:
+				raise base.StructureError("Mixin parameter %s mandatory"%p.key)
+		if fillers:
+			raise base.StructureError("The attribute(s) %s is/are not allowed"
+				" on this mixin"%(",".join(fillers)))
+
+	def execMacro(self, macName, args):
+		if args:
+			raise base.MacroError(
+				"Invalid macro arguments to \\%s: %s"%(macName, args), macName,
+				hint="Mixin macros never take any arguments.  Did you forget"
+				" a second backslash?")
+		try:
+			return self.macroExpansions[macName]
+		except KeyError:
+			raise MacroError(
+				"No macro \\%s available in this mixin."%(
+					macName))
+
+	def applyTo(self, destination, ctx, fillers={}):
 		"""replays the stored events on destination and arranges for processEarly
 		and processLate to be run.
 		"""
+		self._defineMacros(fillers)
 		self.replay(self.events.events, destination, ctx)
 		if self.processEarly is not None:
 			self.processEarly.compile(destination)(destination)
@@ -110,6 +149,48 @@ class MixinDef(activetags.ReplayBase):
 			ctx.runExitFuncs(rd)
 
 
+class _MixinParser(base.Parser):
+	"""A parser for structured mixin references.
+
+	These can contain attribute definitions for any parameter of the
+	mixin referenced.
+	"""
+	def __init__(self, parent, parentAttr):
+		self.parent, self.parentAttr = parent, parentAttr
+		self.fillers = {}
+		self.curName = None  # this is non-None while parsing a child element
+	
+	def start_(self, ctx, name, value):
+		if self.curName is not None:
+			raise base.StructureError("%s elements cannot have %s children in"
+				" mixins."%(self.curName, name))
+		self.curName = name
+		return self
+	
+	def value_(self, ctx, name, value):
+		if name=="content_":
+			if self.curName:
+				self.fillers[self.curName] = value
+			else:
+				self.fillers["mixin name"] = value.strip()
+		else:
+			self.fillers[name] = value
+		return self
+	
+	def end_(self, ctx, name, value):
+		if self.curName:  # end parsing parameter binding
+			self.curName = None
+			return self
+		else: # end of mixin application, run the mixin and hand control back to
+		      # mixin parent
+			if "mixin name" not in self.fillers:
+				raise base.StructureError("Empty mixin children not allowed")
+			mixinRef = self.fillers.pop("mixin name")
+			self.parentAttr.feed(ctx, self.parent, mixinRef, fillers=self.fillers)
+			return self.parent
+
+
+
 class MixinAttribute(base.SetOfAtomsAttribute):
 	"""An attribute defining a mixin.
 
@@ -128,13 +209,15 @@ class MixinAttribute(base.SetOfAtomsAttribute):
 	def __init__(self, **kwargs):
 		kwargs["itemAttD"] = base.UnicodeAttribute("mixin", strip=True)
 		kwargs["description"] = kwargs.get("description", 
-			"Reference to a mixin this table should contain.")
+			"Reference to a mixin this table should contain; you can"
+			" give mixin parameters as attributes or children.")
 		kwargs["copyable"] = False
 		base.SetOfAtomsAttribute.__init__(self, "mixin", **kwargs)
 
-	def feed(self, ctx, instance, mixinRef):
+	def feed(self, ctx, instance, mixinRef, fillers={}):
+		# this is called when mixin is used a plain attribute
 		mixin = ctx.resolveId(mixinRef, instance=instance, forceType=MixinDef)
-		mixin.applyTo(instance, ctx)
+		mixin.applyTo(instance, ctx, fillers)
 		base.SetOfAtomsAttribute.feed(self, ctx, instance, mixinRef)
 
 	# no need to override feedObject: On copy and such, replay has already
@@ -148,3 +231,9 @@ class MixinAttribute(base.SetOfAtomsAttribute):
 	def makeUserDoc(self):
 		return ("A mixin reference, typically to support certain protocol."
 			"  See Mixins_.")
+	
+	def create(self, parent, ctx, name):
+		# since mixins may contain parameters, we need a custom parser
+		# when mixin is a child.
+		return _MixinParser(parent, self)
+

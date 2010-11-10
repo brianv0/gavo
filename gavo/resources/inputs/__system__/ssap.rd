@@ -10,10 +10,10 @@
 		Tables are ICRS/TT to the required accuracy.  And you should
 		convey such information via STC anyway...
 		-->
-		<stc>Time TT "ssa_dateObs" Size "ssa_timeExt" 
+<!--		<stc>Time TT "ssa_dateObs" Size "ssa_timeExt" 
 			Position ICRS [ssa_location] Size "ssa_aperture" "ssa_aperture"
 			SpectralInterval "ssa_specstart" "ssa_specend"
-				Spectral "ssa_specmid" Size "ssa_specext"</stc>
+				Spectral "ssa_specmid" Size "ssa_specext"</stc>-->
 
 		<FEED source="//products#tablecols">
 			<EDIT ref="column[accref]" utype="ssa:Access.Reference"
@@ -135,102 +135,100 @@
 		<!-- the parameters table for an SSA (HCD) result.  The definition
 		of the homogeneous in HCD is that all these parameters are
 		constant for all datasets within a table ("collection").  -->
-		<column name="ssa_model" type="text" 
-				utype="ssa:Dataset.DataModel"
-				description="Data model name and version">
-			<values default="Spectrum-1.0"/>
-		</column>
-		<column name="ssa_dstype" type="text" 
-				utype="ssa:Dataset.DataModel"
-				description="Type of data (spectrum, time series, etc)">
-			<values default="Spectrum"/>
-		</column>
-		<column name="ssa_timeSI" type="text" 
+		<param name="ssa_model" type="text" 
+			utype="ssa:Dataset.DataModel"
+			description="Data model name and version">Spectrum-1.0</param>
+		<param name="ssa_dstype" type="text" 
+			utype="ssa:Dataset.DataModel"
+			description="Type of data (spectrum, time series, etc)"
+			>Spectrum</param>
+		<param name="ssa_timeSI" type="text" 
 			utype="ssa:Dataset.TimeSI"
 			description="Time unit (WCS/OGIP convention)"/>
-		<column name="ssa_spectralSI" type="text" 
+		<param name="ssa_spectralSI" type="text" 
 			utype="ssa:Dataset.SpectralSI"
-			description="Unit of frequency or wavelength (WCS/OGIP convention)"/>
-		<column name="ssa_fluxSI" type="text" utype="ssa:Dataset.FluxSI"
+			description="Unit of frequency or wavelength (WCS/OGIP convention)"
+			>\spectralSI</param>
+		<param name="ssa_fluxSI" type="text" utype="ssa:Dataset.FluxSI"
 			description="Unit of flux/magnitude (WCS/OGIP convention)"/>
-		<column name="ssa_creator" type="text"
+		<param name="ssa_creator" type="text"
 			utype="ssa:DataID.Creator"
 			tablehead="Creator" verbLevel="25" 
 			description="Creator of the datasets included here."/>
-		<column name="ssa_collection" type="text"
+		<param name="ssa_collection" type="text"
 			utype="ssa:DataID.Collection"
 			tablehead="Collection" verbLevel="25" 
 			description="IOVA Id of the originating dataset collection"/>
-		<column name="ssa_instrument" type="text"
+		<param name="ssa_instrument" type="text"
 			utype="ssa:DataID.Instrument" ucd="meta.id;instr"
 			tablehead="Instrument" verbLevel="25" 
 			description="Instrument or code used to produce these datasets"/>
-		<column name="ssa_datasource" type="text"
+		<param name="ssa_datasource" type="text"
 			utype="ssa:DataID.DataSource"
 			tablehead="Src" verbLevel="25" 
 			description="Original source of the data (survey, pointed, theory...)."/>
-		<column name="ssa_creationtype" type="text"
+		<param name="ssa_creationtype" type="text"
 			utype="ssa:DataID.CreationType"
 			tablehead="Using" verbLevel="25" 
 			description="Process used to produce the data (cutout, filtered,
 				spectralExtraction...)"/>
-		<column name="ssa_reference" type="text"
+		<param name="ssa_reference" type="text"
 			utype="ssa:Curation.Reference"
 			tablehead="Ref." verbLevel="25" 
 			description="URL or bibcode of a publication describing this data."/>
-		<column name="ssa_fluxucd" type="text"
+		<param name="ssa_fluxucd" type="text"
 			utype="ssa:Char.FluxAxis.Ucd"
 			tablehead="UCD(flux)" verbLevel="25" 
 			description="UCD of the flux column (only necessary when result does
 				not come as VOTable)"/>
-		<column name="ssa_spectralucd" type="text"
+		<param name="ssa_spectralucd" type="text"
 			utype="ssa:Char.SpectralAxis.Ucd"
 			tablehead="UCD(spectral)" verbLevel="25" 
 			description="UCD of the spectral column (only necessary when result does
 				not come as VOTable)"/>
-		<column name="ssa_statError" 
+		<param name="ssa_statError" 
 			utype="ssa:Char.FluxAxis.Accuracy.StatError"
 			ucd="stat.error;phot.flux.density;em"
 			verbLevel="25"
 			description="Statistical error in flux"/>
-		<column name="ssa_sysError" 
+		<param name="ssa_sysError" 
 			utype="ssa:Char.FluxAxis.Accuracy.SysError"
 			ucd="stat.error.sys;phot.flux.density;em"
 			verbLevel="25"
 			description="Systematic error in flux"/>
-		<column name="ssa_fluxcalib" type="text"
+		<param name="ssa_fluxcalib" type="text"
 			utype="ssa:Char.FluxAxis.Calibration"
 			verbLevel="25"
 			description="Type of flux calibration"/>
-		<column name="ssa_binSize"
+		<param name="ssa_binSize"
 			utype="Char.SpectralAxis.Accuracy.BinSize" ucd="em.wl;spect.binSize"
 			verbLevel="25" unit="m"
 			description="Bin size in wavelength"/>
-		<column name="ssa_statError"
+		<param name="ssa_statError"
 			utype="Char.SpectralAxis.Accuracy.StatError" ucd="stat.error;em"
 			verbLevel="25" unit="m"
 			description="Statistical error in wavelength"/>
-		<column name="ssa_sysError"
+		<param name="ssa_sysError"
 			utype="Char.SpectralAxis.Accuracy.StatError" ucd="stat.error.sys;em"
 			verbLevel="25" unit="m"
 			description="Systematic error in wavelength"/>
-		<column name="ssa_speccalib" type="text"
+		<param name="ssa_speccalib" type="text"
 			utype="ssa:Char.SpectralAxis.Calibration" ucd="meta.code.qual"
 			verbLevel="25"
 			description="Type of wavelength calibration"/>
-		<column name="ssa_specres" 
+		<param name="ssa_specres" 
 			utype="ssa:Char.SpectralAxis.Resolution" ucd="spect.resolution;em"
 			verbLevel="25" unit="m"
 			description="Resolution on the spectral axis"/>
-		<column name="ssa_spaceError"
+		<param name="ssa_spaceError"
 			utype="ssa:Char.SpatialAxis.Accuracy.StatError" ucd="stat.error;pos.eq"
 			verbLevel="15" unit="deg"
 			description="Statistical error in position"/>
-		<column name="ssa_spaceCalib" type="text"
+		<param name="ssa_spaceCalib" type="text"
 			utype="Char.SpatialAxis.Calibration" ucd="meta.code.qual"
 			verbLevel="25"
 			description="Type of calibration in spatial coordinates"/>
-		<column name="ssa_spaceRes"
+		<param name="ssa_spaceRes"
 			utype="Char.SpatialAxis.Resolution" ucd="pos.angResolution"
 			verbLevel="25" unit="deg"
 			description="Spatial resolution of data"/>
@@ -312,9 +310,12 @@
 			Rowmakers for tables using this mixin should use the //ssap#setMeta
 			proc application.
 		</doc>
+		<mixinPar key="spectralSI" description="Unit of frequency or 
+			wavelength (WCS/OGIP convention)">m</mixinPar>
 		<FEED source="//products#hackProductsData"/>
 		<events>
 			<FEED source="//ssap#hcd_fields"/>
+			<FEED source="//ssap#hcd_outpars"/>
 		</events>
 	</mixinDef>
 </resource>

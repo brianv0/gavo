@@ -1,6 +1,8 @@
 <resource schema="test" resdir=".">
-	<table id="hcdtest" mixin="//ssap#hcd" onDisk="True"/>
-	<table id="hcdtestout">
+	<table id="hcdtest" onDisk="True" mixin="//ssap#hcd">
+	</table>
+
+	<table id="hcdouttest">
 		<FEED source="//ssap#hcd_outtable"/>
 	</table>
 </resource>

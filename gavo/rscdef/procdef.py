@@ -10,7 +10,32 @@ from gavo.rscdef import common
 from gavo.rscdef import rmkfuncs
 
 
-class ProcPar(base.Structure):
+class RDParameter(base.Structure):
+	"""A base class for parameters.
+	"""
+	_key = base.UnicodeAttribute("key", default=base.Undefined,
+		description="The name of the parameter", copyable=True, strip=True)
+	_descr = base.NWUnicodeAttribute("description", default=None,
+		description="Some human-readable description of what the"
+		" parameter is about", copyable=True, strip=True)
+	_expr = base.DataContent(description="The default for the parameter.",
+		copyable=True, strip=True)
+	_late = base.BooleanAttribute("late", default=False,
+		description="Bind the key not at setup time but while applying"
+		" the procedure.  This allows you to refer to procedure arguments"
+		" like vars or rowIter in the bindings.")
+
+	def isDefaulted(self):
+		return self.content_!=""
+
+	def validate(self):
+		self._validateNext(RDParameter)
+		if not common.identifierPat.match(self.key):
+			raise base.LiteralParseError("key", self.key, hint=
+				"The key you supplied was not defined by any procedure definition.")
+
+
+class ProcPar(RDParameter):
 	"""A parameter of a procedure definition.
 
 	Bodies of ProcPars are interpreted as python expressions, in
@@ -19,29 +44,11 @@ class ProcPar(base.Structure):
 	to be filled by the procedure application.
 	"""
 	name_ = "par"
-	_key = base.UnicodeAttribute("key", default=base.Undefined,
-		description="The name of the parameter", copyable=True, strip=True)
-	_descr = base.NWUnicodeAttribute("description", default=None,
-		description="Some human-readable description of what the"
-		" parameter is about", copyable=True, strip=True)
-	_expr = base.DataContent(description="A python expression for"
-		" the default of the parameter", copyable=True, strip=True)
-	_late = base.BooleanAttribute("late", default=False,
-		description="Bind the key not at setup time but while applying"
-		" the procedure.  This allows you to refer to procedure arguments"
-		" like vars or rowIter in the bindings.")
-
 	def validate(self):
 		self._validateNext(ProcPar)
-		if not common.identifierPat.match(self.key):
-			raise base.LiteralParseError("key", self.key, hint=
-				"The key you supplied was not defined by any procedure definition.")
 		# Allow non-python syntax when things look like macro calls.
 		if self.content_ and not "\\" in self.content_:
 			utils.ensureExpression(self.content_, self.key)
-
-	def isDefaulted(self):
-		return self.content_!=""
 
 
 class Binding(ProcPar):

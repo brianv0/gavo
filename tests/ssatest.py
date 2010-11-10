@@ -9,6 +9,8 @@ def getRD():
 	return testhelpers.getTestRD("ssatest.rd")
 
 
+# PARAM tests!!!
+
 class RDTest(testhelpers.VerboseTest):
 # tests for some aspects of the ssap rd.
 	def testUtypes(self):
@@ -18,7 +20,7 @@ class RDTest(testhelpers.VerboseTest):
 
 	def testNormalizedDescription(self):
 		self.failUnless("matches your query" in
-			getRD().getById("hcdtestout").getColumnByName("ssa_score"
+			getRD().getById("hcdouttest").getColumnByName("ssa_score"
 				).description)
 			
 

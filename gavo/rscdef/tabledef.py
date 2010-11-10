@@ -405,6 +405,12 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		"""
 		return self.columns.getFieldIndex(fieldName)
 
+	def getParamByName(self, name):
+		for p in self.params:
+			if p.name==name:
+				return p
+		raise base.NotFoundError(name, what="param", within="table %s"%self.id)
+
 	def getColumnByName(self, name):
 		"""delegates to common.ColumnList.
 		"""

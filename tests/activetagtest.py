@@ -266,5 +266,58 @@ class RDBasedTest(testhelpers.VerboseTest):
 		self.assertEqual(cols[-1].description, "Error in magnitude in the K band")
 
 
+class MacroTest(testhelpers.VerboseTest):
+	baseRDLit = r"""<resource schema="test">
+		<mixinDef id="bla">
+			<mixinPar key="xy">xy</mixinPar>
+			<mixinPar key="nd"/>
+			<events>
+				<param name="\xy" type="text">\nd</param>
+			</events>
+		</mixinDef>
+		%s
+	</resource>"""
+
+	def testWorkingMacro(self):
+		res = base.parseFromString(rscdesc.RD,
+			self.baseRDLit%'<table><mixin nd="uu">bla</mixin></table>')
+		self.assertEqual(res.tables[0].params[0].name, "xy")
+		self.assertEqual(res.tables[0].params[0].value, "uu")
+
+	def testWorkingMacroElement(self):
+		res = base.parseFromString(rscdesc.RD,
+			self.baseRDLit%'<table><mixin><nd>"uu"</nd>bla</mixin></table>')
+		self.assertEqual(res.tables[0].params[0].name, "xy")
+		self.assertEqual(res.tables[0].params[0].value, '"uu"')
+
+	def testOverridingMacro(self):
+		res = base.parseFromString(rscdesc.RD,
+			self.baseRDLit%'<table><mixin xy="zq" nd="uu">bla</mixin></table>')
+		self.assertEqual(res.tables[0].params[0].name, "zq")
+		self.assertEqual(res.tables[0].params[0].value, "uu")
+
+	def testNotFilledMacro(self):
+		self.assertRaisesWithMsg(base.StructureError,
+			"At (9, 27): Mixin parameter nd mandatory",
+			base.parseFromString,
+			(rscdesc.RD,
+			self.baseRDLit%'<table><mixin xy="zq">bla</mixin></table>'))
+
+	def testBadFillingRaises(self):
+		self.assertRaisesWithMsg(base.StructureError,
+			"At (9, 20): nd elements cannot have a children in mixins.",
+			base.parseFromString,
+			(rscdesc.RD,
+			self.baseRDLit%'<table><mixin><nd><a>uu</a></nd>bla</mixin></table>'))
+	
+	def testUnknownMacroRaises(self):
+		self.assertRaisesWithMsg(base.StructureError,
+			'At (9, 35): The attribute(s) a is/are not allowed on this mixin',
+			base.parseFromString,
+			(rscdesc.RD,
+			self.baseRDLit%'<table><mixin nd="u"><a>uu</a>bla</mixin></table>'))
+
+
+
 if __name__=="__main__":
-	testhelpers.main(RDBasedTest)
+	testhelpers.main(MacroTest)
