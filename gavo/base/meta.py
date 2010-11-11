@@ -42,20 +42,33 @@ from gavo.base import common
 
 
 class MetaError(utils.Error):
-	pass
+	"""A base class for metadata-related errors.
+
+	MetaErrors have a carrier attribute that should point to the MetaMixin
+	item queried.  Metadata propagation makes this a bit tricky, but we
+	should at least try; for setMeta and addMeta, the top-level entry
+	functions manipulate the carrier attributes for this purpose.
+	"""
+	def __init__(self, msg, carrier, hint=None):
+		self.carrier = carrier
+		utils.Error.__init__(self, msg, hint)
+
 
 class MetaSyntaxError(MetaError):
 	"""is raised when a meta key is invalid.
 	"""
 
+
 class NoMetaKey(MetaError):
 	"""is raised when a meta key does not exist (and raiseOnFail is True).
 	"""
+
 
 class MetaCardError(MetaError):
 	"""is raised when a meta value somehow has the wrong cardinality (e.g.,
 	on attempting to stringify a sequence meta).
 	"""
+
 
 def metaRstToHtml(inputString):
 	sourcePath, destinationPath = None, None
@@ -80,13 +93,13 @@ _primaryPat = re.compile(r"([a-zA-Z_-]+)(\.|$)")
 def getPrimary(metaKey):
 	key = _primaryPat.match(metaKey)
 	if not key or not key.group(1):
-		raise MetaSyntaxError("Invalid meta key: %s"%metaKey)
+		raise MetaSyntaxError("Invalid meta key: %s"%metaKey, None)
 	return key.group(1)
 
 
 def parseKey(metaKey):
 	if not _metaPat.match(metaKey):
-		raise MetaSyntaxError("Invalid meta key: %s"%metaKey)
+		raise MetaSyntaxError("Invalid meta key: %s"%metaKey, None)
 	return metaKey.split(".")
 
 
@@ -237,15 +250,19 @@ class MetaMixin(object):
 				return self.__metaParent._getMeta(atoms, propagate)
 			else:
 				return configMeta._getMeta(atoms, propagate=False)
-		raise NoMetaKey("No meta item %s"%".".join(atoms))
+		raise NoMetaKey("No meta item %s"%".".join(atoms), carrier=self)
 
 	def getMeta(self, key, propagate=True, raiseOnFail=False, default=None):
 		try:
-			return self._getMeta(parseKey(key), propagate)
-		except NoMetaKey, ex:
-			if raiseOnFail:
-				ex.key = key
-				raise
+			try:
+				return self._getMeta(parseKey(key), propagate)
+			except NoMetaKey, ex:
+				if raiseOnFail:
+					ex.key = key
+					raise
+		except MetaError, ex:
+			ex.carrier = self
+			raise
 		return default
 
 	def buildRepr(self, key, builder, propagate=True, raiseOnFail=True):
@@ -262,7 +279,7 @@ class MetaMixin(object):
 	def _getFromAtom(self, atom):
 		if atom in self.meta_:
 			return self.meta_[atom]
-		raise NoMetaKey("No meta child %s"%atom)
+		raise NoMetaKey("No meta child %s"%atom, carrier=self)
 
 	def getMetaKeys(self):
 		return self.meta_.keys()
@@ -284,9 +301,13 @@ class MetaMixin(object):
 	def addMeta(self, key, metaValue):
 		"""adds metaItem to self under key.
 		"""
-		if isinstance(metaValue, basestring):
-			metaValue = makeMetaValue(metaValue, name=key)
-		self._addMeta(parseKey(key), metaValue)
+		try:
+			if isinstance(metaValue, basestring):
+				metaValue = makeMetaValue(metaValue, name=key)
+			self._addMeta(parseKey(key), metaValue)
+		except MetaError, ex:
+			ex.carrier = self
+			raise
 
 	def _delMeta(self, atoms):
 		if atoms[0] not in self.meta_:
@@ -430,7 +451,7 @@ class MetaItem(object):
 		if atoms:
 			if len(self.children)!=1:
 				raise MetaCardError("getMeta cannot be used on"
-					" sequence meta items")
+					" sequence meta items", carrier=self)
 			else:
 				return self.children[0]._getMeta(atoms)
 		return self
@@ -449,12 +470,14 @@ class MetaItem(object):
 		if len(self.children)==1:
 			return self.children[0].getMeta(key)
 		else:
-			return MetaCardError("No getMeta for meta value sequences")
+			return MetaCardError("No getMeta for meta value sequences",
+				carrier=self)
 
 	def getContent(self, targetFormat="text"):
 		if len(self.children)==1:
 			return self.children[0].getContent(targetFormat)
-		raise MetaCardError("getContent not allowed for sequence meta items")
+		raise MetaCardError("getContent not allowed for sequence meta items",
+			carrier=self)
 
 	def _delMeta(self, atoms):
 		newChildren = []
@@ -838,7 +861,8 @@ def makeMetaValue(value="", **kwargs):
 		return cls(value, **kwargs)
 	except TypeError:
 		raise utils.logOldExc(MetaError(
-			"Invalid arguments for %s meta items :%s"%(cls.__name__, str(kwargs))))
+			"Invalid arguments for %s meta items :%s"%(cls.__name__, str(kwargs)),
+			None))
 
 
 def makeMetaItem(value="", **kwargs):

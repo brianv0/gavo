@@ -63,7 +63,7 @@ class DateUpdatedMixin(object):
 	def __getDatetimeMeta(self, key, format):
 		dt = getattr(self, "dateUpdated", None)
 		if dt is None:
-			raise base.NoMetaKey(key)
+			raise base.NoMetaKey(key, carrier=self)
 		return dt.strftime(format)
 	
 	def _meta_dateUpdated(self):

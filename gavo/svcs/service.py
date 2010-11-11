@@ -266,7 +266,7 @@ class RegistryMetaMixin(object):
 	def __getFromDB(self, metaKey):
 		try:  # try to used cached data
 			if self.__dbRecord is None:
-				raise base.NoMetaKey(metaKey)
+				raise base.NoMetaKey(metaKey, carrier=self)
 			return self.__dbRecord[metaKey]
 		except AttributeError:
 			# fetch data from DB

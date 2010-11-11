@@ -151,7 +151,7 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 		except base.NoMetaKey, ex:
 			msg = ("Aborting publication of '%s' at service '%s': Resource"
 				" record generation failed: %s"%(
-				rd.sourceId, 'whatever', str(ex)))
+				rd.sourceId, ex.carrier.id, str(ex)))
 
 		if msg is not None:
 			if onlyWarn:

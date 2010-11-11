@@ -33,9 +33,9 @@ from gavo.base import meta
 
 class MetaValidationError(meta.MetaError):
 	def __init__(self, carrier, failures):
-		self.failures, self.carrier = failures, carrier
+		self.failures = failures
 		meta.MetaError.__init__(self, "Meta structure on %s did not validate"%
-			repr(self.carrier))
+			repr(carrier), carrier)
 
 	def __str__(self):
 		return "Meta structure on %s did not validate: %s"%(
