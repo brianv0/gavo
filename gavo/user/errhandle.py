@@ -83,6 +83,8 @@ def raiseAndCatch(opts=None, output=outputError):
 		raise
 	except SystemExit, msg:
 		retval = msg.code
+	except KeyboardInterrupt:
+		retval = 2
 	except grammars.ParseError, msg:
 		if msg.location:
 			messages.append("Parse error at %s: %s"%(msg.location, unicode(msg)))
@@ -109,8 +111,10 @@ def raiseAndCatch(opts=None, output=outputError):
 			messages.append("(At %s)"%msg.pos)
 
 	except (base.ValidationError, base.ReportableError, 
-			base.LiteralParseError, base.StructureError, base.RDNotFound,
+			base.LiteralParseError, base.StructureError, base.NotFoundError,
 			base.MetaValidationError), msg:
+		if getattr(msg, "pos", None):
+			messages.append("At %s: "%msg.pos)
 		messages.append(unicode(msg))
 	except Exception, msg:
 		if hasattr(msg, "excRow"):
