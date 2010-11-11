@@ -200,6 +200,12 @@ class MacDef(structure.Structure):
 	_content = structure.DataContent(description="Replacement text of the"
 		" macro")
 
+	def validate(self):
+		self._validateNext(MacDef)
+		if len(self.name)<2:
+			raise common.LiteralParseError("name", self.name, hint=
+				"Macro names must have at least two characters.")
+
 	def onElementComplete(self):
 		self._onElementCompleteNext(MacDef)
 		def mac():

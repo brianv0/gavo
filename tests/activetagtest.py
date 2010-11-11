@@ -266,7 +266,7 @@ class RDBasedTest(testhelpers.VerboseTest):
 		self.assertEqual(cols[-1].description, "Error in magnitude in the K band")
 
 
-class MacroTest(testhelpers.VerboseTest):
+class MixinTest(testhelpers.VerboseTest):
 	baseRDLit = r"""<resource schema="test">
 		<mixinDef id="bla">
 			<mixinPar key="xy">xy</mixinPar>
@@ -317,7 +317,20 @@ class MacroTest(testhelpers.VerboseTest):
 			(rscdesc.RD,
 			self.baseRDLit%'<table><mixin nd="u"><a>uu</a>bla</mixin></table>'))
 
+	def testBadMacroNamesRejected(self):
+		self.assertRaises(base.StructureError, 
+			base.parseFromString, rscdesc.RD,
+			r"""<resource schema="test"><mixinDef id="bla">
+				<mixinPar key="a">__NULL__</mixinPar></mixinDef></resource>""")
 
+	def testNULLDefault(self):
+			res = base.parseFromString(rscdesc.RD,
+			r"""<resource schema="test"><mixinDef id="bla">
+				<mixinPar key="aa">__NULL__</mixinPar><events>
+				<param name="u">\aa</param></events></mixinDef>
+				<table mixin="bla"/></resource>""")
+			self.assertEqual(res.tables[0].params[0].value, None)
+		
 
 if __name__=="__main__":
-	testhelpers.main(MacroTest)
+	testhelpers.main(MixinTest)

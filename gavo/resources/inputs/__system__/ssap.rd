@@ -144,17 +144,17 @@
 			>Spectrum</param>
 		<param name="ssa_timeSI" type="text" 
 			utype="ssa:Dataset.TimeSI"
-			description="Time unit (WCS/OGIP convention)"/>
+			description="Time unit">\timeSI</param>
 		<param name="ssa_spectralSI" type="text" 
 			utype="ssa:Dataset.SpectralSI"
-			description="Unit of frequency or wavelength (WCS/OGIP convention)"
+			description="Unit of frequency or wavelength"
 			>\spectralSI</param>
 		<param name="ssa_fluxSI" type="text" utype="ssa:Dataset.FluxSI"
-			description="Unit of flux/magnitude (WCS/OGIP convention)"/>
+			description="Unit of flux/magnitude">\fluxSI</param>
 		<param name="ssa_creator" type="text"
 			utype="ssa:DataID.Creator"
 			tablehead="Creator" verbLevel="25" 
-			description="Creator of the datasets included here."/>
+			description="Creator of the datasets included here.">\creator</param>
 		<param name="ssa_collection" type="text"
 			utype="ssa:DataID.Collection"
 			tablehead="Collection" verbLevel="25" 
@@ -310,8 +310,14 @@
 			Rowmakers for tables using this mixin should use the //ssap#setMeta
 			proc application.
 		</doc>
+		<mixinPar key="timeSI" description="Time unit (WCS convention)"
+			>s</mixinPar>
+		<mixinPar key="fluxSI" description="Flux unit (WCS convention)"
+			>s</mixinPar>
 		<mixinPar key="spectralSI" description="Unit of frequency or 
-			wavelength (WCS/OGIP convention)">m</mixinPar>
+			wavelength (WCS convention)">m</mixinPar>
+		<mixinPar key="creator" description="Creator designation (preferably
+			as an ivo URI)">__NULL__</mixinPar>
 		<FEED source="//products#hackProductsData"/>
 		<events>
 			<FEED source="//ssap#hcd_fields"/>

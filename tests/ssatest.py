@@ -18,11 +18,15 @@ class RDTest(testhelpers.VerboseTest):
 		self.assertEqual("ssa:Access.Reference",
 			srcTable.getColumnByName("accref").utype)
 
+	def testDefaultedParam(self):
+		self.assertEqual(
+			getRD().getById("hcdtest").getParamByName("ssa_spectralSI").value, 
+			"m")
+
 	def testNormalizedDescription(self):
 		self.failUnless("matches your query" in
 			getRD().getById("hcdouttest").getColumnByName("ssa_score"
 				).description)
-			
-
+		
 if __name__=="__main__":
 	testhelpers.main(RDTest)

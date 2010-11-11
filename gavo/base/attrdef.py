@@ -217,11 +217,12 @@ class UnicodeAttribute(AtomicAttribute):
 	typeDesc_ = "unicode string"
 
 	def __init__(self, name, **kwargs):
+		self.nullLiteral = kwargs.pop("null", "__NULL__")
 		self.strip = kwargs.pop("strip", False)
 		AtomicAttribute.__init__(self, name, **kwargs)
 
 	def parse(self, value):
-		if value=="__NULL__":
+		if value==self.nullLiteral:
 			return None
 		if self.strip:
 			value = value.strip()
@@ -229,7 +230,9 @@ class UnicodeAttribute(AtomicAttribute):
 
 	def unparse(self, value):
 		if value is None:
-			return "__NULL__"
+			if self.nullLiteral is None:
+				raise ValueError("Unparse None without a null literal can't work.")
+			return self.nullLiteral
 		return value
 
 
