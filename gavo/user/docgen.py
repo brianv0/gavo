@@ -20,7 +20,7 @@ from gavo.base import structure
 
 
 PUBLIC_MIXINS = ["//products#table", "//scs#positions", "//scs#q3cindex",
-	"//siap#bbox", "//siap#pgs"]
+	"//siap#bbox", "//siap#pgs", "//ssap#hcd"]
 
 PUBLIC_APPLYS = ["//procs#simpleSelect", "//procs#resolveObject",
 	"//procs#mapValue", "//procs#fullQuery", "//siap#computePGS",
@@ -249,6 +249,22 @@ def getTriggerDocs(docStructure):
 	return getStructDocsFromRegistry(rowtriggers._triggerRegistry, docStructure)
 
 
+def _documentParameters(content, pars):
+	content.makeSpace()
+	for par in pars:
+		doc = ["* "]
+		if par.late:
+			doc.append("Late p")
+		else:
+			doc.append("P")
+		doc.append("arameter %s "%par.key)
+		if par.content_:
+			doc.append("defaults to ``%s``"%par.content_)
+		if par.description:
+			doc.append(" -- "+par.description)
+		content.addRaw(''.join(doc)+"\n")
+	content.makeSpace()
+
 def getMixinDocs(docStructure):
 	content = RSTFragment()
 	for name in sorted(PUBLIC_MIXINS):
@@ -258,6 +274,10 @@ def getMixinDocs(docStructure):
 			content.addNormalizedPara("NOT DOCUMENTED")
 		else:
 			content.addNormalizedPara(mixin.doc)
+		if mixin.pars:
+			content.addNormalizedPara(
+				"This mixin has the following parameters:\n")
+			_documentParameters(content, mixin.pars)
 	return content.content
 
 
@@ -296,20 +316,7 @@ def _getProcdefDocs(procDefs):
 		content.makeSpace()
 		if pd.setup.pars:
 			content.addNormalizedPara("Setup parameters for the procedure are:\n")
-		content.makeSpace()
-		for par in pd.setup.pars:
-			doc = ["* "]
-			if par.late:
-				doc.append("Late p")
-			else:
-				doc.append("P")
-			doc.append("arameter %s "%par.key)
-			if par.content_:
-				doc.append("defaults to ``%s``"%par.content_)
-			if par.description:
-				doc.append(" -- "+par.description)
-			content.addRaw(''.join(doc)+"\n")
-		content.makeSpace()
+			_documentParameters(content, pd.setup.pars)
 	return content.content
 
 

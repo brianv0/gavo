@@ -119,9 +119,9 @@ class MixinDef(activetags.ReplayBase):
 		try:
 			return self.macroExpansions[macName]
 		except KeyError:
-			raise MacroError(
+			raise base.MacroError(
 				"No macro \\%s available in this mixin."%(
-					macName))
+					macName), macName)
 
 	def applyTo(self, destination, ctx, fillers={}):
 		"""replays the stored events on destination and arranges for processEarly

@@ -9,8 +9,6 @@ def getRD():
 	return testhelpers.getTestRD("ssatest.rd")
 
 
-# PARAM tests!!!
-
 class RDTest(testhelpers.VerboseTest):
 # tests for some aspects of the ssap rd.
 	def testUtypes(self):
@@ -23,6 +21,15 @@ class RDTest(testhelpers.VerboseTest):
 			getRD().getById("hcdtest").getParamByName("ssa_spectralSI").value, 
 			"m")
 
+	def testNullDefaultedParam(self):
+		self.assertEqual(
+			getRD().getById("hcdtest").getParamByName("ssa_creator").value, 
+			None)
+
+	def testOverriddenParam(self):
+		self.assertEqual(
+			getRD().getById("hcdtest").getParamByName("ssa_instrument").value, 
+			"DaCHS test suite")
 	def testNormalizedDescription(self):
 		self.failUnless("matches your query" in
 			getRD().getById("hcdouttest").getColumnByName("ssa_score"

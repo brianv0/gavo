@@ -132,9 +132,19 @@
 	</STREAM>
 
 	<STREAM id="hcd_outpars">
-		<!-- the parameters table for an SSA (HCD) result.  The definition
+		<doc>The parameters table for an SSA (HCD) result.  The definition
 		of the homogeneous in HCD is that all these parameters are
-		constant for all datasets within a table ("collection").  -->
+		constant for all datasets within a table ("collection").  
+
+		These params are supposed to be filled using mixin parameters
+		(or stream parameters, but the available parameters are documented
+		in the hcd mixin).  Some params are hardcoded to NULL right now;
+		they can easily be added to hcd's paramters if someone needs them.
+
+		ssa_model and ssa_dstype cannot be changed right now.  Changing
+		them would probably not make much sense since they reflect
+		what's in this RD.</doc>
+	
 		<param name="ssa_model" type="text" 
 			utype="ssa:Dataset.DataModel"
 			description="Data model name and version">Spectrum-1.0</param>
@@ -162,20 +172,22 @@
 		<param name="ssa_instrument" type="text"
 			utype="ssa:DataID.Instrument" ucd="meta.id;instr"
 			tablehead="Instrument" verbLevel="25" 
-			description="Instrument or code used to produce these datasets"/>
+			description="Instrument or code used to produce these datasets"
+			>\instrument</param>
 		<param name="ssa_datasource" type="text"
 			utype="ssa:DataID.DataSource"
 			tablehead="Src" verbLevel="25" 
-			description="Original source of the data (survey, pointed, theory...)."/>
+			description="Method of generation for the data."
+			>\dataSource</param>
 		<param name="ssa_creationtype" type="text"
 			utype="ssa:DataID.CreationType"
 			tablehead="Using" verbLevel="25" 
-			description="Process used to produce the data (cutout, filtered,
-				spectralExtraction...)"/>
+			description="Process used to produce the data">\creationType</param>
 		<param name="ssa_reference" type="text"
 			utype="ssa:Curation.Reference"
 			tablehead="Ref." verbLevel="25" 
-			description="URL or bibcode of a publication describing this data."/>
+			description="URL or bibcode of a publication describing this data."
+			>\reference</param>
 		<param name="ssa_fluxucd" type="text"
 			utype="ssa:Char.FluxAxis.Ucd"
 			tablehead="UCD(flux)" verbLevel="25" 
@@ -190,16 +202,16 @@
 			utype="ssa:Char.FluxAxis.Accuracy.StatError"
 			ucd="stat.error;phot.flux.density;em"
 			verbLevel="25"
-			description="Statistical error in flux"/>
+			description="Statistical error in flux">\statFluxError</param>
 		<param name="ssa_sysError" 
 			utype="ssa:Char.FluxAxis.Accuracy.SysError"
 			ucd="stat.error.sys;phot.flux.density;em"
 			verbLevel="25"
-			description="Systematic error in flux"/>
+			description="Systematic error in flux">\statFluxError</param>
 		<param name="ssa_fluxcalib" type="text"
 			utype="ssa:Char.FluxAxis.Calibration"
 			verbLevel="25"
-			description="Type of flux calibration"/>
+			description="Type of flux calibration">\fluxCalibration</param>
 		<param name="ssa_binSize"
 			utype="Char.SpectralAxis.Accuracy.BinSize" ucd="em.wl;spect.binSize"
 			verbLevel="25" unit="m"
@@ -207,15 +219,15 @@
 		<param name="ssa_statError"
 			utype="Char.SpectralAxis.Accuracy.StatError" ucd="stat.error;em"
 			verbLevel="25" unit="m"
-			description="Statistical error in wavelength"/>
+			description="Statistical error in wavelength">\statSpectError</param>
 		<param name="ssa_sysError"
 			utype="Char.SpectralAxis.Accuracy.StatError" ucd="stat.error.sys;em"
 			verbLevel="25" unit="m"
-			description="Systematic error in wavelength"/>
+			description="Systematic error in wavelength">\sysSpectError</param>
 		<param name="ssa_speccalib" type="text"
 			utype="ssa:Char.SpectralAxis.Calibration" ucd="meta.code.qual"
 			verbLevel="25"
-			description="Type of wavelength calibration"/>
+			description="Type of wavelength calibration">\spectCalibration</param>
 		<param name="ssa_specres" 
 			utype="ssa:Char.SpectralAxis.Resolution" ucd="spect.resolution;em"
 			verbLevel="25" unit="m"
@@ -223,7 +235,7 @@
 		<param name="ssa_spaceError"
 			utype="ssa:Char.SpatialAxis.Accuracy.StatError" ucd="stat.error;pos.eq"
 			verbLevel="15" unit="deg"
-			description="Statistical error in position"/>
+			description="Statistical error in position">\statSpaceError</param>
 		<param name="ssa_spaceCalib" type="text"
 			utype="Char.SpatialAxis.Calibration" ucd="meta.code.qual"
 			verbLevel="25"
@@ -316,8 +328,34 @@
 			>s</mixinPar>
 		<mixinPar key="spectralSI" description="Unit of frequency or 
 			wavelength (WCS convention)">m</mixinPar>
-		<mixinPar key="creator" description="Creator designation (preferably
-			as an ivo URI)">__NULL__</mixinPar>
+		<mixinPar key="creator" description="Creator designation"
+			>__NULL__</mixinPar>
+		<mixinPar key="instrument" description="Instrument or code used to produce
+			these datasets">__NULL__</mixinPar>
+		<mixinPar key="dataSource" description="Generation type (typically, one
+			survey, pointed, theory, custom, artificial)">__NULL__</mixinPar>
+		<mixinPar key="creationType" description="Process used to
+			produce the data (zero or more of archival, cutout, filtered, 
+			mosaic, projection, spectralExtraction, catalogExtraction)"
+			>__NULL__</mixinPar>
+		<mixinPar key="reference" description="URL or bibcode of a 
+			publication describing this data.">__NULL__</mixinPar>
+		<mixinPar key="statFluxError" description="Statistical error in flux"
+			>__NULL__</mixinPar>
+		<mixinPar key="sysFluxError" description="Systematic error in flux"
+			>__NULL__</mixinPar>
+		<mixinPar key="fluxCalibration" description="Type of flux calibration
+			(one of ABSOLUTE, RELATIVE, NORMALIZED, or UNCALIBRATED)"/>
+		<mixinPar key="statSpectError" 
+			description="Statistical error in wavelength">__NULL__</mixinPar>
+		<mixinPar key="sysSpectError" description="Systematic error in wavelength"
+			>__NULL__</mixinPar>
+		<mixinPar key="spectCalibration" description="Type of wavelength 
+			Calibration (one of ABSOLUTE, RELATIVE, NORMALIZED, or UNCALIBRATED)"
+			>__NULL__</mixinPar>
+		<mixinPar key="statSpaceError" description="Statistical error in position"
+			>__NULL__</mixinPar>
+
 		<FEED source="//products#hackProductsData"/>
 		<events>
 			<FEED source="//ssap#hcd_fields"/>

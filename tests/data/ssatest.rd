@@ -1,5 +1,7 @@
 <resource schema="test" resdir=".">
-	<table id="hcdtest" onDisk="True" mixin="//ssap#hcd">
+	<table id="hcdtest" onDisk="True">
+		<mixin instrument="DaCHS test suite" fluxCalibration="UNCALIBRATED"
+			>//ssap#hcd</mixin>
 	</table>
 
 	<table id="hcdouttest">
