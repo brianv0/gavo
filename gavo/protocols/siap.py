@@ -297,9 +297,9 @@ class SIAPCutoutCore(SIAPCore):
 	def run(self, service, inputData, queryMeta):
 		res = svcs.DBCore.run(self, service, inputData, queryMeta)
 		sqlPars = queryMeta["sqlQueryPars"]
-		if "cutoutSize" in queryMeta.ctxArgs:
+		try:
 			sra = sdec = float(queryMeta.ctxArgs["cutoutSize"])
-		else:
+		except (KeyError, ValueError):
 			sra, sdec = sqlPars["_sra"], sqlPars["_sdec"]
 		cosD = math.cos(sqlPars["_dec"]/180*math.pi)
 		if abs(cosD)>1e-5:
