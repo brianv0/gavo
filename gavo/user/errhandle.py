@@ -9,6 +9,7 @@ import traceback
 
 from gavo import base
 from gavo import grammars
+from gavo import rsc
 
 
 class _Reformatter(object):
@@ -109,6 +110,10 @@ def raiseAndCatch(opts=None, output=outputError):
 			msg.codeType, str(msg.origExc)))
 		if msg.pos:
 			messages.append("(At %s)"%msg.pos)
+
+	except rsc.DBTableError, msg:
+		messages.append("While building table %s: %s"%(msg.qName,
+			msg))
 
 	except (base.ValidationError, base.ReportableError, 
 			base.LiteralParseError, base.StructureError, base.NotFoundError,

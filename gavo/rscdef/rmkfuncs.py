@@ -231,7 +231,7 @@ def makeProc(funcName, code, setupCode, parent):
 			raise base.ui.logOldExc(
 				base.BadCode(setupCode, "setup code", ex, 
 					hint="This typically happens when you forget to put"
-					" quotes around variable names or the like."))
+					" quotes around string values."))
 	return utils.compileFunction(code.rstrip(), funcName, funcNs)
 
 

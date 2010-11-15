@@ -146,9 +146,8 @@ as an expression.</li>
 <li><code>!</code> -- reversal of <code>=</code>.</li>
 <li><code>!=</code> -- selects all but literal matches of the operand.</li>
 <li><code>&gt;=</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&lt;</code> 
--- selects strings larger or equal, larger, etc., than the operand.  Note that
-comparisons are done case-insensitively on this site.  This, however, is
-considered a bug that might be fixed when we upgrade our database.</li>
+-- selects strings larger or equal, larger, etc., than the operand. 
+Comparisons happen according to ASCII value (i.e., in the C locale).</li>
 <li><code>=,</code> and <code>=|</code> -- these start enumerations, i.e.,
 they match when a literal in the following list is matched.
 There are two versions of these so you can include either the comma or the
@@ -198,13 +197,12 @@ table#vizstringtable {
 		<tr><td>~?4p</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
 		<tr><td>~[MO]4[pe]</td><td>X</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
 		<tr><td>=[MO]4[pe]</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-		<tr><td>&gt;O</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>X</td></tr>
-		<tr><td>&gt;O5</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>X</td></tr>
-		<tr><td>&gt;=m</td><td>X</td><td>X</td><td>X</td><td>&nbsp;</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
-		<tr><td>&lt;m</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+		<tr><td>&gt;O</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>X</td><td>X</td><td>&nbsp;</td></tr>
+		<tr><td>&gt;O5</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>X</td><td>&nbsp;</td></tr>
+		<tr><td>&gt;=m</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>X</td><td>&nbsp;</td></tr>
+		<tr><td>&lt;M</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td></tr>
 		<tr><td>=|M4e| O4p| x,a</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td></tr>
 		<tr><td>=,x,a,=x,m|a</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>X</td><td>&nbsp;</td><td>X</td></tr>
-
 </table>
 
 <p>Maybe some comments are in order:</p>

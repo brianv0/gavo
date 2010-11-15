@@ -173,8 +173,10 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 					self.tableName, ", ".join(self.tableDef.primary)))
 			except sqlsupport.DBError, msg:
 				raise base.ui.logOldExc(
-					common.DbTableError("Primary key %s could not be added (%s)"%(
-						self.tableDef.primary, repr(str(msg))), self.tableName))
+					common.DBTableError("Primary key %s could not be added (%s)"%(
+						self.tableDef.primary, repr(str(msg))), self.tableName,
+						hint="The howDoI documentation text may contain help on"
+						" how to find the offending elements."))
 
 	def _dropPrimaryKey(self):
 		"""drops a primary key if it exists.

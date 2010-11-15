@@ -134,7 +134,11 @@ class MetaParser(common.Parser):
 
 	def _getMetaValue(self):
 		content = self.attrs.pop("content_", "")
-		content = utils.fixIndentation(content, "", 1).rstrip()
+		try:
+			content = utils.fixIndentation(content, "", 1).rstrip()
+		except common.Error, ex:
+			raise utils.logOldExc(common.StructureError("Bad text in meta value"
+				" (%s)"%ex))
 		mv = makeMetaValue(content, **self.attrs)
 		if not "name" in self.attrs:
 			raise common.StructureError("meta elements must have a"

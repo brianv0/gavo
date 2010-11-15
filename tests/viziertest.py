@@ -348,77 +348,85 @@ class SQLGenerTest(unittest.TestCase):
 		self.assertEqual(sqlPars["foo0"], r"^[a-z]$")
 
 
-class StringQueryTest(unittest.TestCase):
+class _ViztestTable(testhelpers.TestResource):
+	_testData = [{"s": ""},
+		{"s": "a"}, {"s": "A"}, {"s": "aaab"}, {"s": "baaab"},
+		{"s": "BAaab"}, {"s": "B*"}, {"s": "X33+4"}, {"s": "a,b"},
+		{"s": "a|b"}, {"s": r"\it"},]
+
+	def make(self, ignored):
+		dd = testhelpers.getTestRD().getById("viziertest")
+		d = rsc.makeData(dd, forceSource=self._testData)
+		return d.getPrimaryTable()
+	
+	def clean(self, res):
+		res.close()
+
+
+_viztestTable = _ViztestTable()
+
+
+class StringQueryTest(testhelpers.VerboseTest):
 	"""Tests for string vizier-expressions in a database.
 	"""
-	def setUp(self):
-		dd = testhelpers.getTestRD().getById("viziertest")
-		self.data = rsc.makeData(dd, forceSource=[{"s": ""},
-			{"s": "a"}, {"s": "A"}, {"s": "aaab"}, {"s": "baaab"},
-			{"s": "BAaab"}, {"s": "B*"}, {"s": "X33+4"}, {"s": "a,b"},
-			{"s": "a|b"}, {"s": r"\it"},])
-		self.tableName = self.data.tables["vizierstrings"].tableDef.getQName()
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
-	def tearDown(self):
-		return
-		self.data.dropTables().commitAll().closeAll()
+	resources = [("testTable", _viztestTable)]
+	ik = base.makeStruct(inputdef.InputKey, name="s", type="vexpr-string")
 
-	def _runCountTests(self, tests):
-		querier = base.SimpleQuerier()
-		ik = base.makeStruct(inputdef.InputKey, name="s", type="vexpr-string")
-		try:
-			for vExpr, numberExpected in tests:
-				pars = {}
-				query = "SELECT * FROM %s WHERE %s"%(self.tableName,
-					vizierexprs.getSQL(ik, {"s": vExpr}, pars))
-				res = querier.query(query, pars).fetchall()
-				self.assertEqual(len(res), numberExpected,
-					"Query %s from %r with parameters %s didn't yield exactly"
-						" %d result(s).\nResult is %s."%(
-						query, vExpr, pars, numberExpected, res))
-		finally:
-			querier.close()
-
-	def testExactMatches(self):
-		self._runCountTests([
+	samples = [
+#0
 			("a", 1),
 			("== a", 1),
 			("!= a", 10),
 			("== ", 1),
-			("<a", 1),
-			("<A", 2),
-			("<=A", 3),
-			("<=b", 6),
-			("<b", 6),
-			(">b", 5),
+			("<a", 6),
+#5
+			("<A", 1),
+			("<=A", 2),
+			("<=b", 10),
+			("<b", 10),
+			(">b", 1),
+#10
 			("== \it", 1),
 			("== B*", 1),
 			("=~ a", 2),
 			("=~ x33+4", 1),
 			("=, a,b,a|b", 2),
+#15
 			("=| a,b,a|b", 0),
 			("=| a,b|b", 1),
-		])
-	
-	def testPatternMatches(self):
-		self._runCountTests([
 			("= a", 1),
 			("~ a", 2),
 			("~ a", 2),
+#20
 			("~ X*", 1),
 			("~ a*", 5),
 			("=*a*", 6),
 			("~*+*", 1),
 			("~*|*", 1),
+#25
 			("~\*", 1),
 			("!\*", 10),
 			("~B*", 3),
 			("= B*", 2),
 			("~B?", 1),
+#30
 			("!B?", 10),
 			("! *a*", 5),
 			("!~*a*", 4),
-		])
+		]
+
+	def _runTest(self, sample):
+		expr, numberExpected = sample
+		pars = {}
+		query = "SELECT * FROM %s WHERE %s"%(self.testTable.tableDef.getQName(),
+			vizierexprs.getSQL(self.ik, {"s": expr}, pars))
+		res = self.testTable.query(query, pars).fetchall()
+		self.assertEqual(len(res), numberExpected,
+			"Query %s from %r with parameters %s didn't yield exactly"
+				" %d result(s).\nResult is %s."%(
+				query, expr, pars, numberExpected, res))
 
 
 class MatchMatrixTest(unittest.TestCase):
@@ -446,10 +454,10 @@ class MatchMatrixTest(unittest.TestCase):
 		("~?4p",    F,     F,      F,     T,     T,     F,    F,     F,     F),
 		("~[MO]4[pe]", T,  F,      T,     F,     T,     F,    F,     F,     F),
 		("=[MO]4[pe]", T,  F,      F,     F,     T,     F,    F,     F,     F),
-		(">O",      F,     F,      F,     F,     T,     F,    F,     T,     T),
-		(">O5",     F,     F,      F,     F,     F,     F,    F,     T,     T),
-		(">=m",     T,     T,      T,     F,     T,     T,    T,     T,     T),
-		("<m",      F,     F,      F,     T,     F,     F,    F,     F,     F),
+		(">O",      F,     F,      T,     F,     T,     F,    T,     T,     F),
+		(">O5",     F,     F,      T,     F,     F,     F,    T,     T,     F),
+		(">=m",     F,     F,      T,     F,     F,     F,    T,     T,     F),
+		("<M",      F,     F,      F,     T,     F,     F,    F,     F,     T),
 		("=|M4e| O4p| x,a", T, F,  F,     F,     T,     F,    F,     T,     F),
 		("=,x,a,=x,m|a", F, F,     F,     F,     F,     F,    T,     F,     T),
 	]

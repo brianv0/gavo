@@ -21,6 +21,7 @@ import psycopg2
 import psycopg2.extras
 import psycopg2.extensions
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
 from psycopg2.extras import DictCursor
 
@@ -151,6 +152,7 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 		_initPsycopg(conn)
 	if autocommitted:
 		conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+	conn.set_client_encoding("UTF8")
 	return conn
 
 

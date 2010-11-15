@@ -219,7 +219,7 @@ def parseAssignments(assignments):
 
 
 @codetricks.document
-def hmsToDeg(hms, sepChar=" "):
+def hmsToDeg(hms, sepChar=None):
 	"""returns the time angle (h m s.decimals) as a float in degrees.
 
 	>>> "%3.8f"%hmsToDeg("22 23 23.3")
@@ -230,7 +230,7 @@ def hmsToDeg(hms, sepChar=" "):
 	'335.84708333'
 	>>> hmsToDeg("junk")
 	Traceback (most recent call last):
-	ValueError: Invalid time with sepchar ' ': 'junk'
+	ValueError: Invalid time with sepchar None: 'junk'
 	"""
 	hms = hms.strip()
 	try:
@@ -253,7 +253,7 @@ def hmsToDeg(hms, sepChar=" "):
 
 
 @codetricks.document
-def dmsToDeg(dmsAngle, sepChar=" "):
+def dmsToDeg(dmsAngle, sepChar=None):
 	"""returns the degree minutes seconds-specified dmsAngle as a 
 	float in degrees.
 
@@ -265,7 +265,7 @@ def dmsToDeg(dmsAngle, sepChar=" "):
 	'-45.50211111'
 	>>> dmsToDeg("junk")
 	Traceback (most recent call last):
-	ValueError: Invalid dms declination with sepchar ' ': 'junk'
+	ValueError: Invalid dms declination with sepchar None: 'junk'
 	"""
 	dmsAngle = dmsAngle.strip()
 	sign = 1

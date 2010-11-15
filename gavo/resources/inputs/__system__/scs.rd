@@ -177,6 +177,8 @@
 		<phraseMaker id="scsUtils">
 			<setup id="scsSetup">
 				<code>
+					from gavo.protocols import simbadinterface
+
 					def getRADec(inPars, sqlPars):
 						"""tries to guess coordinates from inPars.
 

@@ -188,7 +188,5 @@ class OriginalTest(testhelpers.VerboseTest):
 		self.failUnless("genQuery", core.condDescs[0].phraseMaker.getSetupCode())
 
 
-# Test mixing for setups here?  I don't think so, it's rather cranky anyway.
-
 if __name__=="__main__":
 	testhelpers.main(OriginalTest)

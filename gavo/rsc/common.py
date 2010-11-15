@@ -5,18 +5,14 @@ Helpers for resource creation.
 from gavo import base
 
 
-class ResourceError(base.Error):
-	pass
-
-
-class DbTableError(ResourceError):
+class DBTableError(base.Error):
 	"""is raised when a manipulation of an on-disk table fails.
 
 	It always has a qName attribute containing the qualified name of
 	the table causing the trouble.
 	"""
-	def __init__(self, msg, qName):
-		ResourceError.__init__(self, msg)
+	def __init__(self, msg, qName, hint=None):
+		base.Error.__init__(self, msg, hint=hint)
 		self.qName = qName
 		self.args = [msg, qName]
 

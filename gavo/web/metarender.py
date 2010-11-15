@@ -219,9 +219,9 @@ class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 	def render_notebubble(self, ctx, data):
 		if not data["note"]:
 			return ""
-		id = self.getOrMakeIdFor(data["note"])
+		id = data["note"].tag
 		self.footnotes.add(data["note"])
-		return ctx.tag(href="#%s"%id)["Note %s"%data["note"].tag]
+		return ctx.tag(href="#note-%s"%id)["Note %s"%id]
 
 	def render_footnotes(self, ctx, data):
 		"""renders the footnotes as a definition list.

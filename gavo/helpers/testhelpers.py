@@ -25,8 +25,8 @@ from gavo.imp.testresources import TestResource
 
 # Here's the deal on TestResource: When setting up complicated stuff for
 # tests (like, a DB table), define a TestResource for it.  Override
-# the make() method returning something and the clean() method to destroy
-# whatever you created in make().
+# the make(dependents) method returning something and the clean(res) 
+# method to destroy whatever you created in make().
 #
 # Then, in VerboseTests, have a class attribute
 # resource = [(name1, res1), (name2, res2)]

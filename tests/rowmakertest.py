@@ -207,8 +207,29 @@ class ApplyTest(testhelpers.VerboseTest):
 			' <code>result["ct"] = len(targetTable)\n</code>'
 			'</apply>')
 		res = rsc.makeData(dd, forceSource=[{}, {}, {}])
-		self.assertEqual(res.getPrimaryTable().rows, [{'ct': 0}, {'ct': 1}, {'ct': 2}])
+		self.assertEqual(res.getPrimaryTable().rows, 
+			[{'ct': 0}, {'ct': 1}, {'ct': 2}])
 
+	def _testVariablesAvailable(self):
+# It would be nice if things could work like this -- but this would
+# mean executing "late setup" code in the rowmaker and making late
+# pars actual arguments.  This is a step I'm not yet prepared to make
+# (and that has problems of its own: late pars would no longer have
+# access to the parameters of the function).
+		# test that grammar variables are available in proc setups.
+		rmkdef = base.parseFromString(rscdef.RowmakerDef, """<rowmaker>
+				<apply>	
+					<setup>
+						<par key="foo" late="True">xzzx+"h"</par>
+					</setup>
+					<code>
+						result["norks"] = foo
+					</code>
+				</apply>
+			</rowmaker>""")
+		tab = rsc.TableForDef(base.makeStruct(rscdef.TableDef, columns=[]))
+		rmk = rmkdef.compileForTable(tab)
+		self.assertEqual(rmk({"xzzx": "u"})["norks"], "uh")
 
 class VarTest(testhelpers.VerboseTest):
 	"""tests for rowmaker variables.
@@ -297,5 +318,7 @@ class IgnoreOnTest(testhelpers.VerboseTest):
 		self.assertEqual(table.rows, [{'si':2.}])
 
 
+
+
 if __name__=="__main__":
-	testhelpers.main(RowmakerMapTest)
+	testhelpers.main(ApplyTest)
