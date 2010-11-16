@@ -250,16 +250,6 @@ def _simbadMapperFactory(colDesc):
 _registerHTMLMF(_simbadMapperFactory)
 
 
-def _feedbackSelectMapperFactory(colDesc):
-	if colDesc["displayHint"].get("type")!="feedbackSelect":
-		return
-	def coder(data):
-		return T.input(type="checkbox", name="feedbackSelect", 
-			value=data)
-	return coder
-_registerHTMLMF(_feedbackSelectMapperFactory)
-
-
 def _bibcodeMapperFactory(colDesc):
 	if colDesc["displayHint"].get("type")!="bibcode":
 		return
@@ -461,13 +451,6 @@ class HTMLDataRenderer(rend.Fragment):
 	def data_fielddefs(self, ctx, data):
 		return self.table.tableDef.columns
 
-	def render_iffeedback(self, ctx, data):
-		fields = self.table.tableDef.columns
-		if fields and fields[0].name=="feedbackSelect":
-			return ctx.tag
-		else:
-			return ""
-
 	def render_meta(self, ctx, data):
 		metaKey = ctx.tag.children[0]
 		if self.table.getMeta(metaKey, propagate=False):
@@ -487,7 +470,7 @@ class HTMLTableFragment(HTMLDataRenderer):
 	def data_table(self, ctx, data):
 		return self.table
 
-	docFactory = loaders.stan(T.form(action="feedback", method="post")[
+	docFactory = loaders.stan(T.form(action="form", method="post")[
 		T.div(render=T.directive("meta"), class_="warning")["_warning"],
 		T.table(class_="results", render=rend.sequence,
 					data=T.directive("table")) [
@@ -536,8 +519,6 @@ class HTMLTableFragment(HTMLDataRenderer):
 				T.invisible(pattern="divider"),
 				T.invisible(pattern="divider", render=T.directive("headCells")),
 			],
-			T.input(type="submit", value="Feedback Selected",
-				render=T.directive("iffeedback")),
 			T.invisible(render=T.directive("footnotes")),
 		]
 	)

@@ -105,7 +105,7 @@ class InputKey(rscdef.Column):
 
 	@classmethod
 	def fromColumn(cls, column, **kwargs):
-		"""returns an InputKey for query input to dataField
+		"""returns an InputKey for query input to column.
 		"""
 		instance = cls(None)
 		instance.feedObject("original", column)

@@ -1,7 +1,5 @@
 """
 The form renderer is the standard renderer for web-facing services.
-
-This module also contains a companion renderer that runs feedback queries.
 """
 
 
@@ -90,44 +88,3 @@ class Form(grend.FormMixin,
 		return grend.ServiceBasedPage.renderHTTP(self, ctx)
 
 	defaultDocFactory = svcs.loadSystemTemplate("defaultresponse.html")
-
-
-class FeedbackForm(Form):
-	"""is a page that renders a form with vexprs filled in of a feedback 
-	query.
-
-	Basically, you give items in feedbackSelect arguments which
-	are directly parsed into a DataSet's columns.  With these, a
-	FeedbackCore is directly called (i.e., not through the service,
-	since that would expect very different arguments).
-
-	The FeedbackCore returns a data set that only has a document
-	row containing vizier expressions for the ranges of the input
-	parameter of the data set given in the feedbackSelect items.
-
-	Only then is the real Form processing started.	I'll admit this
-	is a funky renderer.
-
-	This only works on DbBasedCores (and doesn't make sense otherwise).
-	"""
-	def renderHTTP(self, ctx):
-		request = inevow.IRequest(ctx)
-		# If no feedbackSelect is present, it's the feedback search or
-		# the user has not selected feedback items
-		if not "feedbackSelect" in request.args:
-			return Form(ctx, self.service)
-		# Make a feedback service on the service unless one exists.
-		if not hasattr(self.service, "feedbackService"):
-			self.service.feedbackService = svcs.FeedbackService.fromService(
-				self.service)
-		data = request.args
-		return self.runServiceWithContext(data, ctx
-			).addCallback(self._buildForm, request, ctx)
-
-	def processData(self, rawData, queryMeta):
-		inputData = self.service.feedbackService.makeDataFor(self, rawData)
-		return self.service.feedbackService.runWithData(inputData, queryMeta)
-
-	def _buildForm(self, feedbackExprs, request, ctx):
-		request.args = feedbackExprs.original
-		return Form(ctx, self.service)

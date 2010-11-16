@@ -366,9 +366,6 @@ class DBCore(TableBasedCore):
 		" match limit (suppresses DB options widget).", copyable=True)
 	_distinct = base.BooleanAttribute("distinct", description="Add a"
 		" 'distinct' modifier to the query?", default=False, copyable=True)
-	_feedbackColumn = base.UnicodeAttribute("feedbackColumn", description=
-		"Add this name to query to enable selection for feedback (this"
-		" basically only works for atomic primary keys).", copyable=True)
 	_groupBy = base.UnicodeAttribute("groupBy", description=
 		"A group by clause.  You shouldn't generally need this, and if"
 		" you use it, you must give an outputTable to your core.",
@@ -422,16 +419,6 @@ class DBCore(TableBasedCore):
 		fragment, pars = self._getSQLWhere(inputData, queryMeta)
 		queryMeta["sqlQueryPars"] = pars
 		return self._runQuery(resultTableDef, fragment, pars, queryMeta)
-
-
-def makeFeedbackColumn(cols, columnName):
-	ff = outputdef.OutputField.fromColumn(cols.getColumnByName(columnName))
-	ff.name = "feedbackSelect"
-	ff.select = columnName
-	ff.tablehead = "F"
-	ff.description = "Check to include row in feedback set"
-	ff.feed("displayHint", "type=feedbackSelect")
-	return ff
 
 
 class FixedQueryCore(core.Core, base.RestrictionMixin):

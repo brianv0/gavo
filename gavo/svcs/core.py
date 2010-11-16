@@ -25,7 +25,6 @@ CORE_REGISTRY = {
 	"registryCore": ("registry.oaiinter", "RegistryCore"),
 	"computedCore": ("svcs.computedcore", "ComputedCore"),
 	"customCore": ("svcs.customcore", "CustomCore"),
-	"feedback": ('svcs.feedback', "FeedbackCore"),
 	"fancyQueryCore": ("svcs.standardcores", "FancyQueryCore"),
 	"dbCore": ("svcs.standardcores", "DBCore"),
 	"fixedQueryCore": ("svcs.standardcores", "FixedQueryCore"),

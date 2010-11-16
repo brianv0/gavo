@@ -119,8 +119,6 @@ class ColumnList(list):
 	Also, two ColumnLists are considered equal if they contain the
 	same names.
 	"""
-	internallyUsedFields = set(["feedbackSelect"])
-
 	def __init__(self, *args):
 		list.__init__(self, *args)
 		self.nameIndex = dict([(c.name, ct) for ct, c in enumerate(self)])

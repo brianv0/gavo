@@ -25,8 +25,6 @@ from gavo.svcs.customwidgets import (DBOptions, FormalDict,
 	NumericExpressionField, DateExpressionField, StringExpressionField, 
 	ScalingTextArea)
 
-from gavo.svcs.feedback import FeedbackService
-
 from gavo.svcs.inputdef import InputKey, ContextGrammar, InputDescriptor
 
 from gavo.svcs.outputdef import OutputField, OutputTableDef

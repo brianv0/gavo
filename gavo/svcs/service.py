@@ -488,11 +488,6 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		requireSet = queryMeta["columnSet"]
 		res = rscdef.ColumnList()
 
-		# prepare for feedback queries if the core wants that
-		if isinstance(self.core, standardcores.DBCore) and self.core.feedbackColumn:
-			res.append(standardcores.makeFeedbackColumn(
-				self.core.queriedTable.columns, self.core.feedbackColumn))
-
 		# add "normal" output fields
 		if requireSet:
 			res.extend([f for f in self.outputTable
