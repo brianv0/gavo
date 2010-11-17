@@ -320,6 +320,10 @@ def trialMain(testClass):
 	
 
 def main(testClass, methodPrefix=None):
+	from gavo import base
+	base.DEBUG = True
+	from gavo.user import logui
+	logui.LoggingUI(base.ui)
 	if len(sys.argv)>2:
 		testClass = inspect.stack()[1][0].f_globals[sys.argv[-2]]
 	if len(sys.argv)>1:

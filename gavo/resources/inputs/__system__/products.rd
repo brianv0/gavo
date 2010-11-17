@@ -38,7 +38,7 @@ machinery -->
 	<rowmaker id="productsMaker">
  		<map dest="accref" src="prodtblAccref"/>
 		<map dest="owner" src="prodtblOwner"/>
-		<map dest="embargo">prodtblEmbargo</map>
+		<map dest="embargo" src="prodtblEmbargo"/>
 		<map dest="accessPath" src="prodtblPath"/>
 		<map dest="sourceTable" src="prodtblTable"/>
 		<map dest="mime" src="prodtblMime"/>
@@ -208,7 +208,7 @@ machinery -->
 		<!-- core used for the product delivery service -->
 		<inputDD>
 			<rowmaker id="build_input">
-				<map dest="accref">accref</map>
+				<map dest="accref"/>
 			</rowmaker>
 			<make table="pCoreInput" rowmaker="build_input" role="parameters"/>
 		</inputDD>
@@ -225,7 +225,7 @@ machinery -->
 		producttar uses an inputDD of its own here. -->
 		<inputDD>
 			<rowmaker id="build_forTar">
-				<map dest="accref">accref</map>
+				<map dest="accref"/>
 			</rowmaker>
 			<make table="pCoreInput" role="primary"/>
 		</inputDD>

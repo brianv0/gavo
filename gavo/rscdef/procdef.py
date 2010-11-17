@@ -30,7 +30,7 @@ class RDParameter(base.Structure):
 
 	def validate(self):
 		self._validateNext(RDParameter)
-		if not common.identifierPat.match(self.key):
+		if not utils.identifierPattern.match(self.key):
 			raise base.LiteralParseError("key", self.key, hint=
 				"The key you supplied was not defined by any procedure definition.")
 
@@ -48,7 +48,8 @@ class ProcPar(RDParameter):
 		self._validateNext(ProcPar)
 		# Allow non-python syntax when things look like macro calls.
 		if self.content_ and not "\\" in self.content_:
-			utils.ensureExpression(self.content_, self.key)
+			utils.ensureExpression(
+				common.replaceRMKAt(self.content_), self.key)
 
 
 class Binding(ProcPar):

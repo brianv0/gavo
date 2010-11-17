@@ -64,7 +64,7 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 	"""
 	def testBasicCode(self):
 		dd, td = makeDD('<column name="x" type="integer"/>',
-			'<map dest="x">int(src)</map>')
+			'<map dest="x">int(vars["src"])</map>')
 		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({'src': '15'})['x'], 15)
 
@@ -74,18 +74,25 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({'src': '15'})['x'], 15)
 
+	def testBadBasicMap(self):
+		self.assertRaisesWithMsg(base.LiteralParseError,
+			"At (1, 109): '@src' is not a valid value for src",
+			makeDD, ('<column name="x" type="integer"/>',
+			'<map dest="x" src="@src"/>'))
+
 	def testWithDefault(self):
 		dd, td = makeDD('<column name="x" type="integer"><values default="18"/>'
-			'</column>', '<map dest="x">int(x)</map>')
+			'</column>', '<map dest="x">int(@x)</map>')
 		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({})['x'], 18)
 
 	def testMessages(self):
 		dd, td = makeDD('<column name="x" type="integer"/>',
-			'<map dest="x">int(src)</map>')
+			'<map dest="x">int(@src)</map>')
 		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertRaisesWithMsg(base.ValidationError,
-			"While building x in _foo: name 'src' is not defined",
+			"While building x in _foo: Key 'src' not found in a mapping;"
+			" probably the grammar did not yield the required field",
 			mapper, ({}, ))
 		self.assertRaisesWithMsg(base.ValidationError,
 			"While building x in _foo: invalid literal for int()"
@@ -96,8 +103,8 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 		dd, td = makeDD('<column name="x" type="integer"/>'
 			'<column name="y" type="text"/>',
 			'<map dest="y">("foobar"+\n'
-			'src.decode("utf-8"))\n</map>'
-			'<map dest="x">int(\nsrc\n)</map>')
+			'@src.decode("utf-8"))\n</map>'
+			'<map dest="x">int(\n@src\n)</map>')
 		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({"src": '-20'}), {"x": -20, "y": 'foobar-20'})
 		self.assertRaisesWithMsg(base.ValidationError,
@@ -146,14 +153,15 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 
 	def testIdmapsDontOverwrite(self):
 		dd, td = makeDD('<column name="foo"/><column name="bar"/>',
-			'<map dest="foo">float(foo)/2</map><idmaps>*</idmaps>')
+			'<map dest="foo">float(@foo)/2</map><idmaps>*</idmaps>')
 		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({'foo': 2, 'bar': 2}),
 			{'foo': 1, 'bar':2})
 
 	def testIdmapsAndNull(self):
 		dd, td = makeDD('<column name="foo" type="text"/>',
-			'<map dest="foo">parseWithNull(foo, str, "None")</map><idmaps>*</idmaps>')
+			'<map dest="foo">parseWithNull(@foo, str, "None")</map>'
+			'<idmaps>*</idmaps>')
 		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({'foo': "None"}), {'foo': None})
 		self.assertEqual(mapper({'foo': "123"}), {'foo': "123"})
@@ -210,17 +218,11 @@ class ApplyTest(testhelpers.VerboseTest):
 		self.assertEqual(res.getPrimaryTable().rows, 
 			[{'ct': 0}, {'ct': 1}, {'ct': 2}])
 
-	def _testVariablesAvailable(self):
-# It would be nice if things could work like this -- but this would
-# mean executing "late setup" code in the rowmaker and making late
-# pars actual arguments.  This is a step I'm not yet prepared to make
-# (and that has problems of its own: late pars would no longer have
-# access to the parameters of the function).
-		# test that grammar variables are available in proc setups.
+	def testVariablesAvailable(self):
 		rmkdef = base.parseFromString(rscdef.RowmakerDef, """<rowmaker>
 				<apply>	
 					<setup>
-						<par key="foo" late="True">xzzx+"h"</par>
+						<par key="foo" late="True">@xzzx+"h"</par>
 					</setup>
 					<code>
 						result["norks"] = foo
@@ -230,6 +232,7 @@ class ApplyTest(testhelpers.VerboseTest):
 		tab = rsc.TableForDef(base.makeStruct(rscdef.TableDef, columns=[]))
 		rmk = rmkdef.compileForTable(tab)
 		self.assertEqual(rmk({"xzzx": "u"})["norks"], "uh")
+
 
 class VarTest(testhelpers.VerboseTest):
 	"""tests for rowmaker variables.
@@ -247,8 +250,8 @@ class VarTest(testhelpers.VerboseTest):
 	def testBasic(self):
 		dd, td = makeDD('  <column name="si" type="smallint"/>',
 			'  <var name="x">28</var>'
-			'  <var name="y">29+x</var>'
-			'  <map dest="si">y</map>')
+			'  <var name="y">29+@x</var>'
+			'  <map dest="si">@y</map>')
 		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertEqual(mapper({}), {'si': 57})
 
@@ -256,14 +259,14 @@ class VarTest(testhelpers.VerboseTest):
 class PredefinedTest(testhelpers.VerboseTest):
 	"""tests for procedures from //procs.
 	"""
-	def testSimbad(self):
+	def testSimbadOk(self):
 		dd, td = makeDD('  <column name="alpha" type="real"/>'
 			'  <column name="delta" type="real"/>',
 			'  <apply procDef="//procs#resolveObject">'
 			'		<bind key="identifier">vars["src"]</bind>'
 			'	</apply>'
-			' <map dest="alpha">simbadAlpha</map>'
-			' <map dest="delta">simbadDelta</map>')
+			' <map dest="alpha">@simbadAlpha</map>'
+			' <map dest="delta">@simbadDelta</map>')
 		res = rsc.makeData(dd, forceSource=[{'src': "Aldebaran"}])
 		row = res.getPrimaryTable().rows[0]
 		self.assertEqual(str(row["alpha"])[:6], "68.980")
@@ -316,8 +319,6 @@ class IgnoreOnTest(testhelpers.VerboseTest):
 		table = rsc.makeData(dd, forceSource=[{'si':1}, {'si':2, 'y':"yes"},
 			{'si': 3}]).getPrimaryTable()
 		self.assertEqual(table.rows, [{'si':2.}])
-
-
 
 
 if __name__=="__main__":

@@ -78,8 +78,13 @@ class MapRule(base.Structure):
 		if (self.content_ and self.src) or not (self.content_ or self.src):
 			raise base.StructureError("Map must have exactly one of src attribute"
 				" or element content")
+		if self.src:
+			if not utils.identifierPattern.match(self.src):
+				raise base.LiteralParseError("src", self.src,
+					hint="Map sources must be (python)"
+					" identifiers, and '%s' is not"%self.src)
 		if self.content_:
-			utils.ensureExpression(self.content_, self.name_)
+			utils.ensureExpression(common.replaceRMKAt(self.content_), self.name_)
 		if self.nullExcs is not base.NotGiven:
 			utils.ensureExpression(self.nullExcs, "%s.nullExcs"%(self.name_))
 
@@ -88,22 +93,22 @@ class MapRule(base.Structure):
 		"""
 		code = []
 		if self.content_:
-			code.append('_result["%s"] = %s'%(self.dest, self.content_))
+			code.append('result["%s"] = %s'%(self.dest, self.content_))
 		else:
 			colDef = tableDef.getColumnByName(self.dest)
 			if colDef.values and colDef.values.nullLiteral is not None:
-				code.append("if %s=='%s':\n  _result['%s'] = None\nelse:"%(self.src,
+				code.append("if %s=='%s':\n  result['%s'] = None\nelse:"%(self.src,
 					colDef.values.nullLiteral, self.dest))
 			try:
-				code.append('_result["%s"] = %s'%(self.dest, 
-					base.sqltypeToPythonCode(colDef.type)%self.src))
+				code.append('result["%s"] = %s'%(self.dest, 
+					base.sqltypeToPythonCode(colDef.type)%'vars["%s"]'%self.src))
 			except base.ConversionError:
 				raise base.ui.logOldExc(base.LiteralParseError("map", colDef.type,
 					hint="Auto-mapping to %s is impossible since"
 					" no default map for %s is known"%(self.dest, colDef.type)))
 		code = "".join(code)
 		if self.nullExcs is not base.NotGiven:
-			code = 'try:\n%s\nexcept (%s): _result["%s"] = None'%(
+			code = 'try:\n%s\nexcept (%s): result["%s"] = None'%(
 				re.sub("(?m)^", "  ", code), self.nullExcs, self.dest)
 		return code
 
@@ -134,14 +139,14 @@ class VarDef(base.Structure, base.RestrictionMixin):
 		"""
 		self._validateNext(VarDef)
 		if self.content_:
-			utils.ensureExpression(self.content_, self.name_)
-		if not common.identifierPat.match(self.name):
+			utils.ensureExpression(common.replaceRMKAt(self.content_), self.name_)
+		if not utils.identifierPattern.match(self.name):
 			raise base.LiteralParseError("name", self.name,
 				hint="Var names must be valid python"
 				" identifiers, and '%s' is not"%self.name)
 
 	def getCode(self):
-		return "%s = %s"%(self.name, self.parent.expand(self.content_))
+		return 'vars["%s"] = %s'%(self.name, self.parent.expand(self.content_))
 
 
 class ApplyDef(procdef.ProcApp):
@@ -164,6 +169,9 @@ class ApplyDef(procdef.ProcApp):
 	name_ = "apply"
 	requiredType = "apply"
 	formalArgs = "vars, result, targetTable"
+	
+	def getFuncCode(self):
+		return common.replaceRMKAt(procdef.ProcApp.getFuncCode(self))
 
 
 class RowmakerMacroMixin(base.StandardMacroMixin):
@@ -176,7 +184,7 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 		"""returns an expression giving the current source's path 
 		relative to inputsDir
 		"""
-		return ('utils.getRelativePath(parser_.sourceToken,'
+		return ('utils.getRelativePath(vars["parser_"].sourceToken,'
 			' base.getConfig("inputsDir"))')
 	
 	def macro_rowsProcessed(self):
@@ -193,31 +201,32 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 	def macro_sourceDate(self):
 		"""returns an expression giving the timestamp of the current source.
 		"""
-		return 'datetime.utcfromtimestamp(os.path.getmtime(parser_.sourceToken))'
+		return ('datetime.utcfromtimestamp('
+			'os.path.getmtime(vars["parser_"].sourceToken))')
 		
 	def macro_srcstem(self):
 		"""returns the stem of the source file currently parsed.
 		
 		Example: if you're currently parsing /tmp/foo.bar, the stem is foo.
 		"""
-		return 'os.path.splitext(os.path.basename(parser_.sourceToken))[0]'
+		return 'os.path.splitext(os.path.basename(vars["parser_"].sourceToken))[0]'
 
 	def macro_lastSourceElements(self, numElements):
 		"""returns an expression calling rmkfuncs.lastSourceElements on
 		the current input path.
 		"""
-		return 'lastSourceElements(parser_.sourceToken, int(numElements))'
+		return 'lastSourceElements(vars["parser_"].sourceToken, int(numElements))'
 
 	def macro_rootlessPath(self):
 		"""returns an expression giving the current source's path with 
 		the resource descriptor's root removed.
 		"""
-		return 'utils.getRelativePath(rd_.resdir, parser_.sourceToken)'
+		return 'utils.getRelativePath(rd_.resdir, vars["parser_"].sourceToken)'
 
 	def macro_inputSize(self):
 		"""returns an expression giving the size of the current source.
 		"""
-		return 'os.path.getsize(parser_.sourceToken)'
+		return 'os.path.getsize(vars["parser_"].sourceToken)'
 
 	def macro_docField(self, name):
 		"""returns an expression giving the value of the column name in the 
@@ -241,6 +250,12 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 	RowmakerDefs double as macro packages for the expansion of various
 	macros.  The standard macros will need to be quoted, the rowmaker macros
 	above yield python expressions.
+
+	Within map and var bodies as well as late apply pars and apply bodies, 
+	you can refer to the grammar input as vars["name"] or, shorter @name.
+
+	To add output keys, use map or, in apply bodies, add keys to the
+	result dictionary.
 	"""
 	name_ = "rowmaker"
 
@@ -285,7 +300,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		contextgrammar.
 		"""
 		return base.makeStruct(cls, maps=[
-				base.makeStruct(MapRule, dest=c.name, content_=c.name)
+				base.makeStruct(MapRule, dest=c.name, content_="vars[%s]"%repr(c.name))
 					for c in table],
 			**kwargs)
 
@@ -295,7 +310,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 				nullExcs = base.NotGiven
 				if v.startswith("@"):
 					v = v[1:]
-					nullExcs = "NameError,"
+					nullExcs = "KeyError,"
 				self.feedObject("maps", base.makeStruct(MapRule, 
 					dest=k, src=v, nullExcs=nullExcs))
 		self._completeElementNext(RowmakerDef)
@@ -303,9 +318,8 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 	def _getSource(self, tableDef):
 		"""returns the source code for a mapper to a tableDef-defined table.
 		"""
-		lineMap = {}
-		source = ['_result = {}']
-		line = 1
+		lineMap, line = {}, 0
+		source = []
 
 		def appendToSource(srcLine, line, lineMarker):
 			source.append(srcLine)
@@ -315,13 +329,14 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 			return line
 
 		if self.ignoreOn:
-			line = appendToSource("if checkTrigger(rowdict_):\n"
-				"  raise IgnoreThisRow(rowdict_)",
+			line = appendToSource("if checkTrigger(vars):\n"
+				"  raise IgnoreThisRow(vars)",
 				line, "Checking ignore")
 		for v in self.vars:
 			line = appendToSource(v.getCode(), line, "assigning "+v.name)
 		for a in self.apps:
-			line = appendToSource("%s(rowdict_, _result, targetTable_)"%a.name,
+			line = appendToSource(
+				"%s(vars, result, targetTable)"%a.name, 
 				line, "executing "+a.name)
 		for m in self.maps:
 			line = appendToSource(m.getCode(tableDef), line, "building "+m.dest)
@@ -391,8 +406,9 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		rmk = self._buildForTable(tableDef)
 		source, lineMap = rmk._getSource(tableDef)
 		globals = rmk._getGlobals(tableDef)
-		globals["targetTable_"] = table
-		return Rowmaker(source, self.id, globals, tableDef.getDefaults(), lineMap)
+		globals["targetTable"] = table
+		return Rowmaker(common.replaceRMKAt(source), 
+			self.id, globals, tableDef.getDefaults(), lineMap)
 
 	def copyShallowly(self):
 		return base.makeStruct(self.__class__, maps=self.maps[:], 
@@ -456,13 +472,6 @@ class Rowmaker(object):
 		base.ui.notifyInfo("Rowmaker failed.  Exception below.  Failing source"
 			" is:\n%s"%self.source)
 		destName = self._guessExSourceName(tb)
-		try:
-			if "_result" in rowdict: del rowdict["_result"]
-			if "parser_" in rowdict: del rowdict["parser_"]
-			if "rowdict_" in rowdict: del rowdict["rowdict_"]
-		except TypeError:
-			base.ui.notifyError("Internal failure in parse code:\n")
-			rowdict = {"error": "Rowdict was no dictionary"}
 		if isinstance(ex, KeyError):
 			msg = ("Key %s not found in a mapping; probably the grammar"
 				" did not yield the required field"%unicode(ex))
@@ -476,12 +485,15 @@ class Rowmaker(object):
 			missingKeys = self.keySet-set(vars)
 			for k in missingKeys:
 				vars[k] = self.defaults[k]
-			vars["rowdict_"] = vars
-			exec self.code in self.globals, vars
-			return vars["_result"]
+			locals = {
+				"vars": vars,
+				"result": {},
+			}
+			exec self.code in self.globals, locals
+			return locals["result"]
 		except rmkfuncs.IgnoreThisRow: # pass these on
 			raise
 		except base.ValidationError:   # hopefully downstream knows better than we
 			raise
 		except Exception, ex:
-			self._guessError(ex, vars, sys.exc_info()[2])
+			self._guessError(ex, locals["vars"], sys.exc_info()[2])

@@ -20,10 +20,10 @@
 		</dictlistGrammar>
 		<rowmaker id="st_siaptable">
 			<apply procDef="//siap#setMeta">
-				<bind key="title">vars["imageTitle"]</bind>
-				<bind key="instrument">vars["instId"]</bind>
-				<bind key="dateObs">vars["dateObs"]</bind>
-				<bind key="bandpassId">vars["bandpassId"]</bind>
+				<bind key="title">@imageTitle</bind>
+				<bind key="instrument">@instId</bind>
+				<bind key="dateObs">@dateObs</bind>
+				<bind key="bandpassId">@bandpassId</bind>
 			</apply>
 		</rowmaker>
 	</data>
@@ -136,10 +136,11 @@
 
 	<data id="boxTest">
 	 	<dictlistGrammar/>
-		<rowmaker id="bT_misctypes">
-			<map dest="box">box</map>
-		</rowmaker>
-		<make table="misctypes" rowmaker="bT_misctypes"/>
+		<make table="misctypes">
+			<rowmaker id="bT_misctypes">
+				<map dest="box">@box</map>
+			</rowmaker>
+		</make>
 	</data>
 
 
@@ -188,7 +189,7 @@
 		</dictlistGrammar>
 		<rowmaker id="eod_abcd">
 			<map dest="a"/>
-			<map dest="e">e</map>
+			<map dest="e">@e</map>
 		</rowmaker>
 		<make table="abcd" rowmaker="eod_abcd"/>
 	</data>
@@ -201,7 +202,7 @@
 			</rowfilter>
 		</dictlistGrammar>
 		<rowmaker id="eodd_abcd" idmaps="a">
-			<map dest="e">curTime</map>
+			<map dest="e">@curTime</map>
 		</rowmaker>
 		<make table="abcd" rowmaker="eodd_abcd"/>
 	</data>
@@ -241,8 +242,8 @@
 
 	<rowmaker id="prodrowbase">
 		<map dest="object"/>
-		<map dest="alpha" src="hmsToDeg(alpha, ' ')"/>
-		<map dest="delta" src="dmsToDeg(delta, ' ')"/>
+		<map dest="alpha">hmsToDeg(@alpha, ' ')</map>
+		<map dest="delta">dmsToDeg(@delta, ' ')</map>
 	</rowmaker>
 
 	<data id="productimport">
@@ -269,8 +270,9 @@
         <bind key="table">"test.prodtest"</bind>
 			</rowfilter>
 		</keyValueGrammar>
-		<rowmaker id="pid_rmk" original="prodrowbase"/>
-		<make table="prodtest" rowmaker="pid_rmk"/>
+		<make table="prodtest">
+			<rowmaker original="prodrowbase"/>
+		</make>
 	</data>
 
 	<table id="sqlscript" onDisk="True">
@@ -315,10 +317,9 @@
 			<reGrammar recordSep="&#10;" fieldSep="\s+">
 				<names>a,b,c,d,e</names>
 			</reGrammar>
-			<rowmaker id="acc_abcd">
-				<idmaps>a,b,c,d,e</idmaps>
-			</rowmaker>
-			<make table="abcd" rowmaker="acc_abcd"/>
+			<make table="abcd">
+				<rowmaker idmaps="a,b,c,d,e"/>
+			</make>
 		</data>
 	</computedCore>
 

@@ -68,13 +68,12 @@ def adaptTable(origTable, newColumns):
 	else: # we need to do work
 		rmk = rscdef.RowmakerDef(None)
 		for col in newColumns:
+			exprStart = ""
 			if col.name in colDiffs:
-				rmk.feedObject("map", rmkdef.MapRule(rmk, dest=col.name,
-					content_="%s*%s"%(colDiffs[col.name], col.name)
-					).finishElement())
-			else:
-				rmk.feedObject("map", rmkdef.MapRule(rmk, dest=col.name,
-					content_=col.name))
+				exprStart = "%s*"%colDiffs[col.name]
+			rmk.feedObject("map", rmkdef.MapRule(rmk, dest=col.name,
+				content_="%svars[%s]"%(exprStart, repr(col.name))
+				).finishElement())
 		newTable = table.InMemoryTable(newTd, validate=False)
 		mapper = rmk.finishElement().compileForTable(newTable)
 		for r in origTable:

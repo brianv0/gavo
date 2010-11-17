@@ -5,6 +5,7 @@ Common items used by resource definition objects.
 import re
 
 from gavo import base
+from gavo import utils
 
 
 class RDAttribute(base.AttributeDef):
@@ -278,4 +279,12 @@ class NamePathAttribute(base.AtomicAttribute):
 		return value
 
 
-identifierPat = re.compile("[A-Za-z_][A-Za-z_0-9]*$")
+_atPattern = re.compile("@(%s)"%utils.identifierPattern.pattern[:-1])
+
+def replaceRMKAt(src):
+	"""replaces @<identifier> with vars["<identifier>"] in src.
+
+	We do this to support this shortcut in the vicinity of rowmakers (i.e.,
+	there and in procApps).
+	"""
+	return _atPattern.sub(r'vars["\1"]', src)

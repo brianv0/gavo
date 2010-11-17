@@ -50,8 +50,9 @@ class REIterator(FileRowIterator):
 		if self.grammar.recordCleaner:
 			cleanMat = self.grammar.recordCleaner.match(inputLine)
 			if not cleanMat:
-				raise base.SourceParseError("'%s' does not match cleaner"%inputLine)
-			inputLine = " ".join(cleanMat.groups(), source=str(self.sourceToken))
+				raise base.SourceParseError("'%s' does not match cleaner"%inputLine,
+					source=str(self.sourceToken))
+			inputLine = " ".join(cleanMat.groups())
 		return dict(zip(self.grammar.names, self.grammar.fieldSep.split(
 			inputLine)))
 
