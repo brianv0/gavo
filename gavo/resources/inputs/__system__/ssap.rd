@@ -246,7 +246,7 @@
 			description="Spatial resolution of data"/>
 	</STREAM>
 
-	<procDef type="apply" id="setMeta" original="//products#define">
+	<procDef type="apply" id="setMeta">
 		<doc>
 			Sets metadata for an SSA data set, including its products definition.
 		</doc>
@@ -314,7 +314,7 @@
 	</procDef>
 
 	<mixinDef id="hcd">
-		<doc>
+		<doc><![CDATA[
 			This mixin is for "homogeneous" data collections, where homogeneous
 			means that all values in hcd_outpars are constant for all datasets
 			in the collection.  This is usually the case if they call come
@@ -322,7 +322,15 @@
 
 			Rowmakers for tables using this mixin should use the //ssap#setMeta
 			proc application.
-		</doc>
+
+			Do not forget to call the //products#define row filter in grammars
+			feeding tables mixing this in.  At the very least, you need to
+			say::
+
+				<rowfilter procDef="//products#define">
+					<bind name="table">"\schema.myName"</bind>
+				</rowfilter>
+		]]></doc>
 		<mixinPar key="timeSI" description="Time unit (WCS convention)"
 			>s</mixinPar>
 		<mixinPar key="fluxSI" description="Flux unit (WCS convention)"

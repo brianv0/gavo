@@ -46,8 +46,9 @@ Mixins
 
 Mixins ensure a certain functionality on a table.  Typically, this is
 used to provide certain guaranteed fields to particular cores.  For many
-mixins, there are predefined rowgens or procs that should be used in
-grammars and/or rowmakers feeding the tables mixing in a given mixin.
+mixins, there are predefined procedures (both rowmaker applys and
+grammar rowfilters) that should be used in grammars and/or rowmakers
+feeding the tables mixing in a given mixin.
 
 .. replaceWithResult getMixinDocs(docStructure)
 
@@ -530,7 +531,7 @@ So, a custom grammar module could look like this::
       for i in xrange(10000):
         yield {'index': i, 'square': i**2}
 
-Do not override magic methods, since you may lose rowgens, sourceFields,
+Do not override magic methods, since you may lose row filters, sourceFields,
 and the like if you do.  An exception is the constructor.  If you must,
 you can override it, but you must call the parent constructor, like
 this::
