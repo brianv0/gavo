@@ -118,8 +118,9 @@ class MapKeys(base.Structure):
 
 	_content = base.DataContent(description="Simple mappings in the form"
 		"<dest>:<src>{,<dest>:<src>}")
-	_mappings = base.DictAttribute("maps", keyName="src", description=
-		"Map src keys to name in content.", itemAttD=base.UnicodeAttribute("map"),
+	_mappings = base.DictAttribute("maps", keyName="dest", description=
+		"Map source names given in content to the name given in dest.", 
+		itemAttD=base.UnicodeAttribute("map"),
 		copyable=True)
 
 	def _parseShortenedMap(self, literal):

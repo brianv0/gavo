@@ -246,9 +246,9 @@
 			description="Spatial resolution of data"/>
 	</STREAM>
 
-	<procDef type="apply" id="setMeta">
+	<procDef type="apply" id="setMeta" original="//products#define">
 		<doc>
-			Sets metadata for SSAP.
+			Sets metadata for an SSA data set, including its products definition.
 		</doc>
 		<setup>
 			<par key="dstitle" late="True" description="a title for the data set
@@ -296,15 +296,16 @@
 				wavelength interval (in meters)">None</par>
 			<code>
 				copiedKWs = ['dstitle', 'creatorDID', 'pubDID', 'cdate', 
-					'pdate', 'bandpass', 'cversiontargname', 'targclass', 
+					'pdate', 'bandpass', 'cversion', 'targname', 'targclass', 
 					'redshift', 'snr', 'aperture', 'dateObs', 'timeExt', 
 					'specmid', 'specext', 'specstart', 'specend']
 			</code>
 		</setup>
 		<code>
 			# write to vars to give mappers a chance to convert
+			userPars = locals()
 			for kw in copiedKWs:
-				vars["ssa_"+kw] = vars[copiedKWs]
+				vars["ssa_"+kw] = userPars[kw]
 			alpha = parseFloat(alpha)
 			delta = parseFloat(alpha)
 			if alpha is not None and delta is not None:

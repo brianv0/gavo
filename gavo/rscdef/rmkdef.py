@@ -473,12 +473,19 @@ class Rowmaker(object):
 			" is:\n%s"%self.source)
 		destName = self._guessExSourceName(tb)
 		if isinstance(ex, KeyError):
-			msg = ("Key %s not found in a mapping; probably the grammar"
-				" did not yield the required field"%unicode(ex))
+			msg = "Key %s not found in a mapping."%unicode(ex)
+			hint = ("This probably means that your grammar did not yield the"
+				" field asked for.  Alternatively, bugs in procs might also"
+				" cause this.")
 		else:
 			msg = unicode(str(ex), "iso-8859-1", "replace")
+			hint = ("This is a failure in more-or-less user-provided code."
+				"  The source of the failing code should be in the log (but make"
+				" sure it's the source the error is reported for; with procs,"
+				" this might not be the case).")
 		raise base.ui.logOldExc(base.ValidationError("While %s in %s: %s"%(
-			destName, self.name, msg), destName.split()[-1], rowdict))
+			destName, self.name, msg), destName.split()[-1], rowdict,
+			hint=hint))
 
 	def __call__(self, vars):
 		try:

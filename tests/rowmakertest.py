@@ -91,8 +91,7 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 			'<map dest="x">int(@src)</map>')
 		mapper = dd.rowmakers[0].compileForTable(_FakeTable(td))
 		self.assertRaisesWithMsg(base.ValidationError,
-			"While building x in _foo: Key 'src' not found in a mapping;"
-			" probably the grammar did not yield the required field",
+			"While building x in _foo: Key 'src' not found in a mapping.",
 			mapper, ({}, ))
 		self.assertRaisesWithMsg(base.ValidationError,
 			"While building x in _foo: invalid literal for int()"
