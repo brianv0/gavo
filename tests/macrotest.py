@@ -4,6 +4,7 @@ Tests for the macro expansion machinery.
 
 from gavo import base
 from gavo import rscdef
+from gavo import rscdesc
 from gavo.helpers import testhelpers
 from gavo.base import macros
 
@@ -61,6 +62,26 @@ class ExpandedAttributeTest(testhelpers.VerboseTest):
 	"""tests for macro expansion in structure arguments.
 	"""
 
+
+class MacDefTest(testhelpers.VerboseTest):
+	def testExpansion(self):
+		res = base.parseFromString(rscdesc.RD, """<resource schema="test">
+			<macDef name="yx">x-panded</macDef></resource>""")
+		self.assertEqual(res.expand(r"\yx"), "x-panded")
+
+	def testMinLength(self):
+		self.assertRaisesWithMsg(base.StructureError, 
+			"At (2, 25): 'x' is not a valid value for name",
+			base.parseFromString,
+			(rscdesc.RD, """<resource schema="test">
+				<macDef name="x">gurk</macDef></resource>"""))
+
+	def testNoJunk(self):
+		self.assertRaisesWithMsg(base.StructureError, 
+			"At (2, 22): macDef elements have no column attributes or children.",
+			base.parseFromString,
+			(rscdesc.RD, """<resource schema="test">
+				<macDef name="yx"><column name="u"/></macDef></resource>"""))
 
 if __name__=="__main__":
 	testhelpers.main(NakedMacroTest)
