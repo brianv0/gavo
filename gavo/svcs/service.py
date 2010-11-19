@@ -312,6 +312,18 @@ class RegistryMetaMixin(object):
 		return "active"
 
 
+class CoreAttribute(base.ReferenceAttribute):
+	def __init__(self):
+		base.ReferenceAttribute.__init__(self, "core", 
+			description="The core that does the computations for this service."
+			"  Instead of a reference, you can use an immediate element"
+			" of some registred core.", 
+			forceType=core.Core, copyable=True, aliases=core.CORE_REGISTRY.keys())
+	
+	def _makeChild(self, name, parent):
+		return core.getCore(name)(parent)
+
+
 class Service(base.Structure, base.ComputedMetaMixin, 
 		base.StandardMacroMixin, RegistryMetaMixin):
 	"""A service definition.
@@ -321,9 +333,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	"""
 	name_ = "service"
 
-	_core = base.ReferenceAttribute("core", description="The core that"
-		" does the computations for this service.", forceType=core.Core,
-		copyable=True)
+	_core = CoreAttribute()
 	_templates = base.DictAttribute("templates", description="Custom"
 		' nevow templates for this service; use key "form" to replace the Form'
 		" renderer's standard template.  Start the path with two slashes to"

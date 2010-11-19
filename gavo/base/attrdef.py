@@ -59,26 +59,7 @@ import re
 from gavo import utils
 from gavo.utils import Undefined
 from gavo.base import literals
-from gavo.base.common import LiteralParseError, StructureError
-
-
-class NotGivenType(type):
-	def __str__(self):
-		raise StructureError("%s cannot be stringified"%self.__class__.__name__)
-
-	__unicode__ = __str__
-
-	def __repr__(self):
-		return "<Not given/empty>"
-
-	def __nonzero__(self):
-		return False
-
-
-class NotGiven(object):
-	"""A sentinel class for defaultless values that can remain undefined.
-	"""
-	__metaclass__ = NotGivenType
+from gavo.base.common import LiteralParseError, StructureError, NotGiven
 
 
 class Computed(object):

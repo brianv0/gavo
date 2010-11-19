@@ -31,6 +31,7 @@ CORE_REGISTRY = {
 	"nullCore": ("svcs.standardcores", "NullCore"),
 	"uploadCore": ("svcs.uploadcores", "UploadCore"),
 	"editCore": ("svcs.uploadcores", "EditCore"),
+	"ssapCore": ("protocols.ssap", "SSAPCore"),
 }
 
 

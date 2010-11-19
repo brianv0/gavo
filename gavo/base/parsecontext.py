@@ -181,31 +181,21 @@ class OriginalAttribute(attrdef.AtomicAttribute):
 class _ReferenceParser(common.Parser):
 	"""A helper class for the ReferenceAttribute.
 	"""
-	def __init__(self, refAttr, parent):
+	def __init__(self, refAttr, parent, baseName):
 		self.refAttr, self.parent = refAttr, parent
-		self.child = None
-
-	def _makeChild(self):
-		# creates an "immediate value" in case we're not passed a plain
-		# reference.  This will bomb unless the parent attribute says
-		# what kind of object the reference should point to.
-		if self.refAttr.forceType is None:
-			raise common.StructureError("Only references allowed for %s, but"
-				" an immediate object was found"%self.refAttr.name_, 
-				hint="This means that"
-				" you tried to replace a reference to an element with"
-				" the element itself.  This is only allowed if the reference"
-				" forces a type, which is not the case here.")
-		self.child = self.refAttr.forceType(self.parent)
+		self.child = common.NotGiven
+		self.baseName = baseName
 
 	def start_(self, ctx, name, value):
 		# start event: we have an immediate child.  Create it and feed this
 		# event to the newly created child.
-		self._makeChild()
+		self.child = self.refAttr._makeChild(name, self.parent)
 		return self.child.feedEvent(ctx, "start", name, value)
 	
 	def end_(self, ctx, name, value):
-		if self.child:
+		if self.child is common.NotGiven:  # empty element; make a child
+			self.child = self.refAttr._makeChild(self.baseName, self.parent)
+		if self.child is not None: # immediate child was given:
 			self.child.finishElement()
 			self.parent.feedObject(name, self.child)
 		return self.parent
@@ -215,11 +205,11 @@ class _ReferenceParser(common.Parser):
 		# attribute on a child of ours.
 		if name=="content_":
 			self.refAttr.feed(ctx, self.parent, value)
+			self.child = None
 			return self
 		else:
-			self._makeChild()
+			self.child = self.refAttr._makeChild(self.baseName, self.parent)
 			return self.child.feedEvent(ctx, "value", name, value)
-
 
 
 class ReferenceAttribute(attrdef.AtomicAttribute):
@@ -263,12 +253,27 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 			setattr(value, "unparse-approved-anonymous", True)
 			return value
 
+	def _makeChild(self, name, parent):
+		"""returns a new element of the appropriate type.
+
+		This method raises a StructureError if that type is not known.
+		Within ReferenceAttribute, the type is given by forceType.
+		"""
+		if self.forceType is None:
+			raise common.StructureError("Only references allowed for %s, but"
+				" an immediate object was found"%self.refAttr.name_, 
+				hint="This means that"
+				" you tried to replace a reference to an element with"
+				" the element itself.  This is only allowed if the reference"
+				" forces a type, which is not the case here.")
+		return self.forceType(parent)
+
 	def create(self, structure, ctx, name):
 		# we don't know at this point whether or not the next event will be
 		# an open (-> create a new instance of self.forceType) or a
 		# value (-> resolve).  Thus, create an intermediate parser that
 		# does the right thing.
-		return _ReferenceParser(self, structure)
+		return _ReferenceParser(self, structure, name)
 
 
 class ParseContext(object):

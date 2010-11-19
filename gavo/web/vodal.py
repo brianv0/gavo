@@ -194,6 +194,8 @@ class SIAPRenderer(DALRenderer):
 		- testQuery.size.ra, testQuery.size.dec -- RoI extent for a query that 
 			yields at least one image.
 	"""
+# XXX TODO: put more functionality into the core and then use
+# UnifiedDALRenderer rather than siap.xml.
 	name = "siap.xml"
 
 	def renderHTTP(self, ctx):
@@ -256,6 +258,40 @@ class SIAPRenderer(DALRenderer):
 				V.INFO(name="QUERY_STATUS", value="ERROR")[
 					str(msg)]]]
 
+
+class UnifiedDALRenderer(DALRenderer):
+	"""A renderer for new-style simple DAL protocols.
+
+	The idea is that the output can be either tuple of mime type and
+	a data string (that is then streamed out) or a normal ServiceResult.
+	
+	All input processing (e.g., metadata queries and the like) are considered
+	part of the individual protocol and thus left to the core.
+
+	The error style is that of SSAP (which, hopefully, will be kept
+	for the other DAL2 protocols, too).
+	"""
+	name = "dal.xml"
+
+	def _formatOutput(self, data, ctx):
+		request = inevow.IRequest(ctx)
+		if isinstance(data, tuple):  
+			mime, payload = data
+			request.setHeader("content-type", mime)
+			return streaming.streamOut(lambda f: f.write(payload), request)
+		else:
+			request.setHeader("content-type", "text/xml+votable")
+			data.original.addMeta("info", base.makeMetaValue("OK", name="info",
+				infoName="QUERY_STATUS", infoValue="OK"))
+			data.original.setMeta("_type", "results")
+			data.original.getPrimaryTable().votCasts = self._outputTableCasts
+			return DALRenderer._formatOutput(self, data, ctx)
+	
+	def _makeErrorTable(self, ctx, msg):
+		return V.VOTABLE[
+			V.RESOURCE(type="results")[
+				V.INFO(name="QUERY_STATUS", value="ERROR")[
+					str(msg)]]]
 
 
 class RegistryRenderer(grend.ServiceBasedRenderer):

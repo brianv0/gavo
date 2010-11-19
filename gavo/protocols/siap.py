@@ -230,7 +230,6 @@ class SIAPCore(svcs.DBCore):
 		svcs.DBCore.__init__(self, parent, **kwargs)
 
 
-
 class SIAPCutoutCore(SIAPCore):
 	"""A core doing SIAP plus cutouts.
 	
