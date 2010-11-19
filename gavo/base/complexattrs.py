@@ -110,10 +110,17 @@ class SetOfAtomsAttribute(CollOfAtomsAttribute):
 
 
 class _DictAttributeParser(common.Parser):
-	def __init__(self, dict, nextParser, parseValue, keyName):
-		self.dict, self.nextParser, self.parseValue =\
-			dict, nextParser, parseValue
+	def __init__(self, dict, nextParser, parseValue, keyName, inverted=False):
+		self.dict, self.nextParser, self.parseValue = (
+			dict, nextParser, parseValue)
 		self.key, self.keyName = attrdef.Undefined, keyName
+		self.inverted = inverted
+
+	def addPair(self, key, value):
+		if self.inverted:
+			self.dict[value] = key
+		else:
+			self.dict[key] = value
 
 	def value_(self, ctx, name, value):
 		if name==self.keyName:
@@ -122,7 +129,7 @@ class _DictAttributeParser(common.Parser):
 			if self.key is attrdef.Undefined:
 				raise common.StructureError("Content '%s' has no %s attribute"%(
 					value, self.keyName))
-			self.dict[self.key] = self.parseValue(value)
+			self.addPair(self.key, self.parseValue(value))
 			self.key = attrdef.Undefined
 		else:
 			raise common.StructureError("No %s attributes on mappings"%name)
@@ -133,7 +140,7 @@ class _DictAttributeParser(common.Parser):
 	
 	def end_(self, ctx, name, value):
 		if self.key is not attrdef.Undefined:
-			self.dict[self.key] = None
+			self.addPair(self.key, None)
 			self.key = attrdef.Undefined
 		return self.nextParser
 
@@ -142,12 +149,15 @@ class DictAttribute(attrdef.AttributeDef):
 	"""defines defaults on the input keys the mapper receives.
 	"""
 	def __init__(self, name, description="Undocumented", 
-			itemAttD=attrdef.UnicodeAttribute("value"), keyName="key", **kwargs):
+			itemAttD=attrdef.UnicodeAttribute("value"), 
+			keyName="key", 
+			inverted=False, **kwargs):
 		attrdef.AttributeDef.__init__(self, name, 
 			attrdef.Computed, description, **kwargs)
 		self.xmlName_ = itemAttD.name_
 		self.itemAttD = itemAttD
 		self.keyName = keyName
+		self.inverted = inverted
 
 	@property
 	def typeDesc_(self):
@@ -163,7 +173,8 @@ class DictAttribute(attrdef.AttributeDef):
 
 	def create(self, parent, ctx, name):
 		return _DictAttributeParser(getattr(parent, self.name_), 
-			parent, self.itemAttD.parse, keyName=self.keyName)
+			parent, self.itemAttD.parse, keyName=self.keyName,
+			inverted=self.inverted)
 
 	def iterEvents(self, instance):
 		for key, value in getattr(instance, self.name_).iteritems():
@@ -176,8 +187,13 @@ class DictAttribute(attrdef.AttributeDef):
 		return getattr(instance, self.name_).copy()
 
 	def makeUserDoc(self):
-		return "**%s** (mapping; the key is given in the %s attribute) -- %s"%(
-			self.itemAttD.name_, self.keyName, self.description_)
+		if inverted:
+			expl = "the key is the element content, the value is in the %s attribute"
+		else:
+			expl = "the value is the element content, the key is in the %s attribute"
+		expl = expl%self.itemAttD.name_
+		return "**%s** (mapping; %s) -- %s"%(
+			 expl, self.keyName, self.description_)
 
 
 class PropertyAttribute(DictAttribute):

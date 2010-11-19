@@ -1,6 +1,20 @@
 <resource schema="dc" resdir="__system">
 <meta name="description">Predefined procedures in the GAVO DC.</meta>
 
+<procDef type="apply" id="printRow">
+	<doc>
+		Print the current row to standard output.
+
+		This is the equivalent of the printf-debugger.  It is much like the
+		-d command line switch to gavo imp, but you can see the effects
+		of row filters, var settings, potentially earlier proc applications, etc.
+	</doc>
+	<code>
+		print vars
+	</code>
+</procDef>
+
+
 <procDef type="apply" id="simpleSelect">
 	<doc>
 		Fill variables from a simple  database query.

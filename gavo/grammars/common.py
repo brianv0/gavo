@@ -120,7 +120,7 @@ class MapKeys(base.Structure):
 		"<dest>:<src>{,<dest>:<src>}")
 	_mappings = base.DictAttribute("maps", keyName="dest", description=
 		"Map source names given in content to the name given in dest.", 
-		itemAttD=base.UnicodeAttribute("map"),
+		itemAttD=base.UnicodeAttribute("map"), inverted=True,
 		copyable=True)
 
 	def _parseShortenedMap(self, literal):
