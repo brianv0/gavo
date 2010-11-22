@@ -371,4 +371,13 @@
 			<FEED source="//ssap#hcd_outpars"/>
 		</events>
 	</mixinDef>
+
+
+	<!-- standard condDescs for the SSAP core -->
+	<condDesc id="posCond">
+		<inputKey name="POS" type="text" description="ICRS position of target
+			object"/>
+<!--		<phraseMaker procDef="//pql#posParameter"/>-->
+	</condDesc>
+
 </resource>

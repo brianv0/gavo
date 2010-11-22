@@ -89,14 +89,12 @@ class NoDefTest(testhelpers.VerboseTest):
 
 	def testBadKeyFails(self):
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At (1, 43):"
-			" '' is not a valid value for key",
+			"At (1, 43): '' is not a valid value for name",
 			base.parseFromString, (Foo, "<foo><testApp name='x'>"
 			"<setup><par key=''/></setup>"
 			"</testApp></foo>"))
 		self.assertRaisesWithMsg(base.StructureError, 
-			"At (1, 48):"
-			" 'a key' is not a valid value for key",
+			"At (1, 48): 'a key' is not a valid value for name",
 			base.parseFromString, (Foo, "<foo><testApp name='x'>"
 			"<setup><par key='a key'/></setup>"
 			"</testApp></foo>"))

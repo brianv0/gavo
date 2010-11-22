@@ -235,7 +235,6 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 				self.query(self.tableDef.expand(
 					"CLUSTER %s ON %s"%(index.dbname, self.tableName)))
 		self._addForeignKeys()
-		self.query(self.tableDef.expand("ANALYZE %s"%self.tableName))
 		return self
 
 	def deleteMatching(self, matchCondition, pars={}):
@@ -360,6 +359,7 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		self.runScripts("preIndex")
 		self.makeIndices()
 		self.runScripts("postCreation")
+		self.query("ANALYZE %s"%self.tableName)
 		if self.ownedConnection:
 			self.connection.commit()
 		return self

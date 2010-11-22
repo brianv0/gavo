@@ -13,15 +13,16 @@ from gavo.rscdef import rmkfuncs
 class RDParameter(base.Structure):
 	"""A base class for parameters.
 	"""
-	_key = base.UnicodeAttribute("key", default=base.Undefined,
-		description="The name of the parameter", copyable=True, strip=True)
+	_name = base.UnicodeAttribute("name", default=base.Undefined,
+		description="The name of the parameter", copyable=True, strip=True,
+		aliases=["key"])
 	_descr = base.NWUnicodeAttribute("description", default=None,
 		description="Some human-readable description of what the"
 		" parameter is about", copyable=True, strip=True)
 	_expr = base.DataContent(description="The default for the parameter.",
 		copyable=True, strip=True)
 	_late = base.BooleanAttribute("late", default=False,
-		description="Bind the key not at setup time but while applying"
+		description="Bind the name not at setup time but while applying"
 		" the procedure.  This allows you to refer to procedure arguments"
 		" like vars or rowIter in the bindings.")
 
@@ -30,9 +31,9 @@ class RDParameter(base.Structure):
 
 	def validate(self):
 		self._validateNext(RDParameter)
-		if not utils.identifierPattern.match(self.key):
-			raise base.LiteralParseError("key", self.key, hint=
-				"The key you supplied was not defined by any procedure definition.")
+		if not utils.identifierPattern.match(self.name):
+			raise base.LiteralParseError("name", self.name, hint=
+				"The name you supplied was not defined by any procedure definition.")
 
 
 class ProcPar(RDParameter):
@@ -49,7 +50,7 @@ class ProcPar(RDParameter):
 		# Allow non-python syntax when things look like macro calls.
 		if self.content_ and not "\\" in self.content_:
 			utils.ensureExpression(
-				common.replaceRMKAt(self.content_), self.key)
+				common.replaceRMKAt(self.content_), self.name)
 
 
 class Binding(ProcPar):
@@ -105,10 +106,10 @@ class ProcSetup(base.Structure):
 		parCode = []
 		for p in self.pars:
 			if p.late==useLate:
-				val = bindings.get(p.key, base.NotGiven)
+				val = bindings.get(p.name, base.NotGiven)
 				if val is base.NotGiven:
 					val = p.content_
-				parCode.append("%s%s = %s"%(indent, p.key, val))
+				parCode.append("%s%s = %s"%(indent, p.name, val))
 		return "\n".join(parCode)
 
 	def getParCode(self, bindings):
@@ -164,7 +165,8 @@ class ProcDef(base.Structure, base.RestrictionMixin):
 	_type = base.EnumeratedUnicodeAttribute("type", default=None, description=
 		"The type of the procedure definition.  The procedure applications"
 		" will in general require certain types of definitions.",
-		validValues=["t_t", "apply", "rowfilter", "sourceFields", "mixinProc"], 
+		validValues=["t_t", "apply", "rowfilter", "sourceFields", "mixinProc",
+			"phraseMaker"], 
 			copyable=True,
 		strip=True)
 	_original = base.OriginalAttribute()
@@ -214,14 +216,14 @@ class ProcApp(ProcDef):
 			pdNames = []
 		else:
 			pdNames = self.procDef.setup.pars
-		bindNames = set(b.key for b in self.bindings)
+		bindNames = set(b.name for b in self.bindings)
 		for p in itertools.chain(pdNames, self.setup.pars):
 			if not p.isDefaulted():
-				if not p.key in bindNames:
+				if not p.name in bindNames:
 					raise base.StructureError("Parameter %s is not defaulted in"
-						" %s and thus must be bound."%(p.key, self.name))
-			if p.key in bindNames:
-				bindNames.remove(p.key)
+						" %s and thus must be bound."%(p.name, self.name))
+			if p.name in bindNames:
+				bindNames.remove(p.name)
 		if bindNames:
 			raise base.StructureError("May not bind non-existing parameter(s)"
 				" %s."%(", ".join(bindNames)))
@@ -232,7 +234,7 @@ class ProcApp(ProcDef):
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(ProcApp)
-		self._boundNames = dict((b.key, b.content_) for b in self.bindings)
+		self._boundNames = dict((b.name, b.content_) for b in self.bindings)
 
 	def getSetupCode(self):
 		setupLines = []
