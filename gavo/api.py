@@ -22,6 +22,6 @@ from gavo.rsc import (TableForDef, DBTable, makeData, parseValidating,
 	parseNonValidating, Data)
 
 from gavo.utils import (Error, StructureError, ValidationError,
-	ReportableError, NotFoundError, RDNotFound)
+	LiteralParseError, ReportableError, NotFoundError, RDNotFound)
 
 from gavo.votable import VOTableError, ADQLTAPJob
