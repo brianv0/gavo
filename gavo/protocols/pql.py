@@ -111,8 +111,49 @@ class PQLRange(object):
 			raise base.LiteralParseError("range within %s"%destName, literal,
 				hint=str(ex))
 
-	def isSetExpressible(self):
-		return self.value is not None or self.step is not None
+	def getValuesAsSet(self):
+		"""returns a set containing all values matching the PQL condition if
+		they form a discrete set or raises a ValueError if not.
+		"""
+		if self.value is not None:
+			return set([self.value])
+		elif (self.step is not None \
+				and self.start is not None 
+				and self.stop is not None):
+			res, val = set(), self.start
+			while val<=self.stop:
+				res.add(val)
+				val = val+self.step
+			return res
+		raise ValueError("No set representation for non-stepped or open ranges.")
+
+	def getSQL(self, colName, sqlPars):
+		"""returns an SQL boolean expression for representing this constraint.
+		"""
+		# Single Value
+		if self.value is not None:
+			return "%s = %%(%s)s"%(colName, 
+				base.getSQLKey(colName, self.value, sqlPars))
+		
+		# Discrete Set
+		try:
+			return "%s IN %%(%s)s"%(colName, base.getSQLKey(colName, 
+				self.getValuesAsSet(), sqlPars))
+		except ValueError: # Not a discrete set
+			pass
+
+		# At least one half-open or non-stepped range
+		if self.start is None and self.stop is not None:
+			return "%s <= %%(%s)s"%(colName, 
+				base.getSQLKey(colName, self.stop, sqlPars))
+		elif self.start is not None and self.stop is None:
+			return "%s >= %%(%s)s"%(colName, 
+				base.getSQLKey(colName, self.start, sqlPars))
+		else:
+			assert self.start is not None and self.stop is not None
+			return "%s BETWEEN %%(%s)s AND %%(%s)s "%(colName, 
+				base.getSQLKey(colName, self.start, sqlPars),
+				base.getSQLKey(colName, self.stop, sqlPars))
 
 
 class PQLRes(object):
@@ -187,19 +228,33 @@ class PQLRes(object):
 				valParser, stepParser))
 		return cls(ranges, qualifier)
 
-	def isSetExpressible(self):
-		"""returns True if all ranges are expressible as discrete sets.
-		"""
-		for r in self.ranges:
-			if not r.isSetExpressible():
-				return False
-		return True
+	def getValuesAsSet(self):
+		"""returns a set of all values mentioned within the PQL expression.
 
-	def iterClauses(self):
-		if self.allRangesAreSimple():
-			raise NotImplementedError
-		else:
-			raise NotImplementedError
+		This raises a ValueError if this is not possible (e.g., due to
+		non-stepped intervals).
+		"""
+		res = set()
+		for r in self.ranges:
+			res.update(r.getValuesAsSet())
+		return res
+
+	def getSQL(self, colName, sqlPars):
+		"""returns an SQL condition expressing this PQL constraint for colName.
+
+		The parameters necessary are added to sqlPars.
+		"""
+		if len(self.ranges)==1: # Special case for SQL cosmetics
+			return self.ranges[0].getSQL(colName, sqlPars)
+		try:
+			return "%s IN %%(%s)s"%(colName, base.getSQLKey(colName, 
+				self.getValuesAsSet(), sqlPars))
+		except ValueError:  # at least one open or non-stepped range
+			expr = " OR ".join(
+				r.getSQL(colName, sqlPars) for r in self.ranges)
+			if len(self.ranges)>1:
+				expr = "(%s)"%expr
+			return expr
 
 
 parsePQL = PQLRes.fromLiteral

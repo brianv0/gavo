@@ -34,6 +34,8 @@ class PQLParsesTest(testhelpers.VerboseTest):
 		("foo/bar", P([PR(start="foo", stop="bar")])),
 		("foo/bar/quux", P([PR(start="foo", stop="bar", step="quux")])),
 		("", P([PR(value="")])),
+		(",a", P([PR(value=""), PR(value="a")])),
+		("a,", P([PR(value="a"), PR(value="")])),
 		("foo/", P([PR(start="foo")])),
 		("/foo", P([PR(stop="foo")])),
 		("bar/,/foo", P([PR(start="bar"), PR(stop="foo")])),
@@ -86,22 +88,49 @@ class PQLParsedLiteralTest(testhelpers.VerboseTest):
 			step=0.1)]))
 
 
-class PQLSetExpressibleTest(testhelpers.VerboseTest):
+class PQLSetValuedTest(testhelpers.VerboseTest):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
 	def _runTest(self, sample):
 		literal, expected = sample
-		self.assertEqual(pql.parsePQL(literal, "pqlExpr").isSetExpressible(), 
-			expected)
+		res = pql.parsePQL(literal, "pqlExpr", int)
+		if expected is None:
+			self.assertRaises(ValueError, res.getValuesAsSet)
+		else:
+			self.assertEqual(res.getValuesAsSet(), expected)
 	
 	samples = [
-		("a", True),
-		("a/b", False),
-		("/b", False),
-		("a/", False),
-		("a/b/c", True),
-		("a/b/c;norks", True),
-		("a/b;norks", False),]
+		("1", set([1])),
+		("1/3", None),
+		("/4", None),
+		("3/", None),
+		("1/2/1", set([1,2])),
+		("1/2/1;norks", set([1,2])),
+		("1/2;norks", None),]
+
+
+class PQLClausesTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		literal, expected, expectedPars = sample
+		res = pql.parsePQL(literal, "pqlExpr", int)
+		pars = {}
+		expr = res.getSQL("foo", pars)
+		self.assertEqual(expr, expected)
+		self.assertEqual(pars, expectedPars)
+
+	samples = [
+		("1", "foo = %(foo0)s", {"foo0": 1}),
+		("1/3/1", "foo IN %(foo0)s", {"foo0": set([1,2,3])}),
+		("1/9/3", "foo IN %(foo0)s", {"foo0": set([1,4,7])}),
+		("0,1/9/3,1/3/1", "foo IN %(foo0)s", {"foo0": set([0,1,2,3,4,7])}),
+		("/0,1/9/3,1/3/1", 
+			"(foo <= %(foo0)s OR foo IN %(foo1)s OR foo IN %(foo2)s)", 
+			{"foo0": 0, "foo1": set([1,4,7]), "foo2": set([1,2,3])}),
+		("1/", "foo >= %(foo0)s", {"foo0": 1}),
+		("/1", "foo <= %(foo0)s", {"foo0": 1}),
+	]
 
 
 ################### SSA tests proper
