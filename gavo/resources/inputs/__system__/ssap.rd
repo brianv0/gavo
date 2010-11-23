@@ -21,6 +21,8 @@
 			<EDIT ref="column[mime]" utype="ssa:Access.Format"/>
 			<EDIT ref="column[accsize]" utype="ssa:Access.Size"/>
 		</FEED>
+		
+		<primary>ssa_pubDID</primary>
 
 		<column name="ssa_dstitle" type="text"
 			utype="ssa:DataID.title" ucd="meta.title;meta.dataset"
@@ -294,22 +296,25 @@
 				wavelength interval (in meters)">None</par>
 			<par key="specend" late="True" description="upper bound of
 				wavelength interval (in meters)">None</par>
+			<par key="length" late="True" description="Number of sample
+				in the spectrum">None</par>
 			<code>
 				copiedKWs = ['dstitle', 'creatorDID', 'pubDID', 'cdate', 
 					'pdate', 'bandpass', 'cversion', 'targname', 'targclass', 
 					'redshift', 'snr', 'aperture', 'dateObs', 'timeExt', 
-					'specmid', 'specext', 'specstart', 'specend']
+					'specmid', 'specext', 'specstart', 'specend', 'length']
 			</code>
 		</setup>
 		<code>
-			# write to vars to give mappers a chance to convert
 			userPars = locals()
 			for kw in copiedKWs:
-				vars["ssa_"+kw] = userPars[kw]
+				result["ssa_"+kw] = userPars[kw]
 			alpha = parseFloat(alpha)
 			delta = parseFloat(alpha)
 			if alpha is not None and delta is not None:
 				result["ssa_location"] = pgsphere.SPoint(alpha, delta)
+			else:
+				result["ssa_location"] = None
 		</code>
 	</procDef>
 
@@ -320,15 +325,15 @@
 			in the collection.  This is usually the case if they call come
 			from one instrument.
 
-			Rowmakers for tables using this mixin should use the //ssap#setMeta
+			Rowmakers for tables using this mixin should use the `//ssap#setMeta`_
 			proc application.
 
-			Do not forget to call the //products#define row filter in grammars
+			Do not forget to call the `//products#define`_ row filter in grammars
 			feeding tables mixing this in.  At the very least, you need to
 			say::
 
 				<rowfilter procDef="//products#define">
-					<bind name="table">"\schema.myName"</bind>
+					<bind name="table">"mySchema.myTableName"</bind>
 				</rowfilter>
 		]]></doc>
 		<mixinPar key="timeSI" description="Time unit (WCS convention)"

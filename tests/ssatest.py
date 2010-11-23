@@ -156,10 +156,33 @@ class RDTest(testhelpers.VerboseTest):
 		self.assertEqual(
 			getRD().getById("hcdtest").getParamByName("ssa_instrument").value, 
 			"DaCHS test suite")
+
 	def testNormalizedDescription(self):
 		self.failUnless("matches your query" in
 			getRD().getById("hcdouttest").getColumnByName("ssa_score"
 				).description)
-		
+
+
+class _SSATable(testhelpers.TestResource):
+	def make(self, deps):
+		dd = getRD().getById("test_import")
+		data = api.makeData(dd)
+		return data.getPrimaryTable()
+	
+	def clean(self, res):
+		res.drop().commit().close()
+
+
+_ssaTable = _SSATable()
+
+
+class ImportTest(testhelpers.VerboseTest):
+	resources = [("ssaTable", _ssaTable)]
+
+	def testImported(self):
+		self.assertEqual(self.ssaTable.getRow("ivo://test.inv/test1"
+			)["ssa_dstitle"], "test spectrum 1")
+
+
 if __name__=="__main__":
 	testhelpers.main(PQLParsesTest)

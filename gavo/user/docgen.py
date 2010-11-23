@@ -257,7 +257,7 @@ def _documentParameters(content, pars):
 			doc.append("Late p")
 		else:
 			doc.append("P")
-		doc.append("arameter %s "%par.key)
+		doc.append("arameter %s "%par.name)
 		if par.content_:
 			doc.append("defaults to ``%s``"%par.content_)
 		if par.description:

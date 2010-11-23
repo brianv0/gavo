@@ -117,6 +117,8 @@ def parseCooPair(soup):
 
 	>>> parseCooPair("23 12")
 	(23.0, 12.0)
+	>>> parseCooPair("23.5,-12.25")
+	(23.5, -12.25)
 	>>> parseCooPair("3.75 -12.125")
 	(3.75, -12.125)
 	>>> parseCooPair("3 25,-12 30")

@@ -15,14 +15,14 @@
 		<setup>
 			<par name="posCol" description="Name of the database column
 				to be compared against the input value(s).  It must be of
-				type spoint.</par>
+				type spoint."/>
 		</setup>
 
 		<code>
 			key = inputKeys[0].name
 			parsed = psql.parsePQL(inPars.get(key, None))
 			if parsed is not None:
-				return parsed.iterClauses(outPars, posCol)
+				yield parsed.getClause(posCol, outPars, parseCooPair)
 		</code>
 	</procDef>
 </resource>

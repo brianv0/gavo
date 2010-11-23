@@ -187,7 +187,7 @@ class DictAttribute(attrdef.AttributeDef):
 		return getattr(instance, self.name_).copy()
 
 	def makeUserDoc(self):
-		if inverted:
+		if self.inverted:
 			expl = "the key is the element content, the value is in the %s attribute"
 		else:
 			expl = "the value is the element content, the key is in the %s attribute"
