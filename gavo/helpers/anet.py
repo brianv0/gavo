@@ -116,7 +116,6 @@ def _feedFile(targDir, fName, **ignored):
 
 
 def _runShellCommand(cmd, args):
-	print " ".join([cmd]+args)
 	with open("lastCommand.log", "a") as logF:
 		proc = subprocess.Popen([cmd]+args, stdout=logF,
 			stderr=subprocess.STDOUT)
@@ -212,7 +211,7 @@ def _solveField(fName, solverParameters, sexControl, objectFilter,
 	See _resolve for the meaning of the arguments.
 	"""
 	args = ["--continue"]
-	sourceFile = "img.fits"
+	objectSource = "img.fits"
 	if sexControl is not None:
 		_createSextractorFiles(sexControl)
 		if sexControl=="":
