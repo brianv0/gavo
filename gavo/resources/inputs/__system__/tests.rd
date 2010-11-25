@@ -59,4 +59,8 @@
 	<service id="timeout" core="timeoutcore">
 		<meta name="title">Just wait a while for a timeout</meta>
 	</service>
+
+	<service id="limited" core="timeoutcore" limitTo="notYou">
+		<meta name="title">Only notYou may see this.</meta>
+	</service>
 </resource>
