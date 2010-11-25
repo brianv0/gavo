@@ -30,20 +30,20 @@ class PlainDBServiceTest(testhelpers.VerboseTest):
 
 	def testEmptyQuery(self):
 		svc = self.rd.getById("basicprod")
-		res = svc.runAsForm({})
+		res = svc.runFromDict({})
 		namesFound = set(r["object"] for r in res.original.getPrimaryTable().rows)
 		self.assert_(set(["gabriel", "michael"])<=namesFound)
 
 	def testOneParameterQuery(self):
 		svc = self.rd.getById("basicprod")
-		res = svc.runAsForm({"accref": "~ *a.imp"})
+		res = svc.runFromDict({"accref": "~ *a.imp"})
 		namesFound = set(r["object"] for r in res.original.getPrimaryTable().rows)
 		self.assert_("gabriel" in namesFound)
 		self.assert_("michael" not in namesFound)
 
 	def testTwoParametersQuery(self):
 		svc = self.rd.getById("basicprod")
-		res = svc.runAsForm({"accref": "~ *a.imp", "embargo": "< 2000-03-03"})
+		res = svc.runFromDict({"accref": "~ *a.imp", "embargo": "< 2000-03-03"})
 		namesFound = set(r["object"] for r in res.original.getPrimaryTable().rows)
 		self.assert_("gabriel" not in namesFound)
 		self.assert_("michael" not in namesFound)
@@ -63,37 +63,37 @@ class ComputedServiceTest(testhelpers.VerboseTest):
 
 	def testStraightthrough(self):
 		svc = self.rd.getById("basiccat")
-		res = svc.runAsForm({"a": "xy", "b": "3", "c": "4", "d": "5",
+		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01"})
 		self.assertEqual(res.original.getPrimaryTable().rows, [{'a': u'xy', 'c': 4, 'b': 3, 
 			'e': datetime.datetime(2005, 10, 12, 12, 23, 1), 'd': 5}])
 
 	def testVerblevelBasic(self):
 		svc = self.rd.getById("basiccat")
-		res = svc.runAsForm({"a": "xy", "b": "3", "c": "4", "d": "5",
+		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01", "verbosity": "2", "_FORMAT": "VOTable"})
 		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, ["a"])
-		res = svc.runAsForm({"a": "xy", "b": "3", "c": "4", "d": "5",
+		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01", "VERB": "1", "_FORMAT": "VOTable"})
 		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, ["a", "b"])
-		res = svc.runAsForm({"a": "xy", "b": "3", "c": "4", "d": "5",
+		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01", "_VERB": "2", "_FORMAT": "VOTable"})
 		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, ["a", "b", "c", "d"])
-		res = svc.runAsForm({"a": "xy", "b": "3", "c": "4", "d": "5",
+		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01", "_VERB": "3", "_FORMAT": "VOTable"})
 		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, 
 			["a", "b", "c", "d", "e"])
-		res = svc.runAsForm({"a": "xy", "b": "3", "c": "4", "d": "5",
+		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01", "_VERB": "HTML", "_FORMAT": "VOTable"})
 		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, 
 			["a", "b", "c", "d", "e"])
-		res = svc.runAsForm({"a": "xy", "b": "3", "c": "4", "d": "5",
+		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01", "_FORMAT": "VOTable"})
 		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, ["a", "b", "c", "d"])
 
 	def testMappedOutput(self):
 		svc = self.rd.getById("convcat")
-		res = svc.runAsForm({"a": "xy", "b": "3", "c": "4", "d": "5",
+		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01"})
 		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, ["a", "b", "d"])
 		self.assertEqual(res.original.getPrimaryTable().tableDef.columns[0].verbLevel, 15)
@@ -101,7 +101,7 @@ class ComputedServiceTest(testhelpers.VerboseTest):
 
 	def testAdditionalFields(self):
 		svc = self.rd.getById("convcat")
-		res = svc.runAsForm({"a": "xy", "b": "3", "c": "4", "d": "5",
+		res = svc.runFromDict({"a": "xy", "b": "3", "c": "4", "d": "5",
 			"e": "2005-10-12T12:23:01", "_ADDITEM":["c", "e"]})
 		self.assertDatafields(res.original.getPrimaryTable().tableDef.columns, 
 			["a", "b", "d", "c", "e"])

@@ -115,6 +115,9 @@ class RecordingBase(ActiveTag):
 		"""
 		return _PreparedEventSource(self.events)
 
+	# This lets us feedFrom these
+	iterEvents = getEventSource
+
 
 class EventStream(RecordingBase, GhostMixin):
 	"""An active tag that records events as they come in.

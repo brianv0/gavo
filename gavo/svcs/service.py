@@ -628,8 +628,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		coreRes = self.core.run(self, inputData, queryMeta)
 		return SvcResult(coreRes, inputData, queryMeta, self)
 
-	def runAsForm(self, rawData):
-		"""runs the service, assuming a form renderer.
+	def runFromDict(self, rawData, renderer="form"):
+		"""runs the service with a dictionary input and within a given renderer.
 
 		This is mainly a convenience method for unit tests.
 		"""

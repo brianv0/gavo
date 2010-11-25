@@ -17,10 +17,12 @@ This defines a regular language, and we're going to slaughter it using
 REs and ad hoccing.
 """
 
+import datetime
 import re
 import urllib
 
 from gavo import base
+from gavo.base import literals
 
 
 QUALIFIER_RE = re.compile("([^;]*)(;[^;]*)?$")
@@ -28,11 +30,22 @@ LIST_RE = re.compile("([^,]*),")
 RANGE_RE = re.compile("([^/]*)(/[^/]*)?(/[^/]*)?$")
 
 
+def _raiseNoSteps(val):
+	raise ValueError("Step/stride specification not allowed here.")
+
+
 def _parsePQLValue(val, valInd=0, vp=str):
 	if not val or not val[valInd:]:
 		return None
 	else:
 		return vp(urllib.unquote(val[valInd:]))
+
+
+def _buildDisjunction(parts):
+	expr = " OR ".join(parts)
+	if len(parts)>1:
+		expr = "(%s)"%expr
+	return expr
 
 
 class PQLRange(object):
@@ -44,9 +57,8 @@ class PQLRange(object):
 	For ranges, there is start, stop and step, all of which may be
 	None.
 
-	The attributes by default are string-valued or None; if you passed
-	valParser (and possibly stepParser), they are whatever these
-	functions returned.
+	The attributes contain whatever the parent's valParser (or stepParser)
+	functions return.
 	"""
 	def __init__(self, value=None, start=None, stop=None, step=None):
 		self.start, self.stop, self.step = start, stop, step
@@ -87,7 +99,7 @@ class PQLRange(object):
 	def fromLiteral(cls, literal, destName, valParser, stepParser):
 		"""creates a PQLRange from a PQL range literal.
 
-		For the meaning of the arguments, see PQLRes.fromLiteral.
+		For the meaning of the arguments, see PQLPar.fromLiteral.
 		"""
 		if literal=="":
 			return cls(value="")
@@ -156,22 +168,38 @@ class PQLRange(object):
 				base.getSQLKey(colName, self.stop, sqlPars))
 
 
-class PQLRes(object):
+class PQLPar(object):
 	"""a representation for PQL expressions.
 
-	PQLRes objects have an attribute qualifier (None or a string),
+	PQLPar objects have an attribute qualifier (None or a string),
 	and an attribute ranges, a list of PQLRange objects.
 	
-	As a client, you will ususally construct PQLRes objects using the
+	As a client, you will ususally construct PQLPar objects using the
 	fromLiteral class method; it takes a PQL literal and a name to be 
 	used for LiteralParseErrors it may raise.
+
+	The plain PQLPar parses string ranges and does not allow steps.
+
+	Inheriting classes must override the valParser and stepParser attributes.
+	Both take a string and have to return a typed value or raise a
+	ValueError if the string does not contain a proper literal.
+	The default for valParser is str, the default for stepParser
+	a function that always raises a ValueError.
+
+	Note: valParser and stepParser must not be *methods* of the
+	class but plain functions; since they are function-like class attributes,
+	you will usually have to wrap them in staticmethods
 	"""
-	def __init__(self, ranges, qualifier=None):
+	valParser = str
+	stepParser = staticmethod(_raiseNoSteps)
+
+	def __init__(self, ranges, qualifier=None, destName=None):
 		self.qualifier = qualifier
 		self.ranges = ranges
+		self.destName = None
 
 	def __eq__(self, other):
-		return (isinstance(other, PQLRes)
+		return (isinstance(other, PQLPar)
 			and self.qualifier==other.qualifier
 			and self.ranges==other.ranges)
 
@@ -185,25 +213,12 @@ class PQLRes(object):
 		return "%s(%s)"%(self.__class__.__name__,
 			repr(str(self)))
 
-	@classmethod
-	def fromLiteral(cls, val, destName, valParser=str, stepParser=None):
-		"""returns a parsed representation of a literal in PQL range-list syntax.
-
-		val is a string containing the PQL expression, destName is a name to
-		be used for the LiteralParseErrors the function raises when there are
-		syntax errors in val.
-
-		valParser is a function turning a value literal into a value.  It does
-		not need to turn the empty string to None, since that is done by the
-		machinery; bad values should raise a ValueError.  It defaults to str.
-		stepParser is the same thing, except it is used to parse the stride
-		of intervals.  It defaults to None, meaning "same as valParser" (they
-		need to be different for dates).
-		"""
+	@staticmethod
+	def _parsePQLString(cls, val, destName):
+		# this is the implementation of the fromLiteral class method(s)
+		# It's static so the fromLiterals can upcall.
 		if val is None:
 			return None
-		if stepParser is None:
-			stepParser = valParser
 
 		mat = QUALIFIER_RE.match(val)
 		if not mat:
@@ -219,14 +234,24 @@ class PQLRes(object):
 			try:
 				ranges.append(
 					PQLRange.fromLiteral(rangeMat.group(1), destName, 
-						valParser, stepParser))
+						cls.valParser, cls.stepParser))
 			except base.LiteralParseError, ex:
 				ex.pos = rangeMat.start()
 				raise
 		ranges.append(
 			PQLRange.fromLiteral(listLiteral[rangeMat.end():], destName,
-				valParser, stepParser))
-		return cls(ranges, qualifier)
+				cls.valParser, cls.stepParser))
+		return cls(ranges, qualifier, destName)
+
+	@classmethod
+	def fromLiteral(cls, val, destName):
+		"""returns a parsed representation of a literal in PQL range-list syntax.
+
+		val is a string containing the PQL expression, destName is a name to
+		be used for the LiteralParseErrors the function raises when there are
+		syntax errors in val.
+		"""
+		return cls._parsePQLString(cls, val, destName)
 
 	def getValuesAsSet(self):
 		"""returns a set of all values mentioned within the PQL expression.
@@ -250,12 +275,50 @@ class PQLRes(object):
 			return "%s IN %%(%s)s"%(colName, base.getSQLKey(colName, 
 				self.getValuesAsSet(), sqlPars))
 		except ValueError:  # at least one open or non-stepped range
-			expr = " OR ".join(
-				r.getSQL(colName, sqlPars) for r in self.ranges)
-			if len(self.ranges)>1:
-				expr = "(%s)"%expr
-			return expr
+			return _buildDisjunction(
+				[r.getSQL(colName, sqlPars) for r in self.ranges])
 
 
-parsePQL = PQLRes.fromLiteral
+class PQLIntPar(PQLPar):
+	"""a PQL parameter containing an integer.
 
+	steps in ranges are allowed.
+	"""
+	valParser = int
+	stepParser = int
+
+
+class PQLDatePar(PQLPar):
+	"""a PQL parameter containing an integer.
+
+	steps in ranges are allowed.
+	"""
+	valParser = staticmethod(literals.parseDefaultDatetime)
+
+	@staticmethod
+	def stepParser(val):
+		return datetime.timedelta(days=float(val))
+
+
+
+class PQLPositionPar(PQLPar):
+	"""a PQL position parameter, as for SSA.
+
+	Cones and intervals do not mix; we support STC-S identifiers as
+	qualifiers.
+	"""
+	valParser = staticmethod(literals.parseSPoint)
+
+	def getSQL(self, colName, sqlPars):
+		raise NotImplementedError("Ranges for PQL POS not implemented yet.")
+	
+	def getConeSQL(self, colName, sqlPars, coneSize):
+		sizeName = base.getSQLKey("size", coneSize, sqlPars)
+		parts = []
+		for r in self.ranges:
+			if r.value is None:
+				raise base.ValidationError("Ranges not allowed as cone centers",
+					self.destName)
+			parts.append("%s <-> %%(%s)s < %%(%s)s"%(colName,
+				base.getSQLKey("pos", r.value, sqlPars), sizeName))
+		return _buildDisjunction(parts)

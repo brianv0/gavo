@@ -378,11 +378,21 @@
 	</mixinDef>
 
 
-	<!-- standard condDescs for the SSAP core -->
-	<condDesc id="posCond">
-		<inputKey name="POS" type="text" description="ICRS position of target
-			object"/>
-<!--		<phraseMaker procDef="//pql#posParameter"/>-->
-	</condDesc>
+	<STREAM id="ssa_prototype">
+		<condDesc id="requestCond" silent="True">
+			<inputKey name="REQUEST" type="text" description="Type of operation
+				as per SSAP standard"/>
+		</condDesc>
+
+		<condDesc id="posCond">
+			<inputKey name="POS" type="text" description="ICRS position of target
+				object" unit="deg,deg"/>
+			<inputKey name="SIZE" unit="deg" description="Size of the region of
+				interest around POS"/>
+			<phraseMaker procDef="//pql#coneParameter">
+				<bind name="posCol">"ssa_location"</bind>
+			</phraseMaker>
+		</condDesc>
+	</STREAM>
 
 </resource>

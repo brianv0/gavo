@@ -14,6 +14,7 @@ import re
 import time
 
 from gavo import utils
+from gavo.utils import pgsphere
 
 
 @utils.document
@@ -161,6 +162,14 @@ def parseCooPair(soup):
 	raise ValueError("%s has no discernible position in it"%soup)
 
 
+def parseSPoint(soup):
+	"""returns an SPoint for a coordinate pair.
+
+	The coordinate pair can be formatted in a variety of ways; see parseCooPair.
+	"""
+	return pgsphere.SPoint(*parseCooPair(soup))
+
+
 @utils.memoized
 def getDefaultValueParsers():
 	"""returns a dict containing all exported names from this module.
@@ -185,4 +194,4 @@ if __name__=="__main__":
 
 __all__ = ["parseInt", "parseFloat", "parseBooleanLiteral", "parseUnicode",
 	"parseDefaultDate", "parseDefaultTime", "parseDefaultDatetime",
-	"parseCooPair", "getDefaultValueParsers"]
+	"parseCooPair", "getDefaultValueParsers", "parseSPoint"]
