@@ -288,11 +288,14 @@ class HeaderProcessor(FileProcessor):
 class AnetHeaderProcessor(HeaderProcessor):
 	"""A file processor for calibrating FITS frames using astrometry.net.
 
-	It might provide calibration for "simple" cases out of the box, but
-	you will usually need to at least override solverParameters.
+	It might provide calibration for "simple" cases out of the box.  You
+	will usually want to override some solver parameters.  To do that,
+	define class attributes sp_<parameter name>, where the parameters
+	available are discussed in helpers.anet's docstring.  sp_indices is
+	one thing you will typically need to override.
 	
 	To use SExtractor rather than anet's source extractor, override
-	sexScript, to use an object filter (see anet.getWCSFieldsFor), override
+	sexControl, to use an object filter (see anet.getWCSFieldsFor), override
 	the objectFilter attribute.
 
 	To add additional fields, override _getHeader and call the parent
@@ -301,15 +304,8 @@ class AnetHeaderProcessor(HeaderProcessor):
 	result anet.of getWCSFieldsFor) and call _runAnet with your
 	custom arguments for getWCSFieldsFor.
 	"""
-	solverParameters = {
-		"indices": ["index-209.fits"],
-		"lower_pix": 0.1,
-		"upper_pix": 1.0,
-		"depth": 40,
-	}
-	sexScript = None
+	sexControl = None
 	objectFilter = None
-	indexFile = None
 
 	noCopyHeaders = set(["simple", "bitpix", "naxis", "imageh", "imagew",
 		"naxis1", "naxis2", "datamin", "datamax", "date"])
@@ -328,14 +324,20 @@ class AnetHeaderProcessor(HeaderProcessor):
 	def _isProcessed(self, srcName):
 		return self.getPrimaryHeader(srcName).has_key("CD1_1")
 
-	def _runAnet(self, srcName, solverParameters, sexScript, objectFilter):
-		return anet.getWCSFieldsFor(srcName, solverParameters,
-			sexScript, objectFilter, self.opts.copyTo, self.indexFile)
+	def _runAnet(self, srcName):
+		return anet.getWCSFieldsFor(srcName, self.solverParameters,
+			self.sexControl, self.objectFilter, self.opts.copyTo,
+			self.opts.beVerbose)
+
+	@property
+	def solverParameters(self):
+		return dict(
+			(n[3:], getattr(self, n)) 
+			for n in dir(self) if n.startswith("sp_"))
 
 	def _solveAnet(self, srcName):
 		if self.opts.runAnet:
-			return self._runAnet(srcName, self.solverParameters, self.sexScript,
-				self.objectFilter)
+			return self._runAnet(srcName)
 		else:
 			oldCards = self._readCache(srcName)
 			if oldCards is None:

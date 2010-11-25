@@ -360,3 +360,10 @@ def HeaderManipulator(fName):
 		return GzHeaderManipulator(fName)
 	else:
 		return PlainHeaderManipulator(fName)
+
+
+def getPrimarySize(fName):
+	"""returns x and y size a fits image.
+	"""
+	hdr = readPrimaryHeaderQuick(open(fName))
+	return hdr["NAXIS1"], hdr["NAXIS2"]
