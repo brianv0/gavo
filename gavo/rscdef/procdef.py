@@ -138,19 +138,19 @@ _emptySetup = ProcSetup(None, code="")
 class ProcDef(base.Structure, base.RestrictionMixin):
 	"""An embedded procedure.
 
-	Embedded procedures are code fragments that do fancy things in, e.g.,
-	grammars (row generators) or rowmakers (call).
+	Embedded procedures are python code fragments with some interface defined
+	by their type.  They can occur at various places (which is called procedure
+	application generically), e.g., as row generators in grammars, as applys in
+	rowmakers, or as SQL phrase makers in condDescs.
 
-	They consist of the actual application and, optionally, definitions.
+	They consist of the actual actual code and, optionally, definitions like
+	the namespace setup, configuration parameters, or a documentation.
 
-	Definitions have par elements that allow "configuration" of the applications.
-	Par elements without defaults need to be filled out by applications.
-
-	The applications themselves compile into python functions with special
+	The procedure applications compile into python functions with special
 	global namespaces.  The signatures of the functions are determined by
 	the type attribute.
 
-	ProcDefs are referred to by function applications using their id.
+	ProcDefs are referred to by procedure applications using their id.
 	"""
 	name_ = "procDef"
 
@@ -246,6 +246,24 @@ class ProcApp(ProcDef):
 		setupLines.append(self.setup.getBodyCode())
 		return "\n".join(setupLines)
 
+	def _getFunctionDefinition(self, mainSource):
+		"""returns mainSource in a function definition with proper 
+		signature including setup of late code.
+		"""
+		parts = []
+
+		# "late" code from the procDef's and own setup code is executed
+		# on each invocation.
+		if self.procDef is not base.NotGiven:
+			parts.append(self.procDef.setup.getLateCode(self._boundNames))
+		parts.append(self.setup.getLateCode(self._boundNames))
+		parts.append(mainSource)
+		body = "\n".join(parts)
+		if not body.strip():
+			body = "  pass"
+		return "def %s(%s):\n%s"%(self.name, self.formalArgs,
+			body)
+
 	def getFuncCode(self):
 		"""returns a function definition for this proc application.
 
@@ -253,20 +271,13 @@ class ProcApp(ProcDef):
 
 		Locally defined code overrides code defined in a procDef.
 		"""
-		parts = []
-		if self.procDef is not base.NotGiven:
-			parts.append(self.procDef.setup.getLateCode(self._boundNames))
-		parts.append(self.setup.getLateCode(self._boundNames))
+		mainCode = ""
 		if self.code is base.NotGiven:
 			if self.procDef is not base.NotGiven:
-				parts.append(self.procDef.getCode())
+				mainCode = self.procDef.getCode()
 		else:
-			parts.append(self.getCode())
-		body = "\n".join(parts)
-		if not body.strip():
-			body = "  pass"
-		return "def %s(%s):\n%s"%(self.name, self.formalArgs,
-			body)
+			mainCode = self.getCode()
+		return self._getFunctionDefinition(mainCode)
 
 	def compile(self, parent=None):
 		"""returns a callable for this procedure application.

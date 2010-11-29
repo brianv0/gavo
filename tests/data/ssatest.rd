@@ -13,15 +13,26 @@
 		<keyValueGrammar>
 			<rowfilter procDef="//products#define">
 				<bind name="table">"\schema.hcdtest"</bind>
+				<bind name="mime">@mime</bind>
 			</rowfilter>
 		</keyValueGrammar>
 		<make table="hcdtest" role="primary">
 			<rowmaker>
 				<apply procDef="//ssap#setMeta">
-					<bind name="dstitle">@title</bind>
 					<bind name="pubDID">"ivo://test.inv/"+@id</bind>
+					<LOOP listItems="dstitle specstart specend bandpass alpha delta
+							dateObs">
+						<events>
+							<bind name="\item">@\item</bind>
+						</events>
+					</LOOP>
 				</apply>
 			</rowmaker>
 		</make>
 	</data>
+
+
+	<service id="s">
+		<ssapCore queriedTable="hcdtest"/>
+	</service>
 </resource>

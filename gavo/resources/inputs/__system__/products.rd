@@ -66,7 +66,7 @@ machinery -->
 		</doc>
 		<setup>
 			<par key="table" description="the table this product is managed in.
-				You must fill this in."/>
+				You must fill this in, and don't forget the quotes."/>
 			<par late="True" key="accref" description="an access reference
 				(this ususally is the input-relative path)">\inputRelativePath</par>
 			<par late="True" key="owner" description="for proprietary data,

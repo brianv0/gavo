@@ -8,7 +8,7 @@ from gavo import api
 from gavo.base import literals
 from gavo.helpers import testhelpers
 from gavo.protocols import pql
-from gavo.utils import pgsphere
+from gavo.utils import pgsphere, DEG
 
 
 
@@ -138,12 +138,12 @@ class PQLPositionsTest(testhelpers.VerboseTest):
 			("12%2c12/14%2c13/1", "POS"))
 	
 	def testSingleCone(self):
-		cs = pql.PQLPositionPar.fromLiteral("10%2c12", "POS")
+		cs = pql.PQLPositionPar.fromLiteral("8%2c12", "POS")
 		pars = {}
 		expr = cs.getConeSQL("loc", pars, 0.5)
-		self.assertEqual(expr, "loc <-> %(pos0)s < %(size0)s")
-		self.assertEqual(pars, {'size0': 0.5, 
-			'pos0': pgsphere.SPoint(10.0, 12.0)})
+		self.assertEqual(expr, "(loc <-> %(pos0)s < %(size0)s)")
+		self.assertEqual(pars, {'size0': 0.5*DEG, 
+			'pos0': pgsphere.SPoint.fromDegrees(8.0, 12.0)})
 		
 	def testMultiCone(self):
 		cs = pql.PQLPositionPar.fromLiteral("10%2c12,-10%2c13", "POS")
@@ -151,11 +151,42 @@ class PQLPositionsTest(testhelpers.VerboseTest):
 		expr = cs.getConeSQL("loc", pars, 0.5)
 		self.assertEqual(expr, "(loc <-> %(pos0)s < %(size0)s"
 			" OR loc <-> %(pos1)s < %(size0)s)")
-		self.assertEqual(pars, {'size0': 0.5, 
-			'pos0': pgsphere.SPoint(10.0, 12.0),
-			'pos1': pgsphere.SPoint(-10.0, 13.0)})
+		self.assertEqual(pars, {'size0': 0.5*DEG, 
+			'pos0': pgsphere.SPoint.fromDegrees(10.0, 12.0),
+			'pos1': pgsphere.SPoint.fromDegrees(-10.0, 13.0)})
+
+
+
+class PQLFloatTest(testhelpers.VerboseTest):
+	def testNoStep(self):
+		self.assertRaisesWithMsg(api.LiteralParseError,
+			"'1/5/0.5' is not a valid value for range within VAL",
+			pql.PQLFloatPar.fromLiteral,
+			("1/5/0.5", "VAL"))
+	
+	def testSimple(self):
+		cs = pql.PQLFloatPar.fromLiteral("0.5,4/6", "quack")
+		pars = {}
+		expr = cs.getSQL("val", pars)
+		self.assertEqual(expr, 
+			"(val = %(val0)s OR val BETWEEN %(val1)s AND %(val2)s )")
+		self.assertEqual(pars, {'val2': 6.0, 'val1': 4.0, 'val0': 0.5})
+	
+	def testIntervalSQL(self):
+		cs = pql.PQLFloatPar.fromLiteral("/-0.5,0,2/4,7/", "quack")
+		pars = {}
+		expr = cs.getSQLForInterval("lower", "upper", pars)
+		self.assertEqual(expr, '((%(val0)s>lower)' 
+			' OR %(val1)s BETWEEN lower AND upper'
+			' OR (%(val2)s>lower AND %(val3)s<upper)'
+			' OR (%(val4)s<upper))')
+		self.assertEqual(pars, {"val0": -0.5,
+			"val1": 0.,
+			"val2": 4.0,
+			"val3": 2.0,
+			"val4": 7.})
 
 
 if __name__=="__main__":
-	testhelpers.main(PQLParsesTest)
+	testhelpers.main(PQLFloatTest)
 

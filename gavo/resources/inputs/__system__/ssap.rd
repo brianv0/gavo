@@ -10,10 +10,10 @@
 		Tables are ICRS/TT to the required accuracy.  And you should
 		convey such information via STC anyway...
 		-->
-<!--		<stc>Time TT "ssa_dateObs" Size "ssa_timeExt" 
+		<stc>Time TT "ssa_dateObs" Size "ssa_timeExt" 
 			Position ICRS [ssa_location] Size "ssa_aperture" "ssa_aperture"
 			SpectralInterval "ssa_specstart" "ssa_specend"
-				Spectral "ssa_specmid" Size "ssa_specext"</stc>-->
+				Spectral "ssa_specmid" Size "ssa_specext"</stc>
 
 		<FEED source="//products#tablecols">
 			<EDIT ref="column[accref]" utype="ssa:Access.Reference"
@@ -310,9 +310,9 @@
 			for kw in copiedKWs:
 				result["ssa_"+kw] = userPars[kw]
 			alpha = parseFloat(alpha)
-			delta = parseFloat(alpha)
+			delta = parseFloat(delta)
 			if alpha is not None and delta is not None:
-				result["ssa_location"] = pgsphere.SPoint(alpha, delta)
+				result["ssa_location"] = pgsphere.SPoint.fromDegrees(alpha, delta)
 			else:
 				result["ssa_location"] = None
 		</code>
@@ -384,13 +384,98 @@
 				as per SSAP standard"/>
 		</condDesc>
 
-		<condDesc id="posCond">
+		<condDesc id="coneCond">
 			<inputKey name="POS" type="text" description="ICRS position of target
 				object" unit="deg,deg"/>
 			<inputKey name="SIZE" unit="deg" description="Size of the region of
 				interest around POS"/>
 			<phraseMaker procDef="//pql#coneParameter">
 				<bind name="posCol">"ssa_location"</bind>
+			</phraseMaker>
+		</condDesc>
+
+		<condDesc id="bandCond">
+			<inputKey name="BAND" type="text" description="Wavelength (range)
+				of interest (or symbolic bandpass names)" unit="m"/>
+			<phraseMaker>
+				<code>
+					key = inputKeys[0].name
+					lit = inPars.get(key, None)
+					if lit is None:
+						return
+					try:
+						ranges = pql.PQLFloatPar.fromLiteral(lit, key)
+						yield ranges.getSQLForInterval(
+							"ssa_specstart", "ssa_specend", outPars)
+					except base.LiteralParseError: 
+						# As float ranges, things didn't work out.  Try band names ("V")
+						# and bail out if unsuccessful.
+						yield pql.PQLPar.fromLiteral(lit, key).getSQL(
+							"ssa_bandpass", outPars)
+				</code>
+			</phraseMaker>
+		</condDesc>
+
+		<condDesc id="timeCond">
+			<inputKey name="TIME" type="text" description="Epoch of observation."
+				unit="Y-M-D"/>
+			<phraseMaker procDef="//pql#dateParameter">
+				<bind name="consCol">"ssa_dateObs"</bind>
+			</phraseMaker>
+		</condDesc>
+
+		<condDesc id="formatCond">
+			<inputKey name="FORMAT" type="text" description="Spectrum format"/>
+			<phraseMaker>
+				<setup>
+					<par name="compliantFormats">set([
+						"application/x-votable+xml"])</par>
+					<par name="nativeFormats">set([
+						"application/fits", "text/csv", "text/plain"])</par>
+					<par name="consCol">"mime"</par>
+				</setup>
+				<code>
+					val = inPars.get("FORMAT", None)
+					if val is None:
+						return
+					if "/" in val:
+						raise base.ValidationError("No ranges allowed here",
+							colName="FORMAT")
+					sel = pql.PQLPar.fromLiteral(val, "FORMAT").getValuesAsSet()
+
+					if "all" in sel:
+						return  # No constraints
+
+					if "compliant" in sel:
+						yield "%s IN %%(%s)s"%(consCol, base.getSQLKey(consCol,
+							compliantFormats, outPars))
+						sel.remove("compliant")
+
+					if "native" in sel:
+						yield "%s IN %%(%s)s"%(consCol, base.getSQLKey(consCol,
+							nativeFormats, outPars))
+						sel.remove("native")
+
+					if "graphic" in sel:
+						yield "%s LIKE 'image/%%'"%(consCol)
+						sel.remove("graphic")
+
+					if "votable" in sel:
+						yield "%s = 'application/x-votable+xml'"%consCol
+						sel.remove("votable")
+
+					if "fits" in sel:
+						yield "%s = 'application/fits'"%consCol
+						sel.remove("fits")
+
+					if "xml" in sel:
+						yield "1=0"  # whatever would *that* be?
+						sel.remove("xml")
+					
+					if sel:
+						yield "%s IN %%(%s)s"%(consCol, base.getSQLKey(consCol,
+							sel, outPars))
+				</code>
 			</phraseMaker>
 		</condDesc>
 	</STREAM>

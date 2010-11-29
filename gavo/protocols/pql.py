@@ -23,6 +23,7 @@ import urllib
 
 from gavo import base
 from gavo.base import literals
+from gavo.utils import DEG
 
 
 QUALIFIER_RE = re.compile("([^;]*)(;[^;]*)?$")
@@ -39,13 +40,6 @@ def _parsePQLValue(val, valInd=0, vp=str):
 		return None
 	else:
 		return vp(urllib.unquote(val[valInd:]))
-
-
-def _buildDisjunction(parts):
-	expr = " OR ".join(parts)
-	if len(parts)>1:
-		expr = "(%s)"%expr
-	return expr
 
 
 class PQLRange(object):
@@ -110,11 +104,11 @@ class PQLRange(object):
 				" Literal slashes need to be escaped (as %2f).")
 		vals = mat.groups()
 
-		if vals[1] is None and vals[2] is None:
-			return cls(value=_parsePQLValue(vals[0], vp=valParser))
-		else:
-			start, stop, step = vals
 		try:
+			if vals[1] is None and vals[2] is None:
+				return cls(value=_parsePQLValue(vals[0], vp=valParser))
+			else:
+				start, stop, step = vals
 			return cls(
 				start=_parsePQLValue(start, vp=valParser), 
 				stop=_parsePQLValue(stop, 1, vp=valParser), 
@@ -167,7 +161,30 @@ class PQLRange(object):
 				base.getSQLKey(colName, self.start, sqlPars),
 				base.getSQLKey(colName, self.stop, sqlPars))
 
+	def getSQLForInterval(self, lowerColName, upperColName, sqlPars):
+		"""returns an SQL boolean expression for representing this constraint
+		against an upper, lower interval in the DB table.
 
+		This will silently discard any step specification.
+		"""
+		# Single Value
+		if self.value is not None:
+			return "%%(%s)s BETWEEN %s AND %s"%(
+				base.getSQLKey("val", self.value, sqlPars),
+				lowerColName, upperColName)
+		else:
+			constraints = []
+			if self.stop is not None:
+				constraints.append("%%(%s)s>%s"%(
+					base.getSQLKey("val", self.stop, sqlPars),
+					lowerColName))
+			if self.start is not None:
+				constraints.append("%%(%s)s<%s"%(
+					base.getSQLKey("val", self.start, sqlPars),
+					upperColName))
+			return "(%s)"%" AND ".join(constraints)
+
+					
 class PQLPar(object):
 	"""a representation for PQL expressions.
 
@@ -275,8 +292,8 @@ class PQLPar(object):
 			return "%s IN %%(%s)s"%(colName, base.getSQLKey(colName, 
 				self.getValuesAsSet(), sqlPars))
 		except ValueError:  # at least one open or non-stepped range
-			return _buildDisjunction(
-				[r.getSQL(colName, sqlPars) for r in self.ranges])
+			return "(%s)"%" OR ".join(
+				r.getSQL(colName, sqlPars) for r in self.ranges)
 
 
 class PQLIntPar(PQLPar):
@@ -313,7 +330,7 @@ class PQLPositionPar(PQLPar):
 		raise NotImplementedError("Ranges for PQL POS not implemented yet.")
 	
 	def getConeSQL(self, colName, sqlPars, coneSize):
-		sizeName = base.getSQLKey("size", coneSize, sqlPars)
+		sizeName = base.getSQLKey("size", coneSize*DEG, sqlPars)
 		parts = []
 		for r in self.ranges:
 			if r.value is None:
@@ -321,4 +338,26 @@ class PQLPositionPar(PQLPar):
 					self.destName)
 			parts.append("%s <-> %%(%s)s < %%(%s)s"%(colName,
 				base.getSQLKey("pos", r.value, sqlPars), sizeName))
-		return _buildDisjunction(parts)
+		return "(%s)"%" OR ".join(parts)
+
+
+class PQLFloatPar(PQLPar):
+	"""a PQL float parameter.
+
+	This has a special getSQLForInterval method for cases like SSA's
+	BAND.
+	"""
+	valParser = float
+
+	def getSQLForInterval(self, lowerColName, upperColName, sqlPars):
+		"""returns an SQL phrase against an interval in a table.
+		"""
+		if len(self.ranges)==1: # Special case for SQL cosmetics
+			return self.ranges[0].getSQLForInterval(
+				lowerColName, upperColName, sqlPars)
+		else:
+			return "(%s)"%" OR ".join(
+				r.getSQLForInterval(lowerColName, upperColName, sqlPars) 
+					for r in self.ranges)
+	
+

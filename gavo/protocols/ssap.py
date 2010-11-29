@@ -32,4 +32,4 @@ class SSAPCore(svcs.DBCore):
 		if pars.get("REQUEST", "queryData")!="queryData":
 			raise base.ValidationError("Only queryData operation supported so"
 				" far for SSAP.", "REQUEST")
-		fragment, pars = self._getSQLWhere(inputData, queryMeta)
+		return svcs.DBCore.run(self, service, inputData, queryMeta)

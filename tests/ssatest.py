@@ -49,17 +49,19 @@ class _SSATable(testhelpers.TestResource):
 		return data.getPrimaryTable()
 	
 	def clean(self, res):
-		res.drop().commit().close()
-
+		res.commit().close()
+#		res.drop().commit().close()
 
 _ssaTable = _SSATable()
 
 
-class ImportTest(testhelpers.VerboseTest):
+class _WithSSATableTest(testhelpers.VerboseTest):
 	resources = [("ssaTable", _ssaTable)]
 
+
+class ImportTest(_WithSSATableTest):
 	def setUp(self):
-		testhelpers.VerboseTest.setUp(self)
+		_WithSSATableTest.setUp(self)
 		self.row1 = self.ssaTable.getRow("ivo://test.inv/test1")
 
 	def testImported(self):
@@ -69,27 +71,60 @@ class ImportTest(testhelpers.VerboseTest):
 		self.assertEqual(self.row1["ssa_location"], None)
 
 
-class CoreTest(testhelpers.VerboseTest):
-	resources = [("ssaTable", _ssaTable)]
 
+
+class CoreResultTest(_WithSSATableTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		inDict, ids = sample
+		res = getRD().getById("s").runFromDict(inDict, "dal.xml")
+		self.assertEqual(
+			set([row["ssa_pubDID"].split("/")[-1] 
+				for row in res.original.getPrimaryTable()]),
+			set(ids))
+
+	samples = [
+		({"REQUEST": "queryData", "POS": "10%2c+15", "SIZE": "0.5"},
+		["test1"]),
+		({"REQUEST": "queryData", "POS": "10%2c+15", "SIZE": "2"},
+		["test1", "test2"]),
+		({"REQUEST": "queryData", "BAND": "/4.5e-7,6.5e-7/"},
+		["test1", "test3"]),
+		({"REQUEST": "queryData", "BAND": "4.5e-7/7.5e-7"},
+		["test1", "test2", "test3"]),
+		({"REQUEST": "queryData", "BAND": "U"},
+		[]),
+		({"REQUEST": "queryData", "BAND": "V,R"},
+		["test2", "test3"]),
+		({"REQUEST": "queryData", "TIME": "/2020-12-20T13:00:01"},
+		["test1"]),
+		({"REQUEST": "queryData", "FORMAT": "votable"},
+		["test2"]),
+		({"REQUEST": "queryData", "FORMAT": "compliant"},
+		["test2"]),
+		({"REQUEST": "queryData", "FORMAT": "native"},
+		["test3"]),
+		({"REQUEST": "queryData", "FORMAT": "image"},
+		[]),
+		({"REQUEST": "queryData", "FORMAT": "all"},
+		["test1", "test2", "test3"]),
+	]
+
+
+class CoreFailuresTest(_WithSSATableTest):
 	def setUp(self):
-		testhelpers.VerboseTest.setUp(self)
-		self.core = ssap.SSAPCore(
-			None, 
-			queriedTable=self.ssaTable.tableDef).finishElement()
-		self.service = svcs.Service(
-			None,
-			core=self.core).finishElement()
-	
+		_WithSSATableTest.setUp(self)
+		self.service = getRD().getById("s")
+
 	def testBadRequestRejected(self):
 		self.assertRaises(api.ValidationError, self.service.runFromDict,
 			{"REQUEST": "folly"}, "dal.xml")
 
-	def testWithPos(self):
-		self.service.runFromDict(
-			{"REQUEST": "queryData", "POS": "10%2c+15", "SIZE": "0.5"}, "dal.xml")
-
+	def testBadBandRejected(self):
+		self.assertRaises(api.ValidationError, self.service.runFromDict,
+			{"REQUEST": "queryData", "BAND": "1/2/0.4"})
 
 
 if __name__=="__main__":
-	testhelpers.main(CoreTest)
+	testhelpers.main(CoreResultTest)

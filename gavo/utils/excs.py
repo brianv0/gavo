@@ -1,4 +1,5 @@
-""" Global exceptions for the GAVO data center software.
+""" 
+Global exceptions for the GAVO data center software.
 
 All exceptions escaping modules should inherit from Error in some way.
 Exceptions orginating in only one module should usually be defined there,

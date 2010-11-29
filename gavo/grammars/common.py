@@ -42,6 +42,9 @@ class REAttribute(base.UnicodeAttribute):
 			return value.pattern
 
 
+_atPattern = re.compile("@(%s)"%utils.identifierPattern.pattern[:-1])
+
+
 class Rowfilter(procdef.ProcApp):
 	"""A generator for rows coming from a grammar.
 
@@ -54,10 +57,17 @@ class Rowfilter(procdef.ProcApp):
 	The procedure definition must result in a generator, i.e., there must
 	be at least one yield.  Otherwise, it may swallow or create as many
 	rows as desired.
+
+	Here, you can only access whatever comes from the grammar.  You can
+	access grammar keys in late parameters as row[key] or, if key is 
+	like an identifier, as @key.
 	"""
 	name_ = "rowfilter"
 	requiredType="rowfilter"
 	formalArgs = "row, rowIter"
+
+	def getFuncCode(self):
+		return _atPattern.sub(r'row["\1"]', (procdef.ProcApp.getFuncCode(self)))
 
 
 def compileRowfilter(filters):

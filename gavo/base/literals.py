@@ -166,8 +166,9 @@ def parseSPoint(soup):
 	"""returns an SPoint for a coordinate pair.
 
 	The coordinate pair can be formatted in a variety of ways; see parseCooPair.
+	Input is always in degrees.
 	"""
-	return pgsphere.SPoint(*parseCooPair(soup))
+	return pgsphere.SPoint.fromDegrees(*parseCooPair(soup))
 
 
 @utils.memoized

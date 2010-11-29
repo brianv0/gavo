@@ -416,7 +416,11 @@ class DBCore(TableBasedCore):
 		if self.sortKey:
 			sortKeys = self.sortKey.split(",")
 		queryMeta.overrideDbOptions(limit=self.limit, sortKeys=sortKeys)
-		fragment, pars = self._getSQLWhere(inputData, queryMeta)
+		try:
+			fragment, pars = self._getSQLWhere(inputData, queryMeta)
+		except base.LiteralParseError, ex:
+			raise base.ui.logOldExc(base.ValidationError(str(ex),
+				colName=ex.attName))
 		queryMeta["sqlQueryPars"] = pars
 		return self._runQuery(resultTableDef, fragment, pars, queryMeta)
 

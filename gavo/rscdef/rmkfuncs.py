@@ -20,9 +20,11 @@ from gavo import stc
 from gavo import utils
 from gavo.base import coords, parseBooleanLiteral, parseInt, vizierexprs
 from gavo.base.literals import *
+from gavo.protocols import pql
 from gavo.stc import parseSimpleSTCS
 from gavo.utils import codetricks
 from gavo.utils import dmsToDeg, hmsToDeg
+from gavo.utils import pgsphere
 
 
 class IgnoreThisRow(Exception):
@@ -213,7 +215,7 @@ def addRmkFunc(name, func): # XXX TODO: Rename to something like addProcDefFunc
 	globals()[name] = func
 
 
-def makeProc(funcName, code, setupCode, parent):
+def makeProc(funcName, code, setupCode, parent, **moreNames):
 	"""compiles a function in the rmkfunc's namespace.
 
 	code is a complete function source.  setupCode is executed right away
@@ -221,6 +223,7 @@ def makeProc(funcName, code, setupCode, parent):
 	"""
 	funcNs = globals().copy()
 	funcNs["parent"] = parent
+	funcNs.update(moreNames)
 	if setupCode.strip():
 		try:
 			exec setupCode.rstrip() in funcNs

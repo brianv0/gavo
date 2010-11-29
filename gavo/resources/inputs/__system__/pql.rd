@@ -16,9 +16,6 @@
 			<par name="posCol" description="Name of the database column
 				to be compared against the input value(s).  It must be of
 				type spoint."/>
-			<code>
-				from gavo.protocols import pql
-			</code>
 		</setup>
 
 		<code>
@@ -35,4 +32,23 @@
 					float(inPars.get(sizeKey, 0.5)))
 		</code>
 	</procDef>
+
+	<procDef id="dateParameter">
+		<doc>
+			A parameter constraining an epoch or similar. 
+		</doc>
+
+		<setup>
+			<par name="consCol" description="Name of the database column
+				constrained by the input value.  Must be a date or a timestamp."/>
+		</setup>
+
+		<code>
+			key = inputKeys[0].name
+			parsed = pql.PQLDatePar.fromLiteral(inPars.get(key, None), key)
+			if parsed is not None:
+				yield parsed.getSQL(consCol, outPars)
+		</code>
+	</procDef>
+
 </resource>
