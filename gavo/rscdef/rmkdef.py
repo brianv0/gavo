@@ -97,8 +97,8 @@ class MapRule(base.Structure):
 		else:
 			colDef = tableDef.getColumnByName(self.dest)
 			if colDef.values and colDef.values.nullLiteral is not None:
-				code.append("if %s=='%s':\n  result['%s'] = None\nelse:"%(self.src,
-					colDef.values.nullLiteral, self.dest))
+				code.append("if vars['%s']=='%s':\n  result['%s'] = None\n"
+					"else:"%(self.src, colDef.values.nullLiteral, self.dest))
 			try:
 				code.append('result["%s"] = %s'%(self.dest, 
 					base.sqltypeToPythonCode(colDef.type)%'vars["%s"]'%self.src))
