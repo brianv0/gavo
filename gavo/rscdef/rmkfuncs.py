@@ -133,8 +133,7 @@ def makeTimestamp(date, time):
 
 @utils.document
 def parseAngle(literal, format):
-	"""is a macro that converts the various forms angles might be encountered
-	to degrees.
+	"""converts the various forms angles might be encountered to degrees.
 
 	format is one of hms, dms, fracHour.
 

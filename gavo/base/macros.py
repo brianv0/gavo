@@ -141,6 +141,9 @@ class MacroPackage(object):
 		return self.getExpander().expand(stuff)
 
 	def macro_quote(self, arg):
+		"""the argument in quotes (with internal quotes backslash-escaped if
+		necessary.
+		"""
 		return '"%s"'%(arg.replace('"', '\\"'))
 
 
@@ -151,27 +154,37 @@ class StandardMacroMixin(MacroPackage):
 	rd attribute.
 	"""
 	def macro_rdId(self):
+		"""the identifier of the current resource descriptor.
+		"""
 		return self.rd.sourceId
 
 	def macro_schema(self):
+		"""the schema of the current resource descriptor.
+		"""
 		return self.rd.schema
 	
 	def macro_RSTservicelink(self, serviceId, title=None):
+		"""a link to an internal service; id is <rdId>/<serviceId>/<renderer>,
+		title, if given, is the anchor text.
+
+		The result is a link in the short form for restructured test.
+		"""
 		if title is None:
 			title = serviceId
 		return "`%s <%s>`_"%(title, config.makeSitePath(serviceId))
 
-	def macro_servicelink(self, serviceId):
-		return config.makeSitePath(serviceId)
-	
 	def macro_internallink(self, relPath):
+		"""an absolute URL from a path relative to the DC root.
+		"""
 		return config.makeSitePath(relPath)
 
 	def macro_today(self):
+		"""today's date in ISO representation.
+		"""
 		return str(datetime.date.today())
 
 	def macro_getConfig(self, section, name=None):
-		"""returns the current value of configuration item {section}{name}.
+		"""the current value of configuration item {section}{name}.
 
 		You can also only give one argument to access settings from the
 		general section.
@@ -181,9 +194,7 @@ class StandardMacroMixin(MacroPackage):
 		return str(config.get(section, name))
 
 	def macro_test(self, *args):
-		"""always replaces macro call with "test macro expansion"
-
-		For testing purposes.
+		"""always "test macro expansion".
 		"""
 		return "test macro expansion"
 

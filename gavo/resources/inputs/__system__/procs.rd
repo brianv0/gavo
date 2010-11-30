@@ -120,10 +120,10 @@
 
 <procDef type="apply" id="mapValue">
 	<doc><![CDATA[
-	is a macro that translates vaules via a utils.NameMap
+	is an apply proc that translates values via a utils.NameMap
 	
 	If an object cannot be resolved, a null value is entered (i.e., you
-	shouldn't get an exception out of this macro but can weed out "bad"
+	shouldn't get an exception out of this proc but can weed out "bad"
 	records through notnull-conditions later if you wish).
 
 	Destination may of course be the source field (though that messes

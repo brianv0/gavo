@@ -161,6 +161,19 @@ class StructDocMaker(object):
 		except TypeError: # unhashable default is a default
 			return True
 
+	def _addMacroDocs(self, klass, content):
+		if not issubclass(klass, base.MacroPackage):
+			return
+		macs = []
+		for name in dir(klass):
+			if name.startswith("macro_"):
+				macs.append((name, getattr(klass, name)))
+		content.addHead2("Macros defined on %s"%klass.__name__)
+		for name, mac in sorted(macs):
+			makeMacroDoc(name[6:], mac, content)
+		content.delEmptySection()
+		content.makeSpace()
+
 	def _realAddDocsFrom(self, klass):
 		if klass.name_ in self.docStructure:
 			return
@@ -202,6 +215,8 @@ class StructDocMaker(object):
 		content.delEmptySection()
 		content.makeSpace()
 
+		self._addMacroDocs(klass, content)
+
 		self.docParts.append((klass.name_, content.content))
 
 	def addDocsFrom(self, klass):
@@ -218,7 +233,18 @@ class StructDocMaker(object):
 			resDoc.extend(doc)
 		return resDoc
 
-# XXX TODO: Check for macros.
+
+def makeMacroDoc(name, macFunc, content):
+	# macros have args in {}, of course there's no self, and null-arg
+	# macros have not {}...
+	args, varargs, varkw, defaults = inspect.getargspec(macFunc)
+	args = inspect.formatargspec(args[1:], varargs, varkw, defaults
+		).replace("(", "{").replace(")", "}").replace("{}", ""
+		).replace(", ", "}{")
+	content.addRaw("*\\%s%s*\n"%(name, args))
+	content.addRaw(utils.fixIndentation(
+		macFunc.func_doc or "undocumented", "  ", 1)+"\n")
+
 
 def getStructDocs(docStructure):
 	dm = StructDocMaker(docStructure)
@@ -378,5 +404,6 @@ def main():
 
 
 if __name__=="__main__":
-	from gavo import api
-	print getPredefinedProcsDoc(DocumentStructure())
+	c = []
+	makeMacroDoc("qName", rscdef.TableDef.macro_qName, c)
+	print "\n".join(c)
