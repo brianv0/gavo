@@ -193,10 +193,11 @@
 					of the frame.
 					"""
 					def __init__(self, wcs, centerPix):
-						centerPos = wcs.pix2wcs(*centerPix)
+						self.centerPos = wcs.pix2wcs(*centerPix)
+						self.pixelScale = wcs.getPixelSizeDeg()
 						offCenterPos = wcs.pix2wcs(centerPix[0]+1, centerPix[1]+1)
-						self._computeCDs(centerPos[0]-offCenterPos[0], 
-							centerPos[1]-offCenterPos[1])
+						self._computeCDs(self.centerPos[0]-offCenterPos[0], 
+							self.centerPos[1]-offCenterPos[1])
 
 					def _computeCDs(self, da, dd):
 						dAngle = math.atan2(da, dd)
@@ -204,15 +205,8 @@
 							(da*math.cos(dAngle), da*math.sin(dAngle)),
 							(dd*math.sin(dAngle), dd*math.cos(dAngle)))
 
-					def getPixelScales(self):
-						"""returns the pixel sizes in alpha and delta in degrees.
-						"""
-						aVec, dVec = self.cds
-						return (math.sqrt(aVec[0]**2+aVec[1]**2),
-							math.sqrt(dVec[0]**2+dVec[1]**2))
-
 				def copyFromWCS(vars, wcs, result):
-					"""adds the "simple" WCS kes from the wcstools instance wcs to
+					"""adds the "simple" WCS keys from the wcstools instance wcs to
 					the record result.
 					"""
 					result["mime"] = "image/fits"
@@ -225,7 +219,8 @@
 						for i in axeInds)
 					pixelGauge = PixelGauge(wcs, (dims[0]/2., dims[1]/2.))
 					result["pixelSize"] = dims
-					result["pixelScale"] = pixelGauge.getPixelScales()
+					result["pixelScale"] = (abs(wcs.WCSStructure.xinc),
+						abs(wcs.WCSStructure.yinc))
 	
 					result["wcs_projection"] = vars.get("CTYPE1")
 					if result["wcs_projection"]:
@@ -250,23 +245,17 @@
 			original="computeInputBase">
 		<code>
 			wcs = coords.getWCS(vars)
-			try:
-				copyFromWCS(vars, wcs, result)
-				result["primaryBbox"], result["secondaryBbox"
-					] = siap.splitCrossingBox(coords.getBboxFromWCSFields(wcs))
-			except (KeyError, AttributeError), msg:
-				nullOutWCS(result, ["primaryBbox", "secondaryBbox"])
+			copyFromWCS(vars, wcs, result)
+			result["primaryBbox"], result["secondaryBbox"
+				] = siap.splitCrossingBox(coords.getBboxFromWCSFields(wcs))
 		</code>
 	</procDef>
 
 	<procDef type="apply" id="computePGS" original="computeInputBase">
 		<code>
 			wcs = coords.getWCS(vars)
-			try:
-				copyFromWCS(vars, wcs, result)
-				result["coverage"] = coords.getSpolyFromWCSFields(wcs)
-			except (KeyError, AttributeError), msg:
-				nullOutWCS(result, ["coverage"])
+			copyFromWCS(vars, wcs, result)
+			result["coverage"] = coords.getSpolyFromWCSFields(wcs)
 		</code>
 	</procDef>
 
