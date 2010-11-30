@@ -302,7 +302,12 @@ class SelectChoice(ChoiceBase):
 
         def renderOptions(ctx, data):
             if self.noneOption is not None:
-                yield T.option(value=iformal.IKey(self.noneOption).key())[iformal.ILabel(self.noneOption).label()]
+                noneVal = iformal.IKey(self.noneOption).key()
+                option = T.option(value=noneVal)[
+                    iformal.ILabel(self.noneOption).label()]
+                if value is None or value==noneVal:
+                    option = option(selected='selected')
+                yield option
             if data is None:
                 return
             for item in data:
@@ -471,7 +476,7 @@ class RadioChoice(ChoiceBase):
             if self.noneOption is not None:
                 itemKey = iformal.IKey(self.noneOption).key()
                 itemLabel = iformal.ILabel(self.noneOption).label()
-                yield renderOption(ctx, itemKey, itemLabel, idCounter.next(), itemKey==value)
+                yield renderOption(ctx, itemKey, itemLabel, idCounter.next(), itemKey==value or value is None)
             if not data:
                 return
             for item in data:
@@ -905,7 +910,7 @@ class FileUploadRaw(object):
 
     def processInput(self, ctx, key, args):
         if inevow.IRequest(ctx).fields is None: # no file upload
-					return None, None
+          return None, None
         fileitem = inevow.IRequest(ctx).fields[key]
         name = fileitem.filename.decode(util.getPOSTCharset(ctx))
         value = (name, fileitem.file)

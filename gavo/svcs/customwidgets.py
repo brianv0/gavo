@@ -131,12 +131,17 @@ class MultiSelectChoice(SelectChoice):
 	def _renderTag(self, ctx, key, value, converter, disabled):
 		if not isinstance(value, (list, tuple)):
 			value = [value]
+
 		# unfortunately, I need to copy all that code from formal to let 
 		# me keep multiple selections
 		def renderOptions(ctx, data):
 			if self.noneOption is not None:
-				yield T.option(value=iformal.IKey(self.noneOption).key())[
+				noneVal = iformal.IKey(self.noneOption).key()
+				option = T.option(value=noneVal.key())[
 					iformal.ILabel(self.noneOption).label()]
+				if value is None or value==noneVal:
+					option = option(selected='selected')
+				yield option
 			if data is None:
 				return
 			for item in data:
@@ -147,6 +152,7 @@ class MultiSelectChoice(SelectChoice):
 				if optValue in value:
 					option = option(selected='selected')
 				yield option
+
 		tag = T.select(name=key, id=render_cssid(key), data=self.options)[
 			renderOptions]
 		if disabled:
