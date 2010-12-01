@@ -110,7 +110,7 @@ class RolesMixin(object):
 
 
 class ColumnList(list):
-	"""is a list of column.Columns (or derived classes) that takes
+	"""A list of column.Columns (or derived classes) that takes
 	care that no duplicates (in name) occur.
 
 	If you add a field with the same dest to a ColumnList, the previous
@@ -119,10 +119,14 @@ class ColumnList(list):
 
 	Also, two ColumnLists are considered equal if they contain the
 	same names.
+
+	After construction, you should set the withinId attribute to
+	something that will help make sense of error messages.
 	"""
 	def __init__(self, *args):
 		list.__init__(self, *args)
 		self.nameIndex = dict([(c.name, ct) for ct, c in enumerate(self)])
+		self.withinId = "unnamed table"
 
 	def __contains__(self, fieldName):
 		return fieldName in self.nameIndex
@@ -135,6 +139,15 @@ class ColumnList(list):
 				if f.name not in self.internallyUsedFields])
 			return myFields==otherFields
 		return False
+
+	def deepcopy(self, newParent):
+		"""returns a deep copy of self.
+
+		This means that all child structures are being copied.  In that
+		process, they receive a new parent, which is why you need to
+		pass one in.
+		"""
+		return self.__class__([c.copy(newParent) for c in self])
 
 	def getIdIndex(self):
 		try:
@@ -181,7 +194,7 @@ class ColumnList(list):
 		try:
 			return self[self.nameIndex[name]]
 		except KeyError:
-			raise base.NotFoundError(name, what="column", within="unnamed table")
+			raise base.NotFoundError(name, what="column", within=self.withinId)
 
 	def getColumnById(self, id):
 		"""returns the column with id.
@@ -191,7 +204,7 @@ class ColumnList(list):
 		try:
 			return self.getIdIndex()[id]
 		except KeyError:
-			raise base.NotFoundError(id, what="column", within="unnamed table")
+			raise base.NotFoundError(id, what="column", within=self.withinId)
 
 	def getColumnsByUCD(self, ucd):
 		"""returns all columns having ucd.
@@ -228,7 +241,7 @@ class ColumnList(list):
 
 
 class ColumnListAttribute(base.StructListAttribute):
-	"""is an adapter from a ColumnList to a structure attribute.
+	"""An adapter from a ColumnList to a structure attribute.
 	"""
 	@property
 	def default_(self):

@@ -149,7 +149,7 @@ def _iterFields(serManager):
 def _iterTableParams(serManager):
 	"""iterates over V.PARAMs based on the table's param elements.
 	"""
-	for param in serManager.table.params:
+	for param in serManager.table.iterParams():
 		el = V.PARAM()
 		_defineField(el, valuemappers.VColDesc(param))
 		el.value = param.content_

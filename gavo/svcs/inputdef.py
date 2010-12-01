@@ -201,7 +201,6 @@ class ContextGrammar(grammars.Grammar):
 		return cls.fromInputKeys([InputKey.fromColumn(c) for c in srcColumns])
 
 
-
 class InputDescriptor(rscdef.DataDescriptor):
 	"""A data descriptor for defining a core's input.
 

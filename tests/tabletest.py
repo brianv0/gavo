@@ -372,5 +372,53 @@ class STCTest(testhelpers.VerboseTest):
 
 # test exc. with duplicate names.
 
+
+class _ParamTD(testhelpers.TestResource):
+	def make(self, ignored):
+		return base.parseFromString(rscdef.TableDef, 
+			'<table id="u"><param name="i" type="integer"/>'
+			'<param name="d" type="timestamp">'
+			'2011-11-11T11:11:11</param></table>')
+
+
+class ParamTest(testhelpers.VerboseTest):
+	resources = [("td", _ParamTD())]
+
+	def testPlain(self):
+		table = rsc.TableForDef(self.td)
+		self.assertEqual(table.getParam("i"), None)
+		self.assertEqual(table.getParam("d"), datetime.datetime(
+			2011, 11, 11, 11, 11, 11))
+	
+	def testNoClobber(self):
+		table = rsc.TableForDef(self.td)
+		table.setParam("i", 10)
+		self.assertEqual(table.getParam("i"), 10)
+		table2 = rsc.TableForDef(self.td)
+		self.assertEqual(table2.getParam("i"), None)
+	
+	def testParamCons(self):
+		table = rsc.TableForDef(self.td, params={
+				"i": 10, "d": "2010-10-10T10:10:10"})
+		self.assertEqual(table.getParam("i"), 10)
+		self.assertEqual(table.getParam("d"), datetime.datetime(
+			2010, 10, 10, 10, 10, 10))
+	
+	def testSetParam(self):
+		table = rsc.TableForDef(self.td)
+		table.setParam("i", 10)
+		table.setParam("d", "2010-10-10T10:10:10")
+		self.assertEqual(table.getParam("i"), 10)
+		self.assertEqual(table.getParam("d"), datetime.datetime(
+			2010, 10, 10, 10, 10, 10))
+
+	def testSetParamFail(self):
+		table = rsc.TableForDef(self.td)
+		self.assertRaisesWithMsg(base.NotFoundError,
+		"column 'doric' could not be located in table u",
+		table.setParam,
+		("doric", 10))
+
+
 if __name__=="__main__":
-	testhelpers.main(STCTest)
+	testhelpers.main(ParamTest)

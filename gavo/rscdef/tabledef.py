@@ -234,7 +234,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 	_cols =  common.ColumnListAttribute("columns",
 		childFactory=column.Column, description="Columns making up this table.",
 		copyable=True)
-	_params = base.StructListAttribute("params",
+	_params = common.ColumnListAttribute("params",
 		childFactory=column.Param, description='Param ("global columns") for'
 		' this table.', copyable=True)
 	_viewStatement = base.UnicodeAttribute("viewStatement", default=None,
@@ -321,6 +321,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 			self.id = utils.intToFunnyWord(id(self))
 		self._resolveSTC()
 		self._completeElementNext(TableDef)
+		self.columns.withinId = self.params.tableName = "table "+self.id
 
 	def _defineFixupFunction(self):
 		"""defines a function to fix up records from column's fixup attributes.
@@ -439,42 +440,21 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		return self.columns.getFieldIndex(fieldName)
 
 	def getParamByName(self, name):
-		for p in self.params:
-			if p.name==name:
-				return p
-		raise base.NotFoundError(name, what="param", within="table %s"%self.id)
+		return self.params.getColumnByName(name)
 
 	def getColumnByName(self, name):
-		"""delegates to common.ColumnList.
-		"""
-		try:
-			return self.columns.getColumnByName(name)
-		except base.NotFoundError, msg:
-			msg.within = "table %s"%self.id
-			raise
+		return self.columns.getColumnByName(name)
 
 	def getColumnById(self, id):
-		"""delegates to common.ColumnList.
-		"""
-		try:
-			return self.columns.getColumnById(id)
-		except base.NotFoundError, msg:
-			msg.table = "table %s"%self.id
-			raise
+		return self.columns.getColumnById(id)
 
 	def getColumnsByUCD(self, ucd):
-		"""delegates to common.ColumnList.
-		"""
 		return self.columns.getColumnsByUCD(ucd)
 
 	def getColumnByUCD(self, ucd):
-		"""delegates to common.ColumnList.
-		"""
 		return self.columns.getColumnByUCD(ucd)
 
 	def getColumnByUCDs(self, *ucds):
-		"""delegates to common.ColumnList.
-		"""
 		return self.columns.getColumnByUCDs(*ucds)
 	
 	def getColumnsByUCDs(self, *ucds):

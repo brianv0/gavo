@@ -463,16 +463,54 @@ class Param(Column):
 
 	_valueCache = base.Undefined
 
+	def __repr__(self):
+		return "<Param %s=%s>"%(self.name, repr(self.content_))
+
 	@property
 	def value(self):
 		if self._valueCache is base.Undefined:
 			if self.content_ is base.NotGiven:
 				self._valueCache = None
 			else:
-				self._valueCache = eval(
-					base.sqltypeToPythonCode(self.type)%repr(self.content_),
-					base.getDefaultValueParsers())
+				self._valueCache = self._parse(self.content_)
 		return self._valueCache
+
+	def set(self, val):
+		"""sets this parameter's value.
+
+		val can be a python value, or string literal.  In the second
+		case, this string literal will be preserved in string serializations
+		of this param.
+		"""
+		if not isinstance(val, basestring):
+			val = self._unparse(val)
+		self.content_ = val
+		self._valueCache = base.Undefined
+
+	def _parse(self, literal):
+		"""parses literal using the default value parser for this param's
+		type.
+
+		If literal is not a string, it will be returned unchanged.
+		"""
+		if not isinstance(literal, basestring):
+			return literal
+		return eval(
+			base.sqltypeToPythonCode(self.type)%repr(literal),
+			base.getDefaultValueParsers())
+
+	def _unparse(self, value):
+		"""returns a string representation of value appropriate for this
+		type.
+
+		This is currently extremely half-assed: Empty strings for None,
+		str(value) otherwise.  We probably should have the inverse
+		of sqltypeToPythonCode for this purpose.
+		"""
+		if value is None:
+			return ""
+		else:
+			return str(value)
 
 	def validate(self):
 		self._validateNext(Param)

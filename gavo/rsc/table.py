@@ -85,7 +85,7 @@ class BaseTable(base.MetaMixin):
 	convenience, tables must accept any keyword argument and only pluck those
 	out it wants.
 
-	Here's a list of keywords used by known subclasses of BaseTables:
+	Here's a list of keywords used by BaseTables or known subclasses:
 
 		- validateRows -- have rows be validated by the tableDef before addition
 			(all Tables)
@@ -94,6 +94,8 @@ class BaseTable(base.MetaMixin):
 		- connection -- a database connection to use for accessing DbTables.
 		- votCasts -- a dictionary mapping column names to dictionaries overriding
 			keys of valuemappers.VColDescs.
+		- params -- a dictionary mapping param keys to values, where python
+		  values and literals allowed.
 
 	You can add rows using the addRow method.  For bulk additions, however,
 	it may be much more efficient to call getFeeder (though for in-memory
@@ -124,7 +126,7 @@ class BaseTable(base.MetaMixin):
 			is not propagated.
 		- close() -> may be called by clients to signify the table will no
 			longer be used and resources should be cleared (e.g., for DBTables
-			with private connections.
+			with private connections).
 	"""
 	_runScripts = None
 
@@ -134,6 +136,37 @@ class BaseTable(base.MetaMixin):
 		self.validateRows = kwargs.get("validateRows", False)
 		self.votCasts = kwargs.get("votCasts", {})
 		self.role = kwargs.get("role")
+		self._params = self.tableDef.params.deepcopy(self.tableDef)
+		self._params.withinId = "table "+self.tableDef.id
+		if "params" in kwargs:
+			self.setParams(kwargs.pop("params"))
+
+	def setParams(self, parDict):
+		for k, v in parDict.iteritems():
+			self.setParam(k, v)
+
+	def setParam(self, parName, value):
+		"""sets a parameter to a value.
+
+		String-typed values will be parsed, everything else is just entered
+		directly.  Trying to write to non-existing params will raise a
+		NotFoundError.
+
+		Do now write to params directly, you'll break things.
+		"""
+		self._params.getColumnByName(parName).set(value)
+	
+	def getParam(self, parName):
+		"""retrieve a parameter (python) value.
+		"""
+		return self._params.getColumnByName(parName).value
+
+	def iterParams(self):
+		"""iterates over the parameters for this table.
+
+		The items returned are rscdef.Param instances.
+		"""
+		return self._params
 
 	__iter__ = _makeFailIncomplete("__iter__")
 	__len__ = _makeFailIncomplete("__len__")
@@ -157,7 +190,6 @@ class BaseTable(base.MetaMixin):
 	def runScripts(self, phase, **kwargs):
 		if self._runScripts:  # if defined, it was set by data and make.
 			self._runScripts(self, phase, **kwargs)
-
 
 
 class InMemoryTable(BaseTable):
@@ -193,10 +225,6 @@ class InMemoryTable(BaseTable):
 
 	def getFeeder(self, **kwargs):
 		return Feeder(self, **kwargs)
-
-	@property
-	def params(self):
-		return self.tableDef.params
 
 
 class InMemoryIndexedTable(InMemoryTable):
