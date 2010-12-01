@@ -60,6 +60,33 @@ class DBIndex(base.Structure):
 
 	def setParseContext(self, ctx):
 		self.rawSQLAllowed = not ctx.restricted
+	
+	def create(self, querier):
+		"""creates the index on the parent table if necessary.
+		
+		querier is an object mixing in the DBMethodsMixin, usually the
+		DBTable object the index should be created on.
+		"""
+		destTableName = self.parent.getQName()
+		if not querier.hasIndex(destTableName, index.dbname):
+			if not self.parent.system:
+				base.ui.notifyIndexCreation(
+					self.parent.expand(index.dbname))
+				querier.query(self.parent.expand("CREATE INDEX %s ON %s (%s)"%(
+					self.dbname, destTableName, self.content_)))
+			if self.cluster:
+				querier.query(parent.tableDef.expand(
+					"CLUSTER %s ON %s"%(self.dbname, destTableName)))
+
+	def drop(self, querier):
+		"""drops the index if it exists.
+
+		querier is an object mixing in the DBMethodsMixin, usually the
+		DBTable object the index possibly exists on.
+		"""
+		iName = self.parent.expand(self.dbname)
+		if querier.hasIndex(parent.getQName(), iName):
+			querier.query("DROP INDEX %s.%s"%(self.tableDef.rd.schema, iName))
 
 	@property
 	def dbname(self):

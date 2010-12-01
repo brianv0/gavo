@@ -209,11 +209,8 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 			return
 		self._dropForeignKeys()
 		self._dropPrimaryKey()
-		schema, unqualified = self.tableDef.rd.schema, self.tableDef.id
 		for index in self.tableDef.indices:
-			iName = self.tableDef.expand(index.dbname)
-			if self.hasIndex(self.tableName, iName):
-				self.query("DROP INDEX %s.%s"%(schema, iName))
+			index.drop(self)
 		return self
 	
 	def makeIndices(self):
@@ -225,15 +222,7 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 		if self.tableDef.primary:
 			self._definePrimaryKey()
 		for index in self.tableDef.indices:
-			if not self.hasIndex(self.tableName, index.dbname):
-				if not self.tableDef.system:
-					base.ui.notifyIndexCreation(
-						self.tableDef.expand(index.dbname))
-				self.query(self.tableDef.expand("CREATE INDEX %s ON %s (%s)"%(
-					index.dbname, self.tableName, index.content_)))
-			if index.cluster:
-				self.query(self.tableDef.expand(
-					"CLUSTER %s ON %s"%(index.dbname, self.tableName)))
+			index.create(self)
 		self._addForeignKeys()
 		return self
 

@@ -60,7 +60,8 @@ class IgnoreSpec(base.Structure):
 					for r in base.SimpleQuerier(connection=connection
 						).query(self.fromdb))
 			except base.DBError: # table probably doesn't exist yet.
-				pass
+				if base.DEBUG:
+					base.ui.logError()
 		if self.fromfile:
 			for ln in open(self.fromfile):
 				ln = ln.strip()
