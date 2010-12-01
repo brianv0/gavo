@@ -8,6 +8,7 @@ from gavo import api
 from gavo import svcs
 from gavo.protocols import ssap
 from gavo.helpers import testhelpers
+from gavo.utils import DEG
 
 
 def getRD():
@@ -68,7 +69,7 @@ class ImportTest(_WithSSATableTest):
 		self.assertEqual(self.row1["ssa_dstitle"], "test spectrum 1")
 	
 	def testLocation(self):
-		self.assertEqual(self.row1["ssa_location"], None)
+		self.assertAlmostEqual(self.row1["ssa_location"].x, 10.1*DEG)
 
 
 

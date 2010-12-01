@@ -43,6 +43,9 @@ class DBIndex(base.Structure):
 		"Raw SQL specifying an expression the table should be"
 		" indexed for.  If not given, the expression will be generated from"
 		" columns (which is what you usually want).")
+	_method = base.UnicodeAttribute("method", default=None,
+		description="The indexing method, like an index type.  If you don't"
+			" know what to say here, you don't need it.", copyable=True)
 
 	rawSQLAllowed = True
 
@@ -68,12 +71,15 @@ class DBIndex(base.Structure):
 		DBTable object the index should be created on.
 		"""
 		destTableName = self.parent.getQName()
-		if not querier.hasIndex(destTableName, index.dbname):
+		if not querier.hasIndex(destTableName, self.dbname):
 			if not self.parent.system:
 				base.ui.notifyIndexCreation(
-					self.parent.expand(index.dbname))
-				querier.query(self.parent.expand("CREATE INDEX %s ON %s (%s)"%(
-					self.dbname, destTableName, self.content_)))
+					self.parent.expand(self.dbname))
+			usingClause = ""
+			if self.method is not None:
+				usingClause = " USING %s"%self.method
+			querier.query(self.parent.expand("CREATE INDEX %s ON %s%s (%s)"%(
+				self.dbname, destTableName, usingClause, self.content_)))
 			if self.cluster:
 				querier.query(parent.tableDef.expand(
 					"CLUSTER %s ON %s"%(self.dbname, destTableName)))

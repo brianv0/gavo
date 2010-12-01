@@ -154,6 +154,7 @@
 			<column name="coverage" type="spoly" unit="deg"
 				description="Field covered by the image"
 				displayHint="type=suppress"/>
+			<index columns="coverage" name="pgspos" method="GIST"/>
 		</events>
 	</mixinDef>
 
