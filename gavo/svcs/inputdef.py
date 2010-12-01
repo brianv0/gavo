@@ -14,12 +14,13 @@ from gavo import grammars
 from gavo import rscdef
 from gavo.base import vizierexprs
 from gavo.imp import formal
+from gavo.rscdef import column
 from gavo.svcs import customwidgets
 
 MS = base.makeStruct
 
 
-class InputKey(rscdef.Column):
+class InputKey(column.ParamBase):
 	"""A description of a piece of input.
 
 	Think of inputKeys as abstractions for input fields in forms, though
@@ -40,9 +41,6 @@ class InputKey(rscdef.Column):
 		copyable=True)
 	_showItems = base.IntAttribute("showItems", default=3,
 		description="Number of items to show at one time on selection widgets.",
-		copyable=True)
-	_value = base.UnicodeAttribute("value", default=None,
-		description="A constant value for this field (will be rendered as hidden).",
 		copyable=True)
 	_inputUnit = base.UnicodeAttribute("inputUnit", default=None,
 		description="Override unit of the table column with this.",
@@ -114,17 +112,22 @@ class InputKey(rscdef.Column):
 		return instance.finishElement()
 
 	@classmethod
-	def makeAuto(cls, column, queryMeta={}):
-		"""returns an InputKey if column is "queriable" (vizier-typable and not
-		suppressed), None otherwise.
-		"""
-		if dataField.displayHint.get("type")=="suppress":
-			return
-		try:
-			hasVexprType = vizierexprs.getVexprFor(column.type)
-		except base.Error:
-			return
-		return cls.fromDataField(dataField)
+	def fromColumnViz(cls, column, **kwargs):
+		newType = ""
+		if not column.isEnumerated():
+			try:
+				newType = vizierexprs.getVexprFor(column.type)
+			except base.ConversionError: # no vexpr type, leave existing type
+				pass
+		kwargs["type"] = newType
+		return cls.fromColumn(column, **kwargs)
+
+
+class InputTable(rscdef.TableDef):
+	name_ = "inputTable"
+	_params = rscdef.ColumnListAttribute("params",
+		childFactory=InputKey, description='Input parameters for'
+		' this table.', copyable=True, aliases=["param"])
 
 
 class ContextRowIterator(grammars.RowIterator):
@@ -167,7 +170,7 @@ class ContextGrammar(grammars.Grammar):
 	CondDescs.  Thus, only for other cores will you ever need to bother
 	with ContextGrammars.
 
-	The source tokens for context grammars are dictionaries, usually
+	The source tokens for context grammars are typed dictionaries, usually
 	computed by nevow formal.
 	"""
 	name_ = "contextGrammar"
@@ -262,3 +265,14 @@ class ToFormalConverter(base.typesystems.FromSQLConverter):
 			return formal.String, formal.TextInput
 
 sqltypeToFormal = ToFormalConverter().convert
+
+
+def makeAutoInputDD(core):
+	"""returns a standard inputDD for a core.
+
+	The standard inputDD is just a context grammar with the core's input
+	keys, and the table structure defined by these input keys.
+	"""
+	return MS(InputDescriptor,
+		grammar=MS(ContextGrammar, inputKeys=core.inputTable.params))
+

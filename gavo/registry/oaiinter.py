@@ -244,21 +244,14 @@ class RegistryCore(svcs.Core, base.RestrictionMixin):
 	"""
 	name_ = "registryCore"
 
-	def completeElement(self):
-		if self.inputDD is not base.Undefined:
-			raise base.StructureError("RegistryCores have a fixed"
-				" inputDD that you may not override.")
-		self.inputDD = base.parseFromString(svcs.InputDescriptor, """
-			<inputDD>
-				<table id="_pubregInput">
-					<column name="args" type="raw"
-						description="The raw dictionary of input parameters"/>
-				</table>
-				<make table="_pubregInput"/>
-			</inputDD>""")
-		if self.outputTable is base.Undefined:
-			self.outputTable = base.makeStruct(svcs.OutputTableDef)
-		self._completeElementNext(RegistryCore)
+	inputTableXML = """
+		<inputTable id="_pubregInput">
+			<param name="args" type="raw"
+				description="The raw dictionary of input parameters"/>
+		</inputTable>
+		"""
+
+	outputTableXML = """<outputTable/>"""
 
 	def runWithPMHDict(self, args):
 		pars = {}
@@ -278,9 +271,9 @@ class RegistryCore(svcs.Core, base.RestrictionMixin):
 				BadVerb("'%s' is an unsupported operation."%pars["verb"]))
 		return ElementTree.ElementTree(handler(pars).asETree())
 
-	def run(self, service, inputData, queryMeta):
+	def run(self, service, inputTAble, queryMeta):
 		"""returns an ElementTree containing a OAI-PMH response for the query 
 		described by pars.
 		"""
-		args = inputData.getPrimaryTable().rows[0]["args"]
+		args = inputTable.getParam("args")
 		return self.runWithPMHDict(args)

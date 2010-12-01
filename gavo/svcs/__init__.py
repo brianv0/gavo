@@ -14,7 +14,7 @@ structure carrying lots of information on the query being processed.
 
 from gavo.svcs.common import (Error, UnknownURI, ForbiddenURI, WebRedirect,
 	Authenticate, BadMethod,
-	QueryMeta, emptyQueryMeta, loadSystemTemplate)
+	QueryMeta, emptyQueryMeta, getTemplatePath, loadSystemTemplate)
 
 from gavo.svcs.core import getCore, Core, CORE_REGISTRY
 

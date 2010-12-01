@@ -42,12 +42,10 @@ class ComputedCore(core.Core):
 	ComputedCores wrap command line tools taking command line arguments,
 	reading from stdin, and outputting to stdout.
 
-	The command line arguments are described a table with role "parameters"
-	in the inputDD.  Only the first row of that table is used.
-
-	The input to the program are described in a table with role "inputLine"
-	in the inputDD.  All rows are serialized quite like they are with the
-	TSV output, except only whitespace is entered between the values.
+	The command line arguments are taken from the inputTable's parameters,
+	stdin is created by serializing the inputTable's rows like they are 
+	serialized for with the TSV output, except only whitespace is entered 
+	between the values.
 	
 	The output is the primary table of parsing the program's output with
 	the data child.
@@ -62,6 +60,13 @@ class ComputedCore(core.Core):
 	_resultParse = base.StructAttribute("resultParse",
 		description="Data descriptor to parse the computer's output.",
 		childFactory=rscdef.DataDescriptor, copyable=True)
+
+	def start_(self, ctx, name, value):
+		if name=="outputTable":
+			raise base.StructureError("Cannot define a computed core's"
+				" output table.", hint="Computed cores have their output"
+				" defined by the primary table of resultParse.")
+		return core.Core.start_(self, ctx, name, value)
 
 	def completeElement(self):
 		if self.resultParse:
@@ -83,34 +88,30 @@ class ComputedCore(core.Core):
 		writeThread.start()
 		return writeThread
 
-	def _getArgs(self, inputData):
-		t = inputData.getTableWithRole("parameters")
-		argRow = t.rows[0]
+	def _getArgs(self, inputTable):
 		args = [base.getBinaryName(self.computer)]
-		for c in t.tableDef:
-			val = argRow.get(c.name, base.Undefined)
-			if val is base.Undefined:
+		for par in inputTable.iterParams():
+			if par.content_ is base.NotGiven:
 				raise base.ValidationError("Command line argument %s must not"
-					" be undefined"%c.name, c.name, base.Undefined)
-# XXX TODO: use valuemappers here
-			args.append(str(val))
+					" be undefined"%par.name, par.name, base.NotGiven)
+			args.append(par.content_)
 		return args
 
-	def _getInput(self, inputData):
-		t = inputData.getTableWithRole("inputLine")
+	def _getInput(self, inputTable):
+		t = inputTable
 		names = [c.name for c in t.tableDef]
 		res = []
 		for row in base.SerManager(t, mfRegistry=argMFRegistry).getMappedValues():
 			res.append(" ".join([row[name] for name in names]))
 		return str("\n".join(res))
 
-	def _runAndCapture(self, inputData):
+	def _runAndCapture(self, inputTable):
 # if we wanted to get really fancy, it shouldn't be hard to pipe that stuff
 # directly into the grammar.
-		pipe = subprocess.Popen(self._getArgs(inputData), 2**16, 
+		pipe = subprocess.Popen(self._getArgs(inputTable), 2**16, 
 			stdin=subprocess.PIPE, stdout=subprocess.PIPE, close_fds=True,
 			cwd=os.path.dirname(self.computer))
-		writeThread = self._feedInto(self._getInput(inputData), pipe.stdin)
+		writeThread = self._feedInto(self._getInput(inputTable), pipe.stdin)
 		data = pipe.stdout.read()
 		pipe.stdout.close()
 		writeThread.join(0.1)
@@ -123,9 +124,9 @@ class ComputedCore(core.Core):
 				"query")
 		return data
 
-	def run(self, service, inputData, queryMeta):
+	def run(self, service, inputTable, queryMeta):
 		"""starts the computing process if this is a computed data set.
 		"""
 		res = rsc.makeData(self.resultParse,
-			forceSource=StringIO(self._runAndCapture(inputData)))
+			forceSource=StringIO(self._runAndCapture(inputTable)))
 		return res.getPrimaryTable()

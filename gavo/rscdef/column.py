@@ -441,21 +441,11 @@ class Column(base.Structure):
 		return col
 
 
-class Param(Column):
-	"""A table parameter.
+class ParamBase(Column):
+	"""A basic parameter.
 
-	This is like a column, except that it conceptually applies to all
-	rows in the table.  In VOTables, params will be rendered as
-	PARAMs.  
-	
-	While we validate the values passed using the DC default parsers,
-	at least the VOTable params will be literal copies of the string
-	passed in.
-
-	You can obtain a parsed value using value.
+	This is the base for both Param and InputKey.
 	"""
-	name_ = "param"
-
 	_value = base.DataContent(description="The value of parameter."
 		" It is parsed according to the param's type using the default"
 		" parser for the type as in rowmakers.", default=base.NotGiven,
@@ -511,6 +501,22 @@ class Param(Column):
 			return ""
 		else:
 			return str(value)
+
+
+class Param(ParamBase):
+	"""A table parameter.
+
+	This is like a column, except that it conceptually applies to all
+	rows in the table.  In VOTables, params will be rendered as
+	PARAMs.  
+	
+	While we validate the values passed using the DC default parsers,
+	at least the VOTable params will be literal copies of the string
+	passed in.
+
+	You can obtain a parsed value using value.
+	"""
+	name_ = "param"
 
 	def validate(self):
 		self._validateNext(Param)

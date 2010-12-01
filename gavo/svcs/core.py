@@ -4,6 +4,11 @@ Cores are the standard data structure for computing things in the DC.
 This module also contains the registry for cores.  If you want to
 be able to refer to cores from within an RD, you need to enter your
 core here.
+
+Cores return pairs of a type and a payload.  Renderers should normally
+be prepared to receive (None, OutputTable) and (mime/str, data/str),
+though individual cores might return other stuff (and then only
+work with select renderers).
 """
 
 import sets
@@ -50,17 +55,8 @@ def getCore(name):
 class Core(base.Structure):
 	"""A definition of the "active" part of a service.
 
-	Cores have inputs defined via inputDD, a data descriptor containing
-	InputTables.  The output is normally defined as an OutputTable, though
-	Cores may return other data structures if appropriate.  They cannot
-	be used in services using the standard form renderer then, though.
-
-	Note that the table returned by a core must not necessarily match
-	the output format requested by a service exactly.  Services can build
-	restrictions of the core's output.
-
-	Users of the tables returned should consult the table metadata, not the 
-	core metadata, which is there for registry-type purposes.
+	Cores receive their input in tables the structure of which is
+	defined by their inputTable attribute.
 
 	The abstract core element will never occur in resource descriptors.  See 
 	`Cores Available`_ for concrete cores.  Use the names of the concrete
@@ -72,33 +68,35 @@ class Core(base.Structure):
 	"""
 	name_ = "core"
 
-	grammarXML = None
+	inputTableXML = None
 	outputTableXML = None
 
 	_rd = rscdef.RDAttribute()
-	_inputDD = base.StructAttribute("inputDD", 
-		childFactory=inputdef.InputDescriptor, description="Description of the"
-			" input data.") # must not be copyable, else autogeneration of
-	                    # inputDDs for DbCores fails for copied cores.
-	_outputTable = base.StructAttribute("outputTable",
-		childFactory=outputdef.OutputTableDef, description="Table describing"
-			" what fields are available from this core.", copyable=True)
+	_inputTable = base.StructAttribute("inputTable", 
+		default=base.NotGiven,
+		childFactory=inputdef.InputTable, 
+		description="Description of the input data.", 
+		copyable=True)
+	_outputTable = base.StructAttribute("outputTable", 
+		default=base.NotGiven,
+		childFactory=outputdef.OutputTableDef, 
+		description="Table describing what fields are available from this core.", 
+		copyable=True)
 	_original = base.OriginalAttribute()
 	_properties = base.PropertyAttribute()
 
 	def __init__(self, parent, **kwargs):
-		if self.grammarXML is not None:
-			g = base.parseFromString(inputdef.ContextGrammar, self.grammarXML)
-			if "inputDD" in kwargs:
-				raise base.StructureError("Cannot give an inputDD for custom cores"
-					" defining one.")
-			kwargs["inputDD"] = base.makeStruct(inputdef.InputDescriptor,
-				grammar=g)
+		if self.inputTableXML is not None:
+			g = base.parseFromString(inputdef.InputTable, self.inputTableXML)
+			if "inputTable" in kwargs:
+				raise base.StructureError(
+					"Cannot give an inputTable for cores embedding one.")
+			kwargs["inputTable"] = g
 		if self.outputTableXML is not None:
 			o = base.parseFromString(outputdef.OutputTableDef, self.outputTableXML)
 			if "outputTable" in kwargs:
-				raise base.StructureError("Cannot give an outputTable for custom cores"
-					" defining one.")
+				raise base.StructureError(
+					"Cannot give an outputTable for cores embedding one.")
 			kwargs["outputTable"] = o
 		base.Structure.__init__(self, parent, **kwargs)
 

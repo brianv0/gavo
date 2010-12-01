@@ -199,20 +199,15 @@ machinery -->
 
 	</mixinDef>
 
-	<table id="pCoreInput" namePath="products">
-		<meta name="description">Input table for the product core</meta>
-		<column original="accref" type="raw"/>
-	</table>
 
 	<productCore id="core" queriedTable="products">
 		<!-- core used for the product delivery service -->
-		<inputDD>
-			<rowmaker id="build_input">
-				<map dest="accref"/>
-			</rowmaker>
-			<make table="pCoreInput" rowmaker="build_input" role="parameters"/>
-		</inputDD>
-		<condDesc buildFrom="pCoreInput.accref"/>
+		<inputTable id="pCoreInput" namePath="products">
+			<meta name="description">Input table for the product core</meta>
+			<param original="accref" id="coreKey" type="raw"/>
+		</inputTable>
+
+		<condDesc buildFrom="coreKey"/>
 
 		<outputTable id="pCoreOutput">
 			<column name="source" type="raw"
@@ -223,12 +218,10 @@ machinery -->
 	<productCore id="forTar" original="core" limit="10000">
 		<!-- core used by producttar; many matches are possible here;
 		producttar uses an inputDD of its own here. -->
-		<inputDD>
-			<rowmaker id="build_forTar">
-				<map dest="accref"/>
-			</rowmaker>
-			<make table="pCoreInput" role="primary"/>
-		</inputDD>
+		<inputTable namePath="products">
+			<meta name="description">Input table for the tar making core</meta>
+			<column original="accref" type="raw"/>
+		</inputTable>
 	</productCore>
 
 	<table id="parsedKeys">

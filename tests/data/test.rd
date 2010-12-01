@@ -303,29 +303,7 @@
 
 	<dbCore id="prodscore" queriedTable="prodtest"/>
 
-	<service id="basicprod" core="prodscore"/>
-
-	<computedCore id="abccatcore" computer="/bin/cat">
-		<inputDD>
-			<table id="abc_cmd"/>
-			<rowmaker id="mapthrough" idmaps="*"/>
-			<make table="abc_cmd" role="parameters"/>
-			<make table="abcd" role="inputLine" rowmaker="mapthrough"/>
-		</inputDD>
-		<outputTable id="abcdOut" original="abcd"/>
-		<data>
-			<reGrammar recordSep="&#10;" fieldSep="\s+">
-				<names>a,b,c,d,e</names>
-			</reGrammar>
-			<make table="abcd">
-				<rowmaker idmaps="a,b,c,d,e"/>
-			</make>
-		</data>
-	</computedCore>
-
-	<service id="basiccat" core="abccatcore"/>
-
-	<service id="convcat" core="abccatcore" allowed="form, static">
+	<service id="basicprod" core="prodscore">
 		<meta name="title">Somebody else's problem</meta>
 		<meta name="creationDate">1975-01-01T12:00:00</meta>
 		<meta name="subject">Problems, somebody else's</meta>
@@ -334,10 +312,6 @@
 			forgot to clean up.</meta>
 		<property name="indexFile">index.html</property>
 		<publish render="form" sets="local"/>
-		<outputTable namePath="abcd">
-			<column original="a" verbLevel="15"/>
-			<column original="b" displayHint="sf=2"/>
-			<column original="d" unit="m"/>
-		</outputTable>
 	</service>
+
 </resource>

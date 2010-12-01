@@ -295,7 +295,7 @@ class ArchiveService(rend.Page):
 	def locateChild(self, ctx, segments):
 		_hackHostHeader(ctx)
 		if os.path.exists(self.maintFile):
-			return static.File(common.getTemplatePath("maintenance.html")), ()
+			return static.File(svcs.getTemplatePath("maintenance.html")), ()
 		if self.rootSegments:
 			if segments[:self.rootLen]!=self.rootSegments:
 				raise UnknownURI("Misconfiguration: Saw a URL outside of the server's"
@@ -320,7 +320,7 @@ class ArchiveService(rend.Page):
 		try:
 			return self._locateResourceBasedChild(ctx, segments)
 		except grend.RDBlocked:
-			return static.File(common.getTemplatePath("blocked.html")), () 
+			return static.File(svcs.getTemplatePath("blocked.html")), () 
 
 
 ArchiveService.addStatic("login", makeDynamicPage(ifpages.LoginPage))

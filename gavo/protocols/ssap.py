@@ -27,9 +27,8 @@ class SSAPCore(svcs.DBCore):
 		rd = getRD()
 		self.feedFrom(rd.getById("ssa_prototype"))
 		
-	def run(self, service, inputData, queryMeta):
-		pars = inputData.getPrimaryTable().rows[0]
-		if pars.get("REQUEST", "queryData")!="queryData":
+	def run(self, service, inputTable, queryMeta):
+		if inputTable.getParam("REQUEST")!="queryData":
 			raise base.ValidationError("Only queryData operation supported so"
 				" far for SSAP.", "REQUEST")
-		return svcs.DBCore.run(self, service, inputData, queryMeta)
+		return svcs.DBCore.run(self, service, inputTable, queryMeta)

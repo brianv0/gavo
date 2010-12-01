@@ -348,24 +348,18 @@ reasons we would be very reluctant to add such a functionality.
 	<meta name="_related" title="Tables available for ADQL">/__system__/dc_tables/list/form</meta>
 
 	<adqlCore id="qcore">
-		<inputDD>
-			<table id="adqlInput">
-				<column name="query" tablehead="ADQL query" type="text"
-					description="A query in the Astronomical Data Query Language"/>
-				<column name="_TIMEOUT" type="integer" unit="s" 
-					tablehead="Timeout after" 
-					description="Seconds until the query is aborted.  If you find yourself having to raise this beyond 200 or so, please contact the GAVO staff for hints on how to optimize your query">
-					<values default="5"/>
-				</column>
-			</table>
-			<contextGrammar>
-				<inputKey original="adqlInput.query"
-						widgetFactory="widgetFactory(ScalingTextArea, rows=15)"/>
-				<inputKey original="adqlInput._TIMEOUT" type="integer"
-					formalType="integer"/>
-			</contextGrammar>
-			<make table="adqlInput"/>
-		</inputDD>
+		<inputTable id="adqlInput">
+			<inputKey name="query" tablehead="ADQL query" type="text"
+				description="A query in the Astronomical Data Query Language"
+				widgetFactory="widgetFactory(ScalingTextArea, rows=15)"/>
+			<inputKey name="_TIMEOUT" type="integer" unit="s" 
+				tablehead="Timeout after" 
+				description="Seconds until the query is aborted.  If you find 
+					yourself having to raise this beyond 200 or so, please contact 
+					the GAVO staff for hints on how to optimize your query">
+				<values default="5"/>
+			</inputKey>
+		</inputTable>
 		<outputTable><column name="stuffer" 
 			description="Just here until we figure out a good way to declare variable output fields."/>
 		</outputTable>

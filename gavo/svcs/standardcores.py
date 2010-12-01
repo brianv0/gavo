@@ -221,7 +221,7 @@ class CondDesc(base.Structure):
 
 	@classmethod
 	def fromColumn(cls, col, **kwargs):
-		return cls.fromInputKey(ik=inputdef.InputKey.fromColumn(col), **kwargs)
+		return cls.fromInputKey(ik=inputdef.InputKey.fromColumnViz(col), **kwargs)
 
 
 def mapDBErrors(excType, excValue, excTb):
@@ -264,17 +264,17 @@ class TableBasedCore(core.Core):
 			self.condDescs = [self.adopt(CondDesc.fromColumn(c))
 				for c in self.queriedTable]
 
-		# if no inputDD has been given, generate one from the condDescs
-		if self.inputDD is base.Undefined:
+		# if an inputTable is given, trust it fits the condDescs, else
+		# build the input table
+		if self.inputTable is base.NotGiven:
 			iks = []
 			for cd in self.condDescs:
 				iks.extend(cd.inputKeys)
-			self.inputDD = MS(inputdef.InputDescriptor,
-				grammar=MS(inputdef.ContextGrammar, inputKeys=iks))
+			self.inputTable = MS(rscdef.TableDef, params=iks)
 
-		# if not outputTable has been given, make it up from the columns
+		# if no outputTable has been given, make it up from the columns
 		# of the queried table.
-		if self.outputTable is base.Undefined:
+		if self.outputTable is base.NotGiven:
 			self.outputTable = self.adopt(outputdef.OutputTableDef.fromTableDef(
 				self.queriedTable))
 
@@ -285,12 +285,12 @@ class TableBasedCore(core.Core):
 		if self.namePath is None:
 			self.namePath = qTable.id
 
-	def _getSQLWhere(self, inputData, queryMeta):
+	def _getSQLWhere(self, inputTable, queryMeta):
 		"""returns a where fragment and the appropriate parameters
-		for the query defined by inputData and queryMeta.
+		for the query defined by inputTable and queryMeta.
 		"""
 		sqlPars, frags = {}, []
-		inputPars = inputData.getPrimaryTable().rows[0]
+		inputPars = dict((p.name, p.value) for p in inputTable.iterParams())
 		return vizierexprs.joinOperatorExpr("AND",
 			[cd.asSQL(inputPars, sqlPars, queryMeta)
 				for cd in self.condDescs]), sqlPars
@@ -330,8 +330,8 @@ class FancyQueryCore(TableBasedCore, base.RestrictionMixin):
 		" All other percents must be escaped by doubling them.", 
 		default=base.Undefined)
 
-	def run(self, service, inputData, queryMeta):
-		fragment, pars = self._getSQLWhere(inputData, queryMeta)
+	def run(self, service, inputTable, queryMeta):
+		fragment, pars = self._getSQLWhere(inputTable, queryMeta)
 		querier = base.SimpleQuerier()
 		if fragment:
 			fragment = " WHERE "+fragment
@@ -401,7 +401,7 @@ class DBCore(TableBasedCore):
 		finally:
 			queriedTable.close()
 
-	def run(self, service, inputData, queryMeta):
+	def run(self, service, inputTable, queryMeta):
 		"""does the DB query and returns an InMemoryTable containing
 		the result.
 		"""
@@ -417,7 +417,7 @@ class DBCore(TableBasedCore):
 			sortKeys = self.sortKey.split(",")
 		queryMeta.overrideDbOptions(limit=self.limit, sortKeys=sortKeys)
 		try:
-			fragment, pars = self._getSQLWhere(inputData, queryMeta)
+			fragment, pars = self._getSQLWhere(inputTable, queryMeta)
 		except base.LiteralParseError, ex:
 			raise base.ui.logOldExc(base.ValidationError(str(ex),
 				colName=ex.attName))
@@ -440,13 +440,11 @@ class FixedQueryCore(core.Core, base.RestrictionMixin):
 			" output fields in the core's output table.")
 
 	def completeElement(self):
-		# default to empty inputDD
-		if self.inputDD is base.Undefined:
-			self.inputDD = base.makeStruct(inputdef.InputDescriptor,
-				grammar=base.makeStruct(inputdef.ContextGrammar))
+		if self.inputTable is base.NotGiven:
+			self.inputTable = base.makeStruct(rscdef.TableDef)
 		self._completeElementNext(FixedQueryCore)
 
-	def run(self, service, inputData, queryMeta):
+	def run(self, service, inputTable, queryMeta):
 		querier = base.SimpleQuerier()
 		try:
 			return self._parseOutput(querier.runIsolatedQuery(self.query,
@@ -479,8 +477,8 @@ class NullCore(core.Core):
 
 	name_ = "nullCore"
 
-	grammarXML = "<contextGrammar/>"
+	inputTableXML = "<inputTable/>"
 	outputTableXML = "<outputTable/>"
 
-	def run(self, service, inputData, queryMeta):
+	def run(self, service, inputTable, queryMeta):
 		return None

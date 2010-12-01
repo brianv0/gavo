@@ -53,7 +53,7 @@ class ComputedServiceTest(testhelpers.VerboseTest):
 	"""tests a simple service with a computed core.
 	"""
 	def setUp(self):
-		self.rd = testhelpers.getTestRD()
+		self.rd = testhelpers.getTestRD("cores.rd")
 
 	def assertDatafields(self, columns, names):
 		self.assertEqual(len(columns), len(names), "Wrong number of columns"
@@ -120,7 +120,7 @@ class BrowsableTest(testhelpers.VerboseTest):
 		self.failIf(service.isBrowseableWith("bizarro"))
 	
 	def testStaticWithIndex(self):
-		service = testhelpers.getTestRD().getById("convcat")
+		service = testhelpers.getTestRD().getById("basicprod")
 		# service has an indexFile property
 		self.failUnless(service.isBrowseableWith("static"))
 

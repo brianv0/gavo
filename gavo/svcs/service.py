@@ -246,7 +246,7 @@ class CustomDF(CustomPageFunction):
 	name_ = "customDF"
 
 
-## This should really be in registry (and I could use servicelist then,
+## This should really be in gavo.registry (and I could use servicelist then,
 ## and of course the DB table used here is defined there).
 ## However, registry uses svc, but we need these meta keys in service.
 ## Maybe at some point have something in registry just add these meta
@@ -382,19 +382,81 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	# like VOTables and offer a "verbosity" widget in forms).
 	htmlLikeFormats = ["HTML", "tar"]
 
+	####################### Housekeeping methods
+
+	def __repr__(self):
+		return "<Service at %x>"%id(self)
+
 	def completeElement(self):
 		self._completeElementNext(Service)
 		if not self.allowed:
 			self.allowed.add("form")
+
 		# undefined cores are only allowed with custom pages.
 		if self.core is base.Undefined and self.customPage:
 			self.core = core.getCore("nullCore")(self.rd).finishElement()
+
+		# empty output tables are filled from the core
+		if self.outputTable is base.NotGiven:
+			self.outputTable = self.core.outputTable
+
 		# Pain: since renderers may override InputKey sequences, they
 		# may require inputDDs of their own.  We cache them here
 		# as necessary.
 		self.inputDDsForRenderers = {}
 		self._loadedTemplates = {}
 			
+	def onElementComplete(self):
+		self._onElementCompleteNext(Service)
+		
+		if self.outputTable is base.NotGiven:
+			self.outputTable = self.core.outputTable
+
+		# Index custom render/data functions
+		self.nevowRenderers = {}
+		for customRF in self.customRFs:
+			self.nevowRenderers[customRF.name] = customRF.func
+		self.nevowDataFunctions = {}
+		for customDF in self.customDFs:
+			self.nevowDataFunctions[customDF.name] = customDF.func
+
+		self._compileCustomPage()
+
+		self._computeResourceType()
+
+	def _compileCustomPage(self):
+		if self.customPage:
+			try:
+				modNs, moddesc = utils.loadPythonModule(self.customPage)
+				page = modNs.MainPage
+			except ImportError, msg:
+				import traceback
+				traceback.print_exc()
+				raise base.LiteralParseError("customPage", self.customPage, 
+					"While loading the custom page you specified, the following"
+					" error was raised: '%s'.  See the log for a traceback."%
+					unicode(msg))
+			self.customPageCode = page, (os.path.basename(self.customPage),)+moddesc
+
+	def translateFieldName(self, name):
+		return name
+
+	def getTemplate(self, key):
+		"""returns the nevow template for the function key on this service.
+		"""
+		if key not in self._loadedTemplates:
+			from nevow import loaders
+			tp = self.templates[key]
+			if tp.startswith("//"):
+				self._loadedTemplates[key] = common.loadSystemTemplate(tp[2:])
+			else:
+				self._loadedTemplates[key] = loaders.xmlfile(
+					os.path.join(self.rd.resdir, tp))
+		return self._loadedTemplates[key]
+
+
+	################### Registry and related methods.
+
 	def _computeResourceType(self):
 		"""sets the resType attribute.
 
@@ -422,142 +484,6 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		else: # no output table defined, we're a plain service
 			self.resType = "nonTabularService"
 
-	def getTemplate(self, key):
-		if key not in self._loadedTemplates:
-			from nevow import loaders
-			tp = self.templates[key]
-			if tp.startswith("//"):
-				self._loadedTemplates[key] = common.loadSystemTemplate(tp[2:])
-			else:
-				self._loadedTemplates[key] = loaders.xmlfile(
-					os.path.join(self.rd.resdir, tp))
-		return self._loadedTemplates[key]
-
-	def onElementComplete(self):
-		self._onElementCompleteNext(Service)
-		
-		if self.outputTable is base.NotGiven:
-			self.outputTable = self.core.outputTable
-
-		# Index custom Page functions
-		self.nevowRenderers = {}
-		for customRF in self.customRFs:
-			self.nevowRenderers[customRF.name] = customRF.func
-		self.nevowDataFunctions = {}
-		for customDF in self.customDFs:
-			self.nevowDataFunctions[customDF.name] = customDF.func
-
-		# compile custom page if present
-		if self.customPage:
-			try:
-				modNs, moddesc = utils.loadPythonModule(self.customPage)
-				page = modNs.MainPage
-			except ImportError, msg:
-				import traceback
-				traceback.print_exc()
-				raise base.LiteralParseError("customPage", self.customPage, 
-					"While loading the custom page you specified, the following"
-					" error was raised: '%s'.  See the log for a traceback."%
-					unicode(msg))
-			self.customPageCode = page, (os.path.basename(self.customPage),)+moddesc
-
-		self._computeResourceType()
-
-	def __repr__(self):
-		return "<Service at %x>"%id(self)
-
-	def _getVOTableOutputFields(self, queryMeta):
-		"""returns a list of OutputFields suitable for a VOTable response 
-		described by queryMeta
-		"""
-		verbLevel = queryMeta.get("verbosity", 20)
-		if verbLevel=="HTML":
-			fieldList = rscdef.ColumnList([
-					f for f in self.getHTMLOutputFields(queryMeta)
-				if f.displayHint.get("noxml")!="true"])
-		else:
-			baseFields = self.core.outputTable.columns
-			fieldList = rscdef.ColumnList([f for f in baseFields
-				if f.verbLevel<=verbLevel and 
-					f.displayHint.get("type")!="suppress" and
-					f.displayHint.get("noxml")!="true"])
-		return fieldList
-
-	_allSet = set(["ALL"])
-
-	def getHTMLOutputFields(self, queryMeta, ignoreAdditionals=False,
-			raiseOnUnknown=True):
-		"""returns a list of OutputFields suitable for an HTML response described
-		by queryMeta.
-
-		raiseOnUnknown is used by customwidgets to avoid exceptions because of
-		bad additional fields during form construction (when they aren't
-		properly caught.
-		"""
-		requireSet = queryMeta["columnSet"]
-		res = rscdef.ColumnList()
-
-		# add "normal" output fields
-		if requireSet:
-			res.extend([f for f in self.outputTable
-					if f.sets==self._allSet or requireSet in f.sets])
-		else:
-			res.extend([f for f in self.outputTable
-				if f.displayHint.get("type")!="suppress"])
-
-		# add user-selected fields
-		if not ignoreAdditionals and queryMeta["additionalFields"]:
-			cofs = self.core.outputTable.columns
-			try:
-				for fieldName in queryMeta["additionalFields"]:
-					col = cofs.getColumnByName(fieldName)
-					if isinstance(col, outputdef.OutputField):
-						res.append(col)
-					else:
-						res.append(outputdef.OutputField.fromColumn(col))
-			except base.NotFoundError, msg:
-				if raiseOnUnknown:
-					raise base.ValidationError("The additional field %s you requested"
-						" does not exist"%repr(msg.lookedFor), colName="_OUTPUT")
-		return res
-
-	def getCurOutputFields(self, queryMeta=None, raiseOnUnknown=True):
-		"""returns a list of desired output fields for query meta.
-
-		This is for both the core and the formatter to figure out the
-		structure of the tables passed.
-
-		If queryMeta is not None, both the format and the verbLevel given
-		there can influence this choice.
-		"""
-		queryMeta = queryMeta or common.emptyQueryMeta
-		format = queryMeta.get("format", "HTML")
-		if format in self.htmlLikeFormats:
-			return self.getHTMLOutputFields(queryMeta, raiseOnUnknown=raiseOnUnknown)
-		else:
-			return self._getVOTableOutputFields(queryMeta)
-
-	def getAllOutputFields(self):
-		"""Returns a sequence of all available output fields.
-
-		This is mainly for the registry.  It basically asks the core
-		what it has and returns that.
-
-		Unfortunately, this does not reflect what the service actually
-		does, but for the registry it's probably the most useful information.
-		"""
-		return self.core.outputTable.columns
-
-	def getInputFields(self):
-		if self.inputDD is base.NotGiven:
-			inputDD = self.core.inputDD
-		else:
-			inputDD = self.inputDD
-		if inputDD.grammar is None:
-			return rscdef.ColumnList()
-		else:
-			return inputDD.grammar.inputKeys
-
 	def getPublicationsForSet(self, names):
 		"""returns publications for set names in names.
 
@@ -576,66 +502,6 @@ class Service(base.Structure, base.ComputedMetaMixin,
 					parent_=self),
 			))
 		return res
-
-	def getInputDDFor(self, renderer):
-		"""returns an inputDD for renderer.
-
-		The renderers compute these based on their input fields.
-
-		The renderer argument may either be a renderer name or, a renderer
-		class or a renderer instance.
-		"""
-		if self.inputDD is not base.NotGiven:
-			return self.inputDD
-		if isinstance(renderer, basestring):
-			renderer = renderers.getRenderer(renderer)
-		if renderer.name not in self.inputDDsForRenderers:
-			newDD = renderer.getInputDD(self)
-			if newDD is None:
-				newDD = self.core.inputDD
-			self.inputDDsForRenderers[renderer.name] = newDD
-		return self.inputDDsForRenderers[renderer.name]
-
-	def makeDataFor(self, renderer, rawData):
-		"""returns a Data instance for the core input, taking raw input
-		from renderer, made from rawData.
-
-		renderer may be None, in which case the core's inputDD kicks in.
-		If an inputDD is defined on this service, it will always be
-		used.
-		"""
-		if self.inputDD is not base.NotGiven:
-			inputDD = self.inputDD
-		else:
-			if renderer is None:
-				inputDD = self.core.inputDD
-			else:
-				inputDD = self.getInputDDFor(renderer)
-		res = rsc.makeData(inputDD,
-			parseOptions=rsc.parseValidating, forceSource=rawData)
-		return res
-
-	def runWithData(self, inputData, queryMeta):
-		"""runs the service, returning an SvcResult.
-
-		This is the main entry point.  It receives an rsc.Data instance,
-		usually generated using the makeDataFor method.
-
-		Typically, you do not call this method yourself but rather use
-		the ServiceBasedRenderer's runService or runServiceWithContext
-		methods.
-		"""
-		coreRes = self.core.run(self, inputData, queryMeta)
-		return SvcResult(coreRes, inputData, queryMeta, self)
-
-	def runFromDict(self, rawData, renderer="form"):
-		"""runs the service with a dictionary input and within a given renderer.
-
-		This is mainly a convenience method for unit tests.
-		"""
-		queryMeta = common.QueryMeta(rawData)
-		inputData = self.makeDataFor(renderers.getRenderer("form"), rawData)
-		return self.runWithData(inputData, queryMeta)
 
 	def getURL(self, rendName, absolute=True):
 		"""returns the full canonical access URL of this service together 
@@ -701,6 +567,170 @@ class Service(base.Structure, base.ComputedMetaMixin,
 					pass
 		return [t for t in tables if t is not None]
 
+	########################## Output field selection (ouch!)
+
+	def _getVOTableOutputFields(self, queryMeta):
+		"""returns a list of OutputFields suitable for a VOTable response 
+		described by queryMeta
+		"""
+		verbLevel = queryMeta.get("verbosity", 20)
+		if verbLevel=="HTML":
+			fieldList = rscdef.ColumnList([
+					f for f in self.getHTMLOutputFields(queryMeta)
+				if f.displayHint.get("noxml")!="true"])
+		else:
+			baseFields = self.core.outputTable.columns
+			fieldList = rscdef.ColumnList([f for f in baseFields
+				if f.verbLevel<=verbLevel and 
+					f.displayHint.get("type")!="suppress" and
+					f.displayHint.get("noxml")!="true"])
+		return fieldList
+
+	_allSet = set(["ALL"])
+
+	def getHTMLOutputFields(self, queryMeta, ignoreAdditionals=False,
+			raiseOnUnknown=True):
+		"""returns a list of OutputFields suitable for an HTML response described
+		by queryMeta.
+
+		raiseOnUnknown is used by customwidgets to avoid exceptions because of
+		bad additional fields during form construction (when they aren't
+		properly caught).
+		"""
+		requireSet = queryMeta["columnSet"]
+		res = rscdef.ColumnList()
+
+		# add "normal" output fields
+		if requireSet:
+			res.extend([f for f in self.outputTable
+					if f.sets==self._allSet or requireSet in f.sets])
+		else:
+			res.extend([f for f in self.outputTable
+				if f.displayHint.get("type")!="suppress"])
+
+		# add user-selected fields
+		if not ignoreAdditionals and queryMeta["additionalFields"]:
+			cofs = self.core.outputTable.columns
+			try:
+				for fieldName in queryMeta["additionalFields"]:
+					col = cofs.getColumnByName(fieldName)
+					if isinstance(col, outputdef.OutputField):
+						res.append(col)
+					else:
+						res.append(outputdef.OutputField.fromColumn(col))
+			except base.NotFoundError, msg:
+				if raiseOnUnknown:
+					raise base.ValidationError("The additional field %s you requested"
+						" does not exist"%repr(msg.lookedFor), colName="_OUTPUT")
+		return res
+
+	def getCurOutputFields(self, queryMeta=None, raiseOnUnknown=True):
+		"""returns a list of desired output fields for query meta.
+
+		This is for both the core and the formatter to figure out the
+		structure of the tables passed.
+
+		If queryMeta is not None, both the format and the verbLevel given
+		there can influence this choice.
+		"""
+		queryMeta = queryMeta or common.emptyQueryMeta
+		format = queryMeta.get("format", "HTML")
+		if format in self.htmlLikeFormats:
+			return self.getHTMLOutputFields(queryMeta, raiseOnUnknown=raiseOnUnknown)
+		else:
+			return self._getVOTableOutputFields(queryMeta)
+
+	def getAllOutputFields(self):
+		"""Returns a sequence of all available output fields.
+
+		This is mainly for the registry.  It basically asks the core
+		what it has and returns that.
+
+		Unfortunately, this does not reflect what the service actually
+		does, but for the registry it's probably the most useful information.
+		"""
+		return self.core.outputTable.columns
+
+	################### running and input computation.
+
+	def getInputFields(self):
+		"""returns the core's params.
+
+		This is what most renderer make their input keys of.
+		"""
+		return self.core.inputTable.params
+
+	def getInputDDFor(self, renderer):
+		"""returns an inputDD for renderer.
+
+		The renderers compute these based on their input fields.
+
+		The renderer argument may either be a renderer name or, a renderer
+		class or a renderer instance.
+		"""
+		if self.inputDD is not base.NotGiven:
+			return self.inputDD
+		if isinstance(renderer, basestring):
+			renderer = renderers.getRenderer(renderer)
+		if renderer.name not in self.inputDDsForRenderers:
+			newDD = renderer.getInputDD(self)
+			if newDD is None:
+				newDD = inputdef.makeAutoInputDD(self.core)
+			self.inputDDsForRenderers[renderer.name] = newDD
+		return self.inputDDsForRenderers[renderer.name]
+
+	def makeDataFor(self, renderer, rawData):
+		"""returns a Table instance for the core input, taking raw input
+		from renderer, made from rawData.
+
+		renderer may be None, in which case the core's inputDD kicks in.
+		If an inputDD is defined on this service, it will always be
+		used.
+		"""
+		inputDD = self.getInputDDFor(renderer)
+		res = rsc.makeData(inputDD,
+			parseOptions=rsc.parseValidating, forceSource=rawData).getPrimaryTable()
+		return res
+
+	def makeTableFor(self, renderer, contextData):
+		"""returns an input table for the core, filled from contextData.
+		"""
+		if self.inputDD:
+			res = rsc.makeData(self.inputDD,
+				parseOptions=rsc.parseValidating, forceSource=contextData
+					).getPrimaryTable()
+		else:
+			res = rsc.TableForDef(self.core.inputTable)
+			for par in res.iterParams():
+				if par.name in contextData:
+					par.set(contextData[par.name])
+		return res
+
+	def runWithData(self, inputData, queryMeta):
+		"""runs the service, returning an SvcResult.
+
+		This is the main entry point.  It receives an rsc.Data instance,
+		usually generated using the makeDataFor method.
+
+		Typically, you do not call this method yourself but rather use
+		the ServiceBasedRenderer's runService or runServiceWithContext
+		methods.
+		"""
+		coreRes = self.core.run(self, inputData, queryMeta)
+		return SvcResult(coreRes, inputData, queryMeta, self)
+
+	def runFromDict(self, contextData, renderer="form"):
+		"""runs the service with a dictionary input and within a given renderer.
+
+		This is mainly a convenience method for unit tests.
+		"""
+		return self.runWithData(
+			self.makeTableFor("form", contextData),
+			common.QueryMeta(contextData))
+		
+
+	#################### meta and such
+
 	def _meta_referenceURL(self):
 		return meta.makeMetaItem(self.getURL("info"),
 			type="link", title="Service info")
@@ -713,8 +743,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 # XXX TODO: have this ask the core
 		return "true"
 
-	def macro_tablesForTAP(self):
+	def macro_tablesForTAP(self):  # who needs this?
 		from gavo.protocols import tap
 		return ", ".join(tap.getAccessibleTables())
-	def translateFieldName(self, name):
-		return name
+
