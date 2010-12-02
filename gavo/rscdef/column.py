@@ -472,10 +472,12 @@ class ParamBase(Column):
 		case, this string literal will be preserved in string serializations
 		of this param.
 		"""
-		if not isinstance(val, basestring):
+		if isinstance(val, basestring):
+			self._valueCache = base.Undefined
+		else:
+			self._valueCache = base.Undefined
 			val = self._unparse(val)
 		self.content_ = val
-		self._valueCache = base.Undefined
 
 	def _parse(self, literal):
 		"""parses literal using the default value parser for this param's
@@ -493,12 +495,16 @@ class ParamBase(Column):
 		"""returns a string representation of value appropriate for this
 		type.
 
-		This is currently extremely half-assed: Empty strings for None,
-		str(value) otherwise.  We probably should have the inverse
-		of sqltypeToPythonCode for this purpose.
+		This is currently pretty half-assed: Empty strings for None,
+		str(value) otherwise, and for extreme cases the possibility
+		to define an asParseableLiteral method.
+
+		This stinks.  We really want the inverse of sqltypeToPythonCode.
 		"""
 		if value is None:
 			return ""
+		elif hasattr(value, "asParseableLiteral"):
+			return value.asParseableLiteral()
 		else:
 			return str(value)
 

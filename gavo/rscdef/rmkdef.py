@@ -19,7 +19,6 @@ from gavo.rscdef import common
 from gavo.rscdef import procdef
 from gavo.rscdef import rmkfuncs
 from gavo.rscdef import rowtriggers
-from gavo.rscdef import tabledef
 
 
 class Error(base.Error):
@@ -29,6 +28,7 @@ class Error(base.Error):
 class _NotGiven(object):
 	"""is a sentinel for MapRule defaults.
 	"""
+
 
 
 class MapRule(base.Structure):
@@ -88,14 +88,14 @@ class MapRule(base.Structure):
 		if self.nullExcs is not base.NotGiven:
 			utils.ensureExpression(self.nullExcs, "%s.nullExcs"%(self.name_))
 
-	def getCode(self, tableDef):
+	def getCode(self, columns):
 		"""returns python source code for this map.
 		"""
 		code = []
 		if self.content_:
 			code.append('result["%s"] = %s'%(self.dest, self.content_))
 		else:
-			colDef = tableDef.getColumnByName(self.dest)
+			colDef = columns.getColumnByName(self.dest)
 			if colDef.values and colDef.values.nullLiteral is not None:
 				code.append("if vars['%s']=='%s':\n  result['%s'] = None\n"
 					"else:"%(self.src, colDef.values.nullLiteral, self.dest))
@@ -274,10 +274,6 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		copyable=True)
 	_simplemaps = base.IdMapAttribute("simplemaps", description=
 		"Abbreviated notation for <map src>", copyable=True)
-	_rowSource = base.EnumeratedUnicodeAttribute("rowSource", 
-		default="rows", validValues=["rows", "parameters"],
-		description="Source for the raw rows processed by this rowmaker.",
-		copyable=True, strip=True)
 	_ignoreOn = base.StructAttribute("ignoreOn", default=None,
 		childFactory=rowtriggers.IgnoreOn, description="Conditions on the"
 		" input record (as delivered by the grammar) to cause the input"
@@ -315,8 +311,8 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 					dest=k, src=v, nullExcs=nullExcs))
 		self._completeElementNext(RowmakerDef)
 
-	def _getSource(self, tableDef):
-		"""returns the source code for a mapper to a tableDef-defined table.
+	def _getSourceFromColset(self, columns):
+		"""returns the source code for a mapper to a column set.
 		"""
 		lineMap, line = {}, 0
 		source = []
@@ -339,8 +335,13 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 				"%s(vars, result, targetTable)"%a.name, 
 				line, "executing "+a.name)
 		for m in self.maps:
-			line = appendToSource(m.getCode(tableDef), line, "building "+m.dest)
+			line = appendToSource(m.getCode(columns), line, "building "+m.dest)
 		return "\n".join(source), lineMap
+
+	def _getSource(self, tableDef):
+		"""returns the source code for a mapper to tableDef's columns.
+		"""
+		return self._getSourceFromColset(tableDef.columns)
 
 	def _getGlobals(self, tableDef):
 		globals = {}
@@ -352,35 +353,33 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		globals["rd_"] = self.rd
 		return globals
 
-	def _resolveIdmaps(self, tableDef):
-		"""adds mappings for self's idmap within tableDef.
+	def _resolveIdmaps(self, columns):
+		"""adds mappings for self's idmap within column set.
 		"""
 		if self.idmaps is None:
 			return
 		existingMaps = set(m.dest for m in self.maps)
-		baseNames = [c.name for c in tableDef]
+		baseNames = [c.name for c in columns]
 		for colName in self.idmaps:
 			matching = fnmatch.filter(baseNames, colName)
 			if not matching:
-				raise base.LiteralParseError("idmaps", ",".join(self.idmaps),
-					hint="%s does not match any column names from table %s"%(
-						colName, tableDef.id))
+				raise NotFoundError(colName, "columns matching", "unknown")
 			for dest in matching:
 				if dest not in existingMaps:
 					self.maps.append(MapRule(self, dest=dest).finishElement())
 		self.idmaps = []
 
-	def _checkTable(self, tableDef):
+	def _checkTable(self, columns, id):
 		"""raises a LiteralParseError if we try to map to non-existing
 		columns.
 		"""
 		for map in self.maps:
 			try:
-				tableDef.getColumnByName(map.dest)
+				columns.getColumnByName(map.dest)
 			except KeyError:
 				raise base.ui.logOldExc(base.LiteralParseError(self.name_, self.dest, 
 					"Cannot map to '%s' since it does not exist in %s"%(
-						map.dest, tableDef.id)))
+						map.dest, id)))
 
 	def _buildForTable(self, tableDef):
 		"""returns a RowmakerDef with everything expanded and checked for
@@ -390,8 +389,12 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		with tableDef.
 		"""
 		res = self.copyShallowly()
-		res._resolveIdmaps(tableDef)
-		res._checkTable(tableDef)
+		try:
+			res._resolveIdmaps(tableDef.columns)
+			res._checkTable(tableDef.columns, tableDef.id)
+		except base.NotFoundError, ex:
+			ex.within = "table %s's columns"%tableDef.id
+			raise
 		return res
 
 	def compileForTable(self, table):
@@ -412,21 +415,43 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 
 	def copyShallowly(self):
 		return base.makeStruct(self.__class__, maps=self.maps[:], 
-			vars=self.vars[:], idmaps=self.idmaps[:], rowSource=self.rowSource, 
+			vars=self.vars[:], idmaps=self.idmaps[:], 
 			apps=self.apps[:], ignoreOn=self.ignoreOn)
+
+
+class ParmakerDef(RowmakerDef):
+	name_ = "parmaker"
+
+	def _buildForTable(self, tableDef):
+		res = self.copyShallowly()
+		try:
+			res._resolveIdmaps(tableDef.params)
+			res._checkTable(tableDef.params, tableDef.id)
+		except base.NotFoundError, ex:
+			ex.within = "table %s's params"%tableDef.id
+			raise
+		return res
+
+	def _getSource(self, tableDef):
+		"""returns the source code for a mapper to tableDef's columns.
+		"""
+		return self._getSourceFromColset(tableDef.params)
 
 
 identityRowmaker = base.makeStruct(RowmakerDef, idmaps="*")
 
 
 class Rowmaker(object):
-	"""is a callable that arrange for mapping of parse values.
+	"""A callable that arranges for the mapping of key/value pairs to 
+	other key/value pairs.
 
-	It is constructed with the mapping function, a dictionary of
-	globals the function should see, a dictionary of defaults,
-	giving keys to be inserted into the incoming rowdict before
-	the mapping function is called, and a map of line numbers to
-	names handled in that line.
+	Within DaCHS, Rowmakers generate database rows (and parameter dictionaries)
+	from the output of grammars.
+
+	It is constructed with the source of the mapping function, a dictionary of
+	globals the function should see, a dictionary of defaults, giving keys to be
+	inserted into the incoming rowdict before the mapping function is called, and
+	a map of line numbers to names handled in that line.
 
 	It is called with a dictionary of locals for the functions (i.e.,
 	usually the result of a grammar iterRows).
@@ -504,3 +529,4 @@ class Rowmaker(object):
 			raise
 		except Exception, ex:
 			self._guessError(ex, locals["vars"], sys.exc_info()[2])
+

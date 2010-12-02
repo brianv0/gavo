@@ -102,9 +102,9 @@ class TestProductsImport(testhelpers.VerboseTest):
 		assertRowset(self,
 			list(sqlsupport.SimpleQuerier(connection=self.conn).query(
 				"select * from dc.products where sourceTable='test.prodtest'")),
-			[(u'data/a.imp', u'test', datetime.date(2030, 12, 31), 
+			[(u'data/a.imp', u'X_test', datetime.date(2030, 12, 31), 
 					'text/plain', u'data/a.imp', u'test.prodtest'),
-			 (u'data/b.imp', u'test', datetime.date(2003, 12, 31), 
+			 (u'data/b.imp', u'X_test', datetime.date(2003, 12, 31), 
 					'text/plain', u'data/b.imp', u'test.prodtest'),])
 
 	def testInMetatable(self):

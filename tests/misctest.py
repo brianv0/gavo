@@ -22,9 +22,11 @@ from gavo import utils
 from gavo.base import valuemappers
 from gavo.helpers import filestuff
 from gavo.helpers import testhelpers
+from gavo.protocols import creds
 from gavo.utils import pyfits
 from gavo.utils import stanxml
 
+import tresc
 
 
 class MapperTest(unittest.TestCase):
@@ -384,6 +386,21 @@ class StanXMLTest(testhelpers.VerboseTest):
 		M = self.Model
 		data = M.Root[M.Child[u"a\xA0bc"]]
 		self.assertEqual(data.render(), '<Root><Child>a&#160;bc</Child></Root>')
-	
+
+
+class TestGroupsMembership(testhelpers.VerboseTest):
+	resources = [('querier', tresc.testUsers)]
+
+	def testGroupsForUser(self):
+		"""tests for correctness of getGroupsForUser.
+		"""
+		self.assertEqual(creds.getGroupsForUser("X_test", "wrongpass"),
+			set(), "Wrong password should yield empty set but doesn't")
+		self.assertEqual(creds.getGroupsForUser("X_test", "megapass"),
+			set(["X_test", "Y_test"]))
+		self.assertEqual(creds.getGroupsForUser("Y_test", "megapass"),
+			set(["Y_test"]))
+
+
 if __name__=="__main__":
-	testhelpers.main(StanXMLTest)
+	testhelpers.main(TestGroupsMembership)

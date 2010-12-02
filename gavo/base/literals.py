@@ -14,6 +14,7 @@ import re
 import time
 
 from gavo import utils
+from gavo.stc import parseSimpleSTCS
 from gavo.utils import pgsphere
 
 
@@ -99,8 +100,12 @@ def parseDefaultDatetime(literal):
 		return literal
 	if literal.endswith("Z"):
 		literal = literal[:-1]
-	return datetime.datetime(
-		*time.strptime(literal, '%Y-%m-%dT%H:%M:%S')[:6])
+	try:
+		return datetime.datetime(
+			*time.strptime(literal, '%Y-%m-%dT%H:%M:%S')[:6])
+	except ValueError:
+		return datetime.datetime(
+			*time.strptime(literal, '%Y-%m-%d %H:%M:%S')[:6])
 
 
 def parseDefaultTime(literal):
@@ -195,4 +200,4 @@ if __name__=="__main__":
 
 __all__ = ["parseInt", "parseFloat", "parseBooleanLiteral", "parseUnicode",
 	"parseDefaultDate", "parseDefaultTime", "parseDefaultDatetime",
-	"parseCooPair", "getDefaultValueParsers", "parseSPoint"]
+	"parseCooPair", "getDefaultValueParsers", "parseSPoint", "parseSimpleSTCS"]

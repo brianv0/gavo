@@ -45,10 +45,7 @@ class DataFeeder(table.Feeder):
 					feeder.add(makeRow(srcRow))
 				except rscdef.IgnoreThisRow, msg:
 					pass
-			if make.rowmaker.rowSource=='parameters':
-				parAdders.append(addRow)
-			else:
-				adders.append(addRow)
+			adders.append(addRow)
 			feeders.append(feeder)
 		return adders, parAdders, feeders
 
@@ -97,11 +94,8 @@ class Data(base.MetaMixin):
 		"""
 		controlledTables = {}
 		for make in dd.makes:
-			tableDef = make.table
-			newTable = tables.TableForDef(tableDef,
-				parseOptions=parseOptions, connection=connection, role=make.role)
-			make.enableScripts(newTable)
-			controlledTables[tableDef.id] = newTable
+			controlledTables[make.table.id
+				] = make.create(connection, parseOptions, tables.TableForDef)
 		return cls(dd, controlledTables, parseOptions)
 
 	def __iter__(self):
@@ -204,6 +198,12 @@ class Data(base.MetaMixin):
 			pass
 		raise base.DataError("No table with role '%s'"%role)
 
+	def feedGrammarParameters(self, grammarParameters):
+		"""feeds grammarParameters to the parmakers of all makes that have one.
+		"""
+		for m in self.dd.makes:
+			m.runParmakerFor(grammarParameters, self.tables[m.table.id])
+
 	def getFeeder(self, **kwargs):
 		return DataFeeder(self, **kwargs)
 
@@ -246,6 +246,7 @@ def processSource(data, source, feeder, opts):
 	data.runScripts("newSource", sourceToken=source)
 	srcIter = data.dd.grammar.parse(source, data)
 	if hasattr(srcIter, "getParameters"):  # is a "normal" grammar
+		data.feedGrammarParameters(srcIter.getParameters())
 		try:
 			_pipeRows(srcIter, feeder, opts)
 		except (base.Error,base.ExecutiveAction):

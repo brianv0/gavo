@@ -457,8 +457,8 @@ class ToPythonCodeConverter(FromSQLConverter):
 		"date": "parseDefaultDate(%s)",
 		"timestamp": "parseDefaultDatetime(%s)",
 		"time": "parseDefaultTime(%s)",
-		"spoint": "parseSimpleSTCS(%s)",  # import this from gavo.stc
-		"scircle": "parseSimpleSTCS(%s)",
+		"spoint": "parseSPoint(%s)",
+		"scircle": "parseSimpleSTCS(%s)", 
 		"spoly": "parseSimpleSTCS(%s)",
 		"sbox": "%s",  # hmha, there's no STC-S for this kind of box...
 		"bytea": "%s",

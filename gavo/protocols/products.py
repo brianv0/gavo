@@ -50,7 +50,18 @@ class PlainProduct(object):
 		f.close()
 
 	def __str__(self):
-		return "<Product %s>"%self.sourcePath
+		return "<Product %s (%s)>"%(self.sourcePath, self.contentType)
+	
+	def __repr__(self):
+		return str(self)
+	
+	def __eq__(self, other):
+		return (isinstance(other, self.__class__) 
+			and self.sourcePath==other.sourcePath
+			and self.contentType==other.contentType)
+	
+	def __ne__(self, other):
+		return not self==other
 
 # XXX TODO bad hack -- have mime type move from siap to products
 	magicMap = {
@@ -85,6 +96,9 @@ class UnauthorizedProduct(PlainProduct):
 	def __str__(self):
 		return "<Protected product %s, access denied>"
 
+	def __eq__(self, other):
+		return self.__class__==other.__class__
+
 
 class NonExistingProduct(PlainProduct):
 	"""is a class for sentiels signifying products that don't exist.
@@ -93,7 +107,10 @@ class NonExistingProduct(PlainProduct):
 	"""
 	def __str__(self):
 		return "<Non-existing product %s>"
-	
+
+	def __eq__(self, other):
+		return self.__class__==other.__class__
+
 	def __call__(self, outFile):
 		raise common.UnknownURI(outFile)
 
@@ -112,6 +129,12 @@ class CutoutProduct(PlainProduct):
 	def __str__(self):
 		return "<FITS cutout of %s, (%fx%f)>"%(sourcePath,
 			self.cutoutPars[2], self.cutoutPars[3])
+
+	def __eq__(self, other):
+		return (isinstance(other, self.__class__) 
+			and self.fullFilePath==other.fullFilePath
+			and self.contentType==other.contentType
+			and self.cutoutPars==other.cutoutPars)
 	
 	def __call__(self, outFile):
 		prog = base.getBinaryName(os.path.join(base.getConfig("inputsDir"),
@@ -226,9 +249,14 @@ class ProductCore(svcs.DBCore):
 		- cutout processing (via a special construct deferring cutouts until they
 			are needed)
 
-	The rd it is constructed with must contain a table named products
-	with at least the fields this table has in products.rd (so,
-	it probably should always be __system__/products.rd).
+	It is instanciated from within //products.rd and relies on
+	certain features in there.
+
+	The SQL generation is a bit funky in that it accepts accref input in
+	both params and columns.  The accref-in-param is the standard case
+	where a single product is created; accrefs in columns is for
+	building tar files.  There is one core instance in //products for each
+	case.
 
 	In case of cutouts, the database sees the naked accrefs and
 	resolves them to file system paths.  These are then combined
@@ -254,7 +282,7 @@ class ProductCore(svcs.DBCore):
 				if key is not None:
 					yield {"accref": key}
 
-	def _getSQLWhere(self, inputData):
+	def _getSQLWhere(self, inputTable):
 		"""returns a query string fragment and the parameters
 		to query the DB for the access paths for the input keys.
 
@@ -264,7 +292,14 @@ class ProductCore(svcs.DBCore):
 		input for the ProductsGrammar.
 		"""
 		keys = [r["accref"]
-			for r in inputData.getPrimaryTable().rows if "accref" in r]
+			for r in inputTable.rows if "accref" in r]
+		try:
+			param = inputTable.getParam("accref")
+			if param is not None:
+				keys.append(param)
+		except base.NotFoundError: # "tar case", accrefs in rows
+			pass
+		
 		keysTableDef = self.rd.getById("parsedKeys")
 		keysTable = rsc.makeTableFromRows(keysTableDef, 
 			self._parseKeys(keys))
@@ -279,15 +314,15 @@ class ProductCore(svcs.DBCore):
 		else:
 			return creds.getGroupsForUser(user, password)
 
-	def run(self, service, inputData, queryMeta):
+	def run(self, service, inputTable, queryMeta):
 		"""returns a data set containing sources for the keys mentioned in
-		inputData's primary table.
+		inputTable.
 
 		Errors while retrieving auth info will be ignored and translated
 		as no groups.
 		"""
 		authGroups = self._getGroups(queryMeta["user"], queryMeta["password"])
-		keysTable, where, pars = self._getSQLWhere(inputData)
+		keysTable, where, pars = self._getSQLWhere(inputTable)
 		prodTable = rsc.TableForDef(self.queriedTable)
 		resTable = rsc.makeTableForQuery(prodTable, self.queryResultDef, 
 			where, pars, suppressIndex=False)

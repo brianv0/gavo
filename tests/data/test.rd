@@ -252,7 +252,7 @@
 		<sources><pattern>data/*.imp</pattern></sources>
 		<keyValueGrammar>
 			<rowfilter procDef="//products#define">
-        <bind key="owner">"test"</bind>
+        <bind key="owner">"X_test"</bind>
         <bind key="embargo">row["embargo"]</bind>
         <bind key="table">"test.prodtest"</bind>
         <bind key="mime">"text/plain"</bind>

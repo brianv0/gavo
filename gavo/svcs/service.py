@@ -706,7 +706,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 					par.set(contextData[par.name])
 		return res
 
-	def runWithData(self, inputData, queryMeta):
+	def runWithData(self, inputTable, queryMeta):
 		"""runs the service, returning an SvcResult.
 
 		This is the main entry point.  It receives an rsc.Data instance,
@@ -716,17 +716,18 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		the ServiceBasedRenderer's runService or runServiceWithContext
 		methods.
 		"""
-		coreRes = self.core.run(self, inputData, queryMeta)
-		return SvcResult(coreRes, inputData, queryMeta, self)
+		coreRes = self.core.run(self, inputTable, queryMeta)
+		return SvcResult(coreRes, inputTable, queryMeta, self)
 
-	def runFromDict(self, contextData, renderer="form"):
+	def runFromDict(self, contextData, renderer="form", queryMeta=None):
 		"""runs the service with a dictionary input and within a given renderer.
 
 		This is mainly a convenience method for unit tests.
 		"""
+		if queryMeta is None:
+			queryMeta = common.QueryMeta(contextData)
 		return self.runWithData(
-			self.makeTableFor("form", contextData),
-			common.QueryMeta(contextData))
+			self.makeTableFor("form", contextData), queryMeta)
 		
 
 	#################### meta and such

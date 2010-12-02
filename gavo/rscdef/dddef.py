@@ -176,16 +176,29 @@ class Make(base.Structure, scripting.ScriptingMixin):
 	All makes belonging to a DD will be processed in the order in which they
 	appear in the file.
 	"""
-# Allow embedding maps, idmaps, defaults for auto-rowmaker?
 	name_ = "make"
 
 	_table = base.ReferenceAttribute("table", 
 		description="Reference to the table to be embedded",
 		default=base.Undefined, copyable=True)
-	_rowmaker = base.ReferenceAttribute("rowmaker", forceType=rmkdef.RowmakerDef,
-		description="Rowmaker for this table", default=base.NotGiven,
+
+	_rowmaker = base.ReferenceAttribute("rowmaker", 
+		default=base.NotGiven,
+		forceType=rmkdef.RowmakerDef,
+		description="The rowmaker (i.e., mapping rules from grammar keys to"
+		" table columns) for the table being made.", 
 		copyable=True)
-	_role = base.UnicodeAttribute("role", default=None,
+
+	_parmaker = base.ReferenceAttribute("parmaker", 
+		default=base.NotGiven,
+		forceType=rmkdef.ParmakerDef,
+		description="The parmaker (i.e., mapping rules from grammar parameters"
+		" to table parameters) for the table being made.  You will usually"
+		" not give a parmaker.",
+		copyable=True)
+
+	_role = base.UnicodeAttribute("role", 
+		default=None,
 		description="The role of the embedded table within the data set",
 		copyable=True)
 
@@ -204,10 +217,23 @@ class Make(base.Structure, scripting.ScriptingMixin):
 		"""
 		return self.table.getExpander()
 	
-	def enableScripts(self, table):
-		"""enables script running for table.
+	def create(self, connection, parseOptions, tableFactory):
+		"""returns a new empty instance of the table this is making.
 		"""
-		table._runScripts = self.getRunner()
+		newTable = tableFactory(self.table,
+			parseOptions=parseOptions, connection=connection, role=self.role)
+		newTable._runScripts = self.getRunner()
+		return newTable
+	
+	def runParmakerFor(self, grammarParameters, destTable):
+		"""feeds grammarParameter to destTable.
+		"""
+		if self.parmaker is base.NotGiven:
+			return
+		if not hasattr(destTable, "_compiledParmaker"):
+			destTable._compiledParmaker = self.parmaker.compileForTable(
+				destTable)
+		destTable.setParams(destTable._compiledParmaker(grammarParameters))
 
 
 class DataDescriptor(base.Structure, base.MetaMixin):

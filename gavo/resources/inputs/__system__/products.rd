@@ -54,7 +54,7 @@ machinery -->
 
 	<table id="instance">
 		<!-- actual sample columns for reference (this should not be necessary,
-		reaaly) -->
+		really) -->
 		<FEED source="tablecols"/>
 	</table>
 
@@ -199,7 +199,6 @@ machinery -->
 
 	</mixinDef>
 
-
 	<productCore id="core" queriedTable="products">
 		<!-- core used for the product delivery service -->
 		<inputTable id="pCoreInput" namePath="products">
@@ -235,5 +234,13 @@ machinery -->
 
 	<service id="p" core="core" allowed="get, form">
 		<meta name="description">The main product deliverer</meta>
+		<inputDD>
+			<contextGrammar>
+				<inputKey original="coreKey" type="raw"/>
+			</contextGrammar>
+			<make table="pCoreInput">
+				<parmaker simplemaps="accref:key"/>
+			</make>
+		</inputDD>
 	</service>
 </resource>

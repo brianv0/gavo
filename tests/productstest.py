@@ -1,166 +1,88 @@
 """
-XXX TODO: Resurrect this; this stuff is now synchronous and can thus
-be tested with the normal unittest framework.  You'll need to change
-ProductCoreTest and then derive it from testhelpers.VerboseTest.
-
 Tests for the products infrastructure.
 """
 
-'''
 from cStringIO import StringIO
 import os
-import unittest
 
-from twisted.trial.unittest import TestCase as TrialTest
-
-from gavo import config, sqlsupport, record
+from gavo import api
+from gavo import svcs
 from gavo.helpers import testhelpers
-from gavo.parsing import importparser, resource
-from gavo.web import product, service, standardcores, common, creds
+from gavo.protocols import products
+
+import tresc
 
 
-
-creds.adminProfile = "test"
-
-
-def importSomeProducts():
-	config.setDbProfile("test")
-	rd = testhelpers.getRd("data/test")
-	tableDef = rd.getTableDefByName("prodtest")
-	res = resource.Resource(rd)
-	res.importData(None, ["productimport"])
-	res.export("sql", ["productimport"])
-
-
-def forgetSomeProducts():
-	rd = importparser.getRd("test")
-	tableDef = rd.getTableDefByName("prodtest")
-	tw = rsc.TableForDef(tableDef)
-	tw.drop().commit().close()
-
-
-def createTestUser():
-	querier = sqlsupport.SimpleQuerier(useProfile="test")
-	try:
-		creds._addUser(querier, "test", "megapass")
-	except creds.ArgError:  # user probably still exists from a previous run
-		pass
-	querier.commit()
-
-
-def deleteTestUser():
-	return
-	querier = sqlsupport.SimpleQuerier(useProfile="test")
-	creds._delUser(querier, "test")
-	querier.finish()
-
-
-class ProductCoreTest(object):
+class ProductCoreTest(testhelpers.VerboseTest):
 	"""tests for the products core.
 	"""
 	timeout = 10
 
+	resources = [('conn', tresc.prodtestTable), ('users', tresc.testUsers)]
+
 	def setUp(self):
-		importSomeProducts()
-		self.rd = importparser.getRd("__system__/products/products")
-		self.core = product.ProductCore(self.rd, {})
-		self.service = service.Service(self.rd, {"condDescs":
-			record.DataFieldList([standardcores.CondDesc.fromInputKey(f)
-				for f in self.core.getInputFields()])})
-		self.service.set_core(self.core)
+		testhelpers.VerboseTest.setUp(self)
+		self.service = api.getRD("//products").getById("p")
 
-	def tearDown(self):
-		forgetSomeProducts()
-	
-	def _testCoreRun(self, input, checker, queryMeta=common.emptyQueryMeta):
-		"""runs input through the core, sending the result to the checker callback.
-		"""
-		return self.core.run(
-			self.service.getInputData(input), queryMeta
-			).addCallback(checker)
-
-	def _makeChecker(self, resLen, res0class, res0path, res0mime):
-		def checkResult(res):
-			rows = res.getPrimaryTable().rows
-			self.assertEqual(len(rows), resLen)
-			rsc = rows[0]["source"]
-			self.assert_(isinstance(rsc, res0class), "Product returned has"
-				" class %s instead of %s"%(rsc.__class__.__name__,
-					res0class.__name__))
-			self.assertEqual(rsc.sourcePath, res0path)
-			self.assertEqual(rsc.contentType, res0mime)
-			return rsc
-		return checkResult
-
+	def _assertMatchedProducts(self, prodClass, prodDescs, foundRows):
+		expectedRows = [{"source": prodClass(os.path.abspath(p), m)}
+			for p, m in prodDescs]
+		# ouch: I should be comparing *sets* here, but for now I'm
+		# too lazy to make all products easily hashable.
+		self.assertEqual(expectedRows, foundRows)
+			
 	def testNormal(self):
 		"""tests for resolution of "normal" products.
 		"""
-		return self._testCoreRun({"key": "data/b.imp"}, self._makeChecker(
-			1, product.PlainProduct, '/home/msdemlei/gavo/trunk/tests/data/b.imp',
-			'application/octet-stream'))
+		res = self.service.runFromDict({"key": "data/b.imp"})
+		self._assertMatchedProducts(products.PlainProduct,
+			[('data/b.imp', 'text/plain')],
+			res.original.getPrimaryTable().rows)
 
 	def testRestrictedAnonymous(self):
 		"""tests for resolution of restricted products for an anonymous user.
 		"""
-		return self._testCoreRun({"key": "data/a.imp"}, self._makeChecker(
-			1, product.UnauthorizedProduct, 
-			'/home/msdemlei/gavo/trunk/tests/data/a.imp', 
-			'application/octet-stream'))
+		res = self.service.runFromDict({"key": "data/a.imp"})
+		self._assertMatchedProducts(products.UnauthorizedProduct,
+			[('data/a.imp', 'text/plain')],
+			res.original.getPrimaryTable().rows)
 
 	def testRestrictedGoodAuth(self):
 		"""tests for return of a protected product with good cred.
 		"""
-		createTestUser()
-		defaultChecker = self._makeChecker(1, product.PlainProduct, 
-			'/home/msdemlei/gavo/trunk/tests/data/a.imp', 
-			'application/octet-stream')
-
-		def checkResult(res):
-			deleteTestUser()   # stale user will stay on error...
-			rsc = defaultChecker(res)
-			# make sure we can write the thing
-			f = StringIO()
-			rsc(f)
-			self.assertEqual(f.getvalue(), 'alpha: 23 34 33.45\ndelta:'
-				' -45 34 59.7\nobject: gabriel\nembargo: 2030-12-31\n')
-
-		qm = common.QueryMeta()
-		qm["user"], qm["password"] = "test", "megapass"
-		return self._testCoreRun({"key": "data/a.imp"}, checkResult, qm)
+		qm = svcs.QueryMeta()
+		qm["user"], qm["password"] = "X_test", "megapass"
+		res = self.service.runFromDict({"key": "data/a.imp"}, queryMeta=qm)
+		self._assertMatchedProducts(products.PlainProduct,
+			[('data/a.imp', 'text/plain')],
+			res.original.getPrimaryTable().rows)
+		src = res.original.getPrimaryTable().rows[0]["source"]
+		f = StringIO()
+		src(f)
+		self.assertEqual(f.getvalue(), 'alpha: 23 34 33.45\ndelta:'
+			' -45 34 59.7\nobject: gabriel\nembargo: 2030-12-31\n')
 
 	def testRestrictedBadAuth(self):
 		"""tests for return of a protected product with bad cred.
 		"""
-		createTestUser()
-
-		defaultChecker = self._makeChecker(1, product.UnauthorizedProduct, 
-			'/home/msdemlei/gavo/trunk/tests/data/a.imp', 
-			'application/octet-stream')
-
-		def checkResult(res):
-			deleteTestUser()   # stale user will stay on error...
-			defaultChecker(res)
-
-		qm = common.QueryMeta()
+		qm = svcs.QueryMeta()
 		qm["user"], qm["password"] = "test", "wrong"
-		return self._testCoreRun({"key": "data/a.imp"}, checkResult, qm)
+		res = self.service.runFromDict({"key": "data/a.imp"}, queryMeta=qm)
+		self._assertMatchedProducts(products.UnauthorizedProduct,
+			[('data/a.imp', 'text/plain')],
+			res.original.getPrimaryTable().rows)
 
-	def testCutout(self):
-		"""tests for processing cutouts.
+	def testRestrictedWrongUser(self):
+		"""tests for return of a protected product with bad cred.
 		"""
-		defaultChecker = self._makeChecker(1, product.CutoutProduct,
-			None, 'image/fits')
+		qm = svcs.QueryMeta()
+		qm["user"], qm["password"] = "Y_test", "megapass"
+		res = self.service.runFromDict({"key": "data/a.imp"}, queryMeta=qm)
+		self._assertMatchedProducts(products.UnauthorizedProduct,
+			[('data/a.imp', 'text/plain')],
+			res.original.getPrimaryTable().rows)
 
-		def checkResult(res):
-			rsc = defaultChecker(res)
-			self.assertEqual(rsc.fullFilePath,
-				'/home/msdemlei/gavo/trunk/tests/data/b.imp')
-
-		return self._testCoreRun(
-			{"key": "data/b.imp&ra=10.2&dec=14.53&sra=0.4&sdec=3.4"}, 
-			checkResult)
-
+### XXX TODO: Play with content types
 
 if __name__=="__main__":
-	testhelpers.trialMain(ProductCoreTest)
-'''
+	testhelpers.main(ProductCoreTest)

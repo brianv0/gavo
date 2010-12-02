@@ -11,7 +11,7 @@ from gavo import rscdef
 from gavo import rscdesc
 from gavo.helpers import testhelpers
 from gavo.rscdef import rmkdef
-
+from gavo.utils import DEG
 
 
 class _FakeTable(object):
@@ -19,13 +19,17 @@ class _FakeTable(object):
 		self.tableDef = td
 
 
-def makeDD(tableCode, rowmakerCode):
+def makeDD(tableCode, rowmakerCode, grammar="<dictlistGrammar/>",
+		moreMakeStuff=""):
 	dd = base.parseFromString(rscdef.DataDescriptor,
 		'<data><table id="foo">%s</table>'
 		'<rowmaker id="_foo">%s</rowmaker>'
-		'<make table="foo" rowmaker="_foo"/>'
-		'<dictlistGrammar/></data>'%(
-			tableCode, rowmakerCode))
+		'<make table="foo" rowmaker="_foo">'
+		'  %s'
+		'</make>'
+		'%s'
+		'</data>'%(
+			tableCode, rowmakerCode, moreMakeStuff, grammar))
 	td = dd.getTableDefById("foo")
 	return dd, td
 
@@ -320,5 +324,50 @@ class IgnoreOnTest(testhelpers.VerboseTest):
 		self.assertEqual(table.rows, [{'si':2.}])
 
 
+class ToParameterTest(testhelpers.VerboseTest):
+	def testPlain(self):
+		dd, td = makeDD('<param name="u" type="integer"/>', "", 
+			'<dictlistGrammar asPars="True"/>',
+			'<parmaker><map dest="u" src="u"/></parmaker>')
+		data = rsc.makeData(dd, forceSource=[{"u": "10"}])
+		self.assertEqual(data.getPrimaryTable().getParam("u"), 10)
+	
+	def testConstant(self):
+		dd, td = makeDD('<param name="u" type="integer"/>', "", 
+			'<dictlistGrammar/>',
+			'<parmaker><map dest="u">10</map></parmaker>')
+		data = rsc.makeData(dd, forceSource=[])
+		self.assertEqual(data.getPrimaryTable().getParam("u"), 10)
+			
+	def testIdmaps(self):
+		dd, td = makeDD('<param name="u" type="timestamp"/>'
+				'<param name="pos" type="spoint"/>', "", 
+			'<dictlistGrammar asPars="True"/>',
+			'<parmaker idmaps="*"/>')
+		data = rsc.makeData(dd, forceSource=[
+			{'u': "2010-10-10T10:10:10", 'pos': '34,-30'}])
+		self.assertEqual(data.getPrimaryTable().getParam("u"), 
+			datetime.datetime(2010, 10, 10, 10, 10, 10))
+		self.assertAlmostEqual(data.getPrimaryTable().getParam("pos").x,
+			34*DEG)
+
+	def testBadDest(self):
+		dd, td = makeDD('<param name="u" type="timestamp"/>', "",
+			'<dictlistGrammar/>',
+			'<parmaker><map dest="foo">10</map></parmaker>')
+		self.assertRaisesWithMsg(base.NotFoundError,
+			"column u'foo' could not be located in table foo's params",
+			rsc.makeData,
+			(dd, rsc.parseNonValidating, []))
+
+	def testBadSource(self):
+		dd, td = makeDD('<param name="u" type="timestamp"/>', "",
+			'<dictlistGrammar/>',
+			'<parmaker><map dest="u" src="bar"/></parmaker>')
+		self.assertRaisesWithMsg(base.ValidationError,
+			"While building u in None: Key 'bar' not found in a mapping.",
+			rsc.makeData,
+			(dd, rsc.parseNonValidating, []))
+
 if __name__=="__main__":
-	testhelpers.main(ApplyTest)
+	testhelpers.main(ToParameterTest)

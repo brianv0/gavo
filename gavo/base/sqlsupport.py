@@ -564,6 +564,17 @@ class SimpleQuerier(QuerierMixin):
 			self.ownedConnection = True
 			self.connection = getDBConnection(useProfile or config.getDBProfile())
 
+	def __enter__(self):
+		return self
+	
+	def __exit__(self, *exc_info):
+		if exc_info==(None, None, None):
+			if not self.connection.closed:
+				self.commit()
+		else:
+			if not self.connection.closed:
+				self.rollback()
+
 	def rollback(self):
 		self.connection.rollback()
 
