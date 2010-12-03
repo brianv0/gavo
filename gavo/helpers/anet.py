@@ -117,6 +117,9 @@ def _feedFile(targDir, fName, **ignored):
 
 def _runShellCommand(cmd, args):
 	with open("lastCommand.log", "a") as logF:
+		logF.write("\n\n================\nNow running: %s\n\n"%
+			" ".join([cmd]+args))
+		logF.flush()
 		proc = subprocess.Popen([cmd]+args, stdout=logF,
 			stderr=subprocess.STDOUT)
 		proc.communicate()
@@ -226,6 +229,7 @@ def _solveField(fName, solverParameters, sexControl, objectFilter,
 				"--width", str(width), "--height", str(height)])
 			objectSource = "img.axy"
 	args.append("--no-fits2fits") # leaks into tmp as of 0.36 otherwise
+	args.append("-v")
 
 	if "indices" in solverParameters:
 		with open("backend.cfg", "w") as backendCfg:

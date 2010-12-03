@@ -137,7 +137,7 @@ class MultiSelectChoice(SelectChoice):
 		def renderOptions(ctx, data):
 			if self.noneOption is not None:
 				noneVal = iformal.IKey(self.noneOption).key()
-				option = T.option(value=noneVal.key())[
+				option = T.option(value=noneVal)[
 					iformal.ILabel(self.noneOption).label()]
 				if value is None or value==noneVal:
 					option = option(selected='selected')
