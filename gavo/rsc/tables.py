@@ -44,7 +44,8 @@ def TableForDef(tableDef, suppressIndex=False,
 
 
 def makeTableForQuery(queriedTable, resultTableDef, fragment, pars, 
-		distinct=False, limits=None, suppressIndex=True):
+		distinct=False, limits=None, suppressIndex=True,
+		connection=None):
 	"""returns a table from resultTableDef containing the results for
 	a query for fragment and pars in queriedTable.
 
@@ -57,6 +58,7 @@ def makeTableForQuery(queriedTable, resultTableDef, fragment, pars,
 	The other arguments are just handed through to dbtable.iterQuery.
 	"""
 	return TableForDef(resultTableDef, suppressIndex=suppressIndex,
+		connection=connection,
 		rows=[r for r in queriedTable.iterQuery(resultTableDef, fragment, pars,
 			distinct, limits)])
 

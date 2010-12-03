@@ -129,26 +129,28 @@ class TestProductsImport(testhelpers.VerboseTest):
 					'</table></resource>',))
 
 
-class TestCleanedup(unittest.TestCase):
+class TestCleanedup(testhelpers.VerboseTest):
 	"""tests for cleanup after table drop (may fail if other tests failed).
 	"""
+	resources = [("conn", tresc.dbConnection)]
+
 	def testNotInProducts(self):
 		assertRowset(self,
-			sqlsupport.SimpleQuerier(useProfile="admin"
-				).runIsolatedQuery(
-				"select * from dc.products where sourceTable='test.prodtest'"),
+			list(sqlsupport.SimpleQuerier(connection=self.conn
+				).query(
+				"select * from dc.products where sourceTable='test.prodtest'")),
 			[])
 
 	def testNotInMetatable(self):
 		assertRowset(self,
-			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
-				" dc.columnmeta where tableName='test.prodtest'"),
+			list(sqlsupport.SimpleQuerier(connection=self.conn).query(
+			"select * from dc.columnmeta where tableName='test.prodtest'")),
 			[])
 
 	def testNotInDc_tables(self):
 		assertRowset(self,
-			sqlsupport.SimpleQuerier().runIsolatedQuery("select * from"
-				" dc.tablemeta where tableName='test.prodtest'"),
+			list(sqlsupport.SimpleQuerier(connection=self.conn).query(
+				"select * from dc.tablemeta where tableName='test.prodtest'")),
 			[])
 
 

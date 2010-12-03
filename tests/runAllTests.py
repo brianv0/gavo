@@ -11,6 +11,8 @@ import glob
 import os
 import warnings
 
+from gavo.imp import testresources
+
 warnings.simplefilter("ignore", category=UserWarning)
 
 
@@ -49,9 +51,9 @@ def runTrialTest():
 	
 
 if __name__=="__main__":
-	unittestSuite = unittest.defaultTestLoader.loadTestsFromNames(
+	unittestSuite = testresources.TestLoader().loadTestsFromNames(
 		unittestModules)
-	runner = unittest.TextTestRunner()
+	runner = unittest.TextTestRunner(verbosity=None)
 	runner.run(unittest.TestSuite([unittestSuite, 
 		getDoctests(),
 		unittest.FunctionTestCase(runTrialTest, description="Trial-based tests")]))

@@ -4,6 +4,8 @@
 Tests for correct interpretation of vizier-type expressions.
 """
 
+from __future__ import with_statement
+
 import datetime
 import sys
 import unittest
@@ -16,6 +18,7 @@ from gavo.base import vizierexprs
 from gavo.helpers import testhelpers
 from gavo.svcs import inputdef
 
+import tresc
 
 
 class GrammarTest(testhelpers.VerboseTest):
@@ -349,18 +352,21 @@ class SQLGenerTest(unittest.TestCase):
 
 
 class _ViztestTable(testhelpers.TestResource):
+	resources = [("conn", tresc.dbConnection)]
+
 	_testData = [{"s": ""},
 		{"s": "a"}, {"s": "A"}, {"s": "aaab"}, {"s": "baaab"},
 		{"s": "BAaab"}, {"s": "B*"}, {"s": "X33+4"}, {"s": "a,b"},
 		{"s": "a|b"}, {"s": r"\it"},]
 
-	def make(self, ignored):
+	def make(self, deps):
 		dd = testhelpers.getTestRD().getById("viziertest")
-		d = rsc.makeData(dd, forceSource=self._testData)
+		d = rsc.makeData(dd, forceSource=self._testData, 
+			connection=deps["conn"])
 		return d.getPrimaryTable()
 	
 	def clean(self, res):
-		res.close()
+		res.drop().commit()
 
 
 _viztestTable = _ViztestTable()
@@ -429,7 +435,8 @@ class StringQueryTest(testhelpers.VerboseTest):
 				query, expr, pars, numberExpected, res))
 
 
-class MatchMatrixTest(unittest.TestCase):
+class MatchMatrixTest(testhelpers.VerboseTest):
+	resources = [("conn", tresc.dbConnection)]
 
 # This matrix is used in the docs for vizier expressions (help_vizier.shtml).
 # If you amend it, please update it there as well.
@@ -463,10 +470,11 @@ class MatchMatrixTest(unittest.TestCase):
 	]
 
 	def setUp(self):
+		testhelpers.VerboseTest.setUp(self)
 		dd = testhelpers.getTestRD().getById("viziertest")
 		self.itemsInDb = self.matchMatrix[0][1:]
 		self.data = rsc.makeData(dd, forceSource=[{"s": item}
-			for item in self.itemsInDb])
+			for item in self.itemsInDb], connection=self.conn)
 		self.tableName = self.data.tables["vizierstrings"].tableDef.getQName()
 		self.queryKey = base.makeStruct(inputdef.InputKey, 
 			name="s", type="vexpr-string")
@@ -483,8 +491,7 @@ class MatchMatrixTest(unittest.TestCase):
 		return expectation, query, pars
 
 	def runTest(self):
-		querier = base.SimpleQuerier()
-		try:
+		with base.SimpleQuerier(connection=self.conn) as querier:
 			for test in self.matchMatrix[1:]:
 				expectation, query, pars = self._computeTest(test)
 				res = set([r[0] for r in querier.query(query, pars).fetchall()])
@@ -492,8 +499,6 @@ class MatchMatrixTest(unittest.TestCase):
 					"Query for %s returned wrong set.\n"
 					"Got %s, expected %s."%(
 						test[0], res, expectation))
-		finally:
-			querier.close()
 
 
 

@@ -121,56 +121,51 @@ class OptimisingTestSuite(unittest.TestSuite):
         self.switch(current_resources, set(), result)
         return result
 
+    def _arrange(self, by_res_comb):
+        """Sorts by_res_comb's values using a greedy cost-minimizing
+        heuristic.
+
+        by_res_comb maps sets of resources used to a list of the
+        corresponding tests.  The heuristic works by figuring out the
+        test most expensive to set up and collecting all resource
+        sets that contain it.  It will then separately arrange
+        this test subset and the set of tests not requiring this
+        currently most expensive test.
+
+        The recursion stops when only one (or less) resource set
+        is left in by_res_comb.
+        """
+        if not by_res_comb:
+            return []
+        if len(by_res_comb)==1:
+            return by_res_comb.values()[0]
+
+        most_expensive_here = max(reduce(
+                lambda a,b: a.union(b),
+                by_res_comb),
+            key=lambda res: res.setUpCost)
+        
+        with_most_expensive, not_handled = {}, {}
+        for res_required in by_res_comb:
+            if most_expensive_here in res_required:
+                with_most_expensive[
+                    res_required-frozenset((most_expensive_here,))
+                    ] = by_res_comb[res_required]
+            else:
+                not_handled[res_required] = by_res_comb[res_required]
+        
+        return self._arrange(with_most_expensive
+            )+self._arrange(not_handled)
+
     def sortTests(self):
-        """Attempt to topographically sort the contained tests.
+        """Sorts _tests in some way that minimizes the total cost
+        of creating and deleting resources.
 
-        Feel free to override to improve the sort behaviour.
+        We're using a heuristic where we attempt to keep the most
+        expensive resources unchanged for the longest time.
         """
-        # We group the tests by the resource combinations they use,
-        # since there will usually be fewer resource combinations than
-        # actual tests and there can never be more.
         resource_set_tests = split_by_resources(self._tests)
-
-        graph = self._getGraph(resource_set_tests.keys())
-        no_resources = frozenset()
-        # Recursive visit-all-nodes all-permutations.
-        def cost(from_set, resource_sets):
-            """Get the cost of resource traversal for resource sets.
-
-            :return: cost, order
-            """
-            if not resource_sets:
-                # tear down last resources
-                return graph[from_set][no_resources], []
-            costs = []
-            for to_set in resource_sets:
-                child_cost, child_order = cost(
-                    to_set, resource_sets - set([to_set]))
-                costs.append((graph[from_set][to_set] + child_cost,
-                              [to_set] + child_order))
-            return min(costs)
-        _, order = cost(no_resources,
-                        set(resource_set_tests) - set([no_resources]))
-        order.append(no_resources)
-        self._tests = sum(
-            (resource_set_tests[resource_set] for resource_set in order), [])
-
-    def _getGraph(self, resource_sets):
-        """Build a graph of the resource-using nodes.
-
-        :return: A complete directed graph of the switching costs
-            between each resource combination.
-        """
-        graph = {}
-        for from_set in resource_sets:
-            graph[from_set] = {}
-            for to_set in resource_sets:
-                if from_set is to_set:
-                    graph[from_set][to_set] = 0
-                else:
-                    graph[from_set][to_set] = self.cost_of_switching(
-                        from_set, to_set)
-        return graph
+        self._tests = self._arrange(resource_set_tests)
 
 
 class TestLoader(unittest.TestLoader):
@@ -401,3 +396,6 @@ class ResourcedTestCase(unittest.TestCase):
         for resource in self.resources:
             resource[1].finishedWith(getattr(self, resource[0]), result)
             delattr(self, resource[0])
+
+
+# vim:sta:et:sw=4

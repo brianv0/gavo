@@ -7,6 +7,8 @@ with sessions.  twisted.cred is a different issue but probably only complicates
 matters unnecessarily.
 """
 
+from __future__ import with_statement
+
 from gavo import base
 from gavo.base import sqlsupport
 
@@ -39,9 +41,8 @@ def getGroupsForUser(username, password):
 	query = ("SELECT groupname FROM dc.groups NATURAL JOIN dc.users as u"
 		" where username=%(username)s AND u.password=%(password)s")
 	pars = {"username": username, "password": password}
-	return parseResponse(
-		base.SimpleQuerier(useProfile=adminProfile
-			).runIsolatedQuery(query, pars))
+	with base.SimpleQuerier(useProfile=adminProfile, autoClose=True) as querier:
+		return parseResponse(querier.query(query, pars))
 
 
 def hasCredentials(user, password, reqGroup):

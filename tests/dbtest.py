@@ -39,6 +39,7 @@ class ProfileTest(testhelpers.VerboseTest):
 			self.parser.parse,
 			("test2", "internal", "database=gavo\nhsot=bar\n"))
 
+
 class TestTypes(testhelpers.VerboseTest):
 	"""Tests for some special adapters we provide.
 	"""
@@ -64,7 +65,9 @@ class TestTypes(testhelpers.VerboseTest):
 		self.assertEqual(rows[0]["box"][1], (1,3))
 
 
-class TestWithTableCreation(unittest.TestCase):
+class TestWithTableCreation(testhelpers.VerboseTest):
+	resources = [("conn", tresc.dbConnection)]
+
 	tableName = None
 	rdId = "test.rd"
 	rows = []
@@ -80,11 +83,14 @@ class TestWithTableCreation(unittest.TestCase):
 					foundPrivs[role], expPrivs[role]))
 
 	def setUp(self):
+		testhelpers.VerboseTest.setUp(self)
 		if self.tableName is None:
 			return
-		self.querier = base.SimpleQuerier(useProfile="test")
+		self.querier = base.SimpleQuerier(connection=self.conn)
 		self.tableDef = testhelpers.getTestTable(self.tableName, self.rdId)
-		self.table = rsc.TableForDef(self.tableDef, rows=self.rows).commit()
+		self.table = rsc.TableForDef(self.tableDef, rows=self.rows,
+			connection=self.conn)
+		self.conn.commit()
 
 	def tearDown(self):
 		if self.tableName is None:
@@ -114,22 +120,25 @@ class TestRoleSetting(TestPrivs):
 	rdId = "privtest.rd"
 
 	def setUp(self):
-		q = base.SimpleQuerier()
+		# We need a private querier here since we must squeeze those
+		# users in before TestPriv's setup
 		try:
-			q.query("create user privtestuser")
-			q.query("create user testadmin")
+			querier = base.SimpleQuerier()
+			querier.query("create user privtestuser")
+			querier.query("create user testadmin")
+			querier.commit()
 		except base.DBError: # probably left over from a previous crash
 			sys.stderr.write("Test roles already present?  Rats.\n")
-		q.finish()
+			querier.rollback()
+		querier.close()
 		TestPrivs.setUp(self)
 	
 	def tearDown(self):
 		TestPrivs.tearDown(self)
-		q = base.SimpleQuerier()
-		q.query("drop schema test cascade")
-		q.query("drop user privtestuser")
-		q.query("drop user testadmin")
-		q.finish()
+		self.querier.query("drop schema test cascade")
+		self.querier.query("drop user privtestuser")
+		self.querier.query("drop user testadmin")
+		self.querier.commit()
 
 
 class SimpleQuerierTest(TestWithTableCreation):
@@ -138,13 +147,13 @@ class SimpleQuerierTest(TestWithTableCreation):
 			"atext": "foo", "adate": datetime.date(2003, 11, 13)}]
 	
 	def testPlainQuery(self):
-		q = base.SimpleQuerier()
+		q = base.SimpleQuerier(connection=self.conn)
 		self.assertEqual(q.runIsolatedQuery(
 				"select * from %s"%self.tableDef.getQName()),
 			[(3, 3.25, 7.5, u'foo', datetime.date(2003, 11, 13))])
 
 	def testDictQuery(self):
-		q = base.SimpleQuerier()
+		q = base.SimpleQuerier(connection=self.conn)
 		self.assertEqual(q.runIsolatedQuery(
 				"select * from %s"%self.tableDef.getQName(), asDict=True),
 			[{'anint': 3, 'afloat': 3.25, 'adouble': 7.5, 'atext': u'foo', 
@@ -179,7 +188,7 @@ class TestMetaTableADQL(TestWithTableCreation):
 	tableName = "adqltable"
 
 	def testDcTablesEntry(self):
-		q = base.SimpleQuerier()
+		q = base.SimpleQuerier(connection=self.conn)
 		res = q.query("select * from dc.tablemeta where tableName=%(n)s",
 			{"n": self.tableDef.getQName()}).fetchall()
 		qName, srcRd, td, rd, adql = res[0]
@@ -193,6 +202,7 @@ class TestMetaTableADQL(TestWithTableCreation):
 		self.assertEqual([(f.name, f.type, f.tablehead) 
 				for f in res], [
 			(u'foo', 'double precision', 'foo'), ])
+		mh.close()
 
 
 class TestPgSphere(testhelpers.VerboseTest):

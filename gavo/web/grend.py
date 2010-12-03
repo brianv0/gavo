@@ -520,47 +520,32 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 		self.macroPackage = self.service
 
 	@classmethod
-	def getInputDD(cls, service):
-		"""returns an inputDD appropriate for service and this renderer.
-
-		This will return None if the service can use the core's default DD.
-		"""
-		sfs = service.getInputFields()
-		ifs = cls.getInputFields(service)
-		if sfs is ifs:
-			return None
-		return base.makeStruct(svcs.InputDescriptor,
-			grammar=base.makeStruct(svcs.ContextGrammar, inputKeys=ifs))
-
-	@classmethod
-	def getInputFields(cls, service):
+	def getInputKeys(cls, service):
 		"""filters input fields given by the service for whether they are
 		appropriate for the renderer in question.
 
-		This method will return the result of service.getInputFields()
-		identically if no fields were filtered.
+		The method will return None if the core input keys should be
+		used.
 		"""
 		res, changed = [], False
-		serviceFields = service.getInputFields()
-		for field in serviceFields:
-			if field.getProperty("onlyForRenderer", None) is not None:
-				if field.getProperty("onlyForRenderer")!=cls.name:
+		coreParams = service.core.inputTable.params
+		for param in coreParams:
+			if param.getProperty("onlyForRenderer", None) is not None:
+				if param.getProperty("onlyForRenderer")!=cls.name:
 					changed = True
 					continue
-			if field.getProperty("notForRenderer", None) is not None:
-				if field.getProperty("notForRenderer")==cls.name:
+			if param.getProperty("notForRenderer", None) is not None:
+				if param.getProperty("notForRenderer")==cls.name:
 					changed = True
 					continue
-			res.append(field)
+			res.append(param)
 		if changed:
 			return res
-		return serviceFields
 
 	def processData(self, rawData, queryMeta):
 		"""produces input data for the service in runs the service.
 		"""
-		inputData = self.service.makeDataFor(self, rawData)
-		return self.service.runWithData(inputData, queryMeta)
+		return self.service.runWithData(self, rawData, queryMeta)
 	
 	def runService(self, rawData, queryMeta):
 		"""takes raw data and returns a deferred firing the service result.

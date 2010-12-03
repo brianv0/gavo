@@ -202,6 +202,7 @@ def _runTAPJob(parameters, jobId, queryProfile, timeout):
 			_getResultType(format, job.parameters.get("FORMAT")), "result")
 		res = _makeDataFor(res, job)
 	writeResultTo(format, res, destF)
+	connectionForQuery.close()
 	destF.close()
 
 

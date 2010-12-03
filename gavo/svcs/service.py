@@ -400,10 +400,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		if self.outputTable is base.NotGiven:
 			self.outputTable = self.core.outputTable
 
-		# Pain: since renderers may override InputKey sequences, they
-		# may require inputDDs of their own.  We cache them here
-		# as necessary.
-		self.inputDDsForRenderers = {}
+		self._inputKeysCache = {}
 		self._loadedTemplates = {}
 			
 	def onElementComplete(self):
@@ -653,47 +650,30 @@ class Service(base.Structure, base.ComputedMetaMixin,
 
 	################### running and input computation.
 
-	def getInputFields(self):
-		"""returns the core's params.
+	def getInputKeysFor(self, renderer):
+		"""returns a sequence of input keys, adapted for certain renderers.
 
-		This is what most renderer make their input keys of.
-		"""
-		return self.core.inputTable.params
-
-	def getInputDDFor(self, renderer):
-		"""returns an inputDD for renderer.
-
-		The renderers compute these based on their input fields.
-
-		The renderer argument may either be a renderer name or, a renderer
+		The renderer argument may either be a renderer name, a renderer
 		class or a renderer instance.
+
+		If the service has an inputDD, the result is the context grammar's
+		input keys.  Otherwise, it will be a subset of the core's input
+		fields as determined by the renderer.
 		"""
 		if self.inputDD is not base.NotGiven:
-			return self.inputDD
+			return self.inputDD.grammar.inputKeys
 		if isinstance(renderer, basestring):
 			renderer = renderers.getRenderer(renderer)
-		if renderer.name not in self.inputDDsForRenderers:
-			newDD = renderer.getInputDD(self)
-			if newDD is None:
-				newDD = inputdef.makeAutoInputDD(self.core)
-			self.inputDDsForRenderers[renderer.name] = newDD
-		return self.inputDDsForRenderers[renderer.name]
+		if renderer.name not in self._inputKeysCache:
+			newKeys = renderer.getInputKeys(self)
+			if newKeys is None:
+				newKeys = self.core.inputTable
+			self._inputKeysCache[renderer.name] = newKeys
+		return self._inputKeysCache[renderer.name]
 
-	def makeDataFor(self, renderer, rawData):
-		"""returns a Table instance for the core input, taking raw input
-		from renderer, made from rawData.
-
-		renderer may be None, in which case the core's inputDD kicks in.
-		If an inputDD is defined on this service, it will always be
-		used.
-		"""
-		inputDD = self.getInputDDFor(renderer)
-		res = rsc.makeData(inputDD,
-			parseOptions=rsc.parseValidating, forceSource=rawData).getPrimaryTable()
-		return res
-
-	def makeTableFor(self, renderer, contextData):
-		"""returns an input table for the core, filled from contextData.
+	def _makeInputTableFor(self, renderer, contextData):
+		"""returns an input table for the core, filled from contextData and
+		adapted for renderer.
 		"""
 		if self.inputDD:
 			res = rsc.makeData(self.inputDD,
@@ -706,28 +686,27 @@ class Service(base.Structure, base.ComputedMetaMixin,
 					par.set(contextData[par.name])
 		return res
 
-	def runWithData(self, inputTable, queryMeta):
+	def runWithData(self, renderer, contextData, queryMeta):
 		"""runs the service, returning an SvcResult.
 
-		This is the main entry point.  It receives an rsc.Data instance,
-		usually generated using the makeDataFor method.
-
-		Typically, you do not call this method yourself but rather use
-		the ServiceBasedRenderer's runService or runServiceWithContext
-		methods.
+		This is the main entry point.  contextData usually is what
+		the nevow machinery delivers or simply a dictionary, but if
+		service has an inputDD, it can be anything the grammar can
+		grok.
 		"""
+		inputTable = self._makeInputTableFor(renderer, contextData)
 		coreRes = self.core.run(self, inputTable, queryMeta)
 		return SvcResult(coreRes, inputTable, queryMeta, self)
 
 	def runFromDict(self, contextData, renderer="form", queryMeta=None):
 		"""runs the service with a dictionary input and within a given renderer.
 
-		This is mainly a convenience method for unit tests.
+		This is mainly a convenience method for unit tests, supplying some
+		defaults.
 		"""
 		if queryMeta is None:
 			queryMeta = common.QueryMeta(contextData)
-		return self.runWithData(
-			self.makeTableFor("form", contextData), queryMeta)
+		return self.runWithData(renderer, contextData, queryMeta)
 		
 
 	#################### meta and such

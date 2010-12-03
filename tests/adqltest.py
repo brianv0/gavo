@@ -1235,12 +1235,12 @@ class QueryTest(testhelpers.VerboseTest):
 					label, repr(getattr(dataField, label, None))))
 
 	def runQuery(self, query, **kwargs):
-		return adqlglue.query(self.querier, query, **kwargs)
+		return adqlglue.query(self.querier, query, metaProfile="test", **kwargs)
 
 	def testPlainSelect(self):
 		res = self.runQuery(
 			"select alpha, delta from %s where mag<-10"%
-			self.tableName, metaProfile="test")
+			self.tableName)
 		self.assertEqual(len(res.rows), 1)
 		self.assertEqual(len(res.rows[0]), 2)
 		self.assertEqual(res.rows[0]["alpha"], 22.0)
@@ -1254,7 +1254,7 @@ class QueryTest(testhelpers.VerboseTest):
 
 	def testStarSelect(self):
 		res = self.runQuery("select * from %s where mag<-10"%
-			self.tableName, metaProfile="test")
+			self.tableName)
 		self.assertEqual(len(res.rows), 1)
 		self.assertEqual(len(res.rows[0]), 4)
 		fields = res.tableDef.columns
@@ -1280,12 +1280,11 @@ class QueryTest(testhelpers.VerboseTest):
 
 	def testNoCase(self):
 		# will just raise an Exception if things are broken.
-		self.runQuery("select ALPHA, DeLtA, MaG from %s"%self.tableName,
-			metaProfile="test")
+		self.runQuery("select ALPHA, DeLtA, MaG from %s"%self.tableName)
 
 	def testTainting(self):
 		res = self.runQuery("select delta*2, alpha*mag, alpha+delta"
-			" from %s where mag<-10"% self.tableName, metaProfile="test")
+			" from %s where mag<-10"% self.tableName)
 		f1, f2, f3 = res.tableDef.columns
 		self._assertFieldProperties(f1, [("ucd", 'pos.eq.dec;meta.main'),
 			("description", 'A sample Dec -- *TAINTED*: the value was operated'

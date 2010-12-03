@@ -15,6 +15,7 @@ from gavo.helpers import testhelpers
 from gavo.protocols import siap
 from gavo.utils import DEG
 
+import tresc
 
 
 def raCorr(dec):
@@ -168,18 +169,19 @@ class TestWCSBbox(unittest.TestCase):
 			self._testOverlap(ra, dec)
 
 
-class CooQueryTestBase(unittest.TestCase):
-	"""base class for functional testing of the SIAP code.
+class _SIAPTestTable(testhelpers.TestResource):
+	"""Base class for SIAP test tables.
 	"""
-# since it's a functional test, we need extensive setup.  Thus,
-# in the end the instances end up as single, huge tests.
-	ddid = None
+	resources = [("conn", tresc.dbConnection)]
+	setUpCost = 6
+	
+	def __init__(self, ddid):
+		self.ddid = ddid
+		testhelpers.TestResource.__init__(self)
 
-	def setUp(self):
-		"""fills a database table with test data.
-		"""
-		if self.ddid is None:
-			return
+	def make(self, deps):
+		self.conn = deps["conn"]
+
 		def computeWCSKeys(pos, size):
 			imgPix = (1000., 1000.)
 			res = {
@@ -218,7 +220,7 @@ class CooQueryTestBase(unittest.TestCase):
 			return res
 		rd = testhelpers.getTestRD()
 		dd = rd.getById(self.ddid)
-		self.data = rsc.makeData(dd, forceSource=[
+		return rsc.makeData(dd, connection=self.conn, forceSource=[
 			computeWCSKeys(pos, size) for pos, size in [
 				((0, 0), (10, 10)),
 				((0, 90), (1, 1)),
@@ -229,15 +231,16 @@ class CooQueryTestBase(unittest.TestCase):
 				((160, 45), (2.1, 1.1)),
 				((161, 45), (4.1, 1.1)),
 				((162, 45), (2.1, 1.1))]])
-		self.tableDef = self.data.getPrimaryTable().tableDef
-		self.tableName = self.tableDef.getQName()
 
-	def tearDown(self):
-		if self.ddid is None:
-			return
-		self.data.dropTables()
-		self.data.commitAll()
-		self.data.closeAll()
+	def clean(self, data):
+		data.dropTables()
+		self.conn.commit()
+
+
+class CooQueryTestBase(testhelpers.VerboseTest):
+	"""base class for functional testing of the SIAP code.
+	"""
+	data = None
 
 	# queries with expected numbers of returned items
 	_testcases = [
@@ -258,22 +261,21 @@ class CooQueryTestBase(unittest.TestCase):
 	}
 
 	def _runTests(self, type):
-		querier = base.SimpleQuerier()
-		try:
-			for center, size, expected in self._testcases:
-				pars = {}
-				fragment = siap.getQuery(self.tableDef, {
-					"POS": center,
-					"SIZE": size,
-					"INTERSECT": type}, pars)
-				res = querier.query(
-					"SELECT * FROM %s WHERE %s"%(self.tableName, fragment), 
-					pars).fetchall()
-				self.assertEqual(len(res), expected[self._intersectionIndex[type]], 
-					"%d instead of %d matched when queriying for %s %s"%(len(res), 
-					expected[self._intersectionIndex[type]], type, (center, size)))
-		finally:
-			querier.close()
+		if self.data is None:  # only do something if given data (see below)
+			return
+		table = self.data.getPrimaryTable()
+		for center, size, expected in self._testcases:
+			pars = {}
+			fragment = siap.getQuery(table.tableDef, {
+				"POS": center,
+				"SIZE": size,
+				"INTERSECT": type}, pars)
+			res = list(table.query(
+				"SELECT * FROM %s WHERE %s"%(table.tableName, fragment), 
+				pars))
+			self.assertEqual(len(res), expected[self._intersectionIndex[type]], 
+				"%d instead of %d matched when queriying for %s %s"%(len(res), 
+				expected[self._intersectionIndex[type]], type, (center, size)))
 
 	# queries with expected numbers of returned items
 	_testcases = [
@@ -287,25 +289,29 @@ class CooQueryTestBase(unittest.TestCase):
 # XXX TODO: do some more here
 	]
 
-	def testHugeAndUgly(self):
-		if self.ddid is None:
-			return
+	def testCOVERS(self):
 		self._runTests("COVERS")
+	
+	def testENCLOSED(self):
 		self._runTests("ENCLOSED")
+	
+	def testCENTER(self):
 		self._runTests("CENTER")
+	
+	def testOVERLAPS(self):
 		self._runTests("OVERLAPS")
 
 
-class TestBboxQueries(CooQueryTestBase):
+class BboxQueriesTest(CooQueryTestBase):
 	"""tests for actual queries on the unit sphere with trivial WCS data.
 	"""
-	ddid = "bbox_siaptest"
+	resources = [("data", _SIAPTestTable("bbox_siaptest"))]
 
 
-class TestPgSphereQueries(CooQueryTestBase):
+class PgSphereQueriesTest(CooQueryTestBase):
 	"""tests for actual queries on the unit sphere with trivial WCS data.
 	"""
-	ddid = "pgs_siaptest"
+	resources = [("data", _SIAPTestTable("pgs_siaptest"))]
 
 
 
@@ -316,4 +322,4 @@ def singleTest():
 
 
 if __name__=="__main__":
-	testhelpers.main(TestPgSphereQueries)
+	testhelpers.main(PgSphereQueriesTest)

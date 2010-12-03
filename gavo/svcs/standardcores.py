@@ -283,7 +283,7 @@ class TableBasedCore(core.Core):
 	def _fixNamePath(self, qTable):
 # callback from queriedTable to make it the default for namePath as well
 		if self.namePath is None:
-			self.namePath = qTable.id
+			self.namePath = qTable.getFullId()
 
 	def _getSQLWhere(self, inputTable, queryMeta):
 		"""returns a where fragment and the appropriate parameters

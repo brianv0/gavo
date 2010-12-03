@@ -196,5 +196,27 @@ class InputKeyTest(testhelpers.VerboseTest):
 		self.assertEqual(rendered.attributes["rows"], 15)
 
 
+class InputFieldSelectionTest(testhelpers.VerboseTest):
+	# Tests for renderer-dependent selection and adaptation of db core 
+	# input fields.
+	
+	resources = [("table", tresc.csTestTable)]
+
+	def setUp(self):
+		testhelpers.VerboseTest.setUp(self)
+		self.service = testhelpers.getTestRD("cores").getById("cstest")
+
+	def testForm(self):
+		self.assertEqual(
+			[(k.name, k.type) for k in self.service.getInputKeysFor("form")],
+			[("hscs_pos", "text"), ("hscs_sr", "real"), ("mag", "vexpr-float")])
+
+	def testSCS(self):
+		self.assertEqual(
+			[(k.name, k.type) for k in self.service.getInputKeysFor("scs.xml")],
+			[('RA', 'double precision'), ('DEC', 'double precision'), 
+				('SR', 'real'), ("mag", "vexpr-float")])
+
+
 if __name__=="__main__":
-	testhelpers.main(ComputedServiceTest)
+	testhelpers.main(InputFieldSelectionTest)

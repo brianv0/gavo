@@ -531,6 +531,19 @@ def stealVar(varName):
 	raise ValueError("No local %s in the stack"%varName)
 
 
+def printFrames():
+	"""prints a compact list of frames.
+
+	This is an aid for printf debugging.
+	"""
+	frame = inspect.currentframe().f_back.f_back
+	if inspect.getframeinfo(frame)[2]=="getJobsTable":
+		return
+	while frame:
+		print "[%s,%s], [%s]"%inspect.getframeinfo(frame)[:3]
+		frame = frame.f_back
+
+
 def _test():
 	import doctest, codetricks
 	doctest.testmod(codetricks)

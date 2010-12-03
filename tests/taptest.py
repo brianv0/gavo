@@ -29,6 +29,7 @@ from gavo.protocols import uws
 from gavo.web import taprender
 
 import adqltest
+import tresc
 
 
 
@@ -96,6 +97,8 @@ class PlainActionsTest(testhelpers.VerboseTest):
 class PlainJobCreationTest(testhelpers.VerboseTest):
 	"""tests for working job creation and destruction.
 	"""
+	resources = [("conn", tresc.dbConnection)]
+
 # yet another huge, sequential test.  Ah well, better than nothing, I guess.
 
 	def _createJob(self):
@@ -108,20 +111,18 @@ class PlainJobCreationTest(testhelpers.VerboseTest):
 			job.delete()
 
 	def _assertJobCreated(self, jobId):
-		querier = base.SimpleQuerier()
-		res = querier.runIsolatedQuery("SELECT quote FROM uws.jobs WHERE"
-			" jobId=%(jobId)s", locals())
-		querier.close()
+		with base.SimpleQuerier(connection=self.conn) as querier:
+			res = list(querier.query("SELECT quote FROM uws.jobs WHERE"
+				" jobId=%(jobId)s", locals()))
 		self.assertEqual(len(res), 1)
 		job = uws.UWSJob.makeFromId(jobId)
 		self.assertEqual(job.getParameter("foo"), "bar")
 		self.failUnless(os.path.exists(job.getWD()))
 
 	def _assertJobDeleted(self, jobId):
-		querier = base.SimpleQuerier()
-		res = querier.runIsolatedQuery("SELECT quote FROM uws.jobs WHERE"
-			" jobId=%(jobId)s", locals())
-		querier.close()
+		with  base.SimpleQuerier(connection=self.conn) as querier:
+			res = list(querier.query("SELECT quote FROM uws.jobs WHERE"
+				" jobId=%(jobId)s", locals()))
 		self.assertEqual(len(res), 0)
 		self.assertRaises(base.NotFoundError, uws.UWSJob.makeFromId, jobId)
 		self.failIf(os.path.exists(os.path.join(base.getConfig("uwsWD"), jobId)))
@@ -160,7 +161,6 @@ class LockingTest(testhelpers.VerboseTest):
 	def _blockingJob(self):
 		# this is started in a thread while self.jobId is held
 		self.queue.put("Child started")
-		q = base.SimpleQuerier()
 		with uws.UWSJob.makeFromId(self.jobId) as job:
 			self.queue.put("Job created")
 

@@ -17,17 +17,31 @@ from gavo.user import admin
 class DBConnection(testhelpers.TestResource):
 	"""sets up a DB connection.
 	"""
+	setUpCost = 0.1
+
 	def make(self, ignored):
-		return base.getDefaultDBConnection()
+		res = base.getDefaultDBConnection()
+		return res
 	
 	def clean(self, conn):
-		try:
+		if not conn.closed:
 			conn.commit()
-		except sqlsupport.InterfaceError:  # connection already closed
-			pass
+			conn.close()
 
 
 dbConnection = DBConnection()
+
+
+class TestWithDBConnection(testhelpers.VerboseTest):
+	"""A base class for tests needing just a connection as test resources.
+
+	You get auto rollback of the connection.
+	"""
+	resources = [("conn", dbConnection)]
+
+	def tearDown(self):
+		self.conn.rollback()
+		testhelpers.VerboseTest.tearDown(self)
 
 
 class ProdtestTable(testhelpers.TestResource):
@@ -38,9 +52,10 @@ class ProdtestTable(testhelpers.TestResource):
 	after yourself.  The prodtest table is dropped, of course.
 	"""
 	resources = [('conn', dbConnection)]
+	setUpCost = 5
 
-	def make(self, dependents):
-		self.conn = dependents["conn"]
+	def make(self, deps):
+		self.conn = deps["conn"]
 		rd = testhelpers.getTestRD()
 		self.tableDef = rd.getById("prodtest")
 		dd = rd.getDataDescById("productimport")
@@ -63,22 +78,26 @@ class _NS(object):
 
 
 class TestUsers(testhelpers.TestResource):
+	"""Test values in the user table.
+	"""
 	resources = [('conn', dbConnection)]
+	setUpCost = 2
+	tearDownCost = 2
 
-	def make(self, dependents):
+	def make(self, deps):
 		creds.adminProfile = "test"
 		self.users = [
 			_NS(user="X_test", password="megapass", remarks=""),
 			_NS(user="Y_test", password="megapass", remarks="second test user"),
 		]
 		try:
-			with base.SimpleQuerier(connection=dependents["conn"]) as self.querier:
+			with base.SimpleQuerier(connection=deps["conn"]) as self.querier:
 				for u in self.users:
 					admin.adduser(self.querier, u)
 				admin.addtogroup(self.querier, _NS(user="X_test", group="Y_test"))
 		except admin.ArgError:  # stale users?  try again.
 			self.clean(None)
-			self.make(dependents)
+			self.make(deps)
 		return self.users
 
 	def clean(self, ignore):
@@ -86,5 +105,21 @@ class TestUsers(testhelpers.TestResource):
 			for u in self.users:
 				admin.deluser(self.querier, u)
 
-
 testUsers = TestUsers()
+
+
+class CSTestTable(testhelpers.TestResource):
+	"""A database table including positions, as defined by test#adql.
+	"""
+	resources = [('conn', dbConnection)]
+
+	def make(self, deps):
+		self.conn = deps["conn"]
+		dd = testhelpers.getTestRD().getById("csTestTable")
+		self.dataCreated = rsc.makeData(dd, connection=self.conn)
+		return self.dataCreated.getPrimaryTable()
+	
+	def clean(self, table):
+		self.dataCreated.dropTables()
+
+csTestTable = CSTestTable()

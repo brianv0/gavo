@@ -40,9 +40,11 @@ class MetaTableHandler(object):
 			# dc tables yet but it doesn't need them either.
 			return
 		self.metaTable = dbtable.DBTable(
-			self.rd.getTableDefById("columnmeta"))
+			self.rd.getTableDefById("columnmeta"), 
+			connection=self.readQuerier.connection)
 		self.tablesTable = dbtable.DBTable(
-			self.rd.getTableDefById("tablemeta"))
+			self.rd.getTableDefById("tablemeta"),
+			connection=self.readQuerier.connection)
 		self.metaRowdef = self.rd.getTableDefById("metaRowdef")
 		self.tablesRowdef = self.rd.getTableDefById("tablemeta")
 		self.conn.rollback()
@@ -55,7 +57,9 @@ class MetaTableHandler(object):
 		self.conn = base.getDBConnection(self.profile, autocommitted=True)
 		return base.SimpleQuerier(connection=self.conn)
 
-	
+	def close(self):
+		self.conn.close()
+
 	def queryTablesTable(self, fragment, pars={}):
 		return self.tablesTable.iterQuery(self.tablesTable.tableDef, 
 			fragment, pars)
@@ -128,4 +132,8 @@ class MetaTableHandler(object):
 		finally:
 			self.conn.rollback()
 
-base.caches.makeCache("getMTH", lambda profile: MetaTableHandler(profile))
+
+def _getMetaTable(profile):
+	return MetaTableHandler(profile)
+
+base.caches.makeCache("getMTH", _getMetaTable)

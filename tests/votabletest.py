@@ -19,6 +19,7 @@ from gavo.formats import votableread, votablewrite
 from gavo.helpers import testhelpers
 from gavo.utils import ElementTree
 
+import tresc
 
 class _TestVOTable(testhelpers.TestResource):
 	"""Used in VOTableTest.
@@ -137,20 +138,19 @@ class VOTableTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
 
 
 class _ImportTestData(testhelpers.TestResource):
+	resources = [("conn", tresc.dbConnection)]
+
 	def __init__(self, fName, nameMaker=None):
 		self.fName, self.nameMaker = fName, nameMaker
 		testhelpers.TestResource.__init__(self)
 
-	def make(self, ignored):
-		try:
-			conn = base.getDefaultDBConnection()
-			tableDef = votableread.uploadVOTable("votabletest", 
-				open(self.fName), conn, nameMaker=self.nameMaker).tableDef
-			querier = base.SimpleQuerier(connection=conn)
-			data = list(querier.query("select * from votabletest"))
-		finally:
-			if not conn.closed:
-				conn.close()
+	def make(self, deps):
+		conn = deps["conn"]
+		tableDef = votableread.uploadVOTable("votabletest", 
+			open(self.fName), conn, nameMaker=self.nameMaker).tableDef
+		querier = base.SimpleQuerier(connection=conn)
+		data = list(querier.query("select * from votabletest"))
+		querier.rollback()
 		return tableDef, data
 
 
@@ -210,12 +210,11 @@ class VizierImportTest(testhelpers.VerboseTest):
 		self.assertEqual(data[0][4], "04 26 20.741")
 
 
-class NastyImportTest(testhelpers.VerboseTest):
+class NastyImportTest(tresc.TestWithDBConnection):
 	"""tests for working VOTable ingestion with ugly VOTables.
 	"""
 	def _assertAfterIngestion(self, fielddefs, literals, testCode,
 			nameMaker):
-		conn = base.getDefaultDBConnection()
 		table = votableread.uploadVOTable("junk",
 			StringIO(
 			'<VOTABLE><RESOURCE><TABLE>'+
@@ -225,9 +224,8 @@ class NastyImportTest(testhelpers.VerboseTest):
 				for l in row) for row in literals)+
 			'</TABLEDATA></DATA>'
 			'</TABLE></RESOURCE></VOTABLE>'.encode("utf-8")),
-			conn, nameMaker=nameMaker)
+			self.conn, nameMaker=nameMaker)
 		testCode(table)
-		conn.close()
 
 	def testDupesRejected(self):
 		self.assertRaises(base.ValidationError,

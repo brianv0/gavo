@@ -84,20 +84,26 @@
 			Position ICRS GEOCENTER "alpha" "delta" Redshift VELOCITY "rv"
 		</stc>
 		<column name="alpha" unit="deg" ucd="pos.eq.ra;meta.main"
-			description="A sample RA" tablehead="Raw RA"/>
+			description="A sample RA" tablehead="Raw RA" verbLevel="1"/>
 		<column name="delta" unit="deg" ucd="pos.eq.dec;meta.main"
-			description="A sample Dec"/>
+			description="A sample Dec" verbLevel="1"/>
 		<column name="mag" unit="mag" ucd="phot.mag"
-			description="A sample magnitude"/>
+			description="A sample magnitude" verbLevel="15"/>
 		<column name="rv" unit="km/s" ucd="phys.veloc;pos.heliocentric"
 			description="A sample radial velocity"
-			type="double precision"/>
+			type="double precision" verbLevel="25"/>
 	</table>
 
 	<data id="ADQLTest">
 		<rowmaker id="AT_adql" idmaps="alpha,delta,mag,rv"/>
 		<dictlistGrammar/>
 		<make table="adql" rowmaker="AT_adql"/>
+	</data>
+
+	<data id="csTestTable">
+		<sources pattern="data/cstestin.txt"/>
+		<reGrammar names="alpha,delta,mag,rv"/>
+		<make table="adql"/>
 	</data>
 
 	<table id="valspec" onDisk="True">

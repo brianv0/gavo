@@ -45,6 +45,10 @@ class RDAttribute(base.AttributeDef):
 			return self.__rd
 		yield ("rd", property(_getRD))
 
+		def getFullId(self):
+			return "%s#%s"%(self.rd.sourceId, self.id)
+		yield ("getFullId", getFullId)
+
 	def makeUserDoc(self):
 		return None   # don't metion it in docs -- users can't and mustn't set it.
 

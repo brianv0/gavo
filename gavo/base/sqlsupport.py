@@ -148,6 +148,14 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 				hint="This usually means you must adapt either the access profiles"
 				" in $GAVO_DIR/etc or your database config (in particular,"
 				" pg_hba.conf).")
+
+	if False:
+		cursor = conn.cursor()
+		cursor.execute("SELECT pg_backend_pid()")
+		print ">>>>>>pid", list(cursor)[0][0]
+		from gavo.utils import codetricks
+		codetricks.printFrames()
+
 	if not _PSYCOPG_INITED:
 		_initPsycopg(conn)
 	if autocommitted:
@@ -554,8 +562,8 @@ class SimpleQuerier(QuerierMixin):
 	You have to close() manually; you also have to commit() when you
 	change something, finish() does 'em both.
 	"""
-	def __init__(self, connection=None, useProfile=None):
-		self.connection = None
+	def __init__(self, connection=None, useProfile=None, autoClose=False):
+		self.connection, self.autoClose = None, autoClose
 		self.defaultProfile = useProfile
 		if connection:
 			self.ownedConnection = False
@@ -574,6 +582,8 @@ class SimpleQuerier(QuerierMixin):
 		else:
 			if not self.connection.closed:
 				self.rollback()
+		if self.autoClose:
+			self.connection.close()
 
 	def rollback(self):
 		self.connection.rollback()
