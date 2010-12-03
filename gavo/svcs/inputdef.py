@@ -129,6 +129,27 @@ class InputTable(rscdef.TableDef):
 		childFactory=InputKey, description='Input parameters for'
 		' this table.', copyable=True, aliases=["param"])
 
+	def adaptForRenderer(self, renderer):
+		"""returns an inputTable tailored for renderer.
+
+		This is discussed in svcs.core's module docstring.
+		"""
+		newParams, changed = [], False
+		for param in self.params:
+			if param.getProperty("onlyForRenderer", None) is not None:
+				if param.getProperty("onlyForRenderer")!=renderer:
+					changed = True
+					continue
+			if param.getProperty("notForRenderer", None) is not None:
+				if param.getProperty("notForRenderer")==renderer:
+					changed = True
+					continue
+			newParams.append(param)
+		if changed:
+			return self.change(params=newParams)
+		else:
+			return self
+
 
 class ContextRowIterator(grammars.RowIterator):
 	"""is a row iterator over "contexts", i.e. single dictionary-like objects.

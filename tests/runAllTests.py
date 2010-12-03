@@ -53,7 +53,7 @@ def runTrialTest():
 if __name__=="__main__":
 	unittestSuite = testresources.TestLoader().loadTestsFromNames(
 		unittestModules)
-	runner = unittest.TextTestRunner(verbosity=None)
+	runner = unittest.TextTestRunner()
 	runner.run(unittest.TestSuite([unittestSuite, 
 		getDoctests(),
 		unittest.FunctionTestCase(runTrialTest, description="Trial-based tests")]))

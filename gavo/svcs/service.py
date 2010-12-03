@@ -400,7 +400,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		if self.outputTable is base.NotGiven:
 			self.outputTable = self.core.outputTable
 
-		self._inputKeysCache = {}
+		# store references to cores for renderers
+		self._coresCache = {}
 		self._loadedTemplates = {}
 			
 	def onElementComplete(self):
@@ -650,6 +651,19 @@ class Service(base.Structure, base.ComputedMetaMixin,
 
 	################### running and input computation.
 
+	def getCoreFor(self, renderer):
+		"""returns a core tailored for renderer.
+
+		See svcs.core's module docstring. 
+		
+		The argument can be a renderer or a renderer name.
+		"""
+		if not isinstance(renderer, basestring):
+			renderer = renderer.name
+		if renderer not in self._coresCache:
+			self._coresCache[renderer] = self.core.adaptForRenderer(renderer)
+		return self._coresCache[renderer]
+
 	def getInputKeysFor(self, renderer):
 		"""returns a sequence of input keys, adapted for certain renderers.
 
@@ -662,14 +676,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		"""
 		if self.inputDD is not base.NotGiven:
 			return self.inputDD.grammar.inputKeys
-		if isinstance(renderer, basestring):
-			renderer = renderers.getRenderer(renderer)
-		if renderer.name not in self._inputKeysCache:
-			newKeys = renderer.getInputKeys(self)
-			if newKeys is None:
-				newKeys = self.core.inputTable
-			self._inputKeysCache[renderer.name] = newKeys
-		return self._inputKeysCache[renderer.name]
+		return self.getCoreFor(renderer).inputTable.params
 
 	def _makeInputTableFor(self, renderer, contextData):
 		"""returns an input table for the core, filled from contextData and
@@ -680,7 +687,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				parseOptions=rsc.parseValidating, forceSource=contextData
 					).getPrimaryTable()
 		else:
-			res = rsc.TableForDef(self.core.inputTable)
+			res = rsc.TableForDef(self.getCoreFor(renderer).inputTable)
 			for par in res.iterParams():
 				if par.name in contextData:
 					par.set(contextData[par.name])
@@ -695,7 +702,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		grok.
 		"""
 		inputTable = self._makeInputTableFor(renderer, contextData)
-		coreRes = self.core.run(self, inputTable, queryMeta)
+		coreRes = self.getCoreFor(renderer).run(self, inputTable, queryMeta)
 		return SvcResult(coreRes, inputTable, queryMeta, self)
 
 	def runFromDict(self, contextData, renderer="form", queryMeta=None):

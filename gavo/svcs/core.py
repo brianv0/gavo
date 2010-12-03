@@ -1,5 +1,5 @@
 """
-Cores are the standard data structure for computing things in the DC.
+Cores are the standard object for computing things in the DC.
 
 This module also contains the registry for cores.  If you want to
 be able to refer to cores from within an RD, you need to enter your
@@ -9,6 +9,35 @@ Cores return pairs of a type and a payload.  Renderers should normally
 be prepared to receive (None, OutputTable) and (mime/str, data/str),
 though individual cores might return other stuff (and then only
 work with select renderers).
+
+In general, the input table definition is mandatory, i.e., you have
+to come up with it.  Services do this either ad-hoc from input from
+the web or using an inputDD.
+
+The output table, on the other hand, is "advisory", mainly for registry
+and documentation purposes ("I *could* return this").  In particular
+DBBasedCores will usually adapt to the service's wishes when it comes
+to the output table structure, not to mention the ADQL core.  This doesn't
+hurt since whatever is returned comes with structure documentation of
+its own.
+
+Cores may also want to adapt to renderers.  This is a bit of a hack to
+support, e.g., form and scs within a single service, which avoids
+two different VOResource records just because of slightly differning
+input definitions.
+
+The interface here is the adaptForRenderer method.  It takes a single
+argument, the renderer, either as a simple name resolvable in the renderer
+registry, or as a renderer instance or class.  It must return a new
+core instance.
+
+Currently, two mechanisms for core adaptation are in place:
+
+(1) generically, inputKeys can have properties onlyForRenderer and 
+notForRenderer with the obvious semantics.
+
+(2) cores that have condDescs may adapt by virtue of condDesc's 
+adaptForRenderer method.
 """
 
 import sets
@@ -105,6 +134,17 @@ class Core(base.Structure):
 	
 	def __str__(self):
 		return repr(self)
+
+	def adaptForRenderer(self, renderer):
+		"""returns a core object tailored for renderer.
+
+		The argument must be a renderer name.
+		"""
+		newIT = self.inputTable.adaptForRenderer(renderer)
+		if newIT is self.inputTable:
+			return self
+		else:
+			return self.change(inputTable=newIT)
 
 	def run(self, service, inputData, queryMeta):
 		raise NotImplementedError("%s cores are missing the run method"%

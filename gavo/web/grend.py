@@ -519,29 +519,6 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 		self.setMetaParent(self.service)
 		self.macroPackage = self.service
 
-	@classmethod
-	def getInputKeys(cls, service):
-		"""filters input fields given by the service for whether they are
-		appropriate for the renderer in question.
-
-		The method will return None if the core input keys should be
-		used.
-		"""
-		res, changed = [], False
-		coreParams = service.core.inputTable.params
-		for param in coreParams:
-			if param.getProperty("onlyForRenderer", None) is not None:
-				if param.getProperty("onlyForRenderer")!=cls.name:
-					changed = True
-					continue
-			if param.getProperty("notForRenderer", None) is not None:
-				if param.getProperty("notForRenderer")==cls.name:
-					changed = True
-					continue
-			res.append(param)
-		if changed:
-			return res
-
 	def processData(self, rawData, queryMeta):
 		"""produces input data for the service in runs the service.
 		"""

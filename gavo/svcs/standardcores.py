@@ -270,7 +270,7 @@ class TableBasedCore(core.Core):
 			iks = []
 			for cd in self.condDescs:
 				iks.extend(cd.inputKeys)
-			self.inputTable = MS(rscdef.TableDef, params=iks)
+			self.inputTable = MS(inputdef.InputTable, params=iks)
 
 		# if no outputTable has been given, make it up from the columns
 		# of the queried table.
