@@ -25,6 +25,7 @@ from gavo.imp import formal
 from gavo.imp.formal import form
 from gavo.utils import ElementTree
 from gavo.votable import V
+from gavo.web import formrender
 from gavo.web import grend
 from gavo.web import streaming
 
@@ -35,7 +36,7 @@ MS = base.makeStruct
 __docformat__ = "restructuredtext en"
 
 
-class DALRenderer(grend.FormMixin, grend.ServiceBasedPage):
+class DALRenderer(formrender.FormMixin, grend.ServiceBasedPage):
 	"""is a base class for renderers for the usual IVOA DAL protocols.
 
 	This is for simple, GET-based DAL renderers (where we allow POST as 
@@ -48,6 +49,7 @@ class DALRenderer(grend.FormMixin, grend.ServiceBasedPage):
 	implements(inevow.ICanHandleException)
 
 	resultType = "application/x-votable+xml"
+	parameterStyle = "dal"
 	urlUse = "base"
 
 	def __init__(self, ctx, *args, **kwargs):

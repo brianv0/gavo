@@ -18,7 +18,7 @@ from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo.base import sqlsupport
-from gavo.base import vizierexprs
+from gavo.protocols import vizierexprs
 from gavo.svcs import core
 from gavo.svcs import inputdef
 from gavo.svcs import outputdef
@@ -31,6 +31,29 @@ class Error(base.Error):
 printQuery = False
 
 MS = base.makeStruct
+
+
+def _adaptForForm(inputKey):
+	"""returns inputKey "adapted" for the form renderer and similar
+	web-facing renderers.
+	"""
+	try:
+		return inputKey.change(
+			type=vizierexprs.getVexprFor(inputKey.type))
+	except base.ConversionError:  # No vexpr type, leave things
+		pass
+	return inputKey
+
+
+def getRendererAdaptor(renderer):
+	"""returns a function that returns input keys adapted for renderer.
+
+	The function returns None if no adapter is necessary.  This
+	only takes place for inputKeys within a buildFrom condDesc.
+	"""
+	if renderer.parameterStyle=="form":
+		return _adaptForForm
+	return None
 
 
 class PhraseMaker(rscdef.ProcApp):
@@ -48,10 +71,9 @@ class PhraseMaker(rscdef.ProcApp):
 		- outPars -- a dictionary that is later used as the parameter
 			dictionary to the query.
 	
-	To interpret the content of an inputKey as a vizier-like expression,
-	say::
+	To get the standard SQL a single key would generate, say::
 
-		yield vizierexprs.getSQL(inputKeys[0], inPars, outPars)
+		yield base.getSQLForField(inputKeys[0], inPars, outPars)
 	
 	To insert some value into outPars, do not simply use some key into
 	outParse, since, e.g., the condDesc might be used multiple times.
@@ -59,8 +81,8 @@ class PhraseMaker(rscdef.ProcApp):
 
 		ik = inputKeys[0]
 		yield "%s BETWEEN %%(%s)s AND %%(%s)s"%(ik.name,
-			vizierexprs.getSQLKey(ik.name, inPars[ik.name]-10, outPars),
-			vizierexprs.getSQLKey(ik.name, inPars[ik.name]+10, outPars))
+			base.getSQLKey(ik.name, inPars[ik.name]-10, outPars),
+			base.getSQLKey(ik.name, inPars[ik.name]+10, outPars))
 	
 	getSQLKey will make sure unique names in outPars are chosen and
 	enters the values there.
@@ -94,8 +116,9 @@ class CondDesc(base.Structure):
 	_fixedSQL = base.UnicodeAttribute("fixedSQL", default=None,
 		copyable=True, description="Always insert this SQL statement into"
 			" the query.  Deprecated.")
-	_buildFrom = base.ActionAttribute("buildFrom", "feedFromInputKey",
-		description="A reference to an InputKey to define this CondDesc")
+	_buildFrom = base.ReferenceAttribute("buildFrom", 
+		description="A reference to an InputKey to define this CondDesc",
+		default=None)
 	_phraseMaker = base.StructAttribute("phraseMaker", default=None,
 		description="Code to generate custom SQL from the input keys", 
 		childFactory=PhraseMaker, copyable=True)
@@ -107,21 +130,13 @@ class CondDesc(base.Structure):
 		if hasattr(self.parent, "resolveName"):
 			self.resolveName = self.parent.resolveName
 
-	def feedFromInputKey(self, ctx):
-		raise base.Replace(CondDesc.fromColumn(
-			base.resolveId(ctx, self.buildFrom, instance=self), 
-			parent_=self.parent))
+	@classmethod
+	def fromInputKey(cls, ik, **kwargs):
+		return base.makeStruct(CondDesc, inputKeys=[ik], **kwargs)
 
-	def expand(self, *args, **kwargs):
-		"""hands macro expansion requests (from phraseMakers) upwards.
-
-		This is to the queried table if the parent has one, or to the RD
-		if not.
-		"""
-		if hasattr(self.parent, "queriedTable"):
-			return self.parent.queriedTable.expand(*args, **kwargs)
-		else:
-			return self.parent.rd.expand(*args, **kwargs)
+	@classmethod
+	def fromColumn(cls, col, **kwargs):
+		return base.makeStruct(cls, buildFrom=col, **kwargs)
 
 	@property
 	def name(self):
@@ -132,6 +147,31 @@ class CondDesc(base.Structure):
 		# InputKeys basis and yield their names (because that's what
 		# formal counts on), but it's probably not worth the effort.
 		return "+".join([f.name for f in self.inputKeys])
+
+	def completeElement(self):
+		if self.buildFrom and not self.inputKeys:
+			# use the column as input key; special renderers may want
+			# to do type mapping, but the default is to have plain input
+			self.inputKeys = [inputdef.InputKey.fromColumn(self.buildFrom)]
+		self._completeElementNext(CondDesc)
+
+	def expand(self, *args, **kwargs):
+		"""hands macro expansion requests (from phraseMakers) upwards.
+
+		This is to the queried table if the parent has one (i.e., we're
+		part of a core), or to the RD if not (i.e., we're defined within
+		an rd).
+		"""
+		if hasattr(self.parent, "queriedTable"):
+			return self.parent.queriedTable.expand(*args, **kwargs)
+		else:
+			return self.parent.rd.expand(*args, **kwargs)
+
+	def _makePhraseDefault(self, ignored, inputKeys, inPars, outPars):
+		# the default phrase maker uses whatever the individual input keys
+		# come up with.
+		for ik in self.inputKeys:
+			yield base.getSQLForField(ik, inPars, outPars)
 
 	# We only want to compile the phraseMaker if actually necessary.
 	# condDescs may be defined within resource descriptors (e.g., in
@@ -144,26 +184,13 @@ class CondDesc(base.Structure):
 			if self.phraseMaker is not None:
 				val = self.phraseMaker.compile()
 			else:
-				val = self.makePhraseDefault
+				val = self._makePhraseDefault
 			self.__compiledPhrase = val
 		return self.__compiledPhrase
 	makePhrase = property(_getPhraseMaker)
 
-	def makePhraseDefault(self, ignored, inputKeys, inPars, outPars):
-		for ik in self.inputKeys:
-			yield vizierexprs.getSQL(ik, inPars, outPars)
-
 	def _isActive(self, inPars):
-		"""returns True if the inputDD has left our input parameters in inPars.
-
-		Background: renderers may remove InputKeys if the list of a service's
-		input parameters.  This leads to new inputDDs.
-
-		That, in turn, may in effect invalidate condDescs, which is desired
-		(e.g., allowing both humanSCS and scs condDescs on the same core.
-
-		A condDesc knows it's been disabled if its InputKeys' names are not
-		present in the input record.
+		"""returns True if the dict inPars contains input to all our input keys.
 		"""
 		for f in self.inputKeys:
 			if f.name not in inPars:
@@ -210,18 +237,31 @@ class CondDesc(base.Structure):
 		if self.silent or not self.inputReceived(inPars, queryMeta):
 			return ""
 		res = list(self.makePhrase(self, self.inputKeys, inPars, sqlPars))
-		sql = vizierexprs.joinOperatorExpr("AND", res)
+		sql = base.joinOperatorExpr("AND", res)
 		if self.fixedSQL:
-			sql = vizierexprs.joinOperatorExpr("AND", [sql, self.fixedSQL])
+			sql = base.joinOperatorExpr("AND", [sql, self.fixedSQL])
 		return sql
 
-	@classmethod
-	def fromInputKey(cls, ik, **kwargs):
-		return base.makeStruct(CondDesc, inputKeys=[ik], **kwargs)
+	def adaptForRenderer(self, renderer):
+		"""returns a changed version of self if renderer suggests such a
+		change.
 
-	@classmethod
-	def fromColumn(cls, col, **kwargs):
-		return cls.fromInputKey(ik=inputdef.InputKey.fromColumnViz(col), **kwargs)
+		This only happens if buildFrom is non-None.  The method must
+		return a "defused" version that has buildFrom None.
+		"""
+		if not self.buildFrom:
+			return self
+		adaptor = getRendererAdaptor(renderer)
+		if adaptor is None:
+			return self
+
+		newInputKeys = []
+		for ik in self.inputKeys:
+			newInputKeys.append(adaptor(ik))
+		if self.inputKeys==newInputKeys:
+			return self
+		else:
+			return self.change(inputKeys=newInputKeys, buildFrom=None)
 
 
 def mapDBErrors(excType, excValue, excTb):
@@ -291,7 +331,7 @@ class TableBasedCore(core.Core):
 		"""
 		sqlPars, frags = {}, []
 		inputPars = dict((p.name, p.value) for p in inputTable.iterParams())
-		return vizierexprs.joinOperatorExpr("AND",
+		return base.joinOperatorExpr("AND",
 			[cd.asSQL(inputPars, sqlPars, queryMeta)
 				for cd in self.condDescs]), sqlPars
 
@@ -312,6 +352,22 @@ class TableBasedCore(core.Core):
 				" are not reproducible (i.e., might return a different result set"
 				" at a later time).")
 		return res
+	
+	def adaptForRenderer(self, renderer):
+		"""returns a core tailored to renderer renderers.
+
+		This mainly means asking the condDescs to build themselves for
+		a certain renderer.  If no polymorphous condDescs are ther,
+		self is returned.
+		"""
+		newCondDescs = []
+		for cd in self.condDescs:
+			newCondDescs.append(cd.adaptForRenderer(renderer))
+		if newCondDescs!=self.condDescs:
+			return self.change(condDescs=newCondDescs, inputTable=base.NotGiven
+				).adaptForRenderer(renderer)
+		else:
+			return core.Core.adaptForRenderer(self, renderer)
 
 
 class FancyQueryCore(TableBasedCore, base.RestrictionMixin):

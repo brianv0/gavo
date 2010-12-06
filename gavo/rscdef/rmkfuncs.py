@@ -18,7 +18,7 @@ import traceback
 from gavo import base
 from gavo import stc
 from gavo import utils
-from gavo.base import coords, parseBooleanLiteral, parseInt, vizierexprs
+from gavo.base import coords, parseBooleanLiteral, parseInt, sqlmunge
 from gavo.base.literals import *
 from gavo.protocols import pql
 from gavo.stc import parseSimpleSTCS

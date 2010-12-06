@@ -83,7 +83,7 @@ def splitCrossingBox(bbox):
 	return leftBox, rightBox
 
 
-# XXX TODO: Maybe rework this to make it use vizierexprs.getSQLKey?
+# XXX TODO: Maybe rework this to make it use base.getSQLKey?
 # (caution: that would mess up many unit tests...)
 _INTERSECT_QUERIES = {
 	"COVERS": "primaryBbox ~ %(<p>roiPrimary)s AND (secondaryBbox IS NULL OR"

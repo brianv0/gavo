@@ -257,7 +257,8 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		" raising an error if existing and new rows are not identical (check),"
 		" dropping the new one (drop), or overwriting the old one (overwrite)?")
 	_primary = ColumnTupleAttribute("primary", default=(),
-		description="Comma separated names of columns making up the primary key.")
+		description="Comma separated names of columns making up the primary key.",
+		copyable=True)
 	_indices = base.StructListAttribute("indices", childFactory=DBIndex,
 		description="Indices defined on this table", copyable=True)
 	_foreignKeys = base.StructListAttribute("foreignKeys", 

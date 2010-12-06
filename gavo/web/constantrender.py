@@ -13,9 +13,10 @@ from nevow import static
 from gavo import base
 from gavo import svcs
 from gavo.web import grend
+from gavo.web import formrender
 
 
-class StaticRenderer(grend.FormMixin, grend.ServiceBasedPage):
+class StaticRenderer(formrender.FormMixin, grend.ServiceBasedPage):
 	"""is a renderer that just hands through files.
 
 	The standard operation here is to set a staticData property pointing

@@ -658,8 +658,14 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		
 		The argument can be a renderer or a renderer name.
 		"""
-		if not isinstance(renderer, basestring):
-			renderer = renderer.name
+		if isinstance(renderer, basestring):
+			renderer = renderers.getRenderer(renderer)
+
+		# non-checked renderers use the core for info purposes only; don't
+		# bother for those
+		if not renderer.checkedRenderer:
+			return self.core
+
 		if renderer not in self._coresCache:
 			self._coresCache[renderer] = self.core.adaptForRenderer(renderer)
 		return self._coresCache[renderer]
@@ -733,4 +739,3 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	def macro_tablesForTAP(self):  # who needs this?
 		from gavo.protocols import tap
 		return ", ".join(tap.getAccessibleTables())
-

@@ -14,11 +14,14 @@ from gavo import base
 from gavo import rsc
 from gavo import rscdesc
 from gavo.protocols import products
-from gavo.base import vizierexprs
 from gavo.helpers import testhelpers
+from gavo.protocols import vizierexprs
 from gavo.svcs import inputdef
 
 import tresc
+
+
+MS = base.makeStruct
 
 
 class GrammarTest(testhelpers.VerboseTest):
@@ -232,123 +235,73 @@ class StringParseTest(GrammarTest):
 		"""tests for rejection of malformed pattern expressions.
 		"""
 		self._assertFailures("~ [a")
-			
 
-class SQLGenerTest(unittest.TestCase):
-	"""Tests for SQL fragments making out of simple vizier-like expressions.
-	"""
-	def testSQLGenerationSimple(self):
-		field = base.makeStruct(inputdef.InputKey, name="foo", type="vexpr-float")
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"foo": "8"}, sqlPars),
-			"foo = %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], 8.0)
-		self.assertEqual(vizierexprs.getSQL(field, {"foo": "=8"}, sqlPars),
-			"foo = %(foo0)s")
-		self.assertEqual(vizierexprs.getSQL(field, {"foo": "!=8"}, sqlPars),
-			"NOT (foo = %(foo0)s)")
-		self.assertEqual(vizierexprs.getSQL(field, {"foo": "< 8"}, sqlPars),
-			"foo < %(foo0)s")
 
-	def testSQLGenerationComplex(self):
-		"""Tests for SQL fragments making out of complex vizier-like expressions.
-		"""
-		field = base.makeStruct(inputdef.InputKey, name="foo", type="vexpr-float")
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"foo": "< 8 | > 15"}, sqlPars),
-			"(foo < %(foo0)s) OR (foo > %(foo1)s)")
-		self.assertEqual(len(sqlPars), 2)
-		self.assertEqual(sqlPars["foo1"], 15)
+class _SQLGenerTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"foo": "< 8 & > 15"}, sqlPars),
-			"(foo < %(foo0)s) AND (foo > %(foo1)s)")
+	def _runTest(self, sample):
+		inValue, expectedSQL, expectedPars = sample
+		foundPars = {}
+		foundExpr = base.getSQLForField(
+			self.protoField, {"foo": inValue}, foundPars)
+		self.assertEqual(foundExpr, expectedSQL)
+		if expectedPars is not None:
+			self.assertEqual(foundPars, expectedPars)
 
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"foo": "8, 9, 10"}, sqlPars),
-			"foo IN (%(foo0)s, %(foo1)s, %(foo2)s)")
-		self.assertEqual(len(sqlPars), 3)
 
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"foo": "8 .. 10"}, sqlPars),
-			"foo BETWEEN %(foo0)s AND %(foo1)s")
-		self.assertEqual(len(sqlPars), 2)
+class SimpleNumericSQLGenerTest(_SQLGenerTest):
+	protoField = MS(inputdef.InputKey, name="foo", type="vexpr-float")
 
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"foo": "8 +/- 2"}, sqlPars),
-			"foo BETWEEN %(foo0)s AND %(foo1)s")
-		self.assertEqual(sqlPars["foo1"], 10)
+	samples = [
+		("8", "foo = %(foo0)s", {"foo0": 8.0}),
+		("=8", "foo = %(foo0)s", {"foo0": 8.0}),
+		("!=8", "NOT (foo = %(foo0)s)", {"foo0": 8.0}),
+		("< 8", "foo < %(foo0)s", {"foo0": 8.0}),]
 
-	def testDateSQLGeneration(self):
-		"""tests for SQL fragments making for date expressions.
-		"""
-		field = base.makeStruct(inputdef.InputKey, name="foo", type="vexpr-date")
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"foo": "2001-05-12"}, 
-			sqlPars), "foo = %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], datetime.datetime(2001, 5, 12))
 
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"foo": "< 2001-05-12"}, 
-			sqlPars), "foo < %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], datetime.datetime(2001, 5, 12))
+class ComplexNumericSQLGenerTest(_SQLGenerTest):
+	protoField = MS(inputdef.InputKey, name="foo", type="vexpr-float")
+	samples =  [
+		("< 8 | > 15", "(foo < %(foo0)s) OR (foo > %(foo1)s)",
+			{"foo0": 8.0, "foo1": 15}),
+		("< 8 & > 15", "(foo < %(foo0)s) AND (foo > %(foo1)s)", None),
+		("8, 9, 10", "foo IN (%(foo0)s, %(foo1)s, %(foo2)s)",
+			{"foo0": 8.0, "foo1": 9.0, "foo2": 10.0}),
+		("8 .. 10", "foo BETWEEN %(foo0)s AND %(foo1)s", None),
+		("8 +/- 2", "foo BETWEEN %(foo0)s AND %(foo1)s",
+			{"foo0": 6.0, "foo1": 10.0}),]
 
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field, {"foo": "2001-05-12 +/- 2.5"}, 
-			sqlPars), 'foo BETWEEN %(foo0)s AND %(foo1)s')
-		self.assertEqual(str(sqlPars["foo0"]), "2001-05-09 12:00:00")
 
-	def testWithNones(self):
-		"""tests for SQL fragments generation with NULL items.
-		"""
-		field1 = base.makeStruct(inputdef.InputKey, name="foo", type="vexpr-float")
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field1, {"foo": None}, sqlPars),
-			None)
+class DateSQLGenerTest(_SQLGenerTest):
+	protoField = MS(inputdef.InputKey, name="foo", type="vexpr-date")
+	samples = [
+		("2001-05-12", "foo = %(foo0)s", 
+			{"foo0": datetime.datetime(2001, 5, 12)}),
+		("< 2001-05-12", "foo < %(foo0)s",
+			{"foo0": datetime.datetime(2001, 5, 12)}),
+		("2001-05-12 +/- 2.5", 'foo BETWEEN %(foo0)s AND %(foo1)s', {
+			"foo0": datetime.datetime(2001, 5, 9, 12, 0, 0),
+			"foo1": datetime.datetime(2001, 5, 14, 12, 0, 0)}),]
 
-	def testPatterns(self):
-		"""tests for SQL generation with string patterns.
-		"""
-		field1 = base.makeStruct(inputdef.InputKey, name="foo", type="vexpr-string")
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "~star"}, sqlPars),
-			"foo ~* %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], "^star$")
 
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "~sta?"}, sqlPars),
-			"foo ~* %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], "^sta.$")
+class NULLSQLGenerTest(_SQLGenerTest):
+	protoField = MS(inputdef.InputKey, name="foo", type="vexpr-float")
+	samples = [
+		(None, None, {})]
 
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "~s*ta?"}, sqlPars),
-			"foo ~* %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], "^s.*ta.$")
 
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "=s*ta?"}, sqlPars),
-			"foo ~ %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], "^s.*ta.$")
-
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "~a+b*"}, sqlPars),
-			"foo ~* %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], r"^a\+b.*$")
-
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "!a+b\*"}, sqlPars),
-			"foo !~ %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], r"^a\+b\\.*$")
-
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "!~[a-z]"}, sqlPars),
-			"foo !~* %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], r"^[a-z]$")
-
-		sqlPars = {}
-		self.assertEqual(vizierexprs.getSQL(field1, {"foo": "!~[a-z]"}, sqlPars),
-			"foo !~* %(foo0)s")
-		self.assertEqual(sqlPars["foo0"], r"^[a-z]$")
+class PatternsSQLGenerTest(_SQLGenerTest):
+	protoField = MS(inputdef.InputKey, name="foo", type="vexpr-string")
+	samples = [
+		("~star", "foo ~* %(foo0)s", {"foo0": "^star$"}),
+		("~sta?", "foo ~* %(foo0)s", {"foo0": "^sta.$"}),
+		("~s*ta?", "foo ~* %(foo0)s", {"foo0": "^s.*ta.$"}),
+		("=s*ta?", "foo ~ %(foo0)s", {"foo0": "^s.*ta.$"}),
+		("~a+b*", "foo ~* %(foo0)s", {"foo0": r"^a\+b.*$"}),
+		("!a+b\*", "foo !~ %(foo0)s", {"foo0": r"^a\+b\\.*$"}),
+		("!~[a-z]", "foo !~* %(foo0)s", {"foo0": r"^[a-z]$"}),
+		("!~[a-z]", "foo !~* %(foo0)s", {"foo0": r"^[a-z]$"})]
 
 
 class _ViztestTable(testhelpers.TestResource):
@@ -427,23 +380,19 @@ class StringQueryTest(testhelpers.VerboseTest):
 		expr, numberExpected = sample
 		pars = {}
 		query = "SELECT * FROM %s WHERE %s"%(self.testTable.tableDef.getQName(),
-			vizierexprs.getSQL(self.ik, {"s": expr}, pars))
+			base.getSQLForField(self.ik, {"s": expr}, pars))
 		res = self.testTable.query(query, pars).fetchall()
 		self.assertEqual(len(res), numberExpected,
 			"Query %s from %r with parameters %s didn't yield exactly"
 				" %d result(s).\nResult is %s."%(
 				query, expr, pars, numberExpected, res))
 
-
-class MatchMatrixTest(testhelpers.VerboseTest):
-	resources = [("conn", tresc.dbConnection)]
-
 # This matrix is used in the docs for vizier expressions (help_vizier.shtml).
 # If you amend it, please update it there as well.
 # To turn this into an HTML table, use something like this mess:
 # sed -e 's/</\&lt;/g;s/>/\&gt;/g;s/(/<tr><td>/;s/),/<\/td><\/tr>/;s/None//;s/"//g;s/ T/ X/g;s/ F/ \&nbsp;/g;s/,  */<\/td><td>/g' 
-	T, F = True, False
-	matchMatrix = [
+T, F = True, False
+_MATCH_MATRIX = [
 		(None,      "M4e", "M4ep", "m4e", "A4p", "O4p", "M*", "m|a", "x,a", "=x"),
 		("M4e",     T,     F,      F,     F,     F,     F,    F,     F,     F),
 		("=x",      F,     F,      F,     F,     F,     F,    F,     F,     F),
@@ -469,37 +418,45 @@ class MatchMatrixTest(testhelpers.VerboseTest):
 		("=,x,a,=x,m|a", F, F,     F,     F,     F,     F,    T,     F,     T),
 	]
 
-	def setUp(self):
-		testhelpers.VerboseTest.setUp(self)
-		dd = testhelpers.getTestRD().getById("viziertest")
-		self.itemsInDb = self.matchMatrix[0][1:]
-		self.data = rsc.makeData(dd, forceSource=[{"s": item}
-			for item in self.itemsInDb], connection=self.conn)
-		self.tableName = self.data.tables["vizierstrings"].tableDef.getQName()
-		self.queryKey = base.makeStruct(inputdef.InputKey, 
-			name="s", type="vexpr-string")
 
-	def tearDown(self):
-		self.data.tables["vizierstrings"].drop().commit()
+class _VizTable(testhelpers.TestResource):
+	resources = [("conn", tresc.dbConnection)]
+
+	setUpCost = 4
+
+	def make(self, deps):
+		self.conn = deps["conn"]
+		dd = testhelpers.getTestRD().getById("viziertest")
+		itemsInDb = _MATCH_MATRIX[0][1:]
+		data = rsc.makeData(dd, forceSource=[{"s": item}
+			for item in itemsInDb], connection=self.conn)
+		return data.getPrimaryTable()
+
+	def clean(self, ignored):
+		self.conn.rollback()
+
+
+class MatchMatrixTest(testhelpers.VerboseTest):
+	resources = [("testtable", _VizTable())]
+
+	queryKey = MS(inputdef.InputKey, name="s", type="vexpr-string")
 
 	def _computeTest(self, testLine):
 		pars = {}
-		query = "SELECT s FROM %s WHERE %s"%(self.tableName,
-			vizierexprs.getSQL(self.queryKey, {"s": testLine[0]}, pars))
+		query = "SELECT s FROM %s WHERE %s"%(self.testtable.tableDef.getQName(),
+			base.getSQLForField(self.queryKey, {"s": testLine[0]}, pars))
 		expectation = set([item for item, res in 
-			zip(self.itemsInDb, testLine[1:]) if res])
+			zip(_MATCH_MATRIX[0][1:], testLine[1:]) if res])
 		return expectation, query, pars
 
 	def runTest(self):
-		with base.SimpleQuerier(connection=self.conn) as querier:
-			for test in self.matchMatrix[1:]:
-				expectation, query, pars = self._computeTest(test)
-				res = set([r[0] for r in querier.query(query, pars).fetchall()])
-				self.assertEqual(expectation, res, 
-					"Query for %s returned wrong set.\n"
-					"Got %s, expected %s."%(
-						test[0], res, expectation))
-
+		for test in _MATCH_MATRIX[1:]:
+			expectation, query, pars = self._computeTest(test)
+			res = set([r[0] for r in self.testtable.query(query, pars).fetchall()])
+			self.assertEqual(expectation, res, 
+				"Query for %s returned wrong set.\n"
+				"Got %s, expected %s."%(
+					test[0], res, expectation))
 
 
 if __name__=="__main__":

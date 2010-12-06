@@ -63,7 +63,7 @@ from gavo.base.typesystems import *
 
 from gavo.base.valuemappers import SerManager, ValueMapperFactoryRegistry
 
-from gavo.base.vizierexprs import (getVexprFor, getSQLKey, 
+from gavo.base.sqlmunge import (getSQLForField, getSQLKey, 
 	joinOperatorExpr)
 
 from gavo.base.unitconv import (

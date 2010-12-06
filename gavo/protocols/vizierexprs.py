@@ -11,6 +11,8 @@ from pyparsing import Word, Literal, Optional, Forward, Group,\
 	OneOrMore, Or, MatchFirst, CharsNotIn
 
 from gavo import utils
+from gavo import base
+from gavo.base import sqlmunge
 from gavo.base import typesystems
 
 
@@ -47,7 +49,7 @@ class ParseNode(object):
 		assert not isinstance(item, ParseNode)
 		if field.scaling:
 			item *= field.scaling
-		return getSQLKey(field.name, item, sqlPars)
+		return base.getSQLKey(field.name, item, sqlPars)
 
 	def asSQL(self, field, sqlPars):
 		if self.operator in self._standardOperators:
@@ -61,7 +63,7 @@ class NumericNode(ParseNode):
 	"""is a node containing numeric operands (floats or dates).
 	"""
 	def _emitBinop(self, field, sqlPars):
-		return joinOperatorExpr(self.operator,
+		return base.joinOperatorExpr(self.operator,
 			[c.asSQL(field, sqlPars) for c in self.children])
 		
 	def _emitUnop(self, field, sqlPars):
@@ -136,7 +138,7 @@ class StringNode(ParseNode):
 	def _emitPatOp(self, field, sqlPars):
 		pattern = self._makePattern(field, sqlPars)
 		return "%s %s %%(%s)s"%(field.name, self._patOps[self.operator],
-			getSQLKey(field.name, pattern, sqlPars))
+			base.getSQLKey(field.name, pattern, sqlPars))
 
 	def _emitEnum(self, field, sqlPars):
 		query = "%s IN (%s)"%(field.name, ", ".join([
@@ -372,51 +374,23 @@ def parseStringExpr(str, baseSymbol=getStringGrammar()):
 	return baseSymbol.parseString(str)[0]
 
 
-parsers = {
-	"vexpr-float": parseNumericExpr,
-	"vexpr-date": parseDateExpr,
-	"vexpr-string": parseStringExpr,
-}
-
-def getParserForType(dbtype):
-	return parsers.get(dbtype)
-
-
-def getSQL(field, inPars, sqlPars):
-# XXX TODO refactor, sanitize
-	try:
-		val = inPars[field.name]
-		if val is None:
-			return None
-		if (field.formalType.startswith("vexpr") and isinstance(val, basestring)
-				and not field.isEnumerated()):
-			return parsers[field.formalType](val).asSQL(field, sqlPars)
-		else:
-			if isinstance(val, (list, tuple)):
-				if len(val)==0 or (len(val)==1 and val[0] is None):
-					return ""
-				return "%s IN %%(%s)s"%(field.name, getSQLKey(field.name,
-					val, sqlPars))
-			else:
-				return "%s=%%(%s)s"%(field.name, getSQLKey(field.name,
-					val, sqlPars))
-	except ParseException:
-		raise utils.logOldExc(utils.ValidationError(
-			"Invalid input (see help on search expressions)", field.name))
+def _makeFactory(parser):
+	def factory(field, val, sqlPars):
+		try:
+			return parser(val).asSQL(field, sqlPars)
+		except ParseException:
+			raise base.ui.logOldExc(utils.ValidationError(
+				"Invalid input for type %s (see help for valid type literals)"(
+					field.type, field.name)))
+	return factory
 
 
-def joinOperatorExpr(operator, operands):
-	"""filters empty operands and joins the rest using operator.
-
-	The function returns an expression string or None for the empty expression.
-	"""
-	operands = filter(None, operands)
-	if not operands:
-		return None
-	elif len(operands)==1:
-		return operands[0]
-	else:
-		return operator.join([" (%s) "%op for op in operands]).strip()
+sqlmunge.registerSQLFactory("vexpr-float",
+	_makeFactory(parseNumericExpr))
+sqlmunge.registerSQLFactory("vexpr-date",
+	_makeFactory(parseDateExpr))
+sqlmunge.registerSQLFactory("vexpr-string",
+	_makeFactory(parseStringExpr))
 
 
 class ToVexprConverter(typesystems.FromSQLConverter):
@@ -446,36 +420,6 @@ class ToVexprConverter(typesystems.FromSQLConverter):
 			return "vexpr-string"
 
 getVexprFor = ToVexprConverter().convert
-
-
-def getSQLKey(key, value, sqlPars):
-	"""adds value to sqlPars and returns a key for inclusion in a SQL query.
-
-	This function is used to build parameter dictionaries for SQL queries, 
-	avoiding overwriting parameters with accidental name clashes.
-	It works like this:
-
-	>>> sqlPars = {}
-	>>> getSQLKey("foo", 13, sqlPars)
-	'foo0'
-	>>> getSQLKey("foo", 14, sqlPars)
-	'foo1'
-	>>> getSQLKey("foo", 13, sqlPars)
-	'foo0'
-	>>> sqlPars["foo0"], sqlPars["foo1"]; sqlPars = {}
-	(13, 14)
-	>>> "WHERE foo<%%(%s)s OR foo>%%(%s)s"%(getSQLKey("foo", 1, sqlPars),
-	...   getSQLKey("foo", 15, sqlPars))
-	'WHERE foo<%(foo0)s OR foo>%(foo1)s'
-	"""
-	ct = 0
-	while True:
-		dataKey = "%s%d"%(key, ct)
-		if not sqlPars.has_key(dataKey) or sqlPars[dataKey]==value:
-			break
-		ct += 1
-	sqlPars[dataKey] = value
-	return dataKey
 
 
 def _test():

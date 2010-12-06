@@ -137,8 +137,6 @@ class Core(base.Structure):
 
 	def adaptForRenderer(self, renderer):
 		"""returns a core object tailored for renderer.
-
-		The argument must be a renderer name.
 		"""
 		newIT = self.inputTable.adaptForRenderer(renderer)
 		if newIT is self.inputTable:

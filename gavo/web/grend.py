@@ -23,7 +23,6 @@ from zope.interface import implements
 from gavo import base
 from gavo import svcs
 from gavo import rscdef
-from gavo.imp import formal
 from gavo.protocols import creds
 from gavo.web import common
 from gavo.web import htmltable
@@ -272,123 +271,6 @@ class HTMLResultRenderMixin(object):
 		return s
 
 
-class FormMixin(formal.ResourceMixin):
-	"""A mixin to produce input forms for services and display
-	errors within these forms.
-	"""
-	def _handleInputErrors(self, failure, ctx):
-		"""goes as an errback to form handling code to allow correction form
-		rendering at later stages than validation.
-		"""
-		if isinstance(failure.value, formal.FormError):
-			self.form.errors.add(failure.value)
-		elif isinstance(failure.value, base.ValidationError) and isinstance(
-				failure.value.colName, basestring):
-			try:
-				# Find out the formal name of the failing field...
-				failedField = self.translateFieldName(failure.value.colName)
-				# ...and make sure it exists
-				self.form.items.getItemByName(failedField)
-				self.form.errors.add(formal.FieldValidationError(
-					str(failure.getErrorMessage()), failedField))
-			except KeyError: # Failing field cannot be determined
-				self.form.errors.add(formal.FormError("Problem with input"
-					" in the internal or generated field '%s': %s"%(
-						failure.value.colName, failure.getErrorMessage())))
-		else:
-			failure.printTraceback()
-			return failure
-		return self.form.errors
-
-	def translateFieldName(self, name):
-		return self.service.translateFieldName(name)
-
-	def _addDefaults(self, ctx, form):
-		"""adds defaults from request arguments.
-		"""
-		if ctx is None:  # no request context, no arguments
-			return
-		args = inevow.IRequest(ctx).args
-		for item in form.items:
-			try:
-				form.data[item.key] = item.makeWidget().processInput(
-					ctx, item.key, args)
-			except:  # don't fail on junky things in default arguments
-				pass
-			
-	def _addInputKey(self, form, inputKey):
-		"""adds a form field for an inputKey to the form.
-		"""
-		unit = ""
-		if inputKey.type!="date":  # Sigh.
-			unit = inputKey.inputUnit or inputKey.unit or ""
-			if unit:
-				unit = " [%s]"%unit
-		label = inputKey.tablehead
-		form.addField(inputKey.name,
-			inputKey.getCurrentFormalType(),
-			inputKey.getCurrentWidgetFactory(),
-			label=label+unit,
-			description=inputKey.description)
-		if inputKey.values and inputKey.values.default:
-			form.data[inputKey.name] = inputKey.values.default
-
-	def _addFromInputKey(self, form, inputKey):
-		self._addInputKey(form, inputKey)
-
-	def _addQueryFields(self, form):
-		"""adds the inputFields of the service to form, setting proper defaults
-		from the field or from data.
-		"""
-		for inputKey in self.getInputFields(self.service):
-			self._addFromInputKey(form, inputKey)
-
-	def _addMetaFields(self, form, queryMeta):
-		"""adds fields to choose output properties to form.
-		"""
-		for serviceKey in self.service.serviceKeys:
-			self._addFromInputKey(form, serviceKey)
-		try:
-			if self.service.core.wantsTableWidget():
-				form.addField("_DBOPTIONS", svcs.FormalDict,
-					formal.widgetFactory(svcs.DBOptions, self.service, queryMeta),
-					label="Table")
-		except AttributeError: # probably no wantsTableWidget method on core
-			pass
-
-	def _getFormLinks(self):
-		"""returns stan for widgets building GET-type strings for the current 
-		form content.
-		"""
-		return T.div(class_="formLinks")[
-				T.a(href="", class_="resultlink", onmouseover=
-						"this.href=makeResultLink(getEnclosingForm(this))")
-					["[Result link]"],
-				" ",
-				T.a(href="", class_="resultlink", onmouseover=
-						"this.href=makeBookmarkLink(getEnclosingForm(this))")[
-					T.img(src=base.makeSitePath("/static/img/bookmark.png"), 
-						class_="silentlink", title="Link to this form", alt="[bookmark]")
-				],
-			]
-
-	def form_genForm(self, ctx=None, data=None):
-		queryMeta = svcs.QueryMeta.fromContext(ctx)
-		form = formal.Form()
-		self._addQueryFields(form)
-		self._addMetaFields(form, queryMeta)
-		self._addDefaults(ctx, form)
-		if self.name=="form":
-			form.addField("_OUTPUT", formal.String, 
-				formal.widgetFactory(serviceresults.OutputFormat, 
-				self.service, queryMeta),
-				label="Output format")
-		form.addAction(self.submitAction, label="Go")
-		form.actionMaterial = self._getFormLinks()
-		self.form = form
-		return form
-
-
 class CustomTemplateMixin(object):
 	"""is a mixin providing for customized templates.
 
@@ -449,6 +331,10 @@ class ResourceBasedRenderer(GavoRenderMixin):
 	preferredMethod = "GET"
 	urlUse = "full"
 	resultType = None
+	# parameterStyle is a hint for inputKeys how to transform themselves
+	# "clear" keeps types, "form" gives vizier-like expressions
+	# "vo" gives parameter-like expressions.
+	parameterStyle = "clear"
 	name = None
 
 	def __init__(self, ctx, rd):

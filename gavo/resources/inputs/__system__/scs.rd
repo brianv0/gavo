@@ -202,9 +202,9 @@
 							"%%(%s)s, %%(%s)s)")%(
 							"\nameForUCDs{pos.eq.ra;meta.main|POS_EQ_RA_MAIN}",
 							"\nameForUCDs{pos.eq.dec;meta.main|POS_EQ_DEC_MAIN}",
-							vizierexprs.getSQLKey("RA", inPars["RA"], outPars),
-							vizierexprs.getSQLKey("DEC", inPars["DEC"], outPars),
-							vizierexprs.getSQLKey("SR", inPars["SR"], outPars))
+							base.getSQLKey("RA", inPars["RA"], outPars),
+							base.getSQLKey("DEC", inPars["DEC"], outPars),
+							base.getSQLKey("SR", inPars["SR"], outPars))
 				</code>
 			</setup>
 		</phraseMaker>

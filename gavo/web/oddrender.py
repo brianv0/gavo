@@ -28,10 +28,11 @@ from zope.interface import implements
 
 from gavo import base
 from gavo import svcs
+from gavo.web import formrender
 from gavo.web import grend
 
 
-class JpegRenderer(grend.FormMixin, grend.ServiceBasedPage,
+class JpegRenderer(formrender.FormMixin, grend.ServiceBasedPage,
 		grend.HTMLResultRenderMixin):
 	name="img.jpeg"
 	resultType = "image/jpeg"

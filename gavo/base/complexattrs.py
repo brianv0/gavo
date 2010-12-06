@@ -258,7 +258,7 @@ class StructAttribute(attrdef.AttributeDef):
 		return self.childFactory.name_
 
 	def feedObject(self, instance, value):
-		if value is not None and value.parent is None:  # adopt if necessary
+		if value and value.parent is None:  # adopt if necessary
 			value.parent = instance
 		setattr(instance, self.name_, value)
 		self.doCallbacks(instance, value)

@@ -31,6 +31,9 @@ machinery -->
 			description="Name of table containing metadata" required="True"/>
 	</table>
 
+	<!-- as the result definition, use this: -->
+	<table original="products" id="productsResult" onDisk="False"/>
+
 	<data id="import">
 		<make table="products"/>
 	</data>

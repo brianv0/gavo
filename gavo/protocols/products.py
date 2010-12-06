@@ -265,10 +265,6 @@ class ProductCore(svcs.DBCore):
 	"""
 	name_ = "productCore"
 
-	def onParentComplete(self):
-		self.queryResultDef = svcs.OutputTableDef.fromTableDef(
-			self.rd.getById("products"))
-
 	def _parseKeys(self, keys):
 		"""returns an iterator over dictionaries of parsed fields of the 
 		(possibly cut-out) product keys in keys.
@@ -324,7 +320,8 @@ class ProductCore(svcs.DBCore):
 		authGroups = self._getGroups(queryMeta["user"], queryMeta["password"])
 		keysTable, where, pars = self._getSQLWhere(inputTable)
 		prodTable = rsc.TableForDef(self.queriedTable)
-		resTable = rsc.makeTableForQuery(prodTable, self.queryResultDef, 
+		resTable = rsc.makeTableForQuery(prodTable, 
+			self.rd.getById("productsResult"),
 			where, pars, suppressIndex=False)
 
 		dd = MS(rscdef.DataDescriptor, grammar=MS(ProductsGrammar,

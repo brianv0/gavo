@@ -12,10 +12,7 @@ and parameters.
 from gavo import base
 from gavo import grammars
 from gavo import rscdef
-from gavo.base import vizierexprs
-from gavo.imp import formal
 from gavo.rscdef import column
-from gavo.svcs import customwidgets
 
 MS = base.makeStruct
 
@@ -31,10 +28,7 @@ class InputKey(column.ParamBase):
 	"""
 	name_ = "inputKey"
 
-	_formalType = base.UnicodeAttribute("formalType", default=base.Undefined,
-		description="(Database) type for the input widget, defaults to being"
-			" computed from the column's type, usually to a Vizier-like"
-			" expression.", copyable=True)
+	# XXX TODO: make widgetFactory and showItems properties.
 	_widgetFactory = base.UnicodeAttribute("widgetFactory", default=None,
 		description="Python code for a custom widget factory for this input,"
 		" e.g., 'Hidden' or 'widgetFactory(TextArea, rows=15, cols=30)'",
@@ -49,37 +43,10 @@ class InputKey(column.ParamBase):
 	def __repr__(self):
 		return "<InputKey %s (%s)>"%(repr(self.name), self.type)
 
-	def getCurrentFormalType(self):
-		# If we have a condDesc parent, we inherit its requiredness.
-		if self.parent:
-			required = getattr(self.parent, "required", self.required)
-		return sqltypeToFormal(self.formalType)[0](required=required)
-
-	def getCurrentWidgetFactory(self):
-		widgetFactory = self.widgetFactory
-		if widgetFactory is None:
-			if self.value is not None:
-				widgetFacotry = formal.Hidden
-			elif self.isEnumerated():
-				widgetFactory = customwidgets.EnumeratedWidget(self)
-			else:
-				widgetFactory = sqltypeToFormal(self.formalType)[1]
-		if isinstance(widgetFactory, basestring):
-			widgetFactory = customwidgets.makeWidgetFactory(widgetFactory)
-		return widgetFactory
-
 	def completeElement(self):
 		self._completeElementNext(InputKey)
 		if self.restrictedMode and self.widgetFactory:
 			raise base.RestrictedElement("widgetFactory")
-
-		# if the input key was built from a column, infer a formalType.
-		if (hasattr(self, "_originalObject") 
-				and isinstance(self._originalObject, rscdef.Column)
-				and self.formalType is base.Undefined):
-			self.toVizierType()
-		if self.formalType is base.Undefined:
-			self.formalType = self.type
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(InputKey)
@@ -87,19 +54,11 @@ class InputKey(column.ParamBase):
 		self.scaling = None
 		if self.inputUnit:
 			self.scaling = base.computeConversionFactor(self.inputUnit, self.unit)
-
-	def toVizierType(self):
-		"""turns a normal column type into a type for inputting vizier expressions.
-
-		This is called by fromColumn and completeElement when the type comes
-		from a raw column.
-		"""
-		if self.isEnumerated():
-			return
-		try:
-			self.formalType = vizierexprs.getVexprFor(self.type)
-		except base.ConversionError: # no vexpr type, leave raw type
-			self.formalType = self.type
+	
+	def onParentComplete(self):
+		if self.parent and hasattr(self.parent, "required"):
+			# children of condDescs inherit their requiredness
+			self.required = self.parent.required
 
 	@classmethod
 	def fromColumn(cls, column, **kwargs):
@@ -110,17 +69,6 @@ class InputKey(column.ParamBase):
 		for k,v in kwargs.iteritems():
 			instance.feed(k, v)
 		return instance.finishElement()
-
-	@classmethod
-	def fromColumnViz(cls, column, **kwargs):
-		newType = ""
-		if not column.isEnumerated():
-			try:
-				newType = vizierexprs.getVexprFor(column.type)
-			except base.ConversionError: # no vexpr type, leave existing type
-				pass
-		kwargs["type"] = newType
-		return cls.fromColumn(column, **kwargs)
 
 
 class InputTable(rscdef.TableDef):
@@ -135,13 +83,14 @@ class InputTable(rscdef.TableDef):
 		This is discussed in svcs.core's module docstring.
 		"""
 		newParams, changed = [], False
+		rendName = renderer.name
 		for param in self.params:
 			if param.getProperty("onlyForRenderer", None) is not None:
-				if param.getProperty("onlyForRenderer")!=renderer:
+				if param.getProperty("onlyForRenderer")!=rendName:
 					changed = True
 					continue
 			if param.getProperty("notForRenderer", None) is not None:
-				if param.getProperty("notForRenderer")==renderer:
+				if param.getProperty("notForRenderer")==rendName:
 					changed = True
 					continue
 			newParams.append(param)
@@ -251,43 +200,6 @@ class InputDescriptor(rscdef.DataDescriptor):
 		self._completeElementNext(InputDescriptor)
 
 
-class ToFormalConverter(base.typesystems.FromSQLConverter):
-	"""is a converter from SQL types to Formal type specifications.
-
-	The result of the conversion is a tuple of formal type and widget factory.
-	"""
-	typeSystem = "Formal"
-	simpleMap = {
-		"smallint": (formal.Integer, formal.TextInput),
-		"integer": (formal.Integer, formal.TextInput),
-		"int": (formal.Integer, formal.TextInput),
-		"bigint": (formal.Integer, formal.TextInput),
-		"real": (formal.Float, formal.TextInput),
-		"float": (formal.Float, formal.TextInput),
-		"boolean": (formal.Boolean, formal.Checkbox),
-		"double precision": (formal.Float, formal.TextInput),
-		"double": (formal.Float, formal.TextInput),
-		"text": (formal.String, formal.TextInput),
-		"char": (formal.String, formal.TextInput),
-		"date": (formal.Date, formal.widgetFactory(formal.DatePartsInput,
-			twoCharCutoffYear=50, dayFirst=True)),
-		"time": (formal.Time, formal.TextInput),
-		"timestamp": (formal.Date, formal.widgetFactory(formal.DatePartsInput,
-			twoCharCutoffYear=50, dayFirst=True)),
-		"vexpr-float": (formal.String, customwidgets.NumericExpressionField),
-		"vexpr-date": (formal.String, customwidgets.DateExpressionField),
-		"vexpr-string": (formal.String, customwidgets.StringExpressionField),
-		"file": (formal.File, None),
-		"raw": (formal.String, formal.TextInput),
-	}
-
-	def mapComplex(self, type, length):
-		if type in self._charTypes:
-			return formal.String, formal.TextInput
-
-sqltypeToFormal = ToFormalConverter().convert
-
-
 def makeAutoInputDD(core):
 	"""returns a standard inputDD for a core.
 
@@ -296,4 +208,3 @@ def makeAutoInputDD(core):
 	"""
 	return MS(InputDescriptor,
 		grammar=MS(ContextGrammar, inputKeys=core.inputTable.params))
-

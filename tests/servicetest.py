@@ -14,7 +14,7 @@ from gavo import protocols
 from gavo import svcs
 from gavo.imp import formal
 from gavo.helpers import testhelpers
-from gavo.web import resourcebased
+from gavo.web import formrender
 
 import tresc
 
@@ -138,9 +138,11 @@ class InputKeyTest(testhelpers.VerboseTest):
 	"""tests for type/widget inference with input keys.
 	"""
 	def _getKeyProps(self, src):
-		cd = base.parseFromString(svcs.CondDesc, src)
-		ftype = cd.inputKeys[0].getCurrentFormalType()
-		fwid = cd.inputKeys[0].getCurrentWidgetFactory()
+		cd = base.parseFromString(svcs.CondDesc, src
+			).adaptForRenderer(svcs.getRenderer("form"))
+		ik = cd.inputKeys[0]
+		ftype = formrender._getFormalType(ik)
+		fwid = formrender._getWidgetFactory(ik)
 		ctx = context.WovenContext()
 		rendered = fwid(ftype).render(ctx, "foo", {}, None)
 		return ftype, fwid, rendered
@@ -162,15 +164,9 @@ class InputKeyTest(testhelpers.VerboseTest):
 			'<condDesc><inputKey name="foo" type="text" required="True"/></condDesc>')
 		self.assertEqual(ftype.required, False)
 
-	def testWithFormalType(self):
+	def testBuildFrom(self):
 		ftype, fwid, rendered = self._getKeyProps(
-			'<condDesc><inputKey name="foo" type="text" formalType="int"/>'
-			'</condDesc>')
-		self.failUnless(isinstance(ftype, formal.types.Integer))
-
-	def testWithOriginal(self):
-		ftype, fwid, rendered = self._getKeyProps(
-			'<condDesc><inputKey original="data/testdata#data.afloat"/></condDesc>')
+			'<condDesc buildFrom="data/testdata#data.afloat"/>')
 		self.failUnless(isinstance(ftype, formal.types.String))
 		self.assertEqual(rendered.children[3].children[0].children[0],
 			"[?num. expr.]")
@@ -178,7 +174,7 @@ class InputKeyTest(testhelpers.VerboseTest):
 	def testWithOriginalAndFT(self):
 		ftype, fwid, rendered = self._getKeyProps(
 			'<condDesc><inputKey original="data/testdata#data.afloat"'
-				' formalType="int"/></condDesc>')
+				' type="integer"/></condDesc>')
 		self.failUnless(isinstance(ftype, formal.types.Integer))
 
 	def testWithEnumeratedOriginal(self):
@@ -214,7 +210,7 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 		self.assertEqual(
 			[(k.name, k.type) for k in self.service.getInputKeysFor("scs.xml")],
 			[('RA', 'double precision'), ('DEC', 'double precision'), 
-				('SR', 'real'), ("mag", "vexpr-float")])
+				('SR', 'real'), ("mag", "real")])
 
 
 if __name__=="__main__":
