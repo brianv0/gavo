@@ -209,6 +209,10 @@ class Make(base.Structure, scripting.ScriptingMixin):
 		copyable=True,
 		strip=True)
 
+	def __repr__(self):
+		return "Make(table=%r, rowmaker=%r)"%(
+			self.table.id, self.rowmaker.id)
+
 	def onParentComplete(self):
 		if self.rowmaker is base.NotGiven:
 			if (self.parent and self.parent.grammar and 

@@ -87,6 +87,10 @@ class Data(base.MetaMixin):
 		self.tables = tables
 		self.setMetaParent(self.dd)
 
+	def __iter__(self):
+		for make in self.dd.makes:
+			yield self.tables[make.table.id]
+
 	@classmethod 	
 	def create(cls, dd, parseOptions=common.parseNonValidating,
 			connection=None):
@@ -101,13 +105,27 @@ class Data(base.MetaMixin):
 				] = make.create(connection, parseOptions, tables.TableForDef)
 		return cls(dd, controlledTables, parseOptions)
 
-	def __iter__(self):
-		return self.tables.itervalues()
+	@classmethod
+	def drop(cls, dd, parseOptions=common.parseNonValidating, connection=None):
+		"""drops all tables made by dd if necessary.
+		"""
+		for make in dd.makes:
+			controlledTables[make.table.id
+				] = tables.TableForDef(make.table, create=False, connection=connection)
+			data = cls(dd, controlledTables, parseOptions)
+			data.dropTables()
+
+	def dropTables(self):
+		for t in self:
+			if t.tableDef.system and not self.parseOptions.systemImport:
+				continue
+			if t.tableDef.onDisk:
+				t.drop()
 
 	def updateMeta(self, updateIndices=False):
 		"""updates meta information kept in the DB on the contained tables.
 		"""
-		for t in self.tables.values():
+		for t in self:
 			if isinstance(t, dbtable.DBTable):
 				t.updateMeta()
 				if updateIndices:
@@ -123,29 +141,17 @@ class Data(base.MetaMixin):
 		"""
 		if self.parseOptions.updateMode or self.dd.updating:
 			if self.parseOptions.dropIndices:
-				for t in self.tables.values():
+				for t in self:
 					if t.tableDef.onDisk:
 						t.dropIndices()
 			return
-		for t in self.tables.values() or self.dd:
+
+		for t in self:
 			if t.tableDef.system and not self.parseOptions.systemImport:
 				continue
 			if t.tableDef.onDisk:
 				t.runScripts("preImport")
 				t.recreate()
-
-	def dropTables(self):
-		"""drops all tables in this RD that are onDisk.
-
-		System tables are only dropped when the systemImport parseOption
-		is true.
-		"""
-		for t in self.tables.values():
-			if t.tableDef.system and not self.parseOptions.systemImport:
-				continue
-			if t.tableDef.onDisk:
-				t.drop()
-		return self
 
 	def commitAll(self):
 		"""commits all dependent tables.
@@ -156,7 +162,7 @@ class Data(base.MetaMixin):
 		The method returns the data itself in order to let you do a
 		commitAll().closeAll().
 		"""
-		for t in self.tables.values():
+		for t in self:
 			if t.tableDef.onDisk:
 				t.commit()
 		return self
@@ -170,7 +176,7 @@ class Data(base.MetaMixin):
 		You only need to do this if you let the DBTables get their own
 		connections, i.e., didn't create them with a connection argument.
 		"""
-		for t in self.tables.values():
+		for t in self:
 			if t.tableDef.onDisk:
 				try:
 					t.close()
@@ -211,7 +217,7 @@ class Data(base.MetaMixin):
 		return DataFeeder(self, **kwargs)
 
 	def runScripts(self, phase, **kwargs):
-		for t in self.tables.values():
+		for t in self:
 			t.runScripts(phase, **kwargs)
 
 

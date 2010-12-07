@@ -20,7 +20,7 @@ from gavo.utils.codetricks import (silence, ensureExpression, compileFunction,
 	loadPythonModule, memoized, identity, runInSandbox, document, 
 	buildClassResolver, CachedGetter, intToFunnyWord, IdManagerMixin,
 	addDefaults, iterDerivedClasses, iterDerivedObjects, iterConsecutivePairs,
-	importModule, loadInternalObject)
+	importModule, loadInternalObject, printFrames)
 
 from gavo.utils.excs import *
 

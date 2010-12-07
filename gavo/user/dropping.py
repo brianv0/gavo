@@ -19,7 +19,7 @@ def drop(opts, rdId):
 		rd = api.getRD(rdId, forImport=True)
 	connection = api.getDBConnection("admin")
 	for dd in rd.dds:
-		res = api.Data.create(dd, connection=connection).dropTables()
+		res = api.Data.drop(dd, connection=connection)
 	from gavo.registry import servicelist
 	servicelist.cleanServiceTablesFor(rd, connection)
 	tap.unpublishFromTAP(rd, connection)

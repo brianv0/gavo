@@ -37,9 +37,11 @@ def process(opts, args):
 		if not dd.auto and not dd.id in ddIds:
 			continue
 		if opts.metaOnly:
+			base.ui.notifyInfo("Updating meta for %s"%dd.id)
 			res = rsc.Data.create(dd, parseOptions=opts, connection=connection
 				).updateMeta(opts.metaPlusIndex)
 		else:
+			base.ui.notifyInfo("Making data %s"%dd.id)
 			res = rsc.makeData(dd, parseOptions=opts, connection=connection)
 		if hasattr(res, "nAffected"):
 			base.ui.notifyInfo("Columns affected: %s"%res.nAffected)

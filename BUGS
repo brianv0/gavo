@@ -191,7 +191,7 @@
 46/LOW/2010-07-26
 	UWS job directory is not created if it does not exist yet.
 
-47/HIGH/2010-07-30
+47/HIGH/2010-07-30/FIXED (rev. 1635)
 	See input/glots: The createView data is touched but has no effect when
 	doing createTables.
 

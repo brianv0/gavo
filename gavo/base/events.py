@@ -219,6 +219,14 @@ class EventDispatcher(object):
 		"""
 		return message
 
+	def notifyDebug(self, message):
+		"""is called when something wants to communicate information only
+		useful when trying to figure out a malfunction.
+
+		The handlers receive the message as-is.
+		"""
+		return message
+
 	def notifyWebServerUp(self):
 		"""is called when the webserver is up and running.
 

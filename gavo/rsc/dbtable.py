@@ -458,6 +458,7 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 		return self
 
 	def create(self):
+		base.ui.notifyDebug("Create DB Table %s"%self.tableName)
 		self.ensureSchema()
 		preTable = ""
 		if self.tableDef.temporary:
@@ -575,12 +576,19 @@ class View(DBTable):
 		return RaisingFeeder(self, None)
 	
 	def create(self):
+		base.ui.notifyDebug("Create DB View %s"%self.tableName)
 		self.ensureSchema()
 		self.query(self.tableDef.expand(self.tableDef.viewStatement))
 		return self.configureTable()
 
 	def makeIndices(self):
 		return self  # no indices or primary keys on views.
+
+	def importFinished(self):
+		# no scripts, no indexing, no nothing
+		if self.ownedConnection:
+			self.connection.commit()
+		return self
 
 	def drop(self):
 		return DBTable.drop(self, "VIEW")
