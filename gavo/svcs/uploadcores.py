@@ -37,30 +37,20 @@ class UploadCore(core.Core):
 
 	_destDD = base.ReferenceAttribute("destDD", default=base.Undefined,
 		description="Reference to the data we are uploading into.")
-	
-	def __init__(self, parent, **kwargs):
-		inputDD = base.parseFromString(inputdef.InputDescriptor, 
-			"""
-			<inputDD>
-				<table id="inFields">
-					<column name="File" type="file" required="True"
-						tablehead="Source to upload"/>
-					<column name="Mode" type="text" tablehead="Upload mode">
-						<values default="i">
-							<option title="Insert">i</option>
-							<option title="Update">u</option>
-						</values>
-					</column>
-				</table>
-				<make table="inFields"/>
-			</inputDD>""")
-		outputTable = base.parseFromString(outputdef.OutputTableDef,
-			uploadOutputDef)
-		if "inputDD" not in kwargs:
-			kwargs["inputDD"] = inputDD
-		if "outputTable" not in kwargs:
-			kwargs["outputTable"] = outputTable
-		core.Core.__init__(self, parent, **kwargs)
+
+	inputTableXML = """
+		<inputTable id="inFields">
+			<inputKey name="File" type="file" required="True"
+				tablehead="Source to upload"/>
+			<inputKey name="Mode" type="text" tablehead="Upload mode">
+				<values default="i">
+					<option title="Insert">i</option>
+					<option title="Update">u</option>
+				</values>
+			</inputKey>
+		</inputTable>
+		"""
+	outputTableXML = uploadOutputDef
 
 	def _fixPermissions(self, fName):
 		"""tries to chmod the newly created file to 0664 and change the group
@@ -130,12 +120,11 @@ class UploadCore(core.Core):
 			raise
 		return nAffected
 
-	def run(self, service, inputData, queryMeta):
+	def run(self, service, inputTable, queryMeta):
 		totalAffected = 0
-		for row in inputData.tables["inFields"]:
-			fName, srcFile = row["File"]
-			mode = row["Mode"]
-			totalAffected += self._saveData(srcFile, fName, mode)
+		fName, srcFile = inputTable.getParam("File")
+		mode = inputTable.getParam("Mode")
+		totalAffected += self._saveData(srcFile, fName, mode)
 		return rsc.TableForDef(self.outputTable, 
 			rows=[{"nAffected": totalAffected}])
 	
@@ -156,11 +145,11 @@ class EditCore(standardcores.TableBasedCore):
 				uploadOutputDef)
 		self._completeElementNext(EditCore)
 
-	def run(self, service, inputData, queryMeta):
+	def run(self, service, inputTable, queryMeta):
 		conn = base.getDBConnection(base.getDBProfileByName("admin"))
 		table = rsc.TableForDef(self.queriedTable, 
 			connection=conn)
-		table.addRow(inputData.getPrimaryTable().rows[0])
+		table.addRow(inputTable.getParamDict())
 		conn.commit()
 		conn.close()
 		return rsc.TableForDef(self.outputTable, 

@@ -201,6 +201,13 @@ class Make(base.Structure, scripting.ScriptingMixin):
 		default=None,
 		description="The role of the embedded table within the data set",
 		copyable=True)
+	
+	_rowSource = base.EnumeratedUnicodeAttribute("rowSource",
+		default="rows",
+		validValues=["rows", "parameters"],
+		description="Source for the raw rows processed by this rowmaker.",
+		copyable=True,
+		strip=True)
 
 	def onParentComplete(self):
 		if self.rowmaker is base.NotGiven:
@@ -233,7 +240,8 @@ class Make(base.Structure, scripting.ScriptingMixin):
 		if not hasattr(destTable, "_compiledParmaker"):
 			destTable._compiledParmaker = self.parmaker.compileForTable(
 				destTable)
-		destTable.setParams(destTable._compiledParmaker(grammarParameters))
+		destTable.setParams(destTable._compiledParmaker(grammarParameters),
+			raiseOnBadKeys=False)
 
 
 class DataDescriptor(base.Structure, base.MetaMixin):
@@ -252,34 +260,53 @@ class DataDescriptor(base.Structure, base.MetaMixin):
 		childFactory=rmkdef.RowmakerDef, 
 		description="Embedded build rules (usually rowmakers are defined toplevel)",
 		copyable=True)
+
 	_tables = base.StructListAttribute("tables",
 		childFactory=tabledef.TableDef, 
 		description="Embedded table definitions (usually, tables are defined"
-			" toplevel)", copyable=True)
+			" toplevel)", 
+		copyable=True)
+
 	_grammar = base.MultiStructAttribute("grammar", 
+		default=None,
 		childFactory=builtingrammars.getGrammar,
 		childNames=builtingrammars.GRAMMAR_REGISTRY.keys(),
-		default=None,
-		description="Grammar used to parse this data set.", copyable=True)
-	_sources = base.StructAttribute("sources", default=None, 
+		description="Grammar used to parse this data set.", 
+		copyable=True)
+	
+	_sources = base.StructAttribute("sources", 
+		default=None, 
 		childFactory=SourceSpec,
 		description="Specification of sources that should be fed to the grammar.",
 		copyable=True)
+
 	_dependents = base.ListOfAtomsAttribute("dependents",
 		itemAttD=base.UnicodeAttribute("recreateAfter"),
 		description="List of data IDs to recreate when this resource is"
 			" remade; use # syntax to reference in other RDs.")
-	_auto = base.BooleanAttribute("auto", default=True, description=
-		"Import this data set without explicit mention on the command line?")
-	_updating = base.BooleanAttribute("updating", default=False,
+
+	_auto = base.BooleanAttribute("auto", 
+		default=True, 
+		description="Import this data set if not explicitly"
+			" mentioned on the command line?")
+
+	_updating = base.BooleanAttribute("updating", 
+		default=False,
 		description="Keep existing tables on import?  You usually want this"
 			" False unless you have some kind of sources management,"
-			" e.g., via a sources ignore specification.", copyable=True)
-	_makes = base.StructListAttribute("makes", childFactory=Make,
-		copyable=True, description="Specification of a target table and the"
-			" rowmaker to feed them.")
+			" e.g., via a sources ignore specification.", 
+		copyable=True)
+
+	_makes = base.StructListAttribute("makes", 
+		childFactory=Make,
+		copyable=True, 
+		description="Specification of a target table and the rowmaker"
+			" to feed them.")
+
 	_properties = base.PropertyAttribute()
+
 	_rd = common.RDAttribute()
+
 	_original = base.OriginalAttribute()
 
 	def onElementComplete(self):

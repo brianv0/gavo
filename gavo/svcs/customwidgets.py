@@ -204,7 +204,8 @@ def _getDisplayOptions(ik):
 		options.extend(ik.values.options)
 		noneOption = None
 		if not ik.required and not ik.values.multiOk:
-			noneOption = base.makeStruct(rscdef.Option, title="ANY", content_=None)
+			noneOption = base.makeStruct(rscdef.Option, title="ANY", 
+				content_="")
 	return noneOption, options
 
 

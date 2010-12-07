@@ -237,13 +237,5 @@ machinery -->
 
 	<service id="p" core="core" allowed="get, form">
 		<meta name="description">The main product deliverer</meta>
-		<inputDD>
-			<contextGrammar>
-				<inputKey original="coreKey" type="raw"/>
-			</contextGrammar>
-			<make table="pCoreInput">
-				<parmaker simplemaps="accref:key"/>
-			</make>
-		</inputDD>
 	</service>
 </resource>

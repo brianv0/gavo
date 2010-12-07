@@ -91,9 +91,8 @@ class Core(base.Structure):
 	`Cores Available`_ for concrete cores.  Use the names of the concrete
 	cores in RDs.
 
-	You can specify a contextGrammar in a grammarXML and an outputTable
-	in outputTableXML.  These contain fragments of RDs.  They can be
-	overridden in the RD XML.
+	You can specify an input table in an inputTableXML and an output table
+	in an outputTableXML class attribute.
 	"""
 	name_ = "core"
 
@@ -134,6 +133,11 @@ class Core(base.Structure):
 	
 	def __str__(self):
 		return repr(self)
+	
+	def onElementComplete(self):
+		self._onElementCompleteNext(Core)
+		if self.inputTable is base.NotGiven:
+			self.inputTable = base.makeStruct(inputdef.InputTable)
 
 	def adaptForRenderer(self, renderer):
 		"""returns a core object tailored for renderer.

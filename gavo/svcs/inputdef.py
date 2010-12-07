@@ -40,9 +40,6 @@ class InputKey(column.ParamBase):
 		description="Override unit of the table column with this.",
 		copyable=True)
 
-	def __repr__(self):
-		return "<InputKey %s (%s)>"%(repr(self.name), self.type)
-
 	def completeElement(self):
 		self._completeElementNext(InputKey)
 		if self.restrictedMode and self.widgetFactory:

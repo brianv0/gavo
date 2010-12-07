@@ -20,6 +20,7 @@ from gavo import grammars
 from gavo import rsc
 from gavo import rscdef
 from gavo import svcs
+from gavo import utils
 from gavo.protocols import products
 from gavo.web import streaming
 
@@ -100,7 +101,7 @@ class ColToRowGrammar(grammars.Grammar):
 
 
 class ProductTarMaker(object):
-	""" is a factory for tar files.
+	"""A factory for tar files.
 
 	You probably don't want to instanciate it directly but instead get a copy
 	through the getProductMaker function below.
@@ -110,9 +111,6 @@ class ProductTarMaker(object):
 	def __init__(self):
 		self.rd = base.caches.getRD("__system__/products")
 		self.core = self.rd.getById("forTar")
-		self.inputDD = self.core.inputDD.copy(None)
-		self.inputDD.grammar = base.makeStruct(
-			rscdef.getGrammar("dictlistGrammar"))
 
 	def _getEmbargoedFile(self, name):
 		stuff = StringIO("This file is embargoed.  Sorry.\n")
@@ -183,21 +181,19 @@ class ProductTarMaker(object):
 		if not productColumns:
 			raise base.ValidationError("This query does not select any"
 				" columns with access references", "_OUTPUT")
-		inputDD = MS(svcs.InputDescriptor, 
-			grammar= MS(ColToRowGrammar, targetKey="accref",
-				sourceKeys=productColumns),
-			makes=MS(rscdef.Make, table=self.rd.getById("pCoreInput")))
-		inputData = rsc.makeData(inputDD, forceSource=table.rows)
-		if not inputData.getPrimaryTable().rows:
-			raise base.ValidationError("No products selected", colName="query")
-		prods = self.core.run(coreResult.service, inputData, queryMeta)
+		
+		inputTableRows = []
+		for row in table:
+			for colName in productColumns:
+				inputTableRows.append({"accref": row[colName]})
+		inputTable = rsc.TableForDef(self.rd.getById("pCoreInput"), 
+			rows=inputTableRows)
+
+		prods = self.core.run(coreResult.service, inputTable, queryMeta)
 		return self._streamOutTar(prods, request, queryMeta)
 
 
-_tarmaker = None
 
+@utils.memoized
 def getTarMaker():
-	global _tarmaker
-	if _tarmaker is None:
-		_tarmaker = ProductTarMaker()
-	return _tarmaker
+	return ProductTarMaker()

@@ -260,7 +260,7 @@ class HTMLResultRenderMixin(object):
 
 		if self.service:
 			fieldDict = dict((f.name, f) 
-				for f in self.getInputFields(self.service))
+				for f in self.service.getInputKeysFor(self))
 		else:
 			fieldDict = {}
 	
@@ -396,7 +396,6 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 		self.service = service
 
 		# Do our input fields differ from the service's?
-		# This becomes true when getInputFields swallows InputKeys.
 		self.fieldsChanged = False 
 
 		if self.checkedRenderer and self.name not in self.service.allowed:

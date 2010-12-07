@@ -94,9 +94,6 @@ class SPoint(PgSAdapter):
 	def asSTCS(self, systemString):
 		return "Position %s %.10f %.10f"%(systemString, self.x/DEG, self.y/DEG)
 
-	def asParseableLiteral(self):  # used in params, etc.
-		return "%f,%f"%(self.x/DEG, self.y/DEG)
-
 	def asPgSphere(self):
 		return "spoint '(%.10f,%.10f)'"%(self.x, self.y)
 

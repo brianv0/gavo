@@ -271,7 +271,7 @@ class RegistryCore(svcs.Core, base.RestrictionMixin):
 				BadVerb("'%s' is an unsupported operation."%pars["verb"]))
 		return ElementTree.ElementTree(handler(pars).asETree())
 
-	def run(self, service, inputTAble, queryMeta):
+	def run(self, service, inputTable, queryMeta):
 		"""returns an ElementTree containing a OAI-PMH response for the query 
 		described by pars.
 		"""

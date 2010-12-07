@@ -163,8 +163,9 @@ class ApplyDef(procdef.ProcApp):
 	The active rowmaker is available as parent.  It is also used to
 	expand macros.
 
-	The data that is built can be manipulated as targetData.  You probably
-	only want to change meta information here (e.g., warnings or infos).
+	The table that the rowmaker feeds to can be accessed as targetTable.  
+	You probably only want to change meta information here (e.g., warnings 
+	or infos).
 	"""
 	name_ = "apply"
 	requiredType = "apply"

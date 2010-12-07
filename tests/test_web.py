@@ -10,8 +10,6 @@ import trialhelpers
 
 
 class AdminTest(trialhelpers.RenderTest):
-	"""tests for the admin renderer.
-	"""
 	renderer = root.ArchiveService()
 
 	def _makeAdmin(self, req):
@@ -76,3 +74,21 @@ class AdminTest(trialhelpers.RenderTest):
 			{"__nevow_form__": "adminOps", "block": "Block"}, 
 			self._makeAdmin
 		).addCallback(checkBlocked)
+
+
+class FormTest(trialhelpers.RenderTest):
+	renderer = root.ArchiveService()
+
+	def testSimple(self):
+		return self.assertGETHasStrings("/data/test/basicprod/form", {}, [
+				'<a href="/static/help_vizier.shtml#floats">[?num. expr.]</a>',
+				"<h1>Somebody else's problem</h1>",
+			])
+	
+	def testInputSelection(self):
+		return self.assertGETHasStrings("/data/cores/cstest/form", {}, [
+				'Coordinates (as h m s, d m s or decimal degrees), or SIMBAD',
+				'Search radius in arcminutes',
+				'A sample magnitude'
+			])
+

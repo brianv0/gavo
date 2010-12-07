@@ -36,7 +36,7 @@ MS = base.makeStruct
 __docformat__ = "restructuredtext en"
 
 
-class DALRenderer(formrender.FormMixin, grend.ServiceBasedPage):
+class DALRenderer(grend.ServiceBasedPage):
 	"""is a base class for renderers for the usual IVOA DAL protocols.
 
 	This is for simple, GET-based DAL renderers (where we allow POST as 
@@ -69,22 +69,21 @@ class DALRenderer(formrender.FormMixin, grend.ServiceBasedPage):
 	def isBrowseable(self, service):
 		return False
 
-	def _getResource(self, outputName):
-		# These always render themselves
-		return None
-
 	def renderHTTP(self, ctx):
 		# the weird _handleInputErrors is because form.process returns
 		# form errors rather than raising an exception when something is
 		# wrong.  _handleInputErrors knows all is fine if it receives a None.
-		return defer.maybeDeferred(self.form_genForm, ctx
-			).addCallback(lambda res: res.process(ctx)
+		return defer.maybeDeferred(self._runService, ctx
 			).addCallback(self._handleInputErrors, ctx
 			).addErrback(self._handleInputErrors, ctx
 			).addErrback(self._handleRandomFailure, ctx)
 
-	def submitAction(self, ctx, form, data):
-		return self.runServiceWithContext(data, ctx
+	def _runService(self, ctx):
+		contextData = {}
+		for key, val in inevow.IRequest(ctx).args.iteritems():
+			if val:
+				contextData[key] = val[-1]
+		return self.runServiceWithContext(contextData, ctx
 			).addCallback(self._formatOutput, ctx)
 
 	def _writeErrorTable(self, ctx, errmsg):
@@ -113,6 +112,8 @@ class DALRenderer(formrender.FormMixin, grend.ServiceBasedPage):
 			return "%s: %s"%(e.fieldName, str(e))
 		try:
 			msg = errors.getErrorMessage()
+			if base.DEBUG:
+				base.ui.notifyFailure(errors)
 		except AttributeError:
 			msg = "Error(s) in given Parameters: %s"%"; ".join(
 				[formatError(e) for e in errors])
@@ -222,7 +223,7 @@ class SIAPRenderer(DALRenderer):
 	def _makeMetadataData(self, queryMeta):
 		inputFields = [
 			svcs.InputKey.fromColumn(f, name="quoted/INPUT:"+f.name)
-			for f in self.getInputFields(self.service)]
+			for f in self.service.getInputKeysFor(self)]
 		inputTable = MS(rscdef.TableDef, columns=inputFields)
 		outputTable = MS(rscdef.TableDef, columns=
 			self.service.getCurOutputFields(queryMeta), id="result")

@@ -101,7 +101,7 @@ class CondDesc(base.Structure):
 	"""
 	name_ = "condDesc"
 
-	_inputKeys = base.StructListAttribute("inputKeys", 
+	_inputKeys = rscdef.ColumnListAttribute("inputKeys", 
 		childFactory=inputdef.InputKey, copyable=True,
 		description="One or more InputKeys defining the condition's input.")
 	_silent = base.BooleanAttribute("silent", default=False,
@@ -207,16 +207,8 @@ class CondDesc(base.Structure):
 			return False
 		keysFound, keysMissing = [], []
 		for f in self.inputKeys:
-			if inPars[f.name] is None:
-				# We need the separate check for defaults because some renderes
-				# might not use makeData to parse their input and thus miss
-				# the defaulting done in rowmakers (this should be done away with,
-				# though, because it breaks _isActive).
-				if f.values is not None and f.values.default:
-					inPars[f.name] = f.values.default
-					keysFound.append(f)
-				else:
-					keysMissing.append(f)
+			if inPars.get(f.name) is None:
+				keysMissing.append(f)
 			else:
 				keysFound.append(f)
 		if not keysMissing:
@@ -384,7 +376,8 @@ class FancyQueryCore(TableBasedCore, base.RestrictionMixin):
 		" execute.  It must contain exactly one %s where the generated"
 		" where clause is to be inserted.  Do not write WHERE yourself."
 		" All other percents must be escaped by doubling them.", 
-		default=base.Undefined)
+		default=base.Undefined,
+		copyable=True)
 
 	def run(self, service, inputTable, queryMeta):
 		fragment, pars = self._getSQLWhere(inputTable, queryMeta)
@@ -497,7 +490,7 @@ class FixedQueryCore(core.Core, base.RestrictionMixin):
 
 	def completeElement(self):
 		if self.inputTable is base.NotGiven:
-			self.inputTable = base.makeStruct(rscdef.TableDef)
+			self.inputTable = base.makeStruct(inputdef.InputTable)
 		self._completeElementNext(FixedQueryCore)
 
 	def run(self, service, inputTable, queryMeta):

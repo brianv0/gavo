@@ -86,7 +86,7 @@ class SvcResult(object):
 	input dataset accessible.
 
 	It is constructed with an InMemoryTable instance coreResult,
-	a data instance inputData, the current querymeta, and a service
+	a data instance inputTable, the current querymeta, and a service
 	instance.
 
 	If a service is defined, SvcResult adapts coreResult to the
@@ -97,7 +97,7 @@ class SvcResult(object):
 	something else), which are left alone, but currently can't be used
 	to render HTMLTables.
 
-	SvcResult also makes queryMeta, inputData and the service available.	This
+	SvcResult also makes queryMeta, inputTable and the service available.	This
 	should give renderers access to basically all the information they need.  The
 	resultmeta data item collects some of those.
 
@@ -106,8 +106,8 @@ class SvcResult(object):
 	"""
 	implements(inevow.IContainer)
 	
-	def __init__(self, coreResult, inputData, queryMeta, service=None):
-		self.inputData = inputData
+	def __init__(self, coreResult, inputTable, queryMeta, service=None):
+		self.inputTable = inputTable
 		self.queryMeta = queryMeta
 		self.service = service
 		if (service and isinstance(coreResult, rsc.BaseTable)):
@@ -129,11 +129,7 @@ class SvcResult(object):
 			for k, v in self.queryMeta.getQueryPars().iteritems())
 	
 	def data_inputRec(self, ctx=None):
-		try:
-			row = self.inputData.getTableWithRole("parameters").rows[0]
-			return row
-		except (AttributError, IndexError): # No or empty parameters table
-			return {}
+		return self.inputTable.getParamDict()
 
 	def data_table(self, ctx=None):
 		return self.original.getPrimaryTable()
@@ -694,9 +690,17 @@ class Service(base.Structure, base.ComputedMetaMixin,
 					).getPrimaryTable()
 		else:
 			res = rsc.TableForDef(self.getCoreFor(renderer).inputTable)
+			missingRequired = []
 			for par in res.iterParams():
-				if par.name in contextData:
+				# check "None" to avoid clobbering defaults (querying for NULLs
+				# is a difficult matter anyway)
+				if par.name in contextData and contextData[par.name] is not None:
 					par.set(contextData[par.name])
+				if par.required and par.value is None:
+					missingRequired.append(par.name)
+			if missingRequired:
+				raise base.ValidationError("Mandatory field(s) %s empty"%
+					", ".join(missingRequired), missingRequired[0])
 		return res
 
 	def runWithData(self, renderer, contextData, queryMeta):

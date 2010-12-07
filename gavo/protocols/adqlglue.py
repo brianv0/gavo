@@ -225,8 +225,8 @@ class ADQLCore(svcs.Core, base.RestrictionMixin):
 	def wantsTableWidget(self):
 		return False
 
-	def run(self, service, inputData, queryMeta):
-		inRow = inputData.getPrimaryTable().rows[0]
+	def run(self, service, inputTable, queryMeta):
+		inRow = inputTable.getParamDict()
 		queryString = inRow["query"]
 		base.ui.notifyInfo("Incoming ADQL query: %s"%queryString)
 		try:

@@ -43,6 +43,9 @@
 			<condDesc original="//scs#humanInput"/>
 			<condDesc original="//scs#protoInput"/>
 			<condDesc buildFrom="mag"/>
+			<condDesc>
+				<inputKey original="rv" type="vexpr-float">-100 .. 100</inputKey>
+			</condDesc>
 		</dbCore>
 	</service>
 </resource>

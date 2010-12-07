@@ -377,6 +377,7 @@ class Grammar(base.Structure, GrammarMacroMixin):
 	def parse(self, sourceToken, targetData=None):
 		ri = self.rowIterator(self, sourceToken, 
 			sourceRow=self.getSourceFields(sourceToken, targetData))
+		print "gora", ri
 		if self.rowfilters:
 			ri.rowfilter = compileRowfilter(self.rowfilters)
 		return ri

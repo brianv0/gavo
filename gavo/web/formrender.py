@@ -61,9 +61,7 @@ def _getWidgetFactory(inputKey):
 	if not hasattr(inputKey, "_widgetFactoryCache"):
 		widgetFactory = inputKey.widgetFactory
 		if widgetFactory is None:
-			if inputKey.value is not None:
-				widgetFactory = formal.Hidden
-			elif inputKey.isEnumerated():
+			if inputKey.isEnumerated():
 				widgetFactory = customwidgets.EnumeratedWidget(inputKey)
 			else:
 				widgetFactory = sqltypeToFormal(inputKey.type)[1]
@@ -73,21 +71,22 @@ def _getWidgetFactory(inputKey):
 	return inputKey._widgetFactoryCache
 
 
-def getFormalFieldForInputKey(ik):
+def getFieldArgsForInputKey(inputKey):
 	# infer whether to show a unit and if so, which
 	unit = ""
 	if inputKey.type!="date":  # Sigh.
 		unit = inputKey.inputUnit or inputKey.unit or ""
 		if unit:
 			unit = " [%s]"%unit
-
 	label = inputKey.tablehead
 
-	return formal.Field(inputKey.name,
-		_getFormalType(inputKey),
-		_getWidgetFactory(inputKey),
-		label=label+unit,
-		description=inputKey.description)
+	return {
+		"label": label,
+		"name": inputKey.name,
+		"type": _getFormalType(inputKey),
+		"widgetFactory": _getWidgetFactory(inputKey),
+		"label": label+unit,
+		"description": inputKey.description}
 
 
 class FormMixin(formal.ResourceMixin):
@@ -139,7 +138,7 @@ class FormMixin(formal.ResourceMixin):
 	def _addInputKey(self, form, inputKey):
 		"""adds a form field for an inputKey to the form.
 		"""
-		form.addField(getFormalFieldForInputKey(inputKey))
+		form.addField(**getFieldArgsForInputKey(inputKey))
 		if inputKey.values and inputKey.values.default:
 			form.data[inputKey.name] = inputKey.values.default
 
@@ -150,7 +149,7 @@ class FormMixin(formal.ResourceMixin):
 		"""adds the inputFields of the service to form, setting proper defaults
 		from the field or from data.
 		"""
-		for inputKey in self.getInputFields(self.service):
+		for inputKey in self.service.getInputKeysFor(self):
 			self._addFromInputKey(form, inputKey)
 
 	def _addMetaFields(self, form, queryMeta):
@@ -221,7 +220,7 @@ class Form(FormMixin,
 
 		# enable special handling if I'm rendering fixed-behaviour services
 		# (i.e., ones that never have inputs) XXX TODO: Figure out where I used this and fix that to use the fixed renderer (or whatever)
-		if not self.getInputFields(self.service):
+		if not self.service.getInputKeysFor(self):
 			self.runOnEmptyInputs = True
 		self.queryResult = None
 
@@ -236,7 +235,7 @@ class Form(FormMixin,
 	def renderHTTP(self, ctx):
 		if self.runOnEmptyInputs:
 			inevow.IRequest(ctx).args[formal.FORMS_KEY] = ["genForm"]
-		return grend.FormMixin.renderHTTP(self, ctx)
+		return FormMixin.renderHTTP(self, ctx)
 
 	def _realSubmitAction(self, ctx, form, data):
 		"""is a helper for submitAction that does the real work.

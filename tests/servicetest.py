@@ -195,8 +195,6 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 	# Tests for renderer-dependent selection and adaptation of db core 
 	# input fields.
 	
-	resources = [("table", tresc.csTestTable)]
-
 	def setUp(self):
 		testhelpers.VerboseTest.setUp(self)
 		self.service = testhelpers.getTestRD("cores").getById("cstest")
@@ -211,6 +209,19 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 			[(k.name, k.type) for k in self.service.getInputKeysFor("scs.xml")],
 			[('RA', 'double precision'), ('DEC', 'double precision'), 
 				('SR', 'real'), ("mag", "real")])
+
+
+class InputTableGenTest(testhelpers.VerboseTest):
+	def setUp(self):
+		testhelpers.VerboseTest.setUp(self)
+		self.service = testhelpers.getTestRD("cores").getById("cstest")
+
+	def testDefaulting(self):
+		it = self.service._makeInputTableFor("form", {
+				"hscs_pos": "Aldebaran", "hscs_sr": 0.25})
+		self.assertEqual(it.getParamDict(), {
+			u'rv': u'-100 .. 100', u'hscs_sr': 0.25, u'mag': None, 
+			u'hscs_pos': u'Aldebaran'})
 
 
 if __name__=="__main__":

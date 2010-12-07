@@ -45,7 +45,10 @@ class DataFeeder(table.Feeder):
 					feeder.add(makeRow(srcRow))
 				except rscdef.IgnoreThisRow, msg:
 					pass
-			adders.append(addRow)
+			if make.rowSource=="parameters":
+				parAdders.append(addRow)
+			else:
+				adders.append(addRow)
 			feeders.append(feeder)
 		return adders, parAdders, feeders
 

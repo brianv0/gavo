@@ -87,7 +87,7 @@ class RendExplainer(object):
 
 		def generateArguments():
 			# Slightly obfuscated -- I need to get ", " in between the items.
-			fieldIter = iter(svcs.getRenderer("soap").getInputFields(service))
+			fieldIter = iter(service.getInputKeysFor("soap"))
 			try:
 				next = fieldIter.next()
 				while True:
@@ -231,7 +231,7 @@ class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 			for note in sorted(self.footnotes, key=lambda n: n.tag)]]
 
 	def data_inputFields(self, ctx, data):
-		res = [f.asInfoDict() for f in self.service.getInputFields()+
+		res = [f.asInfoDict() for f in self.service.getInputKeysFor("form")+
 				self.service.serviceKeys]
 		res.sort(key=lambda val: val["name"].lower())
 		return res

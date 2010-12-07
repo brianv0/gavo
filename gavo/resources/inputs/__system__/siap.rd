@@ -321,7 +321,7 @@
 							return ""
 						elif fmt=="GRAPHIC":
 							return "mime IN %%(%s)s"%base.getSQLKey("format", 
-								base.getConfig("graphicMimes"), sqlPars)
+								base.getConfig("web", "graphicMimes"), sqlPars)
 						else:
 							return "mime=%%(%s)s"%base.getSQLKey(
 								"format", fmt, sqlPars)
@@ -373,18 +373,18 @@
 		</inputKey>
 	</condDesc>
 
-	<condDesc id="protoInput">
-		<inputKey original="base_POS">
+	<condDesc id="protoInput" required="True">
+		<inputKey original="base_POS" required="True">
 			<property name="onlyForRenderer">siap.xml</property>
 		</inputKey>
-		<inputKey original="base_SIZE">
+		<inputKey original="base_SIZE" required="True">
 			<property name="onlyForRenderer">siap.xml</property>
 		</inputKey>
-		<inputKey original="base_INTERSECT">
-			<property name="onlyForRenderer">siap.xml</property>
+		<inputKey original="base_INTERSECT"
+			>OVERLAPS<property name="onlyForRenderer">siap.xml</property>
 		</inputKey>
-		<inputKey original="base_FORMAT">
-			<property name="onlyForRenderer">siap.xml</property>
+		<inputKey original="base_FORMAT"
+			>GRAPHIC<property name="onlyForRenderer">siap.xml</property>
 		</inputKey>
 		<phraseMaker>
 			<setup original="baseSetup"/>

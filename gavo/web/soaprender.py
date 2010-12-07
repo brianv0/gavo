@@ -78,7 +78,7 @@ class SOAPRenderer(grend.ServiceBasedRenderer):
 		argument tuple as given from SOAP.
 		"""
 		inputPars = dict(zip(
-			[f.name for f in self.getInputFields(self.service)],
+			[f.name for f in self.service.getInputKeysFor(self)],
 			args))
 		return self.runServiceWithContext(inputPars, ctx)
 

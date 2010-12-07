@@ -192,7 +192,7 @@ def makeMessagesForService(service):
 				f.type))[
 					WSDL.documentation[f.description],
 					WSDL.documentation[f.unit]]
-				for f in svcs.getRenderer("soap").getInputFields(service)]],
+				for f in service.getInputKeysFor("soap")]],
 		WSDL.message(name="srvOutput")[
 			WSDL.part(name="srvOutput", type="tns:outList")]]
 
@@ -201,7 +201,7 @@ def makePortTypeForService(service):
 	"""returns stanxml for a port type named serviceSOAP.
 	"""
 	parameterOrder = " ".join([f.name 
-		for f in svcs.getRenderer("soap").getInputFields(service)])
+		for f in service.getInputKeysFor("soap")])
 	return WSDL.portType(name="serviceSOAP")[
 		WSDL.operation(name="useService", parameterOrder=parameterOrder) [
 			WSDL.input(name="inPars", message="tns:srvInput"),

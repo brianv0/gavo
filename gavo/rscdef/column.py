@@ -454,7 +454,14 @@ class ParamBase(Column):
 	_valueCache = base.Undefined
 
 	def __repr__(self):
-		return "<Param %s=%s>"%(self.name, repr(self.content_))
+		return "<%s %s=%s>"%(self.__class__.__name__, 
+			self.name, repr(self.content_))
+
+	def onElementComplete(self):
+		self._onElementCompleteNext(ParamBase)
+		if self.content_ is base.NotGiven:
+			if self.values and self.values.default:
+				self.set(self.values.default)
 
 	@property
 	def value(self):
@@ -495,18 +502,18 @@ class ParamBase(Column):
 		"""returns a string representation of value appropriate for this
 		type.
 
-		This is currently pretty half-assed: Empty strings for None,
-		str(value) otherwise, and for extreme cases the possibility
-		to define an asParseableLiteral method.
+		Actually, for certain types only handled internally (like file or raw),
+		this is not a string representation at all but just the python stuff.
 
-		This stinks.  We really want the inverse of sqltypeToPythonCode.
+		Plus, right now, for sequences we're not doing anything.  We probably
+		should.
 		"""
+		if isinstance(value, (list, tuple)):
+			return value
 		if value is None:
 			return ""
-		elif hasattr(value, "asParseableLiteral"):
-			return value.asParseableLiteral()
 		else:
-			return str(value)
+			return base.pythonToLiteral(self.type)(value)
 
 
 class Param(ParamBase):

@@ -141,9 +141,13 @@ class BaseTable(base.MetaMixin):
 		if "params" in kwargs:
 			self.setParams(kwargs.pop("params"))
 
-	def setParams(self, parDict):
+	def setParams(self, parDict, raiseOnBadKeys=True):
 		for k, v in parDict.iteritems():
-			self.setParam(k, v)
+			try:
+				self.setParam(k, v)
+			except base.NotFoundError:
+				if raiseOnBadKeys:
+					raise
 
 	def setParam(self, parName, value):
 		"""sets a parameter to a value.
@@ -167,6 +171,9 @@ class BaseTable(base.MetaMixin):
 		The items returned are rscdef.Param instances.
 		"""
 		return self._params
+
+	def getParamDict(self):
+		return dict((p.name, p.value) for p in self.iterParams())
 
 	__iter__ = _makeFailIncomplete("__iter__")
 	__len__ = _makeFailIncomplete("__len__")

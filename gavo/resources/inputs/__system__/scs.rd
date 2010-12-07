@@ -210,19 +210,17 @@
 		</phraseMaker>
 	</condDesc>
 
-	<condDesc id="protoInput">
+	<condDesc id="protoInput" required="True">
 		<inputKey name="RA" type="double precision" unit="deg" ucd="pos.eq.ra"
-			description="Right Ascension (ICRS decimal)" tablehead="Alpha (ICRS)"
-			required="True">
+			description="Right Ascension (ICRS decimal)" tablehead="Alpha (ICRS)">
 			<property name="onlyForRenderer">scs.xml</property>
 		</inputKey>
 		<inputKey name="DEC" type="double precision" unit="deg" ucd="pos.eq.dec"
-			description="Declination (ICRS decimal)" tablehead="Delta (ICRS)"
-			required="True">
+			description="Declination (ICRS decimal)" tablehead="Delta (ICRS)">
 			<property name="onlyForRenderer">scs.xml</property>
 		</inputKey>
 		<inputKey name="SR" type="real" unit="deg" description="Search radius"
-			tablehead="Search Radiuis" required="True">
+			tablehead="Search Radiuis">
 			<property name="onlyForRenderer">scs.xml</property>
 		</inputKey>
 		<phraseMaker id="scsPhrase" name="scsSQL">

@@ -38,6 +38,7 @@ import numpy
 import re
 import time
 
+from gavo import utils
 from gavo.base import common
 
 class ConversionError(common.Error):
@@ -477,6 +478,35 @@ class ToPythonCodeConverter(FromSQLConverter):
 			return "%s"  # Anything sufficiently complex is python anyway :-)
 
 
+class ToLiteralConverter(object):
+	"""returns a function taking some python value and returning stuff that
+	can be parsed using ToPythonCodeConverter.
+	"""
+	typeSystem = "db"
+	simpleMap = {
+		"smallint": str,
+		"integer": str,
+		"bigint": str,
+		"real": str,
+		"boolean": str,
+		"double precision": str,
+		"text": str,
+		"char": str,
+		"date": lambda v: v.isoformat(),
+		"timestamp": lambda v: utils.formatISODT(v),
+		"time": lambda v: v.isoformat(),
+		"spoint": lambda v: "%f,%f"%(v.x/DEG, v.y/DEG),
+# XXX TODO Fix those
+#		"scircle": str,
+#		"spoly": str,
+#		"sbox": str,
+	}
+
+	def convert(self, type):
+		if type in self.simpleMap:
+			return self.simpleMap[type]
+		return utils.identity
+
 
 toVOTableConverter = ToVOTableConverter()
 sqltypeToVOTable = toVOTableConverter.convert
@@ -486,6 +516,7 @@ sqltypeToNumpy = ToNumpyConverter().convert
 sqltypeToPython = ToPythonConverter().convert
 sqltypeToPythonCode = ToPythonCodeConverter().convert
 voTableToSQLType = FromVOTableConverter().convert
+pythonToLiteral = ToLiteralConverter().convert
 
 
 def _test():
@@ -497,4 +528,4 @@ if __name__=="__main__":
 
 __all__ = ["sqltypeToVOTable", "sqltypeToXSD", "sqltypeToNumpy",
 	"sqltypeToPython", "sqltypeToPythonCode", "voTableToSQLType",
-	"ConversionError", "FromSQLConverter"]
+	"ConversionError", "FromSQLConverter", "pythonToLiteral"]

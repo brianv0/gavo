@@ -196,7 +196,7 @@ def getQuery(queriedTable, parameters, sqlPars, prefix="sia"):
 	try:
 		sizes = map(float, parameters["SIZE"].split(","))
 	except ValueError:
-		raise base.ui.raiseOldExc(base.ValidationError("Size specification"
+		raise base.ui.logOldExc(base.ValidationError("Size specification"
 			" has to be <degs> or <degs>,<degs>", "SIZE", parameters["SIZE"]))
 	if len(sizes)==1:
 		sizes = sizes*2
