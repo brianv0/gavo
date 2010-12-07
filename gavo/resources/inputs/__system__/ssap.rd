@@ -263,7 +263,7 @@
 			<par key="cdate" late="True" description="date the file was
 				created (or processed; optional)">None</par>
 			<par key="pdate" late="True" description="date the file was
-				last published (in gerneral, the default is fine)"
+				last published (in general, the default is fine)"
 				>datetime.datetime.utcnow()</par>
 			<par key="bandpass" late="True" description="bandpass (i.e., rough
 				spectral location) of this dataset">None</par>
@@ -372,18 +372,13 @@
 
 		<FEED source="//products#hackProductsData"/>
 		<events>
-			<FEED source="//ssap#hcd_fields"/>
-			<FEED source="//ssap#hcd_outpars"/>
+			<LFEED source="//ssap#hcd_fields"/>
+			<LFEED source="//ssap#hcd_outpars"/>
 		</events>
 	</mixinDef>
 
 
 	<STREAM id="ssa_prototype">
-		<condDesc id="requestCond" silent="True">
-			<inputKey name="REQUEST" type="text" description="Type of operation
-				as per SSAP standard"/>
-		</condDesc>
-
 		<condDesc id="coneCond">
 			<inputKey name="POS" type="text" description="ICRS position of target
 				object" unit="deg,deg"/>
@@ -477,6 +472,63 @@
 							sel, outPars))
 				</code>
 			</phraseMaker>
+		</condDesc>
+
+		<condDesc id="MTIMEcond">
+			<inputKey name="MTIME" type="text" description="Datetime last changed"/>
+			<phraseMaker>
+				<code>
+					key = inputKeys[0].key
+					res = pql.PQLDatePar.fromLiteral(inPars.get(key),  key)
+					if ranges:
+						yield res.getSQL("pdate", sqlPars)
+				</code>
+			</phraseMaker>
+		</condDesc>
+
+		<!-- 
+			The following ssa keys make no sense for hcd tables since they
+		  are constant by definition:
+			SPECRP, SPATRES, TIMERES, FLUXCALIB, WAVECALIB, COLLECTION
+
+			The following ssa keys cannot be generically supported since 
+			no SSA model column corresponds to them:
+			VARAMPL
+		<LOOP>
+			<csvItems>
+				keyName,      matchCol,      procDef
+				APERTURE,     ssa_aperture,  //pql#floatParameter
+				SNR,          ssa_snr,       //pql#floatParameter
+				REDSHIFT,     ssa_redshift,  //pql#floatParameter
+				TARGETNAME,   ssa_targname,  //pql#stringParameter
+				TARGETCLASS,  ssa_targclass, //pql#stringParameter
+				PUBDID,       ssa_pubDID,    //pql#stringParameter
+				CREATORDID,   ssa_creatorDID,//pql#stringParameter
+			</csvItems>
+			<events>
+				<condDesc id="\keyName\+_cond">
+					<inputKey original="\matchCol" name="\keyName"/>
+					<phraseMaker procDef="\procDef">
+						<bind name="consCol">"\matchCol"</bind>
+					</phraseMaker>
+				</condDesc>
+			</events>
+		</LOOP>
+		-->
+
+		<condDesc combining="True">
+			<!-- meta keys not (directly) entering the query -->
+			<inputKey name="REQUEST" type="text" description="Type of operation
+				as per SSAP standard"/>
+			<inputKey name="TOP" type="integer" tablehead="#Best"
+				description='Only return the TOP "best" records'/>
+			<inputKey name="MAXREC" type="integer" tablehead="Limit"
+				description="Do not return more than MAXREC records">5000</inputKey>
+			<inputKey name="COMPRESS" type="boolean" tablehead="Compress?"
+				description="Return compressed results?">True</inputKey>
+			<inputKey name="RUNID" type="text" tablehead="Run id"
+				description="An identifier for a certain run.  Opaque to the service"/>
+			<phraseMaker/> <!-- done by the core code for these -->
 		</condDesc>
 	</STREAM>
 

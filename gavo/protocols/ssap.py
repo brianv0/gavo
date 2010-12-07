@@ -26,9 +26,16 @@ class SSAPCore(svcs.DBCore):
 		svcs.DBCore.__init__(self, parent, **kwargs)
 		rd = getRD()
 		self.feedFrom(rd.getById("ssa_prototype"))
-		
+	
 	def run(self, service, inputTable, queryMeta):
 		if inputTable.getParam("REQUEST")!="queryData":
 			raise base.ValidationError("Only queryData operation supported so"
 				" far for SSAP.", "REQUEST")
+		limits = [q for q in 
+				(inputTable.getParam("MAXREC"), inputTable.getParam("TOP"))
+			if q]
+		if not limits:
+			limits = [base.getConfig("ivoa", "dalDefaultLimit")]
+		limit = min(min(limits), base.getConfig("ivoa", "dalHardLimit"))
+		queryMeta["dbLimit"] = limit
 		return svcs.DBCore.run(self, service, inputTable, queryMeta)

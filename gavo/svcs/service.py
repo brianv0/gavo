@@ -695,7 +695,12 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				# check "None" to avoid clobbering defaults (querying for NULLs
 				# is a difficult matter anyway)
 				if par.name in contextData and contextData[par.name] is not None:
-					par.set(contextData[par.name])
+					try:
+						par.set(contextData[par.name])
+						_ = par.value  # validate input
+					except ValueError, ex:
+						raise base.ui.logOldExc(base.ValidationError(unicode(ex),
+							par.name))
 				if par.required and par.value is None:
 					missingRequired.append(par.name)
 			if missingRequired:

@@ -211,7 +211,7 @@ class Make(base.Structure, scripting.ScriptingMixin):
 
 	def __repr__(self):
 		return "Make(table=%r, rowmaker=%r)"%(
-			self.table.id, self.rowmaker.id)
+			self.table and self.table.id, self.rowmaker and self.rowmaker.id)
 
 	def onParentComplete(self):
 		if self.rowmaker is base.NotGiven:

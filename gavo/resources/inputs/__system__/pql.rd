@@ -51,4 +51,33 @@
 		</code>
 	</procDef>
 
+	<procDef id="floatParameter">
+		<setup>
+			<par name="consCol" description="Name of the database column
+				constrained by the input value."/>
+		</setup>
+
+		<code>
+			key = inputKeys[0].name
+			parsed = pql.PQLFloat.fromLiteral(inPars.get(key, None), key)
+			if parsed is not None:
+				yield parsed.getSQL(consCol, outPars)
+		</code>
+	</procDef>
+
+	<procDef id="stringParameter">
+		<setup>
+			<par name="consCol" description="Name of the database column
+				constrained by the input value."/>
+		</setup>
+
+		<code>
+			key = inputKeys[0].name
+			parsed = pql.PQLPar.fromLiteral(inPars.get(key, None), key)
+			if parsed is not None:
+				yield parsed.getSQL(consCol, outPars)
+		</code>
+	</procDef>
+
+
 </resource>

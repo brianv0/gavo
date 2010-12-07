@@ -219,11 +219,19 @@ class InputTableGenTest(testhelpers.VerboseTest):
 
 	def testDefaulting(self):
 		it = self.service._makeInputTableFor("form", {
-				"hscs_pos": "Aldebaran", "hscs_sr": 0.25})
+				"hscs_pos": "Aldebaran", "hscs_sr": "0.25"})
 		self.assertEqual(it.getParamDict(), {
 			u'rv': u'-100 .. 100', u'hscs_sr': 0.25, u'mag': None, 
 			u'hscs_pos': u'Aldebaran'})
 
+	def testInvalidLiteral(self):
+		try:
+			it = self.service._makeInputTableFor("form", {
+				"hscs_pos": "Aldebaran", "hscs_sr": "a23"})
+		except base.ValidationError, ex:
+			self.assertEqual(ex.colName, "hscs_sr")
+			return
+		raise AssertionError("ValidationError not raised")
 
 if __name__=="__main__":
 	testhelpers.main(InputFieldSelectionTest)

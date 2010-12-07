@@ -122,6 +122,11 @@ class CondDesc(base.Structure):
 	_phraseMaker = base.StructAttribute("phraseMaker", default=None,
 		description="Code to generate custom SQL from the input keys", 
 		childFactory=PhraseMaker, copyable=True)
+	_combining = base.BooleanAttribute("combining", default="False",
+		description="Allow some input keys to be missing when others are given?"
+			" (you want this for pseudo-condDescs just collecting random input"
+			" keys)",   # (and I wish I had a better idea)
+		copyable="True")
 	_original = base.OriginalAttribute()
 	
 	def __init__(self, parent, **kwargs):
@@ -220,10 +225,11 @@ class CondDesc(base.Structure):
 			raise base.ValidationError("A value is necessary here", 
 				colName=keysMissing[0].name)
 		# we're optional, but a value was given and others are missing
-		raise base.ValidationError("When you give a value for %s,"
-			" you must give value(s) for %s, too"%(keysFound[0].tablehead, 
-					", ".join(k.name for k in keysMissing)),
-				colName=keysMissing[0].name)
+		if not self.combining:
+			raise base.ValidationError("When you give a value for %s,"
+				" you must give value(s) for %s, too"%(keysFound[0].tablehead, 
+						", ".join(k.name for k in keysMissing)),
+					colName=keysMissing[0].name)
 
 	def asSQL(self, inPars, sqlPars, queryMeta):
 		if self.silent or not self.inputReceived(inPars, queryMeta):

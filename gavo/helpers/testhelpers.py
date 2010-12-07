@@ -334,13 +334,21 @@ def main(testClass, methodPrefix=None):
 		testClass = inspect.stack()[1][0].f_globals[className]
 
 	# one arg: test method prefix
-	if len(sys.argv)>1:
-		suite = unittest.makeSuite(testClass, methodPrefix or sys.argv[-1],
-			suiteClass=testresources.OptimisingTestSuite)
-		runner = unittest.TextTestRunner()
-		runner.run(suite)
-	else:
-		unittest.main()
+	try:
+		if len(sys.argv)>1:
+			suite = unittest.makeSuite(testClass, methodPrefix or sys.argv[-1],
+				suiteClass=testresources.OptimisingTestSuite)
+			runner = unittest.TextTestRunner()
+			runner.run(suite)
+		else:
+			unittest.main()
+	except (SystemExit, KeyboardInterrupt):
+		raise
+	except:
+		base.showHints = True
+		from gavo.user import errhandle
+		traceback.print_exc()
+		errhandle.raiseAndCatch(base)
 
 
 try:

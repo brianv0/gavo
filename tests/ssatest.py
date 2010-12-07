@@ -113,6 +113,13 @@ class CoreResultTest(_WithSSATableTest):
 	]
 
 
+class MetaKeyTest(_WithSSATableTest):
+	def testTOP(self):
+		res = getRD().getById("s").runFromDict(
+			{"REQUEST": "queryData", "TOP": 1}, "dal.xml")
+		self.assertEqual(len(res.original.getPrimaryTable()), 1)
+
+
 class CoreFailuresTest(_WithSSATableTest):
 	def setUp(self):
 		_WithSSATableTest.setUp(self)
@@ -128,4 +135,4 @@ class CoreFailuresTest(_WithSSATableTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(CoreResultTest)
+	testhelpers.main(MetaKeyTest)

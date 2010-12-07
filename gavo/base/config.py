@@ -432,7 +432,9 @@ _config = Configuration(
 			"ivo://org.gavo.dc/__system__/services/registry", "The IVOA"
 				"id for this DC's registry"),
 		IntConfigItem("dalDefaultLimit", "10000",
-			"Default match limit on DAL queries"),),
+			"Default match limit on DAL queries"),
+		IntConfigItem("dalHardLimit", "10000000",
+			"Hard match limit on DAL queries"),),
 )
 
 try:

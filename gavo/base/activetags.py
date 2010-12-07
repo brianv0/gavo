@@ -19,6 +19,27 @@ from gavo.base import parsecontext
 from gavo.base import structure
 
 
+# the following is a sentinel for values that have been expanded
+# by an active tag already.  When active tags are nested, only the
+# innermost must expand macros so one can be sure that double-escaped
+# macros actually end up at the top level.  _EXPANDED_VALUE must
+# compare true to value since it is used as such in event triples.
+class _ExValueType(object):
+	def __str__(self):
+		return "value"
+
+	def __repr__(self):
+		return "'value/expanded'"
+
+	def __eq__(self, other):
+		return other=="value"
+
+	def __ne__(self, other):
+		return not other=="value"
+
+_EXPANDED_VALUE =_ExValueType()
+
+
 class ActiveTag(structure.Structure):
 	"""The base class for active tags.
 	"""
@@ -84,6 +105,14 @@ class RecordingBase(ActiveTag):
 		self.events = []
 		self.tagStack = []
 		ActiveTag.__init__(self, *args, **kwargs)
+
+	def feedEvent(self, ctx, type, name, value):
+		# keep _EXPANDED_VALUE rather than "value"
+		if type is _EXPANDED_VALUE:
+			self.events.append((_EXPANDED_VALUE, name, value, ctx.pos))
+			return self
+		else:
+			return ActiveTag.feedEvent(self, ctx, type, name, value)
 
 	def start_(self, ctx, name, value):
 		if name in self.managedAttrs and not self.tagStack:
@@ -171,6 +200,7 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 	"""An "abstract base" for active tags replaying streams.
 	"""
 	name_ = None  # not a usable active tag
+	_expandMacros = True
 
 	_source = parsecontext.ReferenceAttribute("source",
 		description="id of a stream to replay", default=None)
@@ -187,7 +217,7 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 			for edit in self.edits:
 				self.editsDict[edit.triggerEl, edit.triggerId] = edit
 
-	def _replayTo(self, events, evTarget, ctx, doExpansions):
+	def _replayTo(self, events, evTarget, ctx):
 		"""pushes stored events into an event processor.
 
 		The public interface is replay (that receives a structure rather
@@ -196,7 +226,10 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 		idStack = []
 		
 		for type, name, val, pos in events:
-			if doExpansions and type=="value" and "\\" in val:
+			if (self._expandMacros
+					and type=="value" 
+					and type is not _EXPANDED_VALUE 
+					and "\\" in val):
 				try:
 					val = self.expand(val)
 				except macros.MacroError, ex:
@@ -206,6 +239,7 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 							ex.macroName,
 							getattr(self.source, "id", "<embedded>")))
 					raise
+				type = _EXPANDED_VALUE
 
 			# the following mess is to notice when we should edit and
 			# replay EDIT content when necessary
@@ -220,7 +254,7 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 					if (name, foundId) in self.editsDict:
 						self._replayTo(self.editsDict[name, foundId].events,
 							evTarget,
-							ctx, doExpansions)
+							ctx)
 
 			try:
 				evTarget.feed(type, name, val)
@@ -232,11 +266,9 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 	def replay(self, events, destination, ctx):
 		"""pushes the stored events into the destination structure.
 
-		While doing this, local macros are expanded.  There is a hack, though,
-		in that we must not expand if we're (going to be) fed into anyother 
-		replayer, since multiple expansions would foul up macros intended for 
-		the element being played into.  Thus, we check if we have an active
-		parent and suppress macro expansion if so.
+		While doing this, local macros are expanded unless we already
+		receive the events from an active tag (e.g., nested streams
+		and such).
 		"""
 		# XXX TODO: Circular import here.  Think again and resolve.
 		from gavo.base.xmlstruct import EventProcessor
@@ -244,8 +276,7 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 		evTarget.setRoot(destination)
 
 		self._ensureEditsDict()
-		doExpansions = not self._hasActiveParent()
-		self._replayTo(events, evTarget, ctx, doExpansions)
+		self._replayTo(events, evTarget, ctx)
 
 
 class DelayedReplayBase(ReplayBase, GhostMixin):
@@ -304,6 +335,16 @@ class ReplayedEvents(DelayedReplayBase):
 			setattr(self, "macro_"+name.strip(), m)
 			self.managedAttrs[name] = attrdef.UnicodeAttribute(name)
 			return self.managedAttrs[name]
+
+
+class NonExpandedReplayedEvents(ReplayedEvents):
+	"""A ReplayedEventStream that does not expand active tag macros.
+
+	You only want this when embedding a stream into another stream
+	that could want to expand the embedded macros.
+	"""
+	name_ = "LFEED"
+	_expandMacros = False
 
 
 class GeneratorAttribute(attrdef.UnicodeAttribute):

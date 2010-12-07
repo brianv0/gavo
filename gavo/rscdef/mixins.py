@@ -198,7 +198,6 @@ class _MixinParser(base.Parser):
 			return self.parent
 
 
-
 class MixinAttribute(base.SetOfAtomsAttribute):
 	"""An attribute defining a mixin.
 

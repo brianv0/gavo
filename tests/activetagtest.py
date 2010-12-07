@@ -110,6 +110,32 @@ class NestedTest(testhelpers.VerboseTest):
 		self.assertEqual(res.tables[0].indexedColumns.pop(), 
 			"test.abc")
 
+	def testInnermostExpansion(self):
+		res = base.parseFromString(rscdesc.RD, 
+			r"""<resource schema="test"><STREAM id="cols">
+					<column name="\innercol"/>
+					<index columns="\\curtable"/></STREAM>
+				<STREAM id="foo">
+					<table id="\tabname" onDisk="True">
+					<FEED source="cols" innercol="whoppa"/>
+					<column name="from1"/></table></STREAM>
+				<FEED source="foo" tabname="abc"/></resource>""")
+		td = res.tables[0]
+		self.assertEqual(td.id, "abc")
+		self.assertEqual(", ".join(c.name for c in td), "whoppa, from1")
+		self.assertEqual(res.tables[0].indexedColumns.pop(), 
+			"test.abc")
+
+
+	def testLoopReplay(self):
+		res = base.parseFromString(rscdesc.RD, 
+			r"""<resource schema="test"><STREAM id="cols">
+					<LOOP listItems="x y">
+					<events><column name="\item"/></events></LOOP></STREAM>
+				<table id="foo"><FEED source="cols"/></table></resource>""")
+		self.assertEqual([c.name for c in res.tables[0]],
+			['x', 'y'])
+
 
 class EditTest(testhelpers.VerboseTest):
 	def testProd(self):
@@ -330,7 +356,22 @@ class MixinTest(testhelpers.VerboseTest):
 				<param name="u">\aa</param></events></mixinDef>
 				<table mixin="bla"/></resource>""")
 			self.assertEqual(res.tables[0].params[0].value, None)
-		
+	
+	def testNestedFeeds(self):
+		res = base.parseFromString(rscdesc.RD,
+			r"""<resource schema="test">
+			<STREAM id="field">
+				<param name="u">\uVal</param>
+			</STREAM>
+			<mixinDef id="bla">
+				<mixinPar key="uVal"/>
+				<events>
+					<LFEED source="field"/>
+				</events>
+			</mixinDef>
+			<table><mixin uVal="5">bla</mixin></table>
+			</resource>""")
+		self.assertEqual(res.tables[0].params[0].value, 5.)
 
 if __name__=="__main__":
-	testhelpers.main(MixinTest)
+	testhelpers.main(NestedTest)

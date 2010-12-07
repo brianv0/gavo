@@ -317,7 +317,6 @@ class PQLDatePar(PQLPar):
 		return datetime.timedelta(days=float(val))
 
 
-
 class PQLPositionPar(PQLPar):
 	"""a PQL position parameter, as for SSA.
 
