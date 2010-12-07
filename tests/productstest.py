@@ -34,7 +34,7 @@ class ProductCoreTest(testhelpers.VerboseTest):
 	def testNormal(self):
 		"""tests for resolution of "normal" products.
 		"""
-		res = self.service.runFromDict({"key": "data/b.imp"})
+		res = self.service.runFromDict({"accref": "data/b.imp"}, "get")
 		self._assertMatchedProducts(products.PlainProduct,
 			[('data/b.imp', 'text/plain')],
 			res.original.getPrimaryTable().rows)
@@ -42,7 +42,7 @@ class ProductCoreTest(testhelpers.VerboseTest):
 	def testRestrictedAnonymous(self):
 		"""tests for resolution of restricted products for an anonymous user.
 		"""
-		res = self.service.runFromDict({"key": "data/a.imp"})
+		res = self.service.runFromDict({"accref": "data/a.imp"})
 		self._assertMatchedProducts(products.UnauthorizedProduct,
 			[('data/a.imp', 'text/plain')],
 			res.original.getPrimaryTable().rows)
@@ -52,7 +52,7 @@ class ProductCoreTest(testhelpers.VerboseTest):
 		"""
 		qm = svcs.QueryMeta()
 		qm["user"], qm["password"] = "X_test", "megapass"
-		res = self.service.runFromDict({"key": "data/a.imp"}, queryMeta=qm)
+		res = self.service.runFromDict({"accref": "data/a.imp"}, queryMeta=qm)
 		self._assertMatchedProducts(products.PlainProduct,
 			[('data/a.imp', 'text/plain')],
 			res.original.getPrimaryTable().rows)
@@ -67,7 +67,7 @@ class ProductCoreTest(testhelpers.VerboseTest):
 		"""
 		qm = svcs.QueryMeta()
 		qm["user"], qm["password"] = "test", "wrong"
-		res = self.service.runFromDict({"key": "data/a.imp"}, queryMeta=qm)
+		res = self.service.runFromDict({"accref": "data/a.imp"}, queryMeta=qm)
 		self._assertMatchedProducts(products.UnauthorizedProduct,
 			[('data/a.imp', 'text/plain')],
 			res.original.getPrimaryTable().rows)
@@ -77,7 +77,7 @@ class ProductCoreTest(testhelpers.VerboseTest):
 		"""
 		qm = svcs.QueryMeta()
 		qm["user"], qm["password"] = "Y_test", "megapass"
-		res = self.service.runFromDict({"key": "data/a.imp"}, queryMeta=qm)
+		res = self.service.runFromDict({"accref": "data/a.imp"}, queryMeta=qm)
 		self._assertMatchedProducts(products.UnauthorizedProduct,
 			[('data/a.imp', 'text/plain')],
 			res.original.getPrimaryTable().rows)

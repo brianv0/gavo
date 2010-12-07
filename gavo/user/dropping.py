@@ -41,4 +41,3 @@ def main():
 
 	opts, args = parseCmdline()
 	drop(opts, args[0])
-

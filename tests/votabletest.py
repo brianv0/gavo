@@ -354,11 +354,13 @@ class STCEmbedTest(testhelpers.VerboseTest):
 	def testMultiTables(self):
 		# twice the same table -- this is mainly for id mapping
 		table = _getTableWithSimpleSTC()
-		dd = base.makeStruct(rscdef.DataDescriptor, tables=[
-			table.tableDef, table.tableDef], parent_=table.tableDef.rd)
-		tdCopy = table.tableDef.copy(dd)
+		tdCopy = table.tableDef.copy(None)
 		tdCopy.id = "copy"
 		tableCopy = rsc.TableForDef(tdCopy)
+		dd = base.makeStruct(rscdef.DataDescriptor, makes=[
+			base.makeStruct(rscdef.Make, table=table.tableDef),
+			base.makeStruct(rscdef.Make, table=tdCopy)], 
+			parent_=table.tableDef.rd)
 		data = rsc.Data(dd, tables={table.tableDef.id: table,
 			"copy": tableCopy})
 		serialized = votablewrite.getAsVOTable(data)

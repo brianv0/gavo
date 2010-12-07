@@ -186,7 +186,7 @@ class ProductTarMaker(object):
 		for row in table:
 			for colName in productColumns:
 				inputTableRows.append({"accref": row[colName]})
-		inputTable = rsc.TableForDef(self.rd.getById("pCoreInput"), 
+		inputTable = rsc.TableForDef(self.rd.getById("forTar").inputTable, 
 			rows=inputTableRows)
 
 		prods = self.core.run(coreResult.service, inputTable, queryMeta)

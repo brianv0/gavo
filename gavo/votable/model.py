@@ -322,6 +322,7 @@ class VOTable(object):
 		_a_version = "1.2"
 		_prefix = "vot"
 		_supressedPrefix = "vot"
+		_mayBeEmpty = True
 		# The following is for when the xmlstan tree is processed by 
 		# tablewriter.write rather than asETree
 		_fixedTagMaterial = ('xmlns="%s" xmlns:xsi="%s"'

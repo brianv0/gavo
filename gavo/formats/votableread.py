@@ -160,16 +160,20 @@ def makeDDForVOTable(tableId, vot, gunzip=False, **moreArgs):
 	Only the first resource  will be turned into a DD.  Currently,
 	only the first table is used.  This probably has to change.
 	"""
+	tableDefs = []
 	for res in vot.iterChildrenOfType(V.RESOURCE):
-		tableDefs = []
 		for table in res.iterChildrenOfType(V.TABLE):
 			tableDefs.append(
 				makeTableDefForVOTable(tableId, table, **moreArgs))
 			break
 		break
+	if tableDefs:
+		makes = [MS(rscdef.Make, table=tableDefs[0])]
+	else:
+		makes = []
 	return MS(rscdef.DataDescriptor,
 		grammar=MS(votablegrammar.VOTableGrammar, gunzip=gunzip),
-		makes=[MS(rscdef.Make, table=tableDefs[0])])
+		makes=makes)
 
 
 _xtypeParsers = {

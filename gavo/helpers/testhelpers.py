@@ -223,8 +223,10 @@ class VerboseTest(testresources.ResourcedTestCase):
 			else:
 				self.failUnless(expectedStderr(err))
 		except AssertionError:
-			with open("output.stderr", "w") as f:
+			with open("output.stdout", "w") as f:
 				f.write(out)
+			with open("output.stderr", "w") as f:
+				f.write(err)
 			raise
 
 		try:
@@ -324,8 +326,14 @@ def main(testClass, methodPrefix=None):
 	base.DEBUG = True
 	from gavo.user import logui
 	logui.LoggingUI(base.ui)
+
+	# two args: first one is class name, locate it in caller's globals
+	# and ignore anything before any dot for cut'n'paste convenience
 	if len(sys.argv)>2:
-		testClass = inspect.stack()[1][0].f_globals[sys.argv[-2]]
+		className = sys.argv[-2].split(".")[-1]
+		testClass = inspect.stack()[1][0].f_globals[className]
+
+	# one arg: test method prefix
 	if len(sys.argv)>1:
 		suite = unittest.makeSuite(testClass, methodPrefix or sys.argv[-1],
 			suiteClass=testresources.OptimisingTestSuite)

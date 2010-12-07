@@ -131,7 +131,7 @@ class WrapTest(testhelpers.VerboseTest):
 		self.assertEqual(len(data.tables), 1)
 		self.assertEqual(str(data.getMeta("test.inRd")), "from Rd")
 	
-	def testWithoutRd(self):
+	def testWithRdSource(self):
 		origTable = rsc.TableForDef(
 			testhelpers.getTestRD().getById("typestable").change(onDisk=False))
 		newTD = rscdef.makeTDForColumns(

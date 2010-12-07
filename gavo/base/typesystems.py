@@ -495,7 +495,7 @@ class ToLiteralConverter(object):
 		"date": lambda v: v.isoformat(),
 		"timestamp": lambda v: utils.formatISODT(v),
 		"time": lambda v: v.isoformat(),
-		"spoint": lambda v: "%f,%f"%(v.x/DEG, v.y/DEG),
+		"spoint": lambda v: "%f,%f"%(v.x/utils.DEG, v.y/utils.DEG),
 # XXX TODO Fix those
 #		"scircle": str,
 #		"spoly": str,

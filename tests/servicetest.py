@@ -202,13 +202,14 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 	def testForm(self):
 		self.assertEqual(
 			[(k.name, k.type) for k in self.service.getInputKeysFor("form")],
-			[("hscs_pos", "text"), ("hscs_sr", "real"), ("mag", "vexpr-float")])
+			[("hscs_pos", "text"), ("hscs_sr", "real"), ("mag", "vexpr-float"),
+				('rv', 'vexpr-float')])
 
 	def testSCS(self):
 		self.assertEqual(
 			[(k.name, k.type) for k in self.service.getInputKeysFor("scs.xml")],
 			[('RA', 'double precision'), ('DEC', 'double precision'), 
-				('SR', 'real'), ("mag", "real")])
+				('SR', 'real'), ("mag", "real"), (u'rv', u'vexpr-float')])
 
 
 class InputTableGenTest(testhelpers.VerboseTest):

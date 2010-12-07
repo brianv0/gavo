@@ -14,6 +14,9 @@ from gavo.rsc import table
 from gavo.rsc import tables
 
 
+MS = base.makeStruct
+
+
 class DataFeeder(table.Feeder):
 	"""is a feeder for data.
 
@@ -109,11 +112,12 @@ class Data(base.MetaMixin):
 	def drop(cls, dd, parseOptions=common.parseNonValidating, connection=None):
 		"""drops all tables made by dd if necessary.
 		"""
+		controlledTables = {}
 		for make in dd.makes:
 			controlledTables[make.table.id
 				] = tables.TableForDef(make.table, create=False, connection=connection)
-			data = cls(dd, controlledTables, parseOptions)
-			data.dropTables()
+		data = cls(dd, controlledTables, parseOptions)
+		data.dropTables()
 
 	def dropTables(self):
 		for t in self:
@@ -348,8 +352,10 @@ def wrapTable(table, rdSource=None):
 		rd = rdSource.rd
 	else:
 		raise TypeError("Invalid RD source: %s"%rdSource)
-	newDD = base.makeStruct(rscdef.DataDescriptor, tables=[table.tableDef],
-		parent_=rd)
+	newDD = MS(rscdef.DataDescriptor, makes=[
+		MS(rscdef.Make, table=table.tableDef, rowmaker=None)], parent_=rd)
+	if rdSource:
+		newDD.adopt(table.tableDef)
 	res = Data(newDD, tables={table.tableDef.id: table})
 	if not res.getMeta("_type", propagate=False, default=None):
 		res.setMeta("_type", "results")  # mostly for TAP

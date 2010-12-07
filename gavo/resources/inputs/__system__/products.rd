@@ -204,12 +204,9 @@ machinery -->
 
 	<productCore id="core" queriedTable="products">
 		<!-- core used for the product delivery service -->
-		<inputTable id="pCoreInput" namePath="products">
-			<meta name="description">Input table for the product core</meta>
-			<param original="accref" id="coreKey" type="raw"/>
-		</inputTable>
-
-		<condDesc buildFrom="coreKey"/>
+		<condDesc>
+			<inputKey original="accref" id="coreKey" type="raw"/>
+		</condDesc>
 
 		<outputTable id="pCoreOutput">
 			<column name="source" type="raw"
