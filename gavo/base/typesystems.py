@@ -469,6 +469,11 @@ class ToPythonCodeConverter(FromSQLConverter):
 		"vexpr-string": "%s",
 		"vexpr-float": "%s",
 		"vexpr-date": "%s",
+		"pql-string": "%s",
+		"pql-float": "%s",
+		"pql-int": "%s",
+		"pql-date": "%s",
+
 	}
 
 	def mapComplex(self, type, length):
@@ -482,7 +487,7 @@ class ToLiteralConverter(object):
 	"""returns a function taking some python value and returning stuff that
 	can be parsed using ToPythonCodeConverter.
 	"""
-	typeSystem = "db"
+	typeSystem = "literal"
 	simpleMap = {
 		"smallint": str,
 		"integer": str,

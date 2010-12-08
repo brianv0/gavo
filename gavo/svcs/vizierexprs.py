@@ -380,8 +380,8 @@ def _makeFactory(parser):
 			return parser(val).asSQL(field, sqlPars)
 		except ParseException:
 			raise base.ui.logOldExc(utils.ValidationError(
-				"Invalid input for type %s (see help for valid type literals)"(
-					field.type, field.name)))
+				"Invalid input for type %s (see help for valid type literals)"%
+					field.type, field.name))
 	return factory
 
 
@@ -420,6 +420,20 @@ class ToVexprConverter(typesystems.FromSQLConverter):
 			return "vexpr-string"
 
 getVexprFor = ToVexprConverter().convert
+
+
+def adaptInputKey(inputKey):
+	"""returns ik changed to generate SQL for Vizier-like expressions.
+
+	This is used for buildFrom on CondDescs and renderers having
+	parameterStyle form.
+	"""
+	try:
+		return inputKey.change(
+			type=getVexprFor(inputKey.type))
+	except base.ConversionError:  # No vexpr type, leave things
+		pass
+	return inputKey
 
 
 def _test():

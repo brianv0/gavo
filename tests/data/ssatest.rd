@@ -2,6 +2,7 @@
 	<table id="hcdtest" onDisk="True">
 		<mixin instrument="DaCHS test suite" fluxCalibration="UNCALIBRATED"
 			>//ssap#hcd</mixin>
+		<column name="excellence" type="integer" description="random number"/>
 	</table>
 
 	<table id="hcdouttest">
@@ -17,7 +18,7 @@
 			</rowfilter>
 		</keyValueGrammar>
 		<make table="hcdtest" role="primary">
-			<rowmaker>
+			<rowmaker idmaps="excellence">
 				<apply procDef="//ssap#setMeta">
 					<bind name="pubDID">"ivo://test.inv/"+@id</bind>
 					<LOOP listItems="dstitle specstart specend bandpass alpha delta
@@ -34,6 +35,8 @@
 
 
 	<service id="s">
-		<ssapCore queriedTable="hcdtest"/>
+		<ssapCore queriedTable="hcdtest">
+			<condDesc buildFrom="excellence"/>
+		</ssapCore>
 	</service>
 </resource>

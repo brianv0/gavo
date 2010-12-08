@@ -23,6 +23,8 @@ import urllib
 
 from gavo import base
 from gavo.base import literals
+from gavo.base import sqlmunge
+from gavo.base import typesystems
 from gavo.utils import DEG
 
 
@@ -358,5 +360,70 @@ class PQLFloatPar(PQLPar):
 			return "(%s)"%" OR ".join(
 				r.getSQLForInterval(lowerColName, upperColName, sqlPars) 
 					for r in self.ranges)
-	
 
+
+def _makeFactory(parType):
+	def factory(field, val, sqlPars):
+		try:
+			return parType.fromLiteral(val, field.name).getSQL(field.name, sqlPars)
+		except ValueError:
+			raise base.ui.logOldExc(utils.ValidationError(
+				"Invalid input for type %s"
+				" (valid PQL literals are described in the help)"%field.type, 
+				field.name))
+	return factory
+
+
+sqlmunge.registerSQLFactory("pql-int", _makeFactory(PQLIntPar))
+sqlmunge.registerSQLFactory("pql-float", _makeFactory(PQLFloatPar))
+sqlmunge.registerSQLFactory("pql-string", _makeFactory(PQLPar))
+sqlmunge.registerSQLFactory("pql-date", _makeFactory(PQLDatePar))
+
+
+class ToPQLTypeConverter(typesystems.FromSQLConverter):
+	typeSystem = "pqlexpr"
+	simpleMap = {
+		"smallint": "pql-int",
+		"integer": "pql-int",
+		"int": "pql-int",
+		"bigint": "pql-int",
+		"real": "pql-float",
+		"float": "pql-float",
+		"double precision": "pql-float",
+		"double": "pql-float",
+		"text": "pql-string",
+		"char": "pql-string",
+		"date": "pql-date",
+		"timestamp": "pql-date",
+		"pql-date": "pql-date",
+		"pql-float": "pql-float",
+		"pql-string": "pql-string",
+	}
+
+	def mapComplex(self, sqlType, length):
+		if sqlType=="char":
+			return "pql-string"
+		if sqlType=="varchar":
+			return "pql-string"
+
+getPQLTypeFor = ToPQLTypeConverter().convert
+
+
+def adaptInputKey(inputKey):
+	"""returns inputKey changed to generate SQL for PQL-like expressions.
+
+	This is used for buildFrom on CondDescs and renderers having
+	parameterStyle pql.
+	"""
+	try:
+		return inputKey.change(
+			type=getPQLTypeFor(inputKey.type))
+	except base.ConversionError:  # No vexpr type, leave things
+		pass
+	return inputKey
+
+
+# Make the whole thing available to procDefs and such
+import sys
+from gavo import rscdef
+rscdef.addProcDefObject("pql", sys.modules[__name__])

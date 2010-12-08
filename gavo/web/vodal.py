@@ -275,6 +275,7 @@ class UnifiedDALRenderer(DALRenderer):
 	for the other DAL2 protocols, too).
 	"""
 	name = "dal.xml"
+	parameterStyle = "pql"
 
 	def _formatOutput(self, data, ctx):
 		request = inevow.IRequest(ctx)

@@ -20,7 +20,6 @@ from gavo import stc
 from gavo import utils
 from gavo.base import coords, parseBooleanLiteral, parseInt, sqlmunge
 from gavo.base.literals import *
-from gavo.protocols import pql
 from gavo.stc import parseSimpleSTCS
 from gavo.utils import codetricks
 from gavo.utils import dmsToDeg, hmsToDeg
@@ -210,7 +209,7 @@ def parseWithNull(literal, baseParser, nullLiteral=base.Undefined,
 	return res
 
 
-def addRmkFunc(name, func): # XXX TODO: Rename to something like addProcDefFunc
+def addProcDefObject(name, func):
 	globals()[name] = func
 
 

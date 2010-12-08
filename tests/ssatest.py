@@ -117,6 +117,8 @@ class CoreQueries(_WithSSATableTest):
 		["test2", "test3"]),
 		({"PUBDID": "ivo:%2f%2ftest.inv%2ftest2"},
 		["test2"]),
+		({"excellence": "/100"},
+		["test2", "test3"]),
 	]
 
 
@@ -156,7 +158,11 @@ class CoreFailuresTest(_WithSSATableTest):
 
 	def testBadBandRejected(self):
 		self.assertRaises(api.ValidationError, self.service.runFromDict,
-			{"REQUEST": "queryData", "BAND": "1/2/0.4"})
+			{"REQUEST": "queryData", "BAND": "1/2/0.4"}, "dal.xml")
+
+	def testBadCustomInputRejected(self):
+		self.assertRaises(api.ValidationError, self.service.runFromDict,
+			{"REQUEST": "queryData", "excellence": "banana"}, "dal.xml")
 
 
 if __name__=="__main__":

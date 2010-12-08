@@ -391,7 +391,7 @@ def quoteProductKey(key):
 	if isinstance(key, CutoutProductKey):
 		return str(key)[4:]
 	return urllib.quote_plus(key.replace("+", "%2B"))
-rscdef.addRmkFunc("quoteProductKey", quoteProductKey)
+rscdef.addProcDefObject("quoteProductKey", quoteProductKey)
 
 
 @utils.document
@@ -402,7 +402,7 @@ def makeProductLink(key, withHost=True):
 	if withHost:
 		url = urlparse.urljoin(base.getConfig("web", "serverURL"), url)
 	return url
-rscdef.addRmkFunc("makeProductLink", makeProductLink)
+rscdef.addProcDefObject("makeProductLink", makeProductLink)
 
 
 # Sigh -- the whole value mapping business needs to be cleaned up.

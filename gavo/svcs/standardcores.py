@@ -18,10 +18,11 @@ from gavo import base
 from gavo import rsc
 from gavo import rscdef
 from gavo.base import sqlsupport
-from gavo.protocols import vizierexprs
 from gavo.svcs import core
 from gavo.svcs import inputdef
 from gavo.svcs import outputdef
+from gavo.svcs import pql
+from gavo.svcs import vizierexprs
 
 
 class Error(base.Error):
@@ -33,17 +34,10 @@ printQuery = False
 MS = base.makeStruct
 
 
-def _adaptForForm(inputKey):
-	"""returns inputKey "adapted" for the form renderer and similar
-	web-facing renderers.
-	"""
-	try:
-		return inputKey.change(
-			type=vizierexprs.getVexprFor(inputKey.type))
-	except base.ConversionError:  # No vexpr type, leave things
-		pass
-	return inputKey
-
+_RENDERER_ADAPTORS = {
+	'form': vizierexprs.adaptInputKey,
+	'pql': pql.adaptInputKey,
+}
 
 def getRendererAdaptor(renderer):
 	"""returns a function that returns input keys adapted for renderer.
@@ -51,9 +45,7 @@ def getRendererAdaptor(renderer):
 	The function returns None if no adapter is necessary.  This
 	only takes place for inputKeys within a buildFrom condDesc.
 	"""
-	if renderer.parameterStyle=="form":
-		return _adaptForForm
-	return None
+	return _RENDERER_ADAPTORS.get(renderer.parameterStyle)
 
 
 class PhraseMaker(rscdef.ProcApp):

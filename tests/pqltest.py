@@ -7,7 +7,7 @@ import datetime
 from gavo import api
 from gavo.base import literals
 from gavo.helpers import testhelpers
-from gavo.protocols import pql
+from gavo.svcs import pql
 from gavo.utils import pgsphere, DEG
 
 

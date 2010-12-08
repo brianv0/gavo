@@ -15,7 +15,7 @@ from gavo import rsc
 from gavo import rscdesc
 from gavo.protocols import products
 from gavo.helpers import testhelpers
-from gavo.protocols import vizierexprs
+from gavo.svcs import vizierexprs
 from gavo.svcs import inputdef
 
 import tresc
