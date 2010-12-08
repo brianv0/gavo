@@ -9,7 +9,6 @@ from __future__ import with_statement
 
 import cPickle as pickle
 import gc
-import inspect
 import os
 import popen2
 import re
@@ -331,17 +330,19 @@ def main(testClass, methodPrefix=None):
 	# and ignore anything before any dot for cut'n'paste convenience
 	if len(sys.argv)>2:
 		className = sys.argv[-2].split(".")[-1]
-		testClass = inspect.stack()[1][0].f_globals[className]
+		testClass = getattr(sys.modules["__main__"], className)
+	
+	# one arg: test method prefix on testClass
+	if len(sys.argv)>1:
+		suite = unittest.makeSuite(testClass, methodPrefix or sys.argv[-1],
+			suiteClass=testresources.OptimisingTestSuite)
+	else:  # Zero args, emulate unittest.run behaviour
+		suite = testresources.TestLoader().loadTestsFromModule(
+			sys.modules["__main__"])
 
-	# one arg: test method prefix
 	try:
-		if len(sys.argv)>1:
-			suite = unittest.makeSuite(testClass, methodPrefix or sys.argv[-1],
-				suiteClass=testresources.OptimisingTestSuite)
-			runner = unittest.TextTestRunner()
-			runner.run(suite)
-		else:
-			unittest.main()
+		runner = unittest.TextTestRunner()
+		runner.run(suite)
 	except (SystemExit, KeyboardInterrupt):
 		raise
 	except:

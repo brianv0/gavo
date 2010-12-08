@@ -26,6 +26,7 @@
 							<bind name="\item">@\item</bind>
 						</events>
 					</LOOP>
+					<bind name="targname">@targetName</bind>
 				</apply>
 			</rowmaker>
 		</make>

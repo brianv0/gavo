@@ -100,6 +100,8 @@ def parseDefaultDatetime(literal):
 		return literal
 	if literal.endswith("Z"):
 		literal = literal[:-1]
+	# just nuke fractional seconds...
+	literal = literal.split(".")[0]
 	try:
 		return datetime.datetime(
 			*time.strptime(literal, '%Y-%m-%dT%H:%M:%S')[:6])

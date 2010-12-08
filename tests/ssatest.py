@@ -74,11 +74,12 @@ class ImportTest(_WithSSATableTest):
 
 
 
-class CoreResultTest(_WithSSATableTest):
+class CoreQueries(_WithSSATableTest):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
 	def _runTest(self, sample):
 		inDict, ids = sample
+		inDict["REQUEST"] = "queryData"
 		res = getRD().getById("s").runFromDict(inDict, "dal.xml")
 		self.assertEqual(
 			set([row["ssa_pubDID"].split("/")[-1] 
@@ -86,38 +87,62 @@ class CoreResultTest(_WithSSATableTest):
 			set(ids))
 
 	samples = [
-		({"REQUEST": "queryData", "POS": "10%2c+15", "SIZE": "0.5"},
+		({"POS": "10%2c+15", "SIZE": "0.5"},
 		["test1"]),
-		({"REQUEST": "queryData", "POS": "10%2c+15", "SIZE": "2"},
+		({"POS": "10%2c+15", "SIZE": "2"},
 		["test1", "test2"]),
-		({"REQUEST": "queryData", "BAND": "/4.5e-7,6.5e-7/"},
+		({"BAND": "/4.5e-7,6.5e-7/"},
 		["test1", "test3"]),
-		({"REQUEST": "queryData", "BAND": "4.5e-7/7.5e-7"},
+		({"BAND": "4.5e-7/7.5e-7"},
 		["test1", "test2", "test3"]),
-		({"REQUEST": "queryData", "BAND": "U"},
+		({"BAND": "U"},
 		[]),
-		({"REQUEST": "queryData", "BAND": "V,R"},
+		({"BAND": "V,R"},
 		["test2", "test3"]),
-		({"REQUEST": "queryData", "TIME": "/2020-12-20T13:00:01"},
+		({"TIME": "/2020-12-20T13:00:01"},
 		["test1"]),
-		({"REQUEST": "queryData", "FORMAT": "votable"},
+		({"FORMAT": "votable"},
 		["test2"]),
-		({"REQUEST": "queryData", "FORMAT": "compliant"},
+		({"FORMAT": "compliant"},
 		["test2"]),
-		({"REQUEST": "queryData", "FORMAT": "native"},
+		({"FORMAT": "native"},
 		["test3"]),
-		({"REQUEST": "queryData", "FORMAT": "image"},
+		({"FORMAT": "image"},
 		[]),
-		({"REQUEST": "queryData", "FORMAT": "all"},
+		({"FORMAT": "all"},
 		["test1", "test2", "test3"]),
+		({"FORMAT": "all"},
+		["test1", "test2", "test3"]),
+		({"TARGETNAME": "booger star,rat hole in the yard"},
+		["test2", "test3"]),
+		({"PUBDID": "ivo:%2f%2ftest.inv%2ftest2"},
+		["test2"]),
 	]
 
 
 class MetaKeyTest(_WithSSATableTest):
+# these are like CoreQueries except they need custom logic
 	def testTOP(self):
 		res = getRD().getById("s").runFromDict(
 			{"REQUEST": "queryData", "TOP": 1}, "dal.xml")
 		self.assertEqual(len(res.original.getPrimaryTable()), 1)
+
+	def testMAXREC(self):
+		res = getRD().getById("s").runFromDict(
+			{"REQUEST": "queryData", "TOP": "3", "MAXREC": "1"}, "dal.xml")
+		self.assertEqual(len(res.original.getPrimaryTable()), 1)
+
+	def testMTIMEInclusion(self):
+		aMinuteAgo = datetime.datetime.utcnow()-datetime.timedelta(seconds=60)
+		res = getRD().getById("s").runFromDict(
+			{"REQUEST": "queryData", "MTIME": "%s/"%aMinuteAgo}, "dal.xml")
+		self.assertEqual(len(res.original.getPrimaryTable()), 3)
+
+	def testMTIMEExclusion(self):
+		aMinuteAgo = datetime.datetime.utcnow()-datetime.timedelta(seconds=60)
+		res = getRD().getById("s").runFromDict(
+			{"REQUEST": "queryData", "MTIME": "/%s"%aMinuteAgo}, "dal.xml")
+		self.assertEqual(len(res.original.getPrimaryTable()), 0)
 
 
 class CoreFailuresTest(_WithSSATableTest):

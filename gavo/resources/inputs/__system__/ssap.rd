@@ -106,6 +106,14 @@
 			description="Upper value of spectral coordinate"/>
 	</STREAM>
 
+
+	<table id="instance">
+		<meta name="description">A sample of SSA fields for referencing and such.
+		</meta>
+		<FEED source="base_columns"/>
+	</table>
+
+
 	<!-- The SSA metadata is huge, and many arrangements are conceivable.  
 	To come up with some generally useful interface definitions, I'll
 	first define a table for a "homogeneous" data collection, the ssahcd
@@ -412,15 +420,15 @@
 		</condDesc>
 
 		<condDesc id="timeCond">
-			<inputKey name="TIME" type="text" description="Epoch of observation."
-				unit="Y-M-D"/>
+			<inputKey original="//ssap#instance.ssa_dateObs" name="TIME" unit="Y-M-D"
+				type="text"/>
 			<phraseMaker procDef="//pql#dateParameter">
 				<bind name="consCol">"ssa_dateObs"</bind>
 			</phraseMaker>
 		</condDesc>
 
 		<condDesc id="formatCond">
-			<inputKey name="FORMAT" type="text" description="Spectrum format"/>
+			<inputKey original="//ssap#instance.mime" name="FORMAT" type="text"/>
 			<phraseMaker>
 				<setup>
 					<par name="compliantFormats">set([
@@ -474,18 +482,6 @@
 			</phraseMaker>
 		</condDesc>
 
-		<condDesc id="MTIMEcond">
-			<inputKey name="MTIME" type="text" description="Datetime last changed"/>
-			<phraseMaker>
-				<code>
-					key = inputKeys[0].key
-					res = pql.PQLDatePar.fromLiteral(inPars.get(key),  key)
-					if ranges:
-						yield res.getSQL("pdate", sqlPars)
-				</code>
-			</phraseMaker>
-		</condDesc>
-
 		<!-- 
 			The following ssa keys make no sense for hcd tables since they
 		  are constant by definition:
@@ -493,7 +489,7 @@
 
 			The following ssa keys cannot be generically supported since 
 			no SSA model column corresponds to them:
-			VARAMPL
+			VARAMPL -->
 		<LOOP>
 			<csvItems>
 				keyName,      matchCol,      procDef
@@ -504,17 +500,18 @@
 				TARGETCLASS,  ssa_targclass, //pql#stringParameter
 				PUBDID,       ssa_pubDID,    //pql#stringParameter
 				CREATORDID,   ssa_creatorDID,//pql#stringParameter
+				MTIME,        ssa_pdate,     //pql#dateParameter
 			</csvItems>
 			<events>
 				<condDesc id="\keyName\+_cond">
-					<inputKey original="\matchCol" name="\keyName"/>
+					<inputKey original="//ssap#instance.\matchCol" name="\keyName"
+						type="text"/>
 					<phraseMaker procDef="\procDef">
 						<bind name="consCol">"\matchCol"</bind>
 					</phraseMaker>
 				</condDesc>
 			</events>
 		</LOOP>
-		-->
 
 		<condDesc combining="True">
 			<!-- meta keys not (directly) entering the query -->
