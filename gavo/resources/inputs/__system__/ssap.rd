@@ -128,19 +128,6 @@
 			description="Number of points in the spectrum"/>
 	</STREAM>
 
-	<STREAM id="hcd_outtable">
-		<!-- the output table definition for a homogeneous data collection.
-		Everything not in here is handled via params. -->
-		<FEED source="//ssap#hcd_fields"/>
-		<column original="//products#instance.accref"/>
-		<column name="ssa_score" 
-				utype="ssa:Query.Score" 
-				tablehead="Score" verbLevel="15">
-			<description>A measure of how closely the record matches your
-				query.  Higher numbers mean better matches.</description>
-		</column>
-	</STREAM>
-
 	<STREAM id="hcd_outpars">
 		<doc>The parameters table for an SSA (HCD) result.  The definition
 		of the homogeneous in HCD is that all these parameters are
@@ -254,6 +241,18 @@
 			utype="Char.SpatialAxis.Resolution" ucd="pos.angResolution"
 			verbLevel="25" unit="deg"
 			description="Spatial resolution of data"/>
+	</STREAM>
+
+	<STREAM id="coreOutputAdditionals">
+		<!-- Fields added to the queried table def to make the core
+		output table. -->
+		<outputField name="ssa_score" 
+				utype="ssa:Query.Score" 
+				tablehead="Score" verbLevel="15"
+				select="0">
+			<description>A measure of how closely the record matches your
+				query.  Higher numbers mean better matches.</description>
+		</outputField>
 	</STREAM>
 
 	<procDef type="apply" id="setMeta">
@@ -386,7 +385,7 @@
 	</mixinDef>
 
 
-	<STREAM id="ssa_prototype">
+	<STREAM id="hcd_condDescs">
 		<condDesc id="coneCond">
 			<inputKey name="POS" type="text" description="ICRS position of target
 				object" unit="deg,deg"/>

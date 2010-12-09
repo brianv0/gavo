@@ -5,6 +5,8 @@ Output tables and their components.
 from gavo import base 
 from gavo import rscdef 
 
+_EMPTY_TABLE = base.makeStruct(rscdef.TableDef, id="<builtin empty table>")
+
 
 class OutputField(rscdef.Column):
 	"""A column for defining the output of a service.
@@ -83,32 +85,68 @@ class OutputTableDef(rscdef.TableDef):
 	"""
 	name_ = "outputTable"
 
-	_cols = rscdef.ColumnListAttribute("columns", childFactory=OutputField,
-		description="Output fields for this table.", aliases=["column"],
+	_cols = rscdef.ColumnListAttribute("columns", 
+		childFactory=OutputField,
+		description="Output fields for this table.", 
+		aliases=["column"],
 		copyable=True)
-	_verbLevel = base.IntAttribute("verbLevel", default=None,
-		description="Copy over columns from the core's output table not"
+
+	_verbLevel = base.IntAttribute("verbLevel", 
+		default=None,
+		description="Copy over columns from fromTable not"
 			" more verbose than this.")
+
 	_autocols = ColRefListAttribute("autoCols", 
-		description="Column names for the output table; this is an abbreviation"
-		" for <column original='c1'/><column original='c2'/> etc.  The columns"
-		" will always be prepended to columns given in full.")
+		description="Column names obtained from fromTable.")
+
+	_fromTable = base.ReferenceAttribute("fromTable",
+		default=base.NotGiven,
+		description="Build output fields from the columns of this table;"
+		"  if not given, defaults to the queried table for cores that have"
+		" one (an emtpy table otherwise), and the core's output table"
+		" for services.")
+
+	def _getSourceTable(self):
+		"""returns a tableDef object to be used as a column source.
+
+		The rules are described at the fromTable attribute.
+		"""
+		if self.fromTable is base.NotGiven:
+			try:
+				return self.parent.queriedTable
+			except AttributeError:  # not a TableBasedCore
+				try:
+					return self.parent.core.outputTable
+				except AttributeError:  # not a service
+					return _EMPTY_TABLE
+		else:
+			return self.fromTable
+
+	def _obtainFieldsFrom(self, fieldSource, isWanted):
+		"""makes outputFields and params from columns and params in
+		fieldSource.
+		
+		Only those items are used for which isWanted returns true.
+		"""
+		if fieldSource is base.Undefined:
+			raise base.StructureError("Attempting to copy fields from"
+				" an undefined source %s's output table."%(self.parent.id))
+		for c in fieldSource.columns:
+			if isWanted(c):
+				self.feedObject("outputField", OutputField.fromColumn(c))
+		for p in fieldSource.params:
+			if isWanted(p):
+				self.feedObject("param", p.copy(self))
 
 	def completeElement(self):
+		fromTable = self._getSourceTable()
 		if self.autoCols:
-			self.columns = rscdef.ColumnList(self.autoCols+self.columns)
-		# see if any Column objects were copied into our column and convert
-		# them to OutputFields
-		for col in self.columns:
-			if not hasattr(col, "wantsRow"):
-				self.columns.replace(col, OutputField.fromColumn(col))
+			ac = set(self.autoCols)
+			self._obtainFieldsFrom(fromTable, lambda c: c.name in ac)
+		if self.verbLevel:
+			self._obtainFieldsFrom(fromTable, 
+				lambda c: c.verbLevel<=self.verbLevel)
 		self._completeElementNext(OutputTableDef)
-
-	def onParentComplete(self):
-		if self.verbLevel is not None:
-			for c in self.parent.core.outputTable:
-				if c.verbLevel<self.verbLevel:
-					self._cols.feedObject(self, OutputField.fromColumn(c))
 
 	@classmethod
 	def fromColumns(cls, columns, **kwargs):
@@ -119,4 +157,4 @@ class OutputTableDef(rscdef.TableDef):
 	def fromTableDef(cls, tableDef):
 		return cls(None, columns=[OutputField.fromColumn(c) for c in tableDef],
 			forceUnique=tableDef.forceUnique, dupePolicy=tableDef.dupePolicy,
-			primary=tableDef.primary).finishElement()
+			primary=tableDef.primary, params=tableDef.params).finishElement()

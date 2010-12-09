@@ -1,12 +1,9 @@
 <resource schema="test" resdir=".">
 	<table id="hcdtest" onDisk="True">
+		<meta name="description">A boring and pointless test table</meta>
 		<mixin instrument="DaCHS test suite" fluxCalibration="UNCALIBRATED"
 			>//ssap#hcd</mixin>
 		<column name="excellence" type="integer" description="random number"/>
-	</table>
-
-	<table id="hcdouttest">
-		<FEED source="//ssap#hcd_outtable"/>
 	</table>
 
 	<data id="test_import">
@@ -33,9 +30,8 @@
 		</make>
 	</data>
 
-
 	<service id="s">
-		<ssapCore queriedTable="hcdtest">
+		<ssapCore queriedTable="hcdtest" id="foocore">
 			<condDesc buildFrom="excellence"/>
 		</ssapCore>
 	</service>

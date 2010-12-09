@@ -3,6 +3,7 @@ Some tests around the SSAP infrastructure.
 """
 
 import datetime
+import re
 
 from gavo import api
 from gavo import svcs
@@ -10,6 +11,7 @@ from gavo.protocols import ssap
 from gavo.helpers import testhelpers
 from gavo.utils import DEG
 
+import tresc
 
 def getRD():
 	return testhelpers.getTestRD("ssatest.rd")
@@ -39,19 +41,21 @@ class RDTest(testhelpers.VerboseTest):
 
 	def testNormalizedDescription(self):
 		self.failUnless("matches your query" in
-			getRD().getById("hcdouttest").getColumnByName("ssa_score"
+			getRD().getById("foocore").outputTable.getColumnByName("ssa_score"
 				).description)
 
 
 class _SSATable(testhelpers.TestResource):
+	resources = [("conn", tresc.dbConnection)]
+
 	def make(self, deps):
+		conn = deps["conn"]
 		dd = getRD().getById("test_import")
-		data = api.makeData(dd)
+		data = api.makeData(dd, connection=conn)
 		return data.getPrimaryTable()
 	
 	def clean(self, res):
-		res.commit().close()
-#		res.drop().commit().close()
+		res.drop().commit()
 
 _ssaTable = _SSATable()
 
@@ -70,8 +74,6 @@ class ImportTest(_WithSSATableTest):
 	
 	def testLocation(self):
 		self.assertAlmostEqual(self.row1["ssa_location"].x, 10.1*DEG)
-
-
 
 
 class CoreQueries(_WithSSATableTest):
@@ -145,6 +147,22 @@ class MetaKeyTest(_WithSSATableTest):
 		res = getRD().getById("s").runFromDict(
 			{"REQUEST": "queryData", "MTIME": "/%s"%aMinuteAgo}, "dal.xml")
 		self.assertEqual(len(res.original.getPrimaryTable()), 0)
+
+	def testMetadata(self):
+		res = getRD().getById("s").runFromDict(
+			{"REQUEST": "queryData", "FORMAT": "METADATA"}, "dal.xml")
+		self.assertEqual(res.original[0], "application/x-votable+xml")
+		val = res.original[1]
+		self.failUnless("<VOTABLE" in val)
+		self.failUnless('name="INPUT:SIZE"' in val)
+		self.failUnless("ize of the region of interest around POS" in val)
+		self.failUnless(re.search('<FIELD[^>]*name="accref"', val))
+		self.failUnless(re.search('<FIELD[^>]*name="excellence"', val))
+		self.failUnless(re.search(
+			'<FIELD[^>]*utype="ssa:Curation.PublisherDID"', val))
+		self.failUnless("DaCHS test suite" in re.search(
+			'<PARAM[^>]*utype="ssa:DataID.Instrument"[^>]*>', 
+			val).group(0))
 
 
 class CoreFailuresTest(_WithSSATableTest):

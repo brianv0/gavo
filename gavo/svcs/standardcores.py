@@ -303,10 +303,11 @@ class TableBasedCore(core.Core):
 			self.inputTable = MS(inputdef.InputTable, params=iks)
 
 		# if no outputTable has been given, make it up from the columns
-		# of the queried table.
-		if self.outputTable is base.NotGiven:
-			self.outputTable = self.adopt(outputdef.OutputTableDef.fromTableDef(
-				self.queriedTable))
+		# of the queried table unless a prototype is defined (which is
+		# handled by core itself).
+		if self.outputTableXML is None and self.outputTable is base.NotGiven:
+			self.outputTable = outputdef.OutputTableDef.fromTableDef(
+				self.queriedTable)
 
 		self._completeElementNext(TableBasedCore)
 

@@ -41,12 +41,14 @@ class VOTableContext(utils.IdManagerMixin):
 	This class provides management for unique ID attributes, the value mapper
 	registry, and possibly additional services for writing VOTables.
 
-	VOTableContexts are constructed with
+	VOTableContexts optionally take
 
-		- a value mapper registry (typically, valuemappers.defaultMFRegistry)
+		- a value mapper registry (by default, valuemappers.defaultMFRegistry)
 		- the tablecoding (one of the keys of votable.tableEncoders).
+		- version = (1,1) to order a 1.1-version VOTable
 	"""
-	def __init__(self, mfRegistry, tablecoding='binary', version=None):
+	def __init__(self, mfRegistry=valuemappers.defaultMFRegistry, 
+			tablecoding='binary', version=None):
 		self.mfRegistry = mfRegistry
 		self.tablecoding = tablecoding
 		self.version = version or (1,2)
@@ -113,7 +115,7 @@ def _makeValuesForColDesc(colDesc):
 # keys copied from colDescs to FIELDs in _getFieldFor
 _voFieldCopyKeys = ["name", "ID", "datatype", "ucd", "utype", "xtype"]
 
-def _defineField(element, colDesc):
+def defineField(element, colDesc):
 	"""adds attributes and children to element from colDesc.
 
 	element can be a V.FIELD or a V.PARAM *instance* and is changed in place.
@@ -137,12 +139,23 @@ def _defineField(element, colDesc):
 		V.DESCRIPTION[colDesc["description"]]]
 
 
+def makeFieldFromColumn(colType, rscCol):
+	"""returns a VOTable colType for a rscdef column-type thing.
+
+	This function lets you make PARAM and FIELD elements (colType) from
+	column or param instances.
+	"""
+	instance = colType()
+	defineField(instance, valuemappers.VColDesc(rscCol))
+	return instance
+
+
 def _iterFields(serManager):
 	"""iterates over V.FIELDs based on serManger's columns.
 	"""
 	for colDesc in serManager:
 		el = V.FIELD()
-		_defineField(el, colDesc)
+		defineField(el, colDesc)
 		yield el
 
 
@@ -150,16 +163,16 @@ def _iterTableParams(serManager):
 	"""iterates over V.PARAMs based on the table's param elements.
 	"""
 	for param in serManager.table.iterParams():
-		el = V.PARAM()
-		_defineField(el, valuemappers.VColDesc(param))
-		el.value = param.content_
-		yield el
+		if param.content_ is not base.NotGiven:
+			el = V.PARAM()
+			defineField(el, valuemappers.VColDesc(param))
+			el.value = param.content_
+			yield el
 
 
 def _iterParams(ctx, dataSet):
 	"""iterates over the entries in the parameters table of dataSet.
 	"""
-# DEPRECATE?
 	try:
 		parTable = dataSet.getTableWithRole("parameters")
 	except base.DataError:  # no parameter table
@@ -173,7 +186,7 @@ def _iterParams(ctx, dataSet):
 		colDesc = valuemappers.VColDesc(item)
 		el = V.PARAM()
 		el(value=ctx.mfRegistry.getMapper(colDesc)(values.get(item.name)))
-		_defineField(el, colDesc)
+		defineField(el, colDesc)
 		yield el
 
 
@@ -207,7 +220,7 @@ def _iterNotes(serManager):
 		yield noteGroup
 
 
-def _makeTable(ctx, table):
+def makeTable(ctx, table):
 	"""returns a Table node for the table.Table instance table.
 	"""
 	sm = valuemappers.SerManager(table, mfRegistry=ctx.mfRegistry,
@@ -234,7 +247,7 @@ def _makeResource(ctx, data):
 		_iterParams(ctx, data)]
 	for table in data:
 		if table.role!="parameters" and table.tableDef.columns:
-			res[_makeTable(ctx, table)]
+			res[makeTable(ctx, table)]
 	return res
 
 ############################# Toplevel/User-exposed code

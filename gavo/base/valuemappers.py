@@ -302,7 +302,7 @@ class _Supremum(_Comparer):
 
 
 class VColDesc(dict):
-	"""is a container for properties of columns in a table.
+	"""A container for properties of columns in a table.
 
 	Specifically, it gives maxima, minima and if null values occur, plus
 	things like ADQL types.  These objects are central to the mapping

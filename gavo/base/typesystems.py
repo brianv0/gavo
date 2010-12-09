@@ -210,6 +210,10 @@ class ToVOTableConverter(FromSQLConverter):
 		"vexpr-string": ("char", "*"),
 		"vexpr-date": ("char", "*"),
 		"vexpr-float": ("double", "1"),
+		"pql-float": ("double", "1"),
+		"pql-string": ("char", "*"),
+		"pql-date": ("char", "*"),
+		"pql-int": ("int", "1"),
 		"raw": ("unsignedByte", "*"),
 		"bytea": ("unsignedByte", "1"),
 		"spoint": ("char", "*"),  # client code would need to deal with xtype.

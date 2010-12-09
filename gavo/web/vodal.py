@@ -279,8 +279,8 @@ class UnifiedDALRenderer(DALRenderer):
 
 	def _formatOutput(self, data, ctx):
 		request = inevow.IRequest(ctx)
-		if isinstance(data, tuple):  
-			mime, payload = data
+		if isinstance(data.original, tuple):  
+			mime, payload = data.original
 			request.setHeader("content-type", mime)
 			return streaming.streamOut(lambda f: f.write(payload), request)
 		else:

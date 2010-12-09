@@ -81,6 +81,25 @@ def getCore(name):
 	return cls
 
 
+class _OutputTableFactory(object):
+	"""The childFactory for the ssap core's outputTable.
+
+	On call, it will return a slightly amended copy of the 
+	queried table.
+
+	This means that you must set the queried table before mentioning the
+	outputs.
+	"""
+	name_ = "outputTable"
+
+	def __call__(self, parent):
+		if parent._ot_prototype is None:
+			ot = outputdef.OutputTableDef(parent)
+			parent._ot_prototype = base.parseFromString(ot,
+				parent.outputTableXML or "<outputTable/>")
+		return parent._ot_prototype.copy(parent)
+
+
 class Core(base.Structure):
 	"""A definition of the "active" part of a service.
 
@@ -99,18 +118,25 @@ class Core(base.Structure):
 	inputTableXML = None
 	outputTableXML = None
 
+	# the cached prototype of the output table, filled in by 
+	# _OutputTableFactory
+	_ot_prototype = None
+
 	_rd = rscdef.RDAttribute()
 	_inputTable = base.StructAttribute("inputTable", 
 		default=base.NotGiven,
 		childFactory=inputdef.InputTable, 
 		description="Description of the input data.", 
 		copyable=True)
+
 	_outputTable = base.StructAttribute("outputTable", 
 		default=base.NotGiven,
-		childFactory=outputdef.OutputTableDef, 
+		childFactory=_OutputTableFactory(),
 		description="Table describing what fields are available from this core.", 
 		copyable=True)
+
 	_original = base.OriginalAttribute()
+
 	_properties = base.PropertyAttribute()
 
 	def __init__(self, parent, **kwargs):
@@ -120,12 +146,7 @@ class Core(base.Structure):
 				raise base.StructureError(
 					"Cannot give an inputTable for cores embedding one.")
 			kwargs["inputTable"] = g
-		if self.outputTableXML is not None:
-			o = base.parseFromString(outputdef.OutputTableDef, self.outputTableXML)
-			if "outputTable" in kwargs:
-				raise base.StructureError(
-					"Cannot give an outputTable for cores embedding one.")
-			kwargs["outputTable"] = o
+
 		base.Structure.__init__(self, parent, **kwargs)
 
 	def __repr__(self):
@@ -133,11 +154,13 @@ class Core(base.Structure):
 	
 	def __str__(self):
 		return repr(self)
-	
-	def onElementComplete(self):
-		self._onElementCompleteNext(Core)
+
+	def completeElement(self):
+		self._completeElementNext(Core)
 		if self.inputTable is base.NotGiven:
 			self.inputTable = base.makeStruct(inputdef.InputTable)
+		if self.outputTable is base.NotGiven:
+			self.outputTable = self._outputTable.childFactory(self)
 
 	def adaptForRenderer(self, renderer):
 		"""returns a core object tailored for renderer.

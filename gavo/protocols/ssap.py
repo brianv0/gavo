@@ -3,14 +3,22 @@ The SSAP core and supporting code.
 
 """
 
+from cStringIO import StringIO
+
 from gavo import base
+from gavo import rsc
 from gavo import svcs
+from gavo import votable
+from gavo.formats import votablewrite
+from gavo.svcs import outputdef
+from gavo.votable import V
 
 
 RD_ID = "//ssap"
 
 def getRD():
 	return base.caches.getRD(RD_ID)
+
 
 
 class SSAPCore(svcs.DBCore):
@@ -22,15 +30,45 @@ class SSAPCore(svcs.DBCore):
 	"""
 	name_ = "ssapCore"
 
+	outputTableXML = """
+		<outputTable verbLevel="30">
+			<FEED source="//ssap#coreOutputAdditionals"/>
+		</outputTable>"""
+
 	def __init__(self, parent, **kwargs):
 		svcs.DBCore.__init__(self, parent, **kwargs)
-		rd = getRD()
-		self.feedFrom(rd.getById("ssa_prototype"))
-	
+		self.feedFrom(getRD().getById("hcd_condDescs"))
+
+	def _makeMetadata(self, service):
+		inputTable = self.inputTable
+		inParams =[votablewrite.makeFieldFromColumn(V.PARAM, param)
+			for param in inputTable.params]
+		for p in inParams:
+			p.name = "INPUT:"+p.name
+
+		emptyTable = rsc.TableForDef(self.outputTable)
+		ctx = votablewrite.VOTableContext()
+
+		vot = V.VOTABLE[
+			V.RESOURCE(type="meta")[
+				V.DESCRIPTION[
+					base.getMetaText(service, "description")],
+				V.INFO(name="QUERY_STATUS", value="OK"), [
+					inParams,
+					votablewrite.makeTable(ctx, emptyTable)
+		]]]
+
+		res =  StringIO()
+		votable.write(vot, res)
+		return "application/x-votable+xml", res.getvalue()
+
 	def run(self, service, inputTable, queryMeta):
 		if inputTable.getParam("REQUEST")!="queryData":
 			raise base.ValidationError("Only queryData operation supported so"
 				" far for SSAP.", "REQUEST")
+		if inputTable.getParam("FORMAT")=="METADATA":
+			return self._makeMetadata(service)
+
 		limits = [q for q in 
 				(inputTable.getParam("MAXREC"), inputTable.getParam("TOP"))
 			if q]
