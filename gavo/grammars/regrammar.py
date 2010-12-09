@@ -80,6 +80,7 @@ class REGrammar(Grammar):
 			" as the new pattern.  This can be used for simple cleaning jobs;"
 			" However, records not matching recordCleaner are rejected.")
 	_names = base.StringListAttribute("names", description=
-		"Names for the parsed columns, in sequence of the fields.")
+		"Names for the parsed columns, in sequence of the fields.  You can"
+		" use macros here, e.g., \colNames{someTable}.", expand=True)
 	_gunzip = base.BooleanAttribute("gunzip", description="Unzip sources"
 		" while reading?", default=False)

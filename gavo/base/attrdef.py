@@ -193,6 +193,10 @@ class UnicodeAttribute(AtomicAttribute):
 	In addition to AtomicAttribute's keywords, you can use ``strip`` (default
 	false) to have leading and trailing whitespace be removed on parse.
 	(Unparsing will not add it back).
+
+	You can also add ``expand`` (default False) to have UnicodeAttribute
+	try and expand RD macros on the instance passed in.  This of course
+	only works if the attribute lives on a class that is a MacroPackage.
 	"""
 
 	typeDesc_ = "unicode string"
@@ -200,6 +204,7 @@ class UnicodeAttribute(AtomicAttribute):
 	def __init__(self, name, **kwargs):
 		self.nullLiteral = kwargs.pop("null", "__NULL__")
 		self.strip = kwargs.pop("strip", False)
+		self.expand = kwargs.pop("expand", False)
 		AtomicAttribute.__init__(self, name, **kwargs)
 
 	def parse(self, value):
@@ -215,6 +220,11 @@ class UnicodeAttribute(AtomicAttribute):
 				raise ValueError("Unparse None without a null literal can't work.")
 			return self.nullLiteral
 		return value
+
+	def feed(self, ctx, instance, value):
+		if self.expand and "\\" in value:
+			value = instance.expand(value)
+		self.feedObject(instance, self.parse(value))
 
 
 class NWUnicodeAttribute(UnicodeAttribute):
@@ -358,7 +368,7 @@ class BooleanAttribute(AtomicAttribute):
 		return {True: "True", False: "False"}[value]
 
 
-class StringListAttribute(AtomicAttribute):
+class StringListAttribute(UnicodeAttribute):
 	"""An attribute containing a list of comma separated strings.
 
 	The value is a list.  This is similar to a complexattrs.ListOfAtoms
@@ -371,9 +381,10 @@ class StringListAttribute(AtomicAttribute):
 	def __init__(self, name, **kwargs):
 		if "default" in kwargs:
 			self.realDefault = kwargs.pop("default")
-		AtomicAttribute.__init__(self, name, default=Computed, **kwargs)
+		UnicodeAttribute.__init__(self, name, default=Computed, **kwargs)
 
 	def parse(self, value):
+		value = UnicodeAttribute.parse(self, value)
 		res = [str(name.strip()) 
 			for name in value.split(",") if name.strip()]
 		return res

@@ -322,6 +322,14 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 		"""
 		return 'os.path.getsize(rowIter.sourceToken)'
 
+	def macro_colNames(self, tableRef):
+		"""returns a comma-separated list of column names for a table reference.
+
+		This is convenient if an input file matches the table structure; you
+		can then simply say things like <reGrammar names="\colName{someTable}"/>.
+		"""
+		return ",".join(c.name for c in self.rd.getById(tableRef))
+
 
 class Grammar(base.Structure, GrammarMacroMixin):
 	"""An abstract grammar.
