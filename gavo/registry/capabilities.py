@@ -219,7 +219,7 @@ class SIACapabilityMaker(CapabilityMaker):
 	def _makeCapability(self, publication):
 		service = publication.parent
 		return CapabilityMaker._makeCapability(self, publication)[
-			SIA.imageServiceType[service.getMeta("sia.type")],
+			SIA.imageServiceType[service.getMeta("sia.type", raiseOnFail=True)],
 			SIA.maxQueryRegionSize[
 				SIA.long[service.getMeta("sia.maxQueryRegionSize.long", default="180")],
 				SIA.lat[service.getMeta("sia.maxQueryRegionSize.lat", default="180")],
@@ -236,7 +236,8 @@ class SIACapabilityMaker(CapabilityMaker):
 				service.getMeta("sia.maxFileSize", default="2000000000"),
 			],
 			SIA.maxRecords[
-				service.getMeta("sia.maxRecords", default="100"),
+				service.getMeta("sia.maxRecords", 
+					default=str(base.getConfig("ivoa", "dalHardLimit"))),
 			],
 			SIA.testQuery[
 				SIA.pos[
