@@ -215,13 +215,37 @@ machinery -->
 	</productCore>
 
 	<productCore id="forTar" original="core" limit="10000">
-		<!-- core used by producttar; many matches are possible here;
-		producttar uses an inputDD of its own here. -->
 		<inputTable namePath="products">
 			<meta name="description">Input table for the tar making core</meta>
 			<column original="accref" type="raw"/>
 		</inputTable>
 	</productCore>
+
+	<service id="getTar" core="forTar">
+		<meta name="title">Tar deliverer</meta>
+		<inputDD>
+			<contextGrammar>
+				<inputKey name="pattern" type="text" description="Product pattern
+					in the form tablePattern.filePatterns, where both parts
+					are interpreted as SQL patterns."/>
+				<rowfilter name="expandProductPattern">
+					<code>
+						try:
+							tablepat, filepat = row["pattern"].split(".")
+						except (ValueError,), ex:
+							raise base.ValidationError(
+								"Must be of the form table.sqlpattern", "pattern")
+						prodTbl = rsc.TableForDef(self.rd.getById("products"),
+							connection=base.caches.getTableConn())
+						for row in prodTbl.iterQuery([protTbl.getColumnByName("accref")],
+							"WHERE accref LIKE %(filepat)s AND sourceTable LIKE %(tablepat)s",
+							{"filepat": filepat, "tablepat": tablepat}):
+							yield row
+					</code>
+				</rowfilter>
+			</contextGrammar>
+		</inputDD>
+	</service>
 
 	<table id="parsedKeys">
 		<meta name="description">Used internally by the product core.</meta>

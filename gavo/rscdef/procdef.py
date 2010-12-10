@@ -244,7 +244,10 @@ class ProcApp(ProcDef):
 		if self.procDef is not base.NotGiven:
 			setupLines.append(self.procDef.setup.getBodyCode())
 		setupLines.append(self.setup.getBodyCode())
-		return "\n".join(setupLines)
+		code = "\n".join(setupLines)
+		if "\\" in code:
+			code = self.parent.expand(code)
+		return code
 
 	def _getFunctionDefinition(self, mainSource):
 		"""returns mainSource in a function definition with proper 
@@ -277,7 +280,17 @@ class ProcApp(ProcDef):
 				mainCode = self.procDef.getCode()
 		else:
 			mainCode = self.getCode()
-		return self._getFunctionDefinition(mainCode)
+		code = self._getFunctionDefinition(mainCode)
+		if "\\" in code:
+			code = self.parent.expand(code)
+		return code
+
+	def _compileForParent(self, parent):
+		"""helps compile.
+		"""
+		return rmkfuncs.makeProc(
+				self.name, self.getFuncCode(),
+				self.getSetupCode(), parent)
 
 	def compile(self, parent=None):
 		"""returns a callable for this procedure application.
@@ -288,6 +301,4 @@ class ProcApp(ProcDef):
 		"""
 		if parent is None:
 			parent = self.parent
-		return rmkfuncs.makeProc(
-			self.name, parent.expand(self.getFuncCode()), 
-			parent.expand(self.getSetupCode()), parent)
+		return utils.memoizeOn(parent, self, self._compileForParent, parent)

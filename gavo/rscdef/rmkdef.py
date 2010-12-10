@@ -146,7 +146,7 @@ class VarDef(base.Structure, base.RestrictionMixin):
 				" identifiers, and '%s' is not"%self.name)
 
 	def getCode(self):
-		return 'vars["%s"] = %s'%(self.name, self.parent.expand(self.content_))
+		return 'vars["%s"] = %s'%(self.name, self.content_)
 
 
 class ApplyDef(procdef.ProcApp):
@@ -398,6 +398,17 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 			raise
 		return res
 
+	def _realCompileForTable(self, table):
+		"""helps compileForTable.
+		"""
+		tableDef = table.tableDef
+		rmk = self._buildForTable(tableDef)
+		source, lineMap = rmk._getSource(tableDef)
+		globals = rmk._getGlobals(tableDef)
+		globals["targetTable"] = table
+		return Rowmaker(common.replaceRMKAt(source), 
+			self.id, globals, tableDef.getDefaults(), lineMap)
+
 	def compileForTable(self, table):
 		"""returns a function receiving a dictionary of raw values and
 		returning a row ready for adding to a tableDef'd table.
@@ -407,12 +418,8 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		are compatible.
 		"""
 		tableDef = table.tableDef
-		rmk = self._buildForTable(tableDef)
-		source, lineMap = rmk._getSource(tableDef)
-		globals = rmk._getGlobals(tableDef)
-		globals["targetTable"] = table
-		return Rowmaker(common.replaceRMKAt(source), 
-			self.id, globals, tableDef.getDefaults(), lineMap)
+		return utils.memoizeOn(tableDef, self, self._realCompileForTable,
+			table)
 
 	def copyShallowly(self):
 		return base.makeStruct(self.__class__, maps=self.maps[:], 

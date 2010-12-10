@@ -92,6 +92,7 @@ class iterparse(object):
 			except expat.ExpatError, ex:
 				newEx = self.parseErrorClass(ex.message)
 				newEx.posInMsg = True  # see base.xmlstruct
+				newEx.inFile = getattr(self.source, "name", "(internal source)")
 				raise misctricks.logOldExc(newEx)
 			if not self.evBuf:
 				raise self.getParseError("Permature end of input.")

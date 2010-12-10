@@ -13,16 +13,18 @@ from gavo.protocols import products
 import tresc
 
 
-class ProductCoreTest(testhelpers.VerboseTest):
-	"""tests for the products core.
-	"""
-	timeout = 10
-
+class _TestWithProductsTable(testhelpers.VerboseTest):
 	resources = [('conn', tresc.prodtestTable), ('users', tresc.testUsers)]
 
 	def setUp(self):
 		testhelpers.VerboseTest.setUp(self)
 		self.service = api.getRD("//products").getById("p")
+
+
+class ProductCoreTest(_TestWithProductsTable):
+	"""tests for the products core.
+	"""
+	timeout = 10
 
 	def _assertMatchedProducts(self, prodClass, prodDescs, foundRows):
 		expectedRows = [{"source": prodClass(os.path.abspath(p), m)}
@@ -84,5 +86,16 @@ class ProductCoreTest(testhelpers.VerboseTest):
 
 ### XXX TODO: Play with content types
 
+
+class TarTest(_TestWithProductsTable):
+	def setUp(self):
+		_TestWithProductsTable.setUp(self)
+		self.tarService = base.makeStruct(svcs.Service,
+			core=self.service.rd.getById("forTar"))
+
+	def _testNoAuth(self):
+		res = self.service.runFromDict({"accref": "data/b.imp"}, "get")
+	
+	
 if __name__=="__main__":
 	testhelpers.main(ProductCoreTest)

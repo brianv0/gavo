@@ -241,10 +241,8 @@ class Make(base.Structure, scripting.ScriptingMixin):
 		"""
 		if self.parmaker is base.NotGiven:
 			return
-		if not hasattr(destTable, "_compiledParmaker"):
-			destTable._compiledParmaker = self.parmaker.compileForTable(
-				destTable)
-		destTable.setParams(destTable._compiledParmaker(grammarParameters),
+		parmakerFunc = self.parmaker.compileForTable(destTable)
+		destTable.setParams(parmakerFunc(grammarParameters),
 			raiseOnBadKeys=False)
 
 

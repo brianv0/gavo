@@ -662,9 +662,9 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		if not renderer.checkedRenderer:
 			return self.core
 
-		if renderer not in self._coresCache:
-			self._coresCache[renderer] = self.core.adaptForRenderer(renderer)
-		return self._coresCache[renderer]
+		if renderer.name not in self._coresCache:
+			self._coresCache[renderer.name] = self.core.adaptForRenderer(renderer)
+		return self._coresCache[renderer.name]
 
 	def getInputKeysFor(self, renderer):
 		"""returns a sequence of input keys, adapted for certain renderers.

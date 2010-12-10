@@ -516,6 +516,19 @@ def addDefaults(dataDict, defaultDict):
 			dataDict[key] = value
 
 
+def memoizeOn(onObject, generatingObject, generatingFunction, *args):
+	"""memoizes the result of generatingFunction on onObject.
+
+	This is for caching things that adapt to onObjects; see procdefs
+	and rowmakers for examples why this is useful.
+	"""
+	cacheName = "_cache%s%s"%(generatingObject.__class__.__name__, 
+		str(id(generatingObject)))
+	if getattr(onObject, cacheName, None) is None:
+		setattr(onObject, cacheName, generatingFunction(*args))
+	return getattr(onObject, cacheName)
+
+
 def stealVar(varName):
 	"""returns the first local variable called varName in the frame stack
 	above my caller.
