@@ -545,6 +545,7 @@ class _TableCoreConnectionManager(object):
 		return base.getDBConnection("trustedquery", autocommitted=True)
 
 	def getConnection(self):
+		return self._getNewConnection()
 		if self.conn.closed:
 			self.conn = self._getNewConnection()
 		return self.conn
