@@ -380,7 +380,7 @@ class FancyQueryCore(TableBasedCore, base.RestrictionMixin):
 
 	def run(self, service, inputTable, queryMeta):
 		fragment, pars = self._getSQLWhere(inputTable, queryMeta)
-		querier = base.SimpleQuerier()
+		querier = base.SimpleQuerier(connection=getTableConn())
 		if fragment:
 			fragment = " WHERE "+fragment
 		else:
@@ -434,7 +434,7 @@ class DBCore(TableBasedCore):
 	def _runQuery(self, resultTableDef, fragment, pars, queryMeta,
 			**kwargs):
 		queriedTable = rsc.TableForDef(self.queriedTable, nometa=True,
-			create=False, role="primary")
+			create=False, role="primary", connection=getTableConn())
 		queriedTable.setTimeout(queryMeta["timeout"])
 		iqArgs = {"limits": queryMeta.asSQL(), "distinct": self.distinct,
 			"groupBy": self.groupBy}
@@ -493,7 +493,7 @@ class FixedQueryCore(core.Core, base.RestrictionMixin):
 		self._completeElementNext(FixedQueryCore)
 
 	def run(self, service, inputTable, queryMeta):
-		querier = base.SimpleQuerier()
+		querier = base.SimpleQuerier(connection=getTableConn())
 		try:
 			return self._parseOutput(querier.runIsolatedQuery(self.query,
 				timeout=self.timeout), queryMeta)
@@ -530,3 +530,24 @@ class NullCore(core.Core):
 
 	def run(self, service, inputTable, queryMeta):
 		return None
+
+
+class _TableCoreConnectionManager(object):
+	"""the database cores all share one autocommitted connection.
+
+	We only make sure it's still open before getting it.  There's
+	one instance of this class, instanciated below.
+	"""
+	def __init__(self):
+		self.conn = self._getNewConnection()
+
+	def _getNewConnection(self):
+		return base.getDBConnection("trustedquery", autocommitted=True)
+
+	def getConnection(self):
+		if self.conn.closed:
+			self.conn = self._getNewConnection()
+		return self.conn
+
+
+getTableConn = _TableCoreConnectionManager().getConnection

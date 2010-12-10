@@ -63,7 +63,6 @@ class PlainProduct(object):
 	def __ne__(self, other):
 		return not self==other
 
-# XXX TODO bad hack -- have mime type move from siap to products
 	magicMap = {
 		".txt": "text/plain",
 		".fits": "image/fits",

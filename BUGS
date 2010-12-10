@@ -232,3 +232,6 @@
 56/LOW/2010-10-08/FIXED
 	Kill the ref attribute and the underlying mechanism for structures.
 	It has been a pain and not terribly useful.
+
+57/MEDIUM/2010-12-10
+	SIAP services should compute their sia.type from the core they have.
