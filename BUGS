@@ -235,3 +235,8 @@
 
 57/MEDIUM/2010-12-10
 	SIAP services should compute their sia.type from the core they have.
+
+58/HIGH/2010-12-10
+	pyparsing is not thread-safe.  Protect all parses by locks (probably
+	the lock objects should sit on the grammars, and I should have a
+	common parse method).

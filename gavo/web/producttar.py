@@ -193,7 +193,6 @@ class ProductTarMaker(object):
 		return self._streamOutTar(prods, request, queryMeta)
 
 
-
 @utils.memoized
 def getTarMaker():
 	return ProductTarMaker()

@@ -4,11 +4,13 @@ Tests for the products infrastructure.
 
 from cStringIO import StringIO
 import os
+import tarfile
 
 from gavo import api
 from gavo import svcs
 from gavo.helpers import testhelpers
 from gavo.protocols import products
+from gavo.web import producttar
 
 import tresc
 
@@ -90,12 +92,48 @@ class ProductCoreTest(_TestWithProductsTable):
 class TarTest(_TestWithProductsTable):
 	def setUp(self):
 		_TestWithProductsTable.setUp(self)
-		self.tarService = base.makeStruct(svcs.Service,
-			core=self.service.rd.getById("forTar"))
+		self.tarService = self.service.rd.getById("getTar")
 
-	def _testNoAuth(self):
-		res = self.service.runFromDict({"accref": "data/b.imp"}, "get")
+	def _getTar(self, inDict, qm=None):
+		res = self.tarService.runFromDict(inDict, "form", queryMeta=qm)
+		dest = StringIO()
+		producttar.getTarMaker()._productsToTar(res.original, dest)
+		return dest.getvalue()
+
+	def _assertIsTar(self, res):
+		f = tarfile.open("data.tar", "r:*", StringIO(res))
+		f.close()
+
+	def testFreeNoAuth(self):
+		res = self._getTar({"pattern": "test.prodtest#data/b.imp"})
+		self._assertIsTar(res)
+		self.failUnless("\nobject: michael" in res)
+
+	def testAllNoAuth(self):
+		res = self._getTar({"pattern": "test.prodtest#%"})
+		self._assertIsTar(res)
+		self.failUnless("\nobject: michael" in res)
+		self.failUnless("This file is embargoed.  Sorry" in res)
+		self.failIf("\nobject: gabriel" in res)
 	
+	def testAllWithAuth(self):
+		qm = svcs.QueryMeta()
+		qm["user"], qm["password"] = "X_test", "megapass"
+		res = self._getTar({"pattern": "test.prodtest#%"}, qm)
+		self._assertIsTar(res)
+		self.failUnless("\nobject: michael" in res)
+		self.failIf("This file is embargoed.  Sorry" in res)
+		self.failUnless("\nobject: gabriel" in res)
 	
+	def testAllWithWrongAuth(self):
+		qm = svcs.QueryMeta()
+		qm["user"], qm["password"] = "Y_test", "megapass"
+		res = self._getTar({"pattern": "test.prodtest#%"}, qm)
+		self._assertIsTar(res)
+		self.failUnless("\nobject: michael" in res)
+		self.failUnless("This file is embargoed.  Sorry" in res)
+		self.failIf("\nobject: gabriel" in res)
+
+
 if __name__=="__main__":
-	testhelpers.main(ProductCoreTest)
+	testhelpers.main(TarTest)

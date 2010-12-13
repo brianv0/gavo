@@ -215,7 +215,7 @@ machinery -->
 	</productCore>
 
 	<productCore id="forTar" original="core" limit="10000">
-		<inputTable namePath="products">
+		<inputTable namePath="products" id="forTarIn">
 			<meta name="description">Input table for the tar making core</meta>
 			<column original="accref" type="raw"/>
 		</inputTable>
@@ -226,24 +226,32 @@ machinery -->
 		<inputDD>
 			<contextGrammar>
 				<inputKey name="pattern" type="text" description="Product pattern
-					in the form tablePattern.filePatterns, where both parts
-					are interpreted as SQL patterns."/>
+					in the form tablePattern#filePatterns, where both parts
+					are interpreted as SQL patterns." required="True"/>
 				<rowfilter name="expandProductPattern">
+					<setup>
+						<code>
+							from gavo import rsc
+							prodTD = base.caches.getRD("//products").getById("products")
+						</code>
+					</setup>
 					<code>
 						try:
-							tablepat, filepat = row["pattern"].split(".")
+							tablepat, filepat = row["pattern"].split("#")
 						except (ValueError,), ex:
 							raise base.ValidationError(
 								"Must be of the form table.sqlpattern", "pattern")
-						prodTbl = rsc.TableForDef(self.rd.getById("products"),
-							connection=base.caches.getTableConn())
-						for row in prodTbl.iterQuery([protTbl.getColumnByName("accref")],
-							"WHERE accref LIKE %(filepat)s AND sourceTable LIKE %(tablepat)s",
+						prodTbl = rsc.TableForDef(prodTD)
+						for row in prodTbl.iterQuery(
+							[prodTbl.tableDef.getColumnByName("accref")],
+							"accref LIKE %(filepat)s AND sourceTable LIKE %(tablepat)s",
 							{"filepat": filepat, "tablepat": tablepat}):
 							yield row
+						prodTbl.close()
 					</code>
 				</rowfilter>
 			</contextGrammar>
+			<make table="forTarIn"/>
 		</inputDD>
 	</service>
 
