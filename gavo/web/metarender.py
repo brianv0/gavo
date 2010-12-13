@@ -135,8 +135,13 @@ class RendExplainer(object):
 			T.invisible(render=T.directive("ifadmin"))[" -- ",
 				T.a(href="http://nvo.ncsa.uiuc.edu/dalvalidate/SIAValidater?endpoint="+
 					urllib.quote(service.getURL("siap.xml"))+
-					"&RA=180.0&DEC=60.0&RASIZE=1.0&DECSIZE=1.0&FORMAT=ALL&"
-					"format=html&show=fail&show=warn&show=rec&op=Validate")["Validate"]]]
+					"&RA=%s&DEC=%s&RASIZE=%s&DECSIZE=%s&FORMAT=ALL&"
+					"format=html&show=fail&show=warn&show=rec&op=Validate"%(
+						base.getMetaText(service, "testQuery.pos.ra", default="180"),
+						base.getMetaText(service, "testQuery.pos.dec", default="60"),
+						base.getMetaText(service, "testQuery.size.ra", default="3"),
+						base.getMetaText(service, "testQuery.size.dec", default="3")))[
+					"Validate"]]]
 
 	@classmethod
 	def _explain_scs_xml(cls, service):
@@ -147,8 +152,12 @@ class RendExplainer(object):
 				T.a(href="http://nvo.ncsa.uiuc.edu/dalvalidate/"
 					"ConeSearchValidater?endpoint="+
 					urllib.quote(service.getURL("scs.xml"))+
-					"&RA=180.0&DEC=60.0&SR=1.0&format=html&show=fail&show=warn&show=rec"
-					"&op=Validate")["Validate"]]]
+					"&RA=%s&DEC=%s&SR=%s&format=html&show=fail&show=warn&show=rec"
+					"&op=Validate"%(
+						base.getMetaText(service, "testQuery.ra", default="180"),
+						base.getMetaText(service, "testQuery.dec", default="60"),
+						base.getMetaText(service, "testQuery.sr", default="1")))[
+					"Validate"]]]
 
 	@classmethod
 	def _explain_tap(cls, service):

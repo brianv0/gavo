@@ -883,13 +883,13 @@ def makeMetaItem(value="", **kwargs):
 	return MetaItem(makeMetaValue(value, **kwargs))
 
 
-def getMetaText(ob, key, propagate=False):
+def getMetaText(ob, key, propagate=False, default=None):
 	"""returns the meta item key form ob in text form if present, None otherwise.
 	"""
-	m = ob.getMeta(key, propagate=propagate)
-	if m:
-		return m.getContent()
-	return None
+	m = ob.getMeta(key, propagate=propagate, default=None)
+	if m is None:
+		return default
+	return m.getContent()
 
 
 class MetaBuilder(object):
