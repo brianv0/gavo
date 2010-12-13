@@ -67,6 +67,73 @@ class GhostMixin(object):
 		raise common.Ignore(self)
 
 
+class Prune(ActiveTag):
+	"""An active tag that lets you selectively delete children of the
+	current object.
+
+	You give it regular expression-valued attributes; the prune tag will then
+	recurse through all list-style attributes (technically, all that have
+	an iterChildren attribute) and remove all children that match the
+	given condition(s).
+
+	If you give more than one attribute, the result will be a conjunction
+	of the specified conditions.
+
+	Note that it usually doesn't make sense to match by id since ids do not 
+	copy.
+	"""
+	name_ = "PRUNE"
+	
+	def __init__(self, parent, **kwargs):
+		self.conds = {}
+		ActiveTag.__init__(self, parent)
+
+	def value_(self, ctx, name, value):
+		self.conds[name] = value
+		return self
+	
+	def end_(self, ctx, name, value):
+		assert name==self.name_
+		self.match = self._getMatcher()
+		self._recurse(self.parent)
+		return self.parent
+
+	def _recurse(self, root):
+		# this does a preorder traversal of root's children, pruning anything
+		# for which self.match returns true
+		if not root:
+			return
+		removals = []
+		for attDef in root.attrSeq:
+			if not hasattr(attDef, "iterChildren"):
+				continue
+			for child in attDef.iterChildren(root):
+				if self.match(child):
+					removals.append(lambda attDef=attDef, child=child:
+						attDef.remove(child))
+				else:
+					self._recurse(child)
+		
+		for action in removals:
+			action()
+
+	def _getMatcher(self):
+		conditions = []
+		for attName, regEx in self.conds.iteritems():
+			conditions.append((attName, re.compile(regEx)))
+
+		def match(element):
+			for attName, expr in conditions:
+				val = getattr(element, attName, None)
+				if val is None:  # not given or null empty attrs never match
+					return False
+				if not expr.search(val):
+					return False
+			return True
+
+		return match
+	
+
 class _PreparedEventSource(object):
 	"""An event source for xmlstruct.
 

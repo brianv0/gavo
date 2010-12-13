@@ -218,7 +218,7 @@ class StructureBase(object):
 		"""iterates over structure children of self.
 
 		To make this work, attributes containing structs must define
-		iterStructs methods (and the others must not).
+		iterChildren methods (and the others must not).
 		"""
 		for att in self.attrSeq:
 			if hasattr(att, "iterChildren"):

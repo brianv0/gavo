@@ -186,6 +186,10 @@ class ColumnList(list):
 		del self.nameIndex[oldCol.name]
 		self.nameIndex[newCol.name] = ind
 
+	def remove(self, col):
+		del self.nameIndex[col.name]
+		list.remove(self, col)
+
 	def extend(self, seq):
 		for item in seq:
 			self.append(item)
@@ -260,7 +264,7 @@ class ColumnListAttribute(base.StructListAttribute):
 			raise base.StructureError("Can only replace fields of the same"
 				" name in a ColumnList")
 		getattr(instance, self.name_).append(newStruct)
-
+	
 
 class NamePathAttribute(base.AtomicAttribute):
 	"""defines an attribute NamePath used for resolution of "original"

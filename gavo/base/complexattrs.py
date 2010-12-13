@@ -294,6 +294,9 @@ class StructAttribute(attrdef.AttributeDef):
 		if getattr(instance, self.name_) is not None:
 			yield getattr(instance, self.name_)
 
+	def remove(self, child):
+		setattr(child.parent, self.name_, self.default)
+
 	def onParentComplete(self, val):
 		if hasattr(val, "onParentComplete"):
 			val.onParentComplete()
@@ -378,6 +381,9 @@ class StructListAttribute(StructAttribute):
 
 	def iterChildren(self, instance):
 		return iter(getattr(instance, self.name_))
+
+	def remove(self, child):
+		getattr(child.parent, self.name_).remove(child)
 
 	def onParentComplete(self, val):
 		if val:

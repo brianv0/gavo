@@ -137,6 +137,57 @@ class NestedTest(testhelpers.VerboseTest):
 			['x', 'y'])
 
 
+class PruneTest(testhelpers.VerboseTest):
+	def testWithName(self):
+		td = base.parseFromString(rscdef.TableDef, """
+			<table id="foo">
+				<column name="abta"/>
+				<column name="gub"/>
+				<PRUNE name="abta"/>
+			</table>""")
+		self.assertEqual(" ".join(c.name for c in td), "gub")
+	
+	def testWithUCD(self):
+		td = base.parseFromString(rscdef.TableDef, """
+			<table id="foo">
+				<column name="abta" ucd="clin.dead"/>
+				<column name="gub"/>
+				<PRUNE ucd="clin.dead"/>
+			</table>""")
+		self.assertEqual(" ".join(c.name for c in td), "gub")
+
+	def testIsConjunction(self):
+		td = base.parseFromString(rscdef.TableDef, """
+			<table id="foo">
+				<column name="abta" ucd="clin.dead"/>
+				<column name="gub"/>
+				<PRUNE ucd="clin.dead" name="gub"/>
+			</table>""")
+		self.assertEqual(" ".join(c.name for c in td), "abta gub")
+
+	def testMultiprune(self):
+		td = base.parseFromString(rscdef.TableDef, """
+			<table id="foo">
+				<column name="abta" ucd="clin.dead"/>
+				<column name="abto"/>
+				<PRUNE name="ab.*"/>
+				<column name="neuro"/>
+			</table>""")
+		self.assertEqual(" ".join(c.name for c in td), "neuro")
+
+	def testDeepPrune(self):
+		dd = base.parseFromString(rscdef.DataDescriptor, """
+			<data>
+				<table id="foo">
+					<column name="abta" ucd="clin.dead"/>
+					<column name="abto"/>
+					<column name="neuro"/>
+				</table>
+				<PRUNE name="ab.*"/>
+			</data>""")
+		self.assertEqual(" ".join(c.name for c in dd.tables[0]), "neuro")
+
+
 class EditTest(testhelpers.VerboseTest):
 	def testProd(self):
 		res = base.parseFromString(rscdef.TableDef, 
@@ -201,7 +252,6 @@ class EditTest(testhelpers.VerboseTest):
 				<table><FEED source="stage2"/></table></data>""")
 		td = res.tables[0]
 		self.assertEqual(", ".join(c.type for c in td), "text, real")
-
 
 
 class LoopTest(testhelpers.VerboseTest):
@@ -372,6 +422,8 @@ class MixinTest(testhelpers.VerboseTest):
 			<table><mixin uVal="5">bla</mixin></table>
 			</resource>""")
 		self.assertEqual(res.tables[0].params[0].value, 5.)
+
+
 
 if __name__=="__main__":
 	testhelpers.main(NestedTest)
