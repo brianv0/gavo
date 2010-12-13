@@ -62,9 +62,9 @@ builtinVanity = """
 	__system__/services/overview/external odoc
 	__system__/dc_tables/show/tablenote tablenote
 	__system__/dc_tables/show/tableinfo tableinfo
-	__system__/adql/query/form adql !redirect
 	__system__/services/overview/admin seffe
 	__system__/tap/run/tap tap
+	__system__/adql/query/form adql !redirect
 """
 
 
@@ -140,7 +140,7 @@ class ArchiveService(rend.Page):
 
 	@classmethod
 	def addRedirect(cls, key, destination):
-		cls.redirects[key] = destination
+		cls.redirects[key.strip("/")] = destination
 
 	@classmethod
 	def addStatic(cls, key, resource):
@@ -186,29 +186,9 @@ class ArchiveService(rend.Page):
 	def parseVanityMap(cls, inFile):
 		"""adds mappings from inFile (which can be a file object or a name).
 
-		The input files contain lines of the format
+		The input file format is documented in tutorial.txt, The Vanity Map.
 
-		<target> <key> [<option>]
-
-		Target is a path that must *not* include nevowRoot and must *not* start
-		with a slash (unless you're going for special effects).
-
-		Key is a single path element.  If this path element is found in the
-		first segment, it is replaced with the segments in target.  This
-		could be used at some point to hide the inputsDir structure even
-		for user RDs, but it's a bit hard to feed the vanity map then (since
-		the service would have to know about its vanity name, and we don't want
-		to have to parse all RDs to come up with the VanityMap).
-
-		<option> can be !redirect right now.  If it is, target is interpreted
-		as a server-relative URI, and a redirect to it is generated, but only
-		if only one or two segments are in the original query.  You can
-		use this to create shortcuts with the resource dir names.  This would
-		otherwise create endless loops.
-
-		Empty lines and #-on-a-line-comments are allowed in the input.
-
-		In case inFile is a file object, it will be closed as a side effect.
+		If inFile is a file object, it will be closed as a side effect.
 		"""
 		if isinstance(inFile, basestring):
 			if not os.path.isfile(inFile):
@@ -302,14 +282,11 @@ class ArchiveService(rend.Page):
 					" scope")
 			segments = segments[self.rootLen:]
 		
-		if segments==('',):
+		curPath = "/".join(segments).strip("/")
+		if curPath=="":
 			segments = ("__system__", "services", "root", "fixed")
-
-		# redirect only single-segment paths (but trailing / is ok)
-		if ((len(segments)==1 or (
-					len(segments)==2 and segments[1]==''))
-				and segments[0] in self.redirects):
-			raise WebRedirect(self.redirects[segments[0]])
+		if curPath in self.redirects:
+			raise WebRedirect(self.redirects[curPath])
 
 		if segments[0] in self.statics:
 			return self.statics[segments[0]], segments[1:]

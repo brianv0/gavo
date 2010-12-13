@@ -8,6 +8,7 @@ but rather just raise the appropriate exceptions from svcs.
 """
 
 import sys
+import urlparse
 
 from nevow import context
 from nevow import inevow
@@ -139,11 +140,16 @@ class RedirectPage(ErrorPage):
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
-		request.setHeader("location", str(self.failure.value.dest))
+		args = urlparse.urlparse(request.uri).query
+		if args:
+			self.destURL = self.failure.value.dest+"?"+args
+		else:
+			self.destURL = self.failure.value.dest
+		request.setHeader("location", str(self.destURL))
 		return ErrorPage.renderHTTP(self, ctx)
 	
 	def render_destLink(self, ctx, data):
-		return ctx.tag(href=self.failure.value.dest)
+		return ctx.tag(href=self.destURL)
 	
 	docFactory = common.doctypedStan(T.html[
 			T.head[T.title["GAVO DC -- Redirect"],
