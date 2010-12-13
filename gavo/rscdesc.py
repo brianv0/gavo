@@ -15,6 +15,7 @@ import grp
 import os
 import pkg_resources
 import time
+import threading
 import traceback
 import warnings
 import weakref
@@ -287,9 +288,13 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
 	rd.idmap = context.idmap
 	rd.computeSourceId(srcPath)
 	if rd.sourceId in _currentlyParsing:
-		return _currentlyParsing[rd.sourceId]
+		lock, rd = _currentlyParsing[rd.sourceId]
+		lock.acquire()
+		return rd
 	else:
-		_currentlyParsing[rd.sourceId] = rd
+		lock = threading.RLock()
+		_currentlyParsing[rd.sourceId] = lock, rd
+		lock.acquire()
 	context.forRD = rd.sourceId
 	try:
 		try:
@@ -299,6 +304,7 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
 			raise
 	finally:
 		del _currentlyParsing[rd.sourceId]
+		lock.release()
 	setRDDateTime(rd, inputFile)
 	return rd
 
