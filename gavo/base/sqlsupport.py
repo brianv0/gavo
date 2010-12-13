@@ -131,7 +131,6 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 			" to connect to the database in profile '%s'."%(
 				profile.profileName)))
 
-
 	if debug:
 		conn = psycopg2.connect(connString, connection_factory=DebugConnection)
 		print "NEW CONN", id(conn)
@@ -148,13 +147,6 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 				hint="This usually means you must adapt either the access profiles"
 				" in $GAVO_DIR/etc or your database config (in particular,"
 				" pg_hba.conf).")
-
-	if False:
-		cursor = conn.cursor()
-		cursor.execute("SELECT pg_backend_pid()")
-		print ">>>>>>pid", list(cursor)[0][0]
-		from gavo.utils import codetricks
-		codetricks.printFrames()
 
 	if not _PSYCOPG_INITED:
 		_initPsycopg(conn)

@@ -380,21 +380,18 @@ class FancyQueryCore(TableBasedCore, base.RestrictionMixin):
 
 	def run(self, service, inputTable, queryMeta):
 		fragment, pars = self._getSQLWhere(inputTable, queryMeta)
-		querier = base.SimpleQuerier(connection=getTableConn())
+		querier = base.SimpleQuerier(connection=base.caches.getTableConn(None))
 		if fragment:
 			fragment = " WHERE "+fragment
 		else:
 			fragment = ""
 		try:
-			try:
-				return self._makeTable(
-					querier.runIsolatedQuery(self.query%fragment, pars,
-							silent=True, timeout=queryMeta["timeout"], asDict=True), 
-						self.outputTable, queryMeta)
-			except:
-				mapDBErrors(*sys.exc_info())
-		finally:
-			querier.close()
+			return self._makeTable(
+				querier.runIsolatedQuery(self.query%fragment, pars,
+						silent=True, timeout=queryMeta["timeout"], asDict=True), 
+					self.outputTable, queryMeta)
+		except:
+			mapDBErrors(*sys.exc_info())
 
 
 class DBCore(TableBasedCore):
@@ -434,7 +431,7 @@ class DBCore(TableBasedCore):
 	def _runQuery(self, resultTableDef, fragment, pars, queryMeta,
 			**kwargs):
 		queriedTable = rsc.TableForDef(self.queriedTable, nometa=True,
-			create=False, role="primary", connection=getTableConn())
+			create=False, role="primary", connection=base.caches.getTableConn(None))
 		queriedTable.setTimeout(queryMeta["timeout"])
 		iqArgs = {"limits": queryMeta.asSQL(), "distinct": self.distinct,
 			"groupBy": self.groupBy}
@@ -493,7 +490,7 @@ class FixedQueryCore(core.Core, base.RestrictionMixin):
 		self._completeElementNext(FixedQueryCore)
 
 	def run(self, service, inputTable, queryMeta):
-		querier = base.SimpleQuerier(connection=getTableConn())
+		querier = base.SimpleQuerier(connection=base.caches.getTableConn(None))
 		try:
 			return self._parseOutput(querier.runIsolatedQuery(self.query,
 				timeout=self.timeout), queryMeta)
@@ -532,23 +529,5 @@ class NullCore(core.Core):
 		return None
 
 
-class _TableCoreConnectionManager(object):
-	"""the database cores all share one autocommitted connection.
-
-	We only make sure it's still open before getting it.  There's
-	one instance of this class, instanciated below.
-	"""
-	def __init__(self):
-		self.conn = self._getNewConnection()
-
-	def _getNewConnection(self):
-		return base.getDBConnection("trustedquery", autocommitted=True)
-
-	def getConnection(self):
-		return self._getNewConnection()
-		if self.conn.closed:
-			self.conn = self._getNewConnection()
-		return self.conn
-
-
-getTableConn = _TableCoreConnectionManager().getConnection
+base.caches.makeCache("getTableConn",
+	lambda ignored: base.getDBConnection("trustedquery", autocommitted=True))
