@@ -339,8 +339,10 @@ if (base.getConfig("web", "favicon")
 		static.File(base.getConfig("web", "favicon")))
 
 ArchiveService.parseVanityMap(StringIO(builtinVanity))
+ArchiveService.parseVanityMap(os.path.join(base.getConfig("configDir"), 
+	"vanitynames.txt"))
 ArchiveService.parseVanityMap(os.path.join(base.getConfig("webDir"), 
-	base.getConfig("web", "vanitynames")))
+	"vanitynames.txt"))
 
 root = ArchiveService()
 

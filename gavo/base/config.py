@@ -360,8 +360,6 @@ _config = Configuration(
 		RelativeURL("mochiURL",
 			"http://vo.ari.uni-heidelberg.de/mochi/1.4",
 			"(potentially relative) URL pointing to a compiled MochiKit pack"),
-		WebRelativeConfigItem("vanityNames", "vanitynames.txt",
-			"Webdir-realtive path to the name map for vanity names"),
 		IntConfigItem("sqlTimeout", "15",
 			"Default timeout for db queries via the web"),
 		WebRelativeConfigItem("previewCache", "previewcache",
