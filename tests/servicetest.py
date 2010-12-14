@@ -233,5 +233,6 @@ class InputTableGenTest(testhelpers.VerboseTest):
 			return
 		raise AssertionError("ValidationError not raised")
 
+
 if __name__=="__main__":
-	testhelpers.main(InputFieldSelectionTest)
+	testhelpers.main(InputTableGenTest)

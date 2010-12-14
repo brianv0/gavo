@@ -127,6 +127,9 @@ class CondDesc(base.Structure):
 		if hasattr(self.parent, "resolveName"):
 			self.resolveName = self.parent.resolveName
 
+	def __repr__(self):
+		return "<CondDesc %s>"%",".join(ik.name for ik in self.inputKeys)
+
 	@classmethod
 	def fromInputKey(cls, ik, **kwargs):
 		return base.makeStruct(CondDesc, inputKeys=[ik], **kwargs)
@@ -297,10 +300,10 @@ class TableBasedCore(core.Core):
 		# if an inputTable is given, trust it fits the condDescs, else
 		# build the input table
 		if self.inputTable is base.NotGiven:
-			iks = []
+			self.inputTable = MS(inputdef.InputTable)
 			for cd in self.condDescs:
-				iks.extend(cd.inputKeys)
-			self.inputTable = MS(inputdef.InputTable, params=iks)
+				for ik in cd.inputKeys:
+					self.inputTable.params.append(ik)
 
 		# if no outputTable has been given, make it up from the columns
 		# of the queried table unless a prototype is defined (which is
@@ -348,7 +351,7 @@ class TableBasedCore(core.Core):
 		"""returns a core tailored to renderer renderers.
 
 		This mainly means asking the condDescs to build themselves for
-		a certain renderer.  If no polymorphous condDescs are ther,
+		a certain renderer.  If no polymorphuous condDescs are there,
 		self is returned.
 		"""
 		newCondDescs = []

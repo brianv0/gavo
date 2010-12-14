@@ -126,13 +126,13 @@ class Core(base.Structure):
 	_inputTable = base.StructAttribute("inputTable", 
 		default=base.NotGiven,
 		childFactory=inputdef.InputTable, 
-		description="Description of the input data.", 
+		description="Description of the input data", 
 		copyable=True)
 
 	_outputTable = base.StructAttribute("outputTable", 
 		default=base.NotGiven,
 		childFactory=_OutputTableFactory(),
-		description="Table describing what fields are available from this core.", 
+		description="Table describing what fields are available from this core", 
 		copyable=True)
 
 	_original = base.OriginalAttribute()
@@ -144,7 +144,7 @@ class Core(base.Structure):
 			g = base.parseFromString(inputdef.InputTable, self.inputTableXML)
 			if "inputTable" in kwargs:
 				raise base.StructureError(
-					"Cannot give an inputTable for cores embedding one.")
+					"Cannot give an inputTable for cores embedding one")
 			kwargs["inputTable"] = g
 
 		base.Structure.__init__(self, parent, **kwargs)

@@ -140,37 +140,53 @@ class NestedTest(testhelpers.VerboseTest):
 class PruneTest(testhelpers.VerboseTest):
 	def testWithName(self):
 		td = base.parseFromString(rscdef.TableDef, """
-			<table id="foo">
+			<table>
+			<STREAM id="foo">
 				<column name="abta"/>
 				<column name="gub"/>
+			</STREAM>
+			<FEED source="foo">
 				<PRUNE name="abta"/>
+			</FEED>
 			</table>""")
 		self.assertEqual(" ".join(c.name for c in td), "gub")
 	
 	def testWithUCD(self):
 		td = base.parseFromString(rscdef.TableDef, """
 			<table id="foo">
-				<column name="abta" ucd="clin.dead"/>
-				<column name="gub"/>
-				<PRUNE ucd="clin.dead"/>
+				<FEED>
+					<events>
+						<column name="abta" ucd="clin.dead"/>
+						<column name="gub"/>
+					</events>
+					<PRUNE ucd="clin.dead"/>
+				</FEED>
 			</table>""")
 		self.assertEqual(" ".join(c.name for c in td), "gub")
 
 	def testIsConjunction(self):
 		td = base.parseFromString(rscdef.TableDef, """
 			<table id="foo">
-				<column name="abta" ucd="clin.dead"/>
-				<column name="gub"/>
-				<PRUNE ucd="clin.dead" name="gub"/>
+				<FEED>
+					<events>
+						<column name="abta" ucd="clin.dead"/>
+						<column name="gub"/>
+					</events>
+					<PRUNE ucd="clin.dead" name="gub"/>
+				</FEED>
 			</table>""")
 		self.assertEqual(" ".join(c.name for c in td), "abta gub")
 
 	def testMultiprune(self):
 		td = base.parseFromString(rscdef.TableDef, """
 			<table id="foo">
-				<column name="abta" ucd="clin.dead"/>
-				<column name="abto"/>
-				<PRUNE name="ab.*"/>
+				<FEED>
+					<events>
+						<column name="abta" ucd="clin.dead"/>
+						<column name="abto"/>
+					</events>
+					<PRUNE name="ab.*"/>
+				</FEED>
 				<column name="neuro"/>
 			</table>""")
 		self.assertEqual(" ".join(c.name for c in td), "neuro")
@@ -179,11 +195,17 @@ class PruneTest(testhelpers.VerboseTest):
 		dd = base.parseFromString(rscdef.DataDescriptor, """
 			<data>
 				<table id="foo">
-					<column name="abta" ucd="clin.dead"/>
-					<column name="abto"/>
-					<column name="neuro"/>
+					<FEED>
+						<events>
+							<column name="abta" ucd="clin.dead">
+								<values><option>a</option><option>b</option></values>
+							</column>
+							<column name="abto"/>
+							<column name="neuro"/>
+						</events>
+						<PRUNE name="ab.*"/>
+					</FEED>
 				</table>
-				<PRUNE name="ab.*"/>
 			</data>""")
 		self.assertEqual(" ".join(c.name for c in dd.tables[0]), "neuro")
 

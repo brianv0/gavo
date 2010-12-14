@@ -283,6 +283,8 @@ class StructAttribute(attrdef.AttributeDef):
 
 	def iterEvents(self, instance):
 		val = getattr(instance, self.name_)
+		if val is common.NotGiven:
+			return
 		if val is None:
 			return
 		yield ("start", val.name_, None)

@@ -35,10 +35,6 @@ class SSAPCore(svcs.DBCore):
 			<FEED source="//ssap#coreOutputAdditionals"/>
 		</outputTable>"""
 
-	def __init__(self, parent, **kwargs):
-		svcs.DBCore.__init__(self, parent, **kwargs)
-		self.feedFrom(getRD().getById("hcd_condDescs"))
-
 	def _makeMetadata(self, service):
 		inputTable = self.inputTable
 		inParams =[votablewrite.makeFieldFromColumn(V.PARAM, param)

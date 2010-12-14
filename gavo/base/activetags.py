@@ -67,73 +67,6 @@ class GhostMixin(object):
 		raise common.Ignore(self)
 
 
-class Prune(ActiveTag):
-	"""An active tag that lets you selectively delete children of the
-	current object.
-
-	You give it regular expression-valued attributes; the prune tag will then
-	recurse through all list-style attributes (technically, all that have
-	an iterChildren attribute) and remove all children that match the
-	given condition(s).
-
-	If you give more than one attribute, the result will be a conjunction
-	of the specified conditions.
-
-	Note that it usually doesn't make sense to match by id since ids do not 
-	copy.
-	"""
-	name_ = "PRUNE"
-	
-	def __init__(self, parent, **kwargs):
-		self.conds = {}
-		ActiveTag.__init__(self, parent)
-
-	def value_(self, ctx, name, value):
-		self.conds[name] = value
-		return self
-	
-	def end_(self, ctx, name, value):
-		assert name==self.name_
-		self.match = self._getMatcher()
-		self._recurse(self.parent)
-		return self.parent
-
-	def _recurse(self, root):
-		# this does a preorder traversal of root's children, pruning anything
-		# for which self.match returns true
-		if not root:
-			return
-		removals = []
-		for attDef in root.attrSeq:
-			if not hasattr(attDef, "iterChildren"):
-				continue
-			for child in attDef.iterChildren(root):
-				if self.match(child):
-					removals.append(lambda attDef=attDef, child=child:
-						attDef.remove(child))
-				else:
-					self._recurse(child)
-		
-		for action in removals:
-			action()
-
-	def _getMatcher(self):
-		conditions = []
-		for attName, regEx in self.conds.iteritems():
-			conditions.append((attName, re.compile(regEx)))
-
-		def match(element):
-			for attName, expr in conditions:
-				val = getattr(element, attName, None)
-				if val is None:  # not given or null empty attrs never match
-					return False
-				if not expr.search(val):
-					return False
-			return True
-
-		return match
-	
-
 class _PreparedEventSource(object):
 	"""An event source for xmlstruct.
 
@@ -243,13 +176,63 @@ class EmbeddedStream(RecordingBase):
 		return RecordingBase.end_(self, ctx, name, value)
 
 
+class Prune(ActiveTag):
+	"""An active tag that lets you selectively delete children of the
+	current object.
+
+	You give it regular expression-valued attributes; on the replay of
+	the stream, matching items and their children will not be replayed.
+
+	If you give more than one attribute, the result will be a conjunction
+	of the specified conditions.
+	
+	This only works if the items to be matched are true XML attributes
+	(i.e., not written as children).
+	"""
+	name_ = "PRUNE"
+	
+	def __init__(self, parent, **kwargs):
+		self.conds = {}
+		ActiveTag.__init__(self, parent)
+
+	def value_(self, ctx, name, value):
+		self.conds[name] = value
+		return self
+	
+	def end_(self, ctx, name, value):
+		assert name==self.name_
+		self.matches = self._getMatcher()
+		self.parent.feedObject(self.name_, self)
+		return self.parent
+
+	def _getMatcher(self):
+		"""returns a callabe that takes a dictionary and matches the
+		entries against the conditions given.
+		"""
+		conditions = []
+		for attName, regEx in self.conds.iteritems():
+			conditions.append((attName, re.compile(regEx)))
+
+		def match(aDict):
+			for attName, expr in conditions:
+				val = aDict.get(attName)
+				if val is None:  # not given or null empty attrs never match
+					return False
+				if not expr.search(val):
+					return False
+			return True
+
+		return match
+
+
 class Edit(EmbeddedStream):
 	"""an event stream targeted at editing other structures.
 	"""
 	name_ = "EDIT"
 
 	_ref = attrdef.UnicodeAttribute("ref", description="Destination of"
-		" the edits, the form elementName[<name or id>]", default=utils.Undefined)
+		" the edits, in the form elementName[<name or id>]", 
+		default=utils.Undefined)
 
 	refPat = re.compile(
 		r"([A-Za-z_][A-Za-z0-9_]*)\[([A-Za-z_][A-Za-z0-9_]*)\]")
@@ -277,12 +260,21 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 	_edits = complexattrs.StructListAttribute("edits",
 		childFactory=Edit, description="Changes to be performed on the"
 		" events played back.")
+	_prunes = complexattrs.StructListAttribute("prunes",
+		childFactory=Prune, description="Conditions for removing"
+			" items from the playback stream.")
 
 	def _ensureEditsDict(self):
 		if not hasattr(self, "editsDict"):
 			self.editsDict = {}
 			for edit in self.edits:
 				self.editsDict[edit.triggerEl, edit.triggerId] = edit
+
+	def _isPruneable(self, val):
+		for p in self.prunes:
+			if p.matches(val):
+				return True
+		return False
 
 	def _replayTo(self, events, evTarget, ctx):
 		"""pushes stored events into an event processor.
@@ -291,7 +283,8 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 		than an event processor).
 		"""
 		idStack = []
-		
+		pruneStack = []
+	
 		for type, name, val, pos in events:
 			if (self._expandMacros
 					and type=="value" 
@@ -308,8 +301,7 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 					raise
 				type = _EXPANDED_VALUE
 
-			# the following mess is to notice when we should edit and
-			# replay EDIT content when necessary
+			# the following mess implements the logic for EDIT.
 			if type=="start":
 				idStack.append(set())
 			elif type=="value":
@@ -323,12 +315,25 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 							evTarget,
 							ctx)
 
+			# The following mess implements the logic for PRUNE
+			if type=="start":
+				if pruneStack:
+					pruneStack.append(None)
+				else:
+					if self.prunes and self._isPruneable(val):
+						pruneStack.append(None)
+
 			try:
-				evTarget.feed(type, name, val)
+				if not pruneStack:
+					evTarget.feed(type, name, val)
 			except Exception, msg:
 				msg.pos = "%s (replaying, real error position %s)"%(
 					ctx.pos, pos)
 				raise
+
+			if pruneStack and type=="end":
+				pruneStack.pop()
+
 
 	def replay(self, events, destination, ctx):
 		"""pushes the stored events into the destination structure.

@@ -32,6 +32,7 @@
 
 	<service id="s">
 		<ssapCore queriedTable="hcdtest" id="foocore">
+			<FEED source="//ssap#hcd_condDescs"/>
 			<condDesc buildFrom="excellence"/>
 		</ssapCore>
 	</service>

@@ -514,8 +514,8 @@
 
 		<condDesc combining="True">
 			<!-- meta keys not (directly) entering the query -->
-			<inputKey name="REQUEST" type="text" description="Type of operation
-				as per SSAP standard"/>
+			<inputKey name="REQUEST" type="text" tablehead="Request type"
+				description='This currently has to be queryData'/>
 			<inputKey name="TOP" type="integer" tablehead="#Best"
 				description='Only return the TOP "best" records'/>
 			<inputKey name="MAXREC" type="integer" tablehead="Limit"
