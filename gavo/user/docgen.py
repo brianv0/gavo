@@ -270,6 +270,12 @@ def getCoreDocs(docStructure):
 	return getStructDocsFromRegistry(registry, docStructure)
 
 
+def getActiveTagDocs(docStructure):
+	from gavo.base import activetags
+	return getStructDocsFromRegistry(activetags.getActiveTag.registry,
+		docStructure)
+
+
 def getTriggerDocs(docStructure):
 	from gavo.rscdef import rowtriggers
 	return getStructDocsFromRegistry(rowtriggers._triggerRegistry, docStructure)

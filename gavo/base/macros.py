@@ -145,8 +145,8 @@ class MacroPackage(object):
 		return self.getExpander().expand(stuff)
 
 	def macro_quote(self, arg):
-		"""the argument in quotes (with internal quotes backslash-escaped if
-		necessary.
+		"""returns the argument in quotes (with internal quotes backslash-escaped 
+		if necessary).
 		"""
 		return '"%s"'%(arg.replace('"', '\\"'))
 

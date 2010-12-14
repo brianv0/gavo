@@ -246,9 +246,6 @@ class SIAPCutoutCore(SIAPCore):
 	# compress the stuff or have images with bytes per pixel != 2
 	bytesPerPixel = 2
 
-	def __init__(self, parent, **kwargs):
-		SIAPCore.__init__(self, parent, **kwargs)
-
 	def getQueryCols(self, service, queryMeta):
 		cols = svcs.DBCore.getQueryCols(self, service, queryMeta)
 		for name in self.copiedCols:

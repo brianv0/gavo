@@ -114,7 +114,7 @@ class CondDesc(base.Structure):
 	_phraseMaker = base.StructAttribute("phraseMaker", default=None,
 		description="Code to generate custom SQL from the input keys", 
 		childFactory=PhraseMaker, copyable=True)
-	_combining = base.BooleanAttribute("combining", default="False",
+	_combining = base.BooleanAttribute("combining", default=False,
 		description="Allow some input keys to be missing when others are given?"
 			" (you want this for pseudo-condDescs just collecting random input"
 			" keys)",   # (and I wish I had a better idea)

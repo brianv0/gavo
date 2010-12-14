@@ -23,6 +23,16 @@ given at the respective elements.
 .. replaceWithResult getStructDocs(docStructure)
 
 
+Active Tags
+===========
+
+The following tags are "active", which means that they do not directly
+contribute to the RD parsed.  Instead they define, replay, or edit
+streams of elements.
+
+.. replaceWithResult getActiveTagDocs(docStructure)
+
+
 Grammars Available
 ==================
 
@@ -53,21 +63,6 @@ feeding the tables mixing in a given mixin.
 .. replaceWithResult getMixinDocs(docStructure)
 
 
-Predefined Procedures
-=====================
-
-Procedures available for rowmaker apply
-'''''''''''''''''''''''''''''''''''''''
-
-.. replaceWithResult makeRmkProcDocs(docStructure)
-
-
-Procedures available for grammar rowfilters
-'''''''''''''''''''''''''''''''''''''''''''
-
-.. replaceWithResult makeRowfilterDocs(docStructure)
-
-
 Triggers
 ========
 
@@ -85,6 +80,22 @@ raise an error if the trigger is pulled; this is mainly for debugging).
 The following triggers are defined:
 
 .. replaceWithResult getTriggerDocs(docStructure)
+
+
+Predefined Procedures
+=====================
+
+Procedures available for rowmaker apply
+'''''''''''''''''''''''''''''''''''''''
+
+.. replaceWithResult makeRmkProcDocs(docStructure)
+
+
+Procedures available for grammar rowfilters
+'''''''''''''''''''''''''''''''''''''''''''
+
+.. replaceWithResult makeRowfilterDocs(docStructure)
+
 
 Metadata
 ========
