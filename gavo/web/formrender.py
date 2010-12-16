@@ -145,6 +145,8 @@ class FormMixin(formal.ResourceMixin):
 		form.addField(**getFieldArgsForInputKey(inputKey))
 		if inputKey.values and inputKey.values.default:
 			form.data[inputKey.name] = inputKey.values.default
+		if inputKey.value:
+			form.data[inputKey.name] = inputKey.value
 
 	def _addFromInputKey(self, form, inputKey):
 		self._addInputKey(form, inputKey)

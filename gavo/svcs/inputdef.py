@@ -55,7 +55,11 @@ class InputKey(column.ParamBase):
 	def onParentComplete(self):
 		if self.parent and hasattr(self.parent, "required"):
 			# children of condDescs inherit their requiredness
+			# (unless defaulted)
 			self.required = self.parent.required
+		# but if there's a defalt, never require an input
+		if self.value:
+			self.required = False
 
 	@classmethod
 	def fromColumn(cls, column, **kwargs):
