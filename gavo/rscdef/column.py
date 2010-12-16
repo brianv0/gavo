@@ -23,7 +23,7 @@ class TypeNameAttribute(AtomicAttribute):
 
 	def parse(self, value):
 		try:
-			typesystems.sqltypeToPythonCode(value)
+			typesystems.sqltypeToPython(value)
 		except base.Error:
 			raise base.ui.logOldExc(LiteralParseError(self.name_, value, 
 				hint="A supported SQL type was expected here.  If in doubt,"
@@ -494,9 +494,7 @@ class ParamBase(Column):
 		"""
 		if not isinstance(literal, basestring):
 			return literal
-		return eval(
-			base.sqltypeToPythonCode(self.type)%repr(literal),
-			base.getDefaultValueParsers())
+		return base.sqltypeToPython(self.type)(literal)
 
 	def _unparse(self, value):
 		"""returns a string representation of value appropriate for this

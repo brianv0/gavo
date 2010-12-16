@@ -40,6 +40,7 @@ import time
 
 from gavo import utils
 from gavo.base import common
+from gavo.base import literals
 
 class ConversionError(common.Error):
 	pass
@@ -356,88 +357,62 @@ class ToADQLConverter(FromSQLConverter):
 			return self.simpleMap[type][0], length
 
 
-######## Helpers for conversion to python values
-
-def toPythonTimeDelta(days=0, hours=0, minutes=0, seconds=0):
-	return datetime.timedelta(days, hours, minutes, seconds)
-
-
-def toPythonDate(datestr, datePatterns=[
-		re.compile("(?P<y>\d\d\d\d)-(?P<m>\d\d)-(?P<d>\d\d)$"),
-		re.compile("(?P<m>\d\d)/(?P<d>\d\d)/(?P<y>\d\d\d\d)$"),
-		re.compile("(?P<m>\d\d)/(?P<d>\d\d)/(?P<y>\d\d)$"),
-		]):
-	"""guesses a datetime.date from a number of date formats.
-	"""
-	if not isinstance(datestr, basestring):
-		return datestr
-	for pat in datePatterns:
-		mat = pat.search(datestr)
-		if mat:
-			yearS, monthS, dayS = mat.group("y"), mat.group("m"), mat.group("d")
-			if len(yearS)==2:
-				yearS = "19"+yearS
-			break
-	else:
-		raise ConversionError("Date %s has unsupported format"%datestr)
-	return datetime.date(int(yearS), int(monthS), int(dayS))
-
-
-def toPythonTime(literal):
-	"""returns a datetime.time object from an ISO timestamp.
-	"""
-	if not isinstance(literal, basestring):
-		return literal
-	return datetime.time(*time.strptime(literal, "%H:%M:%S")[3:6])
-
-
-def toPythonDateTime(literal):
-	"""returns a datetime.datetime object from an ISO timestamp.
-	"""
-	if not isinstance(literal, basestring):
-		return literal
-	try:
-		return datetime.datetime(*time.strptime(literal, "%Y-%m-%dT%H:%M:%S")[:6])
-	except ValueError:
-		return datetime.datetime(*time.strptime(literal, "%Y-%m-%d")[:3])
-
-
 ########## End Helpers for conversion to python values
 
 
-class ToPythonConverter(FromSQLConverter):
-	"""returns constructors making python values from strings.
 
-	This is only for non-fancy applications with controlled input.  For
-	more general circumstances, you'll want to use the parsing infrastructure.
+class ToPythonBase(FromSQLConverter):
+	"""The base for converters turning dealing with turning "simple" literals
+	into python values.
+
+	These return the identity for most "complex" types that do not have
+	plain literals.  
+
+	What is returned here is a name of a function turning a single literal
+	into an object of the desired type; all those reside within base.literals.  
+
+	All such functions should be transparent to None (null value) and to
+	objects that already are of the desired type.
 	"""
-	typeSystem = "python"
 	simpleMap = {
-		"smallint": int,
-		"integer": int,
-		"bigint": int,
-		"real": float,
-		"float": float,
-		"boolean": int,
-		"double precision": float,
-		"text": unicode,
-		"char": unicode,
-		"date": toPythonDate,
-		"time": toPythonTime,
-		"timestamp": toPythonDateTime,
-		"raw": lambda x: x,
-		"vexpr-string": str,
-		"vexpr-date": str,
-		"vexpr-float": str,
-		"file": lambda x: x,
+		"smallint": "parseInt",
+		"integer": "parseInt",
+		"bigint": "parseInt",
+		"real": "parseFloat",
+		"boolean": "parseBooleanLiteral",
+		"double precision": "parseFloat",
+		"text": "parseUnicode",
+		"char": "parseUnicode",
+		"date": "parseDefaultDate",
+		"timestamp": "parseDefaultDatetime",
+		"time": "parseDefaultTime",
+		"spoint": "parseSPoint",
+		"scircle": "parseSimpleSTCS", 
+		"spoly": "parseSimpleSTCS",
+		"sbox": "identity",  # hmha, there's no STC-S for this kind of box...
+		"bytea": "identity",
+		"raw": "identity",
+		"file": "identity",
+		"box": "identity",
+		"vexpr-string": "identity",
+		"vexpr-float": "identity",
+		"vexpr-date": "identity",
+		"pql-string": "identity",
+		"pql-float": "identity",
+		"pql-int": "identity",
+		"pql-date": "identity",
+
 	}
 
 	def mapComplex(self, type, length):
 		if type in self._charTypes:
-			return unicode
+			return "parseUnicode"
+		else:
+			return "identity"  # Anything sufficiently complex is python anyway :-)
 
 
-class ToPythonCodeConverter(FromSQLConverter):
+
+class ToPythonCodeConverter(ToPythonBase):
 	"""returns code templates to turn literals in variables to python objects.
 
 	This is for the rowmakers' src="xx" specification, where no fancy literal
@@ -450,41 +425,28 @@ class ToPythonCodeConverter(FromSQLConverter):
 	from gavo.base.literals import * or use gavo.base.literals.defaultParsers()
 	"""
 	typeSystem = "pythonsrc"
-	simpleMap = {
-		"smallint": "parseInt(%s)",
-		"integer": "parseInt(%s)",
-		"bigint": "parseInt(%s)",
-		"real": "parseFloat(%s)",
-		"boolean": "parseBooleanLiteral(%s)",
-		"double precision": "parseFloat(%s)",
-		"text": "parseUnicode(%s)",
-		"char": "parseUnicode(%s)",
-		"date": "parseDefaultDate(%s)",
-		"timestamp": "parseDefaultDatetime(%s)",
-		"time": "parseDefaultTime(%s)",
-		"spoint": "parseSPoint(%s)",
-		"scircle": "parseSimpleSTCS(%s)", 
-		"spoly": "parseSimpleSTCS(%s)",
-		"sbox": "%s",  # hmha, there's no STC-S for this kind of box...
-		"bytea": "%s",
-		"raw": "%s",
-		"file": "%s",
-		"box": "%s",
-		"vexpr-string": "%s",
-		"vexpr-float": "%s",
-		"vexpr-date": "%s",
-		"pql-string": "%s",
-		"pql-float": "%s",
-		"pql-int": "%s",
-		"pql-date": "%s",
 
-	}
+	def convert(self, sqlType):
+		funcName = ToPythonBase.convert(self, sqlType)
+		if funcName=="identity":  # probably pointless performance hack
+			return "%s"
+		return funcName+"(%s)"
 
-	def mapComplex(self, type, length):
-		if type in self._charTypes:
-			return "unicode(%s)"
-		else:
-			return "%s"  # Anything sufficiently complex is python anyway :-)
+
+class ToPythonConverter(ToPythonBase):
+	"""returns constructors making python values from strings.
+
+	This is only for non-fancy applications with controlled input.  For
+	more general circumstances, you'll want to use the parsing infrastructure.
+
+	In particular, this will return the identity for most non-trivial stuff.
+	Maybe that's wrong, but it will only change as sane literals are defined.
+	"""
+	typeSystem = "python"
+
+	def convert(self, sqlType):
+		funcName = ToPythonBase.convert(self, sqlType)
+		return getattr(literals, funcName)
 
 
 class ToLiteralConverter(object):

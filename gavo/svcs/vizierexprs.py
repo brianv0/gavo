@@ -4,6 +4,7 @@ Classes and methods to support vizier-type specifications on fields.
 
 from __future__ import with_statement
 
+import datetime
 import re
 
 from pyparsing import Word, Literal, Optional, Forward, Group,\
@@ -12,6 +13,7 @@ from pyparsing import Word, Literal, Optional, Forward, Group,\
 
 from gavo import utils
 from gavo import base
+from gavo.base import literals
 from gavo.base import sqlmunge
 from gavo.base import typesystems
 
@@ -192,7 +194,7 @@ def _makePmNode(s, loc, toks):
 def _makeDatePmNode(s, loc, toks):
 	"""returns a +/- node for dates, i.e., toks[1] is a float in days.
 	"""
-	days = typesystems.toPythonTimeDelta(days=toks[1])
+	days = datetime.timedelta(days=toks[1])
 	return NumericNode([toks[0]-days, toks[0]+days], "..")
 
 
@@ -280,7 +282,7 @@ floatLiteral = Regex(utils.floatRE).addParseAction(parseFloat)
 
 # XXX TODO: be a bit more lenient in what you accept as a date
 dateLiteral = Regex(r"\d\d\d\d-\d\d-\d\d(T\d\d:\d\d:\d\d)?").addParseAction(
-			lambda s, pos, tok: typesystems.toPythonDateTime(tok[0]))
+			lambda s, pos, tok: literals.parseDefaultDatetime(tok[0]))
 
 
 def parseNumericExpr(str, baseSymbol=getComplexGrammar(floatLiteral, 

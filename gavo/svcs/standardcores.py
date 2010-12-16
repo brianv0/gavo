@@ -210,7 +210,8 @@ class CondDesc(base.Structure):
 			if inPars.get(f.name) is None:
 				keysMissing.append(f)
 			else:
-				keysFound.append(f)
+				if f.value!=inPars.get(f.name): # non-defaulted
+					keysFound.append(f)
 		if not keysMissing:
 			return True
 		# keys are missing.  That's ok if none were found and we're not required
