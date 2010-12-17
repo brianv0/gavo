@@ -399,46 +399,41 @@ You will usually want to inherit from core::
 The framework will always look of an object named "Core" in the module
 and use this as the custom core.
 
-The core needs an InputDD and an OutputTable like all cores.  You
+The core needs an InputTable and an OutputTable like all cores.  You
 *could* define it in the resource descriptor like this::
 
   <customCore id="createCore" module="bin/create">
-    <inputDD>
-      <make table="pkgs">
-    </inputDD>
+    <inputTable>
+      <inputKey .../>
+    </inputTable>
     <outputTable>
       <column name="itemsAdded" type="integer" tablehead="Items added"/>
     </outputTable>
   </customCore>
 
-However, frequently custom cores have inputDD and outputTables either
-defined by the core itself (rather than, e.g., a service or a core
-definition from XML) or computed dynamically.
-To accomodate this, you can give your core definitions attributes
-grammarXML and outputTableXML, like this::
+It's probably a better idea to define it in the code, though, since
+then it will work without further specifications.  The definitions
+in the code can still be overridden from an RD for special effects.
+Embedding the definitions is done using the class attributes
+``inputTableXML`` and ``outputTableXML``::
 
   class Core(core.Core):
-    grammarXML = """<contextGrammar>
+    inputTableXML = """<inputTable>
       <inputKey name="fileSrc" type="file" tablehead="Local file"
         description="A local file to upload (overrides source URL if given).">
       <inputKey name="tableName" type="text" tablehead="Target Table"
         description="Name of the table to match against.  
           Only tables available for ADQL (see there) can be used here.">
         <values fromdb="tablename from dc_tables where adql=True"/>
-      </inputKey>
-      </contextGrammar>
+      </inputTable>
       """
     # we don't know what's going to be in the output table until we
     # know both the uploaded table and the tableName
     outputTableXML = """<outputTable/>"""
 
-If you don't define the attributes, the cores need the specifications
-from the RD XML.  Specifications there will override what is given in
-the class definition.
-
-You should not override the constructor.  If you need to perform "expensive"
-instanciations or programmatically set inputDD or similar, override the 
-completeElement method, as in the following template::
+You should not override the constructor.  If you need to perform
+"expensive" instanciations, override the completeElement method, as in
+the following template::
 
   def completeElement(self):
     <your code>
@@ -453,10 +448,20 @@ Giving the Core Functionality
 To have the core do something, you have to override the run method,
 which has to have the following signature::
 
-  run(service, inputData, queryMeta) -> outputTable
+  run(service, inputTable, queryMeta) -> stuff
 
-(actually, if you use nonstandard renderers, you may return something
-else than an outputTable, but that's usually not what you want).
+The stuff returned will ususally be a Table instance (that need not
+match the outputTable definition -- the latter is targetted at the
+registry and possibly applications like output field selection).  The
+standard renderers also accept a mime type and a string containing
+some data and will deliver this as-is.  With custom renderers, you could
+return basically anything you want.
+
+Services come up with some idea of the schema of the table they want to
+return and adapt tables coming out of the core to this.  Sometimes, you
+want to suppress this behaviour, e.g., because the service's ideas are
+off.  In that case, set a noPostprocess atttribute on the table to any
+value.
 
 service is a service instance.  In particular, you can access the RD you
 are running in through its rd attribute.  This is useful if you need to
@@ -466,15 +471,11 @@ a service property)::
   pertainingTable = service.rd.getById(
     service.getProperty("pertainingTable"))
 
-inputData is a Data instance created by using inputDD on the data coming
-in from the renderer.  For "standard" inputDDs (i.e., based on
-contextGrammars), you will find the inputs by saying::
+inputTable is a Table instance. Unless the service has a fancy inputDD,
+you simply find the inputKey values in the table's parameters::
 
-  inputData.getPrimaryTable().rows[0]
+  val = inputTable.getParam("fileSrc")
 
-You should return a Table instance.  Frequently, you do not want the
-service to adapt the result to its idea of output fields.  To do this,
-set a noPostprocess atttribute on the table to any value.
 
 
 Errors
