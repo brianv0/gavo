@@ -234,7 +234,7 @@ class SplitCodeGenerator(_CodeGenerator):
 		if t=="smallint":
 			cType = "VAL_SHORT"
 		elif t=="bigint":
-			cType = "VAL_INT_64"
+			cType = "VAL_BIGINT"
 		elif "int" in t:
 			cType = "VAL_INT"
 		elif t in ["real", "float"]:

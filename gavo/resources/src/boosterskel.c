@@ -340,6 +340,9 @@ void real_fieldscanf(char *str, Field *f, valType type, char *fieldName, ...)
 		case VAL_DOUBLE:
 			itemsMatched = sscanf(str, "%lf", &(f->val.c_double));
 			break;
+		case VAL_BIGINT:
+			itemsMatched = sscanf(str, "%Ld", &(f->val.c_int64));
+			break;
 		case VAL_TEXT:
 			f->val.c_ptr = str;
 			break;
