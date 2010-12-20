@@ -81,7 +81,7 @@ class DBIndex(base.Structure):
 			querier.query(self.parent.expand("CREATE INDEX %s ON %s%s (%s)"%(
 				self.dbname, destTableName, usingClause, self.content_)))
 			if self.cluster:
-				querier.query(parent.tableDef.expand(
+				querier.query(self.parent.expand(
 					"CLUSTER %s ON %s"%(self.dbname, destTableName)))
 
 	def drop(self, querier):

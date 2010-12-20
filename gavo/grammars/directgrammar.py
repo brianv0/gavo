@@ -230,7 +230,7 @@ class SplitCodeGenerator(_CodeGenerator):
 		return ['char *curCont = strtok(inputLine, "%s");'%self.splitChar]
 
 	def getItemParser(self, item):
-		t = item.type()
+		t = item.type
 		if t=="smallint":
 			cType = "VAL_SHORT"
 		elif t=="bigint":
