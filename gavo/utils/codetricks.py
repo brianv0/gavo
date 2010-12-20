@@ -316,7 +316,7 @@ def silence():
 
 
 @contextlib.contextmanager
-def sandbox(tmpdir=None):
+def sandbox(tmpdir=None, debug=False):
 	"""sets up and tears down a sandbox directory within tmpdir.
 
 	This is supposed to be used as a context manager.  The object
@@ -335,7 +335,8 @@ def sandbox(tmpdir=None):
 		yield owd
 	finally:
 		os.chdir(owd)
-		shutil.rmtree(wd)
+		if not debug:
+			shutil.rmtree(wd)
 
 
 def runInSandbox(setUp, func, tearDown, *args, **kwargs):
