@@ -247,7 +247,7 @@ class FixupTest(tresc.TestWithDBConnection):
 	def testInvalidFixup(self):
 		self.assertRaisesWithMsg(base.BadCode, 
 			"At (1, 50):"
-			" Bad source code in expression (invalid syntax (line 1))",
+			" Bad source code in function (invalid syntax (<string>, line 2))",
 			base.parseFromString, (rscdef.TableDef, 
 			'<table id="test"><column name="ab" fixup="9m+5s"/></table>'))
 	
@@ -266,15 +266,19 @@ class FixupTest(tresc.TestWithDBConnection):
 			'<table id="testMulti" onDisk="True" temporary="True">'
 			'<column name="ab" type="date"'
 			' fixup="___+datetime.timedelta(days=1)"/>'
-			'<column name="x" type="integer" fixup="___-2"/></table>')
+			'<column name="x" type="integer" fixup="___-2"/>'
+			'<column name="t" type="text" fixup="___ or \'\\test\'"/>'
+			'</table>')
 		t = rsc.TableForDef(td, rows=[
-			{"ab": datetime.date(2002, 2, 2), "x": 14}, 
-			{"ab": datetime.date(2002, 2, 3), "x": 15}],
+			{"ab": datetime.date(2002, 2, 2), "x": 14, 't': "ab"}, 
+			{"ab": datetime.date(2002, 2, 3), "x": 15, 't': None}],
 			connection=self.conn)
 		self.assertEqual(
 			list(t.iterQuery(svcs.OutputTableDef.fromTableDef(td), "")), [
-				{u'x': 12, u'ab': datetime.date(2002, 2, 3)}, 
-				{u'x': 13, u'ab': datetime.date(2002, 2, 4)}])
+				{u'x': 12, u'ab': datetime.date(2002, 2, 3),
+					't': 'ab'}, 
+				{u'x': 13, u'ab': datetime.date(2002, 2, 4),
+					't': 'test macro expansion'}])
 
 
 class STCTest(testhelpers.VerboseTest):

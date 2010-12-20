@@ -180,7 +180,7 @@ class StandardMacroMixin(MacroPackage):
 	def macro_internallink(self, relPath):
 		"""an absolute URL from a path relative to the DC root.
 		"""
-		return config.makeSitePath(relPath)
+		return config.makeAbsoluteURL(relPath)
 
 	def macro_today(self):
 		"""today's date in ISO representation.

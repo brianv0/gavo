@@ -480,12 +480,16 @@ def makeFallbackMeta():
 makeFallbackMeta()
 
 
-def makeSitePath(uri):
-	"""adapts uri for use in an off-root environment.
+def makeSitePath(path):
+	"""returns a fully qualified URL for a server-internal path.
 
 	uri itself needs to be server-absolute (i.e., start with a slash).
 	"""
-	return str(get("web", "nevowRoot")+uri.lstrip("/"))
+	return str(get("web", "nevowRoot")+path.lstrip("/"))
+
+
+def makeAbsoluteURL(path):
+	return str(get("web", "serverURL")+makeSitePath(path))
 
 
 def getBinaryName(baseName):

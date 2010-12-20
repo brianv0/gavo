@@ -553,7 +553,7 @@ this::
       CustomRowIterator.__init__(self, grammar, sourceToken, sourceRow)
       <your code>
 
-The sourceToken, in general, will be a file instance, unless you call
+The sourceToken, in general, will be a file name, unless you call
 makeData manually and forceSource something else.
 
 A row iterator will be instanciated for each source processed.  Thus,

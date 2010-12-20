@@ -287,7 +287,9 @@ class Column(base.Structure):
 	_fixup = UnicodeAttribute("fixup", description=
 		"A python expression the value of which will replace this column's"
 		" value on database reads.  Write a ___ to access the original"
-		' value.  This is for, e.g., URL fixups (fixup="\'http://foo.bar\'+___").'
+		' value.  You can use macros for the embedding table.'
+		' This is for, e.g., simple URL generation'
+		' (fixup="\'\\internallink{/this/svc}\'+___").'
 		' It will *only* kick in when tuples are deserialized from the'
 		" database, i.e., *not* for values taken from tables in memory.",
 		default=None, copyable=True)
@@ -341,8 +343,6 @@ class Column(base.Structure):
 		self._validateNext(Column)
 		if self.restrictedMode and self.fixup:
 			raise base.RestrictedElement("fixup")
-		if self.fixup is not None:
-			utils.ensureExpression(self.fixup, "fixup")
 
 	def validateValue(self, value):
 		"""raises a ValidationError if value does not match the constraints

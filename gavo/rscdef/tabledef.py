@@ -339,8 +339,9 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 			for key, expr in fixups:
 				expr = expr.replace("___", "row['%s']"%key)
 				assignments.append("  row['%s'] = %s"%(key, expr))
-			self.fixupFunction = rmkfuncs.makeProc("fixup",
-				"def fixup(row):\n%s\n  return row"%("\n".join(assignments)),
+			source = self.expand(
+				"def fixup(row):\n%s\n  return row"%("\n".join(assignments)))
+			self.fixupFunction = rmkfuncs.makeProc("fixup", source,
 				"", None)
 
 	def onElementComplete(self):
