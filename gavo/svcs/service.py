@@ -680,33 +680,40 @@ class Service(base.Structure, base.ComputedMetaMixin,
 			return self.inputDD.grammar.inputKeys
 		return self.getCoreFor(renderer).inputTable.params
 
+	def _makeDefaultInputTable(self, renderer, contextData):
+		"""turns contextData into the parameters of the core's input table.
+
+		This is what builds the core input table when the service
+		does not define an inputDD.
+		"""
+		res = rsc.TableForDef(self.getCoreFor(renderer).inputTable)
+		missingRequired = []
+		for par in res.iterParams():
+			# check "None" to avoid clobbering defaults (querying for NULLs
+			# is a difficult matter anyway)
+			if par.name in contextData and contextData[par.name] is not None:
+				try:
+					par.set(contextData[par.name])
+					_ = par.value  # validate input
+				except ValueError, ex:
+					raise base.ui.logOldExc(base.ValidationError(unicode(ex),
+						par.name))
+			if par.required and par.value is None:
+				missingRequired.append(par.name)
+		if missingRequired:
+			raise base.ValidationError("Mandatory field(s) %s empty"%
+				", ".join(missingRequired), missingRequired[0])
+		return res
+
 	def _makeInputTableFor(self, renderer, contextData):
 		"""returns an input table for the core, filled from contextData and
 		adapted for renderer.
 		"""
 		if self.inputDD:
-			res = rsc.makeData(self.inputDD,
+			return rsc.makeData(self.inputDD,
 				parseOptions=rsc.parseValidating, forceSource=contextData
 					).getPrimaryTable()
-		else:
-			res = rsc.TableForDef(self.getCoreFor(renderer).inputTable)
-			missingRequired = []
-			for par in res.iterParams():
-				# check "None" to avoid clobbering defaults (querying for NULLs
-				# is a difficult matter anyway)
-				if par.name in contextData and contextData[par.name] is not None:
-					try:
-						par.set(contextData[par.name])
-						_ = par.value  # validate input
-					except ValueError, ex:
-						raise base.ui.logOldExc(base.ValidationError(unicode(ex),
-							par.name))
-				if par.required and par.value is None:
-					missingRequired.append(par.name)
-			if missingRequired:
-				raise base.ValidationError("Mandatory field(s) %s empty"%
-					", ".join(missingRequired), missingRequired[0])
-		return res
+		return self._makeDefaultInputTable(renderer, contextData)
 
 	def runWithData(self, renderer, contextData, queryMeta):
 		"""runs the service, returning an SvcResult.

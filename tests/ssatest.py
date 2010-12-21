@@ -10,6 +10,7 @@ from gavo import svcs
 from gavo.protocols import ssap
 from gavo.helpers import testhelpers
 from gavo.utils import DEG
+from gavo.web import vodal
 
 import tresc
 
@@ -76,7 +77,7 @@ class ImportTest(_WithSSATableTest):
 		self.assertAlmostEqual(self.row1["ssa_location"].x, 10.1*DEG)
 
 
-class CoreQueries(_WithSSATableTest):
+class CoreQueriesTest(_WithSSATableTest):
 	__metaclass__ = testhelpers.SamplesBasedAutoTest
 
 	def _runTest(self, sample):
@@ -125,7 +126,7 @@ class CoreQueries(_WithSSATableTest):
 
 
 class MetaKeyTest(_WithSSATableTest):
-# these are like CoreQueries except they need custom logic
+# these are like CoreQueries except they exercise custom logic
 	def testTOP(self):
 		res = getRD().getById("s").runFromDict(
 			{"REQUEST": "queryData", "TOP": 1}, "dal.xml")
@@ -146,6 +147,13 @@ class MetaKeyTest(_WithSSATableTest):
 		aMinuteAgo = datetime.datetime.utcnow()-datetime.timedelta(seconds=60)
 		res = getRD().getById("s").runFromDict(
 			{"REQUEST": "queryData", "MTIME": "/%s"%aMinuteAgo}, "dal.xml")
+		self.assertEqual(len(res.original.getPrimaryTable()), 0)
+
+	def testInsensitive(self):
+		aMinuteAgo = datetime.datetime.utcnow()-datetime.timedelta(seconds=60)
+		res = getRD().getById("s").runFromDict(
+			vodal.CaseSemisensitiveDict(
+				{"rEQueST": "queryData", "mtime": "/%s"%aMinuteAgo}), "dal.xml")
 		self.assertEqual(len(res.original.getPrimaryTable()), 0)
 
 	def testMetadata(self):
