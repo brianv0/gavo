@@ -51,7 +51,7 @@ _WORKER_PID = None
 def normalizeTAPFormat(rawFmt):
 	format = rawFmt.lower()
 	try:
-		return tap.FORMAT_CODES[format]
+		return tap.FORMAT_CODES[format][0]
 	except KeyError:
 		raise base.ValidationError(
 			"Unsupported format '%s'."%format, colName="FORMAT",

@@ -25,21 +25,56 @@ from gavo.utils import codetricks
 RD_ID = "__system__/tap"
 
 
+# A mapping of values of TAP's FORMAT parameter to our formats.format codes,
+# IANA mimes and user-readable labels.
+# Used below (1st element of value tuple) and for registry purposes.
 FORMAT_CODES = {
-# A mapping of values of TAP's FORMAT parameter to our formats.format codes.
-	"application/x-votable+xml": "votable",
-	"text/xml": "votable",
-	"votable": "votable",
-	"votable/td": "votabletd",
-	"text/csv": "csv+header",
-	"csv": "csv+header",
-	"csv/plain": "csv",
-	"text/tab-separated-values": "tsv",
-	"tsv": "tsv",
-	"application/fits": "fits",
-	"fits": "fits",
-	"text/html": "html",
-	"html": "html",
+	"application/x-votable+xml": 
+		("votable", "application/x-votable+xml", "VOTable, binary"),
+	"text/xml": 
+		("votable", "application/x-votable+xml", "VOTable, binary"),
+	"votable": 
+		("votable", "application/x-votable+xml", "VOTable, binary"),
+	"votable/td":
+		("votabletd", "application/x-votable+xml", "VOTable, tabledata"),
+	"text/csv": 
+		("csv+header", "text/csv", "CSV, with column labels in 1st line"),
+	"csv":
+		("csv+header", "text/csv", "CSV, with column labels in 1st line"),
+	"csv/plain": 
+		("csv", "text/csv", "CSV, without header"),
+	"text/tab-separated-values": 
+		("tsv", "text/tab-separated-values", 
+			"Tab separated values, without header"),
+	"tsv": 
+		("tsv", "text/tab-separated-values", 
+			"Tab separated values, without header"),
+	"application/fits": 
+		("fits", "application/fits", "FITS binary table"),
+	"fits":
+		("fits", "application/fits", "FITS binary table"),
+	"text/html": 
+		("html", "text/html", "HTML table"),
+	"html": 
+		("html", "text/html", "HTML table"),
+}
+
+
+# this is used below in for registry purposes (values are pairs of
+# IVOA id and a human-readable label).
+SUPPORTED_LANGUAGES = {
+	"ADQL": ("ivo://tap/languages/ADQL-2.0", "ADQL 2.0"),
+	"ADQL-2.0": ("ivo://tap/languages/ADQL-2.0", "ADQL 2.0"),
+}
+
+
+# A list of supported upload methods.  This is only used in the registry
+# interface right now.
+UPLOAD_METHODS = {
+	"inline": ("ivo://tap/uploadmethods", "POST inline upload"),
+	"http": (None, "http URL"),
+	"https": (None, "https URL"),
+	"ftp": (None, "ftp URL"),
 }
 
 
@@ -144,7 +179,7 @@ class LangParameter(uws.ProtocolParameter):
 
 	@classmethod
 	def addParam(cls, value, job):
-		if value not in set(["ADQL", "ADQL-2.0"]):
+		if value not in SUPPORTED_LANGUAGES:
 			raise base.ValidationError("This service does not support the"
 				" query language %s"%value, "LANG")
 		job.parameters["LANG"] = value

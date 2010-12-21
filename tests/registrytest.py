@@ -14,6 +14,7 @@ from gavo import utils
 from gavo.base import sqlsupport
 from gavo.helpers import testhelpers
 from gavo.registry import builders
+from gavo.registry import capabilities
 from gavo.registry import oaiinter
 from gavo.registry import publication
 
@@ -92,5 +93,19 @@ class DeletedTest(testhelpers.VerboseTest):
 		self._assertCanBuildResob()
 
 
+class CapabilityTest(testhelpers.VerboseTest):
+	def testTAP(self):
+		publication = api.getRD("//tap").getById("run").publications[0]
+		publication.parent.addMeta("supportsModel", "Sample Model 1")
+		publication.parent.addMeta("supportsModel.ivoId", "ivo://models/mod1")
+		publication.parent.addMeta("supportsModel", "Sample Model 2")
+		publication.parent.addMeta("supportsModel.ivoId", "ivo://models/mod2")
+		res = capabilities.getCapabilityElement(publication).render()
+		os.popen("xmlstarlet fo", "w").write(res)
+		# XXX TODO: think of better assertions
+		self.failUnless('<dataModel ivoId="ivo://models/mod1">'
+			'Sample Model 1</dataModel>' in res)
+
+
 if __name__=="__main__":
-	testhelpers.main(DeletedTest)
+	testhelpers.main(CapabilityTest)

@@ -34,6 +34,8 @@ registerPrefix("cs", "http://www.ivoa.net/xml/ConeSearch/v1.0",
 	schemaURL("ConeSearch-v1.0.xsd"))
 registerPrefix("sia", "http://www.ivoa.net/xml/SIA/v1.0",
 	schemaURL("SIA-v1.0.xsd"))
+registerPrefix("tap", "http://www.ivoa.net/xml/TAP/v1.0",
+	schemaURL("TAP-v1.0.xsd"))
 
 
 class OAI(object):
@@ -573,13 +575,17 @@ class SCS(object):
 	class extras(SCSElement): pass
 
 
-class TAP:
+class TAP(object):
 	"""is a container for elements describing TAP services.
 
 	A schema for this doesn't exist as of 2010-07, so I'm basically defining
 	an interface element with a couple of attributes as suggested by Ray
 	Plante in http://www.ivoa.net/forum/dal/0910/1620.htm.
 	"""
+	class TAPElement(Element):
+		_prefix = "tap"
+		_local = True
+
 	class interface(VOR.interface):
 		_a_role = "std"
 		_a_xsi_type = "vs:ParamHTTP"
@@ -587,3 +593,18 @@ class TAP:
 
 	class capability(VOR.capability):
 		_a_standardID = 	"ivo://ivoa.net/std/TAP"
+	
+	class dataModel(TAPElement):
+		_a_ivoId = None
+	
+	class language(TAPElement):
+		_a_LANG = None
+		_a_ivoId = None
+	
+	class outputFormat(TAPElement):
+		_a_FORMAT = None
+		_a_mime = None
+	
+	class uploadMethod(TAPElement):
+		_a_protocol = None
+		_a_ivoId = None

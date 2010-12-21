@@ -12,6 +12,7 @@ need the service object, use publication.parent.
 from gavo import base
 from gavo import svcs
 from gavo import utils
+from gavo.base import meta
 from gavo.base import typesystems
 from gavo.registry.common import *
 from gavo.registry.model import (OAI, OAIDC, VOR, VOG, DC, RI, VS,
@@ -270,9 +271,27 @@ class SCSCapabilityMaker(CapabilityMaker):
 		]
 
 
+_tapModelBuilder = meta.ModelBasedBuilder([
+	('supportsModel', meta.stanFactory(TAP.dataModel), (), 
+		{"ivoId": "ivoId"})])
+
 class TAPCapabilityMaker(CapabilityMaker):
 	renderer = "tap"
 	capabilityClass = TAP.capability
+
+	def _makeCapability(self, publication):
+		service = publication.parent
+		from gavo.protocols import tap
+		return CapabilityMaker._makeCapability(self, publication)[
+			_tapModelBuilder.build(service),
+			[TAP.language(ivoId=standardId, LANG=langValue)[label]
+				for langValue, (standardId, label) 
+					in tap.SUPPORTED_LANGUAGES.iteritems()],
+			[TAP.outputFormat(FORMAT=parVal, mime=mime)[label]
+				for parVal, (_, mime, label) in tap.FORMAT_CODES.iteritems()],
+			[TAP.uploadMethod(protocol=protocol, ivoId=ivoId)[label]
+				for protocol, (ivoId, label) in tap.UPLOAD_METHODS.iteritems()]]
+
 
 
 class RegistryCapabilityMaker(CapabilityMaker):
