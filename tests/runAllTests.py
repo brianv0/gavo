@@ -9,6 +9,7 @@ import unittest
 import doctest
 import glob
 import os
+import subprocess
 import warnings
 
 from gavo.imp import testresources
@@ -37,7 +38,7 @@ def getDoctests():
 	return unittest.TestSuite(doctests)
 
 
-def runTrialTest():
+def runTrialTests():
 	"""runs trial-based tests, suppressing output, but raising an error if
 	any of the tests failed.
 	"""
@@ -45,15 +46,13 @@ def runTrialTest():
 		del os.environ["GAVO_INPUTSDIR"]
 	except KeyError:
 		pass
-	if os.system("trial test_*.py > /dev/null 2>&1"):
-		raise AssertionError("Trial-based tests failed.  run trial test_*.py to"
-			" find out details")
+	subprocess.call("trial --reporter text test_*.py", shell=True)
 	
 
 if __name__=="__main__":
 	unittestSuite = testresources.TestLoader().loadTestsFromNames(
 		unittestModules)
 	runner = unittest.TextTestRunner()
-	runner.run(unittest.TestSuite([unittestSuite, 
-		getDoctests(),
-		unittest.FunctionTestCase(runTrialTest, description="Trial-based tests")]))
+ 	runner.run(unittest.TestSuite([unittestSuite, getDoctests()]))
+	print "\nTrial-based tests:"
+	runTrialTests()

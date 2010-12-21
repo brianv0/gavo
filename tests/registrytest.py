@@ -95,16 +95,18 @@ class DeletedTest(testhelpers.VerboseTest):
 
 class CapabilityTest(testhelpers.VerboseTest):
 	def testTAP(self):
+		capabilities._TMP_TAPREGEXT_HACK = True
 		publication = api.getRD("//tap").getById("run").publications[0]
 		publication.parent.addMeta("supportsModel", "Sample Model 1")
 		publication.parent.addMeta("supportsModel.ivoId", "ivo://models/mod1")
 		publication.parent.addMeta("supportsModel", "Sample Model 2")
 		publication.parent.addMeta("supportsModel.ivoId", "ivo://models/mod2")
 		res = capabilities.getCapabilityElement(publication).render()
-		os.popen("xmlstarlet fo", "w").write(res)
+		#os.popen("xmlstarlet fo", "w").write(res)
 		# XXX TODO: think of better assertions
 		self.failUnless('<dataModel ivoId="ivo://models/mod1">'
 			'Sample Model 1</dataModel>' in res)
+		capabilities._TMP_TAPREGEXT_HACK = False
 
 
 if __name__=="__main__":

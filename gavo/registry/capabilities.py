@@ -9,6 +9,8 @@ need the service object, use publication.parent.
 
 # XXX TODO: On the move to VODataService 1.1, don't forget regionOfRegard for USNO2X corrections and Magellanic Cloud.
 
+_TMP_TAPREGEXT_HACK = False
+
 from gavo import base
 from gavo import svcs
 from gavo import utils
@@ -280,18 +282,22 @@ class TAPCapabilityMaker(CapabilityMaker):
 	capabilityClass = TAP.capability
 
 	def _makeCapability(self, publication):
-		service = publication.parent
-		from gavo.protocols import tap
-		return CapabilityMaker._makeCapability(self, publication)[
-			_tapModelBuilder.build(service),
-			[TAP.language(ivoId=standardId, LANG=langValue)[label]
-				for langValue, (standardId, label) 
-					in tap.SUPPORTED_LANGUAGES.iteritems()],
-			[TAP.outputFormat(FORMAT=parVal, mime=mime)[label]
-				for parVal, (_, mime, label) in tap.FORMAT_CODES.iteritems()],
-			[TAP.uploadMethod(protocol=protocol, ivoId=ivoId)[label]
-				for protocol, (ivoId, label) in tap.UPLOAD_METHODS.iteritems()]]
-
+		res = CapabilityMaker._makeCapability(self, publication)
+		
+		if _TMP_TAPREGEXT_HACK:
+			service = publication.parent
+			from gavo.protocols import tap
+			res[
+				_tapModelBuilder.build(service),
+				[TAP.language(ivoId=standardId, LANG=langValue)[label]
+					for langValue, (standardId, label) 
+						in tap.SUPPORTED_LANGUAGES.iteritems()],
+				[TAP.outputFormat(FORMAT=parVal, mime=mime)[label]
+					for parVal, (_, mime, label) in tap.FORMAT_CODES.iteritems()],
+				[TAP.uploadMethod(protocol=protocol, ivoId=ivoId)[label]
+					for protocol, (ivoId, label) in tap.UPLOAD_METHODS.iteritems()]]
+		
+		return res
 
 
 class RegistryCapabilityMaker(CapabilityMaker):
