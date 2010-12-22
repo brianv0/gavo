@@ -17,7 +17,7 @@ from gavo.web import formrender
 
 
 class StaticRenderer(formrender.FormMixin, grend.ServiceBasedPage):
-	"""is a renderer that just hands through files.
+	"""A renderer that just hands through files.
 
 	The standard operation here is to set a staticData property pointing
 	to a resdir-relative directory used to serve files for.  Indices

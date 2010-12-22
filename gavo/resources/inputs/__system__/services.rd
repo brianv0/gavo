@@ -192,6 +192,24 @@
 		</outputTable>
 	</service>
 
+<!--
+	<register id="dc">
+		<meta>
+			resType: authority
+			creationDate: 2007-12-19T12:00:00Z
+			title: The GAVO data center
+			shortName: GAVO DC
+			subject: organization
+			managingOrg:ivo://org.gavo.dc
+			description: The GAVO data center provides VO publication \
+				services to all interested parties on behalf of the German \
+				Astrophysical Virtual Observatory.
+			identifier: ivo://org.gavo.dc
+			referenceURL: http://www.g-vo.org
+		</meta>
+	</register>
+-->
+
 	<registryCore id="registrycore"/>
 
 	<service id="registry" core="registrycore" allowed="pubreg.xml">
@@ -199,8 +217,8 @@
 		<meta name="resType">registry</meta>
 		<meta name="title">GAVO Data Center Registry</meta>
 		<meta name="creationDate">2008-05-07T11:33:00</meta>
-		<meta name="description">The GAVO data center registry provides 
-			records for resources in GAVO's data center</meta>
+		<meta name="description">The publishing registry for GAVO's data center
+		and other interested parties.</meta>
 		<meta name="subject">Registry</meta>
 		<meta name="shortName">GAVO DC registry</meta>
 		<meta name="content.type">Archive</meta>

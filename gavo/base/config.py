@@ -248,7 +248,7 @@ class ProfileParser(object):
 
 
 class Configuration(fancyconfig.Configuration):
-	"""is a container for settings.
+	"""A container for settings.
 
 	It is a fancyconfig.Configuration with the addition of making the
 	attributes shared at the class level to ward against multiple imports
@@ -467,18 +467,16 @@ def makeFallbackMeta():
 			srcPath)
 		return
 	f = open(srcPath)
-	for ln in f:
-		ln = ln.strip()
-		if not ln or ln.startswith("#"):
-			continue
-		try:
-			key, val = ln.split(":", 1)
-		except ValueError:
-			raise utils.logOldExc(utils.Error("Bad line in %s: '%s'"%(srcPath, ln)))
-		meta.configMeta.addMeta(key.strip(), val.strip())
+	content = f.read()
+	f.close()
+	meta.parseMetaStream(meta.configMeta, content)
 
 makeFallbackMeta()
 
+
+##########################################################
+# A few utility functions -- we should have a better
+# place for them, really.
 
 def makeSitePath(path):
 	"""returns a fully qualified URL for a server-internal path.

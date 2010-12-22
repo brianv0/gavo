@@ -539,6 +539,38 @@ class XMLTest(testhelpers.VerboseTest):
 			'\nA zero for the number of used images indicates that all images\n'
 			'have some "problem" (such as overexposure).')
 
+	def testAllEmpty(self):
+		mc = parseMetaXML("<meta/>")
+		# assertion: just parses
+	
+	def testWellFormedStream(self):
+		mc = parseMetaXML("<meta> meta_one: value 1 \n meta_two : value2\n</meta>")
+		self.assertEqual(meta.getMetaText(mc, "meta_one"), "value 1")
+		self.assertEqual(meta.getMetaText(mc, "meta_two"), "value2")
+
+	def testNestedStream(self):
+		mc = parseMetaXML("<meta>creator.name:A. Author\ncreator:\ncreator"
+			".name:B.Author</meta>")
+		t = meta.TextBuilder()
+		self.assertEqual(mc.buildRepr("creator", t),
+			[(u'creator.name', u'A. Author'), (u'creator.name', u'B.Author')])
+	
+	def testWithContinuation(self):
+		mc = parseMetaXML("""<meta>longMeta: this Meta \\
+			started on one line and ha\\
+			d a word broken in the middle.
+			shortMeta: This one is short.</meta>""")
+		self.assertEqual(meta.getMetaText(mc, "longMeta"), 
+			"this Meta started on one line and had a word broken in the middle.")
+		self.assertEqual(meta.getMetaText(mc, "shortMeta"), 
+			"This one is short.")
+	
+	def testMalformed(self):
+		self.assertRaisesWithMsg(meta.MetaSyntaxError,
+			"u'just junk' is no valid line for a meta stream",
+			parseMetaXML,
+			("<meta>just junk</meta>",))
+
 
 class ModelValidationTest(testhelpers.VerboseTest):
 	def setUp(self):

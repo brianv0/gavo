@@ -103,9 +103,50 @@ def parseKey(metaKey):
 	return metaKey.split(".")
 
 
+def parseMetaStream(metaContainer, metaStream, expand=None):
+	"""parser meta key/value pairs from metaStream and adds them to
+	metaContainer.
+
+	If expand is given, it must be a function expanding macros.
+
+	The stream format is: 
+	
+	 - continuation lines with backslashes, where any sequence of 
+	   backslash, (cr?) lf (blank or tab)* is replaced by nothing.
+	 - comments are lines like (ws*)# anything
+	 - empty lines are no-ops
+	 - all other lines are (ws*)<key>(ws*):(ws*)value(ws*)
+	"""
+	if metaStream is None:
+		return
+
+	# handle continuation lines
+	metaStream = re.sub("\\\\\r?\n[\t ]*", "", metaStream)
+
+	for line in metaStream.split("\n"):
+		line = line.strip()
+		if line.startswith("#") or not line:
+			continue
+		try:
+			key, value = line.split(":", 1)
+		except ValueError:
+			raise MetaSyntaxError("%s is no valid line for a meta stream"%
+				repr(line), None,
+				hint="In general, meta streams contain lines like 'meta.key:"
+				" meta value; see also the documentation.")
+
+		if expand is not None and '\\' in value:
+			value = expand(value)
+
+		metaContainer.addMeta(key.strip(), value.strip())
+				
+
 class MetaParser(common.Parser):
-	"""is a structure parser that kicks in when meta information is 
+	"""A structure parser that kicks in when meta information is 
 	parsed from XML.
+
+	This parser can also handle the notation with an attribute-less
+	meta tag and lf-separated colon-pairs as content.
 	"""
 # These are constructed a lot, so let's keep __init__ as clean as possible, 
 # shall we?
@@ -134,23 +175,29 @@ class MetaParser(common.Parser):
 
 	def _getMetaValue(self):
 		content = self.attrs.pop("content_", "")
-		try:
-			content = utils.fixIndentation(content, "", 1).rstrip()
-		except common.Error, ex:
-			raise utils.logOldExc(common.StructureError("Bad text in meta value"
-				" (%s)"%ex))
-		mv = makeMetaValue(content, **self.attrs)
-		if not "name" in self.attrs:
-			raise common.StructureError("meta elements must have a"
-				" name attribute")
-		return self.attrs.pop("name"), mv
+		if not self.attrs: # content only, parse this as a meta stream
+			parseMetaStream(self.container, content,
+				getattr(self.container, "expand", None))
+			return None, None
+		else:
+			try:
+				content = utils.fixIndentation(content, "", 1).rstrip()
+			except common.Error, ex:
+				raise utils.logOldExc(common.StructureError("Bad text in meta value"
+					" (%s)"%ex))
+			mv = makeMetaValue(content, **self.attrs)
+			if not "name" in self.attrs:
+				raise common.StructureError("meta elements must have a"
+					" name attribute")
+			return self.attrs.pop("name"), mv
 
 	def end_(self, ctx, name, value):
 		if name=="meta":
 			key, mv = self._getMetaValue()
 			for child in self.children:
 				mv.addMeta(*child)
-			self.container.addMeta(key, mv)
+			if key is not None:
+				self.container.addMeta(key, mv)
 			return self.nextParser
 		else:
 			self.next = None
@@ -158,11 +205,11 @@ class MetaParser(common.Parser):
 
 
 class MetaAttribute(attrdef.AttributeDef):
-	"""is an attribute magically inserting meta values to Structures mixing
+	"""An attribute magically inserting meta values to Structures mixing
 	in MetaMixin.
 
-	We don't want to keep metadata in structures, so we define a parser
-	of our own in here.
+	We don't want to keep metadata itself in structures for performance
+	reasons, so we define a parser of our own in here.
 	"""
 	typedesc = "Metadata"
 
