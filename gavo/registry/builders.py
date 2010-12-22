@@ -138,7 +138,7 @@ def getOAIHeaderElementForRestup(restup):
 		OAI.datestamp[restup["recTimestamp"].strftime("%Y-%m-%d")],
 		[
 			OAI.setSpec[setName] 
-				for setName in servicelist.getSetsForService(restup["shortName"])]]
+				for setName in servicelist.getSetsForResource(restup)]]
 
 
 ###################### Direct children of OAI.PMH

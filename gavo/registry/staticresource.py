@@ -94,8 +94,8 @@ class DeletedResource(NonServiceResource):
 
 	def __init__(self, ivoId, resTuple):
 		self.resTuple = resTuple
-		self.rd = _FakeRD(resTuple["sourceRd"])
-		self.id = resTuple["internalId"]
+		self.rd = _FakeRD(resTuple["sourceRD"])
+		self.id = resTuple["resId"]
 		NonServiceResource.__init__(self, self.resTuple["dateUpdated"])
 		self.setMeta("identifier", ivoId)
 		self.setMeta("status", "deleted")

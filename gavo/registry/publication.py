@@ -29,8 +29,8 @@ def makeBaseRecord(service):
 	"""
 	rec = {}
 	rec["shortName"] = str(service.getMeta("shortName", raiseOnFail=True))
-	rec["sourceRd"] = service.rd.sourceId
-	rec["internalId"] = service.id
+	rec["sourceRD"] = service.rd.sourceId
+	rec["resId"] = service.id
 	rec["title"] = unicode(service.getMeta("title")) or rec["shortName"]
 	rec["deleted"] = False
 	rec["recTimestamp"] = datetime.datetime.utcnow()
@@ -152,6 +152,10 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 			msg = ("Aborting publication of '%s' at service '%s': Resource"
 				" record generation failed: %s"%(
 				rd.sourceId, ex.carrier.id, str(ex)))
+		except Exception, ex:
+			base.ui.notifyError("Fatal error while publishing from RD %s: %s"%(
+				rd.sourceId, str(ex)))
+			raise
 
 		if msg is not None:
 			if onlyWarn:
@@ -227,7 +231,7 @@ def updateRegistryTimestamp():
 	q = base.SimpleQuerier()
 	regSrv = getRegistryService()
 	q.runIsolatedQuery("UPDATE services SET dateupdated=%(now)s"
-		" WHERE sourcerd=%(rdId)s AND internalid=%(sId)s", {
+		" WHERE sourcerd=%(rdId)s AND resId=%(sId)s", {
 		"rdId": regSrv.rd.sourceId,
 		"sId": regSrv.id,
 		"now": datetime.datetime.utcnow(),

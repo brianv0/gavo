@@ -116,7 +116,7 @@ class MetaTableMixin(object):
 		t = DBTable(self.dcTablesRD.getTableDefById("tablemeta"),
 			connection=self.connection)
 		t.addRow({"tableName": self.tableDef.getQName(), 
-			"sourceRd": self.tableDef.rd.sourceId,
+			"sourceRD": self.tableDef.rd.sourceId,
 			"adql": self.tableDef.adql, 
 			"tableDesc": base.getMetaText(self.tableDef, "description"),
 			"resDesc": base.getMetaText(self.tableDef.rd, "description"),})

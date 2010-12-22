@@ -4,13 +4,12 @@ Dropping resources.  For now, you can only drop entire RDs.
 
 import os
 import sys
-from optparse import OptionParser
 
 from gavo import api
 from gavo.protocols import tap
 
 
-def drop(opts, rdId):
+def drop(opts, rdId, ddIds=None):
 	"""drops the data and services defined in the RD selected by rdId.
 	"""
 	try:
@@ -19,10 +18,13 @@ def drop(opts, rdId):
 		rd = api.getRD(rdId, forImport=True)
 	connection = api.getDBConnection("admin")
 	for dd in rd.dds:
+		if ddIds is not None and dd.id not in ddIds:
+			continue
 		res = api.Data.drop(dd, connection=connection)
-	from gavo.registry import servicelist
-	servicelist.cleanServiceTablesFor(rd, connection)
-	tap.unpublishFromTAP(rd, connection)
+	if ddIds is None:
+		from gavo.registry import servicelist
+		servicelist.cleanServiceTablesFor(rd, connection)
+		tap.unpublishFromTAP(rd, connection)
 	connection.commit()
 
 
@@ -31,13 +33,19 @@ def main():
 	selected RD.
 	"""
 	def parseCmdline():
-		parser = OptionParser(usage="%prog [options] <rd-id>",
+		from gavo.imp.argparse import ArgumentParser
+		parser = ArgumentParser(
 			description="Drops all tables made in an RD's data element.")
-		(opts, args) = parser.parse_args()
-		if len(args)!=1:
-			parser.print_help()
-			sys.exit(1)
+		parser.add_argument("rdid", help="RD path or id to drop")
+		parser.add_argument("ddids", help="Optional dd id(s) if you"
+			" do not want to drop the entire RD.  Note that no service"
+			" publications will be undone if you give DD ids.", nargs="*")
+		return parser.parse_args()
 		return opts, args
 
-	opts, args = parseCmdline()
-	drop(opts, args[0])
+	opts = parseCmdline()
+	rdId = opts.rdid
+	ddIds = None
+	if opts.ddids:
+		ddIds = set(opts.ddids)
+	drop(opts, rdId, ddIds)

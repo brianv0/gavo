@@ -85,6 +85,14 @@ Date literals can be specified `as for Postgresql <http://www.postgresql.org/doc
 you always need to use strings.  So, ``'2000-12-31'`` or ``'J2416642.5'``
 are both valid date specifications.  See also `Story II: Historic Lights`_
 
+The ADQL (unfortunately) does not allow boolean columns.  Within the data
+center, we do have boolean columns here and there, and it would be shame to
+dumb them down to integers.  They show up as INTEGERs in TAP_SCHEMA, though.
+When you try to compare integers to them, you get an error message to the
+effect that an "operator does not exist: boolean = integer".  To query against
+such columns (and have valid ADQL), use ``col='True'`` or ``col='False'``.
+
+
 Usability
 '''''''''
 

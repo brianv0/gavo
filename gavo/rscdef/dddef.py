@@ -180,7 +180,9 @@ class Make(base.Structure, scripting.ScriptingMixin):
 
 	_table = base.ReferenceAttribute("table", 
 		description="Reference to the table to be embedded",
-		default=base.Undefined, copyable=True)
+		default=base.Undefined, 
+		copyable=True,
+		forceType=tabledef.TableDef)
 
 	_rowmaker = base.ReferenceAttribute("rowmaker", 
 		default=base.NotGiven,

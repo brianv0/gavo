@@ -64,7 +64,7 @@ tables and the RDs the tables come from. -->
 
 		<column name="tableName" description="Fully qualified table name"
 			type="text" verbLevel="1"/>
-		<column name="sourceRd" type="text"
+		<column name="sourceRD" type="text"
 			description="Id of the resource descriptor containing the table's definition"
 			tablehead="RD" verbLevel="15"/>
 		<column name="tableDesc" type="text"
@@ -76,7 +76,7 @@ tables and the RDs the tables come from. -->
 		<column name="adql" type="boolean"
 			description="True if this table may be accessed using ADQL"
 			verbLevel="30"/>
-		<primary>tableName, sourceRd</primary>
+		<primary>tableName, sourceRD</primary>
 	</table>
 
 	<data id="import">

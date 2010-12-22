@@ -6,17 +6,27 @@
 		services providing astronomical and related data on behalf of
 		the German Astronomical Observatory.</meta>
 
-	<!-- Tables related to services. 
-	These have to match whatever is done in gavo.web.servicelist -->
+	<!-- Tables related to resources (this used to be for services exclusively,
+	hence the names.) 
 
-	<table system="True" id="services" forceUnique="True" onDisk="True"
-			dupePolicy="overwrite" primary="internalId,sourceRd">
-		<column name="shortName" type="text"
-			tablehead="Service ID"/>
-		<column name="internalId" type="text"
-			tablehead="Internal relative id" displayHint="type=hidden"/>
-		<column name="sourceRd" type="text"
+	These have to match whatever is done in gavo.registry; most explanations
+	are around there, but quickly: RD+id identify a resource uniquely.
+	Publication takes into account the renderer for services; renderer
+	is rcdisplay for non-rendered services. 
+	
+	The main reason we're not using foreign keys here is that we need
+	to handle deleted records and much of the automatic management
+	afforded by foreign keys would work against us here.
+	-->
+
+	<table system="True" id="resources" forceUnique="True" onDisk="True"
+			dupePolicy="overwrite" primary="sourceRD,resId">
+		<column name="sourceRD" type="text"
 			tablehead="Source RD" required="True"/>
+		<column name="resId" type="text"
+			tablehead="RD-relative id" displayHint="type=hidden"/>
+		<column name="shortName" type="text"
+			tablehead="Short"/>
 		<column name="title" type="text" required="True"/>
 		<column name="description" type="text"/>
 		<column name="owner" type="text"/>
@@ -26,32 +36,36 @@
 		<column name="deleted" type="boolean"/>
 	</table>
 
-	<table system="True" id="srv_interfaces" forceUnique="True" onDisk="True"
-			primary="accessURL">
-		<column name="sourceRd" type="text" tablehead="Source RD"/>
-		<column name="shortName" type="text"/>
+	<table system="True" id="interfaces" forceUnique="True" onDisk="True"
+			primary="accessURL" namePath="resources">
+		<column original="sourceRD"/>
+		<column original="resId"/>
 		<column name="accessURL" type="text"/>
 		<column name="referenceURL" type="text"/>
 		<column name="browseable" type="boolean"/>
 		<column name="renderer" type="text"/>
 	</table>
 
-	<table system="True" id="srv_sets" forceUnique="True" onDisk="True"
-			dupePolicy="overwrite" primary="shortName, setName, renderer">
-		<column name="shortName" type="text"/>
+	<table system="True" id="sets" forceUnique="True" onDisk="True"
+			dupePolicy="overwrite" 
+			primary="sourceRD, resId, renderer, setName"
+			namePath="resources">
+		<column original="sourceRD"/>
+		<column original="resId"/>
 		<column name="setName" type="text" tablehead="Set name"
-			description="Name of an OAI set.  Here, probably only 'local' and 'ivo_managed' will output anything sensible"/>
-		<column name="sourceRd" type="text" tablehead="Source RD"/>
+			description="Name of an OAI set.  Here, probably only 'local' 
+				and 'ivo_managed' will yield anything."/>
 		<column name="renderer" type="text"/>
 		<column name="deleted" type="boolean"/>
 	</table>
 			
-	<table system="True" id="srv_subjs" forceUnique="True" onDisk="True"
-			primary="shortName, subject">
-		<column name="shortName" type="text"/>
-		<column name="sourceRd" type="text" tablehead="Source RD"/>
+	<table system="True" id="subjects" forceUnique="True" onDisk="True"
+			primary="sourceRD, resId, subject" namePath="resources">
+		<column original="sourceRD"/>
+		<column original="resId"/>
 		<column name="subject" type="text"/>
 	</table>
+
 
 	<data id="tables">
 		<meta name="description">gavo imp --system this to create the service 
@@ -68,7 +82,7 @@
 		  in sets and services since oai may query those.  In interfaces
 			and subjects we can safely delete them.  All that will be overwritten
 			by new entries if they come. -->
-		<make table="services">
+		<make table="resources">
 			<script type="newSource" lang="python" id="markDeleted">
 				table.query("UPDATE \curtable SET deleted=True"
 					" WHERE sourceRD=%(sourceRD)s",
@@ -76,77 +90,77 @@
 			</script>
 		</make>
 
-		<make table="srv_interfaces" rowmaker="make_interfaces">
+		<make table="interfaces" rowmaker="make_interfaces">
 			<script type="newSource" lang="python" id="deleteByRDId">
 				table.deleteMatching(
-					"sourceRd=%(sourceRD)s", {"sourceRD": sourceToken.sourceId})
+					"sourceRD=%(sourceRD)s", {"sourceRD": sourceToken.sourceId})
 			</script>
 		</make>
 
-		<make table="srv_sets">
+		<make table="sets">
 			<script original="markDeleted"/>
 		</make>
 
-		<make table="srv_subjs">
+		<make table="subjects">
 			<script original="deleteByRDId"/>
 		</make>
 	</data>
 
-	<table id="srv_join" namePath="services" onDisk="true">
-		<column original="shortName"/>
-		<column original="internalId"/>
-		<column original="sourceRd"/>
+	<table id="resources_join" namePath="resources" onDisk="true">
+		<column original="sourceRD"/>
+		<column original="resId"/>
 		<column original="title"/>
 		<column original="description"/>
 		<column original="owner"/>
 		<column original="dateUpdated"/>
 		<column original="recTimestamp"/>
 		<column original="deleted"/>
-		<column original="srv_interfaces.accessURL"/>
-		<column original="srv_interfaces.referenceURL"/>
-		<column original="srv_interfaces.browseable"/>
-		<column original="srv_interfaces.renderer"/>
-		<column original="srv_sets.setName"/>
+		<column original="interfaces.accessURL"/>
+		<column original="interfaces.referenceURL"/>
+		<column original="interfaces.browseable"/>
+		<column original="interfaces.renderer"/>
+		<column original="sets.setName"/>
 
 		<viewStatement>
-			CREATE OR REPLACE VIEW dc.srv_join AS (
+			CREATE OR REPLACE VIEW dc.resources_join AS (
 				SELECT \colNames
 				FROM 
-					dc.services 
-					NATURAL JOIN dc.srv_sets
-					NATURAL LEFT OUTER JOIN dc.srv_interfaces)
+					dc.resources 
+					NATURAL JOIN dc.sets
+					NATURAL LEFT OUTER JOIN dc.interfaces)
 		</viewStatement> <!-- The left outer join is crucial for resource records
 			  without interfaces -->
 	</table>
 
-	<table id="srv_subjs_join" namePath="services" onDisk="true">
-		<column original="srv_subjs.subject"/>
-		<column original="shortName"/>
+	<table id="subjects_join" namePath="resources" onDisk="true">
+		<column original="subjects.subject"/>
+		<column original="sourceRD"/>
+		<column original="resId"/>
 		<column original="title"/>
 		<column original="owner"/>
-		<column original="srv_interfaces.accessURL"/>
-		<column original="srv_interfaces.referenceURL"/>
-		<column original="srv_interfaces.browseable"/>
-		<column original="srv_sets.setName"/>
+		<column original="interfaces.accessURL"/>
+		<column original="interfaces.referenceURL"/>
+		<column original="interfaces.browseable"/>
+		<column original="sets.setName"/>
 
 		<viewStatement>
-			CREATE OR REPLACE VIEW dc.srv_subjs_join AS (
+			CREATE OR REPLACE VIEW dc.subjects_join AS (
 				SELECT \colNames
 				FROM 
-					dc.srv_interfaces 
-					NATURAL JOIN dc.services 
-					NATURAL JOIN dc.srv_subjs 
-					NATURAL JOIN dc.srv_sets
+					dc.interfaces 
+					NATURAL JOIN dc.resources 
+					NATURAL JOIN dc.subjects 
+					NATURAL JOIN dc.sets
 				ORDER BY subject)
 		</viewStatement>
 	</table>
 
 	<data id="views">
-		<make table="srv_join"/>
-		<make table="srv_subjs_join"/>
+		<make table="resources_join"/>
+		<make table="subjects_join"/>
 	</data>
 
-	<dbCore queriedTable="srv_join" id="overviewcore">
+	<dbCore queriedTable="resources_join" id="overviewcore">
 		<condDesc buildFrom="setName"/>
 	</dbCore>
 
@@ -166,9 +180,9 @@
 			<meta name="accessURL">http://vo.ari.uni-heidelberg.de/docs/DaCHS</meta>
 		</publish>
 
-		<outputTable namePath="srv_join">
-			<outputField original="shortName"/>
-			<outputField original="sourceRd"/>
+		<outputTable namePath="resources_join">
+			<outputField original="sourceRD"/>
+			<outputField original="resId"/>
 			<outputField original="title"/>
 			<outputField original="owner"/>
 			<outputField original="dateUpdated" unit="Y-M-D"/>
@@ -239,4 +253,18 @@
 				return ""
 		</customRF>
 	</service>
+
+
+
+	<!-- stuff to drop old (rev. around 1700) service tables.  Remove
+	around rev. 2000. -->
+	<data id="dropOld" auto="False">
+		<LOOP listItems="services srv_sets srv_interfaces srv_subjs">
+			<events>
+				<make>
+					<table id="\item" onDisk="True"/>
+				</make>
+			</events>
+		</LOOP>
+	</data>
 </resource>

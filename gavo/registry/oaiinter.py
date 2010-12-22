@@ -188,10 +188,12 @@ def _parseOAIPars(pars):
 		setName = pars["set"]
 	else:
 		setName = "ivo_managed"
-	sqlFrags.append("EXISTS (SELECT setName from dc.srv_sets WHERE"
-		" srv_sets.shortName=services.shortName"
-		" AND setname=%%(%s)s)"%(base.getSQLKey("set", 
-		setName, sqlPars)))
+	# we should join for this, but we'd need more careful query 
+	# construction then...
+	sqlFrags.append("EXISTS (SELECT setName from dc.sets WHERE"
+		" sets.resId=resources.resId"
+		" AND sets.sourceRD=resources.sourceRD"
+		" AND setname=%%(%s)s)"%(base.getSQLKey("set", setName, sqlPars)))
 	return " AND ".join(sqlFrags), sqlPars
 
 
@@ -206,7 +208,7 @@ def getMatchingRestups(pars, connection=None):
 	"""
 	frag, pars = _parseOAIPars(pars)
 	try:
-		srvTable = rsc.TableForDef(getServicesRD().getById("services"),
+		srvTable = rsc.TableForDef(getServicesRD().getById("resources"),
 			connection=connection)
 		res = list(srvTable.iterQuery(srvTable.tableDef, frag, pars))
 		srvTable.close()

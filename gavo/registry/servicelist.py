@@ -11,49 +11,37 @@ from gavo.registry import staticresource
 from gavo.registry.common import *
 
 
-def getShortNamesForSets(queriedSets):
-	"""returns the list of service shortNames that are assigned to any of
-	the set names mentioned in the list queriedSets.
+def getSetsForResource(restup):
+	"""returns the list of set names the resource described by restup belongs to.
 	"""
-	tableDef = getServicesRD().getById("srv_sets")
-	table = rsc.TableForDef(tableDef)
-	destTableDef = rscdef.TableDef(None, columns=[tableDef.getColumnByName(
-		"shortName")])
-	return [str(r["shortName"])
-		for r in table.iterQuery(destTableDef, "setName IN %(sets)s",
-		{"sets": queriedSets})]
-
-
-def getSetsForService(shortName):
-	"""returns the list of set names the service shortName belongs to.
-	"""
-	tableDef = getServicesRD().getById("srv_sets")
+	tableDef = getServicesRD().getById("sets")
 	table = rsc.TableForDef(tableDef)
 	destTableDef = base.makeStruct(rscdef.TableDef,
 		columns=[tableDef.getColumnByName("setName")])
 	return set(str(r["setName"])
-		for r in table.iterQuery(destTableDef, "shortName=%(name)s",
-		{"name": shortName}))
+		for r in table.iterQuery(destTableDef, 
+			"sourceRD=%(sourceRD)s AND resId=%(resId)s", restup))
 
 
 def getSets():
 	"""returns a sequence of dicts giving setName and and a list of
 	services belonging to that set.
 	"""
-	tableDef = getServicesRD().getById("srv_sets")
+	tableDef = getServicesRD().getById("sets")
 	table = rsc.TableForDef(tableDef)
 	setMembers = {}
 	for rec in table:
-		setMembers.setdefault(rec["setName"], []).append(rec["shortName"])
+		setMembers.setdefault(rec["setName"], []).append(
+			(rec["sourceRD"], rec["resId"]))
 	return [{"setName": key, "services": value} 
 		for key, value in setMembers.iteritems()]
 
 
-def queryServicesList(whereClause="", pars={}, tableName="srv_join"):
+def queryServicesList(whereClause="", pars={}, tableName="resources_join"):
 	"""returns a list of services based on selection criteria in
 	whereClause.
 
-	The table queried is the srv_join view, and you'll get back all
+	The table queried is the resources_join view, and you'll get back all
 	fields defined there.
 	"""
 	td = getServicesRD().getById(tableName)
@@ -70,7 +58,7 @@ def querySubjectsList(setName=None):
 	"""
 	setName = setName or 'local'
 	svcsForSubjs = {}
-	td = base.caches.getRD(SERVICELIST_ID).getById("srv_subjs_join")
+	td = base.caches.getRD(SERVICELIST_ID).getById("subjects_join")
 	otd = svcs.OutputTableDef.fromTableDef(td)
 	for row in rsc.TableForDef(td).iterQuery(otd, 
 			"setName=%(setName)s", {"setName": setName}):
@@ -128,7 +116,7 @@ def getTableDef(tableName):
 	If no such table is known to the system, a NotFoundError is raised.
 	"""
 	q = base.SimpleQuerier()
-	res = q.query("SELECT sourceRd FROM dc.tablemeta WHERE"
+	res = q.query("SELECT sourceRD FROM dc.tablemeta WHERE"
 			" tableName=%(tableName)s", {"tableName": tableName}).fetchall()
 	q.close()
 	if len(res)!=1:

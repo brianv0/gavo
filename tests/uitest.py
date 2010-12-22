@@ -101,8 +101,6 @@ class CLITest(testhelpers.VerboseTest):
 				"AstroCoordSystem.SpaceFrame.CoordRefFrame" in msg)
 
 	def testLifecycle(self):
-		"""runs a complete lifecycle of a resource.
-		"""
 		querier = base.SimpleQuerier()
 		try:
 			self.assertOutput(cli.main, 
@@ -116,7 +114,7 @@ class CLITest(testhelpers.VerboseTest):
 			self.assertOutput(cli.main,
 				argList=["--disable-spew", "--suppress-log", "publish", "data/test"])
 
-			self.failUnless(list(querier.query("SELECT * FROM dc.srv_subjs"
+			self.failUnless(list(querier.query("SELECT * FROM dc.subjects"
 				" WHERE subject=%(s)s", {'s': "Problems, somebody else's"})))
 
 			# drop it all, make sure all traces are gone
@@ -124,7 +122,7 @@ class CLITest(testhelpers.VerboseTest):
 				argList=["--disable-spew", "--suppress-log",
 					"drop", "data/test"], expectedStdout="", expectedStderr="")
 
-			self.failIf(list(querier.query("SELECT * FROM dc.srv_subjs"
+			self.failIf(list(querier.query("SELECT * FROM dc.subjects"
 				" WHERE subject=%(s)s", {'s': "Problems, somebody else's"})))
 			self.failIf(querier.tableExists("test.prodtest"))
 		finally:

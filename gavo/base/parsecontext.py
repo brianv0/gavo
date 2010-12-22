@@ -261,7 +261,7 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 		"""
 		if self.forceType is None:
 			raise common.StructureError("Only references allowed for %s, but"
-				" an immediate object was found"%self.refAttr.name_, 
+				" an immediate object was found"%self.name_, 
 				hint="This means that"
 				" you tried to replace a reference to an element with"
 				" the element itself.  This is only allowed if the reference"

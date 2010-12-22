@@ -44,7 +44,7 @@ class DeletedTest(testhelpers.VerboseTest):
 		matches = [tup for tup in oaiinter.getMatchingRestups(
 			{"from": yesterday.strftime(utils.isoTimestampFmt)}, 
 				connection=self.connection)
-			if tup["sourceRd"]==self.rdId]
+			if tup["sourceRD"]==self.rdId]
 		self.failUnless(len(matches)==1, "Publication did not write record.")
 		match = matches[0]
 		self.failUnless(
@@ -56,7 +56,7 @@ class DeletedTest(testhelpers.VerboseTest):
 		matches = [tup for tup in oaiinter.getMatchingRestups(
 			{"from": yesterday.strftime(utils.isoTimestampFmt)}, 
 				connection=self.connection)
-			if tup["sourceRd"]==self.rdId]
+			if tup["sourceRD"]==self.rdId]
 		self.failUnless(len(matches)==1, "Unpublication deleted record.")
 		match = matches[0]
 		self.failUnless(match["deleted"],
@@ -65,7 +65,7 @@ class DeletedTest(testhelpers.VerboseTest):
 	def _assertCanBuildResob(self):
 		restup = [tup for tup in oaiinter.getMatchingRestups(
 			{}, connection=self.connection)
-			if tup["sourceRd"]==self.rdId][0]
+			if tup["sourceRD"]==self.rdId][0]
 		resob = registry.getResobFromRestup(restup)
 		self.assertEqual(resob.resType, "deleted")
 		dcRepr = builders.getDCResourceElement(resob).render()
