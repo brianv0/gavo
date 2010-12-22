@@ -12,7 +12,10 @@ from gavo.web import formrender
 
 
 class Uploader(formrender.Form):
-	"""is a renderer allowing for updates to individual records using file upload.
+	"""A renderer allowing for updates to individual records using file upload.
+
+	This renderer exposes a form with a file widget.  It is likely that
+	the interface will change.
 	"""
 
 	name = "upload"
@@ -43,11 +46,12 @@ class Uploader(formrender.Form):
 
 
 class MachineUploader(Uploader):
-	"""is a renderer allowing for updates to individual records using file 
+	"""A renderer allowing for updates to individual records using file 
 	uploads.
 
 	The difference to Uploader is that no form-redisplay will be done.
 	All errors are reported through HTTP response codes and text strings.
+	It is likely that this renderer will change and/or go away.
 	"""
 
 	name = "mupload"

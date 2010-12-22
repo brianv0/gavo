@@ -15,7 +15,7 @@ from gavo.web import wsdl
 
 
 class SOAPProcessor(soap.SOAPPublisher):
-	"""is a helper to the SOAP renderer.
+	"""A helper to the SOAP renderer.
 
 	It's actually a nevow resource ("page"), so whatever really has
 	to do with SOAP (as opposed to returning WSDL) is done by this.
@@ -56,7 +56,11 @@ class SOAPProcessor(soap.SOAPPublisher):
 
 
 class SOAPRenderer(grend.ServiceBasedRenderer):
-	"""is a renderer that receives and formats SOAP messages.
+	"""A renderer that receives and formats SOAP messages.
+
+	This is for remote procedure calls.  In particular, the renderer takes
+	care that you can obtain a WSDL definition of the service by
+	appending ?wsdl to the access URL.
 	"""
 	name="soap"
 	preferredMethod = "POST"

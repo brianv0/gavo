@@ -102,6 +102,10 @@ _availabilityBuilder = meta.ModelBasedBuilder([
 
 class VOSIAvailabilityRenderer(VOSIRenderer):
 	"""A renderer for a VOSI availability endpoint.
+
+	An endpoint with this renderer is automatically registered for
+	every service.	The answers can be configured using the admin
+	renderer.
 	"""
 	name = "availability"
 
@@ -113,6 +117,10 @@ class VOSIAvailabilityRenderer(VOSIRenderer):
 
 class VOSICapabilityRenderer(VOSIRenderer):
 	"""A renderer for a VOSI capability endpoint.
+
+	An endpoint with this renderer is automatically registered for
+	every service.	The responses contain information on what renderers
+	("interfaces") are available for a service and what properties they have.
 	"""
 	name = "capabilities"
 
@@ -127,6 +135,10 @@ class VOSICapabilityRenderer(VOSIRenderer):
 
 class VOSITablesetRenderer(VOSIRenderer):
 	"""A renderer for a VOSI table metadata endpoint.
+
+	An endpoint with this renderer is automatically registered for
+	every service.	The responses contain information on the tables
+	exposed by a given service.
 	"""
 	name = "tableMetadata"
 

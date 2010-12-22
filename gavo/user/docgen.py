@@ -227,7 +227,7 @@ class StructDocMaker(object):
 			traceback.print_exc()
 
 	def getDocs(self):
-		self.docParts.sort()
+		self.docParts.sort(key=lambda t: t[0].upper())
 		resDoc = []
 		for title, doc in self.docParts:
 			resDoc.extend(doc)
@@ -274,6 +274,23 @@ def getActiveTagDocs(docStructure):
 	from gavo.base import activetags
 	return getStructDocsFromRegistry(activetags.getActiveTag.registry,
 		docStructure)
+
+
+def getRendererDocs(docStructure):
+	from gavo.svcs import RENDERER_REGISTRY, getRenderer
+	res = []
+	content = RSTFragment()
+	for rendName in sorted(RENDERER_REGISTRY):
+		rend = getRenderer(rendName)
+		if rend.__doc__:
+			content.addHead1("The %s Renderer"%rendName)
+			metaStuff = "*This renderer's parameter style is \"%s\"."%(
+				rend.parameterStyle)
+			if not rend.checkedRenderer:
+				metaStuff += "  This is an unchecked renderer."
+			content.addNormalizedPara(metaStuff+"*")
+			content.addNormalizedPara(rend.__doc__)
+	return content.content
 
 
 def getTriggerDocs(docStructure):
@@ -363,6 +380,7 @@ makeRmkProcDocs = _makeProcsDocumenter(PUBLIC_APPLYS)
 makeRowfilterDocs = _makeProcsDocumenter(PUBLIC_ROWFILTERS)
 
 
+
 def getMetaTypeDocs():
 	from gavo.base import meta
 	content = RSTFragment()
@@ -410,6 +428,5 @@ def main():
 
 
 if __name__=="__main__":
-	c = []
-	makeMacroDoc("qName", rscdef.TableDef.macro_qName, c)
-	print "\n".join(c)
+	docStructure = DocumentStructure()
+	print getRendererDocs(docStructure)

@@ -7,18 +7,9 @@ from gavo.web import grend
 
 
 class CustomRenderer(grend.ServiceBasedPage):
-	"""is a wrapper for user-defined renderers.
+	"""A wrapper for user-defined renderers.
 
-	The services defining this must have a customPage field. 
-	It must be a tuple (page, (name, file, pathname, descr)), where page is
-	a nevow resource constructible like a renderer (i.e., receiving a
-	context and a service).  They will, in general, have locateChild
-	overridden.
-
-	(name, file, pathname, descr) is the result of load_module and is used
-	in the special child "_reload" that will cause a reload of the
-	underlying module and an assignment of its MainPage to realPage
-	(like importparser does on the first import).
+	See `Writing Custom Cores`_ for details.
 	"""
 	name = "custom"
 

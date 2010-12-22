@@ -210,7 +210,10 @@ class RendExplainer(object):
 
 
 class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
-	"""is a renderer that shows information about a service.
+	"""A renderer showing all kinds of metadata on a service.
+
+	This renderer produces the default referenceURL page.  To change its
+	appearance, override the serviceinfo.html template.
 	"""
 	name = "info"
 	

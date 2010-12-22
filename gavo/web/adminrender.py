@@ -27,6 +27,17 @@ class AdminRenderer(formal.ResourceMixin,
 		grend.CustomTemplateMixin,
 		grend.ServiceBasedPage):
 	"""A renderer allowing to block and/or reload services.
+
+	This renderer could really be attached to any service since
+	it does not call it, but it usually lives on //services/overview.  
+	It will always require authentication.
+
+	It takes the id of the RD to administer from the path segments
+	following the renderer name.
+
+	By virtue of builtin vanity, you can reach the admin renderer
+	at /seffe, and thus you can access /seffe/foo/q to administer
+	the foo/q RD.
 	"""
 	name = "admin"
 	customTemplate = svcs.loadSystemTemplate("admin.html")
@@ -115,7 +126,6 @@ class AdminRenderer(formal.ResourceMixin,
 	
 	def render_traceback(self, ctx, data):
 		return ctx.tag[self.reloadTB]
-
 
 	def renderHTTP(self, ctx):
 		# naked renderer means admin services itself

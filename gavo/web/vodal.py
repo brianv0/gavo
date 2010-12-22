@@ -174,11 +174,6 @@ class SCSRenderer(DALRenderer):
 	These do their error signaling in the value attribute of an
 	INFO child of RESOURCE.
 
-	Services using this renderer *must* have meta items testQuery.ra and
-	testQuery.dec set to the (decimal) RA and dec of an object in the 
-	published catalogue (actually, to a position within 0.001 deg of such
-	an object).
-
 	You must set the following metadata items on services using
 	this renderer if you want to register them:
 
@@ -231,7 +226,7 @@ class SCSRenderer(DALRenderer):
 
 
 class SIAPRenderer(DALRenderer):
-	"""is a renderer for a the Simple Image Access Protocol.
+	"""A renderer for a the Simple Image Access Protocol.
 
 	These have errors in the content of an info element, and they support
 	metadata queries.
@@ -312,14 +307,12 @@ class SIAPRenderer(DALRenderer):
 class UnifiedDALRenderer(DALRenderer):
 	"""A renderer for new-style simple DAL protocols.
 
-	The idea is that the output can be either tuple of mime type and
-	a data string (that is then streamed out) or a normal ServiceResult.
-	
 	All input processing (e.g., metadata queries and the like) are considered
 	part of the individual protocol and thus left to the core.
 
 	The error style is that of SSAP (which, hopefully, will be kept
-	for the other DAL2 protocols, too).
+	for the other DAL2 protocols, too).  This renderer should be used
+	for SSAP (and soon SIAP, too).
 	"""
 	name = "dal.xml"
 	parameterStyle = "pql"

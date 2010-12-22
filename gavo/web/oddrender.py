@@ -36,6 +36,10 @@ class JpegRenderer(formrender.FormMixin, grend.ServiceBasedPage,
 		grend.HTMLResultRenderMixin):
 	name="img.jpeg"
 	resultType = "image/jpeg"
+	"""A renderer producing jpegs.
+
+	This should not have been part of DaCHS proper.  It will be removed.
+	"""
 
 # this is crap, too.  See below at MachineJpegRender
 
@@ -118,8 +122,10 @@ import traceback
 # XXX TODO: This is crap.  It belongs to the lightcurve and should either
 # become much more generic or become a custom renderer.
 class MachineJpegRenderer(JpegRenderer):
-	"""is a machine version of the JpegRenderer -- no vizier expressions,
+	"""A machine version of the JpegRenderer -- no vizier expressions,
 	hardcoded parameters, plain text errors.
+
+	This should not have been part of DaCHS proper.  It will be removed.
 	"""
 	name = "mimg.jpeg"
 	useURL = "base"

@@ -173,10 +173,11 @@ def deliverFailPreview(failure, request):
 
 
 class ProductRenderer(grend.ServiceBasedRenderer):
-	"""is a renderer for products.
+	"""The renderer used for delivering products.
 
 	This will only work with a ProductCore since the resulting
-	data set has to contain products.Resources.
+	data set has to contain products.Resources.  Thus, you probably
+	will not use this in user RDs.
 	"""
 	name = "get"
 

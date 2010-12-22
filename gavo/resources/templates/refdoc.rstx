@@ -82,6 +82,24 @@ The following triggers are defined:
 .. replaceWithResult getTriggerDocs(docStructure)
 
 
+Renderers Available
+===================
+
+The following renderers are available for allowing and URL creation.
+The parameter style is relevant when adapting `condDescs`` or table
+based cores to renderers:
+
+* With clear, parameters are just handed through
+* With form, suitable parameters are turned into vizier-like expressions
+* With pql, suitable parameters are turned into their PQL counterparts,
+  letting you specify ranges and such.
+
+Unchecked renderers can be applied to any service and need not be
+explicitely allowed by the service.
+
+.. replaceWithResult getRendererDocs(docStructure)
+
+
 Predefined Procedures
 =====================
 
