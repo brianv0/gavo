@@ -23,21 +23,25 @@ from gavo.registry import staticresource
 from gavo.registry.common import *
 
 
-def makeBaseRecord(service):
-	"""returns a dictionary giving the metadata common to all publications
-	of a service.
+def makeBaseRecord(res):
+	"""returns a dictionary giving the metadata common to resource records.
 	"""
+	# bomb out if critical metadata is missing
+	base.validateStructure(res)
+	# bomb out if, for some reason, we can't come up with a resource record
+	# for this guy
+	ignored = builders.getVOResourceElement(res)
+
 	rec = {}
-	rec["shortName"] = str(service.getMeta("shortName", raiseOnFail=True))
-	rec["sourceRD"] = service.rd.sourceId
-	rec["resId"] = service.id
-	rec["title"] = unicode(service.getMeta("title")) or rec["shortName"]
+	rec["shortName"] = str(res.getMeta("shortName", raiseOnFail=True))
+	rec["sourceRD"] = res.rd.sourceId
+	rec["resId"] = res.id
+	rec["title"] = unicode(res.getMeta("title")) or rec["shortName"]
 	rec["deleted"] = False
 	rec["recTimestamp"] = datetime.datetime.utcnow()
-	rec["description"] = unicode(service.getMeta("description"
-		) or unicode(service.getMeta("_description")))
-	rec["owner"] = service.limitTo
-	dateUpdated = service.getMeta("datetimeUpdated")
+	rec["description"] = unicode(res.getMeta("description"
+		) or unicode(res.getMeta("_description")))
+	dateUpdated = res.getMeta("datetimeUpdated")
 	if dateUpdated is None:
 		rec["dateUpdated"] = datetime.datetime.utcnow()
 	else:
@@ -63,12 +67,9 @@ def iterSvcRecs(service):
 	"""
 	if not service.publications:
 		return  # don't worry about missing meta if there are no publications
-	# bomb out if service metadata is missing
-	base.validateStructure(service)
+
 	rec = makeBaseRecord(service)
-	# bomb out if, for some reason, we can't come up with a resource record
-	# for this guy
-	ignored = builders.getVOResourceElement(service)
+	rec["owner"] = service.limitTo
 	subjects = [str(item) for item in service.getMeta("subject")]
 	rec["subject"] = subjects.pop()
 	for pub in service.publications:
@@ -87,6 +88,19 @@ def iterSvcRecs(service):
 		yield rec
 
 
+def iterResRecs(res):
+	"""as iterSvcRecs, just for ResRecs rather than Services.
+	"""
+	rec = makeBaseRecord(res)
+	# resource records only make sense if destined for the registry
+	rec["setName"] = "ivo_managed"
+	rec["renderer"] = "rcdisplay"
+	for subject in [str(item) for item in res.getMeta("subject")]:
+		rec["subject"] = subject
+		yield rec
+
+
+
 class ServiceRscIterator(grammars.RowIterator):
 	"""is a RowIterator yielding resource records for inclusion into the
 	service list for the services defined in the source token RD.
@@ -95,6 +109,10 @@ class ServiceRscIterator(grammars.RowIterator):
 		for svc in self.sourceToken.services:
 			self.curSource = svc.id
 			for sr in iterSvcRecs(svc):
+				yield sr.copy()
+		for res in self.sourceToken.resRecs:
+			self.curSource = res.id
+			for sr in iterResRecs(res):
 				yield sr.copy()
 	
 	def getLocation(self):

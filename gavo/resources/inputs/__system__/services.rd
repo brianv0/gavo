@@ -72,12 +72,6 @@
 		tables.  servicelist has special grammars to feed these.</meta>
 		<nullGrammar/>
 
-		<rowmaker id="make_interfaces" idmaps="*">
-			<ignoreOn>
-				<keyIs key="accessURL" value="__NULL__"/>
-			</ignoreOn>
-		</rowmaker>
-
 		<!-- the scripts in the makes mark services from the rd as deleted
 		  in sets and services since oai may query those.  In interfaces
 			and subjects we can safely delete them.  All that will be overwritten
@@ -90,7 +84,13 @@
 			</script>
 		</make>
 
-		<make table="interfaces" rowmaker="make_interfaces">
+		<make table="interfaces">
+			<rowmaker idmaps="*">
+				<ignoreOn>
+					<keyIs key="accessURL" value="__NULL__"/>
+				</ignoreOn>
+			</rowmaker>
+
 			<script type="newSource" lang="python" id="deleteByRDId">
 				table.deleteMatching(
 					"sourceRD=%(sourceRD)s", {"sourceRD": sourceToken.sourceId})
@@ -192,23 +192,18 @@
 		</outputTable>
 	</service>
 
-<!--
-	<register id="dc">
+	<resRec id="authority">
 		<meta>
 			resType: authority
-			creationDate: 2007-12-19T12:00:00Z
-			title: The GAVO data center
-			shortName: GAVO DC
+			creationDate: \metaString{authority.creationDate}
+			title: \metaString{authority.title}
+			shortName: \metaString{authority.shortName}
 			subject: organization
-			managingOrg:ivo://org.gavo.dc
-			description: The GAVO data center provides VO publication \
-				services to all interested parties on behalf of the German \
-				Astrophysical Virtual Observatory.
-			identifier: ivo://org.gavo.dc
-			referenceURL: http://www.g-vo.org
+			managingOrg:ivo://\getConfig{ivoa}{authority}
+			description: \metaString{authority.description}
+			referenceURL: \metaString{authority.referenceURL}
 		</meta>
-	</register>
--->
+	</resRec>
 
 	<registryCore id="registrycore"/>
 

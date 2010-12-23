@@ -29,6 +29,34 @@ from gavo.rscdef import common
 from gavo.rscdef import scripting
 
 
+class ResRec(base.Structure, base.MetaMixin, base.StandardMacroMixin):
+	"""A "resource" for registration purposes.
+
+	A Resource does nothing; it is for registration of Authorities,
+	Organizations, Instruments, or whatever.  Thus, they consist
+	of metadata only (resources that do something are services; they
+	carry their own metadata and care for their registration themselves.).
+
+	All resources must have an id (which is used in the construction of
+	their ivoa id; alternatively, you can force an id via the identifier
+	meta). 
+	
+	You must further set the following meta items:
+
+	   - resType specifying the kind of resource record
+		 - title
+		 - subject(s)
+		 - description
+		 - referenceURL
+		 - creationDate
+	
+	Additional meta keys may be required depdending on resType.  See the
+	tutorial chapter on registry support.
+	"""
+	name_ = "resRec"
+	_rd = rscdef.RDAttribute()
+
+
 class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		base.StandardMacroMixin, common.RolesMixin, registry.DateUpdatedMixin):
 	"""A resource descriptor (RD); the root for all elements described here.
@@ -40,53 +68,89 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 	name_ = "resource"
 
 	_resdir = base.FunctionRelativePathAttribute("resdir", 
-		default=None, baseFunction=lambda instance: base.getConfig("inputsDir"),
+		default=None, 
+		baseFunction=lambda instance: base.getConfig("inputsDir"),
 		description="Base directory for source files and everything else"
-			" belonging to the resource.", copyable=True)
-	_schema = base.UnicodeAttribute("schema", default=base.Undefined,
-		description="Database schema for tables defined here.", copyable=True,
+			" belonging to the resource.", 
+		copyable=True)
+
+	_schema = base.UnicodeAttribute("schema", 
+		default=base.Undefined,
+		description="Database schema for tables defined here.", 
+		copyable=True,
 		callbacks=["_inferResdir"])
-	_dds = base.StructListAttribute("dds", childFactory=rscdef.DataDescriptor,
+
+	_dds = base.StructListAttribute("dds", 
+		childFactory=rscdef.DataDescriptor,
 		description="Descriptors for the data generated and/or published"
-		" within this resource.", copyable=True, before="outputTables")
+		" within this resource.", 
+		copyable=True, 
+		before="outputTables")
+
 	_tables = base.StructListAttribute("tables",
-		childFactory=rscdef.TableDef, description="A table used or created"
-			" by this resource", copyable=True, before="dds")
+		childFactory=rscdef.TableDef, 
+		description="A table used or created by this resource", 
+		copyable=True, 
+		before="dds")
+
 	_outputTables = base.StructListAttribute("outputTables",
-		childFactory=svcs.OutputTableDef, description="Canned output"
-		" tables for later reference.", copyable=True)
+		childFactory=svcs.OutputTableDef, 
+		description="Canned output tables for later reference.", 
+		copyable=True)
+
 	_rowmakers = base.StructListAttribute("rowmakers",
-		childFactory=rscdef.RowmakerDef, description="Transformations for"
-		" going from grammars to tables.  They are referred to from within"
-		" data descriptors.", copyable=True, before="dds")
+		childFactory=rscdef.RowmakerDef, 
+		description="Transformations for going from grammars to tables."
+			" If specified in the RD, they must be referenced from make"
+			" elements to become active.",
+		copyable=True, 
+		before="dds")
+
 	_procDefs = base.StructListAttribute("procDefs", 
 		childFactory=rscdef.ProcDef,
 		description="Procedure definintions (rowgens, rowmaker applys)",
 		copyable=True, before="rowmakers")
-	_condDescs = base.StructListAttribute("condDescs", childFactory=svcs.CondDesc,
+
+	_condDescs = base.StructListAttribute("condDescs", 
+		childFactory=svcs.CondDesc,
 		description="Global condition descriptors for later reference", 
-		copyable=True, before="cores")
+		copyable=True, 
+		before="cores")
+
+	_resRecs = base.StructListAttribute("resRecs",
+		childFactory=ResRec,
+		description="Non-service resources for the IVOA registry.  They will"
+			" be published when gavo publish is run on the RD.")
+
 	_services = base.StructListAttribute("services", 
-		childFactory=svcs.Service, description="Services exposing data from"
-		" this resource.", copyable=True)
-	_macDefs = base.MacDefAttribute(before="tables", description=
-		"User-defined macros available on this RD")
+		childFactory=svcs.Service, 
+		description="Services exposing data from this resource.", 
+		copyable=True)
+
+	_macDefs = base.MacDefAttribute(before="tables", 
+		description="User-defined macros available on this RD")
+
 	_mixinDefs = base.StructListAttribute("mixdefs",
 		childFactory=rscdef.MixinDef,
 		description="Mixin definitions (usually not for users)")
+
 	_require = base.ActionAttribute("require", 
 		methodName="importModule",
 		description="Import the named gavo module (for when you need something"
 		" registred)")
-	# The next attrs are polymorphic through getDynamicAttribute
+
 	_cores = base.MultiStructListAttribute("cores", 
-		childFactory=svcs.getCore, childNames=svcs.CORE_REGISTRY.keys(),
+		childFactory=svcs.getCore, 
+		childNames=svcs.CORE_REGISTRY.keys(),
 		description="Cores available in this resource.", copyable=True,
 		before="services")
+
 	# These replace themselves with expanded tables
 	_viewDefs = base.StructAttribute("simpleView",
-		childFactory=rscdef.SimpleView, description="Definitions of views"
-		" created from natural joins", default=None)
+		childFactory=rscdef.SimpleView, 
+		description="Definitions of views created from natural joins", 
+		default=None)
+
 	_properties = base.PropertyAttribute()
 
 	def __init__(self, parent, **kwargs):

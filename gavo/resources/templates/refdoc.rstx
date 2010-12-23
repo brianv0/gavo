@@ -313,6 +313,73 @@ are usually set there:
   override creator.name
 
 
+Meta Stream Format
+''''''''''''''''''
+
+In serveral places, most notably in the ``defaultmeta.txt`` file and in
+meta elements without a ``name`` attribute, you can give metadata as a
+"meta stream".  This is just a sequence of lines containing pairs of
+<meta key> and <meta value>.
+
+In addition, there are comments, empty lines, and continuations.
+Continuation lines work by ending a line with a backslash.  The
+following line separator and all blanks and tabs following it are
+then ignored.  Thus, the following two meta keys end up having identical
+values::
+
+  meta1: A contin\
+    uation line needs \
+      a blank if you wan\
+  t one.
+  meta2: A continuation line needs a blank if you want one
+
+Note that whitespace behind a backslash prevents it from being a
+continuation character.  That is, admittedly, a bit of a trap.
+
+Other than their use as continuation characters, backslashes have no
+special meaning within meta streams as such.  Within meta elements,
+however, macros are expanded after continuation line processing if the
+meta parent knows how to expand macros.  This lets you write things
+like::
+
+  <meta>
+    creationDate: \metaString{authority.creationDate}
+    managingOrg:ivo://\getConfig{ivoa}{authority}
+  </meta>
+
+
+Comments and empty lines are easy: Empty lines are allowed, and a
+comment is a line with a hash (#) as its first non-whitespace
+character.  Both constructs are ignored, and you can even continue
+comments (though you should not).
+
+Meta information can have a complex tree structure.  With meta streams,
+you can build trees by referencing dotted meta identifiers.  If you
+specify meta information for an item that already exists, a sibling will
+be created.  Thus, after::
+
+  creator.name: A. Author
+  creator:
+  creator.name: B. Buthor
+
+there are two creator elements, each specifying a name meta.  For the
+way creators are specified within VOResource, the following would be
+wrong::
+
+  creator.name: This is wrong.
+  creator.name: and will not work
+
+-- you would have a single creator meta with two name metas, which is
+not allowed by VOResource.
+
+If you write::
+
+  contact.address: 7 Miner's Way, Behind the Seven Mountains
+  contact.email: dwarfs@fairytale.fa
+
+you have a single contact meta giving address and email.
+
+
 Display Hints
 =============
 

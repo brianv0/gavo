@@ -197,6 +197,14 @@ class StandardMacroMixin(MacroPackage):
 			section, name = "general", section
 		return str(config.get(section, name))
 
+	def macro_metaString(self, metaKey):
+		"""the value of metaKey on the macro expander.
+
+		This will raise an error when the meta Key is not available.
+		"""
+		val = self.getMeta(metaKey, raiseOnFail=True)
+		return val.getContent().replace("\n", " ") # undo default line breaking
+
 	def macro_test(self, *args):
 		"""always "test macro expansion".
 		"""
