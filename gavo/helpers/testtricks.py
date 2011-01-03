@@ -3,7 +3,7 @@ helper functions and classes for unit tests and similar.
 """
 
 import os
-import popen2
+import subprocess
 import tempfile
 
 from gavo import base
@@ -33,9 +33,11 @@ class XSDTestMixin(object):
 			f = os.fdopen(handle, "w")
 			f.write(xmlSource)
 			f.close()
-			f = popen2.Popen4("java -cp %s xsdval -n -v -s -f '%s'"%(
-				classpath, inName))
-			xercMsgs = f.fromchild.read()
+			f = subprocess.Popen(
+				["java", "-cp", classpath, "xsdval", "-n", "-v", "-s", "-f",
+					inName],
+				stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+			xercMsgs = f.stdout.read()
 			status = f.wait()
 			if status or "Error]" in xercMsgs:
 				if leaveOffending:

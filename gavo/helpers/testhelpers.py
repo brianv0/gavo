@@ -10,7 +10,6 @@ from __future__ import with_statement
 import cPickle as pickle
 import gc
 import os
-import popen2
 import re
 import subprocess
 import sys

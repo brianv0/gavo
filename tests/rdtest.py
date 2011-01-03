@@ -13,7 +13,6 @@ from gavo.base import meta
 from gavo.helpers import testhelpers
 from gavo.protocols import tap
 from gavo.rscdef import tabledef
-from gavo.web import resourcebased  # for registration of the form renderer
 
 import tresc
 

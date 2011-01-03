@@ -29,32 +29,6 @@ from gavo.rscdef import common
 from gavo.rscdef import scripting
 
 
-class ResRec(base.Structure, base.MetaMixin, base.StandardMacroMixin):
-	"""A "resource" for registration purposes.
-
-	A Resource does nothing; it is for registration of Authorities,
-	Organizations, Instruments, or whatever.  Thus, they consist
-	of metadata only (resources that do something are services; they
-	carry their own metadata and care for their registration themselves.).
-
-	All resources must have an id (which is used in the construction of
-	their ivoa id; alternatively, you can force an id via the identifier
-	meta). 
-	
-	You must further set the following meta items:
-
-	   - resType specifying the kind of resource record
-		 - title
-		 - subject(s)
-		 - description
-		 - referenceURL
-		 - creationDate
-	
-	Additional meta keys may be required depdending on resType.  See the
-	tutorial chapter on registry support.
-	"""
-	name_ = "resRec"
-	_rd = rscdef.RDAttribute()
 
 
 class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
@@ -118,7 +92,7 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		before="cores")
 
 	_resRecs = base.StructListAttribute("resRecs",
-		childFactory=ResRec,
+		childFactory=registry.ResRec,
 		description="Non-service resources for the IVOA registry.  They will"
 			" be published when gavo publish is run on the RD.")
 

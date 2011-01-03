@@ -10,7 +10,7 @@ from gavo import votable
 from gavo.helpers import testhelpers
 from gavo.votable import common
 from gavo.votable import V
-from gavo.votable.iterparse import iterparse
+from gavo.utils.plainxml import iterparse
 
 
 

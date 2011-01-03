@@ -19,7 +19,7 @@ from gavo import utils
 
 from gavo.registry import builders
 from gavo.registry import identifiers
-from gavo.registry import staticresource
+from gavo.registry import nonservice
 from gavo.registry.common import *
 
 
@@ -33,10 +33,10 @@ def makeBaseRecord(res):
 	ignored = builders.getVOResourceElement(res)
 
 	rec = {}
-	rec["shortName"] = str(res.getMeta("shortName", raiseOnFail=True))
+	rec["shortName"] = base.getMetaText(res, "shortName")
 	rec["sourceRD"] = res.rd.sourceId
 	rec["resId"] = res.id
-	rec["title"] = unicode(res.getMeta("title")) or rec["shortName"]
+	rec["title"] = base.getMetaText(res, "title", propagate=True)
 	rec["deleted"] = False
 	rec["recTimestamp"] = datetime.datetime.utcnow()
 	rec["description"] = unicode(res.getMeta("description"
@@ -70,7 +70,7 @@ def iterSvcRecs(service):
 
 	rec = makeBaseRecord(service)
 	rec["owner"] = service.limitTo
-	subjects = [str(item) for item in service.getMeta("subject")]
+	subjects = [str(item) for item in service.getMeta("subject") or (None,)]
 	rec["subject"] = subjects.pop()
 	for pub in service.publications:
 		rec["renderer"] = pub.render
@@ -95,7 +95,7 @@ def iterResRecs(res):
 	# resource records only make sense if destined for the registry
 	rec["setName"] = "ivo_managed"
 	rec["renderer"] = "rcdisplay"
-	for subject in [str(item) for item in res.getMeta("subject")]:
+	for subject in [str(item) for item in res.getMeta("subject") or (None,)]:
 		rec["subject"] = subject
 		yield rec
 
@@ -122,27 +122,6 @@ class ServiceRscIterator(grammars.RowIterator):
 class SvcRscGrammar(grammars.Grammar):
 	rowIterator = ServiceRscIterator
 _svcRscGrammar = base.makeStruct(SvcRscGrammar)
-
-
-class StaticRscIterator(grammars.RowIterator):
-	"""is a RowIterator yielding resource records for inclusion in the
-	service list from static resource definitions.
-
-	The notes on iterSvcRecs apply here as well.
-	"""
-	def _iterRows(self):
-		for rsc in staticresource.iterStaticResources():
-			self.curSource = rsc.srcName
-			for rec in iterSvcRecs(rsc):
-				yield rec
-
-	def getLocation(self):
-		return self.curSource
-
-
-class StaticRscGrammar(grammars.Grammar):
-	rowIterator = StaticRscIterator
-_staticRscGrammar = base.makeStruct(StaticRscGrammar)
 
 
 def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
@@ -191,15 +170,6 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 	return recordsWritten
 
 
-def importFixed():
-	connection = base.getDBConnection("admin")
-	rd = base.caches.getRD(STATICRSC_ID)
-	dd = base.caches.getRD("//services").getById("tables").copy(rd)
-	rsc.makeData(dd, forceSource=rd, parseOptions=rsc.parseValidating,
-		connection=connection)
-	connection.commit()
-
-
 ################ UI stuff
 
 def findAllRDs():
@@ -235,11 +205,10 @@ def parseCommandLine():
 	import optparse
 	parser = optparse.OptionParser(usage="%prog [options] {<rd-name>}")
 	parser.add_option("-a", "--all", help="search everything below inputsDir"
-		" for publications (implies -f).", dest="all", action="store_true")
+		" for publications.", dest="all", action="store_true")
 	parser.add_option("-m", "--meta-too", help="update meta information, too",
 		dest="meta", action="store_true")
-	parser.add_option("-f", "--fixed", help="also import fixed records",
-		dest="doFixed", action="store_true")
+	parser.add_option("-f", "--fixed", help="ignored", action="store_true")
 	return parser.parse_args()
 
 
@@ -269,5 +238,7 @@ def main():
 	if opts.all:
 		args = findAllRDs()
 	updateServiceList(getRDs(args), metaToo=opts.meta)
-	if opts.all or opts.doFixed:  # also import fixed registry records
-		importFixed()
+
+
+if __name__=="__main__":
+	main()

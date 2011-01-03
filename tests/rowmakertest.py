@@ -115,7 +115,7 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 			mapper, ({"src": "3x3"},))
 		self.assertRaisesWithMsg(base.ValidationError,
 			"While building y in _foo: 'utf8' codec can't decode byte 0x98 in position 0:"
-				" unexpected code byte",
+				" invalid start byte",
 			mapper, ({"src": "\x98x"},))
 
 	def testDefaultLiterals(self):

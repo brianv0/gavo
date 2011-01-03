@@ -5,16 +5,10 @@ Our identifiers have the form
 
 ivo://<authority>/<rd-path>/service-id
 
-for services (do we want specific renderers? That would be bad since right
-now they appear as interfaces of the same service...) and
-
-ivo://<authority>/static/<service-resdir-relative-path>
-
-for static resources.
+except for the authority itself, which is, of course, just
+ivo://<authority>.
 
 authority is given by authority in the ivoa section of config.
-The path of static resources is relative to the rootdir of the services
-resource descriptor.
 
 This package deals with two ways to represent resources: 
 
@@ -39,4 +33,5 @@ from gavo.registry.identifiers import (getResobFromIdentifier,
 	getResobFromRestup)
 from gavo.registry.publication import findAllRDs
 from gavo.registry.servicelist import getTableDef
+from gavo.registry.nonservice import ResRec
 from gavo.registry.tableset import getTablesetForService

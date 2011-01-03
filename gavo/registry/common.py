@@ -10,7 +10,7 @@ from gavo.utils import stanxml
 
 
 SERVICELIST_ID = "__system__/services"
-STATICRSC_ID = "__system__/staticrsc"
+
 
 METADATA_PREFIXES = [
 # (prefix, schema-location, namespace)
@@ -77,7 +77,7 @@ class DateUpdatedMixin(object):
 		return self.__getDatetimeMeta("dateUpdated", utils.isoTimestampFmt)
 
 
-__all__ = ["SERVICELIST_ID", "STATICRSC_ID", "METADATA_PREFIXES",
+__all__ = ["SERVICELIST_ID", "METADATA_PREFIXES",
 
 "getResType", "getServicesRD", "getRegistryService",
 

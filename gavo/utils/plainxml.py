@@ -90,7 +90,7 @@ class iterparse(object):
 					raise StopIteration("File is exhausted")
 				self.parser.Parse(nextChunk)
 			except expat.ExpatError, ex:
-				newEx = self.parseErrorClass(ex.message)
+				newEx = self.parseErrorClass(str(ex))
 				newEx.posInMsg = True  # see base.xmlstruct
 				newEx.inFile = getattr(self.source, "name", "(internal source)")
 				raise misctricks.logOldExc(newEx)

@@ -192,14 +192,23 @@
 		</outputTable>
 	</service>
 
-	<resRec id="authority">
+	<resRec id="authority"> <!-- authority id is synthesized by  -->
 		<meta>
 			resType: authority
 			creationDate: \metaString{authority.creationDate}
 			title: \metaString{authority.title}
-			shortName: \metaString{authority.shortName}
+			managingOrg:ivo://\getConfig{ivoa}{authority}/org
+			description: \metaString{authority.description}
+			referenceURL: \metaString{authority.referenceURL}
+		</meta>
+	</resRec>
+
+	<resRec id="manager"> <!-- the organisation running this registry -->
+		<meta>
+			resType: organization
+			creationDate: \metaString{authority.creationDate}
+			title: \metaString{contact.name}
 			subject: organization
-			managingOrg:ivo://\getConfig{ivoa}{authority}
 			description: \metaString{authority.description}
 			referenceURL: \metaString{authority.referenceURL}
 		</meta>

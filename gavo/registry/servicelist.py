@@ -7,7 +7,6 @@ from gavo import utils
 from gavo import rsc
 from gavo import rscdef
 from gavo import svcs
-from gavo.registry import staticresource
 from gavo.registry.common import *
 
 
@@ -61,7 +60,7 @@ def querySubjectsList(setName=None):
 	td = base.caches.getRD(SERVICELIST_ID).getById("subjects_join")
 	otd = svcs.OutputTableDef.fromTableDef(td)
 	for row in rsc.TableForDef(td).iterQuery(otd, 
-			"setName=%(setName)s", {"setName": setName}):
+			"setName=%(setName)s AND subject IS NOT NULL", {"setName": setName}):
 		svcsForSubjs.setdefault(row["subject"], []).append(row)
 	for s in svcsForSubjs.values():
 		s.sort(key=lambda a: a["title"])

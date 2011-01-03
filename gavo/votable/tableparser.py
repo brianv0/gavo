@@ -2,7 +2,7 @@
 Parsing various forms of tabular data embedded in VOTables.
 
 WARNING: This will fail if the parser exposes namespaces in its
-events (votable.iterparse doesn't).
+events (utils.iterparse doesn't).
 """
 
 from gavo.votable import coding
