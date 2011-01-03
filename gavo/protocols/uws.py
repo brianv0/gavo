@@ -453,7 +453,8 @@ class UWSJob(object):
 			# transition to error if possible.  If that fails at well,
 			# blindly set error and give up.
 			try:
-				return self.changeToPhase(ERROR, exception)
+				if newPhase!=ERROR:
+					return self.changeToPhase(ERROR, exception)
 			except:
 				self.setError(exception)
 				self.phase = ERROR
