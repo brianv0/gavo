@@ -5,20 +5,26 @@ Resources that are not services.
 from gavo import base
 from gavo import rscdef
 from gavo import svcs
+from gavo import utils
 from gavo.registry import common
 
 
 class NonServiceResource(
 		base.Structure,
-		base.ComputedMetaMixin, 
 		base.StandardMacroMixin,
-		common.DateUpdatedMixin,
-		svcs.RegistryMetaMixin):
+		base.ComputedMetaMixin):
 	"""A base class for resources that are not services.
 	"""
+	def _meta_identifier(self):
+		# Special case the authority
+		if base.getMetaText(self, "resType")=="authority":
+			localPart = ""
+		else:
+			localPart = "/%s/%s"%(self.rd.sourceId, self.id)
+		return "ivo://%s%s"%(base.getConfig("ivoa", "authority"), localPart)
+			
 
-
-class ResRec(NonServiceResource):
+class ResRec(svcs.RegistryMetaMixin, NonServiceResource):
 	"""A "resource" for registration purposes.
 
 	A Resource does nothing; it is for registration of Authorities,
@@ -46,24 +52,27 @@ class ResRec(NonServiceResource):
 	_rd = rscdef.RDAttribute()
 
 
-
 class _FakeRD(object):
 	def __init__(self, id):
 		self.sourceId = id
 
 
-class DeletedResource(NonServiceResource):
+class DeletedResource(common.DateUpdatedMixin, NonServiceResource):
 	"""a remainder of a deleted resource.  These are always built from information
 	in the database, since that is the only place they are remembered.
 	"""
 	resType = "deleted"
 
-	def __init__(self, ivoId, resTuple):
-		self.resTuple = resTuple
-		self.rd = _FakeRD(resTuple["sourceRD"])
-		self.id = resTuple["resId"]
-		NonServiceResource.__init__(self, self.resTuple["dateUpdated"])
-		self.setMeta("identifier", ivoId)
-		self.setMeta("status", "deleted")
-		self.setMeta("recTimestamp", resTuple["recTimestamp"])
-		self.dateUpdated = resTuple["recTimestamp"]
+	_resTuple = base.RawAttribute("resTuple")
+
+	def _meta_status(self):
+		return "deleted"
+
+	def _meta_recTimestamp(self):
+		return utils.formatISODT(self.resTuple["recTimestamp"])
+
+	def completeElement(self):
+		self._completeElementNext(DeletedResource)
+		self.rd = _FakeRD(self.resTuple["sourceRD"])
+		self.id = self.resTuple["resId"]
+		self.dateUpdated = self.resTuple["recTimestamp"]

@@ -192,11 +192,13 @@
 		</outputTable>
 	</service>
 
-	<resRec id="authority"> <!-- authority id is synthesized by  -->
+	<resRec id="authority"> <!-- ivo id of the authority is overridden in
+			nonservice.NonServiceResource -->
 		<meta>
 			resType: authority
 			creationDate: \metaString{authority.creationDate}
 			title: \metaString{authority.title}
+			subject: Authority
 			managingOrg:ivo://\getConfig{ivoa}{authority}/org
 			description: \metaString{authority.description}
 			referenceURL: \metaString{authority.referenceURL}
@@ -208,7 +210,7 @@
 			resType: organization
 			creationDate: \metaString{authority.creationDate}
 			title: \metaString{contact.name}
-			subject: organization
+			subject: Organization
 			description: \metaString{authority.description}
 			referenceURL: \metaString{authority.referenceURL}
 		</meta>

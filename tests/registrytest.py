@@ -15,8 +15,10 @@ from gavo.base import sqlsupport
 from gavo.helpers import testhelpers
 from gavo.registry import builders
 from gavo.registry import capabilities
+from gavo.registry import nonservice
 from gavo.registry import oaiinter
 from gavo.registry import publication
+from gavo.utils import ElementTree
 
 import tresc
 
@@ -28,6 +30,25 @@ class DeletedTest(testhelpers.VerboseTest):
 	rdId = 'data/pubtest'
 
 	resources = [("connection", tresc.dbConnection)]
+
+	def _makeDeletedRecord(self):
+		return base.makeStruct(nonservice.DeletedResource,
+			resTuple={"sourceRD": "foo", "resId": "bar", "recTimestamp":
+				datetime.datetime(2010, 10, 10, 10, 10, 10)})
+
+	def testResob(self):
+		dr = self._makeDeletedRecord()
+		self.assertEqual(base.getMetaText(dr, "identifier"), 
+			"ivo://%s/foo/bar"%base.getConfig("ivoa", "authority"))
+		self.assertEqual(base.getMetaText(dr, "status"), "deleted")
+
+	def testResrec(self):
+		dr = self._makeDeletedRecord()
+		oairec = builders.getVOResourceElement(dr).render()
+		self.failUnless('<oai:header status="deleted"><oai:identifier>'
+			'ivo://org.gavo.dc/foo/bar</oai:identifier><oai:datestamp>'
+			'2010-10-10T10:10:10Z</oai:datestamp></oai:header></oai:record>'
+			in oairec)
 
 	def _createPublication(self):
 		rd = api.getRD(self.rdId)
@@ -109,5 +130,27 @@ class CapabilityTest(testhelpers.VerboseTest):
 		capabilities._TMP_TAPREGEXT_HACK = False
 
 
+class AuthorityTest(testhelpers.VerboseTest):
+# This test will fail until defaultmeta.txt has the necessary entries
+# and //services is published
+	def testAuthorityResob(self):
+		authId = "ivo://%s"%base.getConfig("ivoa", "authority")
+		resob = registry.getResobFromIdentifier(authId)
+		self.assertEqual(base.getMetaText(resob, "identifier"), authId)
+		self.failIf(resob.getMeta("title") is None)
+		self.failIf(resob.getMeta("datetimeUpdated") is None)
+		self.failIf(resob.getMeta("recTimestamp") is None)
+		self.assertEqual(base.getMetaText(resob, "sets"), "ivo_managed")
+	
+	def testAuthorityVORes(self):
+		resob = registry.getResobFromIdentifier(
+			"ivo://%s"%base.getConfig("ivoa", "authority"))
+		resrec = builders.getVORMetadataElement(resob).render()
+		tree = ElementTree.fromstring(resrec)
+		self.assertEqual(tree.find("managingOrg").text, 
+			"ivo://%s/org"%base.getConfig("ivoa", "authority"))
+		self.failUnless('created="' in resrec)
+
+
 if __name__=="__main__":
-	testhelpers.main(CapabilityTest)
+	testhelpers.main(AuthorityTest)

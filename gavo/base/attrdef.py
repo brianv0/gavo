@@ -187,6 +187,19 @@ class AtomicAttribute(AttributeDef):
 			self.name_, self.typeDesc_, repr(default), self.description_)
 
 
+class RawAttribute(AtomicAttribute):
+	"""An attribute definition that does no parsing at all.
+
+	This is only useful in "internal" structures that never get
+	serialized or deserialized.
+	"""
+	def parse(self, value):
+		return value
+	
+	def unparse(self, value):
+		return value
+
+
 class UnicodeAttribute(AtomicAttribute):
 	"""An attribute definition for an item containing a unicode string.
 
@@ -456,7 +469,6 @@ class ActionAttribute(UnicodeAttribute):
 		getattr(instance, self.methodName)(ctx)
 			
 
-
 # The public interface actually is everything.  Since it's much prettier
 # in the attribute lists of the classes, let's allow from ... import *
 # here.
@@ -467,4 +479,4 @@ __all__ = ["LiteralParseError", "Undefined", "UnicodeAttribute",
 	"RelativePathAttribute", "FunctionRelativePathAttribute",
 	"StringListAttribute", "ActionAttribute", "FloatAttribute",
 	"StringSetAttribute", "NotGiven", "IdMapAttribute",
-	"NWUnicodeAttribute"]
+	"NWUnicodeAttribute", "RawAttribute"]

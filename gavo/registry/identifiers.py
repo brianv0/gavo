@@ -29,7 +29,7 @@ def computeIdentifierFromRestup(restup):
 		"%s/%s"%(restup["sourceRD"], restup["resId"]))
 
 
-_idPattern = re.compile("ivo://(\w[^!;:@%$,/]+)/(.*)")
+_idPattern = re.compile("ivo://(\w[^!;:@%$,/]+)(/[^?#]*)?")
 
 def parseIdentifier(identifier):
 	"""returns a pair of authority, resource key for identifier.
@@ -42,7 +42,7 @@ def parseIdentifier(identifier):
 	mat = _idPattern.match(identifier)
 	if not mat:
 		raise IdDoesNotExist(identifier)
-	return mat.group(1), mat.group(2)
+	return mat.group(1), (mat.group(2) or "")[1:]
 
 
 def getRestupFromIdentifier(identifier):
@@ -52,9 +52,14 @@ def getRestupFromIdentifier(identifier):
 	if authority!=base.getConfig("ivoa", "authority"):
 		raise IdDoesNotExist(identifier)
 
-	parts = resKey.split("/")
-	sourceRD = "/".join(parts[:-1])
-	resId = parts[-1]
+	if resKey=="":  # special case: The authority itself
+		resId = "authority"
+		sourceRD = "__system__/services"
+	else:
+		parts = resKey.split("/")
+		sourceRD = "/".join(parts[:-1])
+		resId = parts[-1]
+
 	matches = servicelist.queryServicesList(
 		"sourceRD=%(sourceRD)s AND resId=%(resId)s",
 		locals(), tableName="resources")
@@ -74,11 +79,11 @@ def getResobFromRestup(restup):
 	metadata.
 	"""
 	if restup["deleted"]:
-		return nonservice.DeletedResource(
-			computeIdentifierFromRestup(restup), restup)
+		return base.makeStruct(nonservice.DeletedResource,
+			resTuple=restup)
 	sourceRD, resId = restup["sourceRD"], restup["resId"]
 	try:
-		return base.caches.getRD(sourceRD).serviceIndex[resId]
+		return base.caches.getRD(sourceRD).getById(resId)
 	except KeyError:
 		raise base.ui.logOldExc(base.NotFoundError(resId, what="service",
 			within="RD %s"%sourceRD, hint="This usually happens when you"

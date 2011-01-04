@@ -85,7 +85,7 @@ _dcBuilder = meta.ModelBasedBuilder([
 
 _oaiHeaderBuilder = meta.ModelBasedBuilder([
 	('identifier', SF(OAI.identifier)),
-	('datetimeUpdated', SF(OAI.datestamp)),
+	('recTimestamp', SF(OAI.datestamp)),
 	('sets', SF(OAI.setSpec))])
 
 
