@@ -93,6 +93,34 @@ def getFieldArgsForInputKey(inputKey):
 		"description": inputKey.description}
 
 
+########### XXX REMOVE NONWORKING CODE START
+
+'''
+class MultiField(formal.Group):
+	"""A "widget" containing multiple InputKeys (i.e., formal Fields) in
+	a single line.
+	"""
+
+
+class MultiFieldFragment(rend.Fragment):
+	"""A fragment for rendering MultiFields.
+	"""
+	docFactory = loaders.stan(
+		T.div(class_="multifield", render=T.directive("multifield"))[
+			T.legend[T.slot('label')],
+			T.div(class_='description')[T.slot('description')]])
+
+	def __init__(self, multiField):
+		rend.Fragment.__init__(self)
+		self.multiField = multiField
+
+	def render_multifield(self, ctx, data):
+		ctx.tag.fillSlots('description', self.multiField.description)
+		ctx.tag.fillSlots('label', self.multiField.label)
+'''
+########### XXX REMOVE NONWORKING CODE END
+
+
 class FormMixin(formal.ResourceMixin):
 	"""A mixin to produce input forms for services and display
 	errors within these forms.

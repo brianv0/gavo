@@ -2,30 +2,30 @@ import pkg_resources
 from zope.interface import implements
 from twisted.python import reflect
 from nevow import appserver, inevow, loaders, rend, static, tags as T, url
-import formal
+from gavo.imp import formal
 
 DOCTYPE = T.xml('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">')
 CHARSET = T.xml('<meta http-equiv="content-type" content="text/html; charset=utf-8" />')
 
 examples = [
-    'formal.examples.simple.SimpleFormPage',
-    'formal.examples.types.TypesFormPage',
-    'formal.examples.required.RequiredFormPage',
-    'formal.examples.missing.MissingFormPage',
-    'formal.examples.prepopulate.PrepopulateFormPage',
-    'formal.examples.group.GroupFormPage',
-    'formal.examples.stanstyle.StanStyleFormPage',
-    'formal.examples.fileupload.FileUploadFormPage',
-    'formal.examples.smartupload.SmartUploadFormPage',
-    'formal.examples.selections.SelectionFormPage',
-    'formal.examples.datestimes.DatesTimesFormPage',
-    'formal.examples.actionbuttons.ActionButtonsPage',
-    'formal.examples.validator.ValidatorFormPage',
-    'formal.examples.restwidget.ReSTWidgetFormPage',
-    'formal.examples.nofields.NoFieldsFormPage',
-    'formal.examples.hidden.HiddenFieldsFormPage',
-    'formal.examples.textareawithselect.TextAreaWithSelectFormPage',
-    'formal.examples.richtextarea.RichTextAreaFormPage',
+ #   'gavo.imp.formal.examples.simple.SimpleFormPage',
+ #   'gavo.imp.formal.examples.types.TypesFormPage',
+ #   'gavo.imp.formal.examples.required.RequiredFormPage',
+ #   'gavo.imp.formal.examples.missing.MissingFormPage',
+ #   'gavo.imp.formal.examples.prepopulate.PrepopulateFormPage',
+    'gavo.imp.formal.examples.group.GroupFormPage',
+ #   'gavo.imp.formal.examples.stanstyle.StanStyleFormPage',
+ #   'gavo.imp.formal.examples.fileupload.FileUploadFormPage',
+ #   'gavo.imp.formal.examples.smartupload.SmartUploadFormPage',
+ #   'gavo.imp.formal.examples.selections.SelectionFormPage',
+ #   'gavo.imp.formal.examples.datestimes.DatesTimesFormPage',
+ #   'gavo.imp.formal.examples.actionbuttons.ActionButtonsPage',
+ #   'gavo.imp.formal.examples.validator.ValidatorFormPage',
+ #   'gavo.imp.formal.examples.restwidget.ReSTWidgetFormPage',
+ #   'gavo.imp.formal.examples.nofields.NoFieldsFormPage',
+ #   'gavo.imp.formal.examples.hidden.HiddenFieldsFormPage',
+ #   'gavo.imp.formal.examples.textareawithselect.TextAreaWithSelectFormPage',
+ #   'gavo.imp.formal.examples.richtextarea.RichTextAreaFormPage',
     ]
 
 def makeSite():
@@ -107,7 +107,7 @@ class FormExamplePage(formal.ResourceMixin, rend.Page):
 
 
 # Add child_ attributes
-examples_css = pkg_resources.resource_filename('formal.examples', 'examples.css')
+examples_css = pkg_resources.resource_filename('gavo.imp.formal.examples', 'examples.css')
 setattr(RootPage, 'child_examples.css', static.File(examples_css))
 setattr(RootPage, 'child_formal.css', formal.defaultCSS)
 setattr(RootPage, 'child_js', formal.formsJS)

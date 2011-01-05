@@ -49,7 +49,7 @@ from gavo.base.observer import ObserverBase, listensTo
 
 from gavo.base.parsecontext import (
 	IdAttribute, OriginalAttribute, ReferenceAttribute, ParseContext,
-	resolveId)
+	ReferenceListAttribute, resolveId)
 
 from gavo.base.sqlsupport import (getDBConnection, getDefaultDBConnection,
 	DBError, QueryCanceledError, IntegrityError,

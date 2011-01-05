@@ -1,4 +1,4 @@
-import gavo.imp.formal
+from gavo.imp import formal
 from gavo.imp.formal.examples import main
 
 class GroupFormPage(main.FormExamplePage):

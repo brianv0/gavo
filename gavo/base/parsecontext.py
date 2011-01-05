@@ -13,6 +13,14 @@ from gavo.base import caches
 from gavo.base import common
 
 
+class RECURSIVE(object):
+	"""a sentinel class for ReferenceAttribute's forceType below.
+
+	Using forces the referenced attribute to be of the same type as the
+	attribute's parent.
+	"""
+
+
 def assertType(id, ob, forceType):
 	"""raises a StructureError if forceType is not None and ob is not of
 	type forceType, returns ob otherwise.
@@ -42,6 +50,23 @@ def resolveCrossId(id, forceType):
 	return resolveId(srcRd, rest, forceType=forceType)
 
 
+def resolveNameBased(container, id, forceType=None):
+	"""returns the first thing with name=id appearing when iterating over
+	container.
+
+	The function raises a StructureError when no such thing exists.
+	"""
+	try:
+		for ob in container:
+			if hasattr(ob, "name") and ob.name==id:
+				return assertType(id, ob, forceType)
+	except TypeError:
+		raise utils.logOldExc(common.StructureError("Element %s is of type %s"
+			" and thus unsuitable for name path"%(pId, type(ob))))
+	raise common.StructureError("Element %s has no child with name %s"%(
+		container.id, id))
+
+
 def resolveComplexId(ctx, id, forceType=None):
 	"""resolves a dotted id.
 
@@ -53,15 +78,7 @@ def resolveComplexId(ctx, id, forceType=None):
 		raise utils.logOldExc(common.LiteralParseError("id", id, 
 			hint="A complex reference (parent.name) is expected here"))
 	container = ctx.getById(pId)
-	try:
-		for ob in container:
-			if hasattr(ob, "name") and ob.name==name:
-				return assertType(id, ob, forceType)
-	except TypeError:
-		raise utils.logOldExc(common.StructureError("Element %s is of type %s"
-			" and thus unsuitable for name path"%(pId, type(ob))))
-	raise common.StructureError("Element %s has no child with name %s"%(
-		pId, name))
+	return resolveNameBased(container, name, forceType)
 
 
 def _resolveOnNamepath(ctx, id, instance):
@@ -221,6 +238,10 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 	tables (roughly, it's always trouble when an attribute value's 
 	implementation refers to self.parent; this is particularly true
 	for structures having an RDAttribute).
+
+	So, before adding a reference attribute, think first whether
+	it wouldn't be wiser to have the real thing and use original to copy
+	things over.
 	"""
 	typeDesc_ = "id reference"
 
@@ -229,6 +250,15 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 		attrdef.AtomicAttribute.__init__(self, name, default,
 			description, **kwargs)
 		self.forceType = forceType
+
+	def _getForceType(self, instance):
+		"""returns self.forceType unless it is RECURSIVE, in which case instance's
+		type is returned.
+		"""
+		if self.forceType is RECURSIVE:
+			return instance.__class__
+		else:
+			return self.forceType
 
 	def feed(self, ctx, instance, literal):
 		if literal is None: # ref attribute empty during a copy
@@ -242,7 +272,7 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 			self.feedObject(instance, literal)
 		else:
 			self.feedObject(instance,
-				resolveId(ctx, literal, instance, self.forceType))
+				resolveId(ctx, literal, instance, self._getForceType(instance)))
 
 	def unparse(self, value):
 		if value is None:  # ref attribute was empty
@@ -266,7 +296,7 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 				" you tried to replace a reference to an element with"
 				" the element itself.  This is only allowed if the reference"
 				" forces a type, which is not the case here.")
-		return self.forceType(parent)
+		return self._getForceType(parent)(parent)
 
 	def create(self, structure, ctx, name):
 		# we don't know at this point whether or not the next event will be
@@ -274,6 +304,45 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 		# value (-> resolve).  Thus, create an intermediate parser that
 		# does the right thing.
 		return _ReferenceParser(self, structure, name)
+
+
+class ReferenceListAttribute(ReferenceAttribute):
+	"""A list of references.
+
+	These can come as distinct elements -- <ref>a</ref><ref>b</ref> -- or
+	as a comma-joined string with ignored whitespace --
+	ref="a, //services#b, x.y", or in a mixture between the two.
+	"""
+	typeDesc_ = "list of id references (comma separated or in distinct elements)"
+
+	def __init__(self, name, **kwargs):
+		if kwargs.get("default") is not None:
+			raise common.StructureError("ReferenceListAttributes cannot have"
+				" defaults")
+		kwargs["default"] = attrdef.Computed
+		ReferenceAttribute.__init__(self, name, **kwargs)
+
+	@property
+	def default_(self):
+		return []
+
+	def feedObject(self, instance, value):
+		if isinstance(value, list):
+			for item in value:
+				self.feedObject(instance, item)
+		else:
+			getattr(instance, self.name_).append(value)
+			self.doCallbacks(instance, value)
+
+	def feed(self, ctx, instance, literal):
+		# split literal up if there's commas
+		if literal is None: # see ReferenceAttribute.feed
+			return
+		if "," in literal:
+			for s in literal.split(","):
+				ReferenceAttribute.feed(self, ctx, instance, s.strip())
+		else:
+				ReferenceAttribute.feed(self, ctx, instance, literal)
 
 
 class ParseContext(object):

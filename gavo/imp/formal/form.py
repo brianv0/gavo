@@ -760,3 +760,4 @@ class FormRenderer(object):
 
 registerAdapter(FormRenderer, Form, inevow.IRenderer)
 
+# vim:sta:et:sw=4:

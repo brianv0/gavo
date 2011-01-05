@@ -13,6 +13,7 @@ from gavo import utils
 from gavo.base import structure
 from gavo.rscdef import column
 from gavo.rscdef import common
+from gavo.rscdef import group
 from gavo.rscdef import mixins
 from gavo.rscdef import rmkfuncs
 from gavo.rscdef import scripting
@@ -228,50 +229,85 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 	# We don't want to force people to come up with an id for all their
 	# internal tables but want to avoid writing default-named tables to
 	# the db.  Thus, the default is not a valid sql identifier.
-	_id = base.IdAttribute("id", default=base.NotGiven, description=
-		"Name of the table (must be SQL-legal for onDisk tables)")
-	_rd = common.RDAttribute()
+	_id = base.IdAttribute("id", 
+		default=base.NotGiven, 
+		description="Name of the table (must be SQL-legal for onDisk tables)")
+
 	_cols =  common.ColumnListAttribute("columns",
-		childFactory=column.Column, description="Columns making up this table.",
+		childFactory=column.Column, 
+		description="Columns making up this table.",
 		copyable=True)
+
 	_params = common.ColumnListAttribute("params",
-		childFactory=column.Param, description='Param ("global columns") for'
-		' this table.', copyable=True)
-	_viewStatement = base.UnicodeAttribute("viewStatement", default=None,
+		childFactory=column.Param, 
+		description='Param ("global columns") for this table.', 
+		copyable=True)
+
+	_viewStatement = base.UnicodeAttribute("viewStatement", 
+		default=None,
 		description="A single SQL statement to create a view.  Setting this"
-		" makes this table a view.", copyable=True)
-	_onDisk = base.BooleanAttribute("onDisk", False, description=
-		"Table in the database rather than in memory?")  # this must not be copyable
-		  # since queries might copy the tds and havoc would result if the queries
-		  # were to end up on disk.
-	_temporary = base.BooleanAttribute("temporary", False, description=
-		"If this is an onDisk table, make it temporary?  This is mostly"
-		" useful for custom cores and such.", copyable=True)
-	_adql = base.BooleanAttribute("adql", False, description=
-		"Should this table be available for ADQL queries?")
-	_forceUnique = base.BooleanAttribute("forceUnique", False, description=
-		"Enforce dupe policy for primary key (see dupePolicy)?")
+		" makes this table a view.", 
+		copyable=True)
+
+		# onDisk must not be copyable since queries might copy the tds and havoc
+		# would result if the queries were to end up on disk.
+	_onDisk = base.BooleanAttribute("onDisk", 
+		default=False, 
+		description="Table in the database rather than in memory?")  
+
+	_temporary = base.BooleanAttribute("temporary", 
+		default=False, 
+		description="If this is an onDisk table, make it temporary?"
+			"  This is mostly useful for custom cores and such.", 
+		copyable=True)
+
+	_adql = base.BooleanAttribute("adql", 
+		default=False, 
+		description="Should this table be available for ADQL queries?")
+
+	_system = base.BooleanAttribute("system", 
+		default=False,
+		description="Is this a system table?  If it is, it will not be"
+		" dropped on normal imports, and accesses to it will not be logged.")
+
+	_forceUnique = base.BooleanAttribute("forceUnique", 
+		default=False, 
+		description="Enforce dupe policy for primary key (see dupePolicy)?")
+
 	_dupePolicy = base.EnumeratedUnicodeAttribute("dupePolicy",
-		"check", ["check", "drop", "overwrite"], description=
-		"Handle duplicate rows with identical primary keys manually by"
-		" raising an error if existing and new rows are not identical (check),"
+		default="check", 
+		validValues=["check", "drop", "overwrite"], 
+		description= "Handle duplicate rows with identical primary keys manually"
+		" by raising an error if existing and new rows are not identical (check),"
 		" dropping the new one (drop), or overwriting the old one (overwrite)?")
-	_primary = ColumnTupleAttribute("primary", default=(),
+
+	_primary = ColumnTupleAttribute("primary", 
+		default=(),
 		description="Comma separated names of columns making up the primary key.",
 		copyable=True)
-	_indices = base.StructListAttribute("indices", childFactory=DBIndex,
-		description="Indices defined on this table", copyable=True)
+
+	_indices = base.StructListAttribute("indices", 
+		childFactory=DBIndex,
+		description="Indices defined on this table", 
+		copyable=True)
+
 	_foreignKeys = base.StructListAttribute("foreignKeys", 
-		childFactory=ForeignKey, description="Foreign keys used in this"
-		" table", copyable=True)
-	_system = base.BooleanAttribute("system", default=False,
-		description="Is this a system table?  If it is, it will not be"
-			" dropped on normal imports, and accesses to it will not be logged.")
+		childFactory=ForeignKey, 
+		description="Foreign keys used in this table", 
+		copyable=True)
+
+	_groups = base.StructListAttribute("groups",
+		childFactory=group.Group,
+		description="Groups for columns and params of this table",
+		copyable=True)
+
 	# don't copy stc -- columns just keep the reference to the original
 	# stc on copy, and nothing should rely on column stc actually being
 	# defined in the parent tableDefs.
 	_stcs = base.StructListAttribute("stc", description="STC-S definitions"
 		" of coordinate systems.", childFactory=STCDef)
+
+	_rd = common.RDAttribute()
 	_mixins = mixins.MixinAttribute()
 	_original = base.OriginalAttribute()
 	_namePath = common.NamePathAttribute()
