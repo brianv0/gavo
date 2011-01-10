@@ -199,6 +199,8 @@ class HeaderProcessor(FileProcessor):
 
 	def _makeCache(self, srcName):
 		if self.opts.compute:
+			if self.opts.beVerbose:
+				print "Now computing for", srcName
 			hdr = self._getHeader(srcName)
 			if hdr is None:
 				raise CannotComputeHeader("_getHeader returned None")

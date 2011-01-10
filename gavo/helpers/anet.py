@@ -47,7 +47,7 @@ upper_pix
   See lower_pix.
 
 plots
-	(defaults to True) -- generate all kinds of pretty plots?
+	(defaults to False) -- generate all kinds of pretty plots?
 """
 
 from __future__ import with_statement
@@ -77,7 +77,7 @@ PARAM_DEFAULTS = {
 		"upper_pix": None,
 		"tweak": True,
 		"pix_units": "app",
-		"plots": True,
+		"plots": False,
 	}
 
 
