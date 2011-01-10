@@ -3,7 +3,7 @@ VOTable-style groups for RD tables.
 """
 
 from gavo import base
-from gavo.base import parsecontext
+from gavo.base import attrdef
 from gavo.rscdef import column
 from gavo.rscdef import common
 
@@ -12,23 +12,19 @@ class Group(base.Structure):
 	"""A group is a collection of columns, parameters and other groups 
 	with a dash of metadata.
 
-	Within a group, you can refer to columns of the enclosing table by
-	their names.  For params and everything else, you need id on the
-	elements you want to refer to.
+	Within a group, you can refer to columns or params of the enclosing table 
+	by their names.  Nothing outside of the enclosing table can be
+	part of a group.
 
 	Rather than referring to params, you can also embed them into a group;
 	they will then *not* be present in the embedding table.
-
-	You could do the same for columns, but again the column would not be
-	part of the embedding table, which is almost certainly not what you
-	want.
 
 	Groups may contain groups.
 	"""
 	name_ = "group"
 
 	_name = column.ColumnNameAttribute("name", 
-		default=base.Undefined,
+		default=None,
 		description="Name of the column (must be SQL-valid for onDisk tables)",
 		copyable=True)
 
@@ -48,10 +44,12 @@ class Group(base.Structure):
 		copyable=True)
 
 	_columnRefs = base.StringListAttribute("columnRefs",
-		description="Names of table columns belonging to this group")
+		description="Names of table columns belonging to this group",
+		copyable=True)
 
 	_paramRefs = base.StringListAttribute("paramRefs",
-		description="Names of table parameters belonging to this group")
+		description="Names of table parameters belonging to this group",
+		copyable=True)
 
 	_params = common.ColumnListAttribute("params",
 		childFactory=column.Param, 
@@ -59,10 +57,13 @@ class Group(base.Structure):
 		" to reference params defined in the parent table)",
 		copyable=True)
 
-	_groups = base.ReferenceListAttribute("groups",
-		description="Sub-groups, or references to them",
-		forceType=parsecontext.RECURSIVE,
-		aliases=["group"])
+	_groups = base.StructListAttribute("groups",
+		childFactory=attrdef.RECURSIVE,
+		description="Sub-groups of this group (names are still referenced"
+		" from the enclosing table)",
+		copyable=True,
+		xmlName="group")
+
 
 	@property
 	def table(self):
@@ -88,6 +89,10 @@ class Group(base.Structure):
 	def onParentComplete(self):
 		"""checks that param and column names can be found in the parent table.
 		"""
+		# defer validation for sub-groups (parent group will cause validation
+		if isinstance(self.parent, Group):
+			return
+
 		try:
 			for col in self.iterColumns():
 				pass
@@ -97,6 +102,9 @@ class Group(base.Structure):
 			raise base.StructureError(
 				"No param or field %s in found in table %s"%(
 					msg.what, self.table.id))
+
+		for group in self.groups:
+			group.onParentComplete()
 
 	def iterColumns(self):
 		"""iterates over columns within this group.

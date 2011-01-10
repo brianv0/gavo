@@ -13,14 +13,6 @@ from gavo.base import caches
 from gavo.base import common
 
 
-class RECURSIVE(object):
-	"""a sentinel class for ReferenceAttribute's forceType below.
-
-	Using forces the referenced attribute to be of the same type as the
-	attribute's parent.
-	"""
-
-
 def assertType(id, ob, forceType):
 	"""raises a StructureError if forceType is not None and ob is not of
 	type forceType, returns ob otherwise.
@@ -255,7 +247,7 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 		"""returns self.forceType unless it is RECURSIVE, in which case instance's
 		type is returned.
 		"""
-		if self.forceType is RECURSIVE:
+		if self.forceType is attrdef.RECURSIVE:
 			return instance.__class__
 		else:
 			return self.forceType

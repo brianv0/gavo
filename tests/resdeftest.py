@@ -394,6 +394,25 @@ class GroupTest(testhelpers.VerboseTest):
 		self.failUnless(columns[0] is t.columns[0])
 		self.failUnless(columns[1] is t.columns[2])
 
+	def testCopying(self):
+		t = base.parseFromString(rscdef.TableDef,
+			"<table><column name='x'/><column name='y'/><column name='z'/>"
+			"<group ucd='test' name='foo' columnRefs='y'>"
+			"<param name='par'>20</param><group columnRefs='z'/>"
+			"</group></table>")
+		t2 = t.copy(None)
+		g = t.groups[0]
+		g2 = t2.groups[0]
+		self.assertEqual(g.ucd, g2.ucd)
+		self.failIf(g is g2)
+		self.assertEqual(g2.name, "foo")
+		self.assertEqual(g2.ucd, "test")
+		self.failIf(list(g.iterColumns())[0] is list(g2.iterColumns())[0])
+		self.failUnless(list(g2.iterColumns())[0] is t2.columns[1])
+		self.failIf(g.groups[0] is g2.groups[0])
+		self.failUnless(list(g2.groups[0].iterColumns())[0] is t2.columns[2])
+
+
 
 if __name__=="__main__":
 	testhelpers.main(GroupTest)

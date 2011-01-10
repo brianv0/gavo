@@ -62,6 +62,13 @@ from gavo.base import literals
 from gavo.base.common import LiteralParseError, StructureError, NotGiven
 
 
+class RECURSIVE(object):
+	"""a sentinel class for attributes embedding structures to signify
+	they embed the structure embedding them.
+	"""
+	name_ = "RECURSIVE"
+
+
 class Computed(object):
 	"""A sentinel class for computed (property) defaults.
 

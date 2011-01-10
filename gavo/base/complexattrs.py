@@ -248,9 +248,12 @@ class StructAttribute(attrdef.AttributeDef):
 	"""
 	def __init__(self, name, childFactory, default=attrdef.Undefined, 
 			description="Undocumented", **kwargs):
+		xmlName = kwargs.pop("xmlName", None)
 		attrdef.AttributeDef.__init__(self, name, default, description, **kwargs)
 		self.childFactory = childFactory
-		if self.childFactory is not None:
+		if xmlName is not None:
+			self.xmlName_ = xmlName
+		elif self.childFactory is not None:
 			self.xmlName_ = self.childFactory.name_
 
 	@property
@@ -269,7 +272,10 @@ class StructAttribute(attrdef.AttributeDef):
 				" they are for internal use only.")
 
 	def create(self, structure, ctx, name):
-		res = self.childFactory(structure)
+		if self.childFactory is attrdef.RECURSIVE:
+			res = structure.__class__(structure)
+		else:
+			res = self.childFactory(structure)
 		res.setParseContext(ctx)
 		return res
 
