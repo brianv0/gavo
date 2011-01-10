@@ -70,6 +70,7 @@ Field *getTuple(char *inputLine);
 void die(char *format, ...);
 void linearTransform(Field *field, double offset, double factor);
 int julian2unixtime(double julian, time_t *result);
+double mjdToJYear(double mjd);
 void makeTimeFromJd(Field *field);
 void stripWhitespace(char *str);
 char* copyString(char *src, char *dest, int start, int len);

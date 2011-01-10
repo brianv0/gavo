@@ -133,6 +133,12 @@ void makeTimeFromJd(Field *field)
 }
 
 
+double mjdToJYear(double mjd)
+{
+	return (mjd-51544.5)/365.25+2000;
+}
+
+
 void linearTransform(Field *field, double offset, double factor)
 {
 	switch (field->type) {

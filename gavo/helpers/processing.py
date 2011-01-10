@@ -258,6 +258,8 @@ class HeaderProcessor(FileProcessor):
 		return hdr
 
 	def process(self, srcName):
+		if self._isProcessed(srcName):
+			return
 		cache = self._readCache(srcName)
 		if cache is None or self.opts.reProcess:
 			self._makeCache(srcName)
