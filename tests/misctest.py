@@ -179,9 +179,9 @@ class TimeCalcTest(testhelpers.VerboseTest):
 class ProcessorTest(testhelpers.VerboseTest):
 	"""tests for some aspects of helper file processors.
 
-	Since setUp is relatively expensive, and also because sequencing
-	is important, we do all in one test.  It would be kinda cool if
-	TestSuites would have setUp and tearDown...
+	Unfortunately, sequencing is important here, so we do it all in
+	one test.  I guess one should rethink things here, but for now let's
+	keep things simple.
 	"""
 	_rdText = """<resource schema="filetest"><data id="import">
 		<sources pattern="*.fits"/><fitsProdGrammar/>
@@ -232,6 +232,8 @@ class ProcessorTest(testhelpers.VerboseTest):
 		return hdr
 
 	def _testPlainRun(self):
+		# procmain reads argv, don't confuse it
+		sys.argv = ["test"]
 		# Normal run, no headers present yet
 		proc, stdout, _ = testhelpers.captureOutput(helpers.procmain,
 			(self.SimpleProcessor, "filetest/filetest", "import"))

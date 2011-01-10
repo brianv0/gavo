@@ -5,6 +5,7 @@ VOTable-style groups for RD tables.
 from gavo import base
 from gavo.base import parsecontext
 from gavo.rscdef import column
+from gavo.rscdef import common
 
 
 class Group(base.Structure):
@@ -46,16 +47,17 @@ class Group(base.Structure):
 		description="A utype for the group", 
 		copyable=True)
 
-	_columns = base.ReferenceListAttribute("columns",
-		description="The columns belonging to this group",
-		forceType=column.Column,
-		aliases=["colref", "column"])
+	_columnRefs = base.StringListAttribute("columnRefs",
+		description="Names of table columns belonging to this group")
 
-	_params = base.ReferenceListAttribute("params",
-		description="The params belonging to this group, as references or"
-		" inline",
-		forceType=column.Param,
-		aliases=["paramref", "param"])
+	_paramRefs = base.StringListAttribute("paramRefs",
+		description="Names of table parameters belonging to this group")
+
+	_params = common.ColumnListAttribute("params",
+		childFactory=column.Param, 
+		description="Immediate param elements for this group (use paramref"
+		" to reference params defined in the parent table)",
+		copyable=True)
 
 	_groups = base.ReferenceListAttribute("groups",
 		description="Sub-groups, or references to them",
@@ -64,6 +66,10 @@ class Group(base.Structure):
 
 	@property
 	def table(self):
+		"""the table this group lives in.
+
+		For nested groups, this still is the ancestor table.
+		"""
 		try:
 			return self.__tableCache
 		except AttributeError:
@@ -79,7 +85,35 @@ class Group(base.Structure):
 				self.__tableCache = None
 		return self.__tableCache
 
-	# this resolveName definition makes groups have an automatic name path
-	# to the parent table.
-	def resolveName(self, context, id):
-		return parsecontext.resolveNameBased(self.table, id)
+	def onParentComplete(self):
+		"""checks that param and column names can be found in the parent table.
+		"""
+		try:
+			for col in self.iterColumns():
+				pass
+			for par in self.iterParams():
+				pass
+		except base.NotFoundError, msg:
+			raise base.StructureError(
+				"No param or field %s in found in table %s"%(
+					msg.what, self.table.id))
+
+	def iterColumns(self):
+		"""iterates over columns within this group.
+		"""
+		table = self.table
+		for name in self.columnRefs:
+			yield table.columns.getColumnByName(name)
+	
+	def iterParams(self):
+		"""iterates over all params within this group.
+
+		This includes both params refereced in the parent table and immediate
+		params.
+		"""
+		table = self.table
+		for name in self.paramRefs:
+			yield table.params.getColumnByName(name)
+		for par in self.params:
+			yield par
+

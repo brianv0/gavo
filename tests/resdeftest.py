@@ -337,59 +337,62 @@ class GroupTest(testhelpers.VerboseTest):
 	def testBasicColumn(self):
 		t = base.parseFromString(rscdef.TableDef,
 			"<table><column name='x'/><column name='y'/><column name='z'/>"
-			"<group name='foo' colref='y'/></table>")
+			"<group name='foo' columnRefs='y'/></table>")
 		g = t.groups[0]
 		self.assertEqual(g.name, "foo")
-		self.assertEqual(g.columns[0].name, "y")
-		self.failUnless(g.columns[0] is t.columns[1])
+		self.assertEqual(g.columnRefs[0], "y")
+		c = list(g.iterColumns())[0]
+		self.assertEqual(c.type, "real")
 
 	def testMultiGroups(self):
 		t = base.parseFromString(rscdef.TableDef,
 			"<table><column name='x'/><column name='y'/><column name='z'/>"
-			"<group name='foo' columns='y,x'/>"
-			"<group name='bar' column='x'><colref>z</colref></group>"
+			"<group name='foo' columnRefs='y,x'/>"
+			"<group name='bar'><columnRefs>x,z</columnRefs></group>"
 			"</table>")
 		g = t.groups[0]
-		self.assertEqual(g.columns[0].name, "y")
-		self.assertEqual(g.columns[1].name, "x")
+		self.assertEqual(g.name, "foo")
+		self.assertEqual(g.columnRefs, ["y", "x"])
+		self.failUnless(t.columns[0] is list(g.iterColumns())[1])
 		g = t.groups[1]
 		self.assertEqual(g.name, "bar")
-		self.assertEqual(g.columns[0].name, "x")
-		self.assertEqual(g.columns[1].name, "z")
 
 	def testColParams(self):
 		t = base.parseFromString(rscdef.TableDef,
-			"<table><column name='x'/><param name='y' id='yid'>0.25</param>"
+			"<table><column name='x'/><param name='y'>0.25</param>"
 			"<column name='z'/>"
-			"<group name='foo' columns='x' params='yid'><param name='u'>32</param>"
+			"<group name='foo' columnRefs='x' paramRefs='y'>"
+			"<param name='u'>32</param>"
 			"</group></table>")
 		g = t.groups[0]
-		self.assertEqual(g.columns[0].name, "x")
-		self.assertEqual(g.params[0].name, "y")
-		self.assertEqual(g.params[0].value, 0.25)
-		self.assertEqual(g.params[1].name, "u")
-		self.assertEqual(g.params[1].value, 32)
+		self.assertEqual(list(g.iterColumns())[0].name, "x")
+		params = list(g.iterParams())
+		self.assertEqual(params[0].name, "y")
+		self.assertEqual(params[0].value, 0.25)
+		self.assertEqual(params[1].name, "u")
+		self.assertEqual(params[1].value, 32)
 	
 	def testBadReference(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (1, 61): Reference to unknown item 'bad'.",
+			"At (1, 104): No param or field column in found in table u",
 			base.parseFromString,
 			(rscdef.TableDef,
-			"<table><column name='x'/><column name='y'/><column name='z'/>"
-			"<group name='foo' colref='bad'/></table>"))
+			"<table id='u'><column name='x'/><column name='y'/><column name='z'/>"
+			"<group name='foo' columnRefs='bad'/></table>"))
 
 	def testNesting(self):
 		t = base.parseFromString(rscdef.TableDef,
 			"<table><column name='x'/><column name='y'/><column name='z'/>"
-			"<group name='foo' colref='y'>"
-			"<group name='bar' colref='x,z'/></group></table>")
+			"<group name='foo' columnRefs='y'>"
+			"<group name='bar' columnRefs='x,z'/></group></table>")
 		g = t.groups[0]
 		self.assertEqual(g.name, "foo")
-		self.failUnless(g.columns[0] is t.columns[1])
+		self.failUnless(list(g.iterColumns())[0] is t.columns[1])
 		innerG = g.groups[0]
 		self.assertEqual(innerG.name, "bar")
-		self.failUnless(innerG.columns[0] is t.columns[0])
-		self.failUnless(innerG.columns[1] is t.columns[2])
+		columns = list(innerG.iterColumns())
+		self.failUnless(columns[0] is t.columns[0])
+		self.failUnless(columns[1] is t.columns[2])
 
 
 if __name__=="__main__":

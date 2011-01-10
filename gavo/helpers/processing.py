@@ -260,7 +260,7 @@ class HeaderProcessor(FileProcessor):
 		return hdr
 
 	def process(self, srcName):
-		if self._isProcessed(srcName):
+		if not self.opts.reProcess and self._isProcessed(srcName):
 			return
 		cache = self._readCache(srcName)
 		if cache is None or self.opts.reProcess:
