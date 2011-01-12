@@ -94,31 +94,53 @@ class CondDesc(base.Structure):
 	name_ = "condDesc"
 
 	_inputKeys = rscdef.ColumnListAttribute("inputKeys", 
-		childFactory=inputdef.InputKey, copyable=True,
-		description="One or more InputKeys defining the condition's input.")
-	_silent = base.BooleanAttribute("silent", default=False,
-		copyable=True, description="Do not produce SQL from this CondDesc.  This"
+		childFactory=inputdef.InputKey, 
+		description="One or more InputKeys defining the condition's input.",
+		copyable=True)
+
+	_silent = base.BooleanAttribute("silent", 
+		default=False,
+		description="Do not produce SQL from this CondDesc.  This"
 			" can be used to convey meta information to the core.  However,"
 			" in general, a service is a more appropriate place to deal with"
 			" such information, and thus you should prefer service InputKeys"
-			" to silent CondDescs.")
-	_required = base.BooleanAttribute("required", default=False,
-		copyable=True, description="Reject queries not filling the InputKeys"
-			" of this CondDesc")
-	_fixedSQL = base.UnicodeAttribute("fixedSQL", default=None,
-		copyable=True, description="Always insert this SQL statement into"
-			" the query.  Deprecated.")
+			" to silent CondDescs.",
+		copyable=True)
+
+	_required = base.BooleanAttribute("required", 
+		default=False,
+		description="Reject queries not filling the InputKeys of this CondDesc",
+		copyable=True)
+
+	_fixedSQL = base.UnicodeAttribute("fixedSQL", 
+		default=None,
+		description="Always insert this SQL statement into the query.  Deprecated.",
+		copyable=True)
+
 	_buildFrom = base.ReferenceAttribute("buildFrom", 
 		description="A reference to an InputKey to define this CondDesc",
 		default=None)
-	_phraseMaker = base.StructAttribute("phraseMaker", default=None,
+
+	_phraseMaker = base.StructAttribute("phraseMaker", 
+		default=None,
 		description="Code to generate custom SQL from the input keys", 
-		childFactory=PhraseMaker, copyable=True)
-	_combining = base.BooleanAttribute("combining", default=False,
+		childFactory=PhraseMaker, 
+		copyable=True)
+
+	_combining = base.BooleanAttribute("combining", 
+		default=False,
 		description="Allow some input keys to be missing when others are given?"
 			" (you want this for pseudo-condDescs just collecting random input"
 			" keys)",   # (and I wish I had a better idea)
 		copyable="True")
+
+	_group = base.StructAttribute("group",
+		default=None,
+		childFactory=rscdef.Group,
+		description="Group child input keys in the input table (primarily"
+			" interesting for web forms, where this grouping is shown graphically;"
+			" Set the style property to compact to have a one-line group there)")
+
 	_original = base.OriginalAttribute()
 	
 	def __init__(self, parent, **kwargs):
@@ -292,6 +314,18 @@ class TableBasedCore(core.Core):
 		" that will be used to located names in id references.  Defaults"
 		" to the queriedTable's id.")
 
+	def _buildInputTableFromCondDescs(self):
+		groups, iks = [], []
+		for cd in self.condDescs:
+			for ik in cd.inputKeys:
+				iks.append(ik)
+			if cd.group:
+				groups.append(cd.group.change(
+					paramRefs=[ik.name for ik in cd.inputKeys], parent_=None))
+		self.inputTable = MS(inputdef.InputTable,
+			params=iks,
+			groups=groups)
+
 	def completeElement(self):
 		# if no condDescs have been given, make them up from the table columns.
 		if not self.condDescs and self.queriedTable:
@@ -301,10 +335,7 @@ class TableBasedCore(core.Core):
 		# if an inputTable is given, trust it fits the condDescs, else
 		# build the input table
 		if self.inputTable is base.NotGiven:
-			self.inputTable = MS(inputdef.InputTable)
-			for cd in self.condDescs:
-				for ik in cd.inputKeys:
-					self.inputTable.params.append(ik)
+			self._buildInputTableFromCondDescs()
 
 		# if no outputTable has been given, make it up from the columns
 		# of the queried table unless a prototype is defined (which is

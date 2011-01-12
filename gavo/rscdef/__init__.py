@@ -19,6 +19,8 @@ from gavo.rscdef.common import (RDAttribute, ResdirRelativeAttribute,
 from gavo.rscdef.dddef import (DataDescriptor, Make,
 	SourceSpec)
 
+from gavo.rscdef.group import Group
+
 from gavo.rscdef.mixins import MixinDef
 
 from gavo.rscdef.procdef import ProcDef, ProcApp

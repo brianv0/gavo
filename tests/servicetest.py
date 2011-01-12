@@ -239,22 +239,35 @@ class InputTableGenTest(testhelpers.VerboseTest):
 
 
 class GroupingTest(testhelpers.VerboseTest):
-	def testExplicitGroup(self):
+	def _renderForm(self, svc):
 		from gavo.imp.formal.form import FormRenderer
-		svc = testhelpers.getTestRD("cores").getById("grouptest")
 		ctx = trialhelpers.getRequestContext("/")
 		ctx.remember({}, iformal.IFormData)
 		ctx.remember({}, inevow.IData)
 		form = formrender.Form(ctx, svc).form_genForm(ctx)
 		ctx.remember(form, iformal.IForm)
 		form.name = "foo"
-		rendered = flat.flatten(FormRenderer(form), ctx)
+		return flat.flatten(FormRenderer(form), ctx)
+
+	def testExplicitGroup(self):
+		rendered = self._renderForm(
+			testhelpers.getTestRD("cores").getById("grouptest"))
 		#testhelpers.printFormattedXML(rendered)
 		self.failUnless('<fieldset class="group localstuff"' in rendered)
 		self.failUnless('<legend>Magic</legend>' in rendered)
 		self.failUnless('<div class="description">Some magic parameters we took'
 			in rendered)
 
+	def testImplicitGroup(self):
+		# automatic grouping of condDescs with group
+		rendered = self._renderForm(
+			testhelpers.getTestRD("cores").getById("impgrouptest"))
+		#testhelpers.printFormattedXML(rendered)
+		self.failUnless('<div class="multiinputs" id="multigroup-phys">' 
+			in rendered)
+		self.failUnless('<label for="multigroup-phys">Wonz' in rendered)
+		self.failUnless('<input class="inmulti" type="text" id="foo-phys-mag"'
+			in rendered)
 
 if __name__=="__main__":
 	testhelpers.main(GroupingTest)

@@ -66,4 +66,19 @@
 			</inputTable>
 		</dbCore>
 	</service>
+
+	<service id="impgrouptest">
+		<dbCore queriedTable="data/test#adql">
+			<condDesc>
+				<inputKey original="rv"/>
+				<inputKey original="mag"/>
+				<group name="phys" description="Ah, you know.  The group with
+					 the magic and the thin air">
+					 <property name="label">Wonz</property>
+					 <property name="style">compact</property>
+				</group>
+			</condDesc>
+		</dbCore>
+	</service>
+	
 </resource>

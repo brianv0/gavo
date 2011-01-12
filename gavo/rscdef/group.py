@@ -77,13 +77,18 @@ class Group(base.Structure):
 		For nested groups, this still is the ancestor table.
 		"""
 		try:
-			return self.__tableCache
+			# (re) compute the table we belong to if there's no table cache
+			# or determination has failed so far.
+			if self.__tableCache is None:
+				raise AttributeError
 		except AttributeError:
-			# find the first non-group ancestor; this (the "table") is used to
-			# resolve ids by column name.
+			# find something that has columns (presumably a table) in our
+			# ancestors.  I don't want to check for a TableDef instance
+			# since I don't want to import rscdef.table here (circular import)
+			# and things with column and params would work as well.
 			anc = self.parent
 			while anc:
-				if not isinstance(anc, Group):
+				if hasattr(anc, "columns"):
 					self.__tableCache = anc
 					break
 				anc = anc.parent
@@ -94,8 +99,11 @@ class Group(base.Structure):
 	def onParentComplete(self):
 		"""checks that param and column names can be found in the parent table.
 		"""
-		# defer validation for sub-groups (parent group will cause validation
+		# defer validation for sub-groups (parent group will cause validation)
 		if isinstance(self.parent, Group):
+			return
+		# forgo validation if the group doesn't have a table
+		if self.table is None:
 			return
 
 		try:

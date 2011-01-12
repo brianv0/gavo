@@ -23,9 +23,6 @@
 }
 
 .nevow-form .required label {
-  font-style: italic;
-  font-weight: bold;
-  color: #555;
 }
 
 .nevow-form .error label {
@@ -46,11 +43,6 @@
 
 .nevow-form .field.decimal .inputs input {
   width: 8em;
-}
-
-.nevow-form .inputs textarea {
-  width: 500px;
-  height: 200px;
 }
 
 .nevow-form .message, .nevow-form .description {

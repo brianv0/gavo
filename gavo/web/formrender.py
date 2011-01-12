@@ -4,13 +4,17 @@ The form renderer is the standard renderer for web-facing services.
 
 
 from nevow import inevow
+from nevow import loaders
+from nevow import rend
 from nevow import tags as T, entities as E
 from twisted.internet import defer
+from twisted.python.components import registerAdapter
 
 from gavo import base
 from gavo import svcs
 from gavo.base import typesystems
 from gavo.imp import formal
+from gavo.imp.formal import iformal
 from gavo.svcs import customwidgets
 from gavo.web import grend
 from gavo.web import serviceresults
@@ -93,9 +97,6 @@ def getFieldArgsForInputKey(inputKey):
 		"description": inputKey.description}
 
 
-########### XXX REMOVE NONWORKING CODE START
-
-'''
 class MultiField(formal.Group):
 	"""A "widget" containing multiple InputKeys (i.e., formal Fields) in
 	a single line.
@@ -106,19 +107,58 @@ class MultiFieldFragment(rend.Fragment):
 	"""A fragment for rendering MultiFields.
 	"""
 	docFactory = loaders.stan(
-		T.div(class_="multifield", render=T.directive("multifield"))[
+		T.div(class_=T.slot("class"), render=T.directive("multifield"))[
 			T.label(for_=T.slot('id'))[T.slot('label')],
-			T.div(class_='description')[T.slot('description')]])
+			T.div(class_="multiinputs", id=T.slot('id'), 
+				render=T.directive("childFields")),
+			T.div(class_='description')[T.slot('description')],
+			T.slot('message')])
 
 	def __init__(self, multiField):
 		rend.Fragment.__init__(self)
 		self.multiField = multiField
 
+	def render_childFields(self, ctx, data):
+		formData = iformal.IFormData(ctx)
+		formErrors = iformal.IFormErrors(ctx, None)
+
+		for field in self.multiField.items:
+			widget = field.makeWidget()
+			if field.type.immutable:
+				render = widget.renderImmutable
+			else:
+				render = widget.render
+			ctx.tag[render(ctx, field.key, formData, formErrors)(class_="inmulti")]
+
+		return ctx.tag
+
+	def _getMessageElement(self, ctx):
+		errors = []
+		formErrors = iformal.IFormErrors(ctx, None)
+		if formErrors is not None:
+			for field in self.multiField.items:
+				err = formErrors.getFieldError(field.key)
+				if err is not None:
+					errors.append(err.message)
+		if errors:
+			return T.div(class_='message')["; ".join(errors)]
+		else:
+			return ''
+
 	def render_multifield(self, ctx, data):
 		ctx.tag.fillSlots('description', self.multiField.description)
 		ctx.tag.fillSlots('label', self.multiField.label)
-'''
-########### XXX REMOVE NONWORKING CODE END
+		ctx.tag.fillSlots('id', "multigroup-"+self.multiField.key)
+		errMsg = self._getMessageElement(ctx)
+		ctx.tag.fillSlots('message', errMsg)
+		if errMsg:
+			ctx.tag.fillSlots('class', 'field error')
+		else:
+			ctx.tag.fillSlots('class', 'field')
+		return ctx.tag
+
+
+registerAdapter(MultiFieldFragment, MultiField, inevow.IRenderer)
 
 
 class FormMixin(formal.ResourceMixin):
@@ -222,14 +262,23 @@ class FormMixin(formal.ResourceMixin):
 		for item in self._groupQueryFields(inputTable):
 			if item is None:  # end of group
 				containers.pop()
+
 			elif isinstance(item, basestring):  # param reference
 				self._addInputKey(form, containers[-1], 
 					inputTable.params.getColumnByName(item))
-			else: # it's a new group
+
+			else: 
+				# It's a new group -- if the group has a "style" property and
+				# it's "compact", use a special container form formal.
+				if item.getProperty("style", None)=="compact":
+					groupClass = MultiField
+				else:
+					groupClass = formal.Group
+
 				containers.append(
-					form.addGroup(item.name, description=item.description,
+					form.add(groupClass(item.name, description=item.description,
 						label=item.getProperty("label", None),
-						cssClass=item.getProperty("cssClass", None)))
+						cssClass=item.getProperty("cssClass", None))))
 
 	def _addQueryFields(self, form):
 		"""adds the inputFields of the service to form, setting proper defaults

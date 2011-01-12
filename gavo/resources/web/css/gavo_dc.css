@@ -422,6 +422,10 @@ textarea { /* fix silly nevow formal css */
   height: auto !important;
 }
 
+.nevow-form .multiinputs {
+  margin-left: 110px;
+}
+
 hr.scoreBar {
 	height: 10px;
 	background-color: #44bb66;

@@ -200,9 +200,10 @@ class StructureBase(object):
 		"""returns a copy of self with all attributes in kwargs overridden with
 		the passed values.
 		"""
+		parent = kwargs.pop("parent_", self.parent)
 		attrs = self.getCopyableAttributes(kwargs)
 		attrs.update(kwargs)
-		return self.__class__(self.parent, **attrs).finishElement()
+		return self.__class__(parent, **attrs).finishElement()
 
 	def copy(self, parent):
 		"""returns a deep copy of self, reparented to parent.
