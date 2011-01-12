@@ -107,7 +107,7 @@ class MultiFieldFragment(rend.Fragment):
 	"""
 	docFactory = loaders.stan(
 		T.div(class_="multifield", render=T.directive("multifield"))[
-			T.legend[T.slot('label')],
+			T.label(for_=T.slot('id'))[T.slot('label')],
 			T.div(class_='description')[T.slot('description')]])
 
 	def __init__(self, multiField):
@@ -137,7 +137,7 @@ class FormMixin(formal.ResourceMixin):
 				failure.value.colName, basestring):
 			try:
 				# Find out the formal name of the failing field...
-				failedField = self.translateFieldName(failure.value.colName)
+				failedField = failure.value.colName
 				# ...and make sure it exists
 				self.form.items.getItemByName(failedField)
 				self.form.errors.add(formal.FieldValidationError(
@@ -150,9 +150,6 @@ class FormMixin(formal.ResourceMixin):
 			failure.printTraceback()
 			return failure
 		return self.form.errors
-
-	def translateFieldName(self, name):
-		return self.service.translateFieldName(name)
 
 	def _addDefaults(self, ctx, form):
 		"""adds defaults from request arguments.
@@ -175,7 +172,6 @@ class FormMixin(formal.ResourceMixin):
 			form.data[inputKey.name] = inputKey.values.default
 		if inputKey.value:
 			form.data[inputKey.name] = inputKey.value
-
 
 	def _groupQueryFields(self, inputTable):
 		"""returns a list of "grouped" param names from inputTable.

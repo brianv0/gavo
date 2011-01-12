@@ -432,9 +432,6 @@ class Service(base.Structure, base.ComputedMetaMixin,
 					unicode(msg))
 			self.customPageCode = page, (os.path.basename(self.customPage),)+moddesc
 
-	def translateFieldName(self, name):
-		return name
-
 	def getTemplate(self, key):
 		"""returns the nevow template for the function key on this service.
 		"""
