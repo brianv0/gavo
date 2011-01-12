@@ -6,6 +6,8 @@ import datetime
 import os
 
 from nevow import context
+from nevow import inevow
+from nevow import flat
 
 from gavo import base
 from gavo import rsc
@@ -13,10 +15,12 @@ from gavo import rscdesc
 from gavo import protocols
 from gavo import svcs
 from gavo.imp import formal
+from gavo.imp.formal import iformal
 from gavo.helpers import testhelpers
 from gavo.web import formrender
 
 import tresc
+import trialhelpers
 
 
 class PlainDBServiceTest(testhelpers.VerboseTest):
@@ -234,5 +238,23 @@ class InputTableGenTest(testhelpers.VerboseTest):
 		raise AssertionError("ValidationError not raised")
 
 
+class GroupingTest(testhelpers.VerboseTest):
+	def testExplicitGroup(self):
+		from gavo.imp.formal.form import FormRenderer
+		svc = testhelpers.getTestRD("cores").getById("grouptest")
+		ctx = trialhelpers.getRequestContext("/")
+		ctx.remember({}, iformal.IFormData)
+		ctx.remember({}, inevow.IData)
+		form = formrender.Form(ctx, svc).form_genForm(ctx)
+		ctx.remember(form, iformal.IForm)
+		form.name = "foo"
+		rendered = flat.flatten(FormRenderer(form), ctx)
+		#testhelpers.printFormattedXML(rendered)
+		self.failUnless('<fieldset class="group localstuff"' in rendered)
+		self.failUnless('<legend>Magic</legend>' in rendered)
+		self.failUnless('<div class="description">Some magic parameters we took'
+			in rendered)
+
+
 if __name__=="__main__":
-	testhelpers.main(InputTableGenTest)
+	testhelpers.main(GroupingTest)

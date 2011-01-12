@@ -77,7 +77,8 @@ def _parseTAPParameters(jobId, parameters):
 	format = normalizeTAPFormat(parameters.get("FORMAT", "votable"))
 
 	try:
-		maxrec = int(parameters["MAXREC"])
+		maxrec = min(base.getConfig("async", "hardMAXREC"),
+			int(parameters["MAXREC"]))
 	except ValueError:
 		raise base.ui.logOldError(
 			uws.UWSError("Invalid MAXREC literal '%s'."%parameters["MAXREC"]))

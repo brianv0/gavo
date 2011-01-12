@@ -32,23 +32,24 @@ FORMAT_CODES = {
 	"application/x-votable+xml": 
 		("votable", "application/x-votable+xml", "VOTable, binary"),
 	"text/xml": 
-		("votable", "application/x-votable+xml", "VOTable, binary"),
+		("votable", "text/xml", "VOTable, binary"),
 	"votable": 
 		("votable", "application/x-votable+xml", "VOTable, binary"),
 	"votable/td":
 		("votabletd", "application/x-votable+xml", "VOTable, tabledata"),
 	"text/csv": 
-		("csv+header", "text/csv", "CSV, with column labels in 1st line"),
-	"csv":
-		("csv+header", "text/csv", "CSV, with column labels in 1st line"),
-	"csv/plain": 
-		("csv", "text/csv", "CSV, without header"),
+		("csv", "text/csv", "CSV without column labels"),
+	"csv": ("csv+header", "text/csv;header=present", 
+			"CSV with column labels"),
+	"text/csv;header=present": 
+		("csv+header", "text/csv;header=present",
+			"CSV with column labels"),
 	"text/tab-separated-values": 
 		("tsv", "text/tab-separated-values", 
-			"Tab separated values, without header"),
+			"Tab separated values"),
 	"tsv": 
 		("tsv", "text/tab-separated-values", 
-			"Tab separated values, without header"),
+			"Tab separated values"),
 	"application/fits": 
 		("fits", "application/fits", "FITS binary table"),
 	"fits":

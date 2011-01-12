@@ -287,15 +287,36 @@ class TAPCapabilityMaker(CapabilityMaker):
 		if _TMP_TAPREGEXT_HACK:
 			service = publication.parent
 			from gavo.protocols import tap
+			from gavo.adql import ufunctions
 			res[
 				_tapModelBuilder.build(service),
-				[TAP.language(ivoId=standardId, LANG=langValue)[label]
+				[TAP.language(ivoId=standardId)[
+						TAP.parameter[langValue],
+						TAP.label[label]]
 					for langValue, (standardId, label) 
 						in tap.SUPPORTED_LANGUAGES.iteritems()],
-				[TAP.outputFormat(FORMAT=parVal, mime=mime)[label]
+				[TAP.outputFormat[
+						TAP.parameter[parVal],
+						TAP.label[label],
+						TAP.mime[mime]]
 					for parVal, (_, mime, label) in tap.FORMAT_CODES.iteritems()],
-				[TAP.uploadMethod(protocol=protocol, ivoId=ivoId)[label]
-					for protocol, (ivoId, label) in tap.UPLOAD_METHODS.iteritems()]]
+				[TAP.uploadMethod(ivoId=ivoId)[
+						TAP.protocol[protocol],
+						TAP.label[label]]
+					for protocol, (ivoId, label) in tap.UPLOAD_METHODS.iteritems()],
+				TAP.retentionPeriod[
+					TAP.default[str(base.getConfig("async", "defaultLifetime"))]],
+				TAP.executionDuration[
+					TAP.default[str(base.getConfig("async", "defaultExecTime"))]],
+				TAP.rowLimit[
+					TAP.default[str(base.getConfig("async", "defaultMAXREC"))],
+					TAP.hard[str(base.getConfig("async", "hardMAXREC"))]],
+				[[TAP.udf[
+						TAP.name[udf.adqlUDF_name],
+						TAP.signature[udf.adqlUDF_signature],
+						TAP.description[udf.adqlUDF_doc]]
+					for udf in ufunctions.UFUNC_REGISTRY.values()]],
+			]
 		
 		return res
 

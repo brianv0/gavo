@@ -256,6 +256,15 @@ def cleanXML(aString):
 	return re.sub("\s+", " ", _xmlJunkPat.sub('', aString)).strip()
 
 
+def printFormattedXML(xmlString):
+	"""pipes xmlString through xmlstarlet fo, pretty-printing it.
+	"""
+	p = subprocess.Popen("xmlstarlet fo".split(), stdin=subprocess.PIPE)
+	p.stdin.write(xmlString)
+	p.stdin.close()
+	p.wait()
+
+
 class SamplesBasedAutoTest(type):
 	"""A metaclass that builds tests out of a samples attribute of a class.
 

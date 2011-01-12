@@ -167,30 +167,92 @@ class FormMixin(formal.ResourceMixin):
 			except:  # don't fail on junky things in default arguments
 				pass
 			
-	def _addInputKey(self, form, inputKey):
+	def _addInputKey(self, form, container, inputKey):
 		"""adds a form field for an inputKey to the form.
 		"""
-		form.addField(**getFieldArgsForInputKey(inputKey))
+		container.addField(**getFieldArgsForInputKey(inputKey))
 		if inputKey.values and inputKey.values.default:
 			form.data[inputKey.name] = inputKey.values.default
 		if inputKey.value:
 			form.data[inputKey.name] = inputKey.value
 
-	def _addFromInputKey(self, form, inputKey):
-		self._addInputKey(form, inputKey)
+
+	def _groupQueryFields(self, inputTable):
+		"""returns a list of "grouped" param names from inputTable.
+
+		The idea here is that you can define "groups" in your input table.
+		Each such group can contain paramrefs.  When the input table is rendered
+		in HTML, the grouped fields are created in a formal group.  To make this
+		happen, they may need to be resorted.  This happens in this function.
+
+		The returned list contains strings (parameter names), groups (meaning
+		"start a new group") and None (meaning end the current group).
+
+		This is understood and used by _addQueryFields.
+		"""
+		groupedKeys = {}
+		for group in inputTable.groups:
+			for name in group.paramRefs:
+				groupedKeys[name] = group
+
+		inputKeySequence, addedNames = [], set()
+		for inputKey in inputTable.params:
+			thisName = inputKey.name
+
+			if thisName in addedNames:
+				# part of a group and added as such
+				continue
+
+			newGroup = groupedKeys.get(thisName)
+			if newGroup is None:
+				# not part of a group
+				inputKeySequence.append(thisName)
+				addedNames.add(thisName)
+			else:
+				# current key is part of a group: add it and all others in the group
+				# enclosed in group/None.
+				inputKeySequence.append(newGroup)
+				for groupedName in groupedKeys[inputKey.name].paramRefs:
+					inputKeySequence.append(groupedName)
+					addedNames.add(groupedName)
+				inputKeySequence.append(None)
+		return inputKeySequence
+
+	def _addQueryFieldsForInputTable(self, form, inputTable):
+		"""generates input fields form the parameters of inputTable, taking
+		into account grouping if necessary.
+		"""
+		containers = [form]
+		for item in self._groupQueryFields(inputTable):
+			if item is None:  # end of group
+				containers.pop()
+			elif isinstance(item, basestring):  # param reference
+				self._addInputKey(form, containers[-1], 
+					inputTable.params.getColumnByName(item))
+			else: # it's a new group
+				containers.append(
+					form.addGroup(item.name, description=item.description,
+						label=item.getProperty("label", None),
+						cssClass=item.getProperty("cssClass", None)))
 
 	def _addQueryFields(self, form):
 		"""adds the inputFields of the service to form, setting proper defaults
 		from the field or from data.
 		"""
-		for inputKey in self.service.getInputKeysFor(self):
-			self._addFromInputKey(form, inputKey)
+		if self.service.inputDD:
+			# the service has a custom inputDD; all we have is the input keys.
+			for item in self.service.getInputKeysFor(self):
+				self._addInputKey(form, form, item)
+		else:
+			# we have an inputTable.  Handle groups and other fancy stuff
+			self._addQueryFieldsForInputTable(form,
+				self.service.getCoreFor(self).inputTable)
 
 	def _addMetaFields(self, form, queryMeta):
 		"""adds fields to choose output properties to form.
 		"""
 		for serviceKey in self.service.serviceKeys:
-			self._addFromInputKey(form, serviceKey)
+			self._addInputKey(form, form, serviceKey)
 		try:
 			if self.service.core.wantsTableWidget():
 				form.addField("_DBOPTIONS", svcs.FormalDict,

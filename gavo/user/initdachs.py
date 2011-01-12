@@ -95,7 +95,7 @@ def makeDefaultMeta():
 	if os.path.exists(destPath):
 		return
 	rawData = """publisher: Fill Out
-		publisher.ivo_id: ivo://not_filled_out
+		publisher.ivoId: ivo://not_filled_out
 		contact.name: Fill Out
 		contact.address: Ordinary street address.
 		contact.email: Your email address

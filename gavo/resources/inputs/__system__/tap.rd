@@ -320,6 +320,9 @@
 	<service id="run" core="null" allowed="tap">
 		<meta name="shortName">GAVO DC TAP</meta>
 		<meta name="title">GAVO Data Center TAP service</meta>
+		<meta name="supportsModel">ObsCore 1.0</meta>
+		<meta name="supportsModel.ivoId">ivo://ivoa.net/std/ObsCore-1.0</meta>
+
 		<meta name="description">The GAVO data center's TAP end point.  The
 			Table Access Protocol (TAP) lets you execute queries against our
 			database tables, inspect various metadata, and upload your own

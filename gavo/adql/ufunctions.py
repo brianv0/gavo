@@ -2,53 +2,78 @@
 "User" defined functions, i.e., ADQL functions defined only on this
 system.
 
-The functions are really python functions, receiving their arguments in a 
-list children; these are whatever the rest of nodes.py does with what comes
-in from the parser.
-
-The functions have to return an ADQL node that must be structured like
-it would be structured if it had been parsed out from the start.
-
-The module has to be imported by the glue code and registers itself
-in nodes.py.  This way, you can have more than one set of ufunctions.
+See the userFunction docstring on how to use these.
 """
 
 
 import warnings
 
+from gavo import utils
+from gavo.adql import common
 from gavo.adql import grammar
 from gavo.adql import nodes
 from gavo.adql import tree
-from gavo.adql.common import *
 
 
-_funPrefix = grammar.userFunctionPrefix
+UFUNC_REGISTRY = {}
 
 
-def gavo_resolve(args):
-	warnings.warn("Not resolving %s"%repr(args))
+def userFunction(name, signature, doc):
+	"""a decorator adding some metadata to python functions to make them
+	suitable as ADQL user defined functions.
+
+	name is the name the function will be visible under in ADQL, *without*
+	the _funPrefix; signature is a signature not including the name of
+	the form '(parName1 type1, parName1 type2) -> resulttype'; doc
+	is preformatted ASCII documentation.  The indentation of the second
+	line will be removed from all lines.
+
+	The python function receives an array of arguments; this will in general
+	be ADQL expression trees.  It must return a string that will go
+	literally into the SQL string, so beware quoting.  In general,
+	you will use nodes.flatten(arg) to flatten individual args.
+
+	If you receive bad arguments or something else goes awry, raise
+	a UfuncError.
+	"""
+	def deco(f):
+		f.adqlUDF_name = grammar.userFunctionPrefix+name
+		f.adqlUDF_signature = f.adqlUDF_name+signature.strip()
+		f.adqlUDF_doc = utils.fixIndentation(doc, "", 1).strip()
+		UFUNC_REGISTRY[f.adqlUDF_name.upper()] = f
+		return f
+	return deco
+
+
+@userFunction("match",
+	"(pattern TEXT, string TEXT) -> INTEGER",
+	"""
+	gavo_match returns 1 if the posix regular expression matches anything
+	in string, 0 otherwise.
+	""")
+def _match(args):
+	if len(args)!=2:
+		raise UfuncError("match takes exactly two arguments")
+	return "(CASE WHEN %s ~ %s THEN 1 ELSE 0)"%(
+		nodes.flatten(args[1]), nodes.flatten(args[0]))
 
 
 class UserFunction(nodes.FunctionNode):
-	"""is a node processing user functions.
+	"""A node processing user defined functions.
 
-	All user functions must be declared lexically above this class
-	definition.  Since SQL is case insensitive, no function names must
-	clash when uppercased.  Names suitable as user functions
-	start with adql.grammar.userFunctionPrefix.
+	See the userFunction docstring for how ADQL user defined functions
+	are defined.
 	"""
 	type = "userDefinedFunction"
 
-	userFunctions = dict((name.upper(), ob) for name, ob in globals().iteritems()
-		if name.startswith(_funPrefix))
-
 	def _polish(self):
-		if (self.funName.startswith(_funPrefix) and 
-				self.funName in self.userFunctions):
-			self.funName, self.args = self.userFunctions[self.funName](
+		try:
+			self.processedExpression = UFUNC_REGISTRY[self.funName.upper()](
 				self.args)
-		else:
-			raise UfuncError("No such function: %s"%self.funName)
+		except KeyError:
+			raise common.UfuncError("No such function: %s"%self.funName)
 
+	def flatten(self):
+		return self.processedExpression
 
 tree.registerNode(UserFunction)

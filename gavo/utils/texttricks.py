@@ -155,7 +155,7 @@ def fixIndentation(code, newIndent, governingLine=0):
 		fixedLines = []
 		for line in codeLines:
 			if not line.strip():
-				fixedLines.append(line)
+				fixedLines.append(newIndent)
 			else:
 				if line[:len(firstIndent)]!=firstIndent:
 					raise Error("Bad indent in line %s"%repr(line))

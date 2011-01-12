@@ -387,9 +387,9 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 
 	def __init__(self, ctx, service):
 		ResourceBasedRenderer.__init__(self, ctx, service.rd)
-		request = inevow.IRequest(ctx)
 
 		if service.limitTo:
+			request = inevow.IRequest(ctx)
 			if not creds.hasCredentials(request.getUser(), request.getPassword(),
 					service.limitTo):
 				raise svcs.Authenticate(base.getConfig("web", "realm"))

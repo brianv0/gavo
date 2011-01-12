@@ -48,4 +48,22 @@
 			</condDesc>
 		</dbCore>
 	</service>
+
+	<service id="grouptest">
+		<dbCore queriedTable="data/test#adql">
+			<condDesc>
+				<inputKey original="rv"/>
+			</condDesc>
+			<inputTable>
+				<group name="magic" paramRefs="mag,rv"
+					description="Some magic parameters we took out of thin air.">
+					<property name="cssClass">localstuff</property>
+				</group>
+				<inputKey original="rv"/>
+				<inputKey original="mag"/>
+				<inputKey original="alpha"/>
+				<inputKey original="delta"/>
+			</inputTable>
+		</dbCore>
+	</service>
 </resource>

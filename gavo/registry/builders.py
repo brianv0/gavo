@@ -44,18 +44,18 @@ _vrResourceBuilder = meta.ModelBasedBuilder([
 	('identifier', SF(VOR.identifier)),
 	(None, SF(VOR.curation), [
 		('publisher', SF(VOR.publisher), (), {
-				"ivo_id": "ivo-id"}),
+				"ivoId": "ivoId"}),
 		('creator', SF(VOR.creator), [
 			('name', SF(VOR.name)),
 			('logo', SF(VOR.logo)),]),
 		('contributor', SF(VOR.contributor), (), {
-				"ivo_id": "ivo-id"}),
+				"ivoId": "ivoId"}),
 		('date', SF(VOR.date), (), {
 				"role": "role"}),
 		('version', SF(VOR.version)),
 		('contact', SF(VOR.contact), [
 			('name', SF(VOR.name), (), {
-				"ivo_id": "ivo-id"}),
+				"ivoId": "ivoId"}),
 			('address', SF(VOR.address)),
 			('email', SF(VOR.email)),
 			('telephone', SF(VOR.telephone)),]),]),

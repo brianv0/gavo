@@ -392,6 +392,8 @@ _config = Configuration(
 			" time to destruction for UWS jobs, in seconds"),
 		IntConfigItem("defaultMAXREC", "2000",
 			"Default match limit for ADQL queries via the UWS/TAP"),
+		IntConfigItem("hardMAXREC", "20000000",
+			"Default match limit for ADQL queries via the UWS/TAP"),
 		StringConfigItem("csvDialect", "excel", "CSV dialect as defined"
 			" by the python csv module used when writing CSV files."),
 	),

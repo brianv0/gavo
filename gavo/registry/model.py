@@ -156,8 +156,8 @@ class VOR:
 	class shortName(VORElement): pass
 
 	class ResourceName(VORElement):
-		_a_ivo_id = None
-		_name_a_ivo_id = "ivo-id"
+		_a_ivoId = None
+		_name_a_ivoId = "ivo-id"
 
 	class identifier(VORElement): pass
 
@@ -397,8 +397,8 @@ def addBasicVSElements(baseNS, VSElement):
 			_additionalPrefixes = frozenset(["vs", "xsi"])
 
 		class ServiceReference(VSElement):
-			_a_ivo_id = None
-			_name_a_ivo_id = "ivo-id"
+			_a_ivoId = None
+			_name_a_ivoId = "ivo-id"
 
 		class table(VSElement):
 			_a_role = None
@@ -596,10 +596,15 @@ class TAP(object):
 	
 	class dataModel(TAPElement):
 		_a_ivoId = None
-	
+		_name_a_ivoId = "ivo-id"
+
+	class label(TAPElement):
+		pass
+
 	class language(TAPElement):
 		_a_LANG = None
 		_a_ivoId = None
+		_name_a_ivoId = "ivo-id"
 	
 	class outputFormat(TAPElement):
 		_a_FORMAT = None
@@ -608,3 +613,40 @@ class TAP(object):
 	class uploadMethod(TAPElement):
 		_a_protocol = None
 		_a_ivoId = None
+		_name_a_ivoId = "ivo-id"
+
+	class name(TAPElement):
+		pass
+
+	class hard(TAPElement):
+		pass
+	
+	class default(TAPElement):
+		pass
+	
+	class retentionPeriod(TAPElement):
+		pass
+	
+	class executionDuration(TAPElement):
+		pass
+	
+	class rowLimit(TAPElement):
+		pass
+
+	class udf(TAPElement):
+		pass
+	
+	class signature(TAPElement):
+		pass
+	
+	class description(TAPElement):
+		pass
+	
+	class parameter(TAPElement):
+		pass
+	
+	class mime(TAPElement):
+		pass
+	
+	class protocol(TAPElement):
+		pass

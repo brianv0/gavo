@@ -449,7 +449,7 @@ def getADQLGrammarCopy():
 				+ Args(numericValueExpression) 
 				+ ',' + Args(numericValueExpression) + ')')
 		userDefinedFunctionParam = valueExpression
-		userDefinedFunctionName = Regex(userFunctionPrefix+"[A-Za-z_]+")
+		userDefinedFunctionName = Regex("(?i)"+userFunctionPrefix+"[A-Za-z_]+")
 		userDefinedFunctionName.setName("Name of locally defined function")
 		userDefinedFunction = ( userDefinedFunctionName("fName") + '(' +
 			Args(userDefinedFunctionParam) 

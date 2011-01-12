@@ -10,19 +10,57 @@ from gavo import rscdesc
 from gavo.helpers import testhelpers
 from gavo.protocols import adqlglue
 from gavo.protocols import simbadinterface # for getSesame registration
-from gavo.adql import ufunctions # magic registration of ufuncs takes place
-                                 # during import
-
+from gavo.adql import nodes 
+from gavo.adql import ufunctions 
 
 
 class BasicTest(unittest.TestCase):
-	"""tests for some basic properties of user defined functions.
-	"""
 	def testRaising(self):
-		"""tests for plausible exceptions.
-		"""
 		self.assertRaises(adql.UfuncError, adql.parseToTree,
 			"SELECT x FROM y WHERE gavo_foo(8)=7")
+
+	def testFlattening(self):
+		self.assertEqual(
+			adql.parseToTree("SELECT x FROM y WHERE 1=gavo_match('x.*', frob)"
+				).flatten(),
+			"SELECT x FROM y WHERE 1 = (CASE WHEN frob ~ 'x.*' THEN 1 ELSE 0)")
+
+
+class _UfuncDefinition(testhelpers.TestResource):
+	def make(self, nodeps):
+		@adql.userFunction("testingXXX",
+			"(x INTEGER) -> INTEGER",
+			"""
+			This function returns its argument decreased by one.
+			
+			This is the end.
+			""")
+		def _(args):
+			if len(args)!=1:
+				raise adql.UfuncError("gavo_testingXXX takes only a single argument")
+			return "(%s+1)"%nodes.flatten(args[0])
+		return True
+	
+	def clean(self, ignored):
+		del ufunctions.UFUNC_REGISTRY["GAVO_TESTINGXXX"]
+
+
+class UfuncDefTest(testhelpers.VerboseTest):
+	resources = [("ufunc_defined", _UfuncDefinition())]
+
+	def testUfuncMeta(self):
+		f = ufunctions.UFUNC_REGISTRY["GAVO_TESTINGXXX"]
+		self.assertEqual(f.adqlUDF_name, "gavo_testingXXX")
+		self.assertEqual(f.adqlUDF_signature, 
+			"gavo_testingXXX(x INTEGER) -> INTEGER")
+		self.assertEqual(f.adqlUDF_doc, "This function returns its argument"
+			" decreased by one.\n\nThis is the end.")
+	
+	def testFlattening(self):
+		self.assertEqual(
+			adql.parseToTree("SELECT GAVO_TESTINGXXX(frob) FROM x"
+				).flatten(),
+			"SELECT (frob+1) FROM x")
 
 
 class RegionTest(unittest.TestCase):
@@ -53,4 +91,4 @@ class RegionTest(unittest.TestCase):
 
 
 if __name__=="__main__":
-	testhelpers.main(RegionTest)
+	testhelpers.main(UfuncDefTest)

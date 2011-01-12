@@ -20,6 +20,10 @@ class Group(base.Structure):
 	they will then *not* be present in the embedding table.
 
 	Groups may contain groups.
+
+	One application for this is grouping input keys for the form renderer.
+	For such groups, you probably want to give the label property (and
+	possibly cssClass).
 	"""
 	name_ = "group"
 
@@ -63,7 +67,8 @@ class Group(base.Structure):
 		" from the enclosing table)",
 		copyable=True,
 		xmlName="group")
-
+	
+	_props = base.PropertyAttribute(copyable=True)
 
 	@property
 	def table(self):
