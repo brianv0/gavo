@@ -266,7 +266,7 @@ class GroupingTest(testhelpers.VerboseTest):
 		self.failUnless('<div class="multiinputs" id="multigroup-phys">' 
 			in rendered)
 		self.failUnless('<label for="multigroup-phys">Wonz' in rendered)
-		self.failUnless('<input class="inmulti" type="text" id="foo-phys-mag"'
+		self.failUnless('<input class="inmulti" type="text" id="foo-mag"'
 			in rendered)
 
 if __name__=="__main__":

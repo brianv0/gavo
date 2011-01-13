@@ -239,6 +239,14 @@ class HTMLResultRenderMixin(object):
 		else:
 			return ""
 
+	def render_servicestyle(self, ctx, data):
+		"""enters custom service styles into ctx.tag.
+
+		They are taken from the service's customCSS property.
+		"""
+		if self.service and self.service.getProperty("customCSS", False):
+			return ctx.tag[self.service.getProperty("customCSS", False)]
+		return ""
 	def data_result(self, ctx, data):
 		return self.result
 

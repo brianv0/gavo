@@ -44,9 +44,14 @@
 			<condDesc original="//scs#protoInput"/>
 			<condDesc buildFrom="mag"/>
 			<condDesc>
-				<inputKey original="rv" type="vexpr-float">-100 .. 100</inputKey>
+				<inputKey original="rv" type="vexpr-float"
+					>-100 .. 100<property name="cssClass">rvkey</property>
+				</inputKey>
 			</condDesc>
 		</dbCore>
+		<property name="customCSS">
+			.rvkey { background:red; }
+		</property>
 	</service>
 
 	<service id="grouptest">

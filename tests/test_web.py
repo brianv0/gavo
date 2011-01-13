@@ -3,6 +3,7 @@ Tests for various parts of the server infrastructure, using trial.
 """
 
 from gavo import api
+from gavo.imp import formal
 from gavo.web import root
 from gavo.helpers import testhelpers
 
@@ -91,4 +92,20 @@ class FormTest(trialhelpers.RenderTest):
 				'Search radius in arcminutes',
 				'A sample magnitude'
 			])
-
+	
+	def testMultigroupMessages(self):
+		return self.assertGETHasStrings("/data/cores/impgrouptest/form", {
+				"rv": "invalid", 
+				"mag": "bogus", 
+				formal.FORMS_KEY: "genForm",
+			}, [
+				# assert multiple form items in one line:
+				'class="description">Ah, you know.',
+				'<input class="inmulti"',
+				'<div class="message">Not a valid number; Not a valid number</div>',
+				'value="invalid"'])
+	
+	def testCSSProperties(self):
+		return self.assertGETHasStrings("/data/cores/cstest/form", {}, [
+			'class="field string numericexpressionfield rvkey"',
+			'.rvkey { background:red; }'])

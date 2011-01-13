@@ -82,9 +82,13 @@ class Action(object):
 
 def itemKey(item):
     """
-    Build the form item's key from the the item's name and the name of all
-    ancestors.
+    Build the form item's key.  This currently always is the item name.
     """
+    return item.name
+
+# The original formal code included ancestor names as below.  We don't
+# want this in DaCHS since our parameter names may be important (e.g.
+# in VO protocols we're funneling through the formal parsers).
     parts = [item.name]
     parent = item.itemParent
     while parent is not None:
@@ -461,6 +465,19 @@ class FormItems(object):
 
 
     def getItemByName(self, name):
+        # since we have flat names in the DC, we need to look 
+        # into each subordinate container.  Original formal could
+        # use the code below
+        for item in self.items:
+            if item.name==name:
+                return item
+            try:
+                return item.getItemByName(name)
+            except (AttributeError, KeyError):
+                # child either is no container or doesn't have the item
+                pass
+        raise KeyError("No item called %r" % name)
+        '''
         name = name.split('.', 1)
         if len(name) == 1:
             name, rest = name[0], None
@@ -472,6 +489,7 @@ class FormItems(object):
                     return item
                 return item.getItemByName(rest)
         raise KeyError("No item called %r" % name)
+        '''
 
 
 

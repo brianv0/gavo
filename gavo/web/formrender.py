@@ -94,7 +94,8 @@ def getFieldArgsForInputKey(inputKey):
 		"type": _getFormalType(inputKey),
 		"widgetFactory": _getWidgetFactory(inputKey),
 		"label": label+unit,
-		"description": inputKey.description}
+		"description": inputKey.description,
+		"cssClass": inputKey.getProperty("cssClass", None),}
 
 
 class MultiField(formal.Group):
