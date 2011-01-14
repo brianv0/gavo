@@ -60,6 +60,54 @@ class PredefinedRowfilterTest(testhelpers.VerboseTest):
 			{'a': u'quux', 'b': 3}])
 
 
+class SequencedRowfilterTest(testhelpers.VerboseTest):
+	def _makeGrammar(self, rowgenDefs):
+		return base.parseFromString(rscdef.getGrammar("dictlistGrammar"), 
+			"<dictlistGrammar>%s</dictlistGrammar>"%rowgenDefs)
+
+	def _getProcessedFor(self, filterDefs, input):
+		g = self._makeGrammar(filterDefs)
+		res = list(g.parse(input))
+		for row in res:
+			del row["parser_"]
+		return res
+
+	def testSimplePipe(self):
+		res = self._getProcessedFor("""
+			<rowfilter><code>
+					row["output"] = row["input"]+1
+					del row["input"]
+					yield row
+			</code></rowfilter>
+			<rowfilter><code>
+					row["processed"] = row["output"]*row["output"]
+					yield row
+			</code></rowfilter>""", [{"input": 2}])
+		self.assertEqual(res, [{"output":3, "processed":9}])
+	
+	def testForking(self):
+		res = self._getProcessedFor("""
+			<rowfilter><code>
+					b = row["input"]
+					del row["input"]
+					row["output"] = b
+					yield row.copy()
+					row["output"] += b
+					yield row
+			</code></rowfilter>
+			<rowfilter><code>
+					row["processed"] = row["output"]*row["output"]
+					yield row.copy()
+					row["processed"] = row["processed"]*row["output"]
+					yield row
+			</code></rowfilter>""", [{"input": 2}])
+		self.assertEqual(res, [
+			{"output":2, "processed":4},
+			{"output":2, "processed":8},
+			{"output":4, "processed":16},
+			{"output":4, "processed":64},])
+
+
 ignoreTestData = [
 	{'a': 'xy', 'b': 'cc', 'd': 'yok'},
 	{'a': 'xy', 'b': 'DD'},
@@ -214,4 +262,4 @@ class ColDefTest(testhelpers.VerboseTest):
 		
 
 if __name__=="__main__":
-	testhelpers.main(ColDefTest)
+	testhelpers.main(SequencedRowfilterTest)

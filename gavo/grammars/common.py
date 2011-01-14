@@ -85,7 +85,7 @@ def compileRowfilter(filters):
 	src.append("  for item0 in iters[0](row, rowIter):")
 	for ind in range(1, len(filters)):
 		src.append("%s  for item%d in iters[%d](item%d, rowIter):"%(
-			"  "*i, i, i, i-1))
+			"  "*ind, ind, ind, ind-1))
 	src.append("%s  yield item%d"%("  "*len(filters), len(filters)-1))
 	d = locals()
 	exec "\n".join(src) in d
