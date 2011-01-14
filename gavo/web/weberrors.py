@@ -258,7 +258,7 @@ class InternalServerErrorPage(ErrorPage):
 		as we can.
 		"""
 		request = inevow.IRequest(ctx)
-		request.setResponseCode(500)  # probably too late, but log still profit.
+		request.setResponseCode(500)  # probably too late, but log still profits.
 		request.write(_formatFailure(self.failure))
 		request.finishRequest(False)
 		return ""

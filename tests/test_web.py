@@ -101,7 +101,7 @@ class FormTest(trialhelpers.RenderTest):
 			}, [
 				# assert multiple form items in one line:
 				'class="description">Ah, you know.',
-				'<input class="inmulti"',
+				'class="inmulti"',
 				'<div class="message">Not a valid number; Not a valid number</div>',
 				'value="invalid"'])
 	

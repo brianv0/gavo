@@ -524,7 +524,12 @@
 				description="Return compressed results?">True</inputKey>
 			<inputKey name="RUNID" type="text" tablehead="Run id"
 				description="An identifier for a certain run.  Opaque to the service"/>
-			<phraseMaker/> <!-- done by the core code for these -->
+			<phraseMaker> <!-- done by the core code for these -->
+				<code>
+					if False:
+						yield
+				</code>
+			</phraseMaker>
 		</condDesc>
 	</STREAM>
 

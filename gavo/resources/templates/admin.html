@@ -5,6 +5,13 @@
 		xmlns:n="http://nevow.com/ns/nevow/0.1">
 <head n:render="commonhead">
 	<title n:render="rdId">Administration for </title>
+	<script type="text/javascript">//<![CDATA[
+		window.addEventListener("load", function() {
+			document.getElementById("adminOps-action-submit").focus();
+		}, false);
+
+	//]]></script>
+
 </head>
 
 <body n:render="withsidebar">

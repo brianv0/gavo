@@ -245,8 +245,9 @@ class HTMLResultRenderMixin(object):
 		They are taken from the service's customCSS property.
 		"""
 		if self.service and self.service.getProperty("customCSS", False):
-			return ctx.tag[self.service.getProperty("customCSS", False)]
+			return ctx.tag[self.service.getProperty("customCSS")]
 		return ""
+
 	def data_result(self, ctx, data):
 		return self.result
 

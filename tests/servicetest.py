@@ -3,6 +3,7 @@ Tests for services and cores.
 """
 
 import datetime
+import re
 import os
 
 from nevow import context
@@ -266,8 +267,18 @@ class GroupingTest(testhelpers.VerboseTest):
 		self.failUnless('<div class="multiinputs" id="multigroup-phys">' 
 			in rendered)
 		self.failUnless('<label for="multigroup-phys">Wonz' in rendered)
-		self.failUnless('<input class="inmulti" type="text" id="foo-mag"'
-			in rendered)
+		renderedInput = re.search('<input[^>]*name="rv"[^>]*>', rendered).group(0)
+		self.failUnless('class="inmulti"' in renderedInput)
+
+
+class OutputTableTest(testhelpers.VerboseTest):
+	def testResolution(self):
+		base.parseFromString(rscdesc.RD,
+			"""<resource schema="test"><table id="foo"><column name="bar"/></table>
+			<service id="quux"><dbCore queriedTable="foo"/>
+			<outputTable autoCols="bar"/>
+			</service></resource>""")
+
 
 if __name__=="__main__":
-	testhelpers.main(GroupingTest)
+	testhelpers.main(OutputTableTest)

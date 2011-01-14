@@ -129,8 +129,11 @@ class MultiFieldFragment(rend.Fragment):
 				render = widget.renderImmutable
 			else:
 				render = widget.render
-			ctx.tag[render(ctx, field.key, formData, formErrors)(class_="inmulti")]
-
+			cssClass = " ".join(s for s in (field.cssClass, "inmulti") if s) 
+			ctx.tag[
+				T.span(class_=cssClass)[
+					render(ctx, field.key, formData, formErrors)(
+						class_=cssClass, title=field.description or "")]]
 		return ctx.tag
 
 	def _getMessageElement(self, ctx):
@@ -147,8 +150,8 @@ class MultiFieldFragment(rend.Fragment):
 			return ''
 
 	def render_multifield(self, ctx, data):
-		ctx.tag.fillSlots('description', self.multiField.description)
-		ctx.tag.fillSlots('label', self.multiField.label)
+		ctx.tag.fillSlots('description', self.multiField.description or "")
+		ctx.tag.fillSlots('label', self.multiField.label or "")
 		ctx.tag.fillSlots('id', "multigroup-"+self.multiField.key)
 		errMsg = self._getMessageElement(ctx)
 		ctx.tag.fillSlots('message', errMsg)

@@ -65,21 +65,6 @@ class OutputField(rscdef.Column):
 		return cls(None, **col.getAttributes(rscdef.Column)).finishElement()
 
 
-class ColRefListAttribute(base.StringListAttribute):
-	"""An attribute containing a comma separated list of column names.
-
-	They will be resolved using the same mechanism as original and friends,
-	i.e., namePaths count, and you can use hashes.
-	"""
-	def feed(self, ctx, instance, value):
-		self.feedObject(instance, [ctx.resolveId(name, instance=instance
-			).copy(parent=instance) for name in self.parse(value)])
-	
-	def getCopy(self, instance, newParent):
-		return [c.copy(parent=newParent)
-			for c in getattr(instance, self.name_)]
-	
-
 class OutputTableDef(rscdef.TableDef):
 	"""A table that has outputFields for columns.
 	"""
@@ -96,7 +81,7 @@ class OutputTableDef(rscdef.TableDef):
 		description="Copy over columns from fromTable not"
 			" more verbose than this.")
 
-	_autocols = ColRefListAttribute("autoCols", 
+	_autocols = base.StringListAttribute("autoCols", 
 		description="Column names obtained from fromTable.")
 
 	_fromTable = base.ReferenceAttribute("fromTable",
@@ -116,7 +101,8 @@ class OutputTableDef(rscdef.TableDef):
 				return self.parent.queriedTable
 			except AttributeError:  # not a TableBasedCore
 				try:
-					return self.parent.core.outputTable
+					res =  self.parent.core.outputTable
+					return res
 				except AttributeError:  # not a service
 					return _EMPTY_TABLE
 		else:

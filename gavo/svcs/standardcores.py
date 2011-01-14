@@ -248,6 +248,7 @@ class CondDesc(base.Structure):
 				" you must give value(s) for %s, too"%(keysFound[0].tablehead, 
 						", ".join(k.name for k in keysMissing)),
 					colName=keysMissing[0].name)
+		return True
 
 	def asSQL(self, inPars, sqlPars, queryMeta):
 		if self.silent or not self.inputReceived(inPars, queryMeta):
