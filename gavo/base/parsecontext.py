@@ -43,11 +43,20 @@ def resolveCrossId(id, forceType):
 
 
 def resolveNameBased(container, id, forceType=None):
-	"""returns the first thing with name=id appearing when iterating over
-	container.
+	"""Tries to find a thing with name id within container.
+
+	If container defines a method getElementForName, it will be called; it
+	must either return some element with this name or raise a StructureError.
+
+	If no such method exists, the function iterates over container until
+	it finds an element with el.name==id.  If no such element exists,
+	it again raises a StructureError.
 
 	The function raises a StructureError when no such thing exists.
 	"""
+	if hasattr(container, "getElementForName"):
+		return container.getElementForName(id)
+
 	try:
 		for ob in container:
 			if hasattr(ob, "name") and ob.name==id:

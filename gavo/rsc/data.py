@@ -45,7 +45,8 @@ class DataFeeder(table.Feeder):
 			makeRow = make.rowmaker.compileForTable(table)
 			def addRow(srcRow, feeder=feeder, makeRow=makeRow):
 				try:
-					feeder.add(makeRow(srcRow))
+					procRow = makeRow(srcRow)
+					feeder.add(procRow)
 				except rscdef.IgnoreThisRow, msg:
 					pass
 			if make.rowSource=="parameters":

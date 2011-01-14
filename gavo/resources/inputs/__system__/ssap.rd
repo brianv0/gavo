@@ -22,8 +22,6 @@
 			<EDIT ref="column[accsize]" utype="ssa:Access.Size"/>
 		</FEED>
 		
-		<primary>ssa_pubDID</primary>
-
 		<column name="ssa_dstitle" type="text"
 			utype="ssa:DataID.title" ucd="meta.title;meta.dataset"
 			tablehead="Title" verbLevel="15"
@@ -258,6 +256,10 @@
 	<procDef type="apply" id="setMeta">
 		<doc>
 			Sets metadata for an SSA data set, including its products definition.
+
+			The values are left in vars, so you need to do manual copying,
+			e.g., using idmaps="*", or, if you need to be more specific,
+			idmaps="ssa_*".
 		</doc>
 		<setup>
 			<par key="dstitle" late="True" description="a title for the data set
@@ -315,13 +317,13 @@
 		<code>
 			userPars = locals()
 			for kw in copiedKWs:
-				result["ssa_"+kw] = userPars[kw]
+				vars["ssa_"+kw] = userPars[kw]
 			alpha = parseFloat(alpha)
 			delta = parseFloat(delta)
 			if alpha is not None and delta is not None:
-				result["ssa_location"] = pgsphere.SPoint.fromDegrees(alpha, delta)
+				vars["ssa_location"] = pgsphere.SPoint.fromDegrees(alpha, delta)
 			else:
-				result["ssa_location"] = None
+				vars["ssa_location"] = None
 		</code>
 	</procDef>
 

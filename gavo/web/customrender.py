@@ -7,9 +7,21 @@ from gavo.web import grend
 
 
 class CustomRenderer(grend.ServiceBasedPage):
-	"""A wrapper for user-defined renderers.
+	"""A renderer defined in a python module.
+	
+	To define a custom renderer write a python module and define a
+	class MainPage inheriting from gavo.web.ServiceBasedRenderer.
 
-	See `Writing Custom Cores`_ for details.
+	This class basically is a nevow resource, i.e., you can define
+	docFactroy, locateChild, renderHTTP, and so on.
+
+	To use it, you have to define a service with the resdir-relative path
+	to the module in the customPage attribute and probably a nullCore.  You
+	also have to allow the custom renderer (but you may have other renderers,
+	e.g., static).
+
+	There should really be a bit more docs on this, but alas, there's
+	none as yet.
 	"""
 	name = "custom"
 

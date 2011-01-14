@@ -537,4 +537,3 @@ class Rowmaker(object):
 			raise
 		except Exception, ex:
 			self._guessError(ex, locals["vars"], sys.exc_info()[2])
-

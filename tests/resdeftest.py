@@ -12,6 +12,7 @@ from gavo import grammars
 from gavo import rscdef
 from gavo import rscdesc
 from gavo import utils
+from gavo.base import parsecontext
 from gavo.helpers import testhelpers
 from gavo.rscdef import scripting
 
@@ -229,6 +230,36 @@ class TableDefTest(testhelpers.VerboseTest):
 		self.assertEqual(fk.table, "zz")
 
 
+class _ResTestTable(testhelpers.TestResource):
+	def make(self, ignored):
+		return base.parseFromString(rscdef.TableDef,
+			"""<table id="restest"><column name="foo" type="text"/>
+				<column name="bar" type="integer"/>
+				<param name="foo">2</param><param name="pbar"/></table>""")
+
+
+class TableNameResolutionTest(testhelpers.VerboseTest):
+	resources = [("td", _ResTestTable())]
+
+	def testColumnsResolved(self):
+		res = parsecontext.resolveNameBased(self.td, "bar")
+		self.failUnless(res is self.td.columns[1])
+
+	def testParametersResolved(self):
+		res = parsecontext.resolveNameBased(self.td, "pbar")
+		self.failUnless(res is self.td.params[1])
+	
+	def testColumnsPreferred(self):
+		res = parsecontext.resolveNameBased(self.td, "foo")
+		self.failUnless(res is self.td.columns[0])
+
+	def testFailureIsStruct(self):
+		self.assertRaisesWithMsg(base.StructureError,
+		"No column or param with name crazy_mess with table restest",
+		parsecontext.resolveNameBased,
+		(self.td, "crazy_mess"))
+
+
 class RdAttrTest(testhelpers.VerboseTest):
 	"""tests for automatic inference of rd parents.
 	"""
@@ -411,7 +442,6 @@ class GroupTest(testhelpers.VerboseTest):
 		self.failUnless(list(g2.iterColumns())[0] is t2.columns[1])
 		self.failIf(g.groups[0] is g2.groups[0])
 		self.failUnless(list(g2.groups[0].iterColumns())[0] is t2.columns[2])
-
 
 
 if __name__=="__main__":

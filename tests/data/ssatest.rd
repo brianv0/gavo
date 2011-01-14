@@ -1,5 +1,5 @@
 <resource schema="test" resdir=".">
-	<table id="hcdtest" onDisk="True">
+	<table id="hcdtest" onDisk="True" primary="ssa_pubDID">
 		<meta name="description">A boring and pointless test table</meta>
 		<mixin instrument="DaCHS test suite" fluxCalibration="UNCALIBRATED"
 			>//ssap#hcd</mixin>
@@ -15,7 +15,7 @@
 			</rowfilter>
 		</keyValueGrammar>
 		<make table="hcdtest" role="primary">
-			<rowmaker idmaps="excellence">
+			<rowmaker idmaps="*">
 				<apply procDef="//ssap#setMeta">
 					<bind name="pubDID">"ivo://test.inv/"+@id</bind>
 					<LOOP listItems="dstitle specstart specend bandpass alpha delta

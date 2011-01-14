@@ -325,6 +325,21 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 			return False
 		return True
 
+	def getElementForName(self, name):
+		"""returns the first of column and param having name name.
+
+		The function raises a StructureError if neiter column nor param with
+		name exists; this is for base.parsecontext.resolveNameBased's sake.
+		"""
+		try:
+			return self.columns.getColumnByName(name)
+		except base.NotFoundError:
+			try:
+				return self.params.getColumnByName(name)
+			except base.NotFoundError:
+				raise base.StructureError("No column or param with name %s with"
+					" table %s"%(name, self.id))
+
 	def validate(self):
 		if self.id.upper() in adql.allReservedWords:
 			raise base.StructureError("Reserved word %s is not allowed as a table"

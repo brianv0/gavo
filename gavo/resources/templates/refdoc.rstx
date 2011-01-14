@@ -464,10 +464,14 @@ time attempts to interpret display hints.
 Writing Custom Cores
 ====================
 
-At some point you will want functionality in your applications that goes
-beyond the simple actions provided by the packaged cores.  You can use
-custom renderers to, in effect, bypass most of the DC's functionality,
-but you will usually gain flexibility if you define a custom core.
+While DaCHS provides cores for many common operations -- in particular,
+database queries and wrapped external binaries --, there are of course
+services needing to do things not covered by what the shipped cores do.
+Some such cases still follow the basic premise of services: GET or POST
+parameters in, something table-like out.  For these cases, use custom
+cores (if even this does not provide sufficent functionality, write a
+custom renderer).
+
 
 Defining a Custom Core
 ''''''''''''''''''''''
