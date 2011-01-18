@@ -26,31 +26,11 @@ from gavo.web import common
 from gavo.web import grend
 from gavo.web import streaming
 from gavo.web import vosi
-from gavo.votable import V
 
 
 @utils.memoized
 def getTAPVersion():
 	return base.caches.getRD(tap.RD_ID).getProperty("TAP_VERSION")
-
-
-class ErrorResource(rend.Page):
-	def __init__(self, errMsg, exc=None):
-		self.errMsg = errMsg
-		self.hint = getattr(exc, "hint", None)
-
-	def renderHTTP(self, ctx):
-		request = inevow.IRequest(ctx)
-		request.setHeader("content-type", "text/xml")
-		request.setResponseCode(400)  # make some informed choice here?
-		doc = V.VOTABLE[
-			V.RESOURCE(type="results") [
-				V.INFO(name="QUERY_STATUS", value="ERROR")[
-						self.errMsg]]]
-		if self.hint:
-			doc[V.INFO(name="HINT", value="HINT")[
-				self.hint]]
-		return doc.render()
 
 
 class UWSRedirect(rend.Page):
@@ -120,11 +100,11 @@ class TAPQueryResource(rend.Page):
 				).addErrback(self._formatError)
 		except base.Error, ex:
 			base.ui.notifyExceptionMutation(None)
-			return ErrorResource(unicode(ex))
+			return uwsactions.ErrorResource(unicode(ex))
 
 	def _formatError(self, failure):
 		base.ui.notifyFailure(failure)
-		return ErrorResource(failure.getErrorMessage(), failure.value)
+		return uwsactions.ErrorResource(failure.getErrorMessage(), failure.value)
 
 	def _formatResult(self, res, ctx):
 		request = inevow.IRequest(ctx)
@@ -150,7 +130,7 @@ def getSyncResource(ctx, service, segments):
 		return TAPQueryResource(service, ctx)
 	elif request=="getCapabilities":
 		return vosi.VOSICapabilityRenderer(ctx, service)
-	return ErrorResource("Invalid REQUEST: '%s'"%request)
+	return uwsactions.ErrorResource("Invalid REQUEST: '%s'"%request)
 
 
 class MethodAwareResource(rend.Page):
@@ -175,7 +155,7 @@ class UWSErrorMixin(object):
 	def _deliverError(self, failure, request):
 		failure.printTraceback()
 		request.setHeader("content-type", "text/xml")
-		return ErrorResource(failure.getErrorMessage(), failure.value)
+		return uwsactions.ErrorResource(failure.getErrorMessage(), failure.value)
 
 
 class JoblistResource(MethodAwareResource, UWSErrorMixin):
@@ -285,7 +265,8 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 		try:
 			if "VERSION" in request.scalars:
 				if request.scalars["VERSION"]!=getTAPVersion():
-					return ErrorResource("Version mismatch; this service only supports"
+					return uwsactions.ErrorResource(
+						"Version mismatch; this service only supports"
 						" TAP version %s."%getTAPVersion()), ()
 			if segments:
 				if segments[0]=='sync':
@@ -307,5 +288,5 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 			# see flagError in protocols.uws for the reason for the next if
 			if not isinstance(ex, base.ValidationError):
 				base.ui.notifyError("TAP error")
-			return ErrorResource(str(ex), ex), ()
+			return uwsactions.ErrorResource(str(ex), ex), ()
 		raise common.UnknownURI("Bad TAP path %s"%"/".join(segments))

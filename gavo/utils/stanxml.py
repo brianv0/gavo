@@ -131,7 +131,7 @@ class Element(object):
 	In particular, you can give objects a serializeToXMLStan method returning
 	strings or an Element to make them good DOM citizens.
 
-	Elements cannot harbour mixed content (or rather, there is only
+	Elements cannot harbor mixed content (or rather, there is only
 	one piece of text).
 	"""
 	__metaclass__ = _Autoconstructor

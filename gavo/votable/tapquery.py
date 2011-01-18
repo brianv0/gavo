@@ -14,6 +14,7 @@ from email.MIMEMultipart import MIMEMultipart
 from xml import sax
 
 from gavo import utils
+from gavo.votable import parser
 from gavo.votable.model import VOTable as V
 
 
@@ -652,8 +653,17 @@ class ADQLTAPJob(_WithEndpoint):
 	def getErrorFromServer(self):
 		"""returns the error message the server gives, verbatim.
 		"""
-		return request(self.destHost, self.jobPath+"/error",
+		data = request(self.destHost, self.jobPath+"/error",
 			expectedStatus=200, followRedirects=True).data
+		try:
+			for el in parser.parseString(data, watchset=[V.INFO]):
+				if isinstance(el, V.INFO):
+					if el.name=="QUERY_STATUS" and el.value=="ERROR":
+						return el.text_
+		except Exception, msg:
+			# data's not a suitable VOTable, fall through to return data
+			pass
+		return data
 
 	def addUpload(self, name, data):
 		"""adds uploaded tables, either from a file or as a remote URL.

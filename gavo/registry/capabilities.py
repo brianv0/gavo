@@ -291,15 +291,16 @@ class TAPCapabilityMaker(CapabilityMaker):
 			res[
 				_tapModelBuilder.build(service),
 				[TAP.language(ivoId=standardId)[
-						TAP.parameter[langValue],
-						TAP.label[label]]
-					for langValue, (standardId, label) 
-						in tap.SUPPORTED_LANGUAGES.iteritems()],
+						TAP.name[langName],
+						TAP.version[version],
+						TAP.description[description]]
+					for name, version,description
+						in tap.getSupportedLanguages()],
 				[TAP.outputFormat[
-						TAP.parameter[parVal],
-						TAP.label[label],
-						TAP.mime[mime]]
-					for parVal, (_, mime, label) in tap.FORMAT_CODES.iteritems()],
+						TAP.mime[mime], 
+							[TAP.alias[alias] for alias in aliases],
+						TAP.description[description]]
+					for mime, aliases, description in tap.getSupportedOutputFormats()],
 				[TAP.uploadMethod(ivoId=ivoId)[
 						TAP.protocol[protocol],
 						TAP.label[label]]

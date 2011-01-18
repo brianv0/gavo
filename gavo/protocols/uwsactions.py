@@ -19,6 +19,8 @@ from __future__ import with_statement
 
 import os
 
+from nevow import inevow
+from nevow import rend
 from nevow import static
 
 from gavo import base
@@ -29,6 +31,7 @@ from gavo.protocols import tap
 from gavo.protocols import uws
 from gavo.utils import stanxml
 from gavo.utils import ElementTree
+from gavo.votable import V
 
 
 UWSNamespace = 'http://www.ivoa.net/xml/UWS/v1.0rc3'
@@ -188,13 +191,36 @@ class JobAction(object):
 		return handler(job, request)
 
 
+class ErrorResource(rend.Page):
+	def __init__(self, errMsg, exc=None, httpStatus=400):
+		self.errMsg, self.httpStatus = errMsg, httpStatus
+		self.hint = getattr(exc, "hint", None)
+
+	def renderHTTP(self, ctx):
+		request = inevow.IRequest(ctx)
+		request.setHeader("content-type", "text/xml")
+		request.setResponseCode(self.httpStatus)
+		doc = V.VOTABLE[
+			V.RESOURCE(type="results") [
+				V.INFO(name="QUERY_STATUS", value="ERROR")[
+						self.errMsg]]]
+		if self.hint:
+			doc[V.INFO(name="HINT", value="HINT")[
+				self.hint]]
+		return doc.render()
+
+
 class ErrorAction(JobAction):
 	name = "error"
 
 	def doGET(self, job, request):
 		request.setHeader("content-type", "text/plain")
 		try:
-			request.write(unicode(job.getError()).encode("utf-8", "ignore"))
+			exc = job.getError()
+			if isinstance(exc, Exception):
+				return ErrorResource(unicode(exc), exc, httpStatus=200)
+			else:
+				return ErrorResource(exc, httpStatus=200)
 		except ValueError:  # no error posted so far
 			pass
 		return ""

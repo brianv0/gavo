@@ -35,8 +35,12 @@ FORMAT_CODES = {
 		("votable", "text/xml", "VOTable, binary"),
 	"votable": 
 		("votable", "application/x-votable+xml", "VOTable, binary"),
+	"application/x-votable+xml;encoding=tabledata":
+		("votabletd", "application/x-votable+xml;encoding=tabledata", 
+			"VOTable, tabledata"),
 	"votable/td":
-		("votabletd", "application/x-votable+xml", "VOTable, tabledata"),
+		("votabletd", "application/x-votable+xml;encoding=tabledata", 
+			"VOTable, tabledata"),
 	"text/csv": 
 		("csv", "text/csv", "CSV without column labels"),
 	"csv": ("csv+header", "text/csv;header=present", 
@@ -98,6 +102,44 @@ class TAPError(base.Error):
 				str(self.sourceEx))
 		else:
 			return "Unspecified TAP related error"
+
+
+######################## registry interface helpers
+
+def getSupportedLanguages():
+	"""returns a list of tuples for the supported languages.
+
+	This is tap.SUPPORTED_LANGUAGES in a format suitable for the
+	TAP capabilities element.
+
+	Each tuple is made up of (name, version, description, ivo-id).
+	"""
+	langs = []
+	for fullName, (ivoId,descr) in SUPPORTED_LANGUAGES.iteritems():
+		try:
+			name, version = fullName.split("-", 1)
+		except ValueError: 
+			# fullName has no version info, there must be at least one entry
+			# that includes a version, so skip this one.
+			continue
+		langs.append((name, version, descr, ivoId))
+	return langs
+
+
+def getSupportedOutputFormats():
+	"""yields tuples for the supported output formats.
+
+	This is tap.OUTPUT_FORMATS in a format suitable for the
+	TAP capabilities element.
+
+	Each tuple is made up of (mime, aliases, description).
+	"""
+	codes, descrs = {}
+	for code, (_, outputMime, descr) in FORMAT_CODES.iteritems():
+		codes.setdefault(outputMime, set()).add(code)
+		descrs[outputMime] = descr
+	for mime in codes:
+		yield mime, codes[mime], descr[mime]
 
 
 ######################## maintaining TAP schema
