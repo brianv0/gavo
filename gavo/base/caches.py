@@ -52,8 +52,8 @@ def _makeCache(creator):
 	designated object.
 
 	The whole thing is thread-safe only when the creators are.  It is
-	possibile (but for working creators obviously unlikely) that arbitrarily 
-	many creators for the same id run.  Only one will win in the end.
+	possible that arbitrarily many creators for the same id run.  Only one
+	will win in the end.
 
 	Race conditions are possible when exceptions occur, but then creators
 	behaviour should only depend on id, and so it shouldn't matter.

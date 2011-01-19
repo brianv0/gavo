@@ -9,7 +9,7 @@ need the service object, use publication.parent.
 
 # XXX TODO: On the move to VODataService 1.1, don't forget regionOfRegard for USNO2X corrections and Magellanic Cloud.
 
-_TMP_TAPREGEXT_HACK = False
+_TMP_TAPREGEXT_HACK = True
 
 from gavo import base
 from gavo import svcs
@@ -305,15 +305,17 @@ class TAPCapabilityMaker(CapabilityMaker):
 							[TR.alias[alias] for alias in aliases],
 						TR.description[description]]
 					for mime, aliases, description in tap.getSupportedOutputFormats()],
-				[TR.uploadMethod(ivoId=ivoId)
-					for protocol, (ivoId, label) in tap.UPLOAD_METHODS.iteritems()],
+				[TR.uploadMethod(ivoId="ivo://ivoa.org/tap/uploadmethods#%s"%proto)
+					for proto in tap.UPLOAD_METHODS],
 				TR.retentionPeriod[
 					TR.default[str(base.getConfig("async", "defaultLifetime"))]],
 				TR.executionDuration[
 					TR.default[str(base.getConfig("async", "defaultExecTime"))]],
 				TR.rowLimit[
-					TR.default[str(base.getConfig("async", "defaultMAXREC"))],
-					TR.hard[str(base.getConfig("async", "hardMAXREC"))]]]
+					TR.default(unit="rows")[
+						str(base.getConfig("async", "defaultMAXREC"))],
+					TR.hard(unit="rows")[
+						str(base.getConfig("async", "hardMAXREC"))]]]
 		
 		return res
 

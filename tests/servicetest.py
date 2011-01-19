@@ -280,5 +280,17 @@ class OutputTableTest(testhelpers.VerboseTest):
 			</service></resource>""")
 
 
+class TableConnTest(testhelpers.VerboseTest):
+# base.caches.getTableConn is supposed to return a connection
+# that reopens itself
+	def testReopening(self):
+		conn = base.caches.getTableConn(None)
+		conn.close()
+		self.failUnless(conn.closed)
+		with base.ui.suspended("Error"):
+			conn = base.caches.getTableConn(None)
+			self.failIf(conn.closed)
+
+
 if __name__=="__main__":
 	testhelpers.main(OutputTableTest)

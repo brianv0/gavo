@@ -29,8 +29,6 @@ class Error(base.Error):
 	pass
 
 
-printQuery = False
-
 MS = base.makeStruct
 
 
@@ -284,8 +282,8 @@ class CondDesc(base.Structure):
 def mapDBErrors(excType, excValue, excTb):
 	"""translates exception into something we can display properly.
 	"""
-# This is a helper to all DB-based cores and should probably become
-# a method of a baseclass of them when we refactor this mess
+# This is a helper to all DB-based cores -- it probably should go
+# into TableBasedCore.
 	if getattr(excValue, "cursor", None) is not None:
 		base.ui.notifyWarning("Failed DB query: %s"%excValue.cursor.query)
 	if isinstance(excValue, sqlsupport.QueryCanceledError):
@@ -565,5 +563,36 @@ class NullCore(core.Core):
 		return None
 
 
-base.caches.makeCache("getTableConn",
-	lambda ignored: base.getDBConnection("trustedquery", autocommitted=True))
+class _GetTableConn(object):
+	"""A cache for a trusted connection for use with "canned" queries.
+
+	Clients must *not* close this connection.  It is inteded to be shared
+	by all cores issuing canned queries.
+
+	In a typical scenario, opening a connection is not all that expensive,
+	so if you're doing more than just run a query, consider getting
+	a connection of your own.
+
+	This callable is fiddled into base.caches, so once standardcores
+	is imported, you can call base.caches.getTableConn(None).  This
+	is mainly for use with custom cores.
+
+	As a last-resort measure, we check if the connection is closed.  If
+	that is so, the last user of the connection is buggy (since you
+	must not close...), but we don't want to take half the data center
+	down, so we re-open a new connection.
+	"""
+	def __init__(self):
+		self.conn = None
+	
+	def __call__(self, ignored):
+		if self.conn is None:
+			self.conn = base.getDBConnection("trustedquery", autocommitted=True)
+		if self.conn.closed:
+			base.ui.notifyError("TableConn was found closed.  DRAMATIC."
+				"  There's a buggy core on the loose.  Find it.  Fix it.  Now."
+				"  Meanwhile, I'm opening a new connection.")
+			self.conn = base.getDBConnection("trustedquery", autocommitted=True)
+		return self.conn
+
+base.caches.getTableConn = _GetTableConn()

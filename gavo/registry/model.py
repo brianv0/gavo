@@ -609,15 +609,20 @@ class TR(object):
 		_a_mime = None
 	
 	class uploadMethod(TRElement):
+		_mayBeEmpty = True
 		_a_protocol = None
 		_a_ivoId = None
 		_name_a_ivoId = "ivo-id"
 
+	class default(TRElement):
+		_a_unit = None
+
+	class hard(TRElement):
+		_a_unit = None
+
 	class alias(TRElement): pass
-	class default(TRElement): pass
 	class description(TRElement): pass
 	class executionDuration(TRElement): pass
-	class hard(TRElement): pass
 	class mime(TRElement): pass 
 	class name(TRElement): pass
 	class parameter(TRElement): pass

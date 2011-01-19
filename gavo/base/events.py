@@ -11,6 +11,7 @@ base.observer.Observer) that subscribe to events and can display or
 log them in some form appropriate to the client.
 """
 
+import contextlib
 import sys
 
 
@@ -65,6 +66,24 @@ class EventDispatcher(object):
 		self.totalShippedOut = 0
 		self.totalRead = 0
 		self.lastRow = None
+
+	@contextlib.contextmanager
+	def suspended(self, evName):
+		"""a context manager suspending notification for a specific event.
+
+		This is mainly for use by test code that wants to avoid spilling
+		too much junk into the log.
+
+		One weak point here is that any subscriptions entered while notification
+		is suspended are lost.  So: Don't suspend notifications for normal code.
+		"""
+		origCallbacks = self.callbacks[evName]
+		self.callbacks[evName] = []
+		exInfo = None
+		try:
+			yield
+		finally:
+			self.callbacks[evName] = origCallbacks
 
 	def subscribe(self, evName, callback):
 		self.callbacks[evName].append(callback)

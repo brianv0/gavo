@@ -76,10 +76,10 @@ SUPPORTED_LANGUAGES = {
 # A list of supported upload methods.  This is only used in the registry
 # interface right now.
 UPLOAD_METHODS = {
-	"inline": ("ivo://tap/uploadmethods", "POST inline upload"),
-	"http": (None, "http URL"),
-	"https": (None, "https URL"),
-	"ftp": (None, "ftp URL"),
+	"inline": "POST inline upload",
+	"http": "http URL",
+	"https": "https URL",
+	"ftp": "ftp URL",
 }
 
 
