@@ -122,7 +122,7 @@ def getSupportedLanguages():
 			# fullName has no version info, there must be at least one entry
 			# that includes a version, so skip this one.
 			continue
-		langs.append((name, version, descr, ivoId))
+		langs.append((name, version, descr))
 	return langs
 
 
@@ -134,12 +134,13 @@ def getSupportedOutputFormats():
 
 	Each tuple is made up of (mime, aliases, description).
 	"""
-	codes, descrs = {}
+	codes, descrs = {}, {}
 	for code, (_, outputMime, descr) in FORMAT_CODES.iteritems():
-		codes.setdefault(outputMime, set()).add(code)
+		if code!=outputMime:
+			codes.setdefault(outputMime, set()).add(code)
 		descrs[outputMime] = descr
 	for mime in codes:
-		yield mime, codes[mime], descr[mime]
+		yield mime, codes[mime], descrs[mime]
 
 
 ######################## maintaining TAP schema

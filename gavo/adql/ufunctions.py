@@ -48,8 +48,8 @@ def userFunction(name, signature, doc):
 @userFunction("match",
 	"(pattern TEXT, string TEXT) -> INTEGER",
 	"""
-	gavo_match returns 1 if the posix regular expression matches anything
-	in string, 0 otherwise.
+	gavo_match returns 1 if the POSIX regular expression pattern
+	matches anything in string, 0 otherwise.
 	""")
 def _match(args):
 	if len(args)!=2:

@@ -18,7 +18,7 @@ from gavo.base import meta
 from gavo.base import typesystems
 from gavo.registry.common import *
 from gavo.registry.model import (OAI, OAIDC, VOR, VOG, DC, RI, VS,
-	SIA, SCS, TAP)
+	SIA, SCS, TR)
 
 
 ###################### Helpers
@@ -132,7 +132,7 @@ class TAPInterface(InterfaceMaker):
 # on the accepted input parameters (QUERY, etc).  We should really
 # provide them when we have extensions...
 	renderer = "tap"
-	interfaceClass = TAP.interface
+	interfaceClass = TR.interface
 
 
 class SOAPInterface(InterfaceMaker):
@@ -274,12 +274,12 @@ class SCSCapabilityMaker(CapabilityMaker):
 
 
 _tapModelBuilder = meta.ModelBasedBuilder([
-	('supportsModel', meta.stanFactory(TAP.dataModel), (), 
+	('supportsModel', meta.stanFactory(TR.dataModel), (), 
 		{"ivoId": "ivoId"})])
 
 class TAPCapabilityMaker(CapabilityMaker):
 	renderer = "tap"
-	capabilityClass = TAP.capability
+	capabilityClass = TR.capability
 
 	def _makeCapability(self, publication):
 		res = CapabilityMaker._makeCapability(self, publication)
@@ -290,34 +290,30 @@ class TAPCapabilityMaker(CapabilityMaker):
 			from gavo.adql import ufunctions
 			res[
 				_tapModelBuilder.build(service),
-				[TAP.language(ivoId=standardId)[
-						TAP.name[langName],
-						TAP.version[version],
-						TAP.description[description]]
-					for name, version,description
+				[TR.language[
+						TR.name[langName],
+						TR.version[version],
+						TR.description[description],
+						[[TR.userDefinedFunction[
+								TR.signature[udf.adqlUDF_signature],
+								TR.description[udf.adqlUDF_doc]]
+							for udf in ufunctions.UFUNC_REGISTRY.values()]]]
+					for langName, version, description
 						in tap.getSupportedLanguages()],
-				[TAP.outputFormat[
-						TAP.mime[mime], 
-							[TAP.alias[alias] for alias in aliases],
-						TAP.description[description]]
+				[TR.outputFormat[
+						TR.mime[mime], 
+							[TR.alias[alias] for alias in aliases],
+						TR.description[description]]
 					for mime, aliases, description in tap.getSupportedOutputFormats()],
-				[TAP.uploadMethod(ivoId=ivoId)[
-						TAP.protocol[protocol],
-						TAP.label[label]]
+				[TR.uploadMethod(ivoId=ivoId)
 					for protocol, (ivoId, label) in tap.UPLOAD_METHODS.iteritems()],
-				TAP.retentionPeriod[
-					TAP.default[str(base.getConfig("async", "defaultLifetime"))]],
-				TAP.executionDuration[
-					TAP.default[str(base.getConfig("async", "defaultExecTime"))]],
-				TAP.rowLimit[
-					TAP.default[str(base.getConfig("async", "defaultMAXREC"))],
-					TAP.hard[str(base.getConfig("async", "hardMAXREC"))]],
-				[[TAP.udf[
-						TAP.name[udf.adqlUDF_name],
-						TAP.signature[udf.adqlUDF_signature],
-						TAP.description[udf.adqlUDF_doc]]
-					for udf in ufunctions.UFUNC_REGISTRY.values()]],
-			]
+				TR.retentionPeriod[
+					TR.default[str(base.getConfig("async", "defaultLifetime"))]],
+				TR.executionDuration[
+					TR.default[str(base.getConfig("async", "defaultExecTime"))]],
+				TR.rowLimit[
+					TR.default[str(base.getConfig("async", "defaultMAXREC"))],
+					TR.hard[str(base.getConfig("async", "hardMAXREC"))]]]
 		
 		return res
 

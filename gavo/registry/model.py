@@ -34,8 +34,8 @@ registerPrefix("cs", "http://www.ivoa.net/xml/ConeSearch/v1.0",
 	schemaURL("ConeSearch-v1.0.xsd"))
 registerPrefix("sia", "http://www.ivoa.net/xml/SIA/v1.0",
 	schemaURL("SIA-v1.0.xsd"))
-registerPrefix("tap", "http://www.ivoa.net/xml/TAP/v1.0",
-	schemaURL("TAP-v1.0.xsd"))
+registerPrefix("tr", "http://www.ivoa.net/xml/TAP/v0.1",
+	schemaURL("TAPRegExt-v0.1.xsd"))
 
 
 class OAI(object):
@@ -575,15 +575,11 @@ class SCS(object):
 	class extras(SCSElement): pass
 
 
-class TAP(object):
+class TR(object):
 	"""is a container for elements describing TAP services.
-
-	A schema for this doesn't exist as of 2010-07, so I'm basically defining
-	an interface element with a couple of attributes as suggested by Ray
-	Plante in http://www.ivoa.net/forum/dal/0910/1620.htm.
 	"""
-	class TAPElement(Element):
-		_prefix = "tap"
+	class TRElement(Element):
+		_prefix = "tr"
 		_local = True
 
 	class interface(VOR.interface):
@@ -593,60 +589,42 @@ class TAP(object):
 
 	class capability(VOR.capability):
 		_a_standardID = 	"ivo://ivoa.net/std/TAP"
-	
-	class dataModel(TAPElement):
+		_a_xsi_type = "tr:TableAccess"
+		_additionalPrefixes = frozenset(["tr", "xsi"])
+
+	class dataModel(TRElement):
 		_a_ivoId = None
 		_name_a_ivoId = "ivo-id"
 
-	class label(TAPElement):
+	class label(TRElement):
 		pass
 
-	class language(TAPElement):
+	class language(TRElement):
 		_a_LANG = None
 		_a_ivoId = None
 		_name_a_ivoId = "ivo-id"
 	
-	class outputFormat(TAPElement):
+	class outputFormat(TRElement):
 		_a_FORMAT = None
 		_a_mime = None
 	
-	class uploadMethod(TAPElement):
+	class uploadMethod(TRElement):
 		_a_protocol = None
 		_a_ivoId = None
 		_name_a_ivoId = "ivo-id"
 
-	class name(TAPElement):
-		pass
-
-	class hard(TAPElement):
-		pass
-	
-	class default(TAPElement):
-		pass
-	
-	class retentionPeriod(TAPElement):
-		pass
-	
-	class executionDuration(TAPElement):
-		pass
-	
-	class rowLimit(TAPElement):
-		pass
-
-	class udf(TAPElement):
-		pass
-	
-	class signature(TAPElement):
-		pass
-	
-	class description(TAPElement):
-		pass
-	
-	class parameter(TAPElement):
-		pass
-	
-	class mime(TAPElement):
-		pass
-	
-	class protocol(TAPElement):
-		pass
+	class alias(TRElement): pass
+	class default(TRElement): pass
+	class description(TRElement): pass
+	class executionDuration(TRElement): pass
+	class hard(TRElement): pass
+	class mime(TRElement): pass 
+	class name(TRElement): pass
+	class parameter(TRElement): pass
+	class protocol(TRElement): pass
+	class retentionPeriod(TRElement): pass
+	class rowLimit(TRElement): pass
+	class signature(TRElement): pass
+	class uploadLimit(TRElement): pass
+	class userDefinedFunction(TRElement): pass
+	class version(TRElement): pass
