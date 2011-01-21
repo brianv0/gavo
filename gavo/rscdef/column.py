@@ -379,6 +379,19 @@ class Column(base.Structure):
 			else:
 				return False
 
+	def isPrimary(self):
+		"""returns a guess as to whether this column is a primary key of the
+		embedding table.
+
+		This may return True, False, or None (unknown).
+		"""
+		if self.parent and hasattr(self.parent, "primary"):
+				# parent is something like a TableDef
+			if self.name in self.parent.primary:
+				return True
+			else:
+				return False
+
 	_indexedCleartext = {
 		True: "indexed",
 		False: "notIndexed",

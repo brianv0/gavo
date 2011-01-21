@@ -193,6 +193,8 @@ class JobAction(object):
 
 class ErrorResource(rend.Page):
 	def __init__(self, errMsg, exc=None, httpStatus=400):
+		if exc and isinstance(exc, uws.JobNotFound):
+			httpStatus = 404
 		self.errMsg, self.httpStatus = errMsg, httpStatus
 		self.hint = getattr(exc, "hint", None)
 

@@ -311,7 +311,7 @@ class TAPCapabilityMaker(CapabilityMaker):
 					TR.default[str(base.getConfig("async", "defaultLifetime"))]],
 				TR.executionDuration[
 					TR.default[str(base.getConfig("async", "defaultExecTime"))]],
-				TR.rowLimit[
+				TR.outputLimit[
 					TR.default(unit="rows")[
 						str(base.getConfig("async", "defaultMAXREC"))],
 					TR.hard(unit="rows")[

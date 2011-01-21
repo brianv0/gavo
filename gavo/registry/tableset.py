@@ -39,12 +39,20 @@ def getTableColumnFromColumn(column, typeElement):
 	type as child and generate whatever is necessary from that.
 	VS1.dataType children should be able to do that.
 	"""
+	flags = []
+	if column.isIndexed():
+		flags.append("indexed")
+	if column.isPrimary():
+		flags.append("primary")
+	elif not column.required:
+		flags.append("nullable")
 	return VS1.column[
 		VS1.name[column.name],
 		VS1.description[column.description],
 		VS1.unit[column.unit],
 		VS1.ucd[column.ucd],
-		typeElement[column.type]]
+		typeElement[column.type],
+		[VS1.flag[f] for f in flags]]
 
 
 def getTableForTableDef(tableDef):

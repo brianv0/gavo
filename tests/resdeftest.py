@@ -46,6 +46,24 @@ class ColumnTest(testhelpers.VerboseTest):
 			'<column name="foo"/>')
 		self.assertEqual(col.tablehead, "foo")
 
+	def testRealizesIndex(self):
+		table = base.parseFromString(rscdef.TableDef, """
+			<table><column name="urks"/><column name="ba"/>
+				<index columns="urks" name="u"/></table>""")
+		self.assertEqual(table.columns[0].isIndexed(), True)
+		self.assertEqual(table.columns[1].isIndexed(), False)
+		col = base.parseFromString(rscdef.Column, '<column name="foo"/>')
+		self.failUnless(col.isIndexed() is None)
+
+	def testRealizesPrimary(self):
+		table = base.parseFromString(rscdef.TableDef, """
+			<table primary="urks"><column name="urks"/><column name="ba"/>
+				</table>""")
+		self.assertEqual(table.columns[0].isPrimary(), True)
+		self.assertEqual(table.columns[1].isPrimary(), False)
+		col = base.parseFromString(rscdef.Column, '<column name="foo"/>')
+		self.failUnless(col.isPrimary() is None)
+
 	def testValidation(self):
 		col = base.parseFromString(rscdef.Column, '<column name="foo"'
 			' required="True"><values min="1" max="2"/></column>')
@@ -445,4 +463,4 @@ class GroupTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(GroupTest)
+	testhelpers.main(ColumnTest)

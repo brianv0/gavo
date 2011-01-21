@@ -494,6 +494,7 @@ class _VS1_1Stub:
 
 	class fromColumn(VSElement): pass
 	class targetColumn(VSElement): pass
+	class flag(VSElement): pass
 
 VS1 = addBasicVSElements(_VS1_1Stub, _VS1_1Stub.VSElement)
 
@@ -628,7 +629,7 @@ class TR(object):
 	class parameter(TRElement): pass
 	class protocol(TRElement): pass
 	class retentionPeriod(TRElement): pass
-	class rowLimit(TRElement): pass
+	class outputLimit(TRElement): pass
 	class signature(TRElement): pass
 	class uploadLimit(TRElement): pass
 	class userDefinedFunction(TRElement): pass

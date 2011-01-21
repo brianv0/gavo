@@ -136,10 +136,11 @@ def getSupportedOutputFormats():
 	"""
 	codes, descrs = {}, {}
 	for code, (_, outputMime, descr) in FORMAT_CODES.iteritems():
-		if code!=outputMime:
-			codes.setdefault(outputMime, set()).add(code)
+		codes.setdefault(outputMime, set()).add(code)
 		descrs[outputMime] = descr
 	for mime in codes:
+		# mime never is an alias of itself
+		codes[mime].discard(mime)
 		yield mime, codes[mime], descrs[mime]
 
 
