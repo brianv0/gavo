@@ -151,6 +151,23 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 				return ""
 		return render
 
+	def render_ifnoslot(self, slotName):
+		"""renders if slotName is missing or not true.
+
+		This will not work properly if the slot values come from a deferred.
+		"""
+		# just repeat the code from ifslot -- this is called frequently,
+		# and additional logic just is not worth it.
+		def render(ctx, data):
+			try:
+				if not ctx.locateSlotData(slotName):
+					return ctx.tag
+				else:
+					return ""
+			except KeyError:
+				return ""
+		return render
+
 	def render_ifadmin(self, ctx, data):
 		# NOTE: use of this renderer is *not* enough to protect critical operations
 		# since it does not check if the credentials are actually provided.

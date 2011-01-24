@@ -210,12 +210,13 @@ h4.metacat {
 	display: inline;
 	color: white;
 	font-family: Helvetica,Arial;
-	font-weight: 600;
+	font-weight: bold;
 	font-size: 28px;
 	white-space: nowrap;
 	position: absolute;
 	background:none;
-	left:160px;
+	padding-top:11px;
+	left:150px;
 	overflow:hidden;
 }
 
@@ -223,7 +224,7 @@ h4.metacat {
 	display: inline;
 	color: white;
 	font-family: Helvetica,Arial;
-	font-weight: 600;
+	font-weight: bold;
 	font-size: 28px;
 	letter-spacing: 1px;
 	white-space: nowrap;
@@ -576,4 +577,13 @@ table.docutils {
 table.docutils td {
 	padding: 0.5ex;
 	border: 1px solid #999999;
+}
+
+a.servicelink {
+	text-decoration: none;
+	color: #3333AA;
+}
+
+a.servicelink:hover {
+	text-decoration: underline;
 }

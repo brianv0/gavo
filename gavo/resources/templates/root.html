@@ -60,7 +60,7 @@
 		<div id="header">
 			<img src="/static/img/logo_medium.png" alt="[GAVO logo]" 
 				n:render="rootlink" class="logo"/>
-			<h1>The GAVO Data Center</h1>
+			<h1 id="pagehead">The GAVO Data Center</h1>
 		</div>
 		<p>Welcome to the GAVO data center, provided by 
 		<a href="http://www.zah.uni-hd.de">Zentrum für Astronomie
@@ -124,7 +124,15 @@
 				<ul n:data="chunk" n:render="sequence">
 					<li n:pattern="item" n:render="mapping">
 						<span n:render="ifprotected">[P]</span>
-						<n:slot name="title"/>
+						<n:invisible n:render="ifslot browseable">
+							<a class="servicelink">
+								<n:attr name="href"><n:slot name="accessURL"/></n:attr>
+								<n:slot name="title"/>
+							</a>
+						</n:invisible>
+						<n:invisible n:render="ifnoslot browseable">
+							<n:slot name="title"/>
+						</n:invisible>
 						<span class="hbox">
 						<a class="linkicon">
 							<n:attr name="href"><n:slot name="referenceURL"/></n:attr>

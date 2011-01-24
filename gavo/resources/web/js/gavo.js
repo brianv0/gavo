@@ -37,9 +37,10 @@ function isIn(item, arr) {
 function insertPreviewURL(node, previewHref) {
 // replaces the text content of node with a preview image pointed to
 // by previewHref (for products).
-	var image = document.createElement("img")
 	node.removeAttribute("onmouseover");
+	var image = document.createElement("img")
 	image.setAttribute("src", previewHref);
+
 	node.replaceChild(image, node.firstChild);
 
 }

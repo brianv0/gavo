@@ -215,7 +215,6 @@ def _productMapperFactory(colDesc):
 	fixedArgs = ""
 	def coder(val):
 		if val:
-# there's -- use it.
 			return T.a(href=products.makeProductLink(val)+fixedArgs,
 				onmouseover=mouseoverHandler,
 				class_="productlink")[re.sub("&.*", "", 

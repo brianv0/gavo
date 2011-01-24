@@ -170,6 +170,8 @@ class SourceParseError(Error):
 
 class DataError(Error):
 	"""is raised when something is wrong with a data set.
+
+	When facing the web, these yield HTTP status 406.
 	"""
 
 

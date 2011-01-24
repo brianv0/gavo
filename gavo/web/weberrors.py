@@ -219,6 +219,29 @@ class BadMethodPage(ErrorPage):
 		]])
 
 
+class NotAcceptable(ErrorPage):
+	handles = base.DataError
+	status = 406
+
+	docFactory = common.doctypedStan(T.html[
+			T.head[T.title["GAVO DC -- Not Acceptable"],
+			T.invisible(render=T.directive("commonhead")),
+			T.style(type="text/css")[
+				"p.errmsg {background-color: #cccccc;padding:5pt}"],
+		],
+		T.body[
+			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
+				"right:0pt"),
+			T.h1["Not Acceptable (406)"],
+			T.p["The server cannot generate the data you requested."
+				"  The associated message is:"],
+			T.p(class_="errmsg", render=str, data=T.directive("message")),
+			T.hr,
+			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
+				"gavo@ari.uni-heidelberg.de"]],
+		]])
+
+
 # HTML mess for last-resort type error handling.
 errorTemplate = (
 		'<body><div style="position:fixed;left:4px;top:4px;'
