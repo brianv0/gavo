@@ -133,7 +133,7 @@ def getDBConnection(profile, debug=debug, autocommitted=False):
 
 	if debug:
 		conn = psycopg2.connect(connString, connection_factory=DebugConnection)
-		print "NEW CONN", id(conn)
+		print "NEW CONN using %s"%profile.name, id(conn)
 		def closer():
 			print "CONNECTION CLOSE", id(conn)
 			return DebugConnection.close(conn)

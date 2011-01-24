@@ -57,11 +57,13 @@ class PreviewCacheManager(object):
 	cachePath = base.getConfig("web", "previewCache")
 	previewNames = {
 		'image/fits':
-			os.path.join(base.getConfig("inputsDir"), "__system",
-				"bin", "fitspreview"),
+			base.getBinaryName(
+				os.path.join(base.getConfig("inputsDir"), "__system",
+				"bin", "fitspreview")),
 		'image/jpeg':
-			os.path.join(base.getConfig("inputsDir"), "__system",
-				"bin", "jpegpreview"),
+			base.getBinaryName(
+				os.path.join(base.getConfig("inputsDir"), "__system",
+				"bin", "jpegpreview")),
 		}
 
 	@classmethod

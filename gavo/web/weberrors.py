@@ -58,6 +58,9 @@ class ErrorPage(rend.Page, common.CommonRenderers):
 	def data_message(self, ctx, data):
 		return self.failure.getErrorMessage()
 
+	def render_message(self, ctx, data):
+		return ctx.tag(class_="errmsg")[self.failure.getErrorMessage()]
+
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(self.status)
@@ -80,7 +83,7 @@ class NotFoundPage(ErrorPage):
 				"right:0pt"),
 			T.h1["Resource Not Found (404)"],
 			T.p["We're sorry, but the resource you requested could not be located."],
-			T.p(class_="errmsg", render=str, data=T.directive("message")),
+			T.p(render=T.directive("message")),
 			T.p["If this message resulted from following a link from ",
 				T.strong["within the data center"],
 				", you have discovered a bug, and we would be"
@@ -124,7 +127,7 @@ class ForbiddenPage(ErrorPage):
 				"right:0pt"),
 			T.h1["Access denied (403)"],
 			T.p["We're sorry, but the resource you requested is forbidden."],
-			T.p(class_="errmsg", render=str, data=T.directive("message")),
+			T.p(render=T.directive("message")),
 			T.p["This usually means you tried to use a renderer on a service"
 				" that does not support it.  If you did not come up with the"
 				" URL in question yourself, complain fiercely to the GAVO staff."],
@@ -235,13 +238,36 @@ class NotAcceptable(ErrorPage):
 			T.h1["Not Acceptable (406)"],
 			T.p["The server cannot generate the data you requested."
 				"  The associated message is:"],
-			T.p(class_="errmsg", render=str, data=T.directive("message")),
+			T.p(render=T.directive("message")),
 			T.hr,
 			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
 				"gavo@ari.uni-heidelberg.de"]],
 		]])
 
 
+class ErrorDisplay(ErrorPage):
+	handles = base.ReportableError
+	status = 500
+
+	docFactory = common.doctypedStan(T.html[
+			T.head[T.title["GAVO DC -- Error"],
+			T.invisible(render=T.directive("commonhead")),
+			T.style(type="text/css")[
+				"p.errmsg {background-color: #cccccc;padding:5pt}"],
+		],
+		T.body[
+			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
+				"right:0pt"),
+			T.h1["Server-side Error (500)"],
+			T.p(render=T.directive("message")),
+			T.p["This usually means we've fouled up, and there's no"
+				" telling whether we've realized that already.  So, chances are"
+				" we'd be grateful if you told us at the address given below."
+				" Thanks."],
+			T.hr,
+			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
+				"gavo@ari.uni-heidelberg.de"]],
+		]])
 # HTML mess for last-resort type error handling.
 errorTemplate = (
 		'<body><div style="position:fixed;left:4px;top:4px;'
@@ -287,11 +313,11 @@ class InternalServerErrorPage(ErrorPage):
 		return ""
 
 	def renderHTTP(self, ctx):
-		self.failure.printTraceback()
+		request = inevow.IRequest(ctx)
 		base.ui.notifyFailure(self.failure)
 		base.ui.notifyInfo("Arguments of failed request: %s"%
-			repr(inevow.IRequest(ctx).args))
-		if isinstance(ctx, context.PageContext):
+			repr(request.args))
+		if request.startedWriting:
 			# exception happened while rendering a page.
 			return self.renderInnerException(ctx)
 		else:
@@ -311,7 +337,7 @@ class InternalServerErrorPage(ErrorPage):
 				T.span(render=str, data=T.directive("excname")),
 				" exception to occur.  As additional info, the failing code"
 				" gave:"],
-			T.p(class_="errmsg", render=str, data=T.directive("message")),
+			T.p(render=T.directive("message")),
 			T.p["This is always a bug in our software, and we would really"
 				" be grateful for a report to the contact address below,"
 				" preferably with a description of what you were trying to do,"

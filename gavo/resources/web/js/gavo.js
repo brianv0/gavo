@@ -34,15 +34,30 @@ function isIn(item, arr) {
 
 
 ///////////// Code handling previews
+
 function insertPreviewURL(node, previewHref) {
 // replaces the text content of node with a preview image pointed to
 // by previewHref (for products).
 	node.removeAttribute("onmouseover");
+	node.attributes["class"].nodeValue += " busy";
 	var image = document.createElement("img")
 	image.setAttribute("src", previewHref);
 
-	node.replaceChild(image, node.firstChild);
+	function checkFinished(self, nextCheck) {
+		if (image.complete) {
+			if (image.height>0) { // make sure there's an image (if mozilla).
+				node.replaceChild(image, node.firstChild);
+			} else { // load of preview image failed; could be ok for non-images.
+				node.style.textDecoration = 'underline';
+			}
+			node.attributes["class"].nodeValue = 
+				node.attributes["class"].nodeValue.slice(0, -5);
+		} else {
+			window.setTimeout(function() {self(self, nextCheck*1.1);}, nextCheck);
+		}
+	}
 
+	checkFinished(checkFinished, 100);
 }
 
 function insertPreview(node, width) {

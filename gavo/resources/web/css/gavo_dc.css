@@ -587,3 +587,7 @@ a.servicelink {
 a.servicelink:hover {
 	text-decoration: underline;
 }
+
+.busy:after {
+	content: ' (\231A)';
+}
