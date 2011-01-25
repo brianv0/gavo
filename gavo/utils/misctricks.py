@@ -12,7 +12,7 @@ from gavo.utils import excs
 class _UndefinedType(type):
 	"""the metaclass for Undefined.
 
-	Internally used.
+	Used internally.
 	"""
 	def __str__(cls):
 		raise excs.StructureError("%s cannot be stringified."%cls.__name__)

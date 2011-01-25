@@ -32,6 +32,7 @@ class Ignore(ExecutiveAction):
 	somehow benignly unusable).  Classic use case: Active Tags.
 	"""
 
+
 class Replace(ExecutiveAction):
 	"""An executive action replacing the current child with the Exception's
 	argument.

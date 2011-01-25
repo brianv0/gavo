@@ -73,9 +73,9 @@ def adaptTable(origTable, newColumns):
 				exprStart = "%s*"%colDiffs[col.name]
 			rmk.feedObject("map", rmkdef.MapRule(rmk, dest=col.name,
 				content_="%svars[%s]"%(exprStart, repr(col.name))
-				).finishElement())
+				).finishElement(None))
 		newTable = table.InMemoryTable(newTd, validate=False)
-		mapper = rmk.finishElement().compileForTable(newTable)
+		mapper = rmk.finishElement(None).compileForTable(newTable)
 		for r in origTable:
 			newTable.addRow(mapper(r))
 	return rsc.wrapTable(newTable, rdSource=origTable.tableDef)
@@ -155,12 +155,12 @@ class Publication(base.Structure, base.ComputedMetaMixin):
 			" ivo_managed=register with the VO registry.  If you leave it"
 			" empty, 'local' publication is assumed.")
 
-	def completeElement(self):
+	def completeElement(self, ctx):
 		if self.render is base.Undefined:
 			self.render = "form"
 		if not self.sets:
 			self.sets.add("local")
-		self._completeElementNext(Publication)
+		self._completeElementNext(Publication, ctx)
 
 	def validate(self):
 		self._validateNext(Publication)
@@ -383,14 +383,14 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	def __repr__(self):
 		return "<Service at %x>"%id(self)
 
-	def completeElement(self):
-		self._completeElementNext(Service)
+	def completeElement(self, ctx):
+		self._completeElementNext(Service, ctx)
 		if not self.allowed:
 			self.allowed.add("form")
 
 		# undefined cores are only allowed with custom pages.
 		if self.core is base.Undefined and self.customPage:
-			self.core = core.getCore("nullCore")(self.rd).finishElement()
+			self.core = core.getCore("nullCore")(self.rd).finishElement(None)
 
 		# empty output tables are filled from the core
 		if self.outputTable is base.NotGiven:

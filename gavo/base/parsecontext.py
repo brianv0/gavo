@@ -140,8 +140,9 @@ class IdAttribute(attrdef.UnicodeAttribute):
 	"""
 	def feed(self, ctx, parent, literal):
 		attrdef.UnicodeAttribute.feed(self, ctx, parent, literal)
-		ctx.registerId(parent.id, parent)
-		parent.qualifiedId = ctx.getQualifiedId(literal)
+		if ctx is not None:
+			ctx.registerId(parent.id, parent)
+			parent.qualifiedId = ctx.getQualifiedId(literal)
 	
 	def getCopy(self, parent, newParent):
 		return None  # ids may not be copied
@@ -214,7 +215,7 @@ class _ReferenceParser(common.Parser):
 		if self.child is common.NotGiven:  # empty element; make a child
 			self.child = self.refAttr._makeChild(self.baseName, self.parent)
 		if self.child is not None: # immediate child was given:
-			self.child.finishElement()
+			self.child.finishElement(ctx)
 			self.parent.feedObject(name, self.child)
 		return self.parent
 	

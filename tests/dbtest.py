@@ -59,7 +59,7 @@ class TestTypes(testhelpers.VerboseTest):
 	def testBoxUnpack(self):
 		rows = [r for r in 
 			self.table.iterQuery(
-				svcs.OutputTableDef.fromTableDef(self.table.tableDef), 
+				svcs.OutputTableDef.fromTableDef(self.table.tableDef, None), 
 				"box IS NOT NULL")]
 		self.assertEqual(rows[0]["box"][0], (2,4))
 		self.assertEqual(rows[0]["box"][1], (1,3))

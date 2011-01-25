@@ -113,10 +113,10 @@ class SourceSpec(base.Structure):
 	def __iter__(self):
 		return self.iterSources()
 
-	def completeElement(self):
+	def completeElement(self, ctx):
 		if self.ignoredSources is base.Undefined:
 			self.ignoredSources = base.makeStruct(IgnoreSpec)
-		self._completeElementNext(SourceSpec)
+		self._completeElementNext(SourceSpec, ctx)
 
 	def _expandDirParts(self, dirParts, ignoreDotDirs=True):
 		"""expands a list of directories into a list of them and all their

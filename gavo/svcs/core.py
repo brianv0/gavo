@@ -155,8 +155,8 @@ class Core(base.Structure):
 	def __str__(self):
 		return repr(self)
 
-	def completeElement(self):
-		self._completeElementNext(Core)
+	def completeElement(self, ctx):
+		self._completeElementNext(Core, ctx)
 		if self.inputTable is base.NotGiven:
 			self.inputTable = base.makeStruct(inputdef.InputTable)
 		if self.outputTable is base.NotGiven:

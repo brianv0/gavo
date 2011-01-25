@@ -58,10 +58,8 @@ class MapRule(base.Structure):
 	_expr = base.DataContent(copyable=True, description="A python"
 		" expression giving the value to end up in dest", strip=True)
 
-	def setParseContext(self, ctx):
-		self.restrictedMode = ctx.restricted
-
-	def completeElement(self):
+	def completeElement(self, ctx):
+		self.restrictedMode = getattr(ctx, "restricted", False)
 		if self.restrictedMode and self.content_:
 			raise base.RestrictedElement("map", hint="In restricted mode, only"
 				" maps with a src attribute are allowed.")
@@ -129,9 +127,10 @@ class VarDef(base.Structure, base.RestrictionMixin):
 		" Its value is accessible under the key name in the input row.",
 		strip=True)
 
-	def completeElement(self):
+	def completeElement(self, ctx):
 		if self.content_ and "\\" in self.content_:
 			self.content_ = self.parent.expand(self.content_)
+		self._completeElementNext(VarDef, ctx)
 
 	def validate(self):
 		"""checks that code content is a parseable python expression and that
@@ -301,7 +300,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 					for c in table],
 			**kwargs)
 
-	def completeElement(self):
+	def completeElement(self, ctx):
 		if self.simplemaps:
 			for k,v in self.simplemaps.iteritems():
 				nullExcs = base.NotGiven
@@ -310,7 +309,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 					nullExcs = "KeyError,"
 				self.feedObject("maps", base.makeStruct(MapRule, 
 					dest=k, src=v, nullExcs=nullExcs))
-		self._completeElementNext(RowmakerDef)
+		self._completeElementNext(RowmakerDef, ctx)
 
 	def _getSourceFromColset(self, columns):
 		"""returns the source code for a mapper to a column set.
@@ -367,7 +366,7 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 				raise NotFoundError(colName, "columns matching", "unknown")
 			for dest in matching:
 				if dest not in existingMaps:
-					self.maps.append(MapRule(self, dest=dest).finishElement())
+					self.maps.append(MapRule(self, dest=dest).finishElement(None))
 		self.idmaps = []
 
 	def _checkTable(self, columns, id):

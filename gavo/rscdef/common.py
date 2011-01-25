@@ -46,6 +46,8 @@ class RDAttribute(base.AttributeDef):
 		yield ("rd", property(_getRD))
 
 		def getFullId(self):
+			if self.rd is None:
+				return self.id
 			return "%s#%s"%(self.rd.sourceId, self.id)
 		yield ("getFullId", getFullId)
 

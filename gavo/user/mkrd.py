@@ -91,7 +91,7 @@ class EventStorage(object):
 			self.feedEvent("value", k, v)
 		self.handlerStack.append(parent)
 	
-	def finishElement(self):
+	def finishElement(self, ctx=None):
 		return self
 	
 	def feedEvent(self, ctx, type, name, val):

@@ -68,11 +68,11 @@ class ComputedCore(core.Core):
 				" defined by the primary table of resultParse.")
 		return core.Core.start_(self, ctx, name, value)
 
-	def completeElement(self):
+	def completeElement(self, ctx):
 		if self.resultParse:
 			self.outputTable = outputdef.OutputTableDef.fromTableDef(
-				self.resultParse.getPrimary())
-		self._completeElementNext(ComputedCore)
+				self.resultParse.getPrimary(), ctx)
+		self._completeElementNext(ComputedCore, ctx)
 
 	def _feedInto(self, data, destFile):
 		"""writes data into destFile from a thread.

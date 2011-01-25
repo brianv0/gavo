@@ -139,11 +139,11 @@ class EditCore(standardcores.TableBasedCore):
 		default=base.Undefined, description="Reference to the table to"
 			" be edited", forceType=rscdef.TableDef)
 
-	def completeElement(self):
+	def completeElement(self, ctx):
 		if self.outputTable is base.Undefined:
 			self.outputTable = base.parseFromString(outputdef.OutputTableDef,
 				uploadOutputDef)
-		self._completeElementNext(EditCore)
+		self._completeElementNext(EditCore, ctx)
 
 	def run(self, service, inputTable, queryMeta):
 		conn = base.getDBConnection(base.getDBProfileByName("admin"))

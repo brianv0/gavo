@@ -40,8 +40,8 @@ class InputKey(column.ParamBase):
 		description="Override unit of the table column with this.",
 		copyable=True)
 
-	def completeElement(self):
-		self._completeElementNext(InputKey)
+	def completeElement(self, ctx):
+		self._completeElementNext(InputKey, ctx)
 		if self.restrictedMode and self.widgetFactory:
 			raise base.RestrictedElement("widgetFactory")
 
@@ -69,7 +69,7 @@ class InputKey(column.ParamBase):
 		instance.feedObject("original", column)
 		for k,v in kwargs.iteritems():
 			instance.feed(k, v)
-		return instance.finishElement()
+		return instance.finishElement(None)
 
 
 class InputTable(rscdef.TableDef):
@@ -166,7 +166,7 @@ class ContextGrammar(grammars.Grammar):
 	def fromInputKeys(cls, inputKeys):
 		"""returns a ContextGrammar having the passed inputKeys.
 		"""
-		return cls(None, inputKeys=inputKeys).finishElement()
+		return cls(None, inputKeys=inputKeys).finishElement(None)
 	
 	@classmethod
 	def fromColumns(cls, srcColumns):
@@ -189,7 +189,7 @@ class InputDescriptor(rscdef.DataDescriptor):
 	"""
 	name_ = "inputDD"
 
-	def completeElement(self):
+	def completeElement(self, ctx):
 		# If there is a make, i.e. table, infer the context grammar,
 		# if there's a context grammar, infer the table.
 		if self.makes and self.grammar is None:
@@ -198,7 +198,7 @@ class InputDescriptor(rscdef.DataDescriptor):
 		if not self.makes and isinstance(self.grammar, ContextGrammar):
 			self.feedObject("make", MS(rscdef.Make, 
 				table=MS(rscdef.TableDef, columns=self.grammar.inputKeys)))
-		self._completeElementNext(InputDescriptor)
+		self._completeElementNext(InputDescriptor, ctx)
 
 
 def makeAutoInputDD(core):

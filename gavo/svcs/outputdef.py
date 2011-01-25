@@ -50,7 +50,7 @@ class OutputField(rscdef.Column):
 	def __repr__(self):
 		return "<OutputField %s>"%repr(self.name)
 
-	def completeElement(self):
+	def completeElement(self, ctx):
 		if self.restrictedMode and (
 				self.formatter
 				or self.select):
@@ -58,7 +58,7 @@ class OutputField(rscdef.Column):
 				" attributes on output fields are not allowed in restricted mode.")
 		if self.select is base.Undefined:
 			self.select = self.name
-		self._completeElementNext(OutputField)
+		self._completeElementNext(OutputField, ctx)
 
 	@classmethod
 	def fromColumn(cls, col):
@@ -84,55 +84,59 @@ class OutputTableDef(rscdef.TableDef):
 	_autocols = base.StringListAttribute("autoCols", 
 		description="Column names obtained from fromTable.")
 
-	_fromTable = base.ReferenceAttribute("fromTable",
-		default=base.NotGiven,
-		description="Build output fields from the columns of this table;"
-		"  if not given, defaults to the queried table for cores that have"
-		" one (an emtpy table otherwise), and the core's output table"
-		" for services.")
+	def __init__(self, parent, **kwargs):
+		rscdef.TableDef.__init__(self, parent, **kwargs)
+		try:
+			self.namePath = self.parent.queriedTable.getFullId()
+		except (AttributeError, base.StructureError):
+			try:
+				self.namePath = self.parent.core.outputTable.getFullId()
+			except (AttributeError, base.StructureError):
+				self.namePath = None
 
 	def _getSourceTable(self):
 		"""returns a tableDef object to be used as a column source.
 
 		The rules are described at the fromTable attribute.
 		"""
-		if self.fromTable is base.NotGiven:
+		try:
+			return self.parent.queriedTable
+		except AttributeError:  # not a TableBasedCore
 			try:
-				return self.parent.queriedTable
-			except AttributeError:  # not a TableBasedCore
-				try:
-					res =  self.parent.core.outputTable
-					return res
-				except AttributeError:  # not a service
-					return _EMPTY_TABLE
-		else:
-			return self.fromTable
+				res =  self.parent.core.outputTable
+				return res
+			except AttributeError:  # not a service
+				return _EMPTY_TABLE
 
-	def _obtainFieldsFrom(self, fieldSource, isWanted):
-		"""makes outputFields and params from columns and params in
-		fieldSource.
-		
-		Only those items are used for which isWanted returns true.
-		"""
-		if fieldSource is base.Undefined:
-			raise base.StructureError("Attempting to copy fields from"
-				" an undefined source %s's output table."%(self.parent.id))
-		for c in fieldSource.columns:
-			if isWanted(c):
-				self.feedObject("outputField", OutputField.fromColumn(c))
-		for p in fieldSource.params:
-			if isWanted(p):
-				self.feedObject("param", p.copy(self))
+	def _addNames(self, ctx, names):
+		# since autoCols is not copyable, we can require
+		# that _addNames only be called when there's a real parse context.
+		if ctx is None:
+			raise StructureError("outputTable autocols is"
+				" only available with a parse context")
+		for name in names:
+			# names may refer to params or to columns, sort
+			# things out here.
+			refOb = ctx.resolveId(name, self)
+			if refOb.name_=="param":
+				self.feedObject("param", refOb.copy(self))
+			else:
+				self.feedObject("outputField", OutputField.fromColumn(refOb))
 
-	def completeElement(self):
-		fromTable = self._getSourceTable()
+	def completeElement(self, ctx):
 		if self.autoCols:
-			ac = set(self.autoCols)
-			self._obtainFieldsFrom(fromTable, lambda c: c.name in ac)
+			self._addNames(ctx, self.autoCols)
+
 		if self.verbLevel:
-			self._obtainFieldsFrom(fromTable, 
-				lambda c: c.verbLevel<=self.verbLevel)
-		self._completeElementNext(OutputTableDef)
+			table = self._getSourceTable()
+			for col in table.columns:
+				if col.verbLevel<=self.verbLevel:
+					self.feedObject("outputField", OutputField.fromColumn(col))
+			for par in table.params:
+				if par.verbLevel<=self.verbLevel:
+					self.feedObject("param", par.copy(self))
+
+		self._completeElementNext(OutputTableDef, ctx)
 
 	@classmethod
 	def fromColumns(cls, columns, **kwargs):
@@ -140,7 +144,7 @@ class OutputTableDef(rscdef.TableDef):
 			for c in columns])
 
 	@classmethod
-	def fromTableDef(cls, tableDef):
+	def fromTableDef(cls, tableDef, ctx):
 		return cls(None, columns=[OutputField.fromColumn(c) for c in tableDef],
 			forceUnique=tableDef.forceUnique, dupePolicy=tableDef.dupePolicy,
-			primary=tableDef.primary, params=tableDef.params).finishElement()
+			primary=tableDef.primary, params=tableDef.params).finishElement(ctx)

@@ -44,7 +44,7 @@ def queryServicesList(whereClause="", pars={}, tableName="resources_join"):
 	fields defined there.
 	"""
 	td = getServicesRD().getById(tableName)
-	otd = svcs.OutputTableDef.fromTableDef(td)
+	otd = svcs.OutputTableDef.fromTableDef(td, None)
 	table = rsc.TableForDef(td)
 	return [r for r in table.iterQuery(otd, whereClause, pars)]
 
@@ -58,7 +58,7 @@ def querySubjectsList(setName=None):
 	setName = setName or 'local'
 	svcsForSubjs = {}
 	td = base.caches.getRD(SERVICELIST_ID).getById("subjects_join")
-	otd = svcs.OutputTableDef.fromTableDef(td)
+	otd = svcs.OutputTableDef.fromTableDef(td, None)
 	for row in rsc.TableForDef(td).iterQuery(otd, 
 			"setName=%(setName)s AND subject IS NOT NULL", {"setName": setName}):
 		svcsForSubjs.setdefault(row["subject"], []).append(row)

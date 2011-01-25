@@ -203,13 +203,13 @@ class StructureBase(object):
 		parent = kwargs.pop("parent_", self.parent)
 		attrs = self.getCopyableAttributes(kwargs)
 		attrs.update(kwargs)
-		return self.__class__(parent, **attrs).finishElement()
+		return self.__class__(parent, **attrs).finishElement(None)
 
 	def copy(self, parent):
 		"""returns a deep copy of self, reparented to parent.
 		"""
 		return self.__class__(parent, 
-			**self.getCopyableAttributes()).finishElement()
+			**self.getCopyableAttributes()).finishElement(None)
 
 	def adopt(self, struct):
 		struct.parent = self
@@ -241,19 +241,13 @@ class ParseableStructure(StructureBase, common.Parser):
 	But it knows how to be fed from a parser, plus you have feed and feedObject
 	methods that look up the attribute names and call the methods on the
 	respective attribute definitions.
-
-	ParseableStructures have a hook setParseContext that is called when
-	they are parsed from XML; it is called with a ParseContext by
-	StructAttribute.create (and from similar places).  Do not rely on
-	the method being called, since for internally built, copied, etc
-	structures, it won't.
 	"""
 	_pristine = True
 
 	def __init__(self, parent, **kwargs):
 		StructureBase.__init__(self, parent, **kwargs)
 
-	def finishElement(self):
+	def finishElement(self, ctx):
 		return self
 
 	def getAttribute(self, name):
@@ -272,7 +266,7 @@ class ParseableStructure(StructureBase, common.Parser):
 
 	def end_(self, ctx, name, value):
 		try:
-			self.finishElement()
+			self.finishElement(ctx)
 		except common.Replace, ex:
 			if ex.newName is not None:
 				name = ex.newName
@@ -348,17 +342,6 @@ class ParseableStructure(StructureBase, common.Parser):
 		for ev in other.iterEvents():
 			evProc.feed(*ev)
 
-	def setParseContext(self, ctx):
-		"""may be called by a structure parser to advertise the parse
-		context to be used for this structure.
-
-		You cannot rely on this method being called at any time (i.e.,
-		structures must work without any of the stuff done in their
-		setParseContext methods.
-		"""
-		getattr(
-			super(ParseableStructure, self), "setParseContext", self._nop)(ctx)
-		
 
 class Structure(ParseableStructure):
 	"""is the base class for user-defined structures.
@@ -378,8 +361,8 @@ class Structure(ParseableStructure):
 				if attVal!=attType.default_:
 					attType.onParentComplete(attVal)
 
-	def finishElement(self):
-		self.completeElement()
+	def finishElement(self, ctx=None):
+		self.completeElement(ctx)
 		self.validate()
 		self.onElementComplete()
 		self.callCompletedCallbacks()
@@ -395,10 +378,20 @@ class Structure(ParseableStructure):
 				pc()
 		return _callNext
 
-	def completeElement(self):
-		self._completeElementNext(Structure)
+	def _makeUpwardCallerOneArg(methName):
+		def _callNext(self, cls, arg):
+			try:
+				pc = getattr(super(cls, self), methName)
+			except AttributeError:
+				pass
+			else:
+				pc(arg)
+		return _callNext
 
-	_completeElementNext = _makeUpwardCaller("completeElement")
+	def completeElement(self, ctx):
+		self._completeElementNext(Structure, ctx)
+
+	_completeElementNext = _makeUpwardCallerOneArg("completeElement")
 
 	def validate(self):
 		for val in set(self.managedAttrs.itervalues()):
@@ -420,11 +413,10 @@ class Structure(ParseableStructure):
 class RestrictionMixin(object):
 	"""A mixin for structure classes not allowed in untrusted RDs.
 	"""
-	def setParseContext(self, ctx):
-		if ctx.restricted:
+	def completeElement(self, ctx):
+		if getattr(ctx, "restricted", False):
 			raise common.RestrictedElement(self.name_)
-		getattr(
-			super(RestrictionMixin, self), "setParseContext", self._nop)(ctx)
+		self._completeElementNext(RestrictionMixin, ctx)
 
 
 def makeStruct(structClass, **kwargs):
@@ -434,4 +426,4 @@ def makeStruct(structClass, **kwargs):
 	parent = None
 	if "parent_" in kwargs:
 		parent = kwargs.pop("parent_")
-	return structClass(parent, **kwargs).finishElement()
+	return structClass(parent, **kwargs).finishElement(None)

@@ -86,7 +86,7 @@ def _makeColumnFromFieldInfo(ctx, colName, fi):
 		res.needMunging = True
 
 	res.verbLevel = 1
-	res.completeElement()
+	res.finishElement()
 	return res
 
 

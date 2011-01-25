@@ -394,8 +394,8 @@ class ReplayedEvents(DelayedReplayBase):
 		# to add values for the macros, and these are instance-local.
 		self.managedAttrs = self.managedAttrs.copy()
 
-	def completeElement(self):
-		self._completeElementNext(ReplayedEvents)
+	def completeElement(self, ctx):
+		self._completeElementNext(ReplayedEvents, ctx)
 		self._replayer()
 
 	def getAttribute(self, name):
@@ -492,8 +492,8 @@ class Loop(DelayedReplayBase):
 					" LOOP")
 		return rowIterators[0]
 			
-	def completeElement(self):
-		self._completeElementNext(Loop)
+	def completeElement(self, ctx):
+		self._completeElementNext(Loop, ctx)
 		for row in self._getRowIterator():
 			for name, value in row.iteritems():
 				if value:

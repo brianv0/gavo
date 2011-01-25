@@ -50,11 +50,12 @@ class DBIndex(base.Structure):
 
 	rawSQLAllowed = True
 
-	def completeElement(self):
+	def completeElement(self, ctx):
+		self.rawSQLAllowed = not getattr(ctx, "restricted", False)
 		if self.content_ and not self.rawSQLAllowed:
 			raise base.RestrictedElement("index", hint="Free-form SQL on indices"
 				" is not allowed in restricted mode")
-		self._completeElementNext(DBIndex)
+		self._completeElementNext(DBIndex, ctx)
 		if not self.columns:
 			raise base.StructureError("Index without columns is verboten.")
 		if self.name is base.Undefined:
@@ -62,9 +63,6 @@ class DBIndex(base.Structure):
 		if not self.content_:
 			self.content_ = "%s"%",".join(self.columns)
 
-	def setParseContext(self, ctx):
-		self.rawSQLAllowed = not ctx.restricted
-	
 	def create(self, querier):
 		"""creates the index on the parent table if necessary.
 		
@@ -202,8 +200,8 @@ class STCDef(base.Structure):
 	_source = base.DataContent(copyable=True, description="An STC-S string"
 		" with column references (using quote syntax) instead of values")
 
-	def completeElement(self):
-		self._onElementCompleteNext(STCDef)
+	def completeElement(self, ctx):
+		self._completeElementNext(STCDef, ctx)
 		try:
 			self.compiled = stc.parseQSTCS(self.content_)
 		except stc.STCSParseError, msg:
@@ -358,22 +356,23 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 				destCol.stc = stcDef.compiled
 				destCol.stcUtype = type
 
-	def setParseContext(self, ctx):
-		self.rawSQLAllowed = not ctx.restricted
-
-	def completeElement(self):
+	def completeElement(self, ctx):
+		self.rawSQLAllowed = not getattr(ctx, "restricted", False)
 		if not self.rawSQLAllowed and self.viewStatement:
 			raise base.RestrictedElement("table", hint="tables with"
 				" view creation statements are not allowed in restricted mode")
+
+		if not self.id:
+			self._id.feed(ctx, self, utils.intToFunnyWord(id(self)))
+
 		# allow iterables to be passed in for columns and convert them
 		# to a ColumnList here
 		if not isinstance(self.columns, common.ColumnList):
 			self.columns = common.ColumnList(self.columns)
-		if self.id is base.NotGiven:
-			self.id = utils.intToFunnyWord(id(self))
 		self._resolveSTC()
-		self._completeElementNext(TableDef)
+		self._completeElementNext(TableDef, ctx)
 		self.columns.withinId = self.params.tableName = "table "+self.id
+
 
 	def _defineFixupFunction(self):
 		"""defines a function to fix up records from column's fixup attributes.

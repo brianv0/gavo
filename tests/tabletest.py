@@ -216,20 +216,20 @@ class DBTableQueryTest(tresc.TestWithDBConnection):
 
 	def testPlainQuery(self):
 		resdef = svcs.OutputTableDef.fromTableDef(
-			self.rd.getTableDefById("xy"))
+			self.rd.getTableDefById("xy"), None)
 		res = rsc.makeTableForQuery(self.data.tables["xy"], resdef, "", {})
 		self.assertEqual(len(res.rows), 11)
 	
 	def testDistinctQuery(self):
 		resdef = svcs.OutputTableDef.fromTableDef(
-			self.rd.getTableDefById("xy"))
+			self.rd.getTableDefById("xy"), None)
 		res = rsc.makeTableForQuery(self.data.tables["xy"], resdef, "", {},
 			distinct=True, connection=self.conn)
 		self.assertEqual(len(res.rows), 10)
 
 	def testWithLimit(self):
 		resdef = svcs.OutputTableDef.fromTableDef(
-			self.rd.getTableDefById("xy"))
+			self.rd.getTableDefById("xy"), None)
 		res = rsc.makeTableForQuery(self.data.tables["xy"], resdef, "", {},
 			limits=("ORDER BY y LIMIT %(limit_)s", {"limit_": 4}))
 		self.assertEqual(len(res.rows), 4)
@@ -237,7 +237,7 @@ class DBTableQueryTest(tresc.TestWithDBConnection):
 
 	def testWithWhere(self):
 		resdef = svcs.OutputTableDef.fromTableDef(
-			self.rd.getTableDefById("xy"))
+			self.rd.getTableDefById("xy"), None)
 		res = rsc.makeTableForQuery(self.data.tables["xy"], resdef, 
 			"x=%(x)s", {"x":9})
 		self.assertEqual(len(res.rows), 2)
@@ -258,7 +258,7 @@ class FixupTest(tresc.TestWithDBConnection):
 		t = rsc.TableForDef(td, rows=[{"ab": "xy"}, {"ab": "zz"}],
 			connection=self.conn)
 		self.assertEqual(
-			list(t.iterQuery(svcs.OutputTableDef.fromTableDef(td), "")),
+			list(t.iterQuery(svcs.OutputTableDef.fromTableDef(td, None), "")),
 			[{u'ab': u'abxy'}, {u'ab': u'abzz'}])
 
 	def testMultiFixup(self):
@@ -274,7 +274,7 @@ class FixupTest(tresc.TestWithDBConnection):
 			{"ab": datetime.date(2002, 2, 3), "x": 15, 't': None}],
 			connection=self.conn)
 		self.assertEqual(
-			list(t.iterQuery(svcs.OutputTableDef.fromTableDef(td), "")), [
+			list(t.iterQuery(svcs.OutputTableDef.fromTableDef(td, None), "")), [
 				{u'x': 12, u'ab': datetime.date(2002, 2, 3),
 					't': 'ab'}, 
 				{u'x': 13, u'ab': datetime.date(2002, 2, 4),

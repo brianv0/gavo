@@ -240,3 +240,10 @@
 	pyparsing is not thread-safe.  Protect all parses by locks (probably
 	the lock objects should sit on the grammars, and I should have a
 	common parse method).
+
+59/MEDIUM/2011-01-25
+	ADQL count(*) returns a float.
+
+60/WISHLIST/2011-01-25
+	When using utils.intToFunnyWord to make up ids, we should use some
+	reserved marker to avoid collisions with user-defined ids.

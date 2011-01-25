@@ -203,8 +203,8 @@ class ProcApp(ProcDef):
 
 	requiredType = None
 
-	def completeElement(self):
-		self._completeElementNext(ProcApp)
+	def completeElement(self, ctx):
+		self._completeElementNext(ProcApp, ctx)
 		if self.name is base.NotGiven:  # make up a name from self's id
 			self.name = ("proc%x"%id(self)).replace("-", "")
 

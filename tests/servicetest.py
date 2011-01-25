@@ -279,6 +279,40 @@ class OutputTableTest(testhelpers.VerboseTest):
 			<outputTable autoCols="bar"/>
 			</service></resource>""")
 
+	def testNamePath(self):
+		base.parseFromString(rscdesc.RD,
+			"""<resource schema="test"><table id="foo"><column name="bar"/></table>
+			<service id="quux"><dbCore queriedTable="foo"/>
+			<outputTable><outputField original="bar"/></outputTable>
+			</service></resource>""")
+
+	def testVerbLevel(self):
+		rd = base.parseFromString(rscdesc.RD,
+			"""<resource schema="test"><table id="foo">
+			<column name="bar" verbLevel="7"/>
+			<column name="baz" verbLevel="8"/></table>
+			<service id="quux"><dbCore queriedTable="foo"/>
+			<outputTable verbLevel="7"/>
+			</service></resource>""")
+		cols = rd.services[0].outputTable.columns
+		self.assertEqual(len(cols), 1)
+		self.assertEqual(cols[0].name, "bar")
+
+	def testParams(self):
+		rd = base.parseFromString(rscdesc.RD,
+			"""<resource schema="test"><table id="foo">
+			<param name="bar" verbLevel="7"/>
+			<param name="baz" verbLevel="8"/>
+			<param name="quux" verbLevel="9"/>
+			</table>
+			<service id="quux"><dbCore queriedTable="foo"/>
+			<outputTable verbLevel="7" autoCols="quux"/>
+			</service></resource>""")
+		pars = rd.services[0].outputTable.params
+		self.assertEqual(len(pars), 2)
+		self.assertEqual(pars[0].name, "quux")
+		self.assertEqual(pars[1].name, "bar")
+
 
 class TableConnTest(testhelpers.VerboseTest):
 # base.caches.getTableConn is supposed to return a connection
@@ -293,4 +327,5 @@ class TableConnTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
+	base.DEBUG = True
 	testhelpers.main(OutputTableTest)

@@ -168,12 +168,12 @@ class CondDesc(base.Structure):
 		# formal counts on), but it's probably not worth the effort.
 		return "+".join([f.name for f in self.inputKeys])
 
-	def completeElement(self):
+	def completeElement(self, ctx):
 		if self.buildFrom and not self.inputKeys:
 			# use the column as input key; special renderers may want
 			# to do type mapping, but the default is to have plain input
 			self.inputKeys = [inputdef.InputKey.fromColumn(self.buildFrom)]
-		self._completeElementNext(CondDesc)
+		self._completeElementNext(CondDesc, ctx)
 
 	def expand(self, *args, **kwargs):
 		"""hands macro expansion requests (from phraseMakers) upwards.
@@ -325,7 +325,7 @@ class TableBasedCore(core.Core):
 			params=iks,
 			groups=groups)
 
-	def completeElement(self):
+	def completeElement(self, ctx):
 		# if no condDescs have been given, make them up from the table columns.
 		if not self.condDescs and self.queriedTable:
 			self.condDescs = [self.adopt(CondDesc.fromColumn(c))
@@ -341,9 +341,9 @@ class TableBasedCore(core.Core):
 		# handled by core itself).
 		if self.outputTableXML is None and self.outputTable is base.NotGiven:
 			self.outputTable = outputdef.OutputTableDef.fromTableDef(
-				self.queriedTable)
+				self.queriedTable, ctx)
 
-		self._completeElementNext(TableBasedCore)
+		self._completeElementNext(TableBasedCore, ctx)
 
 	def _fixNamePath(self, qTable):
 # callback from queriedTable to make it the default for namePath as well
@@ -518,10 +518,10 @@ class FixedQueryCore(core.Core, base.RestrictionMixin):
 		description="The query to be executed.  You must define the"
 			" output fields in the core's output table.")
 
-	def completeElement(self):
+	def completeElement(self, ctx):
 		if self.inputTable is base.NotGiven:
 			self.inputTable = base.makeStruct(inputdef.InputTable)
-		self._completeElementNext(FixedQueryCore)
+		self._completeElementNext(FixedQueryCore, ctx)
 
 	def run(self, service, inputTable, queryMeta):
 		querier = base.SimpleQuerier(connection=base.caches.getTableConn(None))

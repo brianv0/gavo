@@ -141,10 +141,10 @@ class Option(base.Structure):
 		# may occur in user messages from formal, so we use title.
 		return self.title
 
-	def completeElement(self):
+	def completeElement(self, ctx):
 		if self.title is base.NotGiven:
 			self.title = self.content_
-		self._completeElementNext(Option)
+		self._completeElementNext(Option, ctx)
 
 
 def makeOptions(*args):
@@ -311,9 +311,6 @@ class Column(base.Structure):
 	def __repr__(self):
 		return "<Column %s>"%repr(self.name)
 
-	def setParseContext(self, ctx):
-		self.restrictedMode = ctx.restricted
-
 	def onParentComplete(self):
 		# we need to resolve note on construction since columns are routinely
 		# copied to other tables and  meta info does not necessarily follow.
@@ -323,7 +320,8 @@ class Column(base.Structure):
 			except base.NotFoundError: # non-existing notes silently ignored
 				self.note = None
 
-	def completeElement(self):
+	def completeElement(self, ctx):
+		self.restrictedMode = getattr(ctx, "restricted", False)
 		if isinstance(self.name, utils.QuotedName):
 			self.key = self.name.name
 			if ')' in self.key:
@@ -334,7 +332,7 @@ class Column(base.Structure):
 				self.key = self.key.replace(')', "__").replace('(', "__")
 		else:
 			self.key = self.name
-		self._completeElementNext(Column)
+		self._completeElementNext(Column, ctx)
 
 	def isEnumerated(self):
 		return self.values and self.values.options
