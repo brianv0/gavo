@@ -40,20 +40,28 @@ class RDBlocked(Exception):
 ########## Useful mixins for Renderers
 
 class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
-	"""is a mixin with renderers useful throughout the data center.
+	"""A mixin with renderers useful throughout the data center.
 
 	Rendering of meta information:
-	<tag n:render="meta">METAKEY</tag> or
-	<tag n:render="metahtml">METAKEY</tag>
+	* <tag n:render="meta">METAKEY</tag> or
+	* <tag n:render="metahtml">METAKEY</tag>
 
 	Rendering internal links (important for off-root operation):
-	<tag href|src="/foo" n:render="rootlink"/>
+	* <tag href|src="/foo" n:render="rootlink"/>
 
-	Rendering the sidebar (with a service attribute on the class mixing in):
-
+	Rendering the sidebar --
 	<body n:render="withsidebar">.  This will only work if the renderer
 	has a service attribute that's enough of a service (i.e., carries meta
 	and knows how to generate URLs).
+
+	Conditional rendering:
+	* ifmeta
+	* imownmeta
+	* ifdata
+	* ifnodata
+	* ifslot
+	* ifnoslot
+	* ifadmin
 	"""
 	_sidebar = svcs.loadSystemTemplate("sidebar.html")
 

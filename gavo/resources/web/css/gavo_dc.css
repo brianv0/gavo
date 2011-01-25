@@ -570,9 +570,14 @@ table.docutils {
 	border-style: none;
 	border-spacing: 0px;
 	border-collapse: collapse;
-	border-top: 2px solid #999999;
-	border-bottom: 2px solid #999999;
+	border: 2px solid #999999;
 }	
+
+.docutils th {
+	padding-top: 0.8ex;
+	padding-bottom: 0.3ex;
+	border-style: none;
+}
 
 table.docutils td {
 	padding: 0.5ex;
