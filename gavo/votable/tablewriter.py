@@ -17,7 +17,7 @@ _encoders = {
 
 
 def _escapeAttrVal(val):
-	return '"%s"'%(common.escapeCDATA(val).replace('"', '&quot;'
+	return '"%s"'%(common.escapePCDATA(val).replace('"', '&quot;'
 		).encode("utf-8"))
 
 
@@ -45,7 +45,7 @@ def write(root, outputFile):
 			attrRepr = attrRepr+" "+node._fixedTagMaterial
 		outputFile.write("<%s%s>"%(node.name_, attrRepr))
 		if text:
-			outputFile.write(common.escapeCDATA(text).encode("utf-8"))
+			outputFile.write(common.escapePCDATA(text).encode("utf-8"))
 		for c in childIter:
 			if hasattr(c, "write"):
 				c.write(outputFile)
@@ -58,7 +58,7 @@ def write(root, outputFile):
 	
 
 def asString(root):
-	"""returns the V.VOTABLE as a string.
+	"""returns the V.VOTABLE root as a string.
 	"""
 	res = StringIO()
 	write(root, res)
@@ -90,4 +90,3 @@ def DelayedTable(tableDefinition, rowIterator, contentElement, **attrs):
 
 	return tableDefinition[VOTable.DATA[
 		content]]
-		

@@ -38,6 +38,7 @@ registerPrefix("tr", "http://www.ivoa.net/xml/TAP/v0.1",
 	schemaURL("TAPRegExt-v0.1.xsd"))
 
 
+
 class OAI(object):
 	"""is a container for classes modelling OAI elements.
 	"""

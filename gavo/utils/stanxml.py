@@ -443,7 +443,7 @@ def xmlrender(tree, prolog=None, emptyPrefix=None):
 	"""returns a unicode object containing tree in serialized forms.
 
 	tree can be any object with a render method or some sort of string.
-	If it's a byte string, it must not contain any non-ASCII.
+	If it's a byte string, it must not contain any non-ASCII. 
 
 	If prolog is given, it must be a string that will be prepended to the
 	serialization of tree.  The way ElementTree currently is implemented,

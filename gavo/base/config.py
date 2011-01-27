@@ -477,7 +477,7 @@ makeFallbackMeta()
 # place for them, really.
 
 def makeSitePath(path):
-	"""returns a fully qualified URL for a server-internal path.
+	"""returns a rooted local part for a server-internal URL.
 
 	uri itself needs to be server-absolute (i.e., start with a slash).
 	"""
@@ -485,6 +485,8 @@ def makeSitePath(path):
 
 
 def makeAbsoluteURL(path):
+	"""returns a fully qualified URL for a rooted local part.
+	"""
 	return str(get("web", "serverURL")+makeSitePath(path))
 
 

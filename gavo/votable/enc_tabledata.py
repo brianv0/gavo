@@ -83,12 +83,12 @@ def _makeCharEncoder(field):
 	if field.isMultiDim():
 		# 2+d char arrays are string arrays -- the serialization is insane
 		return _addNullvalueCode(field, [
-			"tokens.append(common.escapeCDATA(' '.join("
+			"tokens.append(common.escapePCDATA(' '.join("
 			" s.replace(' ', '%20') for s in common.iterflattened(val))))"],
 			lambda _: True)
 	else:
 		return _addNullvalueCode(field, [
-			"tokens.append(common.escapeCDATA(val))"],
+			"tokens.append(common.escapePCDATA(val))"],
 			lambda _: True)
 
 

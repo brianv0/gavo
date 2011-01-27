@@ -196,11 +196,17 @@ class ProductRenderer(grend.ServiceBasedRenderer):
 		doPreview = result.queryMeta.ctxArgs.get("preview")
 		rsc = result.original.getPrimaryTable().rows[0]['source']
 		request = inevow.IRequest(ctx)
+
+		if isinstance(rsc, products.RemoteProduct):
+			raise svcs.WebRedirect(rsc.sourcePath)
+
 		if isinstance(rsc, products.NonExistingProduct):
 			raise svcs.UnknownURI("%s is an unknown product key"%rsc.sourcePath)
+
 		if doPreview:
 			res = makePreviewFromProduct(rsc, request)
 			return res
+
 		if isinstance(rsc, products.UnauthorizedProduct):
 			raise svcs.Authenticate(rsc.sourcePath)
 		return self._deliverPlainFile(rsc, request)

@@ -19,7 +19,7 @@ from gavo.base.complexattrs import *
 from gavo.base.config import(
 	get as getConfig, set as setConfig,
 	setDBProfile, getDBProfile, getDBProfileByName,
-	makeSitePath, getBinaryName)
+	makeSitePath, makeAbsoluteURL, getBinaryName)
 
 from gavo.base.coords import Box
 

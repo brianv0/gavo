@@ -61,6 +61,7 @@ class MachineUploader(Uploader):
 		request.setResponseCode(500)
 		request.setHeader("content-type", "text/plain;charset=utf-8")
 		request.write(failure.getErrorMessage().encode("utf-8"))
+		base.ui.notifyError("Failure while machine uploading.")
 		return ""
 
 	def _formatOutput(self, data, ctx):
@@ -68,6 +69,6 @@ class MachineUploader(Uploader):
 		request.setResponseCode(200)
 		request.setHeader("content-type", "text/plain;charset=utf-8")
 		request.write(("%s uploaded, %d records modified\n"%(
-			data.inputData.getPrimaryTable().rows[0]["File"][0],
+			data.inputTable.getParamDict()["File"][0],
 			data.original.getPrimaryTable().rows[0]["nAffected"])).encode("utf-8"))
 		return ""

@@ -253,15 +253,21 @@ def _makeResource(ctx, data):
 ############################# Toplevel/User-exposed code
 
 
-def makeVOTable(ctx, data):
+def makeVOTable(data, tablecoding="binary", version=None):
 	"""returns a votable.V.VOTABLE object representing data.
 
-	data can be an rsc.Data or an rsc.Table.  You will usually pass
-	the result to votable.write.  The object returned contains DelayedTables,
-	i.e., most of the content will only be realized at render time.
+	data can be an rsc.Data or an rsc.Table.  data can be a data or a table
+	instance, tablecoding any key in votable.tableEncoders.
 
-	ctx is a VOTableContext instance.
+	version, if given, must be a tuple of integers (like (1,2) for VOTable 1.2).
+	
+	You will usually pass the result to votable.write.  The object returned
+	contains DelayedTables, i.e., most of the content will only be realized at
+	render time.
 	"""
+	ctx = VOTableContext(valuemappers.defaultMFRegistry,
+		tablecoding=tablecoding, version=version)
+
 	data = rsc.wrapTable(data)
 	if ctx.version==(1,1):
 		vot = V.VOTABLE11()
@@ -278,16 +284,9 @@ def makeVOTable(ctx, data):
 def writeAsVOTable(data, outputFile, tablecoding="binary", version=None):
 	"""a formats.common compliant data writer.
 
-	data can be a data or a table instance, tablecoding any key in
-	votable.tableEncoders.
-
-	data can be a Data or Table instance.
-
-	version, if given, must be a tuple of integers (like (1,2) for VOTable 1.2).
+	See makeVOTable for the arguments.
 	"""
-	ctx = VOTableContext(valuemappers.defaultMFRegistry,
-		tablecoding=tablecoding, version=version)
-	vot = makeVOTable(ctx, data)
+	vot = makeVOTable(data, tablecoding=tablecoding, version=version)
 	votable.write(vot, outputFile)
 
 

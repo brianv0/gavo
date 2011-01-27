@@ -44,7 +44,7 @@ class VOTableParseError(VOTableError):
 	"""
 
 
-def escapeCDATA(val):
+def escapePCDATA(val):
 	return (val
 		).replace("&", "&amp;"
 		).replace('<', '&lt;'

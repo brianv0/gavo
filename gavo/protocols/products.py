@@ -3,6 +3,11 @@ The products interface, including a core to make the product renderer almost
 trivial.
 """
 
+# XXX TODO: this whole __call__ business is worthless.  The products
+# need renderHTTP methods, and they should be ordinary nevow resources.
+# If that's happened, productrender will become much nicer (at the expense
+# of hardcoding nevow here).
+
 import cgi
 import datetime
 import os
@@ -25,7 +30,7 @@ MS = base.makeStruct
 
 
 class PlainProduct(object):
-	"""is a base class for products returned by the product core.
+	"""A base class for products returned by the product core.
 
 	A product has a name (always has to be a string suitable for a
 	file name, and *without* a path), a sourcePath (may be None if
@@ -86,7 +91,7 @@ class PlainProduct(object):
 
 
 class UnauthorizedProduct(PlainProduct):
-	"""is a class for sentinels signifying products that are protected.
+	"""A class for sentinels signifying products that are protected.
 
 	You can read the data from the product without trouble, so you need
 	to make explicit isinstance calls.   The reason for this behaviour
@@ -100,7 +105,7 @@ class UnauthorizedProduct(PlainProduct):
 
 
 class NonExistingProduct(PlainProduct):
-	"""is a class for sentiels signifying products that don't exist.
+	"""A class for sentiels signifying products that don't exist.
 
 	These should normally yield 404s.
 	"""
@@ -112,6 +117,26 @@ class NonExistingProduct(PlainProduct):
 
 	def __call__(self, outFile):
 		raise common.UnknownURI(outFile)
+
+
+class RemoteProduct(PlainProduct):
+	"""A class for products at remote sites, given by their URL.
+	"""
+	def __str__(self):
+		return "<Remote %s at %s>"%(self.contentType, self.sourcePath)
+	
+	def __eq__(self, other):
+		return (isinstance(other, self.__class__) 
+			and self.sourcePath==other.sourcePath)
+	
+	def __call__(self, outFile):
+		# This is really handled specially by the product renderer,
+		# but just in case, let's put something in so humans can
+		# still go on if things break
+		outFile.write("This should be a redirect to a %s file at\n%s\n"%(
+			self.contentType, self.sourcePath))
+		outFile.write("If you are reading this, there's something wrong,\n"
+			"and you're welcome to complain to the site you got this from.\n")
 
 
 class CutoutProduct(PlainProduct):
@@ -194,7 +219,11 @@ class ProductIterator(grammars.RowIterator):
 		"""returns the proper PlainProduct subclass for an image described by
 		the parsed key row and the product table row dbRow.
 		"""
-		sourcePath = os.path.join(base.getConfig("inputsDir"), dbRow["accessPath"])
+		path = dbRow["accessPath"]
+		if path.startswith("http://"):
+			return RemoteProduct(path, dbRow["mime"])
+
+		sourcePath = os.path.join(base.getConfig("inputsDir"), path)
 		if row["sra"]:
 			rsc = CutoutProduct(sourcePath, row, dbRow["mime"])
 		else:

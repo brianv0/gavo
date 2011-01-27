@@ -73,6 +73,14 @@ class TrivialParseTest(testhelpers.VerboseTest):
 		self.failUnless(isinstance(res[0], V.VOTABLE))
 
 
+class TrivialWriteTest(testhelpers.VerboseTest):
+	def testEmpty(self):
+		res = votable.asString(V.VOTABLE())
+		self.failUnless("<?xml version='1.0' encoding='utf-8'?>\n"
+			"<VOTABLE version=" in res)
+		self.failUnless("</VOTABLE>" in res)
+
+
 class ErrorParseTest(testhelpers.VerboseTest):
 	"""tests for more-or-less benign behaviour on input errors.
 	"""
@@ -617,7 +625,7 @@ class StringArrayTest(testhelpers.VerboseTest):
 	def test2dBinaryWrite(self):
 		self.assertRaises(NotImplementedError,
 			lambda: votable.asString(self._get2DTable(V.BINARY)))
-		
+
 
 if __name__=="__main__":
 	testhelpers.main(BinaryReadTest)
