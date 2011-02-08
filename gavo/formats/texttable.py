@@ -21,12 +21,12 @@ def _makeString(val):
 	return str(val)
 
 
-def renderAsText(table, target):
+def renderAsText(table, target, acquireSamples=True):
 	"""writes a text (TSV) rendering of table to the file target.
 	"""
 	if isinstance(table, rsc.Data):
 		table = table.getPrimaryTable()
-	sm = base.SerManager(table)
+	sm = base.SerManager(table, acquireSamples=acquireSamples)
 	for row in sm.getMappedTuples():
 		target.write("\t".join([_makeString(s) for s in row])+"\n")
 

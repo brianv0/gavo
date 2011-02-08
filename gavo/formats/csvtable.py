@@ -22,7 +22,7 @@ def _encodeRow(row):
 	return res
 
 
-def writeDataAsCSV(table, target, 
+def writeDataAsCSV(table, target, acquireSamples=True,
 		dialect=base.getConfig("async", "csvDialect"), headered=False):
 	"""writes table to the file target in CSV.
 
@@ -31,7 +31,7 @@ def writeDataAsCSV(table, target,
 	"""
 	if isinstance(table, rsc.Data):
 		table = table.getPrimaryTable()
-	sm = base.SerManager(table)
+	sm = base.SerManager(table, acquireSamples=acquireSamples)
 	writer = csv.writer(target, dialect)
 	if headered:
 		writer.writerow([c["name"] for c in sm])
@@ -42,8 +42,9 @@ def writeDataAsCSV(table, target,
 			writer.writerow(row)
 	
 
-def writeDataAsHeaderedCSV(table, target):
-	return writeDataAsCSV(table, target, headered=True)
+def writeDataAsHeaderedCSV(table, target, acquireSamples=True):
+	return writeDataAsCSV(table, target, headered=True,
+		acquireSamples=acquireSamples)
 
 # NOTE: This will only serialize the primary table
 common.registerDataWriter("csv", writeDataAsCSV, "text/csv")

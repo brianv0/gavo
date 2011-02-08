@@ -157,9 +157,10 @@ class VerboseTest(testresources.ResourcedTestCase):
 		else:
 			raise self.failureException(msg)
 
-	def assertRaisesWithMsg(self, exception, errMsg, callable, args, msg=None):
+	def assertRaisesWithMsg(self, exception, errMsg, callable, args, msg=None,
+			**kwargs):
 		try:
-			callable(*args)
+			callable(*args, **kwargs)
 		except exception, ex:
 			if str(ex)!=errMsg:
 				raise self.failureException(

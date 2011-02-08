@@ -393,5 +393,38 @@ class ParamTest(testhelpers.VerboseTest):
 		("doric", 10))
 
 
+class QueryTableTest(testhelpers.VerboseTest):
+	resources = [("basetable", tresc.csTestTable)]
+
+	def testBasic(self):
+		table = rsc.QueryTable(self.basetable.tableDef, 
+			"SELECT * FROM %s"%self.basetable.tableDef.getQName(),
+			connection=self.basetable.connection)
+		rows = list(table)
+		self.failUnless(isinstance(rows[0], dict))
+
+	def testFromColumns(self):
+		table = rsc.QueryTable.fromColumns(
+			[self.basetable.tableDef.getColumnByName("alpha"),
+				{"name": "mag2", "ucd": "phot.mag;times.two"}],
+			"SELECT alpha, mag*2 FROM %s"%self.basetable.tableDef.getQName(),
+			connection=self.basetable.connection)
+
+	def testRepeatedIteration(self):
+		table = rsc.QueryTable(self.basetable.tableDef, 
+			"SELECT * FROM %s"%self.basetable.tableDef.getQName(),
+			connection=self.basetable.connection)
+		rows = list(table)
+		rows = list(table)
+		self.failUnless(isinstance(rows[0], dict))
+
+	def testRefusesRows(self):
+		self.assertRaisesWithMsg(base.Error,
+			"QueryTables cannot be constructed with rows",
+			rsc.QueryTable,
+			(None, ""),
+			rows=[])
+
+
 if __name__=="__main__":
-	testhelpers.main(ParamTest)
+	testhelpers.main(QueryTableTest)

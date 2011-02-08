@@ -220,11 +220,11 @@ def _iterNotes(serManager):
 		yield noteGroup
 
 
-def makeTable(ctx, table):
+def makeTable(ctx, table, acquireSamples=True):
 	"""returns a Table node for the table.Table instance table.
 	"""
 	sm = valuemappers.SerManager(table, mfRegistry=ctx.mfRegistry,
-		idManager=ctx)
+		idManager=ctx, acquireSamples=acquireSamples)
 	result = V.TABLE(name=table.tableDef.id)[
 		V.DESCRIPTION[base.getMetaText(table.tableDef, "description")],
 		_iterNotes(sm),
@@ -239,7 +239,7 @@ def makeTable(ctx, table):
 		tableEncoders[ctx.tablecoding])
 
 
-def _makeResource(ctx, data):
+def _makeResource(ctx, data, acquireSamples):
 	"""returns a Resource node for the rsc.Data instance data.
 	"""
 	res = V.RESOURCE(type=base.getMetaText(data, "_type"))[
@@ -247,13 +247,14 @@ def _makeResource(ctx, data):
 		_iterParams(ctx, data)]
 	for table in data:
 		if table.role!="parameters" and table.tableDef.columns:
-			res[makeTable(ctx, table)]
+			res[makeTable(ctx, table, acquireSamples)]
 	return res
 
 ############################# Toplevel/User-exposed code
 
 
-def makeVOTable(data, tablecoding="binary", version=None):
+def makeVOTable(data, tablecoding="binary", version=None,
+		acquireSamples=True):
 	"""returns a votable.V.VOTABLE object representing data.
 
 	data can be an rsc.Data or an rsc.Table.  data can be a data or a table
@@ -277,16 +278,18 @@ def makeVOTable(data, tablecoding="binary", version=None):
 		raise common.VOTableError("No toplevel element for VOTable version %s"%
 			ctx.version)
 	vot[_iterToplevelMeta(ctx, data)]
-	vot[_makeResource(ctx, data)]
+	vot[_makeResource(ctx, data, acquireSamples)]
 	return vot
 
 
-def writeAsVOTable(data, outputFile, tablecoding="binary", version=None):
+def writeAsVOTable(data, outputFile, tablecoding="binary", version=None,
+		acquireSamples=True):
 	"""a formats.common compliant data writer.
 
 	See makeVOTable for the arguments.
 	"""
-	vot = makeVOTable(data, tablecoding=tablecoding, version=version)
+	vot = makeVOTable(data, tablecoding=tablecoding, version=version,
+		acquireSamples=acquireSamples)
 	votable.write(vot, outputFile)
 
 

@@ -50,11 +50,11 @@ def checkFormatIsValid(formatName):
 		raise CannotSerializeIn(formatName)
 
 
-def formatData(key, table, outputFile):
+def formatData(key, table, outputFile, acquireSamples=True):
 	"""writes a table to outputFile in the format given by key.
 
 	key points into the _formatDataRegistry.  Table may be a table or a
 	Data instance.
 	"""
 	checkFormatIsValid(key)
-	_formatDataRegistry[key](table, outputFile)
+	_formatDataRegistry[key](table, outputFile, acquireSamples=acquireSamples)

@@ -401,6 +401,10 @@ class SerManager(utils.IdManagerMixin):
 			maxima, and the appearance of null values (this is currently required
 			for reliable null value determination in VOTables with integers).  Default
 			is True.
+		- acquireSamples -- look for (non-NULL) samples for all columns.
+		  Default is True, and some mappers (in particular, datetime)
+		  depend on it.  However, if you intend to stream query results,
+		  do not use it.
 		- idManager -- an object mixing in utils.IdManagerMixin.  This is important
 			if the ids we are assigning here end up in a larger document.  In that
 			case, pass in the id manager of that larger document.  Default is the
@@ -413,17 +417,18 @@ class SerManager(utils.IdManagerMixin):
 	# Filled out on demand
 	_nameDict = None
 
-	def __init__(self, table, withRanges=True, idManager=None,
-			mfRegistry=defaultMFRegistry):
+	def __init__(self, table, withRanges=True, acquireSamples=True,
+			idManager=None, mfRegistry=defaultMFRegistry):
 		self.table = table
 		if idManager is not None:
 			self.cloneFrom(idManager)
 		self.notes = {}  # notes referenced by our fields
 
 		self._makeColDescs()
-		self._acquireSamples()
-		if withRanges:
-			self._findRanges()
+		if acquireSamples:
+			self._acquireSamples()
+			if withRanges:
+				self._findRanges()
 		for cd in self:
 			cd.finish()
 		self._makeMappers(mfRegistry)

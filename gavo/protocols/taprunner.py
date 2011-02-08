@@ -104,18 +104,31 @@ def _makeDataFor(resultTable, job):
 
 
 def writeResultTo(format, res, outF):
-	formats.formatData(format, res, outF)
+	formats.formatData(format, res, outF, acquireSamples=False)
 
 
 def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec):
 	"""executes a TAP query and returns the result in a data instance.
 	"""
+# Some of this replicates functionality from adqlglue.  We should probably
+# move the implementation there to what's done here; of course, there
+# we roll back the connection before returning, and we'd have to
+# invent something to effect the same thing there...
 	try:
-		querier = base.SimpleQuerier(connection=connection)
-		return adqlglue.query(querier, query, timeout=timeout,
+		pgQuery, tableTrunk = adqlglue.morphADQL(query,
 			tdsForUploads=tdsForUploads, externalLimit=maxrec)
+		querier = base.SimpleQuerier(connection=connection)
+
+		querier.setTimeout(timeout)
+		# XXX Hack: this is a lousy fix for postgres' seqscan love with
+		# limit.  See if we still want this with newer postgres...
+		querier.configureConnection([("enable_seqscan", False)])
+		result = rsc.QueryTable(tableTrunk.tableDef, pgQuery,
+			connection=querier.connection)
+		# copy meta info over from tableTrunk?
 	except:
 		adqlglue.mapADQLErrors(*sys.exc_info())
+	return result
 
 
 def _ingestUploads(uploads, connection):

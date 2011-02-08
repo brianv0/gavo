@@ -65,13 +65,14 @@ def _makeExtension(serMan):
 	return pyfits.new_table(pyfits.ColDefs(columns))
 	
 
-def _makeFITSTableNOLOCK(dataSet):
+def _makeFITSTableNOLOCK(dataSet, acquireSamples=True):
 	"""returns a hdulist containing extensions for the tables in dataSet.
 
 	You must make sure that this function is only executed once
 	since pyfits is not thread-safe.
 	"""
-	tables = [base.SerManager(table) for table in dataSet.tables.values()]
+	tables = [base.SerManager(table, acquireSamples=acquireSamples) 
+		for table in dataSet.tables.values()]
 	extensions = [_makeExtension(table) for table in tables]
 	primary = pyfits.PrimaryHDU()
 	primary.header.update("DATE", time.strftime("%Y-%m-%d"), 
@@ -79,7 +80,7 @@ def _makeFITSTableNOLOCK(dataSet):
 	return pyfits.HDUList([primary]+extensions)
 
 
-def makeFITSTable(dataSet):
+def makeFITSTable(dataSet, acquireSamples=True):
 	"""returns a hdulist containing extensions for the tables in dataSet.
 
 	This function may block basically forever.  Never call this from
@@ -87,16 +88,16 @@ def makeFITSTable(dataSet):
 	pyfits is fixed to be thread-safe).
 	"""
 	with exclusiveFits():
-		return _makeFITSTableNOLOCK(dataSet)
+		return _makeFITSTableNOLOCK(dataSet, acquireSamples)
 
 
-def makeFITSTableFile(dataSet):
+def makeFITSTableFile(dataSet, acquireSamples=True):
 	"""returns the name of a temporary file containing a fits file
 	representing dataSet.
 
 	The caller is responsible to remove the file.
 	"""
-	hdulist = makeFITSTable(dataSet)
+	hdulist = makeFITSTable(dataSet, acquireSamples)
 	handle, pathname = tempfile.mkstemp(".fits", dir=base.getConfig("tempDir"))
 	with utils.silence():
 		hdulist.writeto(pathname, clobber=1)
@@ -104,11 +105,11 @@ def makeFITSTableFile(dataSet):
 	return pathname
 
 
-def writeDataAsFITS(data, outputFile):
+def writeDataAsFITS(data, outputFile, acquireSamples=False):
 	"""a formats.common compliant data writer.
 	"""
 	data = rsc.wrapTable(data)
-	fitsName = makeFITSTableFile(data)
+	fitsName = makeFITSTableFile(data, acquireSamples)
 	try:
 		src = open(fitsName)
 		utils.cat(src, outputFile)

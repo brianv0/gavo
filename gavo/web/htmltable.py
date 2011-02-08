@@ -352,12 +352,13 @@ class HTMLDataRenderer(rend.Fragment):
 	Both HTMLTableFragment (for complete tables) and HTMLKeyValueFragment
 	(for single rows) inherit from this.
 	"""
-	def __init__(self, table, queryMeta, yieldNowAndThen=True):
+	def __init__(self, table, queryMeta, yieldNowAndThen=True,
+			acquireSamples=True):
 		self.table, self.queryMeta = table, queryMeta
 		self.yieldNowAndThen = yieldNowAndThen
 		self.fieldDefs = self.table.tableDef.columns
 		super(HTMLDataRenderer, self).__init__()
-		self._computeDefaultTds()
+		self._computeDefaultTds(acquireSamples)
 		self._computeHeadCellsStan()
 
 	def _compileRenderer(self, source):
@@ -383,7 +384,7 @@ class HTMLDataRenderer(rend.Fragment):
 			raise base.BadCode(code, "column render function", ex)
 		return ns["format"]
 
-	def _computeDefaultTds(self):
+	def _computeDefaultTds(self, acquireSamples):
 		"""leaves a sequence of children for each row in the
 		defaultTds attribute.
 
@@ -392,7 +393,7 @@ class HTMLDataRenderer(rend.Fragment):
 		columns since the formatters might have changed them.
 		"""
 		self.serManager = valuemappers.SerManager(self.table, withRanges=False,
-			mfRegistry=_htmlMFRegistry)
+			mfRegistry=_htmlMFRegistry, acquireSamples=acquireSamples)
 		self.colDescIndex = dict((c["name"], c) for c in self.serManager)
 		self.defaultTds = []
 		for index, (desc, field) in enumerate(
@@ -547,11 +548,11 @@ class HTMLKeyValueFragment(HTMLDataRenderer, HeadCellsMixin):
 	docFactory = property(makeDocFactory)
 
 
-def writeDataAsHTML(data, outputFile):
+def writeDataAsHTML(data, outputFile, acquireSamples=True):
 	"""writes data's primary table to outputFile.  
 	"""
 	fragment = HTMLTableFragment(data.getPrimaryTable(), svcs.emptyQueryMeta,
-		yieldNowAndThen=False)
+		yieldNowAndThen=False, acquireSamples=acquireSamples)
 	outputFile.write(flat.flatten(fragment))
 
 

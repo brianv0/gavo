@@ -97,6 +97,7 @@ def _getTableDescForOutput(parsedTree):
 	ctx = TDContext()
 	columns = [_makeColumnFromFieldInfo(ctx, *fi) 
 			for fi in parsedTree.fieldInfos.seq]
+	# TODO: Fiddle in system metadata if unlucky enough to have STC-S in output
 	return base.makeStruct(rscdef.TableDef, columns=columns)
 
 
@@ -152,12 +153,9 @@ def getFieldInfoGetter(accessProfile=None, tdsForUploads=[]):
 	return getFieldInfos
 
 
-def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
-		externalLimit=None):
-	"""returns a DataSet for query (a string containing ADQL).
-
-	This will set timeouts and other things for the connection in
-	question.  You should have one allocated especially for this query.
+def morphADQL(query, metaProfile=None, tdsForUploads=[], externalLimit=None):
+	"""returns an postgres query and an (empty) result table for the
+	ADQL in query.
 	"""
 	t = adql.parseToTree(query)
 	if t.setLimit is None:
@@ -167,28 +165,39 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
 			t.setLimit = str(int(externalLimit))
 	adql.annotate(t, getFieldInfoGetter(metaProfile, tdsForUploads))
 	q3cstatus, t = adql.insertQ3Calls(t)
-# XXX FIXME: evaluate q3cstatus for warnings (currently, I think there are none)
 
-	td = _getTableDescForOutput(t)
-	table = rsc.TableForDef(td)
-	# Fiddle in system metadata if unlucky enough to have STC-S in output
-	addTuple = _getTupleAdder(table)
-
+	table = rsc.TableForDef(_getTableDescForOutput(t))
 	morphStatus, morphedTree = adql.morphPG(t)
+	for warning in morphStatus.warnings:
+		table.tableDef.addMeta("_warning", warning)
+
 	# escape % to hide them form dbapi replacing
 	query = adql.flatten(morphedTree).replace("%", "%%")
+	table.setLimit = t.setLimit
+	return query, table
+
+
+def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
+		externalLimit=None):
+	"""returns a DataSet for query (a string containing ADQL).
+
+	This will set timeouts and other things for the connection in
+	question.  You should have one allocated especially for this query.
+	"""
+	query, table = morphADQL(query, metaProfile, tdsForUploads, externalLimit)
+	addTuple = _getTupleAdder(table)
 	try:
 		querier.setTimeout(timeout)
+		# XXX Hack: this is a lousy fix for postgres' seqscan love with
+		# limit.  See if we still want this with newer postgres...
 		querier.configureConnection([("enable_seqscan", False)])
 
 		for tuple in querier.query(query):
 			addTuple(tuple)
 	finally:
 		querier.rollback()
-	for warning in morphStatus.warnings:
-		table.tableDef.addMeta("_warning", warning)
-	if len(table)==int(t.setLimit):
-		table.addMeta("_overflow", t.setLimit)
+	if len(table)==int(table.setLimit):
+		table.addMeta("_overflow", table.setLimit)
 	return table
 
 

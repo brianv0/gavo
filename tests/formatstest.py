@@ -21,8 +21,10 @@ from gavo.base import valuemappers
 from gavo.formats import fitstable
 from gavo.formats import texttable
 from gavo.formats import csvtable
+from gavo.formats import votablewrite
 from gavo.helpers import testhelpers
 from gavo.utils import pyfits
+from gavo.web import htmltable
 
 
 

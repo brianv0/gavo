@@ -154,14 +154,28 @@ class MetaTableMixin(object):
 class DBMethodsMixin(sqlsupport.QuerierMixin):
 	"""is a mixin for on-disk tables.
 
-	The parent must have tableDef, tableName (from tabledef.getQName()) and
-	connection (for the QuerierMixin) attributes.
+	The parent must have tableDef, tableName (from tabledef.getQName())
+	attributes.
+
+	The parent must call the _makeConnection method with a dictionary;
+	if a connection key is in there, it will we used as the connection
+	attribute (and to create the querier).  Else, a new default connection
+	will be used.
 
 	Note that many of them return the table so you can say drop().commit()
 	in hackish code.
 	"""
 
 	scripts = None  # set by data on import, defined by make
+
+	def _makeConnection(self, kwargs):
+		self.ownedConnection = False
+		connection = kwargs.pop("connection", None)
+		if connection is None:
+			self.connection = base.getDefaultDBConnection()
+			self.ownedConnection = True
+		else:
+			self.connection = connection
 
 	def _definePrimaryKey(self):
 		if self.tableDef.primary and not self.hasIndex(self.tableName,
@@ -258,6 +272,13 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 			self.setSchemaPrivileges(self.tableDef.rd)
 		return self
 
+	def close(self):
+		"""cleans up connection if it is owned.
+		"""
+		if self.ownedConnection and not self.connection.closed:
+			self.connection.close()
+
+
 
 class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 	"""is a table in the database.
@@ -280,23 +301,20 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 	_runScripts = None
 
 	def __init__(self, tableDef, **kwargs):
-		self.ownedConnection = False
 		self.suppressIndex = kwargs.pop("suppressIndex", False)
 		self.tableUpdates = kwargs.pop("tableUpdates", False)
 		self.exclusive = kwargs.pop("exclusive", False)
-		connection = kwargs.pop("connection", None)
 		table.BaseTable.__init__(self, tableDef, **kwargs)
-		if connection is None:
-			self.connection = base.getDefaultDBConnection()
-			self.ownedConnection = True
-		else:
-			self.connection = connection
+
+		self._makeConnection(kwargs)
+
 		if self.tableDef.rd is None and not self.tableDef.temporary:
 			raise common.ResourceError("TableDefs without resource descriptor"
 				" cannot be used to access database tables")
 		self.tableName = self.tableDef.getQName()
 		self.nometa = (kwargs.get("nometa", False) 
 			or self.tableDef.temporary or tableDef.rd.schema=="dc")
+
 		if kwargs.get("create", True):
 			self.createIfNecessary()
 		if not self.tableUpdates:
@@ -331,13 +349,6 @@ class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
 			return self.temporaryTableExists(self.tableName)
 		else:
 			return self.tableExists(self.tableName)
-
-	def close(self):
-		"""call this if your table holds an owned connection and you don't need
-		it any more.
-		"""
-		if self.ownedConnection and not self.connection.closed:
-			self.connection.close()
 
 	def getFeeder(self, **kwargs):
 		if "notify" not in kwargs:
