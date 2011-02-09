@@ -136,11 +136,11 @@ class VOTable(object):
 			file.write('<STREAM encoding="base64">')
 			for data in self.iterSerialized():
 				buf.append(data)
-				bufFil + len(data)
+				bufFil += len(data)
 				if bufFil>flushThreshold:
 					curData = ''.join(buf)
 					curBlockLen = (len(curData)//blockSize)*blockSize
-					file.write(toOutput[:curBlockLen].encode("base64"))
+					file.write(curData[:curBlockLen].encode("base64"))
 					buf = [curData[curBlockLen:]]
 			file.write("".join(buf).encode("base64"))
 			file.write("</STREAM>")

@@ -5,6 +5,7 @@ DC administration interface.
 import sys
 
 from gavo import base
+from gavo import rscdesc  # (register getRD)
 from gavo.user.common import Arg, exposedFunction, makeParser
 from gavo.protocols import uws
 

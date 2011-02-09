@@ -145,7 +145,7 @@ _registerDefaultMF(_floatMapperFactory)
 def _stringMapperFactory(colDesc):
 	if colDesc.get("optional", True) and ("char(" in colDesc["dbtype"] or 
 			colDesc["dbtype"]=="text"):
-		if isinstance(colDesc["sample"], str):
+		if colDesc["sample"] is None or isinstance(colDesc["sample"], str):
 			constructor = str
 		else:
 			constructor = unicode
@@ -174,13 +174,21 @@ def datetimeMapperFactory(colDesc):
 		"""returns the modified julian date number for the dateTime instance val.
 		"""
 		return stc.dateTimeToJdn(val)-2400000.5
-	
+
+# This is too gruesome.  We want some other way of handling this...
+# Simplify this, and kick out all the mess we don't want.
 	if (
 			(colDesc["sample"] is None and colDesc["dbtype"]=="timestamp")
 			or (colDesc.get("xtype")=="adql:TIMESTAMP")
 			or isinstance(colDesc["sample"], (datetime.date, datetime.datetime))):
 		unit = colDesc["unit"]
-		if colDesc["ucd"] and "MJD" in colDesc["ucd"]:  # like VOX:Image_MJDateObs
+		if (
+				unit=="Y:M:D" 
+				or unit=="Y-M-D" 
+				or colDesc.get("xtype")=="adql:TIMESTAMP"):
+			fun = lambda val: (val and val.isoformat()) or "N/A"
+			destType = ("char", "*")
+		elif colDesc["ucd"] and "MJD" in colDesc["ucd"]:  # like VOX:Image_MJDateObs
 			colDesc["unit"] = "d"
 			fun = lambda val: (val and dtToMJdn(val)) or "N/A"
 			destType = ("double", '1')
@@ -193,12 +201,6 @@ def datetimeMapperFactory(colDesc):
 		elif unit=="s":
 			fun = lambda val: (val and time.mktime(val.timetuple())) or "N/A"
 			destType = ("double", '1')
-		elif (
-				unit=="Y:M:D" 
-				or unit=="Y-M-D" 
-				or colDesc["xtype"]=="adql:TIMESTAMP"):
-			fun = lambda val: (val and val.isoformat()) or "N/A"
-			destType = ("char", "*")
 		elif unit=="iso":
 			fun = lambda val: (val and val.isoformat()) or "N/A"
 			destType = ("char", "*")

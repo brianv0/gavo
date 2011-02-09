@@ -280,7 +280,7 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 
 
 
-class DBTable(table.BaseTable, DBMethodsMixin, MetaTableMixin):
+class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 	"""is a table in the database.
 
 	It is created, if necessary, on construction, but indices and primary

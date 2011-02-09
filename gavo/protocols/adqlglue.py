@@ -84,6 +84,10 @@ def _makeColumnFromFieldInfo(ctx, colName, fi):
 		res.xtype = fi.properties["xtype"]
 		res.type = "text"
 		res.needMunging = True
+	
+	# dates and timestamps should be ISO format for TAP or consistency with it
+	if res.type=="date" or res.type=="timestamp":
+		res.xtype = "adql:TIMESTAMP"
 
 	res.verbLevel = 1
 	res.finishElement()
