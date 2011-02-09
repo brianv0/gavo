@@ -254,10 +254,10 @@ class ReferenceAttribute(attrdef.AtomicAttribute):
 		self.forceType = forceType
 
 	def _getForceType(self, instance):
-		"""returns self.forceType unless it is RECURSIVE, in which case instance's
+		"""returns self.forceType unless it is Recursive, in which case instance's
 		type is returned.
 		"""
-		if self.forceType is attrdef.RECURSIVE:
+		if self.forceType is attrdef.Recursive:
 			return instance.__class__
 		else:
 			return self.forceType

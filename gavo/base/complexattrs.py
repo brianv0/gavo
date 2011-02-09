@@ -272,7 +272,7 @@ class StructAttribute(attrdef.AttributeDef):
 				" they are for internal use only.")
 
 	def create(self, structure, ctx, name):
-		if self.childFactory is attrdef.RECURSIVE:
+		if self.childFactory is attrdef.Recursive:
 			res = structure.__class__(structure)
 		else:
 			res = self.childFactory(structure)
@@ -309,8 +309,12 @@ class StructAttribute(attrdef.AttributeDef):
 			val.onParentComplete()
 
 	def makeUserDoc(self):
-		return "%s (contains `Element %s`_) -- %s"%(
-			self.name_, self.childFactory.name_, self.description_)
+		if self.childFactory is attrdef.Recursive:
+			contains = "(contains an instance of the embedding element)"
+		else:
+			contains = "(contains `Element %s`_)"%self.childFactory.name_
+		return "%s %s -- %s"%(
+			self.name_,  contains, self.description_)
 
 
 class MultiStructAttribute(StructAttribute):
@@ -354,7 +358,10 @@ class StructListAttribute(StructAttribute):
 
 	@property
 	def typeDesc_(self):
-		return "List of %s"%self.childFactory.name_
+		if self.childFactory is attrdef.Recursive:
+			return "Recursive element list"
+		else:
+			return "List of %s"%self.childFactory.name_
 	
 	def feedObject(self, instance, value):
 		if isinstance(value, list):
@@ -398,8 +405,12 @@ class StructListAttribute(StructAttribute):
 					item.onParentComplete()
 
 	def makeUserDoc(self):
-		return ("%s (contains `Element %s`_ and may be repeated zero or more"
-			" times) -- %s")%(self.name_, self.childFactory.name_, self.description_)
+		if self.childFactory is attrdef.Recursive:
+			contains = "(contains an instance of the embedding element"
+		else:
+			contains = "(contains `Element %s`_"%self.childFactory.name_
+		return ("%s %s and may be repeated zero or more"
+			" times) -- %s")%(self.name_, contains, self.description_)
 
 
 # Ok, so the inheritance here is evil.  I'll fix it if it needs more work.
@@ -422,8 +433,12 @@ class MultiStructListAttribute(StructListAttribute, MultiStructAttribute):
 		return MultiStructAttribute.create(self, structure, ctx, name)
 
 	def makeUserDoc(self):
-		return ("%s (contains any of %s and may be repeated zero or more"
-			" times) -- %s")%(self.name_, ",".join(self.aliases), self.description_)
+		if self.childFactory is attrdef.Recursive:
+			contains = "(contains an instance of the embedding element"
+		else:
+			contains = "(contains any of %s"%",".join(self.aliases)
+		return ("%s %s and may be repeated zero or more"
+			" times) -- %s")%(self.name_, contains, self.description_)
 
 
 __all__ = ["ListOfAtomsAttribute", "DictAttribute", "StructAttribute",

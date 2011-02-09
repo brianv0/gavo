@@ -79,6 +79,7 @@ class SqlArrayAdapter(object):
 psycopg2.extensions.register_adapter(tuple, SqlArrayAdapter)
 psycopg2.extensions.register_adapter(list, SqlSetAdapter)
 psycopg2.extensions.register_adapter(set, SqlSetAdapter)
+psycopg2.extensions.register_adapter(frozenset, SqlSetAdapter)
 
 from psycopg2 import (OperationalError, DatabaseError, IntegrityError,
 	ProgrammingError, InterfaceError, DataError)

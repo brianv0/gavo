@@ -62,7 +62,7 @@ class Group(base.Structure):
 		copyable=True)
 
 	_groups = base.StructListAttribute("groups",
-		childFactory=attrdef.RECURSIVE,
+		childFactory=attrdef.Recursive,
 		description="Sub-groups of this group (names are still referenced"
 		" from the enclosing table)",
 		copyable=True,

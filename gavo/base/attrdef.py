@@ -62,7 +62,7 @@ from gavo.base import literals
 from gavo.base.common import LiteralParseError, StructureError, NotGiven
 
 
-class RECURSIVE(object):
+class Recursive(object):
 	"""a sentinel class for attributes embedding structures to signify
 	they embed the structure embedding them.
 	"""

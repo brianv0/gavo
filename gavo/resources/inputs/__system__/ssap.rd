@@ -63,6 +63,10 @@
 			utype="ssa:Target.Redshift" ucd="src.redshift"
 			tablehead="z" verbLevel="25"
 			description="Redshift of target object"/>
+		<column name="ssa_targetpos" type="spoint"
+			utype="ssa:Target.pos" ucd="pos.eq;src"
+			tablehead="Obj. pos" verbLevel="25"
+			description="Equatorial (ICRS) position of the target object."/>
 		<column name="ssa_snr" 
 			utype="ssa:Derived.SNR" ucd="stat.snr"
 			tablehead="SNR" verbLevel="25"
@@ -432,9 +436,9 @@
 			<inputKey original="//ssap#instance.mime" name="FORMAT" type="text"/>
 			<phraseMaker>
 				<setup>
-					<par name="compliantFormats">set([
+					<par name="compliantFormats">frozenset([
 						"application/x-votable+xml"])</par>
-					<par name="nativeFormats">set([
+					<par name="nativeFormats">frozenset([
 						"application/fits", "text/csv", "text/plain"])</par>
 					<par name="consCol">"mime"</par>
 				</setup>
