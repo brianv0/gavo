@@ -7,6 +7,7 @@ import datetime
 import os
 import pkg_resources
 import re
+import subprocess
 import unittest
 
 from gavo import base
@@ -73,6 +74,26 @@ class _TestVOTable(testhelpers.TestResource):
 		return rawVOTable, tree
 
 _testVOTable = _TestVOTable()
+
+
+def _getVOTTreeForTable(tdXML):
+	td = base.parseFromString(rscdef.TableDef, tdXML)
+	table = rsc.TableForDef(td)
+	rawVOTable = votablewrite.getAsVOTable(table, tablecoding="td",
+		suppressNamespace=True)
+	return ElementTree.fromstring(rawVOTable)
+
+
+def _pprintEtree(root):
+	p = subprocess.Popen(["xmlstarlet", "fo"], stdin=subprocess.PIPE)
+	ElementTree.ElementTree(root).write(p.stdin)
+	p.stdin.close()
+
+
+def _getElementByID(root, id):
+	for el in root.getiterator():
+		if el.attrib.get("ID")==id:
+			return el
 
 
 class VOTableTest(testhelpers.VerboseTest, testhelpers.XSDTestMixin):
@@ -327,8 +348,88 @@ class MetaTest(testhelpers.VerboseTest):
 			'<INFO name="legal" value="Please reference someone else"'])
 
 
-def _pprintVOT(vot):
-	os.popen("xmlstarlet fo", "w").write(vot)
+class GroupWriteTest(testhelpers.VerboseTest):
+	def testEmptyGroup(self):
+		tree = _getVOTTreeForTable(
+			'<table><group name="tg" ucd="empty.group" utype="testing:silly"'
+			' description="A meaningless group"/>'
+				'</table>')
+		res = tree.findall("RESOURCE/TABLE/GROUP")
+		self.assertEqual(len(res), 1)
+		self.assertEqual(res[0].attrib["ucd"], "empty.group")
+		self.assertEqual(res[0].attrib["utype"], "testing:silly")
+		self.assertEqual(res[0].attrib["name"], "tg")
+		self.assertEqual(res[0].find("DESCRIPTION").text,
+			"A meaningless group")
+	
+	def testRefs(self):
+		tree = _getVOTTreeForTable(
+			'<table><group columnRefs="x,y" paramRefs="z"/>'
+				'<column name="x"/><column name="y"/>'
+				'<param name="z" type="integer">4</param>'
+				'</table>')
+		table = tree.find("RESOURCE/TABLE")
+		g = table.find("GROUP")
+
+		refs = [el.attrib["ref"] for el in g.findall("FIELDref")]
+		self.assertEqual(len(refs), 2)
+		self.assertEqual(_getElementByID(table, refs[0]).attrib["name"], "x")
+		self.assertEqual(_getElementByID(table, refs[1]).attrib["name"], "y")
+
+		refs = [el.attrib["ref"] for el in g.findall("PARAMref")]
+		self.assertEqual(len(refs), 1)
+		self.assertEqual(_getElementByID(table, refs[0]).attrib["value"], "4")
+
+	def testLocalParam(self):
+		tree = _getVOTTreeForTable(
+			'<table><group><param name="u" type="integer">5</param></group>'
+				'</table>')
+		pars = tree.findall("RESOURCE/TABLE/GROUP/PARAM")
+		self.assertEqual(len(pars), 1)
+		self.assertEqual(pars[0].attrib["value"], "5")
+
+	def testRecursive(self):
+		tree = _getVOTTreeForTable(
+			'<table><group><group columnRefs="x,y"/><group paramRefs="z"/></group>'
+				'<column name="x"/><column name="y"/>'
+				'<param name="z" type="integer">4</param>'
+				'</table>')
+		groups = tree.findall("RESOURCE/TABLE/GROUP/GROUP")
+		self.assertEqual(len(groups), 2)
+
+		colRefs = [c.attrib["ref"] for c in groups[0].findall("FIELDref")]
+		self.assertEqual(len(colRefs), 2)
+		self.assertEqual(_getElementByID(tree, colRefs[1]).attrib["name"], "y")
+		self.assertEqual(len(groups[0].findall("PARAMref")), 0)
+
+		paramRefs = [c.attrib["ref"] for c in groups[1].findall("PARAMref")]
+		self.assertEqual(_getElementByID(tree, paramRefs[0]).attrib["value"], "4")
+		self.assertEqual(len(groups[1].findall("FIELDref")), 0)
+
+	def testCopied(self):
+		td = base.parseFromString(rscdef.TableDef,
+			'<table><group><group columnRefs="x,y">'
+				'<param name="u" type="integer">5</param></group>'
+				'<group paramRefs="z"/></group>'
+				'<column name="x"/><column name="y"/>'
+				'<param name="z" type="integer">4</param>'
+				'</table>')
+		td = td.copy(None)
+		tree = ElementTree.fromstring(
+			votablewrite.getAsVOTable(
+				rsc.TableForDef(td), tablecoding="td", suppressNamespace=True))
+
+		groups = tree.findall("RESOURCE/TABLE/GROUP/GROUP")
+		self.assertEqual(len(groups), 2)
+
+		colRefs = [c.attrib["ref"] for c in groups[0].findall("FIELDref")]
+		self.assertEqual(_getElementByID(tree, colRefs[1]).attrib["name"], "y")
+
+		paramRefs = [c.attrib["ref"] for c in groups[1].findall("PARAMref")]
+		self.assertEqual(_getElementByID(tree, paramRefs[0]).attrib["value"], "4")
+
+		self.assertEqual(tree.find("RESOURCE/TABLE/GROUP/GROUP/PARAM").
+			attrib["value"], "5")
 
 
 def _getTableWithSimpleSTC():
@@ -444,7 +545,7 @@ class VOTReadTest(testhelpers.VerboseTest):
 				</TABLE></RESOURCE></VOTABLE>""")).next()
 		td = votableread.makeTableDefForVOTable("foo", rows.tableDefinition)
 		self.assertEqual(td.indices, [])
-			
+
 
 if __name__=="__main__":
-	testhelpers.main(VOTReadTest)
+	testhelpers.main(GroupWriteTest)

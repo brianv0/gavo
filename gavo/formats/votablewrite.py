@@ -53,6 +53,16 @@ class VOTableContext(utils.IdManagerMixin):
 		self.tablecoding = tablecoding
 		self.version = version or (1,2)
 
+def _addID(rdEl, votEl, idManager):
+	"""adds an ID attribute to votEl if rdEl has an id managed by idManager.
+	"""
+	try:
+		votEl.ID = idManager.getIdFor(rdEl)
+	except base.NotFoundError: 
+		# the param is not referenced and thus needs no ID
+		pass
+
+
 
 ################# Turning simple metadata into VOTable elements.
 
@@ -159,15 +169,27 @@ def _iterFields(serManager):
 		yield el
 
 
+def _makeVOTParam(ctx, param):
+	"""returns VOTable stan for param.
+
+	If param's value is not given, None is returned.
+	"""
+	if param.content_ is base.NotGiven:
+		return None
+	else:
+		el = V.PARAM()
+		defineField(el, valuemappers.VColDesc(param))
+		el.value = param.content_
+		return el
+
+
 def _iterTableParams(serManager):
 	"""iterates over V.PARAMs based on the table's param elements.
 	"""
 	for param in serManager.table.iterParams():
-		if param.content_ is not base.NotGiven:
-			el = V.PARAM()
-			defineField(el, valuemappers.VColDesc(param))
-			el.value = param.content_
-			yield el
+		votEl = _makeVOTParam(serManager, param)
+		_addID(param, votEl, serManager)
+		yield votEl
 
 
 def _iterParams(ctx, dataSet):
@@ -187,6 +209,7 @@ def _iterParams(ctx, dataSet):
 		el = V.PARAM()
 		el(value=ctx.mfRegistry.getMapper(colDesc)(values.get(item.name)))
 		defineField(el, colDesc)
+		_addID(el, item, ctx)
 		yield el
 
 
@@ -220,6 +243,34 @@ def _iterNotes(serManager):
 		yield noteGroup
 
 
+def _iterGroups(container, serManager):
+	"""yields GROUPs for the RD groups within container, taking params and
+	fields from serManager's table.
+
+	container can be a tableDef or a group.
+	"""
+	for group in container.groups:
+		votGroup = V.GROUP(ucd=group.ucd, utype=group.utype, name=group.name)
+		votGroup[V.DESCRIPTION[group.description]]
+
+		for ref in group.columnRefs:
+			votGroup[V.FIELDref(ref=
+				serManager.getOrMakeIdFor(
+					serManager.table.tableDef.getColumnByName(ref)))]
+
+		for ref in group.paramRefs:
+			votGroup[V.PARAMref(ref=
+				serManager.getOrMakeIdFor(serManager.table.getParamByName(ref)))]
+
+		for param in group.params:
+			votGroup[_makeVOTParam(serManager, param)]
+
+		for subgroup in _iterGroups(group, serManager):
+			votGroup[subgroup]
+
+		yield votGroup
+
+
 def makeTable(ctx, table, acquireSamples=True):
 	"""returns a Table node for the table.Table instance table.
 	"""
@@ -228,6 +279,7 @@ def makeTable(ctx, table, acquireSamples=True):
 	result = V.TABLE(name=table.tableDef.id)[
 		V.DESCRIPTION[base.getMetaText(table.tableDef, "description")],
 		_iterNotes(sm),
+		_iterGroups(table.tableDef, sm),
 		_iterTableParams(sm),
 		_iterFields(sm)]
 
@@ -246,7 +298,7 @@ def _makeResource(ctx, data, acquireSamples):
 		_iterResourceMeta(ctx, data),
 		_iterParams(ctx, data)]
 	for table in data:
-		if table.role!="parameters" and table.tableDef.columns:
+		if table.role!="parameters":
 			res[makeTable(ctx, table, acquireSamples)]
 	return res
 
@@ -283,23 +335,27 @@ def makeVOTable(data, tablecoding="binary", version=None,
 
 
 def writeAsVOTable(data, outputFile, tablecoding="binary", version=None,
-		acquireSamples=True):
+		acquireSamples=True, suppressNamespace=False):
 	"""a formats.common compliant data writer.
 
 	See makeVOTable for the arguments.
 	"""
 	vot = makeVOTable(data, tablecoding=tablecoding, version=version,
 		acquireSamples=acquireSamples)
+	if suppressNamespace:
+		vot._fixedTagMaterial = ""
 	votable.write(vot, outputFile)
 
 
-def getAsVOTable(data, tablecoding="binary", version=None):
+def getAsVOTable(data, tablecoding="binary", version=None,
+		acquireSamples=True, suppressNamespace=False):
 	"""returns a string containing a VOTable representation of data.
 
 	For information on the arguments, refer do writeAsVOTable.
 	"""
 	dest = StringIO()
-	writeAsVOTable(data, dest, tablecoding=tablecoding, version=version)
+	writeAsVOTable(data, dest, tablecoding=tablecoding, version=version,
+		acquireSamples=acquireSamples, suppressNamespace=suppressNamespace)
 	return dest.getvalue()
 
 

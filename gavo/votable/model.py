@@ -171,6 +171,7 @@ class VOTable(object):
 		_childSequence = ["STREAM"]
 	
 	class GROUP(_DescribedElement):
+		_mayBeEmpty = True
 		_a_ref = None
 		_childSequence = ["DESCRIPTION", "PARAM", "FIELDref", "PARAMref", "GROUP"]
 

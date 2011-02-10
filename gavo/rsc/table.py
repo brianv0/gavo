@@ -161,9 +161,12 @@ class BaseTable(base.MetaMixin):
 		self._params.getColumnByName(parName).set(value)
 	
 	def getParam(self, parName):
-		"""retrieve a parameter (python) value.
+		"""retrieves a parameter (python) value.
 		"""
 		return self._params.getColumnByName(parName).value
+
+	def getParamByName(self, parName):
+		return self._params.getColumnByName(parName)
 
 	def iterParams(self):
 		"""iterates over the parameters for this table.
