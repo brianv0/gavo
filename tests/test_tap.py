@@ -116,6 +116,15 @@ class SyncQueryTest(TAPRenderTest):
 					' unit="deg" name="ra">'
 				])
 
+	def testOverflow(self):
+		return self.assertGETHasStrings("/sync", {
+				"REQUEST": "doQuery",
+				"LANG": "ADQL",
+				"MAXREC": "1",
+				"QUERY": 'SELECT ra FROM taptest.main'}, [
+					'<INFO name="QUERY_STATUS" value="OVERFLOW"',
+				])
+
 	def testBadFormat(self):
 		return self.assertGETHasStrings("/sync", {
 				"REQUEST": "doQuery",

@@ -28,9 +28,11 @@ from gavo import rsc
 from gavo import rscdef
 from gavo import rscdesc
 from gavo import utils
+from gavo import votable
 from gavo.base import valuemappers
 from gavo.grammars import votablegrammar
 from gavo.formats import votableread
+from gavo.formats import votablewrite
 from gavo.protocols import adqlglue
 from gavo.protocols import tap
 from gavo.protocols import uws
@@ -94,17 +96,29 @@ def _makeDataFor(resultTable, job):
 	resData = rsc.wrapTable(resultTable)
 	resData.addMeta("info", base.makeMetaValue("Query successful",
 		name="info", infoName="QUERY_STATUS", infoValue="OK"))
-	overflowedNo = base.getMetaText(resultTable, "_overflow")
-	if overflowedNo:
-		resData.addMeta("endinfo", base.makeMetaValue("Query (probably)"
-			" truncated at element %s"%overflowedNo,
-			name="endinfo", infoName="QUERY_STATUS", infoValue="OVERFLOW"))
-
+	# setLimit is the effective maximum number of rows returned
+	# as determined by adqlglue.morphADQL (or similar functions)
+	resData.setLimit = getattr(resultTable.tableDef, "setLimit", None)
 	return resData
 
 
 def writeResultTo(format, res, outF):
-	formats.formatData(format, res, outF, acquireSamples=False)
+	# special-case votable formats to handle overflow conditions and such
+	if format.startswith("votable"):
+		enc = "binary"
+		if format.endswith("td"):
+			enc = "td"
+		oe = None
+		if res.setLimit is not None:
+			oe = votable.OverflowElement(res.setLimit,
+				votable.V.INFO(name="QUERY_STATUS", value="OVERFLOW"))
+		ctx = votablewrite.VOTableContext(
+			tablecoding=enc,
+			acquireSamples=False, 
+			overflowElement=oe)
+		votablewrite.writeAsVOTable(res, outF, ctx)
+	else:
+		formats.formatData(format, res, outF, acquireSamples=False)
 
 
 def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec):

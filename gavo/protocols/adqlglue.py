@@ -177,7 +177,7 @@ def morphADQL(query, metaProfile=None, tdsForUploads=[], externalLimit=None):
 
 	# escape % to hide them form dbapi replacing
 	query = adql.flatten(morphedTree).replace("%", "%%")
-	table.setLimit = t.setLimit
+	table.tableDef.setLimit = t.setLimit and int(t.setLimit)
 	return query, table
 
 
@@ -200,7 +200,7 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
 			addTuple(tuple)
 	finally:
 		querier.rollback()
-	if len(table)==int(table.setLimit):
+	if len(table)==int(table.tableDef.setLimit):
 		table.addMeta("_overflow", table.setLimit)
 	return table
 
