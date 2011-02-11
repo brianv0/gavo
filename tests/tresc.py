@@ -8,6 +8,7 @@ import os
 
 from gavo import base
 from gavo import rsc
+from gavo import rscdef
 from gavo.base import sqlsupport
 from gavo.helpers import testhelpers
 from gavo.protocols import creds
@@ -123,3 +124,17 @@ class CSTestTable(testhelpers.TestResource):
 		self.dataCreated.dropTables()
 
 csTestTable = CSTestTable()
+
+
+class RandomDataTable(testhelpers.TestResource):
+	"""An in-memory table with a couple of rows.
+	"""
+	def make(self, deps):
+		td = base.parseFromString(rscdef.TableDef,
+			"""<table id="randomDataTable"><column name="n" type="integer"/>
+				<column name="x"/></table>""")
+		return rsc.TableForDef(td, rows=[
+			{"n": 23, "x": 29.25},
+			{"n": 42, "x": -1.75}])
+
+randomDataTable = RandomDataTable()

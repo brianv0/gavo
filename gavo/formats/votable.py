@@ -10,4 +10,4 @@ from gavo.formats.votableread import (makeTableDefForVOTable,
 	makeDDForVOTable, uploadVOTable,
 	AutoQuotedNameMaker, QuotedNameMaker)
 from gavo.formats.votablewrite import (getAsVOTable,
-	writeAsVOTable, makeVOTable)
+	writeAsVOTable, makeVOTable, VOTableContext)

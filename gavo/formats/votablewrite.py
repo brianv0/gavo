@@ -45,13 +45,23 @@ class VOTableContext(utils.IdManagerMixin):
 
 		- a value mapper registry (by default, valuemappers.defaultMFRegistry)
 		- the tablecoding (one of the keys of votable.tableEncoders).
-		- version = (1,1) to order a 1.1-version VOTable
+		- version=(1,1) to order a 1.1-version VOTable
+		- acquireSamples=False to suppress reading some rows to get
+		  samples for each column
+		- suppressNamespace=False to leave out a namespace declaration
+		  (mostly convenient for debugging)
+		- overflowElement (see votable.tablewriter.OverflowElement)
 	"""
 	def __init__(self, mfRegistry=valuemappers.defaultMFRegistry, 
-			tablecoding='binary', version=None):
+			tablecoding='binary', version=None, acquireSamples=True,
+			suppressNamespace=False, overflowElement=None):
 		self.mfRegistry = mfRegistry
 		self.tablecoding = tablecoding
 		self.version = version or (1,2)
+		self.acquireSamples = acquireSamples
+		self.suppressNamespace = suppressNamespace
+		self.overflowElement = overflowElement
+
 
 def _addID(rdEl, votEl, idManager):
 	"""adds an ID attribute to votEl if rdEl has an id managed by idManager.
@@ -271,11 +281,11 @@ def _iterGroups(container, serManager):
 		yield votGroup
 
 
-def makeTable(ctx, table, acquireSamples=True):
+def makeTable(ctx, table):
 	"""returns a Table node for the table.Table instance table.
 	"""
 	sm = valuemappers.SerManager(table, mfRegistry=ctx.mfRegistry,
-		idManager=ctx, acquireSamples=acquireSamples)
+		idManager=ctx, acquireSamples=ctx.acquireSamples)
 	result = V.TABLE(name=table.tableDef.id)[
 		V.DESCRIPTION[base.getMetaText(table.tableDef, "description")],
 		_iterNotes(sm),
@@ -288,10 +298,11 @@ def makeTable(ctx, table, acquireSamples=True):
 
 	return votable.DelayedTable(result,
 		sm.getMappedTuples(),
-		tableEncoders[ctx.tablecoding])
+		tableEncoders[ctx.tablecoding],
+		overflowElement=ctx.overflowElement)
 
 
-def _makeResource(ctx, data, acquireSamples):
+def _makeResource(ctx, data):
 	"""returns a Resource node for the rsc.Data instance data.
 	"""
 	res = V.RESOURCE(type=base.getMetaText(data, "_type"))[
@@ -299,27 +310,30 @@ def _makeResource(ctx, data, acquireSamples):
 		_iterParams(ctx, data)]
 	for table in data:
 		if table.role!="parameters":
-			res[makeTable(ctx, table, acquireSamples)]
+			res[makeTable(ctx, table)]
 	return res
 
 ############################# Toplevel/User-exposed code
 
 
-def makeVOTable(data, tablecoding="binary", version=None,
-		acquireSamples=True):
+def makeVOTable(data, ctx=None, **kwargs):
 	"""returns a votable.V.VOTABLE object representing data.
 
 	data can be an rsc.Data or an rsc.Table.  data can be a data or a table
 	instance, tablecoding any key in votable.tableEncoders.
 
-	version, if given, must be a tuple of integers (like (1,2) for VOTable 1.2).
+	You may pass a VOTableContext object; if you don't a context
+	with all defaults will be used.
+
+	A deprecated alternative is to directly pass VOTableContext constructor
+	arguments as additional keyword arguments.  Don't do this, though,
+	we'll probably remove the option to do so at some point.
 	
 	You will usually pass the result to votable.write.  The object returned
 	contains DelayedTables, i.e., most of the content will only be realized at
 	render time.
 	"""
-	ctx = VOTableContext(valuemappers.defaultMFRegistry,
-		tablecoding=tablecoding, version=version)
+	ctx = ctx or VOTableContext(**kwargs)
 
 	data = rsc.wrapTable(data)
 	if ctx.version==(1,1):
@@ -330,36 +344,38 @@ def makeVOTable(data, tablecoding="binary", version=None,
 		raise common.VOTableError("No toplevel element for VOTable version %s"%
 			ctx.version)
 	vot[_iterToplevelMeta(ctx, data)]
-	vot[_makeResource(ctx, data, acquireSamples)]
+	vot[_makeResource(ctx, data)]
+	if ctx.suppressNamespace:
+		vot._fixedTagMaterial = ""
 	return vot
 
 
-def writeAsVOTable(data, outputFile, tablecoding="binary", version=None,
-		acquireSamples=True, suppressNamespace=False):
+def writeAsVOTable(data, outputFile, ctx=None, **kwargs):
 	"""a formats.common compliant data writer.
 
 	See makeVOTable for the arguments.
 	"""
-	vot = makeVOTable(data, tablecoding=tablecoding, version=version,
-		acquireSamples=acquireSamples)
-	if suppressNamespace:
-		vot._fixedTagMaterial = ""
+	ctx = ctx or VOTableContext(**kwargs)
+	vot = makeVOTable(data, ctx)
 	votable.write(vot, outputFile)
 
 
-def getAsVOTable(data, tablecoding="binary", version=None,
-		acquireSamples=True, suppressNamespace=False):
+def getAsVOTable(data, ctx=None, **kwargs):
 	"""returns a string containing a VOTable representation of data.
 
-	For information on the arguments, refer do writeAsVOTable.
+	For information on the arguments, refer to makeVOTable.
 	"""
+	ctx = ctx or VOTableContext(**kwargs)
 	dest = StringIO()
-	writeAsVOTable(data, dest, tablecoding=tablecoding, version=version,
-		acquireSamples=acquireSamples, suppressNamespace=suppressNamespace)
+	writeAsVOTable(data, dest, ctx)
 	return dest.getvalue()
 
 
-common.registerDataWriter("votable", writeAsVOTable, 
+def format(data, outputFile, **ctxargs):
+# used for construction of the formats.common interface
+	return writeAsVOTable(data, outputFile, VOTableContext(**ctxargs))
+
+common.registerDataWriter("votable", format, 
 	"application/x-votable+xml")
 common.registerDataWriter("votabletd", functools.partial(
-	writeAsVOTable, tablecoding="td"), "text/xml")
+	format, tablecoding="td"), "text/xml")

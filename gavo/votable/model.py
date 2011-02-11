@@ -260,7 +260,7 @@ class VOTable(object):
 		"""
 		_a_nrows = None
 		_childSequence = ["DESCRIPTION", "INFO", "GROUP", "FIELD", "PARAM", "LINK",
-			"DATA"]
+			"DATA", "stub"] # (stub for delayed overflow warnings and such)
 
 		_fieldIndex = None
 

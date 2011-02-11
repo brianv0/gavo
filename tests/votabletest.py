@@ -547,5 +547,24 @@ class VOTReadTest(testhelpers.VerboseTest):
 		self.assertEqual(td.indices, [])
 
 
+class OverflowTest(testhelpers.VerboseTest):
+	resources = [("tab", tresc.randomDataTable)]
+
+	def testWithoutOverflow(self):
+		res = votablewrite.getAsVOTable(self.tab, 
+			votablewrite.VOTableContext(
+				overflowElement=votable.OverflowElement(20,
+					votable.V.GROUP(name="overflow"))))
+		self.failIf('<GROUP name="overflow"' in res)
+
+	def testWithOverflow(self):
+		res = votablewrite.getAsVOTable(self.tab, 
+			votablewrite.VOTableContext(
+				overflowElement=votable.OverflowElement(2,
+					votable.V.GROUP(name="overflow"))))
+		self.failUnless('<GROUP name="overflow"' in res)
+
+
+
 if __name__=="__main__":
-	testhelpers.main(GroupWriteTest)
+	testhelpers.main(OverflowTest)

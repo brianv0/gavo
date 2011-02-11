@@ -18,7 +18,8 @@ from gavo.base import (getConfig, getDBConnection, getDefaultDBConnection,
 	ValidationError, LiteralParseError, ReportableError, NotFoundError,
 	RDNotFound)
 
-from gavo.formats.votablewrite import writeAsVOTable, getAsVOTable
+from gavo.formats.votablewrite import (writeAsVOTable, getAsVOTable,
+	VOTableContext)
 
 from gavo.rsc import (TableForDef, DBTable, makeData, parseValidating,
 	parseNonValidating, Data)

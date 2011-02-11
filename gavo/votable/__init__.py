@@ -13,6 +13,7 @@ from gavo.votable.parser import parse, parseString, readRaw
 
 from gavo.votable.simple import load
 
-from gavo.votable.tablewriter import DelayedTable, write, asString
+from gavo.votable.tablewriter import (
+	DelayedTable, OverflowElement, write, asString)
 
 from gavo.votable.tapquery import ADQLTAPJob

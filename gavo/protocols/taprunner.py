@@ -111,9 +111,7 @@ def runTAPQuery(query, timeout, connection, tdsForUploads, maxrec):
 	"""executes a TAP query and returns the result in a data instance.
 	"""
 # Some of this replicates functionality from adqlglue.  We should probably
-# move the implementation there to what's done here; of course, there
-# we roll back the connection before returning, and we'd have to
-# invent something to effect the same thing there...
+# move the implementation there to what's done here.
 	try:
 		pgQuery, tableTrunk = adqlglue.morphADQL(query,
 			tdsForUploads=tdsForUploads, externalLimit=maxrec)
