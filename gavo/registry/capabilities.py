@@ -340,15 +340,15 @@ class VOSICapabilityMaker(CapabilityMaker):
 
 class VOSIAvCapabilityMaker(VOSICapabilityMaker):
 	renderer = "availability"
-	standardID = "ivo://ivoa.net/stc/VOSI#availability"
+	standardID = "ivo://ivoa.net/std/VOSI#availability"
 
 class VOSICapCapabilityMaker(VOSICapabilityMaker):
 	renderer = "capabilities"
-	standardID = "ivo://ivoa.net/stc/VOSI#capabilities"
+	standardID = "ivo://ivoa.net/std/VOSI#capabilities"
 
 class VOSITMCapabilityMaker(VOSICapabilityMaker):
 	renderer = "tableMetadata"
-	standardID = "ivo://ivoa.net/stc/VOSI#tables"
+	standardID = "ivo://ivoa.net/std/VOSI#tables"
 
 class SOAPCapabilityMaker(CapabilityMaker):
 	renderer = "soap"
