@@ -157,7 +157,8 @@ def getFieldInfoGetter(accessProfile=None, tdsForUploads=[]):
 	return getFieldInfos
 
 
-def morphADQL(query, metaProfile=None, tdsForUploads=[], externalLimit=None):
+def morphADQL(query, metaProfile=None, tdsForUploads=[], 
+		externalLimit=None, hardLimit=None):
 	"""returns an postgres query and an (empty) result table for the
 	ADQL in query.
 	"""
@@ -167,13 +168,21 @@ def morphADQL(query, metaProfile=None, tdsForUploads=[], externalLimit=None):
 			t.setLimit = str(base.getConfig("adql", "webDefaultLimit"))
 		else:
 			t.setLimit = str(int(externalLimit))
+
 	adql.annotate(t, getFieldInfoGetter(metaProfile, tdsForUploads))
 	q3cstatus, t = adql.insertQ3Calls(t)
 
 	table = rsc.TableForDef(_getTableDescForOutput(t))
+	if hardLimit and t.setLimit>hardLimit:
+		table.addMeta("_warning", "This service as a hard row limit"
+			" of %s.  Your row limit was decreased to this value."%hardLimit)
+		t.setLimit = str(hardLimit)
+
 	morphStatus, morphedTree = adql.morphPG(t)
+	for warning in q3cstatus.warnings:
+		table.addMeta("_warning", warning)
 	for warning in morphStatus.warnings:
-		table.tableDef.addMeta("_warning", warning)
+		table.addMeta("_warning", warning)
 
 	# escape % to hide them form dbapi replacing
 	query = adql.flatten(morphedTree).replace("%", "%%")
@@ -182,13 +191,14 @@ def morphADQL(query, metaProfile=None, tdsForUploads=[], externalLimit=None):
 
 
 def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
-		externalLimit=None):
+		externalLimit=None, hardLimit=None):
 	"""returns a DataSet for query (a string containing ADQL).
 
 	This will set timeouts and other things for the connection in
 	question.  You should have one allocated especially for this query.
 	"""
-	query, table = morphADQL(query, metaProfile, tdsForUploads, externalLimit)
+	query, table = morphADQL(query, metaProfile, tdsForUploads, externalLimit,
+		hardLimit=hardLimit)
 	addTuple = _getTupleAdder(table)
 	try:
 		querier.setTimeout(timeout)
@@ -244,7 +254,7 @@ class ADQLCore(svcs.Core, base.RestrictionMixin):
 		base.ui.notifyInfo("Incoming ADQL query: %s"%queryString)
 		try:
 			res = query(self._getQuerier(), queryString, 
-				timeout=queryMeta["timeout"])
+				timeout=queryMeta["timeout"], hardLimit=100000)
 			res.noPostprocess = True
 			queryMeta["Matched"] = len(res.rows)
 			if len(res.rows)==base.getConfig("adql", "webDefaultLimit"):

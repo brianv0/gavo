@@ -25,6 +25,9 @@ To learn what ADQL is or for further information on this implementation, see the
 		give a limit yourself.  Thus, if you hit the 2000 record limit and want
 		to override it, you can specify your limit yourself (like ``SELECT TOP
 		20000...``).
+
+		There is a fixed limit to 100000 rows on this service.  If this
+		bugs you, use \RSTservicelink{tap}{TAP}.
 	</meta>
 	<meta name="_longdoc" format="rst"><![CDATA[
 
