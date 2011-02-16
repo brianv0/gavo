@@ -7,9 +7,10 @@ import re
 
 from gavo import api
 from gavo import svcs
-from gavo.protocols import ssap
+from gavo.formats import votablewrite
 from gavo.helpers import testhelpers
-from gavo.utils import DEG
+from gavo.protocols import ssap
+from gavo.utils import DEG, ElementTree
 from gavo.web import vodal
 
 import tresc
@@ -190,6 +191,67 @@ class CoreFailuresTest(_WithSSATableTest):
 		self.assertRaises(api.ValidationError, self.service.runFromDict,
 			{"REQUEST": "queryData", "excellence": "banana"}, "dal.xml")
 
+	def testSillyFrameRejected(self):
+		self.assertRaisesWithMsg(api.ValidationError,
+			"Cannot match against coordinates given in EGOCENTRIC frame",
+			self.service.runFromDict,
+			({"REQUEST": "queryData", "POS": "0%2c0;EGOCENTRIC", "SIZE": "1"}, 
+				"dal.xml"))
+
+
+class _RenderedSSAResponse(testhelpers.TestResource):
+	resources = [("ssatable", _ssaTable)]
+
+	def make(self, deps):
+		service = getRD().getById("s")
+		res = getRD().getById("s").runFromDict(
+			{"REQUEST": "queryData", "TOP": "3", "MAXREC": "1"}, "dal.xml")
+		rawVOT = votablewrite.getAsVOTable(res.original,
+			votablewrite.VOTableContext(suppressNamespace=True, tablecoding="td"))
+		return rawVOT, ElementTree.fromstring(rawVOT)
+
+_renderedSSAResponse = _RenderedSSAResponse()
+
+
+def _pprintEtree(root):
+	import subprocess
+	p = subprocess.Popen(["xmlstarlet", "fo"], stdin=subprocess.PIPE)
+	ElementTree.ElementTree(root).write(p.stdin)
+	p.stdin.close()
+
+
+class SSATableTest(testhelpers.VerboseTest):
+	# tests for certain properties of rendered SSA table responses
+
+	resources = [("docAndTree", _renderedSSAResponse)]
+
+	def testSillyNSDeclPresent(self):
+		self.failUnless('xmlns:ssa="http://www.ivoa.net/xml/DalSsap/v1.0"'
+			in self.docAndTree[0])
+	
+	def testOverflowWarning(self):
+		infoEl = self.docAndTree[1].find("RESOURCE/INFO")
+		self.assertEqual(infoEl.attrib["name"], "QUERY_STATUS")
+		self.assertEqual(infoEl.attrib["value"], "OVERFLOW")
+		self.assertEqual(infoEl.text, "Exactly 1 rows were returned."
+			" This means your query probably reached\nthe match limit."
+			" Increase MAXREC.")
+	
+	def testSSAUtype(self):
+		table = self.docAndTree[1].find("RESOURCE/TABLE")
+		self.failUnless(table.find("FIELD").attrib["utype"].startswith("ssa:"))
+
+	def testTimestampCast(self):
+		fields = self.docAndTree[1].findall("RESOURCE/TABLE/FIELD")
+		for field in fields:
+			if field.attrib["name"]=="ssa_dateObs":
+				self.assertEqual(field.attrib["xtype"], "adql:TIMESTAMP")
+				self.assertEqual(field.attrib["datatype"], "char")
+				break
+	
+	def testAccrefPresent(self):
+		self.failUnless("http://localhost:8080/getproduct" in self.docAndTree[0])
+
 
 if __name__=="__main__":
-	testhelpers.main(MetaKeyTest)
+	testhelpers.main(SSATableTest)

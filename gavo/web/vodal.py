@@ -144,6 +144,8 @@ class DALRenderer(grend.ServiceBasedPage):
 		request = inevow.IRequest(ctx)
 		request.setHeader('content-disposition', 
 			'attachment; filename="votable.xml"')
+		data.original.addMeta("info", base.makeMetaValue(type="info", 
+			infoName="QUERY_STATUS", infoValue="OK"))
 		request.setHeader("content-type", self.resultType)
 		return streaming.streamVOTable(request, data)
 
@@ -280,7 +282,7 @@ class SIAPRenderer(DALRenderer):
 		data = rsc.makeData(dataDesc)
 		data.tables["result"].votCasts = self._outputTableCasts
 		data.setMeta("_type", "results")
-		data.addMeta("info", base.makeMetaValue("OK", name="info", 
+		data.addMeta("info", base.makeMetaValue("OK", type="info", 
 			infoName="QUERY_STATUS", infoValue="OK"))
 		return svcs.SvcResult(data, {}, queryMeta)
 
@@ -291,8 +293,6 @@ class SIAPRenderer(DALRenderer):
 		return streaming.streamVOTable(request, metaData)
 
 	def _formatOutput(self, data, ctx):
-		data.original.addMeta("info", base.makeMetaValue("OK", name="info",
-			infoName="QUERY_STATUS", infoValue="OK"))
 		data.original.setMeta("_type", "results")
 		data.original.getPrimaryTable().votCasts = self._outputTableCasts
 		return DALRenderer._formatOutput(self, data, ctx)

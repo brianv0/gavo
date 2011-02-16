@@ -81,7 +81,7 @@ def _iterInfoInfos(dataSet):
 	"""
 	for infoItem in dataSet.getMeta("info", default=[]):
 		name, value, id = infoItem.infoName, infoItem.infoValue, infoItem.infoId
-		yield V.INFO(name=name, value=value, id=id)[infoItem.getContent()]
+		yield V.INFO(name=name, value=value, ID=id)[infoItem.getContent()]
 
 def _iterWarningInfos(dataSet):
 	"""yields INFO items containing warnings from the tables in dataSet.
@@ -343,8 +343,18 @@ def makeVOTable(data, ctx=None, **kwargs):
 			ctx.version)
 	vot[_iterToplevelMeta(ctx, data)]
 	vot[_makeResource(ctx, data)]
-	if ctx.suppressNamespace:
+	if ctx.suppressNamespace:  
+		# use this for "simple" table with nice element names
 		vot._fixedTagMaterial = ""
+
+	# What follows is a hack around the insanity of stuffing
+	# unused namespaces and similar detritus into VOTable's roots.
+	rootAttrs = data.getMeta("_votableRootAttributes")
+	if rootAttrs:
+		rootHacks = [vot._fixedTagMaterial]+[
+			item.getContent() for item in rootAttrs]
+		vot._fixedTagMaterial = " ".join(s for s in rootHacks if s)
+
 	return vot
 
 

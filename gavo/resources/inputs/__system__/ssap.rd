@@ -37,11 +37,13 @@
 		<column name="ssa_cdate" type="timestamp"
 			utype="ssa:DataID.Date" ucd="time;meta.dataset"
 			tablehead="Proc. Date" verbLevel="25" 
-			description="Processing/Creation date"/>
+			description="Processing/Creation date"
+			xtype="adql:TIMESTAMP"/>
 		<column name="ssa_pdate" type="timestamp"
 			utype="ssa:Curation.Date"
 			tablehead="Pub. Date" verbLevel="25" 
-			description="Date last published."/>
+			description="Date last published."
+			xtype="adql:TIMESTAMP"/>
 		<column name="ssa_bandpass" type="text"
 			utype="ssa:DataID.Bandpass" ucd="instr.bandpass"
 			tablehead="Bandpass" verbLevel="15" 
@@ -83,7 +85,8 @@
 		<column name="ssa_dateObs" type="timestamp"
 			utype="ssa:Char.TimeAxis.Coverage.Location.Value" ucd="time.epoch"
 			verbLevel="5" tablehead="Date Obs."
-			description="Midpoint of exposure"/>
+			description="Midpoint of exposure"
+			xtype="adql:TIMESTAMP"/>
 		<column name="ssa_timeExt"
 			utype="Char.TimeAxis.Coverage.Bounds.Extent" ucd="time.duration"
 			verbLevel="5" tablehead="Exp. Time"

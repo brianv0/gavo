@@ -331,6 +331,11 @@ class PQLPositionPar(PQLPar):
 		raise NotImplementedError("Ranges for PQL POS not implemented yet.")
 	
 	def getConeSQL(self, colName, sqlPars, coneSize):
+		if self.qualifier and self.qualifier!='ICRS':
+			# XXX TODO: implement at least a couple of common frames
+			raise base.ValidationError("Cannot match against coordinates"
+				" given in %s frame"%self.qualifier, self.destName)
+
 		sizeName = base.getSQLKey("size", coneSize*DEG, sqlPars)
 		parts = []
 		for r in self.ranges:

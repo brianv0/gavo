@@ -7,7 +7,6 @@ import datetime
 import os
 import pkg_resources
 import re
-import subprocess
 import unittest
 
 from gavo import base
@@ -85,6 +84,7 @@ def _getVOTTreeForTable(tdXML):
 
 
 def _pprintEtree(root):
+	import subprocess
 	p = subprocess.Popen(["xmlstarlet", "fo"], stdin=subprocess.PIPE)
 	ElementTree.ElementTree(root).write(p.stdin)
 	p.stdin.close()
@@ -564,6 +564,39 @@ class OverflowTest(testhelpers.VerboseTest):
 					votable.V.GROUP(name="overflow"))))
 		self.failUnless('<GROUP name="overflow"' in res)
 
+
+class HackMetaTest(testhelpers.VerboseTest):
+	"""tests for nasty hacks in data's meta stuff that lead so certain
+	VOTable manipulations.
+	"""
+	def _getTestTable(self):
+		td = base.parseFromString(rscdef.TableDef,
+			'<table id="silly"><column name="u"/></table>')
+		return rsc.TableForDef(td)
+
+	def testRootAttributes(self):
+		table = self._getTestTable()
+		table.addMeta("_votableRootAttributes", "malformed mess")
+		table.addMeta("_votableRootAttributes", "xmlns:crazy='http://forget.this'")
+		res = votablewrite.getAsVOTable(table,
+			votablewrite.VOTableContext(suppressNamespace=True))
+		self.failUnless(
+			"VOTABLE version=\"1.2\" malformed mess xmlns:crazy='http://forget.this'"
+			in res)
+
+	def testInfoMeta(self):
+		table = self._getTestTable()
+		table.addMeta("info", base.makeMetaValue("Info from meta", 
+			type="info", infoValue="bar", infoName="fromMeta", infoId="x_x"))
+		root = ElementTree.fromstring(votablewrite.getAsVOTable(table,
+			votablewrite.VOTableContext(suppressNamespace=True)))
+		mat = root.findall("RESOURCE/INFO")
+		self.assertEqual(len(mat), 1)
+		info = mat[0]
+		self.assertEqual(info.attrib["ID"], "x_x")
+		self.assertEqual(info.attrib["name"], "fromMeta")
+		self.assertEqual(info.attrib["value"], "bar")
+		self.assertEqual(info.text, "Info from meta")
 
 
 if __name__=="__main__":

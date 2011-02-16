@@ -358,6 +358,5 @@ def wrapTable(table, rdSource=None):
 	if rdSource:
 		newDD.adopt(table.tableDef)
 	res = Data(newDD, tables={table.tableDef.id: table})
-	if not res.getMeta("_type", propagate=False, default=None):
-		res.setMeta("_type", "results")  # mostly for TAP
+	res.meta_ = table.meta_
 	return res

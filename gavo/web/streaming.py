@@ -115,18 +115,22 @@ def streamOut(writeStreamTo, request):
 	return request.deferred.addCallback(joinThread, t)
 
 
-def streamVOTable(request, data):
+def streamVOTable(request, data, **contextOpts):
 	"""streams out the payload of an SvcResult as a VOTable.
 	"""
 	def writeVOTable(outputFile):
 		"""writes a VOTable representation of the SvcResult instance data
 		to request.
 		"""
+		if "tablecoding" not in contextOpts:
+			contextOpts["tablecoding"] = { 
+				True: "td", False: "binary"}[data.queryMeta["tdEnc"]]
+		if "version" not in contextOpts:
+			contextOpts["version"] = data.queryMeta.get("VOTableVersion")
 		try:
 			tableMaker = votablewrite.writeAsVOTable(
 				data.original, outputFile,
-				tablecoding={ True: "td", False: "binary"}[data.queryMeta["tdEnc"]],
-				version=data.queryMeta.get("VOTableVersion"))
+				ctx=votablewrite.VOTableContext(**contextOpts))
 		except:
 			base.ui.notifyError("Yikes -- error during VOTable render.\n")
 			outputFile.write(">>>> INTERNAL ERROR, INVALID OUTPUT <<<<")

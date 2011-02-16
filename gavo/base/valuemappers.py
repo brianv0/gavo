@@ -190,26 +190,42 @@ def datetimeMapperFactory(colDesc):
 			destType = ("char", "*")
 		elif colDesc["ucd"] and "MJD" in colDesc["ucd"]:  # like VOX:Image_MJDateObs
 			colDesc["unit"] = "d"
-			fun = lambda val: (val and dtToMJdn(val)) or "N/A"
+			fun = lambda val: (val and dtToMJdn(val))
 			destType = ("double", '1')
 		elif unit=="yr" or unit=="a":
-			fun = lambda val: (val and stc.dateTimeToJYear(val)) or "N/A"
+			fun = lambda val: (val and stc.dateTimeToJYear(val))
 			destType = ("double", '1')
 		elif unit=="d":
-			fun = lambda val: (val and stc.dateTimeToJdn(val)) or "N/A"
+			fun = lambda val: (val and stc.dateTimeToJdn(val))
 			destType = ("double", '1')
 		elif unit=="s":
-			fun = lambda val: (val and time.mktime(val.timetuple())) or "N/A"
+			fun = lambda val: (val and time.mktime(val.timetuple()))
 			destType = ("double", '1')
 		elif unit=="iso":
-			fun = lambda val: (val and val.isoformat()) or "N/A"
+			fun = lambda val: (val and val.isoformat())
 			destType = ("char", "*")
 		else:   # Fishy, but not our fault
-			fun = lambda val: (val and stc.dateTimeToJdn(val)) or "N/A"
+			fun = lambda val: (val and stc.dateTimeToJdn(val))
 			destType = ("double", '1')
 		colDesc["datatype"], colDesc["arraysize"] = destType
 		return fun
 _registerDefaultMF(datetimeMapperFactory)
+
+
+def _spointMapperFactory(colDesc):
+	"""A factory for functions turning spoints to STC-S-like stuff.
+	"""
+	if colDesc["dbtype"]!="spoint":
+		return
+	def mapper(val):
+		if val is None:
+			return "N/A"
+		else:
+#	XXX TODO: add something on the system to colDesc and use it here
+			return val.asSTCS("ICRS")
+	colDesc["datatype"], colDesc["arraysize"] = "char", "*"
+	return mapper
+_registerDefaultMF(_spointMapperFactory)
 
 
 def _boxMapperFactory(colDesc):

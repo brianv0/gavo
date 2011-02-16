@@ -72,4 +72,13 @@ class SSAPCore(svcs.DBCore):
 			limits = [base.getConfig("ivoa", "dalDefaultLimit")]
 		limit = min(min(limits), base.getConfig("ivoa", "dalHardLimit"))
 		queryMeta["dbLimit"] = limit
-		return svcs.DBCore.run(self, service, inputTable, queryMeta)
+
+		res = svcs.DBCore.run(self, service, inputTable, queryMeta)
+		if len(res)==limit:
+			res.addMeta("info", base.makeMetaValue(type="info", 
+				value="Exactly %s rows were returned.  This means"
+				" your query probably reached the match limit.  Increase MAXREC."%limit,
+				infoName="QUERY_STATUS", infoValue="OVERFLOW"))
+		res.addMeta("_votableRootAttributes",
+			'xmlns:ssa="http://www.ivoa.net/xml/DalSsap/v1.0"')
+		return res

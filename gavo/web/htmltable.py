@@ -114,8 +114,8 @@ def _unitMapperFactory(colDesc):
 _registerHTMLMF(_unitMapperFactory)
 
 def _stringWrapMF(baseMF):
-	"""returns a factory that returns None when baseMF does but stringifies
-	any results from baseMF's handlers if they fire.
+	"""returns a factory that that stringifies floats and makes N/A from
+	Nones coming out of baseMF and passes everything else through.
 	"""
 	def factory(colDesc):
 		handler = baseMF(colDesc)
@@ -128,7 +128,10 @@ def _stringWrapMF(baseMF):
 				if isinstance(res, float):
 					return lambda val: fmtstr%(handler(val))
 				else:
-					return res
+					if res is None:
+						return "N/A"
+					else:
+						return res
 			return realHandler
 	return factory
 
