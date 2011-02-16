@@ -195,8 +195,9 @@ def _iterTableParams(serManager):
 	"""
 	for param in serManager.table.iterParams():
 		votEl = _makeVOTParam(serManager, param)
-		_addID(param, votEl, serManager)
-		yield votEl
+		if votEl is not None:
+			_addID(param, votEl, serManager)
+			yield votEl
 
 
 def _iterParams(ctx, dataSet):
