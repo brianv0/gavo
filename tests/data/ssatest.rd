@@ -35,5 +35,9 @@
 			<FEED source="//ssap#hcd_condDescs"/>
 			<condDesc buildFrom="excellence"/>
 		</ssapCore>
+		<publish render="ssap.xml" sets="local"/>
+		<meta name="ssap.dataSource">artificial</meta>
+		<meta name="ssap.creationType">archival</meta>
+		<meta name="ssap.testQuery">MAXREC=1</meta>
 	</service>
 </resource>

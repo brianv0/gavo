@@ -397,9 +397,9 @@
 	<STREAM id="hcd_condDescs">
 		<condDesc id="coneCond">
 			<inputKey name="POS" type="text" description="ICRS position of target
-				object" unit="deg,deg"/>
+				object" unit="deg,deg" std="True"/>
 			<inputKey name="SIZE" unit="deg" description="Size of the region of
-				interest around POS"/>
+				interest around POS" std="True"/>
 			<phraseMaker procDef="//pql#coneParameter">
 				<bind name="posCol">"ssa_location"</bind>
 			</phraseMaker>
@@ -407,7 +407,8 @@
 
 		<condDesc id="bandCond">
 			<inputKey name="BAND" type="text" description="Wavelength (range)
-				of interest (or symbolic bandpass names)" unit="m"/>
+				of interest (or symbolic bandpass names)" unit="m"
+				std="True"/>
 			<phraseMaker>
 				<code>
 					key = inputKeys[0].name
@@ -429,14 +430,15 @@
 
 		<condDesc id="timeCond">
 			<inputKey original="//ssap#instance.ssa_dateObs" name="TIME" unit="Y-M-D"
-				type="text"/>
+				type="text" std="True"/>
 			<phraseMaker procDef="//pql#dateParameter">
 				<bind name="consCol">"ssa_dateObs"</bind>
 			</phraseMaker>
 		</condDesc>
 
 		<condDesc id="formatCond">
-			<inputKey original="//ssap#instance.mime" name="FORMAT" type="text"/>
+			<inputKey original="//ssap#instance.mime" name="FORMAT" type="text"
+				std="True"/>
 			<phraseMaker>
 				<setup>
 					<par name="compliantFormats">frozenset([
@@ -513,7 +515,7 @@
 			<events>
 				<condDesc id="\keyName\+_cond">
 					<inputKey original="//ssap#instance.\matchCol" name="\keyName"
-						type="text"/>
+						type="text" std="True"/>
 					<phraseMaker procDef="\procDef">
 						<bind name="consCol">"\matchCol"</bind>
 					</phraseMaker>
@@ -524,15 +526,18 @@
 		<condDesc combining="True">
 			<!-- meta keys not (directly) entering the query -->
 			<inputKey name="REQUEST" type="text" tablehead="Request type"
-				description='This currently has to be queryData'/>
+				description='This currently has to be queryData' std="True"/>
 			<inputKey name="TOP" type="integer" tablehead="#Best"
-				description='Only return the TOP "best" records'/>
+				description='Only return the TOP "best" records' std="True"/>
 			<inputKey name="MAXREC" type="integer" tablehead="Limit"
-				description="Do not return more than MAXREC records">5000</inputKey>
+				description="Do not return more than MAXREC records"
+				std="True">5000</inputKey>
 			<inputKey name="COMPRESS" type="boolean" tablehead="Compress?"
-				description="Return compressed results?">True</inputKey>
+				description="Return compressed results?"
+				std="True">True</inputKey>
 			<inputKey name="RUNID" type="text" tablehead="Run id"
-				description="An identifier for a certain run.  Opaque to the service"/>
+				description="An identifier for a certain run.  Opaque to the service"
+				std="True"/>
 			<phraseMaker> <!-- done by the core code for these -->
 				<code>
 					if False:

@@ -39,6 +39,10 @@ class InputKey(column.ParamBase):
 	_inputUnit = base.UnicodeAttribute("inputUnit", default=None,
 		description="Override unit of the table column with this.",
 		copyable=True)
+	_std = base.BooleanAttribute("std", default=False,
+		description="Is this input key part of a standard interface for"
+		" registry purposes?",
+		copyable=True)
 
 	def completeElement(self, ctx):
 		self._completeElementNext(InputKey, ctx)

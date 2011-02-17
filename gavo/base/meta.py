@@ -921,10 +921,13 @@ def makeMetaItem(value="", **kwargs):
 	return MetaItem(makeMetaValue(value, **kwargs))
 
 
-def getMetaText(ob, key, propagate=False, default=None):
-	"""returns the meta item key form ob in text form if present, None otherwise.
+def getMetaText(ob, key, default=None, **kwargs):
+	"""returns the meta item key form ob in text form if present, default 
+	otherwise.
+
+	You can pass getMeta keyword arguments (except default).
 	"""
-	m = ob.getMeta(key, propagate=propagate, default=None)
+	m = ob.getMeta(key, default=None, **kwargs)
 	if m is None:
 		return default
 	return m.getContent()

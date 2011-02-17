@@ -482,11 +482,10 @@ def loadInternalObject(relativeName, objectName):
 
 
 def memoized(origFun):
-	"""is a very simple memoizing decorator.
+	"""a trivial memoizing decorator.
 
-	Beware: This decorator is signature-changing (the resulting function will
-	accept all positional arguments, but no keyword arguments, only to
-	TypeError out when the original function is called.
+	Use this for plain functions; see memoizedMethod for instance methods.
+	No cache expiry, no non-hashable arguments, nothing.
 	"""
 	cache = {}
 	def fun(*args):
@@ -494,6 +493,30 @@ def memoized(origFun):
 			cache[args] = origFun(*args)
 		return cache[args]
 	return functools.update_wrapper(fun, origFun)
+
+
+class memoizedMethod(object):
+	"""a trivial memoizing decorator for instance methods.
+
+	See memoized for the same thing for functions.  This uses a single
+	persistent cache for all instances, so there's not terribly much
+	the wrapped method is allowed to do with its self.
+	"""
+	def __init__(self, meth):
+		cache = {}
+		@functools.wraps(meth)
+		def wrapped(obj, *args):
+			try:
+				return cache[args]
+			except KeyError:
+				cache[args] = meth(obj, *args)
+				return cache[args]
+		self.wrapped = wrapped
+
+	def __get__(self, obj, objtype=None):
+		if obj is None:
+			return self.wrapped
+		return functools.partial(self.wrapped, obj)
 
 
 def document(origFun):

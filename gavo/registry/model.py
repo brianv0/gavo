@@ -34,6 +34,8 @@ registerPrefix("cs", "http://www.ivoa.net/xml/ConeSearch/v1.0",
 	schemaURL("ConeSearch-v1.0.xsd"))
 registerPrefix("sia", "http://www.ivoa.net/xml/SIA/v1.0",
 	schemaURL("SIA-v1.0.xsd"))
+registerPrefix("ssap", "http://www.ivoa.net/xml/SSA/v0.4",
+	schemaURL("SSA-v0.4.xsd"))
 registerPrefix("tr", "http://www.ivoa.net/xml/TAP/v0.1",
 	schemaURL("TAPRegExt-v0.1.xsd"))
 
@@ -371,7 +373,8 @@ def addBasicVSElements(baseNS, VSElement):
 		
 		class queryType(VSElement): pass
 
-		class param(VSElement): pass
+		class param(VSElement):
+			_a_std = "false"
 		
 		class name(VSElement): pass
 		
@@ -501,7 +504,7 @@ VS1 = addBasicVSElements(_VS1_1Stub, _VS1_1Stub.VSElement)
 
 
 class SIA(object):
-	"""is a container for classes modelling elements for describing simple
+	"""A container for classes modelling elements for describing simple
 	image access services.
 	"""
 	class SIAElement(Element):
@@ -543,15 +546,11 @@ class SIA(object):
 
 	
 class SCS(object):
-	"""is a container for elements describing Simple Cone Search services.
+	"""A container for elements describing Simple Cone Search services.
 	"""
 	class SCSElement(Element):
 		_prefix = "cs"
 		_local = True
-
-	class Resource(RI.Resource):
-		_a_xsi_type = "cs:ConeSearch"
-		_additionalPrefixes = frozenset(["xsi", "cs"])
 
 	class interface(VOR.interface):
 		_prefix = "cs"
@@ -577,8 +576,39 @@ class SCS(object):
 	class extras(SCSElement): pass
 
 
+class SSAP(object):
+	"""A container for the elements of the SSA registry extension.
+	"""
+	class SSAElement(Element):
+		_prefix = "ssap"
+		_local = True
+	
+	class capability(VOR.capability):
+		_a_standardID = "ivo://ivoa.net/std/SSA"
+		_a_xsi_type = "ssap:SimpleSpectralAccess"
+		_additionalPrefixes = frozenset(["xsi", "vs"])
+
+	class interface(VOR.interface):
+		_prefix = "ssap"
+		_a_role = "std"
+		_additionalPrefixes = frozenset(["vs", "xsi"])
+		_a_xsi_type = "vs:ParamHTTP"
+
+	class complianceLevel(SSAElement): pass
+	class dataSource(SSAElement): pass
+	class creationType(SSAElement): pass
+	class maxSearchRadius(SSAElement): pass
+	class maxRecords(SSAElement): pass
+	class defaultMaxRecords(SSAElement): pass
+	class maxAperture(SSAElement): pass
+	class maxFileSize(SSAElement): pass
+	class supportedFrame(SSAElement): pass
+	class testQuery(SSAElement): pass
+	class queryDataCmd(SSAElement): pass
+
+
 class TR(object):
-	"""is a container for elements describing TAP services.
+	"""A container for elements describing TAP services.
 	"""
 	class TRElement(Element):
 		_prefix = "tr"

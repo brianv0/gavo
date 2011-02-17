@@ -84,7 +84,7 @@ class CoreQueriesTest(_WithSSATableTest):
 	def _runTest(self, sample):
 		inDict, ids = sample
 		inDict["REQUEST"] = "queryData"
-		res = getRD().getById("s").runFromDict(inDict, "dal.xml")
+		res = getRD().getById("s").runFromDict(inDict, "ssap.xml")
 		self.assertEqual(
 			set([row["ssa_pubDID"].split("/")[-1] 
 				for row in res.original.getPrimaryTable()]),
@@ -130,36 +130,36 @@ class MetaKeyTest(_WithSSATableTest):
 # these are like CoreQueries except they exercise custom logic
 	def testTOP(self):
 		res = getRD().getById("s").runFromDict(
-			{"REQUEST": "queryData", "TOP": 1}, "dal.xml")
+			{"REQUEST": "queryData", "TOP": 1}, "ssap.xml")
 		self.assertEqual(len(res.original.getPrimaryTable()), 1)
 
 	def testMAXREC(self):
 		res = getRD().getById("s").runFromDict(
-			{"REQUEST": "queryData", "TOP": "3", "MAXREC": "1"}, "dal.xml")
+			{"REQUEST": "queryData", "TOP": "3", "MAXREC": "1"}, "ssap.xml")
 		self.assertEqual(len(res.original.getPrimaryTable()), 1)
 
 	def testMTIMEInclusion(self):
 		aMinuteAgo = datetime.datetime.utcnow()-datetime.timedelta(seconds=60)
 		res = getRD().getById("s").runFromDict(
-			{"REQUEST": "queryData", "MTIME": "%s/"%aMinuteAgo}, "dal.xml")
+			{"REQUEST": "queryData", "MTIME": "%s/"%aMinuteAgo}, "ssap.xml")
 		self.assertEqual(len(res.original.getPrimaryTable()), 3)
 
 	def testMTIMEExclusion(self):
 		aMinuteAgo = datetime.datetime.utcnow()-datetime.timedelta(seconds=60)
 		res = getRD().getById("s").runFromDict(
-			{"REQUEST": "queryData", "MTIME": "/%s"%aMinuteAgo}, "dal.xml")
+			{"REQUEST": "queryData", "MTIME": "/%s"%aMinuteAgo}, "ssap.xml")
 		self.assertEqual(len(res.original.getPrimaryTable()), 0)
 
 	def testInsensitive(self):
 		aMinuteAgo = datetime.datetime.utcnow()-datetime.timedelta(seconds=60)
 		res = getRD().getById("s").runFromDict(
 			vodal.CaseSemisensitiveDict(
-				{"rEQueST": "queryData", "mtime": "/%s"%aMinuteAgo}), "dal.xml")
+				{"rEQueST": "queryData", "mtime": "/%s"%aMinuteAgo}), "ssap.xml")
 		self.assertEqual(len(res.original.getPrimaryTable()), 0)
 
 	def testMetadata(self):
 		res = getRD().getById("s").runFromDict(
-			{"REQUEST": "queryData", "FORMAT": "METADATA"}, "dal.xml")
+			{"REQUEST": "queryData", "FORMAT": "METADATA"}, "ssap.xml")
 		self.assertEqual(res.original[0], "application/x-votable+xml")
 		val = res.original[1]
 		self.failUnless("<VOTABLE" in val)
@@ -181,22 +181,22 @@ class CoreFailuresTest(_WithSSATableTest):
 
 	def testBadRequestRejected(self):
 		self.assertRaises(api.ValidationError, self.service.runFromDict,
-			{"REQUEST": "folly"}, "dal.xml")
+			{"REQUEST": "folly"}, "ssap.xml")
 
 	def testBadBandRejected(self):
 		self.assertRaises(api.ValidationError, self.service.runFromDict,
-			{"REQUEST": "queryData", "BAND": "1/2/0.4"}, "dal.xml")
+			{"REQUEST": "queryData", "BAND": "1/2/0.4"}, "ssap.xml")
 
 	def testBadCustomInputRejected(self):
 		self.assertRaises(api.ValidationError, self.service.runFromDict,
-			{"REQUEST": "queryData", "excellence": "banana"}, "dal.xml")
+			{"REQUEST": "queryData", "excellence": "banana"}, "ssap.xml")
 
 	def testSillyFrameRejected(self):
 		self.assertRaisesWithMsg(api.ValidationError,
 			"Cannot match against coordinates given in EGOCENTRIC frame",
 			self.service.runFromDict,
 			({"REQUEST": "queryData", "POS": "0%2c0;EGOCENTRIC", "SIZE": "1"}, 
-				"dal.xml"))
+				"ssap.xml"))
 
 
 class _RenderedSSAResponse(testhelpers.TestResource):
@@ -205,7 +205,7 @@ class _RenderedSSAResponse(testhelpers.TestResource):
 	def make(self, deps):
 		service = getRD().getById("s")
 		res = getRD().getById("s").runFromDict(
-			{"REQUEST": "queryData", "TOP": "3", "MAXREC": "1"}, "dal.xml")
+			{"REQUEST": "queryData", "TOP": "3", "MAXREC": "1"}, "ssap.xml")
 		rawVOT = votablewrite.getAsVOTable(res.original,
 			votablewrite.VOTableContext(suppressNamespace=True, tablecoding="td"))
 		return rawVOT, ElementTree.fromstring(rawVOT)

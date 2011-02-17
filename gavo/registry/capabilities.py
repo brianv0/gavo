@@ -18,7 +18,7 @@ from gavo.base import meta
 from gavo.base import typesystems
 from gavo.registry.common import *
 from gavo.registry.model import (OAI, OAIDC, VOR, VOG, DC, RI, VS,
-	SIA, SCS, TR)
+	SIA, SCS, SSAP, TR)
 
 
 ###################### Helpers
@@ -46,7 +46,8 @@ def getInputParamFromColumn(column, rootElement=VS.param):
 	"""returns a InputParam element for a rscdef.Column.
 	"""
 	return _getParamFromColumn(column, rootElement,
-		lambda type, length: VS.simpleDataType[type])
+		lambda type, length: VS.simpleDataType[type])(
+			std=(column.std and "true") or "false")
 
 
 def getInputParams(publication, service):
@@ -125,6 +126,11 @@ class SIAPInterface(InterfaceWithParams):
 class SCSInterface(InterfaceWithParams):
 	renderer = "scs.xml"
 	interfaceClass = SCS.interface
+
+
+class SSAPInterface(InterfaceWithParams):
+	renderer = "ssap.xml"
+	interfaceClass = SSAP.interface
 
 
 class TAPInterface(InterfaceMaker):
@@ -270,6 +276,28 @@ class SCSCapabilityMaker(CapabilityMaker):
 				SCS.dec[service.getMeta("testQuery.dec", raiseOnFail=True)],
 				SCS.sr["0.001"],
 			],
+		]
+
+
+class SSACapabilityMaker(CapabilityMaker):
+	renderer = "ssap.xml"
+	capabilityClass = SSAP.capability
+
+	def _makeCapability(self, publication):
+		service = publication.parent
+		return CapabilityMaker._makeCapability(self, publication)[
+			# XXX TODO: see what we need for "full"
+			SSAP.complianceLevel["minimal"], 
+			SSAP.dataSource[service.getMeta("ssap.dataSource", raiseOnFail=True)],
+			SSAP.creationType[service.getMeta("ssap.creationType", 
+				default="archival")],
+			SSAP.maxSearchRadius["180"],
+			SSAP.maxRecords[str(base.getConfig("ivoa", "dalHardLimit"))],
+			SSAP.defaultMaxRecords[str(base.getConfig("ivoa", "dalDefaultLimit"))],
+			SSAP.supportedFrame["ICRS"],
+			SSAP.testQuery[
+				SSAP.queryDataCmd[base.getMetaText(service, "ssap.testQuery", 
+					raiseOnFail=True)+"&REQUEST=queryData"]],
 		]
 
 

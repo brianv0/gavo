@@ -174,7 +174,7 @@ class _JobActions(object):
 class JobAction(object):
 	"""an action done to a job.
 
-	It is defines methods do<METHOD> that are dispatched through JobActions.
+	It defines methods do<METHOD> that are dispatched through JobActions.
 
 	It must have a name corresponding to the child resource names from
 	the UWS spec.
@@ -259,6 +259,7 @@ class PhaseAction(JobAction):
 		raise svcs.WebRedirect("async/"+job.jobId)
 	
 	def doGET(self, job, request):
+		request.setHeader("content-type", "text/plain")
 		return job.phase
 _JobActions.addAction(PhaseAction)
 
@@ -303,7 +304,7 @@ class QuoteAction(JobAction):
 	name = "quote"
 
 	def doGET(self, job, request):
-		request.setHeader("content-type", "text/xml")
+		request.setHeader("content-type", "text/plain")
 		if job.quote is None:
 			quote = ""
 		else:

@@ -83,6 +83,7 @@ class CaseSemisensitiveDict(dict):
 				for k, v in self.iteritems())
 		return self.normCased
 
+
 class DALRenderer(grend.ServiceBasedPage):
 	"""is a base class for renderers for the usual IVOA DAL protocols.
 
@@ -312,9 +313,14 @@ class UnifiedDALRenderer(DALRenderer):
 
 	The error style is that of SSAP (which, hopefully, will be kept
 	for the other DAL2 protocols, too).  This renderer should be used
-	for SSAP (and soon SIAP, too).
+	for SSAP (and soon SIAP, too).  The trouble is that then, we'll
+	need to dispatch the registry capabilities in some other way.
+
+	To define actual renderers, inherit from this and set the name attribute.
+	In the docstring, document what additional meta is used in the 
+	renderer's capability element.
+
 	"""
-	name = "dal.xml"
 	parameterStyle = "pql"
 
 	def _formatOutput(self, data, ctx):
@@ -336,6 +342,21 @@ class UnifiedDALRenderer(DALRenderer):
 			V.RESOURCE(type="results")[
 				V.INFO(name="QUERY_STATUS", value="ERROR")[
 					str(msg)]]]
+
+
+class SSAPRenderer(UnifiedDALRenderer):
+	"""A renderer for the simple spectral access protocol.
+
+	SSAP-specific metadata includes:
+
+	 - ssap.dataSource -- survey, pointed, custom, theory, artificial
+	   (mandatory)
+	 - ssap.creationType -- archival, cutout, filtered, mosaic,
+	   projection, specialExtraction, catalogExtraction (defaults to archival)
+	 - ssap.testQuery -- a query string that returns some data; REQUEST=queryData
+	   is added automaticall (mandatory)
+	"""
+	name = "ssap.xml"
 
 
 class RegistryRenderer(grend.ServiceBasedRenderer):

@@ -13,6 +13,7 @@ from gavo import registry
 from gavo import utils
 from gavo.base import sqlsupport
 from gavo.helpers import testhelpers
+from gavo.helpers import testtricks
 from gavo.registry import builders
 from gavo.registry import capabilities
 from gavo.registry import nonservice
@@ -123,10 +124,68 @@ class CapabilityTest(testhelpers.VerboseTest):
 		publication.parent.addMeta("supportsModel", "Sample Model 2")
 		publication.parent.addMeta("supportsModel.ivoId", "ivo://models/mod2")
 		res = capabilities.getCapabilityElement(publication).render()
-		#os.popen("xmlstarlet fo", "w").write(res)
 		# XXX TODO: think of better assertions
 		self.failUnless('<dataModel' in res)
 		capabilities._TMP_TAPREGEXT_HACK = False
+
+
+class SSAPCapabilityTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
+	@utils.memoizedMethod
+	def _getSSAPCapEl(self):
+		publication = testhelpers.getTestRD("ssatest"
+			).getById("s").publications[0]
+		res = capabilities.getCapabilityElement(publication).render()
+		#os.popen("xmlstarlet fo", "w").write(res)
+		return res
+
+	@utils.memoizedMethod
+	def _getSSAPCapTree(self):
+		return ElementTree.fromstring(self._getSSAPCapEl())
+
+	def testValid(self):
+		self.assertValidates(self._getSSAPCapEl())
+	
+	def testCapabilityAttributes(self):
+		tree = self._getSSAPCapTree()
+		self.assertEqual(tree.attrib["standardID"], 'ivo://ivoa.net/std/SSA')
+		self.assertEqual(
+			tree.attrib['{http://www.w3.org/2001/XMLSchema-instance}type'],
+			'ssap:SimpleSpectralAccess')
+	
+	def testInterfaceIsStandard(self):
+		intf = self._getSSAPCapTree().find("interface")
+		self.assertEqual(intf.attrib["role"], "std")
+	
+	def testInterfaceHasStandardParam(self):
+		for paramEl in self._getSSAPCapTree().findall("interface/param"):
+			if paramEl.find("name").text=="BAND":
+				break
+		else:
+			raise AssertionError("No BAND input parameter in SSAP interface")
+		self.assertEqual(paramEl.attrib["std"], "true")
+		self.assertEqual(paramEl.find("unit").text, "m")
+	
+	def testInterfaceHasLocalParam(self):
+		for paramEl in self._getSSAPCapTree().findall("interface/param"):
+			if paramEl.find("name").text=="excellence":
+				break
+		else:
+			raise AssertionError("No excellence input parameter in SSAP interface")
+		self.assertEqual(paramEl.attrib["std"], "false")
+		self.assertEqual(paramEl.find("description").text, "random number")
+
+	def testMaxRecordsReflectsConfig(self):
+		self.assertEqual(int(self._getSSAPCapTree().find("maxRecords").text),
+			base.getConfig("ivoa", "dalHardLimit"))
+
+	def testRecordCreationFailsOnMissingMeta(self):
+		publication = testhelpers.getTestRD("ssatest"
+			).getById("s").publications[0]
+		publication.parent.delMeta("ssap.testQuery")
+		self.assertRaisesWithMsg(base.NoMetaKey,
+			"No meta item ssap.testQuery",
+			capabilities.getCapabilityElement,
+			(publication,))
 
 
 class AuthorityTest(testhelpers.VerboseTest):

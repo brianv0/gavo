@@ -374,16 +374,16 @@
 	</condDesc>
 
 	<condDesc id="protoInput" required="True">
-		<inputKey original="base_POS" required="True">
+		<inputKey original="base_POS" required="True" std="True">
 			<property name="onlyForRenderer">siap.xml</property>
 		</inputKey>
-		<inputKey original="base_SIZE" required="True">
+		<inputKey original="base_SIZE" required="True" std="True">
 			<property name="onlyForRenderer">siap.xml</property>
 		</inputKey>
-		<inputKey original="base_INTERSECT"
+		<inputKey original="base_INTERSECT" std="True"
 			>OVERLAPS<property name="onlyForRenderer">siap.xml</property>
 		</inputKey>
-		<inputKey original="base_FORMAT"
+		<inputKey original="base_FORMAT" std="True"
 			>GRAPHIC<property name="onlyForRenderer">siap.xml</property>
 		</inputKey>
 		<phraseMaker>
