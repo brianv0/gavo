@@ -397,18 +397,16 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 			raise
 		return res
 
-	def _realCompileForTable(self, table):
-		"""helps compileForTable.
+	def _realCompileForTableDef(self, tableDef):
+		"""helps compileForTableDef.
 		"""
-		tableDef = table.tableDef
 		rmk = self._buildForTable(tableDef)
 		source, lineMap = rmk._getSource(tableDef)
 		globals = rmk._getGlobals(tableDef)
-		globals["targetTable"] = table
 		return Rowmaker(common.replaceRMKAt(source), 
 			self.id, globals, tableDef.getDefaults(), lineMap)
 
-	def compileForTable(self, table):
+	def compileForTableDef(self, tableDef):
 		"""returns a function receiving a dictionary of raw values and
 		returning a row ready for adding to a tableDef'd table.
 
@@ -416,9 +414,8 @@ class RowmakerDef(base.Structure, RowmakerMacroMixin):
 		and then check if the rowmaker result and the table structure
 		are compatible.
 		"""
-		tableDef = table.tableDef
-		return utils.memoizeOn(tableDef, self, self._realCompileForTable,
-			table)
+		return utils.memoizeOn(tableDef, self, self._realCompileForTableDef,
+			tableDef)
 
 	def copyShallowly(self):
 		return base.makeStruct(self.__class__, maps=self.maps[:], 
@@ -519,7 +516,7 @@ class Rowmaker(object):
 			destName, self.name, msg), destName.split()[-1], rowdict,
 			hint=hint))
 
-	def __call__(self, vars):
+	def __call__(self, vars, table):
 		try:
 			missingKeys = self.keySet-set(vars)
 			for k in missingKeys:
@@ -527,6 +524,7 @@ class Rowmaker(object):
 			locals = {
 				"vars": vars,
 				"result": {},
+				"targetTable": table
 			}
 			exec self.code in self.globals, locals
 			return locals["result"]

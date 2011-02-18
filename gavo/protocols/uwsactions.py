@@ -192,11 +192,22 @@ class JobAction(object):
 
 
 class ErrorResource(rend.Page):
-	def __init__(self, errMsg, exc=None, httpStatus=400):
-		if exc and isinstance(exc, uws.JobNotFound):
+	"""A TAP error message.
+
+	These are constructed with errInfo, which is either an exception or
+	a dictionary containing at least
+	type, msg, and hint keys.  Optionally, you can give a numeric httpStatus.
+	"""
+	def __init__(self, errInfo, httpStatus=400):
+		if isinstance(errInfo, Exception):
+			errInfo = {
+				"msg": unicode(errInfo),
+				"type": errInfo.__class__.__name__,
+				"hint": getattr(errInfo, "hint", None)}
+		if errInfo["type"]=="JobNotFound":
 			httpStatus = 404
-		self.errMsg, self.httpStatus = errMsg, httpStatus
-		self.hint = getattr(exc, "hint", None)
+		self.errMsg, self.httpStatus = errInfo["msg"], httpStatus
+		self.hint = errInfo["hint"]
 
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
@@ -218,11 +229,8 @@ class ErrorAction(JobAction):
 	def doGET(self, job, request):
 		request.setHeader("content-type", "text/plain")
 		try:
-			exc = job.getError()
-			if isinstance(exc, Exception):
-				return ErrorResource(unicode(exc), exc, httpStatus=200)
-			else:
-				return ErrorResource(exc, httpStatus=200)
+			excInfo = job.getError()
+			return ErrorResource(excInfo, httpStatus=200)
 		except ValueError:  # no error posted so far
 			pass
 		return ""

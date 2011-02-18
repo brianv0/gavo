@@ -134,11 +134,12 @@ class MetaTableMixin(object):
 		tableName = self.tableDef.getQName()
 		t = DBTable(self.dcTablesRD.getTableDefById("columnmeta"),
 			connection=self.connection)
-		makeRow = self.dcTablesRD.getById("fromColumnList").compileForTable(t)
+		makeRow = self.dcTablesRD.getById("fromColumnList").compileForTableDef(
+			t.tableDef)
 		feeder = t.getFeeder(notify=False)
 		for colInd, column in enumerate(self.tableDef):
 			items = {"tableName": tableName, "colInd": colInd, "column": column}
-			feeder.add(makeRow(items))
+			feeder.add(makeRow(items, t))
 		feeder.exit()
 
 	def addToMeta(self):

@@ -83,7 +83,7 @@ class TAPQueryResource(rend.Page):
 			elif job.phase==uws.ERROR:
 				exc = job.getError()
 				job.delete()
-				raise exc
+				raise base.Error(exc["msg"], hint=exc["hint"])
 			elif job.phase==uws.ABORTED:
 				job.delete()
 				raise uws.UWSError("Job was manually aborted.  For synchronous"
@@ -100,11 +100,11 @@ class TAPQueryResource(rend.Page):
 				).addErrback(self._formatError)
 		except base.Error, ex:
 			base.ui.notifyExceptionMutation(None)
-			return uwsactions.ErrorResource(unicode(ex))
+			return uwsactions.ErrorResource(ex)
 
 	def _formatError(self, failure):
 		base.ui.notifyFailure(failure)
-		return uwsactions.ErrorResource(failure.getErrorMessage(), failure.value)
+		return uwsactions.ErrorResource(failure.value)
 
 	def _formatResult(self, res, ctx):
 		request = inevow.IRequest(ctx)
@@ -130,7 +130,10 @@ def getSyncResource(ctx, service, segments):
 		return TAPQueryResource(service, ctx)
 	elif request=="getCapabilities":
 		return vosi.VOSICapabilityRenderer(ctx, service)
-	return uwsactions.ErrorResource("Invalid REQUEST: '%s'"%request)
+	return uwsactions.ErrorResource({
+			"type": "ParameterError",
+			"msg": "Invalid REQUEST: '%s'"%request,
+			"hint": "Only doQuery and getCapabilities supported here"})
 
 
 class MethodAwareResource(rend.Page):
@@ -155,7 +158,7 @@ class UWSErrorMixin(object):
 	def _deliverError(self, failure, request):
 		failure.printTraceback()
 		request.setHeader("content-type", "text/xml")
-		return uwsactions.ErrorResource(failure.getErrorMessage(), failure.value)
+		return uwsactions.ErrorResource(failure.value)
 
 
 class JoblistResource(MethodAwareResource, UWSErrorMixin):
@@ -265,9 +268,11 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 		try:
 			if "VERSION" in request.scalars:
 				if request.scalars["VERSION"]!=getTAPVersion():
-					return uwsactions.ErrorResource(
-						"Version mismatch; this service only supports"
-						" TAP version %s."%getTAPVersion()), ()
+					return uwsactions.ErrorResource({
+						"msg": "Version mismatch; this service only supports"
+							" TAP version %s."%getTAPVersion(),
+						"type": "ValueError",
+						"hint": ""}), ()
 			if segments:
 				if segments[0]=='sync':
 					res = getSyncResource(ctx, self.service, segments[1:])
@@ -288,5 +293,5 @@ class TAPRenderer(grend.ServiceBasedRenderer):
 			# see flagError in protocols.uws for the reason for the next if
 			if not isinstance(ex, base.ValidationError):
 				base.ui.notifyError("TAP error")
-			return uwsactions.ErrorResource(str(ex), ex), ()
+			return uwsactions.ErrorResource(ex), ()
 		raise common.UnknownURI("Bad TAP path %s"%"/".join(segments))

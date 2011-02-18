@@ -56,31 +56,37 @@ class MapperTest(unittest.TestCase):
 		self.assertEqual(mf.getMapper({})(0), "Second", 
 			"Factories registred later are not tried first")
 	
-	def testStandardMappers(self):
-		def assertMappingResult(dataField, value, literal):
-			cp = valuemappers.VColDesc(dataField)
-			cp["sample"] = value
-			self.assertEqual(literal,
-				unicode(valuemappers.defaultMFRegistry.getMapper(cp)(value)))
-			
-		for dataField, value, literal in [
-			(base.makeStruct(rscdef.Column, name="d", type="date", unit="Y-M-D"),
-				datetime.date(2003, 5, 4), "2003-05-04"),
-			(base.makeStruct(rscdef.Column, name="d", type="date", unit="yr"),
-				datetime.date(2003, 5, 4), '2003.33607118'),
-			(base.makeStruct(rscdef.Column, name="d", type="date", unit="d"),
-				datetime.date(2003, 5, 4), '2452763.5'),
-			(base.makeStruct(rscdef.Column, name="d", type="timestamp", unit="d"),
-				datetime.datetime(2003, 5, 4, 20, 23), '2452764.34931'),
-			(base.makeStruct(rscdef.Column, name="d", type="date", unit="d", 
-					ucd="VOX:Image_MJDateObs"),
-				datetime.date(2003, 5, 4), '52763.0'),
-			(base.makeStruct(rscdef.Column, name="d", type="date", unit="yr"),
-				None, ' '),
-			(base.makeStruct(rscdef.Column, name="d", type="integer"),
-				None, '-2147483648'),
-		]:
-			assertMappingResult(dataField, value, literal)
+
+class StandardMapperTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		structArgs, value, mapped = sample
+		dataField = base.makeStruct(rscdef.Column, **structArgs)
+		cp = valuemappers.VColDesc(dataField)
+		cp["sample"] = value
+		res = valuemappers.defaultMFRegistry.getMapper(cp)(value)
+		if isinstance(mapped, float):
+			self.assertAlmostEqual(mapped, res, places=3)
+		else:
+			self.assertEqual(mapped, res)
+
+	samples = [
+		({"name":"d", "type":"date", "unit":"Y-M-D"},
+			datetime.date(2003, 5, 4), "2003-05-04"),
+		({"name":"d", "type":"date", "unit":"yr"},
+			datetime.date(2003, 5, 4), 2003.33607118),
+		({"name":"d", "type":"date", "unit":"d"},
+			datetime.date(2003, 5, 4), 2452763.5),
+		({"name":"d", "type":"timestamp", "unit":"d"},
+			datetime.datetime(2003, 5, 4, 20, 23), 2452764.34931),
+		({"name":"d", "type":"date", "unit":"d", 
+				"ucd":"VOX:Image_MJDateObs"},
+			datetime.date(2003, 5, 4), 52763.0),
+		({"name":"d", "type":"date", "unit":"yr"},
+			None, None),
+		({"name":"d", "type":"integer"},
+			None, None),]
 
 
 class RenamerDryTest(unittest.TestCase):

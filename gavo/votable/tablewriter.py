@@ -82,7 +82,10 @@ class OverflowElement(stanxml.Stub):
 	def __init__(self, rowLimit, overflowStan):
 		self.rowLimit, self.overflowStan = rowLimit, overflowStan
 		self.rowsDelivered = None
-	
+
+	def __repr__(self):
+		return "<Uninstanciated Overflow Warning>"
+
 	def setRowsDelivered(self, numRows):
 		self.rowsDelivered = numRows
 	

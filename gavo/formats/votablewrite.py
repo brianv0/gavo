@@ -124,8 +124,8 @@ def _makeValuesForColDesc(colDesc):
 		valEl[V.MIN(value=str(colDesc["min"]))]
 	if colDesc["max"] is not valuemappers._Infimum:
 		valEl[V.MAX(value=str(colDesc["max"]))]
-	if colDesc.has_key("nullvalue"):
-		valEl(null=str(colDesc["nullvalue"]))
+	if colDesc["nullvalue"] is not None:
+		valEl(null=colDesc["nullvalue"])
 	return valEl
 
 

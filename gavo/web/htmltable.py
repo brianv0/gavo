@@ -21,6 +21,7 @@ from twisted.internet import reactor, defer
 
 from gavo import base
 from gavo import formats
+from gavo import rsc
 from gavo import svcs
 from gavo import utils
 from gavo.base import coords
@@ -37,7 +38,7 @@ _registerHTMLMF = _htmlMFRegistry.registerFactory
 def _defaultMapperFactory(colDesc):
 	def coder(val):
 		if val is None:
-			return "N/A"
+			return
 		return unicode(val)
 	return coder
 _registerHTMLMF(_defaultMapperFactory)
@@ -112,6 +113,7 @@ def _unitMapperFactory(colDesc):
 			return fmtStr%(val*factor)
 		return coder
 _registerHTMLMF(_unitMapperFactory)
+
 
 def _stringWrapMF(baseMF):
 	"""returns a factory that that stringifies floats and makes N/A from
@@ -431,7 +433,10 @@ class HTMLDataRenderer(rend.Fragment):
 		if formatVal is None:
 			formatVal = str
 		del ctx.tag.attributes["formatter"]
-		return ctx.tag[formatVal(data)]
+		val = formatVal(data)
+		if val is None:
+			val = "N/A"
+		return ctx.tag[val]
 
 	def _computeHeadCellsStan(self):
 		self.headCells = HeadCells(self.table.tableDef, self.colDescIndex)
@@ -554,7 +559,9 @@ class HTMLKeyValueFragment(HTMLDataRenderer, HeadCellsMixin):
 def writeDataAsHTML(data, outputFile, acquireSamples=True):
 	"""writes data's primary table to outputFile.  
 	"""
-	fragment = HTMLTableFragment(data.getPrimaryTable(), svcs.emptyQueryMeta,
+	if isinstance(data, rsc.Data):
+		data = data.getPrimaryTable()
+	fragment = HTMLTableFragment(data, svcs.emptyQueryMeta,
 		yieldNowAndThen=False, acquireSamples=acquireSamples)
 	outputFile.write(flat.flatten(fragment))
 

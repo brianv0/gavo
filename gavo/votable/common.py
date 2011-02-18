@@ -29,8 +29,11 @@ class BadVOTableData(VOTableError):
 	"""
 	def __init__(self, msg, val, fieldName, hint=None):
 		VOTableError.__init__(self, msg, hint=hint)
-		self.fieldName, self.val = fieldName, val
-	
+		self.fieldName, self.val = fieldName, repr(val)
+
+	def __getstate__(self):
+		return {"msg": self.msg, "val": self.val, "fieldName": self.fieldName}
+
 	def __str__(self):
 		return "Field '%s', value %s: %s"%(self.fieldName, self.val, self.msg)
 
@@ -48,7 +51,8 @@ def escapePCDATA(val):
 	return (val
 		).replace("&", "&amp;"
 		).replace('<', '&lt;'
-		).replace('>', '&gt;')
+		).replace('>', '&gt;'
+		).replace("\0", "&x00;")
 
 
 def validateTDComplex(val):
@@ -59,9 +63,9 @@ def validateVOTInt(val):
 	"""raise an error if val is not a legal int for VOTables.
 	"""
 	try:
-		int(val)
-	except ValueError:
 		int(val[2:], 16)
+	except ValueError:
+		int(val)
 
 
 def iterflattened(arr):

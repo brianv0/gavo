@@ -93,31 +93,16 @@ defaultMFRegistry = ValueMapperFactoryRegistry()
 _registerDefaultMF = defaultMFRegistry.registerFactory
 
 
-# Default nullvalues we use when we don't know anything about the ranges,
-# by VOTable types.  The nullvalues should never be used, but the keys
-# are used to recognize types with special nullvalue handling.
-_defaultNullvalues = {
-	"unsignedByte": 255,
-	"char": '~',
-	"short": -9999,
-	"int": -999999999,
-	"long": -9999999999,
-}
-
-
 def _intMapperFactory(colDesc):
-	if colDesc["datatype"] in _defaultNullvalues:
-		if not colDesc.get("hasNulls"):
-			return
-		try:
-			colDesc.computeNullvalue()
-		except AttributeError:
-			colDesc["nullvalue"] = _defaultNullvalues[colDesc["datatype"]]
-		def coder(val, nullvalue=colDesc["nullvalue"]):
-			if val is None:
-				return nullvalue
-			return val
-		return coder
+	if colDesc["datatype"] not in VColDesc._nullvalueRanges:
+		return
+	if not colDesc.get("hasNulls") or colDesc["nullvalue"] is None:
+		return
+	def coder(val, nullvalue=colDesc["nullvalue"]):
+		if val is None:
+			return nullvalue
+		return val
+	return coder
 _registerDefaultMF(_intMapperFactory)
 
 
@@ -142,31 +127,6 @@ def _floatMapperFactory(colDesc):
 _registerDefaultMF(_floatMapperFactory)
 
 
-def _stringMapperFactory(colDesc):
-	if colDesc.get("optional", True) and ("char(" in colDesc["dbtype"] or 
-			colDesc["dbtype"]=="text"):
-		if colDesc["sample"] is None or isinstance(colDesc["sample"], str):
-			constructor = str
-		else:
-			constructor = unicode
-		def coder(val):
-			if val is None:
-				return ""
-			return constructor(val)
-		return coder
-_registerDefaultMF(_stringMapperFactory)
-
-
-def _charMapperFactory(colDesc):
-	if colDesc["dbtype"]=="char":
-		def coder(val):
-			if val is None:
-				return "\0"
-			return str(val)
-		return coder
-_registerDefaultMF(_charMapperFactory)
-
-
 def datetimeMapperFactory(colDesc):
 	import time
 
@@ -186,7 +146,7 @@ def datetimeMapperFactory(colDesc):
 				unit=="Y:M:D" 
 				or unit=="Y-M-D" 
 				or colDesc.get("xtype")=="adql:TIMESTAMP"):
-			fun = lambda val: (val and val.isoformat()) or "N/A"
+			fun = lambda val: (val and val.isoformat()) or None
 			destType = ("char", "*")
 		elif colDesc["ucd"] and "MJD" in colDesc["ucd"]:  # like VOX:Image_MJDateObs
 			colDesc["unit"] = "d"
@@ -215,11 +175,13 @@ _registerDefaultMF(datetimeMapperFactory)
 def _spointMapperFactory(colDesc):
 	"""A factory for functions turning spoints to STC-S-like stuff.
 	"""
-	if colDesc["dbtype"]!="spoint":
+	if colDesc["dbtype"]!="spoint" and colDesc["xtype"]!="adql:POINT":
 		return
 	def mapper(val):
 		if val is None:
-			return "N/A"
+			return None
+		elif isinstance(val, basestring):  # allow preformatted stuff
+			return val
 		else:
 #	XXX TODO: add something on the system to colDesc and use it here
 			return val.asSTCS("ICRS")
@@ -345,7 +307,6 @@ class VColDesc(dict):
 	The SerManager tries to obtain votCasts from a such-named
 	attribute on the table passed in.
 	"""
-# XXX TODO: This should probably become a wrapper around column...
 	_nullvalueRanges = {
 		"char": (' ', '~'),
 		"unsignedByte": (0, 255),
@@ -355,8 +316,11 @@ class VColDesc(dict):
 	}
 	def __init__(self, column, votCast=None):
 		self["min"], self["max"] = _Supremum, _Infimum
-		self["hasNulls"] = True # Safe default
+		# Safe default, overwritten if we have evidence in finish
+		self["hasNulls"] = True  
 		self.nullSeen = False
+		# nullvalue is a string, None if not user-provided.
+		self["nullvalue"] = column.values and column.values.nullLiteral 
 		self["sample"] = None
 		self["name"] = column.key
 		self["dbtype"] = column.type
@@ -382,11 +346,12 @@ class VColDesc(dict):
 			if self["max"]<val:
 				self["max"] = val
 
-	def finish(self):
+	def finish(self, samplesAcquired):
 		"""has to be called after feeding is done.
 		"""
-		self.computeNullvalue()
-		self["hasNulls"] = self.nullSeen
+		if samplesAcquired:
+			self.computeNullvalue()
+			self["hasNulls"] = self.nullSeen
 
 	def computeNullvalue(self):
 		"""tries to come up with a null value for integral data.
@@ -394,12 +359,17 @@ class VColDesc(dict):
 		This is called by finish(), but you could call it yourself to find out
 		if a nullvalue can be computed.
 		"""
+		if self["nullvalue"] is not None:
+			return
 		if self["datatype"] not in self._nullvalueRanges:
 			return
+		if not self.nullSeen:
+			return
+
 		if self["min"]>self._nullvalueRanges[self["datatype"]][0]:
-			self["nullvalue"] = self._nullvalueRanges[self["datatype"]][0]
+			self["nullvalue"] = str(self._nullvalueRanges[self["datatype"]][0])
 		elif self["max"]<self._nullvalueRanges[self["datatype"]][1]:
-			self["nullvalue"] = self._nullvalueRanges[self["datatype"]][1]
+			self["nullvalue"] = str(self._nullvalueRanges[self["datatype"]][1])
 		else:
 			raise Error("Cannot compute nullvalue for column %s,"
 				"range is %s..%s"%(self["name"], self["min"], self["max"]))
@@ -448,7 +418,7 @@ class SerManager(utils.IdManagerMixin):
 			if withRanges:
 				self._findRanges()
 		for cd in self:
-			cd.finish()
+			cd.finish(withRanges)
 		self._makeMappers(mfRegistry)
 	
 	def __iter__(self):

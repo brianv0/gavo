@@ -247,3 +247,7 @@
 60/WISHLIST/2011-01-25
 	When using utils.intToFunnyWord to make up ids, we should use some
 	reserved marker to avoid collisions with user-defined ids.
+
+61/WISHLIST/2011-02-18
+	Do away with VOColDesc and instead add some additional data to the
+	column objects themselves.

@@ -471,14 +471,16 @@ class UWSJob(object):
 # Currently, this should be called exclusively by changeToPhase.
 # When and if we make error behaviour overrideable, this actually
 # makes sense as a user-exposed method.
+		errInfo = {
+			"type": exception.__class__.__name__,
+			"msg": unicode(exception),
+			"hint": getattr(exception, "hint", None),
+		}
 		with open(os.path.join(self.getWD(), "__EXCEPTION__"), "w") as f:
-			try:
-				pickle.dump(exception, f)
-			except TypeError: # something in the exc cannot be pickled, use a String
-				pickle.dump(Exception(str(exception)), f)
+			pickle.dump(errInfo, f)
 	
 	def getError(self):
-		"""returns an exception object previously set by setError.
+		"""returns a dictionary having type, msg and hint keys for an error.
 
 		If no error has been posted, a ValueError is raised.
 		"""

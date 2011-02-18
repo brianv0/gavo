@@ -8,6 +8,7 @@ from __future__ import with_statement
 import datetime
 import math
 import os
+import re
 import unittest
 from cStringIO import StringIO
 
@@ -130,7 +131,7 @@ class TextOutputTest(unittest.TestCase):
 		data = rsc.makeData(self.dd, forceSource=[
 			(None, None, None, None, None)])
 		self.assertEqual(texttable.getAsText(data),
-			'-2147483648\tnan\tnan\t\tNone\n')
+			'-2147483648\tnan\tnan\tNone\tNone\n')
 	
 	def testWithNastyString(self):
 		data = rsc.makeData(self.dd, forceSource=[
@@ -195,5 +196,39 @@ class FormatDataTest(testhelpers.VerboseTest):
 	def testCSV(self):
 		self.assertOutputContains("csv", ["2,-0.5,zw\xc3\xb6i,2456575.5"])
 
+
+class _NullTestTable(testhelpers.TestResource):
+	"""A table having some types and an all-null row.
+	"""
+	def make(self, deps):
+		td = base.parseFromString(rscdef.TableDef,
+			"""
+			<table id="nulls">
+				<column name="anint" type="integer"/>
+				<column name="afloat"/>
+				<column name="adouble" type="double precision"/>
+				<column name="atext" type="text"/>
+				<column name="adate" type="date"/>
+			</table>
+			""")
+		return rsc.TableForDef(td,
+			rows=[dict((col.name, None) for col in td)])
+
+
+	
+_nullTestTable = _NullTestTable()
+
+
+class NullValueTest(testhelpers.VerboseTest):
+	resources = [("nullsTable", _nullTestTable)]
+
+	def testHTML(self):
+		destF = StringIO()
+		formats.formatData("html", self.nullsTable, destF)
+		result = re.search("<tr>(<td>.*)</tr>", destF.getvalue()).group(0)
+		self.assertEqual(result, "<tr><td>N/A</td><td>N/A</td><td>N/A</td>"
+			"<td>N/A</td><td>N/A</td></tr>")
+
+
 if __name__=="__main__":
-	testhelpers.main(FormatDataTest)
+	testhelpers.main(NullValueTest)

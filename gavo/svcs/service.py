@@ -75,9 +75,9 @@ def adaptTable(origTable, newColumns):
 				content_="%svars[%s]"%(exprStart, repr(col.name))
 				).finishElement(None))
 		newTable = table.InMemoryTable(newTd, validate=False)
-		mapper = rmk.finishElement(None).compileForTable(newTable)
+		mapper = rmk.finishElement(None).compileForTableDef(newTd)
 		for r in origTable:
-			newTable.addRow(mapper(r))
+			newTable.addRow(mapper(r, newTable))
 	return rsc.wrapTable(newTable, rdSource=origTable.tableDef)
 
 

@@ -164,8 +164,10 @@ def _makeCharArrayEncoder(field):
 	src.append("tokens.append(struct.pack('%ds'%len(val), val))")
 
 	nullvalue = coding.getNullvalue(field, lambda _: True)
-	if nullvalue is not None:
-		nullvalue = repr(struct.pack("c", str(nullvalue)))
+	if nullvalue is None:
+		nullvalue = "''"
+	else:
+		nullvalue = repr(struct.pack("s", str(nullvalue)))
 	return _addNullvalueCode(field, nullvalue, src)
 
 

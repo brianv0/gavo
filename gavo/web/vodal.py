@@ -316,12 +316,15 @@ class UnifiedDALRenderer(DALRenderer):
 	for SSAP (and soon SIAP, too).  The trouble is that then, we'll
 	need to dispatch the registry capabilities in some other way.
 
-	To define actual renderers, inherit from this and set the name attribute.
+	To define actual renderers, inherit from this and set the name attribute
+	(plus _outputTableCasts if necessary).
+
 	In the docstring, document what additional meta is used in the 
 	renderer's capability element.
-
 	"""
 	parameterStyle = "pql"
+
+	_outputTableCasts = {}
 
 	def _formatOutput(self, data, ctx):
 		request = inevow.IRequest(ctx)
@@ -331,8 +334,6 @@ class UnifiedDALRenderer(DALRenderer):
 			return streaming.streamOut(lambda f: f.write(payload), request)
 		else:
 			request.setHeader("content-type", "text/xml+votable")
-			data.original.addMeta("info", base.makeMetaValue("OK", name="info",
-				infoName="QUERY_STATUS", infoValue="OK"))
 			data.original.setMeta("_type", "results")
 			data.original.getPrimaryTable().votCasts = self._outputTableCasts
 			return DALRenderer._formatOutput(self, data, ctx)

@@ -35,9 +35,9 @@ def _addNullvalueCode(field, src, validator, defaultNullValue=None):
 			action = ("  raise common.BadVOTableData('None passed for field"
 				" that has no NULL value', None, '%s')")%field.getDesignation()
 		else:
-			action = ("  tokens.append(%r)"%defaultNullValue)
+			action = ("  tokens.append(%r)"%common.escapePCDATA(defaultNullValue))
 	else:
-		action = "  tokens.append(%r)"%nullvalue
+		action = "  tokens.append(%r)"%common.escapePCDATA(nullvalue)
 	return [
 			'if val is None:',
 			action,
@@ -85,11 +85,11 @@ def _makeCharEncoder(field):
 		return _addNullvalueCode(field, [
 			"tokens.append(common.escapePCDATA(' '.join("
 			" s.replace(' ', '%20') for s in common.iterflattened(val))))"],
-			lambda _: True)
+			lambda _: True, "")
 	else:
 		return _addNullvalueCode(field, [
 			"tokens.append(common.escapePCDATA(val))"],
-			lambda _: True)
+			lambda _: True, "")
 
 
 _encoders = {

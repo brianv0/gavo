@@ -314,7 +314,7 @@ class TabledataWriteTest(testhelpers.VerboseTest):
 				V.FIELD(datatype="float")[V.VALUES(null="-9999")]],
 			[[1, "a", 1.5], [None, None, None]],
 			'<TR><TD>1</TD><TD>a</TD><TD>1.5</TD></TR>'
-			'<TR><TD>23</TD><TD>\x00</TD><TD>NaN</TD></TR>'
+			'<TR><TD>23</TD><TD>&x00;</TD><TD>NaN</TD></TR>'
 		), (
 			[V.FIELD(datatype="unsignedByte", arraysize="2")[V.VALUES(null="0xff")]],
 			[[[]], [[2]], [None], [[2, 3, 4]]],

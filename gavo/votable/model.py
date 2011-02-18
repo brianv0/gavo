@@ -316,6 +316,9 @@ class VOTable(object):
 		_a_null = None
 		_a_ref = None
 		_a_type = None
+		
+		def isEmpty(self):
+			return self.null is None and Element.isEmpty(self)
 
 
 	class VOTABLE(_VOTElement):

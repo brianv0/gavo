@@ -348,6 +348,73 @@ class MetaTest(testhelpers.VerboseTest):
 			'<INFO name="legal" value="Please reference someone else"'])
 
 
+class TabledataNullValueTest(testhelpers.VerboseTest):
+	def _getTable(self, colDef):
+		return rsc.TableForDef(base.parseFromString(rscdef.TableDef,
+				'<table>%s</table>'%colDef), rows=[{"x": None}])
+
+	def _assertVOTContains(self, colDef, literals, **contextArgs):
+		res = votablewrite.getAsVOTable(
+			self._getTable(colDef),
+			votablewrite.VOTableContext(tablecoding="td", **contextArgs))
+		for lit in literals:
+			try:
+				self.failUnless(lit in res)
+			except AssertionError:
+				print res
+				raise
+
+	def testIntNullAuto(self):
+		self._assertVOTContains('<column name="x" type="integer"/>', [
+			'<VALUES null="-2147483648">',
+			'<TR><TD>-2147483648</TD></TR>'])
+
+	def testIntNullRaising(self):
+		table = self._getTable('<column name="x" type="integer"/>')
+		self.assertRaisesWithMsg(votable.BadVOTableData,
+			"Field 'x', value None: None passed for field that has no NULL value",
+			votablewrite.getAsVOTable,
+			(table, votablewrite.VOTableContext(acquireSamples=False)))
+
+	def testIntNullGiven(self):
+		self._assertVOTContains('<column name="x" type="integer">'
+			'<values nullLiteral="-99"/></column>', [
+			'<VALUES null="-99">',
+			'<TR><TD>-99</TD></TR>'])
+	
+	def testCharNullGiven(self):
+		self._assertVOTContains('<column name="x" type="char">'
+				'<values nullLiteral="x"/></column>', [
+			'<VALUES null="x">',
+			'<TR><TD>x</TD></TR>'])
+
+	def testCharNullAuto(self):
+		self._assertVOTContains('<column name="x" type="char"/>', [
+			'<VALUES null=" ">',
+			'<TR><TD> </TD></TR>'])
+	
+	def testTextNullGiven(self):
+		self._assertVOTContains('<column name="x" type="text">'
+				'<values nullLiteral="&quot;not given&quot;"/></column>', [
+			'<VALUES null="&quot;not given&quot;">',
+			'<TR><TD>"not given"</TD></TR>'])
+	
+	def testTextNullAuto(self):
+		self._assertVOTContains('<column name="x" type="text"/>',[
+			'<TR><TD></TD></TR>'])
+	
+	def testTextNullAutoNoSample(self):
+		self._assertVOTContains('<column name="x" type="text"/>',[
+			'<TR><TD></TD></TR>'], acquireSamples=False)
+
+	def testRealNullIgnoreGiven(self):
+		self._assertVOTContains('<column name="x">'
+				'<values nullLiteral="-9999."/></column>', [
+			'<VALUES null="-9999.">',
+			'<TR><TD>NaN</TD></TR>'])
+	
+
+
 class GroupWriteTest(testhelpers.VerboseTest):
 	def testEmptyGroup(self):
 		tree = _getVOTTreeForTable(
@@ -600,4 +667,4 @@ class HackMetaTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(OverflowTest)
+	testhelpers.main(TabledataNullValueTest)

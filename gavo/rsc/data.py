@@ -42,10 +42,10 @@ class DataFeeder(table.Feeder):
 		for make in self.data.dd.makes:
 			table = self.data.tables[make.table.id]
 			feeder = table.getFeeder(batchSize=self.batchSize)
-			makeRow = make.rowmaker.compileForTable(table)
+			makeRow = make.rowmaker.compileForTableDef(table.tableDef)
 			def addRow(srcRow, feeder=feeder, makeRow=makeRow):
 				try:
-					procRow = makeRow(srcRow)
+					procRow = makeRow(srcRow, table)
 					feeder.add(procRow)
 				except rscdef.IgnoreThisRow, msg:
 					pass
