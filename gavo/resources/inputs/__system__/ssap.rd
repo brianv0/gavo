@@ -130,7 +130,9 @@
 		<column name="ssa_length" type="integer"
 			utype="ssa:Dataset.Length" tablehead="Length"
 			verbLevel="5" 
-			description="Number of points in the spectrum"/>
+			description="Number of points in the spectrum">
+			<values nullLiteral="-1"/>
+		</column>
 	</STREAM>
 
 	<STREAM id="hcd_outpars">

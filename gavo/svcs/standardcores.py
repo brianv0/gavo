@@ -486,8 +486,9 @@ class DBCore(TableBasedCore):
 		"""
 		resultTableDef = base.makeStruct(outputdef.OutputTableDef,
 			parent_=self.queriedTable.parent, id="result",
-			onDisk=False, columns=self.getQueryCols(service, queryMeta)
-			)
+			onDisk=False, columns=self.getQueryCols(service, queryMeta),
+			params=self.queriedTable.params)
+		resultTableDef.copyMetaFrom(self.queriedTable)
 		if not resultTableDef.columns:
 			raise base.ValidationError("No output fields with these settings",
 				"_OUTPUT")

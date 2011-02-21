@@ -409,6 +409,13 @@ class MetaMixin(object):
 		self.meta_ = {}
 		for key, mi in oldDict.iteritems():
 			self.meta_[key] = mi.copy()
+	
+	def copyMetaFrom(self, other):
+		"""sets a copy of other's meta items on self.
+		"""
+		self.meta_ = other.meta_
+		self.deepCopyMeta()
+
 
 # Global meta, items get added from config
 configMeta = MetaMixin()
@@ -587,6 +594,7 @@ class MetaValue(MetaMixin):
 		replace_whitespace=True)
 
 	def __init__(self, content="", format="plain"):
+		self.initArgs = content, format
 		MetaMixin.__init__(self)
 		if format not in self.knownFormats:
 			raise common.StructureError(
@@ -669,7 +677,7 @@ class MetaValue(MetaMixin):
 	def copy(self):
 		"""returns a deep copy of self.
 		"""
-		newOb = self.__class__()
+		newOb = self.__class__(*self.initArgs)
 		newOb.format, newOb.content = self.format, self.content
 		newOb.deepCopyMeta()
 		return newOb
@@ -728,6 +736,7 @@ class NewsMeta(MetaValue):
 	def __init__(self, url, format="plain", author=None, 
 			date="Unspecified time"):
 		MetaValue.__init__(self, url, format)
+		self.initArgs = url, format, author, date
 		self.author = author
 		self.date = date
 
@@ -768,6 +777,7 @@ class NoteMeta(MetaValue):
 	"""
 	def __init__(self, content, format="rst", tag=None):
 		MetaValue.__init__(self, content, format)
+		self.initArgs = content, format, tag
 		self.tag = tag
 
 	def _getContentAsHTML(self, content):
@@ -796,6 +806,7 @@ class InfoItem(MetaValue):
 	def __init__(self, content, format="plain", infoName=None, 
 			infoValue=None, infoId=None):
 		MetaValue.__init__(self, content, format)
+		self.initArgs = content, format, infoName, infoValue, infoId
 		self.infoName, self.infoValue = infoName, infoValue
 		self.infoId = infoId
 
