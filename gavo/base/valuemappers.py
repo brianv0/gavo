@@ -93,19 +93,6 @@ defaultMFRegistry = ValueMapperFactoryRegistry()
 _registerDefaultMF = defaultMFRegistry.registerFactory
 
 
-def _intMapperFactory(colDesc):
-	if colDesc["datatype"] not in VColDesc._nullvalueRanges:
-		return
-	if not colDesc.get("hasNulls") or colDesc["nullvalue"] is None:
-		return
-	def coder(val, nullvalue=colDesc["nullvalue"]):
-		if val is None:
-			return nullvalue
-		return val
-	return coder
-_registerDefaultMF(_intMapperFactory)
-
-
 def _booleanMapperFactory(colDesc):
 	if colDesc["dbtype"]=="boolean":
 		def coder(val):

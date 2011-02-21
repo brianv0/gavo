@@ -105,12 +105,17 @@ same data and thus should only be used if your backend tools do not understand
 VOTables.</li>
 <li>TSV -- tab separated files.  If in a desperate pinch, you can get the 
 table contents as an ASCII file.  The fields a separated by tabs.  All metadata
-is lost.  Missing string values are empty strings, missing floats
-are rendered as "nan".  For integers, the nullvalues are consistent within 
-a table but may change for different tables.  Strings containing non-ascii
+is lost.  Nullvalues are (almost) always rendered as the string "None".
+Strings containing non-ascii
 or control characters are rendered with C escapes (\n, \t, etc) or sedecimal
 unicode codepoints (\xe4, e.g., is an &auml;).  As I said: Don't use this
 unless you absolutely have to.</li>
+<li>CSV -- comma separated values.  This format carries almost no
+metadata as well, but it is understood by may database programs, spreadsheets,
+etc (note: don't use Excel to process astronomical data.  
+<a href="http://www.star.bris.ac.uk/~mbt/topcat/">TOPCAT</a> is so
+much nicer, and it has built-in VO support).  Null values are mostly
+rendered as empty fields, but float NULLs are NaNs.</li>
 <li>tar -- if the service contains "products" (usually FITS files of some
 kind), you can download all matching items in a tar file.</li>
 </ul>

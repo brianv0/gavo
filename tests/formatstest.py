@@ -131,7 +131,7 @@ class TextOutputTest(unittest.TestCase):
 		data = rsc.makeData(self.dd, forceSource=[
 			(None, None, None, None, None)])
 		self.assertEqual(texttable.getAsText(data),
-			'-2147483648\tnan\tnan\tNone\tNone\n')
+			'None\tnan\tnan\tNone\tNone\n')
 	
 	def testWithNastyString(self):
 		data = rsc.makeData(self.dd, forceSource=[
@@ -209,26 +209,135 @@ class _NullTestTable(testhelpers.TestResource):
 				<column name="adouble" type="double precision"/>
 				<column name="atext" type="text"/>
 				<column name="adate" type="date"/>
+				<column name="aPos" type="spoint"/>
 			</table>
 			""")
 		return rsc.TableForDef(td,
 			rows=[dict((col.name, None) for col in td)])
 
 
-	
 _nullTestTable = _NullTestTable()
 
 
 class NullValueTest(testhelpers.VerboseTest):
 	resources = [("nullsTable", _nullTestTable)]
 
-	def testHTML(self):
+	def _runTestForFormat(self, formatName, assertion):
 		destF = StringIO()
-		formats.formatData("html", self.nullsTable, destF)
-		result = re.search("<tr>(<td>.*)</tr>", destF.getvalue()).group(0)
-		self.assertEqual(result, "<tr><td>N/A</td><td>N/A</td><td>N/A</td>"
-			"<td>N/A</td><td>N/A</td></tr>")
+		formats.formatData(formatName, self.nullsTable, destF)
+		assertion(destF.getvalue())
+
+	def testHTML(self):
+		def assertion(data):
+			self.assertEqual(
+				re.search("<tr>(<td>.*)</tr>", data).group(0),
+				"<tr><td>N/A</td><td>N/A</td><td>N/A</td>"
+					"<td>N/A</td><td>N/A</td><td>N/A</td></tr>")
+		self._runTestForFormat("html", assertion)
+	
+	def testTDVOTable(self):  
+		# there's votabletest exercising this more thoroughly, but while we
+		# are at it...
+		def assertion(data):
+			self.failUnless('<VALUES null="-2147483648"' in data)
+			self.failUnless('<TR><TD>-2147483648</TD><TD>NaN</TD><TD>'
+				'NaN</TD><TD></TD><TD></TD><TD></TD></TR>' in data)
+		self._runTestForFormat("votabletd", assertion)
+
+	def testBinVOTable(self):
+		def assertion(data):
+			self.failUnless('<VALUES null="-2147483648"' in data)
+			decoded = re.search(
+				'(?s)<STREAM encoding="base64">(.*)</STREAM>',
+				data).group(1).decode("base64")
+			self.assertEqual(decoded, "".join([
+				'\x80\x00\x00\x00', 
+				'\x7f\xc0\x00\x00', 
+				'\x7f\xf8\x00\x00\x00\x00\x00\x00', 
+				'\x00\x00\x00\x00', 
+				'\x00\x00\x00\x00', 
+				'\x00\x00\x00\x00']))
+		self._runTestForFormat("votable", assertion)
+
+	def testCSV(self):
+		def assertion(data):
+			self.assertEqual(",nan,nan,,,", data.strip())
+		self._runTestForFormat("csv", assertion)
+
+	def testTSV(self):
+		def assertion(data):
+			self.assertEqual('None\tnan\tnan\tNone\tNone\tNone', data.strip())
+		self._runTestForFormat("tsv", assertion)
+
+
+class _ExplicitNullTestTable(testhelpers.TestResource):
+	"""A table having some types with explicit null values and an all-null row.
+	"""
+	def make(self, deps):
+		td = base.parseFromString(rscdef.TableDef,
+			"""
+			<table id="nulls">
+				<column name="anint" type="integer"><values nullLiteral="-1"/></column>
+				<column name="atext" type="text"><values nullLiteral="xxy"/></column>
+				<column name="fixtx" type="char(7)"><values nullLiteral="xxy"/></column>
+				<column name="adate" type="date"><values nullLiteral="Bull"/></column>
+			</table>
+			""")
+		return rsc.TableForDef(td,
+			rows=[dict((col.name, None) for col in td)])
+
+
+_explicitNullTestTable = _ExplicitNullTestTable()
+
+class ExplicitNullValueTest(testhelpers.VerboseTest):
+	resources = [("nullsTable", _explicitNullTestTable)]
+
+	def _runTestForFormat(self, formatName, assertion):
+		destF = StringIO()
+		formats.formatData(formatName, self.nullsTable, destF)
+		assertion(destF.getvalue())
+
+	def testHTML(self):
+		def assertion(data):
+			self.assertEqual(
+				re.search("<tr>(<td>.*)</tr>", data).group(0),
+					'<tr><td>N/A</td><td>N/A</td><td>N/A</td><td>N/A</td></tr>')
+		self._runTestForFormat("html", assertion)
+	
+	def testTDVOTable(self):  
+		# there's votabletest exercising this more thoroughly, but while we
+		# are at it...
+		def assertion(data):
+			self.failUnless('<VALUES null="-1"' in data)
+			self.failUnless('<TR><TD>-1</TD><TD>xxy</TD><TD>xxy</TD>'
+				'<TD>Bull</TD></TR>' in data)
+		self._runTestForFormat("votabletd", assertion)
+
+	def testBinVOTable(self):
+		def assertion(data):
+			self.failUnless('<VALUES null="-1"' in data)
+			self.failUnless('<VALUES null="xxy"' in data)
+			self.failUnless('<VALUES null="Bull"' in data)
+			decoded = re.search(
+				'(?s)<STREAM encoding="base64">(.*)</STREAM>',
+				data).group(1).decode("base64")
+			self.assertEqual(decoded, "".join([
+				'\xff\xff\xff\xff',
+				'\x00\x00\x00\x03xxy',
+				'xxy    ',
+				'\x00\x00\x00\x04Bull']))
+		self._runTestForFormat("votable", assertion)
+
+	def testCSV(self):
+		def assertion(data):
+			self.assertEqual(",,,", data.strip())
+		self._runTestForFormat("csv", assertion)
+
+	def testTSV(self):
+		def assertion(data):
+			self.assertEqual('None\tNone\tNone\tNone', data.strip())
+		self._runTestForFormat("tsv", assertion)
 
 
 if __name__=="__main__":
-	testhelpers.main(NullValueTest)
+	testhelpers.main(ExplicitNullValueTest)

@@ -149,11 +149,22 @@ def _makeCharArrayEncoder(field):
 			" help out?")
 
 	src = []
+	nullvalue = coding.getNullvalue(field, lambda _: True)
 	if field.hasVarLength():
 		src.append("tokens.append(struct.pack('!i', len(val)))")
+		if nullvalue is None:
+			nullvalue = repr('\0\0\0\0')
+		else:
+			# The str in the next line allows nullvalue to be unicode (containing
+			# ascii, of course)
+			nullvalue = repr(struct.pack("!i%ds"%len(nullvalue), 
+				len(nullvalue), str(nullvalue)))
 	else:
-		src.append("val = val[:%d]+' '*(%d-len(val))"%(
-			field.getLength(), field.getLength()))
+		src.append("val = coding.trimString(val, %d)"%field.getLength())
+		if nullvalue is not None:
+			nullvalue = repr(struct.pack("%ds"%field.getLength(),
+				str(coding.trimString(nullvalue, field.getLength()))))
+		# no predefined nullvalue for constant-length strings
 
 	if field.datatype=="char":
 		src.append(
@@ -162,12 +173,6 @@ def _makeCharArrayEncoder(field):
 		src.append("val = val.encode('utf-16be')")
 
 	src.append("tokens.append(struct.pack('%ds'%len(val), val))")
-
-	nullvalue = coding.getNullvalue(field, lambda _: True)
-	if nullvalue is None:
-		nullvalue = "''"
-	else:
-		nullvalue = repr(struct.pack("s", str(nullvalue)))
 	return _addNullvalueCode(field, nullvalue, src)
 
 

@@ -54,7 +54,7 @@ def buildCodec(source, env):
 		sys.stderr.write("Oomph, internal error.  Source:\n")
 		sys.stderr.write(source)
 		traceback.print_exc()
-		sys.exit("")
+		raise
 	return ns["codec"]
 
 
@@ -132,3 +132,15 @@ def trim(seq, arraysize, padder):
 	elif len(seq)>arraysize:
 		seq = seq[:arraysize]
 	return list(common.iterflattened(seq))
+
+
+def trimString(aString, length):
+	"""returns aString padded with blanks/cropped to length.
+	"""
+	l = len(aString)
+	if l<length:
+		return aString+" "*(length-l)
+	elif l>length:
+		return aString[:length]
+	else:
+		return aString
