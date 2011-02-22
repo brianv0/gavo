@@ -106,7 +106,7 @@ class Field(object):
 
 
     def __init__(self, name, type, widgetFactory=None, label=None,
-            description=None, cssClass=None):
+            description=None, cssClass=None, default=None):
         if not util.validIdentifier(name):
             raise ValueError('%r is an invalid field name'%name)
         if label is None:
@@ -119,6 +119,7 @@ class Field(object):
         self.label = label
         self.description = description
         self.cssClass = cssClass
+        self.default = default
 
 
     def setItemParent(self, itemParent):
@@ -142,7 +143,12 @@ class Field(object):
 
         # Process the input using the widget, storing the data back on the form.
         try:
-            form.data[self.key] = self.makeWidget().processInput(ctx, self.key, args)
+            if self.default is not None:
+                form.data[self.key] = self.makeWidget(
+                    ).processInput(ctx, self.key, args, self.default)
+            else:
+                form.data[self.key] = self.makeWidget(
+                    ).processInput(ctx, self.key, args)
         except validation.FieldError, e:
             if e.fieldName is None:
                 e.fieldName = self.key

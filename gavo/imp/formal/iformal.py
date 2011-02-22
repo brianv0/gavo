@@ -18,7 +18,7 @@ class IWidget(Interface):
     def renderImmutable(self, ctx, key, args, errors):
         pass
 
-    def processInput(self, ctx, key, args):
+    def processInput(self, ctx, key, args, default):
         pass
 
 

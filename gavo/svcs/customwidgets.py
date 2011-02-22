@@ -91,7 +91,7 @@ class DBOptions(object):
 	# XXX TODO: make this immutable.
 	renderImmutable = render
 
-	def processInput(self, ctx, key, args):
+	def processInput(self, ctx, key, args, default=''):
 		order, limit = None, None
 		if self.sortWidget:
 			order = self.sortWidget.processInput(ctx, "_DBOPTIONS_ORDER", args)
@@ -171,8 +171,8 @@ class MultiSelectChoice(SelectChoice):
 			value = map(converter.fromType, args.get(key, []))
 		return self._renderTag(ctx, key, value, converter, False)
 
-	def processInput(self, ctx, key, args):
-		values = args.get(key, [''])
+	def processInput(self, ctx, key, args, default=''):
+		values = args.get(key, [default.split()])
 		rv = []
 		for value in values:
 			value = iformal.IStringConvertible(self.original).toType(value)

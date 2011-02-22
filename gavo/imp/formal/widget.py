@@ -51,8 +51,8 @@ class TextInput(object):
         value = iformal.IStringConvertible(self.original).fromType(args.get(key))
         return self._renderTag(ctx, key, value, True)
 
-    def processInput(self, ctx, key, args):
-        value = args.get(key, [''])[0].decode(util.getPOSTCharset(ctx))
+    def processInput(self, ctx, key, args, default=''):
+        value = args.get(key, [default])[0].decode(util.getPOSTCharset(ctx))
         value = iformal.IStringConvertible(self.original).toType(value)
         return self.original.validate(value)
 
@@ -87,8 +87,8 @@ class Checkbox(object):
         value = iformal.IBooleanConvertible(self.original).fromType(args.get(key))
         return self._renderTag(ctx, key, value, True)
 
-    def processInput(self, ctx, key, args):
-        value = args.get(key, [None])[0]
+    def processInput(self, ctx, key, args, default=''):
+        value = args.get(key, [default])[0]
         if not value:
             value = 'False'
         value = iformal.IBooleanConvertible(self.original).toType(value)
@@ -140,8 +140,8 @@ class TextArea(object):
         value = iformal.IStringConvertible(self.original).fromType(args.get(key))
         return self._renderTag(ctx, key, value, True)
 
-    def processInput(self, ctx, key, args):
-        value = args.get(key, [''])[0].decode(util.getPOSTCharset(ctx))
+    def processInput(self, ctx, key, args, default=''):
+        value = args.get(key, [default])[0].decode(util.getPOSTCharset(ctx))
         value = iformal.IStringConvertible(self.original).fromType(value)
         return self.original.validate(value)
 
@@ -191,9 +191,9 @@ class TextAreaList(object):
             values = []
         return self._renderTag(ctx, key, values, True)
 
-    def processInput(self, ctx, key, args):
+    def processInput(self, ctx, key, args, default=''):
         # Get the whole string
-        value = args.get(key, [''])[0].decode(util.getPOSTCharset(ctx))
+        value = args.get(key, [default])[0].decode(util.getPOSTCharset(ctx))
         # Split into lines
         values = value.splitlines()
         # Strip each line
@@ -238,7 +238,7 @@ class CheckedPassword(object):
                     value=values[1], class_='readonly', readonly='readonly')
         ]
 
-    def processInput(self, ctx, key, args):
+    def processInput(self, ctx, key, args, default=''):
         charset = util.getPOSTCharset(ctx)
         pwds = [pwd.decode(charset) for pwd in args.get(key, [])]
         if len(pwds) == 0:
@@ -275,9 +275,9 @@ class ChoiceBase(object):
         if noneOption is not _UNSET:
             self.noneOption = noneOption
 
-    def processInput(self, ctx, key, args):
+    def processInput(self, ctx, key, args, default=''):
         charset = util.getPOSTCharset(ctx)
-        value = args.get(key, [''])[0].decode(charset)
+        value = args.get(key, [default])[0].decode(charset)
         value = iformal.IStringConvertible(self.original).toType(value)
         if self.noneOption is not None and \
                 value == iformal.IKey(self.noneOption).key():
@@ -369,8 +369,8 @@ class SelectOtherChoice(object):
                 'html/SelectOtherChoice.html'))
 
 
-    def _valueFromRequestArgs(self, charset, key, args):
-        value = args.get(key, [''])[0].decode(charset)
+    def _valueFromRequestArgs(self, charset, key, args, default=''):
+        value = args.get(key, [default])[0].decode(charset)
         if value == self.otherOption[0]:
             value = args.get(key+'-other', [''])[0].decode(charset)
         return value
@@ -442,9 +442,9 @@ class SelectOtherChoice(object):
         tag.fillSlots('otherValue', otherValue)
         return tag
 
-    def processInput(self, ctx, key, args):
+    def processInput(self, ctx, key, args, default=''):
         charset = util.getPOSTCharset(ctx)
-        value = self._valueFromRequestArgs(charset, key, args)
+        value = self._valueFromRequestArgs(charset, key, args, default)
         value = iformal.IStringConvertible(self.original).toType(value)
         if self.noneOption is not None and value == iformal.IKey(self.noneOption).key():
             value = None
@@ -514,6 +514,8 @@ class DatePartsSelect(object):
     
     The months default to non-zero prefixed numerics but can be passed as a list
     of label, value pairs
+
+    default can be whitespace-separated parts here.
     """    
     implements( iformal.IWidget )
 
@@ -605,7 +607,7 @@ class DatePartsSelect(object):
         year, month, day = converter.fromType(args.get(key))
         return self._renderTag(ctx, year, month, day, namer, True)
 
-    def processInput(self, ctx, key, args):
+    def processInput(self, ctx, key, args, default=None):
         namer = self._namer(key)
         # Get the form field values as a (y,m,d) tuple
         ymd = [args.get(namer(part), [''])[0].strip() for part in ('year', 'month', 'day')]
@@ -613,7 +615,7 @@ class DatePartsSelect(object):
         ymd = [p for p in ymd if p]
         # Nothing entered means None otherwise we need all three.
         if not ymd:
-            ymd = None
+            ymd = default and default.split()
         elif len(ymd) != 3:
             raise validation.FieldValidationError("Invalid date")
         # So, we have what looks like a good attempt to enter a date.
@@ -654,6 +656,8 @@ class DatePartsInput(object):
     twoCharCutoffYear:
         Allow 2 char years and set the year where the century flips between
         20th and 21st century.
+
+    default can be whitespace-separated parts.
     """
     implements( iformal.IWidget )
 
@@ -704,7 +708,7 @@ class DatePartsInput(object):
         year, month, day = converter.fromType(args.get(key))
         return self._renderTag(ctx, year, month, day, namer, True)
 
-    def processInput(self, ctx, key, args):
+    def processInput(self, ctx, key, args, default=None):
         namer = self._namer(key)
         # Get the form field values as a (y,m,d) tuple
         ymd = [args.get(namer(part), [''])[0].strip() for part in ('year', 'month', 'day')]
@@ -712,7 +716,7 @@ class DatePartsInput(object):
         ymd = [p for p in ymd if p]
         # Nothing entered means None otherwise we need all three.
         if not ymd:
-            ymd = None
+            ymd = default and default.split()
         elif len(ymd) != 3:
             raise validation.FieldValidationError("Invalid date")
         # So, we have what looks like a good attempt to enter a date.
@@ -746,6 +750,8 @@ class DatePartsInput(object):
 class MMYYDatePartsInput(object):
     """
     Two input fields for entering the month and year.
+
+    default can be a year and month separated by whitespace.
     """
     implements( iformal.IWidget )
 
@@ -795,12 +801,12 @@ class MMYYDatePartsInput(object):
             year = str(year)[2:]
         return self._renderTag(ctx, year, month, namer, True)
 
-    def processInput(self, ctx, key, args):
+    def processInput(self, ctx, key, args, default=None):
         namer = self._namer(key)
         value = [args.get(namer(part), [''])[0].strip() for part in ('year', 'month')]
         value = [p for p in value if p]
         if not value:
-            value = None
+            value = default and default.split()
         elif len(value) != 2:
             raise validation.FieldValidationError("Invalid date")
         if value is not None:
@@ -822,6 +828,8 @@ class MMYYDatePartsInput(object):
 class CheckboxMultiChoice(object):
     """
     Multiple choice list, rendered as a list of checkbox fields.
+
+    Default is a whitespace-separated enumeration for now.
     """
     implements( iformal.IWidget )
 
@@ -877,9 +885,9 @@ class CheckboxMultiChoice(object):
 
         return self._renderTag(ctx, key, values, converter, True)
 
-    def processInput(self, ctx, key, args):
+    def processInput(self, ctx, key, args, default=''):
         charset = util.getPOSTCharset(ctx)
-        values = [v.decode(charset) for v in args.get(key, [])]
+        values = [v.decode(charset) for v in args.get(key, default.split())]
         converter = iformal.IStringConvertible(self.original)
         values = [converter.toType(v) for v in values]
         return self.original.validate(values)
@@ -908,7 +916,8 @@ class FileUploadRaw(object):
         value = iformal.IFileConvertible(self.original).fromType(args.get(key))
         return self._renderTag(ctx, key, True)
 
-    def processInput(self, ctx, key, args):
+    def processInput(self, ctx, key, args, default=None):
+        # default is ignored here
         if inevow.IRequest(ctx).fields is None: # no file upload
           return None, None
         fileitem = inevow.IRequest(ctx).fields[key]
@@ -969,7 +978,8 @@ class FileUpload(object):
         value = iformal.IStringConvertible(self.original).fromType(args.get(key))
         return self._renderTag(ctx, key, value, namer, True)
 
-    def processInput(self, ctx, key, args):
+    def processInput(self, ctx, key, args, default=None):
+        # default is ignored here
         fileitem = inevow.IRequest(ctx).fields[key]
         name = fileitem.filename.decode(util.getPOSTCharset(ctx))
 
@@ -1128,12 +1138,12 @@ class FileUploadWidget(object):
             # key of the original that can be used to get a file later
             yield T.input(name=originalIdName,value=originalKey,type='hidden')
 
-    def processInput(self, ctx, key, args):
+    def processInput(self, ctx, key, args, default=None):
         """
             Process the request, storing any uploaded file in the
             resource manager.
         """
-
+        # default is ignored here.
         resourceManager = iformal.IForm( ctx ).resourceManager
 
         # Ping the resource manager with any resource ids that I know
@@ -1236,8 +1246,8 @@ class Hidden(object):
     def renderImmutable(self, ctx, key, args, errors):
         return self.render(ctx, key, args, errors)
 
-    def processInput(self, ctx, key, args):
-        value = args.get(key, [''])[0].decode(util.getPOSTCharset(ctx))
+    def processInput(self, ctx, key, args, default=''):
+        value = args.get(key, [default])[0].decode(util.getPOSTCharset(ctx))
         value = iformal.IStringConvertible(self.original).toType(value)
         return self.original.validate(value)
 
@@ -1249,3 +1259,4 @@ __all__ = [
     'SelectOtherChoice', 'FileUpload', 'FileUploadWidget', 'TextAreaList',
     ]
 
+# vim:sta:et:sw=4:

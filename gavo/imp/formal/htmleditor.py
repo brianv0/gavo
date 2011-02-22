@@ -50,8 +50,8 @@ class TinyMCE(object):
             T.div(class_='readonly-textarea readonly')[value]
         ]
         
-    def processInput(self, ctx, key, args):
-        value = args.get(key, [''])[0].decode(util.getPOSTCharset(ctx))
+    def processInput(self, ctx, key, args, default=''):
+        value = args.get(key, [default])[0].decode(util.getPOSTCharset(ctx))
         value = iformal.IStringConvertible(self.original).toType(value)
         return self.original.validate(value)
 

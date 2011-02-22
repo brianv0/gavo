@@ -74,7 +74,8 @@ class RichTextArea(widget.TextArea):
         
         return self._renderTag(ctx, tparser, tvalue, namer, True)
     
-    def processInput(self, ctx, key, args):
+    def processInput(self, ctx, key, args, default=None):
+				# default is ignored here
         namer = self._namer(key)
         value = [args.get(namer(part), [''])[0].strip().decode(util.getPOSTCharset(ctx)) for part in ('tparser', 'tvalue')]
         return self.original.validate(types.RichText(*value))

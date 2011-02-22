@@ -19,6 +19,8 @@ class MultichoiceBase(object):
     noneOption:
         An object adaptable to IKey and ILabel that is used to identify when
         nothing has been selected. Defaults to ('', '')
+
+		default can be whitespace-separated items.
     """
 
     options = None
@@ -31,8 +33,8 @@ class MultichoiceBase(object):
         if noneOption is not _UNSET:
             self.noneOption = noneOption
 
-    def processInput(self, ctx, key, args):
-        values = args.get(key, [''])
+    def processInput(self, ctx, key, args, default=''):
+        values = args.get(key, default.split())
         rv = []
         for value in values:
             value = iformal.IStringConvertible(self.original).toType(value)

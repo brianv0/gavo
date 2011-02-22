@@ -88,7 +88,7 @@ def getFieldArgsForInputKey(inputKey):
 			unit = " [%s]"%unit
 	label = inputKey.tablehead
 
-	return {
+	res = {
 		"label": label,
 		"name": inputKey.name,
 		"type": _getFormalType(inputKey),
@@ -96,6 +96,13 @@ def getFieldArgsForInputKey(inputKey):
 		"label": label+unit,
 		"description": inputKey.description,
 		"cssClass": inputKey.getProperty("cssClass", None),}
+
+	if inputKey.values and inputKey.values.default:
+		res["default"] = unicode(inputKey.values.default)
+	if inputKey.value:
+		res["default"] = unicode(inputKey.value)
+
+	return res
 
 
 class MultiField(formal.Group):
@@ -201,21 +208,24 @@ class FormMixin(formal.ResourceMixin):
 		if ctx is None:  # no request context, no arguments
 			return
 		args = inevow.IRequest(ctx).args
-		for item in form.items:
-			try:
-				form.data[item.key] = item.makeWidget().processInput(
-					ctx, item.key, args)
-			except:  # don't fail on junky things in default arguments
-				pass
+
+		def process(container):
+			for item in container.items:
+				if isinstance(item, formal.Group):
+					process(item)
+				else:
+					try:
+						form.data[item.key] = item.makeWidget().processInput(
+							ctx, item.key, args, item.default)
+					except:  # don't fail on junky things in default arguments
+						pass
+
+		process(form)
 			
 	def _addInputKey(self, form, container, inputKey):
 		"""adds a form field for an inputKey to the form.
 		"""
 		container.addField(**getFieldArgsForInputKey(inputKey))
-		if inputKey.values and inputKey.values.default:
-			form.data[inputKey.name] = inputKey.values.default
-		if inputKey.value:
-			form.data[inputKey.name] = inputKey.value
 
 	def _groupQueryFields(self, inputTable):
 		"""returns a list of "grouped" param names from inputTable.

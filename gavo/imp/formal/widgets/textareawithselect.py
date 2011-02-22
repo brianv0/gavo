@@ -58,7 +58,8 @@ class TextAreaWithSelect(object):
         value = iformal.IStringConvertible(self.original).fromType(args.get(key))
         return self._renderTag(ctx, key, value, True)
 
-    def processInput(self, ctx, key, args):
+    def processInput(self, ctx, key, args, default=None):
+			# default is ignored here
         value = args.get(key, [''])[0].decode(util.getPOSTCharset(ctx))
         value = iformal.IStringConvertible(self.original).fromType(value)
         return self.original.validate(value)

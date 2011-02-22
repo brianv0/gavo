@@ -64,7 +64,9 @@
 					description="Some magic parameters we took out of thin air.">
 					<property name="cssClass">localstuff</property>
 				</group>
-				<inputKey original="rv"/>
+				<inputKey original="rv">
+					<values default="-4"/>
+				</inputKey>
 				<inputKey original="mag"/>
 				<inputKey original="alpha"/>
 				<inputKey original="delta"/>

@@ -109,3 +109,15 @@ class FormTest(trialhelpers.RenderTest):
 		return self.assertGETHasStrings("/data/cores/cstest/form", {}, [
 			'class="field string numericexpressionfield rvkey"',
 			'.rvkey { background:red; }'])
+	
+	def testInputKeyDefault(self):
+		return self.assertGETHasStrings("/data/cores/grouptest/form", {}, [
+				'value="-4.0"'
+			])
+
+	def testInputKeyFilled(self):
+		return self.assertGETHasStrings("/data/cores/grouptest/form", 
+			{"rv": "9.25"}, [
+				'value="9.25"'
+			])
+
