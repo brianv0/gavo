@@ -156,7 +156,6 @@ class MethodAwareResource(rend.Page):
 
 class UWSErrorMixin(object):
 	def _deliverError(self, failure, request):
-		failure.printTraceback()
 		request.setHeader("content-type", "text/xml")
 		return uwsactions.ErrorResource(failure.value)
 

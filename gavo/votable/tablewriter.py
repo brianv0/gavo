@@ -22,7 +22,7 @@ def _escapeAttrVal(val):
 		).encode("utf-8"))
 
 
-def write(root, outputFile):
+def write(root, outputFile, xmlDecl=True):
 	"""writes the VOTable below row to outputFile.
 
 	stanxml has a render method that could do the same thing; however,
@@ -53,8 +53,9 @@ def write(root, outputFile):
 			else:
 				c.apply(visit)
 		outputFile.write("</%s>"%node.name_)
-
-	outputFile.write("<?xml version='1.0' encoding='utf-8'?>\n")
+	
+	if xmlDecl:
+		outputFile.write("<?xml version='1.0' encoding='utf-8'?>\n")
 	root.apply(visit)
 	
 
@@ -91,7 +92,7 @@ class OverflowElement(stanxml.Stub):
 	
 	def write(self, outputFile):
 		if self.rowLimit<=self.rowsDelivered:
-			write(self.overflowStan, outputFile)
+			write(self.overflowStan, outputFile, xmlDecl=False)
 
 
 def DelayedTable(tableDefinition, rowIterator, contentElement,

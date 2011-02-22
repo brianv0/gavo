@@ -8,6 +8,7 @@ import os
 import signal
 import subprocess
 import warnings
+from cStringIO import StringIO
 
 from pyparsing import ParseException
 from twisted.internet import reactor
@@ -266,6 +267,14 @@ class LocalFile(object):
 				self.fileName)
 
 
+class _FakeUploadedFile(object):
+# File uploads without filenames are scalars containing a string.
+# This class lets them work as uploaded files in _saveUpload.
+	def __init__(self, name, content):
+		self.filename = name
+		self.file = StringIO(content)
+
+
 class UploadParameter(uws.ProtocolParameter):
 # the way this is specified, inline uploads are quite tricky. 
 # To obtain the data, we must access the request, which we don't have
@@ -305,8 +314,16 @@ class UploadParameter(uws.ProtocolParameter):
 		try:
 			uploadData = codetricks.stealVar("request").files[uploadName]
 		except KeyError:
-			raise base.ui.logOldExc(
-				base.ValidationError("No upload '%s' found"%uploadName, "UPLOAD"))
+			# if no file name has been passed, the upload will end up in
+			# scalars; I should probably do away with the whole files vs.
+			# scalars business and the reparseRequestArgs nonsense.
+			# Think about it.
+			try:
+				uploadData = _FakeUploadedFile(uploadName,
+					codetricks.stealVar("request").scalars[uploadName])
+			except KeyError:
+				raise base.ui.logOldExc(
+					base.ValidationError("No upload '%s' found"%uploadName, "UPLOAD"))
 		destFName = cls._cleanName(uploadData.filename)
 		with job.openFile(destFName, "w") as f:
 			f.write(uploadData.file.read())
