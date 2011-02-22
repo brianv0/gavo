@@ -106,7 +106,6 @@ class DALRenderer(grend.ServiceBasedPage):
 			reqArgs["_DBOPTIONS_LIMIT"] = [
 				str(base.getConfig("ivoa", "dalDefaultLimit"))]
 		reqArgs["_FORMAT"] = ["VOTable"]
-		reqArgs["_VOTABLE_VERSION"] = ["1.1"]
 		grend.ServiceBasedPage.__init__(self, ctx, *args, **kwargs)
 
 	@classmethod
@@ -138,8 +137,8 @@ class DALRenderer(grend.ServiceBasedPage):
 		result = self._makeErrorTable(ctx, errmsg)
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
-		request.write(result.render()+"\n")
-		return ""
+		votable.write(result, request)
+		return "\n"
 
 	def _formatOutput(self, data, ctx):
 		request = inevow.IRequest(ctx)
@@ -184,6 +183,11 @@ class SCSRenderer(DALRenderer):
 		within 0.001 degrees.
 	"""
 	name = "scs.xml"
+
+	def __init__(self, ctx, *args, **kwargs):
+		reqArgs = inevow.IRequest(ctx).args
+		reqArgs["_VOTABLE_VERSION"] = ["1.1"]
+		DALRenderer.__init__(self, ctx, *args, **kwargs)
 
 	def _writeErrorTable(self, ctx, msg):
 		request = inevow.IRequest(ctx)
@@ -245,6 +249,11 @@ class SIAPRenderer(DALRenderer):
 # XXX TODO: put more functionality into the core and then use
 # UnifiedDALRenderer rather than siap.xml.
 	name = "siap.xml"
+
+	def __init__(self, ctx, *args, **kwargs):
+		reqArgs = inevow.IRequest(ctx).args
+		reqArgs["_VOTABLE_VERSION"] = ["1.1"]
+		DALRenderer.__init__(self, ctx, *args, **kwargs)
 
 	def renderHTTP(self, ctx):
 		args = inevow.IRequest(ctx).args
@@ -329,6 +338,7 @@ class UnifiedDALRenderer(DALRenderer):
 	def _formatOutput(self, data, ctx):
 		request = inevow.IRequest(ctx)
 		if isinstance(data.original, tuple):  
+			# core returned a complete document (mime and string)
 			mime, payload = data.original
 			request.setHeader("content-type", mime)
 			return streaming.streamOut(lambda f: f.write(payload), request)

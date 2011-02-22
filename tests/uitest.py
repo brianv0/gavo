@@ -104,7 +104,7 @@ class CLITest(testhelpers.VerboseTest):
 		querier = base.SimpleQuerier()
 		try:
 			self.assertOutput(cli.main, 
-				argList=["--disable-spew", "--suppress-log",
+				argList=["--suppress-log",
 					"imp", "data/test", "productimport"],
 				stdoutStrings=["Columns affected: 2"])
 

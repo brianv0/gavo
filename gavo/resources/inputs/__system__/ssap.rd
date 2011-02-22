@@ -17,7 +17,7 @@
 
 		<FEED source="//products#tablecols">
 			<EDIT ref="column[accref]" utype="ssa:Access.Reference"
-				ucd="meta.number"/>
+				ucd="meta.ref.url;meta.dataset"/>
 			<EDIT ref="column[mime]" utype="ssa:Access.Format"/>
 			<EDIT ref="column[accsize]" utype="ssa:Access.Size"/>
 		</FEED>
@@ -399,9 +399,11 @@
 	<STREAM id="hcd_condDescs">
 		<condDesc id="coneCond">
 			<inputKey name="POS" type="text" description="ICRS position of target
-				object" unit="deg,deg" std="True"/>
-			<inputKey name="SIZE" unit="deg" description="Size of the region of
-				interest around POS" std="True"/>
+				object" unit="deg,deg" std="True"
+				utype="ssa:Char.SpatialAxis.Coverage.Location.Value"/>
+			<inputKey name="SIZE" description="Size of the region of
+				interest around POS" std="True" 
+				utype="ssa:Char.SpatialAxis.Coverage.Bounds.Extent"/>
 			<phraseMaker procDef="//pql#coneParameter">
 				<bind name="posCol">"ssa_location"</bind>
 			</phraseMaker>

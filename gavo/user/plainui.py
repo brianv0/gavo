@@ -8,10 +8,23 @@ from gavo.base import ObserverBase, listensTo
 class StingyPlainUI(ObserverBase):
 	"""An Observer swallowing infos, warnings, and the like.
 	"""
-	def __init__(self, eh):
-		ObserverBase.__init__(self, eh)
-		self.curIndent = ""
+	@listensTo("SourceError")
+	def announceSourceError(self, srcString):
+		self.showMsg("Failed %s"%srcString)
 
+	@listensTo("Error")
+	def printErrMsg(self, errMsg):
+		self.showMsg("*X*X* "+errMsg)
+
+
+class PlainUI(StingyPlainUI):
+	"""An Observer spitting out most info to the screen.
+	"""
+
+	def __init__(self, eh):
+		self.curIndent = ""
+		ObserverBase.__init__(self, eh)
+ 
 	def showMsg(self, msg):
 		print self.curIndent+msg
 
@@ -31,19 +44,10 @@ class StingyPlainUI(ObserverBase):
 		self.popIndent()
 		self.showMsg("Done %s, read %d"%(srcString, self.dispatcher.totalRead))
 	
-	@listensTo("SourceError")
-	def announceSourceError(self, srcString):
+ 	@listensTo("SourceError")
+ 	def announceSourceError(self, srcString):
 		self.popIndent()
-		self.showMsg("Failed %s"%srcString)
-
-	@listensTo("Error")
-	def printErrMsg(self, errMsg):
-		self.showMsg("*X*X* "+errMsg)
-
-
-class PlainUI(StingyPlainUI):
-	"""An Observer spitting out most info to the screen.
-	"""
+ 		self.showMsg("Failed %s"%srcString)
 
 	@listensTo("Shipout")
 	def announceShipout(self, noShipped):
