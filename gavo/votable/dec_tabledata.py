@@ -75,7 +75,7 @@ def _addNullvalueCode(field, src, validator):
 
 def _makeFloatDecoder(field):
 	src = [
-		'if not val:',
+		'if not val or val=="NaN":',
 		'  row.append(None)',
 		'else:',
 		'  row.append(float(val))',]

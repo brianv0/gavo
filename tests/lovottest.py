@@ -224,7 +224,10 @@ class TabledataReadTest(testhelpers.VerboseTest):
 			'<FIELD datatype="short" arraysize="2x3"/>',
 			[['0 1 2 3 4 5']],
 			[[(0,1,2,3,4,5)]],
-		)
+		), (
+			'<FIELD name="x" datatype="float"/>',
+			[['NaN'], ['']],
+			[[None],  [None]]),
 	]
 
 
@@ -246,7 +249,7 @@ class FloatTDEncodingTest(testhelpers.VerboseTest):
 		vals = self._decode(
 			'<FIELD name="y" datatype="float"/>',
 			[['NaN']])[0]
-		self.failUnless(vals[0]!=vals[0])
+		self.failUnless(vals[0] is None)
 	
 	def testInfinities(self):
 		vals = self._decode(
@@ -259,7 +262,7 @@ class FloatTDEncodingTest(testhelpers.VerboseTest):
 		vals = self._decode(
 			'<FIELD name="y" datatype="float" arraysize="3"/>',
 			[['NaN +Inf -Inf']])[0]
-		self.assertEqual(repr(vals), '[(nan, inf, -inf)]')
+		self.assertEqual(repr(vals), '[(None, inf, -inf)]')
 
 
 class TabledataWriteTest(testhelpers.VerboseTest):

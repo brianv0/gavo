@@ -96,7 +96,7 @@ def _getColArgs(votInstance, name):
 	return kwargs
 	
 
-def makeTableDefForVOTable(tableId, votTable, nameMaker=None,
+def makeTableDefForVOTable(tableId, votTable, nameMaker=None, rd=None,
 		**moreArgs):
 	"""returns a TableDef for a Table element parsed from a VOTable.
 
@@ -135,7 +135,7 @@ def makeTableDefForVOTable(tableId, votTable, nameMaker=None,
 
 	# Create the table definition
 	tableDef = MS(rscdef.TableDef, id=tableId, columns=columns,
-		params=params, **moreArgs)
+		params=params, parent_=rd, **moreArgs)
 	addQ3CIndex(tableDef)
 
 	# Build STC info
@@ -151,7 +151,7 @@ def makeTableDefForVOTable(tableId, votTable, nameMaker=None,
 	return tableDef
 
 
-def makeDDForVOTable(tableId, vot, gunzip=False, **moreArgs):
+def makeDDForVOTable(tableId, vot, gunzip=False, rd=None, **moreArgs):
 	"""returns a DD suitable for uploadVOTable.
 
 	moreArgs are additional keywords for the construction of the target
@@ -164,7 +164,7 @@ def makeDDForVOTable(tableId, vot, gunzip=False, **moreArgs):
 	for res in vot.iterChildrenOfType(V.RESOURCE):
 		for table in res.iterChildrenOfType(V.TABLE):
 			tableDefs.append(
-				makeTableDefForVOTable(tableId, table, **moreArgs))
+				makeTableDefForVOTable(tableId, table, rd=rd, **moreArgs))
 			break
 		break
 	if tableDefs:
@@ -216,7 +216,8 @@ def _getTupleAdder(table):
 
 
 
-def uploadVOTable(tableId, srcFile, connection, gunzip=False, **tableArgs):
+def uploadVOTable(tableId, srcFile, connection, gunzip=False, 
+		rd=None, **tableArgs):
 	"""creates a temporary table with tableId containing the first
 	table in the VOTable in srcFile.
 
@@ -232,7 +233,8 @@ def uploadVOTable(tableId, srcFile, connection, gunzip=False, **tableArgs):
 		return
 	args = {"onDisk": True, "temporary": True}
 	args.update(tableArgs)
-	td = makeTableDefForVOTable(tableId, rows.tableDefinition, **args)
+	td = makeTableDefForVOTable(tableId, rows.tableDefinition, 
+		rd=rd, **args)
 	table = rsc.TableForDef(td, connection=connection)
 	addTuple = _getTupleAdder(table)
 	for row in rows:

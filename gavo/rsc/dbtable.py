@@ -310,7 +310,7 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 		self._makeConnection(kwargs)
 
 		if self.tableDef.rd is None and not self.tableDef.temporary:
-			raise common.ResourceError("TableDefs without resource descriptor"
+			raise base.ReportableError("TableDefs without resource descriptor"
 				" cannot be used to access database tables")
 		self.tableName = self.tableDef.getQName()
 		self.nometa = (kwargs.get("nometa", False) 
