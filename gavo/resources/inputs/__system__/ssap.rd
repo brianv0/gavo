@@ -28,7 +28,7 @@
 			description="Title or the dataset (usually, spectrum)"/>
 		<column name="ssa_creatorDID" type="text"
 			utype="ssa:DataID.CreatorDID" ucd="meta.id"
-			tablehead="C. DID" verbLevel="29"
+			tablehead="C. DID" verbLevel="15"
 			description="Dataset identifier assigned by the creator"/>
 		<column name="ssa_pubDID" type="text"
 			utype="ssa:Curation.PublisherDID"
@@ -36,7 +36,7 @@
 			description="Dataset identifier assigned by the publisher"/>
 		<column name="ssa_cdate" type="timestamp"
 			utype="ssa:DataID.Date" ucd="time;meta.dataset"
-			tablehead="Proc. Date" verbLevel="25" 
+			tablehead="Proc. Date" verbLevel="15" 
 			description="Processing/Creation date"
 			xtype="adql:TIMESTAMP"/>
 		<column name="ssa_pdate" type="timestamp"
@@ -77,7 +77,7 @@
 			utype="ssa:Char.SpatialAxis.Coverage.Location.Value"
 			ucd="pos.eq"
 			verbLevel="5" tablehead="Location"
-			description="ICRS location of target object" unit="deg,deg"/>
+			description="ICRS location of aperture center" unit="deg,deg"/>
 		<column name="ssa_aperture" 
 			utype="ssa:Char.SpatialAxis.Coverage.Bounds.Extent" ucd="instr.fov"
 			verbLevel="15" tablehead="Aperture" unit="deg"

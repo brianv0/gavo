@@ -21,7 +21,8 @@ machinery -->
 			utype="Access.Format"/>
 	</STREAM>
 
-	<table id="products" primary="accref" system="True" onDisk="True">
+	<table id="products" primary="accref" system="True" onDisk="True"
+			dupePolicy="overwrite" forceUnique="True">
 		<FEED source="basicColumns"/>
 		<column name="accessPath" type="text" tablehead="Path to access data" 
 			required="True" verbLevel="5" 

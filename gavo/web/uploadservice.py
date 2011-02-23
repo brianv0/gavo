@@ -61,7 +61,7 @@ class MachineUploader(Uploader):
 		request.setResponseCode(500)
 		request.setHeader("content-type", "text/plain;charset=utf-8")
 		request.write(failure.getErrorMessage().encode("utf-8"))
-		base.ui.notifyError("Failure while machine uploading.")
+		base.ui.notifyFailure(failure)
 		return ""
 
 	def _formatOutput(self, data, ctx):
