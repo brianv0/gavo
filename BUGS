@@ -251,3 +251,7 @@
 61/WISHLIST/2011-02-18
 	Do away with VOColDesc and instead add some additional data to the
 	column objects themselves.
+
+62/MEDIUM/2011-02-23
+	http://dc.zah.uni-heidelberg.de/rauchspectra/q/tovot/info has a URL
+	for a service that has no web frontend.

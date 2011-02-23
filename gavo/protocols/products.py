@@ -435,19 +435,20 @@ rscdef.addProcDefObject("makeProductLink", makeProductLink)
 
 # Sigh -- the whole value mapping business needs to be cleaned up.
 def _productMapperFactory(colDesc):
-	"""is a factory for columns containing product keys.
+	"""A factory for columns containing product keys.
 
 	The result are links to the product delivery.
 	"""
-	from nevow import url
-	if (colDesc["ucd"]=="VOX:Image_AccessReference" 
-			or colDesc["displayHint"].get("type")=="product"):
+	mapper = None
+	if colDesc["ucd"]=="VOX:Image_AccessReference":
 		def mapper(val):
-			if val is None:
-				return ""
-			else:
+			if val:
 				return makeProductLink(val, withHost=True)+"&siap=true"
-		return mapper
+	if colDesc["displayHint"].get("type")=="product":
+		def mapper(val):
+			if val:
+				return makeProductLink(val, withHost=True)
+	return mapper
 valuemappers._registerDefaultMF(_productMapperFactory)
 
 

@@ -156,7 +156,6 @@ class PQLPositionsTest(testhelpers.VerboseTest):
 			'pos1': pgsphere.SPoint.fromDegrees(-10.0, 13.0)})
 
 
-
 class PQLFloatTest(testhelpers.VerboseTest):
 	def testNoStep(self):
 		self.assertRaisesWithMsg(api.LiteralParseError,
