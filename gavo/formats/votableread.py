@@ -79,6 +79,35 @@ def addQ3CIndex(tableDef):
 	base.resolveId(None, "//scs#q3cindex").applyToFinished(tableDef)
 
 
+def _getValuesFromField(votField):
+	"""returns None or an rscdef.Values instance for whatever is given
+	in votField.
+	"""
+	valArgs = {}
+	for valSpec in votField.iterChildrenOfType(V.VALUES):
+
+		if valSpec.null is not None:
+			valArgs["nullLiteral"] = valSpec.null
+
+		for minSpec in valSpec.iterChildrenOfType(V.MIN):
+			valArgs["min"] = minSpec.value
+
+		for maxSpec in valSpec.iterChildrenOfType(V.MAX):
+			valArgs["max"] = maxSpec.value
+
+		options = []
+		for optSpec in valSpec.iterChildrenOfType(V.OPTION):
+			# We don't support nested options in rscdef.
+			consArgs = {"content_": optSpec.value}
+			if optSpec.name:
+				consArgs["title"] = optSpec.name
+			options.append(base.makeStruct(rscdef.Option, **consArgs))
+		if options:
+			valArgs["options"] = options
+	if valArgs:
+		return base.makeStruct(rscdef.Values, **valArgs)
+
+
 def _getColArgs(votInstance, name):
 	"""returns constructor arguments for an RD column or param from
 	a VOTable FIELD or PARAM.
@@ -93,6 +122,9 @@ def _getColArgs(votInstance, name):
 			kwargs[attName] = getattr(votInstance, attName)
 	if getattr(votInstance, "value", None) is not None:
 		kwargs["content_"] = votInstance.value
+	values = _getValuesFromField(votInstance)
+	if values:
+		kwargs["values"] = values
 	return kwargs
 	
 

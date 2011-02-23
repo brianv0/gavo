@@ -385,6 +385,8 @@ class StanXMLTest(testhelpers.VerboseTest):
 			_childSequence = ["Child"]
 		class Child(MEl):
 			_childSequence = ["Foo", None]
+		class Other(MEl):
+			pass
 
 	def testNoTextContent(self):
 		M = self.Model
@@ -394,6 +396,11 @@ class StanXMLTest(testhelpers.VerboseTest):
 		M = self.Model
 		data = M.Root[M.Child[u"a\xA0bc"]]
 		self.assertEqual(data.render(), '<Root><Child>a&#160;bc</Child></Root>')
+
+	def testRetrieveText(self):
+		M = self.Model
+		data = M.Other["thrown away", M.Other["mixed"], " remaining "]
+		self.assertEqual(data.text_, " remaining ")
 
 
 class TestGroupsMembership(testhelpers.VerboseTest):

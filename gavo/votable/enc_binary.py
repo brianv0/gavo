@@ -38,7 +38,10 @@ def _addNullvalueCode(field, nullvalue, src):
 	"""
 	if nullvalue is None:
 		action = ("  raise common.BadVOTableData('None passed for field"
-			" that has no NULL value', None, '%s')")%field.getDesignation()
+			" that has no NULL value', None, '%s', hint='Integers in VOTable"
+			" have no natural serializations for missing values.  You need to"
+			" define one using values null to allow for NULL in integer columns')"
+			)%field.getDesignation()
 	else:
 		action = "  tokens.append(%s)"%nullvalue
 	return [

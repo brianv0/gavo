@@ -32,6 +32,8 @@ VOTABLE_NAMESPACES = [
 def _processNodeDefault(text, child, parent):
 	"""the default node processor: Append child to parent, return child.
 	"""
+	if text and text.strip():
+		child[text]
 	parent[child]
 	return child
 
@@ -152,7 +154,7 @@ def parse(inFile, watchset=DEFAULT_WATCHSET, ignoreUnknowns=False):
 			preChild = elementStack.pop()
 			# ...call handler with the current node and its future parent...
 			child = nodeProc(text, preChild, elementStack[-1])
-
+			
 			# ...and let user do something with the element if she ordered it.
 			if child is not None and child.__class__ in watchset:
 				child.idmap = idmap

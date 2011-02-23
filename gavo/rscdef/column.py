@@ -133,7 +133,8 @@ class Option(base.Structure):
 	name_ = "option"
 
 	_title = base.UnicodeAttribute("title", default=base.NotGiven,
-		description="A Label for presentation purposes; defaults.", copyable=True)
+		description="A Label for presentation purposes; defaults to val.", 
+		copyable=True)
 	_val = base.DataContent(copyable=True, description="The value of"
 		" the option; this is what is used in, e.g., queries and the like.")
 

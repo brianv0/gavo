@@ -252,7 +252,6 @@ class Element(object):
 						break
 		return self.__isEmpty
 
-
 	def iterAttNames(self):
 		"""iterates over the defined attribute names of this node.
 		
@@ -322,6 +321,7 @@ class Element(object):
 		if et is None:
 			return ""
 		return ElementTree.tostring(et)
+
 
 
 class NSRegistry(object):

@@ -21,6 +21,17 @@ from gavo.utils import ElementTree
 
 import tresc
 
+
+def getTDForVOTable(votCode):
+	"""returns an rsc.TableDef instance for a votable defined by the
+	fields, params, and groups within votCode.
+	"""
+	for votRes in votable.parseString("<VOTABLE><RESOURCE><TABLE>"
+			"%s<DATA/></TABLE></RESOURCE></VOTABLE>"%votCode):
+		return votableread.makeTableDefForVOTable(
+			"testing", votRes.tableDefinition)
+
+
 class _TestVOTable(testhelpers.TestResource):
 	"""Used in VOTableTest.
 	"""
@@ -412,7 +423,31 @@ class TabledataNullValueTest(testhelpers.VerboseTest):
 				'<values nullLiteral="-9999."/></column>', [
 			'<VALUES null="-9999.">',
 			'<TR><TD>NaN</TD></TR>'])
+
+
+class ValuesParsedTest(testhelpers.VerboseTest):
+	def testNull(self):
+		td = getTDForVOTable(
+			'<FIELD name="foo" datatype="int"><VALUES null="-1"/></FIELD>')
+		self.assertEqual(td.getColumnByName("foo").values.nullLiteral,
+			"-1")
 	
+	def testMinMax(self):
+		td = getTDForVOTable(
+			'<FIELD name="foo" datatype="int"><VALUES>'
+			'<MIN value="23"/><MAX value="42"/></VALUES></FIELD>')
+		self.assertEqual(td.getColumnByName("foo").values.min, 23)
+		self.assertEqual(td.getColumnByName("foo").values.max, 42)
+
+	def testOptions(self):
+		td = getTDForVOTable(
+			'<FIELD name="foo" datatype="int"><VALUES>'
+			'<OPTION value="23"/><OPTION value="42" name="yes"/></VALUES></FIELD>')
+		opts = td.getColumnByName("foo").values.options
+		self.assertEqual(opts[0].content_, 23)
+		self.assertEqual(opts[0].title, "23")
+		self.assertEqual(opts[1].content_, 42)
+		self.assertEqual(opts[1].title, "yes")
 
 
 class GroupWriteTest(testhelpers.VerboseTest):
