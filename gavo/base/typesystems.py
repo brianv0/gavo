@@ -411,7 +411,6 @@ class ToPythonBase(FromSQLConverter):
 			return "identity"  # Anything sufficiently complex is python anyway :-)
 
 
-
 class ToPythonCodeConverter(ToPythonBase):
 	"""returns code templates to turn literals in variables to python objects.
 

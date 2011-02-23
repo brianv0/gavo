@@ -444,7 +444,7 @@ def _productMapperFactory(colDesc):
 		def mapper(val):
 			if val:
 				return makeProductLink(val, withHost=True)+"&siap=true"
-	if colDesc["displayHint"].get("type")=="product":
+	elif colDesc["displayHint"].get("type")=="product":
 		def mapper(val):
 			if val:
 				return makeProductLink(val, withHost=True)

@@ -23,6 +23,8 @@ from gavo.protocols import adqlglue
 from gavo.stc import tapstc
 
 
+MS = base.makeStruct
+
 class Error(Exception):
 	pass
 
@@ -511,26 +513,33 @@ class ParseErrorTest(testhelpers.VerboseTest):
 
 
 spatialFields = [
-	rscdef.Column(None, name="dist", ucd="phys.distance", unit="m"),
-	rscdef.Column(None, name="width", ucd="phys.dim", unit="m"),
-	rscdef.Column(None, name="height", ucd="phys.dim", unit="km"),
-	rscdef.Column(None, name="ra1", ucd="pos.eq.ra;meta.main", unit="deg"),
-	rscdef.Column(None, name="ra2", ucd="pos.eq.ra", unit="rad"),]
+	MS(rscdef.Column, name="dist", ucd="phys.distance", unit="m"),
+	MS(rscdef.Column, name="width", ucd="phys.dim", unit="m"),
+	MS(rscdef.Column, name="height", ucd="phys.dim", unit="km"),
+	MS(rscdef.Column, name="ra1", ucd="pos.eq.ra;meta.main", unit="deg"),
+	MS(rscdef.Column, name="ra2", ucd="pos.eq.ra", unit="rad"),]
 spatial2Fields = [
-	rscdef.Column(None, name="ra1", ucd="pos.eq.ra;meta.main", unit="deg"),
-	rscdef.Column(None, name="dec", ucd="pos.eq.dec;meta.main", unit="deg"),
-	rscdef.Column(None, name="dist", ucd="phys.distance", unit="m"),]
+	MS(rscdef.Column, name="ra1", ucd="pos.eq.ra;meta.main", unit="deg"),
+	MS(rscdef.Column, name="dec", ucd="pos.eq.dec;meta.main", unit="deg"),
+	MS(rscdef.Column, name="dist", ucd="phys.distance", unit="m"),]
 miscFields = [
-	rscdef.Column(None, name="mass", ucd="phys.mass", unit="kg"),
-	rscdef.Column(None, name="mag", ucd="phot.mag", unit="mag"),
-	rscdef.Column(None, name="speed", ucd="phys.veloc", unit="km/s")]
+	MS(rscdef.Column, name="mass", ucd="phys.mass", unit="kg"),
+	MS(rscdef.Column, name="mag", ucd="phot.mag", unit="mag"),
+	MS(rscdef.Column, name="speed", ucd="phys.veloc", unit="km/s")]
 quotedFields = [
-	rscdef.Column(None, name=utils.QuotedName("left-right"), ucd="mess", 
+	MS(rscdef.Column, name=utils.QuotedName("left-right"), ucd="mess", 
 		unit="bg"),
-	rscdef.Column(None, name=utils.QuotedName('inch"ing'), ucd="imperial.mess",
+	MS(rscdef.Column, name=utils.QuotedName('inch"ing'), ucd="imperial.mess",
 		unit="fin"),
-	rscdef.Column(None, name=utils.QuotedName('plain'), ucd="boring.stuff",
+	MS(rscdef.Column, name=utils.QuotedName('plain'), ucd="boring.stuff",
 		unit="pc"),]
+crazyFields = [
+	MS(rscdef.Column, name="ct", type="integer"),
+	MS(rscdef.Column, name="wot", type="bigint", 
+		values=MS(rscdef.Values, nullLiteral="-1")),
+	MS(rscdef.Column, name="wotb", type="bytea", 
+		values=MS(rscdef.Values, nullLiteral="255")),
+]
 
 def _addSpatialSTC(sf, sf2):
 	ast1 = stc.parseQSTCS('Position ICRS "ra1" "dec" Size "width" "height"')
@@ -547,6 +556,7 @@ def _addSpatialSTC(sf, sf2):
 _addSpatialSTC(spatialFields, spatial2Fields)
 
 
+@utils.memoized
 def _sampleFieldInfoGetter(tableName):
 	if tableName=='spatial':
 		return [(f.name, adqlglue.makeFieldInfo(f))
@@ -560,6 +570,15 @@ def _sampleFieldInfoGetter(tableName):
 	elif tableName=='quoted':
 		return [(f.name, adqlglue.makeFieldInfo(f))
 			for f in quotedFields]
+	elif tableName=='crazy':
+		return [(f.name, adqlglue.makeFieldInfo(f))
+			for f in crazyFields]
+
+
+def parseWithArtificialTable(query):
+	parsedTree = adql.getGrammar().parseString(query)[0]
+	ctx = adql.annotate(parsedTree, _sampleFieldInfoGetter)
+	return parsedTree
 
 
 class ColumnTest(testhelpers.VerboseTest):
@@ -600,13 +619,13 @@ class SelectClauseTest(ColumnTest):
 	def testConstantExprSelect(self):
 		cols = self._getColSeq("select 1+0.1, 'const'||'ab' from spatial")
 		self._assertColumns(cols, [
-			("", "", False),
+			("", "", True),
 			("", "", False),])
 
 	def testConstantSelectWithAs(self):
 		cols = self._getColSeq("select 1+0.1 as x from spatial")
 		self._assertColumns(cols, [
-			("", "", False),])
+			("", "", True),])
 
 	def testBadRefRaises(self):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq, 
@@ -684,11 +703,11 @@ class ColResTest(ColumnTest):
 		cols = self._getColSeq("select width*height, width/speed, "
 			"3*mag*height, mag+height, height+height from spatial, misc")
 		self._assertColumns(cols, [
-			("m*km", "", False),
-			("m/(km/s)", "", False),
+			("m*km", "", True),
+			("m/(km/s)", "", True),
 			("mag*km", "", True),
 			("", "", True),
-			("km", "phys.dim", False)])
+			("km", "phys.dim", True)])
 
 	def testMiscOperands(self):
 		cols = self._getColSeq("select -3*mag from misc")
@@ -736,7 +755,7 @@ class ColResTest(ColumnTest):
 	def testParenExprs(self):
 		cols = self._getColSeq("select (width+width)*height from spatial")
 		self._assertColumns(cols, [
-			("m*km", "", False)])
+			("m*km", "", True)])
 
 	def testSubquery(self):
 		cols = self._getColSeq("select q.p from (select ra2 as p from"
@@ -1218,6 +1237,37 @@ class PGSMorphTest(testhelpers.VerboseTest):
 			]
 
 
+class GlueTest(testhelpers.VerboseTest):
+# Tests for some aspects of adqlglue
+	def testAutoNull(self):
+		td = adqlglue._getTableDescForOutput(
+			parseWithArtificialTable("select * from crazy"))
+		self.assertEqual(td.getColumnByName("ct").values.nullLiteral, "-2147483648")
+
+	def testSpecifiedNull(self):
+		td = adqlglue._getTableDescForOutput(
+			parseWithArtificialTable("select * from crazy"))
+		self.assertEqual(td.getColumnByName("wot").values.nullLiteral, "-1")
+
+	def testSpecifiedNullOverridden(self):
+		td = adqlglue._getTableDescForOutput(
+			parseWithArtificialTable("select 2+wot from crazy"))
+		self.assertEqual(td.columns[0].values.nullLiteral, '-9223372036854775808')
+
+	def testPureByteaNotPromoted(self):
+		td = adqlglue._getTableDescForOutput(
+			parseWithArtificialTable("select wotb from crazy"))
+		self.assertEqual(td.columns[0].values.nullLiteral, '255')
+		self.assertEqual(td.columns[0].type, 'bytea')
+
+	def testTaintedByteaPromoted(self):
+		td = adqlglue._getTableDescForOutput(
+			parseWithArtificialTable("select 2*wotb from crazy"))
+		self.assertEqual(td.columns[0].values.nullLiteral, "-32768")
+		self.assertEqual(td.columns[0].type, 'smallint')
+
+
+
 class QueryTest(testhelpers.VerboseTest):
 	"""performs some actual queries to test the whole thing.
 	"""
@@ -1292,7 +1342,8 @@ class QueryTest(testhelpers.VerboseTest):
 			("unit", 'deg')])
 		self._assertFieldProperties(f2, [("ucd", ''),
 			("description", 'This field has traces of: A sample RA;'
-				' A sample magnitude'),
+				' A sample magnitude -- *TAINTED*: the value was operated'
+				' on in a way that unit and ucd may be severely wrong'),
 			("unit", 'deg*mag')])
 		self._assertFieldProperties(f3, [("ucd", ''),
 			("description", 'This field has traces of: A sample RA; A sample Dec'

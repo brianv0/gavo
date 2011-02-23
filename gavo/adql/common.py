@@ -161,7 +161,7 @@ class FieldInfo(object):
 		if fi1 is dimlessFieldInfo and fi2 is dimlessFieldInfo:
 			return dimlessFieldInfo
 		elif unit1=="" and unit2=="":
-			return cls("", "", newUserData, stc=stc)
+			return cls("", "", newUserData, stc=stc, tainted=True)
 		elif unit1=="":
 			return cls(unit2, fi2.ucd, newUserData, tainted=True, stc=stc)
 		elif unit2=="":
@@ -170,7 +170,7 @@ class FieldInfo(object):
 			if opr=="/":
 				unit2 = "(%s)"%unit2
 			return cls(unit1+opr+unit2, "", newUserData,
-				tainted=fi1.tainted or fi2.tainted, stc=stc)
+				tainted=True, stc=stc)
 	
 	@classmethod
 	def fromAddExpression(cls, opr, fi1, fi2):
@@ -180,7 +180,7 @@ class FieldInfo(object):
 		If both UCDs and units are the same, they are kept.  Otherwise,
 		they are cleared and the fieldInfo is tainted.
 		"""
-		unit, ucd, taint = "", "", False
+		unit, ucd, taint = "", "", True
 		stc = cls.combineSTC(fi1, fi2)
 		if fi1.unit==fi2.unit:
 			unit = fi1.unit
