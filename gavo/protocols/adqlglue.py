@@ -20,7 +20,7 @@ from gavo.base import typesystems
 def makeFieldInfo(column):
 	"""returns an adql.tree.FieldInfo object from a rscdef.Column.
 	"""
-	return adql.FieldInfo(
+	return adql.FieldInfo(column.type,
 		column.unit, column.ucd, (column,), stc=column.stc)
 
 
@@ -76,6 +76,7 @@ def _makeColumnFromFieldInfo(ctx, colName, fi):
 	res.name = ctx.getName(colName)
 	res.ucd = fi.ucd
 	res.unit = fi.unit
+	res.type = fi.type
 
 	# XXX TODO: do something with stc's "broken" attribute
 	res.stc = fi.stc
@@ -83,9 +84,6 @@ def _makeColumnFromFieldInfo(ctx, colName, fi):
 	if len(fi.userData)>1:
 		res.description = ("This field has traces of: %s"%("; ".join([
 			f.description for f in fi.userData if f.description])))
-		res.type = typesystems.getSubsumingType([f.type
-			for f in fi.userData])
-	# XXX TODO: how can we infer a type when no user data is available at all?
 
 	if fi.tainted:
 		res.description = (res.description+" -- *TAINTED*: the value"

@@ -10,8 +10,9 @@ import weakref
 
 from gavo import stc
 from gavo import utils
-from gavo.stc import tapstc
+from gavo.adql import fieldinfo
 from gavo.adql.common import *
+from gavo.stc import tapstc
 
 
 ################ Various helpers
@@ -797,7 +798,7 @@ class Factor(FieldInfoedNode, TransparentMixin):
 
 	factors may have only one (direct) child with a field info and copy
 	this.  They can have no child with a field info, in which case they're
-	dimless.
+	simply numeric (about the weakest assumption: They're doubles).
 	"""
 	type = "factor"
 	collapsible = True
@@ -808,14 +809,27 @@ class Factor(FieldInfoedNode, TransparentMixin):
 			assert len(infoChildren)==1
 			self.fieldInfo = infoChildren[0].fieldInfo
 		else:
-			self.fieldInfo = dimlessFieldInfo
+			# I don't want to pull through the literal symbol that matched
+			# here -- thus, let's guess the type (and yes, I'm aware that
+			# -32768 still is a smallint):
+			try:
+				val = int("".join(self.children))
+				if abs(val)<32767:
+					type = "smallint"
+				elif abs(val)<2147483648:
+					type = "integer"
+				else:
+					type = bigint
+			except ValueError:
+				type = "double precision"
+			self.fieldInfo = fieldinfo.FieldInfo(type, "", "")
 
 
 class CombiningFINode(FieldInfoedNode):
 	def addFieldInfo(self, context):
 		infoChildren = self._getInfoChildren()
 		if not infoChildren:
-			self.fieldInfo = dimlessFieldInfo
+			assert False
 		elif len(infoChildren)==1:
 			self.fieldInfo = infoChildren[0].fieldInfo
 		else:
@@ -833,7 +847,7 @@ class Term(CombiningFINode, TransparentMixin):
 		fi1 = opd1.fieldInfo
 		while toDo:
 			opr = toDo.pop(0)
-			fi1 = FieldInfo.fromMulExpression(opr, fi1, 
+			fi1 = fieldinfo.FieldInfo.fromMulExpression(opr, fi1, 
 				toDo.pop(0).fieldInfo)
 		return fi1
 
@@ -848,12 +862,13 @@ class NumericValueExpression(CombiningFINode, TransparentMixin):
 		fi1 = toDo.pop(0).fieldInfo
 		while toDo:
 			opr = toDo.pop(0)
-			fi1 = FieldInfo.fromAddExpression(opr, fi1, toDo.pop(0).fieldInfo)
+			fi1 = fieldinfo.FieldInfo.fromAddExpression(
+				opr, fi1, toDo.pop(0).fieldInfo)
 		return fi1
 
 
 class GenericValueExpression(CombiningFINode, TransparentMixin):
-	"""is a container for value expressions that we don't want to look at
+	"""A container for value expressions that we don't want to look at
 	closer.
 
 	It is returned by the makeValueExpression factory below to collect
@@ -872,7 +887,7 @@ class GenericValueExpression(CombiningFINode, TransparentMixin):
 			# let's taint the first info and be done with it
 			return infoChildren[0].fieldInfo.copyModified(tainted=True)
 		else:
-			return dimlessFieldInfo
+			return noTypeFieldInfo
 
 
 @symbolAction("valueExpression")
@@ -885,50 +900,48 @@ def makeValueExpression(children):
 		return children[0]
 
 
-class CountAll(FieldInfoedNode, TransparentMixin):
-	"""is a COUNT(*)-type node.
-	"""
-	type = "countAll"
-	fieldInfo = FieldInfo("", "meta.number")
-
-	# We could inspect parents to figure out *what* we're counting to come up
-	# with a better UCD.
-	def addFieldInfo(self, context):
-		pass
-
-
 class SetFunction(TransparentMixin, FieldInfoedNode):
 	"""is an aggregate function.
 
 	These typically amend the ucd by a word from the stat family and copy
 	over the unit.  There are exceptions, however, see table in class def.
 	"""
-	type = "generalSetFunction"
+	type = "setFunctionSpecification"
 
 	funcDefs = {
-		'AVG': ('stat.mean', None),
-		'MAX': ('stat.max', None),
-		'MIN': ('stat.min', None),
-		'SUM': (None, None),
-		'COUNT': ('meta.number', ''),}
+		'AVG': ('stat.mean', None, "double precision"),
+		'MAX': ('stat.max', None, None),
+		'MIN': ('stat.min', None, None),
+		'SUM': (None, None, None),
+		'COUNT': ('meta.number', '', "integer"),}
 
 	def addFieldInfo(self, context):
-		ucdPref, newUnit = self.funcDefs[self.children[0].upper()]
+		ucdPref, newUnit, newType = self.funcDefs[self.children[0].upper()]
+
+		# try to find out about our child
 		infoChildren = self._getInfoChildren()
 		if infoChildren:
 			assert len(infoChildren)==1
 			fi = infoChildren[0].fieldInfo
 		else:
-			fi = dimlessFieldInfo
-		if ucdPref is None or fi.ucd=="":
+			fi = fieldinfo.FieldInfo("double precision", "", "")
+
+		if ucdPref is None:
+			# ucd of a sum is the ucd of the summands?
 			ucd = fi.ucd
 		else:
-			ucd = ucdPref+";"+fi.ucd
+			ucd = ";".join(p for p in (ucdPref, fi.ucd) if p)
+
+		# most of these keep the unit of what they're working on
 		if newUnit is None:
-			unit = fi.unit
-		else:
-			unit = newUnit
-		self.fieldInfo = FieldInfo(unit, ucd, fi.userData, fi.tainted)
+			newUnit = fi.unit
+
+		# most of these keep the type of what they're working on
+		if newType is None:
+			newType = fi.type
+
+		self.fieldInfo = fieldinfo.FieldInfo(
+			newType, unit=newUnit, ucd=ucd, userData=fi.userData, tainted=fi.tainted)
 
 
 class NumericValueFunction(FunctionNode):
@@ -978,7 +991,8 @@ class NumericValueFunction(FunctionNode):
 			unit = overrideUnit
 		if overrideUCD:
 			ucd = overrideUCD
-		self.fieldInfo = FieldInfo(unit, ucd, *collectUserData(infoChildren))
+		self.fieldInfo = fieldinfo.FieldInfo("double precision",
+			unit, ucd, *collectUserData(infoChildren))
 		self.fieldInfo.tainted = True
 
 
@@ -1000,7 +1014,7 @@ class CharacterStringLiteral(FieldInfoedNode):
 		return "'%s'"%(self.value.replace("'", "\\'"))
 
 	def addFieldInfo(self, context):
-		self.fieldInfo = dimlessFieldInfo
+		self.fieldInfo = fieldinfo.FieldInfo("text", "", "")
 
 
 ###################### Geometry and stuff that needs morphing into real SQL
@@ -1046,7 +1060,9 @@ class GeometryNode(CoosysMixin, FieldInfoedNode):
 			if not context.policy.match(fi.stc, thisSystem):
 				context.errors.append("When constructing %s: Argument %d has"
 					" incompatible STC"%(self.type, index+1))
-		self.fieldInfo = FieldInfo(unit=",".join(childUnits), 
+		self.fieldInfo = fieldinfo.FieldInfo(
+			type=self.sqlType,
+			unit=",".join(childUnits), 
 			ucd="", 
 			userData=tuple(childUserData), 
 			stc=thisSystem)
@@ -1057,6 +1073,7 @@ class Point(GeometryNode):
 	type = "point"
 	_a_x = _a_y = None
 	xtype = "adql:POINT"
+	sqlType = "spoint"
 
 	argSeq = ("x", "y")
 
@@ -1071,6 +1088,7 @@ class Circle(GeometryNode):
 	_a_x = _a_y = _a_radius = None
 	argSeq = ("x", "y", "radius")
 	xtype = "adql:REGION"
+	sqlType = "scircle"
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
@@ -1083,6 +1101,7 @@ class Box(GeometryNode):
 	_a_x = _a_y = _a_width = _a_height = None
 	argSeq = ("x", "y", "width", "height")
 	xtype = "adql:REGION"
+	sqlType = "sbox"
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
@@ -1095,6 +1114,7 @@ class Polygon(GeometryNode):
 	_a_coos = ()
 	argSeq = ("coos")
 	xtype = "adql:REGION"
+	sqlType = "spoly"
 
 	@classmethod
 	def _getInitKWs(cls, _parseResult):
@@ -1154,7 +1174,8 @@ class STCSRegion(FieldInfoedNode):
 		self.cooSys = self.tapstcObj.cooSys
 
 	def addFieldInfo(self, context):
-		self.fieldInfo = FieldInfo(unit="deg", ucd=None, 
+		# XXX TODO: take type and unit from tapstcObj
+		self.fieldInfo = fieldinfo.FieldInfo("spoly", unit="deg", ucd=None, 
 			stc=tapstc.getSTCForTAP(self.cooSys))
 	
 	def flatten(self):
@@ -1182,16 +1203,18 @@ class Distance(FunctionNode):
 class PredicateGeometryFunction(FunctionNode):
 	type = "predicateGeometryFunction"
 
+	_pgFieldInfo = fieldinfo.FieldInfo("integer", "", "")
+
 	def addFieldInfo(self, context):
 		# swallow all upstream info, it really doesn't help here
-		self.fieldInfo = dimlessFieldInfo
+		self.fieldInfo = self._pgFieldInfo
 
 
 class PointFunction(FunctionNode):
 	type = "pointFunction"
 
 	def _makeCoordsysFieldInfo(self):
-		return FieldInfo(unit="", ucd="meta.ref;pos.frame")
+		return fieldinfo.FieldInfo("text", unit="", ucd="meta.ref;pos.frame")
 	
 	def _makeCoordFieldInfo(self):
 		# unfortunately, our current system gives us no way to access the
@@ -1207,7 +1230,8 @@ class PointFunction(FunctionNode):
 		userData = ()
 		if len(cfi.userData)==2:
 			userData = (cfi.userData[ind],)
-		return FieldInfo(ucd=None, unit=unit, userData=userData)
+		return fieldinfo.FieldInfo("double precision", 
+			ucd=None, unit=unit, userData=userData)
 
 	def addFieldInfo(self, context):
 		if self.funName=="COORDSYS":

@@ -15,6 +15,7 @@ from gavo.adql.grammar import (
 from gavo.adql.morphpg import (
 	morphPG,
 	insertQ3Calls)
+from gavo.adql.fieldinfo import getSubsumingType, FieldInfo
 from gavo.adql.ufunctions import userFunction
 
 def getSymbols():

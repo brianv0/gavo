@@ -581,6 +581,37 @@ def parseWithArtificialTable(query):
 	return parsedTree
 
 
+class TypecalcTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		inTypes, result = sample
+		self.assertEqual(adql.getSubsumingType(inTypes), result)
+	
+	samples = [
+		(["double precision", "integer", "bigint"], 'double precision'),
+		(["date", "timestamp", "timestamp"], 'timestamp'),
+		(["date", "boolean", "smallint"], 'text'),
+		(["box", "raw"], 'text'),
+		(["date", "time"], 'timestamp'),
+# 5
+		(["char(3)", "integer"], "text"),
+		(["double precision", "char(3)"], "text"),
+		(["integer[3]", "bigint"], "bigint[]"),
+		(["integer", "smallint", "double precision[]"], "double precision[]"),
+		(["integer[][]", "smallint", "double precision[]"], "double precision[]"),
+# 10
+		# I would give you the next is plain wrong, but I'm relying on postgres
+		# to reject such nonsence in the first place.
+		(["double precision[340]", "char(3)"], "text"),
+		(["boolean", "boolean"], "boolean"),
+		(["boolean", "smallint"], "smallint"),
+		(["sbox", "spoint"], "text"),
+		(["sbox", "spoly"], "spoly"),
+		(["sbox", "whacko"], "text"),
+	]
+
+
 class ColumnTest(testhelpers.VerboseTest):
 	def setUp(self):
 		self.fieldInfoGetter = _sampleFieldInfoGetter
@@ -596,8 +627,11 @@ class ColumnTest(testhelpers.VerboseTest):
 
 	def _assertColumns(self, resultColumns, assertProperties):
 		self.assertEqual(len(resultColumns), len(assertProperties))
-		for index, ((name, col), (unit, ucd, taint)) in enumerate(zip(
+		for index, ((name, col), (type, unit, ucd, taint)) in enumerate(zip(
 				resultColumns, assertProperties)):
+			if type is not None:
+				self.assertEqual(col.type, type, "Type %d: %r != %r"%
+					(index, col.type, type))
 			if unit is not None:
 				self.assertEqual(col.unit, unit, "Unit %d: %r != %r"%
 					(index, col.unit, unit))
@@ -613,19 +647,19 @@ class SelectClauseTest(ColumnTest):
 	def testConstantSelect(self):
 		cols = self._getColSeq("select 1, 'const' from spatial")
 		self._assertColumns(cols, [
-			("", "", False),
-			("", "", False),])
+			("smallint", "", "", False),
+			("text", "", "", False),])
 
 	def testConstantExprSelect(self):
 		cols = self._getColSeq("select 1+0.1, 'const'||'ab' from spatial")
 		self._assertColumns(cols, [
-			("", "", True),
-			("", "", False),])
+			("double precision", "", "", True),
+			("text", "", "", False),])
 
 	def testConstantSelectWithAs(self):
 		cols = self._getColSeq("select 1+0.1 as x from spatial")
 		self._assertColumns(cols, [
-			("", "", True),])
+			("double precision", "", "", True),])
 
 	def testBadRefRaises(self):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq, 
@@ -634,19 +668,19 @@ class SelectClauseTest(ColumnTest):
 	def testQualifiedStar(self):
 		cols = self._getColSeq("select misc.* from spatial, misc")
 		self._assertColumns(cols, [
-			("kg", "phys.mass", False),
-			("mag", "phot.mag", False),
-			("km/s", "phys.veloc", False),])
+			("real", "kg", "phys.mass", False),
+			("real", "mag", "phot.mag", False),
+			("real", "km/s", "phys.veloc", False),])
 
 	def testMixedQualifiedStar(self):
 		cols = self._getColSeq("select misc.*, dist, round(mass/10)"
 			" from spatial, misc")
 		self._assertColumns(cols, [
-			("kg", "phys.mass", False),
-			("mag", "phot.mag", False),
-			("km/s", "phys.veloc", False),
-			("m", "phys.distance", False),
-			("kg", "phys.mass", True),])
+			("real", "kg", "phys.mass", False),
+			("real", "mag", "phot.mag", False),
+			("real", "km/s", "phys.veloc", False),
+			("real", "m", "phys.distance", False),
+			("double precision", "kg", "phys.mass", True),])
 
 
 class ColResTest(ColumnTest):
@@ -664,118 +698,122 @@ class ColResTest(ColumnTest):
 	def testIgnoreCase(self):
 		cols = self._getColSeq("select Width, hEiGHT from spatial")
 		self._assertColumns(cols, [
-			("m", "phys.dim", False),
-			("km", "phys.dim", False),])
+			("real", "m", "phys.dim", False),
+			("real", "km", "phys.dim", False),])
 
 	def testStarSelect(self):
 		cols = self._getColSeq("select * from spatial")
 		self._assertColumns(cols, [
-			("m", "phys.distance", False),
-			("m", "phys.dim", False),
-			("km", "phys.dim", False),
-			("deg", "pos.eq.ra;meta.main", False),
-			("rad", "pos.eq.ra", False), ])
+			("real", "m", "phys.distance", False),
+			("real", "m", "phys.dim", False),
+			("real", "km", "phys.dim", False),
+			("real", "deg", "pos.eq.ra;meta.main", False),
+			("real", "rad", "pos.eq.ra", False), ])
+
+	def testStarSelectJoined(self):
 		cols = self._getColSeq("select * from spatial, misc")
 		self._assertColumns(cols, [
-			("m", "phys.distance", False),
-			("m", "phys.dim", False),
-			("km", "phys.dim", False),
-			("deg", "pos.eq.ra;meta.main", False),
-			("rad", "pos.eq.ra", False),
-			("kg", "phys.mass", False),
-			("mag", "phot.mag", False),
-			("km/s", "phys.veloc", False)])
+			("real", "m", "phys.distance", False),
+			("real", "m", "phys.dim", False),
+			("real", "km", "phys.dim", False),
+			("real", "deg", "pos.eq.ra;meta.main", False),
+			("real", "rad", "pos.eq.ra", False),
+			("real", "kg", "phys.mass", False),
+			("real", "mag", "phot.mag", False),
+			("real", "km/s", "phys.veloc", False)])
 
 	def testDimlessSelect(self):
 		cols = self._getColSeq("select 3+4 from spatial")
-		self.assert_(cols[0][0], adql.dimlessFieldInfo)
+		self.assertEqual(cols[0][1].type, "smallint")
+		self.assertEqual(cols[0][1].unit, "")
+		self.assertEqual(cols[0][1].ucd, "")
 
 	def testSimpleScalarExpression(self):
 		cols = self._getColSeq("select 2+width, 2*height, height*2"
 			" from spatial")
 		self._assertColumns(cols, [
-			("", "", True),
-			("km", "phys.dim", True),
-			("km", "phys.dim", True),])
+			("real", "", "", True),
+			("real", "km", "phys.dim", True),
+			("real", "km", "phys.dim", True),])
 		self.assert_(cols[1][1].userData[0] is spatialFields[2])
 
 	def testFieldOperandExpression(self):
 		cols = self._getColSeq("select width*height, width/speed, "
 			"3*mag*height, mag+height, height+height from spatial, misc")
 		self._assertColumns(cols, [
-			("m*km", "", True),
-			("m/(km/s)", "", True),
-			("mag*km", "", True),
-			("", "", True),
-			("km", "phys.dim", True)])
+			("real", "m*km", "", True),
+			("real", "m/(km/s)", "", True),
+			("real", "mag*km", "", True),
+			("real", "", "", True),
+			("real", "km", "phys.dim", True)])
 
 	def testMiscOperands(self):
 		cols = self._getColSeq("select -3*mag from misc")
 		self._assertColumns(cols, [
-			("mag", "phot.mag", True)])
+			("real", "mag", "phot.mag", True)])
 
 	def testSetFunctions(self):
 		cols = self._getColSeq("select AVG(mag), mAx(mag), max(2*mag),"
 			" Min(Mag), sum(mag), count(mag), avg(3), count(*) from misc")
 		self._assertColumns(cols, [
-			("mag", "stat.mean;phot.mag", False),
-			("mag", "stat.max;phot.mag", False),
-			("mag", "stat.max;phot.mag", True),
-			("mag", "stat.min;phot.mag", False),
-			("mag", "phot.mag", False),
-			("", "meta.number;phot.mag", False),
-			("", "", False),
-			("", "meta.number", False)])
+			("double precision", "mag", "stat.mean;phot.mag", False),
+			("real", "mag", "stat.max;phot.mag", False),
+			("real", "mag", "stat.max;phot.mag", True),
+			("real", "mag", "stat.min;phot.mag", False),
+			("real", "mag", "phot.mag", False),
+			("integer", "", "meta.number;phot.mag", False),
+			("double precision", "", "stat.mean", False),
+			("integer", "", "meta.number", False)])
 
 	def testNumericFunctions(self):
 		cols = self._getColSeq("select acos(ra2), degrees(ra2), RadianS(ra1),"
 			" PI(), ABS(width), Ceiling(Width), Truncate(height*2)"
 			" from spatial")
 		self._assertColumns(cols, [
-			("rad", "", True),
-			("deg", "pos.eq.ra", True),
-			("rad", "pos.eq.ra;meta.main", True),
-			("", "", True),
-			("m", "phys.dim", True),
-			("m", "phys.dim", True),
-			("km", "phys.dim", True)])
+			("double precision", "rad", "", True),
+			("double precision", "deg", "pos.eq.ra", True),
+			("double precision", "rad", "pos.eq.ra;meta.main", True),
+			("double precision", "", "", True),
+			("double precision", "m", "phys.dim", True),
+			("double precision", "m", "phys.dim", True),
+			("double precision", "km", "phys.dim", True)])
 
 	def testAggFunctions(self):
 		cols = self._getColSeq("select max(ra1), min(ra1) from spatial")
 		self._assertColumns(cols, [
-			("deg", "stat.max;pos.eq.ra;meta.main", False),
-			("deg", "stat.min;pos.eq.ra;meta.main", False)])
+			("real", "deg", "stat.max;pos.eq.ra;meta.main", False),
+			("real", "deg", "stat.min;pos.eq.ra;meta.main", False)])
 
 	def testPoint(self):
 		cols = self._getColSeq("select point('ICRS', ra1, ra2) from spatial")
 		self._assertColumns(cols, [
-			('deg,rad', '', False)])
+			("spoint", 'deg,rad', '', False)])
 		self.assert_(cols[0][1].userData[0] is spatialFields[3])
 
 	def testParenExprs(self):
 		cols = self._getColSeq("select (width+width)*height from spatial")
 		self._assertColumns(cols, [
-			("m*km", "", True)])
+			("real", "m*km", "", True)])
 
 	def testSubquery(self):
 		cols = self._getColSeq("select q.p from (select ra2 as p from"
 			" spatial) as q")
 		self._assertColumns(cols, [
-			('rad', 'pos.eq.ra', False)])
+			("real", 'rad', 'pos.eq.ra', False)])
 
 	def testJoin(self):
 		cols = self._getColSeq("select dist, speed, 2*mass*height"
 			" from spatial join misc on (mass>height)")
 		self._assertColumns(cols, [
-			('m', 'phys.distance', False),
-			('km/s', 'phys.veloc', False),
-			('kg*km', '', True),])
+			("real", 'm', 'phys.distance', False),
+			("real", 'km/s', 'phys.veloc', False),
+			("real", 'kg*km', '', True),])
 
 	def testUnderscore(self):
 		cols = self._getColSeq("select _dist"
 			" from (select dist as _dist from spatial) as q")
 		self._assertColumns(cols, [
-			('m', 'phys.distance', False)])
+			("real", 'm', 'phys.distance', False)])
 
 	def testErrorReporting(self):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
@@ -788,28 +826,28 @@ class QuotedColResTest(ColumnTest):
 	def testSimpleStar(self):
 		cols = self._getColSeq("select * from quoted")
 		self._assertColumns(cols, [
-			('bg', "mess", False),
-			('fin', "imperial.mess", False),
-			('pc', "boring.stuff", False),])
+			("real", 'bg', "mess", False),
+			("real", 'fin', "imperial.mess", False),
+			("real", 'pc', "boring.stuff", False),])
 	
 	def testSimpleJoin(self):
 		cols = self._getColSeq('select "inch""ing", "mass" from misc join'
 			' quoted on ("left-right"=speed)')
 		self._assertColumns(cols, [
-			('fin', "imperial.mess", False),
-			('kg', 'phys.mass', False)])
+			("real", 'fin', "imperial.mess", False),
+			("real", 'kg', 'phys.mass', False)])
 
 	def testPlainAndSubselect(self):
 		cols = self._getColSeq('select "inch""ing", plain from ('
 			'select TOP 5 * from quoted where boring<"inch""ing") as q')
 		self._assertColumns(cols, [
-			('fin', "imperial.mess", False),
-			('pc', "boring.stuff", False),])
+			("real", 'fin', "imperial.mess", False),
+			("real", 'pc', "boring.stuff", False),])
 	
 	def testQuotedExpressions(self):
 		cols = self._getColSeq('select 4*plain*"inch""ing" from quoted')
 		self._assertColumns(cols, [
-			('pc*fin', None, True)])
+			("real", 'pc*fin', None, True)])
 
 	def testCaseSensitive(self):
 		self.assertRaises(adql.ColumnNotFound, self._getColSeq,
@@ -823,23 +861,23 @@ class JoinColResTest(ColumnTest):
 		cols = self._getColSeq("select dist, speed, 2*mass*height"
 			" from spatial join misc on (mass>height)")
 		self._assertColumns(cols, [
-			('m', 'phys.distance', False),
-			('km/s', 'phys.veloc', False),
-			('kg*km', '', True),])
+			("real", 'm', 'phys.distance', False),
+			("real", 'km/s', 'phys.veloc', False),
+			("real", 'kg*km', '', True),])
 
 	def testJoinStar(self):
 		cols = self._getColSeq("select * from spatial as q join misc as p on"
 			" (1=contains(point('ICRS', q.dist, q.width), circle('ICRS',"
 			" p.mass, p.mag, 0.02)))")
 		self._assertColumns(cols, [
-			('m', 'phys.distance', False),
-			('m', 'phys.dim', False),
-			('km', 'phys.dim', False),
-			('deg', 'pos.eq.ra;meta.main', False),
-			('rad', 'pos.eq.ra', False),
-			('kg', 'phys.mass', False),
-			('mag', 'phot.mag', False),
-			('km/s', 'phys.veloc', False),
+			("real", 'm', 'phys.distance', False),
+			("real", 'm', 'phys.dim', False),
+			("real", 'km', 'phys.dim', False),
+			("real", 'deg', 'pos.eq.ra;meta.main', False),
+			("real", 'rad', 'pos.eq.ra', False),
+			("real", 'kg', 'phys.mass', False),
+			("real", 'mag', 'phot.mag', False),
+			("real", 'km/s', 'phys.veloc', False),
 			])
 
 	def testSubqueryJoin(self):
@@ -849,18 +887,18 @@ class JoinColResTest(ColumnTest):
       "    WHERE speed BETWEEN 0 AND 1) AS q JOIN"
     	"  spatial ON (mass=width)) AS f")
 		self._assertColumns(cols, [
-			('kg', 'phys.mass', False),
-			('deg', 'pos.eq.ra;meta.main', False)])
+			("real", 'kg', 'phys.mass', False),
+			("real", 'deg', 'pos.eq.ra;meta.main', False)])
 
 	def testSelfUsingJoin(self):
 		cols = self._getColSeq("SELECT * FROM "
     	" misc JOIN misc AS u USING (mass)")
 		self._assertColumns(cols, [
-			('kg', 'phys.mass', False),
-			('mag', 'phot.mag', False),
-			('km/s', 'phys.veloc', False),
-			('mag', 'phot.mag', False),
-			('km/s', 'phys.veloc', False) ])
+			("real", 'kg', 'phys.mass', False),
+			("real", 'mag', 'phot.mag', False),
+			("real", 'km/s', 'phys.veloc', False),
+			("real", 'mag', 'phot.mag', False),
+			("real", 'km/s', 'phys.veloc', False) ])
 
 	def testExReferenceBad(self):
 		self.assertRaises(adql.TableNotFound, self._getColSeq,
@@ -870,49 +908,49 @@ class JoinColResTest(ColumnTest):
 		cols = self._getColSeq("select a.dist, b.dist"
 			" from spatial as a join spatial as b on (a.dist>b.dist)")
 		self._assertColumns(cols, [
-			('m', 'phys.distance', False),
-			('m', 'phys.distance', False)])
+			("real", 'm', 'phys.distance', False),
+			("real", 'm', 'phys.distance', False)])
 
 	def testExReferenceMixed(self):
 		cols = self._getColSeq("select spatial.dist, b.speed"
 			" from spatial as a join misc as b on (a.dist>b.speed)")
 		self._assertColumns(cols, [
-			('m', 'phys.distance', False),
-			('km/s', 'phys.veloc', False)])
+			("real", 'm', 'phys.distance', False),
+			("real", 'km/s', 'phys.veloc', False)])
 	
 	def testNaturalJoin(self):
 		cols = self._getColSeq("SELECT * FROM"
 			" spatial JOIN spatial2")
 		self._assertColumns(cols, [
-			("m", "phys.distance", False),
-			("m", "phys.dim", False),
-			("km", "phys.dim", False),
-			("deg", "pos.eq.ra;meta.main", False),
-			("rad", "pos.eq.ra", False),
-			("deg", "pos.eq.dec;meta.main", False)])
+			("real", "m", "phys.distance", False),
+			("real", "m", "phys.dim", False),
+			("real", "km", "phys.dim", False),
+			("real", "deg", "pos.eq.ra;meta.main", False),
+			("real", "rad", "pos.eq.ra", False),
+			("real", "deg", "pos.eq.dec;meta.main", False)])
 
 	def testUsingJoin1(self):
 		cols = self._getColSeq("SELECT * FROM"
 			" spatial JOIN spatial2 USING (ra1)")
 		self._assertColumns(cols, [
-			("m", "phys.distance", False),
-			("m", "phys.dim", False),
-			("km", "phys.dim", False),
-			("deg", "pos.eq.ra;meta.main", False),
-			("rad", "pos.eq.ra", False),
-			("deg", "pos.eq.dec;meta.main", False),
-			("m", "phys.distance", False)])
+			("real", "m", "phys.distance", False),
+			("real", "m", "phys.dim", False),
+			("real", "km", "phys.dim", False),
+			("real", "deg", "pos.eq.ra;meta.main", False),
+			("real", "rad", "pos.eq.ra", False),
+			("real", "deg", "pos.eq.dec;meta.main", False),
+			("real", "m", "phys.distance", False)])
 
 	def testUsingJoin2(self):
 		cols = self._getColSeq("SELECT * FROM"
 			" spatial JOIN spatial2 USING (ra1, dist)")
 		self._assertColumns(cols, [
-			("m", "phys.distance", False),
-			("m", "phys.dim", False),
-			("km", "phys.dim", False),
-			("deg", "pos.eq.ra;meta.main", False),
-			("rad", "pos.eq.ra", False),
-			("deg", "pos.eq.dec;meta.main", False)])
+			("real", "m", "phys.distance", False),
+			("real", "m", "phys.dim", False),
+			("real", "km", "phys.dim", False),
+			("real", "deg", "pos.eq.ra;meta.main", False),
+			("real", "rad", "pos.eq.ra", False),
+			("real", "deg", "pos.eq.dec;meta.main", False)])
 
 
 class UploadColResTest(ColumnTest):
@@ -924,8 +962,8 @@ class UploadColResTest(ColumnTest):
 	def testNormalResolution(self):
 		cols = self._getColSeq("select alpha, rv from TAP_UPLOAD.adql")
 		self._assertColumns(cols, [
-			('deg', 'pos.eq.ra;meta.main', False),
-			('km/s', 'phys.veloc;pos.heliocentric', False),])
+			("real", 'deg', 'pos.eq.ra;meta.main', False),
+			("double precision", 'km/s', 'phys.veloc;pos.heliocentric', False),])
 	
 	def testFailedResolutionCol(self):
 		self.assertRaises(base.NotFoundError, self._getColSeq,
@@ -966,9 +1004,9 @@ class STCTest(ColumnTest):
 			"select coordsys(p), coord1(p), coord2(p) from"
 			"	(select point('FK5', ra1, width) as p from spatial) as q")
 		self._assertColumns(cs, [
-			('', 'meta.ref;pos.frame', False),
-			('deg', None, False),
-			('m', None, False)])
+			("text", '', 'meta.ref;pos.frame', False),
+			("double precision", 'deg', None, False),
+			("double precision", 'm', None, False)])
 
 	def testBadSTCSRegion(self):
 		self.assertRaisesWithMsg(adql.RegionError, 
@@ -1265,7 +1303,6 @@ class GlueTest(testhelpers.VerboseTest):
 			parseWithArtificialTable("select 2*wotb from crazy"))
 		self.assertEqual(td.columns[0].values.nullLiteral, "-32768")
 		self.assertEqual(td.columns[0].type, 'smallint')
-
 
 
 class QueryTest(testhelpers.VerboseTest):

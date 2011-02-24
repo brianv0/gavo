@@ -241,8 +241,8 @@
 	the lock objects should sit on the grammars, and I should have a
 	common parse method). [more or less fixed, some time around rev. 1700]
 
-59/MEDIUM/2011-01-25
-	ADQL count(*) returns a float.
+59/MEDIUM/2011-01-25/FIXED
+	ADQL count(*) returns a float. [in ref. 1788]
 
 60/WISHLIST/2011-01-25
 	When using utils.intToFunnyWord to make up ids, we should use some

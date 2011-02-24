@@ -628,6 +628,6 @@ if __name__=="__main__":
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
 	res = syms["statement"].parseString(
-			"select point('QUARK', 1, 2) from spatial"
+			"select count(*) from foo"
 			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

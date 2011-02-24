@@ -265,7 +265,7 @@ class SimpleRunnerTest(testhelpers.VerboseTest):
 		self.assertEqual(fields[0].datatype, "double")
 		self.assertEqual(fields[1].datatype, "char")
 		self.assertEqual(fields[1].xtype, "adql:POINT")
-		self.assertEqual(fields[2].datatype, "float")
+		self.assertEqual(fields[2].datatype, "double")
 
 
 class TAPSchemaTest(testhelpers.VerboseTest):
