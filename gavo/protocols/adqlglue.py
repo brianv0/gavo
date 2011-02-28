@@ -199,7 +199,7 @@ def morphADQL(query, metaProfile=None, tdsForUploads=[],
 	q3cstatus, t = adql.insertQ3Calls(t)
 
 	table = rsc.TableForDef(_getTableDescForOutput(t))
-	if hardLimit and t.setLimit>hardLimit:
+	if hardLimit and int(t.setLimit)>hardLimit:
 		table.addMeta("_warning", "This service as a hard row limit"
 			" of %s.  Your row limit was decreased to this value."%hardLimit)
 		t.setLimit = str(hardLimit)
@@ -212,6 +212,7 @@ def morphADQL(query, metaProfile=None, tdsForUploads=[],
 
 	# escape % to hide them form dbapi replacing
 	query = adql.flatten(morphedTree).replace("%", "%%")
+
 	table.tableDef.setLimit = t.setLimit and int(t.setLimit)
 	return query, table
 
@@ -237,7 +238,7 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
 	finally:
 		querier.rollback()
 	if len(table)==int(table.tableDef.setLimit):
-		table.addMeta("_overflow", table.setLimit)
+		table.addMeta("_overflow", table.tableDef.setLimit)
 	return table
 
 
