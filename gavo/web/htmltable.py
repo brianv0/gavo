@@ -480,7 +480,6 @@ class HTMLTableFragment(HTMLDataRenderer):
 
 	docFactory = loaders.stan(T.form(action="form", method="post")[
 		T.div(render=T.directive("meta"), class_="warning")["_warning"],
-		T.div(render=T.directive("meta"), class_="warning")["_overflow"],
 		T.table(class_="results", render=rend.sequence,
 					data=T.directive("table")) [
 				T.invisible(pattern="header", render=T.directive("headCells")),

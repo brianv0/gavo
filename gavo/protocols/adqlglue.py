@@ -238,7 +238,8 @@ def query(querier, query, timeout=15, metaProfile=None, tdsForUploads=[],
 	finally:
 		querier.rollback()
 	if len(table)==int(table.tableDef.setLimit):
-		table.addMeta("_overflow", table.tableDef.setLimit)
+		table.addMeta("_warning", "Your result is probably incomplete due"
+			" to your match limit of %s kicking in"%table.tableDef.setLimit)
 	return table
 
 
