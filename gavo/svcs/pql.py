@@ -25,7 +25,7 @@ from gavo import base
 from gavo.base import literals
 from gavo.base import sqlmunge
 from gavo.base import typesystems
-from gavo.utils import DEG
+from gavo.utils import DEG, pgsphere
 
 
 QUALIFIER_RE = re.compile("([^;]*)(;[^;]*)?$")
@@ -322,10 +322,12 @@ class PQLDatePar(PQLPar):
 class PQLPositionPar(PQLPar):
 	"""a PQL position parameter, as for SSA.
 
-	Cones and intervals do not mix; we support STC-S identifiers as
-	qualifiers.
+	Cones and intervals or real lists do not mix; we support STC-S 
+	identifiers as qualifiers.
+
+	The literals here are basically two-float lists.
 	"""
-	valParser = staticmethod(literals.parseSPoint)
+	valParser = float
 
 	def getSQL(self, colName, sqlPars):
 		raise NotImplementedError("Ranges for PQL POS not implemented yet.")
@@ -338,12 +340,21 @@ class PQLPositionPar(PQLPar):
 
 		sizeName = base.getSQLKey("size", coneSize*DEG, sqlPars)
 		parts = []
+		if len(self.ranges)%2:
+			raise base.ValidationError("PQL position values must be lists of"
+				" length divisible by 2.", self.destName)
+		lastCoo = None
 		for r in self.ranges:
 			if r.value is None:
 				raise base.ValidationError("Ranges not allowed as cone centers",
 					self.destName)
-			parts.append("%s <-> %%(%s)s < %%(%s)s"%(colName,
-				base.getSQLKey("pos", r.value, sqlPars), sizeName))
+			if lastCoo is None:
+				lastCoo = r.value
+			else:
+				parts.append("%s <-> %%(%s)s < %%(%s)s"%(colName,
+					base.getSQLKey("pos", pgsphere.SPoint.fromDegrees(lastCoo, r.value), 
+						sqlPars), sizeName))
+				lastCoo = None
 		return "(%s)"%" OR ".join(parts)
 
 

@@ -7,6 +7,8 @@ import time
 import threading
 import traceback
 
+from nevow import appserver
+
 from twisted.internet import reactor
 from twisted.internet.interfaces import IPushProducer
 from twisted.python import threadable
@@ -17,6 +19,9 @@ from gavo import base
 from gavo.formats import votablewrite
 
 class DataStreamer(threading.Thread):
+# This is nasty (because it's a thread) and not necessary most of the
+# time since the source may be a file or something that could just yield
+# now and then.  We should really, really fix this.
 	"""is a twisted-enabled Thread to stream out large files produced
 	on the fly.
 
@@ -76,30 +81,26 @@ class DataStreamer(threading.Thread):
 			for offset in range(0, len(data), self.chunkSize):
 				self.realWrite(data[offset:offset+self.chunkSize])
 
+	def cleanup(self):
+		# Must be calledFromThread
+		self.join(0.01)
+		self.consumer.unregisterProducer()
+		self.consumer.finish()
+		self.consumer = None
+
 	def run(self):
 		try:
 			self.writeStreamTo(self)
 		except:
 			base.ui.notifyError("Exception while streaming"
 				" (closing connection):\n")
-		# All producing is done in thread, so when no one's writing any
+		# All producing is done in the thread, so when no one's writing any
 		# more, we should have delivered everything to the consumer
-		reactor.callFromThread(self.consumer.unregisterProducer)
-		reactor.callFromThread(self.consumer.finish)
+		reactor.callFromThread(self.cleanup)
 
 	synchronized = ['resumeProducing', 'stopProducing']
 
 threadable.synchronize(DataStreamer)
-
-
-def joinThread(res, thread):
-	"""tries to join thread.
-
-	This is inserted into the request's callback chain to avoid having
-	lots of dead thread lie around.
-	"""
-	thread.join(0.01)
-	return res
 
 
 def streamOut(writeStreamTo, request):
@@ -112,7 +113,7 @@ def streamOut(writeStreamTo, request):
 	"""
 	t = DataStreamer(writeStreamTo, request)
 	t.start()
-	return request.deferred.addCallback(joinThread, t)
+	return request.deferred
 
 
 def streamVOTable(request, data, **contextOpts):

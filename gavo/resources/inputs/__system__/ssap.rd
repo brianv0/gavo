@@ -279,7 +279,8 @@
 			<par key="pubDID" late="True" description="Id provided by the
 				publisher (i.e., you); this is an opaque string and must be given"/>
 			<par key="cdate" late="True" description="date the file was
-				created (or processed; optional)">None</par>
+				created (or processed; optional); this must be either a string
+				in ISO format, or you need to parse to a timestamp yourself.">None</par>
 			<par key="pdate" late="True" description="date the file was
 				last published (in general, the default is fine)"
 				>datetime.datetime.utcnow()</par>

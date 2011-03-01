@@ -132,13 +132,25 @@ class PQLClausesTest(testhelpers.VerboseTest):
 
 class PQLPositionsTest(testhelpers.VerboseTest):
 	def testNoStep(self):
-		self.assertRaisesWithMsg(api.LiteralParseError,
-			"'12%2c12/14%2c13/1' is not a valid value for range within POS",
-			pql.PQLPositionPar.fromLiteral,
-			("12%2c12/14%2c13/1", "POS"))
+		self.assertRaisesWithMsg(api.ValidationError,
+			"Ranges not allowed as cone centers",
+			pql.PQLPositionPar.fromLiteral("12,12/14", "POS").getConeSQL,
+			("POS", {}, 0.1))
+
+	def testRequiresTwo(self):
+		self.assertRaisesWithMsg(api.ValidationError,
+			"PQL position values must be lists of length divisible by 2.",
+			pql.PQLPositionPar.fromLiteral("12", "POS").getConeSQL,
+			("POS", {}, 0.1))
+	
+	def testWhackoFrameRejected(self):
+		self.assertRaisesWithMsg(api.ValidationError,
+			"Cannot match against coordinates given in WHACKO frame",
+			pql.PQLPositionPar.fromLiteral("12,13;WHACKO", "POS").getConeSQL,
+			("POS", {}, 0.1))
 	
 	def testSingleCone(self):
-		cs = pql.PQLPositionPar.fromLiteral("8%2c12", "POS")
+		cs = pql.PQLPositionPar.fromLiteral("8,12", "POS")
 		pars = {}
 		expr = cs.getConeSQL("loc", pars, 0.5)
 		self.assertEqual(expr, "(loc <-> %(pos0)s < %(size0)s)")
@@ -146,7 +158,7 @@ class PQLPositionsTest(testhelpers.VerboseTest):
 			'pos0': pgsphere.SPoint.fromDegrees(8.0, 12.0)})
 		
 	def testMultiCone(self):
-		cs = pql.PQLPositionPar.fromLiteral("10%2c12,-10%2c13", "POS")
+		cs = pql.PQLPositionPar.fromLiteral("10,12,-10,13", "POS")
 		pars = {}
 		expr = cs.getConeSQL("loc", pars, 0.5)
 		self.assertEqual(expr, "(loc <-> %(pos0)s < %(size0)s"

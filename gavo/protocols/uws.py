@@ -67,6 +67,16 @@ def getJobsTable(timeout=None):
 		connection=conn, exclusive=True)
 	# jobsTable really has an owned connection.  Make it realize this.
 	jobsTable.ownedConnection = True
+
+	def jobsQuery(*args, **kwargs):
+		try:
+			return jobsTable.__class__.query(jobsTable, *args, **kwargs)
+		except base.QueryCanceledError:
+			raise base.ReportableError("Could not access the jobs table."
+				" This probably means there is a stale lock on it.  Please"
+				" notify the service operators.")
+	jobsTable.query = jobsQuery
+
 	return jobsTable
 
 
@@ -241,7 +251,7 @@ class UWSJob(object):
 	protocolParameters = UWSParameters((), DestructionParameter,
 		ExecDParameter)
 
-	def __init__(self, jobId, jobsTable=None, timeout=None):
+	def __init__(self, jobId, jobsTable=None, timeout=20):
 		self.jobId = jobId
 		self.jobsTable = jobsTable
 		if self.jobsTable is None:
@@ -276,7 +286,7 @@ class UWSJob(object):
 		kws["jobId"] = cls._allocateDataDir()
 		kws["phase"] = PENDING
 		kws["parameters"] = serializeParameters({})
-		jobsTable = getJobsTable()
+		jobsTable = getJobsTable(timeout=20)
 		utils.addDefaults(kws, {
 			"quote": None,
 			"executionDuration": base.getConfig("async", "defaultExecTime"),

@@ -91,9 +91,9 @@ class CoreQueriesTest(_WithSSATableTest):
 			set(ids))
 
 	samples = [
-		({"POS": "10%2c+15", "SIZE": "0.5"},
+		({"POS": "10,+15", "SIZE": "0.5"},
 		["test1"]),
-		({"POS": "10%2c+15", "SIZE": "2"},
+		({"POS": "10,+15", "SIZE": "2"},
 		["test1", "test2"]),
 		({"BAND": "/4.5e-7,6.5e-7/"},
 		["test1", "test3"]),
@@ -195,7 +195,7 @@ class CoreFailuresTest(_WithSSATableTest):
 		self.assertRaisesWithMsg(api.ValidationError,
 			"Cannot match against coordinates given in EGOCENTRIC frame",
 			self.service.runFromDict,
-			({"REQUEST": "queryData", "POS": "0%2c0;EGOCENTRIC", "SIZE": "1"}, 
+			({"REQUEST": "queryData", "POS": "0,0;EGOCENTRIC", "SIZE": "1"}, 
 				"ssap.xml"))
 
 

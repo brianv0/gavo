@@ -112,16 +112,18 @@ class UWS(object):
 
 
 def getJobList():
-	jobstable = uws.getJobsTable()
-	fields = jobstable.tableDef.columns
-	result = UWS.jobs()
-	for row in jobstable.iterQuery([
-			fields.getColumnByName("jobId"),
-			fields.getColumnByName("phase"),], ""):
-		result[
-			UWS.jobref(id=row["jobId"])[
-				UWS.phase[row["phase"]]]]
-	jobstable.close()
+	jobstable = uws.getJobsTable(5)
+	try:
+		fields = jobstable.tableDef.columns
+		result = UWS.jobs()
+		for row in jobstable.iterQuery([
+				fields.getColumnByName("jobId"),
+				fields.getColumnByName("phase"),], ""):
+			result[
+				UWS.jobref(id=row["jobId"])[
+					UWS.phase[row["phase"]]]]
+	finally:
+		jobstable.close()
 	return stanxml.xmlrender(result, "<?xml-stylesheet "
 		"href='/static/xsl/uws-joblist-to-html.xsl' type='text/xsl'?>")
 
