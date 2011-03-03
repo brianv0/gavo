@@ -2,6 +2,7 @@
 Renderers that take services "as arguments".
 """
 
+import cgi
 import os
 import urllib
 
@@ -158,6 +159,35 @@ class RendExplainer(object):
 						base.getMetaText(service, "testQuery.dec", default="60"),
 						base.getMetaText(service, "testQuery.sr", default="1")))[
 					"Validate"]]]
+
+	@classmethod
+	def _explain_ssap_xml(cls, service):
+		tqKeys = cgi.parse_qs(
+			base.getMetaText(service, "ssap.testQuery", default=""))
+		opts = []
+		for standardKey in ["RA", "DEC", "SR"]:
+			if standardKey in tqKeys:
+				opts.append("%s=%s"%(standardKey, 
+					urllib.quote(tqKeys.pop(standardKey))))
+		if tqKeys:
+			opts.append("EXTRAPARAMS="+urllib.quote("\n".join(
+				"%s=%s"%(k,urllib.quote(v)) for k,v in tqKeys.iteritems())))
+		optStr = "&".join(opts)
+		if optStr:
+			optStr = optStr+"&"
+
+		return T.invisible["a standard SSAP interface as defined by the"
+			" IVOA to access spectral or time-series data; SSAP clients"
+			" use ", service.getURL("ssap.xml"), " to access the service",
+			T.invisible(render=T.directive("ifadmin"))[" -- ",
+				T.a(href=
+					"http://registry.euro-vo.org:8080/dalvalidate/"
+					"SSAValidater?endpoint="+
+					urllib.quote(service.getURL("ssap.xml"))+
+					"%sformat=html&show=fail&show=warn&show=rec"
+					"&op=Validate"%(optStr))[
+					"Validate"]]]
+
 
 	@classmethod
 	def _explain_tap(cls, service):
