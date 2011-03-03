@@ -172,7 +172,7 @@ class MultiSelectChoice(SelectChoice):
 		return self._renderTag(ctx, key, value, converter, False)
 
 	def processInput(self, ctx, key, args, default=''):
-		values = args.get(key, [default.split()])
+		values = args.get(key, default.split())
 		rv = []
 		for value in values:
 			value = iformal.IStringConvertible(self.original).toType(value)
