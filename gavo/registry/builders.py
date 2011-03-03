@@ -135,7 +135,7 @@ def getOAIHeaderElementForRestup(restup):
 		status = "deleted"
 	return OAI.header(status=status)[
 		OAI.identifier[identifiers.computeIdentifierFromRestup(restup)],
-		OAI.datestamp[restup["recTimestamp"].strftime("%Y-%m-%d")],
+		OAI.datestamp[restup["recTimestamp"].strftime(utils.isoTimestampFmt)],
 		[
 			OAI.setSpec[setName] 
 				for setName in servicelist.getSetsForResource(restup)]]

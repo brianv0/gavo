@@ -128,6 +128,47 @@ def allcols(querier, args):
 		tap.publishToTAP(rd, querier.connection)
 
 
+@exposedFunction([Arg(help="identifier of the deleted service",
+		dest="svcId")],
+	help="Declare an identifier as deleted (for when"
+	" you've removed the RD but the identifier still floats on"
+	" some registries)")
+def declaredel(querier, args):
+	import datetime
+
+	from gavo import registry
+	from gavo import rsc
+
+	authority, path = registry.parseIdentifier(args.svcId)
+	if authority!=base.getConfig("ivoa", "authority"):
+		raise base.ReportableError("You can only declare ivo ids from your"
+			" own authority as deleted.")
+	idParts = path.split("/")
+	svcsRD = base.caches.getRD("//services")
+
+	# mark in resources table
+	resTable = rsc.TableForDef(svcsRD.getById("resources"),
+		connection=querier.connection)
+	newRow = resTable.tableDef.getDefaults()
+	newRow["sourceRD"] = "/".join(idParts[:-1])
+	newRow["resId"] = idParts[-1]
+	newRow["deleted"] = True
+	newRow["title"] = "Ex "+args.svcId
+	newRow["dateUpdated"] = newRow["recTimestamp"] = datetime.datetime.utcnow()
+	resTable.addRow(newRow)
+
+	# mark in sets table
+	resTable = rsc.TableForDef(svcsRD.getById("sets"),
+		connection=querier.connection)
+	newRow = resTable.tableDef.getDefaults()
+	newRow["sourceRD"] = "/".join(idParts[:-1])
+	newRow["renderer"] = "null"
+	newRow["resId"] = idParts[-1]
+	newRow["setName"] = "ivo_managed"
+	newRow["deleted"] = True
+	resTable.addRow(newRow)
+
+
 def main():
 	base.setDBProfile("admin")
 	querier = base.SimpleQuerier()

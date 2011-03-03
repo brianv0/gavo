@@ -373,7 +373,6 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		self._completeElementNext(TableDef, ctx)
 		self.columns.withinId = self.params.tableName = "table "+self.id
 
-
 	def _defineFixupFunction(self):
 		"""defines a function to fix up records from column's fixup attributes.
 

@@ -30,7 +30,7 @@ from gavo.registry import servicelist   # registration of getWebServiceList
 from gavo.registry.builders import (getVOResourceElement, 
 	getVORMetadataElement)
 from gavo.registry.identifiers import (getResobFromIdentifier,
-	getResobFromRestup)
+	getResobFromRestup, parseIdentifier)
 from gavo.registry.publication import findAllRDs
 from gavo.registry.servicelist import getTableDef
 from gavo.registry.nonservice import ResRec
