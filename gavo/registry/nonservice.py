@@ -24,7 +24,7 @@ class NonServiceResource(
 		return "ivo://%s%s"%(base.getConfig("ivoa", "authority"), localPart)
 			
 
-class ResRec(svcs.RegistryMetaMixin, NonServiceResource):
+class ResRec(rscdef.IVOMetaMixin, NonServiceResource):
 	"""A "resource" for registration purposes.
 
 	A Resource does nothing; it is for registration of Authorities,

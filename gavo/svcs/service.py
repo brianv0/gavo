@@ -242,72 +242,6 @@ class CustomDF(CustomPageFunction):
 	name_ = "customDF"
 
 
-## This should really be in gavo.registry (and I could use servicelist then,
-## and of course the DB table used here is defined there).
-## However, registry uses svc, but we need these meta keys in service.
-## Maybe at some point have something in registry just add these meta
-## keys?
-class RegistryMetaMixin(object):
-	"""A mixin providing some metadata that is most easily read from
-	servicelist.
-
-	This needs rd and id attributes that can be resolved within the services
-	table.  Thus, this metadata will only be available when the service
-	is published.  Database accesses will only happen when the metadata
-	actually is requested.  Only the registry subpackage should do that.
-
-	This pertains to sets, and (at some point) status.
-	"""
-	def __getFromDB(self, metaKey):
-		try:  # try to used cached data
-			if self.__dbRecord is None:
-				raise base.NoMetaKey(metaKey, carrier=self)
-			return self.__dbRecord[metaKey]
-		except AttributeError:
-			# fetch data from DB
-			pass
-		# We're not going through servicelist since we don't want to depend
-		# on the registry subpackage.
-		q = base.SimpleQuerier()
-		try:
-			res = q.runIsolatedQuery("SELECT dateUpdated, recTimestamp, setName"
-				" FROM dc.resources_join WHERE sourceRD=%(rdId)s AND resId=%(id)s",
-				{"rdId": self.rd.sourceId, "id": self.id})
-		finally:
-			q.close()
-		if res:
-			row = res[0]
-			self.__dbRecord = {
-				"sets": meta.makeMetaItem(list(set(row[2] for row in res)), 
-					name="sets"),
-				"recTimestamp": meta.makeMetaItem(res[0][1].strftime(
-					utils.isoTimestampFmt), name="recTimestamp"),
-			}
-		else:
-			self.__dbRecord = {
-				'sets': ['unpublished'],
-				'recTimestamp': meta.makeMetaItem(
-					datetime.datetime.utcnow().strftime(
-					utils.isoTimestampFmt), name="recTimestamp"),
-				}
-		return self.__getFromDB(metaKey)
-	
-	def _meta_dateUpdated(self):
-		return self.rd.getMeta("dateUpdated")
-
-	def _meta_datetimeUpdated(self):
-		return self.rd.getMeta("datetimeUpdated")
-	
-	def _meta_recTimestamp(self):
-		return self.__getFromDB("recTimestamp")
-
-	def _meta_sets(self):
-		return self.__getFromDB("sets")
-
-	def _meta_status(self):
-		return "active"
-
-
 class CoreAttribute(base.ReferenceAttribute):
 	def __init__(self):
 		base.ReferenceAttribute.__init__(self, "core", 
@@ -321,7 +255,7 @@ class CoreAttribute(base.ReferenceAttribute):
 
 
 class Service(base.Structure, base.ComputedMetaMixin, 
-		base.StandardMacroMixin, RegistryMetaMixin):
+		base.StandardMacroMixin, rscdef.IVOMetaMixin):
 	"""A service definition.
 
 	A service is a combination of a core and one or more renderers.  They
@@ -736,14 +670,6 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		
 
 	#################### meta and such
-
-	def _meta_referenceURL(self):
-		return meta.makeMetaItem(self.getURL("info"),
-			type="link", title="Service info")
-
-	def _meta_identifier(self):
-		return "ivo://%s/%s/%s"%(base.getConfig("ivoa", "authority"),
-				self.rd.sourceId, self.id)
 
 	def _meta_available(self):
 # XXX TODO: have this ask the core

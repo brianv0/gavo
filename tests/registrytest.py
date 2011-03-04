@@ -10,8 +10,9 @@ import os
 from gavo import api
 from gavo import base
 from gavo import registry
+from gavo import rscdesc
 from gavo import utils
-from gavo.base import sqlsupport
+from gavo.base import meta
 from gavo.helpers import testhelpers
 from gavo.helpers import testtricks
 from gavo.registry import builders
@@ -31,6 +32,10 @@ class DeletedTest(testhelpers.VerboseTest):
 	rdId = 'data/pubtest'
 
 	resources = [("connection", tresc.dbConnection)]
+
+	def tearDown(self):
+		publication._purgeFromServiceTables(self.rdId, self.connection)
+		self.connection.commit()
 
 	def _makeDeletedRecord(self):
 		return base.makeStruct(nonservice.DeletedResource,
@@ -210,5 +215,137 @@ class AuthorityTest(testhelpers.VerboseTest):
 		self.failUnless('created="' in resrec)
 
 
+
+class DataPublicationTest(testhelpers.VerboseTest):
+# Tests concerning registry publication of data items.
+	resources = [("conn", tresc.dbConnection)]
+
+	def testMinimalMeta(self):
+		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
+			<data id="ronk" publishIn="ivo_managed,local">
+			</data></resource>""")
+		self.assertRaisesWithMsg(base.MetaValidationError,
+			"Meta structure on ronk did not validate:"
+			" Meta key title missing, Meta key creationDate missing,"
+			" Meta key description missing, Meta key subject missing",
+			list,
+			(publication.SvcRscGrammar(rd).parse(rd),))
+
+	def testIterData(self):
+		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
+			<meta>
+				title:x
+				creationDate:y
+				description:z
+				subject:a
+				referenceURL:b
+			</meta>
+			<data id="ronk" publishIn="ivo_managed,local">
+			</data></resource>""")
+		recs = list(publication.SvcRscGrammar(rd).parse(rd))
+		self.assertEquals(len(recs), 2)
+		self.assertEquals(recs[0]["setName"], "ivo_managed")
+		self.assertEquals(recs[1]["setName"], "local")
+
+	def testRejectedWithoutId(self):
+		self.assertRaisesWithMsg(base.StructureError,
+			"At (3, 3): Published data needs an assigned id.",
+			base.parseFromString,
+			(rscdesc.RD, """<resource schema="data">
+			<data publishIn="ivo_managed,local">
+			</data></resource>"""))
+	
+	def testPublication(self):
+		rdId = "data/testdata"
+		rd = base.caches.getRD(rdId)
+		dd = rd.getById("ronk")
+		try:
+			publication.updateServiceList([rd], connection=self.conn)
+			q = base.SimpleQuerier(connection=self.conn)
+			self.assertEqual(len(list(
+				q.query("SELECT * FROM dc.resources where sourcerd=%(rdId)s",
+					{"rdId": rdId}))), 1)
+			resOb = registry.getResobFromIdentifier(str(dd.getMeta("identifier")))
+			self.assertEqual(resOb.makes[0].table.id, "barsobal")
+		finally:
+			publication._purgeFromServiceTables(rdId, self.conn)
+			self.conn.commit()
+		self.assertEqual(len(list(
+			q.query("SELECT * FROM dc.resources where sourcerd=%(rdId)s",
+				{"rdId": rdId}))), 0)
+
+
+
+class _DataVORRecord(testhelpers.TestResource):
+	def make(self, ignored):
+		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
+			<meta name="creationDate">2011-03-04T11:00:00</meta>
+			<meta name="title">My first DataCollection</meta>
+			<table id="punk">
+				<column name="oink" utype="noises:animal.pig"/>
+				<column name="where" type="spoint" ucd="pos.eq;source"/>
+			</table>
+			<data id="ronk" publishIn="ivo_managed,local">
+			<meta name="description">Some silly test data</meta>
+			<meta name="subject">testing</meta>
+			<meta name="subject">regressions</meta>
+			<meta name="coverage.profile">Box ICRS 12 13 2 3</meta>
+			<meta name="format">audio/vorbis</meta>
+			<meta name="referenceURL">http://junk.g-vo.org</meta>
+			<make table="punk"/>
+			</data></resource>""")
+		rd.sourceId = "funky/town"
+		dd = rd.dds[0]
+		tree = testhelpers.getXMLTree(
+			builders.getVOResourceElement(dd).render(), debug=False)
+		return tree.xpath("metadata/Resource")[0]
+
+_dataVORRecord = _DataVORRecord()
+
+
+
+class DataPublicationRecordTest(testhelpers.VerboseTest):
+# Tests for the registry record of a data publication
+
+	resources = [("tree", _dataVORRecord)]
+
+	def testCreatedInherited(self):
+		self.assertEqual(self.tree.attrib["created"], "2011-03-04T11:00:00")
+	
+	def testConfigMetaPresent(self):
+		self.assertEqual(
+			self.tree.xpath("curation/contact/email")[0].text, 
+			base.getMetaText(meta.configMeta, "contact.email"))
+	
+	def testVORModelWorked(self):
+		self.assertEqual(
+			self.tree.xpath("content/description")[0].text, 
+			"Some silly test data")
+
+	def testVORModelWorked2(self):
+		self.assertEqual(self.tree.xpath("title")[0].text,
+			"My first DataCollection")
+
+	def testAllSubjectsRendered(self):
+		self.assertEqual(len(self.tree.xpath("content/subject")), 2)
+	
+	def testDataMetaRendered(self):
+		self.assertEqual(self.tree.xpath("format")[0].text, "audio/vorbis")
+	
+	def testCoverageMetaRendered(self):
+		self.assertEqual(self.tree.xpath(
+			"coverage/STCResourceProfile/AstroCoordArea/Box/Size/C1")[0].text, 
+			"2.0")
+	
+	def testTablesetRendered(self):
+		self.assertEqual(self.tree.xpath("tableset/schema/table/name")[0].text,
+			"data.punk")
+	
+	def testColumnMetaRendered(self):
+		self.assertEqual(
+			self.tree.xpath("tableset/schema/table/column")[0
+				].xpath("name")[0].text,
+			"oink")
+
 if __name__=="__main__":
-	testhelpers.main(AuthorityTest)
+	testhelpers.main(DataPublicationTest)

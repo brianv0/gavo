@@ -34,12 +34,16 @@ from gavo.base import meta
 class MetaValidationError(meta.MetaError):
 	def __init__(self, carrier, failures):
 		self.failures = failures
+		if getattr(carrier, "id", None):
+			self.carrierRepr = carrier.id
+		else:
+			self.carrierRepr = repr(carrier)
 		meta.MetaError.__init__(self, "Meta structure on %s did not validate"%
-			repr(carrier), carrier)
+			self.carrierRepr, carrier)
 
 	def __str__(self):
 		return "Meta structure on %s did not validate: %s"%(
-			repr(self.carrier), ", ".join(self.failures))
+			self.carrierRepr, ", ".join(self.failures))
 
 
 class MetaAssertion(object):

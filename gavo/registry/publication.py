@@ -1,6 +1,15 @@
 """
-"Publishing" (i.e. entering into the services table) service records -- 
-grammar-type stuff and UI.
+"Publishing" service records -- grammar-type stuff and UI.
+
+This module basically turns "publishable things" -- services, resource
+records, data items -- into row dictionaries that can be entered into
+the database.
+
+This is one half of getting them into the registry.  The other half is
+done in identifiers and builders; these take the stuff from the database,
+rebuilds actual objects and creates registry records from them.  So,
+the content of the service table is not actually used to build resource
+records.
 """
 
 import datetime
@@ -100,6 +109,17 @@ def iterResRecs(res):
 		yield rec
 
 
+def iterDataRecs(res):
+	"""as iterSvcRecs, just for DataDescriptors rather than Services.
+	"""
+	rec = makeBaseRecord(res)
+	for setName in res.publishIn:
+		rec["setName"] = setName
+		rec["renderer"] = "datadisplay"
+		for subject in [str(item) for item in res.getMeta("subject") or (None,)]:
+			rec["subject"] = subject
+			yield rec
+
 
 class ServiceRscIterator(grammars.RowIterator):
 	"""is a RowIterator yielding resource records for inclusion into the
@@ -114,6 +134,11 @@ class ServiceRscIterator(grammars.RowIterator):
 			self.curSource = res.id
 			for sr in iterResRecs(res):
 				yield sr.copy()
+		for res in self.sourceToken.dds:
+			self.curSource = res.id
+			if res.publishIn:
+				for sr in iterDataRecs(res):
+					yield sr.copy()
 	
 	def getLocation(self):
 		return "%s#%s"%(self.sourceToken.sourceId, self.curSource)
@@ -168,6 +193,21 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 			tap.publishToTAP(rd, connection)
 	connection.commit()
 	return recordsWritten
+
+
+def _purgeFromServiceTables(rdId, conn):
+	"""purges all resources coming from rdId from the registry tables.
+
+	This is not for user code that should rely on the tables doing the
+	right thing (e.g., setting the deleted flag rather than deleting rows).
+	Test code that is not in contact with the actual registry might want 
+	this, though (until postgres grows nested transactions).
+	"""
+	cursor = conn.cursor()
+	for tableName in ["resources", "interfaces", "sets", "subjects"]:
+		cursor.execute("delete from dc.%s where sourceRD=%%(rdId)s"%tableName,
+			{"rdId": rdId})
+	cursor.close()
 
 
 ################ UI stuff

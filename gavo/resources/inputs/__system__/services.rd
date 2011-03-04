@@ -202,6 +202,7 @@
 			managingOrg:ivo://\getConfig{ivoa}{authority}/org
 			description: \metaString{authority.description}
 			referenceURL: \metaString{authority.referenceURL}
+			identifier: ivo://\getConfig{ivoa}{authority}
 		</meta>
 	</resRec>
 

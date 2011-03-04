@@ -25,7 +25,8 @@ from gavo.registry import identifiers
 from gavo.registry import tableset
 from gavo.registry import servicelist
 from gavo.registry.common import *
-from gavo.registry.model import (OAI, VOR, VOG, DC, RI, VS, SIA, SCS, OAIDC)
+from gavo.registry.model import (
+	OAI, VOR, VOG, DC, RI, VS, VS1, SIA, SCS, OAIDC)
 
 
 SF = meta.stanFactory
@@ -375,6 +376,29 @@ class DeletedResourceMaker(ResourceMaker):
 	resType = "deleted"
 	def _makeResource(self, res, setNames):
 		return []
+
+_dataMetaBuilder = meta.ModelBasedBuilder([
+	('rights', SF(VOR.rights)),
+	# format is a mime type if we're registering a single piece of data
+	('format', SF(VS1.format)),  
+])
+
+class DataResourceMaker(ResourceMaker):
+	"""A ResourceMaker for rscdef.Data items (yielding DataCollections)
+	"""
+	resourceClass = VS1.DataCollection
+	resType = "data"
+
+	def _makeResource(self, data, setNames):
+		return ResourceMaker._makeResource(self, data, setNames)[
+			_orgMetaBuilder.build(data),
+			_dataMetaBuilder.build(data),
+			_coverageMetaBuilder.build(data),
+			VS1.tableset[
+				VS1.schema[
+					VS1.name[data.rd.schema], [
+						tableset.getTableForTableDef(td)
+						for td in data]]]]
 
 
 _getResourceMaker = utils.buildClassResolver(ResourceMaker, 

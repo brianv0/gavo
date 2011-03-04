@@ -251,10 +251,31 @@ def cleanXML(aString):
 	"""removes IDs and some other detritus from XML literals.
 
 	The result will be invalid XML, and all this assumes the fixed-prefix
-	logic of the DC software.  Still, it may help making tests against XML
-	literals a bit more stable.
+	logic of the DC software.
+
+	For new tests, you should just getXMLTree and XPath tests.
 	"""
 	return re.sub("\s+", " ", _xmlJunkPat.sub('', aString)).strip()
+
+
+def _nukeNamespaces(xmlString):
+	nsCleaner = re.compile('^(</?)(?:[a-z0-9]+:)')
+	return re.sub("(?s)<[^>]*>", 
+		lambda mat: nsCleaner.sub(r"\1", mat.group()),
+		re.sub('xmlns="[^"]*"', "", xmlString))
+
+
+def getXMLTree(xmlString, debug=False):
+	"""returns an libxml2 etree for xmlString, where, for convenience,
+	all namespaces on elements are nuked.
+
+	The libxml2 etree lets you do xpath searching using the xpath method.
+	"""
+	from lxml import etree as lxtree
+	tree = lxtree.fromstring(_nukeNamespaces(xmlString))
+	if debug:
+		lxtree.dump(tree)
+	return tree
 
 
 def printFormattedXML(xmlString):

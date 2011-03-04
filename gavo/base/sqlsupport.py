@@ -13,6 +13,7 @@ import sys
 from itertools import *
 
 from gavo import utils
+from gavo.base import caches
 from gavo.base import config
 
 debug = "GAVO_SQL_DEBUG" in os.environ
@@ -609,3 +610,38 @@ def _initPsycopg(conn):
 	from gavo.utils import pgsphere
 	pgsphere.preparePgSphere(conn)
 	_PSYCOPG_INITED = True
+
+
+class _GetTableConn(object):
+	"""A cache for a trusted connection for use with "canned" queries.
+
+	Clients must *not* close this connection.  It is inteded to be shared
+	by all cores issuing canned queries.
+
+	In a typical scenario, opening a connection is not all that expensive,
+	so if you're doing more than just run a query, consider getting
+	a connection of your own.
+
+	This callable is fiddled into base.caches, so once standardcores
+	is imported, you can call base.caches.getTableConn(None).  This
+	is mainly for use with custom cores.
+
+	As a last-resort measure, we check if the connection is closed.  If
+	that is so, the last user of the connection is buggy (since you
+	must not close...), but we don't want to take half the data center
+	down, so we re-open a new connection.
+	"""
+	def __init__(self):
+		self.conn = None
+	
+	def __call__(self, ignored):
+		if self.conn is None:
+			self.conn = getDBConnection("trustedquery", autocommitted=True)
+		if self.conn.closed:
+			utils.sendUIEvent("Error", "TableConn was found closed.  DRAMATIC."
+				"  There's a buggy core on the loose.  Find it.  Fix it.  Now."
+				"  Meanwhile, I'm opening a new connection.")
+			self.conn = getDBConnection("trustedquery", autocommitted=True)
+		return self.conn
+
+caches.getTableConn = _GetTableConn()

@@ -17,7 +17,7 @@ from gavo.rscdef.common import (RDAttribute, ResdirRelativeAttribute,
 	ColumnListAttribute, NamePathAttribute, ColumnList)
 
 from gavo.rscdef.dddef import (DataDescriptor, Make,
-	SourceSpec)
+	SourceSpec, IVOMetaMixin)
 
 from gavo.rscdef.group import Group
 

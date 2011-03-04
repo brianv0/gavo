@@ -1,6 +1,10 @@
 <resource schema="__test">
 	<meta name="description">Some test data with a reasonable funny structure.
 	</meta>
+	<meta name="title">GAVO Test Data</meta>
+	<meta name="creationDate">2008-10-15T15:01:03</meta>
+	<meta name="subject">Testing</meta>
+
 
 	<table id="data">
 		<column name="anint" tablehead="An Integer" type="integer"/>
@@ -27,4 +31,9 @@
 			<values><option>a</option><option>b</option></values>
 		</column>
 	</table>
+
+	<data id="ronk" publishIn="ivo_managed">
+		<make table="barsobal"/>
+	</data>
+
 </resource>
