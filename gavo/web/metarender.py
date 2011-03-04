@@ -113,9 +113,12 @@ class RendExplainer(object):
 
 	@classmethod
 	def _explain_custom(cls, service):
-		return T.invisible["a custom rendering of the service, typically"
-			" for interactive web applications; see ", 
-			T.a(href=service.getURL("custom"))["entry page"]]
+		res = T.invisible["a custom rendering of the service, typically"
+			" for interactive web applications."]
+		if svcs.getRenderer("custom").isBrowseable(service):
+			res["  See also the", 
+				T.a(href=service.getURL("custom"))["entry page"], "."]
+		return res
 	
 	@classmethod
 	def _explain_static(cls, service):

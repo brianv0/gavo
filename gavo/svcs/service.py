@@ -512,7 +512,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 	# used by getBrowserURL; keep external higher than form as long as
 	# we have mess like Potsdam CdC.
 	_browserScores = {"form": 10, "external": 12, "fixed": 15,
-		"custom": 3, "static": 1}
+		"custom": 3, "img.jpeg": 2, "static": 1}
 
 	def getBrowserURL(self, fq=True):
 		"""returns a published URL that's suitable for a web browser or None if

@@ -43,6 +43,10 @@ class JpegRenderer(formrender.FormMixin, grend.ServiceBasedPage,
 
 # this is crap, too.  See below at MachineJpegRender
 
+	@classmethod
+	def isBrowseable(cls, service):
+		return True
+
 	def _realSubmitAction(self, ctx, form, data):
 # fiddle in plotField into the service output if necessary
 		if "plotField" in data and data["plotField"]:

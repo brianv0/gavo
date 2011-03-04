@@ -584,6 +584,21 @@ table.docutils td {
 	border: 1px solid #999999;
 }
 
+table.footnote {
+	border: none;
+	max-width: 30em;
+}
+
+.footnote-reference, .fn-backref {
+	position: relative;
+	font-size: 70%;
+	bottom: 4pt;
+}
+
+.footnote tbody tr td{
+	border: none;
+}
+
 a.servicelink {
 	text-decoration: none;
 	color: #3333AA;

@@ -20,6 +20,11 @@ class CustomRenderer(grend.ServiceBasedPage):
 	also have to allow the custom renderer (but you may have other renderers,
 	e.g., static).
 
+	If the custom page is for display in web browsers, define a
+	class method isBrowseable(cls, service) returning true.  This is
+	for the generation of links like "use this service from your browser"
+	only; it does not change the service's behaviour with your renderer.
+
 	There should really be a bit more docs on this, but alas, there's
 	none as yet.
 	"""
@@ -27,14 +32,15 @@ class CustomRenderer(grend.ServiceBasedPage):
 
 	def __init__(self, ctx, service):
 		grend.ServiceBasedPage.__init__(self, ctx, service)
-		if not self.service.customPage:
+		if not service.customPage:
 			raise svcs.UnknownURI("No custom page defined for this service.")
 		pageClass, self.reloadInfo = service.customPageCode
 		self.realPage = pageClass(ctx, service)
 
 	@classmethod
 	def isBrowseable(self, service):
-		return True  # this may be somewhat broad.
+		return getattr(service, "customPageCode", None
+			) and service.customPageCode[0].isBrowseable(service)
 
 	def _reload(self, ctx):
 		mod = imp.load_module(*self.reloadInfo)
