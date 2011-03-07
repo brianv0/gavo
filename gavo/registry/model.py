@@ -384,8 +384,6 @@ def addBasicVSElements(baseNS, VSElement):
 		
 		class ucd(VSElement): pass
 
-		class DataCollection(RI.Resource): pass
-
 		class Service(RI.Resource): pass
 
 		class DataService(Service):
@@ -471,6 +469,10 @@ class _VS1_1Stub:
 	class VSElement(Element):
 		_prefix = "vs1"
 		_local = True
+
+	class DataCollection(RI.Resource):
+		_a_xsi_type = "vs1:DataCollection"
+		_additionalPrefixes = frozenset(["vs1", "xsi"])
 
 	class tableset(VSElement):
 		_additionalPrefixes = xsiPrefix

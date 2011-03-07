@@ -193,7 +193,7 @@ class Element(object):
 	def _makeAttrDict(self):
 		res = {}
 		for name, attName in self.iterAttNames():
-			if getattr(self, name) is not None:
+			if getattr(self, name, None) is not None:
 				res[attName] = unicode(getattr(self, name))
 		return res
 
