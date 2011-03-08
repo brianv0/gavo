@@ -73,8 +73,8 @@ class DateUpdatedMixin(object):
 	
 	def _meta_datetimeUpdated(self):
 		if "dateUpdated" in self.meta_:
-			return str(self.meta_["dateUpdated"])+"T00:00:00Z"
-		return self.__getDatetimeMeta("dateUpdated", utils.isoTimestampFmt)
+			return str(self.meta_["dateUpdated"])+"T00:00:00"
+		return self.__getDatetimeMeta("dateUpdated", utils.isoTimestampFmtNoTZ)
 
 
 __all__ = ["SERVICELIST_ID", "METADATA_PREFIXES",

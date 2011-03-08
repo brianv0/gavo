@@ -24,6 +24,7 @@ will split the key and hand over to the parent if the don't have a meta
 item for the main key.
 """
 
+import copy
 import re
 import textwrap
 import traceback
@@ -39,6 +40,7 @@ except ImportError:
 from gavo import utils
 from gavo.base import attrdef
 from gavo.base import common
+from gavo.utils import stanxml
 
 
 class MetaError(utils.Error):
@@ -48,8 +50,11 @@ class MetaError(utils.Error):
 	item queried.  Metadata propagation makes this a bit tricky, but we
 	should at least try; for setMeta and addMeta, the top-level entry
 	functions manipulate the carrier attributes for this purpose.
+
+	To yield useful error messages, leave carrier at its default None
+	only when you really have no idea what the meta will end up on.
 	"""
-	def __init__(self, msg, carrier, hint=None):
+	def __init__(self, msg, carrier=None, hint=None):
 		self.carrier = carrier
 		utils.Error.__init__(self, msg, hint)
 
@@ -67,6 +72,11 @@ class NoMetaKey(MetaError):
 class MetaCardError(MetaError):
 	"""is raised when a meta value somehow has the wrong cardinality (e.g.,
 	on attempting to stringify a sequence meta).
+	"""
+
+
+class MetaValueError(MetaError):
+	"""is raised when a meta value is inapproriate for the key given.
 	"""
 
 
@@ -683,8 +693,10 @@ class MetaValue(MetaMixin):
 		return newOb
 
 
+################## individual meta types (factor out to a new module)
+
 class MetaURL(MetaValue):
-	"""A meta value containing a link and a title.
+	"""A meta value containing a link and optionally a title
 
 	In plain text, this would look like
 	this::
@@ -694,20 +706,25 @@ class MetaURL(MetaValue):
 
 	In XML, you can write::
 
-			<meta name="_related" title="The foo page">http://foo.bar</meta>
+			<meta name="_related" title="The foo page"
+				ivoId="ivo://bar.org/foo">http://foo.bar</meta>
 
 	or, if you prefer::
 
 		<meta name="_related">http://foo.bar
 			 <meta name="title">The foo page</meta></meta>
+	
+	These values are used for _related (meaning "visible" links to other
+	services).
 	"""
 	def __init__(self, url, format="plain", title=None):
 		MetaValue.__init__(self, url, format)
 		self.title = title
-	
+
 	def _getContentAsHTML(self, content):
-		return '<a href="%s">%s</a>'%(content.strip(), self.title or content)
-	
+		title = self.title or content
+		return '<a href="%s">%s</a>'%(content.strip(), title)
+
 	def _addMeta(self, atoms, metaValue):
 		if atoms[0]=="title":
 			self.title = metaValue.content
@@ -715,7 +732,25 @@ class MetaURL(MetaValue):
 			MetaValue._addMeta(self, atoms, metaValue)
 
 
-################## individual meta types (factor out to a new module)
+class RelatedResourceMeta(MetaValue):
+	"""A meta value containing an ivo-id and a name of a related resource.
+
+	These are intended for serviceFor, servedBy, and derivedFrom metas 
+	(and mirrorOf, relatedTo when and if we support them).
+
+	It should look like this::
+
+		servedBy: GAVO TAP service
+		servedBy.ivoId: ivo://org.gavo.dc
+	
+	However, service attribute of data publications automatically sets
+	these metas, so typically you won't have to bother with those.
+	"""
+	def __init__(self, title, format="plain", ivoId=None):
+		MetaValue.__init__(self, title, format)
+		if ivoId is not None:
+			self._addMeta(["ivoId"], MetaValue(ivoId))
+	
 
 class NewsMeta(MetaValue):
 	"""A meta value representing a "news" items.
@@ -844,6 +879,7 @@ class BibcodeMeta(MetaValue):
 
 _metaTypeRegistry = {
 	"link": MetaURL,
+	"relResource": RelatedResourceMeta,
 	"info": InfoItem,
 	"logo": LogoMeta,
 	"bibcodes": BibcodeMeta,
@@ -853,6 +889,8 @@ _metaTypeRegistry = {
 
 _typesForKeys = {
 	"_related": "link",
+	"servedBy": "relResource",
+	"serviceFor": "relResource",
 	"_news": "news",
 	"referenceURL": "link",
 	"info": "info",
@@ -893,6 +931,11 @@ def makeMetaValue(value="", **kwargs):
 	If what you pass in already is a MetaValue, it is returned unchanged
 	(this is mainly a convenience for makeMetaItem).
 	"""
+# nB: it was foolish that type, format, and name are passed in just like
+# special constructor arguments -- this blocks these atoms for specially
+# constructed meta items.  Changing this is a bit nasty because
+# this is sort-of-exposed in RD XML (see MetaAttribute above).
+# Maybe the change should be done anyway?
 	if isinstance(value, MetaValue):
 		return value
 	cls = MetaValue
@@ -989,14 +1032,26 @@ class TextBuilder(MetaBuilder):
 
 def stanFactory(tag, **kwargs):
 	"""returns a factory for ModelBasedBuilder built from a stan-like "tag".
+
+	Do *not* pass in instanciated tags -- they will just keep accumulating
+	children on every model run.
 	"""
+	if isinstance(tag, stanxml.Element):
+		raise utils.ReportableError("Do not use instanciated stanxml element"
+			" in stanFactories.  Instead, return them from a zero-argument"
+			" function.")
+
 	def factory(args, localattrs=None):
 		if localattrs:
 			localattrs.update(kwargs)
 			attrs = localattrs
 		else:
 			attrs = kwargs
-		return tag(**attrs)[args]
+		if isinstance(tag, type):
+			el = tag
+		else:  # assume it's a function if it's not an element type.
+			el = tag()
+		return el(**attrs)[args]
 	return factory
 
 

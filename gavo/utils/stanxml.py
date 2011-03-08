@@ -183,7 +183,7 @@ class Element(object):
 			pc()
 
 	def _setupNode(self):
-		self.__isEmpty = None
+		self._isEmptyCache = None
 		self._children = []
 		self.text_ = ""
 		if self.name_ is None:
@@ -218,7 +218,7 @@ class Element(object):
 		strings.  Finally, child may be None, in which case nothing will be
 		added.
 		"""
-		self.__isEmpty = None
+		self._isEmptyCache = None
 		if hasattr(child, "serializeToXMLStan"):
 			self.addChild(child.serializeToXMLStan())
 		elif child is None:
@@ -241,16 +241,16 @@ class Element(object):
 				type(child), repr(child), self.name_))
 
 	def isEmpty(self):
-		if self.__isEmpty is None:
-			self.__isEmpty = True
+		if self._isEmptyCache is None:
+			self._isEmptyCache = True
 			if self._mayBeEmpty or self.text_.strip():
-				self.__isEmpty = False
+				self._isEmptyCache = False
 			else:
 				for c in self._children:
 					if not c.isEmpty():
-						self.__isEmpty = False
+						self._isEmptyCache = False
 						break
-		return self.__isEmpty
+		return self._isEmptyCache
 
 	def iterAttNames(self):
 		"""iterates over the defined attribute names of this node.

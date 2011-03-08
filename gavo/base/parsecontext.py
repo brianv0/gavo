@@ -346,6 +346,14 @@ class ReferenceListAttribute(ReferenceAttribute):
 		else:
 				ReferenceAttribute.feed(self, ctx, instance, literal)
 
+	def unparse(self, value):
+		# Hack to avoid to have to figure out globally ok ids; see 
+		# comments in ReferenceAttribute
+		class BlessedList(list):
+			pass
+		setattr(BlessedList, "unparse-approved-anonymous", True)
+		return BlessedList(value)
+
 
 class ParseContext(object):
 	"""is a scratchpad for any kind of data parsers want to pass to feed

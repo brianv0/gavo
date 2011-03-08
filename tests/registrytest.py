@@ -11,6 +11,7 @@ from gavo import api
 from gavo import base
 from gavo import registry
 from gavo import rscdesc
+from gavo import rscdef
 from gavo import utils
 from gavo.base import meta
 from gavo.helpers import testhelpers
@@ -222,7 +223,8 @@ class DataPublicationTest(testhelpers.VerboseTest):
 
 	def testMinimalMeta(self):
 		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
-			<data id="ronk" publishIn="ivo_managed,local">
+			<data id="ronk">
+				<register sets="ivo_managed,local"/>
 			</data></resource>""")
 		self.assertRaisesWithMsg(base.MetaValidationError,
 			"Meta structure on ronk did not validate:"
@@ -240,7 +242,7 @@ class DataPublicationTest(testhelpers.VerboseTest):
 				subject:a
 				referenceURL:b
 			</meta>
-			<data id="ronk" publishIn="ivo_managed,local">
+			<data id="ronk"><register sets="ivo_managed,local"/>
 			</data></resource>""")
 		recs = list(publication.SvcRscGrammar(rd).parse(rd))
 		self.assertEquals(len(recs), 2)
@@ -252,7 +254,7 @@ class DataPublicationTest(testhelpers.VerboseTest):
 			"At (3, 3): Published data needs an assigned id.",
 			base.parseFromString,
 			(rscdesc.RD, """<resource schema="data">
-			<data publishIn="ivo_managed,local">
+			<data><register sets="ivo_managed,local"/>
 			</data></resource>"""))
 	
 	def testPublication(self):
@@ -285,13 +287,18 @@ class _DataVORRecord(testhelpers.TestResource):
 				<column name="oink" utype="noises:animal.pig"/>
 				<column name="where" type="spoint" ucd="pos.eq;source"/>
 			</table>
-			<data id="ronk" publishIn="ivo_managed,local">
+			<data id="ronk">
+			<register sets="ivo_managed,local"/>
 			<meta name="description">Some silly test data</meta>
 			<meta name="subject">testing</meta>
 			<meta name="subject">regressions</meta>
 			<meta name="coverage.profile">Box ICRS 12 13 2 3</meta>
 			<meta name="format">audio/vorbis</meta>
 			<meta name="referenceURL">http://junk.g-vo.org</meta>
+			<meta name="servedBy" ivoId="ivo://org.g-vo.junk/tap"
+				>GAVO TAP service</meta>
+			<meta name="servedBy" ivoId="ivo://org.g-vo.junk/adql"
+				>GAVO ADQL Web</meta>
 			<make table="punk"/>
 			</data></resource>""")
 		rd.sourceId = "funky/town"
@@ -306,7 +313,6 @@ _dataVORRecord = _DataVORRecord()
 
 class DataPublicationRecordTest(testhelpers.VerboseTest):
 # Tests for the registry record of a data publication
-
 	resources = [("tree", _dataVORRecord)]
 
 	def testCreatedInherited(self):
@@ -347,5 +353,88 @@ class DataPublicationRecordTest(testhelpers.VerboseTest):
 				].xpath("name")[0].text,
 			"oink")
 
+	def testRelationship(self):
+		par = self.tree.xpath("//relationship")[0]
+		self.assertEqual(par.xpath("relationshipType")[0].text, "served-by")
+		self.assertEqual(par.xpath("relatedResource")[0].text,
+			"GAVO TAP service")
+		self.assertEqual(par.xpath("relatedResource")[0].attrib["ivo-id"],
+			"ivo://org.g-vo.junk/tap")
+		self.assertEqual(par.xpath("relatedResource")[1].attrib["ivo-id"],
+			"ivo://org.g-vo.junk/adql")
+
+
+# minimal meta for successful RR generation without a (working) RD
+_fakeMeta ="""<meta name="identifier">ivo://gavo.testing</meta>
+<meta name="datetimeUpdated">2000-00-00T00:00:00</meta>
+<meta name="referenceURL">http://faked</meta>
+<meta name="recTimestamp">2000-00-00T00:00:00</meta>
+<meta name="sets">ivo_managed</meta>"""
+
+
+class RelatedTest(testhelpers.VerboseTest):
+# Tests for everything to do with the "related" meta
+	def _getTreeFor(self, dataBody):
+		dd = base.parseFromString(rscdef.DataDescriptor,
+			"""<data id="foo">%s%s</data>"""%(dataBody, _fakeMeta))
+		return testhelpers.getXMLTree(
+			builders.getVOResourceElement(dd).render(), debug=False)
+
+	def testNoRelations(self):
+		tree = self._getTreeFor("")
+		self.failIf(tree.xpath("metadata/Resource/content/relationship"))
+
+	def testSimpleRelation(self):
+		tree = self._getTreeFor(
+			'<meta name="servedBy" ivoId="ivo://glub">The Glub Data</meta>')
+		relEl = tree.xpath("metadata/Resource/content/relationship")
+		self.failUnless(relEl)
+		self.assertEqual(relEl[0].xpath("relationshipType")[0].text,
+			"served-by")
+		self.assertEqual(relEl[0].xpath("relatedResource")[0].text,
+			"The Glub Data")
+		self.assertEqual(relEl[0].xpath("relatedResource")[0].attrib["ivo-id"],
+			"ivo://glub")
+
+	def testReset(self):
+		tree0 = self._getTreeFor(
+			'<meta name="servedBy" ivoId="ivo://glub">The Glub Data</meta>')
+		tree1 = self._getTreeFor(
+			'<meta name="servedBy" ivoId="ivo://frob">The Frob Data</meta>')
+		# we once had a bug where the builder didn't get reset, and due to
+		# bad arch I think it'll come again.  Therefore this test -- it
+		# will catch this.
+		self.assertEqual(len(tree1.xpath(
+			"metadata/Resource/content/relationship/relatedResource")), 1)
+
+	def testRegistration(self):
+		try:
+			tree = self._getTreeFor(
+				'<register services="//adql#query"/>')
+			relEl = tree.xpath("metadata/Resource/content/relationship")
+			self.failUnless(relEl)
+			self.assertEqual(relEl[0].xpath("relationshipType")[0].text,
+				"served-by")
+			self.assertEqual(relEl[0].xpath("relatedResource")[0].attrib["ivo-id"],
+				"ivo://%s/__system__/adql/query"%base.getConfig("ivoa", "authority"))
+
+			# also check metadata on the exposing end
+			svc = base.caches.getRD("//adql").getById("query")
+			svcTree = testhelpers.getXMLTree(
+				builders.getVOResourceElement(svc).render(), debug=False)
+			for rel in svcTree.xpath("metadata/Resource/content/relationship"):
+				if rel.xpath("relationshipType")[0].text=="service-for":
+					for dest in rel.xpath("relatedResource"):
+						if dest.attrib.get("ivo-id")=="ivo://gavo.testing":
+							return
+			# Fallthrough: The reference to our test service has not been found
+			fail("Data registration did not leave service-for meta")
+		finally:
+			# clear adql entry in cache since we've changed it
+			base.caches.clearForName("//adql")
+
+
+
+
 if __name__=="__main__":
-	testhelpers.main(DataPublicationTest)
+	testhelpers.main(RelatedTest)

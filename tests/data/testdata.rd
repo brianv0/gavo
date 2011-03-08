@@ -32,7 +32,8 @@
 		</column>
 	</table>
 
-	<data id="ronk" publishIn="ivo_managed">
+	<data id="ronk">
+		<register/>
 		<make table="barsobal"/>
 	</data>
 

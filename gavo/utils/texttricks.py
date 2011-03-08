@@ -22,6 +22,7 @@ dateRE = re.compile("\d\d\d\d-\d\d-\d\d$")
 datetimeRE = re.compile("\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ?$")
 identifierPattern = re.compile("[A-Za-z_][A-Za-z0-9_]*$")
 isoTimestampFmt = "%Y-%m-%dT%H:%M:%SZ"
+isoTimestampFmtNoTZ = "%Y-%m-%dT%H:%M:%S"
 entityrefPat = re.compile("&([^;])+;")
 
 xmlEntities = {

@@ -11,6 +11,7 @@ from gavo.base import meta
 from gavo.base import metavalidation
 from gavo.helpers import testhelpers
 from gavo.registry import builders
+from gavo.utils import stanxml
 from gavo.web import common as webcommon
 
 
@@ -436,7 +437,15 @@ class ModelBasedBuilderTest(testhelpers.VerboseTest):
 		self.failUnless("ct>whatever</subject><subject>and so" in res)
 		self.failUnless("ct><description>u" in res)
 
-	
+	def testInstancesRejected(self):
+		class Foo(stanxml.Element): pass
+		self.assertRaisesWithMsg(base.ReportableError,
+			"Do not use instanciated stanxml element in stanFactories."
+			"  Instead, return them from a zero-argument function.",
+			meta.stanFactory,
+			(Foo(),))
+
+
 class HtmlBuilderTest(testhelpers.VerboseTest):
 	"""tests for the HTML builder for meta values.
 	"""

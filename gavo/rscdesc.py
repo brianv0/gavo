@@ -303,10 +303,10 @@ def setRDDateTime(rd, inputFile):
 		rd.timestampUpdated)
 
 
+
 # in _currentlyParsing, getRD keeps track of what RDs are currently being
-# parsed.  For those, the unfinished RD is being returned.  This allows
-# qualified references within RDs and to some extent even circular
-# cross-RD references.
+# parsed.  The keys are the sourceIds, the values are pairs of
+# RLock and the RD object.
 _currentlyParsing = {}
 
 def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
@@ -325,14 +325,25 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
 	rd = RD(None)
 	rd.idmap = context.idmap
 	rd.computeSourceId(srcPath)
+
+	# cache management -- RDs can come in with various srcIds (with
+	# or without extensions, with // as abbreviation for __system__//, etc).
+
+	# concurrency handling (threads suck -- I shouldn't have gone down that
+	# way...)
 	if rd.sourceId in _currentlyParsing:
 		lock, rd = _currentlyParsing[rd.sourceId]
+		# lock is an RLock, which means the following will block for
+		# all threads but the currently parsing one.  This lets us
+		# have recursive definitions in RDs (while still not allowing
+		# forward references).
 		lock.acquire()
 		return rd
 	else:
 		lock = threading.RLock()
 		_currentlyParsing[rd.sourceId] = lock, rd
 		lock.acquire()
+
 	context.forRD = rd.sourceId
 	try:
 		try:
@@ -345,6 +356,7 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
 		lock.release()
 	setRDDateTime(rd, inputFile)
 	return rd
+
 
 
 base.caches.makeCache("getRD", getRD)

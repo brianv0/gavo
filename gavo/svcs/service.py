@@ -492,6 +492,23 @@ class Service(base.Structure, base.ComputedMetaMixin,
 					pass
 		return [t for t in tables if t is not None]
 
+	def declareServes(self, data):
+		"""adds meta to self and data indicating that data is served by
+		service.
+
+		This is used by adql and the publish element on data.
+		"""
+		if data.registration:
+			self.addMeta("serviceFor", base.makeMetaValue(
+				base.getMetaText(data, "title") or "Anonymous",
+				name="serviceFor",
+				ivoId=base.getMetaText(data, "identifier")))
+			data.addMeta("servedBy", base.makeMetaValue(
+				base.getMetaText(self, "title"),
+				name="servedBy",
+				ivoId=base.getMetaText(self, "identifier")))
+
+
 	########################## Output field selection (ouch!)
 
 	def _getVOTableOutputFields(self, queryMeta):

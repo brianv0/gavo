@@ -249,6 +249,41 @@ class Make(base.Structure, scripting.ScriptingMixin):
 			raiseOnBadKeys=False)
 
 
+class Registration(base.Structure):
+	"""A request for registration of a data collection.
+
+	This is much like publish for services, but there's only one of
+	those per data, and thus there's no register-local metadata.
+	Data registrations may refer to published services that make their
+	data available.
+	"""
+	name_ = "register"
+
+	_defaultSets = frozenset(["ivo_managed"])
+
+	_sets = base.StringSetAttribute("sets",
+		description="A comma-separated list of sets this data will be"
+			" published in.  To publish data to the VO registry, just"
+			" say ivo_managed here.  Other sets probably don't make much"
+			" sense right now.  ivo_managed also is the default.")
+
+	_servedThrough = base.ReferenceListAttribute("services",
+		description="A DC-internal reference to a service that lets users"
+			" query that within the data collection.")
+
+	def completeElement(self, ctx):
+		self._completeElementNext(Registration, ctx)
+		if not self.sets:
+			self.sets = self._defaultSets
+
+	def register(self):
+		"""adds servedBy and serviceFrom metadata to data, service pairs
+		in this registration.
+		"""
+		for srv in self.services:
+			srv.declareServes(self.parent)
+
+
 class IVOMetaMixin(object):
 	"""A mixin for resources aspiring to have IVO ids.
 
@@ -376,11 +411,11 @@ class DataDescriptor(base.Structure, base.ComputedMetaMixin,
 		description="Specification of a target table and the rowmaker"
 			" to feed them.")
 
-	_publishIn = base.StringSetAttribute("publishIn",
-		description="A comma-separated list of sets this data will be"
-			" published in.  To publish data to the VO registry, just"
-			" say ivo_managed here.  Other sets probably don't make much"
-			" sense right now.")
+	_registration = base.StructAttribute("registration",
+		default=None,
+		childFactory=Registration,
+		copyable=False,
+		description="A registration (to the VO registry) of this data collection.")
 
 	_properties = base.PropertyAttribute()
 
@@ -393,13 +428,15 @@ class DataDescriptor(base.Structure, base.ComputedMetaMixin,
 
 	def validate(self):
 		self._validateNext(DataDescriptor)
-		if self.publishIn and self.id is None:
+		if self.registration and self.id is None:
 			raise base.StructureError("Published data needs an assigned id.")
 
 	def onElementComplete(self):
 		self._onElementCompleteNext(DataDescriptor)
 		for t in self.tables:
 			t.setMetaParent(self)
+		if self.registration:
+			self.registration.register()
 
 	# since we want DDs to be dynamically created, they must find their
 	# meta parent (RD) themselves.  We do this while the DD is being adopted.

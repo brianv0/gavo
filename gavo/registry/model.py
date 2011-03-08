@@ -209,8 +209,28 @@ class VOR:
 	
 	class contentLevel(VORElement): pass
 	
-	class relationship(VORElement): pass
+	class relationship(VORElement):
+		def _setupNode(self):
+			self.__isEmpty = None
+			self._setupNodeNext(VOR.relationship)
+
+		def isEmpty(self):
+			# special rule: a relationship is empty if there's no relatedResource
+			# in them (this is a simplification of "don't count relationshipType
+			# since it's always non-empty").
+			if self._isEmptyCache is None:
+				self._isEmptyCache = True
+				for c in self.iterChildrenOfType(VOR.relatedResource):
+					self._isEmptyCache = False
+					break
+			return self._isEmptyCache
+
+	class relationshipType(VORElement): pass
 	
+	class relatedResource(VORElement):
+		_a_ivoId = None
+		_name_a_ivoId = "ivo-id"
+
 	class rights(VORElement): pass
 	
 	class capability(VORElement):

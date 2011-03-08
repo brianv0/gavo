@@ -51,6 +51,11 @@ _vrResourceBuilder = meta.ModelBasedBuilder([
 			('logo', SF(VOR.logo)),]),
 		('contributor', SF(VOR.contributor), (), {
 				"ivoId": "ivoId"}),
+		# We don't yet discriminate between updates to the RR and updates
+		# to the resource itself.  We probably should, and most of
+		# what it takes is in place.  IVOMetaMixin would be the place
+		# to add a "dataUpdated" meta or something like that.
+		('datetimeUpdated', SF(VOR.date, role="updated")),
 		('date', SF(VOR.date), (), {
 				"role": "role"}),
 		('version', SF(VOR.version)),
@@ -66,7 +71,16 @@ _vrResourceBuilder = meta.ModelBasedBuilder([
 		('source', SF(VOR.source)),
 		('referenceURL', SF(VOR.referenceURL)),
 		('type', SF(VOR.type)),
-		('contentLevel', SF(VOR.contentLevel)),]),
+		('contentLevel', SF(VOR.contentLevel)),
+		(None, SF(lambda: VOR.relationship[VOR.relationshipType["served-by"]]), [
+			('servedBy', SF(VOR.relatedResource), (), {
+					"ivoId": "ivoId"})]),
+		(None, SF(lambda: VOR.relationship[VOR.relationshipType["service-for"]]), [
+			('serviceFor', SF(VOR.relatedResource), (), {
+					"ivoId": "ivoId"})]),
+		(None, SF(lambda: VOR.relationship[VOR.relationshipType["derived-from"]]), [
+			('derivedFrom', SF(VOR.relatedResource), (), {
+					"ivoId": "ivoId"})]),]),
 ])
 
 
@@ -394,7 +408,7 @@ class DataResourceMaker(ResourceMaker):
 			_orgMetaBuilder.build(data),
 			_dataMetaBuilder.build(data),
 			_coverageMetaBuilder.build(data),
-			VS1.tableset[
+			data.makes and VS1.tableset[
 				VS1.schema[
 					VS1.name[data.rd.schema], [
 						tableset.getTableForTableDef(td)

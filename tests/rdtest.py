@@ -240,5 +240,33 @@ class RestrictionTest(testhelpers.VerboseTest):
 		'<data><embeddedGrammar><iterator/></embeddedGrammar></data>',
 	]
 
+
+class CachesTest(testhelpers.VerboseTest):
+	def testCacheWorks(self):
+		rd1 = base.caches.getRD("//users")
+		rd2 = base.caches.getRD("//users")
+		self.failUnless(rd1 is rd2)
+
+	def testCachesCleared(self):
+		rd1 = base.caches.getRD("//users")
+		rd1.getById("users").gobble = "funk"
+		base.caches.clearForName("//users")
+		rd2 = base.caches.getRD("//users")
+		self.failIf(rd2 is rd1)
+		self.failUnless(hasattr(rd1.getById("users"), "gobble"))
+		self.failIf(hasattr(rd2.getById("users"), "gobble"))
+
+	def _testAliases(self):
+		rd1 = base.caches.getRD("//users")
+		rd1.getById("users").gobble = "funk"
+		base.caches.clearForName("__system__/users")
+		rd2 = base.caches.getRD("//users")
+		rd3 = base.caches.getRD("__system__/users.rd")
+		self.failIf(rd2 is rd1)
+		self.failIf(rd1 is rd3)
+		self.failUnless(hasattr(rd1.getById("users"), "gobble"))
+		self.failIf(hasattr(rd2.getById("users"), "gobble"))
+
+
 if __name__=="__main__":
 	testhelpers.main(TAP_SchemaTest)

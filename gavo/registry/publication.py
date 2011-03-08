@@ -113,7 +113,7 @@ def iterDataRecs(res):
 	"""as iterSvcRecs, just for DataDescriptors rather than Services.
 	"""
 	rec = makeBaseRecord(res)
-	for setName in res.publishIn:
+	for setName in res.registration.sets:
 		rec["setName"] = setName
 		rec["renderer"] = "datadisplay"
 		for subject in [str(item) for item in res.getMeta("subject") or (None,)]:
@@ -136,7 +136,7 @@ class ServiceRscIterator(grammars.RowIterator):
 				yield sr.copy()
 		for res in self.sourceToken.dds:
 			self.curSource = res.id
-			if res.publishIn:
+			if res.registration:
 				for sr in iterDataRecs(res):
 					yield sr.copy()
 	

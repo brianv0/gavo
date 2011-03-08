@@ -134,7 +134,7 @@ class DocumentStructure(dict):
 
 
 class StructDocMaker(object):
-	"""is a class encapsulating generation of documentation from structs.
+	"""A class encapsulating generation of documentation from structs.
 	"""
 
 	def __init__(self, docStructure):
@@ -313,6 +313,7 @@ def _documentParameters(content, pars):
 			doc.append(" -- "+par.description)
 		content.addRaw(''.join(doc)+"\n")
 	content.makeSpace()
+
 
 def getMixinDocs(docStructure):
 	content = RSTFragment()
