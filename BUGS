@@ -252,6 +252,9 @@
 	Do away with VOColDesc and instead add some additional data to the
 	column objects themselves.
 
-62/MEDIUM/2011-02-23
+62/MEDIUM/2011-02-23/FIXED
 	http://dc.zah.uni-heidelberg.de/rauchspectra/q/tovot/info has a URL
-	for a service that has no web frontend.
+	for a service that has no web frontend. [fixed ca. rev. 1800]
+
+63/MEDIUM/2011-03-09
+	gavo imp --system //uws does not remove stale uws tables.  Why?

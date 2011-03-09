@@ -37,18 +37,7 @@
 			"UTC job execution finished"/>
 	</table>
 
-	<table id="uwsresults" onDisk="True" system="True" primary="jobId,resultName"
-			forceUnique="True" dupePolicy="overwrite">
-		<foreignKey dest="jobId" source="jobId" table="uws.jobs"/>
-		<column name="jobId" original="jobs.jobId"/>
-		<column name="resultName" type="text" 
-			description="File name of the job, relative to the job's WD"/>
-		<column name="resultType" type="text"
-			description="MIME type for this result."/>
-	</table>
-
 	<data id="make_jobs">
 		<make table="jobs"/>
-		<make table="uwsresults"/>
 	</data>
 </resource>

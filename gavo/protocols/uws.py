@@ -58,11 +58,14 @@ def getJobsTable(timeout=None):
 	timeout, if given, specifies after how many seconds the machine should
 	give up when waiting for another instance to give up a lock on
 	a job.
+
+	If not given, 60 seconds are used.
 	"""
 	conn = base.getDBConnection("admin")
 	q = base.SimpleQuerier(connection=conn)
-	if timeout is not None:
-		q.configureConnection([("statement_timeout", timeout*1000)])
+	if timeout is None:
+		timeout = 60
+	q.configureConnection([("statement_timeout", timeout*1000)])
 	jobsTable = rsc.TableForDef(base.caches.getRD(RD_ID).getById("jobs"), 
 		connection=conn, exclusive=True)
 	# jobsTable really has an owned connection.  Make it realize this.
@@ -93,7 +96,7 @@ def serializeParameters(data):
 
 
 def deserializeParameters(serData):
-	"""does the inverse of serializedData.
+	"""does the inverse of serializeParameters.
 	"""
 	return pickle.loads(serData.decode("base64"))
 
@@ -176,7 +179,7 @@ class RunIdParameter(SerializingProtocolParameter):
 
 
 class UWSParameters(object):
-	"""A container for the protocol parameters of an UWS job.
+	"""A container for the protocol parameters of a UWS job.
 
 	UWSJobs have a protocolParameters class attribute containing this.
 	"""
@@ -195,7 +198,7 @@ class UWSParameters(object):
 	def addParam(self, job, name, value):
 		"""adds a name/value pair to the job's parameters.
 
-		This is really supposed to be called by UWSJob.xParam, so don't bother.
+		This really is supposed to be called by UWSJob.xParam exclusively.
 		"""
 		if name.upper() in self.paramClasses:
 			self.paramClasses[name.upper()].addParam(value, job)
@@ -227,9 +230,9 @@ class UWSJob(object):
 	UWSJobs should only be used as context managers to make sure the
 	transactions are closed in time.
 
-	To create a new UWSJob, use the create class method.  It is called
-	with a nevow request object and the name of an Actions object
-	(see below).
+	To create a new UWSJob, use one of the create* class methods, to get
+	one from an id, use makeFromId.  The normal constructor is not really
+	intended for user consumption.
 
 	In general, you should not access the parameters dictionary directly, since
 	the protocol parameters may do some processing.  Use addParameter,
@@ -370,6 +373,38 @@ class UWSJob(object):
 		res["parameters"] = serializeParameters(self.parameters)
 		return res
 
+	# results management: We use a pickled list in the jobs dir to manage 
+	# the results.  I once had a table of those in the DB and it just
+	# wasn't worth it.  One issue, though: we could have ugly race conditions
+	# in here if it weren't for DB locking guaranteeing that not more than one
+	# job object with a single id is active at any time.
+	# 
+	# The list contains dictionaries having resultName and resultType keys.
+	@property
+	def _resultsDirName(self):
+		return os.path.join(self.getWD(), "__RESULTS__")
+
+	def _loadResults(self):
+		try:
+			with open(self._resultsDirName) as f:
+				return pickle.load(f)
+		except IOError:
+			return []
+
+	def _saveResults(self, results):
+		handle, srcName = tempfile.mkstemp(dir=self.getWD())
+		with os.fdopen(handle, "w") as f:
+			pickle.dump(results, f)
+		# The following operation will bomb on windows when the second
+		# result is saved.  Tough luck.
+		os.rename(srcName, self._resultsDirName)
+
+	def _addResultInJobDir(self, mimeType, name):
+		resTable = self._loadResults()
+		resTable.append(
+			{'resultName': name, 'resultType': mimeType})
+		self._saveResults(resTable)
+
 	def addResult(self, source, mimeType, name=None):
 		"""adds a result, with data taken from source.
 
@@ -384,50 +419,33 @@ class UWSJob(object):
 				destF.write(source)
 			else:
 				utils.cat(source, destF)
-		self._addResultToTable(mimeType, name)
+		self._addResultInJobDir(mimeType, name)
 
 	def openResult(self, mimeType, name):
 		"""returns a writable file that adds a result.
 		"""
-		self._addResultToTable(mimeType, name)
+		self._addResultInJobDir(mimeType, name)
 		return open(os.path.join(self.getWD(), name), "w")
-
-	def _addResultToTable(self, mimeType, name):
-		resTable = rsc.TableForDef(base.caches.getRD(RD_ID).getById("uwsresults"),
-			connection=self.jobsTable.connection)
-		resTable.addRow(
-			{'jobId': self.jobId, 'resultName': name, 'resultType': mimeType})
-		resTable.commit()
-		resTable.close()
 
 	def getResult(self, resName):
 		"""returns a pair of file name and mime type for a named job result.
 
 		If the result does not exist, a NotFoundError is raised.
 		"""
-		res = self.getResults("resultName=%(resultName)s", {"resultName": resName})
+		res = [r for r in self._loadResults() if resName==r["resultName"]]
 		if not res:
 			raise base.NotFoundError(resName, "job result",
 				"uws job %s"%self.jobId)
 		res = res[0]
 		return os.path.join(self.getWD(), res["resultName"]), res["resultType"]
 
-	def getResults(self, addFragment=None, addPars={}):
+	def getResults(self):
 		"""returns a list of this service's results.
 
-		The list contains (dict) records from dc.uwsresults.
+		The list contains dictionaries having at least resultName and resultType
+		keys.
 		"""
-		resTable = rsc.TableForDef(base.caches.getRD(RD_ID).getById("uwsresults"),
-			connection=self.jobsTable.connection)
-		fragment = "jobId=%(jobId)s"
-		pars={"jobId": self.jobId}
-		if addFragment:
-			fragment = fragment+" AND "+addFragment
-			pars.update(addPars)
-		results = list(resTable.iterQuery(resTable.tableDef, 
-			fragment, pars=pars))
-		resTable.close()
-		return results
+		return self._loadResults()
 
 	def _persist(self):
 		"""updates or creates the job in the database table.
@@ -511,7 +529,8 @@ class UWSJob(object):
 		return open(os.path.join(self.getWD(), name), mode)
 
 
-def cleanupJobsTable(includeFailed=False, includeCompleted=False):
+def cleanupJobsTable(includeFailed=False, includeCompleted=False,
+		includeAll=False):
 	"""removes expired jobs from the UWS jobs table.
 
 	The uws service arranges for this to be called roughly once a day.
@@ -521,22 +540,29 @@ def cleanupJobsTable(includeFailed=False, includeCompleted=False):
 	jobs still interesting to your users.
 	"""
 	phasesToKill = set()
-	if includeFailed:
+	if includeFailed or includeAll:
 		phasesToKill.add(ERROR)
 		phasesToKill.add(QUEUED)
-	if includeCompleted:
+		phasesToKill.add(ABORTED)
+	if includeCompleted or includeAll:
 		phasesToKill.add(COMPLETED)
+	if includeAll:
+		phasesToKill.add(PENDING)
+		phasesToKill.add(QUEUED)
 
 	toDestroy = []
 	now = datetime.datetime.utcnow()
 	jt = getJobsTable(timeout=10)
 
-	for row in jt.iterQuery(jt.tableDef, ""):
-		if row["destructionTime"]<now:
-			toDestroy.append(row["jobId"])
-		elif row["phase"] in phasesToKill:
-			toDestroy.append(row["jobId"])
-	jt.close()
+	try:
+		for row in jt.iterQuery(jt.tableDef, ""):
+			if row["destructionTime"]<now:
+				toDestroy.append(row["jobId"])
+			elif row["phase"] in phasesToKill:
+				toDestroy.append(row["jobId"])
+	finally:
+		jt.close()
+
 	for jobId in toDestroy:
 		try:
 			with UWSJob.makeFromId(jobId, timeout=5) as job:
@@ -551,7 +577,7 @@ cron.every(3600*12, cleanupJobsTable)
 
 
 class UWSActions(object):
-	"""An abstract base for classes defining the behaviour of an UWS.
+	"""An abstract base for classes defining the behaviour of a UWS.
 
 	This basically is the definition of a finite state machine with
 	arbitrary input (which is to say: the input "alphabet" is up to
@@ -597,6 +623,8 @@ class UWSActions(object):
 			self.transitions.setdefault(fromPhase, {})[toPhase] = methodName
 	
 	def getTransition(self, fromPhase, toPhase):
+		if fromPhase==toPhase:
+			return
 		try:
 			methodName = self.transitions[fromPhase][toPhase]
 		except KeyError:
