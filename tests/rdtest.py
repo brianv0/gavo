@@ -17,6 +17,75 @@ from gavo.rscdef import tabledef
 import tresc
 
 
+class CanonicalizeTest(testhelpers.VerboseTest):
+# tests for mapping paths and stuff to canonical ids.
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+	inp = base.getConfig("inputsDir").rstrip("/")+"/"
+
+	def _runTest(self, sample):
+		src, expected = sample
+		self.assertEqual(
+			rscdesc.canonicalizeRDId(src),
+			expected)
+	
+	samples = [
+		("/somewhere/bad", "/somewhere/bad"),
+		("/somewhere/bad.crazy", "/somewhere/bad.crazy"),
+		("/somewhere/bad.rd", "/somewhere/bad"),
+		("//tap", "__system__/tap"),
+		("//tap.rd", "__system__/tap"),
+#5
+		(inp+"/where", "where"),
+		(inp+"/where/q", "where/q"),
+		(inp+"/where/q.rd", "where/q"),
+		("/resources/inputs/where/q.rd", "where/q"),
+		("/resources/inputs/where/q", "where/q"),]
+	
+
+
+class InputStreamTest(testhelpers.VerboseTest):
+# test the location of input streams.  This assumes testhelpers has set
+# gavo_inputs to <test_dir>/data
+
+	def _assertSourceName(self, rdId, expectedSuffix):
+		fName, fobj = rscdesc.getRDInputStream(rscdesc.canonicalizeRDId(rdId))
+		self.failUnless(fName.endswith(expectedSuffix), 
+			"%r does not end with %r"%(fName, expectedSuffix))
+		fobj.close()
+
+	def testInternalResource(self):
+		self._assertSourceName("//users", "/resources/inputs/__system__/users.rd")
+
+	def testOutOfInputs(self):
+		import tempfile
+		with tempfile.NamedTemporaryFile(dir="/tmp") as f:
+			self._assertSourceName(f.name, f.name)
+
+	def testOutOfInputsRD(self):
+		import tempfile
+		with tempfile.NamedTemporaryFile(dir="/tmp", suffix="rd") as f:
+			self._assertSourceName(f.name, f.name)
+
+	def testUserResource(self):
+		self._assertSourceName("data/test", "data/test.rd")
+	
+	def testUserOverriding(self):
+		inpDir = base.getConfig("inputsDir")
+		dirName = os.path.join(inpDir, "__system__")
+		os.mkdir(dirName)
+		try:
+			testName = os.path.join(dirName, "users")
+			open(testName, "w").close()
+			try:
+				self._assertSourceName("//users", testName)
+			finally:
+				os.unlink(testName)
+		finally:
+			os.rmdir(dirName)
+
+				
+
+
 class MetaTest(unittest.TestCase):
 	"""Test for correct interpretation of meta information.
 	"""
@@ -250,13 +319,13 @@ class CachesTest(testhelpers.VerboseTest):
 	def testCachesCleared(self):
 		rd1 = base.caches.getRD("//users")
 		rd1.getById("users").gobble = "funk"
-		base.caches.clearForName("//users")
+		base.caches.clearForName(rd1.sourceId)
 		rd2 = base.caches.getRD("//users")
 		self.failIf(rd2 is rd1)
 		self.failUnless(hasattr(rd1.getById("users"), "gobble"))
 		self.failIf(hasattr(rd2.getById("users"), "gobble"))
 
-	def _testAliases(self):
+	def testAliases(self):
 		rd1 = base.caches.getRD("//users")
 		rd1.getById("users").gobble = "funk"
 		base.caches.clearForName("__system__/users")
@@ -269,4 +338,4 @@ class CachesTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(TAP_SchemaTest)
+	testhelpers.main(InputStreamTest)

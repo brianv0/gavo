@@ -127,18 +127,17 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 
 	_properties = base.PropertyAttribute()
 
-	def __init__(self, parent, **kwargs):
-	#	parent should in general be None, I guess, but I'll leave the signature
-	#	as-is in case I ever need super().__init__ on Structures.
-		base.Structure.__init__(self, parent, **kwargs)
+	def __init__(self, srcId, **kwargs):
+		# RDs never have parents, so contrary to all other structures they
+		# are constructed with with a srcId instead of a parent.  You
+		# *can* have that None, but such RDs cannot be used to create
+		# non-temporary tables, services, etc, since the srcId is used
+		# in the construction of identifiers and such.
+		self.sourceId = srcId
+		base.Structure.__init__(self, None, **kwargs)
 		# The rd attribute is a weakref on self.  Always.  So, this is the class
 		# that in roots common.RDAttributes
 		self.rd = weakref.proxy(self)
-		# RDs can be Anonymous.  The sourceId is only important in operations
-		# like inserting into the dc_tables#tablemeta table.  These should fail
-		# on anonymous RDs (and in this case will because parts of primary
-		# keys must not be NULL)
-		self.sourceId = None
 		# real dateUpdated is set by getRD, this is just for RDs created
 		# on the fly.
 		self.dateUpdated = datetime.datetime.utcnow()
@@ -223,18 +222,6 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		except (os.error, IOError):
 			warnings.warn("Could not update timestamp on RD %s"%self.sourceId)
 
-	def computeSourceId(self, sourcePath):
-		"""returns the inputsDir-relative path to the rd.
-
-		Any extension is purged, too.  This value can be accessed as the
-		sourceId attribute.
-		"""
-		if sourcePath.startswith(base.getConfig("inputsDir")):
-			sourcePath = sourcePath[len(base.getConfig("inputsDir")):].lstrip("/")
-		if sourcePath.startswith("/resources/inputs"):
-			sourcePath = sourcePath[len("/resources/inputs"):].lstrip("/")
-		self.sourceId = os.path.splitext(sourcePath)[0]
-
 	def _computeIdmap(self):
 		res = {}
 		for child in self.iterChildren():
@@ -243,9 +230,10 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		return res
 
 	def copy(self, parent):
+		base.ui.notifyWarning("Copying an RD -- this may not be a good idea")
 		new = base.Structure.copy(self, parent)
 		new.idmap = new._computeIdmap()
-		new.sourceId = "(copy of) "+str(self.sourceId)
+		new.sourceId = self.sourceId
 		return new
 
 
@@ -264,25 +252,64 @@ class RDParseContext(base.ParseContext):
 		base.ParseContext.__init__(self, restricted, forRD)
 
 
+def canonicalizeRDId(srcId):
+	"""returns a standard rd id for srcId.
+
+	srcId may be a file system path, or it may be an "id".  The canonical
+	basically is "inputs-relative path without .rd extension".  Everything
+	that's not within inputs or doesn't end with .rd is handed through.
+	// is expanded to __system__/.  The path to built-in RDs,
+	/resources/inputs, is treated analoguous to inputsDir.
+
+	TODO: We should probably reject everything that's neither below inputs
+	nor below resources.
+	"""
+	if srcId.startswith("//"):
+		srcId = "__system__"+srcId[1:]
+
+	for inputsDir in (base.getConfig("inputsDir"), "/resources/inputs"):
+		if srcId.startswith(inputsDir):
+			srcId = srcId[len(inputsDir):].lstrip("/")
+	
+	if srcId.endswith(".rd"):
+		srcId = srcId[:-3]
+
+	return srcId
+
+
+def _getFilenamesForId(srcId):
+	"""helps getRDInputStream by iterating over possible files for srcId.
+	"""
+	if srcId.startswith("/"):
+		yield srcId+".rd"
+		yield srcId
+	else:
+		inputsDir = base.getConfig("inputsDir")
+		yield os.path.join(inputsDir, srcId)+".rd"
+		yield os.path.join(inputsDir, srcId)
+		yield "/resources/inputs/%s.rd"%srcId
+		yield "/resources/inputs/%s"%srcId
+
+
 def getRDInputStream(srcId):
 	"""returns a read-open stream for the XML source of the resource
 	descriptor with srcId.
+
+	srcId is already normalized; that means that absolute paths must
+	point to a file (sans possibly .rd), relative paths are relative
+	to inputsDir or pkg_resources(/resources/inputs).
+
+	This function prefers files with .rd to those without, and
+	inputsDir to pkg_resources (the latter allowing the user to
+	override built-in system RDs).
 	"""
-	userInput = srcId
-	if srcId.startswith("//"):
-		srcId = "__system__"+srcId[1:]
-	srcPath = os.path.join(base.getConfig("inputsDir"), srcId)
-	if os.path.isfile(srcPath):
-		return srcPath, open(srcPath)
-	if not srcId.endswith(".rd"):
-		srcId = srcId+".rd"
-	srcPath = os.path.join(base.getConfig("inputsDir"), srcId)
-	if os.path.isfile(srcPath):
-		return srcPath, open(srcPath)
-	srcPath = "/resources/inputs/"+srcId
-	if pkg_resources.resource_exists('gavo', srcPath):
-		return srcPath, pkg_resources.resource_stream('gavo', srcPath)
-	raise base.RDNotFound(userInput)
+	for fName in _getFilenamesForId(srcId):
+		if os.path.isfile(fName):
+			return fName, open(fName)
+		if (pkg_resources.resource_exists('gavo', fName)
+				and not pkg_resources.resource_isdir('gavo', fName)):
+			return fName, pkg_resources.resource_stream('gavo', fName)
+	raise base.RDNotFound(srcId)
 
 
 def setRDDateTime(rd, inputFile):
@@ -303,7 +330,6 @@ def setRDDateTime(rd, inputFile):
 		rd.timestampUpdated)
 
 
-
 # in _currentlyParsing, getRD keeps track of what RDs are currently being
 # parsed.  The keys are the sourceIds, the values are pairs of
 # RLock and the RD object.
@@ -319,15 +345,12 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
 	getRD furnishes the resulting RD with an idmap attribute containing
 	the mapping from id to object collected by the parse context.
 	"""
-	srcPath, inputFile = getRDInputStream(srcId)
+	rd = RD(canonicalizeRDId(srcId))
+	srcPath, inputFile = getRDInputStream(rd.sourceId)
 	context = RDParseContext(forImport, doQueries, dumpTracebacks, restricted)
 	context.srcPath = srcPath
-	rd = RD(None)
+	context.forRD = rd.sourceId
 	rd.idmap = context.idmap
-	rd.computeSourceId(srcPath)
-
-	# cache management -- RDs can come in with various srcIds (with
-	# or without extensions, with // as abbreviation for __system__//, etc).
 
 	# concurrency handling (threads suck -- I shouldn't have gone down that
 	# way...)
@@ -344,7 +367,6 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
 		_currentlyParsing[rd.sourceId] = lock, rd
 		lock.acquire()
 
-	context.forRD = rd.sourceId
 	try:
 		try:
 			rd = base.parseFromStream(rd, inputFile, context=context)
@@ -358,5 +380,24 @@ def getRD(srcId, forImport=False, doQueries=True, dumpTracebacks=False,
 	return rd
 
 
+def _makeRDCache():
+	"""installs the cache for RDs.
 
-base.caches.makeCache("getRD", getRD)
+	The main trick here is to handle "aliasing", i.e. making sure that
+	you get identical objects regardless of whether you request
+	__system__/adql.rd, __system__/adql, or //adql.
+	"""
+	rdCache = {}
+
+	def getRDCached(srcId, **kwargs):
+		if kwargs:
+			return getRD(srcId, **kwargs)
+		srcId = canonicalizeRDId(srcId)
+		if srcId not in rdCache:
+			rd = getRD(srcId)
+			rdCache[srcId] = rd
+		return rdCache[srcId]
+	
+	base.caches.registerCache("getRD", rdCache, getRDCached)
+
+_makeRDCache()

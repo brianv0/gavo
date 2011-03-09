@@ -57,20 +57,15 @@ def _makeCache(creator):
 
 	Race conditions are possible when exceptions occur, but then creators
 	behaviour should only depend on id, and so it shouldn't matter.
-
-	Hack: the cache function takes arbitrary keyword arguments and passes
-	them on to the creator.  *THIS WREAKS HAVOC* if the keyword arguments
-	could change and creator's behaviour depended on them.  Don't use this,
-	unless it's for something like the doQueries option of getRd.
 	"""
 	cache = {}
 	_cacheRegistry.register(cache)
 
-	def func(id, **kwargs):
+	def func(id):
 		ct = 0
 		if not id in cache:
 			try:
-				cache[id] = creator(id, **kwargs)
+				cache[id] = creator(id)
 			except Exception, exc:
 				cache[id] = exc
 				raise
@@ -80,6 +75,23 @@ def _makeCache(creator):
 			return cache[id]
 	return func
 
+
+def registerCache(name, cacheDict, creationFunction):
+	"""registers a custom cache.
+
+	This function makes creationFunction available as base.caches.name,
+	and it registers cacheDict with the cache manager such that cacheDict
+	is cleared as necessary.
+
+	creationFunction must manage cacheDict itself, and of course it
+	must always use the instance passed to registerCache.
+
+	This is for "magic" things like getRD that has to deal with aliases
+	and such.  For normal use, use makeCache.
+	"""
+	globals()[name] = creationFunction
+	_cacheRegistry.register(cacheDict)
+	
 
 def makeCache(name, callable):
 	"""creates a new function name to cache results to calls to callable.
