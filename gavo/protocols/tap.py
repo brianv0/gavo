@@ -190,7 +190,8 @@ def getAccessibleTables():
 ########################## The TAP UWS job
 
 
-def _makeUploadGrammar():
+@utils.memoized
+def getUploadGrammar():
 	from pyparsing import (Word, ZeroOrMore, Suppress, StringEnd,
 		alphas, alphanums, CharsNotIn)
 	# Should we allow more tableNames?
@@ -203,9 +204,6 @@ def _makeUploadGrammar():
 			Suppress(";") + uploadSpec) + StringEnd()
 		uploadSpec.addParseAction(lambda s,p,t: (t["name"], t["uri"]))
 		return uploads
-
-
-getUploadGrammar = utils.CachedGetter(_makeUploadGrammar)
 
 
 def parseUploadString(uploadString):
@@ -399,7 +397,7 @@ class TAPActions(uws.UWSActions):
 		"""starts a job when we're running within a twisted reactor.
 		"""
 		pt = reactor.spawnProcess(_TAPBackendProtocol(job.jobId),
-			"gavo", args=["gavo", "--disable-spew", "tap", "--", str(job.jobId)],
+			"gavo", args=["gavo", "tap", "--", str(job.jobId)],
 				env=os.environ)
 		job.pid = pt.pid
 		job.phase = uws.QUEUED

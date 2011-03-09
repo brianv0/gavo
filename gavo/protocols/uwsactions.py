@@ -131,10 +131,14 @@ def getJobList():
 def getErrorSummary(job):
 # all our errors are fatal, and for now .../error yields the same thing
 # as we include here, so we hardcode the attributes.
-	if job.phase!=uws.ERROR:
+	try:
+			errDesc = job.getError()
+	except ValueError:
 		return None
-	return UWS.errorSummary(type="fatal")[
-		str(job.getError())]
+	msg = errDesc["msg"]
+	if errDesc["hint"]:
+		msg = msg+"\n\n -- Hint: "+errDesc["hint"]
+	return UWS.errorSummary(type="fatal")[msg]
 
 
 def getParametersElement(job):

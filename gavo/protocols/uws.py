@@ -516,8 +516,8 @@ class UWSJob(object):
 			with open(os.path.join(self.getWD(), "__EXCEPTION__")) as f:
 				return pickle.load(f)
 		except IOError:
-			raise base.ui.logOldExc(ValueError(
-				"No error has been posted on UWS job %s"%self.jobId))
+			raise ValueError(
+				"No error has been posted on UWS job %s"%self.jobId)
 
 	def openFile(self, name, mode="r"):
 		"""returns an open file object for a file within the job's work directory.
@@ -657,7 +657,7 @@ class UWSActions(object):
 		# are the user's fault, and for a second, logging them upsets
 		# trial during testing, since trial examines the log.
 		if not isinstance(exception, base.ValidationError):
-			log.err(_why="Error duing UWS execution of job %s"%job.jobId)
+			base.ui.notifyError("Error during UWS execution of job %s"%job.jobId)
 		job.setError(exception)
 
 _actionsRegistry = {}
