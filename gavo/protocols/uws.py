@@ -48,8 +48,26 @@ class JobNotFound(base.NotFoundError, UWSError):
 # But, aw, I'm not pulling in SQLAlchemy just yet.
 
 
+@utils.memoized
+def getROJobsTable():
+	"""returns a UWS jobs table instance only intended for reading.
+
+	If you write to what you get back, that's a bug (though we don't
+	enforce anything right now).
+
+	Use getJobsTable if you need to write to the jobs table.
+	"""
+	jobsTableConnection = base.getDBConnection("trustedquery", 
+		autocommitted=True)
+	return rsc.TableForDef(base.caches.getRD(RD_ID).getById("jobs"), 
+		connection=jobsTableConnection)
+
+
 def getJobsTable(timeout=None):
-	"""returns an instanciated job table.
+	"""returns a "writable" job table.
+
+	Use this function to if you need to manipulate the jobs table.  You
+	can use getROJobsTable if you only read.
 
 	This will open a new connection every time.  Since this is an exclusive
 	table, "automatic" selects will block each other.  In this way, there
@@ -57,17 +75,14 @@ def getJobsTable(timeout=None):
 
 	timeout, if given, specifies after how many seconds the machine should
 	give up when waiting for another instance to give up a lock on
-	a job.
-
-	If not given, 60 seconds are used.
+	a job.  If not given, 60 seconds are used.
 	"""
 	conn = base.getDBConnection("admin")
 	q = base.SimpleQuerier(connection=conn)
-	if timeout is None:
-		timeout = 60
-	q.configureConnection([("statement_timeout", timeout*1000)])
+	if timeout is not None:
+		q.configureConnection([("statement_timeout", int(timeout*1000))])
 	jobsTable = rsc.TableForDef(base.caches.getRD(RD_ID).getById("jobs"), 
-		connection=conn, exclusive=True)
+		connection=conn, exclusive=True, create=False)
 	# jobsTable really has an owned connection.  Make it realize this.
 	jobsTable.ownedConnection = True
 
@@ -212,41 +227,27 @@ class UWSParameters(object):
 			return job.parameters[name]
 
 
-class UWSJob(object):
-	"""A job description within UWS.
+class ROUWSJob(object):
+	"""A UWS job you cannot manipulate.
 
-	This keeps most of the data on a Worker.  Constructing these
-	is relatively expensive (in incurs constructing a DBTable, opening
-	a database connection, and doing a query).  On the other hand,
-	these things only need to be touched a couple of times during the
-	lifetime of a job, or to answer polls, and for those, other operations
-	are at least as expensive.
+	This is a service mainly for GET-type functionality in the web interface.
 
-	The DB takes care of avoiding races in status changes.  getJobsTable
-	above opens the jobs table in exclusive mode, whereas construction here
-	always opens a transaction.  This means that other processes accessing
-	the row will block.
+	These jobs do not lock, and they may be arbitrarily out of date.
+	They're much faster to instanciate, though, since no connection
+	creation or such is involved.
 
-	UWSJobs should only be used as context managers to make sure the
-	transactions are closed in time.
+	If you have one of those, you can get a writable version of it using
 
-	To create a new UWSJob, use one of the create* class methods, to get
-	one from an id, use makeFromId.  The normal constructor is not really
-	intended for user consumption.
+	with job.getWritable() as wjob:
+		<stuff>
+	
+	Note that job will not get updated automatically after stuff.
 
-	In general, you should not access the parameters dictionary directly, since
-	the protocol parameters may do some processing.  Use addParameter,
-	getParameter, delParameter, and iterParameters instead.
-
-	Some of the items given in the UWS data model are actually kept in dataDir.
-
-	The UWSJob itself is just a managing class.  The actual actions
-	occurring on the phase chages are defined in the Actions object.
+	The RO/rest-mess currently make inheritance a huge pain, since you'll
+	need to make an R/O and a writable version for each type of UWS job
+	there is.  I'll think about that when I want to support more types
+	of UWS jobs.
 	"""
-# Hm -- I believe things would be much smoother if locking happened
-# in __enter__, and the rest would just keep instanciated.  Well,
-# we can always clean this up later while keeping code assuming
-# the current semantics working.
 	_dbAttrs = ["jobId", "phase", "runId", "quote", "executionDuration",
 		"destructionTime", "owner", "actions", "pid", "startTime", "endTime"]
 	_closed = True
@@ -254,11 +255,11 @@ class UWSJob(object):
 	protocolParameters = UWSParameters((), DestructionParameter,
 		ExecDParameter)
 
-	def __init__(self, jobId, jobsTable=None, timeout=20):
+	def __init__(self, jobId, jobsTable=None):
 		self.jobId = jobId
 		self.jobsTable = jobsTable
 		if self.jobsTable is None:
-			self.jobsTable = getJobsTable(timeout)
+			self.jobsTable = getROJobsTable()
 
 		res = list(self.jobsTable.iterQuery(
 			self.jobsTable.tableDef, "jobId=%(jobId)s",
@@ -274,90 +275,14 @@ class UWSJob(object):
 		self.parameters = deserializeParameters(kws["parameters"])
 
 	@classmethod
-	def _allocateDataDir(cls):
-		jobDir = tempfile.mkdtemp("", "", dir=base.getConfig("uwsWD"))
-		return os.path.basename(jobDir)
+	def makeFromId(cls, jobId):
+		return cls(jobId)
 
-	@classmethod
-	def create(cls, args={}, **kws):
-		"""creates a new job from a (partial) jobs table row.
-
-		See jobs table for what you can give in kws, except for parameters.
-		These are passed in as a dictionary args.  jobId and phase are 
-		always overridden, many other colums will fill in defaults if necessary.
-		"""
-		kws["jobId"] = cls._allocateDataDir()
-		kws["phase"] = PENDING
-		kws["parameters"] = serializeParameters({})
-		jobsTable = getJobsTable(timeout=20)
-		utils.addDefaults(kws, {
-			"quote": None,
-			"executionDuration": base.getConfig("async", "defaultExecTime"),
-			"destructionTime": datetime.datetime.utcnow()+datetime.timedelta(
-					seconds=base.getConfig("async", "defaultLifetime")),
-			"runId": None,
-			"owner": None,
-			"pid": None,
-			"startTime": None,
-			"endTime": None,
-			"actions": "TAP",
-		})
-		jobsTable.addRow(kws)
-
-		# The following commit is really important so we can keep track
-		# of job directories in the DB even if user code crashes before
-		# commiting.
-		jobsTable.commit()
-
-		# Can't race for jobId here since _allocateDataDir uses mkdtemp
-		res = cls(kws["jobId"], jobsTable)
-		for key, value in args.iteritems():
-			res.addParameter(key, value)
-		return res
-
-	@classmethod
-	def createFromRequest(cls, request, actions="TAP"):
-		"""creates a new job from something like a nevow request.
-
-		request is something implementing nevow.IRequest, actions is the
-		name (i.e., a string) of a registred Actions class.
-		"""
-		# XXX TODO: Allow UPLOAD spec in initial POST?
-		return cls.create(args=request.scalars, actions=actions)
-	
-	@classmethod
-	def makeFromId(cls, jobId, timeout=None):
-		return cls(jobId, timeout=timeout)
-
-	def __del__(self):
-		# if a job has not been closed, commit it (this may be hiding programming
-		# errors, though -- should we rather roll back?)
-		if self.jobsTable is not None and not self._closed:
-			self.close()
-
-	def __enter__(self):
-		return self # transaction has been opened by makeFromId
-	
-	def __exit__(self, type, value, tb):
-		# we want to persist no matter what, but we don't claim to handle
-		# any exception.
-		self.close()
-		if tb is not None: # exception came in, signal we did not handle it.
-			return False
-
-	def close(self):
-		if self._closed:  # allow multiple closing
-			return
-		self._persist()
-		self.jobsTable.commit()
-		self.jobsTable.close()
-		self._closed = True
+	def getWritable(self, timeout=10):
+		return UWSJob.makeFromId(self.jobId, timeout=timeout)
 
 	def getWD(self):
 		return os.path.join(base.getConfig("uwsWD"), self.jobId)
-
-	def addParameter(self, name, value):
-		self.protocolParameters.addParam(self, name, value)
 
 	def getParameter(self, name):
 		return self.protocolParameters.getParam(self, name)
@@ -373,11 +298,24 @@ class UWSJob(object):
 		res["parameters"] = serializeParameters(self.parameters)
 		return res
 
+	def getError(self):
+		"""returns a dictionary having type, msg and hint keys for an error.
+
+		If no error has been posted, a ValueError is raised.
+		"""
+		try:
+			with open(os.path.join(self.getWD(), "__EXCEPTION__")) as f:
+				return pickle.load(f)
+		except IOError:
+			raise ValueError(
+				"No error has been posted on UWS job %s"%self.jobId)
+
 	# results management: We use a pickled list in the jobs dir to manage 
 	# the results.  I once had a table of those in the DB and it just
-	# wasn't worth it.  One issue, though: we could have ugly race conditions
-	# in here if it weren't for DB locking guaranteeing that not more than one
-	# job object with a single id is active at any time.
+	# wasn't worth it.  One issue, though: this potentially races
+	# if two different processes/threads were to update the results
+	# at the same time.  With TAP, implementation semantics prevent
+	# that.
 	# 
 	# The list contains dictionaries having resultName and resultType keys.
 	@property
@@ -447,6 +385,147 @@ class UWSJob(object):
 		"""
 		return self._loadResults()
 
+	def openFile(self, name, mode="r"):
+		"""returns an open file object for a file within the job's work directory.
+
+		No path parts are allowed on name.
+		"""
+		if "/" in name:
+			raise ValueError("No path components allowed on job files.")
+		return open(os.path.join(self.getWD(), name), mode)
+
+
+class UWSJob(ROUWSJob):
+	"""A job description within UWS.
+
+	This keeps most of the data on a Worker.  Constructing these
+	is relatively expensive (in incurs constructing a DBTable, opening
+	a database connection, and doing a query).  On the other hand,
+	these things only need to be touched a couple of times during the
+	lifetime of a job, or to answer polls, and for those, other operations
+	are at least as expensive.
+
+	The DB takes care of avoiding races in status changes.  getJobsTable
+	above opens the jobs table in exclusive mode, whereas construction here
+	always opens a transaction.  This means that other processes accessing
+	the row will block.
+
+	UWSJobs should only be used as context managers to make sure the
+	transactions are closed in time.
+
+	To create a new UWSJob, use one of the create* class methods, to get
+	one from an id, use makeFromId.  The normal constructor is not really
+	intended for user consumption.
+
+	In general, you should not access the parameters dictionary directly, since
+	the protocol parameters may do some processing.  Use addParameter,
+	getParameter, delParameter, and iterParameters instead.
+
+	Some of the items given in the UWS data model are actually kept in dataDir.
+
+	The UWSJob itself is just a managing class.  The actual actions
+	occurring on the phase chages are defined in the Actions object.
+	"""
+# Hm -- I believe things would be much smoother if locking happened
+# in __enter__, and the rest would just keep instanciated.  Well,
+# we can always clean this up later while keeping code assuming
+# the current semantics working.
+	_dbAttrs = ["jobId", "phase", "runId", "quote", "executionDuration",
+		"destructionTime", "owner", "actions", "pid", "startTime", "endTime"]
+	_closed = True
+
+	protocolParameters = UWSParameters((), DestructionParameter,
+		ExecDParameter)
+
+	def __init__(self, jobId, jobsTable=None, timeout=10):
+		if jobsTable is None:
+			jobsTable = getJobsTable(timeout)
+		ROUWSJob.__init__(self, jobId, jobsTable)
+
+	@classmethod
+	def makeFromId(cls, jobId, timeout=10):
+		return cls(jobId, timeout=timeout)
+
+	@classmethod
+	def _allocateDataDir(cls):
+		jobDir = tempfile.mkdtemp("", "", dir=base.getConfig("uwsWD"))
+		return os.path.basename(jobDir)
+
+	@classmethod
+	def create(cls, args={}, **kws):
+		"""creates a new job from a (partial) jobs table row.
+
+		See jobs table for what you can give in kws, except for parameters.
+		These are passed in as a dictionary args.  jobId and phase are 
+		always overridden, many other colums will fill in defaults if necessary.
+		"""
+		timeout = kws.pop("timeout", 20)
+		kws["jobId"] = cls._allocateDataDir()
+		kws["phase"] = PENDING
+		kws["parameters"] = serializeParameters({})
+		jobsTable = getJobsTable(timeout=timeout)
+		utils.addDefaults(kws, {
+			"quote": None,
+			"executionDuration": base.getConfig("async", "defaultExecTime"),
+			"destructionTime": datetime.datetime.utcnow()+datetime.timedelta(
+					seconds=base.getConfig("async", "defaultLifetime")),
+			"runId": None,
+			"owner": None,
+			"pid": None,
+			"startTime": None,
+			"endTime": None,
+			"actions": "TAP",
+		})
+		jobsTable.addRow(kws)
+
+		# The following commit is really important so we can keep track
+		# of job directories in the DB even if user code crashes before
+		# commiting.
+		jobsTable.commit()
+
+		# Can't race for jobId here since _allocateDataDir uses mkdtemp
+		res = cls(kws["jobId"], jobsTable)
+		for key, value in args.iteritems():
+			res.addParameter(key, value)
+		return res
+
+	@classmethod
+	def createFromRequest(cls, request, actions="TAP"):
+		"""creates a new job from something like a nevow request.
+
+		request is something implementing nevow.IRequest, actions is the
+		name (i.e., a string) of a registred Actions class.
+		"""
+		# XXX TODO: Allow UPLOAD spec in initial POST?
+		return cls.create(args=request.scalars, actions=actions)
+	
+	def __del__(self):
+		# if a job has not been closed, commit it (this may be hiding programming
+		# errors, though -- should we rather roll back?)
+		if self.jobsTable is not None and not self._closed:
+			self.close()
+
+	def __enter__(self):
+		return self # transaction has been opened by makeFromId
+	
+	def __exit__(self, type, value, tb):
+		# we want to persist no matter what, but we don't claim to handle
+		# any exception.
+		self.close()
+		if tb is not None: # exception came in, signal we did not handle it.
+			return False
+
+	def close(self):
+		if self._closed:  # allow multiple closing
+			return
+		self._persist()
+		self.jobsTable.commit()
+		self.jobsTable.close()
+		self._closed = True
+
+	def addParameter(self, name, value):
+		self.protocolParameters.addParam(self, name, value)
+
 	def _persist(self):
 		"""updates or creates the job in the database table.
 		"""
@@ -507,26 +586,6 @@ class UWSJob(object):
 		with open(os.path.join(self.getWD(), "__EXCEPTION__"), "w") as f:
 			pickle.dump(errInfo, f)
 	
-	def getError(self):
-		"""returns a dictionary having type, msg and hint keys for an error.
-
-		If no error has been posted, a ValueError is raised.
-		"""
-		try:
-			with open(os.path.join(self.getWD(), "__EXCEPTION__")) as f:
-				return pickle.load(f)
-		except IOError:
-			raise ValueError(
-				"No error has been posted on UWS job %s"%self.jobId)
-
-	def openFile(self, name, mode="r"):
-		"""returns an open file object for a file within the job's work directory.
-
-		No path parts are allowed on name.
-		"""
-		if "/" in name:
-			raise ValueError("No path components allowed on job files.")
-		return open(os.path.join(self.getWD(), name), mode)
 
 
 def cleanupJobsTable(includeFailed=False, includeCompleted=False,

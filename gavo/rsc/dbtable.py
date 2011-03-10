@@ -280,7 +280,6 @@ class DBMethodsMixin(sqlsupport.QuerierMixin):
 			self.connection.close()
 
 
-
 class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 	"""is a table in the database.
 
@@ -297,7 +296,8 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 
 	You can pass an exclusive boolean kw argument; if you do, the
 	iterQuery (and possibly similar methods in the future) method
-	will block concurrent accesses to the table.
+	will block concurrent writes to the selected rows ("FOR UPDATE")
+	as long as the transaction is active.
 	"""
 	_runScripts = None
 

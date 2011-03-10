@@ -27,6 +27,7 @@ from gavo.helpers import testtricks
 from gavo.protocols import tap
 from gavo.protocols import taprunner
 from gavo.protocols import uws
+from gavo.protocols import uwsactions
 from gavo.registry import capabilities
 from gavo.web import taprender
 
@@ -148,35 +149,70 @@ class UWSMiscTest(testhelpers.VerboseTest):
 				job.delete()
 
 
-class LockingTest(testhelpers.VerboseTest):
-	"""tests for working impicit uws locking.
-	"""
-	def setUp(self):
+class _UWSJobResource(testhelpers.TestResource):
+# just a UWS job.  Don't manipulate it.
+	def make(self, ignored):
 		with uws.UWSJob.create(actions="plainActions") as job:
 			self.jobId = job.jobId
-		self.queue = Queue.Queue()
+			return self.jobId
 	
-	def tearDown(self):
+	def clean(self, ignored):
 		with uws.UWSJob.makeFromId(self.jobId) as job:
 			job.delete()
 
-	def _blockingJob(self):
-		# this is started in a thread while self.jobId is held
-		self.queue.put("Child started")
-		with uws.UWSJob.makeFromId(self.jobId) as job:
-			self.queue.put("Job created")
+
+class LockingTest(testhelpers.VerboseTest):
+	"""tests for working impicit uws locking.
+	"""
+	resources = [("jobId", _UWSJobResource())]
 
 	def testLocking(self):
+		queue = Queue.Queue()
+		def blockingJob():
+			# this is started in a thread while self.jobId is held
+			queue.put("Child started")
+			with uws.UWSJob.makeFromId(self.jobId) as job:
+				queue.put("Job created")
+
 		with uws.UWSJob.makeFromId(self.jobId) as job:
-			child = threading.Thread(target=self._blockingJob)
+			child = threading.Thread(target=blockingJob)
 			child.start()
 			# see that child process has started but could not create the job
-			self.assertEqual(self.queue.get(True, 1), "Child started")
+			self.assertEqual(queue.get(True, 1), "Child started")
 			# make sure we time out on waiting for another sign of the child --
 			# it should be blocking.
-			self.assertRaises(Queue.Empty, self.queue.get, True, 0.05)
+			self.assertRaises(Queue.Empty, queue.get, True, 0.05)
 		# we've closed our handle on job, now child can run
-		self.assertEqual(self.queue.get(True, 1), "Job created")
+		self.assertEqual(queue.get(True, 1), "Job created")
+
+	def testTimesOut(self):
+		with uws.UWSJob.makeFromId(self.jobId) as job:
+			self.assertRaisesWithMsg(base.ReportableError,
+				"Could not access the jobs table. This probably means there"
+				" is a stale lock on it.  Please notify the service operators.",
+				uws.UWSJob.makeFromId,
+				(self.jobId,), timeout=0.01)
+
+	def testIndexDoesNotBlock(self):
+		with uws.UWSJob.makeFromId(self.jobId) as job:
+			self.failUnless("uws:jobs" in uwsactions.getJobList())
+
+	def testGetPhaseDoesNotBlock(self):
+		req = TAPFakeRequest()
+		with uws.UWSJob.makeFromId(self.jobId) as job:
+			self.assertEqual(uwsactions.doJobAction(req, (self.jobId, "phase")),
+				"PENDING")
+
+	def testPostPhaseDoesBlock(self):
+		req = TAPFakeRequest(args={"PHASE": "RUN"})
+		req.method = "POST"
+		uwsactions.PhaseAction.timeout = 0.05
+		with uws.UWSJob.makeFromId(self.jobId) as job:
+			self.assertRaisesWithMsg(base.ReportableError,
+				"Could not access the jobs table. This probably means"
+				" there is a stale lock on it.  Please notify the service operators.",
+				uwsactions.doJobAction,
+				(req, (self.jobId, "phase")))
 
 
 class SimpleRunnerTest(testhelpers.VerboseTest):

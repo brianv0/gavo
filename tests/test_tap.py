@@ -44,6 +44,8 @@ from gavo.web.taprender import TAPRenderer
 import trialhelpers
 
 
+base.DEBUG = True
+
 class TAPRenderTest(trialhelpers.RenderTest):
 	_tapService = base.caches.getRD("__system__/tap").getById("run")
 	@property

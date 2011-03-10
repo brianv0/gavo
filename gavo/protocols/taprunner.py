@@ -89,7 +89,7 @@ def _parseTAPParameters(jobId, parameters):
 	return query, format, maxrec
 
 
-def _makeDataFor(resultTable, job):
+def _makeDataFor(resultTable):
 	"""returns an rsc.Data instance containing resultTable and some
 	additional metadata.
 	"""
@@ -224,10 +224,10 @@ def _runTAPJob(parameters, jobId, queryProfile, timeout):
 	logging.info("taprunner executing %s"%query)
 	res = runTAPQuery(query, timeout, connectionForQuery,
 		tdsForUploads, maxrec)
+	res = _makeDataFor(res)
 	with tap.TAPJob.makeFromId(jobId) as job:
 		destF = job.openResult(
 			_getResultType(format, job.parameters.get("FORMAT")), "result")
-		res = _makeDataFor(res, job)
 	writeResultTo(format, res, destF)
 	connectionForQuery.close()
 	destF.close()
@@ -244,6 +244,7 @@ def runTAPJob(jobId, queryProfile="untrustedquery"):
 	try:
 		_runTAPJob(parameters, jobId, queryProfile, timeout)
 	except Exception, ex:
+		import traceback
 		with tap.TAPJob.makeFromId(jobId) as job:
 			# This creates an error document in our WD and writes a log.
 			job.changeToPhase(uws.ERROR, ex)

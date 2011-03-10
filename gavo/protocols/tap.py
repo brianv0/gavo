@@ -210,12 +210,13 @@ def parseUploadString(uploadString):
 	"""iterates over pairs of tableName, uploadSource from a TAP upload string.
 	"""
 	try:
-		return getUploadGrammar().parseString(uploadString).asList()
+		res = getUploadGrammar().parseString(uploadString).asList()
+		return res
 	except ParseException, ex:
-		raise base.ui.logOldExc(base.ValidationError(
+		raise base.ValidationError(
 			"Syntax error in UPLOAD parameter (near %s)"%(ex.loc), "UPLOAD",
 			hint="Note that we only allow regular SQL identifiers as table names,"
-				" i.e., basically only alphanumerics are allowed."))
+				" i.e., basically only alphanumerics are allowed.")
 
 
 class LangParameter(uws.ProtocolParameter):
@@ -328,11 +329,21 @@ class UploadParameter(uws.ProtocolParameter):
 		return LocalFile(job.jobId, job.getWD(), destFName)
 
 
-class TAPJob(uws.UWSJob):
-	"""An asynchronous TAP job.
-	"""
+class _TAPJobMixin(object):
 	protocolParameters = uws.UWSParameters(uws.UWSJob.protocolParameters,
 		*utils.iterDerivedClasses(uws.ProtocolParameter, globals().values()))
+
+
+class ROTAPJob(_TAPJobMixin, uws.ROUWSJob):
+	"""an ROUWSJob with TAP protocol parameters.
+	"""
+	def getWritable(self, timeout=10):
+		return TAPJob.makeFromId(self.jobId, timeout=timeout)
+
+
+class TAPJob(_TAPJobMixin, uws.UWSJob):
+	"""a UWSJob with TAP protocol parameters.
+	"""
 
 
 ########################## Maintaining TAP jobs

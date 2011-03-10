@@ -112,18 +112,15 @@ class UWS(object):
 
 
 def getJobList():
-	jobstable = uws.getJobsTable(5)
-	try:
-		fields = jobstable.tableDef.columns
-		result = UWS.jobs()
-		for row in jobstable.iterQuery([
-				fields.getColumnByName("jobId"),
-				fields.getColumnByName("phase"),], ""):
-			result[
-				UWS.jobref(id=row["jobId"])[
-					UWS.phase[row["phase"]]]]
-	finally:
-		jobstable.close()
+	jobstable = uws.getROJobsTable()
+	fields = jobstable.tableDef.columns
+	result = UWS.jobs()
+	for row in jobstable.iterQuery([
+			fields.getColumnByName("jobId"),
+			fields.getColumnByName("phase"),], ""):
+		result[
+			UWS.jobref(id=row["jobId"])[
+				UWS.phase[row["phase"]]]]
 	return stanxml.xmlrender(result, "<?xml-stylesheet "
 		"href='/static/xsl/uws-joblist-to-html.xsl' type='text/xsl'?>")
 
@@ -201,8 +198,8 @@ class ErrorResource(rend.Page):
 	"""A TAP error message.
 
 	These are constructed with errInfo, which is either an exception or
-	a dictionary containing at least
-	type, msg, and hint keys.  Optionally, you can give a numeric httpStatus.
+	a dictionary containing at least type, msg, and hint keys.  Optionally, 
+	you can give a numeric httpStatus.
 	"""
 	def __init__(self, errInfo, httpStatus=400):
 		if isinstance(errInfo, Exception):
@@ -253,23 +250,26 @@ class ParameterAction(JobAction):
 		return UWS.makeRoot(getParametersElement(job))
 	
 	def doPOST(self, job, request):
-		for key, value in request.scalars.iteritems():
-			job.addParameter(key, value)
+		with job.getWritable() as wjob:
+			for key, value in request.scalars.iteritems():
+				wjob.addParameter(key, value)
 		raise svcs.WebRedirect("async/"+job.jobId)
 
 _JobActions.addAction(ParameterAction)
 
 class PhaseAction(JobAction):
 	name = "phase"
+	timeout = 10  # this is here for testing
 
 	def doPOST(self, job, request):
 		newPhase = request.scalars.get("PHASE", None)
-		if newPhase=="RUN":
-			job.changeToPhase(uws.QUEUED)
-		elif newPhase=="ABORT":
-			job.changeToPhase(uws.ABORTED)
-		else:
-			raise base.ValidationError("Bad phase: %s"%newPhase, "phase")
+		with job.getWritable(self.timeout) as wjob:
+			if newPhase=="RUN":
+				wjob.changeToPhase(uws.QUEUED)
+			elif newPhase=="ABORT":
+				wjob.changeToPhase(uws.ABORTED)
+			else:
+				raise base.ValidationError("Bad phase: %s"%newPhase, "phase")
 		raise svcs.WebRedirect("async/"+job.jobId)
 	
 	def doGET(self, job, request):
@@ -290,7 +290,8 @@ class _SettableAction(JobAction):
 		except ValueError:  
 			raise base.ui.logOldExc(uws.UWSError("Invalid %s value: %s."%(
 				self.name.upper(), repr(raw))))
-		setattr(job, self.attName, val)
+		with job.getWritable() as wjob:
+			setattr(wjob, self.attName, val)
 		raise svcs.WebRedirect("async/"+job.jobId)
 
 	def doGET(self, job, request):
@@ -388,15 +389,17 @@ class RootAction(JobAction):
 	"""
 	name = ""
 	def doDELETE(self, job, request):
-		job.delete()
+		with job.getWritable() as wjob:
+			wjob.delete()
 		raise svcs.WebRedirect("async")
 
 	def doPOST(self, job, request):
 		# (Extension to let web browser delete jobs)
-		if utils.getfirst(request.args, "ACTION")=="DELETE":
-			self.doDELETE(job, request)
-		else:
-			raise svcs.BadMethod("POST")
+		with job.getWritable() as wjob:
+			if utils.getfirst(request.args, "ACTION")=="DELETE":
+				self.doDELETE(wjob, request)
+			else:
+				raise svcs.BadMethod("POST")
 
 	def doGET(self, job, request):
 		tree = UWS.makeRoot(UWS.job[
@@ -431,6 +434,7 @@ def doJobAction(request, segments):
 		action = ""
 	else:
 		action, segments = segments[0], segments[1:]
-# XXX TODO: This hardcodes TAP jobs.  Can we parametrize that instead?
-	with tap.TAPJob.makeFromId(jobId) as job:
-		return _JobActions.dispatch(action, job, request, segments)
+# XXX TODO: We need some parametrization of what UWSJob subclass gets
+# used here and in subclasses
+	return _JobActions.dispatch(action, 
+		tap.ROTAPJob.makeFromId(jobId), request, segments)
