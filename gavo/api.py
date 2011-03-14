@@ -13,10 +13,12 @@ from gavo import web
 getRD = base.caches.getRD
 RD = rscdesc.RD
 
-from gavo.base import (getConfig, getDBConnection, getDefaultDBConnection,
-	setDBProfile, SimpleQuerier, NoMetaKey,Error, StructureError,
-	ValidationError, LiteralParseError, ReportableError, NotFoundError,
-	RDNotFound, ui)
+from gavo.base import (getConfig, setConfig,
+	getDBConnection, getDefaultDBConnection, setDBProfile, 
+	SimpleQuerier, 
+	NoMetaKey, Error, StructureError, ValidationError, LiteralParseError, 
+	ReportableError, NotFoundError, RDNotFound, 
+	ui)
 
 from gavo.formats.votablewrite import (writeAsVOTable, getAsVOTable,
 	VOTableContext)

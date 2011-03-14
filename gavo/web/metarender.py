@@ -116,7 +116,7 @@ class RendExplainer(object):
 		res = T.invisible["a custom rendering of the service, typically"
 			" for interactive web applications."]
 		if svcs.getRenderer("custom").isBrowseable(service):
-			res["  See also the", 
+			res["  See also the ", 
 				T.a(href=service.getURL("custom"))["entry page"], "."]
 		return res
 	

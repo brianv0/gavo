@@ -151,7 +151,6 @@ def getSpolyFromWCSFields(wcsFields):
 	return pgsphere.SPoly(list(_iterWCSCorners(wcs)))
 
 
-
 def getCenterFromWCSFields(wcsFields):
 	"""returns RA and Dec of the center of an image described by wcsFields.
 	"""

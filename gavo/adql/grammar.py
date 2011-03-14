@@ -627,7 +627,7 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
-	res = syms["statement"].parseString(
-			"select count(*) from foo"
+	res = syms["selectList"].parseString(
+			"round(foo, 2)"
 			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

@@ -157,7 +157,7 @@ class SPoly(PgSAdapter):
 
 	def asSTCS(self, systemString):
 		return "Polygon %s %s"%(systemString, 
-			" ".join("%.10f %.10f"%(p.x, p.y) for p in self.points))
+			" ".join("%.10f %.10f"%(p.x/DEG, p.y/DEG) for p in self.points))
 
 
 	def asPgSphere(self):

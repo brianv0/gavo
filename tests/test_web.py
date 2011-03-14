@@ -10,6 +10,9 @@ from gavo.helpers import testhelpers
 import trialhelpers
 
 
+api.setConfig("web", "enabletests", "True")
+
+
 class AdminTest(trialhelpers.RenderTest):
 	renderer = root.ArchiveService()
 
@@ -121,3 +124,11 @@ class FormTest(trialhelpers.RenderTest):
 				'value="9.25"'
 			])
 
+
+# nevow.testutil.registerProducer doesn't to push produceres.  shit.
+#class StreamingTest(trialhelpers.RenderTest):
+#	renderer = root.ArchiveService()
+#
+#	def testStreamingWorks(self):
+#		return self.assertGETHasStrings("/test/stream", {"size": 30}, [
+#			"012345678901234567890123456789"])

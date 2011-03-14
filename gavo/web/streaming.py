@@ -18,6 +18,7 @@ from zope.interface import implements
 from gavo import base
 from gavo.formats import votablewrite
 
+
 class DataStreamer(threading.Thread):
 # This is nasty (because it's a thread) and not necessary most of the
 # time since the source may be a file or something that could just yield
@@ -82,7 +83,7 @@ class DataStreamer(threading.Thread):
 				self.realWrite(data[offset:offset+self.chunkSize])
 
 	def cleanup(self):
-		# Must be calledFromThread
+		# Must be callFromThread'ed
 		self.join(0.01)
 		self.consumer.unregisterProducer()
 		self.consumer.finish()

@@ -682,6 +682,11 @@ class SelectClauseTest(ColumnTest):
 			("real", "m", "phys.distance", False),
 			("double precision", "kg", "phys.mass", True),])
 
+	def testFancyRounding(self):
+		cols = self._getColSeq("select round(dist, 2) from spatial")
+		self._assertColumns(cols, [
+			("double precision", "m", "phys.distance", True)])
+
 
 class ColResTest(ColumnTest):
 	"""tests for resolution of output columns from various expressions.

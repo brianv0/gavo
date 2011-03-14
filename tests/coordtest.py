@@ -4,9 +4,11 @@ Tests for gavo.coords.
 
 import unittest
 
-import gavo
+from gavo import utils
 from gavo.base import coords
 from gavo.helpers import testhelpers
+
+import tresc
 
 
 interestingPlaces = [ (250, 89), (0,0), (23.0, 42.0), (23.0, -42.0), 
@@ -197,6 +199,65 @@ class TestGetGCDist(unittest.TestCase):
 		for ra in range(180, 361, 30):
 			self.assertAlmostEqual(coords.getGCDist((0, 0), (ra, 0)), 360-ra)
 
+def _d(**kwargs):
+	return kwargs
+
+
+class SpolyTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	resources = [('conn', tresc.DBConnection())]
+
+	@staticmethod
+	def _getHeader(overrides):
+		hdr = {
+			"CUNIT1": "deg", "CUNIT2": "deg",
+			"CTYPE1": 'RA---TAN-SIP', "CTYPE2": 'DEC--TAN-SIP',
+			"CRVAL1": 0., "CRVAL2": 0.,
+			"CRPIX1": 0., "CRPIX2": 0.,
+			"CD1_1": 0.01, "CD1_2": 0., 
+			"CD2_1": 0., "CD2_2": 0.01, 
+			"LONPOLE": 180.,
+			"NAXIS1": 100, "NAXIS2": 100, "NAXIS": 2,
+		}
+		hdr.update(overrides)
+		return hdr
+
+	def assertAreaAlmostEqual(self, wcs, area):
+		cursor = self.conn.cursor()
+		cursor.execute("SELECT area(%(poly)s)", 
+			{'poly': coords.getSpolyFromWCSFields(wcs)})
+		foundArea = list(cursor)[0][0]
+		cursor.close()
+		self.assertAlmostEqual(foundArea/utils.DEG/utils.DEG, area)
+
+	def _runTest(self, sample):
+		overrides, area = sample
+		self.assertAreaAlmostEqual(self._getHeader(overrides), area)
+
+	SQ2 = 0.70710678118654746/100
+	SQ3_2 = 0.8660254037844386/100
+
+	samples = [
+		(_d(), 0.9996954908),
+		(_d(CD1_1=-0.01), 0.9996954908),
+		(_d(CD2_2=-0.01), 0.9996954908),
+		(_d(CD1_1=-0.01, CD2_2=-0.01), 0.9996954908),
+		(_d(CD1_1=SQ2, CD1_2=-SQ2, CD2_1=SQ2, CD2_2=SQ2), 0.9996954908),
+#5
+		(_d(CRVAL1=45), 0.9996954908),
+		(_d(CRVAL2=45), 0.9996954908),
+		(_d(CRVAL2=89), 0.9996954908),
+		(_d(CRVAL2=90), 0.9996954908),
+		(_d(CRVAL1=180), 0.9996954908),
+#10
+		(_d(CRVAL1=359.5), 0.9996954908),
+		(_d(CD1_1=0.005, CD1_2=SQ3_2, CD2_1=SQ3_2, CD2_2=0.005), 
+			0.499748922272),
+		(_d(CD1_1=-0.0028, CD1_2=-8.57e-5, CD2_1=-3.198e-4, CD2_2=-0.0028), 
+			0.0781238498),
+	]
+		
 
 if __name__=="__main__":
-	testhelpers.main(TestWCS)
+	testhelpers.main(SpolyTest)

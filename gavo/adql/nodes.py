@@ -793,6 +793,28 @@ class Comparison(ADQLNode):
 		return "%s %s %s"%(flatten(self.op1), self.opr, flatten(self.op2))
 
 
+def _guessNumericType(literal):
+	"""returns a guess for a type suitable to hold a numeric value given in
+	literal.
+
+	I don't want to pull through the literal symbol that matched
+	from grammar in all cases.  Thus, at times I simply guess the type 
+	(and yes, I'm aware that -32768 still is a smallint).
+	"""
+	try:
+		val = int(literal)
+		if abs(val)<32767:
+			type = "smallint"
+		elif abs(val)<2147483648:
+			type = "integer"
+		else:
+			type = bigint
+	except ValueError:
+		type = "double precision"
+	return type
+
+
+
 class Factor(FieldInfoedNode, TransparentMixin):
 	"""is a factor within an SQL expression.
 
@@ -809,27 +831,22 @@ class Factor(FieldInfoedNode, TransparentMixin):
 			assert len(infoChildren)==1
 			self.fieldInfo = infoChildren[0].fieldInfo
 		else:
-			# I don't want to pull through the literal symbol that matched
-			# here -- thus, let's guess the type (and yes, I'm aware that
-			# -32768 still is a smallint):
-			try:
-				val = int("".join(self.children))
-				if abs(val)<32767:
-					type = "smallint"
-				elif abs(val)<2147483648:
-					type = "integer"
-				else:
-					type = bigint
-			except ValueError:
-				type = "double precision"
-			self.fieldInfo = fieldinfo.FieldInfo(type, "", "")
+			self.fieldInfo = fieldinfo.FieldInfo(
+				_guessNumericType("".join(self.children)), "", "")
 
 
 class CombiningFINode(FieldInfoedNode):
 	def addFieldInfo(self, context):
 		infoChildren = self._getInfoChildren()
 		if not infoChildren:
-			assert False
+			if len(self.children)==1: 
+				# probably a naked numeric literal in the grammar, e.g., 
+				# in mathFunction
+				self.fieldInfo = fieldinfo.FieldInfo(
+					_guessNumericType(self.children[0]), "", "")
+			else:
+				raise Error("Oops -- did not expect '%s' when annotating %s"%(
+					"".join(self.children), self))
 		elif len(infoChildren)==1:
 			self.fieldInfo = infoChildren[0].fieldInfo
 		else:
