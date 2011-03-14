@@ -36,6 +36,8 @@ class FileProcessor(object):
 	things like source catalogues, etc.  Thus, you should not need to
 	override the constructor.
 	"""
+	inputsDir = base.getConfig("inputsDir")
+
 	def __init__(self, opts, dd):
 		self.opts, self.dd = opts, dd
 		self._createAuxillaries(dd)
@@ -137,6 +139,11 @@ class FileProcessor(object):
 			else:
 				self.printReport(processed, ignored)
 		return processed, ignored
+
+	######### Utility methods
+
+	def getProductKey(self, srcName):
+		return utils.getRelativePath(srcName, self.inputsDir)
 
 
 class HeaderProcessor(FileProcessor):
@@ -249,7 +256,8 @@ class HeaderProcessor(FileProcessor):
 		"""
 		return self._mungeHeader(self.getPrimaryHeader(srcName))
 
-	def getPrimaryHeader(self, srcName):
+	@staticmethod
+	def getPrimaryHeader(srcName):
 		"""returns the primary header of srcName.
 
 		This is a convenience function for user derived classes.
