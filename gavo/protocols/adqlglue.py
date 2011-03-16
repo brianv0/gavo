@@ -128,7 +128,8 @@ def _getTableDescForOutput(parsedTree):
 	columns = [_makeColumnFromFieldInfo(ctx, *fi) 
 			for fi in parsedTree.fieldInfos.seq]
 	# TODO: Fiddle in system metadata if unlucky enough to have STC-S in output
-	return base.makeStruct(rscdef.TableDef, columns=columns)
+	return base.makeStruct(rscdef.TableDef, columns=columns,
+		id=parsedTree.suggestAName())
 
 
 def _getSchema(tableName):

@@ -1070,6 +1070,26 @@ class ComplexExpressionTest(unittest.TestCase):
 		self.assertEqual(adql.flatten(t.whereClause.children[-1]), "'J2416643'")
 
 
+class NameSuggestingTest(testhelpers.VerboseTest):
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		query, name = sample
+		t = adql.getGrammar().parseString(query)[0]
+		self.assertEqual(t.suggestAName(), name)
+
+	samples = [
+		("select * from plaintable", "plaintable"),
+		('select * from "plaintable"', "_plaintable"),
+		('select * from "useless & table"" name"', "_uselesstablename"),
+		('select * from "3columns"', "_3columns"),
+		('select * from t1 join t2', "t1_t2"),
+# 5
+		('select * from (select * from gnug) as booger', "booger"),
+		('select * from (select * from gnug) as booger join boog', 
+			"booger_boog"),]
+
+
 class FlattenTest(unittest.TestCase):
 	"""tests for flattening of plain ADQL trees.
 	"""
@@ -1333,6 +1353,7 @@ class QueryTest(testhelpers.VerboseTest):
 		res = self.runQuery(
 			"select alpha, delta from %s where mag<-10"%
 			self.tableName)
+		self.assertEqual(res.tableDef.id, self.tableName.split(".")[-1])
 		self.assertEqual(len(res.rows), 1)
 		self.assertEqual(len(res.rows[0]), 2)
 		self.assertEqual(res.rows[0]["alpha"], 22.0)
@@ -1363,6 +1384,7 @@ class QueryTest(testhelpers.VerboseTest):
 	def testQualifiedStarSelect(self):
 		res = self.runQuery("select %s.* from %s, %s as q1 where q1.mag<-10"%(
 			self.tableName, self.tableName, self.tableName))
+		self.assertEqual(res.tableDef.id, "adql_q1")
 		self.assertEqual(len(res.rows), 1)
 		self.assertEqual(len(res.rows[0]), 4)
 		fields = res.tableDef.columns

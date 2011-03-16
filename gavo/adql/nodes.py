@@ -4,6 +4,7 @@ Node classes and factories used in ADQL tree processing.
 
 import itertools
 import pyparsing
+import re
 import sys
 import traceback
 import weakref
@@ -275,6 +276,13 @@ class ADQLNode(utils.AutoNode):
 	def _treeRepr(self):
 		return (self.type,)
 	
+	def iterTree(self):
+		for name, val in self.iterChildren():
+			if isinstance(val, ADQLNode):
+				for item in val.iterTree():
+					yield item
+			yield name, val
+			
 
 class TransparentMixin(object):
 	"""a mixin just pulling through the children and serializing them.
@@ -458,6 +466,14 @@ class PlainTableRef(ColumnBearingNode):
 	def getAllNames(self):
 		yield self.tableName.qName
 
+	def makeUpId(self):
+		# for suggestAName
+		n = self.tableName.name
+		if isinstance(n, utils.QuotedName):
+			return "_"+re.sub("[^A-Za-z0-9_]", "", n.name)
+		else:
+			return n
+
 
 class DerivedTable(ColumnBearingNode):
 	type = "derivedTable"
@@ -487,6 +503,14 @@ class DerivedTable(ColumnBearingNode):
 
 	def getAllNames(self):
 		yield self.tableName.qName
+
+	def makeUpId(self):
+		# for suggestAName
+		n = self.tableName.name
+		if isinstance(n, utils.QuotedName):
+			return "_"+re.sub("[^A-Za-z0-9_]", "", n.name)
+		else:
+			return n
 
 
 class JoinSpecification(ADQLNode):
@@ -532,6 +556,10 @@ class JoinedTable(ColumnBearingNode, TransparentMixin):
 		"""
 		for t in self.joinedTables:
 			yield t.tableName.qName
+
+	def makeUpId(self):
+		# for suggestAName
+		return "_".join(t.makeUpId() for t in self.joinedTables)
 
 
 class TransparentNode(ADQLNode, TransparentMixin):
@@ -609,6 +637,23 @@ class QuerySpecification(ColumnBearingNode):
 			("", "groupby"),
 			("", "having"),
 			("", "orderBy"),)
+
+	def suggestAName(self):
+		"""returns a string that may or may not be a nice name for a table
+		resulting from this query.
+
+		Whatever is being returned here, it's a regular SQL identifier.
+		"""
+		try:
+			sources = [tableRef.makeUpId()
+				for tableRef in self.fromClause.tablesReferenced]
+			if sources:
+				return "_".join(sources)
+			else:
+				return "query_result"
+		except:  # should not happen, but we don't want to bomb from here
+			import traceback;traceback.print_exc()
+			return "weird_table_report_this"
 
 
 class ColumnReference(FieldInfoedNode):

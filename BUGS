@@ -259,5 +259,5 @@
 63/MEDIUM/2011-03-09
 	gavo imp --system //uws does not remove stale uws tables.  Why?
 
-64/WISHLIST/2011-03-15
-	Generate prettier names for ADQL result tables.
+64/WISHLIST/2011-03-15/FIXED
+	Generate prettier names for ADQL result tables. [in rev. 1816]
