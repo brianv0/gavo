@@ -48,6 +48,18 @@
 			role="primary"/>
 	</data>
 
+	<data id="pgs_siapnulltest" original="siap_base">
+		<!-- for pgsphere import with null data -->
+		<property name="destTable">test.pgs_siaptable</property>
+		<rowmaker id="make_pgssiaptable" original="st_siaptable">
+			<apply procDef="//siap#computePGS">
+				<bind name="missingIsError">False</bind>
+			</apply>
+		</rowmaker>
+		<make table="pgs_siaptable" rowmaker="make_pgssiaptable"
+			role="primary"/>
+	</data>
+
 	<data id="metatest">
 		<table id="noname">
 			<column name="alpha"

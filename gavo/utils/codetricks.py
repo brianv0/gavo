@@ -21,6 +21,7 @@ import string
 import sys
 import tempfile
 import weakref
+from cStringIO import StringIO
 
 from gavo.utils import algotricks
 from gavo.utils import misctricks
@@ -605,6 +606,13 @@ def printFrames():
 	while frame:
 		print "[%s,%s], [%s]"%inspect.getframeinfo(frame)[:3]
 		frame = frame.f_back
+
+
+def getTracebackAsString():
+	import traceback
+	f = StringIO()
+	traceback.print_exc(file=f)
+	return f.getvalue()
 
 
 def _test():

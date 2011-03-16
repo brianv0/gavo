@@ -9,6 +9,7 @@ import math
 
 from gavo import base
 from gavo import rsc
+from gavo import rscdef
 from gavo import rscdesc
 from gavo.base import coords
 from gavo.helpers import testhelpers
@@ -169,6 +170,44 @@ class TestWCSBbox(unittest.TestCase):
 			self._testOverlap(ra, dec)
 
 
+def computeWCSKeys(pos, size):
+	imgPix = (1000., 1000.)
+	res = {
+		"CRVAL1": pos[0],
+		"CRVAL2": pos[1],
+		"CRPIX1": imgPix[0]/2.,
+		"CRPIX2": imgPix[1]/2.,
+		"CUNIT1": "deg",
+		"CUNIT2": "deg",
+		"CD1_1": size[0]/imgPix[0],
+		"CD1_2": 0,
+		"CD2_2": size[1]/imgPix[1],
+		"CD2_1": 0,
+		"NAXIS1": imgPix[0],
+		"NAXIS2": imgPix[1],
+		"NAXIS": 2,
+		"CTYPE1": 'RA---TAN-SIP', 
+		"CTYPE2": 'DEC--TAN-SIP',
+		"LONPOLE": 180.,
+		"imageTitle": "test image",
+		"instId": None,
+		"dateObs": None,
+		"refFrame": None,
+		"wcs_equinox": None,
+		"bandpassId": None,
+		"bandpassUnit": None,
+		"bandpassRefval": None,
+		"bandpassHi": None,
+		"bandpassLo": None,
+		"pixflags": None,
+		"accref": "image%s%s"%(pos, size),
+		"accsize": None,
+		"embargo": None,
+		"owner": None,
+	}
+	return res
+
+
 class _SIAPTestTable(testhelpers.TestResource):
 	"""Base class for SIAP test tables.
 	"""
@@ -182,42 +221,6 @@ class _SIAPTestTable(testhelpers.TestResource):
 	def make(self, deps):
 		self.conn = deps["conn"]
 
-		def computeWCSKeys(pos, size):
-			imgPix = (1000., 1000.)
-			res = {
-				"CRVAL1": pos[0],
-				"CRVAL2": pos[1],
-				"CRPIX1": imgPix[0]/2.,
-				"CRPIX2": imgPix[1]/2.,
-				"CUNIT1": "deg",
-				"CUNIT2": "deg",
-				"CD1_1": size[0]/imgPix[0],
-				"CD1_2": 0,
-				"CD2_2": size[1]/imgPix[1],
-				"CD2_1": 0,
-				"NAXIS1": imgPix[0],
-				"NAXIS2": imgPix[1],
-				"NAXIS": 2,
-				"CTYPE1": 'RA---TAN-SIP', 
-				"CTYPE2": 'DEC--TAN-SIP',
-				"LONPOLE": 180.,
-				"imageTitle": "test image",
-				"instId": None,
-				"dateObs": None,
-				"refFrame": None,
-				"wcs_equinox": None,
-				"bandpassId": None,
-				"bandpassUnit": None,
-				"bandpassRefval": None,
-				"bandpassHi": None,
-				"bandpassLo": None,
-				"pixflags": None,
-				"accref": "image%s%s"%(pos, size),
-				"accsize": None,
-				"embargo": None,
-				"owner": None,
-			}
-			return res
 		rd = testhelpers.getTestRD()
 		dd = rd.getById(self.ddid)
 		return rsc.makeData(dd, connection=self.conn, forceSource=[
@@ -314,12 +317,52 @@ class PgSphereQueriesTest(CooQueryTestBase):
 	resources = [("data", _SIAPTestTable("pgs_siaptest"))]
 
 
+class ImportTest(testhelpers.VerboseTest):
+	resources = [("conn", tresc.dbConnection)]
+	setupCost = 0.5
+	noWCSRec = {
+			"imageTitle": "uncalibrated image",
+			"NAXIS1": 1000,
+			"NAXIS2": 100,
+			"NAXIS": 2,
+			"dateObs": None,
+			"accref": "uu",
+			"accsize": None,
+			"embargo": None,
+			"owner": None,}
 
-def singleTest():
-	suite = unittest.makeSuite(TestWCSBbox, "testEnc")
-	runner = unittest.TextTestRunner()
-	runner.run(suite)
+	def testPlainPGS(self):
+		dd = testhelpers.getTestRD().getById("pgs_siaptest")
+		data = rsc.makeData(dd, connection=self.conn, forceSource=[
+			computeWCSKeys((34, 67), (0.3, 0.4))])
+		try:
+			table = data.tables["pgs_siaptable"]
+			res = list(table.iterQuery([table.tableDef.getColumnByName(n) for
+				n in ("centerAlpha", "centerDelta")], ""))[0]
+			self.assertEqual(int(res["centerDelta"]), 67)
+		finally:
+			data.dropTables()
+			self.conn.commit()
+	
+	def testRaisingOnNull(self):
+		dd = testhelpers.getTestRD().getById("pgs_siaptest")
+		self.assertRaises(base.ValidationError, 
+			rsc.makeData,
+			dd, connection=self.conn, forceSource=[self.noWCSRec])
 
+	def testNullIncorporation(self):
+		dd = testhelpers.getTestRD().getById("pgs_siapnulltest")
+		data = rsc.makeData(dd, connection=self.conn, forceSource=[
+			self.noWCSRec, computeWCSKeys((34, 67), (0.25, 0.5))])
+		try:
+			table = data.tables["pgs_siaptable"]
+			res = list(table.iterQuery(
+				[table.tableDef.getColumnByName("accref")], ""))
+			self.assertEqual(res, 
+				[{u'accref': u'uu'}, {u'accref': u'image(34, 67)(0.25, 0.5)'}])
+		finally:
+			data.dropTables()
+			self.conn.commit()
 
 if __name__=="__main__":
-	testhelpers.main(PgSphereQueriesTest)
+	testhelpers.main(ImportTest)

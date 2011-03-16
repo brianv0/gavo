@@ -125,10 +125,51 @@ class FormTest(trialhelpers.RenderTest):
 			])
 
 
-# nevow.testutil.registerProducer doesn't to push produceres.  shit.
-#class StreamingTest(trialhelpers.RenderTest):
-#	renderer = root.ArchiveService()
-#
-#	def testStreamingWorks(self):
-#		return self.assertGETHasStrings("/test/stream", {"size": 30}, [
-#			"012345678901234567890123456789"])
+class StreamingTest(trialhelpers.RenderTest):
+	renderer = root.ArchiveService()
+
+	def testStreamingWorks(self):
+		return self.assertGETHasStrings("/test/stream", {"size": 30}, [
+			"123456789012345678901234567890"])
+	
+	def testChunksWork(self):
+		return self.assertGETHasStrings("/test/stream", {"chunksize": "10",
+			"size": "35"}, [
+			"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx12345"])
+	
+	def testCrashStreamDoesNotHang(self):
+		return self.assertGETHasStrings("/test/streamcrash", {}, [
+			"Here is some data.",
+			"XXX Internal",
+			"raise Exception"])
+	
+	def testStopProducing(self):
+
+		class StoppingRequest(trialhelpers.FakeRequest):
+			def write(self, data):
+				trialhelpers.FakeRequest.write(self, data)
+				self.producer.stopProducing()
+
+		def assertResult(result):
+			# at least one chunk must have been delivered
+			self.failUnless(result[0].startswith("xxxxxxxxxx"))
+			# ...but the kill must become active before the whole mess
+			# has been written
+			self.failIf(len(result[0])>20000)
+
+		return trialhelpers.runQuery(self.renderer, "GET", "/test/stream",
+			{"chunksize": "10", "size": "35000"}, requestClass=StoppingRequest
+		).addCallback(assertResult)
+
+	def testClosingConnection(self):
+
+		class ClosingRequest(trialhelpers.FakeRequest):
+			def write(self, data):
+				raise IOError("Connection closed")
+
+		def assertResult(result):
+			self.assertEqual(result[0], "")
+
+		return trialhelpers.runQuery(self.renderer, "GET", "/test/stream",
+			{"chunksize": "10", "size": "3500"}, requestClass=ClosingRequest
+		).addCallback(assertResult)

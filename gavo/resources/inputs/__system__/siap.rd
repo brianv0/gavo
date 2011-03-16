@@ -171,7 +171,8 @@
 			(the image size).
 
 			Records without or with insufficient wcs keys are furnished with
-			all-NULL wcs info.
+			all-NULL wcs info if the missingIsError setup parameter is False,
+			else they bomb out with a DataError (the default).
 
 			Use either computePGS or computeBbbox depending on what mixin
 			the table has.  PGS is much preferable.
@@ -179,6 +180,8 @@
 		<!-- Actually, this is a common base for both bbox and pgsphere based
 		procs -->
 		<setup>
+			<par name="missingIsError" description="Throw an exception when
+				no WCS information can be located.">True</par>
 			<code>
 				from gavo.protocols import siap
 
@@ -238,25 +241,42 @@
 					"""
 					for key in wcskeys+additionalKeys:
 						result[key] = None
+
+				def addWCS(vars, result, additionalKeys, addCoverage):
+					wcs = coords.getWCS(vars)
+					if wcs.WCSStructure is None:
+						if missingIsError:
+							raise base.DataError("No WCS information")
+						else:
+							nullOutWCS(result, additionalKeys)
+					else:
+						copyFromWCS(vars, wcs, result)
+						addCoverage(vars, wcs, result)
 			</code>
 		</setup>
+
 	</procDef>
 
-	<procDef type="apply" id="computeBbox"
-			original="computeInputBase">
+	<procDef type="apply" id="computeBbox" original="computeInputBase">
 		<code>
-			wcs = coords.getWCS(vars)
-			copyFromWCS(vars, wcs, result)
-			result["primaryBbox"], result["secondaryBbox"
-				] = siap.splitCrossingBox(coords.getBboxFromWCSFields(wcs))
+			additionalKeys = ["primaryBbox", "secondaryBbox"]
+
+			def addCoverage(vars, wcs, result):
+				result["primaryBbox"], result["secondaryBbox"
+					] = siap.splitCrossingBox(coords.getBboxFromWCSFields(wcs))
+
+			addWCS(vars, result, additionalKeys, addCoverage)
 		</code>
 	</procDef>
 
 	<procDef type="apply" id="computePGS" original="computeInputBase">
 		<code>
-			wcs = coords.getWCS(vars)
-			copyFromWCS(vars, wcs, result)
-			result["coverage"] = coords.getSpolyFromWCSFields(wcs)
+			additionalKeys = ["coverage"]
+
+			def addCoverage(vars, wcs, result):
+				result["coverage"] = coords.getSpolyFromWCSFields(wcs)
+
+			addWCS(vars, result, additionalKeys, addCoverage)
 		</code>
 	</procDef>
 

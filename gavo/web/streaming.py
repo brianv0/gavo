@@ -16,6 +16,7 @@ from twisted.python import threadable
 from zope.interface import implements
 
 from gavo import base
+from gavo import utils
 from gavo.formats import votablewrite
 
 
@@ -50,7 +51,7 @@ class DataStreamer(threading.Thread):
 	def __init__(self, writeStreamTo, consumer):
 		threading.Thread.__init__(self)
 		self.writeStreamTo, self.consumer = writeStreamTo, consumer
-		self.paused, self.killWriter = False, False
+		self.paused, self.exceptionToRaise = False, None
 		consumer.registerProducer(self, True)
 		self.setDaemon(True) # kill transfers on server restart
 
@@ -61,19 +62,35 @@ class DataStreamer(threading.Thread):
 		self.paused = True
 
 	def stopProducing(self):
-		self.killWriter = True
+		self.exceptionToRaise = IOError("Stop writing, please")
 
 	def realWrite(self, data):
 		if isinstance(data, unicode): # we don't support encoding here, but
 			data = str(data)            # don't break on accidental unicode.
 		while self.paused:  # let's do a busy loop; twisted can handle
-		                    # overflows, and locks become messy.
+		                    # overflows, and waiting on a semaphore becomes
+												# technically messy here (why?)
 			time.sleep(0.1)
-		return reactor.callFromThread(self.consumer.write, data)
+		return reactor.callFromThread(self._writeToConsumer, data)
+	
+	def _writeToConsumer(self, data):
+		# We want to catch errors occurring during writes.  This method
+		# is called from the reactor (main) thread.
+		# We assign to the exceptionToRaise instance variable, and this
+		# races with stopProducing.  This race is harmless, though, since
+		# in any case writing stops, and the exception raised is of secondary
+		# importance.
+		try:
+			self.consumer.write(data)
+		except IOError, ex:
+			self.exceptionToRaise = ex
+		except Exception, ex:
+			base.ui.notifyError("Exception during streamed write.")
+			self.exceptionToRaise = ex
 	
 	def write(self, data):
-		if self.killWriter:
-			raise IOError("Stop writing, please")
+		if self.exceptionToRaise:
+			raise self.exceptionToRaise
 		if len(data)<self.chunkSize:
 			self.realWrite(data)
 		else:
@@ -91,13 +108,26 @@ class DataStreamer(threading.Thread):
 
 	def run(self):
 		try:
-			self.writeStreamTo(self)
-		except:
-			base.ui.notifyError("Exception while streaming"
-				" (closing connection):\n")
+			try:
+				self.writeStreamTo(self)
+			except IOError:
+				# I/O errors are most likely not our fault, and I don't want
+				# to make matters worse by pushing any dumps into a line
+				# that's probably closed anyway.
+				base.ui.notifyError("I/O Error while streaming:")
+			except:
+				base.ui.notifyError("Exception while streaming"
+					" (closing connection):\n")
+				self.consumer.write("\n\n\nXXXXXX Internal error in DaCHS software.\n"
+					"If you are seeing this, please notify gavo@ari.uni-heidelberg.de\n"
+					"with as many details (like a URL) as possible.\n"
+					"Also, the following traceback may help people there figure out\n"
+					"the problem:\n"+
+					utils.getTracebackAsString())
 		# All producing is done in the thread, so when no one's writing any
 		# more, we should have delivered everything to the consumer
-		reactor.callFromThread(self.cleanup)
+		finally:
+			reactor.callFromThread(self.cleanup)
 
 	synchronized = ['resumeProducing', 'stopProducing']
 
@@ -129,12 +159,7 @@ def streamVOTable(request, data, **contextOpts):
 				True: "td", False: "binary"}[data.queryMeta["tdEnc"]]
 		if "version" not in contextOpts:
 			contextOpts["version"] = data.queryMeta.get("VOTableVersion")
-		try:
-			tableMaker = votablewrite.writeAsVOTable(
-				data.original, outputFile,
-				ctx=votablewrite.VOTableContext(**contextOpts))
-		except:
-			base.ui.notifyError("Yikes -- error during VOTable render.\n")
-			outputFile.write(">>>> INTERNAL ERROR, INVALID OUTPUT <<<<")
-			return ""
+		tableMaker = votablewrite.writeAsVOTable(
+			data.original, outputFile,
+			ctx=votablewrite.VOTableContext(**contextOpts))
 	return streamOut(writeVOTable, request)

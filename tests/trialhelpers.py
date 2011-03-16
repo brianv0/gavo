@@ -17,7 +17,8 @@ from twisted.trial.unittest import TestCase as TrialTest
 
 def _requestDone(result, request, ctx):
 	if isinstance(result, basestring):
-		request.write(result)
+		if result:
+			request.write(result)
 	elif isinstance(result, url.URL):
 		request.code = 303
 		request.headers["location"] = str(result)
@@ -80,7 +81,24 @@ class FakeFieldStorage(object):
 		return self.args.keys()
 
 
-def _buildRequest(method, path, rawArgs):
+class FakeRequest(testutil.AccumulatingFakeRequest):
+	"""A Request for testing purpuses.
+
+	We have a version of our own for this since nevow's has a 
+	registerProducer that produces an endless loop with push
+	producers (which is what we have).
+	"""
+	def registerProducer(self, producer, isPush):
+		self.producer = producer
+		if not isPush:
+			testutil.AccumulatingFakeRequest.registerProducer(producer, isPush)
+
+	def unregisterProducer(self):
+		del self.producer
+
+
+
+def _buildRequest(method, path, rawArgs, requestClass=FakeRequest):
 	args = {}
 	for k, v in rawArgs.iteritems():
 		if isinstance(v, list):
@@ -89,7 +107,7 @@ def _buildRequest(method, path, rawArgs):
 			args[k] = [v]
 	if path.startswith("http://"):
 		path = urlparse.urlparse(path).path
-	req = testutil.AccumulatingFakeRequest(uri="/"+path, args=args)
+	req = requestClass(uri="/"+path, args=args)
 	# Service for my TAPRequest hack (see web.taprender).
 	req.fields = FakeFieldStorage(args)
 	req.headers = {}
@@ -97,10 +115,12 @@ def _buildRequest(method, path, rawArgs):
 	return req
 
 
-def getRequestContext(path, method="GET", args=None, requestMogrifier=None):
+def getRequestContext(path, method="GET", args=None, 
+		requestMogrifier=None, requestClass=FakeRequest):
 	if args is None:
 		args = {}
-	req = _buildRequest(method, "http://localhost"+path, args)
+	req = _buildRequest(method, "http://localhost"+path, args, 
+		requestClass=requestClass)
 	if requestMogrifier is not None:
 		requestMogrifier(req)
 	ctx = context.WovenContext()
@@ -108,7 +128,8 @@ def getRequestContext(path, method="GET", args=None, requestMogrifier=None):
 	return ctx
 
 
-def runQuery(page, method, path, args, requestMogrifier=None):
+def runQuery(page, method, path, args, requestMogrifier=None,
+		requestClass=FakeRequest):
 	"""runs a query on a page.
 
 	The query should look like it's coming from localhost.
@@ -116,7 +137,8 @@ def runQuery(page, method, path, args, requestMogrifier=None):
 	The thing returns a deferred firing a pair of the result (a string)
 	and the request (from which you can glean headers and such).
 	"""
-	ctx = getRequestContext(path, method, args, requestMogrifier)
+	ctx = getRequestContext(path, method, args, requestMogrifier,
+		requestClass=requestClass)
 	segments = tuple(path.split("/"))[1:]
 	return util.maybeDeferred(
 			page.locateChild, ctx, segments
