@@ -506,7 +506,11 @@ class ParamBase(Column):
 		"""
 		if not isinstance(literal, basestring):
 			return literal
-		return base.sqltypeToPython(self.type)(literal)
+		try:
+			return base.sqltypeToPython(self.type)(literal)
+		except ValueError:
+			raise base.ValidationError("%s is not a valid literal for %s"%(
+				repr(literal), self.name), self.name)
 
 	def _unparse(self, value):
 		"""returns a string representation of value appropriate for this

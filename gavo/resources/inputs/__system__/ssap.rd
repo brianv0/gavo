@@ -398,7 +398,9 @@
 
 
 	<STREAM id="hcd_condDescs">
-		<condDesc id="coneCond">
+		<condDesc id="coneCond" combining="True">
+			<!-- condCond is combining to let the client specify SIZE but
+			not POS (as splat does); pql#coneParameter can handle that. -->
 			<inputKey name="POS" type="text" description="ICRS position of target
 				object" unit="deg,deg" std="True"
 				utype="ssa:Char.SpatialAxis.Coverage.Location.Value"/>

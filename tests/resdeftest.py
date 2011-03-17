@@ -368,8 +368,8 @@ class ParamTest(testhelpers.VerboseTest):
 			'<param name="u" type="timestamp" required="True"/>'))
 
 	def testBadLiteral(self):
-		self.assertRaisesWithMsg(base.StructureError,
-			"At (1, 38): 'nothing' is not a valid value for u",
+		self.assertRaisesWithMsg(base.ValidationError,
+			"u'nothing' is not a valid literal for u",
 			base.parseFromString,
 			(rscdef.Param,
 			'<param name="u" type="integer">nothing</param>'))

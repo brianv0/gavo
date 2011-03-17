@@ -25,11 +25,11 @@
 			except IndexError:
 				raise base.ValidationError("Operator error: the cone condition"
 					" is lacking input keys.", "query")
-			parsed = pql.PQLPositionPar.fromLiteral(
+			parsedPos = pql.PQLPositionPar.fromLiteral(
 				inPars.get(posKey, None), posKey)
-			if parsed is not None:
-				yield parsed.getConeSQL(posCol, outPars, 
-					float(inPars.get(sizeKey, 0.5)))
+			size = inputKeys[1]._parse(inPars.get(sizeKey, None))
+			if parsedPos is not None and size is not None:
+				yield parsedPos.getConeSQL(posCol, outPars, size)
 		</code>
 	</procDef>
 

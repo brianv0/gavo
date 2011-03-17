@@ -92,37 +92,44 @@ class CoreQueriesTest(_WithSSATableTest):
 
 	samples = [
 		({"POS": "10,+15", "SIZE": "0.5"},
-		["test1"]),
+			["test1"]),
 		({"POS": "10,+15", "SIZE": "2"},
-		["test1", "test2"]),
+			["test1", "test2"]),
 		({"BAND": "/4.5e-7,6.5e-7/"},
-		["test1", "test3"]),
+			["test1", "test3"]),
 		({"BAND": "4.5e-7/7.5e-7"},
-		["test1", "test2", "test3"]),
+			["test1", "test2", "test3"]),
 		({"BAND": "U"},
-		[]),
+			[]),
+#5
 		({"BAND": "V,R"},
-		["test2", "test3"]),
+			["test2", "test3"]),
 		({"TIME": "/2020-12-20T13:00:01"},
-		["test1"]),
+			["test1"]),
 		({"FORMAT": "votable"},
-		["test2"]),
+			["test2"]),
 		({"FORMAT": "compliant"},
-		["test2"]),
+			["test2"]),
 		({"FORMAT": "native"},
-		["test3"]),
+			["test3"]),
+#10
 		({"FORMAT": "image"},
-		[]),
+			[]),
 		({"FORMAT": "all"},
-		["test1", "test2", "test3"]),
+			["test1", "test2", "test3"]),
 		({"FORMAT": "all"},
-		["test1", "test2", "test3"]),
+			["test1", "test2", "test3"]),
 		({"TARGETNAME": "booger star,rat hole in the yard"},
-		["test2", "test3"]),
+			["test2", "test3"]),
 		({"PUBDID": "ivo:%2f%2ftest.inv%2ftest2"},
-		["test2"]),
+			["test2"]),
+#15
 		({"excellence": "/100"},
 		["test2", "test3"]),
+		({"POS": "10,+15"}, # POS without SIZE is ignored
+			["test1", "test2", "test3"]),
+		({"SIZE": "30"}, # splat sends SIZE without POS; ignore it in this case.
+			["test1", "test2", "test3"]),
 	]
 
 
@@ -196,6 +203,13 @@ class CoreFailuresTest(_WithSSATableTest):
 			"Cannot match against coordinates given in EGOCENTRIC frame",
 			self.service.runFromDict,
 			({"REQUEST": "queryData", "POS": "0,0;EGOCENTRIC", "SIZE": "1"}, 
+				"ssap.xml"))
+
+	def testMalformedSize(self):
+		self.assertRaisesWithMsg(api.ValidationError,
+			"'all' is not a valid literal for SIZE",
+			self.service.runFromDict,
+			({"REQUEST": "queryData", "POS": "0,0", "SIZE": "all"}, 
 				"ssap.xml"))
 
 
