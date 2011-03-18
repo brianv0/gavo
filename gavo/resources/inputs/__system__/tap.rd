@@ -18,12 +18,16 @@
 	page you are redirected to now and then to see when your job is finished,
 	then retrieve the result.
 
+	For use within a browser, the local `ADQL form`_ may be more convenient,
+	though.
+
 	Also see the `table metadata`_ of the tables exposed here.
 
 	.. _VODesktop: http://www.astrogrid.org/wiki/Install/Downloads
 	.. _GAVO VOTable library: http://vo.ari.uni-heidelberg.de/soft/subpkgs
 	.. _TAP shell: http://vo.ari.uni-heidelberg.de/soft/tapsh
 	.. _table metadata: /__system__/tap/run/tableMetadata
+	.. _ADQL form: /adql
 
 
 	Issues
