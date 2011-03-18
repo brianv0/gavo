@@ -30,7 +30,8 @@ class InputKey(column.ParamBase):
 
 	# XXX TODO: make widgetFactory and showItems properties.
 	_widgetFactory = base.UnicodeAttribute("widgetFactory", default=None,
-		description="Python code for a custom widget factory for this input,"
+		description="A python expression for a custom widget"
+		" factory for this input,"
 		" e.g., 'Hidden' or 'widgetFactory(TextArea, rows=15, cols=30)'",
 		copyable=True)
 	_showItems = base.IntAttribute("showItems", default=3,

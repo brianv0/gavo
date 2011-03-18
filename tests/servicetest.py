@@ -173,7 +173,7 @@ class InputKeyTest(testhelpers.VerboseTest):
 		ftype, fwid, rendered = self._getKeyProps(
 			'<condDesc buildFrom="data/testdata#data.afloat"/>')
 		self.failUnless(isinstance(ftype, formal.types.String))
-		self.assertEqual(rendered.children[3].children[0].children[0],
+		self.assertEqual(rendered.children[2].children[0].children[0],
 			"[?num. expr.]")
 
 	def testWithOriginalAndFT(self):

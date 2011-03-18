@@ -156,7 +156,8 @@ class MethodAwareResource(rend.Page):
 
 class UWSErrorMixin(object):
 	def _deliverError(self, failure, request):
-		base.ui.notifyFailure(failure)
+		if not isinstance(failure.value, uws.JobNotFound):
+			base.ui.notifyFailure(failure)
 		request.setHeader("content-type", "text/xml")
 		return uwsactions.ErrorResource(failure.value)
 

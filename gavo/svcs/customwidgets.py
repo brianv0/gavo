@@ -251,14 +251,17 @@ class StringFieldWithBlurb(widget.TextInput):
 	"""
 	additionalMaterial = ""
 
+	def __init__(self, *args, **kwargs):
+		am = kwargs.pop("additionalMaterial", None)
+		widget.TextInput.__init__(self, *args, **kwargs)
+		if am is not None:
+			self.additionalMaterial = am
+
 	def _renderTag(self, ctx, key, value, readonly):
 		plainTag = widget.TextInput._renderTag(self, ctx, key, value,
 			readonly)
 		return T.span(style="white-space:nowrap")[
 			plainTag, 
-			T.img(onclick="document.getElementById('genForm-%s').value=''"%key,
-				src="/static/img/clearButton.png", alt="[clear]", 
-				title="Clear field", style="vertical-align:middle"),
 			" ",
 			T.span(class_="fieldlegend")[self.additionalMaterial]]
 
