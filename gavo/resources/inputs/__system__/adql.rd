@@ -362,7 +362,8 @@ reasons we would be very reluctant to add such a functionality.
 		<inputTable id="adqlInput">
 			<inputKey name="query" tablehead="ADQL query" type="text"
 				description="A query in the Astronomical Data Query Language"
-				widgetFactory="widgetFactory(ScalingTextArea, rows=15)"/>
+				widgetFactory="widgetFactory(ScalingTextArea, rows=15)"
+				required="True"/>
 			<inputKey name="_TIMEOUT" type="integer" unit="s" 
 				tablehead="Timeout after" 
 				description="Seconds until the query is aborted.  If you find 
