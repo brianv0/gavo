@@ -1,44 +1,37 @@
-/* This is a small generator for preview jpegs from fits input 
- *
- * We probably don't need to be fancy, so scaling is really simple minded.
- * Maybe some more work should go in there, but I guess reliable gamma
- * estimation would have the highest payoff.
- *
- */
+/* A "streaming" fits previewer.
+
+This program takes a FITS image and produces a jpeg image striving
+to give an idea what's on the image.  We only want to do one
+pass over the input FITS.  Therefore, we scale into an array of floats
+and then adapt the brightness of that.  From that array, the final
+jpeg is generated.
+*/
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+#include <jpeglib.h>
+#include <fitsio.h>
 #include <math.h>
 #include <assert.h>
 
-#include <fitsio.h>
-#include <jpeglib.h>
-
-#define DEFAULT_WIDTH 200
-#define DEFAULT_GAMMA 1
-#define LIMIT_BRIGHT 80  /* dimmest pixel still considered "bright" */
-
-char *progName=NULL;
+#define DEFAULT_TARGETWIDTH 200
+#define GAMMA_HIST_SIZE 10
 
 
 typedef struct imageDesc_s {
 	int pixelType;
 	long shape[2];
-	float *data;
-	double dataminGiven;
+	int targetShape[2]; /* filled out by computeScale */
+	fitsfile *fptr;
+	double *scaledData;
 } imageDesc;
 
-typedef struct byteImageDesc_s {
-	long shape[2];
-	unsigned char *data;
-} byteImageDesc;
+char *progName;
 
 
 void fatalFitsError(int status)
 {
-	if (status==0) {  /* WTF?? */
+	if (status==0) { /* sometimes the functions return !=0 but still have
+		status !=0 -- weird... */
 		return;
 	}
 	fits_report_error(stderr, status);
@@ -57,305 +50,337 @@ void fatalError(char *msg)
 	exit(1);
 }
 
-
-void read1Dvalues(imageDesc *iD, fitsfile *fptr)
+imageDesc *openFits(char *fName)
 {
-	int x, y;
-	int dummy;
-	int doFold;
-	int status=0;
-	long fpixel[2] = {1, 1};
-
-	if (iD->shape[0]<1000) {
-		/* Don't fold, extrude */
-		iD->shape[1] = iD->shape[0]/10;
-		doFold = 0;
-	} else {
-		/* Fold 'em */
-		iD->shape[1] = 1;
-		doFold = 1;
-	}
-	if (!(iD->data = malloc(iD->shape[0]*iD->shape[1]*sizeof(float)))) {
-		fatalLibError("Allocating image data");
-	}
-	if (fits_read_pix(fptr, TFLOAT, fpixel, iD->shape[0],
-		NULL, iD->data, &dummy, &status)) {
-		fatalFitsError(status);
-	}
-	if (doFold) {
-		/* We should do a factor analysis here... */
-		int i;
-		int newWidth = (int)floor(sqrt(iD->shape[0]))+1;
-		int newHeight = iD->shape[0]/(newWidth-1);
-		if (!(iD->data = realloc(iD->data, newWidth*newHeight*sizeof(float)))) {
-			fatalLibError("Re-allocating image data");
-		}
-		for (i=iD->shape[0]; i<newWidth*newHeight; i++) {
-			iD->data[i] = 0;
-		}
-		iD->shape[0] = newWidth;
-		iD->shape[1] = newHeight;
-	} else {
-		for (y=1; y<iD->shape[1]; y++) {
-			float *src=iD->data, *dest=iD->data+iD->shape[0]*y;
-			for (x=0; x<iD->shape[0]; x++) {
-				*dest++ = *src++;
-			}
-		}
-	}
-}
-
-
-imageDesc *readFits(char *fName)
-{
-	int status=0;
 	int naxis;
-	fitsfile *fptr;
 	imageDesc *iD=malloc(sizeof(imageDesc));
-	char dummy[80];
+	int status=0;
 
 	if (!iD) {
 		fatalLibError("Allocating image descriptor");
 	}
-	if (fits_open_image(&fptr, fName, READONLY, &status) ||
-		fits_get_img_param(fptr, 2, &(iD->pixelType), &naxis, 
+	if (fits_open_image(&(iD->fptr), fName, READONLY, &status) ||
+		fits_get_img_param(iD->fptr, 2, &(iD->pixelType), &naxis, 
 			iD->shape, &status)) {
 		fatalFitsError(status);
 	}
-	fits_read_key(fptr, TDOUBLE, "DATAMIN", &(iD->dataminGiven), dummy,
-		&status);
-	if (status) {
-		iD->dataminGiven = -1;
-	}
-	status = 0;
-	if (naxis==2) {
-		long fpixel[2] = {1, 1};
-		int dummy;
-		if (!(iD->data = malloc(iD->shape[0]*iD->shape[1]*sizeof(float)))) {
-			fatalLibError("Allocating image data");
-		}
-		if (fits_read_pix(fptr, TFLOAT, fpixel, iD->shape[0]*iD->shape[1],
-			NULL, iD->data, &dummy, &status)) {
-			fatalFitsError(status);
-		}
-	} else if (naxis==1) {
-		read1Dvalues(iD, fptr);
-	} else {
+	if (naxis!=2) {
 		fatalError("Can only work with naxis in {1,2}");
 	}
-	fits_close_file(fptr, &status);
 	return iD;
 }
 
 
-void doPixelScale(imageDesc *img, int targetWidth)
-/* q'n'd -- it's only a preview */
+void computeScale(imageDesc *iD, int targetWidth)
+/* fills the targetShape attribute of iD */
 {
-	float imageScale=targetWidth/(img->shape[0]+0.1);
-	int targetHeight = (int)(img->shape[1]*imageScale);
-	int x, y;
-	float *targetData=img->data;
+	float imageScale=targetWidth/(iD->shape[0]+0.1);
+	int targetHeight = (int)(iD->shape[1]*imageScale);
 
-	if (img->shape[0]<=0 || img->shape[1]<=0) {
+	if (iD->shape[0]<=0 || iD->shape[1]<=0) {
 		fatalError("Empty image cannot be scaled.\n");
 	}
 	if (targetHeight>targetWidth) { /* don't make images too high */
-		imageScale = targetWidth/(img->shape[1]+0.1);
-		targetWidth = (int)(img->shape[0]*imageScale);
-		targetHeight = (int)(img->shape[1]*imageScale);
+		imageScale = targetWidth/(iD->shape[1]+0.1);
+		targetWidth = (int)(iD->shape[0]*imageScale);
+		targetHeight = (int)(iD->shape[1]*imageScale);
 	}
 	if (imageScale>1) {  /* don't scale up */
-		targetWidth=img->shape[0];
-		targetHeight=img->shape[1];
+		targetWidth=iD->shape[0];
+		targetHeight=iD->shape[1];
 		imageScale = 1;
 	}
-	targetWidth = targetWidth==0?1:targetWidth;
-	targetHeight = targetHeight==0?1:targetHeight;
-	for (y=0; y<targetHeight; y++) {
-		for (x=0; x<targetWidth; x++) {
-			*targetData++ = img->data[(int)(x/imageScale)+
-				(int)(y/imageScale)*img->shape[0]];
+	iD->targetShape[0] = targetWidth==0?1:targetWidth;
+	iD->targetShape[1] = targetHeight==0?1:targetHeight;
+}
+
+void doScale(imageDesc *iD)
+/* allocates and fills the double image map by some sort of pixel
+averaging 
+
+This assumes that each source pixel only influence at most four
+destination pixels, in other word that we're scaling down. */
+{
+	long fpixel[2] = {1, 1};
+	int i;
+	int status=0;
+	double *dp;
+	float *pixBuf = malloc(iD->shape[0]*sizeof(float));
+	long scaledDataSize = iD->shape[0]*iD->shape[1];
+	int nSourceY=iD->shape[1], nSourceX=iD->shape[0];
+	int nDestY=iD->targetShape[1], nDestX=iD->targetShape[0];
+
+	if (!pixBuf) {
+		fatalLibError("Allocating pixel buffer");
+	}
+	if (!(iD->scaledData = malloc(scaledDataSize*sizeof(double)))) {
+		fatalLibError("Allocating image data");
+	}
+	for (i=0, dp=iD->scaledData; i<scaledDataSize; i++) {
+		*dp++ = 0;
+	}
+
+	/* Real scaling work.  Here's my ad-hoc scaling algorithm, explained for
+	1D; there's proof-of-concept code in scaletest.py.
+
+	The main difficulty is the diffusion of the quantization error
+	over the target pixels.
+
+	Let the source line have N pixels.
+	Let the target line have K pixels, and assert K<=N
+
+	Now, the boundaries of source pixel i are i and and i+1.  The boundaries
+	of its destination image are (in float arith)
+
+	l_i = i/N*K, u_i = (i+1)/N*K, i=0..N-1
+
+	For each source pixel, compute the overlap of its scaled image of
+	with the (at most two, since N>=K) destination pixels:
+
+	d = floor(l_i)  -- the left target pixel
+	o_l = (d+1)-l_i  -- overlap of the scaled source pixel with pixel at d
+	o_r = u_i-(d+1)
+
+	The value of the source pixel is now distributed in proportion
+	o_l/(o_l+o_r) the the left and in proportion o_r/(o_l+o_r)
+	to the target pixel and the one right of it.
+
+	Since, at the very right end of the line, o_r is zero, no
+	overflow of the target line happens if additions of zeroes are
+	suppressed.
+	*/
+
+	while (fpixel[1]<=nSourceY) {  /* caution: fpixel counts like fortran */
+		int dummy, x;
+		/* lo = left, hi = right in the application of the recipe in y */
+		double loBoundY = (double)(fpixel[1]-1)/nSourceY*nDestY;
+		double hiBoundY = (double)fpixel[1]/nSourceY*nDestY;
+		int yDestInd = (int)floor(loBoundY);
+		double loPart = yDestInd+1-loBoundY;
+		double hiPart =  hiBoundY-(yDestInd+1);
+		double yDestWeight = 1;
+		double yDest1Weight = 0;
+
+		if (hiPart>1e-9) {
+			yDestWeight = loPart/(hiPart+loPart);
+			yDest1Weight = hiPart/(hiPart+loPart);
+		}
+		
+		if (fits_read_pix(iD->fptr, TFLOAT, fpixel,  iD->shape[0],
+				NULL, pixBuf, &dummy, &status)) {
+			fatalFitsError(status);
+		}
+
+		for (x=0; x<iD->shape[0]; x++) {
+			double loBoundX = (double)x/nSourceX*nDestX;
+			double upBoundX = (double)(x+1)/nSourceX*nDestX;
+			int xDestInd = (int)floor(loBoundX);
+			double leftPart = xDestInd+1-loBoundX;
+			double rightPart = upBoundX-(xDestInd+1);
+			double xDestWeight = 1;
+			double xDest1Weight = 0;
+
+			if (rightPart>1e-9) {
+				xDestWeight = leftPart/(rightPart+leftPart);
+				xDest1Weight = rightPart/(rightPart+leftPart);
+			}
+
+			iD->scaledData[xDestInd+yDestInd*nDestX] +=
+				pixBuf[x]*xDestWeight*yDestWeight;
+			/* conditions on the weights to keep from overflowing our buffer */
+			if (xDest1Weight) {
+				assert(xDestInd<nDestX);
+				iD->scaledData[xDestInd+1+yDestInd*nDestX] +=
+					pixBuf[x]*xDest1Weight*yDestWeight;
+			}
+			if (yDest1Weight) {
+				assert(yDestInd<nDestY);
+				iD->scaledData[xDestInd+(yDestInd+1)*nDestX] +=
+					pixBuf[x]*xDestWeight*yDest1Weight;
+			}
+			if (yDest1Weight && xDest1Weight) {
+				assert(xDestInd<nDestX);
+				assert(yDestInd<nDestY);
+				iD->scaledData[xDestInd+1+(yDestInd+1)*nDestX] +=
+					pixBuf[x]*xDest1Weight*yDest1Weight;
+			}
+		}
+		fpixel[1] += 1;
+	}
+}
+
+
+#define _MINMAX(funName, operator)\
+	double funName(double *data, long dataSize)\
+	/* dataSize<=0 forbidden! */\
+	{\
+		double min=data[0], *dp=data;\
+		int i;\
+\
+		for (i=0; i<dataSize; i++, dp++) {\
+			if (min operator *dp) {\
+				min = *dp;\
+			}\
+		}\
+		return min;\
+	}
+
+_MINMAX(getMin, >)
+_MINMAX(getMax, <)
+
+
+void scaleValues(double *dp, long length, double maxVal)
+/* scales the values at dp in place such that they are between 0 and maxVal */
+{
+	double minPixel = getMin(dp, length);
+	double maxPixel = getMax(dp, length);
+	double pixelScale; 
+	int i;
+
+	if (maxPixel-minPixel) {
+		pixelScale = maxVal/(maxPixel-minPixel);
+	} else {
+		pixelScale = 0;
+	}
+
+	for (i=0; i<length; i++, dp++) {
+		*dp = (*dp-minPixel)*pixelScale;
+	}
+}
+
+
+void getHistogram(double *data, long dataSize, double *histogram,
+	int histogramSize)
+/* leaves a histogramSize-binned histogram of the normalized (0..1)-data
+in histogram.
+
+Data outside of [0..1[ is folded into the lowest or top bin */
+{
+	int index;
+	long i;
+
+	for (i=0; i<histogramSize; i++) {
+		histogram[i] = 0;
+	}
+	for (i=0; i<dataSize; i++) {
+		index = (int)floor(*data++*histogramSize*1-1e-10);
+		index = (index<0) ? 0 :
+			((index>histogramSize-1) ? histogramSize-1 : index);
+		histogram[index]++;
+	}
+}
+
+
+void computeHistoFit(double *histogram, int histogramSize, 
+	double *a, double *b)
+/* computes the line parameters a, b for a histogram over [0..1[
+
+To derive the simplified formulae used here, execute
+
+cs:sum((d[i]-a-b*w*i)^2, i, 0, n-1);
+ex1:subst(S, sum(d[i], i, 0, n-1), ev(diff(cs, a), simpsum));
+ex2:subst(T, sum(d[i]*i, i, 0, n-1),
+	subst(S, sum(d[i], i, 0, n-1), 
+		ev(expand(diff(cs, b)), simpsum)));
+solve([ex1=0,ex2=0], [a,b]);
+
+in maxima, considering that for us, w*n==1. */
+{
+	double sum=0, isum=0;
+	int i;
+	int n=histogramSize;
+
+	for (i=0; i<histogramSize; i++, histogram++) {
+		if (!isinf(*histogram)) {
+			fprintf(stderr, "%f\n", *histogram);
+			sum += *histogram;
+			isum += i**histogram;
 		}
 	}
-	img->shape[0] = targetWidth;
-	img->shape[1] = targetHeight;
+	*a = ((4*n-2)*sum-6*isum)/n/(n+1);
+	*b = -6*((n-1)*sum-2*isum)/n/(n*n-1);
 }
 
 
-void getScaling(float *data, size_t dataLength, double minHint,
-	double *zeroOut, double *rangeOut)
+void fudgeGamma(imageDesc *iD)
+/* tries to improve iD's scaledData by fuzzing with its gamma.  scaledData
+must be normalized to 1 for this to work.
+
+
+This works by trying to fit a power law to its histogram.  If the histogram
+is too black-biased, we try to correct the values by trying to force
+them to a different one.
+*/
 {
-	double minVal, maxVal;
-	float *curVal;
+	double histogram[GAMMA_HIST_SIZE];
+	double a, b;
+	int i;
+	double *dp;
 
-	minVal = maxVal = data[0];
-	for (curVal=data; curVal<data+dataLength; curVal++) {
-		minVal = (minVal>*curVal?*curVal:minVal);
-		maxVal = (maxVal>*curVal?maxVal:*curVal);
+	getHistogram(iD->scaledData, iD->targetShape[1]*iD->targetShape[0],
+		histogram, GAMMA_HIST_SIZE);
+	for (i=0; i<GAMMA_HIST_SIZE; i++) {
+		histogram[i] = log(histogram[i]);
 	}
-	if (minHint>minVal) {
-		minVal = minHint;
-	}
-	//fprintf(stderr, "%lf %lf\n", minVal, maxVal);
-	*zeroOut = minVal;
-	*rangeOut = (maxVal-minVal);
-}
+	computeHistoFit(histogram, GAMMA_HIST_SIZE, &a, &b);
+	fprintf(stderr, "%f %f\n", a, b);
 
-byteImageDesc *makeByteImage(int width, int height)
-{
-	byteImageDesc *im=malloc(sizeof(byteImageDesc));
-
-	if (!im || !(im->data = malloc(width*height))) {
-		return NULL;
-	}
-	im->shape[0] = width;
-	im->shape[1] = height;
-	return im;
-}
-
-int *getHisto(byteImageDesc *img)
-{
-	int *histo=malloc(256*sizeof(int));
-	unsigned char *pixel, *end;
-
-	if (!histo) {
-		fatalLibError("Allocating histogram");
-	}
-	memset(histo, 0, 256*sizeof(int));
-	end = img->data+img->shape[0]*img->shape[1];
-	for (pixel=img->data; pixel<end; pixel++) {
-		histo[*pixel]++;
-	}
-//	for (i=0; i<256;i++) {
-//		fprintf(stderr, "%d, %d\n", i, histo[i]);
-//	}
-	return histo;
-}
-
-unsigned char *computePixelMap(int *histo, double breakPercent)
-{
-	unsigned char *pixelMap;
-	double total, subtotal;
-	int i, breakpoint;
-
-	for (i=0, total=0; i<256; i++) {
-		total += (double)histo[i];
-	}
-	/* walk from back till you've got breakPercent of the pixel values */
-	for (subtotal=0, breakpoint=255; breakpoint>=0; breakpoint--) {
-		subtotal += histo[breakpoint];
-		if (subtotal*100/breakPercent>=total) {
-			break;
-		}
-	}
-	/* do nothing if breakpoint is in the "bright" part or if img is empty. */
-	//fprintf(stderr, "%d %f %f\n", breakpoint, subtotal, total);
-	if (breakpoint>LIMIT_BRIGHT || breakpoint==0) {
-		return NULL;
-	}
-	/* Also do nothing if the more than a quarter of the image 
-	 * 	would become "bright" */
-	if (subtotal>total/4) {
-		return NULL;
-	}
-	if (!(pixelMap = malloc(256))) {
-		fatalLibError("Allocating pixel map");
-	}
-	/* generate ramp to LIMIT_BRIGHT for dark pixels with a steep gamma, ramp 
-	 * from LIMIT_BRIGHT to 255 for bright pixels */
-	for (i=0; i<breakpoint; i++) {
-		pixelMap[i] = (int)floor(pow(i/(float)breakpoint, 3)*LIMIT_BRIGHT);
-	}
-	for (i=breakpoint; i<255; i++) {
-		pixelMap[i] = (i-breakpoint)*(255-LIMIT_BRIGHT)/(255-breakpoint)+
-			LIMIT_BRIGHT;
-	}
-	return pixelMap;
-}
-
-/* tries to ensure that at least some of the pixels are "bright". 
- *
- * img has to be an 8-bit greyscale image.
- * */
-void brighten(byteImageDesc *img)
-{
-	int *histo=getHisto(img);
-	unsigned char *map=computePixelMap(histo, 0.05);
-	unsigned char *pixel;
-
-	free(histo);
-	if (map) {
-		for (pixel=img->data; pixel<img->data+img->shape[0]*img->shape[1]; 
-				pixel++) {
-			*pixel = map[*pixel];
-		}
-		free(map);
+	for (i=0, dp=iD->scaledData; 
+		i<iD->targetShape[0]*iD->targetShape[1]; 
+		i++, dp++) {
+		*dp = pow(*dp, 1/a);
 	}
 }
 	
-byteImageDesc *computePreview(imageDesc *original, int targetWidth, 
-	double gamma)
-{
-	double zero, range;
-	byteImageDesc *preview;
-	unsigned char *previewVal;
-	float *origVal, *origEnd;
 
-	doPixelScale(original, targetWidth);
-	if (!(preview=makeByteImage(original->shape[0], original->shape[1]))) {
-		fatalLibError("Allocating preview");
-	}
-	origEnd = original->data+original->shape[0]*original->shape[1];
-	getScaling(original->data, origEnd-original->data, original->dataminGiven,
-		&zero, &range);
-	for (origVal=original->data, previewVal=preview->data; 
-			origVal<origEnd; origVal++) {
-		*previewVal++ = (unsigned char)(pow(((*origVal-zero)/range), gamma)*255);
-	}
-	brighten(preview);
-	return preview;
-}
-	
+void computePreview(imageDesc *iD) 
+/* compresses iD's scaledData to a jpeg written to stdout.
 
-void writeJpeg(byteImageDesc *iD, int targetWidth)
+It must already be byte-sized (i.e., values between 0 and 255, say
+with scaleValues) */
 {
 	struct jpeg_compress_struct compressor;
 	struct jpeg_error_mgr jpegErrorHandler;
-	JSAMPROW rowPointers[iD->shape[1]];
-	int i;
+	unsigned char row[iD->targetShape[0]];
+	JSAMPROW rowPointer[1]={row};
+	double *dp;
+	int x, y;
 
 	compressor.err = jpeg_std_error(&jpegErrorHandler);
 	jpeg_create_compress(&compressor);
 	jpeg_stdio_dest(&compressor, stdout);
-	compressor.image_width = iD->shape[0];
-	compressor.image_height = iD->shape[1];
+	compressor.image_width = iD->targetShape[0];
+	compressor.image_height = iD->targetShape[1];
 	compressor.input_components = 1;
 	compressor.in_color_space = JCS_GRAYSCALE;
 	jpeg_set_defaults(&compressor);
+	jpeg_set_quality(&compressor, 95, TRUE);
 	jpeg_start_compress(&compressor, TRUE);
-	for (i=0; i<iD->shape[1]; i++) {
-		rowPointers[i] = iD->data+iD->shape[0]*i;
+
+	dp = iD->scaledData;
+	for (y=0; y<iD->targetShape[1]; y++) {
+		for (x=0; x<iD->targetShape[0]; x++) {
+			row[x] = (int)floor(*dp++*255);
+		}
+		jpeg_write_scanlines(&compressor, rowPointer, 1);
 	}
-	jpeg_write_scanlines(&compressor, rowPointers, iD->shape[1]);
 	jpeg_finish_compress(&compressor);
 }
 
 
 void usage(void)
 {
-	fprintf(stderr, "Usage: %s <fits-name> [<target width> [<gamma>]]\n", 
+	fprintf(stderr, "Usage: %s <fits-name> [<target width>]\n", 
 		progName);
 	exit(1);
 }
 
-
+	
 int main(int argc, char **argv)
 {
 	char *inputFName;
-	int targetWidth=DEFAULT_WIDTH;
-	imageDesc *original; 
-	byteImageDesc *preview;
-	float gamma=DEFAULT_GAMMA;
+	int targetWidth=DEFAULT_TARGETWIDTH;
+	imageDesc *iD;
 
 	progName = *argv++;
 	if (!*argv) {
@@ -367,15 +392,12 @@ int main(int argc, char **argv)
 			usage();
 		}
 	}
-	if (*argv) {
-		if (1!=sscanf(*argv++, "%f", &gamma)) {
-			usage();
-		}
-	}
-	original = readFits(inputFName);
-	preview = computePreview(original, targetWidth, gamma);
-	writeJpeg(preview, targetWidth);
+	iD = openFits(inputFName);
+	computeScale(iD, targetWidth);
+	doScale(iD);
+	scaleValues(iD->scaledData, iD->targetShape[1]*iD->targetShape[0], 1);
+	fudgeGamma(iD);
+	computePreview(iD);
 	return 0;
 }
-		
 
