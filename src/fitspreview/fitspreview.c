@@ -3,7 +3,7 @@
 This program takes a FITS image and produces a jpeg image striving
 to give an idea what's on the image.  We only want to do one
 pass over the input FITS.  Therefore, we scale into an array of floats
-and then adapt the brightness of that.  From that array, the final
+and then adapt something like the gamma of that.  From that array, the final
 jpeg is generated.
 */
 
@@ -15,6 +15,8 @@ jpeg is generated.
 
 #define DEFAULT_TARGETWIDTH 200
 #define GAMMA_HIST_SIZE 10
+
+#define SQR(x) (x)*(x)
 
 
 typedef struct imageDesc_s {
@@ -59,7 +61,7 @@ imageDesc *openFits(char *fName)
 	if (!iD) {
 		fatalLibError("Allocating image descriptor");
 	}
-	if (fits_open_image(&(iD->fptr), fName, READONLY, &status) ||
+	if (fits_open_file(&(iD->fptr), fName, READONLY, &status) ||
 		fits_get_img_param(iD->fptr, 2, &(iD->pixelType), &naxis, 
 			iD->shape, &status)) {
 		fatalFitsError(status);
@@ -106,7 +108,7 @@ destination pixels, in other word that we're scaling down. */
 	int status=0;
 	double *dp;
 	float *pixBuf = malloc(iD->shape[0]*sizeof(float));
-	long scaledDataSize = iD->shape[0]*iD->shape[1];
+	long scaledDataSize = iD->targetShape[0]*iD->targetShape[1];
 	int nSourceY=iD->shape[1], nSourceX=iD->shape[0];
 	int nDestY=iD->targetShape[1], nDestX=iD->targetShape[0];
 
@@ -254,81 +256,81 @@ void getHistogram(double *data, long dataSize, double *histogram,
 /* leaves a histogramSize-binned histogram of the normalized (0..1)-data
 in histogram.
 
-Data outside of [0..1[ is folded into the lowest or top bin */
+Data outside of [0..1[ is folded into the lowest or top bin.
+
+The histogram is normalized to sum(val)==1.*/
 {
 	int index;
 	long i;
+	double sum=0;
 
 	for (i=0; i<histogramSize; i++) {
 		histogram[i] = 0;
 	}
+
 	for (i=0; i<dataSize; i++) {
 		index = (int)floor(*data++*histogramSize*1-1e-10);
 		index = (index<0) ? 0 :
 			((index>histogramSize-1) ? histogramSize-1 : index);
 		histogram[index]++;
 	}
-}
 
+	for (i=0, sum=0; i<histogramSize; i++) {
+		sum += histogram[i];
+	}
 
-void computeHistoFit(double *histogram, int histogramSize, 
-	double *a, double *b)
-/* computes the line parameters a, b for a histogram over [0..1[
-
-To derive the simplified formulae used here, execute
-
-cs:sum((d[i]-a-b*w*i)^2, i, 0, n-1);
-ex1:subst(S, sum(d[i], i, 0, n-1), ev(diff(cs, a), simpsum));
-ex2:subst(T, sum(d[i]*i, i, 0, n-1),
-	subst(S, sum(d[i], i, 0, n-1), 
-		ev(expand(diff(cs, b)), simpsum)));
-solve([ex1=0,ex2=0], [a,b]);
-
-in maxima, considering that for us, w*n==1. */
-{
-	double sum=0, isum=0;
-	int i;
-	int n=histogramSize;
-
-	for (i=0; i<histogramSize; i++, histogram++) {
-		if (!isinf(*histogram)) {
-			fprintf(stderr, "%f\n", *histogram);
-			sum += *histogram;
-			isum += i**histogram;
+	if (sum>0) {
+		for (i=0; i<histogramSize; i++) {
+			histogram[i] = histogram[i]/sum;
 		}
 	}
-	*a = ((4*n-2)*sum-6*isum)/n/(n+1);
-	*b = -6*((n-1)*sum-2*isum)/n/(n*n-1);
 }
 
 
+/* TODO: do a good gamma fudging; we'll probably want to do a linear
+fit on a log-log plot of the histogram and do something with this;
+but the details are tricky, and thus fudgeGamma is off for now. */
+
 void fudgeGamma(imageDesc *iD)
-/* tries to improve iD's scaledData by fuzzing with its gamma.  scaledData
-must be normalized to 1 for this to work.
+/* tries to improve iD's scaledData by fuzzing with the gamma curve.  
+scaledData must be normalized to 1 for this to work.
 
+This is purely heuristic.  First, we want almost all power in histogram[0],
+which means a black background.  If that's not true, we don't touch
+the image.
 
-This works by trying to fit a power law to its histogram.  If the histogram
-is too black-biased, we try to correct the values by trying to force
-them to a different one.
+Once, that's ascertained, we collect from white until we have 2.5% of the 
+pixels.  That's our cut, and we'd like it to be at 50% intensity.  To
+accomplish that, we process each scaled data point by p^gamma, where
+gamma is defined by cut^gamma=0.5
 */
 {
 	double histogram[GAMMA_HIST_SIZE];
-	double a, b;
 	int i;
-	double *dp;
+	double *dp, intensitySum=0, gamma;
 
 	getHistogram(iD->scaledData, iD->targetShape[1]*iD->targetShape[0],
 		histogram, GAMMA_HIST_SIZE);
-	for (i=0; i<GAMMA_HIST_SIZE; i++) {
-		histogram[i] = log(histogram[i]);
+
+	if (histogram[0]+histogram[1]<0.8) { 
+		/* not a black background, we'd make a mess of this */
+		return;
 	}
-	computeHistoFit(histogram, GAMMA_HIST_SIZE, &a, &b);
-	fprintf(stderr, "%f %f\n", a, b);
+
+	for (i=GAMMA_HIST_SIZE-1; i>1; i--) { /* i will be our, cut, >0 always. */
+		intensitySum+=histogram[i];
+		if (intensitySum>0.025) {
+			break;
+		}
+	}
+
+	gamma = log(0.5)/log((double)i/GAMMA_HIST_SIZE);
+	fprintf(stderr, "%i %f\n", i, gamma);
 
 	for (i=0, dp=iD->scaledData; 
 		i<iD->targetShape[0]*iD->targetShape[1]; 
 		i++, dp++) {
-		*dp = pow(*dp, 1/a);
+		*dp = pow(*dp, gamma);
 	}
 }
 	
@@ -396,7 +398,7 @@ int main(int argc, char **argv)
 	computeScale(iD, targetWidth);
 	doScale(iD);
 	scaleValues(iD->scaledData, iD->targetShape[1]*iD->targetShape[0], 1);
-	fudgeGamma(iD);
+	/* fudgeGamma(iD); */
 	computePreview(iD);
 	return 0;
 }
