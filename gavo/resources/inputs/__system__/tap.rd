@@ -332,7 +332,7 @@
 			database tables, inspect various metadata, and upload your own
 			data.  It is thus the VO's premier way to access public data
 			holdings.
-		
+
 			Tables exposed through this endpoint include: \tablesForTAP.
 			</meta>
 		<publish render="tap" sets="ivo_managed,local"/>

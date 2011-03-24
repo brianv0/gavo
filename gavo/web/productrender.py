@@ -92,7 +92,7 @@ class PreviewCacheManager(object):
 			try:
 				os.utime(cacheName, None)
 			except os.error: # may be a permission problem
-				pass    # not important enough to bother
+				pass  # it's the the utime, and we don't use that right now anyway
 			f = open(cacheName)
 			res = f.read()
 			f.close()

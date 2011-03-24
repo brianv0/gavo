@@ -692,6 +692,8 @@ class Service(base.Structure, base.ComputedMetaMixin,
 # XXX TODO: have this ask the core
 		return "true"
 
-	def macro_tablesForTAP(self):  # who needs this?
+	def macro_tablesForTAP(self):  
+		# this is only used by tap.rd -- maybe it
+		# should go there?
 		from gavo.protocols import tap
 		return ", ".join(tap.getAccessibleTables())

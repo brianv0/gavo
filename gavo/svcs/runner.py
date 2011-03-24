@@ -55,5 +55,5 @@ def runWithData(prog, inputString, args, swallowStderr=False):
 	fetchOutputProtocol = StdioProtocol(inputString, result, swallowStderr)
 	prog = base.getBinaryName(prog)
 	reactor.spawnProcess(fetchOutputProtocol, prog,
-		args=[prog]+list(args), path=os.path.dirname(prog))
+		args=[str(prog)]+list(str(s) for s in args), path=os.path.dirname(prog))
 	return result

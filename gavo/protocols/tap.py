@@ -182,7 +182,8 @@ def getAccessibleTables():
 	td = tapRD.getById("tables")
 	table = rsc.TableForDef(td)
 	res = [r["table_name"] for r in 
-		table.iterQuery([td.getColumnByName("table_name")], "")]
+		table.iterQuery([td.getColumnByName("table_name")], "",
+			limits=("order by table_name", {}))]
 	table.close()
 	return res
 

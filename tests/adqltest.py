@@ -795,6 +795,18 @@ class ColResTest(ColumnTest):
 			("spoint", 'deg,rad', '', False)])
 		self.assert_(cols[0][1].userData[0] is spatialFields[3])
 
+	def testDistance(self):
+		cols = self._getColSeq("select distance(point('galactic', 2, 3),"
+			" point('ICRS', ra1, ra2)) from spatial")
+		self._assertColumns(cols, [
+			("double precision", 'deg', 'pos.angDistance', False)])
+
+	def testCentroid(self):
+		cols = self._getColSeq("select centroid(circle('galactic', ra1, ra2, 0.5))"
+			" from spatial")
+		self._assertColumns(cols, [
+			("spoint", '', '', False)])
+
 	def testParenExprs(self):
 		cols = self._getColSeq("select (width+width)*height from spatial")
 		self._assertColumns(cols, [

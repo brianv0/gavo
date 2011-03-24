@@ -1257,9 +1257,19 @@ registerRegionMaker(makeSTCSRegion)
 class Centroid(FunctionNode):
 	type = "centroid"
 
+	def addFieldInfo(self, context):
+		self.fieldInfo = fieldinfo.FieldInfo(type="spoint",
+			unit="", ucd="",
+			userData=collectUserData(self._getInfoChildren())[0])
+
 
 class Distance(FunctionNode):
 	type = "distanceFunction"
+
+	def addFieldInfo(self, context):
+		self.fieldInfo = fieldinfo.FieldInfo(type="double precision",
+			unit="deg", ucd="pos.angDistance", 
+			userData=collectUserData(self._getInfoChildren())[0])
 
 
 class PredicateGeometryFunction(FunctionNode):
@@ -1305,3 +1315,10 @@ class PointFunction(FunctionNode):
 
 class Area(FunctionNode):
 	type = "area"
+
+	def addFieldInfo(self, context):
+		self.fieldInfo = fieldinfo.FieldInfo(type="double precision",
+			unit="deg2", ucd="phys.angSize", 
+			userData=collectUserData(self._getInfoChildren())[0])
+
+

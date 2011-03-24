@@ -2,6 +2,7 @@
 DC administration interface.
 """
 
+import os
 import sys
 
 from gavo import base
@@ -171,6 +172,25 @@ def declaredel(querier, args):
 	newRow["setName"] = "ivo_managed"
 	newRow["deleted"] = True
 	resTable.addRow(newRow)
+
+
+@exposedFunction([Arg(help="rd#table-id for the table containing the"
+	" products that should get cached previews", dest="tableId"),
+	Arg("-w", 
+		help="width to compute the preview for", dest="width", default="200"),],
+	help="Precompute previews for the product interface columns in a table.")
+def cacheprev(querier, args):
+	from gavo import api
+	from gavo.protocols import products
+	from gavo.web.productrender import PreviewCacheManager
+
+	basePath = base.getConfig("inputsDir")
+	td = base.resolveId(None, args.tableId)
+	table = api.TableForDef(td, connection=querier.connection)
+	rows = [td.getColumnByName("accref"), td.getColumnByName("mime")]
+	for row in table.iterQuery(rows , ""):
+		PreviewCacheManager.getPreviewFor(row["mime"],
+			[os.path.join(basePath, row["accref"]), args.width])
 
 
 def main():
