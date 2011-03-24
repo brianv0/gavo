@@ -325,7 +325,6 @@ gamma is defined by cut^gamma=0.5
 	}
 
 	gamma = log(0.5)/log((double)i/GAMMA_HIST_SIZE);
-	fprintf(stderr, "%i %f\n", i, gamma);
 
 	for (i=0, dp=iD->scaledData; 
 		i<iD->targetShape[0]*iD->targetShape[1]; 

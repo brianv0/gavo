@@ -183,14 +183,30 @@ def cacheprev(querier, args):
 	from gavo import api
 	from gavo.protocols import products
 	from gavo.web.productrender import PreviewCacheManager
+	from twisted.internet import reactor
 
 	basePath = base.getConfig("inputsDir")
 	td = base.resolveId(None, args.tableId)
 	table = api.TableForDef(td, connection=querier.connection)
-	rows = [td.getColumnByName("accref"), td.getColumnByName("mime")]
-	for row in table.iterQuery(rows , ""):
-		PreviewCacheManager.getPreviewFor(row["mime"],
-			[os.path.join(basePath, row["accref"]), args.width])
+	select = [td.getColumnByName("accref"), td.getColumnByName("mime")]
+	rows = table.iterQuery(select , "")
+
+	def runNext(ignored):
+		try:
+			row = rows.next()
+			return PreviewCacheManager.getPreviewFor(row["mime"],
+				[os.path.join(basePath, row["accref"]), args.width]
+			).addCallback(runNext
+			).addErrback(runNext)
+		except StopIteration:
+			pass
+		except:
+			import traceback
+			traceback.print_exc()
+		reactor.stop()
+
+	reactor.callLater(0, runNext, "startup")
+	reactor.run()
 
 
 def main():
