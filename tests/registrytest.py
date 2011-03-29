@@ -26,6 +26,25 @@ from gavo.utils import ElementTree
 import tresc
 
 
+class RegistryModelTest(testhelpers.VerboseTest):
+	def testVSNamespaces(self):
+		from gavo.registry import model
+		self.assertEqual(model.VS.ucd()._prefix, "vs")
+		self.assertEqual(model.VS1.ucd()._prefix, "vs1")
+
+	def testVOTableDataType(self):
+		from gavo.registry import model
+		self.assertEqual(
+			testhelpers.cleanXML(model.VS1.voTableDataType["char"].render()),
+			'<dataType arraysize="1" xsi:type="vs1:VOTableType">char</dataType>')
+		self.assertEqual(
+			testhelpers.cleanXML(model.VS1.voTableDataType["text"].render()),
+			'<dataType arraysize="*" xsi:type="vs1:VOTableType">char</dataType>')
+		self.assertEqual(
+			testhelpers.cleanXML(model.VS1.voTableDataType["integer[20]"].render()),
+			'<dataType arraysize="20" xsi:type="vs1:VOTableType">int</dataType>')
+
+
 class DeletedTest(testhelpers.VerboseTest):
 	"""tests for deletion of record doing roughly what's necessary.
 	"""
@@ -432,7 +451,6 @@ class RelatedTest(testhelpers.VerboseTest):
 		finally:
 			# clear adql entry in cache since we've changed it
 			base.caches.clearForName("//adql")
-
 
 
 

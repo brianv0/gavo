@@ -182,6 +182,8 @@ class Values(base.Structure):
 		" just the column name and the where clause.")
 	_original = base.OriginalAttribute()
 
+	validValues = None
+
 	def makePythonVal(self, literal, sqltype):
 		return typesystems.sqltypeToPython(sqltype)(literal)
 
@@ -224,6 +226,9 @@ class Values(base.Structure):
 		by the column on its required attribute.
 		"""
 		if value=="None":
+			assert False, "Literal 'None' passed as a value to validateOptions"
+
+		if self.validValues is None:
 			return True
 		if isinstance(value, (list, tuple)):
 			for val in value:
@@ -250,11 +255,16 @@ class Column(base.Structure):
 	Columns can have delimited identifiers as names.  Don't do this, it's
 	no end of trouble.  For this reason, however, you should not use name
 	but rather key to programmatially obtain field's values from rows.
+
+	Properties evaluated:
+
+	- std -- set to 1 to tell the tap schema importer to have the column's
+	  std column in TAP_SCHEMA 1 (it's 0 otherwise).
 	"""
 	name_ = "column"
 
 	_name = ColumnNameAttribute("name", default=base.Undefined,
-		description="Name of the column (must be SQL-valid for onDisk tables).",
+		description="Name of the column",
 		copyable=True, before="type")
 	_type = TypeNameAttribute("type", default="real", description=
 		"datatype for the column (SQL-like type system)",
@@ -490,12 +500,20 @@ class ParamBase(Column):
 		val can be a python value, or string literal.  In the second
 		case, this string literal will be preserved in string serializations
 		of this param.
+
+		If val is an invalid value for this item, a ValidationError is
+		raised and the item's value will be Undefined.
 		"""
 		if isinstance(val, basestring):
 			self._valueCache = base.Undefined
 		else:
 			self._valueCache = base.Undefined
 			val = self._unparse(val)
+
+		if self.values and not self.values.validateOptions(self._parse(val)):
+			raise base.ValidationError("%s is not a valid value for %s"%(
+				val, self.name), self.name)
+
 		self.content_ = val
 
 	def _parse(self, literal):

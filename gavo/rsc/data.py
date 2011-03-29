@@ -117,6 +117,11 @@ class Data(base.MetaMixin):
 		for make in dd.makes:
 			controlledTables[make.table.id
 				] = tables.TableForDef(make.table, create=False, connection=connection)
+			# The next line is necessary to have the table's beforeDrop scripts
+			# exectued -- this is all far too ugly to be the right way.  I guess
+			# beforeDrop really is a property of the table rather than of the
+			# make, and makes and tables should have different runners...
+			controlledTables[make.table.id]._runScripts = make.getRunner()
 		data = cls(dd, controlledTables, parseOptions)
 		data.dropTables()
 

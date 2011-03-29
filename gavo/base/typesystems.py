@@ -216,22 +216,22 @@ class ToADQLConverter(FromSQLConverter):
 	typeSystem = "adql"
 
 	simpleMap = {
-		"smallint": ("SMALLINT", None),
-		"integer": ("INTEGER", None),
-		"bigint": ("BIGINT", None),
-		"real": ("REAL", None),
-		"boolean": ("INTEGER", None),
-		"double precision": ("DOUBLE", None),
-		"text": ("VARCHAR(*)", None),
-		"char": ("CHAR", 1),
-		"date": ("VARCHAR(*)", None),
-		"timestamp": ("VARCHAR(*)", None),
-		"time": ("VARCHAR(*)", None),
-		"box": ("VARCHAR(*)", None),
-		"spoint": ("VARCHAR(*)", None),
-		"scircle": ("VARCHAR(*)", None),
-		"spoly": ("VARCHAR(*)", None),
-		"bytea": ("BINARY", None),
+		"smallint": ("adql:SMALLINT", None),
+		"integer": ("adql:INTEGER", None),
+		"bigint": ("adql:BIGINT", None),
+		"real": ("adql:REAL", None),
+		"boolean": ("adql:INTEGER", None),
+		"double precision": ("adql:DOUBLE", None),
+		"text": ("adql:VARCHAR(*)", None),
+		"char": ("adql:CHAR", 1),
+		"date": ("adql:VARCHAR(*)", None),
+		"timestamp": ("adql:TIMESTAMP", None),
+		"time": ("adql:VARCHAR(*)", None),
+		"box": ("adql:REGION", None),
+		"spoint": ("adql:POINT", None),
+		"scircle": ("adql:REGION", None),
+		"spoly": ("adql:REGION", None),
+		"bytea": ("adql:BLOB", None),
 	}
 
 	def mapComplex(self, type, length):

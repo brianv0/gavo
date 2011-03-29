@@ -357,26 +357,6 @@ class RemoteURLTest(testhelpers.VerboseTest):
 			utils.urlopenRemote, ("/etc/passwd",))
 
 
-class RegistryTest(testhelpers.VerboseTest):
-	def testVSNamespaces(self):
-		from gavo.registry import model
-		self.assertEqual(model.VS.ucd()._prefix, "vs")
-			
-		self.assertEqual(model.VS1.ucd()._prefix, "vs1")
-
-	def testVOTableDataType(self):
-		from gavo.registry import model
-		self.assertEqual(
-			testhelpers.cleanXML(model.VS1.voTableDataType["char"].render()),
-			'<dataType arraysize="1" xsi:type="vs1:VOTableType">char</dataType>')
-		self.assertEqual(
-			testhelpers.cleanXML(model.VS1.voTableDataType["text"].render()),
-			'<dataType arraysize="*" xsi:type="vs1:VOTableType">char</dataType>')
-		self.assertEqual(
-			testhelpers.cleanXML(model.VS1.voTableDataType["integer[20]"].render()),
-			'<dataType arraysize="20" xsi:type="vs1:VOTableType">int</dataType>')
-
-
 class StanXMLTest(testhelpers.VerboseTest):
 	class Model(object):
 		class MEl(stanxml.Element): 
@@ -417,5 +397,78 @@ class TestGroupsMembership(testhelpers.VerboseTest):
 			set(["Y_test"]))
 
 
+class ObscoreTest(testhelpers.VerboseTest):
+	resources = [('conn', tresc.dbConnection)]
+
+	_rdTrunk = """<resource schema="test" resdir="data">
+			<table id="glob" onDisk="True" mixin="//products#table">
+				<mixin %s>//obscore#publish</mixin>
+			</table>
+			<data id="import">
+				<dictlistGrammar>
+					<rowfilter procDef="//products#define">
+						<bind key="table">"test.glob"</bind>
+						<bind key="accref">@accref</bind>
+						<bind key="path">@accref</bind>
+						<bind key="fsize">22</bind>
+					</rowfilter>
+				</dictlistGrammar>
+				<make table="glob"/>
+			</data></resource>"""
+
+	def testTypeRequired(self):
+		self.assertRaisesWithMsg(base.StructureError,
+			"At (3, 29): Mixin parameter productType mandatory",
+			base.parseFromString,
+			(rscdesc.RD, self._rdTrunk%""))
+
+	def testRestriction(self):
+		self.assertRaises(base.StructureError,
+			base.parseFromString,
+			rscdesc.RD, self._rdTrunk%'productType="\'image\'" ',
+			context=base.ParseContext(restricted=True))
+
+	def testObscoreProperty(self):
+		rd = base.parseFromString(rscdesc.RD, 
+			self._rdTrunk%'productType="\'image\'" ')
+		viewPart = rd.tables[0].properties["obscoreClause"]
+		self.failUnless("'image' AS dataproduct_type")
+		self.failUnless("$COMPUTE AS obs_publisher_did")
+		self.failUnless("size/1024 AS access_estsize")
+		self.failUnless("NULL AS s_region")
+
+	def testObscoreLateMixin(self):
+		rd = base.parseFromString(rscdesc.RD, 
+			self._rdTrunk%'productType="\'image\'" ')
+		for script in rd.getById("import").makes[0].scripts:
+			if script.id=="addTableToObscoreSources":
+				break
+		else:
+			self.fail("addTableToObscoreSources not added -- did obscore#publish"
+				" run?")
+	
+	def testObscorePublish(self):
+		from gavo import rsc
+		dd = base.parseFromString(rscdesc.RD, 
+			self._rdTrunk%'productType="\'image\'" ').getById("import")
+		dd.rd.sourceId = "__testing__"
+		data = rsc.makeData(dd, forceSource=[{"accref": "foo/bar"}],
+			connection=self.conn)
+		try:
+			res = list(data.tables["glob"].query("select sqlFragment"
+				" from ivoa._obscoresources where tableName='test.glob'"))
+			self.assertEqual(len(res), 1)
+			self.failUnless("'ivo://%s/getproduct#' || accref AS obs_publisher_did"%
+				base.getConfig('ivoa', 'authority') in res[0][0])
+		finally:
+			data.drop(dd, connection=self.conn)
+			self.conn.commit()
+
+		# make sure dropping removes the entry from obscoresources
+		res = list(data.tables["glob"].query("select sqlFragment"
+			" from ivoa._obscoresources where tableName='test.glob'"))
+		self.assertEqual(len(res), 0)
+
+
 if __name__=="__main__":
-	testhelpers.main(TestGroupsMembership)
+	testhelpers.main(ObscoreTest)

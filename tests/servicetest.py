@@ -152,6 +152,12 @@ class InputKeyTest(testhelpers.VerboseTest):
 		rendered = fwid(ftype).render(ctx, "foo", {}, None)
 		return ftype, fwid, rendered
 
+	def _runWithData(self, fwid, ftype, data):
+		ctx = trialhelpers.getRequestContext("/")
+		ctx.remember({}, iformal.IFormData)
+		widget = fwid(ftype)
+		return widget.processInput(ctx, "x", {}, widget.default)
+
 	def testAllAuto(self):
 		ftype, fwid, rendered = self._getKeyProps(
 			'<condDesc><inputKey name="foo" type="text"/></condDesc>')
@@ -196,10 +202,10 @@ class InputKeyTest(testhelpers.VerboseTest):
 		self.assertEqual(rendered.attributes["rows"], 15)
 
 
+
 class InputFieldSelectionTest(testhelpers.VerboseTest):
 	# Tests for renderer-dependent selection and adaptation of db core 
 	# input fields.
-	
 	def setUp(self):
 		testhelpers.VerboseTest.setUp(self)
 		self.service = testhelpers.getTestRD("cores").getById("cstest")
@@ -218,25 +224,38 @@ class InputFieldSelectionTest(testhelpers.VerboseTest):
 
 
 class InputTableGenTest(testhelpers.VerboseTest):
-	def setUp(self):
-		testhelpers.VerboseTest.setUp(self)
-		self.service = testhelpers.getTestRD("cores").getById("cstest")
-
+	# Tests for the entire way from input definition to the finished param
+	# dict.
 	def testDefaulting(self):
-		it = self.service._makeInputTableFor("form", {
+		service = testhelpers.getTestRD("cores").getById("cstest")
+		it = service._makeInputTableFor("form", {
 				"hscs_pos": "Aldebaran", "hscs_sr": "0.25"})
 		self.assertEqual(it.getParamDict(), {
 			u'rv': u'-100 .. 100', u'hscs_sr': 0.25, u'mag': None, 
 			u'hscs_pos': u'Aldebaran'})
 
 	def testInvalidLiteral(self):
+		service = testhelpers.getTestRD("cores").getById("cstest")
 		try:
-			it = self.service._makeInputTableFor("form", {
+			it = service._makeInputTableFor("form", {
 				"hscs_pos": "Aldebaran", "hscs_sr": "a23"})
 		except base.ValidationError, ex:
 			self.assertEqual(ex.colName, "hscs_sr")
 			return
 		raise AssertionError("ValidationError not raised")
+
+	def testEnumeratedNoDefault(self):
+		service = testhelpers.getTestRD("cores").getById("enums")
+		it = service._makeInputTableFor("form", {})
+		self.assertEqual(it.getParamDict(), {'a': None, 'b': None,
+			'c':1})
+
+	def testEnumeratedBadValues(self):
+		service = testhelpers.getTestRD("cores").getById("enums")
+		self.assertRaisesWithMsg(base.ValidationError,
+			"3 is not a valid value for b",
+			service._makeInputTableFor,
+			("form", {'b':"3"}))
 
 
 class GroupingTest(testhelpers.VerboseTest):

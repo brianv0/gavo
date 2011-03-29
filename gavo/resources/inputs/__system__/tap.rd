@@ -232,7 +232,7 @@
 								"size": size,
 								"principal": col.verbLevel&lt;=10,
 								"indexed": indexed,
-								"std": 0,
+								"std": parseInt(col.getProperty("std", "0")),
 								"sourceRD": rd.sourceId,
 							}
 				</code>

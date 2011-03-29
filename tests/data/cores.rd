@@ -37,6 +37,26 @@
 		</outputTable>
 	</service>
 
+	<service id="enums">
+		<dbCore queriedTable="abcd">
+			<condDesc>
+				<inputKey original="a" required="False">
+					<values fromdb="tableName from dc.tablemeta" multiOk="True"/>
+				</inputKey>
+			</condDesc>
+			<condDesc>
+				<inputKey original="b">
+					<values><option>1</option><option>2</option></values>
+				</inputKey>
+			</condDesc>
+			<condDesc required="True">
+				<inputKey original="c">
+					<values default="1"><option>1</option><option>2</option></values>
+				</inputKey>
+			</condDesc>
+		</dbCore>
+	</service>
+
 	<service id="cstest" allowed="form, scs.xml">
 		<outputTable verbLevel="20"/>
 		<dbCore queriedTable="data/test#adql">

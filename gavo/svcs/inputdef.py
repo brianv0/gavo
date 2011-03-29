@@ -62,7 +62,7 @@ class InputKey(column.ParamBase):
 			# children of condDescs inherit their requiredness
 			# (unless defaulted)
 			self.required = self.parent.required
-		# but if there's a defalt, never require an input
+		# but if there's a default, never require an input
 		if self.value:
 			self.required = False
 

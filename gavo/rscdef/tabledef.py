@@ -48,11 +48,8 @@ class DBIndex(base.Structure):
 		description="The indexing method, like an index type.  If you don't"
 			" know what to say here, you don't need it.", copyable=True)
 
-	rawSQLAllowed = True
-
 	def completeElement(self, ctx):
-		self.rawSQLAllowed = not getattr(ctx, "restricted", False)
-		if self.content_ and not self.rawSQLAllowed:
+		if self.content_ and getattr(ctx, "restricted", False):
 			raise base.RestrictedElement("index", hint="Free-form SQL on indices"
 				" is not allowed in restricted mode")
 		self._completeElementNext(DBIndex, ctx)
@@ -299,6 +296,8 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		description="Groups for columns and params of this table",
 		copyable=True)
 
+	_properties = base.PropertyAttribute()
+
 	# don't copy stc -- columns just keep the reference to the original
 	# stc on copy, and nothing should rely on column stc actually being
 	# defined in the parent tableDefs.
@@ -311,7 +310,6 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 	_namePath = common.NamePathAttribute()
 
 	fixupFunction = None
-	rawSQLAllowed = True
 
 	def __iter__(self):
 		return iter(self.columns)
@@ -357,8 +355,7 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 				destCol.stcUtype = type
 
 	def completeElement(self, ctx):
-		self.rawSQLAllowed = not getattr(ctx, "restricted", False)
-		if not self.rawSQLAllowed and self.viewStatement:
+		if self.viewStatement and getattr(ctx, "restricted", False):
 			raise base.RestrictedElement("table", hint="tables with"
 				" view creation statements are not allowed in restricted mode")
 

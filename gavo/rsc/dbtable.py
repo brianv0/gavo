@@ -299,7 +299,7 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 	will block concurrent writes to the selected rows ("FOR UPDATE")
 	as long as the transaction is active.
 	"""
-	_runScripts = None
+	_runScripts = None  # this is overridden by make (Yikes!)
 
 	def __init__(self, tableDef, **kwargs):
 		self.suppressIndex = kwargs.pop("suppressIndex", False)
@@ -366,9 +366,10 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 		return self
 	
 	def importFailed(self, *excInfo):
-		self.connection.rollback()
-		if self.ownedConnection and not self.connection.closed:
-			self.connection.close()
+		if not self.connection.closed:
+			self.connection.rollback()
+			if self.ownedConnection:
+				self.connection.close()
 		return False
 	
 	def feedRows(self, rows):
