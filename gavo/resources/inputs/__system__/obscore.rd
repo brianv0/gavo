@@ -8,7 +8,13 @@
 		the view creation statement from the _obscoresources table in the
 		data create -->
 		<viewStatement>
-			create view \tableName as (select 1);
+			create view \qName (\colNames) as (select * from (VALUES(
+				NULL, NULL, NULL, NULL, NULL,
+				NULL, NULL, NULL, NULL, NULL,
+				NULL, NULL, NULL, NULL, NULL,
+				NULL, NULL, NULL, NULL, NULL,
+				NULL, NULL, NULL, NULL, NULL,
+				NULL)) as q WHERE 0=1);
 		</viewStatement>
 		<column name="dataproduct_type" type="text"
 			utype="obscore:obs.dataproducttype" ucd="meta.id;class"
@@ -242,20 +248,19 @@
 		<make table="_obscoresources"/>
 	</data>
 
-
 	<data id="create" auto="False">
 		<!-- the view is created from prescriptions in _obscoresources -->
 		<make table="ObsCore">
-			<script name="create obscore view" type="preImport" lang="python">
+			<script name="create obscore view" type="postCreation" lang="python">
 				from gavo import rsc
-				ocTable = rsc.TableForDef(table.rd.getById("_obscoresources"))
+				ocTable = rsc.TableForDef(table.tableDef.rd.getById("_obscoresources"),
+					connection=table.connection)
 				parts = ["(%s)"%row["sqlFragment"]
-					for row in ocTable(ocTable.tableDef, "")]
+					for row in ocTable.iterQuery(ocTable.tableDef, "")]
 				if parts:
-					table.query("create or replace view \schema.ObsCore as (%s)"%(
+					table.query("drop view \schema.ObsCore")
+					table.query("create view \schema.ObsCore as (%s)"%(
 						" UNION ".join(parts)))
-				# XXX TODO: create an empty *table* with ObsCore columns
-				# if no obscore input has been defined yet.
 			</script>
 		</make>
 	</data>
@@ -270,7 +275,7 @@
 			"'ivo://%s/getproduct#' || accref"%base.getConfig('ivoa', 'authority')+
 				" AS obs_publisher_did",
 			re.sub(r"\$COMPUTE AS access_url",
-				"'%s?key= || accref AS access_url"%
+				"'%s?key=' || accref AS access_url"%
 					base.makeAbsoluteURL("/getproduct"), 
 				obscoreClause))
 
@@ -283,8 +288,7 @@
 				obscoreClause, table.tableDef.getQName())})
 	</script>
 
-	<!-- another helper script for the publish mixin.  It gets added
-	as a beforeDrop script to all makes running on
+	<!-- another helper script for the publish mixin that gets added to
 	obscore#published tables.  -->
 	<script id="removeTableFromObscoreSources" lang="SQL" type="beforeDrop">
 		DELETE FROM ivoa._obscoresources WHERE tableName='\qName'
@@ -340,7 +344,7 @@
 			>mime</mixinPar>
 		<mixinPar name="size" description="The estimated size of the product
 			 in kilobytes.  Only touch when you do not mix in products#table."
-			>size/1024</mixinPar>
+			>accsize/1024</mixinPar>
 		<mixinPar name="targetName" description="Name of the target object."
 			>NULL</mixinPar>
 		<mixinPar name="targetClass" description="Class of target object(s).
@@ -401,7 +405,7 @@
 						\emMin AS em_min,
 						\emMax AS em_max,
 						\emResPower AS em_res_power,
-						\oUCD AS o_ucd,
+						\oUCD AS o_ucd
 			</property>
 		</events>
 
@@ -422,11 +426,16 @@
 				removeScript = rd.getById("removeTableFromObscoreSources")
 
 				for dd in substrate.rd.iterDDs():
+					addDependent = False
 					for make in dd.makes:
 						if make.table is substrate:
 							make.scripts.append(insertScript)
 							# the remove script needs to have the right parent
 							make.feedObject("script", removeScript.copy(make))
-		]]></code></processLate>
+							addDependent = True
+					if addDependent:
+						dd.dependents.append("//obscore#create")
+			]]></code>
+		</processLate>
 	</mixinDef>
 </resource>

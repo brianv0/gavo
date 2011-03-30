@@ -124,6 +124,7 @@ class Data(base.MetaMixin):
 			controlledTables[make.table.id]._runScripts = make.getRunner()
 		data = cls(dd, controlledTables, parseOptions)
 		data.dropTables()
+		_makeDependents(dd, parseOptions, connection)
 
 	def dropTables(self):
 		for t in self:

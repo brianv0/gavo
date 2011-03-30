@@ -392,7 +392,7 @@ def compileFunction(src, funcName, useGlobals=None):
 	if useGlobals is None:
 		useGlobals = globals()
 	try:
-		exec src in useGlobals, locals
+		exec src+"\n" in useGlobals, locals
 	except Exception, ex:
 		raise misctricks.logOldExc(excs.BadCode(src, "function", ex))
 	return locals[funcName]

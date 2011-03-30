@@ -446,20 +446,32 @@ class ObscoreTest(testhelpers.VerboseTest):
 		else:
 			self.fail("addTableToObscoreSources not added -- did obscore#publish"
 				" run?")
-	
+
 	def testObscorePublish(self):
+		# yet another of those mega tests... I wonder if there's a good way
+		# to test this kind of thing.
 		from gavo import rsc
 		dd = base.parseFromString(rscdesc.RD, 
 			self._rdTrunk%'productType="\'image\'" ').getById("import")
 		dd.rd.sourceId = "__testing__"
 		data = rsc.makeData(dd, forceSource=[{"accref": "foo/bar"}],
 			connection=self.conn)
+
 		try:
 			res = list(data.tables["glob"].query("select sqlFragment"
 				" from ivoa._obscoresources where tableName='test.glob'"))
 			self.assertEqual(len(res), 1)
 			self.failUnless("'ivo://%s/getproduct#' || accref AS obs_publisher_did"%
 				base.getConfig('ivoa', 'authority') in res[0][0])
+
+			oct = rsc.TableForDef(
+				base.caches.getRD("//obscore").getById("ObsCore"),
+				connection=self.conn)
+			res = list(oct.iterQuery(oct.tableDef,
+				"obs_id='foo/bar'"))
+			self.assertEqual(len(res), 1)
+			self.assertEqual(res[0]["dataproduct_type"], 'image')
+			self.assertEqual(res[0]["access_estsize"], 0)
 		finally:
 			data.drop(dd, connection=self.conn)
 			self.conn.commit()

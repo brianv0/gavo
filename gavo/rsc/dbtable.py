@@ -569,6 +569,10 @@ class View(DBTable):
 	(this is what TableForDef checks for when deciding whether to
 	construct a DBTable or a View).  You can get a feeder for them,
 	but trying to actually feed anything will raise a DataError.
+
+	On import, views only run postCreation scripts;
+	since there are no indices, no preIndex scripts are run, since
+	no import takes place, there's no preImport or newSource.
 	"""
 
 	def __init__(self, *args, **kwargs):
@@ -598,7 +602,8 @@ class View(DBTable):
 		return self  # no indices or primary keys on views.
 
 	def importFinished(self):
-		# no scripts, no indexing, no nothing
+		# don't do anything but run postCreation scripts
+		self.runScripts("postCreation")
 		if self.ownedConnection:
 			self.connection.commit()
 		return self
