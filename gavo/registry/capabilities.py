@@ -343,7 +343,10 @@ class TAPCapabilityMaker(CapabilityMaker):
 					TR.default(unit="rows")[
 						str(base.getConfig("async", "defaultMAXREC"))],
 					TR.hard(unit="rows")[
-						str(base.getConfig("async", "hardMAXREC"))]]]
+						str(base.getConfig("async", "hardMAXREC"))]],
+				TR.uploadLimit[
+					TR.hard(unit="bytes")[
+						str(base.getConfig("async", "maxUploadBytes"))]]]
 		
 		return res
 

@@ -394,9 +394,11 @@ _config = Configuration(
 			"Default match limit for ADQL queries via the UWS/TAP"),
 		IntConfigItem("hardMAXREC", "20000000",
 			"Default match limit for ADQL queries via the UWS/TAP"),
+		IntConfigItem("maxUploadBytes", "100000000",
+			"Limit of the size of TAP uploads in bytes (only advisory so far)"),
 		StringConfigItem("csvDialect", "excel", "CSV dialect as defined"
 			" by the python csv module used when writing CSV files."),
-	),
+),
 
 	Section('ui', "Settings concerning the local user interface",
 		StringConfigItem("outputEncoding", "iso-8859-1",

@@ -8,6 +8,7 @@ jpeg is generated.
 */
 
 #include <stdio.h>
+#include <unistd.h> /* remove when nicing has moved to the caller */
 #include <jpeglib.h>
 #include <fitsio.h>
 #include <math.h>
@@ -334,6 +335,25 @@ gamma is defined by cut^gamma=0.5
 }
 	
 
+void fudgeGammaBlindly(imageDesc *iD)
+/* Brightens the image a bit by pushing all grey values through
+a mild x^gamma.
+
+gamma should really be determined from the image (see fudgeGamma),
+but this needs more thought. */
+{
+	long i;
+	double *dp;
+	double gamma=1/1.1;
+
+	for (i=0, dp=iD->scaledData; 
+		i<iD->targetShape[0]*iD->targetShape[1]; 
+		i++, dp++) {
+		*dp = pow(*dp, gamma);
+	}
+}
+
+
 void computePreview(imageDesc *iD) 
 /* compresses iD's scaledData to a jpeg written to stdout.
 
@@ -383,6 +403,7 @@ int main(int argc, char **argv)
 	int targetWidth=DEFAULT_TARGETWIDTH;
 	imageDesc *iD;
 
+	nice(10); /* Hack: this should really be done by the calling program */
 	progName = *argv++;
 	if (!*argv) {
 		usage();
@@ -397,7 +418,8 @@ int main(int argc, char **argv)
 	computeScale(iD, targetWidth);
 	doScale(iD);
 	scaleValues(iD->scaledData, iD->targetShape[1]*iD->targetShape[0], 1);
-	/* fudgeGamma(iD); */
+	/*fudgeGamma(iD);*/
+	fudgeGammaBlindly(iD);
 	computePreview(iD);
 	return 0;
 }
