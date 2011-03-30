@@ -128,7 +128,7 @@ class MixinDef(activetags.ReplayBase):
 		and processLate to be run.
 		"""
 		self._defineMacros(fillers)
-		self.replay(self.events.events, destination, ctx)
+		self.replay(self.events.events_, destination, ctx)
 		if self.processEarly is not None:
 			self.processEarly.compile(destination)(destination)
 		if self.processLate is not None:

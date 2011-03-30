@@ -323,6 +323,48 @@
 		</code>
 	</procDef>
 
+	<procDef type="apply" id="getBandFromFilter">
+		<doc>
+			sets the bandpassId, bandpassUnit, bandpassRefval, bandpassHi,
+			and bandpassLo from a set of standard band Ids.
+
+			The bandpass ids can be looked up in //siap.rd for now.
+
+			This data is collected from various sources, e.g., 
+			http://www.iac.es/telescopes/tcs/filtros-eng.htm
+			or 
+			http://www.eso.org/lasilla/instruments/efosc-3p6/docs/Efosc2Filters.html
+			
+			All values are in meters.
+
+			This must run after //siap#setMeta since setMeta clobbers our result
+			fields.
+		</doc>
+		<setup>
+			<par key="sourceCol" description="Name of the column containing
+				the filter name">'filter'</par>
+			<code>
+				# values is low characteristic high
+				_filterMap = {
+					"Gunn g": (465e-9, 510e-9,  555e-9),
+					"Gunn r": (610e-9, 670e-9, 725e-9),
+					"Gunn i": (720e-9, 800e-9, 880e-9),
+					"Gunn z": (820e-9, 1000e-9, 1200e-9),}
+			</code>
+		</setup>
+		<code>
+			try:
+				short, mid, long = _filterMap[vars[sourceCol]]
+			except KeyError:  # nothing known, do nothing
+				return
+			result["bandpassId"] = vars[sourceCol]
+			result["bandpassUnit"] = "m"
+			result["bandpassRefval"] = mid
+			result["bandpassLo"] = short
+			result["bandpassHi"] = long
+		</code>
+	</procDef>
+
 	<condDesc id="siapBase">
 		<!-- This just contains some components the real SIAP conditions build
 		upon.  Do not inherit from this, do not instanciate it. -->

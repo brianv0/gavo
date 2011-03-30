@@ -40,8 +40,11 @@ class _ExValueType(object):
 _EXPANDED_VALUE =_ExValueType()
 
 
-class ActiveTag(structure.Structure):
-	"""The base class for active tags.
+class ActiveTag(object):
+	"""A mixin for active tags.
+
+	This is usually mixed into structure.Structures or derivatives.  It
+	is also used as a sentinel to find all active tags below.
 	"""
 	name_ = None
 
@@ -74,24 +77,24 @@ class _PreparedEventSource(object):
 	inheriting from RecordingBase.
 	"""
 	def __init__(self, events):
-		self.events = events
+		self.events_ = events
 		self.curEvent = -1
 		self.pos = None
 	
 	def __iter__(self):
-		return _PreparedEventSource(self.events)
+		return _PreparedEventSource(self.events_)
 	
 	def next(self):
 		self.curEvent += 1
 		try:
-			nextItem = self.events[self.curEvent]
+			nextItem = self.events_[self.curEvent]
 		except IndexError:
 			raise StopIteration()
 		res, self.pos = nextItem[:3], nextItem[-1]
 		return res
 
 
-class RecordingBase(ActiveTag):
+class RecordingBase(structure.Structure):
 	"""An "abstract base" for active tags doing event recording.
 
 	The recorded events are available in the events attribute.
@@ -102,53 +105,53 @@ class RecordingBase(ActiveTag):
 		" this stream (should be restructured text).", strip=False)
 
 	def __init__(self, *args, **kwargs):
-		self.events = []
-		self.tagStack = []
-		ActiveTag.__init__(self, *args, **kwargs)
+		self.events_ = []
+		self.tagStack_ = []
+		structure.Structure.__init__(self, *args, **kwargs)
 
 	def feedEvent(self, ctx, type, name, value):
 		# keep _EXPANDED_VALUE rather than "value"
 		if type is _EXPANDED_VALUE:
-			self.events.append((_EXPANDED_VALUE, name, value, ctx.pos))
+			self.events_.append((_EXPANDED_VALUE, name, value, ctx.pos))
 			return self
 		else:
-			return ActiveTag.feedEvent(self, ctx, type, name, value)
+			return structure.Structure.feedEvent(self, ctx, type, name, value)
 
 	def start_(self, ctx, name, value):
-		if name in self.managedAttrs and not self.tagStack:
-			res = ActiveTag.start_(self, ctx, name, value)
+		if name in self.managedAttrs and not self.tagStack_:
+			res = structure.Structure.start_(self, ctx, name, value)
 		else:
-			self.events.append(("start", name, value, ctx.pos))
+			self.events_.append(("start", name, value, ctx.pos))
 			res = self
-			self.tagStack.append(name)
+			self.tagStack_.append(name)
 		return res
 
 	def end_(self, ctx, name, value):
-		self.tagStack.pop()
-		if name in self.managedAttrs:
-			ActiveTag.end_(self, ctx, name, value)
+		if name in self.managedAttrs and not self.tagStack_:
+			structure.Structure.end_(self, ctx, name, value)
 		else:
-			self.events.append(("end", name, value, ctx.pos))
+			self.events_.append(("end", name, value, ctx.pos))
+		self.tagStack_.pop()
 		return self
 	
 	def value_(self, ctx, name, value):
-		if name in self.managedAttrs and not self.tagStack:
+		if name in self.managedAttrs and not self.tagStack_:
 			# our attribute
-			ActiveTag.value_(self, ctx, name, value)
+			structure.Structure.value_(self, ctx, name, value)
 		else:
-			self.events.append(("value", name, value, ctx.pos))
+			self.events_.append(("value", name, value, ctx.pos))
 		return self
 	
 	def getEventSource(self):
 		"""returns an object suitable as event source in xmlstruct.
 		"""
-		return _PreparedEventSource(self.events)
+		return _PreparedEventSource(self.events_)
 
 	# This lets us feedFrom these
 	iterEvents = getEventSource
 
 
-class EventStream(RecordingBase, GhostMixin):
+class EventStream(RecordingBase, GhostMixin, ActiveTag):
 	"""An active tag that records events as they come in.
 
 	Their only direct effect is to leave a trace in the parser's id map.
@@ -158,25 +161,25 @@ class EventStream(RecordingBase, GhostMixin):
 
 	def end_(self, ctx, name, value):
 		# keep self out of the parse tree
-		if not self.tagStack: # end of STREAM element
+		if not self.tagStack_: # end of STREAM element
 			res = self.parent
 			self.parent = None
 			return res
 		return RecordingBase.end_(self, ctx, name, value)
 
 
-class EmbeddedStream(RecordingBase):
+class EmbeddedStream(RecordingBase, structure.Structure):
 	"""An event stream as a child of another element.
 	"""
 	name_ = "events"  # Lower case since it's really a "normal" element that's
 	                  # added into the parse tree.
 	def end_(self, ctx, name, value):
-		if not self.tagStack: # end of my element, do standard structure thing.
-			return ActiveTag.end_(self, ctx, name, value)
+		if not self.tagStack_: # end of my element, do standard structure thing.
+			return structure.Structure.end_(self, ctx, name, value)
 		return RecordingBase.end_(self, ctx, name, value)
 
 
-class Prune(ActiveTag):
+class Prune(ActiveTag, structure.Structure):
 	"""An active tag that lets you selectively delete children of the
 	current object.
 
@@ -193,7 +196,7 @@ class Prune(ActiveTag):
 	
 	def __init__(self, parent, **kwargs):
 		self.conds = {}
-		ActiveTag.__init__(self, parent)
+		structure.Structure.__init__(self, parent)
 
 	def value_(self, ctx, name, value):
 		self.conds[name] = value
@@ -246,7 +249,7 @@ class Edit(EmbeddedStream):
 		self.triggerEl, self.triggerId = mat.groups()
 	
 
-class ReplayBase(ActiveTag, macros.MacroPackage):
+class ReplayBase(ActiveTag, structure.Structure, macros.MacroPackage):
 	"""An "abstract base" for active tags replaying streams.
 	"""
 	name_ = None  # not a usable active tag
@@ -311,7 +314,7 @@ class ReplayBase(ActiveTag, macros.MacroPackage):
 				ids = idStack.pop()
 				for foundId in ids:
 					if (name, foundId) in self.editsDict:
-						self._replayTo(self.editsDict[name, foundId].events,
+						self._replayTo(self.editsDict[name, foundId].events_,
 							evTarget,
 							ctx)
 
@@ -369,14 +372,14 @@ class DelayedReplayBase(ReplayBase, GhostMixin):
 		if len(sources)!=1:
 			raise common.StructureError("Need exactly one of source and events"
 				" on %s elements"%self.name_)
-		stream = sources[0].events
+		stream = sources[0].events_
 		def replayer():
 			self.replay(stream, self.parent, ctx)
 		self._replayer = replayer
 
 	def end_(self, ctx, name, value):
 		self._setupReplay(ctx)
-		return ActiveTag.end_(self, ctx, name, value)
+		return structure.Structure.end_(self, ctx, name, value)
 
 
 class ReplayedEvents(DelayedReplayBase):
@@ -501,7 +504,7 @@ class Loop(DelayedReplayBase):
 				setattr(self, "macro_"+name.strip(), lambda v=value: v)
 			self._replayer()
 
-			
+
 getActiveTag = utils.buildClassResolver(ActiveTag, globals().values(),
 	key=lambda obj: getattr(obj, "name_", None))
 

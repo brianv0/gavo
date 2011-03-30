@@ -486,6 +486,16 @@ class DBTable(DBMethodsMixin, table.BaseTable, MetaTableMixin):
 	def updateMeta(self):
 		self.setTablePrivileges(self.tableDef)
 		self.setSchemaPrivileges(self.tableDef.rd)
+
+		# Hack to support adding obscore using meta updates:
+		# execute a script to add us to the obscore sources table.
+		# XXX TODO: probably replace this with a script type metaUpdate
+		# once we have table scripts again.
+		if self.tableDef.hasProperty("obscoreClause"):
+			from gavo.rscdef import scripting
+			script = base.caches.getRD("//obscore").getById(
+				"addTableToObscoreSources")
+			scripting.PythonScriptRunner(script).run(self)
 		if not self.nometa:
 			self.addToMeta()
 		return self

@@ -472,6 +472,9 @@ class ObscoreTest(testhelpers.VerboseTest):
 			self.assertEqual(len(res), 1)
 			self.assertEqual(res[0]["dataproduct_type"], 'image')
 			self.assertEqual(res[0]["access_estsize"], 0)
+		except:
+			import traceback
+			traceback.print_exc()
 		finally:
 			data.drop(dd, connection=self.conn)
 			self.conn.commit()

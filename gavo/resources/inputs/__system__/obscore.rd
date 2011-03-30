@@ -164,7 +164,8 @@
 
 		<column name="s_resolution" type="double precision"
 			description="Best spatial resolution within the data set"
-			unit="arcsec"  utype="obscore:char.spatialaxis.resolution.refval.cresolution"
+			unit="arcsec"  
+			utype="obscore:char.spatialaxis.resolution.refval.cresolution"
 			ucd="pos.angResolution"
 			verbLevel="15">
 			<property name="std">1</property>
@@ -267,7 +268,8 @@
 
 	<!-- a helper script for the publish mixin.  It is added as a postCreation
 	script to all makes running on obscore#published tables. -->
-	<script id="addTableToObscoreSources" lang="python" type="postCreation">
+	<script id="addTableToObscoreSources" name="addTableToObscore"
+			lang="python" type="postCreation">
 		obscoreClause = table.tableDef.getProperty("obscoreClause")
 
 		# fix a couple of fields as needed
@@ -294,30 +296,10 @@
 		DELETE FROM ivoa._obscoresources WHERE tableName='\qName'
 	</script>
 
-	<mixinDef id="publish">
+	<STREAM id="_publishCommon">
 		<doc>
-			Publish this table to ObsTAP.
-
-			This means mapping or giving quite a bit of data from the present
-			table to ObsCore rows.  Internally, this information is converted
-			to an SQL select statement used within a create view statement.
-			In consequence, you must give *SQL* expression in the parameter 
-			values; or just naked column names from your input table are ok,
-			of course.  Most parameters are set to NULL or appropriate
-			defaults for tables mixing in //products#table.
-
-			Since the mixin generates script elements, it cannot be used
-			in untrusted RDs.  The fact that you can enter raw SQL also
-			means you will get ugly error messages if you give invalid
-			parameters.
-
-			Some items are filled from product interface fields automatically.
-			You must change these if you obscore-publish tables noch mixin
-			in products.
+			Common elements for ObsTAP publication mixins.
 		</doc>
-		<mixinPar name="productType" description="Data product type; one
-			of image, cube, spectrum, sed, timeseries, visibility, event, or
-			NULL if None of the above"/>
 		<mixinPar name="productSubtype" description="File subtype.  Details
 			pending">NULL</mixinPar>
 		<mixinPar name="calibLevel" description="Calibration level of data,
@@ -326,57 +308,19 @@
 		<mixinPar name="collectionName" description="A human-readable name
 			for this collection.  This should be short, so don't just use the
 			resource title">NULL</mixinPar>
-		<mixinPar name="obsId" description="Identifier of the data set.  
-			Only change this when you do not mix in products."
-			>accref</mixinPar>
-		<mixinPar name="title" description="A human-readable title
-			of the data set.">NULL</mixinPar>
-		<mixinPar name="did" description="Global identifier of the data set.  
-			Leave $COMPUTE for tables mixing in products.">$COMPUTE</mixinPar>
-		<mixinPar name="creatorDID" description="Global identifier of the
-			data set assigned by the creator.  Leave NULL unless the creator
-			actually assigned an IVO id himself.">NULL</mixinPar>
-		<mixinPar name="accessURL" description="URL at which the product
-			can be obtained.  Leave at $COMPUTE for tables mixing in products."
-			>$COMPUTE</mixinPar>
-		<mixinPar name="mime" description="The MIME type of
-			the product file.  Only touch if you do not mix in products."
-			>mime</mixinPar>
-		<mixinPar name="size" description="The estimated size of the product
-			 in kilobytes.  Only touch when you do not mix in products#table."
-			>accsize/1024</mixinPar>
 		<mixinPar name="targetName" description="Name of the target object."
 			>NULL</mixinPar>
 		<mixinPar name="targetClass" description="Class of target object(s).
 			You should take whatever you put here from 
 			http://simbad.u-strasbg.fr/guide/chF.htx">NULL</mixinPar>
-		<mixinPar name="ra" description="Center RA">NULL</mixinPar>
-		<mixinPar name="dec" description="Center Dec">NULL</mixinPar>
-		<mixinPar name="fov" 
-			description="Approximate diameter of region covered">NULL</mixinPar>
-		<mixinPar name="coverage" description="A polygon giving the
-			spatial coverage of the data set; this must always be an SPOLY in
-			ICRS.">NULL</mixinPar>
 		<mixinPar name="sResolution" description="The (best) angular
 			resolution within the data set, in arcsecs">NULL</mixinPar>
-		<mixinPar name="tMin" description="MJD for the lower bound of
-			times covered in the data set (e.g. start of exposure).  Use
-			to_char(COLUMN, 'J')::double precision-2400000.5 to get this
-			from a postgres timestamp.">NULL</mixinPar>
-		<mixinPar name="tMax" description="MJD for the upper bound of
-			times covered in the data set.  See tMin">NULL</mixinPar>
-		<mixinPar name="expTime" description="Total time of event counting.
-			This simply is tMax-tMin for simple exposures.">NULL</mixinPar>
 		<mixinPar name="tResolution" description="Temporal resolution"
 			>NULL</mixinPar>
-		<mixinPar name="emMin" description="Lower bound of wavelengths
-			represented in the data set, in meters.">NULL</mixinPar>
-		<mixinPar name="emMax" description="Upper bound of wavelengths
-			represented in the data set, in meters.">NULL</mixinPar>
 		<mixinPar name="emResPower" description="Spectral resolution as
 			delta lambda/lambda">NULL</mixinPar>
-		<mixinPar name="oUCD" description="UCD of the observable quantity, 
-			e.g., em.opt for wide-band optical frames.">NULL</mixinPar>
+		<mixinPar name="expTime" description="Total time of event counting.
+			This simply is tMax-tMin for simple exposures.">NULL</mixinPar>
 
 		<events>
 			<property name="obscoreClause">
@@ -437,5 +381,126 @@
 						dd.dependents.append("//obscore#create")
 			]]></code>
 		</processLate>
+	</STREAM>
+
+	<STREAM id="_publishProduct">
+		<doc>
+			publish mixin parameters deriving from products#table interface
+			fields.
+		</doc>
+		<mixinPar name="obsId" description="Identifier of the data set.  
+			Only change this when you do not mix in products."
+			>accref</mixinPar>
+		<mixinPar name="did" description="Global identifier of the data set.  
+			Leave $COMPUTE for tables mixing in products.">$COMPUTE</mixinPar>
+		<mixinPar name="creatorDID" description="Global identifier of the
+			data set assigned by the creator.  Leave NULL unless the creator
+			actually assigned an IVO id himself.">NULL</mixinPar>
+		<mixinPar name="accessURL" description="URL at which the product
+			can be obtained.  Leave at $COMPUTE for tables mixing in products."
+			>$COMPUTE</mixinPar>
+		<mixinPar name="mime" description="The MIME type of
+			the product file.  Only touch if you do not mix in products."
+			>mime</mixinPar>
+		<mixinPar name="size" description="The estimated size of the product
+			 in kilobytes.  Only touch when you do not mix in products#table."
+			>accsize/1024</mixinPar>
+	</STREAM>
+
+	<mixinDef id="publish">
+		<doc>
+			Publish this table to ObsTAP.
+
+			This means mapping or giving quite a bit of data from the present
+			table to ObsCore rows.  Internally, this information is converted
+			to an SQL select statement used within a create view statement.
+			In consequence, you must give *SQL* expression in the parameter 
+			values; or just naked column names from your input table are ok,
+			of course.  Most parameters are set to NULL or appropriate
+			defaults for tables mixing in //products#table.
+
+			Since the mixin generates script elements, it cannot be used
+			in untrusted RDs.  The fact that you can enter raw SQL also
+			means you will get ugly error messages if you give invalid
+			parameters.
+
+			Some items are filled from product interface fields automatically.
+			You must change these if you obscore-publish tables noch mixin
+			in products.
+		</doc>
+		<mixinPar name="productType" description="Data product type; one
+			of image, cube, spectrum, sed, timeseries, visibility, event, or
+			NULL if None of the above"/>
+		<mixinPar name="title" description="A human-readable title
+			of the data set.">NULL</mixinPar>
+		<mixinPar name="ra" description="Center RA">NULL</mixinPar>
+		<mixinPar name="dec" description="Center Dec">NULL</mixinPar>
+		<mixinPar name="fov" 
+			description="Approximate diameter of region covered">NULL</mixinPar>
+		<mixinPar name="coverage" description="A polygon giving the
+			spatial coverage of the data set; this must always be in
+			ICRS.  Instead of an SPOLY other pgsphere areas might work, too."
+			>NULL</mixinPar>
+		<mixinPar name="tMin" description="MJD for the lower bound of
+			times covered in the data set (e.g. start of exposure).  Use
+			to_char(COLUMN, 'J')::double precision-2400000.5 to get this
+			from a postgres timestamp.">NULL</mixinPar>
+		<mixinPar name="tMax" description="MJD for the upper bound of
+			times covered in the data set.  See tMin">NULL</mixinPar>
+		<mixinPar name="emMin" description="Lower bound of wavelengths
+			represented in the data set, in meters.">NULL</mixinPar>
+		<mixinPar name="emMax" description="Upper bound of wavelengths
+			represented in the data set, in meters.">NULL</mixinPar>
+		<mixinPar name="oUCD" description="UCD of the observable quantity, 
+			e.g., em.opt for wide-band optical frames.">NULL</mixinPar>
+
+		<LFEED source="_publishProduct"/>
+		<LFEED source="_publishCommon"/>
+	</mixinDef>
+
+	<mixinDef id="publishSIAP">
+		<doc>
+			Publish a PGS SIAP table to ObsTAP.
+
+			This works like //obscore#publish except some defaults apply
+			that copy fields that work analoguously in SIAP and in ObsTAP.
+
+			For special situations, you can, of course, override any
+			of the parameters, but most of them should already be all right.
+			To find out what the parameters described as "preset for SIAP"
+			mean, refer to //obscore#publish.
+		</doc>
+		
+		<mixinPar name="productType" description="preset for SIAP"
+			>'image'</mixinPar>
+		<mixinPar name="title" description="preset for SIAP"
+			>imageTitle</mixinPar>
+		<mixinPar name="ra" description="preset for SIAP">centerAlpha</mixinPar>
+		<mixinPar name="dec" description="preset for SIAP">centerDelta</mixinPar>
+		<mixinPar name="fov" description="preset for SIAP; we use the
+			extend along the X axis as a very rough estimate for the size.
+			If you can do better, by all means do."
+			>pixelScale[1]*pixelSize[1]</mixinPar>
+		<mixinPar name="coverage" description="preset for SIAP; TODO: use coverage
+		here (this does not work right now since postgres can 'not identify an ordering
+		operator for type spoly'; figure out what's wrong)"
+			>NULL</mixinPar>
+		<mixinPar name="tMin" description="preset for SIAP; if you want,
+			change this to start of observation as available."
+			>dateObs</mixinPar>
+		<mixinPar name="tMax" description="preset for SIAP; if you want,
+			change this to end of observation as available."
+			>dateObs</mixinPar>
+		<mixinPar name="emMin" description="preset for SIAP"
+			>bandpassLo</mixinPar>
+		<mixinPar name="emMax" description="preset for SIAP"
+			>bandpassHi</mixinPar>
+		<mixinPar name="oUCD" description="preset for SIAP; fix if you either
+			know more about the band of if your images are not in the optical."
+			>'em.opt'</mixinPar>
+
+		<LFEED source="_publishProduct"/>
+		<LFEED source="_publishCommon"/>
+
 	</mixinDef>
 </resource>

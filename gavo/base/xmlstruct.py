@@ -149,7 +149,7 @@ def feedTo(rootStruct, eventSource, context, feedInto=False):
 
 	try:
 		for type, name, payload in eventSource:
-
+			
 			# buffer data
 			if type=="data":
 				buf.append(payload)

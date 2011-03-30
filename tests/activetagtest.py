@@ -14,7 +14,7 @@ class BasicTest(testhelpers.VerboseTest):
 		res = base.parseFromString(rscdef.TableDef, """<table id="bar">
 			<STREAM id="foo"><table id="u" onDisk="True"><column name="x"/>
 			</table></STREAM></table>""", context=ctx)
-		parsedEvents = ctx.idmap["foo"].events
+		parsedEvents = ctx.idmap["foo"].events_
 		self.assertEqual(len(parsedEvents), 7)
 		self.assertEqual(parsedEvents[0][1], "table")
 		self.assertEqual(parsedEvents[4][:3], 
@@ -445,7 +445,21 @@ class MixinTest(testhelpers.VerboseTest):
 			</resource>""")
 		self.assertEqual(res.tables[0].params[0].value, 5.)
 
+	def testReplayedRD(self):
+		res = base.parseFromString(rscdesc.RD,
+			r"""<resource schema="data">
+				<STREAM id="_part">
+					<events>
+						<column name="urks"/>
+					</events>
+				</STREAM>
+				<mixinDef id="bla">
+					<LFEED source="_part"/>
+				</mixinDef>
+				<table mixin="bla"/></resource>""")
+		self.assertEqual(res.tables[0].columns[0].name, "urks")
+
 
 
 if __name__=="__main__":
-	testhelpers.main(NestedTest)
+	testhelpers.main(MixinTest)

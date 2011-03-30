@@ -228,6 +228,10 @@ class PropertyAttribute(DictAttribute):
 			if name in self.properties:
 				del self.properties[name]
 		yield "clearProperty", clearProperty
+		
+		def hasProperty(self, name):
+			return name in self.properties
+		yield "hasProperty", hasProperty
 
 	def makeUserDoc(self):
 		return ("**property** (mapping of user-defined keywords in the"

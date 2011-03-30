@@ -24,7 +24,8 @@ PUBLIC_MIXINS = ["//products#table", "//scs#positions", "//scs#q3cindex",
 
 PUBLIC_APPLYS = ["//procs#simpleSelect", "//procs#resolveObject",
 	"//procs#mapValue", "//procs#fullQuery", "//siap#computePGS",
-	"//siap#computeBbox", "//siap#setMeta", "//ssap#setMeta"]
+	"//siap#computeBbox", "//siap#setMeta", "//ssap#setMeta",
+	"//siap#getBandFromFilter"]
 
 PUBLIC_ROWFILTERS = ["//procs#expandComma", "//procs#expandDates",
 	"//products#define", "//procs#expandIntegers"]
