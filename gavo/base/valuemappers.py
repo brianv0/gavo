@@ -159,10 +159,14 @@ def datetimeMapperFactory(colDesc):
 _registerDefaultMF(datetimeMapperFactory)
 
 
-def _spointMapperFactory(colDesc):
-	"""A factory for functions turning spoints to STC-S-like stuff.
+_pgTypes = set(["spoint", "spoly", "scircle"])
+
+def _pgSphereMapperFactory(colDesc):
+	"""A factory for functions turning pgsphere types to STC-S-like stuff.
 	"""
-	if colDesc["dbtype"]!="spoint" and colDesc["xtype"]!="adql:POINT":
+	if not (
+			colDesc["dbtype"] in _pgTypes
+			or colDesc["xtype"]=="adql:POINT"):
 		return
 	def mapper(val):
 		if val is None:
@@ -174,7 +178,7 @@ def _spointMapperFactory(colDesc):
 			return val.asSTCS("ICRS")
 	colDesc["datatype"], colDesc["arraysize"] = "char", "*"
 	return mapper
-_registerDefaultMF(_spointMapperFactory)
+_registerDefaultMF(_pgSphereMapperFactory)
 
 
 def _boxMapperFactory(colDesc):
