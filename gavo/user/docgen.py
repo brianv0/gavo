@@ -20,7 +20,8 @@ from gavo.base import structure
 
 
 PUBLIC_MIXINS = ["//products#table", "//scs#positions", "//scs#q3cindex",
-	"//siap#bbox", "//siap#pgs", "//ssap#hcd", "//obscore#publish"]
+	"//siap#bbox", "//siap#pgs", "//ssap#hcd", "//obscore#publish",
+	"//obscore#publishSIAP"]
 
 PUBLIC_APPLYS = ["//procs#simpleSelect", "//procs#resolveObject",
 	"//procs#mapValue", "//procs#fullQuery", "//siap#computePGS",

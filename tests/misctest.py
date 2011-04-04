@@ -396,11 +396,7 @@ class TestGroupsMembership(testhelpers.VerboseTest):
 		self.assertEqual(creds.getGroupsForUser("Y_test", "megapass"),
 			set(["Y_test"]))
 
-
-class ObscoreTest(testhelpers.VerboseTest):
-	resources = [('conn', tresc.dbConnection)]
-
-	_rdTrunk = """<resource schema="test" resdir="data">
+_obscoreRDTrunk = """<resource schema="test" resdir="data">
 			<table id="glob" onDisk="True" mixin="//products#table">
 				<mixin %s>//obscore#publish</mixin>
 			</table>
@@ -416,21 +412,24 @@ class ObscoreTest(testhelpers.VerboseTest):
 				<make table="glob"/>
 			</data></resource>"""
 
+
+class ObscoreTest(testhelpers.VerboseTest):
+
 	def testTypeRequired(self):
 		self.assertRaisesWithMsg(base.StructureError,
 			"At (3, 29): Mixin parameter productType mandatory",
 			base.parseFromString,
-			(rscdesc.RD, self._rdTrunk%""))
+			(rscdesc.RD, _obscoreRDTrunk%""))
 
 	def testRestriction(self):
 		self.assertRaises(base.StructureError,
 			base.parseFromString,
-			rscdesc.RD, self._rdTrunk%'productType="\'image\'" ',
+			rscdesc.RD, _obscoreRDTrunk%'productType="\'image\'" ',
 			context=base.ParseContext(restricted=True))
 
 	def testObscoreProperty(self):
 		rd = base.parseFromString(rscdesc.RD, 
-			self._rdTrunk%'productType="\'image\'" ')
+			_obscoreRDTrunk%'productType="\'image\'" ')
 		viewPart = rd.tables[0].properties["obscoreClause"]
 		self.failUnless("'image' AS dataproduct_type")
 		self.failUnless("$COMPUTE AS obs_publisher_did")
@@ -439,7 +438,7 @@ class ObscoreTest(testhelpers.VerboseTest):
 
 	def testObscoreLateMixin(self):
 		rd = base.parseFromString(rscdesc.RD, 
-			self._rdTrunk%'productType="\'image\'" ')
+			_obscoreRDTrunk%'productType="\'image\'" ')
 		for script in rd.getById("import").makes[0].scripts:
 			if script.id=="addTableToObscoreSources":
 				break
@@ -447,43 +446,69 @@ class ObscoreTest(testhelpers.VerboseTest):
 			self.fail("addTableToObscoreSources not added -- did obscore#publish"
 				" run?")
 
-	def testObscorePublish(self):
-		# yet another of those mega tests... I wonder if there's a good way
-		# to test this kind of thing.
+
+class _ObscorePublishedTable(testhelpers.TestResource):
+
+	resources = [('conn', tresc.dbConnection)]
+
+	def make(self, dependents):
+		conn = dependents["conn"]
 		from gavo import rsc
 		dd = base.parseFromString(rscdesc.RD, 
-			self._rdTrunk%'productType="\'image\'" ').getById("import")
+			_obscoreRDTrunk%'productType="\'image\'" '
+			'collectionName="\'testing detritus\'"').getById("import")
 		dd.rd.sourceId = "__testing__"
-		data = rsc.makeData(dd, forceSource=[{"accref": "foo/bar"}],
-			connection=self.conn)
+		return rsc.makeData(dd, forceSource=[{"accref": "foo/bar"}],
+			connection=conn)
 
+	def clean(self, data):
+		conn = data.tables["glob"].connection
 		try:
-			res = list(data.tables["glob"].query("select sqlFragment"
-				" from ivoa._obscoresources where tableName='test.glob'"))
-			self.assertEqual(len(res), 1)
-			self.failUnless("'ivo://%s/getproduct#' || accref AS obs_publisher_did"%
-				base.getConfig('ivoa', 'authority') in res[0][0])
-
-			oct = rsc.TableForDef(
-				base.caches.getRD("//obscore").getById("ObsCore"),
-				connection=self.conn)
-			res = list(oct.iterQuery(oct.tableDef,
-				"obs_id='foo/bar'"))
-			self.assertEqual(len(res), 1)
-			self.assertEqual(res[0]["dataproduct_type"], 'image')
-			self.assertEqual(res[0]["access_estsize"], 0)
+			data.drop(data.dd, connection=conn)
+			conn.commit()
 		except:
 			import traceback
 			traceback.print_exc()
-		finally:
-			data.drop(dd, connection=self.conn)
-			self.conn.commit()
-
-		# make sure dropping removes the entry from obscoresources
+			conn.rollback()
 		res = list(data.tables["glob"].query("select sqlFragment"
 			" from ivoa._obscoresources where tableName='test.glob'"))
-		self.assertEqual(len(res), 0)
+		# Yes, this is a test within a test resource.  It's most
+		# convenient this way.  I'm sorry.
+		assert len(res)==0
+
+
+class ObscorePublishedTest(testhelpers.VerboseTest):
+
+	resources = [('data', _ObscorePublishedTable())]
+
+	def testJoinPresent(self):
+		res = list(self.data.tables["glob"].query("select sqlFragment"
+			" from ivoa._obscoresources where tableName='test.glob'"))
+		self.assertEqual(len(res), 1)
+		self.failUnless("'ivo://%s/getproduct#' || accref AS obs_publisher_did"%
+			base.getConfig('ivoa', 'authority') in res[0][0])
+
+	def testDataIsInObscore(self):
+		from gavo import rsc
+		oct = rsc.TableForDef(
+			base.caches.getRD("//obscore").getById("ObsCore"),
+			connection=self.data.tables["glob"].connection)
+		res = list(oct.iterQuery(oct.tableDef,
+			"obs_id='foo/bar'"))
+		self.assertEqual(len(res), 1)
+		self.assertEqual(res[0]["dataproduct_type"], 'image')
+		self.assertEqual(res[0]["access_estsize"], 0)
+
+	def testAccessibleThroughADQL(self):
+		from gavo.protocols import adqlglue
+		from gavo.formats import votablewrite
+		querier = base.SimpleQuerier(
+			connection=self.data.tables["glob"].connection)
+		res = adqlglue.query(querier, "select * from ivoa.ObsCore where"
+			" obs_collection='testing detritus'")
+		self.failUnless('<TD>http://localhost:8080/getproduct?key=foo/bar</TD>'
+			in votablewrite.getAsVOTable(res, tablecoding="td"))
 
 
 if __name__=="__main__":
-	testhelpers.main(ObscoreTest)
+	testhelpers.main(ObscorePublishedTest)

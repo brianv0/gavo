@@ -180,7 +180,7 @@ class MultiSelectChoice(SelectChoice):
 				value = None
 			rv.append(self.original.validate(value))
 		return rv
-	
+
 
 def _getDisplayOptions(ik):
 	"""helps EnumeratedWidget figure out the None option and the options
@@ -188,19 +188,24 @@ def _getDisplayOptions(ik):
 	"""
 	noneOption = None
 	options = []
-	if ik.values.default is not None and ik.required:
-		# default given but field required:  There's no noneOption but a
-		# selected default
-		options = ik.values.options
-	elif ik.values.default:
-		# default given and becomes the noneOption
-		for o in ik.values.options:
-			if o.content_==ik.values.default:
-				noneOption = o
-			else:
-				options.append(o)
+	default = ik.values.default
+	if ik.value:
+		default = ik.value
+
+	if default is not None:
+		if ik.required:
+			# default given and field required:  There's no noneOption but a
+			# selected default (this shouldn't happen when values.default is gone)
+			options = ik.values.options
+		else:
+			# default given and becomes the noneOption
+			for o in ik.values.options:
+				if o.content_==ik.values.default:
+					noneOption = o
+				else:
+					options.append(o)
 	else:  # no default given, make up ANY option as noneOption unless
-	       # ik is required; if it's there make it displayed as well.
+	       # ik is required.
 		options.extend(ik.values.options)
 		noneOption = None
 		if not ik.required and not ik.values.multiOk:

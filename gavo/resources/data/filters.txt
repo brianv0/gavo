@@ -9,10 +9,10 @@
 # This file is used by //siap#getBandFromFilter
 #
 # Sources for this include graphs and other data from
+# http://voservices.net/filter/
 # http://www.iac.es/telescopes/tcs/filtros-eng.htm
-# and
 # http://www.eso.org/lasilla/instruments/efosc-3p6/docs/Efosc2Filters.html
-Gunn g	465	510	 555
+Gunn g	465	510	555
 Gunn r	610	670	725
 Gunn i	720	800	880
 Gunn z	820	1000	1200

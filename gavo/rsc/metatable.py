@@ -122,8 +122,10 @@ class MetaTableHandler(object):
 			if not "." in tableName:
 				tableName = "public."+tableName
 			try:
-				tableRec = list(self.tablesTable.iterQuery(self.tablesRowdef, 
-					" tableName=%(tableName)s", {"tableName": tableName.lower()}))[0]
+				tableRec = list(self.tablesTable.iterQuery(
+					self.tablesRowdef, 
+					"lower(tableName)=lower(%(tableName)s)", {
+							"tableName": tableName}))[0]
 			except IndexError:
 				raise base.ui.logOldExc(
 					base.NotFoundError(tableName, "Table", "dc_tables"))

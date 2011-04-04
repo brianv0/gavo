@@ -478,7 +478,7 @@
 		<mixinPar name="ra" description="preset for SIAP">centerAlpha</mixinPar>
 		<mixinPar name="dec" description="preset for SIAP">centerDelta</mixinPar>
 		<mixinPar name="fov" description="preset for SIAP; we use the
-			extend along the X axis as a very rough estimate for the size.
+			extent along the X axis as a very rough estimate for the size.
 			If you can do better, by all means do."
 			>pixelScale[1]*pixelSize[1]</mixinPar>
 		<mixinPar name="coverage" description="preset for SIAP; TODO: use coverage
