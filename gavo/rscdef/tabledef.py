@@ -60,25 +60,29 @@ class DBIndex(base.Structure):
 		if not self.content_:
 			self.content_ = "%s"%",".join(self.columns)
 
+	def iterCode(self):
+		destTableName = self.parent.getQName()
+		usingClause = ""
+		if self.method is not None:
+			usingClause = " USING %s"%self.method
+		yield self.parent.expand("CREATE INDEX %s ON %s%s (%s)"%(
+			self.dbname, destTableName, usingClause, self.content_))
+		if self.cluster:
+			yield self.parent.expand(
+				"CLUSTER %s ON %s"%(self.dbname, destTableName))
+
 	def create(self, querier):
 		"""creates the index on the parent table if necessary.
 		
 		querier is an object mixing in the DBMethodsMixin, usually the
 		DBTable object the index should be created on.
 		"""
-		destTableName = self.parent.getQName()
-		if not querier.hasIndex(destTableName, self.dbname):
+		if not querier.hasIndex(self.parent.getQName(), self.dbname):
 			if not self.parent.system:
 				base.ui.notifyIndexCreation(
 					self.parent.expand(self.dbname))
-			usingClause = ""
-			if self.method is not None:
-				usingClause = " USING %s"%self.method
-			querier.query(self.parent.expand("CREATE INDEX %s ON %s%s (%s)"%(
-				self.dbname, destTableName, usingClause, self.content_)))
-			if self.cluster:
-				querier.query(self.parent.expand(
-					"CLUSTER %s ON %s"%(self.dbname, destTableName)))
+			for statement in self.iterCode():
+				querier.query(statement)
 
 	def drop(self, querier):
 		"""drops the index if it exists.

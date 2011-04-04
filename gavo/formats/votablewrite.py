@@ -83,6 +83,7 @@ def _iterInfoInfos(dataSet):
 		name, value, id = infoItem.infoName, infoItem.infoValue, infoItem.infoId
 		yield V.INFO(name=name, value=value, ID=id)[infoItem.getContent()]
 
+
 def _iterWarningInfos(dataSet):
 	"""yields INFO items containing warnings from the tables in dataSet.
 	"""

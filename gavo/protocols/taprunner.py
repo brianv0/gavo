@@ -110,7 +110,7 @@ def writeResultTo(format, res, outF):
 		if format.endswith("td"):
 			enc = "td"
 		oe = None
-		if res.setLimit is not None:
+		if getattr(res, "setLimit", None) is not None:
 			oe = votable.OverflowElement(res.setLimit,
 				votable.V.INFO(name="QUERY_STATUS", value="OVERFLOW"))
 		ctx = votablewrite.VOTableContext(
@@ -244,13 +244,11 @@ def runTAPJob(jobId, queryProfile="untrustedquery"):
 	try:
 		_runTAPJob(parameters, jobId, queryProfile, timeout)
 	except Exception, ex:
-		import traceback
 		with tap.TAPJob.makeFromId(jobId) as job:
 			# This creates an error document in our WD and writes a log.
 			job.changeToPhase(uws.ERROR, ex)
 			job.endTime = datetime.datetime.utcnow()
-		base.ui.notifyError("While executing TAP job %s: %s"%(
-			jobId, ex))
+		base.ui.notifyError("While executing TAP job %s: %s"%(jobId, ex))
 	else:
 		with tap.TAPJob.makeFromId(jobId) as job:
 			job.changeToPhase(uws.COMPLETED, None)

@@ -154,7 +154,6 @@ def logOldExc(exc):
 	return exc
 
 
-
 ####################### Pyparsing hacks
 # This may not be the best place to put this, but I don't really have a
 # better one at this point.  We need some configuration of pyparsing, and

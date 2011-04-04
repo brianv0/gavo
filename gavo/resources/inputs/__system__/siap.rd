@@ -328,49 +328,63 @@
 			sets the bandpassId, bandpassUnit, bandpassRefval, bandpassHi,
 			and bandpassLo from a set of standard band Ids.
 
-			The bandpass ids can be looked up in //siap.rd for now.
+			The bandpass ids known are contained in a file filters.txt in
+			resources/data; see there for details.
 
-			This data is collected from various sources, e.g., 
-			http://www.iac.es/telescopes/tcs/filtros-eng.htm
-			or 
-			http://www.eso.org/lasilla/instruments/efosc-3p6/docs/Efosc2Filters.html
-			
-			All values are in meters.
+			All values filled in here are in meters.
 
-			This must run after //siap#setMeta since setMeta clobbers our result
-			fields.
+			If this is used, it must run after //siap#setMeta since 
+			setMeta clobbers our result fields.
 		</doc>
 		<setup>
 			<par key="sourceCol" description="Name of the column containing
-				the filter name">'filter'</par>
+				the filter name; leave at default None to take the band from
+				result['bandpassId'], where such information would be left
+				by siap#setMeta.">None</par>
 			<code>
-				# values is low characteristic high
-				_filterMap = {
-					"Gunn g": (465e-9, 510e-9,  555e-9),
-					"Gunn r": (610e-9, 670e-9, 725e-9),
-					"Gunn i": (720e-9, 800e-9, 880e-9),
-					"Gunn z": (820e-9, 1000e-9, 1200e-9),
-					"Bessel U": (315e-9, 360e-9, 390e-9),
-					"Bessel B": (360e-9, 440e-9, 560e-9),
-					"Bessel V": (485e-9, 540e-9, 670e-9),
-					"Bessel R": (580e-9, 620e-9, 850e-9),
-					"Sloan u'": (305e-9),
-					"Sloan g'": (476e-9),
-					"Sloan r'": (623e-9),
-					"Sloan i'": (771e-9),
-					"Sloan i'": (966e-9),
+				_filterMap = {}
+				_aliases = {}
+
+				NM = 1e-9
+
+				def parseFilterMap():
+					with base.openDistFile("data/filters.txt") as f:
+						for line in f:
+							if not line:
+								break
+							line = line.strip()
+							if line.startswith("#"):
+								continue
+							parts = line.split("\t")
+							primary = parts[0].strip()
+							if primary.startswith("="):
+								primary = primary[1:].strip()
+								for p in parts[1:]:
+									_aliases[p.strip()] = primary
+							else:
+								_filterMap[primary] = (
+									float(parts[1])*NM, float(parts[2])*NM, float(parts[3])*NM)
+							
+				def setBandpass(result, filterId):
+					if not _filterMap:
+						parseFilterMap()
+					try:
+						short, mid, long = _filterMap[_aliases.get(filterId, filterId)]
+					except KeyError:  # nothing known, do nothing
+						return
+					result["bandpassId"] = filterId
+					result["bandpassUnit"] = "m"
+					result["bandpassRefval"] = mid
+					result["bandpassLo"] = short
+					result["bandpassHi"] = long
 			</code>
 		</setup>
 		<code>
-			try:
-				short, mid, long = _filterMap[vars[sourceCol]]
-			except KeyError:  # nothing known, do nothing
-				return
-			result["bandpassId"] = vars[sourceCol]
-			result["bandpassUnit"] = "m"
-			result["bandpassRefval"] = mid
-			result["bandpassLo"] = short
-			result["bandpassHi"] = long
+			if sourceCol is None:
+				val = result['bandpassId']
+			else:
+				val = vars[sourceCol]
+			setBandpass(result, val)
 		</code>
 	</procDef>
 

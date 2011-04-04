@@ -22,6 +22,7 @@ except ImportError:
 	from elementtree import ElementTree
 
 from gavo.utils import autonode
+from gavo.utils import texttricks
 
 class Error(Exception):
 	pass
@@ -307,8 +308,11 @@ class Element(object):
 		except Error:
 			raise
 		except Exception, msg:
-			msg.args = (unicode(msg)+(" while building %s node"
-				" with children %s"%(self.name_, self._children)),)+msg.args[1:]
+			msg.args = (unicode(msg)+(
+				" while building %s node with children %s"%(
+					self.name_, 
+					texttricks.makeEllipsis(repr(self._children), 60))),
+				)+msg.args[1:]
 			raise
 
 	def asETree(self, emptyPrefix=None):

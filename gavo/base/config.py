@@ -5,6 +5,7 @@ Definition of DC config options and their management including I/O.
 import ConfigParser
 import cStringIO
 import os
+import pkg_resources
 import re
 import shlex
 import sys
@@ -505,6 +506,22 @@ def getBinaryName(baseName):
 		if os.path.exists(platName):
 			return platName
 	return baseName
+
+
+def openDistFile(name):
+	"""returns an open file for a "dist resource", i.e., a file distributed
+	with DaCHS.
+
+	This is like pkg_resources, except it also checks in 
+	$GAVO_DIR/override/<name> and returns that file if present.  Thus, you
+	can usually override DaCHS built-in files (but there's not too many
+	places in which that's used so far).
+	"""
+	userPath = os.path.join(get("rootDir"), "overrides/"+name)
+	if os.path.exists(userPath):
+		return open(userPath)
+	else:
+		return pkg_resources.resource_stream('gavo', "resources/"+name)
 
 
 def main():

@@ -289,7 +289,7 @@ class _SettableAction(JobAction):
 			val = self.deserializeValue(raw)
 		except ValueError:  
 			raise base.ui.logOldExc(uws.UWSError("Invalid %s value: %s."%(
-				self.name.upper(), repr(raw))))
+				self.name.upper(), repr(raw)), job.jobId))
 		with job.getWritable() as wjob:
 			setattr(wjob, self.attName, val)
 		raise svcs.WebRedirect("async/"+job.jobId)

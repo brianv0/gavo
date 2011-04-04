@@ -4,8 +4,6 @@ Common code for the nevow based interface.
 
 import os
 
-import pkg_resources
-
 from nevow import tags as T, entities as E
 from nevow import loaders
 from nevow import inevow

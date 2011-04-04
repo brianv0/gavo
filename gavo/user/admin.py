@@ -209,6 +209,18 @@ def cacheprev(querier, args):
 	reactor.run()
 
 
+@exposedFunction([Arg(help="rd#table-id of the table of interest", 
+	dest="tableId")],
+	help="Show the statements to create the indices on a table.")
+def indexStatements(querier, args):
+	import re
+	from gavo import api
+	td = base.resolveId(None, args.tableId)
+	for ind in td.indices:
+		print "\n".join(re.sub(r"\s+", " ", s) for s in ind.iterCode())
+
+
+
 def main():
 	base.setDBProfile("admin")
 	querier = base.SimpleQuerier()
