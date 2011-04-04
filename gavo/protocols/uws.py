@@ -484,9 +484,15 @@ class UWSJob(ROUWSJob):
 		jobsTable.commit()
 
 		# Can't race for jobId here since _allocateDataDir uses mkdtemp
-		res = cls(kws["jobId"], jobsTable)
-		for key, value in args.iteritems():
-			res.addParameter(key, value)
+		try:
+			res = cls(kws["jobId"], jobsTable)
+			for key, value in args.iteritems():
+				res.addParameter(key, value)
+		except:
+			# if a bad parameter was used to create the job, kill it right away
+			res.delete()
+			res.close()
+			raise
 		return res
 
 	@classmethod
@@ -585,7 +591,6 @@ class UWSJob(ROUWSJob):
 		}
 		with open(os.path.join(self.getWD(), "__EXCEPTION__"), "w") as f:
 			pickle.dump(errInfo, f)
-	
 
 
 def cleanupJobsTable(includeFailed=False, includeCompleted=False,

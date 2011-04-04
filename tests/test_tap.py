@@ -277,3 +277,19 @@ class SimpleAsyncTest(TAPRenderTest):
 			"REQUEST": "doQuery", "LANG": "ADQL", 
 			"QUERY": "SELECT ra FROM taptest.main WHERE ra<3"}
 		).addCallback(checkPosted)
+
+	def testBadConstructionArgument(self):
+		def checkPosted(result):
+			request = result[1]
+			self.assertEqual(request.code, 400)
+			self.failUnless("base 10: 'kaputt" in result[0])
+			# it would be cool if we could check that the job has actually
+			# not been created -- but even looking at the DB that's not trivial
+			# to do reliably.
+
+		return trialhelpers.runQuery(self.renderer, "POST", "/async", {
+			"REQUEST": "doQuery", "LANG": "ADQL", 
+			"MAXREC": "kaputt",
+			"QUERY": "SELECT ra FROM taptest.main WHERE ra<3"}
+		).addCallback(checkPosted)
+
