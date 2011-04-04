@@ -62,6 +62,21 @@ machinery -->
 		<FEED source="tablecols"/>
 	</table>
 
+	<STREAM id="mapUserItems">
+		<doc>
+			Standard mappings copying the standard //products#define rowdict items
+			to their target columns in tables containing products.
+
+			You only need this if you do not have "standard" products
+			(as for siap, ssap, etc.)
+		</doc>
+		<map dest="accref" src="prodtblAccref"/>
+		<map dest="accsize" src="prodtblFsize"/>
+		<map dest="owner" src="prodtblOwner"/>
+		<map dest="embargo" src="prodtblEmbargo"/>
+		<map dest="mime" src="prodtblMime"/>
+	</STREAM>
+
 	<procDef type="rowfilter" id="define">
 		<doc>
 			enters the values defined by the product interface into result.
