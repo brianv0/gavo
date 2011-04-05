@@ -73,7 +73,7 @@
 			type="double precision" required="True"/>
 	</table>
 
-	<table id="typestable" onDisk="True">
+	<table id="typesTable" onDisk="True">
 		<column name="anint" tablehead="An Integer" type="integer"/>
 		<column name="afloat" tablehead="Some Real"/>
 		<column name="adouble" tablehead="And a Double"
@@ -84,7 +84,7 @@
 	</table>
 
 	<data id="tableMaker">
-		<table original="typestable" id="m_typestable" onDisk="False"/>
+		<table original="typesTable" id="m_typestable" onDisk="False"/>
 		<rowsetGrammar enc="iso8859-1" fieldsFrom="m_typestable"/>
 		<rowmaker id="tm_m_typestable" idmaps="anint,afloat,adouble,atext,adate"/>
 		<make table="m_typestable" rowmaker="tm_m_typestable"/>
@@ -118,7 +118,7 @@
 		<make table="adql"/>
 	</data>
 
-	<table id="valspec" onDisk="True">
+	<table id="valSpec" onDisk="True">
 		<column name="numeric" required="True">
 			<values min="10" max="15"/>
 		</column>
@@ -144,7 +144,7 @@
 			</column>
 			<column name="docReq" required="True" type="text"/>
 		</table>
-		<make table="valspec"/>
+		<make table="valSpec"/>
 		<make table="valuesdoc" role="docrec"/>
 	</data>
 

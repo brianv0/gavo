@@ -125,7 +125,7 @@ class ValidationTest(unittest.TestCase):
 	def testNumeric(self):
 		"""tests for correct evaluation of numeric limits.
 		"""
-		recDef = self.rd.getTableDefById("valspec")
+		recDef = self.rd.getTableDefById("valSpec")
 		self.assert_(recDef.validateRow({"numeric": 10,
 			"enum": None})==None)
 		self.assert_(recDef.validateRow({"numeric": 15,
@@ -144,7 +144,7 @@ class ValidationTest(unittest.TestCase):
 	def testOptions(self):
 		"""tests for correct interpretation of values enumeration.
 		"""
-		recDef = self.rd.getTableDefById("valspec")
+		recDef = self.rd.getTableDefById("valSpec")
 		self.assert_(recDef.validateRow({"numeric": 10, "enum": "bad"})==None)
 		self.assert_(recDef.validateRow({"numeric": 10, "enum": "gruesome"})==None)
 		self.assertRaises(base.ValidationError, recDef.validateRow, 
@@ -157,7 +157,7 @@ class ValidationTest(unittest.TestCase):
 	def testOptional(self):
 		"""tests for correct validation of non-optional values.
 		"""
-		recDef = self.rd.getTableDefById("valspec")
+		recDef = self.rd.getTableDefById("valSpec")
 		rec = {}
 		try:
 			recDef.validateRow(rec)

@@ -323,7 +323,7 @@ class MetaTest(testhelpers.VerboseTest):
 	"""
 	def _getTestData(self):
 		table = rsc.TableForDef(
-			testhelpers.getTestRD().getById("typestable").change(onDisk=False,
+			testhelpers.getTestRD().getById("typesTable").change(onDisk=False,
 				id="fud"),
 			rows=[{"anint": 10, "afloat": 0.1, "adouble": 0.2,
 				"atext": "a", "adate": datetime.date(2004, 01, 01)}])

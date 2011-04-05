@@ -101,7 +101,7 @@ class TestWithTableCreation(testhelpers.VerboseTest):
 class TestPrivs(TestWithTableCreation):
 	"""Tests for privilege management.
 	"""
-	tableName = "valspec"
+	tableName = "valSpec"
 
 	def testDefaultPrivileges(self):
 		self._assertPrivileges(self.querier.getTablePrivileges(
@@ -142,7 +142,7 @@ class TestRoleSetting(TestPrivs):
 
 
 class SimpleQuerierTest(TestWithTableCreation):
-	tableName = "typestable"
+	tableName = "typesTable"
 	rows = [{"anint": 3, "afloat": 3.25, "adouble": 7.5,
 			"atext": "foo", "adate": datetime.date(2003, 11, 13)}]
 	
@@ -161,14 +161,14 @@ class SimpleQuerierTest(TestWithTableCreation):
 
 
 class TestMetaTable(TestWithTableCreation):
-	tableName = "typestable"
+	tableName = "typesTable"
 
 	def testDcTablesEntry(self):
 		q = base.SimpleQuerier()
 		res = q.query("select * from dc.tablemeta where tableName=%(n)s",
 			{"n": self.tableDef.getQName()}).fetchall()
 		qName, srcRd, td, rd, adql = res[0]
-		self.assertEqual(qName, 'test.typestable')
+		self.assertEqual(qName, 'test.typesTable')
 		self.assertEqual(srcRd.split("/")[-1], 'test')
 		self.assertEqual(adql, False)
 

@@ -109,7 +109,7 @@ class CLITest(testhelpers.VerboseTest):
 				stdoutStrings=["Columns affected: 2"])
 
 			self.failUnless(querier.tableExists("test.prodtest"))
-			self.failIf(querier.tableExists("test.typestable"))
+			self.failIf(querier.tableExists("test.typesTable"))
 
 			self.assertOutput(cli.main,
 				argList=["--disable-spew", "--suppress-log", "publish", "data/test"])

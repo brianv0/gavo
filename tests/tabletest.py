@@ -126,14 +126,14 @@ class WrapTest(testhelpers.VerboseTest):
 	"""
 	def testWithRd(self):
 		table = rsc.TableForDef(
-			testhelpers.getTestRD().getById("typestable").change(onDisk=False))
+			testhelpers.getTestRD().getById("typesTable").change(onDisk=False))
 		data = rsc.wrapTable(table)
 		self.assertEqual(len(data.tables), 1)
 		self.assertEqual(str(data.getMeta("test.inRd")), "from Rd")
 	
 	def testWithRdSource(self):
 		origTable = rsc.TableForDef(
-			testhelpers.getTestRD().getById("typestable").change(onDisk=False))
+			testhelpers.getTestRD().getById("typesTable").change(onDisk=False))
 		newTD = rscdef.makeTDForColumns(
 			"copy", origTable.tableDef.columns)
 		data = rsc.wrapTable(rsc.TableForDef(newTD), origTable.tableDef)

@@ -339,7 +339,7 @@ class PostgresQueryMixin(object):
 		*** postgres specific ***
 		"""
 		res = self.query("SELECT relacl FROM pg_class WHERE"
-			" relname=%(tableName)s AND"
+			" lower(relname)=lower(%(tableName)s) AND"
 			" relnamespace=(SELECT oid FROM pg_namespace WHERE nspname=%(schema)s)",
 			locals()).fetchall()
 		try:
