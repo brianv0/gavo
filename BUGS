@@ -261,3 +261,9 @@
 
 64/WISHLIST/2011-03-15/FIXED
 	Generate prettier names for ADQL result tables. [in rev. 1816]
+
+65/WISHLIST/2011-04-04
+	SIAP tables should have their dates in MJD; that helps obscore a lot
+	and may obsolete some ugly hacks in valuemapper.  Wenn doing this, don't
+	forget to fix obscore#publishSIAP.  While doing that, require exposure
+	time in SIAP and fix tMin and tMax.

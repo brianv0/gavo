@@ -130,7 +130,7 @@ class MetaTableHandler(object):
 				raise base.ui.logOldExc(
 					base.NotFoundError(tableName, "Table", "dc_tables"))
 			return base.caches.getRD(tableRec["sourceRD"]
-				).getById(tableName.split(".")[1])
+				).getById(tableRec["tableName"].split(".")[-1])
 		finally:
 			self.conn.rollback()
 

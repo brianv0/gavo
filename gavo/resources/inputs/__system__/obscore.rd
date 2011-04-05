@@ -259,9 +259,10 @@
 				parts = ["(%s)"%row["sqlFragment"]
 					for row in ocTable.iterQuery(ocTable.tableDef, "")]
 				if parts:
-					table.query("drop view \schema.ObsCore")
-					table.query("create view \schema.ObsCore as (%s)"%(
+					table.query("drop view ivoa.ObsCore")
+					table.query("create view ivoa.ObsCore as (%s)"%(
 						" UNION ".join(parts)))
+					table.updateMeta()
 			</script>
 		</make>
 	</data>
@@ -273,13 +274,14 @@
 		obscoreClause = table.tableDef.getProperty("obscoreClause")
 
 		# fix a couple of fields as needed
-		obscoreClause = re.sub(r"\$COMPUTE AS obs_publisher_did",
-			"'ivo://%s/getproduct#' || accref"%base.getConfig('ivoa', 'authority')+
-				" AS obs_publisher_did",
-			re.sub(r"\$COMPUTE AS access_url",
+		for srcRE, replacement in [
+			(r"\$COMPUTE AS obs_publisher_did",
+				"'ivo://%s/getproduct#' || accref"%base.getConfig('ivoa', 'authority')+
+					" AS obs_publisher_did"),
+			(r"\$COMPUTE AS access_url",
 				"'%s?key=' || accref AS access_url"%
-					base.makeAbsoluteURL("/getproduct"), 
-				obscoreClause))
+					base.makeAbsoluteURL("/getproduct")),]:
+			obscoreClause = re.sub(srcRE, replacement, obscoreClause)
 
 		from gavo import rsc
 		ots = rsc.TableForDef(
@@ -323,6 +325,7 @@
 			This simply is tMax-tMin for simple exposures.">NULL</mixinPar>
 
 		<events>
+			<adql>True</adql>
 			<property name="obscoreClause">
 						\productType AS dataproduct_type,
 						\productSubtype AS dataproduct_subtype,
@@ -487,10 +490,10 @@
 			>NULL</mixinPar>
 		<mixinPar name="tMin" description="preset for SIAP; if you want,
 			change this to start of observation as available."
-			>dateObs</mixinPar>
+			>(to_char(dateObs, 'J')::double precision-2400000.5)</mixinPar>
 		<mixinPar name="tMax" description="preset for SIAP; if you want,
 			change this to end of observation as available."
-			>dateObs</mixinPar>
+			>(to_char(dateObs, 'J')::double precision-2400000.5)</mixinPar>
 		<mixinPar name="emMin" description="preset for SIAP"
 			>bandpassLo</mixinPar>
 		<mixinPar name="emMax" description="preset for SIAP"
