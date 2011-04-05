@@ -61,7 +61,7 @@ def getTableForTableDef(tableDef):
 	return VS1.table[
 		VS1.name[tableDef.getQName()],
 		VS1.title[tableDef.getMeta("title", propagate=False)],
-		VS1.title[tableDef.getMeta("description", propagate=False)], [
+		VS1.description[tableDef.getMeta("description", propagate=True)], [
 			getTableColumnFromColumn(col, VS1.voTableDataType)
 				for col in tableDef], [
 			getForeignKeyForForeignKey(fk)
