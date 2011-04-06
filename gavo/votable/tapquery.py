@@ -376,6 +376,12 @@ def request(host, path, data="", customHeaders={}, method="GET",
 
 	data usually is a byte string, but you can also pass a dictionary
 	which then will be serialized using _FormData above.
+
+	You can set followRedirects to True.  This means that the 
+	303 "See other" codes that many UWS action generate will be followed 
+	and the document at the other end will be obtained.  For many
+	operations this will lead to an error; only do this for slightly
+	broken services.
 	"""
 	headers = {"connection": "close",
 		"user-agent": "Python TAP library http://vo.uni-hd.de/odocs"}
@@ -399,7 +405,9 @@ def request(host, path, data="", customHeaders={}, method="GET",
 	resp.data = resp.read()
 	conn.close()
 
-	if followRedirects and resp.status==303:
+	if ((followRedirects and resp.status==303)
+			or resp.status==301
+			or resp.status==302):
 		parts = urlparse.urlparse(resp.getheader("location"))
 		assert parts.scheme=="http"
 		return request(parts.netloc, parts.path+'?'+parts.query, 

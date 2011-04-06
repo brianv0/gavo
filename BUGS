@@ -267,3 +267,7 @@
 	and may obsolete some ugly hacks in valuemapper.  Wenn doing this, don't
 	forget to fix obscore#publishSIAP.  While doing that, require exposure
 	time in SIAP and fix tMin and tMax.
+
+66/MEDIUM/2011-04-06
+	ADQL INTERSECTS with a point is supposed to be an overlap.  In our
+	current code, it's an error.

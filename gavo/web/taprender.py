@@ -39,7 +39,7 @@ class UWSRedirect(rend.Page):
 	The DC-global redirects use a 302 status, munge redirection URLs, and 
 	we don't want any HTML payload here anyway.
 
-	The locactions used here are relative to the tap-renderer's URL
+	The locations used here are relative to the tap-renderer's URL
 	(i.e., async/ points to the async root).
 	"""
 	def __init__(self, location):

@@ -472,3 +472,34 @@ class ExternalRenderer(grend.ServiceBasedPage):
 		else: # no publication, 404
 			raise svcs.UnknownURI()
 		raise svcs.WebRedirect(str(pub.getMeta("accessURL")))
+
+
+class RdInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
+	"""A renderer for displaying various properties about a resource descriptor.
+	
+	This renderer could really be attached to any service since
+	it does not call it, but it usually lives on //services/overview.
+
+	By virtue of builtin vanity, you can reach the rdinfo renderer
+	at /browse, and thus you can access /browse/foo/q to view the RD infos.
+	This is the form used by table registrations.
+	"""
+	name = "rdinfo"
+	customTemplate = svcs.loadSystemTemplate("rdinfo.html")
+
+	def locateChild(self, ctx, segments):
+		rdId = "/".join(segments)
+		self.clientRD = base.caches.getRD(rdId)
+		self.setMetaParent(self.clientRD)
+		self.macroPackage = self.clientRD
+
+	defaultDocFactory =  common.doctypedStan(
+		T.html[
+			T.head[
+				T.title["Missing Template"]],
+			T.body[
+				T.p["RD infos are only available with an rdinfo.html template"]]
+		])
+
+
+
