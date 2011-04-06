@@ -261,7 +261,7 @@
 				if parts:
 					table.query("drop view ivoa.ObsCore")
 					table.query("create view ivoa.ObsCore as (%s)"%(
-						" UNION ".join(parts)))
+						" UNION ALL ".join(parts)))
 					table.updateMeta()
 			</script>
 		</make>
@@ -315,8 +315,6 @@
 		<mixinPar name="targetClass" description="Class of target object(s).
 			You should take whatever you put here from 
 			http://simbad.u-strasbg.fr/guide/chF.htx">NULL</mixinPar>
-		<mixinPar name="sResolution" description="The (best) angular
-			resolution within the data set, in arcsecs">NULL</mixinPar>
 		<mixinPar name="tResolution" description="Temporal resolution"
 			>NULL</mixinPar>
 		<mixinPar name="emResPower" description="Spectral resolution as
@@ -456,6 +454,8 @@
 			represented in the data set, in meters.">NULL</mixinPar>
 		<mixinPar name="oUCD" description="UCD of the observable quantity, 
 			e.g., em.opt for wide-band optical frames.">NULL</mixinPar>
+		<mixinPar name="sResolution" description="The (best) angular
+			resolution within the data set, in arcsecs">NULL</mixinPar>
 
 		<LFEED source="_publishProduct"/>
 		<LFEED source="_publishCommon"/>
@@ -484,10 +484,8 @@
 			extent along the X axis as a very rough estimate for the size.
 			If you can do better, by all means do."
 			>pixelScale[1]*pixelSize[1]</mixinPar>
-		<mixinPar name="coverage" description="preset for SIAP; TODO: use coverage
-		here (this does not work right now since postgres can 'not identify an ordering
-		operator for type spoly'; figure out what's wrong)"
-			>NULL</mixinPar>
+		<mixinPar name="coverage" description="preset for SIAP"
+			>coverage</mixinPar>
 		<mixinPar name="tMin" description="preset for SIAP; if you want,
 			change this to start of observation as available."
 			>(to_char(dateObs, 'J')::double precision-2400000.5)</mixinPar>
@@ -501,6 +499,11 @@
 		<mixinPar name="oUCD" description="preset for SIAP; fix if you either
 			know more about the band of if your images are not in the optical."
 			>'em.opt'</mixinPar>
+		<mixinPar name="sResolution" description="preset for SIAP; this is
+			just the pixel scale in one dimension.  If that's seriously
+			wrong or you have uncalibrated images in your collection, you
+			may need to be more careful here."
+			>pixelScale[0]*3600</mixinPar>
 
 		<LFEED source="_publishProduct"/>
 		<LFEED source="_publishCommon"/>
