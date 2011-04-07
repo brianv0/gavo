@@ -285,6 +285,11 @@
 			sets siap meta *and* product table fields.
 	
 			These fields are common to all SIAP implementations.
+
+			Unless you are sure you will never publish the table to
+			obscore, make sure bandpassUnit is m.  Also, typically you
+			will fill in bandpassId and then let the getBandpassFromFilter
+			apply do the job.
 		</doc>
 		<setup>
 			<par key="title" late="True" description="image title.  This

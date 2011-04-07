@@ -25,6 +25,10 @@ isoTimestampFmt = "%Y-%m-%dT%H:%M:%SZ"
 isoTimestampFmtNoTZ = "%Y-%m-%dT%H:%M:%S"
 entityrefPat = re.compile("&([^;])+;")
 
+# file names that don't cause headaches in URLs and are otherwise reasonable
+# benign (so, let's disallow shell metachars while we're at it).
+_SAFE_FILENAME = re.compile("[%,-:=@-Z_a-z{}~-]+$")
+
 xmlEntities = {
 		'lt': '<',
 		'gt': '>',
@@ -69,14 +73,24 @@ def formatSimpleTable(data):
 	return table
 
 
-def getRelativePath(fullPath, rootPath):
+def getRelativePath(fullPath, rootPath, liberalChars=False):
 	"""returns rest if fullPath has the form rootPath/rest and raises an
 	exception otherwise.
+
+	Pass liberalChars=True to allow URL-dangerous characters in the
+	path.  If you don't, the function will raise a ValueError when
+	non-ASCII characters or blanks, amperands, pluses and similar are
+	in the relative path.
 	"""
 	if not fullPath.startswith(rootPath):
 		raise ValueError(
 			"Full path %s does not start with resource root %s"%(fullPath, rootPath))
-	return fullPath[len(rootPath):].lstrip("/")
+	res = fullPath[len(rootPath):].lstrip("/")
+	if not liberalChars and not _SAFE_FILENAME.match(res):
+		raise ValueError("File path '%s' contains characters known to"
+			" the GAVO staff to be hazardous in URLs.  Please defuse the name"
+			" before using it for published names."%res)
+	return res
 
 
 def resolvePath(rootPath, relPath):

@@ -81,7 +81,7 @@ machinery -->
 		<doc>
 			enters the values defined by the product interface into result.
 
-			See the documentation on the product interface.
+			See the documentation on the //products#table mixin.
 		</doc>
 		<setup>
 			<par key="table" description="the table this product is managed in.
@@ -197,7 +197,20 @@ machinery -->
 
 			A "product" here is some kind of binary, typically a FITS file.
 			The table receives the columns accref, accsize, owner, and embargo
-			(which is defined in __system__/products#prodcolUsertable).
+			(which is defined in //products#prodcolUsertable).
+
+			By default, the accref is the path to the file relative to the inputs
+			directory; this is also what /getproduct expects for local products.
+			You can of course enter URLs to other places.
+			
+			For local files, you are strongly encouraged to keep the accref URL- and
+			shell-clean, the most important reason being your users' sanity. 
+			Another is that obscore in the current implementation does no 
+			URL escaping for local files.  So, just don't use characters like
+			like +, the ampersand, apostrophes and so on; the default
+			accref parser will reject those anyway.  Actually, try
+			making do with alphanumerics, the underscore, the dash, and the dot,
+			ok?
 
 			owner and embargo let you introduce access control.  Embargo is a
 			date at which the product will become publicly available.  As long
@@ -207,8 +220,9 @@ machinery -->
 			In addition, the mixin arranges for the products to be added to the
 			system table products, which is important when delivering the files.
 
-			Tables mixing this in should be fed from grammars using the define
-			rowgen.
+			Tables mixing this in should be fed from grammars using the 
+			//products#define row filter.
+
 		</doc>
 		
 		<FEED source="//products#hackProductsData"/>

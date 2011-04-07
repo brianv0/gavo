@@ -5,6 +5,8 @@ Tests pertaining to the parsing system
 import datetime
 import itertools
 import os
+import shutil
+import tempfile
 import unittest
 
 from gavo import base
@@ -129,6 +131,63 @@ class TestProductsImport(testhelpers.VerboseTest):
 					'</table></resource>',))
 
 
+class _WildResource(testhelpers.TestResource):
+	def make(self, ignored):
+		tempPath = tempfile.mkdtemp(suffix="parsetest", 
+			dir=str(base.getConfig("inputsdir")))
+		rdSrc = """<resource schema="%s">
+			<table onDisk="true" id="deleteme" mixin="//products#table"/>
+			<data id="import">
+				<sources pattern="*"/>
+				<keyValueGrammar>
+					<rowfilter procDef="//products#define">
+						<bind key="table">"deleteme"</bind>
+					</rowfilter>
+				</keyValueGrammar>
+				<make table="deleteme"/>
+			</data>
+		</resource>"""%os.path.basename(tempPath)
+		rd = base.parseFromString(rscdesc.RD, rdSrc)
+		return rd
+	
+	def clean(self, rd):
+		shutil.rmtree(rd.resdir)
+
+
+class ProductsBadNameTest(testhelpers.VerboseTest):
+# Products are supposed to have well-behaved file names.
+# This is a test making sure bad file names are rejected.
+
+	resources = [("rd", _WildResource())]
+
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+
+	def _runTest(self, sample):
+		destName, shouldBeOk = sample
+		with open(destName, "w") as f:
+			fullPath = os.path.abspath(f.name)
+		try:
+			ex = None
+			try:
+				list(self.rd.dds[0].grammar.parse(fullPath, None))
+			except ValueError, ex:
+				pass
+			if shouldBeOk and ex:
+				raise AssertionError("Filename %s should be legal but is not"%destName)
+			elif not shouldBeOk and ex is None:
+				raise AssertionError("Filename %s should be illegal"
+					" but is not"%destName)
+		finally:
+			os.unlink(fullPath)
+	
+	samples = [
+		("ok_LOT,allowed-this_ought,to10000%do.file", True),
+		("Q2232+23.fits", False),
+		("A&A23..1.fits", False),
+		("name with blank.fits", False),
+		("don't want quotes", False),]
+
+
 class TestCleanedup(testhelpers.VerboseTest):
 	"""tests for cleanup after table drop (may fail if other tests failed).
 	"""
@@ -155,4 +214,4 @@ class TestCleanedup(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(TestCleanedup)
+	testhelpers.main(ProductsBadNameTest)
