@@ -165,7 +165,7 @@
 	</dbCore>
 
 	<service id="overview" core="overviewcore" 
-			allowed="form,external,admin">
+			allowed="form,external,admin,rdinfo">
 		<meta name="shortName">_cs_srv</meta>
 		<meta name="title">Published Services</meta>
 		<meta name="description">A list of all services published on the

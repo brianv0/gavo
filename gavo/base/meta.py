@@ -541,9 +541,9 @@ class MetaItem(object):
 			return MetaCardError("No getMeta for meta value sequences",
 				carrier=self)
 
-	def getContent(self, targetFormat="text"):
+	def getContent(self, targetFormat="text", macroPackage=None):
 		if len(self.children)==1:
-			return self.children[0].getContent(targetFormat)
+			return self.children[0].getContent(targetFormat, macroPackage)
 		raise MetaCardError("getContent not allowed for sequence meta items",
 			carrier=self)
 
@@ -628,14 +628,19 @@ class MetaValue(MetaMixin):
 
 	def _getContentAsText(self, content):
 		return content
-	
-	def _getContentAsHTML(self, content):
+
+	def _getContentAsHTML(self, content, block=False):
+		if block:
+			encTag = "p"
+		else:
+			encTag = "span"
 		if self.format=="literal":
-			return '<span class="literalmeta">%s</span>'%content
+			return '<%s class="literalmeta">%s</%s>'%(encTag, content, encTag)
 		elif self.format=="plain":
-			return "\n".join('<span class="plainmeta">%s</span>'%p 
+			return "\n".join('<%s class="plainmeta">%s</%s>'%(encTag, p, encTag)
 				for p in content.split("\n\n"))
 		elif self.format=="rst":
+# XXX TODO: figure out a way to have them block=False
 			return metaRstToHtml(content)
 		elif self.format=="raw":
 			return content
@@ -648,6 +653,8 @@ class MetaValue(MetaMixin):
 			return self._getContentAsText(content)
 		elif targetFormat=="html":
 			return self._getContentAsHTML(content)
+		elif targetFormat=="blockhtml":
+			return self._getContentAsHTML(content, block=True)
 		else:
 			raise MetaError("Invalid meta target format: %s"%targetFormat)
 

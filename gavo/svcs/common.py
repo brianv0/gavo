@@ -245,8 +245,9 @@ def getTemplatePath(key):
 	if os.path.exists(userPath):
 		return userPath
 	else:
-		return pkg_resources.resource_filename('gavo',
-			os.path.join("resources", "templates", key))
+		resPath = "resources/templates/"+key
+		if pkg_resources.resource_exists('gavo', resPath):
+			return pkg_resources.resource_filename('gavo', resPath)
 
 
 def loadSystemTemplate(key):
@@ -257,6 +258,8 @@ def loadSystemTemplate(key):
 	returned (this harmonizes with the fallback in CustomTemplateMixin).
 	"""
 	try:
-		return loaders.xmlfile(getTemplatePath(key))
+		tp = getTemplatePath(key)
+		if tp is not None:
+			return loaders.xmlfile(tp)
 	except IOError:
 		pass

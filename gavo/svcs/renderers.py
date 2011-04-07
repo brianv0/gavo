@@ -22,6 +22,7 @@ RENDERER_REGISTRY = {
 	'external': ("web.metarender", "ExternalRenderer"),
 	'tablenote': ("web.metarender", "TableNoteRenderer"),
 	'tableinfo': ("web.metarender", "TableInfoRenderer"),
+	'rdinfo': ("web.metarender", "RDInfoRenderer"),
 	'info': ("web.metarender", "ServiceInfoRenderer"),
 	'img.jpeg': ("web.oddrender", "JpegRenderer"),
 	'mimg.jpeg': ("web.oddrender", "MachineJpegRenderer"),

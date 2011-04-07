@@ -99,7 +99,7 @@ class GavoRenderMixin(common.CommonRenderers, base.MetaMixin):
 		"""returns the value for the meta key metaName on this service.
 		"""
 		def get(ctx, data):
-			return self.service.getMeta(metaName)
+			return self.getMeta(metaName)
 		return get
 		
 	def render_meta(self, ctx, data):

@@ -474,7 +474,7 @@ class ExternalRenderer(grend.ServiceBasedPage):
 		raise svcs.WebRedirect(str(pub.getMeta("accessURL")))
 
 
-class RdInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
+class RDInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	"""A renderer for displaying various properties about a resource descriptor.
 	
 	This renderer could really be attached to any service since
@@ -487,11 +487,60 @@ class RdInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 	name = "rdinfo"
 	customTemplate = svcs.loadSystemTemplate("rdinfo.html")
 
+	def data_services(self, ctx, data):
+		return sorted(self.clientRD.services, 
+			key=lambda s: base.getMetaText(s, "title", default=s.id))
+	
+	def data_tables(self, ctx, data):
+		return sorted(self.clientRD.tables,
+			key=lambda t: t.id)
+
+	def _getDescriptionHTML(self, descItem):
+		"""returns stan for the "description" of a service or a table.
+
+		The RD's description is not picked up.
+		"""
+		iDesc = descItem.getMeta("description", propagate=False)
+		if iDesc is None:
+			return ""
+		else:
+			return T.div(class_="lidescription")[
+				T.xml(iDesc.getContent("blockhtml", iDesc))]
+
+	def render_rdsvc(self, ctx, service):
+		return ctx.tag[
+			T.a(href=service.getURL("info"))[
+				base.getMetaText(service, "title", default=service.id)],
+				self._getDescriptionHTML(service)]
+			
+	def render_rdtable(self, ctx, tableDef):
+		qName = tableDef.getQName()
+
+		adqlNote = ""
+		if tableDef.adql:
+			adqlNote = T.span(class_="adqlnote")[" ",
+				E.ndash, " queriable through ",
+				T.a(href="/tap")["TAP"], " and ", 
+				T.a(href="/adql")["ADQL"],
+				" "]
+
+		return ctx.tag[
+			T.a(href="/tableinfo/%s"%qName)[qName],
+			adqlNote,
+			self._getDescriptionHTML(tableDef)]
+
+	def render_title(self, ctx, data):
+		return ctx.tag["Information on resource '%s'"%base.getMetaText(
+			self.clientRD, 
+			"title", 
+			default="Untitle resource %s"%self.clientRD.sourceId)]
+
 	def locateChild(self, ctx, segments):
 		rdId = "/".join(segments)
 		self.clientRD = base.caches.getRD(rdId)
 		self.setMetaParent(self.clientRD)
 		self.macroPackage = self.clientRD
+		return self, ()
 
 	defaultDocFactory =  common.doctypedStan(
 		T.html[

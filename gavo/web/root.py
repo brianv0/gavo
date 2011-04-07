@@ -63,6 +63,7 @@ builtinVanity = """
 	__system__/dc_tables/show/tablenote tablenote
 	__system__/dc_tables/show/tableinfo tableinfo
 	__system__/services/overview/admin seffe
+	__system__/services/overview/rdinfo browse
 	__system__/tap/run/tap tap
 	__system__/adql/query/form adql !redirect
 """
