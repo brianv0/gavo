@@ -57,6 +57,11 @@ class MetaRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 				T.a(href=url.URL.fromRequest(request).add("dbOrder", "True"))[
 					"[Sort by DB column index]"]]
 
+	def render_rdInfoLink(self, ctx, data):
+		# a link to the info to data's RD (i.e., data needs an rd attribute).
+		return ctx.tag(href="/browse/"+data.rd.sourceId)[
+			RDInfoRenderer.makePageTitle(data.rd)]
+
 	def render_ifkey(self, keyName):
 		def render(ctx, data):
 			if data.has_key(keyName):
@@ -305,6 +310,9 @@ class ServiceInfoRenderer(MetaRenderer, utils.IdManagerMixin):
 	def data_browserURL(self, ctx, data):
 		return self.service.getBrowserURL()
 
+	def data_service(self, ctx, data):
+		return self.service
+
 	defaultDocFactory = common.doctypedStan(
 		T.html[
 			T.head[
@@ -369,6 +377,9 @@ class TableInfoRenderer(MetaRenderer):
 			return lambda ctx, data: ctx.tag
 		else:
 			return lambda ctx, data: ""
+
+	def data_tableDef(self, ctx, data):
+		return self.table
 
 	def locateChild(self, ctx, segments):
 		if len(segments)!=1:
@@ -529,11 +540,18 @@ class RDInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 			adqlNote,
 			self._getDescriptionHTML(tableDef)]
 
+	@classmethod
+	def makePageTitle(cls, rd):
+		"""returns a suitable title for the rd info page.
+
+		This is a class method to allow other renderers to generate
+		titles for link anchors.
+		"""
+		return "Information on resource '%s'"%base.getMetaText(
+			rd, "title", default="Untitled resource %s"%rd.sourceId)
+
 	def render_title(self, ctx, data):
-		return ctx.tag["Information on resource '%s'"%base.getMetaText(
-			self.clientRD, 
-			"title", 
-			default="Untitle resource %s"%self.clientRD.sourceId)]
+		return ctx.tag[self.makePageTitle(self.clientRD)]
 
 	def locateChild(self, ctx, segments):
 		rdId = "/".join(segments)

@@ -13,17 +13,21 @@
 		<p n:render="ifownmeta description"><strong>Table Description:</strong>
 			<n:invisible n:render="metahtml">description</n:invisible></p>
 
-		<p n:render="ifrdmeta description"><strong>Resource Description:</strong>
-			<n:invisible n:render="rdmeta">description</n:invisible></p>
-
-		<p n:render="ifrdmeta referenceURL"><strong>Further Information at:</strong>
-			<n:invisible n:render="rdmeta">referenceURL</n:invisible></p>
-	
 		<p>This table is <strong n:render="ifnodata" n:data="forADQL">not</strong>
 			available for 
 			<a href="/__system__/adql/query/form" n:render="rootlink">
 				<strong>ADQL</strong> queries</a>.</p>
 
+		<p n:render="ifrdmeta description"><strong>Resource Description:</strong>
+			<n:invisible n:render="rdmeta">description</n:invisible></p>
+
+		<p>For a list of <strong>all services and tables</strong> belonging 
+			to this table's 
+			resource, see <a n:data="tableDef" n:render="rdInfoLink"/></p>
+
+		<p n:render="ifrdmeta referenceURL"><strong>Further Information at:</strong>
+			<n:invisible n:render="rdmeta">referenceURL</n:invisible></p>
+	
 		<n:invisible n:render="ifownmeta _longdoc">
 			<h2 class="section">Table Documentation</h2>
 

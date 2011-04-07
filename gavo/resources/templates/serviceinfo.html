@@ -24,6 +24,9 @@
 			<n:invisible n:render="metahtml">description</n:invisible>
 		</div>
 
+		<p>For a list of all services and tables belonging to this service's 
+			resource, see <a n:data="service" n:render="rdInfoLink"/></p>
+
 		<n:invisible n:render="ifmeta _longdoc">
 			<h2 class="section">Service Documentation</h2>
 
@@ -31,6 +34,7 @@
 		</n:invisible>
 
 		<h2 class="section" id="overview">Overview</h2>
+
 		<p><strong>You can access</strong> this service using:</p>
 		<ul n:data="rendAvail" n:render="sequence">
 			<li n:render="mapping" n:pattern="item">
@@ -59,6 +63,7 @@
 				is within GAVO's service registry.</p>
 	
 			</n:invisible>
+
 		</div>
 
 		<div id="siblings" n:render="ifdata" n:data="otherServices">
