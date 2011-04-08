@@ -10,6 +10,21 @@ from gavo.rscdef import common
 from gavo.rscdef import rmkfuncs
 
 
+
+# Move this one to utils?
+def unionByName(*sequences):
+	"""returns all items in sequences uniqued by the item's name attribute.
+
+	The order of the sequence items is not maintained, but items in
+	later sequences override those in earlier ones.
+	"""
+	allItems = {}
+	for seq in sequences:
+		for item in seq:
+			allItems[item.name] = item
+	return allItems.values()
+
+
 class RDParameter(base.Structure):
 	"""A base class for parameters.
 	"""
@@ -132,8 +147,6 @@ class ProcSetup(base.Structure):
 				utils.fixIndentation(frag, "", governingLine=1))
 		return "\n".join(collectedCode)
 
-_emptySetup = ProcSetup(None, code="")
-
 
 class ProcDef(base.Structure, base.RestrictionMixin):
 	"""An embedded procedure.
@@ -156,7 +169,7 @@ class ProcDef(base.Structure, base.RestrictionMixin):
 
 	_code = base.UnicodeAttribute("code", default=base.NotGiven,
 		copyable=True, description="A python function body.")
-	_setup = base.StructAttribute("setup", ProcSetup, default=_emptySetup,
+	_setup = base.StructListAttribute("setups", ProcSetup,
 		description="Setup of the namespace the function will run in", 
 		copyable=True)
 	_doc = base.UnicodeAttribute("doc", default="", description=
@@ -178,6 +191,22 @@ class ProcDef(base.Structure, base.RestrictionMixin):
 			return ""
 		else:
 			return utils.fixIndentation(self.code, "  ", governingLine=1)
+
+	@utils.memoized
+	def getSetupPars(self):
+		"""returns all parameters used by setup items, where lexically
+		later items override earlier items of the same name.
+		"""
+		return unionByName(*[s.pars for s in self.setups])
+
+	def getLateSetupCode(self, boundNames):
+		return "\n".join(s.getLateCode(boundNames) for s in self.setups)
+
+	def getParSetupCode(self, boundNames):
+		return "\n".join(s.getParCode(boundNames) for s in self.setups)
+
+	def getBodySetupCode(self, boundNames):
+		return "\n".join(s.getBodyCode() for s in self.setups)
 
 
 class ProcApp(ProcDef):
@@ -208,16 +237,23 @@ class ProcApp(ProcDef):
 		if self.name is base.NotGiven:  # make up a name from self's id
 			self.name = ("proc%x"%id(self)).replace("-", "")
 
+	@utils.memoized
+	def getSetupPars(self):
+		"""returns the setup parameters for the proc app, where procDef
+		parameters may be overridden by self's parameters.
+		"""
+		allSetups = []
+		if self.procDef is not base.NotGiven:
+			allSetups.extend(self.procDef.setups)
+		allSetups.extend(self.setups)
+		return unionByName(*[s.pars for s in allSetups])
+
 	def _ensureParsBound(self):
 		"""raises an error if non-defaulted pars of procDef are not filled
 		by the bindings.
 		"""
-		if self.procDef is base.NotGiven:
-			pdNames = []
-		else:
-			pdNames = self.procDef.setup.pars
 		bindNames = set(b.name for b in self.bindings)
-		for p in itertools.chain(pdNames, self.setup.pars):
+		for p in self.getSetupPars():
 			if not p.isDefaulted():
 				if not p.name in bindNames:
 					raise base.StructureError("Parameter %s is not defaulted in"
@@ -236,15 +272,29 @@ class ProcApp(ProcDef):
 		self._onElementCompleteNext(ProcApp)
 		self._boundNames = dict((b.name, b.content_) for b in self.bindings)
 
+	def _combineWithProcDef(self, methodName, boundNames):
+		# A slightly tricky helper method for the implementation of get*SetupCode:
+		# this combines the results of calling methodName on a procDef
+		# (where applicable) with calling it on ProcDef for self.
+		parts = []
+		if self.procDef is not base.NotGiven:
+			parts.append(getattr(self.procDef, methodName)(boundNames))
+		parts.append(getattr(ProcDef, methodName)(self, boundNames))
+		return "\n".join(parts)
+
+	def getLateSetupCode(self, boundNames):
+		return self._combineWithProcDef("getLateSetupCode", boundNames)
+
+	def getParSetupCode(self, boundNames):
+		return self._combineWithProcDef("getParSetupCode", boundNames)
+
+	def getBodySetupCode(self, boundNames):
+		return self._combineWithProcDef("getBodySetupCode", boundNames)
+
 	def getSetupCode(self):
-		setupLines = []
-		if self.procDef is not base.NotGiven:
-			setupLines.append(self.procDef.setup.getParCode(self._boundNames))
-		setupLines.append(self.setup.getParCode(self._boundNames))
-		if self.procDef is not base.NotGiven:
-			setupLines.append(self.procDef.setup.getBodyCode())
-		setupLines.append(self.setup.getBodyCode())
-		code = "\n".join(setupLines)
+		code = "\n".join((
+			self.getParSetupCode(self._boundNames),
+			self.getBodySetupCode(self._boundNames)))
 		if "\\" in code:
 			code = self.parent.expand(code)
 		return code
@@ -253,13 +303,7 @@ class ProcApp(ProcDef):
 		"""returns mainSource in a function definition with proper 
 		signature including setup of late code.
 		"""
-		parts = []
-
-		# "late" code from the procDef's and own setup code is executed
-		# on each invocation.
-		if self.procDef is not base.NotGiven:
-			parts.append(self.procDef.setup.getLateCode(self._boundNames))
-		parts.append(self.setup.getLateCode(self._boundNames))
+		parts = [self.getLateSetupCode(self._boundNames)]
 		parts.append(mainSource)
 		body = "\n".join(parts)
 		if not body.strip():

@@ -19,6 +19,7 @@ class Foo(base.Structure, macros.MacroPackage):
 	name_ = "foo"
 	_apps = base.StructListAttribute("apps", childFactory=TestApp)
 	_defs = base.StructListAttribute("defs", childFactory=procdef.ProcDef)
+
 	def __init__(self, parent, **kwargs):
 		base.Structure.__init__(self, parent, **kwargs)
 		self.source, self.dest = {}, {}
@@ -186,5 +187,70 @@ class OriginalTest(testhelpers.VerboseTest):
 		self.failUnless("genQuery", core.condDescs[0].phraseMaker.getSetupCode())
 
 
+class SetupTest(testhelpers.VerboseTest):
+# Tests going after combining setup parameters and code
+	def testMultiSetupPars(self):
+		f = base.parseFromString(Foo, """<foo><procDef type='t_t' id='b'>
+				<setup><par name="unk1">"def1"</par></setup>
+				<setup><par name="unk2">"def2"</par></setup>
+				</procDef></foo>""")
+		pars = f.defs[0].getSetupPars()
+		pars.sort(key=lambda p: p.name)
+		self.assertEqual(pars[0].name, "unk1")
+		self.assertEqual(pars[1].content_, '"def2"')
+
+	def testOverridingJoin(self):
+		f = base.parseFromString(Foo, """<foo><procDef type='t_t' id='b'>
+					<setup><par name="unk1">"def1"</par></setup>
+					<setup><par name="unk2">"def2"</par></setup></procDef>
+				<procDef type="t_t" id="u" original="b">
+					<setup><par name="unk1">"overridden"</par></setup></procDef></foo>""")
+		pars = f.defs[1].getSetupPars()
+		pars.sort(key=lambda p: p.name)
+		self.assertEqual(len(pars), 2)
+		self.assertEqual(pars[0].name, "unk1")
+		self.assertEqual(pars[0].content_, '"overridden"')
+		self.assertEqual(pars[1].content_, '"def2"')
+
+	def testApplyJoin(self):
+		f = base.parseFromString(Foo, """<foo><procDef type='t_t' id='b'>
+					<setup><par name="unk1">"def1"</par></setup>
+					<setup><par name="unk2">"def2"</par></setup></procDef>
+				<testApp procDef="b">
+					<setup><par name="unk1">"overridden"</par></setup></testApp></foo>""")
+		pars = f.apps[0].getSetupPars()
+		pars.sort(key=lambda p: p.name)
+		self.assertEqual(len(pars), 2)
+		self.assertEqual(pars[0].name, "unk1")
+		self.assertEqual(pars[0].content_, '"overridden"')
+		self.assertEqual(pars[1].content_, '"def2"')
+
+	def testInheritedSetup(self):
+		f = base.parseFromString(Foo, """<foo><procDef type='t_t' id='b'>
+			<setup><par name="unk1">"def1"</par>
+			<code>def f1(i): return unk1*i</code></setup>
+			<setup><par name="unk2">4</par>
+			<code>def f2(s): return s*unk2</code></setup>
+			<setup><par name="c"/><par name="n"/></setup>
+			<code>
+				return f2(c)+f1(n)
+			</code></procDef>
+			<testApp procDef="b"><bind key="c">"a"</bind>
+				<bind name="n">2</bind></testApp></foo>""")
+		func = f.apps[0].compile()
+		self.assertEqual(func(None, None), "aaaadef1def1")
+	
+	def testMultiLateSetup(self):
+		f = base.parseFromString(Foo, """<foo><procDef type='t_t' id='b'>
+			<setup><par late="True" name="unk1">"def1"</par>
+			<code>def f1(a, i): return a*i</code></setup>
+			</procDef>
+			<testApp procDef="b">
+				<setup><par late="True" name="unk1">"over"</par></setup>
+				<code>return f1(unk1, 2)</code></testApp></foo>""")
+		func = f.apps[0].compile()
+		self.assertEqual(func(None, None), "overover")
+
+
 if __name__=="__main__":
-	testhelpers.main(OriginalTest)
+	testhelpers.main(SetupTest)

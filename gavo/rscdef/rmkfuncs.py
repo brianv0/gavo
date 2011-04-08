@@ -227,6 +227,7 @@ def makeProc(funcName, code, setupCode, parent, **moreNames):
 		try:
 			exec setupCode.rstrip() in funcNs
 		except SyntaxError, ex:
+			base.ui.notifyInfo("Code containing a syntax error:\n"+setupCode)
 			raise base.ui.logOldExc(
 				base.BadCode(setupCode, "setup code", ex))
 		except NameError, ex:
