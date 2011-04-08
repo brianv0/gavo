@@ -57,7 +57,7 @@
 
 			=== ===========================================================
 			 0  Raw Instrumental data requiring instrument-specific tools
-			 1  Instrumental data processable with standard tolls
+			 1  Instrumental data processable with standard tools
 			 2  Calibrated, science-ready data without instrument signature
 			 3  Enhanced data products (e.g., mosaics)
 			=== ===========================================================
@@ -98,7 +98,7 @@
 		<column name="access_url" type="text"
 			utype="obscore:access.reference" ucd="meta.ref.url"
 			description="The URL at which to obtain the data set."
-			verbLevel="1">
+			verbLevel="1" displayHint="type=url">
 			<property name="std">1</property>
 		</column>
 
@@ -275,10 +275,10 @@
 
 		# fix a couple of fields as needed
 		for srcRE, replacement in [
-			(r"\$COMPUTE AS obs_publisher_did",
+			(r"CAST\(\$COMPUTE AS text\) AS obs_publisher_did",
 				"'ivo://%s/getproduct#' || accref"%base.getConfig('ivoa', 'authority')+
 					" AS obs_publisher_did"),
-			(r"\$COMPUTE AS access_url",
+			(r"CAST\(\$COMPUTE AS text\) AS access_url",
 				"'%s?key=' || accref AS access_url"%
 					base.makeAbsoluteURL("/getproduct")),]:
 			obscoreClause = re.sub(srcRE, replacement, obscoreClause)
@@ -324,33 +324,36 @@
 
 		<events>
 			<adql>True</adql>
+			<!-- the casts in the following table are there to keep postgres
+			from inferring weird types when parts of the union have NULL
+			entries-->
 			<property name="obscoreClause">
-						\productType AS dataproduct_type,
-						\productSubtype AS dataproduct_subtype,
-						\calibLevel AS calib_level,
-						\collectionName AS obs_collection,
-						\obsId AS obs_id,
-						\title AS obs_title,
-						\did AS obs_publisher_did,
-						\creatorDID AS obs_creator_did,
-						\accessURL AS access_url,
-						\mime AS access_format,
-						\size AS access_estsize,
-						\targetName AS target_name,
-						\targetClass AS target_class,
-						\ra AS s_ra,
-						\dec AS s_dec,
-						\fov AS s_fov,
-						\coverage AS s_region,
-						\sResolution AS s_resolution,
-						\tMin AS t_min,
-						\tMax AS t_max,
-						\expTime AS t_exptime,
-						\tResolution AS t_resolution,
-						\emMin AS em_min,
-						\emMax AS em_max,
-						\emResPower AS em_res_power,
-						\oUCD AS o_ucd
+						CAST(\productType AS text) AS dataproduct_type,
+						CAST(\productSubtype AS text) AS dataproduct_subtype,
+						CAST(\calibLevel AS smallint) AS calib_level,
+						CAST(\collectionName AS text) AS obs_collection,
+						CAST(\obsId AS text) AS obs_id,
+						CAST(\title AS text) AS obs_title,
+						CAST(\did AS text) AS obs_publisher_did,
+						CAST(\creatorDID AS text) AS obs_creator_did,
+						CAST(\accessURL AS text) AS access_url,
+						CAST(\mime AS text) AS access_format,
+						CAST(\size AS bigint) AS access_estsize,
+						CAST(\targetName AS text) AS target_name,
+						CAST(\targetClass AS text) AS target_class,
+						CAST(\ra AS double precision) AS s_ra,
+						CAST(\dec AS double precision) AS s_dec,
+						CAST(\fov AS double precision) AS s_fov,
+						CAST(\coverage AS spoly) AS s_region,
+						CAST(\sResolution AS double precision) AS s_resolution,
+						CAST(\tMin AS double precision) AS t_min,
+						CAST(\tMax AS double precision) AS t_max,
+						CAST(\expTime AS double precision) AS t_exptime,
+						CAST(\tResolution AS double precision) AS t_resolution,
+						CAST(\emMin AS double precision) AS em_min,
+						CAST(\emMax AS double precision) AS em_max,
+						CAST(\emResPower AS double precision) AS em_res_power,
+						CAST(\oUCD AS text) AS o_ucd
 			</property>
 		</events>
 
@@ -503,7 +506,7 @@
 			just the pixel scale in one dimension.  If that's seriously
 			wrong or you have uncalibrated images in your collection, you
 			may need to be more careful here."
-			>pixelScale[0]*3600</mixinPar>
+			>pixelScale[1]*3600</mixinPar>
 
 		<LFEED source="_publishProduct"/>
 		<LFEED source="_publishCommon"/>

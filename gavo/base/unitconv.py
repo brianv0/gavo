@@ -29,6 +29,7 @@ class BadUnit(utils.Error):
 units = {
 	"a": (3600*24*365.25, "s"), # This is the SI/julian year!
 	"A": (1, "A"), 
+	u"\xc5": (1e-10, "m"),
 	"AU": (1.49598e11, "m"), 
 	"arcmin": (math.pi/180./60., "rad"), 
 	"arcsec": (math.pi/180./3600., "rad"), 
