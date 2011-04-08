@@ -166,7 +166,7 @@ class Expression(object):
 		prefix = ""
 		if self.globalFactor!=1:
 			prefix = "%g "%self.globalFactor
-		return prefix+" ".join([str(u) for u in self.units])
+		return prefix+" ".join([unicode(u) for u in self.units])
 
 	def __repr__(self):
 		return repr(self.__str__())

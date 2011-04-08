@@ -9,6 +9,7 @@ import time
 import traceback
 import urllib
 import urlparse
+from cStringIO import StringIO
 from email.Message import Message
 from email.MIMEMultipart import MIMEMultipart
 from xml import sax
@@ -355,6 +356,11 @@ class UWSResult(object):
 		self.href, self.id, self.type = href, id, type
 
 
+class LocalResult(object):
+	def __init__(self, data, id, type):
+		self.data, self.id, self.type = data, id, type
+
+
 def _canUseFormEncoding(params):
 	"""returns true if userParams can be transmitted in a 
 	x-www-form-urlencoded payload.
@@ -695,6 +701,104 @@ class ADQLTAPJob(_WithEndpoint):
 			data=form.as_string(), expectedStatus=303, 
 			customHeaders={"content-type": 
 				form.get_content_type()+'; boundary="%s"'%(form.get_boundary())})
+
+
+class ADQLSyncJob(_WithEndpoint):
+	"""A facade for a synchronous TAP Job.
+
+	This really is just a very glorified urllib.urlopen.  Maybe some
+	superficial parallels to ADQLTAPJob are useful.
+
+	You can construct it, add uploads, and then start or run the thing.
+	Methods that make no sense at all for sync jobs ("phase") silently
+	return some more or less sensible fakes.
+	"""
+	def __init__(self, endpointURL, query=None, jobId=None, lang="ADQL", 
+			userParams={}):
+		self._defineEndpoint(endpointURL)
+		self.query, self.lang = query, lang
+		self.userParams = userParams
+		self.result = None
+		self.error = None
+	
+	def delete(self, usePOST=None):
+		# Nothing to delete
+		pass
+	
+	def abort(self):
+		"""does nothing.
+
+		You could argue that this could come from a different thread and we
+		could try to interrupt the ongoing request.  Well, if you want it,
+		try it yourself or ask the author.
+		"""
+
+	def raiseIfError(self):
+		# inspect self.result?
+		pass
+
+	def waitForPhases(self, phases, pollInterval=None, increment=None,
+			giveUpAfter=None):
+		# you could argue that sync jobs are in no phase, but I'd say
+		# they are in all of them at the same time:
+		return
+
+	def start(self):
+		params={
+			"REQUEST": "doQuery",
+			"LANG": self.lang,
+			"QUERY": self.query}
+		params.update(self.userParams)
+		result = request(self.destHost, self.endpointURL+"/sync", params,
+			method=POST, followRedirects=True)
+# XXX TODO: error handling
+		self.result = LocalResult(resp.data, "TAPResult", resp.getheader(
+			"Content-Type"))
+		return self
+
+	def run(self, pollInterval=None):
+		return self.start()
+
+	@property
+	def info(self):
+		return {}
+
+	@property
+	def phase(self):
+		return None
+	
+	@property
+	def quote(self):
+		return None
+	
+	@property
+	def owner(self):
+		return None
+	
+	@property
+	def parameters(self):
+		return self.userParameters
+	
+	@property
+	def allResults(self):
+		if self.result is None:
+			return []
+		else:
+			return [self.result]
+
+	@property
+	def openResult(self, simple=True):
+		return StringIO(self.result.data)
+
+	def setParameter(self, key, value):
+		self.userParameters[key] = value
+
+	def getErrorFromServer(self):
+# XXX TODO: pending error handling
+		pass
+
+	def addUpload(self, name, data):
+		self.uploads.append((name, data))
 
 
 class ADQLEndpoint(_WithEndpoint):

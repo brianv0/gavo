@@ -172,8 +172,8 @@ def parseArgs(parseResult):
 	"""
 	args = []
 	for _arg in parseResult:
-		# _arg is either another ParseResult or an ADQLNode
-		if isinstance(_arg, ADQLNode):
+		# _arg is either another ParseResult, an ADQL identifier, or an ADQLNode
+		if isinstance(_arg, (ADQLNode, basestring, utils.QuotedName)):
 			args.append(_arg)
 		else:
 			args.append(autocollapse(NumericValueExpression, _arg))
@@ -1280,6 +1280,9 @@ class PredicateGeometryFunction(FunctionNode):
 	def addFieldInfo(self, context):
 		# swallow all upstream info, it really doesn't help here
 		self.fieldInfo = self._pgFieldInfo
+
+	def flatten(self):
+		return "%s(%s)"%(self.funName, ", ".join(flatten(a) for a in self.args))
 
 
 class PointFunction(FunctionNode):

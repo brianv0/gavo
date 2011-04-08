@@ -1309,6 +1309,12 @@ class PGSMorphTest(testhelpers.VerboseTest):
 		("select * from data where 1=contains(point('UNKNOWN', ra,de),"
 			" circle('Galactic',2,3,4))", 
 			"SELECT * FROM data WHERE  ((spoint(RADIANS(ra), RADIANS(de))) @ (scircle(spoint(RADIANS(2), RADIANS(3)), RADIANS(4))))"),
+		("select * from data where 1=intersects(coverage,"
+			"circle('icrs', 10, 10, 1))",
+			"SELECT * FROM data WHERE  ((coverage) && (scircle(spoint(RADIANS(10), RADIANS(10)), RADIANS(1))))"),
+		("select * from data where 1=intersects(\"coVerage\","
+			"circle('icrs', 10, 10, 1))",
+			"SELECT * FROM data WHERE  ((\"coVerage\") && (scircle(spoint(RADIANS(10), RADIANS(10)), RADIANS(1))))"),
 			]
 
 

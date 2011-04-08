@@ -72,11 +72,15 @@ class ElementaryUnitTest(GrammarTest):
 	This is necessary since there are units like mas that would be
 	parsed as <milli><year>*crash*.
 	"""
-	def setUp(self):
-		self.unitGrammar = base.unitconv.getUnitGrammar()
-
-	def testUnits(self):
-		self._assertResults(*[(unit, unit) for unit in base.unitconv.units])
+	__metaclass__ = testhelpers.SamplesBasedAutoTest
+	
+	unitGrammar = base.unitconv.getUnitGrammar()
+	
+	def _runTest(self, sample):
+		self.assertEqual(
+			unicode(self.unitGrammar.parseString(sample)[0]), sample)
+	
+	samples = base.unitconv.units
 
 
 class NormalizationTest(unittest.TestCase):
