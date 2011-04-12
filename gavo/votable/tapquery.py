@@ -497,6 +497,7 @@ class ADQLTAPJob(_WithEndpoint):
 	def __init__(self, endpointURL, query=None, jobId=None, lang="ADQL", 
 			userParams={}, timeout=None):
 		self._defineEndpoint(endpointURL)
+		self.timeout = timeout
 		self.destPath = utils.ensureOneSlash(self.destPath)+"async"
 		if query is not None:
 			self.jobId, self.jobPath = None, None
@@ -505,7 +506,6 @@ class ADQLTAPJob(_WithEndpoint):
 			self.jobId = jobId
 		else:
 			raise Error("Must construct ADQLTAPJob with at least query or jobId")
-		self.timeout = timeout
 		self._computeJobPath()
 	
 	def _computeJobPath(self):
@@ -699,7 +699,7 @@ class ADQLTAPJob(_WithEndpoint):
 		data = request(self.destHost, self.jobPath+"/error",
 			expectedStatus=200, followRedirects=True,
 			timeout=self.timeout).data
-		return self._getErrorInfo(data)
+		return _getErrorInfo(data)
 
 	def addUpload(self, name, data):
 		"""adds uploaded tables, either from a file or as a remote URL.

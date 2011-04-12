@@ -178,7 +178,7 @@ class FieldInfosForQuery(FieldInfos):
 		def traverse(node, context):
 			for c in node.iterNodeChildren():
 				traverse(c, context)
-			if hasattr(node, "addFieldInfo"):
+			if hasattr(node, "addFieldInfo") and node.fieldInfo is None:
 				node.addFieldInfo(context)
 
 		context.pushCR(queryNode.fieldInfos.getFieldInfo)

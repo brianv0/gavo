@@ -64,11 +64,15 @@ class _PlainActions(uws.UWSActions):
 uws.registerActions(_PlainActions)
 
 
-class _FakeJob(object):
+class _FakeJob(uws.UWSJob):
 	"""A scaffolding class for UWSJob.
 	"""
 	def __init__(self, phase):
 		self.phase = phase
+		self.actions = "plainActions"
+	
+	def __del__(self):
+		pass
 
 
 class _FakeContext(object):
@@ -88,14 +92,27 @@ class PlainActionsTest(testhelpers.VerboseTest):
 		self.actions = uws.getActions("plainActions")
 
 	def testSimpleTransition(self):
-		job = _FakeJob(object)
+		job = _FakeJob(uws.PENDING)
 		self.actions.getTransition(uws.PENDING, uws.QUEUED)(uws.QUEUED, job, None)
 		self.assertEqual(job.phase, uws.QUEUED)
 	
 	def testFailingTransition(self):
 		self.assertRaises(base.ValidationError,
 			self.actions.getTransition, uws.PENDING, uws.COMPLETED)
-	
+
+	def testNoEndstateActions(self):
+		job = _FakeJob(object)
+		job.phase = uws.COMPLETED
+		job.changeToPhase(uws.ERROR)
+		self.assertEqual(job.phase, uws.COMPLETED)
+
+	def testNullActionIgnored(self):
+		job = _FakeJob(object)
+		job.phase = uws.QUEUED
+		job.changeToPhase(uws.QUEUED)
+		self.assertEqual(job.phase, uws.QUEUED)
+
+
 
 class PlainJobCreationTest(testhelpers.VerboseTest):
 	"""tests for working job creation and destruction.

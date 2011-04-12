@@ -539,7 +539,7 @@ crazyFields = [
 		values=MS(rscdef.Values, nullLiteral="-1")),
 	MS(rscdef.Column, name="wotb", type="bytea", 
 		values=MS(rscdef.Values, nullLiteral="255")),
-]
+	MS(rscdef.Column, name="mass", ucd="event;using.incense")]
 
 def _addSpatialSTC(sf, sf2):
 	ast1 = stc.parseQSTCS('Position ICRS "ra1" "dec" Size "width" "height"')
@@ -906,6 +906,16 @@ class JoinColResTest(ColumnTest):
 		self._assertColumns(cols, [
 			("real", 'kg', 'phys.mass', False),
 			("real", 'deg', 'pos.eq.ra;meta.main', False)])
+
+	def testAutoJoin(self):
+		cols = self._getColSeq("SELECT * FROM misc JOIN"
+			" (SELECT TOP 3 * FROM crazy) AS q ON (mag=q.ct)")
+		physMass = cols[0]
+		self.assertEqual(physMass[0], "mass")
+		self.assertEqual(physMass[1].ucd, "phys.mass")
+		crazyMass = cols[-1]
+		self.assertEqual(crazyMass[0], "mass")
+		self.assertEqual(crazyMass[1].ucd, "event;using.incense")
 
 	def testSelfUsingJoin(self):
 		cols = self._getColSeq("SELECT * FROM "

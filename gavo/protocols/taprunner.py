@@ -37,6 +37,7 @@ from gavo.protocols import adqlglue
 from gavo.protocols import tap
 from gavo.protocols import uws
 
+base.DEBUG = True
 
 # The following would point to executors for other languages at some point.
 SUPPORTED_LANGS = {

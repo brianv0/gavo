@@ -25,6 +25,9 @@ from gavo.votable.tapquery import (PENDING, QUEUED, EXECUTING, COMPLETED,
 	ERROR, ABORTED)
 DESTROYED = "DESTROYED"  # local extension
 
+END_STATES = set([DESTROYED, COMPLETED, ERROR, ABORTED])
+
+
 class UWSError(base.Error):
 	def __init__(self, msg, jobId, hint=None):
 		base.Error.__init__(self, msg, hint)
@@ -687,8 +690,10 @@ class UWSActions(object):
 			self.transitions.setdefault(fromPhase, {})[toPhase] = methodName
 	
 	def getTransition(self, fromPhase, toPhase):
-		if fromPhase==toPhase:
-			return
+		if (fromPhase==toPhase or
+				fromPhase in END_STATES):
+			# ignore null or ignorable transitions
+			return lambda p, job, input: None
 		try:
 			methodName = self.transitions[fromPhase][toPhase]
 		except KeyError:
