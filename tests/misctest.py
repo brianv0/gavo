@@ -3,12 +3,16 @@ Some unit tests not yet fitting anywhere else.
 """
 
 from cStringIO import StringIO
+import cgi
+import contextlib
 import datetime
+import httplib
 import new
 import os
 import shutil
 import sys
 import tempfile
+import types
 import unittest
 
 import numpy
@@ -17,6 +21,7 @@ from gavo import base
 from gavo import helpers
 from gavo import rscdef
 from gavo import rscdesc
+from gavo import votable
 from gavo import stc
 from gavo import utils
 from gavo.base import valuemappers
@@ -25,6 +30,7 @@ from gavo.helpers import testhelpers
 from gavo.protocols import creds
 from gavo.utils import pyfits
 from gavo.utils import stanxml
+from gavo.votable import tapquery
 
 import tresc
 
@@ -396,6 +402,7 @@ class TestGroupsMembership(testhelpers.VerboseTest):
 		self.assertEqual(creds.getGroupsForUser("Y_test", "megapass"),
 			set(["Y_test"]))
 
+
 _obscoreRDTrunk = """<resource schema="test" resdir="data">
 			<table id="glob" onDisk="True" mixin="//products#table">
 				<mixin %s>//obscore#publish</mixin>
@@ -510,5 +517,110 @@ class ObscorePublishedTest(testhelpers.VerboseTest):
 			in votablewrite.getAsVOTable(res, tablecoding="td"))
 
 
+@contextlib.contextmanager
+def _fakeHTTPLib(respData="", respStatus=200, 
+		mime="application/x-votable", exception=None):
+	"""runs a test with a fake httplib connection maker.
+
+	This is for TapquerySyncTest and similar.
+	"""
+	class FakeResult(object):
+		status = respStatus
+
+		def getheader(self, key):
+			if key.lower()=='content-type':
+				return mime
+			else:
+				ddt
+
+		def read(self):
+			return respData
+
+	class FakeInfo(object):
+		pass
+
+	class FakeConnection(object):
+		def __init__(self, *args, **kwargs):
+			pass
+
+		def request(self, method, path, data, headers):
+			FakeInfo.lastData = data
+			if exception is not None:
+				raise exception
+
+		def getresponse(self, *args, **kwargs):
+			return FakeResult()
+
+		def close(self):
+			pass
+	
+	origConn = httplib.HTTPConnection
+	httplib.HTTPConnection = FakeConnection
+	try:
+		yield FakeInfo
+	finally:
+		httplib.HTTPConnection = origConn
+
+
+
+def _scaffoldSyncJob(job, **kwargs):
+	job.postToService = types.MethodType(_makeFakeResponder(**kwargs), job)
+
+
+class TapquerySyncTest(testhelpers.VerboseTest):
+# Tests for the tapquery sync object; since TAP queries are expensive,
+# we only test things that don't actually run a query.  For more extensive
+# exercising, see the taptest RD at the GAVO DC.
+	endpoint = "http://dachstest"
+
+	def testNoResult(self):
+		job = votable.ADQLSyncJob(self.endpoint, 
+			"select * from tap_schema.tables")
+		self.assertRaisesWithMsg(tapquery.Error,
+			"No result in so far",
+			job.openResult,
+			())
+
+	def testWrongStatus(self):
+		with _fakeHTTPLib(respData="oops", respStatus=404):
+			job = votable.ADQLSyncJob(self.endpoint, 
+				"select * from tap_schema.tables")
+			self.assertRaises(tapquery.WrongStatus, job.start)
+			self.assertEqual(job.getErrorFromServer(), "oops")
+
+	def testHTTPError(self):
+		import socket
+		with _fakeHTTPLib(respData="oops", exception=socket.error("timeout")):
+			job = votable.ADQLSyncJob(self.endpoint, 
+				"select * from tap_schema.tables")
+			self.assertRaises(tapquery.NetworkError, job.start)
+			self.assertEqual(job.getErrorFromServer(), 
+				'Problem connecting to dachstest (timeout)')
+
+	def testTAPError(self):
+		with _fakeHTTPLib(respData="""<VOTABLE version="1.2" xmlns:vot="http://www.ivoa.net/xml/VOTable/v1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ivoa.net/xml/VOTable/v1.2 http://vo.ari.uni-heidelberg.de/docs/schemata/VOTable-1.2.xsd"><RESOURCE type="results"><INFO name="QUERY_STATUS" value="ERROR">Could not parse your query: Expected "SELECT" (at char 0), (line:1, col:1)</INFO></RESOURCE></VOTABLE>""", respStatus=400):
+			job = votable.ADQLSyncJob(self.endpoint, 
+				"selct * from tap_schema.tables")
+			self.assertRaises(tapquery.WrongStatus, job.start)
+			self.assertEqual(job.getErrorFromServer(), 
+				'Could not parse your query: Expected "SELECT" (at char 0),'
+				' (line:1, col:1)')
+
+	def testConstructionParameters(self):
+		with _fakeHTTPLib(respData="ok") as fakeInfo:
+			job = votable.ADQLSyncJob(self.endpoint, 
+				"select * from tap_schema.tables", userParams={"MAXREC": 0})
+			job.start()
+			self.assertEqual(cgi.parse_qs(fakeInfo.lastData)["MAXREC"], ["0"])
+		
+	def testLaterParameters(self):
+		with _fakeHTTPLib(respData="ok") as fakeInfo:
+			job = votable.ADQLSyncJob(self.endpoint, 
+				"select * from tap_schema.tables")
+			job.setParameter("MAXREC", 0)
+			job.start()
+			self.assertEqual(cgi.parse_qs(fakeInfo.lastData)["MAXREC"], ["0"])
+
+
 if __name__=="__main__":
-	testhelpers.main(ObscorePublishedTest)
+	testhelpers.main(TapquerySyncTest)

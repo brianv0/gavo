@@ -130,6 +130,22 @@ class _FormData(MIMEMultipart):
 		return self
 
 
+def _getErrorInfo(votString):
+	"""returns the message from a TAP error VOTable.
+
+	if votString is not a TAP error VOTable, it is returned verbatim.
+	"""
+	try:
+		for el in parser.parseString(votString, watchset=[V.INFO]):
+			if isinstance(el, V.INFO):
+				if el.name=="QUERY_STATUS" and el.value=="ERROR":
+					return el.text_
+	except Exception, msg:
+		# votString's not a suitable VOTable, fall through to return votString
+		pass
+	return votString
+
+
 def _makeFlatParser(parseFunc):
 	"""returns a "parser" class for _parseWith just calling a function on a string.
 
@@ -372,7 +388,8 @@ def _canUseFormEncoding(params):
 
 
 def request(host, path, data="", customHeaders={}, method="GET",
-		expectedStatus=None, followRedirects=False):
+		expectedStatus=None, followRedirects=False, setResponse=None,
+		timeout=None):
 	"""returns a HTTPResponse object for an HTTP request to path on host.
 
 	This function builds a new connection for every request.
@@ -388,6 +405,11 @@ def request(host, path, data="", customHeaders={}, method="GET",
 	and the document at the other end will be obtained.  For many
 	operations this will lead to an error; only do this for slightly
 	broken services.
+
+	In setResponse, you can pass in a callable that is called with the
+	server response body as soon as it is in.  This is for when you want
+	to store the response even if request raises an error later on
+	(i.e., for sync querying).
 	"""
 	headers = {"connection": "close",
 		"user-agent": "Python TAP library http://vo.uni-hd.de/odocs"}
@@ -402,13 +424,15 @@ def request(host, path, data="", customHeaders={}, method="GET",
 					form.get_boundary())
 	headers.update(customHeaders)
 	try:
-		conn = httplib.HTTPConnection(host)
+		conn = httplib.HTTPConnection(host, timeout=timeout)
 		conn.request(method, path, data, headers)
 	except (socket.error, httplib.error), ex:
 		raise NetworkError("Problem connecting to %s (%s)"%
 			(host, str(ex)))
 	resp = conn.getresponse()
 	resp.data = resp.read()
+	if setResponse is not None:
+		setResponse(resp.data)
 	conn.close()
 
 	if ((followRedirects and resp.status==303)
@@ -471,7 +495,7 @@ class ADQLTAPJob(_WithEndpoint):
 	up handling of a job started before).
 	"""
 	def __init__(self, endpointURL, query=None, jobId=None, lang="ADQL", 
-			userParams={}):
+			userParams={}, timeout=None):
 		self._defineEndpoint(endpointURL)
 		self.destPath = utils.ensureOneSlash(self.destPath)+"async"
 		if query is not None:
@@ -481,6 +505,7 @@ class ADQLTAPJob(_WithEndpoint):
 			self.jobId = jobId
 		else:
 			raise Error("Must construct ADQLTAPJob with at least query or jobId")
+		self.timeout = timeout
 		self._computeJobPath()
 	
 	def _computeJobPath(self):
@@ -494,7 +519,7 @@ class ADQLTAPJob(_WithEndpoint):
 		for k,v in userParams.iteritems():
 			params[k] = str(v)
 		response = request(self.destHost, self.destPath, params,
-			method="POST", expectedStatus=303)
+			method="POST", expectedStatus=303, timeout=self.timeout)
 		# The last part of headers[location] now contains the job id
 		try:
 			self.jobId = urlparse.urlsplit(
@@ -512,22 +537,25 @@ class ADQLTAPJob(_WithEndpoint):
 		if self.jobPath is not None:
 			if usePOST:
 				response = request(self.destHost, self.jobPath, method="POST",
-					data={"ACTION": "DELETE"}, expectedStatus=303)
+					data={"ACTION": "DELETE"}, expectedStatus=303, 
+					timeout=self.timeout)
 			else:
 				response = request(self.destHost, self.jobPath, method="DELETE",
-					expectedStatus=303)
+					expectedStatus=303, timeout=self.timeout)
 
 	def start(self):
 		"""asks the remote side to start the job.
 		"""
 		response = request(self.destHost, self.jobPath+"/phase", 
-			{"PHASE": "RUN"}, method="POST", expectedStatus=303)
+			{"PHASE": "RUN"}, method="POST", expectedStatus=303, 
+			timeout=self.timeout)
 
 	def abort(self):
 		"""asks the remote side to abort the job.
 		"""
 		response = request(self.destHost, self.jobPath+"/phase", 
-			{"PHASE": "ABORT"}, method="POST", expectedStatus=303)
+			{"PHASE": "ABORT"}, method="POST", expectedStatus=303,
+			timeout=self.timeout)
 
 	def raiseIfError(self):
 		"""raises an appropriate error message if job has thrown an error or
@@ -591,7 +619,7 @@ class ADQLTAPJob(_WithEndpoint):
 	def _queryJobResource(self, path, parser):
 		# a helper for phase, quote, etc.
 		response = request(self.destHost, self.jobPath+path,
-			expectedStatus=200)
+			expectedStatus=200, timeout=self.timeout)
 		return _parseWith(parser, response.data)
 
 	@property
@@ -662,22 +690,16 @@ class ADQLTAPJob(_WithEndpoint):
 
 	def setParameter(self, key, value):
 		request(self.destHost, self.jobPath+"/parameters",
-			data={key: value}, method="POST", expectedStatus=303)
+			data={key: value}, method="POST", expectedStatus=303,
+			timeout=self.timeout)
 
 	def getErrorFromServer(self):
 		"""returns the error message the server gives, verbatim.
 		"""
 		data = request(self.destHost, self.jobPath+"/error",
-			expectedStatus=200, followRedirects=True).data
-		try:
-			for el in parser.parseString(data, watchset=[V.INFO]):
-				if isinstance(el, V.INFO):
-					if el.name=="QUERY_STATUS" and el.value=="ERROR":
-						return el.text_
-		except Exception, msg:
-			# data's not a suitable VOTable, fall through to return data
-			pass
-		return data
+			expectedStatus=200, followRedirects=True,
+			timeout=self.timeout).data
+		return self._getErrorInfo(data)
 
 	def addUpload(self, name, data):
 		"""adds uploaded tables, either from a file or as a remote URL.
@@ -714,13 +736,19 @@ class ADQLSyncJob(_WithEndpoint):
 	return some more or less sensible fakes.
 	"""
 	def __init__(self, endpointURL, query=None, jobId=None, lang="ADQL", 
-			userParams={}):
+			userParams={}, timeout=None):
 		self._defineEndpoint(endpointURL)
 		self.query, self.lang = query, lang
-		self.userParams = userParams
+		self.userParams = userParams.copy()
 		self.result = None
-		self.error = None
+		self._errorFromServer = None
+		self.timeout = timeout
 	
+	def postToService(self, params):
+		return request(self.destHost, self.destPath+"/sync", params,
+			method="POST", followRedirects=True, expectedStatus=200,
+			setResponse=self._setErrorFromServer, timeout=self.timeout)
+
 	def delete(self, usePOST=None):
 		# Nothing to delete
 		pass
@@ -734,8 +762,8 @@ class ADQLSyncJob(_WithEndpoint):
 		"""
 
 	def raiseIfError(self):
-		# inspect self.result?
-		pass
+		if self._errorFromServer is not None:
+			raise Error(self._errorFromServer)
 
 	def waitForPhases(self, phases, pollInterval=None, increment=None,
 			giveUpAfter=None):
@@ -743,17 +771,36 @@ class ADQLSyncJob(_WithEndpoint):
 		# they are in all of them at the same time:
 		return
 
+	def _setErrorFromServer(self, data):
+		# this is a somewhat convolved way to get server error messages
+		# out of request even when it later errors out.  See the
+		# except construct around the postToService call in start()
+		#
+		# Also, try to interpret what's coming back as a VOTable with an
+		# error message; _getErrorInfo is robust against other junk.
+		self._errorFromServer = _getErrorInfo(data)
+
 	def start(self):
 		params={
 			"REQUEST": "doQuery",
 			"LANG": self.lang,
 			"QUERY": self.query}
 		params.update(self.userParams)
-		result = request(self.destHost, self.endpointURL+"/sync", params,
-			method=POST, followRedirects=True)
-# XXX TODO: error handling
-		self.result = LocalResult(resp.data, "TAPResult", resp.getheader(
-			"Content-Type"))
+		params = dict((k, str(v)) for k,v in params.iteritems())
+
+		try:
+			resp = self.postToService(params)
+			self.result = LocalResult(resp.data, "TAPResult", resp.getheader(
+				"Content-Type"))
+		except Exception, msg:
+			# do not clear _errorFromServer; but if it's empty, make up one
+			# from our exception
+			if not self._errorFromServer:
+				self._errorFromServer = str(msg)
+			raise
+		else:
+			# all went well, clear error indicator
+			self._errorFromServer = None
 		return self
 
 	def run(self, pollInterval=None):
@@ -786,18 +833,19 @@ class ADQLSyncJob(_WithEndpoint):
 		else:
 			return [self.result]
 
-	@property
 	def openResult(self, simple=True):
+		if self.result is None:
+			raise Error("No result in so far")
 		return StringIO(self.result.data)
 
 	def setParameter(self, key, value):
-		self.userParameters[key] = value
+		self.userParams[key] = value
 
 	def getErrorFromServer(self):
-# XXX TODO: pending error handling
-		pass
+		return self._errorFromServer
 
 	def addUpload(self, name, data):
+		raise NotImplementedError("Uploads not yet implemented for sync TAP")
 		self.uploads.append((name, data))
 
 

@@ -16,4 +16,4 @@ from gavo.votable.simple import load
 from gavo.votable.tablewriter import (
 	DelayedTable, OverflowElement, write, asString)
 
-from gavo.votable.tapquery import ADQLTAPJob
+from gavo.votable.tapquery import ADQLTAPJob, ADQLSyncJob
