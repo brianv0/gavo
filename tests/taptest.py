@@ -166,8 +166,10 @@ class UWSMiscTest(testhelpers.VerboseTest):
 				job.delete()
 
 
+
+
 class _UWSJobResource(testhelpers.TestResource):
-# just a UWS job.  Don't manipulate it.
+# just a UWS job.  Don't manipulate it.  Too badly.
 	def make(self, ignored):
 		with uws.UWSJob.create(actions="plainActions") as job:
 			self.jobId = job.jobId
@@ -177,11 +179,37 @@ class _UWSJobResource(testhelpers.TestResource):
 		with uws.UWSJob.makeFromId(self.jobId) as job:
 			job.delete()
 
+_uwsJobResource = _UWSJobResource()
+
+
+class UWSParametersTest(testhelpers.VerboseTest):
+	resources = [("jobId", _uwsJobResource)]
+
+	def testRunidInsensitive(self):
+		with uws.UWSJob.makeFromId(self.jobId) as job:
+			job.addParameter("runId", "bac")
+		with uws.ROUWSJob.makeFromId(self.jobId) as job:
+			self.assertEqual(job.getParameter("RUNID"), "bac")
+	
+	def testExecDParsed(self):
+		with uws.UWSJob.makeFromId(self.jobId) as job:
+			job.addParameter("executionduration", "3")
+			self.assertEqual(job.executionDuration, 3)
+	
+	def testTAPMaxrec(self):
+		with tap.TAPJob.create() as job:
+			try:
+				job.addParameter("maxRec", "20")
+				self.assertEqual(job.parameters["MAXREC"], 20)
+			finally:
+				job.delete()
+
+
 
 class LockingTest(testhelpers.VerboseTest):
 	"""tests for working impicit uws locking.
 	"""
-	resources = [("jobId", _UWSJobResource())]
+	resources = [("jobId", _uwsJobResource)]
 
 	def testLocking(self):
 		queue = Queue.Queue()

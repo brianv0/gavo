@@ -234,8 +234,6 @@ def reparseRequestArgs(ctx):
 			if field.filename:
 				request.files[key] = field
 			else:
-				if key.upper() in _caseInsensitiveKeys:
-					key = key.upper()
 				request.scalars[key] = request.fields.getfirst(key)
 	else:
 		for key, val in request.args.iteritems():

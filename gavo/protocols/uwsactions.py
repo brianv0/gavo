@@ -299,6 +299,7 @@ class _SettableAction(JobAction):
 		return self.serializeValue(getattr(job, self.attName))
 
 
+# XXX TODO: These should probably simply go through uwsjob.addParameter
 class ExecDAction(_SettableAction):
 	name = "executionduration"
 	attName = 'executionDuration'

@@ -161,20 +161,23 @@ class ProtocolParameter(object):
 
 
 class SerializingProtocolParameter(ProtocolParameter):
-	"""is a ProtocolParameter for writing to parsed job attributes.
+	"""A ProtocolParameter for writing to parsed job attributes.
 
 	It looks at the _serialize, _deserialize, and _destAttr attributes
 	to figure out what to do.
+
+	All this is nonsense, and I'm pretty sure all these should simply
+	become members of the parameters dictionary.
 	"""
 	name = None
 
 	@classmethod
 	def addParam(cls, value, job):
-		return getattr(job, cls._deserialize(cls._destAttr))
+		return setattr(job, cls._destAttr, cls._deserialize(value))
 	
 	@classmethod
 	def getParam(cls, job):
-		return setattr(job, cls._destAttr, cls._serialize(value))
+		return cls._serialize(getattr(job, cls._destAttr))
 
 
 class DestructionParameter(SerializingProtocolParameter):
@@ -256,13 +259,15 @@ class ROUWSJob(object):
 	_closed = True
 
 	protocolParameters = UWSParameters((), DestructionParameter,
-		ExecDParameter)
+		ExecDParameter, RunIdParameter)
 
 	def __init__(self, jobId, jobsTable=None):
 		self.jobId = jobId
 		self.jobsTable = jobsTable
+		self.ownedJobsTable = False
 		if self.jobsTable is None:
 			self.jobsTable = getROJobsTable()
+			self.ownedJobsTable = True
 
 		res = list(self.jobsTable.iterQuery(
 			self.jobsTable.tableDef, "jobId=%(jobId)s",
@@ -280,6 +285,13 @@ class ROUWSJob(object):
 	@classmethod
 	def makeFromId(cls, jobId):
 		return cls(jobId)
+
+	def __enter__(self):
+		return self
+	
+	def __exit__(self, type, value, tb):
+		if self.ownedJobsTable:
+			self.jobsTable.close()
 
 	def getWritable(self, timeout=10):
 		return UWSJob.makeFromId(self.jobId, timeout=timeout)
@@ -437,9 +449,6 @@ class UWSJob(ROUWSJob):
 		"destructionTime", "owner", "actions", "pid", "startTime", "endTime"]
 	_closed = True
 
-	protocolParameters = UWSParameters((), DestructionParameter,
-		ExecDParameter)
-
 	def __init__(self, jobId, jobsTable=None, timeout=10):
 		if jobsTable is None:
 			jobsTable = getJobsTable(timeout)
@@ -518,8 +527,8 @@ class UWSJob(ROUWSJob):
 		return self # transaction has been opened by makeFromId
 	
 	def __exit__(self, type, value, tb):
-		# we want to persist no matter what, but we don't claim to handle
-		# any exception.
+		# we want to release the jobs table no matter what, but we don't 
+		# claim to handle any exception.
 		self.close()
 		if tb is not None: # exception came in, signal we did not handle it.
 			return False
