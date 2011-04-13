@@ -67,8 +67,8 @@ NICMOS F110W	700	1138	1600
 NICMOS F160W	1198	1612	2001
 GALEX FUV	124	152	185
 GALEX NUV	161	231	290
-Ideal Johnson B	370	441	550
-Ideal Johnson V	480	550	730
+Johnson B	370	441	550
+Johnson V	480	550	730
 Ideal Johnson I	710	797	900
 HK'	1400	1885	2450
 NOAO KPNO mosaic U	300	357	420
@@ -121,7 +121,7 @@ OPrime J	1100	1282	1460
 OPrime H	1440	1648	1850
 D400A	375	385	395
 D400B	405	415	425
-
+#
 # Sources for this include graphs and other data from
 # http://voservices.net/filter/
 # http://filters.ls.eso.org/efs/efs_result_list.php

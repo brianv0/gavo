@@ -102,9 +102,12 @@ def listusers(querier, args):
 
 
 @exposedFunction([
-	Arg("-f", help="also remove all jobs in ERROR and QUEUED states (only use"
+	Arg("-f", help="also remove all jobs in ERROR and ABORTED states (only use"
 		" if you are sure what you are doing).", action="store_true",
 		dest="includeFailed"),
+	Arg("-p", help="also remove all jobs in PENDING states (only use"
+		" if you are sure what you are doing).", action="store_true",
+		dest="includeForgotten"),
 	Arg("--all", help="remove all jobs (this is extremely unfriendly."
 		"  Don't use this on public UWSes)", action="store_true",
 		dest="includeAll"),
@@ -115,7 +118,8 @@ def listusers(querier, args):
 def cleanuws(querier, args):
 	uws.cleanupJobsTable(includeFailed=args.includeFailed,
 		includeCompleted=args.includeCompleted,
-		includeAll=args.includeAll)
+		includeAll=args.includeAll,
+		includeForgotten=args.includeForgotten)
 
 
 @exposedFunction(help="Re-import column information from all RDs"

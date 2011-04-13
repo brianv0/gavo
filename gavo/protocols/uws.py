@@ -533,7 +533,7 @@ class UWSJob(ROUWSJob):
 		self._closed = True
 
 	def addParameter(self, name, value):
-		self.protocolParameters.addParam(self, name, value)
+		self.protocolParameters.addParam(self, name.upper(), value)
 
 	def _persist(self):
 		"""updates or creates the job in the database table.
@@ -597,7 +597,7 @@ class UWSJob(ROUWSJob):
 
 
 def cleanupJobsTable(includeFailed=False, includeCompleted=False,
-		includeAll=False):
+		includeAll=False, includeForgotten=False):
 	"""removes expired jobs from the UWS jobs table.
 
 	The uws service arranges for this to be called roughly once a day.
@@ -609,13 +609,14 @@ def cleanupJobsTable(includeFailed=False, includeCompleted=False,
 	phasesToKill = set()
 	if includeFailed or includeAll:
 		phasesToKill.add(ERROR)
-		phasesToKill.add(QUEUED)
 		phasesToKill.add(ABORTED)
 	if includeCompleted or includeAll:
 		phasesToKill.add(COMPLETED)
 	if includeAll:
 		phasesToKill.add(PENDING)
 		phasesToKill.add(QUEUED)
+	if includeForgotten:
+		phasesToKill.add(PENDING)
 
 	toDestroy = []
 	now = datetime.datetime.utcnow()

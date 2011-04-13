@@ -73,7 +73,7 @@ class IgnoreSpec(base.Structure):
 		"""returns true if path, made inputsdir-relative, should be ignored.
 		"""
 		try:
-			path = utils.getRelativePath(path, self.inputsDir)
+			path = utils.getRelativePath(path, self.inputsDir, liberalChars=True)
 		except ValueError: # not in inputs, use full path.
 			pass
 		if path in self.ignoredSet:

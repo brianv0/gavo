@@ -185,7 +185,7 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 		relative to inputsDir
 		"""
 		return ('utils.getRelativePath(vars["parser_"].sourceToken,'
-			' base.getConfig("inputsDir"))')
+			' base.getConfig("inputsDir"), liberalChars=True)')
 	
 	def macro_rowsProcessed(self):
 		"""returns an expression giving the number of records already 
