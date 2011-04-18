@@ -423,12 +423,17 @@ def request(host, path, data="", customHeaders={}, method="GET",
 			headers["Content-Type"] = form.get_content_type()+'; boundary="%s"'%(
 					form.get_boundary())
 	headers.update(customHeaders)
+
 	try:
-		conn = httplib.HTTPConnection(host, timeout=timeout)
+		try:
+			conn = httplib.HTTPConnection(host, timeout=timeout)
+		except TypeError: # probably python<2.6, no timeout support
+			conn = httplib.HTTPConnection(host)
 		conn.request(method, path, data, headers)
 	except (socket.error, httplib.error), ex:
 		raise NetworkError("Problem connecting to %s (%s)"%
 			(host, str(ex)))
+
 	resp = conn.getresponse()
 	resp.data = resp.read()
 	if setResponse is not None:

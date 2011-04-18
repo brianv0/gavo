@@ -164,7 +164,7 @@ class MapKeys(base.Structure):
 
 
 class RowIterator(object):
-	"""is an object that encapsulates the a source being parsed by a
+	"""An object that encapsulates the a source being parsed by a
 	grammar.
 
 	RowIterators are returned by Grammars' parse methods.  Iterate
@@ -279,13 +279,18 @@ class GrammarMacroMixin(base.StandardMacroMixin):
 	NOTE: All macros should return only one single physical python line,
 	or they will mess up the calculation of what constructs caused errors.
 	"""
-	def macro_inputRelativePath(self):
+	def macro_inputRelativePath(self, liberalChars="True"):
 		"""returns an expression giving the current source's path 
 		relative to inputsDir
+
+		liberalChars can be a boolean literal (True, False, etc); if false,
+		a value error is raised if characters that will result in trouble
+		with the product mixin are within the result path.
 		"""
 		return ('utils.getRelativePath(rowIter.sourceToken,'
-			' base.getConfig("inputsDir"), liberalChars=True)')
-	
+			' base.getConfig("inputsDir"), liberalChars=%s)'%(
+				base.parseBooleanLiteral(liberalChars)))
+
 	def macro_rowsProcessed(self):
 		"""returns an expression giving the number of records already 
 		ingested for this source.

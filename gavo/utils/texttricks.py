@@ -73,14 +73,13 @@ def formatSimpleTable(data):
 	return table
 
 
-def getRelativePath(fullPath, rootPath, liberalChars=False):
+def getRelativePath(fullPath, rootPath, liberalChars=True):
 	"""returns rest if fullPath has the form rootPath/rest and raises an
 	exception otherwise.
 
-	Pass liberalChars=True to allow URL-dangerous characters in the
-	path.  If you don't, the function will raise a ValueError when
-	non-ASCII characters or blanks, amperands, pluses and similar are
-	in the relative path.
+	Pass liberalChars=False to make this raise a ValueError when
+	URL-dangerous characters (blanks, amperands, pluses, non-ASCII, and 
+	similar) are present in the result.  This is mainly for products.
 	"""
 	if not fullPath.startswith(rootPath):
 		raise ValueError(

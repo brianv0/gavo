@@ -2,7 +2,10 @@
 Tests for the macro expansion machinery.
 """
 
+import os
+
 from gavo import base
+from gavo import grammars
 from gavo import rscdef
 from gavo import rscdesc
 from gavo.helpers import testhelpers
@@ -83,5 +86,54 @@ class MacDefTest(testhelpers.VerboseTest):
 			(rscdesc.RD, """<resource schema="test">
 				<macDef name="yx"><column name="u"/></macDef></resource>"""))
 
+
+class _FakeRowIterator(grammars.RowIterator):
+	def _iterRows(self):
+		yield {"fake": "sure"}
+		del self.grammar
+
+
+class _FakeFileGrammar(grammars.Grammar):
+	"""A grammar for testing purposes.
+
+	The source token is a string supposed to be a file name.  The row
+	iterator returns a constant row {"fake": "sure"}.
+	"""
+	name_ = "fakeFileGrammar"
+	rowIterator = _FakeRowIterator
+
+	
+class GrammarMacroTest(testhelpers.VerboseTest):
+	def _testOne(self, macroDef, input, result):
+		g = base.parseFromString(_FakeFileGrammar, """<fakeFileGrammar>
+			<rowfilter><setup>
+			<par late="True" name="res">%s</par></setup>
+			<code>
+				row["res"] = res
+				yield row
+			</code></rowfilter></fakeFileGrammar>"""%macroDef)
+		res = [] 
+		irp = os.path.join(base.getConfig("inputsDir"), input)
+		expectedRow = {'fake': 'sure', 'res': result}
+		if isinstance(result, Exception):
+			self.assertRaises(result.__class__,
+				lambda: list(g.parse(irp)))
+		else:
+			self.assertEqual(list(g.parse(irp)), 
+				[expectedRow])
+
+	def testInputRelative(self):
+		self._testOne(r"\inputRelativePath", "foo.one", "foo.one")
+
+	def testNonStrict(self):
+		self._testOne(r"\inputRelativePath", "foo+ .one&", "foo+ .one&")
+
+	def testStrict(self):
+		self._testOne(r"\inputRelativePath{False}", "foo+ .one&", ValueError())
+
+	def testOffInputs(self):
+		self._testOne(r"\inputRelativePath", "/etc/passwd", ValueError())
+
+
 if __name__=="__main__":
-	testhelpers.main(NakedMacroTest)
+	testhelpers.main(GrammarMacroTest)

@@ -180,12 +180,13 @@ class RowmakerMacroMixin(base.StandardMacroMixin):
 	NOTE: All macros should return only one single physical python line,
 	or they will mess up the calculation of what constructs caused errors.
 	"""
-	def macro_inputRelativePath(self):
+	def macro_inputRelativePath(self, liberalChars="True"):
 		"""returns an expression giving the current source's path 
 		relative to inputsDir
 		"""
 		return ('utils.getRelativePath(vars["parser_"].sourceToken,'
-			' base.getConfig("inputsDir"), liberalChars=True)')
+			' base.getConfig("inputsDir"), liberalChars=%s)'%
+			base.parseBooleanLiteral(liberalChars))
 	
 	def macro_rowsProcessed(self):
 		"""returns an expression giving the number of records already 

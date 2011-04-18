@@ -542,7 +542,7 @@ class UWSJob(ROUWSJob):
 		self._closed = True
 
 	def addParameter(self, name, value):
-		self.protocolParameters.addParam(self, name.upper(), value)
+		self.protocolParameters.addParam(self, name, value)
 
 	def _persist(self):
 		"""updates or creates the job in the database table.

@@ -87,13 +87,17 @@ machinery -->
 			<par key="table" description="the table this product is managed in.
 				You must fill this in, and don't forget the quotes."/>
 			<par late="True" key="accref" description="an access reference
-				(this ususally is the input-relative path)">\inputRelativePath</par>
+				(this ususally is the input-relative path; only file names
+				well-behaved in URLs are accepted here by default for easier
+				operation with ObsTAP)"
+				>\inputRelativePath{False}</par>
 			<par late="True" key="owner" description="for proprietary data,
 				the owner as a gavo creds-created user">None</par>
 			<par late="True" key="embargo" description="for proprietary data,
 				the date the file will become public">None</par>
 			<par late="True" key="path" description="the inputs-relative path
-				to the product file (change at your peril)">\inputRelativePath</par>
+				to the product file (change at your peril)"
+				>\inputRelativePath{True}</par>
 			<par late="True" key="fsize" description="the size of the input"
 				>\inputSize</par>
 			<par late="True" key="mime" description="MIME-type for the product"
