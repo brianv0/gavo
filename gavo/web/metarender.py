@@ -548,7 +548,7 @@ class RDInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 		titles for link anchors.
 		"""
 		return "Information on resource '%s'"%base.getMetaText(
-			rd, "title", default="Untitled resource %s"%rd.sourceId)
+			rd, "title", default="%s"%rd.sourceId)
 
 	def render_title(self, ctx, data):
 		return ctx.tag[self.makePageTitle(self.clientRD)]
