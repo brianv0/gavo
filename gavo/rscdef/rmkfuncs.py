@@ -198,12 +198,18 @@ def lastSourceElements(path, numElements):
 
 @utils.document
 def parseWithNull(literal, baseParser, nullLiteral=base.Undefined,
-		default=None):
+		default=None, checker=None):
 	"""returns default if literal is nullLiteral, else baseParser(literal).
+
+	If checker is non-None, it must be a callable returning True if its
+	argument is a null value.
 	"""
 	if (nullLiteral is not base.Undefined and literal==nullLiteral
 		) or literal is None:
 		return default
+	if checker is not None:
+		if checker(literal):
+			return default
 	res = baseParser(literal)
 	if res is None:
 		return default
