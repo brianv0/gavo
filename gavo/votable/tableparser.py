@@ -120,7 +120,7 @@ class _StreamData(object):
 			assert type=="data"
 			encoded.append(payload)
 			curBytes += len(payload)
-			hadLf = hadLf or "\n" in payload[1] or "\r" in payload
+			hadLf = hadLf or "\n" in payload or "\r" in payload
 			if hadLf and curBytes>destBytes:
 				break
 		

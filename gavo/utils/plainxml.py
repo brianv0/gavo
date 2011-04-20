@@ -69,33 +69,42 @@ class iterparse(object):
 		# byte strings.
 		self.parser.returns_unicode = True
 		self.evBuf = collections.deque()
-		self.parser.StartElementHandler = (lambda name, attrs, buf=self.evBuf: 
-			buf.append((("start", name.split(":")[-1], attrs), 
-				(self.parser.CurrentLineNumber, self.parser.CurrentColumnNumber))))
-		self.parser.EndElementHandler = (lambda name, buf=self.evBuf: 
-			buf.append((("end", name.split(":")[-1], None),
-				(self.parser.CurrentLineNumber, self.parser.CurrentColumnNumber))))
-		self.parser.CharacterDataHandler = (lambda data, buf=self.evBuf:
-			buf.append((("data", None, data), None)))
+		self.parser.StartElementHandler = self._startElement
+		self.parser.EndElementHandler = self._endElement
+		self.parser.CharacterDataHandler = self._characters
 
 	def __iter__(self):
 		return self
+	
+	def _startElement(self, name, attrs):
+		self.evBuf.append(
+			(("start", name.split(":")[-1], attrs), 
+				(self.parser.CurrentLineNumber, self.parser.CurrentColumnNumber)))
+	
+	def _endElement(self, name):
+		self.evBuf.append((("end", name.split(":")[-1], None),
+			(self.parser.CurrentLineNumber, self.parser.CurrentColumnNumber)))
+	
+	def _characters(self, data):
+		self.evBuf.append((("data", None, data), None))
 
 	def next(self):
-		if not self.evBuf:
+		while not self.evBuf:
 			try:
 				nextChunk = self.source.read(self.chunkSize)
-				if not nextChunk:
+				if nextChunk:
+					self.parser.Parse(nextChunk)
+				else:
 					self.close()
-					raise StopIteration("File is exhausted")
-				self.parser.Parse(nextChunk)
+					break
 			except expat.ExpatError, ex:
 				newEx = self.parseErrorClass(str(ex))
 				newEx.posInMsg = True  # see base.xmlstruct
 				newEx.inFile = getattr(self.source, "name", "(internal source)")
 				raise misctricks.logOldExc(newEx)
-			if not self.evBuf:
-				raise self.getParseError("Permature end of input.")
+
+		if not self.evBuf:
+			raise StopIteration("End of Input")
 		event, pos = self.evBuf.popleft()
 		if pos is not None:
 			self.lastLine, self.lastColumn = pos
@@ -103,6 +112,9 @@ class iterparse(object):
 
 	def close(self):
 		self.parser.Parse("", True)
+		self.parser.StartElementHandler =\
+		self.parser.EndElementHandler = \
+		self.parser.CharacterDataHandler = None
 
 	@property
 	def pos(self):
