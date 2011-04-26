@@ -4,19 +4,29 @@ Query Language.
 """
 
 from gavo.adql.annotations import annotate
+
 from gavo.adql.common import *
+
 from gavo.adql.tree import (
 	getTreeBuildingGrammar, registerNode)
+
 from gavo.adql.nodes import (flatten, registerRegionMaker)
+
 from gavo.adql.grammar import (
 	getADQLGrammar as getRawGrammar, 
 	allReservedWords,
 	ParseException, ParseSyntaxException)
+
 from gavo.adql.morphpg import (
 	morphPG,
 	insertQ3Calls)
+
 from gavo.adql.fieldinfo import getSubsumingType, FieldInfo
+
 from gavo.adql.ufunctions import userFunction
+
+from gavo.adql.postproc import builtinMorph
+
 
 def getSymbols():
 	return getTreeBuildingGrammar()[0]
@@ -26,3 +36,9 @@ def getGrammar():
 
 def parseToTree(adqlStatement):
 	return getGrammar().parseString(adqlStatement)[0]
+
+def parseAnnotated(adqlStatement, fieldInfoGetter):
+	parsedTree = parseToTree(adqlStatement)
+	ctx = annotate(parsedTree, fieldInfoGetter)
+	builtinMorph(parsedTree)
+	return ctx, parsedTree

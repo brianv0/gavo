@@ -77,6 +77,11 @@ class FlattenError(Error):
 	"""
 
 
+class Absent(object):
+	"""is a sentinel to pass as default to nodes.getChildOfType.
+	"""
+
+
 def getUniqueMatch(matches, colName):
 	"""returns the only item of matches if there is exactly one, raises an
 	appropriate exception if not.

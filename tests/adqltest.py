@@ -540,6 +540,9 @@ crazyFields = [
 	MS(rscdef.Column, name="wotb", type="bytea", 
 		values=MS(rscdef.Values, nullLiteral="255")),
 	MS(rscdef.Column, name="mass", ucd="event;using.incense")]
+geoFields = [
+	MS(rscdef.Column, name="pt", type="spoint"),
+]
 
 def _addSpatialSTC(sf, sf2):
 	ast1 = stc.parseQSTCS('Position ICRS "ra1" "dec" Size "width" "height"')
@@ -573,6 +576,9 @@ def _sampleFieldInfoGetter(tableName):
 	elif tableName=='crazy':
 		return [(f.name, adqlglue.makeFieldInfo(f))
 			for f in crazyFields]
+	elif tableName=='geo':
+		return [(f.name, adqlglue.makeFieldInfo(f))
+			for f in geoFields]
 
 
 def parseWithArtificialTable(query):
@@ -1527,5 +1533,13 @@ class SimpleSTCSTest(testhelpers.VerboseTest):
 			("Position CARTESIAN3 1 2 3",))
 
 
+class IntersectsFallbackTest(testhelpers.VerboseTest):
+# Does INTERSECT fall back to OVERLAPS?
+	def testArg1(self):
+		ctx, tree = adql.parseAnnotated(
+			"SELECT pt from geo where intersects(pt, point('ICRS', 2, 2))=1",
+			_sampleFieldInfoGetter)
+
+
 if __name__=="__main__":
-	testhelpers.main(ColResTest)
+	testhelpers.main(IntersectsFallbackTest)

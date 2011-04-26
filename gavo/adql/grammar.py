@@ -627,8 +627,7 @@ if __name__=="__main__":
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
 	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
-	res = syms["whereClause"].parseString(
-			"WHERE  1=intersects(coverage,"
-			"circle('icrs', 10, 10, 1))"
+	res = syms["predicateGeometryFunction"].parseString(
+			"intersects(pt, point('ICRS', 2, 2))"
 			,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

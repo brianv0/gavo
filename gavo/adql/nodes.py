@@ -12,16 +12,12 @@ import weakref
 from gavo import stc
 from gavo import utils
 from gavo.adql import fieldinfo
+from gavo.adql import fieldinfos
 from gavo.adql.common import *
 from gavo.stc import tapstc
 
 
 ################ Various helpers
-
-class Absent(object):
-	"""is a sentinel to pass as default to getChildOfType.
-	"""
-
 
 def symbolAction(*symbols):
 	"""is a decorator to mark functions as being a parseAction for symbol.
@@ -199,7 +195,7 @@ class ADQLNode(utils.AutoNode):
 	
 		- the _a_<name> class attributes you need,
 		- the type (a nonterminal from the ADQL grammar) 
-		- or bindings if the class handles more than one symbol,
+		- plus bindings if the class handles more than one symbol,
 		- a class method _getInitKWs(cls, parseResult); see below.
 		- a method flatten() -> string if you define a parsed ADQLNode.
 		- a method _polish() that is called just before the constructor is
@@ -434,12 +430,8 @@ class PlainTableRef(ColumnBearingNode):
 	The tableName is the name this table can be referenced as from within
 	SQL, originalName is the name within the database; they are equal unless
 	a correlationSpecification has been given.
-
-	The feedInfosFromDB attribute tells annotate to retrieve column
-	metadata from the user field info getter.
 	"""
 	type = "possiblyAliasedTable"
-	feedInfosFromDB = True
 	_a_tableName = None      # a TableName instance
 	_a_originalTable = None  # a TableName instance
 
@@ -452,6 +444,9 @@ class PlainTableRef(ColumnBearingNode):
 			tableName = getChildOfType(_parseResult, "tableName")
 			originalTable = tableName
 		return locals()
+
+	def addFieldInfos(self, context):
+		self.fieldInfos = fieldinfos.TableFieldInfos.makeForNode(self, context)
 
 	def _polish(self):
 		self.qName = flatten(self.tableName)
@@ -534,15 +529,14 @@ class JoinSpecification(ADQLNode):
 
 class JoinedTable(ColumnBearingNode, TransparentMixin):
 	"""A joined table.
-
-	The feedInfosFromDB attribute tells annotate to retrieve column
-	metadata from the user field info getter.
 	"""
 	type = "joinedTable"
-	feedInfosFromDB = True
 	originalTable = None
 	tableName = TableName()
 	qName = None
+
+	def addFieldInfos(self, context):
+		self.fieldInfos = fieldinfos.TableFieldInfos.makeForNode(self, context)
 
 	def _polish(self):
 		self.joinedTables = getChildrenOfClass(self.children, ColumnBearingNode)
@@ -621,6 +615,9 @@ class QuerySpecification(ColumnBearingNode):
 		else:
 			return self._iterSelectList()
 
+	def addFieldInfos(self, context):
+		self.fieldInfos = fieldinfos.QueryFieldInfos.makeForNode(self, context)
+
 	def resolveField(self, fieldName):
 		return self.fromClause.resolveField(fieldName)
 
@@ -658,6 +655,7 @@ class QuerySpecification(ColumnBearingNode):
 
 class ColumnReference(FieldInfoedNode):
 	type = "columnReference"
+	bindings = ["columnReference", "geometryValue"]
 	_a_refName = None  # if given, a TableName instance
 	_a_name = None
 
@@ -857,7 +855,6 @@ def _guessNumericType(literal):
 	except ValueError:
 		type = "double precision"
 	return type
-
 
 
 class Factor(FieldInfoedNode, TransparentMixin):
@@ -1323,5 +1320,3 @@ class Area(FunctionNode):
 		self.fieldInfo = fieldinfo.FieldInfo(type="double precision",
 			unit="deg2", ucd="phys.angSize", 
 			userData=collectUserData(self._getInfoChildren())[0])
-
-
