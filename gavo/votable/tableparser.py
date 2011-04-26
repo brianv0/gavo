@@ -138,9 +138,9 @@ class _StreamData(object):
 		"""
 		if not self._eof:  # put back anything after the last break mid-stream
 			try:
-				lastBreak = full.rindex("\n")+1
+				lastBreak = input.rindex("\n")+1
 			except ValueError:
-				lastBreak = fill.rindex("\r")+1
+				lastBreak = input.rindex("\r")+1
 			self.leftover = input[lastBreak:]
 			input = input[:lastBreak]
 

@@ -592,7 +592,7 @@ class NDArrayTest(testhelpers.VerboseTest):
 
 
 class WeirdTablesTest(testhelpers.VerboseTest):
-	"""tests with malformed tables an fringe cases.
+	"""tests with malformed tables and fringe cases.
 	"""
 	def testEmpty(self):
 		for data in votable.parseString("<VOTABLE/>"):
@@ -611,6 +611,20 @@ class WeirdTablesTest(testhelpers.VerboseTest):
 		it = votable.parseString("<VOTABLE>")
 		self.assertRaisesWithMsg(votable.VOTableParseError, 
 			"no element found: line 1, column 9", list, it)
+
+	def testLargeTabledata(self):
+		# This test is supposed to exercise multi-chunk parsing.  So,
+		# raise the "*20" below when you raise tableparser._StreamData.minChunk
+		vot = V.VOTABLE[V.RESOURCE[votable.DelayedTable(
+    	V.TABLE[V.FIELD(name="col1", datatype="char", arraysize="*"),],
+    	[["a"*1000]]*20, V.BINARY)]]
+		dest = StringIO()
+		votable.write(vot, dest)
+		dest.seek(0)
+		data, metadata = votable.load(dest)
+		self.assertEqual(len(data), 20)
+		self.assertEqual(len(data[0]), 1)
+		self.assertEqual(len(data[0][0]), 1000)
 
 
 class StringArrayTest(testhelpers.VerboseTest):
