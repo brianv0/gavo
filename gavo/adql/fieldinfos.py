@@ -79,10 +79,13 @@ class FieldInfos(object):
 			self.columns[label] = info
 		self.seq.append((label, info))
 
-	def getFieldInfo(self, colName):
+	def getFieldInfo(self, colName, refName=None):
 		"""returns a FieldInfo object for colName.
 
 		Unknown columns result in a ColumnNotFound exception.
+
+		refName is ignored here; we may check that it's identical with
+		parent's name later.
 		"""
 		colName = colName.lower()
 		fi = self.columns.get(colName, Absent)
@@ -128,6 +131,11 @@ class TableFieldInfos(FieldInfos):
 							emittedCommonColumns.add(label)
 					else:
 						result.addColumn(label, info)
+
+		# annotate any join specs present
+		with context.customResolver(result.getFieldInfo):
+			_annotateNodeRecurse(tableNode, context)
+
 		return result
 
 	def _collectSubTables(self, node):
@@ -184,6 +192,12 @@ class QueryFieldInfos(FieldInfos):
 		with context.customResolver(result.getFieldInfoFromSources):
 			for selField in queryNode.getSelectFields():
 				_annotateNodeRecurse(selField, context)
+
+		# annotate the children of the where clase, too -- their types
+		# and such may be needed by morphers
+		if queryNode.whereClause:
+			with context.customResolver(result.getFieldInfo):
+				_annotateNodeRecurse(queryNode.whereClause, context)
 
 		for col in queryNode.getSelectFields():
 			result.addColumn(col.name, col.fieldInfo)

@@ -7,6 +7,7 @@ SQL.
 """
 
 from gavo.adql import morphhelpers
+from gavo.adql import nodes
 
 
 ############## INTERSECTS to CONTAINS
@@ -19,9 +20,16 @@ from gavo.adql import morphhelpers
 # that there's a special case "point within <geometry>".
 
 def _intersectsWithPointToContains(node, state):
-	if node.funName=='INTERSECTS':
-		print ">>>>", node.args[0].fieldInfo
-		print ">>>>", node.args[1].fieldInfo
+	if node.funName!='INTERSECTS':
+		return node
+	ltype = getattr(node.args[0].fieldInfo, "type", None)
+	rtype = getattr(node.args[1].fieldInfo, "type", None)
+	if ltype=='spoint':
+		return nodes.PredicateGeometryFunction(funName="CONTAINS",
+			args=node.args)
+	elif rtype=='spoint':
+		return nodes.PredicateGeometryFunction(funName="CONTAINS",
+			args=[node.args[1], node.args[0]])
 	return node
 	
 

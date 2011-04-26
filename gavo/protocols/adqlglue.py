@@ -189,14 +189,13 @@ def morphADQL(query, metaProfile=None, tdsForUploads=[],
 	"""returns an postgres query and an (empty) result table for the
 	ADQL in query.
 	"""
-	t = adql.parseToTree(query)
+	ctx, t = adql.parseAnnotating(query,
+		getFieldInfoGetter(metaProfile, tdsForUploads))
 	if t.setLimit is None:
 		if externalLimit is None:
 			t.setLimit = str(base.getConfig("adql", "webDefaultLimit"))
 		else:
 			t.setLimit = str(int(externalLimit))
-
-	adql.annotate(t, getFieldInfoGetter(metaProfile, tdsForUploads))
 	q3cstatus, t = adql.insertQ3Calls(t)
 
 	table = rsc.TableForDef(_getTableDescForOutput(t))

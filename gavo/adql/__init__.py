@@ -35,10 +35,18 @@ def getGrammar():
 	return getTreeBuildingGrammar()[1]
 
 def parseToTree(adqlStatement):
+	"""returns a "naked" parse tree for adqlStatement.
+
+	It contains no annotations, so you'll usually not want to use this.
+	"""
 	return getGrammar().parseString(adqlStatement)[0]
 
-def parseAnnotated(adqlStatement, fieldInfoGetter):
+def parseAnnotating(adqlStatement, fieldInfoGetter):
+	"""returns a tuple of context, parsedTree for parsing and annotating
+	adqlStatement.
+
+	The builtin morphs are performed on the tree.
+	"""
 	parsedTree = parseToTree(adqlStatement)
 	ctx = annotate(parsedTree, fieldInfoGetter)
-	builtinMorph(parsedTree)
-	return ctx, parsedTree
+	return ctx, builtinMorph(parsedTree)[1]

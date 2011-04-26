@@ -862,7 +862,7 @@ class QuotedColResTest(ColumnTest):
 
 	def testPlainAndSubselect(self):
 		cols = self._getColSeq('select "inch""ing", plain from ('
-			'select TOP 5 * from quoted where boring<"inch""ing") as q')
+			'select TOP 5 * from quoted where plain<"inch""ing") as q')
 		self._assertColumns(cols, [
 			("real", 'fin', "imperial.mess", False),
 			("real", 'pc', "boring.stuff", False),])
@@ -1143,7 +1143,7 @@ class Q3CMorphTest(unittest.TestCase):
 	"""
 	def setUp(self):
 		self.grammar = adql.getGrammar()
-
+	
 	def testCircleIn(self):
 		t = adql.parseToTree("select alphaFloat, deltaFloat from ppmx.data"
 			" where contains(point('ICRS', alphaFloat, deltaFloat), "
@@ -1171,11 +1171,21 @@ class Q3CMorphTest(unittest.TestCase):
 			"SELECT alphaFloat, deltaFloat FROM ppmx.data WHERE"
 				" NOT (q3c_join(23, 24, alphaFloat, deltaFloat, 0.2))")
 
+	def _parseAnnotating(self, query):
+		return adql.parseAnnotating(query, _sampleFieldInfoGetter)[1]
+
 	def testCircleAnnotated(self):
-		t = adql.parseToTree("SELECT TOP 10 * FROM spatial"
+		t = self._parseAnnotating("SELECT TOP 10 * FROM spatial"
 			" WHERE 1=CONTAINS(POINT('ICRS', ra1, ra2),"
 			"  CIRCLE('ICRS', 10, 10, 0.5))")
-		ctx = adql.annotate(t, _sampleFieldInfoGetter)
+		s, t = adql.insertQ3Calls(t)
+		self.assertEqual(adql.flatten(t),
+			"SELECT TOP 10 * FROM spatial WHERE  (q3c_join(10, 10, ra1, ra2, 0.5))")
+
+	def testMogrifiedIntersect(self):
+		t = self._parseAnnotating("SELECT TOP 10 * FROM spatial"
+			" WHERE 1=INTERSECTS(CIRCLE('ICRS', 10, 10, 0.5),"
+				"POINT('ICRS', ra1, ra2))")
 		s, t = adql.insertQ3Calls(t)
 		self.assertEqual(adql.flatten(t),
 			"SELECT TOP 10 * FROM spatial WHERE  (q3c_join(10, 10, ra1, ra2, 0.5))")
@@ -1534,11 +1544,50 @@ class SimpleSTCSTest(testhelpers.VerboseTest):
 
 
 class IntersectsFallbackTest(testhelpers.VerboseTest):
-# Does INTERSECT fall back to OVERLAPS?
+# Does INTERSECT fall back to CONTAINS?
 	def testArg1(self):
-		ctx, tree = adql.parseAnnotated(
-			"SELECT pt from geo where intersects(pt, point('ICRS', 2, 2))=1",
+		ctx, tree = adql.parseAnnotating(
+			"SELECT pt from geo where intersects(pt, circle('ICRS', 2, 2, 1))=1",
 			_sampleFieldInfoGetter)
+		funNode = tree.whereClause.children[1].op1
+		self.assertEqual(funNode.funName, "CONTAINS")
+		self.assertEqual(funNode.args[0].type, "columnReference")
+		self.assertEqual(funNode.args[1].type, "circle")
+
+	def testArg2(self):
+		ctx, tree = adql.parseAnnotating(
+			"SELECT pt from geo where intersects(circle('ICRS', 2, 2, 1), pt)=1",
+			_sampleFieldInfoGetter)
+		funNode = tree.whereClause.children[1].op1
+		self.assertEqual(funNode.funName, "CONTAINS")
+		self.assertEqual(funNode.args[0].type, "columnReference")
+		self.assertEqual(funNode.args[1].type, "circle")
+
+	def testExpr(self):
+		ctx, tree = adql.parseAnnotating(
+			"SELECT pt from geo where intersects("
+			"point('ICRS', 2, 2), circle('ICRS', 2, 2, 1))=1",
+			_sampleFieldInfoGetter)
+		funNode = tree.whereClause.children[1].op1
+		self.assertEqual(funNode.funName, "CONTAINS")
+		self.assertEqual(funNode.args[0].type, "point")
+	
+	def testNotouch(self):
+		ctx, tree = adql.parseAnnotating(
+			"SELECT pt from geo where intersects("
+			"box('ICRS', 2, 2, 3, 3), circle('ICRS', 2, 2, 1))=1",
+			_sampleFieldInfoGetter)
+		funNode = tree.whereClause.children[1].op1
+		self.assertEqual(funNode.funName, "INTERSECTS")
+
+	def testJoinCond(self):
+		ctx, tree = adql.parseAnnotating(
+			"SELECT * from geo as a join geo as b on (intersects("
+			"circle('ICRS', coord1(b.pt), coord2(b.pt), 1), a.pt)=1)",
+			_sampleFieldInfoGetter)
+		funNode = tree.fromClause.tablesReferenced[0].children[3].children[2].op1
+		self.assertEqual(funNode.funName, "CONTAINS")
+		self.assertEqual(funNode.args[0].fieldInfo.type, "spoint")
 
 
 if __name__=="__main__":
