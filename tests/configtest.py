@@ -9,3 +9,6 @@ from gavo.utils import fancyconfig
 fcTest = fancyconfig._getTestSuite()
 
 
+if __name__=="__main__":
+	import unittest
+	unittest.main()

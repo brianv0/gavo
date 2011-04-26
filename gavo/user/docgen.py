@@ -366,9 +366,9 @@ def _getProcdefDocs(procDefs):
 		else:
 			content.addNormalizedPara(pd.doc)
 		content.makeSpace()
-		if pd.setup.pars:
+		if pd.getSetupPars():
 			content.addNormalizedPara("Setup parameters for the procedure are:\n")
-			_documentParameters(content, pd.setup.pars)
+			_documentParameters(content, pd.getSetupPars())
 	return content.content
 
 
