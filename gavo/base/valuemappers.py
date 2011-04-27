@@ -204,13 +204,13 @@ def _castMapperFactory(colDesc):
 _registerDefaultMF(_castMapperFactory)
 
 
-_tagPat = re.compile("<[^>]*>")
 def _htmlScrubMapperFactory(colDesc):
 	if colDesc["displayHint"].get("type")!="keephtml":
 		return
+	tagPat = re.compile("<[^>]*>")
 	def coder(data):
 		if data:
-			return _tagPat.replace("", data)
+			return tagPat.sub("", data)
 		return ""
 	return coder
 _registerDefaultMF(_htmlScrubMapperFactory)
