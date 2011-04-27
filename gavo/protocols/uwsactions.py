@@ -34,7 +34,7 @@ from gavo.utils import ElementTree
 from gavo.votable import V
 
 
-UWSNamespace = 'http://www.ivoa.net/xml/UWS/v1.0rc3'
+UWSNamespace = 'http://www.ivoa.net/xml/UWS/v1.0'
 XlinkNamespace = "http://www.w3.org/1999/xlink"
 stanxml.registerPrefix("uws", UWSNamespace,
 	stanxml.schemaURL("uws-1.0.xsd"))
@@ -54,12 +54,6 @@ class UWS(object):
 		ob._mayBeEmpty = True
 		return ob
 
-	class NillableMixin(object):
-		_mayBeEmpty = True
-		_a_nil = None
-		_name_a_nil = "xsi:nil"
-
-
 	class job(UWSElement): pass
 	class jobs(UWSElement):
 		_mayBeEmpty = True
@@ -67,16 +61,16 @@ class UWS(object):
 	class parameters(UWSElement): pass
 
 	class destruction(UWSElement): pass
-	class endTime(UWSElement, NillableMixin): pass
+	class endTime(stanxml.NillableMixin, UWSElement): pass
 	class executionDuration(UWSElement): pass
 	class jobId(UWSElement): pass
 	class jobInfo(UWSElement): pass
 	class message(UWSElement): pass
-	class ownerId(UWSElement, NillableMixin): pass
+	class ownerId(stanxml.NillableMixin, UWSElement): pass
 	class phase(UWSElement): pass
-	class quote(UWSElement, NillableMixin): pass
+	class quote(stanxml.NillableMixin, UWSElement): pass
 	class runId(UWSElement): pass
-	class startTime(UWSElement, NillableMixin): pass
+	class startTime(stanxml.NillableMixin, UWSElement): pass
 	
 	class detail(UWSElement):
 		_a_href = None
@@ -86,6 +80,9 @@ class UWS(object):
 	
 	class errorSummary(UWSElement):
 		_a_type = None  # transient | fatal
+		_a_hasDetail = None
+
+	class message(UWSElement): pass
 
 	class jobref(UWSElement):
 		_a_id = None
@@ -135,7 +132,8 @@ def getErrorSummary(job):
 	msg = errDesc["msg"]
 	if errDesc["hint"]:
 		msg = msg+"\n\n -- Hint: "+errDesc["hint"]
-	return UWS.errorSummary(type="fatal")[msg]
+	return UWS.errorSummary(type="fatal", hasDetail="false")[
+		UWS.message[msg]]
 
 
 def getParametersElement(job):
@@ -335,7 +333,10 @@ class OwnerAction(JobAction):
 	name = "owner"
 	def doGET(self, job, request):
 		request.setHeader("content-type", "text/plain")
-		request.write("None")
+		if job.owner is None:
+			request.write("NULL")
+		else:
+			request.write(job.owner)
 		return ""
 
 _JobActions.addAction(OwnerAction)
@@ -381,7 +382,7 @@ _JobActions.addAction(ResultsAction)
 
 def _serializeTime(element, dt):
 	if dt is None:
-		return element(nil="true")
+		return element()
 	return element[utils.formatISODT(dt)]
 
 
@@ -406,7 +407,7 @@ class RootAction(JobAction):
 		tree = UWS.makeRoot(UWS.job[
 			UWS.jobId[job.jobId],
 			UWS.runId[job.runId],
-			UWS.ownerId(nil="true"),
+			UWS.ownerId[job.owner],
 			UWS.phase[job.phase],
 			_serializeTime(UWS.startTime, job.startTime),
 			_serializeTime(UWS.endTime, job.endTime),

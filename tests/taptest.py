@@ -166,8 +166,6 @@ class UWSMiscTest(testhelpers.VerboseTest):
 				job.delete()
 
 
-
-
 class _UWSJobResource(testhelpers.TestResource):
 # just a UWS job.  Don't manipulate it.  Too badly.
 	def make(self, ignored):
@@ -182,7 +180,7 @@ class _UWSJobResource(testhelpers.TestResource):
 _uwsJobResource = _UWSJobResource()
 
 
-class UWSParametersTest(testhelpers.VerboseTest):
+class UWSParametersTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 	resources = [("jobId", _uwsJobResource)]
 
 	def testRunidInsensitive(self):
@@ -204,6 +202,10 @@ class UWSParametersTest(testhelpers.VerboseTest):
 			finally:
 				job.delete()
 
+	def testJobResValid(self):
+		with uws.ROUWSJob.makeFromId(self.jobId) as job:
+			self.assertValidates(uwsactions.RootAction().doGET(job, None),
+				leaveOffending=True)
 
 
 class LockingTest(testhelpers.VerboseTest):

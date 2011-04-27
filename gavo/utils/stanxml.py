@@ -290,8 +290,14 @@ class Element(object):
 			cDict.setdefault(c.name_, []).append(c)
 		return cDict
 
+	def _getChildIter(self):
+		if self._childSequence is None:
+			return iter(self._children)
+		else:
+			return self._iterChildrenInSequence()
+
 	def apply(self, func):
-		"""calls func(name, text, attrs, childIter).
+		"""calls func(node, text, attrs, childIter).
 
 		This is a building block for tree traversals; the expectation is that 
 		func does something like (c.apply(visitor) for c in childIter).
@@ -300,12 +306,8 @@ class Element(object):
 			if self.isEmpty():
 				return
 			attrs = self._makeAttrDict()
-			if self._childSequence is None:
-				childIter = iter(self._children)
-			else:
-				childIter = self._iterChildrenInSequence()
 			return func(self, self.text_,
-				self._makeAttrDict(), childIter)
+				self._makeAttrDict(), self._getChildIter())
 		except Error:
 			raise
 		except Exception, msg:
@@ -442,6 +444,29 @@ class DOMMorpher(object):
 			root.attrib["xmlns"] = self.nsRegistry.getNSForPrefix(
 				self.emptyPrefix)
 		return root
+
+
+class NillableMixin(object):
+	"""An Element mixin making the element XSD nillable.
+
+	This element will automatically have an xsi:nil="true" attribute
+	on empty elements (rather than leave them out entirely).
+
+	This overrides apply, so the mixin must be before the base class in
+	the inheritance list.
+	"""
+	def apply(self, func):
+		attrs = self._makeAttrDict()
+		if self.text_:
+			return Element.apply(self, func)
+		else:
+			attrs = self._makeAttrDict()
+			attrs["xsi:nil"] = "true"
+			self._additionalPrefixes = self._additionalPrefixes|set(["xsi"])
+			return func(self, "", attrs, ())
+
+	def isEmpty(self):
+		return False
 
 
 def xmlrender(tree, prolog=None, emptyPrefix=None):

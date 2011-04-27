@@ -3,7 +3,7 @@
 on verbal permission here. -->
 
 <xsl:stylesheet
-    xmlns:uws="http://www.ivoa.net/xml/UWS/v1.0rc3"
+    xmlns:uws="http://www.ivoa.net/xml/UWS/v1.0"
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xmlns="http://www.w3.org/1999/xhtml"
     version="1.0">
@@ -70,7 +70,7 @@ on verbal permission here. -->
 
         <xsl:if test="$phase='ERROR'">
           <dt><xsl:text>Error message:</xsl:text></dt>
-          <dd><xsl:value-of select="uws:errorSummary"/></dd>
+          <dd><xsl:value-of select="uws:errorSummary/uws:message"/></dd>
         </xsl:if>
 
       </dl>

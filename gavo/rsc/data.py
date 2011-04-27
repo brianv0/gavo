@@ -137,7 +137,7 @@ class Data(base.MetaMixin):
 		"""updates meta information kept in the DB on the contained tables.
 		"""
 		for t in self:
-			if isinstance(t, dbtable.DBTable):
+			if hasattr(t, "updateMeta"):
 				t.updateMeta()
 				if updateIndices:
 					t.dropIndices()

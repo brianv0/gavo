@@ -368,11 +368,13 @@ class StanXMLTest(testhelpers.VerboseTest):
 		class MEl(stanxml.Element): 
 			_local = True
 		class Root(MEl):
-			_childSequence = ["Child"]
+			_childSequence = ["Child", "Nilble"]
 		class Child(MEl):
 			_childSequence = ["Foo", None]
 		class Other(MEl):
 			pass
+		class Nilble(stanxml.NillableMixin, MEl):
+			_a_restatt = None
 
 	def testNoTextContent(self):
 		M = self.Model
@@ -387,6 +389,25 @@ class StanXMLTest(testhelpers.VerboseTest):
 		M = self.Model
 		data = M.Other["thrown away", M.Other["mixed"], " remaining "]
 		self.assertEqual(data.text_, " remaining ")
+
+	def testNillableNil(self):
+		M = self.Model
+		rendered = M.Root[M.Nilble()].render()
+		self.failUnless('xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
+			in rendered)
+		self.failUnless('Nilble xsi:nil="true"' in rendered)
+	
+	def testNillableNonNil(self):
+		M = self.Model
+		rendered = M.Root[M.Nilble["Value"]].render()
+		self.failUnless("<Nilble>Value</Nilble>" in rendered)
+		self.failIf('xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
+			in rendered)
+	
+	def testNillableAttribute(self):
+		M = self.Model
+		rendered = M.Root[M.Nilble(restatt="x")].render()
+		self.failUnless('<Nilble restatt="x" xsi:nil="true" />' in rendered)
 
 
 class TestGroupsMembership(testhelpers.VerboseTest):
@@ -623,4 +644,4 @@ class TapquerySyncTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(TapquerySyncTest)
+	testhelpers.main(StanXMLTest)
