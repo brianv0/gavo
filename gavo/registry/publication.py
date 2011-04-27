@@ -188,6 +188,7 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 
 		if metaToo:
 			from gavo.protocols import tap
+			tap.unpublishFromTAP(rd, connection)
 			for dependentDD in rd:
 				rsc.Data.create(dependentDD, connection=connection).updateMeta()
 			tap.publishToTAP(rd, connection)

@@ -132,6 +132,7 @@ def allcols(querier, args):
 
 	for rdId in registry.findAllRDs():
 		rd = base.caches.getRD(rdId)
+		tap.unpublishFromTAP(rd, querier.connection)
 		for dd in rd:
 			rsc.Data.create(dd, connection=querier.connection).updateMeta()
 		tap.publishToTAP(rd, querier.connection)
