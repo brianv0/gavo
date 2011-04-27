@@ -516,7 +516,7 @@ class RDInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 			return ""
 		else:
 			return T.div(class_="lidescription")[
-				T.xml(iDesc.getContent("blockhtml", iDesc))]
+				T.xml(iDesc.getContent("blockhtml", descItem))]
 
 	def render_rdsvc(self, ctx, service):
 		return ctx.tag[
