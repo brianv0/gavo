@@ -397,7 +397,8 @@ class RegistryRenderer(grend.ServiceBasedRenderer):
 # here?  Stream this?
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "text/xml")
-		return ElementTree.tostring(etree.getroot(), "utf-8")
+		return utils.xmlrender(etree.getroot(),
+			"<?xml-stylesheet href='/static/xsl/oai.xsl' type='text/xsl'?>")
 
 	def _getErrorTree(self, exception, pars):
 		"""returns an ElementTree containing an OAI-PMH error response.

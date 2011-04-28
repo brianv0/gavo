@@ -60,7 +60,7 @@ def makeEllipsis(aStr, maxLen):
 def formatSimpleTable(data):
 	"""returns a string containing a text representation of tabular data.
 
-	All columns of data a simply stringified, then the longest member
+	All columns of data are simply stringified, then the longest member
 	determines the width of the text column.  The behaviour if data
 	does not contain rows of equal length is unspecified; data must
 	contain at least one row.
