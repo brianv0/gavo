@@ -5,6 +5,7 @@ Common code and definitions for registry support.
 import re
 
 from gavo import base
+from gavo import rsc
 from gavo import utils
 from gavo.utils import stanxml
 
@@ -50,6 +51,21 @@ def getResType(resob):
 	return str(resType)
 
 
+def getDependencies(rdId, connection=None):
+	"""returns a list of RD ids that are need for the generation of RRs
+	from rdId.
+	"""
+	t = rsc.TableForDef(getServicesRD().getById("res_dependencies"),
+		connection=connection)
+	try:
+		return [r["prereq"] for r in t.iterQuery(
+			[t.tableDef.getColumnByName("prereq")],
+			"rd=%(rd)s", 
+			{"rd": rdId})]
+	finally:
+		t.close()
+
+
 class DateUpdatedMixin(object):
 	"""A mixin providing computers for dateUpdated and datetimeUpdated.
 
@@ -79,7 +95,7 @@ class DateUpdatedMixin(object):
 
 __all__ = ["SERVICELIST_ID", "METADATA_PREFIXES",
 
-"getResType", "getServicesRD", "getRegistryService",
+"getResType", "getServicesRD", "getRegistryService", "getDependencies",
 
 "DateUpdatedMixin",
 

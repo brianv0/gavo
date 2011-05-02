@@ -289,7 +289,7 @@ class DataPublicationTest(testhelpers.VerboseTest):
 			resOb = registry.getResobFromIdentifier(str(dd.getMeta("identifier")))
 			self.assertEqual(resOb.makes[0].table.id, "barsobal")
 			self.assertEqual(
-				publication.getDependents("__system__/services", connection=self.conn),
+				registry.getDependencies("__system__/services", connection=self.conn),
 				["data/testdata"])
 		finally:
 			publication._purgeFromServiceTables(rdId, self.conn)
@@ -298,7 +298,7 @@ class DataPublicationTest(testhelpers.VerboseTest):
 			q.query("SELECT * FROM dc.resources where sourcerd=%(rdId)s",
 				{"rdId": rdId}))), 0)
 		self.assertEqual(
-			publication.getDependents("__system__/services", connection=self.conn),
+			publication.getDependencies("__system__/services", connection=self.conn),
 			[])
 
 

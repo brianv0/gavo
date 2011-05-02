@@ -282,7 +282,24 @@ class ResourceMaker(object):
 	resourceClass = RI.Resource
 	resType = None
 
+	def _loadDependencies(self, resob):
+		"""loads all RDs dependent on resob.rd (if present).
+
+		The dependencies are taken from the dc.res_dependencies table.  There,
+		they are typically introduced by served-by relationships (see also
+		service.declareServes.
+		"""
+		if not hasattr(resob.rd, "cached dependencies"):
+			deps = getDependencies(resob.rd.sourceId)
+			setattr(resob.rd, "cached dependencies", deps)
+		else:
+			deps = getattr(resob.rd, "cached dependencies")
+		for dep in deps:
+			base.caches.getRD(dep)
+
+
 	def _makeResource(self, resob, setNames):
+		self._loadDependencies(resob)
 		res = self.resourceClass(**getResourceArgs(resob))[
 			VOR.validationLevel(validatedBy=str(resob.getMeta("validatedBy")))[
 				resob.getMeta("validationLevel")],

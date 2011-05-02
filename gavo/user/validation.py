@@ -129,8 +129,11 @@ def validateRowmakers(rd, args):
 	for dd in rd:
 		for m in dd.makes:
 			m.table.onDisk = False
-			rawTable = rsc.TableForDef(m.table)
-			m.rowmaker.compileForTableDef(m.table)
+			try:
+				rawTable = rsc.TableForDef(m.table)
+				m.rowmaker.compileForTableDef(m.table)
+			finally:
+				m.table.onDisk = True
 	return True
 
 

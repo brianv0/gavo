@@ -32,21 +32,6 @@ from gavo.registry import nonservice
 from gavo.registry.common import *
 
 
-def getDependents(rdId, connection=None):
-	"""returns a list of RD ids that are need for the generation of RRs
-	from rdId.
-	"""
-	t = rsc.TableForDef(getServicesRD().getById("res_dependencies"),
-		connection=connection)
-	try:
-		return [r["prereq"] for r in t.iterQuery(
-			[t.tableDef.getColumnByName("prereq")],
-			"rd=%(rd)s", 
-			{"rd": rdId})]
-	finally:
-		t.close()
-
-
 def makeBaseRecord(res):
 	"""returns a dictionary giving the metadata common to resource records.
 	"""
