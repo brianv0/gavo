@@ -66,6 +66,17 @@
 		<column name="subject" type="text"/>
 	</table>
 
+	<table system="True" id="res_dependencies" forceUnique="True"
+			onDisk="True" primary="rd, prereq" dupePolicy="overwrite">
+		<meta name="description">An RD-level map of dependencies, meaning
+		that before generating resource records from rd, requisite should
+		be imported.</meta>
+		<column name="rd" type="text" description="id of an RD"/>
+		<column name="prereq" type="text" description="id of an RD that
+			should be imported before records from rd are generated."/>
+		<column name="sourceRD" type="text" description="id of the RD
+			that introduced this dependency"/>
+	</table>
 
 	<data id="tables">
 		<meta name="description">gavo imp --system this to create the service 
@@ -102,6 +113,34 @@
 		</make>
 
 		<make table="subjects">
+			<script original="deleteByRDId"/>
+		</make>
+	</data>
+
+	<data id="deptable" updating="True">
+		<meta name="description">import the RD-dependencies from an RD.</meta>
+
+		<embeddedGrammar>
+			<iterator>
+				<code>
+					rd = self.sourceToken
+					for rdId, reqId in rd.rdDependencies:
+						yield {
+							'rd': rdId,
+							'prereq': reqId,
+							'sourceRD': rd.sourceId,
+						}
+				</code>
+			</iterator>
+		</embeddedGrammar>
+
+		<make table="res_dependencies">
+			<script original="deleteByRDId"/>
+		</make>
+	</data>
+
+	<data id="upgrade_0.6.3_0.7">
+		<make table="res_dependencies">
 			<script original="deleteByRDId"/>
 		</make>
 	</data>

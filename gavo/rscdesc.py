@@ -29,8 +29,6 @@ from gavo.rscdef import common
 from gavo.rscdef import scripting
 
 
-
-
 class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		base.StandardMacroMixin, common.RolesMixin, registry.DateUpdatedMixin):
 	"""A resource descriptor (RD); the root for all elements described here.
@@ -143,6 +141,9 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		self.dateUpdated = datetime.datetime.utcnow()
 		# this is for modified-since and friends.
 		self.loadedAt = time.time()
+		# keep track of RDs depending on us for the registry code
+		# (only read this)
+		self.rdDependencies = set()
 
 	def __iter__(self):
 		return iter(self.dds)
@@ -157,15 +158,19 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 		for table in self.tables:
 			self.readRoles = self.readRoles|table.readRoles
 			table.setMetaParent(self)
+
 		self.serviceIndex = {}
 		for svc in self.services:
 			self.serviceIndex[svc.id] = svc
 			svc.setMetaParent(self)
+
 		for dd in self.dds:
 			dd.setMetaParent(self)
+
 		if self.resdir and not os.path.isdir(self.resdir):
 			base.ui.notifyWarning("RD %s: resource directory '%s' does not exist"%(
 				self.sourceId, self.resdir))
+
 		self._onElementCompleteNext(RD)
 
 	def _inferResdir(self, value):
@@ -228,6 +233,15 @@ class RD(base.Structure, base.ComputedMetaMixin, scripting.ScriptingMixin,
 			if hasattr(child, "id"):
 				res[child.id] = child
 		return res
+
+	def addDependency(self, rd, prereq):
+		"""declares that rd needs the RD prereq to properly work.
+
+		This is used in the generation of resource records to ensure that, e.g.
+		registred data have added their served-bys to the service resources.
+		"""
+		if rd.sourceId!=prereq.sourceId:
+			self.rdDependencies.add((rd.sourceId, prereq.sourceId))
 
 	def copy(self, parent):
 		base.ui.notifyWarning("Copying an RD -- this may not be a good idea")

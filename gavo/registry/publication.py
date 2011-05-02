@@ -32,6 +32,21 @@ from gavo.registry import nonservice
 from gavo.registry.common import *
 
 
+def getDependents(rdId, connection=None):
+	"""returns a list of RD ids that are need for the generation of RRs
+	from rdId.
+	"""
+	t = rsc.TableForDef(getServicesRD().getById("res_dependencies"),
+		connection=connection)
+	try:
+		return [r["prereq"] for r in t.iterQuery(
+			[t.tableDef.getColumnByName("prereq")],
+			"rd=%(rd)s", 
+			{"rd": rdId})]
+	finally:
+		t.close()
+
+
 def makeBaseRecord(res):
 	"""returns a dictionary giving the metadata common to resource records.
 	"""
@@ -158,6 +173,7 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 		connection = base.getDBConnection("admin")
 	dd = getServicesRD().getById("tables")
 	dd.grammar = _svcRscGrammar
+	depDD = getServicesRD().getById("deptable")
 	msg = None
 	for rd in rds:
 		if rd.sourceId.startswith("/"):
@@ -167,6 +183,7 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 			data = rsc.makeData(dd, forceSource=rd, parseOptions=parseOptions,
 				connection=connection)
 			recordsWritten += data.nAffected
+			rsc.makeData(depDD, forceSource=rd, connection=connection)
 		except base.MetaValidationError, ex:
 			msg = "Aborting publication of '%s' at service '%s':\n * %s"%(
 				rd.sourceId, ex.carrier.id, "\n * ".join(ex.failures))
@@ -205,10 +222,12 @@ def _purgeFromServiceTables(rdId, conn):
 	this, though (until postgres grows nested transactions).
 	"""
 	cursor = conn.cursor()
-	for tableName in ["resources", "interfaces", "sets", "subjects"]:
+	for tableName in [
+			"resources", "interfaces", "sets", "subjects", "res_dependencies"]:
 		cursor.execute("delete from dc.%s where sourceRD=%%(rdId)s"%tableName,
 			{"rdId": rdId})
 	cursor.close()
+
 
 
 ################ UI stuff

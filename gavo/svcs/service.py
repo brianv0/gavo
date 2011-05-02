@@ -508,6 +508,11 @@ class Service(base.Structure, base.ComputedMetaMixin,
 				name="servedBy",
 				ivoId=base.getMetaText(self, "identifier")))
 
+			# Since this is always initiated by the data, the dependency
+			# must show up in its RD to be properly added on publication
+			# and to be removed when the data is removed.
+			data.rd.addDependency(self.rd, data.rd)
+
 
 	########################## Output field selection (ouch!)
 

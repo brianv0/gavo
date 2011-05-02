@@ -33,7 +33,7 @@
 	</table>
 
 	<data id="ronk">
-		<register/>
+		<register services="//services#overview" sets="ignore"/>
 		<make table="barsobal"/>
 	</data>
 

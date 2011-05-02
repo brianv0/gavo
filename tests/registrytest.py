@@ -288,12 +288,19 @@ class DataPublicationTest(testhelpers.VerboseTest):
 					{"rdId": rdId}))), 1)
 			resOb = registry.getResobFromIdentifier(str(dd.getMeta("identifier")))
 			self.assertEqual(resOb.makes[0].table.id, "barsobal")
+			self.assertEqual(
+				publication.getDependents("__system__/services", connection=self.conn),
+				["data/testdata"])
 		finally:
 			publication._purgeFromServiceTables(rdId, self.conn)
 			self.conn.commit()
 		self.assertEqual(len(list(
 			q.query("SELECT * FROM dc.resources where sourcerd=%(rdId)s",
 				{"rdId": rdId}))), 0)
+		self.assertEqual(
+			publication.getDependents("__system__/services", connection=self.conn),
+			[])
+
 
 
 
@@ -394,8 +401,10 @@ _fakeMeta ="""<meta name="identifier">ivo://gavo.testing</meta>
 class RelatedTest(testhelpers.VerboseTest):
 # Tests for everything to do with the "related" meta
 	def _getTreeFor(self, dataBody):
-		dd = base.parseFromString(rscdef.DataDescriptor,
-			"""<data id="foo">%s%s</data>"""%(dataBody, _fakeMeta))
+		rd = base.parseFromString(rscdesc.RD,
+			"""<resource schema="test"><data id="foo">%s%s</data></resource>"""%(
+				dataBody, _fakeMeta))
+		dd = rd.dds[0]
 		return testhelpers.getXMLTree(
 			builders.getVOResourceElement(dd).render(), debug=False)
 
@@ -455,4 +464,4 @@ class RelatedTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(RelatedTest)
+	testhelpers.main(DataPublicationTest)

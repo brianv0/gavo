@@ -1,0 +1,8 @@
+Version 0.7 (2011-XX-XX)
+
+	* Automatic dependency management for published resources (register and
+	  adql).  You must run 
+	  
+	  	gavo imp --system //services upgrade_0.6.3_0.7
+
+	 after the update.
