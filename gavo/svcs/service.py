@@ -500,7 +500,7 @@ class Service(base.Structure, base.ComputedMetaMixin,
 		"""
 		if data.registration:
 			self.addMeta("serviceFor", base.makeMetaValue(
-				base.getMetaText(data, "title") or "Anonymous",
+				base.getMetaText(data, "title", default="Anonymous"),
 				name="serviceFor",
 				ivoId=base.getMetaText(data, "identifier")))
 			data.addMeta("servedBy", base.makeMetaValue(

@@ -251,6 +251,10 @@ class Registration(base.Structure):
 		for srv in self.services:
 			srv.declareServes(self.parent)
 
+		# Tables in ADQL are always published via TAP
+		if getattr(self.parent, "adql", False):
+			base.caches.getRD("//tap").getById("run").declareServes(self.parent)
+
 
 class TableDef(base.Structure, base.ComputedMetaMixin, common.RolesMixin,
 		common.IVOMetaMixin, base.StandardMacroMixin):
@@ -386,6 +390,11 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.RolesMixin,
 		return True
 
 	def completeElement(self, ctx):
+		# we want a meta parent as soon as possible, and we always let it
+		# be our struct parent
+		if self.parent:
+			self.setMetaParent(self.parent)
+
 		if self.viewStatement and getattr(ctx, "restricted", False):
 			raise base.RestrictedElement("table", hint="tables with"
 				" view creation statements are not allowed in restricted mode")
