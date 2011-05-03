@@ -85,6 +85,7 @@ class UWS(object):
 	class message(UWSElement): pass
 
 	class jobref(UWSElement):
+		_additionalPrefixes = frozenset(["xlink"])
 		_a_id = None
 		_a_href = None
 		_a_type = None
@@ -97,12 +98,13 @@ class UWS(object):
 		_a_isPost = None
 
 	class result(UWSElement):
+		_additionalPrefixes = frozenset(["xlink"])
 		_mayBeEmpty = True
 		_a_id = None
 		_a_href = None
 		_a_type = None
-		_href_name = "xlink:href"
-		_type_name = "xlink:type"
+		_name_a_href = "xlink:href"
+		_name_a_type = "xlink:type"
 
 	class results(UWSElement):
 		_mayBeEmpty = True
@@ -340,7 +342,16 @@ class OwnerAction(JobAction):
 		return ""
 
 _JobActions.addAction(OwnerAction)
-		
+	
+
+def _getResultsElement(job):
+	baseURL = "%s/async/%s/results/"%(
+		base.caches.getRD(tap.RD_ID).getById("run").getURL("tap"),
+		job.jobId)
+	return UWS.results[[
+			UWS.result(id=res["resultName"], href=baseURL+res["resultName"])
+		for res in job.getResults()]]
+
 
 class ResultsAction(JobAction):
 	"""Access result (Extension: and other) files in job directory.
@@ -370,12 +381,7 @@ class ResultsAction(JobAction):
 		return static.File(filePath)
 
 	def doGET(self, job, request):
-		baseURL = "%s/async/%s/results/"%(
-			base.caches.getRD(tap.RD_ID).getById("run").getURL("tap"),
-			job.jobId)
-		return UWS.results[[
-				UWS.result(id=res["resultName"], href=baseURL+res["resultName"])
-			for res in job.getResults()]]
+		return _getResultsElement(job)
 
 _JobActions.addAction(ResultsAction)
 
@@ -414,7 +420,7 @@ class RootAction(JobAction):
 			UWS.executionDuration[str(job.executionDuration)],
 			UWS.destruction[utils.formatISODT(job.destructionTime)],
 			getParametersElement(job),
-			UWS.results(),
+			_getResultsElement(job),
 			getErrorSummary(job)])
 		return stanxml.xmlrender(tree,
 			"<?xml-stylesheet href='%s' type='text/xsl'?>"%
