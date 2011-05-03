@@ -236,21 +236,21 @@ class AuthorityTest(testhelpers.VerboseTest):
 
 
 
-class DataPublicationTest(testhelpers.VerboseTest):
-# Tests concerning registry publication of data items.
+class DataPublicationMetaTest(testhelpers.VerboseTest):
+# Tests concerning metadata handling with the table data registry interface
 	resources = [("conn", tresc.dbConnection)]
 
 	def testMinimalMeta(self):
 		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
-			<data id="ronk">
+			<table id="ronk">
 				<register sets="ivo_managed,local"/>
-			</data></resource>""")
+			</table></resource>""")
 		self.assertRaisesWithMsg(base.MetaValidationError,
 			"Meta structure on ronk did not validate:"
 			" Meta key title missing, Meta key creationDate missing,"
 			" Meta key description missing, Meta key subject missing",
 			list,
-			(publication.SvcRscGrammar(rd).parse(rd),))
+			(publication._rdRscRecGrammar.parse(rd),))
 
 	def testIterData(self):
 		rd = base.parseFromString(rscdesc.RD, """<resource schema="data">
@@ -261,47 +261,73 @@ class DataPublicationTest(testhelpers.VerboseTest):
 				subject:a
 				referenceURL:b
 			</meta>
-			<data id="ronk"><register sets="ivo_managed,local"/>
-			</data></resource>""")
-		recs = list(publication.SvcRscGrammar(rd).parse(rd))
+			<table id="ronk"><register sets="ivo_managed,local"/>
+			</table></resource>""")
+		recs = list(publication._rdRscRecGrammar.parse(rd))
 		self.assertEquals(len(recs), 2)
 		self.assertEquals(recs[0]["setName"], "ivo_managed")
 		self.assertEquals(recs[1]["setName"], "local")
 
 	def testRejectedWithoutId(self):
 		self.assertRaisesWithMsg(base.StructureError,
-			"At (3, 3): Published data needs an assigned id.",
+			"At (3, 3): Published tables need an assigned id.",
 			base.parseFromString,
 			(rscdesc.RD, """<resource schema="data">
-			<data><register sets="ivo_managed,local"/>
-			</data></resource>"""))
-	
-	def testPublication(self):
-		rdId = "data/testdata"
-		rd = base.caches.getRD(rdId)
-		dd = rd.getById("ronk")
-		try:
-			publication.updateServiceList([rd], connection=self.conn)
-			q = base.SimpleQuerier(connection=self.conn)
-			self.assertEqual(len(list(
-				q.query("SELECT * FROM dc.resources where sourcerd=%(rdId)s",
-					{"rdId": rdId}))), 1)
-			resOb = registry.getResobFromIdentifier(str(dd.getMeta("identifier")))
-			self.assertEqual(resOb.makes[0].table.id, "barsobal")
-			self.assertEqual(
-				registry.getDependencies("__system__/services", connection=self.conn),
-				["data/testdata"])
-		finally:
-			publication._purgeFromServiceTables(rdId, self.conn)
-			self.conn.commit()
+			<table><register sets="ivo_managed,local"/>
+			</table></resource>"""))
+
+	def testDataPublicationPurged(self):
+		# this is actually a companion to DataPublicationTest making sure
+		# that _PublishedData's clean method has worked, possibly last time.
+		# Sorry 'bout that funkyness, but this is tricky to do sanely.
+		q = base.SimpleQuerier(connection=self.conn)
 		self.assertEqual(len(list(
 			q.query("SELECT * FROM dc.resources where sourcerd=%(rdId)s",
-				{"rdId": rdId}))), 0)
+				{"rdId": _PublishedData.rdId}))), 0, 
+				"registrytest._PublishedData.clean failed?")
 		self.assertEqual(
 			publication.getDependencies("__system__/services", connection=self.conn),
-			[])
+			[],
+			"registrytest._PublishedData.clean failed?")
 
 
+class _PublishedData(testhelpers.TestResource):
+	resources = [("conn", tresc.dbConnection)]
+	rdId = "data/testdata"
+
+	def make(self, deps):
+		self.conn = deps["conn"]
+		rd = base.caches.getRD(self.rdId)
+		publication.updateServiceList([rd], connection=self.conn)
+		return rd
+	
+	def clean(self, res):
+		publication._purgeFromServiceTables(self.rdId, self.conn)
+		self.conn.commit()
+
+
+class DataPublicationTest(testhelpers.VerboseTest):
+# Tests for a published table
+	resources = [
+		("conn", tresc.dbConnection),
+		("pubDataRD", _PublishedData())]
+
+	def testPublication(self):
+		q = base.SimpleQuerier(connection=self.conn)
+		self.assertEqual(len(list(
+			q.query("SELECT * FROM dc.resources where sourcerd=%(rdId)s",
+				{"rdId": self.pubDataRD.sourceId}))), 1)
+	
+	def testResobGeneration(self):
+		td = self.pubDataRD.getById("barsobal")
+		ivoId = base.getMetaText(td, "identifier")
+		resOb = registry.getResobFromIdentifier(ivoId)
+		self.assertEqual(td, resOb)
+	
+	def testIsInDependencies(self):
+		self.assertEqual(
+			registry.getDependencies("__system__/services", connection=self.conn),
+			["data/testdata"])
 
 
 class _DataVORRecord(testhelpers.TestResource):
@@ -312,8 +338,6 @@ class _DataVORRecord(testhelpers.TestResource):
 			<table id="punk">
 				<column name="oink" utype="noises:animal.pig"/>
 				<column name="where" type="spoint" ucd="pos.eq;source"/>
-			</table>
-			<data id="ronk">
 			<register sets="ivo_managed,local"/>
 			<meta name="description">Some silly test data</meta>
 			<meta name="subject">testing</meta>
@@ -325,12 +349,11 @@ class _DataVORRecord(testhelpers.TestResource):
 				>GAVO TAP service</meta>
 			<meta name="servedBy" ivoId="ivo://org.g-vo.junk/adql"
 				>GAVO ADQL Web</meta>
-			<make table="punk"/>
-			</data></resource>""")
+			</table></resource>""")
 		rd.sourceId = "funky/town"
-		dd = rd.dds[0]
+		td = rd.tables[0]
 		tree = testhelpers.getXMLTree(
-			builders.getVOResourceElement(dd).render(), debug=False)
+			builders.getVOResourceElement(td).render(), debug=False)
 		return tree.xpath("metadata/Resource")[0]
 
 _dataVORRecord = _DataVORRecord()
@@ -402,11 +425,11 @@ class RelatedTest(testhelpers.VerboseTest):
 # Tests for everything to do with the "related" meta
 	def _getTreeFor(self, dataBody):
 		rd = base.parseFromString(rscdesc.RD,
-			"""<resource schema="test"><data id="foo">%s%s</data></resource>"""%(
+			"""<resource schema="test"><table id="foo">%s%s</table></resource>"""%(
 				dataBody, _fakeMeta))
-		dd = rd.dds[0]
+		td = rd.tables[0]
 		return testhelpers.getXMLTree(
-			builders.getVOResourceElement(dd).render(), debug=False)
+			builders.getVOResourceElement(td).render(), debug=False)
 
 	def testNoRelations(self):
 		tree = self._getTreeFor("")

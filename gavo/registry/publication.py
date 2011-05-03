@@ -121,8 +121,8 @@ def iterDataRecs(res):
 			yield rec
 
 
-class ServiceRscIterator(grammars.RowIterator):
-	"""is a RowIterator yielding resource records for inclusion into the
+class RDRscRecIterator(grammars.RowIterator):
+	"""A RowIterator yielding resource records for inclusion into the
 	service list for the services defined in the source token RD.
 	"""
 	def _iterRows(self):
@@ -134,7 +134,7 @@ class ServiceRscIterator(grammars.RowIterator):
 			self.curSource = res.id
 			for sr in iterResRecs(res):
 				yield sr.copy()
-		for res in self.sourceToken.dds:
+		for res in self.sourceToken.tables:
 			self.curSource = res.id
 			if res.registration:
 				for sr in iterDataRecs(res):
@@ -144,9 +144,11 @@ class ServiceRscIterator(grammars.RowIterator):
 		return "%s#%s"%(self.sourceToken.sourceId, self.curSource)
 
 
-class SvcRscGrammar(grammars.Grammar):
-	rowIterator = ServiceRscIterator
-_svcRscGrammar = base.makeStruct(SvcRscGrammar)
+class RDRscRecGrammar(grammars.Grammar):
+	"""A grammar for "parsing" raw resource records from RDs.
+	"""
+	rowIterator = RDRscRecIterator
+_rdRscRecGrammar = base.makeStruct(RDRscRecGrammar)
 
 
 def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
@@ -157,7 +159,7 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 	if connection is None:
 		connection = base.getDBConnection("admin")
 	dd = getServicesRD().getById("tables")
-	dd.grammar = _svcRscGrammar
+	dd.grammar = _rdRscRecGrammar
 	depDD = getServicesRD().getById("deptable")
 	msg = None
 	for rd in rds:
@@ -170,8 +172,9 @@ def updateServiceList(rds, metaToo=False, connection=None, onlyWarn=True):
 			recordsWritten += data.nAffected
 			rsc.makeData(depDD, forceSource=rd, connection=connection)
 		except base.MetaValidationError, ex:
-			msg = "Aborting publication of '%s' at service '%s':\n * %s"%(
-				rd.sourceId, ex.carrier.id, "\n * ".join(ex.failures))
+			msg = ("Aborting publication of rd '%s' since meta structure of"
+				" %s (id='%s') is invalid:\n * %s")%(
+				rd.sourceId, repr(ex.carrier), ex.carrier.id, "\n * ".join(ex.failures))
 		except base.NoMetaKey, ex:
 			msg = ("Aborting publication of '%s' at service '%s': Resource"
 				" record generation failed: %s"%(

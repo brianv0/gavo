@@ -2,6 +2,7 @@
 Common items used by resource definition objects.
 """
 
+import datetime
 import re
 
 from gavo import base
@@ -113,6 +114,72 @@ class RolesMixin(object):
 	_allRoles = RoleListAttribute("allRoles", 
 		default=base.getConfig("db", "maintainers"),
 		description="DB roles that can read and write data stored here.")
+
+
+class IVOMetaMixin(object):
+	"""A mixin for resources aspiring to have IVO ids.
+
+	All those need to have an RDAttribute.  Also, for some data this accesses
+	the servicelist database, so the class should really be in registry, where
+	that stuff is defined.  But it can't be there, since it's needed for
+	the definition of tabledefs.
+	"""
+	def _meta_referenceURL(self):
+		return base.makeMetaItem(self.getURL("info"),
+			type="link", title="Service info")
+
+	def _meta_identifier(self):
+		if "identifier" in self.meta_:
+			return self.meta_["identifier"]
+		return "ivo://%s/%s/%s"%(base.getConfig("ivoa", "authority"),
+				self.rd.sourceId, self.id)
+
+	def __getFromDB(self, metaKey):
+		try:  # try to used cached data
+			if self.__dbRecord is None:
+				raise base.NoMetaKey(metaKey, carrier=self)
+			return self.__dbRecord[metaKey]
+		except AttributeError:
+			# fetch data from DB
+			pass
+		# We're not going through servicelist since we don't want to depend
+		# on the registry subpackage.
+		curs = base.caches.getTableConn(None).cursor()
+		curs.execute("SELECT dateUpdated, recTimestamp, setName"
+			" FROM dc.resources_join WHERE sourceRD=%(rdId)s AND resId=%(id)s",
+			{"rdId": self.rd.sourceId, "id": self.id})
+		res = list(curs)
+		if res:
+			row = res[0]
+			self.__dbRecord = {
+				"sets": base.makeMetaItem(list(set(row[2] for row in res)), 
+					name="sets"),
+				"recTimestamp": base.makeMetaItem(res[0][1].strftime(
+					utils.isoTimestampFmt), name="recTimestamp"),
+			}
+		else:
+			self.__dbRecord = {
+				'sets': ['unpublished'],
+				'recTimestamp': base.makeMetaItem(
+					datetime.datetime.utcnow().strftime(
+					utils.isoTimestampFmt), name="recTimestamp"),
+				}
+		return self.__getFromDB(metaKey)
+	
+	def _meta_dateUpdated(self):
+		return self.rd.getMeta("dateUpdated")
+
+	def _meta_datetimeUpdated(self):
+		return self.rd.getMeta("datetimeUpdated")
+	
+	def _meta_recTimestamp(self):
+		return self.__getFromDB("recTimestamp")
+
+	def _meta_sets(self):
+		return self.__getFromDB("sets")
+
+	def _meta_status(self):
+		return "active"
 
 
 class ColumnList(list):

@@ -14,10 +14,10 @@ from gavo.rscdef.column import (Column, Option, Values, makeOptions,
 	Param)
 
 from gavo.rscdef.common import (RDAttribute, ResdirRelativeAttribute,
-	ColumnListAttribute, NamePathAttribute, ColumnList)
+	ColumnListAttribute, NamePathAttribute, ColumnList, IVOMetaMixin)
 
 from gavo.rscdef.dddef import (DataDescriptor, Make,
-	SourceSpec, IVOMetaMixin)
+	SourceSpec)
 
 from gavo.rscdef.group import Group
 

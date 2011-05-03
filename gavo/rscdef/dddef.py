@@ -7,7 +7,6 @@ a specification of the tables to be generated and how they are made
 from the grammar output.
 """
 
-import datetime
 import fnmatch
 import glob
 import os
@@ -249,108 +248,7 @@ class Make(base.Structure, scripting.ScriptingMixin):
 			raiseOnBadKeys=False)
 
 
-class Registration(base.Structure):
-	"""A request for registration of a data collection.
-
-	This is much like publish for services, but there's only one of
-	those per data, and thus there's no register-local metadata.
-	Data registrations may refer to published services that make their
-	data available.
-	"""
-	name_ = "register"
-
-	_defaultSets = frozenset(["ivo_managed"])
-
-	_sets = base.StringSetAttribute("sets",
-		description="A comma-separated list of sets this data will be"
-			" published in.  To publish data to the VO registry, just"
-			" say ivo_managed here.  Other sets probably don't make much"
-			" sense right now.  ivo_managed also is the default.")
-
-	_servedThrough = base.ReferenceListAttribute("services",
-		description="A DC-internal reference to a service that lets users"
-			" query that within the data collection.")
-
-	def completeElement(self, ctx):
-		self._completeElementNext(Registration, ctx)
-		if not self.sets:
-			self.sets = self._defaultSets
-
-	def register(self):
-		"""adds servedBy and serviceFrom metadata to data, service pairs
-		in this registration.
-		"""
-		for srv in self.services:
-			srv.declareServes(self.parent)
-
-
-class IVOMetaMixin(object):
-	"""A mixin for resources aspiring to have IVO ids.
-
-	All those need to have an RDAttribute.  Also, for some data this accesses
-	the servicelist database, so it should really be in registry, where
-	that stuff is defined.  Ah well.
-	"""
-	def _meta_referenceURL(self):
-		return base.makeMetaItem(self.getURL("info"),
-			type="link", title="Service info")
-
-	def _meta_identifier(self):
-		if "identifier" in self.meta_:
-			return self.meta_["identifier"]
-		return "ivo://%s/%s/%s"%(base.getConfig("ivoa", "authority"),
-				self.rd.sourceId, self.id)
-
-	def __getFromDB(self, metaKey):
-		try:  # try to used cached data
-			if self.__dbRecord is None:
-				raise base.NoMetaKey(metaKey, carrier=self)
-			return self.__dbRecord[metaKey]
-		except AttributeError:
-			# fetch data from DB
-			pass
-		# We're not going through servicelist since we don't want to depend
-		# on the registry subpackage.
-		curs = base.caches.getTableConn(None).cursor()
-		curs.execute("SELECT dateUpdated, recTimestamp, setName"
-			" FROM dc.resources_join WHERE sourceRD=%(rdId)s AND resId=%(id)s",
-			{"rdId": self.rd.sourceId, "id": self.id})
-		res = list(curs)
-		if res:
-			row = res[0]
-			self.__dbRecord = {
-				"sets": base.makeMetaItem(list(set(row[2] for row in res)), 
-					name="sets"),
-				"recTimestamp": base.makeMetaItem(res[0][1].strftime(
-					utils.isoTimestampFmt), name="recTimestamp"),
-			}
-		else:
-			self.__dbRecord = {
-				'sets': ['unpublished'],
-				'recTimestamp': base.makeMetaItem(
-					datetime.datetime.utcnow().strftime(
-					utils.isoTimestampFmt), name="recTimestamp"),
-				}
-		return self.__getFromDB(metaKey)
-	
-	def _meta_dateUpdated(self):
-		return self.rd.getMeta("dateUpdated")
-
-	def _meta_datetimeUpdated(self):
-		return self.rd.getMeta("datetimeUpdated")
-	
-	def _meta_recTimestamp(self):
-		return self.__getFromDB("recTimestamp")
-
-	def _meta_sets(self):
-		return self.__getFromDB("sets")
-
-	def _meta_status(self):
-		return "active"
-
-
-class DataDescriptor(base.Structure, base.ComputedMetaMixin,
-		IVOMetaMixin):
+class DataDescriptor(base.Structure, base.MetaMixin):
 	"""A description of how to process data from a given set of sources.
 
 	Data descriptors bring together a grammar, a source specification and
@@ -361,8 +259,6 @@ class DataDescriptor(base.Structure, base.ComputedMetaMixin,
 	are used as arguments to gavoimp for partial imports.
 	"""
 	name_ = "data"
-
-	resType = "data"
 
 	_rowmakers = base.StructListAttribute("rowmakers",
 		childFactory=rmkdef.RowmakerDef, 
@@ -411,34 +307,18 @@ class DataDescriptor(base.Structure, base.ComputedMetaMixin,
 		description="Specification of a target table and the rowmaker"
 			" to feed them.")
 
-	_registration = base.StructAttribute("registration",
-		default=None,
-		childFactory=Registration,
-		copyable=False,
-		description="A registration (to the VO registry) of this data collection.")
-
 	_properties = base.PropertyAttribute()
 
 	_rd = common.RDAttribute()
 
 	_original = base.OriginalAttribute()
 
-	metaModel = ("title(1), creationDate(1), description(1),"
-		"subject, referenceURL(1)")
-
-	def validate(self):
-		self._validateNext(DataDescriptor)
-		if self.registration and self.id is None:
-			raise base.StructureError("Published data needs an assigned id.")
-
 	def onElementComplete(self):
 		self._onElementCompleteNext(DataDescriptor)
 		for t in self.tables:
 			t.setMetaParent(self)
-		if self.registration:
-			self.registration.register()
 
-	# since we want DDs to be dynamically created, they must find their
+	# since we want to be able to create DDs dynamically , they must find their
 	# meta parent (RD) themselves.  We do this while the DD is being adopted.
 	def _getParent(self):
 		return self.__parent
@@ -495,11 +375,3 @@ class DataDescriptor(base.Structure, base.ComputedMetaMixin,
 		"""
 		return DataDescriptor(self.parent, rowmakers=self.rowmakers[:],
 			tables=self.tables[:], grammar=self.grammar, makes=self.makes[:])
-	
-	def getURL(self, rendName, absolute=True):
-		basePath = "%s%s/rdinfo"%(base.getConfig("web", "nevowRoot"),
-			self.rd.sourceId)
-		if absolute:
-			basePath = base.getConfig("web", "serverURL")+basePath
-		return basePath
-

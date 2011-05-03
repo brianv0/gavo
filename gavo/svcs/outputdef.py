@@ -34,6 +34,7 @@ class OutputField(rscdef.Column):
 	"""
 	name_ = "outputField"
 
+
 	_formatter = base.UnicodeAttribute("formatter", description="Function"
 		" body to render this item to HTML.", copyable=True)
 	_wantsRow = base.BooleanAttribute("wantsRow", description="Does"
@@ -69,6 +70,12 @@ class OutputTableDef(rscdef.TableDef):
 	"""A table that has outputFields for columns.
 	"""
 	name_ = "outputTable"
+
+	# Don't validate meta for these -- while they are children
+	# of validated structures (services), they don't need any
+	# meta at all.  This should go as soon as we have a sane
+	# inheritance hierarchy for tables.
+	metaModel = None
 
 	_cols = rscdef.ColumnListAttribute("columns", 
 		childFactory=OutputField,

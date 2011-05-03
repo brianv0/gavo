@@ -45,6 +45,12 @@ class InputKey(column.ParamBase):
 		" registry purposes?",
 		copyable=True)
 
+	# Don't validate meta for these -- while they are children
+	# of validated structures (services), they don't need any
+	# meta at all.  This should go as soon as we have a sane
+	# inheritance hierarchy for tables.
+	metaModel = None
+
 	def completeElement(self, ctx):
 		self._completeElementNext(InputKey, ctx)
 		if self.restrictedMode and self.widgetFactory:

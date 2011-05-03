@@ -152,6 +152,8 @@ def parseModel(modelDescr):
 def _validateStructNode(aStruct):
 	if hasattr(aStruct.__class__, "metaModel"):
 		metaModel = aStruct.__class__.metaModel
+		if metaModel is None:
+			return
 		if isinstance(metaModel, basestring):
 			aStruct.__class__.metaModel = parseModel(metaModel)
 			metaModel = aStruct.__class__.metaModel

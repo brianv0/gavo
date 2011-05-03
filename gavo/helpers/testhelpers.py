@@ -247,6 +247,7 @@ _xmlJunkPat = re.compile("|".join([
 	'((frame_|coord_system_)?id="[^"]*")',
 	'(xsi:schemaLocation="[^"]*"\s*)']))
 
+
 def cleanXML(aString):
 	"""removes IDs and some other detritus from XML literals.
 

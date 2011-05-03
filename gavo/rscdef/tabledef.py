@@ -217,13 +217,50 @@ class STCDef(base.Structure):
 		return self._origFields.iteritems()
 
 
-class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
-		base.StandardMacroMixin):
+class Registration(base.Structure):
+	"""A request for registration of a data collection.
+
+	This is much like publish for services, but there's only one of
+	those per data, and thus there's no register-local metadata.
+	Data registrations may refer to published services that make their
+	data available.
+	"""
+	name_ = "register"
+
+	_defaultSets = frozenset(["ivo_managed"])
+
+	_sets = base.StringSetAttribute("sets",
+		description="A comma-separated list of sets this data will be"
+			" published in.  To publish data to the VO registry, just"
+			" say ivo_managed here.  Other sets probably don't make much"
+			" sense right now.  ivo_managed also is the default.")
+
+	_servedThrough = base.ReferenceListAttribute("services",
+		description="A DC-internal reference to a service that lets users"
+			" query that within the data collection.")
+
+	def completeElement(self, ctx):
+		self._completeElementNext(Registration, ctx)
+		if not self.sets:
+			self.sets = self._defaultSets
+
+	def register(self):
+		"""adds servedBy and serviceFrom metadata to data, service pairs
+		in this registration.
+		"""
+		for srv in self.services:
+			srv.declareServes(self.parent)
+
+
+class TableDef(base.Structure, base.ComputedMetaMixin, common.RolesMixin,
+		common.IVOMetaMixin, base.StandardMacroMixin):
 	"""A definition of a table, both on-disk and internal.
 
 	Some attributes are ignored for the in-memory tables, e.g., roles or adql.
 	"""
 	name_ = "table"
+
+	resType = "table"
 
 	# We don't want to force people to come up with an id for all their
 	# internal tables but want to avoid writing default-named tables to
@@ -300,6 +337,12 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		description="Groups for columns and params of this table",
 		copyable=True)
 
+	_registration = base.StructAttribute("registration",
+		default=None,
+		childFactory=Registration,
+		copyable=False,
+		description="A registration (to the VO registry) of this table.")
+
 	_properties = base.PropertyAttribute()
 
 	# don't copy stc -- columns just keep the reference to the original
@@ -315,6 +358,23 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 
 	fixupFunction = None
 
+	metaModel = ("title(1), creationDate(1), description(1),"
+		"subject, referenceURL(1)")
+
+	@classmethod
+	def fromColumns(cls, columns, **kwargs):
+		"""returns a TableDef from a sequence of columns.
+
+		You can give additional constructor arguments.  makeStruct is used
+		to build the instance, the mixin hack is applied.
+
+		Columns with identical names will be disambiguated.
+		"""
+		res = MS(cls, 
+			columns=common.ColumnList(cls.disambiguateColumns(columns)),
+			**kwargs)
+		return res
+	
 	def __iter__(self):
 		return iter(self.columns)
 
@@ -324,6 +384,55 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 		except base.NotFoundError:
 			return False
 		return True
+
+	def completeElement(self, ctx):
+		if self.viewStatement and getattr(ctx, "restricted", False):
+			raise base.RestrictedElement("table", hint="tables with"
+				" view creation statements are not allowed in restricted mode")
+
+		if self.registration and self.id is base.NotGiven:
+			raise base.StructureError("Published tables need an assigned id.")
+		if not self.id:
+			self._id.feed(ctx, self, utils.intToFunnyWord(id(self)))
+
+		# allow iterables to be passed in for columns and convert them
+		# to a ColumnList here
+		if not isinstance(self.columns, common.ColumnList):
+			self.columns = common.ColumnList(self.columns)
+		self._resolveSTC()
+		self._completeElementNext(TableDef, ctx)
+		self.columns.withinId = self.params.tableName = "table "+self.id
+
+	def validate(self):
+		if self.id.upper() in adql.allReservedWords:
+			raise base.StructureError("Reserved word %s is not allowed as a table"
+				" name"%self.id)
+		self._validateNext(TableDef)
+
+	def onElementComplete(self):
+		if self.adql:
+			self.readRoles = self.readRoles | base.getConfig("db", "adqlRoles")
+		self.dictKeys = [c.key for c in self]
+
+		self.indexedColumns = set()
+		for index in self.indices:
+			for col in index.columns:
+				if "\\" in col:
+					try:
+						self.indexedColumns.add(self.expand(col))
+					except (base.Error, ValueError):  # cannot expand yet, ignore
+						pass
+				else:
+					self.indexedColumns.add(col)
+		if self.primary:
+			self.indexedColumns |= set(self.primary)
+
+		self._defineFixupFunction()
+
+		self._onElementCompleteNext(TableDef)
+
+		if self.registration:
+			self.registration.register()
 
 	def getElementForName(self, name):
 		"""returns the first of column and param having name name.
@@ -340,12 +449,6 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 				raise base.StructureError("No column or param with name %s with"
 					" table %s"%(name, self.id))
 
-	def validate(self):
-		if self.id.upper() in adql.allReservedWords:
-			raise base.StructureError("Reserved word %s is not allowed as a table"
-				" name"%self.id)
-		self._validateNext(TableDef)
-
 	def _resolveSTC(self):
 		"""adds STC related attributes to this tables' columns.
 		"""
@@ -357,22 +460,6 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 						hint="Column %s is referenced twice from STC"%name)
 				destCol.stc = stcDef.compiled
 				destCol.stcUtype = type
-
-	def completeElement(self, ctx):
-		if self.viewStatement and getattr(ctx, "restricted", False):
-			raise base.RestrictedElement("table", hint="tables with"
-				" view creation statements are not allowed in restricted mode")
-
-		if not self.id:
-			self._id.feed(ctx, self, utils.intToFunnyWord(id(self)))
-
-		# allow iterables to be passed in for columns and convert them
-		# to a ColumnList here
-		if not isinstance(self.columns, common.ColumnList):
-			self.columns = common.ColumnList(self.columns)
-		self._resolveSTC()
-		self._completeElementNext(TableDef, ctx)
-		self.columns.withinId = self.params.tableName = "table "+self.id
 
 	def _defineFixupFunction(self):
 		"""defines a function to fix up records from column's fixup attributes.
@@ -393,69 +480,6 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 				"def fixup(row):\n%s\n  return row"%("\n".join(assignments)))
 			self.fixupFunction = rmkfuncs.makeProc("fixup", source,
 				"", None)
-
-	def onElementComplete(self):
-		if self.adql:
-			self.readRoles = self.readRoles | base.getConfig("db", "adqlRoles")
-		self.dictKeys = [c.key for c in self]
-		self.indexedColumns = set()
-		for index in self.indices:
-			for col in index.columns:
-				if "\\" in col:
-					try:
-						self.indexedColumns.add(self.expand(col))
-					except (base.Error, ValueError):  # cannot expand yet, ignore
-						pass
-				else:
-					self.indexedColumns.add(col)
-		if self.primary:
-			self.indexedColumns |= set(self.primary)
-		self._defineFixupFunction()
-		self._onElementCompleteNext(TableDef)
-
-	def macro_colNames(self):
-		"""returns an SQL-ready list of column names of this table.
-		"""
-		return ", ".join(c.name for c in self.columns)
-
-	def macro_curtable(self):
-		"""returns the qualified name of the current table.
-		"""
-		return self.getQName()
-	
-	def macro_qName(self):
-		"""returns the qualified name of the current table.
-		"""
-		return self.getQName()
-	
-	def macro_tablename(self):
-		"""returns the unqualified name of the current table.
-		"""
-		return self.id
-
-	def macro_nameForUCD(self, ucd):
-		"""returns the (unique!) name of the field having ucd in this table.
-
-		If there is no or more than one field with the ucd in this table,
-		we raise a ValueError.
-		"""
-		return self.getColumnByUCD(ucd).name
-
-	def macro_nameForUCDs(self, ucds):
-		"""returns the (unique!) name of the field having one
-		of ucds in this table.
-
-		Ucds is a selection of ucds separated by vertical bars
-		(|).  The rules for when this raises errors are so crazy
-		you don't want to think about them.  This really is
-		only intended for cases where "old" and "new" standards
-		are to be supported, like with pos.eq.*;meta.main and
-		POS_EQ_*_MAIN.
-
-		If there is no or more than one field with the ucd in
-		this table, we raise an exception.
-		"""
-		return self.getColumnByUCDs(*(s.strip() for s in ucds.split("|"))).name
 
 	def getQName(self):
 		if self.temporary:
@@ -573,6 +597,58 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 			raise base.NotFoundError(noteTag, what="note tag", 
 				within="table %s"%self.id)
 
+	def getURL(self, rendName, absolute=True):
+		basePath = "%s__system__/dc_tables/show/tableinfo/%s"%(
+			base.getConfig("web", "nevowRoot"),
+			self.getQName())
+		if absolute:
+			basePath = base.getConfig("web", "serverURL")+basePath
+		return basePath
+
+	def macro_colNames(self):
+		"""returns an SQL-ready list of column names of this table.
+		"""
+		return ", ".join(c.name for c in self.columns)
+
+	def macro_curtable(self):
+		"""returns the qualified name of the current table.
+		"""
+		return self.getQName()
+	
+	def macro_qName(self):
+		"""returns the qualified name of the current table.
+		"""
+		return self.getQName()
+	
+	def macro_tablename(self):
+		"""returns the unqualified name of the current table.
+		"""
+		return self.id
+
+	def macro_nameForUCD(self, ucd):
+		"""returns the (unique!) name of the field having ucd in this table.
+
+		If there is no or more than one field with the ucd in this table,
+		we raise a ValueError.
+		"""
+		return self.getColumnByUCD(ucd).name
+
+	def macro_nameForUCDs(self, ucds):
+		"""returns the (unique!) name of the field having one
+		of ucds in this table.
+
+		Ucds is a selection of ucds separated by vertical bars
+		(|).  The rules for when this raises errors are so crazy
+		you don't want to think about them.  This really is
+		only intended for cases where "old" and "new" standards
+		are to be supported, like with pos.eq.*;meta.main and
+		POS_EQ_*_MAIN.
+
+		If there is no or more than one field with the ucd in
+		this table, we raise an exception.
+		"""
+		return self.getColumnByUCDs(*(s.strip() for s in ucds.split("|"))).name
+
 	@staticmethod
 	def disambiguateColumns(columns):
 		"""returns a sequence of columns without duplicate names.
@@ -585,20 +661,6 @@ class TableDef(base.Structure, base.MetaMixin, common.RolesMixin,
 			seenNames.add(c.name)
 		return newColumns
 
-	@classmethod
-	def fromColumns(cls, columns, **kwargs):
-		"""returns a TableDef from a sequence of columns.
-
-		You can give additional constructor arguments.  makeStruct is used
-		to build the instance, the mixin hack is applied.
-
-		Columns with identical names will be disambiguated.
-		"""
-		res = MS(cls, 
-			columns=common.ColumnList(cls.disambiguateColumns(columns)),
-			**kwargs)
-		return res
-		
 
 class FieldRef(base.Structure):
 	"""A reference to a column in a table definition using the table's

@@ -414,22 +414,21 @@ _dataMetaBuilder = meta.ModelBasedBuilder([
 	('format', SF(VS1.format)),  
 ])
 
-class DataResourceMaker(ResourceMaker):
-	"""A ResourceMaker for rscdef.Data items (yielding DataCollections)
+class TableResourceMaker(ResourceMaker):
+	"""A ResourceMaker for rscdef.TableDef items (yielding DataCollections)
 	"""
 	resourceClass = VS1.DataCollection
-	resType = "data"
+	resType = "table"
 
-	def _makeResource(self, data, setNames):
-		return ResourceMaker._makeResource(self, data, setNames)[
-			_orgMetaBuilder.build(data),
-			_dataMetaBuilder.build(data),
-			_coverageMetaBuilder.build(data),
-			data.makes and VS1.tableset[
+	def _makeResource(self, td, setNames):
+		return ResourceMaker._makeResource(self, td, setNames)[
+			_orgMetaBuilder.build(td),
+			_dataMetaBuilder.build(td),
+			_coverageMetaBuilder.build(td),
+			VS1.tableset[
 				VS1.schema[
-					VS1.name[data.rd.schema], [
-						tableset.getTableForTableDef(td)
-						for td in data]]]]
+					VS1.name[td.rd.schema], 
+					tableset.getTableForTableDef(td)]]]
 
 
 _getResourceMaker = utils.buildClassResolver(ResourceMaker, 

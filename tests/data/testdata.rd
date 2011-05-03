@@ -1,5 +1,5 @@
 <resource schema="__test">
-	<meta name="description">Some test data with a reasonable funny structure.
+	<meta name="description">Some test data with a reasonably funny structure.
 	</meta>
 	<meta name="title">GAVO Test Data</meta>
 	<meta name="creationDate">2008-10-15T15:01:03</meta>
@@ -15,6 +15,7 @@
 	</table>
 	
 	<table id="barsobal">
+		<register services="//services#overview" sets="ignore"/>
 		<column name="anint" type="integer"/>
 		<column name="adouble" tablehead="And a Double"
 			type="double precision"/>
@@ -33,7 +34,6 @@
 	</table>
 
 	<data id="ronk">
-		<register services="//services#overview" sets="ignore"/>
 		<make table="barsobal"/>
 	</data>
 
