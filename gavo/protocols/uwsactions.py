@@ -110,6 +110,14 @@ class UWS(object):
 		_mayBeEmpty = True
 
 
+def getJobURL(jobId):
+	"""returns a URL to access jobId's job info.
+	"""
+	return "%s/async/%s"%(
+		base.caches.getRD(tap.RD_ID).getById("run").getURL("tap"),
+		jobId)
+
+
 def getJobList():
 	jobstable = uws.getROJobsTable()
 	fields = jobstable.tableDef.columns
@@ -118,7 +126,7 @@ def getJobList():
 			fields.getColumnByName("jobId"),
 			fields.getColumnByName("phase"),], ""):
 		result[
-			UWS.jobref(id=row["jobId"])[
+			UWS.jobref(id=row["jobId"], href=getJobURL(row["jobId"]))[
 				UWS.phase[row["phase"]]]]
 	return stanxml.xmlrender(result, "<?xml-stylesheet "
 		"href='/static/xsl/uws-joblist-to-html.xsl' type='text/xsl'?>")
@@ -342,12 +350,10 @@ class OwnerAction(JobAction):
 		return ""
 
 _JobActions.addAction(OwnerAction)
-	
+
 
 def _getResultsElement(job):
-	baseURL = "%s/async/%s/results/"%(
-		base.caches.getRD(tap.RD_ID).getById("run").getURL("tap"),
-		job.jobId)
+	baseURL = getJobURL(job.jobId)+"/results/"
 	return UWS.results[[
 			UWS.result(id=res["resultName"], href=baseURL+res["resultName"])
 		for res in job.getResults()]]

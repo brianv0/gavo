@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <xsl:stylesheet
-    xmlns:uws="http://www.ivoa.net/xml/UWS/v1.0rc3"
+    xmlns:uws="http://www.ivoa.net/xml/UWS/v1.0"
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
 		xmlns="http://www.w3.org/1999/xhtml"
     version="1.0">
