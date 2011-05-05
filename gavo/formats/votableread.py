@@ -117,14 +117,20 @@ def _getColArgs(votInstance, name):
 		"id": getattr(votInstance, "ID", None),
 		"type": base.voTableToSQLType(
 			votInstance.datatype, votInstance.arraysize, votInstance.xtype)}
-	for attName in ["ucd", "description", "unit", "xtype"]:
+
+	for attName in ["ucd", "unit", "xtype"]:
 		if getattr(votInstance, attName, None) is not None:
 			kwargs[attName] = getattr(votInstance, attName)
+
 	if getattr(votInstance, "value", None) is not None:
 		kwargs["content_"] = votInstance.value
 	values = _getValuesFromField(votInstance)
 	if values:
 		kwargs["values"] = values
+	
+	for desc in votInstance.iterChildrenOfType(V.DESCRIPTION):
+		kwargs["description"] = desc.text_
+
 	return kwargs
 	
 

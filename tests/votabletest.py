@@ -228,6 +228,16 @@ class ImportTest(testhelpers.VerboseTest):
 		self.assertEqual(td.params[0].value, "first param")
 		self.assertEqual(td.params[1].value, 2)
 
+	def testColumnMeta(self):
+		td, _ = self.testData
+		col = td.getColumnByName("field")
+		self.assertEqual(col.ucd, "POS_EQ_RA_MAIN")
+		self.assertEqual(col.type, "double precision")
+		self.assertEqual(col.unit, "deg")
+		self.assertEqual(col.description, 
+			"Right ascension (FK5) Equinox=J2000. (computed by"
+			" VizieR, not part of the original data)")
+
 
 class VizierImportTest(testhelpers.VerboseTest):
 	"""tests for ingestion of a random vizier VOTable.

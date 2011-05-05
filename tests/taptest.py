@@ -113,7 +113,6 @@ class PlainActionsTest(testhelpers.VerboseTest):
 		self.assertEqual(job.phase, uws.QUEUED)
 
 
-
 class PlainJobCreationTest(testhelpers.VerboseTest):
 	"""tests for working job creation and destruction.
 	"""
@@ -180,7 +179,7 @@ class _UWSJobResource(testhelpers.TestResource):
 _uwsJobResource = _UWSJobResource()
 
 
-class UWSParametersTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
+class UWSParametersTest(testhelpers.VerboseTest):
 	resources = [("jobId", _uwsJobResource)]
 
 	def testRunidInsensitive(self):
@@ -202,10 +201,17 @@ class UWSParametersTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
 			finally:
 				job.delete()
 
-	def testJobResValid(self):
+
+class UWSResponsesValidTest(testhelpers.VerboseTest, testtricks.XSDTestMixin):
+	resources = [("jobId", _uwsJobResource)]
+
+	def testJobRes(self):
 		with uws.ROUWSJob.makeFromId(self.jobId) as job:
 			self.assertValidates(uwsactions.RootAction().doGET(job, None),
 				leaveOffending=True)
+
+	def testJobList(self):
+		self.assertValidates(uwsactions.getJobList(), leaveOffending=True)
 
 
 class LockingTest(testhelpers.VerboseTest):
