@@ -5,11 +5,13 @@ Tests for grammars and their helpers.
 
 import datetime
 import os
+import struct
 from cStringIO import StringIO
 
 from gavo import base
 from gavo import rsc
 from gavo import rscdef
+from gavo.grammars import binarygrammar
 from gavo.grammars import columngrammar
 from gavo.helpers import testhelpers
 
@@ -259,7 +261,72 @@ class ColDefTest(testhelpers.VerboseTest):
 		else:
 			self.fail("LiteralParseError not raised")
 		 
-		
 
+class BinaryRecordTest(testhelpers.VerboseTest):
+	def testTypes(self):
+		brd = base.parseFromString(binarygrammar.BinaryRecordDef,
+			"""<binaryRecordDef endianness="packed">
+				chr(1s) fong(12s) b(b) B(B) h(h) H(H) i(i) I(I) q(q) Q(Q)
+				f(f) d(d)</binaryRecordDef>""")
+		self.assertEqual(brd.structFormat, "=1s12sbBhHiIqQfd")
+		self.assertEqual(brd.recordLength, 55)
+
+	def testBadIdentifier(self):
+		self.assertRaises(base.LiteralParseError,
+			base.parseFromString, binarygrammar.BinaryRecordDef,
+			"<binaryRecordDef>22s(d)</binaryRecordDef>")
+
+	def testBadCode(self):
+		self.assertRaises(base.LiteralParseError,
+			base.parseFromString, binarygrammar.BinaryRecordDef,
+			"<binaryRecordDef>x(P)</binaryRecordDef>")
+
+	def testNativeTypes(self):
+		brd = base.parseFromString(binarygrammar.BinaryRecordDef,
+			"<binaryRecordDef>c(1s)s(i)t(d)</binaryRecordDef>")
+		self.assertEqual(brd.structFormat, "1sid")
+		self.failIf(brd.recordLength==13, "You platform doesn't pack?")
+
+
+class BinaryGrammarTest(testhelpers.VerboseTest):
+	plainTestData = [(42, 0.25), (-30, 40.)]
+	plainExpectedResult = [{'s': 42, 't': 0.25}, {'s': -30, 't': 40.0}]
+
+	def testUnarmoredParse(self):
+		inputFile = StringIO("u"*20+"".join(struct.pack("id", *r) 
+			for r in self.plainTestData))
+		grammar = base.parseFromString(binarygrammar.BinaryGrammar,
+			"""<binaryGrammar skipBytes="20"><binaryRecordDef>s(i)t(d)
+			</binaryRecordDef></binaryGrammar>""")
+		self.assertEqual(
+			list(grammar.parse(inputFile)),
+			self.plainExpectedResult)
+
+	def testNetworkEndian(self):
+		inputFile = StringIO("".join(struct.pack("!id", *r) 
+			for r in self.plainTestData))
+		grammar = base.parseFromString(binarygrammar.BinaryGrammar,
+			"""<binaryGrammar><binaryRecordDef endianness="big">s(i)t(d)
+			</binaryRecordDef></binaryGrammar>""")
+		self.assertEqual(
+			list(grammar.parse(inputFile)),
+			self.plainExpectedResult)
+
+
+	def testFortranParse(self):
+
+		def doFortranArmor(data):
+			return struct.pack("i%dsi"%len(data), len(data), data, len(data))
+
+		inputFile = StringIO("".join(doFortranArmor(struct.pack("id", *r))
+			for r in self.plainTestData))
+		grammar = base.parseFromString(binarygrammar.BinaryGrammar,
+			"""<binaryGrammar armor="fortran"><binaryRecordDef>s(i)t(d)
+			</binaryRecordDef></binaryGrammar>""")
+		self.assertEqual(
+			list(grammar.parse(inputFile)),
+			self.plainExpectedResult)
+	
+	
 if __name__=="__main__":
 	testhelpers.main(SequencedRowfilterTest)

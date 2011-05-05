@@ -3,6 +3,7 @@ Various helpers that didn't fit into any other xTricks.
 """
 
 import contextlib
+import struct
 import threading
 import time
 
@@ -152,6 +153,43 @@ def logOldExc(exc):
 	"""
 	sendUIEvent("ExceptionMutation", exc)
 	return exc
+
+
+def getFortranRec(f):
+	"""reads a "fortran record" from f and returns the payload.
+
+	A "fortran record" comes from an unformatted file and has a
+	4-byte payload length before and after the payload.  Native endianess
+	is assumed here.
+
+	If the two length specs do not match, a ValueError is raised.
+	"""
+	rawLength = f.read(4)
+	if rawLength=='': # EOF
+		return None
+	recLen = struct.unpack("i", rawLength)[0]
+	data = f.read(recLen)
+	postambleLen = struct.unpack("i", f.read(4))[0]
+	if recLen!=postambleLen:
+		raise ValueError("Record length at record (%d) and did not match"
+			" postamble declared length (%d) at %s"%(
+				recLen, postambleLen, f.tell()))
+	return data
+
+
+def iterFortranRecs(f, skip=0):
+	"""iterates over the fortran records in f.
+
+	For details, see getFortranRec.
+	"""
+	while True:
+		rec = getFortranRec(f)
+		if rec is None:
+			break
+		if skip>0:
+			skip -= 1
+			continue
+		yield rec
 
 
 ####################### Pyparsing hacks
