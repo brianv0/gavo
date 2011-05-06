@@ -58,7 +58,7 @@ class BinaryRecordDef(base.Structure):
 	A binary records consists of a number of binary fields, each of which
 	is defined by a name and a format code.  The format codes supported
 	here are a subset of what python's struct module supports.  The
-	widths given below are for big, little, and packed endianesses.
+	widths given below are for big, little, and packed binfmts.
 	For native (which is the default), it depends on your platform.
 
 	* <number>s -- <number> characters making up a string
@@ -76,16 +76,17 @@ class BinaryRecordDef(base.Structure):
 
 	_fieldsGrammar = _getFieldsGrammar()
 
-	_endianness = base.EnumeratedUnicodeAttribute("endianness",
+	_binfmt = base.EnumeratedUnicodeAttribute("binfmt",
 		default="native", 
 		validValues=["big", "little", "native", "packed"],
-		description="Endianess of the input data; network is the same as big,"
-			" and packed is like native except no alignment takes place.")
+		description="Binary format of the input data; big and little stand"
+			" for msb first and lsb first, and"
+			" packed is like native except no alignment takes place.")
 
 	_fields = base.DataContent(description="The enumeration of"
 		" the record fields.")
 
-	_endiannessToStructCode = {
+	_binfmtToStructCode = {
 		"native": "",
 		"packed": "=",
 		"big": ">",
@@ -100,7 +101,7 @@ class BinaryRecordDef(base.Structure):
 				pos=str(ex.loc), hint="The parser said: '%s'"%str(ex)))
 # XXX TODO: Position should probably be position during XML parse.
 # Fix when we have source positions on parsed elements.
-		self.structFormat = (self._endiannessToStructCode[self.endianness]+
+		self.structFormat = (self._binfmtToStructCode[self.binfmt]+
 			str("".join(f["formatCode"] for f in parsedFields)))
 		self.recordLength = struct.calcsize(self.structFormat)
 		self.fieldNames = tuple(f["identifier"] for f in parsedFields)

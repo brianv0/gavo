@@ -265,7 +265,7 @@ class ColDefTest(testhelpers.VerboseTest):
 class BinaryRecordTest(testhelpers.VerboseTest):
 	def testTypes(self):
 		brd = base.parseFromString(binarygrammar.BinaryRecordDef,
-			"""<binaryRecordDef endianness="packed">
+			"""<binaryRecordDef binfmt="packed">
 				chr(1s) fong(12s) b(b) B(B) h(h) H(H) i(i) I(I) q(q) Q(Q)
 				f(f) d(d)</binaryRecordDef>""")
 		self.assertEqual(brd.structFormat, "=1s12sbBhHiIqQfd")
@@ -302,11 +302,11 @@ class BinaryGrammarTest(testhelpers.VerboseTest):
 			list(grammar.parse(inputFile)),
 			self.plainExpectedResult)
 
-	def testNetworkEndian(self):
+	def testNetworkBinfmt(self):
 		inputFile = StringIO("".join(struct.pack("!id", *r) 
 			for r in self.plainTestData))
 		grammar = base.parseFromString(binarygrammar.BinaryGrammar,
-			"""<binaryGrammar><binaryRecordDef endianness="big">s(i)t(d)
+			"""<binaryGrammar><binaryRecordDef binfmt="big">s(i)t(d)
 			</binaryRecordDef></binaryGrammar>""")
 		self.assertEqual(
 			list(grammar.parse(inputFile)),
