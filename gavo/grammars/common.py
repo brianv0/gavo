@@ -261,6 +261,14 @@ class FileRowIterator(RowIterator):
 	def __init__(self, grammar, sourceToken, **kwargs):
 		RowIterator.__init__(self, grammar, sourceToken, **kwargs)
 		self.curLine = 1
+		try:
+			self._openFile()
+		except IOError, ex:
+			raise base.ui.logOldExc(
+				base.SourceParseError("I/O operation failed (%s)"%str(ex),
+					source=str(sourceToken), location="start"))
+	
+	def _openFile(self):
 		if isinstance(self.sourceToken, basestring):
 			if self.grammar.enc:
 				self.inputFile = codecs.open(self.sourceToken, "r", self.grammar.enc)
@@ -269,7 +277,7 @@ class FileRowIterator(RowIterator):
 		else:
 			self.inputFile = self.sourceToken
 			self.sourceToken = getattr(self.inputFile, "name", repr(self.sourceToken))
-		if hasattr(grammar, "gunzip") and grammar.gunzip:
+		if hasattr(self.grammar, "gunzip") and self.grammar.gunzip:
 			self.inputFile = gzip.GzipFile(fileobj=self.inputFile)
 
 

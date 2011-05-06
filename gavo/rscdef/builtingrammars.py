@@ -13,19 +13,20 @@ from gavo import utils
 
 GRAMMAR_REGISTRY = {
 # elementName -> (module (without gavo.), class name)
+	"binaryGrammar": ("grammars.binarygrammar", "BinaryGrammar"),
 	"columnGrammar": ("grammars.columngrammar", "ColumnGrammar"),
+	"contextGrammar": ("svcs.inputdef", "ContextGrammar"),
 	"customGrammar": ("grammars.customgrammar", "CustomGrammar"),
 	"dictlistGrammar": ("grammars.dictlistgrammar", "DictlistGrammar"),
 	"directGrammar": ("grammars.directgrammar", "DirectGrammar"),
 	"embeddedGrammar": ("grammars.embeddedgrammar", "EmbeddedGrammar"),
 	"fitsProdGrammar": ("grammars.fitsprodgrammar", "FITSProdGrammar"),
 	"freeREGrammar": ("grammars.freeregrammar", "FreeREGrammar"),
-	"nullGrammar": ("grammars.common", "NullGrammar"),
 	"keyValueGrammar": ("grammars.kvgrammar", "KeyValueGrammar"),
+	"nullGrammar": ("grammars.common", "NullGrammar"),
 	"reGrammar": ("grammars.regrammar", "REGrammar"),
 	"rowsetGrammar": ("grammars.rowsetgrammar", "RowsetGrammar"),
 	"voTableGrammar": ("grammars.votablegrammar", "VOTableGrammar"),
-	"contextGrammar": ("svcs.inputdef", "ContextGrammar"),
 }
 
 @utils.memoized

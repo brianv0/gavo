@@ -2,6 +2,7 @@
 Tests pertaining to the parsing system
 """
 
+import contextlib
 import datetime
 import itertools
 import os
@@ -21,10 +22,14 @@ from gavo.web import formrender
 import tresc
 
 
-def _prepareData(fName, content):
-	f = open(fName, "w")
-	f.write(content)
-	f.close()
+@contextlib.contextmanager
+def _inputFile(fName, content):
+	with open(fName, "w") as f:
+		f.write(content)
+	try:
+		yield
+	finally:
+		os.unlink(fName)
 
 
 class SimpleParseTest(testhelpers.VerboseTest):
@@ -32,7 +37,7 @@ class SimpleParseTest(testhelpers.VerboseTest):
 	"""
 	def _getDD(self):
 		return base.parseFromString(rscdef.DataDescriptor, '<data>'
-			'<sources pattern="testInput.txt"/>'
+			'<sources>testInput.txt</sources>'
 			'<columnGrammar><col key="val1">3</col>'
 			'<col key="val2">6-10</col></columnGrammar>'
 			'<table id="foo"><column name="x" type="integer"/>'
@@ -43,29 +48,21 @@ class SimpleParseTest(testhelpers.VerboseTest):
 			'</rowmaker><make table="foo" rowmaker="bla_foo"/></data>')
 
 	def testBasic(self):
-		_prepareData("testInput.txt", "xx1xxabc, xxxx\n")
-		try:
+		with _inputFile("testInput.txt", "xx1xxabc, xxxx\n"):
 			dd = self._getDD()
 			data = rsc.makeData(dd)
 			self.assertEqual(data.getPrimaryTable().rows, [{'y': u'abc,', 'x': 1}])
-		finally:
-			os.unlink("testInput.txt")
-			data.closeAll()
 	
 	def testRaising(self):
-		_prepareData("testInput.txt", "xxxxxabc, xxxx\n")
-		try:
+		with _inputFile("testInput.txt", "xxxxxabc, xxxx\n"):
 			dd = self._getDD()
 			self.assertRaisesWithMsg(base.ValidationError,
 				"While building x in bla_foo: invalid literal for int()"
 					" with base 10: 'x'",
 				rsc.makeData, (dd,))
-		finally:
-			os.unlink("testInput.txt")
 	
 	def testValidation(self):
-		_prepareData("testInput.txt", "xx1xxabc, xxxx\n")
-		try:
+		with _inputFile("testInput.txt", "xx1xxabc, xxxx\n"):
 			dd = base.parseFromString(rscdef.DataDescriptor, '<data>'
 				'<sources pattern="testInput.txt"/>'
 				'<columnGrammar><col key="val1">3</col></columnGrammar>'
@@ -77,8 +74,14 @@ class SimpleParseTest(testhelpers.VerboseTest):
 			self.assertRaisesWithMsg(base.ValidationError,
 				"Column y missing",
 				rsc.makeData, (dd, rsc.parseValidating))
-		finally:
-			os.unlink("testInput.txt")
+
+	def testNonExistingSource(self):
+		dd = self._getDD()
+		self.assertRaisesWithMsg(base.SourceParseError, 
+			"At start: I/O operation failed ([Errno 2] No such file or directory:"
+			" u'/home/msdemlei/gavo/trunk/tests/testInput.txt')",
+			rsc.makeData,
+			(dd,))
 
 
 def assertRowset(self, found, expected):
