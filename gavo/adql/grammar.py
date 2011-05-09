@@ -287,10 +287,9 @@ def getADQLGrammarCopy():
 # at a later point, and names cause copies of the pyparsing objects,
 # so that elements named in rules will not be bound later.  Rather
 # name elements on their construction.
-		sqlComment = Literal("--") + SkipTo("\n" | StringEnd())
-		whitespace = Word(" \t\n")   # sometimes necessary to avoid sticking 
-			# together numbers and identifiers
-		separator = Optional( sqlComment ) + Optional(Word(" \t\n\r"))
+		sqlComment = Regex("--[^\n\r]*")
+		whitespace = Word(" \t\n")   # need that as a hack now and then to keep
+		                             # numbers and identifiers from sticking
 
 		unsignedInteger = Word(nums)
 		unsignedInteger.setName("unsigned integer")
@@ -298,8 +297,7 @@ def getADQLGrammarCopy():
 		exactNumericLiteral = Regex(_exactNumericRE)
 		approximateNumericLiteral = Regex(r"(?i)(%s)E[+-]?\d+"%_exactNumericRE)
 		unsignedNumericLiteral = ( approximateNumericLiteral | exactNumericLiteral )
-		characterStringLiteral = sglQuotedString + ZeroOrMore(
-			separator + sglQuotedString)
+		characterStringLiteral = sglQuotedString + ZeroOrMore( sglQuotedString )
 		generalLiteral = characterStringLiteral.copy()
 		unsignedLiteral = unsignedNumericLiteral # !!! DEVIATION | generalLiteral
 		sign = Literal("+") | "-"
@@ -577,7 +575,9 @@ def getADQLGrammarCopy():
 			+ Optional( setLimit ) 
 			+ selectList + tableExpression )
 		statement = querySpecification + Optional( White() ) + StringEnd()
-		ParserElement.setDefaultWhitespaceChars("\t ")
+
+# comment
+		statement.ignore(sqlComment)
 		return dict((k, v) for k, v in locals().iteritems()
 			if isinstance(v, ParserElement)), statement
 
@@ -626,8 +626,7 @@ if __name__=="__main__":
 	import pprint, sys
 	syms, grammar = getADQLGrammar()
 	enableTree(syms)
-	lit = sglQuotedString + Optional(syms["separator"] + sglQuotedString)
-	res = syms["predicateGeometryFunction"].parseString(
-			"intersects(pt, point('ICRS', 2, 2))"
-			,parseAll=True)
+	res = syms["statement"].parseString(
+		"select --comment \n * from bar"
+		,parseAll=True)
 	pprint.pprint(res.asList(), stream=sys.stderr)

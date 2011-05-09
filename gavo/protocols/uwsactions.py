@@ -379,12 +379,12 @@ class ResultsAction(JobAction):
 			except base.NotFoundError: # segments[0] does not name a result
 				pass                     # fall through to other files
 
-		# if that doesn't work, try to return some other file fromt the
+		# if that doesn't work, try to return some other file from the
 		# job directory.  This is so we can deliver uploads.
 		filePath = os.path.join(job.getWD(), *segments)
 		if not os.path.exists(filePath):
 			raise svcs.UnknownURI("File not found")
-		return static.File(filePath)
+		return static.File(filePath, defaultType="application/octetStream")
 
 	def doGET(self, job, request):
 		return _getResultsElement(job)

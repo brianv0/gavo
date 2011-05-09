@@ -34,8 +34,13 @@ class BinaryRowIterator(FileRowIterator):
 	def _iterRows(self):
 		fmtStr = self.grammar.fieldDefs.structFormat
 		fieldNames = self.grammar.fieldDefs.fieldNames
-		for rawRec in self._iterInRecords():
-			yield dict(zip(fieldNames, struct.unpack(fmtStr, rawRec)))
+		try:
+			for rawRec in self._iterInRecords():
+				yield dict(zip(fieldNames, struct.unpack(fmtStr, rawRec)))
+		except Exception, ex:
+			raise base.ui.logOldExc(base.SourceParseError(str(ex), 
+				location="byte %s"%self.inputFile.tell(),
+				source=str(self.sourceToken)))
 
 
 def _getFieldsGrammar():

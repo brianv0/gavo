@@ -1118,13 +1118,15 @@ class NameSuggestingTest(testhelpers.VerboseTest):
 			"booger_boog"),]
 
 
-class FlattenTest(unittest.TestCase):
-	"""tests for flattening of plain ADQL trees.
-	"""
+class _FlatteningTest(testhelpers.VerboseTest):
 	def _assertFlattensTo(self, rawADQL, flattenedADQL):
 		self.assertEqual(adql.flatten(adql.parseToTree(rawADQL)),
 			flattenedADQL)
-	
+
+
+class MiscFlatteningTest(_FlatteningTest):
+	"""tests for flattening of plain ADQL trees.
+	"""
 	def testCircle(self):
 		self._assertFlattensTo("select alphaFloat, deltaFloat from ppmx.data"
 				" where contains(point('ICRS', alphaFloat, deltaFloat), "
@@ -1136,6 +1138,33 @@ class FlattenTest(unittest.TestCase):
 		self._assertFlattensTo(
 			"select round(x,2)as a, truncate(x,-2) as b from foo",
 			"SELECT ROUND(x, 2) AS a, TRUNCATE(x, - 2) AS b FROM foo")
+
+
+class CommentTest(_FlatteningTest):
+	def testTopComment(self):
+		self._assertFlattensTo("-- opening remarks;\n"
+		"-- quite a few of them, actually.\nselect * from foo",
+			"SELECT * FROM foo")
+	
+	def testEmbeddedComments(self):
+		self._assertFlattensTo("select -- comment\n"
+			"bar, --comment\n"
+			"quux --comment\n"
+			"from -- comment\n"
+			"foo --comment",
+			"SELECT bar, quux FROM foo")
+
+	def testStringJoining(self):
+		self._assertFlattensTo("select * from bar where a='qua' -- cmt\n'tsch'",
+			"SELECT * FROM bar WHERE a = 'quatsch'")
+	
+	def testLeadingWhitespaceCleanup(self):
+		self._assertFlattensTo("select * from--comment\n   bar",
+			"SELECT * FROM bar")
+	
+	def testEquivalentToWhitespace(self):
+		self._assertFlattensTo("select * from--comment\nbar",
+			"SELECT * FROM bar")
 
 
 class Q3CMorphTest(unittest.TestCase):
@@ -1591,4 +1620,4 @@ class IntersectsFallbackTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(IntersectsFallbackTest)
+	testhelpers.main(CommentTest)
