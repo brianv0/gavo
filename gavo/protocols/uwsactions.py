@@ -384,7 +384,7 @@ class ResultsAction(JobAction):
 		filePath = os.path.join(job.getWD(), *segments)
 		if not os.path.exists(filePath):
 			raise svcs.UnknownURI("File not found")
-		return static.File(filePath, defaultType="application/octetStream")
+		return static.File(filePath, defaultType="application/octet-stream")
 
 	def doGET(self, job, request):
 		return _getResultsElement(job)

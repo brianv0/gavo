@@ -52,6 +52,9 @@
                         position: absolute;
                         top: -3ex;
                     }
+                    .deleted a {
+                        text-decoration: line-through;
+                    }
                 ]]></style>
             </head>
             <body>
@@ -83,7 +86,10 @@
     </xsl:template>
 
     <xsl:template match="oai:header">
-        <li class="oairec">
+        <li>
+            <xsl:attribute name="class">oairec
+                <xsl:value-of select="@status"/>
+            </xsl:attribute>
             <xsl:apply-templates/>
         </li>
     </xsl:template>
@@ -103,9 +109,16 @@
     <xsl:template match="*" mode="dumpall">
         <div class="nestbox">
             <p class="boxtitle"><xsl:value-of select="name(.)"/></p>
+            <xsl:if test="@ivo-id">
+                <a>
+                    <xsl:attribute name="href"
+                        >/oai.xml?verb=GetRecord&amp;metadataPrefix=ivo_vor&amp;identifier=<xsl:value-of select="@ivo-id"/>
+                    </xsl:attribute>&#8594;</a>
+            </xsl:if>
             <xsl:apply-templates mode="dumpall"/>
         </div>
     </xsl:template>
+
 </xsl:stylesheet>
 
 

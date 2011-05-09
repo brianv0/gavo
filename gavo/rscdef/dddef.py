@@ -136,7 +136,7 @@ class SourceSpec(base.Structure):
 				res.extend(dir for dir in dirs if os.path.isdir(dir))
 				for child in files:
 					if os.path.islink(os.path.join(root, child)):
-						res.expand(self._expandDirParts(os.path.join(root, child)))
+						res.extend(self._expandDirParts(os.path.join(root, child)))
 		return res
 
 	def iterSources(self, connection=None):
