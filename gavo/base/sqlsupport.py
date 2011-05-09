@@ -349,6 +349,7 @@ class PostgresQueryMixin(object):
 
 	_privTable = {
 		"arwdRx": "ALL",
+		"arwdDxt": "ALL",
 		"arwdRxt": "ALL",
 		"arwdxt": "ALL",
 		"r": "SELECT",
