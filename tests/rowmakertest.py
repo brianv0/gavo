@@ -164,6 +164,28 @@ class RowmakerMapTest(testhelpers.VerboseTest):
 		self.assertEqual(mapper({'foo': "None"}, None), {'foo': None})
 		self.assertEqual(mapper({'foo': "123"}, None), {'foo': "123"})
 
+	def testMapNullAuto(self):
+		dd, td = makeDD('<column name="foo" type="integer"/>',
+			'<map dest="foo" nullExpr="22"/>')
+		mapper = dd.rowmakers[0].compileForTableDef(td)
+		self.assertEqual(mapper({'foo': "22"}, None), {'foo': None})
+		self.assertEqual(mapper({'foo': "23"}, None), {'foo': 23})
+
+	def testMapNullExpr(self):
+		dd, td = makeDD('<column name="foo" type="integer"/>',
+			'<map dest="foo" nullExpr="22">parseInt(@bar)+22</map>')
+		mapper = dd.rowmakers[0].compileForTableDef(td)
+		self.assertEqual(mapper({'bar': "0"}, None), {'foo': None})
+		self.assertEqual(mapper({'bar': "1"}, None), {'foo': 23})
+
+	def testBadNullExpr(self):
+		self.assertRaisesWithMsg(base.BadCode,
+			"At (1, 133): Bad source code in expression (unexpected EOF"
+			" while parsing (line 1))",
+			makeDD,
+			('<column name="foo" type="integer"/>',
+				'<map dest="foo" nullExpr="22-">parseInt(@bar)+22</map>'))
+
 
 class ApplyTest(testhelpers.VerboseTest):
 	"""Tests for mapping procedures.

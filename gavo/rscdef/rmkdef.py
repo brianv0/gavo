@@ -36,10 +36,10 @@ class MapRule(base.Structure):
 
 	To specify the source of a mapping, you can either
 	
-		- use a key emitted by the grammar or defined using var.  The value of 
-			of the key is converted to a python value and stored.
-		- or give a python expression in the body.  In that case, no further
-			type conversion will be attempted.
+	- use a key emitted by the grammar or defined using var.  The value of 
+	  of the key is converted to a python value and stored.
+	- or give a python expression in the body.  In that case, no further
+	  type conversion will be attempted.
 
 	If src is not given, it defaults to dest.
 	"""
@@ -57,6 +57,12 @@ class MapRule(base.Structure):
 		" cause the value to be NULL, separated by commas.")
 	_expr = base.DataContent(copyable=True, description="A python"
 		" expression giving the value to end up in dest", strip=True)
+	_nullExpr = base.UnicodeAttribute("nullExpr", default=base.NotGiven,
+		description="A python expression for a value that is mapped to"
+		" NULL (None).  Equality is checked after building the value, so"
+		" this expression has to be of the column type.  Use map with"
+		" the parseWithNULL function to catch null values before type"
+		" conversion.")
 
 	def completeElement(self, ctx):
 		self.restrictedMode = getattr(ctx, "restricted", False)
@@ -81,6 +87,8 @@ class MapRule(base.Structure):
 				raise base.LiteralParseError("src", self.src,
 					hint="Map sources must be (python)"
 					" identifiers, and '%s' is not"%self.src)
+		if self.nullExpr is not base.NotGiven:
+			utils.ensureExpression(self.nullExpr)
 		if self.content_:
 			utils.ensureExpression(common.replaceRMKAt(self.content_), self.name_)
 		if self.nullExcs is not base.NotGiven:
@@ -104,6 +112,9 @@ class MapRule(base.Structure):
 				raise base.ui.logOldExc(base.LiteralParseError("map", colDef.type,
 					hint="Auto-mapping to %s is impossible since"
 					" no default map for %s is known"%(self.dest, colDef.type)))
+		if self.nullExpr is not base.NotGiven:
+			code.append('\nif result["%s"]==%s: result["%s"] = None'%(
+				self.dest, self.nullExpr, self.dest))
 		code = "".join(code)
 		if self.nullExcs is not base.NotGiven:
 			code = 'try:\n%s\nexcept (%s): result["%s"] = None'%(
