@@ -450,5 +450,3 @@ def _productMapperFactory(colDesc):
 				return makeProductLink(val, withHost=True)
 	return mapper
 valuemappers._registerDefaultMF(_productMapperFactory)
-
-

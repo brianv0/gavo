@@ -57,3 +57,30 @@ def replacePrimaryHeader(inputFile, newHeader, targetFile, bufSize=100000):
 		if not buf:
 			break
 		targetFile.write(buf)
+
+
+def shrinkWCSHeader(oldHeader, factor):
+	"""returns a FITS header suitable for a shrunken version of the image
+	described by origHeader.
+
+	This only works for 2d images, and you're doing yourself a favour
+	if factor is a power of 2.  It is forced to be integral anyway.
+
+	This is a pretty straight port of wcstools's imutil.c#ShrinkFITSHeader
+	"""
+	assert oldHeader["NAXIS"]==2
+
+	factor = int(factor)
+	newHeader = oldHeader.copy()
+	newHeader["NAXIS1"] = oldHeader["NAXIS1"]//factor
+	newHeader["NAXIS2"] = oldHeader["NAXIS2"]//factor
+
+	ffac = float(factor)
+	newHeader["CRPIX1"] = oldHeader["CRPIX1"]/ffac+0.5
+	newHeader["CRPIX2"] = oldHeader["CRPIX2"]/ffac+0.5
+	for key in ("CDELT1", "CDELT2",
+			"CD1_1", "CD2_1", "CD1_2", "CD2_2"):
+		newHeader[key] = oldHeader[key]*ffac
+	newHeader["IMSHRINK"] = "Image scaled by %s"%factor
+
+	return newHeader

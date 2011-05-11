@@ -287,8 +287,9 @@ class SIAPCutoutCore(SIAPCore):
 			centerAlpha, centerDelta, sizeAlpha, sizeDelta)
 		record["centerAlpha"] = centerAlpha
 		record["centerDelta"] = centerDelta
-		record["accsize"] = int(abs(upperLeft[0]-lowerRight[0]
-			)*abs(upperLeft[1]-lowerRight[1])*self.bytesPerPixel)
+		record["accsize"] = min(record["accsize"],
+			int(self.bytesPerPixel
+				*abs(upperLeft[0]-lowerRight[0])*abs(upperLeft[1]-lowerRight[1])))
 
 	def run(self, service, inputData, queryMeta):
 		res = svcs.DBCore.run(self, service, inputData, queryMeta)
