@@ -4,6 +4,7 @@ Common test resources.
 
 from __future__ import with_statement
 
+import contextlib
 import os
 
 from gavo import base
@@ -55,6 +56,8 @@ class ProdtestTable(testhelpers.TestResource):
 	resources = [('conn', dbConnection)]
 	setUpCost = 5
 
+	prodtbl = None
+
 	def make(self, deps):
 		self.conn = deps["conn"]
 		rd = testhelpers.getTestRD()
@@ -68,6 +71,30 @@ class ProdtestTable(testhelpers.TestResource):
 		t = self.data.tables["prodtest"].drop()
 		self.conn.commit()
 
+	_defaultProdtblEntry = {
+		"accessPath": "/road/to/nowhere",
+		"accref": "just.testing/nowhere",
+		"sourceTable": "/////////////////////",
+		"owner": None,
+		"embargo": None,
+		"mime": "application/x-bogus"}
+
+	@contextlib.contextmanager
+	def prodtblRow(self, **kwargs):
+		rec = self._defaultProdtblEntry.copy()
+		rec.update(kwargs)
+		if self.prodtbl is None:
+			self.prodtbl = rsc.TableForDef(
+				base.caches.getRD("//products").getById("products"),
+				connection=self.conn)
+		self.prodtbl.addRow(rec)
+		self.conn.commit()
+		try:
+			yield
+		finally:
+			self.prodtbl.query("delete from dc.products where sourceTable=%(s)s",
+				{"s": rec["sourceTable"]})
+			self.conn.commit()
 
 prodtestTable = ProdtestTable()
 

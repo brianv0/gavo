@@ -251,11 +251,14 @@ machinery -->
 	<productCore id="forTar" original="core" limit="10000">
 		<inputTable namePath="products" id="forTarIn">
 			<meta name="description">Input table for the tar making core</meta>
+			<!-- these are expected to be FatProductKeys or plain strings -->
 			<column original="accref" type="raw"/>
 		</inputTable>
 	</productCore>
 
 	<service id="getTar" core="forTar">
+		<!-- a standalone service that delivers selectable tars.
+		-->
 		<meta name="title">Tar deliverer</meta>
 		<inputDD>
 			<contextGrammar>
@@ -277,9 +280,9 @@ machinery -->
 								"Must be of the form table.sqlpattern", "pattern")
 						prodTbl = rsc.TableForDef(prodTD)
 						for row in prodTbl.iterQuery(
-							[prodTbl.tableDef.getColumnByName("accref")],
-							"accref LIKE %(filepat)s AND sourceTable LIKE %(tablepat)s",
-							{"filepat": filepat, "tablepat": tablepat}):
+								[prodTbl.tableDef.getColumnByName("accref")],
+								"accref LIKE %(filepat)s AND sourceTable LIKE %(tablepat)s",
+								{"filepat": filepat, "tablepat": tablepat}):
 							yield row
 						prodTbl.close()
 					</code>

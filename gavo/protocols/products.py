@@ -98,11 +98,11 @@ class UnauthorizedProduct(PlainProduct):
 	is that previews on unauthorized products should be possible.
 	"""
 	def __str__(self):
-		return "<Protected product %s, access denied>"
+		return "<Protected product %s, access denied>"%self.sourcePath
 
 	def __eq__(self, other):
 		return self.__class__==other.__class__
-
+	
 
 class NonExistingProduct(PlainProduct):
 	"""A class for sentiels signifying products that don't exist.
@@ -110,13 +110,13 @@ class NonExistingProduct(PlainProduct):
 	These should normally yield 404s.
 	"""
 	def __str__(self):
-		return "<Non-existing product %s>"
+		return "<Non-existing product %s>"%self.sourcePath
 
 	def __eq__(self, other):
 		return self.__class__==other.__class__
 
 	def __call__(self, outFile):
-		raise common.UnknownURI(outFile)
+		raise svcs.UnknownURI(self.sourcePath)
 
 
 class RemoteProduct(PlainProduct):
@@ -145,9 +145,6 @@ class CutoutProduct(PlainProduct):
 	def __init__(self, sourcePath, cutoutPars, contentType):
 		self.fullFilePath = sourcePath
 		self.cutoutPars = cutoutPars
-		if contentType!="image/fits":
-			raise NotImplementedError("Cannot generate cutouts for anything"
-				" but FITS yet.")
 		PlainProduct.__init__(self, None, contentType)
 
 	def __str__(self):
@@ -161,6 +158,9 @@ class CutoutProduct(PlainProduct):
 			and self.cutoutPars==other.cutoutPars)
 	
 	def __call__(self, outFile):
+		if self.contentType!="image/fits":
+			raise NotImplementedError("Cannot generate cutouts for anything"
+				" but FITS yet.")
 		prog = base.getBinaryName(os.path.join(base.getConfig("inputsDir"),
 			"__system", "bin", "getfits"))
 		devnull = open("/dev/null", "w")
@@ -208,24 +208,47 @@ class CutoutProduct(PlainProduct):
 		self.name = "cutout-"+os.path.basename(self.fullFilePath)
 
 
-class ProductIterator(grammars.RowIterator):
-	"""is an iterator over product rows.
-
-	The source key is a pair of (parsedKeys, key mapping), where
-	key mapping maps the access key to the product table info about
-	the file.
+class ScaledProduct(PlainProduct):
+	"""A class representing a scaled FITS file.
 	"""
-	def _makeProductForRow(self, row, dbRow):
-		"""returns the proper PlainProduct subclass for an image described by
-		the parsed key row and the product table row dbRow.
+	def __init__(self, sourcePath, pars, contentType):
+		self.fullFilePath = sourcePath
+		self.scale = pars["scale"]
+		PlainProduct.__init__(self, None, contentType)
+
+	def __str__(self):
+		return "<Scaled version of %s>"%(self.fullFilePath)
+
+	def __call__(self, outFile):
+		raise NotImplementedError("Cannot scale yet")
+		if contentType!="image/fits":
+			raise NotImplementedError("Cannot generate cutouts for anything"
+				" but FITS yet.")
+
+	def _makeName(self):
+		self.name = "scaled-"+os.path.basename(self.fullFilePath)
+
+
+class ProductIterator(grammars.RowIterator):
+	"""A RowIterator turning FatProductKeys to Products.
+
+	The source key is a list of annotated FatProductKeys as generated
+	within ProductCore.  FatProductKeys without the annotation from
+	the DB are turned into NonExistingProducts.
+	"""
+	def _makeProductForKey(self, fatKey, dbRow):
+		"""returns the proper PlainProduct subclass for a FatProductKey
+		and its corresponding product table row.
 		"""
 		path = dbRow["accessPath"]
 		if path.startswith("http://"):
 			return RemoteProduct(path, dbRow["mime"])
 
 		sourcePath = os.path.join(base.getConfig("inputsDir"), path)
-		if row["sra"]:
-			rsc = CutoutProduct(sourcePath, row, dbRow["mime"])
+		if fatKey.isCutout():
+			rsc = CutoutProduct(sourcePath, fatKey.params, dbRow["mime"])
+		elif fatKey.isScaled():
+			rsc = ScaledProduct(sourcePath, fatKey.params, dbRow["mime"])
 		else:
 			rsc = PlainProduct(sourcePath, dbRow["mime"])
 		if dbRow["embargo"] is not None and dbRow["embargo"]>self.grammar.now:
@@ -234,26 +257,27 @@ class ProductIterator(grammars.RowIterator):
 		return rsc
 
 	def _iterRows(self):
-		parsedKeys, productMap = self.sourceToken
-		for row in parsedKeys.rows:
+		for key in self.sourceToken:
 			try:
-				prodRow = productMap.getRow(row["accref"])
-			except KeyError:
-				rsc = NonExistingProduct(row["accref"])
+				prodRow = key.productsRow
+			except AttributeError:
+				prod = NonExistingProduct(key.baseKey)
 			else:
-				rsc = self._makeProductForRow(row, prodRow)
+				prod = self._makeProductForKey(key, prodRow)
 			yield {
-				"source": rsc,
+				"source": prod,
 			}
 		del self.grammar
 
 
 class ProductsGrammar(grammars.Grammar):
-	"""is a grammar for parsing raw DB results and parsed keys into 
-	delivery records.
+	"""A grammar for "parsing" annotated FatProductKeys to Product
+	objects.
 
-	It's a bit hard doing the things that need to be done with procs,
-	hence this custom grammar.
+	The FatProductRecords must have their product table rows in 
+	productsRow attributes (ProductCore.addFSSources does that).
+
+	Product objects are instances of PlainProduct or derived classes.
 	"""
 	rowIterator = ProductIterator
 
@@ -272,65 +296,54 @@ class ProductCore(svcs.DBCore):
 
 	It does:
 
-		- the actual query, 
-		- access validation (i.e., makes sure the user has access to the product), 
-		- cutout processing (via a special construct deferring cutouts until they
-			are needed)
+	- the actual query, 
+	- access validation (i.e., makes sure the user has access to the product), 
+	- cutout processing (via a special construct deferring cutouts until they
+		are needed)
 
 	It is instanciated from within //products.rd and relies on
 	certain features in there.
 
-	The SQL generation is a bit funky in that it accepts accref input in
-	both params and columns.  The accref-in-param is the standard case
-	where a single product is created; accrefs in columns is for
-	building tar files.  There is one core instance in //products for each
-	case.
-
-	In case of cutouts, the database sees the naked accrefs and
-	resolves them to file system paths.  These are then combined
-	with the parsed keys table in the grammar to form the objects
-	returned to the renderer.
+	The input data consists of FatProductKeys in InMemoryTables.  You
+	can pass those in in both an accref param and table rows.  The
+	accref param is the normal way if you just want to retrieve a
+	single image, the table case is for building tar files and such.
+	There is one core instance in //products for each case.
 	"""
 	name_ = "productCore"
 
-	def _parseKeys(self, keys):
-		"""returns an iterator over dictionaries of parsed fields of the 
-		(possibly cut-out) product keys in keys.
-
-		These may have cutout specs.  None items in keys are dropped.
+	def _getRequestedKeys(self, inputTable):
+		"""returns a list of FatProductKeys requested within inputTable.
 		"""
-		for key in keys:
-			if isinstance(key, CutoutProductKey):
-				yield key.asDict()
-			else:
-				if key is not None:
-					yield {"accref": key}
-
-	def _getSQLWhere(self, inputTable):
-		"""returns a query string fragment and the parameters
-		to query the DB for the access paths for the input keys.
-
-		In addition, the function will return a keysTable
-		containing a "parsed" keys (i.e., (key, ra, dec, sra,
-		sdec)) for cutouts.  This key table is later the real
-		input for the ProductsGrammar.
-		"""
-		keys = [r["accref"]
+		keysList = [FatProductKey.fromString(r["accref"])
 			for r in inputTable.rows if "accref" in r]
 		try:
 			param = inputTable.getParam("accref")
 			if param is not None:
-				keys.append(param)
+				keysList.append(FatProductKey.fromString(param))
 		except base.NotFoundError: # "tar case", accrefs in rows
 			pass
-		
-		keysTableDef = self.rd.getById("parsedKeys")
-		keysTable = rsc.makeTableFromRows(keysTableDef, 
-			self._parseKeys(keys))
-		if not keys: # stupid SQL doesn't know the empty set
-			return keysTable, "FALSE", {}
-		return keysTable, "accref IN %(keys)s", {"keys": set(r["accref"] 
-			for r in keysTable.rows)}
+		return keysList
+
+	def _addFSSources(self, keysList):
+		"""adds productsRow attributes to each in FatProductKey in keysList.
+
+		This happens by querying the products table in the database.
+		"""
+		keyForAccref = dict(((r.baseKey, r) for r in keysList))
+
+		if not keysList: # stupid SQL doesn't know the empty set
+			query, pars = "FALSE", {}
+		else:
+			query, pars = "accref IN %(keys)s", {"keys": set(k.baseKey
+			for k in keysList)}
+
+		prodTbl = rsc.TableForDef(self.queriedTable,
+				connection=base.caches.getTableConn(None))
+		paths = {}
+		for row in prodTbl.iterQuery(self.rd.getById("productsResult"),
+				query, pars):
+			keyForAccref[row["accref"]].productsRow = row
 
 	def _getGroups(self, user, password):
 		if user is None:
@@ -339,86 +352,143 @@ class ProductCore(svcs.DBCore):
 			return creds.getGroupsForUser(user, password)
 
 	def run(self, service, inputTable, queryMeta):
-		"""returns a data set containing sources for the keys mentioned in
+		"""returns a data set containing product sources for the keys mentioned in
 		inputTable.
-
-		Errors while retrieving auth info will be ignored and translated
-		as no groups.
 		"""
 		authGroups = self._getGroups(queryMeta["user"], queryMeta["password"])
-		keysTable, where, pars = self._getSQLWhere(inputTable)
-		prodTable = rsc.TableForDef(self.queriedTable)
-		resTable = rsc.makeTableForQuery(prodTable, 
-			self.rd.getById("productsResult"),
-			where, pars, suppressIndex=False)
+		keysList = self._getRequestedKeys(inputTable)
+		self._addFSSources(keysList)
 
 		dd = MS(rscdef.DataDescriptor, grammar=MS(ProductsGrammar,
 				groups=authGroups),
 			make=[MS(rscdef.Make, table=self.outputTable)])
-		return rsc.makeData(dd, forceSource=(keysTable, resTable))
+		return rsc.makeData(dd, forceSource=keysList)
 
 
-class CutoutProductKey(object):
-	"""A product key for a cutout.
+class FatProductKey(object):
+	"""A product key for a possibly processed image.
 
-	This consists of a key proper and of the four numbers specifying its
-	extent.  Stringifying it yields something quoted ready-made for URLs.
+	This consists of a key proper and of optional further data specifying
+	how it is to be processed.  Currently defined are:
+
+	* ra, dec, sra, sdec: center and extend for cutouts.
+	* scale: (integer) factor the image should be scaled down by.
+
+	Stringifying a PPK yields something quoted ready-made for URLs.
+
+	We should probably move as much product handling to this class
+	as possible and not use plain strings as product keys any more --
+	possibly even in the DB.
+
+	During products processing, these keys receive an additional
+	productsRow attribute -- that's a dictionary containing a row form
+	//products#products.
 	"""
-	_buildKeys = ("ra", "dec", "sra", "sdec")
+	_buildKeys = (
+		("key", str), 
+		("ra", float),
+		("dec", float),
+		("sra", float),
+		("sdec", float),
+		("scale", int))
 
-	def __init__(self, key, ra, dec, sra, sdec):
-		self.key, self.ra, self.dec, self.sra, self.sdec = \
-			str(key), ra, dec, sra, sdec
-	
+	def __init__(self, **kwargs):
+		self.params = {}
+		for key, valCons in self._buildKeys:
+			if key in kwargs and kwargs[key] is not None:
+				try:
+					val = kwargs.pop(key)
+					self.params[key] = valCons(val)
+				except (ValueError, TypeError):
+					raise base.ValidationError(
+						"Invalid value for constructor argument to %s:"
+						" %s=%r"%(self.__class__.__name__, key, val), "accref")
+
+		if kwargs:
+			raise base.ValidationError(
+					"Invalid constructor argument(s) to %s: %s"%(
+					self.__class__.__name__,
+					", ".join(kwargs)),
+				"accref")
+
+		if not "key" in self.params:	
+			raise base.ValidationError("Must give key when constructing %s"%(
+				self.__class__.__name__), "accref")
+		self.baseKey = self.params["key"]
+
+	@classmethod
+	def fromRequest(cls, request):
+		"""returns a fat product key from a nevow request.
+
+		Basically, it raises an error if there's no key at all, it will return
+		a (string) accref if no processing is desired, and it will return
+		a FatProductKey if any processing is requested.
+		"""
+		inArgs = request.args
+		buildArgs = {}
+		for reqKey, _ in cls._buildKeys:
+			argVals = inArgs.get(reqKey, [])
+			if len(argVals)>0:
+				buildArgs[reqKey] = argVals[0]
+		return cls(**buildArgs)
+
+	@classmethod
+	def fromString(cls, keyString):
+		"""returns a fat product key from a string representation.
+
+		As a convenience, if keyString already is a FatProductKey,
+		it is returned unchanged.
+		"""
+		if isinstance(keyString, FatProductKey):
+			return keyString
+		args = dict((k, v[0]) 
+			for k, v in urlparse.parse_qs("key="+keyString).iteritems())
+		return cls(**args)
+
 	def __str__(self):
-		return "key=%s&ra=%s&dec=%s&sra=%s&sdec=%s"%(
-			quoteProductKey(self.key), 
-			self.ra, self.dec, self.sra, self.sdec)
+		# this is an accref as used in getproduct, i.e., the product key
+		# plus optionally processing arguments
+		key = quoteProductKey(self.params["key"])
+		args = urllib.urlencode(dict(
+			(k,str(v)) for k, v in self.params.iteritems() if k!="key"))
+		if args:
+			key = key+"&"+args
+		return key
 
 	def __repr__(self):
 		return str(self)
 
-	@classmethod
-	def fromRequest(cls, request):
-		"""returns a product key from a nevow request.
+	def __eq__(self, other):
+		return (isinstance(other, FatProductKey) 
+			and self.params==other.params)
 
-		Basically, it raises an error if there's no key at all, it will return
-		the first element of the key sequence if present, and it  will make
-		a cutout key if all items necessary are in request.args.
-		"""
-		a = request.args
-		if "key" not in a or not a["key"]:
-			raise base.NotFoundError("key", what="query parameter", 
-				within="request")
-		buildArgs = {
-			"key": urllib.unquote(a["key"][0])}
-		try:
-			for reqKey in cls._buildKeys:
-				buildArgs[reqKey] = float(a[reqKey][0])
-		except (KeyError, ValueError, IndexError):  # no (proper) cutout spec
-			return buildArgs["key"]
-		# everything needed for cutouts is on board, make a cutout key
-		return cls(**buildArgs)
+	def __ne__(self, other):
+		return not self.__eq__(other)
 
-	def asDict(self):
-		return {
-			"accref": self.key,
-			"ra": self.ra,
-			"dec": self.dec,
-			"sra": self.sra,
-			"sdec": self.sdec,}
+	def isPlain(self):
+		return self.params.keys()==["key"]
+
+	_cutoutKeys = frozenset(["ra", "dec", "sra", "sdec"])
+
+	def isCutout(self):
+		return len(set(self.params.keys())&self._cutoutKeys)==4
+
+	def isScaled(self):
+		return self.params.get("scale", 1)!=1
 
 
 @utils.document
 def quoteProductKey(key):
 	"""URL-quotes product keys.
 
-	Actually, it url quotes any string, but the plus handling we have
-	here is particularly important for product keys.
+	Actually, it url quotes any string, but we have special arrangements
+	for the presence of FatProductKeys, and we make sure the key is
+	safe for inclusion in URLs as regards the stupid plus-to-space
+	convention.
 	"""
-	if isinstance(key, CutoutProductKey):
-		return str(key)[4:]
-	return urllib.quote_plus(key.replace("+", "%2B"))
+	if isinstance(key, FatProductKey):
+		return str(key)
+	return urllib.quote_plus(key)
 rscdef.addProcDefObject("quoteProductKey", quoteProductKey)
 
 

@@ -94,8 +94,8 @@ class SvcResult(object):
 
 	Original currently either is an InMemory table, in which case it gets
 	adapted to what the service expects, or a data.Data instance (or
-	something else), which are left alone, but currently can't be used
-	to render HTMLTables.
+	something else; but few renderers will be able to handle "something else"), 
+	which is left alone.
 
 	SvcResult also makes queryMeta, inputTable and the service available.	This
 	should give renderers access to basically all the information they need.  The

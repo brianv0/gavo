@@ -13,6 +13,7 @@ from gavo import rscdef
 from gavo import rscdesc
 from gavo.base import coords
 from gavo.helpers import testhelpers
+from gavo.helpers import fitstricks
 from gavo.protocols import siap
 from gavo.utils import DEG
 
@@ -306,13 +307,13 @@ class CooQueryTestBase(testhelpers.VerboseTest):
 
 
 class BboxQueriesTest(CooQueryTestBase):
-	"""tests for actual queries on the unit sphere with trivial WCS data.
+	"""tests for actual queries on the sphere with trivial WCS data.
 	"""
 	resources = [("data", _SIAPTestTable("bbox_siaptest"))]
 
 
 class PgSphereQueriesTest(CooQueryTestBase):
-	"""tests for actual queries on the unit sphere with trivial WCS data.
+	"""tests for actual queries on the sphere with trivial WCS data.
 	"""
 	resources = [("data", _SIAPTestTable("pgs_siaptest"))]
 
@@ -363,6 +364,37 @@ class ImportTest(testhelpers.VerboseTest):
 		finally:
 			data.dropTables()
 			self.conn.commit()
+
+
+class ScaleHeaderTest(testhelpers.VerboseTest):
+# This is a test for fitstricks.shrinkWCSHeader.
+# It's here just because we already deal with wcs in this module
+	def _assertCoordsMatch(self, pair1, pair2):
+		self.assertAlmostEqual(pair1[0], pair2[0])
+		self.assertAlmostEqual(pair1[1], pair2[1])
+
+	def testSimple(self):
+		fullHdr = computeWCSKeys((23, 27), (1, 2))
+		halfHdr = fitstricks.shrinkWCSHeader(fullHdr, 2)
+
+		self.assertEqual(halfHdr["IMSHRINK"], 'Image scaled down 2-fold')
+		self.assertEqual(fullHdr["NAXIS2"]/2, halfHdr["NAXIS1"])
+
+		toPhysOld = coords.getWCSTrafo(fullHdr)
+		toPhysNew = coords.getWCSTrafo(halfHdr)
+
+		self._assertCoordsMatch(
+			toPhysOld(fullHdr["CRPIX1"],fullHdr["CRPIX2"]),
+			toPhysNew(halfHdr["CRPIX1"],halfHdr["CRPIX2"]))
+
+		self._assertCoordsMatch(
+			toPhysOld(1, 1), toPhysNew(1, 1))
+
+		self._assertCoordsMatch(
+			toPhysOld(fullHdr["NAXIS1"]+1,fullHdr["NAXIS2"]+1),
+			toPhysNew(halfHdr["NAXIS1"]+1,halfHdr["NAXIS2"]+1))
+
+
 
 if __name__=="__main__":
 	testhelpers.main(ImportTest)

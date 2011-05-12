@@ -7,6 +7,7 @@ import os
 import tarfile
 
 from gavo import api
+from gavo import base
 from gavo import svcs
 from gavo.helpers import testhelpers
 from gavo.protocols import products
@@ -21,72 +22,6 @@ class _TestWithProductsTable(testhelpers.VerboseTest):
 	def setUp(self):
 		testhelpers.VerboseTest.setUp(self)
 		self.service = api.getRD("//products").getById("p")
-
-
-class ProductCoreTest(_TestWithProductsTable):
-	"""tests for the products core.
-	"""
-	timeout = 10
-
-	def _assertMatchedProducts(self, prodClass, prodDescs, foundRows):
-		expectedRows = [{"source": prodClass(os.path.abspath(p), m)}
-			for p, m in prodDescs]
-		# ouch: I should be comparing *sets* here, but for now I'm
-		# too lazy to make all products easily hashable.
-		self.assertEqual(expectedRows, foundRows)
-			
-	def testNormal(self):
-		"""tests for resolution of "normal" products.
-		"""
-		res = self.service.runFromDict({"accref": "data/b.imp"}, "get")
-		self._assertMatchedProducts(products.PlainProduct,
-			[('data/b.imp', 'text/plain')],
-			res.original.getPrimaryTable().rows)
-
-	def testRestrictedAnonymous(self):
-		"""tests for resolution of restricted products for an anonymous user.
-		"""
-		res = self.service.runFromDict({"accref": "data/a.imp"})
-		self._assertMatchedProducts(products.UnauthorizedProduct,
-			[('data/a.imp', 'text/plain')],
-			res.original.getPrimaryTable().rows)
-
-	def testRestrictedGoodAuth(self):
-		"""tests for return of a protected product with good cred.
-		"""
-		qm = svcs.QueryMeta()
-		qm["user"], qm["password"] = "X_test", "megapass"
-		res = self.service.runFromDict({"accref": "data/a.imp"}, queryMeta=qm)
-		self._assertMatchedProducts(products.PlainProduct,
-			[('data/a.imp', 'text/plain')],
-			res.original.getPrimaryTable().rows)
-		src = res.original.getPrimaryTable().rows[0]["source"]
-		f = StringIO()
-		src(f)
-		self.assertEqual(f.getvalue(), 'alpha: 23 34 33.45\ndelta:'
-			' -45 34 59.7\nobject: gabriel\nembargo: 2030-12-31\n')
-
-	def testRestrictedBadAuth(self):
-		"""tests for return of a protected product with bad cred.
-		"""
-		qm = svcs.QueryMeta()
-		qm["user"], qm["password"] = "test", "wrong"
-		res = self.service.runFromDict({"accref": "data/a.imp"}, queryMeta=qm)
-		self._assertMatchedProducts(products.UnauthorizedProduct,
-			[('data/a.imp', 'text/plain')],
-			res.original.getPrimaryTable().rows)
-
-	def testRestrictedWrongUser(self):
-		"""tests for return of a protected product with bad cred.
-		"""
-		qm = svcs.QueryMeta()
-		qm["user"], qm["password"] = "Y_test", "megapass"
-		res = self.service.runFromDict({"accref": "data/a.imp"}, queryMeta=qm)
-		self._assertMatchedProducts(products.UnauthorizedProduct,
-			[('data/a.imp', 'text/plain')],
-			res.original.getPrimaryTable().rows)
-
-### XXX TODO: Play with content types
 
 
 class TarTest(_TestWithProductsTable):
@@ -133,6 +68,136 @@ class TarTest(_TestWithProductsTable):
 		self.failUnless("\nobject: michael" in res)
 		self.failUnless("This file is embargoed.  Sorry" in res)
 		self.failIf("\nobject: gabriel" in res)
+
+
+class FatProductTest(testhelpers.VerboseTest):
+	def testBadConstructorArg(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Invalid constructor argument(s) to FatProductKey: klonk",
+			products.FatProductKey,
+			(), key="testing", klonk=0)
+
+	def testBadConstructurVals(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Invalid value for constructor argument to FatProductKey:"
+				" scale='klonk'",
+			products.FatProductKey,
+			(), key="testing", scale="klonk")
+
+	def testKeyMandatory(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Must give key when constructing FatProductKey",
+			products.FatProductKey,
+			(), scale="2")
+
+	def testSerialization(self):
+		pk = products.FatProductKey(
+			key="extra weird/product+name%something.fits",
+			scale=4)
+		self.assertEqual(str(pk),
+			"extra+weird%2Fproduct%2Bname%25something.fits&scale=4")
+
+	def testFromRequestSimple(self):
+		class req(object):
+			args = {"key": ["extra weird+key"], "scale": []}
+		pk = products.FatProductKey.fromRequest(req)
+		self.assertEqual(pk, products.FatProductKey(
+			key="extra weird+key"))
+
+	def testFromBadRequest(self):
+		class req(object):
+			args = {"scale": ["3"]}
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Must give key when constructing FatProductKey",
+			products.FatProductKey.fromRequest,
+			(req,))
+
+	def testFromString(self):
+		self.assertEqual(products.FatProductKey.fromString(
+			"extra%20weird%2bkey&ra=2&sra=0.5&dec=4&sdec=0.75"),
+			products.FatProductKey(key="extra weird+key", ra=2,
+				sra=0.5, dec=4, sdec=0.75))
+	
+	def testBadFromString(self):
+		self.assertRaisesWithMsg(base.ValidationError,
+			"Invalid constructor argument(s) to FatProductKey: klonk",
+			products.FatProductKey.fromString,
+			("worz&klonk=huhu",))
+
+
+class ProductsCoreTest(_TestWithProductsTable):
+
+	def _getProductFor(self, accref, moreFields={}):
+		inData = {"accref": products.FatProductKey.fromString(accref)}
+		inData.update(moreFields)
+		svc = base.caches.getRD("//products").getById("p")
+		rows = svc.runFromDict(inData, renderer="get"
+			).original.getPrimaryTable().rows
+		self.assertEqual(len(rows), 1)
+		return rows[0]["source"]
+
+	def _getOutput(self, prod):
+		outF = StringIO()
+		prod(outF)
+		return outF.getvalue()
+
+	def testBasic(self):
+		res = self._getProductFor("data/b.imp")
+		self.failUnless(isinstance(res, products.PlainProduct))
+		self.failUnless(self._getOutput(res).startswith(
+			"alpha: 03 34 33.45"))
+
+	def testNonExistingProduct(self):
+		res = self._getProductFor("junk/kotter")
+		self.failUnless(isinstance(res, products.NonExistingProduct))
+		self.assertRaisesWithMsg(svcs.UnknownURI,
+			"junk/kotter",
+			self._getOutput,
+			(res,))
+
+	def testProtectedProductUnauth(self):
+		res = self._getProductFor("data/a.imp")
+		self.failUnless(isinstance(res, products.UnauthorizedProduct))
+
+	def testProtectedProductWithMoreArg(self):
+		res = self._getProductFor("data/a.imp&scale=2")
+		self.failUnless(isinstance(res, products.UnauthorizedProduct))
+
+	def testProtectedProductBadAuth(self):
+		res = self._getProductFor("data/a.imp",
+			{"user": "Y_test", "password": "megapass"})
+		self.failUnless(isinstance(res, products.UnauthorizedProduct))
+
+	def testProtectedAuth(self):
+		res = self._getProductFor("data/a.imp",
+			{"user": "X_test", "password": "megapass"})
+		self.failUnless(isinstance(res, products.PlainProduct))
+		self.failUnless(self._getOutput(res).startswith(
+			"alpha: 23 34 33.45"))
+
+	def testRemoteProduct(self):
+		with tresc.prodtestTable.prodtblRow(accessPath="http://foo.bar"):
+			res = self._getProductFor("just.testing/nowhere")
+			self.failUnless(isinstance(res, products.RemoteProduct))
+			self.failUnless("http://foo.bar" in self._getOutput(res))
+
+	def testScaledProduct(self):
+		res = self._getProductFor("data/b.imp&scale=3")
+		self.failUnless(isinstance(res, products.ScaledProduct))
+		self.assertRaisesWithMsg(NotImplementedError,
+			"Cannot scale yet",
+			self._getOutput, 
+			(res,))
+	
+	def testCutoutProduct(self):
+		res = self._getProductFor("data/b.imp&ra=3&dec=4&sra=2&sdec=4")
+		self.failUnless(isinstance(res, products.CutoutProduct))
+		self.assertRaisesWithMsg(NotImplementedError,
+			"Cannot generate cutouts for anything but FITS yet.",
+			self._getOutput, 
+			(res,))
+
+
 
 
 if __name__=="__main__":

@@ -186,7 +186,7 @@ class ProductRenderer(grend.ServiceBasedRenderer):
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		try:
-			data = {"accref": products.CutoutProductKey.fromRequest(request)}
+			data = {"accref": products.FatProductKey.fromRequest(request)}
 		except base.NotFoundError:
 			raise base.ui.logOldExc(svcs.UnknownURI("No product specified"))
 		return self.runServiceWithContext(data, ctx

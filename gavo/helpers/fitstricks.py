@@ -80,7 +80,8 @@ def shrinkWCSHeader(oldHeader, factor):
 	newHeader["CRPIX2"] = oldHeader["CRPIX2"]/ffac+0.5
 	for key in ("CDELT1", "CDELT2",
 			"CD1_1", "CD2_1", "CD1_2", "CD2_2"):
-		newHeader[key] = oldHeader[key]*ffac
-	newHeader["IMSHRINK"] = "Image scaled by %s"%factor
+		if key in oldHeader:
+			newHeader[key] = oldHeader[key]*ffac
+	newHeader["IMSHRINK"] = "Image scaled down %s-fold"%factor
 
 	return newHeader

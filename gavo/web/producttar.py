@@ -54,7 +54,7 @@ class UniqueNameGenerator:
 
 
 class ColToRowIterator(grammars.RowIterator):
-	"""is a RowIterator for ColToRowGrammars.
+	"""A RowIterator yielding several columns of a row as separate rows.
 
 	A hacky feature is that a ColToRowIterator will not return the same
 	row twice.  This is a convenience for TarMakers to keep them from
@@ -75,7 +75,7 @@ class ColToRowIterator(grammars.RowIterator):
 					# extract the first element and use that as access key
 					if isinstance(accref, list):
 						accref = accref[0]
-					# The str below is for product.CutoutProductKeys
+					# The str below is for product.FatProductKeys
 					if str(accref) not in self.seenKeys:
 						yield {self.grammar.targetKey: accref}
 						self.seenKeys.add(str(accref))
