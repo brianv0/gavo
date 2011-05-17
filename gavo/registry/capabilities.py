@@ -167,6 +167,10 @@ class WebBrowserInterface(InterfaceMaker):
 class FormInterface(WebBrowserInterface):
 	renderer = "form"
 
+class DocformInterface(WebBrowserInterface):
+	renderer = "docform"
+
+
 
 # Actually, statics, externals and customs could be anything, but if you
 # register it, it's better be something a web browser can handle.
@@ -401,6 +405,9 @@ class JPEGCapabilityMaker(CapabilityMaker):
 
 class FixedCapabilityMaker(CapabilityMaker):
 	renderer = "fixed"
+
+class DocformCapabilityMaker(CapabilityMaker):
+	renderer = "docform"
 
 
 _getCapabilityMaker = utils.buildClassResolver(CapabilityMaker, 

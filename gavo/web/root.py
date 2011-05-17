@@ -260,12 +260,16 @@ class ArchiveService(rend.Page):
 			subId, rendName = segments[srvInd], segments[srvInd+1]
 		except IndexError:
 			raise base.ui.logOldExc(UnknownURI("Bad segments after existing"
-				" resource: %s"%("/".join(segments[srvInd:]))))
+				" resource: %s"%("/".join(segments[srvInd:])), rd=rd))
 			
 		service = rd.getService(subId)
 		if service is None:
-			raise UnknownURI("No such service: %s"%subId)
-		rendC = svcs.getRenderer(rendName)
+			raise UnknownURI("No such service: %s"%subId, rd=rd)
+		try:
+			rendC = svcs.getRenderer(rendName)
+		except Exception, exc:
+			exc.rd = rd
+			raise
 
 		cached = self._processCache(ctx, service, rendC, segments)
 		if cached:

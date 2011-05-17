@@ -50,9 +50,15 @@ p.attribution {
 }
 
 .errmsg {
-	margin-left: 2em;
 	font-style: italic;
 	max-width:50em;
+	padding-left: 1em;
+	border-left: 1em solid #cccccc;
+}
+
+.rdbacklink {
+	padding-left: 1em;
+	border-left: 1em solid #cccccc;
 }
 
 .wide {
@@ -468,6 +474,15 @@ table.shorttable {
 	border: 2pt solid red;
 	padding: 5pt;
 	margin-bottom: 5pt;
+}
+
+.note {
+	padding-left: 5pt;
+	border-left: 1pt solid gray;
+}
+
+.admonition-title {
+	font-style: italic;
 }
 
 div.errors {

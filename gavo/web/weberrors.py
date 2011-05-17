@@ -61,6 +61,15 @@ class ErrorPage(rend.Page, common.CommonRenderers):
 	def render_message(self, ctx, data):
 		return ctx.tag(class_="errmsg")[self.failure.getErrorMessage()]
 
+	def render_rdlink(self, ctx, data):
+		if hasattr(self.failure.value, "rd") and self.failure.value.rd:
+			rdURL = base.makeAbsoluteURL("/browse/%s"%
+				self.failure.value.rd.sourceId)
+			return T.p(class_="rdbacklink")["Also see the ",
+				T.a(href=rdURL)["resources provided by this RD"],
+				"."]
+		return ""
+
 	def renderHTTP(self, ctx):
 		request = inevow.IRequest(ctx)
 		request.setResponseCode(self.status)
@@ -96,8 +105,8 @@ class NotFoundPage(ErrorPage):
 				" redirects as appropriate."],
 			T.p["In either case, you may find whatever you were looking"
 				" for by inspecting our ",
-				T.a(href="/")["list of published services"],
-				"."],
+				T.a(href="/")["list of published services"], "."],
+			T.p(render=T.directive("rdlink")),
 			T.hr,
 			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
 				"gavo@ari.uni-heidelberg.de"]],
@@ -119,8 +128,6 @@ class ForbiddenPage(ErrorPage):
 	docFactory = common.doctypedStan(T.html[
 			T.head[T.title["GAVO DC -- Forbidden"],
 			T.invisible(render=T.directive("commonhead")),
-			T.style(type="text/css")[
-				"p.errmsg {background-color: #cccccc;padding:5pt}"],
 		],
 		T.body[
 			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
@@ -131,6 +138,7 @@ class ForbiddenPage(ErrorPage):
 			T.p["This usually means you tried to use a renderer on a service"
 				" that does not support it.  If you did not come up with the"
 				" URL in question yourself, complain fiercely to the GAVO staff."],
+			T.p(render=T.directive("rdlink")),
 			T.hr,
 			T.address[T.a(href="mailto:gavo@ari.uni-heidelberg.de")[
 				"gavo@ari.uni-heidelberg.de"]],
@@ -202,8 +210,6 @@ class BadMethodPage(ErrorPage):
 	docFactory = common.doctypedStan(T.html[
 			T.head[T.title["GAVO DC -- Bad Method"],
 			T.invisible(render=T.directive("commonhead")),
-			T.style(type="text/css")[
-				"p.errmsg {background-color: #cccccc;padding:5pt}"],
 		],
 		T.body[
 			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
@@ -229,8 +235,6 @@ class NotAcceptable(ErrorPage):
 	docFactory = common.doctypedStan(T.html[
 			T.head[T.title["GAVO DC -- Not Acceptable"],
 			T.invisible(render=T.directive("commonhead")),
-			T.style(type="text/css")[
-				"p.errmsg {background-color: #cccccc;padding:5pt}"],
 		],
 		T.body[
 			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
@@ -252,8 +256,6 @@ class ErrorDisplay(ErrorPage):
 	docFactory = common.doctypedStan(T.html[
 			T.head[T.title["GAVO DC -- Error"],
 			T.invisible(render=T.directive("commonhead")),
-			T.style(type="text/css")[
-				"p.errmsg {background-color: #cccccc;padding:5pt}"],
 		],
 		T.body[
 			T.img(src="/static/img/logo_medium.png", style="position:absolute;"
@@ -326,8 +328,6 @@ class InternalServerErrorPage(ErrorPage):
 	docFactory = common.doctypedStan(T.html[
 			T.head[T.title["GAVO DC -- Uncaught Exception"],
 			T.invisible(render=T.directive("commonhead")),
-			T.style(type="text/css")[
-				"p.errmsg {background-color: #cccccc;padding:5pt}"],
 		],
 		T.body[
 			T.img(src="/static/img/logo_medium.png", style="position:absolute;"

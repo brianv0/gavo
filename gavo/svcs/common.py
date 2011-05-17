@@ -20,7 +20,9 @@ from gavo.base import meta
 
 
 class Error(base.Error):
-	pass
+	def __init__(self, msg, rd=None, hint=None):
+		self.rd = rd
+		base.Error.__init__(self, msg, hint=hint)
 
 
 class BadMethod(Error):

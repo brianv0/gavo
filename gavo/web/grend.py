@@ -434,7 +434,8 @@ class ServiceBasedRenderer(ResourceBasedRenderer):
 
 		if self.checkedRenderer and self.name not in self.service.allowed:
 			raise svcs.ForbiddenURI(
-				"The renderer %s is not allowed on this service."%self.name)
+				"The renderer %s is not allowed on this service."%self.name,
+				rd=self.service.rd)
 		self.setMetaParent(self.service)
 		self.macroPackage = self.service
 
