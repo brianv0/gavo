@@ -351,6 +351,35 @@ class FormMixin(formal.ResourceMixin):
 		form.actionMaterial = self._getFormLinks()
 		self.form = form
 		return form
+	
+	def _realSubmitAction(self, ctx, form, data):
+		"""is a helper for submitAction that does the real work.
+
+		It is here so we can add an error handler in submitAction.
+		"""
+		queryMeta = svcs.QueryMeta.fromContext(ctx)
+		queryMeta["formal_data"] = data
+		if (self.service.core.outputTable.columns and 
+				not self.service.getCurOutputFields(queryMeta)):
+			raise base.ValidationError("These output settings yield no"
+				" output fields", "_OUTPUT")
+		if queryMeta["format"]=="HTML":
+			resultWriter = self
+		else:
+			resultWriter = serviceresults.getFormat(queryMeta["format"])
+		if resultWriter.compute:
+			d = self.runService(data, queryMeta)
+		else:
+			d = defer.succeed(None)
+		return d.addCallback(resultWriter._formatOutput, ctx)
+
+	def submitAction(self, ctx, form, data):
+		"""executes the service.
+
+		This is a callback for the formal form.
+		"""
+		return defer.maybeDeferred(self._realSubmitAction, ctx, form, data
+			).addErrback(self._handleInputErrors, ctx)
 
 
 class Form(FormMixin, 
@@ -392,35 +421,6 @@ class Form(FormMixin,
 			inevow.IRequest(ctx).args[formal.FORMS_KEY] = ["genForm"]
 		return FormMixin.renderHTTP(self, ctx)
 
-	def _realSubmitAction(self, ctx, form, data):
-		"""is a helper for submitAction that does the real work.
-
-		It is here so we can add an error handler in submitAction.
-		"""
-		queryMeta = svcs.QueryMeta.fromContext(ctx)
-		queryMeta["formal_data"] = data
-		if (self.service.core.outputTable.columns and 
-				not self.service.getCurOutputFields(queryMeta)):
-			raise base.ValidationError("These output settings yield no"
-				" output fields", "_OUTPUT")
-		if queryMeta["format"]=="HTML":
-			resultWriter = self
-		else:
-			resultWriter = serviceresults.getFormat(queryMeta["format"])
-		if resultWriter.compute:
-			d = self.runService(data, queryMeta)
-		else:
-			d = defer.succeed(None)
-		return d.addCallback(resultWriter._formatOutput, ctx)
-
-	def submitAction(self, ctx, form, data):
-		"""executes the service.
-
-		This is a callback for the formal form.
-		"""
-		return defer.maybeDeferred(self._realSubmitAction, ctx, form, data
-			).addErrback(self._handleInputErrors, ctx)
-
 	def _formatOutput(self, res, ctx):
 		self.result = res
 		if "response" in self.service.templates:
@@ -428,3 +428,35 @@ class Form(FormMixin,
 		return grend.ServiceBasedPage.renderHTTP(self, ctx)
 
 	defaultDocFactory = svcs.loadSystemTemplate("defaultresponse.html")
+
+
+class DocFormRenderer(FormMixin, grend.ServiceBasedPage,
+		grend.HTMLResultRenderMixin):
+	"""A renderer displaying a form and delivering core's result as
+	a document.
+	
+	The core must return a pair of mime-type and content; on errors,
+	the form is redisplayed.
+
+	This is mainly useful with custom cores doing weird things.  This
+	renderer will not work with dbBasedCores and similar.
+	"""
+	name="docform"
+	# I actually don't know the result type, since it's determined by the
+	# core; I probably should have some way to let the core tell me what
+	# it's going to return.
+	resultType = "application/octet-stream"  
+	compute = True
+
+	@classmethod
+	def isBrowseable(cls, service):
+		return True
+
+	def _formatOutput(self, data, ctx):
+		request = inevow.IRequest(ctx)
+		mime, payload = data.original
+		request.setHeader("content-type", mime)
+		request.write(payload)
+		return ""
+
+	docFactory = svcs.loadSystemTemplate("defaultresponse.html")

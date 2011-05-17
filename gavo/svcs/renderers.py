@@ -18,6 +18,7 @@ RENDERER_REGISTRY = {
 	'static': ("web.constantrender", "StaticRenderer"),
 	'fixed': ("web.constantrender", "FixedPageRenderer"),
 	'form': ("web.formrender", "Form"),
+	'docform': ("web.formrender", "DocFormRenderer"),
 	'custom': ("web.customrender", "CustomRenderer"),
 	'external': ("web.metarender", "ExternalRenderer"),
 	'tablenote': ("web.metarender", "TableNoteRenderer"),
