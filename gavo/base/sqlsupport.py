@@ -636,6 +636,11 @@ class _GetTableConn(object):
 		self.conn = None
 	
 	def __call__(self, ignored):
+# hotfix, 2011-05-19: When hammered, it seems that DaCHS can hang
+# when communicating with the DB server, presumably in the cached
+# connection.  I can't investigate that now, but I hope this will
+# avoid these lockups.
+		return getDBConnection("trustedquery", autocommitted=True)
 		if self.conn is None:
 			self.conn = getDBConnection("trustedquery", autocommitted=True)
 		if self.conn.closed:
