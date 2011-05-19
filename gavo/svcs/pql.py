@@ -15,6 +15,11 @@ rangeList ::= listItem {valSep listItem} [qualification]
 
 This defines a regular language, and we're going to slaughter it using
 REs and ad hoccing.
+
+Since the actually allowed grammar depends on the type of the parameter
+(e.g., steps make no sense for strings, and have a special grammar for
+dates), parsing is done by the specific PQLPar types (fromLiteral).  See
+the PQLPar docstring for further info.
 """
 
 import datetime
@@ -296,6 +301,32 @@ class PQLPar(object):
 		except ValueError:  # at least one open or non-stepped range
 			return "(%s)"%" OR ".join(
 				r.getSQL(colName, sqlPars) for r in self.ranges)
+
+
+class PQLTextParIR(PQLPar):
+	"""a PQL string parameter matching "google-like", "Information Retrieval".
+
+	Basically, this matches the input and the database column as document
+	vectors.  Correspondingly, ranges are disallowed.
+	"""
+	def getSQL(self, colName, sqlPars):
+		try:
+			docs = self.getValuesAsSet()
+		except ValueError:
+			# ranges were given; we don't support those with IR-searching
+			raise base.LiteralParseError(colName, str(self), hint=
+				"Ranges are not allowed with IR-matches (or did you want to"
+				" to search for a slash?  In that case, please escape it)")
+
+		keys = []
+		for doc in docs:
+			keys.append(base.getSQLKey(colName, doc, sqlPars))
+
+		return "(%s)"%" OR ".join(
+			"to_tsvector(%s) @@ plainto_tsquery(%%(%s)s)"%(
+				colName,
+				keyName)
+			for keyName in keys)
 
 
 class PQLIntPar(PQLPar):

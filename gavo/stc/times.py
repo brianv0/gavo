@@ -58,6 +58,7 @@ def jYearToDateTime(jYear):
 dtJ2000 = jYearToDateTime(2000.0)
 dtB1950 = bYearToDateTime(1950.0)
 
+@utils.document
 def dateTimeToJdn(dt):
 	"""returns a julian day number (including fractionals) from a datetime
 	instance.
@@ -72,6 +73,7 @@ def dateTimeToJdn(dt):
 		secsOnDay = 0
 	return jdn+(secsOnDay-43200)/86400.
 
+@utils.document
 def dateTimeToMJD(dt):
 	"""returns a modified mjd for a datetime instance.
 	"""

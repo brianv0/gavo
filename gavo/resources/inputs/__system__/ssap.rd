@@ -513,7 +513,7 @@
 				APERTURE,     ssa_aperture,  //pql#floatParameter
 				SNR,          ssa_snr,       //pql#floatParameter
 				REDSHIFT,     ssa_redshift,  //pql#floatParameter
-				TARGETNAME,   ssa_targname,  //pql#stringParameter
+				TARGETNAME,   ssa_targname,  //pql#irStringParameter
 				TARGETCLASS,  ssa_targclass, //pql#stringParameter
 				PUBDID,       ssa_pubDID,    //pql#stringParameter
 				CREATORDID,   ssa_creatorDID,//pql#stringParameter

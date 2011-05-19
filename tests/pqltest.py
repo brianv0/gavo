@@ -198,6 +198,30 @@ class PQLFloatTest(testhelpers.VerboseTest):
 			"val4": 7.})
 
 
+class PQLIRTest(testhelpers.VerboseTest):
+	def testBasic(self):
+		cs = pql.PQLTextParIR.fromLiteral("abc ef", "foo")
+		sqlPars = {}
+		sql = cs.getSQL("foo", sqlPars)
+		self.assertEqual(sql, "(to_tsvector(foo) @@ plainto_tsquery(%(foo0)s))")
+		self.assertEqual(sqlPars, {'foo0': 'abc ef'})
+	
+	def testEnumeration(self):
+		cs = pql.PQLTextParIR.fromLiteral("abc ef, urgl", "foo")
+		sqlPars = {}
+		sql = cs.getSQL("foo", sqlPars)
+		self.assertEqual(sql, "(to_tsvector(foo) @@ plainto_tsquery(%(foo0)s)"
+			" OR to_tsvector(foo) @@ plainto_tsquery(%(foo1)s))")
+		self.assertEqual(sqlPars, {"foo0": " urgl", 'foo1': 'abc ef'})
+	
+	def testNoRange(self):
+		cs = pql.PQLTextParIR.fromLiteral("abc ef/urgl", "foo")
+		self.assertRaisesWithMsg(api.LiteralParseError,
+			"'abc%20ef/urgl/' is not a valid value for foo",
+			cs.getSQL,
+			("foo", {}))
+
+
 if __name__=="__main__":
-	testhelpers.main(PQLFloatTest)
+	testhelpers.main(PQLIRTest)
 

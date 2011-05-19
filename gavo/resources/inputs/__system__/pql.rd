@@ -66,6 +66,12 @@
 	</procDef>
 
 	<procDef id="stringParameter">
+		<doc>
+			A parameter that constrains a string-valued column.  Matches
+			are literal and case-sensitive; the collation (for ranges)
+			is that given by the database.  Steps are not allowed.
+		</doc>
+
 		<setup>
 			<par name="consCol" description="Name of the database column
 				constrained by the input value."/>
@@ -74,6 +80,31 @@
 		<code>
 			key = inputKeys[0].name
 			parsed = pql.PQLPar.fromLiteral(inPars.get(key, None), key)
+			if parsed is not None:
+				yield parsed.getSQL(consCol, outPars)
+		</code>
+	</procDef>
+
+	<procDef id="irStringParameter">
+		<doc>
+			A parameter that constrains a string-valued column, where both
+			the column values and the search value are interpreted as 
+			document vectors and compared according to the information retrieval
+			functions of Postgres -- i.e., more or less like google matches
+			queries.
+
+			Since it is hard to figure out what they could mean, neither 
+			steps nor ranges are supported.
+		</doc>
+
+		<setup>
+			<par name="consCol" description="Name of the database column
+				constrained by the input value."/>
+		</setup>
+
+		<code>
+			key = inputKeys[0].name
+			parsed = pql.PQLTextParIR.fromLiteral(inPars.get(key, None), key)
 			if parsed is not None:
 				yield parsed.getSQL(consCol, outPars)
 		</code>
