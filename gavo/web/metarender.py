@@ -173,12 +173,12 @@ class RendExplainer(object):
 		tqKeys = cgi.parse_qs(
 			base.getMetaText(service, "ssap.testQuery", default=""))
 		opts = []
-		for standardKey in ["RA", "DEC", "SR"]:
+		for standardKey in ["SIZE", "POS", "TIME", "BAND", "FORMAT"]:
 			if standardKey in tqKeys:
 				opts.append("%s=%s"%(standardKey, 
 					urllib.quote(tqKeys.pop(standardKey))))
 		if tqKeys:
-			opts.append("EXTRAPARAMS="+urllib.quote("\n".join(
+			opts.append("addparams="+urllib.quote("\n".join(
 				"%s=%s"%(k,urllib.quote(v)) for k,v in tqKeys.iteritems())))
 		optStr = "&".join(opts)
 		if optStr:
@@ -189,11 +189,11 @@ class RendExplainer(object):
 			" use ", service.getURL("ssap.xml"), " to access the service",
 			T.invisible(render=T.directive("ifadmin"))[" -- ",
 				T.a(href=
-					"http://registry.euro-vo.org:8080/dalvalidate/"
-					"SSAValidater?endpoint="+
-					urllib.quote(service.getURL("ssap.xml"))+
-					"%sformat=html&show=fail&show=warn&show=rec"
-					"&op=Validate"%(optStr))[
+					"http://voparis-validator.obspm.fr/validator.php?"
+					"spec=Simple+Spectral+Access+1.04&"
+					"format=XHTML&%sserviceURL=%s"%(
+						optStr,
+						urllib.quote(service.getURL("ssap.xml"))))[
 					"Validate"]]]
 
 
