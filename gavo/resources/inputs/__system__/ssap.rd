@@ -369,7 +369,7 @@
 		<mixinPar key="creator" description="Creator designation"
 			>__NULL__</mixinPar>
 		<mixinPar key="publisher" description="Publisher IVO (by default
-			 taken from the DC config)">\metaString{publisher.ivo_id}</mixinPar>
+			 taken from the DC config)">\metaString{publisherID}</mixinPar>
 		<mixinPar key="instrument" description="Instrument or code used to produce
 			these datasets">__NULL__</mixinPar>
 		<mixinPar key="dataSource" description="Generation type (typically, one
