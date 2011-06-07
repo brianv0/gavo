@@ -23,7 +23,7 @@
 		</FEED>
 		
 		<column name="ssa_dstitle" type="text"
-			utype="ssa:DataID.title" ucd="meta.title;meta.dataset"
+			utype="ssa:DataID.Title" ucd="meta.title;meta.dataset"
 			tablehead="Title" verbLevel="15"
 			description="Title or the dataset (usually, spectrum)"/>
 		<column name="ssa_creatorDID" type="text"
@@ -88,25 +88,25 @@
 			description="Midpoint of exposure"
 			xtype="adql:TIMESTAMP"/>
 		<column name="ssa_timeExt"
-			utype="Char.TimeAxis.Coverage.Bounds.Extent" ucd="time.duration"
+			utype="ssa:Char.TimeAxis.Coverage.Bounds.Extent" ucd="time.duration"
 			verbLevel="5" tablehead="Exp. Time"
 			description="Exposure duration"/>
 		<column name="ssa_specmid"
-			utype="Char.SpectralAxis.Coverage.Location.Value"
+			utype="ssa:Char.SpectralAxis.Coverage.Location.Value"
 			ucd="em.wl;instr.bandpass"
 			verbLevel="15" tablehead="Mid. Band" unit="m"
 			description="Midpoint of region covered in this dataset"/>
 		<column name="ssa_specext"
-			utype="Char.SpectralAxis.Coverage.Bounds.Extent"
+			utype="ssa:Char.SpectralAxis.Coverage.Bounds.Extent"
 			ucd="em.wl;instr.bandwidth"
 			verbLevel="15" tablehead="Band width" unit="m"
 			description="Width of the spectrum"/>
 		<column name="ssa_specstart"
-			utype="Char.SpectralAxis.Coverage.Location.Start" ucd="em.wl;stat.min"
+			utype="ssa:Char.SpectralAxis.Coverage.Location.Start" ucd="em.wl;stat.min"
 			verbLevel="15" tablehead="Band start" unit="m"
 			description="Lower value of spectral coordinate"/>
 		<column name="ssa_specend"
-			utype="Char.SpectralAxis.Coverage.Location.Stop" ucd="em.wl;stat.max"
+			utype="ssa:Char.SpectralAxis.Coverage.Location.Stop" ucd="em.wl;stat.max"
 			verbLevel="15" tablehead="Band end" unit="m"
 			description="Upper value of spectral coordinate"/>
 	</STREAM>
@@ -165,6 +165,10 @@
 			>\spectralSI</param>
 		<param name="ssa_fluxSI" type="text" utype="ssa:Dataset.FluxSI"
 			description="Unit of flux/magnitude">\fluxSI</param>
+		<param name="ssa_publisher" type="text"
+			utype="ssa:Curation.Publisher"
+			tablehead="Publisher" verbLevel="25" 
+			description="Publisher of the datasets included here.">\publisher</param>
 		<param name="ssa_creator" type="text"
 			utype="ssa:DataID.Creator"
 			tablehead="Creator" verbLevel="25" 
@@ -172,7 +176,8 @@
 		<param name="ssa_collection" type="text"
 			utype="ssa:DataID.Collection"
 			tablehead="Collection" verbLevel="25" 
-			description="IOVA Id of the originating dataset collection"/>
+			description="IOVA Id of the originating dataset collection"
+			>\collection</param>
 		<param name="ssa_instrument" type="text"
 			utype="ssa:DataID.Instrument" ucd="meta.id;instr"
 			tablehead="Instrument" verbLevel="25" 
@@ -217,15 +222,15 @@
 			verbLevel="25"
 			description="Type of flux calibration">\fluxCalibration</param>
 		<param name="ssa_binSize"
-			utype="Char.SpectralAxis.Accuracy.BinSize" ucd="em.wl;spect.binSize"
+			utype="ssa:Char.SpectralAxis.Accuracy.BinSize" ucd="em.wl;spect.binSize"
 			verbLevel="25" unit="m"
 			description="Bin size in wavelength"/>
 		<param name="ssa_statError"
-			utype="Char.SpectralAxis.Accuracy.StatError" ucd="stat.error;em"
+			utype="ssa:Char.SpectralAxis.Accuracy.StatError" ucd="stat.error;em"
 			verbLevel="25" unit="m"
 			description="Statistical error in wavelength">\statSpectError</param>
 		<param name="ssa_sysError"
-			utype="Char.SpectralAxis.Accuracy.StatError" ucd="stat.error.sys;em"
+			utype="ssa:Char.SpectralAxis.Accuracy.StatError" ucd="stat.error.sys;em"
 			verbLevel="25" unit="m"
 			description="Systematic error in wavelength">\sysSpectError</param>
 		<param name="ssa_speccalib" type="text"
@@ -241,11 +246,11 @@
 			verbLevel="15" unit="deg"
 			description="Statistical error in position">\statSpaceError</param>
 		<param name="ssa_spaceCalib" type="text"
-			utype="Char.SpatialAxis.Calibration" ucd="meta.code.qual"
+			utype="ssa:Char.SpatialAxis.Calibration" ucd="meta.code.qual"
 			verbLevel="25"
 			description="Type of calibration in spatial coordinates"/>
 		<param name="ssa_spaceRes"
-			utype="Char.SpatialAxis.Resolution" ucd="pos.angResolution"
+			utype="ssa:Char.SpatialAxis.Resolution" ucd="pos.angResolution"
 			verbLevel="25" unit="deg"
 			description="Spatial resolution of data"/>
 	</STREAM>
@@ -363,6 +368,8 @@
 			wavelength (WCS convention)">m</mixinPar>
 		<mixinPar key="creator" description="Creator designation"
 			>__NULL__</mixinPar>
+		<mixinPar key="publisher" description="Publisher IVO (by default
+			 taken from the DC config)">\metaString{publisher.ivo_id}</mixinPar>
 		<mixinPar key="instrument" description="Instrument or code used to produce
 			these datasets">__NULL__</mixinPar>
 		<mixinPar key="dataSource" description="Generation type (typically, one
@@ -388,6 +395,9 @@
 			>__NULL__</mixinPar>
 		<mixinPar key="statSpaceError" description="Statistical error in position"
 			>__NULL__</mixinPar>
+		<mixinPar key="collection" description="ivo id of the originating
+			collection">__NULL__</mixinPar>
+
 
 		<FEED source="//products#hackProductsData"/>
 		<events>
@@ -424,6 +434,8 @@
 						return
 					try:
 						ranges = pql.PQLFloatPar.fromLiteral(lit, key)
+						if ranges is None: # null string
+							return
 						yield ranges.getSQLForInterval(
 							"ssa_specstart", "ssa_specend", outPars)
 					except base.LiteralParseError: 
@@ -458,6 +470,9 @@
 					val = inPars.get("FORMAT", None)
 					if val is None:
 						return
+					if val=="" or val=="ALL":  # no constraint
+						return
+
 					if "/" in val:
 						raise base.ValidationError("No ranges allowed here",
 							colName="FORMAT")

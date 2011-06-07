@@ -268,6 +268,10 @@
 	forget to fix obscore#publishSIAP.  While doing that, require exposure
 	time in SIAP and fix tMin and tMax.
 
-66/MEDIUM/2011-04-06
+66/MEDIUM/2011-04-06/FIXED
 	ADQL INTERSECTS with a point is supposed to be an overlap.  In our
-	current code, it's an error.
+	current code, it's an error. [fixed somewhere around rev. 1900]
+
+67/MEDIUM/2011-06-07
+	VOTable PARAM with an NULL (None) value just gets to be a value="" attribute.
+	That's bad, we should use VALUES to define null literals.

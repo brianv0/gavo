@@ -106,6 +106,12 @@ class DataContent(attrdef.UnicodeAttribute):
 	a structure.
 
 	You can configure it with all the arguments available for UnicodeAttribute.
+
+	Since parsers may call characters with an empty string for
+	empty elements, the empty string will not be fed (i.e., the default
+	will be preserved).  This makes setting an empty string as an element content
+	impossible (you could use DataContent with strip=True, though), but that's
+	probably not a problem.
 	"""
 	typeDesc_ = "string"
 
@@ -113,6 +119,11 @@ class DataContent(attrdef.UnicodeAttribute):
 			description="Undocumented", **kwargs):
 		attrdef.UnicodeAttribute.__init__(self, "content_", default=default, 
 			description=description, **kwargs)
+
+	def feed(self, ctx, instance, value):
+		if value=='':
+			return
+		return attrdef.UnicodeAttribute.feed(self, ctx, instance, value)
 
 	def makeUserDoc(self):
 		return ("Character content of the element (defaulting to %s) -- %s"%(

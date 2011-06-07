@@ -137,6 +137,7 @@ class DALRenderer(grend.ServiceBasedPage):
 		result = self._makeErrorTable(ctx, errmsg)
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
+		request.setResponseCode(400) # diagnose that a little closer?
 		votable.write(result, request)
 		return "\n"
 

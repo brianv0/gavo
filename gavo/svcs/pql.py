@@ -214,6 +214,7 @@ class PQLPar(object):
 	class but plain functions; since they are function-like class attributes,
 	you will usually have to wrap them in staticmethods
 	"""
+	nullvalue = None
 	valParser = str
 	stepParser = staticmethod(_raiseNoSteps)
 
@@ -242,6 +243,9 @@ class PQLPar(object):
 		# this is the implementation of the fromLiteral class method(s)
 		# It's static so the fromLiterals can upcall.
 		if val is None:
+			return None
+
+		if val==cls.nullvalue:
 			return None
 
 		mat = QUALIFIER_RE.match(val)
@@ -309,6 +313,8 @@ class PQLTextParIR(PQLPar):
 	Basically, this matches the input and the database column as document
 	vectors.  Correspondingly, ranges are disallowed.
 	"""
+	nullvalue = ""
+
 	def getSQL(self, colName, sqlPars):
 		try:
 			docs = self.getValuesAsSet()
@@ -334,6 +340,7 @@ class PQLIntPar(PQLPar):
 
 	steps in ranges are allowed.
 	"""
+	nullvalue = ""
 	valParser = int
 	stepParser = int
 
@@ -343,6 +350,7 @@ class PQLDatePar(PQLPar):
 
 	steps in ranges are allowed.
 	"""
+	nullvalue = ""
 	valParser = staticmethod(literals.parseDefaultDatetime)
 
 	@staticmethod
@@ -359,6 +367,7 @@ class PQLPositionPar(PQLPar):
 	The literals here are basically two-float lists.
 	"""
 	valParser = float
+	nullvalue = ""
 
 	def getSQL(self, colName, sqlPars):
 		raise NotImplementedError("Ranges for PQL POS not implemented yet.")
@@ -396,6 +405,7 @@ class PQLFloatPar(PQLPar):
 	BAND.
 	"""
 	valParser = float
+	nullvalue = ""
 
 	def getSQLForInterval(self, lowerColName, upperColName, sqlPars):
 		"""returns an SQL phrase against an interval in a table.

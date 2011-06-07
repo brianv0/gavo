@@ -180,14 +180,20 @@ def _iterFields(serManager):
 def _makeVOTParam(ctx, param):
 	"""returns VOTable stan for param.
 
-	If param's value is not given, None is returned.
+	If param's value is not given, None is returned; if a param's value
+	is None, we *should* come up with a good null value but currently
+	don't.
 	"""
 	if param.content_ is base.NotGiven:
 		return None
 	else:
 		el = V.PARAM()
 		defineField(el, valuemappers.VColDesc(param))
-		el.value = param.content_
+		if param.content_ is None:
+			# That's too cheap, see bug #67
+			el.value = ""
+		else:
+			el.value = param.content_
 		return el
 
 

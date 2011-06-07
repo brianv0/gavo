@@ -172,14 +172,20 @@ class RendExplainer(object):
 	def _explain_ssap_xml(cls, service):
 		tqKeys = cgi.parse_qs(
 			base.getMetaText(service, "ssap.testQuery", default=""))
-		opts = []
-		for standardKey in ["SIZE", "POS", "TIME", "BAND", "FORMAT"]:
-			if standardKey in tqKeys:
-				opts.append("%s=%s"%(standardKey, 
-					urllib.quote(tqKeys.pop(standardKey))))
-		if tqKeys:
-			opts.append("addparams="+urllib.quote("\n".join(
-				"%s=%s"%(k,urllib.quote(v)) for k,v in tqKeys.iteritems())))
+		# validator php seems to insist on that key
+		opts = ["batch=yes&"
+			"service=http%3A%2F%2Fvoparis-validator.obspm.fr%2Fxml%2F111.xml%3F"]
+		for standardKey, default in [
+				("REQUEST", "queryData"), 
+				("SIZE", ""),
+				("POS", ""),
+				("TIME", ""),
+				("BAND", ""),
+				("FORMAT", "ALL")]:
+			opts.append("%s=%s"%(standardKey, 
+				urllib.quote(tqKeys.pop(standardKey, default))))
+		opts.append("addparams="+urllib.quote("\n".join(
+			"%s=%s"%(k,urllib.quote(v)) for k,v in tqKeys.iteritems())))
 		optStr = "&".join(opts)
 		if optStr:
 			optStr = optStr+"&"

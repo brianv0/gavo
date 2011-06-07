@@ -79,6 +79,12 @@ class SSAPCore(svcs.DBCore):
 				value="Exactly %s rows were returned.  This means"
 				" your query probably reached the match limit.  Increase MAXREC."%limit,
 				infoName="QUERY_STATUS", infoValue="OVERFLOW"))
+
+		# add shitty namespace for utypes.  sigh.
 		res.addMeta("_votableRootAttributes",
 			'xmlns:ssa="http://www.ivoa.net/xml/DalSsap/v1.0"')
+
+		res.addMeta("info", base.makeMetaValue("SSAP",
+			type="info",
+			infoName="SERVICE_PROTOCOL", infoValue="1.04"))
 		return res

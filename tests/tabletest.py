@@ -351,7 +351,8 @@ class _ParamTD(testhelpers.TestResource):
 		return base.parseFromString(rscdef.TableDef, 
 			'<table id="u"><param name="i" type="integer"/>'
 			'<param name="d" type="timestamp">'
-			'2011-11-11T11:11:11</param></table>')
+			'2011-11-11T11:11:11</param>'
+			'<param name="s" type="text"/></table>')
 
 
 class ParamTest(testhelpers.VerboseTest):
@@ -392,6 +393,12 @@ class ParamTest(testhelpers.VerboseTest):
 		table.setParam,
 		("doric", 10))
 
+	def testMacro(self):
+		table = rsc.TableForDef(self.td)
+		table.setParam("s", r"\metaString{publisher.ivo_id}")
+		self.assertEqual(table.getParam("s"), 
+			base.getMetaText(table, "publisher.ivo_id"))
+
 
 class QueryTableTest(testhelpers.VerboseTest):
 	resources = [("basetable", tresc.csTestTable)]
@@ -427,4 +434,4 @@ class QueryTableTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(QueryTableTest)
+	testhelpers.main(ParamTest)

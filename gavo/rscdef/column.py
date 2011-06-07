@@ -475,6 +475,9 @@ class ParamBase(Column):
 
 	_valueCache = base.Undefined
 
+	# we need to fix null literal handling of params.  Meanwhile:
+	nullLiteral = ""
+
 	def __repr__(self):
 		return "<%s %s=%s>"%(self.__class__.__name__, 
 			self.name, repr(self.content_))
@@ -484,6 +487,8 @@ class ParamBase(Column):
 		if self.content_ is base.NotGiven:
 			if self.values and self.values.default:
 				self.set(self.values.default)
+		else:
+			self.set(self.content_)
 
 	@property
 	def value(self):
@@ -525,6 +530,8 @@ class ParamBase(Column):
 		if not isinstance(literal, basestring):
 			return literal
 		try:
+			if literal==self.nullLiteral:
+				return None
 			return base.sqltypeToPython(self.type)(literal)
 		except ValueError:
 			raise base.ValidationError("%s is not a valid literal for %s"%(
@@ -543,7 +550,7 @@ class ParamBase(Column):
 		if isinstance(value, (list, tuple)):
 			return value
 		if value is None:
-			return ""
+			return self.nullLiteral
 		else:
 			return base.pythonToLiteral(self.type)(value)
 
@@ -575,3 +582,15 @@ class Param(ParamBase):
 			raise base.LiteralParseError(self.name, self.content_,
 				hint="Param content must be parseable by the DC default parsers."
 					"  The value you passed caused the error: %s"%msg)
+	
+	def set(self, val):
+		"""sets the value of the parameter.
+
+		Macros will be expanded if the parent object supports macro
+		expansion.
+		"""
+		if (isinstance(val, basestring)
+				and "\\" in val 
+				and hasattr(self.parent, "expand")):
+			val = self.parent.expand(val)
+		return ParamBase.set(self, val)

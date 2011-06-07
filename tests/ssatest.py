@@ -133,6 +133,29 @@ class CoreQueriesTest(_WithSSATableTest):
 	]
 
 
+class CoreNullTest(_WithSSATableTest):
+# make sure empty parameters of various types are just ignored.
+	totalRecs = 3
+
+	def _getNumMatches(self, inDict):
+		inDict["REQUEST"] = "queryData"
+		return len(getRD().getById("s").runFromDict(inDict, "ssap.xml"
+			).original.getPrimaryTable().rows)
+	
+	def testSomeNULLs(self):
+		self.assertEqual(self._getNumMatches({"TIME": "", "POS": ""}), 
+			self.totalRecs)
+	
+	def testBANDNULL(self):
+		self.assertEqual(self._getNumMatches({"BAND": ""}), self.totalRecs)
+
+	def testFORMATNULL(self):
+		self.assertEqual(self._getNumMatches({"FORMAT": ""}), self.totalRecs)
+
+	def testFORMATALL(self):
+		self.assertEqual(self._getNumMatches({"FORMAT": "ALL"}), self.totalRecs)
+
+
 class MetaKeyTest(_WithSSATableTest):
 # these are like CoreQueries except they exercise custom logic
 	def testTOP(self):
@@ -268,4 +291,4 @@ class SSATableTest(testhelpers.VerboseTest):
 
 
 if __name__=="__main__":
-	testhelpers.main(SSATableTest)
+	testhelpers.main(CoreNullTest)
