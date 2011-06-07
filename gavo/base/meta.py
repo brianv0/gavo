@@ -299,7 +299,10 @@ class MetaMixin(object):
 		self.__metaParent = parent
 	
 	def getMetaParent(self):
-		return self.__metaParent
+		if self.__hasMetaParent():
+			return self.__metaParent
+		else:
+			return None
 
 	def _getMeta(self, atoms, propagate):
 		try:

@@ -392,7 +392,9 @@ class TableDef(base.Structure, base.ComputedMetaMixin, common.RolesMixin,
 	def completeElement(self, ctx):
 		# we want a meta parent as soon as possible, and we always let it
 		# be our struct parent
-		if self.parent:
+		if (not self.getMetaParent() 
+				and self.parent 
+				and hasattr(self.parent, "_getMeta")):
 			self.setMetaParent(self.parent)
 
 		if self.viewStatement and getattr(ctx, "restricted", False):

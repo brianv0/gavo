@@ -243,4 +243,3 @@ class MixinAttribute(base.SetOfAtomsAttribute):
 		# since mixins may contain parameters, we need a custom parser
 		# when mixin is a child.
 		return _MixinParser(parent, self)
-
