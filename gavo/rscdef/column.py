@@ -483,6 +483,8 @@ class ParamBase(Column):
 			self.name, repr(self.content_))
 
 	def onElementComplete(self):
+		if self.type=="text": # Fix this, too, when fixing null literals in total
+			self.nullLiteral = "__NULL__"
 		self._onElementCompleteNext(ParamBase)
 		if self.content_ is base.NotGiven:
 			if self.values and self.values.default:

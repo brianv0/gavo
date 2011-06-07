@@ -395,9 +395,9 @@ class ParamTest(testhelpers.VerboseTest):
 
 	def testMacro(self):
 		table = rsc.TableForDef(self.td)
-		table.setParam("s", r"\metaString{publisher.ivo_id}")
+		table.setParam("s", r"\metaString{publisherID}")
 		self.assertEqual(table.getParam("s"), 
-			base.getMetaText(table, "publisher.ivo_id"))
+			base.getMetaText(table, "publisherID"))
 
 
 class QueryTableTest(testhelpers.VerboseTest):

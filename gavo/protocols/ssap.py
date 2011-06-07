@@ -30,6 +30,8 @@ class SSAPCore(svcs.DBCore):
 	"""
 	name_ = "ssapCore"
 
+	ssapVersion = "1.04"
+
 	outputTableXML = """
 		<outputTable verbLevel="30">
 			<FEED source="//ssap#coreOutputAdditionals"/>
@@ -51,8 +53,9 @@ class SSAPCore(svcs.DBCore):
 					base.getMetaText(service, "description")],
 				V.INFO(name="QUERY_STATUS", value="OK"), [
 					inParams,
-					votablewrite.makeTable(ctx, emptyTable)
-		]]]
+					votablewrite.makeTable(ctx, emptyTable)],
+				V.INFO(name="SERVICE_PROTOCOL", value="1.04")[
+					"SSAP"]]]
 
 		res =  StringIO()
 		votable.write(vot, res)
@@ -86,5 +89,5 @@ class SSAPCore(svcs.DBCore):
 
 		res.addMeta("info", base.makeMetaValue("SSAP",
 			type="info",
-			infoName="SERVICE_PROTOCOL", infoValue="1.04"))
+			infoName="SERVICE_PROTOCOL", infoValue=self.ssapVersion))
 		return res

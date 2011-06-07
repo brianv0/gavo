@@ -425,7 +425,7 @@
 		<condDesc id="bandCond">
 			<inputKey name="BAND" type="text" description="Wavelength (range)
 				of interest (or symbolic bandpass names)" unit="m"
-				std="True"/>
+				std="True" utype="ssa:DataId.Bandpass"/>
 			<phraseMaker>
 				<code>
 					key = inputKeys[0].name

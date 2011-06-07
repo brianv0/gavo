@@ -134,10 +134,11 @@ class DALRenderer(grend.ServiceBasedPage):
 			).addCallback(self._formatOutput, ctx)
 
 	def _writeErrorTable(self, ctx, errmsg):
+		# Don't set a non-200 response code here -- the specs don't like
+		# that.
 		result = self._makeErrorTable(ctx, errmsg)
 		request = inevow.IRequest(ctx)
 		request.setHeader("content-type", "application/x-votable")
-		request.setResponseCode(400) # diagnose that a little closer?
 		votable.write(result, request)
 		return "\n"
 
