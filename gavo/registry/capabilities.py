@@ -322,22 +322,34 @@ class TAPCapabilityMaker(CapabilityMaker):
 			from gavo.adql import ufunctions
 			res[
 				_tapModelBuilder.build(service),
+				# Once we support more than one language, we'll have to
+				# revisit this -- the optional features must then become
+				# a property of the language.
 				[TR.language[
 						TR.name[langName],
-						TR.version[version],
+						TR.version(ivoId=ivoId)[version],
 						TR.description[description],
-						[[TR.userDefinedFunction[
-								TR.signature[udf.adqlUDF_signature],
+						TR.languageFeatures(type="ivo://ivoa.net/TAPRegExt#features-udf")[
+							[TR.feature[
+								TR.form[udf.adqlUDF_signature],
 								TR.description[udf.adqlUDF_doc]]
-							for udf in ufunctions.UFUNC_REGISTRY.values()]]]
-					for langName, version, description
+							for udf in ufunctions.UFUNC_REGISTRY.values()]],
+						TR.languageFeatures(
+								type="ivo://ivoa.net/TAPRegExt#features-adqlgeo")[
+							[TR.feature[
+								TR.form[funcName]]
+							# take this from adql.grammar somehow?
+							for funcName in ("BOX", "POINT", "CIRCLE", "POLYGON",
+									"REGION", "CENTROID", "COORD1", "COORD2",
+									"DISTANCE", "CONTAINS", "INTERSECTS", "AREA")]]]
+					for langName, version, description, ivoId
 						in tap.getSupportedLanguages()],
-				[TR.outputFormat[
+				[TR.outputFormat(ivoId=ivoId)[
 						TR.mime[mime], 
-							[TR.alias[alias] for alias in aliases],
-						TR.description[description]]
-					for mime, aliases, description in tap.getSupportedOutputFormats()],
-				[TR.uploadMethod(ivoId="ivo://ivoa.org/tap/uploadmethods#%s"%proto)
+							[TR.alias[alias] for alias in aliases]]
+					for mime, aliases, description, ivoId 
+						in tap.getSupportedOutputFormats()],
+				[TR.uploadMethod(ivoId="ivo://ivoa.org/TAPRegExt#%s"%proto)
 					for proto in tap.UPLOAD_METHODS],
 				TR.retentionPeriod[
 					TR.default[str(base.getConfig("async", "defaultLifetime"))]],

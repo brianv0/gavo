@@ -36,8 +36,8 @@ registerPrefix("sia", "http://www.ivoa.net/xml/SIA/v1.0",
 	schemaURL("SIA-v1.0.xsd"))
 registerPrefix("ssap", "http://www.ivoa.net/xml/SSA/v0.4",
 	schemaURL("SSA-v0.4.xsd"))
-registerPrefix("tr", "http://www.ivoa.net/xml/TAP/v0.1",
-	schemaURL("TAPRegExt-v0.1.xsd"))
+registerPrefix("tr", "http://www.ivoa.net/xml/TAP/v1.0",
+	schemaURL("TAPRegExt-v1.0.xsd"))
 
 
 
@@ -655,12 +655,12 @@ class TR(object):
 
 	class language(TRElement):
 		_a_LANG = None
-		_a_ivoId = None
-		_name_a_ivoId = "ivo-id"
 	
 	class outputFormat(TRElement):
 		_a_FORMAT = None
 		_a_mime = None
+		_a_ivoId = None
+		_name_a_ivoId = "ivo-id"
 	
 	class uploadMethod(TRElement):
 		_mayBeEmpty = True
@@ -674,6 +674,13 @@ class TR(object):
 	class hard(TRElement):
 		_a_unit = None
 
+	class version(TRElement):
+		_a_ivoId = None
+		_name_a_ivoId = "ivo-id"
+
+	class languageFeatures(TRElement):
+		_a_type = None
+
 	class alias(TRElement): pass
 	class description(TRElement): pass
 	class executionDuration(TRElement): pass
@@ -683,7 +690,7 @@ class TR(object):
 	class protocol(TRElement): pass
 	class retentionPeriod(TRElement): pass
 	class outputLimit(TRElement): pass
-	class signature(TRElement): pass
+	class form(TRElement): pass
 	class uploadLimit(TRElement): pass
-	class userDefinedFunction(TRElement): pass
-	class version(TRElement): pass
+	class feature(TRElement): pass
+

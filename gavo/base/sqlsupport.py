@@ -22,7 +22,10 @@ import psycopg2
 import psycopg2.extras
 import psycopg2.extensions
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
-psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
+try:
+	psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
+except AttributeError:  # UNICODEARRAY only at psycopg2 >2.0
+	pass
 
 from psycopg2.extras import DictCursor
 

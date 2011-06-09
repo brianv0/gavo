@@ -31,56 +31,61 @@ RD_ID = "__system__/tap"
 # Used below (1st element of value tuple) and for registry purposes.
 FORMAT_CODES = {
 	"application/x-votable+xml": 
-		("votable", "application/x-votable+xml", "VOTable, binary"),
+		("votable", "application/x-votable+xml", "VOTable, binary", 
+			"ivo://ivoa.net/TAPRegEXT#output-votable-binary"),
 	"text/xml": 
-		("votable", "text/xml", "VOTable, binary"),
+		("votable", "text/xml", "VOTable, binary",
+			"ivo://ivoa.net/TAPRegEXT#output-votable-binary"),
 	"votable": 
-		("votable", "application/x-votable+xml", "VOTable, binary"),
+		("votable", "application/x-votable+xml", "VOTable, binary",
+			"ivo://ivoa.net/TAPRegEXT#output-votable-binary"),
 	"application/x-votable+xml;encoding=tabledata":
 		("votabletd", "application/x-votable+xml;encoding=tabledata", 
-			"VOTable, tabledata"),
+			"VOTable, tabledata",
+			"ivo://ivoa.net/TAPRegEXT#output-votable-td"),
 	"votable/td":
 		("votabletd", "application/x-votable+xml;encoding=tabledata", 
-			"VOTable, tabledata"),
+			"VOTable, tabledata",
+			"ivo://ivoa.net/TAPRegEXT#output-votable-td"),
 	"text/csv": 
-		("csv", "text/csv", "CSV without column labels"),
+		("csv", "text/csv", "CSV without column labels", None),
 	"csv": ("csv+header", "text/csv;header=present", 
-			"CSV with column labels"),
+			"CSV with column labels", None),
 	"text/csv;header=present": 
 		("csv+header", "text/csv;header=present",
-			"CSV with column labels"),
+			"CSV with column labels", None),
 	"text/tab-separated-values": 
 		("tsv", "text/tab-separated-values", 
-			"Tab separated values"),
+			"Tab separated values", None),
 	"tsv": 
 		("tsv", "text/tab-separated-values", 
-			"Tab separated values"),
+			"Tab separated values", None),
 	"application/fits": 
-		("fits", "application/fits", "FITS binary table"),
+		("fits", "application/fits", "FITS binary table", None),
 	"fits":
-		("fits", "application/fits", "FITS binary table"),
+		("fits", "application/fits", "FITS binary table", None),
 	"text/html": 
-		("html", "text/html", "HTML table"),
+		("html", "text/html", "HTML table", None),
 	"html": 
-		("html", "text/html", "HTML table"),
+		("html", "text/html", "HTML table", None),
 }
 
 
 # this is used below in for registry purposes (values are pairs of
 # IVOA id and a human-readable label).
 SUPPORTED_LANGUAGES = {
-	"ADQL": ("ivo://tap/languages/ADQL-2.0", "ADQL 2.0"),
-	"ADQL-2.0": ("ivo://tap/languages/ADQL-2.0", "ADQL 2.0"),
+	"ADQL": ("ivo://ivoa.net/ADQL/2.0", "ADQL 2.0"),
+	"ADQL-2.0": ("ivo://ivoa.net/ADQL/2.0", "ADQL 2.0"),
 }
 
 
 # A list of supported upload methods.  This is only used in the registry
 # interface right now.
 UPLOAD_METHODS = {
-	"inline": "POST inline upload",
-	"http": "http URL",
-	"https": "https URL",
-	"ftp": "ftp URL",
+	"upload-inline": "POST inline upload",
+	"upload-http": "http URL",
+	"upload-https": "https URL",
+	"upload-ftp": "ftp URL",
 }
 
 
@@ -123,7 +128,7 @@ def getSupportedLanguages():
 			# fullName has no version info, there must be at least one entry
 			# that includes a version, so skip this one.
 			continue
-		langs.append((name, version, descr))
+		langs.append((name, version, descr, ivoId))
 	return langs
 
 
@@ -133,16 +138,17 @@ def getSupportedOutputFormats():
 	This is tap.OUTPUT_FORMATS in a format suitable for the
 	TAP capabilities element.
 
-	Each tuple is made up of (mime, aliases, description).
+	Each tuple is made up of (mime, aliases, description, ivoId).
 	"""
-	codes, descrs = {}, {}
-	for code, (_, outputMime, descr) in FORMAT_CODES.iteritems():
+	codes, descrs, ivoIds = {}, {}, {}
+	for code, (_, outputMime, descr, ivoId) in FORMAT_CODES.iteritems():
 		codes.setdefault(outputMime, set()).add(code)
 		descrs[outputMime] = descr
+		ivoIds[outputMime] = ivoId
 	for mime in codes:
 		# mime never is an alias of itself
 		codes[mime].discard(mime)
-		yield mime, codes[mime], descrs[mime]
+		yield mime, codes[mime], descrs[mime], ivoIds[mime]
 
 
 ######################## maintaining TAP schema
