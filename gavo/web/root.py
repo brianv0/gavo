@@ -343,7 +343,7 @@ def processingFailed(error, request, ctx):
 
 appserver.processingFailed = processingFailed
 
-site = appserver.NevowSite(root)
+site = appserver.NevowSite(root, timeout=300)
 # the next line unfortunately has no effect with 2010 twisted, but
 # should eventually replace the processingFailed hack above.
 site.remember(weberrors.DCExceptionHandler)
