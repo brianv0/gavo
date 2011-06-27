@@ -32,10 +32,10 @@ RD_ID = "__system__/tap"
 FORMAT_CODES = {
 	"application/x-votable+xml": 
 		("votable", "application/x-votable+xml", "VOTable, binary", 
-			"ivo://ivoa.net/TAPRegEXT#output-votable-binary"),
+			"ivo://ivoa.net/TAPRegExt#output-votable-binary"),
 	"text/xml": 
 		("votable", "text/xml", "VOTable, binary",
-			"ivo://ivoa.net/TAPRegEXT#output-votable-binary"),
+			"ivo://ivoa.net/TAPRegExt#output-votable-binary"),
 	"votable": 
 		("votable", "application/x-votable+xml", "VOTable, binary",
 			"ivo://ivoa.net/TAPRegEXT#output-votable-binary"),

@@ -4,6 +4,7 @@ Common code for the nevow based interface.
 
 import os
 
+from nevow import appserver
 from nevow import tags as T, entities as E
 from nevow import loaders
 from nevow import inevow
@@ -115,3 +116,22 @@ class CommonRenderers(object):
 			T.meta(**{"http-equiv": "Content-type", 
 				"content": "text/html;charset=UTF-8"}),
 		]
+
+
+class Request(appserver.NevowRequest):
+	"""a custom request class used in DaCHS' application server.
+
+	The main change is that we enforce a limit to the size of the payload.
+	This is especially crucial because nevow blocks while parsing the
+	header payload.
+	"""
+	def gotLength(self, length):
+		if length and length>base.getConfig("web", "maxUploadSize"):
+			self.channel.transport.write(
+				"HTTP/1.1 413 Request Entity Too Large\r\n\r\n")
+			# unfortunately, http clients won't see this; they'll get a
+			# connection reset instead.  Ah well, even nginx doesn't
+			# do much better here.
+			self.channel.transport.loseConnection()
+			return
+		return appserver.NevowRequest.gotLength(self, length)

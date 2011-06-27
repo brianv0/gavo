@@ -347,3 +347,4 @@ site = appserver.NevowSite(root)
 # the next line unfortunately has no effect with 2010 twisted, but
 # should eventually replace the processingFailed hack above.
 site.remember(weberrors.DCExceptionHandler)
+site.requestFactory = common.Request

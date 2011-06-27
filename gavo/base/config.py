@@ -377,6 +377,9 @@ _config = Configuration(
 		StringConfigItem("adsMirror", 
 			"http://ads.ari.uni-heidelberg.de",
 			"Root URL of ADS mirror to be used"),
+		IntConfigItem("maxUploadSize",
+			"20000000",
+			"Maximal size of file uploads in bytes."),
 	),
 
 	Section('adql', "Settings concerning the built-in ADQL core",
@@ -395,8 +398,6 @@ _config = Configuration(
 			"Default match limit for ADQL queries via the UWS/TAP"),
 		IntConfigItem("hardMAXREC", "20000000",
 			"Default match limit for ADQL queries via the UWS/TAP"),
-		IntConfigItem("maxUploadBytes", "100000000",
-			"Limit of the size of TAP uploads in bytes (only advisory so far)"),
 		StringConfigItem("csvDialect", "excel", "CSV dialect as defined"
 			" by the python csv module used when writing CSV files."),
 ),

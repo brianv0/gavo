@@ -8,6 +8,8 @@ here are called from the addFieldInfo methods of the respective
 nodes classes.
 """
 
+from __future__ import with_statement
+
 from gavo.adql.common import *
 
 
