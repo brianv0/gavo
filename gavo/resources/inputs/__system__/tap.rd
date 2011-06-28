@@ -256,9 +256,9 @@
 						for fkey in table.foreignKeys:
 							fkeyId = rd.sourceId+utils.intToFunnyWord(id(fkey))
 							yield {
-								"key_id": fkeyId,
-								"from_table": table.getQName(),
-								"target_table": fkey.table,
+								"key_id": fkeyId.lower(),
+								"from_table": table.getQName().lower(),
+								"target_table": fkey.table.lower(),
 								"description": None,
 								"utype": None,
 								"sourceRD": rd.sourceId,
@@ -266,9 +266,9 @@
 							}
 							for src, dst in zip(fkey.source, fkey.dest):
 								yield {
-									"key_id": fkeyId,
-									"from_column": src,
-									"target_column": dst,
+									"key_id": fkeyId.lower(),
+									"from_column": src.lower(),
+									"target_column": dst.lower(),
 									"sourceRD": rd.sourceId,
 									"dest": "cols",
 								}

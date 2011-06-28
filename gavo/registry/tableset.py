@@ -30,7 +30,7 @@ def getForeignKeyForForeignKey(fk):
 	"""returns a VS1.foreignKey for a rscdef.ForeignKey.
 	"""
 	return VS1.foreignKey[
-		VS1.targetTable[fk.parent.expand(fk.table)], [
+		VS1.targetTable[fk.parent.expand(fk.table).lower()], [
 			VS1.fkColumn[
 				VS1.fromColumn[fromColName.lower()],
 				VS1.targetColumn[toColName.lower()]]

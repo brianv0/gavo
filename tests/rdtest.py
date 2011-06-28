@@ -253,7 +253,7 @@ class TAP_SchemaTest(testhelpers.VerboseTest):
 			(q.query("select from_column, target_column"
 				" from TAP_SCHEMA.key_columns where sourcerd"
 				" = %(rdid)s", {"rdid": self.rd.sourceId})))
-		self.assertEqual(fkcols, set([(u'foo', u'rV')]))
+		self.assertEqual(fkcols, set([(u'foo', u'rv')]))
 
 	def _checkUnpublished(self):
 		q = base.SimpleQuerier(connection=self.conn)
