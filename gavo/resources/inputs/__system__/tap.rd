@@ -258,7 +258,7 @@
 							yield {
 								"key_id": fkeyId.lower(),
 								"from_table": table.getQName().lower(),
-								"target_table": fkey.table.lower(),
+								"target_table": table.expand(fkey.table.lower()),
 								"description": None,
 								"utype": None,
 								"sourceRD": rd.sourceId,

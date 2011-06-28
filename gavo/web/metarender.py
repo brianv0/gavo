@@ -512,6 +512,9 @@ class RDInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 		return sorted(self.clientRD.tables,
 			key=lambda t: t.id)
 
+	def data_clientRdId(self, ctx, data):
+		return self.clientRD.sourceId
+
 	def _getDescriptionHTML(self, descItem):
 		"""returns stan for the "description" of a service or a table.
 
@@ -573,6 +576,3 @@ class RDInfoRenderer(grend.CustomTemplateMixin, grend.ServiceBasedPage):
 			T.body[
 				T.p["RD infos are only available with an rdinfo.html template"]]
 		])
-
-
-
